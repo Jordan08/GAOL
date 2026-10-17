@@ -334,66 +334,90 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
     uipow_dnup(), gone with it, as from the FPU intervals (x^n takes exact
     products, see pown_products() in gaol_interval_core.cpp).
   */
-  interval sqr(const interval& I)
+  /*
+    The lanes of the result that the interval straddling zero (movemask 0: the
+    left bound stored negated and the right one both not negative) sets to 0:
+    its lower bound is 0, where the maximum of the two squares below gives
+    -min(l^2, r^2) there
+  */
+  alignas(16) static const std::uint64_t sqr_lanes[4][2] = {
+    { 0, ~std::uint64_t(0) }, { ~std::uint64_t(0), ~std::uint64_t(0) },
+    { ~std::uint64_t(0), ~std::uint64_t(0) }, { ~std::uint64_t(0), ~std::uint64_t(0) } };
+
+  /*
+    The square of I, the empty set or not, whose stored bounds are <-l, r>:
+    both products it can need are computed, <-rnddn(l^2), rndup(r^2)> and
+    <-rnddn(r^2), rndup(l^2)> (the square of the opposite bounds, swapped),
+    and the larger of each lane is the square of I whatever its sign: <-l^2,
+    r^2> for l >= 0 (l^2 <= r^2), <-r^2, l^2> for r <= 0, and for an I
+    straddling zero the lower bound, wrongly -min(l^2, r^2), is set to 0 by a
+    mask taken from the signs. No branch but the one of the empty set, which
+    the maximum would signal (maxpd raises the invalid-operation exception for
+    a NaN): the three cases of the signs, told by a switch, were taken at
+    random by the sign of x - a in Shekel 5, 20 times per evaluation, and a
+    mispredicted branch costs more than the products it spares (GAOL v5,
+    point ZZ of TODO.md, which made sqr() three times faster). The bounds are
+    those of the switch, bit for bit, the sign of the zeros included.
+  */
+  __m128d sqr_bounds(__m128d x)
   {
-    if (I.is_empty()) {
-        return I;
+    if (_mm_movemask_pd(_mm_cmpunord_pd(x, x)) != 0) { // the empty set
+      return x;
     }
     GAOL_RND_ENTER_SSE();
-    __m128d Ix = I.get_xmminterval();
-    __m128d res;
-    switch (_mm_movemask_pd(Ix)) { // Remember that the sign of the left bound is negated
-    case 0: // 00: I.straddles_zero(), <0, max(rndup(l^2), rndup(r^2))>
-      {
-	__m128d sq = _mm_mul_pd(Ix,Ix);
-	res = _mm_and_pd(_mm_max_pd(sq,_mm_shuffle_pd(sq,sq,1)),interval::m128d_02mask);
-	break;
-      }
-    case 1: // 01: I.positive(), <-rnddn(l^2), rndup(r^2)>
-      res = _mm_mul_pd(Ix,_mm_xor_pd(Ix,interval::lbsignmask));
-      break;
-    case 2: // 10: I.negative(), <-rnddn(r^2), rndup(l^2)>
-      Ix = _mm_shuffle_pd(Ix,Ix,1);
-      res = _mm_mul_pd(Ix,_mm_xor_pd(Ix,interval::lbsignmask));
-      break;
-    default: // 11: I=[0, -0] (empty intervals have been filtered already)
-      res = _mm_set_pd(0.0,-0.0);
-    }
+    const __m128d s1 = _mm_mul_pd(x, _mm_xor_pd(x, interval::lbsignmask));
+    const __m128d xs = _mm_shuffle_pd(x, x, 1);
+    const __m128d s2 = _mm_mul_pd(xs, _mm_xor_pd(xs, interval::lbsignmask));
+    __m128d res = _mm_and_pd(_mm_max_pd(s1, s2),
+                             _mm_load_pd(reinterpret_cast<const double *>(sqr_lanes[_mm_movemask_pd(x)])));
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE_SSE();
-    return interval(res);
+    return res;
   }
 
 
- interval& interval::operator+=(const interval& I)
-    {
+  /*
+    The kernels of the four operations between two intervals, on their stored
+    bounds <-l, r> (GAOL v5, point ZZ of TODO.md): the operators of the
+    header call them (see gaol_interval_sse.h) with the two doubles in a
+    register and have them back in one, where operator+=() read and wrote
+    them through memory, and its result went back to memory for the
+    operation that followed. The check of the rounding direction is theirs:
+    the code that calls them is compiled with the flags of its own program.
+    Where GAOL_AVX512_ARITHMETIC is, they are the functions of
+    gaol_interval_avx512.cpp, and carry its target.
+  */
 #if GAOL_AVX512_ARITHMETIC
-      // The AVX-512 path: no rounding direction to set, the flush-to-zero
-      // modes cleared where they are set (gaol/gaol_interval_avx512.cpp).
-      // Where GAOL_AVX512_ARITHMETIC is, each operation returns from its
-      // block of that path, and its SSE2 code is never reached
-      {
-        return fast_add_assign(*this, I);
-      }
+#  define GAOL_BOUNDS_TARGET GAOL_AVX512_TARGET
+#else
+#  define GAOL_BOUNDS_TARGET
 #endif
-      GAOL_RND_ENTER_SSE();
-      xmmbounds = _mm_add_pd(xmmbounds, I.xmmbounds);
-      GAOL_RND_LEAVE_SSE();
-      return *this;
-    }
 
-  interval& interval::operator-=(const interval& I)
-    {
+  GAOL_BOUNDS_TARGET __m128d add_bounds(__m128d x, __m128d y)
+  {
 #if GAOL_AVX512_ARITHMETIC
-      {
-        return fast_sub_assign(*this, I);
-      }
+    return fast_add(x, y);
+#else
+    GAOL_RND_ENTER_SSE();
+    __m128d res = _mm_add_pd(x, y);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE_SSE();
+    return res;
 #endif
-      GAOL_RND_ENTER_SSE();
-      xmmbounds = _mm_add_pd(xmmbounds, _mm_shuffle_pd(I.xmmbounds,I.xmmbounds,_MM_SHUFFLE2(0,1)));
-      GAOL_RND_LEAVE_SSE();
-      return *this;
-    }
+  }
+
+  GAOL_BOUNDS_TARGET __m128d sub_bounds(__m128d x, __m128d y)
+  {
+#if GAOL_AVX512_ARITHMETIC
+    return fast_sub(x, y);
+#else
+    GAOL_RND_ENTER_SSE();
+    __m128d res = _mm_add_pd(x, _mm_shuffle_pd(y, y, _MM_SHUFFLE2(0,1)));
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE_SSE();
+    return res;
+#endif
+  }
 
   // The operations with a double tell an infinite d and a NaN with quiet
   // comparisons, as interval(double): a NaN d, which < compared, raised the
@@ -865,214 +889,246 @@ namespace {
     return res;
   }
 
-  // x *= y for nonempty x and y with an infinite bound, out of operator*=,
-  // where it is rare, and its code with it (the SSE2 intervals are compiled
-  // by GCC and Clang only). operator*= calls it last: GCC 13 makes it a
-  // tail call, and Clang 18 a call, for which operator*= saves a register
-  // (GAOL v5, point AA of TODO.md)
-  __attribute__((noinline, cold)) interval& multiply_with_infinities(interval& x, const interval& y)
+  // x * y for x and y empty or with an infinite bound, out of mul_bounds(),
+  // where it is rare, and its code with it (the SSE2 intervals are compiled by
+  // GCC and Clang only): the empty set, or the products by the switch of the
+  // signs, where a bound 0 and an infinite one give +0 (see above)
+#if !GAOL_AVX512_ARITHMETIC
+  __attribute__((noinline, cold)) __m128d mul_special(__m128d x, __m128d y)
   {
-    x.get_xmminterval() = product_of_bounds(x.get_xmminterval(), y.get_xmminterval(), products_with_infinities());
-    return x;
-  }
-}
-
-interval& interval::operator*=(const interval& I)
-{
-  if (is_empty() || I.is_empty()) {
-	*this = interval::emptyset();
-	return *this;
-  }
-
-#if GAOL_AVX512_ARITHMETIC
-  /* The AVX-512 path: the products by the embedded rounding, the dispatch
-     and the infinite bounds by the sign and the magnitude bits, which the
-     denormals-are-zero mode does not change (the SSE2 path checks the
-     modes for the comparisons below) */
-  {
-    xmmbounds = fast_mul(xmmbounds, I.xmmbounds);
-    return *this;
-  }
-#endif
-
-  GAOL_RND_ENTER_SSE();
-
-  /*
-    An infinite bound in either operand: their stored bounds are -l and r,
-    so that +oo is the only infinity they hold, GAOL building no interval
-    [+oo, +oo] nor [-oo, -oo]. maxpd and cmpeqpd raise nothing, no bound
-    being NaN in nonempty operands. That test costs the product of two
-    intervals 0.15 to 0.35 ns on an Intel i7-1185G7 (gaol_performance,
-    medians of 9 interleaved runs: 4.22 ns rather than 3.88 ns with Clang 18,
-    4.93 to 5.16 ns rather than 4.80 ns with GCC 9.4, in two series; GAOL v5).
-  */
-  if (_mm_movemask_pd(_mm_cmpeq_pd(_mm_max_pd(xmmbounds, I.xmmbounds), interval::m128_infinf)) != 0) {
-    interval& res = multiply_with_infinities(*this, I);
+    if (_mm_movemask_pd(_mm_cmpunord_pd(x, y)) != 0) { // an empty operand
+      return interval::emptyset().get_xmminterval();
+    }
+    GAOL_RND_ENTER_SSE();
+    __m128d res = product_of_bounds(x, y, products_with_infinities());
+    GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE_SSE();
     return res;
   }
-  xmmbounds = product_of_bounds(xmmbounds, I.xmmbounds, finite_products());
+#endif
+}
+
+/*
+  x * y of the stored bounds <-l, r> (GAOL v5, point ZZ of TODO.md): the four
+  products l_x l_y, l_x r_y, r_x l_y and r_x r_y, the largest of each of the two
+  lanes being a bound of the result, with no branch to tell the signs of the
+  operands apart, where the former code took one of nine, by a switch, which
+  the signs mispredicted when they came at random: <-l, r> * <c, d>, <-l, r> *
+  <d, c>, <-r, l> * <c, d> and <-r, l> * <d, c> are the vectors <-lc, rd>,
+  <-ld, rc>, <-rc, ld> and <-rd, lc>, whose left lane is the negated lower
+  bound and the right one the upper bound, each rounded upward. The bounds are
+  those of the switch, but for the sign of a zero bound, which a tie between a
+  +0 and a -0 leaves to maxpd. An empty operand or an infinite bound is the
+  rare case, which mul_special() computes.
+*/
+GAOL_BOUNDS_TARGET __m128d mul_bounds(__m128d x, __m128d y)
+{
+#if GAOL_AVX512_ARITHMETIC
+  /*
+    The AVX-512 path: the same four products and the same tree of maxima as
+    below, the products being those of the embedded rounding, which sets no
+    rounding direction (the bounds are the ones of the SSE2 path, bit for
+    bit, the sign of the zeros included); an empty operand or an infinite
+    bound is told by the same quiet comparisons, and is the one of the
+    dispatch of fast_mul(), which reads the bits.
+  */
+  if (_mm_movemask_pd(_mm_or_pd(_mm_cmpunord_pd(x, y),
+                                _mm_or_pd(_mm_cmpeq_pd(x, interval::m128_infinf),
+                                          _mm_cmpeq_pd(y, interval::m128_infinf)))) != 0) {
+    if (_mm_movemask_pd(_mm_cmpunord_pd(x, y)) != 0) { // an empty operand
+      return interval::emptyset().get_xmminterval();
+    }
+    return fast_mul(x, y);
+  }
+  const flush_guard flush;
+  const __m128d xi = flush_guard::in(x), yi = flush_guard::in(y);
+  const __m128d yc = _mm_xor_pd(yi, interval::lbsignmask);                          // <c, d>
+  const __m128d yd = _mm_shuffle_pd(yc, yc, 1);                                     // <d, c>
+  const __m128d xo = _mm_xor_pd(_mm_shuffle_pd(xi, xi, 1), interval::lbrbsignmask); // <-r, l>
+  return flush_guard::out(_mm_max_pd(_mm_max_pd(er_mul2(xi, yc), er_mul2(xi, yd)),
+                                     _mm_max_pd(er_mul2(xo, yc), er_mul2(xo, yd))));
+#else
+  /*
+    An empty operand (NaN bounds) or an infinite bound in either: their stored
+    bounds are -l and r, so that +oo is the only infinity they hold, GAOL
+    building no interval [+oo, +oo] nor [-oo, -oo]. cmpunordpd and cmpeqpd
+    raise nothing, where maxpd raises the invalid-operation exception for a
+    NaN, and a product 0 * oo too.
+  */
+  if (_mm_movemask_pd(_mm_or_pd(_mm_cmpunord_pd(x, y),
+                                _mm_or_pd(_mm_cmpeq_pd(x, interval::m128_infinf),
+                                          _mm_cmpeq_pd(y, interval::m128_infinf)))) != 0) {
+    return mul_special(x, y);
+  }
+  GAOL_RND_ENTER_SSE();
+  const __m128d yc = _mm_xor_pd(y, interval::lbsignmask);                          // <c, d>
+  const __m128d yd = _mm_shuffle_pd(yc, yc, 1);                                    // <d, c>
+  const __m128d xo = _mm_xor_pd(_mm_shuffle_pd(x, x, 1), interval::lbrbsignmask);  // <-r, l>
+  __m128d res = _mm_max_pd(_mm_max_pd(_mm_mul_pd(x, yc), _mm_mul_pd(x, yd)),
+                           _mm_max_pd(_mm_mul_pd(xo, yc), _mm_mul_pd(xo, yd)));
+  GAOL_RND_KEEP(res);
   GAOL_RND_LEAVE_SSE();
-  return *this;
+  return res;
+#endif
 }
 #endif
 
 
 /*
-  Where a branch keeps one half of a division, the other half is not
-  computed, as in div_rel(): _mm_div_sd() divides the low halves alone, the
-  kept quotient being moved to the high half where it belongs (GAOL v5). The
-  half thrown away divided a nonzero bound by a zero one (N1 N0, N1 P0,
-  P1 N0, P1 P0), which raised the division-by-zero exception, [1, 2]/[0, 2]
+  The quotient of any two intervals, empty or not, by the nine cases of the
+  signs of their bounds, as operator/=() computed it: where one of the
+  bounds of the divisor is 0, the quotient has an infinite bound or none,
+  which the cases give. Where a branch keeps one half of a division, the other
+  half is not computed, as in div_rel(): _mm_div_sd() divides the low halves
+  alone, the kept quotient being moved to the high half where it belongs
+  (GAOL v5). The half thrown away divided a nonzero bound by a zero one (N1 N0,
+  N1 P0, P1 N0, P1 P0), which raised the division-by-zero exception, [1, 2]/[0, 2]
   among them, where the FPU intervals, which divide the kept bounds alone,
-  raise nothing. operator%=() below does the same.
+  raise nothing. operator%=() below does the same. div_bounds() calls it where
+  the divisor has a zero, which it tells (GAOL v5, point ZZ of TODO.md).
 */
-interval& interval::operator/=(const interval& I)
-{ // TODO: replace left() and right() by local variable
-	if (is_empty() || I.is_empty()) {
-		*this = interval::emptyset();
-		return *this;
+#if !GAOL_AVX512_ARITHMETIC
+namespace {
+  __attribute__((noinline, cold)) __m128d divide_general(__m128d xb, __m128d yb)
+  {
+	interval x(xb);
+	const interval I(yb);
+	if (x.is_empty() || I.is_empty()) {
+		return interval::emptyset().get_xmminterval();
 	}
-#if GAOL_AVX512_ARITHMETIC
-	/* The AVX-512 path: the quotients by the embedded rounding, the
-	   dispatch by the sign and the magnitude bits (see operator*= above) */
-	{
-		return fast_div_assign(*this, I);
-	}
-#endif
 	GAOL_RND_ENTER_SSE();
 
-	if ( right() < 0.0 ) { // [this] N1
+	if ( x.right() < 0.0 ) { // [this] N1
 		if ( I.right() < 0.0 ) { // [I] N1
-			__m128d r = _mm_xor_pd(xmmbounds,interval::lbsignmask);
-			xmmbounds = _mm_div_pd(_mm_shuffle_pd(r,r,1),I.xmmbounds); // N1 N1
+			__m128d r = _mm_xor_pd(x.get_xmminterval(),interval::lbsignmask);
+			x.get_xmminterval() = _mm_div_pd(_mm_shuffle_pd(r,r,1),I.get_xmminterval()); // N1 N1
 		} else { // [I] P or Z
 			if ( I.right() == 0.0 ) { // [I] N0 or Z
 				if ( I.left() == 0.0 ) { // [I] Z
-					*this = interval::emptyset(); // N1 Z
+					x = interval::emptyset(); // N1 Z
 				} else {
-					xmmbounds = _mm_move_sd(interval::m128_infinf,_mm_div_sd(_mm_shuffle_pd(xmmbounds,xmmbounds,1),I.xmmbounds)); // N1 N0
+					x.get_xmminterval() = _mm_move_sd(interval::m128_infinf,_mm_div_sd(_mm_shuffle_pd(x.get_xmminterval(),x.get_xmminterval(),1),I.get_xmminterval())); // N1 N0
 				}
 			} else { // [I] P or M
 				if ( I.left() < 0.0 ) { // [I] M
-					*this = interval::universe(); // N1 M
+					x = interval::universe(); // N1 M
 				} else { // [I] P0 or P1
 					if ( I.left() == 0.0 ) { // [I] P0
-						xmmbounds = _mm_unpacklo_pd(interval::m128_infinf,
-						                           _mm_div_sd(_mm_unpackhi_pd(xmmbounds,xmmbounds),
-						                                      _mm_unpackhi_pd(I.xmmbounds,I.xmmbounds))); // N1 P0
+						x.get_xmminterval() = _mm_unpacklo_pd(interval::m128_infinf,
+						                           _mm_div_sd(_mm_unpackhi_pd(x.get_xmminterval(),x.get_xmminterval()),
+						                                      _mm_unpackhi_pd(I.get_xmminterval(),I.get_xmminterval()))); // N1 P0
 					} else { // [I] P1
-						xmmbounds = _mm_div_pd(xmmbounds,_mm_xor_pd(I.xmmbounds,interval::lbsignmask)); // N1 P1
+						x.get_xmminterval() = _mm_div_pd(x.get_xmminterval(),_mm_xor_pd(I.get_xmminterval(),interval::lbsignmask)); // N1 P1
 					}
 				}
 			}
 		}
 	} else { // [this] N0, Z, M, or P
-		if ( right() == 0.0 ) { // [this] N0 or Z
-			if ( left() == 0.0 ) { // [this] Z
+		if ( x.right() == 0.0 ) { // [this] N0 or Z
+			if ( x.left() == 0.0 ) { // [this] Z
 				if ( I.left() == 0.0 && I.right() == 0.0 ) {
-					*this = interval::emptyset(); // Z Z
+					x = interval::emptyset(); // Z Z
 				} else {
-					xmmbounds = interval::m128_zero; // Z (N,M,P)
+					x.get_xmminterval() = interval::m128_zero; // Z (N,M,P)
 				}
 			} else { // [this] N0
 				if ( I.right() < 0.0 ) { // [I] N1
-					__m128d r1 = _mm_xor_pd(xmmbounds,interval::lbsignmask);
-					xmmbounds = _mm_move_sd(_mm_div_pd(_mm_shuffle_pd(r1,r1,1),I.xmmbounds),interval::m128_zero);	// N0 N1
+					__m128d r1 = _mm_xor_pd(x.get_xmminterval(),interval::lbsignmask);
+					x.get_xmminterval() = _mm_move_sd(_mm_div_pd(_mm_shuffle_pd(r1,r1,1),I.get_xmminterval()),interval::m128_zero);	// N0 N1
 				} else { // [I] P or Z
 					if ( I.right() == 0.0 ) { // [I] N0 or Z
 						if ( I.left() == 0.0 ) { // [I] Z
-							*this = interval::emptyset(); // N0 Z
+							x = interval::emptyset(); // N0 Z
 						} else {
-							*this = interval::positive();// N0 N0
+							x = interval::positive();// N0 N0
 						}
 					} else { // [I] P or M
 						if ( I.left() < 0.0 ) { // [I] M
-							*this = interval::universe(); // N0 M
+							x = interval::universe(); // N0 M
 						} else { // [I] P0 or P1
 							if ( I.left() == 0.0 ) { // [I] P0
-								*this = interval::negative(); // N0 P0
+								x = interval::negative(); // N0 P0
 							} else { // [I] P1
-								xmmbounds = _mm_move_sd(interval::m128_zero,_mm_div_pd(xmmbounds,_mm_xor_pd(I.xmmbounds,interval::lbsignmask))); // N0 P1
+								x.get_xmminterval() = _mm_move_sd(interval::m128_zero,_mm_div_pd(x.get_xmminterval(),_mm_xor_pd(I.get_xmminterval(),interval::lbsignmask))); // N0 P1
 							}
 						}
 					}
 				}
 			}
 		} else { // [this] M, P0, or P1
-			if ( left() < 0.0 ) { // [this] M
+			if ( x.left() < 0.0 ) { // [this] M
 				if ( I.right() < 0.0 ) { // [I] N1
-					__m128d r1 = _mm_xor_pd(xmmbounds,interval::lbrbsignmask);
-					xmmbounds = _mm_div_pd(_mm_shuffle_pd(r1,r1,1),_mm_unpackhi_pd(I.xmmbounds,I.xmmbounds));// M N1
+					__m128d r1 = _mm_xor_pd(x.get_xmminterval(),interval::lbrbsignmask);
+					x.get_xmminterval() = _mm_div_pd(_mm_shuffle_pd(r1,r1,1),_mm_unpackhi_pd(I.get_xmminterval(),I.get_xmminterval()));// M N1
 				} else { // [I] P or Z
 					if ( I.right() == 0.0 ) { // [I] N0 or Z
 						if ( I.left() == 0.0 ) { // [I] Z
-							*this = interval::emptyset(); // M Z
+							x = interval::emptyset(); // M Z
 						} else {
-							*this = interval::universe(); // M N0
+							x = interval::universe(); // M N0
 						}
 					} else { // [I] P or M
 						if ( I.left() < 0.0 ) { // [I] M
-							*this = interval::universe(); // M M
+							x = interval::universe(); // M M
 						} else { // [I] P0 or P1
 							if ( I.left() == 0.0 ) { // [I] P0
-								*this = interval::universe(); // M P0
+								x = interval::universe(); // M P0
 							} else { // [I] P1
-								__m128d r1 = _mm_xor_pd(I.xmmbounds,interval::lbsignmask);
-								xmmbounds = _mm_div_pd(xmmbounds,_mm_unpacklo_pd(r1,r1)); // M P1
+								__m128d r1 = _mm_xor_pd(I.get_xmminterval(),interval::lbsignmask);
+								x.get_xmminterval() = _mm_div_pd(x.get_xmminterval(),_mm_unpacklo_pd(r1,r1)); // M P1
 							}
 						}
 					}
 				}
 			} else { // [this] P0 or P1
-				if ( left() == 0.0 ) { // [this] P0
+				if ( x.left() == 0.0 ) { // [this] P0
 					if ( I.right() < 0.0 ) { // [I] N1
-						__m128d r1 = _mm_xor_pd(_mm_shuffle_pd(xmmbounds,xmmbounds,1),interval::lbsignmask);
-						__m128d r2 = _mm_shuffle_pd(I.xmmbounds,I.xmmbounds,1);
-						xmmbounds = _mm_move_sd(interval::m128_zero,_mm_div_pd(r1,r2));// P0 N1
+						__m128d r1 = _mm_xor_pd(_mm_shuffle_pd(x.get_xmminterval(),x.get_xmminterval(),1),interval::lbsignmask);
+						__m128d r2 = _mm_shuffle_pd(I.get_xmminterval(),I.get_xmminterval(),1);
+						x.get_xmminterval() = _mm_move_sd(interval::m128_zero,_mm_div_pd(r1,r2));// P0 N1
 					} else { // [I] P or Z
 						if ( I.right() == 0.0 ) { // [I] N0 or Z
 							if ( I.left() == 0.0 ) { // [I] Z
-								*this = interval::emptyset(); // P0 Z
+								x = interval::emptyset(); // P0 Z
 							} else {
-								*this = interval::negative(); // P0 N0
+								x = interval::negative(); // P0 N0
 							}
 						} else { // [I] P or M
 							if ( I.left() < 0.0 ) { // [I] M
-								*this = interval::universe(); // P0 M
+								x = interval::universe(); // P0 M
 							} else { // [I] P0 or P1
 								if ( I.left() == 0.0 ) { // [I] P0
-									*this = interval::positive(); // P0 P0
+									x = interval::positive(); // P0 P0
 								} else { // [I] P1
-									__m128d r1 = _mm_xor_pd(I.xmmbounds,interval::lbsignmask);
+									__m128d r1 = _mm_xor_pd(I.get_xmminterval(),interval::lbsignmask);
 									__m128d r2 = _mm_shuffle_pd(r1,r1,1);
-									xmmbounds = _mm_move_sd(_mm_div_pd(xmmbounds,r2),interval::m128_zero);// P0 P1
+									x.get_xmminterval() = _mm_move_sd(_mm_div_pd(x.get_xmminterval(),r2),interval::m128_zero);// P0 P1
 								}
 							}
 						}
 					}
 				} else { // [this] P1
 					if ( I.right() < 0.0 ) { // [I] N1
-						__m128d r1 = _mm_xor_pd(_mm_shuffle_pd(xmmbounds,xmmbounds,1),interval::lbrbsignmask);
-						__m128d r2 = _mm_xor_pd(I.xmmbounds,interval::lbsignmask);
-						xmmbounds = _mm_div_pd(r1,_mm_shuffle_pd(r2,r2,1)); // P1 N1
+						__m128d r1 = _mm_xor_pd(_mm_shuffle_pd(x.get_xmminterval(),x.get_xmminterval(),1),interval::lbrbsignmask);
+						__m128d r2 = _mm_xor_pd(I.get_xmminterval(),interval::lbsignmask);
+						x.get_xmminterval() = _mm_div_pd(r1,_mm_shuffle_pd(r2,r2,1)); // P1 N1
 					} else { // [I] P or Z
 						if ( I.right() == 0.0 ) { // [I] N0 or Z
 							if ( I.left() == 0.0 ) { // [I] Z
-								*this = interval::emptyset(); // P1 Z
+								x = interval::emptyset(); // P1 Z
 							} else {
-								xmmbounds = _mm_unpacklo_pd(interval::m128_infinf,_mm_div_sd(xmmbounds,I.xmmbounds)); // P1 N0
+								x.get_xmminterval() = _mm_unpacklo_pd(interval::m128_infinf,_mm_div_sd(x.get_xmminterval(),I.get_xmminterval())); // P1 N0
 							}
 						} else { // [I] P or M
 							if ( I.left() < 0.0 ) { // [I] M
-								*this = interval::universe(); // P1 M
+								x = interval::universe(); // P1 M
 							} else { // [I] P0 or P1
 								if ( I.left() == 0.0 ) { // [I] P0
-									xmmbounds = _mm_move_sd(interval::m128_infinf,
-									                        _mm_div_sd(xmmbounds,_mm_shuffle_pd(I.xmmbounds,I.xmmbounds,1))); // P1 P0
+									x.get_xmminterval() = _mm_move_sd(interval::m128_infinf,
+									                        _mm_div_sd(x.get_xmminterval(),_mm_shuffle_pd(I.get_xmminterval(),I.get_xmminterval(),1))); // P1 P0
 								} else { // [I] P1
-									__m128d r1 = _mm_xor_pd(I.xmmbounds,interval::lbsignmask);
-									xmmbounds = _mm_div_pd(xmmbounds,_mm_shuffle_pd(r1,r1,1));// P1 P1
+									__m128d r1 = _mm_xor_pd(I.get_xmminterval(),interval::lbsignmask);
+									x.get_xmminterval() = _mm_div_pd(x.get_xmminterval(),_mm_shuffle_pd(r1,r1,1));// P1 P1
 								}
 							}
 						}
@@ -1083,7 +1139,88 @@ interval& interval::operator/=(const interval& I)
 	}
 
 	GAOL_RND_LEAVE_SSE();
-	return *this;
+	return x.get_xmminterval();
+  }
+}
+#endif
+
+/*
+  x / y of the stored bounds <-l, r>, in the common case where y has no zero
+  and no operand is empty (GAOL v5, point ZZ of TODO.md): the quotient is the
+  one of the corners that the signs choose, chosen here by masks and not by
+  branches, the signs of the bounds of the divisor and of the dividend coming
+  at random where the former code took one of nine branches. The divisor is
+  made positive (both operands exchanged and negated, <-l, r> becoming <r, -l>,
+  when its upper bound is negative: x/y = (-x)/(-y)), and then the lower bound
+  of x/y is l/d where l >= 0 and l/c otherwise, the upper one r/c where r >= 0
+  and r/d otherwise (c and d the bounds of the divisor, 0 < c <= d), so that
+  a single division of both lanes gives <-l/den, r/den'>, rounded upward, for
+  the denominators den and den' that the signs of the dividend choose. An
+  infinite bound is no case of its own: the quotients taken are never an
+  infinite bound over an infinite one, an infinite bound of the dividend
+  being divided by c, which is finite. The rare cases, an empty operand or a
+  divisor with a zero, are the ones of divide_general().
+*/
+GAOL_BOUNDS_TARGET __m128d div_bounds(__m128d x, __m128d y)
+{
+#if GAOL_AVX512_ARITHMETIC
+  // The AVX-512 path: the same choice of the denominators as below, the
+  // division being the one of the embedded rounding; a divisor with a zero is
+  // the dispatch of fast_div()
+  if (_mm_movemask_pd(_mm_cmpunord_pd(x, y)) != 0) { // an empty operand
+    return interval::emptyset().get_xmminterval();
+  }
+  const flush_guard flush;
+  const __m128d xi = flush_guard::in(x), yi = flush_guard::in(y);
+  if ((_mm_movemask_pd(yi) & _mm_movemask_pd(_mm_cmpneq_pd(yi, interval::m128_zero))) == 0) { // a zero in y
+    return fast_div(x, y);
+  }
+  const __m128d neg = _mm_castsi128_pd(_mm_shuffle_epi32(_mm_srai_epi32(_mm_castpd_si128(yi), 31), _MM_SHUFFLE(3,3,3,3)));
+  const __m128d xp = _mm_xor_pd(xi, _mm_and_pd(neg, _mm_xor_pd(xi, _mm_shuffle_pd(xi, xi, 1))));
+  const __m128d yp = _mm_xor_pd(yi, _mm_and_pd(neg, _mm_xor_pd(yi, _mm_shuffle_pd(yi, yi, 1))));
+  const __m128d dd = _mm_unpackhi_pd(yp, yp);
+  const __m128d cc = _mm_xor_pd(_mm_unpacklo_pd(yp, yp), interval::lbrbsignmask);
+  const __m128d ms = _mm_castsi128_pd(_mm_shuffle_epi32(_mm_srai_epi32(_mm_castpd_si128(xp), 31), _MM_SHUFFLE(3,3,1,1)));
+  const __m128d den = _mm_or_pd(_mm_and_pd(ms, dd), _mm_andnot_pd(ms, cc));
+  // Two scalar divisions, which take the embedded rounding as a packed
+  // division does only on 512 bits, whose latency and throughput are those of
+  // a division of 8 doubles (6.0 ns against 1.8 on an Intel i7-1185G7)
+  return flush_guard::out(_mm_unpacklo_pd(_mm_div_round_sd(xp, den, gaol_er),
+                                          _mm_div_round_sd(_mm_unpackhi_pd(xp, xp), _mm_unpackhi_pd(den, den), gaol_er)));
+#else
+  // A quiet comparison, which the modes that flush the subnormals to zero do
+  // not change: an empty operand
+  if (_mm_movemask_pd(_mm_cmpunord_pd(x, y)) != 0) {
+    return interval::emptyset().get_xmminterval();
+  }
+  GAOL_RND_ENTER_SSE();
+  // y has no zero where a bound of it is negative and not -0 (a lower bound 0
+  // is stored as -0): its sign bit is set, and it is not 0. Told after the
+  // check of the modes, a subnormal divisor being 0 with denormals-are-zero
+  // (the bounds must not depend on the modes the program left)
+  const int no_zero = _mm_movemask_pd(y) & _mm_movemask_pd(_mm_cmpneq_pd(y, interval::m128_zero));
+  if (no_zero == 0) {
+    __m128d res = divide_general(x, y);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE_SSE();
+    return res;
+  }
+  // The sign of the upper bound of the divisor, d, in the four 32-bit words
+  const __m128d neg = _mm_castsi128_pd(_mm_shuffle_epi32(_mm_srai_epi32(_mm_castpd_si128(y), 31), _MM_SHUFFLE(3,3,3,3)));
+  const __m128d xs = _mm_shuffle_pd(x, x, 1);
+  const __m128d ys = _mm_shuffle_pd(y, y, 1);
+  const __m128d xp = _mm_xor_pd(x, _mm_and_pd(neg, _mm_xor_pd(x, xs)));  // <-l, r> or <r, -l>
+  const __m128d yp = _mm_xor_pd(y, _mm_and_pd(neg, _mm_xor_pd(y, ys)));  // <-c, d> with 0 < c <= d
+  const __m128d dd = _mm_unpackhi_pd(yp, yp);                                                // <d, d>
+  const __m128d cc = _mm_xor_pd(_mm_unpacklo_pd(yp, yp), interval::lbrbsignmask);           // <c, c>
+  // The sign of the stored bounds of the dividend, lane by lane: <l >= 0, r < 0>
+  const __m128d ms = _mm_castsi128_pd(_mm_shuffle_epi32(_mm_srai_epi32(_mm_castpd_si128(xp), 31), _MM_SHUFFLE(3,3,1,1)));
+  const __m128d den = _mm_or_pd(_mm_and_pd(ms, dd), _mm_andnot_pd(ms, cc));
+  __m128d res = _mm_div_pd(xp, den);
+  GAOL_RND_KEEP(res);
+  GAOL_RND_LEAVE_SSE();
+  return res;
+#endif
 }
 
 // The branch #else, not compiled, has no inverse_upward(), which the integer

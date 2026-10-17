@@ -802,7 +802,9 @@ namespace gaol_core {
 
     friend GAOL_PUBLIC interval gaol_uipow(const interval& I, unsigned int e);
     friend GAOL_PUBLIC interval gaol_pown(const interval& I, int e);
+#if !GAOL_USING_SSE2_INSTRUCTIONS
     friend GAOL_PUBLIC interval sqr(const interval& I);
+#endif
     friend GAOL_PUBLIC interval cos(const interval& I);
     friend GAOL_PUBLIC interval sin(const interval& I);
     friend GAOL_PUBLIC interval sqrt(const interval& I);
@@ -1448,8 +1450,10 @@ namespace gaol_core {
     interval::format() sets.
   */
   GAOL_NODISCARD extern GAOL_PUBLIC std::string exact_string(const interval& I);
+#if !GAOL_USING_SSE2_INSTRUCTIONS
   //! I^2
   GAOL_NODISCARD extern GAOL_PUBLIC   interval sqr(const interval& I);
+#endif
   /*
     I^e for an integer e, gaol::pow(I, e), the pown of IEEE 1788-2015: [1]
     for e = 0, the empty set for an empty I, and for [0] and e < 0. Its bounds
@@ -2096,6 +2100,29 @@ GAOL_NODISCARD GAOL_INLINE interval operator%(T n, const interval& I)
     return interval(n)%=I;
   }
 
+#if GAOL_USING_SSE2_INSTRUCTIONS
+// The bounds in registers, from the operands to the result (see
+// gaol_interval_sse.h, GAOL v5)
+GAOL_NODISCARD GAOL_INLINE interval operator+(const interval& I1, const interval& I2)
+  {
+    return interval(add_bounds(I1.get_xmminterval(), I2.get_xmminterval()));
+  }
+
+GAOL_NODISCARD GAOL_INLINE interval operator-(const interval& I1, const interval& I2)
+  {
+    return interval(sub_bounds(I1.get_xmminterval(), I2.get_xmminterval()));
+  }
+
+GAOL_NODISCARD GAOL_INLINE interval operator*(const interval& I1, const interval& I2)
+  {
+    return interval(mul_bounds(I1.get_xmminterval(), I2.get_xmminterval()));
+  }
+
+GAOL_NODISCARD GAOL_INLINE interval operator/(const interval& I1, const interval& I2)
+  {
+    return interval(div_bounds(I1.get_xmminterval(), I2.get_xmminterval()));
+  }
+#else
 GAOL_NODISCARD GAOL_INLINE interval operator+(const interval& I1, const interval& I2)
   {
     return interval(I1) += I2;
@@ -2115,6 +2142,7 @@ GAOL_NODISCARD GAOL_INLINE interval operator/(const interval& I1, const interval
   {
     return interval(I1) /= I2;
   }
+#endif
 
 GAOL_NODISCARD GAOL_INLINE interval operator%(const interval& I1, const interval& I2)
   {
