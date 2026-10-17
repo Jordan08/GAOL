@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `2f020ea` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `fe3e7e6` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -17,8 +17,10 @@ de sa section 5) ; 41 à 44, de la vérification de `VERSION.txt` (2026-09-28) ;
 51 à 67, des relectures des pull requests ; 68 à 71, du tri de
 `TODO_mistral.md` ; 72 à 74, d'une comparaison de `pown` avec le `pow` de
 CORE-MATH (5 octobre) ; 77 à 103, de la relecture de `configure-clean` du
-14 octobre. Les décisions du 3 octobre sont écrites dans chaque point
-(« Décidé le 3 octobre ») ; une question reportée renvoie à son issue. Fait
+14 octobre ; 104 et 105, des décisions du point AA (14 octobre) ; 106 à
+112, des mesures de la CI de #124 (17 octobre). Les décisions du
+3 octobre sont écrites dans chaque point (« Décidé le 3 octobre ») ; une
+question reportée renvoie à son issue. Fait
 depuis : le point C (anciens 16, 17 et 67), par #71 ; le point K (anciens 49 et
 47, hors Cygwin, resté au point A), par #72 et #73 ; le point L (anciens 29, 43
 et 69, et le `push` restreint du ménage), par #74 ; `make distclean`, qui rend
@@ -83,8 +85,7 @@ d'exposants très différents n'y perdant pas leur exactitude ; le nom
 `gaol_core::rounding_guard`. Fait le 5 octobre : le point H (ancien 27),
 par #88. Décidé en fin de travail : le chemin AVX-512 des opérations de base
 (+, -, *, /, sqrt) ne touche plus au sens d'arrondi, pris à l'exécution par
-`GAOL_PREFER_AVX512` ; sqr et pown passent par uipow et gardent le
-comportement actuel ; la partie manuel du 36 est reportée au point I ;
+`GAOL_PREFER_AVX512` ; la partie manuel du 36 est reportée au point I ;
 le « about 7 ns » d'`examples/examples.md` (l. 509) pour un bloc au plus proche
 était contredit par la mesure : corrigé en « about 13 ns » (2d80cc4). Les
 textes pour `ChangeLog` et `doc/differences.md` sont dans la description
@@ -444,12 +445,35 @@ ppc64le, ne remplissent plus les journaux de la CI. Ni la bibliothèque, ni
 l'option plutôt que les tests en C++14, qui n'enlève pas les notes d'armhf.
 Rien pour `ChangeLog` ni `doc/differences.md` (description de #123).
 
+Fait le 17 octobre : le point AA (ancien 76), par #122. Shekel 5 prend
+263 ns dans le banc de `doc/compare` sur le Xeon E3-1220 v6, contre 358 avant
+et 274 avec GAOL 4.2.3, sans qu'une borne change : `sqr()` des intervalles
+SSE2 calcule son produit lui-même, et les puissances arrondies qu'il était seul
+à appeler (`uipow_rounded()`, `uipow_upup()`, `uipow_dnup()`) sont retirées ;
+`+`, `-`, `/` et les opérateurs avec un double appellent le chemin AVX-512 en
+appel terminal, sans cadre de pile. Ce chemin se décide à la configuration
+(`GAOL_AVX512_ARITHMETIC`), sur la machine qui construit, jamais en
+compilation croisée ni avec GCC pour Windows (bug 54412 de GCC) ;
+`gaol_core::avx512_arithmetic` disparaît, `gaol::init()` arrête avec un
+message un programme lancé sur un processeur sans AVX-512, et l'option
+`enable-prefer-avx512` de meson devient un `combo` `auto`/`true`/`false`.
+L'écart qui reste avec GAOL 4.2.3 sur `+` et la ligne arithmétique est la
+vérification du sens d'arrondi de chaque opération (points H et Q). Décidé
+pendant le travail : le chemin à la configuration et le défaut gardé, une
+bibliothèque qui prend le chemin ne tournant alors que sur des processeurs
+AVX-512 (15 octobre) ; le `combo` de meson, l'arrêt dans `init()` et GCC pour
+Windows écarté (16 octobre) ; `operator*=` de deux intervalles laissé tel
+quel, plus lent en appel terminal. Décidé le 14 octobre : deux points le
+suivent, AG et AH, et la phrase « sqr et pown passent par uipow » de la
+décision du 5 octobre (point H) est retirée. Les textes pour `ChangeLog` et
+`doc/differences.md` sont dans la description de #122.
+
 ## En cours
 
 Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 
-- `todo-aa-shekel5` : le point AA, #122, qui a fusionné `configure-clean` à
-  2f020ea (la fusion de #123) le 17 octobre.
+- `todo-zz-perf` : le point ZZ (+, -, *, / et `sqr` sans branche sur les
+  signes), #124, ouverte le 17 octobre.
 
 ## Même fichier de test ou de documentation
 
@@ -806,10 +830,10 @@ qu'une fois.
   `gaol/gaol_interval_avx512.cpp` (l. 14-18) et `doc/using.md` (l. 918)
   promettent les mêmes bornes « bit for bit », signes compris. Vérifié en
   mettant à vrai `gaol_core::avx512_arithmetic`, un symbole exporté, que
-  #122 retire : le chemin s'y décide à la configuration
-  (`GAOL_AVX512_ARITHMETIC`). Pour le vérifier après #122, construire avec
+  #122 a retiré : le chemin se décide à la configuration
+  (`GAOL_AVX512_ARITHMETIC`). Pour le vérifier, construire avec
   `-DGAOL_PREFER_AVX512=ON` sur une machine qui a AVX-512 ; les lignes et
-  les commentaires cités changent aussi avec #122. Correction : multiplier
+  les commentaires cités ont changé avec #122. Correction : multiplier
   voie par voie dans la branche AVX-512 d'`operator*=(double)`, comme le
   fait SSE2, ou dire l'exception.
 
@@ -837,45 +861,149 @@ Reporté (#67).
   VNODE-LP. Décidé le 3 octobre : les traits pour YalAA et le backend pour
   VNODE-LP, et non la promotion des en-têtes des exemples.
 
-### AA. Shekel 5, plus lent qu'avec GAOL 4 (76)
+### AG. Le banc de `doc/compare` sur l'i7-1185G7 (104)
 
-- **76.** **Shekel 5 prend moitié plus de temps avec GAOL v5 qu'avec GAOL
-  4.2.3** (relevé au point B, #118, le 13 octobre). Le banc de
-  `doc/compare/performance.md`, relancé ce jour-là pour toutes les
-  bibliothèques (Ubuntu 26.04.1, Clang 18.1.8, `-O3 -mfma`, sur le processeur
-  2), donne 277 ns contre 185. Les opérations dont Shekel 5 est fait coûtent à
-  GAOL v5 10 à 23 % de plus qu'à GAOL 4.2.3 : + et − 2,7 ns contre 2,5, ÷ 9,7
-  contre 8,4, le carré 7,6 contre 6,1. Shekel 5 (`doc/compare/code/bench_ops.h`)
-  en fait 25 soustractions, dont les 20 `x_j - a_ij` d'intervalles dégénérés,
-  20 additions, 20 carrés et 5 divisions de `[1]` : leurs écarts n'expliquent
-  qu'environ 47 des 92 ns.
-  - L'écart précède le point B : `configure-clean` du 12 octobre, avant #117,
-    prend autant (258 ns, contre 249 sur la branche de #118, par le même
-    programme, le même jour).
-  - Le 27 septembre, sous Ubuntu 20.04, l'écart était de 12 % (315 contre
-    280 ns), mais la colonne de GAOL v5 venait alors de `make perf` avec
-    GCC 9.4, et celle de GAOL 4.2.3 de Clang 18.
+- **104.** **Relancer le banc de `doc/compare` sur l'i7-1185G7**
+  (`CPU=2 ./run_bench.sh`), décidé le 14 octobre à la fin du point AA :
+  `doc/compare/performance.md` donne encore Shekel 5 à 282 ns contre 195 pour
+  GAOL 4.2.3, mesuré avant #122, et `doc/using.md` les temps du chemin
+  AVX-512 d'avant #122. Les mettre à jour. Les mesures de #122 n'ont été
+  faites que sur le Xeon E3-1220 v6, qui n'a pas AVX-512.
 
-  À chercher : ce qui coûte plus dans l'expression que dans le banc de chaque
-  opération seule, par exemple la soustraction d'un intervalle dégénéré, la
-  division de `[1]`, ou les dépendances entre les opérations, que le banc
-  d'une opération seule ne crée pas. Mesurer les formes de Shekel 5 une à
-  une, et comparer le code généré à celui de GAOL 4.2.3 (valgrind, `perf`
-  n'étant pas permis sur cette machine). Corriger si la cause est dans GAOL.
+### AH. Les sauts et les frontières de 32 octets (105)
 
-  Décidé le 14 octobre, sur #122 (mesuré sur le Xeon E3-1220 v6 seulement) :
-  - à la fusion de #122, AA est fait ;
-  - deux nouveaux points le suivent :
-    - relancer le banc de `doc/compare` sur l'i7-1185G7
-      (`CPU=2 ./run_bench.sh`), puis mettre à jour
-      `doc/compare/performance.md` (Shekel 5 à 282 ns contre 195) et les
-      temps AVX-512 de `doc/using.md` ;
-    - étudier `-mbranches-within-32B-boundaries` pour les builds de GAOL,
-      sur ce Xeon et sur l'i7 : l'erratum des sauts des processeurs
-      Skylake à Comet Lake y déplace une opération jusqu'à 1 ns selon le
-      seul placement du code ;
-  - la phrase « sqr et pown passent par uipow et gardent le comportement
-    actuel » de la décision du 5 octobre (point H) est retirée.
+- **105.** **Étudier `-mbranches-within-32B-boundaries` pour les builds de
+  GAOL**, décidé le 14 octobre à la fin du point AA, sur le Xeon E3-1220 v6
+  et sur l'i7-1185G7. L'erratum des sauts des processeurs Skylake à Comet
+  Lake y déplace une opération jusqu'à 1 ns selon le seul placement du code
+  (#122 : `x * y`, au code inchangé, passe de 4,96 à 4,69 ns ; `[1] / p`, de
+  7,0 à 8,1 ns quand seul `sqr()` change). À mesurer : le gain sur le Xeon, le
+  coût sur l'i7, qui n'a pas l'erratum, et ce que les trois builds peuvent
+  donner aux compilateurs qui prennent l'option.
+
+### AI. La vitesse sur macOS, Windows et ARM (106 à 112)
+
+La CI de #124 (`1a15fc8` et `c6a3d25`, 17 octobre) écrit le tableau de
+`gaol_performance` dans l'étape « Performance » de ses jobs : c'est la seule
+mesure que nous ayons sur macOS et sur Windows. Les noyaux de #124 (`+ - * /` et
+`sqr` sans branche sur les signes, bornes en registre) ne servent que les
+intervalles SSE2, c'est-à-dire x86 hors Visual C++ et hors Windows 32 bits : les
+intervalles FPU ont encore le `switch` sur les signes et les opérandes en
+mémoire que #124 a retirés des SSE2. Pour la ligne de 13 opérations `+ - * /` du
+tableau, en ns : 33 sur Linux x86-64 (job d'autotools, Ubuntu 24.04), 36 sur
+macOS 15 x86-64, 33 à 58 avec MinGW-w64 et MSYS2, 64 à 93 sur macOS arm64, 100 à
+168 avec Visual C++ x64 et arm64 et avec clang-cl, 1 100 à 1 200 avec Visual C++
+32 bits. Voir le 111 pour ce que valent ces temps.
+
+- **106.** **Les intervalles FPU n'ont pas les noyaux de #124 : macOS arm64,
+  Visual C++ et clang-cl.** Sur macOS arm64 (Clang 15 à 21), `x + y` prend 1,3 à
+  1,9 ns, mais `x - y` 3,6 à 4,8 (deux à trois fois la somme), `x * y` 3,5 à
+  4,2, `x / y` 4,7 à 5,8 et `sqr` 2,3 à 3,0 ; une ligne de 15 `+` prend 51 à 88
+  ns (3 à 6 ns par opération, 29 sur Linux x86-64), de 7 `*` 32 à 44 et de 7 `/`
+  45 à 60. Avec Visual C++ x64 et arm64 et avec clang-cl, que CMake ne laisse
+  pas prendre les intervalles SSE2 (`GAOL_SIMD AND NOT MSVC`, « IBEX and the
+  fork of Fabrice Le Bars build GAOL without them »), `x * y` prend 6,6 à 16,3
+  ns, `x / y` 4,2 à 8,2 et `sqr` 4,1 à 10,4, contre 2,1 à 4,1, 2,1 à 5,2 et 2,1
+  à 3,1 avec MinGW-w64 et MSYS2 ; la ligne de 13 opérations, 100 à 168 ns contre
+  33 à 58. Les autres cibles FPU (ARM 32 bits, POWER, s390x, RISC-V) n'ont pas
+  été regardées.
+
+  À chercher : les noyaux de #124 pour les intervalles FPU, dont la lenteur a
+  probablement la cause que #124 a trouvée pour les SSE2 (le `switch` sur les
+  signes, mal prédit, et les bornes relues en mémoire) : un produit par quatre
+  produits et un arbre de maxima, un quotient dont les dénominateurs sont
+  choisis par des masques, un carré sans branche, la soustraction écrite comme
+  l'addition (`x - y` coûte deux à trois fois `x + y` sur arm64). Mesurer sur
+  les jobs de la CI, aucune machine ARM n'étant ici. Pour Visual C++ x64 et
+  clang-cl, voir d'abord pourquoi CMake leur refuse les intervalles SSE2, et
+  s'ils peuvent les prendre. Les opérations avec un double n'ont ces noyaux sur
+  aucune cible.
+
+- **107.** **Avec `GAOL_PRESERVE_ROUNDING`, chaque opération prend 45 à 50 ns
+  sur macOS arm64** (job « macOS 15 arm64, rounding direction preserved » : `x +
+  y` 45,6 ns, `x - y` 50,7, `x * y` 48,8, `x / y` 51,6, `sqr` 48,2, `pow(x, 3)`
+  83, `exp` 84 ; 756 ns pour une ligne de 15 `+`) : trente fois le temps du
+  build par défaut.
+
+  À chercher : ce que coûtent `fegetround()` et `fesetround()` de la
+  bibliothèque du système sur arm64, et si la lecture et l'écriture du registre
+  FPCR en ligne (`mrs` et `msr`, que GAOL emploie déjà pour FZ et FIZ), une fois
+  à l'entrée et une fois à la sortie, comme #124 le fait de MXCSR sur x86-64,
+  les ramènent à quelques ns.
+
+- **108.** **Visual C++ 32 bits : 80 ns par opération, dès le build par défaut**
+  (job « Visual Studio 2026 x86 Release » : `x + y` 80,8 à 83,5 ns, `x * y` 87,8
+  à 98, une ligne de 15 `+` 1 211 à 1 307 ns). `gaol/gaol_fpu.h` le sait :
+  `fegetround()` et la lecture de MXCSR y coûtent environ 80 ns, et la sonde du
+  sens d'arrondi par une addition y est écartée (`GAOL_RND_PROBE` n'est pas
+  défini sur x86 32 bits).
+
+  À chercher : lire les deux unités, x87 et SSE, sans appeler `fegetround()`
+  (`fnstcw` et `stmxcsr` en ligne, ou `_controlfp()`), et ce que cela coûte.
+
+- **109.** **Visual C++ x64 avec `GAOL_PRESERVE_ROUNDING` : 43 à 87 ns par
+  opération** (job « Visual Studio 2026 x64 Release, rounding direction
+  preserved » : `x + y` 43,4 puis 87,2 ns, une ligne de 15 `+` 653 puis 1 294
+  ns). Les macros de #124 (`GAOL_RND_ENTER()` n'écrit que MXCSR, une fois à
+  l'entrée et une fois à la sortie) demandent des intervalles SSE2 et `__FMA__`,
+  que Visual C++ n'a pas : il y reste `fegetround()`, `fesetround()` et deux
+  écritures séparées.
+
+  À chercher avec le 106 : si Visual C++ x64 prend les intervalles SSE2, la même
+  condition vaut avec `_M_X64` et `__AVX2__` ; sinon, une sauvegarde de MXCSR en
+  ligne (`_mm_getcsr()` et `_mm_setcsr()`) pour les intervalles FPU sur x64.
+
+- **110.** **GCC pour Windows : `pow(x, 3)`, `log` et `cos` prennent 5 à 10 fois
+  le temps de Clang** (MinGW-w64 14.2 et 15.2 et MSYS2 UCRT64 avec GCC 16,
+  contre MSYS2 CLANG64 : `pow(x, 3)` 44 à 57 ns contre 4,1 à 9,0 ; `log` 78 à
+  106 contre 19 à 35 ; `cos` 221 à 271 contre 32 à 51 ; `exp` 39 à 47 contre 24
+  à 35). CMake ne donne pas `-mfma` à GCC pour Windows (« Fused multiply-add
+  instructions left out: GCC for Windows does not align the stack for AVX »), de
+  sorte que `pown` n'est pas calculé par paires et que CORE-MATH appelle un
+  `fma()` logiciel : la cause la plus probable, que rien n'a mesurée.
+
+  À chercher : mesurer un build de GCC pour Windows avec `-mfma` donné à la
+  main, `rounding_direction` en particulier devant passer, puis voir si le
+  défaut d'alignement se contourne (`-mstackrealign`,
+  `-mprefer-vector-width=128`) pour que GAOL_FMA y soit pris.
+
+- **111.** **Les temps de la CI ne se comparent pas d'un passage à l'autre.**
+  Les runners sont des machines virtuelles partagées : `x * y` de Visual C++ x64
+  prend 7,9 puis 16,3 ns, `sqrt` de MSYS2 avec GCC 16 6,8 puis 170 ns, entre
+  #124 à `1a15fc8` et à `c6a3d25`, au code inchangé. Seuls des écarts de
+  plusieurs fois valent, et l'étape « Performance » ne fait échouer aucun job.
+
+  À décider : faire mesurer par la CI deux builds alternés dans le même job (par
+  exemple `configure-clean` et la branche), comme `doc/compare` alterne ses
+  programmes, ou n'afficher que le meilleur de plusieurs passages.
+
+- **112.** **Suites de #124 non faites** (ses questions ouvertes) :
+  - avec `GAOL_PRESERVE_ROUNDING`, les fonctions élémentaires paient encore deux
+    écritures de MXCSR, de 5 à 27 % de plus que sans (CORE-MATH calcule avec le
+    sens matériel, aucun arrondi embarqué n'y est possible) ; un mode de
+    CORE-MATH où le sens serait un paramètre les supprimerait, au prix de
+    modifier `3rd/math-core` ;
+  - les colonnes « rounding direction preserved » de
+    `doc/compare/performance.md` pour `sqrt` et les fonctions élémentaires
+    datent d'avant les deux derniers commits de #124, mesurés sur batterie : à
+    remesurer sur secteur (`MERGE=1 LIBS=gaol5p CPU=2 ./run_bench.sh`), puis
+    relire le texte ;
+  - **un défaut de CMake** : un second `cmake` dans le même dossier fait passer
+    `GAOL_PREFER_AVX512` de ON à OFF sous `GAOL_PRESERVE_ROUNDING`, `DEFINED`
+    voyant l'entrée de cache du premier passage et la prenant pour une demande
+    de la ligne de commande, alors que le commentaire du `CMakeLists.txt` dit
+    que le défaut se dérive à chaque passage (contourné par
+    `-UGAOL_PREFER_AVX512` dans `doc/compare/code/setup.sh`) ; le corriger, avec
+    un test qui configure deux fois le même dossier ;
+  - les descriptions des options listent encore « + - * / et sqrt » pour le
+    chemin AVX-512, qui prend aussi `sqr` et les puissances entières
+    (`doc/building.md`, `CMakeLists.txt`, `meson_options.txt`, `configure.ac`,
+    `gaol/gaol_configuration.h.in` et `gaol/gaol_configuration_meson.h.in`) ;
+  - avec `GAOL_PRESERVE_ROUNDING` et AVX-512, `x * d` et `x *= d` (un intervalle
+    par un double) donnent le signe opposé pour une borne nulle de 344 résultats
+    sur 5,7 millions entre le chemin AVX-512 (`[-0, +0]`) et le chemin SSE2
+    (`[+0, -0]`), la valeur étant la même ; relevé par #124, déjà ainsi à
+    `7716fec`, et aucun test ne le voit, qui comparent avec `==`.
 
 ## La version
 
@@ -1107,7 +1235,8 @@ après la fusion de #120 (point Z) et #121 (point B, 3/3).
 - **I** : la documentation pour l'utilisateur (35, 37, 38, 70).
 - **W** : décorations (26), reporté (#67).
 - **X** : YalAA et VNODE-LP (28).
-- **AA** : Shekel 5 plus lent qu'avec GAOL 4 (76), à chercher.
+- **AG** : le banc de `doc/compare` sur l'i7-1185G7 (104).
+- **AH** : `-mbranches-within-32B-boundaries` (105).
 - **Y** : préparer et publier v5.0.0 (32, 33, 34, 71), en dernier.
 
 ### Trouvailles mineures
@@ -1146,8 +1275,7 @@ après la fusion de #120 (point Z) et #121 (point B, 3/3).
   ci-dessous).
 - **CC.m5** : `process.md` section 12 (« Où en est le travail ») date du
   13 octobre : B y est « en cours » (fait par #121) et Z « à faire » (fait
-  par #120) ; AA est en cours (#122) et #123 est fusionnée. À remettre à
-  jour.
+  par #120) ; AA est fait (#122) et #123 est fusionnée. À remettre à jour.
 - **CC.m6** : `gaol/gaol_generator_mul_i2f.py` est le seul fichier de `gaol/`
   que rien ne référence (hors `doc/compare/`) : c'est un outil de l'auteur
   (Goualard, 2010, « No build runs it: it is a tool of the author »), qui
@@ -1405,9 +1533,8 @@ g++ et clang++-18, hors les trois qui échouent seuls par conception) ;
   3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81,
   #83, #84, #85, #86, #87, #88, #89, #90, #91, #92, #93, #94, #95, #96, #97,
   #99, #100, #103, #105, #108, #109, #110, #111, #112, #113, #114, #115, #117,
-  #118, #119, #120 et #121 après leur fusion, et la jetable de #116).
-  `tests-no-psabi`, de #123, fusionnée le 16 octobre, reste sur GitHub ; sa
-  branche locale est supprimée.
+  #118, #119, #120, #121, #122 et #123 après leur fusion, et la jetable de
+  #116).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
@@ -1491,11 +1618,12 @@ g++ et clang++-18, hors les trois qui échouent seuls par conception) ;
 ## Table des anciens numéros
 
 26 : W ; 28 : X ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ; 37 : I ; 38 : I ;
-70 : I ; 71 : Y ; 76 : AA ; 77 : AB ; 78 : AB ; 79 : AB ; 80 : AB ; 81 : AC ;
-82 : AC ; 83 : AD ; 84 : AD ; 85 : AD ; 86 : AD ; 87 : AD ; 88 : AD ;
-89 : AD ; 90 : AE ; 91 : AE ; 92 : AE ; 93 : AE ; 94 : AE ; 95 : AE ;
-96 : AF ; 97 : AF ; 98 : AF ; 99 : AF ; 100 : AF ; 101 : AF ; 102 : AF ;
-103 : AF.
+70 : I ; 71 : Y ; 77 : AB ; 78 : AB ; 79 : AB ; 80 : AB ; 81 : AC ; 82 : AC ;
+83 : AD ; 84 : AD ; 85 : AD ; 86 : AD ; 87 : AD ; 88 : AD ; 89 : AD ;
+90 : AE ; 91 : AE ; 92 : AE ; 93 : AE ; 94 : AE ; 95 : AE ; 96 : AF ;
+97 : AF ; 98 : AF ; 99 : AF ; 100 : AF ; 101 : AF ; 102 : AF ; 103 : AF ;
+104 : AG ; 105 : AH ; 106 : AI ; 107 : AI ; 108 : AI ; 109 : AI ;
+110 : AI ; 111 : AI ; 112 : AI.
 
 ## Ordre proposé pour les tâches restantes
 
@@ -1518,8 +1646,10 @@ g++ et clang++-18, hors les trois qui échouent seuls par conception) ;
    puis I.** Intégrer dans I la décision et la documentation sur la concurrence
    des réglages de format ; coordonner V avec l'avertissement sur les
    comparateurs. S, T, U et V sont faits par #90, #93, #97 et #96, Z par
-   #120. AA (Shekel 5) peut se faire à tout moment avant Y, comme AB à AE,
-   trouvés par la relecture du 14 octobre ; AF se fait avec I.
+   #120, AA (Shekel 5) par #122. AG et AH, ses suites, peuvent se faire à
+   tout moment avant Y, comme AB à AE, trouvés par la relecture du
+   14 octobre ; AF se fait avec I. AI, trouvé par la CI de #124 (17 octobre),
+   est à ordonner par le mainteneur.
 7. **Publier v5.0.0 avec Y**, après fusion des branches restantes, mise à jour
    de la documentation, couverture et mesures de performance ; faire ensuite
    le ménage listé plus haut.
