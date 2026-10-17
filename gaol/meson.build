@@ -44,6 +44,15 @@ endforeach
 core_math_port = meson.current_source_dir() + '/core_math_port.h'
 if msvc
   core_math_args = ['/FI' + core_math_port]
+  # What CORE-MATH writes on purpose, which /W4 of Visual C++ reports and
+  # CMakeLists.txt turns off for these sources: its #pragma STDC FENV_ACCESS,
+  # redundant with /fp:strict (C4068), the anonymous structures of its unions
+  # (C4201), masks written as negative constants (C4245), the volatile
+  # variables it computes for the flags they raise alone (C4189), and in erfc.c
+  # the return of a void call in a void function (C4098)
+  if c_comp.get_id() == 'msvc'
+    core_math_args += ['/wd4068', '/wd4201', '/wd4245', '/wd4189', '/wd4098']
+  endif
 else
   core_math_args = ['-include', core_math_port]
   # CORE-MATH asks for its computations to be rounded to double precision
