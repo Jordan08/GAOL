@@ -475,6 +475,59 @@ beyond π are no angle of any point (`atan2_rel_y([3, 4], [-1], [-1, 1])` is
 program whose angles go around past π gives the two sides of the jump apart,
 [3, π] and [−π, 4 − 2π] for [3, 4], and takes the hull of the two results.
 
+## Coming from another library
+
+The names of interval libraries differ, and the same symbol can mean another
+relation. This table gives, for what an algorithm uses, GAOL v5's name, the one
+of `gaol_ieee1788`, and those of IBEX and Codac, which share them, of C-XSC and
+of Boost.Interval. A dash means that the sources read have no function of the
+kind, not that the algorithm cannot be written.
+
+| | GAOL v5 | `gaol_ieee1788` | IBEX, Codac | C-XSC | Boost.Interval |
+|---|---|---|---|---|---|
+| Lower bound | `x.left()` | `inf(x)` | `x.lb()` | `Inf(x)` | `lower(x)` |
+| Upper bound | `x.right()` | `sup(x)` | `x.ub()` | `Sup(x)` | `upper(x)` |
+| Midpoint, a double | `x.midpoint()` | `mid(x)` | `x.mid()` | `mid(x)` | `median(x)` |
+| Midpoint, an interval | `x.mid()` | — | — | — | — |
+| Width | `x.width()`, rounded upward; `x.width_enclosure()` | `wid(x)` | `x.diam()` | `diam(x)` | `width(x)` |
+| Radius | `x.rad()` | `rad(x)` | `x.rad()` | — | — |
+| Smallest, greatest absolute value | `x.mig()`, `x.mag()` | `mig(x)`, `mag(x)` | `x.mig()`, `x.mag()` | `AbsMin(x)`, `AbsMax(x)` | `norm(x)`, the greatest only |
+| Hull, intersection | `x \| y`, `x & y`; `hull(x, y)`, `intersect(x, y)` | `convexHull(x, y)`, `intersection(x, y)` | `x \| y`, `x & y` | `x \| y`, `x & y` | `hull(x, y)`, `intersect(x, y)` |
+| Is empty | `x.is_empty()` | `isEmpty(x)` | `x.is_empty()` | `IsEmpty(x)` | `empty(x)` |
+| Subset | `x.set_leq(y)` | `subset(x, y)` | `x.is_subset(y)` | `x <= y` | `subset(x, y)` |
+| Interior | `x.set_le(y)`; `y.set_strictly_contains(x)` | `interior(x, y)` | `x.is_interior_subset(y)` | `x < y`, `in(x, y)` | — |
+| Contains a number | `x.set_contains(d)` | `isMember(d, x)` | `x.contains(d)` | `d <= x`, `in(d, x)` | `in(d, x)` |
+| Disjoint | `x.set_disjoint(y)` | `disjoint(x, y)` | `x.is_disjoint(y)` | `Disjoint(x, y)` | `!overlap(x, y)` |
+| Equal | `x.set_eq(y)` | `equal(x, y)` | `x == y` | `x == y` | `equal(x, y)` |
+| Inflate by r | `x.inflate(r)` | — | `x.inflate(r)` | `Blow(x, eps)`, relative to the width | `widen(x, r)` |
+| Bisect | `x.bisect(ratio)` | — | `x.bisect(ratio)`, ratio 0.5 (IBEX) or 0.49 (Codac) | — | — |
+| Two-piece division | two `div_rel`; `mulRevToPair(b, c)` | `mulRevToPair(b, c)` | `div2` | — | — |
+
+What the symbols `<`, `<=` and `==` mean is where code ported from another
+library compiles and changes meaning:
+
+| | `x < y` | `x <= y` | `x == y` |
+|---|---|---|---|
+| GAOL v5 | every point of x is below every point of y (`strictPrecedes`) | every point of x is at most every point of y (`precedes`) | not defined: `x.set_eq(y)` |
+| IBEX | not defined | not defined | the same bounds, the empty set equal to itself |
+| Codac | a `BoolInterval`: true, false, unknown, or empty if an operand is | not defined | the same bounds, as IBEX |
+| C-XSC | x in the interior of y | x is a subset of y; `r <= x`: the number r is in x | the same bounds |
+| PROFIL/BIAS | x in the interior of y | x is a subset of y; `r <= x`: r is in x | the same bounds |
+| Boost.Interval | true if every point of x is below every point of y, false if none is, else it throws `comparison_error` | true if every point of x is at most every point of y, false if none is, else it throws | true if x and y are the same point, false if they are disjoint, else it throws |
+
+So `0.0 <= f` is "0 is in f" in C-XSC and PROFIL/BIAS, and in GAOL v5 the
+certainly relation "0 is at most every point of f": a program ported from them
+compiles and no longer tests what it did (`f.set_contains(0.0)` does). A
+Boost.Interval program that catches `comparison_error` to detect an uncertain
+comparison never sees it with GAOL v5, whose `x < y` is false for overlapping
+intervals, and the empty set, which Boost refuses, passes every certainly
+relation (see
+[Relations, sorting and containers](#relations-sorting-and-containers)).
+The names are those of IBEX 2.9.1 (`ibex_Interval.h`), Codac 2
+(`codac2_Interval.h`), C-XSC 2.5.4 (`interval.hpp`, `interval.inl`),
+PROFIL/BIAS 2.0.8 (`Interval.h`) and Boost 1.86 (`boost/numeric/interval/`),
+read in their sources.
+
 ## Relations, sorting and containers
 
 The symbols `<`, `<=`, `>` and `>=` of intervals are the certainly relations
@@ -809,6 +862,60 @@ fail as a syntax error does, so that `parse_interval()` returns false and
 (12.12.7), where GAOL ended the program; `gaol::textToInterval()` and
 `operator>>` print a message and abort then, as for any string that is no
 interval (GAOL v5).
+
+## Common errors
+
+The "Common errors" of the manual (chapter 3) give each of these with an
+example; they are listed here for the reader who looks in this page first.
+
+- **A constant, a function of a number.** `interval(0.1)` is the double nearest
+  to 0.1, one point, not 1/10: `textToInterval("0.1")` encloses it.
+  `sqrt(2.0)` is the C function, and `interval(sqrt(2.0))` a point that misses
+  √2: `sqrt(interval(2.0))` encloses it. `gaol::sin(0.5)` does not compile.
+- **A midpoint and a radius.** `interval(m - r, m + r)` does not enclose
+  [m − r, m + r], the program computing both bounds in the direction it is in:
+  `interval::midrad(m, r)` does.
+- **The program's own doubles** are rounded upward after an operation of GAOL
+  until `gaol::cleanup()` (see
+  [What the upward rounding does to the program](#what-the-upward-rounding-does-to-the-program)).
+- **The sign of a zero bound** differs between the SSE2 and the FPU intervals:
+  `sqr(interval(-1, 2))` is [−0, 4] with the first and [0, 4] with the
+  second, `1.0 / x.left()` being −∞ or +∞. A program compares bounds with `==`
+  and `<` and does not read the sign.
+- **The empty set and the domain.** A function keeps the part of its argument
+  in its domain, silently: `sqrt([-1, 4])` is [0, 2], `log([-1, 0])` is empty.
+  The empty set passes every certainly relation and every inclusion test
+  (`e < z`, `z.set_contains(e)` and `e.set_disjoint(z)` are all true): a
+  program tests `is_empty()` first.
+- **Relations, sorting and containers.** `<` is `strictPrecedes`, there is no
+  `==`, and `<=` is not the inclusion of C-XSC and PROFIL/BIAS; `<` is no
+  ordering for `std::sort`, `std::set` or `std::max`: they take
+  `gaol::lexicographic_less` (see
+  [Coming from another library](#coming-from-another-library) and
+  [Relations, sorting and containers](#relations-sorting-and-containers)).
+- **Both namespaces open.** `pow(x, y)` and `pow(x, 2.0)` are ambiguous, but
+  `pow(x, 2)`, with an `int` or an `unsigned int`, compiles and takes the `pow`
+  of `gaol`: `pow(interval(-4, -1), 2)` is [1, 16], not the empty set of
+  `gaol_ieee1788::pow`.
+- **Bisection.** `bisect()` and `split()` cut [1, +∞] at `DBL_MAX`, and
+  [DBL_MAX, +∞] at `DBL_MAX` again: a loop on `width() > eps` never ends on an
+  unbounded interval, and stops on `is_bisectable()`, which is also false for
+  two consecutive doubles.
+- **Newton's method.** `/` is the set of the quotients a/b, b ≠ 0:
+  `interval(0.0) / interval(-1.1, 0.9)` is [0], which "proves" a unique root.
+  `%`, or `div_rel()`, the reverse of the product, is [−∞, +∞] there, rightly.
+- **Reading text.** `nth_root(8, 1.5)` in a text throws
+  `invalid_action_error`, which is no `input_format_error`. The
+  `textToInterval` of `gaol_ieee1788` throws neither: it gives the empty set for
+  any text that is no interval, `"[empty]"` included.
+- **Threads and the global settings.** `interval::format()` and
+  `interval::precision()` are plain variables of the program, shared by its
+  threads: setting one while another thread writes an interval (`operator<<`,
+  the conversion to a `std::string`, `intervalToText()`) is a data race. The
+  program sets them before starting its threads, or takes a lock of its own
+  around the setting and around each output. Without a setting in between,
+  several threads write intervals at once safely (checked with
+  ThreadSanitizer), and read strings too.
 
 ## The rounding direction
 

@@ -1818,6 +1818,60 @@ interval(0.1) = [0x1.999999999999ap-4]
 one_tenth     = [0x1.9999999999999p-4, 0x1.999999999999ap-4]
 \end{onscreen}
 
+\subsection{Functions of numbers}
+%%...............................
+\cindex{sqrt@\code{sqrt} of a number}%
+
+A function called with a number is the function of the C library, even where
+the namespace \code{gaol} is open: \code{sqrt(2.0)} is a \code{double}, rounded
+in the direction in effect, and no enclosure of $\sqrt{2}$. A \code{double} no
+longer becomes an interval by itself, the constructor being explicit, so that
+\code{interval r = sqrt(2.0);} does not compile; but \code{interval r(sqrt(2.0));}
+does, and gives a point that does not contain $\sqrt{2}$. The enclosure is the
+function of GAOL on an interval, or the text read by
+\code{textToInterval()}:\newinvfive
+
+\begin{example}
+interval root2 = textToInterval("sqrt(2)");
+cout << boolalpha << interval(sqrt(2.0)).set_contains(root2) << ' '
+     << sqrt(interval(2.0)).set_contains(root2);
+@outputs^false true~
+\end{example}
+
+\noindent
+For the same reason, \code{gaol::sin(0.5)} does not compile: it is written
+\code{gaol::sin(interval(0.5))}, and \code{sin(0.5)} alone is the \code{sin} of
+C.
+
+\subsection{Midpoint and radius}
+%%..............................
+\cindex{interval!midpoint and radius}%
+
+\code{interval(m - r, m + r)}, with doubles, is not an interval enclosing
+$[m-r,\,m+r]$: the program computes \code{m - r} and \code{m + r} itself, in the
+direction in effect, which is upward until \code{cleanup()}, so that
+\code{m - r} may be above the real $m-r$, and to nearest each bound may be on
+either side. With \code{m = 1.0} and \code{r = 1e-20}, the interval is
+\itv{1}{1+2^{-52}} while the direction is upward, and does not contain
+$1-10^{-20}$. \code{interval::midrad(m, r)} (\pxref{sec:interval-constants}), or
+\code{m + interval(-r, r)}, computes both bounds in intervals, and gives
+\itv{1-2^{-53}}{1+2^{-52}}, which does.\newinvfive
+
+\begin{example}
+double m = 1.0, r = 1e-20;
+interval wrong(m - r, m + r);            @rem^// Does not enclose [m - r, m + r]~
+interval right = interval::midrad(m, r); @rem^// Does~
+\end{example}
+
+\subsection{The doubles of the program}
+%%.....................................
+
+The rounding direction that GAOL leaves applies to the rest of the program,
+which computes its own doubles in it: after an operation of GAOL, \code{1.0 / 3.0}
+is the double above $1/3$, and \code{printf()} and the streams of the GNU C
+library write the decimal digits of a double rounded upward too, until
+\code{cleanup()}. \pxref{sec:upward-effects} gives what changes, and what to do.
+
 \subsection{Zero}
 %%...............
 
@@ -1826,6 +1880,62 @@ are \itv{0}{0}. The literal \code{0} is also a null pointer, and the
 constructors from one and from two strings of GAOL~4 made these calls
 ambiguous; GAOL v5 has no constructor from strings.\newinvfive
 \cindex{interval!zero}%
+
+\subsection{The sign of a zero bound}
+%%...................................
+\cindex{zero!sign of a bound}%
+
+A bound that is zero has a sign, which differs between the builds:
+\code{sqr(interval(-1, 2))} is \itv{-0}{4} with the SSE2 intervals, which the
+default build uses on x86 processors, and \itv{0}{4} with the FPU intervals, those
+of the other processors, of Visual C++ and 32-bit Windows, and of the build with
+\option{GAOL\_SIMD} off; \code{interval::zero()} is \itv{-0}{0} with the first
+and \itv{0}{0} with the second. IEEE 1788-2015 and GAOL take the two zeros for
+the same number: \code{x.left() == 0.0} is \code{true} whichever it is, and a
+point interval at zero is written \code{[0]}. A program that reads the sign,
+with \code{std::signbit(x.left())} or \code{1.0 / x.left()}, which is $-\infty$
+or $+\infty$, gets one answer with a build and the other with the other: it
+compares the bounds with \code{==}, \code{<} and \code{<=}.\newinvfive
+
+\subsection{The empty set and the domain of a function}
+%%.........................................................
+\cindex{empty set!in tests}%
+\cindex{domain of a function}%
+
+A function is computed on the part of its argument that lies in its domain
+(IEEE 1788-2015), and GAOL, which has no decorations, says nothing of the rest:
+\code{sqrt(interval(-1, 4))} is \itv{0}{2}, \code{log(interval(-1, 0))} is
+empty, and so are \code{interval(1, 0)} and the interval of one infinite or NaN
+double. The empty set then passes the tests
+as if it were a good answer: it has no point that contradicts a certainly
+relation, and it is included in every interval, so that a box outside the domain
+of a function is both inside and outside the set a paving looks for:
+
+\begin{example}
+interval e = sqrt(interval(-2.0, -1.0)), z(0.0, 1.0);
+cout << boolalpha << e.is_empty() << ' ' << (e < z) << ' ' << (e > z) << ' '
+     << z.set_contains(e) << ' ' << e.set_disjoint(z);
+@outputs^true true true true true~
+\end{example}
+
+\noindent
+A program tests \code{is\_empty()} first, and decides itself what a box outside
+the domain of its function means, as \file{examples/08\_sivia.cpp} does.
+
+\subsection{Relations, sorting and containers}
+%%.................................................
+\cindex{relation!symbols!pitfalls}%
+
+The symbols \code{<}, \code{<=}, \code{>} and \code{>=} are the certainly
+relations of IEEE 1788-2015, which do not tell which of two intervals is the
+greater, and there is no \code{==}: \code{interval(1,3) < interval(2,4)} and
+\code{interval(1,3) >= interval(2,4)} are both \code{false}
+(\pxref{sec:relational-symbols}). In C-XSC and in PROFIL/BIAS, \code{x <= y}
+means that \code{x} is a subset of \code{y}, and \code{r <= x} that the number
+\code{r} is in \code{x}: code ported from them compiles, and changes its
+meaning (\pxref{sec:other-libraries}). None of them is an ordering for the
+standard library: \code{std::sort}, \code{std::set} and \code{std::max} take the
+comparator \code{gaol::lexicographic\_less} (\pxref{sec:lexicographic-less}).
 
 \subsection{Both namespaces}
 %%..........................
@@ -1842,7 +1952,123 @@ gaol::interval x(1,2), y = pow(x,x); @rem^// Does not compile~
 \end{example}
 
 \noindent
-The compiler reports that the call of \code{pow} is ambiguous.
+The compiler reports that the call of \code{pow} is ambiguous. Not every call
+is: with an \code{int} or an \code{unsigned int} for exponent, \code{pow(x, 2)}
+compiles, and takes the \code{pow} of \code{gaol}, silently, where that of
+\code{gaol\_ieee1788} gives another result for a negative base
+(\pxref{sec:pow-namespaces}). Only the calls with another type of exponent,
+\code{pow(x, 2.0)}, \code{pow(x, 2L)} or \code{pow(x, y)}, are
+ambiguous:\newinvfive
+
+\begin{example}
+#include <iostream>
+#include <gaol/gaol.h>
+using namespace gaol;
+using namespace gaol_ieee1788;
+
+int main(void)
+{
+  gaol::interval x(-4,-1);
+  std::cout << pow(x, 2) << std::endl; @rem^// The pow of gaol~
+  gaol::cleanup();
+  return 0;
+}
+@outputs^[1, 16]~
+\end{example}
+
+\subsection{Bisection}
+%%.....................
+\cindex{bisection!of an unbounded interval}%
+
+A loop that cuts an interval until it is narrow, \code{while (x.width() > eps)},
+never ends on an unbounded interval: \code{bisect(0.5)}, like \code{split()},
+cuts \itv{1}{+\infty} at \code{DBL\_MAX}, and the half \itv{DBL\_MAX}{+\infty} is
+cut at \code{DBL\_MAX} again, its width staying infinite. What a loop stops on is
+\code{is\_bisectable()}, which is \code{false} for this half, and for an
+interval of two consecutive doubles, the cut of which gives the interval itself
+as one half (\pxref{sec:splitting}):\newinvfive
+
+\begin{example}
+interval x(1.0, GAOL_INFINITY);
+x = x.bisect(0.5).second;
+cout << boolalpha << x << ' ' << x.width() << ' ' << x.is_bisectable();
+@outputs^[1.797693134862315e+308, inf] inf false~
+\end{example}
+
+\subsection{Newton's method: the division and the relational division}
+%%.....................................................................
+\cindex{Newton's method!division}%
+
+The step $N(X)=m-f(m)/F'(X)$ of the interval Newton method divides with
+\code{/}, the set of the quotients $a/b$ of a point of the numerator by a point
+other than 0 of the denominator. Where $0\in F'(X)$ and $f(m)=0$, the quotient
+$0/F'(X)$ is $\itv{0}{0}$, so that $N(X)=m$ lies inside $X$ and ``proves'' that
+$X$ holds exactly one root, where it holds seven for $\sin x-x/10$ on
+\itv{-10}{10}. A root satisfies a relation, $(x-m)\,d=-f(m)$ for some $d$ in
+$F'(X)$, which \code{\%}, or \code{div\_rel()}, the reverse of the product
+(\pxref{sec:relational-arithmetic}), solves: it gives the whole line, rightly,
+when $d$ and $f(m)$ can both be 0.
+
+\begin{example}
+interval fm(0.0), D(-1.1, 0.9);
+cout << fm / D << ' ' << fm % D << ' ' << div_rel(fm, D, interval(-5.0, 5.0));
+@outputs^[0] [-inf, inf] [-5, 5]~
+\end{example}
+
+\noindent
+The functional division is the right one where $F'(X)$ holds no 0.
+\file{examples/05\_interval\_newton.cpp} shows the trap and the extended step.
+
+\subsection{Reading text}
+%%.........................
+\cindex{textToInterval@\code{textToInterval}!errors}%
+
+\code{gaol::textToInterval()} throws \code{input\_format\_error} for a text that
+is no interval, and \code{invalid\_action\_error} for a text that is one but
+calls a function with an argument it does not take, such as
+\code{nth\_root(8, 1.5)}, whose order is not an integer: a loop that catches the
+first lets the second escape. Both derive from \code{gaol\_exception}
+(Chapter~\ref{chap:errors}).\newinvfive
+
+\begin{example}
+try {
+  cout << textToInterval("nth_root(8, 1.5)");
+} catch (const gaol_core::input_format_error&) {
+  cout << "input_format_error";
+} catch (const gaol_core::invalid_action_error&) {
+  cout << "invalid_action_error";
+}
+@outputs^invalid_action_error~
+\end{example}
+
+\noindent
+\code{gaol\_ieee1788::textToInterval()} throws neither: it gives the empty set
+for every text that is no interval, as IEEE 1788-2015 has it, so that a
+malformed text cannot be told from \code{"[empty]"}:
+
+\begin{example}
+cout << gaol_ieee1788::textToInterval("[1, 2") << ' '
+     << gaol_ieee1788::textToInterval("[empty]");
+@outputs^[empty] [empty]~
+\end{example}
+
+\subsection{Threads and the global settings}
+%%.............................................
+\cindex{threads!output of intervals}%
+\cindex{interval::format@\code{interval::format}!threads}%
+
+The output format of intervals and their number of digits, set by
+\code{interval::format()} and \code{interval::precision()}, are variables of the
+program, shared by its threads, and not atomic: setting one while another thread
+writes an interval, with \code{operator<{}<}, the conversion to a
+\code{std::string} or \code{gaol\_ieee1788::intervalToText()} (which reads the
+precision only), is a data race, with the undefined behavior of C++ (ThreadSanitizer reports
+it). The program that sets them synchronizes with the threads that write: it
+sets them before starting its threads, or takes a lock of its own around the
+setting and around each output. Without a setting in between, several threads
+write intervals at once safely, and so they read strings
+(\pxref{sec:reading-intervals}); \code{exact\_string()} reads neither
+setting.\newinvfive
 
 \subsection{The flags of interval arithmetic}
 %%...........................................
@@ -4244,7 +4470,7 @@ cout << sign(interval(-2,3)) << ' '
   \end{example}
 \end{deffun}
 
-\section{Splitting methods}
+\section{Splitting methods}\label{sec:splitting}
 %%-------------------------
 
 \begin{defmethod}{interval}{void}{split}{(interval\& \var{I1}, interval\& \var{I2}) const}
@@ -5208,6 +5434,98 @@ it provide \ieee{pownRev} for $p\leq0$ (Table 10.1), \ieee{compoundm1} (Table
 \ieee{overlap} (10.6.4), the reduction operations \ieee{sum}, \ieee{dot},
 \ieee{sumSquare} and \ieee{sumAbs} (12.12.12), and the exact operations of
 12.13.5. The end of \file{gaol/gaol\_ieee1788.h} keeps this list.
+
+\section{Coming from another library}\label{sec:other-libraries}
+%%--------------------------------------
+\cindex{libraries!names in other}%
+\cindex{IBEX}\cindex{Codac}\cindex{C-XSC}\cindex{PROFIL/BIAS}\cindex{Boost.Interval}%
+
+The names of interval libraries differ, and the same symbol can mean another
+relation. The first table gives, for what an algorithm uses, the name of GAOL v5,
+the one of \code{gaol\_ieee1788}, and those of IBEX and Codac, which share them,
+of C-XSC and of Boost.Interval. A dash means that the sources read have no
+function of the kind, not that the algorithm cannot be written.\newinvfive
+
+{\renewcommand{\arraystretch}{1.1}\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{longtable}{L{.17\textwidth}L{.24\textwidth}L{.22\textwidth}L{.29\textwidth}}
+    \hline
+    & GAOL v5 & \code{gaol\_ieee1788} & IBEX, Codac\\
+    \hline\hline
+    \endhead
+    Lower bound & \code{x.left()} & \code{inf(x)} & \code{x.lb()}\\
+    Upper bound & \code{x.right()} & \code{sup(x)} & \code{x.ub()}\\
+    Midpoint, a double & \code{x.midpoint()} & \code{mid(x)} & \code{x.mid()}\\
+    Midpoint, an interval & \code{x.mid()} & --- & ---\\
+    Width, rounded upward & \code{x.width()} & \code{wid(x)} & \code{x.diam()}\\
+    Radius & \code{x.rad()} & \code{rad(x)} & \code{x.rad()}\\
+    Smallest, greatest absolute value & \code{x.mig()}, \code{x.mag()} & \code{mig(x)}, \code{mag(x)} & \code{x.mig()}, \code{x.mag()}\\
+    Hull, intersection & \code{x | y}, \code{x \& y} & \code{convexHull(x, y)}, \code{intersection(x, y)} & \code{x | y}, \code{x \& y}\\
+    Is empty & \code{x.is\_empty()} & \code{isEmpty(x)} & \code{x.is\_empty()}\\
+    Subset & \code{x.set\_leq(y)} & \code{subset(x, y)} & \code{x.is\_subset(y)}\\
+    Interior & \code{x.set\_le(y)} & \code{interior(x, y)} & \code{x.is\_interior\_subset(y)}\\
+    Contains a number & \code{x.set\_contains(d)} & \code{isMember(d, x)} & \code{x.contains(d)}\\
+    Disjoint & \code{x.set\_disjoint(y)} & \code{disjoint(x, y)} & \code{x.is\_disjoint(y)}\\
+    Equal & \code{x.set\_eq(y)} & \code{equal(x, y)} & \code{x == y}\\
+    Inflate by \code{r} & \code{x.inflate(r)} & --- & \code{x.inflate(r)}\\
+    Bisect & \code{x.bisect(ratio)} & --- & \code{x.bisect(ratio)}, ratio 0.5 (IBEX) or 0.49 (Codac)\\
+    Two-piece division & two \code{div\_rel}, or \code{mulRevToPair(b, c)} & \code{mulRevToPair(b, c)} & \code{div2}\\
+    \hline
+  \end{longtable}}
+
+{\renewcommand{\arraystretch}{1.1}\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{longtable}{L{.19\textwidth}L{.25\textwidth}L{.25\textwidth}L{.22\textwidth}}
+    \hline
+    & GAOL v5 & C-XSC & Boost.Interval\\
+    \hline\hline
+    \endhead
+    Lower bound & \code{x.left()} & \code{Inf(x)} & \code{lower(x)}\\
+    Upper bound & \code{x.right()} & \code{Sup(x)} & \code{upper(x)}\\
+    Midpoint, a double & \code{x.midpoint()} & \code{mid(x)} & \code{median(x)}\\
+    Width, rounded upward & \code{x.width()} & \code{diam(x)} & \code{width(x)}\\
+    Smallest, greatest absolute value & \code{x.mig()}, \code{x.mag()} & \code{AbsMin(x)}, \code{AbsMax(x)} & \code{norm(x)}, the greatest only\\
+    Hull, intersection & \code{x | y}, \code{x \& y}; \code{hull(x, y)}, \code{intersect(x, y)} & \code{x | y}, \code{x \& y} & \code{hull(x, y)}, \code{intersect(x, y)}\\
+    Is empty & \code{x.is\_empty()} & \code{IsEmpty(x)} & \code{empty(x)}\\
+    Subset & \code{x.set\_leq(y)} & \code{x <= y} & \code{subset(x, y)}\\
+    Interior & \code{x.set\_le(y)} & \code{x < y}, \code{in(x, y)} & ---\\
+    Contains a number & \code{x.set\_contains(d)} & \code{d <= x}, \code{in(d, x)} & \code{in(d, x)}\\
+    Disjoint & \code{x.set\_disjoint(y)} & \code{Disjoint(x, y)} & \code{!overlap(x, y)}\\
+    Equal & \code{x.set\_eq(y)} & \code{x == y} & \code{equal(x, y)}\\
+    Inflate by \code{r} & \code{x.inflate(r)} & \code{Blow(x, eps)}, relative to the width & \code{widen(x, r)}\\
+    \hline
+  \end{longtable}}
+
+\noindent
+What the symbols \code{<}, \code{<=} and \code{==} mean is where code ported
+from another library compiles and changes meaning:
+
+{\renewcommand{\arraystretch}{1.1}\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{longtable}{L{.17\textwidth}L{.27\textwidth}L{.27\textwidth}L{.19\textwidth}}
+    \hline
+    & \code{x < y} & \code{x <= y} & \code{x == y}\\
+    \hline\hline
+    \endhead
+    GAOL v5 & every point of \code{x} is below every point of \code{y} (\ieee{strictPrecedes}) & every point of \code{x} is at most every point of \code{y} (\ieee{precedes}) & not defined: \code{x.set\_eq(y)}\\
+    IBEX & not defined & not defined & the same bounds, the empty set equal to itself\\
+    Codac & a \code{BoolInterval}: true, false, unknown, or empty if an operand is & not defined & the same bounds, as IBEX\\
+    C-XSC & \code{x} in the interior of \code{y} & \code{x} is a subset of \code{y}; \code{r <= x}: the number \code{r} is in \code{x} & the same bounds\\
+    PROFIL/BIAS & \code{x} in the interior of \code{y} & \code{x} is a subset of \code{y}; \code{r <= x}: \code{r} is in \code{x} & the same bounds\\
+    Boost.Interval & true if every point of \code{x} is below every point of \code{y}, false if none is, else it throws \code{comparison\_error} & true if every point of \code{x} is at most every point of \code{y}, false if none is, else it throws & true if \code{x} and \code{y} are the same point, false if they are disjoint, else it throws\\
+    \hline
+  \end{longtable}}
+
+\noindent
+So \code{0.0 <= f} is ``0 is in \code{f}'' in C-XSC and in PROFIL/BIAS, and in GAOL
+v5 the certainly relation ``0 is at most every point of \code{f}'': a program
+ported from them compiles and no longer tests what it did
+(\code{f.set\_contains(0.0)} does). A Boost.Interval program that catches
+\code{comparison\_error} to detect an uncertain comparison never sees it with
+GAOL v5, whose \code{x < y} is false for overlapping intervals, and the empty
+set, which Boost refuses, passes every certainly relation
+(\pxref{sec:lexicographic-less}). The names are those of IBEX~2.9.1
+(\file{ibex\_Interval.h}), Codac~2 (\file{codac2\_Interval.h}), C-XSC~2.5.4
+(\file{interval.hpp} and \file{interval.inl}), PROFIL/BIAS~2.0.8
+(\file{Interval.h}) and Boost~1.86 (\file{boost/numeric/interval/}), read in
+their sources.
 
 \chapter{Accuracy of the operations}\label{chap:accuracy}
 %%=================================
