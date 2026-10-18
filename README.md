@@ -15,7 +15,13 @@ GAOL is a C++ [Interval Arithmetic](https://en.wikipedia.org/wiki/Interval_arith
 
 ## Authors
 
-GAOL v5 is written by Jordan Ninin (ENSTA). It continues GAOL as
+GAOL v5 was written by Jordan Ninin, Associate Professor in Computer Science at
+ENSTA (Lab-STICC, UMR CNRS 6285), who has been its main developer since 2026.
+Its page is the repository [Jordan08/GAOL](https://github.com/Jordan08/GAOL),
+and Jordan Ninin's page, [webperso.ensta.fr/ninin](https://webperso.ensta.fr/ninin/),
+lists his publications.
+
+GAOL v5 continues GAOL as
 [Frédéric Goualard](https://frederic.goualard.net/) developed it, from its
 version 4.2.2 (see [What differs from GAOL](doc/differences.md)).
 
@@ -24,17 +30,9 @@ Science at Nantes Université (LS2N, UMR CNRS 6004), who has been its main
 developer since 2001. Its page is the
 [GAOL section](https://frederic.goualard.net/#research-software-gaol) of
 Frédéric Goualard's site, and its original repository is
-[goualard-f/GAOL](https://github.com/goualard-f/GAOL).
-
-Publications of Frédéric Goualard related to GAOL (see the
-[full list](https://frederic.goualard.net/#Publications)):
-
-- [Fast and Correct SIMD Algorithms for Interval Arithmetic](https://frederic.goualard.net/publications/interval-sse2_goualard_para08.pdf).
-  PARA '08, Lecture Notes in Computer Science 6126–6127, Springer, 2012.
-- [Interval Extensions of Multivalued Inverse Functions](https://hal.archives-ouvertes.fr/hal-00288457v1).
-  Research report hal-00288457, 2008.
-- [How do you compute the midpoint of an interval?](https://hal.archives-ouvertes.fr/hal-00576641v2).
-  ACM Transactions on Mathematical Software 40(2), 2014.
+[goualard-f/GAOL](https://github.com/goualard-f/GAOL). His publications,
+those related to GAOL among them, are in the
+[full list](https://frederic.goualard.net/#Publications) of his site.
 
 ## GAOL v5
 
