@@ -2780,6 +2780,71 @@ cout << boolalpha << (interval(1,2) < interval(3,4)) << ' '
 \end{example}
 \end{deffun}
 
+\section{Intervals in containers and algorithms}\label{sec:lexicographic-less}
+%%-----------------------------------------------
+\cindex{lexicographic\_less@\code{lexicographic\_less}}%
+\cindex{sorting intervals}%
+\cindex{std::set@\code{std::set}}%
+
+The relation symbols do not tell which of two intervals is the greater:
+\code{interval(1,3) < interval(2,4)} and \code{interval(1,3) >= interval(2,4)}
+are both \code{false}, and \code{false} is not the opposite. The empty set,
+which has no point to contradict a certainly relation, is less than every
+interval, and greater, itself included: \code{e < e} is \code{true}.
+
+\emph{None of them is a strict weak ordering, so intervals are not given to the
+algorithms and the containers of the standard library that compare with
+\code{<}} (\code{std::sort}, \code{std::set}, \code{std::map},
+\code{std::priority\_queue}, \code{std::max}, \code{std::min},
+\code{std::clamp}\ldots). Two overlapping intervals are equivalent for
+\code{<}, a relation that is not transitive, and the empty set is less than
+itself, so that their behavior is undefined, and differs with the
+implementation of the library. A \code{std::set<interval>} that holds \itv{1}{2}
+drops \itv{1}{3} (two of the three intervals \itv{1}{2}, \itv{1}{3} and
+\itv{5}{6} stay), \code{std::sort} of a vector that holds an empty interval
+reads past the end of the vector (AddressSanitizer stops the program with
+libstdc++), and \code{std::max(\itv{1}{3}, \itv{2}{4})} is \itv{1}{3}, its first
+argument, where \code{gaol::max} gives \itv{2}{4}. \code{gaol::max(x, y)} and
+\code{gaol::min(x, y)} are the maximum and the minimum of the standard: the set
+of the greater (or the lesser) of a point of \code{x} and a point of \code{y},
+and not the greater (or the lesser) of the two arguments.
+
+The comparator to give them is
+\code{gaol::lexicographic\_less}:\newinvfive{} a strict total order that puts
+the empty set first and the other intervals by their left bound, then by their
+right bound, $-0$ and $+0$ being the same bound. Two intervals with the same
+bounds, or two empty sets, are not less than each other, as a container needs.
+It is also in \code{gaol\_core}; a program that opens \code{gaol\_ieee1788}
+writes its name in full. Specializing \code{std::less} for intervals is left to
+the program, so the comparator is given explicitly:
+
+\begin{example}
+#include <algorithm>
+#include <iostream>
+#include <set>
+#include <vector>
+#include <gaol/gaol.h>
+using namespace gaol;
+
+int main(void)
+{
+  const interval boxes[] = { interval(1,2), interval(0,5),
+                             interval::emptyset(), interval(1,3) };
+  std::set<interval, lexicographic_less> s(boxes, boxes + 4);
+  std::vector<interval> v(boxes, boxes + 4);
+  std::sort(v.begin(), v.end(), lexicographic_less());
+  for (const interval& x : v) std::cout << x << ' ';
+  std::cout << s.size() << std::endl;
+  gaol::cleanup();
+  return 0;
+}
+@outputs^[empty] [0, 5] [1, 2] [1, 3] 4~
+\end{example}
+
+\noindent
+An algorithm that needs to know which of two boxes to process first, as a
+best-first search, orders them by a number of its own, the lower bound of an
+enclosure for instance, as \file{examples/06\_global\_optimization.cpp} does.
 
 \section{Interval-specific relations}
 %%-----------------------------------

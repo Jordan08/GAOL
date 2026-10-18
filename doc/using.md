@@ -475,6 +475,69 @@ beyond π are no angle of any point (`atan2_rel_y([3, 4], [-1], [-1, 1])` is
 program whose angles go around past π gives the two sides of the jump apart,
 [3, π] and [−π, 4 − 2π] for [3, 4], and takes the hull of the two results.
 
+## Relations, sorting and containers
+
+The symbols `<`, `<=`, `>` and `>=` of intervals are the certainly relations
+of IEEE 1788-2015: `x < y`, `strictPrecedes`, is true when every point of x is
+below every point of y, and `x <= y`, `precedes`, when every point of x is at
+most every point of y. They do not tell which of two intervals is the greater:
+`[1, 3] < [2, 4]` and `[1, 3] >= [2, 4]` are both false, and false is not the
+opposite. There is no `==` nor `!=` on intervals (`set_eq()` compares the
+bounds, `set_disjoint()` and `less()` are the other relations of the standard),
+and the empty set, which has no point to contradict a certainly relation, is
+less than every interval, and greater, itself included: `e < e` is true.
+
+**None of them is a strict weak ordering, so intervals are not given to the
+algorithms and the containers of the standard library that compare with `<`**
+(`std::sort`, `std::set`, `std::map`, `std::priority_queue`, `std::max`,
+`std::min`, `std::clamp`...). Two overlapping intervals are equivalent for `<`,
+a relation that is not transitive, and the empty set is less than itself, so
+that their behavior is undefined, and differs with the implementation of the
+library. A `std::set<interval>` that holds [1, 2] drops [1, 3] (two of the
+three intervals [1, 2], [1, 3] and [5, 6] stay), `std::sort` of a vector that
+holds an empty interval reads past the end of the vector (AddressSanitizer
+stops the program with libstdc++), and `std::max([1, 3], [2, 4])` is [1, 3], its
+first argument, where `gaol::max` gives [2, 4].
+
+`gaol::lexicographic_less` (GAOL v5, also `gaol_core::lexicographic_less`; a
+program that opens `gaol_ieee1788` writes the name in full) is the comparator
+to give them: a strict total order that puts the empty set first and the other
+intervals by their left bound, then by their right bound, -0.0 and +0.0 being
+the same bound. Two intervals with the same bounds, or two empty sets, are not
+less than each other, as a container needs. Specializing `std::less` for
+intervals is left to the program (issue #70), so the comparator is given
+explicitly:
+
+```cpp
+#include <algorithm>
+#include <iostream>
+#include <set>
+#include <vector>
+#include <gaol/gaol.h>
+using namespace gaol;
+
+int main()
+{
+  const interval boxes[] = { interval(1, 2), interval(0, 5), interval::emptyset(), interval(1, 3) };
+  std::set<interval, lexicographic_less> s(boxes, boxes + 4);   // 4 intervals, none dropped
+  std::vector<interval> v(boxes, boxes + 4);
+  std::sort(v.begin(), v.end(), lexicographic_less());
+  for (const interval& x : v) {
+    std::cout << x << ' ';           // [empty] [0, 5] [1, 2] [1, 3]
+  }
+  std::cout << s.size() << std::endl; // 4
+  gaol::cleanup();
+  return 0;
+}
+```
+
+`gaol::max(x, y)` and `gaol::min(x, y)` are the maximum and the minimum of the
+standard: the set of the greater (or the lesser) of a point of x and a point of
+y, and not the greater (or the lesser) of the two arguments. An algorithm
+that needs to know which of two boxes to process first, as a best-first search,
+orders them by a number of its own, the lower bound of an enclosure for
+instance, as `examples/06_global_optimization.cpp` does.
+
 ## Tools of interval algorithms
 
 GAOL v5 provides the operations that interval algorithms otherwise write for
