@@ -2,7 +2,10 @@
      Created 2026-09-27 by Jordan NININ -->
 # Using intervals with GAOL v5: examples, review and comparison
 
-Part of the documentation of [GAOL v5](../README.md#documentation).
+Part of the documentation of [GAOL v5](../README.md#documentation). A
+[short tutorial](tutorial.md) writes four of the algorithms of the examples,
+the range of a function, the interval Newton method, a contractor and a branch
+and bound, in programs of a few dozen lines.
 
 This report has three parts:
 
