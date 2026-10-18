@@ -15,7 +15,7 @@ Six implementations of interval arithmetic on doubles are compared:
 
 The comparison has three parts:
 
-- [Special cases](special_cases.md): 288 special cases taken from GAOL's tests
+- [Special cases](special_cases.md): 290 special cases taken from GAOL's tests
   (infinities, zeros, NaN, empty sets, divisions by zero, `pow` and `pown`,
   `+=` and the other operators with doubles, reading from text, midpoints,
   widths, radii, comparisons and `atan2`), computed by the six libraries and compared
@@ -47,10 +47,10 @@ reports.
 
 | | libieeep1788 | GAOL | filib++ | Solaris Studio | PROFIL/BIAS | Boost.Interval |
 |---|---|---|---|---|---|---|
-| Special cases with IEEE 1788's result | 279 of 279 | 286 of 286 under `gaol_ieee1788`; 278 under `gaol` | 126 of 243 | 150 of 261 | 56 of 221 | 93 of 166 |
+| Special cases with IEEE 1788's result | 281 of 281 | 288 of 288 under `gaol_ieee1788`; 280 under `gaol` | 126 of 245 | 150 of 261 | 56 of 223 | 93 of 168 |
 | … or an interval enclosing it | 0 | 0; 2 | 50 | 41 | 22 | 9 |
-| … or another result | 0 | 0; 6 | 67 | 70 | 143 | 64 |
-| Cases it has no operation for | 8 | 0 | 44 | 26 | 65 | 121 |
+| … or another result | 0 | 0; 6 | 69 | 70 | 145 | 66 |
+| Cases it has no operation for | 8 | 0 | 44 | 28 | 65 | 121 |
 | Elementary functions at random points: results missing the value | — | 0 of 1 600 000 | — | — | — | 34 % (20 % with `rounded_transc_std`) |
 | `x + y` | 137 ns | 2.2 ns | 5.1 ns | 18 ns | 14 ns | 12 ns |
 | `x * y` | 171 ns | 2.3 ns | 12 ns | 21 ns | 15 ns | 21 ns |
