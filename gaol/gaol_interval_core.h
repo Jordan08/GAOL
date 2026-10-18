@@ -452,7 +452,13 @@ namespace gaol_core {
     GAOL_NODISCARD interval operator+(void) const;
     GAOL_NODISCARD interval operator-(void) const;
 
-    GAOL_NODISCARD interval inverse() const; // TODO: document inverse() method
+    /*!
+      1/(*this), recip of IEEE 1788-2015 (GAOL v5): the tightest interval of
+      the 1/x for the x of *this other than 0. [-oo, +oo] where 0 is inside
+      *this and not an end of it, [1/r, +oo] for [0, r], [-oo, 1/l] for [l, 0],
+      the empty set for [0] and for the empty set. See inverse(const interval&).
+    */
+    GAOL_NODISCARD interval inverse() const;
 
     //! Intersection of *this and I
     interval& operator&=(const interval& I);
@@ -958,8 +964,9 @@ namespace gaol_core {
 #endif // GAOL_USING_SSE2_INSTRUCTIONS
 
 
+  //! 1/I: I.inverse(), the recip of IEEE 1788-2015, which is that of 1/x for the x of I other than 0
   GAOL_NODISCARD GAOL_INLINE interval inverse(const interval& I)
-  { // TODO: document inverse() function
+  {
     return I.inverse();
   }
 

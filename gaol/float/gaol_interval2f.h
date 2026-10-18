@@ -77,7 +77,8 @@ namespace gaol_core {
 			GAOL_PUBLIC interval2f& operator*=(const interval2f& I);
 			const interval2f operator*(const interval2f& I) const;
 
-      GAOL_PUBLIC interval2f inverse() const; // TODO: document inverse() method
+      // Not implemented: it aborts (the intervals of floats are unfinished)
+      GAOL_PUBLIC interval2f inverse() const;
 
 			__m128& get_xmminterval(void);
 			const __m128& get_xmminterval(void) const;
@@ -130,7 +131,8 @@ namespace gaol_core {
 			__m128 xmmbounds; // Lower 64bits = left bound, upper 64 bits = right bound
 	};
 
-  inline interval2f inverse(const interval2f& I) // TODO: document inverse function
+  // interval2f::inverse(), which is not implemented: it aborts
+  inline interval2f inverse(const interval2f& I)
   {
     return I.inverse();
   }
