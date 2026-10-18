@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `090a9bc` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `9926100` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -513,63 +513,33 @@ décomptes du texte de `special_cases.md` et de `doc/compare/README.md` sont
 refaits, et les 288 lignes déjà là sont identiques à celles de la table
 précédente. Rien pour `ChangeLog` ni `doc/differences.md`.
 
+Fait le 18 octobre aussi : le point I (anciens 35, 37 et 38) et le point AF
+(anciens 96 à 103), par #140, avec la partie manuel du point H, la mise en
+garde du point V et la phrase sur le sens d'arrondi. Un premier programme dans
+`README.md` et `examples/tutorial.md` (quatre programmes) ; dans le manuel
+(« Common errors », onze sous-sections et huit exemples de plus que
+`check_examples.py` vérifie, 111 en tout) et dans `doc/using.md`, les pièges, la
+table des noms d'IBEX, de Codac, de C-XSC et de Boost.Interval avec le sens de
+`<`, `<=` et `==`, et la mise en garde contre `<` pour `std::sort`, `std::set`
+et `std::max`, avec `gaol::lexicographic_less` ; les opérations qui laissent le
+sens d'arrondi tel qu'elles l'ont trouvé (celles à opérande vide ne sont pas
+régulières : voulu, dit dans la documentation) ; « What the upward rounding does
+to the program » et `restore_rounding()` dans le manuel ; le coût de
+`GAOL_PRESERVE_ROUNDING` remesuré (1,3 à 1,7 fois sur les quatre opérations avec
+le chemin AVX-512, 3,7 à 8 fois sans lui) ; les commentaires `inverse()`.
+Décidé le 18 octobre : `interval::format()` et `interval::precision()` restent
+non atomiques, l'appelant les synchronise (ThreadSanitizer le confirme) ; le
+signe d'une borne nulle de `x * d` avec AVX-512 est une exception acceptable au
+« bit for bit ». Le 101 d'AF était déjà corrigé ; `GAOL_USING_ASM`, que plus
+aucun code ne lit depuis la suppression de `f_negate()` par le mainteneur
+(a6786af), est décrite comme telle. Le site (70) est au point AK. Les textes
+pour `ChangeLog` et `doc/differences.md` sont dans la description de #140.
+
 ## En cours
 
 Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 
 Aucune.
-
-## Même fichier de test ou de documentation
-
-### I. La documentation pour l'utilisateur (35, 37, 38)
-
-`README.md`, `doc/using.md` et « Common errors » du manuel : les écrire
-ensemble, avec la mise en garde du point V et la partie manuel du point H, pour
-ne régénérer le PDF qu'une fois (point Y) ; le site (70) est au point AK.
-Décidé le 6 octobre (#92) : y compléter aussi la phrase de `doc/using.md`
-(l. 445) et du manuel selon laquelle chaque opération laisse le sens d'arrondi
-vers le haut : celles qui rendent avant leur vérification (un opérande vide,
-`hausdorff()` quand une borne n'est infinie que d'un côté) le laissent tel
-qu'elles l'ont trouvé. La relecture du 14 octobre en ajoute : celles qui
-n'arrondissent rien (`-x`, `abs`, `floor`, `min`, `max`, `invabs_rel`), et
-`nth_root(x, 0)` et `nth_root(x, 1)` ; la phrase est maintenant aux l. 749-750
-de `doc/using.md`.
-
-- **35.** **Un premier programme avant les détails** : `README.md` n'a ni code
-  C++ ni renvoi à `examples/`, le premier programme est à la ligne 96 de
-  `doc/using.md`, et aucun document ne montre un algorithme sur les intervalles.
-  Correction : un programme de dix lignes dans `README.md` qui renvoie à
-  `examples/` et à `examples/examples.md`, et un court tutoriel (encadrement
-  d'image et subdivision, Newton avec `%` ou `div_rel`, un contracteur avec les
-  fonctions `*_rel`, séparation et évaluation), tiré des exemples 03, 05, 06 et
-  07, dans `examples/tutorial.md` (décidé le 3 octobre).
-- **38.** **Les pièges dans les erreurs courantes du manuel** (« Common errors »
-  de `manual/v5/gaol.tex`, section 5.3 de `examples/examples.md`) : `sqrt(2)`
-  sur un nombre ; `interval(m - r, m + r)` avec des doubles ; l'ensemble vide
-  qui passe tous les tests ; le domaine sans décorations ; `split()` d'un
-  intervalle canonique ; `/` contre `%` dans la méthode de Newton ; `pow(x, 2)`
-  qui prend le pow de GAOL quand les deux espaces de noms sont ouverts ; un
-  ordre non entier de `nth_root` dans un texte, qui lève
-  `invalid_action_error` ; `gaol_ieee1788::textToInterval`, qui rend l'ensemble
-  vide pour un texte mal formé ; une borne nulle écrite `-0`, dont le signe
-  diffère entre les builds SSE2 et FPU ; les réglages globaux
-  `interval::format()` et `interval::precision()`, dont la modification
-  concurrente avec l'affichage (`operator<<` ou `intervalToText()`) crée une
-  data race : décider si l'API doit être rendue sûre entre threads ou si les
-  changements doivent être synchronisés par l'appelant, puis le documenter.
-  Décidé le 18 octobre : les deux réglages restent non atomiques, l'appelant
-  les synchronise (avant de lancer les threads, ou sous un verrou de son
-  programme) ; on le documente, sans changement de code.
-  Décidé le 3 octobre : les pièges retenus sont aussi décrits dans une section
-  courte de `doc/using.md`, qui renvoie au manuel pour le détail. Les méthodes
-  `inverse()` de `interval`, `interval2f` et `intervalf` ont des commentaires
-  `// TODO: document inverse()` à résoudre.
-- **37.** **Une table des noms** pour les utilisateurs d'IBEX, de Codac, de
-  C-XSC, de Boost et d'IEEE 1788, dans `doc/using.md` ou le manuel, avec ce que
-  `<`, `<=` et `==` signifient dans chacun : dans C-XSC et PROFIL/BIAS, `<=` est
-  l'inclusion, et le code porté depuis eux compile et change de sens. La section
-  2.3 de `examples/examples.md` en donne une pour GAOL v5, `gaol_ieee1788`, IBEX
-  et Codac seulement.
 
 ## Trouvé par la relecture de `configure-clean` du 14 octobre
 
@@ -582,8 +552,7 @@ programme, sauf ceux dits non vérifiés, avec les builds CMake SSE2 et FPU
 part : rationnels exacts, mpmath, MPFR par gmpy2. Aucune borne fausse : sur
 environ 1,3 million de puissances entières, 550 000 `pow` réels, 600 000
 autres opérations et 760 lectures de nombres, tout résultat contient la valeur
-exacte. À faire avant Y ; AF avec le point I, pour ne régénérer le manuel
-qu'une fois.
+exacte. À faire avant Y.
 
 ### AB. Des exceptions flottantes levées à tort (77, 78, 79, 80)
 
@@ -825,64 +794,6 @@ qu'une fois.
   où le résultat changerait. Correction : lier, et vérifier les deux
   langages, dans les trois builds.
 
-### AF. Des textes que le code contredit (96 à 103)
-
-À faire avec le point I, pour ne régénérer le manuel qu'une fois.
-
-- **96.** **« tightest » sans la limite acceptée au point B** : le
-  commentaire de `gaol_pown()` (`gaol/gaol_interval.h`, l. 1436-1440) ; le
-  manuel (l. 1494, « Both give the tightest bounds », et l. 5039) ;
-  `doc/accuracy.md`, l. 96, colonne Tightness de `pow(x, y)`, « for any y »
-  (`gaol_ieee1788::pow` d'un exposant entier dégénéré passe par `pown`, et
-  `gaol_ieee1788::pow([0x1.fffffffffffffp+1], [7])` a sa borne inférieure un
-  double sous la plus serrée), et l. 95, colonne Tests, « for all the
-  doubles », quand `tests/arithmetic.cpp` en tire 5 000 ; `doc/using.md`,
-  l. 346-350 (au-delà de 2^53, pour un n qui n'est pas un double, les bornes
-  sont à trois doubles au plus). Y ajouter « or one double beyond where x^n
-  is within 2K of a double », et les trois doubles au-delà de 2^53.
-- **97.** **`doc/accuracy.md`, l. 180, dit `mulRevToPair` absent**, alors
-  qu'il est fourni depuis le point P (`gaol/gaol_ieee1788.h`, l. 482 ;
-  `doc/using.md`, l. 411 ; 172 cas d'ITF1788 réussis) ; et l. 172, `pownRev`
-  est absent « for p < 0 », quand le code et `doc/compare/itf1788.md` disent
-  p ≤ 0.
-- **98.** **`doc/accuracy.md`, l. 95 : `[|x|^−n, +∞]`** où x contient 0 pour
-  un n < 0 pair : le signe de l'exposant est faux (`pow([-3, 2], -2)` est
-  [1/9, +∞], soit 3^-2) ; écrire `[mag(x)^n, +∞]`.
-- **99.** **`doc/tests.md`, l. 37 : « 23 powers »** à une borne 0 ou infinie
-  ou au-delà des doubles, quand `powers_at_special_values()` de
-  `tests/arithmetic.cpp` en a 30 (24, et 6 coins calculés seuls).
-- **100.** **`doc/building.md`, l. 358 : `GAOL_USING_ASM`** serait
-  l'assembleur du « 32-bit x86 Linux and macOS » ; il vaut 1 avec `GAOL_ASM`
-  hors de Visual C++, et le `f_negate` x87 de `gaol/gaol_fpu_fenv.h`
-  (l. 256-262) sert aussi en x86-64, où `GAOL_IX86_LINUX` est défini
-  (`gaol/gaol_config.h`, l. 100).
-- **101.** **`doc/three-builds.md`, l. 44-47 et 97-110** : `pow(x, 3)` en
-  14,5 ns, 21,1 ns sans FMA, et le gain de 1,5 fois de FMA, mesurés avant le
-  point B (`doc/compare/performance.md` donne 6,0 ns). À remesurer avec les
-  temps de Y (33), ou à dater.
-- **102.** **« keeps its names and its results »** (`README.md`, l. 61 ;
-  `doc/using.md`, l. 250 ; le manuel) : les mêmes documents listent des
-  résultats changés depuis GAOL 4 : `pow(I, 2.5)` tronquait l'exposant,
-  `pow([-4, -1], [0.5])` était [−1, 2], et un exposant entier au-delà des
-  `int` donnait [−∞, +∞]. Écrire par exemple « keeps its names and the
-  meaning of its pow ».
-- **103.** **Les chemins AVX-512 et SSE2 diffèrent par le signe d'une borne
-  nulle** : pour x = [+0, −0] et un double d < 0, `x * d` donne [−0, +0] avec
-  AVX-512 et [+0, −0] avec SSE2 (`gaol/gaol_interval_sse.cpp`, l. 668), la
-  seule différence sur 12,2 millions de paires, alors que
-  `gaol/gaol_interval_avx512.cpp` (l. 14-18) et `doc/using.md` (l. 918)
-  promettent les mêmes bornes « bit for bit », signes compris. Vérifié en
-  mettant à vrai `gaol_core::avx512_arithmetic`, un symbole exporté, que
-  #122 a retiré : le chemin se décide à la configuration
-  (`GAOL_AVX512_ARITHMETIC`). Pour le vérifier, construire avec
-  `-DGAOL_PREFER_AVX512=ON` sur une machine qui a AVX-512 ; les lignes et
-  les commentaires cités ont changé avec #122. Correction : multiplier
-  voie par voie dans la branche AVX-512 d'`operator*=(double)`, comme le
-  fait SSE2, ou dire l'exception. Décidé le 18 octobre : +0 et −0 sont la
-  même valeur, et le signe d'une borne nulle est une exception acceptable au
-  « bit for bit » ; on la dit dans la documentation et les commentaires, sans
-  changer le calcul.
-
 ## Autres points
 
 ### W. Des décorations (26)
@@ -1096,7 +1007,7 @@ documentation ; rien n'a été écrit ni mesuré.
 ### AK. Un site de documentation sur GitHub Pages (70)
 
 Sorti du point I le 18 octobre, à la demande du mainteneur : le site vient
-après les textes de I, qu'il publie.
+après les textes de I, qu'il publie, et qui sont fusionnés (#140).
 
 - **70.** **Un site de documentation sur GitHub Pages** (conseil de
   `TODO_mistral.md`) : décidé le 3 octobre, un site généré depuis `doc/*.md`,
@@ -1633,8 +1544,8 @@ g++ et clang++-18, hors les trois qui échouent seuls par conception) ;
   3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81,
   #83, #84, #85, #86, #87, #88, #89, #90, #91, #92, #93, #94, #95, #96, #97,
   #99, #100, #103, #105, #108, #109, #110, #111, #112, #113, #114, #115, #117,
-  #118, #119, #120, #121, #122, #123, #124 et #139 après leur fusion, et la
-  jetable de #116).
+  #118, #119, #120, #121, #122, #123, #124, #139 et #140 après leur fusion, et
+  la jetable de #116).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
@@ -1717,11 +1628,10 @@ g++ et clang++-18, hors les trois qui échouent seuls par conception) ;
 
 ## Table des anciens numéros
 
-26 : W ; 28 : X ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ; 37 : I ; 38 : I ;
-70 : AK ; 71 : Y ; 77 : AB ; 78 : AB ; 79 : AB ; 80 : AB ; 81 : AC ; 82 : AC ;
+26 : W ; 28 : X ; 32 : Y ; 33 : Y ; 34 : Y ; 70 : AK ; 71 : Y ; 77 : AB ;
+78 : AB ; 79 : AB ; 80 : AB ; 81 : AC ; 82 : AC ;
 83 : AD ; 84 : AD ; 85 : AD ; 86 : AD ; 87 : AD ; 88 : AD ; 89 : AD ;
-90 : AE ; 91 : AE ; 92 : AE ; 93 : AE ; 94 : AE ; 95 : AE ; 96 : AF ;
-97 : AF ; 98 : AF ; 99 : AF ; 100 : AF ; 101 : AF ; 102 : AF ; 103 : AF ;
+90 : AE ; 91 : AE ; 92 : AE ; 93 : AE ; 94 : AE ; 95 : AE ;
 105 : AH ; 106 : AI ; 107 : AI ; 108 : AI ; 109 : AI ;
 110 : AI ; 111 : AI ; 112 : AI ; 113 : AJ.
 
@@ -1743,14 +1653,13 @@ g++ et clang++-18, hors les trois qui échouent seuls par conception) ;
 5. **Fermer les suites de lecture et de build : F, G, N, O et le reste de A.**
    G est fait par #91, N par #94, O par #95, A par #111 et #113, F par #114.
 6. **Finir les exceptions, petites corrections et documentation : S, U, T, V,
-   puis I.** Intégrer dans I la décision et la documentation sur la concurrence
-   des réglages de format ; coordonner V avec l'avertissement sur les
-   comparateurs. S, T, U et V sont faits par #90, #93, #97 et #96, Z par
-   #120, AA (Shekel 5) par #122, AG (le banc de `doc/compare`) par #124. AH, sa
-   suite, peut se faire à tout moment avant Y, comme AB à AE, trouvés par la
-   relecture du 14 octobre ; AF se fait avec I. AI, trouvé par la CI de #124
+   puis I.** S, T, U et V sont faits par #90, #93, #97 et #96, I et AF par
+   #140, Z par #120, AA (Shekel 5) par #122, AG (le banc de `doc/compare`) par
+   #124. AH, sa suite, peut se faire à tout moment avant Y, comme AB à AE,
+   trouvés par la relecture du 14 octobre. AI, trouvé par la CI de #124
    (17 octobre), est à ordonner par le mainteneur, et AJ, une étude née d'une
-   question du 18 octobre, aussi. AK, le site (70), vient après I.
+   question du 18 octobre, aussi. AK, le site (70), peut se faire : les textes
+   qu'il publie sont fusionnés.
 7. **Publier v5.0.0 avec Y**, après fusion des branches restantes, mise à jour
    de la documentation, couverture et mesures de performance ; faire ensuite
    le ménage listé plus haut.
