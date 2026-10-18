@@ -90,8 +90,6 @@ namespace gaol_core {
       _initial_rounding = get_rounding();
       fesetenv(FE_DFL_ENV);
       round_upward();
-      // next instruction crashes on MacOS ARM64 platform
-      //reset_fpu_cw(GAOL_FPU_MASK); // 53 bits precision, all exceptions masked, rounding to +oo
       #   if GAOL_USING_SSE2_INSTRUCTIONS
       round_upward_sse();
       #   endif

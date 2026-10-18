@@ -129,7 +129,6 @@ where it comes from.
     the rounding to nearest and crashed an ARM64 Mac.
   - `interval::midpoint()` and `operator<<` set the rounding direction back
     upward, which they did not when the rounding direction is not preserved.
-  - The macro `opposite()` is renamed `gaol_opposite()`.
 - **For Visual C++, MinGW and the systems GAOL's configure does not know**,
   following the fork of GAOL by [Fabrice Le Bars](https://github.com/lebarsfa/GAOL):
   - The generated configuration is included with every compiler:
@@ -138,8 +137,8 @@ where it comes from.
     included it, and `gaol/gaol_version.h` includes `gaol/gaol_config.h`,
     where it included `gaol/gaol_version_msvc.h` for Visual C++ and nothing for
     MinGW. The four headers are gone.
-  - `get_fpu_cw()` and `reset_fpu_cw()` save the rounding direction with
-    `<fenv.h>` where the control word of `fenv_t` is not known.
+  - `get_fpu_cw()` saves the rounding direction with `<fenv.h>` where the
+    control word of `fenv_t` is not known.
 - **The rounding direction** is set upward by each operation when it is not,
   in every build. Built with CMake, GAOL set it once, in `gaol::init()`, and
   computed in the direction the calling code left: rounding to nearest,
@@ -815,7 +814,9 @@ where it comes from.
   `parsing_names`, is in `gaol_core`, and its code takes GAOL's `pow`.
   `gaol` does not name the exceptions, `rnd_keep()`, `get_fpu_cw()`,
   `NaN_val`, `eval_stack`, `parse_interval()` nor `parsing_names`, which GAOL 4
-  had in `gaol`: a program names them in `gaol_core`. `gaol` and
+  had in `gaol`: a program names them in `gaol_core`. `f_negate()`,
+  `f_negate_simple()`, the macro `opposite()` and `reset_fpu_cw()`, which
+  nothing in GAOL called, are gone. `gaol` and
   `gaol_ieee1788` both name `version_major`, `version_minor`, `version_micro`
   and `version`, and `gaol_pi_dn`, `gaol_pi_up`, `gaol_half_pi_dn` and
   `gaol_half_pi_up`.

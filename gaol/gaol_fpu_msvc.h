@@ -38,8 +38,8 @@ FPU Handling when compiling with Microsoft Visual C++
 // (0x0200), all exceptions masked (0x003f), rounding upward (0x0800). No
 // longer used (see gaol_fpu_fenv.h), and kept for the code using it. The
 // original GAOL noted that the hexadecimal constant was not portable; here it
-// would not even mean the same: reset_fpu_cw() below gives its argument to
-// _control87(), which takes the flags of <float.h> (_RC_UP, _PC_53...), not
+// would not even mean the same: the reset_fpu_cw() of GAOL 4 gave its argument
+// to _control87(), which takes the flags of <float.h> (_RC_UP, _PC_53...), not
 // the bits of the register.
 #define GAOL_FPU_MASK 0x0a3f
 
@@ -122,38 +122,7 @@ namespace gaol_core {
     // before, but written out: warning C4244 of /W4 otherwise (GAOL v5)
     return static_cast<unsigned short int>(_control87(0,0));
   }
-  
-  GAOL_INLINE void reset_fpu_cw(unsigned short int st)
-  {
-    _control87(st,_MCW_DN|_MCW_EM|_MCW_IC|_MCW_RC|_MCW_PC);
-  }
-  
-  /*!
-  \brief Returns the opposite of the argument
-  
-  This macro is used to avoid the optimization if the negation is required
-  for trust rounding.
-  */
-  #if GAOL_USING_ASM
-  GAOL_INLINE double f_negate(double x)
-  {
-    __asm {
-      fld x
-      fchs
-      fstp x
-    }
-    return x;
-  }
-  #else
-  GAOL_INLINE double f_negate(double x)
-  {
-    uintdouble id;
-    id.d = x;
-    GAOL_HI_UINTDOUBLE(id) ^= 0x80000000; // XOR on sign bit
-    return id.d;
-  }
-  #endif // GAOL_USING_ASM
-  
+
 } // namespace gaol_core
 
 #endif /* GAOL_FPU_MSVC_H */

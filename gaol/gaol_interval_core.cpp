@@ -26,7 +26,6 @@
 */
 
 // TODO: Rewrite as many functions as possible to use SIMD instructions
-// FIXME: Use of f_negate deprecates -ffloat-store?
 
 #include <iostream>
 #include <iomanip>

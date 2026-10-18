@@ -59,9 +59,8 @@
     get_flush_modes()...), the functions computing GAOL's powers, which gaol
     names pow (gaol_pown(), gaol_uipow(), gaol_pown_ll(), gaol_pow_real(),
     gaol_pow_hybrid(), gaol_pown_exp(), gaol_pow_exp()), and the other
-    internals, those GAOL 4 declared in gaol too (f_negate(),
-    f_negate_simple(), gaol_signbit(), uintdouble, ullidouble,
-    Interval_struct, the_null_expr, prec_t, modulo_k_pi(), reset_fpu_cw(),
+    internals, those GAOL 4 declared in gaol too (gaol_signbit(), uintdouble,
+    ullidouble, Interval_struct, the_null_expr, prec_t, modulo_k_pi(),
     round_downward_sse(), round_to_nearest_sse() and round_upward_sse(), which
     its manual did not document) and rnd_reread(), gaol_sign_of(),
     rounding_guard and gaol_initializer;

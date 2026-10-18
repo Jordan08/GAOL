@@ -280,11 +280,8 @@ namespace gaol_names_absent
   template <class T = void> absent get_fpu_cw();
   absent parse_interval(...);
   // The internals GAOL 4 declared in gaol too, which its manual did not document
-  absent f_negate(...);
-  absent f_negate_simple(...);
   absent gaol_signbit(...);
   absent modulo_k_pi(...);
-  absent reset_fpu_cw(...);
   template <class T = void> absent round_downward_sse();
   template <class T = void> absent round_to_nearest_sse();
   template <class T = void> absent round_upward_sse();
@@ -336,11 +333,8 @@ namespace gaol_names
   GAOL_NAMES_ABSENT((rnd_keep)(1.0));
   GAOL_NAMES_ABSENT((get_fpu_cw)());
   GAOL_NAMES_ABSENT((parse_interval)("1", std::declval<gaol_core::interval&>()));
-  GAOL_NAMES_ABSENT((f_negate)(1.0));
-  GAOL_NAMES_ABSENT((f_negate_simple)(1.0));
   GAOL_NAMES_ABSENT((gaol_signbit)(1.0));
   GAOL_NAMES_ABSENT((modulo_k_pi)(x(), std::declval<double&>(), std::declval<double&>()));
-  GAOL_NAMES_ABSENT((reset_fpu_cw)(static_cast<unsigned short>(0)));
   GAOL_NAMES_ABSENT((round_downward_sse)());
   GAOL_NAMES_ABSENT((round_to_nearest_sse)());
   GAOL_NAMES_ABSENT((round_upward_sse)());

@@ -30,7 +30,7 @@ FPU handling through C99 fenv.h facilities
 
 The original GAOL noted here that fesetenv() did not seem to work
 correctly on Linux. fesetenv() was not at fault, but
-what GAOL gave it: reset_fpu_cw() wrote GAOL_FPU_MASK into the control word
+what GAOL gave it: reset_fpu_cw() of GAOL 4 wrote GAOL_FPU_MASK into the control word
 of fenv_t with fegetenv() and fesetenv(), the control word of the x87 unit
 on x86 Linux and macOS, whereas GAOL's doubles are computed with SSE2
 instructions, under MXCSR, which kept rounding to nearest. With glibc 2.31
@@ -43,9 +43,9 @@ refuses doubles computed on it, and the three builds give -msse2
 -mfpmath=sse on 32-bit x86.
 
 Since then:
-- get_fpu_cw() and reset_fpu_cw() (below) read and write the rounding
-direction with fegetround() and fesetround(), and get_rounding() and
-set_rounding() (gaol_fpu.h) the rounding bits of MXCSR as well.
+- get_fpu_cw() (below) reads the rounding direction with fegetround(), and
+get_rounding() and set_rounding() (gaol_fpu.h) read and write the rounding
+bits of MXCSR as well.
 - gaol::init() calls fesetenv(FE_DFL_ENV), then round_upward(), which sets
 both units: with glibc 2.31 on x86-64, the x87 control word is then
 0x0b7f and MXCSR 0x5f80, and 1 + 2^-60 is above 1. FE_DFL_ENV sets the
@@ -230,55 +230,18 @@ namespace gaol_core {
   }
   #endif
   
-  /* The rounding direction, with the functions of <fenv.h>. GAOL's operations
+  /* The rounding direction, with the function of <fenv.h>. GAOL's operations
   save and restore it with get_rounding() and set_rounding() (gaol_fpu.h),
-  which also read and write the one of the SSE instructions: these functions
-  are kept for the code using them. They read and wrote the control word of
-  the x87 unit on x86 Linux and macOS, which left the direction of the SSE
-  instructions unrestored, and 16 bits of the FPCR on 64-bit ARM, which left
-  out its rounding bits. */
+  which also read and write the one of the SSE instructions: this function is
+  kept for the code using it. It and the reset_fpu_cw() that went with it in
+  GAOL 4 read and wrote the control word of the x87 unit on x86 Linux and
+  macOS, which left the direction of the SSE instructions unrestored, and 16
+  bits of the FPCR on 64-bit ARM, which left out its rounding bits. */
   GAOL_INLINE unsigned short int get_fpu_cw()
   {
     return static_cast<unsigned short int>(fegetround());
   }
-  
-  GAOL_INLINE void reset_fpu_cw(unsigned short int st)
-  {
-    fesetround(st);
-  }
-  
-  /*!
-  \brief Returns the opposite of the argument
-  
-  This macro is used to avoid the optimization if the negation is required
-  for trust rounding.
-  */
-  #if GAOL_USING_ASM
-  #   if GAOL_IX86_LINUX || GAOL_IX86_MACOSX
-  GAOL_INLINE double f_negate(double x)
-  {
-    asm volatile ("fldl %1; fchs; fstpl %0" : "=m" (x) : "m" (x));
-    return x;
-  }
-  #   else
-  GAOL_INLINE double f_negate(double x)
-  {
-    uintdouble id;
-    id.d = x;
-    GAOL_HI_UINTDOUBLE(id) ^= 0x80000000; // XOR on sign bit
-    return id.d;
-  }
-  #   endif // GAOL_IX86_LINUX
-  #else
-  GAOL_INLINE double f_negate(double x)
-  {
-    uintdouble id;
-    id.d = x;
-    GAOL_HI_UINTDOUBLE(id) ^= 0x80000000; // XOR on sign bit
-    return id.d;
-  }
-  #endif // GAOL_USING_ASM
-  
+
 } // namespace gaol_core
 
 #endif /* GAOL_FPU_FENV_H */

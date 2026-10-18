@@ -88,13 +88,6 @@
 
 namespace gaol_core {
 
-#if GAOL_HAVE_ROUNDING_MATH_OPTION
-  GAOL_INLINE double f_negate_simple(double x) { return -x; }
-#  define gaol_opposite(x) f_negate_simple(x)
-#else
-#  define gaol_opposite(x) f_negate(x)
-#endif // GAOL_HAVE_ROUNDING_MATH_OPTION
-
   /*!
     \brief Sign of double
 

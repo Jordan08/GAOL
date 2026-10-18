@@ -310,10 +310,9 @@ flush-to-zero modes (`rounding_state`, `get_rounding()`, `set_rounding()`,
 `round_upward_if_needed()` and `gaol_set_rounding_x86()`, which GAOL 4.3.2 had
 in `gaol`, `get_flush_modes()`...), the functions computing the `pow` of
 `gaol` (below), and the internals GAOL 4 had in `gaol` without its manual
-documenting them (`f_negate()`, `f_negate_simple()`, `gaol_signbit()`,
-`uintdouble`, `ullidouble`, `Interval_struct`, `the_null_expr`, `prec_t`,
-`modulo_k_pi()`, `reset_fpu_cw()`, `round_upward_sse()` and the other
-`round_*_sse()`). A program calling one of them names it in `gaol_core`, as
+documenting them (`gaol_signbit()`, `uintdouble`, `ullidouble`,
+`Interval_struct`, `the_null_expr`, `prec_t`, `modulo_k_pi()`,
+`round_upward_sse()` and the other `round_*_sse()`). A program calling one of them names it in `gaol_core`, as
 `gaol_core::get_rounding()`.
 
 The `pow` of `gaol` takes the integer power for an integer exponent, a negative
