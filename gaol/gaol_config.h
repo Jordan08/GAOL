@@ -100,9 +100,9 @@
    and meson builds agree, and cross-compilation and containers (an armhf
    container on an arm64 machine) get the target rather than the machine
    building. GAOL reads the names of the system to allocate aligned memory
-   (gaol/gaol_port.h) and to negate a double (gaol/gaol_fpu_fenv.h); both have
-   a fallback for the other systems. The sizes of the integer types come from
-   <limits.h>, the builds no longer measuring them (GAOL v5).
+   (gaol/gaol_port.h), which has a fallback for the other systems. The sizes of
+   the integer types come from <limits.h>, the builds no longer measuring them
+   (GAOL v5).
    --------------------------------------------------------------------------- */
 
 #include <limits.h>

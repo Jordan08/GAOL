@@ -117,10 +117,9 @@ option(WITH_EXAMPLES "Build the examples of examples/, which make check runs" OF
 # CMake, a shared one, libgaol.so.5.0.0 as with configure and meson (GAOL v5).
 # Always static with Visual C++, whose declarations of GAOL carry no
 # __declspec(dllexport).
-# The options of configure (--enable-simd, --enable-asm, --enable-verbose-mode),
+# The options of configure (--enable-simd, --enable-verbose-mode),
 # with its defaults, but for the verbose mode: GAOL is silent by default
 option(GAOL_SIMD "Compute the intervals with SSE2 instructions on x86 processors" ON)
-option(GAOL_ASM "Use assembler code (GAOL_USING_ASM)" ON)
 option(GAOL_VERBOSE_MODE "Write a line on the standard error when GAOL initializes and cleans up" OFF)
 # GAOL and CORE-MATH built for debugging whatever the build type or the
 # configuration, a project bringing GAOL in included, as enable-debug of meson
@@ -589,10 +588,6 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR GAOL_DEBUG)
   set(GAOL_DEBUGGING ON)
 endif()
 
-# With -frounding-math, GAOL negates a double with the minus sign rather than by
-# flipping its sign bit (gaol_opposite() in gaol/gaol_port.h)
-set(GAOL_HAVE_ROUNDING_MATH_OPTION ${GAOL_COMPILER_SUPPORTS_FROUNDING_MATH})
-
 # On x86 processors, with GAOL_SIMD (--enable-simd of configure), the intervals
 # of GAOL are computed with SSE2 instructions (gaol/gaol_interval_sse.h), and
 # -msse3 is given where the compiler takes it, as the autotools build on a
@@ -722,13 +717,6 @@ if(GAOL_PREFER_AVX512 AND GAOL_HAVE_AVX512_TARGET)
   endif()
 endif()
 message(STATUS "AVX-512 interval arithmetic: the compiler takes it: ${GAOL_HAVE_AVX512_TARGET}, preferred: ${GAOL_PREFER_AVX512}, taken: ${GAOL_AVX512_ARITHMETIC}")
-
-# GAOL_USING_ASM, as configure defines it by default: the assembly of
-# gaol/gaol_fpu_fenv.h serves GCC and Clang on x86; the one for Visual C++
-# only compiles for 32-bit x86, and is left out
-if(GAOL_ASM AND NOT MSVC)
-  set(GAOL_USING_ASM ON)
-endif()
 
 # The library compiled with hidden visibility, as configure builds it, and with
 # the warnings of configure; GAOL's public declarations carry

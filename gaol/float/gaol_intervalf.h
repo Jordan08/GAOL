@@ -67,7 +67,8 @@ namespace gaol_core {
 			GAOL_PUBLIC const intervalf operator/(const intervalf& I) const;
 
 
-      GAOL_PUBLIC intervalf inverse() const; // FIXME: document the inverse() method
+      // 1/(*this), as interval::inverse() for floats (gaol/gaol_interval_core.h)
+      GAOL_PUBLIC intervalf inverse() const;
 
 	/*
      \brief Returns the midpoint of an interval.

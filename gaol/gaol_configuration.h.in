@@ -39,11 +39,6 @@
    gaol/gaol_fpu.h) */
 #undef GAOL_PRESERVE_ROUNDING
 
-/* Defined to 1 to use the assembly of gaol/gaol_fpu_fenv.h, which serves
-   32-bit x86 Linux and macOS only (GAOL_ASM, --enable-asm, -Denable-asm:
-   on by default; never with Visual C++) */
-#undef GAOL_USING_ASM
-
 /* Defined to 1 to write a line on the standard error when GAOL initializes
    and cleans up (GAOL_VERBOSE_MODE, --enable-verbose-mode,
    -Denable-verbose-mode=true; off by default) */
@@ -81,10 +76,6 @@
    (GAOL v5, point AA of TODO.md) */
 #undef GAOL_AVX512_ARITHMETIC
 
-/* Defined to 1 where the compiler takes -frounding-math: GAOL then negates
-   a double with the minus sign (gaol/gaol_port.h) */
-#undef GAOL_HAVE_ROUNDING_MATH_OPTION
-
 /* Defined to 1 where the library is compiled with -fvisibility=hidden:
    GAOL's public declarations then carry __attribute__ ((visibility("default")))
    (gaol/gaol_config.h) */
@@ -109,9 +100,6 @@
 #ifndef GAOL_PRESERVE_ROUNDING
 #  define GAOL_PRESERVE_ROUNDING 0
 #endif
-#ifndef GAOL_USING_ASM
-#  define GAOL_USING_ASM 0
-#endif
 #ifndef GAOL_VERBOSE_MODE
 #  define GAOL_VERBOSE_MODE 0
 #endif
@@ -129,9 +117,6 @@
 #endif
 #ifndef GAOL_AVX512_ARITHMETIC
 #  define GAOL_AVX512_ARITHMETIC 0
-#endif
-#ifndef GAOL_HAVE_ROUNDING_MATH_OPTION
-#  define GAOL_HAVE_ROUNDING_MATH_OPTION 0
 #endif
 #ifndef GAOL_HAVE_VISIBILITY_OPTIONS
 #  define GAOL_HAVE_VISIBILITY_OPTIONS 0
