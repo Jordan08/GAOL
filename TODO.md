@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `ce2bf3f` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `090a9bc` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -113,7 +113,8 @@ Fait le 6 octobre : le point R (anciens 7 et 50), par #92 : `hausdorff()`
 rend +oo avant de vérifier le sens d'arrondi quand une borne n'est infinie que
 d'un côté (2,5 à 4,4 fois plus rapide dans ce cas), et `atanh_rel` est comparé
 à ses bornes infinies ; `atanh([1])` et `atanh([-1])` dans
-`doc/compare/special_cases.md` restent au point 33. Décidé en fin de travail :
+`doc/compare/special_cases.md` restaient au point 33 (faits par #139). Décidé
+en fin de travail :
 la phrase de `doc/using.md` (l. 445) et du manuel qui dit que chaque opération
 laisse le sens d'arrondi vers le haut est à compléter au point I ; la double
 vérification de `asinh_rel()` et `atanh_rel()` va au point B.2. Les textes
@@ -500,6 +501,17 @@ projet dans les issues #125 (CORE-MATH), #126 (GCC), #127 (mingw-w64), #128
 #138 (glibc), avec leurs brouillons en anglais ; les anciennes #65, #66, #69,
 #80, #102 et #104 sont fermées, et leurs tâches retirées de #49. Rien n'est
 envoyé.
+
+Fait le 18 octobre aussi : `atanh([1])` et `atanh([-1])` dans les cas de
+`doc/compare/special_cases.md` (reste de l'ancien 7, que l'article 33 du point Y
+renvoyait à la remesure des temps), par #139. Les cas n° 126 et 127 ont ∅ pour
+résultat attendu (IEEE 1788-2015, table 9.1) ; GAOL v5 sous les deux jeux de
+noms et libieeep1788 le donnent, filib++ rend [MAX, +oo] et [-oo, -MAX],
+Boost.Interval [+oo] et [-oo], PROFIL/BIAS abandonne, et Solaris Studio n'a pas
+d'`atanh`. Les anciens cas 126 à 288 deviennent 128 à 290 : les numéros et les
+décomptes du texte de `special_cases.md` et de `doc/compare/README.md` sont
+refaits, et les 288 lignes déjà là sont identiques à celles de la table
+précédente. Rien pour `ChangeLog` ni `doc/differences.md`.
 
 ## En cours
 
@@ -1132,13 +1144,13 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
   (`-DGAOL_COVERAGE=ON`, cible `coverage`, gcovr) et à enregistrer.
 - **33.** **Les temps de
   [doc/compare/performance.md](doc/compare/performance.md)** ont été remesurés
-  le 2026-09-27 à `605728e`, sur un portable où d'autres programmes tournaient,
-  et les opérations ont changé depuis (#37, #50, #54). À remesurer en dernier,
-  sur le commit propre de la version, la machine ne faisant rien d'autre
+  le 17 octobre (`febd2b1`, `a055160`), sa colonne « rounding direction
+  preserved » le 18 (`7fd5c09`), avec Clang 21 sur l'i7-1185G7 ; les points AI
+  et AJ peuvent encore les changer. À remesurer en dernier, sur le commit propre
+  de la version, la machine ne faisant rien d'autre
   (`doc/compare/code/run_bench.sh`, ou `make perf`), puis reprendre le tableau
-  de `doc/compare/README.md`. Au même moment, ajouter `atanh([1])` et
-  `atanh([-1])` aux cas de `doc/compare/special_cases.md` en relançant les cinq
-  bibliothèques (ancien 7, décidé le 3 octobre).
+  de `doc/compare/README.md`. Les cas `atanh([1])` et `atanh([-1])` de
+  `doc/compare/special_cases.md` (ancien 7) ne sont plus à faire : #139.
 - **34.** **Les recettes FetchContent récupèrent GAOL 4** : `doc/using.md`, le
   manuel et `tests/fetch_content` prennent la branche `master` de
   `Jordan08/GAOL`, et le `git clone` de `doc/building.md` la branche par défaut.
@@ -1621,8 +1633,8 @@ g++ et clang++-18, hors les trois qui échouent seuls par conception) ;
   3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81,
   #83, #84, #85, #86, #87, #88, #89, #90, #91, #92, #93, #94, #95, #96, #97,
   #99, #100, #103, #105, #108, #109, #110, #111, #112, #113, #114, #115, #117,
-  #118, #119, #120, #121, #122, #123 et #124 après leur fusion, et la jetable de
-  #116).
+  #118, #119, #120, #121, #122, #123, #124 et #139 après leur fusion, et la
+  jetable de #116).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
   Il en reste dans les descriptions de #60 à #63 et dans un commentaire de
