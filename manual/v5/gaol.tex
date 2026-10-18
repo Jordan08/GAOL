@@ -495,8 +495,6 @@ The options are given to the first command, as \option{-D\var{option}=\var{value
   functions are much faster with them: \code{cos} 2.5 times, \code{log} 1.6
   times, \code{sin} 1.3 times (Intel i7-1185G7, Clang~21.1);
 \cindex{fused multiply-add}%
-\item \option{GAOL\_ASM}. \code{ON} by default: GAOL's assembly code, where it
-  has some (\code{GAOL\_USING\_ASM});
 \item \option{GAOL\_VERBOSE\_MODE}. \code{OFF} by default: writes a line on the
   standard error when GAOL initializes and cleans up;
 \cindex{verbose mode}%
@@ -622,9 +620,6 @@ put the header files. It defaults to \file{\var{prefix-dir}/include};
   defaults to \code{yes};
 \item \loption{enable-fma[=\var{yes/no}]}. The fused multiply-add instructions
   of the processor, as \option{GAOL\_FMA}. This option defaults to \code{yes};
-\item \loption{enable-asm[=\var{yes/no}]}. GAOL's assembly code, as
-  \option{GAOL\_ASM}. This option defaults to \code{yes};
-\cindex{assembler}%
 \item \loption{enable-verbose-mode[=\var{yes/no}]}. Writes a line on the
   standard error when GAOL initializes and cleans up. This option defaults to
   \code{no};
@@ -698,7 +693,6 @@ the debugging facilities, as with CMake (\code{--buildtype=debug} for the
     \code{buildtype} & \code{release}: \option{-O3}, \code{NDEBUG} and the optimizations of \loption{enable-optimize}\\
     \code{enable-simd} & \code{true}\\
     \code{enable-fma} & \code{true}\\
-    \code{enable-asm} & \code{true}\\
     \code{enable-verbose-mode} & \code{false}\\
     \code{enable-preserve-rounding} & \code{false}\\
     \code{enable-prefer-avx512} & \code{auto}: \code{true} with \code{enable-preserve-rounding}, \code{false} otherwise, as \option{GAOL\_PREFER\_AVX512}\\

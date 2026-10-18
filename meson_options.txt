@@ -13,7 +13,6 @@
 # check-perf are gone (GAOL v5).
 option('enable-simd', type : 'boolean', value : true, description : 'Compute the intervals with SSE2 instructions on x86 processors [default=yes, as configure]')
 option('enable-fma', type : 'boolean', value : true, description : 'Compile GAOL and CORE-MATH with the fused multiply-add instructions of the processor, where the compiler has a flag for them (false: a library for any processor of the architecture) [default=yes, as configure and CMake]')
-option('enable-asm', type : 'boolean', value : true, description : 'Use assembler code [default=yes, as configure]')
 option('enable-verbose-mode', type : 'boolean', value : false, description : 'Write a line on the standard error when GAOL initializes and cleans up [default=no: GAOL is silent, as with configure and CMake]')
 option('enable-preserve-rounding', type : 'boolean', value : false, description : 'Restore the rounding direction after each operation, rather than leaving it upward')
 option('enable-prefer-avx512', type : 'combo', choices : ['auto', 'true', 'false'], value : 'auto', description : 'Have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, which sets no rounding direction, where the machine building runs them, the library then needing a processor with them [default=auto: true with enable-preserve-rounding on a compiler that takes the path, false otherwise; false refuses the path under enable-preserve-rounding, as -DGAOL_PREFER_AVX512=OFF of CMake and --disable-prefer-avx512 of configure do]')

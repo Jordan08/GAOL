@@ -626,16 +626,6 @@ if test "$exceptions" = "yes"; then
     [Define this to 1 to allow raising exceptions instead of simply aborting])
 fi
 
-# --enable-asm
-AC_ARG_ENABLE(asm,
-              [AS_HELP_STRING([--enable-asm],
-                              [use assembler code @<:@default=yes@:>@])],
-              [using_asm=${enable_asm}],
-              [using_asm="yes"])
-if test "${using_asm}" = yes; then
-   AC_DEFINE(GAOL_USING_ASM,1,[define this to 1 if you want to allow ASM support])
-fi
-
 
 # --with-tests: the unit tests of tests/, built by make and run by make test
 # and make check, as WITH_TESTS of CMake and with-tests of meson (GAOL v5)
@@ -699,18 +689,13 @@ AC_CHECK_HEADER([fenv.h],
 
 
 # The flags of interval arithmetic, for the C++ and the C compiler, each where
-# the compiler accepts it, as CMakeLists.txt gives them: -frounding-math (GAOL
-# then negates a double with the minus sign, GAOL_HAVE_ROUNDING_MATH_OPTION),
+# the compiler accepts it, as CMakeLists.txt gives them: -frounding-math,
 # -ffp-contract=off (without it, compilers contract a multiplication and an
 # addition into a fused one as if rounding to nearest: on 64-bit ARM,
 # -(.5*l - .5*r) and -.5*l + .5*r both became fnma(.5, l, .5*r), and mid() a
 # single double), -fno-fast-math (the fast-math optimizations would round to
 # nearest and drop the checks of NaN and infinities)
 AC_LANG([C])
-if test "${has_rounding_math_opt}" = yes; then
-    AC_DEFINE(GAOL_HAVE_ROUNDING_MATH_OPTION,1,
-        [Define this to 1 if the compiler supports the "-frounding-math" option])
-fi
 for gaol_flag in -frounding-math -ffp-contract=off -fno-fast-math; do
     GAOL_ADD_INTERVAL_FLAG([${gaol_flag}])
 done
@@ -768,7 +753,6 @@ printf "preserve rounding\t= ${preserve_rounding}\n"
 printf "prefer AVX-512\t\t= ${prefer_avx512}\n"
 printf "AVX-512 path taken\t= ${avx512_arithmetic}\n"
 printf "exceptions\t\t= $exceptions\n"
-printf "asm\t\t\t= ${using_asm}\n"
 printf "SSE2\t\t\t= ${using_sse2}\n"
 printf "SSE3\t\t\t= ${has_sse3}\n"
 printf "tests\t\t\t= ${with_tests}\n"
