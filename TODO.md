@@ -979,15 +979,10 @@ macOS 15 x86-64, 33 à 58 avec MinGW-w64 et MSYS2, 64 à 93 sur macOS arm64, 100
 
 - **112.** **Suites de #124 non faites** (ses questions ouvertes) :
   - avec `GAOL_PRESERVE_ROUNDING`, les fonctions élémentaires paient encore deux
-    écritures de MXCSR, de 5 à 27 % de plus que sans (CORE-MATH calcule avec le
+    écritures de MXCSR, jusqu'à 27 % de plus que sans (`exp`) (CORE-MATH calcule avec le
     sens matériel, aucun arrondi embarqué n'y est possible) ; un mode de
     CORE-MATH où le sens serait un paramètre les supprimerait, au prix de
     modifier `3rd/math-core` ;
-  - les colonnes « rounding direction preserved » de
-    `doc/compare/performance.md` pour `sqrt` et les fonctions élémentaires
-    datent d'avant les deux derniers commits de #124, mesurés sur batterie : à
-    remesurer sur secteur (`MERGE=1 LIBS=gaol5p CPU=2 ./run_bench.sh`), puis
-    relire le texte ;
   - **un défaut de CMake** : un second `cmake` dans le même dossier fait passer
     `GAOL_PREFER_AVX512` de ON à OFF sous `GAOL_PRESERVE_ROUNDING`, `DEFINED`
     voyant l'entrée de cache du premier passage et la prenant pour une demande
