@@ -149,7 +149,7 @@ and with the compiler they were measured with.
 |---|---|
 | `env.sh` | The variables shared by the scripts: directories, versions, compiler flags |
 | `setup.sh` | Downloads and builds GMP, MPFR, libieeep1788, filib++, PROFIL/BIAS, GAOL, and Goualard's GAOL with mathlib, and downloads the headers of Boost.Interval; checks `f90 -xia` |
-| `cases.py` | The 288 special cases, each written once as an expression, taken from GAOL's tests; generates a program per library (`generate`), and compares what they print with IEEE 1788-2015, computed with mpmath (`report`) |
+| `cases.py` | The 290 special cases, each written once as an expression, taken from GAOL's tests; generates a program per library (`generate`), and compares what they print with IEEE 1788-2015, computed with mpmath (`report`) |
 | `run_cases.sh` | Generates, compiles and runs the six programs of the special cases, and writes their table |
 | `bench.py` | Draws the intervals of the benchmark (`data`), and writes the tables of its results (`report`) and those of the long lines (`lines-report`) |
 | `bench_common.h`, `bench_ops.h` | The benchmark in C++: reading the intervals, timing, and the operations and the long lines, written once for every C++ library |
