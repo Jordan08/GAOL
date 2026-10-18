@@ -20325,24 +20325,18 @@ fi
 
 
 # The flags of interval arithmetic, for the C++ and the C compiler, each where
-# the compiler accepts it, as CMakeLists.txt gives them: -frounding-math
-# (GAOL_HAVE_ROUNDING_MATH_OPTION), -ffp-contract=off (without it, compilers
-# contract a multiplication and an addition into a fused one as if rounding to
-# nearest: on 64-bit ARM, -(.5*l - .5*r) and -.5*l + .5*r both became
-# fnma(.5, l, .5*r), and mid() a single double), -fno-fast-math (the fast-math
-# optimizations would round to nearest and drop the checks of NaN and
-# infinities)
+# the compiler accepts it, as CMakeLists.txt gives them: -frounding-math,
+# -ffp-contract=off (without it, compilers contract a multiplication and an
+# addition into a fused one as if rounding to nearest: on 64-bit ARM,
+# -(.5*l - .5*r) and -.5*l + .5*r both became fnma(.5, l, .5*r), and mid() a
+# single double), -fno-fast-math (the fast-math optimizations would round to
+# nearest and drop the checks of NaN and infinities)
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-if test "${has_rounding_math_opt}" = yes; then
-
-printf "%s\n" "#define GAOL_HAVE_ROUNDING_MATH_OPTION 1" >>confdefs.h
-
-fi
 for gaol_flag in -frounding-math -ffp-contract=off -fno-fast-math; do
     ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'

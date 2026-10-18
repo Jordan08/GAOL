@@ -72,8 +72,6 @@
    AVX-512 instructions, and the operations test nothing as they run
    (GAOL v5, point AA of TODO.md) */
 #mesondefine GAOL_AVX512_ARITHMETIC
-/* Defined to 1 where the compiler takes -frounding-math */
-#mesondefine GAOL_HAVE_ROUNDING_MATH_OPTION
 
 /* Defined to 1 where the library is compiled with -fvisibility=hidden:
    GAOL's public declarations then carry __attribute__ ((visibility("default")))
@@ -116,9 +114,6 @@
 #endif
 #ifndef GAOL_AVX512_ARITHMETIC
 #  define GAOL_AVX512_ARITHMETIC 0
-#endif
-#ifndef GAOL_HAVE_ROUNDING_MATH_OPTION
-#  define GAOL_HAVE_ROUNDING_MATH_OPTION 0
 #endif
 #ifndef GAOL_HAVE_VISIBILITY_OPTIONS
 #  define GAOL_HAVE_VISIBILITY_OPTIONS 0

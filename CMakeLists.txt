@@ -588,9 +588,6 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR GAOL_DEBUG)
   set(GAOL_DEBUGGING ON)
 endif()
 
-# Whether the compiler takes -frounding-math
-set(GAOL_HAVE_ROUNDING_MATH_OPTION ${GAOL_COMPILER_SUPPORTS_FROUNDING_MATH})
-
 # On x86 processors, with GAOL_SIMD (--enable-simd of configure), the intervals
 # of GAOL are computed with SSE2 instructions (gaol/gaol_interval_sse.h), and
 # -msse3 is given where the compiler takes it, as the autotools build on a

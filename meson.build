@@ -215,7 +215,6 @@ int main() { return 0; }
     + 'Build GAOL with GCC, which honours the rounding direction on 32-bit ARM processors: CXX=g++ CC=gcc meson setup ...')
 endif
 if cpp_comp.has_argument('-frounding-math')
-  conf_data.set('GAOL_HAVE_ROUNDING_MATH_OPTION', 1)
   if not cpp_comp.compiles('int main() { return 0; }', args: ['-frounding-math', '-Werror'],
                            name: 'the C++ compiler honours the rounding direction on this target')
     error('GAOL cannot be built with ' + gaol_compiler + ' for this target.\n'

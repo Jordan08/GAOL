@@ -689,18 +689,13 @@ AC_CHECK_HEADER([fenv.h],
 
 
 # The flags of interval arithmetic, for the C++ and the C compiler, each where
-# the compiler accepts it, as CMakeLists.txt gives them: -frounding-math
-# (GAOL_HAVE_ROUNDING_MATH_OPTION), -ffp-contract=off (without it, compilers
-# contract a multiplication and an addition into a fused one as if rounding to
-# nearest: on 64-bit ARM, -(.5*l - .5*r) and -.5*l + .5*r both became
-# fnma(.5, l, .5*r), and mid() a single double), -fno-fast-math (the fast-math
-# optimizations would round to nearest and drop the checks of NaN and
-# infinities)
+# the compiler accepts it, as CMakeLists.txt gives them: -frounding-math,
+# -ffp-contract=off (without it, compilers contract a multiplication and an
+# addition into a fused one as if rounding to nearest: on 64-bit ARM,
+# -(.5*l - .5*r) and -.5*l + .5*r both became fnma(.5, l, .5*r), and mid() a
+# single double), -fno-fast-math (the fast-math optimizations would round to
+# nearest and drop the checks of NaN and infinities)
 AC_LANG([C])
-if test "${has_rounding_math_opt}" = yes; then
-    AC_DEFINE(GAOL_HAVE_ROUNDING_MATH_OPTION,1,
-        [Define this to 1 if the compiler supports the "-frounding-math" option])
-fi
 for gaol_flag in -frounding-math -ffp-contract=off -fno-fast-math; do
     GAOL_ADD_INTERVAL_FLAG([${gaol_flag}])
 done
