@@ -1085,7 +1085,7 @@ point Q), which `numbers` checks there too.
   functions on intervals GAOL v5 adds and the nodes of their expressions,
   `restore_rounding()`, `exact_string()` and `is_finite()`, and
   the overloads of every function and operator of the expressions; that the
-  exceptions, `rnd_keep()`, `get_fpu_cw()`, `NaN_val`,
+  exceptions, `rnd_keep()`, `NaN_val`,
   `eval_stack`, `parse_interval()` and `parsing_names` are not found through
   `using namespace gaol`, nor what
   GAOL uses for itself: the

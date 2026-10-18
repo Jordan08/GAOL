@@ -299,8 +299,7 @@ the doubles around π and π/2, `gaol_pi_dn`, `gaol_pi_up`, `gaol_half_pi_dn` an
 `round_ties_to_even`... and the nodes of their expressions),
 `restore_rounding()` and `exact_string()`. The exceptions (`gaol_exception`,
 `input_format_error`, `invalid_action_error` and `unavailable_feature_error`),
-`rnd_keep()` of GAOL 4.3.2, `get_fpu_cw()`, `NaN_val`, `eval_stack`, and the
-reader of strings, `parse_interval()` and `parsing_names`, are in `gaol_core`
+`rnd_keep()` of GAOL 4.3.2, `NaN_val`, `eval_stack`, and the reader of strings, `parse_interval()` and `parsing_names`, are in `gaol_core`
 only, as `catch (const gaol_core::input_format_error&)` or
 `gaol_core::rnd_keep(x)`. `gaol_ieee1788` names the version as `gaol` does.
 What GAOL's code uses for itself is

@@ -115,13 +115,6 @@ namespace gaol_core {
   {
     _control87(_RC_NEAR,_MCW_RC);
   }
-  
-  GAOL_INLINE unsigned short int get_fpu_cw()
-  {
-    // The unsigned int of _control87() on the 16 bits this function returns, as
-    // before, but written out: warning C4244 of /W4 otherwise (GAOL v5)
-    return static_cast<unsigned short int>(_control87(0,0));
-  }
 
 } // namespace gaol_core
 

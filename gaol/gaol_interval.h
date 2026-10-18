@@ -66,7 +66,7 @@
     rounding_guard and gaol_initializer;
   - the exceptions (gaol_exception, input_format_error,
     unavailable_feature_error and invalid_action_error), rnd_keep() of GAOL
-    4.3.2, get_fpu_cw(), NaN_val of GAOL 4, which the macro GAOL_NAN names,
+    4.3.2, NaN_val of GAOL 4, which the macro GAOL_NAN names,
     eval_stack, and the reader of strings, parse_interval() and
     parsing_names.
   gaol took gaol_core whole before (using namespace gaol_core), and a program

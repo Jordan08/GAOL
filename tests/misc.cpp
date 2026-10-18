@@ -243,7 +243,7 @@ namespace gaol_names
 
 /*
   What gaol no longer names: what GAOL's code uses for itself, and the
-  exceptions, rnd_keep(), get_fpu_cw(), NaN_val, eval_stack and the reader of
+  exceptions, rnd_keep(), NaN_val, eval_stack and the reader of
   strings, which stay in gaol_core (GAOL v5). gaol took gaol_core
   whole before, and these names were found through it. Each is looked for in the namespaces that using namespace
   gaol (unit_tests.h) opens, along with gaol_names_absent below:
@@ -277,7 +277,6 @@ namespace gaol_names_absent
   absent gaol_sign_of(...);
   absent rnd_reread(...);
   absent rnd_keep(...);
-  template <class T = void> absent get_fpu_cw();
   absent parse_interval(...);
   // The internals GAOL 4 declared in gaol too, which its manual did not document
   absent gaol_signbit(...);
@@ -331,7 +330,6 @@ namespace gaol_names
   GAOL_NAMES_ABSENT((gaol_sign_of)(1.0));
   GAOL_NAMES_ABSENT((rnd_reread)(1.0));
   GAOL_NAMES_ABSENT((rnd_keep)(1.0));
-  GAOL_NAMES_ABSENT((get_fpu_cw)());
   GAOL_NAMES_ABSENT((parse_interval)("1", std::declval<gaol_core::interval&>()));
   GAOL_NAMES_ABSENT((gaol_signbit)(1.0));
   GAOL_NAMES_ABSENT((modulo_k_pi)(x(), std::declval<double&>(), std::declval<double&>()));

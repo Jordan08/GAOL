@@ -43,9 +43,12 @@ refuses doubles computed on it, and the three builds give -msse2
 -mfpmath=sse on 32-bit x86.
 
 Since then:
-- get_fpu_cw() (below) reads the rounding direction with fegetround(), and
-get_rounding() and set_rounding() (gaol_fpu.h) read and write the rounding
-bits of MXCSR as well.
+- get_rounding() and set_rounding() (gaol_fpu.h) read and write the rounding
+direction with fegetround() and fesetround(), and the rounding bits of MXCSR
+as well. The get_fpu_cw() and reset_fpu_cw() of GAOL 4 read and wrote the
+control word of the x87 unit on x86 Linux and macOS, which left the direction
+of the SSE instructions unrestored, and 16 bits of the FPCR on 64-bit ARM,
+which left out its rounding bits.
 - gaol::init() calls fesetenv(FE_DFL_ENV), then round_upward(), which sets
 both units: with glibc 2.31 on x86-64, the x87 control word is then
 0x0b7f and MXCSR 0x5f80, and 1 + 2^-60 is above 1. FE_DFL_ENV sets the
@@ -229,18 +232,6 @@ namespace gaol_core {
     fesetround(FE_TONEAREST);
   }
   #endif
-  
-  /* The rounding direction, with the function of <fenv.h>. GAOL's operations
-  save and restore it with get_rounding() and set_rounding() (gaol_fpu.h),
-  which also read and write the one of the SSE instructions: this function is
-  kept for the code using it. It and the reset_fpu_cw() that went with it in
-  GAOL 4 read and wrote the control word of the x87 unit on x86 Linux and
-  macOS, which left the direction of the SSE instructions unrestored, and 16
-  bits of the FPCR on 64-bit ARM, which left out its rounding bits. */
-  GAOL_INLINE unsigned short int get_fpu_cw()
-  {
-    return static_cast<unsigned short int>(fegetround());
-  }
 
 } // namespace gaol_core
 
