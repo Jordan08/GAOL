@@ -1,12 +1,12 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `5c4830d` de `configure-clean` (la
-fusion de #141), le 18 octobre 2026. Ce fichier ne garde que cela : le travail
-fait, ses pull requests, ses décisions et ses mesures sont dans l'issue #49 («
-Fusionné depuis le 30 septembre » et les sections « Décidé le… »), dans les
-descriptions des pull requests et dans l'historique de git (`git log -p
-TODO.md`, où la version d'avant le ménage du 18 octobre est celle de `4eaf69a`).
-L'issue #142 reprend la liste ci-dessous avec des cases à cocher.
+Ce qui reste à faire sur GAOL v5 au commit `395426a` de `configure-clean`, le 19
+octobre 2026. Ce fichier ne garde que cela : le travail fait, ses pull requests,
+ses décisions et ses mesures sont dans l'issue #49 (« Fusionné depuis le 30
+septembre » et les sections « Décidé le… »), dans les descriptions des pull
+requests et dans l'historique de git (`git log -p TODO.md`, où la version
+d'avant le ménage du 18 octobre est celle de `4eaf69a`). L'issue #142 reprend la
+liste ci-dessous avec des cases à cocher.
 
 ## Priorités
 
@@ -90,10 +90,8 @@ d'abord, puisqu'il guide chaque nouvelle session. [S]
 15. **123 (AL), la partie sans historique** : retirer les lignes de crédit des
     descriptions de #15 à #24 et #60 à #63 et des commentaires de #58 et #60 à
     #63.
-16. **124, 121, 122 (AL) et le ménage des branches** : fermer #70 ; décider de
-    `.continue/` ; `gaol_performance` en C++14 ; supprimer `todo-zz-perf` et
-    `todo-zz-notes` ; mettre à jour #49 (état, #141 fusionnée, sa ligne sur
-    `GAOL_USING_ASM`, `std::less`).
+16. **121, 122 (AL) et le ménage des branches** : décider de `.continue/` ;
+    `gaol_performance` en C++14 ; supprimer `todo-zz-notes` en local.
 
 ### D. Les trois builds
 
@@ -435,7 +433,7 @@ génériques) est fait depuis le 15 octobre (`gaol_exact.*`, `sysdeps/` et
   les deux autres. Non vérifié sur une chaîne où le résultat changerait.
   Correction : lier, et vérifier les deux langages, dans les trois builds.
 
-### AL. Les restes des relectures, de `process.md` et de la doc (117 à 124)
+### AL. Les restes des relectures, de `process.md` et de la doc (117 à 123)
 
 Relevés dans les « Questions ouvertes » des pull requests fermées, dans leurs
 commentaires et dans les décisions du 18 octobre de l'issue #49 ; chacun est
@@ -486,10 +484,6 @@ petit.
     de branches partagées. À décider avant le point Y, qui fusionne
     `configure-clean` dans `MATH-CORE` puis `master` : les laisser, ou réécrire
     avant la version.
-- **124.** **L'issue #70** (spécialiser ou non `std::less` pour
-  `gaol::interval`) a sa réponse du mainteneur en commentaire : « oui on
-  n'implémente pas de std::less pour les gaol::interval ». La fermer, et retirer
-  de #49 la mention « la spécialisation de `std::less` reste reportée ».
 
 ### AM. Les suites du point Z (125)
 
@@ -938,20 +932,18 @@ sans l'accord explicite du mainteneur.
 
 ## Ménage
 
-- **Branches** : la branche `todo-zz-perf` de #124 est encore sur GitHub, et en
-  local ; `todo-zz-notes` (contenue dans `origin/configure-clean`) en local. Les
-  supprimer (`git branch -d` vérifie qu'elles sont contenues). Les autres
-  branches locales du mainteneur (`MATH-CORE`, `master`) ne se touchent pas.
+- **Branches** : `todo-zz-notes` (contenue dans `origin/configure-clean`) reste
+  en local : la supprimer (`git branch -d` vérifie qu'elle est contenue). Les
+  autres branches locales du mainteneur (`MATH-CORE`, `master`) ne se touchent
+  pas. La branche de #124 (`todo-zz-perf`) est supprimée depuis le 19 octobre.
 - **Les lignes de crédit** : voir le 123.
 - **Les images Docker** de #111 (`i386/debian:trixie`, `debian:trixie`,
   `ubuntu:24.04`) restent sur la machine.
-- **L'issue #49** reste ouverte comme suivi d'ensemble et garde l'historique (à
-  mettre à jour : son état au 18 octobre, #141 fusionnée, sa ligne du point AF
-  sur `GAOL_USING_ASM`, `std::less` du point V) ; les décisions du 3 octobre et
-  les liens vers les issues #64 à #70 y sont en commentaire, comme celles du 4
-  octobre sur les questions restées ouvertes dans les rapports et celles du 18
-  octobre sur les questions de #99. Le reste à faire est suivi dans l'issue
-  #142.
+- **L'issue #49** reste ouverte comme suivi d'ensemble et garde l'historique ;
+  les décisions du 3 octobre et les liens vers les issues #64 à #70 y sont en
+  commentaire, comme celles du 4 octobre sur les questions restées ouvertes dans
+  les rapports et celles du 18 octobre sur les questions de #99. Le reste à
+  faire est suivi dans l'issue #142.
 - **`todo-notes/`** : ramené de la branche `todo-status` (supprimée) ; ses
   rapports sont retirés de l'arbre (ils restent au commit `16a2f60`), et ce qui
   en sert encore est dans `todo-notes/synthese.md`. À vider après la version,
@@ -964,5 +956,5 @@ sans l'accord explicite du mainteneur.
 83 : AD ; 84 : AD ; 85 : AD ; 87 : AD ; 88 : AD ; 89 : AD ; 90 : AE ;
 91 : AE ; 92 : AE ; 94 : AE ; 95 : AE ; 105 : AH ; 106 : AI ; 107 : AI ;
 108 : AI ; 109 : AI ; 110 : AI ; 111 : AI ; 112 : AI ; 113 : AJ ;
-114 : AD ; 115 : AI ; 116 : AI ; 117 à 124 : AL ; 125 : AM ; 126 : AN ; 127 :
+114 : AD ; 115 : AI ; 116 : AI ; 117 à 123 : AL ; 125 : AM ; 126 : AN ; 127 :
 AO.
