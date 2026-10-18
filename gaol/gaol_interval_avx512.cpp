@@ -13,10 +13,16 @@
  * neither the rounding direction of the processor nor the exception
  * flags, the architecture requiring the exception suppression with the
  * embedded rounding. Their bounds are those of the SSE2 path, bit for
- * bit, the rounding rule being the same: checked against it on 500 000
- * intervals of random bounds plus the empty set, on the zero corners of
- * the products and of the quotients, the signs of their bounds included,
- * and on every value the tests of tests/ take (GAOL v5).
+ * bit, the rounding rule being the same, but for the sign of a zero bound
+ * in one case: x * d and x *= d of an interval x whose zero bounds have
+ * different signs, [+0, -0], which are [-0, +0] here and [+0, -0] with the
+ * SSE2 path, +0 and -0 being the same number. Checked against the SSE2
+ * path on 500 000 intervals of random bounds plus the empty set, on the
+ * zero corners of the products and of the quotients, the signs of their
+ * bounds included, and on every value the tests of tests/ take, and on
+ * the 177 694 results of the operations of intervals and with a double on
+ * the intervals of two bounds among 0 of either sign, +-1, +-2.5, +-3,
+ * +-1e-310, +-1e300 and +-oo (GAOL v5).
  *
  * The embedded rounding honours the modes that flush the subnormal
  * numbers to zero, as the other operations do: flush-to-zero, which

@@ -254,8 +254,9 @@ program names them through one of two namespaces, which `gaol/gaol.h` declares
 and does not open:
 
 - `gaol`, GAOL under its own names, to stay compatible with GAOL 4: a program
-  written for GAOL 4 keeps its names and its results there, its `pow` taking
-  the integer power for an integer exponent, a negative base included;
+  written for GAOL 4 keeps its names there and, but for the results that
+  change (see [What differs from GAOL](differences.md)), its results, its `pow`
+  taking the integer power for an integer exponent, a negative base included;
 - `gaol_ieee1788`, GAOL under the names of IEEE 1788-2015, to follow the
   standard: its operations have the names, the arguments and the results the
   standard gives them (below).
@@ -359,11 +360,16 @@ alone; they differ where x has a negative part and the exponent is an
 integer, and at 0^0. The `pow` of `gaol` is thus not monotone for the
 inclusion of its exponent: `pow([-4, -1], [2])` is [1, 16], and
 `pow([-4, -1], [1.5, 2.5])`, whose exponent holds [2], is empty; the `pow`
-of the standard is. Both give the tightest bounds: the real power from the
-`pow` of CORE-MATH at the corners of the box, the integer power from exact
-products within the ints (one double beyond where the power is closer to a
-double than the bound of their error, never for x^2) and from the `pow` of CORE-MATH beyond
-them (see [Accuracy of the operations](accuracy.md)).
+of the standard is. Both give the tightest bounds, but for the integer power:
+the real power from the `pow` of CORE-MATH at the corners of the box, the
+integer power from exact products within the ints (one double beyond the
+tightest where the power is within twice the bound of their error of a double,
+never for x^2) and from the `pow` of CORE-MATH beyond them, the tightest where
+n is a double and within three doubles of it otherwise, beyond 2^53 (see
+[Accuracy of the operations](accuracy.md)). A degenerate integer exponent of
+`gaol_ieee1788::pow` takes the integer power too, with its bounds:
+`pow([0x1.fffffffffffffp+1], [7])` has its lower bound one double below the
+tightest.
 
 The rest of GAOL follows the same split:
 
@@ -1126,9 +1132,14 @@ other operations clear them, and set back after its result with
 computed once flush-to-zero was set back, and `[3e-308] - [2.9e-308]` was
 [0, 0] (GAOL v5).
 
-The bounds are those of the other path, bit for bit: the rounding rule is
-the same, and the tests of `tests/`, which a job of the continuous
-integration runs with the option on, check it. The path is decided when GAOL
+The bounds are those of the other path, bit for bit, but for the sign of a
+zero bound in one case: `x * d` and `x *= d` of an interval whose zero bounds
+have different signs, `[+0, -0]`, are `[-0, +0]` with the AVX-512 path and
+`[+0, -0]` with the SSE2 one, +0 and −0 being the same number (the rounding
+rule is the same, and the tests of `tests/`, which a job of the continuous
+integration runs with the option on, check it, with `==`, which does not see
+the sign of a zero; 177 694 results of the operations on special bounds were
+compared bit for bit). The path is decided when GAOL
 is configured, as the fused multiply-add instructions of `GAOL_FMA` are: the
 machine building has to run the AVX-512 instructions, a cross-compilation
 leaves the path out, and the operations test nothing as they run. A library

@@ -1464,9 +1464,12 @@ namespace gaol_core {
   /*
     I^e for an integer e, gaol::pow(I, e), the pown of IEEE 1788-2015: [1]
     for e = 0, the empty set for an empty I, and for [0] and e < 0. Its bounds
-    are the tightest (GAOL v5), and exact where x^e is a double: from exact
-    products within the ints, from CORE-MATH's pow beyond them, but for an e
-    of more than 53 bits that is no double (gaol_pown_ll()).
+    are the tightest, or one double beyond where x^e is within twice the
+    bound of the error of the products of a double (2^-98 relatively at
+    e = 3, 2^-62 at most, never for e = 2), and exact where x^e is a double
+    (GAOL v5): from exact products within the ints, from CORE-MATH's pow
+    beyond them, the tightest where e is a double, and within three doubles
+    of them for an e of more than 53 bits that is no double (gaol_pown_ll()).
   */
   GAOL_NODISCARD extern GAOL_PUBLIC   interval gaol_pown(const interval& I, int e);
   /*

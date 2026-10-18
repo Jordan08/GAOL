@@ -1582,8 +1582,9 @@ The type \code{interval} of GAOL and its functions are in the namespace
 
 \begin{itemize}
 \item \code{gaol}, GAOL under its own names, which this manual uses, to stay
-  compatible with GAOL~4: a program written for GAOL~4 keeps its names and its
-  results there;
+  compatible with GAOL~4: a program written for GAOL~4 keeps its names there
+  and, but for the results that change (Chapter~\ref{chap:changes}), its
+  results;
 \item \code{gaol\_ieee1788}, GAOL under the names of IEEE 1788-2015
   (Chapter~\ref{chap:ieee1788}), to follow the standard.
 \end{itemize}
@@ -1690,8 +1691,10 @@ no integer alone; they differ where $x$ has a negative part and the exponent is
 an integer, and at $0^0$. The \code{pow} of \code{gaol} is thus not monotone
 for the inclusion of its exponent: \code{pow(\itv{-4}{-1}, \itv{2}{2})} is
 \itv{1}{16}, and \code{pow(\itv{-4}{-1}, \itv{1.5}{2.5})}, whose exponent holds
-$2$, is empty; the \code{pow} of the standard is. Both give the tightest bounds
-(Chapter~\ref{chap:accuracy}).
+$2$, is empty; the \code{pow} of the standard is. Both give the tightest bounds,
+but for the integer power, which is one double beyond the tightest where it is
+within twice the error of its products of a double, and within three doubles of it
+beyond $2^{53}$ for an exponent that is no double (Chapter~\ref{chap:accuracy}).
 
 The rest of GAOL follows the same split. The expressions \code{pow(e, n)}
 and \code{pow(e1, e2)} of \code{gaol} are the hybrid power, \code{pown(e, n)}
@@ -3435,7 +3438,8 @@ namespace \code{gaol\_ieee1788} has its own \code{pow} (Chapter~\ref{chap:ieee17
   $n=1000$, $2^{-62}$ at most, relatively; they are exact where the power is
   a double. Beyond the
   \code{int}s, from the power of CORE-MATH at the bounds of \var{I}, the
-  tightest enclosures where $n$ is a double.\newinvfive{} The real power takes the
+  tightest enclosures where $n$ is a double, and within three doubles of them
+  otherwise.\newinvfive{} The real power takes the
   power of CORE-MATH at the corners of the box $I\times J$ where it is the
   least and the greatest: the upper bound is the tightest one, and so is the
   lower bound, which is the power itself where it is a double, as $4^{0.5}$,
@@ -5599,7 +5603,7 @@ covered.
   \hline
   \multicolumn{2}{l}{\textit{Powers, exponentials and logarithms: valid required, accurate recommended}}\\
   \code{pow(x, n)}, integer \var{n} (\ieee{pown}) & the tightest bounds, of either sign, or one double beyond where the power is within twice a bound of their error of a double, relatively (never for $n=2$, \code{sqr(x)}; $2^{-98}$ for $n=3$, $2^{-62}$ at most), below $2^{-968}$ and beyond the largest double too; exact where the power is a double; the same bounds with the SSE2 and the FPU intervals. Beyond the \code{int}s: tightest where $n$ is a double, within three doubles otherwise\\
-  \code{pow(x, y)} (\ieee{pow}) & tightest, at the corners of the box and at their limits where the base is $0$ or $+\infty$ or the exponent infinite\\
+  \code{pow(x, y)} (\ieee{pow}) & tightest, at the corners of the box and at their limits where the base is $0$ or $+\infty$ or the exponent infinite; for a degenerate integer exponent within the \code{int}s, the integer power of the row above, one double beyond the tightest where it is within twice the error of its products (\code{pow([0x1.fffffffffffffp+1], [7])} has its lower bound one double below the tightest)\\
   \code{exp}, \code{exp2}, \code{exp10}, \code{log}, \code{log2}, \code{log10} & tightest; exact where the value is a double ($\exp(0)$, $\log(1)$, $2^n$, $10^n$ for $0\leq n\leq22$\ldots)\\
   \hline
   \multicolumn{2}{l}{\textit{Trigonometric and hyperbolic functions: valid required, accurate recommended}}\\
