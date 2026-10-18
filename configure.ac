@@ -122,8 +122,8 @@ if test "x$GAOL_VERSION" != "x[]gaol_m4_version"; then
   AC_MSG_WARN([$gaol_version_warning])
 fi
 # gaol/gaol_configuration.h.in is written by hand, not by autoheader: it holds
-# the macros GAOL's sources read, the same as the headers the CMake and the
-# meson builds write (cmake/gaol_configuration.h.in,
+# the macros of the configuration of GAOL, the same as the headers the CMake and
+# the meson builds write (cmake/gaol_configuration.h.in,
 # gaol/gaol_configuration_meson.h.in; see doc/building.md), and nothing else
 # (GAOL v5)
 AC_CONFIG_HEADERS([gaol/gaol_configuration.h])

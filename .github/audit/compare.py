@@ -3,8 +3,8 @@
 For each machine and compiler audited (audit.sh, probe_build.py), prints the
 flags of each build and the configuration that differs between the builds.
 With --check, exits with 1 when a build did not configure, or when the builds
-differ on a macro GAOL reads or on a flag that bears on the results or the
-speed (see MACROS and FLAGS).
+differ on a macro of the configuration or on a flag that bears on the results
+or the speed (see MACROS and FLAGS).
 """
 
 # Copyright (c) 2026 ENSTA, France
@@ -16,7 +16,7 @@ import sys
 
 BUILDS = ('cmake', 'autotools', 'meson')
 
-# The macros GAOL reads, compared by whether they are defined and true
+# The macros of the configuration, compared by whether they are defined and true
 MACROS = ('GAOL_AARCH64_LINUX', 'GAOL_ARM_MACOSX', 'GAOL_IX86_LINUX', 'GAOL_IX86_MACOSX', 'GAOL_DEBUGGING', 'GAOL_EXCEPTIONS_ENABLED', 'GAOL_FLOAT_INTERVALS',
           'GAOL_PRESERVE_ROUNDING',
           'GAOL_VERBOSE_MODE', 'GAOL_HAVE_FENV_H',

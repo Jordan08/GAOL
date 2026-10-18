@@ -343,13 +343,17 @@ Each build writes `gaol/gaol_configuration.h`, which `gaol/gaol_config.h`
 includes with every compiler: CMake from `cmake/gaol_configuration.h.in`,
 configure from `gaol/gaol_configuration.h.in` (written by hand, not by
 autoheader), meson from `gaol/gaol_configuration_meson.h.in`. The three define
-the same macros, those GAOL's sources read, and nothing else; the continuous
-integration checks that they write the same header on each kind of machine
-(`.github/audit`). Each macro of the table but the version is 1 where the
-table says, and 0 otherwise (GAOL v5): it was left undefined, so that a
-header reading it with `#if` warned under `-Wundef`, and a program could not
-include GAOL under `-Wundef -Werror`. A program tests these macros with `#if`
-as well: `#ifdef` is now true of each of them.
+the same macros, and nothing else; the continuous integration checks that they
+write the same header on each kind of machine (`.github/audit`). The sources of
+GAOL read all of them but `GAOL_HAVE_AVX512_TARGET` and `GAOL_PREFER_AVX512`,
+which the three builds use to decide `GAOL_AVX512_ARITHMETIC` and the
+continuous integration prints; and `GAOL_USING_SSE3_INSTRUCTIONS` is read only
+by the code of the intervals of floats, which a developer of GAOL compiles.
+Each macro of the table but the version is 1 where the table says, and 0
+otherwise (GAOL v5): it was left undefined, so that a header reading it with
+`#if` warned under `-Wundef`, and a program could not include GAOL under
+`-Wundef -Werror`. A program tests these macros with `#if` as well: `#ifdef` is
+now true of each of them.
 
 | Macro | 1 when | CMake | configure | meson |
 |---|---|---|---|---|
@@ -367,11 +371,12 @@ as well: `#ifdef` is now true of each of them.
 | `GAOL_HAVE_FENV_H` | The compiler has `<fenv.h>` | checked (required) | checked | checked |
 
 What GAOL needs to know of the processor and the system comes from the
-compiler, in `gaol/gaol_config.h`: `GAOL_IX86_LINUX`, `GAOL_AARCH64_LINUX`,
-`GAOL_IX86_MACOSX` and `GAOL_ARM_MACOSX`, the sizes of the integer types
-(`GAOL_SIZEOF_INT`, `GAOL_SIZEOF_LONG_LONG_INT`, from `<limits.h>`) and the
-order of the bytes (`GAOL_WORDS_BIGENDIAN`), the names of the systems and the
-order of the bytes being 1 or 0 (GAOL v5). These macros, and the
+compiler, in `gaol/gaol_config.h`: `GAOL_IX86_MACOSX` and `GAOL_ARM_MACOSX`,
+the sizes of the integer types (`GAOL_SIZEOF_INT`,
+`GAOL_SIZEOF_LONG_LONG_INT`, from `<limits.h>`) and the order of the bytes
+(`GAOL_WORDS_BIGENDIAN`), the names of the systems and the order of the bytes
+being 1 or 0 (GAOL v5). `GAOL_IX86_LINUX` and `GAOL_AARCH64_LINUX` are defined
+as well, though no code of GAOL reads them. These macros, and the
 `GAOL_USING_SSE*` and `GAOL_HAVE_*` of the table, were named without `GAOL_`
 before GAOL v5.
 
