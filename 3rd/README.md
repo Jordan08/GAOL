@@ -378,7 +378,7 @@ at a result of −2<sup>−1022</sup>, which is the one said below (commit
 `e072473e`, 5 October; the check was not run again); it still has the six other
 defects. Patches 2, 3, 5, 6 and 7 apply to it as they are, and patch 1
 conflicts with later changes of `sinh.c` and `cosh.c`, whose masks are still
-there. Before the patches are sent (issue #65), patch 1 is to be made again on
+there. Before the patches are sent (issue #125), patch 1 is to be made again on
 the master of the day.
 
 ### CORE-MATH
@@ -806,7 +806,7 @@ directed roundings from the first one (`cr_atan2l(0x9.24502162d9eap+81,
 than π/2), while master fails to nearest already; on x86-64 Linux the two make
 the same object code (GCC 15 and Clang 18), and both pass in the four
 directions. The directed roundings of `atan2l` with a 32-bit `long` are to be
-pointed out to the authors when the patches are sent (issue #65).
+pointed out to the authors when the patches are sent (issue #125).
 
 **Status.** Present in master; GAOL makes the change in `sinh.c`, `cosh.c`,
 `tanh.c`, `sinpi.c` and `log1p.c` (item 2 above), and the `1ll` of `cos.c` and

@@ -4,7 +4,8 @@ Les rapports des agents qui ont travaillé sur les points de `TODO.md`, du 29
 septembre au 2 octobre 2026, ont été relus le 4 octobre. Toutes les pull
 requests qu'ils décrivent sont fusionnées, et leurs questions ont reçu une
 réponse : décisions dans `TODO.md` et dans les commentaires de l'issue #49,
-questions reportées dans les issues #64 à #70 et #80. Ce fichier garde ce qui
+questions reportées dans les issues #64 à #70 et #80 (#65, #66, #69 et #80 sont
+depuis regroupées, avec #102 et #104, dans #125 à #135). Ce fichier garde ce qui
 sert encore. Les rapports eux-mêmes ont été retirés de l'arbre ; ils restent
 dans l'historique de git, au commit `16a2f60` :
 
@@ -1342,7 +1343,7 @@ Chocolatey sont repris dans `gaol/gaol_config.h`, `doc/continuous-integration.md
   au-dessus) ; a = −0x1.42d4192294c63p+11, b = −0x1.2c80de6befe77p+11,
   c = 0x1.98cee0aa846fdp-38 (faux vers le bas et vers zéro). Les 91 triplets
   (`tmp/06b/guard/rows.pkl`) étaient dans un scratchpad, perdu. Utiles si la
-  décision sur le x86 32 bits est rouverte, ou pour #69.
+  décision sur le x86 32 bits est rouverte, ou pour #69 (maintenant #127).
 - État de la machine laissé par l'agent : architecture i386 ajoutée, environ
   80 bibliothèques i386 installées automatiquement restées (pas
   d'`apt-get autoremove`), environ 20 paquets amd64 mis à jour depuis
@@ -1352,9 +1353,9 @@ Chocolatey sont repris dans `gaol/gaol_config.h`, `doc/continuous-integration.md
   `wine32:i386`, renommer `/usr/lib/wine/wine` en `wine.i386` et prendre un
   préfixe neuf (le paquet factice et les fichiers de chaîne étaient dans le
   scratchpad).
-- L'issue #69 renvoie à `tests/rounding_direction.cpp` pour les cas
-  reproductibles : c'est `tests/core_math.cpp` (`c_library_fma_and_round()`,
-  l. 196).
+- L'issue #69 (maintenant #127) renvoie à `tests/rounding_direction.cpp` pour
+  les cas reproductibles : c'est `tests/core_math.cpp`
+  (`c_library_fma_and_round()`, l. 196).
 
 ---
 
@@ -1424,11 +1425,11 @@ avec GCC et de 18 à 5 avec clang ; c'est dans le commentaire de l'opérateur).
 
 - **L'amont a bougé depuis `b1a4badf`** : `3rd/README.md` (l. 1190) cite déjà
   `284b3b0` du 1er octobre 2026. Les six blocs n'ont été vérifiés
-  (`git apply --check`, `git am`) que sur `b1a4badf`. Avant l'envoi (#65),
-  les rejouer sur le master du moment. Les fichiers `format-patch` et le clone
-  `gaol-proposals-v3` étaient dans le bloc-notes de l'agent (`tmp/31/`) : les
-  blocs du README sont la seule copie, et le bloc 6 suppose les correctifs 2 et
-  3 appliqués (lignes `index`, dit dans le README).
+  (`git apply --check`, `git am`) que sur `b1a4badf`. Avant l'envoi (#65,
+  maintenant #125), les rejouer sur le master du moment. Les fichiers
+  `format-patch` et le clone `gaol-proposals-v3` étaient dans le bloc-notes de
+  l'agent (`tmp/31/`) : les blocs du README sont la seule copie, et le bloc 6
+  suppose les correctifs 2 et 3 appliqués (lignes `index`, dit dans le README).
 - Vérifications de CORE-MATH non faites : `./check.sh --special` de sincos
   seulement en `--rndn` (26 minutes), lgamma pas du tout ; aucun essai en
   ILP32 (i686), faute de multilib et de wine32. Le README dit que le correctif

@@ -4,8 +4,9 @@ Ce qui reste à faire sur GAOL v5 au commit `ce2bf3f` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
-l'ancienne liste, auxquels renvoient les pull requests, les issues (#49, #64 à
-#70, #80, #98, #104, #107) et les rapports des agents (ce qui en sert encore
+l'ancienne liste, auxquels renvoient les pull requests, les issues (#49, #64,
+#67, #68, #70, #98, #107, et #125 à #135, qui regroupent les signalements à
+d'autres projets) et les rapports des agents (ce qui en sert encore
 est dans [todo-notes/synthese.md](todo-notes/synthese.md)) ; la table à la fin
 donne la lettre de chaque ancien numéro, et un numéro qui n'y est pas est un
 point fait.
@@ -56,8 +57,8 @@ choix sur `is_empty()` ; le bug de GCC 12.1 à 12.3 et 13.1 à 13.2 (avec
 `-frounding-math` sur x86, `denorm_min()` dans un tableau statique de
 structures) dit dans `doc/using.md` et le manuel ; le `<` de `cr_pow` sur un NaN
 et la vectorisation des comparaisons silencieuses par GCC commentés dans #65 et
-#80. Les textes pour `ChangeLog` et `doc/differences.md` sont dans la
-description de #83.
+#80 (aujourd'hui #125 et #126). Les textes pour `ChangeLog` et
+`doc/differences.md` sont dans la description de #83.
 Fait le 5 octobre aussi : l'ancien 21 du point D, les entiers au-delà de 2^53,
 par #84, et les fonctions à exposant entier autres que `pow` (`nth_root`,
 `rootn`, `pownRev` et les puissances d'expressions pour tout entier, les racines
@@ -256,7 +257,8 @@ glibc) ; `read_in_branch()` garde dans leur branche les opérations qu'un test
 tables de `tests/reverse.cpp` en données `constexpr` (GCC 12 pour armhf
 manquait de mémoire) ; `headers.sh` en locale C ; « Jordan NININ » au lieu de
 « Joran » dans les 61 fichiers de `68ec12c`. Les brouillons des signalements
-à ITF1788, Boost.Interval et CORE-MATH sont dans l'issue #104, non envoyés.
+à ITF1788, Boost.Interval et CORE-MATH, d'abord dans l'issue #104, sont dans
+les issues #129, #130 et #125, non envoyés.
 Les questions restées ouvertes (l'exception de `bisect`, `010_iv`, la
 politique de Boost, la colonne GAOL v5 de `doc/compare/performance.md`, la
 précision de `pow` annoncée par `doc/accuracy.md`, le tableau des outils de
@@ -295,15 +297,16 @@ les `FE_*` de Cygwin ; les masques de `sinpi.c` et `log1p.c` ;
 sans `_UCRT` ; la racine carrée de SSE2 sur tout x86 32 bits ; les commentaires
 du sens d'arrondi ; chaque ligne changée de CORE-MATH marquée `/* GAOL */`
 (#113) ; dans `3rd/README.md`, le correctif 1 étendu à `expm1q.c` et
-`atan2l.c`, le 6 à `powl.c`, et le 4 fait en amont. L'envoi reste reporté (#65,
-#66), le signalement à mingw-w64 aussi (#69), et le `fma()` logiciel de
-`ucrtbase.dll` n'a jamais été vérifié. Décidé à sa fin : `configure` régénéré
-par `autoconf` seul quand seul `configure.ac` change, et `check_branch` qui
-prend l'arbre courant, par #112 ; `atan2l.c` dans le correctif 1, son échec
-dans les arrondis dirigés étant à signaler aux auteurs avec l'envoi. Le défaut
-de `cr_pow` relevé par D.24 (#83) est corrigé en amont par `c01f08c5` : le
-contournement de GAOL pourra tomber au prochain import de CORE-MATH. Les textes
-pour `ChangeLog` et `doc/differences.md` sont dans la description de #111.
+`atan2l.c`, le 6 à `powl.c`, et le 4 fait en amont. L'envoi reste reporté
+(#125), le signalement à mingw-w64 aussi (#127), et le `fma()` logiciel de
+`ucrtbase.dll` n'a jamais été vérifié (#131). Décidé à sa fin : `configure`
+régénéré par `autoconf` seul quand seul `configure.ac` change, et
+`check_branch` qui prend l'arbre courant, par #112 ; `atan2l.c` dans le
+correctif 1, son échec dans les arrondis dirigés étant à signaler aux auteurs
+avec l'envoi. Le défaut de `cr_pow` relevé par D.24 (#83) est corrigé en amont
+par `c01f08c5` : le contournement de GAOL pourra tomber au prochain import de
+CORE-MATH (case de #125). Les textes pour `ChangeLog` et
+`doc/differences.md` sont dans la description de #111.
 
 Fait le 13 octobre : le point F (anciens 11, 15, 18, 46, 58, 59, 60 et 61),
 par #114, et `process.md` mis à jour par #115 (`GAOL_V8` et `GAOL_V9` se
@@ -488,6 +491,14 @@ parser, `meson.build`, workflows). Décidé pendant le travail : le point AI de 
 fichier, la vitesse sur macOS, Windows et ARM, relevée par la CI. Les textes
 pour `ChangeLog` et `doc/differences.md` sont dans la description de #124.
 
+Fait le 18 octobre aussi : les signalements à d'autres projets, regroupés par
+projet dans les issues #125 (CORE-MATH), #126 (GCC), #127 (mingw-w64), #128
+(Frédéric Goualard, avec son brouillon d'email dans Gmail), #129 (ITF1788), #130
+(Boost.Interval), #131 (Microsoft), #132 (Apple), #133 (LLVM/Clang), #134
+(gmpy2) et #135 (musl), avec leurs brouillons en anglais ; les anciennes #65,
+#66, #69, #80, #102 et #104 sont fermées, et leurs tâches retirées de #49.
+Rien n'est envoyé.
+
 ## En cours
 
 Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
@@ -581,7 +592,7 @@ qu'une fois.
   14 octobre. Décidé le 14 octobre : le correctif dans CORE-MATH, passer à
   la seconde phase quand M atteint 0x7ff (ou abaisser RHO2), ligne marquée
   `/* GAOL */` et décrite dans `3rd/README.md` comme correctif à proposer en
-  amont (#65), et `pow([2], [1023.9999])` dans `extreme_powers[]` de
+  amont (#125), et `pow([2], [1023.9999])` dans `extreme_powers[]` de
   `tests/rounding_direction.cpp`.
 - **78.** **`cancel_minus` et `cancel_plus` lèvent `FE_INVALID` quand la
   différence des bornes déborde** : `cancel_minus([DBL_MAX], [-DBL_MAX])`,
@@ -1071,7 +1082,7 @@ temps (33) au commit de la version ; les fusions et l'étiquette (34) ; l'annonc
 - **71.** **Annoncer GAOL v5.0.0 à Frédéric Goualard**, l'auteur de GAOL, une
   fois l'étiquette posée (tâche 8.3 de `TODO_mistral.md`) : pas d'annonce
   publique, et pas de GitHub Release, l'étiquette suffisant (décidé le
-  3 octobre).
+  3 octobre). Le message est écrit, en brouillon dans Gmail ; suivi dans #128.
 
 ## Relecture du 14 octobre 2026 (branche `todo-b-pown`, #121)
 
@@ -1299,7 +1310,9 @@ après la fusion de #120 (point Z) et #121 (point B, 3/3).
    **Réponse (14 octobre) : non, faire juste une relecture complète, lancer
    tous les tests et les scripts.**
 3. **CC.q3** : les 12 issues ouvertes (#64 à #70, #80, #101, #102, #104, #107,
-   #49) : faut-il en traiter certaines avant le point Y (publication v5.0.0) ?
+   #49 ; le 18 octobre, #65, #66, #69, #80, #102 et #104 sont regroupées par
+   projet dans #125 à #135) : faut-il en traiter certaines avant le point Y
+   (publication v5.0.0) ?
    **Réponse (14 octobre) : on verra ça plus tard.**
 4. **CC.q4** : le déplacement du parser dans `gaol/parser/` (15 octobre)
    installe les 5 en-têtes publics (`gaol_expression.h`, `gaol_expr_eval.h`,
@@ -1548,7 +1561,7 @@ g++ et clang++-18, hors les trois qui échouent seuls par conception) ;
 - **L'issue #49** reste ouverte comme suivi d'ensemble ; les décisions du
   3 octobre et les liens vers les issues #64 à #70 y sont en commentaire, comme
   celles du 4 octobre sur les questions restées ouvertes dans les rapports
-  (#80).
+  (#80, regroupée depuis dans #126).
 - **`todo-notes/`** : ramené de la branche `todo-status`, supprimée ensuite ;
   ses rapports, relus le 4 octobre, sont retirés de l'arbre (ils restent au
   commit `16a2f60`), et ce qui en sert encore est dans
