@@ -5,7 +5,7 @@ septembre au 2 octobre 2026, ont été relus le 4 octobre. Toutes les pull
 requests qu'ils décrivent sont fusionnées, et leurs questions ont reçu une
 réponse : décisions dans `TODO.md` et dans les commentaires de l'issue #49,
 questions reportées dans les issues #64 à #70 et #80 (#65, #66, #69 et #80 sont
-depuis regroupées, avec #102 et #104, dans #125 à #135). Ce fichier garde ce qui
+depuis regroupées, avec #102 et #104, dans #125 à #138). Ce fichier garde ce qui
 sert encore. Les rapports eux-mêmes ont été retirés de l'arbre ; ils restent
 dans l'historique de git, au commit `16a2f60` :
 

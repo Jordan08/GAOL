@@ -5,7 +5,7 @@ Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
 l'ancienne liste, auxquels renvoient les pull requests, les issues (#49, #64,
-#67, #68, #70, #98, #107, et #125 à #135, qui regroupent les signalements à
+#67, #68, #70, #98, #107, et #125 à #138, qui regroupent les signalements à
 d'autres projets) et les rapports des agents (ce qui en sert encore
 est dans [todo-notes/synthese.md](todo-notes/synthese.md)) ; la table à la fin
 donne la lettre de chaque ancien numéro, et un numéro qui n'y est pas est un
@@ -495,9 +495,10 @@ Fait le 18 octobre aussi : les signalements à d'autres projets, regroupés par
 projet dans les issues #125 (CORE-MATH), #126 (GCC), #127 (mingw-w64), #128
 (Frédéric Goualard, avec son brouillon d'email dans Gmail), #129 (ITF1788), #130
 (Boost.Interval), #131 (Microsoft), #132 (Apple), #133 (LLVM/Clang), #134
-(gmpy2) et #135 (musl), avec leurs brouillons en anglais ; les anciennes #65,
-#66, #69, #80, #102 et #104 sont fermées, et leurs tâches retirées de #49.
-Rien n'est envoyé.
+(gmpy2), #135 (musl), #136 (benchmark de Tang et al.), #137 (libieeep1788) et
+#138 (glibc), avec leurs brouillons en anglais ; les anciennes #65, #66, #69,
+#80, #102 et #104 sont fermées, et leurs tâches retirées de #49. Rien n'est
+envoyé.
 
 ## En cours
 
@@ -1311,7 +1312,7 @@ après la fusion de #120 (point Z) et #121 (point B, 3/3).
    tous les tests et les scripts.**
 3. **CC.q3** : les 12 issues ouvertes (#64 à #70, #80, #101, #102, #104, #107,
    #49 ; le 18 octobre, #65, #66, #69, #80, #102 et #104 sont regroupées par
-   projet dans #125 à #135) : faut-il en traiter certaines avant le point Y
+   projet dans #125 à #138) : faut-il en traiter certaines avant le point Y
    (publication v5.0.0) ?
    **Réponse (14 octobre) : on verra ça plus tard.**
 4. **CC.q4** : le déplacement du parser dans `gaol/parser/` (15 octobre)
