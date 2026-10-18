@@ -1085,9 +1085,10 @@ the rounding direction can then be set towards $+\infty$ once and for all.
 GAOL 4 put on the user the burden to ensure that the rounding direction be
 always set towards $+\infty$ before any computation involving intervals, which
 it called the \emph{trust rounding mode}. GAOL v5 no longer does:\newinvfive{}
-\emph{each operation sets the rounding direction upward when it is not}, and
-leaves it upward, whichever way GAOL is built. The bounds are then right
-whatever rounding direction the calling code left. The check is an addition,
+\emph{each operation that computes a bound sets the rounding direction upward
+when it is not}, whichever way GAOL is built, and leaves it upward unless GAOL
+is built to preserve it (below). The bounds are then right whatever rounding
+direction the calling code left. The check is an addition,
 $1+2^{-60}$, which is above 1 only when rounded upward, rather than a reading
 of the rounding direction, which cost far more on some platforms: under
 Rosetta~2, reading it made an addition of intervals take 800~ns rather than
@@ -1103,7 +1104,8 @@ builds GAOL with the option \option{GAOL\_PRESERVE\_ROUNDING} of CMake, which is
 \loption{enable-preserve-rounding} with autotools and
 \option{-Denable-preserve-rounding=true} with meson: each operation then also
 restores the rounding direction it found, which makes the arithmetic
-operations several times slower; it also restores the modes flushing the
+operations slower, 1.3 to 1.7 times with the AVX-512 path below and several
+times without it (\pxref{sec:upward-effects}); it also restores the modes flushing the
 subnormals to zero that the operation cleared (\pxref{sec:ftz}). It is off by
 default in the three builds. With it, \option{GAOL\_PREFER\_AVX512} is on by
 default: where the machine building has the AVX-512 instructions, the four
@@ -1117,13 +1119,175 @@ initialization found: every program calls \code{gaol::cleanup()} right after
 its last use of GAOL (\pxref{chap:init}).\newinvfive
 \cindex{rounding!preserving}%
 
-\paragraph{Note.} The rounding direction GAOL leaves applies to the rest of the
-program too. With the GNU C library, \code{printf()} and the streams of C++
-round the decimal digits they write of a double in the direction in effect:
-after an operation of GAOL, \code{std::cout~<{}<~interval::pi().left()} writes
-\code{3.141592653589794} with 16 digits, and \code{3.141592653589793} once
-\code{round\_nearest()} has been called. The intervals themselves are written
-by GAOL rounded outward, whatever the direction (\pxref{sec:writing}).
+\noindent
+Some operations set no direction, and leave the one they found, with or without
+\option{GAOL\_PRESERVE\_ROUNDING}: a program that wants a direction after one of
+them sets it itself.\newinvfive
+\cindex{rounding!left as found}%
+
+\begin{itemize}
+\item Those that round nothing and make no check: the negation and the unary
+  plus, \code{abs()}, \code{min()}, \code{max()}, \code{sign()}, the roundings
+  to an integer (\code{floor()}, \code{ceil()}, \code{trunc()},
+  \code{integer()}, \code{round\_ties\_to\_even()}\ldots), \code{\&} and
+  \code{|}, \code{hull()} and \code{intersect()}, \code{invabs\_rel()},
+  \code{mig()} and \code{mag()}, \code{nth\_root(x, 0)} and
+  \code{nth\_root(x, 1)}, the constructors from bounds, the access to the
+  bounds, \code{is\_empty()}, the relations and the other predicates,
+  \code{exact\_string()}.
+\item Those that return before their check. Some return the empty set at once
+  for an empty operand, and some do not: \code{y * empty} and
+  \code{exp(empty)} leave the direction, where \code{empty + y} and
+  \code{sqrt(empty)} set it upward, so that a program counts on neither. And
+  \code{hausdorff(x, y)} returns $+\infty$ when a bound is infinite in one of
+  the two intervals only, where it sets the direction upward otherwise.
+\item The operations of the AVX-512 path of \option{GAOL\_PREFER\_AVX512},
+  which set none.
+\end{itemize}
+
+\subsection{What the upward rounding does to the program}\label{sec:upward-effects}
+%%.........................................................................
+\cindex{rounding!effects on the program}%
+
+The rounding direction is the processor's, and the whole program shares it.
+The results of GAOL do not depend on it, each operation setting it upward when
+it is not, in every thread, but the doubles the program computes do.\newinvfive{}
+Unless GAOL is built with \option{GAOL\_PRESERVE\_ROUNDING}---or with
+\option{GAOL\_PREFER\_AVX512} on a machine that has the AVX-512 instructions,
+whose arithmetic sets no direction---they are rounded upward from the
+initialization of GAOL, before \code{main()}, until \code{cleanup()}, and again
+after each operation of GAOL that follows it. The compiler does not undo it:
+with the flags of \code{gaol::gaol}, \option{-frounding-math} in particular, an
+inexact operation on constants written in a function, \code{1.0 / 3.0}, is not
+evaluated when compiling, to nearest, but when the program runs, in the
+direction in effect. Only what the compiler must evaluate when compiling, a
+\code{constexpr} or the constant initializer of a static variable, is still
+rounded to nearest.
+
+What the program computes, with GCC~9.4 or Clang~18 and the GNU C library~2.31
+on x86-64 (\file{examples/13\_rounding\_environment.cpp} of the sources
+computes each row and checks it):
+
+\begin{center}\renewcommand{\arraystretch}{1.1}\footnotesize\setlength{\tabcolsep}{3pt}
+  \begin{tabular}{L{.34\textwidth}L{.29\textwidth}L{.29\textwidth}}
+    \hline
+    The program computes & While GAOL is initialized & After \code{cleanup()}\\
+    \hline\hline
+    \code{1.0 / 3.0} & 0.33333333333333337 & 0.33333333333333331\\
+    \code{std::stod("0.3") == 0.3} & false & true\\
+    \code{std::lrint(2.3)} & 3 & 2\\
+    \code{std::printf("\%.2f", 2.675)} & 2.68 & 2.67\\
+    \code{std::cout <{}< std::setprecision(3) <{}< 3.14159265358979} & 3.15 & 3.14\\
+    0.1 added $10^7$ times & 1000000.0005483569 & 999999.99983897537\\
+    20\,000 doubles written with \code{\%.17g}, read back by \code{std::strtod} & 20\,000 come back different & none\\
+    \code{TwoSum(1e20, 1e-20)}, the error of a sum & $s+e\neq a+b$ & $s+e=a+b$\\
+    \code{TwoSum(a, b)}, 50\,000 pairs of doubles of exponents from $-60$ to 60 & $s+e\neq a+b$ for 10\,717 pairs & none\\
+    \code{TwoProd(a, b)}, Dekker's splitting, 50\,000 pairs of doubles of \itv{1}{2} & $p+e\neq ab$ for 1\,888 pairs & none\\
+    \code{TwoProd(a, b)}, \code{e = std::fma(a, b, -a*b)}, the same pairs & none & none\\
+    \hline
+  \end{tabular}
+\end{center}
+
+\noindent
+The quotient is the double above $1/3$, where the program expects the nearest.
+The C library rounds in the direction in effect too, as the C standard
+recommends: with the GNU C library, \code{std::rint(-2.7)} is $-2$ where it is
+$-3$ to nearest, and \code{strtod()}, \code{stod()}, \code{printf()} and the
+streams round the decimal digits they read and write up. A double written with
+17 digits, which reads back to itself to nearest, then comes back one double
+above, and one more at each round trip. Another C library may convert to
+nearest whatever the direction: the example reports what the one it runs with
+does. Sums are biased: each addition rounds up, so 0.1 added ten million times
+ends $5.5\cdot10^{-4}$ above the exact $10^6\times 0.1$, where to nearest it
+ends $1.6\cdot10^{-4}$ below. And TwoSum, the algorithm that recovers the
+error of a sum,
+
+\begin{example}
+s = a + b;  bb = s - a;  e = (a - (s - bb)) + (b - bb);
+\end{example}
+
+\noindent
+gives $s+e=a+b$ only to nearest. Rounded upward, the exact error of
+$10^{20}+10^{-20}$, $10^{-20}-16384$, is no double: \code{s} is
+$10^{20}+16384$ and \code{e} is $-16383.999999999998$, whose sum is not
+$10^{20}+10^{-20}$. TwoProd, which recovers the error of a product from
+Dekker's splitting of the operands, breaks the same way (1\,888 of the 50\,000
+pairs of the table, drawn in \itv{1}{2}, lose their exactness upward), and is
+exact in every direction when it is computed with \code{std::fma} instead: the
+error of a rounded product is a double, which \code{std::fma} computes however
+it rounds. Compensated sums, and the double-double arithmetic built on such
+algorithms, lose their accuracy the same way. Built with
+\option{GAOL\_PRESERVE\_ROUNDING}, the program computes the right-hand column
+all the time.
+
+Other consequences:
+
+\begin{itemize}
+\item a thread created after the initialization of GAOL starts upward too
+  (\code{std::thread} gives a new thread the floating-point environment of the
+  thread constructing it), and \code{cleanup()} sets back the direction of the
+  calling thread only;
+\item the libraries the program calls run upward as well: the \code{exp},
+  \code{log} and \code{pow} of the GNU C library~2.31 go from 0.51 ulp to 1.01
+  ulp from the exact value, its \code{cbrt} from 2.8 to 3.8 ulp (20\,000 random
+  arguments each, against mpmath), and its \code{sin}, \code{cos}, \code{tan}
+  and \code{atan} give the same results;
+\item GCC does not model the rounding direction (GCC bug~34678), even with
+  \option{-frounding-math}, and reuses after \code{cleanup()}
+  a double computed before it, still rounded upward, where the program
+  computes it again: from \option{-O1}, GCC~9.4 does it for \code{a / b}
+  written on both sides of the call, where Clang~18 computes the quotient
+  again. A program cannot rely on either.
+\end{itemize}
+
+\noindent
+What to do:
+
+\begin{itemize}
+\item \emph{Call \code{cleanup()} right after the last use of GAOL}, before the
+  program prints, converts or sums what it computed: its doubles are then
+  computed to nearest. A program that goes back to GAOL afterwards calls
+  \code{restore\_rounding()} (or \code{std::fesetround(FE\_TONEAREST)}) after
+  each use, since an operation of GAOL sets the direction upward again and
+  \code{cleanup()} sets it back once only (\pxref{chap:init}).
+\item \emph{Read and write numbers through GAOL}, not through the C library:
+  \code{gaol::textToInterval("0.3")} encloses $3/10$ in every direction, where
+  \code{std::stod("0.3")} does not, and \code{exact\_string()} and \code{\%a}
+  write a number that reads back to the same bits in every direction. GAOL
+  writes its intervals rounded outward whatever the direction.
+\item \emph{Compute in a block the doubles that need rounding to nearest} (an
+  error-free transformation, \code{std::lrint()}, a decimal conversion, a call
+  of a library written for that): save the direction with
+  \code{std::fegetround()}, set \code{FE\_TONEAREST}, and set the saved one back
+  when the block ends, with no operation of GAOL inside, which would set the
+  direction upward again. The example of the sources writes such a guard,
+  \code{nearest\_scope}.
+\item \emph{Do not count on the compiler} to compute a double where the source
+  code does. One that has to be computed on this side of a change of direction
+  is computed from operands read again through \code{gaol\_core::rnd\_keep()},
+  which writes its argument to volatile memory and returns it:
+  \code{gaol\_core::rnd\_keep(a) / gaol\_core::rnd\_keep(b)} after
+  \code{cleanup()} is the quotient to nearest with GCC too, where
+  \code{gaol\_core::rnd\_keep(a / b)} may be the one computed before.
+\item \emph{Or build GAOL with \option{GAOL\_PRESERVE\_ROUNDING}}, and the
+  program keeps its own direction: each operation reads it, sets it upward, and
+  sets it back when it is done (the operations of the AVX-512 path set none).
+  Nothing else changes: the bounds are the same, and the program still calls
+  \code{cleanup()}. It costs time, less with the AVX-512 path, which this
+  option turns on by default where the machine has the instructions. On an
+  Intel i7-1185G7 with Clang~21.1 (\file{tests/performance.cpp}, the best of 9
+  interleaved runs), with that path \code{x + y} and \code{x - y} take 1.3
+  times longer, \code{x * y} and \code{x / y} 1.7 times, \code{sqr(x)} 1.2
+  times, \code{pow(x, 3)} 1.3 times, \code{exp(x)} 1.25 times, \code{log(x)}
+  1.05 times, \code{sin} and \code{cos} 1.1 times, and \code{sqrt(x)} 0.7 times
+  (it is faster); without it (\option{GAOL\_PREFER\_AVX512} off, or a processor
+  without the instructions) \code{x + y} and \code{x - y} take 7.7 times longer
+  (8.1~ns against 1.05), \code{x * y} 4.0 times, \code{x / y} 3.6 times,
+  \code{sqr(x)} 4.5 times, \code{pow(x, 3)} and \code{sqrt(x)} 1.7 times,
+  \code{exp(x)} 1.25 times, \code{log(x)} 1.06 times, and \code{sin} and
+  \code{cos} 1.1 to 1.2 times. A line of 15 additions of intervals takes 9.7
+  times longer without the path (126~ns against 13), and 2.1 times with it.
+\end{itemize}
 
 \subsection{Flush-to-zero and denormals-are-zero}\label{sec:ftz}
 %%...............................................
@@ -1785,6 +1949,17 @@ when the program calls \code{cleanup()} remain valid.
 
 Returns \code{true} the first time it is called and \code{false} afterwards:
 only the first call sets back the rounding direction.
+\end{deffun}
+
+\begin{deffun}{void}{restore\_rounding}{(void)}
+Sets back the rounding direction that the first call of \code{init()} found, as
+\code{cleanup()} does at its first call, but as many times as the program calls
+it.\newinvfive{} A program that goes back to GAOL after \code{cleanup()}, whose
+operations set the direction upward again, calls it after each use. Like
+\code{cleanup()}, it sets back the direction of the calling thread only, and
+leaves the rest of the floating-point environment as it is. With
+\option{GAOL\_PRESERVE\_ROUNDING} it does nothing, GAOL leaving the direction of
+the program alone (\pxref{sec:upward-effects}).
 \end{deffun}
 
 

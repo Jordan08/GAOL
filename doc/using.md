@@ -749,10 +749,10 @@ interval (GAOL v5).
 
 ## The rounding direction
 
-Each operation of GAOL sets the rounding direction upward when it is not, and
-leaves it upward, whichever way GAOL is built: the operations of the AVX-512
-path of `GAOL_PREFER_AVX512` below are the exception, which set none. The
-bounds are then right whatever rounding direction the calling code left. The check is an addition,
+Each operation of GAOL that computes a bound sets the rounding direction upward
+when it is not, whichever way GAOL is built, and leaves it upward unless GAOL
+is built to preserve it (below). The bounds are then right whatever rounding
+direction the calling code left. The check is an addition,
 1 + 2^-60, above 1 only when rounded upward, rather than a reading of the
 rounding direction, which cost far more under Rosetta 2 and with 32-bit Visual
 C++ (see [What differs from GAOL](differences.md)); on x86 processors, and on
@@ -762,7 +762,8 @@ its own rounding direction after GAOL's operations builds GAOL with
 `GAOL_PRESERVE_ROUNDING` (`--enable-preserve-rounding`,
 `-Denable-preserve-rounding=true`): each operation then also restores the
 rounding direction it found, and the modes flushing the subnormals to zero it
-cleared, which makes the arithmetic operations several times slower (see
+cleared, which makes the arithmetic operations slower, 1.3 to 1.7 times with
+the AVX-512 path and several times without it (see
 [What the upward rounding does to the program](#what-the-upward-rounding-does-to-the-program)).
 
 Without it, the rounding direction stays upward from the initialization of
@@ -773,6 +774,26 @@ that the first `gaol::init()` found when GAOL initialized itself: to nearest,
 as a program starts, on x86 for the x87 unit and the SSE instructions each, in
 the thread calling it. The rest of the floating-point
 environment is left as it is, the exception flags raised in particular.
+
+Some operations set no direction, and leave the one they found, with or
+without `GAOL_PRESERVE_ROUNDING` (GAOL v5): a program that wants a direction
+after one of them sets it itself.
+
+- Those that round nothing and make no check: the negation and the unary plus,
+  `abs()`, `min()`, `max()`, `sign()`, the roundings to an integer (`floor()`,
+  `ceil()`, `trunc()`, `integer()`, `round_ties_to_even()`...), `&` and `|`,
+  `hull()` and `intersect()`, `invabs_rel()`, `mig()` and `mag()`,
+  `nth_root(x, 0)` and `nth_root(x, 1)`, the constructors from bounds, the
+  access to the bounds, `is_empty()`, the relations and the other predicates,
+  `exact_string()`.
+- Those that return before their check. Some return the empty set at once for
+  an empty operand, and some do not: `y * empty` and `exp(empty)` leave the
+  direction, where `empty + y` and `sqrt(empty)` set it upward, so that a
+  program counts on neither. And `hausdorff(x, y)` returns +∞ when a bound is
+  infinite in one of the two intervals only, where it sets the direction
+  upward otherwise.
+- The operations of the AVX-512 path of `GAOL_PREFER_AVX512` (below), which
+  set none.
 
 ### What the upward rounding does to the program
 
@@ -882,12 +903,21 @@ What to do:
   GCC too, where `gaol_core::rnd_keep(a / b)` may be the one computed before.
 - **Or build GAOL with `GAOL_PRESERVE_ROUNDING`**, and the program keeps its
   own direction: each operation reads it, sets it upward, and sets it back when
-  it is done. Nothing else changes: the bounds are the same, and the program
-  still calls `gaol::cleanup()`. It costs time: on an Intel i7-1185G7 with
-  GCC 9.4, `x + y`, `x - y`, `x * y` and `x / y` take 2.2 to 3.9 times
-  longer, `sqr(x)` 6.0 times, `sqrt(x)` 3.5 times, `exp(x)` 1.7 times,
-  `log(x)` 1.4 times, and `sin` and `cos` about 1.3 times
-  (`tests/performance.cpp`).
+  it is done (the operations of the AVX-512 path set none). Nothing else
+  changes: the bounds are the same, and the program still calls
+  `gaol::cleanup()`. It costs time, less with the AVX-512 path, which this
+  option turns on by default where the machine has the instructions. On an
+  Intel i7-1185G7 with Clang 21.1 (`tests/performance.cpp`, the best of 9
+  interleaved runs), with that path `x + y` and `x - y` take 1.3 times longer,
+  `x * y` and `x / y` 1.7 times, `sqr(x)` 1.2 times, `pow(x, 3)` 1.3 times,
+  `exp(x)` 1.25 times, `log(x)` 1.05 times, `sin` and `cos` 1.1 times, and
+  `sqrt(x)` 0.7 times (it is faster); without it (`GAOL_PREFER_AVX512` off, or
+  a processor without the instructions) `x + y` and `x - y` take 7.7 times
+  longer (8.1 ns against 1.05), `x * y` 4.0 times, `x / y` 3.6 times, `sqr(x)`
+  4.5 times, `pow(x, 3)` and `sqrt(x)` 1.7 times, `exp(x)` 1.25 times,
+  `log(x)` 1.06 times, and `sin` and `cos` 1.1 to 1.2 times. A line of 15
+  additions of intervals takes 9.7 times longer without the path (126 ns
+  against 13), and 2.1 times with it.
 
 ### The AVX-512 path
 
