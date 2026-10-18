@@ -375,6 +375,11 @@ times wider), 1000 pieces [0.23992, 0.25010].
 | Inflate | `x + interval(-r, r)` | — | `inflate(r)` | `inflate(r)` |
 | Two-piece division | two `div_rel`, on `J & negative()` and `J & positive()` | `mulRevToPair`: not provided | `div2` | — |
 
+(GAOL v5 has since added `inflate()`, `bisect(ratio)`, `mulRevToPair`, and
+`interval::midrad()`: the table of names in
+[Using GAOL](../doc/using.md#coming-from-another-library) is the current one,
+with C-XSC and Boost.Interval.)
+
 Three points need care in natural code:
 
 - **The relations `<`, `<=`, `>`, `>=` are the certainly relations** of IEEE
@@ -523,8 +528,10 @@ include directory is passed as `-isystem`, so a CMake user sees no warning
 from GAOL; `gaol.pc` is relocatable; `-ffast-math` is refused with a clear
 `#error`.
 
-**Finding a first program takes some digging.** `README.md` has no C++ code;
-the first program is at line 92 of `doc/using.md`, after the compiler flags;
+**Finding a first program takes some digging.** `README.md` has no C++ code
+(it has a first program now, and `examples/tutorial.md` four algorithms of
+interval computing); the first program is at line 92 of `doc/using.md`, after
+the compiler flags;
 the manual (124 pages) says it "assumes a prior knowledge of interval
 arithmetic" and is a reference, operation by operation, not a tutorial. No
 document shows an interval algorithm: the manual has no occurrence of Newton,
@@ -927,7 +934,8 @@ To take:
 
 4. Document concretely what upward rounding does to the program (the table of
    section 2.8: printf, strtod, lrint, text round trips, TwoSum, GCC's reuse
-   across `cleanup()`), in `doc/using.md` and the manual's common errors.
+   across `cleanup()`), in `doc/using.md` and the manual's common errors
+   (done: "What the upward rounding does to the program" in both).
 5. Offer `gaol::restore_rounding()`, callable any number of times, a scoped
    guard computing a block to nearest, and a documented barrier (`rnd_keep()`
    exists); document `GAOL_PRESERVE_ROUNDING` as the way for a program to know
@@ -942,7 +950,8 @@ To take:
    `interval(0, 0)` compile and encloses the integers beyond 2⁵³.
 8. Give a total order for containers (`gaol::lexicographic_less`, and possibly
    a `std::less` specialization), and warn against `std::sort`, `std::set`,
-   `std::max` with the certainly relations.
+   `std::max` with the certainly relations (done: `gaol::lexicographic_less`,
+   and the warning in `doc/using.md` and the manual).
 9. Finish the streams (numbers 12 and 15; 13 and 14 are applied): write point
    intervals as `[a, b]` when their two texts differ, make `what()` the
    explanation, and consider reading one interval token rather than a line.
@@ -963,13 +972,16 @@ To take:
 13. Put a ten-line program in `README.md`, and point to this directory. Add a
     short tutorial (range enclosure and subdivision, Newton with `%` or
     `div_rel`, a contractor with the `*_rel` functions, branch and bound),
-    which examples 03, 05, 06 and 07 already contain.
+    which examples 03, 05, 06 and 07 already contain (done: the first program
+    of `README.md` and `examples/tutorial.md`).
 14. Add a table of names for users of IBEX, Codac, C-XSC, Boost and IEEE 1788
-    (section 2.3), with the meanings of `<`, `<=` and `==` in each.
+    (section 2.3), with the meanings of `<`, `<=` and `==` in each (done:
+    "Coming from another library" in `doc/using.md` and the manual).
 15. List the pitfalls of section 2 in the manual's common errors: `sqrt(2)` on
     a number, `interval(m - r, m + r)`, the empty set passing every test, the
     domain without decorations, `split()` of canonical intervals,
-    `/` against `%` in Newton's method.
+    `/` against `%` in Newton's method (done: "Common errors" in the manual,
+    and the same in short in `doc/using.md`).
 16. Fix the Goldstein-Price function of the manual (the missing +1) and say
     "encloses the range", not "ranges over" (applied, with
     `16_Goldstein_Price.cpp`).
