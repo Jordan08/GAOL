@@ -509,11 +509,11 @@ Aucune.
 
 ## Même fichier de test ou de documentation
 
-### I. La documentation pour l'utilisateur (35, 37, 38, 70)
+### I. La documentation pour l'utilisateur (35, 37, 38)
 
 `README.md`, `doc/using.md` et « Common errors » du manuel : les écrire
 ensemble, avec la mise en garde du point V et la partie manuel du point H, pour
-ne régénérer le PDF qu'une fois (point Y) ; le site (70) vient après.
+ne régénérer le PDF qu'une fois (point Y) ; le site (70) est au point AK.
 Décidé le 6 octobre (#92) : y compléter aussi la phrase de `doc/using.md`
 (l. 445) et du manuel selon laquelle chaque opération laisse le sens d'arrondi
 vers le haut : celles qui rendent avant leur vérification (un opérande vide,
@@ -545,6 +545,9 @@ de `doc/using.md`.
   concurrente avec l'affichage (`operator<<` ou `intervalToText()`) crée une
   data race : décider si l'API doit être rendue sûre entre threads ou si les
   changements doivent être synchronisés par l'appelant, puis le documenter.
+  Décidé le 18 octobre : les deux réglages restent non atomiques, l'appelant
+  les synchronise (avant de lancer les threads, ou sous un verrou de son
+  programme) ; on le documente, sans changement de code.
   Décidé le 3 octobre : les pièges retenus sont aussi décrits dans une section
   courte de `doc/using.md`, qui renvoie au manuel pour le détail. Les méthodes
   `inverse()` de `interval`, `interval2f` et `intervalf` ont des commentaires
@@ -555,10 +558,6 @@ de `doc/using.md`.
   l'inclusion, et le code porté depuis eux compile et change de sens. La section
   2.3 de `examples/examples.md` en donne une pour GAOL v5, `gaol_ieee1788`, IBEX
   et Codac seulement.
-- **70.** **Un site de documentation sur GitHub Pages** (conseil de
-  `TODO_mistral.md`) : décidé le 3 octobre, un site généré depuis `doc/*.md`,
-  avec le PDF du manuel, publié par un workflow, sans la référence HTML de
-  Doxygen, supprimée par #29.
 
 ## Trouvé par la relecture de `configure-clean` du 14 octobre
 
@@ -867,7 +866,10 @@ qu'une fois.
   `-DGAOL_PREFER_AVX512=ON` sur une machine qui a AVX-512 ; les lignes et
   les commentaires cités ont changé avec #122. Correction : multiplier
   voie par voie dans la branche AVX-512 d'`operator*=(double)`, comme le
-  fait SSE2, ou dire l'exception.
+  fait SSE2, ou dire l'exception. Décidé le 18 octobre : +0 et −0 sont la
+  même valeur, et le signe d'une borne nulle est une exception acceptable au
+  « bit for bit » ; on la dit dans la documentation et les commentaires, sans
+  changer le calcul.
 
 ## Autres points
 
@@ -1078,6 +1080,16 @@ documentation ; rien n'a été écrit ni mesuré.
   au plus proche avec FMA, comparé aux noyaux actuels en résultats (bit à bit,
   `tests/rounding_direction.cpp`) et en temps (`doc/compare`), suffit à
   décider ; les fonctions élémentaires restent le point dur.
+
+### AK. Un site de documentation sur GitHub Pages (70)
+
+Sorti du point I le 18 octobre, à la demande du mainteneur : le site vient
+après les textes de I, qu'il publie.
+
+- **70.** **Un site de documentation sur GitHub Pages** (conseil de
+  `TODO_mistral.md`) : décidé le 3 octobre, un site généré depuis `doc/*.md`,
+  avec le PDF du manuel, publié par un workflow, sans la référence HTML de
+  Doxygen, supprimée par #29.
 
 ## La version
 
@@ -1694,7 +1706,7 @@ g++ et clang++-18, hors les trois qui échouent seuls par conception) ;
 ## Table des anciens numéros
 
 26 : W ; 28 : X ; 32 : Y ; 33 : Y ; 34 : Y ; 35 : I ; 37 : I ; 38 : I ;
-70 : I ; 71 : Y ; 77 : AB ; 78 : AB ; 79 : AB ; 80 : AB ; 81 : AC ; 82 : AC ;
+70 : AK ; 71 : Y ; 77 : AB ; 78 : AB ; 79 : AB ; 80 : AB ; 81 : AC ; 82 : AC ;
 83 : AD ; 84 : AD ; 85 : AD ; 86 : AD ; 87 : AD ; 88 : AD ; 89 : AD ;
 90 : AE ; 91 : AE ; 92 : AE ; 93 : AE ; 94 : AE ; 95 : AE ; 96 : AF ;
 97 : AF ; 98 : AF ; 99 : AF ; 100 : AF ; 101 : AF ; 102 : AF ; 103 : AF ;
@@ -1726,7 +1738,7 @@ g++ et clang++-18, hors les trois qui échouent seuls par conception) ;
    suite, peut se faire à tout moment avant Y, comme AB à AE, trouvés par la
    relecture du 14 octobre ; AF se fait avec I. AI, trouvé par la CI de #124
    (17 octobre), est à ordonner par le mainteneur, et AJ, une étude née d'une
-   question du 18 octobre, aussi.
+   question du 18 octobre, aussi. AK, le site (70), vient après I.
 7. **Publier v5.0.0 avec Y**, après fusion des branches restantes, mise à jour
    de la documentation, couverture et mesures de performance ; faire ensuite
    le ménage listé plus haut.
