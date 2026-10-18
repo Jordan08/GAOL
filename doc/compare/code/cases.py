@@ -700,6 +700,8 @@ case(op("acosh", iv(0, 1)), X(0))
 case(op("acosh", iv(-1, 0.5)), EMPTYSET)
 case(op("atanh", iv(-1, 1)), X("-inf", "inf"))
 case(op("atanh", iv(2, 3)), EMPTYSET)
+case(op("atanh", iv(1)), EMPTYSET, "atanh is defined on (−1, 1) only (Table 9.1): its limits at ±1 are no values")
+case(op("atanh", iv(-1)), EMPTYSET)
 case(op("abs", iv(-INF, -1)), X(1, "inf"))
 case(op("abs", iv(-INF, 1)), X(0, "inf"))
 
