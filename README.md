@@ -56,7 +56,8 @@ A program uses GAOL v5 through one of two namespaces, which hold the same
 `interval` and compute with the same functions:
 
 - `gaol`, GAOL under its own names, to stay compatible with GAOL 4: a program
-  written for GAOL 4, or for IBEX and Codac, keeps its names and its results;
+  written for GAOL 4, or for IBEX and Codac, keeps its names and, but for the
+  [results that change](doc/differences.md), its results;
 - `gaol_ieee1788`, GAOL under the names of IEEE 1788-2015 (`numsToInterval`,
   `mulRev`, `sinPi`, `pown`...), to follow the standard.
 
@@ -115,13 +116,56 @@ rounding direction upward for the whole program (unless GAOL is built with
 program started with (see
 [Using GAOL](doc/using.md#initialization-and-cleanup)).
 
+## A first program
+
+Once GAOL is installed, this program encloses the values of x (1 − x) for x in
+[0.4, 0.6] (`examples/tutorial.md` goes on from it):
+
+```cpp
+#include <iostream>
+#include <gaol/gaol.h>
+using namespace gaol;
+
+int main()
+{
+  const interval x = textToInterval("[0.4, 0.6]");   // the decimals 0.4 and 0.6, enclosed
+  std::cout << x * (1.0 - x) << '\n';       // [0.1599999999999999, 0.3600000000000002]
+  std::cout << 0.25 - sqr(x - 0.5) << '\n';  // [0.2399999999999999, 0.25]
+  gaol::cleanup();                            // right after the last use of GAOL
+}
+```
+
+```bash
+c++ -std=c++11 -O2 $(pkg-config --cflags gaol) first.cpp -o first $(pkg-config --libs gaol)
+```
+
+Each value printed is an interval that contains the exact one, whatever the
+rounding direction the program is in. The first, x written twice, is 20 times wider than the range of the
+function, [0.24, 0.25], because each occurrence of x ranges over [0.4, 0.6] on its
+own (the dependency problem); the second, the same function with x written
+once, encloses the range itself. The bounds are written rounded outward, so
+that the text encloses the interval: `[0.2399999999999999, 0.25]` encloses
+[0.24, 0.25]. The
+[tutorial](examples/tutorial.md) writes four algorithms of interval computing
+with GAOL: the range of a function by subdivision, the interval Newton method,
+a contractor and a branch and bound; the sixteen programs of
+[`examples/`](examples/examples.md#12-the-programs), which check what they
+print, go further, and [Using GAOL](doc/using.md) gives the pitfalls and the
+names of IBEX, Codac, C-XSC and Boost.Interval next to GAOL's.
+
 ## Documentation
 
+- [A short tutorial](examples/tutorial.md): four algorithms of interval
+  computing written with GAOL, and [the examples](examples/examples.md) they
+  come from: sixteen programs that use intervals as IBEX, Codac, C-XSC and the
+  textbooks do, a review of how intervals are used with GAOL v5, and a comparison
+  with other libraries.
 - [Building GAOL](doc/building.md): the CMake, autotools and meson builds, and
   their options.
 - [Using GAOL](doc/using.md): the flags of interval arithmetic, GAOL from CMake
   and from pkg-config, the call of `gaol::cleanup()` at the end of a program,
-  and the rounding direction.
+  the rounding direction, the names of other libraries next to GAOL's, and the
+  common errors.
 - [The three builds](doc/three-builds.md): what CMake, configure and meson
   agree on, and the compilers and options they refuse.
 - [Tests](doc/tests.md): what the programs of `tests/` check, and what they

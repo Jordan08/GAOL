@@ -362,7 +362,7 @@ as well: `#ifdef` is now true of each of them.
 | `GAOL_PRESERVE_ROUNDING` | The operations restore the rounding direction they found | `GAOL_PRESERVE_ROUNDING` | `--enable-preserve-rounding` | `enable-preserve-rounding` |
 | `GAOL_PREFER_AVX512` | +, -, *, / and sqrt are to take the AVX-512 instructions | `GAOL_PREFER_AVX512` (with `GAOL_PRESERVE_ROUNDING`) | `--enable-prefer-avx512` (with `--enable-preserve-rounding`) | `enable-prefer-avx512` (with `enable-preserve-rounding`) |
 | `GAOL_AVX512_ARITHMETIC` | +, -, *, / and sqrt take the AVX-512 instructions: `GAOL_PREFER_AVX512`, `GAOL_HAVE_AVX512_TARGET`, and a machine building that runs them, not when cross-compiling; the library then needs a processor with them (GAOL v5) | checked | checked | checked |
-| `GAOL_USING_ASM` | GAOL's assembly (32-bit x86 Linux and macOS); never with Visual C++ | `GAOL_ASM` (default) | `--enable-asm` (default) | `enable-asm` (default) |
+| `GAOL_USING_ASM` | GAOL's assembly is allowed, which is the case with `GAOL_ASM` on whatever the processor, never with Visual C++; no code of GAOL reads it any more, the x87 negation of a double (`f_negate()`) that did being removed (GAOL v5) | `GAOL_ASM` (default) | `--enable-asm` (default) | `enable-asm` (default) |
 | `GAOL_VERBOSE_MODE` | A line on the standard error when GAOL initializes and cleans up | `GAOL_VERBOSE_MODE` | `--enable-verbose-mode` | `enable-verbose-mode` |
 | `GAOL_USING_SSE2_INSTRUCTIONS` | The intervals computed with SSE2 (x86, not 32-bit Windows nor Visual C++) | `GAOL_SIMD` (default) | `--enable-simd` (default) | `enable-simd` (default) |
 | `GAOL_USING_SSE3_INSTRUCTIONS` | And compiled with `-msse3` | where the compiler takes it | where the compiler takes it | where the compiler takes it |

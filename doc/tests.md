@@ -27,7 +27,7 @@ point Q), which `numbers` checks there too.
   either sign (GAOL v5): of doubles for n from 2 to 9, 16 and 31 to 33 and
   for -1 to -4, -7, -16 and -33, of intervals for n from 2 to 5, 12 and 31
   and for -1 to -3, -6 and -17, x^n beyond the largest double or subnormal
-  included, and for n < 0 the limits where x holds 0: [|x|^n, +oo] for an
+  included, and for n < 0 the limits where x holds 0: [mag(x)^n, +oo] for an
   even n, [-oo, +oo] for an odd n where x holds 0 inside, and the empty set
   for [0] (GAOL v5: up to 2n doubles beyond the tightest bounds were
   allowed for n > 0, and 8 for n < 0). So do the squares of 31 intervals of
@@ -44,8 +44,8 @@ point Q), which `numbers` checks there too.
   roots of negative numbers being the opposites of the roots of their
   magnitudes, and the n-th roots of intervals the roots of their bounds (of
   their part in `[0, +oo]` for an even n). `pow([10], -400)`,
-  `pow([2], -1050)`, the negative powers of intervals containing 0, 23 powers
-  at a bound 0 or infinite or beyond the doubles, among them powers of corners
+  `pow([2], -1050)`, the negative powers of intervals containing 0, 30 powers
+  at a bound 0 or infinite or beyond the doubles, among them 6 powers of corners
   computed one at a time, scaled (`pow([1.0001], 7000000)`, about
   9.8·10^303, and its inverse, against mpmath), and the roots of 0, 1 and -1
   have to be the tightest enclosures; so do x^n over 4 000 intervals near the
@@ -292,7 +292,9 @@ point Q), which `numbers` checks there too.
   The suite takes the AVX-512 path of `GAOL_PREFER_AVX512` whole, where the
   machine building has the instructions (`GAOL_AVX512_ARITHMETIC`): the
   bounds of `x + y`, `x - y`, `x*y`, `x/y` and `sqrt(x)` are then those of
-  the SSE2 path, bit for bit, and
+  the SSE2 path, bit for bit but for the sign of a zero bound of `x * d` and
+  `x *= d` where the zero bounds of x have different signs (the checks compare
+  with `==`, which does not see it), and
   these operations leave the rounding direction as the program set it,
   checked where the SSE2 path checks it left upward, and clear the
   flush-to-zero modes when a plug-in has set them (GAOL v5). After

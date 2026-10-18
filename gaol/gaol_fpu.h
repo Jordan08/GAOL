@@ -179,7 +179,8 @@ and a restore of the direction with GAOL_PRESERVE_ROUNDING.
 
 With GAOL_PRESERVE_ROUNDING 1, the operations also restore the
 direction they found, and the flush-to-zero modes they cleared, which makes
-the arithmetic operations several times slower.
+the arithmetic operations slower: 1.3 to 1.7 times with the AVX-512 path,
+several times without it (doc/using.md).
 
 The rest of the floating-point environment is the program's, whichever way
 GAOL is built: an operation changes neither the exception masks nor the

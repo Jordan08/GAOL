@@ -452,7 +452,13 @@ namespace gaol_core {
     GAOL_NODISCARD interval operator+(void) const;
     GAOL_NODISCARD interval operator-(void) const;
 
-    GAOL_NODISCARD interval inverse() const; // TODO: document inverse() method
+    /*!
+      1/(*this), recip of IEEE 1788-2015 (GAOL v5): the tightest interval of
+      the 1/x for the x of *this other than 0. [-oo, +oo] where 0 is inside
+      *this and not an end of it, [1/r, +oo] for [0, r], [-oo, 1/l] for [l, 0],
+      the empty set for [0] and for the empty set. See inverse(const interval&).
+    */
+    GAOL_NODISCARD interval inverse() const;
 
     //! Intersection of *this and I
     interval& operator&=(const interval& I);
@@ -958,8 +964,9 @@ namespace gaol_core {
 #endif // GAOL_USING_SSE2_INSTRUCTIONS
 
 
+  //! 1/I: I.inverse(), the recip of IEEE 1788-2015, which is that of 1/x for the x of I other than 0
   GAOL_NODISCARD GAOL_INLINE interval inverse(const interval& I)
-  { // TODO: document inverse() function
+  {
     return I.inverse();
   }
 
@@ -1457,9 +1464,12 @@ namespace gaol_core {
   /*
     I^e for an integer e, gaol::pow(I, e), the pown of IEEE 1788-2015: [1]
     for e = 0, the empty set for an empty I, and for [0] and e < 0. Its bounds
-    are the tightest (GAOL v5), and exact where x^e is a double: from exact
-    products within the ints, from CORE-MATH's pow beyond them, but for an e
-    of more than 53 bits that is no double (gaol_pown_ll()).
+    are the tightest, or one double beyond where x^e is within twice the
+    bound of the error of the products of a double (2^-98 relatively at
+    e = 3, 2^-62 at most, never for e = 2), and exact where x^e is a double
+    (GAOL v5): from exact products within the ints, from CORE-MATH's pow
+    beyond them, the tightest where e is a double, and within three doubles
+    of them for an e of more than 53 bits that is no double (gaol_pown_ll()).
   */
   GAOL_NODISCARD extern GAOL_PUBLIC   interval gaol_pown(const interval& I, int e);
   /*
@@ -2562,9 +2572,10 @@ GAOL_NODISCARD GAOL_INLINE bool operator>(T n, const interval &I)
     std::map, std::sort, std::max, std::min, std::clamp...), which < is
     not: < is the certainly_le() of IEEE 1788-2015 (strictPrecedes), true
     as soon as either interval is empty, so that std::set<interval> keeps
-    no two intervals that overlap and loses every interval once the empty
-    set is inserted, and std::sort reads past the end of a vector that
-    holds an empty interval (GAOL v5).
+    no two intervals that overlap, and std::sort can read past the end of a
+    vector that holds an empty interval (libstdc++, from 17 elements; GAOL
+    v5). < is no strict weak ordering: the standard library then has an
+    undefined behavior, which is not the same with each implementation.
 
     A class, which the standard library takes as a comparator:
     std::set<interval, gaol::lexicographic_less>. The empty set comes

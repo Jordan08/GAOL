@@ -254,8 +254,9 @@ program names them through one of two namespaces, which `gaol/gaol.h` declares
 and does not open:
 
 - `gaol`, GAOL under its own names, to stay compatible with GAOL 4: a program
-  written for GAOL 4 keeps its names and its results there, its `pow` taking
-  the integer power for an integer exponent, a negative base included;
+  written for GAOL 4 keeps its names there and, but for the results that
+  change (see [What differs from GAOL](differences.md)), its results, its `pow`
+  taking the integer power for an integer exponent, a negative base included;
 - `gaol_ieee1788`, GAOL under the names of IEEE 1788-2015, to follow the
   standard: its operations have the names, the arguments and the results the
   standard gives them (below).
@@ -358,11 +359,16 @@ alone; they differ where x has a negative part and the exponent is an
 integer, and at 0^0. The `pow` of `gaol` is thus not monotone for the
 inclusion of its exponent: `pow([-4, -1], [2])` is [1, 16], and
 `pow([-4, -1], [1.5, 2.5])`, whose exponent holds [2], is empty; the `pow`
-of the standard is. Both give the tightest bounds: the real power from the
-`pow` of CORE-MATH at the corners of the box, the integer power from exact
-products within the ints (one double beyond where the power is closer to a
-double than the bound of their error, never for x^2) and from the `pow` of CORE-MATH beyond
-them (see [Accuracy of the operations](accuracy.md)).
+of the standard is. Both give the tightest bounds, but for the integer power:
+the real power from the `pow` of CORE-MATH at the corners of the box, the
+integer power from exact products within the ints (one double beyond the
+tightest where the power is within twice the bound of their error of a double,
+never for x^2) and from the `pow` of CORE-MATH beyond them, the tightest where
+n is a double and within three doubles of it otherwise, beyond 2^53 (see
+[Accuracy of the operations](accuracy.md)). A degenerate integer exponent of
+`gaol_ieee1788::pow` takes the integer power too, with its bounds:
+`pow([0x1.fffffffffffffp+1], [7])` has its lower bound one double below the
+tightest.
 
 The rest of GAOL follows the same split:
 
@@ -473,6 +479,123 @@ beyond π are no angle of any point (`atan2_rel_y([3, 4], [-1], [-1, 1])` is
 [0, −tan(3)], about [0, 0.1425], the points of angles 3 to π only). A
 program whose angles go around past π gives the two sides of the jump apart,
 [3, π] and [−π, 4 − 2π] for [3, 4], and takes the hull of the two results.
+
+## Coming from another library
+
+The names of interval libraries differ, and the same symbol can mean another
+relation. This table gives, for what an algorithm uses, GAOL v5's name, the one
+of `gaol_ieee1788`, and those of IBEX and Codac, which share them, of C-XSC and
+of Boost.Interval. A dash means that the sources read have no function of the
+kind, not that the algorithm cannot be written.
+
+| | GAOL v5 | `gaol_ieee1788` | IBEX, Codac | C-XSC | Boost.Interval |
+|---|---|---|---|---|---|
+| Lower bound | `x.left()` | `inf(x)` | `x.lb()` | `Inf(x)` | `lower(x)` |
+| Upper bound | `x.right()` | `sup(x)` | `x.ub()` | `Sup(x)` | `upper(x)` |
+| Midpoint, a double | `x.midpoint()` | `mid(x)` | `x.mid()` | `mid(x)` | `median(x)` |
+| Midpoint, an interval | `x.mid()` | — | — | — | — |
+| Width | `x.width()`, rounded upward; `x.width_enclosure()` | `wid(x)` | `x.diam()` | `diam(x)` | `width(x)` |
+| Radius | `x.rad()` | `rad(x)` | `x.rad()` | — | — |
+| Smallest, greatest absolute value | `x.mig()`, `x.mag()` | `mig(x)`, `mag(x)` | `x.mig()`, `x.mag()` | `AbsMin(x)`, `AbsMax(x)` | `norm(x)`, the greatest only |
+| Hull, intersection | `x \| y`, `x & y`; `hull(x, y)`, `intersect(x, y)` | `convexHull(x, y)`, `intersection(x, y)` | `x \| y`, `x & y` | `x \| y`, `x & y` | `hull(x, y)`, `intersect(x, y)` |
+| Is empty | `x.is_empty()` | `isEmpty(x)` | `x.is_empty()` | `IsEmpty(x)` | `empty(x)` |
+| Subset | `x.set_leq(y)` | `subset(x, y)` | `x.is_subset(y)` | `x <= y` | `subset(x, y)` |
+| Interior | `x.set_le(y)`; `y.set_strictly_contains(x)` | `interior(x, y)` | `x.is_interior_subset(y)` | `x < y`, `in(x, y)` | — |
+| Contains a number | `x.set_contains(d)` | `isMember(d, x)` | `x.contains(d)` | `d <= x`, `in(d, x)` | `in(d, x)` |
+| Disjoint | `x.set_disjoint(y)` | `disjoint(x, y)` | `x.is_disjoint(y)` | `Disjoint(x, y)` | `!overlap(x, y)` |
+| Equal | `x.set_eq(y)` | `equal(x, y)` | `x == y` | `x == y` | `equal(x, y)` |
+| Inflate by r | `x.inflate(r)` | — | `x.inflate(r)` | `Blow(x, eps)`, relative to the width | `widen(x, r)` |
+| Bisect | `x.bisect(ratio)` | — | `x.bisect(ratio)`, ratio 0.5 (IBEX) or 0.49 (Codac) | — | `bisect(x)`, at the median only |
+| Two-piece division | two `div_rel`; `mulRevToPair(b, c)` | `mulRevToPair(b, c)` | `div2` (IBEX only) | — | — |
+
+What the symbols `<`, `<=` and `==` mean is where code ported from another
+library compiles and changes meaning:
+
+| | `x < y` | `x <= y` | `x == y` |
+|---|---|---|---|
+| GAOL v5 | every point of x is below every point of y (`strictPrecedes`) | every point of x is at most every point of y (`precedes`) | not defined: `x.set_eq(y)` |
+| IBEX | not defined | not defined | the same bounds, the empty set equal to itself |
+| Codac | a `BoolInterval`: true, false, unknown, or empty if an operand is | not defined | the same bounds, as IBEX |
+| C-XSC | x in the interior of y | x is a subset of y; `r <= x`: the number r is in x | the same bounds |
+| PROFIL/BIAS | x in the interior of y | x is a subset of y; `r <= x`: r is in x | the same bounds |
+| Boost.Interval | true if every point of x is below every point of y, false if none is, else it throws `comparison_error` | true if every point of x is at most every point of y, false if none is, else it throws | true if x and y are the same point, false if they are disjoint, else it throws |
+
+So `0.0 <= f` is "0 is in f" in C-XSC and PROFIL/BIAS, and in GAOL v5 the
+certainly relation "0 is at most every point of f": a program ported from them
+compiles and no longer tests what it did (`f.set_contains(0.0)` does). A
+Boost.Interval program that catches `comparison_error` to detect an uncertain
+comparison never sees it with GAOL v5, whose `x < y` is false for overlapping
+intervals, and the empty set, which Boost refuses, passes every certainly
+relation (see
+[Relations, sorting and containers](#relations-sorting-and-containers)).
+The names are those of IBEX 2.9.1 (`ibex_Interval.h`), Codac 2
+(`codac2_Interval.h`), C-XSC 2.5.4 (`interval.hpp`, `interval.inl`),
+PROFIL/BIAS 2.0.8 (`Interval.h`) and Boost 1.86 (`boost/numeric/interval/`),
+read in their sources.
+
+## Relations, sorting and containers
+
+The symbols `<`, `<=`, `>` and `>=` of intervals are the certainly relations
+of IEEE 1788-2015: `x < y`, `strictPrecedes`, is true when every point of x is
+below every point of y, and `x <= y`, `precedes`, when every point of x is at
+most every point of y. They do not tell which of two intervals is the greater:
+`[1, 3] < [2, 4]` and `[1, 3] >= [2, 4]` are both false, and false is not the
+opposite. There is no `==` nor `!=` on intervals (`set_eq()` compares the
+bounds, `set_disjoint()` and `less()` are the other relations of the standard),
+and the empty set, which has no point to contradict a certainly relation, is
+less than every interval, and greater, itself included: `e < e` is true.
+
+**None of them is a strict weak ordering, so intervals are not given to the
+algorithms and the containers of the standard library that compare with `<`**
+(`std::sort`, `std::set`, `std::map`, `std::priority_queue`, `std::max`,
+`std::min`, `std::clamp`...). Two overlapping intervals are equivalent for `<`,
+a relation that is not transitive, and the empty set is less than itself, so
+that their behavior is undefined, and differs with the implementation of the
+library. A `std::set<interval>` that holds [1, 2] drops [1, 3] (two of the
+three intervals [1, 2], [1, 3] and [5, 6] stay), `std::sort` of a vector that
+holds an empty interval can read past the end of the vector (AddressSanitizer
+stops the program with libstdc++ for 17 intervals or more, at some positions of
+the empty one), and `std::max([1, 3], [2, 4])` is [1, 3], its first argument,
+where `gaol::max` gives [2, 4].
+
+`gaol::lexicographic_less` (GAOL v5, also `gaol_core::lexicographic_less`; a
+program that opens `gaol_ieee1788` writes the name in full) is the comparator
+to give them: a strict total order that puts the empty set first and the other
+intervals by their left bound, then by their right bound, -0.0 and +0.0 being
+the same bound. Two intervals with the same bounds, or two empty sets, are not
+less than each other, as a container needs. Specializing `std::less` for
+intervals is left to the program (issue #70), so the comparator is given
+explicitly:
+
+```cpp
+#include <algorithm>
+#include <iostream>
+#include <set>
+#include <vector>
+#include <gaol/gaol.h>
+using namespace gaol;
+
+int main()
+{
+  const interval boxes[] = { interval(1, 2), interval(0, 5), interval::emptyset(), interval(1, 3) };
+  std::set<interval, lexicographic_less> s(boxes, boxes + 4);   // 4 intervals, none dropped
+  std::vector<interval> v(boxes, boxes + 4);
+  std::sort(v.begin(), v.end(), lexicographic_less());
+  for (const interval& x : v) {
+    std::cout << x << ' ';           // [empty] [0, 5] [1, 2] [1, 3]
+  }
+  std::cout << s.size() << std::endl; // 4
+  gaol::cleanup();
+  return 0;
+}
+```
+
+`gaol::max(x, y)` and `gaol::min(x, y)` are the maximum and the minimum of the
+standard: the set of the greater (or the lesser) of a point of x and a point of
+y, and not the greater (or the lesser) of the two arguments. An algorithm
+that needs to know which of two boxes to process first, as a best-first search,
+orders them by a number of its own, the lower bound of an enclosure for
+instance, as `examples/06_global_optimization.cpp` does.
 
 ## Tools of interval algorithms
 
@@ -746,12 +869,67 @@ fail as a syntax error does, so that `parse_interval()` returns false and
 `operator>>` print a message and abort then, as for any string that is no
 interval (GAOL v5).
 
+## Common errors
+
+The "Common errors" of the manual (chapter 3) give each of these with an
+example; they are listed here for the reader who looks in this page first.
+
+- **A constant, a function of a number.** `interval(0.1)` is the double nearest
+  to 0.1, one point, not 1/10: `textToInterval("0.1")` encloses it.
+  `sqrt(2.0)` is the C function, and `interval(sqrt(2.0))` a point that misses
+  √2: `sqrt(interval(2.0))` encloses it. `gaol::sin(0.5)` does not compile.
+- **A midpoint and a radius.** `interval(m - r, m + r)` does not enclose
+  [m − r, m + r], the program computing both bounds in the direction it is in:
+  `interval::midrad(m, r)` does (GAOL v5).
+- **The program's own doubles** are rounded upward after an operation of GAOL
+  until `gaol::cleanup()` (see
+  [What the upward rounding does to the program](#what-the-upward-rounding-does-to-the-program)).
+- **The sign of a zero bound** differs between the SSE2 and the FPU intervals:
+  `sqr(interval(-1, 2))` is [−0, 4] with the first and [0, 4] with the
+  second, `1.0 / x.left()` being −∞ or +∞. A program compares bounds with `==`
+  and `<` and does not read the sign.
+- **The empty set and the domain.** A function keeps the part of its argument
+  in its domain, silently: `sqrt([-1, 4])` is [0, 2], `log([-1, 0])` is empty.
+  The empty set passes every certainly relation and every inclusion test
+  (`e < z`, `z.set_contains(e)` and `e.set_disjoint(z)` are all true): a
+  program tests `is_empty()` first.
+- **Relations, sorting and containers.** `<` is `strictPrecedes`, there is no
+  `==`, and `<=` is not the inclusion of C-XSC and PROFIL/BIAS; `<` is no
+  ordering for `std::sort`, `std::set` or `std::max`: they take
+  `gaol::lexicographic_less` (see
+  [Coming from another library](#coming-from-another-library) and
+  [Relations, sorting and containers](#relations-sorting-and-containers)).
+- **Both namespaces open.** `pow(x, y)` and `pow(x, 2.0)` are ambiguous, but
+  `pow(x, 2)`, with an `int` or an `unsigned int`, compiles and takes the `pow`
+  of `gaol`: `pow(interval(-4, -1), 2)` is [1, 16], not the empty set of
+  `gaol_ieee1788::pow`.
+- **Bisection.** `bisect()` and `split()` cut [1, +∞] at `DBL_MAX`, and
+  [DBL_MAX, +∞] at `DBL_MAX` again: a loop on `width() > eps` never ends on an
+  unbounded interval, and stops on `is_bisectable()` (GAOL v5), which is also
+  false for two consecutive doubles.
+- **Newton's method.** `/` is the set of the quotients a/b, b ≠ 0:
+  `interval(0.0) / interval(-1.1, 0.9)` is [0], which "proves" a unique root.
+  `%`, or `div_rel()`, the reverse of the product, is [−∞, +∞] there, rightly.
+- **Reading text.** `nth_root(8, 1.5)` in a text throws
+  `invalid_action_error`, which is no `input_format_error`. The
+  `textToInterval` of `gaol_ieee1788` throws neither: it gives the empty set for
+  any text that is no interval, an answer that cannot be told from the one
+  for `"[empty]"`.
+- **Threads and the global settings.** `interval::format()` and
+  `interval::precision()` are plain variables of the program, shared by its
+  threads: setting one while another thread writes an interval (`operator<<`,
+  the conversion to a `std::string`, `intervalToText()`) is a data race. The
+  program sets them before starting its threads, or takes a lock of its own
+  around the setting and around each output. Without a setting in between,
+  several threads write intervals at once safely (checked with
+  ThreadSanitizer), and read strings too.
+
 ## The rounding direction
 
-Each operation of GAOL sets the rounding direction upward when it is not, and
-leaves it upward, whichever way GAOL is built: the operations of the AVX-512
-path of `GAOL_PREFER_AVX512` below are the exception, which set none. The
-bounds are then right whatever rounding direction the calling code left. The check is an addition,
+Each operation of GAOL that computes a bound sets the rounding direction upward
+when it is not, whichever way GAOL is built but for the operations of the
+AVX-512 path (below), and leaves it upward unless GAOL is built to preserve it.
+The bounds are then right whatever rounding direction the calling code left. The check is an addition,
 1 + 2^-60, above 1 only when rounded upward, rather than a reading of the
 rounding direction, which cost far more under Rosetta 2 and with 32-bit Visual
 C++ (see [What differs from GAOL](differences.md)); on x86 processors, and on
@@ -761,7 +939,8 @@ its own rounding direction after GAOL's operations builds GAOL with
 `GAOL_PRESERVE_ROUNDING` (`--enable-preserve-rounding`,
 `-Denable-preserve-rounding=true`): each operation then also restores the
 rounding direction it found, and the modes flushing the subnormals to zero it
-cleared, which makes the arithmetic operations several times slower (see
+cleared, which makes the arithmetic operations slower, 1.3 to 1.7 times with
+the AVX-512 path and several times without it (see
 [What the upward rounding does to the program](#what-the-upward-rounding-does-to-the-program)).
 
 Without it, the rounding direction stays upward from the initialization of
@@ -773,16 +952,37 @@ as a program starts, on x86 for the x87 unit and the SSE instructions each, in
 the thread calling it. The rest of the floating-point
 environment is left as it is, the exception flags raised in particular.
 
+Some operations set no direction, and leave the one they found, with or
+without `GAOL_PRESERVE_ROUNDING` (GAOL v5): a program that wants a direction
+after one of them sets it itself.
+
+- Those that round nothing and make no check: the negation and the unary plus,
+  `abs()`, `min()`, `max()`, `sign()`, the roundings to an integer (`floor()`,
+  `ceil()`, `trunc()`, `integer()`, `round_ties_to_even()`...), `&` and `|`,
+  `hull()` and `intersect()`, `invabs_rel()`, `mig()` and `mag()`,
+  `nth_root(x, 0)` and `nth_root(x, 1)`, the constructors from bounds, the
+  access to the bounds, `is_empty()`, the relations and the other predicates,
+  `exact_string()`.
+- Those that return before their check. Some return the empty set at once for
+  an empty operand, and some do not: `y * empty` and `exp(empty)` leave the
+  direction, where `empty + y` and `sqrt(empty)` set it upward, so that a
+  program counts on neither. And `hausdorff(x, y)` returns +∞ when a bound is
+  infinite in one of the two intervals only, where it sets the direction
+  upward otherwise.
+- The operations of the AVX-512 path of `GAOL_PREFER_AVX512` (below), which
+  set none.
+
 ### What the upward rounding does to the program
 
 The rounding direction is the processor's, and the whole program shares it.
 GAOL's results do not depend on it, each operation setting it upward when it is
 not, in every thread, but the doubles the program computes do. Unless GAOL is
-built with `GAOL_PRESERVE_ROUNDING` — or with `GAOL_PREFER_AVX512` on a
-machine that has the AVX-512 instructions, whose arithmetic sets no
-direction (below) — they are rounded upward from GAOL's initialization,
-before `main()`, until `gaol::cleanup()`, and again after each operation of
-GAOL that follows it. The compiler does not undo it: with the
+built with `GAOL_PRESERVE_ROUNDING`, they are rounded upward from GAOL's
+initialization, before `main()`, until `gaol::cleanup()`, and again after each
+operation of GAOL that follows it and sets the direction: with
+`GAOL_PREFER_AVX512` on a machine that has the AVX-512 instructions, the
+arithmetic operations set none (below), and the direction after one of them is
+the program's. The compiler does not undo it: with the
 flags of `gaol::gaol`, `-frounding-math` in particular, an inexact operation on
 constants written in a function, `1.0 / 3.0`, is not evaluated when compiling,
 to nearest, but when the program runs, in the direction in effect. Only what
@@ -881,12 +1081,21 @@ What to do:
   GCC too, where `gaol_core::rnd_keep(a / b)` may be the one computed before.
 - **Or build GAOL with `GAOL_PRESERVE_ROUNDING`**, and the program keeps its
   own direction: each operation reads it, sets it upward, and sets it back when
-  it is done. Nothing else changes: the bounds are the same, and the program
-  still calls `gaol::cleanup()`. It costs time: on an Intel i7-1185G7 with
-  GCC 9.4, `x + y`, `x - y`, `x * y` and `x / y` take 2.2 to 3.9 times
-  longer, `sqr(x)` 6.0 times, `sqrt(x)` 3.5 times, `exp(x)` 1.7 times,
-  `log(x)` 1.4 times, and `sin` and `cos` about 1.3 times
-  (`tests/performance.cpp`).
+  it is done (the operations of the AVX-512 path set none). Nothing else
+  changes: the bounds are the same, and the program still calls
+  `gaol::cleanup()`. It costs time, less with the AVX-512 path, which this
+  option turns on by default where the machine has the instructions. On an
+  Intel i7-1185G7 with Clang 21.1 (`tests/performance.cpp`, the best of 9
+  interleaved runs, three times), with that path `x + y` and `x - y` take 1.3
+  times longer, `x * y` and `x / y` 1.7 times, `sqr(x)` 1.2 times,
+  `pow(x, 3)` 1.3 times, `exp(x)` 1.3 times, `log(x)` 1.1 times, `sin` and
+  `cos` 1.1 to 1.2 times, and `sqrt(x)` 0.7 times (it is faster); without it
+  (`GAOL_PREFER_AVX512` off, or a processor without the instructions)
+  `x + y` and `x - y` take about 8 times longer, `x * y` 4 times, `x / y`
+  3.7 times, `sqr(x)` 4.6 times, `pow(x, 3)` and `sqrt(x)` 1.7 times,
+  `exp(x)` 1.3 times, `log(x)` 1.1 times, and `sin` and `cos` 1.2 times. A
+  line of 15 additions of intervals takes 9.6 times longer without the path,
+  and 2.1 times with it.
 
 ### The AVX-512 path
 
@@ -925,9 +1134,15 @@ other operations clear them, and set back after its result with
 computed once flush-to-zero was set back, and `[3e-308] - [2.9e-308]` was
 [0, 0] (GAOL v5).
 
-The bounds are those of the other path, bit for bit: the rounding rule is
-the same, and the tests of `tests/`, which a job of the continuous
-integration runs with the option on, check it. The path is decided when GAOL
+The bounds are those of the other path, bit for bit, but for the sign of a
+zero bound in one case: `x * d` and `x *= d` of an interval whose zero bounds
+have different signs, `[+0, -0]`, are `[-0, +0]` with the AVX-512 path and
+`[+0, -0]` with the SSE2 one, +0 and −0 being the same number (the rounding
+rule is the same, and the tests of `tests/`, which a job of the continuous
+integration runs with the option on, check it, with `==`, which does not see
+the sign of a zero; every result of the operations of intervals and with a
+double on the intervals of two bounds among 0 of either sign, ±1, ±2.5, ±3,
+±1e-310, ±1e300 and ±∞ was compared bit for bit). The path is decided when GAOL
 is configured, as the fused multiply-add instructions of `GAOL_FMA` are: the
 machine building has to run the AVX-512 instructions, a cross-compilation
 leaves the path out, and the operations test nothing as they run. A library
