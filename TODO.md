@@ -19,7 +19,8 @@ de sa section 5) ; 41 à 44, de la vérification de `VERSION.txt` (2026-09-28) ;
 `TODO_mistral.md` ; 72 à 74, d'une comparaison de `pown` avec le `pow` de
 CORE-MATH (5 octobre) ; 77 à 103, de la relecture de `configure-clean` du
 14 octobre ; 104 et 105, des décisions du point AA (14 octobre) ; 106 à
-112, des mesures de la CI de #124 (17 octobre). Les décisions du
+112, des mesures de la CI de #124 (17 octobre) ; 113, d'une question du
+18 octobre sur le sens d'arrondi. Les décisions du
 3 octobre sont écrites dans chaque point (« Décidé le 3 octobre ») ; une
 question reportée renvoie à son issue. Fait
 depuis : le point C (anciens 16, 17 et 67), par #71 ; le point K (anciens 49 et
@@ -1022,6 +1023,62 @@ macOS 15 x86-64, 33 à 58 avec MinGW-w64 et MSYS2, 64 à 93 sur macOS arm64, 100
     (`[+0, -0]`), la valeur étant la même ; relevé par #124, déjà ainsi à
     `7716fec`, et aucun test ne le voit, qui comparent avec `==`.
 
+### AJ. Se passer du changement du sens d'arrondi (113)
+
+Question du mainteneur, le 18 octobre : avec les algorithmes de base d'aujourd'hui,
+le changement du sens d'arrondi est-il toujours nécessaire, les calculs ne
+seraient-ils pas valables sans lui, et dans quels opérateurs ou fonctions
+élémentaires l'est-il ? Ce qui suit vient de la lecture du code et de la
+documentation ; rien n'a été écrit ni mesuré.
+
+- **113.** **Étudier des noyaux qui laissent le sens d'arrondi au plus proche.**
+  Les algorithmes actuels supposent l'arrondi vers le haut, et ne sont pas
+  valables au plus proche : les noyaux SSE2 calculent `<-inf, sup>` par un
+  seul arrondi vers le haut (`_mm_add_pd`, `_mm_mul_pd`, `_mm_div_pd` de
+  `gaol/gaol_interval_sse.cpp`), et `sup` pourrait alors passer sous la valeur
+  exacte ; CORE-MATH lit le sens dans MXCSR, `f_up(x)` y est la borne
+  supérieure et `previous_float(f_up(x))` l'inférieure (`gaol/gaol_double_op.h`).
+  Ce qu'il faut, c'est un arrondi dirigé, non un changement de sens :
+  - sur le chemin AVX-512 (`GAOL_PREFER_AVX512`), `+ - * / sqrt sqr` et les
+    puissances entières n'en changent pas, l'arrondi étant dans l'instruction
+    (`er_mul2`, `_mm_div_round_sd`, `pown_large_er`) ; `GAOL_PRESERVE_ROUNDING`
+    y coûte 1,0 à 1,5 fois (`doc/compare/performance.md`) ;
+  - sur le chemin SSE2 seul, le sens vers le haut est indispensable, et
+    `GAOL_PRESERVE_ROUNDING` y coûte deux écritures de MXCSR par opération
+    (`sqr` : 8,1 ns contre 2,1 avec AVX-512) ;
+  - les fonctions élémentaires et `pow` le demandent partout, CORE-MATH ne
+    prenant pas le sens en paramètre (voir le 112).
+
+  Ce que donnerait le sens laissé au plus proche, par des formules connues
+  qui ne sont ici ni écrites ni testées :
+  - `+` et `-` : TwoSum donne l'erreur exacte, hors dépassement, d'où les
+    mêmes bornes que maintenant, bit à bit ;
+  - `*` : l'erreur `fma(a, b, -p)` est exacte hors sous-dépassement, où il
+    faut mettre à l'échelle ;
+  - `/` et `sqrt` : le reste `fma(-q, b, a)` ou `fma(s, s, -x)` donne de quel
+    côté est le résultat arrondi ;
+  - les fonctions élémentaires : seules des bornes valables mais plus larges,
+    `[previous_float(r), next_float(r)]`, 2 ulp au lieu de 1 (c'est le
+    `namespace nearest` de `gaol/gaol_double_op.h`, qu'aucune opération
+    n'emploie) ; le signe de l'erreur de CORE-MATH n'est pas exposé, et le
+    modifier irait contre la règle de garder `3rd/math-core` proche de
+    l'amont ;
+  - `pown` : le dernier `fma(K, h, l)` est un arrondi vers le haut, à
+    remplacer par `next_float`.
+
+  À l'inverse, `midpoint`, `chi` et l'écriture des intervalles passent déjà
+  par `round_nearest()`.
+
+  À mesurer : le gain, qui est que les `double` du programme ne sont plus
+  arrondis vers le haut de `gaol::init()` à `gaol::cleanup()` (le tableau de
+  `doc/using.md`) et que `GAOL_PRESERVE_ROUNDING` devient inutile, mince avec
+  AVX-512 et réel sur les machines sans (SSE2 seul, FPU) ; et le coût, ces
+  noyaux faisant plus d'opérations que la sonde et l'addition vers le haut du
+  build par défaut, donc probablement plus lents. Un prototype de `+ - * / sqrt`
+  au plus proche avec FMA, comparé aux noyaux actuels en résultats (bit à bit,
+  `tests/rounding_direction.cpp`) et en temps (`doc/compare`), suffit à
+  décider ; les fonctions élémentaires restent le point dur.
+
 ## La version
 
 ### Y. Préparer et publier v5.0.0 (32, 33, 34, 71)
@@ -1642,7 +1699,7 @@ g++ et clang++-18, hors les trois qui échouent seuls par conception) ;
 90 : AE ; 91 : AE ; 92 : AE ; 93 : AE ; 94 : AE ; 95 : AE ; 96 : AF ;
 97 : AF ; 98 : AF ; 99 : AF ; 100 : AF ; 101 : AF ; 102 : AF ; 103 : AF ;
 105 : AH ; 106 : AI ; 107 : AI ; 108 : AI ; 109 : AI ;
-110 : AI ; 111 : AI ; 112 : AI.
+110 : AI ; 111 : AI ; 112 : AI ; 113 : AJ.
 
 ## Ordre proposé pour les tâches restantes
 
@@ -1668,7 +1725,8 @@ g++ et clang++-18, hors les trois qui échouent seuls par conception) ;
    #120, AA (Shekel 5) par #122, AG (le banc de `doc/compare`) par #124. AH, sa
    suite, peut se faire à tout moment avant Y, comme AB à AE, trouvés par la
    relecture du 14 octobre ; AF se fait avec I. AI, trouvé par la CI de #124
-   (17 octobre), est à ordonner par le mainteneur.
+   (17 octobre), est à ordonner par le mainteneur, et AJ, une étude née d'une
+   question du 18 octobre, aussi.
 7. **Publier v5.0.0 avec Y**, après fusion des branches restantes, mise à jour
    de la documentation, couverture et mesures de performance ; faire ensuite
    le ménage listé plus haut.
