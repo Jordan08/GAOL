@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `fe3e7e6` de `configure-clean`.
+Ce qui reste à faire sur GAOL v5 au commit `ce2bf3f` de `configure-clean`.
 Depuis le 3 octobre, les points sont regroupés et nommés par des lettres : un
 point réunit ce qui touche le même code ou le même fichier, ou ce qu'un ordre
 impose de faire ensemble. Chacun garde, en sous-points, les numéros de
@@ -468,12 +468,31 @@ suivent, AG et AH, et la phrase « sqr et pown passent par uipow » de la
 décision du 5 octobre (point H) est retirée. Les textes pour `ChangeLog` et
 `doc/differences.md` sont dans la description de #122.
 
+Fait le 18 octobre : le point AG (ancien 104, le banc de `doc/compare` sur
+l'i7-1185G7) et le point ZZ (la vitesse de `+`, `-`, `*`, `/` et `sqr()`,
+demandée le 17 octobre), par #124. Shekel 5 prend 108 ns dans le banc, contre
+189 avec GAOL 4.2.3 (210 contre 170 avant), `x * y` 2,3 ns contre 10,0, et les
+dix lignes de `+ - * /` du banc sont plus rapides qu'avec GAOL 4.2.3, sans
+qu'une borne change, hors le signe d'une borne nulle d'un produit ou d'un
+quotient (`doc/accuracy.md`) : les opérateurs des intervalles SSE2 appellent des
+fonctions de la bibliothèque (`add_bounds()`, `sub_bounds()`, `mul_bounds()`,
+`div_bounds()`, `sqr_bounds()`) qui prennent les bornes dans un registre, `*`,
+`/` et `sqr()` sans `switch` sur les signes, et le test du sens d'arrondi est
+une comparaison. Le chemin AVX-512 prend aussi `sqr()`, les puissances entières
+(`pown_large_er()`) et `sqrt()`, par deux racines scalaires ; avec
+`GAOL_PRESERVE_ROUNDING` sur x86-64 avec FMA, `GAOL_RND_ENTER()` n'écrit plus
+que MXCSR. Le banc a dix lignes d'opérateurs (`run_lines.sh`),
+`gaol_performance` cinq, et `performance.md` une colonne « rounding direction
+preserved » (`MERGE=1`). Les avertissements de la CI sont corrigés (tests,
+parser, `meson.build`, workflows). Décidé pendant le travail : le point AI de ce
+fichier, la vitesse sur macOS, Windows et ARM, relevée par la CI. Les textes
+pour `ChangeLog` et `doc/differences.md` sont dans la description de #124.
+
 ## En cours
 
 Ces branches sont poussées, mais pas fusionnées dans `configure-clean`.
 
-- `todo-zz-perf` : le point ZZ (+, -, *, / et `sqr` sans branche sur les
-  signes), #124, ouverte le 17 octobre.
+Aucune.
 
 ## Même fichier de test ou de documentation
 
@@ -861,15 +880,6 @@ Reporté (#67).
   VNODE-LP. Décidé le 3 octobre : les traits pour YalAA et le backend pour
   VNODE-LP, et non la promotion des en-têtes des exemples.
 
-### AG. Le banc de `doc/compare` sur l'i7-1185G7 (104)
-
-- **104.** **Relancer le banc de `doc/compare` sur l'i7-1185G7**
-  (`CPU=2 ./run_bench.sh`), décidé le 14 octobre à la fin du point AA :
-  `doc/compare/performance.md` donne encore Shekel 5 à 282 ns contre 195 pour
-  GAOL 4.2.3, mesuré avant #122, et `doc/using.md` les temps du chemin
-  AVX-512 d'avant #122. Les mettre à jour. Les mesures de #122 n'ont été
-  faites que sur le Xeon E3-1220 v6, qui n'a pas AVX-512.
-
 ### AH. Les sauts et les frontières de 32 octets (105)
 
 - **105.** **Étudier `-mbranches-within-32B-boundaries` pour les builds de
@@ -979,10 +989,10 @@ macOS 15 x86-64, 33 à 58 avec MinGW-w64 et MSYS2, 64 à 93 sur macOS arm64, 100
 
 - **112.** **Suites de #124 non faites** (ses questions ouvertes) :
   - avec `GAOL_PRESERVE_ROUNDING`, les fonctions élémentaires paient encore deux
-    écritures de MXCSR, jusqu'à 27 % de plus que sans (`exp`) (CORE-MATH calcule avec le
-    sens matériel, aucun arrondi embarqué n'y est possible) ; un mode de
-    CORE-MATH où le sens serait un paramètre les supprimerait, au prix de
-    modifier `3rd/math-core` ;
+    écritures de MXCSR, jusqu'à 27 % de plus que sans (`exp`) (CORE-MATH
+    calcule avec le sens matériel, aucun arrondi embarqué n'y est possible) ;
+    un mode de CORE-MATH où le sens serait un paramètre les supprimerait, au
+    prix de modifier `3rd/math-core` ;
   - **un défaut de CMake** : un second `cmake` dans le même dossier fait passer
     `GAOL_PREFER_AVX512` de ON à OFF sous `GAOL_PRESERVE_ROUNDING`, `DEFINED`
     voyant l'entrée de cache du premier passage et la prenant pour une demande
@@ -1528,7 +1538,7 @@ g++ et clang++-18, hors les trois qui échouent seuls par conception) ;
   3 octobre, celles de C, K, L, J, de `make distclean`, de #77, #78, #79, #81,
   #83, #84, #85, #86, #87, #88, #89, #90, #91, #92, #93, #94, #95, #96, #97,
   #99, #100, #103, #105, #108, #109, #110, #111, #112, #113, #114, #115, #117,
-  #118, #119, #120, #121, #122 et #123 après leur fusion, et la jetable de
+  #118, #119, #120, #121, #122, #123 et #124 après leur fusion, et la jetable de
   #116).
 - **Les lignes de crédit** : celles des descriptions de #50, #51, #53 à #57 et
   #59, d'un commentaire de #59 et de l'issue #49 ont été retirées le 3 octobre.
@@ -1617,7 +1627,7 @@ g++ et clang++-18, hors les trois qui échouent seuls par conception) ;
 83 : AD ; 84 : AD ; 85 : AD ; 86 : AD ; 87 : AD ; 88 : AD ; 89 : AD ;
 90 : AE ; 91 : AE ; 92 : AE ; 93 : AE ; 94 : AE ; 95 : AE ; 96 : AF ;
 97 : AF ; 98 : AF ; 99 : AF ; 100 : AF ; 101 : AF ; 102 : AF ; 103 : AF ;
-104 : AG ; 105 : AH ; 106 : AI ; 107 : AI ; 108 : AI ; 109 : AI ;
+105 : AH ; 106 : AI ; 107 : AI ; 108 : AI ; 109 : AI ;
 110 : AI ; 111 : AI ; 112 : AI.
 
 ## Ordre proposé pour les tâches restantes
@@ -1641,10 +1651,10 @@ g++ et clang++-18, hors les trois qui échouent seuls par conception) ;
    puis I.** Intégrer dans I la décision et la documentation sur la concurrence
    des réglages de format ; coordonner V avec l'avertissement sur les
    comparateurs. S, T, U et V sont faits par #90, #93, #97 et #96, Z par
-   #120, AA (Shekel 5) par #122. AG et AH, ses suites, peuvent se faire à
-   tout moment avant Y, comme AB à AE, trouvés par la relecture du
-   14 octobre ; AF se fait avec I. AI, trouvé par la CI de #124 (17 octobre),
-   est à ordonner par le mainteneur.
+   #120, AA (Shekel 5) par #122, AG (le banc de `doc/compare`) par #124. AH, sa
+   suite, peut se faire à tout moment avant Y, comme AB à AE, trouvés par la
+   relecture du 14 octobre ; AF se fait avec I. AI, trouvé par la CI de #124
+   (17 octobre), est à ordonner par le mainteneur.
 7. **Publier v5.0.0 avec Y**, après fusion des branches restantes, mise à jour
    de la documentation, couverture et mesures de performance ; faire ensuite
    le ménage listé plus haut.
