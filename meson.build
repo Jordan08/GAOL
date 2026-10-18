@@ -96,7 +96,6 @@ msvc = cpp_comp.get_argument_syntax() == 'msvc'
 
 # Options
 simd = get_option('enable-simd')
-asm = get_option('enable-asm')
 preserve_rounding = get_option('enable-preserve-rounding')
 # enable-prefer-avx512: auto (the default), true or false (see below)
 prefer_avx512_option = get_option('enable-prefer-avx512')
@@ -188,10 +187,6 @@ if debug
 endif
 if preserve_rounding
   conf_data.set('GAOL_PRESERVE_ROUNDING', 1)
-endif
-# Never with Visual C++, as with CMake
-if asm and not msvc
-  conf_data.set('GAOL_USING_ASM', 1)
 endif
 # No option for the intervals of floats, gaol::intervalf and gaol::interval2f,
 # unfinished, which only a developer of GAOL compiles (see gaol/gaol_config.h)

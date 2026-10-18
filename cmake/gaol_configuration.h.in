@@ -39,11 +39,6 @@
    gaol/gaol_fpu.h) */
 #cmakedefine GAOL_PRESERVE_ROUNDING 1
 
-/* Defined to 1 to use the assembly of gaol/gaol_fpu_fenv.h, which serves
-   32-bit x86 Linux and macOS only (GAOL_ASM, --enable-asm, -Denable-asm:
-   on by default; never with Visual C++) */
-#cmakedefine GAOL_USING_ASM 1
-
 /* Defined to 1 to write a line on the standard error when GAOL initializes
    and cleans up (GAOL_VERBOSE_MODE, --enable-verbose-mode,
    -Denable-verbose-mode=true; off by default) */
@@ -80,8 +75,7 @@
    AVX-512 instructions, and the operations test nothing as they run
    (GAOL v5, point AA of TODO.md) */
 #cmakedefine GAOL_AVX512_ARITHMETIC 1
-/* Defined to 1 where the compiler takes -frounding-math: GAOL then negates
-   a double with the minus sign (gaol/gaol_port.h) */
+/* Defined to 1 where the compiler takes -frounding-math */
 #cmakedefine GAOL_HAVE_ROUNDING_MATH_OPTION 1
 
 /* Defined to 1 where the library is compiled with -fvisibility=hidden:
@@ -107,9 +101,6 @@
 #endif
 #ifndef GAOL_PRESERVE_ROUNDING
 #  define GAOL_PRESERVE_ROUNDING 0
-#endif
-#ifndef GAOL_USING_ASM
-#  define GAOL_USING_ASM 0
 #endif
 #ifndef GAOL_VERBOSE_MODE
 #  define GAOL_VERBOSE_MODE 0

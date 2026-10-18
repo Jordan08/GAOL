@@ -64,7 +64,7 @@ build, and the CMake build follows them, apart from the errors corrected (see
 - without the intervals of floats, `gaol::intervalf` and `gaol::interval2f`
   (SSE3), unfinished, for which no build has an option: only a developer of
   GAOL compiles them, defining `GAOL_FLOAT_INTERVALS` in `gaol/gaol_config.h`;
-- with exceptions, GAOL's assembly (`GAOL_USING_ASM`), the rounding direction left upward, and silent: no line
+- with exceptions, the rounding direction left upward, and silent: no line
   on the standard error when GAOL initializes and cleans up, unless
   `GAOL_VERBOSE_MODE` (`--enable-verbose-mode`, `-Denable-verbose-mode=true`)
   is asked for, where configure wrote it by default;
