@@ -33,7 +33,13 @@ point Q), which `numbers` checks there too.
   allowed for n > 0, and 8 for n < 0). So do the squares of 31 intervals of
   special bounds, 0 of both signs, infinite, or whose square is below the
   smallest subnormal or beyond the largest double (GAOL v5, point AA: `sqr()`
-  of the SSE2 intervals computes its one product itself). N-th roots have to
+  of the SSE2 intervals computes its one product itself), and the quotients
+  of 12 dividends by 10 divisors with no zero, 0 of both signs, infinite,
+  subnormal or large ones, which the SSE2 intervals compute without a branch
+  (GAOL v5, point ZZ). Seven long lines of + - * / alone, between eight
+  intervals of either sign, have to enclose the same line of rational numbers
+  taken at a bound of each operand, and `+=`, `-=`, `*=` and `/=` have to give
+  the bounds of the operators, line by line. N-th roots have to
   be enclosures, within a few doubles, the odd
   roots of negative numbers being the opposites of the roots of their
   magnitudes, and the n-th roots of intervals the roots of their bounds (of
@@ -1151,8 +1157,11 @@ GAOL's arithmetic and elementary functions, of the constructor `interval(a, b)`,
 compare bounds with the quiet comparisons of `<cmath>` (one instruction each
 with GCC and Clang on x86, perhaps a call with Visual C++) and, where two
 compare equal, by their bits (GAOL v5, point Q), and of the same operations on
-doubles. After the table, it prints the time of the check each operation
-makes, 1 + (2^-1060 + 0) == 1, and of the same check made of 2^-60, a normal
+doubles, and, in its last rows, of lines of 15 additions, 15 additions and
+subtractions, 7 products, 7 quotients and 13 operations of the four kinds
+between 8 and 16 intervals (GAOL v5, point ZZ). After the table, it prints the time of
+the check each operation makes, 1 + (2^-1060 + 0) not above 1, and of the same
+check made of 2^-60, a normal
 double: a processor that takes a microcode assist for a subnormal operand or
 result shows it there (GAOL v5, point Q). It is not a test: the continuous
 integration prints its table in the summary of the jobs.

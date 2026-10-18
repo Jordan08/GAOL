@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# The whole comparison: setup.sh, run_cases.sh, run_enclosure.sh and
-# run_bench.sh (see README.md)
+# The whole comparison: setup.sh, run_cases.sh, run_enclosure.sh, run_bench.sh
+# and run_lines.sh (see README.md)
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -11,3 +11,4 @@ cd "$(dirname "$0")"
 ./run_cases.sh
 ./run_enclosure.sh
 ./run_bench.sh
+./run_lines.sh

@@ -34,11 +34,14 @@
  * The functions of this file are compiled into the library where
  * GAOL_AVX512_ARITHMETIC is (gaol_configuration.h): GAOL_PREFER_AVX512, a
  * compiler that takes them, and a machine building that runs them. Only
- * they carry __attribute__((target("avx512f"))), which makes the compiler
+ * they, and the functions of the integer powers that call theirs
+ * (GAOL_POWN_TARGET), carry __attribute__((target("avx512f"))), which makes the compiler
  * accept the AVX-512 instructions in them alone, and the code outside them
  * is compiled as before; the library then needs a processor with the
- * instructions. +, -, *, / and sqrt take this path, with no flag to test as
- * they run (gaol::init() set one, which every operation tested, until point
+ * instructions. +, -, *, / and sqrt take this path, and so do sqr() and the
+ * integer powers of gaol_pown() (pown_large_er() of
+ * gaol/gaol_interval_core.cpp; GAOL v5, point ZZ of TODO.md), with no flag to
+ * test as they run (gaol::init() set one, which every operation tested, until point
  * AA of TODO.md): they never touch the rounding direction, whatever the
  * program left, and clear the modes that flush the subnormals to zero only
  * where they are set, as the other operations do. The divisions and the square roots take
@@ -46,8 +49,9 @@
  * on the processors that halve it (the i7-1185G7 measures 6.0 ns against
  * 1.8 for a division, 8.0 against 2.0 for a square root, where an
  * addition takes 0.9 against 1.8 and a product 0.8 against 1.9). The
- * operations the path does not take are unchanged: the integer powers, the
- * relational divisions, the reverse functions, the reading of a number,
+ * operations the path does not take are unchanged: the integer powers
+ * beyond the range of their exact products, and the exponents 0, 1 and -1,
+ * the relational divisions, the reverse functions, the reading of a number,
  * which set the direction as they always did.
  *
  * The dispatch of the products and of the divisions below compares the
@@ -230,6 +234,13 @@
     return bit_negative(high_of(x));
   }
 
+  // The products of the two doubles of a and the two of b, by the embedded
+  // rounding (the upper half of the 512 bits is not used)
+  GAOL_AVX512_TARGET GAOL_INLINE __m128d er_mul2(__m128d a, __m128d b)
+  {
+    return back128(_mm512_mul_round_pd(lo512(a), lo512(b), gaol_er));
+  }
+
   // The product of two doubles by the embedded rounding
   GAOL_AVX512_TARGET GAOL_INLINE double er_mul(double a, double b)
   {
@@ -280,11 +291,13 @@
   // the SSE2 path is
   GAOL_AVX512_TARGET GAOL_INLINE double er_sqrt_up(double b)
   {
-    return low_of(back128(_mm512_sqrt_round_pd(_mm512_set1_pd(b), gaol_er)));
+    const __m128d v = _mm_set_sd(b);
+    return low_of(_mm_sqrt_round_sd(v, v, gaol_er));
   }
   GAOL_AVX512_TARGET GAOL_INLINE double er_sqrt_down(double b)
   {
-    return low_of(back128(_mm512_sqrt_round_pd(_mm512_set1_pd(b), gaol_er_down)));
+    const __m128d v = _mm_set_sd(b);
+    return low_of(_mm_sqrt_round_sd(v, v, gaol_er_down));
   }
 
 }
@@ -431,7 +444,7 @@
 
   /*
     x / y of the stored bounds of two nonempty operands: the dispatch of
-    operator/=() of gaol/gaol_interval_sse.cpp, its comparisons with 0 read
+    divide_general() of gaol/gaol_interval_sse.cpp, its comparisons with 0 read
     from the sign and the magnitude bits (stored_left_below_zero() and
     stored_right_below_zero() above), its divisions by the embedded
     rounding. The cases the dispatch does not divide give the stored bounds
@@ -617,24 +630,24 @@
   }
 
   /*
-    x op= y on the AVX-512 path, y being the other interval, or the double
-    d: operator+=, operator-= and operator/= of two intervals and the four
-    operators with a double (gaol/gaol_interval_sse.cpp) call them last, as
-    tail calls: past the tests of its operands, each operator is a jump to
-    its function, which saves no register (Clang 18 and GCC 13). Called there
-    and followed by the store of their result, fast_add() and the others
-    made Clang 18 save a register and set up a stack frame in these
-    operators; when gaol::init() chose the path as the program ran, the SSE2
-    path paid that frame too, and x + y took 3.0 ns
+    x op= d on the AVX-512 path, d a double: the four operators with a double
+    (gaol/gaol_interval_sse.cpp) call them last, as tail calls: past the tests of
+    their operand, each operator is a jump to its function, which saves no
+    register (Clang 18 and GCC 13). Called there and followed by the store of
+    their result, fast_add() and the others made Clang 18 save a register and
+    set up a stack frame in these operators, which the SSE2 path paid too when
+    gaol::init() chose the path as the program ran, and x + 4 took 3.0 ns
     rather than 2.5 there (Clang 18, Intel Xeon E3-1220 v6, the library and
     the program built with -mbranches-within-32B-boundaries; GAOL v5, point
-    AA of TODO.md). operator*= of two intervals calls fast_mul() itself.
+    AA of TODO.md). The operations between two intervals are the functions
+    add_bounds() and the others, which the header calls with the bounds in a
+    register (point ZZ of TODO.md).
 
-    They take the other operand by reference, or the double by value, both
-    passed in registers in the calling conventions of x86-64 Linux, macOS
-    and Windows: a __m128d is passed by a hidden reference to a copy in the
-    frame of the caller on Windows (MinGW-w64, MSYS2), where no call taking
-    one can be a tail call. Their result goes through opaque(), an empty asm
+    They take the double by value, which is passed in a register by the
+    calling conventions of x86-64 Linux, macOS and Windows, where a __m128d
+    is passed by a hidden reference to a copy in the frame of the caller on
+    Windows (MinGW-w64, MSYS2), and no call taking one can be a tail call.
+    Their result goes through opaque(), an empty asm
     statement, which the compiler does not see through, at no cost: seeing
     them return their first argument, Clang 18 had the operator return that
     argument, kept across the call in a saved register, rather than the
@@ -645,24 +658,6 @@
     interval* p = &x;
     __asm__ ("" : "+r" (p));
     return *p;
-  }
-
-  GAOL_AVX512_TARGET __attribute__((noinline)) interval& fast_add_assign(interval& x, const interval& y)
-  {
-    x.get_xmminterval() = fast_add(x.get_xmminterval(), y.get_xmminterval());
-    return opaque(x);
-  }
-
-  GAOL_AVX512_TARGET __attribute__((noinline)) interval& fast_sub_assign(interval& x, const interval& y)
-  {
-    x.get_xmminterval() = fast_sub(x.get_xmminterval(), y.get_xmminterval());
-    return opaque(x);
-  }
-
-  GAOL_AVX512_TARGET __attribute__((noinline)) interval& fast_div_assign(interval& x, const interval& y)
-  {
-    x.get_xmminterval() = fast_div(x.get_xmminterval(), y.get_xmminterval());
-    return opaque(x);
   }
 
   // x + [d, d], d finite: <-l, r> + <-d, d>. x - d is x + (-d)

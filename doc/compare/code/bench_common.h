@@ -62,6 +62,14 @@ inline bool selected(const std::string& only, const char *name)
   return ("," + only + ",").find(std::string(",") + name + ",") != std::string::npos;
 }
 
+// Whether the operation name is in the comma-separated list only, which has
+// to name it: the long lines of bench_ops.h, which a run of all the operations
+// leaves out (GAOL v5, point ZZ of TODO.md)
+inline bool selected_exactly(const std::string& only, const char *name)
+{
+  return !only.empty() && ("," + only + ",").find(std::string(",") + name + ",") != std::string::npos;
+}
+
 // Runs loop() repeats times, and prints the best time
 template<class Loop, class Result, class Mid, class Wid>
 void bench(const char *library, const char *name, int repeats, Loop loop, const std::vector<Result>& r,

@@ -152,7 +152,9 @@ a bound, the emptiness test aside, whose answer the modes do not change (a
 NaN stays one, and flushing keeps two bounds in their order): its
 bounds are read from memory after the check, which clears the modes with a
 compiler barrier after it (round_upward_if_needed()), and a double it takes
-by value goes through rnd_reread() after the check. With
+by value goes through rnd_reread() after the check; the kernels of the SSE2
+operations, which receive the bounds in a register, pass them through an
+empty asm statement after it (reread_bounds(), gaol_interval_sse.cpp). With
 GAOL_PRESERVE_ROUNDING, an operation makes its result, the maxima and the
 minima of its bounds included, before GAOL_RND_LEAVE() restores the modes,
 and keeps it with GAOL_RND_KEEP(): with denormals-are-zero restored, sinpi()
@@ -222,6 +224,34 @@ direction when it is preserved.
 #     define GAOL_RND_LEAVE_SSE()
 #  endif
 #endif // GAOL_PRESERVE_ROUNDING
+
+/*
+On x86-64 with SSE2 intervals and the fused multiply-add as an instruction
+(__FMA__, GAOL_FMA), GAOL_RND_ENTER() and GAOL_RND_LEAVE() are
+GAOL_RND_ENTER_SSE() and GAOL_RND_LEAVE_SSE() with GAOL_PRESERVE_ROUNDING
+(GAOL v5, point ZZ of TODO.md): every double GAOL computes is an SSE one
+there, the elementary functions of CORE-MATH read the direction from MXCSR
+(gaol/core_math_port.h), and no code of GAOL uses the x87 unit, a long double
+or a function of the C library that the x87 unit would round (the fma() of
+mingw-w64 is an instruction with __FMA__, ldexp() is gaol_ldexp(), and the
+square root is a bound whatever its rounding): the direction of the x87 unit
+changes no bound, and is left as the program had it. The operations then read
+and write MXCSR once each at their start and at their end, where the macros
+for the other builds read the direction through fegetround() and set it
+back through fesetround() as well, which write the control word of the x87
+unit and MXCSR again, and clear the flush-to-zero modes and set the direction
+upward as two separate writes: pown(x, 3) took 19.0 ns with them, 8.4 with
+the others, and 5.1 with the direction left upward (an i7-1185G7, Clang 21;
+doc/compare/performance.md). The 32-bit x86 builds, where the x87 unit computes doubles too, the FPU
+intervals and a library built without the fused multiply-add keep the macros
+above.
+*/
+#if GAOL_PRESERVE_ROUNDING && GAOL_USING_SSE2_INSTRUCTIONS && (defined(__x86_64__) || defined(_M_X64)) && defined(__FMA__)
+#  undef GAOL_RND_ENTER
+#  undef GAOL_RND_LEAVE
+#  define GAOL_RND_ENTER() GAOL_RND_ENTER_SSE()
+#  define GAOL_RND_LEAVE() GAOL_RND_LEAVE_SSE()
+#endif
 
 /*
 GAOL_RND_NEAREST_ENTER() and GAOL_RND_NEAREST_LEAVE() frame the evaluations
@@ -414,7 +444,12 @@ namespace gaol_core {
     #if GAOL_RND_PROBE && defined(GAOL_RND_FLUSH_BITS)
     // 2^-1060, as a literal for the reason of the one of 2^-60 below
     static const volatile double subnormal = 8.0947715414629834e-320;
-    if (1.0 + (subnormal + 0.0) == 1.0) {
+    // Not above 1, rather than == 1: no operand is a NaN, and the compiler
+    // makes one comparison and one branch of it where == takes the three
+    // instructions that tell an unordered result (GAOL v5, point ZZ of
+    // TODO.md). The branch is the unlikely one, so that the code that sets the
+    // direction is out of the way of the one that does not
+    if (GAOL_UNLIKELY(!(1.0 + (subnormal + 0.0) > 1.0))) {
       clear_flush_to_zero();
       round_upward();
       GAOL_RND_BARRIER();

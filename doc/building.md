@@ -279,14 +279,6 @@ https://github.com/Jordan08/GAOL.
 The option `check-perf` and the options `enable-relations` and `with-test`,
 gone, are refused.
 
-`enable-prefer-avx512` was a boolean, and is a `combo` (GAOL v5): its values
-are the strings `auto`, `true` and `false`, as `-Denable-prefer-avx512=false`
-or `default_options: ['enable-prefer-avx512=false']` writes them, where a
-boolean `true` or `false` in a dictionary of `default_options` is refused. A
-build directory configured with the boolean is configured again with
-`meson setup --wipe`: meson 1.12 refuses to regenerate it, and meson 0.53
-gives the option back its default, `auto`.
-
 `meson setup` runs Python once, in `project()`, to read `VERSION.txt` (see
 [The version of GAOL](#the-version-of-gaol)), and twice more for the message
 of a file it refuses: the first of `python3` and `python` that it finds in

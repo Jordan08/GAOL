@@ -28,6 +28,11 @@ concurrency:
 # ctest, which reads these: four tests at a time, and the output of those that
 # fail (GAOL v5)
 env:
+  # actions/checkout runs git init, whose hint about the name of the initial
+  # branch was in the log of every job
+  GIT_CONFIG_COUNT: 1
+  GIT_CONFIG_KEY_0: init.defaultBranch
+  GIT_CONFIG_VALUE_0: main
   CTEST_PARALLEL_LEVEL: 4
   CTEST_OUTPUT_ON_FAILURE: 1
 

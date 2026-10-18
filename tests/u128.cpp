@@ -235,8 +235,9 @@ int main()
   const std::vector<uint64_t> words = interesting_words();
   std::mt19937_64 gen(20260921u);
   for (int i = 0; i < 100000; ++i) {
-    identities(words[gen() % words.size()], words[gen() % words.size()],
-               words[gen() % words.size()], words[gen() % words.size()]);
+    const std::size_t n = words.size();
+    identities(words[static_cast<std::size_t>(gen() % n)], words[static_cast<std::size_t>(gen() % n)],
+               words[static_cast<std::size_t>(gen() % n)], words[static_cast<std::size_t>(gen() % n)]);
   }
   std::printf("%ld checks, %ld failed\n", checks, failures);
   return failures == 0 ? 0 : 1;

@@ -109,6 +109,7 @@ namespace
   std::string S(int n) { return std::to_string(n); }
   std::string S(unsigned long long n) { return std::to_string(n); }
 
+#if GAOL_TESTS_FLUSH
   /*
     The results of a function run with a mode flushing the subnormals to zero
     set, kept as they are and written once the modes are cleared: the C
@@ -149,6 +150,7 @@ namespace
     }
     return s + k.text;
   }
+#endif // GAOL_TESTS_FLUSH
 
   struct Operation
   {
@@ -1005,7 +1007,7 @@ namespace
   {
     x.resize(loop_size);
     y.resize(loop_size);
-    for (int i = 0; i < loop_size; ++i) {
+    for (std::size_t i = 0; i < x.size(); ++i) {
       const double d = static_cast<double>(i);
       x[i] = (i % 3 == 0) ? E() : make(d - 10.0, d + 0.5);
       y[i] = (i % 5 == 0) ? E() : make(0.5*d, d + 1.0);
@@ -1020,7 +1022,7 @@ namespace
     unsigned char result[loop_size];
     r.loop(x.data(), y.data(), result);
     bool right = true;
-    for (int i = 0; i < loop_size; ++i) {
+    for (std::size_t i = 0; i < x.size(); ++i) {
       right = right && result[i] == r.at(opaque(x[i]), opaque(y[i]));
     }
     return right;

@@ -893,18 +893,24 @@ What to do:
 
 Built with `GAOL_PREFER_AVX512` (`--enable-prefer-avx512`,
 `-Denable-prefer-avx512=true`), on by default where the rounding direction
-is preserved, whose every operation of `+`, `-`, `*`, `/` and `sqrt` the
-path relieves of the store of that direction — `--disable-prefer-avx512`,
+is preserved, whose every operation of `+`, `-`, `*`, `/`, `sqrt` and `sqr`,
+and the integer powers (below), the path relieves of the store of that direction — `--disable-prefer-avx512`,
 `-DGAOL_PREFER_AVX512=OFF` and `-Denable-prefer-avx512=false` refuse it
 there —, on a machine that runs
 the AVX-512 instructions (`GAOL_AVX512_ARITHMETIC` in
-`gaol_configuration.h`), GAOL has `x + y`, `x - y`, `x * y`, `x / y` and
-`sqrt(x)`, and the operations of `+`, `-`, `*` and `/` with a double,
-computed by the rounding
-direction the instructions carry in themselves (GAOL v5). These operations
+`gaol_configuration.h`), GAOL has `x + y`, `x - y`, `x * y`, `x / y`,
+`sqrt(x)` and `sqr(x)`, and the operations of `+`, `-`, `*` and `/` with a
+double, computed by the rounding
+direction the instructions carry in themselves, and so are `pown(x, n)` and
+`pow(x, n)` for an integer n of 2 or more, or of -2 or less where x has no
+zero, whose two corners are within the range of the exact products of their
+kernel (the exponents 0, 1 and -1, and the powers beyond the range, which a
+corner near 0 or a large exponent makes, take the path of the direction) (GAOL v5).
+These operations
 set no rounding direction: the program keeps its own, in the default build
 as with `GAOL_PRESERVE_ROUNDING`, and the other operations — `%`, the
-integer powers, the elementary functions, the reading of a number — leave it
+elementary functions, the reading of a number, the integer powers beyond
+the range — leave it
 upward, as they always do. Their instructions raise no floating-point
 exception flag, the architecture requiring the exception suppression with
 the embedded rounding; the check of the modes below raises those of the
@@ -937,12 +943,19 @@ any processor of the architecture is built with `GAOL_PREFER_AVX512` `OFF`
 operation tested the flag it set, in the default build too). The
 operations of the path cost more
 time on a processor that halves its AVX-512 instructions, where they cost
-less on one that does not: on an Intel i7-1185G7 (halved), `x + y` takes
-4.6 ns rather than 3.4 in the default build and `sqrt(x)` 16.6 rather than
-8.1, where with `GAOL_PRESERVE_ROUNDING` the same `x + y` takes 5.6 ns
-rather than 12.8; the processors that do not halve them, as the Xeon of
-the continuous integration, are expected to take less. Which of the paths a
-GAOL took, the example 13 tells.
+less on one that does not: on an Intel i7-1185G7 (halved), `x * y` takes
+3.3 ns rather than 2.1 in the default build, `x / y` 3.8 ns rather than 2.3
+and `x + y` 1.4 rather than 1.1, but `sqrt(x)` 4.6 rather than 6.4, the
+instruction rounding each root where the SSE2 path checks the root of the C
+library with a product; and with `GAOL_PRESERVE_ROUNDING`, where the SSE2 path
+saves and restores the direction, `x + y` takes 1.4 ns rather than 8.3,
+`sqr(x)` 2.2 rather than 8.3 and `pown(x, 3)` 7.0 rather than 9.2
+(`gaol_performance`, Clang 21.1, the best of 9 interleaved runs; the
+benchmark of [doc/compare/performance.md](compare/performance.md) has the
+preserved column of the other operations); the
+processors that do not halve them, as the Xeon of the continuous integration,
+are expected to take less. Which of the paths a GAOL took, the example 13
+tells.
 
 ## Flush-to-zero and denormals-are-zero
 

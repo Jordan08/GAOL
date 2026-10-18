@@ -1534,7 +1534,7 @@ namespace
     };
     for (const Monotonic& m : monotonic) {
       for (int i = 0; i < 40000; ++i) {
-        double l = points[gen() % points.size()], r = points[gen() % points.size()];
+        double l = points[static_cast<std::size_t>(gen() % points.size())], r = points[static_cast<std::size_t>(gen() % points.size())];
         if (i % 4 == 0) {
           r = l; // a single point
         }
@@ -1601,7 +1601,7 @@ namespace
       return gaol_cr_atan2pi(y, x);
     };
     for (int i = 0; i < 200000; ++i) {
-      std::size_t j = gen() % coords.size();
+      std::size_t j = static_cast<std::size_t>(gen() % coords.size());
       double x1 = coords[j], y1;
       if (i % 3 == 0) {
         // the two legs of a triple, whose hypot is exact; j ^ 1 read past the
@@ -1611,10 +1611,10 @@ namespace
         x1 = coords[j];
         y1 = coords[j + 1];
       } else {
-        y1 = coords[gen() % coords.size()];
+        y1 = coords[static_cast<std::size_t>(gen() % coords.size())];
       }
-      double x2 = (i % 2 == 0) ? x1 : coords[gen() % coords.size()];
-      double y2 = (i % 5 < 2) ? y1 : coords[gen() % coords.size()];
+      double x2 = (i % 2 == 0) ? x1 : coords[static_cast<std::size_t>(gen() % coords.size())];
+      double y2 = (i % 5 < 2) ? y1 : coords[static_cast<std::size_t>(gen() % coords.size())];
       if (i % 7 == 0) {
         std::swap(x1, y1); // the Pythagorean pairs both ways
         std::swap(x2, y2);
@@ -1800,7 +1800,7 @@ namespace
     };
     for (const Monotonic& m : monotonic) {
       for (int i = 0; i < 40000; ++i) {
-        double l = points[gen() % points.size()], r = points[gen() % points.size()];
+        double l = points[static_cast<std::size_t>(gen() % points.size())], r = points[static_cast<std::size_t>(gen() % points.size())];
         if (i % 4 == 0) {
           r = l; // a single point
         }
