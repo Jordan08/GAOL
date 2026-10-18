@@ -204,8 +204,8 @@ manual describes:
   gives each operation of the standard that GAOL provides the name and the
   argument order the standard gives it (Chapter~\ref{chap:ieee1788}).
 \item \textbf{The rounding direction is the business of GAOL.} Each operation
-  sets the rounding direction upward when it is not, whichever direction the
-  calling code left: the user no longer has to keep it upward
+  that computes a bound sets the rounding direction upward when it is not,
+  whichever direction the calling code left: the user no longer has to keep it upward
   (\pxref{sec:rounding-direction}).
 \item \textbf{Exact input and output.} Numbers are read exactly, and intervals
   written in decimal are rounded outward, whatever the C library; written in
@@ -1086,9 +1086,10 @@ GAOL 4 put on the user the burden to ensure that the rounding direction be
 always set towards $+\infty$ before any computation involving intervals, which
 it called the \emph{trust rounding mode}. GAOL v5 no longer does:\newinvfive{}
 \emph{each operation that computes a bound sets the rounding direction upward
-when it is not}, whichever way GAOL is built, and leaves it upward unless GAOL
-is built to preserve it (below). The bounds are then right whatever rounding
-direction the calling code left. The check is an addition,
+when it is not}, whichever way GAOL is built but for the operations of the
+AVX-512 path (below), and leaves it upward unless GAOL is built to preserve
+it. The bounds are then right whatever rounding direction the calling code
+left. The check is an addition,
 $1+2^{-60}$, which is above 1 only when rounded upward, rather than a reading
 of the rounding direction, which cost far more on some platforms: under
 Rosetta~2, reading it made an addition of intervals take 800~ns rather than
@@ -1152,11 +1153,12 @@ them sets it itself.\newinvfive
 The rounding direction is the processor's, and the whole program shares it.
 The results of GAOL do not depend on it, each operation setting it upward when
 it is not, in every thread, but the doubles the program computes do.\newinvfive{}
-Unless GAOL is built with \option{GAOL\_PRESERVE\_ROUNDING}---or with
-\option{GAOL\_PREFER\_AVX512} on a machine that has the AVX-512 instructions,
-whose arithmetic sets no direction---they are rounded upward from the
-initialization of GAOL, before \code{main()}, until \code{cleanup()}, and again
-after each operation of GAOL that follows it. The compiler does not undo it:
+Unless GAOL is built with \option{GAOL\_PRESERVE\_ROUNDING}, they are rounded
+upward from the initialization of GAOL, before \code{main()}, until
+\code{cleanup()}, and again after each operation of GAOL that follows it and
+sets the direction: with \option{GAOL\_PREFER\_AVX512} on a machine that has the
+AVX-512 instructions, the arithmetic operations set none, and the direction
+after one of them is the program's. The compiler does not undo it:
 with the flags of \code{gaol::gaol}, \option{-frounding-math} in particular, an
 inexact operation on constants written in a function, \code{1.0 / 3.0}, is not
 evaluated when compiling, to nearest, but when the program runs, in the
@@ -1182,7 +1184,7 @@ computes each row and checks it):
     20\,000 doubles written with \code{\%.17g}, read back by \code{std::strtod} & 20\,000 come back different & none\\
     \code{TwoSum(1e20, 1e-20)}, the error of a sum & $s+e\neq a+b$ & $s+e=a+b$\\
     \code{TwoSum(a, b)}, 50\,000 pairs of doubles of exponents from $-60$ to 60 & $s+e\neq a+b$ for 10\,717 pairs & none\\
-    \code{TwoProd(a, b)}, Dekker's splitting, 50\,000 pairs of doubles of \itv{1}{2} & $p+e\neq ab$ for 1\,888 pairs & none\\
+    \code{TwoProd(a, b)}, Dekker's splitting, 50\,000 pairs of doubles of $[1,2)$ & $p+e\neq ab$ for 1\,888 pairs & none\\
     \code{TwoProd(a, b)}, \code{e = std::fma(a, b, -a*b)}, the same pairs & none & none\\
     \hline
   \end{tabular}
@@ -1212,7 +1214,7 @@ $10^{20}+10^{-20}$, $10^{-20}-16384$, is no double: \code{s} is
 $10^{20}+16384$ and \code{e} is $-16383.999999999998$, whose sum is not
 $10^{20}+10^{-20}$. TwoProd, which recovers the error of a product from
 Dekker's splitting of the operands, breaks the same way (1\,888 of the 50\,000
-pairs of the table, drawn in \itv{1}{2}, lose their exactness upward), and is
+pairs of the table, drawn in $[1,2)$, lose their exactness upward), and is
 exact in every direction when it is computed with \code{std::fma} instead: the
 error of a rounded product is a double, which \code{std::fma} computes however
 it rounds. Compensated sums, and the double-double arithmetic built on such
@@ -1276,17 +1278,17 @@ What to do:
   \code{cleanup()}. It costs time, less with the AVX-512 path, which this
   option turns on by default where the machine has the instructions. On an
   Intel i7-1185G7 with Clang~21.1 (\file{tests/performance.cpp}, the best of 9
-  interleaved runs), with that path \code{x + y} and \code{x - y} take 1.3
-  times longer, \code{x * y} and \code{x / y} 1.7 times, \code{sqr(x)} 1.2
-  times, \code{pow(x, 3)} 1.3 times, \code{exp(x)} 1.25 times, \code{log(x)}
-  1.05 times, \code{sin} and \code{cos} 1.1 times, and \code{sqrt(x)} 0.7 times
-  (it is faster); without it (\option{GAOL\_PREFER\_AVX512} off, or a processor
-  without the instructions) \code{x + y} and \code{x - y} take 7.7 times longer
-  (8.1~ns against 1.05), \code{x * y} 4.0 times, \code{x / y} 3.6 times,
-  \code{sqr(x)} 4.5 times, \code{pow(x, 3)} and \code{sqrt(x)} 1.7 times,
-  \code{exp(x)} 1.25 times, \code{log(x)} 1.06 times, and \code{sin} and
-  \code{cos} 1.1 to 1.2 times. A line of 15 additions of intervals takes 9.7
-  times longer without the path (126~ns against 13), and 2.1 times with it.
+  interleaved runs, three times), with that path \code{x + y} and \code{x - y}
+  take 1.3 times longer, \code{x * y} and \code{x / y} 1.7 times,
+  \code{sqr(x)} 1.2 times, \code{pow(x, 3)} 1.3 times, \code{exp(x)} 1.3
+  times, \code{log(x)} 1.1 times, \code{sin} and \code{cos} 1.1 to 1.2 times,
+  and \code{sqrt(x)} 0.7 times (it is faster); without it
+  (\option{GAOL\_PREFER\_AVX512} off, or a processor without the instructions)
+  \code{x + y} and \code{x - y} take about 8 times longer, \code{x * y} 4
+  times, \code{x / y} 3.7 times, \code{sqr(x)} 4.6 times, \code{pow(x, 3)} and
+  \code{sqrt(x)} 1.7 times, \code{exp(x)} 1.3 times, \code{log(x)} 1.1 times,
+  and \code{sin} and \code{cos} 1.2 times. A line of 15 additions of intervals
+  takes 9.6 times longer without the path, and 2.1 times with it.
 \end{itemize}
 
 \subsection{Flush-to-zero and denormals-are-zero}\label{sec:ftz}
@@ -1862,8 +1864,8 @@ $1-10^{-20}$. \code{interval::midrad(m, r)} (\pxref{sec:interval-constants}), or
 
 \begin{example}
 double m = 1.0, r = 1e-20;
-interval wrong(m - r, m + r);            @rem^// Does not enclose [m - r, m + r]~
-interval right = interval::midrad(m, r); @rem^// Does~
+interval wrong(m - r, m + r);  @rem^// Does not enclose [m - r, m + r]~
+interval right = interval::midrad(m, r);  @rem^// Does~
 \end{example}
 
 \subsection{The doubles of the program}
@@ -1873,7 +1875,8 @@ The rounding direction that GAOL leaves applies to the rest of the program,
 which computes its own doubles in it: after an operation of GAOL, \code{1.0 / 3.0}
 is the double above $1/3$, and \code{printf()} and the streams of the GNU C
 library write the decimal digits of a double rounded upward too, until
-\code{cleanup()}. \pxref{sec:upward-effects} gives what changes, and what to do.
+\code{cleanup()} (\pxref{sec:upward-effects}, which gives what changes, and what to
+do).\newinvfive
 
 \subsection{Zero}
 %%...............
@@ -1916,14 +1919,16 @@ of a function is both inside and outside the set a paving looks for:
 
 \begin{example}
 interval e = sqrt(interval(-2.0, -1.0)), z(0.0, 1.0);
-cout << boolalpha << e.is_empty() << ' ' << (e < z) << ' ' << (e > z) << ' '
-     << z.set_contains(e) << ' ' << e.set_disjoint(z);
+cout << boolalpha << e.is_empty() << ' ' << (e < z) << ' '
+     << (e > z) << ' ' << z.set_contains(e) << ' '
+     << e.set_disjoint(z);
 @outputs^true true true true true~
 \end{example}
 
 \noindent
 A program tests \code{is\_empty()} first, and decides itself what a box outside
-the domain of its function means, as \file{examples/08\_sivia.cpp} does.
+the domain of its function means, as \file{examples/08\_sivia.cpp}
+does.\newinvfive
 
 \subsection{Relations, sorting and containers}
 %%.................................................
@@ -1938,7 +1943,7 @@ means that \code{x} is a subset of \code{y}, and \code{r <= x} that the number
 \code{r} is in \code{x}: code ported from them compiles, and changes its
 meaning (\pxref{sec:other-libraries}). None of them is an ordering for the
 standard library: \code{std::sort}, \code{std::set} and \code{std::max} take the
-comparator \code{gaol::lexicographic\_less} (\pxref{sec:lexicographic-less}).
+comparator \code{gaol::lexicographic\_less} (\pxref{sec:lexicographic-less}).\newinvfive
 
 \subsection{Both namespaces}
 %%..........................
@@ -1985,7 +1990,7 @@ int main(void)
 
 A loop that cuts an interval until it is narrow, \code{while (x.width() > eps)},
 never ends on an unbounded interval: \code{bisect(0.5)}, like \code{split()},
-cuts \itv{1}{+\infty} at \code{DBL\_MAX}, and the half \itv{DBL\_MAX}{+\infty} is
+cuts \itv{1}{+\infty} at \code{DBL\_MAX}, and the half \itv{\mathrm{DBL\_MAX}}{+\infty} is
 cut at \code{DBL\_MAX} again, its width staying infinite. What a loop stops on is
 \code{is\_bisectable()}, which is \code{false} for this half, and for an
 interval of two consecutive doubles, the cut of which gives the interval itself
@@ -1994,7 +1999,8 @@ as one half (\pxref{sec:splitting}):\newinvfive
 \begin{example}
 interval x(1.0, GAOL_INFINITY);
 x = x.bisect(0.5).second;
-cout << boolalpha << x << ' ' << x.width() << ' ' << x.is_bisectable();
+cout << boolalpha << x << ' ' << x.width() << ' '
+     << x.is_bisectable();
 @outputs^[1.797693134862315e+308, inf] inf false~
 \end{example}
 
@@ -2014,7 +2020,8 @@ when $d$ and $f(m)$ can both be 0.
 
 \begin{example}
 interval fm(0.0), D(-1.1, 0.9);
-cout << fm / D << ' ' << fm % D << ' ' << div_rel(fm, D, interval(-5.0, 5.0));
+cout << fm / D << ' ' << fm % D << ' '
+     << div_rel(fm, D, interval(-5.0, 5.0));
 @outputs^[0] [-inf, inf] [-5, 5]~
 \end{example}
 
@@ -2180,18 +2187,6 @@ Returns \code{true} the first time it is called and \code{false} afterwards:
 only the first call sets back the rounding direction.
 \end{deffun}
 
-\begin{deffun}{void}{restore\_rounding}{(void)}
-Sets back the rounding direction that the first call of \code{init()} found, as
-\code{cleanup()} does at its first call, but as many times as the program calls
-it.\newinvfive{} A program that goes back to GAOL after \code{cleanup()}, whose
-operations set the direction upward again, calls it after each use. Like
-\code{cleanup()}, it sets back the direction of the calling thread only, and
-leaves the rest of the floating-point environment as it is. With
-\option{GAOL\_PRESERVE\_ROUNDING} it does nothing, GAOL leaving the direction of
-the program alone (\pxref{sec:upward-effects}).
-\end{deffun}
-
-
 \begin{example}
 #include <gaol/gaol.h>
 
@@ -2208,6 +2203,17 @@ int main(void)
   return 0;
 }
 \end{example}
+
+\begin{deffun}{void}{restore\_rounding}{(void)}
+Sets back the rounding direction that the first call of \code{init()} found, as
+\code{cleanup()} does at its first call, but as many times as the program calls
+it.\newinvfive{} A program that goes back to GAOL after \code{cleanup()}, whose
+operations set the direction upward again, calls it after each use. Like
+\code{cleanup()}, it sets back the direction of the calling thread only, and
+leaves the rest of the floating-point environment as it is. With
+\option{GAOL\_PRESERVE\_ROUNDING} it does nothing, GAOL leaving the direction of
+the program alone (\pxref{sec:upward-effects}).
+\end{deffun}
 
 \chapter{Interval creation and assignment}
 %%========================================
@@ -3031,8 +3037,9 @@ itself, so that their behavior is undefined, and differs with the
 implementation of the library. A \code{std::set<interval>} that holds \itv{1}{2}
 drops \itv{1}{3} (two of the three intervals \itv{1}{2}, \itv{1}{3} and
 \itv{5}{6} stay), \code{std::sort} of a vector that holds an empty interval
-reads past the end of the vector (AddressSanitizer stops the program with
-libstdc++), and \code{std::max(\itv{1}{3}, \itv{2}{4})} is \itv{1}{3}, its first
+can read past the end of the vector (AddressSanitizer stops the program with
+libstdc++ for 17 intervals or more, at some positions of the empty one), and
+\code{std::max(\itv{1}{3}, \itv{2}{4})} is \itv{1}{3}, its first
 argument, where \code{gaol::max} gives \itv{2}{4}. \code{gaol::max(x, y)} and
 \code{gaol::min(x, y)} are the maximum and the minimum of the standard: the set
 of the greater (or the lesser) of a point of \code{x} and a point of \code{y},
@@ -5472,7 +5479,7 @@ function of the kind, not that the algorithm cannot be written.\newinvfive
     Equal & \code{x.set\_eq(y)} & \code{equal(x, y)} & \code{x == y}\\
     Inflate by \code{r} & \code{x.inflate(r)} & --- & \code{x.inflate(r)}\\
     Bisect & \code{x.bisect(ratio)} & --- & \code{x.bisect(ratio)}, ratio 0.5 (IBEX) or 0.49 (Codac)\\
-    Two-piece division & two \code{div\_rel}, or \code{mulRevToPair(b, c)} & \code{mulRevToPair(b, c)} & \code{div2}\\
+    Two-piece division & two \code{div\_rel}, or \code{mulRevToPair(b, c)} & \code{mulRevToPair(b, c)} & \code{div2} (IBEX only)\\
     \hline
   \end{longtable}}
 

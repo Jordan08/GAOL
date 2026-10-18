@@ -177,14 +177,19 @@ these functions keep a point of I whose image is just outside J:
 tightest enclosure is `[1, 1 + 2^-52]`. They are accurate all the same, the
 widened J of nextOut holding that image.
 
-`mulRevToPair(b, c)` (10.5.5) is the pair of the two parts, each `div_rel(c, ., [−∞, +∞])` over the part of b at most 0 and the part at least 0 (GAOL v5): as tight as `mulRev`, so the tightest where the bounds of the quotients are doubles; `tests/ieee1788.cpp` checks it against exact quotients, and 172 cases of [ITF1788](compare/itf1788.md) pass. `cancelMinus(x, y)` and
-`cancelPlus(x, y)` (10.5.6) are `cancel_minus(x, y)` and `cancel_plus(x, y)`,
-the tightest, which 12.12.5 requires: whether the result exists depends on x
-being at least as wide as y, which rounding the differences of the bounds
-cannot decide when they are within a double of each other; each difference
-is computed exactly, as the sum of its value rounded to nearest and of its
-error by the TwoSum of Knuth. [−∞, +∞] where there is no value, and ∅ for an
-empty x and a bounded y. Checked over 200 000 pairs against exact rational
+`mulRevToPair(b, c)` (10.5.5) is the pair of the two parts, each `div_rel(c, .,
+[−∞, +∞])` over the part of b at most 0 and the part at least 0 (GAOL v5): as
+tight as `mulRev`, so the tightest where the bounds of the quotients are
+doubles; `tests/ieee1788.cpp` checks it against exact quotients, and 172 cases
+of [ITF1788](compare/itf1788.md) pass.
+
+`cancelMinus(x, y)` and `cancelPlus(x, y)` (10.5.6) are `cancel_minus(x, y)` and
+`cancel_plus(x, y)`, the tightest, which 12.12.5 requires: whether the result
+exists depends on x being at least as wide as y, which rounding the differences
+of the bounds cannot decide when they are within a double of each other; each
+difference is computed exactly, as the sum of its value rounded to nearest and
+of its error by the TwoSum of Knuth. [−∞, +∞] where there is no value, and ∅ for
+an empty x and a bounded y. Checked over 200 000 pairs against exact rational
 arithmetic, 11 524 of them of exactly equal widths (GAOL v5).
 
 ## Set operations, constructors, numeric and boolean functions

@@ -20,8 +20,8 @@
  * path on 500 000 intervals of random bounds plus the empty set, on the
  * zero corners of the products and of the quotients, the signs of their
  * bounds included, and on every value the tests of tests/ take, and on
- * the 177 694 results of the operations of intervals and with a double on
- * the intervals of two bounds among 0 of either sign, +-1, +-2.5, +-3,
+ * every result of the operations of intervals and with a double on the
+ * intervals of two bounds among 0 of either sign, +-1, +-2.5, +-3,
  * +-1e-310, +-1e300 and +-oo (GAOL v5).
  *
  * The embedded rounding honours the modes that flush the subnormal

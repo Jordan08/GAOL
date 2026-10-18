@@ -144,7 +144,8 @@ rounding direction the program is in. The first, x written twice, is 20 times wi
 function, [0.24, 0.25], because each occurrence of x ranges over [0.4, 0.6] on its
 own (the dependency problem); the second, the same function with x written
 once, encloses the range itself. The bounds are written rounded outward, so
-`[0.2399999999999999, 0.25]` is the double below 0.24 and 0.25. The
+that the text encloses the interval: `[0.2399999999999999, 0.25]` encloses
+[0.24, 0.25]. The
 [tutorial](examples/tutorial.md) writes four algorithms of interval computing
 with GAOL: the range of a function by subdivision, the interval Newton method,
 a contractor and a branch and bound; the sixteen programs of

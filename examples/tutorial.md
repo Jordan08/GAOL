@@ -23,8 +23,8 @@ c++ -std=c++11 -O2 $(pkg-config --cflags gaol) prog.cpp -o prog $(pkg-config --l
 
 The outputs shown are those of the programs, the same with the SSE2 and the FPU
 intervals. GAOL writes the bounds of an interval rounded outward, so that the
-text always encloses the interval: `[0.24, 0.25]` is printed
-`[0.2399999999999999, 0.25]`, the double below 0.24 and the double 0.25.
+text always encloses the interval: the range [0.24, 0.25] is enclosed by
+`[0.2399999999999999, 0.25]`.
 
 ## 1. The range of a function, and subdivision
 

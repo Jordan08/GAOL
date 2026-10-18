@@ -506,8 +506,8 @@ kind, not that the algorithm cannot be written.
 | Disjoint | `x.set_disjoint(y)` | `disjoint(x, y)` | `x.is_disjoint(y)` | `Disjoint(x, y)` | `!overlap(x, y)` |
 | Equal | `x.set_eq(y)` | `equal(x, y)` | `x == y` | `x == y` | `equal(x, y)` |
 | Inflate by r | `x.inflate(r)` | — | `x.inflate(r)` | `Blow(x, eps)`, relative to the width | `widen(x, r)` |
-| Bisect | `x.bisect(ratio)` | — | `x.bisect(ratio)`, ratio 0.5 (IBEX) or 0.49 (Codac) | — | — |
-| Two-piece division | two `div_rel`; `mulRevToPair(b, c)` | `mulRevToPair(b, c)` | `div2` | — | — |
+| Bisect | `x.bisect(ratio)` | — | `x.bisect(ratio)`, ratio 0.5 (IBEX) or 0.49 (Codac) | — | `bisect(x)`, at the median only |
+| Two-piece division | two `div_rel`; `mulRevToPair(b, c)` | `mulRevToPair(b, c)` | `div2` (IBEX only) | — | — |
 
 What the symbols `<`, `<=` and `==` mean is where code ported from another
 library compiles and changes meaning:
@@ -554,9 +554,10 @@ a relation that is not transitive, and the empty set is less than itself, so
 that their behavior is undefined, and differs with the implementation of the
 library. A `std::set<interval>` that holds [1, 2] drops [1, 3] (two of the
 three intervals [1, 2], [1, 3] and [5, 6] stay), `std::sort` of a vector that
-holds an empty interval reads past the end of the vector (AddressSanitizer
-stops the program with libstdc++), and `std::max([1, 3], [2, 4])` is [1, 3], its
-first argument, where `gaol::max` gives [2, 4].
+holds an empty interval can read past the end of the vector (AddressSanitizer
+stops the program with libstdc++ for 17 intervals or more, at some positions of
+the empty one), and `std::max([1, 3], [2, 4])` is [1, 3], its first argument,
+where `gaol::max` gives [2, 4].
 
 `gaol::lexicographic_less` (GAOL v5, also `gaol_core::lexicographic_less`; a
 program that opens `gaol_ieee1788` writes the name in full) is the comparator
@@ -880,7 +881,7 @@ example; they are listed here for the reader who looks in this page first.
   √2: `sqrt(interval(2.0))` encloses it. `gaol::sin(0.5)` does not compile.
 - **A midpoint and a radius.** `interval(m - r, m + r)` does not enclose
   [m − r, m + r], the program computing both bounds in the direction it is in:
-  `interval::midrad(m, r)` does.
+  `interval::midrad(m, r)` does (GAOL v5).
 - **The program's own doubles** are rounded upward after an operation of GAOL
   until `gaol::cleanup()` (see
   [What the upward rounding does to the program](#what-the-upward-rounding-does-to-the-program)).
@@ -905,15 +906,16 @@ example; they are listed here for the reader who looks in this page first.
   `gaol_ieee1788::pow`.
 - **Bisection.** `bisect()` and `split()` cut [1, +∞] at `DBL_MAX`, and
   [DBL_MAX, +∞] at `DBL_MAX` again: a loop on `width() > eps` never ends on an
-  unbounded interval, and stops on `is_bisectable()`, which is also false for
-  two consecutive doubles.
+  unbounded interval, and stops on `is_bisectable()` (GAOL v5), which is also
+  false for two consecutive doubles.
 - **Newton's method.** `/` is the set of the quotients a/b, b ≠ 0:
   `interval(0.0) / interval(-1.1, 0.9)` is [0], which "proves" a unique root.
   `%`, or `div_rel()`, the reverse of the product, is [−∞, +∞] there, rightly.
 - **Reading text.** `nth_root(8, 1.5)` in a text throws
   `invalid_action_error`, which is no `input_format_error`. The
   `textToInterval` of `gaol_ieee1788` throws neither: it gives the empty set for
-  any text that is no interval, `"[empty]"` included.
+  any text that is no interval, an answer that cannot be told from the one
+  for `"[empty]"`.
 - **Threads and the global settings.** `interval::format()` and
   `interval::precision()` are plain variables of the program, shared by its
   threads: setting one while another thread writes an interval (`operator<<`,
@@ -926,9 +928,9 @@ example; they are listed here for the reader who looks in this page first.
 ## The rounding direction
 
 Each operation of GAOL that computes a bound sets the rounding direction upward
-when it is not, whichever way GAOL is built, and leaves it upward unless GAOL
-is built to preserve it (below). The bounds are then right whatever rounding
-direction the calling code left. The check is an addition,
+when it is not, whichever way GAOL is built but for the operations of the
+AVX-512 path (below), and leaves it upward unless GAOL is built to preserve it.
+The bounds are then right whatever rounding direction the calling code left. The check is an addition,
 1 + 2^-60, above 1 only when rounded upward, rather than a reading of the
 rounding direction, which cost far more under Rosetta 2 and with 32-bit Visual
 C++ (see [What differs from GAOL](differences.md)); on x86 processors, and on
@@ -976,11 +978,12 @@ after one of them sets it itself.
 The rounding direction is the processor's, and the whole program shares it.
 GAOL's results do not depend on it, each operation setting it upward when it is
 not, in every thread, but the doubles the program computes do. Unless GAOL is
-built with `GAOL_PRESERVE_ROUNDING` — or with `GAOL_PREFER_AVX512` on a
-machine that has the AVX-512 instructions, whose arithmetic sets no
-direction (below) — they are rounded upward from GAOL's initialization,
-before `main()`, until `gaol::cleanup()`, and again after each operation of
-GAOL that follows it. The compiler does not undo it: with the
+built with `GAOL_PRESERVE_ROUNDING`, they are rounded upward from GAOL's
+initialization, before `main()`, until `gaol::cleanup()`, and again after each
+operation of GAOL that follows it and sets the direction: with
+`GAOL_PREFER_AVX512` on a machine that has the AVX-512 instructions, the
+arithmetic operations set none (below), and the direction after one of them is
+the program's. The compiler does not undo it: with the
 flags of `gaol::gaol`, `-frounding-math` in particular, an inexact operation on
 constants written in a function, `1.0 / 3.0`, is not evaluated when compiling,
 to nearest, but when the program runs, in the direction in effect. Only what
@@ -1084,16 +1087,16 @@ What to do:
   `gaol::cleanup()`. It costs time, less with the AVX-512 path, which this
   option turns on by default where the machine has the instructions. On an
   Intel i7-1185G7 with Clang 21.1 (`tests/performance.cpp`, the best of 9
-  interleaved runs), with that path `x + y` and `x - y` take 1.3 times longer,
-  `x * y` and `x / y` 1.7 times, `sqr(x)` 1.2 times, `pow(x, 3)` 1.3 times,
-  `exp(x)` 1.25 times, `log(x)` 1.05 times, `sin` and `cos` 1.1 times, and
-  `sqrt(x)` 0.7 times (it is faster); without it (`GAOL_PREFER_AVX512` off, or
-  a processor without the instructions) `x + y` and `x - y` take 7.7 times
-  longer (8.1 ns against 1.05), `x * y` 4.0 times, `x / y` 3.6 times, `sqr(x)`
-  4.5 times, `pow(x, 3)` and `sqrt(x)` 1.7 times, `exp(x)` 1.25 times,
-  `log(x)` 1.06 times, and `sin` and `cos` 1.1 to 1.2 times. A line of 15
-  additions of intervals takes 9.7 times longer without the path (126 ns
-  against 13), and 2.1 times with it.
+  interleaved runs, three times), with that path `x + y` and `x - y` take 1.3
+  times longer, `x * y` and `x / y` 1.7 times, `sqr(x)` 1.2 times,
+  `pow(x, 3)` 1.3 times, `exp(x)` 1.3 times, `log(x)` 1.1 times, `sin` and
+  `cos` 1.1 to 1.2 times, and `sqrt(x)` 0.7 times (it is faster); without it
+  (`GAOL_PREFER_AVX512` off, or a processor without the instructions)
+  `x + y` and `x - y` take about 8 times longer, `x * y` 4 times, `x / y`
+  3.7 times, `sqr(x)` 4.6 times, `pow(x, 3)` and `sqrt(x)` 1.7 times,
+  `exp(x)` 1.3 times, `log(x)` 1.1 times, and `sin` and `cos` 1.2 times. A
+  line of 15 additions of intervals takes 9.6 times longer without the path,
+  and 2.1 times with it.
 
 ### The AVX-512 path
 
@@ -1138,8 +1141,9 @@ have different signs, `[+0, -0]`, are `[-0, +0]` with the AVX-512 path and
 `[+0, -0]` with the SSE2 one, +0 and −0 being the same number (the rounding
 rule is the same, and the tests of `tests/`, which a job of the continuous
 integration runs with the option on, check it, with `==`, which does not see
-the sign of a zero; 177 694 results of the operations on special bounds were
-compared bit for bit). The path is decided when GAOL
+the sign of a zero; every result of the operations of intervals and with a
+double on the intervals of two bounds among 0 of either sign, ±1, ±2.5, ±3,
+±1e-310, ±1e300 and ±∞ was compared bit for bit). The path is decided when GAOL
 is configured, as the fused multiply-add instructions of `GAOL_FMA` are: the
 machine building has to run the AVX-512 instructions, a cross-compilation
 leaves the path out, and the operations test nothing as they run. A library

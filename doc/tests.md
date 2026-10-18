@@ -292,7 +292,9 @@ point Q), which `numbers` checks there too.
   The suite takes the AVX-512 path of `GAOL_PREFER_AVX512` whole, where the
   machine building has the instructions (`GAOL_AVX512_ARITHMETIC`): the
   bounds of `x + y`, `x - y`, `x*y`, `x/y` and `sqrt(x)` are then those of
-  the SSE2 path, bit for bit, and
+  the SSE2 path, bit for bit but for the sign of a zero bound of `x * d` and
+  `x *= d` where the zero bounds of x have different signs (the checks compare
+  with `==`, which does not see it), and
   these operations leave the rounding direction as the program set it,
   checked where the SSE2 path checks it left upward, and clear the
   flush-to-zero modes when a plug-in has set them (GAOL v5). After

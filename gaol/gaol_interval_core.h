@@ -2572,10 +2572,10 @@ GAOL_NODISCARD GAOL_INLINE bool operator>(T n, const interval &I)
     std::map, std::sort, std::max, std::min, std::clamp...), which < is
     not: < is the certainly_le() of IEEE 1788-2015 (strictPrecedes), true
     as soon as either interval is empty, so that std::set<interval> keeps
-    no two intervals that overlap, and std::sort reads past the end of a
-    vector that holds an empty interval (GAOL v5). < is no strict weak
-    ordering: the standard library then has an undefined behavior, which is
-    not the same with each implementation.
+    no two intervals that overlap, and std::sort can read past the end of a
+    vector that holds an empty interval (libstdc++, from 17 elements; GAOL
+    v5). < is no strict weak ordering: the standard library then has an
+    undefined behavior, which is not the same with each implementation.
 
     A class, which the standard library takes as a comparator:
     std::set<interval, gaol::lexicographic_less>. The empty set comes
