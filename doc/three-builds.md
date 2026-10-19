@@ -31,6 +31,14 @@ build, and the CMake build follows them, apart from the errors corrected (see
   (`-msse2 -msse3`), except with Visual C++ and on 32-bit Windows, where a
   `std::vector` of SSE2 intervals crashes: GCC takes the memory of `new` to be
   aligned on 16 bytes there, while the C runtime aligns it on 8;
+- on 64-bit ARM processors, the intervals are computed with NEON instructions
+  (`GAOL_ARM64`, `--enable-arm64`, `-Denable-arm64`; no flag), on by default
+  with GCC, Clang or AppleClang under Linux and macOS, whose compiler each build
+  tests with the same program: the intrinsics of `<arm_neon.h>` and the
+  registers of the rounding mode. Not with Visual C++, clang-cl, MinGW-w64 nor
+  32-bit ARM, nor in a universal build of macOS: the option is then ignored, and
+  the FPU computes the intervals, as before. Independent of `GAOL_SIMD`, which
+  is for x86 processors (GAOL v5);
 - GAOL and CORE-MATH are compiled with the fused multiply-add
   instructions of the processor, where the compiler has a flag for them
   (`GAOL_FMA`, `--enable-fma`, `-Denable-fma`): `-mfma` on x86, except with GCC
