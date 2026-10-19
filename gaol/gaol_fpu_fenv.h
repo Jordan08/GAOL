@@ -271,34 +271,6 @@ namespace gaol_core {
   {
     fpcr_update(fpcr_rmode_mask, 0ull);
   }
-
-  /*
-    The start and the end of an operation under GAOL_PRESERVE_ROUNDING
-    (GAOL_RND_ENTER() and GAOL_RND_LEAVE() of gaol_fpu.h): fpcr is the value
-    that mrs gave at the start. The direction is set upward and the modes that
-    flush the subnormals to zero are cleared, in one write, if they are not;
-    at the end the direction and the modes the program had are written back,
-    in one write, if they differ from what the operation left. The comparison
-    is of the bits, which the modes do not change, and the statement that
-    writes is a barrier for the compiler: what the operation computed goes
-    through GAOL_RND_KEEP() before it.
-  */
-  GAOL_INLINE void fpcr_enter_upward(unsigned long long fpcr)
-  {
-    const unsigned long long mode_bits = fpcr_rmode_mask | static_cast<unsigned long long>(GAOL_RND_FLUSH_BITS);
-    if (GAOL_UNLIKELY((fpcr & mode_bits) != fpcr_upward)) {
-      fpcr_set((fpcr & ~mode_bits) | fpcr_upward);
-      GAOL_RND_BARRIER();
-    }
-  }
-
-  GAOL_INLINE void fpcr_leave(unsigned long long saved)
-  {
-    const unsigned long long mode_bits = fpcr_rmode_mask | static_cast<unsigned long long>(GAOL_RND_FLUSH_BITS);
-    if (GAOL_UNLIKELY((saved & mode_bits) != fpcr_upward)) {
-      fpcr_update(mode_bits, saved & mode_bits);
-    }
-  }
   #else
   GAOL_INLINE  void
   round_downward(void)
