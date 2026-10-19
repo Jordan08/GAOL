@@ -39,7 +39,32 @@ point Q), which `numbers` checks there too.
   (GAOL v5, point ZZ). Seven long lines of + - * / alone, between eight
   intervals of either sign, have to enclose the same line of rational numbers
   taken at a bound of each operand, and `+=`, `-=`, `*=` and `/=` have to give
-  the bounds of the operators, line by line. N-th roots have to
+  the bounds of the operators, line by line. Every interval [a, b] with
+  a <= b made of 15 special bounds (-oo, the largest double, -2.5, -1, the
+  opposite of the smallest normal number, of the smallest subnormal number,
+  -0, +0, the smallest subnormal number, the smallest normal number, 0.1, 1, 3,
+  the largest double, +oo), the empty set and the universe, taken two by two,
+  have to give with `+`, `-`, `*`, `/`, `%`, `+=`, `-=`, `*=`, `/=` and `%=`
+  (the interval itself as the operand of the compound forms included), with a
+  double on either side where an interval is a point, and for `sqr`, `sqrt`
+  and `inverse`, the bounds of a reference of plain doubles: the least of the
+  corners rounded downward and the greatest rounded upward by the processor, a
+  zero bound times an infinite one counting as 0, a quotient by an interval
+  holding 0 being the one by the parts of the divisor on either side of 0, and
+  the whole line for x % y where both hold 0 (the reference is first checked
+  against the tables of divisions by an interval holding 0). An infinite or
+  NaN double gives the empty set, no operation gives an unexpected empty set,
+  and the bounds do not depend on the rounding direction of the calling code,
+  set to each of the four directions before each operation (GAOL v5, the
+  NEON intervals). Inexact operations on literals the compiler sees
+  (`[0.1] + [0.2]`, `[1] / [3]`, `sqrt([2])`, the forms with a double) have to
+  be the tightest enclosures: a compiler that folded the vectors of the
+  library at compile time in the rounding to nearest would fail them (a program
+  compiled with `-flto` and without `-frounding-math`). Ten lines of 8 to 16
+  operations, among them lines with operands used twice and with `r -= r`,
+  `r *= r` and `r %= ...`, have to have the bounds of the reference evaluating
+  them one operation after the other, on random intervals and on those of the
+  grid. N-th roots have to
   be enclosures, within a few doubles, the odd
   roots of negative numbers being the opposites of the roots of their
   magnitudes, and the n-th roots of intervals the roots of their bounds (of
@@ -94,7 +119,11 @@ point Q), which `numbers` checks there too.
   enclosures where their value is 0, 1, ±π/4, ±π/2 or π (`sin(0)`, `cos(0)`,
   `acos(1)`, `acos(-1)`, `asin(1)`, `atan(1)`, `atan([-oo, +oo])`,
   `acosh(1)`...), and `cosh`, `sinh` and `tanh` beyond the largest double and
-  near 1. `pow(x, y)` has to be within one double of the tightest bounds at
+  near 1. With the NEON intervals, `[+oo]` and `[-oo]`, which no constructor
+  makes, are built from a `float64x2_t` with the explicit constructor
+  `interval(const float64x2_t&)`, the lanes holding `<-left, right>`:
+  `pow([4], J)` and `gaol_ieee1788::pow(x, J)` have to be empty for them, as
+  for the ones built from an SSE2 register (GAOL v5). `pow(x, y)` has to be within one double of the tightest bounds at
   points, `pow([2], [1023.5])` among them, and over 385 boxes of bases and
   exponents in every position about the base 1 and the exponent 0, and the
   power itself as lower bound where it is a double: `pow([4], 0.5)` is `[2]`.
@@ -297,7 +326,30 @@ point Q), which `numbers` checks there too.
   with `==`, which does not see it), and
   these operations leave the rounding direction as the program set it,
   checked where the SSE2 path checks it left upward, and clear the
-  flush-to-zero modes when a plug-in has set them (GAOL v5). After
+  flush-to-zero modes when a plug-in has set them (GAOL v5). On 64-bit ARM
+  with GCC or Clang, whatever the intervals (NEON or FPU), FPCR is read and
+  written directly with `mrs` and `msr` (GAOL v5). After each operation of the
+  table, run from the four directions with and without FZ set, the bits of FPCR
+  other than the rounding direction and the flush modes must be the ones the
+  program had: the default-NaN mode and FZ16, set to a pattern the processor
+  retains, and the trap-enable bits, set for operations with exact results
+  that raise no exception. The direction and the flush modes must be the
+  program's with `GAOL_PRESERVE_ROUNDING`, and the direction it had or upward
+  and the modes it had or cleared without it. The operations with exact
+  results, which all check the direction, must leave the direction exactly
+  upward with the modes cleared. `cancel_minus` and `cancel_plus`, which
+  compute to nearest, are in the table. The bits a processor does not retain
+  are skipped and the test says so. The 30 forms of `+ - * / %`, `sqr`, `sqrt`
+  and `inverse` with intervals, with a double and as compound assignments have
+  to be the tightest enclosures of the exact result, computed from the four
+  corners of random operands, in a loop changing the rounding direction before
+  each, and, on 64-bit ARM, right after the program wrote FPCR itself (no
+  `isb` between), in the four directions in turn, 2^16 times per form. The
+  sums, differences, squares, square roots and operations with a double, on
+  the intervals with bounds in {-oo, -4, -0, 0, 4, +oo}, on the empty set, and
+  with an infinite or NaN double, have to give the expected bounds and raise
+  neither the invalid-operation nor the division-by-zero flag, nor die with
+  both enabled in a child process with glibc (GAOL v5). After
   `cleanup()` and an operation of GAOL, `gaol::restore_rounding()`
   has to set the direction to nearest again, as many times as it is called,
   where `cleanup()` does so at its first call only, and to do nothing with
@@ -384,7 +436,7 @@ point Q), which `numbers` checks there too.
   doubles and point intervals, written `[a]` as in decimal, and `[0x0p+0]`
   for a zero whatever the signs of its bounds, read back as the same set
   (GAOL v5: `[0x1.8p+0, 0x1.8p+0]`, and `[-0x0p+0, 0x0p+0]` for
-  `interval::zero()` with the SSE2 intervals). `operator<<` has
+  `interval::zero()` with the SSE2 and the NEON intervals). `operator<<` has
   to leave the precision of the stream as it was, and `std::setw`
   to pad the whole interval, adjusted to the right, to the left
   or inside (with `std::internal`, the fill follows the sign of the midpoint
@@ -549,7 +601,7 @@ point Q), which `numbers` checks there too.
   a function of `gaol_core`. `pow` has to be the standard's with an interval, an
   `int` or a `double` exponent: on a negative base, at `[0]`, and at infinite,
   NaN and beyond-the-ints exponents, and at the exponents [+oo] and [-oo]
-  that only an SSE2 register holds, which give the empty set as for
+  that only an SSE2 or a NEON register holds, which give the empty set as for
   `gaol::pow` (`elementary`, GAOL v5); `pown` and `gaol::pow` the integer power,
   for an exponent of any integer type too (GAOL v5): `pown([2], 3000000000u)`
   is the overflowing power, which the conversion of the exponent to a negative
@@ -1161,20 +1213,26 @@ with GCC and Clang on x86, perhaps a call with Visual C++) and, where two
 compare equal, by their bits (GAOL v5, point Q), and of the same operations on
 doubles, and, in its last rows, of lines of 15 additions, 15 additions and
 subtractions, 7 products, 7 quotients and 13 operations of the four kinds
-between 8 and 16 intervals (GAOL v5, point ZZ). After the table, it prints the time of
-the check each operation makes, 1 + (2^-1060 + 0) not above 1, and of the same
-check made of 2^-60, a normal
+between 8 and 16 intervals (GAOL v5, point ZZ). Its title names the intervals
+GAOL computes with, NEON, SSE2 or FPU (GAOL v5), and three rows give the
+product, the quotient and the square of operands of random signs, the other
+rows having positive operands only, which a processor predicts: the product of
+the FPU intervals chose a branch by the signs of the bounds. After the table, it
+prints the time of the check each operation makes, 1 + (2^-1060 + 0) not above
+1, and of the same check made of 2^-60, a normal
 double: a processor that takes a microcode assist for a subnormal operand or
-result shows it there (GAOL v5, point Q). It is not a test: the continuous
-integration prints its table in the summary of the jobs.
+result shows it there (GAOL v5, point Q); with the NEON intervals, the check is
+the read of the control register FPCR with `mrs`, and it prints its time. It is
+not a test: the continuous integration prints its table in the summary of the
+jobs.
 
 `tests/tools/pow/` holds the tools that check a change of `pow` in
 `gaol/gaol_interval_core.cpp` (see [its README](../tests/tools/pow/README.md)).
 They are not tests either: no build compiles them and no job runs them.
 `diffpow.py` prints the bounds of `gaol_ieee1788::pow` and `gaol::pow` with
 two builds of GAOL, on 70 500 boxes and under the four rounding directions at
-the call, and compares them: the SSE2 and the FPU intervals give the same
-bounds, the sign of a zero aside. `gen_table.py` and `evalrows` read the table
+the call, and compares them: the SSE2, the NEON and the FPU intervals give the
+same bounds, the sign of a zero aside. `gen_table.py` and `evalrows` read the table
 of `pow_on_boxes()` in `tests/ieee1788.cpp`, and write it again from the
 bounds of a build. `checkrows.py` checks those bounds against the exact
 powers, computed with 500 bits by mpmath. `mutate.py` builds GAOL with each
@@ -1185,6 +1243,14 @@ runs `diffpow` on the errors no test catches. `pown_bound.py` checks with
 rationals the induction that bounds the error of the integer powers
 beforehand (`pown_products()` in `gaol/gaol_interval_core.cpp`). `bench.cpp`
 measures the time per call of each path of `pow`.
+
+`tests/tools/arith/` holds a tool of the same kind for the arithmetic (see
+[its README](../tests/tools/arith/README.md)): `diffarith.py` prints the bounds
+and the exception flags of `+ - * / %`, `&=`, `|=`, `sqr`, `sqrt`, `inverse`,
+`div_rel`, `mid` and the forms with a double on a grid of boxes, under the four
+rounding directions at the call, with two builds of GAOL, and compares them:
+the NEON intervals and the FPU intervals give the same bounds and the same
+flags, the sign of a zero aside (GAOL v5).
 
 `manual/check_examples.py` compiles each example of the manual of GAOL v5
 (`manual/v5/gaol.tex`) that shows what it prints, 88 of them, with an installed
