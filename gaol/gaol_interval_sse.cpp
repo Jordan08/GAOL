@@ -1301,8 +1301,8 @@ GAOL_BOUNDS_TARGET __m128d div_bounds(__m128d x, __m128d y)
 
 // The branch #else, not compiled, has no inverse_upward(), which the integer
 // powers and nth_root(I, q) for q < 0 call (GAOL v5)
-#define OPT_INV 1
-#if OPT_INV
+//#define OPT_INV 1
+//#if OPT_INV
 /*
   The rounding direction being upward already (see gaol_interval_core.h). A zero
   bound is divided by 1 rather than 0, its quotient being thrown away: -1/0
@@ -1345,54 +1345,53 @@ interval interval::inverse() const
   GAOL_RND_LEAVE_SSE();
   return interval(res);
 }
-#else
-  interval interval::inverse() const
-  {
-    if (is_empty()) {
-      return *this;
-    }
-
-    interval res;
-    xmm2d itv;
-    get_bounds(itv);
-    GAOL_RND_ENTER_SSE();
-    if (itv[1] <= 0.0) { // (Z N0 N1)
-      if (itv[0] > 0) { // (N0 N1)
-        if (itv[1] < 0) { // N1
-          __m128d r0 = _mm_set1_pd(-1.0); // r0 == <-1, -1>
-          __m128d r1 = _mm_shuffle_pd(xmmbounds,xmmbounds,1); // r1 == <-c, d>
-          res.xmmbounds = _mm_div_pd(r0,r1);
-        } else { // N0
-          __m128d r0 = _mm_set_pd(-1.0,1.0); // r0 == <-1, 1>
-          __m128d r1 = _mm_shuffle_pd(xmmbounds,xmmbounds,1); // r1 == <-c, d>
-          __m128d r2 = _mm_and_pd(r1,interval::m128d_02mask); // r2 == <-c, 0>
-          res.xmmbounds = _mm_div_pd(r0,r2);
-        }
-      } else { // Z
-        res = interval::emptyset();
-      }
-    } else { // (M P0 P1)
-      if (itv[0]>0) { // M : straddles_zero() (left bound negated)
-            res = interval::universe();
-      } else { // (P0 P1)
-        if (itv[0] == 0.0) { // P0
-          __m128d r0 = _mm_set_pd(1.0,-1.0); // r0 == <1, -1>
-          __m128d r1 = _mm_xor_pd(xmmbounds,interval::lbsignmask); // r1 == <d, c>
-          __m128d r2 = _mm_shuffle_pd(r1,r1,1); // r2 == <c, d>
-          __m128d r3 = _mm_and_pd(r2,interval::m128d_20mask); // r3 == <0, d>
-          res.xmmbounds = _mm_div_pd(r0,r3);
-        } else { // P1
-          __m128d r0 = _mm_set1_pd(-1.0); // r0 == <-1, -1>
-          __m128d r1 = _mm_shuffle_pd(xmmbounds,xmmbounds,1); // r1 == <-c, d>
-          res.xmmbounds = _mm_div_pd(r0,r1);
-        }
-      }
-    }
-    GAOL_RND_KEEP(res);
-    GAOL_RND_LEAVE_SSE();
-    return res;
-  }
-#endif
+// #else
+//   interval interval::inverse() const
+//   {
+//     if (is_empty()) {
+//       return *this;
+//     }
+//     interval res;
+//     xmm2d itv;
+//     get_bounds(itv);
+//     GAOL_RND_ENTER_SSE();
+//     if (itv[1] <= 0.0) { // (Z N0 N1)
+//       if (itv[0] > 0) { // (N0 N1)
+//         if (itv[1] < 0) { // N1
+//           __m128d r0 = _mm_set1_pd(-1.0); // r0 == <-1, -1>
+//           __m128d r1 = _mm_shuffle_pd(xmmbounds,xmmbounds,1); // r1 == <-c, d>
+//           res.xmmbounds = _mm_div_pd(r0,r1);
+//         } else { // N0
+//           __m128d r0 = _mm_set_pd(-1.0,1.0); // r0 == <-1, 1>
+//           __m128d r1 = _mm_shuffle_pd(xmmbounds,xmmbounds,1); // r1 == <-c, d>
+//           __m128d r2 = _mm_and_pd(r1,interval::m128d_02mask); // r2 == <-c, 0>
+//           res.xmmbounds = _mm_div_pd(r0,r2);
+//         }
+//       } else { // Z
+//         res = interval::emptyset();
+//       }
+//     } else { // (M P0 P1)
+//       if (itv[0]>0) { // M : straddles_zero() (left bound negated)
+//             res = interval::universe();
+//       } else { // (P0 P1)
+//         if (itv[0] == 0.0) { // P0
+//           __m128d r0 = _mm_set_pd(1.0,-1.0); // r0 == <1, -1>
+//           __m128d r1 = _mm_xor_pd(xmmbounds,interval::lbsignmask); // r1 == <d, c>
+//           __m128d r2 = _mm_shuffle_pd(r1,r1,1); // r2 == <c, d>
+//           __m128d r3 = _mm_and_pd(r2,interval::m128d_20mask); // r3 == <0, d>
+//           res.xmmbounds = _mm_div_pd(r0,r3);
+//         } else { // P1
+//           __m128d r0 = _mm_set1_pd(-1.0); // r0 == <-1, -1>
+//           __m128d r1 = _mm_shuffle_pd(xmmbounds,xmmbounds,1); // r1 == <-c, d>
+//           res.xmmbounds = _mm_div_pd(r0,r1);
+//         }
+//       }
+//     }
+//     GAOL_RND_KEEP(res);
+//     GAOL_RND_LEAVE_SSE();
+//     return res;
+//   }
+// #endif
 
   interval& interval::operator%=(const interval& I)
   {
