@@ -227,7 +227,9 @@ GAOL_PC_CFLAGS=""
 #   rounding mode on this target"), as Clang 14 for 64-bit ARM processors.
 # GAOL_REFUSE_COMPILER(language, compiler, flags) checks the compiler of one
 # language, flags being the variable its flags are in. It is called for the C++
-# compiler and for the C compiler, which builds CORE-MATH (GAOL v5).
+# compiler and for the C compiler, which builds CORE-MATH. The flags of the user
+# are kept for the tests, as CMake and meson keep them: a --target or a -m32 in
+# them changes what the compiler honours (GAOL v5).
 AC_DEFUN([GAOL_REFUSE_COMPILER],
 [AC_LANG_PUSH([$1])
 AC_MSG_CHECKING([whether the $1 compiler is Clang for a 32-bit ARM processor])
@@ -241,12 +243,12 @@ Clang does not honour the rounding direction on 32-bit ARM processors: it does n
 Build GAOL with GCC, which honours the rounding direction on 32-bit ARM processors: CXX=g++ CC=gcc ./configure, or CXX=arm-linux-gnueabihf-g++ CC=arm-linux-gnueabihf-gcc to cross-compile.])
 fi
 gaol_save_flags=$$3
-$3="-frounding-math"
+$3="$gaol_save_flags -frounding-math"
 AC_MSG_CHECKING([whether the $1 compiler accepts -frounding-math])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[has_rounding_math_opt=yes],[has_rounding_math_opt=no])
 AC_MSG_RESULT(${has_rounding_math_opt})
 if test "${has_rounding_math_opt}" = yes; then
-    $3="-Werror -frounding-math"
+    $3="$gaol_save_flags -Werror -frounding-math"
     AC_MSG_CHECKING([whether the $1 compiler honours the rounding direction on this target])
     AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[honours_rounding=yes],[honours_rounding=no])
     AC_MSG_RESULT(${honours_rounding})

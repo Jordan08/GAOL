@@ -18719,7 +18719,9 @@ GAOL_PC_CFLAGS=""
 #   rounding mode on this target"), as Clang 14 for 64-bit ARM processors.
 # GAOL_REFUSE_COMPILER(language, compiler, flags) checks the compiler of one
 # language, flags being the variable its flags are in. It is called for the C++
-# compiler and for the C compiler, which builds CORE-MATH (GAOL v5).
+# compiler and for the C compiler, which builds CORE-MATH. The flags of the user
+# are kept for the tests, as CMake and meson keep them: a --target or a -m32 in
+# them changes what the compiler honours (GAOL v5).
 
 ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
@@ -18758,7 +18760,7 @@ Clang does not honour the rounding direction on 32-bit ARM processors: it does n
 Build GAOL with GCC, which honours the rounding direction on 32-bit ARM processors: CXX=g++ CC=gcc ./configure, or CXX=arm-linux-gnueabihf-g++ CC=arm-linux-gnueabihf-gcc to cross-compile." "$LINENO" 5
 fi
 gaol_save_flags=$CXXFLAGS
-CXXFLAGS="-frounding-math"
+CXXFLAGS="$gaol_save_flags -frounding-math"
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether the C++ compiler accepts -frounding-math" >&5
 printf %s "checking whether the C++ compiler accepts -frounding-math... " >&6; }
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -18783,7 +18785,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: ${has_rounding_math_opt}" >&5
 printf "%s\n" "${has_rounding_math_opt}" >&6; }
 if test "${has_rounding_math_opt}" = yes; then
-    CXXFLAGS="-Werror -frounding-math"
+    CXXFLAGS="$gaol_save_flags -Werror -frounding-math"
     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether the C++ compiler honours the rounding direction on this target" >&5
 printf %s "checking whether the C++ compiler honours the rounding direction on this target... " >&6; }
     cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -18857,7 +18859,7 @@ Clang does not honour the rounding direction on 32-bit ARM processors: it does n
 Build GAOL with GCC, which honours the rounding direction on 32-bit ARM processors: CXX=g++ CC=gcc ./configure, or CXX=arm-linux-gnueabihf-g++ CC=arm-linux-gnueabihf-gcc to cross-compile." "$LINENO" 5
 fi
 gaol_save_flags=$CFLAGS
-CFLAGS="-frounding-math"
+CFLAGS="$gaol_save_flags -frounding-math"
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether the C compiler accepts -frounding-math" >&5
 printf %s "checking whether the C compiler accepts -frounding-math... " >&6; }
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -18882,7 +18884,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: ${has_rounding_math_opt}" >&5
 printf "%s\n" "${has_rounding_math_opt}" >&6; }
 if test "${has_rounding_math_opt}" = yes; then
-    CFLAGS="-Werror -frounding-math"
+    CFLAGS="$gaol_save_flags -Werror -frounding-math"
     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether the C compiler honours the rounding direction on this target" >&5
 printf %s "checking whether the C compiler honours the rounding direction on this target... " >&6; }
     cat confdefs.h - <<_ACEOF >conftest.$ac_ext
