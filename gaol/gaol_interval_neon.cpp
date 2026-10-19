@@ -325,7 +325,7 @@
     const float64x2_t dd = vdupq_laneq_f64(yp, 1);                   // <d', d'>
     const float64x2_t cc = vnegq_f64(vdupq_laneq_f64(yp, 0));        // <c', c'>
     // The denominator of each lane: the larger bound d' where the stored bound of
-    // x is not negative, c' where it is
+    // x is negative (its left bound l >= 0), c' where it is not
     const uint64x2_t x_negative = vcltzq_s64(vreinterpretq_s64_f64(xp));
     return vdivq_f64(xp, vbslq_f64(x_negative, dd, cc));
   }
@@ -623,7 +623,7 @@ double hausdorff(const interval &I1, const interval &I2)
     if (K.is_empty() || J.is_empty() || I.is_empty()) {
       return interval::emptyset();
     }
-    
+
     if (K.right() < 0.0) { // [this] N1
       if (J.right() < 0.0) { // [J] N1
 	// I & [K.r/J.l, K.l/J.r]
