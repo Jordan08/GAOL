@@ -160,10 +160,21 @@
     static const volatile double subnormal = 8.0947715414629834e-320;
     return (subnormal + 0.0) == 0.0;
   }
+#if defined(__GNUC__) || defined(__clang__)
+#  define GAOL_CLEAR_FLUSH() clear_flush_to_zero()
+#  define GAOL_SET_FLUSH(modes) set_flush_modes(modes)
+#else
+  // The writes of the control register in functions that are not inlined,
+  // for Visual C++ (see flush_guard below)
+  GAOL_NOINLINE void clear_flush_to_zero_call() { clear_flush_to_zero(); }
+  GAOL_NOINLINE void set_flush_modes_call(unsigned int modes) { set_flush_modes(modes); }
+#  define GAOL_CLEAR_FLUSH() clear_flush_to_zero_call()
+#  define GAOL_SET_FLUSH(modes) set_flush_modes_call(modes)
+#endif
   GAOL_INLINE void clear_flush_modes_if_set()
   {
     if (flush_modes_set()) {
-      clear_flush_to_zero();
+      GAOL_CLEAR_FLUSH();
       GAOL_RND_BARRIER();
     }
   }
@@ -181,35 +192,68 @@
     Clang 18 computed the difference of fast_sub() after the destructor had
     set flush-to-zero back, with GAOL_PRESERVE_ROUNDING, and
     [3e-308] - [2.9e-308] was [0, 0] (GAOL v5, point Q of TODO.md,
-    tests/rounding_direction.cpp). Visual C++ has no asm statement on x64:
-    in() and out() give their argument back there, as reread_bounds() of
-    gaol/gaol_interval_sse.cpp does, and /fp:strict keeps the operations where
-    the source puts them with respect to the writes of the control register
-    (see GAOL_RND_BARRIER() of gaol/gaol_fpu.h).
+    tests/rounding_direction.cpp).
+
+    Visual C++ has no asm statement on x64, and its optimizer takes an
+    intrinsic with an embedded rounding for a computation of its operands
+    alone, which it moves past a call that writes the control register:
+    with GAOL_PRESERVE_ROUNDING and /arch:AVX2, add_bounds() called the
+    destructor, which sets the modes back, before the vaddpd (Compiler
+    Explorer, the latest Visual C++ of October 2026). What orders the operations there
+    is what the language guarantees. The operands go through in(), an
+    exclusive or with a zero read from volatile memory, which leaves their
+    bits as they are: the read stays after the constructor, whose writes of
+    the control register are in functions that are not inlined, and the
+    operation after the read. The result goes through out() before the
+    destructor, written to volatile memory and read again as GAOL_RND_KEEP()
+    does for the SSE2 operations, where the modes are given back; where they
+    are not, there is nothing to order. A volatile access costs a store and a
+    load, a few cycles against the dozens of ns of the writes of MXCSR that
+    the path spares (GAOL v5).
   */
   struct flush_guard
   {
+#if defined(__GNUC__) || defined(__clang__)
     static __m128d in(__m128d x)
     {
-#if defined(__GNUC__) || defined(__clang__)
       __asm__ __volatile__ ("" : "+x" (x));
-#endif
       return x;
     }
     static double in(double x)
     {
-#if defined(__GNUC__) || defined(__clang__)
       __asm__ __volatile__ ("" : "+x" (x));
-#endif
       return x;
     }
     static __m128d out(__m128d r)
     {
-#if defined(__GNUC__) || defined(__clang__)
       __asm__ __volatile__ ("" : "+x" (r));
-#endif
       return r;
     }
+#else
+    // 0 read from volatile memory, a read the compiler keeps after the calls
+    // before it
+    static __m128d zero_read()
+    {
+      static const volatile double zero = 0.0;
+      return _mm_set1_pd(zero);
+    }
+    static __m128d in(__m128d x)
+    {
+      return _mm_xor_pd(x, zero_read());
+    }
+    static double in(double x)
+    {
+      return _mm_cvtsd_f64(_mm_xor_pd(_mm_set_sd(x), zero_read()));
+    }
+    static __m128d out(__m128d r)
+    {
+#  if GAOL_PRESERVE_ROUNDING
+      return rnd_keep(r);
+#  else
+      return r;
+#  endif
+    }
+#endif
 
 #if GAOL_PRESERVE_ROUNDING
     unsigned int saved;
@@ -220,14 +264,14 @@
     {
       if (flush_modes_set()) {
         saved = get_flush_modes();
-        clear_flush_to_zero();
+        GAOL_CLEAR_FLUSH();
         GAOL_RND_BARRIER();
       }
     }
     ~flush_guard()
     {
       if (saved != 0u) {
-        set_flush_modes(saved);
+        GAOL_SET_FLUSH(saved);
       }
     }
 #else
