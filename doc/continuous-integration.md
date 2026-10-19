@@ -86,23 +86,50 @@ clang-cl without `/fp:strict`. Jobs of each build
 restore the rounding direction (`GAOL_PRESERVE_ROUNDING`): Ubuntu x86_64 GCC
 and Clang (which take the AVX-512 path where the runner has it, Clang having
 computed a difference of that path once flush-to-zero was set back, GAOL v5)
-and arm64 Clang, Debian i386 and armhf, macOS arm64, Visual Studio x64,
-autotools and meson. Jobs of autotools and of meson on Ubuntu x86_64 build GAOL
+and arm64 GCC and Clang (GCC too since the NEON intervals, GAOL v5: it does not
+model the direction they write into FPCR), Debian i386 and armhf, macOS arm64,
+Visual Studio x64, autotools and meson.
+Jobs of autotools and of meson on Ubuntu x86_64 build GAOL
 without exceptions (`--disable-exceptions`, `-Denable-exception=false`),
 where an error of GAOL ends the program, and run the examples and the tests,
 which leave out there the checks of an exception (GAOL v5). The jobs built in
 Release print the time per operation in their summary.
 
-Two jobs of `linux.yml`, with the GCC and the Clang of Ubuntu 26.04, and one of
-`macos.yml`, with the AppleClang of macOS 26 arm64, build the library, the
-sources of CORE-MATH included, the tests and the examples with
-`-Wall -Wextra -Werror`, and two of `windows.yml` with `/W4 /WX`, with the
-Visual C++ of Visual Studio 2026 x64 and x86. The first three check the headers
+On 64-bit ARM processors the intervals are the NEON ones by default
+(`GAOL_ARM64`, `--enable-arm64`, `-Denable-arm64`; GAOL v5), so that the jobs of
+Ubuntu arm64, macOS arm64 and the aarch64 containers, and those of autotools
+and meson on arm64, test them. A few jobs build the FPU intervals instead,
+which the NEON ones replace on these processors, so that their code stays
+covered, the preserved rounding direction included: the GCC and the Clang of Ubuntu 24.04 arm64
+(`-DGAOL_ARM64=OFF`), and its Clang with the rounding direction preserved too,
+macOS 15 arm64 (`-DGAOL_ARM64=OFF`), and autotools (`--disable-arm64`) and
+meson (`-Denable-arm64=false`) on Ubuntu 24.04 arm64. A build that fell back to
+the FPU intervals without saying so would keep every test green, so the jobs
+check which intervals the configuration took, in a step "The intervals"
+(`.github/scripts/check-intervals.sh`, which reads
+`GAOL_USING_NEON_INSTRUCTIONS` and `GAOL_USING_SSE2_INSTRUCTIONS` in
+`gaol_configuration.h`, and fails if they are not the expected ones): the main
+jobs of `linux.yml`, those of `macos.yml`, autotools and meson expect the NEON
+intervals on 64-bit ARM, the SSE2 intervals on x86-64, and the FPU intervals
+where the option is off; the Visual Studio jobs of `windows.yml`, those of
+clang-cl included, expect the FPU intervals on every processor, arm64 too; the
+Linux containers make the check before the build, from `uname -m`: the NEON
+intervals on aarch64, the SSE2 intervals on x86_64, and the FPU intervals on
+armhf, s390x, ppc64le and riscv64.
+
+Four jobs of `linux.yml`, with the GCC and the Clang of Ubuntu 26.04 on x86_64
+and on arm64, and one of `macos.yml`, with the AppleClang of macOS 26 arm64,
+build the library, the sources of CORE-MATH included, the tests and the
+examples with `-Wall -Wextra -Werror`, and two of `windows.yml` with `/W4 /WX`,
+with the Visual C++ of Visual Studio 2026 x64 and x86. Those of arm64 compile
+the header and the sources of the NEON intervals, with the warnings of the
+headers (`-Wold-style-cast`, `-Wundef`) that the intrinsics of `<arm_neon.h>`
+have to stay clear of (GAOL v5). The first five check the headers
 GAOL installs with `.github/scripts/headers.sh` (GAOL v5): each compiles alone
 with `-std=c++11`, the oldest standard GAOL takes, and
 `-Wall -Wextra -Wold-style-cast -Wundef -Werror` (they have no cast of C,
 nor any `#if` on a macro that may be undefined), but the
-three that other headers include in the middle of their code or for Visual C++
+four that other headers include in the middle of their code or for Visual C++
 only, and the macros they define start with `GAOL_` or `gaol_`.
 `-Werror` and `/WX` go to the targets only (`CMAKE_COMPILE_WARNING_AS_ERROR`),
 so that no check of CMake fails on a warning of its test program. Until then,
@@ -150,6 +177,7 @@ refusal.
 | MinGW-w64 whose `fma()` or `round()` is wrong: on x64, GCC 11 to 13 of Chocolatey (mingw-w64 before 12) and the mingw-w64 linked with `msvcrt.dll` rather than the UCRT (MSYS2 MINGW64, the cross compilers of Debian and Ubuntu); on 32-bit x86, GCC 11 of WinLibs (mingw-w64 9); on ARM, as on x64, mingw-w64 before 12 or linked with `msvcrt.dll` (not tested) | **Wrong bounds.** On x64, the `fma()` and `round()` are those of mingw-w64's own math library, computed in doubles. That `fma()` adds the products of the halves of its arguments with four roundings: it is not correctly rounded (10.7 % of the error-free products `fma(a, b, -a*b)` and 25 to 73 % of other triples wrong, depending on the rounding direction), and CORE-MATH computes with it, GCC for Windows having no `-mfma`. That `round()` depends on the rounding direction: `round(0x1.fffffffffffffp-2)` is 1 except rounding upward. On 32-bit x86 the same `fma()` computes on the x87 unit, and the one of the mingw-w64 9 of WinLibs, compiled without optimization, rounds each of its partial sums to a double. GAOL v5 fails `elementary`, `reverse` and `core_math` there: bounds of `tan()`, `asin()`, `atan()`, `sinh()`, `cosh()`, `atanh()` and `atan2()` of small arguments do not enclose the exact values (the continuous integration, and mingw-w64 11 and the objects of MSYS2 MINGW64 under wine). From mingw-w64 12 on, a toolchain linking the UCRT takes the `fma()` and `round()` of `ucrtbase.dll`. | Refused by `gaol/gaol_config.h`; six jobs check the refusal, two of them MSYS2 MINGW64 with GCC and Clang (`windows.yml`). MinGW-w64 GCC 14 and 15 on x64, GCC 12 to 15 on 32-bit x86 (12 and 13 with the `fma()` of mingw-w64 11, which keeps its partial sums in extended precision and passes the tests, though not correctly rounded), and MSYS2 UCRT64 and CLANG64 are built and tested; `tests/core_math.cpp` checks `fma()` and `round()` first. |
 | Visual C++, and clang-cl from Clang 16, without `/fp:strict` (`/fp:precise`, their default) | **Bounds not certified.** They then assume rounding to nearest, and may evaluate or rewrite floating-point operations accordingly, while GAOL computes with the rounding direction set upward. | Refused by `gaol/gaol_config.h`; `gaol::gaol` gives `/fp:strict` to the code linking it, and each Visual Studio job checks the refusal (`tests/fp_strict`), those of clang-cl included (GAOL v5). |
 | The SSE2 intervals on 32-bit Windows | **Crash.** GCC takes the memory of `new` to be aligned on 16 bytes, which the C runtime of 32-bit Windows aligns on 8, and a `std::vector` of SSE2 intervals crashes on its first `movaps`: with MinGW-w64 14.2 and 15.2 for x86, in Release and in Debug, `arithmetic`, `other_functions`, `reverse` and `rounding_direction` crash. With `-faligned-new=8` the tests pass, but the code using GAOL would need that flag too. | The FPU intervals are compiled there by the three builds, as with Visual C++. On 64-bit Windows (MinGW-w64, MSYS2) the SSE2 intervals are compiled and pass the tests. |
+| The NEON intervals with Visual C++ and clang-cl, for a target of Windows (MinGW-w64, MSYS2), and on 32-bit ARM | **Not offered.** The NEON intervals write the rounding direction into FPCR with `mrs` and `msr`, in the inline assembly of GCC and Clang (`gaol/gaol_config.h`), and need the vectors of two doubles of 64-bit ARM, which the NEON of 32-bit ARM does not have. MinGW-w64 and MSYS2 for arm64 define `__aarch64__` too, and no job of the continuous integration builds them. | `GAOL_ARM64`, `--enable-arm64` and `-Denable-arm64` are ignored there, and the FPU computes the intervals, as before, in a universal build of macOS too; `gaol/gaol_config.h` stops the compilation of NEON intervals elsewhere (GAOL v5). The Visual Studio jobs check that they take the FPU intervals, arm64 and clang-cl included (`windows.yml`), and so do the armhf ones (`containers.yml`). |
 | Doubles computed on the x87 unit of 32-bit x86 | **Wrong results rounded to nearest, and wrong bounds.** The x87 unit computes with 64-bit significands and 15-bit exponents, and CORE-MATH assumes every operation on doubles rounded to a double (`FLT_EVAL_METHOD` 0, see `3rd/math-core/README.md`). With GCC 12 on Debian 12 i386, CORE-MATH rounded to nearest gives the other neighbour of the exact value at 175 of the arguments compared with SSE2, its results being rounded twice: `exp(-0x1.74910d52d3051p+9)` is 0 rather than 2^-1074, `tanh(0x1.30fc1931f09c9p+4)` 1 rather than 1 − 2^-53. With GCC 9 on x86-64 (`-mfpmath=387`), which turns into doubles at compile time, rounded to nearest, the constants CORE-MATH rounds in the direction in effect (`0x1p-1074 * 0.5`, `-1.0 + 0x1p-54`), GAOL's bounds of `exp2(-1075)`, `exp10(-400)`, `expm1(-800)` and of `atan2()` of a tiny and a huge number do not enclose the exact values. | Refused by `gaol/gaol_config.h`; the builds compile with `-msse2 -mfpmath=sse` on 32-bit x86. `tests/extended_precision.cpp` checks these arguments, CORE-MATH in the four rounding directions and GAOL's bounds, and fails on the x87 unit. |
 | Debian 11 Bullseye (amd64, arm64, armhf) | **Cannot be installed.** Out of support since August 2026: deb.debian.org lists packages of its security repository that it no longer serves (`libc-dev-bin 2.31-13+deb11u14`...), so that `g++` cannot be installed in the container; without that repository the packages are broken, and archive.debian.org does not have it yet. GAOL v5 itself builds and passes its tests there, with GCC 10.2 and CMake 3.18.4 installed from snapshot.debian.org. | Left out of the continuous integration. Debian 12 and 13 are built. |
 | The intervals of floats (`gaol::intervalf`, `gaol::interval2f`) | **Unfinished.** `sqrt(intervalf)` returns its argument and `interval2f::inverse()` aborts; neither IBEX nor Codac uses them. | Compiled by none of the three builds, which have no option for them: only a developer of GAOL defines `GAOL_FLOAT_INTERVALS` (`gaol/gaol_config.h`). The audit still compares it between the builds, none of which defines it. |
