@@ -77,9 +77,15 @@ jobs:
           # Visual C++ and clang-cl take as GCC and Clang do: on a runner with
           # the instructions, which the step after Configure tells, the whole
           # suite of tests takes that path, its bounds being those of the SSE2
-          # path, bit for bit (GAOL v5)
+          # path (GAOL v5). The job above takes the path too, on such a runner,
+          # as GAOL_PREFER_AVX512 follows the rounding direction preserved; the
+          # one below refuses it (-DGAOL_PREFER_AVX512=OFF), the SSE2
+          # operations of the preserved direction staying covered, as in
+          # linux.yml. No asm statement orders the operations of Visual C++:
+          # these jobs and tests/rounding_direction.cpp are what checks them
           - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', arch: x64,   config: Release, opts: '-DGAOL_PREFER_AVX512=ON', desc: 'Visual Studio 2026 x64 Release, AVX-512 arithmetic' }
           - { os: windows-2022,          generator: 'Visual Studio 17 2022', arch: x64,   config: Debug,   opts: '-DGAOL_PREFER_AVX512=ON', desc: 'Visual Studio 2022 x64 Debug, AVX-512 arithmetic' }
+          - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', arch: x64,   config: Release, opts: '-DGAOL_PRESERVE_ROUNDING=ON -DGAOL_PREFER_AVX512=OFF', desc: 'Visual Studio 2026 x64 Release, rounding direction preserved, AVX-512 arithmetic not taken' }
           # clang-cl, the Clang of Visual Studio (toolset ClangCL, installed
           # with Visual Studio in the images), for which CMake sets MSVC too
           # and GAOL gives /fp:strict (-frounding-math -ffp-contract=off),
@@ -95,6 +101,12 @@ jobs:
           - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', toolset: '-T ClangCL', clang_cl: true, arch: x64,   config: Release, desc: 'Visual Studio 2026 clang-cl x64 Release' }
           - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', toolset: '-T ClangCL', clang_cl: true, arch: Win32, config: Release, desc: 'Visual Studio 2026 clang-cl x86 Release' }
           - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', toolset: '-T ClangCL', clang_cl: true, arch: ARM64, config: Release, desc: 'Visual Studio 2026 clang-cl arm64 Release' }
+          # clang-cl x64 keeps the asm statements of Clang in the AVX-512 path and
+          # takes the SSE2 intervals with the rounding direction preserved through
+          # MXCSR alone (/arch:AVX2 defines __FMA__ for it, not for cl), which no
+          # job covered before (GAOL v5)
+          - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', toolset: '-T ClangCL', clang_cl: true, arch: x64,   config: Release, opts: '-DGAOL_PREFER_AVX512=ON', desc: 'Visual Studio 2026 clang-cl x64 Release, AVX-512 arithmetic' }
+          - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', toolset: '-T ClangCL', clang_cl: true, arch: x64,   config: Release, opts: '-DGAOL_PRESERVE_ROUNDING=ON -DGAOL_PREFER_AVX512=OFF', desc: 'Visual Studio 2026 clang-cl x64 Release, rounding direction preserved, AVX-512 arithmetic not taken' }
     steps:
       - uses: actions/checkout@v7
       - name: Configure
@@ -109,29 +121,29 @@ jobs:
             test "$(grep -c -E "The (C|CXX) compiler identification is Clang .* with MSVC-like command-line" configure.log)" = 2
           fi
       # The intervals of the build: the SSE2 ones on x64, where Visual C++ and
-      # clang-cl take them, and the FPU ones on x86 and arm64, which the
-      # configuration decides; on x64, the processor of the runner, and
-      # whether +, -, *, / and sqrt take the AVX-512 path, which the
-      # configuration decides from the instructions the runner has
-      # (GAOL_AVX512_ARITHMETIC): a warning where GAOL_PREFER_AVX512 asked for
-      # it, or took it from the rounding direction preserved, and the runner
-      # has none (GAOL v5)
-      - name: The intervals, SSE2 on x64, and the AVX-512 path
+      # clang-cl take them (GAOL v5), and the FPU ones on x86 and arm64, where
+      # NEON is not offered to them (GAOL_ARM64)
+      - name: The intervals
         run: |
-          if [ "${{ matrix.cfg.arch }}" = "x64" ]; then
-            powershell -NoProfile -Command "(Get-CimInstance Win32_Processor).Name" || true
-          fi
-          grep -E "^#define GAOL_(USING_SSE2_INSTRUCTIONS|HAVE_AVX512_TARGET|PREFER_AVX512|AVX512_ARITHMETIC) " build/gaol/gaol_configuration.h || true
-          if [ "${{ matrix.cfg.arch }}" = "x64" ]; then
-            grep -q "^#define GAOL_USING_SSE2_INSTRUCTIONS 1" build/gaol/gaol_configuration.h
-            grep -q "^#define GAOL_HAVE_AVX512_TARGET 1" build/gaol/gaol_configuration.h
-            if grep -q "^#define GAOL_PREFER_AVX512 1" build/gaol/gaol_configuration.h \
-               && ! grep -q "^#define GAOL_AVX512_ARITHMETIC 1" build/gaol/gaol_configuration.h; then
-              echo "::warning::GAOL_PREFER_AVX512, on a runner without the AVX-512 instructions: the tests take the SSE2 path"
-            fi
-          elif grep -q "^#define GAOL_USING_SSE2_INSTRUCTIONS 1" build/gaol/gaol_configuration.h; then
-            echo "::error::the SSE2 intervals on ${{ matrix.cfg.arch }}"
+          if [ "${{ matrix.cfg.arch }}" = "x64" ]; then expected=sse2; else expected=fpu; fi
+          sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h $expected
+      # On x64, the processor of the runner, and whether +, -, *, / and sqrt
+      # take the AVX-512 path, which the configuration decides from the
+      # instructions the runner has (GAOL_AVX512_ARITHMETIC): a warning where
+      # GAOL_PREFER_AVX512 asked for it, or took it from the rounding
+      # direction preserved, and the runner has none (GAOL v5)
+      - name: The processor, and the AVX-512 path
+        if: matrix.cfg.arch == 'x64'
+        run: |
+          powershell -NoProfile -Command "(Get-CimInstance Win32_Processor).Name" || true
+          grep -E "^#define GAOL_(HAVE_AVX512_TARGET|PREFER_AVX512|AVX512_ARITHMETIC) " build/gaol/gaol_configuration.h || true
+          if ! grep -q "^#define GAOL_HAVE_AVX512_TARGET 1" build/gaol/gaol_configuration.h; then
+            echo "::error::the compiler takes no AVX-512 path"
             exit 1
+          fi
+          if grep -q "^#define GAOL_PREFER_AVX512 1" build/gaol/gaol_configuration.h \
+             && ! grep -q "^#define GAOL_AVX512_ARITHMETIC 1" build/gaol/gaol_configuration.h; then
+            echo "::warning::GAOL_PREFER_AVX512, on a runner without the AVX-512 instructions: the tests take the SSE2 path"
           fi
       - name: Build
         run: cmake --build build --config ${{ matrix.cfg.config }} -j 4
@@ -174,6 +186,7 @@ jobs:
       matrix:
         cfg:
           - { arch: x64,   desc: 'Visual Studio 2026 x64 Release, /W4 /WX' }
+          - { arch: x64,   opts: '-DGAOL_PREFER_AVX512=ON', desc: 'Visual Studio 2026 x64 Release, /W4 /WX, AVX-512 arithmetic' }
           - { arch: Win32, desc: 'Visual Studio 2026 x86 Release, /W4 /WX' }
     steps:
       - uses: actions/checkout@v7
@@ -182,7 +195,7 @@ jobs:
           CFLAGS: /W4
           CXXFLAGS: /W4
         run: |
-          cmake -S . -B build -G "Visual Studio 18 2026" -A ${{ matrix.cfg.arch }} -DWITH_TESTS=ON -DWITH_EXAMPLES=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+          cmake -S . -B build -G "Visual Studio 18 2026" -A ${{ matrix.cfg.arch }} -DWITH_TESTS=ON -DWITH_EXAMPLES=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=ON ${{ matrix.cfg.opts }}
           if ($LASTEXITCODE) { exit 1 }
           Select-String -Path build/CMakeCache.txt -Pattern '^CMAKE_(C|CXX)_FLAGS:'
       - name: Build

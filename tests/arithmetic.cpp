@@ -22,6 +22,16 @@
  * one counting as 0, the pairs of bounds that are not an interval being the
  * empty set. The n-th roots are the rootn of IEEE 1788-2015: for an odd n,
  * the root of a negative number is the opposite of the root of its magnitude.
+ * All the intervals made of 15 special bounds (zeros of both signs, infinities,
+ * the smallest subnormal and the smallest normal numbers, the largest double...)
+ * are operated on with +, -, *, /, %, sqr(), sqrt(), inverse(), the compound
+ * forms and the forms with a double (GAOL v5, special_bounds_grid()): the
+ * bounds are those of a reference of plain doubles rounded downward and
+ * upward by the hardware, whatever the rounding direction of the calling code.
+ * The same operations on literals the compiler sees, which no compiler may
+ * fold in the rounding to nearest, are the tightest, and lines of 8 to 16
+ * operations, with operands used twice, have the bounds of the reference
+ * evaluating them one operation after the other.
  *
  * Copyright (c) 2026 ENSTA, France
  *
@@ -360,30 +370,44 @@ namespace
 
   // Divisions by intervals containing zero: the enclosure of the quotients
   // a/b for a in [x] and b in [y] other than zero (x/y), and of the x such
-  // that some a in [x] is x*b for some b in [y] (x%y)
+  // that some a in [x] is x*b for some b in [y] (x%y). The tables are plain
+  // doubles, which special_bounds_grid() compares its reference with too
+  // (GAOL v5)
+  struct ZeroDivisionCase
+  {
+    double xl, xu, yl, yu;
+    double lo, hi;
+    bool empty;
+  };
+
+  const ZeroDivisionCase zero_divisions[] = {
+    { 1., 2., 0., 1., 1., inf, false },
+    { 1., 2., -1., 0., -inf, -1., false },
+    { -2., -1., 0., 1., -inf, -1., false },
+    { -2., -1., -1., 0., 1., inf, false },
+    { 1., 2., -1., 1., -inf, inf, false },
+    { -1., 2., 0., 1., -inf, inf, false },
+    { 0., 2., 0., 1., 0., inf, false },
+    { -2., 0., 0., 1., -inf, 0., false },
+    { 0., 0., -1., 1., 0., 0., false },
+    { 1., 2., 0., 0., 0., 0., true },
+  };
+
+  const ZeroDivisionCase zero_relational_divisions[] = {
+    { 1., 2., 0., 1., 1., inf, false },
+    { 1., 2., -1., 0., -inf, -1., false },
+    { 1., 2., -1., 1., -inf, inf, false },
+    { 0., 0., -1., 1., -inf, inf, false },
+    { -1., 2., 0., 0., -inf, inf, false },
+    { 1., 2., 0., 0., 0., 0., true },
+  };
+
   void divisions_by_zero()
   {
-    struct Case
-    {
-      interval x, y;
-      double lo, hi;
-      bool empty;
-    };
-    const Case divisions[] = {
-      { interval(1., 2.), interval(0., 1.), 1., inf, false },
-      { interval(1., 2.), interval(-1., 0.), -inf, -1., false },
-      { interval(-2., -1.), interval(0., 1.), -inf, -1., false },
-      { interval(-2., -1.), interval(-1., 0.), 1., inf, false },
-      { interval(1., 2.), interval(-1., 1.), -inf, inf, false },
-      { interval(-1., 2.), interval(0., 1.), -inf, inf, false },
-      { interval(0., 2.), interval(0., 1.), 0., inf, false },
-      { interval(-2., 0.), interval(0., 1.), -inf, 0., false },
-      { interval(0., 0.), interval(-1., 1.), 0., 0., false },
-      { interval(1., 2.), interval(0., 0.), 0., 0., true },
-    };
-    for (const auto& c : divisions) {
-      const interval r = c.x / c.y;
-      const auto describe = [&] { return operands(c.x, c.y) + ": " + hex(r); };
+    for (const auto& c : zero_divisions) {
+      const interval x(c.xl, c.xu), y(c.yl, c.yu);
+      const interval r = x / y;
+      const auto describe = [&] { return operands(x, y) + ": " + hex(r); };
       if (c.empty) {
         check("[x]/[y] for [y] containing 0: empty", r.is_empty(), describe);
       } else {
@@ -391,17 +415,10 @@ namespace
         check("[x]/[y] for [y] containing 0: tightest", r.left() == c.lo && r.right() == c.hi, describe);
       }
     }
-    const Case relational_divisions[] = {
-      { interval(1., 2.), interval(0., 1.), 1., inf, false },
-      { interval(1., 2.), interval(-1., 0.), -inf, -1., false },
-      { interval(1., 2.), interval(-1., 1.), -inf, inf, false },
-      { interval(0., 0.), interval(-1., 1.), -inf, inf, false },
-      { interval(-1., 2.), interval(0., 0.), -inf, inf, false },
-      { interval(1., 2.), interval(0., 0.), 0., 0., true },
-    };
-    for (const auto& c : relational_divisions) {
-      const interval r = c.x % c.y;
-      const auto describe = [&] { return operands(c.x, c.y) + ": " + hex(r); };
+    for (const auto& c : zero_relational_divisions) {
+      const interval x(c.xl, c.xu), y(c.yl, c.yu);
+      const interval r = x % y;
+      const auto describe = [&] { return operands(x, y) + ": " + hex(r); };
       if (c.empty) {
         check("[x]%[y] for [y] containing 0: empty", r.is_empty(), describe);
       } else {
@@ -664,6 +681,725 @@ namespace
         check("a line of / with /=: the bounds of the operators", same(q, quot8<interval>(o[0], o[1], o[2], o[3], o[4], o[5], o[6], o[7])), describe);
       }
     }
+  }
+
+  /*
+    The operations at special bounds, against a reference of plain doubles
+    (GAOL v5). The reference is the definition of each operation computed on
+    the bounds with the hardware, in the two directed roundings: the lower
+    bound is the least of the corners rounded downward, the upper one the
+    greatest rounded upward, and no case of the signs of the bounds is told
+    apart, as the kernels of the SSE2 and NEON intervals do. A product counts
+    a zero bound times an infinite one for 0. A quotient by an interval that
+    holds 0 is the one by the parts of [y] on either side of 0, where the
+    bound 0 of a part is the limit 0- or 0+, a/0+ being an infinity of the
+    sign of a, and the quotient of two infinite bounds counts for none (the
+    conventions of quotients_at_special_values()). x%y is that quotient, and
+    the whole line where both x and y hold 0. The tables of
+    divisions_by_zero() are checked against this reference first, so that a
+    wrong reference cannot pass for a right result.
+  */
+  struct Range
+  {
+    bool empty;
+    double lo, hi;
+  };
+
+  const Range no_range = { true, 0.0, 0.0 };
+
+  // Not hex(), which a declaration here would hide from the code below
+  std::string text(const Range& r)
+  {
+    return r.empty ? std::string("empty") : "[" + hex(r.lo) + ", " + hex(r.hi) + "]";
+  }
+
+  enum Operation { addition, subtraction, multiplication, division, square_root };
+
+  // a op b, in plain doubles rounded in the direction given (b is not used by
+  // the square root), the direction upward set again afterwards. The operands
+  // are read from volatile memory once the direction is set, and the result is
+  // written to it before the direction changes back: no compiler can fold the
+  // operation in the rounding to nearest, or compute it elsewhere (GCC moved
+  // operations across the changes of direction, see fused_and_cancellative())
+  double rounded(Operation op, double a, double b, int direction)
+  {
+    volatile double operand_a = a, operand_b = b, result = 0.0;
+    std::fesetround(direction);
+    const double x = operand_a, y = operand_b;
+    switch (op) {
+    case addition:       result = x + y; break;
+    case subtraction:    result = x - y; break;
+    case multiplication: result = x * y; break;
+    case division:       result = x / y; break;
+    default:             result = std::sqrt(x); break;
+    }
+    const double kept = result;
+    std::fesetround(FE_UPWARD);
+    return kept;
+  }
+
+  // The least and the greatest of the corners, each rounded in its own direction
+  struct Corners
+  {
+    double lo = inf, hi = -inf;
+    bool any = false, invalid = false;
+
+    void value(double v)
+    {
+      invalid = invalid || std::isnan(v);
+      lo = std::min(lo, v);
+      hi = std::max(hi, v);
+      any = true;
+    }
+
+    void operation(Operation op, double a, double b)
+    {
+      const double down = rounded(op, a, b, FE_DOWNWARD), up = rounded(op, a, b, FE_UPWARD);
+      invalid = invalid || std::isnan(down) || std::isnan(up);
+      lo = std::min(lo, down);
+      hi = std::max(hi, up);
+      any = true;
+    }
+
+    // A NaN bound, which no check passes, where a corner was one
+    Range range() const
+    {
+      const double nan = std::numeric_limits<double>::quiet_NaN();
+      return invalid ? Range{ false, nan, nan } : any ? Range{ false, lo, hi } : no_range;
+    }
+  };
+
+  Range sum_range(const Range& x, const Range& y)
+  {
+    if (x.empty || y.empty) {
+      return no_range;
+    }
+    return { false, rounded(addition, x.lo, y.lo, FE_DOWNWARD), rounded(addition, x.hi, y.hi, FE_UPWARD) };
+  }
+
+  Range difference_range(const Range& x, const Range& y)
+  {
+    if (x.empty || y.empty) {
+      return no_range;
+    }
+    return { false, rounded(subtraction, x.lo, y.hi, FE_DOWNWARD), rounded(subtraction, x.hi, y.lo, FE_UPWARD) };
+  }
+
+  Range product_range(const Range& x, const Range& y)
+  {
+    if (x.empty || y.empty) {
+      return no_range;
+    }
+    Corners c;
+    for (double a : { x.lo, x.hi }) {
+      for (double b : { y.lo, y.hi }) {
+        if (a == 0.0 || b == 0.0) {
+          c.value(0.0); // 0 times an infinite bound counts as 0
+        } else {
+          c.operation(multiplication, a, b);
+        }
+      }
+    }
+    return c.range();
+  }
+
+  Range quotient_range(const Range& x, const Range& y)
+  {
+    if (x.empty || y.empty || (y.lo == 0.0 && y.hi == 0.0)) {
+      return no_range;
+    }
+    Corners c;
+    // The quotients of the bounds of x by those of a part of [y] with no 0
+    const auto part = [&](double lo, double hi) {
+      for (double a : { x.lo, x.hi }) {
+        for (double b : { lo, hi }) {
+          if (std::isinf(a) && std::isinf(b)) {
+            continue;
+          }
+          if (a == 0.0) {
+            c.value(0.0);
+          } else {
+            c.operation(division, a, b);
+          }
+        }
+      }
+    };
+    if (y.lo > 0.0 || y.hi < 0.0) {
+      part(y.lo, y.hi);
+    } else {
+      if (y.lo < 0.0) {
+        part(y.lo, -0.0);
+      }
+      if (y.hi > 0.0) {
+        part(0.0, y.hi);
+      }
+    }
+    return c.range();
+  }
+
+  Range relational_quotient_range(const Range& x, const Range& y)
+  {
+    const bool x_holds_zero = !x.empty && x.lo <= 0.0 && x.hi >= 0.0, y_holds_zero = !y.empty && y.lo <= 0.0 && y.hi >= 0.0;
+    return (x_holds_zero && y_holds_zero) ? Range{ false, -inf, inf } : quotient_range(x, y);
+  }
+
+  Range inverse_range(const Range& x)
+  {
+    return quotient_range(Range{ false, 1.0, 1.0 }, x);
+  }
+
+  Range square_range(const Range& x)
+  {
+    if (x.empty) {
+      return no_range;
+    }
+    Corners c;
+    c.operation(multiplication, x.lo, x.lo);
+    c.operation(multiplication, x.hi, x.hi);
+    const Range r = c.range();
+    return { false, (x.lo <= 0.0 && x.hi >= 0.0) ? 0.0 : r.lo, r.hi };
+  }
+
+  /*
+    The square root of x >= 0 rounded downward and upward, from the root
+    rounded to nearest, which every sqrt() gives right, and the sign of its
+    square less x, computed exactly (Veltkamp's splitting and Dekker's product,
+    in the rounding to nearest, no fused multiply-add: that of mingw-w64 is
+    wrong): the sqrt() of the processors that compute in the direction set,
+    called in it, gave the root rounded to nearest on 32-bit x86 with Visual
+    C++ and MinGW-w64, which the continuous integration showed. A tiny x is
+    scaled by an even power of two, and so is a huge one, so that the square of
+    the root and its error neither underflow nor overflow (GAOL v5)
+  */
+  void root_bounds(double x, double& down, double& up)
+  {
+    std::fesetround(FE_TONEAREST);
+    volatile double operand = x;
+    int scale = 0;
+    double v = operand;
+    if (v < std::ldexp(1.0, -900) && v > 0.0) {
+      v = std::ldexp(v, 1000);
+      scale = -500;
+    } else if (v > std::ldexp(1.0, 900) && !std::isinf(v)) { // the square of the root would overflow
+      v = std::ldexp(v, -1000);
+      scale = 500;
+    }
+    volatile double root_kept = std::sqrt(v);
+    const double r = root_kept;
+    if (std::isinf(r) || r == 0.0) {
+      down = up = r;
+    } else {
+      volatile double product = r*r, c = 134217729.0*r;
+      const double rh = c - (c - r), rl = r - rh;
+      volatile double e1 = ((rh*rh - product) + 2.0*rh*rl) + rl*rl; // r*r = product + e1 exactly
+      volatile double d1 = (product - v) + e1;                     // the sign of r*r - v
+      const double d = d1;
+      if (d == 0.0) {
+        down = up = r;
+      } else if (d > 0.0) {
+        up = r;
+        down = std::nextafter(r, 0.0);
+      } else {
+        down = r;
+        up = std::nextafter(r, inf);
+      }
+    }
+    if (scale != 0) {
+      down = std::ldexp(down, scale);
+      up = std::ldexp(up, scale);
+    }
+    std::fesetround(FE_UPWARD);
+  }
+
+  Range square_root_range(const Range& x)
+  {
+    if (x.empty || x.hi < 0.0) {
+      return no_range;
+    }
+    double lo_down, lo_up, hi_down, hi_up;
+    root_bounds(std::max(x.lo, 0.0), lo_down, lo_up);
+    root_bounds(x.hi, hi_down, hi_up);
+    return { false, lo_down, hi_up };
+  }
+
+  // A range of the reference with the operators of the lines above, so that
+  // the lines written for the intervals are evaluated by the reference too,
+  // one operation after the other
+  struct Reference
+  {
+    Range range;
+  };
+
+  Reference operator+(const Reference& a, const Reference& b) { return { sum_range(a.range, b.range) }; }
+  Reference operator-(const Reference& a, const Reference& b) { return { difference_range(a.range, b.range) }; }
+  Reference operator*(const Reference& a, const Reference& b) { return { product_range(a.range, b.range) }; }
+  Reference operator/(const Reference& a, const Reference& b) { return { quotient_range(a.range, b.range) }; }
+  Reference operator%(const Reference& a, const Reference& b) { return { relational_quotient_range(a.range, b.range) }; }
+  Reference sqr(const Reference& a) { return { square_range(a.range) }; }
+  Reference& operator+=(Reference& a, const Reference& b) { a = a + b; return a; }
+  Reference& operator-=(Reference& a, const Reference& b) { a = a - b; return a; }
+  Reference& operator*=(Reference& a, const Reference& b) { a = a * b; return a; }
+  Reference& operator/=(Reference& a, const Reference& b) { a = a / b; return a; }
+  Reference& operator%=(Reference& a, const Reference& b) { a = a % b; return a; }
+
+  // Whether the interval is the range, the empty set for the empty range
+  bool is_range(const interval& r, const Range& e)
+  {
+    return e.empty ? r.is_empty() : (!r.is_empty() && r.left() == e.lo && r.right() == e.hi);
+  }
+
+  // An interval and its bounds, kept apart from it: the operands of the
+  // reference are never read from the interval under test
+  struct Box
+  {
+    Range range;
+    interval x;
+  };
+
+  Box box(double l, double u)
+  {
+    return { { false, l, u }, interval(l, u) };
+  }
+
+  // A degenerate interval of a finite double d, which the operators with a double take
+  bool is_point(const Range& r)
+  {
+    return !r.empty && r.lo == r.hi && std::isfinite(r.lo);
+  }
+
+  // The direction of the calling code, set before each operation under test
+  struct CallerDirection
+  {
+    const char *name;
+    int fenv;
+  };
+
+  const CallerDirection caller_directions[] = {
+    { "upward", FE_UPWARD }, { "to nearest", FE_TONEAREST }, { "downward", FE_DOWNWARD }, { "toward zero", FE_TOWARDZERO }
+  };
+  const std::size_t nb_caller_directions = sizeof(caller_directions)/sizeof(caller_directions[0]);
+
+  // The rounding direction found, set again at the end of a test of this section
+  struct RestoreDirection
+  {
+    const int saved = std::fegetround();
+    ~RestoreDirection() { std::fesetround(saved); }
+  };
+
+  // f(), the direction of the calling code being set just before
+  template<class F>
+  interval under(int direction, const F& f)
+  {
+    std::fesetround(direction);
+    return f();
+  }
+
+  // The names of the checks of a form of an operation, made once
+  struct Form
+  {
+    std::string bounds, not_empty;
+  };
+
+  Form form(const std::string& name)
+  {
+    return { "special bounds: " + name, "special bounds: " + name + ": no unexpected empty set" };
+  }
+
+  // The result of the form is the range, and not the empty set where the range is not
+  template<class Context>
+  void expect_range(const Form& f, const interval& r, const Range& e, const Context& context)
+  {
+    const auto describe = [&] { return std::string(context()) + ": " + (r.is_empty() ? std::string("empty") : hex(r)) + " rather than " + text(e); };
+    check(f.not_empty, e.empty || !r.is_empty(), describe);
+    check(f.bounds, is_range(r, e), describe);
+  }
+
+  // The intervals [a, b] with a <= b of the special bounds that interval(a, b) accepts, the
+  // empty set and the universe
+  std::vector<Box> special_boxes()
+  {
+    const double subnormal = std::numeric_limits<double>::denorm_min(), smallest_normal = std::numeric_limits<double>::min();
+    const double largest = std::numeric_limits<double>::max();
+    // Read from volatile memory: no compiler knows the values of the grid
+    const volatile double special[] = { -inf, -largest, -2.5, -1., -smallest_normal, -subnormal, -0., 0., subnormal,
+                                        smallest_normal, 0.1, 1., 3., largest, inf };
+    std::vector<double> bounds;
+    for (const volatile double& b : special) {
+      const double v = b;
+      bounds.push_back(v);
+    }
+    std::vector<Box> boxes = { { no_range, interval::emptyset() }, { { false, -inf, inf }, interval::universe() } };
+    for (double l : bounds) {
+      for (double u : bounds) {
+        if (l <= u) {
+          const Box b = box(l, u);
+          // [+oo, +oo] and [-oo, -oo] are no intervals
+          const bool accepted = l < inf && u > -inf;
+          check("special bounds: interval(a, b) is empty for a = +oo or b = -oo only", b.x.is_empty() == !accepted,
+                [&] { return "a=" + hex(l) + " b=" + hex(u) + ": " + hex(b.x); });
+          if (accepted) {
+            boxes.push_back(b);
+          }
+        }
+      }
+    }
+    return boxes;
+  }
+
+  struct Plus
+  {
+    static std::string symbol() { return "+"; }
+    static Range reference(const Range& x, const Range& y) { return sum_range(x, y); }
+    static interval apply(const interval& x, const interval& y) { return x + y; }
+    static interval apply(const interval& x, double d) { return x + d; }
+    static interval apply(double d, const interval& y) { return d + y; }
+    static void assign(interval& x, const interval& y) { x += y; }
+    static void assign(interval& x, double d) { x += d; }
+  };
+
+  struct Minus
+  {
+    static std::string symbol() { return "-"; }
+    static Range reference(const Range& x, const Range& y) { return difference_range(x, y); }
+    static interval apply(const interval& x, const interval& y) { return x - y; }
+    static interval apply(const interval& x, double d) { return x - d; }
+    static interval apply(double d, const interval& y) { return d - y; }
+    static void assign(interval& x, const interval& y) { x -= y; }
+    static void assign(interval& x, double d) { x -= d; }
+  };
+
+  struct Times
+  {
+    static std::string symbol() { return "*"; }
+    static Range reference(const Range& x, const Range& y) { return product_range(x, y); }
+    static interval apply(const interval& x, const interval& y) { return x * y; }
+    static interval apply(const interval& x, double d) { return x * d; }
+    static interval apply(double d, const interval& y) { return d * y; }
+    static void assign(interval& x, const interval& y) { x *= y; }
+    static void assign(interval& x, double d) { x *= d; }
+  };
+
+  struct Over
+  {
+    static std::string symbol() { return "/"; }
+    static Range reference(const Range& x, const Range& y) { return quotient_range(x, y); }
+    static interval apply(const interval& x, const interval& y) { return x / y; }
+    static interval apply(const interval& x, double d) { return x / d; }
+    static interval apply(double d, const interval& y) { return d / y; }
+    static void assign(interval& x, const interval& y) { x /= y; }
+    static void assign(interval& x, double d) { x /= d; }
+  };
+
+  struct Relational
+  {
+    static std::string symbol() { return "%"; }
+    static Range reference(const Range& x, const Range& y) { return relational_quotient_range(x, y); }
+    static interval apply(const interval& x, const interval& y) { return x % y; }
+    static interval apply(const interval& x, double d) { return x % d; }
+    static interval apply(double d, const interval& y) { return d % y; }
+    static void assign(interval& x, const interval& y) { x %= y; }
+    static void assign(interval& x, double d) { x %= d; }
+  };
+
+  // [x] op [y], [x] op= [y], [x] op= [x] (the operand being *this), and the
+  // forms with a double of the degenerate intervals of the grid, for every
+  // pair of the grid and every direction of the calling code
+  template<class Op>
+  void binary_grid(const std::vector<Box>& boxes)
+  {
+    const std::string s = Op::symbol();
+    const Form binary = form("[x]" + s + "[y]"), assigned = form("[x]" + s + "=[y]"), self = form("[x]" + s + "=[x], the same interval");
+    const Form with_double = form("[x]" + s + "d"), double_with = form("d" + s + "[y]"), assigned_double = form("[x]" + s + "=d");
+    for (const Box& X : boxes) {
+      for (const Box& Y : boxes) {
+        const Range e = Op::reference(X.range, Y.range);
+        for (const CallerDirection& c : caller_directions) {
+          const auto context = [&] { return "x=" + text(X.range) + " y=" + text(Y.range) + " (the caller's direction " + c.name + ")"; };
+          expect_range(binary, under(c.fenv, [&] { return Op::apply(X.x, Y.x); }), e, context);
+          expect_range(assigned, under(c.fenv, [&] { interval r(X.x); Op::assign(r, Y.x); return r; }), e, context);
+          if (&X == &Y) {
+            expect_range(self, under(c.fenv, [&] { interval r(X.x); Op::assign(r, r); return r; }), e, context);
+          }
+          if (is_point(Y.range)) {
+            const double d = Y.range.lo;
+            expect_range(with_double, under(c.fenv, [&] { return Op::apply(X.x, d); }), e, context);
+            expect_range(assigned_double, under(c.fenv, [&] { interval r(X.x); Op::assign(r, d); return r; }), e, context);
+          }
+          if (is_point(X.range)) {
+            const double d = X.range.lo;
+            expect_range(double_with, under(c.fenv, [&] { return Op::apply(d, Y.x); }), e, context);
+          }
+        }
+      }
+    }
+    // A double that is infinite or a NaN gives the empty set, as interval(d) does
+    const Form infinite = form("[x]" + s + "d, d" + s + "[x] and [x]" + s + "=d for an infinite or NaN d");
+    for (double d : { -inf, inf, std::numeric_limits<double>::quiet_NaN() }) {
+      for (const Box& X : boxes) {
+        for (const CallerDirection& c : caller_directions) {
+          const auto context = [&] { return "x=" + text(X.range) + " d=" + hex(d) + " (the caller's direction " + c.name + ")"; };
+          expect_range(infinite, under(c.fenv, [&] { return Op::apply(X.x, d); }), no_range, context);
+          expect_range(infinite, under(c.fenv, [&] { return Op::apply(d, X.x); }), no_range, context);
+          expect_range(infinite, under(c.fenv, [&] { interval r(X.x); Op::assign(r, d); return r; }), no_range, context);
+        }
+      }
+    }
+  }
+
+  void unary_grid(const std::vector<Box>& boxes)
+  {
+    const Form square = form("sqr([x])"), root = form("sqrt([x])"), inverse_function = form("inverse([x])"), inverse_method = form("[x].inverse()");
+    for (const Box& X : boxes) {
+      for (const CallerDirection& c : caller_directions) {
+        const auto context = [&] { return "x=" + text(X.range) + " (the caller's direction " + c.name + ")"; };
+        expect_range(square, under(c.fenv, [&] { return sqr(X.x); }), square_range(X.range), context);
+        expect_range(root, under(c.fenv, [&] { return sqrt(X.x); }), square_root_range(X.range), context);
+        expect_range(inverse_function, under(c.fenv, [&] { return inverse(X.x); }), inverse_range(X.range), context);
+        expect_range(inverse_method, under(c.fenv, [&] { return X.x.inverse(); }), inverse_range(X.range), context);
+      }
+    }
+  }
+
+  void special_bounds_grid()
+  {
+    const RestoreDirection restore;
+    // The reference first, against the tables of divisions_by_zero()
+    for (const auto& c : zero_divisions) {
+      const Range q = quotient_range({ false, c.xl, c.xu }, { false, c.yl, c.yu });
+      check("special bounds: the reference quotient is the one of the table", c.empty ? q.empty : (!q.empty && q.lo == c.lo && q.hi == c.hi),
+            [&] { return "x=" + text({ false, c.xl, c.xu }) + " y=" + text({ false, c.yl, c.yu }) + ": " + text(q); });
+    }
+    for (const auto& c : zero_relational_divisions) {
+      const Range q = relational_quotient_range({ false, c.xl, c.xu }, { false, c.yl, c.yu });
+      check("special bounds: the reference relational quotient is the one of the table", c.empty ? q.empty : (!q.empty && q.lo == c.lo && q.hi == c.hi),
+            [&] { return "x=" + text({ false, c.xl, c.xu }) + " y=" + text({ false, c.yl, c.yu }) + ": " + text(q); });
+    }
+    const std::vector<Box> boxes = special_boxes();
+    binary_grid<Plus>(boxes);
+    binary_grid<Minus>(boxes);
+    binary_grid<Times>(boxes);
+    binary_grid<Over>(boxes);
+    binary_grid<Relational>(boxes);
+    unary_grid(boxes);
+  }
+
+  /*
+    Operations whose operands are literals the compiler sees (GAOL v5), in
+    functions it can inline whole: the library computes with the rounding
+    direction upward, a direction no compiler models, so a compiler that
+    folded an addition of vectors of NEON at compile time, as it folds one
+    of doubles, would compute it in the rounding to nearest (it does so once
+    the library is inlined too, with -flto). The kernels pass their operands
+    through an empty asm statement to prevent it (reread_bounds() of
+    gaol/gaol_interval_neon.cpp). Every operation below is inexact, so that
+    an interval folded to one double is not the tightest enclosure of its
+    result (the exact value is no double: 0.1 + 0.2, 1 - 0.1, 0.1*0.3, 1/3,
+    0.1^2 and the root of 2), and has to be the tightest, whatever the
+    direction of the calling code. What these checks catch: an operation that
+    computes in the rounding to nearest, and a folding at compile time, which
+    only happens in a build GAOL refuses to support, a program and a library
+    both without -frounding-math (compiled with -flto): with it, which
+    gaol::gaol gives to the code using GAOL, the compilers do not fold these
+    operations, and the checks cannot fail for this reason.
+  */
+  interval literal_sum() { return interval(0.1) + interval(0.2); }
+  interval literal_difference() { return interval(1.0) - interval(0.1); }
+  interval literal_product() { return interval(0.1) * interval(0.3); }
+  interval literal_quotient() { return interval(1.0) / interval(3.0); }
+  interval literal_relational_quotient() { return interval(1.0) % interval(3.0); }
+  interval literal_inverse() { return inverse(interval(3.0)); }
+  interval literal_square() { return sqr(interval(0.1)); }
+  interval literal_square_root() { return sqrt(interval(2.0)); }
+  interval literal_sum_with_double() { return interval(0.1) + 0.2; }
+  interval literal_double_difference() { return 1.0 - interval(0.1); }
+  interval literal_product_with_double() { return 0.1 * interval(0.3); }
+  interval literal_quotient_by_double() { return interval(1.0) / 3.0; }
+  // The five compound forms with a double in a row, and a line of operators
+  interval literal_compound_line()
+  {
+    interval r(0.1);
+    r += 0.2;
+    r *= 0.3;
+    r -= 0.1;
+    r /= 3.0;
+    r %= 0.7;
+    return r;
+  }
+  interval literal_line()
+  {
+    return ((interval(0.1) + interval(0.2)) * interval(0.3) - interval(1.0) / interval(3.0)) / interval(0.7) + sqr(interval(0.1));
+  }
+  Reference reference_compound_line()
+  {
+    Reference r = { { false, 0.1, 0.1 } };
+    const Reference a = { { false, 0.2, 0.2 } }, b = { { false, 0.3, 0.3 } }, c = { { false, 0.1, 0.1 } }, d = { { false, 3.0, 3.0 } },
+                    e = { { false, 0.7, 0.7 } };
+    r += a;
+    r *= b;
+    r -= c;
+    r /= d;
+    r %= e;
+    return r;
+  }
+  Reference reference_line()
+  {
+    const Reference tenth = { { false, 0.1, 0.1 } }, fifth = { { false, 0.2, 0.2 } }, three_tenths = { { false, 0.3, 0.3 } },
+                    one = { { false, 1.0, 1.0 } }, three = { { false, 3.0, 3.0 } }, seven_tenths = { { false, 0.7, 0.7 } };
+    return ((tenth + fifth) * three_tenths - one / three) / seven_tenths + sqr(tenth);
+  }
+
+  void literal_operands()
+  {
+    const RestoreDirection restore;
+    const double tenth = 0.1, fifth = 0.2, three_tenths = 0.3;
+    const Dyadic a = dyadic(tenth), b = dyadic(fifth), c = dyadic(three_tenths), one = dyadic(1.0), three = dyadic(3.0);
+    const struct { const char *name; interval (*literal)(); Exact exact_value; } cases[] = {
+      { "[0.1]+[0.2]", literal_sum, exact(a + b) },
+      { "[1]-[0.1]", literal_difference, exact(one - a) },
+      { "[0.1]*[0.3]", literal_product, exact(a * c) },
+      { "[1]/[3]", literal_quotient, quotient(one, three) },
+      { "[1]%[3]", literal_relational_quotient, quotient(one, three) },
+      { "inverse([3])", literal_inverse, quotient(one, three) },
+      { "sqr([0.1])", literal_square, exact(a * a) },
+      { "[0.1]+0.2", literal_sum_with_double, exact(a + b) },
+      { "1-[0.1]", literal_double_difference, exact(one - a) },
+      { "0.1*[0.3]", literal_product_with_double, exact(a * c) },
+      { "[1]/3", literal_quotient_by_double, quotient(one, three) },
+    };
+    for (const CallerDirection& direction : caller_directions) {
+      for (const auto& k : cases) {
+        std::fesetround(direction.fenv);
+        const interval r = k.literal();
+        check(std::string("literal operands: ") + k.name + " is the tightest enclosure", is_tightest_enclosure(r, k.exact_value),
+              [&] { return std::string("the caller's direction ") + direction.name + ": " + hex(r); });
+      }
+      std::fesetround(direction.fenv);
+      const interval root = literal_square_root();
+      expect_root("literal operands: sqrt([2])", root, 2.0, 2, 0);
+      // The lines, against the reference computed step by step at run time
+      std::fesetround(direction.fenv);
+      const interval compound = literal_compound_line();
+      std::fesetround(direction.fenv);
+      const interval line = literal_line();
+      const Range expected_compound = reference_compound_line().range, expected_line = reference_line().range;
+      check("literal operands: a line of the five compound forms with a double", is_range(compound, expected_compound),
+            [&] { return std::string("the caller's direction ") + direction.name + ": " + hex(compound) + " rather than " + text(expected_compound); });
+      check("literal operands: a line of operators", is_range(line, expected_line),
+            [&] { return std::string("the caller's direction ") + direction.name + ": " + hex(line) + " rather than " + text(expected_line); });
+    }
+  }
+
+  /*
+    Lines whose operands appear several times, written once for the
+    intervals and for the reference (GAOL v5): an operation reads twice the
+    interval it has just computed, or the one it assigns to, as the kernels
+    of the NEON intervals do with the registers their results come back in.
+    As in long_lines(), p and e are positive, the divisors; r -= r and r *= r
+    are the aliasing of the compound forms, the divisions by an interval of
+    the grid that holds 0 being those of binary_grid()
+  */
+  template<class T> T repeated_operands(const T& a, const T& b, const T& p, const T& e, const T& s1, const T& s2, const T& s3, const T& s4)
+  {
+    T r = a - b;
+    r *= r;
+    r += r;
+    r = r - r + p;
+    r *= s1 + s2;
+    r /= e;
+    r -= s3 * s4;
+    r %= p + e;
+    return r + r;
+  }
+  template<class T> T repeated_quotients(const T& a, const T& b, const T& p, const T& e, const T& s1, const T& s2, const T& s3, const T& s4)
+  {
+    (void)s3; (void)s4;
+    return ((p / p) + (e % e)) * (a - b) - (p + e) / (p + e) * s1 + (sqr(s2) + p) / (sqr(s2) + p);
+  }
+  template<class T> T compound_line(const T& a, const T& b, const T& p, const T& e, const T& s1, const T& s2, const T& s3, const T& s4)
+  {
+    T r = a;
+    r += b; r -= s1; r *= s2; r /= p; r %= e; r -= r; r += s3; r *= s4; r += r; r -= a;
+    return r;
+  }
+
+  typedef interval (*IntervalLine)(const interval&, const interval&, const interval&, const interval&,
+                                   const interval&, const interval&, const interval&, const interval&);
+  typedef Reference (*ReferenceLine)(const Reference&, const Reference&, const Reference&, const Reference&,
+                                     const Reference&, const Reference&, const Reference&, const Reference&);
+
+  // The lines of long_lines() and the ones above, on operands drawn from the
+  // pools (the sixth and seventh operands are p and e), whatever the
+  // direction of the calling code: each has the bounds of the reference
+  // evaluating it one operation after the other
+  void lines_on_pools(const std::string& kind, const std::vector<Box>& pool, const std::vector<Box>& positive_pool, int iterations,
+                      Random& random)
+  {
+    const struct { const char *name; IntervalLine on_intervals; ReferenceLine on_ranges; } lines[] = {
+      { "a line of + (16)", sum16<interval>, sum16<Reference> },
+      { "a line of + and - (16)", diff16<interval>, diff16<Reference> },
+      { "a line of * (8)", mul8<interval>, mul8<Reference> },
+      { "a line of * in a tree (8)", mul8_tree<interval>, mul8_tree<Reference> },
+      { "a line of / (8)", quot8<interval>, quot8<Reference> },
+      { "a line of + - * / (13)", mix13<interval>, mix13<Reference> },
+      { "a line of + - * / in a tree (14)", mix_tree<interval>, mix_tree<Reference> },
+      { "a line with operands used twice (13)", repeated_operands<interval>, repeated_operands<Reference> },
+      { "a line of quotients by the same expression (13)", repeated_quotients<interval>, repeated_quotients<Reference> },
+      { "a line of compound forms (12)", compound_line<interval>, compound_line<Reference> },
+    };
+    std::vector<std::string> names;
+    for (const auto& l : lines) {
+      names.push_back("lines against the reference, " + kind + ": " + l.name);
+    }
+    for (int i = 0; i < iterations; ++i) {
+      const Box *o[8];
+      for (int k = 0; k < 8; ++k) {
+        const std::vector<Box>& from = (k == 2 || k == 3) ? positive_pool : pool;
+        o[k] = &from[static_cast<std::size_t>(random.integer(0, static_cast<int>(from.size()) - 1))];
+      }
+      const CallerDirection& direction = caller_directions[static_cast<std::size_t>(i) % nb_caller_directions];
+      for (std::size_t k = 0; k < sizeof(lines)/sizeof(lines[0]); ++k) {
+        std::fesetround(direction.fenv);
+        const interval r = lines[k].on_intervals(o[0]->x, o[1]->x, o[2]->x, o[3]->x, o[4]->x, o[5]->x, o[6]->x, o[7]->x);
+        const Range e = lines[k].on_ranges({ o[0]->range }, { o[1]->range }, { o[2]->range }, { o[3]->range },
+                                           { o[4]->range }, { o[5]->range }, { o[6]->range }, { o[7]->range }).range;
+        check(names[k], is_range(r, e), [&] {
+          std::string text_of_operands;
+          for (int j = 0; j < 8; ++j) {
+            text_of_operands += (j ? " " : "") + text(o[j]->range);
+          }
+          return std::string("the caller's direction ") + direction.name + ", operands " + text_of_operands + ": "
+                 + (r.is_empty() ? std::string("empty") : hex(r)) + " rather than " + text(e);
+        });
+      }
+    }
+  }
+
+  void lines_against_the_reference(Random& random)
+  {
+    const RestoreDirection restore;
+    // Intervals of random bounds, mostly of one sign or the other, whose lines are finite
+    std::vector<Box> pool, positive_pool;
+    for (int i = 0; i < 300; ++i) {
+      const double u = random(-8, 8), v = random(-8, 8);
+      pool.push_back(box(std::min(u, v), std::max(u, v)));
+      const double p = random.positive(-8, 8), q = random.positive(-8, 8);
+      positive_pool.push_back(box(std::min(p, q), std::max(p, q)));
+    }
+    lines_on_pools("random intervals", pool, positive_pool, 3000, random);
+    // The intervals of the grid and of any magnitude: zeros, infinities,
+    // subnormal and large doubles, so that the lines end in half-lines, in
+    // the whole line, in the empty set
+    std::vector<Box> wild = special_boxes(), wild_positive;
+    for (int i = 0; i < 60; ++i) {
+      const double u = random.any(), v = random.any();
+      wild.push_back(box(std::min(u, v), std::max(u, v)));
+    }
+    for (const Box& b : wild) {
+      if (!b.range.empty && b.range.lo > 0.0) {
+        wild_positive.push_back(b);
+      }
+    }
+    lines_on_pools("special bounds and any doubles", wild, wild_positive, 1500, random);
   }
 
   // gaol::pow(x, n) for an unsigned n, gaol_uipow(), the pown of IEEE 1788
@@ -1320,6 +2056,9 @@ int main()
   products_with_infinite_bounds();
   quotients_at_special_values();
   long_lines(random);
+  special_bounds_grid();
+  literal_operands();
+  lines_against_the_reference(random);
   unsigned_powers();
   negative_powers_at_special_values();
   squares_at_special_values();

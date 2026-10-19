@@ -323,6 +323,47 @@ if test "${target_x86}" = yes; then
         fi
     fi
 fi
+# --enable-arm64 (GAOL v5): on 64-bit ARM processors, the intervals are computed
+# with NEON instructions (gaol_interval_neon.h), as CMakeLists.txt and
+# meson.build do (see CMakeLists.txt), independently of --enable-simd. Where
+# the test below compiles, whatever the processor of the machine building: GCC,
+# Clang and AppleClang for AArch64 under Linux and macOS, with the intrinsics
+# of <arm_neon.h> and the registers of the rounding mode. NEON needs no flag.
+# Not for a target of Windows (MinGW-w64 and MSYS2 define __aarch64__ too),
+# nor for 32-bit ARM or x86: the option is then ignored, and the intervals are
+# computed with the FPU. The refusals above (Clang 14, Clang on 32-bit ARM)
+# come first. The program is the same as that of CMakeLists.txt and meson.build.
+AC_ARG_ENABLE(arm64,
+                [AS_HELP_STRING([--enable-arm64],
+                        [use NEON instructions to implement arithmetic operations on 64-bit ARM processors @<:@default=yes@:>@])],
+                [arm64=${enable_arm64}],
+                [arm64="yes"])
+using_neon=no
+if test "$arm64" = yes; then
+    AC_LANG_PUSH([C++])
+    AC_MSG_CHECKING([whether the compiler takes the NEON intrinsics and the registers of the rounding mode for a 64-bit ARM target])
+    AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#if !defined(__aarch64__)
+#error GAOL computes its intervals with NEON on 64-bit ARM processors only
+#endif
+#if defined(_WIN32)
+#error not for Windows
+#endif
+#include <arm_neon.h>
+int main()
+{
+  unsigned long long fpcr;
+  __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));
+  __asm__ __volatile__ ("msr fpcr, %0" : : "r" (fpcr) : "memory");
+  const float64x2_t x = vaddq_f64(vdupq_n_f64(1.0), vdupq_n_f64(2.0));
+  return static_cast<int>(vgetq_lane_f64(x, 0)) - 3;
+}]])],[using_neon=yes],[using_neon=no])
+    AC_MSG_RESULT(${using_neon})
+    AC_LANG_POP([C++])
+    if test "${using_neon}" = yes; then
+        AC_DEFINE([GAOL_USING_NEON_INSTRUCTIONS],1,
+            [Define this to 1 if NEON instructions are to be used])
+    fi
+fi
 # --enable-preserve-rounding, which --enable-prefer-avx512 follows by
 # default (GAOL v5)
 AC_ARG_ENABLE(preserve-rounding,
@@ -763,6 +804,7 @@ printf "AVX-512 path taken\t= ${avx512_arithmetic}\n"
 printf "exceptions\t\t= $exceptions\n"
 printf "SSE2\t\t\t= ${using_sse2}\n"
 printf "SSE3\t\t\t= ${has_sse3}\n"
+printf "NEON\t\t\t= ${using_neon}\n"
 printf "tests\t\t\t= ${with_tests}\n"
 printf "examples\t\t= ${with_examples}\n"
 printf "pdflatex\t\t= $PDFLATEX\n"

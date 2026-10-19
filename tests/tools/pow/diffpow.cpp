@@ -11,8 +11,8 @@
  *          (gaol_pow_real(), and the standard's pow with a double exponent)
  *
  * in hexadecimal, the signs of the zeros included, "empty" for the empty set.
- * The same program linked with two builds of GAOL (two versions, or the SSE2
- * and the FPU intervals) prints the same lines where the two compute the same
+ * The same program linked with two builds of GAOL (two versions, or the SSE2,
+ * the NEON and the FPU intervals) prints the same lines where the two compute the same
  * bounds: diffpow.py builds it, runs it and compares the outputs.
  *
  * The boxes are a grid (about 100 bases: zeros of both signs, negative,
@@ -211,6 +211,8 @@ int main(int argc, char **argv)
 
 #if GAOL_USING_SSE2_INSTRUCTIONS
   const char *intervals = "SSE2";
+#elif GAOL_USING_NEON_INSTRUCTIONS
+  const char *intervals = "NEON";
 #else
   const char *intervals = "FPU";
 #endif

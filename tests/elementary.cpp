@@ -20,6 +20,10 @@
 #include "gaol_tests.h"
 #include "elementary_values.h"
 
+#if defined(GAOL_USING_NEON_INSTRUCTIONS) && GAOL_USING_NEON_INSTRUCTIONS
+#  include <arm_neon.h>
+#endif
+
 #include <algorithm>
 #include <cfenv>
 #include <cmath>
@@ -741,6 +745,25 @@ namespace
       for (const interval& x : { interval(0.5), interval(4.), interval(0.5, 4.), interval(0., 4.) }) {
         const interval s = gaol_ieee1788::pow(x, J);
         check("gaol_ieee1788::pow(x,J) for J = [+oo] or [-oo] built from an SSE2 register: empty", s.is_empty(),
+              [&] { return "x = " + hex(x) + ", J = " + hex(J) + ": " + hex(s); });
+      }
+    }
+#endif
+#if defined(GAOL_USING_NEON_INSTRUCTIONS) && GAOL_USING_NEON_INSTRUCTIONS
+    // The same [+oo] and [-oo], built from a NEON register with the explicit
+    // constructor interval(const float64x2_t&), the lanes holding the stored
+    // bounds <-left, right> (GAOL v5): a build with the NEON intervals does
+    // not lose the checks above
+    for (const double d : { inf, -inf }) {
+      const double lanes[2] = { -d, d };
+      const interval J(vld1q_f64(lanes));
+      const interval r = pow(interval(4.), J);
+      check("pow([4],J) for J = [+oo] or [-oo] built from a NEON register: empty",
+            J.left() == d && J.right() == d && r.is_empty(),
+            [&] { return "J = " + hex(J) + ", pow([4],J) = " + hex(r); });
+      for (const interval& x : { interval(0.5), interval(4.), interval(0.5, 4.), interval(0., 4.) }) {
+        const interval s = gaol_ieee1788::pow(x, J);
+        check("gaol_ieee1788::pow(x,J) for J = [+oo] or [-oo] built from a NEON register: empty", s.is_empty(),
               [&] { return "x = " + hex(x) + ", J = " + hex(J) + ": " + hex(s); });
       }
     }

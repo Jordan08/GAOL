@@ -62,6 +62,7 @@ jobs:
           - { os: macos-15-intel,   configure: '',                           desc: 'Autotools, macOS 15 x86_64' }
           - { os: ubuntu-24.04,     configure: '--enable-preserve-rounding', desc: 'Autotools, Ubuntu 24.04 x86_64, rounding direction preserved' }
           - { os: ubuntu-24.04-arm, configure: '--enable-preserve-rounding', desc: 'Autotools, Ubuntu 24.04 arm64, rounding direction preserved' }
+          - { os: ubuntu-24.04-arm, configure: '--disable-arm64',            desc: 'Autotools, Ubuntu 24.04 arm64, FPU intervals' }
           - { os: ubuntu-24.04,     configure: '--disable-exceptions --with-examples', desc: 'Autotools, Ubuntu 24.04 x86_64, without exceptions' }
     steps:
       - uses: actions/checkout@v7
@@ -117,6 +118,13 @@ jobs:
           grep -q "elementary functions" "$RUNNER_TEMP/configure.log"
           ls "$RUNNER_TEMP/gaol/lib"
           ! ls "$RUNNER_TEMP/gaol/lib" | grep "^lib" | grep -v "^libgaol"
+      # NEON on 64-bit ARM, SSE2 on x86-64, the FPU where --disable-arm64
+      # asked for it (GAOL v5)
+      - name: The intervals
+        run: |
+          case "$(uname -m)" in aarch64|arm64) expected=neon ;; *) expected=sse2 ;; esac
+          case "${{ matrix.cfg.configure }}" in *--disable-arm64*) expected=fpu ;; esac
+          sh .github/scripts/check-intervals.sh gaol/gaol_configuration.h $expected
       - name: Locale writing a decimal comma
         if: runner.os == 'Linux'
         run: sh .github/scripts/comma-locale.sh generate
@@ -164,6 +172,7 @@ jobs:
           - { os: macos-15-intel,   options: '',                                desc: 'Meson, macOS 15 x86_64' }
           - { os: ubuntu-24.04,     options: '-Denable-preserve-rounding=true', desc: 'Meson, Ubuntu 24.04 x86_64, rounding direction preserved' }
           - { os: macos-15,         options: '-Denable-preserve-rounding=true', desc: 'Meson, macOS 15 arm64, rounding direction preserved' }
+          - { os: ubuntu-24.04-arm, options: '-Denable-arm64=false',            desc: 'Meson, Ubuntu 24.04 arm64, FPU intervals' }
           - { os: ubuntu-24.04,     options: '-Denable-exception=false -Dwith-examples=true', desc: 'Meson, Ubuntu 24.04 x86_64, without exceptions' }
     steps:
       - uses: actions/checkout@v7
@@ -216,6 +225,13 @@ jobs:
           grep -qi "elementary functions" configure.log
           ls "$RUNNER_TEMP/gaol/lib"
           ! ls "$RUNNER_TEMP/gaol/lib" | grep "^lib" | grep -v "^libgaol"
+      # NEON on 64-bit ARM, SSE2 on x86-64, the FPU where -Denable-arm64=false
+      # asked for it (GAOL v5)
+      - name: The intervals
+        run: |
+          case "$(uname -m)" in aarch64|arm64) expected=neon ;; *) expected=sse2 ;; esac
+          case "${{ matrix.cfg.options }}" in *-Denable-arm64=false*) expected=fpu ;; esac
+          sh .github/scripts/check-intervals.sh build-meson/gaol/gaol_configuration.h $expected
       # enable-prefer-avx512=false refuses the AVX-512 path where
       # enable-preserve-rounding asks for it by default: the option was a
       # boolean, whose false meson could not tell from the default, and a
@@ -382,6 +398,13 @@ jobs:
           foreach ($f in 'parser/gaol_interval_parser.h') {
             if (Test-Path "$prefix/include/gaol/$f") { Write-Output "$f is installed"; exit 1 }
           }
+      # The intervals meson took, as CMake does (windows.yml): the SSE2 ones on
+      # x64 (GAOL v5), the FPU ones on x86
+      - name: The intervals
+        shell: bash
+        run: |
+          if [ "${{ matrix.cfg.arch }}" = "x64" ]; then expected=sse2; else expected=fpu; fi
+          sh .github/scripts/check-intervals.sh build-meson/gaol/gaol_configuration.h $expected
       - name: Tests (ninja test, make test of meson)
         run: |
           ninja -C build-meson test

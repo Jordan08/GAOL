@@ -8,9 +8,9 @@
 #   the oldest standard GAOL takes, and -Wall -Wextra -Wold-style-cast
 #   -Wundef -Werror (no cast of C in GAOL's headers, GAOL v5, and no #if on a
 #   macro left undefined, point Z of TODO.md), but those that other headers
-#   include in the middle of their own code (gaol_interval_fpu.h and
-#   gaol_interval_sse.h, the inline functions of gaol_interval.h) or with
-#   Visual C++ only (gaol_fpu_msvc.h);
+#   include in the middle of their own code (gaol_interval_fpu.h,
+#   gaol_interval_neon.h and gaol_interval_sse.h, the inline functions of
+#   gaol_interval.h) or with Visual C++ only (gaol_fpu_msvc.h);
 # - including gaol/gaol, gaol/parser/gaol_expression.h and
 #   gaol/parser/gaol_expr_eval.h defines no macro whose name does not start
 #   with GAOL_ or gaol_ (__GAOL, __gaol for the include guards): the macros
@@ -19,7 +19,9 @@
 #   they include, which an earlier file includes alone (with __has_include, for
 #   those of other systems, and only for Windows those of Windows, the intrin.h
 #   of Clang including the one of the system, and only on x86 those of SSE,
-#   which stop on an #error elsewhere, as on macOS arm64).
+#   which stop on an #error elsewhere, as on macOS arm64, and only on 64-bit ARM
+#   those of NEON, which Clang has for every target and which stop on an #error
+#   on x86, as on macOS x86_64: GAOL v5).
 #
 # The flags are those of pkg-config --cflags gaol, where the prefix has
 # gaol.pc, as the code using GAOL is compiled; TEST_FLAGS (see tests.sh)
@@ -54,7 +56,7 @@ for f in "$prefix"/include/gaol/* "$prefix"/include/gaol/parser/*; do
   [ -f "$f" ] || continue
   h=${f#"$prefix"/include/gaol/}
   case "$h" in
-    gaol_interval_fpu.h|gaol_interval_sse.h|gaol_fpu_msvc.h) continue ;;
+    gaol_interval_fpu.h|gaol_interval_neon.h|gaol_interval_sse.h|gaol_fpu_msvc.h) continue ;;
   esac
   printf '#include <gaol/%s>\n' "$h" > "$work/alone.cpp"
   if $cxx $flags -fsyntax-only "$work/alone.cpp" > "$work/alone.log" 2>&1; then
@@ -74,6 +76,7 @@ sed -n 's/^[[:space:]]*#[[:space:]]*include[[:space:]]*<\([^>]*\)>.*/\1/p' "$pre
     case "$s" in
       intrin.h|sal.h) printf '#if defined(_WIN32) && __has_include(<%s>)\n' "$s" ;;
       *mmintrin.h) printf '#if (defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64)) && __has_include(<%s>)\n' "$s" ;;
+      arm_neon.h|arm_acle.h) printf '#if defined(__aarch64__) && __has_include(<%s>)\n' "$s" ;;
       *) printf '#if __has_include(<%s>)\n' "$s" ;;
     esac
     printf '#  include <%s>\n#endif\n' "$s"

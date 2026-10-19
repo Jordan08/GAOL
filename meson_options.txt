@@ -12,6 +12,7 @@
 # meson.build). The options enable-optimize, enable-relations, with-test and
 # check-perf are gone (GAOL v5).
 option('enable-simd', type : 'boolean', value : true, description : 'Compute the intervals with SSE2 instructions on x86 processors [default=yes, as configure]')
+option('enable-arm64', type : 'boolean', value : true, description : 'Compute the intervals with NEON instructions on 64-bit ARM processors, with GCC, Clang or AppleClang under Linux and macOS (GAOL v5; independent of enable-simd, ignored elsewhere) [default=yes, as configure and CMake]')
 option('enable-fma', type : 'boolean', value : true, description : 'Compile GAOL and CORE-MATH with the fused multiply-add instructions of the processor, where the compiler has a flag for them (false: a library for any processor of the architecture) [default=yes, as configure and CMake]')
 option('enable-verbose-mode', type : 'boolean', value : false, description : 'Write a line on the standard error when GAOL initializes and cleans up [default=no: GAOL is silent, as with configure and CMake]')
 option('enable-preserve-rounding', type : 'boolean', value : false, description : 'Restore the rounding direction after each operation, rather than leaving it upward')
