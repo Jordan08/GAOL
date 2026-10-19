@@ -19,27 +19,24 @@ avant ce qui ne fait que ralentir ; le petit et sans dépendance avant le gros ;
 la version (Y) en dernier, puis ce qui lui est postérieur. Le détail de chaque
 tâche est dans la section de son point plus bas.
 
-### A. Décisions courtes, à prendre avant de lancer le code
+### A. Décisions courtes, prises le 19 octobre
 
-Aucune ne demande de code ; elles orientent ou débloquent la suite.
+Plus rien à décider ici : les trois choix sont faits, et leurs suites sont dans
+les rangs 13 et 15 et dans le groupe E.
 
-1. **123 (AL)** : que faire des commits qui portent une ligne de crédit (24 «
-   Co-Authored-By: Claude Opus 5 » du 14 au 21 septembre, dont 16 dans `master`,
-   et 6 « Co-authored-by: Jordan08 » de #99) : les laisser, ou réécrire
-   `configure-clean`. Plus la décision tarde, plus elle coûte (chaque branche et
-   chaque pull request est à refaire, et `process.md` interdit le `push --force`
-   d'une branche partagée), et elle n'est plus réaliste une fois `master`
-   fusionné et l'étiquette posée.
-2. **Les études (AH, AI, AJ, AN) avant ou après v5.0.0 ?** Aucune n'est
-   nécessaire à la justesse des bornes. L'AJ est la seule qui peut changer ce
-   que la bibliothèque promet (le sens d'arrondi du programme entre
-   `gaol::init()` et `gaol::cleanup()`), et les noyaux, donc les temps du 33.
-   Recommandation : son prototype (rang 21) avant l'étiquette, ou y renoncer
-   explicitement ; le reste après la version, dans `configure-clean`.
-3. **88 et 87 (AD)** : la lecture en temps quadratique (4,4 s pour 320 000
-   chiffres) revient sur la décision du 3 octobre de ne rien faire ; le signe
-   devant un nombre incertain se documente ou change le lexème. Ces deux choix
-   orientent le travail du point AD.
+1. **123 (AL)** : *décidé le 19 octobre* : laisser les commits qui portent une
+   ligne de crédit (24 « Co-Authored-By: Claude Opus 5 » du 14 au 21 septembre,
+   dont 16 dans `master`, et 6 « Co-authored-by: Jordan08 » de #99), sans
+   réécrire `configure-clean`. Reste à retirer les lignes des descriptions et
+   des commentaires de pull requests (rang 15).
+2. **Les études (AH, AI, AJ, AN)** : *décidé le 19 octobre* : toutes avant
+   v5.0.0, donc le groupe E en entier, y compris l'AJ (113), qui peut changer
+   ce que la bibliothèque promet (le sens d'arrondi du programme entre
+   `gaol::init()` et `gaol::cleanup()`) et les noyaux, donc les temps du 33.
+3. **88 et 87 (AD)** : *décidé le 19 octobre* : on garde la décision du 3
+   octobre pour la lecture en temps quadratique (4,4 s pour 320 000 chiffres) et
+   on ne change pas le lexeur pour le signe devant un nombre incertain : les
+   deux se documentent (rang 13).
 
 ### B. Corrections du code, décidées, du plus important au moins important
 
@@ -80,16 +77,17 @@ d'abord, puisqu'il guide chaque nouvelle session. [S]
 
 12. **118 (AL)** : `process.md` (la machine d'Ubuntu 24.04, `--no-track`, le §12
     périmé).
-13. **80 (AB), 117, 119, 120 (AL), 89 (AD) et les descriptions d'options du 112
-    (AI)** : des textes faux ou qui manquent (l'exemple `1/[0, 1]`, la phrase de
-    `pow` d'`accuracy.md`, les compilateurs refusés du manuel, le piège de
-    `namespace gaol { }`, le format `agreeing` d'un point, « + - * / et sqrt »
-    du chemin AVX-512).
+13. **80 (AB), 117, 119, 120 (AL), 87, 88, 89 (AD) et les descriptions
+    d'options du 112 (AI)** : des textes faux ou qui manquent (l'exemple
+    `1/[0, 1]`, la phrase de `pow` d'`accuracy.md`, les compilateurs refusés du
+    manuel, le piège de `namespace gaol { }`, le format `agreeing` d'un point, «
+    + - * / et sqrt » du chemin AVX-512, le signe collé à un nombre incertain du
+    87, la lecture en temps quadratique du 88).
 14. **91 et 94 (AE)** : le test `refused_options.sh` qui se dit sauté, et la
     liste de macros de l'audit.
-15. **123 (AL), la partie sans historique** : retirer les lignes de crédit des
-    descriptions de #15 à #24 et #60 à #63 et des commentaires de #58 et #60 à
-    #63.
+15. **123 (AL)** : retirer les lignes de crédit des descriptions de #15 à #24 et
+    #60 à #63 et des commentaires de #58 et #60 à #63 (les commits restent,
+    décidé le 19 octobre).
 16. **121, 122 (AL) et le ménage des branches** : décider de `.continue/` ;
     `gaol_performance` en C++14 ; supprimer `todo-zz-notes` en local.
 
@@ -112,9 +110,9 @@ partout.
 
 ### E. Études de vitesse
 
-Des mesures d'abord ; ordre : ce qui peut changer la suite, puis l'écart mesuré
-le plus grand sur les builds par défaut, puis les builds avec
-`GAOL_PRESERVE_ROUNDING`.
+Des mesures d'abord, toutes avant v5.0.0 (décidé le 19 octobre) ; ordre : ce qui
+peut changer la suite, puis l'écart mesuré le plus grand sur les builds par
+défaut, puis les builds avec `GAOL_PRESERVE_ROUNDING`.
 
 21. **113 (AJ)** : des noyaux qui laissent le sens d'arrondi au plus proche ; un
     prototype de `+ - * / sqrt` suffit à décider. Peut changer le comportement
@@ -158,7 +156,8 @@ qui est prêt et qui a une valeur pour GAOL, puis ce qui demande une réplique �
 
 ### G. La version, dans cet ordre
 
-En dernier : elle suppose les corrections faites et la décision du rang 1.
+En dernier : elle suppose les corrections faites et les études du groupe E
+faites (décidé le 19 octobre, rang 2).
 
 35. **La pull request de synthèse** (Y) : `ChangeLog` et `doc/differences.md`,
     d'après `todo-notes/synthese.md` et les 36 descriptions de pull requests.
@@ -167,7 +166,7 @@ En dernier : elle suppose les corrections faites et la décision du rang 1.
 37. **32 (Y)** : le rapport de couverture, et `numbers` en entier sous ASan +
     UBSan, une fois.
 38. **33 (Y)** : les temps de `doc/compare/performance.md`, en dernier, sur le
-    commit propre de la version, après les études décidées avant elle.
+    commit propre de la version, après les études du groupe E.
 39. **34 (Y)** : `configure-clean` dans `MATH-CORE` (avance rapide), `MATH-CORE`
     dans `master`, l'étiquette `v5.0.0`, les recettes FetchContent.
 40. **71 (Y) et #128** : l'annonce à Frédéric Goualard, après l'étiquette.
@@ -357,9 +356,11 @@ génériques) est fait depuis le 15 octobre (`gaol_exact.*`, `sysdeps/` et
   refusé** : `10 - 3.56?1` est lu, mais `10-3.56?1`, `10+3.56?1` et `[1,2]+3?`
   lèvent `input_format_error` (le vide avec `gaol_ieee1788`), le lexeur prenant
   `-3.56?1` pour un seul lexème, alors que le manuel dit que ces littéraux se
-  combinent aux opérateurs dans n'importe quel ordre. À décider : le documenter,
-  ou sortir le signe du lexème en le gardant pour les directions `u` et `d`
-  (`-10?u` est [−10, −9,5]). Revérifié le 18 octobre.
+  combinent aux opérateurs dans n'importe quel ordre. Décidé le 19 octobre : le
+  documenter sans changer le lexeur, donc corriger le manuel et `doc/` (une
+  espace est nécessaire : `10 - 3.56?1`) ; l'autre voie était de sortir le signe
+  du lexème en le gardant pour les directions `u` et `d` (`-10?u` est [−10,
+  −9,5]). Revérifié le 18 octobre.
 - **88.** **Lire un long nombre prend un temps quadratique en ses chiffres** :
   `"0."` suivi de n chiffres 3 prend 0,017 s pour n = 20 000 et 0,28 s pour 80
   000 (le 14 octobre : 0,026 s, 0,37 s, et 4,4 s pour 320 000, environ 45 s
@@ -368,12 +369,13 @@ génériques) est fait depuis le 15 octobre (`gaol_exact.*`, `sysdeps/` et
   fois). Un texte venu d'ailleurs peut ainsi bloquer un programme. Le 3 octobre,
   l'ancien 18 (#42, la lecture sous une locale à virgule) a décidé de laisser
   l'analyse des chiffres quadratique (« on ne fait rien ») : ce défaut en est la
-  conséquence, et le corriger revient sur cette décision, à confirmer avec le
-  mainteneur. `todo-notes/synthese.md` (18.md) note que 9 chiffres décimaux par
-  passe l'accéléreraient environ 9 fois, et qu'une conversion par dichotomie la
-  rendrait sous-quadratique. Correction : garder environ 770 chiffres
-  significatifs et un chiffre non nul « collant », aucun double ne séparant
-  alors les deux valeurs, et convertir 9 chiffres par multiplication.
+  conséquence. Décidé le 19 octobre : garder cette décision, et documenter dans
+  le manuel et `doc/` que la lecture est quadratique en le nombre de chiffres,
+  avec les temps ci-dessus. Pour mémoire, `todo-notes/synthese.md` (18.md) note
+  que 9 chiffres décimaux par passe l'accéléreraient environ 9 fois, et qu'une
+  conversion par dichotomie la rendrait sous-quadratique (garder environ 770
+  chiffres significatifs et un chiffre non nul « collant », aucun double ne
+  séparant alors les deux valeurs, et convertir 9 chiffres par multiplication).
 - **89.** **Le format `agreeing` écrit un intervalle ponctuel comme un nombre
   nu** : `interval(4.0)` s'écrit `4.000000000000000`, quand le format `bounds`
   écrit `[4]` ; ni le commentaire d'`interval_format`
@@ -476,9 +478,9 @@ petit.
     `master`) portent « Co-Authored-By: Claude Opus 5 », et 6 commits de #99 (6
     et 7 octobre) une ligne « Co-authored-by: Jordan08 », trois d'entre eux avec
     un corps de 9 à 13 lignes : on ne les corrige pas sans réécrire l'historique
-    de branches partagées. À décider avant le point Y, qui fusionne
-    `configure-clean` dans `MATH-CORE` puis `master` : les laisser, ou réécrire
-    avant la version.
+    de branches partagées. Décidé le 19 octobre : les laisser, sans réécrire
+    l'historique avant le point Y (qui fusionne `configure-clean` dans
+    `MATH-CORE` puis `master`).
 
 ### AM. Les suites du point Z (125)
 
@@ -860,8 +862,8 @@ licence est dite (LGPL pour GAOL, MIT pour CORE-MATH) dans la section « Licence
   vraie fusion, sans différence de contenu), puis étiqueter `v5.0.0` ; les
   recettes et le test gardent `master` jusqu'à l'étiquette, puis la citent.
   Après v5.0.0, le développement continue dans `configure-clean`, et `master` ne
-  reçoit que les versions. À décider avant : les commits à ligne de crédit
-  (123).
+  reçoit que les versions. Les commits à ligne de crédit (123) restent, décidé
+  le 19 octobre.
 - **71.** **Annoncer GAOL v5.0.0 à Frédéric Goualard**, l'auteur de GAOL, une
   fois l'étiquette posée : pas d'annonce publique, et pas de GitHub Release,
   l'étiquette suffisant (décidé le 3 octobre). Le message est écrit, en
