@@ -1148,18 +1148,58 @@ namespace
     return std::string();
   }
 
-  Expected sum_of(const interval& x, const interval& y) { return expect_bounds(x.left() + y.left(), x.right() + y.right()); }
-  Expected difference_of(const interval& x, const interval& y) { return expect_bounds(x.left() - y.right(), x.right() - y.left()); }
-  Expected sum_with(const interval& x, double d) { return expect_bounds(x.left() + d, x.right() + d); }
-  Expected difference_with(const interval& x, double d) { return expect_bounds(x.left() - d, x.right() - d); }
-  Expected difference_from(const interval& x, double d) { return expect_bounds(d - x.right(), d - x.left()); }
+  /*
+    The references of the operations below, computed one operation at a time:
+    each operand and each result goes through volatile memory (GAOL v5). GCC
+    turned the pairs of operations of the bounds into vector instructions and
+    computed the operations of the other lanes too, where they are, for the
+    bounds [-oo, 4] and [-oo, +oo], an infinity less an infinity, and the
+    reference raised the invalid-operation flag that the check is made to find
+    in GAOL (continuous integration, GCC for x86 and for 64-bit ARM)
+  */
+  double held(double v) { return gaol_core::rnd_keep(v); }
+  double plus(double a, double b) { return held(held(a) + held(b)); }
+  double minus(double a, double b) { return held(held(a) - held(b)); }
+  double times(double a, double b) { return held(held(a) * held(b)); }
+  double over(double a, double b) { return held(held(a) / held(b)); }
+
+  Expected sum_of(const interval& x, const interval& y)
+  {
+    const double l = plus(x.left(), y.left());
+    return expect_bounds(l, plus(x.right(), y.right()));
+  }
+  Expected difference_of(const interval& x, const interval& y)
+  {
+    const double l = minus(x.left(), y.right());
+    return expect_bounds(l, minus(x.right(), y.left()));
+  }
+  Expected sum_with(const interval& x, double d)
+  {
+    const double l = plus(x.left(), d);
+    return expect_bounds(l, plus(x.right(), d));
+  }
+  Expected difference_with(const interval& x, double d)
+  {
+    const double l = minus(x.left(), d);
+    return expect_bounds(l, minus(x.right(), d));
+  }
+  Expected difference_from(const interval& x, double d)
+  {
+    const double l = minus(d, x.right());
+    return expect_bounds(l, minus(d, x.left()));
+  }
   // x*0 is [0]; for d != 0 no bound is 0 times an infinity
   Expected product_with(const interval& x, double d)
   {
     if (d == 0.0) {
       return expect_bounds(0.0, 0.0);
     }
-    return (d > 0.0) ? expect_bounds(x.left()*d, x.right()*d) : expect_bounds(x.right()*d, x.left()*d);
+    if (d > 0.0) {
+      const double l = times(x.left(), d);
+      return expect_bounds(l, times(x.right(), d));
+    }
+    const double l = times(x.right(), d);
+    return expect_bounds(l, times(x.left(), d));
   }
   // x/0 is empty, as x/[0]
   Expected quotient_by(const interval& x, double d)
@@ -1167,7 +1207,12 @@ namespace
     if (d == 0.0) {
       return expect_empty();
     }
-    return (d > 0.0) ? expect_bounds(x.left()/d, x.right()/d) : expect_bounds(x.right()/d, x.left()/d);
+    if (d > 0.0) {
+      const double l = over(x.left(), d);
+      return expect_bounds(l, over(x.right(), d));
+    }
+    const double l = over(x.right(), d);
+    return expect_bounds(l, over(x.left(), d));
   }
   // x % 0 is the whole line where x holds 0, else empty
   Expected remainder_by(const interval& x, double d)
@@ -1183,13 +1228,14 @@ namespace
     if (x.left() <= 0.0 && x.right() >= 0.0) {
       return expect_skipped();
     }
-    const double a = d/x.left(), b = d/x.right();
+    const double a = over(d, x.left()), b = over(d, x.right());
     return expect_bounds(std::min(a, b), std::max(a, b));
   }
   Expected square_of(const interval& x)
   {
     const double a = std::fabs(x.left()), b = std::fabs(x.right());
-    return expect_bounds((x.left() <= 0.0 && x.right() >= 0.0) ? 0.0 : std::min(a*a, b*b), std::max(a*a, b*b));
+    const double aa = times(a, a), bb = times(b, b);
+    return expect_bounds((x.left() <= 0.0 && x.right() >= 0.0) ? 0.0 : std::min(aa, bb), std::max(aa, bb));
   }
   // The roots of 0, 4 and +oo are 0, 2 and +oo
   Expected root_of(const interval& x)
