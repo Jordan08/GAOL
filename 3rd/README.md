@@ -278,6 +278,31 @@ end or before the comment that ends it, or is part of a comment beginning with
    The other warnings of `/W4` on these sources, of what they write on
    purpose, are turned off for them alone (`CMakeLists.txt`).
 
+9. **The first phase of `pow` next to the overflow** in `pow/pow.c` (`exp_1()`,
+   `RHO2`). For a power next to the largest double, with y·log(x) from
+   709.78263 to 709.78267 (powers from about 1.7975·10<sup>308</sup>), the
+   first phase of `cr_pow()` takes k = 2<sup>22</sup>, so that the exponent
+   M = (K >> 12) + 0x3ff of the factor it scales its approximation by is
+   0x7ff, an infinity: both parts of the approximation are infinite, and
+   `res_h + fma (err, -res_h, res_l)` is ∞ − ∞, which raises the
+   invalid-operation exception before the second phase rounds the power right.
+   `gaol::pow([2], [1023.9999])` raised it, and a program that had enabled it
+   died on SIGFPE. `RHO2`, the greatest rh the first phase takes, was
+   `0x1.62e42e709a95bp+9`: it is now the largest double with rh·`INVLOG2` ≤
+   4194303.5 − 2<sup>−31</sup>, the double below the tie 4194303.5 that
+   `roundeven` rounds to 2<sup>22</sup>, `0x1.62e42d29db3f0p+9`, so that
+   K < 2<sup>22</sup> and M < 0x7ff in every rounding direction. The rh
+   between the two values are deferred to the second phase, as those above
+   `RHO2` already were. With the vendored sources before the change, 390,000
+   of 4 million pairs whose rh lies from 709.7825 to 709.7829 (bases above and
+   below 1, integer exponents, negative bases with odd ones) raised the
+   exception in each direction, and 1,087,240 of the 1,754,203 exponents of
+   the base 2 around the two ends of the window; the changed one raised it
+   for none, and gives the same bits for all of them and for 12 million pairs
+   per direction drawn all over the domain (GCC 13.3, x86-64 Linux).
+   `tests/core_math.cpp` and `tests/rounding_direction.cpp` check it. The fix
+   is [proposed to CORE-MATH](#8-the-first-phase-of-pow-next-to-the-overflow).
+
 ### How the changes are checked
 
 The changes touch the arithmetic of the accurate phases, so they are checked by
@@ -331,7 +356,7 @@ comparison rather than by reading:
 
 ### To update CORE-MATH
 
-Copy the upstream tree again without the `.wc` files, then make the eight
+Copy the upstream tree again without the `.wc` files, then make the nine
 changes above. `git diff` against the previous version shows them: each changed
 line carries `/* GAOL */`, at its end or before the comment that ends it, or is
 part of a comment beginning with `/* GAOL:`, and no other line differs. A
@@ -345,9 +370,9 @@ can stay; the one of Windows is still needed.
 
 ## Changes to propose upstream
 
-Six of the [changes above](#what-differs-from-upstream) are fixes rather than
-adaptations to GAOL (2 to 7; upstream has made the one of item 3 since), and
-`gaol/core_math_port.h` makes up for a seventh defect, the
+Seven of the [changes above](#what-differs-from-upstream) are fixes rather than
+adaptations to GAOL (2 to 7 and 9; upstream has made the one of item 3
+since), and `gaol/core_math_port.h` makes up for an eighth defect, the
 `__builtin_roundeven()` of `sin.c` (see [How GAOL builds
 them](#how-gaol-builds-them)). They are written below as patches against
 upstream master `b1a4badf`, with two more found while preparing them or since:
@@ -369,6 +394,7 @@ for the maintainer of GAOL v5, as said in each part below.
 | [rounding direction of `pow`](#5-the-rounding-direction-of-pow) | present | no `pow` of CORE-MATH; the x87 unit by design |
 | [rounding field of MXCSR in `cbrt.c`, `rsqrt.c`, `asinpi.c`, `powl.c`](#6-the-rounding-field-of-mxcsr-in-cbrtc-rsqrtc-asinpic-and-powlc) | present | absent: its `cbrt` maps glibc's own `FE_*` values with a switch |
 | [exact and midpoint powers of `pow` on 32-bit ARM](#7-the-exact-and-midpoint-powers-of-pow-on-32-bit-arm) | present | no `pow` of CORE-MATH |
+| [first phase of `pow` next to the overflow](#8-the-first-phase-of-pow-next-to-the-overflow) | present | no `pow` of CORE-MATH |
 | [signed shifts of `cospi.c`](#already-fixed-upstream-the-shifts-of-cospic) | fixed by `b1a4badf` | no `cospi` of doubles from CORE-MATH |
 
 Upstream has moved since. Its master of 12 October 2026, `ea7a421f`, 57 commits
@@ -376,22 +402,24 @@ after `b1a4badf`, has made patch 4 itself, with the same guard (commit
 `19e85418`, 5 October), and has fixed the spurious underflow of `pow` downward
 at a result of −2<sup>−1022</sup>, which is the one said below (commit
 `e072473e`, 5 October; the check was not run again); it still has the six other
-defects. Patches 2, 3, 5, 6 and 7 apply to it as they are, and patch 1
-conflicts with later changes of `sinh.c` and `cosh.c`, whose masks are still
-there. Before the patches are sent (issue #125), patch 1 is to be made again on
-the master of the day.
+defects of patches 1 to 7. Patches 2, 3, 5, 6 and 7 apply to it as they are,
+and patch 1 conflicts with later changes of `sinh.c` and `cosh.c`, whose masks
+are still there. Before the patches are sent (issue #125), patch 1 is to be
+made again on the master of the day. Patch 8, written on 19 October 2026,
+applies as it is to the master of that day, `6fc21797`, which has its defect.
 
 ### CORE-MATH
 
-The patches are a series of seven commits on upstream master,
+The patches are a series of eight commits on upstream master,
 `b1a4badf6765d761873ee31f7419d1cc1cac19f8` (29 September 2026), in this order,
 each written in the style of the file it changes, with the subject given; the
 diff blocks below are what `git diff` prints for each, but for the blank lines
 of context, written without their leading space, and `git apply` or
 `patch -p1` take them as they are there (line numbers below are those of
 `b1a4badf`). Each block also applies alone to `b1a4badf`, but the `index`
-lines of patch 6 are those of the files patches 2 and 3 leave, which
-`git am` and `git apply --3way` rely on. To send them: a
+lines of patch 6 are those of the files patches 2 and 3 leave, and those of
+patch 8 the file patch 7 leaves, which `git am` and `git apply --3way` rely
+on. To send them: a
 merge request on <https://gitlab.inria.fr/core-math/core-math>, or the output
 of `git format-patch` mailed to core-math@inria.fr, the address the sources
 give for reports, with the defect, the reproduction and the checks of each
@@ -416,7 +444,9 @@ argument added upstream on 22 September) that master raises as well: over the
 whole of `pow.wc` in the four directions, the patched `pow` gives the results
 and the exception flags of master. Patch 7, written later, was checked on
 32-bit ARM and on x86-64, and the parts of patches 1 and 6 for `expm1q.c` and
-`powl.c`, added on 12 October 2026, as their parts say.
+`powl.c`, added on 12 October 2026, as their parts say. Patch 8, written on 19
+October 2026, was checked on x86-64 as its part says, and CORE-MATH's own
+checks were not run on it.
 
 #### 1. Masks written with `long`
 
@@ -1439,6 +1469,97 @@ among its arguments, passes in the four directions.
 
 **Status.** Present in master (`b1a4badf`, and `284b3b0` of 1 October 2026,
 whose `pow.c` is the same); GAOL's copy makes the same change (item 7 above).
+
+#### 8. The first phase of `pow` next to the overflow
+
+**The defect.** `exp_1()` of `pow.c` (lines 954 to 1057) multiplies its
+approximation of exp(rh + rl) by 2<sup>M−1023</sup>, with M = (K >> 12) +
+0x3ff and K = k the integer nearest to rh·`INVLOG2` (`INVLOG2` is
+2<sup>12</sup>/log 2), and its comment says "we should have 1 < M < 2047 here,
+since we filtered out potential underflow/overflow cases at the beginning of
+this function". The test at the beginning, rh > `RHO2` with `RHO2` =
+`0x1.62e42e709a95bp+9`, does not do so: K is 2<sup>22</sup> as soon as
+rh·`INVLOG2` rounds to 4194303.5, which `roundeven` takes to the even integer
+above, that is from rh = `0x1.62e42d29db3f1p+9` (about 709.78263) with the
+rounding to nearest and upward (one double farther downward and toward zero),
+so for the rh from there to `RHO2` (709.78267) M is 0x7ff, the factor is +∞
+and both parts of the approximation are infinite.
+`cr_pow()` then computes `res_h + fma (err, -res_h, res_l)`, ∞ − ∞, which
+raises the invalid-operation exception, before the second phase gives the
+right result: `cr_pow(2, 1023.9999)` and `cr_pow(0x1.000003f82a1fp+0,
+3000000001)`, the powers 0x1.fff6ea43bd988p+1023 and 0x1.fff7155c90a68p+1023
+(rounded downward), raise it in the four rounding directions, as does
+`cr_pow(-0x1.000003f82a1fp+0, 3000000001)` with its sign. The result is right,
+but a program that has enabled the exception (`feenableexcept (FE_INVALID)`,
+as the programs of interval arithmetic that want to know of an invalid
+operation do) dies on SIGFPE. The patch lowers `RHO2` to the largest double
+such that rh·`INVLOG2` ≤ 4194303.5 − 2<sup>−31</sup>, the double below the tie,
+for which K ≤ 4194303 and M ≤ 0x7fe in every rounding direction (the product
+is rounded to 4194303.5 − 2<sup>−31</sup> at the most, and `roundeven` rounds
+to nearest whatever the direction); `exp_1()` then sends the rh from there to
+the former `RHO2` to the second phase, where it already sends those from
+`RHO2` to `RHO3`. The first phase is not slowed down.
+
+The patch, to commit as
+`[pow] defer to the second phase the rh for which the first phase computes Inf - Inf`:
+
+```diff
+diff --git a/src/binary64/pow/pow.c b/src/binary64/pow/pow.c
+index c29245ee..97e9b68c 100644
+--- a/src/binary64/pow/pow.c
++++ b/src/binary64/pow/pow.c
+@@ -959,7 +959,14 @@ exp_1 (double *eh, double *el, double rh, double rl, double s) {
+    bound on |el| from the input value rh, thus this modified value of RHO1
+    is obtained experimentally. */
+ #define RHO1 -0x1.483b8cca421afp+9
+-#define RHO2 0x1.62e42e709a95bp+9
++/* RHO2 is the largest double such that rh * INVLOG2 <= 4194303.5 - 2^-31, the
++   double below the tie 4194303.5: in every rounding mode, K < 2^22 and
++   M = (K >> 12) + 0x3ff < 0x7ff below. From the next double on,
++   rh * INVLOG2 can round to the tie, which roundeven rounds to 2^22: M is
++   0x7ff, _d.f is +Inf, eh and el are infinite, and the caller computes
++   Inf - Inf (invalid operation) before the 2nd phase gives the result. Those
++   rh are thus deferred to the 2nd phase, as the larger ones are. */
++#define RHO2 0x1.62e42d29db3f0p+9
+ #define RHO3 0x1.62e4316ea5df9p+9
+
+   /* Section 7.12.17 from the C standard (N3220) says: "Relational operators
+```
+
+**How it was checked.** `cr_pow()` was called in the four rounding directions,
+with GCC 13.3 on x86-64 Linux (`-O3 -frounding-math -ffp-contract=off -mfma`),
+and the invalid-operation flag read after each call. With the base 2, master
+(the sources before the patch) takes k = 2<sup>22</sup> from the exponent
+`0x1.fffffc00002cap+9` to nearest, whose rh is `0x1.62e42d29db3f1p+9` (the one
+before, `0x1.fffffc00002c9p+9`, has rh = `0x1.62e42d29db3fp+9`, K = 4194303 and
+raises nothing), up to `0x1.fffffdd765c65p+9` (the next one has rh above
+`RHO2`). Over 1,754,203 exponents (600,001 consecutive doubles around each of
+the ends `0x1.fffffcp+9` and `0x1.fffffdd765c65p+9`, and one double in 1,013
+from 2<sup>−18</sup> below the first to 2<sup>−18</sup> above the second),
+master raises the flag 1,087,240 times to nearest and upward and 1,087,239
+downward and toward zero; and 390,177, 388,888, 390,090 and 389,420 times, to
+nearest, downward, upward and toward zero, in 4 million pairs each whose rh
+lies from 709.7825 to 709.7829, drawn with a real exponent and a base above or
+below 1, and with an integer exponent and a base of either sign next to 1. The
+patched `cr_pow()` raises it for none of them and gives the same bits as
+master for all of them (a hash of the results of each run), and for 12 million
+pairs per direction drawn all over the domain (bases and exponents of random
+bits or of every magnitude, integers, the neighbours of 1, and rh around 709).
+Over 1,129 exponents of the base 2 (1,001 from 1024 − 2<sup>−13</sup> in steps
+of 2<sup>−24</sup>, and 128 consecutive doubles from `0x1.fffffc00002a0p+9`)
+the patched `cr_pow()` raises no flag and gives finite results, and for six
+powers next to the largest double it gives, in each direction, the rounding of
+the power to the double around it that the direction asks for, computed with
+mpmath at 6000 bits apart from CORE-MATH (`tests/core_math.cpp` of GAOL v5).
+Master raises the flag for 1,026 to 1,029 of the 1,129 exponents, according to
+the direction, and for the six powers. A patch that stopped one double too
+high, `RHO2` = `0x1.62e42d29db3f1p+9`, still raises it for one exponent to
+nearest and two upward, which the 128 consecutive doubles find. CORE-MATH's own
+`./check.sh`, with MPFR, was not run on the patched tree.
+
+**Status.** Present in master (`b1a4badf`, and `6fc21797` of 19 October 2026,
+whose `pow.c` has these lines at the same places); GAOL's copy makes the same
+change (item 9 above).
 
 #### Already fixed upstream: the shifts of `cospi.c`
 

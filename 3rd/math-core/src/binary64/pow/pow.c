@@ -959,7 +959,18 @@ exp_1 (double *eh, double *el, double rh, double rl, double s) {
    bound on |el| from the input value rh, thus this modified value of RHO1
    is obtained experimentally. */
 #define RHO1 -0x1.483b8cca421afp+9
-#define RHO2 0x1.62e42e709a95bp+9
+/* GAOL: RHO2 was 0x1.62e42e709a95bp+9. For the rh from 0x1.62e42d29db3f1p+9
+   (about 709.78263) to that value, rh * INVLOG2 in exp_1() rounds to 4194303.5
+   or more in the rounding to nearest and upward (from the next double on
+   downward and toward zero), so that k is 2^22, roundeven taking the tie to
+   the even integer, M = (K >> 12) + 0x3ff is 0x7ff, _d.f is +Inf and eh and
+   el are infinite: cr_pow() then computes Inf - Inf in res_min and res_max,
+   which raises the invalid-operation exception, before the 2nd phase gives
+   the right result. RHO2 is now the largest double with
+   rh * INVLOG2 <= 4194303.5 - 2^-31, the double below the tie, so that
+   K < 2^22 and M < 0x7ff in every rounding mode. The rh from there to the
+   former RHO2 are sent to the 2nd phase, as those above it are. */
+#define RHO2 0x1.62e42d29db3f0p+9 /* GAOL */
 #define RHO3 0x1.62e4316ea5df9p+9
 
   /* Section 7.12.17 from the C standard (N3220) says: "Relational operators
