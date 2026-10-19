@@ -860,12 +860,66 @@ namespace
     return { false, (x.lo <= 0.0 && x.hi >= 0.0) ? 0.0 : r.lo, r.hi };
   }
 
+  /*
+    The square root of x >= 0 rounded downward and upward, from the root
+    rounded to nearest, which every sqrt() gives right, and the sign of its
+    square less x, computed exactly (Veltkamp's splitting and Dekker's product,
+    in the rounding to nearest, no fused multiply-add: that of mingw-w64 is
+    wrong): the sqrt() of the processors that compute in the direction set,
+    called in it, gave the root rounded to nearest on 32-bit x86 with Visual
+    C++ and MinGW-w64, which the continuous integration showed. A tiny x is
+    scaled by an even power of two, and so is a huge one, so that the square of
+    the root and its error neither underflow nor overflow (GAOL v5)
+  */
+  void root_bounds(double x, double& down, double& up)
+  {
+    std::fesetround(FE_TONEAREST);
+    volatile double operand = x;
+    int scale = 0;
+    double v = operand;
+    if (v < std::ldexp(1.0, -900) && v > 0.0) {
+      v = std::ldexp(v, 1000);
+      scale = -500;
+    } else if (v > std::ldexp(1.0, 900) && !std::isinf(v)) { // the square of the root would overflow
+      v = std::ldexp(v, -1000);
+      scale = 500;
+    }
+    volatile double root_kept = std::sqrt(v);
+    const double r = root_kept;
+    if (std::isinf(r) || r == 0.0) {
+      down = up = r;
+    } else {
+      volatile double product = r*r, c = 134217729.0*r;
+      const double rh = c - (c - r), rl = r - rh;
+      volatile double e1 = ((rh*rh - product) + 2.0*rh*rl) + rl*rl; // r*r = product + e1 exactly
+      volatile double d1 = (product - v) + e1;                     // the sign of r*r - v
+      const double d = d1;
+      if (d == 0.0) {
+        down = up = r;
+      } else if (d > 0.0) {
+        up = r;
+        down = std::nextafter(r, 0.0);
+      } else {
+        down = r;
+        up = std::nextafter(r, inf);
+      }
+    }
+    if (scale != 0) {
+      down = std::ldexp(down, scale);
+      up = std::ldexp(up, scale);
+    }
+    std::fesetround(FE_UPWARD);
+  }
+
   Range square_root_range(const Range& x)
   {
     if (x.empty || x.hi < 0.0) {
       return no_range;
     }
-    return { false, rounded(square_root, std::max(x.lo, 0.0), 0.0, FE_DOWNWARD), rounded(square_root, x.hi, 0.0, FE_UPWARD) };
+    double lo_down, lo_up, hi_down, hi_up;
+    root_bounds(std::max(x.lo, 0.0), lo_down, lo_up);
+    root_bounds(x.hi, hi_down, hi_up);
+    return { false, lo_down, hi_up };
   }
 
   // A range of the reference with the operators of the lines above, so that
