@@ -55,10 +55,12 @@ namespace
 {
   volatile double sink;
 
+#if !GAOL_USING_NEON_INSTRUCTIONS
   // The doubles of the two checks, read from volatile memory, as GAOL reads
   // its own: 2^-1060, the subnormal of gaol/gaol_fpu.h, and 2^-60
   const volatile double check_subnormal = 8.0947715414629834e-320;
   const volatile double check_normal = 8.67361737988403547205962240695953369140625e-19;
+#endif
 
   template<class F>
   void repeat(const F& operation, std::size_t rounds, std::size_t n)
@@ -169,6 +171,21 @@ int main()
     }
   }
 
+  // The operands of x * y, x / y and sqr(x) of mixed signs, drawn last (GAOL
+  // v5): the bounds of the operands above are all positive, which the
+  // processor predicts, where the signs of the bounds chose a branch of the
+  // product, of the quotient and of the square of the former code (the FPU
+  // intervals still do), mispredicted for operands of random signs
+  std::uniform_real_distribution<double> signed_uniform(-4.0, 4.0);
+  std::vector<double> sa(n), sb(n);
+  std::vector<interval> SX(n), SY(n);
+  for (std::size_t i = 0; i < n; ++i) {
+    sa[i] = signed_uniform(generator);
+    sb[i] = signed_uniform(generator);
+    SX[i] = interval(sa[i], sa[i] + 1e-3*uniform(generator));
+    SY[i] = interval(sb[i], sb[i] + 1e-3*uniform(generator));
+  }
+
   struct Row
   {
     const char *operation;
@@ -185,6 +202,12 @@ int main()
                nanoseconds_per_operation([&](std::size_t i) { sink = a[i] / b[i]; }, n) },
     { "sqr(x)", nanoseconds_per_operation([&](std::size_t i) { const interval z = sqr(X[i]); sink = z.left(); sink = z.right(); }, n),
                nanoseconds_per_operation([&](std::size_t i) { sink = a[i] * a[i]; }, n) },
+    { "x * y, random signs", nanoseconds_per_operation([&](std::size_t i) { const interval z = SX[i] * SY[i]; sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = sa[i] * sb[i]; }, n) },
+    { "x / y, random signs", nanoseconds_per_operation([&](std::size_t i) { const interval z = SX[i] / SY[i]; sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = sa[i] / sb[i]; }, n) },
+    { "sqr(x), random signs", nanoseconds_per_operation([&](std::size_t i) { const interval z = sqr(SX[i]); sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = sa[i] * sa[i]; }, n) },
     { "pow(x, 3)", nanoseconds_per_operation([&](std::size_t i) { const interval z = pow(X[i], 3); sink = z.left(); sink = z.right(); }, n),
                nanoseconds_per_operation([&](std::size_t i) { sink = a[i] * a[i] * a[i]; }, n) },
     { "sqrt(x)", nanoseconds_per_operation([&](std::size_t i) { const interval z = sqrt(X[i]); sink = z.left(); sink = z.right(); }, n),
@@ -246,7 +269,14 @@ int main()
                  / D[8][i] + D[9][i]) * D[10][i] - D[11][i]) / D[12][i] + D[13][i]; }, n) },
   };
 
-  std::printf("GAOL performance: %s, rounding direction %s\n\n", platform().c_str(),
+  std::printf("GAOL performance: %s, %s, rounding direction %s\n\n", platform().c_str(),
+#if GAOL_USING_NEON_INSTRUCTIONS
+              "NEON intervals",
+#elif GAOL_USING_SSE2_INSTRUCTIONS
+              "SSE2 intervals",
+#else
+              "FPU intervals",
+#endif
 #if GAOL_PRESERVE_ROUNDING
               "restored after each operation (GAOL_PRESERVE_ROUNDING)"
 #else
@@ -259,12 +289,22 @@ int main()
     std::printf("| %s | %.2f | %.2f | %.1f |\n", row.operation, row.interval_ns, row.double_ns, row.interval_ns / row.double_ns);
   }
 
+#if GAOL_USING_NEON_INSTRUCTIONS
+  // The check of each operation with the NEON intervals is the read of FPCR
+  // (gaol_core::round_upward_if_needed()), not an addition (GAOL v5)
+  const double check_fpcr_ns = nanoseconds_per_operation([&](std::size_t) {
+      unsigned long long fpcr;
+      __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));
+      sink = static_cast<double>(fpcr); }, n);
+  std::printf("\nThe check of each operation, the read of the control register FPCR with mrs: %.2f ns\n", check_fpcr_ns);
+#else
   const double check_subnormal_ns = nanoseconds_per_operation([&](std::size_t) {
       sink = !(1.0 + (check_subnormal + 0.0) > 1.0) ? 1.0 : 0.0; }, n);
   const double check_normal_ns = nanoseconds_per_operation([&](std::size_t) {
       sink = !(1.0 + (check_normal + 0.0) > 1.0) ? 1.0 : 0.0; }, n);
   std::printf("\nThe check of each operation, 1 + (2^-1060 + 0) not above 1: %.2f ns; the same with 2^-60: %.2f ns\n",
               check_subnormal_ns, check_normal_ns);
+#endif
 
   gaol::cleanup();
   return 0;
