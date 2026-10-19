@@ -477,6 +477,106 @@ namespace
     }
   }
 
+  /*
+    pow of a result next to the largest double raises no invalid-operation
+    exception, in the four rounding directions (GAOL v5, point 77 of
+    TODO.md). For y*log(x) from 709.78263 to 709.78267 (a power next to
+    1.7975e308), the first phase of CORE-MATH's pow scaled its approximation
+    of exp(y*log(x)) by 2^1024, an infinity, and computed Inf - Inf before the
+    second phase rounded the power right: the exception was raised, and
+    stopped a program that had enabled it (the rounding_direction test runs
+    pow in that state). The exponents of the base 2 that did so go from
+    1024 - 2^-13 to 1024 - 2^-13.9, which 1001 exponents 2^-24 apart cover
+    with their margins. The first of them are 2^-43 apart, the limit being
+    RHO2 of pow.c, a constant that depends on the rounding of a product: the
+    first exponents to raise it were 0x1.fffffc00002c9p+9 to 0x1.fffffc00002ccp+9,
+    according to the rounding direction, and a RHO2 one double too high
+    leaves the exception raised for them, which 128 consecutive exponents from
+    0x1.fffffc00002a0p+9 tell. The flags read are those of MXCSR on x86, as
+    above. The bounds of the powers below are the two doubles around the
+    power, computed with mpmath at 6000 bits apart from CORE-MATH and from
+    GAOL, and so is the nearer of the two: CORE-MATH's values in each
+    direction have to be them, for a negative base with an odd exponent too.
+  */
+  void pow_near_overflow_raises_no_flag()
+  {
+    const int directions[] = {FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO};
+    const char* const names[] = {"to nearest", "upward", "downward", "toward zero"};
+    // The invalid-operation flag raised by the call, read in MXCSR on x86
+    const auto power_raising_invalid = [&](int d, double x0, double y0, double& r) {
+      volatile double x = x0, y = y0;
+      std::fesetround(directions[d]);
+      std::feclearexcept(FE_ALL_EXCEPT);
+      r = gaol_core::rnd_keep(gaol_cr_pow(x, y));
+#if defined(GAOL_TESTS_HAVE_MXCSR)
+      const bool raised = (_mm_getcsr() & 0x1u) != 0; // IE
+#else
+      const bool raised = std::fetestexcept(FE_INVALID) != 0;
+#endif
+      std::fesetround(FE_UPWARD);
+      return raised;
+    };
+    for (int d = 0; d < 4; ++d) {
+      // 1001 exponents 2^-24 apart, then 128 consecutive doubles next to the first ones to raise the exception
+      int raising = 0, tried = 0;
+      double first = 0.0;
+      const auto try_exponent = [&](double y) {
+        double r;
+        ++tried;
+        if (power_raising_invalid(d, 2.0, y, r) || !std::isfinite(r)) {
+          first = raising == 0 ? y : first;
+          ++raising;
+        }
+      };
+      for (int i = 0; i <= 1000; ++i) {
+        try_exponent((1024.0 - 0x1p-13) + i*0x1p-24);
+      }
+      double y = 0x1.fffffc00002a0p+9;
+      for (int i = 0; i < 128; ++i) {
+        try_exponent(y);
+        y = std::nextafter(y, 2048.0);
+      }
+      check("pow next to the largest double: no invalid-operation exception, and a finite result", raising == 0,
+            [&] {
+              return std::string("2^y for the exponents next to 1024 - 2^-13, rounding ") + names[d] + ": "
+                   + std::to_string(raising) + " of " + std::to_string(tried) + ", the first for y = " + show(first);
+            });
+    }
+    struct Case { const char* name; double x, y, lower, upper, nearest; };
+    const Case cases[] = {
+      {"2^1023.9999", 2.0, 1023.9999, 0x1.fff6ea43bd988p+1023, 0x1.fff6ea43bd989p+1023, 0x1.fff6ea43bd988p+1023},
+      {"0.5^-1023.9999", 0.5, -1023.9999, 0x1.fff6ea43bd988p+1023, 0x1.fff6ea43bd989p+1023, 0x1.fff6ea43bd988p+1023},
+      {"3^646.07201", 3.0, 646.07201, 0x1.fff7b2a20d545p+1023, 0x1.fff7b2a20d546p+1023, 0x1.fff7b2a20d545p+1023},
+      {"10^308.254688", 10.0, 308.254688, 0x1.fff7aebc2d4d2p+1023, 0x1.fff7aebc2d4d3p+1023, 0x1.fff7aebc2d4d3p+1023},
+      {"b^3000000001, b = 0x1.000003f82a1fp+0", 0x1.000003f82a1fp+0, 3000000001.0,
+       0x1.fff7155c90a68p+1023, 0x1.fff7155c90a69p+1023, 0x1.fff7155c90a68p+1023},
+      {"(-b)^3000000001", -0x1.000003f82a1fp+0, 3000000001.0,
+       -0x1.fff7155c90a69p+1023, -0x1.fff7155c90a68p+1023, -0x1.fff7155c90a68p+1023},
+    };
+    for (const Case& c : cases) {
+      for (int d = 0; d < 4; ++d) {
+        double r;
+        const bool raised = power_raising_invalid(d, c.x, c.y, r);
+        // The power is no double: downward and upward round to the lower and the upper bound, toward zero to
+        // the one nearer 0, and to nearest to the nearer of the two
+        double expected = c.nearest;
+        if (directions[d] == FE_DOWNWARD) {
+          expected = c.lower;
+        } else if (directions[d] == FE_UPWARD) {
+          expected = c.upper;
+        } else if (directions[d] == FE_TOWARDZERO) {
+          expected = c.lower > 0.0 ? c.lower : c.upper;
+        }
+        check("pow next to the largest double: the power rounded in each direction, and no invalid-operation exception",
+              !raised && r == expected,
+              [&] {
+                return std::string(c.name) + " rounding " + names[d] + " = " + show(r) + ", not " + show(expected)
+                     + (raised ? ", invalid operation raised" : "");
+              });
+      }
+    }
+  }
+
   void elementary_functions()
   {
     const std::vector<double> v = arguments();
@@ -1859,6 +1959,7 @@ int main()
   ldexp_of_core_math();
   exact_results_raise_no_flag();
   pow_limits_raise_no_flag();
+  pow_near_overflow_raises_no_flag();
   elementary_functions();
   exact_values();
   two_arguments();

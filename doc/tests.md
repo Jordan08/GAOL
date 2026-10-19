@@ -204,7 +204,14 @@ point Q), which `numbers` checks there too.
   negative exponent, exponents beyond the ints, which have to be the tightest
   enclosures, and `pow([5.3, 5.5], 25)`, whose rests of the exact products,
   or-ed together, made the bits of a signaling NaN, which a comparison of
-  doubles raised the flag for (GAOL v5); and 29 loops
+  doubles raised the flag for (GAOL v5); 10 powers next to the largest
+  double (`pow([2], [1023.9999])`, with the exponent as a `double` too,
+  `pow([0.5], [-1023.9999])`, `pow([b], 3000000001)` and
+  `pow([-b], 3000000001)` for b = 0x1.000003f82a1fp+0, the same in a text and
+  in `gaol_ieee1788`), which have to be the tightest enclosures, and the
+  `pow_rel` and `pow_exponent_rel` that have to contain the base and the
+  exponent they were made from: CORE-MATH's `pow` computed ∞ − ∞ there
+  (GAOL v5); and 29 loops
   of 64 relations, constructions, intersections or `floor()`, with every
   third x and every fifth y empty, which a compiler vectorizes or if-converts
   (with the FPU intervals, GCC 9.4 and 13 at `-O3` with `-mfma`, GCC 13 to 15
@@ -718,7 +725,20 @@ point Q), which `numbers` checks there too.
   where the base is 0 or +∞ or the exponent infinite has to raise neither the
   divide-by-zero nor the invalid-operation exception, in the four rounding
   directions: its bounds there are the limits, which no call of CORE-MATH
-  computes (GAOL v5). `nth_root(I, q)` for
+  computes (GAOL v5). `pow` of a power next to the largest double has to raise
+  no invalid-operation exception either, in the four directions: for
+  y·log(x) from 709.78263 to 709.78267, CORE-MATH's first phase scaled its
+  approximation by 2<sup>1024</sup>, an infinity, and computed ∞ − ∞ before
+  its second phase rounded right. The 1 001 exponents of the base 2 from
+  1024 − 2<sup>−13</sup> in steps of 2<sup>−24</sup>, 942 of which did, and
+  128 consecutive doubles from 0x1.fffffc00002a0p+9, among them the first
+  ones to raise it, which a constant `RHO2` of `pow.c` one double too high
+  leaves raising it, and six powers (2<sup>1023.9999</sup>,
+  0.5<sup>−1023.9999</sup>, 3<sup>646.07201</sup>, 10<sup>308.254688</sup>
+  and b<sup>3000000001</sup> for b = 0x1.000003f82a1fp+0 of either sign),
+  whose roundings in each direction, to nearest included, have to be the
+  doubles around the power, computed with mpmath at 6000 bits (GAOL v5).
+  `nth_root(I, q)` for
   q = `INT_MIN` and `INT_MIN + 1` has to be the inverse of the root of order
   2<sup>31</sup> and 2<sup>31</sup> − 1, `[1]` at `[1]`, empty at a negative
   I for the even order and below 0 for the odd one: |q| was −q computed on a

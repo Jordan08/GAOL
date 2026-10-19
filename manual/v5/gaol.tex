@@ -1522,7 +1522,12 @@ Linux) instead of letting the operation give its bounds.\newinvfive
   extreme magnitude (\code{pow(interval(1,~2),~interval(4.9e-324))},
   \code{pow(interval(1,~2),~interval(1e-300))}, an exponent interval with a
   bound near \code{DBL\_MAX} such as \itv{10^{300}}{10^{308}}), whose power
-  GAOL now computes itself; and with the SSE2 intervals,
+  GAOL now computes itself, and for a power next to the largest double
+  (\code{pow(interval(2),~interval(1023.9999))},
+  \code{pow(interval(0x1.000003f82a1fp+0),~3000000001LL)}), where CORE-MATH
+  multiplied its first approximation by $2^{1024}$, an infinity, and computed
+  $\infty-\infty$ (changed in the vendored sources, see
+  \file{3rd/README.md}); and with the SSE2 intervals,
   \code{div\_rel(K,~J,~I)} did where it divided an infinite bound of
   \code{K} by an infinite bound of \code{J} in a half of the register it did
   not keep ($K=\itv{2}{+\infty}$ and $J=\itv{-\infty}{2}$), and raised the

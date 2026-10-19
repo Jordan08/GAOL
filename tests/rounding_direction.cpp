@@ -772,6 +772,59 @@ namespace
   };
 
   /*
+    Powers next to the largest double (GAOL v5, point 77 of TODO.md):
+    for a power next to 1.7975e308, y log(x) from 709.78263 to 709.78267,
+    CORE-MATH's pow scaled its first approximation by 2^1024, an infinity,
+    and computed Inf - Inf, which raised the invalid-operation exception
+    before its second phase gave the right bounds. 1023.9999 (the double
+    0x1.fffffcb923a2ap+9) is such an exponent for the base 2, and so is
+    3000000001 for b = 0x1.000003f82a1fp+0, whichever the sign of b. The
+    bounds are the tightest ones, the two doubles around the power, computed
+    with mpmath at 3000 bits: 2^1023.9999 is 0x1.fff6ea43bd988p+1023 to
+    0x1.fff6ea43bd989p+1023, and b^3000000001 is 0x1.fff7155c90a68p+1023 to
+    0x1.fff7155c90a69p+1023. pow_rel and pow_exponent_rel have to contain the
+    base and the exponent the power was made from (their bounds are not
+    tested).
+  */
+  const double near_overflow_exponent = 1023.9999;
+  const double near_overflow_base = 0x1.000003f82a1fp+0;
+  const double near_overflow_lower = 0x1.fff6ea43bd988p+1023, near_overflow_upper = 0x1.fff6ea43bd989p+1023;
+  const double near_overflow_power_lower = 0x1.fff7155c90a68p+1023, near_overflow_power_upper = 0x1.fff7155c90a69p+1023;
+
+  const EmptyOperand powers_near_overflow[] = {
+    { "pow([2], [1023.9999])", [] {
+        return bounds_are(pow(make(2.0, 2.0), make(near_overflow_exponent, near_overflow_exponent)),
+                          near_overflow_lower, near_overflow_upper); } },
+    { "pow([2], 1023.9999)", [] {
+        return bounds_are(pow(make(2.0, 2.0), gaol_core::rnd_keep(near_overflow_exponent)),
+                          near_overflow_lower, near_overflow_upper); } },
+    { "pow([0.5], [-1023.9999])", [] {
+        return bounds_are(pow(make(0.5, 0.5), make(-near_overflow_exponent, -near_overflow_exponent)),
+                          near_overflow_lower, near_overflow_upper); } },
+    { "gaol_ieee1788::pow([2], [1023.9999])", [] {
+        return bounds_are(gaol_ieee1788::pow(make(2.0, 2.0), make(near_overflow_exponent, near_overflow_exponent)),
+                          near_overflow_lower, near_overflow_upper); } },
+    { "pow([2], [1023.9999]) in a text", [] {
+        return bounds_are(textToInterval("pow(2, 0x1.fffffcb923a2ap+9)"), near_overflow_lower, near_overflow_upper); } },
+    // The integer exponents beyond the ints go through CORE-MATH's pow too
+    { "gaol_ieee1788::pow([b], [3000000001])", [] {
+        return bounds_are(gaol_ieee1788::pow(make(near_overflow_base, near_overflow_base), make(3000000001.0, 3000000001.0)),
+                          near_overflow_power_lower, near_overflow_power_upper); } },
+    { "pow([b], 3000000001)", [] {
+        return bounds_are(gaol::pow(make(near_overflow_base, near_overflow_base), 3000000001LL),
+                          near_overflow_power_lower, near_overflow_power_upper); } },
+    { "pow([-b], 3000000001)", [] {
+        return bounds_are(gaol::pow(make(-near_overflow_base, -near_overflow_base), 3000000001LL),
+                          -near_overflow_power_upper, -near_overflow_power_lower); } },
+    { "pow_rel: the base of [2]^[1023.9999]", [] {
+        return pow_rel(make(near_overflow_lower, near_overflow_upper), make(near_overflow_exponent, near_overflow_exponent),
+                       make(1.0, 4.0)).set_contains(2.0); } },
+    { "pow_exponent_rel: the exponent of [2]^y", [] {
+        return pow_exponent_rel(make(near_overflow_lower, near_overflow_upper), make(2.0, 2.0),
+                                make(1000.0, 1030.0)).set_contains(near_overflow_exponent); } },
+  };
+
+  /*
     Integer powers at the ends of the doubles (GAOL v5, points 8, 72, 73 and
     74 of TODO.md): an infinite bound, a power beyond the largest double or
     below the least subnormal, 0 for n < 0, and the exponents beyond the ints.
@@ -2067,6 +2120,14 @@ int main()
           [&] { return std::string(e.name); });
     check("pow with an exponent of extreme magnitude: the tightest enclosure", right, [&] { return std::string(e.name); });
   }
+  for (const EmptyOperand& e : powers_near_overflow) {
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const volatile bool right = e.run();
+    const int raised = std::fetestexcept(FE_INVALID);
+    check("a power next to the largest double raises no invalid-operation flag", raised == 0,
+          [&] { return std::string(e.name); });
+    check("a power next to the largest double: the expected result", right, [&] { return std::string(e.name); });
+  }
   for (const EmptyOperand& e : integer_powers_at_the_ends) {
     std::feclearexcept(FE_ALL_EXCEPT);
     const volatile bool right = e.run();
@@ -2169,6 +2230,11 @@ int main()
     for (const EmptyOperand& e : extreme_powers) {
       const Outcome oe = run_with_exceptions_enabled(FE_INVALID, e.run);
       check("pow with an exponent of extreme magnitude, FE_INVALID enabled", oe == returned_true,
+            [&] { return std::string(e.name) + ": " + outcome_text(oe); });
+    }
+    for (const EmptyOperand& e : powers_near_overflow) {
+      const Outcome oe = run_with_exceptions_enabled(FE_INVALID, e.run);
+      check("a power next to the largest double, FE_INVALID enabled", oe == returned_true,
             [&] { return std::string(e.name) + ": " + outcome_text(oe); });
     }
     for (const EmptyOperand& e : integer_powers_at_the_ends) {
