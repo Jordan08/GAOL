@@ -52,6 +52,8 @@ jobs:
           - { os: macos-14,       arch: arm64,  desc: 'macOS 14 arm64' }
           - { os: macos-14,       arch: x86_64, desc: 'macOS 14 x86_64 (Rosetta)' }
           - { os: macos-15,       arch: arm64,  opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'macOS 15 arm64, rounding direction preserved' }
+          # The FPU intervals, which the NEON ones replace on arm64 (GAOL v5)
+          - { os: macos-15,       arch: arm64,  opts: '-DGAOL_ARM64=OFF', desc: 'macOS 15 arm64, FPU intervals' }
     steps:
       - uses: actions/checkout@v7
       - name: Rosetta, to run x86_64 programs on arm64
@@ -61,6 +63,14 @@ jobs:
         run: |
           c++ --version
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_OSX_ARCHITECTURES=${{ matrix.cfg.arch }} -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install" ${{ matrix.cfg.opts }}
+      # NEON on arm64, SSE2 on x86_64 (under Rosetta too), the FPU where
+      # -DGAOL_ARM64=OFF asked for it (GAOL v5)
+      - name: The intervals
+        run: |
+          expected=sse2
+          if [ "${{ matrix.cfg.arch }}" = arm64 ]; then expected=neon; fi
+          case "${{ matrix.cfg.opts }}" in *GAOL_ARM64=OFF*) expected=fpu ;; esac
+          sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h $expected
       - name: Build
         run: cmake --build build -j 4
       - name: Tests (make test)

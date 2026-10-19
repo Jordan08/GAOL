@@ -102,6 +102,8 @@ jobs:
             cmake --version
             $comma_generate
             cmake -S . -B /tmp/build -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON ${{ matrix.cfg.opts }}
+            case \$(uname -m) in aarch64) expected=neon ;; x86_64) expected=sse2 ;; armv7l|armv8l|s390x|ppc64le|riscv64) expected=fpu ;; *) expected=any ;; esac
+            if [ \$expected != any ]; then sh .github/scripts/check-intervals.sh /tmp/build/gaol/gaol_configuration.h \$expected; fi
             cmake --build /tmp/build -j 4
             cmake --build /tmp/build --target test
             $comma_check

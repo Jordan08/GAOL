@@ -101,6 +101,10 @@ jobs:
           if [ "${{ matrix.cfg.clang_cl }}" = "true" ]; then
             test "$(grep -c -E "The (C|CXX) compiler identification is Clang .* with MSVC-like command-line" configure.log)" = 2
           fi
+      # Visual C++ and clang-cl compute the intervals with the FPU, on arm64
+      # too: NEON is not offered to them (GAOL_ARM64, GAOL v5)
+      - name: The intervals
+        run: sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h fpu
       - name: Build
         run: cmake --build build --config ${{ matrix.cfg.config }} -j 4
       - name: Tests (make test)
