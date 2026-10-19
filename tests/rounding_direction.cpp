@@ -44,6 +44,20 @@
  * exception; every operation keeps the exception flags and masks of the
  * program (GAOL v5, point D.24 of TODO.md).
  *
+ * On 64-bit ARM with GCC or Clang, whatever the intervals (NEON or FPU), the
+ * control register FPCR is read and written directly, with mrs and msr (GAOL
+ * v5): its bits other than the rounding direction and the modes that flush the
+ * subnormals to zero (the default-NaN mode, FZ16, the enables of the traps)
+ * are the ones the program had after every operation; the bounds of an
+ * operation run right after a write of FPCR by the program (no isb between
+ * them) are the tightest ones; and the sums, differences, squares, square
+ * roots and operations with a double of intervals with infinite bounds, and of
+ * the empty set, raise neither the invalid-operation nor the division-by-zero
+ * exception. The difference, the quotient, the remainder, the square, the
+ * square root, the inverse and their forms with a double and as compound
+ * assignments give the tightest bounds after the program changes the
+ * direction, as the product and the sum do (GAOL v5).
+ *
  * Copyright (c) 2026 ENSTA, France
  *
  * Created 2026-09-20 by Jordan NININ
@@ -87,6 +101,16 @@
 #  define SSE_DIRECTION(d) static_cast<unsigned>(d)
 #else
 #  define SSE_DIRECTION(d) 0u
+#endif
+
+// 64-bit ARM with GCC or Clang: FPCR, the control register holding the rounding
+// direction, the modes that flush the subnormals to zero, the default-NaN mode
+// and the enables of the traps, is read with mrs and written with msr, as
+// tests/gaol_tests.h does for the flush modes (GAOL v5)
+#if defined(__aarch64__) && defined(__GNUC__)
+#  define GAOL_TESTS_FPCR 1
+#else
+#  define GAOL_TESTS_FPCR 0
 #endif
 
 using namespace gaol;
@@ -261,6 +285,177 @@ namespace
     }
   }
 
+  /*
+    The operations other than the product and the sum, after the caller
+    changes the direction (GAOL v5): the difference, the quotient, the
+    remainder, the square, the square root and the inverse, each of them with
+    intervals, with a double and as a compound assignment, are run on operands
+    from the random doubles of the tests, and each result is compared with the
+    tightest enclosure of the exact result, computed apart with exact
+    arithmetic: the bounds of the four corners of the operands (the square
+    root of a bound being told by its square). The intervals of the operations
+    that divide have a divisor of one sign, 0 outside it, and the square root
+    is also run on bounds of any sign. A bound computed in another direction
+    than upward is one double away from the tightest one, where the exact
+    result is not a double, which the random mantissas make almost certain.
+  */
+  enum class Formula { sum, difference, product, quotient, square, root, inverse };
+
+  struct TightCase
+  {
+    const char *name;
+    Formula formula;
+    bool swapped;     // the formula applies to y then x: d - x, d / x
+    bool mixed_signs; // x and y of any signs, else each of one sign
+    bool with_double; // y is the point [d]
+    interval (*run)(const interval& x, const interval& y);
+  };
+
+  const TightCase tight_cases[] = {
+    { "x + y", Formula::sum, false, true, false, [](const interval& x, const interval& y) { return x + y; } },
+    { "x - y", Formula::difference, false, true, false, [](const interval& x, const interval& y) { return x - y; } },
+    { "x * y", Formula::product, false, true, false, [](const interval& x, const interval& y) { return x * y; } },
+    { "x / y", Formula::quotient, false, false, false, [](const interval& x, const interval& y) { return x / y; } },
+    { "x % y", Formula::quotient, false, false, false, [](const interval& x, const interval& y) { return x % y; } },
+    { "x += y", Formula::sum, false, true, false, [](const interval& x, const interval& y) { interval z(x); z += y; return z; } },
+    { "x -= y", Formula::difference, false, true, false, [](const interval& x, const interval& y) { interval z(x); z -= y; return z; } },
+    { "x *= y", Formula::product, false, true, false, [](const interval& x, const interval& y) { interval z(x); z *= y; return z; } },
+    { "x /= y", Formula::quotient, false, false, false, [](const interval& x, const interval& y) { interval z(x); z /= y; return z; } },
+    { "x %= y", Formula::quotient, false, false, false, [](const interval& x, const interval& y) { interval z(x); z %= y; return z; } },
+    { "x + d", Formula::sum, false, true, true, [](const interval& x, const interval& y) { return x + y.left(); } },
+    { "d + x", Formula::sum, false, true, true, [](const interval& x, const interval& y) { return y.left() + x; } },
+    { "x - d", Formula::difference, false, true, true, [](const interval& x, const interval& y) { return x - y.left(); } },
+    { "d - x", Formula::difference, true, true, true, [](const interval& x, const interval& y) { return y.left() - x; } },
+    { "x * d", Formula::product, false, true, true, [](const interval& x, const interval& y) { return x * y.left(); } },
+    { "d * x", Formula::product, false, true, true, [](const interval& x, const interval& y) { return y.left() * x; } },
+    { "x / d", Formula::quotient, false, false, true, [](const interval& x, const interval& y) { return x / y.left(); } },
+    { "d / x", Formula::quotient, true, false, true, [](const interval& x, const interval& y) { return y.left() / x; } },
+    { "x % d", Formula::quotient, false, false, true, [](const interval& x, const interval& y) { return x % y.left(); } },
+    { "d % x", Formula::quotient, true, false, true, [](const interval& x, const interval& y) { return y.left() % x; } },
+    { "x += d", Formula::sum, false, true, true, [](const interval& x, const interval& y) { interval z(x); z += y.left(); return z; } },
+    { "x -= d", Formula::difference, false, true, true, [](const interval& x, const interval& y) { interval z(x); z -= y.left(); return z; } },
+    { "x *= d", Formula::product, false, true, true, [](const interval& x, const interval& y) { interval z(x); z *= y.left(); return z; } },
+    { "x /= d", Formula::quotient, false, false, true, [](const interval& x, const interval& y) { interval z(x); z /= y.left(); return z; } },
+    { "x %= d", Formula::quotient, false, false, true, [](const interval& x, const interval& y) { interval z(x); z %= y.left(); return z; } },
+    { "sqr(x)", Formula::square, false, true, false, [](const interval& x, const interval&) { return sqr(x); } },
+    { "sqrt(x) of a positive x", Formula::root, false, false, false, [](const interval& x, const interval&) { return sqrt(x); } },
+    { "sqrt(x) of any x", Formula::root, false, true, false, [](const interval& x, const interval&) { return sqrt(x); } },
+    { "inverse(y)", Formula::inverse, false, false, false, [](const interval&, const interval& y) { return inverse(y); } },
+    { "y.inverse()", Formula::inverse, false, false, false, [](const interval&, const interval& y) { return y.inverse(); } },
+  };
+
+  // The operands of a case: x and y from two random doubles each, as one-signed
+  // intervals unless the case takes any, x positive for the square root; y is
+  // the point [d] for the operations with a double
+  void tight_operands(Random& random, const TightCase& c, interval& x, interval& y)
+  {
+    double a1 = random(-30, 30), a2 = random(-30, 30);
+    double b1 = random(-30, 30), b2 = random(-30, 30);
+    if (!c.mixed_signs) {
+      if (c.formula == Formula::root) {
+        a1 = std::fabs(a1);
+        a2 = std::fabs(a2);
+      } else {
+        a2 = ((a1 < 0.0) == (a2 < 0.0)) ? a2 : -a2;
+      }
+      b2 = ((b1 < 0.0) == (b2 < 0.0)) ? b2 : -b2;
+    }
+    x = hull(a1, a2);
+    y = c.with_double ? interval(b1) : hull(b1, b2);
+  }
+
+  // The exact bounds of the result of the formula, on the bounds of x and y
+  // (those of y alone for the inverse, of x alone for the square)
+  void exact_bounds(Formula f, const interval& x, const interval& y, Exact& lo, Exact& hi)
+  {
+    const Dyadic xl = dyadic(x.left()), xr = dyadic(x.right()), yl = dyadic(y.left()), yr = dyadic(y.right());
+    switch (f) {
+      case Formula::sum:
+        lo = exact(xl + yl);
+        hi = exact(xr + yr);
+        break;
+      case Formula::difference:
+        lo = exact(xl - yr);
+        hi = exact(xr - yl);
+        break;
+      case Formula::product: {
+        const std::vector<Exact> p = { exact(xl*yl), exact(xl*yr), exact(xr*yl), exact(xr*yr) };
+        lo = min(p);
+        hi = max(p);
+        break;
+      }
+      case Formula::quotient: { // y holds no zero
+        const std::vector<Exact> q = { quotient(xl, yl), quotient(xl, yr), quotient(xr, yl), quotient(xr, yr) };
+        lo = min(q);
+        hi = max(q);
+        break;
+      }
+      case Formula::square: {
+        const std::vector<Exact> p = { exact(xl*xl), exact(xr*xr) };
+        lo = (x.left() <= 0.0 && x.right() >= 0.0) ? exact(0.0) : min(p);
+        hi = max(p);
+        break;
+      }
+      case Formula::inverse: { // y holds no zero
+        const Dyadic one = dyadic(1.0);
+        const std::vector<Exact> q = { quotient(one, yl), quotient(one, yr) };
+        lo = min(q);
+        hi = max(q);
+        break;
+      }
+      case Formula::root:
+        break;
+    }
+  }
+
+  // Whether r is the tightest enclosure of the square roots of the part of x
+  // in [0, +oo), the empty set where x < 0: a lower bound l is the tightest one
+  // if l*l <= a < next(l)*next(l), an upper bound u if u*u >= b > previous(u)*previous(u),
+  // told with exact products (the bounds of x are not zero, but for 0 itself)
+  bool is_tightest_root(const interval& r, const interval& x)
+  {
+    if (x.right() < 0.0) {
+      return r.is_empty();
+    }
+    if (r.is_empty()) {
+      return false;
+    }
+    const Dyadic a = dyadic(std::max(x.left(), 0.0)), b = dyadic(x.right());
+    const double l = r.left(), u = r.right();
+    const double l_next = next_double(l), u_previous = previous_double(u);
+    return l >= 0.0 && compare(dyadic(l)*dyadic(l), a) <= 0 && compare(dyadic(l_next)*dyadic(l_next), a) > 0
+        && compare(dyadic(u)*dyadic(u), b) >= 0 && compare(dyadic(u_previous)*dyadic(u_previous), b) < 0;
+  }
+
+  bool is_tightest_result(const TightCase& c, const interval& r, const interval& x, const interval& y)
+  {
+    if (c.formula == Formula::root) {
+      return is_tightest_root(r, x);
+    }
+    if (r.is_empty()) {
+      return false;
+    }
+    Exact lo, hi;
+    if (c.swapped) {
+      exact_bounds(c.formula, y, x, lo, hi);
+    } else {
+      exact_bounds(c.formula, x, y, lo, hi);
+    }
+    return is_tightest_enclosure(r, lo, hi);
+  }
+
+  // The operation of a case on the operands i = 0, 1... , the direction
+  // being changed by fesetround() before each of them, in the directions in turn
+  void tight_cases_in_a_loop(const TightCase& c, const std::vector<interval>& x, const std::vector<interval>& y,
+                             std::vector<interval>& r)
+  {
+    const std::size_t nb_directions = sizeof(directions)/sizeof(directions[0]);
+    for (std::size_t i = 0; i < x.size(); ++i) {
+      set(directions[i % nb_directions]);
+      r[i] = c.run(x[i], y[i]);
+    }
+  }
+
   std::string run(const Operation& op, const interval& x, const interval& y)
   {
     try {
@@ -402,6 +597,18 @@ namespace
           && (X() | E()).set_eq(X()) && inverse(E()).is_empty() && sqr(E()).is_empty()
           && fma(E(), X(), X()).is_empty() && fma(X(), E(), X()).is_empty() && fma(X(), X(), E()).is_empty()
           && cancel_minus(E(), X()).is_empty() && cancel_minus(X(), E()).is_entire(); } },
+    // The compound operators and the operations with a double on the empty
+    // set, whose lanes the NEON operations add, multiply or divide without a
+    // comparison of them (GAOL v5)
+    { "the compound operators and the operations with a double", [] {
+        interval a = E(), b = E(), c = E(), d = E(), e = E(), f = E(), g = E(), h = E(), i = E(), j = E();
+        a += X(); b -= X(); c *= X(); d /= X(); e %= X();
+        f += 1.5; g -= 1.5; h *= 1.5; i /= 1.5; j %= 1.5;
+        return a.is_empty() && b.is_empty() && c.is_empty() && d.is_empty() && e.is_empty() && f.is_empty()
+          && g.is_empty() && h.is_empty() && i.is_empty() && j.is_empty()
+          && (E() - 1.5).is_empty() && (1.5 + E()).is_empty() && (E() * 1.5).is_empty() && (1.5 * E()).is_empty()
+          && (E() / 1.5).is_empty() && (E() % 1.5).is_empty() && (1.5 % E()).is_empty() && (E() - E()).is_empty()
+          && (E() + E()).is_empty() && sqr(E()).is_empty() && sqrt(E()).is_empty(); } },
     { "the powers and the roots", [] {
         return pow(E(), 3).is_empty() && pow(E(), -2).is_empty() && pow(E(), 0).is_empty() && pow(E(), 2u).is_empty()
           && pow(E(), 2.5).is_empty() && pow(E(), X()).is_empty() && pow(X(), E()).is_empty()
@@ -799,6 +1006,309 @@ namespace
         return bounds_are(gaol::pow(make(-GAOL_INFINITY, -0.5), -5000000001LL), -GAOL_INFINITY, 0.0); } },
     { "pow([0, 2], [-1e10])", [] { return bounds_are(pow(make(0.0, 2.0), make(-1e10, -1e10)), 0.0, GAOL_INFINITY); } },
   };
+
+  /*
+    The sums, the differences, the squares, the square roots and the
+    operations with a double of intervals with infinite bounds, and of the
+    empty set (GAOL v5): none of them raises the invalid-operation nor the
+    division-by-zero exception, and their bounds are right. The operations of
+    the NEON intervals are vector instructions, which compute both bounds at
+    once and compare none of them but through the bits: the sum of the stored
+    bounds <-l, r> is never inf - inf, the square is made of l*l and r*r only,
+    the quotient by a double d divides the bounds by |d|, and a vector
+    comparison of 64-bit ARM, fcmgt or fcmge, signals the invalid-operation
+    exception on the NaN bounds of the empty set. The bounds are those of
+    {-oo, -4, -0, 0, 4, +oo}, the doubles d powers of two, so that every
+    expected bound is exact, computed apart from GAOL on the bounds
+    themselves: a bound that is an infinity stays one, and 0 times d is 0.
+    A d that is infinite or a NaN gives the empty set, as interval(d) is.
+    The remainders and the quotients by a double are those of the intervals
+    that hold no zero: where 0 is in x, d / x is left out (the "extended"
+    quotient is checked above). Each function returns "" where its results
+    are right, else the first that is not.
+  */
+  struct Expected
+  {
+    enum Kind { empty, bounds, skipped } kind;
+    double l, r;
+  };
+
+  Expected expect_empty() { return Expected{ Expected::empty, 0.0, 0.0 }; }
+  Expected expect_bounds(double l, double r) { return Expected{ Expected::bounds, l, r }; }
+  Expected expect_skipped() { return Expected{ Expected::skipped, 0.0, 0.0 }; }
+
+  bool matches(const interval& z, const Expected& e)
+  {
+    switch (e.kind) {
+      case Expected::empty: return z.is_empty();
+      case Expected::bounds: return !z.is_empty() && z.left() == e.l && z.right() == e.r;
+      case Expected::skipped: break;
+    }
+    return true;
+  }
+
+  std::string rather_than(const interval& z, const Expected& e)
+  {
+    return " = " + hex(z) + " rather than " + ((e.kind == Expected::empty) ? std::string("the empty set")
+                                                  : "[" + hex(e.l) + ", " + hex(e.r) + "]");
+  }
+
+  // The nonempty intervals with bounds in {-oo, -4, -0, 0, 4, +oo}, and the empty set
+  std::vector<interval> infinite_operands()
+  {
+    std::vector<interval> operands = intervals_with_bounds({ -GAOL_INFINITY, -4.0, -0.0, 0.0, 4.0, GAOL_INFINITY });
+    operands.push_back(E());
+    return operands;
+  }
+
+  // The doubles of the operations with a double: finite ones, then the ones for which interval(d) is empty
+  std::vector<double> finite_doubles() { return std::vector<double>{ -8.0, -0.5, 0.0, 2.0 }; }
+  std::vector<double> empty_doubles()
+  {
+    return std::vector<double>{ GAOL_INFINITY, -GAOL_INFINITY, std::numeric_limits<double>::quiet_NaN() };
+  }
+
+  typedef interval (*PairOperation)(const interval&, const interval&);
+  typedef Expected (*PairExpected)(const interval&, const interval&);
+  typedef interval (*DoubleOperation)(const interval&, double);
+  typedef Expected (*DoubleExpected)(const interval&, double);
+
+  std::string over_pairs(const char *symbol, PairOperation op, PairExpected expected)
+  {
+    const std::vector<interval> operands = infinite_operands();
+    for (const interval& x : operands) {
+      for (const interval& y : operands) {
+        const interval z = op(opaque(x), opaque(y));
+        const Expected e = (x.is_empty() || y.is_empty()) ? expect_empty() : expected(x, y);
+        if (!matches(z, e)) {
+          return hex(x) + symbol + hex(y) + rather_than(z, e);
+        }
+      }
+    }
+    return std::string();
+  }
+
+  std::string over_doubles(const char *symbol, DoubleOperation op, DoubleExpected expected)
+  {
+    const std::vector<interval> operands = infinite_operands();
+    std::vector<double> doubles = finite_doubles();
+    const std::vector<double> empty_ones = empty_doubles();
+    doubles.insert(doubles.end(), empty_ones.begin(), empty_ones.end());
+    for (const interval& x : operands) {
+      for (const double d : doubles) {
+        const bool gives_empty = x.is_empty() || !std::isfinite(d);
+        const interval z = op(opaque(x), gaol_core::rnd_keep(d));
+        const Expected e = gives_empty ? expect_empty() : expected(x, d);
+        if (!matches(z, e)) {
+          return hex(x) + symbol + hex(d) + rather_than(z, e);
+        }
+      }
+    }
+    return std::string();
+  }
+
+  std::string over_intervals(const char *name, interval (*op)(const interval&), Expected (*expected)(const interval&))
+  {
+    for (const interval& x : infinite_operands()) {
+      const interval z = op(opaque(x));
+      const Expected e = x.is_empty() ? expect_empty() : expected(x);
+      if (!matches(z, e)) {
+        return std::string(name) + "(" + hex(x) + ")" + rather_than(z, e);
+      }
+    }
+    return std::string();
+  }
+
+  Expected sum_of(const interval& x, const interval& y) { return expect_bounds(x.left() + y.left(), x.right() + y.right()); }
+  Expected difference_of(const interval& x, const interval& y) { return expect_bounds(x.left() - y.right(), x.right() - y.left()); }
+  Expected sum_with(const interval& x, double d) { return expect_bounds(x.left() + d, x.right() + d); }
+  Expected difference_with(const interval& x, double d) { return expect_bounds(x.left() - d, x.right() - d); }
+  Expected difference_from(const interval& x, double d) { return expect_bounds(d - x.right(), d - x.left()); }
+  // x*0 is [0]; for d != 0 no bound is 0 times an infinity
+  Expected product_with(const interval& x, double d)
+  {
+    if (d == 0.0) {
+      return expect_bounds(0.0, 0.0);
+    }
+    return (d > 0.0) ? expect_bounds(x.left()*d, x.right()*d) : expect_bounds(x.right()*d, x.left()*d);
+  }
+  // x/0 is empty, as x/[0]
+  Expected quotient_by(const interval& x, double d)
+  {
+    if (d == 0.0) {
+      return expect_empty();
+    }
+    return (d > 0.0) ? expect_bounds(x.left()/d, x.right()/d) : expect_bounds(x.right()/d, x.left()/d);
+  }
+  // x % 0 is the whole line where x holds 0, else empty
+  Expected remainder_by(const interval& x, double d)
+  {
+    if (d == 0.0) {
+      return (x.left() <= 0.0 && x.right() >= 0.0) ? expect_bounds(-GAOL_INFINITY, GAOL_INFINITY) : expect_empty();
+    }
+    return quotient_by(x, d);
+  }
+  // d/x for an x that holds no zero: d/oo is 0
+  Expected quotient_of(const interval& x, double d)
+  {
+    if (x.left() <= 0.0 && x.right() >= 0.0) {
+      return expect_skipped();
+    }
+    const double a = d/x.left(), b = d/x.right();
+    return expect_bounds(std::min(a, b), std::max(a, b));
+  }
+  Expected square_of(const interval& x)
+  {
+    const double a = std::fabs(x.left()), b = std::fabs(x.right());
+    return expect_bounds((x.left() <= 0.0 && x.right() >= 0.0) ? 0.0 : std::min(a*a, b*b), std::max(a*a, b*b));
+  }
+  // The roots of 0, 4 and +oo are 0, 2 and +oo
+  Expected root_of(const interval& x)
+  {
+    if (x.right() < 0.0) {
+      return expect_empty();
+    }
+    const double a = std::max(x.left(), 0.0), b = x.right();
+    return expect_bounds((a == 4.0) ? 2.0 : a, (b == 4.0) ? 2.0 : b);
+  }
+
+  struct InfiniteOperation
+  {
+    const char *name;
+    std::string (*run)();
+  };
+
+  const InfiniteOperation arithmetic_with_infinite_bounds[] = {
+    { "x + y", [] { return over_pairs(" + ", [](const interval& x, const interval& y) { return x + y; }, sum_of); } },
+    { "x - y", [] { return over_pairs(" - ", [](const interval& x, const interval& y) { return x - y; }, difference_of); } },
+    { "x += y", [] { return over_pairs(" += ", [](const interval& x, const interval& y) { interval z(x); z += y; return z; }, sum_of); } },
+    { "x -= y", [] { return over_pairs(" -= ", [](const interval& x, const interval& y) { interval z(x); z -= y; return z; }, difference_of); } },
+    { "sqr(x)", [] { return over_intervals("sqr", [](const interval& x) { return sqr(x); }, square_of); } },
+    { "sqrt(x)", [] { return over_intervals("sqrt", [](const interval& x) { return sqrt(x); }, root_of); } },
+    { "x + d", [] { return over_doubles(" + ", [](const interval& x, double d) { return x + d; }, sum_with); } },
+    { "d + x", [] { return over_doubles(" + ", [](const interval& x, double d) { return d + x; }, sum_with); } },
+    { "x - d", [] { return over_doubles(" - ", [](const interval& x, double d) { return x - d; }, difference_with); } },
+    { "d - x", [] { return over_doubles(" -from- ", [](const interval& x, double d) { return d - x; }, difference_from); } },
+    { "x * d", [] { return over_doubles(" * ", [](const interval& x, double d) { return x * d; }, product_with); } },
+    { "d * x", [] { return over_doubles(" * ", [](const interval& x, double d) { return d * x; }, product_with); } },
+    { "x / d", [] { return over_doubles(" / ", [](const interval& x, double d) { return x / d; }, quotient_by); } },
+    { "d / x", [] { return over_doubles(" divided-by ", [](const interval& x, double d) { return d / x; }, quotient_of); } },
+    { "x % d", [] { return over_doubles(" % ", [](const interval& x, double d) { return x % d; }, remainder_by); } },
+    { "d % x", [] { return over_doubles(" remainder-of ", [](const interval& x, double d) { return d % x; }, quotient_of); } },
+    { "x += d", [] { return over_doubles(" += ", [](const interval& x, double d) { interval z(x); z += d; return z; }, sum_with); } },
+    { "x -= d", [] { return over_doubles(" -= ", [](const interval& x, double d) { interval z(x); z -= d; return z; }, difference_with); } },
+    { "x *= d", [] { return over_doubles(" *= ", [](const interval& x, double d) { interval z(x); z *= d; return z; }, product_with); } },
+    { "x /= d", [] { return over_doubles(" /= ", [](const interval& x, double d) { interval z(x); z /= d; return z; }, quotient_by); } },
+    { "x %= d", [] { return over_doubles(" %= ", [](const interval& x, double d) { interval z(x); z %= d; return z; }, remainder_by); } },
+  };
+
+#if GAOL_TESTS_FPCR
+  /*
+    FPCR, the control register of 64-bit ARM processors, read with mrs and
+    written with msr (GAOL v5), apart from the library: whatever the
+    intervals, NEON or FPU, the operations write it, and the tests below check
+    what they write and when. Its bits: the rounding direction (RMode, bits
+    23:22), the modes that flush the subnormals to zero (FZ, bit 24, and FIZ,
+    bit 0 from Armv8.7), which GAOL clears and sets back with
+    GAOL_PRESERVE_ROUNDING, and the others, which the program owns and no
+    operation may change: the default-NaN mode (DN, bit 25), the flush of the
+    half-precision subnormals (FZ16, bit 19) and the enables of the traps of
+    the five exceptions (IOE, DZE, OFE, UFE, IXE, bits 8 to 12) and of the
+    input denormal (IDE, bit 15). Not every processor retains them: the bits
+    that one does not are not checked, and the test says so.
+  */
+  unsigned long long read_fpcr()
+  {
+    unsigned long long fpcr;
+    __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));
+    return fpcr;
+  }
+
+  void write_fpcr(unsigned long long fpcr)
+  {
+    __asm__ __volatile__ ("msr fpcr, %0" : : "r" (fpcr) : "memory");
+  }
+
+  std::string fpcr_text(unsigned long long fpcr)
+  {
+    char text[32];
+    std::snprintf(text, sizeof text, "0x%llx", fpcr);
+    return text;
+  }
+
+  const unsigned long long fpcr_rmode_bits = 0xc00000ull;
+  const unsigned long long fpcr_flush_bits = 0x1000001ull; // FZ and FIZ
+  const unsigned long long fpcr_mode_bits = fpcr_rmode_bits | fpcr_flush_bits;
+  const unsigned long long fpcr_upward_bits = 0x400000ull;
+  const unsigned long long fpcr_fz_bit = 0x1000000ull;
+  const unsigned long long fpcr_dn_fz16_bits = 0x2080000ull;
+  const unsigned long long fpcr_ide_bit = 0x8000ull;
+
+  // The rounding directions as the field RMode holds them, upward last
+  const unsigned long long fpcr_directions[4] = { 0x0ull, 0x800000ull, 0xc00000ull, 0x400000ull };
+  const char *const fpcr_direction_names[4] = { "to nearest", "downward", "toward zero", "upward" };
+
+  /*
+    A write of FPCR right before an operation (GAOL v5): the operation reads
+    FPCR, writes it upward when it is not, and computes. The program's msr is
+    followed by no isb and by no read of FPCR; the library's msr is followed by
+    nothing but the barrier of the compiler. A processor that did not apply a
+    write of FPCR to the instructions that follow it in program order, or a
+    compiler that computed the vector operation before the write, would give
+    bounds of another direction at times, which a loop of 2^16 operations per case,
+    the four directions in turn, shows. The results are compared with the ones
+    of the same operands with the direction upward, which are the tightest
+    enclosures: they are checked with exact arithmetic beforehand.
+  */
+  void sequence_in_a_loop(const TightCase& c, const std::vector<interval>& x, const std::vector<interval>& y,
+                          std::vector<interval>& r, unsigned long long base)
+  {
+    const std::size_t k = x.size();
+    for (std::size_t i = 0; i < r.size(); ++i) {
+      write_fpcr(base | fpcr_directions[i & 3]);
+      r[i] = c.run(x[i % k], y[i % k]);
+    }
+  }
+
+  bool same_result(const interval& a, const interval& b)
+  {
+    return a.is_empty() ? b.is_empty() : (!b.is_empty() && a.left() == b.left() && a.right() == b.right());
+  }
+
+  /*
+    Operations whose results are exact, on [1, 2] and [4, 8]: none raises an
+    exception flag, bar the inexact one the probe of the direction raises in a
+    build with the FPU intervals (the test tells which, and enables the traps
+    of the exceptions that none raised only). They are run with the traps of FPCR
+    enabled, where the processor retains the enable bits: an operation that
+    writes FPCR whole, or that raised an exception, would kill the program
+  */
+  const EmptyOperand exact_operations[] = {
+    { "x + y", [] { return (make(1.0, 2.0) + make(4.0, 8.0)).set_eq(interval(5.0, 10.0)); } },
+    { "x - y", [] { return (make(1.0, 2.0) - make(4.0, 8.0)).set_eq(interval(-7.0, -2.0)); } },
+    { "x * y", [] { return (make(1.0, 2.0) * make(4.0, 8.0)).set_eq(interval(4.0, 16.0)); } },
+    { "y / x", [] { return (make(4.0, 8.0) / make(1.0, 2.0)).set_eq(interval(2.0, 8.0)); } },
+    { "y % x", [] { return (make(4.0, 8.0) % make(1.0, 2.0)).set_eq(interval(2.0, 8.0)); } },
+    { "x += y", [] { interval z = make(1.0, 2.0); z += make(4.0, 8.0); return z.set_eq(interval(5.0, 10.0)); } },
+    { "x -= y", [] { interval z = make(1.0, 2.0); z -= make(4.0, 8.0); return z.set_eq(interval(-7.0, -2.0)); } },
+    { "x *= y", [] { interval z = make(1.0, 2.0); z *= make(4.0, 8.0); return z.set_eq(interval(4.0, 16.0)); } },
+    { "y /= x", [] { interval z = make(4.0, 8.0); z /= make(1.0, 2.0); return z.set_eq(interval(2.0, 8.0)); } },
+    { "y %= x", [] { interval z = make(4.0, 8.0); z %= make(1.0, 2.0); return z.set_eq(interval(2.0, 8.0)); } },
+    { "x + d", [] { return (make(1.0, 2.0) + 2.0).set_eq(interval(3.0, 4.0)); } },
+    { "x - d", [] { return (make(1.0, 2.0) - 0.5).set_eq(interval(0.5, 1.5)); } },
+    { "x * d", [] { return (make(1.0, 2.0) * 0.5).set_eq(interval(0.5, 1.0)); } },
+    { "x / d", [] { return (make(1.0, 2.0) / 0.5).set_eq(interval(2.0, 4.0)); } },
+    { "x % d", [] { return (make(1.0, 2.0) % 0.5).set_eq(interval(2.0, 4.0)); } },
+    { "x += d", [] { interval z = make(1.0, 2.0); z += 2.0; return z.set_eq(interval(3.0, 4.0)); } },
+    { "x -= d", [] { interval z = make(1.0, 2.0); z -= 0.5; return z.set_eq(interval(0.5, 1.5)); } },
+    { "x *= d", [] { interval z = make(1.0, 2.0); z *= 0.5; return z.set_eq(interval(0.5, 1.0)); } },
+    { "x /= d", [] { interval z = make(1.0, 2.0); z /= 0.5; return z.set_eq(interval(2.0, 4.0)); } },
+    { "x %= d", [] { interval z = make(1.0, 2.0); z %= 0.5; return z.set_eq(interval(2.0, 4.0)); } },
+    { "sqr(x)", [] { return sqr(make(1.0, 2.0)).set_eq(interval(1.0, 4.0)); } },
+    { "sqrt(y)", [] { return sqrt(make(4.0, 16.0)).set_eq(interval(2.0, 4.0)); } },
+    { "inverse(y)", [] { return inverse(make(4.0, 8.0)).set_eq(interval(0.125, 0.25)); } },
+  };
+#endif // GAOL_TESTS_FPCR
 
   /*
     The midpoint of an interval with a bound of 2^1023 or more in magnitude,
@@ -1368,6 +1878,17 @@ int main()
               [&] { return describe() + ", a=" + hex(a) + " b=" + hex(b) + ": " + hex(p); });
         check("[a]+[b] the tightest enclosure after " + name, is_tightest_enclosure(s, exact(dyadic(a) + dyadic(b))),
               [&] { return describe() + ", a=" + hex(a) + " b=" + hex(b) + ": " + hex(s); });
+        // and a difference, a quotient, a square and a square root (GAOL v5)
+        const interval df = interval(a) - interval(b), q = interval(a) / interval(b), sq = sqr(interval(a)),
+                       rt = sqrt(interval(std::fabs(a)));
+        check("[a]-[b] the tightest enclosure after " + name, is_tightest_enclosure(df, exact(dyadic(a) - dyadic(b))),
+              [&] { return describe() + ", a=" + hex(a) + " b=" + hex(b) + ": " + hex(df); });
+        check("[a]/[b] the tightest enclosure after " + name, is_tightest_enclosure(q, quotient(dyadic(a), dyadic(b))),
+              [&] { return describe() + ", a=" + hex(a) + " b=" + hex(b) + ": " + hex(q); });
+        check("sqr([a]) the tightest enclosure after " + name, is_tightest_enclosure(sq, exact(dyadic(a)*dyadic(a))),
+              [&] { return describe() + ", a=" + hex(a) + ": " + hex(sq); });
+        check("sqrt([a]) the tightest enclosure after " + name, is_tightest_root(rt, interval(std::fabs(a))),
+              [&] { return describe() + ", a=" + hex(a) + ": " + hex(rt); });
       }
     }
   }
@@ -1392,6 +1913,79 @@ int main()
             is_tightest_enclosure(s[i], exact(dyadic(a[i]) + dyadic(b[i]))), [&] { return describe() + ": " + hex(s[i]); });
     }
   }
+
+  // The difference, the quotient, the remainder, the square, the square root,
+  // the inverse and their forms with a double and as compound assignments, in
+  // a loop changing the rounding direction before each of them (GAOL v5)
+  {
+    Random random_tight;
+    const std::size_t n = 96, nb_directions = sizeof(directions)/sizeof(directions[0]);
+    for (const TightCase& c : tight_cases) {
+      std::vector<interval> x(n), y(n), r(n);
+      for (std::size_t i = 0; i < n; ++i) {
+        tight_operands(random_tight, c, x[i], y[i]);
+      }
+      tight_cases_in_a_loop(c, x, y, r);
+      set(directions[0]);
+      for (std::size_t i = 0; i < n; ++i) {
+        check(std::string(c.name) + ": the tightest enclosure in a loop changing the rounding direction",
+              is_tightest_result(c, r[i], x[i], y[i]),
+              [&] {
+                return std::string("rounding direction ") + directions[i % nb_directions].name + ", x=" + hex(x[i])
+                     + " y=" + hex(y[i]) + ": " + hex(r[i]);
+              });
+      }
+    }
+  }
+
+#if GAOL_TESTS_FPCR
+  /*
+    The same operations right after the program wrote FPCR, in the four
+    directions in turn (see sequence_in_a_loop()), 2^16 times each
+  */
+  {
+    Random random_sequence;
+    const std::size_t k = 8, n = static_cast<std::size_t>(1) << 16;
+    const unsigned long long saved = read_fpcr();
+    const unsigned long long base = saved & ~fpcr_rmode_bits;
+    std::vector<interval> r(n);
+    for (const TightCase& c : tight_cases) {
+      std::vector<interval> x(k), y(k), reference(k);
+      for (std::size_t j = 0; j < k; ++j) {
+        tight_operands(random_sequence, c, x[j], y[j]);
+      }
+      write_fpcr(base | fpcr_upward_bits);
+      for (std::size_t j = 0; j < k; ++j) {
+        reference[j] = c.run(x[j], y[j]);
+      }
+      write_fpcr(saved);
+      for (std::size_t j = 0; j < k; ++j) {
+        check(std::string(c.name) + ": the tightest enclosure with the direction upward, the reference of the sequence of writes of FPCR",
+              is_tightest_result(c, reference[j], x[j], y[j]), [&] { return "x=" + hex(x[j]) + " y=" + hex(y[j]) + ": " + hex(reference[j]); });
+      }
+      sequence_in_a_loop(c, x, y, r, base);
+      write_fpcr(saved);
+      std::size_t differing[4] = { 0, 0, 0, 0 }, first[4] = { 0, 0, 0, 0 };
+      for (std::size_t i = 0; i < n; ++i) {
+        if (!same_result(r[i], reference[i % k])) {
+          if (differing[i & 3] == 0) {
+            first[i & 3] = i;
+          }
+          ++differing[i & 3];
+        }
+      }
+      for (std::size_t d = 0; d < 4; ++d) {
+        check(std::string(c.name) + ": the same result right after the program wrote FPCR, in each direction", differing[d] == 0,
+              [&] {
+                const std::size_t i = first[d];
+                return std::string("rounding direction ") + fpcr_direction_names[d] + ": " + std::to_string(differing[d])
+                     + " results differ, the first x=" + hex(x[i % k]) + " y=" + hex(y[i % k]) + ": " + hex(r[i])
+                     + " rather than " + hex(reference[i % k]);
+              });
+      }
+    }
+  }
+#endif // GAOL_TESTS_FPCR
 
   /*
     The exception flags the program raised, and its exception masks, are
@@ -1437,6 +2031,181 @@ int main()
     }
     set(directions[0]);
   }
+
+#if GAOL_TESTS_FPCR
+  /*
+    FPCR itself (GAOL v5, see read_fpcr()). After each operation of the table
+    above, run from each direction with and without FZ set, the bits of FPCR
+    other than the rounding direction and the flush modes are the ones the
+    program had. They are set to a pattern first: the default-NaN mode (DN)
+    and FZ16, flipped from what the program has, those of them that the
+    processor retains (written, read back; FIZ, which the processors before
+    Armv8.7 do not have, is not part of it). With GAOL_PRESERVE_ROUNDING, the
+    rounding direction and the flush modes are the ones the program had; else
+    the direction is the one it had or upward, and the modes the ones it had
+    or cleared: the operations that make no check leave both as they were,
+    and the reader of numbers sets the direction upward and leaves the modes
+    (rounding_guard).
+    Then the traps: the bits that enable them, set where the processor
+    retains them, for operations whose results are exact. A first run with
+    the traps disabled shows which exceptions they raise, none in a build
+    with the NEON intervals; the traps of those they raise (the inexact
+    exception the probe of the direction raises with the FPU intervals) are
+    left disabled, so that no operation can trap. Each operation gives its
+    result and leaves the bits as they were.
+  */
+  std::feclearexcept(FE_ALL_EXCEPT);
+  {
+    const unsigned long long saved = read_fpcr();
+    const auto retained = [saved](unsigned long long candidates) {
+      write_fpcr(saved | candidates);
+      const unsigned long long got = read_fpcr() & candidates;
+      write_fpcr(saved);
+      return got;
+    };
+    const unsigned long long pattern = retained(fpcr_dn_fz16_bits);
+    const unsigned long long flush = retained(fpcr_fz_bit);
+    if (pattern != fpcr_dn_fz16_bits) {
+      std::printf("FPCR retains %s here: the bits other than the rounding direction and the flush modes "
+                  "are checked without it\n", pattern == 0 ? "neither DN nor FZ16" : "only one of DN and FZ16");
+    }
+    std::vector<unsigned long long> flushes(1, 0ull);
+    if (flush != 0) {
+      flushes.push_back(flush);
+    }
+    for (std::size_t d = 0; d < 4; ++d) {
+      for (const unsigned long long fz : flushes) {
+        // The bits of the pattern flipped from what the program has, so that they differ from it
+        const unsigned long long start = ((saved & ~fpcr_mode_bits) ^ pattern) | fpcr_directions[d] | fz;
+        for (const Operation& op : operations) {
+          write_fpcr(start);
+          static_cast<void>(run(op, operands[0].first, operands[0].second));
+          const unsigned long long after = read_fpcr();
+          write_fpcr(saved);
+          const auto describe = [&] {
+            return std::string("rounding direction ") + fpcr_direction_names[d] + (fz != 0 ? ", FZ set" : "")
+                 + ": FPCR " + fpcr_text(after) + " after it, " + fpcr_text(start) + " before";
+          };
+          check("the bits of FPCR other than the rounding direction and the flush modes kept by " + std::string(op.name),
+                ((after ^ start) & ~fpcr_mode_bits) == 0ull, describe);
+#if GAOL_PRESERVE_ROUNDING
+          check("the rounding direction and the flush modes of FPCR restored by " + std::string(op.name),
+                (after & fpcr_mode_bits) == (start & fpcr_mode_bits), describe);
+#else
+          // The reader of numbers sets the direction upward, and leaves the modes (rounding_guard)
+          check("the rounding direction of FPCR unchanged or upward after " + std::string(op.name),
+                (after & fpcr_rmode_bits) == (start & fpcr_rmode_bits) || (after & fpcr_rmode_bits) == fpcr_upward_bits, describe);
+          check("the flush modes of FPCR unchanged or cleared after " + std::string(op.name),
+                (after & fpcr_flush_bits) == (start & fpcr_flush_bits) || (after & fpcr_flush_bits) == 0ull, describe);
+#endif
+        }
+      }
+    }
+
+    // cancel_minus() and cancel_plus() make their TwoSum to nearest and set the direction back
+    // (GAOL_RND_NEAREST_LEAVE()), which the table above does not reach
+    const Operation nearest_operations[] = {
+      { "cancel_minus", [](const interval& x, const interval& y) { return S(cancel_minus(y, x)); } },
+      { "cancel_plus", [](const interval& x, const interval& y) { return S(cancel_plus(y, x)); } },
+    };
+    for (std::size_t d = 0; d < 4; ++d) {
+      for (const unsigned long long fz : flushes) {
+        const unsigned long long start = ((saved & ~fpcr_mode_bits) ^ pattern) | fpcr_directions[d] | fz;
+        for (const Operation& op : nearest_operations) {
+          write_fpcr(start);
+          static_cast<void>(run(op, operands[0].first, operands[0].second));
+          const unsigned long long after = read_fpcr();
+          write_fpcr(saved);
+          check("the bits of FPCR other than the rounding direction and the flush modes kept by " + std::string(op.name),
+                ((after ^ start) & ~fpcr_mode_bits) == 0ull,
+                [&] {
+                  return std::string("rounding direction ") + fpcr_direction_names[d] + (fz != 0 ? ", FZ set" : "")
+                       + ": FPCR " + fpcr_text(after) + " after it, " + fpcr_text(start) + " before";
+                });
+        }
+      }
+    }
+
+    // The operations with exact results (below) all check the direction: after one, the direction
+    // is upward and the flush modes are cleared, or they are the ones the program had with
+    // GAOL_PRESERVE_ROUNDING
+    for (std::size_t d = 0; d < 4; ++d) {
+      for (const unsigned long long fz : flushes) {
+        const unsigned long long start = ((saved & ~fpcr_mode_bits) ^ pattern) | fpcr_directions[d] | fz;
+        for (const EmptyOperand& e : exact_operations) {
+          write_fpcr(start);
+          const bool right = e.run();
+          const unsigned long long after = read_fpcr();
+          write_fpcr(saved);
+          const auto describe = [&] {
+            return std::string(e.name) + ", rounding direction " + fpcr_direction_names[d] + (fz != 0 ? ", FZ set" : "")
+                 + ": FPCR " + fpcr_text(after) + " after it, " + fpcr_text(start) + " before";
+          };
+          check("an operation with exact results gives them from each direction, with and without FZ", right, describe);
+#if GAOL_PRESERVE_ROUNDING
+          check("the rounding direction and the flush modes of FPCR restored by an operation with exact results",
+                (after & fpcr_mode_bits) == (start & fpcr_mode_bits), describe);
+#else
+          check("the rounding direction of FPCR upward and the flush modes cleared by an operation with exact results",
+                (after & fpcr_mode_bits) == fpcr_upward_bits, describe);
+#endif
+        }
+      }
+    }
+
+    // The traps: a control run with the exceptions masked, then the same operations with the traps
+    // of the exceptions that none of them raised enabled. Not the underflow one: with it enabled,
+    // a processor signals the underflow exception for every tiny result, exact ones included (an
+    // Apple M2 does, to the sum of a subnormal and 0 that the probe of the direction of the FPU
+    // intervals computes), which the flags of a run with the exception masked do not show
+    struct Trap
+    {
+      int excepts;
+      unsigned long long bit;
+    };
+    const Trap traps[] = { { FE_INVALID, 0x100ull }, { FE_DIVBYZERO, 0x200ull }, { FE_OVERFLOW, 0x400ull },
+                           { FE_INEXACT, 0x1000ull } };
+    std::feclearexcept(FE_ALL_EXCEPT);
+    bool control_right = true;
+    for (const EmptyOperand& e : exact_operations) {
+      control_right = e.run() && control_right;
+    }
+    const int raised = std::fetestexcept(FE_ALL_EXCEPT);
+    std::feclearexcept(FE_ALL_EXCEPT);
+    check("the operations with exact results give them", control_right);
+    unsigned long long candidates = fpcr_ide_bit;
+    for (const Trap& t : traps) {
+      if ((raised & t.excepts) == 0) {
+        candidates |= t.bit;
+      }
+    }
+    const unsigned long long trap_bits = retained(candidates);
+    if (trap_bits == 0ull) {
+      std::printf("FPCR retains none of the bits that enable the traps here: the operations with the "
+                  "traps enabled are not checked\n");
+    } else {
+      for (std::size_t d = 0; d < 4; ++d) {
+        for (const EmptyOperand& e : exact_operations) {
+          const unsigned long long start = (saved & ~fpcr_mode_bits) | trap_bits | fpcr_directions[d];
+          write_fpcr(start);
+          const bool right = e.run();
+          const unsigned long long after = read_fpcr();
+          write_fpcr(saved);
+          const auto describe = [&] {
+            return std::string("rounding direction ") + fpcr_direction_names[d] + ", traps " + fpcr_text(trap_bits)
+                 + ": FPCR " + fpcr_text(after) + " after it, " + fpcr_text(start) + " before";
+          };
+          check("an operation with exact results gives them with the traps of FPCR enabled", right,
+                [&] { return std::string(e.name) + ", " + describe(); });
+          check("the traps of FPCR kept enabled by an operation with exact results", ((after ^ start) & ~fpcr_mode_bits) == 0ull,
+                [&] { return std::string(e.name) + ", " + describe(); });
+        }
+      }
+    }
+    write_fpcr(saved);
+    std::feclearexcept(FE_ALL_EXCEPT);
+  }
+#endif // GAOL_TESTS_FPCR
 
 #if GAOL_TESTS_FLUSH
   /*
@@ -2075,6 +2844,15 @@ int main()
           [&] { return std::string(e.name); });
     check("an integer power at the ends of the doubles: the tightest enclosure", right, [&] { return std::string(e.name); });
   }
+  for (const InfiniteOperation& e : arithmetic_with_infinite_bounds) {
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const std::string wrong = e.run();
+    const int raised = std::fetestexcept(FE_INVALID | FE_DIVBYZERO);
+    check("an operation with infinite bounds or an empty operand raises no invalid-operation nor division-by-zero flag",
+          raised == 0, [&] { return std::string(e.name) + ((raised & FE_INVALID) ? ": invalid-operation" : ": division-by-zero"); });
+    check("an operation with infinite bounds or an empty operand gives the right bounds", wrong.empty(),
+          [&] { return std::string(e.name) + ": " + wrong; });
+  }
   {
     /* The differences of the bounds of cancel_minus() are computed by TwoSum
        in the rounding to nearest, their terms kept before the direction
@@ -2174,6 +2952,11 @@ int main()
     for (const EmptyOperand& e : integer_powers_at_the_ends) {
       const Outcome oe = run_with_exceptions_enabled(FE_INVALID, e.run);
       check("an integer power at the ends of the doubles, FE_INVALID enabled", oe == returned_true,
+            [&] { return std::string(e.name) + ": " + outcome_text(oe); });
+    }
+    for (const InfiniteOperation& e : arithmetic_with_infinite_bounds) {
+      const Outcome oe = run_with_exceptions_enabled(FE_INVALID | FE_DIVBYZERO, [&e] { return e.run().empty(); });
+      check("an operation with infinite bounds or an empty operand, FE_INVALID and FE_DIVBYZERO enabled", oe == returned_true,
             [&] { return std::string(e.name) + ": " + outcome_text(oe); });
     }
     const Outcome oc = run_with_exceptions_enabled(FE_INVALID, [] {
