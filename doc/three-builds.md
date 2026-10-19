@@ -133,6 +133,32 @@ turn with the others (GAOL v5):
   bounds being computed in one instruction. They are on by default on x86
   processors. The elementary functions do not go through them.
 
+On a 64-bit ARM processor, measured the same way on an Apple M2 with AppleClang
+21.0, the median of three runs of each program (GAOL v5):
+
+| | x + y | x − y | x × y | x ÷ y | sqr(x) | sqrt(x) | 13 operations in a line |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `-DGAOL_ARM64=OFF` (FPU intervals) | 1.16 | 3.56 | 3.37 | 4.00 | 2.08 | 4.51 | 49.8 |
+| Default (NEON intervals) | 0.91 | 0.89 | 2.14 | 2.39 | 1.48 | 1.70 | 19.2 |
+| `-DGAOL_ARM64=OFF -DGAOL_PRESERVE_ROUNDING=ON` | 38.7 | 38.5 | 39.7 | 43.1 | 39.4 | 48.3 | 522 |
+| `-DGAOL_PRESERVE_ROUNDING=ON` (NEON intervals) | 26.9 | 27.3 | 29.3 | 34.0 | 27.3 | 34.3 | 377 |
+
+- **The NEON intervals (`GAOL_ARM64`) pay on every operation of the table**:
+  x − y takes 0.89 ns rather than 3.56 (the difference of the FPU intervals took
+  three times their sum), x × y of operands of random signs 2.18 ns rather than
+  6.39, sqrt 1.70 rather than 4.51, and a line of 13 operations 19.2 ns rather
+  than 49.8. The two bounds are one vector, and the operations take them from one
+  to the next in a register. The elementary functions, which CORE-MATH computes,
+  go through them only for their arguments: no faster, no slower. They are on by
+  default on 64-bit ARM processors with GCC, Clang or AppleClang.
+- **The rounding direction is read with one `mrs` of FPCR** (0.8 ns on this
+  processor) and written with `msr` only when the program's is not upward:
+  `msr` takes 4 ns for the value FPCR holds and 11 ns when it changes the
+  direction. With `GAOL_PRESERVE_ROUNDING` an operation of a program that
+  computes to nearest writes it twice, which is the 27 ns above (39 ns with the
+  FPU intervals, which called `fegetround()` and `fesetround()`); a program that
+  already computes upward writes nothing.
+
 ### Interprocedural optimization is not offered
 
 Compiled with it (`-flto`), GAOL's basic operations are 1.1 to 1.5 times
