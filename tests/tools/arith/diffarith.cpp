@@ -14,8 +14,8 @@
  *   x += d, x -= d, x *= d, x /= d, x %= d, for d in the grid of bounds below
  *   and for a NaN d.
  *
- * The boxes are the intervals [a, b] with a <= b of a grid of 22 bounds (the
- * infinities, +-DBL_MAX, +-1e300, +-2.5, +-1, +-DBL_MIN, +-the smallest
+ * The boxes are the intervals [a, b] with a <= b of a grid of 23 bounds (the
+ * infinities, +-DBL_MAX, +-1e300, -2.5, +-1, +-DBL_MIN, +-the smallest
  * subnormal, +-0, 0.1, 3 and six random numbers), the empty set, [-oo, +oo]
  * and interval::zero(). Each line is computed with the rounding direction of
  * the call set to nearest, upward, downward, then toward zero (the key of a

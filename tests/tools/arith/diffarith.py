@@ -33,11 +33,14 @@
 
 import argparse
 import collections
+import itertools
 import os
 import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+# build.py of the tools of pow, without leaving a __pycache__ in that directory
+sys.dont_write_bytecode = True
 sys.path.insert(0, os.path.join(HERE, '..', 'pow'))
 import build  # noqa: E402  (tests/tools/pow/build.py)
 
@@ -61,7 +64,10 @@ def compare(a_path, b_path, show=20):
         if ha != hb:
             print('not the same diffarith (the boxes differ)')
             return False
-        for n, (la, lb) in enumerate(zip(fa, fb), 2):
+        for n, (la, lb) in enumerate(itertools.zip_longest(fa, fb), 2):
+            if la is None or lb is None:
+                print('the outputs do not have the same number of lines')
+                return False
             if la == lb:
                 identical[la.split()[1]] += 1
                 continue
@@ -74,10 +80,6 @@ def compare(a_path, b_path, show=20):
                 other[op] += 1
                 if len(shown) < show:
                     shown.append('  line %d\n    %s\n    %s' % (n, la.strip(), lb.strip()))
-        rest_a, rest_b = fa.readline(), fb.readline()
-        if rest_a or rest_b:
-            print('the outputs do not have the same number of lines')
-            return False
     ops = sorted(set(identical) | set(zero) | set(other))
     print('%-10s %10s %10s %10s' % ('operation', 'identical', 'zero sign', 'different'))
     for op in ops:
