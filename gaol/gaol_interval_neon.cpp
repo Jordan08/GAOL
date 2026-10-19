@@ -42,9 +42,6 @@
   */
   namespace neon_detail {
 
-  const std::uint64_t abs_mask = 0x7fffffffffffffffull;
-  const std::uint64_t infinity_bits = 0x7ff0000000000000ull;
-
   // The bounds read again after the check of the rounding direction: the empty
   // asm statement keeps its place after the check, and gives x back in the
   // register it is in, at no cost, so that no compiler computes with it, or
@@ -57,8 +54,6 @@
     return x;
   }
 
-  GAOL_INLINE uint64x2_t bits_of(float64x2_t x) { return vreinterpretq_u64_f64(x); }
-  GAOL_INLINE float64x2_t from_bits(uint64x2_t x) { return vreinterpretq_f64_u64(x); }
   // <y1, y0>
   GAOL_INLINE float64x2_t swap_lanes(float64x2_t x) { return vextq_f64(x, x, 1); }
   // <-y0, y1>: the stored bounds with the left one in its natural sign
@@ -66,12 +61,8 @@
   {
     return vcombine_f64(vneg_f64(vget_low_f64(y)), vget_high_f64(y));
   }
-  GAOL_INLINE uint64x2_t abs_bits(float64x2_t x) { return vandq_u64(bits_of(x), vdupq_n_u64(abs_mask)); }
   // All ones in the lanes that hold a NaN or an infinity
   GAOL_INLINE uint64x2_t nonfinite_lanes(float64x2_t x) { return vcgeq_u64(abs_bits(x), vdupq_n_u64(infinity_bits)); }
-  // All ones in the lanes that hold a NaN
-  GAOL_INLINE uint64x2_t nan_lanes(float64x2_t x) { return vcgtq_u64(abs_bits(x), vdupq_n_u64(infinity_bits)); }
-  GAOL_INLINE bool any_lane(uint64x2_t m) { return vmaxvq_u32(vreinterpretq_u32_u64(m)) != 0; }
   GAOL_INLINE float64x2_t nan_pair() { return vdupq_n_f64(std::numeric_limits<double>::quiet_NaN()); }
   GAOL_INLINE float64x2_t stored(double minus_left, double right)
   {

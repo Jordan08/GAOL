@@ -33,6 +33,51 @@ right> in the two lanes, so that one addition rounded upward gives both bounds.
 #ifndef GAOL_INTERVAL_NEON_H
 #define GAOL_INTERVAL_NEON_H
 
+/*
+  The helpers of the intersection and the hull, and of the kernels of
+  gaol/gaol_interval_neon.cpp (GAOL v5). They work on the bits of the bounds, with
+  integer instructions: these depend neither on the rounding direction nor on the
+  modes that flush the subnormals to zero, which the operations that only compare
+  or copy bounds do not check (point Q of TODO.md), and raise nothing on a NaN,
+  which the empty set holds in both bounds, where the comparisons of 64-bit ARM on
+  doubles signal the invalid-operation exception on a quiet NaN.
+*/
+namespace neon_detail {
+
+  const std::uint64_t abs_mask = 0x7fffffffffffffffull;
+  const std::uint64_t infinity_bits = 0x7ff0000000000000ull;
+
+  GAOL_INLINE uint64x2_t bits_of(float64x2_t x) { return vreinterpretq_u64_f64(x); }
+  GAOL_INLINE float64x2_t from_bits(uint64x2_t x) { return vreinterpretq_f64_u64(x); }
+  GAOL_INLINE uint64x2_t abs_bits(float64x2_t x) { return vandq_u64(bits_of(x), vdupq_n_u64(abs_mask)); }
+  // All ones in the lanes that hold a NaN
+  GAOL_INLINE uint64x2_t nan_lanes(float64x2_t x) { return vcgtq_u64(abs_bits(x), vdupq_n_u64(infinity_bits)); }
+  GAOL_INLINE bool any_lane(uint64x2_t m) { return vmaxvq_u32(vreinterpretq_u32_u64(m)) != 0; }
+
+  /*
+    The order of the doubles that are no NaN, as signed integers, in both lanes
+    (bound_key() of gaol/gaol_port.h): -0 and +0 are 0. The stored left bound
+    -l has the key of -l, and the key of its opposite l is the opposite of it
+  */
+  GAOL_INLINE int64x2_t bound_keys(float64x2_t x)
+  {
+    const int64x2_t magnitude = vreinterpretq_s64_u64(abs_bits(x));
+    const uint64x2_t negative = vcltzq_s64(vreinterpretq_s64_f64(x));
+    return vbslq_s64(negative, vnegq_s64(magnitude), magnitude);
+  }
+
+  /*
+    The keys of the stored bounds with the smallest integer for a NaN, so that the
+    empty set, which holds NaN in both lanes, loses any choice of the greater of
+    two bounds: the hull of the empty set and of x is x, without a test
+  */
+  GAOL_INLINE int64x2_t bound_keys_nan_lowest(float64x2_t x)
+  {
+    return vbslq_s64(nan_lanes(x), vdupq_n_s64(std::numeric_limits<std::int64_t>::min()), bound_keys(x));
+  }
+
+} // namespace neon_detail
+
 // Built from the lanes, not held in static intervals (GAOL v5): the
 // constants of the SSE2 intervals are masks that the library initializes
 // when it is compiled, the lanes here are written in the code that uses them
@@ -142,60 +187,43 @@ GAOL_INLINE interval interval::operator-(void) const
 }
 
 /*
-  The intersection of the SSE2 intervals, on the lanes (GAOL v5): one quiet
-  comparison, std::isunordered() of the two stored lower bounds, tells whether
-  either operand is empty, both bounds of the empty set being NaN. No vector
-  comparison: those of 64-bit ARM, fcmgt and fcmge, signal the
-  invalid-operation exception on a NaN, and a build under -frounding-math
-  compiles them as scalar comparisons all the same. The bounds are compared
-  as bounds, with the quiet comparisons of gaol_port.h, which the modes that
-  flush the subnormals to zero do not change (point Q of TODO.md). They go
-  through GAOL_FPU_SCALAR(), as in the FPU intervals.
+  The intersection and the hull, on the stored bounds <-l, r> (GAOL v5): each
+  stored bound is the lesser of the two operands' (the greater left bound, the
+  lesser right bound) for the intersection, the greater for the hull, chosen by
+  one comparison of the keys of the bounds, the integers of
+  neon_detail::bound_keys(), which order the doubles whatever the modes that
+  flush the subnormals to zero (point Q of TODO.md), and which tell -0 and +0
+  equal, the bound of *this being kept: no comparison of doubles, those of
+  64-bit ARM signaling the invalid-operation exception on the NaN bounds of
+  the empty set. The empty set is told by its NaN, which is never an interval
+  of the interface with bounds that cross.
 */
 GAOL_INLINE interval& interval::operator&=(const interval& I)
 {
-  double bd0 = vgetq_lane_f64(neonbounds, 0), bd1 = vgetq_lane_f64(neonbounds, 1);
-  const double Ibd0 = vgetq_lane_f64(I.neonbounds, 0), Ibd1 = vgetq_lane_f64(I.neonbounds, 1);
-  if (gaol_detail::quiet_unordered(bd0, Ibd0)) {
+  using namespace neon_detail;
+  if (any_lane(vorrq_u64(nan_lanes(neonbounds), nan_lanes(I.neonbounds)))) {
     neonbounds = vdupq_n_f64(std::numeric_limits<double>::quiet_NaN());
     return *this;
   }
-  if (!gaol_detail::bound_greater_equal(Ibd0, bd0)) { // Left bounds negated
-    bd0 = Ibd0;
-  }
-  if (!gaol_detail::bound_greater_equal(Ibd1, bd1)) {
-    bd1 = Ibd1;
-  }
-  GAOL_FPU_SCALAR(bd0);
-  GAOL_FPU_SCALAR(bd1);
-  // Disjoint intervals give the empty set, [NaN, NaN] as interval::emptyset()
-  if (!gaol_detail::bound_less_equal(-bd0, bd1)) {
+  const int64x2_t kx = bound_keys(neonbounds), kI = bound_keys(I.neonbounds);
+  const uint64x2_t take = vcltq_s64(kI, kx); // I has the lesser stored bound
+  const int64x2_t k = vbslq_s64(take, kI, kx);
+  // Disjoint intervals give the empty set, [NaN, NaN] as interval::emptyset(),
+  // not the bounds in the wrong order: -l > r
+  if (-vgetq_lane_s64(k, 0) > vgetq_lane_s64(k, 1)) {
     neonbounds = vdupq_n_f64(std::numeric_limits<double>::quiet_NaN());
   } else {
-    neonbounds = vcombine_f64(vdup_n_f64(bd0), vdup_n_f64(bd1));
+    neonbounds = vbslq_f64(take, I.neonbounds, neonbounds);
   }
   return *this;
 }
 
-// The bounds compared as in operator&=() (GAOL v5)
+// The hull; the empty operand has the lowest keys, and is left out
 GAOL_INLINE interval& interval::operator|=(const interval& I)
 {
-  if (is_empty()) {
-    *this = I;
-    return *this;
-  }
-  if (I.is_empty()) {
-    return *this;
-  }
-  double bd0 = vgetq_lane_f64(neonbounds, 0), bd1 = vgetq_lane_f64(neonbounds, 1);
-  const double Ibd0 = vgetq_lane_f64(I.neonbounds, 0), Ibd1 = vgetq_lane_f64(I.neonbounds, 1);
-  if (gaol_detail::bound_greater(Ibd0, bd0)) { // Left bounds negated
-    bd0 = Ibd0;
-  }
-  if (gaol_detail::bound_greater(Ibd1, bd1)) {
-    bd1 = Ibd1;
-  }
-  neonbounds = vcombine_f64(vdup_n_f64(bd0), vdup_n_f64(bd1));
+  using namespace neon_detail;
+  neonbounds = vbslq_f64(vcltq_s64(bound_keys_nan_lowest(neonbounds), bound_keys_nan_lowest(I.neonbounds)),
+                         I.neonbounds, neonbounds);
   return *this;
 }
 
