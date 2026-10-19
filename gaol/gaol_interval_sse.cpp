@@ -30,15 +30,26 @@
 	   memory, where they are right before the program starts, whereas the
 	   dynamic initialization of this file computed them after the static
 	   objects of a program linked with the static library GAOL, except with
-	   MinGW-w64, whose operations then found them 0 (GAOL v5). The SSE2 intervals are compiled
-	   by GCC and Clang only, which know these vectors: none of the three
-	   builds compiles them with Visual C++. m128d_02mask and m128d_20mask,
-	   whose all-ones half no double writes, are integer vectors seen as
-	   doubles; __extension__ keeps -pedantic from warning about them. */
+	   MinGW-w64, whose operations then found them 0 (GAOL v5). GCC and Clang
+	   know these vectors; the __m128d of Visual C++ is a structure holding an
+	   array of two doubles, which the same braces initialize (the braces of the
+	   array left out), and the compiler too puts it in memory initialized
+	   before the program starts. m128d_02mask and m128d_20mask, whose all-ones
+	   half no double writes, are integer vectors seen as doubles for GCC and
+	   Clang (__extension__ keeps -pedantic from warning about them); Visual
+	   C++ does not cast between the two types, and computes them when the
+	   program starts: nothing reads them but the former inverse(), which is
+	   left out of the compilation, so that the order of the initializations
+	   does not matter for them. */
 	const __m128d interval::lbsignmask = {-0.0, 0.0};
 	const __m128d interval::lbrbsignmask = {-0.0, -0.0};
+#if defined(__GNUC__) || defined(__clang__)
 	const __m128d interval::m128d_02mask = __extension__ (__m128d)(__m128i){0, -1};
 	const __m128d interval::m128d_20mask = __extension__ (__m128d)(__m128i){-1, 0};
+#else
+	const __m128d interval::m128d_02mask = _mm_castsi128_pd(_mm_set_epi64x(-1, 0));
+	const __m128d interval::m128d_20mask = _mm_castsi128_pd(_mm_set_epi64x(0, -1));
+#endif
 	const __m128d interval::m128_zero = {0.0, 0.0};
 	const __m128d interval::m128_minus_one = {-1.0, 1.0};
 	const __m128d interval::m128_nan = {std::numeric_limits<double>::quiet_NaN(),
@@ -342,11 +353,17 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
     direction and cleared the modes that flush the subnormals to zero. The
     kernels take their operands in registers, where the operators read them
     from memory behind the barrier of the check (see rnd_reread() of
-    gaol/gaol_fpu.h, for a double; GAOL v5, point ZZ of TODO.md)
+    gaol/gaol_fpu.h, for a double; GAOL v5, point ZZ of TODO.md). Visual C++
+    has no asm statement on x64, and none is needed: it keeps the
+    floating-point operations where the source puts them with respect to the
+    writes of the control register under /fp:strict, with which GAOL is
+    compiled (see GAOL_RND_BARRIER() of gaol/gaol_fpu.h)
   */
   GAOL_INLINE __m128d reread_bounds(__m128d x)
   {
+#if defined(__GNUC__) || defined(__clang__)
     __asm__ __volatile__ ("" : "+x" (x));
+#endif
     return x;
   }
 
@@ -807,6 +824,18 @@ interval& interval::operator*=(const interval& I)
   with bounds among 23 special values: the infinities, the largest doubles,
   2^1023, the subnormals, the zeros of both signs...).
 */
+
+// The rare cases of mul_bounds() and div_bounds(), out of line: not inlined
+// into them, and put with the code that is seldom run where the compiler has
+// an attribute for it (Visual C++ has the first only; GAOL v5)
+#if defined(__GNUC__) || defined(__clang__)
+#  define GAOL_NOINLINE_COLD __attribute__((noinline, cold))
+#elif defined(_MSC_VER)
+#  define GAOL_NOINLINE_COLD __declspec(noinline)
+#else
+#  define GAOL_NOINLINE_COLD
+#endif
+
 namespace {
   struct finite_products
   {
@@ -929,11 +958,11 @@ namespace {
   }
 
   // x * y for x and y empty or with an infinite bound, out of mul_bounds(),
-  // where it is rare, and its code with it (the SSE2 intervals are compiled by
-  // GCC and Clang only): the empty set, or the products by the switch of the
-  // signs, where a bound 0 and an infinite one give +0 (see above)
+  // where it is rare, and its code with it: the empty set, or the products by
+  // the switch of the signs, where a bound 0 and an infinite one give +0 (see
+  // above)
 #if !GAOL_AVX512_ARITHMETIC
-  __attribute__((noinline, cold)) __m128d mul_special(__m128d x, __m128d y)
+  GAOL_NOINLINE_COLD __m128d mul_special(__m128d x, __m128d y)
   {
     if (_mm_movemask_pd(_mm_cmpunord_pd(x, y)) != 0) { // an empty operand
       return interval::emptyset().get_xmminterval();
@@ -1030,7 +1059,7 @@ GAOL_BOUNDS_TARGET __m128d mul_bounds(__m128d x, __m128d y)
 */
 #if !GAOL_AVX512_ARITHMETIC
 namespace {
-  __attribute__((noinline, cold)) __m128d divide_general(__m128d xb, __m128d yb)
+  GAOL_NOINLINE_COLD __m128d divide_general(__m128d xb, __m128d yb)
   {
 	interval x(xb);
 	const interval I(yb);
