@@ -5734,6 +5734,10 @@ interval nth_root(const interval& I, int q)
     if (!I.is_empty()) {
       return interval(fast_sqrt(I.get_xmminterval()));
     }
+#elif GAOL_USING_NEON_INSTRUCTIONS
+    // The roots of both bounds by one vector instruction (GAOL v5, see
+    // gaol/gaol_interval_neon.cpp)
+    return interval(neon_detail::sqrt_bounds(I.get_neoninterval()));
 #endif
     // The part of I in [0, +oo], as nth_root() takes it: the intersection
     // compares the bounds with quiet comparisons, and keeps an empty I as it
