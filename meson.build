@@ -344,11 +344,47 @@ endif
 # __attribute__((target("avx512f"))) and __builtin_cpu_supports(), which
 # GCC and Clang on x86-64 do, but GCC for Windows, which does not align the
 # stack for AVX-512 (see CMakeLists.txt): no flag, the attribute is per
-# function. The path is taken where the machine building runs it
-# (GAOL_AVX512_ARITHMETIC below).
+# function. Visual C++ and clang-cl for x64 take it too (GAOL v5), with
+# cpuid and xgetbv for __builtin_cpu_supports() and no attribute for Visual
+# C++ (see CMakeLists.txt). The path is taken where the machine building runs
+# it (GAOL_AVX512_ARITHMETIC below).
+avx512_msvc_probe = '''
+    #include <immintrin.h>
+    #include <intrin.h>
+    #if defined(__clang__)
+    #  define GAOL_TARGET __attribute__((target("avx512f")))
+    #else
+    #  define GAOL_TARGET
+    #endif
+    GAOL_TARGET double er_add(double a, double b)
+    {
+      const __m512d x = _mm512_set1_pd(a);
+      const __m512d y = _mm512_set1_pd(b);
+      return _mm_cvtsd_f64(_mm512_castpd512_pd128(
+          _mm512_add_round_pd(x, y, _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC)));
+    }
+    bool cpu_runs_avx512f()
+    {
+      int regs[4];
+      __cpuid(regs, 0);
+      if (regs[0] < 7) {
+        return false;
+      }
+      __cpuid(regs, 1);
+      if ((regs[2] & (1 << 27)) == 0 || (_xgetbv(0) & 0xe6) != 0xe6) {
+        return false;
+      }
+      __cpuidex(regs, 7, 0);
+      return (regs[1] & (1 << 16)) != 0;
+    }
+'''
 have_avx512_target = false
-if use_sse2 and not msvc and host_machine.cpu_family() == 'x86_64'
-  avx512_target_source = '''
+if use_sse2 and host_machine.cpu_family() == 'x86_64'
+  if msvc
+    avx512_target_source = avx512_msvc_probe + '''
+    int main() { return cpu_runs_avx512f() ? 0 : 1; }'''
+  else
+    avx512_target_source = '''
     #if (defined(_WIN32) || defined(__CYGWIN__)) && defined(__GNUC__) && !defined(__clang__)
     #error GCC for Windows does not align the stack for AVX-512
     #endif
@@ -361,6 +397,7 @@ if use_sse2 and not msvc and host_machine.cpu_family() == 'x86_64'
           _mm512_add_round_pd(x, y, _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC)));
     }
     int main() { return __builtin_cpu_supports("avx512f") != 0 ? 0 : 1; }'''
+  endif
   if cpp_comp.compiles(avx512_target_source)
     have_avx512_target = true
     conf_data.set('GAOL_HAVE_AVX512_TARGET', 1)
@@ -376,7 +413,7 @@ endif
 # is configured, makes on a machine with the AVX-512 instructions a library
 # that needs them (GAOL v5, point AA of TODO.md)
 if prefer_avx512_requested and not have_avx512_target
-  error('GAOL_PREFER_AVX512 takes the SSE2 intervals of x86-64, with Clang, or GCC except on Windows (MinGW-w64, Cygwin)')
+  error('GAOL_PREFER_AVX512 takes the SSE2 intervals of x86-64, with Clang, Visual C++, or GCC except on Windows (MinGW-w64, Cygwin)')
 endif
 prefer_avx512 = prefer_avx512_requested or (prefer_avx512_option == 'auto' and preserve_rounding and have_avx512_target)
 if prefer_avx512
@@ -390,7 +427,15 @@ endif
 avx512_taken = false
 if prefer_avx512
   if not meson.is_cross_build()
-    avx512_run = cpp_comp.run('''
+    if msvc
+      avx512_run_source = avx512_msvc_probe + '''
+    int main()
+    {
+      volatile double one = 1.0, tiny = 8.67361737988403547205962240695953369140625e-19;
+      return cpu_runs_avx512f() && er_add(one, tiny) > 1.0 ? 0 : 1;
+    }'''
+    else
+      avx512_run_source = '''
     #include <immintrin.h>
     __attribute__((target("avx512f"))) double er_add(double a, double b)
     {
@@ -403,7 +448,9 @@ if prefer_avx512
     {
       volatile double one = 1.0, tiny = 8.67361737988403547205962240695953369140625e-19;
       return __builtin_cpu_supports("avx512f") != 0 && er_add(one, tiny) > 1.0 ? 0 : 1;
-    }''', name: 'this machine runs the AVX-512 instructions')
+    }'''
+    endif
+    avx512_run = cpp_comp.run(avx512_run_source, name: 'this machine runs the AVX-512 instructions')
     avx512_taken = avx512_run.compiled() and avx512_run.returncode() == 0
   endif
   if avx512_taken

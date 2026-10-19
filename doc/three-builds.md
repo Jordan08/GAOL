@@ -61,7 +61,11 @@ build, and the CMake build follows them, apart from the errors corrected (see
   checks, and the operations test nothing as they run; never with GCC for
   Windows (MinGW-w64, Cygwin), which does not align the stack for the
   AVX-512 registers, as it does not for those of `-mfma`. No flag to compile,
-  the path's functions alone carry the target attribute (GAOL v5, see
+  the path's functions alone carry the target attribute, which Visual C++
+  has not and needs not, taking the intrinsics of any instruction set in any
+  function. Visual C++ has no `__builtin_cpu_supports()`, and the one of
+  clang-cl needs the runtime library of LLVM: both tell the processor by
+  `cpuid` and `xgetbv` (GAOL v5, see
   [Using GAOL](using.md#the-avx-512-path));
 - without the intervals of floats, `gaol::intervalf` and `gaol::interval2f`
   (SSE3), unfinished, for which no build has an option: only a developer of

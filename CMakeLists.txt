@@ -653,21 +653,68 @@ message(STATUS "SSE2 intervals: ${GAOL_USING_SSE2_INSTRUCTIONS}, SSE3: ${GAOL_US
 
 # GAOL_HAVE_AVX512_TARGET: the compiler accepts the AVX-512 instructions in
 # the functions that carry __attribute__((target("avx512f"))), and
-# __builtin_cpu_supports("avx512f"), with GCC and Clang on x86-64 only, but
+# __builtin_cpu_supports("avx512f"), with GCC and Clang on x86-64, but
 # GCC for Windows (MinGW-w64 and Cygwin), which does not align the stack
 # beyond 16 bytes, the 64 of a zmm register it spills there (GCC bug 54412,
 # fixed for GCC 17 only; GAOL_FMA leaves -mfma out with MinGW-w64 GCC for
 # the 32 of AVX). The code of the path compiled by MinGW-w64 GCC 13 makes no
 # aligned access of a zmm register to the stack, but nothing keeps the
-# compiler from doing it (GAOL v5, point AA of TODO.md). The result is
+# compiler from doing it (GAOL v5, point AA of TODO.md). Visual C++ and
+# clang-cl for x64 take it too (GAOL v5): Visual C++ needs no attribute, it
+# takes the intrinsics of any instruction set in any function, clang-cl has
+# the attribute, and both tell the processor by cpuid and xgetbv, Visual C++
+# having no __builtin_cpu_supports() and the one of clang-cl needing the
+# runtime library of LLVM at the link (cpu_runs_avx512f() of
+# gaol/gaol_common.cpp). The result is
 # cached under a name of its own, GAOL_COMPILER_TAKES_AVX512_PATH, so that a
 # build directory configured before that check checks again. Only the
 # functions of the AVX-512 path of +, -, *, / and sqrt
 # (gaol/gaol_interval_avx512.cpp) carry the attribute, and the rest of the
 # library is compiled as without it; the path is compiled in where
 # GAOL_AVX512_ARITHMETIC below is (GAOL v5).
+# The program that finds out whether Visual C++ and clang-cl for x64 run the
+# AVX-512 instructions, which the checks below compile and run: the same
+# cpuid and xgetbv as cpu_runs_avx512f() of gaol/gaol_common.cpp, and an
+# addition by the embedded rounding, in a function that carries the target
+# where the compiler has the attribute (clang-cl)
+set(GAOL_AVX512_MSVC_PROBE [=[
+    #include <immintrin.h>
+    #include <intrin.h>
+    #if defined(__clang__)
+    #  define GAOL_TARGET __attribute__((target("avx512f")))
+    #else
+    #  define GAOL_TARGET
+    #endif
+    GAOL_TARGET double er_add(double a, double b)
+    {
+      const __m512d x = _mm512_set1_pd(a);
+      const __m512d y = _mm512_set1_pd(b);
+      return _mm_cvtsd_f64(_mm512_castpd512_pd128(_mm512_add_round_pd(x, y, _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC)));
+    }
+    bool cpu_runs_avx512f()
+    {
+      int regs[4];
+      __cpuid(regs, 0);
+      if (regs[0] < 7) {
+        return false;
+      }
+      __cpuid(regs, 1);
+      if ((regs[2] & (1 << 27)) == 0 || (_xgetbv(0) & 0xe6) != 0xe6) {
+        return false;
+      }
+      __cpuidex(regs, 7, 0);
+      return (regs[1] & (1 << 16)) != 0;
+    }
+]=])
 set(GAOL_HAVE_AVX512_TARGET OFF)
-if(GAOL_USING_SSE2_INSTRUCTIONS AND NOT MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+if(GAOL_USING_SSE2_INSTRUCTIONS AND MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+  check_cxx_source_compiles("${GAOL_AVX512_MSVC_PROBE}
+    int main() { return cpu_runs_avx512f() ? 0 : 1; }"
+    GAOL_COMPILER_TAKES_AVX512_PATH)
+  if(GAOL_COMPILER_TAKES_AVX512_PATH)
+    set(GAOL_HAVE_AVX512_TARGET ON)
+  endif()
+elseif(GAOL_USING_SSE2_INSTRUCTIONS AND CMAKE_SIZEOF_VOID_P EQUAL 8)
   # The source in a bracket argument: verbatim, no quote to escape
   check_cxx_source_compiles([=[
     #if (defined(_WIN32) || defined(__CYGWIN__)) && defined(__GNUC__) && !defined(__clang__)
@@ -688,7 +735,7 @@ if(GAOL_USING_SSE2_INSTRUCTIONS AND NOT MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 8)
 endif()
 if(GAOL_PREFER_AVX512 AND NOT GAOL_HAVE_AVX512_TARGET)
   if(GAOL_PREFER_AVX512_EXPLICIT)
-    message(FATAL_ERROR "GAOL_PREFER_AVX512 takes the SSE2 intervals of x86-64, with Clang, or GCC except on Windows (MinGW-w64, Cygwin)")
+    message(FATAL_ERROR "GAOL_PREFER_AVX512 takes the SSE2 intervals of x86-64, with Clang, Visual C++, or GCC except on Windows (MinGW-w64, Cygwin)")
   endif()
   # The default GAOL_PRESERVE_ROUNDING derived, and the compiler or the
   # architecture takes no path: the operations keep setting the direction
@@ -716,20 +763,30 @@ if(GAOL_PREFER_AVX512 AND GAOL_HAVE_AVX512_TARGET)
   if(CMAKE_CROSSCOMPILING)
     message(STATUS "GAOL_PREFER_AVX512: cross-compiling, the AVX-512 path left out")
   else()
-    check_cxx_source_runs([=[
-      #include <immintrin.h>
-      __attribute__((target("avx512f"))) double er_add(double a, double b)
-      {
-        const __m512d x = _mm512_set1_pd(a);
-        const __m512d y = _mm512_set1_pd(b);
-        return _mm_cvtsd_f64(_mm512_castpd512_pd128(_mm512_add_round_pd(x, y, _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC)));
-      }
-      int main()
-      {
-        volatile double one = 1.0, tiny = 8.67361737988403547205962240695953369140625e-19;
-        return __builtin_cpu_supports("avx512f") != 0 && er_add(one, tiny) > 1.0 ? 0 : 1;
-      }]=]
-      GAOL_MACHINE_RUNS_AVX512)
+    if(MSVC)
+      check_cxx_source_runs("${GAOL_AVX512_MSVC_PROBE}
+        int main()
+        {
+          volatile double one = 1.0, tiny = 8.67361737988403547205962240695953369140625e-19;
+          return cpu_runs_avx512f() && er_add(one, tiny) > 1.0 ? 0 : 1;
+        }"
+        GAOL_MACHINE_RUNS_AVX512)
+    else()
+      check_cxx_source_runs([=[
+        #include <immintrin.h>
+        __attribute__((target("avx512f"))) double er_add(double a, double b)
+        {
+          const __m512d x = _mm512_set1_pd(a);
+          const __m512d y = _mm512_set1_pd(b);
+          return _mm_cvtsd_f64(_mm512_castpd512_pd128(_mm512_add_round_pd(x, y, _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC)));
+        }
+        int main()
+        {
+          volatile double one = 1.0, tiny = 8.67361737988403547205962240695953369140625e-19;
+          return __builtin_cpu_supports("avx512f") != 0 && er_add(one, tiny) > 1.0 ? 0 : 1;
+        }]=]
+        GAOL_MACHINE_RUNS_AVX512)
+    endif()
     if(GAOL_MACHINE_RUNS_AVX512)
       set(GAOL_AVX512_ARITHMETIC ON)
     else()

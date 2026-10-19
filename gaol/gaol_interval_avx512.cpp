@@ -81,7 +81,19 @@
  * COPYING file for information.
  *--------------------------------------------------------------------------*/
 
-#define GAOL_AVX512_TARGET __attribute__((target("avx512f")))
+/* GCC and Clang accept the AVX-512 instructions in the functions that carry
+   the target, and nowhere else. Visual C++ has no such attribute and needs
+   none: it takes the intrinsics of any instruction set in any function,
+   whatever /arch says, and emits the instructions they stand for (the
+   embedded rounding included), with a vzeroupper where the code goes back to
+   SSE; clang-cl is Clang and has the attribute (GAOL v5). */
+#if defined(__GNUC__) || defined(__clang__)
+#  define GAOL_AVX512_TARGET __attribute__((target("avx512f")))
+#  define GAOL_NOINLINE __attribute__((noinline))
+#else
+#  define GAOL_AVX512_TARGET
+#  define GAOL_NOINLINE __declspec(noinline)
+#endif
 
   // The sign and the zero of a double, from its bits: the operations of the
   // AVX-512 path read them where the SSE2 path compares values, which the
@@ -169,23 +181,33 @@
     Clang 18 computed the difference of fast_sub() after the destructor had
     set flush-to-zero back, with GAOL_PRESERVE_ROUNDING, and
     [3e-308] - [2.9e-308] was [0, 0] (GAOL v5, point Q of TODO.md,
-    tests/rounding_direction.cpp).
+    tests/rounding_direction.cpp). Visual C++ has no asm statement on x64:
+    in() and out() give their argument back there, as reread_bounds() of
+    gaol/gaol_interval_sse.cpp does, and /fp:strict keeps the operations where
+    the source puts them with respect to the writes of the control register
+    (see GAOL_RND_BARRIER() of gaol/gaol_fpu.h).
   */
   struct flush_guard
   {
     static __m128d in(__m128d x)
     {
+#if defined(__GNUC__) || defined(__clang__)
       __asm__ __volatile__ ("" : "+x" (x));
+#endif
       return x;
     }
     static double in(double x)
     {
+#if defined(__GNUC__) || defined(__clang__)
       __asm__ __volatile__ ("" : "+x" (x));
+#endif
       return x;
     }
     static __m128d out(__m128d r)
     {
+#if defined(__GNUC__) || defined(__clang__)
       __asm__ __volatile__ ("" : "+x" (r));
+#endif
       return r;
     }
 
@@ -662,19 +684,21 @@
   GAOL_INLINE interval& opaque(interval& x)
   {
     interval* p = &x;
+#if defined(__GNUC__) || defined(__clang__)
     __asm__ ("" : "+r" (p));
+#endif
     return *p;
   }
 
   // x + [d, d], d finite: <-l, r> + <-d, d>. x - d is x + (-d)
-  GAOL_AVX512_TARGET __attribute__((noinline)) interval& fast_add_assign(interval& x, double d)
+  GAOL_AVX512_TARGET GAOL_NOINLINE interval& fast_add_assign(interval& x, double d)
   {
     x.get_xmminterval() = fast_add(x.get_xmminterval(), _mm_set_pd(d, -d));
     return opaque(x);
   }
 
   // x * [d, d], d finite and nonzero, through the dispatch of fast_mul()
-  GAOL_AVX512_TARGET __attribute__((noinline)) interval& fast_mul_assign(interval& x, double d)
+  GAOL_AVX512_TARGET GAOL_NOINLINE interval& fast_mul_assign(interval& x, double d)
   {
     x.get_xmminterval() = fast_mul(x.get_xmminterval(), _mm_set_pd(d, -d));
     return opaque(x);
@@ -682,7 +706,7 @@
 
   // x / d, d finite and nonzero: the bounds exchanged and d negated for a
   // negative one, as operator/=(double) does
-  GAOL_AVX512_TARGET __attribute__((noinline)) interval& fast_div_assign(interval& x, double d)
+  GAOL_AVX512_TARGET GAOL_NOINLINE interval& fast_div_assign(interval& x, double d)
   {
     const __m128d b = x.get_xmminterval();
     if (bit_negative(d)) {

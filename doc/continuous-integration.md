@@ -42,7 +42,10 @@ request (GAOL v5); `workflow_dispatch` runs them on any branch. The badges of
     arm64, the compiler of Visual Studio 2022, MSVC 14.44, installed with
     Visual Studio 2026: GitHub has no image with Visual Studio 2022 on arm64
     any more). On x64 the intervals are the SSE2 ones (GAOL v5), on x86 and
-    arm64 those of the FPU, which a step of each job checks;
+    arm64 those of the FPU, which a step of each job checks. Two x64 jobs ask
+    for the AVX-512 path (`GAOL_PREFER_AVX512`), as the one with the rounding
+    direction preserved does by default: they take it where the runner has the
+    instructions, which the step tells, with a warning where it has not;
   - clang-cl, the Clang of Visual Studio (toolset `ClangCL`): of Visual
     Studio 2022 on x64, Release and Debug, and of Visual Studio 2026 on x86,
     x64 and arm64, Release. On x64 it defines `__x86_64__` and `_WIN32` but

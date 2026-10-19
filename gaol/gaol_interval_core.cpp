@@ -71,7 +71,7 @@
 // GAOL_AVX512_ARITHMETIC is (GAOL v5, point ZZ of TODO.md, see
 // pown_large_er()): it needs the packed kernel, and runs in functions that
 // carry the target of gaol/gaol_interval_avx512.cpp
-#if GAOL_POWN_PACKED && defined(__x86_64__) && GAOL_AVX512_ARITHMETIC
+#if GAOL_POWN_PACKED && (defined(__x86_64__) || defined(_M_X64)) && GAOL_AVX512_ARITHMETIC
 #  define GAOL_POWN_ER 1
 #else
 #  define GAOL_POWN_ER 0
@@ -112,7 +112,7 @@ namespace gaol_core {
     return v;
   }
 
-#if defined(__x86_64__) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_AVX512_ARITHMETIC
+#if (defined(__x86_64__) || defined(_M_X64)) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_AVX512_ARITHMETIC
   // GAOL_AVX512_ARITHMETIC, decided when GAOL is configured: +, -, *, / and
   // sqrt take the AVX-512 path of gaol/gaol_interval_avx512.cpp, which sets
   // no rounding direction, and clears the flush-to-zero modes as the other
@@ -5723,7 +5723,7 @@ interval nth_root(const interval& I, int q)
 
   interval sqrt(const interval& I)
   {
-#if defined(__x86_64__) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_AVX512_ARITHMETIC
+#if (defined(__x86_64__) || defined(_M_X64)) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_AVX512_ARITHMETIC
     /* The AVX-512 path: the roots by the embedded rounding, the part of I
        in [0, +oo] and its emptiness by the sign and the magnitude bits,
        which the denormals-are-zero mode does not change (the SSE2 path

@@ -366,7 +366,7 @@ now true of each of them.
 | `GAOL_VERBOSE_MODE` | A line on the standard error when GAOL initializes and cleans up | `GAOL_VERBOSE_MODE` | `--enable-verbose-mode` | `enable-verbose-mode` |
 | `GAOL_USING_SSE2_INSTRUCTIONS` | The intervals computed with SSE2 (x86, not 32-bit Windows) | `GAOL_SIMD` (default) | `--enable-simd` (default) | `enable-simd` (default) |
 | `GAOL_USING_SSE3_INSTRUCTIONS` | And compiled with `-msse3` | where the compiler takes it | where the compiler takes it | where the compiler takes it |
-| `GAOL_HAVE_AVX512_TARGET` | The compiler takes `__attribute__((target("avx512f")))` and `__builtin_cpu_supports("avx512f")`, which the AVX-512 path of +, -, *, / and sqrt needs; never GCC for Windows (MinGW-w64, Cygwin), which does not align the stack for the AVX-512 registers (GCC bug 54412) | checked | checked | checked |
+| `GAOL_HAVE_AVX512_TARGET` | The compiler takes `__attribute__((target("avx512f")))` and `__builtin_cpu_supports("avx512f")`, which the AVX-512 path of +, -, *, / and sqrt needs; never GCC for Windows (MinGW-w64, Cygwin), which does not align the stack for the AVX-512 registers (GCC bug 54412); Visual C++ for x64 takes the instructions in any function and tells the processor by `cpuid` and `xgetbv`, clang-cl has the attribute and does the same (GAOL v5) | checked | checked | checked |
 | `GAOL_HAVE_VISIBILITY_OPTIONS` | The library is compiled with `-fvisibility=hidden` | checked | checked | checked |
 | `GAOL_HAVE_FENV_H` | The compiler has `<fenv.h>` | checked (required) | checked | checked |
 
