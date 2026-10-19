@@ -1068,6 +1068,14 @@ namespace
     return std::vector<double>{ GAOL_INFINITY, -GAOL_INFINITY, std::numeric_limits<double>::quiet_NaN() };
   }
 
+  // The flags the operation raised, so that the log of a job names the operands
+  // that raised them (the check below tells only the operation)
+  std::string flags_text()
+  {
+    return std::string((std::fetestexcept(FE_INVALID) != 0) ? "invalid-operation " : "")
+           + ((std::fetestexcept(FE_DIVBYZERO) != 0) ? "division-by-zero" : "");
+  }
+
   typedef interval (*PairOperation)(const interval&, const interval&);
   typedef Expected (*PairExpected)(const interval&, const interval&);
   typedef interval (*DoubleOperation)(const interval&, double);
@@ -1078,8 +1086,15 @@ namespace
     const std::vector<interval> operands = infinite_operands();
     for (const interval& x : operands) {
       for (const interval& y : operands) {
+        std::feclearexcept(FE_ALL_EXCEPT);
         const interval z = op(opaque(x), opaque(y));
+        if (std::fetestexcept(FE_INVALID | FE_DIVBYZERO)) {
+          return hex(x) + symbol + hex(y) + " raised a flag: " + flags_text();
+        }
         const Expected e = (x.is_empty() || y.is_empty()) ? expect_empty() : expected(x, y);
+        if (std::fetestexcept(FE_INVALID | FE_DIVBYZERO)) {
+          return hex(x) + symbol + hex(y) + ": the reference raised a flag: " + flags_text();
+        }
         if (!matches(z, e)) {
           return hex(x) + symbol + hex(y) + rather_than(z, e);
         }
@@ -1097,8 +1112,15 @@ namespace
     for (const interval& x : operands) {
       for (const double d : doubles) {
         const bool gives_empty = x.is_empty() || !std::isfinite(d);
+        std::feclearexcept(FE_ALL_EXCEPT);
         const interval z = op(opaque(x), gaol_core::rnd_keep(d));
+        if (std::fetestexcept(FE_INVALID | FE_DIVBYZERO)) {
+          return hex(x) + symbol + hex(d) + " raised a flag: " + flags_text();
+        }
         const Expected e = gives_empty ? expect_empty() : expected(x, d);
+        if (std::fetestexcept(FE_INVALID | FE_DIVBYZERO)) {
+          return hex(x) + symbol + hex(d) + ": the reference raised a flag: " + flags_text();
+        }
         if (!matches(z, e)) {
           return hex(x) + symbol + hex(d) + rather_than(z, e);
         }
@@ -1110,8 +1132,15 @@ namespace
   std::string over_intervals(const char *name, interval (*op)(const interval&), Expected (*expected)(const interval&))
   {
     for (const interval& x : infinite_operands()) {
+      std::feclearexcept(FE_ALL_EXCEPT);
       const interval z = op(opaque(x));
+      if (std::fetestexcept(FE_INVALID | FE_DIVBYZERO)) {
+        return std::string(name) + "(" + hex(x) + ") raised a flag: " + flags_text();
+      }
       const Expected e = x.is_empty() ? expect_empty() : expected(x);
+      if (std::fetestexcept(FE_INVALID | FE_DIVBYZERO)) {
+        return std::string(name) + "(" + hex(x) + "): the reference raised a flag: " + flags_text();
+      }
       if (!matches(z, e)) {
         return std::string(name) + "(" + hex(x) + ")" + rather_than(z, e);
       }
