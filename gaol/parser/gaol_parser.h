@@ -100,6 +100,10 @@ namespace gaol_core {
 
     \note The out interval is not modified whenever an error occur.
 
+    \note A null pointer is no string: it is refused as a syntax error is,
+    parse_interval() returning false, in every build, throwing nothing and
+    leaving out as it was (GAOL v5).
+
     \note A call with a wrong number of arguments, an uncertain number as a
     bound and two different bounds in <a, b> throw input_format_error, and a
     second argument of nth_root, pown or rootn that is no integer

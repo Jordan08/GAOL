@@ -22,7 +22,8 @@
  *   200000 minus signs and 20000 sines, which have to be evaluated and deleted
  *   whatever their depth, on a stack that does not grow with it, and the
  *   nesting the reader refuses;
- * - the NUL characters of a std::string, and the allocations that fail.
+ * - the NUL characters of a std::string, a null pointer, and the allocations
+ *   that fail.
  *
  * The value is compared with the same computation written in C++, which the
  * other tests check against the exact results: here what is tested is the
@@ -525,6 +526,35 @@ namespace
        and this string gave [-oo, +oo] (GAOL v5) */
     refused("[nth_root(8,1.5)]+[1,2]");
     refused("[1,2]+[nth_root(8,1.5)]");
+  }
+
+  /* A null pointer is no string, so no expression (GAOL v5, point 114 of
+     TODO.md): parse_interval() took its length with std::strlen(), which read
+     it, and the program died of a segmentation fault. It returns false, as for
+     any other string that is no expression, with the names of GAOL and with
+     those of the standard, with or without exceptions, and leaves the interval
+     as it was. */
+  void null_pointer()
+  {
+    const char *volatile none = nullptr;
+    const struct { const char *label; gaol_core::parsing_names names; } readings[] = {
+      { "the names of GAOL", gaol_core::parsing_names::gaol },
+      { "the names of IEEE 1788-2015", gaol_core::parsing_names::ieee1788 },
+    };
+    for (const auto& r : readings) {
+      interval x(1.0, 2.0);
+      bool read = true, threw = false;
+      try {
+        read = gaol_core::parse_interval(none, x, r.names);
+      } catch (...) {
+        threw = true;
+      }
+      check("parse_interval: a null pointer is refused, with no exception and the interval unchanged",
+            !read && !threw && x.left() == 1.0 && x.right() == 2.0,
+            [&] {
+              return std::string(r.label) + ": " + (read ? "read" : "refused") + (threw ? ", threw" : "") + ", " + hex(x);
+            });
+    }
   }
 
 #if GAOL_EXCEPTIONS_ENABLED
@@ -1593,6 +1623,7 @@ int main()
   step("functions");         functions();
   step("names_under_turkish_locale"); names_under_turkish_locale();
   step("wrong_strings");     wrong_strings();
+  step("null_pointer");      null_pointer();
 #if GAOL_EXCEPTIONS_ENABLED
   step("exception_messages"); exception_messages();
 #endif
