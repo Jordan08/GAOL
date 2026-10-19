@@ -19,7 +19,8 @@
 # Linux), which are configured with CMake in WORK/build
 # (-DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON
 # -DCMAKE_EXPORT_COMPILE_COMMANDS=ON, and each --cmake-option, such as
-# --cmake-option=-DGAOL_SIMD=OFF), so that the tests are built with the flags
+# --cmake-option=-DGAOL_SIMD=OFF --cmake-option=-DGAOL_ARM64=OFF for the FPU
+# build), so that the tests are built with the flags
 # of the build, and the sources given are never written. The tests
 # gaol_test_NAME of each --test (by default ieee1788, with the boxes of
 # pow_on_boxes(), and elementary, with pow over 385 boxes and at points; also
@@ -455,7 +456,7 @@ def main():
                                                     os.path.join(tempfile.gettempdir(), 'gaol-pow-mutants')),
                    help='the work directory: the copy, its build and the logs (%(default)s)')
     p.add_argument('--cmake-option', action='append', default=[], metavar='OPT',
-                   help='an option of the CMake configuration, written --cmake-option=-DGAOL_SIMD=OFF')
+                   help='an option of the CMake configuration, written --cmake-option=-DGAOL_SIMD=OFF (and --cmake-option=-DGAOL_ARM64=OFF for the FPU build on a 64-bit ARM processor)')
     p.add_argument('--test', action='append', metavar='NAME',
                    help='a test of tests/ to run, in place of ieee1788 and elementary')
     p.add_argument('--jobs', type=int, default=2, help='the processes of each build (2)')

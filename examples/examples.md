@@ -114,7 +114,7 @@ below).
 
 All 16 examples compile without a warning (`-Wall -Wextra`, GCC 9.4 and
 Clang 18) and pass their checks with the four builds of GAOL tried: SSE2 (the
-default on x86), FPU (`GAOL_SIMD=OFF`, the code of ARM and Visual C++),
+default on x86), FPU (`GAOL_SIMD=OFF` and `GAOL_ARM64=OFF`, the code of 32-bit ARM and Visual C++),
 `GAOL_PRESERVE_ROUNDING=ON`, and the library compiled by Clang 18. Each runs in
 less than 0.3 s with the default build (06 takes 1.3 s with
 `GAOL_PRESERVE_ROUNDING`). Their outputs are the same on every build, apart from the
@@ -639,7 +639,7 @@ maintainer. Appendix B gives each fix and its test.
 
 | # | What | Where | Severity |
 |---|---|---|---|
-| 1 | In the FPU build (`GAOL_SIMD=OFF`, the code of ARM, Visual C++ and 32-bit Windows), `x -= x`, `x /= x` and `x %= x` gave bounds that missed the result: `c = [-3,-1]; c -= c` was [−2, 1], `a = [0.25, 0.5]; a /= a` was [0.5, 1], and `b = [0.1]; b /= b` was empty. A natural loop meets it: normalising a row by its pivot, `row[j] /= row[i]` down to j = i. The compound operator wrote one bound of `*this` before reading the operand's, which is `*this` itself. **Fixed**. | `gaol/gaol_interval_fpu.cpp:187`, `:636`, `:832` | high |
+| 1 | In the FPU build (`GAOL_SIMD=OFF` and `GAOL_ARM64=OFF`, the code of 32-bit ARM, Visual C++ and 32-bit Windows), `x -= x`, `x /= x` and `x %= x` gave bounds that missed the result: `c = [-3,-1]; c -= c` was [−2, 1], `a = [0.25, 0.5]; a /= a` was [0.5, 1], and `b = [0.1]; b /= b` was empty. A natural loop meets it: normalising a row by its pivot, `row[j] /= row[i]` down to j = i. The compound operator wrote one bound of `*this` before reading the operand's, which is `*this` itself. **Fixed**. | `gaol/gaol_interval_fpu.cpp:187`, `:636`, `:832` | high |
 | 2 | Flush-to-zero and denormals-are-zero make every operation with a subnormal result unsound: `[1e-300] * [1e-20]` is [0, 0]. They are set by `crtfastmath.o`, which GCC links into a program linked with `-Ofast`, `-ffast-math` or `-funsafe-math-optimizations`, even when GAOL's `-fno-fast-math` silenced the `#error` at compile time (GCC applies `-O` options first), and whose constructor runs after GAOL's initialization; also by loading a plug-in or Python module built with `-Ofast`. The check of each operation (1 + 2⁻⁶⁰ > 1) sees the rounding direction only. | `gaol/gaol_fpu.h:204` | high |
 | 3 | On x86-64 with glibc, when the x87 rounding bits say nearest and MXCSR says upward (what `exactinit()` of Shewchuk's Triangle and predicates does), `pow` with a subnormal result misses the exact value (205 of 400 random cases): CORE-MATH rounds those results itself in the direction `fegetround()` gives, which glibc reads from the x87 unit. GAOL's own test lists that state (`tests/rounding_direction.cpp:104`) but no subnormal `pow`. | `3rd/math-core/src/binary64/pow/pow.h:236, 261, 408` | medium |
 | 4 | `-ffinite-math-only` is not refused, and makes the empty set invisible: `([1,2] & [3,4]).is_empty()` is false, and the hull of the empty set with [1, 2] is empty. `-funsafe-math-optimizations` and `-ffast-math -fno-finite-math-only` are not refused either (no macro reveals them), and GCC then rewrites the probe `1 + tiny == 1` as `tiny == 0` in inline code, so that `width()` after a change of direction is below the exact width. | `gaol/gaol_config.h:199` | medium |
@@ -1012,7 +1012,7 @@ The review started from the repository alone (`README.md`, `doc/`,
 `manual/v5/`, the headers and sources of `gaol/`, `tests/`), with GAOL v5 at
 `605728e` (branch `MATH-CORE`) built with CMake in Release and installed in a
 scratch prefix; its 13 tests passed. Variants were built the same way: the FPU
-code (`GAOL_SIMD=OFF`), `GAOL_PRESERVE_ROUNDING=ON`, and the library compiled
+code (`GAOL_SIMD=OFF` and `GAOL_ARM64=OFF`), `GAOL_PRESERVE_ROUNDING=ON`, and the library compiled
 by Clang 18; the autotools and meson builds were run to check the example of
 GAOL 4.
 
