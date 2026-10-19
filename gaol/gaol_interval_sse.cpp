@@ -658,8 +658,18 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
     double mid_left, mid_right;
     const double big = 8.9884656743115795e+307; // 2^1023 (C++11 has no hexadecimal floating literal)
     if (std::fabs(l) >= big || std::fabs(r) >= big) {
+#if defined(_MSC_VER) && !defined(__clang__)
+      // Each half with a negated factor goes through rnd_keep(), whose volatile
+      // memory keeps it as written: Visual C++ (/O2 /fp:strict) rewrites
+      // (-.5)*x + y into y - .5*x, which rounds the half of x in the wrong
+      // direction when it is inexact, and mid([2^-1074, MAX]) was
+      // [MAX/2, MAX/2], as with the FPU intervals (gaol_interval_fpu.cpp)
+      mid_left  = -(.5*l + gaol_core::rnd_keep((-.5)*r));
+      mid_right = gaol_core::rnd_keep((-.5)*l) + .5*r;
+#else
       mid_left  = -(.5*l + (-.5)*r);
       mid_right = (-.5)*l + .5*r;
+#endif
     } else {
       double sum = r - l;     // a+b, rounded upward
       double opp_sum = l - r; // -(a+b), rounded upward

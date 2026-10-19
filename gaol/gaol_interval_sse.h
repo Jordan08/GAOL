@@ -190,17 +190,33 @@ GAOL_INLINE interval& interval::operator|=(const interval& I)
   return *this;
 }
 
+/*
+  The stored bounds, read from the register. Visual C++ 19.44 (Visual Studio
+  2022 17.14) with /O2 and /arch:AVX2 read 0 from the local r after
+  _mm_storeh_pd(&r, ...): base.right() was 0 in pow_standard_upward(), and
+  pow([3, 4], [2, 3]) was empty (Compiler Explorer, and the Visual Studio 2022
+  jobs of the continuous integration; GAOL v5). It reads them with the
+  instructions of the register there; the other compilers keep the stores
+*/
 GAOL_INLINE double interval::left_internal() const
 {
+#if defined(_MSC_VER) && !defined(__clang__)
+  return _mm_cvtsd_f64(xmmbounds);
+#else
   GAOL_ALIGN16(double l);
   _mm_storel_pd(&l,xmmbounds);
   return l;
+#endif
 }
 GAOL_INLINE double interval::right_internal() const
 {
+#if defined(_MSC_VER) && !defined(__clang__)
+  return _mm_cvtsd_f64(_mm_unpackhi_pd(xmmbounds, xmmbounds));
+#else
   GAOL_ALIGN16(double r);
   _mm_storeh_pd(&r,xmmbounds);
   return r;
+#endif
 }
 
 GAOL_INLINE void interval::get_bounds(interval::xmm2d& b) const
