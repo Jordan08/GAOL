@@ -3,9 +3,9 @@
 # Copyright (c) 2026 ENSTA, France
 #
 # Created 2026-09-20 by Jordan NININ
-# The macros GAOL's sources read: those of gaol/gaol_configuration.h, the same
-# with the three builds (see doc/building.md), and those gaol/gaol_config.h
-# derives from the compiler (GAOL v5)
+# The macros of the configuration of GAOL: those of gaol/gaol_configuration.h,
+# the same with the three builds (see doc/building.md), and those
+# gaol/gaol_config.h and gaol/gaol_fpu.h derive from the compiler (GAOL v5)
 config = ['GAOL_AARCH64_LINUX', 'GAOL_ARM_MACOSX', 'GAOL_IX86_LINUX', 'GAOL_IX86_MACOSX', 'GAOL_DEBUGGING', 'GAOL_EXCEPTIONS_ENABLED', 'GAOL_FLOAT_INTERVALS', 'GAOL_PRESERVE_ROUNDING', 'GAOL_VERBOSE_MODE',
           'GAOL_HAVE_FENV_H',
           'GAOL_HAVE_VISIBILITY_OPTIONS', 'GAOL_SIZEOF_INT', 'GAOL_SIZEOF_LONG_LONG_INT',

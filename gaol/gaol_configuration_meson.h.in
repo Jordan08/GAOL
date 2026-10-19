@@ -5,11 +5,12 @@
 
    The macros are the same with the three builds, CMake
    (cmake/gaol_configuration.h.in), configure (gaol/gaol_configuration.h.in)
-   and meson (gaol/gaol_configuration_meson.h.in), and are all GAOL's sources
-   read of the build: doc/building.md lists them. What GAOL needs to know of
-   the processor and the system, and the sizes of the integer types, come from
-   the macros of the compiler (gaol/gaol_config.h). Every compiler includes
-   this header, through gaol/gaol_config.h. (GAOL v5) */
+   and meson (gaol/gaol_configuration_meson.h.in), and are what the build tells
+   GAOL: doc/building.md lists them, and says which the sources of GAOL do not
+   read. What GAOL needs to know of the processor and the system, and the
+   sizes of the integer types, come from the macros of the compiler
+   (gaol/gaol_config.h). Every compiler includes this header, through
+   gaol/gaol_config.h. (GAOL v5) */
 
 #ifndef GAOL_CONFIGURATION_H
 #define GAOL_CONFIGURATION_H

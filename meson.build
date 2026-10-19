@@ -170,9 +170,9 @@ message('OS: ' + host_machine.system())
 # (meson.build refused every cpu() other than aarch64, x86 and x86_64, i686
 # and armv7l included)
 
-# gaol/gaol_configuration.h: the macros GAOL's sources read, the same as with
-# CMake and configure (see doc/building.md). The checks of headers, functions,
-# types and sizes nothing read are gone (GAOL v5).
+# gaol/gaol_configuration.h: the macros of the configuration of GAOL, the same
+# as with CMake and configure (see doc/building.md). The checks of headers,
+# functions, types and sizes nothing read are gone (GAOL v5).
 conf_data = configuration_data()
 conf_data.set('GAOL_MAJOR_VERSION', major_version)
 conf_data.set('GAOL_MINOR_VERSION', minor_version)
