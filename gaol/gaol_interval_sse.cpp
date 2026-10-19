@@ -488,11 +488,12 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
       {
         return fast_add_assign(*this, d); // <-l, r> + <-d, d>
       }
-#endif
+#else
       GAOL_RND_ENTER_SSE();
       xmmbounds = _mm_add_pd(xmmbounds, _mm_set_pd(d, -d)); // <-l, r> + <-d, d>
       GAOL_RND_LEAVE_SSE();
       return *this;
+#endif
     }
 
   interval& interval::operator-=(double d)
@@ -505,11 +506,12 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
       {
         return fast_add_assign(*this, -d); // <-l, r> + <d, -d>
       }
-#endif
+#else
       GAOL_RND_ENTER_SSE();
       xmmbounds = _mm_add_pd(xmmbounds, _mm_set_pd(-d, d)); // <-l, r> + <d, -d>
       GAOL_RND_LEAVE_SSE();
       return *this;
+#endif
     }
 
   interval& interval::operator*=(double d)
@@ -538,7 +540,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
         }
         return fast_mul_assign(*this, d);
       }
-#endif
+#else
       // The rounding direction checked before d is compared: with the modes
       // that flush the subnormals to zero, a subnormal d was 0 (GAOL v5). d
       // is read again after the check, which the compiler could otherwise
@@ -557,6 +559,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
       }
       GAOL_RND_LEAVE_SSE();
       return *this;
+#endif
     }
 
   interval& interval::operator/=(double d)
@@ -579,7 +582,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
         }
         return fast_div_assign(*this, d);
       }
-#endif
+#else
       // The rounding direction checked before d is compared, as in
       // operator*=(double) (GAOL v5)
       GAOL_RND_ENTER_SSE();
@@ -596,6 +599,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
       }
       GAOL_RND_LEAVE_SSE();
       return *this;
+#endif
     }
 
   interval& interval::operator%=(double d)
