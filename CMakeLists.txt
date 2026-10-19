@@ -119,9 +119,15 @@ option(WITH_EXAMPLES "Build the examples of examples/, which make check runs" OF
 # CMake, a shared one, libgaol.so.5.0.0 as with configure and meson (GAOL v5).
 # Always static with Visual C++, whose declarations of GAOL carry no
 # __declspec(dllexport).
-# The options of configure (--enable-simd, --enable-verbose-mode),
-# with its defaults, but for the verbose mode: GAOL is silent by default
+# The options of configure (--enable-simd, --enable-arm64,
+# --enable-verbose-mode), with its defaults, but for the verbose mode: GAOL is
+# silent by default
 option(GAOL_SIMD "Compute the intervals with SSE2 instructions on x86 processors" ON)
+# On 64-bit ARM processors, the intervals are computed with NEON instructions
+# (--enable-arm64 of configure, enable-arm64 of meson; GAOL v5). Independent of
+# GAOL_SIMD, which stays for the x86 processors. Off, they are computed with
+# the FPU, as before.
+option(GAOL_ARM64 "Compute the intervals with NEON instructions on 64-bit ARM processors" ON)
 option(GAOL_VERBOSE_MODE "Write a line on the standard error when GAOL initializes and cleans up" OFF)
 # GAOL and CORE-MATH built for debugging whatever the build type or the
 # configuration, a project bringing GAOL in included, as enable-debug of meson
@@ -616,6 +622,7 @@ endif()
 # (MinGW-w64, MSYS2 with GCC and Clang) the tests pass.
 set(GAOL_USING_SSE2_INSTRUCTIONS OFF)
 set(GAOL_USING_SSE3_INSTRUCTIONS OFF)
+set(GAOL_USING_NEON_INSTRUCTIONS OFF)
 if(GAOL_SIMD AND NOT MSVC)
   set(CMAKE_REQUIRED_FLAGS "${GAOL_INTERVAL_FLAGS_STRING}")
   check_cxx_source_compiles("
@@ -645,6 +652,45 @@ endif()
 string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
 message(STATUS "Interval arithmetic flags: ${GAOL_INTERVAL_FLAGS_STRING}")
 message(STATUS "SSE2 intervals: ${GAOL_USING_SSE2_INSTRUCTIONS}, SSE3: ${GAOL_USING_SSE3_INSTRUCTIONS}")
+
+# On 64-bit ARM processors, with GAOL_ARM64 (--enable-arm64 of configure,
+# enable-arm64 of meson), the intervals are computed with NEON instructions
+# (gaol/gaol_interval_neon.h; GAOL v5). Where the test below compiles: GCC,
+# Clang and AppleClang for AArch64 under Linux and macOS, with the
+# intrinsics of <arm_neon.h> and the registers of the rounding mode, which
+# the code of gaol/gaol_fpu.h already writes. NEON needs no flag. The test is
+# the same with the three builds. Nowhere else: not with Visual C++ and
+# clang-cl (NOT MSVC, as for GAOL_SIMD), not for a target of Windows
+# (MinGW-w64 and MSYS2 define __aarch64__ too, and no job of the CI builds
+# them), nor for 32-bit ARM, x86, or a universal build of macOS, whose x86_64
+# part fails the test: the option is then ignored, and the intervals are
+# computed with the FPU. The refusals above (Clang 14, Clang on 32-bit ARM)
+# come first.
+if(GAOL_ARM64 AND NOT MSVC)
+  set(CMAKE_REQUIRED_FLAGS "${GAOL_INTERVAL_FLAGS_STRING}")
+  check_cxx_source_compiles([=[
+    #if !defined(__aarch64__)
+    #error GAOL computes its intervals with NEON on 64-bit ARM processors only
+    #endif
+    #if defined(_WIN32)
+    #error not for Windows
+    #endif
+    #include <arm_neon.h>
+    int main()
+    {
+      unsigned long long fpcr;
+      __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));
+      __asm__ __volatile__ ("msr fpcr, %0" : : "r" (fpcr) : "memory");
+      const float64x2_t x = vaddq_f64(vdupq_n_f64(1.0), vdupq_n_f64(2.0));
+      return static_cast<int>(vgetq_lane_f64(x, 0)) - 3;
+    }]=]
+    GAOL_NEON_INTERVALS)
+  unset(CMAKE_REQUIRED_FLAGS)
+  if(GAOL_NEON_INTERVALS)
+    set(GAOL_USING_NEON_INSTRUCTIONS ON)
+  endif()
+endif()
+message(STATUS "NEON intervals: ${GAOL_USING_NEON_INSTRUCTIONS}")
 
 # GAOL_HAVE_AVX512_TARGET: the compiler accepts the AVX-512 instructions in
 # the functions that carry __attribute__((target("avx512f"))), and
@@ -773,7 +819,8 @@ configure_file(cmake/gaol_configuration.h.in "${CMAKE_CURRENT_BINARY_DIR}/gaol/g
 ################################################################################
 #
 # The sources listed in gaol/meson.build. gaol_interval_core.cpp includes
-# gaol_interval_sse.cpp or gaol_interval_fpu.cpp itself, according to
+# gaol_interval_neon.cpp (GAOL v5), gaol_interval_sse.cpp or
+# gaol_interval_fpu.cpp itself, according to GAOL_USING_NEON_INSTRUCTIONS and
 # GAOL_USING_SSE2_INSTRUCTIONS, and gaol/float/gaol_intervalf.cpp and
 # gaol/float/gaol_interval2f.cpp where a developer of GAOL defines
 # GAOL_FLOAT_INTERVALS (see gaol/gaol_config.h).
@@ -927,7 +974,7 @@ set(GAOL_HEADERS
   gaol/gaol_config.h gaol/gaol_exceptions.h
   gaol/gaol_fpu.h gaol/gaol_fpu_fenv.h gaol/gaol_fpu_msvc.h
   gaol/gaol_ieee1788.h gaol/gaol_interval.h gaol/gaol_interval_core.h gaol/gaol_interval_fpu.h
-  gaol/gaol_interval_sse.h
+  gaol/gaol_interval_neon.h gaol/gaol_interval_sse.h
   gaol/gaol_port.h gaol/gaol_roundeven.h
   gaol/gaol_version.h)
 # The headers of the parser of the strings and of the expressions, which a

@@ -42,6 +42,11 @@
 #include "gaol/gaol_common.h"
 #include "gaol/gaol_fpu.h"
 
+// float64x2_t, the vector of the two bounds of the NEON intervals (GAOL v5)
+#if GAOL_USING_NEON_INSTRUCTIONS
+#  include <arm_neon.h>
+#endif
+
 #if defined (_MSC_VER)
 #  include <float.h>
 #  undef min
@@ -328,7 +333,7 @@ namespace gaol_detail {
 
 namespace gaol_core {
 
-#if !GAOL_USING_SSE2_INSTRUCTIONS
+#if !GAOL_VECTOR_INTERVALS
   class interval;
   // rnd_keep() of an FPU interval, a friend of it, defined after it (GAOL v5)
   GAOL_INLINE interval rnd_keep(const interval& x);
@@ -410,7 +415,15 @@ namespace gaol_core {
     template <class T, gaol_detail::if_integer<T> = 0>
     interval& operator=(T n) { return *this = interval(n); }
 #if GAOL_USING_SSE2_INSTRUCTIONS
-    interval(const __m128d& xmm);
+    explicit interval(const __m128d& xmm);
+#elif GAOL_USING_NEON_INSTRUCTIONS
+    /*
+      The interval whose stored bounds are the two lanes of v, the left bound
+      negated in the first one, without any check: it can build [+oo] or
+      [-oo], or bounds in the wrong order (GAOL v5). explicit, as GAOL v5
+      adds no implicit conversion
+    */
+    explicit interval(const float64x2_t& v);
 #endif // GAOL_USING_SSE2_INSTRUCTIONS
 
     /*
@@ -808,7 +821,7 @@ namespace gaol_core {
 
     friend GAOL_PUBLIC interval gaol_uipow(const interval& I, unsigned int e);
     friend GAOL_PUBLIC interval gaol_pown(const interval& I, int e);
-#if !GAOL_USING_SSE2_INSTRUCTIONS
+#if !GAOL_VECTOR_INTERVALS
     friend GAOL_PUBLIC interval sqr(const interval& I);
 #endif
     friend GAOL_PUBLIC interval cos(const interval& I);
@@ -822,11 +835,17 @@ namespace gaol_core {
     void get_bounds(xmm2d& b) const;
     const __m128d& get_xmminterval(void) const;
     __m128d& get_xmminterval(void);
+#elif GAOL_USING_NEON_INSTRUCTIONS
+    //! The two stored bounds, <-left, right> (GAOL v5)
+    const float64x2_t& get_neoninterval(void) const;
+    float64x2_t& get_neoninterval(void);
 #endif // GAOL_USING_SSE2_INSTRUCTIONS
 
   private:
 #if GAOL_USING_SSE2_INSTRUCTIONS
     __m128d xmmbounds; // Lower 64 bits: left bound negated, upper 64 bits: right bound
+#elif GAOL_USING_NEON_INSTRUCTIONS
+    float64x2_t neonbounds; // First lane: left bound negated, second lane: right bound (GAOL v5)
 #else
     double lb_; // The left bound is stored negated
     double rb_;
@@ -876,6 +895,24 @@ namespace gaol_core {
   GAOL_INLINE interval rnd_keep(const interval& x)
   {
     return interval(rnd_keep(x.get_xmminterval())); // the lower bound stored negated
+  }
+#elif GAOL_USING_NEON_INSTRUCTIONS
+  /*
+    The two lanes stay in their register: an empty asm statement gives x back
+    as it is, so that no compiler computes with it before the direction is
+    restored, at no cost, where the volatile memory of the template of
+    gaol/gaol_fpu.h would copy it a byte at a time (GAOL v5)
+  */
+  GAOL_INLINE float64x2_t rnd_keep(const float64x2_t& x)
+  {
+    float64x2_t y = x;
+    __asm__ __volatile__ ("" : "+w" (y));
+    return y;
+  }
+
+  GAOL_INLINE interval rnd_keep(const interval& x)
+  {
+    return interval(rnd_keep(x.get_neoninterval())); // the lower bound stored negated
   }
 #else
   GAOL_INLINE interval rnd_keep(const interval& x)
@@ -959,6 +996,8 @@ namespace gaol_core {
 
 #if GAOL_USING_SSE2_INSTRUCTIONS
 #   include "gaol/gaol_interval_sse.h"
+#elif GAOL_USING_NEON_INSTRUCTIONS
+#   include "gaol/gaol_interval_neon.h"
 #else
 #   include "gaol/gaol_interval_fpu.h"
 #endif // GAOL_USING_SSE2_INSTRUCTIONS
@@ -1457,7 +1496,7 @@ namespace gaol_core {
     interval::format() sets.
   */
   GAOL_NODISCARD extern GAOL_PUBLIC std::string exact_string(const interval& I);
-#if !GAOL_USING_SSE2_INSTRUCTIONS
+#if !GAOL_VECTOR_INTERVALS
   //! I^2
   GAOL_NODISCARD extern GAOL_PUBLIC   interval sqr(const interval& I);
 #endif
@@ -2131,6 +2170,28 @@ GAOL_NODISCARD GAOL_INLINE interval operator*(const interval& I1, const interval
 GAOL_NODISCARD GAOL_INLINE interval operator/(const interval& I1, const interval& I2)
   {
     return interval(div_bounds(I1.get_xmminterval(), I2.get_xmminterval()));
+  }
+#elif GAOL_USING_NEON_INSTRUCTIONS
+// The bounds in registers, from the operands to the result, as with the SSE2
+// intervals (see gaol_interval_neon.h, GAOL v5)
+GAOL_NODISCARD GAOL_INLINE interval operator+(const interval& I1, const interval& I2)
+  {
+    return interval(add_bounds(I1.get_neoninterval(), I2.get_neoninterval()));
+  }
+
+GAOL_NODISCARD GAOL_INLINE interval operator-(const interval& I1, const interval& I2)
+  {
+    return interval(sub_bounds(I1.get_neoninterval(), I2.get_neoninterval()));
+  }
+
+GAOL_NODISCARD GAOL_INLINE interval operator*(const interval& I1, const interval& I2)
+  {
+    return interval(mul_bounds(I1.get_neoninterval(), I2.get_neoninterval()));
+  }
+
+GAOL_NODISCARD GAOL_INLINE interval operator/(const interval& I1, const interval& I2)
+  {
+    return interval(div_bounds(I1.get_neoninterval(), I2.get_neoninterval()));
   }
 #else
 GAOL_NODISCARD GAOL_INLINE interval operator+(const interval& I1, const interval& I2)

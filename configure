@@ -831,6 +831,7 @@ with_gnu_ld
 with_sysroot
 enable_libtool_lock
 enable_simd
+enable_arm64
 enable_preserve_rounding
 enable_prefer_avx512
 enable_fma
@@ -1502,6 +1503,8 @@ Optional Features:
   --disable-libtool-lock  avoid locking (might break parallel builds)
   --enable-simd           use SIMD instructions to implement arithmetic
                           operations
+  --enable-arm64          use NEON instructions to implement arithmetic
+                          operations on 64-bit ARM processors [default=yes]
   --enable-preserve-rounding
                           restore the rounding direction after each operation,
                           rather than leaving it upward [default=no]
@@ -19216,6 +19219,75 @@ printf "%s\n" "#define GAOL_USING_SSE3_INSTRUCTIONS 1" >>confdefs.h
         fi
     fi
 fi
+# --enable-arm64 (GAOL v5): on 64-bit ARM processors, the intervals are computed
+# with NEON instructions (gaol_interval_neon.h), as CMakeLists.txt and
+# meson.build do (see CMakeLists.txt), independently of --enable-simd. Where
+# the test below compiles, whatever the processor of the machine building: GCC,
+# Clang and AppleClang for AArch64 under Linux and macOS, with the intrinsics
+# of <arm_neon.h> and the registers of the rounding mode. NEON needs no flag.
+# Not for a target of Windows (MinGW-w64 and MSYS2 define __aarch64__ too),
+# nor for 32-bit ARM or x86: the option is then ignored, and the intervals are
+# computed with the FPU. The refusals above (Clang 14, Clang on 32-bit ARM)
+# come first. The program is the same as that of CMakeLists.txt and meson.build.
+# Check whether --enable-arm64 was given.
+if test ${enable_arm64+y}
+then :
+  enableval=$enable_arm64; arm64=${enable_arm64}
+else case e in #(
+  e) arm64="yes" ;;
+esac
+fi
+
+using_neon=no
+if test "$arm64" = yes; then
+    ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether the compiler takes the NEON intrinsics and the registers of the rounding mode for a 64-bit ARM target" >&5
+printf %s "checking whether the compiler takes the NEON intrinsics and the registers of the rounding mode for a 64-bit ARM target... " >&6; }
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#if !defined(__aarch64__)
+#error GAOL computes its intervals with NEON on 64-bit ARM processors only
+#endif
+#if defined(_WIN32)
+#error not for Windows
+#endif
+#include <arm_neon.h>
+int main()
+{
+  unsigned long long fpcr;
+  __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));
+  __asm__ __volatile__ ("msr fpcr, %0" : : "r" (fpcr) : "memory");
+  const float64x2_t x = vaddq_f64(vdupq_n_f64(1.0), vdupq_n_f64(2.0));
+  return static_cast<int>(vgetq_lane_f64(x, 0)) - 3;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"
+then :
+  using_neon=yes
+else case e in #(
+  e) using_neon=no ;;
+esac
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: ${using_neon}" >&5
+printf "%s\n" "${using_neon}" >&6; }
+    ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+    if test "${using_neon}" = yes; then
+
+printf "%s\n" "#define GAOL_USING_NEON_INSTRUCTIONS 1" >>confdefs.h
+
+    fi
+fi
 # --enable-preserve-rounding, which --enable-prefer-avx512 follows by
 # default (GAOL v5)
 # Check whether --enable-preserve-rounding was given.
@@ -23219,6 +23291,7 @@ printf "AVX-512 path taken\t= ${avx512_arithmetic}\n"
 printf "exceptions\t\t= $exceptions\n"
 printf "SSE2\t\t\t= ${using_sse2}\n"
 printf "SSE3\t\t\t= ${has_sse3}\n"
+printf "NEON\t\t\t= ${using_neon}\n"
 printf "tests\t\t\t= ${with_tests}\n"
 printf "examples\t\t= ${with_examples}\n"
 printf "pdflatex\t\t= $PDFLATEX\n"

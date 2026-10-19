@@ -31,6 +31,14 @@ build, and the CMake build follows them, apart from the errors corrected (see
   (`-msse2 -msse3`), except with Visual C++ and on 32-bit Windows, where a
   `std::vector` of SSE2 intervals crashes: GCC takes the memory of `new` to be
   aligned on 16 bytes there, while the C runtime aligns it on 8;
+- on 64-bit ARM processors, the intervals are computed with NEON instructions
+  (`GAOL_ARM64`, `--enable-arm64`, `-Denable-arm64`; no flag), on by default
+  with GCC, Clang or AppleClang under Linux and macOS, whose compiler each build
+  tests with the same program: the intrinsics of `<arm_neon.h>` and the
+  registers of the rounding mode. Not with Visual C++, clang-cl, MinGW-w64 nor
+  32-bit ARM, nor in a universal build of macOS: the option is then ignored, and
+  the FPU computes the intervals, as before. Independent of `GAOL_SIMD`, which
+  is for x86 processors (GAOL v5);
 - GAOL and CORE-MATH are compiled with the fused multiply-add
   instructions of the processor, where the compiler has a flag for them
   (`GAOL_FMA`, `--enable-fma`, `-Denable-fma`): `-mfma` on x86, except with GCC
@@ -124,6 +132,32 @@ turn with the others (GAOL v5):
   x × y takes 2.04 ns rather than 4.32, and x + y 1.07 rather than 2.30, the two
   bounds being computed in one instruction. They are on by default on x86
   processors. The elementary functions do not go through them.
+
+On a 64-bit ARM processor, measured the same way on an Apple M2 with AppleClang
+21.0, the median of three runs of each program (GAOL v5):
+
+| | x + y | x − y | x × y | x ÷ y | sqr(x) | sqrt(x) | 13 operations in a line |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `-DGAOL_ARM64=OFF` (FPU intervals) | 1.16 | 3.56 | 3.37 | 4.00 | 2.08 | 4.51 | 49.8 |
+| Default (NEON intervals) | 0.91 | 0.89 | 2.14 | 2.39 | 1.48 | 1.70 | 19.2 |
+| `-DGAOL_ARM64=OFF -DGAOL_PRESERVE_ROUNDING=ON` | 38.7 | 38.5 | 39.7 | 43.1 | 39.4 | 48.3 | 522 |
+| `-DGAOL_PRESERVE_ROUNDING=ON` (NEON intervals) | 26.9 | 27.3 | 29.3 | 34.0 | 27.3 | 34.3 | 377 |
+
+- **The NEON intervals (`GAOL_ARM64`) pay on every operation of the table**:
+  x − y takes 0.89 ns rather than 3.56 (the difference of the FPU intervals took
+  three times their sum), x × y of operands of random signs 2.18 ns rather than
+  6.39, sqrt 1.70 rather than 4.51, and a line of 13 operations 19.2 ns rather
+  than 49.8. The two bounds are one vector, and the operations take them from one
+  to the next in a register. The elementary functions, which CORE-MATH computes,
+  go through them only for their arguments: no faster, no slower. They are on by
+  default on 64-bit ARM processors with GCC, Clang or AppleClang.
+- **The rounding direction is read with one `mrs` of FPCR** (0.8 ns on this
+  processor) and written with `msr` only when the program's is not upward:
+  `msr` takes 4 ns for the value FPCR holds and 11 ns when it changes the
+  direction. With `GAOL_PRESERVE_ROUNDING` an operation of a program that
+  computes to nearest writes it twice, which is the 27 ns above (39 ns with the
+  FPU intervals, which called `fegetround()` and `fesetround()`); a program that
+  already computes upward writes nothing.
 
 ### Interprocedural optimization is not offered
 

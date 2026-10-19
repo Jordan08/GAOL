@@ -284,6 +284,24 @@
 #if defined(__arm__) && !defined(__aarch64__) && defined(__clang__)
 #  error "GAOL cannot be compiled by Clang for 32-bit ARM processors: Clang does not honour the rounding direction there (see CMakeLists.txt)"
 #endif
+/* The NEON intervals (GAOL v5, GAOL_ARM64 of the builds): the two bounds in a
+   float64x2_t, on 64-bit ARM processors only (NEON of 32-bit ARM has no
+   vector of doubles), with GCC or Clang (the rounding direction is written
+   into FPCR with mrs and msr, see gaol_fpu.h), under Linux or macOS; and
+   never together with the SSE2 intervals. */
+#if GAOL_USING_NEON_INSTRUCTIONS \
+    && (GAOL_USING_SSE2_INSTRUCTIONS || !defined(__aarch64__) || !defined(__ARM_NEON) \
+        || !defined(__GNUC__) || defined(_WIN32) || defined(_MSC_VER))
+#  error "GAOL computes its intervals with NEON instructions on 64-bit ARM processors only, with GCC or Clang under Linux or macOS, and not together with the SSE2 intervals (GAOL_USING_NEON_INSTRUCTIONS)"
+#endif
+/* 1 when the intervals keep their two bounds in one vector register, SSE2 or
+   NEON, 0 for the intervals of two doubles (FPU). Always defined, to 0 or 1,
+   so that #if reads it under -Wundef (GAOL v5) */
+#if GAOL_USING_SSE2_INSTRUCTIONS || GAOL_USING_NEON_INSTRUCTIONS
+#  define GAOL_VECTOR_INTERVALS 1
+#else
+#  define GAOL_VECTOR_INTERVALS 0
+#endif
 /* mingw-w64 whose fma() or round() is wrong. Those of its own math library
    (math/fma.c and math/round.c, the same code from version 9 to 13) are, on
    x86-64:

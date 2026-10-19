@@ -213,6 +213,64 @@ namespace gaol_core {
   {
     gaol_set_rounding_x86(0x0000, _MM_ROUND_NEAREST);
   }
+  #elif GAOL_USING_NEON_INSTRUCTIONS
+  /*
+    The rounding direction of 64-bit ARM processors, which computes the
+    doubles of the scalar and the vector instructions alike, is the field
+    RMode (bits 23:22) of the control register FPCR, which mrs reads and msr
+    writes (GAOL v5). Written only when it differs: msr on FPCR is a
+    serializing instruction, 4 ns when it writes the value it holds and 11 ns
+    when it changes the direction (an Apple M2), where mrs takes 0.8 ns, and
+    fesetround() of the C library writes it each time. FE_TONEAREST,
+    FE_UPWARD, FE_DOWNWARD and FE_TOWARDZERO of the C libraries of 64-bit
+    ARM are these bits, which the assertion checks.
+  */
+  static_assert(FE_TONEAREST == 0 && FE_UPWARD == 0x400000 && FE_DOWNWARD == 0x800000
+                && FE_TOWARDZERO == 0xc00000, "FE_* are the RMode bits of FPCR");
+
+  // FPCR
+  GAOL_INLINE unsigned long long fpcr_get(void)
+  {
+    unsigned long long fpcr;
+    __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));
+    return fpcr;
+  }
+
+  // The "memory" clobber is a compiler barrier: the memory read after it is read after it
+  GAOL_INLINE void fpcr_set(unsigned long long fpcr)
+  {
+    __asm__ __volatile__ ("msr fpcr, %0" : : "r" (fpcr) : "memory");
+  }
+
+  // The bits of FPCR selected by mask set to value (a subset of mask), and nothing else
+  GAOL_INLINE void fpcr_update(unsigned long long mask, unsigned long long value)
+  {
+    const unsigned long long fpcr = fpcr_get();
+    if ((fpcr & mask) != value) {
+      fpcr_set((fpcr & ~mask) | value);
+    }
+  }
+
+  const unsigned long long fpcr_rmode_mask = 0xc00000ull;
+  const unsigned long long fpcr_upward = 0x400000ull;
+
+  GAOL_INLINE  void
+  round_downward(void)
+  {
+    fpcr_update(fpcr_rmode_mask, 0x800000ull);
+  }
+
+  GAOL_INLINE  void
+  round_upward(void)
+  {
+    fpcr_update(fpcr_rmode_mask, fpcr_upward);
+  }
+
+  GAOL_INLINE  void
+  round_nearest(void)
+  {
+    fpcr_update(fpcr_rmode_mask, 0ull);
+  }
   #else
   GAOL_INLINE  void
   round_downward(void)

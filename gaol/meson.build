@@ -121,6 +121,7 @@ gaol_HEADERS = [
   'gaol_interval.h',
   'gaol_interval_core.h',
   'gaol_interval_fpu.h',
+  'gaol_interval_neon.h',
   'gaol_interval_sse.h',
   'gaol_port.h',
   'gaol_roundeven.h',
@@ -150,6 +151,7 @@ EXTRA_DIST = [
   'parser/gaol_interval_lexer.lpp',
   'parser/gaol_interval_parser.ypp',
   'gaol_interval_sse.cpp',
+  'gaol_interval_neon.cpp',
   'gaol_interval_avx512.cpp',
   # Headers and sources of GAOL, not installed: the bounds at doubles, *_dn()
   # and *_up(), which are not part of its interface, and the intervals of

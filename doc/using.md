@@ -15,6 +15,9 @@ itself. With GCC and Clang, each where the compiler takes it:
 - `-msse2 -mfpmath=sse` on 32-bit x86, so that doubles are computed in double
   precision rather than on the x87 unit;
 - `-msse2 -msse3` on x86 processors with the SSE2 intervals (`GAOL_SIMD`);
+- nothing more on 64-bit ARM processors with the NEON intervals
+  (`GAOL_ARM64`, GAOL v5, see [The NEON intervals](#the-neon-intervals)): the
+  first line is all they ask for;
 - `-ffloat-store` where doubles are still computed on the x87 unit;
 - `-mfma` on x86, and `-mfpu=neon-vfpv4 -mfloat-abi=hard` on 32-bit ARM, where
   GAOL is compiled with the fused multiply-add instructions of the processor
@@ -62,9 +65,9 @@ accepts it: the three builds test the compiler for it with a link.
 A program includes `gaol/gaol` (or `gaol/gaol.h`), and
 `gaol/parser/gaol_expression.h` for the expressions, with
 `gaol/parser/gaol_expr_eval.h` to evaluate them. The three builds install these and the
-headers they include, each of which compiles alone but the three that other
+headers they include, each of which compiles alone but the four that other
 headers include in the middle of their code (`gaol_interval_fpu.h`,
-`gaol_interval_sse.h`) or for Visual C++ only (`gaol_fpu_msvc.h`), and not the
+`gaol_interval_neon.h`, `gaol_interval_sse.h`) or for Visual C++ only (`gaol_fpu_msvc.h`), and not the
 headers of GAOL's sources (GAOL v5): `gaol/parser/gaol_interval_parser.h`,
 which did not compile when included, `gaol_init_cleanup.h`, `gaol_core_math.h`
 and `gaol_u128.h`; `gaol_parameters.h`, which declared nothing,
@@ -883,10 +886,10 @@ example; they are listed here for the reader who looks in this page first.
 - **The program's own doubles** are rounded upward after an operation of GAOL
   until `gaol::cleanup()` (see
   [What the upward rounding does to the program](#what-the-upward-rounding-does-to-the-program)).
-- **The sign of a zero bound** differs between the SSE2 and the FPU intervals:
-  `sqr(interval(-1, 2))` is [−0, 4] with the first and [0, 4] with the
-  second, `1.0 / x.left()` being −∞ or +∞. A program compares bounds with `==`
-  and `<` and does not read the sign.
+- **The sign of a zero bound** differs between the SSE2, the NEON and the
+  FPU intervals: `sqr(interval(-1, 2))` is [−0, 4] with the first two and
+  [0, 4] with the third, `1.0 / x.left()` being −∞ or +∞. A program compares
+  bounds with `==` and `<` and does not read the sign.
 - **The empty set and the domain.** A function keeps the part of its argument
   in its domain, silently: `sqrt([-1, 4])` is [0, 2], `log([-1, 0])` is empty.
   The empty set passes every certainly relation and every inclusion test
@@ -933,7 +936,10 @@ The bounds are then right whatever rounding direction the calling code left. The
 rounding direction, which cost far more under Rosetta 2 and with 32-bit Visual
 C++ (see [What differs from GAOL](differences.md)); on x86 processors, and on
 ARM processors with GCC and Clang, it is 1 + (2^-1060 + 0), which shows the
-modes that flush the subnormal numbers to zero as well (below). Code that needs
+modes that flush the subnormal numbers to zero as well (below); with the NEON
+intervals of 64-bit ARM processors (see
+[The NEON intervals](#the-neon-intervals)) it is a read of the control register
+FPCR, which holds both (GAOL v5). Code that needs
 its own rounding direction after GAOL's operations builds GAOL with
 `GAOL_PRESERVE_ROUNDING` (`--enable-preserve-rounding`,
 `-Denable-preserve-rounding=true`): each operation then also restores the
@@ -1170,6 +1176,62 @@ processors that do not halve them, as the Xeon of the continuous integration,
 are expected to take less. Which of the paths a GAOL took, the example 13
 tells.
 
+### The NEON intervals
+
+On 64-bit ARM processors (AArch64), GAOL computes its intervals with NEON
+instructions, as it does with SSE2 instructions on x86 (GAOL v5): the two
+bounds of an interval are the two lanes of one `float64x2_t`, the lower bound
+negated as in the `__m128d` of the SSE2 intervals, and `+`, `-`, `*`, `/`,
+`sqr()` and `sqrt()` are kernels that take and return their bounds in
+registers. The sum and the difference are one vector addition rounded upward;
+the product is the maximum of the four products of the bounds, with no branch
+on their signs; the quotient is one vector division when the divisor has no
+zero, and single divisions otherwise; the square root of both bounds is one
+vector square root rounded upward, the lower bound being that root where it is
+exact, and the double below it otherwise.
+
+They are the intervals of GAOL on 64-bit ARM with GCC, Clang and AppleClang
+under Linux and macOS, by default (`GAOL_ARM64` of CMake, `--enable-arm64` of
+configure, `-Denable-arm64` of meson; `GAOL_USING_NEON_INSTRUCTIONS` is then 1
+in `gaol_configuration.h`), and need no flag beyond those of interval
+arithmetic. They do not depend on `GAOL_SIMD`, which is for x86 processors.
+Visual C++, clang-cl, MinGW-w64 (any target of Windows) and 32-bit ARM, whose
+NEON has no vector of doubles, do not take them, nor does a universal build of
+macOS: the option is ignored there, and the FPU computes the intervals, as
+before.
+
+64-bit ARM has no instruction that carries its own rounding direction, as the
+AVX-512 path has: the direction is the field RMode of the control register
+FPCR (bits 23 and 22, upward being 0x400000), which the scalar and the vector
+instructions share, and which holds the modes that flush the subnormal numbers
+to zero as well (FZ, bit 24, and from Armv8.7 FIZ, bit 0). The NEON intervals
+therefore check the direction by reading FPCR with `mrs`, which raises no
+exception flag, and write it with `msr` only if it is not upward with the
+flush modes clear, where the FPU intervals add 1 + (2^-1060 + 0), which raises
+the inexact one (see
+[The floating-point exceptions](#the-floating-point-exceptions)). `msr` on
+FPCR is a serializing instruction, slower than `mrs`, which is why it is
+written when needed only. With `GAOL_PRESERVE_ROUNDING`, each operation reads
+FPCR once, and writes back the direction and the modes it found at its end
+only if they differ from what the operation left: a program that computes
+upward already, with the flush modes clear, pays no write. `round_upward()`,
+`round_nearest()` and `round_downward()` write FPCR as well, and not through
+`fesetround()`, and only if the direction changes. `fegetround()` and
+`fesetround()` of the C library read and write the same bits (the `FE_*`
+values of the C libraries of 64-bit ARM are these bits, which a static
+assertion checks), so that a program may use either.
+
+The bounds are those of the FPU intervals but for the sign of a zero bound,
+which the maximum of 64-bit ARM, ranking +0 above −0, can set otherwise than
+the SSE2 and the FPU intervals do, where the `maxpd` of x86 returns its second
+operand: the lower bound of `[-1, 0] * [-1, 0]` is −0 with the NEON intervals
+and +0 with the others, and `interval::zero()` is stored `<+0, +0>`, as with
+SSE2, so that its lower bound is −0 (+0 and −0 being the same number, `==`
+does not see the difference). The tool `tests/tools/arith` compares
+the NEON and the FPU intervals on a grid of operands, with the calling code in
+each of the four rounding directions: it found no other difference. The same kind of caveat exists for the
+AVX-512 path (above, and [Accuracy](accuracy.md)).
+
 ## Flush-to-zero and denormals-are-zero
 
 Processors have modes that flush the subnormal numbers, those below 2^-1022 in
@@ -1206,7 +1268,8 @@ bounds wrong**, and GAOL defends itself in two ways:
   of GAOL that computes bounds clears the modes when it starts, in the check
   that sets the rounding direction upward: the check is one comparison with a
   subnormal number, which shows the modes as well as the direction (see
-  [The rounding direction](#the-rounding-direction)), and the modes stay
+  [The rounding direction](#the-rounding-direction)), or, with the NEON
+  intervals, a read of FPCR, which holds both; the modes stay
   cleared for the rest of the program, as the rounding direction stays upward.
   The check comes before the operation reads, compares or copies a bound, the
   test of the empty set aside, and the compiler is kept from making a
@@ -1327,7 +1390,13 @@ bounds.
   of the five flags of IEEE 754 (not in `FE_ALL_EXCEPT`), and its exception
   stops the program where the program enabled it; and with flush-to-zero set,
   the sum 2^-1060 + 0, flushed to zero, raises the underflow exception
-  (`FE_UNDERFLOW`) too, before the check clears the mode (GAOL v5).
+  (`FE_UNDERFLOW`) too, before the check clears the mode (GAOL v5). With the
+  NEON intervals the check is a read of FPCR (see
+  [The NEON intervals](#the-neon-intervals)), which raises no flag: `+`, `-`,
+  `/` and `sqrt()` raise the inexact one only when a bound they compute is
+  rounded, `*` and `sqr()` also when a corner product that is not a bound of the
+  result is (`[-a, 128] * [-a, 4]` for a = 1 + 2^-52 has the exact bounds
+  −128a and 512, and the corner a² is rounded) (GAOL v5).
 - An empty operand raises no invalid-operation exception, though the bounds
   of the empty interval are NaN (GAOL v5): every operation, relation, function
   and output of `gaol::interval` and of `gaol_ieee1788` takes it without
@@ -1350,7 +1419,11 @@ bounds.
   empty operand may still raise the other exceptions: the sum of two empty
   intervals raises the inexact one where GAOL checks the rounding direction
   with an addition, and `atanh_rel([-1, 2], x)` for an empty `x` raises the
-  divide-by-zero one while it computes `atanh([-1, 2])`.
+  divide-by-zero one while it computes `atanh([-1, 2])`. The vector
+  comparisons of 64-bit ARM (`fcmgt`, `fcmge`) signal the invalid-operation
+  exception on a NaN: the NEON operations tell the empty set, the infinite
+  bounds and the zeros from the bits of the bounds, and compare no bound as a
+  double before they know it is no NaN.
 - A compiler may compile a quiet comparison into a signaling one, or compute
   a comparison that follows a test of the empty set before it, and GAOL is
   written against the cases seen. GCC turns a choice made on a quiet
@@ -1373,8 +1446,8 @@ bounds.
   x86 with SSE2 alone (MinGW-w64) make the quiet comparisons signaling
   predicates (`vcmpnlepd`, `cmpnlepd`...), GCC 14 for POWER8 uses `xvcmpgedp`,
   and GCC 11 to 15 for 64-bit ARM compute the second and third comparisons of
-  the constructor for an empty element too. With GCC and the FPU intervals, on
-  every processor, the bounds `is_empty()` compares, those of the relations
+  the constructor for an empty element too. With GCC and the FPU or the NEON
+  intervals, on every processor, the bounds `is_empty()` compares, those of the relations
   that do not call it (`straddles_zero()`, `set_contains(d)`...) and the
   doubles given to the constructors go through an empty asm statement, which
   keeps GCC from vectorizing such loops: loops of `x.set_contains(d)` and of
@@ -1412,7 +1485,8 @@ leave enabled: every exception stays disabled while GAOL computes.
 The flags tell nothing of the results: after most operations of GAOL,
 `fetestexcept(FE_INEXACT)` is raised whatever the result (not after `-x`,
 `abs()`, `&`, `|`, `floor()`, `max()` or `min()`, which round nothing and
-check no rounding direction), and `FE_OVERFLOW` or `FE_DIVBYZERO` stands for
+check no rounding direction, nor after `+`, `-`, `/` and `sqrt()` with the
+NEON intervals when their bounds are exact), and `FE_OVERFLOW` or `FE_DIVBYZERO` stands for
 an infinite bound of the interval, or an infinite result of `width()` or
 `rad()`, not for an infinite number the program computed: `midpoint()` and
 `mid()` of `[DBL_MAX]`, which overflowed the sum of the bounds, raise none

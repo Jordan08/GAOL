@@ -281,7 +281,10 @@ The continuous integration of GAOL v5 builds it and runs its tests on:
 \end{itemize}
 
 \noindent
-The bounds GAOL computes are the same on all of them.
+The bounds GAOL computes are the same on all of them. On 64-bit ARM processors,
+GAOL computes its intervals with NEON instructions when it is built by GCC,
+Clang or AppleClang under Linux and macOS, and with the FPU when it is built by
+Visual C++ (\pxref{sec:neon}).\newinvfive
 
 \section{Getting the software}
 %%----------------------------
@@ -484,6 +487,14 @@ The options are given to the first command, as \option{-D\var{option}=\var{value
   with SSE2 instructions on x86 processors (\option{-msse2 -msse3}), their two
   bounds in one register; not with Visual C++ nor on 32-bit Windows;
 \cindex{SSE2}%
+\item \option{GAOL\_ARM64}. \code{ON} by default: the intervals are computed
+  with NEON instructions on 64-bit ARM processors, their two bounds in one
+  register, with GCC, Clang or AppleClang under Linux and macOS; NEON needs no
+  flag (\pxref{sec:neon}). Not with Visual C++, clang-cl, MinGW-w64 nor on
+  32-bit ARM, nor in a universal build of macOS, where the option is ignored
+  and the FPU computes the intervals, as before. It is independent of
+  \option{GAOL\_SIMD}, which is for x86 processors;\newinvfive
+\cindex{NEON}%
 \item \option{GAOL\_FMA}. \code{ON} by default: GAOL and CORE-MATH are compiled
   with the fused multiply-add instructions of the processor, where the compiler
   has a flag for them and the machine building runs a program compiled with it:
@@ -619,6 +630,9 @@ put the header files. It defaults to \file{\var{prefix-dir}/include};
 \item \loption{enable-simd[=\var{yes/no}]}. The SSE2 intervals on x86
   processors, as \option{GAOL\_SIMD} (\pxref{sec:cmake-options}). This option
   defaults to \code{yes};
+\item \loption{enable-arm64[=\var{yes/no}]}. The NEON intervals on 64-bit ARM
+  processors, as \option{GAOL\_ARM64} (\pxref{sec:cmake-options}). This option
+  defaults to \code{yes};\newinvfive
 \item \loption{enable-fma[=\var{yes/no}]}. The fused multiply-add instructions
   of the processor, as \option{GAOL\_FMA}. This option defaults to \code{yes};
 \item \loption{enable-verbose-mode[=\var{yes/no}]}. Writes a line on the
@@ -693,6 +707,7 @@ the debugging facilities, as with CMake (\code{--buildtype=debug} for the
     \hline\hline
     \code{buildtype} & \code{release}: \option{-O3}, \code{NDEBUG} and the optimizations of \loption{enable-optimize}\\
     \code{enable-simd} & \code{true}\\
+    \code{enable-arm64} & \code{true}\\
     \code{enable-fma} & \code{true}\\
     \code{enable-verbose-mode} & \code{false}\\
     \code{enable-preserve-rounding} & \code{false}\\
@@ -898,6 +913,9 @@ takes it:
   in double precision rather than on the x87 unit;
 \item \option{-msse2 -msse3} on x86 processors with the SSE2 intervals
   (\option{GAOL\_SIMD});
+\item nothing more on 64-bit ARM processors with the NEON intervals
+  (\option{GAOL\_ARM64}, \pxref{sec:neon}): the first item is all they ask
+  for;\newinvfive
 \item \option{-ffloat-store} where doubles are still computed on the x87 unit;
 \item \option{-mfma} on x86, and \option{-mfpu=neon-vfpv4 -mfloat-abi=hard} on
   32-bit ARM, where GAOL is compiled with the fused multiply-add instructions of
@@ -1090,7 +1108,9 @@ of the rounding direction, which cost far more on some platforms: under
 Rosetta~2, reading it made an addition of intervals take 800~ns rather than
 2.8~ns. On x86 processors, and on ARM processors with GCC and Clang, it is
 $1+(2^{-1060}+0)$, which shows the modes that flush the subnormal numbers to
-zero as well (\pxref{sec:ftz}). Each function of intervals checks the
+zero as well (\pxref{sec:ftz}); with the NEON intervals of 64-bit ARM
+processors (\pxref{sec:neon}), it is a read of the control register FPCR, which
+holds both.\newinvfive{} Each function of intervals checks the
 direction once, and the
 functions it calls on doubles take it to be upward already.
 \cindex{trust rounding mode}%
@@ -1286,6 +1306,62 @@ What to do:
   takes 9.6 times longer without the path, and 2.1 times with it.
 \end{itemize}
 
+\subsection{The NEON intervals}\label{sec:neon}
+%%..............................................
+\cindex{NEON}%
+
+On 64-bit ARM processors (AArch64), GAOL computes its intervals with NEON
+instructions, as it does with SSE2 instructions on x86:\newinvfive{} the two
+bounds of an interval are the two lanes of one \code{float64x2\_t}, the lower
+bound negated as in the \code{\_\_m128d} of the SSE2 intervals, and \code{+},
+\code{-}, \code{*}, \code{/}, \code{sqr()} and \code{sqrt()} take and give their
+bounds in registers. The sum and the difference are one vector addition
+rounded upward; the product is the maximum of the four products of the bounds,
+with no branch on their signs; the quotient is one vector division when the
+divisor has no zero, and single divisions otherwise; the square roots of both
+bounds are one vector square root rounded upward, the lower bound being that
+root where it is exact, and the double below it otherwise.
+
+They are the intervals of GAOL on 64-bit ARM, with GCC, Clang or AppleClang
+under Linux and macOS, by default (\option{GAOL\_ARM64} of CMake,
+\loption{enable-arm64} of \cmd{configure}, \code{enable-arm64} of meson; the
+macro \code{GAOL\_USING\_NEON\_INSTRUCTIONS} is then 1 in
+\file{gaol/gaol\_configuration.h}), and need no flag beyond those of interval
+arithmetic (\pxref{sec:compiling}). They do not depend on
+\option{GAOL\_SIMD}, which is for x86 processors. Visual C++, clang-cl,
+MinGW-w64 (any target of Windows) and 32-bit ARM, whose NEON has no vector of
+doubles, do not take them, nor does a universal build of macOS: the option is
+ignored there, and the FPU computes the intervals, as before.
+
+64-bit ARM has no instruction that carries its own rounding direction, as the
+AVX-512 path has: the direction is the field RMode of the control register
+FPCR (bits 23 and 22, upward being \code{0x400000}), which the scalar and the
+vector instructions share, and which holds the modes that flush the subnormal
+numbers to zero as well (FZ, bit 24, and from Armv8.7 FIZ, bit 0). The NEON
+intervals therefore check the direction by reading FPCR with \code{mrs}, which
+raises no exception flag, and write it with \code{msr} only if it is not upward
+with the flush modes clear, where the FPU intervals add $1+(2^{-1060}+0)$,
+which raises the inexact one (\pxref{sec:fp-exceptions}). \code{msr} on FPCR is
+a serializing instruction, slower than \code{mrs}, which is why it is written
+when needed only. With \option{GAOL\_PRESERVE\_ROUNDING}, each operation reads
+FPCR once, and writes back the direction and the modes it found at its end only
+if they differ from what the operation left: a program that computes upward
+already, with the flush modes clear, pays no write. \code{round\_upward()},
+\code{round\_nearest()} and \code{round\_downward()} write FPCR as well, and not
+through \code{fesetround()}, and only if the direction changes
+(\pxref{chap:fpu}). \code{fegetround()} and \code{fesetround()} of the C library
+read and write the same bits (the \code{FE\_*} values of the C libraries of
+64-bit ARM are these bits, which a static assertion checks), so that a program
+may use either.
+
+The bounds are those of the FPU intervals but for the sign of a zero bound
+(\pxref{sec:zero-sign}), which the maximum of 64-bit ARM, ranking $+0$ above
+$-0$, can set otherwise than the SSE2 and the FPU intervals do, where the
+\code{maxpd} of x86 returns its second operand. The tool
+\code{tests/tools/arith} compares the NEON and the FPU intervals on a grid of
+operands, with the calling code in each of the four rounding directions: it
+found no other difference.
+
 \subsection{Flush-to-zero and denormals-are-zero}\label{sec:ftz}
 %%...............................................
 \cindex{flush-to-zero}%
@@ -1331,7 +1407,8 @@ in two ways:
 \item on x86 processors, and on ARM processors with GCC and Clang, each
   operation that computes bounds clears the modes when it starts, in the check
   that sets the rounding direction upward: the check is one comparison with a
-  subnormal number, which shows the modes as well as the direction, and the
+  subnormal number, which shows the modes as well as the direction, or, with
+  the NEON intervals, a read of FPCR, which holds both; the
   modes stay cleared for the rest of the program, as the rounding direction
   stays upward. The check comes before the operation reads, compares or copies
   a bound, the test of the empty set aside, and the compiler is kept from
@@ -1447,7 +1524,11 @@ Linux) instead of letting the operation give its bounds.\newinvfive
   flags of IEEE~754 (not in \code{FE\_ALL\_EXCEPT}), and its exception stops
   the program where the program enabled it; and with flush-to-zero set, the
   sum $2^{-1060}+0$, flushed to zero, raises the underflow exception
-  (\code{FE\_UNDERFLOW}) too, before the check clears the mode.
+  (\code{FE\_UNDERFLOW}) too, before the check clears the mode. With the NEON
+  intervals the check is a read of FPCR (\pxref{sec:neon}), which raises no
+  flag: \code{+}, \code{-}, \code{/} and \code{sqrt()} raise the inexact one
+  only when a bound they compute is rounded, \code{*} and \code{sqr()} also when
+  a corner product that is not a bound of the result is.\newinvfive
 \item An empty operand raises no invalid-operation exception, though the
   bounds of the empty interval are NaN: every operation, relation, function
   and output of \code{gaol::interval} and of \code{gaol\_ieee1788} takes it
@@ -1474,7 +1555,11 @@ Linux) instead of letting the operation give its bounds.\newinvfive
   may still raise the other exceptions: the sum of two empty intervals raises
   the inexact one where GAOL checks the rounding direction with an addition,
   and \code{atanh\_rel(interval(-1,~2),~x)} for an empty \code{x} raises the
-  divide-by-zero one while it computes \code{atanh(interval(-1,~2))}.\newinvfive
+  divide-by-zero one while it computes \code{atanh(interval(-1,~2))}. The
+  vector comparisons of 64-bit ARM (\code{fcmgt}, \code{fcmge}) signal the
+  invalid-operation exception on a NaN: the NEON operations tell the empty set,
+  the infinite bounds and the zeros from the bits of the bounds, and compare no
+  bound as a double before they know it is no NaN.\newinvfive
 \item A compiler may compile a quiet comparison into a signaling one, or
   compute a comparison that follows a test of the empty set before it, and
   GAOL is written against the cases seen. GCC turns a choice made on a quiet
@@ -1500,7 +1585,7 @@ Linux) instead of letting the operation give its bounds.\newinvfive
   signaling predicates (\code{vcmpnlepd}, \code{cmpnlepd}\dots), GCC~14 for
   POWER8 uses \code{xvcmpgedp}, and GCC 11 to 15 for 64-bit ARM compute the
   second and third comparisons of the constructor for an empty element too.
-  With GCC and the FPU intervals, on every processor, the bounds
+  With GCC and the FPU or the NEON intervals, on every processor, the bounds
   \code{is\_empty()} compares, those of the relations that do not call it
   (\code{straddles\_zero()}, \code{set\_contains(d)}\dots) and the doubles
   given to the constructors go through an empty asm statement, which keeps GCC
@@ -1547,7 +1632,9 @@ leave enabled: every exception stays disabled while GAOL computes.\newinvfive
 The flags tell nothing of the results: after most operations of GAOL,
 \code{fetestexcept(FE\_INEXACT)} is raised whatever the result (not after
 \code{-x}, \code{abs()}, \code{\&}, \code{|}, \code{floor()}, \code{max()} or
-\code{min()}, which round nothing and check no rounding direction), and
+\code{min()}, which round nothing and check no rounding direction, nor after
+\code{+}, \code{-}, \code{/} and \code{sqrt()} with the NEON intervals when
+their bounds are exact), and
 \code{FE\_OVERFLOW} or \code{FE\_DIVBYZERO} stands for an infinite bound of the
 interval, or an infinite result of \code{width()} or \code{rad()}, not for an
 infinite number the program computed: \code{midpoint()} and \code{mid()} of
@@ -1887,17 +1974,23 @@ constructors from one and from two strings of GAOL~4 made these calls
 ambiguous; GAOL v5 has no constructor from strings.\newinvfive
 \cindex{interval!zero}%
 
-\subsection{The sign of a zero bound}
+\subsection{The sign of a zero bound}\label{sec:zero-sign}
 %%...................................
 \cindex{zero!sign of a bound}%
 
 A bound that is zero has a sign, which differs between the builds:
 \code{sqr(interval(-1, 2))} is \itv{-0}{4} with the SSE2 intervals, which the
-default build uses on x86 processors, and \itv{0}{4} with the FPU intervals, those
-of the other processors, of Visual C++ and 32-bit Windows, and of the build with
-\option{GAOL\_SIMD} off; \code{interval::zero()} is \itv{-0}{0} with the first
-and \itv{0}{0} with the second. IEEE 1788-2015 and GAOL take the two zeros for
-the same number: \code{x.left() == 0.0} is \code{true} whichever it is, and a
+default build uses on x86 processors, and with the NEON intervals, which it
+uses on 64-bit ARM processors, and \itv{0}{4} with the FPU intervals, those of
+the other processors, of Visual C++ and 32-bit Windows, and of the builds with
+\option{GAOL\_SIMD} off on x86 and \option{GAOL\_ARM64} off on 64-bit ARM;
+\code{interval::zero()} is \itv{-0}{0} with the first two and \itv{0}{0} with
+the third. The NEON and the SSE2 intervals can differ too: the maximum of
+64-bit ARM, which the product takes of its four products, ranks $+0$ above
+$-0$, where the one of x86 returns its second operand, so that the lower bound of
+\code{interval(-1, 0) * interval(-1, 0)} is $-0$ with the NEON intervals and
+$+0$ with the others (\pxref{sec:neon}). IEEE 1788-2015 and GAOL take the two
+zeros for the same number: \code{x.left() == 0.0} is \code{true} whichever it is, and a
 point interval at zero is written \code{[0]}. A program that reads the sign,
 with \code{std::signbit(x.left())} or \code{1.0 / x.left()}, which is $-\infty$
 or $+\infty$, gets one answer with a build and the other with the other: it
@@ -4973,7 +5066,7 @@ the same point:
  @outputs^[3, 5] [4]~
 \end{example}
 A zero is printed \code{[0]} whatever the signs of its bounds: \itv{-0}{+0},
-which \code{interval::zero()} is with the SSE2 intervals, \itv{+0}{+0} and
+which \code{interval::zero()} is with the SSE2 and the NEON intervals, \itv{+0}{+0} and
 \itv{-0}{-0} are the same set, which \code{[0]} and \code{[-0]} are both read
 back as, and the text is then the same on every build (the format
 \element{hexa} prints it \code{[0x0p+0]}). A degenerate interval whose
@@ -5583,7 +5676,7 @@ the interval are therefore the tightest ones.
 
 The statements hold for GAOL as the three builds make it, with the code
 including its headers compiled with the flags of interval arithmetic
-(\pxref{sec:compiling}), for the SSE2 and the FPU intervals, whatever the
+(\pxref{sec:compiling}), for the SSE2, the NEON and the FPU intervals, whatever the
 rounding direction the calling code left, with the floating-point exceptions
 masked as a program starts (\pxref{sec:fp-exceptions}), and on every
 architecture and with every compiler alike. The intervals of floats are not
@@ -5609,7 +5702,7 @@ covered.
   \code{floor}, \code{ceil}, \code{integer}, \code{sign}, \code{trunc}, \code{round\_ties\_to\_even}, \code{round\_ties\_to\_away}, \code{abs}, \code{min}, \code{max} & tightest, and exact, in every rounding direction\\
   \hline
   \multicolumn{2}{l}{\textit{Powers, exponentials and logarithms: valid required, accurate recommended}}\\
-  \code{pow(x, n)}, integer \var{n} (\ieee{pown}) & the tightest bounds, of either sign, or one double beyond where the power is within twice a bound of their error of a double, relatively (never for $n=2$, \code{sqr(x)}; $2^{-98}$ for $n=3$, $2^{-62}$ at most), below $2^{-968}$ and beyond the largest double too; exact where the power is a double; the same bounds with the SSE2 and the FPU intervals. Beyond the \code{int}s: tightest where $n$ is a double, within three doubles otherwise\\
+  \code{pow(x, n)}, integer \var{n} (\ieee{pown}) & the tightest bounds, of either sign, or one double beyond where the power is within twice a bound of their error of a double, relatively (never for $n=2$, \code{sqr(x)}; $2^{-98}$ for $n=3$, $2^{-62}$ at most), below $2^{-968}$ and beyond the largest double too; exact where the power is a double; the same bounds with the SSE2, the NEON and the FPU intervals. Beyond the \code{int}s: tightest where $n$ is a double, within three doubles otherwise\\
   \code{pow(x, y)} (\ieee{pow}) & tightest, at the corners of the box and at their limits where the base is $0$ or $+\infty$ or the exponent infinite; for a degenerate integer exponent within the \code{int}s, the integer power of the row above, one double beyond the tightest where it is within twice the error of its products (\code{pow([0x1.fffffffffffffp+1], [7])} has its lower bound one double below the tightest)\\
   \code{exp}, \code{exp2}, \code{exp10}, \code{log}, \code{log2}, \code{log10} & tightest; exact where the value is a double ($\exp(0)$, $\log(1)$, $2^n$, $10^n$ for $0\leq n\leq22$\ldots)\\
   \hline
@@ -5779,7 +5872,7 @@ cout << nb_fp_numbers(1.0, next_float(1.0)) << ' '
 \end{example}
 \end{deffun}
 
-\chapter{Manipulating the FPU}
+\chapter{Manipulating the FPU}\label{chap:fpu}
 %%============================
 
 GAOL provides functions to set the rounding direction of the floating-point
@@ -5791,7 +5884,10 @@ registers of the x87 and SSE units directly (\code{fnstcw}/\code{fldcw},
 \code{stmxcsr}/\code{ldmxcsr}), rather than calling \code{fesetround()}, which
 cost 50 to 250~ns per call with the C runtime of Windows; with Visual C++ for
 x64, the SSE register only, the x87 unit being unused there.\newinvfive{}
-Elsewhere (ARM, POWER, s390x, RISC-V), they call \code{fesetround()}.
+Elsewhere (ARM, POWER, s390x, RISC-V), they call \code{fesetround()}, except on
+64-bit ARM processors with the NEON intervals (\pxref{sec:neon}), where they
+write the rounding direction field of the control register FPCR
+(\code{mrs}/\code{msr}) themselves, and only when the direction changes.\newinvfive
 
 \section{Rounding functions}
 %%--------------------------
