@@ -146,6 +146,9 @@ jobs:
           # GAOL's headers compile in
           PKG_CONFIG_PATH="$PWD/gaol-install/lib/pkgconfig" CXX=${{ matrix.cfg.cxx }} python3 manual/check_examples.py -j 4 --std c++11
 
+  # Clang 14 does not honour the rounding direction on 64-bit ARM, for the C
+  # compiler, which builds CORE-MATH, as for the C++ compiler: each of the three
+  # builds has to refuse it for either alone (GAOL v5)
   clang-14-arm64:
     name: Ubuntu 24.04 arm64 Clang 14, refused
     runs-on: ubuntu-24.04-arm
@@ -155,15 +158,26 @@ jobs:
       - name: Configure with Clang 14, which does not honour the rounding direction on 64-bit ARM and has to be refused
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q clang-14 cmake make
+          sudo apt-get install -y -q clang-14 cmake make meson ninja-build
           clang++-14 --version
-          if cmake -S . -B build -DCMAKE_C_COMPILER=clang-14 -DCMAKE_CXX_COMPILER=clang++-14 > configure.log 2>&1; then
+          # refused <what> <command...>: the command has to fail, saying why
+          refused() {
+            what=$1; shift
+            if "$@" > configure.log 2>&1; then
+              cat configure.log
+              echo "$what: Clang 14 was not refused"
+              return 1
+            fi
             cat configure.log
-            echo "Clang 14 was not refused"
-            exit 1
-          fi
-          cat configure.log
-          grep -q "GAOL cannot be built with" configure.log
+            grep -q "GAOL cannot be built with" configure.log
+          }
+          for pair in "clang-14 clang++-14" "clang-14 g++" "gcc clang++-14"; do
+            set -- $pair
+            rm -rf build build-ac build-meson && mkdir build-ac
+            refused "CMake with $1 and $2" env CC=$1 CXX=$2 cmake -S . -B build
+            refused "configure with $1 and $2" sh -c "cd build-ac && CC=$1 CXX=$2 ../configure"
+            refused "meson with $1 and $2" env CC=$1 CXX=$2 meson setup build-meson
+          done
 
   sanitizers:
     name: ${{ matrix.cfg.desc }}
