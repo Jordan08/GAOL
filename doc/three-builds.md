@@ -156,7 +156,8 @@ there is no option for this, and `gaol.pc` and `gaol::gaol` carry no such flag.
 ## Compilers and options refused
 
 Each of these gave bounds not enclosing the exact results, or worse. The three
-builds refuse the compilers of the first two rows when configuring, with a
+builds refuse the compilers of the first two rows when configuring, the C
+compiler, which builds CORE-MATH, as well as the C++ compiler, with a
 message naming what to use instead, and keep the options of the last four away
 by giving GAOL the flags of [Using GAOL](using.md). `gaol/gaol_config.h`
 refuses them again at compile time, for the code including GAOL's headers too,

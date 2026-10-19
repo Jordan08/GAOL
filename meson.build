@@ -85,7 +85,6 @@ gaol_url = 'https://github.com/Jordan08/GAOL'
 cpp_comp = meson.get_compiler('cpp')
 c_comp = meson.get_compiler('c')
 
-gaol_compiler = cpp_comp.get_id() + ' ' + cpp_comp.version()
 # mingw-w64 is refused by gaol/gaol_config.h only, when compiling: on x86-64
 # before version 12 or linked with msvcrt.dll, whose fma() and round(), those
 # of mingw-w64's own math library, are wrong; on 32-bit x86 before 11, as the
@@ -203,25 +202,33 @@ endif
 # CMakeLists.txt): Clang for 32-bit ARM processors, which does not honour the
 # rounding direction, and a compiler that takes -frounding-math and says it
 # does not honour the rounding direction on the target ("overriding currently
-# unsupported rounding mode on this target"), as Clang 14 for 64-bit ARM
-if not cpp_comp.compiles('''
+# unsupported rounding mode on this target"), as Clang 14 for 64-bit ARM. Both
+# the C++ compiler and the C compiler are checked: the C compiler builds
+# CORE-MATH, whose bounds the C++ compiler's refusal in gaol/gaol_config.h does
+# not reach (GAOL v5)
+foreach lang_compiler : [['C++', cpp_comp], ['C', c_comp]]
+  lang_name = lang_compiler[0]
+  lang_comp = lang_compiler[1]
+  lang_comp_name = lang_comp.get_id() + ' ' + lang_comp.version()
+  if not lang_comp.compiles('''
 #if defined(__arm__) && !defined(__aarch64__) && defined(__clang__)
 #error Clang for a 32-bit ARM processor
 #endif
-int main() { return 0; }
-''', name: 'the C++ compiler is not Clang for a 32-bit ARM processor')
-  error('GAOL cannot be built with ' + gaol_compiler + ', Clang for a 32-bit ARM processor.\n'
-    + 'Clang does not honour the rounding direction on 32-bit ARM processors: it does not support -frounding-math there (overriding currently unsupported rounding mode on this target) and optimizes floating-point operations as if they were always rounded to nearest. GAOL computes with the rounding direction set upward, so that the intervals it computes would not enclose the values they should (built by Clang 21, 4556 of 16000 random products, squares and cubes did not).\n'
-    + 'Build GAOL with GCC, which honours the rounding direction on 32-bit ARM processors: CXX=g++ CC=gcc meson setup ...')
-endif
-if cpp_comp.has_argument('-frounding-math')
-  if not cpp_comp.compiles('int main() { return 0; }', args: ['-frounding-math', '-Werror'],
-                           name: 'the C++ compiler honours the rounding direction on this target')
-    error('GAOL cannot be built with ' + gaol_compiler + ' for this target.\n'
-      + 'This compiler does not honour the rounding direction on this target, and says so of -frounding-math (overriding currently unsupported rounding mode on this target). GAOL computes with the rounding direction set upward, so that the intervals it computes would not enclose the values they should (built by Clang 14 for 64-bit ARM processors, bounds of pow() and nth_root() did not).\n'
-      + 'Build GAOL with a compiler that honours the rounding direction on this target, such as GCC or a later version of Clang (Clang 18 does on 64-bit ARM processors).')
+int main(void) { return 0; }
+''', name: 'the ' + lang_name + ' compiler is not Clang for a 32-bit ARM processor')
+    error('GAOL cannot be built with the ' + lang_name + ' compiler ' + lang_comp_name + ', Clang for a 32-bit ARM processor.\n'
+      + 'Clang does not honour the rounding direction on 32-bit ARM processors: it does not support -frounding-math there (overriding currently unsupported rounding mode on this target) and optimizes floating-point operations as if they were always rounded to nearest. GAOL computes with the rounding direction set upward, so that the intervals it computes would not enclose the values they should (built by Clang 21, 4556 of 16000 random products, squares and cubes did not). The C compiler builds CORE-MATH and the C++ compiler the rest of GAOL: neither may be Clang there.\n'
+      + 'Build GAOL with GCC, which honours the rounding direction on 32-bit ARM processors: CXX=g++ CC=gcc meson setup ...')
   endif
-endif
+  if lang_comp.has_argument('-frounding-math')
+    if not lang_comp.compiles('int main(void) { return 0; }', args: ['-frounding-math', '-Werror'],
+                              name: 'the ' + lang_name + ' compiler honours the rounding direction on this target')
+      error('GAOL cannot be built with the ' + lang_name + ' compiler ' + lang_comp_name + ' for this target.\n'
+        + 'This compiler does not honour the rounding direction on this target, and says so of -frounding-math (overriding currently unsupported rounding mode on this target). GAOL computes with the rounding direction set upward, so that the intervals it computes would not enclose the values they should (built by Clang 14 for 64-bit ARM processors, bounds of pow() and nth_root() did not). The C compiler builds CORE-MATH and the C++ compiler the rest of GAOL: neither may be such a compiler.\n'
+        + 'Build GAOL with a compiler that honours the rounding direction on this target, such as GCC or a later version of Clang (Clang 18 does on 64-bit ARM processors).')
+    endif
+  endif
+endforeach
 
 
 # The flags of interval arithmetic, each where the compiler accepts it, as
