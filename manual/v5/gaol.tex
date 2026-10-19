@@ -482,7 +482,8 @@ The options are given to the first command, as \option{-D\var{option}=\var{value
   \file{examples}, which \cmd{make check} runs;
 \item \option{GAOL\_SIMD}. \code{ON} by default: the intervals are computed
   with SSE2 instructions on x86 processors (\option{-msse2 -msse3}), their two
-  bounds in one register; not with Visual C++ nor on 32-bit Windows;
+  bounds in one register; no flag with Visual C++ and clang-cl for x64; not on
+  32-bit Windows;
 \cindex{SSE2}%
 \item \option{GAOL\_FMA}. \code{ON} by default: GAOL and CORE-MATH are compiled
   with the fused multiply-add instructions of the processor, where the compiler

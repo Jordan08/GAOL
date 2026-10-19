@@ -295,19 +295,20 @@ endif
 # (gaol_interval_sse.cpp), -msse3 is given where the compiler takes it, and on
 # 32-bit x86 the doubles are computed with SSE2
 # (-mfpmath=sse) rather than on the x87 unit, where CORE-MATH rounds some
-# results twice and some bounds are wrong (see CMakeLists.txt). Not the SSE2
-# intervals on 32-bit Windows, where a std::vector of them crashes (see
-# CMakeLists.txt).
+# results twice and some bounds are wrong (see CMakeLists.txt). Visual C++
+# and clang-cl take the SSE2 intervals on x64, where no flag is to be given
+# (cl does not know -msse2; GAOL v5). Not the SSE2 intervals on 32-bit
+# Windows, where a std::vector of them crashes (see CMakeLists.txt).
 use_sse2 = false
 x86_args = []
 target_x86 = cpp_comp.compiles('''
-#if !(defined(__i386__) || defined(__x86_64__))
+#if !(defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64))
 #error not an x86 processor
 #endif
 int main() { return 0; }
 ''', name: 'the target is an x86 processor')
 target_x86_32 = cpp_comp.compiles('''
-#if !defined(__i386__)
+#if !(defined(__i386__) || defined(_M_IX86))
 #error not a 32-bit x86 processor
 #endif
 int main() { return 0; }
@@ -319,15 +320,20 @@ if target_x86
     add_project_arguments(x86_args, language: 'c')
     pc_cflags += x86_args
   endif
-  if simd and not msvc and not (target_x86_32 and os_win) and cpp_comp.has_argument('-msse2')
-    use_sse2 = true
-    conf_data.set('GAOL_USING_SSE2_INSTRUCTIONS', 1)
-    add_project_arguments(['-msse2'], language: 'cpp')
-    pc_cflags += ['-msse2']
-    if cpp_comp.has_argument('-msse3')
-      conf_data.set('GAOL_USING_SSE3_INSTRUCTIONS', 1)
-      add_project_arguments(['-msse3'], language: 'cpp')
-      pc_cflags += ['-msse3']
+  if simd and not (target_x86_32 and os_win)
+    if msvc
+      use_sse2 = true
+      conf_data.set('GAOL_USING_SSE2_INSTRUCTIONS', 1)
+    elif cpp_comp.has_argument('-msse2')
+      use_sse2 = true
+      conf_data.set('GAOL_USING_SSE2_INSTRUCTIONS', 1)
+      add_project_arguments(['-msse2'], language: 'cpp')
+      pc_cflags += ['-msse2']
+      if cpp_comp.has_argument('-msse3')
+        conf_data.set('GAOL_USING_SSE3_INSTRUCTIONS', 1)
+        add_project_arguments(['-msse3'], language: 'cpp')
+        pc_cflags += ['-msse3']
+      endif
     endif
   endif
 endif

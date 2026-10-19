@@ -46,7 +46,7 @@
 #cmakedefine GAOL_VERBOSE_MODE 1
 
 /* Defined to 1 where the intervals are computed with SSE2 instructions
-   (x86 processors, but 32-bit Windows and Visual C++; GAOL_SIMD,
+   (x86 processors, but 32-bit Windows; GAOL_SIMD,
    --enable-simd, -Denable-simd, on by default) */
 #cmakedefine GAOL_USING_SSE2_INSTRUCTIONS 1
 

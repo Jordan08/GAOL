@@ -607,19 +607,22 @@ endif()
 # On x86 processors, with GAOL_SIMD (--enable-simd of configure), the intervals
 # of GAOL are computed with SSE2 instructions (gaol/gaol_interval_sse.h), and
 # -msse3 is given where the compiler takes it, as the autotools build on a
-# processor with SSE3. Not with Visual C++, which IBEX and
-# the fork of Fabrice Le Bars build GAOL without them, nor on 32-bit Windows:
-# there, GCC takes the memory of new to be aligned on 16 bytes
+# processor with SSE3. Visual C++ and clang-cl take them on x64 (GAOL v5),
+# where SSE2 is the baseline of the processor and no flag is to be given
+# (cl does not know -msse2): gaol/gaol_interval_sse.cpp is written for the
+# __m128d of Visual C++, a structure and not a vector, and needs no asm
+# statement there. Not on 32-bit Windows: there, GCC takes the memory of new
+# to be aligned on 16 bytes
 # (__STDCPP_DEFAULT_NEW_ALIGNMENT__), while the C runtime aligns it on 8, so
 # that a std::vector of SSE2 intervals, aligned on 16 bytes, crashes on its
 # first movaps (MinGW-w64 15.2 for x86, rounding_direction). On 64-bit Windows
 # (MinGW-w64, MSYS2 with GCC and Clang) the tests pass.
 set(GAOL_USING_SSE2_INSTRUCTIONS OFF)
 set(GAOL_USING_SSE3_INSTRUCTIONS OFF)
-if(GAOL_SIMD AND NOT MSVC)
+if(GAOL_SIMD)
   set(CMAKE_REQUIRED_FLAGS "${GAOL_INTERVAL_FLAGS_STRING}")
   check_cxx_source_compiles("
-    #if !(defined(__x86_64__) || defined(__i386__))
+    #if !(defined(__x86_64__) || defined(__i386__) || defined(_M_X64) || defined(_M_IX86))
     #error GAOL computes its intervals with SSE2 on x86 processors only
     #endif
     #if defined(_WIN32) && !defined(_WIN64)
@@ -629,7 +632,9 @@ if(GAOL_SIMD AND NOT MSVC)
     int main() { return _mm_movemask_pd(_mm_set1_pd(-1.0)); }"
     GAOL_SSE2_INTERVALS)
   unset(CMAKE_REQUIRED_FLAGS)
-  if(GAOL_SSE2_INTERVALS)
+  if(GAOL_SSE2_INTERVALS AND MSVC)
+    set(GAOL_USING_SSE2_INSTRUCTIONS ON)
+  elseif(GAOL_SSE2_INTERVALS)
     check_cxx_compiler_flag(-msse2 GAOL_COMPILER_SUPPORTS_MSSE2)
     if(GAOL_COMPILER_SUPPORTS_MSSE2)
       set(GAOL_USING_SSE2_INSTRUCTIONS ON)
