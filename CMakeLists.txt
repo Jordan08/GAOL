@@ -65,6 +65,8 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
+include(CheckCCompilerFlag)
+include(CheckCSourceCompiles)
 include(CheckCXXCompilerFlag)
 include(CheckCXXSourceCompiles)
 include(CheckCXXSourceRuns)
@@ -353,7 +355,16 @@ else()
   # built by it, GAOL gave bounds of pow() and nth_root() that did not enclose
   # the exact values (tests/elementary.cpp and tests/arithmetic.cpp), which
   # Clang 18 did not. GAOL is not built with such a compiler, as with Clang for
-  # 32-bit ARM processors above.
+  # 32-bit ARM processors above. The C compiler is checked as well as the C++
+  # one: it builds CORE-MATH (GAOL v5).
+  set(_gaol_rounding_math_hint
+    "This compiler does not honour the rounding direction on this target, and says so of -frounding-math "
+    "(\"overriding currently unsupported rounding mode on this target\"). GAOL computes with the rounding "
+    "direction set upward, so that the intervals it computes would not enclose the values they should "
+    "(built by Clang 14 for 64-bit ARM processors, bounds of pow() and nth_root() did not). The C compiler "
+    "builds CORE-MATH and the C++ compiler the rest of GAOL: neither may be such a compiler.\n"
+    "Build GAOL with a compiler that honours the rounding direction on this target, such as GCC or a later "
+    "version of Clang (Clang 18 does on 64-bit ARM processors), in a new build directory.")
   if(GAOL_COMPILER_SUPPORTS_FROUNDING_MATH)
     set(CMAKE_REQUIRED_FLAGS "-frounding-math")
     check_cxx_source_compiles("int main() { return 0; }" GAOL_COMPILER_HONOURS_ROUNDING_MATH
@@ -361,14 +372,20 @@ else()
     unset(CMAKE_REQUIRED_FLAGS)
     if(NOT GAOL_COMPILER_HONOURS_ROUNDING_MATH)
       message(FATAL_ERROR
-        "GAOL cannot be built with ${CMAKE_CXX_COMPILER} (${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}) "
-        "for this target.\n"
-        "This compiler does not honour the rounding direction on this target, and says so of -frounding-math "
-        "(\"overriding currently unsupported rounding mode on this target\"). GAOL computes with the rounding "
-        "direction set upward, so that the intervals it computes would not enclose the values they should "
-        "(built by Clang 14 for 64-bit ARM processors, bounds of pow() and nth_root() did not).\n"
-        "Build GAOL with a compiler that honours the rounding direction on this target, such as GCC or a later "
-        "version of Clang (Clang 18 does on 64-bit ARM processors), in a new build directory.")
+        "GAOL cannot be built with the C++ compiler ${CMAKE_CXX_COMPILER} (${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}) "
+        "for this target.\n" ${_gaol_rounding_math_hint})
+    endif()
+  endif()
+  check_c_compiler_flag(-frounding-math GAOL_C_COMPILER_SUPPORTS_FROUNDING_MATH)
+  if(GAOL_C_COMPILER_SUPPORTS_FROUNDING_MATH)
+    set(CMAKE_REQUIRED_FLAGS "-frounding-math")
+    check_c_source_compiles("int main(void) { return 0; }" GAOL_C_COMPILER_HONOURS_ROUNDING_MATH
+                            FAIL_REGEX "unsupported rounding mode")
+    unset(CMAKE_REQUIRED_FLAGS)
+    if(NOT GAOL_C_COMPILER_HONOURS_ROUNDING_MATH)
+      message(FATAL_ERROR
+        "GAOL cannot be built with the C compiler ${CMAKE_C_COMPILER} (${CMAKE_C_COMPILER_ID} ${CMAKE_C_COMPILER_VERSION}) "
+        "for this target.\n" ${_gaol_rounding_math_hint})
     endif()
   endif()
 endif()
@@ -555,7 +572,6 @@ else()
   # by computing with SSE2, which gaol/gaol_config.h refuses to do without, and
   # this asks the compiler for it as well, where it has the flag. It is for C
   # only: GCC answers "sorry, unimplemented" for C++.
-  include(CheckCCompilerFlag)
   check_c_compiler_flag("-fexcess-precision=standard" GAOL_C_SUPPORTS_EXCESS_PRECISION)
   if(GAOL_C_SUPPORTS_EXCESS_PRECISION)
     list(APPEND GAOL_CORE_MATH_FLAGS "-fexcess-precision=standard")
