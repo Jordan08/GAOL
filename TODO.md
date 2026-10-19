@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `395426a` de `configure-clean`, le 19
+Ce qui reste à faire sur GAOL v5 au commit `c9b5245` de `configure-clean`, le 19
 octobre 2026. Ce fichier ne garde que cela : le travail fait, ses pull requests,
 ses décisions et ses mesures sont dans l'issue #49 (« Fusionné depuis le 30
 septembre » et les sections « Décidé le… »), dans les descriptions des pull
@@ -101,11 +101,8 @@ partout.
 17. **Le défaut de CMake du 112 (AI)** : un second `cmake` dans le même dossier
     fait passer `GAOL_PREFER_AVX512` de ON à OFF sous `GAOL_PRESERVE_ROUNDING` ;
     à corriger avec un test. [S]
-18. **127 (AO) et 125 (AM)** : décider des macros que rien ne lit
-    (`GAOL_IX86_LINUX`, `GAOL_AARCH64_LINUX`, `GAOL_HAVE_AVX512_TARGET` ; #141 a
-    supprimé `GAOL_USING_ASM` et `GAOL_HAVE_ROUNDING_MATH_OPTION`) et de
-    `GAOL_SIZEOF_*`, puis supprimer les premières dans les trois builds, l'audit
-    et la documentation. [M]
+18. **125 (AM)** : décider si `GAOL_SIZEOF_INT` et `GAOL_SIZEOF_LONG_LONG_INT`
+    restent sans valeur par défaut dans les trois modèles. [S]
 19. **95 et 92 (AE)** : des détections qui lient dans un build et compilent dans
     les autres, des drapeaux C différents ; aucun effet connu sur les bornes.
     [M]
@@ -194,7 +191,7 @@ ensemble. Un point garde en sous-points les numéros de l'ancienne liste,
 auxquels renvoient les pull requests, les issues et les rapports des agents ; la
 table à la fin donne la lettre de chaque numéro encore à faire, et un numéro qui
 n'y est pas est un point fait. Une lettre qui n'a plus de section ici est un
-point fait (A à E, G à V, Z, AA, AF, AG, et ZZ, la vitesse de `+ - * /`, par
+point fait (A à E, G à V, Z, AA, AF, AG, AO, et ZZ, la vitesse de `+ - * /`, par
 #124) : ses pull requests sont dans #49, et les commentaires du code qui citent
 « point Q of TODO.md » renvoient à ce point fait. « Décidé le 3 octobre » (ou
 une autre date) marque une décision du mainteneur : applique-la telle quelle.
@@ -214,9 +211,7 @@ originaux au commit `16a2f60`.
 
 ## En cours
 
-Aucune pull request ouverte. #141 (`GAOL_USING_ASM`, ses options,
-`GAOL_HAVE_ROUNDING_MATH_OPTION` et les commentaires qui citent
-`gaol_opposite()`) est fusionnée, la CI verte (137 jobs).
+Aucune pull request ouverte.
 
 ## À corriger avant la version
 
@@ -495,21 +490,6 @@ petit.
   les `.cpp` de la bibliothèque** ne sont pas sous `-Wundef` (`GAOL_TESTS_SSE`,
   `GAOL_PREFER_AVX512`…) : `headers.sh` ne vérifie que les en-têtes installés,
   et c'est le périmètre décidé le 13 octobre.
-
-### AO. Des macros de configuration que rien ne lit (127)
-
-- **127.** **Des macros définies par les trois builds et lues par aucun code**
-  (question ouverte de #141, qui a supprimé pour cette raison `GAOL_USING_ASM`
-  et `GAOL_HAVE_ROUNDING_MATH_OPTION`) : `GAOL_IX86_LINUX` et
-  `GAOL_AARCH64_LINUX` (`gaol/gaol_config.h`, avec les listes de l'audit,
-  `doc/building.md` et `doc/three-builds.md`) ne sont lues par aucun code de
-  `gaol/`, `tests/` ni `examples/` (`gaol/gaol_port.h` lit encore
-  `GAOL_IX86_MACOSX` et `GAOL_ARM_MACOSX`) ; `GAOL_HAVE_AVX512_TARGET`, que les
-  trois builds définissent, n'est lue que par l'audit (recherche du 18 octobre).
-  Les phrases « les macros que lisent les sources de GAOL, et rien d'autre »
-  (en-tête des modèles, `doc/building.md`, `doc/three-builds.md`) sont fausses
-  pour elles. À décider : les supprimer, comme #141, dans une pull request à
-  part (les trois builds, les trois modèles, l'audit, la documentation).
 
 ## Reportés, en attente d'une décision du mainteneur
 
@@ -956,5 +936,4 @@ sans l'accord explicite du mainteneur.
 83 : AD ; 84 : AD ; 85 : AD ; 87 : AD ; 88 : AD ; 89 : AD ; 90 : AE ;
 91 : AE ; 92 : AE ; 94 : AE ; 95 : AE ; 105 : AH ; 106 : AI ; 107 : AI ;
 108 : AI ; 109 : AI ; 110 : AI ; 111 : AI ; 112 : AI ; 113 : AJ ;
-114 : AD ; 115 : AI ; 116 : AI ; 117 à 123 : AL ; 125 : AM ; 126 : AN ; 127 :
-AO.
+114 : AD ; 115 : AI ; 116 : AI ; 117 à 123 : AL ; 125 : AM ; 126 : AN.
