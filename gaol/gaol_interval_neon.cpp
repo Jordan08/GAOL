@@ -410,6 +410,11 @@
   // intervals (see gaol_interval_core.h)
   interval interval::inverse_upward(const interval& I)
   {
+    // The callers tell the empty set beforehand; a NaN bound would otherwise
+    // be told a divisor with neither a zero nor a sign, and give the universe
+    if (neon_detail::any_lane(neon_detail::nan_lanes(I.neonbounds))) {
+      return interval::emptyset();
+    }
     return interval(neon_detail::divide_upward(neon_detail::stored(-1.0, 1.0), I.neonbounds, false));
   }
 
