@@ -49,6 +49,11 @@ namespace gaol_core {
   */
   bool parse_interval(const char* const s, interval& out, parsing_names names)
   {
+    // A null pointer is no string, so no expression: std::strlen() would read
+    // it (GAOL v5)
+    if (s == nullptr) {
+      return false;
+    }
     return gaol_parse_string(s, std::strlen(s), out, names);
   }
 
