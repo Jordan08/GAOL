@@ -1393,8 +1393,10 @@ bounds.
   (`FE_UNDERFLOW`) too, before the check clears the mode (GAOL v5). With the
   NEON intervals the check is a read of FPCR (see
   [The NEON intervals](#the-neon-intervals)), which raises no flag: `+`, `-`,
-  `*`, `/`, `sqr()` and `sqrt()` raise the inexact one only when a bound they
-  compute is rounded (GAOL v5).
+  `/` and `sqrt()` raise the inexact one only when a bound they compute is
+  rounded, `*` and `sqr()` also when a corner product that is not a bound of the
+  result is (`[-a, 128] * [-a, 4]` for a = 1 + 2^-52 has the exact bounds
+  −128a and 512, and the corner a² is rounded) (GAOL v5).
 - An empty operand raises no invalid-operation exception, though the bounds
   of the empty interval are NaN (GAOL v5): every operation, relation, function
   and output of `gaol::interval` and of `gaol_ieee1788` takes it without
@@ -1479,8 +1481,8 @@ leave enabled: every exception stays disabled while GAOL computes.
 The flags tell nothing of the results: after most operations of GAOL,
 `fetestexcept(FE_INEXACT)` is raised whatever the result (not after `-x`,
 `abs()`, `&`, `|`, `floor()`, `max()` or `min()`, which round nothing and
-check no rounding direction, nor after `+`, `-`, `*`, `/`, `sqr()` and `sqrt()`
-with the NEON intervals when their bounds are exact), and `FE_OVERFLOW` or `FE_DIVBYZERO` stands for
+check no rounding direction, nor after `+`, `-`, `/` and `sqrt()` with the
+NEON intervals when their bounds are exact), and `FE_OVERFLOW` or `FE_DIVBYZERO` stands for
 an infinite bound of the interval, or an infinite result of `width()` or
 `rad()`, not for an infinite number the program computed: `midpoint()` and
 `mid()` of `[DBL_MAX]`, which overflowed the sum of the bounds, raise none

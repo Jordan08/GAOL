@@ -1525,8 +1525,9 @@ Linux) instead of letting the operation give its bounds.\newinvfive
   sum $2^{-1060}+0$, flushed to zero, raises the underflow exception
   (\code{FE\_UNDERFLOW}) too, before the check clears the mode. With the NEON
   intervals the check is a read of FPCR (\pxref{sec:neon}), which raises no
-  flag: \code{+}, \code{-}, \code{*}, \code{/}, \code{sqr()} and \code{sqrt()}
-  raise the inexact one only when a bound they compute is rounded.\newinvfive
+  flag: \code{+}, \code{-}, \code{/} and \code{sqrt()} raise the inexact one
+  only when a bound they compute is rounded, \code{*} and \code{sqr()} also when
+  a corner product that is not a bound of the result is.\newinvfive
 \item An empty operand raises no invalid-operation exception, though the
   bounds of the empty interval are NaN: every operation, relation, function
   and output of \code{gaol::interval} and of \code{gaol\_ieee1788} takes it
@@ -1626,8 +1627,8 @@ The flags tell nothing of the results: after most operations of GAOL,
 \code{fetestexcept(FE\_INEXACT)} is raised whatever the result (not after
 \code{-x}, \code{abs()}, \code{\&}, \code{|}, \code{floor()}, \code{max()} or
 \code{min()}, which round nothing and check no rounding direction, nor after
-\code{+}, \code{-}, \code{*}, \code{/}, \code{sqr()} and \code{sqrt()} with the
-NEON intervals when their bounds are exact), and
+\code{+}, \code{-}, \code{/} and \code{sqrt()} with the NEON intervals when
+their bounds are exact), and
 \code{FE\_OVERFLOW} or \code{FE\_DIVBYZERO} stands for an infinite bound of the
 interval, or an infinite result of \code{width()} or \code{rad()}, not for an
 infinite number the program computed: \code{midpoint()} and \code{mid()} of

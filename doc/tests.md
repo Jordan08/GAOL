@@ -58,9 +58,12 @@ point Q), which `numbers` checks there too.
   set to each of the four directions before each operation (GAOL v5, the
   NEON intervals). Inexact operations on literals the compiler sees
   (`[0.1] + [0.2]`, `[1] / [3]`, `sqrt([2])`, the forms with a double) have to
-  be the tightest enclosures: a compiler that folded the vectors of the
-  library at compile time in the rounding to nearest would fail them (a program
-  compiled with `-flto` and without `-frounding-math`). Ten lines of 8 to 16
+  be the tightest enclosures, whatever the rounding direction of the calling
+  code: an operation computing in the rounding to nearest fails them, and so
+  would a compiler that folded the vectors of the library at compile time, which
+  none does with the `-frounding-math` that `gaol::gaol` gives (only a program
+  and a library both compiled with `-flto` and without it, a configuration
+  GAOL does not support). Ten lines of 8 to 16
   operations, among them lines with operands used twice and with `r -= r`,
   `r *= r` and `r %= ...`, have to have the bounds of the reference evaluating
   them one operation after the other, on random intervals and on those of the

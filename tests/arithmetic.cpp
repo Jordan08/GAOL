@@ -1141,7 +1141,12 @@ namespace
     an interval folded to one double is not the tightest enclosure of its
     result (the exact value is no double: 0.1 + 0.2, 1 - 0.1, 0.1*0.3, 1/3,
     0.1^2 and the root of 2), and has to be the tightest, whatever the
-    direction of the calling code.
+    direction of the calling code. What these checks catch: an operation that
+    computes in the rounding to nearest, and a folding at compile time, which
+    only happens in a build GAOL refuses to support, a program and a library
+    both without -frounding-math (compiled with -flto): with it, which
+    gaol::gaol gives to the code using GAOL, the compilers do not fold these
+    operations, and the checks cannot fail for this reason.
   */
   interval literal_sum() { return interval(0.1) + interval(0.2); }
   interval literal_difference() { return interval(1.0) - interval(0.1); }

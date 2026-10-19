@@ -114,7 +114,7 @@ below).
 
 All 16 examples compile without a warning (`-Wall -Wextra`, GCC 9.4 and
 Clang 18) and pass their checks with the four builds of GAOL tried: SSE2 (the
-default on x86), FPU (`GAOL_SIMD=OFF` and `GAOL_ARM64=OFF`, the code of 32-bit ARM and Visual C++),
+default on x86), FPU (`GAOL_SIMD=OFF`, the code of ARM and Visual C++; on 64-bit ARM, where GAOL v5 now computes the intervals with NEON by default, the FPU code also needs `GAOL_ARM64=OFF`),
 `GAOL_PRESERVE_ROUNDING=ON`, and the library compiled by Clang 18. Each runs in
 less than 0.3 s with the default build (06 takes 1.3 s with
 `GAOL_PRESERVE_ROUNDING`). Their outputs are the same on every build, apart from the
@@ -1012,7 +1012,7 @@ The review started from the repository alone (`README.md`, `doc/`,
 `manual/v5/`, the headers and sources of `gaol/`, `tests/`), with GAOL v5 at
 `605728e` (branch `MATH-CORE`) built with CMake in Release and installed in a
 scratch prefix; its 13 tests passed. Variants were built the same way: the FPU
-code (`GAOL_SIMD=OFF` and `GAOL_ARM64=OFF`), `GAOL_PRESERVE_ROUNDING=ON`, and the library compiled
+code (`GAOL_SIMD=OFF`), `GAOL_PRESERVE_ROUNDING=ON`, and the library compiled
 by Clang 18; the autotools and meson builds were run to check the example of
 GAOL 4.
 
