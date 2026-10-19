@@ -6,7 +6,7 @@ GAOL can be configured with CMake, autotools (`configure`) and meson. On a
 given machine with a given compiler, the three have to give GAOL the same
 configuration: the same macros in `gaol/gaol_configuration.h`, and the same
 compilation flags that bear on the results or on the speed (rounding, contraction,
-fast-math, x87 or SSE2 doubles, SSE2 intervals, optimization, C++ standard).
+fast-math, x87 or SSE2 doubles, SSE2 or NEON intervals, optimization, C++ standard).
 
 `audit.sh` configures the three builds, and `probe_build.py` preprocesses
 `make_probe.py`'s program with the flags each build gives

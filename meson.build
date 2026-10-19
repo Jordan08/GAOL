@@ -96,6 +96,7 @@ msvc = cpp_comp.get_argument_syntax() == 'msvc'
 
 # Options
 simd = get_option('enable-simd')
+arm64 = get_option('enable-arm64')
 preserve_rounding = get_option('enable-preserve-rounding')
 # enable-prefer-avx512: auto (the default), true or false (see below)
 prefer_avx512_option = get_option('enable-prefer-avx512')
@@ -322,6 +323,42 @@ if target_x86
       add_project_arguments(['-msse3'], language: 'cpp')
       pc_cflags += ['-msse3']
     endif
+  endif
+endif
+
+# enable-arm64 (GAOL v5): on 64-bit ARM processors, the intervals are computed
+# with NEON instructions (gaol_interval_neon.h), as CMakeLists.txt and configure
+# do (see CMakeLists.txt), independently of enable-simd. Where the test below
+# compiles, whatever the processor of the machine building: GCC, Clang and
+# AppleClang for AArch64 under Linux and macOS, with the intrinsics of
+# <arm_neon.h> and the registers of the rounding mode. NEON needs no flag. Not
+# for Visual C++ and clang-cl, nor for a target of Windows (MinGW-w64 and MSYS2
+# define __aarch64__ too), nor for 32-bit ARM or x86: the option is then
+# ignored, and the intervals are computed with the FPU. The refusals above
+# (Clang 14, Clang on 32-bit ARM) come first. The program is the same as that of
+# CMakeLists.txt and configure; the flags of interval arithmetic are given to
+# it, as the checks of the compiler do not get add_project_arguments().
+use_neon = false
+if arm64 and not msvc
+  use_neon = cpp_comp.compiles('''
+#if !defined(__aarch64__)
+#error GAOL computes its intervals with NEON on 64-bit ARM processors only
+#endif
+#if defined(_WIN32)
+#error not for Windows
+#endif
+#include <arm_neon.h>
+int main()
+{
+  unsigned long long fpcr;
+  __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));
+  __asm__ __volatile__ ("msr fpcr, %0" : : "r" (fpcr) : "memory");
+  const float64x2_t x = vaddq_f64(vdupq_n_f64(1.0), vdupq_n_f64(2.0));
+  return static_cast<int>(vgetq_lane_f64(x, 0)) - 3;
+}
+''', args: pc_cflags, name: 'the compiler takes the NEON intrinsics and the registers of the rounding mode for a 64-bit ARM target')
+  if use_neon
+    conf_data.set('GAOL_USING_NEON_INSTRUCTIONS', 1)
   endif
 endif
 
@@ -586,6 +623,7 @@ summary({
   'Preserve rounding': preserve_rounding,
   'AVX-512 path taken': avx512_taken,
   'SSE2 intervals': use_sse2,
+  'NEON intervals': use_neon,
   'Fused multiply-add': ' '.join(fma_args),
   'Unit tests': build_tests,
   'Examples': build_examples,

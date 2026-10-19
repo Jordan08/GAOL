@@ -122,6 +122,8 @@ namespace gaol_core {
 #endif
 #if GAOL_USING_SSE2_INSTRUCTIONS
 #  include "gaol/gaol_interval_sse.cpp"
+#elif GAOL_USING_NEON_INSTRUCTIONS
+#  include "gaol/gaol_interval_neon.cpp"
 #else
 #  include "gaol/gaol_interval_fpu.cpp"
 #endif // GAOL_USING_SSE2_INSTRUCTIONS
