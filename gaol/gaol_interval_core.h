@@ -415,7 +415,7 @@ namespace gaol_core {
     template <class T, gaol_detail::if_integer<T> = 0>
     interval& operator=(T n) { return *this = interval(n); }
 #if GAOL_USING_SSE2_INSTRUCTIONS
-    interval(const __m128d& xmm);
+    explicit interval(const __m128d& xmm);
 #elif GAOL_USING_NEON_INSTRUCTIONS
     /*
       The interval whose stored bounds are the two lanes of v, the left bound
