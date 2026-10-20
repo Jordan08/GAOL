@@ -354,7 +354,8 @@ point Q), which `numbers` checks there too.
   to be the tightest enclosures of the exact result, computed from the four
   corners of random operands, in a loop changing the rounding direction before
   each, and, on 64-bit ARM, right after the program wrote FPCR itself (no
-  `isb` between), in the four directions in turn, 2^16 times per form. The
+  `isb` between), and on 32-bit ARM with a floating-point unit, FPSCR (`vmsr`),
+  in the four directions in turn, 2^16 times per form. The
   sums, differences, squares, square roots and operations with a double, on
   the intervals with bounds in {-oo, -4, -0, 0, 4, +oo}, on the empty set, and
   with an infinite or NaN double, have to give the expected bounds and raise

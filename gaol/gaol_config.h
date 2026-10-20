@@ -317,6 +317,28 @@
 #else
 #  define GAOL_VECTOR_INTERVALS 0
 #endif
+/* The rounding direction and the modes that flush the subnormals to zero of
+   the FPU intervals of 32-bit ARM processors are read and written directly in
+   FPSCR, with vmrs and vmsr, where the NEON intervals do so in FPCR on 64-bit
+   ARM processors (GAOL v5): with GCC (the only compiler GAOL takes there) and
+   a floating-point unit of doubles. -DGAOL_RND_FPSCR_DIRECT=0 gives the
+   functions of the C library back (fegetround() and fesetround(), and the
+   addition that shows the direction). Always defined, to 0 or 1 */
+#ifndef GAOL_RND_FPSCR_DIRECT
+#  if defined(__arm__) && !defined(__aarch64__) && defined(__GNUC__) && !defined(__clang__) \
+      && defined(__ARM_FP) && (__ARM_FP & 8)
+#    define GAOL_RND_FPSCR_DIRECT 1
+#  else
+#    define GAOL_RND_FPSCR_DIRECT 0
+#  endif
+#endif
+/* 1 when the control register is read and written directly: FPCR with the NEON
+   intervals, FPSCR with GAOL_RND_FPSCR_DIRECT (GAOL v5) */
+#if GAOL_USING_NEON_INSTRUCTIONS || GAOL_RND_FPSCR_DIRECT
+#  define GAOL_RND_DIRECT 1
+#else
+#  define GAOL_RND_DIRECT 0
+#endif
 /* mingw-w64 whose fma() or round() is wrong. Those of its own math library
    (math/fma.c and math/round.c, the same code from version 9 to 13) are, on
    x86-64:

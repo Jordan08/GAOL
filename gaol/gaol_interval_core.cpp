@@ -5683,7 +5683,10 @@ interval nth_root(const interval& I, int q)
       c = midpoint();
     } else {
       GAOL_RND_ENTER();
-      c = l*(1.0 - ratio) + r*ratio;
+      // l, r and ratio are registers: they go through rnd_reread() after the check,
+      // or GCC computes c before it writes the control register, in the
+      // program's direction (GAOL v5)
+      c = rnd_reread(l)*(1.0 - rnd_reread(ratio)) + rnd_reread(r)*rnd_reread(ratio);
       GAOL_RND_KEEP(c);
       GAOL_RND_LEAVE();
       if (c < l) {
