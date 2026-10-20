@@ -23,15 +23,16 @@ MACROS = ('GAOL_AARCH64_LINUX', 'GAOL_ARM_MACOSX', 'GAOL_IX86_LINUX', 'GAOL_IX86
           'GAOL_HAVE_VISIBILITY_OPTIONS',
           'GAOL_USING_SSE2_INSTRUCTIONS', 'GAOL_USING_SSE3_INSTRUCTIONS', 'GAOL_USING_NEON_INSTRUCTIONS', 'GAOL_WORDS_BIGENDIAN', 'GAOL_RND_PROBE',
           'GAOL_HAVE_AVX512_TARGET', 'GAOL_PREFER_AVX512', 'GAOL_AVX512_ARITHMETIC',
-          'NDEBUG', '_GLIBCXX_ASSERTIONS', '__FAST_MATH__', '__FINITE_MATH_ONLY__', '__OPTIMIZE__', '__SSE2_MATH__', '__STRICT_ANSI__')
+          'NDEBUG', '_GLIBCXX_ASSERTIONS', '__FAST_MATH__', '__FINITE_MATH_ONLY__', '__OPTIMIZE__', '__SSE2_MATH__', '__STRICT_ANSI__',
+          '__cpp_aligned_new')
 # The macros compared by value
-VALUES = ('GAOL_SIZEOF_INT', 'GAOL_SIZEOF_LONG_LONG_INT', 'FLT_EVAL_METHOD', '__cplusplus',
+VALUES = ('GAOL_SIZEOF_INT', 'GAOL_SIZEOF_LONG_LONG_INT', 'FLT_EVAL_METHOD', '__cplusplus', '__STDCPP_DEFAULT_NEW_ALIGNMENT__',
           'GAOL_MAJOR_VERSION', 'GAOL_MINOR_VERSION', 'GAOL_MICRO_VERSION', 'GAOL_VERSION')
 # The flags compared by presence
 FLAGS = ('-frounding-math', '-ffp-contract=off', '-fno-fast-math', '-ffloat-store', '-mfpmath=sse', '-msse2',
          '-msse3', '-fvisibility=hidden', '-fvisibility-inlines-hidden', '-funroll-loops',
          '-fomit-frame-pointer', '-fexpensive-optimizations', '-Wall', '-Wconversion', '-mfma', '/arch:AVX2',
-         '-mfpu=neon-vfpv4', '-mfloat-abi=hard')
+         '-mfpu=neon-vfpv4', '-mfloat-abi=hard', '-faligned-new=8')
 
 
 def truth(entry, name):

@@ -10,8 +10,9 @@
 # compiled into libgaol itself. The flags of the tests are those of
 # TEST_FLAGS, with which the code using GAOL is compiled (see CMakeLists.txt);
 # on a 32-bit x86 processor, -msse2 -mfpmath=sse too, without which
-# gaol/gaol_config.h refuses to compile; and -Wno-psabi where the compiler
-# takes it, as tests/CMakeLists.txt gives it.
+# gaol/gaol_config.h refuses to compile, and on 32-bit Windows -faligned-new=8
+# too, which the SSE2 intervals need there and gaol/gaol_config.h checks; and
+# -Wno-psabi where the compiler takes it, as tests/CMakeLists.txt gives it.
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -21,6 +22,7 @@ prefix=$1
 linking=$2
 flags="${TEST_FLAGS:--std=c++17 -O2 -frounding-math -fno-fast-math -ffp-contract=off}"
 case "$(${CXX:-c++} -dumpmachine 2>/dev/null)" in
+  i?86-*mingw*|i?86-*windows*) flags="$flags -msse2 -mfpmath=sse -faligned-new=8" ;;
   i?86-*) flags="$flags -msse2 -mfpmath=sse" ;;
 esac
 # -Wno-psabi where the compiler takes it, as tests/CMakeLists.txt gives it,

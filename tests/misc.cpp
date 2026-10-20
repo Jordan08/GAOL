@@ -5,11 +5,19 @@
 #include "gaol/parser/gaol_expr_eval.h"
 #include "unit_tests.h"
 
+#include <cstddef>
+#include <cstdint>
+#include <deque>
 #include <istream>
+#include <list>
+#include <map>
+#include <memory>
+#include <new>
 #include <ostream>
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 // A namespace detail of the program's own, with using namespace gaol (in
 // unit_tests.h): GAOL's helpers were in gaol_core::detail, which the namespace
@@ -394,6 +402,18 @@ namespace gaol_names_adl
   }
 }
 
+// A type of the alignment of an interval, 16 bytes with the SSE2 and NEON
+// intervals, that holds no vector: see test_heap_alignment(). Its constructor
+// writes one byte, which the compiler cannot widen into a store of 16 bytes
+// (movaps) that would stop the program on a misaligned address before the test
+// looks at it
+namespace {
+  struct alignas(alignof(gaol_core::interval)) as_aligned_as_an_interval {
+    as_aligned_as_an_interval() : c(0) {}
+    volatile char c;
+  };
+}
+
 class misc_test {
 public:
   void setUp() {
@@ -424,6 +444,65 @@ public:
     interval y;
     TEST_TRUE(gaol::evaluate_expr(gaol::exp2(gaol::expression(interval(3.0))), y) && y.set_eq(interval(8.0)));
     TEST_TRUE(gaol_names_adl::same_as_gaol_core(interval(0.5, 2.0)));
+  }
+
+  // The memory the heap gives holds the intervals aligned on alignof(interval)
+  // bytes, 16 with the SSE2 and NEON intervals, whose vector instructions
+  // stop on a misaligned address (GAOL v5). On 32-bit Windows the C runtime
+  // aligns the memory of new on 8 bytes: only a compiler told so asks for
+  // aligned memory for the types that need it (-faligned-new=8, C++17; see
+  // gaol/gaol_config.h), and GCC taking it to be aligned on 16 made a
+  // std::vector of SSE2 intervals stop the program. A type as aligned as an
+  // interval, with no vector instruction to stop on a misaligned address, stands
+  // for the interval, so that the test fails where the program used to stop.
+  void test_heap_alignment() {
+    typedef as_aligned_as_an_interval probe;
+    const std::uintptr_t alignment = alignof(interval);
+    bool aligned = true;
+    const auto check = [&](const void* address) {
+      aligned = aligned && reinterpret_cast<std::uintptr_t>(address) % alignment == 0;
+    };
+
+    std::allocator<probe> allocator;
+    probe* storage = allocator.allocate(3);
+    check(storage);
+    allocator.deallocate(storage, 3);
+
+    std::vector<probe> vector(3);
+    for (std::size_t i = 0; i < vector.size(); ++i) { check(&vector[i]); }
+    std::list<probe> list(3);
+    for (std::list<probe>::const_iterator i = list.begin(); i != list.end(); ++i) { check(&*i); }
+    std::deque<probe> deque(3);
+    for (std::size_t i = 0; i < deque.size(); ++i) { check(&deque[i]); }
+    std::map<int, probe> map;
+    map[0]; map[1];
+    for (std::map<int, probe>::const_iterator i = map.begin(); i != map.end(); ++i) { check(&i->second); }
+    const std::shared_ptr<probe> shared = std::make_shared<probe>();
+    check(shared.get());
+
+    probe* one = new probe;
+    check(one);
+    delete one;
+    probe* several = new probe[3];
+    for (int i = 0; i < 3; ++i) { check(several + i); }
+    delete[] several;
+
+    TEST_TRUE(aligned);
+    if (!aligned) {
+      return; // the intervals below would stop the program
+    }
+    // The intervals themselves, in the same containers and with new, which
+    // GAOL's own operator new aligns whatever the compiler assumes
+    std::vector<interval> intervals(3, interval(1.0, 2.0));
+    interval sum(0.0);
+    for (std::size_t i = 0; i < intervals.size(); ++i) {
+      sum += intervals[i];
+    }
+    TEST_SEQ(sum, interval(3.0, 6.0));
+    interval* heap = new interval(1.0, 2.0);
+    TEST_TRUE(reinterpret_cast<std::uintptr_t>(heap) % alignment == 0);
+    TEST_SEQ(*heap + *heap, interval(2.0, 4.0));
+    delete heap;
   }
 
   // Tests of logical predicates ===================================================================
@@ -464,4 +543,5 @@ GAOL_UNIT_MAIN(misc_test, "misc",
                GAOL_UNIT_TEST(test_constants),
                GAOL_UNIT_TEST(test_predicates),
                GAOL_UNIT_TEST(test_namespace_detail_of_the_program),
-               GAOL_UNIT_TEST(test_names_of_gaol))
+               GAOL_UNIT_TEST(test_names_of_gaol),
+               GAOL_UNIT_TEST(test_heap_alignment))
