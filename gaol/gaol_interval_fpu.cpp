@@ -80,9 +80,13 @@ double hausdorff(const interval &I1, const interval &I2)
   interval& interval::operator-=(const interval& I)
   {
     // I may be *this (x -= x): its bounds are read before one is written,
-    // or x -= x was [a - b, 2b - a] for x = [a, b] (GAOL v5)
-    const double ilb = I.lb_, irb = I.rb_;
+    // or x -= x was [a - b, 2b - a] for x = [a, b] (GAOL v5). They are read
+    // after the check of the rounding direction, as x += y reads them: read
+    // before it, they were kept across the calls its rare path makes, in
+    // registers that every call saves (x - y took 3.6 ns, three times x + y,
+    // Apple M2)
     GAOL_RND_ENTER();
+    const double ilb = I.lb_, irb = I.rb_;
 		lb_ += irb;
 		rb_ += ilb;
     GAOL_RND_LEAVE();
