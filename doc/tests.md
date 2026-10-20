@@ -905,14 +905,18 @@ point Q), which `numbers` checks there too.
   NUL as `\0`, where it stopped at it (GAOL v5). Without exceptions, the
   strings that are wrong have to make `parse_interval()` return false, a
   wrong call and an uncertain number as a bound included, which ended the
-  program inside the reader (GAOL v5, #98). Every allocation of a reading has to
-  be able to fail, each in turn: the reading has to throw `std::bad_alloc`, or
-  give the interval where it did without the allocation, and to free all it
-  allocated, over strings with a call, the literals, a number of 20000 digits,
-  longer than the buffer of flex, 300 nested parentheses, beyond the stack of
-  the parser kept in the stack of the program, and 300 minus signs, and so do
-  the evaluation and the deletion of a chain of 300 sums. flex ended the program
-  with `exit(2)` where it could not allocate its buffer, the `std::bad_alloc` of
+  program inside the reader (GAOL v5, #98). A null pointer has to be refused
+  the same way, with the names of GAOL and with those of the standard, with
+  no exception and the interval unchanged: `parse_interval()` took its length
+  with `std::strlen()` and died of a segmentation fault (GAOL v5). Every
+  allocation of a reading has to be able to fail, each in turn: the reading
+  has to throw `std::bad_alloc`, or give the interval where it did without the
+  allocation, and to free all it allocated, over strings with a call, the
+  literals, a number of 20000 digits, longer than the buffer of flex, 300
+  nested parentheses, beyond the stack of the parser kept in the stack of the
+  program, and 300 minus signs, and so do the evaluation and the deletion of a
+  chain of 300 sums. flex ended the program with `exit(2)` where it could not
+  allocate its buffer, the `std::bad_alloc` of
   the lexer or of an action went through the parser and left the nodes on its
   stack, a stack of the parser that could not grow gave `input_format_error`,
   and `gaol_ieee1788::textToInterval` gave the empty set (GAOL v5). The test
