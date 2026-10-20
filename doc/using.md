@@ -28,7 +28,12 @@ itself. With GCC and Clang, each where the compiler takes it:
 - `-mfma` on x86, and `-mfpu=neon-vfpv4 -mfloat-abi=hard` on 32-bit ARM, where
   GAOL is compiled with the fused multiply-add instructions of the processor
   (`GAOL_FMA`, see [Building GAOL](building.md)): the code using GAOL runs only
-  on a processor with them, as GAOL, and is compiled for it.
+  on a processor with them, as GAOL, and is compiled for it. With GCC for
+  Windows on x86-64 (GAOL v5), `-mfma -mprefer-vector-width=128`: the second
+  keeps GCC from writing 256-bit instructions, whose registers it would spill to
+  a stack that Windows aligns on 16 bytes, not 32 (GCC bug 54412; see [The
+  three builds](three-builds.md#gcc-for-windows)). A program that writes 256-bit
+  intrinsics itself is exposed to that defect, as with `-mavx`.
 
 With Visual C++ and clang-cl, `/fp:strict`, `/arch:AVX2` for x64 with
 `GAOL_FMA`, and `-msse2` with clang-cl for 32-bit x86, which computes doubles

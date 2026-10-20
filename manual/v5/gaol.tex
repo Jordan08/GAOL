@@ -500,14 +500,21 @@ The options are given to the first command, as \option{-D\var{option}=\var{value
 \item \option{GAOL\_FMA}. \code{ON} by default: GAOL and CORE-MATH are compiled
   with the fused multiply-add instructions of the processor, where the compiler
   has a flag for them and the machine building runs a program compiled with it:
-  \option{-mfma} on x86 (not with GCC for Windows), \option{/arch:AVX2} with
+  \option{-mfma} on x86 (\option{-mfma -mprefer-vector-width=128} with GCC for
+  Windows on x86-64, none on 32-bit x86), \option{/arch:AVX2} with
   Visual C++ for x64, \option{-mfpu=neon-vfpv4 -mfloat-abi=hard} on 32-bit ARM;
   64-bit ARM, POWER, s390x and RISC-V have them without a flag. The library then
   needs a processor with them (on x86, Intel Haswell and AMD Piledriver,
   2012--2013, and later), and the code using GAOL is given the flag too;
   \code{OFF} builds GAOL for any processor of the architecture. The elementary
   functions are much faster with them: \code{cos} 2.5 times, \code{log} 1.6
-  times, \code{sin} 1.3 times (Intel i7-1185G7, Clang~21.1);
+  times, \code{sin} 1.3 times (Intel i7-1185G7, Clang~21.1), and with GCC~16.2
+  for Windows \code{cos} 4.7 times, \code{log} 3.2 times and \code{sin} 2.0
+  times (GitHub runner, MSYS2 UCRT64). GCC for Windows does not align its stack
+  on 32 bytes for the 256-bit registers that \option{-mfma} alone would have it
+  use (GCC bug 54412): \option{-mprefer-vector-width=128} keeps it to the
+  128-bit ones, and the objects of GAOL built so by GCC~16.2 have no
+  instruction on a 256-bit register;\newinvfive
 \cindex{fused multiply-add}%
 \item \option{GAOL\_VERBOSE\_MODE}. \code{OFF} by default: writes a line on the
   standard error when GAOL initializes and cleans up;
@@ -926,7 +933,12 @@ takes it:
 \item \option{-mfma} on x86, and \option{-mfpu=neon-vfpv4 -mfloat-abi=hard} on
   32-bit ARM, where GAOL is compiled with the fused multiply-add instructions of
   the processor (\option{GAOL\_FMA}): the code using GAOL then runs only on a
-  processor with them, as GAOL itself.
+  processor with them, as GAOL itself. With GCC for Windows on x86-64 the flags
+  are \option{-mfma -mprefer-vector-width=128}, the second keeping GCC from
+  writing 256-bit instructions whose registers it would spill to a stack that
+  Windows aligns on 16 bytes, not 32 (GCC bug 54412); a program that writes
+  256-bit intrinsics itself is exposed to that defect, as with
+  \option{-mavx}.\newinvfive
 \end{itemize}
 
 \noindent

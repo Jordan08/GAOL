@@ -49,9 +49,10 @@ build, and the CMake build follows them, apart from the errors corrected (see
   is for x86 processors (GAOL v5);
 - GAOL and CORE-MATH are compiled with the fused multiply-add
   instructions of the processor, where the compiler has a flag for them
-  (`GAOL_FMA`, `--enable-fma`, `-Denable-fma`): `-mfma` on x86, except with GCC
-  for Windows, which does not align the stack for the AVX that `-mfma` turns
-  on; `/arch:AVX2` with Visual C++ for x64, not for 32-bit x86, where it broke
+  (`GAOL_FMA`, `--enable-fma`, `-Denable-fma`): `-mfma` on x86; with GCC for
+  Windows on x86-64, `-mfma -mprefer-vector-width=128` (GAOL v5), and nothing
+  on 32-bit x86 (see [GCC for Windows](#gcc-for-windows) below);
+  `/arch:AVX2` with Visual C++ for x64, not for 32-bit x86, where it broke
   the rounding direction; `-mfpu=neon-vfpv4 -mfloat-abi=hard` on 32-bit ARM;
   and only where the machine building runs a program so compiled, but when
   cross-compiling: under Rosetta on macOS 14, which has no AVX, the x86_64
@@ -74,7 +75,8 @@ build, and the CMake build follows them, apart from the errors corrected (see
   the library then needs a processor with them, which `gaol::init()`
   checks, and the operations test nothing as they run; never with GCC for
   Windows (MinGW-w64, Cygwin), which does not align the stack for the
-  AVX-512 registers, as it does not for those of `-mfma`. No flag to compile,
+  AVX-512 registers, nor for the 256-bit ones of AVX that `-mfma` alone would
+  have it use (see [GCC for Windows](#gcc-for-windows) below). No flag to compile,
   the path's functions alone carry the target attribute, which Visual C++
   has not and needs not, taking the intrinsics of any instruction set in any
   function. Visual C++ has no `__builtin_cpu_supports()`, and the one of
@@ -170,6 +172,43 @@ On a 64-bit ARM processor, measured the same way on an Apple M2 with AppleClang
   computes to nearest writes it twice, which is the 27 ns above (39 ns with the
   FPU intervals, which called `fegetround()` and `fesetround()`); a program that
   already computes upward writes nothing.
+
+### GCC for Windows
+
+With GCC for Windows (MinGW-w64, MSYS2) on x86-64, `GAOL_FMA` gives `-mfma
+-mprefer-vector-width=128` (GAOL v5). It gave nothing before, because of GCC
+bug 54412: `-mfma` turns AVX on, the vectorizer of GCC then writes 256-bit
+registers (`%ymm`), and GCC takes the stack to be aligned on 32 bytes for
+those it spills there, where the ABI of Windows x64 aligns it on 16, so that an
+aligned `vmovaps` to such a slot faults (as it did in the MinGW builds of
+Codac). Without `-mfma`, CORE-MATH called a software `fma()` and the integer
+powers computed no pairs of products.
+`-mprefer-vector-width=128` (a GCC option from GCC 8) keeps the vectorizer to
+the 128-bit registers. `objdump -d --no-show-raw-insn` found no line with
+`%ymm` in the objects of GAOL, CORE-MATH and the tests built so by GCC 16.2
+(MSYS2 UCRT64), against 30,598 lines with `-mfma` alone, and none without a
+flag; the whole suite of tests passed with the three. That is a count of
+instructions, and no proof that the defect cannot occur: the continuous
+integration makes the count again on the objects it builds, and the check of
+the fused multiply-add instructions with it (`.github/scripts/check-gcc-windows-fma.sh`,
+in `windows.yml`). A GCC without the option, and 32-bit x86, which was not
+measured, get no flag. The code using GAOL is given the two flags (`gaol::gaol`,
+`gaol.pc`); the 256-bit intrinsics it writes itself would stay exposed to the
+defect, as with `-mavx`.
+
+Measured with `tests/performance.cpp` on the Windows Server 2022 runner of
+GitHub, MSYS2 UCRT64 with GCC 16.2, in nanoseconds per operation, the median of
+three runs of each variant, alternated in one job (the runs of a variant
+differ by 1.00 to 1.16 times):
+
+| | x × y | x ÷ y | pow(x, 3) | exp(x) | log(x) | sin(x) | cos(x) | floor(x) |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| No flag (`-DGAOL_FMA=OFF`, what GCC for Windows had) | 3.92 | 5.04 | 52.31 | 46.44 | 106.43 | 93.46 | 260.50 | 4.24 |
+| `-mfma -mprefer-vector-width=128` (default) | 3.69 | 4.72 | 8.68 | 32.58 | 33.63 | 46.61 | 55.44 | 2.19 |
+
+`-mfma` alone gave the same times. The lines of 15 additions and of 7 products
+did not change (within 1 %). The elementary functions and `pow(x, 3)` gain
+the most, as with Clang above.
 
 ### Interprocedural optimization is not offered
 

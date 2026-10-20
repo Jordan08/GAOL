@@ -61,6 +61,13 @@ request (GAOL v5); `workflow_dispatch` runs them on any branch. The badges of
     `-faligned-new=8` on x86, which a step checks; GAOL v5), 14 on x86 and x64, 12 and
     13 on x86;
   - MSYS2 UCRT64 (GCC) and CLANG64 (Clang).
+  - With GCC on x64, in Release, MinGW-w64 15 and 14 and MSYS2 UCRT64, a step
+    reads the objects with `objdump` (`.github/scripts/check-gcc-windows-fma.sh`,
+    GAOL v5): `gaol_interval_core.cpp` and the `cos` of CORE-MATH have to hold
+    fused multiply-add instructions (`GAOL_FMA` gives these compilers `-mfma
+    -mprefer-vector-width=128`), and no object, the tests' included, an
+    instruction on a `%ymm` or `%zmm` register, which GCC would spill to a stack
+    Windows aligns on 16 bytes (GCC bug 54412).
 
 They also build GAOL with autotools and meson on Ubuntu (x86_64, arm64),
 Debian (i386, armhf), macOS (arm64, x86_64) and MSYS2, and with meson and
