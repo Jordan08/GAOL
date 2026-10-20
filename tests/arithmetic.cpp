@@ -1514,6 +1514,34 @@ namespace
     check("sqr(empty): empty", sqr(interval::emptyset()).is_empty(), [] { return std::string(); });
   }
 
+  /*
+    The sign of a zero bound, for the cases that doc/accuracy.md and
+    doc/using.md state (GAOL v5): every other check of this file compares the
+    bounds with ==, which does not see it, so that the choice of a tie between
+    a +0 and a -0 in the maximum of the products was no test's. The lower bound
+    of [-1, 0]*[-1, 0] is +0 with the SSE2 and the FPU intervals, whose
+    maximum returns its second operand when both compare equal, and -0 with the
+    NEON ones, whose maximum ranks +0 above -0; the lower bound of
+    sqr([-1, 2]) is +0 with the FPU intervals, which set it to 0, and -0 with
+    the others; the upper bound of [0, 1]/[-2, -1] is -0 with all of them, the
+    lower bound 0 of the dividend, which is stored as -0, divided by a positive
+    number. The SSE2 expectations are those the documentation gives (the
+    first two) and those of a model of the kernel (the third)
+  */
+  void signs_of_zero_bounds()
+  {
+    const bool neon = GAOL_USING_NEON_INSTRUCTIONS != 0;
+    const bool fpu = GAOL_USING_NEON_INSTRUCTIONS == 0 && GAOL_USING_SSE2_INSTRUCTIONS == 0;
+    const interval product = interval(-1., 0.) * interval(-1., 0.);
+    check("the lower bound of [-1, 0]*[-1, 0] is +0, but -0 with the NEON intervals", std::signbit(product.left()) == neon,
+          [&] { return hex(product); });
+    const interval square = sqr(interval(-1., 2.));
+    check("the lower bound of sqr([-1, 2]) is +0 with the FPU intervals, -0 with the others", std::signbit(square.left()) == !fpu,
+          [&] { return hex(square); });
+    const interval quotient = interval(0., 1.) / interval(-2., -1.);
+    check("the upper bound of [0, 1]/[-2, -1] is -0", std::signbit(quotient.right()), [&] { return hex(quotient); });
+  }
+
   // Integer powers at special values: a bound 0 or infinite, a power below
   // 2^-968 or beyond the largest double, negative powers of intervals with a
   // bound 0, the corners pown_upward() computes one at a time (GAOL v5: they
@@ -2062,6 +2090,7 @@ int main()
   unsigned_powers();
   negative_powers_at_special_values();
   squares_at_special_values();
+  signs_of_zero_bounds();
   powers_at_special_values();
   powers_near_the_ends();
   exact_powers();
