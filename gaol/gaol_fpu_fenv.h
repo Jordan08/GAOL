@@ -45,7 +45,9 @@ refuses doubles computed on it, and the three builds give -msse2
 Since then:
 - get_rounding() and set_rounding() (gaol_fpu.h) read and write the rounding
 direction with fegetround() and fesetround(), and the rounding bits of MXCSR
-as well. The get_fpu_cw() and reset_fpu_cw() of GAOL 4 read and wrote the
+as well; on a 32-bit x86 processor, the rounding bits of the x87 control
+word and of MXCSR directly, with fnstcw and stmxcsr, fldcw and ldmxcsr (GAOL
+v5). The get_fpu_cw() and reset_fpu_cw() of GAOL 4 read and wrote the
 control word of the x87 unit on x86 Linux and macOS, which left the direction
 of the SSE instructions unrestored, and 16 bits of the FPCR on 64-bit ARM,
 which left out its rounding bits.
@@ -173,6 +175,35 @@ namespace gaol_core {
     __asm__ __volatile__ ("fldcw %0" : : "m" (cw) : "memory");
     _mm_setcsr((_mm_getcsr() & ~static_cast<unsigned int>(_MM_ROUND_MASK)) | sse_rc);
   }
+
+  /*
+  The control word of the x87 unit and MXCSR, read in one asm statement and
+  without a call (GAOL v5): what the checks of the rounding direction of a
+  32-bit x86 processor read (round_upward_if_needed() of gaol/gaol_fpu.h),
+  where fegetround() cost about 80 ns with Visual C++. Volatile, so that no
+  compiler reuses a read of them, as Clang 18 did with MXCSR in a loop that
+  changed the direction, nor moves it across the writes of the registers.
+  The values are the hardware ones, the rounding field of the control word
+  being its bits 11 and 10 (0x0c00) and the one of MXCSR its bits 14 and 13
+  (0x6000), and not the FE_* of <fenv.h>, which the C libraries give other
+  values (0x0400 and 0x0800 with glibc, 0x0100 and 0x0200 with the C runtime
+  of Windows).
+  */
+  GAOL_INLINE void gaol_read_x86_control(unsigned int& x87_cw, unsigned int& mxcsr)
+  {
+    unsigned short cw;
+    unsigned int csr;
+    __asm__ __volatile__ ("fnstcw %0\n\tstmxcsr %1" : "=m" (cw), "=m" (csr));
+    x87_cw = cw;
+    mxcsr = csr;
+  }
+
+  //! Writes the whole control word of the x87 unit
+  GAOL_INLINE void gaol_write_x87_control(unsigned int x87_cw)
+  {
+    const unsigned short cw = static_cast<unsigned short>(x87_cw);
+    __asm__ __volatile__ ("fldcw %0" : : "m" (cw) : "memory");
+  }
   #elif defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_X64))
   #  define GAOL_RND_X86_REGISTERS 1
   #  include <xmmintrin.h>
@@ -190,6 +221,36 @@ namespace gaol_core {
     #  endif
     _mm_setcsr((_mm_getcsr() & ~static_cast<unsigned int>(_MM_ROUND_MASK)) | sse_rc);
   }
+
+  #  if defined(_M_IX86)
+  /*
+  The control word of the x87 unit and MXCSR, read by one block of inline
+  assembly (GAOL v5; see the version of GCC and Clang above): Visual C++ for
+  x86 takes it as opaque and keeps it where the source puts it, and has no
+  intrinsic that reads the control word of the x87 unit without a call
+  (_control87(), _controlfp() and __control87_2() are calls, and fegetround()
+  of its C runtime costs about 80 ns). Not for x64, which has no inline
+  assembly and does not use the x87 unit
+  */
+  GAOL_INLINE void gaol_read_x86_control(unsigned int& x87_cw, unsigned int& mxcsr)
+  {
+    unsigned short cw;
+    unsigned int csr;
+    __asm {
+      fnstcw cw
+      stmxcsr csr
+    }
+    x87_cw = cw;
+    mxcsr = csr;
+  }
+
+  //! Writes the whole control word of the x87 unit
+  GAOL_INLINE void gaol_write_x87_control(unsigned int x87_cw)
+  {
+    unsigned short cw = static_cast<unsigned short>(x87_cw);
+    __asm fldcw cw
+  }
+  #  endif
   #else
   // 0, so that #if reads it under -Wundef (GAOL v5, point Z of TODO.md)
   #  define GAOL_RND_X86_REGISTERS 0
