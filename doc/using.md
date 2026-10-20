@@ -870,8 +870,8 @@ A build without `GAOL_EXCEPTIONS_ENABLED` (`--disable-exceptions` of
 [Building GAOL](building.md)) prints a message and aborts instead of throwing.
 The CMake build always throws. The reader of strings is the exception: an
 error it finds as it computes, a wrong call (`nth_root(8, 1.5)`, `sin(1, 2)`),
-an uncertain number as a bound or two different bounds in `<a, b>`, makes it
-fail as a syntax error does, so that `parse_interval()` returns false and
+an uncertain number as a bound, two different bounds in `<a, b>` or a bound of
+it that is no double, makes it fail as a syntax error does, so that `parse_interval()` returns false and
 `gaol_ieee1788::textToInterval()` the empty set, as IEEE 1788-2015 has it
 (12.12.7), where GAOL ended the program; `gaol::textToInterval()` and
 `operator>>` print a message and abort then, as for any string that is no
@@ -1227,6 +1227,26 @@ upward already, with the flush modes clear, pays no write. `round_upward()`,
 values of the C libraries of 64-bit ARM are these bits, which a static
 assertion checks), so that a program may use either.
 
+The FPU intervals of 32-bit ARM processors with GCC and a floating-point unit
+of doubles do the same for `round_upward()`, `round_nearest()`, `round_downward()` and
+for the direction that `GAOL_PRESERVE_ROUNDING` restores (`GAOL_RND_FPSCR_DIRECT` of `gaol/gaol_config.h`, 1 there, and
+`-DGAOL_RND_FPSCR_DIRECT=0` gives the C library back): the register is FPSCR,
+read with `vmrs` and written with `vmsr`, with the same field RMode (the `FE_*`
+values of the C libraries of 32-bit ARM are its bits, which the same assertion
+checks), and the flags of the exceptions and of the comparisons are in it too,
+so that the functions that write it from the value they read at once
+(`round_nearest()`, `round_upward()`, the end of an operation) read it again
+just before, and no flag raised since is lost. With `GAOL_PRESERVE_ROUNDING`,
+each operation reads FPSCR once at its start, writes it only if the direction
+is not upward or a flush mode is set, and writes back what it found at its end
+only if it differs. On the Debian armhf jobs of the continuous integration,
+which run on the arm64 runners of GitHub, `x + y` took 22 ns rather than 48 with
+`GAOL_PRESERVE_ROUNDING`, a line of 15 additions 317 ns rather than 706, and
+`midpoint()` 37 ns rather than 60 (GAOL v5). The check of every operation
+without it stays the addition: `vmrs` took longer than the two additions
+there, `x + y` 6.1 ns rather than 4.1 and a line of 15 additions 87 ns rather
+than 57, and the 32-bit ARM intervals keep their time.
+
 The bounds are those of the FPU intervals but for the sign of a zero bound,
 which the maximum of 64-bit ARM, ranking +0 above −0, can set otherwise than
 the SSE2 and the FPU intervals do, where the `maxpd` of x86 returns its second
@@ -1384,8 +1404,7 @@ program (with SIGFPE on Linux) instead of letting the operation give its
 bounds.
 
 - An infinite bound comes from a division by zero or from an overflow:
-  `log([0, 1])`, which is `[-oo, 0]`, raises the divide-by-zero exception, and
-  so does `1/[0, 1]`, which is `[1, +oo]`, with the SSE2 intervals;
+  `log([0, 1])`, which is `[-oo, 0]`, raises the divide-by-zero exception;
   `[1e308]*10`, which is `[DBL_MAX, +oo]`, raises the overflow exception.
 - Almost every operation raises the inexact exception: most bounds are rounded
   results, and where GAOL checks the rounding direction with an addition,

@@ -22,8 +22,9 @@
  *   200000 minus signs and 20000 sines, which have to be evaluated and deleted
  *   whatever their depth, on a stack that does not grow with it, and the
  *   nesting the reader refuses;
- * - the NUL characters of a std::string, a null pointer, and the allocations
- *   that fail.
+ * - the NUL characters of a std::string, a null pointer, the bounds of a
+ *   literal in the wrong order, the bounds of <a, b> that are no doubles, the
+ *   integer exponents beyond the ints, and the allocations that fail.
  *
  * The value is compared with the same computation written in C++, which the
  * other tests check against the exact results: here what is tested is the
@@ -555,6 +556,329 @@ namespace
               return std::string(r.label) + ": " + (read ? "read" : "refused") + (threw ? ", threw" : "") + ", " + hex(x);
             });
     }
+  }
+
+  // The text read with the names of GAOL or with those of the standard, as gaol::textToInterval() and
+  // gaol_ieee1788::textToInterval() read it: the empty set, with a failure of the check, when it throws
+  interval read_as(const char *names, const std::string& text)
+  {
+    return evaluate(std::string("textToInterval with the names of ") + names,
+                    [&] { return (names[0] == 'g') ? textToInterval(text) : gaol_ieee1788::textToInterval(text); },
+                    [&] { return text; });
+  }
+
+  /* [l, u] with l above u is the empty set (GAOL v5, point 84 of TODO.md), as
+     IEEE 1788-2015 has it (9.7.4 a and 12.12.7), and as [2, 1] was. The
+     literal was read from the lower bound of the interval of l to the upper
+     bound of the interval of u, the doubles around the numbers written, so
+     that it was not empty where those intervals meet: [9007199254740993,
+     9007199254740992] was [2^53], which does not hold 2^53 + 1,
+     [0x1.999999999999ap-4, 0.1] was [0x1.999999999999ap-4], which does not
+     hold 0.1, the double above it being the one written, and
+     [1.00000000000000001, 1] was [1]. The expected bounds are known apart
+     from the reader: a number written that is not a double is strictly
+     between the two doubles around it, and one that is a double is that
+     double. Two numbers that are not doubles and lie between the same two
+     doubles are compared exactly, as digits: [1.00000000000000002,
+     1.00000000000000001] is empty and [1.00000000000000001,
+     1.00000000000000002] is that pair of doubles, as are two spellings of the
+     same number. They are not told apart where a bound is pi and the other is
+     not, or a number far beyond the doubles (above 10^311 or below 10^-331 in
+     decimal, about 2^1026 and 2^-1081 in the other bases), or a computed
+     bound (0.1+0): the literal is then the pair, whichever is above, which
+     holds the values. */
+  void reversed_bounds()
+  {
+    // Written as literals, not as std::numeric_limits<double>::denorm_min(): GCC 12.1 to 12.3 and 13.1 to 13.2, with
+    // -frounding-math, store that value wrongly in a table of structures, over the next member (doc/using.md)
+    const double dmax = 0x1.fffffffffffffp+1023, oo = GAOL_INFINITY;
+    const double tiny = 0x1p-1074;
+    const double pi_dn = 0x1.921fb54442d18p+1, pi_up = 0x1.921fb54442d19p+1;       // the doubles around pi
+    const double tenth_dn = 0x1.9999999999999p-4, tenth_up = 0x1.999999999999ap-4;  // those around 0.1
+    const double third_dn = 0x1.3333333333333p-2, third_up = 0x1.3333333333334p-2;  // those around 0.3
+    struct Case { const char *text; bool empty; double lo, hi; };
+    const Case cases[] = {
+      // l above u, the intervals meeting: the empty set
+      { "[9007199254740993, 9007199254740992]", true, 0.0, 0.0 },
+      { "[0x1.999999999999ap-4, 0.1]", true, 0.0, 0.0 },
+      { "[1.00000000000000001, 1]", true, 0.0, 0.0 },
+      { "[-0.1, -0x1.999999999999ap-4]", true, 0.0, 0.0 },
+      { "[--0x1.999999999999ap-4, --0.1]", true, 0.0, 0.0 },
+      { "[+0x1.999999999999ap-4, +0.1]", true, 0.0, 0.0 },
+      { "[---0.1, ---0x1.999999999999ap-4]", true, 0.0, 0.0 },
+      { "[pi, 0x1.921fb54442d18p+1]", true, 0.0, 0.0 },
+      { "[0x1.921fb54442d19p+1, pi]", true, 0.0, 0.0 },
+      { "[1e400, 0x1.fffffffffffffp+1023]", true, 0.0, 0.0 },
+      { "[1e-400, 0]", true, 0.0, 0.0 },
+      { "[(0x1.999999999999ap-4), (0.1)]", true, 0.0, 0.0 },
+      { "[ 1.00000000000000001 , 1 ]", true, 0.0, 0.0 },
+      // l above u, the intervals apart, as before
+      { "[2, 1]", true, 0.0, 0.0 },
+      { "[0.2, 0.1]", true, 0.0, 0.0 },
+      // l below u: from the lower bound of the interval of l to the upper bound of that of u, as before
+      { "[9007199254740992, 9007199254740993]", false, 0x1p53, 0x1.0000000000001p53 },
+      { "[0.1, 0x1.999999999999ap-4]", false, tenth_dn, tenth_up },
+      { "[(0.1), (0x1.999999999999ap-4)]", false, tenth_dn, tenth_up },
+      { "[--0.1, --0x1.999999999999ap-4]", false, tenth_dn, tenth_up },
+      { "[1, 1.00000000000000001]", false, 1.0, 0x1.0000000000001p0 },
+      { "[-0x1.999999999999ap-4, -0.1]", false, -tenth_up, -tenth_dn },
+      { "[0x1.921fb54442d18p+1, pi]", false, pi_dn, pi_up },
+      { "[pi, 0x1.921fb54442d19p+1]", false, pi_dn, pi_up },
+      { "[0x1.fffffffffffffp+1023, 1e400]", false, dmax, oo },
+      { "[0, 1e-400]", false, 0.0, tiny },
+      { "[0.1, 0.2]", false, tenth_dn, 0x1.999999999999ap-3 },
+      // the same double: the point
+      { "[0.5, 0.5]", false, 0.5, 0.5 },
+      { "[0x1.999999999999ap-4, 0x1.999999999999ap-4]", false, tenth_up, tenth_up },
+      // two numbers that are not doubles, between the same two doubles: compared exactly
+      { "[0.30000000000000001, 0.3]", true, 0.0, 0.0 },
+      { "[0.3, 0.30000000000000001]", false, third_dn, third_up },
+      { "[-0.3, -0.30000000000000001]", true, 0.0, 0.0 },
+      { "[-0.30000000000000001, -0.3]", false, -third_up, -third_dn },
+      { "[--0.30000000000000001, --0.3]", true, 0.0, 0.0 },
+      { "[-(0.3), -(0.30000000000000001)]", true, 0.0, 0.0 },
+      { "[(0.3), (0.30000000000000001)]", false, third_dn, third_up },
+      { "[1.00000000000000002, 1.00000000000000001]", true, 0.0, 0.0 },
+      { "[1.00000000000000001, 1.00000000000000002]", false, 1.0, 0x1.0000000000001p0 },
+      // the same number written twice, or in two ways: not empty
+      { "[0.3, 0.3]", false, third_dn, third_up },
+      { "[1.00000000000000001, 100000000000000001e-17]", false, 1.0, 0x1.0000000000001p0 },
+      { "[100000000000000001e-17, 1.00000000000000001]", false, 1.0, 0x1.0000000000001p0 },
+      { "[1.00000000000000002, 100000000000000001e-17]", true, 0.0, 0.0 },
+      { "[0x1.33333333333335p-2, 0.3]", true, 0.0, 0.0 },       // 0x1.3333333333333|5, above 0.3
+      { "[0.3, 0x1.33333333333335p-2]", false, third_dn, third_up },
+      { "[0x1.33333333333335p-2, 0x1.33333333333334p-2]", true, 0.0, 0.0 },   // 5/16 and 4/16 of a unit in the last place above the double
+      { "[0x1.33333333333334p-2, 0x1.33333333333335p-2]", false, third_dn, third_up },
+      { "[0x1.33333333333335p-2, 0x1.3333333333334p-2]", false, third_dn, third_up },  // the second is the double above
+      { "[0b1.00000000000000000000000000000000000000000000000000001, 1.00000000000000001]", true, 0.0, 0.0 },        // 1 + 2^-53, above 1.00000000000000001
+      { "[1.00000000000000001, 0b1.00000000000000000000000000000000000000000000000000001]", false, 1.0, 0x1.0000000000001p0 },
+      { "[0o1.000000000000000001, 1.00000000000000001]", true, 0.0, 0.0 },        // 1 + 8^-18 = 1 + 2^-54
+      // beyond the largest double and below the least one, the numbers being not far enough to be set aside (below)
+      { "[1.8e308, 1.7976931348623159e308]", true, 0.0, 0.0 },
+      { "[1.7976931348623159e308, 1.8e308]", false, dmax, oo },
+      { "[1e-324, 1e-325]", true, 0.0, 0.0 },
+      { "[1e-325, 1e-324]", false, 0.0, tiny },
+      // not told apart: the pair, whichever is above (pi and the numbers set aside, above 10^311 and below 10^-331)
+      { "[pi, pi]", false, pi_dn, pi_up },
+      { "[pi, 3.14159265358979323846]", false, pi_dn, pi_up },
+      { "[3.14159265358979323847, pi]", false, pi_dn, pi_up },
+      { "[1e400, 1e399]", false, dmax, oo },
+      { "[1e-400, 1e-401]", false, 0.0, tiny },
+      { "[1.8e308, 1e400]", false, dmax, oo },                  // one number only is far beyond the doubles
+      { "[1e400, 1.8e308]", false, dmax, oo },
+      { "[1.8e308, 1e311]", false, dmax, oo },
+      { "[1e311, 1e310]", false, dmax, oo },
+      { "[0x1.8p1024, 0x1p1030]", false, dmax, oo },
+      { "[0x1p1030, 0x1p1029]", false, dmax, oo },              // in the other bases they are so from about 2^1026
+      { "[1e-325, 1e-400]", false, 0.0, tiny },
+      { "[1e-400, 1e-325]", false, 0.0, tiny },
+      { "[0.1+0, 0.1]", false, tenth_dn, tenth_up },
+      { "[0.1, 0.1+0]", false, tenth_dn, tenth_up },
+    };
+    for (const char *names : { "gaol", "ieee1788" }) {
+      for (const Case& c : cases) {
+        const interval got = read_as(names, c.text);
+        check("textToInterval: [l, u] is empty where l is above u, and the interval of the bounds otherwise",
+              c.empty ? got.is_empty() : (!got.is_empty() && got.left() == c.lo && got.right() == c.hi),
+              [&] { return std::string(names) + " " + c.text + " = " + hex(got); });
+      }
+    }
+    /* Two hexadecimal numbers between the same two doubles, 1.5 and the double above, 0x1.8p0 followed by two more
+       digits k t, k being the fraction of the last place of the double: the literal is empty where the digits of
+       the first, as numbers, are above those of the second, whichever the base and the signs */
+    {
+      const char *const hexa = "0123456789abcdef", *const tails = "018f";
+      for (const char *names : { "gaol", "ieee1788" }) {
+        for (int k1 = 1; k1 < 16; ++k1) {
+          for (int k2 = 1; k2 < 16; ++k2) {
+            for (const char *t1 = tails; *t1 != '\0'; ++t1) {
+              for (const char *t2 = tails; *t2 != '\0'; ++t2) {
+                const std::string da = std::string() + hexa[k1] + *t1, db = std::string() + hexa[k2] + *t2;
+                const std::string a = "0x1.8000000000000" + da, b = "0x1.8000000000000" + db;
+                const int above = da.compare(db);  // as numbers: the two digits have the same length
+                const interval got = read_as(names, "[" + a + ", " + b + "]");
+                check("textToInterval: [l, u] of two hexadecimal numbers between the same two doubles is empty where l is above u",
+                      (above > 0) ? got.is_empty() : (!got.is_empty() && got.left() == 1.5 && got.right() == 0x1.8000000000001p0),
+                      [&] { return std::string(names) + " [" + a + ", " + b + "] = " + hex(got); });
+                const interval negated = read_as(names, "[-" + b + ", -" + a + "]");
+                check("textToInterval: [-u, -l] is empty where l is above u",
+                      (above > 0) ? negated.is_empty()
+                                  : (!negated.is_empty() && negated.left() == -0x1.8000000000001p0 && negated.right() == -1.5),
+                      [&] { return std::string(names) + " [-" + b + ", -" + a + "] = " + hex(negated); });
+              }
+            }
+          }
+        }
+      }
+    }
+    // operator>> reads the same literal
+    for (const char *text : { "[9007199254740993, 9007199254740992]", "[1.00000000000000001, 1]" }) {
+      std::istringstream in(text);
+      interval x(1.0, 2.0);
+      in >> x;
+      check("operator>>: [l, u] is empty where l is above u", x.is_empty(), [&] { return std::string(text) + " = " + hex(x); });
+    }
+  }
+
+  /* The bounds of <a, b> are doubles (GAOL v5, point 84 of TODO.md): a number
+     that is not a double is refused, as is pi, where the reader took the
+     interval of the doubles around it for the bound. <0.1, 0x1.9999999999999p-4>,
+     the double just below 0.1, was the point interval [0x1.9999999999999p-4]:
+     the lower bound of the interval of 0.1 is that double. The bounds are
+     written as the doubles around 0.1, around the largest double and around 0,
+     and as numbers behind signs and parentheses. */
+  void degenerate_bounds()
+  {
+    const char *const wrong[] = {
+      "<0.1, 0x1.9999999999999p-4>",        // the double below 0.1
+      "<0x1.999999999999ap-4, 0.1>",        // the double above 0.1
+      "<-0.1, -0x1.999999999999ap-4>",
+      "<-0x1.9999999999999p-4, -0.1>",
+      "<0.1, 0.1>",
+      "<(0.1), (0x1.9999999999999p-4)>",
+      "<--0.1, 0x1.9999999999999p-4>",
+      "<pi, pi>",
+      "<pi, 0x1.921fb54442d18p+1>",
+      "<0x1.921fb54442d19p+1, pi>",
+      "<1e400, 0x1.fffffffffffffp+1023>",    // above the largest double
+      "<0x1.fffffffffffffp+1023, 1e400>",
+      "<1e-400, 0>",                         // below the least one
+      "<0, 1e-400>",
+    };
+    for (const char *text : wrong) {
+      refused(text);
+#if GAOL_EXCEPTIONS_ENABLED
+      bool format_error = false;
+      try {
+        const interval x = textToInterval(text);
+        (void)x;
+      } catch (const gaol_core::input_format_error&) {
+        format_error = true;
+      } catch (...) {
+      }
+      check("textToInterval: <a, b> with a bound that is not a double throws input_format_error", format_error,
+            [&] { return text; });
+#endif
+      check("gaol_ieee1788::textToInterval: <a, b> with a bound that is not a double is the empty set",
+            gaol_ieee1788::textToInterval(text).is_empty(), [&] { return text; });
+    }
+    same("<0.5, 0.5>", interval(0.5));
+    same("<0x1.999999999999ap-4, 0x1.999999999999ap-4>", interval(0x1.999999999999ap-4));
+    same("<(0.25+0.25), 0.5>", interval(0.5));
+    same("<-0x1.999999999999ap-4, -(0x1.999999999999ap-4)>", interval(-0x1.999999999999ap-4));
+    same("<0x1.fffffffffffffp+1023, 0x1.fffffffffffffp+1023>", interval(0x1.fffffffffffffp+1023));
+  }
+
+  /* The integer second argument of nth_root(), pown() and rootn() beyond the
+     ints (GAOL v5, point 83 of TODO.md): nth_root(8,3000000000) threw
+     invalid_action_error and rootn(8,3000000000) and pown([2,3],3000000000)
+     were the empty set, where nth_root(8, 3000000000LL) and
+     pown([2,3], 3000000000LL) are computed. The bounds are the tightest ones,
+     from mpmath at 3000 bits, apart from the reader: the powers are, and the
+     roots of an order beyond the unsigned ints are enclosed, as nth_root(I,
+     long long) does within one double of them. An exponent of 2^63 or more in
+     magnitude, an even integer as every double from 2^53 on, is taken as
+     +-(2^63 - 2): the powers are the same, and the roots of the orders beyond
+     lie between 1 and the one of that order, whose enclosure holds 1. */
+  void integer_exponents()
+  {
+    // As literals (see reversed_bounds())
+    const double dmax = 0x1.fffffffffffffp+1023, oo = GAOL_INFINITY;
+    const double tiny = 0x1p-1074;
+    struct Case { const char *names, *text; interval value; double lo, hi; };
+    const interval eight(8.0), base(0x1.00000004p+0), two_three(2.0, 3.0);
+    // the roots: equal to nth_root(I, long long), and within one double of the tightest bounds
+    const Case roots[] = {
+      { "gaol", "nth_root(8,3000000000)", nth_root(eight, 3000000000LL), 0x1.00000002fa1f9p+0, 0x1.00000002fa1fap+0 },
+      { "gaol", "nth_root(8,-3000000000)", nth_root(eight, -3000000000LL), 0x1.fffffffa0bc0dp-1, 0x1.fffffffa0bc0ep-1 },
+      { "ieee1788", "rootn(8,3000000000)", gaol_ieee1788::rootn(eight, 3000000000LL),
+        0x1.00000002fa1f9p+0, 0x1.00000002fa1fap+0 },
+      { "ieee1788", "rootn(8,-3000000000)", gaol_ieee1788::rootn(eight, -3000000000LL),
+        0x1.fffffffa0bc0dp-1, 0x1.fffffffa0bc0ep-1 },
+      { "gaol", "nth_root(1.5,4000000000)", nth_root(interval(1.5), 4000000000LL), 0x1.000000006f741p+0, 0x1.000000006f742p+0 },
+    };
+    for (const Case& c : roots) {
+      const interval got = read_as(c.names, c.text);
+      check("textToInterval: a root of an order beyond the ints is nth_root(I, long long)",
+            !got.is_empty() && got.left() == c.value.left() && got.right() == c.value.right(),
+            [&] { return std::string(c.text) + " = " + hex(got) + " rather than " + hex(c.value); });
+      check("textToInterval: a root of an order beyond the ints encloses the root, within one double of the tightest bounds",
+            !got.is_empty() && got.left() <= c.lo && got.right() >= c.hi
+              && got.left() >= previous_double(c.lo) && got.right() <= next_double(c.hi),
+            [&] {
+              return std::string(c.text) + " = " + hex(got) + ", the root being in [" + hex(c.lo) + ", " + hex(c.hi) + "]";
+            });
+    }
+    // the integer powers: pown(I, long long), the tightest bounds where the power is no overflow nor underflow
+    const Case powers[] = {
+      { "ieee1788", "pown(0x1.00000004p+0,3000000000)", gaol_ieee1788::pown(base, 3000000000LL),
+        0x1.05882dafd5b9dp+4, 0x1.05882dafd5b9ep+4 },
+      { "ieee1788", "pown(0x1.00000004p+0,-3000000000)", gaol_ieee1788::pown(base, -3000000000LL),
+        0x1.f52b8da795f53p-5, 0x1.f52b8da795f54p-5 },
+      { "ieee1788", "pown([2,3],3000000000)", gaol_ieee1788::pown(two_three, 3000000000LL), dmax, oo },
+      { "ieee1788", "pown([2,3],-3000000000)", gaol_ieee1788::pown(two_three, -3000000000LL), 0.0, tiny },
+      // beyond the long longs, taken as +-(2^63 - 2): the power of an even exponent
+      { "ieee1788", "pown([2,3],1e22)", gaol_ieee1788::pown(two_three, 9223372036854775806LL), dmax, oo },
+      { "ieee1788", "pown(0.5,-1e22)", gaol_ieee1788::pown(interval(0.5), -9223372036854775806LL), dmax, oo },
+      { "ieee1788", "pown(-2,1e22)", gaol_ieee1788::pown(interval(-2.0), 9223372036854775806LL), dmax, oo },
+      { "ieee1788", "pown(2,0x1p70)", gaol_ieee1788::pown(interval(2.0), 9223372036854775806LL), dmax, oo },
+      { "ieee1788", "pown(2,-0x1p70)", gaol_ieee1788::pown(interval(2.0), -9223372036854775806LL), 0.0, tiny },
+      // -2^63, the least long long, and 2^63, the least double beyond the greatest: also taken as +-(2^63 - 2)
+      { "ieee1788", "pown(2,-9223372036854775808)", gaol_ieee1788::pown(interval(2.0), (std::numeric_limits<long long>::min)()),
+        0.0, tiny },
+      { "ieee1788", "pown(2,-9223372036854775808)", gaol_ieee1788::pown(interval(2.0), -9223372036854775806LL), 0.0, tiny },
+      { "ieee1788", "pown(2,9223372036854775808)", gaol_ieee1788::pown(interval(2.0), 9223372036854775806LL), dmax, oo },
+    };
+    for (const Case& c : powers) {
+      const interval got = read_as(c.names, c.text);
+      check("textToInterval: an integer power beyond the ints is pown(I, long long), the tightest bounds",
+            !got.is_empty() && got.left() == c.value.left() && got.right() == c.value.right()
+              && got.left() == c.lo && got.right() == c.hi,
+            [&] { return std::string(c.text) + " = " + hex(got) + " rather than [" + hex(c.lo) + ", " + hex(c.hi) + "]"; });
+    }
+    // the roots of an order beyond the long longs hold the exact root: just above 1 for a base above 1 and a
+    // positive order, just below for a base below 1 or a negative order
+    const double below_one = 0x1.fffffffffffffp-1, above_one = 0x1.0000000000001p0;
+    const struct { const char *names, *text; double lo, hi; } huge[] = {
+      { "gaol", "nth_root(8,1e22)", 1.0, above_one },
+      { "gaol", "nth_root(8,-1e22)", below_one, 1.0 },
+      { "gaol", "nth_root(0.5,1e22)", below_one, 1.0 },
+      { "gaol", "nth_root(0.5,-1e22)", 1.0, above_one },
+      { "gaol", "nth_root(8,-0x1p70)", below_one, 1.0 },
+      { "ieee1788", "rootn(8,0x1p70)", 1.0, above_one },
+      { "ieee1788", "rootn(0.5,-0x1p70)", 1.0, above_one },
+    };
+    for (const auto& c : huge) {
+      const interval got = read_as(c.names, c.text);
+      check("textToInterval: a root of an order beyond the long longs encloses the exact root",
+            !got.is_empty() && got.left() <= c.lo && got.right() >= c.hi,
+            [&] { return std::string(c.text) + " = " + hex(got); });
+    }
+    check("textToInterval: a root of an order beyond the long longs is the root of order 2^63 - 2",
+          read_as("gaol", "nth_root(8,1e22)").set_eq(nth_root(eight, 9223372036854775806LL))
+            && read_as("gaol", "nth_root(8,-1e22)").set_eq(nth_root(eight, -9223372036854775806LL)));
+    // What is no integer is still refused: a number between two integers, an infinity, an interval
+    for (const char *text : { "nth_root(8,2.5)", "nth_root(8,3000000000.5)", "nth_root(8,inf)", "nth_root(8,-inf)",
+                              "nth_root(8,[3000000000,3000000001])", "nth_root(8,1e22+2)" }) {
+      refused(text);
+    }
+    for (const char *text : { "rootn(8,3000000000.5)", "rootn(8,inf)", "pown([2,3],2.5)", "pown([2,3],inf)",
+                              "pown([2,3],[3000000000,3000000001])" }) {
+      const interval got = gaol_ieee1788::textToInterval(text);
+      check("textToInterval: a second argument that is no integer gives the empty set with the names of the standard",
+            got.is_empty(), [&] { return std::string(text) + " = " + hex(got); });
+    }
+#if GAOL_EXCEPTIONS_ENABLED
+    bool threw_invalid_action = false;
+    try {
+      const interval got = textToInterval("nth_root(8,3000000000.5)");
+      (void)got;
+    } catch (const gaol_core::invalid_action_error&) {
+      threw_invalid_action = true;
+    } catch (...) {
+    }
+    check("textToInterval: nth_root(8,3000000000.5) throws invalid_action_error", threw_invalid_action);
+#endif
   }
 
 #if GAOL_EXCEPTIONS_ENABLED
@@ -1491,6 +1815,9 @@ namespace
       "1+2*sin([1,2])-pi/3", "[1, 2]", "[0.1, ]", "[, -inf]", "<0x1p-3, 0.125>", "3.56?1*2",
       "nth_root(8, 3)+[empty]", "1+0." + digits, std::string(300, '(') + "1" + std::string(300, ')'),
       std::string(300, '-') + "[1, 2]", "[" + std::string(299, '-') + "inf, 1]",
+      // [l, u] of numbers between the same two doubles, compared by their texts, kept by the reading
+      "[0.3, 0.30000000000000001]", "[0.30000000000000001, 0.3]",
+      "[0." + std::string(300, '3') + ", 0." + std::string(300, '3') + "1]",
     };
     for (const std::string& t : texts) {
       for (int standard = 0; standard < 2; ++standard) {
@@ -1624,6 +1951,9 @@ int main()
   step("names_under_turkish_locale"); names_under_turkish_locale();
   step("wrong_strings");     wrong_strings();
   step("null_pointer");      null_pointer();
+  step("reversed_bounds");   reversed_bounds();
+  step("degenerate_bounds"); degenerate_bounds();
+  step("integer_exponents"); integer_exponents();
 #if GAOL_EXCEPTIONS_ENABLED
   step("exception_messages"); exception_messages();
 #endif

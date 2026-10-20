@@ -328,6 +328,17 @@ point Q), which `numbers` checks there too.
   no invalid-operation flag, nor die in a child process that enabled the
   exception: the terms of its TwoSum, computed by GCC after the
   direction was set back to upward, read +oo and made inf - inf.
+  The same holds for `cancel_minus` and `cancel_plus` with bounds next to the
+  largest double: where a difference of the bounds is beyond it (`[DBL_MAX]`
+  against `[-DBL_MAX]`, `[-DBL_MAX]` against `[DBL_MAX]`, `[DBL_MAX]` against
+  `[-2^970]`, whose difference is halfway to 2^1024, and two boxes with one
+  difference beyond it), they have to give `[DBL_MAX, +oo]` or
+  `[-oo, -DBL_MAX]`; where the sum is finite but halfway between two doubles
+  and rounded away from the exact one (`[0, DBL_MAX]` against `[0, 3*2^970]`,
+  and `[DBL_MAX - 2^971, DBL_MAX]` against `[2^970, 3*2^970]`, whose widths are
+  equal), the tightest enclosure, not `[-oo, +oo]`. Neither raises the
+  invalid-operation flag, and none makes a child process that enabled that
+  exception die: the TwoSum made inf - inf of its terms, or NaN (GAOL v5).
   The suite takes the AVX-512 path of `GAOL_PREFER_AVX512` whole, where the
   machine building has the instructions (`GAOL_AVX512_ARITHMETIC`): the
   bounds of `x + y`, `x - y`, `x*y`, `x/y` and `sqrt(x)` are then those of
@@ -354,7 +365,8 @@ point Q), which `numbers` checks there too.
   to be the tightest enclosures of the exact result, computed from the four
   corners of random operands, in a loop changing the rounding direction before
   each, and, on 64-bit ARM, right after the program wrote FPCR itself (no
-  `isb` between), in the four directions in turn, 2^16 times per form. The
+  `isb` between), and on 32-bit ARM with a floating-point unit, FPSCR (`vmsr`),
+  in the four directions in turn, 2^16 times per form. The
   sums, differences, squares, square roots and operations with a double, on
   the intervals with bounds in {-oo, -4, -0, 0, 4, +oo}, on the empty set, and
   with an infinite or NaN double, have to give the expected bounds and raise
@@ -908,10 +920,37 @@ point Q), which `numbers` checks there too.
   program inside the reader (GAOL v5, #98). A null pointer has to be refused
   the same way, with the names of GAOL and with those of the standard, with
   no exception and the interval unchanged: `parse_interval()` took its length
-  with `std::strlen()` and died of a segmentation fault (GAOL v5). Every
-  allocation of a reading has to be able to fail, each in turn: the reading
-  has to throw `std::bad_alloc`, or give the interval where it did without the
-  allocation, and to free all it allocated, over strings with a call, the
+  with `std::strlen()` and died of a segmentation fault (GAOL v5). `[l, u]`
+  with l above u has to be the empty set, with the names of GAOL and with those
+  of the standard, where the numbers written are between the same doubles
+  (`[9007199254740993, 9007199254740992]`, `[0x1.999999999999ap-4, 0.1]`,
+  `[1.00000000000000001, 1]`, `[pi, 0x1.921fb54442d18p+1]`, `[1e400, dmax]`,
+  `[1e-400, 0]`) and where they are apart, and the interval from the lower
+  bound of l to the upper bound of u otherwise: they gave `[2^53]`,
+  `[0x1.999999999999ap-4]` and `[1]`. Two numbers that are not doubles between
+  the same two doubles are compared exactly, as digits, in every base and
+  behind any signs (`[1.00000000000000002, 1.00000000000000001]` and
+  `[-0.3, -0.30000000000000001]` are empty, `[0.3, 0.30000000000000001]` and
+  `[1.00000000000000001, 100000000000000001e-17]` are not), the literal being
+  the pair of doubles around them where they cannot be (`pi` and another
+  number, a number far beyond the doubles, a computed bound). The bounds of
+  `<a, b>` have to be doubles: `<0.1, 0x1.9999999999999p-4>`,
+  `<0x1.999999999999ap-4, 0.1>`, `<0.1, 0.1>`, `<pi, pi>` and `<1e-400, 0>`
+  are refused, where the first, the second and the last were read as the point
+  of a bound of the interval of the number (GAOL v5). The second argument
+  of `nth_root`, `pown` and `rootn` may be an integer beyond the ints:
+  `nth_root(8,3000000000)` and `rootn(8,-3000000000)` equal `nth_root(8,
+  3000000000LL)` and `nth_root(8, -3000000000LL)` and enclose the root, within
+  one double of the tightest bounds computed with mpmath at 3000 bits,
+  `pown(0x1.00000004p+0,3000000000)` and its inverse are the tightest bounds,
+  `pown([2,3],3000000000)` is `[DBL_MAX, +oo]`, and an exponent of 2^63 or
+  more in magnitude (`1e22`, `0x1p70`, 2^63 and -2^63) is that of 2^63 - 2,
+  the roots of such an order holding 1; one
+  that is no integer (`2.5`, `3000000000.5`, `inf`, an interval) is still
+  refused (GAOL v5). Every allocation of a reading has to be able to fail,
+  each in turn: the reading has to throw `std::bad_alloc`, or give the
+  interval where it did without the allocation, and to free all it allocated,
+  over strings with a call, the
   literals, a number of 20000 digits, longer than the buffer of flex, 300
   nested parentheses, beyond the stack of the parser kept in the stack of the
   program, and 300 minus signs, and so do the evaluation and the deletion of a

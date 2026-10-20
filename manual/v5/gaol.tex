@@ -1518,9 +1518,8 @@ Linux) instead of letting the operation give its bounds.\newinvfive
 \begin{itemize}
 \item An infinite bound comes from a division by zero or from an overflow:
   \code{log(interval(0,~1))}, which is \itv{-\infty}{0}, raises the
-  divide-by-zero exception, and so does \code{1/interval(0,~1)}, which is
-  \itv{1}{+\infty}, with the SSE2 intervals; \code{interval(1e308)*10}, which
-  is \itv{\text{DBL\_MAX}}{+\infty}, raises the overflow exception.
+  divide-by-zero exception; \code{interval(1e308)*10}, which is
+  \itv{\text{DBL\_MAX}}{+\infty}, raises the overflow exception.
 \item Almost every operation raises the inexact exception: most bounds are
   rounded results, and where GAOL checks the rounding direction with an
   addition, $1+2^{-60}$ or $1+(2^{-1060}+0)$, whose result is inexact
@@ -2419,7 +2418,10 @@ interval x = textToInterval("[-23, inf]"),
 \begin{deffun}{interval}{textToInterval}{(const std::string\& \var{sl}, const std::string\& \var{sr})}
   Returns the interval whose left bound is the one of the interval the
   string \var{sl} writes, and whose right bound is the one of the interval
-  \var{sr} writes, and the empty set when the first is above the second.
+  \var{sr} writes, and the empty set when the lower bound of the first is above
+  the upper bound of the second (the intervals the two strings write, each
+  rounded outward, not the numbers: \code{textToInterval("[l,u]")} orders the
+  numbers).
   \begin{example}
  @rem^// x=[-4,4]~
  interval x = textToInterval("[-5,4]+1","[4,6]-[2,3]");
@@ -4878,7 +4880,14 @@ is not in the list, or a call with a wrong number of arguments, throws
 be a point interval that can be evaluated as an integer, negative ones
 included; otherwise, an \element{invalid\_action\_error} exception is thrown
 (or an error is reported, depending on whether exceptions were enabled or not
-at configuration time---\pxref{sec:configuration}). GAOL~4 read the
+at configuration time---\pxref{sec:configuration}).\newinvfive{} The integer
+may be of any size a double holds: \code{"nth\_root(8,3000000000)"} is
+\code{nth\_root(8, 3000000000LL)}, where it was refused beyond the
+\code{int}s. One of $2^{63}$ or more in magnitude is taken as $\pm(2^{63}-2)$:
+the integer powers are the same, and the enclosure of the roots of that order
+holds those of the larger orders. The second argument of \code{pown} and
+\code{rootn}, with the names of the standard, is read in the same way.
+GAOL~4 read the
 trigonometric and hyperbolic functions, \code{exp}, \code{log}, \code{pow},
 \code{sqrt} and \code{nth\_root} only.
 
@@ -4886,10 +4895,29 @@ trigonometric and hyperbolic functions, \code{exp}, \code{log}, \code{pow},
 in bounds are evaluated using interval arithmetic, intervals included; the left
 (resp. right) bound of the result is then used, depending on the side it
 appeared in: \code{"[cos([0,1]), 2]"} is \itv{\cos 1}{2}. A bound left out is
-infinite. The two bounds in the string ``\element{<a, b>}'' must be expressions
+infinite. An interval literal \code{[l, u]} whose left bound is above its right
+bound is the empty set, as in IEEE 1788-2015: \code{"[2,1]"}, and also
+\code{"[9007199254740993, 9007199254740992]"} and
+\code{"[1.00000000000000001, 1]"}, whose numbers are compared exactly with the
+doubles around them, a number that is not a double lying strictly between the
+two doubles around it.\newinvfive{} They were read as the points $2^{53}$ and
+1. Two numbers that are not doubles and lie between the same two doubles are
+compared exactly too: \code{"[1.00000000000000002, 1.00000000000000001]"} is
+the empty set, and \code{"[1.00000000000000001, 1.00000000000000002]"} is the
+interval from the double below to the double above them, as is the same
+number written twice. \code{pi} and another number lying between the same two
+doubles, a number far beyond the doubles (about $10^{311}$ or more, or
+$10^{-331}$ or less, in decimal, about $2^{1026}$ or more, or $2^{-1081}$ or
+less, in the other bases), and bounds that are computed, as
+\code{1/3}, are not told apart: the literal is then the interval from the
+lower bound of the first to the upper bound of the second.
+The two bounds in the string ``\element{<a, b>}'' must be expressions
 that evaluate to the same double even for different rounding directions: an
 \element{input\_format\_error} exception is raised otherwise, as for
-\code{"<0.1, 0.1>"}. The two doubles are compared by their bits, $-0$ and $+0$
+\code{"<0.1, 0.1>"}, a number that is not a double being no bound of
+\code{<a, b>}.\newinvfive{} \code{"<0.1, 0x1.9999999999999p-4>"}, the double
+just below $0.1$, was read as the point $[$\code{0x1.9999999999999p-4}$]$.
+The two doubles are compared by their bits, $-0$ and $+0$
 being the same bound, so that the mode of the processor that reads the
 subnormal numbers as zero (denormals-are-zero) changes nothing:
 \code{"<1e-310, 1e-309>"} throws under it too.\newinvfive{} Compared as
@@ -4949,7 +4977,8 @@ all it allocated.\newinvfive{} flex, which wrote ``out of dynamic memory'' and
 ended the program, and the parser, which read a stack it could not grow as a
 string nested too deep, threw no such exception. Without exceptions, an
 error that the reader finds as it computes, a wrong call, an uncertain number
-as a bound or two different bounds in \code{<a, b>}, makes the reading fail,
+as a bound or two different bounds in \code{<a, b>}, or a bound of it that
+is no double, makes the reading fail,
 as a syntax error does:
 \code{parse\_interval()} returns \code{false}, and
 \code{gaol::textToInterval()} and \code{operator>{}>} report the error and

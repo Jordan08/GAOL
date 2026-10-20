@@ -39,13 +39,16 @@
  * and every operation computes with an empty operand, without raising the
  * invalid-operation exception, which kills a program that enabled it (GAOL v5).
  * Nor do a NaN the program gives, the products with a zero and an infinite
- * bound, pow with an exponent of extreme magnitude and the relations in loops
- * a compiler vectorizes raise it, nor the midpoint of [DBL_MAX] the overflow
- * exception; every operation keeps the exception flags and masks of the
- * program (GAOL v5, point D.24 of TODO.md).
+ * bound, pow with an exponent of extreme magnitude, cancel_minus() and
+ * cancel_plus() with bounds next to the largest double (point 78 of TODO.md)
+ * and the relations in loops a compiler vectorizes raise it, nor the midpoint
+ * of [DBL_MAX] the overflow exception; every operation
+ * keeps the exception flags and masks of the program (GAOL v5, point D.24 of
+ * TODO.md).
  *
  * On 64-bit ARM with GCC or Clang, whatever the intervals (NEON or FPU), the
- * control register FPCR is read and written directly, with mrs and msr (GAOL
+ * control register FPCR is read and written directly, with mrs and msr, and on
+ * 32-bit ARM with GCC and a floating-point unit FPSCR, with vmrs and vmsr (GAOL
  * v5): its bits other than the rounding direction and the modes that flush the
  * subnormals to zero (the default-NaN mode, FZ16, the enables of the traps)
  * are the ones the program had after every operation; the bounds of an
@@ -111,6 +114,16 @@
 #  define GAOL_TESTS_FPCR 1
 #else
 #  define GAOL_TESTS_FPCR 0
+#endif
+// The same for the sequence of a write of the control register and an
+// operation, which 32-bit ARM processors with a floating-point unit have too:
+// FPSCR, read with vmrs and written with vmsr (GAOL v5)
+#ifndef GAOL_TESTS_FPCR_SEQUENCE
+#  if GAOL_TESTS_FPCR || (defined(__arm__) && !defined(__aarch64__) && defined(__GNUC__) && defined(__ARM_FP) && (__ARM_FP & 8))
+#    define GAOL_TESTS_FPCR_SEQUENCE 1
+#  else
+#    define GAOL_TESTS_FPCR_SEQUENCE 0
+#  endif
 #endif
 
 using namespace gaol;
@@ -242,6 +255,32 @@ namespace
 #if GAOL_TESTS_SSE
     _mm_setcsr((_mm_getcsr() & ~static_cast<unsigned int>(_MM_ROUND_MASK)) | d.sse);
 #endif
+  }
+
+  /*
+    An interval built in the function from its arguments (GAOL v5), so that its
+    bounds are registers when width() is inlined there, and the call through
+    a pointer that keeps the compiler from inlining the function in the loop of
+    the test. GCC subtracted them before the check of the rounding direction
+    wrote the control register, in the program's direction, with the control
+    register of 64-bit and 32-bit ARM read and written by asm statements,
+    which it does not order with the operations on registers (bug 34678):
+    width([1, 2^53 + 2]) was 2^53 below the upward direction
+  */
+  double built_width(double a, double b) { return interval(a, b).width(); }
+  double (*volatile width_of_arguments)(double, double) = built_width;
+
+  // l*(1 - ratio) + r*ratio rounded upward, from operands read from memory:
+  // the cut point of bisect()
+  double upward_cut(double l, double r, double ratio)
+  {
+    const int saved = std::fegetround();
+    std::fesetround(FE_UPWARD);
+    volatile double vl = l, vr = r, vq = ratio;
+    volatile double c = vl*(1.0 - vq) + vr*vq;
+    const double kept = c;
+    std::fesetround(saved);
+    return kept;
   }
 
   // The rounding direction as fegetround() and the SSE control register give it
@@ -1141,6 +1180,53 @@ namespace
   };
 
   /*
+    The differences of the bounds of cancel_minus() and cancel_plus() next to
+    the largest double (GAOL v5, point 78 of TODO.md). The TwoSum that
+    compares the two differences read an infinite sum, whose terms ap = s - b
+    and bp = s - ap are inf and inf - inf, and raised the invalid-operation
+    exception (it stops a program that enabled it), though the result has an
+    infinite bound. The first seven cases have a difference beyond the largest
+    double: 2 DBL_MAX, 1.5 DBL_MAX, and DBL_MAX + 2^970, which is halfway
+    between DBL_MAX and 2^1024 and rounds to the infinity to nearest; their
+    tightest enclosures are [DBL_MAX, +oo] and [-oo, -DBL_MAX]. In the last
+    two the sum is finite, but halfway between two doubles and rounded away
+    from the exact one by 2^970 (the mantissa of DBL_MAX being odd): s - b was
+    then DBL_MAX + 2^970, infinite, and the error NaN, so that the second read
+    X, as wide as Y, as narrower than Y and gave [-oo, +oo]. The exact upper
+    bound of both is DBL_MAX - 3 2^970, halfway between DBL_MAX - 4 2^970 and
+    DBL_MAX - 2 2^970; the lower bound is 0 for the first and the same number
+    for the second.
+  */
+  const double half_ulp_of_largest = std::ldexp(1.0, 970);
+
+  const EmptyOperand cancels_next_to_the_largest[] = {
+    { "cancel_minus([DBL_MAX], [-DBL_MAX])", [] {
+        return bounds_are(cancel_minus(make(largest, largest), make(-largest, -largest)), largest, GAOL_INFINITY); } },
+    { "cancel_plus([DBL_MAX], [DBL_MAX])", [] {
+        return bounds_are(cancel_plus(make(largest, largest), make(largest, largest)), largest, GAOL_INFINITY); } },
+    { "cancel_minus([-DBL_MAX], [DBL_MAX])", [] {
+        return bounds_are(cancel_minus(make(-largest, -largest), make(largest, largest)), -GAOL_INFINITY, -largest); } },
+    { "cancel_plus([-DBL_MAX], [-DBL_MAX])", [] {
+        return bounds_are(cancel_plus(make(-largest, -largest), make(-largest, -largest)), -GAOL_INFINITY, -largest); } },
+    { "cancel_minus([DBL_MAX], [-2^970])", [] {
+        return bounds_are(cancel_minus(make(largest, largest), make(-half_ulp_of_largest, -half_ulp_of_largest)),
+                          largest, GAOL_INFINITY); } },
+    { "cancel_minus([0, DBL_MAX], [-DBL_MAX, -DBL_MAX/2])", [] {
+        return bounds_are(cancel_minus(make(0.0, largest), make(-largest, -0.5*largest)), largest, GAOL_INFINITY); } },
+    { "cancel_minus([-DBL_MAX, 0], [DBL_MAX/2, DBL_MAX])", [] {
+        return bounds_are(cancel_minus(make(-largest, 0.0), make(0.5*largest, largest)), -GAOL_INFINITY, -largest); } },
+    // A finite sum halfway between two doubles, 3 2^970 below DBL_MAX: the
+    // doubles around it are DBL_MAX - 2 ulp and DBL_MAX - ulp, ulp = 2^971
+    { "cancel_minus([0, DBL_MAX], [0, 3 2^970])", [] {
+        return bounds_are(cancel_minus(make(0.0, largest), make(0.0, 3.0*half_ulp_of_largest)),
+                          0.0, largest - 2.0*half_ulp_of_largest); } },
+    { "cancel_minus([DBL_MAX - 2^971, DBL_MAX], [2^970, 3 2^970])", [] {
+        return bounds_are(cancel_minus(make(largest - 2.0*half_ulp_of_largest, largest),
+                                       make(half_ulp_of_largest, 3.0*half_ulp_of_largest)),
+                          largest - 4.0*half_ulp_of_largest, largest - 2.0*half_ulp_of_largest); } },
+  };
+
+  /*
     The sums, the differences, the squares, the square roots and the
     operations with a double of intervals with infinite bounds, and of the
     empty set (GAOL v5): none of them raises the invalid-operation nor the
@@ -1410,10 +1496,11 @@ namespace
     { "x %= d", [] { return over_doubles(" %= ", [](const interval& x, double d) { interval z(x); z %= d; return z; }, remainder_by); } },
   };
 
-#if GAOL_TESTS_FPCR
+#if GAOL_TESTS_FPCR_SEQUENCE
   /*
     FPCR, the control register of 64-bit ARM processors, read with mrs and
-    written with msr (GAOL v5), apart from the library: whatever the
+    written with msr, and FPSCR of the 32-bit ones, with vmrs and vmsr (GAOL
+    v5), apart from the library: whatever the
     intervals, NEON or FPU, the operations write it, and the tests below check
     what they write and when. Its bits: the rounding direction (RMode, bits
     23:22), the modes that flush the subnormals to zero (FZ, bit 24, and FIZ,
@@ -1427,14 +1514,25 @@ namespace
   */
   unsigned long long read_fpcr()
   {
+#if defined(__aarch64__)
     unsigned long long fpcr;
     __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));
     return fpcr;
+#else
+    unsigned int fpscr; // its exception flags and its comparison flags are in the register too
+    __asm__ __volatile__ ("vmrs %0, fpscr" : "=r" (fpscr));
+    return fpscr;
+#endif
   }
 
   void write_fpcr(unsigned long long fpcr)
   {
+#if defined(__aarch64__)
     __asm__ __volatile__ ("msr fpcr, %0" : : "r" (fpcr) : "memory");
+#else
+    const unsigned int fpscr = static_cast<unsigned int>(fpcr);
+    __asm__ __volatile__ ("vmsr fpscr, %0" : : "r" (fpscr) : "memory");
+#endif
   }
 
   std::string fpcr_text(unsigned long long fpcr)
@@ -1445,12 +1543,24 @@ namespace
   }
 
   const unsigned long long fpcr_rmode_bits = 0xc00000ull;
+#if defined(__aarch64__)
   const unsigned long long fpcr_flush_bits = 0x1000001ull; // FZ and FIZ
+  const unsigned long long fpcr_dn_fz16_bits = 0x2080000ull;
+  const unsigned long long fpcr_flag_bits = 0ull; // the flags of the exceptions are in FPSR
+#else
+  // FPSCR of 32-bit ARM: FZ alone (bit 0 is the flag of the invalid-operation
+  // exception), DN alone (no FZ16), and the flags of the exceptions and of the
+  // comparisons, which the operations change: N, Z, C, V, QC, IDC and IXC to IOC
+  const unsigned long long fpcr_flush_bits = 0x1000000ull;
+  const unsigned long long fpcr_dn_fz16_bits = 0x2000000ull;
+  const unsigned long long fpcr_flag_bits = 0xf800009full;
+#endif
   const unsigned long long fpcr_mode_bits = fpcr_rmode_bits | fpcr_flush_bits;
   const unsigned long long fpcr_upward_bits = 0x400000ull;
   const unsigned long long fpcr_fz_bit = 0x1000000ull;
-  const unsigned long long fpcr_dn_fz16_bits = 0x2080000ull;
   const unsigned long long fpcr_ide_bit = 0x8000ull;
+  // The bits no operation of GAOL may change: neither the mode bits nor the flags
+  const unsigned long long fpcr_owned_bits = ~(fpcr_mode_bits | fpcr_flag_bits);
 
   // The rounding directions as the field RMode holds them, upward last
   const unsigned long long fpcr_directions[4] = { 0x0ull, 0x800000ull, 0xc00000ull, 0x400000ull };
@@ -1516,7 +1626,7 @@ namespace
     { "sqrt(y)", [] { return sqrt(make(4.0, 16.0)).set_eq(interval(2.0, 4.0)); } },
     { "inverse(y)", [] { return inverse(make(4.0, 8.0)).set_eq(interval(0.125, 0.25)); } },
   };
-#endif // GAOL_TESTS_FPCR
+#endif // GAOL_TESTS_FPCR_SEQUENCE
 
   /*
     The midpoint of an interval with a bound of 2^1023 or more in magnitude,
@@ -2146,14 +2256,14 @@ int main()
     }
   }
 
-#if GAOL_TESTS_FPCR
+#if GAOL_TESTS_FPCR_SEQUENCE
   /*
     The same operations right after the program wrote FPCR, in the four
     directions in turn (see sequence_in_a_loop()), 2^16 times each
   */
   {
     Random random_sequence;
-    const std::size_t k = 8, n = static_cast<std::size_t>(1) << 16;
+    const std::size_t k = 7, n = static_cast<std::size_t>(1) << 16; // k prime to 4, so that each direction meets all the operands
     const unsigned long long saved = read_fpcr();
     const unsigned long long base = saved & ~fpcr_rmode_bits;
     std::vector<interval> r(n);
@@ -2193,7 +2303,7 @@ int main()
       }
     }
   }
-#endif // GAOL_TESTS_FPCR
+#endif // GAOL_TESTS_FPCR_SEQUENCE
 
   /*
     The exception flags the program raised, and its exception masks, are
@@ -2240,9 +2350,11 @@ int main()
     set(directions[0]);
   }
 
-#if GAOL_TESTS_FPCR
+#if GAOL_TESTS_FPCR_SEQUENCE
   /*
-    FPCR itself (GAOL v5, see read_fpcr()). After each operation of the table
+    FPCR itself (GAOL v5, see read_fpcr()); FPSCR on 32-bit ARM, whose flags the
+    operations change, and whose other bits (DN, the enables of the traps) the
+    test sets as far as the processor retains them. After each operation of the table
     above, run from each direction with and without FZ set, the bits of FPCR
     other than the rounding direction and the flush modes are the ones the
     program had. They are set to a pattern first: the default-NaN mode (DN)
@@ -2295,7 +2407,7 @@ int main()
                  + ": FPCR " + fpcr_text(after) + " after it, " + fpcr_text(start) + " before";
           };
           check("the bits of FPCR other than the rounding direction and the flush modes kept by " + std::string(op.name),
-                ((after ^ start) & ~fpcr_mode_bits) == 0ull, describe);
+                ((after ^ start) & fpcr_owned_bits) == 0ull, describe);
 #if GAOL_PRESERVE_ROUNDING
           check("the rounding direction and the flush modes of FPCR restored by " + std::string(op.name),
                 (after & fpcr_mode_bits) == (start & fpcr_mode_bits), describe);
@@ -2325,7 +2437,7 @@ int main()
           const unsigned long long after = read_fpcr();
           write_fpcr(saved);
           check("the bits of FPCR other than the rounding direction and the flush modes kept by " + std::string(op.name),
-                ((after ^ start) & ~fpcr_mode_bits) == 0ull,
+                ((after ^ start) & fpcr_owned_bits) == 0ull,
                 [&] {
                   return std::string("rounding direction ") + fpcr_direction_names[d] + (fz != 0 ? ", FZ set" : "")
                        + ": FPCR " + fpcr_text(after) + " after it, " + fpcr_text(start) + " before";
@@ -2405,7 +2517,7 @@ int main()
           };
           check("an operation with exact results gives them with the traps of FPCR enabled", right,
                 [&] { return std::string(e.name) + ", " + describe(); });
-          check("the traps of FPCR kept enabled by an operation with exact results", ((after ^ start) & ~fpcr_mode_bits) == 0ull,
+          check("the traps of FPCR kept enabled by an operation with exact results", ((after ^ start) & fpcr_owned_bits) == 0ull,
                 [&] { return std::string(e.name) + ", " + describe(); });
         }
       }
@@ -2413,7 +2525,7 @@ int main()
     write_fpcr(saved);
     std::feclearexcept(FE_ALL_EXCEPT);
   }
-#endif // GAOL_TESTS_FPCR
+#endif // GAOL_TESTS_FPCR_SEQUENCE
 
 #if GAOL_TESTS_FLUSH
   /*
@@ -3060,6 +3172,15 @@ int main()
           [&] { return std::string(e.name); });
     check("an integer power at the ends of the doubles: the tightest enclosure", right, [&] { return std::string(e.name); });
   }
+  for (const EmptyOperand& e : cancels_next_to_the_largest) {
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const volatile bool right = e.run();
+    const int raised = std::fetestexcept(FE_INVALID);
+    check("cancel_minus and cancel_plus next to the largest double raise no invalid-operation flag",
+          raised == 0, [&] { return std::string(e.name); });
+    check("cancel_minus and cancel_plus next to the largest double: the tightest enclosure", right,
+          [&] { return std::string(e.name); });
+  }
   for (const InfiniteOperation& e : arithmetic_with_infinite_bounds) {
     std::feclearexcept(FE_ALL_EXCEPT);
     const std::string wrong = e.run();
@@ -3086,6 +3207,26 @@ int main()
           z.left() == std::nextafter((std::numeric_limits<double>::max)(), 0.0)
               && z.right() == (std::numeric_limits<double>::max)(),
           [&] { return hex(z); });
+  }
+  /*
+    width() of an interval built in the function, and the cut point of
+    bisect(), are computed upward whatever the direction of the calling code
+    (GAOL v5; see built_width()): the width of [1, 2^53 + 2] is 2^53 + 1,
+    which the upward direction rounds to 2^53 + 2, where the other directions
+    round it to 2^53; the cuts of [0.3, 7.7] at 0.3 and of [1, 1e16] at 0.7 are
+    inexact too
+  */
+  for (const Direction& d : directions) {
+    set(d);
+    const double w = width_of_arguments(1.0, 9007199254740994.0);
+    const std::pair<interval, interval> a = interval(0.3, 7.7).bisect(0.3), b = interval(1.0, 1e16).bisect(0.7);
+    set(directions[0]);
+    check("width() of an interval built from its arguments is rounded upward", w == 9007199254740994.0,
+          [&] { return std::string("the direction of the program ") + d.name + ": " + hex(w); });
+    check("the cut point of bisect(0.3) is computed upward", a.first.right() == upward_cut(0.3, 7.7, 0.3),
+          [&] { return std::string("the direction of the program ") + d.name + ": " + hex(a.first.right()) + " rather than " + hex(upward_cut(0.3, 7.7, 0.3)); });
+    check("the cut point of bisect(0.7) is computed upward", b.first.right() == upward_cut(1.0, 1e16, 0.7),
+          [&] { return std::string("the direction of the program ") + d.name + ": " + hex(b.first.right()) + " rather than " + hex(upward_cut(1.0, 1e16, 0.7)); });
   }
   const std::vector<HugeInterval> huge = huge_intervals();
   check("the intervals with a huge bound: the subnormal bound is 2^-1074",
@@ -3173,6 +3314,11 @@ int main()
     for (const EmptyOperand& e : integer_powers_at_the_ends) {
       const Outcome oe = run_with_exceptions_enabled(FE_INVALID, e.run);
       check("an integer power at the ends of the doubles, FE_INVALID enabled", oe == returned_true,
+            [&] { return std::string(e.name) + ": " + outcome_text(oe); });
+    }
+    for (const EmptyOperand& e : cancels_next_to_the_largest) {
+      const Outcome oe = run_with_exceptions_enabled(FE_INVALID, e.run);
+      check("cancel_minus and cancel_plus next to the largest double, FE_INVALID enabled", oe == returned_true,
             [&] { return std::string(e.name) + ": " + outcome_text(oe); });
     }
     for (const InfiniteOperation& e : arithmetic_with_infinite_bounds) {
