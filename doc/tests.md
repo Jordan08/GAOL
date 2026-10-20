@@ -69,9 +69,13 @@ point Q), which `numbers` checks there too.
   `r *= r` and `r %= ...`, have to have the bounds of the reference evaluating
   them one operation after the other, on random intervals and on those of the
   grid. The sign of three zero bounds the documentation states, that of
-  `[-1, 0]*[-1, 0]`, `sqr([-1, 2])` and `[0, 1]/[-2, -1]`, has to be the one
-  of the build (the other checks compare with `==`, which does not see it): it
-  tells a tie of the maxima of the products, which no other check did (GAOL v5).
+  `[-1, 0]*[-1, 0]` (SSE2 and NEON builds only: with the FPU intervals the
+  maximum of two products that are a +0 and a -0 is the compiler's, GCC for
+  POWER9 returning the first one, and the sign is not specified), `sqr([-1, 2])`
+  and `[0, 1]/[-2, -1]` (neither depends on a tie), has to be the one of the
+  build (the other checks compare with `==`, which does not see it): it tells a
+  tie of the maxima of the products with SSE2 and NEON, which no other check
+  did (GAOL v5).
   N-th roots have to
   be enclosures, within a few doubles, the odd
   roots of negative numbers being the opposites of the roots of their

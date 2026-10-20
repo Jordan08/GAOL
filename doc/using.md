@@ -888,8 +888,10 @@ example; they are listed here for the reader who looks in this page first.
   [What the upward rounding does to the program](#what-the-upward-rounding-does-to-the-program)).
 - **The sign of a zero bound** differs between the SSE2, the NEON and the
   FPU intervals: `sqr(interval(-1, 2))` is [−0, 4] with the first two and
-  [0, 4] with the third, `1.0 / x.left()` being −∞ or +∞. A program compares
-  bounds with `==` and `<` and does not read the sign.
+  [0, 4] with the third, `1.0 / x.left()` being −∞ or +∞; the sign of a zero
+  bound of a product of the FPU intervals is the compiler's (see
+  [The FPU intervals](#the-fpu-intervals)). A program compares bounds with `==`
+  and `<` and does not read the sign.
 - **The empty set and the domain.** A function keeps the part of its argument
   in its domain, silently: `sqrt([-1, 4])` is [0, 2], `log([-1, 0])` is empty.
   The empty set passes every certainly relation and every inclusion test
@@ -1245,22 +1247,27 @@ The bounds are those of the FPU intervals but for the sign of a zero bound,
 which the maximum of 64-bit ARM, ranking +0 above −0, can set otherwise than
 the SSE2 and the FPU intervals do, where the `maxpd` of x86 returns its second
 operand: the lower bound of `[-1, 0] * [-1, 0]` is −0 with the NEON intervals
-and +0 with the others, and `interval::zero()` is stored `<+0, +0>`, as with
-SSE2, so that its lower bound is −0 (+0 and −0 being the same number, `==`
-does not see the difference). The tool `tests/tools/arith` compares
-the NEON and the FPU intervals on a grid of operands, with the calling code in
-each of the four rounding directions: it found no other difference. The same kind of caveat exists for the
+and +0 with the SSE2 ones (the FPU intervals leave it to the compiler, see
+[The FPU intervals](#the-fpu-intervals)), and `interval::zero()` is stored
+`<+0, +0>`, as with SSE2, so that its lower bound is −0 (+0 and −0 being the
+same number, `==` does not see the difference). The tool `tests/tools/arith`
+compares the NEON and the FPU intervals on a grid of operands, with the calling
+code in each of the four rounding directions: it found no other difference. The same kind of caveat exists for the
 AVX-512 path (above, and [Accuracy](accuracy.md)).
 
 ### The FPU intervals
 
 The intervals of the processors that have neither SSE2 nor NEON keep their two
 bounds as two doubles, the lower one negated as in the SSE2 and the NEON
-intervals, and compute with the scalar floating-point unit: 32-bit ARM, POWER,
-s390x and RISC-V with GCC, Visual C++ for x86 and arm64, clang-cl, and the
-builds that ask for them (`-DGAOL_SIMD=OFF` on x86, `-DGAOL_ARM64=OFF` on
-64-bit ARM, which leave `GAOL_USING_SSE2_INSTRUCTIONS` and
-`GAOL_USING_NEON_INSTRUCTIONS` at 0 in `gaol_configuration.h`).
+intervals, and compute with the scalar floating-point unit. They are the
+intervals of 32-bit ARM, POWER, s390x, RISC-V and the other processors, of
+Windows on 32-bit x86 (Visual C++, clang-cl and MinGW-w64; 64-bit Windows has
+the SSE2 intervals, Visual C++ and clang-cl included) and on arm64 (Visual C++,
+clang-cl and MinGW-w64; the NEON intervals are for Linux and macOS, with GCC
+and Clang), and of the builds that ask for them (`-DGAOL_SIMD=OFF` on x86,
+`-DGAOL_ARM64=OFF` on 64-bit ARM, which leave `GAOL_USING_SSE2_INSTRUCTIONS`
+and `GAOL_USING_NEON_INSTRUCTIONS` at 0 in `gaol_configuration.h`). What is
+measured below is the Apple M2 only.
 
 `x * y`, `x / y` and `x % y` of a divisor without zero, and `sqr(x)` take no
 branch on the signs of the bounds in the source (GAOL v5): GAOL 4 took one of
@@ -1273,9 +1280,10 @@ the quotient divides each bound of the dividend by the bound of the divisor
 that its sign chooses, two divisions whatever the signs; the square is the
 largest of two squares for each bound, the lower one being 0 for an interval
 that straddles 0. They are the kernels of the SSE2 and the NEON intervals on
-two doubles each, and give the bounds of the SSE2 ones bit for bit, the sign of
-a zero included, for the product of finite bounds and the quotient by a divisor
-without zero (checked against a model of their kernels, not by running them).
+two doubles each, and give the bounds of the SSE2 ones bit for bit, but for the
+sign of a zero bound of a product (below), for the product of finite bounds
+and the quotient by a divisor without zero (checked against a model of their
+kernels, not by running them).
 An interval with an infinite bound, whose 0 times an infinity is no product to
 form, takes a function that sets both factors of such a product to 0 (the nine
 cases of GAOL 4 took 12.4 ns for operands with an infinite bound drawn at
@@ -1318,24 +1326,50 @@ With `GAOL_PRESERVE_ROUNDING` the write of the control register waits for the
 result, so that the longer wait of the product shows there as well: `x * y`
 takes 44.4 ns rather than 42.2 and the line of 7 `*` 307 rather than 279
 (`x * y` of random signs 44.3 rather than 49.1, `x / y` 45.2 as before, `sqr(x)`
-43.7 rather than 41.3). The operators write their result into the bounds of
-`*this` before the direction is restored, and need no `GAOL_RND_KEEP()`, which
-cost 2.6 ns more.
+43.7 rather than 41.3; a second measurement, by another hand, gave `x * y`
+46.7 rather than 42.2, `sqr(x)` 46.3 rather than 41.9 and the line of 7 `*` 326
+rather than 296, +10 to +11 %). The operators write their result into the
+bounds of `*this`, memory of the caller that is also given by address to the
+functions of the rare cases, which a call or an asm with a "memory" clobber
+that restores the direction finds written: the products they hold are computed
+before it, with the direction upward. That is how the compilers treat it (GCC
+15 for 32-bit ARM, the stores precede `bl fesetround`), not a rule of the
+language, and no test holds it: `GAOL_RND_KEEP()` would make it one, for 2.6 ns
+more with `GAOL_PRESERVE_ROUNDING`, and the former product and `x + y` did
+without.
 
 What a compiler makes of the choices is its own, and was read in the assembly
 on Compiler Explorer, not run. The maxima of the product are conditional moves
-with GCC (13 to 16) for 32-bit ARM, arm64, POWER9 and x86, with Clang, and with
-Visual C++ for x86, x64 and arm64, and branches on the products with GCC for
-POWER8, s390x and RISC-V, which have no conditional move of doubles. The
-choices of the quotient and of the square are conditional moves with GCC for
-POWER and with Clang and Visual C++ for arm64, and branches on a sign with GCC
-for 32-bit ARM (two in the quotient, one in the square), arm64 (one in the
-quotient), s390x and RISC-V, and with Visual C++ for x86 and x64.
+with GCC (13 to 16) for 32-bit ARM, arm64 and x86, with Clang, and with Visual
+C++ for x86 and arm64, `xsmaxcdp` instructions with GCC 13 for POWER9 (see
+below), and branches on the products with GCC for POWER8, s390x and RISC-V,
+which have no conditional move of doubles. The choices of the quotient and of
+the square are conditional moves with GCC for POWER and with Clang and Visual
+C++ for arm64, and branches on a sign with GCC for 32-bit ARM at `-O2` and
+`-O3` (two in the quotient with GCC 13 to 15, four with GCC 16, none in the
+square; at `-Os`, two in the square with GCC 14 and 15), arm64 (one in the
+quotient), s390x and RISC-V, and with Visual C++ for x86.
 
-The sign of a zero bound of a product or of a quotient changes where it is a
-tie of the maxima or the zero bound of the dividend: `[-1, 0] * [0, 1]` is now
-`[-1, -0]`, and `[0, 1] / [-2, -1]` has the upper bound −0, as with the SSE2
-intervals. The other bounds and the flags are those of the former code, as
+The sign of a zero bound of a product is **not specified** for the FPU
+intervals: where two products are zeros of opposite signs, +0 and −0, the
+maximum of the two is a comparison and a selection, and the compiler decides
+which of the two it returns. The `maxsd` of x86 returns its second operand, and
+the compilers that keep the order written do the same (the lower bound of
+`[-1, 0] * [-1, 0]` was +0 on the jobs of the continuous integration with GCC
+for 32-bit ARM and for arm64, with Clang for arm64 and with Visual C++ for x86),
+but GCC 13 for POWER9 compiles `(a > b) ? a : b` into `xsmaxcdp`, whose result
+for a +0 and a −0 is its first operand (the lower bound was −0 on the POWER9
+jobs under QEMU, and the assembly of Compiler Explorer shows six `xsmaxcdp` in
+the product and no other maximum; not run on a processor). The lower bound of `[-1, 0] * [-1, 0]`
+is therefore +0 with the SSE2 intervals, −0 with the NEON ones, and +0 or −0
+with the FPU ones, by the compiler and the target (+0 and −0 are the same
+number: `==` and `<` do not see it, and a program does not read it); so is the
+upper bound of `[-1, 0] * [0, 1]`. The sign of the zero bound of a quotient and
+of a square does not depend on a tie, and is fixed: `[0, 1] / [-2, -1]` has the
+upper bound −0 (the zero bound of the dividend is divided by a number whose
+sign the divisor's bounds choose), and `sqr(interval(-1, 2))` has the lower
+bound +0, which a selection of a constant sets. The other bounds and the flags
+are those of the former code, as
 `tests/tools/arith` (the four rounding directions of the caller) and 1.2
 million random operands of every kind, with and without the mode that flushes
 the subnormals to zero, show: `x * y` computes every corner product, as the
