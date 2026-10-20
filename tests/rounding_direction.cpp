@@ -244,6 +244,32 @@ namespace
 #endif
   }
 
+  /*
+    An interval built in the function from its arguments (GAOL v5), so that its
+    bounds are registers when width() is inlined there, and the call through
+    a pointer that keeps the compiler from inlining the function in the loop of
+    the test. GCC subtracted them before the check of the rounding direction
+    wrote the control register, in the program's direction, with the control
+    register of 64-bit ARM read and written by asm statements, which it does
+    not order with the operations on registers (bug 34678): width([1, 2^53 + 2])
+    was 2^53 below the upward direction
+  */
+  double built_width(double a, double b) { return interval(a, b).width(); }
+  double (*volatile width_of_arguments)(double, double) = built_width;
+
+  // l*(1 - ratio) + r*ratio rounded upward, from operands read from memory:
+  // the cut point of bisect()
+  double upward_cut(double l, double r, double ratio)
+  {
+    const int saved = std::fegetround();
+    std::fesetround(FE_UPWARD);
+    volatile double vl = l, vr = r, vq = ratio;
+    volatile double c = vl*(1.0 - vq) + vr*vq;
+    const double kept = c;
+    std::fesetround(saved);
+    return kept;
+  }
+
   // The rounding direction as fegetround() and the SSE control register give it
   struct State
   {
@@ -3006,6 +3032,26 @@ int main()
           z.left() == std::nextafter((std::numeric_limits<double>::max)(), 0.0)
               && z.right() == (std::numeric_limits<double>::max)(),
           [&] { return hex(z); });
+  }
+  /*
+    width() of an interval built in the function, and the cut point of
+    bisect(), are computed upward whatever the direction of the calling code
+    (GAOL v5; see built_width()): the width of [1, 2^53 + 2] is 2^53 + 1,
+    which the upward direction rounds to 2^53 + 2, where the other directions
+    round it to 2^53; the cuts of [0.3, 7.7] at 0.3 and of [1, 1e16] at 0.7 are
+    inexact too
+  */
+  for (const Direction& d : directions) {
+    set(d);
+    const double w = width_of_arguments(1.0, 9007199254740994.0);
+    const std::pair<interval, interval> a = interval(0.3, 7.7).bisect(0.3), b = interval(1.0, 1e16).bisect(0.7);
+    set(directions[0]);
+    check("width() of an interval built from its arguments is rounded upward", w == 9007199254740994.0,
+          [&] { return std::string("the direction of the program ") + d.name + ": " + hex(w); });
+    check("the cut point of bisect(0.3) is computed upward", a.first.right() == upward_cut(0.3, 7.7, 0.3),
+          [&] { return std::string("the direction of the program ") + d.name + ": " + hex(a.first.right()) + " rather than " + hex(upward_cut(0.3, 7.7, 0.3)); });
+    check("the cut point of bisect(0.7) is computed upward", b.first.right() == upward_cut(1.0, 1e16, 0.7),
+          [&] { return std::string("the direction of the program ") + d.name + ": " + hex(b.first.right()) + " rather than " + hex(upward_cut(1.0, 1e16, 0.7)); });
   }
   const std::vector<HugeInterval> huge = huge_intervals();
   check("the intervals with a huge bound: the subnormal bound is 2^-1074",
