@@ -1,0 +1,169 @@
+# The speed of GAOL before and after a pull request (GAOL v5): the base of the
+# pull request and its merge commit are built in the same job, gaol_performance
+# is run three times with each, alternately, and the table of the medians, base
+# against pull request, is written in the summary of the job. The times of the
+# runners are not comparable from one run to the next (they are virtual
+# machines shared with other jobs: x * y with Visual C++ x64 took 7.9 and then
+# 16.3 ns, sqrt with MSYS2 6.8 and then 170 ns, on code that had not changed),
+# so that two builds are measured in turn in one job instead. The table never
+# fails a job: only a difference of several times means something, and the
+# table says so.
+#
+# Only for a pull request that changes what is measured (the paths below), and
+# with the CMake build alone, for gaol_performance and, on Linux, macOS and
+# with Visual C++, the ten long lines of doc/compare/code/run_lines.sh
+# (gaol_bench) too. Not for the jobs of the other workflows, whose step
+# Performance prints one table, which no other run compares. The jobs of
+# armhf and arm64 that compare the control register of the rounding direction
+# with the functions of the C library are in containers.yml, with the same
+# scripts (.github/scripts/performance-ab.sh and compare-performance.py).
+# See doc/continuous-integration.md.
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-10-20 by Jordan NININ
+
+name: Performance
+
+on:
+  pull_request:
+    paths:
+      - 'gaol/**'
+      - '3rd/**'
+      - 'tests/performance.cpp'
+      - 'doc/compare/code/bench*'
+      - 'CMakeLists.txt'
+      - '**/CMakeLists.txt'
+      - 'cmake/**'
+      - '.github/scripts/performance-ab.sh'
+      - '.github/scripts/compare-performance.py'
+      - '.github/workflows/performance.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # actions/checkout runs git init, whose hint about the name of the initial
+  # branch was in the log of every job
+  GIT_CONFIG_COUNT: 1
+  GIT_CONFIG_KEY_0: init.defaultBranch
+  GIT_CONFIG_VALUE_0: main
+
+jobs:
+  compare:
+    name: ${{ matrix.cfg.desc }}
+    runs-on: ${{ matrix.cfg.os }}
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    # The generator and the platform of Visual Studio, and the Python of
+    # Windows, which the scripts take from these variables; empty elsewhere,
+    # which they take for none
+    env:
+      CMAKE_GENERATOR: ${{ matrix.cfg.generator }}
+      CMAKE_GENERATOR_PLATFORM: ${{ matrix.cfg.arch }}
+      PYTHON: ${{ matrix.cfg.python }}
+    strategy:
+      fail-fast: false
+      matrix:
+        cfg:
+          - { os: ubuntu-24.04, opts: '-DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++',     desc: 'Ubuntu 24.04 x86_64 GCC' }
+          - { os: ubuntu-24.04, opts: '-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++', desc: 'Ubuntu 24.04 x86_64 Clang' }
+          - { os: ubuntu-24.04, opts: '-DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DGAOL_PRESERVE_ROUNDING=ON', desc: 'Ubuntu 24.04 x86_64 GCC, rounding direction preserved' }
+          - { os: macos-26, opts: '', desc: 'macOS 26 arm64' }
+          - { os: windows-2025-vs2026, generator: 'Visual Studio 18 2026', arch: x64,   python: python, opts: '', desc: 'Visual Studio 2026 x64' }
+          - { os: windows-2025-vs2026, generator: 'Visual Studio 18 2026', arch: Win32, python: python, opts: '', desc: 'Visual Studio 2026 x86' }
+          - { os: windows-2025-vs2026, generator: 'Visual Studio 18 2026', arch: x64,   python: python, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Visual Studio 2026 x64, rounding direction preserved' }
+    steps:
+      # The merge commit of the pull request and its first parent, which is the
+      # base it was merged into: the difference of the two is the pull request
+      # alone, whatever the base branch has gained since the pull request was
+      # started
+      - uses: actions/checkout@v7
+        with:
+          path: pr
+          fetch-depth: 2
+      - name: The base
+        id: base
+        run: echo "sha=$(git -C pr rev-parse HEAD^1)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.base.outputs.sha }}
+          path: base
+      - name: Tools
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q g++ clang cmake make python3-numpy
+      - name: Versions
+        run: cmake --version
+      - name: Build both, and measure them in turn
+        run: sh pr/.github/scripts/performance-ab.sh --before-src base --after-src pr --options "${{ matrix.cfg.opts }}" --lines
+      - name: The table
+        run: |
+          py=python3
+          if [ "$RUNNER_OS" = Windows ]; then py=python; fi
+          {
+            echo "### ${{ matrix.cfg.desc }}"
+            echo
+            echo "base \`$(git -C pr rev-parse --short HEAD^1)\`, pull request \`$(git -C pr rev-parse --short HEAD^2)\`"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+          $py pr/.github/scripts/compare-performance.py base perf-before-*.md -- PR perf-after-*.md | tee -a "$GITHUB_STEP_SUMMARY"
+          # The ten long lines, where they were measured
+          if ls perf-lines-after-*.csv > /dev/null 2>&1; then
+            { echo; echo "The ten long lines of doc/compare/code/run_lines.sh:"; echo; } >> "$GITHUB_STEP_SUMMARY"
+            $py pr/.github/scripts/compare-performance.py base perf-lines-before-*.csv -- PR perf-lines-after-*.csv | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+
+  # MinGW-w64 GCC and Clang of MSYS2, whose times varied most from one run to
+  # the next (sqrt 6.8 and 170 ns): gaol_performance only, the MSYS2 shell
+  # having no Python for the long lines. The table is written with the Python of
+  # the runner, which the shell of MSYS2 does not see.
+  msys2:
+    name: ${{ matrix.cfg.desc }}
+    runs-on: windows-2022
+    timeout-minutes: 45
+    env:
+      CMAKE_GENERATOR: Ninja
+    strategy:
+      fail-fast: false
+      matrix:
+        cfg:
+          - { msystem: UCRT64,  packages: ucrt-x86_64,  opts: '-DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++',     desc: 'MSYS2 UCRT64 GCC x64' }
+          - { msystem: CLANG64, packages: clang-x86_64, opts: '-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++', desc: 'MSYS2 CLANG64 Clang x64' }
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: pr
+          fetch-depth: 2
+      - name: The base
+        id: base
+        shell: bash
+        run: echo "sha=$(git -C pr rev-parse HEAD^1)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.base.outputs.sha }}
+          path: base
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{ matrix.cfg.msystem }}
+          install: mingw-w64-${{ matrix.cfg.packages }}-toolchain mingw-w64-${{ matrix.cfg.packages }}-cmake mingw-w64-${{ matrix.cfg.packages }}-ninja
+      - name: Build both, and measure them in turn
+        shell: msys2 {0}
+        run: sh pr/.github/scripts/performance-ab.sh --before-src base --after-src pr --options "${{ matrix.cfg.opts }}"
+      - name: The table
+        shell: bash
+        run: |
+          {
+            echo "### ${{ matrix.cfg.desc }}"
+            echo
+            echo "base \`$(git -C pr rev-parse --short HEAD^1)\`, pull request \`$(git -C pr rev-parse --short HEAD^2)\`"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+          python pr/.github/scripts/compare-performance.py base perf-before-*.md -- PR perf-after-*.md | tee -a "$GITHUB_STEP_SUMMARY"
