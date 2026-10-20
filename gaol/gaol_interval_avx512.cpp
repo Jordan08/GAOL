@@ -165,6 +165,9 @@
 #  define GAOL_SAVE_AND_CLEAR_FLUSH(saved) do { (saved) = get_flush_modes(); clear_flush_to_zero(); } while (0)
 #  define GAOL_SET_FLUSH(modes) set_flush_modes(modes)
 #else
+#  ifdef _ISO_VOLATILE
+#    error "The AVX-512 path of Visual C++ orders its operations by volatile accesses, which /volatile:iso (_ISO_VOLATILE) does not order with the other memory accesses and the calls: compile with /volatile:ms, the default for x86 and x64, or with -DGAOL_PREFER_AVX512=OFF (see the head of flush_guard)"
+#  endif
   // The reads and writes of the control register in functions that are not
   // inlined, for Visual C++ (see flush_guard below); the modes the guard gives
   // back are the value the call returns, which no move of the read past the

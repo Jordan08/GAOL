@@ -45,7 +45,11 @@ request (GAOL v5); `workflow_dispatch` runs them on any branch. The badges of
     arm64 those of the FPU, which a step of each job checks. Two x64 jobs ask
     for the AVX-512 path (`GAOL_PREFER_AVX512`), as the one with the rounding
     direction preserved does by default: they take it where the runner has the
-    instructions, which the step tells, with a warning where it has not;
+    instructions, which the step tells, with a warning where it has not. The
+    runners have none, so that five more jobs run the unit tests that compute
+    with intervals under Intel SDE, which emulates a processor with them
+    (Visual Studio 2022 and 2026, Release and Debug, and clang-cl, with
+    `GAOL_PRESERVE_ROUNDING` or `GAOL_PREFER_AVX512`);
   - clang-cl, the Clang of Visual Studio (toolset `ClangCL`): of Visual
     Studio 2022 on x64, Release and Debug, and of Visual Studio 2026 on x86,
     x64 and arm64, Release. On x64 it defines `__x86_64__` and `_WIN32` but
