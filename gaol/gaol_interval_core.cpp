@@ -25,13 +25,14 @@
   \date   2001-09-28
 */
 
-// SIMD (GAOL v5, doc/simd.md): the two bounds of an interval are the two lanes of one vector, and
-// + - * / sqr (and sqrt with NEON and the AVX-512 path) are vector kernels of gaol_interval_sse.cpp,
-// gaol_interval_neon.cpp and gaol_interval_avx512.cpp; the integer powers have a two-lane FMA kernel
-// with SSE2 and AVX-512. What is scalar in this file is so on purpose: the elementary functions are
-// CORE-MATH calls, one per bound, and the rest are branches on the bounds. doc/simd.md lists what could
-// still gain (sqrt with SSE2, the integer powers with NEON, mid(), the reduction of the argument of sin()
-// and cos()) and what the other processors would need
+// SIMD (GAOL v5, doc/simd.md): with SSE2 and NEON the two bounds of an interval are the two lanes of one
+// vector, and + - * / sqr are vector kernels of gaol_interval_sse.cpp and gaol_interval_neon.cpp (sqrt too
+// with NEON); the AVX-512 path of gaol_interval_avx512.cpp carries the rounding direction in the
+// instruction, its square root being two scalar roots, and the integer powers have a two-lane FMA kernel
+// with SSE2 and AVX-512 where __FMA__ is. What is scalar in this file is the elementary functions, which
+// are CORE-MATH calls, one per bound, and the operations made of branches on the bounds. doc/simd.md lists
+// what could still gain (sqrt with SSE2, the integer powers with NEON, mid(), the reduction of the argument
+// of sin() and cos()) and what the other processors would need
 
 #include <iostream>
 #include <iomanip>
