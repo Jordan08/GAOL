@@ -1378,8 +1378,7 @@ program (with SIGFPE on Linux) instead of letting the operation give its
 bounds.
 
 - An infinite bound comes from a division by zero or from an overflow:
-  `log([0, 1])`, which is `[-oo, 0]`, raises the divide-by-zero exception, and
-  so does `1/[0, 1]`, which is `[1, +oo]`, with the SSE2 intervals;
+  `log([0, 1])`, which is `[-oo, 0]`, raises the divide-by-zero exception;
   `[1e308]*10`, which is `[DBL_MAX, +oo]`, raises the overflow exception.
 - Almost every operation raises the inexact exception: most bounds are rounded
   results, and where GAOL checks the rounding direction with an addition,
