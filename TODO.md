@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `98413b0` de `configure-clean`, le 20
+Ce qui reste à faire sur GAOL v5 au commit `d156e29` de `configure-clean`, le 20
 octobre 2026. Ce fichier ne garde que cela : le travail fait, ses pull requests,
 ses décisions et ses mesures sont dans l'issue #49 (« Fusionné depuis le 30
 septembre » et les sections « Décidé le… »), dans les descriptions des pull
@@ -202,10 +202,9 @@ originaux au commit `16a2f60`.
 
 ## En cours
 
-Quatre pull requests sont ouvertes : #152 (SSE2 sur Windows 32 bits avec GCC et
-Clang), #156 (point 108, x86 32 bits), #157 (point AI.106, les noyaux scalaires
-des intervalles FPU, brouillon) et #158 (point AC.81, `nth_root` d'un
-sous-normal).
+Trois pull requests sont ouvertes : #156 (point 108, x86 32 bits), #157 (point
+AI.106, les noyaux scalaires des intervalles FPU, brouillon) et #158 (point
+AC.81, `nth_root` d'un sous-normal).
 
 ## À corriger avant la version
 
@@ -647,10 +646,10 @@ La CI de #124 (`1a15fc8` et `c6a3d25`, 17 octobre) écrit le tableau de
 `gaol_performance` dans l'étape « Performance » de ses jobs : c'est la seule
 mesure que nous ayons sur macOS et sur Windows. Les noyaux de #124 (`+ - * /` et
 `sqr` sans branche sur les signes, bornes en registre) ne servent que les
-intervalles SSE2, c'est-à-dire x86-64 hors Windows 32 bits (Visual C++ et
-clang-cl x64 compris depuis #148), et, depuis #146, les intervalles NEON
-d'arm64 : les intervalles FPU ont encore le `switch` sur les signes et les
-opérandes en mémoire que #124 a retirés des SSE2.
+intervalles SSE2, c'est-à-dire x86-64 (Visual C++ et clang-cl x64 compris
+depuis #148), Windows 32 bits avec GCC et Clang depuis #152, et, depuis #146,
+les intervalles NEON d'arm64 : les intervalles FPU ont encore le `switch` sur les
+signes et les opérandes en mémoire que #124 a retirés des SSE2.
 Pour la ligne de 13 opérations `+ - * /` du tableau, en ns : 33 sur Linux x86-64
 (job d'autotools, Ubuntu 24.04), 36 sur macOS 15 x86-64, 33 à 58 avec MinGW-w64
 et MSYS2, 64 à 93 sur macOS arm64, 100 à 168 avec Visual C++ x64 et arm64 et
@@ -805,6 +804,27 @@ la CI de `5fa7203`). Voir le 111 pour ce que valent ces temps.
   instructions contre 266). `perf` n'est pas permis sur cette machine. Les
   mesures d'alors sont faites avec Clang 18 ; les refaire avec Clang 21, le
   compilateur des mesures depuis le 13 octobre, avant de chercher.
+
+- **Suites de #152 (AI), Windows 32 bits : les intervalles SSE2 avec GCC et
+  Clang** (`-faligned-new=8`, donné par `gaol::gaol`, `gaol.pc` et `gaol_dep`),
+  relevées par la relecture, non faites :
+  - aucun job ne construit autotools ni meson avec MinGW-w64 x86 (le MSYS2 de
+    `build-systems.yml` est x64), et l'audit des trois builds ne tourne pas sous
+    Windows : leur accord pour Windows 32 bits n'est vérifié que par simulation
+    (`CXXFLAGS=-D_WIN32`) ;
+  - `-faligned-new=8` ne règle que le tas : l'alignement de la pile 32 bits
+    (GCC, bogue 40838) concernerait des intervalles locaux dans des fonctions
+    que l'API de Windows appelle avec une pile alignée sur 4 octets (fils
+    d'exécution, rappels) ; non testé ;
+  - `gaol.pc` et `gaol_dep` de meson donnent `-faligned-new=8` à tout fichier,
+    C compris, et GCC avertit alors pour un fichier C (« valid for C++/ObjC++
+    but not for C ») ; `gaol::gaol` de CMake le réserve au C++.
+
+  Visual C++ et clang-cl gardent les intervalles FPU sur x86 (décidé le 20
+  octobre) : leur `/Zc:alignedNew` ne suffit pas, seul C++17 allume le `new`
+  aligné (Compiler Explorer, MSVC 19.51 et clang-cl 22), ce qui ferait compiler
+  en C++17 tout le code qui utilise GAOL. Les jobs MinGW-w64 x86 (12.2 à 15.2)
+  passent avec le drapeau.
 
 ### AJ. Se passer du changement du sens d'arrondi (113)
 
