@@ -2412,7 +2412,10 @@ interval x = textToInterval("[-23, inf]"),
 \begin{deffun}{interval}{textToInterval}{(const std::string\& \var{sl}, const std::string\& \var{sr})}
   Returns the interval whose left bound is the one of the interval the
   string \var{sl} writes, and whose right bound is the one of the interval
-  \var{sr} writes, and the empty set when the first is above the second.
+  \var{sr} writes, and the empty set when the lower bound of the first is above
+  the upper bound of the second (the intervals the two strings write, each
+  rounded outward, not the numbers: \code{textToInterval("[l,u]")} orders the
+  numbers).
   \begin{example}
  @rem^// x=[-4,4]~
  interval x = textToInterval("[-5,4]+1","[4,6]-[2,3]");
@@ -4871,7 +4874,14 @@ is not in the list, or a call with a wrong number of arguments, throws
 be a point interval that can be evaluated as an integer, negative ones
 included; otherwise, an \element{invalid\_action\_error} exception is thrown
 (or an error is reported, depending on whether exceptions were enabled or not
-at configuration time---\pxref{sec:configuration}). GAOL~4 read the
+at configuration time---\pxref{sec:configuration}).\newinvfive{} The integer
+may be of any size a double holds: \code{"nth\_root(8,3000000000)"} is
+\code{nth\_root(8, 3000000000LL)}, where it was refused beyond the
+\code{int}s. One of $2^{63}$ or more in magnitude is taken as $\pm(2^{63}-2)$:
+the integer powers are the same, and the enclosure of the roots of that order
+holds those of the larger orders. The second argument of \code{pown} and
+\code{rootn}, with the names of the standard, is read in the same way.
+GAOL~4 read the
 trigonometric and hyperbolic functions, \code{exp}, \code{log}, \code{pow},
 \code{sqrt} and \code{nth\_root} only.
 
@@ -4879,7 +4889,17 @@ trigonometric and hyperbolic functions, \code{exp}, \code{log}, \code{pow},
 in bounds are evaluated using interval arithmetic, intervals included; the left
 (resp. right) bound of the result is then used, depending on the side it
 appeared in: \code{"[cos([0,1]), 2]"} is \itv{\cos 1}{2}. A bound left out is
-infinite. The two bounds in the string ``\element{<a, b>}'' must be expressions
+infinite. An interval literal \code{[l, u]} whose left bound is above its right
+bound is the empty set, as in IEEE 1788-2015: \code{"[2,1]"}, and also
+\code{"[9007199254740993, 9007199254740992]"} and
+\code{"[1.00000000000000001, 1]"}, whose numbers are compared exactly with the
+doubles around them, a number that is not a double lying strictly between the
+two doubles around it.\newinvfive{} They were read as the points $2^{53}$ and
+1. Two numbers that are not doubles and lie between the same two doubles (or
+both beyond the largest, or below the least positive one), and bounds that are
+computed, as \code{1/3}, are not told apart: the literal is then the interval
+from the lower bound of the first to the upper bound of the second.
+The two bounds in the string ``\element{<a, b>}'' must be expressions
 that evaluate to the same double even for different rounding directions: an
 \element{input\_format\_error} exception is raised otherwise, as for
 \code{"<0.1, 0.1>"}. The two doubles are compared by their bits, $-0$ and $+0$
