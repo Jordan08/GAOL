@@ -12,8 +12,8 @@
  * refused_aligned_new_positive of tests/CMakeLists.txt compile it with
  * -D_WIN32 -U_WIN64, which stand for the target on any system where the
  * intervals are the SSE2 ones: without -faligned-new=8 (in C++11, and in C++17,
- * where GCC and Clang ask for aligned memory for what is aligned on more than
- * 16 bytes only), the compilation has to fail with the message of
+ * where GCC, and Clang for x86-64, still take the memory of new to be aligned on
+ * 16 bytes), the compilation has to fail with the message of
  * gaol/gaol_config.h; with it, it has to succeed. tests/refused_options.sh does
  * the same in the autotools and meson builds. The header alone, not
  * <gaol/gaol>: the system headers of a Linux or a macOS do not take _WIN32.

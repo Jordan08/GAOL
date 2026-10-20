@@ -1095,8 +1095,8 @@ point Q), which `numbers` checks there too.
   `movaps`. `tests/refused_aligned_new.cpp`, which includes that header alone,
   is compiled with `-D_WIN32 -U_WIN64`, which stand for the target on any
   system, and without the `-faligned-new=8` that the flags carry on 32-bit
-  Windows, in C++11 and in C++17 (GCC and Clang ask for aligned memory in C++17
-  for what is aligned on more than 16 bytes only), and the compilation has to
+  Windows, in C++11 and in C++17 (GCC, and Clang for x86-64, still take the
+  memory of `new` to be aligned on 16 bytes in C++17), and the compilation has to
   fail with the message of the header; with the option, it has to compile. On
   32-bit Windows itself, where the system headers take no `-U_WIN64`, the whole
   suite is the test: the SSE2 intervals crash without the option, and
