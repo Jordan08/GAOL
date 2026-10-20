@@ -112,6 +112,16 @@
 #else
 #  define GAOL_TESTS_FPCR 0
 #endif
+// The same for the sequence of a write of the control register and an
+// operation, which 32-bit ARM processors with a floating-point unit have too:
+// FPSCR, read with vmrs and written with vmsr (GAOL v5)
+#ifndef GAOL_TESTS_FPCR_SEQUENCE
+#  if GAOL_TESTS_FPCR || (defined(__arm__) && !defined(__aarch64__) && defined(__GNUC__) && defined(__ARM_FP) && (__ARM_FP & 8))
+#    define GAOL_TESTS_FPCR_SEQUENCE 1
+#  else
+#    define GAOL_TESTS_FPCR_SEQUENCE 0
+#  endif
+#endif
 
 using namespace gaol;
 using namespace gaol_tests;
@@ -1330,10 +1340,11 @@ namespace
     { "x %= d", [] { return over_doubles(" %= ", [](const interval& x, double d) { interval z(x); z %= d; return z; }, remainder_by); } },
   };
 
-#if GAOL_TESTS_FPCR
+#if GAOL_TESTS_FPCR_SEQUENCE
   /*
     FPCR, the control register of 64-bit ARM processors, read with mrs and
-    written with msr (GAOL v5), apart from the library: whatever the
+    written with msr, and FPSCR of the 32-bit ones, with vmrs and vmsr (GAOL
+    v5), apart from the library: whatever the
     intervals, NEON or FPU, the operations write it, and the tests below check
     what they write and when. Its bits: the rounding direction (RMode, bits
     23:22), the modes that flush the subnormals to zero (FZ, bit 24, and FIZ,
@@ -1347,14 +1358,25 @@ namespace
   */
   unsigned long long read_fpcr()
   {
+#if defined(__aarch64__)
     unsigned long long fpcr;
     __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));
     return fpcr;
+#else
+    unsigned int fpscr; // its exception flags and its comparison flags are in the register too
+    __asm__ __volatile__ ("vmrs %0, fpscr" : "=r" (fpscr));
+    return fpscr;
+#endif
   }
 
   void write_fpcr(unsigned long long fpcr)
   {
+#if defined(__aarch64__)
     __asm__ __volatile__ ("msr fpcr, %0" : : "r" (fpcr) : "memory");
+#else
+    const unsigned int fpscr = static_cast<unsigned int>(fpcr);
+    __asm__ __volatile__ ("vmsr fpscr, %0" : : "r" (fpscr) : "memory");
+#endif
   }
 
   std::string fpcr_text(unsigned long long fpcr)
@@ -1411,6 +1433,7 @@ namespace
     enabled, where the processor retains the enable bits: an operation that
     writes FPCR whole, or that raised an exception, would kill the program
   */
+#if GAOL_TESTS_FPCR
   const EmptyOperand exact_operations[] = {
     { "x + y", [] { return (make(1.0, 2.0) + make(4.0, 8.0)).set_eq(interval(5.0, 10.0)); } },
     { "x - y", [] { return (make(1.0, 2.0) - make(4.0, 8.0)).set_eq(interval(-7.0, -2.0)); } },
@@ -1437,6 +1460,7 @@ namespace
     { "inverse(y)", [] { return inverse(make(4.0, 8.0)).set_eq(interval(0.125, 0.25)); } },
   };
 #endif // GAOL_TESTS_FPCR
+#endif // GAOL_TESTS_FPCR_SEQUENCE
 
   /*
     The midpoint of an interval with a bound of 2^1023 or more in magnitude,
@@ -2066,7 +2090,7 @@ int main()
     }
   }
 
-#if GAOL_TESTS_FPCR
+#if GAOL_TESTS_FPCR_SEQUENCE
   /*
     The same operations right after the program wrote FPCR, in the four
     directions in turn (see sequence_in_a_loop()), 2^16 times each
@@ -2113,7 +2137,7 @@ int main()
       }
     }
   }
-#endif // GAOL_TESTS_FPCR
+#endif // GAOL_TESTS_FPCR_SEQUENCE
 
   /*
     The exception flags the program raised, and its exception masks, are
