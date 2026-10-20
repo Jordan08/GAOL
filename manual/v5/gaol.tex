@@ -522,12 +522,15 @@ The options are given to the first command, as \option{-D\var{option}=\var{value
   (\pxref{sec:rounding-direction});
 \cindex{rounding!preserving}%
 \item \option{GAOL\_PREFER\_AVX512}. \code{OFF} by default, and \code{ON}
-  by default with the previous option: the four arithmetic operations and the
-  square root take the AVX-512 instructions, which carry their rounding
-  direction and set none, where the compiler takes them and the machine
-  building runs them, never when cross-compiling. The library then needs a
-  processor with them, as with \option{GAOL\_FMA}, and \code{OFF} builds it
-  for any processor of the architecture (\pxref{sec:rounding-direction});\newinvfive
+  by default with the previous option: the four arithmetic operations, the
+  square, the square root and the integer powers take the AVX-512
+  instructions, which carry their rounding direction and set none, where the
+  compiler takes them and the machine building runs them, never when
+  cross-compiling. The library then needs a processor with them, as with
+  \option{GAOL\_FMA}, and \code{OFF} builds it for any processor of the
+  architecture (\pxref{sec:rounding-direction}). The default is derived again
+  at every \cmd{cmake} that is given no value for it, and a value given stays
+  until \option{-UGAOL\_PREFER\_AVX512};\newinvfive
 \cindex{AVX-512}%
 \item \option{GAOL\_COVERAGE}. \code{OFF} by default: compiles GAOL and its
   tests with the counters of gcov, and adds the target \code{coverage}, which
@@ -647,9 +650,10 @@ put the header files. It defaults to \file{\var{prefix-dir}/include};
   This option defaults to \code{no};
 \cindex{rounding!preserving}%
 \item \loption{enable-prefer-avx512[=\var{yes/no}]}. The AVX-512 instructions
-  for the four arithmetic operations and the square root, where the machine
-  building runs them, as \option{GAOL\_PREFER\_AVX512}. This option defaults
-  to the value of \loption{enable-preserve-rounding};\newinvfive
+  for the four arithmetic operations, the square, the square root and the
+  integer powers, where the machine building runs them, as
+  \option{GAOL\_PREFER\_AVX512}. This option defaults to the value of
+  \loption{enable-preserve-rounding};\newinvfive
 \item \loption{enable-exceptions[=\var{yes/no}]}. If enabled, errors
   are reported by throwing an exception (\pxref{sec:exceptions}); otherwise,
   by calling \code{gaol\_error()}, which prints a message to the standard error
@@ -1134,9 +1138,9 @@ times without it (\pxref{sec:upward-effects}); it also restores the modes flushi
 subnormals to zero that the operation cleared (\pxref{sec:ftz}). It is off by
 default in the three builds. With it, \option{GAOL\_PREFER\_AVX512} is on by
 default: where the machine building has the AVX-512 instructions, the four
-arithmetic operations and the square root take them, which carry their
-rounding direction, set none and store none, and the library then needs a
-processor with them.\newinvfive
+arithmetic operations, the square, the square root and the integer powers take
+them, which carry their rounding direction, set none and store none, and the
+library then needs a processor with them.\newinvfive
 
 Without it, the rounding direction stays upward from the initialization of
 GAOL on, for the whole program, and \code{cleanup()} sets back the one that the

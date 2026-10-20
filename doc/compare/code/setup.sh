@@ -145,15 +145,18 @@ fi
 ## in a prefix of its own: the benchmark has a column for it. GAOL_PREFER_AVX512
 ## is left at its default, which is ON with GAOL_PRESERVE_ROUNDING where the
 ## compiler takes the AVX-512 instructions and the machine building runs them:
-## +, -, *, / and sqrt then take them, the rounding direction being in the
-## instruction (the library then needs a processor with them)
+## +, -, *, /, sqr, sqrt and the integer powers then take them, the rounding
+## direction being in the instruction (the library then needs a processor with
+## them)
 if [ -f "$GAOL_PRESERVE_PREFIX/include/gaol/gaol.h" ] && [ -z "${FORCE_GAOL:-}" ]; then
   echo "== GAOL, rounding direction preserved: already in $GAOL_PRESERVE_PREFIX (FORCE_GAOL=1 to rebuild)"
 else
   echo "== GAOL, rounding direction preserved ($(git -C "$ROOT_DIR" describe --always --dirty 2>/dev/null || echo "?"))"
   # -U: the default of GAOL_PREFER_AVX512 is derived where the command line says
-  # nothing, but a second configure in the same directory finds the OFF the first one
-  # cached, takes it for the command line's, and leaves the AVX-512 path out
+  # nothing, and a second configure in the same directory derives it again (point
+  # 112 of TODO.md); but a directory configured before that holds the OFF the first
+  # configure cached, which was taken for the command line's, and leaves the AVX-512
+  # path out
   cmake -S "$ROOT_DIR" -B "$WORK/gaol-preserve-build" -UGAOL_PREFER_AVX512 -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="$GAOL_PRESERVE_PREFIX" -DCMAKE_INSTALL_LIBDIR=lib \
         -DCMAKE_CXX_COMPILER="$CXX" -DCMAKE_C_COMPILER="$CC" -DGAOL_PRESERVE_ROUNDING=ON \
@@ -162,7 +165,7 @@ else
   cmake --install "$WORK/gaol-preserve-build" > "$WORK/gaol-preserve-install.log"
 fi
 if grep -q "^#define GAOL_AVX512_ARITHMETIC 1" "$GAOL_PRESERVE_PREFIX/include/gaol/gaol_configuration.h"; then
-  echo "   the AVX-512 path of + - * / sqrt is on"
+  echo "   the AVX-512 path of + - * / sqrt sqr and pown is on"
 else
   echo "   note: the AVX-512 path is off here (no AVX-512 compiler or processor): the column of the preserved direction is SSE2's"
 fi
