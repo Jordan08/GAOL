@@ -660,7 +660,13 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
     } else {
       double sum = r - l;     // a+b, rounded upward
       double opp_sum = l - r; // -(a+b), rounded upward
+#if defined(_MSC_VER) && !defined(__clang__)
+      // The half goes through rnd_keep() before it is negated, for the reason
+      // given above (-(.5*x) is not (-.5)*x in the rounding direction upward)
+      mid_left  = -gaol_core::rnd_keep(.5*opp_sum);
+#else
       mid_left  = -(.5*opp_sum);
+#endif
       mid_right = .5*sum;
     }
     GAOL_RND_KEEP(mid_left); GAOL_RND_KEEP(mid_right);
