@@ -1269,12 +1269,15 @@ AVX-512 path (above, and [Accuracy](accuracy.md)).
 The intervals of the processors that have neither SSE2 nor NEON keep their two
 bounds as two doubles, the lower one negated as in the SSE2 and the NEON
 intervals, and compute with the scalar floating-point unit. They are the
-intervals of 32-bit ARM, POWER, s390x, RISC-V and the other processors, of
-Windows on 32-bit x86 (Visual C++, clang-cl and MinGW-w64; 64-bit Windows has
-the SSE2 intervals, Visual C++ and clang-cl included) and on arm64 (Visual C++,
-clang-cl and MinGW-w64; the NEON intervals are for Linux and macOS, with GCC
-and Clang), and of the builds that ask for them (`-DGAOL_SIMD=OFF` on x86,
-`-DGAOL_ARM64=OFF` on 64-bit ARM, which leave `GAOL_USING_SSE2_INSTRUCTIONS`
+intervals of 32-bit ARM, POWER, s390x, RISC-V and the other processors; of
+Windows on 32-bit x86 with Visual C++ and clang-cl (and the Clang that simulates
+Visual C++), which have no flag to ask for the aligned memory the SSE2
+intervals need (MinGW-w64 with GCC and Clang takes the SSE2 intervals there,
+with `-faligned-new=8`, unless the compiler does not take the flag, and so does
+64-bit Windows, Visual C++ and clang-cl included); of Windows on arm64 with
+Visual C++, clang-cl and MinGW-w64 (the NEON intervals are for Linux and macOS,
+with GCC and Clang); and of the builds that ask for them (`-DGAOL_SIMD=OFF` on
+x86, `-DGAOL_ARM64=OFF` on 64-bit ARM, which leave `GAOL_USING_SSE2_INSTRUCTIONS`
 and `GAOL_USING_NEON_INSTRUCTIONS` at 0 in `gaol_configuration.h`). What is
 measured below is the Apple M2 only.
 
