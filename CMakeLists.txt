@@ -181,14 +181,46 @@ option(GAOL_FMA "Compile GAOL and CORE-MATH with the fused multiply-add instruct
 # GAOL_PRESERVE_ROUNDING, as -DGAOL_PREFER_AVX512=ON takes it without it.
 # The default derives at every configure where the command line said
 # nothing, from GAOL_PRESERVE_ROUNDING above (GAOL v5).
+#
+# The entry cannot say by itself whether the command line gave it (GAOL v5,
+# point 112 of TODO.md): option() made it at the first configure, whatever the
+# default derived, and DEFINED took it at the second for a request, so that a
+# build directory configured with GAOL_PRESERVE_ROUNDING lost the AVX-512 path
+# at its second cmake. The entry now holds the value the configure derived,
+# and the internal entry GAOL_PREFER_AVX512_DERIVED the same value. While the
+# entry still holds it, it is a leftover, and the default is derived again.
+# Another value is a request, and so is the help string of the command line,
+# "No help, variable specified on the command line.", which CMake gives an
+# entry that -D sets, even to the value it had. A request drops the record and
+# stays the command line's until -UGAOL_PREFER_AVX512. A build directory
+# configured before this holds the OFF that option() cached, a request of OFF:
+# -UGAOL_PREFER_AVX512 derives the default again.
+set(GAOL_PREFER_AVX512_HELP "Have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, which sets no rounding direction, where the machine building runs them: the library then needs a processor with them (OFF: the operations set the direction upward; ON by default with GAOL_PRESERVE_ROUNDING)")
+function(gaol_keep_prefer_avx512 value)
+  set(GAOL_PREFER_AVX512 "${value}" CACHE BOOL "${GAOL_PREFER_AVX512_HELP}" FORCE)
+  set(GAOL_PREFER_AVX512_DERIVED "${value}" CACHE INTERNAL "The value of GAOL_PREFER_AVX512 the last configure derived (GAOL v5): the entry is a request unless it still holds it")
+endfunction()
+set(GAOL_PREFER_AVX512_EXPLICIT OFF)
 if(DEFINED GAOL_PREFER_AVX512)
   set(GAOL_PREFER_AVX512_EXPLICIT ON)
-else()
-  set(GAOL_PREFER_AVX512_EXPLICIT OFF)
+  get_property(_gaol_help CACHE GAOL_PREFER_AVX512 PROPERTY HELPSTRING)
+  if(DEFINED GAOL_PREFER_AVX512_DERIVED
+     AND "${GAOL_PREFER_AVX512}" STREQUAL "${GAOL_PREFER_AVX512_DERIVED}"
+     AND NOT "${_gaol_help}" STREQUAL "No help, variable specified on the command line.")
+    set(GAOL_PREFER_AVX512_EXPLICIT OFF)
+  endif()
 endif()
-option(GAOL_PREFER_AVX512 "Have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, which sets no rounding direction, where the machine building runs them: the library then needs a processor with them (OFF: the operations set the direction upward; ON by default with GAOL_PRESERVE_ROUNDING)" OFF)
-if(NOT GAOL_PREFER_AVX512_EXPLICIT AND GAOL_PRESERVE_ROUNDING)
-  set(GAOL_PREFER_AVX512 ON)
+if(GAOL_PREFER_AVX512_EXPLICIT)
+  unset(GAOL_PREFER_AVX512_DERIVED CACHE)
+  option(GAOL_PREFER_AVX512 "${GAOL_PREFER_AVX512_HELP}" OFF)
+else()
+  if(GAOL_PRESERVE_ROUNDING)
+    set(_gaol_prefer_avx512 ON)
+  else()
+    set(_gaol_prefer_avx512 OFF)
+  endif()
+  gaol_keep_prefer_avx512(${_gaol_prefer_avx512})
+  set(GAOL_PREFER_AVX512 ${_gaol_prefer_avx512})
 endif()
 
 # As configure.ac and meson.build ask: -std=c++11; C99 for the sources of
@@ -843,9 +875,11 @@ if(GAOL_PREFER_AVX512 AND NOT GAOL_HAVE_AVX512_TARGET)
   # The default GAOL_PRESERVE_ROUNDING derived, and the compiler or the
   # architecture takes no path: the operations keep setting the direction
   # upward and giving it back, as a build with GAOL_PRESERVE_ROUNDING
-  # always did (GAOL v5)
+  # always did (GAOL v5). The entry follows, and its record: the next
+  # configure derives the default again, and finds the same here
   message(STATUS "GAOL_PREFER_AVX512, from GAOL_PRESERVE_ROUNDING: no AVX-512 path here, the operations keep setting the direction upward")
   set(GAOL_PREFER_AVX512 OFF)
+  gaol_keep_prefer_avx512(OFF)
 endif()
 # GAOL_AVX512_ARITHMETIC: +, -, *, / and sqrt take the AVX-512 path, which
 # is decided here: GAOL_PREFER_AVX512 asks for it, the compiler takes the
