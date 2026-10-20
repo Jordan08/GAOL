@@ -510,14 +510,19 @@ namespace gaol_core {
   */
   GAOL_INLINE void round_upward_if_needed()
   {
-    #if GAOL_RND_DIRECT
+    #if GAOL_USING_NEON_INSTRUCTIONS
     /* On 64-bit ARM processors one register, FPCR, holds the direction and the
     modes that flush the subnormals to zero of the scalar and the vector
     instructions alike, and mrs reads it in 0.8 ns, raising no exception flag
-    where the probe below raises the inexact one (GAOL v5); FPSCR of the 32-bit
-    ARM processors with GAOL_RND_FPSCR_DIRECT does so with vmrs. It is written
-    when it is not upward with the modes clear. asm volatile: no compiler
-    reuses a read of it, as Clang 18 did with MXCSR (see above) */
+    where the probe below raises the inexact one (GAOL v5). It is written when
+    it is not upward with the modes clear. asm volatile: no compiler reuses a
+    read of it, as Clang 18 did with MXCSR (see above). Not with the FPSCR of
+    the 32-bit ARM processors (GAOL_RND_FPSCR_DIRECT): vmrs took longer than
+    the two additions of the probe there, x + y 6.1 ns rather than 4.1 and a
+    line of 15 additions 87 ns rather than 57 (Debian armhf on the arm64
+    runners of GitHub), so that they keep the probe; the read of FPSCR serves
+    where the direction is restored, GAOL_PRESERVE_ROUNDING, where it spares
+    the C library's reads and writes */
     const fp_control fpcr = fpcr_get();
     if (GAOL_UNLIKELY((fpcr & (fpcr_rmode_mask | GAOL_RND_FLUSH_BITS)) != fpcr_upward)) {
       fpcr_set((fpcr & ~(fpcr_rmode_mask | static_cast<fp_control>(GAOL_RND_FLUSH_BITS))) | fpcr_upward);
