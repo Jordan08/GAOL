@@ -1517,24 +1517,31 @@ namespace
   /*
     The sign of a zero bound, for the cases that doc/accuracy.md and
     doc/using.md state (GAOL v5): every other check of this file compares the
-    bounds with ==, which does not see it, so that the choice of a tie between
-    a +0 and a -0 in the maximum of the products was no test's. The lower bound
-    of [-1, 0]*[-1, 0] is +0 with the SSE2 and the FPU intervals, whose
-    maximum returns its second operand when both compare equal, and -0 with the
-    NEON ones, whose maximum ranks +0 above -0; the lower bound of
-    sqr([-1, 2]) is +0 with the FPU intervals, which set it to 0, and -0 with
-    the others; the upper bound of [0, 1]/[-2, -1] is -0 with all of them, the
-    lower bound 0 of the dividend, which is stored as -0, divided by a positive
-    number. The SSE2 expectations are those the documentation gives (the
-    first two) and those of a model of the kernel (the third)
+    bounds with ==, which does not see it. Only the signs that no compiler can
+    change are read. The lower bound of [-1, 0]*[-1, 0] is the tie of two
+    products, +0 and -0, in the maximum: +0 with the SSE2 intervals, whose
+    maxpd returns its second operand, and -0 with the NEON ones, whose maximum
+    ranks +0 above -0, both an instruction. With the FPU intervals the
+    maximum is a comparison and a selection that the compiler compiles as it
+    chooses: GCC 13 for POWER9 makes it an xsmaxcdp, which returns its first
+    operand for a +0 and a -0, so that the lower bound is -0 there (the
+    continuous integration, in QEMU). It is not specified for them, and not
+    checked. The lower bound of sqr([-1, 2]) is +0 with the FPU intervals,
+    which set it to 0 by a selection of a constant, and -0 with the others; the
+    upper bound of [0, 1]/[-2, -1] is -0 with all of them, the lower bound 0 of
+    the dividend, which is stored as -0, divided by a positive number: neither
+    depends on a tie. The SSE2 expectations are those the documentation gives
+    (the first two) and those of a model of the kernel (the third)
   */
   void signs_of_zero_bounds()
   {
     const bool neon = GAOL_USING_NEON_INSTRUCTIONS != 0;
     const bool fpu = GAOL_USING_NEON_INSTRUCTIONS == 0 && GAOL_USING_SSE2_INSTRUCTIONS == 0;
-    const interval product = interval(-1., 0.) * interval(-1., 0.);
-    check("the lower bound of [-1, 0]*[-1, 0] is +0, but -0 with the NEON intervals", std::signbit(product.left()) == neon,
-          [&] { return hex(product); });
+    if (!fpu) {
+      const interval product = interval(-1., 0.) * interval(-1., 0.);
+      check("the lower bound of [-1, 0]*[-1, 0] is +0 with the SSE2 intervals, -0 with the NEON ones",
+            std::signbit(product.left()) == neon, [&] { return hex(product); });
+    }
     const interval square = sqr(interval(-1., 2.));
     check("the lower bound of sqr([-1, 2]) is +0 with the FPU intervals, -0 with the others", std::signbit(square.left()) == !fpu,
           [&] { return hex(square); });
