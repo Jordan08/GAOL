@@ -4895,14 +4895,23 @@ bound is the empty set, as in IEEE 1788-2015: \code{"[2,1]"}, and also
 \code{"[1.00000000000000001, 1]"}, whose numbers are compared exactly with the
 doubles around them, a number that is not a double lying strictly between the
 two doubles around it.\newinvfive{} They were read as the points $2^{53}$ and
-1. Two numbers that are not doubles and lie between the same two doubles (or
-both beyond the largest, or below the least positive one), and bounds that are
-computed, as \code{1/3}, are not told apart: the literal is then the interval
-from the lower bound of the first to the upper bound of the second.
+1. Two numbers that are not doubles and lie between the same two doubles are
+compared exactly too: \code{"[1.00000000000000002, 1.00000000000000001]"} is
+the empty set, and \code{"[1.00000000000000001, 1.00000000000000002]"} is the
+interval from the double below to the double above them, as is the same
+number written twice. \code{pi} and another number lying between the same two
+doubles, a number far beyond the doubles (about $10^{311}$ or more, or
+$10^{-331}$ or less, in decimal, about $2^{1026}$ or more, or $2^{-1081}$ or
+less, in the other bases), and bounds that are computed, as
+\code{1/3}, are not told apart: the literal is then the interval from the
+lower bound of the first to the upper bound of the second.
 The two bounds in the string ``\element{<a, b>}'' must be expressions
 that evaluate to the same double even for different rounding directions: an
 \element{input\_format\_error} exception is raised otherwise, as for
-\code{"<0.1, 0.1>"}. The two doubles are compared by their bits, $-0$ and $+0$
+\code{"<0.1, 0.1>"}, a number that is not a double being no bound of
+\code{<a, b>}.\newinvfive{} \code{"<0.1, 0x1.9999999999999p-4>"}, the double
+just below $0.1$, was read as the point $[$\code{0x1.9999999999999p-4}$]$.
+The two doubles are compared by their bits, $-0$ and $+0$
 being the same bound, so that the mode of the processor that reads the
 subnormal numbers as zero (denormals-are-zero) changes nothing:
 \code{"<1e-310, 1e-309>"} throws under it too.\newinvfive{} Compared as
@@ -4962,7 +4971,8 @@ all it allocated.\newinvfive{} flex, which wrote ``out of dynamic memory'' and
 ended the program, and the parser, which read a stack it could not grow as a
 string nested too deep, threw no such exception. Without exceptions, an
 error that the reader finds as it computes, a wrong call, an uncertain number
-as a bound or two different bounds in \code{<a, b>}, makes the reading fail,
+as a bound or two different bounds in \code{<a, b>}, or a bound of it that
+is no double, makes the reading fail,
 as a syntax error does:
 \code{parse\_interval()} returns \code{false}, and
 \code{gaol::textToInterval()} and \code{operator>{}>} report the error and

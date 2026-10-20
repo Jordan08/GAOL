@@ -914,9 +914,18 @@ point Q), which `numbers` checks there too.
   (`[9007199254740993, 9007199254740992]`, `[0x1.999999999999ap-4, 0.1]`,
   `[1.00000000000000001, 1]`, `[pi, 0x1.921fb54442d18p+1]`, `[1e400, dmax]`,
   `[1e-400, 0]`) and where they are apart, and the interval from the lower
-  bound of l to the upper bound of u otherwise, two numbers that are not
-  doubles between the same two doubles giving that pair: they gave `[2^53]`,
-  `[0x1.999999999999ap-4]` and `[1]` (GAOL v5). The second argument
+  bound of l to the upper bound of u otherwise: they gave `[2^53]`,
+  `[0x1.999999999999ap-4]` and `[1]`. Two numbers that are not doubles between
+  the same two doubles are compared exactly, as digits, in every base and
+  behind any signs (`[1.00000000000000002, 1.00000000000000001]` and
+  `[-0.3, -0.30000000000000001]` are empty, `[0.3, 0.30000000000000001]` and
+  `[1.00000000000000001, 100000000000000001e-17]` are not), the literal being
+  the pair of doubles around them where they cannot be (`pi` and another
+  number, a number far beyond the doubles, a computed bound). The bounds of
+  `<a, b>` have to be doubles: `<0.1, 0x1.9999999999999p-4>`,
+  `<0x1.999999999999ap-4, 0.1>`, `<0.1, 0.1>`, `<pi, pi>` and `<1e-400, 0>`
+  are refused, where the first, the second and the last were read as the point
+  of a bound of the interval of the number (GAOL v5). The second argument
   of `nth_root`, `pown` and `rootn` may be an integer beyond the ints:
   `nth_root(8,3000000000)` and `rootn(8,-3000000000)` equal `nth_root(8,
   3000000000LL)` and `nth_root(8, -3000000000LL)` and enclose the root, within
