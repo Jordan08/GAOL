@@ -860,7 +860,9 @@ including the headers of GAOL has to be compiled with (\pxref{sec:compiling}).
  upward.\newinvfive
 
  The \code{sqr(\var{x})} function stands for \emph{square of \var{x}}
- and is equivalent to \code{pow(\var{x},2)}.
+ and is equivalent to \code{pow(\var{x},2)}: it is the very function that
+ \code{pow(\var{x},2)} calls, with the same bounds, the sign of a zero bound
+ included.\newinvfive
 
  Let \file{f.cpp} be the name of the file containing the program
  above. To compile it, with the flags pkg-config gives
@@ -1535,7 +1537,8 @@ Linux) instead of letting the operation give its bounds.\newinvfive
   (\code{FE\_UNDERFLOW}) too, before the check clears the mode. With the NEON
   intervals the check is a read of FPCR (\pxref{sec:neon}), which raises no
   flag: \code{+}, \code{-}, \code{/} and \code{sqrt()} raise the inexact one
-  only when a bound they compute is rounded, \code{*} and \code{sqr()} also when
+  only when a bound they compute is rounded, \code{*}, \code{sqr()} and
+  \code{pow(x, 2)}, which is \code{sqr()}, also when
   a corner product that is not a bound of the result is.\newinvfive
 \item An empty operand raises no invalid-operation exception, though the
   bounds of the empty interval are NaN: every operation, relation, function
@@ -1994,7 +1997,8 @@ the other processors, of Visual C++ and clang-cl on x86 and arm64, and of the
 builds with \option{GAOL\_SIMD} off on x86 and \option{GAOL\_ARM64} off on 64-bit ARM
 (Visual C++ and clang-cl for x64 have the SSE2 intervals)\newinvfive;
 \code{interval::zero()} is \itv{-0}{0} with the first two and \itv{0}{0} with
-the third. The NEON and the SSE2 intervals can differ too: the maximum of
+the third. \code{pow(x, 2)} is \code{sqr(x)}, and has the same
+sign.\newinvfive{} The NEON and the SSE2 intervals can differ too: the maximum of
 64-bit ARM, which the product takes of its four products, ranks $+0$ above
 $-0$, where the one of x86 returns its second operand, so that the lower bound of
 \code{interval(-1, 0) * interval(-1, 0)} is $-0$ with the NEON intervals and

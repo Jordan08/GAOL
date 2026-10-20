@@ -85,7 +85,21 @@ point Q), which `numbers` checks there too.
   have to be exact, both bounds (GAOL v5: an error bound computed beforehand,
   not left out there, made `pow([2, 3], 3)` [8 - 2^-50, 27 + 2^-48]).
   x^2 has to be `sqr(x)`, the tightest, over 400 intervals near 1, 3, 0.75
-  and 2^-500, a square having no error bound, and (-c)^n has to be c^n or
+  and 2^-500, a square having no error bound, and bit for bit, the sign of a
+  zero bound included, in each form of the integer power with the exponent 2
+  (`pow(x, 2)`, `2u`, `2.0` and `[2]`, `gaol_pown(x, 2)`,
+  `gaol_pown_ll(x, 2)`, `gaol_ieee1788::pown(x, 2)` and `pown(x, 2LL)`, and
+  `gaol_ieee1788::pow(x, [2])`, which is `sqr(x & [0, +oo])`, and [0] for the
+  part [0]): the 15 special bounds of the grid taken two by two, the empty set
+  and the universe, and 90 000 random intervals (exponents from -30 to 30, any
+  doubles, and the edges of the overflow and the underflow of the square), each
+  one with the calling code in the four rounding directions, and, for the
+  special bounds and the first 3 000 of each kind, with each mode that flushes
+  the subnormals to zero. The test asks for no sign, which the build chooses
+  (SSE2, NEON or FPU intervals): the two sides are the same code (GAOL v5; the
+  integer power gave a zero bound of the other sign, and 4 forms of the 9
+  compared fail without the call of `sqr()` in `pown_upward()`, 5 without the
+  one in `gaol_pown()`), and (-c)^n has to be c^n or
   -c^n, and the bound of a corner the same whether the other corner is
   computed with it or alone, at 1 088 points near 1, 1.5 and 3, where the
   power is within the error bound of a double: the lanes take |c|, the
@@ -1324,9 +1338,9 @@ compare equal, by their bits (GAOL v5, point Q), and of the same operations on
 doubles, and, in its last rows, of lines of 15 additions, 15 additions and
 subtractions, 7 products, 7 quotients and 13 operations of the four kinds
 between 8 and 16 intervals (GAOL v5, point ZZ). Its title names the intervals
-GAOL computes with, NEON, SSE2 or FPU (GAOL v5), and three rows give the
-product, the quotient and the square of operands of random signs, the other
-rows having positive operands only, which a processor predicts: the product of
+GAOL computes with, NEON, SSE2 or FPU (GAOL v5), and four rows give the
+product, the quotient, the square and `pow(x, 2)` (GAOL v5) of operands of
+random signs, the other rows having positive operands only, which a processor predicts: the product of
 the FPU intervals chose a branch by the signs of the bounds. After the table, it
 prints the time of the check each operation makes, 1 + (2^-1060 + 0) not above
 1, and of the same check made of 2^-60, a normal
