@@ -19,9 +19,8 @@ itself. With GCC and Clang, each where the compiler takes it:
   with the SSE2 intervals, so that the compiler asks for aligned memory for the
   intervals, which the C runtime would align on 8 bytes instead of 16 (GAOL v5):
   `gaol::gaol` and `gaol.pc` give it to the code using GAOL, which allocates
-  them. With Visual C++ and clang-cl, which have no such flag, the code using
-  GAOL compiles in C++17 or later, which `gaol::gaol` asks for and
-  `gaol/gaol_config.h` checks;
+  them, and `gaol/gaol_config.h` checks it. Visual C++ and clang-cl have no
+  such flag and keep the FPU intervals on 32-bit Windows;
 - nothing more on 64-bit ARM processors with the NEON intervals
   (`GAOL_ARM64`, GAOL v5, see [The NEON intervals](#the-neon-intervals)): the
   first line is all they ask for;

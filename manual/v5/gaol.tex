@@ -485,8 +485,9 @@ The options are given to the first command, as \option{-D\var{option}=\var{value
   \file{examples}, which \cmd{make check} runs;
 \item \option{GAOL\_SIMD}. \code{ON} by default: the intervals are computed
   with SSE2 instructions on x86 processors (\option{-msse2 -msse3}), their two
-  bounds in one register; no flag with Visual C++ and clang-cl for x64; not on
-  32-bit Windows;
+  bounds in one register; no flag with Visual C++ and clang-cl for x64; on
+  32-bit Windows with GCC and Clang and \option{-faligned-new=8}, which the code
+  using GAOL is given too, not with Visual C++ and clang-cl;
 \cindex{SSE2}%
 \item \option{GAOL\_ARM64}. \code{ON} by default: the intervals are computed
   with NEON instructions on 64-bit ARM processors, their two bounds in one
@@ -914,6 +915,10 @@ takes it:
   in double precision rather than on the x87 unit;
 \item \option{-msse2 -msse3} on x86 processors with the SSE2 intervals
   (\option{GAOL\_SIMD});
+\item \option{-faligned-new=8} with GCC and Clang on 32-bit Windows (MinGW-w64,
+  MSYS2) with the SSE2 intervals, so that the compiler asks for aligned memory
+  for the intervals, which the C runtime would align on 8 bytes instead of 16;
+  Visual C++ and clang-cl have no such flag and keep the FPU intervals there;\newinvfive
 \item nothing more on 64-bit ARM processors with the NEON intervals
   (\option{GAOL\_ARM64}, \pxref{sec:neon}): the first item is all they ask
   for;\newinvfive
