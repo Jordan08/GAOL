@@ -203,11 +203,9 @@ originaux au commit `16a2f60`.
 
 ## En cours
 
-Six pull requests sont ouvertes, d'autres sessions : #151 (points 78 et 80),
-#152 (SSE2 sur Windows 32 bits avec GCC et Clang), #153 (`width()` et
-`bisect()` avec `GAOL_PRESERVE_ROUNDING` sur arm64, dont la correction est dans
-#150, fusionnée : en conflit, à fermer), #154 (point AN, les pistes SIMD et
-FMA), #155 (point 118, `process.md`) et #156 (point 108, x86 32 bits).
+Cinq pull requests sont ouvertes, d'autres sessions : #151 (points 78 et 80),
+#152 (SSE2 sur Windows 32 bits avec GCC et Clang), #154 (point AN, les pistes
+SIMD et FMA), #155 (point 118, `process.md`) et #156 (point 108, x86 32 bits).
 
 ## À corriger avant la version
 
@@ -580,10 +578,6 @@ numéro :
   (GCC 14.3 croisés : aucune instruction flottante qui dépende du sens entre
   `mrs`/`vmrs` et `msr`/`vmsr`), pas pour x86, où `_mm_setcsr` n'est pas mieux
   ordonné. `width()` en est le cas connu ; à refaire avec un GCC pour x86.
-- **#153** (`width()` et `bisect()`, même correction que #150) est restée
-  ouverte : sa branche est en conflit avec `configure-clean` depuis la
-  fusion de #150 (`tests/rounding_direction.cpp`), et ses deux commits n'ont
-  plus rien à ajouter ; à fermer.
 - **Les sujets de deux commits** de la branche de #150 font plus de 100
   caractères (117 et 101) : déjà poussés, non réécrits.
 - **Un piège pour `process.md`, section 11** : une écriture du registre de
@@ -672,8 +666,7 @@ la CI de `5fa7203`). Voir le 111 pour ce que valent ces temps.
   qui touchait aussi arm64 (#146) : avec GCC (bogue 34678) et avec Clang sous
   Linux, `width()` d'un intervalle construit dans la fonction et `bisect(ratio)`
   calculaient avant l'écriture du registre de contrôle, donc arrondis dans le
-  sens du programme (voir « Remarqué par #150 » pour #153, qui a la même
-  correction).
+  sens du programme (#153, qui avait la même correction, est fermée).
 
   À chercher : pour Visual C++ arm64, offrir NEON (`arm64_neon.h`) ou les noyaux
   de #124 aux intervalles FPU ; pour ARM 32 bits, des noyaux scalaires sans
@@ -1024,8 +1017,9 @@ sans l'accord explicite du mainteneur.
   (`todo-ai-msvc-sse2-avx512`), de #149 (`todo-ad-83-84-reader`) et de #150
   (`todo-arm32-fpscr`) sont supprimées sur GitHub (celles de #145 à #150 à la
   fusion, le 19 octobre pour les premières et le 20 pour #148, #149 et #150) ;
-  en local, celles de #146 (`todo-ARM-perf`) et de #150, le 20 octobre. Reste
-  sur GitHub `todo-fpcr-gcc-hoisting`, celle de #153.
+  en local, celles de #146 (`todo-ARM-perf`) et de #150, le 20 octobre. Celle
+  de #153 (`todo-fpcr-gcc-hoisting`), fermée sans fusion, sur GitHub et en
+  local, le 20 octobre.
 - **Les lignes de crédit** : voir le 123.
 - **Les images Docker** de #111 (`i386/debian:trixie`, `debian:trixie`,
   `ubuntu:24.04`) restent sur la machine.
