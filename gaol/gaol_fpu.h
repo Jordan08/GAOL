@@ -95,6 +95,20 @@ integration). */
 #  define GAOL_RND_BARRIER() ((void)0)
 #endif
 
+/* GAOL_RND_NOINLINE: what Visual C++ is asked to call rather than expand, the
+writes of the control registers of a 32-bit x86 processor
+(gaol_core::x86_set_modes()). With them expanded in the check that comes
+before them, Visual C++ 19 for x86 called the check from each operation; with
+them out of line, it expands the check in the operation, two comparisons, and
+calls the writes only when a register has to change (GAOL v5). Nothing for
+the other compilers, which put the code of a branch marked GAOL_UNLIKELY out
+of the way */
+#if defined(_MSC_VER) && !defined(__clang__)
+#  define GAOL_RND_NOINLINE __declspec(noinline)
+#else
+#  define GAOL_RND_NOINLINE
+#endif
+
 // Doubles computed in double precision, whose rounding direction an addition
 // shows (see round_upward_if_needed())
 #if (defined(FLT_EVAL_METHOD) && FLT_EVAL_METHOD == 0) || defined(_M_X64) || defined(_M_ARM64) \
@@ -110,13 +124,27 @@ Windows: with the two differing, pow() rounded as if to nearest while GAOL
 computed upward, and gave bounds one double apart from the ones it gives
 when the two agree (GAOL v5, found by tests/rounding_direction.cpp in
 the continuous integration, with Visual C++ for 32-bit x86). There the
-direction is read with fegetround() and set with round_upward(), which set
-both units. */
+direction of both units is read directly (GAOL_RND_X86_DIRECT below), which
+fegetround() did through a call that cost about 80 ns with Visual C++, and
+the one that is not upward is set. */
 #if defined(__i386__) || defined(_M_IX86)
 #  undef GAOL_RND_PROBE
 #endif
 #ifndef GAOL_RND_PROBE
 #  define GAOL_RND_PROBE 0
+#endif
+
+/* GAOL_RND_X86_DIRECT: 1 on a 32-bit x86 processor, where GAOL reads and
+writes the control registers of the two units that round, the control word of
+the x87 unit (fnstcw and fldcw) and MXCSR (stmxcsr and ldmxcsr), rather than
+call fegetround() and fesetround() (GAOL v5; gaol/gaol_fpu_fenv.h has the
+instructions, an asm statement with GCC and Clang, clang-cl included, and
+inline assembly with Visual C++). Always defined, to 0 or 1. */
+#if (defined(__i386__) || defined(_M_IX86)) && GAOL_RND_SSE_REGISTER && GAOL_HAVE_FENV_H \
+    && (defined(__GNUC__) || defined(__clang__) || defined(_MSC_VER))
+#  define GAOL_RND_X86_DIRECT 1
+#else
+#  define GAOL_RND_X86_DIRECT 0
 #endif
 
 /*
@@ -272,6 +300,25 @@ and the flush modes as two writes.
 #endif
 
 /*
+With GAOL_PRESERVE_ROUNDING on a 32-bit x86 processor (GAOL v5), the operations
+read the control word of the x87 unit and MXCSR once at their start, write
+the one that is not upward, or that has the modes that flush the subnormals to
+zero set, and write back at their end what they found, the register that
+differs from it only, if what they found was not upward with these modes clear
+(see gaol_core::x86_enter_upward() and gaol_core::x86_leave()): none of the
+writes (fldcw, ldmxcsr) when the program computes upward already, where the
+macros above read the direction through fegetround(), a call, wrote it back
+through fesetround(), which writes both registers, and wrote MXCSR twice more
+for the flush modes.
+*/
+#if GAOL_PRESERVE_ROUNDING && GAOL_RND_X86_DIRECT
+#  undef GAOL_RND_ENTER
+#  undef GAOL_RND_LEAVE
+#  define GAOL_RND_ENTER() const gaol_core::rounding_state _save_state = gaol_core::get_rounding(); gaol_core::x86_enter_upward(_save_state)
+#  define GAOL_RND_LEAVE() gaol_core::x86_leave(_save_state)
+#endif
+
+/*
 GAOL_RND_NEAREST_ENTER() and GAOL_RND_NEAREST_LEAVE() frame the evaluations
 of the mathematical library of an operation, made with the functions of
 gaol::nearest, which need the rounding direction to nearest (GAOL v5):
@@ -337,6 +384,155 @@ namespace gaol_core {
   }
 #endif // GAOL_USING_NEON_INSTRUCTIONS
   
+  /*
+    The rounding direction of a 32-bit x86 processor, read and written as the
+    hardware has it (GAOL v5). The x87 unit has one in the field RC of its
+    control word (bits 11 and 10: 0 to nearest, 1 downward, 2 upward, 3 toward
+    zero), the SSE instructions another in the field of MXCSR (bits 14 and 13,
+    the same codes), and the bits FTZ (15) and DAZ (6) of MXCSR flush the
+    subnormals to zero. These are not the FE_* of <fenv.h>, which are the values
+    of the C library (0x0400 and 0x0800 for downward and upward with glibc,
+    0x0100 and 0x0200 with the C runtime of Windows, whose fegetround() gives
+    -1 when the two units differ): a field read from a register is never
+    compared with one of them.
+
+    The functions below do not touch the processor: the registers are those of
+    a type with three members, read_control(cw, mxcsr), write_x87_control(cw)
+    and write_mxcsr(mxcsr), x86_registers for the processor and a pair of
+    variables in tests/rounding_direction.cpp, which checks on every platform
+    what they decide to write, and the values they write. The state they save
+    and restore is any type with the three members x87, sse and flush (the
+    rounding_state of a 32-bit x86 processor): the field RC of the control
+    word, that of MXCSR and its bits FTZ and DAZ, each as the register has it.
+  */
+  const unsigned int x87_rc_mask = 0x0c00u;
+  const unsigned int x87_rc_upward = 0x0800u;
+  const unsigned int sse_rc_mask = 0x6000u;
+  const unsigned int sse_rc_upward = 0x4000u;
+  const unsigned int x86_flush_mask = 0x8040u;
+  #if GAOL_RND_SSE_REGISTER
+  static_assert(sse_rc_mask == static_cast<unsigned int>(_MM_ROUND_MASK)
+                && sse_rc_upward == static_cast<unsigned int>(_MM_ROUND_UP)
+                && x86_flush_mask == static_cast<unsigned int>(GAOL_RND_FLUSH_BITS),
+                "the fields of MXCSR");
+  #endif
+
+  //! Whether the x87 unit and the SSE instructions round upward, and no mode flushes the subnormals to zero
+  GAOL_INLINE bool x86_is_upward(unsigned int x87_cw, unsigned int mxcsr)
+  {
+    return (x87_cw & x87_rc_mask) == x87_rc_upward
+        && (mxcsr & (sse_rc_mask | x86_flush_mask)) == sse_rc_upward;
+  }
+
+  /*
+    Sets the field RC of the control word of the x87 unit to x87_rc, and the
+    bits of MXCSR that sse_mask selects to sse_bits (a subset of sse_mask),
+    and nothing else: a register is written only if one of these bits has to
+    change, with the bits that the other fields and the exception flags hold
+    just before the write, read here.
+  */
+  template <class Registers>
+  GAOL_RND_NOINLINE void x86_set_modes(Registers& r, unsigned int x87_rc, unsigned int sse_mask, unsigned int sse_bits)
+  {
+    unsigned int cw, csr;
+    r.read_control(cw, csr);
+    if ((cw & x87_rc_mask) != x87_rc) {
+      r.write_x87_control((cw & ~x87_rc_mask) | x87_rc);
+    }
+    if ((csr & sse_mask) != sse_bits) {
+      r.write_mxcsr((csr & ~sse_mask) | sse_bits);
+    }
+  }
+
+  /*
+    The writes of the start of an operation: the direction is set upward in the
+    unit that is not, and the modes that flush the subnormals to zero are
+    cleared, in the same write of MXCSR. The barrier keeps what the operation
+    reads after the writes (see round_upward_if_needed()).
+  */
+  template <class Registers>
+  GAOL_INLINE void x86_set_upward(Registers& r)
+  {
+    x86_set_modes(r, x87_rc_upward, sse_rc_mask | x86_flush_mask, sse_rc_upward);
+    GAOL_RND_BARRIER();
+  }
+
+  //! The check of the start of an operation, from the registers it has read
+  template <class Registers>
+  GAOL_INLINE void x86_enter_registers(Registers& r, unsigned int x87_cw, unsigned int mxcsr)
+  {
+    if (GAOL_UNLIKELY(!x86_is_upward(x87_cw, mxcsr))) {
+      x86_set_upward(r);
+    }
+  }
+
+  //! round_upward_if_needed() of a 32-bit x86 processor: one read of the registers, and a write only if one is not upward
+  template <class Registers>
+  GAOL_INLINE void x86_round_upward_if_needed(Registers& r)
+  {
+    unsigned int cw, csr;
+    r.read_control(cw, csr);
+    x86_enter_registers(r, cw, csr);
+  }
+
+  //! get_rounding() of a 32-bit x86 processor: one read of the registers
+  template <class Registers, class State>
+  GAOL_INLINE void x86_get_state(Registers& r, State& s)
+  {
+    unsigned int cw, csr;
+    r.read_control(cw, csr);
+    s.x87 = cw & x87_rc_mask;
+    s.sse = csr & sse_rc_mask;
+    s.flush = csr & x86_flush_mask;
+  }
+
+  //! The start of an operation under GAOL_PRESERVE_ROUNDING, from the state it found (see GAOL_RND_ENTER())
+  template <class Registers, class State>
+  GAOL_INLINE void x86_enter_upward(Registers& r, const State& s)
+  {
+    x86_enter_registers(r, s.x87, s.sse | s.flush);
+  }
+
+  //! set_rounding() of a 32-bit x86 processor: the directions of the state, and no flush mode
+  template <class Registers, class State>
+  GAOL_INLINE void x86_set_rounding(Registers& r, const State& s)
+  {
+    x86_set_modes(r, s.x87, sse_rc_mask, s.sse);
+  }
+
+  //! set_rounding_and_flush_modes() of a 32-bit x86 processor
+  template <class Registers, class State>
+  GAOL_INLINE void x86_set_rounding_and_flush_modes(Registers& r, const State& s)
+  {
+    x86_set_modes(r, s.x87, sse_rc_mask | x86_flush_mask, s.sse | s.flush);
+  }
+
+  /*
+    The end of an operation under GAOL_PRESERVE_ROUNDING (see GAOL_RND_LEAVE()):
+    what it found is written back, in the register that differs from it, unless
+    it was upward with the modes that flush the subnormals to zero clear, which
+    is what the operation leaves. The comparison is of the bits, which the
+    modes do not change, and the statement that writes is no barrier: what the
+    operation computed goes through GAOL_RND_KEEP() before it.
+  */
+  template <class Registers, class State>
+  GAOL_INLINE void x86_leave(Registers& r, const State& s)
+  {
+    if (GAOL_UNLIKELY(!x86_is_upward(s.x87, s.sse | s.flush))) {
+      x86_set_rounding_and_flush_modes(r, s);
+    }
+  }
+
+  #if GAOL_RND_X86_DIRECT
+  //! The registers of the processor
+  struct x86_registers
+  {
+    void read_control(unsigned int& x87_cw, unsigned int& mxcsr) const { gaol_read_x86_control(x87_cw, mxcsr); }
+    void write_x87_control(unsigned int x87_cw) const { gaol_write_x87_control(x87_cw); }
+    void write_mxcsr(unsigned int mxcsr) const { _mm_setcsr(mxcsr); }
+  };
+  #endif
+
   /*!
   \brief The rounding direction GAOL_RND_ENTER() and GAOL_RND_PRESERVE()
   find, which GAOL_RND_LEAVE() and GAOL_RND_RESTORE() restore, with the
@@ -344,7 +540,11 @@ namespace gaol_core {
   */
   struct rounding_state
   {
+    #if GAOL_RND_X86_DIRECT
+    unsigned int x87; // The rounding bits of the control word of the x87 unit, as it holds them
+    #else
     int direction; // fegetround()
+    #endif
     #if GAOL_RND_SSE_REGISTER
     unsigned int sse; // The rounding bits of the SSE control register
     #endif
@@ -397,6 +597,44 @@ namespace gaol_core {
   }
   #endif
   
+  #if GAOL_RND_X86_DIRECT
+  //! The directions of the two units and the flush-to-zero modes: one read of the registers (GAOL v5)
+  GAOL_INLINE rounding_state get_rounding()
+  {
+    rounding_state s;
+    x86_registers hw;
+    x86_get_state(hw, s);
+    return s;
+  }
+
+  //! Sets the rounding direction back, in the unit that differs, and nothing else of the environment
+  GAOL_INLINE void set_rounding(const rounding_state& s)
+  {
+    x86_registers hw;
+    x86_set_rounding(hw, s);
+  }
+
+  //! set_rounding(), and the flush-to-zero modes as well
+  GAOL_INLINE void set_rounding_and_flush_modes(const rounding_state& s)
+  {
+    x86_registers hw;
+    x86_set_rounding_and_flush_modes(hw, s);
+  }
+
+  //! The start of an operation under GAOL_PRESERVE_ROUNDING (GAOL_RND_ENTER()), from what get_rounding() found
+  GAOL_INLINE void x86_enter_upward(const rounding_state& s)
+  {
+    x86_registers hw;
+    x86_enter_upward(hw, s);
+  }
+
+  //! The end of an operation under GAOL_PRESERVE_ROUNDING (GAOL_RND_LEAVE())
+  GAOL_INLINE void x86_leave(const rounding_state& s)
+  {
+    x86_registers hw;
+    x86_leave(hw, s);
+  }
+  #else // !GAOL_RND_X86_DIRECT
   GAOL_INLINE rounding_state get_rounding()
   {
     rounding_state s;
@@ -449,6 +687,7 @@ namespace gaol_core {
     set_flush_modes(s.flush);
     #endif
   }
+  #endif // GAOL_RND_X86_DIRECT
   
   /*!
   \brief Sets the rounding direction upward, unless it already is, and on x86
@@ -462,15 +701,18 @@ namespace gaol_core {
   direction cost more: reading MXCSR about 800 ns under Rosetta 2,
   fegetround() and MXCSR about 80 ns with 32-bit Visual C++, and Clang 18
   reused a single read of MXCSR in a loop that changed the rounding
-  direction. On x86-64 the x87 unit may keep another direction without
-  changing GAOL's bounds: it computes none of GAOL's doubles but exact ones
-  and square roots GAOL corrects (the ldexp() of mingw-w64 is the fscale of
-  the x87 unit, which GAOL calls for exact results only, CORE-MATH computing
-  with gaol_ldexp(), and gaol_sqrt_up() makes a bound of the sqrt() of the C
-  library whatever its rounding, GAOL v5), GAOL sets the direction of both
-  units before the C library reads or writes a number (round_nearest()), and
-  the sources of CORE-MATH, which round some of their results in the direction
-  fegetround() gives, read it from MXCSR there (gaol/core_math_port.h).
+  direction. A 32-bit x86 processor, where the probe cannot be used
+  (GAOL_RND_PROBE), reads the two registers itself, without fegetround()
+  (GAOL_RND_X86_DIRECT, below). On x86-64 the x87 unit may keep another
+  direction without changing GAOL's bounds: it computes none of GAOL's
+  doubles but exact ones and square roots GAOL corrects (the ldexp() of
+  mingw-w64 is the fscale of the x87 unit, which GAOL calls for exact results
+  only, CORE-MATH computing with gaol_ldexp(), and gaol_sqrt_up() makes a
+  bound of the sqrt() of the C library whatever its rounding, GAOL v5), GAOL
+  sets the direction of both units before the C library reads or writes a
+  number (round_nearest()), and the sources of CORE-MATH, which round some of
+  their results in the direction fegetround() gives, read it from MXCSR there
+  (gaol/core_math_port.h).
   
   Where GAOL can clear the modes that flush the subnormals to zero
   (GAOL_RND_FLUSH_BITS: x86, and ARM with GCC and Clang), the probe is
@@ -544,14 +786,28 @@ namespace gaol_core {
     if (1.0 + tiny == 1.0) {
       round_upward();
     }
-    #elif (defined(__i386__) || defined(_M_IX86)) && GAOL_RND_SSE_REGISTER
+    #elif GAOL_RND_X86_DIRECT
     /* On a 32-bit x86 processor the x87 unit and the SSE instructions each
     have their own rounding direction, and both have to be upward: GAOL
     computes its bounds with SSE, and the elementary functions of CORE-MATH
     read the direction with fegetround(), which gives the one of the x87
-    unit. Either being elsewhere, round_upward() sets both (GAOL v5,
-    found by tests/rounding_direction.cpp in the continuous integration,
-    which leaves the two differing on purpose). The control register is read
+    unit. Either being elsewhere, it is set upward (GAOL v5, found by
+    tests/rounding_direction.cpp in the continuous integration, which leaves
+    the two differing on purpose). Not the probe above, which shows the
+    direction of the unit computing GAOL's doubles only. The two registers
+    are read in one volatile asm statement, the control word of the x87 unit
+    with fnstcw and MXCSR with stmxcsr, which raises no exception flag, FTZ
+    and DAZ being checked in the same read, and the one that differs is
+    written, if the direction is not upward in one of them or a mode is set
+    (x86_round_upward_if_needed()). This was a call to fegetround(), about
+    80 ns with Visual C++, a read of MXCSR, and round_upward() and
+    clear_flush_to_zero(), which wrote both registers whichever differed */
+    x86_registers hw;
+    x86_round_upward_if_needed(hw);
+    #elif (defined(__i386__) || defined(_M_IX86)) && GAOL_RND_SSE_REGISTER
+    /* The same, with the functions of the C library, for a compiler whose
+    control registers GAOL does not read directly (GAOL_RND_X86_DIRECT is 0):
+    either being elsewhere, round_upward() sets both. The control register is read
     already: FTZ and DAZ are checked in the same read (GAOL v5). */
     if (fegetround() != FE_UPWARD
     || (_mm_getcsr() & static_cast<unsigned int>(_MM_ROUND_MASK | GAOL_RND_FLUSH_BITS))
