@@ -43,7 +43,7 @@
 #mesondefine GAOL_VERBOSE_MODE
 
 /* Defined to 1 where the intervals are computed with SSE2 instructions
-   (x86 processors, but 32-bit Windows and Visual C++; GAOL_SIMD,
+   (x86 processors, but 32-bit Windows; GAOL_SIMD,
    --enable-simd, -Denable-simd, on by default) */
 #mesondefine GAOL_USING_SSE2_INSTRUCTIONS
 
@@ -60,7 +60,8 @@
 /* Defined to 1 where the compiler accepts the AVX-512 instructions in the
    functions that carry __attribute__((target("avx512f"))) and
    __builtin_cpu_supports("avx512f"), which the AVX-512 path of +, -, *, /
-   and sqrt (gaol/gaol_interval_avx512.cpp) needs (GAOL v5) */
+   and sqrt (gaol/gaol_interval_avx512.cpp) needs; Visual C++ for x64 takes
+   them in any function and tells the processor by cpuid (GAOL v5) */
 #mesondefine GAOL_HAVE_AVX512_TARGET
 
 /* Defined to 1 to ask for that path (GAOL_PREFER_AVX512,

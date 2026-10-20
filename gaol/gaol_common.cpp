@@ -37,6 +37,40 @@
 
 #include "gaol/gaol_double_op.h"
 
+#if GAOL_USING_SSE2_INSTRUCTIONS && GAOL_AVX512_ARITHMETIC
+/* Whether the processor runs the AVX-512 instructions (AVX512F), and the
+   system keeps the state of their registers, for init() below. GCC and Clang
+   tell it with __builtin_cpu_supports(), which needs __builtin_cpu_init()
+   first in a function run before the constructors. Visual C++ has neither,
+   and the built-ins of clang-cl need the runtime library of LLVM at the
+   link: for both, cpuid tells the processor has AVX512F (leaf 7, ebx bit 16)
+   and the operating system uses XSAVE (leaf 1, ecx bit 27), and xgetbv that
+   it keeps the state of the SSE, AVX and AVX-512 registers (bits 1, 2, 5, 6
+   and 7 of XCR0), as __builtin_cpu_supports() checks (GAOL v5). */
+#  if defined(_MSC_VER)
+#    include <intrin.h>
+namespace {
+  bool cpu_runs_avx512f()
+  {
+    int regs[4];
+    __cpuid(regs, 0);
+    if (regs[0] < 7) {
+      return false;
+    }
+    __cpuid(regs, 1);
+    if ((regs[2] & (1 << 27)) == 0 || (_xgetbv(0) & 0xe6) != 0xe6) {
+      return false;
+    }
+    __cpuidex(regs, 7, 0);
+    return (regs[1] & (1 << 16)) != 0;
+  }
+}
+#    define GAOL_CPU_RUNS_AVX512F() cpu_runs_avx512f()
+#  else
+#    define GAOL_CPU_RUNS_AVX512F() (__builtin_cpu_init(), __builtin_cpu_supports("avx512f") != 0)
+#  endif
+#endif
+
 namespace gaol_core {
   
   /* CORE-MATH has no state to save and no library to initialise: it computes
@@ -75,8 +109,7 @@ namespace gaol_core {
       streams of C++ are built, and __builtin_cpu_init() first, which
       __builtin_cpu_supports() needs in a function run before the
       constructors (GAOL v5, point AA of TODO.md). */
-      __builtin_cpu_init();
-      if (__builtin_cpu_supports("avx512f") == 0) {
+      if (!GAOL_CPU_RUNS_AVX512F()) {
         std::fputs("[gaol error]: this GAOL was built for the AVX-512 instructions"
                    " (GAOL_PREFER_AVX512, on by default with GAOL_PRESERVE_ROUNDING),"
                    " which this processor or system does not run: build it with"

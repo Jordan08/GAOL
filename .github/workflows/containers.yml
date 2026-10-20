@@ -116,6 +116,36 @@ jobs:
   # Clang does not honour the rounding direction on 32-bit ARM processors, for
   # the C compiler, which builds CORE-MATH, as for the C++ compiler: each of the
   # three builds has to refuse it for either alone (GAOL v5)
+  # The control register of the rounding direction read and written directly,
+  # against the functions of the C library, with GAOL_PRESERVE_ROUNDING (GAOL
+  # v5): FPSCR with vmrs and vmsr on 32-bit ARM (GAOL_RND_FPSCR_DIRECT), and on
+  # 64-bit ARM FPCR with mrs and msr, which comes with the NEON intervals, the
+  # build before having the FPU intervals and fesetround(). The medians of three
+  # runs of gaol_performance, alternately, in the summary of the job.
+  control-register-performance:
+    name: ${{ matrix.cfg.desc }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        cfg:
+          - { platform: linux/arm/v7, before: '-DCMAKE_CXX_FLAGS=-DGAOL_RND_FPSCR_DIRECT=0', before_label: 'C library', after_label: 'FPSCR', desc: 'Rounding direction preserved, armhf: FPSCR or the C library' }
+          - { platform: linux/arm64, before: '-DGAOL_ARM64=OFF', before_label: 'FPU intervals, C library', after_label: 'NEON intervals, FPCR', desc: 'Rounding direction preserved, arm64: FPCR with the NEON intervals or the C library' }
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build both and measure
+        run: |
+          docker run --rm --platform ${{ matrix.cfg.platform }} -v "$PWD:/gaol" -w /gaol debian:trixie sh -c "
+            set -e
+            apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq g++ cmake make > /dev/null
+            c++ --version
+            sh .github/scripts/performance-ab.sh '${{ matrix.cfg.before }}'"
+      - name: The table
+        run: |
+          python3 .github/scripts/compare-performance.py "${{ matrix.cfg.before_label }}" perf-before-1.md perf-before-2.md perf-before-3.md \
+            -- "${{ matrix.cfg.after_label }}" perf-after-1.md perf-after-2.md perf-after-3.md | tee -a "$GITHUB_STEP_SUMMARY"
+
   clang-arm32:
     name: Debian 13 Trixie armhf, Clang refused
     runs-on: ubuntu-24.04-arm

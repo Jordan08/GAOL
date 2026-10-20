@@ -721,8 +721,6 @@ namespace gaol_core {
     static const __m128d m128_nan;
     /// < +oo +oo>
     static const __m128d m128_infinf;
-    static const __m128d m128d_02mask;
-    static const __m128d m128d_20mask;
 
     // Allocators defined to enforce alignment on a 16 bytes boundary
 	void *operator new(size_t sz);

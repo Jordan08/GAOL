@@ -87,6 +87,10 @@ extern void gaol_lexer_failed(void *context);
 // The lexer of flex, which gaol_lex() calls
 #define YY_DECL static int gaol_lex_tokens(YYSTYPE *yylval_param, yyscan_t yyscanner)
 
+// Keeps the text of a number that is not a double in the context of the
+// reading, and gives its rank (gaol/parser/gaol_interval_parser.ypp; GAOL v5)
+extern unsigned long long gaol_note_number(void *context, const char *text);
+
 // The function of a name, in the table of the names the string is read with,
 // which the context of the reading gives (gaol/parser/gaol_interval_parser.ypp); 0
 // for a name that is not in it
@@ -167,29 +171,41 @@ namespace {
     n.insert(n.begin(), static_cast<std::size_t>(e / 32), 0u);
   }
 
-  // n*m, with m an integer of 64 bits at most
-  gaol_natural gaol_natural_mul_u64(const gaol_natural& n, uint64_t m)
+  // a*b
+  gaol_natural gaol_natural_mul(const gaol_natural& a, const gaol_natural& b)
   {
     gaol_natural r;
-    if (n.empty() || m == 0) {
+    if (a.empty() || b.empty()) {
       return r;
     }
-    r.assign(n.size() + 2, 0u);
-    for (std::size_t j = 0; j < 2; ++j) { // The two digits of m, in base 2^32
-      const uint64_t mj = (j == 0) ? (m & 0xffffffffu) : (m >> 32);
+    r.assign(a.size() + b.size(), 0u);
+    for (std::size_t j = 0; j < b.size(); ++j) {
       uint64_t carry = 0;
-      for (std::size_t i = 0; i < n.size(); ++i) {
+      for (std::size_t i = 0; i < a.size(); ++i) {
         // At most (2^32 - 1)^2 + 2(2^32 - 1) = 2^64 - 1
-        const uint64_t t = static_cast<uint64_t>(n[i])*mj + r[i + j] + carry;
+        const uint64_t t = static_cast<uint64_t>(a[i])*b[j] + r[i + j] + carry;
         r[i + j] = static_cast<uint32_t>(t);
         carry = t >> 32;
       }
-      r[n.size() + j] = static_cast<uint32_t>(carry);
+      r[a.size() + j] = static_cast<uint32_t>(carry);
     }
     while (r.back() == 0) { // No leading zero digit, as gaol_natural_compare() needs
       r.pop_back();
     }
     return r;
+  }
+
+  // n*m, with m an integer of 64 bits at most
+  gaol_natural gaol_natural_mul_u64(const gaol_natural& n, uint64_t m)
+  {
+    gaol_natural digits; // m in base 2^32, with no leading zero digit
+    if ((m >> 32) != 0) {
+      digits.push_back(static_cast<uint32_t>(m & 0xffffffffu));
+      digits.push_back(static_cast<uint32_t>(m >> 32));
+    } else if (m != 0) {
+      digits.push_back(static_cast<uint32_t>(m));
+    }
+    return gaol_natural_mul(n, digits);
   }
 
   // The sign of a - b
@@ -488,17 +504,19 @@ namespace {
   }
 
   // Reads the number s: returns NUMBER, with lval->d set to it, if it is a
-  // double, and INTERVAL_CST, with lval->itv set to the tightest interval of
-  // doubles enclosing it, otherwise
-  int gaol_read_number(const char *s, YYSTYPE *lval)
+  // double, and INTERVAL_CST, with lval->num set to the tightest interval of
+  // doubles enclosing it and to the rank of its text, which the context of
+  // the reading keeps (GAOL v5, point 84 of TODO.md), otherwise
+  int gaol_read_number(const char *s, YYSTYPE *lval, void *context)
   {
     double l, r;
     if (gaol_enclose_number(s, l, r)) {
       lval->d = l;
       return NUMBER;
     }
-    (lval->itv).l = l;
-    (lval->itv).r = r;
+    (lval->num).id = gaol_note_number(context, s);
+    (lval->num).l = l;
+    (lval->num).r = r;
     return INTERVAL_CST;
   }
 
@@ -682,6 +700,34 @@ namespace gaol_detail {
   {
     return gaol_compare_number(gaol_take_apart(s), x);
   }
+
+  /*
+    The sign of a - b, a and b being the numbers the texts a and b write, with
+    no sign, compared exactly (declared in gaol/parser/gaol_parser.h; GAOL v5,
+    point 84 of TODO.md). a = A/PA*2^kA and b = B/PB*2^kB, A and B being the
+    integers gaol_take_apart() keeps (N*5^k, or N) and PA and PB the powers of
+    5 it divides by (none for 1): a - b has the sign of A*PB*2^kA - B*PA*2^kB.
+    2 when one of the two is far beyond the doubles, whose digits it does not
+    keep.
+  */
+  int compare_numbers(const char *a, const char *b)
+  {
+    const gaol_number x = gaol_take_apart(a), y = gaol_take_apart(b);
+    if (x.is_zero || y.is_zero) {
+      return (x.is_zero && y.is_zero) ? 0 : (x.is_zero ? -1 : 1);
+    }
+    if (x.beyond != 0 || y.beyond != 0) {
+      return 2;
+    }
+    gaol_natural left = y.pow5.empty() ? x.scaled : gaol_natural_mul(x.scaled, y.pow5);
+    gaol_natural right = x.pow5.empty() ? y.scaled : gaol_natural_mul(y.scaled, x.pow5);
+    if (x.kb >= y.kb) {
+      gaol_natural_shift_left(left, x.kb - y.kb);
+    } else {
+      gaol_natural_shift_left(right, y.kb - x.kb);
+    }
+    return gaol_natural_compare(left, right);
+  }
 }
 %}
 
@@ -754,10 +800,10 @@ SPACE		[ \t\r\n]+
 {INT} |
 {DIGIT}+{E} |
 {DIGIT}*"."{DIGIT}+({E})? |
-{DIGIT}+"."{DIGIT}*({E})?	{ return gaol_read_number(yytext, yylval); }
-0x({HEXDIGIT}*"."{HEXDIGIT}+|{HEXDIGIT}+"."?)(p[+-]?{DIGIT}+)?	{ return gaol_read_number(yytext, yylval); }
-0o({OCTDIGIT}*"."{OCTDIGIT}+|{OCTDIGIT}+"."?)(p[+-]?{DIGIT}+)?	{ return gaol_read_number(yytext, yylval); }
-0b({BINDIGIT}*"."{BINDIGIT}+|{BINDIGIT}+"."?)(p[+-]?{DIGIT}+)?	{ return gaol_read_number(yytext, yylval); }
+{DIGIT}+"."{DIGIT}*({E})?	{ return gaol_read_number(yytext, yylval, yyextra); }
+0x({HEXDIGIT}*"."{HEXDIGIT}+|{HEXDIGIT}+"."?)(p[+-]?{DIGIT}+)?	{ return gaol_read_number(yytext, yylval, yyextra); }
+0o({OCTDIGIT}*"."{OCTDIGIT}+|{OCTDIGIT}+"."?)(p[+-]?{DIGIT}+)?	{ return gaol_read_number(yytext, yylval, yyextra); }
+0b({BINDIGIT}*"."{BINDIGIT}+|{BINDIGIT}+"."?)(p[+-]?{DIGIT}+)?	{ return gaol_read_number(yytext, yylval, yyextra); }
 [+-]?({DECSIGNIFICAND})"?"({DIGIT}+|"?")?[du]?({E})?	{ return gaol_read_uncertain(yytext, yylval); }
 {SPACE}		{  }
 .		{ return UNEXPECTED_CHAR; /* Just to avoid stopping here */ }

@@ -93,15 +93,16 @@ extern int gaol_debug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 724 "gaol_interval_parser.ypp"
+#line 921 "gaol_interval_parser.ypp"
 
   int i;
   double d;
   Interval_struct itv;
+  ::gaol_core::gaol_number_token num;
   expr_node* expr;
   const void* fn;
 
-#line 105 "y.tab.h"
+#line 106 "y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

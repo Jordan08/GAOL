@@ -190,17 +190,33 @@ GAOL_INLINE interval& interval::operator|=(const interval& I)
   return *this;
 }
 
+/*
+  The stored bounds, read from the register. Visual C++ 19.44 (Visual Studio
+  2022 17.14) with /O2 and /arch:AVX2 read 0 from the local r after
+  _mm_storeh_pd(&r, ...): base.right() was 0 in pow_standard_upward(), and
+  pow([3, 4], [2, 3]) was empty (Compiler Explorer, and the Visual Studio 2022
+  jobs of the continuous integration; GAOL v5). It reads them with the
+  instructions of the register there; the other compilers keep the stores
+*/
 GAOL_INLINE double interval::left_internal() const
 {
+#if defined(_MSC_VER) && !defined(__clang__)
+  return _mm_cvtsd_f64(xmmbounds);
+#else
   GAOL_ALIGN16(double l);
   _mm_storel_pd(&l,xmmbounds);
   return l;
+#endif
 }
 GAOL_INLINE double interval::right_internal() const
 {
+#if defined(_MSC_VER) && !defined(__clang__)
+  return _mm_cvtsd_f64(_mm_unpackhi_pd(xmmbounds, xmmbounds));
+#else
   GAOL_ALIGN16(double r);
   _mm_storeh_pd(&r,xmmbounds);
   return r;
+#endif
 }
 
 GAOL_INLINE void interval::get_bounds(interval::xmm2d& b) const
@@ -227,13 +243,16 @@ GAOL_INLINE __m128d& interval::get_xmminterval(void)
   to memory for the operation that followed (GAOL v5, point ZZ of TODO.md).
   They are not part of the interface. The check of the rounding direction,
   and the code that depends on it, are in the library, compiled with its
-  flags, not in the code of the program that calls them.
+  flags, not in the code of the program that calls them. With Visual C++ and
+  clang-cl they are __vectorcall (GAOL_VECTORCALL of gaol/gaol_config.h), for
+  the arguments to go in registers: the convention of Windows for x86-64
+  passes a __m128d by a reference to a copy.
 */
-GAOL_NODISCARD extern GAOL_PUBLIC __m128d add_bounds(__m128d x, __m128d y);
-GAOL_NODISCARD extern GAOL_PUBLIC __m128d sub_bounds(__m128d x, __m128d y);
-GAOL_NODISCARD extern GAOL_PUBLIC __m128d mul_bounds(__m128d x, __m128d y);
-GAOL_NODISCARD extern GAOL_PUBLIC __m128d div_bounds(__m128d x, __m128d y);
-GAOL_NODISCARD extern GAOL_PUBLIC __m128d sqr_bounds(__m128d x);
+GAOL_NODISCARD extern GAOL_PUBLIC __m128d GAOL_VECTORCALL add_bounds(__m128d x, __m128d y);
+GAOL_NODISCARD extern GAOL_PUBLIC __m128d GAOL_VECTORCALL sub_bounds(__m128d x, __m128d y);
+GAOL_NODISCARD extern GAOL_PUBLIC __m128d GAOL_VECTORCALL mul_bounds(__m128d x, __m128d y);
+GAOL_NODISCARD extern GAOL_PUBLIC __m128d GAOL_VECTORCALL div_bounds(__m128d x, __m128d y);
+GAOL_NODISCARD extern GAOL_PUBLIC __m128d GAOL_VECTORCALL sqr_bounds(__m128d x);
 
 GAOL_INLINE interval& interval::operator+=(const interval& I)
 {

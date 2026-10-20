@@ -73,6 +73,21 @@
 #  endif
 #endif
 
+/* GAOL_VECTORCALL: the calling convention of the functions taking a __m128d
+   by value (add_bounds() and the others of gaol/gaol_interval_sse.h, GAOL v5).
+   The convention of Windows for x86-64 passes a __m128d by a hidden reference
+   to a copy in the frame of the caller; __vectorcall of Visual C++ and
+   clang-cl passes it in xmm0 and xmm1, as the x86-64 conventions of Linux and
+   macOS do. It is empty with the other compilers: MinGW-w64 and MSYS2 keep the
+   convention of Windows. */
+#ifndef GAOL_VECTORCALL
+#  if defined(_MSC_VER) && defined(_M_X64)
+#    define GAOL_VECTORCALL __vectorcall
+#  else
+#    define GAOL_VECTORCALL
+#  endif
+#endif
+
 
 /* ---------------------------------------------------------------------------
    The intervals of floats, gaol::intervalf and gaol::interval2f
@@ -301,6 +316,28 @@
 #  define GAOL_VECTOR_INTERVALS 1
 #else
 #  define GAOL_VECTOR_INTERVALS 0
+#endif
+/* The rounding direction and the modes that flush the subnormals to zero of
+   the FPU intervals of 32-bit ARM processors are read and written directly in
+   FPSCR, with vmrs and vmsr, where the NEON intervals do so in FPCR on 64-bit
+   ARM processors (GAOL v5): with GCC (the only compiler GAOL takes there) and
+   a floating-point unit of doubles. -DGAOL_RND_FPSCR_DIRECT=0 gives the
+   functions of the C library back (fegetround() and fesetround(), and the
+   addition that shows the direction). Always defined, to 0 or 1 */
+#ifndef GAOL_RND_FPSCR_DIRECT
+#  if defined(__arm__) && !defined(__aarch64__) && defined(__GNUC__) && !defined(__clang__) \
+      && defined(__ARM_FP) && (__ARM_FP & 8)
+#    define GAOL_RND_FPSCR_DIRECT 1
+#  else
+#    define GAOL_RND_FPSCR_DIRECT 0
+#  endif
+#endif
+/* 1 when the control register is read and written directly: FPCR with the NEON
+   intervals, FPSCR with GAOL_RND_FPSCR_DIRECT (GAOL v5) */
+#if GAOL_USING_NEON_INSTRUCTIONS || GAOL_RND_FPSCR_DIRECT
+#  define GAOL_RND_DIRECT 1
+#else
+#  define GAOL_RND_DIRECT 0
 #endif
 /* mingw-w64 whose fma() or round() is wrong. Those of its own math library
    (math/fma.c and math/round.c, the same code from version 9 to 13) are, on

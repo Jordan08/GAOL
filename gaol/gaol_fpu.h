@@ -88,7 +88,8 @@ round_upward_if_needed()). None for Visual C++, which keeps the
 floating-point operations where the source puts them with respect to the
 writes of the control register under /fp:strict, with which GAOL is
 compiled (tests/rounding_direction.cpp checks it in the continuous
-integration). */
+integration); not the intrinsics with an embedded rounding of the AVX-512
+path, which it moves past them (gaol/gaol_interval_avx512.cpp). */
 #if defined(__GNUC__) || defined(__clang__)
 #  define GAOL_RND_BARRIER() __asm__ __volatile__ ("" : : : "memory")
 #else
@@ -255,8 +256,9 @@ above.
 #endif
 
 /*
-With the NEON intervals and GAOL_PRESERVE_ROUNDING (GAOL v5), the operations
-read FPCR once at their start, write it only when it is not upward with the
+With the NEON intervals (FPCR), or the FPU intervals of 32-bit ARM processors
+with GAOL_RND_FPSCR_DIRECT (FPSCR), and GAOL_PRESERVE_ROUNDING (GAOL v5), the
+operations read the control register once at their start, write it only when it is not upward with the
 modes that flush the subnormals to zero clear, and write back the direction
 and the modes that they found at their end only if they differ from these (see
 gaol_core::round_upward_if_needed()): none of the two msr, 11 ns each (an
@@ -264,10 +266,10 @@ Apple M2), when the program computes upward already, where the macros above
 read the direction through fegetround() and wrote it back through fesetround()
 and the flush modes as two writes.
 */
-#if GAOL_PRESERVE_ROUNDING && GAOL_USING_NEON_INSTRUCTIONS
+#if GAOL_PRESERVE_ROUNDING && GAOL_RND_DIRECT
 #  undef GAOL_RND_ENTER
 #  undef GAOL_RND_LEAVE
-#  define GAOL_RND_ENTER() const unsigned long long _save_fpcr = gaol_core::fpcr_get(); gaol_core::fpcr_enter_upward(_save_fpcr)
+#  define GAOL_RND_ENTER() const gaol_core::fp_control _save_fpcr = gaol_core::fpcr_get(); gaol_core::fpcr_enter_upward(_save_fpcr)
 #  define GAOL_RND_LEAVE() gaol_core::fpcr_leave(_save_fpcr)
 #endif
 
@@ -307,7 +309,7 @@ the bounds of cancel_minus() no longer made exact.
 
 namespace gaol_core {
 
-#if GAOL_USING_NEON_INSTRUCTIONS
+#if GAOL_RND_DIRECT
   /*
     The start and the end of an operation under GAOL_PRESERVE_ROUNDING
     (GAOL_RND_ENTER() and GAOL_RND_LEAVE() of gaol_fpu.h): fpcr is the value
@@ -319,23 +321,23 @@ namespace gaol_core {
     writes is a barrier for the compiler: what the operation computed goes
     through GAOL_RND_KEEP() before it.
   */
-  GAOL_INLINE void fpcr_enter_upward(unsigned long long fpcr)
+  GAOL_INLINE void fpcr_enter_upward(fp_control fpcr)
   {
-    const unsigned long long mode_bits = fpcr_rmode_mask | static_cast<unsigned long long>(GAOL_RND_FLUSH_BITS);
+    const fp_control mode_bits = fpcr_rmode_mask | static_cast<fp_control>(GAOL_RND_FLUSH_BITS);
     if (GAOL_UNLIKELY((fpcr & mode_bits) != fpcr_upward)) {
       fpcr_set((fpcr & ~mode_bits) | fpcr_upward);
       GAOL_RND_BARRIER();
     }
   }
 
-  GAOL_INLINE void fpcr_leave(unsigned long long saved)
+  GAOL_INLINE void fpcr_leave(fp_control saved)
   {
-    const unsigned long long mode_bits = fpcr_rmode_mask | static_cast<unsigned long long>(GAOL_RND_FLUSH_BITS);
+    const fp_control mode_bits = fpcr_rmode_mask | static_cast<fp_control>(GAOL_RND_FLUSH_BITS);
     if (GAOL_UNLIKELY((saved & mode_bits) != fpcr_upward)) {
       fpcr_update(mode_bits, saved & mode_bits);
     }
   }
-#endif // GAOL_USING_NEON_INSTRUCTIONS
+#endif // GAOL_RND_DIRECT
   
   /*!
   \brief The rounding direction GAOL_RND_ENTER() and GAOL_RND_PRESERVE()
@@ -375,7 +377,7 @@ namespace gaol_core {
   {
     #  if GAOL_RND_SSE_REGISTER
     _mm_setcsr((_mm_getcsr() & ~GAOL_RND_FLUSH_BITS) | modes);
-    #  elif GAOL_USING_NEON_INSTRUCTIONS
+    #  elif GAOL_RND_DIRECT
     fpcr_update(GAOL_RND_FLUSH_BITS, modes);
     #  elif GAOL_RND_FPCR_REGISTER
     unsigned long long fpcr;
@@ -400,10 +402,10 @@ namespace gaol_core {
   GAOL_INLINE rounding_state get_rounding()
   {
     rounding_state s;
-    #if GAOL_USING_NEON_INSTRUCTIONS
+    #if GAOL_RND_DIRECT
     // One read of FPCR gives the direction and the flush-to-zero modes; the
     // direction is its RMode field, which is what fegetround() returns
-    const unsigned long long fpcr = fpcr_get();
+    const fp_control fpcr = fpcr_get();
     s.direction = static_cast<int>(fpcr & fpcr_rmode_mask);
     s.flush = static_cast<unsigned int>(fpcr) & GAOL_RND_FLUSH_BITS;
     return s;
@@ -423,8 +425,8 @@ namespace gaol_core {
   //! Sets the rounding direction back, and nothing else of the environment
   GAOL_INLINE void set_rounding(const rounding_state& s)
   {
-    #if GAOL_USING_NEON_INSTRUCTIONS
-    fpcr_update(fpcr_rmode_mask, static_cast<unsigned long long>(s.direction));
+    #if GAOL_RND_DIRECT
+    fpcr_update(fpcr_rmode_mask, static_cast<fp_control>(s.direction));
     #else
     fesetround(s.direction);
     #endif
@@ -436,10 +438,10 @@ namespace gaol_core {
   //! set_rounding(), and the flush-to-zero modes as well
   GAOL_INLINE void set_rounding_and_flush_modes(const rounding_state& s)
   {
-    #if GAOL_USING_NEON_INSTRUCTIONS
+    #if GAOL_RND_DIRECT
     // One write of FPCR, and none when the direction and the modes are those
     // that it holds (GAOL v5)
-    fpcr_update(fpcr_rmode_mask | GAOL_RND_FLUSH_BITS, static_cast<unsigned long long>(s.direction) | s.flush);
+    fpcr_update(fpcr_rmode_mask | GAOL_RND_FLUSH_BITS, static_cast<fp_control>(s.direction) | s.flush);
     return;
     #endif
     fesetround(s.direction);
@@ -515,10 +517,16 @@ namespace gaol_core {
     instructions alike, and mrs reads it in 0.8 ns, raising no exception flag
     where the probe below raises the inexact one (GAOL v5). It is written when
     it is not upward with the modes clear. asm volatile: no compiler reuses a
-    read of it, as Clang 18 did with MXCSR (see above) */
-    const unsigned long long fpcr = fpcr_get();
+    read of it, as Clang 18 did with MXCSR (see above). Not with the FPSCR of
+    the 32-bit ARM processors (GAOL_RND_FPSCR_DIRECT): vmrs took longer than
+    the two additions of the probe there, x + y 6.1 ns rather than 4.1 and a
+    line of 15 additions 87 ns rather than 57 (Debian armhf on the arm64
+    runners of GitHub), so that they keep the probe; the read of FPSCR serves
+    where the direction is restored, GAOL_PRESERVE_ROUNDING, where it spares
+    the C library's reads and writes */
+    const fp_control fpcr = fpcr_get();
     if (GAOL_UNLIKELY((fpcr & (fpcr_rmode_mask | GAOL_RND_FLUSH_BITS)) != fpcr_upward)) {
-      fpcr_set((fpcr & ~(fpcr_rmode_mask | static_cast<unsigned long long>(GAOL_RND_FLUSH_BITS))) | fpcr_upward);
+      fpcr_set((fpcr & ~(fpcr_rmode_mask | static_cast<fp_control>(GAOL_RND_FLUSH_BITS))) | fpcr_upward);
       GAOL_RND_BARRIER();
     }
     #elif GAOL_RND_PROBE && defined(GAOL_RND_FLUSH_BITS)
