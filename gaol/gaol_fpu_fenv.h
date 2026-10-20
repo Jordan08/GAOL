@@ -220,11 +220,14 @@ namespace gaol_core {
     RMode (bits 23:22) of the control register FPCR, which mrs reads and msr
     writes; that of the 32-bit ARM processors with a floating-point unit, the
     same field of FPSCR, which vmrs reads and vmsr writes, and where the flags
-    of the exceptions are too: the register is read again just before it is
-    written, so that no flag raised since is lost (GAOL v5). Written only when it differs: msr on FPCR is a
-    serializing instruction, 4 ns when it writes the value it holds and 11 ns
-    when it changes the direction (an Apple M2), where mrs takes 0.8 ns, and
-    fesetround() of the C library writes it each time. FE_TONEAREST,
+    of the exceptions are too: fpcr_update() reads the register again just
+    before it writes it, so that no flag raised since is lost, and the
+    operations that write it from a value read at their start
+    (fpcr_enter_upward()) do so before they compute (GAOL v5). Written only
+    when it differs: msr on FPCR takes 4 ns when it writes the value it holds
+    and 11 ns when it changes the direction (an Apple M2), where mrs takes
+    0.8 ns, and fesetround() of the C library is a call that reads and writes
+    it. FE_TONEAREST,
     FE_UPWARD, FE_DOWNWARD and FE_TOWARDZERO of the C libraries of 64-bit and
     32-bit ARM are these bits, which the assertion checks.
   */

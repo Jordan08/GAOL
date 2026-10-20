@@ -1222,18 +1222,21 @@ values of the C libraries of 64-bit ARM are these bits, which a static
 assertion checks), so that a program may use either.
 
 The FPU intervals of 32-bit ARM processors with GCC and a floating-point unit
-of doubles do the same for the direction that `GAOL_PRESERVE_ROUNDING`
-restores (`GAOL_RND_FPSCR_DIRECT` of `gaol/gaol_config.h`, 1 there, and
+of doubles do the same for `round_upward()`, `round_nearest()`, `round_downward()` and
+for the direction that `GAOL_PRESERVE_ROUNDING` restores (`GAOL_RND_FPSCR_DIRECT` of `gaol/gaol_config.h`, 1 there, and
 `-DGAOL_RND_FPSCR_DIRECT=0` gives the C library back): the register is FPSCR,
 read with `vmrs` and written with `vmsr`, with the same field RMode (the `FE_*`
 values of the C libraries of 32-bit ARM are its bits, which the same assertion
 checks), and the flags of the exceptions and of the comparisons are in it too,
-so that it is read again just before it is written, and no flag raised since is
-lost. Each operation then reads FPSCR once, and writes it back only if it
-differs. On the Debian armhf jobs of the continuous integration, which run on
-the arm64 runners of GitHub, `x + y` took 22 ns rather than 48 with
-`GAOL_PRESERVE_ROUNDING`, a line of 15 additions 316 ns rather than 706, and
-`midpoint()` 31 ns rather than 60 (GAOL v5). The check of every operation
+so that the functions that write it from the value they read at once
+(`round_nearest()`, `round_upward()`, the end of an operation) read it again
+just before, and no flag raised since is lost. With `GAOL_PRESERVE_ROUNDING`,
+each operation reads FPSCR once at its start, writes it only if the direction
+is not upward or a flush mode is set, and writes back what it found at its end
+only if it differs. On the Debian armhf jobs of the continuous integration,
+which run on the arm64 runners of GitHub, `x + y` took 22 ns rather than 48 with
+`GAOL_PRESERVE_ROUNDING`, a line of 15 additions 317 ns rather than 706, and
+`midpoint()` 37 ns rather than 60 (GAOL v5). The check of every operation
 without it stays the addition: `vmrs` took longer than the two additions
 there, `x + y` 6.1 ns rather than 4.1 and a line of 15 additions 87 ns rather
 than 57, and the 32-bit ARM intervals keep their time.
