@@ -255,14 +255,15 @@ endif()
 # the UCRT (MSYS2 MINGW64, the cross compilers of Debian and Ubuntu), they are
 # those of mingw-w64's own math library, computed in doubles: that fma() is not
 # correctly rounded, and CORE-MATH's functions compute with it where the
-# compiler has no -mfma (GCC for Windows, see below); that round() depends on
-# the rounding direction. On 32-bit x86, where mingw-w64 computes them on the
-# x87 unit, before version 11, as the mingw-w64 9 of WinLibs (GCC 11), whose
-# fma() rounds each of its partial sums to a double (the one of mingw-w64 11,
-# accepted, keeps them in extended precision and passes the tests, though not
-# correctly rounded). On ARM, as on x86-64, before version 12 or linked with
-# msvcrt.dll, GAOL v5 not being tested there. From version 12 on, a toolchain
-# linking the UCRT takes those of ucrtbase.dll, which pass the tests.
+# compiler has no -mfma (GAOL_FMA OFF, GCC for 32-bit Windows, see below);
+# that round() depends on the rounding direction. On 32-bit x86, where
+# mingw-w64 computes them on the x87 unit, before version 11, as the
+# mingw-w64 9 of WinLibs (GCC 11), whose fma() rounds each of its partial sums
+# to a double (the one of mingw-w64 11, accepted, keeps them in extended
+# precision and passes the tests, though not correctly rounded). On ARM, as on
+# x86-64, before version 12 or linked with msvcrt.dll, GAOL v5 not being tested
+# there. From version 12 on, a toolchain linking the UCRT takes those of
+# ucrtbase.dll, which pass the tests.
 #
 # Two reasons had GAOL refuse the MinGW-w64 of Chocolatey before version 15,
 # and both are gone now that GAOL bounds its elementary functions with
@@ -414,8 +415,23 @@ string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
 #    there, Visual C++ with /arch:AVX2 reused a product rounded upward after
 #    the rounding direction had changed, in spite of /fp:strict (in Codac,
 #    with Visual Studio 2022 and 2026).
-#  - GCC for Windows (MinGW): none. -mfma turns AVX on, whose 32-byte aligned
-#    stack GCC does not keep on Windows (crashes in Codac's MinGW builds).
+#  - GCC for Windows (MinGW-w64, MSYS2) for x86-64: -mfma
+#    -mprefer-vector-width=128 (GAOL v5, point 110 of TODO.md). -mfma turns AVX
+#    on, and GCC then vectorizes with the 256-bit registers (ymm), which it may
+#    spill to a stack it takes to be aligned on 32 bytes, where the Windows x64
+#    ABI aligns it on 16 (GCC bug 54412: an aligned vmovaps to such a slot
+#    faults; crashes in Codac's MinGW builds). -mprefer-vector-width=128 keeps
+#    the vectorizer to the 128-bit registers: objdump found no %ymm in the
+#    objects of GAOL, CORE-MATH and the tests built so by GCC 16.2 (MSYS2
+#    UCRT64), against 30598 lines with -mfma alone: the objects hold no 256-bit
+#    register for the defect to act on, which windows.yml checks on the objects
+#    it builds. Without these flags CORE-MATH called a software fma()
+#    and the integer powers had no FMA kernel: pow(x, 3) took 52.3 ns rather
+#    than 8.7, log 106.4 rather than 33.6, cos 260.5 rather than 55.4 (medians
+#    of 3 rounds alternated in one job, GitHub runner, MSYS2 UCRT64 GCC 16.2).
+#    The option is from GCC 8, and a GCC without it gets no flag. Not for
+#    32-bit x86, which is not measured. Code using GAOL that writes 256-bit
+#    intrinsics itself stays exposed to the defect, as with -mavx.
 #  - 32-bit ARM: -mfpu=neon-vfpv4 -mfloat-abi=hard where FMA is not on
 #    already (__ARM_FEATURE_FMA), and the libraries of the system take the
 #    hard-float ABI.
@@ -444,7 +460,31 @@ if(GAOL_FMA)
       endif()
     endif()
   elseif(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    message(STATUS "Fused multiply-add instructions left out: GCC for Windows does not align the stack for AVX")
+    check_cxx_source_compiles("
+      #if !defined(__x86_64__)
+      #error not an x86-64 target
+      #endif
+      int main() { return 0; }"
+      GAOL_GCC_WINDOWS_TARGET_IS_X86_64)
+    if(GAOL_GCC_WINDOWS_TARGET_IS_X86_64)
+      # Both options, or none: -mfma alone lets GCC spill 256-bit registers
+      # to a stack it does not align on Windows (see above)
+      set(CMAKE_REQUIRED_FLAGS "${GAOL_INTERVAL_FLAGS_STRING} -mfma -mprefer-vector-width=128")
+      check_cxx_source_compiles("
+        #if !defined(__FMA__)
+        #error -mfma does not give the fused multiply-add instructions on this target
+        #endif
+        int main() { return 0; }"
+        GAOL_GCC_WINDOWS_TAKES_MFMA_VECTOR_WIDTH_128)
+      unset(CMAKE_REQUIRED_FLAGS)
+      if(GAOL_GCC_WINDOWS_TAKES_MFMA_VECTOR_WIDTH_128)
+        list(APPEND GAOL_FMA_FLAGS -mfma -mprefer-vector-width=128)
+      else()
+        message(STATUS "Fused multiply-add instructions left out: this GCC for Windows takes no -mfma -mprefer-vector-width=128 (the option is from GCC 8), and -mfma alone leaves its 256-bit registers on a stack it does not align")
+      endif()
+    else()
+      message(STATUS "Fused multiply-add instructions left out: GCC for Windows takes them for x86-64 only (not measured for 32-bit x86)")
+    endif()
   else()
     set(CMAKE_REQUIRED_FLAGS "${GAOL_INTERVAL_FLAGS_STRING} -mfma")
     check_cxx_source_compiles("
@@ -759,8 +799,9 @@ message(STATUS "NEON intervals: ${GAOL_USING_NEON_INSTRUCTIONS}")
 # __builtin_cpu_supports("avx512f"), with GCC and Clang on x86-64, but
 # GCC for Windows (MinGW-w64 and Cygwin), which does not align the stack
 # beyond 16 bytes, the 64 of a zmm register it spills there (GCC bug 54412,
-# fixed for GCC 17 only; GAOL_FMA leaves -mfma out with MinGW-w64 GCC for
-# the 32 of AVX). The code of the path compiled by MinGW-w64 GCC 13 makes no
+# fixed for GCC 17 only; GAOL_FMA gives MinGW-w64 GCC -mfma with
+# -mprefer-vector-width=128, which keeps it out of the 32 bytes of the ymm
+# registers of AVX). The code of the path compiled by MinGW-w64 GCC 13 makes no
 # aligned access of a zmm register to the stack, but nothing keeps the
 # compiler from doing it (GAOL v5, point AA of TODO.md). Visual C++ and
 # clang-cl for x64 take it too (GAOL v5): Visual C++ needs no attribute, it
