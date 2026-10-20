@@ -27,6 +27,7 @@
 #include <limits>
 #include <new>
 #include <string>
+#include <vector>
 #include "gaol/gaol_common.h"
 #include "gaol/gaol_interval.h"
 #include "gaol/parser/gaol_expression.h"
@@ -78,7 +79,7 @@ struct gaol_parsing_context {
   std::size_t input_left;         // their number, NUL characters included
   bool out_of_memory;             // an allocation of the stack of the parser failed
   gaol_flex_block *flex_blocks;   // the blocks flex allocated and has not freed
-  std::string numbers;            // the texts of the numbers that are not doubles, each with its NUL, in the order read
+  std::vector<char> numbers;      // the texts of the numbers that are not doubles, each with its NUL, in the order read
 };
 
 static gaol_parsing_context *gaol_context(void *context)
@@ -203,15 +204,19 @@ void gaol_flex_error()
   and gives its rank, its offset in the context plus 1, so that no rank is 0:
   the leaf of the number holds it (see inside_node), for the literal [l, u]
   to tell two numbers between the same two doubles apart (GAOL v5, point 84
-  of TODO.md). The texts are in one string, where a text of its own would
-  cost an allocation, and 32 bytes, per number. Called by the lexer, in which
-  an exception is caught (gaol_lex()).
+  of TODO.md). The texts are in one vector, where a std::string of its own
+  would cost an allocation, and 32 bytes, per number. A vector and not a
+  std::string: the allocations of a std::string are made by libstdc++, in its
+  DLL on Windows, which the operator new of the program does not reach, so that
+  the tests of tests/expressions.cpp counting the allocations of a reading
+  found one left. Called by the lexer, in which an exception is caught
+  (gaol_lex()).
 */
 unsigned long long gaol_note_number(void *context, const char *text)
 {
-  std::string& texts = gaol_context(context)->numbers;
+  std::vector<char>& texts = gaol_context(context)->numbers;
   const unsigned long long rank = texts.size() + 1;
-  texts.append(text, std::strlen(text) + 1);
+  texts.insert(texts.end(), text, text + std::strlen(text) + 1);
   return rank;
 }
 
@@ -473,7 +478,7 @@ static int gaol_compare_inside(void *context, expr_node *l, expr_node *r)
   if (a->id() == 0 || b->id() == 0) {
     order = (a->id() == b->id()) ? 0 : 2;
   } else {
-    const char *const texts = gaol_context(context)->numbers.c_str();
+    const char *const texts = &gaol_context(context)->numbers[0];
     order = ::gaol_detail::compare_numbers(texts + (a->id() - 1), texts + (b->id() - 1));
   }
   return (order == 2) ? 2 : sign_l*order;
