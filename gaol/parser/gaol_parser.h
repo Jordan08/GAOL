@@ -94,11 +94,16 @@ namespace gaol_core {
       9007199254740992] and [1.00000000000000001, 1], whose bounds are
       between the same doubles, a number that is not a double lying strictly
       between the two doubles around it. Two numbers that are not doubles and
-      lie between the same two doubles, or both beyond the largest or below
-      the least positive one, are not told apart, nor are bounds that are
-      computed (1/3, sqrt(2)...): the literal is then the interval from the
-      lower bound of l to the upper bound of u. <a, b> is [a, b], whose
-      bounds have to be the same double.
+      lie between the same two doubles are compared exactly too:
+      [1.00000000000000002, 1.00000000000000001] is empty, and
+      [1.00000000000000001, 1.00000000000000002] is the interval of the two
+      doubles around them. Pi and another number, a number far beyond the
+      doubles (about 10^311 or more, or about 10^-331 or less, in decimal,
+      about 2^1026 or more, or about 2^-1081 or less, in the other bases) and
+      bounds that are computed (1/3, sqrt(2)...) are not told apart: the
+      literal is then the interval from the lower bound of l to the upper
+      bound of u. <a, b> is [a, b], whose bounds have to be the same double:
+      a number that is not a double is refused, <0.1, 0.1> as well.
     - The functions are those of GAOL, or those of IEEE 1788-2015 with
       parsing_names::ieee1788, with their arguments.
 
@@ -113,7 +118,8 @@ namespace gaol_core {
     leaving out as it was (GAOL v5).
 
     \note A call with a wrong number of arguments, an uncertain number as a
-    bound and two different bounds in <a, b> throw input_format_error, and a
+    bound and two different bounds, or a bound that is no double, in <a, b>
+    throw input_format_error, and a
     second argument of nth_root, pown or rootn that is no integer
     invalid_action_error. That argument is an integer of any size that a
     double holds, beyond the ints too (GAOL v5): nth_root(8,3000000000) is
@@ -181,6 +187,20 @@ namespace gaol_core {
   */
   std::string literal_text(const interval& x);
 
+  /*
+    The value of the token of a number that is not a double (GAOL v5, point 84
+    of TODO.md): the tightest interval of doubles [l, r] enclosing it, and the
+    rank of its text in the context of the reading, which keeps it (never 0),
+    with which the parser asks the context for that text, to tell two such
+    numbers apart. Given by the lexer to the parser, in
+    gaol/parser/gaol_interval_lexer.lpp and
+    gaol/parser/gaol_interval_parser.ypp.
+  */
+  struct gaol_number_token {
+    double l, r;
+    unsigned long long id;
+  };
+
 } // namespace gaol_core
 
 namespace gaol_detail {
@@ -193,6 +213,18 @@ namespace gaol_detail {
     which reads the numbers (GAOL v5).
   */
   int compare_number_with_double(const char* s, double x);
+
+  /*
+    The sign of a - b, a and b being the numbers the texts a and b write, with
+    no sign, compared exactly (GAOL v5, point 84 of TODO.md); 2 when one of
+    them is far beyond the doubles, above 10^311 or below 10^-331 or the
+    like in the other bases (see gaol_take_apart() in
+    gaol/parser/gaol_interval_lexer.lpp),
+    whose exact value is not kept. For the reader of the literal [l, u], to
+    tell two numbers that are between the same two doubles apart. Defined in
+    gaol/parser/gaol_interval_lexer.lpp.
+  */
+  int compare_numbers(const char* a, const char* b);
 
 } // namespace gaol_detail
 

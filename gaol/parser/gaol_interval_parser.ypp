@@ -78,6 +78,7 @@ struct gaol_parsing_context {
   std::size_t input_left;         // their number, NUL characters included
   bool out_of_memory;             // an allocation of the stack of the parser failed
   gaol_flex_block *flex_blocks;   // the blocks flex allocated and has not freed
+  std::string numbers;            // the texts of the numbers that are not doubles, each with its NUL, in the order read
 };
 
 static gaol_parsing_context *gaol_context(void *context)
@@ -195,6 +196,23 @@ void *gaol_flex_realloc(void *context, void *p, std::size_t size)
 void gaol_flex_error()
 {
   throw std::bad_alloc();
+}
+
+/*
+  Keeps the text of a number that is not a double, which the lexer has read,
+  and gives its rank, its offset in the context plus 1, so that no rank is 0:
+  the leaf of the number holds it (see inside_node), for the literal [l, u]
+  to tell two numbers between the same two doubles apart (GAOL v5, point 84
+  of TODO.md). The texts are in one string, where a text of its own would
+  cost an allocation, and 32 bytes, per number. Called by the lexer, in which
+  an exception is caught (gaol_lex()).
+*/
+unsigned long long gaol_note_number(void *context, const char *text)
+{
+  std::string& texts = gaol_context(context)->numbers;
+  const unsigned long long rank = texts.size() + 1;
+  texts.append(text, std::strlen(text) + 1);
+  return rank;
 }
 
 /*
@@ -388,31 +406,77 @@ static expr_node *gaol_uncertain_number(void *context, const interval& I)
   so is the result of an operation or of a function, an enclosure of the
   values it can take: the literal [l, u] then knows when l is above u although
   the intervals of l and of u meet, [9007199254740993, 9007199254740992].
+  It holds the rank of the text of the number (gaol_note_number()), 0 for pi,
+  which has none, to tell two numbers with the same interval apart.
 */
 class inside_node : public interval_node {
 public:
-  explicit inside_node(const interval& I) : interval_node(I) {}
+  inside_node(const interval& I, unsigned long long id) : interval_node(I), id_(id) {}
+  unsigned long long id() const { return id_; }
+private:
+  unsigned long long id_;
 };
 
 // The leaf of a number that is not a double, as gaol_number()
-static expr_node *gaol_inside_number(void *context, const interval& I)
+static expr_node *gaol_inside_number(void *context, const interval& I, unsigned long long id)
 {
   try {
-    return gaol_node(new inside_node(I));
+    return gaol_node(new inside_node(I, id));
   } catch (...) {
     gaol_context(context)->exception = std::current_exception();
     return 0;
   }
 }
 
-// e is a number that is not a double, alone or behind a minus sign (the number is then strictly inside its interval too)
-static bool gaol_inside(expr_node *e)
+/*
+  The leaf of e if e is a number that is not a double, alone or behind minus
+  signs, 0 otherwise; sign is then 1 if the signs are an even number, -1
+  otherwise (the number is strictly inside its interval, with its sign too)
+*/
+static inside_node *gaol_inside_leaf(expr_node *e, int& sign)
 {
   // A loop, as gaol_literal_infinity() (GAOL v5)
+  sign = 1;
   while (unary_minus_node *m = dynamic_cast<unary_minus_node*>(e)) {
+    sign = -sign;
     e = m->get_subexpr();
   }
-  return dynamic_cast<inside_node*>(e) != 0;
+  return dynamic_cast<inside_node*>(e);
+}
+
+// e is a number that is not a double, alone or behind a minus sign
+static bool gaol_inside(expr_node *e)
+{
+  int sign;
+  return gaol_inside_leaf(e, sign) != 0;
+}
+
+/*
+  The sign of l - r, l and r being numbers that are not doubles, alone or
+  behind minus signs, with the same interval: -1, 0 or 1, the numbers being
+  compared exactly (gaol_detail::compare_numbers()); 2 if they cannot be
+  told apart, and the literal [l, u] is then the interval from the lower
+  bound of l to the upper bound of u: l or u is not such a number, or is pi
+  and the other not (pi is compared with pi only), or is far beyond the
+  doubles. With a common sign s, l - r = s*(a - b), a and b being the
+  numbers without their signs.
+*/
+static int gaol_compare_inside(void *context, expr_node *l, expr_node *r)
+{
+  int sign_l, sign_r;
+  const inside_node *const a = gaol_inside_leaf(l, sign_l);
+  const inside_node *const b = gaol_inside_leaf(r, sign_r);
+  if (a == 0 || b == 0 || sign_l != sign_r) {
+    return 2;
+  }
+  int order;
+  if (a->id() == 0 || b->id() == 0) {
+    order = (a->id() == b->id()) ? 0 : 2;
+  } else {
+    const char *const texts = gaol_context(context)->numbers.c_str();
+    order = ::gaol_detail::compare_numbers(texts + (a->id() - 1), texts + (b->id() - 1));
+  }
+  return (order == 2) ? 2 : sign_l*order;
 }
 
 // e is an uncertain number, alone or behind a minus sign
@@ -773,8 +837,19 @@ enum gaol_literal_form {
   inside its interval (see inside_node), so that the literal is empty when
   the lower bound of l's interval is the upper bound of u's, and l or u is
   such a number: l is then above u, or u below l. Two numbers that are not
-  doubles and have the same interval are not told apart, and the literal is
-  that interval; the same holds where a bound is the result of an operation.
+  doubles and have the same interval are compared exactly, as digits (see
+  gaol_compare_inside()): [1.00000000000000002, 1.00000000000000001] is
+  empty, and [1.00000000000000001, 1.00000000000000002] is the interval of
+  doubles around them. Where they cannot be (a bound is pi and the other
+  not, or a number far beyond the doubles, or the result of an operation:
+  1/3, sqrt(2)...), the literal is the interval from the lower bound of l to
+  the upper bound of u.
+
+  The bounds of <a, b> are doubles (GAOL v5, point 84 of TODO.md): a number
+  that is not a double is refused. <0.1, 0x1.9999999999999p-4>, the double
+  just below 0.1, was read as the interval [0x1.9999999999999p-4], the lower
+  bound of the interval of 0.1 being that double, and <0.1, 0.1> was refused
+  although the bounds are the same number.
 */
 static expr_node *gaol_literal(void *context, gaol_literal_form form, expr_node *l, expr_node *r)
 {
@@ -789,9 +864,16 @@ static expr_node *gaol_literal(void *context, gaol_literal_form form, expr_node 
       if (form == gaol_point) {
         result = gaol_leaf(infinite ? interval::emptyset() : lv);
       } else if (form != gaol_degenerate) {
-        const bool crossed = (form == gaol_bounded) && ::gaol_detail::bound_equal(lv.left(), rv.right())
-                             && (gaol_inside(l) || gaol_inside(r));
+        // l is above u: the numbers lie on both sides of a double, or strictly inside the same interval
+        const bool crossed = (form == gaol_bounded)
+                             && ((::gaol_detail::bound_equal(lv.left(), rv.right()) && (gaol_inside(l) || gaol_inside(r)))
+                                 || (::gaol_detail::bound_equal(lv.left(), rv.left())
+                                     && ::gaol_detail::bound_equal(lv.right(), rv.right())
+                                     && gaol_compare_inside(context, l, r) == 1));
         result = gaol_leaf((infinite || crossed) ? interval::emptyset() : interval(lv.left(), rv.right()));
+      } else if (gaol_inside(l) || gaol_inside(r)) {
+        GAOL_PARSING_ERROR(context, input_format_error,
+          "a bound of a degenerate interval is a number that is not a double");
       } else if (::gaol_detail::bound_equal(lv.left(), rv.right())) {
         result = gaol_leaf(interval(lv.left(), rv.right()));
       } else {
@@ -835,6 +917,7 @@ static bool gaol_result(void *context, expr_node *e)
   int i;
   double d;
   Interval_struct itv;
+  ::gaol_core::gaol_number_token num;
   expr_node* expr;
   const void* fn;
 }
@@ -872,7 +955,8 @@ int gaol_lex(YYSTYPE *lval, void *scanner);
 %token<fn> FUNCTION_NAME
 %token UNEXPECTED_CHAR
 %token<d> NUMBER
-%token<itv> INTERVAL_CST UNCERTAIN_CST
+%token<num> INTERVAL_CST
+%token<itv> UNCERTAIN_CST
 
 %type<expr> expression literal function_call
 
@@ -901,8 +985,8 @@ expression
 	| DMIN_STR					{ if (($$ = gaol_number(context,std::numeric_limits<double>::min())) == 0) YYABORT; }
 	| DMAX_STR					{ if (($$ = gaol_number(context,std::numeric_limits<double>::max())) == 0) YYABORT; }
 	| INFINITY_STR					{ if (($$ = gaol_number(context,GAOL_INFINITY)) == 0) YYABORT; }
-	| PI_STR					{ if (($$ = gaol_inside_number(context,interval::pi())) == 0) YYABORT; }
-	| INTERVAL_CST					{ if (($$ = gaol_inside_number(context,interval($1.l,$1.r))) == 0) YYABORT; }
+	| PI_STR					{ if (($$ = gaol_inside_number(context,interval::pi(),0)) == 0) YYABORT; }
+	| INTERVAL_CST					{ if (($$ = gaol_inside_number(context,interval($1.l,$1.r),$1.id)) == 0) YYABORT; }
 	| UNCERTAIN_CST					{ if (($$ = gaol_uncertain_number(context,interval($1.l,$1.r))) == 0) YYABORT; }
 	| EMPTY_STR					{ if (($$ = gaol_constant(context,interval::emptyset())) == 0) YYABORT; }
 	| literal					{ $$ = $1; }
