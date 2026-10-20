@@ -41,9 +41,10 @@ en cours, ce qui reste) est au §12.
 
 | Quoi | Où |
 | --- | --- |
-| Les points à faire, regroupés par lettres (A à Z), avec leurs décisions | `TODO.md` de `configure-clean` |
-| Le suivi d'ensemble (fait, en cours, reste à faire) | issue #49 |
-| Les questions reportées | issues #64 à #70, et celles qui suivront |
+| Les points à faire, regroupés par lettres (A à Z, puis AA à AO), avec leurs décisions | `TODO.md` de `configure-clean` |
+| Le reste à faire, par priorité, avec des cases à cocher | issue #142 (la liste de « Priorités » de `TODO.md`) |
+| L'historique : ce qui est fait (pull requests fusionnées, décisions, mesures) | issue #49 |
+| Les questions reportées, et les signalements à d'autres projets | issues #64 à #70 et #125 à #138, et celles qui suivront |
 | Ce qui reste utile des rapports des agents (textes pour la synthèse, mesures, cas de test), l'outillage (`HOUSE_RULES.md`, `check_branch`, `gcore`...) | `todo-notes/` (index : `todo-notes/README.md`) ; les rapports d'origine sont dans l'historique, au commit `16a2f60` |
 | La revue d'origine (« revue n° n » dans `TODO.md`) | `examples/examples.md`, section 5 ; corrections proposées en annexe B |
 | La documentation : construire, utiliser, précision, tests, CI, écarts avec GAOL 4 | `doc/*.md`, `README.md` |
@@ -52,7 +53,7 @@ en cours, ce qui reste) est au §12.
 | Les consignes permanentes | `.claude/CLAUDE.md`, et `~/.claude/CLAUDE.md` |
 
 Chaque point de `TODO.md` a une lettre. Il garde en sous-points les anciens
-numéros (1 à 72), que citent les pull requests, les issues et les rapports. La
+numéros (4 à 127), que citent les pull requests, les issues et les rapports. La
 table à la fin de `TODO.md` donne la lettre de chaque ancien numéro, et un
 numéro absent de la table est un point fait. « Décidé le 3 octobre » (ou une
 autre date) marque une décision du mainteneur : applique-la telle quelle et ne
@@ -431,7 +432,7 @@ Ce que tu ne peux pas tester ici (Windows, macOS, ARM, gros-boutiste, sans FMA),
 
     Le mainteneur demande souvent « est-ce que tu as des questions ? » à la fin
     d'un point : prépare-les.
-12. **Après la fusion par le mainteneur**, mets à jour `TODO.md` et #49
+12. **Après la fusion par le mainteneur**, mets à jour `TODO.md`, #49 et #142
     (section 9) et supprime ta branche locale (`git branch -d`).
 
 ## 8. Le texte de la pull request
@@ -477,10 +478,13 @@ Les décisions laissées au mainteneur, et ce qui a été remarqué sans être c
 
 Si une pull request dépend d'une autre, dis-le explicitement dans le texte.
 
-## 9. Après la fusion : `TODO.md` et l'issue #49
+## 9. Après la fusion : `TODO.md` et les issues #49 et #142
 
-Ces deux mises à jour se font **directement sur `configure-clean`**, une fois
-les pull requests fusionnées par le mainteneur.
+La mise à jour de `TODO.md` se fait **directement sur `configure-clean`**, et
+celle des issues par `gh`, une fois les pull requests fusionnées par le
+mainteneur. Fais-les ensemble, et regarde d'abord les derniers commits de
+`origin/configure-clean` après un `git fetch origin` : une autre session peut
+les avoir faites (§12).
 
 **`TODO.md`.** D'abord, `git diff TODO.md` : si le mainteneur y a des
 changements non commités, ne les écrase pas et ne les commite pas. Fais
@@ -488,27 +492,67 @@ seulement ta mise à jour, ou demande-lui. Ensuite :
 
 - l'en-tête « au commit `xxxxxxx` de `configure-clean` » prend le commit
   courant, celui de la fusion ;
-- le paragraphe « Fait depuis : ... » gagne « le point X (anciens n, m), par
-  #NN », et les décisions prises en fin de point ;
-- retire la section du point fait, et sa ligne de « En cours » s'il y en a une ;
-- retire ses anciens numéros de la table finale ;
+- retire le point fait de « Priorités », et renumérote les rangs suivants, avec
+  les renvois « rang N » du texte (une ligne de continuation s'indente de 3
+  espaces pour les rangs 1 à 9, de 4 à partir de 10) ; ce que le point laisse
+  (une question ouverte, un reste) garde son rang ;
+- retire le point de sa lettre, de « En cours », de la table des anciens
+  numéros, du titre de sa lettre (« (83 à 85, 87 à 89) ») et des phrases qui le
+  citent (« Les autres (...) n'ont pas été revérifiés », « (le 77 est fait, par
+  #144) ») ; une lettre entièrement faite entre dans la phrase « Une lettre qui
+  n'a plus de section ici est un point fait (...) » de « Comment lire ce
+  fichier » ; ajuste ce qui le compte (« les N descriptions de pull requests »
+  et leur liste, au point Y) ;
+- un point fait en partie (106 et 107 par #146) garde son rang, avec « fait par
+  #NN pour ... » ;
+- les « Questions ouvertes » de la pull request, et ce qu'elle a remarqué sans
+  le corriger, vont dans une section « Remarqué par #NN, à trier » ;
+- « En cours » : les pull requests ouvertes ;
 - mets à jour « Ménage » : branches supprimées, lignes de crédit.
 
 Garde des lignes de 80 colonnes au plus. Commite seul `TODO.md`, avec un sujet
-comme `TODO.md: point X done by #NN`, puis pousse.
+comme `TODO.md: point X done by #NN, the ranks renumbered`, puis pousse. Ce
+push annule la CI en cours du même workflow sur `configure-clean` (§10) : si tu
+as besoin de la CI du commit de fusion, attends qu'elle finisse.
 
-**L'issue #49.** Elle se met à jour par un fichier, sans ligne de crédit :
+**L'issue #49** (l'historique). Elle se met à jour par un fichier, sans ligne
+de crédit :
 
 ```sh
 gh issue view 49 --json body --jq .body > old.md
+cp old.md new.md
 # modifier new.md :
 #  - « État au <date> (commit <sha> de configure-clean) » ;
-#  - ajouter les pull requests à « Fusionné depuis le 30 septembre » ;
-#  - cocher le point en section 4 avec « fait par #NN » ;
-#  - mettre à jour « Ménage »
+#  - ajouter la pull request à « Fusionné depuis le 30 septembre » : ce qu'elle
+#    fait, avec ses chiffres ;
+#  - ses décisions, dans « Décidé pendant le point X (<date>), fait par #NN » ;
+#  - corriger la ligne de sa lettre en section 4, ou la cocher `[x]` si la
+#    lettre est faite (« fait par #NN ») ;
+#  - mettre à jour « Ménage » et la dernière section « Travail du ... » ;
+#  - chercher « rang » : un renvoi « rang N de #142 » change avec la
+#    renumérotation
 gh issue edit 49 --body-file new.md
 gh issue view 49 --json body --jq .body | diff - new.md   # seul le saut de ligne final diffère
 ```
+
+**L'issue #142** (le reste à faire), de la même façon :
+
+- l'en-tête prend le commit de la fusion et dit les pull requests ouvertes ;
+- la liste de « Priorités » est celle de `TODO.md`, mêmes rangs et mêmes
+  textes : applique-lui les mêmes retraits et la même renumérotation, puis
+  compare les deux listes ;
+- coche les cases du point fait, en ajoutant « Fait le <date> par #NN : ce qui
+  a changé » ;
+- ajoute en section 4 « Les questions ouvertes de #NN, à trier » (renvoi à la
+  section « Remarqué par #NN, à trier » de `TODO.md`) ;
+- « Ménage » (section 8) : les branches supprimées ; le nombre de descriptions
+  de pull requests, au rang qui le cite et à la section 7 ;
+- « En cours » : les pull requests ouvertes.
+
+Si `gh issue edit` ou `gh pr edit` échoue avec « Projects (classic) is being
+deprecated » (constaté avec `gh pr edit`), passe par l'API REST :
+`gh api -X PATCH repos/Jordan08/GAOL/issues/49 -F body=@new.md` (`pulls/<n>`
+pour une pull request).
 
 ## 10. La CI
 
