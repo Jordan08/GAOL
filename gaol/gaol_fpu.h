@@ -88,7 +88,8 @@ round_upward_if_needed()). None for Visual C++, which keeps the
 floating-point operations where the source puts them with respect to the
 writes of the control register under /fp:strict, with which GAOL is
 compiled (tests/rounding_direction.cpp checks it in the continuous
-integration). */
+integration); not the intrinsics with an embedded rounding of the AVX-512
+path, which it moves past them (gaol/gaol_interval_avx512.cpp). */
 #if defined(__GNUC__) || defined(__clang__)
 #  define GAOL_RND_BARRIER() __asm__ __volatile__ ("" : : : "memory")
 #else

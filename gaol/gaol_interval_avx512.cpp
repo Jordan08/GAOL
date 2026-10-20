@@ -162,13 +162,25 @@
   }
 #if defined(__GNUC__) || defined(__clang__)
 #  define GAOL_CLEAR_FLUSH() clear_flush_to_zero()
+#  define GAOL_SAVE_AND_CLEAR_FLUSH(saved) do { (saved) = get_flush_modes(); clear_flush_to_zero(); } while (0)
 #  define GAOL_SET_FLUSH(modes) set_flush_modes(modes)
 #else
-  // The writes of the control register in functions that are not inlined,
-  // for Visual C++ (see flush_guard below)
+  // The reads and writes of the control register in functions that are not
+  // inlined, for Visual C++ (see flush_guard below); the modes the guard gives
+  // back are the value the call returns, which no move of the read past the
+  // call can change
   GAOL_NOINLINE void clear_flush_to_zero_call() { clear_flush_to_zero(); }
+  GAOL_NOINLINE unsigned int save_and_clear_flush_call()
+  {
+    const unsigned int modes = get_flush_modes();
+    clear_flush_to_zero();
+    return modes;
+  }
+#  if GAOL_PRESERVE_ROUNDING
   GAOL_NOINLINE void set_flush_modes_call(unsigned int modes) { set_flush_modes(modes); }
+#  endif
 #  define GAOL_CLEAR_FLUSH() clear_flush_to_zero_call()
+#  define GAOL_SAVE_AND_CLEAR_FLUSH(saved) ((saved) = save_and_clear_flush_call())
 #  define GAOL_SET_FLUSH(modes) set_flush_modes_call(modes)
 #endif
   GAOL_INLINE void clear_flush_modes_if_set()
@@ -199,17 +211,24 @@
     alone, which it moves past a call that writes the control register:
     with GAOL_PRESERVE_ROUNDING and /arch:AVX2, add_bounds() called the
     destructor, which sets the modes back, before the vaddpd (Compiler
-    Explorer, the latest Visual C++ of October 2026). What orders the operations there
-    is what the language guarantees. The operands go through in(), an
-    exclusive or with a zero read from volatile memory, which leaves their
-    bits as they are: the read stays after the constructor, whose writes of
-    the control register are in functions that are not inlined, and the
-    operation after the read. The result goes through out() before the
-    destructor, written to volatile memory and read again as GAOL_RND_KEEP()
-    does for the SSE2 operations, where the modes are given back; where they
-    are not, there is nothing to order. A volatile access costs a store and a
-    load, a few cycles against the dozens of ns of the writes of MXCSR that
-    the path spares (GAOL v5).
+    Explorer, the latest Visual C++ of October 2026). The standard orders
+    nothing there, the control register not being observable behavior: what
+    orders the operations is the data they depend on and the volatile
+    accesses, which Visual C++ keeps in place with respect to the other
+    memory accesses and to the calls (/volatile:ms, its default for x86 and
+    x64), and which the assembler of its versions 19.40 to 19.51 shows in
+    the order wanted (the calls, then the volatile read, the operation, the
+    volatile write, the calls of the destructor). The operands go through
+    in(), an exclusive or with a zero read from volatile memory, which leaves
+    their bits as they are: the read stays after the constructor, whose reads
+    and writes of the control register are in functions that are not inlined
+    (the modes found are the value one returns), and the operation after the
+    read. The result goes through out() before the destructor, written to
+    volatile memory and read again as GAOL_RND_KEEP() does for the SSE2
+    operations, where the modes are given back; where they are not, there is
+    nothing to order. A volatile access costs a store and a load, a few
+    cycles against the dozens of ns of the writes of MXCSR that the path
+    spares (GAOL v5).
   */
   struct flush_guard
   {
@@ -263,8 +282,7 @@
       : saved(0u)
     {
       if (flush_modes_set()) {
-        saved = get_flush_modes();
-        GAOL_CLEAR_FLUSH();
+        GAOL_SAVE_AND_CLEAR_FLUSH(saved);
         GAOL_RND_BARRIER();
       }
     }
