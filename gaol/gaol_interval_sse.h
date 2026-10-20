@@ -243,13 +243,16 @@ GAOL_INLINE __m128d& interval::get_xmminterval(void)
   to memory for the operation that followed (GAOL v5, point ZZ of TODO.md).
   They are not part of the interface. The check of the rounding direction,
   and the code that depends on it, are in the library, compiled with its
-  flags, not in the code of the program that calls them.
+  flags, not in the code of the program that calls them. With Visual C++ and
+  clang-cl they are __vectorcall (GAOL_VECTORCALL of gaol/gaol_config.h), for
+  the arguments to go in registers: the convention of Windows for x86-64
+  passes a __m128d by a reference to a copy.
 */
-GAOL_NODISCARD extern GAOL_PUBLIC __m128d add_bounds(__m128d x, __m128d y);
-GAOL_NODISCARD extern GAOL_PUBLIC __m128d sub_bounds(__m128d x, __m128d y);
-GAOL_NODISCARD extern GAOL_PUBLIC __m128d mul_bounds(__m128d x, __m128d y);
-GAOL_NODISCARD extern GAOL_PUBLIC __m128d div_bounds(__m128d x, __m128d y);
-GAOL_NODISCARD extern GAOL_PUBLIC __m128d sqr_bounds(__m128d x);
+GAOL_NODISCARD extern GAOL_PUBLIC __m128d GAOL_VECTORCALL add_bounds(__m128d x, __m128d y);
+GAOL_NODISCARD extern GAOL_PUBLIC __m128d GAOL_VECTORCALL sub_bounds(__m128d x, __m128d y);
+GAOL_NODISCARD extern GAOL_PUBLIC __m128d GAOL_VECTORCALL mul_bounds(__m128d x, __m128d y);
+GAOL_NODISCARD extern GAOL_PUBLIC __m128d GAOL_VECTORCALL div_bounds(__m128d x, __m128d y);
+GAOL_NODISCARD extern GAOL_PUBLIC __m128d GAOL_VECTORCALL sqr_bounds(__m128d x);
 
 GAOL_INLINE interval& interval::operator+=(const interval& I)
 {

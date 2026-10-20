@@ -396,7 +396,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
     point ZZ of TODO.md, which made sqr() three times faster). The bounds are
     those of the switch, bit for bit, the sign of the zeros included.
   */
-  GAOL_BOUNDS_TARGET __m128d sqr_bounds(__m128d x)
+  GAOL_BOUNDS_TARGET __m128d GAOL_VECTORCALL sqr_bounds(__m128d x)
   {
     if (_mm_movemask_pd(_mm_cmpunord_pd(x, x)) != 0) { // the empty set
       return x;
@@ -434,7 +434,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
   }
 
 
-  GAOL_BOUNDS_TARGET __m128d add_bounds(__m128d x, __m128d y)
+  GAOL_BOUNDS_TARGET __m128d GAOL_VECTORCALL add_bounds(__m128d x, __m128d y)
   {
 #if GAOL_AVX512_ARITHMETIC
     return fast_add(x, y);
@@ -448,7 +448,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 #endif
   }
 
-  GAOL_BOUNDS_TARGET __m128d sub_bounds(__m128d x, __m128d y)
+  GAOL_BOUNDS_TARGET __m128d GAOL_VECTORCALL sub_bounds(__m128d x, __m128d y)
   {
 #if GAOL_AVX512_ARITHMETIC
     return fast_sub(x, y);
@@ -990,7 +990,7 @@ namespace {
   +0 and a -0 leaves to maxpd. An empty operand or an infinite bound is the
   rare case, which mul_special() computes.
 */
-GAOL_BOUNDS_TARGET __m128d mul_bounds(__m128d x, __m128d y)
+GAOL_BOUNDS_TARGET __m128d GAOL_VECTORCALL mul_bounds(__m128d x, __m128d y)
 {
 #if GAOL_AVX512_ARITHMETIC
   /*
@@ -1232,7 +1232,7 @@ namespace {
   being divided by c, which is finite. The rare cases, an empty operand or a
   divisor with a zero, are the ones of divide_general().
 */
-GAOL_BOUNDS_TARGET __m128d div_bounds(__m128d x, __m128d y)
+GAOL_BOUNDS_TARGET __m128d GAOL_VECTORCALL div_bounds(__m128d x, __m128d y)
 {
 #if GAOL_AVX512_ARITHMETIC
   // The AVX-512 path: the same choice of the denominators as below, the
