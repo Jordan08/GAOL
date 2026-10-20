@@ -199,8 +199,8 @@ point Q), which `numbers` checks there too.
   units upward and the modes clear, or as they were found with
   `GAOL_PRESERVE_ROUNDING`, no other bit changed, and the sums and products
   the tightest enclosures right after the program wrote the registers (600
-  operands for each mode). `cbrt`, `pow` and `atan2` have to leave the exception masks of the
-  SSE control register as they found them, and an empty interval to be told
+  operands for each mode). `cbrt`, `pow` and `atan2` have to leave the
+  exception masks of the SSE control register as they found them, and an empty interval to be told
   empty after them: the `fesetexceptflag()` of mingw-w64 for 32-bit
   Windows unmasked the exceptions, and the comparison of the NaN
   bounds of an empty interval then killed the program (GAOL v5).

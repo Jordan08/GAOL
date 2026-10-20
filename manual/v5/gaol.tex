@@ -1106,11 +1106,14 @@ left. The check is an addition,
 $1+2^{-60}$, which is above 1 only when rounded upward, rather than a reading
 of the rounding direction, which cost far more on some platforms: under
 Rosetta~2, reading it made an addition of intervals take 800~ns rather than
-2.8~ns. On x86 processors, and on ARM processors with GCC and Clang, it is
+2.8~ns. On x86-64 processors, and on ARM processors with GCC and Clang, it is
 $1+(2^{-1060}+0)$, which shows the modes that flush the subnormal numbers to
 zero as well (\pxref{sec:ftz}); with the NEON intervals of 64-bit ARM
 processors (\pxref{sec:neon}), it is a read of the control register FPCR, which
-holds both.\newinvfive{} Each function of intervals checks the
+holds both; and on 32-bit x86 processors, whose two units that round, the x87
+unit and the SSE instructions, each have a direction, a read of the control word
+of the first and of MXCSR (\code{fnstcw} and \code{stmxcsr}).\newinvfive{}
+Each function of intervals checks the
 direction once, and the
 functions it calls on doubles take it to be upward already.
 \cindex{trust rounding mode}%

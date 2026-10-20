@@ -1238,25 +1238,27 @@ AVX-512 path (above, and [Accuracy](accuracy.md)).
 ### The control registers of 32-bit x86 processors
 
 A 32-bit x86 processor has two units that round, each with a direction of its
-own: the x87 unit, in the field RC of its control word (bits 11 and 10), and
-the SSE instructions, which compute GAOL's doubles, in the field RC of MXCSR
-(bits 14 and 13), where the modes that flush the subnormals to zero are too
-(FTZ, bit 15, and DAZ, bit 6). Both have to be upward: the elementary functions
-of CORE-MATH read the direction with `fegetround()`, which gives the one of the
-x87 unit with glibc and `-1` with the C runtime of Windows when the two differ,
-and the addition that shows the direction elsewhere sees the SSE instructions
-only. Each operation therefore reads the two registers, the control word with
-`fnstcw` and MXCSR with `stmxcsr`, in one asm statement (inline assembly with
-Visual C++), where it called `fegetround()` and read MXCSR (GAOL v5). That call
-took about 80 ns with Visual C++ for x86: `x + y` took 80.8 to 83.5 ns in the
-job of the continuous integration that runs `gaol_performance`, and a line of 15
-additions 1 211 to 1 307 ns (before this change). The registers are written (`fldcw`, `ldmxcsr`)
-only when the direction of one is not upward or a flush mode is set, and the
-one that differs only; MXCSR is written once for the direction and the flush
-modes. With `GAOL_PRESERVE_ROUNDING`, an operation reads them once at its
-start, and writes back at its end what it found, in the register that differs
-from what the operation left: a program that computes upward already, with the
-flush modes clear, pays no write. `round_upward()`, `round_nearest()` and
+own: the x87 unit, in the field RC of its control word (bits 11 and 10), and the
+SSE instructions, which compute GAOL's doubles, in the field RC of MXCSR (bits
+14 and 13), where the modes that flush the subnormals to zero are too (FTZ, bit
+15, and DAZ, bit 6). Both have to be upward: the elementary functions of
+CORE-MATH read the direction with `fegetround()`, which gives the one of the x87
+unit with glibc and `-1` with the C runtime of Windows when the two differ, and
+the addition that shows the direction elsewhere sees the SSE instructions only.
+Each operation therefore reads the two registers, the control word with `fnstcw`
+and MXCSR with `stmxcsr`, in one asm statement (inline assembly with Visual
+C++), where it called `fegetround()` and read MXCSR (GAOL v5). That call took
+about 80 ns with Visual C++ for x86: `x + y` took 81 to 100 ns, and a line of 15
+additions 1 211 to 1 546 ns, in the step of the continuous integration that runs
+`gaol_performance`. The registers are written (`fldcw`, `ldmxcsr`) only when the
+direction of one is not upward or a flush mode is set, and the one that differs
+only; MXCSR is written once for the direction and the flush modes. With
+`GAOL_PRESERVE_ROUNDING`, an operation reads them once at its start, and writes
+back at its end what it found, in the register that differs from what the
+operation left: a program that computes upward already, with the flush modes
+clear, pays no write. The SSE2 operations (`+`, `-`, `*`, `/`, `sqr()`...),
+which use no x87 instruction, keep MXCSR alone with `GAOL_PRESERVE_ROUNDING` and
+leave the x87 unit as it is. `round_upward()`, `round_nearest()` and
 `round_downward()` still write both registers, and `gaol::cleanup()` and
 `gaol::restore_rounding()` set back the direction that `gaol::init()` found in
 each unit. The values are those of the hardware (0x0800 for upward in the
