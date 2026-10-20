@@ -1344,31 +1344,40 @@ endif()
 #
 # make perf (the target perf) measures GAOL v5 alone on the benchmark of
 # doc/compare/performance.md, compiled with the flags of this build, and
-# writes the new times of GAOL v5 into its tables; the columns of the other
-# libraries keep the times measured with them, which
-# doc/compare/code/results.csv holds (see doc/compare/code/run_perf.sh). It
-# needs bash and Python 3 with numpy, which draws the intervals. GAOL 4.2.3,
-# filib++, libieeep1788 and PROFIL/BIAS are not run: doc/compare/code/run_all.sh
-# measures them all again. Linux only, as the benchmark, and not with
-# GAOL_DEBUG, which would measure GAOL built for debugging (GAOL v5).
+# writes the new times of GAOL v5 into its tables, those of the operations and
+# those of the ten long lines of + - * / of doc/compare/code/run_lines.sh; the
+# columns of the other libraries keep the times measured with them, which
+# doc/compare/code/results.csv and results_lines.csv hold (see
+# doc/compare/code/run_perf.sh). It needs bash and Python 3 with numpy, which
+# draws the intervals, and runs on Linux and macOS. GAOL 4.2.3, filib++,
+# libieeep1788 and PROFIL/BIAS are not run: doc/compare/code/run_all.sh
+# measures them all again. Not with GAOL_DEBUG, which would measure GAOL built
+# for debugging (GAOL v5).
+#
+# The program of the benchmark, gaol_bench, is a target of its own, not built
+# by default, on every system: .github/scripts/performance-ab.sh builds it
+# in two trees of GAOL, the base of a pull request and its head, to run the
+# long lines on the same intervals (.github/workflows/performance.yml).
 
-if(GAOL_IS_TOP_LEVEL AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NOT GAOL_DEBUG)
-  find_program(GAOL_BASH bash)
-  mark_as_advanced(GAOL_BASH)
-  if(GAOL_BASH)
-    set(_bench_dir "${CMAKE_CURRENT_SOURCE_DIR}/doc/compare/code")
-    add_executable(gaol_bench EXCLUDE_FROM_ALL "${_bench_dir}/bench_gaol.cpp")
-    target_link_libraries(gaol_bench PRIVATE gaol::gaol)
-    target_include_directories(gaol_bench PRIVATE "${_bench_dir}")
-    target_compile_definitions(gaol_bench PRIVATE GAOL_BENCH_NAME="gaol5")
-    add_custom_target(perf
-      COMMAND "${GAOL_BASH}" "${_bench_dir}/run_perf.sh" "$<TARGET_FILE:gaol_bench>"
-              "CMake ${CMAKE_BUILD_TYPE}" "${CMAKE_CXX_COMPILER}"
-      DEPENDS gaol_bench
-      WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-      COMMENT "Measuring GAOL v5 on the benchmark of doc/compare/performance.md"
-      USES_TERMINAL
-      VERBATIM)
+if(GAOL_IS_TOP_LEVEL AND NOT GAOL_DEBUG)
+  set(_bench_dir "${CMAKE_CURRENT_SOURCE_DIR}/doc/compare/code")
+  add_executable(gaol_bench EXCLUDE_FROM_ALL "${_bench_dir}/bench_gaol.cpp")
+  target_link_libraries(gaol_bench PRIVATE gaol::gaol)
+  target_include_directories(gaol_bench PRIVATE "${_bench_dir}")
+  target_compile_definitions(gaol_bench PRIVATE GAOL_BENCH_NAME="gaol5")
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    find_program(GAOL_BASH bash)
+    mark_as_advanced(GAOL_BASH)
+    if(GAOL_BASH)
+      add_custom_target(perf
+        COMMAND "${GAOL_BASH}" "${_bench_dir}/run_perf.sh" "$<TARGET_FILE:gaol_bench>"
+                "CMake ${CMAKE_BUILD_TYPE}" "${CMAKE_CXX_COMPILER}"
+        DEPENDS gaol_bench
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        COMMENT "Measuring GAOL v5 on the benchmark of doc/compare/performance.md"
+        USES_TERMINAL
+        VERBATIM)
+    endif()
   endif()
 endif()
 
