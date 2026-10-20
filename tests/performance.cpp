@@ -297,6 +297,14 @@ int main()
       __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));
       sink = static_cast<double>(fpcr); }, n);
   std::printf("\nThe check of each operation, the read of the control register FPCR with mrs: %.2f ns\n", check_fpcr_ns);
+#elif GAOL_RND_X86_DIRECT
+  // The check of each operation on a 32-bit x86 processor is the read of the
+  // control word of the x87 unit and of MXCSR, and a comparison of both
+  // (gaol_core::round_upward_if_needed()), not an addition (GAOL v5)
+  const double check_registers_ns = nanoseconds_per_operation([&](std::size_t) {
+      gaol_core::round_upward_if_needed(); }, n);
+  std::printf("\nThe check of each operation, the read of the control word of the x87 unit and of MXCSR, "
+              "round_upward_if_needed(): %.2f ns\n", check_registers_ns);
 #else
   const double check_subnormal_ns = nanoseconds_per_operation([&](std::size_t) {
       sink = !(1.0 + (check_subnormal + 0.0) > 1.0) ? 1.0 : 0.0; }, n);
