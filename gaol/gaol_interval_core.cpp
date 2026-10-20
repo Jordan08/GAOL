@@ -3070,6 +3070,106 @@ namespace gaol_core {
   }
 
   /*
+    ipow_hi() and ipow_lo() for the proofs of the roots of an x below
+    tiny_root_argument (GAOL v5, point AC of TODO.md). Next to the root of
+    x < 1, the powers l^k of the binary exponentiation (k <= n) are no smaller
+    than x, which is below 2^-1022 for a subnormal x, and a subnormal has
+    fewer bits: l^32 is about 2^-1041.5 for x = 2^-1074 and n = 33, which has
+    33. Each rounded product there moved the proof away from the root by up to
+    2^-32 relatively, and the root by that over n: nth_root([2^-1074], 33) was
+    1983 doubles below its tightest lower bound and 28785 above its upper one,
+    and n = 65 gave 3.5e8 and 6.9e8. The bounds still enclosed the root, each
+    product being rounded in the direction of its proof. From
+    tiny_root_argument, 4 times the smallest normal number, the powers next to
+    the root (where l^n is within a relative 2^-17 of x) stay above 2^-1022,
+    and ipow_hi() and ipow_lo() are used as they were.
+
+    Here l = c 2^e with c in [1, 2) (exact), and the products are those of
+    ipow_hi() and ipow_lo() on c, in the same order: l^n = h 2^s, s being an
+    integer and h in [1, 2^500], scaled by 2^-500 above 2^500 (s is a long
+    long: |e| n is below 2^43). Scaling by a power of two is exact and does
+    not change what a product rounds to, so that h is the double of ipow_hi()
+    or ipow_lo() wherever that one stays normal, and no product is rounded as
+    a subnormal. Rounding upward, l > 0, n > 0
+  */
+  const double tiny_root_argument = 4.0*std::numeric_limits<double>::min();
+
+  static double ipow_hi_scaled(double l, unsigned int n, long long& s)
+  {
+    const double big = 3.273390607896142e+150, small = 3.054936363499605e-151; // 2^500, 2^-500
+    int e;
+    double y = 1.0, z = 2.0*std::frexp(l, &e);
+    long long ys = 0, zs = e - 1;
+    for (;;) {
+      if (odd(n)) {
+	y *= z;
+	ys += zs;
+	if (y > big) {
+	  y *= small;
+	  ys += 500;
+	}
+      }
+      n >>= 1;
+      if (n == 0) {
+	s = ys;
+	return y;
+      }
+      z *= z;
+      zs *= 2;
+      if (z > big) {
+	z *= small;
+	zs += 500;
+      }
+    }
+  }
+
+  static double ipow_lo_scaled(double l, unsigned int n, long long& s)
+  {
+    const double big = 3.273390607896142e+150, small = 3.054936363499605e-151; // 2^500, 2^-500
+    int e;
+    double y = -1.0, z = 2.0*std::frexp(l, &e);
+    long long ys = 0, zs = e - 1;
+    for (;;) {
+      if (odd(n)) {
+	y *= z;
+	ys += zs;
+	if (y < -big) {
+	  y *= small;
+	  ys += 500;
+	}
+      }
+      n >>= 1;
+      if (n == 0) {
+	s = ys;
+	return -y;
+      }
+      z = -((-z)*z);
+      zs *= 2;
+      if (z > big) {
+	z *= small;
+	zs += 500;
+      }
+    }
+  }
+
+  // The sign of h 2^s - x, for h in [1, 2^500], s an integer and x > 0 finite:
+  // h 2^s - x = (h 2^d - m) 2^(f - 1) with x = m 2^(f - 1), m in [1, 2)
+  static int compare_scaled(double h, long long s, double x)
+  {
+    int f;
+    const double m = 2.0*std::frexp(x, &f);
+    const long long d = s - (f - 1);
+    if (d > 0) { // h 2^d >= 2
+      return 1;
+    }
+    if (d < -510) { // h 2^d <= 2^-11
+      return -1;
+    }
+    const double t = gaol_ldexp(h, static_cast<int>(d)); // Exact: in [2^-510, 2^500]
+    return (t < m) ? -1 : ((t > m) ? 1 : 0);
+  }
+
+  /*
     The n-th root of x rounded downward and upward, n > 2 and 0 < x < +oo, from
     an approximation r of it, the rounding direction being upward (fork of
     GAOL). GAOL took the power x^(1/n) of the mathematical library moved one
@@ -3089,10 +3189,15 @@ namespace gaol_core {
     powers; from any other, as the math library of the system may give, the
     search still ends, and the bounds are proved.
 
-    l^n, of n - 1 rounded products, is within (n - 1) 2^-53 of its value
-    relatively, which moves the root by less than 2^-53 relatively: the bounds
-    are the tightest or one double beyond, and the root of a double that is an
-    n-th power is that double.
+    l^n, of n - 1 rounded products, is within (n - 1) 2^-52 of its value
+    relatively (a product rounded in a direction is within 2^-52), which moves
+    the root by less than 2^-52 relatively: the bounds are the tightest or up
+    to 2 doubles beyond, and the root of a double that is an n-th power is that
+    double. (GAOL v5: for an x below tiny_root_argument, the proofs take the
+    scaled powers of ipow_hi_scaled() and ipow_lo_scaled(), whose products are
+    never subnormal. This function does not: for a subnormal x its power is
+    subnormal, its step is left out, and the search below starts from the
+    value of CORE-MATH.)
   */
   static double newton_root(double x, double r, unsigned int n)
   {
@@ -3112,15 +3217,49 @@ namespace gaol_core {
     return r;
   }
 
-  static inline bool is_proved_below_root(double l, double x, unsigned int n)
+  /*
+    The two tests of the proofs, by the powers they take: ipow_hi() and
+    ipow_lo(), or the scaled ones for an x below tiny_root_argument. The
+    searches below are made for one or the other, chosen once (GAOL v5, point
+    AC of TODO.md): a test of x inside them cost 3 to 30 ns of the 80 of the
+    root of a normal x, according to how the compiler inlined them (n = 33,
+    AppleClang 21, arm64, two builds of the same code)
+  */
+  struct plain_proofs
   {
-    return ipow_hi(l,n) <= x;
-  }
+    static inline bool below(double l, double x, unsigned int n)
+    {
+      return ipow_hi(l,n) <= x;
+    }
 
-  static inline bool is_proved_above_root(double u, double x, unsigned int n)
+    static inline bool above(double u, double x, unsigned int n)
+    {
+      return ipow_lo(u,n) >= x;
+    }
+  };
+
+  struct scaled_proofs
   {
-    return ipow_lo(u,n) >= x;
-  }
+    static inline bool below(double l, double x, unsigned int n)
+    {
+      if (!(l > 0.0 && l < GAOL_INFINITY)) {
+	return l == 0.0;
+      }
+      long long s;
+      const double h = ipow_hi_scaled(l,n,s);
+      return compare_scaled(h,s,x) <= 0;
+    }
+
+    static inline bool above(double u, double x, unsigned int n)
+    {
+      if (!(u > 0.0 && u < GAOL_INFINITY)) {
+	return u == GAOL_INFINITY;
+      }
+      long long s;
+      const double h = ipow_lo_scaled(u,n,s);
+      return compare_scaled(h,s,x) >= 0;
+    }
+  };
 
   // A step of about one double at r, which doubles
   static inline double first_step(double r)
@@ -3145,26 +3284,27 @@ namespace gaol_core {
   // in case a platform would not move: the bound found so far is returned
   const int root_search_limit = 4096;
 
-  static double proved_root_dn(double x, double r, unsigned int n)
+  template<class Proofs>
+  static double proved_root_dn_by(double x, double r, unsigned int n)
   {
     // l is proved to be below the root, and h is not: 0 is, and the largest
     // double is not
     const double largest = std::numeric_limits<double>::max();
     double l = newton_root(x,r,n), h = l, step = first_step(l);
     int steps = 0;
-    if (is_proved_below_root(l,x,n)) {
-      for (h = minimum(l + step, largest); is_proved_below_root(h,x,n) && h < largest; h = minimum(l + step, largest)) {
+    if (Proofs::below(l,x,n)) {
+      for (h = minimum(l + step, largest); Proofs::below(h,x,n) && h < largest; h = minimum(l + step, largest)) {
 	l = h;
 	step *= 2.0;
 	if (++steps > root_search_limit) {
 	  return l;
 	}
       }
-      if (h >= largest && is_proved_below_root(h,x,n)) { // Not for n > 1 and a finite x
+      if (h >= largest && Proofs::below(h,x,n)) { // Not for n > 1 and a finite x
 	return h;
       }
     } else {
-      for (l = maximum(-(step - h), 0.0); !is_proved_below_root(l,x,n); l = maximum(-(step - h), 0.0)) {
+      for (l = maximum(-(step - h), 0.0); !Proofs::below(l,x,n); l = maximum(-(step - h), 0.0)) {
 	h = l;
 	step *= 2.0;
 	if (++steps > root_search_limit) {
@@ -3177,7 +3317,7 @@ namespace gaol_core {
       if (!(m < h) || ++steps > root_search_limit) {
 	return l;
       }
-      if (is_proved_below_root(m,x,n)) {
+      if (Proofs::below(m,x,n)) {
 	l = m;
       } else {
 	h = m;
@@ -3185,15 +3325,16 @@ namespace gaol_core {
     }
   }
 
-  static double proved_root_up(double x, double r, unsigned int n)
+  template<class Proofs>
+  static double proved_root_up_by(double x, double r, unsigned int n)
   {
     // u is proved to be above the root, and l is not: the largest double is,
     // and 0 is not
     const double largest = std::numeric_limits<double>::max();
     double u = newton_root(x,r,n), l = u, step = first_step(u);
     int steps = 0;
-    if (is_proved_above_root(u,x,n)) {
-      for (l = maximum(-(step - u), 0.0); is_proved_above_root(l,x,n); l = maximum(-(step - u), 0.0)) {
+    if (Proofs::above(u,x,n)) {
+      for (l = maximum(-(step - u), 0.0); Proofs::above(l,x,n); l = maximum(-(step - u), 0.0)) {
 	u = l;
 	step *= 2.0;
 	if (++steps > root_search_limit) {
@@ -3201,7 +3342,7 @@ namespace gaol_core {
 	}
       }
     } else {
-      for (u = minimum(l + step, largest); !is_proved_above_root(u,x,n); u = minimum(l + step, largest)) {
+      for (u = minimum(l + step, largest); !Proofs::above(u,x,n); u = minimum(l + step, largest)) {
 	l = u;
 	step *= 2.0;
 	if (++steps > root_search_limit) {
@@ -3214,12 +3355,22 @@ namespace gaol_core {
       if (!(m < u) || ++steps > root_search_limit) {
 	return u;
       }
-      if (is_proved_above_root(m,x,n)) {
+      if (Proofs::above(m,x,n)) {
 	u = m;
       } else {
 	l = m;
       }
     }
+  }
+
+  static double proved_root_dn(double x, double r, unsigned int n)
+  {
+    return (x < tiny_root_argument) ? proved_root_dn_by<scaled_proofs>(x,r,n) : proved_root_dn_by<plain_proofs>(x,r,n);
+  }
+
+  static double proved_root_up(double x, double r, unsigned int n)
+  {
+    return (x < tiny_root_argument) ? proved_root_up_by<scaled_proofs>(x,r,n) : proved_root_up_by<plain_proofs>(x,r,n);
   }
 
   /*
