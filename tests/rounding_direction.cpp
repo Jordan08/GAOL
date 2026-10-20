@@ -1387,12 +1387,24 @@ namespace
   }
 
   const unsigned long long fpcr_rmode_bits = 0xc00000ull;
+#if defined(__aarch64__)
   const unsigned long long fpcr_flush_bits = 0x1000001ull; // FZ and FIZ
+  const unsigned long long fpcr_dn_fz16_bits = 0x2080000ull;
+  const unsigned long long fpcr_flag_bits = 0ull; // the flags of the exceptions are in FPSR
+#else
+  // FPSCR of 32-bit ARM: FZ alone (bit 0 is the flag of the invalid-operation
+  // exception), DN alone (no FZ16), and the flags of the exceptions and of the
+  // comparisons, which the operations change: N, Z, C, V, QC, IDC and IXC to IOC
+  const unsigned long long fpcr_flush_bits = 0x1000000ull;
+  const unsigned long long fpcr_dn_fz16_bits = 0x2000000ull;
+  const unsigned long long fpcr_flag_bits = 0xf800009full;
+#endif
   const unsigned long long fpcr_mode_bits = fpcr_rmode_bits | fpcr_flush_bits;
   const unsigned long long fpcr_upward_bits = 0x400000ull;
   const unsigned long long fpcr_fz_bit = 0x1000000ull;
-  const unsigned long long fpcr_dn_fz16_bits = 0x2080000ull;
   const unsigned long long fpcr_ide_bit = 0x8000ull;
+  // The bits no operation of GAOL may change: neither the mode bits nor the flags
+  const unsigned long long fpcr_owned_bits = ~(fpcr_mode_bits | fpcr_flag_bits);
 
   // The rounding directions as the field RMode holds them, upward last
   const unsigned long long fpcr_directions[4] = { 0x0ull, 0x800000ull, 0xc00000ull, 0x400000ull };
@@ -1433,7 +1445,6 @@ namespace
     enabled, where the processor retains the enable bits: an operation that
     writes FPCR whole, or that raised an exception, would kill the program
   */
-#if GAOL_TESTS_FPCR
   const EmptyOperand exact_operations[] = {
     { "x + y", [] { return (make(1.0, 2.0) + make(4.0, 8.0)).set_eq(interval(5.0, 10.0)); } },
     { "x - y", [] { return (make(1.0, 2.0) - make(4.0, 8.0)).set_eq(interval(-7.0, -2.0)); } },
@@ -1459,7 +1470,6 @@ namespace
     { "sqrt(y)", [] { return sqrt(make(4.0, 16.0)).set_eq(interval(2.0, 4.0)); } },
     { "inverse(y)", [] { return inverse(make(4.0, 8.0)).set_eq(interval(0.125, 0.25)); } },
   };
-#endif // GAOL_TESTS_FPCR
 #endif // GAOL_TESTS_FPCR_SEQUENCE
 
   /*
@@ -2184,9 +2194,11 @@ int main()
     set(directions[0]);
   }
 
-#if GAOL_TESTS_FPCR
+#if GAOL_TESTS_FPCR_SEQUENCE
   /*
-    FPCR itself (GAOL v5, see read_fpcr()). After each operation of the table
+    FPCR itself (GAOL v5, see read_fpcr()); FPSCR on 32-bit ARM, whose flags the
+    operations change, and whose other bits (DN, the enables of the traps) the
+    test sets as far as the processor retains them. After each operation of the table
     above, run from each direction with and without FZ set, the bits of FPCR
     other than the rounding direction and the flush modes are the ones the
     program had. They are set to a pattern first: the default-NaN mode (DN)
@@ -2239,7 +2251,7 @@ int main()
                  + ": FPCR " + fpcr_text(after) + " after it, " + fpcr_text(start) + " before";
           };
           check("the bits of FPCR other than the rounding direction and the flush modes kept by " + std::string(op.name),
-                ((after ^ start) & ~fpcr_mode_bits) == 0ull, describe);
+                ((after ^ start) & fpcr_owned_bits) == 0ull, describe);
 #if GAOL_PRESERVE_ROUNDING
           check("the rounding direction and the flush modes of FPCR restored by " + std::string(op.name),
                 (after & fpcr_mode_bits) == (start & fpcr_mode_bits), describe);
@@ -2269,7 +2281,7 @@ int main()
           const unsigned long long after = read_fpcr();
           write_fpcr(saved);
           check("the bits of FPCR other than the rounding direction and the flush modes kept by " + std::string(op.name),
-                ((after ^ start) & ~fpcr_mode_bits) == 0ull,
+                ((after ^ start) & fpcr_owned_bits) == 0ull,
                 [&] {
                   return std::string("rounding direction ") + fpcr_direction_names[d] + (fz != 0 ? ", FZ set" : "")
                        + ": FPCR " + fpcr_text(after) + " after it, " + fpcr_text(start) + " before";
@@ -2349,7 +2361,7 @@ int main()
           };
           check("an operation with exact results gives them with the traps of FPCR enabled", right,
                 [&] { return std::string(e.name) + ", " + describe(); });
-          check("the traps of FPCR kept enabled by an operation with exact results", ((after ^ start) & ~fpcr_mode_bits) == 0ull,
+          check("the traps of FPCR kept enabled by an operation with exact results", ((after ^ start) & fpcr_owned_bits) == 0ull,
                 [&] { return std::string(e.name) + ", " + describe(); });
         }
       }
@@ -2357,7 +2369,7 @@ int main()
     write_fpcr(saved);
     std::feclearexcept(FE_ALL_EXCEPT);
   }
-#endif // GAOL_TESTS_FPCR
+#endif // GAOL_TESTS_FPCR_SEQUENCE
 
 #if GAOL_TESTS_FLUSH
   /*
