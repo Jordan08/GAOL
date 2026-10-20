@@ -309,7 +309,8 @@ differs from it only, if what they found was not upward with these modes clear
 writes (fldcw, ldmxcsr) when the program computes upward already, where the
 macros above read the direction through fegetround(), a call, wrote it back
 through fesetround(), which writes both registers, and wrote MXCSR twice more
-for the flush modes.
+for the flush modes. The SSE2 operations (GAOL_RND_ENTER_SSE() above), which
+use no x87 instruction, keep MXCSR alone and leave the x87 unit as it is.
 */
 #if GAOL_PRESERVE_ROUNDING && GAOL_RND_X86_DIRECT
 #  undef GAOL_RND_ENTER

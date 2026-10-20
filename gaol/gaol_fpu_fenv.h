@@ -182,8 +182,10 @@ namespace gaol_core {
   32-bit x86 processor read (round_upward_if_needed() of gaol/gaol_fpu.h),
   where fegetround() cost about 80 ns with Visual C++. Volatile, so that no
   compiler reuses a read of them, as Clang 18 did with MXCSR in a loop that
-  changed the direction, nor moves it across the writes of the registers.
-  The values are the hardware ones, the rounding field of the control word
+  changed the direction. It does not order the read with the floating-point
+  operations on values in registers, which no compiler models (GCC bug 34678):
+  the operations read their bounds after the check, or through rnd_reread()
+  (gaol/gaol_fpu.h). The values are the hardware ones, the rounding field of the control word
   being its bits 11 and 10 (0x0c00) and the one of MXCSR its bits 14 and 13
   (0x6000), and not the FE_* of <fenv.h>, which the C libraries give other
   values (0x0400 and 0x0800 with glibc, 0x0100 and 0x0200 with the C runtime
