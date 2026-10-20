@@ -2321,7 +2321,13 @@ GAOL_INLINE double interval::width(void) const
         return GAOL_NAN;
     } else {
         GAOL_RND_ENTER();
-        double res = right() - left();
+        // The bounds go through rnd_reread() after the check: built in the code
+        // that calls width(), they are registers, which GCC may subtract before
+        // the check writes the control register, in the program's direction
+        // (see rnd_reread() of gaol/gaol_fpu.h; GAOL v5)
+        const double r = rnd_reread(right());
+        const double l = rnd_reread(left());
+        double res = r - l;
         GAOL_RND_KEEP(res);
         GAOL_RND_LEAVE();
         return res;
