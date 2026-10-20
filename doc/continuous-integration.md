@@ -97,7 +97,7 @@ and Clang (which take the AVX-512 path where the runner has it, Clang having
 computed a difference of that path once flush-to-zero was set back, GAOL v5)
 and arm64 GCC and Clang (GCC too since the NEON intervals, GAOL v5: it does not
 model the direction they write into FPCR), Debian i386 and armhf, macOS arm64,
-Visual Studio x64, autotools and meson.
+Visual Studio x86 and x64, autotools and meson.
 Jobs of autotools and of meson on Ubuntu x86_64 build GAOL
 without exceptions (`--disable-exceptions`, `-Denable-exception=false`),
 where an error of GAOL ends the program, and run the examples and the tests,

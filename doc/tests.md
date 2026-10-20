@@ -186,8 +186,21 @@ point Q), which `numbers` checks there too.
   be the tightest enclosure, computed apart with mpmath, in each of them, the
   x87 unit to nearest and the SSE instructions upward included: `fegetround()`
   of glibc reads the x87 unit, and the upper bound was below the exact value
-  (GAOL v5). `cbrt`, `pow` and `atan2` have to leave the exception masks of the
-  SSE control register as they found them, and an empty interval to be told
+  (GAOL v5). On a 32-bit x86 processor, what gaol_core::x86_*() write to the
+  control word of the x87 unit and to MXCSR is checked on every platform, with
+  two variables for the registers: in the 64 states of the two rounding fields
+  and the two flush modes, with other bits that must not change and the
+  exception flags that an operation raises between its start and its end, which
+  must not be lost, the registers written are those that differ only, MXCSR
+  once for the direction and the modes, and the registers are read once, and
+  once more for a write (GAOL v5). With GCC, Clang or Visual C++ for 32-bit x86,
+  the registers themselves, read and written by the test apart from the library
+  in the six states above and with each flush mode, after ten operations: both
+  units upward and the modes clear, or as they were found with
+  `GAOL_PRESERVE_ROUNDING`, no other bit changed, and the sums and products
+  the tightest enclosures right after the program wrote the registers (600
+  operands for each mode). `cbrt`, `pow` and `atan2` have to leave the
+  exception masks of the SSE control register as they found them, and an empty interval to be told
   empty after them: the `fesetexceptflag()` of mingw-w64 for 32-bit
   Windows unmasked the exceptions, and the comparison of the NaN
   bounds of an empty interval then killed the program (GAOL v5).

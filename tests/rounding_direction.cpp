@@ -61,6 +61,14 @@
  * assignments give the tightest bounds after the program changes the
  * direction, as the product and the sum do (GAOL v5).
  *
+ * On a 32-bit x86 processor, the control word of the x87 unit and MXCSR are
+ * read and written directly (GAOL v5): what gaol_core::x86_*() decide to write,
+ * and the values, are checked on every platform, with two variables for the
+ * registers, in every state of the two rounding fields and the two flush modes;
+ * and, with GCC, Clang or Visual C++ for 32-bit x86, the registers themselves,
+ * which the tests read and write apart from the library, after operations and
+ * right before them, in the six states where the units agree or differ.
+ *
  * Copyright (c) 2026 ENSTA, France
  *
  * Created 2026-09-20 by Jordan NININ
@@ -104,6 +112,16 @@
 #  define SSE_DIRECTION(d) static_cast<unsigned>(d)
 #else
 #  define SSE_DIRECTION(d) 0u
+#endif
+
+// A 32-bit x86 processor, where the library reads and writes the control word
+// of the x87 unit and MXCSR directly (GAOL v5), and so do the tests below, with
+// the assembly of each compiler
+#if defined(GAOL_TESTS_SSE) && (defined(__i386__) || defined(_M_IX86)) \
+    && (defined(__GNUC__) || defined(__clang__) || defined(_MSC_VER))
+#  define GAOL_TESTS_X86_32 1
+#else
+#  define GAOL_TESTS_X86_32 0
 #endif
 
 // 64-bit ARM with GCC or Clang: FPCR, the control register holding the rounding
@@ -323,6 +341,325 @@ namespace
       s[i] = interval(a[i]) + interval(b[i]);
     }
   }
+
+  /*
+    The control registers of a 32-bit x86 processor (GAOL v5): the control
+    word of the x87 unit, whose field RC (bits 11 and 10) is its rounding
+    direction, and MXCSR, whose field RC (bits 14 and 13) is the one of the SSE
+    instructions, and whose bits FTZ (15) and DAZ (6) flush the subnormals to
+    zero. gaol_core::x86_*() (gaol/gaol_fpu.h) decide what to write to them, and
+    the values, from the registers they read, whatever the processor: they take
+    the registers as a type with three members, the processor's on x86 and the
+    two variables below here, so that every platform checks them in all the
+    64 states of the two fields and the two modes, where a processor runs six
+    of them at most (the states of directions[]). The registers are written
+    from the fields below, with the numbers the hardware gives them, and never
+    with the FE_* of <fenv.h> (0x0400 and 0x0800 with glibc, 0x0100 and 0x0200
+    with the C runtime of Windows).
+  */
+  struct SimulatedRegisters
+  {
+    unsigned int cw, csr;
+    mutable int reads;
+    int x87_writes, mxcsr_writes;
+    bool wide; // a value written to the control word that has more than 16 bits
+
+    SimulatedRegisters(unsigned int x87_cw, unsigned int mxcsr)
+      : cw(x87_cw), csr(mxcsr), reads(0), x87_writes(0), mxcsr_writes(0), wide(false) {}
+
+    void read_control(unsigned int& x87_cw, unsigned int& mxcsr) const
+    {
+      ++reads;
+      x87_cw = cw;
+      mxcsr = csr;
+    }
+
+    void write_x87_control(unsigned int x87_cw)
+    {
+      wide = wide || x87_cw > 0xffffu;
+      cw = x87_cw;
+      ++x87_writes;
+    }
+
+    void write_mxcsr(unsigned int mxcsr)
+    {
+      csr = mxcsr;
+      ++mxcsr_writes;
+    }
+  };
+
+  // What gaol_core::x86_get_state() fills, and the rounding_state of a 32-bit x86 processor has
+  struct SimulatedState
+  {
+    unsigned int x87, sse, flush;
+  };
+
+  // The fields of the two registers: a rounding direction, 0 to nearest, 1 downward, 2 upward and 3 toward zero,
+  // in each unit, and the two flush modes
+  struct X86Fields
+  {
+    unsigned int x87_rc, sse_rc;
+    bool ftz, daz;
+  };
+
+  // The bits that the fields do not hold: of the control word, the precision (bits 9 and 8), the infinity control
+  // (12) and the exception masks (5 to 0); of MXCSR, the exception flags (5 to 0) and the masks (12 to 7)
+  const unsigned int x87_others[] = { 0x037fu, 0x027fu, 0x0000u, 0x133fu };
+  const unsigned int mxcsr_others[] = { 0x1f80u, 0x1fbfu, 0x0000u, 0x1fa0u, 0x0081u };
+
+  unsigned int x87_register(unsigned int other, const X86Fields& f)
+  {
+    return other | (f.x87_rc << 10);
+  }
+
+  unsigned int mxcsr_register(unsigned int other, const X86Fields& f)
+  {
+    return other | (f.sse_rc << 13) | (f.ftz ? 1u << 15 : 0u) | (f.daz ? 1u << 6 : 0u);
+  }
+
+  X86Fields x86_fields(unsigned int number)
+  {
+    X86Fields f;
+    f.x87_rc = number & 3u;
+    f.sse_rc = (number >> 2) & 3u;
+    f.ftz = ((number >> 4) & 1u) != 0u;
+    f.daz = ((number >> 5) & 1u) != 0u;
+    return f;
+  }
+
+  const unsigned int nb_x86_fields = 64;
+
+  bool x86_upward(const X86Fields& f)
+  {
+    return f.x87_rc == 2u && f.sse_rc == 2u && !f.ftz && !f.daz;
+  }
+
+  std::string x86_text(const X86Fields& f)
+  {
+    return "x87 " + std::to_string(f.x87_rc) + ", SSE " + std::to_string(f.sse_rc) + (f.ftz ? ", FTZ" : "") + (f.daz ? ", DAZ" : "");
+  }
+
+  std::string x86_hex(unsigned int x)
+  {
+    char buffer[16];
+    std::snprintf(buffer, sizeof buffer, "0x%04x", x);
+    return buffer;
+  }
+
+  // The decisions of gaol_core::x86_*() on the simulated registers, all of
+  // them in every state of the registers, with other bits of the registers that
+  // must not change, and the exception flags that an operation raises between
+  // its start and its end, which must not be lost
+  void x86_registers_simulated()
+  {
+    const unsigned int mxcsr_flags = 0x003fu;
+    const std::string where = " of the registers of a 32-bit x86 processor";
+    for (unsigned int i = 0; i < nb_x86_fields; ++i) {
+      const X86Fields f = x86_fields(i);
+      for (unsigned int x87_other : x87_others) {
+        for (unsigned int mxcsr_other : mxcsr_others) {
+          const auto describe = [&] {
+            return x86_text(f) + ", control word " + x86_hex(x87_register(x87_other, f))
+                 + ", MXCSR " + x86_hex(mxcsr_register(mxcsr_other, f));
+          };
+          const unsigned int cw = x87_register(x87_other, f), csr = mxcsr_register(mxcsr_other, f);
+
+          // Whether the direction is upward in both units, with no flush mode
+          check("x86_is_upward()" + where, gaol_core::x86_is_upward(cw, csr) == x86_upward(f), describe);
+
+          // The state saved: the rounding fields as each register has them, and the flush modes
+          {
+            SimulatedRegisters r(cw, csr);
+            SimulatedState s;
+            gaol_core::x86_get_state(r, s);
+            check("x86_get_state()" + where,
+                  s.x87 == (f.x87_rc << 10) && s.sse == (f.sse_rc << 13)
+                  && s.flush == ((f.ftz ? 1u << 15 : 0u) | (f.daz ? 1u << 6 : 0u)),
+                  [&] { return describe() + ": " + x86_hex(s.x87) + ", " + x86_hex(s.sse) + ", " + x86_hex(s.flush); });
+            check("x86_get_state() reads once, and writes nothing" + where,
+                  r.reads == 1 && r.x87_writes == 0 && r.mxcsr_writes == 0 && r.cw == cw && r.csr == csr, describe);
+          }
+
+          // The start of an operation, from the registers read at once, and from the state saved: the direction
+          // upward in both units, the flush modes cleared and nothing else changed, and the register that holds
+          // none of that left alone
+          X86Fields upward_fields = f;
+          upward_fields.x87_rc = 2u;
+          upward_fields.sse_rc = 2u;
+          upward_fields.ftz = false;
+          upward_fields.daz = false;
+          const unsigned int cw_upward = x87_register(x87_other, upward_fields);
+          const unsigned int csr_upward = mxcsr_register(mxcsr_other, upward_fields);
+          const int x87_writes = f.x87_rc != 2u ? 1 : 0;
+          const int mxcsr_writes = (f.sse_rc != 2u || f.ftz || f.daz) ? 1 : 0;
+          for (int with_state = 0; with_state < 2; ++with_state) {
+            SimulatedRegisters r(cw, csr);
+            // The reads: one of the check, and one more of the writes, which the registers that are upward spare
+            int reads_wanted = x86_upward(f) ? 1 : 2;
+            if (with_state != 0) {
+              SimulatedState s;
+              gaol_core::x86_get_state(r, s);
+              r.reads = 0;
+              gaol_core::x86_enter_upward(r, s);
+              reads_wanted = x86_upward(f) ? 0 : 1;
+            } else {
+              gaol_core::x86_round_upward_if_needed(r);
+            }
+            const char *start = with_state != 0 ? "x86_enter_upward()" : "x86_round_upward_if_needed()";
+            check(std::string(start) + ": upward in both units, the modes cleared, nothing else changed" + where,
+                  r.cw == cw_upward && r.csr == csr_upward && !r.wide,
+                  [&] { return describe() + ": " + x86_hex(r.cw) + ", " + x86_hex(r.csr); });
+            check(std::string(start) + ": the registers written that differ only" + where,
+                  r.x87_writes == x87_writes && r.mxcsr_writes == mxcsr_writes,
+                  [&] { return describe() + ": " + std::to_string(r.x87_writes) + " and " + std::to_string(r.mxcsr_writes) + " writes"; });
+            check(std::string(start) + ": no more reads than the registers written need" + where, r.reads == reads_wanted,
+                  [&] { return describe() + ": " + std::to_string(r.reads) + " reads"; });
+          }
+
+          // The end of an operation: what was found is back, the exception flags that the operation raised are kept
+          {
+            SimulatedRegisters r(cw, csr);
+            SimulatedState s;
+            gaol_core::x86_get_state(r, s);
+            gaol_core::x86_enter_upward(r, s);
+            r.csr |= mxcsr_flags;
+            r.reads = 0;
+            r.x87_writes = 0;
+            r.mxcsr_writes = 0;
+            gaol_core::x86_leave(r, s);
+            check("x86_leave(): what the operation found is back, with the exception flags it raised" + where,
+                  r.cw == cw && r.csr == (csr | mxcsr_flags) && !r.wide,
+                  [&] { return describe() + ": " + x86_hex(r.cw) + ", " + x86_hex(r.csr); });
+            check("x86_leave(): the registers written that differ only, none when the direction found was upward" + where,
+                  r.x87_writes == x87_writes && r.mxcsr_writes == mxcsr_writes,
+                  [&] { return describe() + ": " + std::to_string(r.x87_writes) + " and " + std::to_string(r.mxcsr_writes) + " writes"; });
+            check("x86_leave(): no read when the direction found was upward, one for the writes otherwise" + where,
+                  r.reads == (x86_upward(f) ? 0 : 1),
+                  [&] { return describe() + ": " + std::to_string(r.reads) + " reads"; });
+          }
+        }
+      }
+    }
+
+    // set_rounding() and set_rounding_and_flush_modes(), from each state of the registers to each state saved
+    const unsigned int x87_base = 0x037fu, mxcsr_base = 0x1fa0u;
+    for (unsigned int i = 0; i < nb_x86_fields; ++i) {
+      const X86Fields now = x86_fields(i);
+      for (unsigned int j = 0; j < nb_x86_fields; ++j) {
+        const X86Fields saved = x86_fields(j);
+        const auto describe = [&] { return "from " + x86_text(now) + " to " + x86_text(saved); };
+        SimulatedState s;
+        s.x87 = saved.x87_rc << 10;
+        s.sse = saved.sse_rc << 13;
+        s.flush = (saved.ftz ? 1u << 15 : 0u) | (saved.daz ? 1u << 6 : 0u);
+
+        // The directions only: the flush modes stay as they are
+        SimulatedRegisters r(x87_register(x87_base, now), mxcsr_register(mxcsr_base, now));
+        gaol_core::x86_set_rounding(r, s);
+        X86Fields expected = now;
+        expected.x87_rc = saved.x87_rc;
+        expected.sse_rc = saved.sse_rc;
+        check("x86_set_rounding(): the directions set back, the flush modes and the other bits as they were" + where,
+              r.cw == x87_register(x87_base, expected) && r.csr == mxcsr_register(mxcsr_base, expected) && !r.wide, describe);
+        check("x86_set_rounding(): the registers written that differ only" + where,
+              r.x87_writes == (now.x87_rc != saved.x87_rc ? 1 : 0) && r.mxcsr_writes == (now.sse_rc != saved.sse_rc ? 1 : 0), describe);
+
+        // The directions and the flush modes
+        SimulatedRegisters q(x87_register(x87_base, now), mxcsr_register(mxcsr_base, now));
+        gaol_core::x86_set_rounding_and_flush_modes(q, s);
+        check("x86_set_rounding_and_flush_modes(): the directions and the flush modes set back, the other bits as they were" + where,
+              q.cw == x87_register(x87_base, saved) && q.csr == mxcsr_register(mxcsr_base, saved) && !q.wide, describe);
+        check("x86_set_rounding_and_flush_modes(): the registers written that differ only" + where,
+              q.x87_writes == (now.x87_rc != saved.x87_rc ? 1 : 0)
+              && q.mxcsr_writes == ((now.sse_rc != saved.sse_rc || now.ftz != saved.ftz || now.daz != saved.daz) ? 1 : 0),
+              describe);
+      }
+    }
+  }
+
+#if GAOL_TESTS_X86_32
+  /*
+    The control word of the x87 unit, read and written apart from the library
+    (GAOL v5): the registers that gaol_core::x86_registers reads and writes,
+    which the checks below read and write themselves, in the six states that the
+    tests have for the two units, with the fields as the hardware has them (see
+    SimulatedRegisters). Visual C++ for x86 and GCC and Clang do not take the
+    same assembly.
+  */
+  unsigned int read_x87_word()
+  {
+    unsigned short cw;
+#  if defined(__GNUC__) || defined(__clang__)
+    __asm__ __volatile__ ("fnstcw %0" : "=m" (cw));
+#  else
+    __asm fnstcw cw
+#  endif
+    return cw;
+  }
+
+  void write_x87_word(unsigned int word)
+  {
+    unsigned short cw = static_cast<unsigned short>(word);
+#  if defined(__GNUC__) || defined(__clang__)
+    __asm__ __volatile__ ("fldcw %0" : : "m" (cw) : "memory");
+#  else
+    __asm fldcw cw
+#  endif
+  }
+
+  // The directions of directions[], as the fields of the two registers: the
+  // four in which the units agree, upward in the x87 unit and to nearest in
+  // the SSE instructions, and the reverse
+  const X86Fields register_directions[] = {
+    { 2u, 2u, false, false }, { 0u, 0u, false, false }, { 1u, 1u, false, false },
+    { 3u, 3u, false, false }, { 2u, 0u, false, false }, { 0u, 2u, false, false },
+  };
+
+  // The field RC of the control word, and the fields of MXCSR, set as asked and nothing else
+  void write_x86_fields(const X86Fields& f, unsigned int flush)
+  {
+    write_x87_word((read_x87_word() & ~0x0c00u) | (f.x87_rc << 10));
+    _mm_setcsr((_mm_getcsr() & ~(0x6000u | 0x8040u)) | (f.sse_rc << 13) | flush);
+  }
+
+  // The bits of the registers that no direction and no flush mode has: the other bits of the control word, the
+  // exception masks and the reserved bits of MXCSR, which the operations leave as they found them, and the
+  // exception flags, which they only add to
+  const unsigned int x87_not_direction = ~0x0c00u;
+  const unsigned int mxcsr_not_direction = ~(0x6000u | 0x8040u | 0x003fu);
+
+  struct RegisterOperation
+  {
+    const char *name;
+    interval (*run)(const interval& x, const interval& y);
+  };
+
+  const RegisterOperation register_operations[] = {
+    { "x + y", [](const interval& x, const interval& y) { return x + y; } },
+    { "x - y", [](const interval& x, const interval& y) { return x - y; } },
+    { "x * y", [](const interval& x, const interval& y) { return x * y; } },
+    { "x / y", [](const interval& x, const interval& y) { return x / y; } },
+    { "sqr(x)", [](const interval& x, const interval&) { return sqr(x); } },
+    { "sqrt(x)", [](const interval& x, const interval&) { return sqrt(x); } },
+    { "exp(x)", [](const interval& x, const interval&) { return exp(x); } },
+    { "sin(x)", [](const interval& x, const interval&) { return sin(x); } },
+    { "pow(x, 3)", [](const interval& x, const interval&) { return gaol::pow(x, 3); } },
+    { "atan2(x, y)", [](const interval& x, const interval& y) { return atan2(x, y); } },
+  };
+
+  // The sums, the differences and the products that write the registers from their own
+  // operands right before them, in the six states in turn, with and without a flush mode
+  void x86_sequence_in_a_loop(const std::vector<double>& a, const std::vector<double>& b, std::vector<interval>& sum,
+                              std::vector<interval>& product, unsigned int flush)
+  {
+    const std::size_t nb = sizeof(register_directions)/sizeof(register_directions[0]);
+    for (std::size_t i = 0; i < a.size(); ++i) {
+      write_x86_fields(register_directions[i % nb], flush);
+      sum[i] = interval(a[i]) + interval(b[i]);
+      product[i] = interval(a[i]) * interval(b[i]);
+    }
+  }
+#endif // GAOL_TESTS_X86_32
 
   /*
     The operations other than the product and the sum, after the caller
@@ -1957,6 +2294,10 @@ int main()
   check("rounding upward after gaol::init()", std::fegetround() == FE_UPWARD);
 #endif
 
+  // What gaol_core::x86_*() decide on the registers of a 32-bit x86 processor,
+  // simulated, on every platform (GAOL v5)
+  x86_registers_simulated();
+
   // x within [0,1] and y above 1, the domain of every function below
   Random random;
   std::vector<std::pair<interval, interval> > operands;
@@ -2231,6 +2572,84 @@ int main()
             is_tightest_enclosure(s[i], exact(dyadic(a[i]) + dyadic(b[i]))), [&] { return describe() + ": " + hex(s[i]); });
     }
   }
+
+#if GAOL_TESTS_X86_32
+  /*
+    The registers themselves, on a 32-bit x86 processor (GAOL v5): the control
+    word of the x87 unit and MXCSR, read and written by the test apart from the
+    library, in each of the six states of the two rounding fields, and with each
+    of the modes that flush the subnormals to zero set. After an operation that
+    checks the direction, both units round upward and the modes are clear, or
+    with GAOL_PRESERVE_ROUNDING, as they were found (the registers that the
+    SSE2 operations leave alone, the x87 unit among them, being found as they
+    were); no other bit of the registers changes, but the exception flags,
+    which an operation adds to; and the bounds are the tightest ones when the
+    registers have just been written by the program (the check of the
+    direction reads them, and nothing before it has reused the previous read).
+  */
+  {
+    const std::size_t nb_directions = sizeof(register_directions)/sizeof(register_directions[0]);
+    static_assert(sizeof(directions)/sizeof(directions[0]) == sizeof(register_directions)/sizeof(register_directions[0]),
+                  "the six states of the tests");
+    const std::vector<FlushMode> modes = flush_modes();
+    std::vector<unsigned int> flushes(1, 0u);
+    for (const FlushMode& m : modes) {
+      flushes.push_back(m.bits);
+    }
+    const interval x(0.1, 0.3), y(1.5, 2.5);
+    for (std::size_t d = 0; d < nb_directions; ++d) {
+      for (unsigned int flush : flushes) {
+        for (const RegisterOperation& op : register_operations) {
+          write_x86_fields(register_directions[d], flush);
+          const unsigned int cw_before = read_x87_word(), csr_before = static_cast<unsigned int>(_mm_getcsr());
+          const interval r = op.run(x, y);
+          const unsigned int cw_after = read_x87_word(), csr_after = static_cast<unsigned int>(_mm_getcsr());
+          write_x86_fields(register_directions[0], 0u);
+          const auto describe = [&] {
+            return std::string(op.name) + " in " + directions[d].name + " with the modes " + x86_hex(flush) + ": control word "
+                 + x86_hex(cw_before) + " then " + x86_hex(cw_after) + ", MXCSR " + x86_hex(csr_before) + " then " + x86_hex(csr_after)
+                 + ", " + hex(r);
+          };
+#if GAOL_PRESERVE_ROUNDING
+          const unsigned int x87_wanted = cw_before & 0x0c00u, sse_wanted = csr_before & 0x6000u, flush_wanted = flush;
+#else
+          const unsigned int x87_wanted = 0x0800u, sse_wanted = 0x4000u, flush_wanted = 0u;
+#endif
+          check("the control word of the x87 unit: the direction after an operation", (cw_after & 0x0c00u) == x87_wanted, describe);
+          check("MXCSR: the direction after an operation", (csr_after & 0x6000u) == sse_wanted, describe);
+          check("MXCSR: the modes that flush the subnormals to zero after an operation", (csr_after & 0x8040u) == flush_wanted, describe);
+          check("the control word of the x87 unit: no other bit changes", (cw_after & x87_not_direction) == (cw_before & x87_not_direction), describe);
+          check("MXCSR: no other bit changes, but the exception flags", (csr_after & mxcsr_not_direction) == (csr_before & mxcsr_not_direction), describe);
+          check("the exception flags of an operation are added to the ones the program had", (csr_after & 0x003fu) == ((csr_after & 0x003fu) | (csr_before & 0x003fu)), describe);
+        }
+      }
+    }
+
+    // The program writes the registers, and an operation comes right after
+    Random random_registers;
+    const std::size_t n = 600;
+    std::vector<double> a(n), b(n);
+    for (std::size_t i = 0; i < n; ++i) {
+      a[i] = random_registers(-30, 30);
+      b[i] = random_registers(-30, 30);
+    }
+    for (unsigned int flush : flushes) {
+      std::vector<interval> sum(n), product(n);
+      x86_sequence_in_a_loop(a, b, sum, product, flush);
+      write_x86_fields(register_directions[0], 0u);
+      for (std::size_t i = 0; i < n; ++i) {
+        const auto describe = [&] {
+          return std::string("in ") + directions[i % nb_directions].name + " with the modes " + x86_hex(flush) + ", a=" + hex(a[i]) + " b=" + hex(b[i]);
+        };
+        check("[a]+[b] the tightest enclosure right after the program wrote the control registers",
+              is_tightest_enclosure(sum[i], exact(dyadic(a[i]) + dyadic(b[i]))), [&] { return describe() + ": " + hex(sum[i]); });
+        check("[a]*[b] the tightest enclosure right after the program wrote the control registers",
+              is_tightest_enclosure(product[i], exact(dyadic(a[i])*dyadic(b[i]))), [&] { return describe() + ": " + hex(product[i]); });
+      }
+    }
+    set(directions[0]);
+  }
+#endif // GAOL_TESTS_X86_32
 
   // The difference, the quotient, the remainder, the square, the square root,
   // the inverse and their forms with a double and as compound assignments, in
