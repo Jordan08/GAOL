@@ -173,6 +173,9 @@ names of IBEX, Codac, C-XSC and Boost.Interval next to GAOL's.
 - [Accuracy of the operations](doc/accuracy.md): the tightness of each
   operation, from its algorithm, as IEEE 1788-2015 requires it to be
   documented (12.10.3).
+- [SIMD, FMA and the rounding direction](doc/simd.md): what GAOL computes with
+  vector instructions, where the time of a program goes, and what the other
+  processors offer for a rounding direction carried by the instruction.
 - [What differs from GAOL](doc/differences.md): each change GAOL v5 brings, and
   where it comes from.
 - [Continuous integration](doc/continuous-integration.md): the systems,

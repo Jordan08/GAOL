@@ -25,7 +25,13 @@
   \date   2001-09-28
 */
 
-// TODO: Rewrite as many functions as possible to use SIMD instructions
+// SIMD (GAOL v5, doc/simd.md): the two bounds of an interval are the two lanes of one vector, and
+// + - * / sqr (and sqrt with NEON and the AVX-512 path) are vector kernels of gaol_interval_sse.cpp,
+// gaol_interval_neon.cpp and gaol_interval_avx512.cpp; the integer powers have a two-lane FMA kernel
+// with SSE2 and AVX-512. What is scalar in this file is so on purpose: the elementary functions are
+// CORE-MATH calls, one per bound, and the rest are branches on the bounds. doc/simd.md lists what could
+// still gain (sqrt with SSE2, the integer powers with NEON, mid(), the reduction of the argument of sin()
+// and cos()) and what the other processors would need
 
 #include <iostream>
 #include <iomanip>
