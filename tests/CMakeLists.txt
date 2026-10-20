@@ -191,7 +191,7 @@ endfunction()
 # checks with tests/refused_options.sh.
 function(gaol_refused_test name flag text)
   gaol_compile_test(${name} refused_options.cpp "${text}")
-  target_compile_options(gaol_${name} PRIVATE ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS} ${flag})
+  target_compile_options(gaol_${name} PRIVATE ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS} ${GAOL_ALIGNED_NEW_FLAGS} ${flag})
 endfunction()
 if(NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   gaol_refused_test(refused_finite_math_only -ffinite-math-only
@@ -199,6 +199,30 @@ if(NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   gaol_refused_test(refused_fast_math -ffast-math
                     "GAOL cannot be compiled with -ffast-math")
   gaol_refused_test(refused_positive "" "")
+endif()
+
+# The SSE2 intervals on 32-bit Windows, which gaol/gaol_config.h refuses where
+# the compiler is not told to ask for aligned memory (GAOL v5): the tests
+# refused_aligned_new and refused_aligned_new_cxx17 compile
+# refused_aligned_new.cpp, which includes that header alone, with -D_WIN32
+# -U_WIN64 for the target and without -faligned-new=8 that the flags of
+# gaol::gaol carry there, in C++11 and in C++17, and the compilation has to fail
+# with the message of the refusal; refused_aligned_new_positive compiles it with
+# the option, and the compilation has to succeed. Each is a compile test
+# (gaol_compile_test() above). Where the intervals are the SSE2 ones and the
+# system is not Windows, whose headers would not take -U_WIN64, with GCC or
+# Clang; on 32-bit Windows itself the whole suite is the test, the SSE2
+# intervals crashing without the option. The autotools and meson builds run the
+# same checks with tests/refused_options.sh.
+if(GAOL_USING_SSE2_INSTRUCTIONS AND NOT WIN32 AND NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  function(gaol_aligned_new_test name standard flag text)
+    gaol_compile_test(${name} refused_aligned_new.cpp "${text}")
+    set_target_properties(gaol_${name} PROPERTIES CXX_STANDARD ${standard} CXX_STANDARD_REQUIRED ON)
+    target_compile_options(gaol_${name} PRIVATE ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS} -D_WIN32 -U_WIN64 ${flag})
+  endfunction()
+  gaol_aligned_new_test(refused_aligned_new 11 "" "need the compiler to ask for aligned memory")
+  gaol_aligned_new_test(refused_aligned_new_cxx17 17 "" "need the compiler to ask for aligned memory")
+  gaol_aligned_new_test(refused_aligned_new_positive 11 -faligned-new=8 "")
 endif()
 
 # The warning of the CPack block of CMakeLists.txt, when the configure that the
@@ -277,7 +301,7 @@ function(gaol_nodiscard_test standard flags message)
       gaol_compile_test(${name} nodiscard.cpp "")
     endif()
     set_target_properties(gaol_${name} PROPERTIES CXX_STANDARD ${standard} CXX_STANDARD_REQUIRED ON)
-    target_compile_options(gaol_${name} PRIVATE ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS} ${flags})
+    target_compile_options(gaol_${name} PRIVATE ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS} ${GAOL_ALIGNED_NEW_FLAGS} ${flags})
     set_tests_properties(${name} PROPERTIES ENVIRONMENT "LC_ALL=C;LANGUAGE=C")
   endforeach()
 endfunction()

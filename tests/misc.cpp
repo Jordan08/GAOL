@@ -450,7 +450,7 @@ public:
   // bytes, 16 with the SSE2 and NEON intervals, whose vector instructions
   // stop on a misaligned address (GAOL v5). On 32-bit Windows the C runtime
   // aligns the memory of new on 8 bytes: only a compiler told so asks for
-  // aligned memory for the types that need it (-faligned-new=8, C++17; see
+  // aligned memory for the types that need it (-faligned-new=8; see
   // gaol/gaol_config.h), and GCC taking it to be aligned on 16 made a
   // std::vector of SSE2 intervals stop the program. A type as aligned as an
   // interval, with no vector instruction to stop on a misaligned address, stands
