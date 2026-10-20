@@ -456,6 +456,40 @@ static expr_node *gaol_uncertain_number(void *context, const interval& I)
   }
 }
 
+/*
+  The leaf of a number that is not a double, or of pi (GAOL v5, point 84 of
+  TODO.md): its interval is the tightest one of doubles enclosing the number,
+  which is strictly inside it. The leaf of a double is told apart from it, and
+  so is the result of an operation or of a function, an enclosure of the
+  values it can take: the literal [l, u] then knows when l is above u although
+  the intervals of l and of u meet, [9007199254740993, 9007199254740992].
+*/
+class inside_node : public interval_node {
+public:
+  explicit inside_node(const interval& I) : interval_node(I) {}
+};
+
+// The leaf of a number that is not a double, as gaol_number()
+static expr_node *gaol_inside_number(void *context, const interval& I)
+{
+  try {
+    return gaol_node(new inside_node(I));
+  } catch (...) {
+    gaol_context(context)->exception = std::current_exception();
+    return 0;
+  }
+}
+
+// e is a number that is not a double, alone or behind a minus sign (the number is then strictly inside its interval too)
+static bool gaol_inside(expr_node *e)
+{
+  // A loop, as gaol_literal_infinity() (GAOL v5)
+  while (unary_minus_node *m = dynamic_cast<unary_minus_node*>(e)) {
+    e = m->get_subexpr();
+  }
+  return dynamic_cast<inside_node*>(e) != 0;
+}
+
 // e is an uncertain number, alone or behind a minus sign
 static bool gaol_uncertain(expr_node *e)
 {
@@ -491,7 +525,9 @@ static bool gaol_uncertain_bound(expr_node *e, void *context)
   the namespace of the names, gaol_pow_hybrid() or the pow of Table 9.1.
 
   Each name gives a function of intervals of one, two or three arguments, or
-  of an interval and an int, whose second argument has to be an integer. A
+  of an interval and a long long, whose second argument has to be an integer
+  (GAOL v5, point 83 of TODO.md: an int, where nth_root(8,3000000000) was
+  refused although nth_root(8, 3000000000LL) is computed). A
   call is computed when it is read, its arguments being computed then too,
   and gives a leaf of the tree, as a literal does: GAOL built a node of
   gaol/parser/gaol_expression.h for each of its functions, and read no other.
@@ -502,15 +538,34 @@ struct gaol_function {
   interval (*f1)(const interval&);
   interval (*f2)(const interval&, const interval&);
   interval (*f3)(const interval&, const interval&, const interval&);
-  interval (*fn)(const interval&, int);
+  interval (*fn)(const interval&, long long);
 };
 
 typedef interval (*gaol_f1)(const interval&);
 typedef interval (*gaol_f2)(const interval&, const interval&);
-typedef interval (*gaol_fn)(const interval&, int);
 #define GAOL_F1(name, f) { name, 1, static_cast<gaol_f1>(f), 0, 0, 0 }
 #define GAOL_F2(name, f) { name, 2, 0, static_cast<gaol_f2>(f), 0, 0 }
-#define GAOL_FN(name, f) { name, 2, 0, 0, 0, static_cast<gaol_fn>(f) }
+#define GAOL_FN(name, f) { name, 2, 0, 0, 0, f }
+
+/* The functions of an interval and an integer, with the integer a long long
+   (GAOL v5, point 83 of TODO.md): nth_root(I, long long) and the templates of
+   gaol_ieee1788 for pown and rootn, which forward an integer within the ints
+   to the functions of an int as before; written out, so that no address of a
+   function template is taken */
+static interval gaol_text_nth_root(const interval& x, long long q)
+{
+  return ::gaol_core::nth_root(x, q);
+}
+
+static interval gaol_text_pown(const interval& x, long long p)
+{
+  return ::gaol_ieee1788::pown(x, p);
+}
+
+static interval gaol_text_rootn(const interval& x, long long q)
+{
+  return ::gaol_ieee1788::rootn(x, q);
+}
 
 // cbrt(x) is nth_root(x,3), as sqrt(x) is nth_root(x,2)
 static interval gaol_cbrt(const interval& x)
@@ -523,10 +578,11 @@ static interval gaol_cbrt(const interval& x)
    inverse. pow is gaol::pow, gaol_pow_hybrid(), which takes gaol_pown() for an
    exponent that is an integer: the parser took 1/x^|n| for n < 0, whose x^|n|
    overflowed, and 1 for n = 0, which is no value for an empty x. nth_root(x,
-   q) takes an int q, which may be negative: rootn(x, q) of IEEE 1788-2015 */
+   q) takes a long long q (an int before GAOL v5, point 83 of TODO.md), which
+   may be negative: rootn(x, q) of IEEE 1788-2015 */
 static const gaol_function gaol_functions[] = {
   GAOL_F1("sqr", ::gaol_core::sqr), GAOL_F1("sqrt", ::gaol_core::sqrt), GAOL_F1("cbrt", gaol_cbrt),
-  GAOL_F2("pow", ::gaol_core::gaol_pow_hybrid), GAOL_FN("nth_root", ::gaol_core::nth_root),
+  GAOL_F2("pow", ::gaol_core::gaol_pow_hybrid), GAOL_FN("nth_root", gaol_text_nth_root),
   GAOL_F1("exp", ::gaol_core::exp), GAOL_F1("exp2", ::gaol_core::exp2), GAOL_F1("exp10", ::gaol_core::exp10),
   GAOL_F1("expm1", ::gaol_core::expm1), GAOL_F1("exp2m1", ::gaol_core::exp2m1),
   GAOL_F1("exp10m1", ::gaol_core::exp10m1),
@@ -561,7 +617,7 @@ static const gaol_function ieee1788_functions[] = {
   GAOL_F2("div", ::gaol_ieee1788::div), GAOL_F1("recip", ::gaol_ieee1788::recip),
   GAOL_F1("sqr", ::gaol_core::sqr), GAOL_F1("sqrt", ::gaol_core::sqrt),
   { "fma", 3, 0, 0, ::gaol_core::fma, 0 },
-  GAOL_FN("pown", ::gaol_ieee1788::pown), GAOL_F2("pow", ::gaol_ieee1788::pow),
+  GAOL_FN("pown", gaol_text_pown), GAOL_F2("pow", ::gaol_ieee1788::pow),
   GAOL_F1("exp", ::gaol_core::exp), GAOL_F1("exp2", ::gaol_core::exp2), GAOL_F1("exp10", ::gaol_core::exp10),
   GAOL_F1("log", ::gaol_core::log), GAOL_F1("log2", ::gaol_core::log2), GAOL_F1("log10", ::gaol_core::log10),
   GAOL_F1("sin", ::gaol_core::sin), GAOL_F1("cos", ::gaol_core::cos), GAOL_F1("tan", ::gaol_core::tan),
@@ -575,7 +631,7 @@ static const gaol_function ieee1788_functions[] = {
   GAOL_F1("roundTiesToEven", ::gaol_ieee1788::roundTiesToEven),
   GAOL_F1("roundTiesToAway", ::gaol_ieee1788::roundTiesToAway),
   GAOL_F1("abs", ::gaol_core::abs), GAOL_F2("min", ::gaol_core::min), GAOL_F2("max", ::gaol_core::max),
-  GAOL_FN("rootn", ::gaol_ieee1788::rootn),
+  GAOL_FN("rootn", gaol_text_rootn),
   GAOL_F1("expm1", ::gaol_core::expm1), GAOL_F1("exp2m1", ::gaol_core::exp2m1),
   GAOL_F1("exp10m1", ::gaol_core::exp10m1),
   GAOL_F1("logp1", ::gaol_ieee1788::logp1), GAOL_F1("log2p1", ::gaol_core::log2p1),
@@ -621,6 +677,45 @@ const void *gaol_lookup_function(const char *name, void *context)
 }
 
 /*
+  The integer n that the interval q is, if it is a point interval holding one
+  (GAOL v5, point 83 of TODO.md): the second argument of nth_root(), pown() and
+  rootn(). is_an_int() is true within the ints; beyond them, an integer
+  double is as many as a long long holds, and one of 2^63 or more in
+  magnitude, an even integer as every double from 2^53 on, is taken as
+  +-(2^63 - 2), as gaol_detail::integer_as_long_long() takes an even n: x^n is
+  the same for every power of a double other than 0, +-1 and +-oo (see
+  gaol_detail::integer_power()), and the roots of the orders beyond lie
+  between 1 and the root of order 2^63 - 2, whose enclosure holds 1: for a
+  double x of 2^-1074 to the largest, x^(1/(2^63 - 2)) is within 8.1e-17 of
+  1, less than the 2^-53 = 1.1e-16 from which a bound rounded outward would
+  miss 1 (the test checks it for some x, and the author for all the powers of
+  two and their neighbours). An interval that is not a point, an infinity or
+  a NaN, and a double that is no integer, are none.
+*/
+static bool gaol_integer_exponent(const interval& q, long long& n)
+{
+  if (q.is_an_int()) {
+    n = static_cast<int>(q.left());
+    return true;
+  }
+  double l = q.left(), r = q.right();
+  GAOL_FPU_SCALAR(l);
+  GAOL_FPU_SCALAR(r);
+  if (!std::isfinite(l) || !::gaol_detail::bound_equal(l, r)
+      || !::gaol_detail::bound_equal(::gaol_detail::bound_floor(l), l)) {
+    return false;
+  }
+  if (l >= 9223372036854775808.0) {          // 2^63
+    n = 9223372036854775806LL;
+  } else if (l <= -9223372036854775808.0) {  // -2^63
+    n = -9223372036854775806LL;
+  } else {
+    n = static_cast<long long>(l);
+  }
+  return true;
+}
+
+/*
   The call of the function fn on the n expressions given, which it releases:
   the leaf of its value, or 0 for an error, which the parsing aborts with.
   A wrong number of arguments is an input_format_error, and a second argument
@@ -636,12 +731,12 @@ static expr_node *gaol_call(void *context, const void *fn, unsigned int n,
       const std::string msg = std::string(f->name) + " called with a wrong number of arguments";
       GAOL_PARSING_ERROR(context, input_format_error, msg.c_str());
     } else if (f->fn != 0) {
-      const interval q = gaol_value(b);
-      if (!q.is_an_int()) {
+      long long q;
+      if (!gaol_integer_exponent(gaol_value(b), q)) {
         const std::string msg = std::string(f->name) + " used with non integral 2nd arg.";
         GAOL_PARSING_ERROR(context, invalid_action_error, msg.c_str());
       } else {
-        result = gaol_leaf(f->fn(gaol_value(a), static_cast<int>(q.left())));
+        result = gaol_leaf(f->fn(gaol_value(a), q));
       }
     } else if (n == 1) {
       result = gaol_leaf(f->f1(gaol_value(a)));
@@ -742,6 +837,19 @@ enum gaol_literal_form {
   doubles under denormals-are-zero are told apart (GAOL v5, point Q of
   TODO.md): compared as doubles, <1e-310, 1e-309> was read [1e-310, 1e-309]
   under that mode, and refused without it.
+
+  [l, u] is the empty set where l is above u (IEEE 1788-2015, 12.12.7), as
+  [2, 1] is (GAOL v5, point 84 of TODO.md). The interval of l and the one of u
+  hold the numbers written, and the literal is the one from the lower bound of
+  the first to the upper bound of the second, so that it was not empty where
+  l is above u and the two intervals meet: [9007199254740993,
+  9007199254740992] was [2^53], which does not hold 2^53 + 1, and
+  [1.00000000000000001, 1] was [1]. A number that is not a double is strictly
+  inside its interval (see inside_node), so that the literal is empty when
+  the lower bound of l's interval is the upper bound of u's, and l or u is
+  such a number: l is then above u, or u below l. Two numbers that are not
+  doubles and have the same interval are not told apart, and the literal is
+  that interval; the same holds where a bound is the result of an operation.
 */
 static expr_node *gaol_literal(void *context, gaol_literal_form form, expr_node *l, expr_node *r)
 {
@@ -756,7 +864,9 @@ static expr_node *gaol_literal(void *context, gaol_literal_form form, expr_node 
       if (form == gaol_point) {
         result = gaol_leaf(infinite ? interval::emptyset() : lv);
       } else if (form != gaol_degenerate) {
-        result = gaol_leaf(infinite ? interval::emptyset() : interval(lv.left(), rv.right()));
+        const bool crossed = (form == gaol_bounded) && ::gaol_detail::bound_equal(lv.left(), rv.right())
+                             && (gaol_inside(l) || gaol_inside(r));
+        result = gaol_leaf((infinite || crossed) ? interval::emptyset() : interval(lv.left(), rv.right()));
       } else if (::gaol_detail::bound_equal(lv.left(), rv.right())) {
         result = gaol_leaf(interval(lv.left(), rv.right()));
       } else {
@@ -795,7 +905,7 @@ static bool gaol_result(void *context, expr_node *e)
   return computed;
 }
 
-#line 799 "y.tab.c"
+#line 909 "y.tab.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -878,7 +988,7 @@ extern int gaol_debug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 724 "gaol_interval_parser.ypp"
+#line 834 "gaol_interval_parser.ypp"
 
   int i;
   double d;
@@ -886,7 +996,7 @@ union YYSTYPE
   expr_node* expr;
   const void* fn;
 
-#line 890 "y.tab.c"
+#line 1000 "y.tab.c"
 
 };
 typedef union YYSTYPE YYSTYPE;
@@ -942,7 +1052,7 @@ typedef enum yysymbol_kind_t yysymbol_kind_t;
 
 
 /* Second part of user prologue.  */
-#line 741 "gaol_interval_parser.ypp"
+#line 851 "gaol_interval_parser.ypp"
 
 // The lexer of flex, a reentrant one given the value of the token to set
 // (%option bison-bridge in gaol/parser/gaol_interval_lexer.lpp)
@@ -959,7 +1069,7 @@ int gaol_lex(YYSTYPE *lval, void *scanner);
 #  pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 #endif
 
-#line 963 "y.tab.c"
+#line 1073 "y.tab.c"
 
 
 #ifdef short
@@ -1343,10 +1453,10 @@ static const yytype_int8 yytranslate[] =
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int16 yyrline[] =
 {
-       0,   782,   782,   790,   791,   792,   793,   794,   795,   796,
-     797,   798,   799,   800,   801,   802,   803,   804,   805,   806,
-     815,   816,   817,   818,   819,   820,   821,   822,   826,   827,
-     829
+       0,   892,   892,   900,   901,   902,   903,   904,   905,   906,
+     907,   908,   909,   910,   911,   912,   913,   914,   915,   916,
+     925,   926,   927,   928,   929,   930,   931,   932,   936,   937,
+     939
 };
 #endif
 
@@ -1704,21 +1814,21 @@ yydestruct (const char *yymsg,
   switch (yykind)
     {
     case YYSYMBOL_expression: /* expression  */
-#line 771 "gaol_interval_parser.ypp"
+#line 881 "gaol_interval_parser.ypp"
             { gaol_release(((*yyvaluep).expr)); }
-#line 1710 "y.tab.c"
+#line 1820 "y.tab.c"
         break;
 
     case YYSYMBOL_literal: /* literal  */
-#line 771 "gaol_interval_parser.ypp"
+#line 881 "gaol_interval_parser.ypp"
             { gaol_release(((*yyvaluep).expr)); }
-#line 1716 "y.tab.c"
+#line 1826 "y.tab.c"
         break;
 
     case YYSYMBOL_function_call: /* function_call  */
-#line 771 "gaol_interval_parser.ypp"
+#line 881 "gaol_interval_parser.ypp"
             { gaol_release(((*yyvaluep).expr)); }
-#line 1722 "y.tab.c"
+#line 1832 "y.tab.c"
         break;
 
       default:
@@ -1992,181 +2102,181 @@ yyreduce:
   switch (yyn)
     {
   case 2: /* itv_expr: expression  */
-#line 782 "gaol_interval_parser.ypp"
+#line 892 "gaol_interval_parser.ypp"
                                                         { if (!gaol_result(context,(yyvsp[0].expr))) YYABORT; }
-#line 1998 "y.tab.c"
+#line 2108 "y.tab.c"
     break;
 
   case 3: /* expression: NUMBER  */
-#line 790 "gaol_interval_parser.ypp"
+#line 900 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_number(context,(yyvsp[0].d))) == 0) YYABORT; }
-#line 2004 "y.tab.c"
+#line 2114 "y.tab.c"
     break;
 
   case 4: /* expression: DMIN_STR  */
-#line 791 "gaol_interval_parser.ypp"
+#line 901 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_number(context,std::numeric_limits<double>::min())) == 0) YYABORT; }
-#line 2010 "y.tab.c"
+#line 2120 "y.tab.c"
     break;
 
   case 5: /* expression: DMAX_STR  */
-#line 792 "gaol_interval_parser.ypp"
+#line 902 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_number(context,std::numeric_limits<double>::max())) == 0) YYABORT; }
-#line 2016 "y.tab.c"
+#line 2126 "y.tab.c"
     break;
 
   case 6: /* expression: INFINITY_STR  */
-#line 793 "gaol_interval_parser.ypp"
+#line 903 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_number(context,GAOL_INFINITY)) == 0) YYABORT; }
-#line 2022 "y.tab.c"
+#line 2132 "y.tab.c"
     break;
 
   case 7: /* expression: PI_STR  */
-#line 794 "gaol_interval_parser.ypp"
-                                                        { if (((yyval.expr) = gaol_constant(context,interval::pi())) == 0) YYABORT; }
-#line 2028 "y.tab.c"
+#line 904 "gaol_interval_parser.ypp"
+                                                        { if (((yyval.expr) = gaol_inside_number(context,interval::pi())) == 0) YYABORT; }
+#line 2138 "y.tab.c"
     break;
 
   case 8: /* expression: INTERVAL_CST  */
-#line 795 "gaol_interval_parser.ypp"
-                                                        { if (((yyval.expr) = gaol_constant(context,interval((yyvsp[0].itv).l,(yyvsp[0].itv).r))) == 0) YYABORT; }
-#line 2034 "y.tab.c"
+#line 905 "gaol_interval_parser.ypp"
+                                                        { if (((yyval.expr) = gaol_inside_number(context,interval((yyvsp[0].itv).l,(yyvsp[0].itv).r))) == 0) YYABORT; }
+#line 2144 "y.tab.c"
     break;
 
   case 9: /* expression: UNCERTAIN_CST  */
-#line 796 "gaol_interval_parser.ypp"
+#line 906 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_uncertain_number(context,interval((yyvsp[0].itv).l,(yyvsp[0].itv).r))) == 0) YYABORT; }
-#line 2040 "y.tab.c"
+#line 2150 "y.tab.c"
     break;
 
   case 10: /* expression: EMPTY_STR  */
-#line 797 "gaol_interval_parser.ypp"
+#line 907 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_constant(context,interval::emptyset())) == 0) YYABORT; }
-#line 2046 "y.tab.c"
+#line 2156 "y.tab.c"
     break;
 
   case 11: /* expression: literal  */
-#line 798 "gaol_interval_parser.ypp"
+#line 908 "gaol_interval_parser.ypp"
                                                         { (yyval.expr) = (yyvsp[0].expr); }
-#line 2052 "y.tab.c"
+#line 2162 "y.tab.c"
     break;
 
   case 12: /* expression: expression '+' expression  */
-#line 799 "gaol_interval_parser.ypp"
+#line 909 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_operation(context,'+',(yyvsp[-2].expr),(yyvsp[0].expr))) == 0) YYABORT; }
-#line 2058 "y.tab.c"
+#line 2168 "y.tab.c"
     break;
 
   case 13: /* expression: expression '-' expression  */
-#line 800 "gaol_interval_parser.ypp"
+#line 910 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_operation(context,'-',(yyvsp[-2].expr),(yyvsp[0].expr))) == 0) YYABORT; }
-#line 2064 "y.tab.c"
+#line 2174 "y.tab.c"
     break;
 
   case 14: /* expression: expression '*' expression  */
-#line 801 "gaol_interval_parser.ypp"
+#line 911 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_operation(context,'*',(yyvsp[-2].expr),(yyvsp[0].expr))) == 0) YYABORT; }
-#line 2070 "y.tab.c"
+#line 2180 "y.tab.c"
     break;
 
   case 15: /* expression: expression '/' expression  */
-#line 802 "gaol_interval_parser.ypp"
+#line 912 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_operation(context,'/',(yyvsp[-2].expr),(yyvsp[0].expr))) == 0) YYABORT; }
-#line 2076 "y.tab.c"
+#line 2186 "y.tab.c"
     break;
 
   case 16: /* expression: '-' expression  */
-#line 803 "gaol_interval_parser.ypp"
+#line 913 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_negation(context,(yyvsp[0].expr))) == 0) YYABORT; }
-#line 2082 "y.tab.c"
+#line 2192 "y.tab.c"
     break;
 
   case 17: /* expression: '+' expression  */
-#line 804 "gaol_interval_parser.ypp"
+#line 914 "gaol_interval_parser.ypp"
                                                         { (yyval.expr) = (yyvsp[0].expr); }
-#line 2088 "y.tab.c"
+#line 2198 "y.tab.c"
     break;
 
   case 18: /* expression: function_call  */
-#line 805 "gaol_interval_parser.ypp"
+#line 915 "gaol_interval_parser.ypp"
                                                         { (yyval.expr) = (yyvsp[0].expr); }
-#line 2094 "y.tab.c"
+#line 2204 "y.tab.c"
     break;
 
   case 19: /* expression: '(' expression ')'  */
-#line 806 "gaol_interval_parser.ypp"
+#line 916 "gaol_interval_parser.ypp"
                                                         { (yyval.expr) = (yyvsp[-1].expr); }
-#line 2100 "y.tab.c"
+#line 2210 "y.tab.c"
     break;
 
   case 20: /* literal: '[' expression ']'  */
-#line 815 "gaol_interval_parser.ypp"
+#line 925 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_literal(context,gaol_point,(yyvsp[-1].expr),0)) == 0) YYABORT; }
-#line 2106 "y.tab.c"
+#line 2216 "y.tab.c"
     break;
 
   case 21: /* literal: '[' expression ',' expression ']'  */
-#line 816 "gaol_interval_parser.ypp"
+#line 926 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_literal(context,gaol_bounded,(yyvsp[-3].expr),(yyvsp[-1].expr))) == 0) YYABORT; }
-#line 2112 "y.tab.c"
+#line 2222 "y.tab.c"
     break;
 
   case 22: /* literal: '[' ']'  */
-#line 817 "gaol_interval_parser.ypp"
+#line 927 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_constant(context,interval::emptyset())) == 0) YYABORT; }
-#line 2118 "y.tab.c"
+#line 2228 "y.tab.c"
     break;
 
   case 23: /* literal: '[' ENTIRE_STR ']'  */
-#line 818 "gaol_interval_parser.ypp"
+#line 928 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_constant(context,interval::universe())) == 0) YYABORT; }
-#line 2124 "y.tab.c"
+#line 2234 "y.tab.c"
     break;
 
   case 24: /* literal: '[' ',' ']'  */
-#line 819 "gaol_interval_parser.ypp"
+#line 929 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_constant(context,interval::universe())) == 0) YYABORT; }
-#line 2130 "y.tab.c"
+#line 2240 "y.tab.c"
     break;
 
   case 25: /* literal: '[' expression ',' ']'  */
-#line 820 "gaol_interval_parser.ypp"
+#line 930 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_literal(context,gaol_left_only,(yyvsp[-2].expr),0)) == 0) YYABORT; }
-#line 2136 "y.tab.c"
+#line 2246 "y.tab.c"
     break;
 
   case 26: /* literal: '[' ',' expression ']'  */
-#line 821 "gaol_interval_parser.ypp"
+#line 931 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_literal(context,gaol_right_only,0,(yyvsp[-1].expr))) == 0) YYABORT; }
-#line 2142 "y.tab.c"
+#line 2252 "y.tab.c"
     break;
 
   case 27: /* literal: '<' expression ',' expression '>'  */
-#line 822 "gaol_interval_parser.ypp"
+#line 932 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_literal(context,gaol_degenerate,(yyvsp[-3].expr),(yyvsp[-1].expr))) == 0) YYABORT; }
-#line 2148 "y.tab.c"
+#line 2258 "y.tab.c"
     break;
 
   case 28: /* function_call: FUNCTION_NAME '(' expression ')'  */
-#line 826 "gaol_interval_parser.ypp"
+#line 936 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_call(context,(yyvsp[-3].fn),1,(yyvsp[-1].expr),0,0)) == 0) YYABORT; }
-#line 2154 "y.tab.c"
+#line 2264 "y.tab.c"
     break;
 
   case 29: /* function_call: FUNCTION_NAME '(' expression ',' expression ')'  */
-#line 828 "gaol_interval_parser.ypp"
+#line 938 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_call(context,(yyvsp[-5].fn),2,(yyvsp[-3].expr),(yyvsp[-1].expr),0)) == 0) YYABORT; }
-#line 2160 "y.tab.c"
+#line 2270 "y.tab.c"
     break;
 
   case 30: /* function_call: FUNCTION_NAME '(' expression ',' expression ',' expression ')'  */
-#line 830 "gaol_interval_parser.ypp"
+#line 940 "gaol_interval_parser.ypp"
                                                         { if (((yyval.expr) = gaol_call(context,(yyvsp[-7].fn),3,(yyvsp[-5].expr),(yyvsp[-3].expr),(yyvsp[-1].expr))) == 0) YYABORT; }
-#line 2166 "y.tab.c"
+#line 2276 "y.tab.c"
     break;
 
 
-#line 2170 "y.tab.c"
+#line 2280 "y.tab.c"
 
       default: break;
     }
@@ -2359,7 +2469,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 833 "gaol_interval_parser.ypp"
+#line 943 "gaol_interval_parser.ypp"
 
 
 void gaol_error_bison(void *, void *context, const char *)
