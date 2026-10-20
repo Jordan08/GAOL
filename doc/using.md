@@ -1232,6 +1232,100 @@ the NEON and the FPU intervals on a grid of operands, with the calling code in
 each of the four rounding directions: it found no other difference. The same kind of caveat exists for the
 AVX-512 path (above, and [Accuracy](accuracy.md)).
 
+### The FPU intervals
+
+The intervals of the processors that have neither SSE2 nor NEON keep their two
+bounds as two doubles, the lower one negated as in the SSE2 and the NEON
+intervals, and compute with the scalar floating-point unit: 32-bit ARM, POWER,
+s390x and RISC-V with GCC, Visual C++ for x86 and arm64, clang-cl, and the
+builds that ask for them (`-DGAOL_SIMD=OFF` on x86, `-DGAOL_ARM64=OFF` on
+64-bit ARM, which leave `GAOL_USING_SSE2_INSTRUCTIONS` and
+`GAOL_USING_NEON_INSTRUCTIONS` at 0 in `gaol_configuration.h`).
+
+`x * y`, `x / y` and `x % y` of a divisor without zero, and `sqr(x)` take no
+branch on the signs of the bounds in the source (GAOL v5): GAOL 4 took one of
+nine cases of the signs for a product, and went down a chain of up to eight
+tests for a quotient, which a processor mispredicts when the signs come at
+random. The product is the largest of four products for the upper bound and of
+four others for the lower one, each with a factor negated, a product and its
+opposite not being rounded the same way where the only direction is upward;
+the quotient divides each bound of the dividend by the bound of the divisor
+that its sign chooses, two divisions whatever the signs; the square is the
+largest of two squares for each bound, the lower one being 0 for an interval
+that straddles 0. They are the kernels of the SSE2 and the NEON intervals on
+two doubles each, and give the bounds of the SSE2 ones bit for bit, the sign of
+a zero included, for the product of finite bounds and the quotient by a divisor
+without zero (checked against a model of their kernels, not by running them).
+An interval with an infinite bound, whose 0 times an infinity is no product to
+form, takes a function that sets both factors of such a product to 0 (the nine
+cases of GAOL 4 took 12.4 ns for operands with an infinite bound drawn at
+random, and it takes 9.2), and a divisor with a zero takes the table of the
+NEON intervals, one division at most. `x - y` reads the bounds of `y` after the
+check of the rounding direction, as `x + y` does: it took three times as long
+as the sum, the bounds being kept across the calls of the rare path of the
+check.
+
+Measured with `gaol_performance` on an Apple M2 with AppleClang 21
+(`-DGAOL_ARM64=OFF`), the median of nine runs of each program, in turn with the
+others, in nanoseconds:
+
+| | GAOL 4 code | v5 kernels |
+|---|---:|---:|
+| `x - y` | 3.62 | 1.18 |
+| `x * y` | 3.33 | 3.33 |
+| `x * y`, random signs | 6.01 | 3.38 |
+| `x / y` | 4.08 | 3.30 |
+| `x / y`, random signs | 3.54 | 3.30 |
+| `sqr(x)`, random signs | 2.79 | 1.82 |
+| line of 7 `*` | 23.8 | 35.8 |
+| line of 7 `/` | 35.8 | 33.7 |
+| line of 13 `+ - * /` | 50.9 | 51.7 |
+
+The operands of `gaol_performance` are 1 024 intervals that the processor
+learns by heart, so that a branch on their signs costs less than it does on
+other operands. On 100 000 intervals centred at random (the benchmark of
+`doc/compare`), `x * y` took 13.9 ns and takes 3.5, `x / y` 8.5 and 3.2,
+`sqr(x)` 6.9 and 1.8, `x - y` 3.7 and 2.0, and Shekel 5 298 ns and 138.
+
+A line of products of operands of one sign, which a processor predicts, takes
+**more** time: 7 products in a line took 23.8 ns and take 35.8 (23.7 and 35.2
+in the benchmark of `doc/compare`, `pos_mul8`). Each product waits for the one
+before it, and the largest of four products waits for its products and for two
+comparisons, where one product on a predicted branch waits for one. The
+maximum of 64-bit ARM (`fmax`, one instruction, which ranks +0 above −0) would
+shorten the wait: it is not used, being a call with GCC for 32-bit ARM and x86.
+With `GAOL_PRESERVE_ROUNDING` the write of the control register waits for the
+result, so that the longer wait of the product shows there as well: `x * y`
+takes 44.4 ns rather than 42.2 and the line of 7 `*` 307 rather than 279
+(`x * y` of random signs 44.3 rather than 49.1, `x / y` 45.2 as before, `sqr(x)`
+43.7 rather than 41.3). The operators write their result into the bounds of
+`*this` before the direction is restored, and need no `GAOL_RND_KEEP()`, which
+cost 2.6 ns more.
+
+What a compiler makes of the choices is its own, and was read in the assembly
+on Compiler Explorer, not run. The maxima of the product are conditional moves
+with GCC (13 to 16) for 32-bit ARM, arm64, POWER9 and x86, with Clang, and with
+Visual C++ for x86, x64 and arm64, and branches on the products with GCC for
+POWER8, s390x and RISC-V, which have no conditional move of doubles. The
+choices of the quotient and of the square are conditional moves with GCC for
+POWER and with Clang and Visual C++ for arm64, and branches on a sign with GCC
+for 32-bit ARM (two in the quotient, one in the square), arm64 (one in the
+quotient), s390x and RISC-V, and with Visual C++ for x86 and x64.
+
+The sign of a zero bound of a product or of a quotient changes where it is a
+tie of the maxima or the zero bound of the dividend: `[-1, 0] * [0, 1]` is now
+`[-1, -0]`, and `[0, 1] / [-2, -1]` has the upper bound −0, as with the SSE2
+intervals. The other bounds and the flags are those of the former code, as
+`tests/tools/arith` (the four rounding directions of the caller) and 1.2
+million random operands of every kind, with and without the mode that flushes
+the subnormals to zero, show: `x * y` computes every corner product, as the
+SSE2 and the NEON intervals do, so that a corner that is not a bound of the
+result and underflows raises the underflow exception (`FE_UNDERFLOW`) which the
+former code did not, for 135 808 of the 1.2 million `x * y`, and a corner that
+overflows raises the overflow exception (`FE_OVERFLOW`) for 23 672 more, whose
+result has an infinite bound all the same; no operation raises the
+invalid-operation or the division-by-zero exception it did not.
+
 ## Flush-to-zero and denormals-are-zero
 
 Processors have modes that flush the subnormal numbers, those below 2^-1022 in

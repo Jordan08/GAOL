@@ -236,7 +236,14 @@ NEON intervals and [0, 9] with the FPU intervals. So may the sign of a zero boun
 a product or of a quotient: the SSE2 intervals take the larger of four
 products and the quotient of the corners their signs choose, with no
 branch (GAOL v5), where GAOL 4 chose one product by the signs of the bounds,
-and `[-1, 0] * [-1, 0]` has the lower bound +0 where it had −0. The two
+and `[-1, 0] * [-1, 0]` has the lower bound +0 where it had −0. The FPU
+intervals do so too (GAOL v5; the larger of four products for each bound, the
+lower one made of products with a factor negated), with the maximum of the
+SSE2 intervals, and give the bits of the SSE2 ones (checked against a model of
+their kernels, not by running them) for the products of finite bounds and the
+quotients by a divisor without zero: `[-1, 0] * [0, 1]` is
+`[-1, -0]`, and `[0, 1] / [-2, -1]` has the upper bound −0, where the FPU
+intervals gave +0 before, the zero bound of the dividend being divided. The two
 paths of the SSE2 intervals, with and without `GAOL_PREFER_AVX512`, give the
 same bits, but for the sign of a zero bound of `x * d` and `x *= d` where the
 zero bounds of x have different signs, `[+0, -0]` (+0 and −0 are the same
