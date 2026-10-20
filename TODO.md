@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `3d315d4` de `configure-clean`, le 20
+Ce qui reste à faire sur GAOL v5 au commit `98413b0` de `configure-clean`, le 20
 octobre 2026. Ce fichier ne garde que cela : le travail fait, ses pull requests,
 ses décisions et ses mesures sont dans l'issue #49 (« Fusionné depuis le 30
 septembre » et les sections « Décidé le… »), dans les descriptions des pull
@@ -28,10 +28,11 @@ les rangs 8 et 10 et dans le groupe E.
    dont 16 dans `master`, et 6 « Co-authored-by: Jordan08 » de #99), sans
    réécrire `configure-clean`. Reste à retirer les lignes des descriptions et
    des commentaires de pull requests (rang 10).
-2. **Les études (AH, AI, AJ, AN)** : *décidé le 19 octobre* : toutes avant
-   v5.0.0, donc le groupe E en entier, y compris l'AJ (113), qui peut changer
-   ce que la bibliothèque promet (le sens d'arrondi du programme entre
-   `gaol::init()` et `gaol::cleanup()`) et les noyaux, donc les temps du 33.
+2. **Les études (AH, AI, AJ ; l'AN est faite par #154)** : *décidé le 19
+   octobre* : toutes avant v5.0.0, donc le groupe E en entier, y compris l'AJ
+   (113), qui peut changer ce que la bibliothèque promet (le sens d'arrondi du
+   programme entre `gaol::init()` et `gaol::cleanup()`) et les noyaux, donc les
+   temps du 33.
 3. **88 et 87 (AD)** : *décidé le 19 octobre* : on garde la décision du 3
    octobre pour la lecture en temps quadratique (4,4 s pour 320 000 chiffres) et
    on ne change pas le lexeur pour le signe devant un nombre incertain : les
@@ -129,8 +130,6 @@ défaut, puis les builds avec `GAOL_PRESERVE_ROUNDING`.
 25. **112 (AI), le reste** : les fonctions élémentaires avec
     `GAOL_PRESERVE_ROUNDING` (jusqu'à 27 %), un test des bits du signe de zéro
     de `x * d`. [M]
-26. **126 (AN, #101)** : les pistes SIMD et FMA (AVX2, SVE, VSX, RISC-V ; NEON
-    est fait par #146) ; elle dépend des mesures ci-dessus. [L]
 
 ### F. Signalements à d'autres projets
 
@@ -138,13 +137,13 @@ Chacun attend l'accord explicite du mainteneur ; rien n'est envoyé. Ordre : ce
 qui est prêt et qui a une valeur pour GAOL, puis ce qui demande une réplique à
 écrire, puis ce qui ne demande probablement rien.
 
-27. **#125 CORE-MATH** : les huit correctifs prêts (le 8, `exp_1()`, est fait
+26. **#125 CORE-MATH** : les huit correctifs prêts (le 8, `exp_1()`, est fait
     dans la copie de GAOL par #144), refaits sur le master du jour.
-28. **#126 GCC**, **#127 mingw-w64**, **#129 ITF1788**, **#130 Boost.Interval**.
-29. **#131 Microsoft**, **#132 Apple**, **#133 LLVM/Clang**, **#135 musl**,
+27. **#126 GCC**, **#127 mingw-w64**, **#129 ITF1788**, **#130 Boost.Interval**.
+28. **#131 Microsoft**, **#132 Apple**, **#133 LLVM/Clang**, **#135 musl**,
     **#136 le benchmark de Tang et al.** : une réplique d'un fichier à écrire et
     à vérifier sur la plateforme.
-30. **#134 gmpy2**, **#137 libieeep1788**, **#138 la glibc** : probablement rien
+29. **#134 gmpy2**, **#137 libieeep1788**, **#138 la glibc** : probablement rien
     à envoyer ; vérifier, puis fermer.
 
 ### G. La version, dans cet ordre
@@ -152,27 +151,27 @@ qui est prêt et qui a une valeur pour GAOL, puis ce qui demande une réplique �
 En dernier : elle suppose les corrections faites et les études du groupe E
 faites (décidé le 19 octobre, rang 2).
 
-31. **La pull request de synthèse** (Y) : `ChangeLog` et `doc/differences.md`,
+30. **La pull request de synthèse** (Y) : `ChangeLog` et `doc/differences.md`,
     d'après `todo-notes/synthese.md` et les 43 descriptions de pull requests.
-32. **`examples/examples.md` et le manuel** (Y) : les marques **Fixed**, une
+31. **`examples/examples.md` et le manuel** (Y) : les marques **Fixed**, une
     seule régénération de `manual/v5/gaol.pdf`.
-33. **32 (Y)** : le rapport de couverture, et `numbers` en entier sous ASan +
+32. **32 (Y)** : le rapport de couverture, et `numbers` en entier sous ASan +
     UBSan, une fois.
-34. **33 (Y)** : les temps de `doc/compare/performance.md`, en dernier, sur le
+33. **33 (Y)** : les temps de `doc/compare/performance.md`, en dernier, sur le
     commit propre de la version, après les études du groupe E.
-35. **34 (Y)** : `configure-clean` dans `MATH-CORE` (avance rapide), `MATH-CORE`
+34. **34 (Y)** : `configure-clean` dans `MATH-CORE` (avance rapide), `MATH-CORE`
     dans `master`, l'étiquette `v5.0.0`, les recettes FetchContent.
-36. **71 (Y) et #128** : l'annonce à Frédéric Goualard, après l'étiquette.
+35. **71 (Y) et #128** : l'annonce à Frédéric Goualard, après l'étiquette.
 
 ### H. Après la version
 
-37. **70 (AK)** : le site GitHub Pages ; sans dépendance, mais l'annonce étant
+36. **70 (AK)** : le site GitHub Pages ; sans dépendance, mais l'annonce étant
     privée, rien ne l'exige pour la version.
-38. **46 (F, #64)** : `operator>>` ; le comportement actuel (un intervalle par
+37. **46 (F, #64)** : `operator>>` ; le comportement actuel (un intervalle par
     ligne) est documenté, le garder est la décision par défaut.
-39. **26 (W, #67)** : décorations ou indicateur de sortie de domaine.
-40. **28 (X)** : traits pour YalAA, backend pour VNODE-LP.
-41. **Le ménage de la fin** : les images Docker de #111, `todo-notes/`, ce qu'il
+38. **26 (W, #67)** : décorations ou indicateur de sortie de domaine.
+39. **28 (X)** : traits pour YalAA, backend pour VNODE-LP.
+40. **Le ménage de la fin** : les images Docker de #111, `todo-notes/`, ce qu'il
     reste de `TODO.md`.
 
 ## Comment lire ce fichier
@@ -183,11 +182,11 @@ ensemble. Un point garde en sous-points les numéros de l'ancienne liste,
 auxquels renvoient les pull requests, les issues et les rapports des agents ; la
 table à la fin donne la lettre de chaque numéro encore à faire, et un numéro qui
 n'y est pas est un point fait. Une lettre qui n'a plus de section ici est un
-point fait (A à E, G à V, Z, AA, AF, AG, AO, et ZZ, la vitesse de `+ - * /`, par
-#124) : ses pull requests sont dans #49, et les commentaires du code qui citent
-« point Q of TODO.md » renvoient à ce point fait. « Décidé le 3 octobre » (ou
-une autre date) marque une décision du mainteneur : applique-la telle quelle.
-Une question reportée renvoie à son issue.
+point fait (A à E, G à V, Z, AA, AF, AG, AN, AO, et ZZ, la vitesse de `+ - * /`,
+par #124) : ses pull requests sont dans #49, et les commentaires du code qui
+citent « point Q of TODO.md » renvoient à ce point fait. « Décidé le 3 octobre »
+(ou une autre date) marque une décision du mainteneur : applique-la telle
+quelle. Une question reportée renvoie à son issue.
 
 Les anciens numéros 4 à 30 et 34 à 40 viennent de la revue du 2026-09-27,
 [examples/examples.md](examples/examples.md) (« revue n° n » renvoie au numéro n
@@ -203,9 +202,10 @@ originaux au commit `16a2f60`.
 
 ## En cours
 
-Cinq pull requests sont ouvertes, d'autres sessions : #151 (points 78 et 80),
-#152 (SSE2 sur Windows 32 bits avec GCC et Clang), #154 (point AN, les pistes
-SIMD et FMA), #155 (point 118, `process.md`) et #156 (point 108, x86 32 bits).
+Quatre pull requests sont ouvertes : #152 (SSE2 sur Windows 32 bits avec GCC et
+Clang), #156 (point 108, x86 32 bits), #157 (point AI.106, les noyaux scalaires
+des intervalles FPU, brouillon) et #158 (point AC.81, `nth_root` d'un
+sous-normal).
 
 ## À corriger avant la version
 
@@ -590,6 +590,44 @@ numéro :
   mémoire, qui cache le défaut. À ajouter à `process.md` une fois #155
   fusionnée.
 
+### Remarqué par #154, à trier
+
+Les questions ouvertes de la description de #154, non corrigées et sans
+numéro ; `doc/simd.md` répond aux quatre étapes de l'issue #101, qui peut être
+fermée, et garde ce qui reste à essayer :
+
+- **`FPCR.AH` (FEAT_AFP) n'est pas effacé** par les intervalles NEON
+  (`GAOL_RND_FLUSH_BITS` : FZ et FIZ). Avec AH, `FMAX` renvoie le second
+  opérande pour deux zéros de signes différents ; modélisé en logiciel sur 25,8
+  millions de résultats, les bornes sont celles des noyaux, au signe d'un zéro
+  près. Une seule dépendance : `sqrt_bounds()` suppose l'ordre des opérandes de
+  `vmaxq_f64`, que Clang 21 traite comme commutatif ; un compilateur qui les
+  permuterait donnerait l'ensemble vide pour `sqrt([-0, r])` sous AH. Défaut
+  théorique, documenté dans la page. À décider : un masque sur le bit de signe
+  à la place du maximum, validé sur une copie (bit à bit identique), en une
+  pull request à part.
+- **`pow(x, 2)` par `sqr`** : 5 à 6 ns contre 0,8 à 0,9 sur le M2, 40 % de
+  l'exemple Goldstein-Price, mêmes valeurs sur trois millions d'intervalles
+  (le signe d'un zéro peut différer) ; à faire ou non.
+- **Les pistes à mesurer** : le RISC-V scalaire à `rm` statique (il faut une
+  carte), POWER et s390x (du matériel), l'arrondi embarqué scalaire pour `/` sur
+  les processeurs Intel qui divisent les registres de 512 bits. Et les gains
+  sans nouveau jeu d'instructions que la page liste : `sqrt` en SSE2, les
+  puissances entières en NEON, `mid()`, la réduction d'argument de `sin` et
+  `cos`.
+- **Les runners arm64 de GitHub exécutent l'armhf en natif** : Neoverse N2,
+  « 32-bit EL0 Support » au démarrage, aucune entrée `qemu-arm` (job jetable du
+  20 octobre). Les temps de #150 ne sont donc pas ceux d'un émulateur.
+- **Le chemin générique de `round_upward()`** (`gaol/gaol_fpu_fenv.h`) appelle
+  `fesetround(FE_UPWARD)` sans en lire le retour ; `NI` de POWER et `FS` de
+  MIPS, états du même ordre que FTZ et DAZ, ne sont pas effacés par les
+  intervalles FPU de ces processeurs.
+- **Trois pièges de compilation**, qu'aucun code de GAOL n'emploie : la pragma
+  `FENV_ROUND` (ignorée sans erreur par GCC, Visual C++ et Clang), le
+  `_mm256_add_round_pd` de Clang 20 avec `-mavx10.2` et l'assembleur
+  `vaddpd {ru-sae}, %ymm...` (assemblé par GNU as, `#UD` d'après le manuel
+  d'Intel d'aujourd'hui).
+
 ## Études de vitesse
 
 ### AH. Les sauts et les frontières de 32 octets (105)
@@ -674,7 +712,7 @@ la CI de `5fa7203`). Voir le 111 pour ce que valent ces temps.
   branche), avec GCC seulement, non commencés ; POWER, s390x et RISC-V ne sont
   pas regardés. Les opérations avec un double n'ont ces noyaux sur aucune cible
   x86 (#124 : « `x * 2.0` n'a pas les noyaux de `x * y` »). À rapprocher de
-  l'étude des pistes SIMD de l'issue #101 (AN, 126).
+  l'étude des pistes SIMD (`doc/simd.md`, #154).
 
 - **108.** **Visual C++ 32 bits : 80 ns par opération, dès le build par défaut**
   (job « Visual Studio 2026 x86 Release » : `x + y` 80,8 à 83,5 ns, `x * y` 87,8
@@ -830,28 +868,6 @@ la documentation ; rien n'a été écrit ni mesuré.
   demande de ne pas écrire FPCR : les transformations exactes à base de FMA
   ci-dessus, ou un noyau qui calcule vers le plus proche ; à étudier avant de
   s'y engager, les bornes étant en jeu.
-
-### AN. Les pistes SIMD et FMA (126, issue #101)
-
-- **126.** **Évaluer les pistes SIMD et FMA** (issue #101 : les gains dépendent
-  du processeur, du compilateur, des options et des opérations mesurées, et
-  aucun facteur général ne se déduit de la largeur des registres). Aujourd'hui :
-  SSE2 (et SSE3) sur x86 ; la voie AVX-512 (`GAOL_PREFER_AVX512`) pour `+ - * /
-  sqrt sqr` et les puissances entières ; `GAOL_FMA`, distinct d'AVX2 et
-  désactivé avec GCC pour Windows ; NEON sur arm64 (#146, `GAOL_ARM64`) ; aucune
-  voie dédiée à AVX2, SVE, VSX ou RISC-V. Suite proposée par l'issue :
-  identifier les opérations et les applications qui dominent le temps ; mesurer
-  de façon reproductible sur des processeurs et des compilateurs représentatifs
-  ; n'ajouter une voie qu'après avoir comparé ses temps et vérifié les bornes,
-  les quatre sens d'arrondi, les sous-normaux, les NaN et les infinis ;
-  documenter les exigences de processeur des binaires spécialisés et garder un
-  repli portable. À rapprocher du 106 (les intervalles FPU de Visual C++ et de
-  clang-cl), du 109 et de l'AJ. `_mm_round_pd` (SSE4.1) ne remplace pas
-  l'arrondi dirigé des opérations, et NEON d'ARMv7 n'a pas de `double`
-  vectoriel. Le commentaire `// TODO: Rewrite as many functions as possible to
-  use SIMD instructions` de `gaol/gaol_interval_core.cpp` (relevé CC.m1, vestige
-  de GAOL 4) se retire ou se remplace par le résultat de cette étude, au plus
-  tard au point Y.
 
 ## La documentation
 
@@ -1039,4 +1055,4 @@ sans l'accord explicite du mainteneur.
 78 : AB ; 79 : AB ; 80 : AB ; 81 : AC ; 82 : AC ; 85 : AD ; 87 : AD ; 88 : AD ;
 89 : AD ; 91 : AE ; 92 : AE ; 94 : AE ; 95 : AE ; 105 : AH ; 106 : AI ;
 108 : AI ; 109 : AI ; 110 : AI ; 111 : AI ; 112 : AI ; 113 : AJ ; 115 : AI ;
-116 : AI ; 117 à 123 : AL ; 125 : AM ; 126 : AN.
+116 : AI ; 117 à 123 : AL ; 125 : AM.
