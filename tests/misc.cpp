@@ -406,11 +406,12 @@ namespace gaol_names_adl
 // intervals, that holds no vector: see test_heap_alignment(). Its constructor
 // writes one byte, which the compiler cannot widen into a store of 16 bytes
 // (movaps) that would stop the program on a misaligned address before the test
-// looks at it
+// looks at it. As large as it is aligned, which Visual C++ warns it is not
+// otherwise (C4324, an error under /WX)
 namespace {
   struct alignas(alignof(gaol_core::interval)) as_aligned_as_an_interval {
-    as_aligned_as_an_interval() : c(0) {}
-    volatile char c;
+    as_aligned_as_an_interval() { c[0] = 0; }
+    volatile char c[alignof(gaol_core::interval)];
   };
 }
 
