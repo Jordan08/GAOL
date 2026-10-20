@@ -172,8 +172,8 @@ option(GAOL_COVERAGE "Compile GAOL and its tests with the counters of gcov, and 
 
 option(GAOL_FMA "Compile GAOL and CORE-MATH with the fused multiply-add instructions of the processor, where the compiler has a flag for them (OFF: a library for any processor of the architecture)" ON)
 
-# GAOL_PREFER_AVX512, whether +, -, *, / and sqrt take the AVX-512 path,
-# where the compiler takes it and the machine building runs it
+# GAOL_PREFER_AVX512, whether +, -, *, /, sqr, sqrt and the integer powers take
+# the AVX-512 path, where the compiler takes it and the machine building runs it
 # (GAOL_AVX512_ARITHMETIC below). ON by default where GAOL_PRESERVE_ROUNDING
 # is: the path spares the store of the rounding direction every operation
 # pays, which is what GAOL_PRESERVE_ROUNDING is about. What the command line
@@ -195,7 +195,7 @@ option(GAOL_FMA "Compile GAOL and CORE-MATH with the fused multiply-add instruct
 # stays the command line's until -UGAOL_PREFER_AVX512. A build directory
 # configured before this holds the OFF that option() cached, a request of OFF:
 # -UGAOL_PREFER_AVX512 derives the default again.
-set(GAOL_PREFER_AVX512_HELP "Have +, -, *, / and sqrt take the AVX-512 instructions and the rounding direction they carry in themselves, which sets no rounding direction, where the machine building runs them: the library then needs a processor with them (OFF: the operations set the direction upward; ON by default with GAOL_PRESERVE_ROUNDING)")
+set(GAOL_PREFER_AVX512_HELP "Have +, -, *, /, sqr, sqrt and the integer powers take the AVX-512 instructions and the rounding direction they carry in themselves, which sets no rounding direction, where the machine building runs them: the library then needs a processor with them (OFF: the operations set the direction upward; ON by default with GAOL_PRESERVE_ROUNDING)")
 function(gaol_keep_prefer_avx512 value)
   set(GAOL_PREFER_AVX512 "${value}" CACHE BOOL "${GAOL_PREFER_AVX512_HELP}" FORCE)
   set(GAOL_PREFER_AVX512_DERIVED "${value}" CACHE INTERNAL "The value of GAOL_PREFER_AVX512 the last configure derived (GAOL v5): the entry is a request unless it still holds it")
@@ -803,7 +803,7 @@ message(STATUS "NEON intervals: ${GAOL_USING_NEON_INSTRUCTIONS}")
 # gaol/gaol_common.cpp). The result is
 # cached under a name of its own, GAOL_COMPILER_TAKES_AVX512_PATH, so that a
 # build directory configured before that check checks again. Only the
-# functions of the AVX-512 path of +, -, *, / and sqrt
+# functions of the AVX-512 path of +, -, *, /, sqr, sqrt and the integer powers
 # (gaol/gaol_interval_avx512.cpp) carry the attribute, and the rest of the
 # library is compiled as without it; the path is compiled in where
 # GAOL_AVX512_ARITHMETIC below is (GAOL v5).
@@ -881,11 +881,12 @@ if(GAOL_PREFER_AVX512 AND NOT GAOL_HAVE_AVX512_TARGET)
   set(GAOL_PREFER_AVX512 OFF)
   gaol_keep_prefer_avx512(OFF)
 endif()
-# GAOL_AVX512_ARITHMETIC: +, -, *, / and sqrt take the AVX-512 path, which
-# is decided here: GAOL_PREFER_AVX512 asks for it, the compiler takes the
-# path, and the machine building runs it, as GAOL_FMA checks it for the fused
-# multiply-add (never when cross-compiling). The operations then are that
-# path alone, and the SSE2 one otherwise, with no flag to test as they run.
+# GAOL_AVX512_ARITHMETIC: +, -, *, /, sqr, sqrt and the integer powers take
+# the AVX-512 path, which is decided here: GAOL_PREFER_AVX512 asks for it, the
+# compiler takes the path, and the machine building runs it, as GAOL_FMA checks
+# it for the fused multiply-add (never when cross-compiling). The operations
+# then are that path alone, and the SSE2 one otherwise, with no flag to test as
+# they run.
 # gaol::init() chose the path, and every operation tested the flag it set,
 # in the default build too, though only GAOL_PREFER_AVX512 could make it
 # true: without the test, the line (a + b) * (a - b) / p of the benchmark of
