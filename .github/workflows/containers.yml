@@ -121,7 +121,10 @@ jobs:
   # v5): FPSCR with vmrs and vmsr on 32-bit ARM (GAOL_RND_FPSCR_DIRECT), and on
   # 64-bit ARM FPCR with mrs and msr, which comes with the NEON intervals, the
   # build before having the FPU intervals and fesetround(). The medians of three
-  # runs of gaol_performance, alternately, in the summary of the job.
+  # runs of gaol_performance, alternately, in the summary of the job. The
+  # scripts are those of performance.yml, which compares the base of a pull
+  # request with its head: two builds of one source here, which differ by an
+  # option, and only the rows that the register can change.
   control-register-performance:
     name: ${{ matrix.cfg.desc }}
     runs-on: ubuntu-24.04-arm
@@ -140,10 +143,10 @@ jobs:
             set -e
             apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq g++ cmake make > /dev/null
             c++ --version
-            sh .github/scripts/performance-ab.sh '${{ matrix.cfg.before }}'"
+            sh .github/scripts/performance-ab.sh --options -DGAOL_PRESERVE_ROUNDING=ON --before-options '${{ matrix.cfg.before }}' --build-dir /tmp/performance"
       - name: The table
         run: |
-          python3 .github/scripts/compare-performance.py "${{ matrix.cfg.before_label }}" perf-before-1.md perf-before-2.md perf-before-3.md \
+          python3 .github/scripts/compare-performance.py --rows register "${{ matrix.cfg.before_label }}" perf-before-1.md perf-before-2.md perf-before-3.md \
             -- "${{ matrix.cfg.after_label }}" perf-after-1.md perf-after-2.md perf-after-3.md | tee -a "$GITHUB_STEP_SUMMARY"
 
   clang-arm32:
