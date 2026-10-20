@@ -174,8 +174,11 @@ int main()
   // The operands of x * y, x / y and sqr(x) of mixed signs, drawn last (GAOL
   // v5): the bounds of the operands above are all positive, which the
   // processor predicts, where the signs of the bounds chose a branch of the
-  // product, of the quotient and of the square of the former code (the FPU
-  // intervals still do), mispredicted for operands of random signs
+  // product, of the quotient and of the square of the former code (GAOL 4 and,
+  // before their kernels, the FPU intervals), mispredicted for operands of
+  // random signs. These 1 024 operands are learned by heart by the predictor
+  // of a processor, which understates that cost (the product of the former FPU
+  // intervals took 5.7 ns on them, 12.4 on 16 384, Apple M2)
   std::uniform_real_distribution<double> signed_uniform(-4.0, 4.0);
   std::vector<double> sa(n), sb(n);
   std::vector<interval> SX(n), SY(n);
