@@ -21,9 +21,11 @@
     This file is not meant to be compiled. It is only to be included
         by gaol/gaol_interval_core.cpp.
 
-    The intervals of the processors that have neither SSE2 nor NEON: 32-bit ARM,
-    POWER, s390x and RISC-V with GCC, Visual C++ for x86 and arm64, clang-cl, and
-    the builds with GAOL_SIMD=OFF or GAOL_ARM64=OFF. The product, the quotient and
+    The intervals of the builds that have neither SSE2 nor NEON intervals
+    (gaol/gaol_configuration.h): 32-bit ARM, POWER, s390x, RISC-V and the other
+    processors; Windows on 32-bit x86 (Visual C++, clang-cl, MinGW-w64) and on
+    arm64 (Visual C++, clang-cl, MinGW-w64); and the builds with GAOL_SIMD=OFF or
+    GAOL_ARM64=OFF. The product, the quotient and
     the square take no branch on the signs of the bounds in the source (GAOL v5,
     the kernels of fpu_detail below, on two doubles as those of
     gaol/gaol_interval_sse.cpp and gaol/gaol_interval_neon.cpp are on a vector):
@@ -82,31 +84,40 @@ double hausdorff(const interval &I1, const interval &I2)
     bounds, where the former code took one of nine cases of the signs for a
     product, and went down a chain of up to eight tests for a quotient, which
     the processor mispredicted when the signs came at random (x * y of
-    operands of random signs took 13.0 ns, and 3.3 ns of operands of one sign;
-    Apple M2, Clang 21, FPU intervals). They work with the rounding direction upward, on bounds read
-    after its check (gaol/gaol_fpu.h), and compare only bounds that are no
-    NaN: the operators tell the empty set before the check, and no product
-    that would be NaN (0 times an infinite bound) is formed, the intervals with
-    an infinite bound taking mul_infinite(). GCC for 32-bit ARM
-    and for POWER9 turns a quiet comparison into a signaling one where it
-    makes a choice on it with a conditional move, which raises the
-    invalid-operation exception on a NaN (see is_empty() in
-    gaol/gaol_interval_core.h): no comparison is made here that a NaN could
-    reach, and the only choices on bounds are the maxima of larger_of().
+    operands of random signs took 12.4 ns, and 3.3 ns of operands of one sign:
+    16 384 operands, Apple M2, AppleClang 21, FPU intervals). They work with
+    the rounding direction upward, on bounds read after its check
+    (gaol/gaol_fpu.h), and compare only bounds that are no NaN: the operators
+    tell the empty set before the check, and no product that would be NaN (0
+    times an infinite bound) is formed, the intervals with an infinite bound
+    taking mul_infinite(). GCC for 32-bit ARM and for POWER9 turns a quiet
+    comparison into a signaling one where it makes a choice on it with a
+    conditional move, which raises the invalid-operation exception on a NaN
+    (see is_empty() in gaol/gaol_interval_core.h): no comparison is made here
+    that a NaN could reach, and the only choices on bounds are the maxima of
+    larger_of().
   */
   namespace fpu_detail {
 
   /*
-    The larger of two doubles that are no NaN, the second one when they compare
-    equal, +0 and -0 included: the `maxsd` of x86 (`maxpd` of the SSE2
-    intervals), so that the bounds of a product of finite bounds are theirs,
-    bit for bit, the sign of the zeros included. A comparison and a selection:
-    the maximum that ranks +0 above -0 (fmax(), the `fmax` of 64-bit ARM) is
-    one instruction fewer, and is not one with Visual C++ or GCC for 32-bit ARM.
+    The larger of two doubles that are no NaN (GAOL v5): a comparison and a selection,
+    the `maxsd` of x86 (`maxpd` of the SSE2 intervals), which returns the
+    second operand when they compare equal, +0 and -0 included. What the
+    compiler returns there is its own, and compilers differ: GCC 13 for POWER9
+    makes `(a > b) ? a : b` an `xsmaxcdp`, whose result for a +0 and a -0 is
+    the first operand (as QEMU computes it, in the continuous integration; the
+    comment of GCC lets the instruction stand for `a >= b ? a : b` as well).
+    The value of a bound is the same for all of them, but where two products are
+    zeros of opposite signs, +0 and -0, the sign of the zero bound of a product
+    is the compiler's and the target's: the lower bound of [-1, 0] * [-1, 0] is
+    +0 with `maxsd` and -0 with `xsmaxcdp`. It is not specified for the FPU
+    intervals (doc/using.md, The FPU intervals), and no test reads it. The
+    maximum that ranks +0 above -0 (fmax(), the `fmax` of 64-bit ARM) is one
+    instruction fewer, and is not one with Visual C++ or GCC for 32-bit ARM.
     The selection is a conditional move with GCC (13 to 16) for 32-bit ARM,
-    arm64, POWER9 and x86, with Clang, and with Visual C++ for x86, x64 and
-    arm64 (a branch with GCC for POWER8, s390x and RISC-V, which have no
-    conditional move of doubles)
+    arm64 and x86, with Clang, and with Visual C++ for x86 and arm64, an
+    `xsmaxcdp` with GCC for POWER9 (a branch with GCC for POWER8, s390x and
+    RISC-V, which have no conditional move of doubles)
   */
   GAOL_INLINE double larger_of(double a, double b)
   {
@@ -114,7 +125,7 @@ double hausdorff(const interval &I1, const interval &I2)
   }
 
   /*
-    Whether a stored bound is +oo, told on its bits: it is the only infinity
+    Whether a stored bound is +oo (GAOL v5), told on its bits: it is the only infinity
     that is stored, <-left, right> holding no -oo (an interval has neither a
     left bound +oo nor a right bound -oo), and it is no NaN here, so that the
     high word of its bits tells it, 0x7ff00000. Told on integers, because four
@@ -132,8 +143,8 @@ double hausdorff(const interval &I1, const interval &I2)
   }
 
   /*
-    The product of x = <xl, xr> = <-l1, r1> and y = <yl, yr> = <-l2, r2>, whose
-    bounds are all finite: the largest of the four products of the corners is
+    The product of x = <xl, xr> = <-l1, r1> and y = <yl, yr> = <-l2, r2>
+    (GAOL v5), whose bounds are all finite: the largest of the four products of the corners is
     the upper bound, and the largest of their opposites the lower one, stored
     negated. The rounding direction being upward, the opposite of a product
     is not the opposite of its rounding (-RU(p) is RD(-p), not RU(-p)): the
@@ -146,9 +157,9 @@ double hausdorff(const interval &I1, const interval &I2)
     for a positive l2 and r1 for a negative one in the lower bound) would do,
     but the compilers turn these choices into branches on the signs, where they
     make the maxima of the eight products with conditional moves (GCC for 32-bit
-    ARM, arm64 and x86, Visual C++ for x86 and x64: x * y of random signs took
-    3.3 ns with the eight products and 2.8 with the choices, Apple M2, Clang
-    21, and they were branches with the others). The maxima commute with
+    ARM, arm64 and x86, Visual C++ for x86: x * y of random signs took
+    3.3 ns with the eight products and 2.8 with the choices, Apple M2,
+    AppleClang 21, and they were branches with the others). The maxima commute with
     the rounding upward, which is monotone, so that each product is rounded
     once. Neither a 0 nor an infinite bound can make a product NaN here
   */
@@ -161,7 +172,7 @@ double hausdorff(const interval &I1, const interval &I2)
 
   /*
     A zero times an infinity is NaN, and raises the invalid-operation
-    exception: a product of the bounds of intervals, where one is 0 and the
+    exception (GAOL v5): a product of the bounds of intervals, where one is 0 and the
     other infinite, is 0. Both factors are set to 0 then, before the product
     that would form it. The stored bounds hold no -oo, a negated one is not
     tested
@@ -208,11 +219,12 @@ double hausdorff(const interval &I1, const interval &I2)
 
   /*
     The quotient of x = <a, b> = <-l, r> by a y = <p, q> = <-c, d> that has a
-    zero, c <= 0 <= d, neither of them empty, in the cases
-    of the signs of x and of the bounds of y that are 0 (the table below), one
+    zero, c <= 0 <= d, neither of them empty (GAOL v5), in the cases of the
+    signs of x and of the bounds of y that are 0 (the table below), one
     division at most, of two numbers that are no zero, so that none raises the
-    division-by-zero or the invalid-operation exception (the divisor goes through read_in_branch(): Clang for 64-bit
-    ARM computes the divisions of both sides of a test and chooses afterwards).
+    division-by-zero or the invalid-operation exception (the divisor goes
+    through read_in_branch(): Clang for 64-bit ARM computes the divisions of
+    both sides of a test and chooses afterwards).
     modulo is the "extended" quotient of operator%=(): where [0] / [0] is empty
     and x / y is empty for a y of zeros, x % y is the whole line wherever x
     contains zero. With x N1 for r < 0, N0 for l < 0 = r, Z for [0], M for l <
@@ -235,7 +247,8 @@ double hausdorff(const interval &I1, const interval &I2)
 #elif defined(_MSC_VER)
   __declspec(noinline)
 #endif
-  void divide_by_zero_containing(double a, double b, double p, double q, bool modulo, double& lb, double& rb)
+  void divide_by_zero_containing(double a, double b, double p, double q, bool modulo,
+                                 double& lb, double& rb)
   {
     const double inf = std::numeric_limits<double>::infinity();
     const double nan = std::numeric_limits<double>::quiet_NaN();
@@ -314,8 +327,8 @@ double hausdorff(const interval &I1, const interval &I2)
 
   /*
     The quotient of the stored bounds x = <xl, xr> and y = <yl, yr> of two
-    intervals that are no empty set, with the rounding direction upward, on
-    bounds read after its check. Without a zero in y, c > 0 or d < 0, it is one
+    intervals that are no empty set (GAOL v5), with the rounding direction
+    upward, on bounds read after its check. Without a zero in y, c > 0 or d < 0, it is one
     division for each bound, by the bound of y that the sign of the bound
     chooses, as div_bounds() of the SSE2 intervals computes it: the divisor
     is made positive (x and y exchanged and negated, <-l, r> becoming <r,
@@ -325,13 +338,16 @@ double hausdorff(const interval &I1, const interval &I2)
     for r < 0. An infinite bound of x is divided by c' or d', which are
     finite, never by an infinity, and a zero bound by a number that is no zero:
     no 0 / 0, no oo / oo, and every division is by a number above 0. The
-    bounds of the quotient are the ones of the SSE2 intervals, bit for bit. The
-    choices of the denominators are conditional moves with Clang and Visual
-    C++ for arm64, but one branch on a sign with GCC for arm64 and two with GCC
-    for 32-bit ARM, where a division takes longer than a branch mispredicted.
-    A y with a zero is the other function
+    bounds of the quotient are the ones of the SSE2 intervals, bit for bit
+    (no tie of two zeros is chosen: a division of IEEE gives the sign of a
+    zero). The choices of the denominators are conditional moves with Clang
+    and Visual C++ for arm64, but one branch on a sign with GCC for arm64, two
+    with GCC 13 to 15 and four with GCC 16 for 32-bit ARM (-O2 and -O3), where a
+    division takes longer than a branch mispredicted. A y with a zero is the
+    other function
   */
-  GAOL_INLINE void quotient(double xl, double xr, double yl, double yr, bool modulo, double& lb, double& rb)
+  GAOL_INLINE void quotient(double xl, double xr, double yl, double yr, bool modulo,
+                            double& lb, double& rb)
   {
     // y is made positive, -y = [c', d'] where d < 0, and <p, q> = <-c', d'> is
     // then <yl, yr>, or <yr, yl>: y has no zero where c' > 0, that is p < 0,
@@ -525,11 +541,17 @@ double hausdorff(const interval &I1, const interval &I2)
     the check of the rounding direction, as in operator&=(): no NaN reaches a
     comparison of bounds. The bounds are read after the check, once each,
     through rnd_reread() (see gaol/gaol_fpu.h), before one is written: *this
-    may be I (x *= x). The result is written into the bounds of *this before
-    GAOL_RND_LEAVE(), which a function of the C library follows: it needs no
-    GAOL_RND_KEEP(), which cost 2.6 ns here with GAOL_PRESERVE_ROUNDING (an
-    Apple M2), as x += y and the former product did without. An interval with
-    an infinite bound is the rare case, which mul_infinite() computes: the
+    may be I (x *= x). The result is written into the bounds of *this, which
+    is memory of the caller, and *this is also given by address to
+    mul_infinite(), which is not inlined: a call (fesetround()) or an asm with
+    a "memory" clobber that GAOL_RND_LEAVE() makes finds the stores before it,
+    and so the products they hold, which the rounding direction upward has to
+    compute. That is how the compilers treat them (GCC 15 for 32-bit ARM with
+    GAOL_PRESERVE_ROUNDING: the stores precede the call), not a rule of the
+    language, and no test of GAOL holds it. GAOL_RND_KEEP() (gaol/gaol_fpu.h)
+    would make it one, for 2.6 ns here with GAOL_PRESERVE_ROUNDING (an Apple
+    M2), and x += y and the former product did without. An interval with an
+    infinite bound is the rare case, which mul_infinite() computes: the
     kernel would form 0 times an infinite bound among its eight products, a
     NaN that raises the invalid-operation exception, and that must be 0.
   */
@@ -545,8 +567,10 @@ double hausdorff(const interval &I1, const interval &I2)
     // [100*2^-1074] was zero, and [100*2^-1074]*[1e10] was [100*2^-1074]
     // (GAOL v5)
     GAOL_RND_ENTER();
-    const double xl = rnd_reread(lb_), xr = rnd_reread(rb_), yl = rnd_reread(I.lb_), yr = rnd_reread(I.rb_);
-    if (GAOL_UNLIKELY(fpu_detail::is_infinite(xl) || fpu_detail::is_infinite(xr) || fpu_detail::is_infinite(yl) || fpu_detail::is_infinite(yr))) {
+    const double xl = rnd_reread(lb_), xr = rnd_reread(rb_);
+    const double yl = rnd_reread(I.lb_), yr = rnd_reread(I.rb_);
+    if (GAOL_UNLIKELY(fpu_detail::is_infinite(xl) || fpu_detail::is_infinite(xr)
+                      || fpu_detail::is_infinite(yl) || fpu_detail::is_infinite(yr))) {
       fpu_detail::mul_infinite(xl, xr, yl, yr, lb_, rb_);
       GAOL_RND_LEAVE();
       return *this;
@@ -632,7 +656,8 @@ double hausdorff(const interval &I1, const interval &I2)
     }
 
     GAOL_RND_ENTER();
-    const double xl = rnd_reread(lb_), xr = rnd_reread(rb_), yl = rnd_reread(I.lb_), yr = rnd_reread(I.rb_);
+    const double xl = rnd_reread(lb_), xr = rnd_reread(rb_);
+    const double yl = rnd_reread(I.lb_), yr = rnd_reread(I.rb_);
     fpu_detail::quotient(xl, xr, yl, yr, false, lb_, rb_);
     GAOL_RND_LEAVE();
     return *this;
@@ -646,7 +671,8 @@ double hausdorff(const interval &I1, const interval &I2)
     }
 
     GAOL_RND_ENTER();
-    const double xl = rnd_reread(lb_), xr = rnd_reread(rb_), yl = rnd_reread(I.lb_), yr = rnd_reread(I.rb_);
+    const double xl = rnd_reread(lb_), xr = rnd_reread(rb_);
+    const double yl = rnd_reread(I.lb_), yr = rnd_reread(I.rb_);
     fpu_detail::quotient(xl, xr, yl, yr, true, lb_, rb_);
     GAOL_RND_LEAVE();
     return *this;
@@ -834,8 +860,9 @@ double hausdorff(const interval &I1, const interval &I2)
     double hi = fpu_detail::larger_of(a*a, b*b);
     // l < 0 < r: both stored bounds are above 0. & rather than &&, which is a
     // branch on the sign of a: the selection is a conditional move with Clang
-    // and Visual C++ for arm64 and with GCC for arm64 and POWER, but a branch
-    // with GCC for 32-bit ARM and Visual C++ for x86 and x64
+    // and Visual C++ for arm64 and with GCC for arm64, POWER and 32-bit ARM
+    // (-O2 and -O3: two branches at -Os with GCC 14 and 15), but a branch with
+    // Visual C++ for x86
     lo = ((a > 0.0) & (b > 0.0)) ? -0.0 : lo;
     GAOL_RND_KEEP(lo); GAOL_RND_KEEP(hi);
     GAOL_RND_LEAVE();
