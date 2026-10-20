@@ -73,6 +73,21 @@
 #  endif
 #endif
 
+/* GAOL_VECTORCALL: the calling convention of the functions taking a __m128d
+   by value (add_bounds() and the others of gaol/gaol_interval_sse.h, GAOL v5).
+   The convention of Windows for x86-64 passes a __m128d by a hidden reference
+   to a copy in the frame of the caller; __vectorcall of Visual C++ and
+   clang-cl passes it in xmm0 and xmm1, as the x86-64 conventions of Linux and
+   macOS do. It is empty with the other compilers: MinGW-w64 and MSYS2 keep the
+   convention of Windows. */
+#ifndef GAOL_VECTORCALL
+#  if defined(_MSC_VER) && defined(_M_X64)
+#    define GAOL_VECTORCALL __vectorcall
+#  else
+#    define GAOL_VECTORCALL
+#  endif
+#endif
+
 
 /* ---------------------------------------------------------------------------
    The intervals of floats, gaol::intervalf and gaol::interval2f

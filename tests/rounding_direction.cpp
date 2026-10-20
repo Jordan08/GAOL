@@ -846,6 +846,35 @@ namespace
     the others reach 0 and +oo then), and computed apart from GAOL, without
     raising anything.
   */
+  /*
+    The extrema of the quotients of the bounds of K by those of J, which has
+    no zero, the quotient of two infinite bounds left out. Each quotient is
+    computed on operands for which it raises nothing, whatever the choice
+    that keeps it or not, as bound_product() does for the products: a
+    compiler computing the quotients before the choice, or several at once,
+    would raise a flag in the reference, which the check of the flags would
+    take for one div_rel() had raised. They are kept in volatile variables
+    for the same reason.
+  */
+  void bound_quotients(const interval& k, const interval& j, double& l, double& r)
+  {
+    l = GAOL_INFINITY;
+    r = -GAOL_INFINITY;
+    for (double a : { k.left(), k.right() }) {
+      for (double b : { j.left(), j.right() }) {
+        const bool both_infinite = std::isinf(a) && std::isinf(b);
+        const double a1 = both_infinite ? 1.0 : a;
+        const double b1 = (both_infinite || b == 0.0) ? 1.0 : b;
+        const volatile double q = a1/b1;
+        if (!both_infinite) {
+          const double d = q;
+          l = std::min(l, d);
+          r = std::max(r, d);
+        }
+      }
+    }
+  }
+
   bool quotients_with_zero_and_infinite_bounds_are_right()
   {
     const std::vector<interval> intervals = intervals_with_bounds({ -GAOL_INFINITY, -2.0, -0.0, 0.0, 4.0, GAOL_INFINITY });
@@ -854,21 +883,72 @@ namespace
       for (const interval& j : intervals) {
         const interval z = div_rel(opaque(k), opaque(j), opaque(interval::universe()));
         if (j.left() > 0.0 || j.right() < 0.0) {
-          double l = GAOL_INFINITY, r = -GAOL_INFINITY;
-          for (double a : { k.left(), k.right() }) {
-            for (double b : { j.left(), j.right() }) {
-              if (!(std::isinf(a) && std::isinf(b))) {
-                const double q = a/b;
-                l = std::min(l, q);
-                r = std::max(r, q);
-              }
-            }
-          }
+          double l, r;
+          bound_quotients(k, j, l, r);
           right = right && z.left() == l && z.right() == r;
         }
       }
     }
     return right;
+  }
+
+  // The div_rel(K, J, [-oo, +oo]) of quotients_with_zero_and_infinite_bounds_are_right()
+  // that raise the invalid-operation or the division-by-zero flag, each run
+  // alone, and those whose quotient is not the one expected, for the message
+  // of a failure: the flag tells that one of them, or the reference quotients
+  // of the test, raised it, not which
+  std::string quotients_raising()
+  {
+    std::string raising;
+    // the intervals themselves, which the test builds after clearing the flags
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const std::vector<interval> intervals = intervals_with_bounds({ -GAOL_INFINITY, -2.0, -0.0, 0.0, 4.0, GAOL_INFINITY });
+    if (std::fetestexcept(FE_INVALID | FE_DIVBYZERO) != 0) {
+      raising += " the building of the intervals;";
+    }
+    for (const interval& k : intervals) {
+      for (const interval& j : intervals) {
+        std::feclearexcept(FE_ALL_EXCEPT);
+        const interval z = div_rel(opaque(k), opaque(j), opaque(interval::universe()));
+        const int raised = std::fetestexcept(FE_INVALID | FE_DIVBYZERO);
+        if (raised != 0) {
+          raising += " div_rel(" + hex(k) + ", " + hex(j) + ", R) = " + hex(z) + ((raised & FE_INVALID) ? " (invalid);" : " (division by zero);");
+        }
+      }
+    }
+    // and the reference quotients of the bounds, which the test computes
+    for (const interval& k : intervals) {
+      for (const interval& j : intervals) {
+        if (j.left() > 0.0 || j.right() < 0.0) {
+          std::feclearexcept(FE_ALL_EXCEPT);
+          double l, r;
+          bound_quotients(opaque(k), opaque(j), l, r);
+          if (std::fetestexcept(FE_INVALID | FE_DIVBYZERO) != 0) {
+            raising += " the reference quotients of " + hex(k) + " and " + hex(j) + ";";
+          }
+        }
+      }
+    }
+    return raising.empty() ? std::string(" none when run alone") : raising;
+  }
+
+  std::string quotients_wrong()
+  {
+    const std::vector<interval> intervals = intervals_with_bounds({ -GAOL_INFINITY, -2.0, -0.0, 0.0, 4.0, GAOL_INFINITY });
+    std::string wrong;
+    for (const interval& k : intervals) {
+      for (const interval& j : intervals) {
+        const interval z = div_rel(opaque(k), opaque(j), opaque(interval::universe()));
+        if (j.left() > 0.0 || j.right() < 0.0) {
+          double l, r;
+          bound_quotients(k, j, l, r);
+          if (!(z.left() == l && z.right() == r)) {
+            wrong += " div_rel(" + hex(k) + ", " + hex(j) + ", R) = " + hex(z) + " (expected [" + hex(l) + ", " + hex(r) + "]);";
+          }
+        }
+      }
+    }
+    return wrong.empty() ? std::string(" none when run alone") : wrong;
   }
 
   /*
@@ -2945,8 +3025,8 @@ int main()
     const volatile bool right = quotients_with_zero_and_infinite_bounds_are_right();
     const int raised = std::fetestexcept(FE_INVALID | FE_DIVBYZERO);
     check("div_rel with zero and infinite bounds raises no invalid-operation nor division-by-zero flag", raised == 0,
-          [&] { return std::string((raised & FE_INVALID) ? "invalid-operation" : "division-by-zero"); });
-    check("div_rel with zero and infinite bounds: the quotients", right);
+          [&] { return std::string((raised & FE_INVALID) ? "invalid-operation" : "division-by-zero") + " raised by" + quotients_raising(); });
+    check("div_rel with zero and infinite bounds: the quotients", right, [] { return "wrong:" + quotients_wrong(); });
   }
   {
     std::feclearexcept(FE_ALL_EXCEPT);

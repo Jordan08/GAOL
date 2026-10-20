@@ -485,7 +485,8 @@ The options are given to the first command, as \option{-D\var{option}=\var{value
   \file{examples}, which \cmd{make check} runs;
 \item \option{GAOL\_SIMD}. \code{ON} by default: the intervals are computed
   with SSE2 instructions on x86 processors (\option{-msse2 -msse3}), their two
-  bounds in one register; not with Visual C++ nor on 32-bit Windows;
+  bounds in one register; no flag with Visual C++ and clang-cl for x64; not on
+  32-bit Windows;
 \cindex{SSE2}%
 \item \option{GAOL\_ARM64}. \code{ON} by default: the intervals are computed
   with NEON instructions on 64-bit ARM processors, their two bounds in one
@@ -1982,8 +1983,9 @@ A bound that is zero has a sign, which differs between the builds:
 \code{sqr(interval(-1, 2))} is \itv{-0}{4} with the SSE2 intervals, which the
 default build uses on x86 processors, and with the NEON intervals, which it
 uses on 64-bit ARM processors, and \itv{0}{4} with the FPU intervals, those of
-the other processors, of Visual C++ and 32-bit Windows, and of the builds with
-\option{GAOL\_SIMD} off on x86 and \option{GAOL\_ARM64} off on 64-bit ARM;
+the other processors, of Visual C++ and clang-cl on x86 and arm64, and of the
+builds with \option{GAOL\_SIMD} off on x86 and \option{GAOL\_ARM64} off on 64-bit ARM
+(Visual C++ and clang-cl for x64 have the SSE2 intervals)\newinvfive;
 \code{interval::zero()} is \itv{-0}{0} with the first two and \itv{0}{0} with
 the third. The NEON and the SSE2 intervals can differ too: the maximum of
 64-bit ARM, which the product takes of its four products, ranks $+0$ above
