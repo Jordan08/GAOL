@@ -583,8 +583,10 @@ namespace
      number is above. */
   void reversed_bounds()
   {
-    const double dmax = (std::numeric_limits<double>::max)(), oo = GAOL_INFINITY;
-    const double tiny = std::numeric_limits<double>::denorm_min();
+    // Written as literals, not as std::numeric_limits<double>::denorm_min(): GCC 12.1 to 12.3 and 13.1 to 13.2, with
+    // -frounding-math, store that value wrongly in a table of structures, over the next member (doc/using.md)
+    const double dmax = 0x1.fffffffffffffp+1023, oo = GAOL_INFINITY;
+    const double tiny = 0x1p-1074;
     const double pi_dn = 0x1.921fb54442d18p+1, pi_up = 0x1.921fb54442d19p+1;       // the doubles around pi
     const double tenth_dn = 0x1.9999999999999p-4, tenth_up = 0x1.999999999999ap-4;  // those around 0.1
     const double third_dn = 0x1.3333333333333p-2, third_up = 0x1.3333333333334p-2;  // those around 0.3
@@ -656,8 +658,9 @@ namespace
      lie between 1 and the one of that order, whose enclosure holds 1. */
   void integer_exponents()
   {
-    const double dmax = (std::numeric_limits<double>::max)(), oo = GAOL_INFINITY;
-    const double tiny = std::numeric_limits<double>::denorm_min();
+    // As literals (see reversed_bounds())
+    const double dmax = 0x1.fffffffffffffp+1023, oo = GAOL_INFINITY;
+    const double tiny = 0x1p-1074;
     struct Case { const char *names, *text; interval value; double lo, hi; };
     const interval eight(8.0), base(0x1.00000004p+0), two_three(2.0, 3.0);
     // the roots: equal to nth_root(I, long long), and within one double of the tightest bounds
