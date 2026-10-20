@@ -1513,9 +1513,8 @@ Linux) instead of letting the operation give its bounds.\newinvfive
 \begin{itemize}
 \item An infinite bound comes from a division by zero or from an overflow:
   \code{log(interval(0,~1))}, which is \itv{-\infty}{0}, raises the
-  divide-by-zero exception, and so does \code{1/interval(0,~1)}, which is
-  \itv{1}{+\infty}, with the SSE2 intervals; \code{interval(1e308)*10}, which
-  is \itv{\text{DBL\_MAX}}{+\infty}, raises the overflow exception.
+  divide-by-zero exception; \code{interval(1e308)*10}, which is
+  \itv{\text{DBL\_MAX}}{+\infty}, raises the overflow exception.
 \item Almost every operation raises the inexact exception: most bounds are
   rounded results, and where GAOL checks the rounding direction with an
   addition, $1+2^{-60}$ or $1+(2^{-1060}+0)$, whose result is inexact

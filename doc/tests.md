@@ -328,6 +328,17 @@ point Q), which `numbers` checks there too.
   no invalid-operation flag, nor die in a child process that enabled the
   exception: the terms of its TwoSum, computed by GCC after the
   direction was set back to upward, read +oo and made inf - inf.
+  The same holds for `cancel_minus` and `cancel_plus` with bounds next to the
+  largest double: where a difference of the bounds is beyond it (`[DBL_MAX]`
+  against `[-DBL_MAX]`, `[-DBL_MAX]` against `[DBL_MAX]`, `[DBL_MAX]` against
+  `[-2^970]`, whose difference is halfway to 2^1024, and two boxes with one
+  difference beyond it), they have to give `[DBL_MAX, +oo]` or
+  `[-oo, -DBL_MAX]`; where the sum is finite but halfway between two doubles
+  and rounded away from the exact one (`[0, DBL_MAX]` against `[0, 3*2^970]`,
+  and `[DBL_MAX - 2^971, DBL_MAX]` against `[2^970, 3*2^970]`, whose widths are
+  equal), the tightest enclosure, not `[-oo, +oo]`. Neither raises the
+  invalid-operation flag, and none makes a child process that enabled that
+  exception die: the TwoSum made inf - inf of its terms, or NaN (GAOL v5).
   The suite takes the AVX-512 path of `GAOL_PREFER_AVX512` whole, where the
   machine building has the instructions (`GAOL_AVX512_ARITHMETIC`): the
   bounds of `x + y`, `x - y`, `x*y`, `x/y` and `sqrt(x)` are then those of

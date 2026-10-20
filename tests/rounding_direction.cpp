@@ -39,10 +39,12 @@
  * and every operation computes with an empty operand, without raising the
  * invalid-operation exception, which kills a program that enabled it (GAOL v5).
  * Nor do a NaN the program gives, the products with a zero and an infinite
- * bound, pow with an exponent of extreme magnitude and the relations in loops
- * a compiler vectorizes raise it, nor the midpoint of [DBL_MAX] the overflow
- * exception; every operation keeps the exception flags and masks of the
- * program (GAOL v5, point D.24 of TODO.md).
+ * bound, pow with an exponent of extreme magnitude, cancel_minus() and
+ * cancel_plus() with bounds next to the largest double (point 78 of TODO.md)
+ * and the relations in loops a compiler vectorizes raise it, nor the midpoint
+ * of [DBL_MAX] the overflow exception; every operation
+ * keeps the exception flags and masks of the program (GAOL v5, point D.24 of
+ * TODO.md).
  *
  * On 64-bit ARM with GCC or Clang, whatever the intervals (NEON or FPU), the
  * control register FPCR is read and written directly, with mrs and msr, and on
@@ -1175,6 +1177,53 @@ namespace
     { "pow([-oo, -0.5], -5e9 - 1)", [] {
         return bounds_are(gaol::pow(make(-GAOL_INFINITY, -0.5), -5000000001LL), -GAOL_INFINITY, 0.0); } },
     { "pow([0, 2], [-1e10])", [] { return bounds_are(pow(make(0.0, 2.0), make(-1e10, -1e10)), 0.0, GAOL_INFINITY); } },
+  };
+
+  /*
+    The differences of the bounds of cancel_minus() and cancel_plus() next to
+    the largest double (GAOL v5, point 78 of TODO.md). The TwoSum that
+    compares the two differences read an infinite sum, whose terms ap = s - b
+    and bp = s - ap are inf and inf - inf, and raised the invalid-operation
+    exception (it stops a program that enabled it), though the result has an
+    infinite bound. The first seven cases have a difference beyond the largest
+    double: 2 DBL_MAX, 1.5 DBL_MAX, and DBL_MAX + 2^970, which is halfway
+    between DBL_MAX and 2^1024 and rounds to the infinity to nearest; their
+    tightest enclosures are [DBL_MAX, +oo] and [-oo, -DBL_MAX]. In the last
+    two the sum is finite, but halfway between two doubles and rounded away
+    from the exact one by 2^970 (the mantissa of DBL_MAX being odd): s - b was
+    then DBL_MAX + 2^970, infinite, and the error NaN, so that the second read
+    X, as wide as Y, as narrower than Y and gave [-oo, +oo]. The exact upper
+    bound of both is DBL_MAX - 3 2^970, halfway between DBL_MAX - 4 2^970 and
+    DBL_MAX - 2 2^970; the lower bound is 0 for the first and the same number
+    for the second.
+  */
+  const double half_ulp_of_largest = std::ldexp(1.0, 970);
+
+  const EmptyOperand cancels_next_to_the_largest[] = {
+    { "cancel_minus([DBL_MAX], [-DBL_MAX])", [] {
+        return bounds_are(cancel_minus(make(largest, largest), make(-largest, -largest)), largest, GAOL_INFINITY); } },
+    { "cancel_plus([DBL_MAX], [DBL_MAX])", [] {
+        return bounds_are(cancel_plus(make(largest, largest), make(largest, largest)), largest, GAOL_INFINITY); } },
+    { "cancel_minus([-DBL_MAX], [DBL_MAX])", [] {
+        return bounds_are(cancel_minus(make(-largest, -largest), make(largest, largest)), -GAOL_INFINITY, -largest); } },
+    { "cancel_plus([-DBL_MAX], [-DBL_MAX])", [] {
+        return bounds_are(cancel_plus(make(-largest, -largest), make(-largest, -largest)), -GAOL_INFINITY, -largest); } },
+    { "cancel_minus([DBL_MAX], [-2^970])", [] {
+        return bounds_are(cancel_minus(make(largest, largest), make(-half_ulp_of_largest, -half_ulp_of_largest)),
+                          largest, GAOL_INFINITY); } },
+    { "cancel_minus([0, DBL_MAX], [-DBL_MAX, -DBL_MAX/2])", [] {
+        return bounds_are(cancel_minus(make(0.0, largest), make(-largest, -0.5*largest)), largest, GAOL_INFINITY); } },
+    { "cancel_minus([-DBL_MAX, 0], [DBL_MAX/2, DBL_MAX])", [] {
+        return bounds_are(cancel_minus(make(-largest, 0.0), make(0.5*largest, largest)), -GAOL_INFINITY, -largest); } },
+    // A finite sum halfway between two doubles, 3 2^970 below DBL_MAX: the
+    // doubles around it are DBL_MAX - 2 ulp and DBL_MAX - ulp, ulp = 2^971
+    { "cancel_minus([0, DBL_MAX], [0, 3 2^970])", [] {
+        return bounds_are(cancel_minus(make(0.0, largest), make(0.0, 3.0*half_ulp_of_largest)),
+                          0.0, largest - 2.0*half_ulp_of_largest); } },
+    { "cancel_minus([DBL_MAX - 2^971, DBL_MAX], [2^970, 3 2^970])", [] {
+        return bounds_are(cancel_minus(make(largest - 2.0*half_ulp_of_largest, largest),
+                                       make(half_ulp_of_largest, 3.0*half_ulp_of_largest)),
+                          largest - 4.0*half_ulp_of_largest, largest - 2.0*half_ulp_of_largest); } },
   };
 
   /*
@@ -3123,6 +3172,15 @@ int main()
           [&] { return std::string(e.name); });
     check("an integer power at the ends of the doubles: the tightest enclosure", right, [&] { return std::string(e.name); });
   }
+  for (const EmptyOperand& e : cancels_next_to_the_largest) {
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const volatile bool right = e.run();
+    const int raised = std::fetestexcept(FE_INVALID);
+    check("cancel_minus and cancel_plus next to the largest double raise no invalid-operation flag",
+          raised == 0, [&] { return std::string(e.name); });
+    check("cancel_minus and cancel_plus next to the largest double: the tightest enclosure", right,
+          [&] { return std::string(e.name); });
+  }
   for (const InfiniteOperation& e : arithmetic_with_infinite_bounds) {
     std::feclearexcept(FE_ALL_EXCEPT);
     const std::string wrong = e.run();
@@ -3256,6 +3314,11 @@ int main()
     for (const EmptyOperand& e : integer_powers_at_the_ends) {
       const Outcome oe = run_with_exceptions_enabled(FE_INVALID, e.run);
       check("an integer power at the ends of the doubles, FE_INVALID enabled", oe == returned_true,
+            [&] { return std::string(e.name) + ": " + outcome_text(oe); });
+    }
+    for (const EmptyOperand& e : cancels_next_to_the_largest) {
+      const Outcome oe = run_with_exceptions_enabled(FE_INVALID, e.run);
+      check("cancel_minus and cancel_plus next to the largest double, FE_INVALID enabled", oe == returned_true,
             [&] { return std::string(e.name) + ": " + outcome_text(oe); });
     }
     for (const InfiniteOperation& e : arithmetic_with_infinite_bounds) {
