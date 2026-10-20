@@ -617,32 +617,80 @@ endif()
 # where SSE2 is the baseline of the processor and no flag is to be given
 # (cl does not know -msse2): gaol/gaol_interval_sse.cpp is written for the
 # __m128d of Visual C++, a structure and not a vector, and needs no asm
-# statement there (clang-cl keeps the ones of Clang). Not on 32-bit Windows:
-# there, GCC takes the memory of new
-# to be aligned on 16 bytes
-# (__STDCPP_DEFAULT_NEW_ALIGNMENT__), while the C runtime aligns it on 8, so
-# that a std::vector of SSE2 intervals, aligned on 16 bytes, crashes on its
-# first movaps (MinGW-w64 15.2 for x86, rounding_direction). On 64-bit Windows
-# (MinGW-w64, MSYS2 with GCC and Clang) the tests pass.
+# statement there (clang-cl keeps the ones of Clang).
+#
+# On 32-bit Windows (GAOL v5), the C runtime aligns the memory of malloc() and
+# new on 8 bytes, and an SSE2 interval, a __m128d, needs 16: GCC takes the
+# memory of new to be aligned on 16 bytes (__STDCPP_DEFAULT_NEW_ALIGNMENT__),
+# so that a std::vector of SSE2 intervals crashed on its first movaps
+# (MinGW-w64 14.2 and 15.2 for x86, rounding_direction). The compiler has to
+# know what the runtime gives, so that it asks for aligned memory (the
+# operator new of C++17 taking an alignment) for the types that need it, the
+# intervals and everything that holds one, in the code of GAOL and in the code
+# using it, which allocates them. GCC and Clang (MinGW-w64, MSYS2) take
+# -faligned-new=8, which sets __STDCPP_DEFAULT_NEW_ALIGNMENT__ to 8 and turns
+# the aligned new on in every standard: GAOL_ALIGNED_NEW_FLAGS, given to both
+# (gaol::gaol, gaol.pc), and checked by gaol/gaol_config.h. Visual C++ and
+# clang-cl have no such flag, and keep the FPU intervals there, as does Clang
+# for a target of Visual C++ (_MSC_VER): their
+# /Zc:alignedNew does nothing in C++14 (cl) or breaks the STL (clang-cl,
+# align_val_t not being an enumeration there), and only C++17 turns the aligned
+# new on, which would make every code using GAOL compile in C++17. A compiler
+# that does not take the flag keeps the FPU intervals too. On 64-bit Windows
+# the memory is aligned on 16 bytes, and the tests pass without it (MinGW-w64,
+# MSYS2 with GCC and Clang).
 set(GAOL_USING_SSE2_INSTRUCTIONS OFF)
 set(GAOL_USING_SSE3_INSTRUCTIONS OFF)
 set(GAOL_USING_NEON_INSTRUCTIONS OFF)
+set(GAOL_ALIGNED_NEW_FLAGS "")  # for GCC and Clang, C++ only
+set(GAOL_ALIGNED_NEW_FLAGS_STRING "")
 if(GAOL_SIMD)
   set(CMAKE_REQUIRED_FLAGS "${GAOL_INTERVAL_FLAGS_STRING}")
   check_cxx_source_compiles("
     #if !(defined(__x86_64__) || defined(__i386__) || defined(_M_X64) || defined(_M_IX86))
     #error GAOL computes its intervals with SSE2 on x86 processors only
     #endif
-    #if defined(_WIN32) && !defined(_WIN64)
-    #error not on 32-bit Windows
-    #endif
     #include <emmintrin.h>
     int main() { return _mm_movemask_pd(_mm_set1_pd(-1.0)); }"
-    GAOL_SSE2_INTERVALS)
+    GAOL_X86_TARGET_TAKES_SSE2)
   unset(CMAKE_REQUIRED_FLAGS)
-  if(GAOL_SSE2_INTERVALS AND MSVC)
+  set(_gaol_sse2_intervals ${GAOL_X86_TARGET_TAKES_SSE2})
+  if(_gaol_sse2_intervals)
+    check_cxx_source_compiles("
+      #if !(defined(_WIN32) && !defined(_WIN64))
+      #error not 32-bit Windows
+      #endif
+      int main() { return 0; }"
+      GAOL_TARGET_IS_WIN32)
+    if(GAOL_TARGET_IS_WIN32)
+      # Visual C++, clang-cl, and Clang with its driver for a target of Visual
+      # C++ (MSVC is false for it): the macro tells, as it tells the STL
+      check_cxx_source_compiles("
+        #ifndef _MSC_VER
+        #error neither Visual C++ nor a compiler that simulates it
+        #endif
+        int main() { return 0; }"
+        GAOL_COMPILER_SIMULATES_MSVC)
+      if(GAOL_COMPILER_SIMULATES_MSVC)
+        message(STATUS "SSE2 intervals left out on 32-bit Windows with Visual C++ and the compilers that simulate it (clang-cl...): they have no flag to ask for the aligned memory the intervals need")
+        set(_gaol_sse2_intervals OFF)
+      else()
+        set(CMAKE_REQUIRED_FLAGS "${GAOL_INTERVAL_FLAGS_STRING}")
+        check_cxx_compiler_flag(-faligned-new=8 GAOL_COMPILER_SUPPORTS_FALIGNED_NEW)
+        unset(CMAKE_REQUIRED_FLAGS)
+        if(GAOL_COMPILER_SUPPORTS_FALIGNED_NEW)
+          set(GAOL_ALIGNED_NEW_FLAGS -faligned-new=8)
+          set(GAOL_ALIGNED_NEW_FLAGS_STRING "-faligned-new=8")
+        else()
+          message(STATUS "SSE2 intervals left out on 32-bit Windows: the compiler cannot be told to ask for the aligned memory they need (-faligned-new=8)")
+          set(_gaol_sse2_intervals OFF)
+        endif()
+      endif()
+    endif()
+  endif()
+  if(_gaol_sse2_intervals AND MSVC)
     set(GAOL_USING_SSE2_INSTRUCTIONS ON)
-  elseif(GAOL_SSE2_INTERVALS)
+  elseif(_gaol_sse2_intervals)
     check_cxx_compiler_flag(-msse2 GAOL_COMPILER_SUPPORTS_MSSE2)
     if(GAOL_COMPILER_SUPPORTS_MSSE2)
       set(GAOL_USING_SSE2_INSTRUCTIONS ON)
@@ -655,9 +703,17 @@ if(GAOL_SIMD)
     endif()
   endif()
 endif()
+# Only the SSE2 intervals need the aligned memory
+if(NOT GAOL_USING_SSE2_INSTRUCTIONS)
+  set(GAOL_ALIGNED_NEW_FLAGS "")
+  set(GAOL_ALIGNED_NEW_FLAGS_STRING "")
+endif()
 string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
 message(STATUS "Interval arithmetic flags: ${GAOL_INTERVAL_FLAGS_STRING}")
 message(STATUS "SSE2 intervals: ${GAOL_USING_SSE2_INSTRUCTIONS}, SSE3: ${GAOL_USING_SSE3_INSTRUCTIONS}")
+if(GAOL_ALIGNED_NEW_FLAGS_STRING)
+  message(STATUS "Aligned memory for the SSE2 intervals on 32-bit Windows: ${GAOL_ALIGNED_NEW_FLAGS_STRING}")
+endif()
 
 # On 64-bit ARM processors, with GAOL_ARM64 (--enable-arm64 of configure,
 # enable-arm64 of meson), the intervals are computed with NEON instructions
@@ -955,6 +1011,12 @@ target_include_directories(gaol PUBLIC
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
 )
 target_compile_options(gaol PUBLIC ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS})
+# The aligned memory the SSE2 intervals need on 32-bit Windows, for the code of
+# C++ only (-faligned-new=8 is not an option of C), and for the library as for
+# the code using it (GAOL v5)
+if(GAOL_ALIGNED_NEW_FLAGS)
+  target_compile_options(gaol PUBLIC "$<$<COMPILE_LANGUAGE:CXX>:${GAOL_ALIGNED_NEW_FLAGS}>")
+endif()
 target_compile_options(gaol PRIVATE ${GAOL_LIBRARY_FLAGS})
 # To the link of the code using GAOL, when it is built by a compiler that takes
 # the option: GCC 13 or a later one, or the compiler that built GAOL, of its

@@ -309,6 +309,28 @@
         || !defined(__GNUC__) || defined(_WIN32) || defined(_MSC_VER))
 #  error "GAOL computes its intervals with NEON instructions on 64-bit ARM processors only, with GCC or Clang under Linux or macOS, and not together with the SSE2 intervals (GAOL_USING_NEON_INSTRUCTIONS)"
 #endif
+/* The SSE2 intervals on 32-bit Windows (GAOL v5): an interval, a __m128d, has
+   to be aligned on 16 bytes, and the C runtime of 32-bit Windows aligns the
+   memory of malloc() and new on 8. GCC takes the memory of new to be aligned on
+   __STDCPP_DEFAULT_NEW_ALIGNMENT__ bytes, 16 there, so that a std::vector of
+   intervals, or a new of a type holding one, crashed on its first movaps
+   (MinGW-w64 14.2 and 15.2 for x86). The compiler has to be told what the
+   runtime gives, so that it asks for aligned memory (the operator new of C++17
+   that takes an alignment): -faligned-new=8 with GCC and Clang, which sets
+   __STDCPP_DEFAULT_NEW_ALIGNMENT__ to 8 in every standard. The allocation is
+   made in the code using GAOL, which needs the flag too (gaol::gaol of CMake
+   and gaol.pc give it). Visual C++ and clang-cl have no such flag, their
+   /Zc:alignedNew doing nothing in C++14 (cl) or breaking the STL (clang-cl),
+   and only C++17 turning the aligned new on: the three builds keep the FPU
+   intervals there, and this refuses the SSE2 ones should a build give them.
+   Checked with the macros of the standard: __cpp_aligned_new says the compiler
+   asks for aligned memory, and __STDCPP_DEFAULT_NEW_ALIGNMENT__, when it is
+   defined, that it is told 8 bytes at most. */
+#if defined(__cplusplus) && GAOL_USING_SSE2_INSTRUCTIONS && defined(_WIN32) && !defined(_WIN64) \
+    && !(defined(__cpp_aligned_new) \
+         && (!defined(__STDCPP_DEFAULT_NEW_ALIGNMENT__) || __STDCPP_DEFAULT_NEW_ALIGNMENT__ <= 8))
+#  error "GAOL's SSE2 intervals on 32-bit Windows need the compiler to ask for aligned memory: the C runtime aligns the memory of new on 8 bytes, and an interval needs 16, so that a std::vector of intervals would crash on its first movaps. Compile with -faligned-new=8 (GCC and Clang; gaol::gaol of CMake and gaol.pc give it), or use the FPU intervals (GAOL_SIMD=OFF)"
+#endif
 /* 1 when the intervals keep their two bounds in one vector register, SSE2 or
    NEON, 0 for the intervals of two doubles (FPU). Always defined, to 0 or 1,
    so that #if reads it under -Wundef (GAOL v5) */

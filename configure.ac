@@ -279,9 +279,12 @@ AC_ARG_ENABLE(simd,
 # SSE2 instructions (gaol_interval_sse.cpp), -msse3 is given where the
 # compiler takes it, and on 32-bit x86 the doubles are
 # computed with SSE2 (-mfpmath=sse) rather than on the x87 unit, where CORE-MATH
-# rounds some results twice and some bounds are wrong (see CMakeLists.txt). Not
-# the SSE2 intervals on 32-bit Windows, where a std::vector of them crashes (see
-# CMakeLists.txt).
+# rounds some results twice and some bounds are wrong (see CMakeLists.txt). On
+# 32-bit Windows (MinGW-w64, MSYS2), where the memory of new is aligned on 8
+# bytes and an SSE2 interval needs 16, the SSE2 intervals need the compiler to
+# ask for aligned memory, -faligned-new=8, which the code using GAOL is given
+# too (GAOL_PC_CFLAGS; GAOL v5, see CMakeLists.txt). A compiler that does not
+# take it keeps the FPU intervals there.
 using_sse2=no
 has_sse3=no
 AC_LANG_PUSH([C++])
@@ -305,12 +308,36 @@ if test "${target_x86}" = yes; then
     if test "${target_x86_32}" = yes; then
         GAOL_ADD_INTERVAL_FLAG([-msse2 -mfpmath=sse])
     fi
-    if test "$simd" = yes && test "${target_win32}" = no; then
+    has_aligned_new=yes
+    if test "$simd" = yes && test "${target_win32}" = yes; then
+        # Clang with its driver for a target of Visual C++ simulates it (_MSC_VER):
+        # no flag asks for the aligned memory of its STL (see CMakeLists.txt)
+        AC_LANG_PUSH([C++])
+        AC_MSG_CHECKING([whether the compiler simulates Visual C++])
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#ifndef _MSC_VER
+#error neither Visual C++ nor a compiler that simulates it
+#endif]], [[]])],[simulates_msvc=yes],[simulates_msvc=no])
+        AC_MSG_RESULT(${simulates_msvc})
+        AC_LANG_POP([C++])
+        if test "${simulates_msvc}" = yes; then
+            has_aligned_new=no
+        else
+            GAOL_CHECK_CXX_FLAG([-faligned-new=8], [has_aligned_new])
+        fi
+        if test "${has_aligned_new}" = no; then
+            AC_MSG_NOTICE([SSE2 intervals left out on 32-bit Windows: the compiler has no way to ask for the aligned memory they need (-faligned-new=8)])
+        fi
+    fi
+    if test "$simd" = yes && test "${has_aligned_new}" = yes; then
         GAOL_CHECK_CXX_FLAG([-msse2], [has_sse2])
         if test "${has_sse2}" = yes; then
             using_sse2=yes
             CXXFLAGS="${CXXFLAGS} -msse2"
             GAOL_PC_CFLAGS="${GAOL_PC_CFLAGS} -msse2"
+            if test "${target_win32}" = yes; then
+                CXXFLAGS="${CXXFLAGS} -faligned-new=8"
+                GAOL_PC_CFLAGS="${GAOL_PC_CFLAGS} -faligned-new=8"
+            fi
             AC_DEFINE([GAOL_USING_SSE2_INSTRUCTIONS],1,
                 [Define this to 1 if SSE2 instructions are to be used])
             GAOL_CHECK_CXX_FLAG([-msse3], [has_sse3])

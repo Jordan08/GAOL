@@ -1122,6 +1122,25 @@ point Q), which `numbers` checks there too.
   `-Ofast` or `-ffast-math` followed by `-frounding-math` with Clang, which
   leave `__FAST_MATH__` undefined and `__FINITE_MATH_ONLY__` at 1 (GAOL v5).
   `tests/fp_strict` is the check of Visual C++ without `/fp:strict`.
+- **`refused_aligned_new`, `refused_aligned_new_cxx17` and
+  `refused_aligned_new_positive`** (CMake build, where the intervals are the SSE2
+  ones, on a system that is not Windows, with GCC or Clang), and the end of
+  **`refused_options.sh`** and **`refused_options`** (autotools and meson
+  builds): the SSE2 intervals on 32-bit Windows, which `gaol/gaol_config.h`
+  refuses where the compiler is not told to ask for aligned memory. The C
+  runtime of 32-bit Windows aligns the memory of `new` on 8 bytes, an SSE2
+  interval needs 16, and GCC takes the memory of `new` to be aligned on 16, so
+  that a `std::vector` of SSE2 intervals stopped the program on its first
+  `movaps`. `tests/refused_aligned_new.cpp`, which includes that header alone,
+  is compiled with `-D_WIN32 -U_WIN64`, which stand for the target on any
+  system, and without the `-faligned-new=8` that the flags carry on 32-bit
+  Windows, in C++11 and in C++17 (GCC, and Clang for x86-64, still take the
+  memory of `new` to be aligned on 16 bytes in C++17), and the compilation has to
+  fail with the message of the header; with the option, it has to compile. On
+  32-bit Windows itself, where the system headers take no `-U_WIN64`, the whole
+  suite is the test: the SSE2 intervals crash without the option, and
+  `test_heap_alignment` of `misc` (below) tells which allocation is wrong (GAOL
+  v5).
 - **`cpack_stale_configure`** (CMake build, on a Unix system that builds for
   itself, where the tree has a `configure`): a script, not a program
   (`tests/cpack_stale_configure.cmake`). CPack puts `configure` in the archive
@@ -1222,6 +1241,18 @@ point Q), which `numbers` checks there too.
   `gaol_half_pi_dn` and `gaol_half_pi_up`. The test did not compile
   while `gaol` took `gaol_core` whole. A call `sin(x)` on an interval still
   finds the function of `gaol_core` by argument-dependent lookup.
+  `test_heap_alignment` checks that the heap holds a type as aligned as an
+  interval, which holds no vector (a `char` aligned on `alignof(interval)`,
+  16 bytes with the SSE2 and NEON intervals), aligned in `std::allocator`,
+  `new`, `new[]`, `std::vector`, `std::list`, `std::deque`, `std::map` and
+  `std::make_shared`, then computes with intervals in a `std::vector` and in
+  a `new`. On 32-bit Windows, where the C runtime aligns the memory of `new`
+  on 8 bytes, it fails if the compiler is not told so (`-faligned-new=8`),
+  where a `std::vector` of SSE2 intervals stopped the program; the
+  type with no vector tells which allocation is wrong instead (GAOL v5). Run
+  on Linux with a `::operator new` that aligns on 8 bytes alone, it fails
+  without `-faligned-new=8` (GCC 15, Clang 21, `-O2` and `-O3`) and passes with
+  it.
   `check/fpu.cpp`, an empty test, and `check/essai.cpp`, which printed an
   interval, are gone, as is `check/performances.cpp`, the benchmark of GAOL 4,
   which `make perf` replaces (see

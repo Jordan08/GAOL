@@ -291,6 +291,14 @@ jobs:
           g++ --version
           g++ -dumpmachine
           cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{ matrix.cfg.config }} -DWITH_TESTS=ON -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install"
+      # The SSE2 intervals on x86 as on x64, with -faligned-new=8 on x86, where
+      # the C runtime aligns the memory of new on 8 bytes (GAOL v5)
+      - name: The intervals
+        run: |
+          sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h sse2
+          if [ "$(g++ -dumpmachine | cut -c1-4)" = "i686" ]; then
+            grep -F -e "-faligned-new=8" build/CMakeFiles/gaol.dir/flags.make
+          fi
       - name: Build
         run: cmake --build build -j 4
       # The programs are run with the MinGW-w64 first in PATH: bash starts with the

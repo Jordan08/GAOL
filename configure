@@ -18945,9 +18945,12 @@ fi
 # SSE2 instructions (gaol_interval_sse.cpp), -msse3 is given where the
 # compiler takes it, and on 32-bit x86 the doubles are
 # computed with SSE2 (-mfpmath=sse) rather than on the x87 unit, where CORE-MATH
-# rounds some results twice and some bounds are wrong (see CMakeLists.txt). Not
-# the SSE2 intervals on 32-bit Windows, where a std::vector of them crashes (see
-# CMakeLists.txt).
+# rounds some results twice and some bounds are wrong (see CMakeLists.txt). On
+# 32-bit Windows (MinGW-w64, MSYS2), where the memory of new is aligned on 8
+# bytes and an SSE2 interval needs 16, the SSE2 intervals need the compiler to
+# ask for aligned memory, -faligned-new=8, which the code using GAOL is given
+# too (GAOL_PC_CFLAGS; GAOL v5, see CMakeLists.txt). A compiler that does not
+# take it keeps the FPU intervals there.
 using_sse2=no
 has_sse3=no
 ac_ext=cpp
@@ -19125,7 +19128,95 @@ if test "${gaol_cxx_takes}" = yes; then
     GAOL_PC_CFLAGS="${GAOL_PC_CFLAGS} -msse2 -mfpmath=sse"
 fi
     fi
-    if test "$simd" = yes && test "${target_win32}" = no; then
+    has_aligned_new=yes
+    if test "$simd" = yes && test "${target_win32}" = yes; then
+        # Clang with its driver for a target of Visual C++ simulates it (_MSC_VER):
+        # no flag asks for the aligned memory of its STL (see CMakeLists.txt)
+        ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether the compiler simulates Visual C++" >&5
+printf %s "checking whether the compiler simulates Visual C++... " >&6; }
+        cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#ifndef _MSC_VER
+#error neither Visual C++ nor a compiler that simulates it
+#endif
+int
+main (void)
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"
+then :
+  simulates_msvc=yes
+else case e in #(
+  e) simulates_msvc=no ;;
+esac
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: ${simulates_msvc}" >&5
+printf "%s\n" "${simulates_msvc}" >&6; }
+        ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+        if test "${simulates_msvc}" = yes; then
+            has_aligned_new=no
+        else
+            ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+gaol_save_CXXFLAGS=$CXXFLAGS
+CXXFLAGS="-Werror -faligned-new=8"
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether the C++ compiler accepts -faligned-new=8" >&5
+printf %s "checking whether the C++ compiler accepts -faligned-new=8... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main (void)
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"
+then :
+  has_aligned_new=yes
+else case e in #(
+  e) has_aligned_new=no ;;
+esac
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: ${has_aligned_new}" >&5
+printf "%s\n" "${has_aligned_new}" >&6; }
+CXXFLAGS=$gaol_save_CXXFLAGS
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+        fi
+        if test "${has_aligned_new}" = no; then
+            { printf "%s\n" "$as_me:${as_lineno-$LINENO}: SSE2 intervals left out on 32-bit Windows: the compiler has no way to ask for the aligned memory they need (-faligned-new=8)" >&5
+printf "%s\n" "$as_me: SSE2 intervals left out on 32-bit Windows: the compiler has no way to ask for the aligned memory they need (-faligned-new=8)" >&6;}
+        fi
+    fi
+    if test "$simd" = yes && test "${has_aligned_new}" = yes; then
         ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -19168,6 +19259,10 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
             using_sse2=yes
             CXXFLAGS="${CXXFLAGS} -msse2"
             GAOL_PC_CFLAGS="${GAOL_PC_CFLAGS} -msse2"
+            if test "${target_win32}" = yes; then
+                CXXFLAGS="${CXXFLAGS} -faligned-new=8"
+                GAOL_PC_CFLAGS="${GAOL_PC_CFLAGS} -faligned-new=8"
+            fi
 
 printf "%s\n" "#define GAOL_USING_SSE2_INSTRUCTIONS 1" >>confdefs.h
 
