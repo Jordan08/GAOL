@@ -6,7 +6,8 @@ le mainteneur, comment on valide, teste, commite, pousse, fait passer la CI et
 propose une pull request, et comment on tient les registres à jour une fois la
 pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
-État au 13 octobre 2026 : `configure-clean` est au commit `f469c4e`.
+Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
+en cours, ce qui reste) est au §12.
 
 ## 1. Le contexte
 
@@ -258,15 +259,11 @@ un est refusée, quel que soit son gain.
 | Autres | `pdflatex` (TeX Live 2025), `gcovr` 7.2, python 3.14 avec mpmath 1.3 |
 
 Ce sont les outils d'Ubuntu 26.04, tous dans le `PATH` (constaté le 11 octobre
-2026). Le 12 octobre, une session sur `GAOL_V8` a trouvé d'autres outils :
-Ubuntu 24.04, GCC 13.3, Clang 18 et 20, CMake 3.28, bison 3.8.2, flex 2.6.4,
-TeX Live 2023 et python 3.12 avec mpmath 1.2, sans autoconf, automake, libtool,
-meson ni ninja (meson et ninja s'installent par `pip` dans un environnement
-virtuel du scratchpad). Vérifie donc les versions au début du travail, et
-écris « Non vérifiable ici » ce que la machine ne permet pas. La machine
-d'Ubuntu 26.04 n'a plus GCC 9, que couvre le job `gcc-9` de `linux.yml`, ni
-meson 0.53.2, la plus ancienne version que le build meson prend en charge, que
-couvre le job `meson-oldest` de `build-systems.yml` (#110).
+2026). Vérifie donc les versions au début du travail, et écris « Non vérifiable
+ici » ce que la machine ne permet pas. La machine d'Ubuntu 26.04 n'a plus GCC 9,
+que couvre le job `gcc-9` de `linux.yml`, ni meson 0.53.2, la plus ancienne
+version que le build meson prend en charge, que couvre le job `meson-oldest` de
+`build-systems.yml` (#110).
 
 Le processeur (i7-1185G7) a AVX-512 et FMA. Il ne voit donc jamais les chemins
 sans FMA : la CI les couvre.
@@ -286,12 +283,15 @@ git ls-files -co --exclude-standard | tar -c -T - | tar -x -C $N/src
 
    ```sh
    cmake -S . -B $N/sse   -DWITH_TESTS=ON -DWITH_EXAMPLES=ON                 # GCC, SSE2
-   cmake -S . -B $N/fpu   -DWITH_TESTS=ON -DWITH_EXAMPLES=ON -DGAOL_SIMD=OFF # GCC, FPU
+   cmake -S . -B $N/fpu   -DWITH_TESTS=ON -DWITH_EXAMPLES=ON -DGAOL_SIMD=OFF -DGAOL_ARM64=OFF # GCC, FPU
    CC=clang-18 CXX=clang++-18 cmake -S . -B $N/clang -DWITH_TESTS=ON -DWITH_EXAMPLES=ON
    cmake --build $N/sse -j4 && (cd $N/sse && ctest -j4 --output-on-failure)
    ```
 
    `intervalf` et `interval2f` sont « Skipped » par construction.
+   `-DGAOL_SIMD=OFF` donne les intervalles FPU sur x86 ; sur arm64, où les
+   intervalles NEON sont le choix par défaut, il faut y ajouter
+   `-DGAOL_ARM64=OFF` (sans effet sur x86).
 2. **Avertissements** : une compilation avec
    `-DCMAKE_CXX_FLAGS="-Wall -Wextra" -DCMAKE_C_FLAGS="-Wall -Wextra"` et
    `-DCMAKE_COMPILE_WARNING_AS_ERROR=ON`, avec GCC et avec Clang. Ce réglage ne
@@ -369,8 +369,12 @@ Ce que tu ne peux pas tester ici (Windows, macOS, ARM, gros-boutiste, sans FMA),
 
    ```sh
    git fetch origin && git status --short     # repère ce qui n'est pas à toi
-   git switch -c todo-<lettre>-<sujet> origin/configure-clean
+   git switch --no-track -c todo-<lettre>-<sujet> origin/configure-clean
    ```
+
+   `--no-track` : sans lui, la branche suit `origin/configure-clean`, et avec
+   la synchronisation de VS Code des commits de branche sont arrivés
+   directement dans `configure-clean` (c7915a7 et ccf694a, le 6 octobre).
 
 4. **Corriger, au plus juste.** Fais ce que le point demande, avec son test et
    la documentation de ce qui change : `doc/*.md`, les commentaires Doxygen des
@@ -580,18 +584,36 @@ gh issue view 49 --json body --jq .body | diff - new.md   # seul le saut de lign
     `fix-path-core-math`, qui est la seule copie de son travail) ;
   - ne lance pas `git stash` sur ses fichiers.
 
-## 12. Où en est le travail (13 octobre 2026)
+## 12. Où en est le travail (20 octobre 2026)
 
-- **Faits** : les points A, C à H, J à V ; le détail, avec les pull
-  requests, est dans `TODO.md` (« Fait depuis ») et l'issue #49. Un audit du
-  13 octobre a vérifié dans `configure-clean` ce que chacun annonce ; ses
-  suites (des commentaires et des textes) sont faites à part.
-- **Inachevés** : aucun. La branche « WIP » du point H,
-  `todo-36-upward-rounding-effects`, est restée sans suite : le point a été
-  fait autrement, par #86 et #88.
-- **En cours** : B, par le mainteneur.
-- **À faire** : I et Z, puis Y (la publication de v5.0.0), puis W et X.
-  La section « Ordre proposé pour les tâches restantes », à la fin de
-  `TODO.md`, donne l'ordre suivi et ses raisons ; les dépendances entre points
-  sont écrites dans chaque point. Le mainteneur donne les points un par un
-  (« traite le point J ») : ne commence pas le suivant sans lui.
+Le reste à faire est dans `TODO.md` (section « Priorités », triée) et dans
+l'issue #142 (la même liste, avec des cases à cocher) ; ce qui est fait (pull
+requests fusionnées, décisions, mesures) est dans l'issue #49. L'état qui suit
+est daté : les commandes ci-dessous, `TODO.md` et les issues font foi. Avant de
+commencer un point, regarde les pull requests ouvertes et les branches
+distantes : une autre session peut déjà le traiter (le 19 octobre, la même mise
+à jour de `TODO.md` a été faite deux fois).
+
+```sh
+gh api 'repos/Jordan08/GAOL/pulls?state=open' --jq '.[] | "#\(.number) \(.head.ref) \(.title)"'
+git ls-remote --heads origin
+```
+
+- **Faits** : les points A à E, G à V, Z, AA, AF, AG, AO et ZZ (la vitesse de
+  `+ - * /`, #124), et une partie de AB (77 par #144), AD (114 par #147), AE
+  (90 par #145) et AI (106 sur macOS arm64 et 107 par #146). Un audit du 13
+  octobre a vérifié dans `configure-clean` ce qu'annonçaient alors les points
+  A, C à H et J à V.
+- **En cours** : six pull requests sont ouvertes, #148 et #152 (point AI :
+  Visual C++ x64 en SSE2 et AVX-512, puis Windows 32 bits avec GCC et Clang ;
+  #152 repose sur #148), #149 (points 83 et 84, le lecteur), #150 et #153
+  (ARM : FPSCR sur 32 bits, `width()` et `bisect()` sur arm64) et #151 (points
+  78 et 80).
+- **À faire** : dans l'ordre de « Priorités », les corrections décidées (groupe
+  B), les textes et le ménage (C), les trois builds (D), les études de vitesse,
+  toutes avant v5.0.0 (E), les signalements à d'autres projets (F), puis la
+  publication de v5.0.0 (G, point Y), puis ce qui lui est postérieur (H : le
+  site, la syntaxe d'`operator>>`, les décorations, les traits pour YalAA et
+  VNODE-LP). Les dépendances entre points sont écrites dans chaque point. Le
+  mainteneur donne les points un par un (« traite le point J ») : ne commence
+  pas le suivant sans lui.
