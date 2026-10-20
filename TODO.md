@@ -21,13 +21,13 @@ postérieur. Le détail de chaque tâche est dans la section de son point plus b
 ### A. Décisions courtes, prises le 19 octobre
 
 Plus rien à décider ici : les trois choix sont faits, et leurs suites sont dans
-les rangs 8 et 10 et dans le groupe E.
+les rangs 7 et 9 et dans le groupe E.
 
 1. **123 (AL)** : *décidé le 19 octobre* : laisser les commits qui portent une
    ligne de crédit (24 « Co-Authored-By: Claude Opus 5 » du 14 au 21 septembre,
    dont 16 dans `master`, et 6 « Co-authored-by: Jordan08 » de #99), sans
    réécrire `configure-clean`. Reste à retirer les lignes des descriptions et
-   des commentaires de pull requests (rang 10).
+   des commentaires de pull requests (rang 9).
 2. **Les études (AH, AI, AJ ; l'AN est faite par #154)** : *décidé le 19
    octobre* : toutes avant v5.0.0, donc le groupe E en entier, y compris l'AJ
    (113), qui peut changer ce que la bibliothèque promet (le sens d'arrondi du
@@ -36,7 +36,7 @@ les rangs 8 et 10 et dans le groupe E.
 3. **88 et 87 (AD)** : *décidé le 19 octobre* : on garde la décision du 3
    octobre pour la lecture en temps quadratique (4,4 s pour 320 000 chiffres) et
    on ne change pas le lexeur pour le signe devant un nombre incertain : les
-   deux se documentent (rang 8).
+   deux se documentent (rang 7).
 
 ### B. Corrections du code, décidées, du plus important au moins important
 
@@ -46,11 +46,9 @@ ou rompent une promesse de la documentation. Tailles : S, moins d'une
 demi-journée ; M, un à deux jours ; L, plusieurs jours ou incertain (estimées
 d'après les descriptions).
 
-4. **78 (AB)** : `cancel_minus` et `cancel_plus` lèvent `FE_INVALID` quand la
-   différence déborde ; quelques lignes. [S]
-5. **81 (AC)** : `nth_root` d'un sous-normal loin des bornes les plus serrées
+4. **81 (AC)** : `nth_root` d'un sous-normal loin des bornes les plus serrées
    que `doc/accuracy.md` promet (les bornes restent justes). [M]
-6. **79 (AB)** : `FE_OVERFLOW` levé pour des résultats finis (`sqrt`, les
+5. **79 (AB)** : `FE_OVERFLOW` levé pour des résultats finis (`sqrt`, les
    racines, `sin`, `cos`, `tan`, `div_rel`, les `*_rel`, et la lecture de
    `1e400`) ; décidé, mais il touche beaucoup de fonctions et ne se voit
    qu'avec le piège activé près de DBL_MAX. [L]
@@ -60,21 +58,21 @@ d'après les descriptions).
 Petits, sans risque, à grouper en une ou deux pull requests ; `process.md`
 d'abord, puisqu'il guide chaque nouvelle session. [S]
 
-7. **118 (AL)** : `process.md` (la machine d'Ubuntu 24.04, `--no-track`, le §12
+6. **118 (AL)** : `process.md` (la machine d'Ubuntu 24.04, `--no-track`, le §12
    périmé, `-DGAOL_ARM64=OFF` avec la variante FPU).
-8. **80 (AB), 117, 119, 120 (AL), 87, 88, 89 (AD) et les descriptions
-   d'options du 112 (AI)** : des textes faux ou qui manquent (l'exemple
-   `1/[0, 1]`, la phrase de `pow` d'`accuracy.md`, les compilateurs refusés du
-   manuel, le piège de `namespace gaol { }`, le format `agreeing` d'un point, «
-   + - * / et sqrt » du chemin AVX-512, le signe collé à un nombre incertain du
-   87, la lecture en temps quadratique du 88).
-9. **91 et 94 (AE)** : le test `refused_options.sh` qui se dit sauté, et la
+7. **117, 119, 120 (AL), 87, 88, 89 (AD) et les descriptions d'options du 112
+   (AI)** : des textes faux ou qui manquent (la phrase de `pow`
+   d'`accuracy.md`, les compilateurs refusés du manuel, le piège de `namespace
+   gaol { }`, le format `agreeing` d'un point, « + - * / et sqrt » du chemin
+   AVX-512, le signe collé à un nombre incertain du 87, la lecture en temps
+   quadratique du 88).
+8. **91 et 94 (AE)** : le test `refused_options.sh` qui se dit sauté, et la
    liste de macros de l'audit.
-10. **123 (AL)** : retirer les lignes de crédit des descriptions de #15 à #24 et
-    #60 à #63 et des commentaires de #58 et #60 à #63 (les commits restent,
-    décidé le 19 octobre).
-11. **121, 122 (AL)** : décider de `.continue/` ; `gaol_performance` en C++14.
-12. **`/W4 /WX` en Debug (AI, #148)** : `textToInterval()` de
+9. **123 (AL)** : retirer les lignes de crédit des descriptions de #15 à #24 et
+   #60 à #63 et des commentaires de #58 et #60 à #63 (les commits restent,
+   décidé le 19 octobre).
+10. **121, 122 (AL)** : décider de `.continue/` ; `gaol_performance` en C++14.
+11. **`/W4 /WX` en Debug (AI, #148)** : `textToInterval()` de
     `gaol_interval.cpp` a un `return` après `gaol_ERROR()`, que Visual C++ 19.44
     et 19.51 disent inatteignable à `/Od` (C4702, vu sur Compiler Explorer, sur
     le fichier assemblé avec ses en-têtes) ; aucun job ne compile en `/W4 /WX`
@@ -85,15 +83,15 @@ d'abord, puisqu'il guide chaque nouvelle session. [S]
 Principe 6 de `process.md` : les mêmes bibliothèque, en-têtes et options
 partout.
 
-13. **Le défaut de CMake du 112 (AI)** : un second `cmake` dans le même dossier
+12. **Le défaut de CMake du 112 (AI)** : un second `cmake` dans le même dossier
     fait passer `GAOL_PREFER_AVX512` de ON à OFF sous `GAOL_PRESERVE_ROUNDING` ;
     à corriger avec un test. [S]
-14. **125 (AM)** : décider si `GAOL_SIZEOF_INT` et `GAOL_SIZEOF_LONG_LONG_INT`
+13. **125 (AM)** : décider si `GAOL_SIZEOF_INT` et `GAOL_SIZEOF_LONG_LONG_INT`
     restent sans valeur par défaut dans les trois modèles. [S]
-15. **95 et 92 (AE)** : des détections qui lient dans un build et compilent dans
+14. **95 et 92 (AE)** : des détections qui lient dans un build et compilent dans
     les autres, des drapeaux C différents ; aucun effet connu sur les bornes.
     [M]
-16. **85 (AD) et 82 (AC)** : un `long` de 32 bits (non vérifié) et la garde de
+15. **85 (AD) et 82 (AC)** : un `long` de 32 bits (non vérifié) et la garde de
     `[±oo]` de `powRev1` et `powRev2` (qu'`interval(__m128d)` seul atteint) ;
     rares. [S]
 
@@ -103,31 +101,31 @@ Des mesures d'abord, toutes avant v5.0.0 (décidé le 19 octobre) ; ordre : ce q
 peut changer la suite, puis l'écart mesuré le plus grand sur les builds par
 défaut, puis les builds avec `GAOL_PRESERVE_ROUNDING`.
 
-17. **113 (AJ)** : des noyaux qui laissent le sens d'arrondi au plus proche ; un
+16. **113 (AJ)** : des noyaux qui laissent le sens d'arrondi au plus proche ; un
     prototype de `+ - * / sqrt` suffit à décider. Peut changer le comportement
     documenté et les noyaux (voir le rang 2). [L]
-18. **106 (AI)** : Visual C++ arm64 (NEON n'y est pas offert), ARM 32 bits,
+17. **106 (AI)** : Visual C++ arm64 (NEON n'y est pas offert), ARM 32 bits,
     POWER, s390x et RISC-V gardent les intervalles FPU, sans les noyaux de
     #124 ; macOS arm64 est fait par #146 (NEON), Visual C++ et clang-cl x64 par
     #148 (SSE2) ; sur ARM 32 bits, #150 n'a fait que le registre de contrôle de
     `GAOL_PRESERVE_ROUNDING`, pas les noyaux. [L]
-19. **110 (AI)** : GCC pour Windows, `pow(x, 3)`, `log` et `cos` 5 à 10 fois
+18. **110 (AI)** : GCC pour Windows, `pow(x, 3)`, `log` et `cos` 5 à 10 fois
     plus lents que Clang, faute de `-mfma` probablement. [M]
-20. **108 (AI)** : Visual C++ 32 bits, 80 ns par opération dès le build par
+19. **108 (AI)** : Visual C++ 32 bits, 80 ns par opération dès le build par
     défaut. [M]
-21. **109 (AI)** : `GAOL_PRESERVE_ROUNDING` à 24 ns par opération avec Visual
+20. **109 (AI)** : `GAOL_PRESERVE_ROUNDING` à 24 ns par opération avec Visual
     C++ x64 depuis #148 (43-87 avant, 2,5 sans) ; la même condition que les
     macros MXCSR de #124 avec `_M_X64` et `__AVX2__`, décidé le 20 octobre pour
     une pull request qui suit #148 ; le 107, sur macOS arm64, est fait par #146.
     [M]
-22. **105 (AH)** : `-mbranches-within-32B-boundaries`, jusqu'à 1 ns par
+21. **105 (AH)** : `-mbranches-within-32B-boundaries`, jusqu'à 1 ns par
     opération selon le placement du code. [M]
-23. **116 (AI)** : des écarts sans cause trouvée, à refaire d'abord avec Clang
+22. **116 (AI)** : des écarts sans cause trouvée, à refaire d'abord avec Clang
     21. [S]
-24. **111 et 115 (AI)** : mesurer par la CI deux builds alternés, et lancer
+23. **111 et 115 (AI)** : mesurer par la CI deux builds alternés, et lancer
     `run_lines.sh` dans `make perf` ; les temps de la CI ne sont pas stables.
     [M]
-25. **112 (AI), le reste** : les fonctions élémentaires avec
+24. **112 (AI), le reste** : les fonctions élémentaires avec
     `GAOL_PRESERVE_ROUNDING` (jusqu'à 27 %), un test des bits du signe de zéro
     de `x * d`. [M]
 
@@ -137,13 +135,13 @@ Chacun attend l'accord explicite du mainteneur ; rien n'est envoyé. Ordre : ce
 qui est prêt et qui a une valeur pour GAOL, puis ce qui demande une réplique à
 écrire, puis ce qui ne demande probablement rien.
 
-26. **#125 CORE-MATH** : les huit correctifs prêts (le 8, `exp_1()`, est fait
+25. **#125 CORE-MATH** : les huit correctifs prêts (le 8, `exp_1()`, est fait
     dans la copie de GAOL par #144), refaits sur le master du jour.
-27. **#126 GCC**, **#127 mingw-w64**, **#129 ITF1788**, **#130 Boost.Interval**.
-28. **#131 Microsoft**, **#132 Apple**, **#133 LLVM/Clang**, **#135 musl**,
+26. **#126 GCC**, **#127 mingw-w64**, **#129 ITF1788**, **#130 Boost.Interval**.
+27. **#131 Microsoft**, **#132 Apple**, **#133 LLVM/Clang**, **#135 musl**,
     **#136 le benchmark de Tang et al.** : une réplique d'un fichier à écrire et
     à vérifier sur la plateforme.
-29. **#134 gmpy2**, **#137 libieeep1788**, **#138 la glibc** : probablement rien
+28. **#134 gmpy2**, **#137 libieeep1788**, **#138 la glibc** : probablement rien
     à envoyer ; vérifier, puis fermer.
 
 ### G. La version, dans cet ordre
@@ -151,27 +149,27 @@ qui est prêt et qui a une valeur pour GAOL, puis ce qui demande une réplique �
 En dernier : elle suppose les corrections faites et les études du groupe E
 faites (décidé le 19 octobre, rang 2).
 
-30. **La pull request de synthèse** (Y) : `ChangeLog` et `doc/differences.md`,
-    d'après `todo-notes/synthese.md` et les 43 descriptions de pull requests.
-31. **`examples/examples.md` et le manuel** (Y) : les marques **Fixed**, une
+29. **La pull request de synthèse** (Y) : `ChangeLog` et `doc/differences.md`,
+    d'après `todo-notes/synthese.md` et les 44 descriptions de pull requests.
+30. **`examples/examples.md` et le manuel** (Y) : les marques **Fixed**, une
     seule régénération de `manual/v5/gaol.pdf`.
-32. **32 (Y)** : le rapport de couverture, et `numbers` en entier sous ASan +
+31. **32 (Y)** : le rapport de couverture, et `numbers` en entier sous ASan +
     UBSan, une fois.
-33. **33 (Y)** : les temps de `doc/compare/performance.md`, en dernier, sur le
+32. **33 (Y)** : les temps de `doc/compare/performance.md`, en dernier, sur le
     commit propre de la version, après les études du groupe E.
-34. **34 (Y)** : `configure-clean` dans `MATH-CORE` (avance rapide), `MATH-CORE`
+33. **34 (Y)** : `configure-clean` dans `MATH-CORE` (avance rapide), `MATH-CORE`
     dans `master`, l'étiquette `v5.0.0`, les recettes FetchContent.
-35. **71 (Y) et #128** : l'annonce à Frédéric Goualard, après l'étiquette.
+34. **71 (Y) et #128** : l'annonce à Frédéric Goualard, après l'étiquette.
 
 ### H. Après la version
 
-36. **70 (AK)** : le site GitHub Pages ; sans dépendance, mais l'annonce étant
+35. **70 (AK)** : le site GitHub Pages ; sans dépendance, mais l'annonce étant
     privée, rien ne l'exige pour la version.
-37. **46 (F, #64)** : `operator>>` ; le comportement actuel (un intervalle par
+36. **46 (F, #64)** : `operator>>` ; le comportement actuel (un intervalle par
     ligne) est documenté, le garder est la décision par défaut.
-38. **26 (W, #67)** : décorations ou indicateur de sortie de domaine.
-39. **28 (X)** : traits pour YalAA, backend pour VNODE-LP.
-40. **Le ménage de la fin** : les images Docker de #111, `todo-notes/`, ce qu'il
+37. **26 (W, #67)** : décorations ou indicateur de sortie de domaine.
+38. **28 (X)** : traits pour YalAA, backend pour VNODE-LP.
+39. **Le ménage de la fin** : les images Docker de #111, `todo-notes/`, ce qu'il
     reste de `TODO.md`.
 
 ## Comment lire ce fichier
@@ -220,26 +218,16 @@ lectures de nombres, tout résultat contient la valeur exacte.
 
 Revérifié le 18 octobre à `4eaf69a` (build CMake Release SSE2, GCC 15.2,
 programme de reproduction) : 78, 79, 80, 81, 83, 84, 87, 88 et 89 se
-reproduisent encore, tels que décrits (les 77, 83 et 84 sont faits, par #144 et
-#149) ; 91 et 94 ont
-été relus dans les sources.
+reproduisent encore, tels que décrits (les 77, 78, 80, 83 et 84 sont faits, par
+#144, #151 et #149) ; 91 et 94 ont été relus dans les sources.
 Les autres (82, 85, 92, 95) n'ont pas été revérifiés. Le 86 (`_iv` au-delà
 de 2^64) est sans objet : `operator""_iv` et `gaol/gaol_literals.h` ont été
 retirés à partir du 16 octobre ; le 93 (code mort exporté sous des noms C
 génériques) est fait depuis le 15 octobre (`gaol_exact.*`, `sysdeps/` et
 `s_nextafter.c` supprimés).
 
-### AB. Des exceptions flottantes levées à tort (78, 79, 80)
+### AB. Des exceptions flottantes levées à tort (79)
 
-- **78.** **`cancel_minus` et `cancel_plus` lèvent `FE_INVALID` quand la
-  différence des bornes déborde** : `cancel_minus([DBL_MAX], [-DBL_MAX])`,
-  l'exemple de la note de 12.12.5 d'IEEE 1788-2015, rend bien [DBL_MAX, +∞],
-  mais `two_sum()` (`gaol/gaol_interval_core.cpp`) calcule ∞ − ∞ avant de
-  traiter la somme infinie ; de même `cancel_plus([DBL_MAX], [DBL_MAX])`. Le
-  test de `tests/rounding_direction.cpp` ne prend que [DBL_MAX] − [1], qui ne
-  déborde pas. Correction : e = 0 quand la somme est infinie, avant le calcul de
-  ses termes, et [M] − [−M] dans le test. Revérifié le 18 octobre : les deux
-  lèvent `FE_INVALID` (et `FE_OVERFLOW`).
 - **79.** **`FE_OVERFLOW` levé pour des résultats sans borne infinie** :
   `sqrt([1, DBL_MAX])` (le produit de vérification u·u = 2^1024),
   `nth_root([DBL_MAX], 3)`, `sin([-1, DBL_MAX])`, `tan([DBL_MAX])`,
@@ -256,12 +244,6 @@ génériques) est fait depuis le 15 octobre (`gaol_exact.*`, `sysdeps/` et
   lève aussi `FE_OVERFLOW` : le `strtod()` du lexeur (`gaol_enclose_number()`,
   `gaol/parser/gaol_interval_lexer.lpp`) le calcule, et un programme qui a
   activé le piège meurt à la lecture ; déjà ainsi avant #149, qui l'a relevé.
-- **80.** **`1/[0, 1]` ne lève plus la division par zéro depuis #121**, mais
-  `doc/using.md` (« so does `1/[0, 1]`, which is `[1, +oo]`, with the SSE2
-  intervals ») et le manuel (« so does `1/interval(0, 1)` ») le donnent encore
-  en exemple, contre `doc/tests.md` (section de `rounding_direction`).
-  Correction : garder `log([0, 1])` seul dans l'exemple. Revérifié le 18 octobre
-  : `1/[0, 1]` ne lève aucun indicateur, et les deux textes sont inchangés.
 
 ### AC. `nth_root` d'un sous-normal et réciproques de `pow` (81, 82)
 
@@ -588,6 +570,16 @@ numéro :
   intervalle construit dans la même fonction, pas sur un intervalle relu en
   mémoire, qui cache le défaut. À ajouter à `process.md` une fois #155
   fusionnée.
+
+### Remarqué par #151, à trier
+
+Les questions ouvertes de la description de #151, non corrigées et sans numéro :
+
+- **La phrase d'introduction de la section sur les exceptions flottantes** de
+  `doc/using.md` et du manuel, « An infinite bound comes from a division by
+  zero or from an overflow », reste vraie pour les deux exemples gardés,
+  `log([0, 1])` et `[1e308]*10`, mais n'est pas une règle : `1/[0, 1]` a une
+  borne infinie sans aucun indicateur depuis #121.
 
 ### Remarqué par #154, à trier
 
@@ -917,11 +909,11 @@ licence est dite (LGPL pour GAOL, MIT pour CORE-MATH) dans la section « Licence
   18 octobre, hors quelques commits directs. Les textes proposés sont, pour les
   points faits du 29 septembre au 2 octobre (#31 à #63), dans
   `todo-notes/synthese.md` (section 1, dont onze sont marqués « In
-  `configure-clean`: no », certains périmés), et, pour le reste, dans les 43
+  `configure-clean`: no », certains périmés), et, pour le reste, dans les 44
   descriptions de pull requests qui ont une section « Pour `doc/differences.md`
   et `ChangeLog` » : #71, #76, #77, #83 à #97, #99, #100, #105, #108, #111,
-  #113, #114, #117 à #124, #139, #140, #141, #144, #145, #146, #147, #148, #149
-  et #150 (#123 et #139 n'ont rien à y mettre ; celle de #146 dit que
+  #113, #114, #117 à #124, #139, #140, #141, #144, #145, #146, #147, #148, #149,
+  #150 et #151 (#123 et #139 n'ont rien à y mettre ; celle de #146 dit que
   `doc/differences.md` l. 333, « the intervals of ARM » sont FPU, n'est plus
   vrai sur arm64, et celle de #148 que la même ligne, « of Visual C++ and of
   32-bit Windows », ne vaut plus pour x64 ; celle de #150 ajoute que
@@ -929,19 +921,18 @@ licence est dite (LGPL pour GAOL, MIT pour CORE-MATH) dans la section « Licence
   et le défaut de `width()` et `bisect()` sur arm64). Les points K, L et `make
   distclean` (#72 à #75) n'ont pas cette section : à écrire d'après leurs
   descriptions. À écrire d'après les commits, sans pull request : les
-  changements du 4 octobre
-  (`nb_fp_numbers()` rend un `unsigned long long`, `gaol_parameters.h`
-  supprimé), et ceux du 15 au 18 octobre, qui changent l'interface installée :
-  les en-têtes du parser et des expressions dans `include/gaol/parser/`
-  (`gaol_expression.h`…), `gaol_interval.h` scindé en `gaol_interval_core.h` et
-  `gaol_interval.h`, les intervalles de floats dans `gaol/float/`,
-  `gaol_assert.h`, `gaol_profile.h` (la classe `timepiece`), `gaol_exact.h`,
-  `gaol_flags.h`, `gaol/dllmain.cpp` et `operator""_iv` (`gaol_literals.h`)
-  supprimés, `f_negate`, `f_negate_simple`, `gaol_opposite` et `reset_fpu_cw`
-  supprimés (a6786af), la lecture en bases 16, 8 et 2 (91dcce2) ; vérifier ce
-  que `doc/differences.md` en dit déjà. Le point G n'a pas de texte dans la
-  description de #91 (écrite avant la fin du travail) : à écrire d'après
-  c7915a7, ccf694a et `doc/three-builds.md`. Les chiffres de
+  changements du 4 octobre (`nb_fp_numbers()` rend un `unsigned long long`,
+  `gaol_parameters.h` supprimé), et ceux du 15 au 18 octobre, qui changent
+  l'interface installée : les en-têtes du parser et des expressions dans
+  `include/gaol/parser/` (`gaol_expression.h`…), `gaol_interval.h` scindé en
+  `gaol_interval_core.h` et `gaol_interval.h`, les intervalles de floats dans
+  `gaol/float/`, `gaol_assert.h`, `gaol_profile.h` (la classe `timepiece`),
+  `gaol_exact.h`, `gaol_flags.h`, `gaol/dllmain.cpp` et `operator""_iv`
+  (`gaol_literals.h`) supprimés, `f_negate`, `f_negate_simple`, `gaol_opposite`
+  et `reset_fpu_cw` supprimés (a6786af), la lecture en bases 16, 8 et 2
+  (91dcce2) ; vérifier ce que `doc/differences.md` en dit déjà. Le point G n'a
+  pas de texte dans la description de #91 (écrite avant la fin du travail) : à
+  écrire d'après c7915a7, ccf694a et `doc/three-builds.md`. Les chiffres de
   `todo-notes/synthese.md` à harmoniser (l'ancien 18 : « 2.5 s down to 0.03 s »
   contre 0,02 s) et le fait que `doc/differences.md` contredit déjà #71 (la
   locale du flux pour le format `bounds`) sont dans ses notes.
@@ -1046,16 +1037,16 @@ sans l'accord explicite du mainteneur.
 
 ## Ménage
 
-- **Branches** : les branches locales du mainteneur (`MATH-CORE`, `master`)
-  ne se touchent pas. Les branches de #124 (`todo-zz-perf`), de #144
+- **Branches** : les branches locales du mainteneur (`MATH-CORE`, `master`) ne
+  se touchent pas. Les branches de #124 (`todo-zz-perf`), de #144
   (`todo-ab-pow-invalid`), de #145 (`todo-ae-c-compiler-checks`), de #146
   (`todo-ARM-perf`), de #147 (`todo-ad-parse-interval-null`), de #148
-  (`todo-ai-msvc-sse2-avx512`), de #149 (`todo-ad-83-84-reader`) et de #150
-  (`todo-arm32-fpscr`) sont supprimées sur GitHub (celles de #145 à #150 à la
-  fusion, le 19 octobre pour les premières et le 20 pour #148, #149 et #150) ;
-  en local, celles de #146 (`todo-ARM-perf`) et de #150, le 20 octobre. Celle
-  de #153 (`todo-fpcr-gcc-hoisting`), fermée sans fusion, sur GitHub et en
-  local, le 20 octobre.
+  (`todo-ai-msvc-sse2-avx512`), de #149 (`todo-ad-83-84-reader`), de #150
+  (`todo-arm32-fpscr`) et de #151 (`todo-ab-cancel-invalid`) sont supprimées sur
+  GitHub (celles de #145 à #151 à la fusion, le 19 octobre pour les premières et
+  le 20 pour #148 à #151) ; en local, celles de #146 (`todo-ARM-perf`), de #150
+  et de #151, le 20 octobre. Celle de #153 (`todo-fpcr-gcc-hoisting`), fermée
+  sans fusion, sur GitHub et en local, le 20 octobre.
 - **Les lignes de crédit** : voir le 123.
 - **Les images Docker** de #111 (`i386/debian:trixie`, `debian:trixie`,
   `ubuntu:24.04`) restent sur la machine.
@@ -1072,7 +1063,7 @@ sans l'accord explicite du mainteneur.
 ## Table des anciens numéros
 
 26 : W ; 28 : X ; 32 : Y ; 33 : Y ; 34 : Y ; 46 : F ; 70 : AK ; 71 : Y ;
-78 : AB ; 79 : AB ; 80 : AB ; 81 : AC ; 82 : AC ; 85 : AD ; 87 : AD ; 88 : AD ;
-89 : AD ; 91 : AE ; 92 : AE ; 94 : AE ; 95 : AE ; 105 : AH ; 106 : AI ;
-108 : AI ; 109 : AI ; 110 : AI ; 111 : AI ; 112 : AI ; 113 : AJ ; 115 : AI ;
-116 : AI ; 117 à 123 : AL ; 125 : AM.
+79 : AB ; 81 : AC ; 82 : AC ; 85 : AD ; 87 : AD ; 88 : AD ; 89 : AD ; 91 : AE ;
+92 : AE ; 94 : AE ; 95 : AE ; 105 : AH ; 106 : AI ; 108 : AI ; 109 : AI ;
+110 : AI ; 111 : AI ; 112 : AI ; 113 : AJ ; 115 : AI ; 116 : AI ;
+117 à 123 : AL ; 125 : AM.
