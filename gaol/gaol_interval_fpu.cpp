@@ -23,13 +23,14 @@
 
     The intervals of the builds that have neither SSE2 nor NEON intervals
     (gaol/gaol_configuration.h): 32-bit ARM, POWER, s390x, RISC-V and the other
-    processors; Windows on 32-bit x86 (Visual C++, clang-cl, MinGW-w64) and on
-    arm64 (Visual C++, clang-cl, MinGW-w64); and the builds with GAOL_SIMD=OFF or
-    GAOL_ARM64=OFF. The product, the quotient and
-    the square take no branch on the signs of the bounds in the source (GAOL v5,
-    the kernels of fpu_detail below, on two doubles as those of
-    gaol/gaol_interval_sse.cpp and gaol/gaol_interval_neon.cpp are on a vector):
-    see doc/using.md, The FPU intervals.
+    processors; Windows on 32-bit x86 with Visual C++ and clang-cl (MinGW-w64
+    takes the SSE2 intervals there) and on arm64 with Visual C++, clang-cl and
+    MinGW-w64; and the builds with GAOL_SIMD=OFF or GAOL_ARM64=OFF. The
+    product, the quotient and the square take no branch on the signs of the
+    bounds in the source (GAOL v5, the kernels of fpu_detail below, on two
+    doubles as those of gaol/gaol_interval_sse.cpp and
+    gaol/gaol_interval_neon.cpp are on a vector): see doc/using.md, The FPU
+    intervals.
 */
 
 
