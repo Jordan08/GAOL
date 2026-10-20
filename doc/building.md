@@ -327,8 +327,9 @@ The three builds have the same targets:
   times of the other libraries measured by the last whole run, which
   `doc/compare/code/results.csv` keeps: GAOL 4.2.3, filib++, libieeep1788,
   PROFIL/BIAS, Solaris Studio and Boost.Interval are not run (see
-  [doc/compare/code/README.md](compare/code/README.md)). Linux, bash, and Python
-  3 with numpy.
+  [doc/compare/code/README.md](compare/code/README.md)); it runs the ten long
+  lines of `doc/compare/code/run_lines.sh` too (GAOL v5). Linux and macOS (GAOL
+  v5: Linux only before), bash, and Python 3 with numpy.
 - **`make parser`** regenerates `gaol/parser/gaol_interval_lexer.cpp`,
   `gaol/parser/gaol_interval_parser.cpp` and
   `gaol/parser/gaol_interval_parser.h` from
