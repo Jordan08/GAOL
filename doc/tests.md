@@ -35,8 +35,9 @@ point Q), which `numbers` checks there too.
   smallest subnormal or beyond the largest double (GAOL v5, point AA: `sqr()`
   of the SSE2 intervals computes its one product itself), and the quotients
   of 12 dividends by 10 divisors with no zero, 0 of both signs, infinite,
-  subnormal or large ones, which the SSE2 intervals compute without a branch
-  (GAOL v5, point ZZ). Seven long lines of + - * / alone, between eight
+  subnormal or large ones, which the SSE2, the NEON and the FPU intervals
+  compute without a branch on the signs (GAOL v5, point ZZ, and the kernels of
+  the FPU intervals). Seven long lines of + - * / alone, between eight
   intervals of either sign, have to enclose the same line of rational numbers
   taken at a bound of each operand, and `+=`, `-=`, `*=` and `/=` have to give
   the bounds of the operators, line by line. Every interval [a, b] with
@@ -67,7 +68,11 @@ point Q), which `numbers` checks there too.
   operations, among them lines with operands used twice and with `r -= r`,
   `r *= r` and `r %= ...`, have to have the bounds of the reference evaluating
   them one operation after the other, on random intervals and on those of the
-  grid. N-th roots have to
+  grid. The sign of three zero bounds the documentation states, that of
+  `[-1, 0]*[-1, 0]`, `sqr([-1, 2])` and `[0, 1]/[-2, -1]`, has to be the one
+  of the build (the other checks compare with `==`, which does not see it): it
+  tells a tie of the maxima of the products, which no other check did (GAOL v5).
+  N-th roots have to
   be enclosures, within a few doubles, the odd
   roots of negative numbers being the opposites of the roots of their
   magnitudes, and the n-th roots of intervals the roots of their bounds (of
@@ -1243,8 +1248,12 @@ subtractions, 7 products, 7 quotients and 13 operations of the four kinds
 between 8 and 16 intervals (GAOL v5, point ZZ). Its title names the intervals
 GAOL computes with, NEON, SSE2 or FPU (GAOL v5), and three rows give the
 product, the quotient and the square of operands of random signs, the other
-rows having positive operands only, which a processor predicts: the product of
-the FPU intervals chose a branch by the signs of the bounds. After the table, it
+rows having positive operands only, which a processor predicts: the product,
+the quotient and the square chose a branch by the signs of the bounds in GAOL 4
+and in the FPU intervals before GAOL v5 gave them kernels with none (the
+operands are 1 024 intervals that the predictor of a processor learns by heart:
+the former product of random signs took 5.7 ns on them and 12.4 on 16 384,
+Apple M2). After the table, it
 prints the time of the check each operation makes, 1 + (2^-1060 + 0) not above
 1, and of the same check made of 2^-60, a normal
 double: a processor that takes a microcode assist for a subnormal operand or
@@ -1277,7 +1286,9 @@ and the exception flags of `+ - * / %`, `&=`, `|=`, `sqr`, `sqrt`, `inverse`,
 `div_rel`, `mid` and the forms with a double on a grid of boxes, under the four
 rounding directions at the call, with two builds of GAOL, and compares them:
 the NEON intervals and the FPU intervals give the same bounds and the same
-flags, the sign of a zero aside (GAOL v5).
+flags, the sign of a zero aside (GAOL v5), and so do the FPU intervals before
+and after their kernels of `*`, `/`, `%` and `sqr` (the tool records the
+invalid-operation and division-by-zero exceptions only).
 
 `manual/check_examples.py` compiles each example of the manual of GAOL v5
 (`manual/v5/gaol.tex`) that shows what it prints, 88 of them, with an installed
