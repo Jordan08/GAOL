@@ -29,10 +29,16 @@ build, and the CMake build follows them, apart from the errors corrected (see
   compiler with a link (GAOL v5);
 - on x86 processors, the intervals are computed with SSE2 instructions
   (`-msse2 -msse3`; no flag with Visual C++ and clang-cl for x64, where SSE2 is
-  the baseline of the processor), except on 32-bit Windows, where a
-  `std::vector` of SSE2 intervals crashes: GCC takes the memory of `new` to be
-  aligned on 16 bytes there, while the C runtime aligns it on 8 (GAOL v5: Visual
-  C++ x64 and clang-cl x64 take them too);
+  the baseline of the processor). On 32-bit Windows the C runtime aligns the
+  memory of `new` on 8 bytes, and an SSE2 interval needs 16: GCC took it to be
+  aligned on 16, and a `std::vector` of SSE2 intervals crashed. GCC and Clang
+  (MinGW-w64, MSYS2) are told what the runtime gives with `-faligned-new=8`, so
+  that they ask for aligned memory for the intervals and for what holds one, and
+  `gaol::gaol` and `gaol.pc` give the flag to the code using GAOL too, as it
+  allocates them; `gaol/gaol_config.h` refuses the SSE2 intervals compiled
+  without it. Visual C++ and clang-cl have no such flag, and keep the FPU
+  intervals there (GAOL v5: Visual C++ x64 and clang-cl x64 take the SSE2
+  intervals);
 - on 64-bit ARM processors, the intervals are computed with NEON instructions
   (`GAOL_ARM64`, `--enable-arm64`, `-Denable-arm64`; no flag), on by default
   with GCC, Clang or AppleClang under Linux and macOS, whose compiler each build

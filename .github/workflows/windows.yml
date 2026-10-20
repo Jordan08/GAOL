@@ -65,6 +65,11 @@ jobs:
           - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', arch: x64,   config: Release, desc: 'Visual Studio 2026 x64 Release' }
           - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', arch: ARM64, config: Release, desc: 'Visual Studio 2026 arm64 Release' }
           - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', arch: Win32, config: Debug,   desc: 'Visual Studio 2026 x86 Debug' }
+          # The control word of the x87 unit and MXCSR are read and written
+          # directly on 32-bit x86, with the inline assembly of Visual C++
+          # (gaol/gaol_fpu.h, GAOL v5): this job runs it with the rounding
+          # direction restored by each operation too, which no job did
+          - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', arch: Win32, config: Release, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Visual Studio 2026 x86 Release, rounding direction preserved' }
           - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', arch: x64,   config: Debug,   desc: 'Visual Studio 2026 x64 Debug' }
           - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', arch: ARM64, config: Debug,   desc: 'Visual Studio 2026 arm64 Debug' }
           - { os: windows-2022,          generator: 'Visual Studio 17 2022', arch: Win32, config: Release, desc: 'Visual Studio 2022 x86 Release' }
@@ -291,6 +296,14 @@ jobs:
           g++ --version
           g++ -dumpmachine
           cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{ matrix.cfg.config }} -DWITH_TESTS=ON -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install"
+      # The SSE2 intervals on x86 as on x64, with -faligned-new=8 on x86, where
+      # the C runtime aligns the memory of new on 8 bytes (GAOL v5)
+      - name: The intervals
+        run: |
+          sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h sse2
+          if [ "$(g++ -dumpmachine | cut -c1-4)" = "i686" ]; then
+            grep -F -e "-faligned-new=8" build/CMakeFiles/gaol.dir/flags.make
+          fi
       - name: Build
         run: cmake --build build -j 4
       # The programs are run with the MinGW-w64 first in PATH: bash starts with the

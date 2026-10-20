@@ -43,7 +43,8 @@
 #mesondefine GAOL_VERBOSE_MODE
 
 /* Defined to 1 where the intervals are computed with SSE2 instructions
-   (x86 processors, but 32-bit Windows; GAOL_SIMD,
+   (x86 processors; on 32-bit Windows with GCC or Clang told to ask for aligned
+   memory, -faligned-new=8, not with Visual C++ and clang-cl; GAOL_SIMD,
    --enable-simd, -Denable-simd, on by default) */
 #mesondefine GAOL_USING_SSE2_INSTRUCTIONS
 

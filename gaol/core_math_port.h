@@ -301,8 +301,8 @@ The standard lets fegetround() be a macro, and it is a function in the C
 libraries known here: what the sources call is renamed by a macro of ours,
 after <fenv.h> has declared it, and only for the sources of CORE-MATH, the
 only ones this header is included in. Not on a 32-bit x86 processor, where
-round_upward_if_needed() of gaol/gaol_fpu.h reads both units and sets both
-when one is not upward, so that they never differ when CORE-MATH runs.
+round_upward_if_needed() of gaol/gaol_fpu.h reads both units and sets the one
+that is not upward (or both), so that they never differ when CORE-MATH runs.
 ARM64EC, which no build of GAOL targets, defines _M_X64 too, and would read
 the MXCSR its emulation keeps.
 --------------------------------------------------------------------------*/

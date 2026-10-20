@@ -298,9 +298,14 @@ endif
 # (-mfpmath=sse) rather than on the x87 unit, where CORE-MATH rounds some
 # results twice and some bounds are wrong (see CMakeLists.txt). Visual C++
 # and clang-cl take the SSE2 intervals on x64, where no flag is to be given
-# (cl does not know -msse2; GAOL v5). Not the SSE2 intervals on 32-bit
-# Windows, where a std::vector of them crashes (see CMakeLists.txt).
+# (cl does not know -msse2; GAOL v5). On 32-bit Windows, where the memory of
+# new is aligned on 8 bytes and an SSE2 interval needs 16, the SSE2 intervals
+# need the compiler to ask for aligned memory, in GAOL and in the code using it:
+# -faligned-new=8 with GCC and Clang, as CMakeLists.txt gives it (GAOL v5).
+# Visual C++ and clang-cl have no such flag, and a compiler that does not take
+# it keeps the FPU intervals there too.
 use_sse2 = false
+aligned_new_args = []
 x86_args = []
 target_x86 = cpp_comp.compiles('''
 #if !(defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64))
@@ -321,7 +326,27 @@ if target_x86
     add_project_arguments(x86_args, language: 'c')
     pc_cflags += x86_args
   endif
-  if simd and not (target_x86_32 and os_win)
+  sse2_possible = simd
+  if simd and target_x86_32 and os_win
+    # Visual C++, clang-cl, and Clang with its driver for a target of Visual C++
+    # (msvc is false for it): the macro tells, as it tells the STL
+    simulates_msvc = msvc or cpp_comp.compiles('''
+#ifndef _MSC_VER
+#error neither Visual C++ nor a compiler that simulates it
+#endif
+int main() { return 0; }
+''', name: 'the compiler simulates Visual C++ (_MSC_VER)')
+    if simulates_msvc
+      sse2_possible = false
+      message('SSE2 intervals left out on 32-bit Windows with Visual C++ and the compilers that simulate it (clang-cl...): they have no flag to ask for the aligned memory the intervals need')
+    elif cpp_comp.has_argument('-faligned-new=8')
+      aligned_new_args = ['-faligned-new=8']
+    else
+      sse2_possible = false
+      message('SSE2 intervals left out on 32-bit Windows: the compiler cannot be told to ask for the aligned memory they need (-faligned-new=8)')
+    endif
+  endif
+  if sse2_possible
     if msvc
       use_sse2 = true
       conf_data.set('GAOL_USING_SSE2_INSTRUCTIONS', 1)
@@ -336,6 +361,12 @@ if target_x86
         pc_cflags += ['-msse3']
       endif
     endif
+  endif
+  # The aligned memory, for the code of C++ only, GAOL's and the code using it
+  # (gaol_dep, gaol.pc)
+  if use_sse2 and aligned_new_args.length() > 0
+    add_project_arguments(aligned_new_args, language: 'cpp')
+    pc_cflags += aligned_new_args
   endif
 endif
 

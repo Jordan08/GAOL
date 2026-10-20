@@ -43,6 +43,7 @@ if [ -n "$pc" ] && command -v pkg-config > /dev/null; then
 else
   flags="-I$prefix/include ${TEST_FLAGS:--O2 -frounding-math -fno-fast-math -ffp-contract=off}"
   case "$($cxx -dumpmachine 2> /dev/null)" in
+    i?86-*mingw*|i?86-*windows*) flags="$flags -msse2 -mfpmath=sse -faligned-new=8" ;;
     i?86-*) flags="$flags -msse2 -mfpmath=sse" ;;
   esac
 fi
