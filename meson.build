@@ -531,12 +531,15 @@ endif
 # CMakeLists.txt and configure take them (see CMakeLists.txt): /arch:AVX2 with
 # Visual C++ but for 32-bit x86, where it breaks the rounding direction; -mfma
 # on x86, where it defines __FMA__, but with GCC for Windows (MinGW), which
-# does not align the stack for the AVX that -mfma turns on; -mfpu=neon-vfpv4
-# -mfloat-abi=hard on 32-bit ARM, where FMA is not on already. Given to the C
-# and C++ sources (GAOL, CORE-MATH), and to the code using GAOL
-# (gaol.pc), compiled for the same processor. -ffp-contract=off stays. Left out
-# where the machine building does not run a program compiled with them, but
-# when cross-compiling (see CMakeLists.txt: macOS 14 under Rosetta).
+# does not align the stack for the 256-bit registers of the AVX that -mfma
+# turns on (GCC bug 54412): -mfma -mprefer-vector-width=128 there for x86-64,
+# which keeps the vectorizer to the 128-bit registers, and nothing for 32-bit
+# x86; -mfpu=neon-vfpv4 -mfloat-abi=hard on 32-bit ARM, where FMA is not on
+# already. Given to the C and C++ sources (GAOL, CORE-MATH), and to the code
+# using GAOL (gaol.pc), compiled for the same processor. -ffp-contract=off
+# stays. Left out where the machine building does not run a program compiled
+# with them, but when cross-compiling (see CMakeLists.txt: macOS 14 under
+# Rosetta).
 fma_args = []
 if get_option('enable-fma')
   if msvc
@@ -563,7 +566,22 @@ if get_option('enable-fma')
     int main() { return 0; }
     '''
     if mingw_gcc
-      message('Fused multiply-add instructions left out: GCC for Windows does not align the stack for AVX')
+      mingw_x86_64 = cpp_comp.compiles('''
+      #if !defined(__x86_64__)
+      #error not an x86-64 target
+      #endif
+      int main() { return 0; }
+      ''', name: 'the target is x86-64')
+      # Both options, or none: -mfma alone lets GCC spill 256-bit registers to
+      # a stack it does not align on Windows (see CMakeLists.txt)
+      mingw_args = ['-mfma', '-mprefer-vector-width=128']
+      if not mingw_x86_64
+        message('Fused multiply-add instructions left out: GCC for Windows takes them for x86-64 only (not measured for 32-bit x86)')
+      elif cpp_comp.links(fma_check.format('__FMA__'), args: mingw_args, name: '-mfma -mprefer-vector-width=128 gives the fused multiply-add instructions (C++)') and c_comp.links(fma_check.format('__FMA__'), args: mingw_args, name: '-mfma -mprefer-vector-width=128 gives the fused multiply-add instructions (C)')
+        fma_args = mingw_args
+      else
+        message('Fused multiply-add instructions left out: this GCC for Windows takes no -mfma -mprefer-vector-width=128 (the option is from GCC 8), and -mfma alone leaves its 256-bit registers on a stack it does not align')
+      endif
     elif cpp_comp.links(fma_check.format('__FMA__'), args: ['-mfma'], name: '-mfma gives the fused multiply-add instructions (C++)') and c_comp.links(fma_check.format('__FMA__'), args: ['-mfma'], name: '-mfma gives the fused multiply-add instructions (C)')
       fma_args = ['-mfma']
     else
