@@ -28,9 +28,11 @@ build, and the CMake build follows them, apart from the errors corrected (see
   series 11 and 12), in `gaol::gaol` and in `gaol.pc`: each build tests the
   compiler with a link (GAOL v5);
 - on x86 processors, the intervals are computed with SSE2 instructions
-  (`-msse2 -msse3`), except with Visual C++ and on 32-bit Windows, where a
+  (`-msse2 -msse3`; no flag with Visual C++ and clang-cl for x64, where SSE2 is
+  the baseline of the processor), except on 32-bit Windows, where a
   `std::vector` of SSE2 intervals crashes: GCC takes the memory of `new` to be
-  aligned on 16 bytes there, while the C runtime aligns it on 8;
+  aligned on 16 bytes there, while the C runtime aligns it on 8 (GAOL v5: Visual
+  C++ x64 and clang-cl x64 take them too);
 - on 64-bit ARM processors, the intervals are computed with NEON instructions
   (`GAOL_ARM64`, `--enable-arm64`, `-Denable-arm64`; no flag), on by default
   with GCC, Clang or AppleClang under Linux and macOS, whose compiler each build
@@ -67,7 +69,11 @@ build, and the CMake build follows them, apart from the errors corrected (see
   checks, and the operations test nothing as they run; never with GCC for
   Windows (MinGW-w64, Cygwin), which does not align the stack for the
   AVX-512 registers, as it does not for those of `-mfma`. No flag to compile,
-  the path's functions alone carry the target attribute (GAOL v5, see
+  the path's functions alone carry the target attribute, which Visual C++
+  has not and needs not, taking the intrinsics of any instruction set in any
+  function. Visual C++ has no `__builtin_cpu_supports()`, and the one of
+  clang-cl needs the runtime library of LLVM: both tell the processor by
+  `cpuid` and `xgetbv` (GAOL v5, see
   [Using GAOL](using.md#the-avx-512-path));
 - without the intervals of floats, `gaol::intervalf` and `gaol::interval2f`
   (SSE3), unfinished, for which no build has an option: only a developer of

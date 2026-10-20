@@ -25,7 +25,14 @@
   \date   2001-09-28
 */
 
-// TODO: Rewrite as many functions as possible to use SIMD instructions
+// SIMD (GAOL v5, doc/simd.md): with SSE2 and NEON the two bounds of an interval are the two lanes of one
+// vector, and + - * / sqr are vector kernels of gaol_interval_sse.cpp and gaol_interval_neon.cpp (sqrt too
+// with NEON); the AVX-512 path of gaol_interval_avx512.cpp carries the rounding direction in the
+// instruction, its square root being two scalar roots, and the integer powers have a two-lane FMA kernel
+// with SSE2 and AVX-512 where __FMA__ is. What is scalar in this file is the elementary functions, which
+// are CORE-MATH calls, one per bound, and the operations made of branches on the bounds. doc/simd.md lists
+// what could still gain (sqrt with SSE2, the integer powers with NEON, mid(), the reduction of the argument
+// of sin() and cos()) and what the other processors would need
 
 #include <iostream>
 #include <iomanip>
@@ -71,7 +78,7 @@
 // GAOL_AVX512_ARITHMETIC is (GAOL v5, point ZZ of TODO.md, see
 // pown_large_er()): it needs the packed kernel, and runs in functions that
 // carry the target of gaol/gaol_interval_avx512.cpp
-#if GAOL_POWN_PACKED && defined(__x86_64__) && GAOL_AVX512_ARITHMETIC
+#if GAOL_POWN_PACKED && (defined(__x86_64__) || defined(_M_X64)) && GAOL_AVX512_ARITHMETIC
 #  define GAOL_POWN_ER 1
 #else
 #  define GAOL_POWN_ER 0
@@ -112,7 +119,7 @@ namespace gaol_core {
     return v;
   }
 
-#if defined(__x86_64__) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_AVX512_ARITHMETIC
+#if (defined(__x86_64__) || defined(_M_X64)) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_AVX512_ARITHMETIC
   // GAOL_AVX512_ARITHMETIC, decided when GAOL is configured: +, -, *, / and
   // sqrt take the AVX-512 path of gaol/gaol_interval_avx512.cpp, which sets
   // no rounding direction, and clears the flush-to-zero modes as the other
@@ -4300,16 +4307,37 @@ interval nth_root(const interval& I, int q)
     is sup X - sup Y >= inf X - inf Y, which rounding the two differences
     cannot decide when they are within a double of each other (note of
     12.12.5). Each difference is therefore computed exactly, as the sum of its
-    value rounded to nearest and of its error, by the TwoSum of Knuth, which is
-    exact in the rounding to nearest: the rounded values compare as the exact
-    ones unless they are equal, and the errors decide then.
+    value rounded to nearest and of its error, by the Fast2Sum of Dekker with
+    the operand of the larger magnitude first, which is exact in the rounding
+    to nearest: the rounded values compare as the exact ones unless they are
+    equal, and the errors decide then.
+
+    The bounds are finite, so an infinite sum is an overflow, and its error is
+    not read: difference_at_least() decides by s alone, or halves the bounds.
+    The TwoSum of Knuth, ap = s - b, bp = s - ap, e = (a - ap) + (b - bp),
+    was not used: for an infinite s, ap is infinite and bp is inf - inf, and
+    for a finite s too, where a = +-DBL_MAX and b of the other sign make a sum
+    halfway between two doubles that rounds away from the exact one, by 2^970:
+    s - b is then DBL_MAX + 2^970, which is infinite to nearest. The invalid-
+    operation exception was raised (it stops a program that enabled it), and e
+    was NaN, so that cancel_minus([DBL_MAX - 2^971, DBL_MAX], [2^970, 3 2^970]),
+    whose bounds have the same width, read X as narrower than Y. s - a is
+    exact, and so cannot overflow, when |b| <= |a| (GAOL v5)
   */
   static inline void two_sum(double a, double b, double& s, double& e)
   {
     s = a + b;
-    const double ap = s - b;
-    const double bp = s - ap;
-    e = (a - ap) + (b - bp);
+    if (std::isinf(s)) {
+      e = 0.0;
+      return;
+    }
+    if (std::fabs(a) < std::fabs(b)) {
+      const double t = a;
+      a = b;
+      b = t;
+    }
+    const double z = s - a;
+    e = b - z;
   }
 
   // Whether a1 - b1 >= a2 - b2, exactly
@@ -4334,8 +4362,9 @@ interval nth_root(const interval& I, int q)
     const bool inf1 = std::isinf(s1), inf2 = std::isinf(s2);
     if (inf1 || inf2) {
       // A difference beyond the largest double decides the comparison unless
-      // both are, with the same sign; the four doubles are then beyond 2^1022,
-      // where halving them is exact
+      // both are, with the same sign; the four doubles are then 2^970 or more
+      // in magnitude (a difference beyond DBL_MAX of two doubles of at most
+      // DBL_MAX leaves each of them 2^970 or more), where halving them is exact
       if (inf1 && inf2 && (s1 > 0.0) == (s2 > 0.0)) {
         return difference_at_least(0.5 * a1, 0.5 * b1, 0.5 * a2, 0.5 * b2);
       }
@@ -5683,7 +5712,10 @@ interval nth_root(const interval& I, int q)
       c = midpoint();
     } else {
       GAOL_RND_ENTER();
-      c = l*(1.0 - ratio) + r*ratio;
+      // l, r and ratio are registers: they go through rnd_reread() after the check,
+      // or GCC computes c before it writes the control register, in the
+      // program's direction (GAOL v5)
+      c = rnd_reread(l)*(1.0 - rnd_reread(ratio)) + rnd_reread(r)*rnd_reread(ratio);
       GAOL_RND_KEEP(c);
       GAOL_RND_LEAVE();
       if (c < l) {
@@ -5725,7 +5757,7 @@ interval nth_root(const interval& I, int q)
 
   interval sqrt(const interval& I)
   {
-#if defined(__x86_64__) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_AVX512_ARITHMETIC
+#if (defined(__x86_64__) || defined(_M_X64)) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_AVX512_ARITHMETIC
     /* The AVX-512 path: the roots by the embedded rounding, the part of I
        in [0, +oo] and its emptiness by the sign and the magnitude bits,
        which the denormals-are-zero mode does not change (the SSE2 path

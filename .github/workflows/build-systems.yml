@@ -398,6 +398,13 @@ jobs:
           foreach ($f in 'parser/gaol_interval_parser.h') {
             if (Test-Path "$prefix/include/gaol/$f") { Write-Output "$f is installed"; exit 1 }
           }
+      # The intervals meson took, as CMake does (windows.yml): the SSE2 ones on
+      # x64 (GAOL v5), the FPU ones on x86
+      - name: The intervals
+        shell: bash
+        run: |
+          if [ "${{ matrix.cfg.arch }}" = "x64" ]; then expected=sse2; else expected=fpu; fi
+          sh .github/scripts/check-intervals.sh build-meson/gaol/gaol_configuration.h $expected
       - name: Tests (ninja test, make test of meson)
         run: |
           ninja -C build-meson test

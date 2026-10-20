@@ -81,7 +81,19 @@
  * COPYING file for information.
  *--------------------------------------------------------------------------*/
 
-#define GAOL_AVX512_TARGET __attribute__((target("avx512f")))
+/* GCC and Clang accept the AVX-512 instructions in the functions that carry
+   the target, and nowhere else. Visual C++ has no such attribute and needs
+   none: it takes the intrinsics of any instruction set in any function,
+   whatever /arch says, and emits the instructions they stand for (the
+   embedded rounding included), with a vzeroupper where the code goes back to
+   SSE; clang-cl is Clang and has the attribute (GAOL v5). */
+#if defined(__GNUC__) || defined(__clang__)
+#  define GAOL_AVX512_TARGET __attribute__((target("avx512f")))
+#  define GAOL_NOINLINE __attribute__((noinline))
+#else
+#  define GAOL_AVX512_TARGET
+#  define GAOL_NOINLINE __declspec(noinline)
+#endif
 
   // The sign and the zero of a double, from its bits: the operations of the
   // AVX-512 path read them where the SSE2 path compares values, which the
@@ -148,10 +160,36 @@
     static const volatile double subnormal = 8.0947715414629834e-320;
     return (subnormal + 0.0) == 0.0;
   }
+#if defined(__GNUC__) || defined(__clang__)
+#  define GAOL_CLEAR_FLUSH() clear_flush_to_zero()
+#  define GAOL_SAVE_AND_CLEAR_FLUSH(saved) do { (saved) = get_flush_modes(); clear_flush_to_zero(); } while (0)
+#  define GAOL_SET_FLUSH(modes) set_flush_modes(modes)
+#else
+#  ifdef _ISO_VOLATILE
+#    error "The AVX-512 path of Visual C++ orders its operations by volatile accesses, which /volatile:iso (_ISO_VOLATILE) does not order with the other memory accesses and the calls: compile with /volatile:ms, the default for x86 and x64, or with -DGAOL_PREFER_AVX512=OFF (see the head of flush_guard)"
+#  endif
+  // The reads and writes of the control register in functions that are not
+  // inlined, for Visual C++ (see flush_guard below); the modes the guard gives
+  // back are the value the call returns, which no move of the read past the
+  // call can change
+  GAOL_NOINLINE void clear_flush_to_zero_call() { clear_flush_to_zero(); }
+  GAOL_NOINLINE unsigned int save_and_clear_flush_call()
+  {
+    const unsigned int modes = get_flush_modes();
+    clear_flush_to_zero();
+    return modes;
+  }
+#  if GAOL_PRESERVE_ROUNDING
+  GAOL_NOINLINE void set_flush_modes_call(unsigned int modes) { set_flush_modes(modes); }
+#  endif
+#  define GAOL_CLEAR_FLUSH() clear_flush_to_zero_call()
+#  define GAOL_SAVE_AND_CLEAR_FLUSH(saved) ((saved) = save_and_clear_flush_call())
+#  define GAOL_SET_FLUSH(modes) set_flush_modes_call(modes)
+#endif
   GAOL_INLINE void clear_flush_modes_if_set()
   {
     if (flush_modes_set()) {
-      clear_flush_to_zero();
+      GAOL_CLEAR_FLUSH();
       GAOL_RND_BARRIER();
     }
   }
@@ -170,9 +208,34 @@
     set flush-to-zero back, with GAOL_PRESERVE_ROUNDING, and
     [3e-308] - [2.9e-308] was [0, 0] (GAOL v5, point Q of TODO.md,
     tests/rounding_direction.cpp).
+
+    Visual C++ has no asm statement on x64, and its optimizer takes an
+    intrinsic with an embedded rounding for a computation of its operands
+    alone, which it moves past a call that writes the control register:
+    with GAOL_PRESERVE_ROUNDING and /arch:AVX2, add_bounds() called the
+    destructor, which sets the modes back, before the vaddpd (Compiler
+    Explorer, the latest Visual C++ of October 2026). The standard orders
+    nothing there, the control register not being observable behavior: what
+    orders the operations is the data they depend on and the volatile
+    accesses, which Visual C++ keeps in place with respect to the other
+    memory accesses and to the calls (/volatile:ms, its default for x86 and
+    x64), and which the assembler of its versions 19.40 to 19.51 shows in
+    the order wanted (the calls, then the volatile read, the operation, the
+    volatile write, the calls of the destructor). The operands go through
+    in(), an exclusive or with a zero read from volatile memory, which leaves
+    their bits as they are: the read stays after the constructor, whose reads
+    and writes of the control register are in functions that are not inlined
+    (the modes found are the value one returns), and the operation after the
+    read. The result goes through out() before the destructor, written to
+    volatile memory and read again as GAOL_RND_KEEP() does for the SSE2
+    operations, where the modes are given back; where they are not, there is
+    nothing to order. A volatile access costs a store and a load, a few
+    cycles against the dozens of ns of the writes of MXCSR that the path
+    spares (GAOL v5).
   */
   struct flush_guard
   {
+#if defined(__GNUC__) || defined(__clang__)
     static __m128d in(__m128d x)
     {
       __asm__ __volatile__ ("" : "+x" (x));
@@ -188,6 +251,31 @@
       __asm__ __volatile__ ("" : "+x" (r));
       return r;
     }
+#else
+    // 0 read from volatile memory, a read the compiler keeps after the calls
+    // before it
+    static __m128d zero_read()
+    {
+      static const volatile double zero = 0.0;
+      return _mm_set1_pd(zero);
+    }
+    static __m128d in(__m128d x)
+    {
+      return _mm_xor_pd(x, zero_read());
+    }
+    static double in(double x)
+    {
+      return _mm_cvtsd_f64(_mm_xor_pd(_mm_set_sd(x), zero_read()));
+    }
+    static __m128d out(__m128d r)
+    {
+#  if GAOL_PRESERVE_ROUNDING
+      return rnd_keep(r);
+#  else
+      return r;
+#  endif
+    }
+#endif
 
 #if GAOL_PRESERVE_ROUNDING
     unsigned int saved;
@@ -197,15 +285,14 @@
       : saved(0u)
     {
       if (flush_modes_set()) {
-        saved = get_flush_modes();
-        clear_flush_to_zero();
+        GAOL_SAVE_AND_CLEAR_FLUSH(saved);
         GAOL_RND_BARRIER();
       }
     }
     ~flush_guard()
     {
       if (saved != 0u) {
-        set_flush_modes(saved);
+        GAOL_SET_FLUSH(saved);
       }
     }
 #else
@@ -662,19 +749,21 @@
   GAOL_INLINE interval& opaque(interval& x)
   {
     interval* p = &x;
+#if defined(__GNUC__) || defined(__clang__)
     __asm__ ("" : "+r" (p));
+#endif
     return *p;
   }
 
   // x + [d, d], d finite: <-l, r> + <-d, d>. x - d is x + (-d)
-  GAOL_AVX512_TARGET __attribute__((noinline)) interval& fast_add_assign(interval& x, double d)
+  GAOL_AVX512_TARGET GAOL_NOINLINE interval& fast_add_assign(interval& x, double d)
   {
     x.get_xmminterval() = fast_add(x.get_xmminterval(), _mm_set_pd(d, -d));
     return opaque(x);
   }
 
   // x * [d, d], d finite and nonzero, through the dispatch of fast_mul()
-  GAOL_AVX512_TARGET __attribute__((noinline)) interval& fast_mul_assign(interval& x, double d)
+  GAOL_AVX512_TARGET GAOL_NOINLINE interval& fast_mul_assign(interval& x, double d)
   {
     x.get_xmminterval() = fast_mul(x.get_xmminterval(), _mm_set_pd(d, -d));
     return opaque(x);
@@ -682,7 +771,7 @@
 
   // x / d, d finite and nonzero: the bounds exchanged and d negated for a
   // negative one, as operator/=(double) does
-  GAOL_AVX512_TARGET __attribute__((noinline)) interval& fast_div_assign(interval& x, double d)
+  GAOL_AVX512_TARGET GAOL_NOINLINE interval& fast_div_assign(interval& x, double d)
   {
     const __m128d b = x.get_xmminterval();
     if (bit_negative(d)) {

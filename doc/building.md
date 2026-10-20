@@ -127,7 +127,7 @@ build type or the configuration (below).
 | `CMAKE_POSITION_INDEPENDENT_CODE` | `ON` | Compile GAOL as position-independent code (`-fPIC`), which linking them into a shared library needs; a project building GAOL with FetchContent that sets it is followed |
 | `WITH_TESTS` | `OFF` | Build the unit tests of `tests/`, which `make test` and `make check` run (see [below](#tests-examples-performance-and-the-parser)) |
 | `WITH_EXAMPLES` | `OFF` | Build the examples of `examples/`, which `make check` runs |
-| `GAOL_SIMD` | `ON` | Compute the intervals with SSE2 instructions on x86 processors (`-msse2 -msse3`); not with Visual C++ nor on 32-bit Windows |
+| `GAOL_SIMD` | `ON` | Compute the intervals with SSE2 instructions on x86 processors (`-msse2 -msse3`, no flag with Visual C++ and clang-cl for x64); not on 32-bit Windows (GAOL v5) |
 | `GAOL_ARM64` | `ON` | Compute the intervals with NEON instructions on 64-bit ARM processors, which need no flag (GAOL v5): `ON` by default on 64-bit ARM with GCC, Clang or AppleClang under Linux and macOS; not offered with Visual C++, clang-cl, MinGW-w64 or 32-bit ARM, nor in a universal build of macOS, where the option is ignored and the FPU computes the intervals, as before. Independent of `GAOL_SIMD`, which stays for x86 processors; `OFF` has the FPU compute them on 64-bit ARM too |
 | `GAOL_COVERAGE` | `OFF` | Compile GAOL and its tests with the counters of gcov, and add the target `coverage`, which runs the tests and writes `coverage/coverage.html` and the page of conclusions [coverage/README.md](../coverage/README.md). GCC and Clang, with `-DCMAKE_BUILD_TYPE=Debug` |
 | `GAOL_U128_EMULATION` | `OFF` | Compute the 128-bit integer of the accurate phases with two 64-bit halves, as where the compiler has no 128-bit type (Visual C++, and GCC for a 32-bit target): the way to run that code on an ordinary machine |
@@ -171,7 +171,7 @@ instructions run it, and the code using it is compiled with `-mfma`;
 does `-DGAOL_PREFER_AVX512=OFF` where `GAOL_PRESERVE_ROUNDING` is `ON`,
 whose default `GAOL_PREFER_AVX512` makes a library that only the
 processors with the AVX-512 instructions run, when the machine building has
-them (GAOL v5).
+them (GAOL v5; Visual C++ and clang-cl for x64 too).
 `-DCMAKE_INSTALL_PREFIX=/usr` gives the library directory of Debian and Ubuntu
 (`lib/x86_64-linux-gnu`); with another prefix, the `.deb` puts the files in
 `/usr/lib`.
@@ -367,10 +367,10 @@ now true of each of them.
 | `GAOL_PREFER_AVX512` | +, -, *, / and sqrt are to take the AVX-512 instructions | `GAOL_PREFER_AVX512` (with `GAOL_PRESERVE_ROUNDING`) | `--enable-prefer-avx512` (with `--enable-preserve-rounding`) | `enable-prefer-avx512` (with `enable-preserve-rounding`) |
 | `GAOL_AVX512_ARITHMETIC` | +, -, *, / and sqrt take the AVX-512 instructions: `GAOL_PREFER_AVX512`, `GAOL_HAVE_AVX512_TARGET`, and a machine building that runs them, not when cross-compiling; the library then needs a processor with them (GAOL v5) | checked | checked | checked |
 | `GAOL_VERBOSE_MODE` | A line on the standard error when GAOL initializes and cleans up | `GAOL_VERBOSE_MODE` | `--enable-verbose-mode` | `enable-verbose-mode` |
-| `GAOL_USING_SSE2_INSTRUCTIONS` | The intervals computed with SSE2 (x86, not 32-bit Windows nor Visual C++) | `GAOL_SIMD` (default) | `--enable-simd` (default) | `enable-simd` (default) |
+| `GAOL_USING_SSE2_INSTRUCTIONS` | The intervals computed with SSE2 (x86, not 32-bit Windows) | `GAOL_SIMD` (default) | `--enable-simd` (default) | `enable-simd` (default) |
 | `GAOL_USING_NEON_INSTRUCTIONS` | The intervals computed with NEON (64-bit ARM with GCC, Clang or AppleClang under Linux and macOS; not Visual C++, clang-cl, MinGW-w64 nor 32-bit ARM; independent of `GAOL_SIMD`) (GAOL v5) | `GAOL_ARM64` (default) | `--enable-arm64` (default) | `enable-arm64` (default) |
 | `GAOL_USING_SSE3_INSTRUCTIONS` | And compiled with `-msse3` | where the compiler takes it | where the compiler takes it | where the compiler takes it |
-| `GAOL_HAVE_AVX512_TARGET` | The compiler takes `__attribute__((target("avx512f")))` and `__builtin_cpu_supports("avx512f")`, which the AVX-512 path of +, -, *, / and sqrt needs; never GCC for Windows (MinGW-w64, Cygwin), which does not align the stack for the AVX-512 registers (GCC bug 54412) | checked | checked | checked |
+| `GAOL_HAVE_AVX512_TARGET` | The compiler takes `__attribute__((target("avx512f")))` and `__builtin_cpu_supports("avx512f")`, which the AVX-512 path of +, -, *, / and sqrt needs; never GCC for Windows (MinGW-w64, Cygwin), which does not align the stack for the AVX-512 registers (GCC bug 54412); Visual C++ for x64 takes the instructions in any function and tells the processor by `cpuid` and `xgetbv`, clang-cl has the attribute and does the same (GAOL v5) | checked | checked | checked |
 | `GAOL_HAVE_VISIBILITY_OPTIONS` | The library is compiled with `-fvisibility=hidden` | checked | checked | checked |
 | `GAOL_HAVE_FENV_H` | The compiler has `<fenv.h>` | checked (required) | checked | checked |
 

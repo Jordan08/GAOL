@@ -742,10 +742,10 @@ namespace
             [&] { return "J = " + hex(J) + ", pow([4],J) = " + hex(r); });
       // and so does the pow of IEEE 1788-2015, whatever the base (GAOL v5:
       // gaol_ieee1788::pow([0.5], [+oo]) was [0], from the limit of x^y)
-      for (const interval& x : { interval(0.5), interval(4.), interval(0.5, 4.), interval(0., 4.) }) {
-        const interval s = gaol_ieee1788::pow(x, J);
+      for (const interval& base : { interval(0.5), interval(4.), interval(0.5, 4.), interval(0., 4.) }) {
+        const interval s = gaol_ieee1788::pow(base, J);
         check("gaol_ieee1788::pow(x,J) for J = [+oo] or [-oo] built from an SSE2 register: empty", s.is_empty(),
-              [&] { return "x = " + hex(x) + ", J = " + hex(J) + ": " + hex(s); });
+              [&] { return "x = " + hex(base) + ", J = " + hex(J) + ": " + hex(s); });
       }
     }
 #endif

@@ -721,8 +721,6 @@ namespace gaol_core {
     static const __m128d m128_nan;
     /// < +oo +oo>
     static const __m128d m128_infinf;
-    static const __m128d m128d_02mask;
-    static const __m128d m128d_20mask;
 
     // Allocators defined to enforce alignment on a 16 bytes boundary
 	void *operator new(size_t sz);
@@ -2321,7 +2319,13 @@ GAOL_INLINE double interval::width(void) const
         return GAOL_NAN;
     } else {
         GAOL_RND_ENTER();
-        double res = right() - left();
+        // The bounds go through rnd_reread() after the check: built in the code
+        // that calls width(), they are registers, which GCC may subtract before
+        // the check writes the control register, in the program's direction
+        // (see rnd_reread() of gaol/gaol_fpu.h; GAOL v5)
+        const double r = rnd_reread(right());
+        const double l = rnd_reread(left());
+        double res = r - l;
         GAOL_RND_KEEP(res);
         GAOL_RND_LEAVE();
         return res;
