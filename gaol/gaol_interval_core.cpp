@@ -229,10 +229,13 @@ namespace gaol_core {
   */
 #if defined(__GNUC__) || defined(__clang__)
 #  define GAOL_POWN_INLINE __attribute__((always_inline)) inline
+#  define GAOL_POWN_NOINLINE __attribute__((noinline))
 #elif defined(_MSC_VER)
 #  define GAOL_POWN_INLINE __forceinline
+#  define GAOL_POWN_NOINLINE __declspec(noinline)
 #else
 #  define GAOL_POWN_INLINE inline
+#  define GAOL_POWN_NOINLINE
 #endif
 // The functions that inline the operations of pown_er_lanes (and the ones
 // that call them) carry the target of those: the compiler refuses to inline a
@@ -1825,14 +1828,15 @@ namespace gaol_core {
 
 
   /*
-    inverse_upward() of gaol/gaol_interval_core.h, which is private to interval, for
-    pown_upward() and nth_root(I, q) for q < 0: they check the rounding
-    direction once and take the inverse after it, without checking it again as
-    inverse() does (GAOL v5)
+    inverse_upward() and sqr_upward() of gaol/gaol_interval_core.h, which are
+    private to interval, for pown_upward() and nth_root(I, q) for q < 0: they
+    check the rounding direction once and take the inverse or the square after
+    it, without checking it again as inverse() and sqr() do (GAOL v5)
   */
   class upward_access {
   public:
     static interval inverse(const interval& I) { return interval::inverse_upward(I); }
+    static interval sqr(const interval& I) { return interval::sqr_upward(I); }
   };
 
   /*
@@ -2063,11 +2067,16 @@ namespace gaol_core {
     is given back as it is; x^0 is 1, x^1 x, and x^-1 the inverse, correctly
     rounded, which takes x^-1 at 0 as IEEE 1788-2015 does (recip, Table 9.1)
     and as x^n for n < 0 does: [1/b, +oo] for [0, b], [-oo, +oo] for an x
-    holding 0 inside, the empty set for [0]. Any other n takes
-    pown_large_upward(), with the tightest bounds (GAOL v5, see
-    pown_products(): GAOL computed x^-m as 1/x^m, whose x^m overflowed for some
-    |x| > 1 before the inversion: pow([10],-400) was [0,5.6e-309] rather than
-    [0,2^-1074], and pow([2],-1050) [0,2^-1024] rather than [2^-1050]).
+    holding 0 inside, the empty set for [0]. x^2 is sqr(), without its
+    check: the same bounds, and the same signs of the zero bounds, in every
+    form of the integer power (GAOL v5: it made its square from exact
+    products, which has the same bounds, and gave a zero bound of the other
+    sign for part of the intervals holding 0, [0, 2] with the NEON intervals,
+    [-1, 2] with the FPU ones). Any other n takes pown_large_upward(), with
+    the tightest bounds (GAOL v5, see pown_products(): GAOL computed x^-m as
+    1/x^m, whose x^m overflowed for some |x| > 1 before the inversion:
+    pow([10],-400) was [0,5.6e-309] rather than [0,2^-1074], and
+    pow([2],-1050) [0,2^-1024] rather than [2^-1050]).
   */
   static inline interval pown_upward(const interval& I, int n)
   {
@@ -2081,6 +2090,8 @@ namespace gaol_core {
       return I;
     case -1:
       return upward_access::inverse(I);
+    case 2:
+      return upward_access::sqr(I);
     default:
       return pown_large_upward(I, n);
     }
@@ -2152,7 +2163,7 @@ namespace gaol_core {
     to x^1000 (5.9 ns rather than 5.5 for x^3, with Clang 21 on an
     i7-1185G7).
   */
-  GAOL_POWN_TARGET interval gaol_pown(const interval& I, int n)
+  static GAOL_POWN_TARGET GAOL_POWN_NOINLINE interval pown_checked(const interval& I, int n)
   {
 #if GAOL_POWN_ER
     // The embedded rounding sets no direction: the modes that flush the
@@ -2171,6 +2182,25 @@ namespace gaol_core {
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
     return res;
+  }
+
+  /*
+    I^n for an int n. n = 2 is sqr(), which makes its own check of the
+    rounding direction, and is taken before any other (GAOL v5): the integer
+    power took four times the time of sqr() for the same bounds (doc/simd.md),
+    and the sign of a zero bound is now that of sqr(). The other forms of the
+    integer power take pown_upward() after their own check, which has
+    sqr_upward() for n = 2. The rest is a function of its own, which is not
+    inlined here: with it, the frame that its kernel needs was set up before
+    the test of n = 2, which took 3.6 ns for x^2 against 1.7 (an Apple M2,
+    NEON intervals).
+  */
+  interval gaol_pown(const interval& I, int n)
+  {
+    if (n == 2) {
+      return sqr(I);
+    }
+    return pown_checked(I, n);
   }
 
   // gaol_pown() within the ints, CORE-MATH's pow beyond them (GAOL v5)

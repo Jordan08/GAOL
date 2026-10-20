@@ -940,14 +940,10 @@ double hausdorff(const interval &I1, const interval &I2)
   }
 
 
-  interval sqr(const interval& I)
+  // The rounding direction being upward already (see gaol_interval_core.h):
+  // the square that pow() takes for x^2 after its own check (GAOL v5)
+  interval interval::sqr_upward(const interval& I)
   {
-    if (I.is_empty()) {
-      return interval::emptyset();
-    }
-
-    // One check for the three cases, which all compute
-    GAOL_RND_ENTER();
     double l, r;
     if (I.certainly_positive()) {
 		l = -(I.lb_*(-I.lb_));
@@ -959,9 +955,21 @@ double hausdorff(const interval &I1, const interval &I2)
 		l = 0.0;
 		r = (fabs(I.left()) >= fabs(I.right())) ? I.left()*I.left() : I.right()*I.right();
     }
-    GAOL_RND_KEEP(l); GAOL_RND_KEEP(r);
-    GAOL_RND_LEAVE();
     return interval(l,r);
+  }
+
+  interval sqr(const interval& I)
+  {
+    if (I.is_empty()) {
+      return interval::emptyset();
+    }
+
+    // One check for the three cases, which all compute
+    GAOL_RND_ENTER();
+    interval res = interval::sqr_upward(I);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
   }
 
 
