@@ -703,9 +703,7 @@ namespace gaol_core {
     /* The masks of the SSE2 operations, initialized when compiling
        (gaol/gaol_interval_sse.cpp), so that the operations computed in the
        initialization of the static objects of a program are right, before
-       the files of GAOL are initialized (GAOL v5; not m128d_02mask and
-       m128d_20mask with Visual C++, which computes them when the program starts
-       and which nothing reads). The constants of intervals
+       the files of GAOL are initialized (GAOL v5). The constants of intervals
        (one(), pi()...) are built by the functions giving them, from doubles
        written in gaol/gaol_port.h, rather than held in static intervals, which
        only the dynamic initialization of gaol/gaol_interval.cpp, now
@@ -723,8 +721,6 @@ namespace gaol_core {
     static const __m128d m128_nan;
     /// < +oo +oo>
     static const __m128d m128_infinf;
-    static const __m128d m128d_02mask;
-    static const __m128d m128d_20mask;
 
     // Allocators defined to enforce alignment on a 16 bytes boundary
 	void *operator new(size_t sz);

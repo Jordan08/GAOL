@@ -34,22 +34,9 @@
 	   know these vectors; the __m128d of Visual C++ is a structure holding an
 	   array of two doubles, which the same braces initialize (the braces of the
 	   array left out), and the compiler too puts it in memory initialized
-	   before the program starts. m128d_02mask and m128d_20mask, whose all-ones
-	   half no double writes, are integer vectors seen as doubles for GCC and
-	   Clang (__extension__ keeps -pedantic from warning about them); Visual
-	   C++ does not cast between the two types, and computes them when the
-	   program starts: nothing reads them but the former inverse(), which is
-	   left out of the compilation, so that the order of the initializations
-	   does not matter for them. */
+	   before the program starts. */
 	const __m128d interval::lbsignmask = {-0.0, 0.0};
 	const __m128d interval::lbrbsignmask = {-0.0, -0.0};
-#if defined(__GNUC__) || defined(__clang__)
-	const __m128d interval::m128d_02mask = __extension__ (__m128d)(__m128i){0, -1};
-	const __m128d interval::m128d_20mask = __extension__ (__m128d)(__m128i){-1, 0};
-#else
-	const __m128d interval::m128d_02mask = _mm_castsi128_pd(_mm_set_epi64x(-1, 0));
-	const __m128d interval::m128d_20mask = _mm_castsi128_pd(_mm_set_epi64x(0, -1));
-#endif
 	const __m128d interval::m128_zero = {0.0, 0.0};
 	const __m128d interval::m128_minus_one = {-1.0, 1.0};
 	const __m128d interval::m128_nan = {std::numeric_limits<double>::quiet_NaN(),
