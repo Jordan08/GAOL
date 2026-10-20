@@ -631,7 +631,8 @@ endif()
 # -faligned-new=8, which sets __STDCPP_DEFAULT_NEW_ALIGNMENT__ to 8 and turns
 # the aligned new on in every standard: GAOL_ALIGNED_NEW_FLAGS, given to both
 # (gaol::gaol, gaol.pc), and checked by gaol/gaol_config.h. Visual C++ and
-# clang-cl have no such flag, and keep the FPU intervals there: their
+# clang-cl have no such flag, and keep the FPU intervals there, as does Clang
+# for a target of Visual C++ (_MSC_VER): their
 # /Zc:alignedNew does nothing in C++14 (cl) or breaks the STL (clang-cl,
 # align_val_t not being an enumeration there), and only C++17 turns the aligned
 # new on, which would make every code using GAOL compile in C++17. A compiler
@@ -662,8 +663,16 @@ if(GAOL_SIMD)
       int main() { return 0; }"
       GAOL_TARGET_IS_WIN32)
     if(GAOL_TARGET_IS_WIN32)
-      if(MSVC)
-        message(STATUS "SSE2 intervals left out on 32-bit Windows with Visual C++ and clang-cl: they have no flag to ask for the aligned memory the intervals need")
+      # Visual C++, clang-cl, and Clang with its driver for a target of Visual
+      # C++ (MSVC is false for it): the macro tells, as it tells the STL
+      check_cxx_source_compiles("
+        #ifndef _MSC_VER
+        #error neither Visual C++ nor a compiler that simulates it
+        #endif
+        int main() { return 0; }"
+        GAOL_COMPILER_SIMULATES_MSVC)
+      if(GAOL_COMPILER_SIMULATES_MSVC)
+        message(STATUS "SSE2 intervals left out on 32-bit Windows with Visual C++ and the compilers that simulate it (clang-cl...): they have no flag to ask for the aligned memory the intervals need")
         set(_gaol_sse2_intervals OFF)
       else()
         set(CMAKE_REQUIRED_FLAGS "${GAOL_INTERVAL_FLAGS_STRING}")

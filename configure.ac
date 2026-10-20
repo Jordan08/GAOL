@@ -310,7 +310,20 @@ if test "${target_x86}" = yes; then
     fi
     has_aligned_new=yes
     if test "$simd" = yes && test "${target_win32}" = yes; then
-        GAOL_CHECK_CXX_FLAG([-faligned-new=8], [has_aligned_new])
+        # Clang with its driver for a target of Visual C++ simulates it (_MSC_VER):
+        # no flag asks for the aligned memory of its STL (see CMakeLists.txt)
+        AC_LANG_PUSH([C++])
+        AC_MSG_CHECKING([whether the compiler simulates Visual C++])
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#ifndef _MSC_VER
+#error neither Visual C++ nor a compiler that simulates it
+#endif]], [[]])],[simulates_msvc=yes],[simulates_msvc=no])
+        AC_MSG_RESULT(${simulates_msvc})
+        AC_LANG_POP([C++])
+        if test "${simulates_msvc}" = yes; then
+            has_aligned_new=no
+        else
+            GAOL_CHECK_CXX_FLAG([-faligned-new=8], [has_aligned_new])
+        fi
         if test "${has_aligned_new}" = no; then
             AC_MSG_NOTICE([SSE2 intervals left out on 32-bit Windows: the compiler has no way to ask for the aligned memory they need (-faligned-new=8)])
         fi

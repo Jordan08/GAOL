@@ -328,9 +328,17 @@ if target_x86
   endif
   sse2_possible = simd
   if simd and target_x86_32 and os_win
-    if msvc
+    # Visual C++, clang-cl, and Clang with its driver for a target of Visual C++
+    # (msvc is false for it): the macro tells, as it tells the STL
+    simulates_msvc = msvc or cpp_comp.compiles('''
+#ifndef _MSC_VER
+#error neither Visual C++ nor a compiler that simulates it
+#endif
+int main() { return 0; }
+''', name: 'the compiler simulates Visual C++ (_MSC_VER)')
+    if simulates_msvc
       sse2_possible = false
-      message('SSE2 intervals left out on 32-bit Windows with Visual C++ and clang-cl: they have no flag to ask for the aligned memory the intervals need')
+      message('SSE2 intervals left out on 32-bit Windows with Visual C++ and the compilers that simulate it (clang-cl...): they have no flag to ask for the aligned memory the intervals need')
     elif cpp_comp.has_argument('-faligned-new=8')
       aligned_new_args = ['-faligned-new=8']
     else

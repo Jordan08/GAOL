@@ -19130,7 +19130,49 @@ fi
     fi
     has_aligned_new=yes
     if test "$simd" = yes && test "${target_win32}" = yes; then
+        # Clang with its driver for a target of Visual C++ simulates it (_MSC_VER):
+        # no flag asks for the aligned memory of its STL (see CMakeLists.txt)
         ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether the compiler simulates Visual C++" >&5
+printf %s "checking whether the compiler simulates Visual C++... " >&6; }
+        cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#ifndef _MSC_VER
+#error neither Visual C++ nor a compiler that simulates it
+#endif
+int
+main (void)
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"
+then :
+  simulates_msvc=yes
+else case e in #(
+  e) simulates_msvc=no ;;
+esac
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: ${simulates_msvc}" >&5
+printf "%s\n" "${simulates_msvc}" >&6; }
+        ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+        if test "${simulates_msvc}" = yes; then
+            has_aligned_new=no
+        else
+            ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
@@ -19168,6 +19210,7 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
+        fi
         if test "${has_aligned_new}" = no; then
             { printf "%s\n" "$as_me:${as_lineno-$LINENO}: SSE2 intervals left out on 32-bit Windows: the compiler has no way to ask for the aligned memory they need (-faligned-new=8)" >&5
 printf "%s\n" "$as_me: SSE2 intervals left out on 32-bit Windows: the compiler has no way to ask for the aligned memory they need (-faligned-new=8)" >&6;}
