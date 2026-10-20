@@ -899,8 +899,13 @@ namespace
   // of the test, raised it, not which
   std::string quotients_raising()
   {
-    const std::vector<interval> intervals = intervals_with_bounds({ -GAOL_INFINITY, -2.0, -0.0, 0.0, 4.0, GAOL_INFINITY });
     std::string raising;
+    // the intervals themselves, which the test builds after clearing the flags
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const std::vector<interval> intervals = intervals_with_bounds({ -GAOL_INFINITY, -2.0, -0.0, 0.0, 4.0, GAOL_INFINITY });
+    if (std::fetestexcept(FE_INVALID | FE_DIVBYZERO) != 0) {
+      raising += " the building of the intervals;";
+    }
     for (const interval& k : intervals) {
       for (const interval& j : intervals) {
         std::feclearexcept(FE_ALL_EXCEPT);
