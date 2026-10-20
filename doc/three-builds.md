@@ -169,7 +169,9 @@ On a 64-bit ARM processor, measured the same way on an Apple M2 with AppleClang
   products waiting for two comparisons. With `GAOL_PRESERVE_ROUNDING` the write
   of FPCR waits for the result as well, and the FPU row of that option gains
   nothing (x × y 44.4 ns rather than 42.2 for the former code, measured in the
-  same session, and 44.3 rather than 49.1 for operands of random signs); see
+  same session, and 44.3 rather than 49.1 for operands of random signs). Only
+  this processor, with AppleClang, is measured: not the 32-bit ARM, POWER,
+  s390x, RISC-V and Windows processors that run the FPU intervals; see
   [The FPU intervals](using.md#the-fpu-intervals).
 - **The rounding direction is read with one `mrs` of FPCR** (0.8 ns on this
   processor) and written with `msr` only when the program's is not upward:
