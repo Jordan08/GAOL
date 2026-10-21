@@ -198,8 +198,8 @@ defect, as with `-mavx`.
 
 Measured with `tests/performance.cpp` on the Windows Server 2022 runner of
 GitHub, MSYS2 UCRT64 with GCC 16.2, in nanoseconds per operation, the median of
-three runs of each variant, alternated in one job (the runs of a variant
-differ by 1.00 to 1.16 times):
+three runs of each variant, alternated in one job (on these lines, the runs
+of a variant differ by 1.16 times at most):
 
 | | x × y | x ÷ y | pow(x, 3) | exp(x) | log(x) | sin(x) | cos(x) | floor(x) |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
