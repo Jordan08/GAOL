@@ -122,17 +122,29 @@ the build, and runs `run_perf.sh`, which draws the intervals (Python 3 with
 numpy, the same intervals as `run_bench.sh`), runs the program `ROUNDS` times,
 replaces the rows of GAOL v5 in `results.csv` by the new ones, and writes the
 tables of [performance.md](../performance.md) from them, the line of GAOL v5 of
-`machine.txt` saying when and how it was measured. GAOL 4.2.3, filib++,
+`machine.txt` saying when and how it was measured. It runs the ten long lines of
+`run_lines.sh` too (GAOL v5), on the same intervals and in the same way: the rows
+of GAOL v5 of `results_lines.csv` and its line of `machine_lines.txt` are
+replaced, and the tables at the end of `performance.md` written from them.
+GAOL 4.2.3, filib++,
 libieeep1788, PROFIL/BIAS, Solaris Studio, Boost.Interval and the doubles keep
-the times of the last whole run, which `results.csv` holds: the machine should
-be the one they were measured on (`machine.txt`), doing nothing else. `N`, `ROUNDS`,
-`REPEATS`, `OPS`, `CPU`, `WORK` (default: `perf` in the build directory) and
-`REPORT` apply as for `run_bench.sh`:
+the times of the last whole run, which `results.csv` and `results_lines.csv`
+hold: the machine should be the one they were measured on (`machine.txt`),
+doing nothing else. With CMake and meson the target exists on Linux and on macOS
+(GAOL v5: on Linux only before); the `perf` of configure has never depended on
+the system, only on bash. `run_perf.sh` names the processor with `sysctl` where
+`/proc/cpuinfo` has none. `N`, `ROUNDS`, `REPEATS`, `OPS`, `WORK` (default:
+`perf` in the build directory) and `REPORT` apply as for `run_bench.sh`. `CPU`
+pins the programs with `taskset`, which macOS has not: there it is ignored, and
+the script says so (GAOL v5: it stopped, `taskset: command not found`).
+`LINE_LIST` names the long lines to run, as for `run_lines.sh`, but an empty
+`LINE_LIST` runs none here (`LINE_LIST=`), where `run_lines.sh` runs the ten:
 
 ```bash
-cmake -S . -B build && CPU=2 cmake --build build --target perf
+cmake -S . -B build && CPU=2 cmake --build build --target perf   # Linux: pinned on processor 2
 ./configure && make && CPU=2 make perf
 meson setup build && CPU=2 ninja -C build perf
+cmake -S . -B build && cmake --build build --target perf         # macOS: no taskset, no CPU
 ```
 
 `results.csv` is written by `run_bench.sh` after a whole run (all the
@@ -143,6 +155,12 @@ same processor with Clang 18.1.8, every library took about 30 % more time: the
 times of `make perf` compare with those of `results.csv` only on the system
 and with the compiler they were measured with.
 
+The continuous integration runs the same ten lines, with `bench_gaol.cpp`
+built by CMake as `gaol_bench` (not by default), for the base of a pull request
+and for its head, measured in turn in the same job and compared in the summary
+of the job (`performance.yml`, with `.github/scripts/performance-ab.sh`: see
+[Continuous integration](../../continuous-integration.md#the-speed-of-a-pull-request)).
+
 ## The files
 
 | File | |
@@ -151,7 +169,7 @@ and with the compiler they were measured with.
 | `setup.sh` | Downloads and builds GMP, MPFR, libieeep1788, filib++, PROFIL/BIAS, GAOL, and Goualard's GAOL with mathlib, and downloads the headers of Boost.Interval; checks `f90 -xia` |
 | `cases.py` | The 290 special cases, each written once as an expression, taken from GAOL's tests; generates a program per library (`generate`), and compares what they print with IEEE 1788-2015, computed with mpmath (`report`) |
 | `run_cases.sh` | Generates, compiles and runs the six programs of the special cases, and writes their table |
-| `bench.py` | Draws the intervals of the benchmark (`data`), and writes the tables of its results (`report`) and those of the long lines (`lines-report`) |
+| `bench.py` | Draws the intervals of the benchmark (`data`), writes the tables of its results (`report`) and those of the long lines (`lines-report`), and prints the names of the lines (`line-names`) |
 | `bench_common.h`, `bench_ops.h` | The benchmark in C++: reading the intervals, timing, and the operations and the long lines, written once for every C++ library |
 | `build_benchmarks.sh` | The compilation of the C++ programs and the description of the machine, which `run_bench.sh` and `run_lines.sh` share (sourced) |
 | `run_lines.sh` | Compiles and runs the long lines of + - * / of `bench_ops.h` with the C++ libraries, and writes their tables at the end of `performance.md`; after a whole run, keeps its results in `results_lines.csv` and `machine_lines.txt` |
@@ -162,8 +180,8 @@ and with the compiler they were measured with.
 | `enclosure.py` | Draws the arguments of the elementary functions for the test of enclosure (`data`), and checks the results of the libraries against mpmath and writes their tables (`report`) |
 | `enclosure.h`, `enclosure_gaol.cpp`, `enclosure_boost.cpp` | The test of enclosure in C++, written once for every library, with GAOL, and with Boost.Interval under its two policies and with the C library alone |
 | `run_enclosure.sh` | Draws the arguments, compiles and runs the two programs of the test of enclosure, and writes its tables |
-| `run_perf.sh` | `make perf`: runs the benchmark of GAOL v5 alone and writes the tables with its new times (see below) |
-| `results.csv`, `machine.txt` | The results of the last whole run, and what it was measured on, which `run_perf.sh` keeps for the other libraries |
+| `run_perf.sh` | `make perf`: runs the benchmark of GAOL v5 alone, the long lines included, and writes the tables with its new times (see below) |
+| `results.csv`, `machine.txt`, `results_lines.csv`, `machine_lines.txt` | The results of the last whole run, of the operations and of the long lines, and what they were measured on, which `run_perf.sh` keeps for the other libraries |
 | `run_all.sh` | `setup.sh`, `run_cases.sh`, `run_enclosure.sh` and `run_bench.sh` |
 
 To add a special case, add a line `case(expression, result of IEEE 1788, note)`

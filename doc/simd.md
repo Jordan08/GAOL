@@ -125,8 +125,10 @@ doubles taking 0.96 ns for `+`. With `GAOL_PRESERVE_ROUNDING` and the AVX-512
 path: 2.19, 2.16, 3.42, 3.60, 2.04, 3.75 and 6.18. On the M2
 ([three builds](three-builds.md#what-the-options-are-worth)) the NEON
 intervals take 0.91 ns for `+`, 2.14 for `*`, 2.39 for `/`, 1.48 for `sqr`
-and 1.70 for `sqrt`, against 1.16, 3.37, 4.00, 2.08 and 4.51 with the FPU
-intervals.
+and 1.70 for `sqrt`, against 1.18, 3.33, 3.30, 1.82 and 4.60 with the FPU
+intervals, whose `*`, `/` and `sqr` take no branch on the signs
+([the FPU intervals](using.md#the-fpu-intervals); 1.16, 3.37, 4.00, 2.08 and 4.51
+before).
 
 ## The rounding direction, by processor
 

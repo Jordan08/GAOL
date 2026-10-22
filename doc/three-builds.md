@@ -65,8 +65,9 @@ build, and the CMake build follows them, apart from the errors corrected (see
   too (`gaol::gaol`, `gaol.pc`), and compiled for the same processor.
   `-ffp-contract=off` stays, which forbids the compiler to contract a
   multiplication and an addition into a fused one, as CORE-MATH asks;
-- with the AVX-512 path of `x + y`, `x - y`, `x * y`, `x / y` and `sqrt(x)`,
-  asked for by `GAOL_PREFER_AVX512` (`--enable-prefer-avx512`,
+- with the AVX-512 path of `x + y`, `x - y`, `x * y`, `x / y`, `sqrt(x)`,
+  `sqr(x)` and, with FMA, the integer powers beyond 1 and -1, asked for by
+  `GAOL_PREFER_AVX512` (`--enable-prefer-avx512`,
   `-Denable-prefer-avx512=true`), on by default where the rounding direction
   is preserved, whose every operation the path relieves of the store of
   that direction, and taken (`GAOL_AVX512_ARITHMETIC`) where the machine
@@ -153,19 +154,39 @@ On a 64-bit ARM processor, measured the same way on an Apple M2 with AppleClang
 
 | | x + y | x − y | x × y | x ÷ y | sqr(x) | sqrt(x) | 13 operations in a line |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| `-DGAOL_ARM64=OFF` (FPU intervals) | 1.16 | 3.56 | 3.37 | 4.00 | 2.08 | 4.51 | 49.8 |
+| `-DGAOL_ARM64=OFF` (FPU intervals) | 1.18 | 1.18 | 3.33 | 3.30 | 1.82 | 4.60 | 51.7 |
 | Default (NEON intervals) | 0.91 | 0.89 | 2.14 | 2.39 | 1.48 | 1.70 | 19.2 |
-| `-DGAOL_ARM64=OFF -DGAOL_PRESERVE_ROUNDING=ON` | 38.7 | 38.5 | 39.7 | 43.1 | 39.4 | 48.3 | 522 |
+| `-DGAOL_ARM64=OFF -DGAOL_PRESERVE_ROUNDING=ON` | 38.8 | 38.7 | 44.4 | 45.2 | 43.7 | 48.5 | 537 |
 | `-DGAOL_PRESERVE_ROUNDING=ON` (NEON intervals) | 26.9 | 27.3 | 29.3 | 34.0 | 27.3 | 34.3 | 377 |
 
 - **The NEON intervals (`GAOL_ARM64`) pay on every operation of the table**:
-  x − y takes 0.89 ns rather than 3.56 (the difference of the FPU intervals took
-  three times their sum), x × y of operands of random signs 2.18 ns rather than
-  6.39, sqrt 1.70 rather than 4.51, and a line of 13 operations 19.2 ns rather
-  than 49.8. The two bounds are one vector, and the operations take them from one
-  to the next in a register. The elementary functions, which CORE-MATH computes,
+  x − y takes 0.89 ns rather than 1.18, x × y 2.14 rather than 3.33 (of operands
+  of random signs 2.18 rather than 3.38), x ÷ y 2.39 rather than 3.30, sqrt
+  1.70 rather than 4.60, and a line of 13 operations 19.2 ns rather than 51.7
+  (the FPU row is measured in a session of its own, and the NEON rows are those
+  of #146).
+  The two bounds are one vector, and the operations take them from one to the
+  next in a register. The elementary functions, which CORE-MATH computes,
   go through them only for their arguments: no faster, no slower. They are on by
   default on 64-bit ARM processors with GCC, Clang or AppleClang.
+- **The product, the quotient and the square of the FPU intervals take no
+  branch on the signs of the bounds** (GAOL v5), and x − y reads its bounds
+  after the check of the rounding direction. The row read before 3.56 for
+  x − y, 3.37 for x × y (6.39 of operands of random signs), 4.00 for x ÷ y,
+  2.08 for sqr(x) and 49.8 for the line of 13 operations. The product of a line
+  of operands of one sign, which a processor predicts, takes more time than it
+  did (a line of 7 products, 35.8 ns rather than 23.8), the largest of four
+  products waiting for two comparisons. With `GAOL_PRESERVE_ROUNDING` the write
+  of FPCR waits for the result as well, and the FPU row of that option gains
+  nothing (x × y 44.4 ns rather than 42.2 for the former code, measured in the
+  same session, and 44.3 rather than 49.1 for operands of random signs). These
+  are the figures of this processor, with AppleClang. The processors of the
+  continuous integration that run the FPU intervals (32-bit ARM, Visual C++ and
+  clang-cl for x86 and arm64, Ubuntu with GCC and Clang, macOS), measured in
+  turn, give other ratios, losses included (the line of 7 products 0.58 with
+  GCC on Ubuntu, 0.57 with clang-cl for arm64); POWER, s390x, RISC-V and
+  MinGW-w64 for arm64 are not measured. See
+  [The FPU intervals](using.md#the-fpu-intervals).
 - **The rounding direction is read with one `mrs` of FPCR** (0.8 ns on this
   processor) and written with `msr` only when the program's is not upward:
   `msr` takes 4 ns for the value FPCR holds and 11 ns when it changes the
