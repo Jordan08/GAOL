@@ -1217,8 +1217,10 @@ point Q), which `numbers` checks there too.
   `GAOL_PRESERVE_ROUNDING` and to stay for the next `cmake`, after a default
   that was `ON` and after one that was `OFF` (the request then equals what the
   entry holds), until `-UGAOL_PREFER_AVX512` derives the default again; a
-  `-DGAOL_PREFER_AVX512=ON` has to stay too. The entry has to say what the
-  configuration uses. Where the compiler has no AVX-512 path (ARM), the default
+  `-DGAOL_PREFER_AVX512=ON` has to stay too, and so has a request of ON made by
+  editing the value of the entry in `CMakeCache.txt` between two `cmake`, as
+  `ccmake` does (no `-D`: only the value tells it from the default derived).
+  The entry has to say what the configuration uses. Where the compiler has no AVX-512 path (ARM), the default
   derived under `GAOL_PRESERVE_ROUNDING` is left out with a message that every
   `cmake` has to give, and `-DGAOL_PREFER_AVX512=ON` is an error each time;
   where it has one, the header differs too. The script takes

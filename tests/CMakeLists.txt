@@ -268,10 +268,12 @@ endif()
 # script that configures GAOL as the project built, several times in one
 # directory of the test, with the generator and the compilers that built it,
 # and compares what each derives or is given (prefer_avx512_reconfigure.cmake).
-# It runs everywhere: where the compiler has no AVX-512 path (ARM), it holds
-# the messages and the cache apart from the header. It configures a directory of
-# its own and builds nothing, so it needs not the lock of the compile tests,
-# which build in the directory of this build.
+# It runs where the system builds for itself and is Unix (the generator and the
+# compilers are passed as for cpack_stale_configure; not on Windows, not in a
+# cross-compilation), on every architecture: where the compiler has no AVX-512
+# path (ARM), it holds the messages and the cache apart from the header. It
+# configures a directory of its own and builds nothing, so it needs not the
+# lock of the compile tests, which build in the directory of this build.
 if(CMAKE_HOST_UNIX AND NOT CMAKE_CROSSCOMPILING)
   add_test(NAME prefer_avx512_reconfigure
     COMMAND "${CMAKE_COMMAND}"

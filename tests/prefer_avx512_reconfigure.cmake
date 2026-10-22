@@ -24,7 +24,10 @@
 #   - a request of ON, which stays too: it is taken where the compiler has the
 #     path, and refused with the message of CMakeLists.txt where it has not
 #     (ARM), the same at the next configure, which is then no default derived
-#     that leaves the path out without a message.
+#     that leaves the path out without a message;
+#   - the same request of ON made by editing the value of the entry in
+#     CMakeCache.txt between two configures, as ccmake and cmake-gui do, with
+#     no -D: only the value tells it from the default derived.
 #
 # Where the compiler has no AVX-512 path (ARM), the default derived under
 # GAOL_PRESERVE_ROUNDING is left out with a message, which every configure has
@@ -241,30 +244,56 @@ message(STATUS "-DGAOL_PREFER_AVX512=OFF equal to the default last derived, then
 
 # ---- A request of ON --------------------------------------------------------
 
+# What a request of ON without GAOL_PRESERVE_ROUNDING gives: taken where the
+# compiler has the path, an error where it has none, and the same at the next
+# cmake, which does not derive OFF and go on. <asked> and <again> are the
+# configurations that made the request and the one after it.
+function(check_request_on title asked asked_out again)
+  check_same("the cmake after ${title}" "${asked}" "${again}")
+  if(asked MATCHES "^status 0\n")
+    check_consistent("${title}" "${asked}" "${asked_out}")
+    if(NOT asked_out MATCHES "preferred: ON,")
+      message(FATAL_ERROR "${title}, without GAOL_PRESERVE_ROUNDING: the path should be preferred:\n${asked_out}")
+    endif()
+    if(_no_path)
+      message(FATAL_ERROR "${title} configured, where the default left the path out for want of one:\n${asked_out}")
+    endif()
+    message(STATUS "${title} without GAOL_PRESERVE_ROUNDING, and the next cmake: preferred, as expected")
+  else()
+    # CMake wraps the text of an error at its blanks
+    string(REGEX REPLACE "[ \t\r\n]+" " " _text "${asked_out}")
+    if(NOT _no_path OR NOT _text MATCHES "GAOL_PREFER_AVX512 takes the SSE2 intervals of x86-64")
+      message(FATAL_ERROR "${title} did not configure, and not for want of a path:\n${asked_out}")
+    endif()
+    message(STATUS "${title}, refused for want of an AVX-512 path, and the next cmake: the same, as expected")
+  endif()
+endfunction()
+
 # From a default derived under GAOL_PRESERVE_ROUNDING, the request of ON
-# without it: taken where the compiler has the path, an error where it has
-# none, and the same at the next cmake, which does not derive OFF and go on
+# without it
 configure_gaol(_unset _unset_out -UGAOL_PREFER_AVX512 -DGAOL_PRESERVE_ROUNDING=ON)
 check_same("-UGAOL_PREFER_AVX512 again" "${_first}" "${_unset}")
 configure_gaol(_asked _asked_out -DGAOL_PRESERVE_ROUNDING=OFF -DGAOL_PREFER_AVX512=ON)
 configure_gaol(_asked_again _asked_again_out)
-check_same("the cmake after -DGAOL_PREFER_AVX512=ON" "${_asked}" "${_asked_again}")
-if(_asked MATCHES "^status 0\n")
-  check_consistent("-DGAOL_PREFER_AVX512=ON" "${_asked}" "${_asked_out}")
-  if(NOT _asked_out MATCHES "preferred: ON,")
-    message(FATAL_ERROR "-DGAOL_PREFER_AVX512=ON, without GAOL_PRESERVE_ROUNDING: the path should be preferred:\n${_asked_out}")
-  endif()
-  if(_no_path)
-    message(FATAL_ERROR "-DGAOL_PREFER_AVX512=ON configured, where the default left the path out for want of one:\n${_asked_out}")
-  endif()
-  message(STATUS "-DGAOL_PREFER_AVX512=ON without GAOL_PRESERVE_ROUNDING, and the next cmake: preferred, as expected")
-else()
-  # CMake wraps the text of an error at its blanks
-  string(REGEX REPLACE "[ \t\r\n]+" " " _text "${_asked_out}")
-  if(NOT _no_path OR NOT _text MATCHES "GAOL_PREFER_AVX512 takes the SSE2 intervals of x86-64")
-    message(FATAL_ERROR "-DGAOL_PREFER_AVX512=ON did not configure, and not for want of a path:\n${_asked_out}")
-  endif()
-  message(STATUS "-DGAOL_PREFER_AVX512=ON, refused for want of an AVX-512 path, and the next cmake: the same, as expected")
+check_request_on("-DGAOL_PREFER_AVX512=ON" "${_asked}" "${_asked_out}" "${_asked_again}")
+
+# ---- A value edited in the cache --------------------------------------------
+
+# Between two configures, the value of the entry is changed in CMakeCache.txt,
+# as ccmake and cmake-gui do, or an editor: no -D, so the help string of the
+# command line is not there to tell it, and the entry holds another value than
+# the record of the default derived. From a default derived OFF (no
+# GAOL_PRESERVE_ROUNDING), it is edited to ON: a request, which is what a
+# request of ON gives and stays at the next cmake
+configure_gaol(_unset _unset_out -UGAOL_PREFER_AVX512 -DGAOL_PRESERVE_ROUNDING=OFF)
+file(READ "${_build}/CMakeCache.txt" _cache_text)
+string(REGEX REPLACE "(^|\n)(GAOL_PREFER_AVX512:BOOL=)[^\n]*" "\\1\\2ON" _edited_text "${_cache_text}")
+if("${_edited_text}" STREQUAL "${_cache_text}")
+  message(FATAL_ERROR "The edit of GAOL_PREFER_AVX512 in CMakeCache.txt changed nothing (the entry is not \"GAOL_PREFER_AVX512:BOOL=OFF\"):\n${_cache_text}")
 endif()
+file(WRITE "${_build}/CMakeCache.txt" "${_edited_text}")
+configure_gaol(_edited _edited_out)
+configure_gaol(_edited_again _edited_again_out)
+check_request_on("GAOL_PREFER_AVX512 edited to ON in CMakeCache.txt" "${_edited}" "${_edited_out}" "${_edited_again}")
 
 file(REMOVE_RECURSE "${GAOL_WORK_DIR}")
