@@ -18,7 +18,7 @@
 source=$(dirname "$0")/refused_options.cpp
 status=0
 
-case $($GAOL_CXX $GAOL_CXXFLAGS -dM -E "$source" 2>/dev/null) in
+case $($GAOL_CXX $GAOL_CXXFLAGS -dM -E -x c++ /dev/null 2>/dev/null) in
   *__GNUC__*) ;;
   *) echo "SKIP: neither GCC nor Clang"; exit 77 ;;
 esac
