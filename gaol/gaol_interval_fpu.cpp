@@ -86,8 +86,11 @@ double hausdorff(const interval &I1, const interval &I2)
     product, and went down a chain of up to eight tests for a quotient, which
     the processor mispredicted when the signs came at random (x * y of
     operands of random signs took 12.4 ns, and 3.3 ns of operands of one sign:
-    16 384 operands, Apple M2, AppleClang 21, FPU intervals). They work with
-    the rounding direction upward, on bounds read after its check
+    16 384 operands, Apple M2, AppleClang 21, FPU intervals). The price: a
+    line of products of operands of one sign, which a processor predicts, takes
+    1.5 times as long on the M2 and 1.7 with GCC on x86-64, each product
+    waiting for the largest of four (doc/using.md, The FPU intervals). They
+    work with the rounding direction upward, on bounds read after its check
     (gaol/gaol_fpu.h), and compare only bounds that are no NaN: the operators
     tell the empty set before the check, and no product that would be NaN (0
     times an infinite bound) is formed, the intervals with an infinite bound
