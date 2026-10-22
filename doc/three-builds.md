@@ -65,9 +65,10 @@ build, and the CMake build follows them, apart from the errors corrected (see
   `-ffp-contract=off` stays, which forbids the compiler to contract a
   multiplication and an addition into a fused one, as CORE-MATH asks;
 - with the AVX-512 path of `x + y`, `x - y`, `x * y`, `x / y`, `sqrt(x)`,
-  `sqr(x)` and the integer powers, asked for by `GAOL_PREFER_AVX512`
-  (`--enable-prefer-avx512`, `-Denable-prefer-avx512=true`), on by default
-  where the rounding direction is preserved, whose every operation the path relieves of the store of
+  `sqr(x)` and, with FMA, the integer powers beyond 1 and -1, asked for by
+  `GAOL_PREFER_AVX512` (`--enable-prefer-avx512`,
+  `-Denable-prefer-avx512=true`), on by default where the rounding direction
+  is preserved, whose every operation the path relieves of the store of
   that direction, and taken (`GAOL_AVX512_ARITHMETIC`) where the machine
   building runs the instructions, which is checked as for the fused
   multiply-add instructions, the path being left out when cross-compiling:
