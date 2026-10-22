@@ -130,16 +130,21 @@ GAOL 4.2.3, filib++,
 libieeep1788, PROFIL/BIAS, Solaris Studio, Boost.Interval and the doubles keep
 the times of the last whole run, which `results.csv` and `results_lines.csv`
 hold: the machine should be the one they were measured on (`machine.txt`),
-doing nothing else. The target exists on Linux and on macOS (GAOL v5: on Linux
-only before), where `run_perf.sh` names the processor with `sysctl`. `N`, `ROUNDS`,
-`REPEATS`, `OPS`, `CPU`, `WORK` (default: `perf` in the build directory) and
-`REPORT` apply as for `run_bench.sh`, and `LINE_LIST` as for `run_lines.sh` (the
-ten lines by default, `LINE_LIST=` for none):
+doing nothing else. With CMake and meson the target exists on Linux and on macOS
+(GAOL v5: on Linux only before); the `perf` of configure has never depended on
+the system, only on bash. `run_perf.sh` names the processor with `sysctl` where
+`/proc/cpuinfo` has none. `N`, `ROUNDS`, `REPEATS`, `OPS`, `WORK` (default:
+`perf` in the build directory) and `REPORT` apply as for `run_bench.sh`. `CPU`
+pins the programs with `taskset`, which macOS has not: there it is ignored, and
+the script says so (GAOL v5: it stopped, `taskset: command not found`).
+`LINE_LIST` names the long lines to run, as for `run_lines.sh`, but an empty
+`LINE_LIST` runs none here (`LINE_LIST=`), where `run_lines.sh` runs the ten:
 
 ```bash
-cmake -S . -B build && CPU=2 cmake --build build --target perf
+cmake -S . -B build && CPU=2 cmake --build build --target perf   # Linux: pinned on processor 2
 ./configure && make && CPU=2 make perf
 meson setup build && CPU=2 ninja -C build perf
+cmake -S . -B build && cmake --build build --target perf         # macOS: no taskset, no CPU
 ```
 
 `results.csv` is written by `run_bench.sh` after a whole run (all the
