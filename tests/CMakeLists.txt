@@ -299,7 +299,7 @@ endif()
 # the continuous integration prints: not a test ctest runs
 add_executable(gaol_performance performance.cpp)
 target_link_libraries(gaol_performance PRIVATE gaol::gaol)
-set_target_properties(gaol_performance PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
+set_target_properties(gaol_performance PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON)
 target_compile_options(gaol_performance PRIVATE ${GAOL_TESTS_OPTIONS})
 
 # The warning for a result thrown away, in each language standard (GAOL v5):
