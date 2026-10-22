@@ -364,6 +364,10 @@ jobs:
           # MXCSR alone (GAOL_RND_ENTER_SSE of gaol/gaol_fpu.h), which only the
           # jobs of Linux and clang-cl ran: this one runs it with GCC for Windows
           - { msystem: UCRT64,  packages: ucrt-x86_64,  cc: gcc,   cxx: g++,     opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'MSYS2 UCRT64 GCC x64, rounding direction preserved' }
+          # The same without the fused multiply-add instructions: __FMA__ is
+          # not defined, and every operation keeps the direction with
+          # fegetround() and fesetround(), as before GAOL_FMA gave -mfma
+          - { msystem: UCRT64,  packages: ucrt-x86_64,  cc: gcc,   cxx: g++,     opts: '-DGAOL_FMA=OFF -DGAOL_PRESERVE_ROUNDING=ON', desc: 'MSYS2 UCRT64 GCC x64, rounding direction preserved, no FMA' }
           - { msystem: CLANG64, packages: clang-x86_64, cc: clang, cxx: clang++, desc: 'MSYS2 CLANG64 Clang x64' }
     steps:
       - uses: actions/checkout@v7
@@ -381,7 +385,7 @@ jobs:
       # (CMakeLists.txt, point 110 of TODO.md), as the job above checks (GAOL
       # v5). Not Clang, which aligns its stack and gets -mfma alone
       - name: Fused multiply-add instructions, and no 256-bit register in the objects
-        if: matrix.cfg.cc == 'gcc'
+        if: matrix.cfg.cc == 'gcc' && !contains(matrix.cfg.opts, 'GAOL_FMA=OFF')
         run: sh .github/scripts/check-gcc-windows-fma.sh build
       - name: Tests (make test)
         run: cmake --build build --target test
