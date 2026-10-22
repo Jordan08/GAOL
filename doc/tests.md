@@ -1355,7 +1355,9 @@ double: a processor that takes a microcode assist for a subnormal operand or
 result shows it there (GAOL v5, point Q); with the NEON intervals, the check is
 the read of the control register FPCR with `mrs`, and it prints its time. It is
 not a test: the continuous integration prints its table in the summary of the
-jobs.
+jobs, and `performance.yml` runs it three times with the base of a pull request
+and three times with its head, in turn, and compares them (see
+[Continuous integration](continuous-integration.md#the-speed-of-a-pull-request)).
 
 `tests/tools/pow/` holds the tools that check a change of `pow` in
 `gaol/gaol_interval_core.cpp` (see [its README](../tests/tools/pow/README.md)).

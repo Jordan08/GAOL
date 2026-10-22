@@ -9,7 +9,9 @@ with `make test` (`cmake --build <build> --target test`, `RUN_TESTS` with
 Visual Studio). They run for each pull request, and for each push to the
 branches `master`, `MATH-CORE` and `configure-clean` only: a push to another
 branch runs nothing until it is proposed, which halves the jobs of a pull
-request (GAOL v5); `workflow_dispatch` runs them on any branch. The badges of
+request (GAOL v5); `workflow_dispatch` runs them on any branch. `performance.yml`
+is the exception: it runs for the pull requests that change what it measures
+only (see [The speed of a pull request](#the-speed-of-a-pull-request)). The badges of
 [README.md](../README.md) show their state on `configure-clean`. They build on:
 
 - **Linux:** Ubuntu 24.04 and 26.04 on x86_64 and arm64, with GCC and Clang,
@@ -102,7 +104,9 @@ Jobs of autotools and of meson on Ubuntu x86_64 build GAOL
 without exceptions (`--disable-exceptions`, `-Denable-exception=false`),
 where an error of GAOL ends the program, and run the examples and the tests,
 which leave out there the checks of an exception (GAOL v5). The jobs built in
-Release print the time per operation in their summary.
+Release print the time per operation in their summary, a table that no other run
+compares: `performance.yml` compares the base of a pull request with its head
+(see [The speed of a pull request](#the-speed-of-a-pull-request)).
 
 On 64-bit ARM processors the intervals are the NEON ones by default
 (`GAOL_ARM64`, `--enable-arm64`, `-Denable-arm64`; GAOL v5), so that the jobs of
@@ -169,6 +173,98 @@ what they print are compiled in C++11 with the GAOL that the job Ubuntu 24.04
 x86_64 GCC of `linux.yml` installs, at each run, so that a change of the
 library that changes one of their outputs shows, and have to print what the
 manual shows (`manual/check_examples.py`, GAOL v5).
+
+## The speed of a pull request
+
+The times of the continuous integration cannot be compared from one run to the
+next (GAOL v5). The runners are virtual machines shared with other jobs, whose
+speed changes by several times between two runs of the same code: `x * y` with
+Visual C++ x64 took 7.9 ns and then 16.3, and `sqrt` with MSYS2 and GCC 16
+6.8 ns and then 170. The step "Performance" of the jobs of `linux.yml`,
+`macos.yml`, `windows.yml`, `containers.yml` and `build-systems.yml` prints the
+table of `gaol_performance` in their summary (and never fails a job): it tells
+what a platform costs at that moment, and nothing else. Showing the best of
+several passes would not help: a pull request is to be compared with its base,
+which is not measured at the same moment.
+
+`performance.yml` measures two builds in turn, in the same job, so that what the
+runner does between two moments reaches both. It runs for a pull request that
+changes what is measured, not for one that changes the documentation: `gaol/`,
+`3rd/` (CORE-MATH), `tests/performance.cpp`, the files of the benchmark
+`doc/compare/code/bench*`, the files `CMakeLists.txt` and `cmake/`, and the two
+scripts and the workflow themselves. A job:
+
+1. checks out the merge commit of the pull request and its first parent, which
+   is the base it is merged into: the difference between the two is the pull
+   request alone, whatever the base branch has gained since the pull request
+   was started;
+2. configures both with CMake in Release and builds `gaol_performance` alone,
+   with the options of the job;
+3. runs `gaol_performance` three times with each build, the base first in the
+   first and third runs and the pull request first in the second
+   (`.github/scripts/performance-ab.sh`);
+4. writes in the summary of the job the table of the median of each row for the
+   base and for the pull request, their ratio (base over pull request: above 1,
+   the pull request is faster) and the spread of the runs, the largest ratio of
+   the slowest run to the fastest of either build
+   (`.github/scripts/compare-performance.py`).
+
+The jobs are Ubuntu 24.04 x86_64 with GCC, with Clang, and with GCC and the
+rounding direction preserved; macOS 26 arm64 (the NEON intervals); Visual
+Studio 2026 x64, x86, and x64 with the rounding direction preserved; and MSYS2
+UCRT64 (GCC) and CLANG64 (Clang). The other platforms are not compared, nor are
+the autotools and meson builds: the three builds give the same flags, which
+`.github/audit` checks.
+
+The table never fails a job because of a time. Only a difference of several
+times, on rows that share their code, means something on a shared runner, and a
+ratio within the spread of the runs is noise: under the table, the rows whose
+ratio is 2 or more, or 0.5 or less, and beyond the spread of the runs (for a
+spread of 3, a ratio of 0.5 is not listed, one of 0.25 is) are listed, or none
+is; a row of two times of 0 has no ratio, and a run of 0 makes the spread
+infinite. A job fails when a build or a program does, and when the tables cannot
+be compared: an output with no row, or no row common to the base and the pull
+request (the format of the output of `gaol_performance` changed), which
+`compare-performance.py` says and fails on. The comparison has its test, which
+needs Python alone and runs first in each job, before the builds
+(`.github/scripts/test-performance-tools.py`): tables made for the purpose,
+with rows on one side only, a `|` in a name, one run, times of 0, empty outputs
+and the spread, and `processor_name()` of `doc/compare/code/run_perf.sh` with
+other `/proc/cpuinfo` (not on Windows). It fails if the median is replaced by
+the mean or the threshold is inverted.
+
+On Linux, macOS and with Visual Studio the job also runs the ten long lines of
+`doc/compare/code/run_lines.sh` with `gaol_bench`, the program of the benchmark
+(the CMake target `gaol_bench`, which `make perf` builds too): 200 000 intervals
+drawn by `bench.py` (Python 3 with numpy, which the script installs with pip
+where it is missing), 3 repeats of each line, 3 runs of each build, and a second
+table under the first. Both builds are tried: the lines are left out, with a
+warning of the job, where one of them has no `gaol_bench` that builds (on macOS
+and Windows, a base older than the target: the head is built all the same, so
+that Visual C++ compiles `gaol_bench` from the first pull request) or numpy
+cannot be installed, and that table is a notice, not an error, where it cannot
+be made. `make perf` runs the same ten lines (see
+[doc/compare/code/README.md](compare/code/README.md)).
+
+The job `control-register-performance` of `containers.yml` (Debian 13 armhf and
+arm64) uses the same scripts to compare two builds of one tree that differ by a
+CMake option: the control register of the rounding direction written directly
+with `GAOL_PRESERVE_ROUNDING`, or the functions of the C library, and only the
+rows that the register can change.
+
+The same comparison runs anywhere with CMake, a C++ compiler and, for the long
+lines, Python 3 with numpy:
+
+```sh
+sh .github/scripts/performance-ab.sh --before-src ../base --after-src . --lines
+python3 .github/scripts/compare-performance.py base perf-before-1.md perf-before-2.md perf-before-3.md \
+  -- PR perf-after-1.md perf-after-2.md perf-after-3.md
+python3 .github/scripts/compare-performance.py base perf-lines-before-1.csv perf-lines-before-2.csv perf-lines-before-3.csv \
+  -- PR perf-lines-after-1.csv perf-lines-after-2.csv perf-lines-after-3.csv
+```
+
+(`--options` and `--before-options` give CMake options to both builds or to the
+base alone; the script describes them all.)
 
 ## Configurations refused or left out, and why
 

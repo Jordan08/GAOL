@@ -11,6 +11,9 @@
     bench.py lines-report RESULTS.csv MACHINE.txt REPORT.md
         writes the tables of the long lines (run_lines.sh) between their own
         markers at the end of REPORT.md
+    bench.py line-names
+        prints the names of the long lines, separated by commas, as the programs
+        take them (run_perf.sh, .github/scripts/performance-ab.sh)
     bench.py merge OLD.csv NEW.csv OUT.csv
         writes the rows of OLD.csv that NEW.csv has no row for, then those of
         NEW.csv (MERGE=1 of run_bench.sh)
@@ -395,6 +398,8 @@ if __name__ == "__main__":
         report(sys.argv[2], sys.argv[3], sys.argv[4])
     elif len(sys.argv) == 5 and sys.argv[1] == "lines-report":
         lines_report(sys.argv[2], sys.argv[3], sys.argv[4])
+    elif len(sys.argv) == 2 and sys.argv[1] == "line-names":
+        print(",".join(name for name, _, _ in LINES))
     elif len(sys.argv) == 5 and sys.argv[1] == "merge":
         merge(sys.argv[2], sys.argv[3], sys.argv[4])
     elif len(sys.argv) == 7 and sys.argv[1] == "merge-machine":

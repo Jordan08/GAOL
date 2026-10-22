@@ -667,11 +667,15 @@ if (build_tests or build_examples) and not meson.is_subproject()
 endif
 
 # make perf, as with CMake and configure: GAOL v5 measured on the benchmark of
-# doc/compare/performance.md, whose tables get its new times (see
-# doc/compare/code/run_perf.sh). Linux only, as the benchmark, and not with
-# enable-debug, which would measure GAOL built for debugging (GAOL v5).
+# doc/compare/performance.md, whose tables, the operations and the ten long
+# lines of doc/compare/code/run_lines.sh, get its new times (see
+# doc/compare/code/run_perf.sh). Linux and macOS, with bash, and not with
+# enable-debug, which would measure GAOL built for debugging (GAOL v5). The
+# program, gaol_bench, is a target of its own, not built by default, on every
+# system, as with CMake and configure, where .github/scripts/performance-ab.sh
+# builds it.
 bash = find_program('bash', required: false)
-if host_machine.system() == 'linux' and bash.found() and not get_option('enable-debug')
+if not get_option('enable-debug')
   bench_dir = meson.current_source_dir() + '/doc/compare/code'
   gaol_bench = executable('gaol_bench', bench_dir + '/bench_gaol.cpp',
     include_directories: include_directories('.', 'doc/compare/code'),
@@ -679,10 +683,12 @@ if host_machine.system() == 'linux' and bash.found() and not get_option('enable-
     link_with: gaollib_static,
     dependencies: deps,
     build_by_default: false)
-  run_target('perf',
-    command: [bash, bench_dir + '/run_perf.sh', gaol_bench.full_path(),
-              'meson ' + get_option('buildtype'), ' '.join(cpp_comp.cmd_array())],
-    depends: gaol_bench)
+  if host_machine.system() in ['linux', 'darwin'] and bash.found()
+    run_target('perf',
+      command: [bash, bench_dir + '/run_perf.sh', gaol_bench.full_path(),
+                'meson ' + get_option('buildtype'), ' '.join(cpp_comp.cmd_array())],
+      depends: gaol_bench)
+  endif
 endif
 
 # make parser, as with CMake and configure: the lexer and the parser
