@@ -385,8 +385,12 @@ and the sign of its zero bounds, where the integer power made its square from
 exact products, the same bounds in a longer time and, for some intervals
 holding 0, a zero bound of the other sign (see
 [Accuracy of the operations](accuracy.md)). The exception flags it raises are
-`sqr(x)`'s too, and `pow(x, 2)` of the empty set leaves the rounding direction
-as the program had it, as `sqr` does, where it set it upward (see
+`sqr(x)`'s too. For the empty set, `pow(x, 2)`, `pow(x, 2u)` and
+`gaol_ieee1788::pown(x, 2)` return as `sqr` does, before any check, and leave
+the rounding direction as the program had it, where `pow(x, 2.0)`,
+`pow(x, [2])`, `gaol_ieee1788::pow(x, [2])` and `gaol_pown_ll(x, 2)` check it
+first and leave it upward: a program does not count on the direction after an
+operation that computes no bound (see
 [The rounding direction](#the-rounding-direction)).
 
 The rest of GAOL follows the same split:
