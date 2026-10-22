@@ -60,9 +60,9 @@ python=${PYTHON:-python3}
 config=${CONFIG:-Release}
 jobs=${JOBS:-4}
 # The intervals of the long lines, and the repeats of each: run_lines.sh draws
-# 10^6 and repeats 5 times. A fifth of the intervals and 3 repeats rank two
-# builds as well, and keep six runs short where a line takes 1.2 us (Visual C++
-# for 32-bit x86, 13 operations)
+# 10^6 and repeats 5 times; here 200 000 and 3, to keep the six runs short (a
+# choice: it was not compared with 10^6). On an Apple M2 this part, with the
+# build of gaol_bench in both trees, took about 5 s.
 lines_n=200000
 lines_repeats=3
 
