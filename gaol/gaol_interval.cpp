@@ -62,14 +62,12 @@ namespace gaol {
       err_msg += gaol_detail::text_in_message(sl);
       GAOL_ERRNO = -1;
       gaol_ERROR(input_format_error,err_msg.c_str());
-      return interval::emptyset();
     }
     if (!gaol_core::gaol_parse_string(sr.data(), sr.size(), tmpr, gaol_core::parsing_names::gaol)) {
       std::string err_msg("Syntax error in right bound initialization: ");
       err_msg += gaol_detail::text_in_message(sr);
       GAOL_ERRNO = -1;
       gaol_ERROR(input_format_error,err_msg.c_str());
-      return interval::emptyset();
     }
     // An empty one gives the empty set, from its NaN bounds, which the
     // constructor tells with a quiet comparison (GAOL v5: it was told first,
