@@ -3902,27 +3902,28 @@ int main()
     the direction themselves and restore_rounding() does nothing.
   */
 #if !GAOL_PRESERVE_ROUNDING
+  gaol::restore_rounding();
+  const State after_restore = state();
+  check("rounding direction set back to nearest by gaol::restore_rounding()", after_restore == to_nearest,
+        [&] { return text(after_restore); });
+  const interval back = interval(1.0) + interval(1.0);   // sets the direction upward again
+  static_cast<void>(back);
+  const State after_operation = state();
 #if GAOL_TESTS_X87_STATE
+  // The first call changes MXCSR, upward after the addition, back to nearest
   raise_all_flags();
 #endif
   gaol::restore_rounding();
 #if GAOL_TESTS_X87_STATE
   const unsigned csr_after_restore = static_cast<unsigned>(_mm_getcsr());
 #endif
-  const State after_restore = state();
-  check("rounding direction set back to nearest by gaol::restore_rounding()", after_restore == to_nearest,
-        [&] { return text(after_restore); });
+  gaol::restore_rounding();
+  const State after_twice = state();
 #if GAOL_TESTS_X87_STATE
   check("the SSE exception flags kept by gaol::restore_rounding()", (csr_after_restore & 0x3fu) == 0x3fu,
         [&] { return "MXCSR " + std::to_string(csr_after_restore) + " after it"; });
   std::feclearexcept(FE_ALL_EXCEPT);
 #endif
-  const interval back = interval(1.0) + interval(1.0);   // sets the direction upward again
-  static_cast<void>(back);
-  const State after_operation = state();
-  gaol::restore_rounding();
-  gaol::restore_rounding();
-  const State after_twice = state();
   /* Where GAOL_AVX512_ARITHMETIC is (GAOL_PREFER_AVX512, and a machine
      building that runs the AVX-512 instructions), the addition takes the
      embedded rounding: it sets no direction, and the one the program left
