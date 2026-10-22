@@ -60,9 +60,13 @@ request (GAOL v5); `workflow_dispatch` runs them on any branch. The badges of
   - MinGW-w64 15 on x86 and x64, Release and Debug (SSE2 intervals on both,
     `-faligned-new=8` on x86, which a step checks; GAOL v5), 14 on x86 and x64, 12 and
     13 on x86;
-  - MSYS2 UCRT64 (GCC, and GCC again with `GAOL_PRESERVE_ROUNDING`: `-mfma`
-    defines `__FMA__` there, so that the rounding direction goes through MXCSR
-    alone, which only Linux and clang-cl ran; GAOL v5) and CLANG64 (Clang);
+  - MSYS2 UCRT64 (GCC, and GCC again with `GAOL_PRESERVE_ROUNDING`, with and
+    without `GAOL_FMA`: with `-mfma`, `__FMA__` is defined, so that the rounding
+    direction goes through MXCSR alone, which only Linux and clang-cl ran, and
+    mingw-w64 13 and later read it with a `fegetround()` that joins the two
+    units and set it with a `fesetround()` that clears the exception flags,
+    which GAOL does not call there; GAOL v5) and CLANG64 (Clang, and Clang
+    again with `GAOL_PRESERVE_ROUNDING`, which takes `-mfma` and the same path);
   - With GCC on x64, in Release, MinGW-w64 15 and 14 and MSYS2 UCRT64, a step
     reads the objects with `objdump` (`.github/scripts/check-gcc-windows-fma.sh`,
     GAOL v5): `gaol_interval_core.cpp` and the `cos` of CORE-MATH have to hold

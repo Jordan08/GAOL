@@ -1299,6 +1299,18 @@ control word, 0x4000 in MXCSR), not the `FE_*` constants of `<fenv.h>`, which
 are 0x0400 and 0x0800 for downward and upward with glibc and 0x0100 and 0x0200
 with the C runtime of Windows.
 
+mingw-w64 on x86-64 (MinGW-w64 of Chocolatey, MSYS2; GAOL v5) has the two units
+too, and GAOL reads and writes their registers itself there, as above, where it
+restores a direction (`GAOL_PRESERVE_ROUNDING`, `gaol::cleanup()`,
+`gaol::restore_rounding()`, and the operations that set the direction to nearest
+and back: `midpoint()`, `chi()`, the writing and the reading of an interval),
+rather than call `fegetround()` and `fesetround()`: from mingw-w64 13, the first
+joins the fields RC of the two units by OR, which is the direction of neither
+where they differ (`FE_DOWNWARD | FE_UPWARD` is `FE_TOWARDZERO`), and the
+second clears the six exception flags of MXCSR when it changes its value, so
+that the program's flags were lost. The register that differs is written only,
+with `fldcw` or `ldmxcsr`, which keep the flags.
+
 ## Flush-to-zero and denormals-are-zero
 
 Processors have modes that flush the subnormal numbers, those below 2^-1022 in

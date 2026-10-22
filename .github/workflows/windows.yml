@@ -362,13 +362,23 @@ jobs:
           # With -mfma (GAOL_FMA, GAOL v5) GCC for Windows defines __FMA__, and
           # GAOL_PRESERVE_ROUNDING then keeps the rounding direction through
           # MXCSR alone (GAOL_RND_ENTER_SSE of gaol/gaol_fpu.h), which only the
-          # jobs of Linux and clang-cl ran: this one runs it with GCC for Windows
+          # jobs of Linux and clang-cl ran: this one runs it with GCC for Windows.
+          # mingw-w64 13 and later read the direction with a fegetround() that
+          # joins the x87 unit and MXCSR, and set it with a fesetround() that
+          # clears the exception flags: GAOL reads and writes the registers
+          # itself there (GAOL_RND_MINGW64_X87, point 110 of TODO.md)
           - { msystem: UCRT64,  packages: ucrt-x86_64,  cc: gcc,   cxx: g++,     opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'MSYS2 UCRT64 GCC x64, rounding direction preserved' }
           # The same without the fused multiply-add instructions: __FMA__ is
-          # not defined, and every operation keeps the direction with
-          # fegetround() and fesetround(), as before GAOL_FMA gave -mfma
+          # not defined, and the operations that are not SSE2 ones (the
+          # elementary functions, midpoint()...) keep the direction with the
+          # generic macros, as before GAOL_FMA gave -mfma
           - { msystem: UCRT64,  packages: ucrt-x86_64,  cc: gcc,   cxx: g++,     opts: '-DGAOL_FMA=OFF -DGAOL_PRESERVE_ROUNDING=ON', desc: 'MSYS2 UCRT64 GCC x64, rounding direction preserved, no FMA' }
           - { msystem: CLANG64, packages: clang-x86_64, cc: clang, cxx: clang++, desc: 'MSYS2 CLANG64 Clang x64' }
+          # Clang for Windows has taken -mfma since GAOL_FMA exists, so that
+          # __FMA__ is defined there and the direction is kept through MXCSR
+          # alone: the same configuration as the GCC entry above, with the same C
+          # runtime (the step that counts the instructions is GCC's)
+          - { msystem: CLANG64, packages: clang-x86_64, cc: clang, cxx: clang++, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'MSYS2 CLANG64 Clang x64, rounding direction preserved' }
     steps:
       - uses: actions/checkout@v7
       - uses: msys2/setup-msys2@v2
