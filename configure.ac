@@ -401,13 +401,13 @@ AC_ARG_ENABLE(preserve-rounding,
 if test "${preserve_rounding}" = yes; then
    AC_DEFINE([GAOL_PRESERVE_ROUNDING],1,[define this to 1 if rounding direction should be preserved])
 fi
-# --enable-prefer-avx512: the AVX-512 path of +, -, *, /, sqr, sqrt and the
-# integer powers, as CMakeLists.txt and meson.build take it (see
-# CMakeLists.txt). The compiler has to accept its instructions in a function
-# with __attribute__((target("avx512f"))) and __builtin_cpu_supports(), which
-# GCC and Clang on x86-64 do, but GCC for Windows, which does not align the
-# stack for AVX-512 (see CMakeLists.txt): no flag, the attribute is per
-# function.
+# --enable-prefer-avx512: the AVX-512 path of +, -, *, /, sqr, sqrt and, with
+# FMA, the integer powers beyond 1 and -1, as CMakeLists.txt and meson.build
+# take it (see CMakeLists.txt). The compiler has to accept its instructions in
+# a function with __attribute__((target("avx512f"))) and
+# __builtin_cpu_supports(), which GCC and Clang on x86-64 do, but GCC for
+# Windows, which does not align the stack for AVX-512 (see CMakeLists.txt): no
+# flag, the attribute is per function.
 # On by default where --enable-preserve-rounding is, the path sparing the
 # store of the rounding direction every operation pays; what the command line
 # gave wins either way, --disable-prefer-avx512 refusing the path under
@@ -417,7 +417,7 @@ fi
 # (GAOL_AVX512_ARITHMETIC below; GAOL v5).
 AC_ARG_ENABLE(prefer-avx512,
             [AS_HELP_STRING([--enable-prefer-avx512],
-                            [have +, -, *, /, sqr, sqrt and the integer powers take the AVX-512 instructions and the rounding direction they carry in themselves, which sets no rounding direction, where the machine building runs them; the library then needs a processor with them @<:@default=as preserve-rounding@:>@])],
+                            [have +, -, *, /, sqr, sqrt and, with FMA, the integer powers beyond 1 and -1 take the AVX-512 instructions and the rounding direction they carry in themselves, which sets no rounding direction, where the machine building runs them; the library then needs a processor with them @<:@default=as preserve-rounding@:>@])],
             [prefer_avx512=${enable_prefer_avx512}; prefer_avx512_explicit=yes],
             [prefer_avx512=${preserve_rounding}; prefer_avx512_explicit=no])
 have_avx512_target=no
@@ -455,18 +455,19 @@ if test "${prefer_avx512}" = yes; then
         # or the architecture takes no path: the operations keep setting
         # the direction upward and giving it back, as a build with
         # --enable-preserve-rounding always did (GAOL v5)
-        AC_MSG_NOTICE([no AVX-512 path of +, -, *, /, sqr, sqrt and the integer powers: the operations keep setting the rounding direction upward])
+        AC_MSG_NOTICE([no AVX-512 path of +, -, *, /, sqr, sqrt and, with FMA, the integer powers beyond 1 and -1: the operations keep setting the rounding direction upward])
         prefer_avx512="no"
     else
         AC_DEFINE([GAOL_PREFER_AVX512],1,
-            [Define this to 1 to ask for the AVX-512 path of +, -, *, /, sqr, sqrt and the integer powers])
+            [Define this to 1 to ask for the AVX-512 path of +, -, *, /, sqr, sqrt and, with FMA, the integer powers beyond 1 and -1])
     fi
 fi
-# GAOL_AVX512_ARITHMETIC: +, -, *, /, sqr, sqrt and the integer powers take
-# the AVX-512 path, as CMakeLists.txt decides it: --enable-prefer-avx512, a
-# compiler that takes the path, and a machine building that runs it, never
-# when cross-compiling. The library then needs a processor with the AVX-512
-# instructions, and the operations test nothing as they run (GAOL v5)
+# GAOL_AVX512_ARITHMETIC: +, -, *, /, sqr, sqrt and, with FMA, the integer
+# powers beyond 1 and -1 take the AVX-512 path, as CMakeLists.txt decides it:
+# --enable-prefer-avx512, a compiler that takes the path, and a machine
+# building that runs it, never when cross-compiling. The library then needs a
+# processor with the AVX-512 instructions, and the operations test nothing as
+# they run (GAOL v5)
 avx512_arithmetic=no
 if test "${prefer_avx512}" = yes; then
     AC_LANG_PUSH([C++])
@@ -485,7 +486,7 @@ return __builtin_cpu_supports("avx512f") != 0 && er_add(one, tiny) > 1.0 ? 0 : 1
     AC_LANG_POP([C++])
     if test "${avx512_arithmetic}" = yes; then
         AC_DEFINE([GAOL_AVX512_ARITHMETIC],1,
-            [Define this to 1 where +, -, *, /, sqr, sqrt and the integer powers take the AVX-512 path])
+            [Define this to 1 where +, -, *, /, sqr, sqrt and, with FMA, the integer powers beyond 1 and -1 take the AVX-512 path])
     else
         AC_MSG_NOTICE([the AVX-512 path left out: this machine does not run the AVX-512 instructions, or GAOL is cross-compiled])
     fi
