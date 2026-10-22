@@ -95,7 +95,15 @@ point Q), which `numbers` checks there too.
   powers for n from 2^24 + 1 to 2^32 − 1 have to be the tightest enclosures,
   against bounds computed with mpmath: the lower bound left out the square of
   the rest it carries, and was 1962 doubles below the tightest for
-  `pow([1.0000001], 2^32 − 1)`. The operators of an interval
+  `pow([1.0000001], 2^32 − 1)`. The n-th roots of x below 2^-1020, the
+  subnormal x included, have to be as tight as those of the other x: within 2
+  doubles of the tightest bounds (4 for `rootn(x, q)`, q < 0, the inverse of a
+  root) for n = 4, 5, 33, 65, 129 and 1025 against exact arithmetic and for n
+  up to 2^32 − 1 against mpmath, and the root of an x that is an n-th power
+  (n = 4, 5, 6, 11, 16 and 179) has to be that double: the proofs took
+  subnormal powers, and `nth_root([2^-1074], 33)` was 1983 doubles below its
+  tightest lower bound (GAOL v5, point AC).
+  The operators of an interval
   with a double have to give, on bounds and doubles of special values (zeros of
   both signs, infinities, NaN), the sets the operators with `interval(d)` give.
   Products of intervals with zero and infinite bounds have to be the hull of
