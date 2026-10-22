@@ -112,7 +112,8 @@ namespace gaol_core {
     "1~[., 0.]" and [1, 2] "~[1., 2.]", and every interval with a negative or
     zero bound in the bounds format). A point interval is output as a single
     number, without the brackets: interval(4.0) is "4.000000000000000",
-    where the bounds format writes "[4]".
+    where the bounds format writes "[4]"; a zero is output "[0]" in every
+    format.
 
     The empty set is output "[empty]" in every format (GAOL v5: the formats
     width and center wrote "empty", which is no literal of IEEE 1788-2015,

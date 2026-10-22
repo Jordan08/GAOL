@@ -1950,7 +1950,7 @@ For the same reason, \code{gaol::sin(0.5)} does not compile: it is written
 C. Writing code inside \code{namespace gaol \{\}} has the same effect: the
 using-declarations of \code{gaol} are visible there, a call \code{sqrt(2.0)}
 finds \code{gaol::sqrt}, which hides \code{::sqrt}, and does not compile. This
-was already the case with GAOL~4.\newinvfive
+was already the case with GAOL~4.
 
 \subsection{Midpoint and radius}
 %%..............................
@@ -5103,7 +5103,8 @@ digits of every interval whose right bound is at most ten times the left one,
 \code{\textasciitilde[-0., 0.]}, and printed every interval with a negative
 bound with its bounds. A point interval is printed as a single number,
 without the brackets: \code{interval(4.0)} is \code{4.000000000000000},
-where the format \element{bounds} prints \code{[4]}.
+where the format \element{bounds} prints \code{[4]}; a zero is printed
+\code{[0]} in every format.
 \begin{example}
  interval::format(interval_format::agreeing);
  std::cout << interval(4,6) << ' ' << interval(1.25,1.2567) << ' '
