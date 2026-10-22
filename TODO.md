@@ -1072,3 +1072,68 @@ sans l'accord explicite du mainteneur.
 92 : AE ; 94 : AE ; 95 : AE ; 105 : AH ; 106 : AI ; 108 : AI ; 109 : AI ;
 110 : AI ; 111 : AI ; 112 : AI ; 113 : AJ ; 115 : AI ; 116 : AI ; 117 : AL ;
 119 à 123 : AL ; 125 : AM.
+
+## Réponses du mainteneur, 22 octobre 2026
+
+Réponses aux seize questions restées sans réponse dans les descriptions des 20
+dernières pull requests fusionnées (#122 à #158), dans les sections « Remarqué
+par …, à trier » ci-dessus et dans les points 46 (F), 26 (W), 111, 113 (AJ),
+115, 121 et 125 (AM). Les rangs et les groupes du haut sont à mettre à jour en
+conséquence.
+
+- **Q1 (QI, PR #157, noyaux FPU)** : mesurer d'abord. Ne pas fusionner le
+  produit tel quel ; lancer les mesures du produit sur armhf (conteneur Debian,
+  vrai ARM 32 bits VFPv4), POWER, s390x et RISC-V avant de décider. La pull
+  request reste en brouillon.
+- **Q2 (QB, 121)** : ajouter `.continue/` au `.gitignore`.
+- **Q3 (QC, 125 AM)** : clos. `GAOL_SIZEOF_INT` et `GAOL_SIZEOF_LONG_LONG_INT`
+  ont déjà des valeurs par défaut dans `gaol/gaol_config.h` (4 ou 8 selon
+  `UINT_MAX`, 8 selon `ULLONG_MAX`) ; les trois gabarits de configuration ne les
+  définissent pas, et l'en-tête installé suffit. Retirer le point 125.
+- **Q4 (QH, 46 F, #64)** : garder un intervalle par ligne (comportement actuel,
+  documenté). Pas de changement d'`operator>>`.
+- **Q5 (QH, 26 W, #67)** : rien pour l'instant. GAOL reste un intervalle nu ;
+  les pièges sont documentés (faits par #140). Reporter indéfiniment.
+- **Q6 (QD, 111 et 115 AI)** : mesurer par la CI deux builds alternés dans le
+  même job (par exemple `configure-clean` et la branche), comme `doc/compare`
+  alterne ses programmes.
+- **Q7 (QE, 113 AJ)** : non, après v5.0.0. L'étude des noyaux au plus proche est
+  reportée après la version ; le comportement actuel (changement du sens
+  d'arrondi) est documenté.
+- **Q8 (QJ, #156, x86 32 bits)** : tout oui. (a) Lire MXCSR en ligne dans
+  CORE-MATH sur x86 32 bits (`gaol/core_math_port.h` comme sur x86-64). (b)
+  Ajouter un test de `x86_registers::read_control()`. (c) Garder le job
+  « Visual Studio 2026 x86 Release » avec la direction préservée. (d) Ajouter
+  l'outil de mutation et l'émulateur au dépôt (`tests/tools/`). (e) Retirer le
+  chemin de repli `fegetround()` (code mort aujourd'hui).
+- **Q9 (QJ, #155, process.md)** : (a) Oui, une phrase plus courte à la place du
+  paragraphe retiré du §6.1. (b) Non, garder « 4 cœurs au plus » au §3.3 sans
+  ligne pour `GAOL_V9/GAOL`. (c) Mettre une date et un commit dans l'en-tête de
+  `process.md`, au lieu du renvoi au §12.
+- **Q10 (QJ, #154)** : les deux oui. (a) Durcir `sqrt_bounds()` par un masque
+  sur le bit de signe (FPCR.AH / FEAT_AFP), en une pull request à part, validé
+  sur une copie. (b) Faire `pow(x, 2)` par `sqr` (environ 6 fois plus rapide sur
+  cette opération).
+- **Q11 (QJ, #151)** : garder la correction élargie. Le Fast2Sum corrige aussi
+  la somme finie à mi-chemin de deux doubles, de même cause ; c'est mieux que la
+  formule stricte du TODO.
+- **Q12 (QJ, #149)** : garder pour tous (actuel). Le contexte garde le texte de
+  chaque nombre qui n'est pas un double ; le coût est connu et documenté, et la
+  comparaison exacte est un plus.
+- **Q13 (QJ, #147)** : lever une erreur de GAOL comme une mauvaise lecture du
+  parser. `textToInterval(nullptr)`, `gaol_ieee1788::textToInterval(nullptr)` et
+  `exactToInterval(nullptr)` doivent lever `input_format_error` (ou une
+  `gaol_error`) pour un pointeur nul, sans passer par la construction
+  indéfinie d'un `std::string`.
+- **Q14 (QJ, #146, arm64)** : (a) Oui, porter le noyau empaqueté de `pown`
+  (`GAOL_POWN_PACKED`) sur arm64, 150 lignes d'intrinsiques, gain ~1,5x. (b)
+  Non, pas de test comparant les bits du signe d'un zéro. (c) Non, pas de jobs
+  Clang 15 à 17 ni GCC 9 à 10 sur arm64, pas de test `mrs`/`msr` sur Neoverse.
+- **Q15 (QJ, #124, noyaux SSE2)** : (a) Mettre les noyaux exportés
+  (`add_bounds()`, `sub_bounds()`, `mul_bounds()`, `div_bounds()`,
+  `sqr_bounds()`) dans `gaol_detail`. (b) Garder le plus rapide (le signe des
+  zéros diffère, c'est documenté). (c) Non, ne pas modifier `3rd/math-core`
+  pour passer le sens d'arrondi en paramètre.
+- **Q16 (QI, branches)** : garder les deux. `todo-ai-msvc-avx512` (sans pull
+  request, semblant remplacée par #148) et `todo-fpcr-gcc-hoisting` (branche de
+  #153, fermée sans fusion, correction dans #150) restent sur GitHub.
