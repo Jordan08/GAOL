@@ -31,3 +31,6 @@ build/*
 */*.loTAGS
 */*.loTAGS.tmp
 */*/build
+
+# The rules of the Continue extension of the editor, written back in local
+.continue/
