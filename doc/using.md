@@ -1278,8 +1278,9 @@ with `-faligned-new=8`, unless the compiler does not take the flag, and so does
 Visual C++, clang-cl and MinGW-w64 (the NEON intervals are for Linux and macOS,
 with GCC and Clang); and of the builds that ask for them (`-DGAOL_SIMD=OFF` on
 x86, `-DGAOL_ARM64=OFF` on 64-bit ARM, which leave `GAOL_USING_SSE2_INSTRUCTIONS`
-and `GAOL_USING_NEON_INSTRUCTIONS` at 0 in `gaol_configuration.h`). What is
-measured below is the Apple M2 only.
+and `GAOL_USING_NEON_INSTRUCTIONS` at 0 in `gaol_configuration.h`). The first
+measurements below are those of an Apple M2 with AppleClang; the processors of
+the continuous integration come after them.
 
 `x * y`, `x / y` and `x % y` of a divisor without zero, and `sqr(x)` take no
 branch on the signs of the bounds in the source (GAOL v5): GAOL 4 took one of
@@ -1329,7 +1330,7 @@ other operands. On 100 000 intervals centred at random (the benchmark of
 
 A line of products of operands of one sign, which a processor predicts, takes
 **more** time: 7 products in a line took 23.8 ns and take 35.8 (23.7 and 35.2
-in the benchmark of `doc/compare`, `pos_mul8`). Each product waits for the one
+in the benchmark of `doc/compare`, `pos_mul8`; Apple M2). Each product waits for the one
 before it, and the largest of four products waits for its products and for two
 comparisons, where one product on a predicted branch waits for one. The
 maximum of 64-bit ARM (`fmax`, one instruction, which ranks +0 above −0) would
@@ -1349,6 +1350,51 @@ before it, with the direction upward. That is how the compilers treat it (GCC
 language, and no test holds it: `GAOL_RND_KEEP()` would make it one, for 2.6 ns
 more with `GAOL_PRESERVE_ROUNDING`, and the former product and `x + y` did
 without.
+
+The processors and compilers of the continuous integration that take the FPU
+intervals were measured in turn too (GAOL v5; run 39817973814 of GitHub
+Actions, on an experiment branch that is not to be merged): each job builds the
+code before the kernels (`c89c2ac`) and after them (`711ec1a`), and runs
+`gaol_performance` five times with each, alternately, with the tools of
+`.github/scripts/performance-ab.sh` and `compare-performance.py`. The compilers
+are GCC 13.3 and Clang 18.1 on Ubuntu 24.04 for x86-64 (`-DGAOL_SIMD=OFF`), GCC
+14.2 on Debian 13 for 32-bit ARM, run natively on an arm64 runner, Visual C++
+19.51 for x86 and arm64, clang-cl 22.1 for x86 and arm64, and AppleClang 21 on
+macOS 26 (`-DGAOL_ARM64=OFF`). The table gives the ratio of the median before
+the kernels to the median after them, so that a ratio above 1 means that the
+kernels are faster, and, in parentheses, the spread of the five runs where it
+exceeds 1.15 (the ratio is then noise, as it is on the macOS runner); the
+ratios below 0.9 of a stable row are in bold. These are figures of shared
+runners, of one run:
+
+| | Ubuntu GCC 13 | Ubuntu Clang 18 | armhf GCC 14 | VS x86 | VS x86, direction preserved | VS arm64 | clang-cl x86 | clang-cl arm64 | macOS FPU |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| `x * y` | 1.29 | 1.18 | 1.41 | 1.68 (1.16) | 1.18 | 1.53 | 1.06 | **0.77** | 0.92 (2.71) |
+| `x * y`, random signs | 1.64 | 1.67 | 2.28 | 3.47 | 1.64 (1.18) | 2.41 | 1.23 | 1.75 | 1.98 (1.93) |
+| `x / y` | 1.25 | 1.47 | 1.63 | 1.11 | 1.02 (1.42) | **0.82** | 1.24 | 1.29 | 1.13 (1.49) |
+| `sqr(x)` | 1.09 | **0.85** | 1.17 | 1.39 | 1.09 (1.21) | 2.36 | 1.06 | **0.84** | 1.03 (1.30) |
+| `x - y` | 1.02 | 0.99 | **0.86** | 1.06 | 1.02 (1.37) | 1.08 (1.16) | 1.04 | 1.01 | 2.49 (1.52) |
+| line of 7 `*` | **0.58** | 0.98 | 1.11 | 1.43 | 1.18 | 1.71 | 1.04 | **0.57** | 0.60 (1.62) |
+| line of 7 `/` | 1.13 | 1.05 | 1.25 | 1.16 | 1.04 | 1.05 | 1.16 | 1.24 | 1.04 (1.40) |
+| line of 13 `+ - * /` | **0.76** | 1.01 | 1.04 | 1.22 (1.75) | **0.53** | 1.41 | 1.05 | **0.86** | 0.83 (1.95) |
+
+The product wins where the signs are random (1.23 to 3.47 times) and, alone, of
+positive operands on 32-bit ARM, Visual C++ and Ubuntu. It loses on the lines of
+products of positive operands with GCC on Linux (0.58 for the line of 7 `*`,
+that is 1.7 times slower, where the Apple M2 above gives 23.8 and 35.8 ns, 1.5
+times) and with clang-cl for arm64 (0.57), and alone with clang-cl for arm64
+(0.77): there, the branch of the former code is well predicted and the kernel
+of eight products adds latency. The macOS runner is too noisy to say (spreads of
+1.30 to 2.71). The quotient wins from 1.11 to 1.63 times on six
+configurations, is within the noise on two (the direction preserved, 1.02, and
+macOS, 1.13) and loses with Visual C++ for arm64 (0.82, spread 1.04). `sqr(x)` is mixed:
+0.84 with clang-cl for arm64 and 0.85 with Clang on Ubuntu, 2.36 with Visual C++
+for arm64. `x - y` does not change where the rows are stable (0.86 to 1.06;
+the 3.62 to 1.18 ns of the M2 does not show), 0.86 on 32-bit ARM where `x + y`,
+whose code did not change, gives 0.92 in the same job. With the direction
+preserved on Visual C++ for x86, the line of 13 operations is 1.9 times slower
+(0.53, spread 1.08), where each operation wins or stays: the cause was not
+searched. POWER, s390x, RISC-V and MinGW-w64 for arm64 are not measured.
 
 What a compiler makes of the choices is its own, and was read in the assembly
 on Compiler Explorer, not run. The maxima of the product are conditional moves
