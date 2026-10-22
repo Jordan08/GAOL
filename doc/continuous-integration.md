@@ -216,20 +216,34 @@ UCRT64 (GCC) and CLANG64 (Clang). The other platforms are not compared, nor are
 the autotools and meson builds: the three builds give the same flags, which
 `.github/audit` checks.
 
-The table never fails a job. Only a difference of several times, on rows that
-share their code, means something on a shared runner, and a ratio within the
-spread of the runs is noise: under the table, the rows that are 2 times apart
-or more are listed, or none is. A job fails when a build or a program does.
+The table never fails a job because of a time. Only a difference of several
+times, on rows that share their code, means something on a shared runner, and a
+ratio within the spread of the runs is noise: under the table, the rows whose
+ratio is 2 or more, or 0.5 or less, and beyond the spread of the runs (for a
+spread of 3, a ratio of 0.5 is not listed, one of 0.25 is) are listed, or none
+is; a row of two times of 0 has no ratio, and a run of 0 makes the spread
+infinite. A job fails when a build or a program does, and when the tables cannot
+be compared: an output with no row, or no row common to the base and the pull
+request (the format of the output of `gaol_performance` changed), which
+`compare-performance.py` says and fails on. The comparison has its test, which
+needs Python alone and runs first in each job, before the builds
+(`.github/scripts/test-performance-tools.py`): tables made for the purpose,
+with rows on one side only, a `|` in a name, one run, times of 0, empty outputs
+and the spread, and `processor_name()` of `doc/compare/code/run_perf.sh` with
+other `/proc/cpuinfo` (not on Windows). It fails if the median is replaced by
+the mean or the threshold is inverted.
 
 On Linux, macOS and with Visual Studio the job also runs the ten long lines of
 `doc/compare/code/run_lines.sh` with `gaol_bench`, the program of the benchmark
 (the CMake target `gaol_bench`, which `make perf` builds too): 200 000 intervals
 drawn by `bench.py` (Python 3 with numpy, which the script installs with pip
 where it is missing), 3 repeats of each line, 3 runs of each build, and a second
-table under the first. They are left out, with a warning of the job, where one
-of the builds has no `gaol_bench` that builds (on macOS and Windows, a base older
-than the target) or numpy cannot be installed. `make perf` runs the same ten
-lines (see
+table under the first. Both builds are tried: the lines are left out, with a
+warning of the job, where one of them has no `gaol_bench` that builds (on macOS
+and Windows, a base older than the target: the head is built all the same, so
+that Visual C++ compiles `gaol_bench` from the first pull request) or numpy
+cannot be installed, and that table is a notice, not an error, where it cannot
+be made. `make perf` runs the same ten lines (see
 [doc/compare/code/README.md](compare/code/README.md)).
 
 The job `control-register-performance` of `containers.yml` (Debian 13 armhf and
