@@ -1063,6 +1063,12 @@ if(GAOL_ALIGNED_NEW_FLAGS)
   target_compile_options(gaol PUBLIC "$<$<COMPILE_LANGUAGE:CXX>:${GAOL_ALIGNED_NEW_FLAGS}>")
 endif()
 target_compile_options(gaol PRIVATE ${GAOL_LIBRARY_FLAGS})
+# The parser that bison writes has unreachable code in a Debug build with
+# Visual C++ (C4702), which /WX turns into an error: the warning is off for
+# that file (GAOL v5).
+if(MSVC)
+  set_source_files_properties(gaol/parser/gaol_interval_parser.cpp PROPERTIES COMPILE_OPTIONS "/wd4702")
+endif()
 # To the link of the code using GAOL, when it is built by a compiler that takes
 # the option: GCC 13 or a later one, or the compiler that built GAOL, of its
 # major version and not older than it. Another compiler, as Clang 18, would stop
