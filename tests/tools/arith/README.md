@@ -38,7 +38,9 @@ made. It exits with 1 when a line differs otherwise than by the sign of a zero.
 
 On a 64-bit ARM processor (an Apple M2, AppleClang 21), the NEON build and the
 FPU one gave the same bounds and the same flags on the 2.39 million lines of
-the grid (four rounding directions of the caller), but for 45 336 lines (2%)
-that differ in the sign of a zero bound only: the maximum of 64-bit ARM ranks +0 above −0 where the code of the
-FPU intervals compares the bounds, and `interval::zero()` is stored as with
-the SSE2 intervals (see [Accuracy](../../../doc/accuracy.md)).
+the grid (four rounding directions of the caller), but for 20 380 lines (0.9%)
+that differ in the sign of a zero bound only (45 336 before the kernels of the
+FPU intervals, GAOL v5): the maximum of 64-bit ARM ranks +0 above −0 where the
+maximum of the FPU intervals is a comparison and a selection, and
+`interval::zero()` is stored as with the SSE2 intervals (see
+[Accuracy](../../../doc/accuracy.md)).

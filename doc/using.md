@@ -894,8 +894,10 @@ example; they are listed here for the reader who looks in this page first.
   [What the upward rounding does to the program](#what-the-upward-rounding-does-to-the-program)).
 - **The sign of a zero bound** differs between the SSE2, the NEON and the
   FPU intervals: `sqr(interval(-1, 2))` is [−0, 4] with the first two and
-  [0, 4] with the third, `1.0 / x.left()` being −∞ or +∞. A program compares
-  bounds with `==` and `<` and does not read the sign.
+  [0, 4] with the third, `1.0 / x.left()` being −∞ or +∞; the sign of a zero
+  bound of a product of the FPU intervals is the compiler's (see
+  [The FPU intervals](#the-fpu-intervals)). A program compares bounds with `==`
+  and `<` and does not read the sign.
 - **The empty set and the domain.** A function keeps the part of its argument
   in its domain, silently: `sqrt([-1, 4])` is [0, 2], `log([-1, 0])` is empty.
   The empty set passes every certainly relation and every inclusion test
@@ -1254,12 +1256,187 @@ The bounds are those of the FPU intervals but for the sign of a zero bound,
 which the maximum of 64-bit ARM, ranking +0 above −0, can set otherwise than
 the SSE2 and the FPU intervals do, where the `maxpd` of x86 returns its second
 operand: the lower bound of `[-1, 0] * [-1, 0]` is −0 with the NEON intervals
-and +0 with the others, and `interval::zero()` is stored `<+0, +0>`, as with
-SSE2, so that its lower bound is −0 (+0 and −0 being the same number, `==`
-does not see the difference). The tool `tests/tools/arith` compares
-the NEON and the FPU intervals on a grid of operands, with the calling code in
-each of the four rounding directions: it found no other difference. The same kind of caveat exists for the
+and +0 with the SSE2 ones (the FPU intervals leave it to the compiler, see
+[The FPU intervals](#the-fpu-intervals)), and `interval::zero()` is stored
+`<+0, +0>`, as with SSE2, so that its lower bound is −0 (+0 and −0 being the
+same number, `==` does not see the difference). The tool `tests/tools/arith`
+compares the NEON and the FPU intervals on a grid of operands, with the calling
+code in each of the four rounding directions: it found no other difference. The same kind of caveat exists for the
 AVX-512 path (above, and [Accuracy](accuracy.md)).
+
+### The FPU intervals
+
+The intervals of the processors that have neither SSE2 nor NEON keep their two
+bounds as two doubles, the lower one negated as in the SSE2 and the NEON
+intervals, and compute with the scalar floating-point unit. They are the
+intervals of 32-bit ARM, POWER, s390x, RISC-V and the other processors; of
+Windows on 32-bit x86 with Visual C++ and clang-cl (and the Clang that simulates
+Visual C++), which have no flag to ask for the aligned memory the SSE2
+intervals need (MinGW-w64 with GCC and Clang takes the SSE2 intervals there,
+with `-faligned-new=8`, unless the compiler does not take the flag, and so does
+64-bit Windows, Visual C++ and clang-cl included); of Windows on arm64 with
+Visual C++, clang-cl and MinGW-w64 (the NEON intervals are for Linux and macOS,
+with GCC and Clang); and of the builds that ask for them (`-DGAOL_SIMD=OFF` on
+x86, `-DGAOL_ARM64=OFF` on 64-bit ARM, which leave `GAOL_USING_SSE2_INSTRUCTIONS`
+and `GAOL_USING_NEON_INSTRUCTIONS` at 0 in `gaol_configuration.h`). The first
+measurements below are those of an Apple M2 with AppleClang; the processors of
+the continuous integration come after them.
+
+`x * y`, `x / y` and `x % y` of a divisor without zero, and `sqr(x)` take no
+branch on the signs of the bounds in the source (GAOL v5): GAOL 4 took one of
+nine cases of the signs for a product, and went down a chain of up to eight
+tests for a quotient, which a processor mispredicts when the signs come at
+random. The product is the largest of four products for the upper bound and of
+four others for the lower one, each with a factor negated, a product and its
+opposite not being rounded the same way where the only direction is upward;
+the quotient divides each bound of the dividend by the bound of the divisor
+that its sign chooses, two divisions whatever the signs; the square is the
+largest of two squares for each bound, the lower one being 0 for an interval
+that straddles 0. They are the kernels of the SSE2 and the NEON intervals on
+two doubles each, and give the bounds of the SSE2 ones bit for bit, but for the
+sign of a zero bound of a product (below), for the product of finite bounds
+and the quotient by a divisor without zero (checked against a model of their
+kernels, not by running them).
+An interval with an infinite bound, whose 0 times an infinity is no product to
+form, takes a function that sets both factors of such a product to 0 (the nine
+cases of GAOL 4 took 12.4 ns for operands with an infinite bound drawn at
+random, and it takes 9.2), and a divisor with a zero takes the table of the
+NEON intervals, one division at most. `x - y` reads the bounds of `y` after the
+check of the rounding direction, as `x + y` does: it took three times as long
+as the sum, the bounds being kept across the calls of the rare path of the
+check.
+
+Measured with `gaol_performance` on an Apple M2 with AppleClang 21
+(`-DGAOL_ARM64=OFF`), the median of nine runs of each program, in turn with the
+others, in nanoseconds:
+
+| | GAOL 4 code | v5 kernels |
+|---|---:|---:|
+| `x - y` | 3.62 | 1.18 |
+| `x * y` | 3.33 | 3.33 |
+| `x * y`, random signs | 6.01 | 3.38 |
+| `x / y` | 4.08 | 3.30 |
+| `x / y`, random signs | 3.54 | 3.30 |
+| `sqr(x)`, random signs | 2.79 | 1.82 |
+| line of 7 `*` | 23.8 | 35.8 |
+| line of 7 `/` | 35.8 | 33.7 |
+| line of 13 `+ - * /` | 50.9 | 51.7 |
+
+The operands of `gaol_performance` are 1 024 intervals that the processor
+learns by heart, so that a branch on their signs costs less than it does on
+other operands. On 100 000 intervals centred at random (the benchmark of
+`doc/compare`), `x * y` took 13.9 ns and takes 3.5, `x / y` 8.5 and 3.2,
+`sqr(x)` 6.9 and 1.8, `x - y` 3.7 and 2.0, and Shekel 5 298 ns and 138.
+
+A line of products of operands of one sign, which a processor predicts, takes
+**more** time: 7 products in a line took 23.8 ns and take 35.8 (23.7 and 35.2
+in the benchmark of `doc/compare`, `pos_mul8`; Apple M2). Each product waits for the one
+before it, and the largest of four products waits for its products and for two
+comparisons, where one product on a predicted branch waits for one. The
+maximum of 64-bit ARM (`fmax`, one instruction, which ranks +0 above −0) would
+shorten the wait: it is not used, being a call with GCC for 32-bit ARM and x86.
+With `GAOL_PRESERVE_ROUNDING` the write of the control register waits for the
+result, so that the longer wait of the product shows there as well: `x * y`
+takes 44.4 ns rather than 42.2 and the line of 7 `*` 307 rather than 279
+(`x * y` of random signs 44.3 rather than 49.1, `x / y` 45.2 as before, `sqr(x)`
+43.7 rather than 41.3; a second measurement, by another hand, gave `x * y`
+46.7 rather than 42.2, `sqr(x)` 46.3 rather than 41.9 and the line of 7 `*` 326
+rather than 296, +10 to +11 %). The operators write their result into the
+bounds of `*this`, memory of the caller that is also given by address to the
+functions of the rare cases, which a call or an asm with a "memory" clobber
+that restores the direction finds written: the products they hold are computed
+before it, with the direction upward. That is how the compilers treat it (GCC
+15 for 32-bit ARM, the stores precede `bl fesetround`), not a rule of the
+language, and no test holds it: `GAOL_RND_KEEP()` would make it one, for 2.6 ns
+more with `GAOL_PRESERVE_ROUNDING`, and the former product and `x + y` did
+without.
+
+The processors and compilers of the continuous integration that take the FPU
+intervals were measured in turn too (GAOL v5; run 39817973814 of GitHub
+Actions, on an experiment branch that is not to be merged): each job builds the
+code before the kernels (`c89c2ac`) and after them (`711ec1a`), and runs
+`gaol_performance` five times with each, alternately, with the tools of
+`.github/scripts/performance-ab.sh` and `compare-performance.py`. The compilers
+are GCC 13.3 and Clang 18.1 on Ubuntu 24.04 for x86-64 (`-DGAOL_SIMD=OFF`), GCC
+14.2 on Debian 13 for 32-bit ARM, run natively on an arm64 runner, Visual C++
+19.51 for x86 and arm64, clang-cl 22.1 for x86 and arm64, and AppleClang 21 on
+macOS 26 (`-DGAOL_ARM64=OFF`). The table gives the ratio of the median before
+the kernels to the median after them, so that a ratio above 1 means that the
+kernels are faster, and, in parentheses, the spread of the five runs where it
+exceeds 1.15 (the ratio is then noise, as it is on the macOS runner); the
+ratios below 0.9 of a stable row are in bold. These are figures of shared
+runners, of one run:
+
+| | Ubuntu GCC 13 | Ubuntu Clang 18 | armhf GCC 14 | VS x86 | VS x86, direction preserved | VS arm64 | clang-cl x86 | clang-cl arm64 | macOS FPU |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| `x * y` | 1.29 | 1.18 | 1.41 | 1.68 (1.16) | 1.18 | 1.53 | 1.06 | **0.77** | 0.92 (2.71) |
+| `x * y`, random signs | 1.64 | 1.67 | 2.28 | 3.47 | 1.64 (1.18) | 2.41 | 1.23 | 1.75 | 1.98 (1.93) |
+| `x / y` | 1.25 | 1.47 | 1.63 | 1.11 | 1.02 (1.42) | **0.82** | 1.24 | 1.29 | 1.13 (1.49) |
+| `sqr(x)` | 1.09 | **0.85** | 1.17 | 1.39 | 1.09 (1.21) | 2.36 | 1.06 | **0.84** | 1.03 (1.30) |
+| `x - y` | 1.02 | 0.99 | **0.86** | 1.06 | 1.02 (1.37) | 1.08 (1.16) | 1.04 | 1.01 | 2.49 (1.52) |
+| line of 7 `*` | **0.58** | 0.98 | 1.11 | 1.43 | 1.18 | 1.71 | 1.04 | **0.57** | 0.60 (1.62) |
+| line of 7 `/` | 1.13 | 1.05 | 1.25 | 1.16 | 1.04 | 1.05 | 1.16 | 1.24 | 1.04 (1.40) |
+| line of 13 `+ - * /` | **0.76** | 1.01 | 1.04 | 1.22 (1.75) | **0.53** | 1.41 | 1.05 | **0.86** | 0.83 (1.95) |
+
+The product wins where the signs are random (1.23 to 3.47 times) and, alone, of
+positive operands on 32-bit ARM, Visual C++ and Ubuntu. It loses on the lines of
+products of positive operands with GCC on Linux (0.58 for the line of 7 `*`,
+that is 1.7 times slower, where the Apple M2 above gives 23.8 and 35.8 ns, 1.5
+times) and with clang-cl for arm64 (0.57), and alone with clang-cl for arm64
+(0.77): there, the branch of the former code is well predicted and the kernel
+of eight products adds latency. The macOS runner is too noisy to say (spreads of
+1.30 to 2.71). The quotient wins from 1.11 to 1.63 times on six
+configurations, is within the noise on two (the direction preserved, 1.02, and
+macOS, 1.13) and loses with Visual C++ for arm64 (0.82, spread 1.04). `sqr(x)` is mixed:
+0.84 with clang-cl for arm64 and 0.85 with Clang on Ubuntu, 2.36 with Visual C++
+for arm64. `x - y` does not change where the rows are stable (0.86 to 1.06;
+the 3.62 to 1.18 ns of the M2 does not show), 0.86 on 32-bit ARM where `x + y`,
+whose code did not change, gives 0.92 in the same job. With the direction
+preserved on Visual C++ for x86, the line of 13 operations is 1.9 times slower
+(0.53, spread 1.08), where each operation wins or stays: the cause was not
+searched. POWER, s390x, RISC-V and MinGW-w64 for arm64 are not measured.
+
+What a compiler makes of the choices is its own, and was read in the assembly
+on Compiler Explorer, not run. The maxima of the product are conditional moves
+with GCC (13 to 16) for 32-bit ARM, arm64 and x86, with Clang, and with Visual
+C++ for x86 and arm64, `xsmaxcdp` instructions with GCC 13 for POWER9 (see
+below), and branches on the products with GCC for POWER8, s390x and RISC-V,
+which have no conditional move of doubles. The choices of the quotient and of
+the square are conditional moves with GCC for POWER and with Clang and Visual
+C++ for arm64, and branches on a sign with GCC for 32-bit ARM at `-O2` and
+`-O3` (two in the quotient with GCC 13 to 15, four with GCC 16, none in the
+square; at `-Os`, two in the square with GCC 14 and 15), arm64 (one in the
+quotient), s390x and RISC-V, and with Visual C++ for x86.
+
+The sign of a zero bound of a product is **not specified** for the FPU
+intervals: where two products are zeros of opposite signs, +0 and −0, the
+maximum of the two is a comparison and a selection, and the compiler decides
+which of the two it returns. The `maxsd` of x86 returns its second operand, and
+the compilers that keep the order written do the same (the lower bound of
+`[-1, 0] * [-1, 0]` was +0 on the jobs of the continuous integration with GCC
+for 32-bit ARM and for arm64, with Clang for arm64 and with Visual C++ for x86),
+but GCC 13 for POWER9 compiles `(a > b) ? a : b` into `xsmaxcdp`, whose result
+for a +0 and a −0 is its first operand (the lower bound was −0 on the POWER9
+jobs under QEMU, and the assembly of Compiler Explorer shows six `xsmaxcdp` in
+the product and no other maximum; not run on a processor). The lower bound of `[-1, 0] * [-1, 0]`
+is therefore +0 with the SSE2 intervals, −0 with the NEON ones, and +0 or −0
+with the FPU ones, by the compiler and the target (+0 and −0 are the same
+number: `==` and `<` do not see it, and a program does not read it); so is the
+upper bound of `[-1, 0] * [0, 1]`. The sign of the zero bound of a quotient and
+of a square does not depend on a tie, and is fixed: `[0, 1] / [-2, -1]` has the
+upper bound −0 (the zero bound of the dividend is divided by a number whose
+sign the divisor's bounds choose), and `sqr(interval(-1, 2))` has the lower
+bound +0, which a selection of a constant sets. The other bounds and the flags
+are those of the former code, as
+`tests/tools/arith` (the four rounding directions of the caller) and 1.2
+million random operands of every kind, with and without the mode that flushes
+the subnormals to zero, show: `x * y` computes every corner product, as the
+SSE2 and the NEON intervals do, so that a corner that is not a bound of the
+result and underflows raises the underflow exception (`FE_UNDERFLOW`) which the
+former code did not, for 135 808 of the 1.2 million `x * y`, and a corner that
+overflows raises the overflow exception (`FE_OVERFLOW`) for 23 672 more, whose
+result has an infinite bound all the same; no operation raises the
+invalid-operation or the division-by-zero exception it did not.
 
 ### The control registers of 32-bit x86 processors
 
@@ -1291,6 +1468,7 @@ each unit. The values are those of the hardware (0x0800 for upward in the
 control word, 0x4000 in MXCSR), not the `FE_*` constants of `<fenv.h>`, which
 are 0x0400 and 0x0800 for downward and upward with glibc and 0x0100 and 0x0200
 with the C runtime of Windows.
+
 
 ## Flush-to-zero and denormals-are-zero
 

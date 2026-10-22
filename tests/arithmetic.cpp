@@ -1517,6 +1517,41 @@ namespace
     check("sqr(empty): empty", sqr(interval::emptyset()).is_empty(), [] { return std::string(); });
   }
 
+  /*
+    The sign of a zero bound, for the cases that doc/accuracy.md and
+    doc/using.md state (GAOL v5): every other check of this file compares the
+    bounds with ==, which does not see it. Only the signs that no compiler can
+    change are read. The lower bound of [-1, 0]*[-1, 0] is the tie of two
+    products, +0 and -0, in the maximum: +0 with the SSE2 intervals, whose
+    maxpd returns its second operand, and -0 with the NEON ones, whose maximum
+    ranks +0 above -0, both an instruction. With the FPU intervals the
+    maximum is a comparison and a selection that the compiler compiles as it
+    chooses: GCC 13 for POWER9 makes it an xsmaxcdp, which returns its first
+    operand for a +0 and a -0, so that the lower bound is -0 there (the
+    continuous integration, in QEMU). It is not specified for them, and not
+    checked. The lower bound of sqr([-1, 2]) is +0 with the FPU intervals,
+    which set it to 0 by a selection of a constant, and -0 with the others; the
+    upper bound of [0, 1]/[-2, -1] is -0 with all of them, the lower bound 0 of
+    the dividend, which is stored as -0, divided by a positive number: neither
+    depends on a tie. The SSE2 expectations are those the documentation gives
+    (the first two) and those of a model of the kernel (the third)
+  */
+  void signs_of_zero_bounds()
+  {
+    const bool neon = GAOL_USING_NEON_INSTRUCTIONS != 0;
+    const bool fpu = GAOL_USING_NEON_INSTRUCTIONS == 0 && GAOL_USING_SSE2_INSTRUCTIONS == 0;
+    if (!fpu) {
+      const interval product = interval(-1., 0.) * interval(-1., 0.);
+      check("the lower bound of [-1, 0]*[-1, 0] is +0 with the SSE2 intervals, -0 with the NEON ones",
+            std::signbit(product.left()) == neon, [&] { return hex(product); });
+    }
+    const interval square = sqr(interval(-1., 2.));
+    check("the lower bound of sqr([-1, 2]) is +0 with the FPU intervals, -0 with the others", std::signbit(square.left()) == !fpu,
+          [&] { return hex(square); });
+    const interval quotient = interval(0., 1.) / interval(-2., -1.);
+    check("the upper bound of [0, 1]/[-2, -1] is -0", std::signbit(quotient.right()), [&] { return hex(quotient); });
+  }
+
   // Integer powers at special values: a bound 0 or infinite, a power below
   // 2^-968 or beyond the largest double, negative powers of intervals with a
   // bound 0, the corners pown_upward() computes one at a time (GAOL v5: they
@@ -2162,6 +2197,7 @@ int main()
   unsigned_powers();
   negative_powers_at_special_values();
   squares_at_special_values();
+  signs_of_zero_bounds();
   powers_at_special_values();
   powers_near_the_ends();
   exact_powers();
