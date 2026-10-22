@@ -22,6 +22,9 @@
  * one counting as 0, the pairs of bounds that are not an interval being the
  * empty set. The n-th roots are the rootn of IEEE 1788-2015: for an odd n,
  * the root of a negative number is the opposite of the root of its magnitude.
+ * Those of numbers below 2^-1020, subnormal ones included, are within 2 doubles
+ * of the tightest bounds, and exact where x is an n-th power, for n up to
+ * 2^32 - 1 (GAOL v5, point AC).
  * All the intervals made of 15 special bounds (zeros of both signs, infinities,
  * the smallest subnormal and the smallest normal numbers, the largest double...)
  * are operated on with +, -, *, /, %, sqr(), sqrt(), inverse(), the compound
@@ -1915,6 +1918,103 @@ namespace
   }
 
   /*
+    The n-th roots of x below 2^-1020 (4 times the smallest normal number), the
+    subnormal x included, as tight as those of the other x: within 2 doubles
+    of the tightest bounds, and exact where x is an n-th power (GAOL v5, point
+    AC of TODO.md). The proofs of the bounds took the powers l^k of the binary
+    exponentiation as subnormal doubles, which have 33 bits at 2^-1041.5, and
+    nth_root([2^-1074], 33) was [0x1.5ecf527769956p-33, 0x1.5ecf527771187p-33],
+    1983 doubles below its tightest lower bound and 28785 above its upper one;
+    n = 65 gave 3.5e8 and 6.9e8 (the bounds still enclosed the root). The roots
+    for n = 4 to 1025 are compared with exact arithmetic, the others, and
+    rootn(x, -n), with the tightest bounds computed apart with mpmath. A
+    product rounded in a direction has an error of up to 2^-52 relatively, so
+    that a bound of the root may be 2 doubles from the tightest (as for the
+    other x, before the change as well), and 4 for rootn(x, -n), the inverse of
+    a root, whose ulp is half that of the root where the root is at the bottom
+    of a binade and its inverse at the top. The values below are within 1 and
+    3:
+
+      mpmath.mp.prec = 2000
+      v = mpmath.mpf(x) ** (mpmath.mpf(1) / n)    # (-1 / n) for q = -n
+      lo, hi = (float(mpmath.mpf(v, prec=53, rounding=r)) for r in 'du')
+  */
+  void roots_of_tiny_numbers()
+  {
+    const double tiny = std::numeric_limits<double>::denorm_min();
+    const double threshold = 4.0*std::numeric_limits<double>::min(); // 2^-1020
+    // The last two are on either side of the limit below which the proofs
+    // take scaled powers (the bounds are the same on both sides)
+    for (const double x : { tiny, 3*tiny, std::ldexp(1.0, -1060), std::numeric_limits<double>::min() - tiny, 1e-310,
+                            5e-308, previous_double(threshold), threshold }) {
+      for (const unsigned int n : { 4u, 5u, 33u, 65u, 129u, 1025u }) {
+        const interval r = nth_root(interval(x), n);
+        expect_root("nth_root([x],n) for x below 2^-1020", r, x, static_cast<int>(n), 2);
+        if (n % 2 == 1) {
+          const interval minus_r = nth_root(interval(-x), n);
+          check("nth_root([-x],n) for x below 2^-1020 and an odd n: -nth_root([x],n)",
+                !minus_r.is_empty() && minus_r.left() == -r.right() && minus_r.right() == -r.left(),
+                [&] { return "x=" + hex(x) + " n=" + std::to_string(n) + ": " + hex(minus_r); });
+        }
+      }
+    }
+
+    // The root of a double that is an n-th power is that double, the proofs
+    // keeping the equality (x is given: the pow() of the C library is not exact
+    // in the upward rounding the test runs in for some subnormal results, the
+    // one of macOS for 3^11 2^-1045 for instance, and the n-th power of the
+    // root is checked with the exact arithmetic of the test)
+    const struct { double x, root; unsigned int n; } exact_powers[] = {
+      { std::ldexp(1.0, -1074), std::ldexp(1.0, -179), 6u }, { std::ldexp(1.0, -1074), std::ldexp(1.0, -6), 179u },
+      { std::ldexp(1.0, -1060), std::ldexp(1.0, -265), 4u }, { std::ldexp(1.0, -1060), std::ldexp(1.0, -212), 5u },
+      { std::ldexp(43046721.0, -1072), std::ldexp(3.0, -67), 16u },        // 3^16
+      { std::ldexp(177147.0, -1045), std::ldexp(3.0, -95), 11u },           // 3^11
+    };
+    for (const auto& c : exact_powers) {
+      const auto describe = [&] { return "x=" + hex(c.x) + " n=" + std::to_string(c.n); };
+      if (check("nth_root([x],n) for x below 2^-1020, x an n-th power: the power is x",
+                c.x < threshold && compare(c.x, power(c.root, static_cast<int>(c.n))) == 0, describe)) {
+        const interval r = nth_root(interval(c.x), c.n);
+        check("nth_root([x],n) for x below 2^-1020, x an n-th power: [root]",
+              !r.is_empty() && r.left() == c.root && r.right() == c.root, [&] { return describe() + ": " + hex(r); });
+      }
+    }
+
+    const auto expect = [](const std::string& name, double x, long long n, const interval& r, double lo, double hi,
+                           int beyond) {
+      double lowest = lo, highest = hi;
+      for (int i = 0; i < beyond; ++i) {
+        lowest = previous_double(lowest);
+        highest = next_double(highest);
+      }
+      check(name, !r.is_empty() && r.left() <= lo && r.left() >= lowest && r.right() >= hi && r.right() <= highest,
+            [&] { return "x=" + hex(x) + " n=" + std::to_string(n) + ": " + hex(r) + " for [" + hex(lo) + ", " + hex(hi) + "]"; });
+    };
+    const struct { double x; unsigned int n; double lo, hi; } large[] = {
+      { 0x1p-1074, 1048577u, 0x1.ffa2fa650a018p-1, 0x1.ffa2fa650a019p-1 },    // 2^20 + 1
+      { 0x1p-1074, 2147483647u, 0x1.fffff45e3d7f8p-1, 0x1.fffff45e3d7f9p-1 }, // 2^31 - 1
+      { 0x1p-1074, 4294967295u, 0x1.fffffa2f1eb75p-1, 0x1.fffffa2f1eb76p-1 }, // 2^32 - 1
+      { 0x1p-1060, 1048577u, 0x1.ffa430b4939dbp-1, 0x1.ffa430b4939dcp-1 },
+      { 0x1p-1060, 2147483647u, 0x1.fffff4850e73ep-1, 0x1.fffff4850e73fp-1 },
+      { 0x1p-1060, 4294967295u, 0x1.fffffa428731bp-1, 0x1.fffffa428731cp-1 },
+      { 0x0.fffffffffffffp-1022, 2147483647u, 0x1.fffff4ee6a2fcp-1, 0x1.fffff4ee6a2fdp-1 },
+      { 1e-310, 4294967295u, 0x1.fffffa6c65b96p-1, 0x1.fffffa6c65b97p-1 },
+    };
+    for (const auto& c : large) {
+      expect("nth_root([x],n) for x below 2^-1020 and a large n", c.x, c.n, nth_root(interval(c.x), c.n), c.lo, c.hi, 2);
+    }
+    const struct { double x; int q; double lo, hi; } negative[] = {
+      { 0x1p-1074, -33, 0x1.75a07cfb107edp+32, 0x1.75a07cfb107eep+32 },
+      { 0x1p-1060, -65, 0x1.3cdba13cc9501p+16, 0x1.3cdba13cc9502p+16 },
+      { 0x1p-1074, -1048577, 0x1.002e8b4248fbep+0, 0x1.002e8b4248fbfp+0 },
+      { 1e-310, -129, 0x1.f9fa1c4cbde09p+7, 0x1.f9fa1c4cbde0ap+7 },
+    };
+    for (const auto& c : negative) {
+      expect("rootn(x, q) for x below 2^-1020 and q < 0", c.x, c.q, nth_root(interval(c.x), c.q), c.lo, c.hi, 4);
+    }
+  }
+
+  /*
     fma, cancel_minus and cancel_plus of IEEE 1788-2015 (GAOL v5), which are
     required to be the tightest.
 
@@ -2067,6 +2167,7 @@ int main()
   exact_powers();
   large_powers();
   roots_at_special_values();
+  roots_of_tiny_numbers();
   fused_and_cancellative();
   const int status = summary();
   gaol::cleanup();
