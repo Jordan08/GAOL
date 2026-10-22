@@ -236,7 +236,20 @@ NEON intervals and [0, 9] with the FPU intervals. So may the sign of a zero boun
 a product or of a quotient: the SSE2 intervals take the larger of four
 products and the quotient of the corners their signs choose, with no
 branch (GAOL v5), where GAOL 4 chose one product by the signs of the bounds,
-and `[-1, 0] * [-1, 0]` has the lower bound +0 where it had −0. The two
+and `[-1, 0] * [-1, 0]` has the lower bound +0 where it had −0. The FPU
+intervals take the larger of four products too (GAOL v5; for each bound, the
+lower one made of products with a factor negated), but with a comparison and a
+selection that the compiler compiles as it chooses, not an instruction: where
+two products are zeros of opposite signs, the sign of the zero bound of a
+product is the compiler's and the target's, +0 or −0 (the lower bound of
+`[-1, 0] * [-1, 0]` is +0 with GCC for 32-bit ARM and for arm64, with Clang and
+with Visual C++ for x86, and −0 with GCC 13 for POWER9, which compiles the selection
+into an `xsmaxcdp` that returns its first operand for a +0 and a −0). They give
+the bits of the SSE2 intervals (checked against a model of their kernels, not
+by running them) for the products of finite bounds but for that sign, and for
+the quotients by a divisor without zero: `[0, 1] / [-2, -1]` has the upper
+bound −0, where the FPU intervals gave +0 before, the zero bound of the
+dividend being divided. The two
 paths of the SSE2 intervals, with and without `GAOL_PREFER_AVX512`, give the
 same bits, but for the sign of a zero bound of `x * d` and `x *= d` where the
 zero bounds of x have different signs, `[+0, -0]` (+0 and −0 are the same
@@ -244,8 +257,8 @@ number): `[+0, -0]` with SSE2 and `[-0, +0]` with AVX-512. The NEON intervals
 (GAOL v5) take the larger of four products too, with the maximum of 64-bit
 ARM, which ranks +0 above −0, where the `maxpd` of the SSE2 intervals returns
 its second operand when the two compare equal: the lower bound of
-`[-1, 0] * [-1, 0]` is −0 with the NEON intervals, where the SSE2 and the FPU
-ones give +0, and so may another zero bound of a product. `interval::zero()` is
+`[-1, 0] * [-1, 0]` is −0 with the NEON intervals, where the SSE2 ones give +0
+and the FPU ones the compiler's, and so may another zero bound of a product. `interval::zero()` is
 stored `<+0, +0>` as with SSE2, so that its lower bound is −0. The tool
 `tests/tools/arith` compares the NEON and the FPU intervals on a grid of
 operands, with the calling code in each of the four rounding directions: it

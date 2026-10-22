@@ -35,8 +35,9 @@ point Q), which `numbers` checks there too.
   smallest subnormal or beyond the largest double (GAOL v5, point AA: `sqr()`
   of the SSE2 intervals computes its one product itself), and the quotients
   of 12 dividends by 10 divisors with no zero, 0 of both signs, infinite,
-  subnormal or large ones, which the SSE2 intervals compute without a branch
-  (GAOL v5, point ZZ). Seven long lines of + - * / alone, between eight
+  subnormal or large ones, which the SSE2, the NEON and the FPU intervals
+  compute without a branch on the signs (GAOL v5, point ZZ, and the kernels of
+  the FPU intervals). Seven long lines of + - * / alone, between eight
   intervals of either sign, have to enclose the same line of rational numbers
   taken at a bound of each operand, and `+=`, `-=`, `*=` and `/=` have to give
   the bounds of the operators, line by line. Every interval [a, b] with
@@ -67,7 +68,15 @@ point Q), which `numbers` checks there too.
   operations, among them lines with operands used twice and with `r -= r`,
   `r *= r` and `r %= ...`, have to have the bounds of the reference evaluating
   them one operation after the other, on random intervals and on those of the
-  grid. N-th roots have to
+  grid. The sign of three zero bounds the documentation states, that of
+  `[-1, 0]*[-1, 0]` (SSE2 and NEON builds only: with the FPU intervals the
+  maximum of two products that are a +0 and a -0 is the compiler's, GCC for
+  POWER9 returning the first one, and the sign is not specified), `sqr([-1, 2])`
+  and `[0, 1]/[-2, -1]` (neither depends on a tie), has to be the one of the
+  build (the other checks compare with `==`, which does not see it): it tells a
+  tie of the maxima of the products with SSE2 and NEON, which no other check
+  did (GAOL v5).
+  N-th roots have to
   be enclosures, within a few doubles, the odd
   roots of negative numbers being the opposites of the roots of their
   magnitudes, and the n-th roots of intervals the roots of their bounds (of
@@ -1212,6 +1221,41 @@ point Q), which `numbers` checks there too.
   the CMake build has it: CPack makes the archive, and the autotools jobs of the
   continuous integration compare `configure --version` with `VERSION.txt`
   already (GAOL v5).
+- **`prefer_avx512_reconfigure`** (CMake build, on a Unix system that builds for
+  itself): a script, not a program (`tests/prefer_avx512_reconfigure.cmake`).
+  `GAOL_PREFER_AVX512` is `ON` by default where `GAOL_PRESERVE_ROUNDING` is, and
+  `OFF` otherwise, and what the command line gives wins. `CMakeLists.txt` told
+  the two apart by `DEFINED`, which saw at the second `cmake` of a directory the
+  entry the first one had made, and took it for the command line's: a directory
+  configured with `-DGAOL_PRESERVE_ROUNDING=ON` lost the AVX-512 path at its
+  second `cmake` (point 112 of `TODO.md`). The script configures GAOL as the
+  project built, with the generator and the compilers that built it, several
+  times in the same directory, and compares what each configuration says and
+  writes: the messages about the path, the entry `GAOL_PREFER_AVX512` of the
+  cache and the record `GAOL_PREFER_AVX512_DERIVED`, and the lines of
+  `gaol_configuration.h`. The second `cmake`, with and without
+  `-DGAOL_PRESERVE_ROUNDING=ON`, has to give the configuration of the first;
+  the default has to follow `GAOL_PRESERVE_ROUNDING` off and on again; a
+  `-DGAOL_PREFER_AVX512=OFF` has to refuse the path under
+  `GAOL_PRESERVE_ROUNDING` and to stay for the next `cmake`, after a default
+  that was `ON` and after one that was `OFF` (the request then equals what the
+  entry holds), until `-UGAOL_PREFER_AVX512` derives the default again; a
+  `-DGAOL_PREFER_AVX512=ON` has to stay too, and so has a request of ON made by
+  editing the value of the entry in `CMakeCache.txt` between two `cmake`, as
+  `ccmake` does (no `-D`: only the value tells it from the default derived).
+  The entry has to say what the configuration uses. Where the compiler has no AVX-512 path (ARM), the default
+  derived under `GAOL_PRESERVE_ROUNDING` is left out with a message that every
+  `cmake` has to give, and `-DGAOL_PREFER_AVX512=ON` is an error each time;
+  where it has one, the header differs too. The script takes
+  `-DGAOL_CONFIGURE_ARGS=...` for the arguments of a configuration of another
+  architecture: on an ARM Mac,
+  `-DCMAKE_OSX_ARCHITECTURES=x86_64;-DGAOL_MACHINE_RUNS_AVX512=1;-DGAOL_MACHINE_RUNS_FMA=1`
+  takes the path where the programs of the checks, which cannot run without
+  Rosetta, are given their result. It configures a directory of its own and
+  builds nothing, so it takes about three seconds, the first `cmake` running the
+  checks of the compiler and the others reusing them. Only the CMake build has
+  it: configure and meson keep no entry of that kind, the first recomputing the
+  default at every run and the second keeping `auto` (GAOL v5).
 - **The unit tests of GAOL 4:** `arithmetic_operators` (`check/arithmetic.cpp`),
   `assignment`, `constants`, `constructor`, `float_functions`,
   `generic_functions`, `input_output`, `interval_functions`, `misc`,
@@ -1348,15 +1392,21 @@ subtractions, 7 products, 7 quotients and 13 operations of the four kinds
 between 8 and 16 intervals (GAOL v5, point ZZ). Its title names the intervals
 GAOL computes with, NEON, SSE2 or FPU (GAOL v5), and four rows give the
 product, the quotient, the square and `pow(x, 2)` (GAOL v5) of operands of
-random signs, the other rows having positive operands only, which a processor predicts: the product of
-the FPU intervals chose a branch by the signs of the bounds. After the table, it
+random signs, the other rows having positive operands only, which a processor
+predicts: the product, the quotient and the square chose a branch by the signs
+of the bounds in GAOL 4 and in the FPU intervals before GAOL v5 gave them
+kernels with none (the operands are 1 024 intervals that the predictor of a
+processor learns by heart: the former product of random signs took 5.7 ns on
+them and 12.4 on 16 384, Apple M2). After the table, it
 prints the time of the check each operation makes, 1 + (2^-1060 + 0) not above
 1, and of the same check made of 2^-60, a normal
 double: a processor that takes a microcode assist for a subnormal operand or
 result shows it there (GAOL v5, point Q); with the NEON intervals, the check is
 the read of the control register FPCR with `mrs`, and it prints its time. It is
 not a test: the continuous integration prints its table in the summary of the
-jobs.
+jobs, and `performance.yml` runs it three times with the base of a pull request
+and three times with its head, in turn, and compares them (see
+[Continuous integration](continuous-integration.md#the-speed-of-a-pull-request)).
 
 `tests/tools/pow/` holds the tools that check a change of `pow` in
 `gaol/gaol_interval_core.cpp` (see [its README](../tests/tools/pow/README.md)).
@@ -1382,7 +1432,9 @@ and the exception flags of `+ - * / %`, `&=`, `|=`, `sqr`, `sqrt`, `inverse`,
 `div_rel`, `mid` and the forms with a double on a grid of boxes, under the four
 rounding directions at the call, with two builds of GAOL, and compares them:
 the NEON intervals and the FPU intervals give the same bounds and the same
-flags, the sign of a zero aside (GAOL v5).
+flags, the sign of a zero aside (GAOL v5), and so do the FPU intervals before
+and after their kernels of `*`, `/`, `%` and `sqr` (the tool records the
+invalid-operation and division-by-zero exceptions only).
 
 `manual/check_examples.py` compiles each example of the manual of GAOL v5
 (`manual/v5/gaol.tex`) that shows what it prints, 88 of them, with an installed
