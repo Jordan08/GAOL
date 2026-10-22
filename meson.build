@@ -406,16 +406,16 @@ int main()
   endif
 endif
 
-# enable-prefer-avx512: the AVX-512 path of +, -, *, /, sqr, sqrt and the
-# integer powers, as CMakeLists.txt and configure take it (see
-# CMakeLists.txt). The compiler has to accept its instructions in a function
-# with __attribute__((target("avx512f"))) and __builtin_cpu_supports(), which
-# GCC and Clang on x86-64 do, but GCC for Windows, which does not align the
-# stack for AVX-512 (see CMakeLists.txt): no flag, the attribute is per
-# function. Visual C++ and clang-cl for x64 take it too (GAOL v5), with
-# cpuid and xgetbv for __builtin_cpu_supports() and no attribute for Visual
-# C++ (see CMakeLists.txt). The path is taken where the machine building runs
-# it (GAOL_AVX512_ARITHMETIC below).
+# enable-prefer-avx512: the AVX-512 path of +, -, *, /, sqr, sqrt and, with
+# FMA, the integer powers beyond 1 and -1, as CMakeLists.txt and configure take
+# it (see CMakeLists.txt). The compiler has to accept its instructions in a
+# function with __attribute__((target("avx512f"))) and
+# __builtin_cpu_supports(), which GCC and Clang on x86-64 do, but GCC for
+# Windows, which does not align the stack for AVX-512 (see CMakeLists.txt): no
+# flag, the attribute is per function. Visual C++ and clang-cl for x64 take it
+# too (GAOL v5), with cpuid and xgetbv for __builtin_cpu_supports() and no
+# attribute for Visual C++ (see CMakeLists.txt). The path is taken where the
+# machine building runs it (GAOL_AVX512_ARITHMETIC below).
 avx512_msvc_probe = '''
     #include <immintrin.h>
     #include <intrin.h>
@@ -487,11 +487,12 @@ prefer_avx512 = prefer_avx512_requested or (prefer_avx512_option == 'auto' and p
 if prefer_avx512
   conf_data.set('GAOL_PREFER_AVX512', 1)
 endif
-# GAOL_AVX512_ARITHMETIC: +, -, *, /, sqr, sqrt and the integer powers take
-# the AVX-512 path, as CMakeLists.txt decides it: enable-prefer-avx512, a
-# compiler that takes the path, and a machine building that runs it, never in
-# a cross build. The library then needs a processor with the AVX-512
-# instructions, and the operations test nothing as they run (GAOL v5)
+# GAOL_AVX512_ARITHMETIC: +, -, *, /, sqr, sqrt and, with FMA, the integer
+# powers beyond 1 and -1 take the AVX-512 path, as CMakeLists.txt decides it:
+# enable-prefer-avx512, a compiler that takes the path, and a machine building
+# that runs it, never in a cross build. The library then needs a processor with
+# the AVX-512 instructions, and the operations test nothing as they run (GAOL
+# v5)
 avx512_taken = false
 if prefer_avx512
   if not meson.is_cross_build()

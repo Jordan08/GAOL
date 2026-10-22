@@ -172,11 +172,12 @@ option(GAOL_COVERAGE "Compile GAOL and its tests with the counters of gcov, and 
 
 option(GAOL_FMA "Compile GAOL and CORE-MATH with the fused multiply-add instructions of the processor, where the compiler has a flag for them (OFF: a library for any processor of the architecture)" ON)
 
-# GAOL_PREFER_AVX512, whether +, -, *, /, sqr, sqrt and the integer powers take
-# the AVX-512 path, where the compiler takes it and the machine building runs it
-# (GAOL_AVX512_ARITHMETIC below). ON by default where GAOL_PRESERVE_ROUNDING
-# is: the path spares the store of the rounding direction every operation
-# pays, which is what GAOL_PRESERVE_ROUNDING is about. What the command line
+# GAOL_PREFER_AVX512, whether +, -, *, /, sqr, sqrt and, with FMA, the integer
+# powers beyond 1 and -1 take the AVX-512 path, where the compiler takes it and
+# the machine building runs it (GAOL_AVX512_ARITHMETIC below). ON by default
+# where GAOL_PRESERVE_ROUNDING is: the path spares the store of the rounding
+# direction every operation pays, which is what GAOL_PRESERVE_ROUNDING is
+# about. What the command line
 # gave wins either way: -DGAOL_PREFER_AVX512=OFF refuses the path under
 # GAOL_PRESERVE_ROUNDING, as -DGAOL_PREFER_AVX512=ON takes it without it.
 # The default derives at every configure where the command line said
@@ -191,11 +192,20 @@ option(GAOL_FMA "Compile GAOL and CORE-MATH with the fused multiply-add instruct
 # entry still holds it, it is a leftover, and the default is derived again.
 # Another value is a request, and so is the help string of the command line,
 # "No help, variable specified on the command line.", which CMake gives an
-# entry that -D sets, even to the value it had. A request drops the record and
-# stays the command line's until -UGAOL_PREFER_AVX512. A build directory
-# configured before this holds the OFF that option() cached, a request of OFF:
-# -UGAOL_PREFER_AVX512 derives the default again.
-set(GAOL_PREFER_AVX512_HELP "Have +, -, *, /, sqr, sqrt and the integer powers take the AVX-512 instructions and the rounding direction they carry in themselves, which sets no rounding direction, where the machine building runs them: the library then needs a processor with them (OFF: the operations set the direction upward; ON by default with GAOL_PRESERVE_ROUNDING)")
+# entry that -D sets, even to the value it had (a fact of CMake that its
+# documentation does not state: without it, the value alone tells). A request
+# drops the record and stays the command line's until -UGAOL_PREFER_AVX512.
+#
+# Limits. (1) A build directory configured before this holds the OFF that
+# option() cached, a request of OFF: -UGAOL_PREFER_AVX512 derives the default
+# again. (2) A request that is not a -D (the value edited back to the one last
+# derived, in a graphical interface) and equals the record is read as the
+# default. (3) A normal variable of a project that brings GAOL in
+# (add_subdirectory, FetchContent) hides the entry, and is a request only if
+# it differs from the record: one set to the value last derived, in a
+# configure that also changes the default (GAOL_PRESERVE_ROUNDING), is read as
+# the default, where a variable set from the first configure on is a request.
+set(GAOL_PREFER_AVX512_HELP "Have +, -, *, /, sqr, sqrt and, with FMA, the integer powers beyond 1 and -1 take the AVX-512 instructions and the rounding direction they carry in themselves, which sets no rounding direction, where the machine building runs them: the library then needs a processor with them (OFF: the operations set the direction upward; ON by default with GAOL_PRESERVE_ROUNDING)")
 function(gaol_keep_prefer_avx512 value)
   set(GAOL_PREFER_AVX512 "${value}" CACHE BOOL "${GAOL_PREFER_AVX512_HELP}" FORCE)
   set(GAOL_PREFER_AVX512_DERIVED "${value}" CACHE INTERNAL "The value of GAOL_PREFER_AVX512 the last configure derived (GAOL v5): the entry is a request unless it still holds it")
@@ -803,10 +813,10 @@ message(STATUS "NEON intervals: ${GAOL_USING_NEON_INSTRUCTIONS}")
 # gaol/gaol_common.cpp). The result is
 # cached under a name of its own, GAOL_COMPILER_TAKES_AVX512_PATH, so that a
 # build directory configured before that check checks again. Only the
-# functions of the AVX-512 path of +, -, *, /, sqr, sqrt and the integer powers
-# (gaol/gaol_interval_avx512.cpp) carry the attribute, and the rest of the
-# library is compiled as without it; the path is compiled in where
-# GAOL_AVX512_ARITHMETIC below is (GAOL v5).
+# functions of the AVX-512 path of +, -, *, /, sqr, sqrt and, with FMA, the
+# integer powers beyond 1 and -1 (gaol/gaol_interval_avx512.cpp) carry the
+# attribute, and the rest of the library is compiled as without it; the path
+# is compiled in where GAOL_AVX512_ARITHMETIC below is (GAOL v5).
 # The program that finds out whether Visual C++ and clang-cl for x64 run the
 # AVX-512 instructions, which the checks below compile and run: the same
 # cpuid and xgetbv as cpu_runs_avx512f() of gaol/gaol_common.cpp, and an
@@ -881,12 +891,12 @@ if(GAOL_PREFER_AVX512 AND NOT GAOL_HAVE_AVX512_TARGET)
   set(GAOL_PREFER_AVX512 OFF)
   gaol_keep_prefer_avx512(OFF)
 endif()
-# GAOL_AVX512_ARITHMETIC: +, -, *, /, sqr, sqrt and the integer powers take
-# the AVX-512 path, which is decided here: GAOL_PREFER_AVX512 asks for it, the
-# compiler takes the path, and the machine building runs it, as GAOL_FMA checks
-# it for the fused multiply-add (never when cross-compiling). The operations
-# then are that path alone, and the SSE2 one otherwise, with no flag to test as
-# they run.
+# GAOL_AVX512_ARITHMETIC: +, -, *, /, sqr, sqrt and, with FMA, the integer
+# powers beyond 1 and -1 take the AVX-512 path, which is decided here:
+# GAOL_PREFER_AVX512 asks for it, the compiler takes the path, and the machine
+# building runs it, as GAOL_FMA checks it for the fused multiply-add (never
+# when cross-compiling). The operations then are that path alone, and the SSE2
+# one otherwise, with no flag to test as they run.
 # gaol::init() chose the path, and every operation tested the flag it set,
 # in the default build too, though only GAOL_PREFER_AVX512 could make it
 # true: without the test, the line (a + b) * (a - b) / p of the benchmark of
