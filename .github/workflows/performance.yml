@@ -17,7 +17,8 @@
 # armhf and arm64 that compare the control register of the rounding direction
 # with the functions of the C library are in containers.yml, with the same
 # scripts (.github/scripts/performance-ab.sh and compare-performance.py).
-# See doc/continuous-integration.md.
+# Each job first runs the test of the comparison, which needs Python alone
+# (.github/scripts/test-performance-tools.py). See doc/continuous-integration.md.
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -37,6 +38,7 @@ on:
       - 'cmake/**'
       - '.github/scripts/performance-ab.sh'
       - '.github/scripts/compare-performance.py'
+      - '.github/scripts/test-performance-tools.py'
       - '.github/workflows/performance.yml'
 
 permissions:
@@ -100,6 +102,11 @@ jobs:
         run: |
           sudo apt-get update -q
           sudo apt-get install -y -q g++ clang cmake make python3-numpy
+      - name: Test of the tools that compare
+        run: |
+          py=python3
+          if [ "$RUNNER_OS" = Windows ]; then py=python; fi
+          $py pr/.github/scripts/test-performance-tools.py
       - name: Versions
         run: cmake --version
       - name: Build both, and measure them in turn
@@ -118,7 +125,7 @@ jobs:
           # The ten long lines, where they were measured
           if ls perf-lines-after-*.csv > /dev/null 2>&1; then
             { echo; echo "The ten long lines of doc/compare/code/run_lines.sh:"; echo; } >> "$GITHUB_STEP_SUMMARY"
-            $py pr/.github/scripts/compare-performance.py base perf-lines-before-*.csv -- PR perf-lines-after-*.csv | tee -a "$GITHUB_STEP_SUMMARY"
+            $py pr/.github/scripts/compare-performance.py --optional base perf-lines-before-*.csv -- PR perf-lines-after-*.csv | tee -a "$GITHUB_STEP_SUMMARY"
           fi
 
   # MinGW-w64 GCC and Clang of MSYS2, whose times varied most from one run to
@@ -150,6 +157,9 @@ jobs:
         with:
           ref: ${{ steps.base.outputs.sha }}
           path: base
+      - name: Test of the tools that compare
+        shell: bash
+        run: python pr/.github/scripts/test-performance-tools.py
       - uses: msys2/setup-msys2@v2
         with:
           msystem: ${{ matrix.cfg.msystem }}
