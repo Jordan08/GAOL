@@ -254,22 +254,26 @@ the T-Head C910 the draft 0.7.1.
 Candidates seen in the sources and the profiles; none is decided but the first,
 which is done, and none needs a new path.
 
-- **`pow(x, 2)` through `sqr`** (done, GAOL v5): `gaol_pown` takes 5.2 ns where
-  `sqr` takes 1.3 on the M2 (NEON intervals; 5.2 and 2.1 with the FPU ones), and
-  the integer powers are about 40 % of Goldstein-Price (6 million calls). It
-  takes `sqr` now, for n = 2 in every form of the integer power (`gaol_pown()`
-  before its check of the rounding direction, `pown_upward()` after the check of
-  its callers): 1.7 ns with the NEON intervals and 2.2 with the FPU ones, the
-  call into the library accounting for the 0.3 ns of NEON above `sqr` (the
+- **`pow(x, 2)` through `sqr`** (done, GAOL v5): `gaol_pown` took 5.2 ns where
+  `sqr` takes 1.3 on the M2 (NEON intervals; 5.2 and 1.8 with the FPU ones,
+  whose `sqr` has no branch on the signs), and the integer powers are about
+  40 % of Goldstein-Price (6 million calls). It takes `sqr` now, for n = 2 in
+  every form of the integer power (`gaol_pown()` before its check of the
+  rounding direction, `pown_upward()` after the check of its callers): 1.6 ns
+  with the NEON intervals and 1.9 with the FPU ones, the call into the library
+  accounting for the 0.3 ns of NEON above `sqr` (0.1 with the FPU ones) (the
   medians of 7 passes alternated with the library before the change,
-  `tests/performance.cpp`, an Apple M2, AppleClang 21). On 14 million cases
-  (3 million intervals, the special bounds, the empty set and the universe, in
-  the four directions of the calling code and with flush-to-zero set) the bounds
-  of `pow(x, 2)` are the same as before, the sign of a zero lower bound
-  aside, which is that of `sqr(x)` now: +0 to -0 for 3.3 million cases and -0
-  to +0 for 0.4 million with the NEON intervals, -0 to +0 for 3.6 million with the
-  FPU ones; the old `pow` did not give +0 for every interval holding 0, as
-  the first check thought it did (the program of the checks is not in the
+  `tests/performance.cpp`, an Apple M2, AppleClang 21). The other powers cost
+  0.3 to 0.5 ns more with the FPU intervals for n = 3, 4, 5 and 10 (+5 %),
+  `gaol_pown()` now jumping to `pown_checked()`, and less with the NEON ones
+  (15 alternations of a program of its own). On 14 million cases (3 million
+  intervals, the special bounds, the empty set and the universe, in the four
+  directions of the calling code and with flush-to-zero set) the bounds of
+  `pow(x, 2)` are the same as before, the sign of a zero lower bound aside,
+  which is that of `sqr(x)` now: +0 to -0 for 3.3 million cases and -0 to +0
+  for 0.4 million with the NEON intervals, -0 to +0 for 3.6 million with the
+  FPU ones; the old `pow` did not give +0 for every interval holding 0, as the
+  first check thought it did (the program of the checks is not in the
   repository).
 - **`sqrt` on SSE2** is scalar (6.3 ns on the i7-1185G7, 3.75 with the AVX-512
   path and the direction preserved, 1.7 on the M2 with NEON); the NEON kernel
