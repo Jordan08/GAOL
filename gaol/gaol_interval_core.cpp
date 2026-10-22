@@ -121,10 +121,10 @@ namespace gaol_core {
 
 #if (defined(__x86_64__) || defined(_M_X64)) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_AVX512_ARITHMETIC
   // GAOL_AVX512_ARITHMETIC, decided when GAOL is configured: +, -, *, /, sqr,
-  // sqrt and the integer powers take the AVX-512 path of
-  // gaol/gaol_interval_avx512.cpp, which sets no rounding direction, and
-  // clears the flush-to-zero modes as the other operations do (flush_guard
-  // there; GAOL v5, point Q of TODO.md)
+  // sqrt and, with FMA, the integer powers beyond 1 and -1 take the AVX-512
+  // path of gaol/gaol_interval_avx512.cpp, which sets no rounding direction,
+  // and clears the flush-to-zero modes as the other operations do
+  // (flush_guard there; GAOL v5, point Q of TODO.md)
 #  include <immintrin.h>   // the AVX-512 intrinsics of the path below
 #  include "gaol/gaol_interval_avx512.cpp"
 #endif
