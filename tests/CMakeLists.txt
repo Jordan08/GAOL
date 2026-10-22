@@ -225,6 +225,17 @@ if(GAOL_USING_SSE2_INSTRUCTIONS AND NOT WIN32 AND NOT MSVC AND CMAKE_CXX_COMPILE
   gaol_aligned_new_test(refused_aligned_new_positive 11 -faligned-new=8 "")
 endif()
 
+# The compilers that built GAOL, for the tests below that configure it again,
+# on a system that builds for itself. They are passed with their arguments,
+# which CMake keeps apart: with CC="ccache gcc", CMAKE_C_COMPILER is ccache and
+# CMAKE_C_COMPILER_ARG1 gcc.
+if(CMAKE_HOST_UNIX AND NOT CMAKE_CROSSCOMPILING)
+  foreach(_lang C CXX)
+    string(STRIP "${CMAKE_${_lang}_COMPILER_ARG1}" _gaol_arguments)
+    string(STRIP "${CMAKE_${_lang}_COMPILER} ${_gaol_arguments}" _gaol_${_lang}_compiler)
+  endforeach()
+endif()
+
 # The warning of the CPack block of CMakeLists.txt, when the configure that the
 # archive of the sources holds was generated for another version than VERSION.txt
 # holds (GAOL v5): not a program, a script that configures copies of the tree
@@ -232,17 +243,11 @@ endif()
 # VERSION.txt (cpack_stale_configure.cmake). Only the CMake build makes the
 # archive; the copies are made of symbolic links, so the script runs on the
 # machine that builds, and it asks the configure of the tree its version, so
-# there has to be one. The compilers are passed with their arguments, which
-# CMake keeps apart: with CC="ccache gcc", CMAKE_C_COMPILER is ccache and
-# CMAKE_C_COMPILER_ARG1 gcc. Without sh, or on a system that makes no symbolic
+# there has to be one. Without sh, or on a system that makes no symbolic
 # link, the script says it is skipped, which CTest reads from CMake 3.16 (the
 # test passes before). The time limit is that of a few configurations, on a
 # slow machine.
 if(CMAKE_HOST_UNIX AND NOT CMAKE_CROSSCOMPILING AND EXISTS "${PROJECT_SOURCE_DIR}/configure")
-  foreach(_lang C CXX)
-    string(STRIP "${CMAKE_${_lang}_COMPILER_ARG1}" _gaol_arguments)
-    string(STRIP "${CMAKE_${_lang}_COMPILER} ${_gaol_arguments}" _gaol_${_lang}_compiler)
-  endforeach()
   add_test(NAME cpack_stale_configure
     COMMAND "${CMAKE_COMMAND}"
       "-DGAOL_SOURCE_DIR=${PROJECT_SOURCE_DIR}"
@@ -254,6 +259,32 @@ if(CMAKE_HOST_UNIX AND NOT CMAKE_CROSSCOMPILING AND EXISTS "${PROJECT_SOURCE_DIR
       -P "${CMAKE_CURRENT_SOURCE_DIR}/cpack_stale_configure.cmake")
   set_tests_properties(cpack_stale_configure PROPERTIES LABELS unit TIMEOUT 600
     SKIP_REGULAR_EXPRESSION "cpack_stale_configure: skipped")
+endif()
+
+# GAOL_PREFER_AVX512 at the second cmake in a directory (GAOL v5): the default
+# GAOL_PRESERVE_ROUNDING derives was taken for a request of the command line at
+# the second configure, and a directory configured with
+# -DGAOL_PRESERVE_ROUNDING=ON lost the AVX-512 path (point 112 of TODO.md). A
+# script that configures GAOL as the project built, several times in one
+# directory of the test, with the generator and the compilers that built it,
+# and compares what each derives or is given (prefer_avx512_reconfigure.cmake).
+# It runs where the system builds for itself and is Unix (the generator and the
+# compilers are passed as for cpack_stale_configure; not on Windows, not in a
+# cross-compilation), on every architecture: where the compiler has no AVX-512
+# path (ARM), it holds the messages and the cache apart from the header. It
+# configures a directory of its own and builds nothing, so it needs not the
+# lock of the compile tests, which build in the directory of this build.
+if(CMAKE_HOST_UNIX AND NOT CMAKE_CROSSCOMPILING)
+  add_test(NAME prefer_avx512_reconfigure
+    COMMAND "${CMAKE_COMMAND}"
+      "-DGAOL_SOURCE_DIR=${PROJECT_SOURCE_DIR}"
+      "-DGAOL_WORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/prefer_avx512_reconfigure"
+      "-DGAOL_GENERATOR=${CMAKE_GENERATOR}"
+      "-DGAOL_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}"
+      "-DGAOL_C_COMPILER=${_gaol_C_compiler}"
+      "-DGAOL_CXX_COMPILER=${_gaol_CXX_compiler}"
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/prefer_avx512_reconfigure.cmake")
+  set_tests_properties(prefer_avx512_reconfigure PROPERTIES LABELS unit TIMEOUT 600)
 endif()
 
 # Commented out: the tests run no thread (GAOL v5)

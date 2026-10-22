@@ -1207,6 +1207,41 @@ point Q), which `numbers` checks there too.
   the CMake build has it: CPack makes the archive, and the autotools jobs of the
   continuous integration compare `configure --version` with `VERSION.txt`
   already (GAOL v5).
+- **`prefer_avx512_reconfigure`** (CMake build, on a Unix system that builds for
+  itself): a script, not a program (`tests/prefer_avx512_reconfigure.cmake`).
+  `GAOL_PREFER_AVX512` is `ON` by default where `GAOL_PRESERVE_ROUNDING` is, and
+  `OFF` otherwise, and what the command line gives wins. `CMakeLists.txt` told
+  the two apart by `DEFINED`, which saw at the second `cmake` of a directory the
+  entry the first one had made, and took it for the command line's: a directory
+  configured with `-DGAOL_PRESERVE_ROUNDING=ON` lost the AVX-512 path at its
+  second `cmake` (point 112 of `TODO.md`). The script configures GAOL as the
+  project built, with the generator and the compilers that built it, several
+  times in the same directory, and compares what each configuration says and
+  writes: the messages about the path, the entry `GAOL_PREFER_AVX512` of the
+  cache and the record `GAOL_PREFER_AVX512_DERIVED`, and the lines of
+  `gaol_configuration.h`. The second `cmake`, with and without
+  `-DGAOL_PRESERVE_ROUNDING=ON`, has to give the configuration of the first;
+  the default has to follow `GAOL_PRESERVE_ROUNDING` off and on again; a
+  `-DGAOL_PREFER_AVX512=OFF` has to refuse the path under
+  `GAOL_PRESERVE_ROUNDING` and to stay for the next `cmake`, after a default
+  that was `ON` and after one that was `OFF` (the request then equals what the
+  entry holds), until `-UGAOL_PREFER_AVX512` derives the default again; a
+  `-DGAOL_PREFER_AVX512=ON` has to stay too, and so has a request of ON made by
+  editing the value of the entry in `CMakeCache.txt` between two `cmake`, as
+  `ccmake` does (no `-D`: only the value tells it from the default derived).
+  The entry has to say what the configuration uses. Where the compiler has no AVX-512 path (ARM), the default
+  derived under `GAOL_PRESERVE_ROUNDING` is left out with a message that every
+  `cmake` has to give, and `-DGAOL_PREFER_AVX512=ON` is an error each time;
+  where it has one, the header differs too. The script takes
+  `-DGAOL_CONFIGURE_ARGS=...` for the arguments of a configuration of another
+  architecture: on an ARM Mac,
+  `-DCMAKE_OSX_ARCHITECTURES=x86_64;-DGAOL_MACHINE_RUNS_AVX512=1;-DGAOL_MACHINE_RUNS_FMA=1`
+  takes the path where the programs of the checks, which cannot run without
+  Rosetta, are given their result. It configures a directory of its own and
+  builds nothing, so it takes about three seconds, the first `cmake` running the
+  checks of the compiler and the others reusing them. Only the CMake build has
+  it: configure and meson keep no entry of that kind, the first recomputing the
+  default at every run and the second keeping `auto` (GAOL v5).
 - **The unit tests of GAOL 4:** `arithmetic_operators` (`check/arithmetic.cpp`),
   `assignment`, `constants`, `constructor`, `float_functions`,
   `generic_functions`, `input_output`, `interval_functions`, `misc`,
