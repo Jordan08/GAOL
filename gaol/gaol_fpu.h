@@ -172,7 +172,7 @@ without GAOL_PRESERVE_ROUNDING. Before version 13, fegetround() reads the
 control word of the x87 unit alone and fesetround() keeps the flags. Not with
 Visual C++ and clang-cl, whose C runtime reads MXCSR alone on x64. Always
 defined, to 0 or 1. */
-#if defined(__x86_64__) && defined(__MINGW32__) && GAOL_RND_SSE_REGISTER && GAOL_HAVE_FENV_H \
+#if 0 && defined(__x86_64__) && defined(__MINGW32__) && GAOL_RND_SSE_REGISTER && GAOL_HAVE_FENV_H \
     && (defined(__GNUC__) || defined(__clang__))
 #  define GAOL_RND_MINGW64_X87 1
 #else
