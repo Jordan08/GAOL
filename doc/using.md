@@ -886,6 +886,9 @@ example; they are listed here for the reader who looks in this page first.
   to 0.1, one point, not 1/10: `textToInterval("0.1")` encloses it.
   `sqrt(2.0)` is the C function, and `interval(sqrt(2.0))` a point that misses
   √2: `sqrt(interval(2.0))` encloses it. `gaol::sin(0.5)` does not compile.
+- **Code inside `namespace gaol { }`.** The using-declarations of `gaol` are
+  visible there: a call `sqrt(2.0)` finds `gaol::sqrt`, which hides `::sqrt`,
+  and does not compile. This was already the case with GAOL 4.
 - **A midpoint and a radius.** `interval(m - r, m + r)` does not enclose
   [m − r, m + r], the program computing both bounds in the direction it is in:
   `interval::midrad(m, r)` does (GAOL v5).
@@ -925,6 +928,14 @@ example; they are listed here for the reader who looks in this page first.
   `textToInterval` of `gaol_ieee1788` throws neither: it gives the empty set for
   any text that is no interval, an answer that cannot be told from the one
   for `"[empty]"`.
+- **A sign next to an uncertain number.** `10-3.56?1` and `10+3.56?1` throw
+  `input_format_error`: the lexer reads `-3.56?1` as one token. A blank is
+  needed: `10 - 3.56?1`.
+- **A long number.** Reading a long number takes a time quadratic in its
+  number of digits: `"0."` followed by 20 000 digits `3` takes 0.017 s,
+  80 000 digits 0.28 s, 320 000 digits 4.4 s (about 45 s expected for a
+  million), and the uncertain form 2.3 times as long. A text from elsewhere
+  can thus block a program.
 - **Threads and the global settings.** `interval::format()` and
   `interval::precision()` are plain variables of the program, shared by its
   threads: setting one while another thread writes an interval (`operator<<`,
