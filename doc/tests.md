@@ -783,8 +783,9 @@ point Q), which `numbers` checks there too.
   the test checks the `fma()` and `round()` of the C library, which CORE-MATH
   and GAOL call (`fma()` wherever the compiler has no fused multiply-add
   instruction, as GCC for 32-bit Windows, or with `GAOL_FMA` off): `fma()`
-  correctly rounded in the four rounding directions at six triples, three error-free products
-  `fma(a, b, -a*b)` among them and `x + x*2^-54` as `cr_tan()` computes it, and
+  correctly rounded in the four rounding directions at six triples, three
+  error-free products `fma(a, b, -a*b)` among them and `x + x*2^-54` as
+  `cr_tan()` computes it, and
   `round()` the same in every direction at ±0x1.fffffffffffffp-2, ±0.5, ±2.5
   and 2<sup>52</sup> − 1/2, against values computed with exact rational
   arithmetic. The `fma()` and `round()` of mingw-w64's own math library on

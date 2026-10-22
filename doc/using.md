@@ -30,9 +30,11 @@ itself. With GCC and Clang, each where the compiler takes it:
   (`GAOL_FMA`, see [Building GAOL](building.md)): the code using GAOL runs only
   on a processor with them, as GAOL, and is compiled for it. With GCC for
   Windows on x86-64 (GAOL v5), `-mfma -mprefer-vector-width=128`: the second
-  keeps GCC from writing 256-bit instructions, whose registers it would spill to
-  a stack that Windows aligns on 16 bytes, not 32 (GCC bug 54412; see [The
-  three builds](three-builds.md#gcc-for-windows)). A program that writes 256-bit
+  keeps the vectorizer of GCC to the 128-bit registers, which it would
+  otherwise spill to a stack that Windows aligns on 16 bytes, not 32 (GCC bug
+  54412; the objects of GAOL, CORE-MATH and the tests built so by GCC 16.2 have
+  no instruction on a 256-bit register, see [The three
+  builds](three-builds.md#gcc-for-windows)). A program that writes 256-bit
   intrinsics itself is exposed to that defect, as with `-mavx`.
 
 With Visual C++ and clang-cl, `/fp:strict`, `/arch:AVX2` for x64 with

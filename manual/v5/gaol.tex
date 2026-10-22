@@ -340,7 +340,10 @@ but the second one, which no macro of the compiler shows:
   before mingw-w64 12, and linked with \file{msvcrt.dll} rather than the UCRT
   (MSYS2 MINGW64, the cross compilers of Debian and Ubuntu), they are those
   of the math library of mingw-w64, computed in doubles: that \code{fma()} is
-  not correctly rounded, and CORE-MATH computes with it; that \code{round()}
+  not correctly rounded, and CORE-MATH computes with it where the compiler has no
+  \option{-mfma} (32-bit x86, or \option{GAOL\_FMA} \code{OFF}; GCC for Windows
+  on x64 takes it by default, and these toolchains stay refused, their
+  \code{round()} being wrong too); that \code{round()}
   depends on the rounding direction. On 32-bit x86, before mingw-w64 11, as
   the mingw-w64 9 of WinLibs, whose \code{fma()} rounds each of its partial
   sums to a double. On ARM, as on x64, before mingw-w64 12 or linked with
@@ -934,11 +937,12 @@ takes it:
   32-bit ARM, where GAOL is compiled with the fused multiply-add instructions of
   the processor (\option{GAOL\_FMA}): the code using GAOL then runs only on a
   processor with them, as GAOL itself. With GCC for Windows on x86-64 the flags
-  are \option{-mfma -mprefer-vector-width=128}, the second keeping GCC from
-  writing 256-bit instructions whose registers it would spill to a stack that
-  Windows aligns on 16 bytes, not 32 (GCC bug 54412); a program that writes
-  256-bit intrinsics itself is exposed to that defect, as with
-  \option{-mavx}.\newinvfive
+  are \option{-mfma -mprefer-vector-width=128}, the second keeping the
+  vectorizer of GCC to the 128-bit registers, which it would otherwise spill
+  to a stack that Windows aligns on 16 bytes, not 32 (GCC bug 54412): the
+  objects of GAOL, CORE-MATH and the tests built so by GCC~16.2 have no
+  instruction on a 256-bit register. A program that writes 256-bit intrinsics
+  itself is exposed to that defect, as with \option{-mavx}.\newinvfive
 \end{itemize}
 
 \noindent
