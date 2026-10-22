@@ -136,8 +136,9 @@ namespace gaol_core {
 #endif // GAOL_USING_SSE2_INSTRUCTIONS
 
   /*
-    x^n for an int n, |n| >= 2, with the tightest bounds, from exact
-    products (GAOL v5, points 8, 72 and 73 of TODO.md). GAOL rounded each
+    x^n for an int n, |n| >= 2 but n = 2 (x^2 is sqr(), which gaol_pown() and
+    pown_upward() take before this code, GAOL v5), with the tightest bounds,
+    from exact products (GAOL v5, points 8, 72 and 73 of TODO.md). GAOL rounded each
     product of its binary exponentiation outward, and its bounds were up to
     n + 1 doubles beyond the tightest (32 to 39 at n = 30, 1300 to 1500 at
     n = 1000); GAOL v5 then kept each power as a double and a rest, rounded
@@ -161,9 +162,10 @@ namespace gaol_core {
     e and f being exactly the rests of the products (fma(), the products
     being normal), and t and l' rounded once each (fma()). The error of
     h + l is bounded beforehand, relatively: |h + l - |c|^m| <= K h with
-    K = (8 m L + 16) 2^-104, L being the number of bits of m (below), and
-    K = 0 for m = 2, c^2 being h + l exactly, x^2 the tightest. Each
-    bound is then rounded once, upward, the rounding direction being upward
+    K = (8 m L + 16) 2^-104, L being the number of bits of m (below). A
+    square, m = 2, is h + l exactly, and comes here for n = -2 only, whose K
+    is that of the inverse (below): x^2 is sqr(), which has no error to
+    bound. Each bound is then rounded once, upward, the rounding direction being upward
     throughout, v + w being h + l or -(h + l), of the sign of c^m:
       lower bound = -RU(-v + RU(K h - w)), upper bound = RU(v + RU(K h + w)),
     the lane 0 holding the opposite of the lower bound, as the SSE2 intervals
@@ -293,12 +295,13 @@ namespace gaol_core {
   }
 
   // K for c^m and for c^-m (see above), in the upward rounding: 2^-104 is
-  // 4.930380657631324e-32 and 2^-155 2.1895288505075267e-47. c^2 is h + l
-  // exactly, one square: K = 0 for it, x^2 being the tightest, sqr(x)
-  // (GAOL v5); c^-2 keeps the K of the inverse, which covers its roundings
+  // 4.930380657631324e-32 and 2^-155 2.1895288505075267e-47. pown_bound() is
+  // for m >= 3: x^2 is sqr(), which gaol_pown() and pown_upward() take before
+  // the kernel (c^2 is h + l exactly, and its K was 0, GAOL v5); c^-2 comes
+  // to pown_bound_inverse(), whose K covers the roundings of the inverse
   static GAOL_POWN_INLINE double pown_bound(unsigned int m, unsigned int L)
   {
-    return (m == 2u) ? 0.0 : (8.0*m*L + 16.0)*4.930380657631324e-32;
+    return (8.0*m*L + 16.0)*4.930380657631324e-32;
   }
 
   static GAOL_POWN_INLINE double pown_bound_inverse(unsigned int m, unsigned int L)
@@ -1894,8 +1897,9 @@ namespace gaol_core {
     I^n for |n| >= 2 and a nonempty I, the rounding direction being upward:
     both corners at once where they are within the range of pown_least[] and
     pown_greatest[], and pown_by_corners() otherwise (see pown_products()).
-    Inlined in gaol_pown() alone: its switch over the small exponents is long,
-    and the other callers, five, call pown_large_upward().
+    Inlined in pown_checked() alone, the body of gaol_pown() for n != 2: its
+    switch over the small exponents is long, and the callers that take
+    pown_upward() after their own check call pown_large_upward().
   */
   static GAOL_POWN_INLINE_T interval pown_large_inline(const interval& I, int n)
   {
@@ -2159,9 +2163,9 @@ namespace gaol_core {
   /*
     One check of the rounding direction for each call (GAOL v5). The body of
     pown_large_upward() is inlined here, the function of gaol::pow(x, n) and
-    of gaol_ieee1788::pown(x, n): its call took 0.4 to 0.6 ns more for x^3
-    to x^1000 (5.9 ns rather than 5.5 for x^3, with Clang 21 on an
-    i7-1185G7).
+    of gaol_ieee1788::pown(x, n) for n != 2 (see gaol_pown() below): its call
+    took 0.4 to 0.6 ns more for x^3 to x^1000 (5.9 ns rather than 5.5 for x^3,
+    with Clang 21 on an i7-1185G7).
   */
   static GAOL_POWN_TARGET GAOL_POWN_NOINLINE interval pown_checked(const interval& I, int n)
   {
