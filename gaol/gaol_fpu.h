@@ -148,6 +148,30 @@ inline assembly with Visual C++). Always defined, to 0 or 1. */
 #  define GAOL_RND_X86_DIRECT 0
 #endif
 
+/* GAOL_RND_MINGW64_X87: 1 with mingw-w64 (GCC or Clang) on x86-64, where
+get_rounding() and the functions that set the direction back (GAOL_RND_PRESERVE(),
+GAOL_RND_RESTORE(), rounding_guard...) read and write the control word of the
+x87 unit and MXCSR themselves, as x86_set_modes() does for a 32-bit x86
+processor, rather than call fegetround() and fesetround() (GAOL v5, point 110
+of TODO.md, found by tests/rounding_direction.cpp in the continuous
+integration). Both are implemented by mingw-w64 with its own _controlfp()
+(__mingw_controlfp, mingw-w64-crt/misc/mingw_controlfp.c): fegetround() gives the
+two fields RC of the x87 unit and of MXCSR joined by OR, so that it reads
+FE_UPWARD | FE_DOWNWARD, which is no direction, where the units differ, as
+they do inside an operation that keeps MXCSR alone (GAOL_RND_ENTER_SSE()); and
+fesetround() writes both, and clears the six exception flags of MXCSR whenever
+it changes its value (__mingw_setfp_sse(), "clear status word if anything
+changes"), so that midpoint(), chi(), the writing and the reading of an
+interval, which set the direction to nearest and back, lost the flags the
+program had raised. Not with Visual C++ and clang-cl, whose C runtime reads
+MXCSR alone on x64. Always defined, to 0 or 1. */
+#if defined(__x86_64__) && defined(__MINGW32__) && GAOL_RND_SSE_REGISTER && GAOL_HAVE_FENV_H \
+    && (defined(__GNUC__) || defined(__clang__))
+#  define GAOL_RND_MINGW64_X87 1
+#else
+#  define GAOL_RND_MINGW64_X87 0
+#endif
+
 /*
 The rounding direction of GAOL's operations
 
@@ -526,7 +550,7 @@ namespace gaol_core {
     }
   }
 
-  #if GAOL_RND_X86_DIRECT
+  #if GAOL_RND_X86_DIRECT || GAOL_RND_MINGW64_X87
   //! The registers of the processor
   struct x86_registers
   {
@@ -649,6 +673,17 @@ namespace gaol_core {
     s.flush = static_cast<unsigned int>(fpcr) & GAOL_RND_FLUSH_BITS;
     return s;
     #endif
+    #if GAOL_RND_MINGW64_X87
+    {
+      // The direction of the x87 unit as its control word holds it (GAOL_RND_MINGW64_X87)
+      unsigned int cw, csr;
+      gaol_read_x86_control(cw, csr);
+      s.direction = static_cast<int>(cw & x87_rc_mask);
+      s.sse = csr & static_cast<unsigned int>(_MM_ROUND_MASK);
+      s.flush = csr & static_cast<unsigned int>(GAOL_RND_FLUSH_BITS);
+      return s;
+    }
+    #endif
     s.direction = fegetround();
     #if GAOL_RND_SSE_REGISTER
     // One read of MXCSR, which cost 800 ns under Rosetta 2 (see below)
@@ -664,6 +699,12 @@ namespace gaol_core {
   //! Sets the rounding direction back, and nothing else of the environment
   GAOL_INLINE void set_rounding(const rounding_state& s)
   {
+    #if GAOL_RND_MINGW64_X87
+    // In the unit that differs, and the exception flags kept (GAOL_RND_MINGW64_X87)
+    x86_registers hw;
+    x86_set_modes(hw, static_cast<unsigned int>(s.direction), sse_rc_mask, s.sse);
+    return;
+    #endif
     #if GAOL_RND_DIRECT
     fpcr_update(fpcr_rmode_mask, static_cast<fp_control>(s.direction));
     #else
@@ -677,6 +718,12 @@ namespace gaol_core {
   //! set_rounding(), and the flush-to-zero modes as well
   GAOL_INLINE void set_rounding_and_flush_modes(const rounding_state& s)
   {
+    #if GAOL_RND_MINGW64_X87
+    // In the unit that differs, and the exception flags kept (GAOL_RND_MINGW64_X87)
+    x86_registers hw;
+    x86_set_modes(hw, static_cast<unsigned int>(s.direction), sse_rc_mask | x86_flush_mask, s.sse | s.flush);
+    return;
+    #endif
     #if GAOL_RND_DIRECT
     // One write of FPCR, and none when the direction and the modes are those
     // that it holds (GAOL v5)
