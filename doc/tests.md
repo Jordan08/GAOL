@@ -314,16 +314,17 @@ point Q), which `numbers` checks there too.
   enabled after each of them: with `GAOL_PRESERVE_ROUNDING`, the SSE2
   operations masked the exceptions again and cleared the flags. Where the
   processor does not trap an invalid operation (an overflow), or keeps no flag
-  `feraiseexcept()` raises, the test says so and skips that part.
+  `feraiseexcept()` raises, the test says so and skips that part. The flags
+  are checked from each direction the test runs, six with the SSE instructions
+  and four elsewhere (GAOL v5; they were checked from upward only, mingw-w64 on
+  x86-64 apart), and after `gaol::cleanup()` and `gaol::restore_rounding()`.
   With mingw-w64 on x86-64 (GAOL v5, point 110 of TODO.md), the control word of
   the x87 unit is read apart (`fnstcw`) and is part of the state that has to be
   the same before and after each operation, as `fegetround()` of mingw-w64 13
-  and later joins the fields RC of the two units by OR; the flags are checked
-  from each of the six directions, not from upward only, and after
-  `gaol::cleanup()` and `gaol::restore_rounding()`: `fesetround()` of mingw-w64
-  13 and later clears the six flags of MXCSR when it changes it, which
-  `midpoint()`, `rad()`, `split()`, `chi()`, the reading and the writing of an
-  interval, `cleanup()` and `restore_rounding()` called.
+  and later joins the fields RC of the two units by OR; `fesetround()` of
+  mingw-w64 13 and later clears the six flags of MXCSR when it changes it,
+  which `midpoint()`, `rad()`, `split()`, `chi()`, the reading and the writing
+  of an interval, `cleanup()` and `restore_rounding()` called.
   With a mode that flushes the subnormal numbers to zero set (on x86,
   flush-to-zero, denormals-are-zero or both; on ARM with GCC and Clang, FZ,
   and FIZ where the processor has it), and the rounding direction upward or

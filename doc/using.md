@@ -19,8 +19,14 @@ itself. With GCC and Clang, each where the compiler takes it:
   with the SSE2 intervals, so that the compiler asks for aligned memory for the
   intervals, which the C runtime would align on 8 bytes instead of 16 (GAOL v5):
   `gaol::gaol` and `gaol.pc` give it to the code using GAOL, which allocates
-  them, and `gaol/gaol_config.h` checks it. Visual C++ and clang-cl have no
-  such flag and keep the FPU intervals on 32-bit Windows;
+  them, and `gaol/gaol_config.h` checks it. It is an option of C++: GCC warns
+  of a C file compiled with it ("valid for C++/ObjC++ but not for C"), and
+  with `-Werror` the warning is an error. It happens where the flags of
+  `gaol.pc`, or `gaol_dep` of meson, are given to every file of a target
+  (`gaol::gaol` of CMake gives it to the C++ files only): give it to the C++
+  files only, pkg-config having no flag for one language.
+  Visual C++ and clang-cl have no such flag and keep the FPU intervals on
+  32-bit Windows;
 - nothing more on 64-bit ARM processors with the NEON intervals
   (`GAOL_ARM64`, GAOL v5, see [The NEON intervals](#the-neon-intervals)): the
   first line is all they ask for;
@@ -35,7 +41,10 @@ itself. With GCC and Clang, each where the compiler takes it:
   54412; the objects of GAOL, CORE-MATH and the tests built so by GCC 16.2 have
   no instruction on a 256-bit register, see [The three
   builds](three-builds.md#gcc-for-windows)). A program that writes 256-bit
-  intrinsics itself is exposed to that defect, as with `-mavx`.
+  intrinsics itself is exposed to that defect, as with `-mavx`, and so is one
+  built with `-mavx512f` or a `-march` that turns on wider registers, which
+  the option may not always undo (same section). Cygwin and MSYS get them as
+  the other GCC for Windows (not built here).
 
 With Visual C++ and clang-cl, `/fp:strict`, `/arch:AVX2` for x64 with
 `GAOL_FMA`, and `-msse2` with clang-cl for 32-bit x86, which computes doubles
