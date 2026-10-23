@@ -357,6 +357,11 @@ namespace gaol_core {
     fpcr_update(fpcr_rmode_mask, 0u);
   }
   #else
+  // The generic path (POWER, s390x, RISC-V, MIPS...): the direction only. The
+  // return value of fesetround() is not read, and the modes that flush the
+  // subnormal numbers (NI of the FPSCR of POWER, FS of the FCSR of MIPS) are
+  // not cleared, as FTZ, DAZ and FZ are above (GAOL v5, see doc/using.md,
+  // "Flush-to-zero and denormals-are-zero")
   GAOL_INLINE  void
   round_downward(void)
   {
