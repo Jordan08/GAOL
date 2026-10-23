@@ -1,12 +1,12 @@
-# Builds GAOL with CMake on Windows, with Visual Studio 2022 and 2026 (x86, x64,
-# arm64; Release and Debug), the clang-cl of Visual Studio 2022 (x64; Release
-# and Debug) and 2026 (x86, x64, arm64; Release), MinGW-w64 15 (x86, x64;
-# Release and Debug), 14 (x86, x64), 12 and 13 (x86; 13 without GAOL_FMA too),
-# and MSYS2 (UCRT64 GCC,
-# CLANG64 Clang), runs its tests, installs it, and builds the tests again with
-# the installed GAOL; with Visual Studio 2026 x64 and x86 and /W4 /WX too (GAOL
-# v5). The AVX-512 path of Visual C++ and clang-cl runs under Intel SDE, the
-# runners having no AVX-512 instructions.
+# Builds GAOL with CMake on Windows, with Visual Studio 2022 and 2026 (x86,
+# x64, arm64; Release and Debug), the clang-cl of Visual Studio 2022 (x64;
+# Release and Debug) and 2026 (x86, x64, arm64; Release), MinGW-w64 15 (x86,
+# x64; Release and Debug), 14 (x86, x64), 12 and 13 (x86; 13 without GAOL_FMA
+# too), MSYS2 (UCRT64 GCC, CLANG64 Clang) and Cygwin (GCC, x64; GAOL v5), runs
+# its tests, installs it, and builds the tests again with the installed GAOL;
+# with Visual Studio 2026 x64 and x86 and /W4 /WX too (GAOL v5). The AVX-512
+# path of Visual C++ and clang-cl runs under Intel SDE, the runners having no
+# AVX-512 instructions.
 # Windows has French_France.1252, a locale writing a decimal
 # comma: each job that runs the tests checks that numbers read and wrote numbers
 # under it (.github/scripts/comma-locale.sh) (GAOL v5). On arm64, the compiler
@@ -415,6 +415,45 @@ jobs:
         run: sh .github/scripts/comma-locale.sh check build
       - name: Performance
         run: build/tests/gaol_performance.exe
+
+  # Cygwin, GCC for x86-64 (GAOL v5). GAOL_FMA gives it -mfma
+  # -mprefer-vector-width=128 as the MinGW-w64 and MSYS2 above (CMakeLists.txt:
+  # (WIN32 OR CYGWIN)), which no job exercised. Cygwin is not mingw-w64
+  # (__CYGWIN__, not __MINGW32__), so gaol/gaol_config.h does not refuse it, and
+  # tests/core_math.cpp checks first the fma() and round() of its C library
+  cygwin:
+    name: Cygwin GCC x64 Release
+    runs-on: windows-2025
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: D:\cygwin\bin\bash.exe --noprofile --norc -eo pipefail -o igncr '{0}'
+    steps:
+      - run: git config --global core.autocrlf input
+        shell: pwsh
+      - uses: actions/checkout@v7
+      - uses: cygwin/cygwin-install-action@v6
+        with:
+          packages: |
+            gcc-g++
+            cmake
+            make
+            binutils
+      - name: Configure
+        run: |
+          g++ --version
+          g++ -dumpmachine
+          cmake -S . -B build -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
+      - name: The intervals, and the flags of the fused multiply-add instructions
+        run: |
+          sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h sse2
+          grep -F -e "-mfma -mprefer-vector-width=128" build/CMakeFiles/gaol.dir/flags.make
+      - name: Build
+        run: cmake --build build -j 4
+      - name: Fused multiply-add instructions, and no 256-bit register in the objects
+        run: sh .github/scripts/check-gcc-windows-fma.sh build
+      - name: Tests (make test)
+        run: cmake --build build --target test
 
   # The mingw-w64 whose fma() or round() is wrong are refused when compiling
   # (gaol/gaol_config.h): CORE-MATH computes with that fma() where the build
