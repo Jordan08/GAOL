@@ -401,12 +401,15 @@ and the sign of its zero bounds, where the integer power made its square from
 exact products, the same bounds in a longer time and, for some intervals
 holding 0, a zero bound of the other sign (see
 [Accuracy of the operations](accuracy.md)). The exception flags it raises are
-`sqr(x)`'s too. For the empty set, `pow(x, 2)`, `pow(x, 2u)` and
-`gaol_ieee1788::pown(x, 2)` return as `sqr` does, before any check, and leave
-the rounding direction as the program had it, where `pow(x, 2.0)`,
-`pow(x, [2])`, `gaol_ieee1788::pow(x, [2])` and `gaol_pown_ll(x, 2)` check it
-first and leave it upward: a program does not count on the direction after an
-operation that computes no bound (see
+`sqr(x)`'s too. For the empty set, `pow(x, 2)`, `pow(x, 2u)`, `pow(x, 2LL)`,
+`pow(x, 2.0)`, `pow(x, [2])`, `gaol_ieee1788::pown(x, 2)` and
+`gaol_ieee1788::pow(x, [2])` return as `sqr` does, before any check, and leave
+the rounding direction as the program had it, and the modes that flush the
+subnormal numbers to zero as it had them too (GAOL v5); so do the real and
+interval forms of `pow` for any exponent, an empty exponent included, and the
+`long long` form beyond the unsigned ints. The integer powers of an `int` or of
+an `unsigned int` other than 2 check it first and leave it upward: a program
+does not count on the direction after an operation that computes no bound (see
 [The rounding direction](#the-rounding-direction)).
 
 The rest of GAOL follows the same split:
@@ -1603,6 +1606,17 @@ bounds wrong**, and GAOL defends itself in two ways:
   builds test the compiler with a link, not with its version). It keeps
   `crtfastmath.o` out of the link, so that a program linked with `-Ofast` does
   not get the modes at all, its own code included.
+
+On the other processors (POWER, s390x, RISC-V, MIPS...), whose FPU intervals
+use the generic `round_upward()` of `gaol/gaol_fpu_fenv.h` (a call to
+`fesetround(FE_UPWARD)`, whose return value is not read), neither defence
+exists (GAOL v5): the mode NI (non-IEEE) of the FPSCR of POWER and the bit FS
+of the FCSR of MIPS, modes of the kind of FTZ and DAZ that may flush the
+subnormal numbers, are not cleared, and a program that sets them may get
+bounds that miss the exact result for subnormal operands and results. What
+they do depends on the processor, whether the toolchains of these processors
+set them in a program linked with `-Ofast` was not checked, and nothing of
+GAOL was tested with them set.
 
 The functions that only read, compare or copy the bounds of an interval make
 no check, which made each of them 3 to 4.5 ns slower in a micro-benchmark on
