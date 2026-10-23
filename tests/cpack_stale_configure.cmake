@@ -38,7 +38,9 @@
 # copy is configured with the generator, its program and the compilers that
 # built GAOL, the compilers given to CMake as CC and CXX, the way CMake reads
 # them with their arguments (CC="ccache gcc"). Without sh, or where the system
-# makes no symbolic link, the script says that it is skipped
+# makes no symbolic link, or where the CPack of the system cannot make the
+# archive (Cygwin: "Couldn't list extended attributes", after the warning of
+# CMake that this test is about), the script says that it is skipped
 # (SKIP_REGULAR_EXPRESSION of tests/CMakeLists.txt) rather than failing.
 #
 # ctest runs it (tests/CMakeLists.txt), and by hand:

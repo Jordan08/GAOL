@@ -270,6 +270,19 @@ namespace gaol_tests
       const int saved_;
   };
 
+  // fma(a, b, c) as CORE-MATH and GAOL compute it (GAOL v5): __builtin_fma, the
+  // instruction with -mfma at every level of optimization, where std::fma is a
+  // call of the fma() of the C library without optimization, and that of Cygwin
+  // is not correctly rounded
+  inline double fma_as_gaol(double a, double b, double c)
+  {
+#if defined(__GNUC__)
+    return __builtin_fma(a, b, c);
+#else
+    return std::fma(a, b, c);
+#endif
+  }
+
   // The doubles next to x, computed rounding to nearest (nextafter() was found
   // by IBEX to crash on ARM64 macOS when not rounding to nearest)
   inline double next_double(double x)
