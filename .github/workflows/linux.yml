@@ -83,13 +83,16 @@ jobs:
           - { os: ubuntu-24.04-arm, cc: gcc,   cxx: g++,     opts: '-DGAOL_ARM64=OFF', desc: 'Ubuntu 24.04 arm64 GCC, FPU intervals' }
           - { os: ubuntu-24.04-arm, cc: clang, cxx: clang++, opts: '-DGAOL_ARM64=OFF', desc: 'Ubuntu 24.04 arm64 Clang, FPU intervals' }
           - { os: ubuntu-24.04-arm, cc: clang, cxx: clang++, opts: '-DGAOL_ARM64=OFF -DGAOL_PRESERVE_ROUNDING=ON', desc: 'Ubuntu 24.04 arm64 Clang, FPU intervals, rounding direction preserved' }
-          # The FPU intervals on x86-64 too, with GCC and Clang, and the
-          # direction preserved: the compound assignments *=, /= and %= of the
-          # FPU intervals write their bounds into *this before the direction
-          # is set back, without GAOL_RND_KEEP(), and the checks of
+          # The FPU intervals on x86-64 too, with GCC and Clang (the first
+          # job without the direction preserved, as a default build takes
+          # them where SIMD is off), and on arm64 with GCC, with the
+          # direction preserved: the compound assignments *=, /= and %= of
+          # the FPU intervals write their bounds into *this before the
+          # direction is set back, without GAOL_RND_KEEP(), and the checks of
           # tests/rounding_direction.cpp that run each operation after the
           # program changed the direction fail if a compiler computes a
-          # product after it (GAOL v5)
+          # product after it, which only the jobs that preserve the direction
+          # can show (GAOL v5)
           - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     opts: '-DGAOL_SIMD=OFF', desc: 'Ubuntu 24.04 x86_64 GCC, FPU intervals' }
           - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     opts: '-DGAOL_SIMD=OFF -DGAOL_PRESERVE_ROUNDING=ON', desc: 'Ubuntu 24.04 x86_64 GCC, FPU intervals, rounding direction preserved' }
           - { os: ubuntu-24.04,     cc: clang, cxx: clang++, opts: '-DGAOL_SIMD=OFF -DGAOL_PRESERVE_ROUNDING=ON', desc: 'Ubuntu 24.04 x86_64 Clang, FPU intervals, rounding direction preserved' }

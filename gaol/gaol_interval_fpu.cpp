@@ -557,12 +557,11 @@ double hausdorff(const interval &I1, const interval &I2)
     product did without: decided on 2026-10-23 to leave it out and to hold the
     protection by tests instead. The checks of tests/rounding_direction.cpp
     that run x *= y, x /= y and x %= y after the program changed the
-    direction (tight_cases) and with a flush mode set fail where a product is
-    computed after GAOL_RND_LEAVE(): the jobs of GCC and Clang with the FPU
-    intervals and GAOL_PRESERVE_ROUNDING (.github/workflows/linux.yml) run
-    them, and the product written after GAOL_RND_LEAVE() fails 53 of the 96
-    checks of x *= y in a loop (x /= y 58, x %= y 57) with GCC 15.2 and Clang 21
-    on x86-64. An interval with an
+    direction fail where a product is computed after GAOL_RND_LEAVE(): the
+    jobs of GCC and Clang with the FPU intervals and GAOL_PRESERVE_ROUNDING
+    (.github/workflows/linux.yml) run them, and a product written after
+    GAOL_RND_LEAVE() fails 53 of the 96 checks of x *= y in a loop (x /= y 58,
+    x %= y 57) with GCC 15.2 and Clang 21 on x86-64. An interval with an
     infinite bound is the rare case, which mul_infinite() computes: the
     kernel would form 0 times an infinite bound among its eight products, a
     NaN that raises the invalid-operation exception, and that must be 0.

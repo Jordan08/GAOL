@@ -126,10 +126,16 @@ On 64-bit ARM processors the intervals are the NEON ones by default
 Ubuntu arm64, macOS arm64 and the aarch64 containers, and those of autotools
 and meson on arm64, test them. A few jobs build the FPU intervals instead,
 which the NEON ones replace on these processors, so that their code stays
-covered, the preserved rounding direction included: the GCC and the Clang of Ubuntu 24.04 arm64
-(`-DGAOL_ARM64=OFF`), and its Clang with the rounding direction preserved too,
-macOS 15 arm64 (`-DGAOL_ARM64=OFF`), and autotools (`--disable-arm64`) and
-meson (`-Denable-arm64=false`) on Ubuntu 24.04 arm64. A build that fell back to
+covered, the preserved rounding direction included: the GCC and the Clang of
+Ubuntu 24.04 arm64 (`-DGAOL_ARM64=OFF`), and both with the rounding direction
+preserved too, macOS 15 arm64 (`-DGAOL_ARM64=OFF`), and autotools
+(`--disable-arm64`) and meson (`-Denable-arm64=false`) on Ubuntu 24.04 arm64.
+The GCC and the Clang of Ubuntu 24.04 x86-64 build them too
+(`-DGAOL_SIMD=OFF`), GCC without and with the direction preserved and Clang
+with it: the compound products and quotients of the FPU intervals hold the
+direction only by the order of their stores, which the checks of
+`tests/rounding_direction.cpp` run with the direction preserved make a rule
+(GAOL v5). A build that fell back to
 the FPU intervals without saying so would keep every test green, so the jobs
 check which intervals the configuration took, in a step "The intervals"
 (`.github/scripts/check-intervals.sh`, which reads
@@ -137,8 +143,8 @@ check which intervals the configuration took, in a step "The intervals"
 `gaol_configuration.h`, and fails if they are not the expected ones): the main
 jobs of `linux.yml`, those of `macos.yml`, autotools and meson expect the NEON
 intervals on 64-bit ARM, the SSE2 intervals on x86-64, and the FPU intervals
-where the option is off; the Visual Studio jobs of `windows.yml`, those of
-clang-cl included, expect the SSE2 intervals on x64 (GAOL v5) and the FPU
+where the option (`GAOL_ARM64` or `GAOL_SIMD`) is off; the Visual Studio jobs
+of `windows.yml`, those of clang-cl included, expect the SSE2 intervals on x64 (GAOL v5) and the FPU
 intervals on x86 and arm64, where NEON is not offered to them; the
 Linux containers make the check before the build, from `uname -m`: the NEON
 intervals on aarch64, the SSE2 intervals on x86_64, and the FPU intervals on
