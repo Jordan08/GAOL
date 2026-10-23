@@ -482,8 +482,10 @@ jobs:
           cmake -S . -B build-debug -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_MAKE_PROGRAM=/usr/bin/make
           cmake --build build-debug -j 4 --target gaol
           object=build-debug/CMakeFiles/gaol.dir/gaol/gaol_interval_core.cpp.o
-          echo "$(objdump -d --no-show-raw-insn "$object" | grep -c 'vfmadd') fused multiply-add instructions"
-          objdump -d --no-show-raw-insn "$object" | grep -q 'vfmadd'
+          count=$(objdump -d --no-show-raw-insn "$object" | grep -c 'vfmadd' || true)
+          echo "$count fused multiply-add instructions"
+          # not grep -q: it ends before objdump does, which pipefail reads as 141
+          [ "$count" -gt 0 ]
           if nm -u "$object" | grep -w 'fma'; then
             echo "gaol_interval_core.cpp.o calls the fma() of the C library"
             exit 1
