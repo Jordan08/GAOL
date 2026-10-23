@@ -714,6 +714,7 @@ namespace
     { "x /= d", Formula::quotient, false, false, true, [](const interval& x, const interval& y) { interval z(x); z /= y.left(); return z; } },
     { "x %= d", Formula::quotient, false, false, true, [](const interval& x, const interval& y) { interval z(x); z %= y.left(); return z; } },
     { "sqr(x)", Formula::square, false, true, false, [](const interval& x, const interval&) { return sqr(x); } },
+    { "pow(x, 2)", Formula::square, false, true, false, [](const interval& x, const interval&) { return pow(x, 2); } },
     { "sqrt(x) of a positive x", Formula::root, false, false, false, [](const interval& x, const interval&) { return sqrt(x); } },
     { "sqrt(x) of any x", Formula::root, false, true, false, [](const interval& x, const interval&) { return sqrt(x); } },
     { "inverse(y)", Formula::inverse, false, false, false, [](const interval&, const interval& y) { return inverse(y); } },
@@ -987,6 +988,7 @@ namespace
           && (E() + E()).is_empty() && sqr(E()).is_empty() && sqrt(E()).is_empty(); } },
     { "the powers and the roots", [] {
         return pow(E(), 3).is_empty() && pow(E(), -2).is_empty() && pow(E(), 0).is_empty() && pow(E(), 2u).is_empty()
+          && pow(E(), 2).is_empty() && gaol_ieee1788::pown(E(), 2).is_empty() && pow(E(), interval(2.0)).is_empty()
           && pow(E(), 2.5).is_empty() && pow(E(), X()).is_empty() && pow(X(), E()).is_empty()
           && gaol_ieee1788::pow(E(), X()).is_empty() && gaol_ieee1788::pow(X(), E()).is_empty()
           && nth_root(E(), 3u).is_empty() && nth_root(E(), 4u).is_empty() && nth_root(E(), -3).is_empty(); } },

@@ -137,8 +137,9 @@ namespace gaol_core {
 #endif // GAOL_USING_SSE2_INSTRUCTIONS
 
   /*
-    x^n for an int n, |n| >= 2, with the tightest bounds, from exact
-    products (GAOL v5, points 8, 72 and 73 of TODO.md). GAOL rounded each
+    x^n for an int n, |n| >= 2 but n = 2 (x^2 is sqr(), which gaol_pown() and
+    pown_upward() take before this code, GAOL v5), with the tightest bounds,
+    from exact products (GAOL v5, points 8, 72 and 73 of TODO.md). GAOL rounded each
     product of its binary exponentiation outward, and its bounds were up to
     n + 1 doubles beyond the tightest (32 to 39 at n = 30, 1300 to 1500 at
     n = 1000); GAOL v5 then kept each power as a double and a rest, rounded
@@ -162,9 +163,10 @@ namespace gaol_core {
     e and f being exactly the rests of the products (fma(), the products
     being normal), and t and l' rounded once each (fma()). The error of
     h + l is bounded beforehand, relatively: |h + l - |c|^m| <= K h with
-    K = (8 m L + 16) 2^-104, L being the number of bits of m (below), and
-    K = 0 for m = 2, c^2 being h + l exactly, x^2 the tightest. Each
-    bound is then rounded once, upward, the rounding direction being upward
+    K = (8 m L + 16) 2^-104, L being the number of bits of m (below). A
+    square, m = 2, is h + l exactly, and comes here for n = -2 only, whose K
+    is that of the inverse (below): x^2 is sqr(), which has no error to
+    bound. Each bound is then rounded once, upward, the rounding direction being upward
     throughout, v + w being h + l or -(h + l), of the sign of c^m:
       lower bound = -RU(-v + RU(K h - w)), upper bound = RU(v + RU(K h + w)),
     the lane 0 holding the opposite of the lower bound, as the SSE2 intervals
@@ -230,10 +232,13 @@ namespace gaol_core {
   */
 #if defined(__GNUC__) || defined(__clang__)
 #  define GAOL_POWN_INLINE __attribute__((always_inline)) inline
+#  define GAOL_POWN_NOINLINE __attribute__((noinline))
 #elif defined(_MSC_VER)
 #  define GAOL_POWN_INLINE __forceinline
+#  define GAOL_POWN_NOINLINE __declspec(noinline)
 #else
 #  define GAOL_POWN_INLINE inline
+#  define GAOL_POWN_NOINLINE
 #endif
 // The functions that inline the operations of pown_er_lanes (and the ones
 // that call them) carry the target of those: the compiler refuses to inline a
@@ -291,12 +296,13 @@ namespace gaol_core {
   }
 
   // K for c^m and for c^-m (see above), in the upward rounding: 2^-104 is
-  // 4.930380657631324e-32 and 2^-155 2.1895288505075267e-47. c^2 is h + l
-  // exactly, one square: K = 0 for it, x^2 being the tightest, sqr(x)
-  // (GAOL v5); c^-2 keeps the K of the inverse, which covers its roundings
+  // 4.930380657631324e-32 and 2^-155 2.1895288505075267e-47. pown_bound() is
+  // for m >= 3: x^2 is sqr(), which gaol_pown() and pown_upward() take before
+  // the kernel (c^2 is h + l exactly, and its K was 0, GAOL v5); c^-2 comes
+  // to pown_bound_inverse(), whose K covers the roundings of the inverse
   static GAOL_POWN_INLINE double pown_bound(unsigned int m, unsigned int L)
   {
-    return (m == 2u) ? 0.0 : (8.0*m*L + 16.0)*4.930380657631324e-32;
+    return (8.0*m*L + 16.0)*4.930380657631324e-32;
   }
 
   static GAOL_POWN_INLINE double pown_bound_inverse(unsigned int m, unsigned int L)
@@ -1826,14 +1832,15 @@ namespace gaol_core {
 
 
   /*
-    inverse_upward() of gaol/gaol_interval_core.h, which is private to interval, for
-    pown_upward() and nth_root(I, q) for q < 0: they check the rounding
-    direction once and take the inverse after it, without checking it again as
-    inverse() does (GAOL v5)
+    inverse_upward() and sqr_upward() of gaol/gaol_interval_core.h, which are
+    private to interval, for pown_upward() and nth_root(I, q) for q < 0: they
+    check the rounding direction once and take the inverse or the square after
+    it, without checking it again as inverse() and sqr() do (GAOL v5)
   */
   class upward_access {
   public:
     static interval inverse(const interval& I) { return interval::inverse_upward(I); }
+    static interval sqr(const interval& I) { return interval::sqr_upward(I); }
   };
 
   /*
@@ -1891,8 +1898,9 @@ namespace gaol_core {
     I^n for |n| >= 2 and a nonempty I, the rounding direction being upward:
     both corners at once where they are within the range of pown_least[] and
     pown_greatest[], and pown_by_corners() otherwise (see pown_products()).
-    Inlined in gaol_pown() alone: its switch over the small exponents is long,
-    and the other callers, five, call pown_large_upward().
+    Inlined in pown_checked() alone, the body of gaol_pown() for n != 2: its
+    switch over the small exponents is long, and the callers that take
+    pown_upward() after their own check call pown_large_upward().
   */
   static GAOL_POWN_INLINE_T interval pown_large_inline(const interval& I, int n)
   {
@@ -2064,11 +2072,16 @@ namespace gaol_core {
     is given back as it is; x^0 is 1, x^1 x, and x^-1 the inverse, correctly
     rounded, which takes x^-1 at 0 as IEEE 1788-2015 does (recip, Table 9.1)
     and as x^n for n < 0 does: [1/b, +oo] for [0, b], [-oo, +oo] for an x
-    holding 0 inside, the empty set for [0]. Any other n takes
-    pown_large_upward(), with the tightest bounds (GAOL v5, see
-    pown_products(): GAOL computed x^-m as 1/x^m, whose x^m overflowed for some
-    |x| > 1 before the inversion: pow([10],-400) was [0,5.6e-309] rather than
-    [0,2^-1074], and pow([2],-1050) [0,2^-1024] rather than [2^-1050]).
+    holding 0 inside, the empty set for [0]. x^2 is sqr(), without its
+    check: the same bounds, and the same signs of the zero bounds, in every
+    form of the integer power (GAOL v5: it made its square from exact
+    products, which has the same bounds, and gave a zero bound of the other
+    sign for part of the intervals holding 0, [0, 2] with the NEON intervals,
+    [-1, 2] with the FPU ones). Any other n takes pown_large_upward(), with
+    the tightest bounds (GAOL v5, see pown_products(): GAOL computed x^-m as
+    1/x^m, whose x^m overflowed for some |x| > 1 before the inversion:
+    pow([10],-400) was [0,5.6e-309] rather than [0,2^-1074], and
+    pow([2],-1050) [0,2^-1024] rather than [2^-1050]).
   */
   static inline interval pown_upward(const interval& I, int n)
   {
@@ -2082,6 +2095,8 @@ namespace gaol_core {
       return I;
     case -1:
       return upward_access::inverse(I);
+    case 2:
+      return upward_access::sqr(I);
     default:
       return pown_large_upward(I, n);
     }
@@ -2149,11 +2164,11 @@ namespace gaol_core {
   /*
     One check of the rounding direction for each call (GAOL v5). The body of
     pown_large_upward() is inlined here, the function of gaol::pow(x, n) and
-    of gaol_ieee1788::pown(x, n): its call took 0.4 to 0.6 ns more for x^3
-    to x^1000 (5.9 ns rather than 5.5 for x^3, with Clang 21 on an
-    i7-1185G7).
+    of gaol_ieee1788::pown(x, n) for n != 2 (see gaol_pown() below): its call
+    took 0.4 to 0.6 ns more for x^3 to x^1000 (5.9 ns rather than 5.5 for x^3,
+    with Clang 21 on an i7-1185G7).
   */
-  GAOL_POWN_TARGET interval gaol_pown(const interval& I, int n)
+  static GAOL_POWN_TARGET GAOL_POWN_NOINLINE interval pown_checked(const interval& I, int n)
   {
 #if GAOL_POWN_ER
     // The embedded rounding sets no direction: the modes that flush the
@@ -2172,6 +2187,25 @@ namespace gaol_core {
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
     return res;
+  }
+
+  /*
+    I^n for an int n. n = 2 is sqr(), which makes its own check of the
+    rounding direction, and is taken before any other (GAOL v5): the integer
+    power took four times the time of sqr() for the same bounds (doc/simd.md),
+    and the sign of a zero bound is now that of sqr(). The other forms of the
+    integer power take pown_upward() after their own check, which has
+    sqr_upward() for n = 2. The rest is a function of its own, which is not
+    inlined here: with it, the frame that its kernel needs was set up before
+    the test of n = 2, which took 3.6 ns for x^2 against 1.7 (an Apple M2,
+    NEON intervals).
+  */
+  interval gaol_pown(const interval& I, int n)
+  {
+    if (n == 2) {
+      return sqr(I);
+    }
+    return pown_checked(I, n);
   }
 
   // gaol_pown() within the ints, CORE-MATH's pow beyond them (GAOL v5)

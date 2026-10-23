@@ -101,6 +101,30 @@
     return res;
   }
 
+  namespace neon_detail {
+
+  /*
+    The two products and the maximum of sqr_bounds() below on the stored
+    bounds x of a non-empty interval, the rounding direction being upward and
+    the modes that flush the subnormals to zero clear: the body of
+    sqr_bounds() after its check, which interval::sqr_upward() takes for x^2
+    (GAOL v5)
+  */
+  GAOL_INLINE float64x2_t sqr_products(float64x2_t x)
+  {
+    const float64x2_t q = vmulq_f64(x, vnegq_f64(x));
+    const float64x2_t p = vmulq_f64(x, x);
+    float64x2_t res = vpmaxq_f64(q, p);
+    // The stored bounds that are negative: -l < 0 is l > 0, r < 0 is r < 0.
+    // Neither or only the first: the interval straddles zero or is positive
+    const uint64x2_t sign = vcltzq_s64(vreinterpretq_s64_f64(x));
+    const uint64x2_t any_negative = vorrq_u64(sign, vextq_u64(sign, sign, 1));
+    res = from_bits(vandq_u64(bits_of(res), vcombine_u64(vget_low_u64(any_negative), vdup_n_u64(~0ull))));
+    return res;
+  }
+
+  } // namespace neon_detail
+
   /*
     The square from two products and a maximum, no branch but the one of the
     empty set (GAOL v5), as sqr_bounds() of the SSE2 intervals: with x = <a,
@@ -123,17 +147,18 @@
     }
     GAOL_RND_ENTER();
     x = reread_bounds(x);
-    const float64x2_t q = vmulq_f64(x, vnegq_f64(x));
-    const float64x2_t p = vmulq_f64(x, x);
-    float64x2_t res = vpmaxq_f64(q, p);
-    // The stored bounds that are negative: -l < 0 is l > 0, r < 0 is r < 0.
-    // Neither or only the first: the interval straddles zero or is positive
-    const uint64x2_t sign = vcltzq_s64(vreinterpretq_s64_f64(x));
-    const uint64x2_t any_negative = vorrq_u64(sign, vextq_u64(sign, sign, 1));
-    res = from_bits(vandq_u64(bits_of(res), vcombine_u64(vget_low_u64(any_negative), vdup_n_u64(~0ull))));
+    float64x2_t res = sqr_products(x);
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
     return res;
+  }
+
+  // sqr() of a non-empty I, the rounding direction being upward already (see
+  // gaol_interval_core.h): the square that pow() takes for x^2 after its own
+  // check (GAOL v5)
+  interval interval::sqr_upward(const interval& I)
+  {
+    return interval(neon_detail::sqr_products(I.neonbounds));
   }
 
   namespace neon_detail {

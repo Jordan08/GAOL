@@ -378,6 +378,21 @@ n is a double and within three doubles of it otherwise, beyond 2^53 (see
 `pow([0x1.fffffffffffffp+1], [7])` has its lower bound one double below the
 tightest.
 
+The exponent 2 is the square of the intervals: `pow(x, 2)`, `pow(x, [2])`,
+`gaol_ieee1788::pown(x, 2)` and, on the part of x in [0, +∞],
+`gaol_ieee1788::pow(x, [2])` are `sqr(x)` itself (GAOL v5), with its bounds
+and the sign of its zero bounds, where the integer power made its square from
+exact products, the same bounds in a longer time and, for some intervals
+holding 0, a zero bound of the other sign (see
+[Accuracy of the operations](accuracy.md)). The exception flags it raises are
+`sqr(x)`'s too. For the empty set, `pow(x, 2)`, `pow(x, 2u)` and
+`gaol_ieee1788::pown(x, 2)` return as `sqr` does, before any check, and leave
+the rounding direction as the program had it, where `pow(x, 2.0)`,
+`pow(x, [2])`, `gaol_ieee1788::pow(x, [2])` and `gaol_pown_ll(x, 2)` check it
+first and leave it upward: a program does not count on the direction after an
+operation that computes no bound (see
+[The rounding direction](#the-rounding-direction)).
+
 The rest of GAOL follows the same split:
 
 - the expressions of `gaol/parser/gaol_expression.h`: `pow(e, n)` and
@@ -894,7 +909,8 @@ example; they are listed here for the reader who looks in this page first.
   [What the upward rounding does to the program](#what-the-upward-rounding-does-to-the-program)).
 - **The sign of a zero bound** differs between the SSE2, the NEON and the
   FPU intervals: `sqr(interval(-1, 2))` is [−0, 4] with the first two and
-  [0, 4] with the third, `1.0 / x.left()` being −∞ or +∞; the sign of a zero
+  [0, 4] with the third, `1.0 / x.left()` being −∞ or +∞, and so is
+  `pow(interval(-1, 2), 2)`, which is `sqr(x)` (GAOL v5); the sign of a zero
   bound of a product of the FPU intervals is the compiler's (see
   [The FPU intervals](#the-fpu-intervals)). A program compares bounds with `==`
   and `<` and does not read the sign.
@@ -1126,8 +1142,8 @@ the AVX-512 instructions (`GAOL_AVX512_ARITHMETIC` in
 `sqrt(x)` and `sqr(x)`, and the operations of `+`, `-`, `*` and `/` with a
 double, computed by the rounding
 direction the instructions carry in themselves, and so are `pown(x, n)` and
-`pow(x, n)` for an integer n of 2 or more, or of -2 or less where x has no
-zero, whose two corners are within the range of the exact products of their
+`pow(x, n)` for an integer n of 2 or more (n = 2 is `sqr(x)`), or of -2 or
+less where x has no zero, whose two corners are within the range of the exact products of their
 kernel (the exponents 0, 1 and -1, and the powers beyond the range, which a
 corner near 0 or a large exponent makes, take the path of the direction) (GAOL v5).
 These operations
@@ -1631,8 +1647,8 @@ bounds.
   NEON intervals the check is a read of FPCR (see
   [The NEON intervals](#the-neon-intervals)), which raises no flag: `+`, `-`,
   `/` and `sqrt()` raise the inexact one only when a bound they compute is
-  rounded, `*` and `sqr()` also when a corner product that is not a bound of the
-  result is (`[-a, 128] * [-a, 4]` for a = 1 + 2^-52 has the exact bounds
+  rounded, `*`, `sqr()` and `pow(x, 2)`, which is `sqr()` (GAOL v5), also when
+  a corner product that is not a bound of the result is (`[-a, 128] * [-a, 4]` for a = 1 + 2^-52 has the exact bounds
   −128a and 512, and the corner a² is rounded) (GAOL v5).
 - An empty operand raises no invalid-operation exception, though the bounds
   of the empty interval are NaN (GAOL v5): every operation, relation, function
