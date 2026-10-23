@@ -16,12 +16,12 @@
  * another direction differs, as does one a compiler computes after a change
  * of direction that the source code writes after its computation. It has to
  * leave the direction as it found it, or upward (as it found it only, with
- * GAOL_PRESERVE_ROUNDING); the square of an empty interval, and its powers
- * but those of an int other than 2, return before the check and leave it as it
- * was, whichever it is (GAOL v5). After it, the bounds of a product and a sum
- * have to be the tightest ones. Powers with a subnormal result, which CORE-MATH rounds
- * itself in the direction fegetround() gives, have to be the tightest
- * enclosures whatever the direction, with the x87 unit and the SSE
+ * GAOL_PRESERVE_ROUNDING); the square of an empty interval, and the powers
+ * that return as it does, return before the check and leave it as it was,
+ * whichever it is (GAOL v5). After it, the bounds of a product and a sum
+ * have to be the tightest ones. Powers with a subnormal result, which
+ * CORE-MATH rounds itself in the direction fegetround() gives, have to be the
+ * tightest enclosures whatever the direction, with the x87 unit and the SSE
  * instructions differing too (GAOL v5). On x86 and ARM, the same holds with
  * the modes that flush the subnormals to zero set, flush-to-zero and
  * denormals-are-zero of the SSE instructions, FZ of ARM (what a program linked
@@ -3863,14 +3863,17 @@ int main()
 #endif
 
   /*
-    The square of an empty interval, its powers but those of an int other than
-    2, and the powers with an empty exponent, return before the check of the rounding direction (GAOL v5, the
-    empty set of sqr(), which the forms of pow that check the direction first
-    did not follow): they leave the direction of the program as it is,
-    whichever it is, where the powers of an int other than 2 set it upward
-    first (not checked here). With GAOL_PRESERVE_ROUNDING, or with the embedded rounding of the
-    AVX-512 path, no operation changes the direction, and this passes whatever
-    the code does.
+    The square of an empty interval and the powers that return as it does,
+    those of the exponent 2, of a real or an interval exponent, of an empty
+    exponent, and of an integer beyond the unsigned ints, return before the
+    check of the rounding direction (GAOL v5: the forms of pow that checked the
+    direction first left it upward for the empty set, where sqr() leaves the
+    direction of the program, whichever it is, and its flush-to-zero modes).
+    The powers of an int other than 2 set it upward first (not checked here).
+    With GAOL_PRESERVE_ROUNDING, or with the embedded rounding of the AVX-512
+    path, no operation changes the direction, and this passes whatever the
+    code does. pow(x, 2LL), pow(x, 2u) and pown(x, 2LL) go to sqr() through
+    gaol_pown(), and only pow(x, 5000000000LL) to gaol_pown_ll().
   */
   {
     struct EmptyForm

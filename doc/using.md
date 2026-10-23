@@ -392,13 +392,15 @@ and the sign of its zero bounds, where the integer power made its square from
 exact products, the same bounds in a longer time and, for some intervals
 holding 0, a zero bound of the other sign (see
 [Accuracy of the operations](accuracy.md)). The exception flags it raises are
-`sqr(x)`'s too. For the empty set, `pow(x, 2)`, `pow(x, 2u)`, `pow(x, 2LL)`, `pow(x, 2.0)`,
-`pow(x, [2])`, `gaol_ieee1788::pown(x, 2)` and `gaol_ieee1788::pow(x, [2])`
-return as `sqr` does, before any check, and leave the rounding direction as the
-program had it (GAOL v5); so do the real, interval and `long long` forms of
-`pow` for any exponent, an empty exponent included. The integer powers of an
-`int` other than 2 check it first and leave it upward: a program does not count
-on the direction after an operation that computes no bound (see
+`sqr(x)`'s too. For the empty set, `pow(x, 2)`, `pow(x, 2u)`, `pow(x, 2LL)`,
+`pow(x, 2.0)`, `pow(x, [2])`, `gaol_ieee1788::pown(x, 2)` and
+`gaol_ieee1788::pow(x, [2])` return as `sqr` does, before any check, and leave
+the rounding direction as the program had it, and the modes that flush the
+subnormal numbers to zero as it had them too (GAOL v5); so do the real and
+interval forms of `pow` for any exponent, an empty exponent included, and the
+`long long` form beyond the unsigned ints. The integer powers of an `int` or of
+an `unsigned int` other than 2 check it first and leave it upward: a program
+does not count on the direction after an operation that computes no bound (see
 [The rounding direction](#the-rounding-direction)).
 
 The rest of GAOL follows the same split:

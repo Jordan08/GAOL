@@ -2223,8 +2223,9 @@ namespace gaol_core {
 
   interval gaol_pown_ll(const interval& I, long long n)
   {
-    // The empty set returns before the check, as sqr() does, so that pow(x, 2LL)
-    // leaves the direction of the program as pow(x, 2) does (GAOL v5)
+    // The empty set returns before the check, as sqr() does (GAOL v5): the
+    // powers of an n beyond the unsigned ints come here, those of the others
+    // go to gaol_pown() and gaol_uipow()
     if (I.is_empty()) {
       return interval::emptyset();
     }
