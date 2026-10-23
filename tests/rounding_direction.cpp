@@ -3897,9 +3897,10 @@ int main()
         check("x * d and x *= d of [+0, -0] have the zero bounds of their path (AVX-512: [-0, +0], SSE2: [+0, -0])",
               has_the_signs(p) && has_the_signs(r),
               [&] {
-                return std::string("d = ") + std::to_string(d) + ", " + (avx512_path ? "AVX-512 path" : "SSE2 path") + ", "
+                return "d = " + S(d) + ", " + (avx512_path ? "AVX-512 path" : "SSE2 path") + ", "
                   + dir.name + ": x * d = [" + (std::signbit(p.left()) ? "-" : "+") + "0, "
-                  + (std::signbit(p.right()) ? "-" : "+") + "0]";
+                  + (std::signbit(p.right()) ? "-" : "+") + "0], x *= d = ["
+                  + (std::signbit(r.left()) ? "-" : "+") + "0, " + (std::signbit(r.right()) ? "-" : "+") + "0]";
               });
       }
     }
