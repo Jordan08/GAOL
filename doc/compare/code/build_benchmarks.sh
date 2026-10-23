@@ -44,7 +44,7 @@ machine_description() {
   gaol_commit="$(git -C "$ROOT_DIR" describe --always 2>/dev/null || echo "?")"
   git -C "$ROOT_DIR" diff --quiet HEAD -- . ':!doc' 2>/dev/null || gaol_commit="$gaol_commit-dirty"
   echo "GAOL V5.0.0:     the branch of this checkout ($gaol_commit), CMake Release, CORE-MATH of 3rd/math-core compiled into the library, the rounding direction not preserved"
-  # The AVX-512 path of + - * / sqrt, which the library takes by default with the direction preserved where it can
+  # The AVX-512 path of + - * / sqr sqrt and (with FMA) pown, which the library takes by default with the direction preserved where it can
   avx512="off, the SSE2 instructions"
   grep -q "^#define GAOL_AVX512_ARITHMETIC 1" "$GAOL_PRESERVE_PREFIX/include/gaol/gaol_configuration.h" 2>/dev/null \
     && avx512="on, the AVX-512 instructions with the rounding direction in them"

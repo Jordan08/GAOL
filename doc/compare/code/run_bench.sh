@@ -17,8 +17,9 @@
 # LIBS            the libraries to run (default: "double gaol5 gaol5p gaol filib profil boost sun p1788"):
 #                 gaol5 is the GAOL of this repository, installed in PREFIX,
 #                 gaol5p the same built with GAOL_PRESERVE_ROUNDING=ON (the
-#                 AVX-512 path of + - * / sqrt left on, which that option
-#                 turns on by default), installed in GAOL_PRESERVE_PREFIX,
+#                 AVX-512 path of + - * / sqr sqrt and (with FMA) pown left on, which
+#                 that option turns on by default), installed in
+#                 GAOL_PRESERVE_PREFIX,
 #                 and gaol the last GAOL of Frédéric Goualard, in
 #                 GAOL_GOUALARD_PREFIX
 # MERGE           1: the times of what ran (LIBS, OPS) replace their rows of
