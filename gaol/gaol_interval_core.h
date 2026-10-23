@@ -863,10 +863,17 @@ namespace gaol_core {
     */
     static interval inverse_upward(const interval& I);
     /*
-      Gives inverse_upward() to the functions of gaol/gaol_interval_core.cpp
-      that check the rounding direction once and take the inverse after it:
-      the integer power of pow() and the roots of negative order, which have
-      no access of their own (GAOL v5). Defined there alone
+      sqr() of a non-empty I, the rounding direction being upward already: the
+      body of sqr(), which checks the direction, for the integer power x^2 of
+      pow(), which takes the square after its own check (GAOL v5)
+    */
+    static interval sqr_upward(const interval& I);
+    /*
+      Gives inverse_upward() and sqr_upward() to the functions of
+      gaol/gaol_interval_core.cpp that check the rounding direction once and
+      take the inverse or the square after it: the integer power of pow() and
+      the roots of negative order, which have no access of their own (GAOL
+      v5). Defined there alone
     */
     friend class upward_access;
     static interval_format::format_t output;

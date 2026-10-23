@@ -19572,9 +19572,11 @@ fi
 # --enable-fma: the fused multiply-add instructions of the processor, as
 # CMakeLists.txt and meson.build take them (see CMakeLists.txt): -mfma on x86,
 # where it defines __FMA__, but with GCC for Windows (MinGW), which does not
-# align the stack for the AVX that -mfma turns on; -mfpu=neon-vfpv4
-# -mfloat-abi=hard on 32-bit ARM, where FMA is not on already. Given to the C
-# and C++ sources (GAOL, CORE-MATH), and to the code using GAOL
+# align the stack for the 256-bit registers of the AVX that -mfma turns on
+# (GCC bug 54412): -mfma -mprefer-vector-width=128 there for x86-64, which
+# keeps the vectorizer to the 128-bit registers, and nothing for 32-bit x86;
+# -mfpu=neon-vfpv4 -mfloat-abi=hard on 32-bit ARM, where FMA is not on already.
+# Given to the C and C++ sources (GAOL, CORE-MATH), and to the code using GAOL
 # (gaol.pc), compiled for the same processor. -ffp-contract=off stays. Left out
 # where the machine building does not run a program compiled with them, but
 # when cross-compiling (see CMakeLists.txt: macOS 14 under Rosetta).
@@ -19621,6 +19623,27 @@ fi
 rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
     cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
+#if !defined(__x86_64__)
+#error not an x86-64 target
+#endif
+int
+main (void)
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"
+then :
+  gaol_x86_64=yes
+else case e in #(
+  e) gaol_x86_64=no ;;
+esac
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
 #if !defined(__arm__) || defined(__ARM_FEATURE_FMA)
 #error not a 32-bit ARM target without FMA
 #endif
@@ -19647,8 +19670,97 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
     if test "${gaol_mingw_gcc}" = yes; then
-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: fused multiply-add instructions left out: GCC for Windows does not align the stack for AVX" >&5
-printf "%s\n" "$as_me: fused multiply-add instructions left out: GCC for Windows does not align the stack for AVX" >&6;}
+        # Both options, or none: -mfma alone lets GCC spill 256-bit registers
+        # to a stack it does not align on Windows (see CMakeLists.txt)
+        if test "${gaol_x86_64}" = yes; then
+            gaol_has_fma=no
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether -mfma -mprefer-vector-width=128 gives the fused multiply-add instructions" >&5
+printf %s "checking whether -mfma -mprefer-vector-width=128 gives the fused multiply-add instructions... " >&6; }
+ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+gaol_save_CXXFLAGS=$CXXFLAGS
+CXXFLAGS="${CXXFLAGS} -mfma -mprefer-vector-width=128"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#if !defined(__FMA__)
+#error no fused multiply-add instructions
+#endif
+int
+main (void)
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"
+then :
+  gaol_has_fma=yes
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+CXXFLAGS=$gaol_save_CXXFLAGS
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+if test "${gaol_has_fma}" = yes; then
+    ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+    gaol_save_CFLAGS=$CFLAGS
+    CFLAGS="${CFLAGS} -mfma -mprefer-vector-width=128"
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#if !defined(__FMA__)
+#error no fused multiply-add instructions
+#endif
+int
+main (void)
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"
+then :
+
+else case e in #(
+  e) gaol_has_fma=no ;;
+esac
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+    CFLAGS=$gaol_save_CFLAGS
+    ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+fi
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: ${gaol_has_fma}" >&5
+printf "%s\n" "${gaol_has_fma}" >&6; }
+            if test "${gaol_has_fma}" = yes; then
+                gaol_fma_flags="-mfma -mprefer-vector-width=128"
+            else
+                { printf "%s\n" "$as_me:${as_lineno-$LINENO}: fused multiply-add instructions left out: this GCC for Windows takes no -mfma -mprefer-vector-width=128 (the option is from GCC 8), and -mfma alone leaves its 256-bit registers on a stack it does not align" >&5
+printf "%s\n" "$as_me: fused multiply-add instructions left out: this GCC for Windows takes no -mfma -mprefer-vector-width=128 (the option is from GCC 8), and -mfma alone leaves its 256-bit registers on a stack it does not align" >&6;}
+            fi
+        else
+            { printf "%s\n" "$as_me:${as_lineno-$LINENO}: fused multiply-add instructions left out: GCC for Windows takes them for x86-64 only (not measured for 32-bit x86)" >&5
+printf "%s\n" "$as_me: fused multiply-add instructions left out: GCC for Windows takes them for x86-64 only (not measured for 32-bit x86)" >&6;}
+        fi
     else
         gaol_has_fma=no
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether -mfma gives the fused multiply-add instructions" >&5

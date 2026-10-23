@@ -28,7 +28,14 @@ itself. With GCC and Clang, each where the compiler takes it:
 - `-mfma` on x86, and `-mfpu=neon-vfpv4 -mfloat-abi=hard` on 32-bit ARM, where
   GAOL is compiled with the fused multiply-add instructions of the processor
   (`GAOL_FMA`, see [Building GAOL](building.md)): the code using GAOL runs only
-  on a processor with them, as GAOL, and is compiled for it.
+  on a processor with them, as GAOL, and is compiled for it. With GCC for
+  Windows on x86-64 (GAOL v5), `-mfma -mprefer-vector-width=128`: the second
+  keeps the vectorizer of GCC to the 128-bit registers, which it would
+  otherwise spill to a stack that Windows aligns on 16 bytes, not 32 (GCC bug
+  54412; the objects of GAOL, CORE-MATH and the tests built so by GCC 16.2 have
+  no instruction on a 256-bit register, see [The three
+  builds](three-builds.md#gcc-for-windows)). A program that writes 256-bit
+  intrinsics itself is exposed to that defect, as with `-mavx`.
 
 With Visual C++ and clang-cl, `/fp:strict`, `/arch:AVX2` for x64 with
 `GAOL_FMA`, and `-msse2` with clang-cl for 32-bit x86, which computes doubles
@@ -377,6 +384,21 @@ n is a double and within three doubles of it otherwise, beyond 2^53 (see
 `gaol_ieee1788::pow` takes the integer power too, with its bounds:
 `pow([0x1.fffffffffffffp+1], [7])` has its lower bound one double below the
 tightest.
+
+The exponent 2 is the square of the intervals: `pow(x, 2)`, `pow(x, [2])`,
+`gaol_ieee1788::pown(x, 2)` and, on the part of x in [0, +∞],
+`gaol_ieee1788::pow(x, [2])` are `sqr(x)` itself (GAOL v5), with its bounds
+and the sign of its zero bounds, where the integer power made its square from
+exact products, the same bounds in a longer time and, for some intervals
+holding 0, a zero bound of the other sign (see
+[Accuracy of the operations](accuracy.md)). The exception flags it raises are
+`sqr(x)`'s too. For the empty set, `pow(x, 2)`, `pow(x, 2u)` and
+`gaol_ieee1788::pown(x, 2)` return as `sqr` does, before any check, and leave
+the rounding direction as the program had it, where `pow(x, 2.0)`,
+`pow(x, [2])`, `gaol_ieee1788::pow(x, [2])` and `gaol_pown_ll(x, 2)` check it
+first and leave it upward: a program does not count on the direction after an
+operation that computes no bound (see
+[The rounding direction](#the-rounding-direction)).
 
 The rest of GAOL follows the same split:
 
@@ -897,7 +919,8 @@ example; they are listed here for the reader who looks in this page first.
   [What the upward rounding does to the program](#what-the-upward-rounding-does-to-the-program)).
 - **The sign of a zero bound** differs between the SSE2, the NEON and the
   FPU intervals: `sqr(interval(-1, 2))` is [−0, 4] with the first two and
-  [0, 4] with the third, `1.0 / x.left()` being −∞ or +∞; the sign of a zero
+  [0, 4] with the third, `1.0 / x.left()` being −∞ or +∞, and so is
+  `pow(interval(-1, 2), 2)`, which is `sqr(x)` (GAOL v5); the sign of a zero
   bound of a product of the FPU intervals is the compiler's (see
   [The FPU intervals](#the-fpu-intervals)). A program compares bounds with `==`
   and `<` and does not read the sign.
@@ -1137,8 +1160,8 @@ the AVX-512 instructions (`GAOL_AVX512_ARITHMETIC` in
 `sqrt(x)` and `sqr(x)`, and the operations of `+`, `-`, `*` and `/` with a
 double, computed by the rounding
 direction the instructions carry in themselves, and so are `pown(x, n)` and
-`pow(x, n)` for an integer n of 2 or more, or of -2 or less where x has no
-zero, whose two corners are within the range of the exact products of their
+`pow(x, n)` for an integer n of 2 or more (n = 2 is `sqr(x)`), or of -2 or
+less where x has no zero, whose two corners are within the range of the exact products of their
 kernel (the exponents 0, 1 and -1, and the powers beyond the range, which a
 corner near 0 or a large exponent makes, take the path of the direction) (GAOL v5).
 These operations
@@ -1480,6 +1503,17 @@ control word, 0x4000 in MXCSR), not the `FE_*` constants of `<fenv.h>`, which
 are 0x0400 and 0x0800 for downward and upward with glibc and 0x0100 and 0x0200
 with the C runtime of Windows.
 
+mingw-w64 on x86-64 (MinGW-w64 of Chocolatey, MSYS2; GAOL v5) has the two units
+too, and GAOL reads and writes their registers itself there, as above, where it
+restores a direction (`GAOL_PRESERVE_ROUNDING`, `gaol::cleanup()`,
+`gaol::restore_rounding()`, and the operations that set the direction to nearest
+and back: `midpoint()`, `chi()`, the writing and the reading of an interval),
+rather than call `fegetround()` and `fesetround()`: from mingw-w64 13, the first
+joins the fields RC of the two units by OR, which is the direction of neither
+where they differ (`FE_DOWNWARD | FE_UPWARD` is `FE_TOWARDZERO`), and the
+second clears the six exception flags of MXCSR when it changes its value, so
+that the program's flags were lost. The register that differs is written only,
+with `fldcw` or `ldmxcsr`, which keep the flags.
 
 ## Flush-to-zero and denormals-are-zero
 
@@ -1642,8 +1676,8 @@ bounds.
   NEON intervals the check is a read of FPCR (see
   [The NEON intervals](#the-neon-intervals)), which raises no flag: `+`, `-`,
   `/` and `sqrt()` raise the inexact one only when a bound they compute is
-  rounded, `*` and `sqr()` also when a corner product that is not a bound of the
-  result is (`[-a, 128] * [-a, 4]` for a = 1 + 2^-52 has the exact bounds
+  rounded, `*`, `sqr()` and `pow(x, 2)`, which is `sqr()` (GAOL v5), also when
+  a corner product that is not a bound of the result is (`[-a, 128] * [-a, 4]` for a = 1 + 2^-52 has the exact bounds
   −128a and 512, and the corner a² is rounded) (GAOL v5).
 - An empty operand raises no invalid-operation exception, though the bounds
   of the empty interval are NaN (GAOL v5): every operation, relation, function

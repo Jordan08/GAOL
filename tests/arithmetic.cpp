@@ -14,7 +14,9 @@
  * magnitude are drawn, subnormal ones and results beyond the largest double
  * included. Integer powers for n up to 2^32 - 1 are compared with bounds
  * computed apart with mpmath, and the powers that are doubles have to be
- * exact. The operators of an interval with a
+ * exact. x^2, in every form of the integer power with the exponent 2, has to
+ * be sqr(x) bit for bit, the sign of a zero bound included (GAOL v5,
+ * power_two_is_sqr()). The operators of an interval with a
  * double are also compared with the operators with the degenerate interval of
  * the double, on bounds and doubles of special values: zeros of both signs,
  * infinities and NaN. Products of intervals with zero and infinite bounds have
@@ -1518,6 +1520,140 @@ namespace
   }
 
   /*
+    x^2 is sqr(x), bit for bit, the signs of the zeros included (GAOL v5): the
+    integer power with the exponent 2 takes sqr() in every form that computes
+    it, gaol_pown() before it checks the rounding direction (pow(x, 2),
+    pow(x, 2u), gaol_ieee1788::pown(x, 2)), and pown_upward() after the check
+    of its callers (gaol_pown_ll(), pow(x, 2.0), pow(x, [2]) and
+    gaol_ieee1788::pow(x, [2])). It made the square from exact products, the
+    same bounds as sqr() but a zero bound of the other sign for the intervals
+    holding 0. The test does not ask for a sign: the sign of a zero bound of
+    a square is the one of the build (the SSE2, NEON or FPU intervals), and
+    both sides are the same code, so that no platform changes the result.
+    gaol_ieee1788::pow(x, [2]) takes the part of x in [0, +oo] first, and is
+    [0] for the part [0] (pow(0, y) is 0 for y > 0, Table 9.1). Over the
+    intervals of the special bounds of the grid, the empty set and the
+    universe, and random intervals, in each of the four directions of the
+    calling code, and with each mode that flushes the subnormals to zero on
+    the special bounds and the first random intervals of each kind.
+  */
+  bool identical(const interval& a, const interval& b)
+  {
+    if (a.is_empty() || b.is_empty()) {
+      return a.is_empty() && b.is_empty();
+    }
+    const double al = a.left(), ar = a.right(), bl = b.left(), br = b.right();
+    std::uint64_t abits[2], bbits[2];
+    std::memcpy(&abits[0], &al, sizeof al);
+    std::memcpy(&abits[1], &ar, sizeof ar);
+    std::memcpy(&bbits[0], &bl, sizeof bl);
+    std::memcpy(&bbits[1], &br, sizeof br);
+    return abits[0] == bbits[0] && abits[1] == bbits[1];
+  }
+
+  // f(), the direction of the calling code and the modes that flush the
+  // subnormals to zero being set just before, and the modes cleared after
+  template<class F>
+  interval run_in_state(int direction, unsigned int flush, const F& f)
+  {
+    std::fesetround(direction);
+#if GAOL_TESTS_SET_FLUSH
+    set_flush_bits(flush);
+#else
+    (void)flush;
+#endif
+    const interval r = f();
+#if GAOL_TESTS_SET_FLUSH
+    set_flush_bits(0u);
+#endif
+    return r;
+  }
+
+  struct SquareForm
+  {
+    std::string check_name;
+    interval (*run)(const interval& x);
+  };
+
+  void power_two_is_sqr(Random& random)
+  {
+    const RestoreDirection restore;
+    const SquareForm forms[] = {
+      { "pow(x, 2)", [](const interval& x) { return pow(x, 2); } },
+      { "pow(x, 2u)", [](const interval& x) { return pow(x, 2u); } },
+      { "gaol_pown(x, 2)", [](const interval& x) { return gaol_core::gaol_pown(x, 2); } },
+      { "gaol_pown_ll(x, 2)", [](const interval& x) { return gaol_core::gaol_pown_ll(x, 2LL); } },
+      { "pow(x, 2.0)", [](const interval& x) { return pow(x, 2.0); } },
+      { "pow(x, [2])", [](const interval& x) { return pow(x, interval(2.0)); } },
+      { "gaol_ieee1788::pown(x, 2)", [](const interval& x) { return gaol_ieee1788::pown(x, 2); } },
+      { "gaol_ieee1788::pown(x, 2LL)", [](const interval& x) { return gaol_ieee1788::pown(x, 2LL); } },
+    };
+    const std::string square_name = "x^2 is sqr(x), the same bits: ";
+    const std::string positive_name = "gaol_ieee1788::pow(x, [2]) is sqr(x & [0, +oo]), [0] for [0], the same bits";
+
+    std::vector<unsigned int> flushes = { 0u };
+#if GAOL_TESTS_SET_FLUSH
+    for (const FlushMode& m : flush_modes()) {
+      flushes.push_back(m.bits);
+    }
+#endif
+    const auto one = [&](const interval& x, bool with_flush_modes) {
+      for (const CallerDirection& c : caller_directions) {
+        for (std::size_t f = 0; f < (with_flush_modes ? flushes.size() : 1u); ++f) {
+          const unsigned int flush = flushes[f];
+          const auto where = [&] { return "x=" + (x.is_empty() ? std::string("empty") : hex(x)) + " (the caller's direction "
+                                          + c.name + ", flush modes " + std::to_string(flush) + ")"; };
+          const interval square = run_in_state(c.fenv, flush, [&] { return sqr(x); });
+          for (const SquareForm& form : forms) {
+            const interval r = run_in_state(c.fenv, flush, [&] { return form.run(x); });
+            check(square_name + form.check_name, identical(r, square),
+                  [&] { return where() + ": " + (r.is_empty() ? std::string("empty") : hex(r)) + ", sqr(x) is "
+                               + (square.is_empty() ? std::string("empty") : hex(square)); });
+          }
+          // The part [0] and the empty part are told here, with the modes that flush the subnormals to
+          // zero clear: with denormals-are-zero set, a subnormal upper bound is equal to 0
+          const interval positive_part = x & interval::positive();
+          const bool only_zero = !positive_part.is_empty() && positive_part.right() == 0.0;
+          const interval expected = positive_part.is_empty() ? interval::emptyset()
+            : only_zero ? interval(0.0) : run_in_state(c.fenv, flush, [&] { return sqr(positive_part); });
+          const interval r = run_in_state(c.fenv, flush, [&] { return gaol_ieee1788::pow(x, interval(2.0)); });
+          check(positive_name, identical(r, expected),
+                [&] { return where() + ": " + (r.is_empty() ? std::string("empty") : hex(r)) + ", expected "
+                             + (expected.is_empty() ? std::string("empty") : hex(expected)); });
+        }
+      }
+    };
+
+    for (const Box& box : special_boxes()) {
+      one(box.x, true);
+    }
+    // Random intervals: exponents from -30 to 30, any doubles, and the edges of the square, which
+    // underflows below 2^-512 and overflows beyond 2^512; a bound 0 or a point sometimes
+    const int each = 30000, flush_count = 3000;
+    for (int kind = 0; kind < 3; ++kind) {
+      for (int i = 0; i < each; ++i) {
+        const auto draw = [&]() -> double {
+          switch (kind) {
+          case 0: return random(-30, 30);
+          case 1: return random.any();
+          default: return (random.integer(0, 1) == 0) ? random(-545, -480) : random(480, 545);
+          }
+        };
+        double a = draw(), b = draw();
+        const int shape = random.integer(0, 7);
+        if (shape == 0) {
+          a = (random.integer(0, 1) == 0) ? 0.0 : -0.0;
+        } else if (shape == 1) {
+          b = (random.integer(0, 1) == 0) ? 0.0 : -0.0;
+        } else if (shape == 2) {
+          b = a;
+        }
+        one(hull(a, b), i < flush_count);
+      }
+    }
+  }
+
+  /*
     The sign of a zero bound, for the cases that doc/accuracy.md and
     doc/using.md state (GAOL v5): every other check of this file compares the
     bounds with ==, which does not see it. Only the signs that no compiler can
@@ -2197,6 +2333,7 @@ int main()
   unsigned_powers();
   negative_powers_at_special_values();
   squares_at_special_values();
+  power_two_is_sqr(random);
   signs_of_zero_bounds();
   powers_at_special_values();
   powers_near_the_ends();

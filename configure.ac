@@ -498,9 +498,11 @@ fi
 # --enable-fma: the fused multiply-add instructions of the processor, as
 # CMakeLists.txt and meson.build take them (see CMakeLists.txt): -mfma on x86,
 # where it defines __FMA__, but with GCC for Windows (MinGW), which does not
-# align the stack for the AVX that -mfma turns on; -mfpu=neon-vfpv4
-# -mfloat-abi=hard on 32-bit ARM, where FMA is not on already. Given to the C
-# and C++ sources (GAOL, CORE-MATH), and to the code using GAOL
+# align the stack for the 256-bit registers of the AVX that -mfma turns on
+# (GCC bug 54412): -mfma -mprefer-vector-width=128 there for x86-64, which
+# keeps the vectorizer to the 128-bit registers, and nothing for 32-bit x86;
+# -mfpu=neon-vfpv4 -mfloat-abi=hard on 32-bit ARM, where FMA is not on already.
+# Given to the C and C++ sources (GAOL, CORE-MATH), and to the code using GAOL
 # (gaol.pc), compiled for the same processor. -ffp-contract=off stays. Left out
 # where the machine building does not run a program compiled with them, but
 # when cross-compiling (see CMakeLists.txt: macOS 14 under Rosetta).
@@ -539,12 +541,26 @@ if test "$fma" = yes; then
     AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#if !(defined(_WIN32) && defined(__GNUC__) && !defined(__clang__))
 #error not GCC for Windows
 #endif]], [[]])],[gaol_mingw_gcc=yes],[gaol_mingw_gcc=no])
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#if !defined(__x86_64__)
+#error not an x86-64 target
+#endif]], [[]])],[gaol_x86_64=yes],[gaol_x86_64=no])
     AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#if !defined(__arm__) || defined(__ARM_FEATURE_FMA)
 #error not a 32-bit ARM target without FMA
 #endif]], [[]])],[gaol_arm32_without_fma=yes],[gaol_arm32_without_fma=no])
     AC_LANG_POP([C++])
     if test "${gaol_mingw_gcc}" = yes; then
-        AC_MSG_NOTICE([fused multiply-add instructions left out: GCC for Windows does not align the stack for AVX])
+        # Both options, or none: -mfma alone lets GCC spill 256-bit registers
+        # to a stack it does not align on Windows (see CMakeLists.txt)
+        if test "${gaol_x86_64}" = yes; then
+            GAOL_CHECK_FMA_FLAGS([-mfma -mprefer-vector-width=128], [__FMA__], [gaol_has_fma])
+            if test "${gaol_has_fma}" = yes; then
+                gaol_fma_flags="-mfma -mprefer-vector-width=128"
+            else
+                AC_MSG_NOTICE([fused multiply-add instructions left out: this GCC for Windows takes no -mfma -mprefer-vector-width=128 (the option is from GCC 8), and -mfma alone leaves its 256-bit registers on a stack it does not align])
+            fi
+        else
+            AC_MSG_NOTICE([fused multiply-add instructions left out: GCC for Windows takes them for x86-64 only (not measured for 32-bit x86)])
+        fi
     else
         GAOL_CHECK_FMA_FLAGS([-mfma], [__FMA__], [gaol_has_fma])
         if test "${gaol_has_fma}" = yes; then

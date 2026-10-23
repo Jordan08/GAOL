@@ -93,7 +93,10 @@ FILE = 'gaol/gaol_interval_core.cpp'
 # (std-corner-around-1-*skip*); a degenerate exponent takes one corner for
 # each bound (std-degenerate-*), a base from 0 with exponents above 0 has a
 # branch again (std-zero-base-*), and an exponent [+oo] or [-oo], which only
-# an SSE2 register holds, gives the empty set (std-infinite-exponent-*).
+# an SSE2 register holds, gives the empty set (std-infinite-exponent-*); x^2 is
+# sqr(), which gaol_pown() and pown_upward() take before pown_products(), and
+# the mutant pown-square-bound, which gave K back to m = 2 in pown_bound(), went
+# with that branch of pown_bound(), no n reaching it any longer.
 MUTANTS = [
     # pow_standard_upward(): the pow of Table 9.1
     dict(name='std-empty-y-unchecked',
@@ -279,9 +282,6 @@ MUTANTS = [
     dict(name='pown-beyond-split-11-bits',
          edits=[('const unsigned long long high = (magnitude >> dropped) << dropped;',
                  'const unsigned long long high = (magnitude > (1ull << 53)) ? (magnitude & ~2047ull) : magnitude;')]),
-    dict(name='pown-square-bound',
-         edits=[('return (m == 2u) ? 0.0 : (8.0*m*L + 16.0)*4.930380657631324e-32;',
-                 'return (8.0*m*L + 16.0)*4.930380657631324e-32;')]),
     dict(name='pown-expression-beyond-rounded',
          file='gaol/parser/gaol_expression.h',
          edits=[('            if (below == above) {\n              return gaol_core::gaol_pow_exp(e, gaol_core::expression(h));',

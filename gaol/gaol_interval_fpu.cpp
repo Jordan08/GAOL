@@ -851,14 +851,13 @@ double hausdorff(const interval &I1, const interval &I2)
     the rounding direction covers the three cases, which all compute. A zero
     or an infinite bound needs no case of its own: no product of a zero by an
     infinity is formed.
+    The rounding direction being upward already (see gaol_interval_core.h), of
+    a non-empty I: the body of sqr() after its check, which pow() takes for
+    x^2 after its own (GAOL v5). The bounds are read here, after the check
+    of the caller, as sqr() reads them.
   */
-  interval sqr(const interval& I)
+  interval interval::sqr_upward(const interval& I)
   {
-    if (gaol_detail::quiet_unordered(I.lb_, I.rb_)) { // the empty set
-      return interval::emptyset();
-    }
-
-    GAOL_RND_ENTER();
     const double a = rnd_reread(I.lb_), b = rnd_reread(I.rb_);
     double lo = fpu_detail::larger_of(a*(-a), b*(-b));
     double hi = fpu_detail::larger_of(a*a, b*b);
@@ -868,11 +867,22 @@ double hausdorff(const interval &I1, const interval &I2)
     // (-O2 and -O3: two branches at -Os with GCC 14 and 15), but a branch with
     // Visual C++ for x86
     lo = ((a > 0.0) & (b > 0.0)) ? -0.0 : lo;
-    GAOL_RND_KEEP(lo); GAOL_RND_KEEP(hi);
-    GAOL_RND_LEAVE();
     interval res;
     res.lb_ = lo;
     res.rb_ = hi;
+    return res;
+  }
+
+  interval sqr(const interval& I)
+  {
+    if (gaol_detail::quiet_unordered(I.lb_, I.rb_)) { // the empty set
+      return interval::emptyset();
+    }
+
+    GAOL_RND_ENTER();
+    interval res = interval::sqr_upward(I);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
     return res;
   }
 

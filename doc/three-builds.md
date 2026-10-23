@@ -49,9 +49,10 @@ build, and the CMake build follows them, apart from the errors corrected (see
   is for x86 processors (GAOL v5);
 - GAOL and CORE-MATH are compiled with the fused multiply-add
   instructions of the processor, where the compiler has a flag for them
-  (`GAOL_FMA`, `--enable-fma`, `-Denable-fma`): `-mfma` on x86, except with GCC
-  for Windows, which does not align the stack for the AVX that `-mfma` turns
-  on; `/arch:AVX2` with Visual C++ for x64, not for 32-bit x86, where it broke
+  (`GAOL_FMA`, `--enable-fma`, `-Denable-fma`): `-mfma` on x86; with GCC for
+  Windows on x86-64, `-mfma -mprefer-vector-width=128` (GAOL v5), and nothing
+  on 32-bit x86 (see [GCC for Windows](#gcc-for-windows) below);
+  `/arch:AVX2` with Visual C++ for x64, not for 32-bit x86, where it broke
   the rounding direction; `-mfpu=neon-vfpv4 -mfloat-abi=hard` on 32-bit ARM;
   and only where the machine building runs a program so compiled, but when
   cross-compiling: under Rosetta on macOS 14, which has no AVX, the x86_64
@@ -75,7 +76,9 @@ build, and the CMake build follows them, apart from the errors corrected (see
   the library then needs a processor with them, which `gaol::init()`
   checks, and the operations test nothing as they run; never with GCC for
   Windows (MinGW-w64, Cygwin), which does not align the stack for the
-  AVX-512 registers, as it does not for those of `-mfma`. No flag to compile,
+  AVX-512 registers (GCC bug 54412; nor for the 256-bit ones of AVX, which
+  `-mprefer-vector-width=128` keeps MinGW-w64 GCC out of, see [GCC for
+  Windows](#gcc-for-windows) below). No flag to compile,
   the path's functions alone carry the target attribute, which Visual C++
   has not and needs not, taking the intrinsics of any instruction set in any
   function. Visual C++ has no `__builtin_cpu_supports()`, and the one of
@@ -192,6 +195,52 @@ On a 64-bit ARM processor, measured the same way on an Apple M2 with AppleClang
   FPU intervals, which called `fegetround()` and `fesetround()`); a program that
   already computes upward writes nothing.
 
+### GCC for Windows
+
+With GCC for Windows (MinGW-w64, MSYS2) on x86-64, `GAOL_FMA` gives `-mfma
+-mprefer-vector-width=128` (GAOL v5). It gave nothing before, because of GCC
+bug 54412: `-mfma` turns AVX on, the vectorizer of GCC then writes 256-bit
+registers (`%ymm`), and GCC takes the stack to be aligned on 32 bytes for
+those it spills there, where the ABI of Windows x64 aligns it on 16, so that an
+aligned `vmovaps` to such a slot faults (as it did in the MinGW builds of
+Codac). Without `-mfma`, CORE-MATH called a software `fma()` and the integer
+powers computed no pairs of products.
+`-mprefer-vector-width=128` (a GCC option from GCC 8) keeps the vectorizer to
+the 128-bit registers. `objdump -d --no-show-raw-insn` found no line with
+`%ymm` in the objects of GAOL, CORE-MATH and the tests built so by GCC 16.2
+(MSYS2 UCRT64), against 30,598 lines with `-mfma` alone, and none without a
+flag; the whole suite of tests passed with the three. That is a count of
+instructions, and no proof that the defect cannot occur: the continuous
+integration makes the count again on the objects it builds, and the check of
+the fused multiply-add instructions with it (`.github/scripts/check-gcc-windows-fma.sh`,
+in `windows.yml`). A GCC without the option, and 32-bit x86, which was not
+measured, get no flag. The code using GAOL is given the two flags (`gaol::gaol`,
+`gaol.pc`); the 256-bit intrinsics it writes itself would stay exposed to the
+defect, as with `-mavx`.
+
+Measured with `tests/performance.cpp` on the Windows Server 2022 runner of
+GitHub, MSYS2 UCRT64 with GCC 16.2, in nanoseconds per operation, the median of
+three runs of each variant, alternated in one job (on these lines, the runs
+of a variant differ by 1.16 times at most):
+
+| | x × y | x ÷ y | pow(x, 3) | exp(x) | log(x) | sin(x) | cos(x) | floor(x) |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| No flag (`-DGAOL_FMA=OFF`, what GCC for Windows had) | 3.92 | 5.04 | 52.31 | 46.44 | 106.43 | 93.46 | 260.50 | 4.24 |
+| `-mfma -mprefer-vector-width=128` (default) | 3.69 | 4.72 | 8.68 | 32.58 | 33.63 | 46.61 | 55.44 | 2.19 |
+
+`-mfma` alone gave the same times. The lines of 15 additions and of 7 products
+did not change (within 1.5 %; the line of 7 divisions took 6.3 % less). The
+elementary functions and `pow(x, 3)` gain the most, as with Clang above.
+
+These flags are for MinGW-w64 and MSYS2 GCC: the tests of the three builds
+(`WIN32` of CMake, `_WIN32` of configure and meson) do not name Cygwin
+(`__CYGWIN__`), so that, by them, Cygwin x86-64 gets `-mfma` alone, as before;
+it was not measured. If the user gives a `-mprefer-vector-width=` of his own, the
+builds order it differently from GAOL's: CMake and configure put GAOL's flags
+after the user's (`CMAKE_CXX_FLAGS`, `CXXFLAGS`), meson puts them before
+`cpp_args`. The last of two such options is the one that counts (as tried with
+Clang).
+
 ### Interprocedural optimization is not offered
 
 Compiled with it (`-flto`), GAOL's basic operations are 1.1 to 1.5 times
@@ -235,7 +284,7 @@ alone refuses, when compiling:
 |---|---|
 | Clang for 32-bit ARM processors | It does not honour the rounding direction there: built by Clang 21, 4556 of 16000 random products, squares and cubes did not enclose their exact values. GCC does. |
 | A compiler saying of `-frounding-math` "overriding currently unsupported rounding mode on this target", as Clang 14 for 64-bit ARM | Bounds of `pow()` and `nth_root()` did not enclose the exact values. Clang 18 honours the rounding direction there. |
-| MinGW-w64 whose `fma()` or `round()` is wrong: on x64, before mingw-w64 12 (GCC 11 to 13 of Chocolatey) and linked with `msvcrt.dll` rather than the UCRT (MSYS2 MINGW64, the cross compilers of Debian and Ubuntu); on 32-bit x86, before 11 (GCC 11 of WinLibs); on ARM, as on x64, before 12 or linked with `msvcrt.dll` (not tested) | On x64, the `fma()` and `round()` of mingw-w64's own math library, computed in doubles: that `fma()` is not correctly rounded (10.7 % of the error-free products `fma(a, b, -a*b)` wrong), and CORE-MATH computes with it; that `round()` depends on the rounding direction. On 32-bit x86, the `fma()` of the mingw-w64 9 of WinLibs rounds each of its partial sums to a double. On ARM, that `round()` too; GAOL v5 is not tested there. Bounds of `tan()`, `asin()`, `atan()` and others did not enclose the exact values. MinGW-w64 GCC 14 and 15 on x64, 12 to 15 on 32-bit x86, and MSYS2 UCRT64 and CLANG64 are built and tested. |
+| MinGW-w64 whose `fma()` or `round()` is wrong: on x64, before mingw-w64 12 (GCC 11 to 13 of Chocolatey) and linked with `msvcrt.dll` rather than the UCRT (MSYS2 MINGW64, the cross compilers of Debian and Ubuntu); on 32-bit x86, before 11 (GCC 11 of WinLibs); on ARM, as on x64, before 12 or linked with `msvcrt.dll` (not tested) | On x64, the `fma()` and `round()` of mingw-w64's own math library, computed in doubles: that `fma()` is not correctly rounded (10.7 % of the error-free products `fma(a, b, -a*b)` wrong), and CORE-MATH computes with it wherever the compiler has no `-mfma` (32-bit x86, or `GAOL_FMA` off; GCC for Windows on x86-64 takes it by default, and these toolchains stay refused, their `round()` being wrong too); that `round()` depends on the rounding direction. On 32-bit x86, the `fma()` of the mingw-w64 9 of WinLibs rounds each of its partial sums to a double. On ARM, that `round()` too; GAOL v5 is not tested there. Bounds of `tan()`, `asin()`, `atan()` and others did not enclose the exact values. MinGW-w64 GCC 14 and 15 on x64, 12 to 15 on 32-bit x86, and MSYS2 UCRT64 and CLANG64 are built and tested. |
 | `-ffast-math`, `-Ofast`, `/fp:fast` | The compiler then rounds to nearest and drops the checks of NaN and infinities. `-Ofast` is not refused where `-fno-fast-math` turns its fast-math optimizations off (below). Linking with them, or with `-funsafe-math-optimizations`, is a matter of its own (below). |
 | `-ffinite-math-only`, which `-ffast-math` and `-Ofast` turn on | The compiler then takes NaN and infinities never to occur, in GAOL's inline functions too: the empty interval has NaN bounds, and `([1, 2] & [3, 4]).is_empty()` is false (GCC 9.4 and 13 at `-O0`, `-O2` and `-O3`; Clang 18 at `-O0`, and at `-O2` and `-O3` when the bounds are `volatile`). |
 | Visual C++, and clang-cl from Clang 16, without `/fp:strict` (`/fp:precise`, their default) | They then assume rounding to nearest, and may evaluate or rewrite floating-point operations accordingly (clang-cl compiles with `-fno-rounding-math -ffp-contract=on`; GAOL v5 did not refuse it at first): no test gave a wrong bound so, but nothing certifies the bounds (see [What differs from GAOL](differences.md)). |

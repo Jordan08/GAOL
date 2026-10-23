@@ -124,6 +124,21 @@
 #  define GAOL_TESTS_X86_32 0
 #endif
 
+// mingw-w64 on x86-64 (GAOL v5, point 110 of TODO.md): from its version 13,
+// fegetround() joins the field RC of the x87 unit and that of MXCSR by OR, and
+// fesetround() clears the exception flags of MXCSR when it changes it. The
+// control word of the x87 unit is then read apart from fegetround(), as on a
+// 32-bit x86 processor, and is part of the state the checks compare: where the
+// two units differ, fegetround() gives the same value before and after an
+// operation that left one of them in the other's direction. The checks of the
+// exception flags run from each of the directions here too, and around
+// gaol::cleanup() and gaol::restore_rounding()
+#if defined(GAOL_TESTS_SSE) && defined(__x86_64__) && defined(__MINGW32__) && (defined(__GNUC__) || defined(__clang__))
+#  define GAOL_TESTS_X87_STATE 1
+#else
+#  define GAOL_TESTS_X87_STATE 0
+#endif
+
 // 64-bit ARM with GCC or Clang: FPCR, the control register holding the rounding
 // direction, the modes that flush the subnormals to zero, the default-NaN mode
 // and the enables of the traps, is read with mrs and written with msr, as
@@ -301,13 +316,43 @@ namespace
     return kept;
   }
 
-  // The rounding direction as fegetround() and the SSE control register give it
+#if GAOL_TESTS_X87_STATE
+  // The field RC of the control word of the x87 unit, as the hardware has it
+  // (0x0c00 masks it), read apart from fegetround()
+  unsigned x87_direction()
+  {
+    unsigned short cw;
+    __asm__ __volatile__ ("fnstcw %0" : "=m" (cw));
+    return cw & 0x0c00u;
+  }
+
+  // The five flags of IEEE 754 raised, and the six of MXCSR (the denormal-operand one included)
+  void raise_all_flags()
+  {
+    std::feclearexcept(FE_ALL_EXCEPT);
+    std::feraiseexcept(FE_ALL_EXCEPT);
+    _mm_setcsr(_mm_getcsr() | 0x3fu);
+  }
+#endif
+
+  // The rounding direction as fegetround() and the SSE control register give it,
+  // and with mingw-w64 on x86-64 the x87 unit's too
   struct State
   {
     int fenv;
     unsigned sse;
+#if GAOL_TESTS_X87_STATE
+    unsigned x87 = 0u;
+#endif
 
-    bool operator==(const State& s) const { return fenv == s.fenv && sse == s.sse; }
+    bool operator==(const State& s) const
+    {
+      return fenv == s.fenv && sse == s.sse
+#if GAOL_TESTS_X87_STATE
+        && x87 == s.x87
+#endif
+        ;
+    }
   };
 
   State state()
@@ -319,12 +364,19 @@ namespace
 #else
     s.sse = 0u;
 #endif
+#if GAOL_TESTS_X87_STATE
+    s.x87 = x87_direction();
+#endif
     return s;
   }
 
   std::string text(const State& s)
   {
-    return "fegetround() " + std::to_string(s.fenv) + ", SSE rounding bits " + std::to_string(s.sse);
+    return "fegetround() " + std::to_string(s.fenv) + ", SSE rounding bits " + std::to_string(s.sse)
+#if GAOL_TESTS_X87_STATE
+      + ", x87 rounding bits " + std::to_string(s.x87)
+#endif
+      ;
   }
 
   // Products and sums computed in a loop that changes the rounding direction
@@ -714,6 +766,7 @@ namespace
     { "x /= d", Formula::quotient, false, false, true, [](const interval& x, const interval& y) { interval z(x); z /= y.left(); return z; } },
     { "x %= d", Formula::quotient, false, false, true, [](const interval& x, const interval& y) { interval z(x); z %= y.left(); return z; } },
     { "sqr(x)", Formula::square, false, true, false, [](const interval& x, const interval&) { return sqr(x); } },
+    { "pow(x, 2)", Formula::square, false, true, false, [](const interval& x, const interval&) { return pow(x, 2); } },
     { "sqrt(x) of a positive x", Formula::root, false, false, false, [](const interval& x, const interval&) { return sqrt(x); } },
     { "sqrt(x) of any x", Formula::root, false, true, false, [](const interval& x, const interval&) { return sqrt(x); } },
     { "inverse(y)", Formula::inverse, false, false, false, [](const interval&, const interval& y) { return inverse(y); } },
@@ -987,6 +1040,7 @@ namespace
           && (E() + E()).is_empty() && sqr(E()).is_empty() && sqrt(E()).is_empty(); } },
     { "the powers and the roots", [] {
         return pow(E(), 3).is_empty() && pow(E(), -2).is_empty() && pow(E(), 0).is_empty() && pow(E(), 2u).is_empty()
+          && pow(E(), 2).is_empty() && gaol_ieee1788::pown(E(), 2).is_empty() && pow(E(), interval(2.0)).is_empty()
           && pow(E(), 2.5).is_empty() && pow(E(), X()).is_empty() && pow(X(), E()).is_empty()
           && gaol_ieee1788::pow(E(), X()).is_empty() && gaol_ieee1788::pow(X(), E()).is_empty()
           && nth_root(E(), 3u).is_empty() && nth_root(E(), 4u).is_empty() && nth_root(E(), -3).is_empty(); } },
@@ -2736,6 +2790,11 @@ int main()
     fetestexcept() reads back (an emulator, a processor without the flags),
     this is not checked, and the test says so. An exception the program
     enabled is checked below, with the invalid-operation exception enabled.
+    With mingw-w64 on x86-64 the operations are run from each of the six
+    directions, not from upward only: the functions that set the direction to
+    nearest and back (midpoint(), chi()...) changed MXCSR through fesetround()
+    from the other directions only, which cleared its flags there (GAOL v5,
+    point 110 of TODO.md).
   */
   std::feclearexcept(FE_ALL_EXCEPT);
   std::feraiseexcept(FE_ALL_EXCEPT);
@@ -2745,26 +2804,34 @@ int main()
     std::printf("The exception flags raised by feraiseexcept() are not read back here: the flags kept by "
                 "the operations are not checked\n");
   } else {
+#if GAOL_TESTS_X87_STATE
+    const std::size_t nb_flag_directions = sizeof(directions)/sizeof(directions[0]);
+#else
+    const std::size_t nb_flag_directions = 1;
+#endif
     for (const Operation& op : operations) {
-      const std::string name = op.name;
-      set(directions[0]);
-      std::feraiseexcept(FE_ALL_EXCEPT);
+      for (std::size_t k = 0; k < nb_flag_directions; ++k) {
+        const std::string name = op.name;
+        const std::string from = std::string(" from ") + directions[k].name;
+        set(directions[k]);
+        std::feraiseexcept(FE_ALL_EXCEPT);
 #if GAOL_TESTS_SSE
-      _mm_setcsr(_mm_getcsr() | 0x3fu); // the six flags of MXCSR, denormal-operand included
-      const unsigned masks_before = _mm_getcsr() & _MM_MASK_MASK;
+        _mm_setcsr(_mm_getcsr() | 0x3fu); // the six flags of MXCSR, denormal-operand included
+        const unsigned masks_before = _mm_getcsr() & _MM_MASK_MASK;
 #endif
-      static_cast<void>(run(op, operands[0].first, operands[0].second));
-      const int raised = std::fetestexcept(FE_ALL_EXCEPT);
+        static_cast<void>(run(op, operands[0].first, operands[0].second));
+        const int raised = std::fetestexcept(FE_ALL_EXCEPT);
 #if GAOL_TESTS_SSE
-      const unsigned csr = _mm_getcsr();
+        const unsigned csr = _mm_getcsr();
 #endif
-      std::feclearexcept(FE_ALL_EXCEPT);
-      check("the exception flags the program raised kept by " + name, raised == FE_ALL_EXCEPT,
-            [&] { return "flags " + std::to_string(raised) + " after it"; });
+        std::feclearexcept(FE_ALL_EXCEPT);
+        check("the exception flags the program raised kept by " + name, raised == FE_ALL_EXCEPT,
+              [&] { return "flags " + std::to_string(raised) + " after it" + from; });
 #if GAOL_TESTS_SSE
-      check("the SSE exception flags and masks kept by " + name, (csr & 0x3fu) == 0x3fu && (csr & _MM_MASK_MASK) == masks_before,
-            [&] { return "MXCSR " + std::to_string(csr) + " after it, masks " + std::to_string(masks_before) + " before"; });
+        check("the SSE exception flags and masks kept by " + name, (csr & 0x3fu) == 0x3fu && (csr & _MM_MASK_MASK) == masks_before,
+              [&] { return "MXCSR " + std::to_string(csr) + " after it, masks " + std::to_string(masks_before) + " before" + from; });
 #endif
+      }
     }
     set(directions[0]);
   }
@@ -3802,8 +3869,23 @@ int main()
   */
   set(directions[0]);
   const State before_cleanup = state();
+#if GAOL_TESTS_X87_STATE
+  // The exception flags raised since gaol::init() are the program's: neither
+  // gaol::cleanup() nor gaol::restore_rounding() clears the six of MXCSR, as
+  // fesetround() of mingw-w64 did when it changed the direction (GAOL v5,
+  // point 110 of TODO.md), with GAOL_PRESERVE_ROUNDING or without
+  raise_all_flags();
+#endif
   gaol::cleanup();
+#if GAOL_TESTS_X87_STATE
+  const unsigned csr_after_cleanup = static_cast<unsigned>(_mm_getcsr());
+#endif
   const State after_cleanup = state();
+#if GAOL_TESTS_X87_STATE
+  check("the SSE exception flags kept by gaol::cleanup()", (csr_after_cleanup & 0x3fu) == 0x3fu,
+        [&] { return "MXCSR " + std::to_string(csr_after_cleanup) + " after it"; });
+  std::feclearexcept(FE_ALL_EXCEPT);
+#endif
 #if GAOL_PRESERVE_ROUNDING
   check("rounding direction unchanged by gaol::cleanup()", after_cleanup == before_cleanup,
         [&] { return text(after_cleanup) + " after it, " + text(before_cleanup) + " before"; });
@@ -3829,9 +3911,21 @@ int main()
   const interval back = interval(1.0) + interval(1.0);   // sets the direction upward again
   static_cast<void>(back);
   const State after_operation = state();
+#if GAOL_TESTS_X87_STATE
+  // The first call changes MXCSR, upward after the addition, back to nearest
+  raise_all_flags();
+#endif
   gaol::restore_rounding();
+#if GAOL_TESTS_X87_STATE
+  const unsigned csr_after_restore = static_cast<unsigned>(_mm_getcsr());
+#endif
   gaol::restore_rounding();
   const State after_twice = state();
+#if GAOL_TESTS_X87_STATE
+  check("the SSE exception flags kept by gaol::restore_rounding()", (csr_after_restore & 0x3fu) == 0x3fu,
+        [&] { return "MXCSR " + std::to_string(csr_after_restore) + " after it"; });
+  std::feclearexcept(FE_ALL_EXCEPT);
+#endif
   /* Where GAOL_AVX512_ARITHMETIC is (GAOL_PREFER_AVX512, and a machine
      building that runs the AVX-512 instructions), the addition takes the
      embedded rounding: it sets no direction, and the one the program left

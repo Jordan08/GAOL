@@ -94,7 +94,21 @@ point Q), which `numbers` checks there too.
   have to be exact, both bounds (GAOL v5: an error bound computed beforehand,
   not left out there, made `pow([2, 3], 3)` [8 - 2^-50, 27 + 2^-48]).
   x^2 has to be `sqr(x)`, the tightest, over 400 intervals near 1, 3, 0.75
-  and 2^-500, a square having no error bound, and (-c)^n has to be c^n or
+  and 2^-500, a square having no error bound, and bit for bit, the sign of a
+  zero bound included, in each form of the integer power with the exponent 2
+  (`pow(x, 2)`, `2u`, `2.0` and `[2]`, `gaol_pown(x, 2)`,
+  `gaol_pown_ll(x, 2)`, `gaol_ieee1788::pown(x, 2)` and `pown(x, 2LL)`, and
+  `gaol_ieee1788::pow(x, [2])`, which is `sqr(x & [0, +oo])`, and [0] for the
+  part [0]): the 15 special bounds of the grid taken two by two, the empty set
+  and the universe, and 90 000 random intervals (exponents from -30 to 30, any
+  doubles, and the edges of the overflow and the underflow of the square), each
+  one with the calling code in the four rounding directions, and, for the
+  special bounds and the first 3 000 of each kind, with each mode that flushes
+  the subnormals to zero. The test asks for no sign, which the build chooses
+  (SSE2, NEON or FPU intervals): the two sides are the same code (GAOL v5; the
+  integer power gave a zero bound of the other sign, and 4 forms of the 9
+  compared fail without the call of `sqr()` in `pown_upward()`, 5 without the
+  one in `gaol_pown()`), and (-c)^n has to be c^n or
   -c^n, and the bound of a corner the same whether the other corner is
   computed with it or alone, at 1 088 points near 1, 1.5 and 3, where the
   power is within the error bound of a double: the lanes take |c|, the
@@ -301,6 +315,15 @@ point Q), which `numbers` checks there too.
   operations masked the exceptions again and cleared the flags. Where the
   processor does not trap an invalid operation (an overflow), or keeps no flag
   `feraiseexcept()` raises, the test says so and skips that part.
+  With mingw-w64 on x86-64 (GAOL v5, point 110 of TODO.md), the control word of
+  the x87 unit is read apart (`fnstcw`) and is part of the state that has to be
+  the same before and after each operation, as `fegetround()` of mingw-w64 13
+  and later joins the fields RC of the two units by OR; the flags are checked
+  from each of the six directions, not from upward only, and after
+  `gaol::cleanup()` and `gaol::restore_rounding()`: `fesetround()` of mingw-w64
+  13 and later clears the six flags of MXCSR when it changes it, which
+  `midpoint()`, `rad()`, `split()`, `chi()`, the reading and the writing of an
+  interval, `cleanup()` and `restore_rounding()` called.
   With a mode that flushes the subnormal numbers to zero set (on x86,
   flush-to-zero, denormals-are-zero or both; on ARM with GCC and Clang, FZ,
   and FIZ where the processor has it), and the rounding direction upward or
@@ -791,9 +814,10 @@ point Q), which `numbers` checks there too.
   computing with the two 64-bit halves would then find here. First of all,
   the test checks the `fma()` and `round()` of the C library, which CORE-MATH
   and GAOL call (`fma()` wherever the compiler has no fused multiply-add
-  instruction, as GCC for Windows): `fma()` correctly rounded in the four
-  rounding directions at six triples, three error-free products
-  `fma(a, b, -a*b)` among them and `x + x*2^-54` as `cr_tan()` computes it, and
+  instruction, as GCC for 32-bit Windows, or with `GAOL_FMA` off): `fma()`
+  correctly rounded in the four rounding directions at six triples, three
+  error-free products `fma(a, b, -a*b)` among them and `x + x*2^-54` as
+  `cr_tan()` computes it, and
   `round()` the same in every direction at ±0x1.fffffffffffffp-2, ±0.5, ±2.5
   and 2<sup>52</sup> − 1/2, against values computed with exact rational
   arithmetic. The `fma()` and `round()` of mingw-w64's own math library on
@@ -1376,14 +1400,14 @@ compare equal, by their bits (GAOL v5, point Q), and of the same operations on
 doubles, and, in its last rows, of lines of 15 additions, 15 additions and
 subtractions, 7 products, 7 quotients and 13 operations of the four kinds
 between 8 and 16 intervals (GAOL v5, point ZZ). Its title names the intervals
-GAOL computes with, NEON, SSE2 or FPU (GAOL v5), and three rows give the
-product, the quotient and the square of operands of random signs, the other
-rows having positive operands only, which a processor predicts: the product,
-the quotient and the square chose a branch by the signs of the bounds in GAOL 4
-and in the FPU intervals before GAOL v5 gave them kernels with none (the
-operands are 1 024 intervals that the predictor of a processor learns by heart:
-the former product of random signs took 5.7 ns on them and 12.4 on 16 384,
-Apple M2). After the table, it
+GAOL computes with, NEON, SSE2 or FPU (GAOL v5), and four rows give the
+product, the quotient, the square and `pow(x, 2)` (GAOL v5) of operands of
+random signs, the other rows having positive operands only, which a processor
+predicts: the product, the quotient and the square chose a branch by the signs
+of the bounds in GAOL 4 and in the FPU intervals before GAOL v5 gave them
+kernels with none (the operands are 1 024 intervals that the predictor of a
+processor learns by heart: the former product of random signs took 5.7 ns on
+them and 12.4 on 16 384, Apple M2). After the table, it
 prints the time of the check each operation makes, 1 + (2^-1060 + 0) not above
 1, and of the same check made of 2^-60, a normal
 double: a processor that takes a microcode assist for a subnormal operand or

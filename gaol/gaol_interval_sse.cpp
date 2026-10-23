@@ -381,6 +381,24 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
     { 0, ~std::uint64_t(0) }, { ~std::uint64_t(0), ~std::uint64_t(0) },
     { ~std::uint64_t(0), ~std::uint64_t(0) }, { ~std::uint64_t(0), ~std::uint64_t(0) } };
 
+#if !GAOL_AVX512_ARITHMETIC
+  /*
+    The two products and the maximum of sqr_bounds() below, the SSE2 path, on
+    the stored bounds x of a non-empty interval, the rounding direction being
+    upward and the modes that flush the subnormals to zero clear: the body of
+    sqr_bounds() after its check, which interval::sqr_upward() takes for x^2
+    (GAOL v5)
+  */
+  GAOL_INLINE __m128d sqr_products(__m128d x)
+  {
+    const __m128d s1 = _mm_mul_pd(x, _mm_xor_pd(x, interval::lbsignmask));
+    const __m128d xs = _mm_shuffle_pd(x, x, 1);
+    const __m128d s2 = _mm_mul_pd(xs, _mm_xor_pd(xs, interval::lbsignmask));
+    return _mm_and_pd(_mm_max_pd(s1, s2),
+                      _mm_load_pd(reinterpret_cast<const double *>(sqr_lanes[_mm_movemask_pd(x)])));
+  }
+#endif
+
   /*
     The square of I, the empty set or not, whose stored bounds are <-l, r>:
     both products it can need are computed, <-rnddn(l^2), rndup(r^2)> and
@@ -422,14 +440,26 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 #else
     GAOL_RND_ENTER_SSE();
     x = reread_bounds(x);
-    const __m128d s1 = _mm_mul_pd(x, _mm_xor_pd(x, interval::lbsignmask));
-    const __m128d xs = _mm_shuffle_pd(x, x, 1);
-    const __m128d s2 = _mm_mul_pd(xs, _mm_xor_pd(xs, interval::lbsignmask));
-    __m128d res = _mm_and_pd(_mm_max_pd(s1, s2),
-                             _mm_load_pd(reinterpret_cast<const double *>(sqr_lanes[_mm_movemask_pd(x)])));
+    __m128d res = sqr_products(x);
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE_SSE();
     return res;
+#endif
+  }
+
+  /*
+    sqr() of a non-empty I, the rounding direction being upward already (see
+    gaol_interval_core.h): the square that pow() takes for x^2 after its own
+    check (GAOL v5). The AVX-512 path sets no direction, so that its kernel
+    is the function itself, whose guard of the modes that flush the
+    subnormals to zero finds them clear.
+  */
+  interval interval::sqr_upward(const interval& I)
+  {
+#if GAOL_AVX512_ARITHMETIC
+    return interval(sqr_bounds(I.xmmbounds));
+#else
+    return interval(sqr_products(I.xmmbounds));
 #endif
   }
 

@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `02ccbcb` de `configure-clean`, le 20
+Ce qui reste à faire sur GAOL v5 au commit `601fc63` de `configure-clean`, le 23
 octobre 2026. Ce fichier ne garde que cela : le travail fait, ses pull requests,
 ses décisions et ses mesures sont dans l'issue #49 (« Fusionné depuis le 30
 septembre » et les sections « Décidé le… »), dans les descriptions des pull
@@ -55,35 +55,30 @@ d'après les descriptions).
 
 Petits, sans risque, à grouper en une ou deux pull requests. [S]
 
-5. **117, 119, 120 (AL), 87, 88, 89 (AD) et les descriptions d'options du 112
-   (AI)** : des textes faux ou qui manquent (la phrase de `pow`
-   d'`accuracy.md`, les compilateurs refusés du manuel, le piège de `namespace
-   gaol { }`, le format `agreeing` d'un point, « + - * / et sqrt » du chemin
-   AVX-512, le signe collé à un nombre incertain du 87, la lecture en temps
-   quadratique du 88).
+5. **117, 119, 120 (AL), 87, 88, 89 (AD)** : des textes faux ou qui manquent (la
+   phrase de `pow` d'`accuracy.md`, les compilateurs refusés du manuel, le
+   piège de `namespace gaol { }`, le format `agreeing` d'un point, le signe
+   collé à un nombre incertain du 87, la lecture en temps quadratique du 88).
 6. **91 et 94 (AE)** : le test `refused_options.sh` qui se dit sauté, et la
    liste de macros de l'audit.
 7. **121, 122 (AL)** : décider de `.continue/` ; `gaol_performance` en C++14.
 8. **`/W4 /WX` en Debug (AI, #148)** : `textToInterval()` de
-    `gaol_interval.cpp` a un `return` après `gaol_ERROR()`, que Visual C++ 19.44
-    et 19.51 disent inatteignable à `/Od` (C4702, vu sur Compiler Explorer, sur
-    le fichier assemblé avec ses en-têtes) ; aucun job ne compile en `/W4 /WX`
-    en Debug. À corriger, avec un job. [S]
+   `gaol_interval.cpp` a un `return` après `gaol_ERROR()`, que Visual C++ 19.44
+   et 19.51 disent inatteignable à `/Od` (C4702, vu sur Compiler Explorer, sur
+   le fichier assemblé avec ses en-têtes) ; aucun job ne compile en `/W4 /WX`
+   en Debug. À corriger, avec un job. [S]
 
 ### D. Les trois builds
 
 Principe 6 de `process.md` : les mêmes bibliothèque, en-têtes et options
 partout.
 
-9. **Le défaut de CMake du 112 (AI)** : un second `cmake` dans le même dossier
-   fait passer `GAOL_PREFER_AVX512` de ON à OFF sous `GAOL_PRESERVE_ROUNDING` ;
-   à corriger avec un test. [S]
-10. **125 (AM)** : décider si `GAOL_SIZEOF_INT` et `GAOL_SIZEOF_LONG_LONG_INT`
-    restent sans valeur par défaut dans les trois modèles. [S]
-11. **95 et 92 (AE)** : des détections qui lient dans un build et compilent dans
+9. **125 (AM)** : décider si `GAOL_SIZEOF_INT` et `GAOL_SIZEOF_LONG_LONG_INT`
+   restent sans valeur par défaut dans les trois modèles. [S]
+10. **95 et 92 (AE)** : des détections qui lient dans un build et compilent dans
     les autres, des drapeaux C différents ; aucun effet connu sur les bornes.
     [M]
-12. **85 (AD) et 82 (AC)** : un `long` de 32 bits (non vérifié) et la garde de
+11. **85 (AD) et 82 (AC)** : un `long` de 32 bits (non vérifié) et la garde de
     `[±oo]` de `powRev1` et `powRev2` (qu'`interval(__m128d)` seul atteint) ;
     rares. [S]
 
@@ -93,34 +88,31 @@ Des mesures d'abord, toutes avant v5.0.0 (décidé le 19 octobre) ; ordre : ce q
 peut changer la suite, puis l'écart mesuré le plus grand sur les builds par
 défaut, puis les builds avec `GAOL_PRESERVE_ROUNDING`.
 
-13. **113 (AJ)** : des noyaux qui laissent le sens d'arrondi au plus proche ; un
+12. **113 (AJ)** : des noyaux qui laissent le sens d'arrondi au plus proche ; un
     prototype de `+ - * / sqrt` suffit à décider. Peut changer le comportement
     documenté et les noyaux (voir le rang 2). [L]
-14. **106 (AI)** : Visual C++ arm64 (NEON n'y est pas offert), ARM 32 bits,
-    POWER, s390x et RISC-V gardent les intervalles FPU, sans les noyaux de
-    #124 ; macOS arm64 est fait par #146 (NEON), Visual C++ et clang-cl x64 par
-    #148 (SSE2) ; sur ARM 32 bits, #150 n'a fait que le registre de contrôle de
-    `GAOL_PRESERVE_ROUNDING`, pas les noyaux. [L]
-15. **110 (AI)** : GCC pour Windows, `pow(x, 3)`, `log` et `cos` 5 à 10 fois
-    plus lents que Clang, faute de `-mfma` probablement. [M]
-16. **108 (AI)** : Visual C++ 32 bits, 80 ns par opération dès le build par
+13. **106 (AI), le reste** : Visual C++ arm64 (NEON n'y est pas offert) ;
+    POWER, s390x, RISC-V et MinGW-w64 arm64 n'ont pas été mesurés avec les
+    noyaux FPU de #157 ; macOS arm64 est fait par #146 (NEON), Visual C++ et
+    clang-cl x64 par #148 (SSE2), tous les intervalles FPU par #157 (des noyaux
+    scalaires sans branche) ; #150 avait fait le registre de contrôle d'ARM 32
+    bits. [M]
+14. **108 (AI)** : Visual C++ 32 bits, 80 ns par opération dès le build par
     défaut ; la lecture de x87 et de MXCSR en ligne est faite par #156, et ses
     suites décidées le 22 octobre restent (Q8, en bas). [M]
-17. **109 (AI)** : `GAOL_PRESERVE_ROUNDING` à 24 ns par opération avec Visual
+15. **109 (AI)** : `GAOL_PRESERVE_ROUNDING` à 24 ns par opération avec Visual
     C++ x64 depuis #148 (43-87 avant, 2,5 sans) ; la même condition que les
     macros MXCSR de #124 avec `_M_X64` et `__AVX2__`, décidé le 20 octobre pour
     une pull request qui suit #148 ; le 107, sur macOS arm64, est fait par #146.
     [M]
-18. **105 (AH)** : `-mbranches-within-32B-boundaries`, jusqu'à 1 ns par
+16. **105 (AH)** : `-mbranches-within-32B-boundaries`, jusqu'à 1 ns par
     opération selon le placement du code. [M]
-19. **116 (AI)** : des écarts sans cause trouvée, à refaire d'abord avec Clang
+17. **116 (AI)** : des écarts sans cause trouvée, à refaire d'abord avec Clang
     21. [S]
-20. **111 et 115 (AI)** : mesurer par la CI deux builds alternés, et lancer
-    `run_lines.sh` dans `make perf` ; les temps de la CI ne sont pas stables.
-    [M]
-21. **112 (AI), le reste** : les fonctions élémentaires avec
+18. **112 (AI), le reste** : les fonctions élémentaires avec
     `GAOL_PRESERVE_ROUNDING` (jusqu'à 27 %), un test des bits du signe de zéro
-    de `x * d`. [M]
+    de `x * d` (il demande un x86 avec AVX-512) ; le défaut de CMake et les
+    descriptions d'options sont faits par #161. [M]
 
 ### F. Signalements à d'autres projets
 
@@ -128,13 +120,13 @@ Chacun attend l'accord explicite du mainteneur ; rien n'est envoyé. Ordre : ce
 qui est prêt et qui a une valeur pour GAOL, puis ce qui demande une réplique à
 écrire, puis ce qui ne demande probablement rien.
 
-22. **#125 CORE-MATH** : les huit correctifs prêts (le 8, `exp_1()`, est fait
+19. **#125 CORE-MATH** : les huit correctifs prêts (le 8, `exp_1()`, est fait
     dans la copie de GAOL par #144), refaits sur le master du jour.
-23. **#126 GCC**, **#127 mingw-w64**, **#129 ITF1788**, **#130 Boost.Interval**.
-24. **#131 Microsoft**, **#132 Apple**, **#133 LLVM/Clang**, **#135 musl**,
+20. **#126 GCC**, **#127 mingw-w64**, **#129 ITF1788**, **#130 Boost.Interval**.
+21. **#131 Microsoft**, **#132 Apple**, **#133 LLVM/Clang**, **#135 musl**,
     **#136 le benchmark de Tang et al.** : une réplique d'un fichier à écrire et
     à vérifier sur la plateforme.
-25. **#134 gmpy2**, **#137 libieeep1788**, **#138 la glibc** : probablement rien
+22. **#134 gmpy2**, **#137 libieeep1788**, **#138 la glibc** : probablement rien
     à envoyer ; vérifier, puis fermer.
 
 ### G. La version, dans cet ordre
@@ -142,27 +134,27 @@ qui est prêt et qui a une valeur pour GAOL, puis ce qui demande une réplique �
 En dernier : elle suppose les corrections faites et les études du groupe E
 faites (décidé le 19 octobre, rang 2).
 
-26. **La pull request de synthèse** (Y) : `ChangeLog` et `doc/differences.md`,
-    d'après `todo-notes/synthese.md` et les 47 descriptions de pull requests.
-27. **`examples/examples.md` et le manuel** (Y) : les marques **Fixed**, une
+23. **La pull request de synthèse** (Y) : `ChangeLog` et `doc/differences.md`,
+    d'après `todo-notes/synthese.md` et les 52 descriptions de pull requests.
+24. **`examples/examples.md` et le manuel** (Y) : les marques **Fixed**, une
     seule régénération de `manual/v5/gaol.pdf`.
-28. **32 (Y)** : le rapport de couverture, et `numbers` en entier sous ASan +
+25. **32 (Y)** : le rapport de couverture, et `numbers` en entier sous ASan +
     UBSan, une fois.
-29. **33 (Y)** : les temps de `doc/compare/performance.md`, en dernier, sur le
+26. **33 (Y)** : les temps de `doc/compare/performance.md`, en dernier, sur le
     commit propre de la version, après les études du groupe E.
-30. **34 (Y)** : `configure-clean` dans `MATH-CORE` (avance rapide), `MATH-CORE`
+27. **34 (Y)** : `configure-clean` dans `MATH-CORE` (avance rapide), `MATH-CORE`
     dans `master`, l'étiquette `v5.0.0`, les recettes FetchContent.
-31. **71 (Y) et #128** : l'annonce à Frédéric Goualard, après l'étiquette.
+28. **71 (Y) et #128** : l'annonce à Frédéric Goualard, après l'étiquette.
 
 ### H. Après la version
 
-32. **70 (AK)** : le site GitHub Pages ; sans dépendance, mais l'annonce étant
+29. **70 (AK)** : le site GitHub Pages ; sans dépendance, mais l'annonce étant
     privée, rien ne l'exige pour la version.
-33. **46 (F, #64)** : `operator>>` ; le comportement actuel (un intervalle par
+30. **46 (F, #64)** : `operator>>` ; le comportement actuel (un intervalle par
     ligne) est documenté, le garder est la décision par défaut.
-34. **26 (W, #67)** : décorations ou indicateur de sortie de domaine.
-35. **28 (X)** : traits pour YalAA, backend pour VNODE-LP.
-36. **Le ménage de la fin** : les images Docker de #111, `todo-notes/`, ce qu'il
+31. **26 (W, #67)** : décorations ou indicateur de sortie de domaine.
+32. **28 (X)** : traits pour YalAA, backend pour VNODE-LP.
+33. **Le ménage de la fin** : les images Docker de #111, `todo-notes/`, ce qu'il
     reste de `TODO.md`.
 
 ## Comment lire ce fichier
@@ -193,9 +185,10 @@ originaux au commit `16a2f60`.
 
 ## En cours
 
-Deux pull requests sont ouvertes : #157 (point AI.106, les noyaux scalaires des
-intervalles FPU, brouillon) et #160 (points AI.111 et AI.115, le banc A/B de la
-CI et dix lignes dans `make perf`).
+Une pull request est ouverte : #164 (point C, rangs 5 à 8 : les textes de
+`doc/` et du manuel, `refused_options.sh`, la liste de macros de l'audit,
+`.continue/` dans `.gitignore`, `gaol_performance` en C++14, et le `/W4 /WX` en
+Debug).
 
 ## À corriger avant la version
 
@@ -493,8 +486,6 @@ numéro :
 Les questions ouvertes de la description de #150, non corrigées et sans
 numéro :
 
-- **Le mode par défaut des intervalles FPU d'ARM 32 bits** n'est pas amélioré
-  par #150 : c'est la suite du 106 (noyaux scalaires sans branche).
 - **Les mesures** ne valent que pour les runners arm64 de GitHub, qui exécutent
   du 32 bits ; le coût de `vmrs` et de `vmsr` sur un Cortex-A 32 bits, et le
   gain, ne sont pas connus. Non vérifiés : bionic (le `static_assert` de
@@ -545,9 +536,6 @@ fermée, et garde ce qui reste à essayer :
   théorique, documenté dans la page. À décider : un masque sur le bit de signe
   à la place du maximum, validé sur une copie (bit à bit identique), en une
   pull request à part.
-- **`pow(x, 2)` par `sqr`** : 5 à 6 ns contre 0,8 à 0,9 sur le M2, 40 % de
-  l'exemple Goldstein-Price, mêmes valeurs sur trois millions d'intervalles
-  (le signe d'un zéro peut différer) ; à faire ou non.
 - **Les pistes à mesurer** : le RISC-V scalaire à `rm` statique (il faut une
   carte), POWER et s390x (du matériel), l'arrondi embarqué scalaire pour `/` sur
   les processeurs Intel qui divisent les registres de 512 bits. Et les gains
@@ -612,6 +600,166 @@ Les questions ouvertes de la description de #158, non corrigées et sans numéro
   directement ; les autres tests qui calculent un x avec `std::pow` n'ont pas
   été relus pour un résultat sous-normal.
 
+### Remarqué par #157, à trier
+
+Les questions ouvertes de la description de #157, non corrigées et sans numéro
+(le mainteneur a décidé de garder tous les noyaux, le 22 octobre) :
+
+- **Une piste non essayée** : un noyau mixte qui garde le chemin à une branche
+  quand les deux opérandes ont le même signe, et le noyau à huit produits
+  sinon. La variante hybride essayée (l'ancien chemin pour les opérandes
+  positifs, mesurée hors de l'arbre) donne sept `*` positifs en 20,5 ns, mais
+  `x * y` de signes aléatoires en 8,5 ns et sept `*` aléatoires en 49 ns contre
+  35 pour le noyau : une branche sur un signe de nouveau.
+- **`gaol_performance` apprend ses opérandes par cœur** : 1 024 opérandes
+  répétés, que le prédicteur du M2 apprend (`x * y` de signes aléatoires 5,7 ns
+  contre 12,4 sur 16 384). Ses lignes « signes aléatoires » sous-estiment donc
+  le coût d'une branche sur les signes : passer ces trois lignes à 16 384
+  opérandes, ou en ajouter trois ? Seul un commentaire de
+  `tests/performance.cpp` a changé, pour ne pas rompre la comparaison avec les
+  tableaux de `doc/three-builds.md`.
+- **`fmax()` pour le plus grand de deux doubles** : une instruction sur arm64,
+  RISC-V et POWER (2,2 ns contre 2,9 pour `x * y` dans un banc hors de l'arbre),
+  mais elle classe +0 au-dessus de −0 (le signe d'un zéro serait celui de NEON)
+  et appelle la bibliothèque sur ARM 32 bits et x86 ; utile surtout à Visual C++
+  et clang-cl pour arm64, qu'on ne peut pas mesurer.
+- **`GAOL_RND_KEEP()` sur la sortie de `*=`, `/=` et `%=` ?** Aujourd'hui non :
+  les bornes de `*this` sont de la mémoire de l'appelant, donnée aussi par
+  adresse aux fonctions des cas rares, si bien que le compilateur place les
+  stores avant un appel ou un `asm` à clobber « memory ». C'est une protection
+  de fait, qu'aucun test ne tient ; la remettre en ferait une règle, pour 2,6 ns
+  (`x * y`) et 5 ns (`x / y`) avec `GAOL_PRESERVE_ROUNDING` (sans lui, la macro
+  est vide).
+- **`mid()` et `div_rel()`** ne sont pas touchés (`mid()` coûte 7,7 ns avec NEON
+  comme avec la FPU) ; les opérations avec un double (`x * d`, `x / d`) ont
+  encore une branche sur le signe de `d`, comme avec SSE2 (#124).
+- **Le résultat de `xsmaxcdp` sur un POWER9 réel** n'est lu que dans la source
+  de QEMU (`VSX_MAX_MINC`) et dans un commentaire de GCC, ni dans l'ISA ni sur
+  un processeur : la phrase de `doc/using.md` (« premier opérande ») est celle
+  de QEMU.
+- **La seconde relecture de `process.md` §7 n'a pas été faite** (la première,
+  sur `b584d78`, n'a pas eu de point bloquant). Non vérifiés : l'exécution sur
+  ARM 32 bits, POWER, s390x et RISC-V, le noyau SSE2 (comparé à un modèle,
+  jamais exécuté) et la vitesse sur ces processeurs.
+
+### Remarqué par #160, à trier
+
+Les questions ouvertes de la description de #160, non corrigées et sans numéro
+(`performance.yml` a réussi sur #160, #162, #163 et #164) :
+
+- **Le sens du rapport** vaut base sur pull request (au-dessus de 1, la pull
+  request est plus rapide, comme le « Gain » de #150) ; beaucoup de lecteurs
+  attendent l'inverse. C'est une ligne de `compare-performance.py` et de son
+  test.
+- **Le seuil de la liste** des lignes écartées (un facteur 2 au moins et
+  au-delà de la dispersion) : les mesures donnent des rapports jusqu'à 1,17
+  pour du code identique ; 1,5 serait possible.
+- **Le filtre de chemins** de `performance.yml` n'a ni `Makefile.am`,
+  `configure.ac`, `meson.build` et `meson_options.txt` (l'outil ne mesure que le
+  build de CMake), ni `doc/compare/code/run_perf.sh`, que lit le test des
+  outils.
+- **Les jobs** : CMake et Ubuntu 24.04 seulement, ni arm64 Linux, armhf, i386,
+  macOS x86_64, clang-cl ni Visual C++ arm64 ; le job armhf/arm64 de #150
+  compare toujours deux options d'un arbre, non la base et la pull request. Un
+  cache (`actions/cache`, clé : le SHA de la base) du binaire de la base
+  éviterait de la reconstruire à chaque poussée, sous Windows surtout ; non
+  essayé.
+- **`gaol_bench` avec Visual C++** n'avait jamais été compilé avant #160 ; les
+  dix lignes ne se comparent qu'avec une base qui a la cible, et un
+  avertissement du job dit quand elles sont sautées.
+- **L'élargissement de `make perf` à macOS et de la cible `gaol_bench` à tous
+  les systèmes** (CMake, meson) vient de l'outil : à garder ou à restreindre.
+- **`LINE_LIST` vide** ne lance aucune ligne dans `run_perf.sh` et les dix dans
+  `run_lines.sh` ; harmoniser ferait changer `run_lines.sh` (le README dit la
+  différence).
+- **`process.md` §10** liste les workflows, sans `performance.yml`.
+- **Remarqué sans être corrigé** : `actionlint` dit que
+  `suppress-deprecation-warnings` n'est pas une entrée de `msys2/setup-msys2@v2`
+  (job `msys2-refused` de `windows.yml`), et `shellcheck` fait des remarques sur
+  des étapes de `build-systems.yml`, `linux.yml`, `manual.yml` et `windows.yml`.
+
+### Remarqué par #161, à trier
+
+Les questions ouvertes de la description de #161, non corrigées et sans numéro :
+
+- **Une option à trois valeurs `AUTO`, `ON`, `OFF`** pour `GAOL_PREFER_AVX512`
+  (comme `auto` de meson) lèverait les limites 2 et 3 du commentaire de
+  `CMakeLists.txt` (le texte d'aide de la ligne de commande sert à reconnaître
+  une demande ; la variable ordinaire d'un projet englobant), mais change le
+  type de l'option et ce que lit un projet englobant : à décider.
+- **`configure` a été édité à la main** (par #161 et par #163), sans autoconf
+  2.72 : vérifié le 23 octobre à `601fc63`, `autoconf` 2.72 (celui de cette
+  machine), lancé sur une copie des fichiers suivis, régénère un `configure`
+  identique au commité.
+- **Les commentaires de la CI et de `doc/compare/code/`** qui disent encore
+  « +, -, *, / et sqrt » (`.github/scripts/sde-tests.sh`, `linux.yml`,
+  `windows.yml`, `build_benchmarks.sh`, `run_bench.sh`) : à mettre à jour ou
+  non.
+- **`doc/compare/code/setup.sh`** garde `-UGAOL_PREFER_AVX512`, utile à un
+  dossier configuré avant #161 ; il peut disparaître quand plus aucun ne
+  subsiste.
+- **La relecture des corrections** que la relecture indépendante a fait faire
+  (points A à F) n'a pas été faite.
+
+### Remarqué par #162, à trier
+
+Les questions ouvertes de la description de #162, non corrigées et sans numéro :
+
+- **Le test `e == 2` dans les en-têtes** (`pow` de `gaol/gaol_interval.h` et
+  `pown` de `gaol/gaol_ieee1788.h`) : `pow(x, 2)` y coûterait 1,35 ns avec NEON
+  au lieu de 1,66, le coût de `sqr`, au prix d'un second endroit à tenir (la
+  décision reste dans `gaol_pown`). À décider.
+- **Les puissances 3 à 5 avec les intervalles FPU coûtent environ 0,3 ns de
+  plus** (+5 %), `gaol_pown` étant maintenant un saut vers `pown_checked`
+  (`pow(x, 3)` de 6,41 à 6,93 ns sur un M2, de 6,43 à 6,79 chez le relecteur) ;
+  à remesurer sur x86, où un appel de plus coûtait 0,4 à 0,6 ns sur un
+  i7-1185G7.
+- **L'ensemble vide et le sens d'arrondi** : `pow(vide, 2)`, `2u`, `2LL` et
+  `gaol_ieee1788::pown(vide, 2)` laissent le sens du programme, comme
+  `sqr(vide)`, mais `gaol_pown_ll(vide, 2)`, `pow(vide, 2.0)`, `pow(vide, [2])`
+  et `gaol_ieee1788::pow(vide, [2])` le mettent vers le haut avant de rendre le
+  vide. Sans conséquence sur les bornes ; `doc/using.md` ne promet rien.
+- **Le texte de #154** (« +0 avec `pow` et −0 avec `sqr` ») était inexact pour
+  NEON et FPU (`doc/simd.md` est corrigé) ; les intervalles SSE2, où le signe de
+  l'ancien `pow` n'est pas mesuré, peuvent avoir un autre profil.
+- **Non vérifiable ici** : toute exécution sur x86 (le signe d'un zéro de
+  l'ancien `pow` avec SSE2, le chemin AVX-512), GCC, Windows ; les temps
+  viennent d'un seul M2 partagé, et pas avec `GAOL_PRESERVE_ROUNDING`.
+
+### Remarqué par #163, à trier
+
+Les questions ouvertes de la description de #163, non corrigées et sans numéro :
+
+- **Le bogue 54412 de GCC** (la pile de Windows x64 est alignée sur 16 octets,
+  non sur 32) : Bugzilla refuse l'accès, et son état vient de lectures
+  indirectes (ouvert jusqu'à GCC 16, un correctif sur gcc-patches le 6 juin
+  2026) ; le commentaire de `CMakeLists.txt` dit « fixed for GCC 17 only », ce
+  qui est plausible et non vérifié.
+- **Les `fesetround()` et `fegetround()` de mingw-w64** ont été lus dans les
+  sources de `master`, du CRT de MSYS2 de la CI (`4564ee4b5`) et des étiquettes
+  v13 et v14, non dans ceux de Chocolatey. Une version qui garderait les
+  indicateurs ne gênerait pas la correction, mais n'a pas été cherchée.
+- **`GAOL_PRESERVE_ROUNDING` avec autotools et meson sous MSYS2** : les entrées
+  de `build-systems.yml` ne l'ont pas, seules celles de `windows.yml` (CMake) le
+  font. Le contrôle des indicateurs depuis les six directions n'est lancé que
+  pour mingw-w64 : l'étendre à Visual C++ x64, Linux, macOS et ARM est une
+  décision de plus, avec le risque de trouver d'autres défauts.
+- **`-mavx512f` ou `-march` donnés par l'utilisateur** : avec le Clang croisé,
+  `-mavx512f -mfma -mprefer-vector-width=128` laisse 2 lignes `%ymm` et 2 887
+  `%zmm`, et `-march=skylake-avx512 -mprefer-vector-width=128` 406 `%ymm` ; le
+  relecteur a compté 0 et 0, puis 4 `%ymm`, et l'écart n'est pas élucidé. Rien
+  n'est vérifié avec GCC (le relecteur a lu le réglage de GCC 14.2 sans
+  l'exécuter). Faut-il le dire dans `doc/using.md` ?
+- **Cygwin** reçoit `-mfma` seul, sans `-mprefer-vector-width=128`, comme
+  avant : les trois détections ne le prennent pas pour « GCC pour Windows »
+  (`WIN32` de CMake, `_WIN32` de configure et de meson), alors que celles
+  d'AVX-512 testent aussi `__CYGWIN__`. Lui donner les mêmes drapeaux ? Non
+  vérifié (ni Cygwin ici, ni dans la CI).
+- **x86 32 bits** (MinGW-w64 12.2 à 15.2) reste sans FMA et n'est pas mesuré ;
+  **`-mstackrealign`** n'a pas été essayé.
+- **Les corrections qui ont suivi les deux relectures** (`704ca0c`, `e80b6f0`,
+  `1de1df0`, `15399b5`) n'ont pas été relues par un relecteur indépendant.
+
 ## Études de vitesse
 
 ### AH. Les sauts et les frontières de 32 octets (105)
@@ -625,23 +773,29 @@ Les questions ouvertes de la description de #158, non corrigées et sans numéro
   qui n'a pas l'erratum, et ce que les trois builds peuvent donner aux
   compilateurs qui prennent l'option.
 
-### AI. La vitesse sur macOS, Windows et ARM (106 à 112, 115, 116)
+### AI. La vitesse sur macOS, Windows et ARM (106, 108, 109, 112, 116)
 
 La CI de #124 (`1a15fc8` et `c6a3d25`, 17 octobre) écrit le tableau de
 `gaol_performance` dans l'étape « Performance » de ses jobs : c'est la seule
 mesure que nous ayons sur macOS et sur Windows. Les noyaux de #124 (`+ - * /` et
-`sqr` sans branche sur les signes, bornes en registre) ne servent que les
-intervalles SSE2, c'est-à-dire x86-64 (Visual C++ et clang-cl x64 compris
-depuis #148), Windows 32 bits avec GCC et Clang depuis #152, et, depuis #146,
-les intervalles NEON d'arm64 : les intervalles FPU ont encore le `switch` sur les
-signes et les opérandes en mémoire que #124 a retirés des SSE2.
+`sqr` sans branche sur les signes, bornes en registre) servent les intervalles
+SSE2, c'est-à-dire x86-64 (Visual C++ et clang-cl x64 compris depuis #148),
+Windows 32 bits avec GCC et Clang depuis #152, et, depuis #146, les intervalles
+NEON d'arm64 ; depuis #157, les intervalles FPU ont eux aussi des noyaux
+scalaires sans branche sur les signes pour `x * y`, `x / y`, `x % y` et `sqr`.
 Pour la ligne de 13 opérations `+ - * /` du tableau, en ns : 33 sur Linux x86-64
 (job d'autotools, Ubuntu 24.04), 36 sur macOS 15 x86-64, 33 à 58 avec MinGW-w64
 et MSYS2, 64 à 93 sur macOS arm64, 100 à 168 avec Visual C++ x64 et arm64 et
 avec clang-cl, 1 100 à 1 200 avec Visual C++ 32 bits (macOS arm64, avant #146 ;
 avec NEON, la ligne passe de 49,8 à 19,2 ns sur un M2 ; avec les intervalles
 SSE2 de #148, 49 ns avec Visual C++ x64 2022 et 2026 et 37 avec clang-cl, dans
-la CI de `5fa7203`). Voir le 111 pour ce que valent ces temps.
+la CI de `5fa7203`) ; pour les intervalles FPU, ces temps sont d'avant #157.
+Les temps de la CI ne se comparent pas d'un passage à l'autre : les runners sont
+des machines virtuelles partagées, et entre les deux passages de #124, au code
+inchangé, `x * y` de Visual C++ x64 prend 7,9 puis 16,3 ns et `sqrt` de MSYS2
+avec GCC 16 6,8 puis 170 ns. Seuls des écarts de plusieurs fois valent ; #160
+compare, dans le même job, la base d'une pull request et sa tête
+(`.github/workflows/performance.yml`).
 
 - **106.** **Les intervalles FPU n'ont pas les noyaux de #124 : Visual C++ et
   clang-cl.** Avec Visual C++ x64 et arm64 et avec clang-cl, que CMake ne
@@ -666,7 +820,7 @@ la CI de `5fa7203`). Voir le 111 pour ce que valent ces temps.
   `__m128d` passaient par un pointeur), et le chemin AVX-512 de
   `GAOL_PREFER_AVX512` (`cpu_runs_avx512f()` par `cpuid` et `xgetbv`, l'ordre
   des opérations tenu par des accès `volatile` et des appels, faute d'`asm`).
-  Dans la CI de `5fa7203` (un passage, voir le 111), la ligne de 13 opérations
+  Dans la CI de `5fa7203` (un passage), la ligne de 13 opérations
   prend 49 ns avec Visual C++ 2022 et 2026 et 37 avec clang-cl (100 à 168
   avant), `x * y` 3,5 à 4,5 ns (6,6 à 16,3 avant) ; l'effet de `__vectorcall`
   n'y est pas séparé. Les exécuteurs n'ont pas AVX-512 : le chemin AVX-512 de
@@ -690,13 +844,35 @@ la CI de `5fa7203`). Voir le 111 pour ce que valent ces temps.
   calculaient avant l'écriture du registre de contrôle, donc arrondis dans le
   sens du programme (#153, qui avait la même correction, est fermée).
 
-  À chercher : pour Visual C++ arm64, offrir NEON (`arm64_neon.h`) ou les noyaux
-  de #124 aux intervalles FPU ; pour ARM 32 bits, des noyaux scalaires sans
-  branche (un produit en quatre produits, un quotient par masques, un carré sans
-  branche), avec GCC seulement, non commencés ; POWER, s390x et RISC-V ne sont
-  pas regardés. Les opérations avec un double n'ont ces noyaux sur aucune cible
-  x86 (#124 : « `x * 2.0` n'a pas les noyaux de `x * y` »). À rapprocher de
-  l'étude des pistes SIMD (`doc/simd.md`, #154).
+  Fait par #157 pour les intervalles FPU (ARM 32 bits, POWER, s390x, RISC-V,
+  Visual C++ et clang-cl en x86 32 bits, Visual C++, clang-cl et MinGW-w64 en
+  arm64, `GAOL_SIMD=OFF`) : des noyaux scalaires sans branche sur les signes
+  pour `x * y` (huit produits), `x / y`, `x % y` et `sqr(x)`
+  (`gaol/gaol_interval_fpu.cpp`), et `x - y`, qui lit ses bornes après
+  `GAOL_RND_ENTER()` et prend le temps de `x + y` (3,62 puis 1,18 ns sur un M2).
+  Sur un M2, `x * y` de signes aléatoires passe de 12,4 à 3,3 ns (16 384
+  opérandes), `x / y` de 9,3 à 3,2, `sqr` de 5,9 à 1,8 et Shekel 5 de 298 à 138
+  ns ; dans la CI, avec deux builds alternés, `x * y` de signes aléatoires gagne
+  de 1,23 à 3,47 fois sur les neuf configurations mesurées (armhf natif, Visual
+  C++ et clang-cl x86 et arm64, Ubuntu et macOS en FPU). Pertes acceptées par le
+  mainteneur (« tout garder », 22 octobre) : une ligne de sept `*` d'opérandes
+  de signes prévisibles prend 50 % de temps de plus sur le M2 (23,8 puis 35,8
+  ns) et va à 0,58 de sa vitesse d'avant avec GCC sur Ubuntu, 0,57 avec clang-cl
+  arm64 ; le quotient avec Visual C++ arm64 (0,82) ; le carré avec Clang sur
+  Ubuntu et clang-cl arm64 (0,85 et 0,84) ; la ligne de treize opérations avec
+  le sens préservé sur Visual C++ x86 (0,53) ; et rien de gagné avec
+  `GAOL_PRESERVE_ROUNDING`. Le signe d'une borne nulle d'un produit n'est pas
+  spécifié avec les intervalles FPU : GCC 13 pour POWER9 compile le maximum en
+  `xsmaxcdp`, qui rend le premier de deux zéros de signes opposés (la CI de #157
+  l'a montré) ; la valeur de la borne ne change pas.
+
+  À chercher : pour Visual C++ arm64, offrir NEON (`arm64_neon.h`) ; mesurer les
+  noyaux de #157 sur POWER, s390x, RISC-V et MinGW-w64 arm64 (sur POWER8, s390x
+  et RISC-V, GCC met des branches sur les comparaisons de produits : le noyau y
+  est plus long que l'ancien code et y perd peut-être sans rien gagner). Les
+  opérations avec un double n'ont ces noyaux sur aucune cible (#124 :
+  « `x * 2.0` n'a pas les noyaux de `x * y` »). À rapprocher de l'étude des
+  pistes SIMD (`doc/simd.md`, #154).
 
 - **108.** **Visual C++ 32 bits : 80 ns par opération, dès le build par défaut**
   (job « Visual Studio 2026 x86 Release » : `x + y` 80,8 à 83,5 ns, `x * y` 87,8
@@ -733,47 +909,13 @@ la CI de `5fa7203`). Voir le 111 pour ce que valent ces temps.
   condition des macros avec `_M_X64` et `__AVX2__` pour `cl`, qui ne définit pas
   `__FMA__` ; et ce qui coûte 22,6 ns avec clang-cl.
 
-- **110.** **GCC pour Windows : `pow(x, 3)`, `log` et `cos` prennent 5 à 10 fois
-  le temps de Clang** (MinGW-w64 14.2 et 15.2 et MSYS2 UCRT64 avec GCC 16,
-  contre MSYS2 CLANG64 : `pow(x, 3)` 44 à 57 ns contre 4,1 à 9,0 ; `log` 78 à
-  106 contre 19 à 35 ; `cos` 221 à 271 contre 32 à 51 ; `exp` 39 à 47 contre 24
-  à 35). CMake ne donne pas `-mfma` à GCC pour Windows (« Fused multiply-add
-  instructions left out: GCC for Windows does not align the stack for AVX »), de
-  sorte que `pown` n'est pas calculé par paires et que CORE-MATH appelle un
-  `fma()` logiciel : la cause la plus probable, que rien n'a mesurée.
-
-  À chercher : mesurer un build de GCC pour Windows avec `-mfma` donné à la
-  main, `rounding_direction` en particulier devant passer, puis voir si le
-  défaut d'alignement se contourne (`-mstackrealign`,
-  `-mprefer-vector-width=128`) pour que GAOL_FMA y soit pris.
-
-- **111.** **Les temps de la CI ne se comparent pas d'un passage à l'autre.**
-  Les runners sont des machines virtuelles partagées : `x * y` de Visual C++ x64
-  prend 7,9 puis 16,3 ns, `sqrt` de MSYS2 avec GCC 16 6,8 puis 170 ns, entre
-  #124 à `1a15fc8` et à `c6a3d25`, au code inchangé. Seuls des écarts de
-  plusieurs fois valent, et l'étape « Performance » ne fait échouer aucun job.
-
-  À décider : faire mesurer par la CI deux builds alternés dans le même job (par
-  exemple `configure-clean` et la branche), comme `doc/compare` alterne ses
-  programmes, ou n'afficher que le meilleur de plusieurs passages.
-
-- **112.** **Suites de #124 non faites** (ses questions ouvertes) :
+- **112.** **Suites de #124 non faites** (ses questions ouvertes), ce qui reste
+  après #161 :
   - avec `GAOL_PRESERVE_ROUNDING`, les fonctions élémentaires paient encore deux
     écritures de MXCSR, jusqu'à 27 % de plus que sans (`exp`) (CORE-MATH calcule
     avec le sens matériel, aucun arrondi embarqué n'y est possible) ; un mode de
     CORE-MATH où le sens serait un paramètre les supprimerait, au prix de
     modifier `3rd/math-core` ;
-  - **un défaut de CMake** : un second `cmake` dans le même dossier fait passer
-    `GAOL_PREFER_AVX512` de ON à OFF sous `GAOL_PRESERVE_ROUNDING`, `DEFINED`
-    voyant l'entrée de cache du premier passage et la prenant pour une demande
-    de la ligne de commande, alors que le commentaire du `CMakeLists.txt` dit
-    que le défaut se dérive à chaque passage (contourné par
-    `-UGAOL_PREFER_AVX512` dans `doc/compare/code/setup.sh`) ; le corriger, avec
-    un test qui configure deux fois le même dossier ;
-  - les descriptions des options listent encore « + - * / et sqrt » pour le
-    chemin AVX-512, qui prend aussi `sqr` et les puissances entières
-    (`doc/building.md`, `CMakeLists.txt`, `meson_options.txt`, `configure.ac`,
-    `gaol/gaol_configuration.h.in` et `gaol/gaol_configuration_meson.h.in`) ;
   - avec `GAOL_PRESERVE_ROUNDING` et AVX-512, `x * d` et `x *= d` (un intervalle
     par un double) donnent le signe opposé pour une borne nulle de 344 résultats
     sur 5,7 millions entre le chemin AVX-512 (`[-0, +0]`) et le chemin SSE2
@@ -781,12 +923,21 @@ la CI de `5fa7203`). Voir le 111 pour ce que valent ces temps.
     `7716fec`, et aucun test ne le voit, qui comparent avec `==`. Décidé le 18
     octobre (point AF, #140) : c'est une exception acceptable au « bit for bit
     », dite dans la documentation et les commentaires, sans changer le calcul ;
-    il ne reste que, si l'on veut, un test qui compare les bits.
+    il ne reste que, si l'on veut, un test qui compare les bits, qui demande un
+    x86 avec AVX-512 pour comparer les deux chemins (#161 ne l'a pas fait).
 
-- **115.** **`make perf` et l'étape « Performance » de la CI ne lancent pas les
-  dix lignes de `run_lines.sh`** (question de #124) : seul `gaol_performance` en
-  a cinq. À décider : les ajouter à la CI (avec le 111 : les temps n'y sont pas
-  stables).
+  Fait par #161 : le défaut de CMake (un second `cmake` dans le même dossier
+  faisait passer `GAOL_PREFER_AVX512` de ON à OFF sous `GAOL_PRESERVE_ROUNDING`,
+  `DEFINED` voyant l'entrée de cache du premier passage) : l'entrée garde la
+  valeur dérivée, l'entrée interne `GAOL_PREFER_AVX512_DERIVED` la note, et une
+  valeur donnée reste jusqu'à `-UGAOL_PREFER_AVX512` ; le test
+  `tests/prefer_avx512_reconfigure.cmake` configure plusieurs fois le même
+  dossier (il échoue avec le `CMakeLists.txt` de `configure-clean`, et quatre
+  mutants de la correction sont tués). Les descriptions de l'option disent
+  maintenant « +, -, *, /, sqr, sqrt and, with FMA, the integer powers beyond 1
+  and -1 » (`CMakeLists.txt`, `meson_options.txt`, `configure.ac`, les trois
+  gabarits de `gaol_configuration.h`, `doc/building.md`, `doc/three-builds.md`,
+  le manuel, l'exemple 13).
 
 - **116.** **Des écarts de temps relevés par les pull requests, sans cause
   trouvée** : `cos(x)` 6 ns plus lent et `sin(x)` 2,4 ns plus rapide dans
@@ -911,29 +1062,37 @@ licence est dite (LGPL pour GAOL, MIT pour CORE-MATH) dans la section « Licence
   18 octobre, hors quelques commits directs. Les textes proposés sont, pour les
   points faits du 29 septembre au 2 octobre (#31 à #63), dans
   `todo-notes/synthese.md` (section 1, dont onze sont marqués « In
-  `configure-clean`: no », certains périmés), et, pour le reste, dans les 47
+  `configure-clean`: no », certains périmés), et, pour le reste, dans les 52
   descriptions de pull requests qui ont une section « Pour `doc/differences.md`
   et `ChangeLog` » : #71, #76, #77, #83 à #97, #99, #100, #105, #108, #111,
   #113, #114, #117 à #124, #139, #140, #141, #144, #145, #146, #147, #148, #149,
-  #150, #151, #155, #156 et #158 (#123, #139 et #155 n'ont rien à y mettre ;
-  celle de #146 dit que `doc/differences.md` l. 333, « the intervals of ARM »
-  sont FPU, n'est plus vrai sur arm64, et celle de #148 que la même ligne, « of
-  Visual C++ and of 32-bit Windows », ne vaut plus pour x64 ; celle de #150
-  ajoute que `GAOL_PRESERVE_ROUNDING` coûte 22 ns au lieu de 48 sur ARM 32 bits
-  avec GCC, et le défaut de `width()` et `bisect()` sur arm64 ; celle de #156
-  ajoute à `doc/differences.md` (vers les lignes 159 et 272) la lecture directe
-  du sens d'arrondi sur x86 32 bits (`fnstcw`, `stmxcsr`) et la remise de chaque
-  unité dans son sens avec Visual C++ pour x86 ; celle de #158 dit que la puce «
-  The n-th roots are proved with integer powers » de `doc/differences.md` doit
-  parler de « jusqu'à 2 doubles » et non d'« un double », et du chemin des x
-  sous 2^-1020). Les points K, L et `make
-  distclean` (#72 à #75) n'ont pas cette section : à écrire d'après leurs
-  descriptions. À écrire d'après les commits, sans pull request : les
-  changements du 4 octobre (`nb_fp_numbers()` rend un `unsigned long long`,
-  `gaol_parameters.h` supprimé), et ceux du 15 au 18 octobre, qui changent
-  l'interface installée : les en-têtes du parser et des expressions dans
-  `include/gaol/parser/` (`gaol_expression.h`…), `gaol_interval.h` scindé en
-  `gaol_interval_core.h` et `gaol_interval.h`, les intervalles de floats dans
+  #150, #151, #155, #156, #157, #158 et #160 à #163 (#123, #139, #155 et #160
+  n'ont rien à y mettre ; celle de #146 dit que `doc/differences.md` l. 333, «
+  the intervals of ARM » sont FPU, n'est plus vrai sur arm64, et celle de #148
+  que la même ligne, « of Visual C++ and of 32-bit Windows », ne vaut plus pour
+  x64 ; celle de #150 ajoute que `GAOL_PRESERVE_ROUNDING` coûte 22 ns au lieu de
+  48 sur ARM 32 bits avec GCC, et le défaut de `width()` et `bisect()` sur arm64
+  ; celle de #156 ajoute à `doc/differences.md` (vers les lignes 159 et 272) la
+  lecture directe du sens d'arrondi sur x86 32 bits (`fnstcw`, `stmxcsr`) et la
+  remise de chaque unité dans son sens avec Visual C++ pour x86 ; celle de #158
+  dit que la puce « The n-th roots are proved with integer powers » de
+  `doc/differences.md` doit parler de « jusqu'à 2 doubles » et non d'« un double
+  », et du chemin des x sous 2^-1020 ; celle de #157 ajoute les noyaux sans
+  branche des intervalles FPU (`x * y`, `x / y`, `x % y`, `sqr`, et `x - y` au
+  temps de `x + y`), le signe d'une borne nulle d'un produit, non spécifié avec
+  la FPU, et les indicateurs `FE_UNDERFLOW` et `FE_OVERFLOW` d'un coin du
+  produit ; celle de #161 donne les deux entrées de `ChangeLog` du défaut de
+  CMake et des descriptions d'options ; celle de #162 que `pow(x, 2)` est
+  `sqr(x)`, au signe d'un zéro et aux indicateurs de `sqr` près ; celle de #163
+  que GCC pour Windows x86-64 reçoit `-mfma -mprefer-vector-width=128` et que
+  GAOL y lit et écrit lui-même les registres de contrôle avec mingw-w64 13 et
+  plus). Les points K, L et `make distclean` (#72 à #75) n'ont pas cette section
+  : à écrire d'après leurs descriptions. À écrire d'après les commits, sans pull
+  request : les changements du 4 octobre (`nb_fp_numbers()` rend un `unsigned
+  long long`, `gaol_parameters.h` supprimé), et ceux du 15 au 18 octobre, qui
+  changent l'interface installée : les en-têtes du parser et des expressions
+  dans `include/gaol/parser/` (`gaol_expression.h`…), `gaol_interval.h` scindé
+  en `gaol_interval_core.h` et `gaol_interval.h`, les intervalles de floats dans
   `gaol/float/`, `gaol_assert.h`, `gaol_profile.h` (la classe `timepiece`),
   `gaol_exact.h`, `gaol_flags.h`, `gaol/dllmain.cpp` et `operator""_iv`
   (`gaol_literals.h`) supprimés, `f_negate`, `f_negate_simple`, `gaol_opposite`
@@ -1051,13 +1210,21 @@ sans l'accord explicite du mainteneur.
   (`todo-ARM-perf`), de #147 (`todo-ad-parse-interval-null`), de #148
   (`todo-ai-msvc-sse2-avx512`), de #149 (`todo-ad-83-84-reader`), de #150
   (`todo-arm32-fpscr`), de #151 (`todo-ab-cancel-invalid`), de #155
-  (`todo-al-process-md`) et de #158 (`todo-ac-nth-root-subnormal`) sont
-  supprimées sur GitHub (celles de #145 à #158 à la fusion, le 19 octobre pour
-  les premières et le 20 pour #148 à #158) ; en local, celles de #146
-  (`todo-ARM-perf`), de #150 et de #151, le 20 octobre, et celles de #155 et de
-  #158, le 22. Celle de #153 (`todo-fpcr-gcc-hoisting`), fermée sans
-  fusion, sur GitHub et en local, le 20 octobre. Celle de #156
-  (`todo-ai-msvc-x86-csr`) reste sur GitHub.
+  (`todo-al-process-md`), de #156 (`todo-ai-msvc-x86-csr`), de #157
+  (`todo-ai-fpu-kernels`), de #158 (`todo-ac-nth-root-subnormal`), de #160
+  (`todo-ai-111-115-ab-bench`), de #161 (`todo-ai-112-cmake-options`), de #162
+  (`todo-an-pow2-sqr`) et de #163 (`todo-ai-110-gcc-windows-fma`) sont
+  supprimées sur GitHub (celles de #145 à #163 à la fusion, le 19 octobre pour
+  les premières, du 20 au 23 pour les autres ; celle de #156, restée un temps,
+  ne s'y trouve plus le 23) ; en local, celles de #146 (`todo-ARM-perf`), de
+  #150 et de #151, le 20 octobre, et celles de #155 et de #158, le 22 ; celle de
+  #157 reste dans l'arbre `GAOL_V9/GAOL`, où elle est extraite. Celle de #153
+  (`todo-fpcr-gcc-hoisting`), fermée sans fusion, sur GitHub et en local, le 20
+  octobre. Restent sur GitHub `todo-ai-msvc-avx512` (sans pull request) et trois
+  branches d'expérience : `exp-110-gcc-windows-fma` et
+  `exp-110b-stack-alignment` (les mesures du point 110, que la description de
+  #163 dit supprimées) et `exp-157-ab` (les mesures en alternance de #157,
+  jamais à fusionner).
 - **Les lignes de crédit** : retirées le 20 octobre des descriptions de #15 à
   #24 et #60 à #63 et des commentaires de #58 et #60 à #63 ; les commits
   restent (décidé le 19 octobre, rang 1).
@@ -1078,8 +1245,7 @@ sans l'accord explicite du mainteneur.
 26 : W ; 28 : X ; 32 : Y ; 33 : Y ; 34 : Y ; 46 : F ; 70 : AK ; 71 : Y ;
 79 : AB ; 82 : AC ; 85 : AD ; 87 : AD ; 88 : AD ; 89 : AD ; 91 : AE ;
 92 : AE ; 94 : AE ; 95 : AE ; 105 : AH ; 106 : AI ; 108 : AI ; 109 : AI ;
-110 : AI ; 111 : AI ; 112 : AI ; 113 : AJ ; 115 : AI ; 116 : AI ; 117 : AL ;
-119 à 122 : AL ; 125 : AM.
+112 : AI ; 113 : AJ ; 116 : AI ; 117 : AL ; 119 à 122 : AL ; 125 : AM.
 
 ## Réponses du mainteneur, 22 octobre 2026
 
@@ -1092,7 +1258,10 @@ conséquence.
 - **Q1 (QI, PR #157, noyaux FPU)** : mesurer d'abord. Ne pas fusionner le
   produit tel quel ; lancer les mesures du produit sur armhf (conteneur Debian,
   vrai ARM 32 bits VFPv4), POWER, s390x et RISC-V avant de décider. La pull
-  request reste en brouillon.
+  request reste en brouillon. *Suite* : les mesures en alternance sur la CI
+  (armhf natif, Visual C++ et clang-cl, Ubuntu et macOS en FPU) ont été faites,
+  le mainteneur a gardé tous les noyaux et #157 est fusionnée ; POWER, s390x et
+  RISC-V restent non mesurés (rang 13).
 - **Q2 (QB, 121)** : ajouter `.continue/` au `.gitignore`.
 - **Q3 (QC, 125 AM)** : clos. `GAOL_SIZEOF_INT` et `GAOL_SIZEOF_LONG_LONG_INT`
   ont déjà des valeurs par défaut dans `gaol/gaol_config.h` (4 ou 8 selon
@@ -1104,7 +1273,7 @@ conséquence.
   les pièges sont documentés (faits par #140). Reporter indéfiniment.
 - **Q6 (QD, 111 et 115 AI)** : mesurer par la CI deux builds alternés dans le
   même job (par exemple `configure-clean` et la branche), comme `doc/compare`
-  alterne ses programmes.
+  alterne ses programmes. *Fait par #160.*
 - **Q7 (QE, 113 AJ)** : non, après v5.0.0. L'étude des noyaux au plus proche est
   reportée après la version ; le comportement actuel (changement du sens
   d'arrondi) est documenté.
@@ -1121,7 +1290,9 @@ conséquence.
 - **Q10 (QJ, #154)** : les deux oui. (a) Durcir `sqrt_bounds()` par un masque
   sur le bit de signe (FPCR.AH / FEAT_AFP), en une pull request à part, validé
   sur une copie. (b) Faire `pow(x, 2)` par `sqr` (environ 6 fois plus rapide sur
-  cette opération).
+  cette opération). *(b) fait par #162, 3,3 fois plus rapide avec NEON et 2,5
+  avec la FPU : l'« environ 6 fois » était le rapport de l'ancien `gaol_pown` à
+  `sqr`.*
 - **Q11 (QJ, #151)** : garder la correction élargie. Le Fast2Sum corrige aussi
   la somme finie à mi-chemin de deux doubles, de même cause ; c'est mieux que la
   formule stricte du TODO.
