@@ -17,6 +17,9 @@
 # is wrong: on x64, GCC 11 to 13 and MSYS2 MINGW64 (linked with msvcrt.dll),
 # whose fma() and round() are those of mingw-w64's own math library; on x86,
 # GCC 11, whose fma() rounds each of its partial sums to a double.
+# Checks that the objects GCC for Windows builds on x64 hold the fused
+# multiply-add instructions GAOL_FMA gives them (-mfma) and no 256-bit
+# instruction (-mprefer-vector-width=128; GCC bug 54412, GAOL v5).
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -306,6 +309,19 @@ jobs:
           fi
       - name: Build
         run: cmake --build build -j 4
+      # GAOL_FMA gives GCC for Windows on x64 -mfma -mprefer-vector-width=128
+      # (CMakeLists.txt, point 110 of TODO.md): the objects of the Release
+      # builds hold fused multiply-add instructions, which CORE-MATH and the
+      # integer powers need to be fast, and none on a 256-bit register, which
+      # GCC would spill to a stack that Windows aligns on 16 bytes (GCC bug
+      # 54412). Not on x86, which gets no flag, nor in Debug, where the
+      # vectorizer does not run (GAOL v5)
+      - name: Fused multiply-add instructions, and no 256-bit register in the objects
+        if: matrix.cfg.choco_flags == '' && matrix.cfg.config == 'Release'
+        run: |
+          PATH="$(cygpath -u '${{ matrix.cfg.bin }}'):$PATH"
+          export PATH
+          sh .github/scripts/check-gcc-windows-fma.sh build
       # The programs are run with the MinGW-w64 first in PATH: bash starts with the
       # mingw64/bin of Git for Windows before it, and the libstdc++-6.dll there (x64
       # only: an x86 program skips a 64-bit DLL) is older than the compiler's, without
@@ -343,7 +359,26 @@ jobs:
       matrix:
         cfg:
           - { msystem: UCRT64,  packages: ucrt-x86_64,  cc: gcc,   cxx: g++,     desc: 'MSYS2 UCRT64 GCC x64' }
+          # With -mfma (GAOL_FMA, GAOL v5) GCC for Windows defines __FMA__, and
+          # GAOL_PRESERVE_ROUNDING then keeps the rounding direction through
+          # MXCSR alone (GAOL_RND_ENTER_SSE of gaol/gaol_fpu.h), which only the
+          # jobs of Linux and clang-cl ran: this one runs it with GCC for Windows.
+          # mingw-w64 13 and later read the direction with a fegetround() that
+          # joins the x87 unit and MXCSR, and set it with a fesetround() that
+          # clears the exception flags: GAOL reads and writes the registers
+          # itself there (GAOL_RND_MINGW64_X87, point 110 of TODO.md)
+          - { msystem: UCRT64,  packages: ucrt-x86_64,  cc: gcc,   cxx: g++,     opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'MSYS2 UCRT64 GCC x64, rounding direction preserved' }
+          # The same without the fused multiply-add instructions: __FMA__ is
+          # not defined, and the operations that are not SSE2 ones (the
+          # elementary functions, midpoint()...) keep the direction with the
+          # generic macros, as before GAOL_FMA gave -mfma
+          - { msystem: UCRT64,  packages: ucrt-x86_64,  cc: gcc,   cxx: g++,     opts: '-DGAOL_FMA=OFF -DGAOL_PRESERVE_ROUNDING=ON', desc: 'MSYS2 UCRT64 GCC x64, rounding direction preserved, no FMA' }
           - { msystem: CLANG64, packages: clang-x86_64, cc: clang, cxx: clang++, desc: 'MSYS2 CLANG64 Clang x64' }
+          # Clang for Windows has taken -mfma since GAOL_FMA exists, so that
+          # __FMA__ is defined there and the direction is kept through MXCSR
+          # alone: the same configuration as the GCC entry above, with the same C
+          # runtime (the step that counts the instructions is GCC's)
+          - { msystem: CLANG64, packages: clang-x86_64, cc: clang, cxx: clang++, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'MSYS2 CLANG64 Clang x64, rounding direction preserved' }
     steps:
       - uses: actions/checkout@v7
       - uses: msys2/setup-msys2@v2
@@ -353,9 +388,15 @@ jobs:
       - name: Configure
         run: |
           ${{ matrix.cfg.cxx }} --version
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_C_COMPILER=${{ matrix.cfg.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }}
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_C_COMPILER=${{ matrix.cfg.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }} ${{ matrix.cfg.opts }}
       - name: Build
         run: cmake --build build -j 4
+      # GAOL_FMA gives GCC for Windows -mfma -mprefer-vector-width=128
+      # (CMakeLists.txt, point 110 of TODO.md), as the job above checks (GAOL
+      # v5). Not Clang, which aligns its stack and gets -mfma alone
+      - name: Fused multiply-add instructions, and no 256-bit register in the objects
+        if: matrix.cfg.cc == 'gcc' && !contains(matrix.cfg.opts, 'GAOL_FMA=OFF')
+        run: sh .github/scripts/check-gcc-windows-fma.sh build
       - name: Tests (make test)
         run: cmake --build build --target test
       - name: The test numbers ran under a locale writing a decimal comma
@@ -364,13 +405,15 @@ jobs:
         run: build/tests/gaol_performance.exe
 
   # The mingw-w64 whose fma() or round() is wrong are refused when compiling
-  # (gaol/gaol_config.h): CORE-MATH computes with that fma(), so that the
-  # bounds would not enclose the exact values. On x86-64, GCC 12.2.0 and
-  # 13.2.0 of Chocolatey are MinGW-Builds of mingw-w64 11 (UCRT) and GCC 11.2.0
-  # is WinLibs mingw-w64 9 (msvcrt.dll), all before 12: their fma() and
-  # round() are those of mingw-w64's own math library. On 32-bit x86, GCC
-  # 11.2.0 is WinLibs mingw-w64 9, whose fma() rounds each of its partial sums
-  # to a double. Each job looks for the reason in the message.
+  # (gaol/gaol_config.h): CORE-MATH computes with that fma() where the build
+  # has no -mfma (32-bit x86, GAOL_FMA OFF; GAOL_FMA gives it to GCC on x86-64,
+  # where their round() is wrong too), so that the bounds would not enclose the
+  # exact values. On x86-64, GCC 12.2.0 and 13.2.0 of Chocolatey are
+  # MinGW-Builds of mingw-w64 11 (UCRT) and GCC 11.2.0 is WinLibs mingw-w64 9
+  # (msvcrt.dll), all before 12: their fma() and round() are those of
+  # mingw-w64's own math library. On 32-bit x86, GCC 11.2.0 is WinLibs
+  # mingw-w64 9, whose fma() rounds each of its partial sums to a double. Each
+  # job looks for the reason in the message.
   mingw-refused:
     name: ${{ matrix.cfg.desc }}
     runs-on: windows-2022

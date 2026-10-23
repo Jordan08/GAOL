@@ -28,7 +28,14 @@ itself. With GCC and Clang, each where the compiler takes it:
 - `-mfma` on x86, and `-mfpu=neon-vfpv4 -mfloat-abi=hard` on 32-bit ARM, where
   GAOL is compiled with the fused multiply-add instructions of the processor
   (`GAOL_FMA`, see [Building GAOL](building.md)): the code using GAOL runs only
-  on a processor with them, as GAOL, and is compiled for it.
+  on a processor with them, as GAOL, and is compiled for it. With GCC for
+  Windows on x86-64 (GAOL v5), `-mfma -mprefer-vector-width=128`: the second
+  keeps the vectorizer of GCC to the 128-bit registers, which it would
+  otherwise spill to a stack that Windows aligns on 16 bytes, not 32 (GCC bug
+  54412; the objects of GAOL, CORE-MATH and the tests built so by GCC 16.2 have
+  no instruction on a 256-bit register, see [The three
+  builds](three-builds.md#gcc-for-windows)). A program that writes 256-bit
+  intrinsics itself is exposed to that defect, as with `-mavx`.
 
 With Visual C++ and clang-cl, `/fp:strict`, `/arch:AVX2` for x64 with
 `GAOL_FMA`, and `-msse2` with clang-cl for 32-bit x86, which computes doubles
@@ -1485,6 +1492,17 @@ control word, 0x4000 in MXCSR), not the `FE_*` constants of `<fenv.h>`, which
 are 0x0400 and 0x0800 for downward and upward with glibc and 0x0100 and 0x0200
 with the C runtime of Windows.
 
+mingw-w64 on x86-64 (MinGW-w64 of Chocolatey, MSYS2; GAOL v5) has the two units
+too, and GAOL reads and writes their registers itself there, as above, where it
+restores a direction (`GAOL_PRESERVE_ROUNDING`, `gaol::cleanup()`,
+`gaol::restore_rounding()`, and the operations that set the direction to nearest
+and back: `midpoint()`, `chi()`, the writing and the reading of an interval),
+rather than call `fegetround()` and `fesetround()`: from mingw-w64 13, the first
+joins the fields RC of the two units by OR, which is the direction of neither
+where they differ (`FE_DOWNWARD | FE_UPWARD` is `FE_TOWARDZERO`), and the
+second clears the six exception flags of MXCSR when it changes its value, so
+that the program's flags were lost. The register that differs is written only,
+with `fldcw` or `ldmxcsr`, which keep the flags.
 
 ## Flush-to-zero and denormals-are-zero
 

@@ -315,6 +315,15 @@ point Q), which `numbers` checks there too.
   operations masked the exceptions again and cleared the flags. Where the
   processor does not trap an invalid operation (an overflow), or keeps no flag
   `feraiseexcept()` raises, the test says so and skips that part.
+  With mingw-w64 on x86-64 (GAOL v5, point 110 of TODO.md), the control word of
+  the x87 unit is read apart (`fnstcw`) and is part of the state that has to be
+  the same before and after each operation, as `fegetround()` of mingw-w64 13
+  and later joins the fields RC of the two units by OR; the flags are checked
+  from each of the six directions, not from upward only, and after
+  `gaol::cleanup()` and `gaol::restore_rounding()`: `fesetround()` of mingw-w64
+  13 and later clears the six flags of MXCSR when it changes it, which
+  `midpoint()`, `rad()`, `split()`, `chi()`, the reading and the writing of an
+  interval, `cleanup()` and `restore_rounding()` called.
   With a mode that flushes the subnormal numbers to zero set (on x86,
   flush-to-zero, denormals-are-zero or both; on ARM with GCC and Clang, FZ,
   and FIZ where the processor has it), and the rounding direction upward or
@@ -805,9 +814,10 @@ point Q), which `numbers` checks there too.
   computing with the two 64-bit halves would then find here. First of all,
   the test checks the `fma()` and `round()` of the C library, which CORE-MATH
   and GAOL call (`fma()` wherever the compiler has no fused multiply-add
-  instruction, as GCC for Windows): `fma()` correctly rounded in the four
-  rounding directions at six triples, three error-free products
-  `fma(a, b, -a*b)` among them and `x + x*2^-54` as `cr_tan()` computes it, and
+  instruction, as GCC for 32-bit Windows, or with `GAOL_FMA` off): `fma()`
+  correctly rounded in the four rounding directions at six triples, three
+  error-free products `fma(a, b, -a*b)` among them and `x + x*2^-54` as
+  `cr_tan()` computes it, and
   `round()` the same in every direction at ±0x1.fffffffffffffp-2, ±0.5, ±2.5
   and 2<sup>52</sup> − 1/2, against values computed with exact rational
   arithmetic. The `fma()` and `round()` of mingw-w64's own math library on
