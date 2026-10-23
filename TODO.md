@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `601fc63` de `configure-clean`, le 23
+Ce qui reste à faire sur GAOL v5 au commit `a4cf94d` de `configure-clean`, le 23
 octobre 2026. Ce fichier ne garde que cela : le travail fait, ses pull requests,
 ses décisions et ses mesures sont dans l'issue #49 (« Fusionné depuis le 30
 septembre » et les sections « Décidé le… »), dans les descriptions des pull
@@ -20,8 +20,8 @@ postérieur. Le détail de chaque tâche est dans la section de son point plus b
 
 ### A. Décisions courtes, prises le 19 octobre
 
-Plus rien à décider ici : les trois choix sont faits, et leurs suites sont dans
-le rang 5 et dans le groupe E.
+Plus rien à décider ici : les trois choix sont faits, et leurs suites sont
+dans le groupe E ; les textes sont faits par #164.
 
 1. **123 (AL)** : *décidé le 19 octobre* : laisser les commits qui portent une
    ligne de crédit (24 « Co-Authored-By: Claude Opus 5 » du 14 au 21 septembre,
@@ -36,7 +36,7 @@ le rang 5 et dans le groupe E.
 3. **88 et 87 (AD)** : *décidé le 19 octobre* : on garde la décision du 3
    octobre pour la lecture en temps quadratique (4,4 s pour 320 000 chiffres) et
    on ne change pas le lexeur pour le signe devant un nombre incertain : les
-   deux se documentent (rang 5).
+   deux se documentent (fait par #164).
 
 ### B. Corrections du code, décidées, du plus important au moins important
 
@@ -53,34 +53,20 @@ d'après les descriptions).
 
 ### C. Textes, tests et ménage
 
-Petits, sans risque, à grouper en une ou deux pull requests. [S]
-
-5. **117, 119, 120 (AL), 87, 88, 89 (AD)** : des textes faux ou qui manquent (la
-   phrase de `pow` d'`accuracy.md`, les compilateurs refusés du manuel, le
-   piège de `namespace gaol { }`, le format `agreeing` d'un point, le signe
-   collé à un nombre incertain du 87, la lecture en temps quadratique du 88).
-6. **91 et 94 (AE)** : le test `refused_options.sh` qui se dit sauté, et la
-   liste de macros de l'audit.
-7. **121, 122 (AL)** : décider de `.continue/` ; `gaol_performance` en C++14.
-8. **`/W4 /WX` en Debug (AI, #148)** : `textToInterval()` de
-   `gaol_interval.cpp` a un `return` après `gaol_ERROR()`, que Visual C++ 19.44
-   et 19.51 disent inatteignable à `/Od` (C4702, vu sur Compiler Explorer, sur
-   le fichier assemblé avec ses en-têtes) ; aucun job ne compile en `/W4 /WX`
-   en Debug. À corriger, avec un job. [S]
+Fait par #164 (117, 119, 120, 87, 88, 89, 91, 94, 121, 122, et le `/W4 /WX`
+en Debug de #148).
 
 ### D. Les trois builds
 
 Principe 6 de `process.md` : les mêmes bibliothèque, en-têtes et options
 partout.
 
-9. **125 (AM)** : décider si `GAOL_SIZEOF_INT` et `GAOL_SIZEOF_LONG_LONG_INT`
-   restent sans valeur par défaut dans les trois modèles. [S]
-10. **95 et 92 (AE)** : des détections qui lient dans un build et compilent dans
-    les autres, des drapeaux C différents ; aucun effet connu sur les bornes.
-    [M]
-11. **85 (AD) et 82 (AC)** : un `long` de 32 bits (non vérifié) et la garde de
-    `[±oo]` de `powRev1` et `powRev2` (qu'`interval(__m128d)` seul atteint) ;
-    rares. [S]
+5. **95 et 92 (AE)** : des détections qui lient dans un build et compilent dans
+   les autres, des drapeaux C différents ; aucun effet connu sur les bornes.
+   [M]
+6. **85 (AD) et 82 (AC)** : un `long` de 32 bits (non vérifié) et la garde de
+   `[±oo]` de `powRev1` et `powRev2` (qu'`interval(__m128d)` seul atteint) ;
+   rares. [S]
 
 ### E. Études de vitesse
 
@@ -88,28 +74,28 @@ Des mesures d'abord, toutes avant v5.0.0 (décidé le 19 octobre) ; ordre : ce q
 peut changer la suite, puis l'écart mesuré le plus grand sur les builds par
 défaut, puis les builds avec `GAOL_PRESERVE_ROUNDING`.
 
-12. **113 (AJ)** : des noyaux qui laissent le sens d'arrondi au plus proche ; un
-    prototype de `+ - * / sqrt` suffit à décider. Peut changer le comportement
-    documenté et les noyaux (voir le rang 2). [L]
-13. **106 (AI), le reste** : Visual C++ arm64 (NEON n'y est pas offert) ;
+7. **113 (AJ)** : des noyaux qui laissent le sens d'arrondi au plus proche ; un
+   prototype de `+ - * / sqrt` suffit à décider. Peut changer le comportement
+   documenté et les noyaux (voir le rang 2). [L]
+8. **106 (AI), le reste** : Visual C++ arm64 (NEON n'y est pas offert) ;
     POWER, s390x, RISC-V et MinGW-w64 arm64 n'ont pas été mesurés avec les
     noyaux FPU de #157 ; macOS arm64 est fait par #146 (NEON), Visual C++ et
     clang-cl x64 par #148 (SSE2), tous les intervalles FPU par #157 (des noyaux
     scalaires sans branche) ; #150 avait fait le registre de contrôle d'ARM 32
     bits. [M]
-14. **108 (AI)** : Visual C++ 32 bits, 80 ns par opération dès le build par
-    défaut ; la lecture de x87 et de MXCSR en ligne est faite par #156, et ses
-    suites décidées le 22 octobre restent (Q8, en bas). [M]
-15. **109 (AI)** : `GAOL_PRESERVE_ROUNDING` à 24 ns par opération avec Visual
+9. **108 (AI)** : Visual C++ 32 bits, 80 ns par opération dès le build par
+   défaut ; la lecture de x87 et de MXCSR en ligne est faite par #156, et ses
+   suites décidées le 22 octobre restent (Q8, en bas). [M]
+10. **109 (AI)** : `GAOL_PRESERVE_ROUNDING` à 24 ns par opération avec Visual
     C++ x64 depuis #148 (43-87 avant, 2,5 sans) ; la même condition que les
     macros MXCSR de #124 avec `_M_X64` et `__AVX2__`, décidé le 20 octobre pour
     une pull request qui suit #148 ; le 107, sur macOS arm64, est fait par #146.
     [M]
-16. **105 (AH)** : `-mbranches-within-32B-boundaries`, jusqu'à 1 ns par
+11. **105 (AH)** : `-mbranches-within-32B-boundaries`, jusqu'à 1 ns par
     opération selon le placement du code. [M]
-17. **116 (AI)** : des écarts sans cause trouvée, à refaire d'abord avec Clang
+12. **116 (AI)** : des écarts sans cause trouvée, à refaire d'abord avec Clang
     21. [S]
-18. **112 (AI), le reste** : les fonctions élémentaires avec
+13. **112 (AI), le reste** : les fonctions élémentaires avec
     `GAOL_PRESERVE_ROUNDING` (jusqu'à 27 %), un test des bits du signe de zéro
     de `x * d` (il demande un x86 avec AVX-512) ; le défaut de CMake et les
     descriptions d'options sont faits par #161. [M]
@@ -120,13 +106,13 @@ Chacun attend l'accord explicite du mainteneur ; rien n'est envoyé. Ordre : ce
 qui est prêt et qui a une valeur pour GAOL, puis ce qui demande une réplique à
 écrire, puis ce qui ne demande probablement rien.
 
-19. **#125 CORE-MATH** : les huit correctifs prêts (le 8, `exp_1()`, est fait
+14. **#125 CORE-MATH** : les huit correctifs prêts (le 8, `exp_1()`, est fait
     dans la copie de GAOL par #144), refaits sur le master du jour.
-20. **#126 GCC**, **#127 mingw-w64**, **#129 ITF1788**, **#130 Boost.Interval**.
-21. **#131 Microsoft**, **#132 Apple**, **#133 LLVM/Clang**, **#135 musl**,
+15. **#126 GCC**, **#127 mingw-w64**, **#129 ITF1788**, **#130 Boost.Interval**.
+16. **#131 Microsoft**, **#132 Apple**, **#133 LLVM/Clang**, **#135 musl**,
     **#136 le benchmark de Tang et al.** : une réplique d'un fichier à écrire et
     à vérifier sur la plateforme.
-22. **#134 gmpy2**, **#137 libieeep1788**, **#138 la glibc** : probablement rien
+17. **#134 gmpy2**, **#137 libieeep1788**, **#138 la glibc** : probablement rien
     à envoyer ; vérifier, puis fermer.
 
 ### G. La version, dans cet ordre
@@ -134,27 +120,27 @@ qui est prêt et qui a une valeur pour GAOL, puis ce qui demande une réplique �
 En dernier : elle suppose les corrections faites et les études du groupe E
 faites (décidé le 19 octobre, rang 2).
 
-23. **La pull request de synthèse** (Y) : `ChangeLog` et `doc/differences.md`,
-    d'après `todo-notes/synthese.md` et les 52 descriptions de pull requests.
-24. **`examples/examples.md` et le manuel** (Y) : les marques **Fixed**, une
+18. **La pull request de synthèse** (Y) : `ChangeLog` et `doc/differences.md`,
+    d'après `todo-notes/synthese.md` et les 53 descriptions de pull requests.
+19. **`examples/examples.md` et le manuel** (Y) : les marques **Fixed**, une
     seule régénération de `manual/v5/gaol.pdf`.
-25. **32 (Y)** : le rapport de couverture, et `numbers` en entier sous ASan +
+20. **32 (Y)** : le rapport de couverture, et `numbers` en entier sous ASan +
     UBSan, une fois.
-26. **33 (Y)** : les temps de `doc/compare/performance.md`, en dernier, sur le
+21. **33 (Y)** : les temps de `doc/compare/performance.md`, en dernier, sur le
     commit propre de la version, après les études du groupe E.
-27. **34 (Y)** : `configure-clean` dans `MATH-CORE` (avance rapide), `MATH-CORE`
+22. **34 (Y)** : `configure-clean` dans `MATH-CORE` (avance rapide), `MATH-CORE`
     dans `master`, l'étiquette `v5.0.0`, les recettes FetchContent.
-28. **71 (Y) et #128** : l'annonce à Frédéric Goualard, après l'étiquette.
+23. **71 (Y) et #128** : l'annonce à Frédéric Goualard, après l'étiquette.
 
 ### H. Après la version
 
-29. **70 (AK)** : le site GitHub Pages ; sans dépendance, mais l'annonce étant
+24. **70 (AK)** : le site GitHub Pages ; sans dépendance, mais l'annonce étant
     privée, rien ne l'exige pour la version.
-30. **46 (F, #64)** : `operator>>` ; le comportement actuel (un intervalle par
+25. **46 (F, #64)** : `operator>>` ; le comportement actuel (un intervalle par
     ligne) est documenté, le garder est la décision par défaut.
-31. **26 (W, #67)** : décorations ou indicateur de sortie de domaine.
-32. **28 (X)** : traits pour YalAA, backend pour VNODE-LP.
-33. **Le ménage de la fin** : les images Docker de #111, `todo-notes/`, ce qu'il
+26. **26 (W, #67)** : décorations ou indicateur de sortie de domaine.
+27. **28 (X)** : traits pour YalAA, backend pour VNODE-LP.
+28. **Le ménage de la fin** : les images Docker de #111, `todo-notes/`, ce qu'il
     reste de `TODO.md`.
 
 ## Comment lire ce fichier
@@ -165,11 +151,11 @@ ensemble. Un point garde en sous-points les numéros de l'ancienne liste,
 auxquels renvoient les pull requests, les issues et les rapports des agents ; la
 table à la fin donne la lettre de chaque numéro encore à faire, et un numéro qui
 n'y est pas est un point fait. Une lettre qui n'a plus de section ici est un
-point fait (A à E, G à V, Z, AA, AF, AG, AN, AO, et ZZ, la vitesse de `+ - * /`,
-par #124) : ses pull requests sont dans #49, et les commentaires du code qui
-citent « point Q of TODO.md » renvoient à ce point fait. « Décidé le 3 octobre »
-(ou une autre date) marque une décision du mainteneur : applique-la telle
-quelle. Une question reportée renvoie à son issue.
+point fait (A à E, G à V, Z, AA, AF, AG, AL, AM, AN, AO, et ZZ, la vitesse
+de `+ - * /`, par #124) : ses pull requests sont dans #49, et les commentaires
+du code qui citent « point Q of TODO.md » renvoient à ce point fait. « Décidé
+le 3 octobre » (ou une autre date) marque une décision du mainteneur :
+applique-la telle quelle. Une question reportée renvoie à son issue.
 
 Les anciens numéros 4 à 30 et 34 à 40 viennent de la revue du 2026-09-27,
 [examples/examples.md](examples/examples.md) (« revue n° n » renvoie au numéro n
@@ -185,10 +171,7 @@ originaux au commit `16a2f60`.
 
 ## En cours
 
-Une pull request est ouverte : #164 (point C, rangs 5 à 8 : les textes de
-`doc/` et du manuel, `refused_options.sh`, la liste de macros de l'audit,
-`.continue/` dans `.gitignore`, `gaol_performance` en C++14, et le `/W4 /WX` en
-Debug).
+Aucune pull request ouverte.
 
 ## À corriger avant la version
 
@@ -205,8 +188,9 @@ lectures de nombres, tout résultat contient la valeur exacte.
 Revérifié le 18 octobre à `4eaf69a` (build CMake Release SSE2, GCC 15.2,
 programme de reproduction) : 78, 79, 80, 81, 83, 84, 87, 88 et 89 se
 reproduisent encore, tels que décrits (les 77, 78, 80, 81, 83 et 84 sont faits,
-par #144, #151, #158 et #149) ; 91 et 94 ont été relus dans les sources.
-Les autres (82, 85, 92, 95) n'ont pas été revérifiés. Le 86 (`_iv` au-delà
+par #144, #151, #158 et #149 ; les 87, 88 et 89 sont documentés, et les 91
+et 94 corrigés, par #164). Les autres (82, 85, 92, 95) n'ont pas été
+revérifiés. Le 86 (`_iv` au-delà
 de 2^64) est sans objet : `operator""_iv` et `gaol/gaol_literals.h` ont été
 retirés à partir du 16 octobre ; le 93 (code mort exporté sous des noms C
 génériques) est fait depuis le 15 octobre (`gaol_exact.*`, `sysdeps/` et
@@ -243,7 +227,7 @@ génériques) est fait depuis le 15 octobre (`gaol_exact.*`, `sysdeps/` et
   `pow_rel_upward()` et `pow_exponent_rel_upward()`
   (`gaol/gaol_interval_core.cpp`).
 
-### AD. La lecture et l'écriture des intervalles (85, 87 à 89)
+### AD. La lecture et l'écriture des intervalles (85)
 
 - **85.** **Le plafond de l'exposant déborde un `long` de 32 bits** (Windows,
   i386, armhf) : `k`, `k2`, `kb`, `exponent` et `q` sont des `long`
@@ -253,45 +237,9 @@ génériques) est fait depuis le 15 octobre (`gaol_exact.*`, `sysdeps/` et
   millions de 9 serait lu [0, 2^-1074] au lieu de [DBL_MAX, +∞]. Non vérifié,
   faute de chaîne 32 bits sur la machine. Correction : ces variables en `long
   long`.
-- **87.** **Un nombre incertain juste après un `+` ou un `-` binaire est
-  refusé** : `10 - 3.56?1` est lu, mais `10-3.56?1`, `10+3.56?1` et `[1,2]+3?`
-  lèvent `input_format_error` (le vide avec `gaol_ieee1788`), le lexeur prenant
-  `-3.56?1` pour un seul lexème, alors que le manuel dit que ces littéraux se
-  combinent aux opérateurs dans n'importe quel ordre. Décidé le 19 octobre : le
-  documenter sans changer le lexeur, donc corriger le manuel et `doc/` (une
-  espace est nécessaire : `10 - 3.56?1`) ; l'autre voie était de sortir le signe
-  du lexème en le gardant pour les directions `u` et `d` (`-10?u` est [−10,
-  −9,5]). Revérifié le 18 octobre.
-- **88.** **Lire un long nombre prend un temps quadratique en ses chiffres** :
-  `"0."` suivi de n chiffres 3 prend 0,017 s pour n = 20 000 et 0,28 s pour 80
-  000 (le 14 octobre : 0,026 s, 0,37 s, et 4,4 s pour 320 000, environ 45 s
-  attendues pour un million), et la forme incertaine 2,3 fois plus
-  (`gaol_take_apart` et `gaol_natural_mul_pow5` dans le lexeur, un chiffre à la
-  fois). Un texte venu d'ailleurs peut ainsi bloquer un programme. Le 3 octobre,
-  l'ancien 18 (#42, la lecture sous une locale à virgule) a décidé de laisser
-  l'analyse des chiffres quadratique (« on ne fait rien ») : ce défaut en est la
-  conséquence. Décidé le 19 octobre : garder cette décision, et documenter dans
-  le manuel et `doc/` que la lecture est quadratique en le nombre de chiffres,
-  avec les temps ci-dessus. Pour mémoire, `todo-notes/synthese.md` (18.md) note
-  que 9 chiffres décimaux par passe l'accéléreraient environ 9 fois, et qu'une
-  conversion par dichotomie la rendrait sous-quadratique (garder environ 770
-  chiffres significatifs et un chiffre non nul « collant », aucun double ne
-  séparant alors les deux valeurs, et convertir 9 chiffres par multiplication).
-- **89.** **Le format `agreeing` écrit un intervalle ponctuel comme un nombre
-  nu** : `interval(4.0)` s'écrit `4.000000000000000`, quand le format `bounds`
-  écrit `[4]` ; ni le commentaire d'`interval_format`
-  (`gaol/gaol_interval_core.h`) ni le manuel ne le disent. À documenter. (Le
-  tableau de `doc/accuracy.md` le dit déjà.)
 
-### AE. Les trois builds (91, 92, 94, 95)
+### AE. Les trois builds (92, 95)
 
-- **91.** **`tests/refused_options.sh` se dit sauté quand le programme ne
-  compile pas** : il reconnaît GCC ou Clang en prétraitant le source du test
-  avec `-dM -E`, et si les en-têtes de GAOL manquent, g++ n'écrit rien : le
-  script dit « SKIP: neither GCC nor Clang » (77) au lieu d'échouer (vérifié
-  avec `GAOL_CXXFLAGS="-std=c++17 -frounding-math"`). Correction : `$GAOL_CXX
-  $GAOL_CXXFLAGS -dM -E -x c++ /dev/null`. Relu le 18 octobre : le script
-  prétraite encore le source du test.
 - **92.** **Les sources C n'ont pas les mêmes drapeaux dans les trois builds** :
   CMake leur donne `-msse2 -msse3 -fvisibility=hidden`, autotools et meson au
   C++ seulement ; `-ffloat-store` va au C et au C++ avec CMake et meson, au C++
@@ -302,11 +250,6 @@ génériques) est fait depuis le 15 octobre (`gaol_exact.*`, `sysdeps/` et
   symboles `get_inexact` et `clear_inexact` exportés par les bibliothèques
   partagées d'autotools et de meson, a disparu avec le code mort supprimé le 15
   octobre.)
-- **94.** **La liste de macros de l'audit ne s'accorde pas avec la sonde** :
-  `.github/audit/make_probe.py` sonde `GAOL_RND_SSE_REGISTER`, que
-  `.github/audit/compare.py` ne compare pas (les macros d'AVX-512 que le 94
-  citait le 14 octobre sont depuis dans les deux listes). Correction : l'ajouter
-  aux `MACROS` de `compare.py`.
 - **95.** **Les détections compilent dans un build et lient dans les autres** :
   la sonde de la cible AVX-512 lie avec CMake, mais ne fait que compiler avec
   autotools (`AC_COMPILE_IFELSE`) et meson, alors que `__builtin_cpu_supports`
@@ -314,47 +257,6 @@ génériques) est fait depuis le 15 octobre (`gaol_exact.*`, `sysdeps/` et
   vérifie que le C++ avec CMake, et le C et le C++ avec édition de liens dans
   les deux autres. Non vérifié sur une chaîne où le résultat changerait.
   Correction : lier, et vérifier les deux langages, dans les trois builds.
-
-### AL. Les restes des relectures, de `process.md` et de la doc (117, 119 à 122)
-
-Relevés dans les « Questions ouvertes » des pull requests fermées, dans leurs
-commentaires et dans les décisions du 18 octobre de l'issue #49 ; chacun est
-petit.
-
-- **117.** **`doc/accuracy.md`, la ligne de `pow`** : supprimer la phrase « 4
-  doubles on the special cases » (décidé le 18 octobre, question de #99) : elle
-  venait de l'ancien exp(y log x), et #118 calcule les coins avec le `pow` de
-  CORE-MATH ; la ligne cite déjà les 1 347 cas de `pow` d'ITF1788 (les plus
-  serrés), les 117 boîtes de `ieee1788` et les 84 070 boîtes aux coins.
-  Revérifié le 18 octobre : la phrase y est encore.
-- **119.** **Le manuel, « Compilers and options refused »**
-  (`manual/v5/gaol.tex`) : la phrase « Each of the following gave bounds not
-  enclosing the exact results » est suivie de l'entrée de MinGW-w64 pour ARM «
-  not tested » (remarqué par #111, déjà ainsi avant la branche). Reformuler.
-- **120.** **Le code écrit à l'intérieur de `namespace gaol { }`** voit les
-  using-declarations de `gaol` (#87) : un appel `sqrt(2.0)` y trouve
-  `gaol::sqrt`, qui cache `::sqrt`, et ne compile plus. C'était déjà le cas avec
-  GAOL 4, mais ce n'est écrit nulle part (ni `doc/using.md`, ni le manuel). À
-  ajouter aux pièges de « Common errors ».
-- **121.** **`.continue/` dans `.gitignore` ?** (question de #103, restée sans
-  réponse) : #103 a retiré `.continue/rules` du dépôt ; si l'extension Continue
-  de l'éditeur le relit en local, le fichier réapparaîtra comme non suivi.
-- **122.** **`gaol_performance` compilé en C++17 sans en avoir besoin**
-  (remarqué par #95) : `tests/CMakeLists.txt` lui donne `CXX_STANDARD 17`, alors
-  que `tests/performance.cpp` compile en C++14 (pas de littéral hexadécimal) ;
-  de même dans `tests/Makefile.am` et `tests/meson.build`. Hors du reste, sans
-  effet.
-
-### AM. Les suites du point Z (125)
-
-- **125.** **`GAOL_SIZEOF_INT` et `GAOL_SIZEOF_LONG_LONG_INT`** restent définis
-  par `<limits.h>`, sans valeur par défaut dans les trois gabarits de
-  `gaol_configuration.h` : un `int` qui n'aurait ni 4 ni 8 octets les laisserait
-  non définis sous `-Wundef` (question ouverte de #120, case de #49). À décider
-  : les laisser, ou leur donner une valeur par défaut. Avec cela, **les tests et
-  les `.cpp` de la bibliothèque** ne sont pas sous `-Wundef` (`GAOL_TESTS_SSE`,
-  `GAOL_PREFER_AVX512`…) : `headers.sh` ne vérifie que les en-têtes installés,
-  et c'est le périmètre décidé le 13 octobre.
 
 ## Reportés, en attente d'une décision du mainteneur
 
@@ -1062,11 +964,11 @@ licence est dite (LGPL pour GAOL, MIT pour CORE-MATH) dans la section « Licence
   18 octobre, hors quelques commits directs. Les textes proposés sont, pour les
   points faits du 29 septembre au 2 octobre (#31 à #63), dans
   `todo-notes/synthese.md` (section 1, dont onze sont marqués « In
-  `configure-clean`: no », certains périmés), et, pour le reste, dans les 52
+  `configure-clean`: no », certains périmés), et, pour le reste, dans les 53
   descriptions de pull requests qui ont une section « Pour `doc/differences.md`
   et `ChangeLog` » : #71, #76, #77, #83 à #97, #99, #100, #105, #108, #111,
   #113, #114, #117 à #124, #139, #140, #141, #144, #145, #146, #147, #148, #149,
-  #150, #151, #155, #156, #157, #158 et #160 à #163 (#123, #139, #155 et #160
+  #150, #151, #155, #156, #157, #158 et #160 à #164 (#123, #139, #155 et #160
   n'ont rien à y mettre ; celle de #146 dit que `doc/differences.md` l. 333, «
   the intervals of ARM » sont FPU, n'est plus vrai sur arm64, et celle de #148
   que la même ligne, « of Visual C++ and of 32-bit Windows », ne vaut plus pour
@@ -1086,7 +988,12 @@ licence est dite (LGPL pour GAOL, MIT pour CORE-MATH) dans la section « Licence
   `sqr(x)`, au signe d'un zéro et aux indicateurs de `sqr` près ; celle de #163
   que GCC pour Windows x86-64 reçoit `-mfma -mprefer-vector-width=128` et que
   GAOL y lit et écrit lui-même les registres de contrôle avec mingw-w64 13 et
-  plus). Les points K, L et `make distclean` (#72 à #75) n'ont pas cette section
+  plus ; celle de #164 dit que le format `agreeing` écrit un intervalle
+  ponctuel comme un nombre nu, que la lecture d'un long nombre prend un temps
+  quadratique en ses chiffres, qu'une espace est nécessaire entre un signe et
+  un nombre incertain, le piège de `namespace gaol { }`, et que
+  `gaol_performance` est compilé en C++14). Les points K, L et `make
+  distclean` (#72 à #75) n'ont pas cette section
   : à écrire d'après leurs descriptions. À écrire d'après les commits, sans pull
   request : les changements du 4 octobre (`nb_fp_numbers()` rend un `unsigned
   long long`, `gaol_parameters.h` supprimé), et ceux du 15 au 18 octobre, qui
@@ -1213,12 +1120,13 @@ sans l'accord explicite du mainteneur.
   (`todo-al-process-md`), de #156 (`todo-ai-msvc-x86-csr`), de #157
   (`todo-ai-fpu-kernels`), de #158 (`todo-ac-nth-root-subnormal`), de #160
   (`todo-ai-111-115-ab-bench`), de #161 (`todo-ai-112-cmake-options`), de #162
-  (`todo-an-pow2-sqr`) et de #163 (`todo-ai-110-gcc-windows-fma`) sont
-  supprimées sur GitHub (celles de #145 à #163 à la fusion, le 19 octobre pour
-  les premières, du 20 au 23 pour les autres ; celle de #156, restée un temps,
-  ne s'y trouve plus le 23) ; en local, celles de #146 (`todo-ARM-perf`), de
-  #150 et de #151, le 20 octobre, et celles de #155 et de #158, le 22 ; celle de
-  #157 reste dans l'arbre `GAOL_V9/GAOL`, où elle est extraite. Celle de #153
+  (`todo-an-pow2-sqr`), de #163 (`todo-ai-110-gcc-windows-fma`) et de #164
+  (`todo-QB-text-doc`) sont supprimées sur GitHub (celles de #145 à #164 à la
+  fusion, le 19 octobre pour les premières, du 20 au 23 pour les autres ; celle
+  de #156, restée un temps, ne s'y trouve plus le 23) ; en local, celles de
+  #146 (`todo-ARM-perf`), de #150 et de #151, le 20 octobre, celles de #155 et
+  de #158, le 22, et celle de #164, le 23 ; celle de #157 reste dans l'arbre
+  `GAOL_V9/GAOL`, où elle est extraite. Celle de #153
   (`todo-fpcr-gcc-hoisting`), fermée sans fusion, sur GitHub et en local, le 20
   octobre. Restent sur GitHub `todo-ai-msvc-avx512` (sans pull request) et trois
   branches d'expérience : `exp-110-gcc-windows-fma` et
@@ -1243,9 +1151,8 @@ sans l'accord explicite du mainteneur.
 ## Table des anciens numéros
 
 26 : W ; 28 : X ; 32 : Y ; 33 : Y ; 34 : Y ; 46 : F ; 70 : AK ; 71 : Y ;
-79 : AB ; 82 : AC ; 85 : AD ; 87 : AD ; 88 : AD ; 89 : AD ; 91 : AE ;
-92 : AE ; 94 : AE ; 95 : AE ; 105 : AH ; 106 : AI ; 108 : AI ; 109 : AI ;
-112 : AI ; 113 : AJ ; 116 : AI ; 117 : AL ; 119 à 122 : AL ; 125 : AM.
+79 : AB ; 82 : AC ; 85 : AD ; 92 : AE ; 95 : AE ; 105 : AH ; 106 : AI ;
+108 : AI ; 109 : AI ; 112 : AI ; 113 : AJ ; 116 : AI.
 
 ## Réponses du mainteneur, 22 octobre 2026
 
@@ -1261,12 +1168,13 @@ conséquence.
   request reste en brouillon. *Suite* : les mesures en alternance sur la CI
   (armhf natif, Visual C++ et clang-cl, Ubuntu et macOS en FPU) ont été faites,
   le mainteneur a gardé tous les noyaux et #157 est fusionnée ; POWER, s390x et
-  RISC-V restent non mesurés (rang 13).
-- **Q2 (QB, 121)** : ajouter `.continue/` au `.gitignore`.
+  RISC-V restent non mesurés (rang 8).
+- **Q2 (QB, 121)** : ajouter `.continue/` au `.gitignore`. *Fait par #164.*
 - **Q3 (QC, 125 AM)** : clos. `GAOL_SIZEOF_INT` et `GAOL_SIZEOF_LONG_LONG_INT`
   ont déjà des valeurs par défaut dans `gaol/gaol_config.h` (4 ou 8 selon
   `UINT_MAX`, 8 selon `ULLONG_MAX`) ; les trois gabarits de configuration ne les
   définissent pas, et l'en-tête installé suffit. Retirer le point 125.
+  *Retiré le 23 octobre.*
 - **Q4 (QH, 46 F, #64)** : garder un intervalle par ligne (comportement actuel,
   documenté). Pas de changement d'`operator>>`.
 - **Q5 (QH, 26 W, #67)** : rien pour l'instant. GAOL reste un intervalle nu ;
