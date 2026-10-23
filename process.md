@@ -566,7 +566,11 @@ pour une pull request).
     deux jobs `/W4 /WX` ;
   - `build-systems.yml` : autotools, meson, audit des trois builds,
     `make distclean` ;
-  - `manual.yml` : ne tourne que si `manual/` change.
+  - `manual.yml` : ne tourne que si `manual/` change ;
+  - `performance.yml` : ne tourne que sur les pull requests qui touchent le
+    code, les `CMakeLists.txt` ou les outils de mesure ; construit et mesure
+    la base de la pull request et sa tête dans le même job, et écrit un
+    tableau dans le résumé du job (aucun temps ne fait échouer un job).
 - **Le déclenchement** : sur chaque pull request, sur un push vers `master`,
   `MATH-CORE` ou `configure-clean`, et par `workflow_dispatch`. La
   `concurrency` annule le run en cours d'un même workflow sur la même
