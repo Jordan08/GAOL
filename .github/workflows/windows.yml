@@ -444,8 +444,10 @@ jobs:
           g++ --version
           g++ -dumpmachine
           # The make of Cygwin: the gmake.exe of Strawberry Perl, first in PATH,
-          # does not know the /cygdrive paths ("No rule to make target")
-          cmake -S . -B build -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_MAKE_PROGRAM=/usr/bin/make
+          # does not know the /cygdrive paths ("No rule to make target").
+          # -D_GNU_SOURCE: with -std=c++11 the <stdlib.h> of Cygwin does not
+          # declare posix_memalign(), which gaol/gaol_port.h calls (a trial)
+          cmake -S . -B build -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_MAKE_PROGRAM=/usr/bin/make -DCMAKE_CXX_FLAGS=-D_GNU_SOURCE -DCMAKE_C_FLAGS=-D_GNU_SOURCE
       # What the configuration found about the fused multiply-add instructions:
       # the processor, and the log of the test that runs a program built with
       # -mfma (GAOL_MACHINE_RUNS_FMA, CMakeLists.txt)
