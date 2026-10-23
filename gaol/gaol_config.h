@@ -396,8 +396,9 @@
    mingw-w64 that calls itself 12 but predates the move of fma.c and round.c
    out of libmingwex, which still gives its programs mingw-w64's own fma()
    and round() (GAOL v5). Accepted and tested: MinGW-Builds GCC 14 and 15,
-   MSYS2 UCRT64 and CLANG64. Cygwin, whose headers of Windows are those of
-   mingw-w64 but whose math library is its own, does not say __MINGW32__. Its
+   MSYS2 UCRT64 and CLANG64, and Cygwin (below). Cygwin, whose headers of
+   Windows are those of mingw-w64 but whose math library is its own, does not
+   say __MINGW32__. Its
    fma() is not correctly rounded either (fma(1 + 2^-30, 1 - 2^-30, -1) gave 0
    instead of -2^-60), as std::fma is a call of it without optimization: GAOL
    needs the instruction there, -mfma (GAOL_FMA), and refuses Cygwin without
@@ -438,7 +439,7 @@
 #endif
 
 #if defined(__CYGWIN__) && !defined(__FMA__)
-#  error "GAOL cannot be compiled with Cygwin without the fused multiply-add instructions (-mfma, which GAOL_FMA gives on a processor that has them: Intel Haswell, AMD Piledriver and later): the fma() of the C library of Cygwin is not correctly rounded, and CORE-MATH computes with fma(), so that the bounds of the elementary functions would not enclose the exact values"
+#  error "GAOL cannot be compiled with Cygwin without the fused multiply-add instructions (-mfma, which GAOL_FMA gives on a processor that has them: Intel Haswell, AMD Piledriver and later): the fma() of the C library of Cygwin is not correctly rounded, and CORE-MATH computes with fma(), so that the bounds of the elementary functions could not enclose the exact values"
 #endif
 
 #endif /* GAOL_CONFIG_H */

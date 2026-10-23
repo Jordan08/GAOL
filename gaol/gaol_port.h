@@ -65,11 +65,10 @@
 #  include <malloc.h>
 #  define GAOL_MEMALIGN(buf,boundary,size) (!(buf=_aligned_malloc(size,boundary)))
 #  define GAOL_MEMFREE(buf) _aligned_free(buf)
-#elif defined (__CYGWIN__)
+#elif defined (__CYGWIN__) && (defined (__x86_64__) || defined (__i386__))
 /* _mm_malloc() and _mm_free() of GCC (<mm_malloc.h>): the <stdlib.h> of Cygwin
    does not declare posix_memalign() under -std=c++11, and GCC's header declares
-   it itself (GAOL v5). The SSE2 intervals are the only ones to ask for aligned
-   memory, and Cygwin runs on x86 processors alone. */
+   it itself (GAOL v5). x86 only: <mm_malloc.h> is the header of GCC for x86. */
 #  include <mm_malloc.h>
 #  define GAOL_MEMALIGN(buf,boundary,size) (!(buf=_mm_malloc(size,boundary)))
 #  define GAOL_MEMFREE(buf) _mm_free(buf)

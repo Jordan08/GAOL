@@ -442,7 +442,7 @@ string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
 
 # The fused multiply-add instructions of the processor (GAOL v5), with
 # the flag that gives them to the compiler where it has one, as Codac takes
-# them: GAOL's exact products (std::fma() in gaol/gaol_interval_core.cpp, for the
+# them: GAOL's exact products (fma_once() in gaol/gaol_interval_core.cpp, for the
 # integer powers and the reduction of sin and cos) and CORE-MATH's functions
 # then compute fma() with one instruction, rather than with a call to the
 # fma() of the math library. The flags are given to the code using GAOL too

@@ -102,7 +102,7 @@ namespace gaol_core {
     nextafter(-DBL_MAX, -oo) is -oo, and nextafter(DBL_MAX, +oo) is +oo; the
     nextafter() of Cygwin computes that overflow as x + x, rounded in the
     direction in effect, which is upward for GAOL: -DBL_MAX, so that sinh of
-    -710.4, whose value is below -DBL_MAX, had -DBL_MAX for lower bound and did
+    -711, whose value is below -DBL_MAX, had -DBL_MAX for lower bound and did
     not enclose it (GAOL v5). The two cases are told apart here.
   */
   GAOL_INLINE double previous_float(double d)
