@@ -824,7 +824,8 @@ point Q), which `numbers` checks there too.
   the test checks the `fma()` and `round()` of the C library, which CORE-MATH
   and GAOL call (`fma()` wherever the compiler has no fused multiply-add
   instruction, as with `GAOL_FMA` off; GCC for Windows takes `-mfma`, and the
-  test then compiles `std::fma` to the instruction): `fma()`
+  test then calls `__builtin_fma`, as GAOL does, which is the instruction):
+  `fma()`
   correctly rounded in the four rounding directions at six triples, three
   error-free products `fma(a, b, -a*b)` among them and `x + x*2^-54` as
   `cr_tan()` computes it, and
