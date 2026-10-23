@@ -84,6 +84,10 @@ jobs:
           - { os: ubuntu-24.04, opts: '-DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++',     desc: 'Ubuntu 24.04 x86_64 GCC' }
           - { os: ubuntu-24.04, opts: '-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++', desc: 'Ubuntu 24.04 x86_64 Clang' }
           - { os: ubuntu-24.04, opts: '-DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DGAOL_PRESERVE_ROUNDING=ON', desc: 'Ubuntu 24.04 x86_64 GCC, rounding direction preserved' }
+          # The FPU intervals on x86-64 too (the kernels of #157 serve them
+          # where nothing else does), with the two compilers
+          - { os: ubuntu-24.04, opts: '-DGAOL_SIMD=OFF -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++',     desc: 'Ubuntu 24.04 x86_64 GCC, FPU intervals' }
+          - { os: ubuntu-24.04, opts: '-DGAOL_SIMD=OFF -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++', desc: 'Ubuntu 24.04 x86_64 Clang, FPU intervals' }
           # arm64 Linux: the NEON intervals, and the FPU ones that the kernels
           # of #157 serve on the processors that have no NEON doubles
           - { os: ubuntu-24.04-arm, opts: '-DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++',     desc: 'Ubuntu 24.04 arm64 GCC' }
