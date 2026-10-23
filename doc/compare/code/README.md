@@ -137,8 +137,8 @@ the system, only on bash. `run_perf.sh` names the processor with `sysctl` where
 `perf` in the build directory) and `REPORT` apply as for `run_bench.sh`. `CPU`
 pins the programs with `taskset`, which macOS has not: there it is ignored, and
 the script says so (GAOL v5: it stopped, `taskset: command not found`).
-`LINE_LIST` names the long lines to run, as for `run_lines.sh`, but an empty
-`LINE_LIST` runs none here (`LINE_LIST=`), where `run_lines.sh` runs the ten:
+`LINE_LIST` names the long lines to run, as for `run_lines.sh`; set and empty
+(`LINE_LIST=`) it runs none, in both (GAOL v5: `run_lines.sh` ran the ten):
 
 ```bash
 cmake -S . -B build && CPU=2 cmake --build build --target perf   # Linux: pinned on processor 2

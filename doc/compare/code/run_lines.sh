@@ -10,7 +10,7 @@
 # REPEATS         runs of each line in a round (default 5)
 # P1788_REPEATS   the same for libieeep1788, far slower (default 1)
 # LINE_LIST       a comma-separated list of lines (default: all of them, see
-#                 bench_ops.h)
+#                 bench_ops.h; set and empty: none, as for run_perf.sh)
 # CPU             a processor to run the programs on, with taskset
 # LIBS            the libraries to run (default: "double gaol5 gaol filib
 #                 profil boost p1788", Solaris Studio having no line)
@@ -27,7 +27,11 @@ ROUNDS="${ROUNDS:-3}"
 REPEATS="${REPEATS:-5}"
 P1788_REPEATS="${P1788_REPEATS:-1}"
 ALL_LINES="sum16,diff16,mul8,mul8_tree,quot8,mix13,mix_tree,pos_sum16,pos_mul8,pos_quot8"
-LINE_LIST="${LINE_LIST:-$ALL_LINES}"
+LINE_LIST="${LINE_LIST-$ALL_LINES}"
+if [ -z "$LINE_LIST" ]; then
+  echo "== LINE_LIST is empty: no line to run"
+  exit 0
+fi
 CPU="${CPU:-}"
 LIBS="${LIBS:-double gaol5 gaol filib profil boost p1788}"
 OUT="$WORK/lines"
