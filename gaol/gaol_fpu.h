@@ -65,7 +65,12 @@ Not with Visual C++, whose C runtime sets them only when the program asks
 for it (_controlfp());
 - on 32-bit ARM processors with a floating-point unit, FZ (bit 24) of FPSCR
 (instructions vmrs and vmsr), with GCC, the only compiler GAOL takes
-there. */
+there.
+On the other processors (POWER, s390x, RISC-V, MIPS...), whose FPU intervals
+take the generic round_upward() of gaol_fpu_fenv.h, GAOL clears none: the
+mode NI (non-IEEE) of the FPSCR of POWER and the bit FS of the FCSR of MIPS,
+states of the same kind as FTZ and DAZ, stay as the program left them (not
+tested on these processors; GAOL v5). */
 #if GAOL_RND_SSE_REGISTER
 #  define GAOL_RND_FLUSH_BITS 0x8040u
 #elif defined(__aarch64__) && defined(__GNUC__)

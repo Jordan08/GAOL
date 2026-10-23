@@ -457,7 +457,7 @@ string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
 #    there, Visual C++ with /arch:AVX2 reused a product rounded upward after
 #    the rounding direction had changed, in spite of /fp:strict (in Codac,
 #    with Visual Studio 2022 and 2026).
-#  - GCC for Windows (MinGW-w64, MSYS2) for x86-64: -mfma
+#  - GCC for Windows (MinGW-w64, MSYS2, Cygwin) for x86-64: -mfma
 #    -mprefer-vector-width=128 (GAOL v5, point 110 of TODO.md). -mfma turns AVX
 #    on, and GCC then vectorizes with the 256-bit registers (ymm), which it may
 #    spill to a stack it takes to be aligned on 32 bytes, where the Windows x64
@@ -501,7 +501,7 @@ if(GAOL_FMA)
         list(APPEND GAOL_FMA_FLAGS /arch:AVX2)
       endif()
     endif()
-  elseif(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  elseif((WIN32 OR CYGWIN) AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     check_cxx_source_compiles("
       #if !defined(__x86_64__)
       #error not an x86-64 target
@@ -841,7 +841,7 @@ message(STATUS "NEON intervals: ${GAOL_USING_NEON_INSTRUCTIONS}")
 # __builtin_cpu_supports("avx512f"), with GCC and Clang on x86-64, but
 # GCC for Windows (MinGW-w64 and Cygwin), which does not align the stack
 # beyond 16 bytes, the 64 of a zmm register it spills there (GCC bug 54412,
-# fixed for GCC 17 only; GAOL_FMA gives MinGW-w64 GCC -mfma with
+# fixed for GCC 17 only; GAOL_FMA gives GCC for Windows -mfma with
 # -mprefer-vector-width=128, which keeps it out of the 32 bytes of the ymm
 # registers of AVX). The code of the path compiled by MinGW-w64 GCC 13 makes no
 # aligned access of a zmm register to the stack, but nothing keeps the

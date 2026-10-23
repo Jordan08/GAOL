@@ -235,6 +235,14 @@ point Q), which `numbers` checks there too.
   empty after them: the `fesetexceptflag()` of mingw-w64 for 32-bit
   Windows unmasked the exceptions, and the comparison of the NaN
   bounds of an empty interval then killed the program (GAOL v5).
+  The square of an empty interval and the forms of `pow` that return as `sqr`
+  does for it (`pow(x, 2)` with an `int`, an `unsigned`, a `long long`, a
+  `double` and an interval `[2]`, `pow(x, 2.5)`, `pow(x, 5000000000LL)`,
+  `pow(x, y)` with an empty operand, `gaol_ieee1788::pown(x, 2)` and
+  `gaol_ieee1788::pow(x, y)`) have to leave the rounding direction as the
+  program had it, in each direction the test sets (15 forms; four, or six with
+  the SSE instructions): those of `pow` that checked the direction before
+  returning the empty set left it upward (GAOL v5).
   `is_empty()` has to be true for six empty sets (`interval::emptyset()`,
   `[3, 2]`, `sqrt([-2, -1])`, `log([-2, -1])` and the two orders of
   `[1, 2] & [3, 4]`) and false for three nonempty intervals, and to raise no
@@ -314,16 +322,17 @@ point Q), which `numbers` checks there too.
   enabled after each of them: with `GAOL_PRESERVE_ROUNDING`, the SSE2
   operations masked the exceptions again and cleared the flags. Where the
   processor does not trap an invalid operation (an overflow), or keeps no flag
-  `feraiseexcept()` raises, the test says so and skips that part.
+  `feraiseexcept()` raises, the test says so and skips that part. The flags
+  are checked from each direction the test runs, six with the SSE instructions
+  and four elsewhere (GAOL v5; they were checked from upward only, mingw-w64 on
+  x86-64 apart), and after `gaol::cleanup()` and `gaol::restore_rounding()`.
   With mingw-w64 on x86-64 (GAOL v5, point 110 of TODO.md), the control word of
   the x87 unit is read apart (`fnstcw`) and is part of the state that has to be
   the same before and after each operation, as `fegetround()` of mingw-w64 13
-  and later joins the fields RC of the two units by OR; the flags are checked
-  from each of the six directions, not from upward only, and after
-  `gaol::cleanup()` and `gaol::restore_rounding()`: `fesetround()` of mingw-w64
-  13 and later clears the six flags of MXCSR when it changes it, which
-  `midpoint()`, `rad()`, `split()`, `chi()`, the reading and the writing of an
-  interval, `cleanup()` and `restore_rounding()` called.
+  and later joins the fields RC of the two units by OR; `fesetround()` of
+  mingw-w64 13 and later clears the six flags of MXCSR when it changes it,
+  which `midpoint()`, `rad()`, `split()`, `chi()`, the reading and the writing
+  of an interval, `cleanup()` and `restore_rounding()` called.
   With the SSE2 intervals, `x * d` and `x *= d` of `[+0, -0]` for eight
   nonzero doubles, from each direction, have the zero bounds of their path,
   `[-0, +0]` with the AVX-512 path of `GAOL_PREFER_AVX512` and `[+0, -0]`

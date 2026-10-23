@@ -129,6 +129,33 @@ double hausdorff(const interval &I1, const interval &I2)
   }
 
   /*
+    The bounds of the square of <a, b> (see interval::sqr_upward()), forced
+    inline into sqr() and into sqr_upward() (GAOL v5): with sqr_upward() a
+    function sqr() called, the square took 3.37 ns rather than 2.41 (GCC 15.2,
+    x86-64, FPU intervals)
+  */
+#if defined(__GNUC__) || defined(__clang__)
+#  define GAOL_FPU_ALWAYS_INLINE __attribute__((always_inline)) inline
+#elif defined(_MSC_VER)
+#  define GAOL_FPU_ALWAYS_INLINE __forceinline
+#else
+#  define GAOL_FPU_ALWAYS_INLINE inline
+#endif
+  GAOL_FPU_ALWAYS_INLINE void sqr_bounds(double a, double b, double& lower, double& upper)
+  {
+    double lo = larger_of(a*(-a), b*(-b));
+    double hi = larger_of(a*a, b*b);
+    // l < 0 < r: both stored bounds are above 0. & rather than &&, which is a
+    // branch on the sign of a: the selection is a conditional move with Clang
+    // and Visual C++ for arm64 and with GCC for arm64, POWER and 32-bit ARM
+    // (-O2 and -O3: two branches at -Os with GCC 14 and 15), but a branch with
+    // Visual C++ for x86
+    lo = ((a > 0.0) & (b > 0.0)) ? -0.0 : lo;
+    lower = lo;
+    upper = hi;
+  }
+
+  /*
     Whether a stored bound is +oo (GAOL v5), told on its bits: it is the only infinity
     that is stored, <-left, right> holding no -oo (an interval has neither a
     left bound +oo nor a right bound -oo), and it is no NaN here, so that the
@@ -552,9 +579,16 @@ double hausdorff(const interval &I1, const interval &I2)
     and so the products they hold, which the rounding direction upward has to
     compute. That is how the compilers treat them (GCC 15 for 32-bit ARM with
     GAOL_PRESERVE_ROUNDING: the stores precede the call), not a rule of the
-    language, and no test of GAOL holds it. GAOL_RND_KEEP() (gaol/gaol_fpu.h)
-    would make it one, for 2.6 ns here with GAOL_PRESERVE_ROUNDING (an Apple
-    M2), and x += y and the former product did without. An interval with an
+    language. GAOL_RND_KEEP() (gaol/gaol_fpu.h) would make it one, for 2.6 ns
+    here with GAOL_PRESERVE_ROUNDING (an Apple M2), and x += y and the former
+    product did without: decided on 2026-10-23 to leave it out and to hold the
+    protection by tests instead. The checks of tests/rounding_direction.cpp
+    that run x *= y, x /= y and x %= y after the program changed the
+    direction fail where a product is computed after GAOL_RND_LEAVE(): the
+    jobs of GCC and Clang with the FPU intervals and GAOL_PRESERVE_ROUNDING
+    (.github/workflows/linux.yml) run them, and a product written after
+    GAOL_RND_LEAVE() fails 53 of the 96 checks of x *= y in a loop (x /= y 58,
+    x %= y 57) with GCC 15.2 and Clang 21 on x86-64. An interval with an
     infinite bound is the rare case, which mul_infinite() computes: the
     kernel would form 0 times an infinite bound among its eight products, a
     NaN that raises the invalid-operation exception, and that must be 0.
@@ -859,17 +893,8 @@ double hausdorff(const interval &I1, const interval &I2)
   interval interval::sqr_upward(const interval& I)
   {
     const double a = rnd_reread(I.lb_), b = rnd_reread(I.rb_);
-    double lo = fpu_detail::larger_of(a*(-a), b*(-b));
-    double hi = fpu_detail::larger_of(a*a, b*b);
-    // l < 0 < r: both stored bounds are above 0. & rather than &&, which is a
-    // branch on the sign of a: the selection is a conditional move with Clang
-    // and Visual C++ for arm64 and with GCC for arm64, POWER and 32-bit ARM
-    // (-O2 and -O3: two branches at -Os with GCC 14 and 15), but a branch with
-    // Visual C++ for x86
-    lo = ((a > 0.0) & (b > 0.0)) ? -0.0 : lo;
     interval res;
-    res.lb_ = lo;
-    res.rb_ = hi;
+    fpu_detail::sqr_bounds(a, b, res.lb_, res.rb_);
     return res;
   }
 
@@ -880,7 +905,9 @@ double hausdorff(const interval &I1, const interval &I2)
     }
 
     GAOL_RND_ENTER();
-    interval res = interval::sqr_upward(I);
+    const double a = rnd_reread(I.lb_), b = rnd_reread(I.rb_);
+    interval res;
+    fpu_detail::sqr_bounds(a, b, res.lb_, res.rb_);
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
     return res;

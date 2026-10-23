@@ -497,11 +497,12 @@ fi
 
 # --enable-fma: the fused multiply-add instructions of the processor, as
 # CMakeLists.txt and meson.build take them (see CMakeLists.txt): -mfma on x86,
-# where it defines __FMA__, but with GCC for Windows (MinGW), which does not
-# align the stack for the 256-bit registers of the AVX that -mfma turns on
-# (GCC bug 54412): -mfma -mprefer-vector-width=128 there for x86-64, which
-# keeps the vectorizer to the 128-bit registers, and nothing for 32-bit x86;
-# -mfpu=neon-vfpv4 -mfloat-abi=hard on 32-bit ARM, where FMA is not on already.
+# where it defines __FMA__, but with GCC for Windows (MinGW, Cygwin), which
+# does not align the stack for the 256-bit registers of the AVX that -mfma
+# turns on (GCC bug 54412): -mfma -mprefer-vector-width=128 there for x86-64,
+# which keeps the vectorizer to the 128-bit registers, and nothing for 32-bit
+# x86; -mfpu=neon-vfpv4 -mfloat-abi=hard on 32-bit ARM, where FMA is not on
+# already.
 # Given to the C and C++ sources (GAOL, CORE-MATH), and to the code using GAOL
 # (gaol.pc), compiled for the same processor. -ffp-contract=off stays. Left out
 # where the machine building does not run a program compiled with them, but
@@ -538,7 +539,7 @@ AC_MSG_RESULT([${$3}])])
 gaol_fma_flags=""
 if test "$fma" = yes; then
     AC_LANG_PUSH([C++])
-    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#if !(defined(_WIN32) && defined(__GNUC__) && !defined(__clang__))
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#if !((defined(_WIN32) || defined(__CYGWIN__)) && defined(__GNUC__) && !defined(__clang__))
 #error not GCC for Windows
 #endif]], [[]])],[gaol_mingw_gcc=yes],[gaol_mingw_gcc=no])
     AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#if !defined(__x86_64__)

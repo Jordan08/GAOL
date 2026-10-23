@@ -16,10 +16,12 @@
  * another direction differs, as does one a compiler computes after a change
  * of direction that the source code writes after its computation. It has to
  * leave the direction as it found it, or upward (as it found it only, with
- * GAOL_PRESERVE_ROUNDING). After it, the bounds of a product and a sum have to
- * be the tightest ones. Powers with a subnormal result, which CORE-MATH rounds
- * itself in the direction fegetround() gives, have to be the tightest
- * enclosures whatever the direction, with the x87 unit and the SSE
+ * GAOL_PRESERVE_ROUNDING); the square of an empty interval, and the powers
+ * that return as it does, return before the check and leave it as it was,
+ * whichever it is (GAOL v5). After it, the bounds of a product and a sum
+ * have to be the tightest ones. Powers with a subnormal result, which
+ * CORE-MATH rounds itself in the direction fegetround() gives, have to be the
+ * tightest enclosures whatever the direction, with the x87 unit and the SSE
  * instructions differing too (GAOL v5). On x86 and ARM, the same holds with
  * the modes that flush the subnormals to zero set, flush-to-zero and
  * denormals-are-zero of the SSE instructions, FZ of ARM (what a program linked
@@ -131,8 +133,8 @@
 // 32-bit x86 processor, and is part of the state the checks compare: where the
 // two units differ, fegetround() gives the same value before and after an
 // operation that left one of them in the other's direction. The checks of the
-// exception flags run from each of the directions here too, and around
-// gaol::cleanup() and gaol::restore_rounding()
+// exception flags run from each of the directions everywhere (GAOL v5), and
+// around gaol::cleanup() and gaol::restore_rounding()
 #if defined(GAOL_TESTS_SSE) && defined(__x86_64__) && defined(__MINGW32__) && (defined(__GNUC__) || defined(__clang__))
 #  define GAOL_TESTS_X87_STATE 1
 #else
@@ -2790,11 +2792,13 @@ int main()
     fetestexcept() reads back (an emulator, a processor without the flags),
     this is not checked, and the test says so. An exception the program
     enabled is checked below, with the invalid-operation exception enabled.
-    With mingw-w64 on x86-64 the operations are run from each of the six
-    directions, not from upward only: the functions that set the direction to
-    nearest and back (midpoint(), chi()...) changed MXCSR through fesetround()
-    from the other directions only, which cleared its flags there (GAOL v5,
-    point 110 of TODO.md).
+    The operations are run from each of the directions of directions[] (six
+    with the SSE instructions, four elsewhere), not from upward only (GAOL v5):
+    with mingw-w64 on x86-64, the functions that set the direction to nearest
+    and back (midpoint(), chi()...) changed MXCSR through fesetround() from
+    the other directions only, which cleared its flags there (point 110 of
+    TODO.md); everywhere else the check was made from upward only, where a
+    function can change the direction and lose a flag the same way.
   */
   std::feclearexcept(FE_ALL_EXCEPT);
   std::feraiseexcept(FE_ALL_EXCEPT);
@@ -2804,11 +2808,7 @@ int main()
     std::printf("The exception flags raised by feraiseexcept() are not read back here: the flags kept by "
                 "the operations are not checked\n");
   } else {
-#if GAOL_TESTS_X87_STATE
     const std::size_t nb_flag_directions = sizeof(directions)/sizeof(directions[0]);
-#else
-    const std::size_t nb_flag_directions = 1;
-#endif
     for (const Operation& op : operations) {
       for (std::size_t k = 0; k < nb_flag_directions; ++k) {
         const std::string name = op.name;
@@ -3909,6 +3909,59 @@ int main()
 #else
   std::printf("The sign of the zero bounds of x * d is documented for the SSE2 intervals only: not checked here\n");
 #endif
+
+  /*
+    The square of an empty interval and the powers that return as it does,
+    those of the exponent 2, of a real or an interval exponent, of an empty
+    exponent, and of an integer beyond the unsigned ints, return before the
+    check of the rounding direction (GAOL v5: the forms of pow that checked the
+    direction first left it upward for the empty set, where sqr() leaves the
+    direction of the program, whichever it is, and its flush-to-zero modes).
+    The powers of an int other than 2 set it upward first (not checked here).
+    With GAOL_PRESERVE_ROUNDING, or with the embedded rounding of the AVX-512
+    path, no operation changes the direction, and this passes whatever the
+    code does. pow(x, 2LL), pow(x, 2u) and pown(x, 2LL) go to sqr() through
+    gaol_pown(), and only pow(x, 5000000000LL) to gaol_pown_ll().
+  */
+  {
+    struct EmptyForm
+    {
+      const char *name;
+      std::function<interval()> form;
+    };
+    const EmptyForm empty_forms[] = {
+      { "sqr(empty)", [] { return sqr(E()); } },
+      { "pow(empty, 2)", [] { return pow(E(), 2); } },
+      { "pow(empty, 2u)", [] { return pow(E(), 2u); } },
+      { "pow(empty, 2LL)", [] { return pow(E(), 2LL); } },
+      { "pow(empty, 5000000000LL)", [] { return pow(E(), 5000000000LL); } },
+      { "pow(empty, 2.0)", [] { return pow(E(), 2.0); } },
+      { "pow(empty, 2.5)", [] { return pow(E(), 2.5); } },
+      { "pow(empty, [2])", [] { return pow(E(), interval(2.0)); } },
+      { "pow(empty, x)", [] { return pow(E(), X()); } },
+      { "pow(x, empty)", [] { return pow(X(), E()); } },
+      { "gaol_ieee1788::pown(empty, 2)", [] { return gaol_ieee1788::pown(E(), 2); } },
+      { "gaol_ieee1788::pown(empty, 2LL)", [] { return gaol_ieee1788::pown(E(), 2LL); } },
+      { "gaol_ieee1788::pow(empty, [2])", [] { return gaol_ieee1788::pow(E(), interval(2.0)); } },
+      { "gaol_ieee1788::pow(empty, x)", [] { return gaol_ieee1788::pow(E(), X()); } },
+      { "gaol_ieee1788::pow(x, empty)", [] { return gaol_ieee1788::pow(X(), E()); } },
+    };
+    for (const Direction& d : directions) {
+      for (const EmptyForm& f : empty_forms) {
+        set(d);
+        const State before = state();
+        const interval r = f.form();
+        const State after = state();
+        check("an empty operand of a square or a power leaves the direction of the program",
+              r.is_empty() && after == before,
+              [&] {
+                return std::string(f.name) + " with the program " + d.name + ": " + text(after) + " after it, "
+                  + text(before) + " before";
+              });
+      }
+    }
+    set(directions[0]);
+  }
 
   /*
     gaol::cleanup() sets back the rounding direction the first gaol::init()

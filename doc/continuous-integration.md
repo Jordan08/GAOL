@@ -126,10 +126,16 @@ On 64-bit ARM processors the intervals are the NEON ones by default
 Ubuntu arm64, macOS arm64 and the aarch64 containers, and those of autotools
 and meson on arm64, test them. A few jobs build the FPU intervals instead,
 which the NEON ones replace on these processors, so that their code stays
-covered, the preserved rounding direction included: the GCC and the Clang of Ubuntu 24.04 arm64
-(`-DGAOL_ARM64=OFF`), and its Clang with the rounding direction preserved too,
-macOS 15 arm64 (`-DGAOL_ARM64=OFF`), and autotools (`--disable-arm64`) and
-meson (`-Denable-arm64=false`) on Ubuntu 24.04 arm64. A build that fell back to
+covered, the preserved rounding direction included: the GCC and the Clang of
+Ubuntu 24.04 arm64 (`-DGAOL_ARM64=OFF`), and both with the rounding direction
+preserved too, macOS 15 arm64 (`-DGAOL_ARM64=OFF`), and autotools
+(`--disable-arm64`) and meson (`-Denable-arm64=false`) on Ubuntu 24.04 arm64.
+The GCC and the Clang of Ubuntu 24.04 x86-64 build them too
+(`-DGAOL_SIMD=OFF`), GCC without and with the direction preserved and Clang
+with it: the compound products and quotients of the FPU intervals hold the
+direction only by the order of their stores, which the checks of
+`tests/rounding_direction.cpp` run with the direction preserved make a rule
+(GAOL v5). A build that fell back to
 the FPU intervals without saying so would keep every test green, so the jobs
 check which intervals the configuration took, in a step "The intervals"
 (`.github/scripts/check-intervals.sh`, which reads
@@ -137,8 +143,8 @@ check which intervals the configuration took, in a step "The intervals"
 `gaol_configuration.h`, and fails if they are not the expected ones): the main
 jobs of `linux.yml`, those of `macos.yml`, autotools and meson expect the NEON
 intervals on 64-bit ARM, the SSE2 intervals on x86-64, and the FPU intervals
-where the option is off; the Visual Studio jobs of `windows.yml`, those of
-clang-cl included, expect the SSE2 intervals on x64 (GAOL v5) and the FPU
+where the option (`GAOL_ARM64` or `GAOL_SIMD`) is off; the Visual Studio jobs
+of `windows.yml`, those of clang-cl included, expect the SSE2 intervals on x64 (GAOL v5) and the FPU
 intervals on x86 and arm64, where NEON is not offered to them; the
 Linux containers make the check before the build, from `uname -m`: the NEON
 intervals on aarch64, the SSE2 intervals on x86_64, and the FPU intervals on
@@ -204,15 +210,26 @@ which is not measured at the same moment.
 runner does between two moments reaches both. It runs for a pull request that
 changes what is measured, not for one that changes the documentation: `gaol/`,
 `3rd/` (CORE-MATH), `tests/performance.cpp`, the files of the benchmark
-`doc/compare/code/bench*`, the files `CMakeLists.txt` and `cmake/`, and the two
-scripts and the workflow themselves. A job:
+`doc/compare/code/bench*` and `doc/compare/code/run_perf.sh`, the files
+`CMakeLists.txt` and `cmake/`, and the scripts and the workflow themselves. A
+job:
 
 1. checks out the merge commit of the pull request and its first parent, which
    is the base it is merged into: the difference between the two is the pull
    request alone, whatever the base branch has gained since the pull request
    was started;
 2. configures both with CMake in Release and builds `gaol_performance` alone,
-   with the options of the job;
+   with the options of the job; the programs of the base are kept from one run
+   to the next (`actions/cache`, keyed by the job, the image of the runner and
+   the commit of the base, `--before-cache` of `performance-ab.sh`), so that
+   the next push of the same pull request builds only the pull request (GAOL
+   v5). What is kept is the programs, not the times, which are measured in
+   turn in every run; the image of the runner and the model of the processor
+   are in the key so that the two builds come from the same tools and the same
+   choices (the AVX-512 path and the fused multiply-add instructions are taken
+   where the machine building runs them, and a program built on a runner with
+   AVX-512 stops on one that has none); a key has no comma, which the names of
+   the jobs have, so they are written with underscores in it;
 3. runs `gaol_performance` three times with each build, the base first in the
    first and third runs and the pull request first in the second
    (`.github/scripts/performance-ab.sh`);
@@ -222,12 +239,18 @@ scripts and the workflow themselves. A job:
    the slowest run to the fastest of either build
    (`.github/scripts/compare-performance.py`).
 
-The jobs are Ubuntu 24.04 x86_64 with GCC, with Clang, and with GCC and the
-rounding direction preserved; macOS 26 arm64 (the NEON intervals); Visual
-Studio 2026 x64, x86, and x64 with the rounding direction preserved; and MSYS2
-UCRT64 (GCC) and CLANG64 (Clang). The other platforms are not compared, nor are
-the autotools and meson builds: the three builds give the same flags, which
-`.github/audit` checks.
+The jobs are Ubuntu 24.04 x86_64 with GCC, with Clang, with GCC and the
+rounding direction preserved, and with GCC and with Clang and the FPU
+intervals; Ubuntu 24.04 arm64 with GCC and with Clang (the
+NEON intervals) and with GCC and the FPU intervals (the kernels of #157); macOS
+26 arm64 (the NEON intervals) and macOS 15 x86_64; Visual Studio 2026 x64, x86,
+arm64, and x64 with the rounding direction preserved, and with clang-cl for
+x64, x86 and arm64; MSYS2 UCRT64 (GCC) and CLANG64 (Clang); and Debian 13
+containers for i386 and armhf, `gaol_performance` alone and no cache there (the
+image of Debian changes under the job). The other platforms (POWER, s390x,
+RISC-V, MinGW-w64 of Chocolatey, the 32-bit Windows of MSYS2) are not compared,
+nor are the autotools and meson builds: the three builds give the same flags,
+which `.github/audit` checks.
 
 The table never fails a job because of a time. Only a difference of several
 times, on rows that share their code, means something on a shared runner, and a

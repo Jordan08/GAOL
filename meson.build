@@ -531,12 +531,12 @@ endif
 # enable-fma: the fused multiply-add instructions of the processor, as
 # CMakeLists.txt and configure take them (see CMakeLists.txt): /arch:AVX2 with
 # Visual C++ but for 32-bit x86, where it breaks the rounding direction; -mfma
-# on x86, where it defines __FMA__, but with GCC for Windows (MinGW), which
-# does not align the stack for the 256-bit registers of the AVX that -mfma
-# turns on (GCC bug 54412): -mfma -mprefer-vector-width=128 there for x86-64,
-# which keeps the vectorizer to the 128-bit registers, and nothing for 32-bit
-# x86; -mfpu=neon-vfpv4 -mfloat-abi=hard on 32-bit ARM, where FMA is not on
-# already. Given to the C and C++ sources (GAOL, CORE-MATH), and to the code
+# on x86, where it defines __FMA__, but with GCC for Windows (MinGW, Cygwin),
+# which does not align the stack for the 256-bit registers of the AVX that
+# -mfma turns on (GCC bug 54412): -mfma -mprefer-vector-width=128 there for
+# x86-64, which keeps the vectorizer to the 128-bit registers, and nothing for
+# 32-bit x86; -mfpu=neon-vfpv4 -mfloat-abi=hard on 32-bit ARM, where FMA is not
+# on already. Given to the C and C++ sources (GAOL, CORE-MATH), and to the code
 # using GAOL (gaol.pc), compiled for the same processor. -ffp-contract=off
 # stays. Left out where the machine building does not run a program compiled
 # with them, but when cross-compiling (see CMakeLists.txt: macOS 14 under
@@ -555,7 +555,7 @@ if get_option('enable-fma')
     endif
   else
     mingw_gcc = cpp_comp.compiles('''
-    #if !(defined(_WIN32) && defined(__GNUC__) && !defined(__clang__))
+    #if !((defined(_WIN32) || defined(__CYGWIN__)) && defined(__GNUC__) && !defined(__clang__))
     #error not GCC for Windows
     #endif
     int main() { return 0; }

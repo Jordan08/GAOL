@@ -19,8 +19,14 @@ itself. With GCC and Clang, each where the compiler takes it:
   with the SSE2 intervals, so that the compiler asks for aligned memory for the
   intervals, which the C runtime would align on 8 bytes instead of 16 (GAOL v5):
   `gaol::gaol` and `gaol.pc` give it to the code using GAOL, which allocates
-  them, and `gaol/gaol_config.h` checks it. Visual C++ and clang-cl have no
-  such flag and keep the FPU intervals on 32-bit Windows;
+  them, and `gaol/gaol_config.h` checks it. It is an option of C++: GCC warns
+  of a C file compiled with it ("valid for C++/ObjC++ but not for C"), and
+  with `-Werror` the warning is an error. It happens where the flags of
+  `gaol.pc`, or `gaol_dep` of meson, are given to every file of a target
+  (`gaol::gaol` of CMake gives it to the C++ files only): give it to the C++
+  files only, pkg-config having no flag for one language.
+  Visual C++ and clang-cl have no such flag and keep the FPU intervals on
+  32-bit Windows;
 - nothing more on 64-bit ARM processors with the NEON intervals
   (`GAOL_ARM64`, GAOL v5, see [The NEON intervals](#the-neon-intervals)): the
   first line is all they ask for;
@@ -35,7 +41,10 @@ itself. With GCC and Clang, each where the compiler takes it:
   54412; the objects of GAOL, CORE-MATH and the tests built so by GCC 16.2 have
   no instruction on a 256-bit register, see [The three
   builds](three-builds.md#gcc-for-windows)). A program that writes 256-bit
-  intrinsics itself is exposed to that defect, as with `-mavx`.
+  intrinsics itself is exposed to that defect, as with `-mavx`, and so is one
+  built with `-mavx512f` or a `-march` that turns on wider registers, which
+  the option may not always undo (same section). Cygwin and MSYS get them as
+  the other GCC for Windows (not built here).
 
 With Visual C++ and clang-cl, `/fp:strict`, `/arch:AVX2` for x64 with
 `GAOL_FMA`, and `-msse2` with clang-cl for 32-bit x86, which computes doubles
@@ -392,12 +401,15 @@ and the sign of its zero bounds, where the integer power made its square from
 exact products, the same bounds in a longer time and, for some intervals
 holding 0, a zero bound of the other sign (see
 [Accuracy of the operations](accuracy.md)). The exception flags it raises are
-`sqr(x)`'s too. For the empty set, `pow(x, 2)`, `pow(x, 2u)` and
-`gaol_ieee1788::pown(x, 2)` return as `sqr` does, before any check, and leave
-the rounding direction as the program had it, where `pow(x, 2.0)`,
-`pow(x, [2])`, `gaol_ieee1788::pow(x, [2])` and `gaol_pown_ll(x, 2)` check it
-first and leave it upward: a program does not count on the direction after an
-operation that computes no bound (see
+`sqr(x)`'s too. For the empty set, `pow(x, 2)`, `pow(x, 2u)`, `pow(x, 2LL)`,
+`pow(x, 2.0)`, `pow(x, [2])`, `gaol_ieee1788::pown(x, 2)` and
+`gaol_ieee1788::pow(x, [2])` return as `sqr` does, before any check, and leave
+the rounding direction as the program had it, and the modes that flush the
+subnormal numbers to zero as it had them too (GAOL v5); so do the real and
+interval forms of `pow` for any exponent, an empty exponent included, and the
+`long long` form beyond the unsigned ints. The integer powers of an `int` or of
+an `unsigned int` other than 2 check it first and leave it upward: a program
+does not count on the direction after an operation that computes no bound (see
 [The rounding direction](#the-rounding-direction)).
 
 The rest of GAOL follows the same split:
@@ -1595,6 +1607,17 @@ bounds wrong**, and GAOL defends itself in two ways:
   builds test the compiler with a link, not with its version). It keeps
   `crtfastmath.o` out of the link, so that a program linked with `-Ofast` does
   not get the modes at all, its own code included.
+
+On the other processors (POWER, s390x, RISC-V, MIPS...), whose FPU intervals
+use the generic `round_upward()` of `gaol/gaol_fpu_fenv.h` (a call to
+`fesetround(FE_UPWARD)`, whose return value is not read), neither defence
+exists (GAOL v5): the mode NI (non-IEEE) of the FPSCR of POWER and the bit FS
+of the FCSR of MIPS, modes of the kind of FTZ and DAZ that may flush the
+subnormal numbers, are not cleared, and a program that sets them may get
+bounds that miss the exact result for subnormal operands and results. What
+they do depends on the processor, whether the toolchains of these processors
+set them in a program linked with `-Ofast` was not checked, and nothing of
+GAOL was tested with them set.
 
 The functions that only read, compare or copy the bounds of an interval make
 no check, which made each of them 3 to 4.5 ns slower in a micro-benchmark on
