@@ -444,6 +444,14 @@ jobs:
           g++ --version
           g++ -dumpmachine
           cmake -S . -B build -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
+      # What the configuration found about the fused multiply-add instructions:
+      # the processor, and the log of the test that runs a program built with
+      # -mfma (GAOL_MACHINE_RUNS_FMA, CMakeLists.txt)
+      - name: The processor, and the test that runs a program with -mfma
+        run: |
+          grep -m1 'model name' /proc/cpuinfo || true
+          grep -m1 -o -w 'fma' /proc/cpuinfo || echo "no fma in /proc/cpuinfo"
+          grep -n -A70 'GAOL_MACHINE_RUNS_FMA' build/CMakeFiles/CMakeConfigureLog.yaml | head -200 || true
       - name: The intervals, and the flags of the fused multiply-add instructions
         run: |
           sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h sse2
