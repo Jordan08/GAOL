@@ -322,7 +322,8 @@ No mathematical library is needed: CORE-MATH is compiled into GAOL.
 %%........................................
 \cindex{compiler!refused}%
 
-Each of the following gave bounds not enclosing the exact results. The three
+Each of the following gave bounds not enclosing the exact results or was not
+tested. The three
 builds refuse the compilers when configuring, the C compiler, which builds
 CORE-MATH, as well as the C++ compiler, with a message naming what to use
 instead, and keep the options away by giving GAOL the flags of interval
@@ -1965,7 +1966,10 @@ cout << boolalpha << interval(sqrt(2.0)).set_contains(root2) << ' '
 \noindent
 For the same reason, \code{gaol::sin(0.5)} does not compile: it is written
 \code{gaol::sin(interval(0.5))}, and \code{sin(0.5)} alone is the \code{sin} of
-C.
+C. Writing code inside \code{namespace gaol \{\}} has the same effect: the
+using-declarations of \code{gaol} are visible there, a call \code{sqrt(2.0)}
+finds \code{gaol::sqrt}, which hides \code{::sqrt}, and does not compile. This
+was already the case with GAOL~4.
 
 \subsection{Midpoint and radius}
 %%..............................
@@ -4862,7 +4866,10 @@ a French one).\newinvfive{} GAOL~4 read \code{0.1} as 0 there,
 the subnormal numbers to zero (flush-to-zero and denormals-are-zero, which a
 program linked with \option{-Ofast} has) do not change what a number is read as:
 \code{1e-310} is read as the tightest interval of doubles containing it, and
-\code{0} as 0.\newinvfive{}
+\code{0} as 0.\newinvfive{} Reading a long number takes a time quadratic in its
+number of digits: \code{"0."} followed by $n$ digits \code{3} takes 0.017~s
+for $n = 20\,000$, 0.28~s for 80\,000 and 4.4~s for 320\,000, and the
+uncertain form 2.3 times as long.\newinvfive{}
 \cindex{number!reading}%
 
 \paragraph{The uncertain form.} An \NT{uncertain\_number} of IEEE 1788-2015
@@ -4874,7 +4881,10 @@ the radius above or below, and an optional exponent: \code{3.56?1} is
 \itv{-10}{+\infty}.\newinvfive{} It is an interval literal of its own, not a
 bound: \code{"[5?1]"} and \code{"[1, 3.56?1]"} throw \code{input\_format\_error},
 as IEEE 1788-2015 has it (12.11.4), while \code{"3.56?1*2"} is
-\itv{7.1}{7.14}.
+\itv{7.1}{7.14}. A sign written next to an uncertain number, as
+\code{10-3.56?1} or \code{10+3.56?1}, is read as a part of the number, and
+the text throws \code{input\_format\_error}: a blank is needed,
+\code{10 - 3.56?1}.\newinvfive
 
 \paragraph{Functions.} A \NT{name} is the name of a function of GAOL, with
 its arguments, whatever the case of its letters:
@@ -5111,7 +5121,10 @@ digits of every interval whose right bound is at most ten times the left one,
 \itv{1}{10} being \code{1\textasciitilde[., 0.]}, \itv{4}{6}
 \code{\textasciitilde[4., 6.]}, without a shared digit, and a zero
 \code{\textasciitilde[-0., 0.]}, and printed every interval with a negative
-bound with its bounds.
+bound with its bounds. A point interval is printed as a single number,
+without the brackets: \code{interval(4.0)} is \code{4.000000000000000},
+where the format \element{bounds} prints \code{[4]}; a zero is printed
+\code{[0]} in every format.
 \begin{example}
  interval::format(interval_format::agreeing);
  std::cout << interval(4,6) << ' ' << interval(1.25,1.2567) << ' '

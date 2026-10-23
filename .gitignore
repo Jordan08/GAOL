@@ -31,3 +31,6 @@ build/*
 */*.loTAGS
 */*.loTAGS.tmp
 */*/build
+
+# The local files of the Continue extension of the editor
+.continue/

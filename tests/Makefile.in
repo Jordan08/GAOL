@@ -220,11 +220,15 @@ float_functions_OBJECTS = float_functions.$(OBJEXT)
 float_functions_LDADD = $(LDADD)
 float_functions_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
 	$(am__DEPENDENCIES_1)
-am_gaol_performance_OBJECTS = performance.$(OBJEXT)
+am_gaol_performance_OBJECTS = gaol_performance-performance.$(OBJEXT)
 gaol_performance_OBJECTS = $(am_gaol_performance_OBJECTS)
 gaol_performance_LDADD = $(LDADD)
 gaol_performance_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
 	$(am__DEPENDENCIES_1)
+gaol_performance_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CXXLD) \
+	$(gaol_performance_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) \
+	$(LDFLAGS) -o $@
 generic_functions_SOURCES = generic_functions.cpp
 generic_functions_OBJECTS = generic_functions.$(OBJEXT)
 generic_functions_LDADD = $(LDADD)
@@ -333,13 +337,14 @@ am__depfiles_remade = ./$(DEPDIR)/arithmetic.Po \
 	./$(DEPDIR)/expressions.Po ./$(DEPDIR)/extended_precision.Po \
 	./$(DEPDIR)/fast_math_link-fast_math_link.Po \
 	./$(DEPDIR)/float_functions.Po \
+	./$(DEPDIR)/gaol_performance-performance.Po \
 	./$(DEPDIR)/generic_functions.Po ./$(DEPDIR)/ieee1788.Po \
 	./$(DEPDIR)/input_output.Po ./$(DEPDIR)/interval2f.Po \
 	./$(DEPDIR)/interval_functions.Po ./$(DEPDIR)/intervalf.Po \
 	./$(DEPDIR)/misc.Po ./$(DEPDIR)/non_arithmetic.Po \
 	./$(DEPDIR)/numbers.Po ./$(DEPDIR)/other_functions.Po \
-	./$(DEPDIR)/performance.Po ./$(DEPDIR)/relations.Po \
-	./$(DEPDIR)/reverse.Po ./$(DEPDIR)/reverse_mappings.Po \
+	./$(DEPDIR)/relations.Po ./$(DEPDIR)/reverse.Po \
+	./$(DEPDIR)/reverse_mappings.Po \
 	./$(DEPDIR)/rounding_direction.Po \
 	./$(DEPDIR)/static_initialization.Po \
 	./$(DEPDIR)/trigonometric.Po ./$(DEPDIR)/u128.Po
@@ -778,6 +783,7 @@ AM_TESTS_ENVIRONMENT = GAOL_CXX='$(CXX)'; \
 	export GAOL_CXX GAOL_CXXFLAGS;
 
 gaol_performance_SOURCES = performance.cpp
+gaol_performance_CXXFLAGS = -std=c++14 $(GAOL_TESTS_CXXFLAGS)
 CLEANFILES = gaol_bench$(EXEEXT)
 BASH = bash
 all: all-am
@@ -872,7 +878,7 @@ float_functions$(EXEEXT): $(float_functions_OBJECTS) $(float_functions_DEPENDENC
 
 gaol_performance$(EXEEXT): $(gaol_performance_OBJECTS) $(gaol_performance_DEPENDENCIES) $(EXTRA_gaol_performance_DEPENDENCIES) 
 	@rm -f gaol_performance$(EXEEXT)
-	$(AM_V_CXXLD)$(CXXLINK) $(gaol_performance_OBJECTS) $(gaol_performance_LDADD) $(LIBS)
+	$(AM_V_CXXLD)$(gaol_performance_LINK) $(gaol_performance_OBJECTS) $(gaol_performance_LDADD) $(LIBS)
 
 generic_functions$(EXEEXT): $(generic_functions_OBJECTS) $(generic_functions_DEPENDENCIES) $(EXTRA_generic_functions_DEPENDENCIES) 
 	@rm -f generic_functions$(EXEEXT)
@@ -961,6 +967,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/extended_precision.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fast_math_link-fast_math_link.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/float_functions.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gaol_performance-performance.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/generic_functions.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ieee1788.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/input_output.Po@am__quote@ # am--include-marker
@@ -971,7 +978,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/non_arithmetic.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/numbers.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/other_functions.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/performance.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/relations.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/reverse.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/reverse_mappings.Po@am__quote@ # am--include-marker
@@ -1023,6 +1029,20 @@ fast_math_link-fast_math_link.obj: fast_math_link.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='fast_math_link.cpp' object='fast_math_link-fast_math_link.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fast_math_link_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o fast_math_link-fast_math_link.obj `if test -f 'fast_math_link.cpp'; then $(CYGPATH_W) 'fast_math_link.cpp'; else $(CYGPATH_W) '$(srcdir)/fast_math_link.cpp'; fi`
+
+gaol_performance-performance.o: performance.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gaol_performance_CXXFLAGS) $(CXXFLAGS) -MT gaol_performance-performance.o -MD -MP -MF $(DEPDIR)/gaol_performance-performance.Tpo -c -o gaol_performance-performance.o `test -f 'performance.cpp' || echo '$(srcdir)/'`performance.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/gaol_performance-performance.Tpo $(DEPDIR)/gaol_performance-performance.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='performance.cpp' object='gaol_performance-performance.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gaol_performance_CXXFLAGS) $(CXXFLAGS) -c -o gaol_performance-performance.o `test -f 'performance.cpp' || echo '$(srcdir)/'`performance.cpp
+
+gaol_performance-performance.obj: performance.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gaol_performance_CXXFLAGS) $(CXXFLAGS) -MT gaol_performance-performance.obj -MD -MP -MF $(DEPDIR)/gaol_performance-performance.Tpo -c -o gaol_performance-performance.obj `if test -f 'performance.cpp'; then $(CYGPATH_W) 'performance.cpp'; else $(CYGPATH_W) '$(srcdir)/performance.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/gaol_performance-performance.Tpo $(DEPDIR)/gaol_performance-performance.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='performance.cpp' object='gaol_performance-performance.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gaol_performance_CXXFLAGS) $(CXXFLAGS) -c -o gaol_performance-performance.obj `if test -f 'performance.cpp'; then $(CYGPATH_W) 'performance.cpp'; else $(CYGPATH_W) '$(srcdir)/performance.cpp'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -1531,6 +1551,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/extended_precision.Po
 	-rm -f ./$(DEPDIR)/fast_math_link-fast_math_link.Po
 	-rm -f ./$(DEPDIR)/float_functions.Po
+	-rm -f ./$(DEPDIR)/gaol_performance-performance.Po
 	-rm -f ./$(DEPDIR)/generic_functions.Po
 	-rm -f ./$(DEPDIR)/ieee1788.Po
 	-rm -f ./$(DEPDIR)/input_output.Po
@@ -1541,7 +1562,6 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/non_arithmetic.Po
 	-rm -f ./$(DEPDIR)/numbers.Po
 	-rm -f ./$(DEPDIR)/other_functions.Po
-	-rm -f ./$(DEPDIR)/performance.Po
 	-rm -f ./$(DEPDIR)/relations.Po
 	-rm -f ./$(DEPDIR)/reverse.Po
 	-rm -f ./$(DEPDIR)/reverse_mappings.Po
@@ -1607,6 +1627,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/extended_precision.Po
 	-rm -f ./$(DEPDIR)/fast_math_link-fast_math_link.Po
 	-rm -f ./$(DEPDIR)/float_functions.Po
+	-rm -f ./$(DEPDIR)/gaol_performance-performance.Po
 	-rm -f ./$(DEPDIR)/generic_functions.Po
 	-rm -f ./$(DEPDIR)/ieee1788.Po
 	-rm -f ./$(DEPDIR)/input_output.Po
@@ -1617,7 +1638,6 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/non_arithmetic.Po
 	-rm -f ./$(DEPDIR)/numbers.Po
 	-rm -f ./$(DEPDIR)/other_functions.Po
-	-rm -f ./$(DEPDIR)/performance.Po
 	-rm -f ./$(DEPDIR)/relations.Po
 	-rm -f ./$(DEPDIR)/reverse.Po
 	-rm -f ./$(DEPDIR)/reverse_mappings.Po

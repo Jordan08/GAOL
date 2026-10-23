@@ -183,6 +183,9 @@ jobs:
   # line would replace /GR /EHsc), and /WX to those of the targets only
   # (CMAKE_COMPILE_WARNING_AS_ERROR), so that no check of CMake fails on a
   # warning of its test program. In PowerShell, which passes /W4 as it is.
+  # The Debug build has a job too: it finds what the Release build does not,
+  # as the unreachable code that Visual C++ reports there (C4702), which
+  # CMakeLists.txt turns off for the parser that bison writes.
   warnings:
     name: ${{ matrix.cfg.desc }}
     runs-on: windows-2025-vs2026
@@ -194,9 +197,10 @@ jobs:
       fail-fast: false
       matrix:
         cfg:
-          - { arch: x64,   desc: 'Visual Studio 2026 x64 Release, /W4 /WX' }
-          - { arch: x64,   opts: '-DGAOL_PREFER_AVX512=ON', desc: 'Visual Studio 2026 x64 Release, /W4 /WX, AVX-512 arithmetic' }
-          - { arch: Win32, desc: 'Visual Studio 2026 x86 Release, /W4 /WX' }
+          - { arch: x64,   config: Release, desc: 'Visual Studio 2026 x64 Release, /W4 /WX' }
+          - { arch: x64,   config: Release, opts: '-DGAOL_PREFER_AVX512=ON', desc: 'Visual Studio 2026 x64 Release, /W4 /WX, AVX-512 arithmetic' }
+          - { arch: Win32, config: Release, desc: 'Visual Studio 2026 x86 Release, /W4 /WX' }
+          - { arch: x64,   config: Debug,   desc: 'Visual Studio 2026 x64 Debug, /W4 /WX' }
     steps:
       - uses: actions/checkout@v7
       - name: Configure
@@ -209,7 +213,7 @@ jobs:
           Select-String -Path build/CMakeCache.txt -Pattern '^CMAKE_(C|CXX)_FLAGS:'
       - name: Build
         run: |
-          cmake --build build --config Release -j 4
+          cmake --build build --config ${{ matrix.cfg.config }} -j 4
           if ($LASTEXITCODE) { exit 1 }
 
   # The AVX-512 path of +, -, *, / and sqrt with Visual C++ and clang-cl, run

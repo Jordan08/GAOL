@@ -67,6 +67,7 @@ check-local:
 endif
 
 gaol_performance_SOURCES = performance.cpp
+gaol_performance_CXXFLAGS = -std=c++14 $(GAOL_TESTS_CXXFLAGS)
 
 # The benchmark of doc/compare/performance.md, compiled as run_bench.sh
 # compiles it (C++11) and linked with the static libgaol, as setup.sh builds

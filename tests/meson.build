@@ -98,4 +98,4 @@ endif
 # the continuous integration prints: not a test
 executable('gaol_performance', 'performance.cpp',
   dependencies: tests_dep,
-  override_options: ['cpp_std=c++17'])
+  override_options: ['cpp_std=c++14'])
