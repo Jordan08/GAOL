@@ -841,7 +841,7 @@ message(STATUS "NEON intervals: ${GAOL_USING_NEON_INSTRUCTIONS}")
 # __builtin_cpu_supports("avx512f"), with GCC and Clang on x86-64, but
 # GCC for Windows (MinGW-w64 and Cygwin), which does not align the stack
 # beyond 16 bytes, the 64 of a zmm register it spills there (GCC bug 54412,
-# fixed for GCC 17 only; GAOL_FMA gives MinGW-w64 GCC -mfma with
+# fixed for GCC 17 only; GAOL_FMA gives GCC for Windows -mfma with
 # -mprefer-vector-width=128, which keeps it out of the 32 bytes of the ymm
 # registers of AVX). The code of the path compiled by MinGW-w64 GCC 13 makes no
 # aligned access of a zmm register to the stack, but nothing keeps the
