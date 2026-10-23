@@ -131,8 +131,8 @@
 // 32-bit x86 processor, and is part of the state the checks compare: where the
 // two units differ, fegetround() gives the same value before and after an
 // operation that left one of them in the other's direction. The checks of the
-// exception flags run from each of the directions here too, and around
-// gaol::cleanup() and gaol::restore_rounding()
+// exception flags run from each of the directions everywhere (GAOL v5), and
+// around gaol::cleanup() and gaol::restore_rounding()
 #if defined(GAOL_TESTS_SSE) && defined(__x86_64__) && defined(__MINGW32__) && (defined(__GNUC__) || defined(__clang__))
 #  define GAOL_TESTS_X87_STATE 1
 #else
@@ -2790,11 +2790,13 @@ int main()
     fetestexcept() reads back (an emulator, a processor without the flags),
     this is not checked, and the test says so. An exception the program
     enabled is checked below, with the invalid-operation exception enabled.
-    With mingw-w64 on x86-64 the operations are run from each of the six
-    directions, not from upward only: the functions that set the direction to
-    nearest and back (midpoint(), chi()...) changed MXCSR through fesetround()
-    from the other directions only, which cleared its flags there (GAOL v5,
-    point 110 of TODO.md).
+    The operations are run from each of the directions of directions[] (six
+    with the SSE instructions, four elsewhere), not from upward only (GAOL v5):
+    with mingw-w64 on x86-64, the functions that set the direction to nearest
+    and back (midpoint(), chi()...) changed MXCSR through fesetround() from
+    the other directions only, which cleared its flags there (point 110 of
+    TODO.md); everywhere else the check was made from upward only, where a
+    function can change the direction and lose a flag the same way.
   */
   std::feclearexcept(FE_ALL_EXCEPT);
   std::feraiseexcept(FE_ALL_EXCEPT);
@@ -2804,11 +2806,7 @@ int main()
     std::printf("The exception flags raised by feraiseexcept() are not read back here: the flags kept by "
                 "the operations are not checked\n");
   } else {
-#if GAOL_TESTS_X87_STATE
     const std::size_t nb_flag_directions = sizeof(directions)/sizeof(directions[0]);
-#else
-    const std::size_t nb_flag_directions = 1;
-#endif
     for (const Operation& op : operations) {
       for (std::size_t k = 0; k < nb_flag_directions; ++k) {
         const std::string name = op.name;

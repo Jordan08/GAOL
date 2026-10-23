@@ -319,8 +319,9 @@ point Q), which `numbers` checks there too.
   the x87 unit is read apart (`fnstcw`) and is part of the state that has to be
   the same before and after each operation, as `fegetround()` of mingw-w64 13
   and later joins the fields RC of the two units by OR; the flags are checked
-  from each of the six directions, not from upward only, and after
-  `gaol::cleanup()` and `gaol::restore_rounding()`: `fesetround()` of mingw-w64
+  from each direction the test runs, six with the SSE instructions and four
+  elsewhere (they were checked from upward only, mingw-w64 on x86-64 apart),
+  and after `gaol::cleanup()` and `gaol::restore_rounding()`: `fesetround()` of mingw-w64
   13 and later clears the six flags of MXCSR when it changes it, which
   `midpoint()`, `rad()`, `split()`, `chi()`, the reading and the writing of an
   interval, `cleanup()` and `restore_rounding()` called.
