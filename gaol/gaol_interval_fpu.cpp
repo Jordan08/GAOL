@@ -170,6 +170,20 @@ double hausdorff(const interval &I1, const interval &I2)
   GAOL_INLINE void mul_finite(double xl, double xr, double yl, double yr, double& lb, double& rb)
   {
     const double nyl = -yl, nyr = -yr;
+    // EXPERIMENT (GAOL v5, not to merge as is): the mixed kernel. Two
+    // operands of one sign, both >= 0 (the stored lower bounds are <= 0) or
+    // both <= 0, take two products, the corners that are the bounds, where
+    // the other ones take the eight products
+    if (((xl <= 0.0) & (yl <= 0.0)) | ((xr <= 0.0) & (yr <= 0.0))) {
+      if (xl <= 0.0) {
+        lb = xl*nyl;
+        rb = xr*yr;
+      } else {
+        lb = xr*nyr;
+        rb = xl*yl;
+      }
+      return;
+    }
     lb = larger_of(larger_of(xl*nyl, xl*yr), larger_of(xr*yl, xr*nyr));
     rb = larger_of(larger_of(xr*yr, xr*nyl), larger_of(xl*nyr, xl*yl));
   }
