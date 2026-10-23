@@ -121,15 +121,14 @@ plus grand sur les builds par défaut, puis les builds avec
     21. [S]
 16. **112 (AI), le reste** : les fonctions élémentaires avec
     `GAOL_PRESERVE_ROUNDING` (jusqu'à 27 %) ; le test des bits du signe de zéro
-    de `x * d` est fait par #171 (ouverte) ; le défaut de CMake et les
+    de `x * d` est fait par #171 (ouverte, CI verte) ; le défaut de CMake et les
     descriptions d'options sont faits par #161. [M]
 17. **132 (AP)** : porter le noyau empaqueté de `pown` (`GAOL_POWN_PACKED`, FMA
     sur deux voies) sur arm64, environ 150 lignes d'intrinsèques, gain attendu
     de l'ordre de 1,5 ; décidé le 22 octobre (Q14a). [M]
 18. **133 (AP)** : GCC pour Windows : x86 32 bits sans FMA (MinGW-w64 12.2 à
-    15.2), fait par #172 (ouverte) après l'essai du 23 octobre ; et un job
-    Cygwin dans `windows.yml`, #173 (brouillon, sa première exécution décide).
-    [S]
+    15.2), fait par #172 (ouverte) après l'essai du 23 octobre ; et le portage
+    de Cygwin x86-64 avec un job de CI, fait par #173 (ouverte). [S]
 
 ### F. Signalements à d'autres projets
 
@@ -208,25 +207,22 @@ originaux au commit `16a2f60`.
 
 ## En cours
 
-Cinq pull requests ouvertes et un brouillon, ouverts le 23 octobre pour les
-décisions du même jour (leurs descriptions disent leurs relectures et leurs
-mesures) ; #165 et #166, du même soir, sont fusionnées par le mainteneur :
+Trois pull requests ouvertes, du 23 octobre (leurs descriptions disent leurs
+relectures et leurs mesures) ; #165 à #167, #169 et #170 sont fusionnées par le
+mainteneur le même soir :
 
-- **#167** : suites de #163 : Cygwin reçoit les drapeaux de GCC pour Windows,
-  le contrôle des drapeaux d'exception depuis chaque direction partout,
-  `-mavx512f`, `-march` et `-faligned-new=8` pour un fichier C documentés.
-- **#169** : suites de #162 : le vide dans les formes de `pow` qui contrôlaient
-  le sens d'abord, le carré FPU qui retrouve sa vitesse.
-- **#170** : suite de #157 : les jobs FPU (x86-64, arm64 GCC) et le commentaire
-  qui tiennent la protection des stores de `*=`, `/=` et `%=`.
-- **#171** : suite de #161 : le test des bits du signe de zéro de `x * d`.
-- **#172** (sur la base de #167) : GCC pour Windows en 32 bits reçoit `-mfma
-  -mprefer-vector-width=128` comme en 64 bits (pow(x, 3) de 70 à 12 ns), et un
-  job sans FMA garde le `fma()` x87 de mingw-w64 11.
-- **#173** (brouillon, sur la base de #172) : un job Cygwin GCC x64, qui a
-  montré que GAOL ne compile pas sous Cygwin sans `-D_GNU_SOURCE`
-  (`posix_memalign`), que son `fma()` est faux à `-O0`, et qu'une borne de
-  `sinh` n'enveloppe pas la valeur ; à décider : refuser Cygwin ou le porter.
+- **#171** : suite de #161 : le test des bits du signe de zéro de `x * d`
+  (fusionnée avec `configure-clean`, sa CI est verte).
+- **#172** : GCC pour Windows en 32 bits reçoit `-mfma
+  -mprefer-vector-width=128` comme en 64 bits (`pow(x, 3)` de 70 à 12 ns), un
+  job MinGW 15.2 avec la direction préservée et un job sans FMA qui garde le
+  `fma()` x87 de mingw-w64 11 ; sa CI est verte.
+- **#173** (sur la base de #172) : Cygwin x86-64 pris en charge : la mémoire
+  alignée par `_mm_malloc`, `previous_float()` et `next_float()` aux bords des
+  doubles (la borne de `sinh` fausse sous Cygwin), `fma_once()` et le test
+  d'exécution de `GAOL_FMA` en `__builtin_fma` (le `fma()` de Cygwin est faux),
+  Cygwin refusé sans FMA, `package_source` sans CPack sous Cygwin, et un job de
+  CI (44 tests passés dont trois sautés) ; relue.
 
 ## À corriger avant la version
 
@@ -352,34 +348,32 @@ bas) ; aucun n'est commencé.
   (jobs Ubuntu arm64 de la CI). Q14b (un test qui compare les bits du signe d'un
   zéro) et Q14c (jobs Clang 15 à 17 et GCC 9 à 10, test `mrs` et `msr` sur
   Neoverse) sont des « non ».
-- **133.** **GCC pour Windows : x86 32 bits sans FMA, et un job Cygwin** (#163,
-  décidé le 23 octobre). MinGW-w64 12.2 à 15.2 pour x86 prenait les intervalles
-  SSE2 depuis #152 (`-faligned-new=8`) mais sans FMA pour CORE-MATH et les
-  puissances entières. L'essai du 23 octobre (une branche d'expérience,
-  supprimée ensuite ; ses résultats sont dans #172) : MinGW-w64 15.2 et 14.2, 38
-  tests réussis (deux sautés) avec chaque jeu de drapeaux ; avec `-mfma
-  -mprefer-vector-width=128`, `pow(x, 3)` de 70 à 12 ns, `log` de 266 à 82,
-  `cos` de 490 à 138 (GCC 15.2) ; `-mfma` seul laisse 4 709 lignes `%ymm` dans
-  les objets (600 avec 14.2) ; `-mstackrealign` et `-mincoming-stack-boundary=2`
-  ne changent aucun temps ; un programme à fils (pile d'un `CreateThread` et
-  d'un `std::thread`, avec `pow`, `exp`, `log`, `sin`, `cos`) donne les
-  résultats du fil principal dans toutes les variantes. Décidé (réponse du 23
-  octobre) : `-mfma -mprefer-vector-width=128` par défaut aussi à 32 bits,
-  `GAOL_FMA=OFF` restant le remède pour un processeur sans FMA : #172. Le bogue
-  54412 de GCC sur x86 32 bits n'est pas montré. Et un job Cygwin x86-64 dans
-  `windows.yml` (décidé le 23 octobre) : #173, en brouillon, qui construit, lit
-  les objets avec `objdump` et lance les tests ; c'est la première fois qu'un
-  job construit GAOL avec Cygwin, et il a trouvé : le test d'exécution de
-  `GAOL_FMA` appelait `std::fma`, donc à `-O0` le `fma()` de Cygwin, qui n'est
-  pas correctement arrondi (corrigé dans #173 pour les trois builds :
-  `__builtin_fma`) ; `gaol_port.h` appelle `posix_memalign`, que `<stdlib.h>`
-  de Cygwin ne déclare pas avec `-std=c++11` (contourné par `-D_GNU_SOURCE`
-  dans le job) ; avec cela 42 tests sur 44 passent, `core_math` compris, mais
-  `elementary` échoue (`sinh(-0x1.638p+9)` rend `[-DBL_MAX, -DBL_MAX]`, qui
-  n'enveloppe pas la valeur) et `cpack_stale_configure` aussi (CPack, sans
-  rapport avec les bornes). Cygwin n'est donc pas pris en charge de fait, et
-  `gaol_config.h` ne le refuse pas : le refuser (un `#error` et un job qui le
-  vérifie, les drapeaux Cygwin de #167 retirés) ou le porter, au mainteneur.
+- **133.** **GCC pour Windows : x86 32 bits sans FMA, et Cygwin** (#163, décidé
+  le 23 octobre). MinGW-w64 12.2 à 15.2 pour x86 prenait les intervalles SSE2
+  depuis #152 (`-faligned-new=8`) mais sans FMA pour CORE-MATH et les puissances
+  entières. L'essai du 23 octobre (une branche d'expérience, supprimée ensuite ;
+  ses résultats sont dans #172) : MinGW-w64 15.2 et 14.2, 38 tests réussis (deux
+  sautés) avec chaque jeu de drapeaux ; avec `-mfma -mprefer-vector-width=128`,
+  `pow(x, 3)` de 70 à 12 ns, `log` de 266 à 82, `cos` de 490 à 138 (GCC 15.2) ;
+  `-mfma` seul laisse 4 709 lignes `%ymm` dans les objets (600 avec 14.2) ;
+  `-mstackrealign` et `-mincoming-stack-boundary=2` ne changent aucun temps ; un
+  programme à fils (pile d'un `CreateThread` et d'un `std::thread`, avec `pow`,
+  `exp`, `log`, `sin`, `cos`) donne les résultats du fil principal dans toutes
+  les variantes. Décidé (réponse du 23 octobre) : `-mfma
+  -mprefer-vector-width=128` par défaut aussi à 32 bits, `GAOL_FMA=OFF` restant
+  le remède pour un processeur sans FMA : #172 (le bogue 54412 de GCC sur x86 32
+  bits n'est pas montré). Cygwin x86-64, dont un job de CI a montré qu'il ne
+  tenait pas (décidé de le porter, le 23 octobre) : #173 corrige
+  `posix_memalign` (`_mm_malloc`), le `nextafter()` de Cygwin au débordement (la
+  borne basse de `sinh(-711)` ne contenait pas la valeur ; `previous_float()` et
+  `next_float()`), le test d'exécution de `GAOL_FMA` qui appelait le `fma()` de
+  Cygwin à `-O0` (`__builtin_fma`), et refuse Cygwin sans `-mfma` (son `fma()`
+  est faux) ; le CPack de Cygwin ne fait aucune archive (TGZ, TBZ2, ZIP : «
+  Couldn't list extended attributes »), donc pas de `package_source` sous
+  Cygwin. Reste, petit : `is_bisectable()` appelle `std::nextafter` directement
+  (faux seulement pour un programme en arrondi vers le bas ou vers zéro), les
+  exemples recommandent `std::fma` pour TwoProd (faux à `-O0` sous Cygwin), et
+  un Debug complet de Cygwin n'est pas dans le job.
 
 ## Reportés, en attente d'une décision du mainteneur
 
@@ -682,7 +676,7 @@ réponses du 23 octobre sont ajoutées à chaque puce) :
   de fait, qu'aucun test ne tient ; la remettre en ferait une règle, pour 2,6 ns
   (`x * y`) et 5 ns (`x / y`) avec `GAOL_PRESERVE_ROUNDING` (sans lui, la macro
   est vide). *Décidé le 23 octobre* : ne pas la remettre, tenir la protection
-  par un test, avec GCC et la préservation du sens ; fait par #170 (ouverte) :
+  par un test, avec GCC et la préservation du sens ; fait par #170 (fusionnée) :
   les `tight_cases` de `rounding_direction.cpp` la tiennent déjà (deux mutants
   de `operator*=`, `/=` et `%=` les font échouer, 20 035 vérifications avec
   GCC et Clang pour le noyau calculé après `GAOL_RND_LEAVE()`), il manquait des
@@ -774,7 +768,7 @@ Les questions ouvertes de la description de #161, non corrigées et sans numéro
 - **La relecture des corrections** que la relecture indépendante a fait faire
   (points A à F) n'a pas été faite.
 - **Le test des bits du signe de zéro de `x * d`** (112) : *décidé le 23
-  octobre*, saut à l'exécution sans AVX-512 ; fait par #171 (ouverte).
+  octobre*, saut à l'exécution sans AVX-512 ; fait par #171 (ouverte, CI verte).
 
 ### Remarqué par #162, à trier
 
@@ -802,7 +796,7 @@ Les questions ouvertes de la description de #162, non corrigées et sans numéro
   et `gaol_ieee1788::pow(vide, [2])` le mettent vers le haut avant de rendre le
   vide. Sans conséquence sur les bornes ; `doc/using.md` ne promet rien.
   *Décidé le 23 octobre* : harmoniser vers « le sens du programme » ; fait par
-  #169 (ouverte), un test de quinze formes qui échoue sans la correction.
+  #169 (fusionnée), un test de quinze formes qui échoue sans la correction.
 - **Le texte de #154** (« +0 avec `pow` et −0 avec `sqr` ») était inexact pour
   NEON et FPU (`doc/simd.md` est corrigé) ; les intervalles SSE2, où le signe de
   l'ancien `pow` n'est pas mesuré, peuvent avoir un autre profil.
@@ -829,7 +823,7 @@ Les questions ouvertes de la description de #163, non corrigées et sans numéro
   pour mingw-w64 : l'étendre à Visual C++ x64, Linux, macOS et ARM est une
   décision de plus, avec le risque de trouver d'autres défauts. *Décidé le 23
   octobre* : l'étendre à toutes les plateformes (six directions avec SSE,
-  quatre ailleurs) ; fait par #167 (ouverte), dont la CI est le test ; pas
+  quatre ailleurs) ; fait par #167 (fusionnée), dont la CI est le test ; pas
   d'entrée `GAOL_PRESERVE_ROUNDING` pour autotools et meson sous MSYS2.
 - **`-mavx512f` ou `-march` donnés par l'utilisateur** : avec le Clang croisé,
   `-mavx512f -mfma -mprefer-vector-width=128` laisse 2 lignes `%ymm` et 2 887
@@ -839,13 +833,13 @@ Les questions ouvertes de la description de #163, non corrigées et sans numéro
   l'exécuter ; GCC 15.2 sur une petite boucle : aucun `%ymm` ni `%zmm` avec
   `-mavx512f -mfma`, `-march=skylake-avx512` ou `-march=native`). Faut-il le
   dire dans `doc/using.md` ? *Décidé le 23 octobre* : le documenter, avec
-  « peut » ; fait par #167 (ouverte).
+  « peut » ; fait par #167 (fusionnée).
 - **Cygwin** reçoit `-mfma` seul, sans `-mprefer-vector-width=128`, comme
   avant : les trois détections ne le prennent pas pour « GCC pour Windows »
   (`WIN32` de CMake, `_WIN32` de configure et de meson), alors que celles
   d'AVX-512 testent aussi `__CYGWIN__`. Lui donner les mêmes drapeaux ? Non
   vérifié (ni Cygwin ici, ni dans la CI). *Décidé le 23 octobre* : oui ; fait
-  par #167 (ouverte), sans job de CI (Cygwin et l'environnement MSYS de MSYS2
+  par #167 (fusionnée), sans job de CI (Cygwin et l'environnement MSYS de MSYS2
   reçoivent les mêmes drapeaux).
 - **x86 32 bits** (MinGW-w64 12.2 à 15.2) reste sans FMA et n'est pas mesuré ;
   **`-mstackrealign`** n'a pas été essayé. *Décidé le 23 octobre* : l'essayer
@@ -853,7 +847,7 @@ Les questions ouvertes de la description de #163, non corrigées et sans numéro
 - **Le `-faligned-new=8` pour un fichier C** (#152) : GCC avertit (« valid for
   C++/ObjC++ but not for C »), et avec `-Werror` c'est une erreur ; `gaol.pc` et
   `gaol_dep` de meson le donnent à tous les langages. *Décidé le 23 octobre* :
-  le dire dans `doc/using.md` ; fait par #167 (ouverte).
+  le dire dans `doc/using.md` ; fait par #167 (fusionnée).
 - **Les corrections qui ont suivi les deux relectures** (`704ca0c`, `e80b6f0`,
   `1de1df0`, `15399b5`) n'ont pas été relues par un relecteur indépendant.
 
@@ -1333,8 +1327,10 @@ sans l'accord explicite du mainteneur.
   La branche d'expérience `exp-win32-fma-stack` (le 133) est supprimée le 23
   octobre au soir, après la lecture de ses résultats (ses patches sont dans le
   scratchpad de la session, hors dépôt), comme `todo-ai-fpu-mixed-kernel` (#168,
-  fermée sans fusion). Les branches de #165 (`todo-ai-textes-suites`) et de #166
-  (`todo-ai-perf-ci-suites`) sont supprimées sur GitHub à la fusion. Reste sur
+  fermée sans fusion). Les branches de #165 (`todo-ai-textes-suites`), de #166
+  (`todo-ai-perf-ci-suites`), de #167 (`todo-ai-win-gcc-suites`), de #169
+  (`todo-an-pow2-suites`) et de #170 (`todo-ai-fpu-keep-test`) sont supprimées
+  sur GitHub à la fusion. Reste sur
   GitHub `todo-ai-msvc-avx512`
   (sans pull request, gardée, Q16) et celles des pull requests ouvertes
   ci-dessous.
@@ -1485,5 +1481,11 @@ le travail qu'elles décident est fait le même soir et ouvert en pull requests
   `doc/using.md` (*#167*).
 - **#154** : `NI` de POWER et `FS` de MIPS laissés par le chemin générique de
   `round_upward()` : documenter seulement (*#165*).
+- **Cygwin et l'empilement des PR (24 octobre, après les constats de #173)** :
+  porter Cygwin maintenant (le correctif de `gaol_port.h`, la cause de `sinh`,
+  CPack), le correctif du test d'exécution de `GAOL_FMA` reste dans #173,
+  empiler les PR ouvertes (les fusions du mainteneur l'ont rendu presque sans
+  objet : #171 et #172 ont reçu `configure-clean`) ; pas de tâche nouvelle pour
+  le moment, finir celles commencées. *Fait par #173.*
 - **Constat** : #164 avait été fusionnée avant que ses textes de CI soient
   repris ; ils sont dans #165.
