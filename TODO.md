@@ -98,9 +98,11 @@ plus grand sur les builds par défaut, puis les builds avec
     clang-cl x64 par #148 (SSE2), tous les intervalles FPU par #157 (des noyaux
     scalaires sans branche) ; #150 avait fait le registre de contrôle d'ARM 32
     bits. Le noyau mixte du produit (deux produits quand les opérandes ont le
-    même signe, huit sinon) est essayé par la pull request brouillon #168, dont
-    le banc A/B de la CI mesure les plateformes FPU ; localement il perd plus
-    qu'il ne gagne (23 octobre). [M]
+    même signe, huit sinon) est essayé par la pull request brouillon #168 : le
+    banc A/B de la CI y montre de 1,4 à 2,1 fois sur les lignes de signes
+    réguliers (GCC x86-64 et arm64, Visual C++ et clang-cl arm64, armhf) et 5 à
+    19 % de perte aux signes aléatoires, rien avec Clang x86-64 ni Visual C++
+    x86 ; à fermer ou à fusionner, au mainteneur (23 octobre). [M]
 12. **108 (AI)** : Visual C++ 32 bits, 80 ns par opération dès le build par
     défaut ; la lecture de x87 et de MXCSR en ligne est faite par #156, et ses
     suites décidées le 22 octobre restent (Q8, en bas : la lecture en ligne dans
@@ -124,11 +126,10 @@ plus grand sur les builds par défaut, puis les builds avec
 17. **132 (AP)** : porter le noyau empaqueté de `pown` (`GAOL_POWN_PACKED`, FMA
     sur deux voies) sur arm64, environ 150 lignes d'intrinsèques, gain attendu
     de l'ordre de 1,5 ; décidé le 22 octobre (Q14a). [M]
-18. **133 (AP)** : x86 32 bits avec GCC pour Windows (MinGW-w64 12.2 à 15.2) :
-    sans FMA pour CORE-MATH et les puissances entières, et pile alignée sur 4
-    octets pour les fils (bogue 40838 de GCC) ; l'essai de `-mfma` et de
-    `-mstackrealign` est en cours (branche `exp-win32-fma-stack`, à supprimer
-    après), décidé le 23 octobre. [S]
+18. **133 (AP)** : GCC pour Windows : x86 32 bits sans FMA (MinGW-w64 12.2 à
+    15.2), fait par #172 (ouverte) après l'essai du 23 octobre ; et un job
+    Cygwin dans `windows.yml`, #173 (brouillon, sa première exécution décide).
+    [S]
 
 ### F. Signalements à d'autres projets
 
@@ -207,7 +208,7 @@ originaux au commit `16a2f60`.
 
 ## En cours
 
-Six pull requests ouvertes et un brouillon, ouverts le 23 octobre pour les
+Sept pull requests ouvertes et deux brouillons, ouverts le 23 octobre pour les
 décisions du même jour (leurs descriptions disent leurs relectures et leurs
 mesures) :
 
@@ -223,13 +224,19 @@ mesures) :
 - **#167** : suites de #163 : Cygwin reçoit les drapeaux de GCC pour Windows,
   le contrôle des drapeaux d'exception depuis chaque direction partout,
   `-mavx512f`, `-march` et `-faligned-new=8` pour un fichier C documentés.
-- **#168** (brouillon, sur la base de #166, à ne pas fusionner) : le noyau
-  mixte du produit FPU, pour le banc A/B.
+- **#168** (brouillon, sur la base de #166) : le noyau mixte du produit FPU ;
+  les tableaux du banc A/B (en commentaire de la PR) montrent des gains aux
+  signes réguliers et des pertes aux signes aléatoires : à fermer ou à
+  fusionner, au mainteneur.
 - **#169** : suites de #162 : le vide dans les formes de `pow` qui contrôlaient
   le sens d'abord, le carré FPU qui retrouve sa vitesse.
 - **#170** : suite de #157 : les jobs FPU (x86-64, arm64 GCC) et le commentaire
   qui tiennent la protection des stores de `*=`, `/=` et `%=`.
 - **#171** : suite de #161 : le test des bits du signe de zéro de `x * d`.
+- **#172** (sur la base de #167) : GCC pour Windows en 32 bits reçoit `-mfma
+  -mprefer-vector-width=128` comme en 64 bits (pow(x, 3) de 70 à 12 ns), et un
+  job sans FMA garde le `fma()` x87 de mingw-w64 11.
+- **#173** (brouillon, sur la base de #172) : un job Cygwin GCC x64.
 
 ## À corriger avant la version
 
@@ -355,16 +362,24 @@ bas) ; aucun n'est commencé.
   (jobs Ubuntu arm64 de la CI). Q14b (un test qui compare les bits du signe d'un
   zéro) et Q14c (jobs Clang 15 à 17 et GCC 9 à 10, test `mrs` et `msr` sur
   Neoverse) sont des « non ».
-- **133.** **x86 32 bits avec GCC pour Windows** (#163, décidé le 23 octobre) :
-  MinGW-w64 12.2 à 15.2 pour x86 prend les intervalles SSE2 depuis #152
-  (`-faligned-new=8`) mais sans FMA pour CORE-MATH et les puissances entières,
-  et sur une pile que Windows aligne sur 4 octets pour les fils (bogue 40838 de
-  GCC). L'essai de `-mfma`, de `-mstackrealign` et de
-  `-mincoming-stack-boundary=2` est la branche `exp-win32-fma-stack` (les
-  variantes sont construites, testées, mesurées, et un programme à fils
-  `exp/stack_thread.cpp` garde des intervalles sur la pile d'un fil Win32 et
-  d'un `std::thread`) ; son résultat, à lire dans la CI, décide si des drapeaux
-  de plus vont dans les trois builds ou si le texte de `doc/using.md` suffit.
+- **133.** **GCC pour Windows : x86 32 bits sans FMA, et un job Cygwin** (#163,
+  décidé le 23 octobre). MinGW-w64 12.2 à 15.2 pour x86 prenait les intervalles
+  SSE2 depuis #152 (`-faligned-new=8`) mais sans FMA pour CORE-MATH et les
+  puissances entières. L'essai du 23 octobre (une branche d'expérience,
+  supprimée ensuite ; ses résultats sont dans #172) : MinGW-w64 15.2 et 14.2, 38
+  tests réussis (deux sautés) avec chaque jeu de drapeaux ; avec `-mfma
+  -mprefer-vector-width=128`, `pow(x, 3)` de 70 à 12 ns, `log` de 266 à 82,
+  `cos` de 490 à 138 (GCC 15.2) ; `-mfma` seul laisse 4 709 lignes `%ymm` dans
+  les objets (600 avec 14.2) ; `-mstackrealign` et `-mincoming-stack-boundary=2`
+  ne changent aucun temps ; un programme à fils (pile d'un `CreateThread` et
+  d'un `std::thread`, avec `pow`, `exp`, `log`, `sin`, `cos`) donne les
+  résultats du fil principal dans toutes les variantes. Décidé (réponse du 23
+  octobre) : `-mfma -mprefer-vector-width=128` par défaut aussi à 32 bits,
+  `GAOL_FMA=OFF` restant le remède pour un processeur sans FMA : #172. Le bogue
+  54412 de GCC sur x86 32 bits n'est pas montré. Et un job Cygwin x86-64 dans
+  `windows.yml` (décidé le 23 octobre) : #173, en brouillon, qui construit, lit
+  les objets avec `objdump` et lance les tests ; c'est la première fois qu'un
+  job construit GAOL avec Cygwin.
 
 ## Reportés, en attente d'une décision du mainteneur
 
@@ -381,7 +396,7 @@ actuel) ; n'accepter dans `operator>>` que les littéraux (`[..]`, `<..>`,
 pour le reste ; ou une fonction à part qui lit un intervalle dans un flux.
 Reporté le 3 octobre. *Décidé le 22 octobre (Q4)* : garder un intervalle par
 ligne (le comportement actuel, documenté) ; pas de changement d'`operator>>`,
-l'issue #64 peut être fermée.
+l'issue #64 est fermée le 23 octobre.
 
 ### W. Des décorations (26, #67)
 
@@ -636,8 +651,15 @@ réponses du 23 octobre sont ajoutées à chaque puce) :
   CI. Fait : la pull request brouillon #168 ; en local (i7-1185G7, médianes de
   5 passes alternées) la ligne de 7 `*` gagne 1,44 fois avec GCC 15.2 mais
   `x * y` de signes aléatoires, `mul8` et `mix_tree` perdent 11 à 24 %, et
-  avec Clang 21 rien ne gagne (`x * y` 0,94, la ligne de 7 `*` 0,83) ; la CI
-  dira le reste (rang 11).
+  avec Clang 21 rien ne gagne (`x * y` 0,94, la ligne de 7 `*` 0,83). Le banc
+  A/B de la CI (base / PR, médianes de 3 passages) dit autre chose : la ligne
+  de 7 `*` gagne 1,96 fois (GCC x86-64), 1,70 (arm64 GCC), 1,46 (Visual C++
+  arm64), 1,67 (clang-cl arm64) et 1,43 (armhf), et `x * y` de signes
+  aléatoires perd 5 à 19 % (0,89 GCC x86-64, 0,93 Visual C++ arm64, 0,81
+  clang-cl arm64, 0,91 armhf), sauf arm64 GCC (1,30) ; rien avec Clang x86-64
+  (0,90 la ligne de 7 `*`) ni Visual C++ x86 (0,95). La décision de la fermer
+  (réponse du 23 octobre, prise sur les mesures locales) attend d'être
+  confirmée : la pull request reste ouverte (rang 11).
 - **`gaol_performance` apprend ses opérandes par cœur** : 1 024 opérandes
   répétés, que le prédicteur du M2 apprend (`x * y` de signes aléatoires 5,7 ns
   contre 12,4 sur 16 384). Ses lignes « signes aléatoires » sous-estiment donc
@@ -1306,9 +1328,11 @@ sans l'accord explicite du mainteneur.
   sur GitHub le 23 (rien à restaurer : la correction est dans #150). Les trois
   branches d'expérience `exp-110-gcc-windows-fma`, `exp-110b-stack-alignment`
   et `exp-157-ab` sont supprimées sur GitHub le 23 octobre (décidé ce jour-là).
-  Reste sur GitHub `todo-ai-msvc-avx512` (sans pull request, gardée, Q16), la
-  branche d'expérience `exp-win32-fma-stack` (le 133, à supprimer après la
-  lecture de ses résultats) et celles des pull requests ouvertes ci-dessous.
+  La branche d'expérience `exp-win32-fma-stack` (le 133) est supprimée le 23
+  octobre au soir, après la lecture de ses résultats (ses patches sont dans le
+  scratchpad de la session, hors dépôt). Reste sur GitHub `todo-ai-msvc-avx512`
+  (sans pull request, gardée, Q16) et celles des pull requests ouvertes
+  ci-dessous.
   Les sept dossiers de build de GAOL de `doc/compare/code/` configurés avant
   #161 sont supprimés le 23 octobre.
 - **Les lignes de crédit** : retirées le 20 octobre des descriptions de #15 à
@@ -1356,7 +1380,7 @@ octobre (les nouveaux numéros 128 à 133 sont ceux du point AP).
   *Retiré le 23 octobre.*
 - **Q4 (QH, 46 F, #64)** : garder un intervalle par ligne (comportement actuel,
   documenté). Pas de changement d'`operator>>`. *Le 46 n'a plus de rang ;
-  l'issue #64 peut être fermée.*
+  l'issue #64 est fermée le 23 octobre.*
 - **Q5 (QH, 26 W, #67)** : rien pour l'instant. GAOL reste un intervalle nu ;
   les pièges sont documentés (faits par #140). Reporter indéfiniment. *Le 26
   n'a plus de rang.*
@@ -1423,8 +1447,11 @@ le travail qu'elles décident est fait le même soir et ouvert en pull requests
   vérifications de la boucle en échec pour `*=`, `/=`, `%=`), et les jobs
   manquaient (FPU x86-64 GCC et Clang avec la préservation, arm64 GCC). Pas de
   `-flto` : GAOL n'offre pas d'option qui puisse casser un encadrement.
-- **#157, le noyau mixte** : l'essayer ici et par le banc A/B. *Fait par #168
-  (brouillon)* ; à lire dans le banc, voir le rang 11.
+- **#157, le noyau mixte** : l'essayer ici et par le banc A/B ; *fermer sans
+  fusion* si les tableaux ne montrent rien. *Fait par #168 (brouillon)* : les
+  tableaux montrent des gains (1,4 à 2,1 fois aux signes réguliers) et des
+  pertes (5 à 19 % aux signes aléatoires), donc la pull request n'est pas
+  fermée en attendant le choix du mainteneur (rang 11).
 - **#157, les bancs et la relecture** : `gaol_performance` inchangé, pas de
   `fmax()`, pas de seconde relecture de `process.md` §7.
 - **#162** : garder la décision dans `gaol_pown` (pas de `e == 2` dans les
@@ -1444,7 +1471,11 @@ le travail qu'elles décident est fait le même soir et ouvert en pull requests
   vérifiable, sans job) ; `-mavx512f` et `-march` documentés ; le contrôle des
   drapeaux depuis chaque direction étendu à toutes les plateformes. *Faits par
   #167.* Les trois branches d'expérience supprimées (*fait*). `-mstackrealign`
-  pour le x86 32 bits : essayé par la CI, c'est le 133.
+  pour le x86 32 bits : essayé par la CI, sans effet ; le x86 32 bits reçoit
+  `-mfma -mprefer-vector-width=128` par défaut (*#172*, le 133) ; un job
+  Cygwin x86-64 (*#173*, brouillon).
+- **Issues** : #64 (`operator>>`) fermée le 23 octobre avec la décision de Q4 ;
+  #67 (décorations) laissée ouverte, reportée indéfiniment (Q5).
 - **#152** : l'avertissement de `-faligned-new=8` pour un fichier C est dit dans
   `doc/using.md` (*#167*).
 - **#154** : `NI` de POWER et `FS` de MIPS laissés par le chemin générique de
