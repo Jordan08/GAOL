@@ -418,8 +418,10 @@ jobs:
 
   # Cygwin, GCC for x86-64 (GAOL v5). GAOL_FMA gives it -mfma
   # -mprefer-vector-width=128 as the MinGW-w64 and MSYS2 above (CMakeLists.txt:
-  # (WIN32 OR CYGWIN)), which no job exercised. Cygwin is not mingw-w64
-  # (__CYGWIN__, not __MINGW32__), so gaol/gaol_config.h does not refuse it, and
+  # (WIN32 OR CYGWIN)). Cygwin is not mingw-w64 (__CYGWIN__, not __MINGW32__):
+  # its fma() is not correctly rounded (fma(1 + 2^-30, 1 - 2^-30, -1) is 0), so
+  # that gaol/gaol_config.h refuses it without -mfma, and GAOL calls
+  # __builtin_fma, which is the instruction at every level of optimization;
   # tests/core_math.cpp checks first the fma() and round() of its C library
   cygwin:
     name: Cygwin GCC x64 Release
@@ -444,35 +446,8 @@ jobs:
           g++ --version
           g++ -dumpmachine
           # The make of Cygwin: the gmake.exe of Strawberry Perl, first in PATH,
-          # does not know the /cygdrive paths ("No rule to make target").
-          # -D_GNU_SOURCE: with -std=c++11 the <stdlib.h> of Cygwin does not
-          # declare posix_memalign(), which gaol/gaol_port.h calls (a trial)
-          cmake -S . -B build -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_MAKE_PROGRAM=/usr/bin/make -DCMAKE_CXX_FLAGS=-D_GNU_SOURCE -DCMAKE_C_FLAGS=-D_GNU_SOURCE
-      # What the configuration found about the fused multiply-add instructions:
-      # the processor, and the log of the test that runs a program built with
-      # -mfma (GAOL_MACHINE_RUNS_FMA, CMakeLists.txt)
-      - name: The processor, and the test that runs a program with -mfma
-        run: |
-          grep -m1 'model name' /proc/cpuinfo || true
-          grep -m1 -o -w 'fma' /proc/cpuinfo || echo "no fma in /proc/cpuinfo"
-          # The test of GAOL_MACHINE_RUNS_FMA, by hand, with the three ways to
-          # call fma(), and what the compiler made of them
-          cat > fma-test.cpp <<'EOT'
-          #include <cmath>
-          #include <cstdio>
-          int main() {
-            volatile double a = 1.0 + 1.0 / 1073741824.0, b = 1.0 - 1.0 / 1073741824.0, c = -1.0;
-            const double expected = -1.0 / 1152921504606846976.0;
-            const double r1 = std::fma(a, b, c), r2 = ::fma(a, b, c), r3 = __builtin_fma(a, b, c);
-            std::printf("std::fma %a, ::fma %a, __builtin_fma %a, expected %a\n", r1, r2, r3, expected);
-            return (r1 == expected) + 2 * (r2 == expected) + 4 * (r3 == expected);
-          }
-          EOT
-          for opts in "-O0" "-O2"; do
-            g++ $opts -frounding-math -ffp-contract=off -mfma -mprefer-vector-width=128 -o fma-test.exe fma-test.cpp
-            ./fma-test.exe || echo "exit code $? (bits 1, 2, 4 = std::fma, ::fma, __builtin_fma exact)"
-            echo "$opts: $(objdump -d --no-show-raw-insn fma-test.exe | grep -c 'vfmadd') vfmadd, $(objdump -d --no-show-raw-insn fma-test.exe | grep -c 'call.*fma') calls of fma"
-          done
+          # does not know the /cygdrive paths ("No rule to make target")
+          cmake -S . -B build -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_MAKE_PROGRAM=/usr/bin/make
       - name: The intervals, and the flags of the fused multiply-add instructions
         run: |
           sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h sse2
@@ -483,6 +458,17 @@ jobs:
         run: sh .github/scripts/check-gcc-windows-fma.sh build
       - name: Tests (make test)
         run: cmake --build build --target test
+      # Without the fused multiply-add instructions Cygwin has the fma() of its
+      # C library, which is wrong: the build has to be refused
+      - name: Cygwin without GAOL_FMA is refused
+        run: |
+          cmake -S . -B build-no-fma -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_MAKE_PROGRAM=/usr/bin/make -DGAOL_FMA=OFF
+          if cmake --build build-no-fma > build-no-fma.log 2>&1; then
+            cat build-no-fma.log
+            echo "Cygwin without -mfma was not refused"
+            exit 1
+          fi
+          grep -F -q "GAOL cannot be compiled with Cygwin without the fused multiply-add instructions" build-no-fma.log
 
   # The mingw-w64 whose fma() or round() is wrong are refused when compiling
   # (gaol/gaol_config.h): CORE-MATH computes with that fma() where the build
