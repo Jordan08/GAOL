@@ -2223,6 +2223,11 @@ namespace gaol_core {
 
   interval gaol_pown_ll(const interval& I, long long n)
   {
+    // The empty set returns before the check, as sqr() does, so that pow(x, 2LL)
+    // leaves the direction of the program as pow(x, 2) does (GAOL v5)
+    if (I.is_empty()) {
+      return interval::emptyset();
+    }
     GAOL_RND_ENTER();
     interval res;
     if (n >= INT_MIN && n <= INT_MAX) {
@@ -2386,6 +2391,10 @@ namespace gaol_core {
   */
   interval pow_standard(const interval& x, const interval& y)
   {
+    // An empty operand returns before the check, as sqr() does (GAOL v5)
+    if (x.is_empty() || y.is_empty()) {
+      return interval::emptyset();
+    }
     GAOL_RND_ENTER();
     interval res = pow_standard_upward(x, y);
     GAOL_RND_KEEP(res);
@@ -2430,6 +2439,10 @@ namespace gaol_core {
 
   interval gaol_pow_hybrid(const interval &I, const interval &J)
   {
+    // An empty operand returns before the check, as sqr() does (GAOL v5)
+    if (I.is_empty() || J.is_empty()) {
+      return interval::emptyset();
+    }
     GAOL_RND_ENTER();
     interval res = pow_hybrid_upward(I, J);
     GAOL_RND_KEEP(res);
@@ -2451,8 +2464,9 @@ namespace gaol_core {
   interval  gaol_pow_real(const interval& I, double p)
   {
     // Infinite or NaN, told by a quiet comparison: <= raised the
-    // invalid-operation exception for a NaN p (GAOL v5)
-    if (!gaol_detail::quiet_less_equal(std::fabs(p), (std::numeric_limits<double>::max)())) {
+    // invalid-operation exception for a NaN p (GAOL v5). The empty set
+    // returns before the check too, as sqr() does (GAOL v5)
+    if (I.is_empty() || !gaol_detail::quiet_less_equal(std::fabs(p), (std::numeric_limits<double>::max)())) {
       return interval::emptyset();
     }
     // p compared after the check: with denormals-are-zero, the floor of a
