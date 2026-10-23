@@ -1,7 +1,7 @@
 #!/bin/sh
 # The unit tests of GAOL run under Intel SDE (GAOL v5), which emulates a
 # processor with the AVX-512 instructions (Skylake-X): the runners of GitHub
-# for Windows have none, so that the AVX-512 path of +, -, *, / and sqrt
+# for Windows have none, so that the AVX-512 path of the arithmetic
 # (GAOL_AVX512_ARITHMETIC) is configured there by hand, and run nowhere else.
 # SDE is 20 to 100 times as slow as the processor: the tests that do not
 # compute with intervals are left out (numbers reads and writes numbers,

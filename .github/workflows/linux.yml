@@ -91,7 +91,7 @@ jobs:
           # libgaol.so.5.0.0, as configure and meson build it: the tests link
           # with it, the expressions included, which it did not export (GAOL v5)
           - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     opts: '-DBUILD_SHARED_LIBS=ON', desc: 'Ubuntu 24.04 x86_64 GCC, shared library' }
-          # The AVX-512 path of +, -, *, / and sqrt (GAOL_PREFER_AVX512): on
+          # The AVX-512 path of the arithmetic (GAOL_PREFER_AVX512): on
           # a runner with the instructions, which the step after Configure
           # tells, the whole suite of tests takes that path, its bounds
           # being those of the SSE2 path, bit for bit (GAOL v5)
@@ -123,7 +123,7 @@ jobs:
           case "$(uname -m)" in aarch64) expected=neon ;; *) expected=sse2 ;; esac
           case "${{ matrix.cfg.opts }}" in *GAOL_ARM64=OFF*) expected=fpu ;; esac
           sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h $expected
-      # The processor of the runner, and whether +, -, *, / and sqrt take the
+      # The processor of the runner, and whether the arithmetic takes the
       # AVX-512 path, which the configuration decides from the instructions
       # the runner has (GAOL_AVX512_ARITHMETIC): a warning where
       # GAOL_PREFER_AVX512 asked for it and the runner has none (GAOL v5)
