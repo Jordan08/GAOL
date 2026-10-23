@@ -342,8 +342,8 @@ but the second one, which no macro of the compiler shows:
   (MSYS2 MINGW64, the cross compilers of Debian and Ubuntu), they are those
   of the math library of mingw-w64, computed in doubles: that \code{fma()} is
   not correctly rounded, and CORE-MATH computes with it where the compiler has no
-  \option{-mfma} (32-bit x86, or \option{GAOL\_FMA} \code{OFF}; GCC for Windows
-  on x64 takes it by default, and these toolchains stay refused, their
+  \option{-mfma} (\option{GAOL\_FMA} \code{OFF}; GCC for Windows on x64 and on
+  32-bit x86 takes it by default, and these toolchains stay refused, their
   \code{round()} being wrong too); that \code{round()}
   depends on the rounding direction. On 32-bit x86, before mingw-w64 11, as
   the mingw-w64 9 of WinLibs, whose \code{fma()} rounds each of its partial
@@ -505,7 +505,7 @@ The options are given to the first command, as \option{-D\var{option}=\var{value
   with the fused multiply-add instructions of the processor, where the compiler
   has a flag for them and the machine building runs a program compiled with it:
   \option{-mfma} on x86 (\option{-mfma -mprefer-vector-width=128} with GCC for
-  Windows on x86-64, none on 32-bit x86), \option{/arch:AVX2} with
+  Windows, on x86-64 and on 32-bit x86), \option{/arch:AVX2} with
   Visual C++ for x64, \option{-mfpu=neon-vfpv4 -mfloat-abi=hard} on 32-bit ARM;
   64-bit ARM, POWER, s390x and RISC-V have them without a flag. The library then
   needs a processor with them (on x86, Intel Haswell and AMD Piledriver,
@@ -943,8 +943,8 @@ takes it:
 \item \option{-mfma} on x86, and \option{-mfpu=neon-vfpv4 -mfloat-abi=hard} on
   32-bit ARM, where GAOL is compiled with the fused multiply-add instructions of
   the processor (\option{GAOL\_FMA}): the code using GAOL then runs only on a
-  processor with them, as GAOL itself. With GCC for Windows on x86-64 the flags
-  are \option{-mfma -mprefer-vector-width=128}, the second keeping the
+  processor with them, as GAOL itself. With GCC for Windows on x86-64 and on
+  32-bit x86 the flags are \option{-mfma -mprefer-vector-width=128}, the second keeping the
   vectorizer of GCC to the 128-bit registers, which it would otherwise spill
   to a stack that Windows aligns on 16 bytes, not 32 (GCC bug 54412): the
   objects of GAOL, CORE-MATH and the tests built so by GCC~16.2 have no

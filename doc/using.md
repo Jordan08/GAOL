@@ -35,16 +35,16 @@ itself. With GCC and Clang, each where the compiler takes it:
   GAOL is compiled with the fused multiply-add instructions of the processor
   (`GAOL_FMA`, see [Building GAOL](building.md)): the code using GAOL runs only
   on a processor with them, as GAOL, and is compiled for it. With GCC for
-  Windows on x86-64 (GAOL v5), `-mfma -mprefer-vector-width=128`: the second
-  keeps the vectorizer of GCC to the 128-bit registers, which it would
-  otherwise spill to a stack that Windows aligns on 16 bytes, not 32 (GCC bug
-  54412; the objects of GAOL, CORE-MATH and the tests built so by GCC 16.2 have
-  no instruction on a 256-bit register, see [The three
-  builds](three-builds.md#gcc-for-windows)). A program that writes 256-bit
-  intrinsics itself is exposed to that defect, as with `-mavx`, and so is one
-  built with `-mavx512f` or a `-march` that turns on wider registers, which
-  the option may not always undo (same section). Cygwin and MSYS get them as
-  the other GCC for Windows (not built here).
+  Windows on x86-64 and on 32-bit x86 (GAOL v5), `-mfma
+  -mprefer-vector-width=128`: the second keeps the vectorizer of GCC to the
+  128-bit registers, which it would otherwise spill to a stack that Windows
+  aligns on 16 bytes, not 32 (GCC bug 54412, on x64; the objects of
+  GAOL, CORE-MATH and the tests built so by GCC 16.2 have no instruction on a
+  256-bit register, see [The three builds](three-builds.md#gcc-for-windows)). A
+  program that writes 256-bit intrinsics itself is exposed to that defect, as
+  with `-mavx`, and so is one built with `-mavx512f` or a `-march` that turns on
+  wider registers, which the option may not always undo (same section). Cygwin
+  and MSYS get them as the other GCC for Windows (not built here).
 
 With Visual C++ and clang-cl, `/fp:strict`, `/arch:AVX2` for x64 with
 `GAOL_FMA`, and `-msse2` with clang-cl for 32-bit x86, which computes doubles
