@@ -232,14 +232,27 @@ of a variant differ by 1.16 times at most):
 did not change (within 1.5 %; the line of 7 divisions took 6.3 % less). The
 elementary functions and `pow(x, 3)` gain the most, as with Clang above.
 
-These flags are for MinGW-w64 and MSYS2 GCC: the tests of the three builds
-(`WIN32` of CMake, `_WIN32` of configure and meson) do not name Cygwin
-(`__CYGWIN__`), so that, by them, Cygwin x86-64 gets `-mfma` alone, as before;
-it was not measured. If the user gives a `-mprefer-vector-width=` of his own, the
+These flags are for GCC for Windows on x86-64: MinGW-w64, MSYS2 and, since the
+tests of the three builds name it as those of the AVX-512 path do (`CYGWIN` of
+CMake, `__CYGWIN__` of configure and meson), Cygwin (GAOL v5; before, Cygwin got
+`-mfma` alone). Cygwin was neither built nor measured: no job of the continuous
+integration has it, and the flags are given to it as to the other GCC for
+Windows. If the user gives a `-mprefer-vector-width=` of his own, the
 builds order it differently from GAOL's: CMake and configure put GAOL's flags
 after the user's (`CMAKE_CXX_FLAGS`, `CXXFLAGS`), meson puts them before
 `cpp_args`. The last of two such options is the one that counts (as tried with
 Clang).
+
+`-mprefer-vector-width=128` does not undo what other options of the user turn
+on. With the Clang that cross-compiles for x86-64, the objects of GAOL, CORE-MATH
+and the tests built with `-mavx512f -mfma -mprefer-vector-width=128` held 2
+lines with `%ymm` and 2 887 with `%zmm`, and those built with
+`-march=skylake-avx512 -mprefer-vector-width=128` 406 lines with `%ymm`; a second
+reader counted none, and 4: the gap is not explained. Nothing was run with GCC.
+GCC's own code (`ix86_option_override_internal`, version 14.2, read, not run)
+applies the preferred width of an architecture only if none was given, so that
+`-mprefer-vector-width=128` should win over a `-march`. A program built with
+such options is exposed to GCC bug 54412, as with `-mavx`.
 
 ### Interprocedural optimization is not offered
 
