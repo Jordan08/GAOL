@@ -325,9 +325,9 @@ jobs:
       # objects of the Release builds hold fused multiply-add instructions,
       # which CORE-MATH and the integer powers need to be fast, and none on a
       # 256-bit register, which GCC would spill to a stack that Windows x64
-      # aligns on 16 bytes (GCC bug 54412; on x86 the flags are kept for the
-      # same objects). Not in Debug, where the vectorizer does not run, nor
-      # without GAOL_FMA (GAOL v5)
+      # aligns on 16 bytes (GCC bug 54412; on x86 the lines with %ymm are
+      # listed and noticed, not an error). Not in Debug, where the vectorizer
+      # does not run, nor without GAOL_FMA (GAOL v5)
       - name: Fused multiply-add instructions, and no 256-bit register in the objects
         if: matrix.cfg.config == 'Release' && !contains(matrix.cfg.opts, 'GAOL_FMA=OFF')
         run: |

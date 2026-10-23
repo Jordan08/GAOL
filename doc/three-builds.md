@@ -250,7 +250,9 @@ against 10.05 ns, `log` 235.9 against 64.7, `cos` 430.1 against 121.3 ns, with
 `-mfma -mprefer-vector-width=128`). With GCC 14.2 the ratios are similar
 (`pow(x, 3)` 67.7 against 12.1 ns, `log` 268.6 against 103.0, `cos` 490.2
 against 137.0 in the third run), and `-mfma` alone leaves 600 lines with
-`%ymm`. `x × y`, which does not call `fma()`, did not change.
+`%ymm`. GCC 13.2 (MinGW-w64 13.2 for x86) leaves 9 lines with `%ymm` in two test
+objects even with both options: the check lists them and does not fail on
+32-bit x86. `x × y`, which does not call `fma()`, did not change.
 
 The stack of a thread on 32-bit Windows is aligned on 4 bytes (GCC bug 40838).
 A program that keeps 16 intervals alive across calls in a loop of `+ - * /` and
