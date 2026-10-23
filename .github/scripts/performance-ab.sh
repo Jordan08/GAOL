@@ -205,8 +205,8 @@ if [ "$lines" = 1 ]; then
     }
   fi
   if [ "$ok" = 1 ]; then
-    # shellcheck disable=SC2015
     if [ "$cache_hit" = 1 ]; then before_bench_dir=$before_cache; else before_bench_dir=$build_dir/before; fi
+    # shellcheck disable=SC2015
     before_exe=$(find_exe "$before_bench_dir" gaol_bench) && after_exe=$(find_exe "$build_dir/after" gaol_bench) \
       && "$python" "$after_src/doc/compare/code/bench.py" data "$lines_n" "$build_dir/lines-data.bin" \
       && line_list=$("$python" "$after_src/doc/compare/code/bench.py" line-names) \
@@ -224,10 +224,12 @@ if [ -n "$before_cache" ] && [ "$cache_hit" = 0 ]; then
   mkdir -p "$before_cache"
   cp "$(find_exe "$build_dir/before/tests" gaol_performance)" "$before_cache/"
   if [ "$lines" = 1 ]; then
-    if exe=$(find_exe "$build_dir/before" gaol_bench); then
-      cp "$exe" "$before_cache/"
-    elif [ "${no_bench_before:-0}" = 1 ]; then
+    # A build of gaol_bench that failed leaves no program of this run to keep
+    # (a stale one of an earlier run in the same directory would be wrong)
+    if [ "${no_bench_before:-0}" = 1 ]; then
       echo "the build before has no gaol_bench that builds here" > "$before_cache/no-gaol_bench"
+    elif exe=$(find_exe "$build_dir/before" gaol_bench); then
+      cp "$exe" "$before_cache/"
     fi
   fi
 fi

@@ -116,18 +116,31 @@ jobs:
           path: base
       # The programs of the build of the base, kept for the next push of the
       # pull request (see the top of this file)
-      # The image of the runner is part of the key: the programs of the base
-      # and of the pull request have to come from the same tools, or the
-      # difference would be the compiler's (ImageVersion is a variable of the
-      # runner, which the env context does not hold)
-      - name: The image of the runner
+      # The key of the cache: the job, the image of the runner and the processor
+      # that built, with the commit of the base. The programs of the base and of
+      # the pull request have to come from the same tools, or the difference
+      # would be the compiler's (ImageVersion is a variable of the runner,
+      # which the env context does not hold), and the processor decides the
+      # build (the AVX-512 path and the fused multiply-add instructions are
+      # taken where the machine building runs them: a base built on a runner
+      # with AVX-512 stops on another that has none). A key has no comma
+      - name: The key of the cache
         id: image
-        run: echo "version=${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
+        env:
+          DESC: ${{ matrix.cfg.desc }}
+        run: |
+          case "$RUNNER_OS" in
+            Linux) cpu=$(grep -m1 -E '^(model name|CPU part)' /proc/cpuinfo | cut -d: -f2) ;;
+            macOS) cpu=$(sysctl -n machdep.cpu.brand_string) ;;
+            *) cpu=${PROCESSOR_IDENTIFIER:-} ;;
+          esac
+          slug() { printf %s "$1" | tr -c 'A-Za-z0-9._-' _; }
+          echo "key=perf-base-$(slug "$DESC")-$(slug "${ImageVersion:-unknown-image}")-$(slug "${cpu:-unknown-cpu}")" >> "$GITHUB_OUTPUT"
       - name: The programs of the base, kept from an earlier run
         uses: actions/cache@v6
         with:
           path: perf-base-cache
-          key: perf-base-${{ matrix.cfg.desc }}-${{ steps.image.outputs.version }}-${{ steps.base.outputs.sha }}
+          key: ${{ steps.image.outputs.key }}-${{ steps.base.outputs.sha }}
       - name: Tools
         if: runner.os == 'Linux'
         run: |
@@ -188,15 +201,19 @@ jobs:
         with:
           ref: ${{ steps.base.outputs.sha }}
           path: base
-      - name: The image of the runner
+      - name: The key of the cache
         id: image
         shell: bash
-        run: echo "version=${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
+        env:
+          DESC: ${{ matrix.cfg.desc }}
+        run: |
+          slug() { printf %s "$1" | tr -c 'A-Za-z0-9._-' _; }
+          echo "key=perf-base-$(slug "$DESC")-$(slug "${ImageVersion:-unknown-image}")-$(slug "${PROCESSOR_IDENTIFIER:-unknown-cpu}")" >> "$GITHUB_OUTPUT"
       - name: The programs of the base, kept from an earlier run
         uses: actions/cache@v6
         with:
           path: perf-base-cache
-          key: perf-base-${{ matrix.cfg.desc }}-${{ steps.image.outputs.version }}-${{ steps.base.outputs.sha }}
+          key: ${{ steps.image.outputs.key }}-${{ steps.base.outputs.sha }}
       - name: Test of the tools that compare
         shell: bash
         run: python pr/.github/scripts/test-performance-tools.py
