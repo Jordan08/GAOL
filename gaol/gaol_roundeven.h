@@ -70,7 +70,7 @@
    the integer part of x is x with them cleared. Only integer operations on
    the bits are needed, which is why no floating-point operation is made, and
    none can be rounded in the direction in effect or raise an exception. The
-   result is always a doublegaol_cr_: an integer of the magnitude of x or one more. */
+   result is always a double: an integer of the magnitude of x or one more. */
 GAOL_ROUNDEVEN_INLINE double gaol_roundeven(double x)
 {
   uint64_t u;
