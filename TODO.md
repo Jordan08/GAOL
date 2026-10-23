@@ -98,11 +98,11 @@ plus grand sur les builds par défaut, puis les builds avec
     clang-cl x64 par #148 (SSE2), tous les intervalles FPU par #157 (des noyaux
     scalaires sans branche) ; #150 avait fait le registre de contrôle d'ARM 32
     bits. Le noyau mixte du produit (deux produits quand les opérandes ont le
-    même signe, huit sinon) est essayé par la pull request brouillon #168 : le
-    banc A/B de la CI y montre de 1,4 à 2,1 fois sur les lignes de signes
-    réguliers (GCC x86-64 et arm64, Visual C++ et clang-cl arm64, armhf) et 5 à
-    19 % de perte aux signes aléatoires, rien avec Clang x86-64 ni Visual C++
-    x86 ; à fermer ou à fusionner, au mainteneur (23 octobre). [M]
+    même signe, huit sinon) a été essayé par la pull request brouillon #168,
+    fermée sans fusion le 23 octobre sur décision du mainteneur : le banc A/B
+    de la CI y montre de 1,4 à 2,1 fois sur les lignes de signes réguliers (GCC
+    x86-64 et arm64, Visual C++ et clang-cl arm64, armhf) et 5 à 19 % de perte
+    aux signes aléatoires, rien avec Clang x86-64 ni Visual C++ x86. [M]
 12. **108 (AI)** : Visual C++ 32 bits, 80 ns par opération dès le build par
     défaut ; la lecture de x87 et de MXCSR en ligne est faite par #156, et ses
     suites décidées le 22 octobre restent (Q8, en bas : la lecture en ligne dans
@@ -208,7 +208,7 @@ originaux au commit `16a2f60`.
 
 ## En cours
 
-Sept pull requests ouvertes et deux brouillons, ouverts le 23 octobre pour les
+Sept pull requests ouvertes et un brouillon, ouverts le 23 octobre pour les
 décisions du même jour (leurs descriptions disent leurs relectures et leurs
 mesures) :
 
@@ -224,10 +224,6 @@ mesures) :
 - **#167** : suites de #163 : Cygwin reçoit les drapeaux de GCC pour Windows,
   le contrôle des drapeaux d'exception depuis chaque direction partout,
   `-mavx512f`, `-march` et `-faligned-new=8` pour un fichier C documentés.
-- **#168** (brouillon, sur la base de #166) : le noyau mixte du produit FPU ;
-  les tableaux du banc A/B (en commentaire de la PR) montrent des gains aux
-  signes réguliers et des pertes aux signes aléatoires : à fermer ou à
-  fusionner, au mainteneur.
 - **#169** : suites de #162 : le vide dans les formes de `pow` qui contrôlaient
   le sens d'abord, le carré FPU qui retrouve sa vitesse.
 - **#170** : suite de #157 : les jobs FPU (x86-64, arm64 GCC) et le commentaire
@@ -657,9 +653,11 @@ réponses du 23 octobre sont ajoutées à chaque puce) :
   arm64), 1,67 (clang-cl arm64) et 1,43 (armhf), et `x * y` de signes
   aléatoires perd 5 à 19 % (0,89 GCC x86-64, 0,93 Visual C++ arm64, 0,81
   clang-cl arm64, 0,91 armhf), sauf arm64 GCC (1,30) ; rien avec Clang x86-64
-  (0,90 la ligne de 7 `*`) ni Visual C++ x86 (0,95). La décision de la fermer
-  (réponse du 23 octobre, prise sur les mesures locales) attend d'être
-  confirmée : la pull request reste ouverte (rang 11).
+  (0,90 la ligne de 7 `*`) ni Visual C++ x86 (0,95). Le mainteneur l'a fermée
+  sans fusion le 23 octobre, ces tableaux lus : l'essai est un changement de
+  `mul_finite()` dans `gaol/gaol_interval_fpu.cpp` (commit `f86ada7`, lisible
+  dans #168), qu'on reprendrait si les signes réguliers deviennent le cas
+  qu'on veut servir (rang 11).
 - **`gaol_performance` apprend ses opérandes par cœur** : 1 024 opérandes
   répétés, que le prédicteur du M2 apprend (`x * y` de signes aléatoires 5,7 ns
   contre 12,4 sur 16 384). Ses lignes « signes aléatoires » sous-estiment donc
@@ -1330,7 +1328,8 @@ sans l'accord explicite du mainteneur.
   et `exp-157-ab` sont supprimées sur GitHub le 23 octobre (décidé ce jour-là).
   La branche d'expérience `exp-win32-fma-stack` (le 133) est supprimée le 23
   octobre au soir, après la lecture de ses résultats (ses patches sont dans le
-  scratchpad de la session, hors dépôt). Reste sur GitHub `todo-ai-msvc-avx512`
+  scratchpad de la session, hors dépôt), comme `todo-ai-fpu-mixed-kernel` (#168,
+  fermée sans fusion). Reste sur GitHub `todo-ai-msvc-avx512`
   (sans pull request, gardée, Q16) et celles des pull requests ouvertes
   ci-dessous.
   Les sept dossiers de build de GAOL de `doc/compare/code/` configurés avant
@@ -1450,8 +1449,8 @@ le travail qu'elles décident est fait le même soir et ouvert en pull requests
 - **#157, le noyau mixte** : l'essayer ici et par le banc A/B ; *fermer sans
   fusion* si les tableaux ne montrent rien. *Fait par #168 (brouillon)* : les
   tableaux montrent des gains (1,4 à 2,1 fois aux signes réguliers) et des
-  pertes (5 à 19 % aux signes aléatoires), donc la pull request n'est pas
-  fermée en attendant le choix du mainteneur (rang 11).
+  pertes (5 à 19 % aux signes aléatoires) ; le mainteneur a ensuite confirmé la
+  fermeture sans fusion, les tableaux lus (rang 11).
 - **#157, les bancs et la relecture** : `gaol_performance` inchangé, pas de
   `fmax()`, pas de seconde relecture de `process.md` §7.
 - **#162** : garder la décision dans `gaol_pown` (pas de `e == 2` dans les

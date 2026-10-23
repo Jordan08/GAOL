@@ -898,7 +898,7 @@ Chacun attend une réplique d'un fichier, vérifiée sur la plateforme, et un tr
 
 ### QJ.12 — #157 (noyaux FPU) — RÉPONDU le 23 octobre (tout gardé)
 
-- **Une piste, décidée le 23 octobre : l'essayer** (pull request brouillon #168). En local (i7-1185G7) le noyau mixte gagne 1,44 fois sur la ligne de 7 `*` avec GCC mais perd 11 à 24 % quand les signes varient, et rien avec Clang. Le banc A/B de la CI (base / PR, médianes de 3 passages) : la ligne de 7 `*` gagne 1,96 fois (GCC x86-64), 1,70 (arm64 GCC), 1,46 (Visual C++ arm64), 1,67 (clang-cl arm64), 1,43 (armhf) ; `x * y` de signes aléatoires perd 5 à 19 % (sauf arm64 GCC, +30 %) ; rien avec Clang x86-64 ni Visual C++ x86. La décision de fermer sans fusion (prise sur les mesures locales) attend d'être confirmée : la pull request reste en brouillon.
+- **Une piste, décidée le 23 octobre : l'essayer** (pull request brouillon #168). En local (i7-1185G7) le noyau mixte gagne 1,44 fois sur la ligne de 7 `*` avec GCC mais perd 11 à 24 % quand les signes varient, et rien avec Clang. Le banc A/B de la CI (base / PR, médianes de 3 passages) : la ligne de 7 `*` gagne 1,96 fois (GCC x86-64), 1,70 (arm64 GCC), 1,46 (Visual C++ arm64), 1,67 (clang-cl arm64), 1,43 (armhf) ; `x * y` de signes aléatoires perd 5 à 19 % (sauf arm64 GCC, +30 %) ; rien avec Clang x86-64 ni Visual C++ x86. Le mainteneur a fermé la pull request sans fusion le 23 octobre, ces tableaux lus (commit de l'essai : `f86ada7`, lisible dans #168).
 - **`gaol_performance` apprend ses opérandes par cœur** (1 024 opérandes répétés : `x * y` de signes aléatoires 5,7 ns contre 12,4 sur 16 384) : passer ses trois lignes « signes aléatoires » à 16 384 opérandes, ou en ajouter trois ? **Décidé le 23 octobre : ne rien changer.**
 - **`fmax()` pour le plus grand de deux doubles** : une instruction sur arm64, RISC-V et POWER, mais elle classe +0 au-dessus de −0 et appelle la bibliothèque sur ARM 32 bits et x86 ; utile surtout à Visual C++ et clang-cl pour arm64, qu'on ne peut pas mesurer. **Décidé le 23 octobre : non.**
 - **`GAOL_RND_KEEP()` sur la sortie de `*=`, `/=` et `%=` ?** Aujourd'hui non (protection de fait, qu'aucun test ne tient) ; la remettre coûterait 2,6 ns (`x * y`) et 5 ns (`x / y`) avec `GAOL_PRESERVE_ROUNDING`. **Décidé le 23 octobre : ne pas la remettre, tenir la protection par un test** (GCC et le sens préservé) : #170, qui ajoute les jobs FPU x86-64 (GCC, Clang) et arm64 GCC avec le sens préservé et dit dans le commentaire d'`operator*=` quels tests tiennent la protection (mutants : 53/96, 58 et 57 vérifications de la boucle en échec pour `*=`, `/=`, `%=`).
@@ -1002,7 +1002,7 @@ MinGW-w64 pour x86 n'avait pas de FMA (CORE-MATH et les puissances entières app
 | #165 | commentaires de la CI et de `doc/compare/code/`, `setup.sh` sans `-U`, `process.md` §10, `NI` et `FS` documentés | #161 textes, #161 `setup.sh`, #160 `process.md`, #154 `NI`/`FS` |
 | #166 | dix jobs de plus pour le banc A/B, cache des programmes de la base, `run_perf.sh` dans le filtre, `LINE_LIST` vide | #160 filtre, jobs et cache |
 | #167 | Cygwin avec les drapeaux de GCC pour Windows, six directions partout, `-mavx512f`, `-march` et `-faligned-new=8` documentés | #163 |
-| #168 (brouillon) | noyau mixte du produit FPU | #157 piste |
+| #168 (fermée) | noyau mixte du produit FPU | #157 piste |
 | #169 | le vide dans `pow`, le carré FPU | #162 |
 | #170 | jobs FPU x86-64 et arm64 GCC avec le sens préservé, commentaire d'`operator*=` | #157 `GAOL_RND_KEEP()` |
 | #171 | test des bits du signe de `x * d` | #161 |
@@ -1039,7 +1039,7 @@ Chacune a eu sa relecture indépendante (sauf #168, expérience, et #173, dont l
 | PR | Question | Décision |
 |----|----------|----------|
 | #157 | `GAOL_RND_KEEP()` sur `*=`, `/=`, `%=` | Ne pas le remettre ; un test tient la protection (#170) |
-| #157 | noyau mixte | L'essayer ici et par le banc A/B (#168, brouillon) |
+| #157 | noyau mixte | L'essayer ici et par le banc A/B (#168) ; fermée sans fusion après lecture des tableaux |
 | #157 | bancs, `fmax()`, seconde relecture | Rien ; non ; non |
 | #162 | `e == 2` dans les en-têtes | Non, la décision reste dans `gaol_pown` |
 | #162 | vide et sens d'arrondi | Harmoniser vers « le sens du programme » (#169) |
