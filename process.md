@@ -569,10 +569,13 @@ pour une pull request).
   - `manual.yml` : ne tourne que si `manual/` change ;
   - `performance.yml` : ne tourne que sur les pull requests qui touchent le
     code, les `CMakeLists.txt` ou les outils de mesure ; construit et mesure
-    la base de la pull request et sa tête dans le même job, et écrit un
-    tableau dans le résumé du job (aucun temps ne fait échouer un job).
-- **Le déclenchement** : sur chaque pull request, sur un push vers `master`,
-  `MATH-CORE` ou `configure-clean`, et par `workflow_dispatch`. La
+    la base de la pull request et son commit de fusion dans le même job, et
+    écrit un tableau dans le résumé du job (aucun temps ne fait échouer un
+    job).
+- **Le déclenchement** : sur chaque pull request (`manual.yml` et
+  `performance.yml` seulement si leurs chemins changent), sur un push vers
+  `master`, `MATH-CORE` ou `configure-clean` (sauf `performance.yml`, qui ne
+  tourne que sur les pull requests), et par `workflow_dispatch`. La
   `concurrency` annule le run en cours d'un même workflow sur la même
   référence : un nouveau push sur `configure-clean` annule la CI du commit
   précédent. Ne pousse pas un commit de registre pendant qu'une CI dont tu as

@@ -1599,11 +1599,12 @@ On the other processors (POWER, s390x, RISC-V, MIPS...), whose FPU intervals
 use the generic `round_upward()` of `gaol/gaol_fpu_fenv.h` (a call to
 `fesetround(FE_UPWARD)`, whose return value is not read), neither defence
 exists (GAOL v5): the mode NI (non-IEEE) of the FPSCR of POWER and the bit FS
-of the FCSR of MIPS, which flush the subnormal numbers as FTZ and DAZ do, are
-not cleared, and a program that sets them gets bounds that miss the exact
-result for subnormal operands and results. Whether the toolchains of these
-processors set them in a program linked with `-Ofast` was not checked, and
-nothing of GAOL was tested with them set.
+of the FCSR of MIPS, modes of the kind of FTZ and DAZ that may flush the
+subnormal numbers, are not cleared, and a program that sets them may get
+bounds that miss the exact result for subnormal operands and results. What
+they do depends on the processor, whether the toolchains of these processors
+set them in a program linked with `-Ofast` was not checked, and nothing of
+GAOL was tested with them set.
 
 The functions that only read, compare or copy the bounds of an interval make
 no check, which made each of them 3 to 4.5 ns slower in a micro-benchmark on
