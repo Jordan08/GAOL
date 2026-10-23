@@ -3,12 +3,13 @@
 # Release and Debug) and 2026 (x86, x64, arm64; Release), MinGW-w64 15 (x86,
 # x64; Release and Debug), 14 (x86, x64), 12 and 13 (x86; 13 without GAOL_FMA
 # too), MSYS2 (UCRT64 GCC, CLANG64 Clang) and Cygwin (GCC, x64; GAOL v5), runs
-# its tests, installs it, and builds the tests again with the installed GAOL;
-# with Visual Studio 2026 x64 and x86 and /W4 /WX too (GAOL v5). The AVX-512
-# path of Visual C++ and clang-cl runs under Intel SDE, the runners having no
-# AVX-512 instructions.
-# Windows has French_France.1252, a locale writing a decimal
-# comma: each job that runs the tests checks that numbers read and wrote numbers
+# its tests, installs it, and builds the tests again with the installed GAOL
+# (but Cygwin, which builds, checks the objects and runs the tests, and checks
+# that a build without FMA is refused); with Visual Studio 2026 x64 and x86
+# and /W4 /WX too (GAOL v5). The AVX-512 path of Visual C++ and clang-cl runs
+# under Intel SDE, the runners having no AVX-512 instructions.
+# Windows has French_France.1252, a locale writing a decimal comma: each job
+# that runs the tests but Cygwin's checks that numbers read and wrote numbers
 # under it (.github/scripts/comma-locale.sh) (GAOL v5). On arm64, the compiler
 # of Visual Studio 2022 (toolset v143, MSVC 14.44) is the one installed with
 # Visual Studio 2026: the label windows-11-arm runs the image of Visual Studio
@@ -429,7 +430,7 @@ jobs:
     timeout-minutes: 60
     defaults:
       run:
-        shell: D:\cygwin\bin\bash.exe --noprofile --norc -eo pipefail -o igncr '{0}'
+        shell: C:\cygwin\bin\bash.exe --noprofile --norc -eo pipefail -o igncr '{0}'
     steps:
       - run: git config --global core.autocrlf input
         shell: pwsh
@@ -460,8 +461,8 @@ jobs:
         run: cmake --build build --target test
       # package_source on Cygwin: the CPack of Cygwin could not list the extended
       # attributes of a directory ("Couldn't list extended attributes"); which
-      # generators make the archive of the sources here (a trial: it does not
-      # fail the job)
+      # generators make the archive of the sources here (informational: it does
+      # not fail the job, so that the day CPack is repaired this step says so)
       - name: Which generators of CPack make the archive of the sources
         if: always()
         run: |
@@ -473,6 +474,20 @@ jobs:
               echo "$g: failed: $(grep -m1 -A6 'CPack Error' cpack-$g.log | tr '\n' ' ')"
             fi
           done
+      # fma_once(): without optimization the objects of GAOL call no fma() of the
+      # C library, which is the one of Cygwin, not correctly rounded, where
+      # std::fma is such a call (the library only: the tests are not built)
+      - name: No call of the fma() of the library in a build without optimization
+        run: |
+          cmake -S . -B build-debug -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_MAKE_PROGRAM=/usr/bin/make
+          cmake --build build-debug -j 4 --target gaol
+          object=build-debug/CMakeFiles/gaol.dir/gaol/gaol_interval_core.cpp.o
+          echo "$(objdump -d --no-show-raw-insn "$object" | grep -c 'vfmadd') fused multiply-add instructions"
+          objdump -d --no-show-raw-insn "$object" | grep -q 'vfmadd'
+          if nm -u "$object" | grep -w 'fma'; then
+            echo "gaol_interval_core.cpp.o calls the fma() of the C library"
+            exit 1
+          fi
       # Without the fused multiply-add instructions Cygwin has the fma() of its
       # C library, which is wrong: the build has to be refused
       - name: Cygwin without GAOL_FMA is refused
@@ -483,7 +498,11 @@ jobs:
             echo "Cygwin without -mfma was not refused"
             exit 1
           fi
-          grep -F -q "GAOL cannot be compiled with Cygwin without the fused multiply-add instructions" build-no-fma.log
+          grep -F -q "GAOL cannot be compiled with Cygwin without the fused multiply-add instructions" build-no-fma.log || {
+            cat build-no-fma.log
+            echo "The build was refused, but not for that reason"
+            exit 1
+          }
 
   # The mingw-w64 whose fma() or round() is wrong are refused when compiling
   # (gaol/gaol_config.h): CORE-MATH computes with that fma() where the build
