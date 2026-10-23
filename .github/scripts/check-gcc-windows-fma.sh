@@ -1,6 +1,6 @@
 #!/bin/sh
 # check-gcc-windows-fma.sh BUILD_DIR...: checks the objects of a CMake build of
-# GAOL by GCC for Windows x86-64, which GAOL_FMA gives -mfma
+# GAOL by GCC for Windows (x86-64 and 32-bit x86), which GAOL_FMA gives -mfma
 # -mprefer-vector-width=128 (CMakeLists.txt; GAOL v5, point 110 of TODO.md):
 #
 # - no object, GAOL's, CORE-MATH's and the tests', holds an instruction that
@@ -8,7 +8,9 @@
 #   aligned on 32 bytes for the ymm registers it spills, where the Windows x64
 #   ABI aligns it on 16 (GCC bug 54412): -mfma alone, which turns AVX on, had
 #   the vectorizer of GCC 16.2 write 30598 such lines in the objects of GAOL,
-#   CORE-MATH and the tests, and -mprefer-vector-width=128 none. The check
+#   CORE-MATH and the tests, and -mprefer-vector-width=128 none. On 32-bit x86
+#   the same flags give the same objects (4709 lines with -mfma alone, GCC 15.2,
+#   none with both). The check
 #   finds the day the option is lost, or a GCC stops honouring it;
 # - the objects of gaol_interval_core.cpp (the exact products, the integer
 #   powers) and of the cos of CORE-MATH hold fused multiply-add instructions
@@ -63,7 +65,7 @@ while IFS= read -r object; do
 done < "$work/objects"
 echo "$count objects checked, $total lines with %ymm or %zmm"
 if [ "$total" != 0 ]; then
-  echo "::error::$total instructions on 256-bit or 512-bit registers in the objects of GCC for Windows: GCC bug 54412 (it spills them to a stack aligned on 16 bytes, the Windows x64 ABI, with aligned moves for 32), which -mfma -mprefer-vector-width=128 of GAOL_FMA (CMakeLists.txt) keeps out of the code"
+  echo "::error::$total instructions on 256-bit or 512-bit registers in the objects of GCC for Windows: GCC bug 54412 on x64 (it spills them to a stack aligned on 16 bytes, the Windows x64 ABI, with aligned moves for 32), and 256-bit registers GAOL does not want on x86 either, which -mfma -mprefer-vector-width=128 of GAOL_FMA (CMakeLists.txt) keeps out of the code"
   failed=1
 fi
 
