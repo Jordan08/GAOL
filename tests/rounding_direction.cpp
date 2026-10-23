@@ -16,8 +16,10 @@
  * another direction differs, as does one a compiler computes after a change
  * of direction that the source code writes after its computation. It has to
  * leave the direction as it found it, or upward (as it found it only, with
- * GAOL_PRESERVE_ROUNDING). After it, the bounds of a product and a sum have to
- * be the tightest ones. Powers with a subnormal result, which CORE-MATH rounds
+ * GAOL_PRESERVE_ROUNDING); the square of an empty interval, and its powers
+ * but those of an int other than 2, return before the check and leave it as it
+ * was, whichever it is (GAOL v5). After it, the bounds of a product and a sum
+ * have to be the tightest ones. Powers with a subnormal result, which CORE-MATH rounds
  * itself in the direction fegetround() gives, have to be the tightest
  * enclosures whatever the direction, with the x87 unit and the SSE
  * instructions differing too (GAOL v5). On x86 and ARM, the same holds with
@@ -3859,6 +3861,56 @@ int main()
 #else
   std::printf("feenableexcept() and fork() are those of glibc: the checks with the exceptions enabled are skipped\n");
 #endif
+
+  /*
+    The square of an empty interval, its powers but those of an int other than
+    2, and the powers with an empty exponent, return before the check of the rounding direction (GAOL v5, the
+    empty set of sqr(), which the forms of pow that check the direction first
+    did not follow): they leave the direction of the program as it is,
+    whichever it is, where the powers of an int other than 2 set it upward
+    first (not checked here). With GAOL_PRESERVE_ROUNDING, or with the embedded rounding of the
+    AVX-512 path, no operation changes the direction, and this passes whatever
+    the code does.
+  */
+  {
+    struct EmptyForm
+    {
+      const char *name;
+      std::function<interval()> form;
+    };
+    const EmptyForm empty_forms[] = {
+      { "sqr(empty)", [] { return sqr(E()); } },
+      { "pow(empty, 2)", [] { return pow(E(), 2); } },
+      { "pow(empty, 2u)", [] { return pow(E(), 2u); } },
+      { "pow(empty, 2LL)", [] { return pow(E(), 2LL); } },
+      { "pow(empty, 5000000000LL)", [] { return pow(E(), 5000000000LL); } },
+      { "pow(empty, 2.0)", [] { return pow(E(), 2.0); } },
+      { "pow(empty, 2.5)", [] { return pow(E(), 2.5); } },
+      { "pow(empty, [2])", [] { return pow(E(), interval(2.0)); } },
+      { "pow(empty, x)", [] { return pow(E(), X()); } },
+      { "pow(x, empty)", [] { return pow(X(), E()); } },
+      { "gaol_ieee1788::pown(empty, 2)", [] { return gaol_ieee1788::pown(E(), 2); } },
+      { "gaol_ieee1788::pown(empty, 2LL)", [] { return gaol_ieee1788::pown(E(), 2LL); } },
+      { "gaol_ieee1788::pow(empty, [2])", [] { return gaol_ieee1788::pow(E(), interval(2.0)); } },
+      { "gaol_ieee1788::pow(empty, x)", [] { return gaol_ieee1788::pow(E(), X()); } },
+      { "gaol_ieee1788::pow(x, empty)", [] { return gaol_ieee1788::pow(X(), E()); } },
+    };
+    for (const Direction& d : directions) {
+      for (const EmptyForm& f : empty_forms) {
+        set(d);
+        const State before = state();
+        const interval r = f.form();
+        const State after = state();
+        check("an empty operand of a square or a power leaves the direction of the program",
+              r.is_empty() && after == before,
+              [&] {
+                return std::string(f.name) + " with the program " + d.name + ": " + text(after) + " after it, "
+                  + text(before) + " before";
+              });
+      }
+    }
+    set(directions[0]);
+  }
 
   /*
     gaol::cleanup() sets back the rounding direction the first gaol::init()
