@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `79746c2` de `configure-clean`, le 23
+Ce qui reste à faire sur GAOL v5 au commit `c6639d6` de `configure-clean`, le 23
 octobre 2026, soir. Ce fichier ne garde que cela : le travail fait, ses pull
 requests, ses décisions et ses mesures sont dans l'issue #49 (« Fusionné depuis
 le 30 septembre » et les sections « Décidé le… »), dans les descriptions des
@@ -208,19 +208,10 @@ originaux au commit `16a2f60`.
 
 ## En cours
 
-Sept pull requests ouvertes et un brouillon, ouverts le 23 octobre pour les
+Cinq pull requests ouvertes et un brouillon, ouverts le 23 octobre pour les
 décisions du même jour (leurs descriptions disent leurs relectures et leurs
-mesures) :
+mesures) ; #165 et #166, du même soir, sont fusionnées par le mainteneur :
 
-- **#165** : suites de #154, #160 et #161 : les commentaires de la CI et de
-  `doc/compare/code/` qui listent « + - * / et sqrt », `setup.sh` sans
-  `-UGAOL_PREFER_AVX512` (il supprime lui-même un dossier d'avant #161),
-  `process.md` §10 (avec `performance.yml`), `NI` de POWER et `FS` de MIPS
-  dits dans `gaol_fpu.h`, `gaol_fpu_fenv.h` et `doc/using.md`.
-- **#166** : suites de #160 : dix jobs de plus pour le banc A/B (FPU x86-64,
-  arm64, macOS Intel, Visual Studio arm64, clang-cl, i386 et armhf en
-  conteneur), le cache des programmes de la base, `run_perf.sh` dans le filtre
-  de chemins, `LINE_LIST` vide.
 - **#167** : suites de #163 : Cygwin reçoit les drapeaux de GCC pour Windows,
   le contrôle des drapeaux d'exception depuis chaque direction partout,
   `-mavx512f`, `-march` et `-faligned-new=8` pour un fichier C documentés.
@@ -232,7 +223,10 @@ mesures) :
 - **#172** (sur la base de #167) : GCC pour Windows en 32 bits reçoit `-mfma
   -mprefer-vector-width=128` comme en 64 bits (pow(x, 3) de 70 à 12 ns), et un
   job sans FMA garde le `fma()` x87 de mingw-w64 11.
-- **#173** (brouillon, sur la base de #172) : un job Cygwin GCC x64.
+- **#173** (brouillon, sur la base de #172) : un job Cygwin GCC x64, qui a
+  montré que GAOL ne compile pas sous Cygwin sans `-D_GNU_SOURCE`
+  (`posix_memalign`), que son `fma()` est faux à `-O0`, et qu'une borne de
+  `sinh` n'enveloppe pas la valeur ; à décider : refuser Cygwin ou le porter.
 
 ## À corriger avant la version
 
@@ -375,7 +369,17 @@ bas) ; aucun n'est commencé.
   54412 de GCC sur x86 32 bits n'est pas montré. Et un job Cygwin x86-64 dans
   `windows.yml` (décidé le 23 octobre) : #173, en brouillon, qui construit, lit
   les objets avec `objdump` et lance les tests ; c'est la première fois qu'un
-  job construit GAOL avec Cygwin.
+  job construit GAOL avec Cygwin, et il a trouvé : le test d'exécution de
+  `GAOL_FMA` appelait `std::fma`, donc à `-O0` le `fma()` de Cygwin, qui n'est
+  pas correctement arrondi (corrigé dans #173 pour les trois builds :
+  `__builtin_fma`) ; `gaol_port.h` appelle `posix_memalign`, que `<stdlib.h>`
+  de Cygwin ne déclare pas avec `-std=c++11` (contourné par `-D_GNU_SOURCE`
+  dans le job) ; avec cela 42 tests sur 44 passent, `core_math` compris, mais
+  `elementary` échoue (`sinh(-0x1.638p+9)` rend `[-DBL_MAX, -DBL_MAX]`, qui
+  n'enveloppe pas la valeur) et `cpack_stale_configure` aussi (CPack, sans
+  rapport avec les bornes). Cygwin n'est donc pas pris en charge de fait, et
+  `gaol_config.h` ne le refuse pas : le refuser (un `#error` et un job qui le
+  vérifie, les drapeaux Cygwin de #167 retirés) ou le porter, au mainteneur.
 
 ## Reportés, en attente d'une décision du mainteneur
 
@@ -577,7 +581,7 @@ fermée, et garde ce qui reste à essayer :
   `fesetround(FE_UPWARD)` sans en lire le retour ; `NI` de POWER et `FS` de
   MIPS, états du même ordre que FTZ et DAZ, ne sont pas effacés par les
   intervalles FPU de ces processeurs. *Décidé le 23 octobre* : le dire sans
-  rien changer ; fait par #165 (ouverte).
+  rien changer ; fait par #165 (fusionnée).
 - **Trois pièges de compilation**, qu'aucun code de GAOL n'emploie : la pragma
   `FENV_ROUND` (ignorée sans erreur par GCC, Visual C++ et Clang), le
   `_mm256_add_round_pd` de Clang 20 avec `-mavx10.2` et l'assembleur
@@ -713,14 +717,14 @@ Les questions ouvertes de la description de #160, non corrigées et sans numéro
   `configure.ac`, `meson.build` et `meson_options.txt` (l'outil ne mesure que le
   build de CMake), ni `doc/compare/code/run_perf.sh`, que lit le test des
   outils. *Décidé le 23 octobre* : ajouter `run_perf.sh` seulement ; fait par
-  #166 (ouverte).
+  #166 (fusionnée).
 - **Les jobs** : CMake et Ubuntu 24.04 seulement, ni arm64 Linux, armhf, i386,
   macOS x86_64, clang-cl ni Visual C++ arm64 ; le job armhf/arm64 de #150
   compare toujours deux options d'un arbre, non la base et la pull request. Un
   cache (`actions/cache`, clé : le SHA de la base) du binaire de la base
   éviterait de la reconstruire à chaque poussée, sous Windows surtout ; non
   essayé. *Décidé le 23 octobre* : faire les jobs absents et le cache ; fait
-  par #166 (ouverte) : dix jobs de plus (FPU x86-64 avec GCC et Clang, arm64,
+  par #166 (fusionnée) : dix jobs de plus (FPU x86-64 avec GCC et Clang, arm64,
   macOS Intel, Visual Studio arm64, clang-cl) et deux conteneurs (i386, armhf)
   sans cache, le cache des programmes de la base étant sur la clé de la base,
   du job, de l'image du runner et du processeur.
@@ -732,10 +736,10 @@ Les questions ouvertes de la description de #160, non corrigées et sans numéro
   *Décidé le 23 octobre* : garder.
 - **`LINE_LIST` vide** ne lance aucune ligne dans `run_perf.sh` et les dix dans
   `run_lines.sh` ; harmoniser ferait changer `run_lines.sh` (le README dit la
-  différence). *Fait le 23 octobre* par #166 (ouverte) : une `LINE_LIST` vide
+  différence). *Fait le 23 octobre* par #166 (fusionnée) : une `LINE_LIST` vide
   ne lance aucune ligne dans les deux.
 - **`process.md` §10** liste les workflows, sans `performance.yml`. *Fait le 23
-  octobre* par #165 (ouverte).
+  octobre* par #165 (fusionnée).
 - **Remarqué sans être corrigé** : `actionlint` dit que
   `suppress-deprecation-warnings` n'est pas une entrée de `msys2/setup-msys2@v2`
   (job `msys2-refused` de `windows.yml`), et `shellcheck` fait des remarques sur
@@ -759,11 +763,11 @@ Les questions ouvertes de la description de #161, non corrigées et sans numéro
   « +, -, *, / et sqrt » (`.github/scripts/sde-tests.sh`, `linux.yml`,
   `windows.yml`, `build_benchmarks.sh`, `run_bench.sh`) : à mettre à jour ou
   non. *Décidé le 23 octobre* : les mettre à jour ; #164 étant déjà fusionnée,
-  c'est dans #165 (ouverte).
+  c'est dans #165 (fusionnée).
 - **`doc/compare/code/setup.sh`** garde `-UGAOL_PREFER_AVX512`, utile à un
   dossier configuré avant #161 ; il peut disparaître quand plus aucun ne
   subsiste. *Décidé le 23 octobre* : le retirer et nettoyer les dossiers ; les
-  sept dossiers de build sont supprimés, et #165 (ouverte) fait supprimer par
+  sept dossiers de build sont supprimés, et #165 (fusionnée) fait supprimer par
   `setup.sh` lui-même un `gaol-preserve-build` d'avant #161 (sans cela,
   `FORCE_GAOL=1` sur un ancien dossier aurait refusé le chemin AVX-512 sans le
   dire).
@@ -1329,7 +1333,8 @@ sans l'accord explicite du mainteneur.
   La branche d'expérience `exp-win32-fma-stack` (le 133) est supprimée le 23
   octobre au soir, après la lecture de ses résultats (ses patches sont dans le
   scratchpad de la session, hors dépôt), comme `todo-ai-fpu-mixed-kernel` (#168,
-  fermée sans fusion). Reste sur GitHub `todo-ai-msvc-avx512`
+  fermée sans fusion). Les branches de #165 (`todo-ai-textes-suites`) et de #166
+  (`todo-ai-perf-ci-suites`) sont supprimées sur GitHub à la fusion. Reste sur GitHub `todo-ai-msvc-avx512`
   (sans pull request, gardée, Q16) et celles des pull requests ouvertes
   ci-dessous.
   Les sept dossiers de build de GAOL de `doc/compare/code/` configurés avant

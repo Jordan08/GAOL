@@ -999,17 +999,17 @@ MinGW-w64 pour x86 n'avait pas de FMA (CORE-MATH et les puissances entières app
 
 | PR | Contenu | Décisions qu'elle exécute |
 |----|---------|---------------------------|
-| #165 | commentaires de la CI et de `doc/compare/code/`, `setup.sh` sans `-U`, `process.md` §10, `NI` et `FS` documentés | #161 textes, #161 `setup.sh`, #160 `process.md`, #154 `NI`/`FS` |
-| #166 | dix jobs de plus pour le banc A/B, cache des programmes de la base, `run_perf.sh` dans le filtre, `LINE_LIST` vide | #160 filtre, jobs et cache |
+| #165 (fusionnée) | commentaires de la CI et de `doc/compare/code/`, `setup.sh` sans `-U`, `process.md` §10, `NI` et `FS` documentés | #161 textes, #161 `setup.sh`, #160 `process.md`, #154 `NI`/`FS` |
+| #166 (fusionnée) | dix jobs de plus pour le banc A/B, cache des programmes de la base, `run_perf.sh` dans le filtre, `LINE_LIST` vide | #160 filtre, jobs et cache |
 | #167 | Cygwin avec les drapeaux de GCC pour Windows, six directions partout, `-mavx512f`, `-march` et `-faligned-new=8` documentés | #163 |
 | #168 (fermée) | noyau mixte du produit FPU | #157 piste |
 | #169 | le vide dans `pow`, le carré FPU | #162 |
 | #170 | jobs FPU x86-64 et arm64 GCC avec le sens préservé, commentaire d'`operator*=` | #157 `GAOL_RND_KEEP()` |
 | #171 | test des bits du signe de `x * d` | #161 |
 | #172 | GCC pour Windows en 32 bits : `-mfma -mprefer-vector-width=128`, un job sans FMA | #163, x86 32 bits |
-| #173 (brouillon) | un job Cygwin GCC x64 | #163, Cygwin |
+| #173 (brouillon) | un job Cygwin GCC x64 ; il a montré que GAOL ne compile pas sous Cygwin sans `-D_GNU_SOURCE`, que son `fma()` est faux à `-O0` et qu'une borne de `sinh` n'enveloppe pas la valeur ; refuser ou porter Cygwin : au mainteneur | #163, Cygwin |
 
-Chacune a eu sa relecture indépendante (sauf #168, expérience, et #173, dont la première exécution tient lieu de relecture) ; la CI de #165, #166 et #167 à #171 est verte (le 23 octobre à minuit).
+Chacune a eu sa relecture indépendante (sauf #168, expérience, et #173, dont la première exécution tient lieu de relecture) ; la CI de #165, #166 et #167 à #171 était verte (le 23 octobre à minuit) ; #165 et #166 sont fusionnées par le mainteneur.
 
 ---
 
