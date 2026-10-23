@@ -476,7 +476,8 @@ string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
 #    GitHub, the 38 tests passing in each variant): pow(x, 3) took 70.5 ns
 #    rather than 12.2, log 265.7 rather than 81.2 and cos 489.6 rather than
 #    138.2 (15.2). The objects held 4709 lines with %ymm with -mfma alone (600
-#    with 14.2) and none with the two options, at the same speed; that bug
+#    with 14.2) and none with the two options, at the same speed (GCC 13.2:
+#    9 lines in two test objects, with both); that bug
 #    54412 acts on x86 too was not shown (GCC realigns the stack itself for
 #    the 256-bit spills it makes for 32-bit Linux), and the two options are
 #    given together there so that the objects hold no 256-bit register.

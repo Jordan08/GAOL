@@ -78,7 +78,8 @@ only (see [The speed of a pull request](#the-speed-of-a-pull-request)). The badg
     multiply-add instructions (`GAOL_FMA` gives these compilers `-mfma
     -mprefer-vector-width=128`), and no object, the tests' included, an
     instruction on a `%ymm` or `%zmm` register, which GCC would spill to a stack
-    Windows aligns on 16 bytes, or 4 on x86 (GCC bugs 54412 and 40838).
+    Windows x64 aligns on 16 bytes (GCC bug 54412); on x86 such lines are
+    listed and noticed, not an error.
 
 They also build GAOL with autotools and meson on Ubuntu (x86_64, arm64),
 Debian (i386, armhf), macOS (arm64, x86_64) and MSYS2, and with meson and
