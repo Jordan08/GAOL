@@ -27,10 +27,10 @@
 # intervals are drawn (default: perf in the current directory, the build
 # directory), and REPORT, the report written (default: ../performance.md).
 # LINE_LIST names the long lines to run, separated by commas (default: the ten
-# of them; set and empty: none, which is not what run_lines.sh does with an
-# empty LINE_LIST, where it runs the ten). The machine should do nothing else
-# meanwhile, and be the one results.csv and results_lines.csv were measured on
-# (see machine.txt and machine_lines.txt), for the columns to compare.
+# of them; set and empty: none, as for run_lines.sh (GAOL v5)). The machine
+# should do nothing else meanwhile, and be the one results.csv and
+# results_lines.csv were measured on (see machine.txt and machine_lines.txt),
+# for the columns to compare.
 #
 # Copyright (c) 2026 ENSTA, France
 #

@@ -24,6 +24,14 @@
 #   --lines                   the long lines too: gaol_bench of each build, run
 #                             on the same intervals, drawn by the bench.py of
 #                             the build after (default: no)
+#   --before-cache DIR        a directory that keeps the programs of the build
+#                             before from one run to the next (the cache of a
+#                             workflow, keyed by the commit built and the
+#                             options): if it holds gaol_performance (and with
+#                             --lines gaol_bench, or the note that the build has
+#                             none), the build before is not made and those are
+#                             run; else it is made, and the programs are copied
+#                             to DIR. The build after is always made
 #   --build-dir DIR           where the builds go (default: perf-build)
 #   --output DIR              where the outputs go (default: .)
 #
@@ -54,6 +62,7 @@ before_options=
 after_options=
 runs=3
 lines=0
+before_cache=
 build_dir=perf-build
 output=.
 python=${PYTHON:-python3}
@@ -69,7 +78,7 @@ lines_repeats=3
 while [ $# -gt 0 ]; do
   case $1 in
     --lines) lines=1; shift; continue ;;
-    --before-src|--after-src|--options|--before-options|--after-options|--runs|--build-dir|--output)
+    --before-src|--after-src|--options|--before-options|--after-options|--runs|--build-dir|--output|--before-cache)
       if [ $# -lt 2 ]; then echo "performance-ab.sh: $1 needs a value" >&2; exit 2; fi ;;
     *) echo "performance-ab.sh: unknown option $1 (see the comment at the top of the script)" >&2; exit 2 ;;
   esac
@@ -82,6 +91,7 @@ while [ $# -gt 0 ]; do
     --runs) runs=$2 ;;
     --build-dir) build_dir=$2 ;;
     --output) output=$2 ;;
+    --before-cache) before_cache=$2 ;;
   esac
   shift 2
 done
@@ -120,7 +130,22 @@ case "${CMAKE_GENERATOR:-}" in
   *) build_type=-DCMAKE_BUILD_TYPE=$config ;;
 esac
 
+# The build before kept by an earlier run (--before-cache): gaol_performance is
+# there, and with --lines gaol_bench too, or the note that the build had none
+cache_hit=0
+if [ -n "$before_cache" ] && find_exe "$before_cache" gaol_performance > /dev/null; then
+  if [ "$lines" = 0 ] || find_exe "$before_cache" gaol_bench > /dev/null || [ -f "$before_cache/no-gaol_bench" ]; then
+    cache_hit=1
+  fi
+fi
+
 for v in before after; do
+  if [ "$v" = before ] && [ "$cache_hit" = 1 ]; then
+    group "GAOL before: the programs kept in $before_cache"
+    ls -l "$before_cache"
+    endgroup
+    continue
+  fi
   group "GAOL $v: $(sources_of "$v") $(options_of "$v")"
   # The options are split on their blanks, as they say
   # shellcheck disable=SC2046,SC2086
@@ -128,7 +153,11 @@ for v in before after; do
   cmake --build "$build_dir/$v" --config "$config" -j "$jobs" --target gaol_performance
   endgroup
 done
-before_exe=$(find_exe "$build_dir/before/tests" gaol_performance) || { echo "performance-ab.sh: no gaol_performance in $build_dir/before/tests" >&2; exit 1; }
+if [ "$cache_hit" = 1 ]; then
+  before_exe=$(find_exe "$before_cache" gaol_performance)
+else
+  before_exe=$(find_exe "$build_dir/before/tests" gaol_performance) || { echo "performance-ab.sh: no gaol_performance in $build_dir/before/tests" >&2; exit 1; }
+fi
 after_exe=$(find_exe "$build_dir/after/tests" gaol_performance) || { echo "performance-ab.sh: no gaol_performance in $build_dir/after/tests" >&2; exit 1; }
 
 # run_all NAME EXTENSION [ARGUMENT...]: the programs of the two builds, NAME-before-i
@@ -154,9 +183,17 @@ if [ "$lines" = 1 ]; then
   group "The long lines of doc/compare/code/run_lines.sh"
   ok=1
   for v in before after; do
+    if [ "$v" = before ] && [ "$cache_hit" = 1 ]; then
+      if [ -f "$before_cache/no-gaol_bench" ]; then
+        warning "the build before has no gaol_bench that builds here (kept note): the long lines are left out"
+        ok=0
+      fi
+      continue
+    fi
     if ! cmake --build "$build_dir/$v" --config "$config" -j "$jobs" --target gaol_bench; then
       warning "the build $v has no gaol_bench that builds here: the long lines are left out"
       ok=0
+      if [ "$v" = before ]; then no_bench_before=1; fi
     fi
   done
   if [ "$ok" = 1 ] && ! "$python" -c 'import numpy' > /dev/null 2>&1; then
@@ -168,8 +205,9 @@ if [ "$lines" = 1 ]; then
     }
   fi
   if [ "$ok" = 1 ]; then
+    if [ "$cache_hit" = 1 ]; then before_bench_dir=$before_cache; else before_bench_dir=$build_dir/before; fi
     # shellcheck disable=SC2015
-    before_exe=$(find_exe "$build_dir/before" gaol_bench) && after_exe=$(find_exe "$build_dir/after" gaol_bench) \
+    before_exe=$(find_exe "$before_bench_dir" gaol_bench) && after_exe=$(find_exe "$build_dir/after" gaol_bench) \
       && "$python" "$after_src/doc/compare/code/bench.py" data "$lines_n" "$build_dir/lines-data.bin" \
       && line_list=$("$python" "$after_src/doc/compare/code/bench.py" line-names) \
       && run_all perf-lines csv "$build_dir/lines-data.bin" "$lines_repeats" "$line_list" || {
@@ -178,4 +216,20 @@ if [ "$lines" = 1 ]; then
     }
   fi
   endgroup
+fi
+
+# The programs of the build before, kept for the next run (--before-cache): only
+# when this run made them, and what was measured is what is kept
+if [ -n "$before_cache" ] && [ "$cache_hit" = 0 ]; then
+  mkdir -p "$before_cache"
+  cp "$(find_exe "$build_dir/before/tests" gaol_performance)" "$before_cache/"
+  if [ "$lines" = 1 ]; then
+    # A build of gaol_bench that failed leaves no program of this run to keep
+    # (a stale one of an earlier run in the same directory would be wrong)
+    if [ "${no_bench_before:-0}" = 1 ]; then
+      echo "the build before has no gaol_bench that builds here" > "$before_cache/no-gaol_bench"
+    elif exe=$(find_exe "$build_dir/before" gaol_bench); then
+      cp "$exe" "$before_cache/"
+    fi
+  fi
 fi

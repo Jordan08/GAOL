@@ -235,6 +235,14 @@ point Q), which `numbers` checks there too.
   empty after them: the `fesetexceptflag()` of mingw-w64 for 32-bit
   Windows unmasked the exceptions, and the comparison of the NaN
   bounds of an empty interval then killed the program (GAOL v5).
+  The square of an empty interval and the forms of `pow` that return as `sqr`
+  does for it (`pow(x, 2)` with an `int`, an `unsigned`, a `long long`, a
+  `double` and an interval `[2]`, `pow(x, 2.5)`, `pow(x, 5000000000LL)`,
+  `pow(x, y)` with an empty operand, `gaol_ieee1788::pown(x, 2)` and
+  `gaol_ieee1788::pow(x, y)`) have to leave the rounding direction as the
+  program had it, in each direction the test sets (15 forms; four, or six with
+  the SSE instructions): those of `pow` that checked the direction before
+  returning the empty set left it upward (GAOL v5).
   `is_empty()` has to be true for six empty sets (`interval::emptyset()`,
   `[3, 2]`, `sqrt([-2, -1])`, `log([-2, -1])` and the two orders of
   `[1, 2] & [3, 4]`) and false for three nonempty intervals, and to raise no
