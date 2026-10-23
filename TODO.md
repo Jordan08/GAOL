@@ -1334,7 +1334,8 @@ sans l'accord explicite du mainteneur.
   octobre au soir, après la lecture de ses résultats (ses patches sont dans le
   scratchpad de la session, hors dépôt), comme `todo-ai-fpu-mixed-kernel` (#168,
   fermée sans fusion). Les branches de #165 (`todo-ai-textes-suites`) et de #166
-  (`todo-ai-perf-ci-suites`) sont supprimées sur GitHub à la fusion. Reste sur GitHub `todo-ai-msvc-avx512`
+  (`todo-ai-perf-ci-suites`) sont supprimées sur GitHub à la fusion. Reste sur
+  GitHub `todo-ai-msvc-avx512`
   (sans pull request, gardée, Q16) et celles des pull requests ouvertes
   ci-dessous.
   Les sept dossiers de build de GAOL de `doc/compare/code/` configurés avant
