@@ -3320,7 +3320,7 @@ int main()
     }
 #if defined(__aarch64__)
     /*
-      FPCR.AH (bit 1, FEAT_AFP of Armv8.7; GAOL v5, point AP of TODO.md), which
+      FPCR.AH (bit 1, FEAT_AFP of Armv8.7; GAOL v5, point 129 of TODO.md), which
       GAOL does not clear: with it, FMAX and FMAXP return the second operand for
       two zeros of different signs (and for a NaN), where they rank +0 above -0.
       The NEON kernels take a maximum (the products, the square) and sqrt() took
@@ -3355,7 +3355,7 @@ int main()
       for (const AhOperation& op : ah_operations) {
         for (const interval& x : ah_operands) {
           for (const interval& y : ah_operands) {
-            write_fpcr(saved);
+            write_fpcr(saved & ~ah);
             const interval without = op.run(x, y);
             write_fpcr(saved | ah);
             const interval with = op.run(x, y);
