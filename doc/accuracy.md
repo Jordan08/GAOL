@@ -249,7 +249,13 @@ the bits of the SSE2 intervals (checked against a model of their kernels, not
 by running them) for the products of finite bounds but for that sign, and for
 the quotients by a divisor without zero: `[0, 1] / [-2, -1]` has the upper
 bound −0, where the FPU intervals gave +0 before, the zero bound of the
-dividend being divided. The two
+dividend being divided. `div_rel(K, J, I)` of the SSE2 intervals takes the code
+of the FPU and the NEON intervals where a bound of K is 2^500 or more in
+magnitude, or a bound of J that is not 0 is below 2^-500 (GAOL v5, point 79 of
+TODO.md: the quotients of the vectors may overflow), so that a zero lower bound
+may have the sign of that code: `div_rel([0, 0x1.e2ab041732196p-5], [2^-1074,
+0x1.182p+9], [-DBL_MAX, 0x1.70ef9db22d0e5p+2])` is [0, 5.764625] where the
+vector code gives [−0, 5.764625] for a J from 1. The two
 paths of the SSE2 intervals, with and without `GAOL_PREFER_AVX512`, give the
 same bits, but for the sign of a zero bound of `x * d` and `x *= d` where the
 zero bounds of x have different signs, `[+0, -0]` (+0 and −0 are the same
