@@ -1552,8 +1552,7 @@ listed below, and the processor then stops the program (with \code{SIGFPE} on
 Linux) instead of letting the operation give its bounds.\newinvfive
 
 \begin{itemize}
-\item An infinite bound comes from a division by zero or from an overflow:
-  \code{log(interval(0,~1))}, which is \itv{-\infty}{0}, raises the
+\item \code{log(interval(0,~1))}, which is \itv{-\infty}{0}, raises the
   divide-by-zero exception; \code{interval(1e308)*10}, which is
   \itv{\text{DBL\_MAX}}{+\infty}, raises the overflow exception.
 \item Almost every operation raises the inexact exception: most bounds are
@@ -1594,10 +1593,8 @@ Linux) instead of letting the operation give its bounds.\newinvfive
   \code{interval(NAN,~1)}, \code{x~=~NAN}, \code{x~+=~NAN} (and \code{-=},
   \code{*=}, \code{/=}, \code{\%=}), \code{x~\&=~NAN}, \code{x~<=~NAN} and
   \code{pow(x,~NAN)} compared it with \code{<} or \code{<=}. An empty operand
-  may still raise the other exceptions: the sum of two empty intervals raises
-  the inexact one where GAOL checks the rounding direction with an addition,
-  and \code{atanh\_rel(interval(-1,~2),~x)} for an empty \code{x} raises the
-  divide-by-zero one while it computes \code{atanh(interval(-1,~2))}. The
+  may still raise the inexact exception: the sum of two empty intervals does
+  where GAOL checks the rounding direction with an addition. The
   vector comparisons of 64-bit ARM (\code{fcmgt}, \code{fcmge}) signal the
   invalid-operation exception on a NaN: the NEON operations tell the empty set,
   the infinite bounds and the zeros from the bits of the bounds, and compare no
@@ -1664,6 +1661,24 @@ Linux) instead of letting the operation give its bounds.\newinvfive
   relational division and the inverse of a divisor with a zero bound
   (\code{interval(1,~2)/interval(0,~2)}, \code{inverse(interval(0,~2))},
   \code{pow(interval(0,~2),~-1)}). This list is not exhaustive.\newinvfive
+\item The overflow and the division-by-zero exceptions are no longer raised
+  for a result that has no infinite bound. Some functions computed beyond the
+  largest double on the way, or divided by zero, and raised them for a finite
+  result, the empty set included: \code{sqrt(interval(1,~DBL\_MAX))},
+  \code{nth\_root(interval(DBL\_MAX),~3)} and the roots of order 4 and more,
+  and the relational \code{sqrt\_rel()} and \code{nth\_root\_rel()} (the
+  product that proves a root exact is $2^{1024}$ for the square root of
+  \code{DBL\_MAX}), \code{sin(interval(-1,~DBL\_MAX))} and \code{cos()}
+  (the width of the interval), \code{tan(interval(DBL\_MAX))} ($x+\pi/2$),
+  \code{div\_rel()} (the quotient by a divisor next to $2^{-1074}$),
+  \code{atan\_rel()}, \code{atan2\_rel\_x()} and \code{atan2\_rel\_y()},
+  \code{pow\_rel()} and \code{pow\_exponent\_rel()} (the powers beyond the
+  largest double that their searches try, and the exponents next to
+  $2^{-1074}$), and \code{atanh\_rel()} (atanh at $-1$ and $1$). A quotient, a
+  product or a power that would overflow is the infinity, or the largest
+  double, that the operation gives, without being computed, where it is only
+  an intermediate value: the exceptions still tell an infinite bound of the
+  result, as above. This list is not exhaustive either.\newinvfive
 \end{itemize}
 
 \noindent

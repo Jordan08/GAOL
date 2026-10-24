@@ -1689,8 +1689,7 @@ operations raise some, as listed below, and the processor then stops the
 program (with SIGFPE on Linux) instead of letting the operation give its
 bounds.
 
-- An infinite bound comes from a division by zero or from an overflow:
-  `log([0, 1])`, which is `[-oo, 0]`, raises the divide-by-zero exception;
+- `log([0, 1])`, which is `[-oo, 0]`, raises the divide-by-zero exception;
   `[1e308]*10`, which is `[DBL_MAX, +oo]`, raises the overflow exception.
 - Almost every operation raises the inexact exception: most bounds are rounded
   results, and where GAOL checks the rounding direction with an addition,
@@ -1727,11 +1726,9 @@ bounds.
   empty set for `interval(d)`, raises it no longer either: `interval(NAN)`,
   `interval(NAN, 1)`, `x = NAN`, `x += NAN` (and `-=`, `*=`, `/=`, `%=`),
   `x &= NAN`, `x <= NAN` and `pow(x, NAN)` compared it with `<` or `<=`. An
-  empty operand may still raise the other exceptions: the sum of two empty
-  intervals raises the inexact one where GAOL checks the rounding direction
-  with an addition, and `atanh_rel([-1, 2], x)` for an empty `x` raises the
-  divide-by-zero one while it computes `atanh([-1, 2])`. The vector
-  comparisons of 64-bit ARM (`fcmgt`, `fcmge`) signal the invalid-operation
+  empty operand may still raise the inexact exception: the sum of two empty
+  intervals does where GAOL checks the rounding direction with an addition.
+  The vector comparisons of 64-bit ARM (`fcmgt`, `fcmge`) signal the invalid-operation
   exception on a NaN: the NEON operations tell the empty set, the infinite
   bounds and the zeros from the bits of the bounds, and compare no bound as a
   double before they know it is no NaN.
@@ -1788,6 +1785,24 @@ bounds.
   division and the inverse of a divisor with a zero bound (`[1, 2]/[0, 2]`,
   `[1, 2]%[-2, 0]`, `inverse([0, 2])`, `pow([0, 2], -1)`). This list is not
   exhaustive.
+- The overflow and the division-by-zero exceptions are no longer raised for a
+  result that has no infinite bound (GAOL v5). Some functions computed beyond
+  the largest double on the way, or divided by zero, and raised them for a
+  finite result, the empty set included: `sqrt([1, DBL_MAX])`,
+  `nth_root([DBL_MAX], 3)` and the roots of order 4 and more, and the relational
+  `sqrt_rel()` and `nth_root_rel()` (the product that proves a root exact is
+  2^1024 for the square root of `DBL_MAX`), `sin([-1, DBL_MAX])` and `cos()`
+  (the width of the interval), `tan([DBL_MAX])` (x + pi/2),
+  `div_rel([1], [2^-1074, 1], [1, 2])` (the quotient by a divisor next to
+  2^-1074), `atan_rel()`, `atan2_rel_x()` and `atan2_rel_y()`, `pow_rel()` and
+  `pow_exponent_rel()` (the powers beyond the largest double that their searches
+  try, and the exponents next to 2^-1074), and `atanh_rel()` (atanh at -1 and
+  1). A quotient, a product or a power that would overflow is the infinity, or
+  the largest double, that the operation gives, without being computed, where
+  it is only an intermediate value: the exceptions still tell an infinite
+  bound of the result, as above. This list is not exhaustive either, and the
+  tests check these functions and the others of the same kind on operands next
+  to the limits of the doubles (`tests/rounding_direction.cpp`).
 
 An empty operand, and the nonempty operands tested, raising no
 invalid-operation exception therefore does not make that exception safe to

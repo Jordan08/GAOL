@@ -315,7 +315,26 @@ point Q), which `numbers` checks there too.
   DBL_MAX + 1, and raised the flag for `floor_rel([DBL_MAX], [0, 1])`, which
   is empty, and for `floor_rel([0, DBL_MAX], [0, 1])`, [0, 1] (GAOL v5);
   Clang for 64-bit ARM still did, computing the sum before the test that
-  leaves it out and choosing afterwards. Every
+  leaves it out and choosing afterwards. Then 28 calls of functions that
+  computed beyond the largest double on the way, `sqrt()`, `nth_root()` with
+  orders of every kind, `sin()`, `cos()`, `tan()`, `sqrt_rel()`,
+  `nth_root_rel()`, `acos_rel()`, `asin_rel()`, `atan_rel()`, `atanh_rel()`,
+  `div_rel()`, `atan2_rel_x()`, `atan2_rel_y()`, `pow()`, `pow_rel()` and
+  `pow_exponent_rel()`, are run on 20 000 draws of operands each, from the
+  doubles next to the largest and the smallest ones, powers of 2 and their
+  neighbours, any exponent and subnormal ones: whatever the draw, a result
+  with no infinite bound (the empty set included) has to come with neither the
+  overflow nor the division-by-zero flag (GAOL v5, point 79 of TODO.md). 24
+  cases of TODO.md and their like (`sqrt([1, DBL_MAX])`, `nth_root([DBL_MAX],
+  3)`, `sin([-1, DBL_MAX])`, `tan([DBL_MAX])`, `div_rel([1], [2^-1074, 1], [1,
+  2])`, `sqrt_rel([DBL_MAX], [-3, 0])`, `pow_rel([DBL_MAX], [2], I)`,
+  `pow_exponent_rel([DBL_MAX], [2], I)`, `atanh_rel([0, 1], [0])`...) have to
+  give their tightest bounds, computed apart with exact arithmetic and, for
+  the tangent, mpmath (a double or two more for the fifth root, for
+  `nth_root([DBL_MAX], -3)` and for `pow_rel()` with an exponent next to
+  2^-1074, as the test says), with neither flag, and the same bounds in a
+  child process that enabled both exceptions.
+  Every
   operation has to keep the exception flags the program raised (the five of
   IEEE 754, and on x86 the six of the SSE control register) and the exception
   masks, and the invalid-operation exception the program enabled has to stay
