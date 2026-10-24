@@ -557,7 +557,10 @@ Les questions ouvertes de la description de #155, non corrigées et sans numéro
 - **L'en-tête** de `process.md` renvoie au §12 au lieu de donner une date et un
   commit, qui se périmeraient à la fusion suivante. *Décidé le 22 octobre
   (Q9c)* : une date et un commit, c'est le 130.
-- La branche distante `todo-ai-msvc-avx512` n'a pas de pull request.
+- La branche distante `todo-ai-msvc-avx512` n'avait pas de pull request :
+  son dernier commit (`fbb962c`) est un ancêtre de `configure-clean`, elle ne
+  portait rien de plus ; supprimée sur GitHub le 24 octobre, sur décision du
+  mainteneur (qui avait répondu de la garder le 22, Q16).
 
 ### Remarqué par #158, à trier
 
@@ -1297,10 +1300,10 @@ sans l'accord explicite du mainteneur.
   sur GitHub à la fusion ; en local, toutes celles des pull requests de #165 à
   #174 le 24 octobre. Les deux branches d'expérience du 24 octobre,
   `exp-cygwin-diag` et `exp-cygwin-diag2` (les mesures de la bibliothèque C de
-  Cygwin pour #175), sont supprimées le jour même. Reste sur
-  GitHub `todo-ai-msvc-avx512`
-  (sans pull request, gardée, Q16) et celles des pull requests ouvertes
-  ci-dessous.
+  Cygwin pour #175), sont supprimées le jour même. La branche
+  `todo-ai-msvc-avx512` (sans pull request, 0 commit de plus que
+  `configure-clean`) est supprimée sur GitHub le 24 octobre. Il ne reste sur
+  GitHub que `configure-clean`, `MATH-CORE` et `master`.
   Les sept dossiers de build de GAOL de `doc/compare/code/` configurés avant
   #161 sont supprimés le 23 octobre.
 - **Les lignes de crédit** : retirées le 20 octobre des descriptions de #15 à
@@ -1399,7 +1402,9 @@ octobre (les nouveaux numéros 128 à 133 sont ceux du point AP).
   request, semblant remplacée par #148) et `todo-fpcr-gcc-hoisting` (branche de
   #153, fermée sans fusion, correction dans #150) restent sur GitHub.
   *Le 23 octobre, la seconde n'est plus sur GitHub (supprimée le 20 octobre,
-  d'après le « Ménage » ci-dessus) : rien à restaurer.*
+  d'après le « Ménage » ci-dessus) : rien à restaurer. Le 24 octobre, le
+  mainteneur a fait supprimer aussi `todo-ai-msvc-avx512` (un ancêtre de
+  `configure-clean`).*
 
 ## Réponses du mainteneur, 23 octobre 2026
 

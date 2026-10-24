@@ -730,7 +730,7 @@ Chacun attend une réplique d'un fichier, vérifiée sur la plateforme, et un tr
 
 ---
 
-### QI.4 — `todo-ai-msvc-avx512` : branche sans pull request — DÉCIDÉ : garder
+### QI.4 — `todo-ai-msvc-avx512` : branche sans pull request — SUPPRIMÉE le 24 octobre
 
 **Branche.** `todo-ai-msvc-avx512` (0 commit au-delà de `configure-clean`, dernier commit `fbb962c` du 20 octobre 2026).
 
@@ -738,7 +738,7 @@ Chacun attend une réplique d'un fichier, vérifiée sur la plateforme, et un tr
 
 **Décision (Q16, 22 octobre 2026).** Garder la branche telle quelle.
 
-**État.** Gardée, sans PR.
+**État.** Gardée le 22 octobre (Q16), sans PR ; le 24 octobre elle avait 0 commit de plus que `configure-clean` (son dernier commit, `fbb962c`, en est un ancêtre) et 277 de moins : supprimée sur GitHub sur décision du mainteneur.
 
 ---
 
@@ -1033,7 +1033,7 @@ Chacune a eu sa relecture indépendante (sauf #168, expérience, et #173, dont l
 | Q13 | QJ.2 | #147 : lever `input_format_error` pour `textToInterval(nullptr)` |
 | Q14 | QJ.1 | #146 : (a) oui, porter le noyau `pow(x, 3)` arm64 ; (b) non, pas de test bits zéro ; (c) non, pas de jobs CI |
 | Q15 | QJ.10 | #124 : (a) `gaol_detail` ; (b) garder le plus rapide ; (c) non, ne pas modifier `math-core` |
-| Q16 | QI.4/QI.5 | Garder les deux branches `todo-ai-msvc-avx512` et `todo-fpcr-gcc-hoisting` |
+| Q16 | QI.4/QI.5 | Garder les deux branches `todo-ai-msvc-avx512` et `todo-fpcr-gcc-hoisting` — la première supprimée le 24 octobre (ancêtre de `configure-clean`), la seconde l'était depuis le 20 |
 
 ## Synthèse des décisions du 23 octobre 2026
 
