@@ -40,6 +40,14 @@
 #include <sstream>
 #include <cmath>
 #include <cfenv>
+// Whether the doubles are computed by SSE instructions, whose control register
+// MXCSR pow_up_without_overflow_exception() writes
+#if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+#  include <xmmintrin.h>
+#  define GAOL_POW_MASKS_MXCSR 1
+#else
+#  define GAOL_POW_MASKS_MXCSR 0
+#endif
 #include <string>
 #include <cerrno>
 #include <locale>
@@ -1242,18 +1250,25 @@ namespace gaol_core {
     if (t > 1024.000000001) {
       return GAOL_INFINITY;
     }
-    // The flags the program had are given back by fesetexceptflag(), which
-    // raises no exception, after fesetenv(): MinGW-w64 for 32-bit x86 left the
-    // flags of the masked section raised
-    std::fexcept_t flags;
-    std::fegetexceptflag(&flags, FE_ALL_EXCEPT);
+#if GAOL_POW_MASKS_MXCSR
+    // On x86 the doubles are computed by SSE instructions, whose exceptions
+    // the control register MXCSR masks (bits 7 to 12) and whose flags it holds
+    // (bits 0 to 5): written back as it was, it gives the program its masks
+    // and flags exactly, where the functions of <cfenv> of MinGW-w64 12 to 14
+    // left the flags of the masked section raised after fesetenv(), and
+    // crashed with fesetexceptflag() (the continuous integration)
+    const unsigned int csr = _mm_getcsr();
+    _mm_setcsr(csr | 0x1f80u);
+    const double power = upward::nthroot_up(x, y);
+    _mm_setcsr(csr);
+    return power;
+#else
     std::fenv_t environment;
     std::feholdexcept(&environment);
     const double power = upward::nthroot_up(x, y);
     std::fesetenv(&environment);
-    std::feclearexcept(FE_ALL_EXCEPT);
-    std::fesetexceptflag(&flags, FE_ALL_EXCEPT);
     return power;
+#endif
   }
 
   /*
