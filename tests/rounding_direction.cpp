@@ -44,9 +44,12 @@
  * bound, pow with an exponent of extreme magnitude, cancel_minus() and
  * cancel_plus() with bounds next to the largest double (point 78 of TODO.md)
  * and the relations in loops a compiler vectorizes raise it, nor the midpoint
- * of [DBL_MAX] the overflow exception; every operation
- * keeps the exception flags and masks of the program (GAOL v5, point D.24 of
- * TODO.md).
+ * of [DBL_MAX] the overflow exception; nor does any function that computed
+ * beyond the largest double on the way (sqrt(), the roots, sin(), cos(),
+ * tan(), div_rel(), the reverse functions...) raise the overflow or the
+ * division-by-zero exception for a result with no infinite bound (point 79);
+ * every operation keeps the exception flags and masks of the program (GAOL v5,
+ * point D.24 of TODO.md).
  *
  * On 64-bit ARM with GCC or Clang, whatever the intervals (NEON or FPU), the
  * control register FPCR is read and written directly, with mrs and msr, and on
@@ -2191,6 +2194,230 @@ namespace
   }
 
   /*
+    No overflow nor division-by-zero exception for a result with no infinite
+    bound (GAOL v5, point 79 of TODO.md): these exceptions tell an infinite
+    bound of the result (doc/using.md). The functions below raised the
+    overflow exception for a finite result, or an empty one, from an
+    intermediate value beyond the largest double: the product that proves a
+    square root or a cube root exact (u*u for the root of the largest double
+    is 2^1024), the powers that prove the bounds of the roots of order 4 and
+    more, the width of an interval from -1 to DBL_MAX in sin() and cos(), the
+    sum x + pi/2 of tan() at DBL_MAX, the quotients of div_rel() by a divisor
+    next to 2^-1074, the slopes of atan2_rel_x() and atan2_rel_y(), and the
+    powers of pow_rel() and pow_exponent_rel() beyond the doubles, which
+    their searches try; and atanh_rel() divided by zero for its limits at -1
+    and 1. Each function is run on operands drawn from the doubles next to
+    the limits of the format, the largest and the smallest ones, powers of 2,
+    and any exponent, and the flags it raises are read after it.
+  */
+  struct FlagFunction
+  {
+    const char *name;
+    int arity; // 1 to 3 operands
+    std::function<interval(const interval&, const interval&, const interval&)> f;
+  };
+
+  const std::vector<FlagFunction>& flag_functions()
+  {
+    static const std::vector<FlagFunction> functions = {
+      { "sqrt(x)", 1, [](const interval& x, const interval&, const interval&) { return sqrt(x); } },
+      { "nth_root(x, 3)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, 3u); } },
+      { "nth_root(x, 4)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, 4u); } },
+      { "nth_root(x, 5)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, 5u); } },
+      { "nth_root(x, 33)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, 33u); } },
+      { "nth_root(x, 1000)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, 1000u); } },
+      { "nth_root(x, 4294967295)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, 4294967295u); } },
+      { "nth_root(x, -2)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, -2); } },
+      { "nth_root(x, -3)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, -3); } },
+      { "nth_root(x, -2147483648)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, -2147483647LL - 1); } },
+      { "atan(x)", 1, [](const interval& x, const interval&, const interval&) { return atan(x); } },
+      { "sin(x)", 1, [](const interval& x, const interval&, const interval&) { return sin(x); } },
+      { "cos(x)", 1, [](const interval& x, const interval&, const interval&) { return cos(x); } },
+      { "tan(x)", 1, [](const interval& x, const interval&, const interval&) { return tan(x); } },
+      { "sqrt_rel(c, x)", 2, [](const interval& c, const interval& x, const interval&) { return sqrt_rel(c, x); } },
+      { "nth_root_rel(c, 3, x)", 2, [](const interval& c, const interval& x, const interval&) { return nth_root_rel(c, 3u, x); } },
+      { "nth_root_rel(c, 4, x)", 2, [](const interval& c, const interval& x, const interval&) { return nth_root_rel(c, 4u, x); } },
+      { "nth_root_rel(c, 5, x)", 2, [](const interval& c, const interval& x, const interval&) { return nth_root_rel(c, 5u, x); } },
+      { "acos_rel(c, x)", 2, [](const interval& c, const interval& x, const interval&) { return acos_rel(c, x); } },
+      { "asin_rel(c, x)", 2, [](const interval& c, const interval& x, const interval&) { return asin_rel(c, x); } },
+      { "atan_rel(c, x)", 2, [](const interval& c, const interval& x, const interval&) { return atan_rel(c, x); } },
+      { "atanh_rel(c, x)", 2, [](const interval& c, const interval& x, const interval&) { return atanh_rel(c, x); } },
+      { "div_rel(c, b, x)", 3, [](const interval& c, const interval& b, const interval& x) { return div_rel(c, b, x); } },
+      { "atan2_rel_x(c, y, x)", 3, [](const interval& c, const interval& y, const interval& x) { return atan2_rel_x(c, y, x); } },
+      { "atan2_rel_y(c, x, y)", 3, [](const interval& c, const interval& x, const interval& y) { return atan2_rel_y(c, x, y); } },
+      { "pow(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return pow(x, y); } },
+      { "gaol_ieee1788::pow(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return gaol_ieee1788::pow(x, y); } },
+      { "pow_rel(c, b, x)", 3, [](const interval& c, const interval& b, const interval& x) { return pow_rel(c, b, x); } },
+      { "pow_exponent_rel(c, a, x)", 3, [](const interval& c, const interval& a, const interval& x) { return pow_exponent_rel(c, a, x); } },
+    };
+    return functions;
+  }
+
+  // A double next to the limits of the format, or any: the largest and the
+  // smallest, 2^k and its neighbours, any exponent, and the integers over 8
+  double limit_double(Random& random)
+  {
+    double d;
+    switch (random.integer(0, 9)) {
+      case 0:
+      case 1:
+      case 2: { // The largest double or one of the 5 below it
+        d = largest;
+        for (int i = random.integer(0, 5); i > 0; --i) {
+          d = previous_double(d);
+        }
+        break;
+      }
+      case 3:
+      case 4: { // 2^k, or a neighbour
+        d = std::ldexp(1.0, random.integer(-1074, 1023));
+        const int side = random.integer(0, 2);
+        d = (side == 1) ? previous_double(d) : ((side == 2) ? next_double(d) : d);
+        break;
+      }
+      case 5: // Any exponent
+        d = random.any();
+        break;
+      case 6: // A subnormal
+        d = std::ldexp(static_cast<double>(random.integer(1, 1000000)), -1074);
+        break;
+      case 7: { // An exponent next to the limits
+        const bool high = random.integer(0, 1) == 0;
+        d = random.positive(high ? 990 : -1022, high ? 1023 : -990);
+        break;
+      }
+      case 8: // An integer over 8
+        d = random.integer(-8000, 8000)/8.0;
+        break;
+      default: // A moderate double
+        d = random(-60, 60);
+        break;
+    }
+    return (random.bits() & 1u) != 0 ? -d : d;
+  }
+
+  interval limit_interval(Random& random)
+  {
+    double l = limit_double(random), r = (random.integer(0, 4) == 0) ? l : limit_double(random);
+    if (l > r) {
+      std::swap(l, r);
+    }
+    return make(l, r);
+  }
+
+  bool has_infinite_bound(const interval& z)
+  {
+    return !z.is_empty() && (std::fabs(z.left()) == GAOL_INFINITY || std::fabs(z.right()) == GAOL_INFINITY);
+  }
+
+  // The flags the functions raise on draws of operands, the same ones for a
+  // function whichever the order of the table
+  void flag_functions_raise_no_exception_for_a_finite_result()
+  {
+    const int draws = 20000;
+    for (const FlagFunction& g : flag_functions()) {
+      Random random;
+      for (int i = 0; i < draws; ++i) {
+        const interval a = limit_interval(random);
+        const interval b = (g.arity >= 2) ? limit_interval(random) : interval::emptyset();
+        const interval c = (g.arity >= 3) ? limit_interval(random) : interval::emptyset();
+        std::feclearexcept(FE_ALL_EXCEPT);
+        const interval z = g.f(a, b, c);
+        const int flags = std::fetestexcept(FE_OVERFLOW | FE_DIVBYZERO);
+        const bool bad = flags != 0 && !has_infinite_bound(z);
+        check(std::string(g.name) + ": no overflow nor division by zero for a result with no infinite bound", !bad,
+              [&] {
+                return std::string((flags & FE_OVERFLOW) != 0 ? "overflow" : "division by zero") + ", operands "
+                  + hex(a) + (g.arity >= 2 ? " " + hex(b) : "") + (g.arity >= 3 ? " " + hex(c) : "") + ", result " + hex(z);
+              });
+      }
+    }
+  }
+
+  /*
+    The cases the exceptions of which kill a program that enabled them, run in
+    a child process with the overflow and the division-by-zero exceptions
+    enabled (the cases of TODO.md, the largest double as an operand, divisors
+    and exponents next to 2^-1074): each has to give its tightest bounds,
+    computed apart with exact arithmetic (mpmath for the tangent), when the
+    exceptions are masked, and the same when they are enabled. Three give a
+    double or two more, which the table says with its slack: the fifth root,
+    whose proofs round (2 doubles, as nth_root() documents), the inverse of
+    the enclosure of the cube root, nth_root(x, -3) (its upper bound is one
+    double above the tightest one), and pow_rel() for an exponent next to
+    2^-1074, whose hull is {0} and which gives [0, 2^-1074], the bound c^(1/y)
+    being beyond the doubles
+  */
+  struct TrapCase
+  {
+    const char *name;
+    std::function<interval()> f;
+    double l, r; // The bounds, or the tightest ones
+    int slack; // The doubles allowed beyond them
+    bool empty;
+  };
+
+  const std::vector<TrapCase>& trap_cases()
+  {
+    static const std::vector<TrapCase> cases = {
+      { "sqrt([1, DBL_MAX])", [] { return sqrt(make(1.0, largest)); }, 1.0, 0x1p512, 0, false },
+      { "sqrt([DBL_MAX])", [] { return sqrt(make(largest, largest)); }, 0x1.fffffffffffffp+511, 0x1p512, 0, false },
+      { "nth_root([DBL_MAX], 2)", [] { return nth_root(make(largest, largest), 2u); }, 0x1.fffffffffffffp+511, 0x1p512, 0, false },
+      { "nth_root([DBL_MAX], 3)", [] { return nth_root(make(largest, largest), 3u); }, 0x1.428a2f98d728ap+341, 0x1.428a2f98d728bp+341, 0, false },
+      { "nth_root([DBL_MAX], 5)", [] { return nth_root(make(largest, largest), 5u); }, 0x1.bdb8cdadbe11fp+204, 0x1.bdb8cdadbe120p+204, 2, false },
+      { "nth_root([-DBL_MAX], 3)", [] { return nth_root(make(-largest, -largest), 3u); }, -0x1.428a2f98d728bp+341, -0x1.428a2f98d728ap+341, 0, false },
+      { "nth_root([DBL_MAX], -3)", [] { return nth_root(make(largest, largest), -3); }, 0x1.965fea53d6e3cp-342, 0x1.965fea53d6e3dp-342, 1, false },
+      { "sin([-1, DBL_MAX])", [] { return sin(make(-1.0, largest)); }, -1.0, 1.0, 0, false },
+      { "cos([-1, DBL_MAX])", [] { return cos(make(-1.0, largest)); }, -1.0, 1.0, 0, false },
+      { "tan([DBL_MAX])", [] { return tan(make(largest, largest)); }, -0x1.4530cfe729484p-8, -0x1.4530cfe729483p-8, 0, false },
+      { "div_rel([1], [2^-1074, 1], [1, 2])", [] { return div_rel(make(1.0, 1.0), make(smallest, 1.0), make(1.0, 2.0)); }, 1.0, 2.0, 0, false },
+      { "div_rel([DBL_MAX], [2^-1074, 1], [0, 2])", [] { return div_rel(make(largest, largest), make(smallest, 1.0), make(0.0, 2.0)); }, 0.0, 0.0, 0, true },
+      { "sqrt_rel([DBL_MAX], [-3, 0])", [] { return sqrt_rel(make(largest, largest), make(-3.0, 0.0)); }, 0.0, 0.0, 0, true },
+      { "sqrt_rel([DBL_MAX], [-2^513, 2^513])", [] { return sqrt_rel(make(largest, largest), make(-0x1p513, 0x1p513)); }, -0x1p512, 0x1p512, 0, false },
+      { "nth_root_rel([DBL_MAX], 3, [0, 2^342])", [] { return nth_root_rel(make(largest, largest), 3u, make(0.0, 0x1p342)); },
+        0x1.428a2f98d728ap+341, 0x1.428a2f98d728bp+341, 0, false },
+      { "nth_root_rel([DBL_MAX], 5, [0, 2^205])", [] { return nth_root_rel(make(largest, largest), 5u, make(0.0, 0x1p205)); },
+        0x1.bdb8cdadbe11fp+204, 0x1.bdb8cdadbe120p+204, 2, false },
+      { "atan_rel([-0.5, 0], [DBL_MAX])", [] { return atan_rel(make(-0.5, 0.0), make(largest, largest)); }, largest, largest, 0, false },
+      { "atan2_rel_y([0, 3], [0], [0, 2^1023])", [] { return atan2_rel_y(make(0.0, 3.0), make(0.0, 0.0), make(0.0, 0x1p1023)); }, 0.0, 0x1p1023, 0, false },
+      { "atan2_rel_x([0, 3], [0, 2^1023], [0])", [] { return atan2_rel_x(make(0.0, 3.0), make(0.0, 0x1p1023), make(0.0, 0.0)); }, 0.0, 0.0, 0, false },
+      { "pow_rel([DBL_MAX], [2], [0, 2^513])", [] { return pow_rel(make(largest, largest), make(2.0, 2.0), make(0.0, 0x1p513)); },
+        0x1.fffffffffffffp+511, 0x1p512, 0, false },
+      { "pow_rel([3], [2^512], [0, 2])", [] { return pow_rel(make(3.0, 3.0), make(0x1p512, 0x1p512), make(0.0, 2.0)); }, 1.0, above_one, 0, false },
+      { "pow_rel([0, 1/2], [-2^-1074, 2^-1022], [0, 1/2])", [] { return pow_rel(make(0.0, 0.5), make(-smallest, 0x1p-1022), make(0.0, 0.5)); }, 0.0, 0.0, 1, false },
+      { "pow_exponent_rel([DBL_MAX], [2], [0, 2000])", [] { return pow_exponent_rel(make(largest, largest), make(2.0, 2.0), make(0.0, 2000.0)); },
+        0x1.fffffffffffffp+9, 0x1p10, 0, false },
+      { "atanh_rel([0, 1], [0])", [] { return atanh_rel(make(0.0, 1.0), make(0.0, 0.0)); }, 0.0, 0.0, 0, false },
+    };
+    return cases;
+  }
+
+  // z has the bounds l and r, or the tightest ones l and r with slack doubles
+  // beyond each
+  bool is_case_result(const interval& z, const TrapCase& c)
+  {
+    if (c.empty) {
+      return z.is_empty();
+    }
+    if (z.is_empty()) {
+      return false;
+    }
+    double lo = c.l, hi = c.r;
+    for (int i = 0; i < c.slack; ++i) {
+      lo = previous_double(lo);
+      hi = next_double(hi);
+    }
+    return z.left() <= c.l && z.left() >= lo && z.right() >= c.r && z.right() <= hi;
+  }
+
+#if GAOL_TESTS_TRAPS
+  bool same_interval(const interval& a, const interval& b)
+  {
+    return (a.is_empty() && b.is_empty()) || (!a.is_empty() && !b.is_empty() && a.left() == b.left() && a.right() == b.right());
+  }
+#endif
+
+  /*
     The relations in loops, which a compiler vectorizes or if-converts (GAOL
     v5, point D.24): the comparison that follows a test of the empty set is
     then made for the empty operands too, and <, <=, >= or > raise the
@@ -3846,6 +4073,17 @@ int main()
     check("floor_rel() of a Z ending at DBL_MAX raises no overflow flag where its result has no infinite bound", raised == 0);
     check("floor_rel([DBL_MAX], [0, 1]) is empty and floor_rel([0, DBL_MAX], [0, 1]) is [0, 1]", right);
   }
+  flag_functions_raise_no_exception_for_a_finite_result();
+  std::vector<interval> trap_results;
+  for (const TrapCase& c : trap_cases()) {
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const interval z = c.f();
+    const int flags = std::fetestexcept(FE_OVERFLOW | FE_DIVBYZERO);
+    trap_results.push_back(z);
+    check(std::string(c.name) + ": the bounds", is_case_result(z, c), [&] { return hex(z); });
+    check(std::string(c.name) + ": no overflow nor division-by-zero flag", flags == 0,
+          [&] { return std::string((flags & FE_OVERFLOW) != 0 ? "overflow" : "division by zero"); });
+  }
   for (const RelationLoop& r : relation_loops) {
     std::feclearexcept(FE_ALL_EXCEPT);
     const volatile bool right = relation_loop_is_right(r);
@@ -3968,6 +4206,15 @@ int main()
     const Outcome of = run_with_exceptions_enabled(FE_OVERFLOW, floor_rel_at_dbl_max_is_right);
     check("floor_rel() of a Z ending at DBL_MAX, without an infinite bound, FE_OVERFLOW enabled", of == returned_true,
           [&] { return std::string(outcome_text(of)); });
+    // The cases of TODO.md and their like, which GAOL computed with the overflow
+    // and the division-by-zero exceptions masked in the loop above: the same
+    // bounds with both enabled
+    const std::vector<TrapCase>& cases = trap_cases();
+    for (std::size_t i = 0; i < cases.size(); ++i) {
+      const Outcome oc = run_with_exceptions_enabled(FE_OVERFLOW | FE_DIVBYZERO, [&] { return same_interval(cases[i].f(), trap_results[i]); });
+      check(std::string(cases[i].name) + ", FE_OVERFLOW and FE_DIVBYZERO enabled", oc == returned_true,
+            [&] { return std::string(outcome_text(oc)); });
+    }
   }
   if (run_with_exceptions_enabled(FE_UNDERFLOW, underflow_operation) != trapped) {
     std::printf("The processor does not trap an underflow here: the readings with the underflow exception "
