@@ -6149,14 +6149,20 @@ consequence, the constructors for \code{gaol\_exception} are as follows:
 \begin{defmethod}{gaol\_exception}{}{gaol\_exception}{(const char* \var{f}, unsigned \var{l}, \\\hbox{}\hfill const std::string\& \var{e})}
 Constructs a \code{gaol\_exception} being thrown from file \var{f} at
 line \var{l}. The second and third forms permit adding some explanatory
-string \var{e}. A null pointer \var{e} is no explanation.\newinvfive
+string \var{e}. A null pointer \var{e} is no explanation.\newinvfive{} A null
+pointer \var{f} is no file name: the exception reports the file
+\code{(unknown file)}, so that \code{file()} is not a null pointer and the
+``\code{<{}<}'' operator does not send one to a stream, which the C++
+standard leaves undefined (libstdc++ puts it in the state bad).\newinvfive
 \end{defmethod}
 
 \noindent
 The class offers the following accessors:
 
 \begin{defmethod}{gaol\_exception}{const char*}{file}{(void) const}
-  Return the name of the file from where the exception was thrown.
+  Return the name of the file from where the exception was thrown,
+  \code{(unknown file)} for a null pointer given to the constructor, never a
+  null pointer.\newinvfive
 \end{defmethod}
 
 \begin{defmethod}{gaol\_exception}{unsigned int}{line}{(void) const}
