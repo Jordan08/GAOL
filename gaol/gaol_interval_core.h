@@ -1396,10 +1396,13 @@ namespace gaol_core {
     A double strictly between the bounds (GAOL v5): the next double above the
     lower bound is below the upper bound, -MAX above -oo for [-oo, b], +oo
     above MAX for [MAX, +oo]. The bounds of a non-empty interval are no NaN.
+    next_float(), not nextafter(): that of Cygwin computes the overflow of
+    nextafter(MAX, +oo) as MAX + MAX, in the direction of the program, so that
+    [MAX, +oo] was bisectable rounding downward or toward zero (GAOL v5).
   */
   GAOL_INLINE bool interval::is_bisectable() const
   {
-    return !is_empty() && std::nextafter(left(), GAOL_INFINITY) < right();
+    return !is_empty() && next_float(left()) < right();
   }
 
   GAOL_INLINE interval interval::split_left(void) const
