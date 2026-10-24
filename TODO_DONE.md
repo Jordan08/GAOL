@@ -1,8 +1,8 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 24 octobre 2026
-(commit `1fd96ec` de `configure-clean`, aucune pull request ouverte). Ce fichier
-et l'issue #177 ont le même contenu.
+(commit `1fd96ec` de `configure-clean`, trois pull requests ouvertes : #180 à
+#182). Ce fichier et l'issue #177 ont le même contenu.
 
 Il réunit l'historique de l'ancienne issue #49 (« Suivi du TODO de GAOL v5 »),
 ce qui est fait dans l'ancienne issue #142 (« Reste à faire sur GAOL v5 »), dans
@@ -57,8 +57,9 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   requests des corrections vont vers `configure-clean`, qui reste la branche de
   développement après v5.0.0 ; `MATH-CORE` et `master` (GAOL 4.3.2, plus deux
   commits de `.claude/CLAUDE.md`) ne bougent qu'à la version (point Y).
-- **Aucune pull request ouverte.** Le mainteneur a fusionné #165 à #167, #169 à
-  #174 et #176 les 23 et 24 octobre ; #168 est fermée sans fusion.
+- **Trois pull requests ouvertes** (tâche PA de `TODO.md`) : #180, #181 et #182.
+  Le mainteneur a fusionné #165 à #167, #169 à #174 et #176 les 23 et 24 octobre
+  ; #168 est fermée sans fusion.
 - **Branches** : GitHub n'a plus que `configure-clean`, `MATH-CORE` et `master`.
   En local, la branche `todo-ai-cygwin-cpack-step` (#176, fusionnée) reste à
   supprimer.
