@@ -1544,6 +1544,80 @@ namespace
   };
 
   /*
+    The reading of a number above the largest double (GAOL v5, point 79 of
+    TODO.md): the reader gave the text of every number to strtod(), which
+    computes +oo for these and raises the overflow exception, so that 1e400 * 0,
+    which is [0], raised the flag that stands for an infinite bound of the
+    interval, and a program that had enabled the exception died while it
+    read. The reader now gives it only the numbers that cannot be above the
+    largest double (less than 10^308, or than 2^1023 in the other bases), and
+    places the others against the doubles by itself, from the largest one.
+    The bounds are the tightest ones: the largest double and +oo. The
+    uncertain form has its own path to the numbers.
+  */
+  const double max_of_doubles = (std::numeric_limits<double>::max)();
+  const EmptyOperand readings_above_the_largest_double[] = {
+    { "1e400", [] { return bounds_are(textToInterval("1e400"), max_of_doubles, GAOL_INFINITY); } },
+    { "-1e400", [] { return bounds_are(textToInterval("-1e400"), -GAOL_INFINITY, -max_of_doubles); } },
+    { "1.8e308", [] { return bounds_are(textToInterval("1.8e308"), max_of_doubles, GAOL_INFINITY); } },
+    { "0x1p1024", [] { return bounds_are(textToInterval("0x1p1024"), max_of_doubles, GAOL_INFINITY); } },
+    { "0x1.8p1024", [] { return bounds_are(textToInterval("0x1.8p1024"), max_of_doubles, GAOL_INFINITY); } },
+    { "9?e308", [] { return bounds_are(textToInterval("9?e308"), max_of_doubles, GAOL_INFINITY); } },
+    { "gaol_ieee1788::textToInterval(1e400)", [] { return bounds_are(gaol_ieee1788::textToInterval("1e400"), max_of_doubles, GAOL_INFINITY); } },
+    { "1e400*0", [] { return bounds_are(textToInterval("1e400*0"), 0.0, 0.0); } },
+    { "-1e400*0", [] { return bounds_are(textToInterval("-1e400*0"), 0.0, 0.0); } },
+    { "1.8e308*0", [] { return bounds_are(textToInterval("1.8e308*0"), 0.0, 0.0); } },
+    { "0x1p1024*0", [] { return bounds_are(textToInterval("0x1p1024*0"), 0.0, 0.0); } },
+    { "9?e308*0", [] { return bounds_are(textToInterval("9?e308*0"), 0.0, 0.0); } },
+    // The largest double itself, and numbers just below it, which strtod() does not overflow on
+    { "0x1.fffffffffffffp1023", [] { return bounds_are(textToInterval("0x1.fffffffffffffp1023"), max_of_doubles, max_of_doubles); } },
+    { "1.7e308", [] { return textToInterval("1.7e308").set_contains(1.7e308); } },
+  };
+
+  /*
+    The reading of a number below the least normal double (GAOL v5, decided on
+    2026-10-24): strtod() rounds it to a subnormal or to 0 and raises the
+    underflow exception, as it raised the overflow one above the largest double
+    (the readings above). The reader gives strtod() only the numbers that are
+    at least the least normal double, 2^-1022, compares the others with it, and
+    places the numbers below against the doubles by itself, from 0. The bounds
+    are the tightest ones: a point for a double, the two doubles around the
+    other numbers.
+  */
+  // The expected bounds are literals, not products: with the underflow exception enabled, the processor signals
+  // a tiny result, exact or not, and Clang does not fold it
+  const double smallest_double_read = std::numeric_limits<double>::denorm_min();
+  const EmptyOperand readings_below_the_least_normal_double[] = {
+    { "1e-400", [] { return bounds_are(textToInterval("1e-400"), 0.0, smallest_double_read); } },
+    { "-1e-400", [] { return bounds_are(textToInterval("-1e-400"), -smallest_double_read, 0.0); } },
+    { "0x1p-1075", [] { return bounds_are(textToInterval("0x1p-1075"), 0.0, smallest_double_read); } },
+    { "0x1p-1074", [] { return bounds_are(textToInterval("0x1p-1074"), smallest_double_read, smallest_double_read); } },
+    { "0x1.8p-1074", [] { return bounds_are(textToInterval("0x1.8p-1074"), smallest_double_read, 0x1p-1073); } },
+    { "0x1p-1022", [] { return bounds_are(textToInterval("0x1p-1022"), 0x1p-1022, 0x1p-1022); } },
+    { "0x1p-1021", [] { return bounds_are(textToInterval("0x1p-1021"), 0x1p-1021, 0x1p-1021); } },
+    { "4.9e-324", [] { return bounds_are(textToInterval("4.9e-324"), 0.0, smallest_double_read); } },
+    { "1e-310", [] {
+        const interval x = textToInterval("1e-310");
+        return x.set_contains(1e-310) && x.left() < x.right(); } },
+    { "2.3e-308", [] { return textToInterval("2.3e-308").set_contains(2.3e-308); } },
+    { "9?e-324", [] { return bounds_are(textToInterval("9?e-324"), smallest_double_read, 0x1p-1073); } },
+    { "gaol_ieee1788::textToInterval(1e-400)", [] {
+        return bounds_are(gaol_ieee1788::textToInterval("1e-400"), 0.0, smallest_double_read); } },
+  };
+
+  // The same numbers times 0, which are [0] without an underflow flag. They
+  // compute a product: with the underflow exception enabled, the processor
+  // signals every tiny result, exact or not, which the operations of GAOL do
+  // not avoid (the exceptions have to be masked while GAOL computes), so that
+  // these are checked for the flag only
+  const EmptyOperand products_of_readings_below_the_least_normal_double[] = {
+    { "1e-400*0", [] { return bounds_are(textToInterval("1e-400*0"), 0.0, 0.0); } },
+    { "1e-310*0", [] { return bounds_are(textToInterval("1e-310*0"), 0.0, 0.0); } },
+    { "0x1p-1075*0", [] { return bounds_are(textToInterval("0x1p-1075*0"), 0.0, 0.0); } },
+    { "9?e-324*0", [] { return bounds_are(textToInterval("9?e-324*0"), 0.0, 0.0); } },
+  };
+
+  /*
     Integer powers at the ends of the doubles (GAOL v5, points 8, 72, 73 and
     74 of TODO.md): an infinite bound, a power beyond the largest double or
     below the least subnormal, 0 for n < 0, and the exponents beyond the ints.
@@ -2339,6 +2413,15 @@ namespace
     volatile double big = (std::numeric_limits<double>::max)();
     volatile double product = 2.0*big;
     return product > big;
+  }
+
+  // An underflow, the least normal double squared: the control of the checks
+  // with the underflow exception enabled
+  bool underflow_operation()
+  {
+    volatile double small = (std::numeric_limits<double>::min)();
+    volatile double product = small*small;
+    return product < small;
   }
 #endif // GAOL_TESTS_TRAPS
 }
@@ -3650,6 +3733,31 @@ int main()
           [&] { return std::string(e.name); });
     check("a power next to the largest double: the expected result", right, [&] { return std::string(e.name); });
   }
+  for (const EmptyOperand& e : readings_above_the_largest_double) {
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const volatile bool right = e.run();
+    const int raised = std::fetestexcept(FE_OVERFLOW);
+    check("reading a number above the largest double raises no overflow flag", raised == 0,
+          [&] { return std::string(e.name); });
+    check("reading a number above the largest double: the tightest enclosure", right, [&] { return std::string(e.name); });
+  }
+  for (const EmptyOperand& e : readings_below_the_least_normal_double) {
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const volatile bool right = e.run();
+    const int raised = std::fetestexcept(FE_UNDERFLOW);
+    check("reading a number below the least normal double raises no underflow flag", raised == 0,
+          [&] { return std::string(e.name); });
+    check("reading a number below the least normal double: the tightest enclosure", right,
+          [&] { return std::string(e.name); });
+  }
+  for (const EmptyOperand& e : products_of_readings_below_the_least_normal_double) {
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const volatile bool right = e.run();
+    const int raised = std::fetestexcept(FE_UNDERFLOW);
+    check("a number below the least normal double times 0 raises no underflow flag", raised == 0,
+          [&] { return std::string(e.name); });
+    check("a number below the least normal double times 0 is [0]", right, [&] { return std::string(e.name); });
+  }
   for (const EmptyOperand& e : integer_powers_at_the_ends) {
     std::feclearexcept(FE_ALL_EXCEPT);
     const volatile bool right = e.run();
@@ -3852,9 +3960,24 @@ int main()
       check("the midpoints of an interval with a huge bound, FE_OVERFLOW enabled", oe == returned_true,
             [&] { return std::string(huge[i].name) + ": " + outcome_text(oe); });
     }
+    for (const EmptyOperand& e : readings_above_the_largest_double) {
+      const Outcome oe = run_with_exceptions_enabled(FE_OVERFLOW, e.run);
+      check("reading a number above the largest double, FE_OVERFLOW enabled", oe == returned_true,
+            [&] { return std::string(e.name) + ": " + outcome_text(oe); });
+    }
     const Outcome of = run_with_exceptions_enabled(FE_OVERFLOW, floor_rel_at_dbl_max_is_right);
     check("floor_rel() of a Z ending at DBL_MAX, without an infinite bound, FE_OVERFLOW enabled", of == returned_true,
           [&] { return std::string(outcome_text(of)); });
+  }
+  if (run_with_exceptions_enabled(FE_UNDERFLOW, underflow_operation) != trapped) {
+    std::printf("The processor does not trap an underflow here: the readings with the underflow exception "
+                "enabled are not checked\n");
+  } else {
+    for (const EmptyOperand& e : readings_below_the_least_normal_double) {
+      const Outcome oe = run_with_exceptions_enabled(FE_UNDERFLOW, e.run);
+      check("reading a number below the least normal double, FE_UNDERFLOW enabled", oe == returned_true,
+            [&] { return std::string(e.name) + ": " + outcome_text(oe); });
+    }
   }
 #else
   std::printf("feenableexcept() and fork() are those of glibc: the checks with the exceptions enabled are skipped\n");

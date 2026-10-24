@@ -1703,6 +1703,16 @@ bounds.
 - An infinite bound comes from a division by zero or from an overflow:
   `log([0, 1])`, which is `[-oo, 0]`, raises the divide-by-zero exception;
   `[1e308]*10`, which is `[DBL_MAX, +oo]`, raises the overflow exception.
+- Reading a number above the largest double (`1e400`, `1.8e308`, `0x1p1024`)
+  raises no overflow exception (GAOL v5): the reader gave it to `strtod()`,
+  which computes +oo and raises it, so that `1e400*0`, which is `[0]`, raised
+  the flag that stands for an infinite bound, and a program that had enabled
+  the exception died while it read. The interval read is `[DBL_MAX, +oo]`; an
+  operation on it raises the flag where its own result overflows (`1e400*2`,
+  `exp(1e400)`), as for any other interval. Nor does the reading of a number
+  below the least normal double (`1e-310`, `1e-400`, `0x1p-1075`) raise the
+  underflow exception, which `strtod()` raises when it rounds such a number to
+  a subnormal or to 0.
 - Almost every operation raises the inexact exception: most bounds are rounded
   results, and where GAOL checks the rounding direction with an addition,
   1 + 2^-60 or 1 + (2^-1060 + 0), whose result is inexact (see

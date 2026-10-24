@@ -854,7 +854,13 @@ enum gaol_literal_form {
   that is not a double is refused. <0.1, 0x1.9999999999999p-4>, the double
   just below 0.1, was read as the interval [0x1.9999999999999p-4], the lower
   bound of the interval of 0.1 being that double, and <0.1, 0.1> was refused
-  although the bounds are the same number.
+  although the bounds are the same number. A bound that is computed and is
+  not a double is refused too (GAOL v5, decided on 2026-10-24): its value is an
+  interval of more than one point, [0.1] being the two doubles around 0.1,
+  and <[0.1], 0x1.9999999999999p-4> was read as the point of the second, the
+  lower bound of the value of the first. A bound is a double when its value is
+  a point, as 0.5, (0.25+0.25) and [0.5] are: the two bounds of the value have
+  the same bits, -0 and +0 being one.
 */
 static expr_node *gaol_literal(void *context, gaol_literal_form form, expr_node *l, expr_node *r)
 {
@@ -879,6 +885,10 @@ static expr_node *gaol_literal(void *context, gaol_literal_form form, expr_node 
       } else if (gaol_inside(l) || gaol_inside(r)) {
         GAOL_PARSING_ERROR(context, input_format_error,
           "a bound of a degenerate interval is a number that is not a double");
+      } else if (!::gaol_detail::bound_equal(lv.left(), lv.right())
+                 || !::gaol_detail::bound_equal(rv.left(), rv.right())) {
+        GAOL_PARSING_ERROR(context, input_format_error,
+          "a bound of a degenerate interval is not a double: its value is not a point");
       } else if (::gaol_detail::bound_equal(lv.left(), rv.right())) {
         result = gaol_leaf(interval(lv.left(), rv.right()));
       } else {
