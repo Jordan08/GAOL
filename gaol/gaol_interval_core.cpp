@@ -2265,6 +2265,21 @@ namespace gaol_core {
   }
 
   /*
+    [+oo] and [-oo] contain no real number: numsToInterval(l, u) of IEEE
+    1788-2015 has no value for l = +oo or u = -oo (10.5.8). The constructors
+    and the operations make none, but interval(const __m128d&) and its NEON
+    counterpart do. pow gives the empty set for one as an exponent, and
+    pow_rel() and pow_exponent_rel() for one as the power, or as the exponent
+    or the base (GAOL v5: they took it for the limit of x^y). The caller has
+    tested for the empty set, whose NaN bounds this would compare with the
+    signaling comparisons
+  */
+  static inline bool holds_no_real(const interval& a)
+  {
+    return !(a.left() < GAOL_INFINITY && a.right() > -GAOL_INFINITY);
+  }
+
+  /*
     The pow of IEEE 1788-2015 (Table 9.1) for an interval exponent, the
     rounding direction being upward (GAOL v5): x^y for the x of x in [0, +oo]
     and the y of y, 0^y being defined for y > 0 only. The base is cut to
@@ -2278,11 +2293,9 @@ namespace gaol_core {
   static interval pow_standard_upward(const interval& x, const interval& y)
   {
     // An exponent [+oo] or [-oo] contains no real number, and gives the empty
-    // set, as the empty one: numsToInterval(l, u) of IEEE 1788-2015 has no
-    // value for l = +oo or u = -oo (10.5.8). The constructors and the
-    // operations make none, but interval(const __m128d&) does, as in
-    // gaol_pow_hybrid() (GAOL v5: gaol_ieee1788::pow([0.5], [+oo]) was [0])
-    if (x.is_empty() || y.is_empty() || !(y.left() < GAOL_INFINITY && y.right() > -GAOL_INFINITY)) {
+    // set, as the empty one, as in pow_hybrid_upward() (GAOL v5:
+    // gaol_ieee1788::pow([0.5], [+oo]) was [0])
+    if (x.is_empty() || y.is_empty() || holds_no_real(y)) {
       return interval::emptyset();
     }
 
@@ -2851,7 +2864,12 @@ namespace gaol_core {
   */
   static interval pow_rel_upward(const interval& K, const interval& J, const interval& I)
   {
-    if (K.is_empty() || J.is_empty() || I.is_empty()) {
+    // A power or an exponent [+oo] or [-oo] holds no real number: no y and no
+    // x (GAOL v5: pow_rel([2], [+oo], I) was [1, 1 + 2^-52] and
+    // pow_rel([+oo], [2], I) [DBL_MAX, +oo], limits of x^y). The x to find, I,
+    // needs no test: interval(lo, hi) of the result is empty for lo = +oo or
+    // hi = -oo
+    if (K.is_empty() || J.is_empty() || I.is_empty() || holds_no_real(K) || holds_no_real(J)) {
       return interval::emptyset();
     }
     const double xu = I.right(), cu = K.right();
@@ -2949,7 +2967,8 @@ namespace gaol_core {
   */
   static interval pow_exponent_rel_upward(const interval& K, const interval& H, const interval& I)
   {
-    if (K.is_empty() || H.is_empty() || I.is_empty()) {
+    // A power or a base [+oo] or [-oo] holds no real number, as in pow_rel_upward()
+    if (K.is_empty() || H.is_empty() || I.is_empty() || holds_no_real(K) || holds_no_real(H)) {
       return interval::emptyset();
     }
     const double xu = H.right(), cu = K.right();
