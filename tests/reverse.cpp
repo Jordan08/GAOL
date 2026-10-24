@@ -43,6 +43,10 @@
 #include "pow_rel_values.h"
 #include "atan2_rel_values.h"
 
+#if defined(GAOL_USING_NEON_INSTRUCTIONS) && GAOL_USING_NEON_INSTRUCTIONS
+#  include <arm_neon.h>
+#endif
+
 #include <algorithm>
 #include <cfenv>
 #include <cmath>
@@ -358,6 +362,64 @@ namespace
           same_bounds(pow_rel(interval(0x1.0000000000001p+0), interval(0.5), interval(0.0, 0x1.0000000000002p+0)),
                       interval(0x1.0000000000002p+0)));
   }
+
+  // [+oo] and [-oo], which no constructor makes, built from a register of the
+  // SSE2 or the NEON intervals (the FPU intervals make none): they hold no
+  // real number, so that pow_rel() and pow_exponent_rel() are empty for one
+  // as any argument, as gaol_ieee1788::pow(x, y) is for an exponent: as the
+  // power, the exponent or the base, which they test, and as the x or y to
+  // find, whose result interval(lo, hi) is empty by itself (GAOL v5,
+  // point 82 of TODO.md: powRev1([+oo], [2]) was [1, 1 + 2^-52],
+  // powRev2([+oo], [2]) [0, 2^-1074], powRev1([2], [+oo]) [DBL_MAX, +oo] and
+  // powRev1([-oo], [0, 1]) [1, +oo], the limits of x^y)
+  void pow_reverse_infinite_arguments()
+  {
+    std::vector<interval> infinite;
+#if defined(GAOL_USING_SSE2_INSTRUCTIONS) && GAOL_USING_SSE2_INSTRUCTIONS
+    for (const double d : { GAOL_INFINITY, -GAOL_INFINITY }) {
+      infinite.push_back(interval(_mm_set_pd(d, -d)));
+    }
+#elif defined(GAOL_USING_NEON_INSTRUCTIONS) && GAOL_USING_NEON_INSTRUCTIONS
+    // The lanes hold the stored bounds <-left, right>
+    for (const double d : { GAOL_INFINITY, -GAOL_INFINITY }) {
+      const double lanes[2] = { -d, d };
+      infinite.push_back(interval(vld1q_f64(lanes)));
+    }
+#endif
+    if (infinite.empty()) {
+      std::printf("pow_rel and pow_exponent_rel with [+oo] or [-oo] as an argument: no SSE2 or NEON register to build them, skipped\n");
+      return;
+    }
+    const std::vector<interval> others = { interval(0.5), interval(2.0), interval(0.0), interval(1.0), interval(0.0, 1.0),
+                                           interval(0.5, 3.0), interval(-2.0, 2.0), interval::universe() };
+    for (const interval& oo : infinite) {
+      check("[+oo] and [-oo] are what the register made", oo.left() == oo.right() && std::fabs(oo.left()) == GAOL_INFINITY,
+            [&] { return hex(oo); });
+      for (const interval& a : others) {
+        for (const interval& b : others) {
+          // One argument is [+oo] or [-oo], in each of the three places
+          const interval args[3][3] = { { oo, a, b }, { a, oo, b }, { a, b, oo } };
+          for (int place = 0; place < 3; ++place) {
+            const interval& k = args[place][0], &j = args[place][1], &i = args[place][2];
+            const interval r = pow_rel(k, j, i), s = pow_exponent_rel(k, j, i);
+            const auto describe = [&] { return "(" + hex(k) + ", " + hex(j) + ", " + hex(i) + "): " + hex(r) + ", " + hex(s); };
+            check("pow_rel(c, b, x) with [+oo] or [-oo] as an argument is empty", r.is_empty(), describe);
+            check("pow_exponent_rel(c, a, x) with [+oo] or [-oo] as an argument is empty", s.is_empty(), describe);
+            // The names of IEEE 1788-2015, powRev1(b, c, x) and powRev2(a, c, x)
+            check("powRev1(b, c, x) with [+oo] or [-oo] as an argument is empty", gaol_ieee1788::powRev1(j, k, i).is_empty(), describe);
+            check("powRev2(a, c, x) with [+oo] or [-oo] as an argument is empty", gaol_ieee1788::powRev2(j, k, i).is_empty(), describe);
+          }
+        }
+      }
+      // Without x, which is then the whole line
+      for (const interval& a : others) {
+        check("powRev1(b, c) and powRev2(a, c) with [+oo] or [-oo] as an argument are empty",
+              gaol_ieee1788::powRev1(oo, a).is_empty() && gaol_ieee1788::powRev1(a, oo).is_empty()
+              && gaol_ieee1788::powRev2(oo, a).is_empty() && gaol_ieee1788::powRev2(a, oo).is_empty(),
+              [&] { return hex(oo) + " and " + hex(a); });
+      }
+    }
+  }
 }
 
 //---------------------------------------------------------------------------
@@ -656,6 +718,7 @@ int main()
   pow_reverse_cases();
   pow_reverse_sampling();
   pow_reverse_examples();
+  pow_reverse_infinite_arguments();
   atan2_rel_functions();
   const int status = summary();
   gaol::cleanup();

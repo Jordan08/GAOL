@@ -1160,7 +1160,12 @@ point Q), which `numbers` checks there too.
   points (x, y) whose power, the `pow` of the standard on [x] and [y], is
   within c, which proves x^y in c, have to be kept by both functions, c
   being made of the powers of some of these points so that the solutions
-  reach its bounds (54 305 points).
+  reach its bounds (54 305 points). An argument [+∞] or [−∞], which no
+  constructor makes but a register of the SSE2 or NEON intervals does, holds
+  no real number: with it as c, as the exponent or the base, or as the x or
+  y to find, in each of the three places and with eight other values for
+  each of the other two arguments, both functions and the names of the
+  standard (with and without x) have to be empty (GAOL v5).
 
 - **`debugging`:** GAOL's headers compiled with `GAOL_DEBUGGING`, which the
   Debug builds define (`CMAKE_BUILD_TYPE=Debug`, `configure --enable-debug`,
