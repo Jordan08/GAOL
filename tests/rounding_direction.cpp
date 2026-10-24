@@ -3861,6 +3861,56 @@ int main()
 #endif
 
   /*
+    The sign of the zero bounds of x * d and x *= d of the interval
+    [+0, -0] (left() +0, right() -0), the one case where the AVX-512 path of
+    GAOL_PREFER_AVX512 and the SSE2 intervals give another bit pattern of the
+    same bounds (+0 and -0 are one number): [-0, +0] with the first, [+0, -0]
+    with the second, for a nonzero d (doc/using.md, The AVX-512 path; decided
+    on 2026-10-18 as an acceptable exception to "bit for bit", point AF, and
+    its bits checked here from 2026-10-23, the checks of the interval with == not
+    seeing the sign of a zero). Whatever the direction of the program. d * x
+    has bits of its own (SSE2: [-0, +0] for a positive d, [+0, -0] for a
+    negative one), which nothing documents and the test leaves alone. Only the
+    SSE2 intervals document the sign; the others (the FPU and NEON intervals)
+    are not checked, and the test says so.
+  */
+#if defined(GAOL_USING_SSE2_INSTRUCTIONS) && GAOL_USING_SSE2_INSTRUCTIONS
+  {
+#  if defined(GAOL_AVX512_ARITHMETIC) && GAOL_AVX512_ARITHMETIC
+    const bool avx512_path = true;
+#  else
+    const bool avx512_path = false;
+#  endif
+    const double doubles[] = { 2.5, -2.5, 1.0, -1.0, 1e300, -1e300, 1e-310, -1e-310 };
+    for (const Direction& dir : directions) {
+      for (const double d : doubles) {
+        set(dir);
+        const interval x = opaque(interval(gaol_core::rnd_keep(0.0), gaol_core::rnd_keep(-0.0)));
+        const interval p = x * gaol_core::rnd_keep(d);
+        interval r = x;
+        r *= gaol_core::rnd_keep(d);
+        const bool left_negative = avx512_path, right_negative = !avx512_path;
+        const auto has_the_signs = [&](const interval& z) {
+          return z.left() == 0.0 && z.right() == 0.0
+            && std::signbit(z.left()) == left_negative && std::signbit(z.right()) == right_negative;
+        };
+        check("x * d and x *= d of [+0, -0] have the zero bounds of their path (AVX-512: [-0, +0], SSE2: [+0, -0])",
+              has_the_signs(p) && has_the_signs(r),
+              [&] {
+                return "d = " + S(d) + ", " + (avx512_path ? "AVX-512 path" : "SSE2 path") + ", "
+                  + dir.name + ": x * d = [" + (std::signbit(p.left()) ? "-" : "+") + "0, "
+                  + (std::signbit(p.right()) ? "-" : "+") + "0], x *= d = ["
+                  + (std::signbit(r.left()) ? "-" : "+") + "0, " + (std::signbit(r.right()) ? "-" : "+") + "0]";
+              });
+      }
+    }
+    set(directions[0]);
+  }
+#else
+  std::printf("The sign of the zero bounds of x * d is documented for the SSE2 intervals only: not checked here\n");
+#endif
+
+  /*
     The square of an empty interval and the powers that return as it does,
     those of the exponent 2, of a real or an interval exponent, of an empty
     exponent, and of an integer beyond the unsigned ints, return before the

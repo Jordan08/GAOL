@@ -333,6 +333,12 @@ point Q), which `numbers` checks there too.
   mingw-w64 13 and later clears the six flags of MXCSR when it changes it,
   which `midpoint()`, `rad()`, `split()`, `chi()`, the reading and the writing
   of an interval, `cleanup()` and `restore_rounding()` called.
+  With the SSE2 intervals, `x * d` and `x *= d` of `[+0, -0]` for eight
+  nonzero doubles, from each direction, have the zero bounds of their path,
+  `[-0, +0]` with the AVX-512 path of `GAOL_PREFER_AVX512` and `[+0, -0]`
+  without it (the exception to "bit for bit" of the AVX-512 path, which `==`
+  does not see; GAOL v5); where the intervals are not SSE2 the test says it
+  checks nothing, and `d * x` is left alone, its bits being undocumented.
   With a mode that flushes the subnormal numbers to zero set (on x86,
   flush-to-zero, denormals-are-zero or both; on ARM with GCC and Clang, FZ,
   and FIZ where the processor has it), and the rounding direction upward or
