@@ -159,10 +159,12 @@ cmake --build build --target package
 The archive takes its name from the version CMake read when it configured, and
 CMake warns of a `configure` generated for another version at that moment.
 On Cygwin `package_source` did not work in the job of the continuous
-integration (23 October 2026, CMake 4.4.4): the CPack of Cygwin, with TGZ, TBZ2
-and ZIP alike, could not list the extended attributes of the files (libarchive,
-"Couldn't list extended attributes"); `git archive` makes the archive from the
-repository (GAOL v5).
+integration (23 October 2026, CMake 4.4.4): CPack, with TGZ, TBZ2 and ZIP
+alike, failed to add `README` to the archive, a symbolic link to `README.md` in
+the repository, with "Couldn't list extended attributes" (libarchive). The
+cause was not found: `cmake -E tar`, `tar` and `git archive` make an archive of
+the checked-out tree, and `listxattr()` finds nothing wrong with its link. `git
+archive` makes the archive from the repository (GAOL v5).
 
 After a change of `VERSION.txt`, `package_source` configures the build
 directory again first, whatever the generator: Ninja does before it runs CPack,

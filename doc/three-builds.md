@@ -294,9 +294,13 @@ build of Cygwin is not in the job; `tests/core_math.cpp` and
 `tests/arithmetic.cpp` call `__builtin_fma` as GAOL does.
 
 CPack of Cygwin could not make the archive of the sources in the job of 23
-October 2026 (CMake 4.4.4, libarchive 3.8): TGZ, TBZ2 and ZIP all failed with
-"Couldn't list extended attributes", so that `package_source` is not available
-there and the test `cpack_stale_configure` says it is skipped.
+October 2026 (CMake 4.4.4, libarchive 3.8): TGZ, TBZ2 and ZIP all failed to add
+`README`, a symbolic link to `README.md` in the repository, with "Couldn't list
+extended attributes", so that `package_source` is not available there and the
+test `cpack_stale_configure` says it is skipped. The cause was not found:
+`cmake -E tar`, GNU `tar` and `git archive` make an archive of the checked-out
+tree, and `listxattr()`, `llistxattr()` and `flistxattr()` find nothing wrong
+with its link.
 
 `-mprefer-vector-width=128` does not undo what other options of the user turn
 on. With the Clang that cross-compiles for x86-64, the objects of GAOL, CORE-MATH
