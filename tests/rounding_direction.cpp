@@ -1555,22 +1555,22 @@ namespace
     The bounds are the tightest ones: the largest double and +oo. The
     uncertain form has its own path to the numbers.
   */
-  const double dbl_max = (std::numeric_limits<double>::max)();
+  const double max_of_doubles = (std::numeric_limits<double>::max)();
   const EmptyOperand readings_above_the_largest_double[] = {
-    { "1e400", [] { return bounds_are(textToInterval("1e400"), dbl_max, GAOL_INFINITY); } },
-    { "-1e400", [] { return bounds_are(textToInterval("-1e400"), -GAOL_INFINITY, -dbl_max); } },
-    { "1.8e308", [] { return bounds_are(textToInterval("1.8e308"), dbl_max, GAOL_INFINITY); } },
-    { "0x1p1024", [] { return bounds_are(textToInterval("0x1p1024"), dbl_max, GAOL_INFINITY); } },
-    { "0x1.8p1024", [] { return bounds_are(textToInterval("0x1.8p1024"), dbl_max, GAOL_INFINITY); } },
-    { "9?e308", [] { return bounds_are(textToInterval("9?e308"), dbl_max, GAOL_INFINITY); } },
-    { "gaol_ieee1788::textToInterval(1e400)", [] { return bounds_are(gaol_ieee1788::textToInterval("1e400"), dbl_max, GAOL_INFINITY); } },
+    { "1e400", [] { return bounds_are(textToInterval("1e400"), max_of_doubles, GAOL_INFINITY); } },
+    { "-1e400", [] { return bounds_are(textToInterval("-1e400"), -GAOL_INFINITY, -max_of_doubles); } },
+    { "1.8e308", [] { return bounds_are(textToInterval("1.8e308"), max_of_doubles, GAOL_INFINITY); } },
+    { "0x1p1024", [] { return bounds_are(textToInterval("0x1p1024"), max_of_doubles, GAOL_INFINITY); } },
+    { "0x1.8p1024", [] { return bounds_are(textToInterval("0x1.8p1024"), max_of_doubles, GAOL_INFINITY); } },
+    { "9?e308", [] { return bounds_are(textToInterval("9?e308"), max_of_doubles, GAOL_INFINITY); } },
+    { "gaol_ieee1788::textToInterval(1e400)", [] { return bounds_are(gaol_ieee1788::textToInterval("1e400"), max_of_doubles, GAOL_INFINITY); } },
     { "1e400*0", [] { return bounds_are(textToInterval("1e400*0"), 0.0, 0.0); } },
     { "-1e400*0", [] { return bounds_are(textToInterval("-1e400*0"), 0.0, 0.0); } },
     { "1.8e308*0", [] { return bounds_are(textToInterval("1.8e308*0"), 0.0, 0.0); } },
     { "0x1p1024*0", [] { return bounds_are(textToInterval("0x1p1024*0"), 0.0, 0.0); } },
     { "9?e308*0", [] { return bounds_are(textToInterval("9?e308*0"), 0.0, 0.0); } },
     // The largest double itself, and numbers just below it, which strtod() does not overflow on
-    { "0x1.fffffffffffffp1023", [] { return bounds_are(textToInterval("0x1.fffffffffffffp1023"), dbl_max, dbl_max); } },
+    { "0x1.fffffffffffffp1023", [] { return bounds_are(textToInterval("0x1.fffffffffffffp1023"), max_of_doubles, max_of_doubles); } },
     { "1.7e308", [] { return textToInterval("1.7e308").set_contains(1.7e308); } },
   };
 
