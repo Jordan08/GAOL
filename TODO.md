@@ -1,19 +1,20 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `1fd96ec` de `configure-clean`, le 24
-octobre 2026, en dix tâches PA à PJ. Ce fichier et l'issue #179 ont le même
-contenu. Ce qui est fait et décidé est dans `TODO_DONE.md` (issue #177), ce qui
-est reporté dans `TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142
-sont fermées, et `TODO_mistral.md` est supprimé.
+Ce qui reste à faire sur GAOL v5 au commit `fd19509` de `configure-clean`, le 24
+octobre 2026, en tâches PB à PJ (PA est faite : voir `TODO_DONE.md`). Ce fichier
+et l'issue #179 ont le même contenu. Ce qui est fait et décidé est dans
+`TODO_DONE.md` (issue #177), ce qui est reporté dans `TODO_AFTER.md` (issue
+#178). Les anciennes issues #49 et #142 sont fermées, et `TODO_mistral.md` est
+supprimé.
 
 Aucune borne fausse n'est connue. Rien n'est à fusionner, à envoyer à un autre
-projet ni à publier sans l'accord du mainteneur. Trois pull requests sont
-ouvertes, pour la tâche PA : #180 (le point 128), #181 (le `file` nul des
-exceptions) et #182 (les points 85, 79 pour la lecture, et `<a, b>`).
+projet ni à publier sans l'accord du mainteneur. Deux pull requests sont
+ouvertes, pour la tâche PB : #183 (le point 82) et #184 (le point 79, les
+fonctions).
 
 ## Comment lire ce fichier
 
-- Une tâche (PA à PJ) regroupe des points qui touchent le même code, les mêmes
+- Une tâche (PB à PJ) regroupe des points qui touchent le même code, les mêmes
   fichiers ou les mêmes builds de validation, pour les traiter dans la même
   session ; chaque point reste une pull request à part (process.md : un point,
   une branche), sauf quand la tâche dit qu'une seule suffit. Les tâches sont
@@ -21,7 +22,7 @@ exceptions) et #182 (les points 85, 79 pour la lecture, et `<a, b>`).
   plus cher en attendant (une décision qui bloque) ; ce qui tue un programme ou
   rompt une promesse écrite avant ce qui ne fait que ralentir ; le petit et sans
   dépendance avant le gros ; la version (PI, PJ) en dernier.
-- PA à PH ne dépendent pas les unes des autres, sauf quand le texte le dit (PI
+- PB à PH ne dépendent pas les unes des autres, sauf quand le texte le dit (PI
   décrit le travail de PA à PH, PJ suit PI et les études de PG).
 - Chaque point garde sa lettre et son ancien numéro, par exemple « 79 (AB) » :
   ce sont ceux des pull requests, des issues, des commentaires du code et de
@@ -35,11 +36,10 @@ exceptions) et #182 (les points 85, 79 pour la lecture, et `<a, b>`).
 - La procédure est dans `process.md` ; son §9 dit comment tenir ces trois
   registres à jour après une fusion.
 
-## Les dix tâches
+## Les tâches restantes
 
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
-| PA | La lecture des textes : pointeurs nuls, exposants, `1e400`, `<a, b>`, `file` nul | 128, 85, 79 (lecture), et deux | S |
 | PB | Les exceptions flottantes levées à tort, les réciproques de `pow` | 79, 82 | L |
 | PC | Les noyaux SSE2 et NEON | 131, 129, 132 | M |
 | PD | `process.md`, les textes, les tests, le ménage | 130 et cinq petits | S |
@@ -49,57 +49,6 @@ exceptions) et #182 (les points 85, 79 pour la lecture, et `<a, b>`).
 | PH | Les signalements à d'autres projets | #125 à #138, #175 | accord |
 | PI | La pull request de synthèse et les textes de la version | Y | L |
 | PJ | Les mesures et la publication de v5.0.0 | 32, 33, 34, 71 | M |
-
-## PA. La lecture des textes : pointeurs nuls, exposants, `1e400` [S]
-
-Ensemble parce que tout passe par le lexeur et le parser
-(`gaol/parser/gaol_interval_lexer.lpp`, `gaol/gaol_interval.cpp`,
-`gaol/parser/gaol_parser.h`) et par `tests/expressions.cpp`, et se valide avec
-la même matrice de builds, dont ASan + UBSan et les jobs 32 bits (conteneurs
-i386 et armhf de la CI).
-
-1. **128 (AP)** [S] : `gaol::textToInterval(nullptr)`, `textToInterval(nullptr,
-   "1")`, `gaol_ieee1788::textToInterval(nullptr)` et `exactToInterval(nullptr)`
-   prennent un `const std::string&` : le `std::string` est construit à l'appel,
-   avant GAOL, ce que le standard laisse indéfini (libstdc++ lève
-   `std::logic_error` « basic_string: construction from null is not valid » ;
-   libc++ et Visual C++ plantent probablement dans `strlen`, non vérifié).
-   *Décidé le 22 octobre (Q13, #147)* : lever `input_format_error` (ou une
-   `gaol_error`), comme une mauvaise lecture du parser, avec une surcharge
-   `const char*` pour chacune et un test par fonction qui échoue sans la
-   surcharge. Le n° 10 de `examples/examples.md` (point PI) cite déjà
-   `parse_interval(nullptr)`, fait par #147. *En cours : #180.*
-2. **85 (AD)** [S] : le plafond de l'exposant déborde un `long` de 32 bits
-   (Windows, i386, armhf). `k`, `k2`, `kb`, `exponent` et `q` sont des `long`
-   dans `gaol/parser/gaol_interval_lexer.lpp`, mais le plafond dépasse 2^31 − 1
-   pour un lexème de plus de 536 870 411 caractères, en deçà des 2^29 caractères
-   au-delà desquels le lexeur lève `std::bad_alloc` : `"1e"` suivi de 536,8
-   millions de 9 serait lu [0, 2^-1074] au lieu de [DBL_MAX, +∞]. Non vérifié,
-   faute de chaîne 32 bits sur la machine. Correction : ces variables en `long
-   long`. *En cours : #182* ; le test de 512 Mio qui la gardait est retiré,
-   décidé le 24 octobre (1,5 Gio sur les jobs Windows x64).
-3. **79 (AB), la lecture de `1e400`** [S] : lire `1e400`, ou tout nombre au-delà
-   du plus grand double, lève `FE_OVERFLOW` : le `strtod()` du lexeur
-   (`gaol_enclose_number()`) le calcule, et un programme qui a activé le piège
-   meurt à la lecture ; déjà ainsi avant #149, qui l'a relevé ; ajouté au 79 le
-   20 octobre. C'est la partie du 79 qui touche le lexeur ; le reste du 79 est
-   dans PB. *En cours : #182*, qui règle aussi `FE_UNDERFLOW` de `strtod()` pour
-   les nombres sous le plus petit double normal (décidé le 24 octobre).
-4. **`<a, b>` et une borne calculée** [S] (#149) : `<a, b>` accepte encore une
-   borne calculée qui n'est pas un double (`<[0.1], 0x1.9999999999999p-4>`, un
-   littéral comme borne) ; seuls les nombres écrits et pi sont refusés. *Décidé
-   le 24 octobre* : refuser aussi, par `input_format_error`, toute borne qui
-   n'est pas un double, avec un test qui échoue sans la correction. *En cours :
-   #182.*
-5. **Un `file` nul dans une `gaol_exception`** [S, peu prioritaire] (#147) : une
-   `gaol_exception` construite avec un `file` nul (`gaol_exception(f, l)`,
-   `gaol_warning`, `gaol_error`) envoie un `const char*` nul à un flux dans
-   `operator<<`, qui passe à l'état `bad` avec libstdc++, et les diagnostics
-   suivants sont perdus. Les macros de GAOL passent toujours `__FILE__` ; seuls
-   des appels directs sont en cause. *Décidé le 24 octobre* : un `file` nul
-   s'écrit « (unknown file) », avec un test. *En cours : #181*, qui traite aussi
-   un message nul de `gaol_warning()` et de `gaol_error()` (décidé le 24
-   octobre).
 
 ## PB. Les exceptions flottantes levées à tort, les réciproques de `pow` [L]
 
@@ -123,7 +72,7 @@ texte de `doc/using.md` et du manuel sur les exceptions flottantes en dépend.
    #146) : un produit fusionné `fma(u, u, -v)` le réglerait. Il touche beaucoup
    de fonctions et ne se voit qu'avec le piège activé près de DBL_MAX ; les
    tests sont des processus fils sous `feenableexcept()`, comme ceux de #50 et
-   #151. La lecture de `1e400` est dans PA.
+   #151. La lecture de `1e400` est faite par #182. *En cours : #184.*
 2. **82 (AC)** [S] : `pow_rel` et `pow_exponent_rel` (`powRev1`, `powRev2`)
    n'ont pas la garde de `[±oo]` de `pow` : `powRev1([+oo], [2], R)` rend [1, 1 +
    2^-52], `powRev2([+oo], [2], R)` [0, 2^-1074], `powRev1([2], [+oo], R)`
@@ -132,7 +81,8 @@ texte de `doc/using.md` et du manuel sur les exceptions flottantes en dépend.
    et ces arguments ne se construisent qu'avec `interval(__m128d)`, dans les
    builds SSE2. Correction : le test `!(l < +oo && u > -oo)` de
    `pow_standard_upward()` dans `pow_rel_upward()` et
-   `pow_exponent_rel_upward()`. Non revérifié depuis le 14 octobre.
+   `pow_exponent_rel_upward()`. Non revérifié depuis le 14 octobre. *En cours :
+   #183.*
 3. **La phrase sur les exceptions flottantes, avec le 79** [S] (#151) : la
    phrase d'introduction de la section sur les exceptions flottantes de
    `doc/using.md` et du manuel, « An infinite bound comes from a division by
@@ -393,6 +343,17 @@ ne se comparent pas d'un passage à l'autre : le banc A/B de `performance.yml`
    l'i7-1185G7 avec le banc A/B de `performance.yml` : les deux `vdivsd {er}` et
    les permutations peuvent perdre sur un processeur Intel qui divise les
    registres en deux. À rapprocher du 106.
+7. **La lecture d'un nombre sous-normal** [S] (#182) : `1e-310` et les nombres
+   au-dessous de 2^-1022 ne sont plus donnés à `strtod()`, qui lève
+   `FE_UNDERFLOW` pour eux : le lexeur part de 0 et les place par des pas
+   doublés puis la bissection (une centaine de comparaisons exactes). Leur
+   lecture prend de 3 à 10 fois plus de temps qu'avant (`1e-310` : 1 019 ns puis
+   8 700 à 12 800, `1e-320` : 1 001 puis 2 250 à 3 270, mesurés une fois sur une
+   machine occupée) ; celle des nombres normaux ne change pas. Un point de
+   départ plus proche, calculé des premiers chiffres, la ramènerait à quelques
+   comparaisons, au prix de code de plus dans le lexeur. *À décider* : le faire,
+   ou laisser tel quel (la description de #182 propose de le faire si quelqu'un
+   lit des sous-normaux en texte).
 
 ## PH. Les signalements à d'autres projets [attend l'accord du mainteneur]
 
@@ -451,7 +412,7 @@ probablement rien.
 
 Ensemble parce que ce sont les textes de la version (`ChangeLog`,
 `doc/differences.md`, `examples/examples.md`, `manual/v5/`), à écrire une fois
-PA à PH faites ou décidées, et avant les mesures de PJ.
+PA à PH faites ou décidées (PA l'est), et avant les mesures de PJ.
 
 1. **La pull request de synthèse** : `ChangeLog` (une entrée du 27 septembre,
    touchée le 4 octobre) et `doc/differences.md` (28 septembre, puis des commits
@@ -464,8 +425,8 @@ PA à PH faites ou décidées, et avant les mesures de PJ.
    et `ChangeLog` » : #71, #76, #77, #83 à #97, #99, #100, #105, #108, #111,
    #113, #114, #117 à #124, #139, #140, #141, #144 à #151, #155 à #158 et #160 à
    #164 (#123, #139, #155 et #160 n'ont rien à y mettre), et à lire aussi, #165
-   à #174 et #176 (celle de #176 dit : rien). Les points K, L et `make
-   distclean` (#72 à #75) n'ont pas cette section : à écrire d'après leurs
+   à #174, #176 et #180 à #182 (celle de #176 dit : rien). Les points K, L et
+   `make distclean` (#72 à #75) n'ont pas cette section : à écrire d'après leurs
    descriptions. À écrire d'après les commits, sans pull request : les
    changements du 4 octobre (`nb_fp_numbers()` rend un `unsigned long long`,
    `gaol_parameters.h` supprimé) et ceux du 15 au 18 octobre, qui changent
@@ -515,8 +476,8 @@ PA à PH faites ou décidées, et avant les mesures de PJ.
 3. **`examples/examples.md`** : marquer **Fixed** les n° 2, 3, 4, 5, 7, 8, 10,
    12, 15, 16, 19, 20, 21 et 22 de la section 5 et de l'annexe B, le n° 10 comme
    corrigé par la suppression des constructeurs à partir de chaînes (#30), et
-   par #147 pour `parse_interval(nullptr)` (et par le 128, quand il sera fait,
-   pour `textToInterval(nullptr)`) ; reprendre ce qu'il dit des points corrigés
+   par #147 pour `parse_interval(nullptr)` (et par le 128, #180, pour
+   `textToInterval(nullptr)`) ; reprendre ce qu'il dit des points corrigés
    (la ligne vide du n° 14 l'est par #114 ; les phrases de #114 sur la locale à
    virgule et l'intervalle ponctuel sont déjà corrigées).
 4. **Le manuel** : une seule régénération de `manual/v5/gaol.pdf` (la dernière

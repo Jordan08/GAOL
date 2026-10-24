@@ -1,8 +1,8 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 24 octobre 2026
-(commit `1fd96ec` de `configure-clean`, trois pull requests ouvertes : #180 à
-#182). Ce fichier et l'issue #177 ont le même contenu.
+(commit `fd19509` de `configure-clean`, deux pull requests ouvertes : #183 et
+#184). Ce fichier et l'issue #177 ont le même contenu.
 
 Il réunit l'historique de l'ancienne issue #49 (« Suivi du TODO de GAOL v5 »),
 ce qui est fait dans l'ancienne issue #142 (« Reste à faire sur GAOL v5 »), dans
@@ -10,7 +10,7 @@ l'ancien `TODO.md` et dans `TODO_mistral.md`, avec les réponses du mainteneur
 des 22 et 23 octobre. #49 et #142 sont fermées le 24 octobre, `TODO_mistral.md`
 est supprimé. Le reste du travail est dans deux autres registres :
 
-- `TODO.md` (issue #179) : ce qu'il reste à faire, en dix tâches PA à PJ ;
+- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PB à PJ ;
 - `TODO_AFTER.md` (issue #178) : ce qui est reporté, après la version, jusqu'à
   une décision ou jusqu'à du matériel.
 
@@ -40,7 +40,7 @@ est supprimé. Le reste du travail est dans deux autres registres :
   : elle s'applique telle quelle.
 - Le classement par rang et par tiers (A à I) de l'ancien #142 n'existe plus :
   un « rang N » cité dans un texte d'avant le 24 octobre désigne cet ancien
-  classement. Ce qui reste à faire est classé en tâches PA à PJ dans `TODO.md`.
+  classement. Ce qui reste à faire est classé en tâches PB à PJ dans `TODO.md`.
 - Ce qui sert encore des rapports des agents est dans
   [todo-notes/synthese.md](todo-notes/synthese.md), leurs originaux au commit
   `16a2f60` (`todo-notes/`, ceux du 30 septembre dans `todo-notes/2026-09-30/`)
@@ -53,16 +53,16 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 
 ## 1. L'état au 24 octobre 2026
 
-- **`configure-clean`** est au commit `1fd96ec` (fusion de #176). Les pull
+- **`configure-clean`** est au commit `fd19509` (fusion de #181). Les pull
   requests des corrections vont vers `configure-clean`, qui reste la branche de
   développement après v5.0.0 ; `MATH-CORE` et `master` (GAOL 4.3.2, plus deux
   commits de `.claude/CLAUDE.md`) ne bougent qu'à la version (point Y).
-- **Trois pull requests ouvertes** (tâche PA de `TODO.md`) : #180, #181 et #182.
-  Le mainteneur a fusionné #165 à #167, #169 à #174 et #176 les 23 et 24 octobre
-  ; #168 est fermée sans fusion.
-- **Branches** : GitHub n'a plus que `configure-clean`, `MATH-CORE` et `master`.
-  En local, la branche `todo-ai-cygwin-cpack-step` (#176, fusionnée) reste à
-  supprimer.
+- **Deux pull requests ouvertes** (tâche PB de `TODO.md`) : #183 et #184. Le
+  mainteneur a fusionné #165 à #167, #169 à #174, #176 et #180 à #182 les 23 et
+  24 octobre ; #168 est fermée sans fusion. La tâche PA est faite.
+- **Branches** : GitHub n'a que `configure-clean`, `MATH-CORE` et `master`, avec
+  les branches des deux pull requests ouvertes (`todo-ac-powrev-infinite`,
+  `todo-ab-overflow-flag`). Les branches fusionnées sont supprimées en local.
 - **Aucune borne fausse n'est connue** : sur environ 1,3 million de puissances
   entières, 550 000 `pow` réels, 600 000 autres opérations et 760 lectures de
   nombres (relecture du 14 octobre, revérifiée le 18 octobre à `4eaf69a`), tout
@@ -653,6 +653,68 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   `cpack_stale_configure` dit déjà, par lui-même, quand CPack ne peut pas faire
   l'archive ; sans relecture indépendante, quinze lignes d'une étape informative
   ; fusionnée le 24 octobre)
+- #180 (point AP, ancien 128 : un pointeur nul donné à `gaol::textToInterval()`
+  (une chaîne ou deux, à l'une ou l'autre place), à
+  `gaol_ieee1788::textToInterval()` et à `exactToInterval()` lève
+  `input_format_error` ; ces fonctions prenaient un `const std::string&`,
+  construit à l'appel avant GAOL, ce que le standard laisse indéfini
+  (`std::logic_error` avec libstdc++). Des surcharges `const char*` (quatre pour
+  `gaol`, deux en ligne pour `gaol_ieee1788`), y compris pour
+  `gaol_ieee1788::textToInterval()`, qui rend le vide pour un texte mal formé :
+  un pointeur nul est un appel faux, non un texte mal formé. `null_text()` de
+  `tests/expressions.cpp` (onze appels ; 11 vérifications échouent sur 18 201
+  sans les surcharges). Le test `numbers` du job « Debian 12 Bookworm arm64 »
+  dépassait 300 s : un défaut de GCC 12.2 sur aarch64 (`precisions[]` de
+  `decimal_output()` mal lu) que le choix de la nouvelle surcharge par les
+  appels de `tests/numbers.cpp` faisait apparaître ; reproduit sans matériel ARM
+  avec le GCC croisé 12.2 et qemu-user (68 s contre plus de 280 s), contourné
+  par une vingtaine de `textToInterval(std::string(...))`, gardé sur décision du
+  mainteneur. Une relecture indépendante, un point bloquant (le manuel ne
+  compilait pas : `std::logic_error` sans `\_`), corrigé ; 192 contrôles verts ;
+  fusionnée le 24 octobre)
+- #181 (point AP, question de #147 : un `file` nul dans les trois constructeurs
+  de `gaol_exception`, dans `gaol_warning()` et dans `gaol_error()` s'écrit «
+  (unknown file) », et un message nul de `gaol_warning()` et de `gaol_error()`
+  est un texte vide (décidé le 24 octobre, après l'ouverture). Avec libstdc++ un
+  pointeur nul écrit sur un flux le met à l'état `bad`, et les diagnostics
+  suivants étaient perdus ; `file()` n'est plus jamais nul pour les classes de
+  GAOL. Les deux aides, `gaol_detail::known_file()` et `known_text()`, sont
+  définies une fois, en ligne, dans `gaol/gaol_common.h` (d'abord dans un espace
+  de noms anonyme de chaque source, déplacées à la demande du mainteneur).
+  `says<Exception>()` et `null_pointers_in_diagnostics()` de
+  `tests/expressions.cpp` : 9 vérifications échouent sur 18 198 sans la
+  correction ; une relecture indépendante, aucun point bloquant ; CI verte
+  jusqu'au commit 4010b4d, les deux derniers (l'aide dans `gaol_detail`, le
+  merge de `configure-clean`) ayant été fusionnés avant que la CI les lance ;
+  fusionnée le 24 octobre)
+- #182 (points AD.85, AB.79 pour la lecture, et `<a, b>` : le lexeur tient
+  l'exposant et ses comptes de chiffres en `long long`, car un `long` de 32 bits
+  (Windows, i386, armhf) débordait pour un texte de plus de 536 870 411
+  caractères : `"1e"` suivi de 536 870 498 chiffres 9 était lu [0, 2^-1074] au
+  lieu de [DBL_MAX, +oo]. Un nombre qui peut dépasser le plus grand double ou
+  passer sous le plus petit double normal est comparé exactement à DBL_MAX ou à
+  2^-1022 avant d'être donné à `strtod()`, qui n'est plus appelé pour ceux qui
+  sont au-delà : la lecture de `1e400`, `1.8e308`, `1e-310` ou `1e-400` ne lève
+  plus `FE_OVERFLOW` ni `FE_UNDERFLOW`, bornes inchangées bit à bit (15 536
+  textes comparés avec `configure-clean`, dont 11 762 à un calcul exact en
+  Python). La lecture près de DBL_MAX garde son temps d'avant (+130 ns pour la
+  comparaison) ; celle d'un sous-normal est 3 à 10 fois plus lente (voir
+  `TODO.md`, PG). `gaol_literal()` refuse un `<a, b>` dont une borne n'est pas
+  un point (`<[0.1], 0x1.9999999999999p-4>`). Tests :
+  `readings_above_the_largest_double[]` et
+  `readings_below_the_least_normal_double[]` de `tests/rounding_direction.cpp`
+  (24 puis 20 vérifications échouent sans la correction, le piège compris sous
+  glibc ; avec le piège activé, le processeur signale tout résultat sous-normal,
+  même exact, si bien que les produits par 0 ne sont vérifiés que pour le
+  drapeau) et `degenerate_bounds()` (21 sur 18 217). Le test de l'exposant de
+  512 Mio, qui échouait sans la correction dans un conteneur Debian trixie i386
+  (Docker, `long` de 32 bits), est retiré sur décision du mainteneur (1,5 Gio
+  sur les jobs Windows x64) : rien ne garde plus le point 85. Fichiers générés
+  régénérés après chaque commit (flex 2.6.4, bison 3.8.2). Une relecture
+  indépendante, aucun point bloquant (elle a mesuré un temps 8 à 12 fois trop
+  long pour `1.7e308` dans la première version, corrigé) ; 192 contrôles verts,
+  dont un job MinGW relancé pour une erreur de l'exécuteur ; fusionnée le 24
+  octobre)
 
 ### 2.4 Fermées sans fusion
 
@@ -1406,6 +1468,48 @@ fait le travail.
   signalement #175 (défauts de la bibliothèque C de Cygwin) attend l'accord du
   mainteneur, rien n'est envoyé
 
+#### Décidé pendant la tâche PA (22 à 24 octobre), fait par #180 à #182
+
+- [x] Un pointeur nul donné à `textToInterval()` ou à `exactToInterval()` (128)
+  lève `input_format_error`, aussi pour `gaol_ieee1788::textToInterval()` : ce
+  n'est pas un texte mal formé (le vide), c'est un appel faux que la norme ne
+  traite pas. Écartés : un type auxiliaire pour le paramètre (change la
+  signature exportée et casse `&gaol::textToInterval`) et un seul jeu `(const
+  char*)` (un `nullptr` à côté d'un `std::string` construirait encore un
+  `std::string` de lui) ; l'adresse de `gaol_ieee1788::textToInterval` sans cast
+  devient ambiguë, ce que `ChangeLog` dira (#180)
+- [x] `tests/numbers.cpp` garde son contournement du défaut de GCC 12.2 sur
+  aarch64 (les appels de `textToInterval()` construisent leur `std::string`)
+  plutôt qu'une option de compilation du seul fichier (`-O1`), qui demanderait
+  trois endroits (CMake, autotools, meson) ; il est aussi fragile que celui
+  d'avant, un autre changement du fichier ou de ses en-têtes pouvant rendre le
+  défaut à un autre tableau (décidé le 24 octobre, #180)
+- [x] Le fichier et la ligne de l'exception d'un pointeur nul sont ceux de la
+  fonction auxiliaire de `gaol/gaol_interval.cpp`, non ceux de l'appelant : le
+  message dit tout ce qu'il faut, cosmétique, non changé (#180)
+- [x] Un `file` nul s'écrit « (unknown file) » (question de #147), rangé à la
+  construction : `file()` n'est jamais nul, et `operator<<` n'a rien à changer.
+  `which_file_` est `protected` : une classe d'un utilisateur qui lui affecte un
+  pointeur nul garde le défaut, et `operator<<` n'en est pas défendu. Un message
+  nul de `gaol_warning()` et de `gaol_error()` est un texte vide (même défaut,
+  étendu le 24 octobre à la demande du mainteneur). Les deux aides sont dans
+  `gaol_detail` (`gaol/gaol_common.h`), non dans un espace de noms anonyme de
+  chaque source (#181)
+- [x] `<a, b>` refuse, par `input_format_error`, toute borne dont la valeur
+  n'est pas un point (les deux bornes de sa valeur n'ont pas les mêmes bits, −0
+  et +0 étant un) : `0.5`, `(0.25+0.25)`, `2*0.25` et `[0.5]` restent lus
+  (décidé le 24 octobre, question de #149, #182)
+- [x] Le plafond de l'exposant du lexeur (85) passe en `long long`, sans test :
+  celui de 512 Mio (1,5 Gio sur les jobs Windows x64) est retiré, la preuve est
+  dans la description de #182, et rien ne garde la correction contre un retour
+  du `long` de 32 bits (décidé le 24 octobre, #182)
+- [x] La lecture de `1e400` et des nombres au-delà du plus grand double ne lève
+  plus `FE_OVERFLOW` (79, #149 l'avait relevé) ; celle d'un nombre au-dessous du
+  plus petit double normal ne lève plus `FE_UNDERFLOW` non plus (décidé le 24
+  octobre, dans #182). Le temps de lecture d'un sous-normal, 3 à 10 fois plus
+  long, est accepté : un meilleur point de départ est une question à `TODO.md`
+  (PG.7)
+
 #### Le 18 octobre : les questions restées ouvertes dans la description de #99 (commentaire de #49)
 
 Les six questions que la case « Les questions restées ouvertes dans la
@@ -1650,9 +1754,8 @@ le travail qu'elles décident est fait le même soir et ouvert en pull requests
   à jour les registres.
 - **Les registres** : ménage des TODO. #49 et #142 sont fermées,
   `TODO_mistral.md` est supprimé, `TODO.md` est vidé puis réécrit avec le reste
-  à faire en tâches PA à PJ ; les trois nouveaux registres sont #{N_DONE} (ce
-  fichier, `TODO_DONE.md`), #{N_AFTER} (`TODO_AFTER.md`) et #{N_TODO}
-  (`TODO.md`).
+  à faire en tâches PA à PJ ; les trois nouveaux registres sont #177 (ce
+  fichier, `TODO_DONE.md`), #178 (`TODO_AFTER.md`) et #179 (`TODO.md`).
 - **Les issues restées ouvertes** : #107 (corrigé par #147) et #159 (rapport
   d'état périmé) fermées ; #67 reste ouverte (reportée indéfiniment), les issues
   « À communiquer… » ne sont pas touchées.
@@ -1664,7 +1767,7 @@ le travail qu'elles décident est fait le même soir et ouvert en pull requests
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
-`TODO.md` (tâches PA à PJ) ou dans `TODO_AFTER.md` ; leur partie faite est dite
+`TODO.md` (tâches PB à PJ) ou dans `TODO_AFTER.md` ; leur partie faite est dite
 ici ou dans la section 5.
 
 ### Même changement, ou même code
@@ -1752,6 +1855,11 @@ ici ou dans la section 5.
   écarté (16 octobre) ; décidé le 14 octobre : les points AG et AH le suivent,
   et la phrase « sqr et pown passent par uipow » de la décision du point H est
   retirée
+- [x] **AD.** La lecture et l'écriture des intervalles (83 à 89, 114) : les 83
+  et 84 par #149, le 114 (`parse_interval(nullptr)`) par #147, les 87, 88 et 89
+  (documentés) par #164, le 85 (l'exposant du lexeur en `long long`) par #182 ;
+  le 86 (`_iv` au-delà de 2^64) est sans objet depuis le retrait du littéral
+  `_iv`
 - [x] **AG.** Le banc de `doc/compare` sur l'i7-1185G7 (104) :
   `doc/compare/performance.md` et les temps AVX-512 de `doc/using.md`, mesurés
   avant #122 : fait par #124
@@ -1802,13 +1910,10 @@ leur partie faite.
 
 - **AB.** Des exceptions flottantes levées à tort : le 77 (`pow` près du
   dépassement) par #144, le 78 et le 80 (`cancel_minus`, `cancel_plus`, `1/[0,
-  1]`) par #151. Reste le 79.
+  1]`) par #151, et la lecture de `1e400` et de `1e-310` (79) par #182. Reste le
+  79 des fonctions (#184 en cours).
 - **AC.** Les réciproques de `pow` et `nth_root` : le 81 (`nth_root` d'un
   sous-normal) par #158. Reste le 82.
-- **AD.** La lecture et l'écriture : les 83 et 84 par #149, le 114
-  (`parse_interval(nullptr)`) par #147, les 87, 88 et 89 (documentés) par #164 ;
-  le 86 (`_iv` au-delà de 2^64) est sans objet depuis le retrait du littéral
-  `_iv`. Reste le 85.
 - **AE.** Les trois builds : le 90 (le compilateur C vérifié comme le C++) par
   #145, les 91 et 94 par #164, le 93 (code mort exporté) le 15 octobre. Restent
   les 92 et 95.
@@ -1848,6 +1953,16 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
   (l'opérande de plus grand module en premier), qui corrige aussi une somme
   finie à mi-chemin de deux doubles que la relecture a trouvée ;
   `cancels_next_to_the_largest[]` dans `tests/rounding_direction.cpp`, 9 cas.
+- **79 (la lecture).** Lire `1e400`, ou tout nombre au-delà du plus grand
+  double, lève `FE_OVERFLOW` : le `strtod()` du lexeur (`gaol_enclose_number()`)
+  le calcule, et un programme qui a activé le piège meurt à la lecture ; relevé
+  par #149, ajouté au 79 le 20 octobre. Fait le 24 octobre par #182 : un nombre
+  qui peut dépasser le plus grand double est comparé à DBL_MAX avant `strtod()`,
+  qui n'est plus appelé s'il est au-dessus ; `FE_UNDERFLOW` de `strtod()` pour
+  les nombres sous 2^-1022 est réglé de la même façon (décidé le 24 octobre) ;
+  `readings_above_the_largest_double[]` et
+  `readings_below_the_least_normal_double[]` de `tests/rounding_direction.cpp`.
+  Reste le 79 des fonctions (`TODO.md`, PB)
 - **80.** `1/[0, 1]` ne lève plus la division par zéro depuis #121, mais
   `doc/using.md` et le manuel le donnent encore en exemple : garder `log([0,
   1])` seul. Fait le 20 octobre par #151 : `1/[0, 1]` retiré de `doc/using.md`
@@ -1885,6 +2000,12 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
   restent non départagés (sur-ensemble sûr) ; `<a, b>` refuse une borne qui
   n'est pas un double ; `reversed_bounds()` et `degenerate_bounds()` dans
   `tests/expressions.cpp`.
+- **85.** Le plafond de l'exposant déborde un `long` de 32 bits (Windows, i386,
+  armhf) : `"1e"` suivi de 536,8 millions de 9 était lu [0, 2^-1074] au lieu de
+  [DBL_MAX, +oo]. Fait le 24 octobre par #182 : `k`, `k2`, `kb`, `exponent`,
+  `q`, `places` et les comptes de chiffres du lexeur en `long long` ; le test de
+  512 Mio qui la gardait est retiré (1,5 Gio sur les jobs Windows x64), la
+  preuve est dans la description de #182 (conteneur Debian i386).
 - **87.** Un nombre incertain juste après un `+` ou un `-` binaire est refusé
   (`10-3.56?1`, `[1,2]+3?`), alors que le manuel dit qu'ils se combinent dans
   n'importe quel ordre : décidé le 19 octobre : le documenter sans changer le
@@ -1909,6 +2030,12 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
   une note Doxygen dans `gaol/parser/gaol_parser.h`. Fait le 20 octobre par #147
   : `parse_interval()` rend `false` pour un pointeur nul, `null_pointer()` dans
   `tests/expressions.cpp`.
+- **`<a, b>` et une borne calculée** (question de #149). `<a, b>` acceptait une
+  borne calculée qui n'est pas un double (`<[0.1], 0x1.9999999999999p-4>`) ;
+  seuls les nombres écrits et pi étaient refusés. Fait le 24 octobre par #182 :
+  toute borne dont la valeur n'est pas un point est refusée par
+  `input_format_error` ; huit entrées de plus à `degenerate_bounds()` de
+  `tests/expressions.cpp`.
 
 ### AE. Les trois builds
 
@@ -1928,6 +2055,16 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
 
 ### AP. Les suites des réponses du 22 et du 23 octobre
 
+- **128.** `gaol::textToInterval(nullptr)`, `textToInterval(nullptr, "1")`,
+  `gaol_ieee1788::textToInterval(nullptr)` et `exactToInterval(nullptr)`
+  construisent un `std::string` d'un pointeur nul avant GAOL (indéfini ;
+  `std::logic_error` avec libstdc++). Décidé le 22 octobre (Q13) : lever
+  `input_format_error`. Fait le 24 octobre par #180 : des surcharges `const
+  char*` ; `null_text()` de `tests/expressions.cpp`.
+- **Un `file` nul dans une `gaol_exception`** (question de #147). Écrit sur un
+  flux, il le met à l'état `bad` avec libstdc++. Décidé le 24 octobre : «
+  (unknown file) ». Fait le 24 octobre par #181, avec le message nul de
+  `gaol_warning()` et de `gaol_error()` (texte vide).
 - **133.** GCC pour Windows : x86 32 bits sans FMA et Cygwin. Fait par #172
   (`-mfma -mprefer-vector-width=128` aussi à 32 bits, `pow(x, 3)` de 70 à 12 ns,
   un job sans FMA qui garde le `fma()` x87 de mingw-w64 11) puis #173 et #174
@@ -2062,7 +2199,7 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
 
 Les « Questions ouvertes » des descriptions de #146 à #163, que l'ancien
 `TODO.md` gardait sous « Remarqué par #NN, à trier », avec leur sort. Les
-questions qui restent sans réponse sont dans `TODO.md` (tâches PA à PJ) et
+questions qui restent sans réponse sont dans `TODO.md` (tâches PB à PJ) et
 `TODO_AFTER.md` ; elles ne sont pas répétées ici.
 
 ### #146
@@ -2095,7 +2232,7 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PA à PJ) et
   not valid »), ni `input_format_error` ni l'ensemble vide ; avec libc++ et
   Visual C++, probablement un plantage dans `strlen`, non vérifié. Le changer
   demande une surcharge `const char*` : un choix d'interface. *Décidé le 22
-  octobre (Q13)* : lever `input_format_error`, c'est le 128.
+  octobre (Q13)* : lever `input_format_error`, c'est le 128, fait par #180.
 
 ### #149
 
@@ -2452,6 +2589,9 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PA à PJ) et
 - Ménage des registres : #177, #178 et #179 créées, #49, #142, #107 et #159
   fermées, `TODO_mistral.md` supprimé, `process.md` mis à jour pour les trois
   registres.
+- #180, #181 et #182 (la tâche PA) fusionnées par le mainteneur ; `TODO.md`,
+  `TODO_DONE.md` et `process.md` (§12) mis à jour pour elles, les branches
+  fusionnées supprimées en local.
 
 ## 8. Le ménage fait
 
@@ -2491,8 +2631,12 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PA à PJ) et
   `exp-110-gcc-windows-fma`, `exp-110b-stack-alignment`, `exp-157-ab`,
   `exp-win32-fma-stack`, `exp-cygwin-diag` et `exp-cygwin-diag2` sont supprimées
   sur GitHub (les 23 et 24 octobre), ainsi que `todo-ai-msvc-avx512` (sans pull
-  request, un ancêtre de `configure-clean`, le 24 octobre) : il ne reste que
-  `configure-clean`, `MATH-CORE` et `master`.
+  request, un ancêtre de `configure-clean`, le 24 octobre). Celles de #176
+  (`todo-ai-cygwin-cpack-step`), de #180 (`todo-ap-text-nullptr`), de #181
+  (`todo-ap-exception-file`) et de #182 (`todo-ad-lexer-numbers`), sur GitHub à
+  la fusion et en local le 24 octobre : sur GitHub, il ne reste que
+  `configure-clean`, `MATH-CORE` et `master`, et les branches des pull requests
+  ouvertes.
 - [x] Lignes de crédit retirées des descriptions de #50, #51, #53 à #57 et #59,
   d'un commentaire de #59 et de cette issue. Il en reste dans les messages des
   commits a0d3871, 790ca12 et f1f4239 de #99, fusionnée sans squash. Retirées

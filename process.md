@@ -508,8 +508,8 @@ commite pas. Fais seulement ta mise à jour, ou demande-lui. Ensuite :
 - `TODO.md` : l'en-tête « au commit `xxxxxxx` de `configure-clean` » prend le
   commit courant, celui de la fusion ; retire le point fait de sa tâche et des
   phrases qui le citent (une tâche entièrement faite sort du fichier et du
-  tableau « Les dix tâches ») ; un point fait en partie (106 et 107 par #146)
-  reste dans sa tâche, avec « fait par #NN pour ... » ; les « Questions
+  tableau « Les tâches restantes ») ; un point fait en partie (106 et 107 par
+  #146) reste dans sa tâche, avec « fait par #NN pour ... » ; les « Questions
   ouvertes » de la pull request, et ce qu'elle a remarqué sans le corriger, vont
   dans la tâche où elles se traitent, en « À décider » quand le mainteneur n'a
   pas répondu, ou dans `TODO_AFTER.md` quand c'est reporté ; « Aucune pull
@@ -646,7 +646,7 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
 
 ## 12. Où en est le travail (24 octobre 2026)
 
-Le reste à faire est dans `TODO.md` (dix tâches PA à PJ) et l'issue #179 ; ce
+Le reste à faire est dans `TODO.md` (tâches PB à PJ) et l'issue #179 ; ce
 qui est fait et décidé (pull requests fusionnées, décisions, mesures) est dans
 `TODO_DONE.md` et l'issue #177 ; ce qui est reporté est dans `TODO_AFTER.md` et
 l'issue #178. L'état qui suit est daté : les commandes ci-dessous, les trois
@@ -659,18 +659,20 @@ gh api 'repos/Jordan08/GAOL/pulls?state=open' --jq '.[] | "#\(.number) \(.head.r
 git ls-remote --heads origin
 ```
 
-- **Faits** : tout ce que dit `TODO_DONE.md` (sections 4 et 5), jusqu'à #176 ;
+- **Faits** : tout ce que dit `TODO_DONE.md` (sections 4 et 5), jusqu'à #176 et
+  #180 à #182 (la tâche PA) ;
   l'audit du 13 octobre a vérifié dans `configure-clean` ce qu'annonçaient alors
   les points A, C à H et J à V.
-- **En cours** : aucune pull request ouverte au 24 octobre ; `configure-clean`
-  est au commit de la fusion de #176, et ses seules branches sur GitHub sont
-  `configure-clean`, `MATH-CORE` et `master`.
-- **À faire**, dans l'ordre de `TODO.md` : les corrections décidées (PA à PC),
+- **En cours** : deux pull requests ouvertes au 24 octobre, #183 et #184 (la
+  tâche PB) ; `configure-clean` est au commit de la fusion de #181, et ses
+  branches sur GitHub sont `configure-clean`, `MATH-CORE`, `master` et celles de
+  ces deux pull requests.
+- **À faire**, dans l'ordre de `TODO.md` : les corrections décidées (PB et PC),
   les textes, les tests et le ménage (PD), les trois builds et la CI (PE), x86
   32 bits et Windows (PF), les études de vitesse, toutes avant v5.0.0 (PG), les
   signalements à d'autres projets (PH, avec l'accord du mainteneur), puis la
   version (PI, PJ). Ce qui est reporté (le 113, le site, les traits pour YalAA
   et VNODE-LP, les décorations, ce qui attend du matériel) est dans
   `TODO_AFTER.md`. Les dépendances entre points sont écrites dans chaque tâche.
-  Le mainteneur donne les tâches ou les points un par un (« traite la tâche PA »,
-  « traite le point 128 ») : ne commence pas le suivant sans lui.
+  Le mainteneur donne les tâches ou les points un par un (« traite la tâche PB »,
+  « traite le point 129 ») : ne commence pas le suivant sans lui.
