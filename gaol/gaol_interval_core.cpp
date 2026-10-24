@@ -39,6 +39,15 @@
 #include <ios>
 #include <sstream>
 #include <cmath>
+#include <cfenv>
+// Whether the doubles are computed by SSE instructions, whose control register
+// MXCSR pow_up_without_overflow_exception() writes
+#if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+#  include <xmmintrin.h>
+#  define GAOL_POW_MASKS_MXCSR 1
+#else
+#  define GAOL_POW_MASKS_MXCSR 0
+#endif
 #include <string>
 #include <cerrno>
 #include <locale>
@@ -130,6 +139,284 @@ namespace gaol_core {
   {
     const volatile double v = x;
     return v;
+  }
+
+  /*
+    Quotients and products of finite doubles a >= 0 and b > 0 (b >= 0 for a
+    product) that return what the operation returns when it overflows,
+    without executing it, so that no overflow exception is raised (GAOL v5,
+    point 79 of TODO.md): +oo rounded upward, and the largest double for
+    -((-a)/b) and -((-a)*b), the same operations rounded downward by the
+    upward rounding GAOL computes in. The intermediate values of the
+    relational functions, which are then intersected with a finite interval,
+    overflow for a finite result: the divisor of div_rel() next to 2^-1074,
+    the slope of a cone of atan2_rel_y()... The exponents e of a and f of b
+    (frexp(), 2^(e-1) <= a < 2^e) tell: a / b is below 2^(e-f+1), so that it
+    is below 2^1023 for e - f <= 1022, and above 2^(e-f-1), so that it is
+    above 2^1024 for e - f >= 1025. Between them, for e - f = 1023 or 1024
+    (e + f = 1024 or 1025 for a product), a quarter of a gives a result
+    between 2^1020 and 2^1023, to compare with a quarter of the largest
+    double: the rounding being monotonic, the result is above the largest
+    double exactly when its quarter is above that quarter, and the scaling by
+    4 is exact (a >= 2^-51 there). The operands go through read_in_branch() where the operation is
+    executed, as above. A first test tells the usual operands, for which the
+    exponents are not computed.
+  */
+  static const double two_power_500 = 3.273390607896142e+150, two_power_minus_500 = 3.054936363499605e-151;
+
+  static inline double dbl_max_quarter()
+  {
+    return 0.25*(std::numeric_limits<double>::max)();
+  }
+
+  // The e of frexp() for a finite d: 2^(e-1) <= d < 2^e for d > 0
+  static inline int exponent_of(double d)
+  {
+    int e;
+    (void)std::frexp(d, &e);
+    return e;
+  }
+
+  static inline double quotient_up_sat(double a, double b)
+  {
+    if (a < two_power_500 && b > two_power_minus_500) { // The quotient is below 2^1000
+      return read_in_branch(a)/b;
+    }
+    const int e = exponent_of(a), f = exponent_of(b);
+    if (e - f <= 1022) {
+      return read_in_branch(a)/b;
+    }
+    if (e - f >= 1025) {
+      return GAOL_INFINITY;
+    }
+    const double q = (0.25*a)/read_in_branch(b);
+    return (q > dbl_max_quarter()) ? GAOL_INFINITY : 4.0*q;
+  }
+
+  // -((-a)/b)
+  static inline double quotient_dn_sat(double a, double b)
+  {
+    if (a < two_power_500 && b > two_power_minus_500) {
+      return -((-read_in_branch(a))/b);
+    }
+    const int e = exponent_of(a), f = exponent_of(b);
+    if (e - f <= 1022) {
+      return -((-read_in_branch(a))/b);
+    }
+    if (e - f >= 1025) {
+      return (std::numeric_limits<double>::max)();
+    }
+    const double q = -((-0.25*a)/read_in_branch(b));
+    return (q >= dbl_max_quarter()) ? (std::numeric_limits<double>::max)() : 4.0*q;
+  }
+
+  static inline double product_up_sat(double a, double b)
+  {
+    if (a < two_power_500 && b < two_power_500) { // The product is below 2^1000
+      return read_in_branch(a)*b;
+    }
+    const int e = exponent_of(a), f = exponent_of(b);
+    if (e + f <= 1023) {
+      return read_in_branch(a)*b;
+    }
+    if (e + f >= 1026) {
+      return GAOL_INFINITY;
+    }
+    const double q = (0.25*a)*read_in_branch(b);
+    return (q > dbl_max_quarter()) ? GAOL_INFINITY : 4.0*q;
+  }
+
+  // -((-a)*b)
+  static inline double product_dn_sat(double a, double b)
+  {
+    if (a < two_power_500 && b < two_power_500) {
+      return -((-read_in_branch(a))*b);
+    }
+    const int e = exponent_of(a), f = exponent_of(b);
+    if (e + f <= 1023) {
+      return -((-read_in_branch(a))*b);
+    }
+    if (e + f >= 1026) {
+      return (std::numeric_limits<double>::max)();
+    }
+    const double q = -((-0.25*a)*read_in_branch(b));
+    return (q >= dbl_max_quarter()) ? (std::numeric_limits<double>::max)() : 4.0*q;
+  }
+
+  /*
+    The quotient a / b of two doubles of any signs, b other than 0, rounded
+    upward, like a / b in the upward rounding GAOL computes in, but for the
+    overflow: it gives the infinity, or the largest double of the opposite
+    sign, that an overflowing quotient gives (see quotient_up_sat()),
+    without raising the exception (GAOL v5, point 79 of TODO.md)
+  */
+  static inline double quotient_sat(double a, double b)
+  {
+    const double x = std::fabs(a), y = std::fabs(b);
+    if (x == 0.0 || (x < two_power_500 && y > two_power_minus_500) || !(x <= (std::numeric_limits<double>::max)())
+        || !(y <= (std::numeric_limits<double>::max)())) {
+      return read_in_branch(a)/b; // The quotient is below 2^1000, or 0, or has an infinite operand
+    }
+    return ((a < 0.0) == (b < 0.0)) ? quotient_up_sat(x, y) : -quotient_dn_sat(x, y);
+  }
+
+  /*
+    div_rel(), mulRev of IEEE 1788-2015, after the check of the rounding
+    direction: the hull of the x of I with an x y in K for a y of J, from the
+    quotients of the bounds of K by those of J, whichever the signs. The FPU
+    and the NEON intervals compute it so, and the SSE2 intervals where a
+    quotient of their vectors could overflow (see div_rel() in
+    gaol/gaol_interval_sse.cpp). The quotients are those of quotient_sat():
+    one that overflows is the infinity it gives, which is intersected with a
+    finite I or joined to an infinite bound of the hull, where the division
+    raised the overflow exception for a finite result, as in div_rel([0, 1/2],
+    [2^-1074, 2^-1022], [0, 1]) (GAOL v5, point 79 of TODO.md). The code is
+    that of the FPU and the NEON intervals, which took the stored bounds of
+    their operands, the opposite of the lower bound being -K.left().
+  */
+  static interval div_rel_upward(const interval &K, const interval &J, const interval &I)
+  {
+    if (K.is_empty() || J.is_empty() || I.is_empty()) {
+      return interval::emptyset();
+    }
+
+    if (K.right() < 0.0) { // [this] N1
+      if (J.right() < 0.0) { // [J] N1
+	// I & [K.r/J.l, K.l/J.r]
+	interval tmp(-(quotient_sat(K.right(), -J.left())),quotient_sat(-K.left(), -J.right()));
+	return I & tmp; // N1 N1
+      } else { // [J] P or Z
+	if (J.right() == 0.0) { // [J] N0 or Z
+	  if (J.left() == 0.0) { // [J] Z
+	    return interval::emptyset(); // N1 Z
+	  }
+	  // I & [K.r/J.l,+oo]
+	  interval tmp(-(quotient_sat(K.right(), -J.left())),GAOL_INFINITY);
+	  return I & tmp; // N1 N0
+	} else { // [I] P or M
+	  if (J.left() < 0.0) { // [J] M
+	    interval tmp(-GAOL_INFINITY,quotient_sat(K.right(), J.right()));
+	    // The lower bound rounded downward, the rounding direction being
+	    // upward (GAOL v5: K.right()/J.left() was rounded upward, and the
+	    // result left out the doubles below it that belong to the hull)
+	    interval tmp2(-(quotient_sat(K.right(), -J.left())),GAOL_INFINITY);
+	    return (I&tmp) | (I&tmp2); // N1 M
+	  } else { // [J] P0 or P1
+	    if (J.left() == 0.0) { // [J] P0
+	      interval tmp2 = I & interval(-GAOL_INFINITY,quotient_sat(K.right(), J.right())); // N1 P0
+	      return tmp2; // N1 P0
+	    } else { // [J] P1
+	      interval tmp(-(quotient_sat(-K.left(), J.left())),quotient_sat(K.right(), J.right()));
+	      return I & tmp; // N1 P1
+	    }
+	  }
+	}
+      }
+    } else { // [this] N0, Z, M, or P
+      if (K.right() == 0.0) { // [this] N0 or Z
+	if (K.left() == 0.0) { // [this] Z
+	  if (J.straddles_zero()) {
+	    return I; // Z (N0, M, P0)
+	  } else {
+	    return I & interval::zero(); // Z (N1, P1)
+	  }
+	} else { // [this] N0
+	  if (J.right() < 0.0) { // [J] N1
+	    interval tmp2 = I & interval(0.0,quotient_sat(K.left(), J.right())); // N0 N1
+	    return tmp2;
+	  } else { // [J] P or Z
+	    if (J.right() == 0.0) { // [J] N0 or Z
+	      if (J.left() == 0.0) { // [J] Z
+		return I; // N0 Z
+	      }
+	      return I; // N0 N0
+	    } else { // [J] P or M
+	      if (J.left() < 0.0) { // [J] M
+		return I; // N0 M
+	      } else { // [J] P0 or P1
+		if (J.left() == 0.0) { // [J] P0
+		  return I; // N0 P0
+		} else { // [J] P1
+		  interval tmp(-(quotient_sat(-K.left(), J.left())),0.0);
+		  return I & tmp; // N0 P1
+		}
+	      }
+	    }
+	  }
+	}
+      } else { // [this] M, P0, or P1
+	if (K.left() < 0.0) { // [this] M
+	  if (J.right() < 0.0) { // [J] N1
+	    interval tmp(-(quotient_sat(K.right(), -J.right())),quotient_sat(-K.left(), -J.right()));
+	    return I & tmp; // M N1
+	  } else { // [J] P or Z
+	    if (J.right() == 0.0) { // [J] N0 or Z
+	      return I; // M N0
+	    } else { // [J] P or M
+	      if (J.left() < 0.0) { // [J] M
+		return I; // M M
+	      } else { // [J] P0 or P1
+		if (J.left() == 0.0) { // [J] P0
+		  return I; // M P0
+		} else { // [J] P1
+		  interval tmp(-(quotient_sat(-K.left(), J.left())),quotient_sat(K.right(), J.left()));
+		  return I & tmp; // M P1
+		}
+	      }
+	    }
+	  }
+	} else { // [this] P0 or P1
+	  if (K.left() == 0.0) { // [this] P0
+	    if (J.right() < 0.0) { // [J] N1
+	      interval tmp(-(quotient_sat(K.right(), -J.right())),0.0);
+	      return I & tmp; // P0 N1
+	    } else { // [J] P or Z
+	      if (J.right() == 0.0) { // [J] N0 or Z
+		return I; // P0 (Z or N0)
+	      } else { // [J] P or M
+		if (J.left() < 0.0) { // [J] M
+		  return I; // P0 M
+		} else { // [J] P0 or P1
+		  if (J.left() == 0.0) { // [J] P0
+		    return I; // P0 P0
+		  } else { // [J] P1
+		    interval tmp2 = I & interval(0.0,quotient_sat(K.right(), J.left())); // P0 P1
+		    return tmp2;
+		  }
+		}
+	      }
+	    }
+	  } else { // [this] P1
+	    if (J.right() < 0.0) { // [J] N1
+	      interval tmp(-(quotient_sat(K.right(), -J.right())),quotient_sat(-K.left(), -J.left()));
+	      return I & tmp; // P1 N1
+	    } else { // [J] P or Z
+	      if (J.right() == 0.0) { // [J] N0 or Z
+		if (J.left() == 0.0) { // [J] Z
+		  return interval::emptyset(); // P1 Z
+		}
+		interval tmp2 = I & interval(-GAOL_INFINITY,quotient_sat(-K.left(), -J.left())); // P1 N0
+		return tmp2;
+	      } else { // [J] P or M
+		if (J.left() < 0.0) { // [J] M
+		  interval tmp(-GAOL_INFINITY,quotient_sat(-K.left(), -J.left()));
+		  interval tmp2 = interval(-(quotient_sat(-K.left(), J.right())),GAOL_INFINITY);
+		  return (I&tmp) | (I&tmp2); // P1 M
+		} else { // [J] P0 or P1
+		  if (J.left() == 0.0) { // [J] P0
+		    interval tmp(-(quotient_sat(-K.left(), J.right())),GAOL_INFINITY);
+		    return I & tmp; // P1 P0
+		  } else { // [J] P1
+		    interval tmp(-(quotient_sat(-K.left(), J.right())),quotient_sat(K.right(), J.left()));
+		    return I & tmp; // P1 P1
+		  }
+		}
+	      }
+	    }
+	  }
+	}
+      }
+    }
   }
 
 #if (defined(__x86_64__) || defined(_M_X64)) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_AVX512_ARITHMETIC
@@ -594,11 +881,41 @@ namespace gaol_core {
      s*s rounded downward, -((-s)*s) when rounding upward, is below x exactly
      when s*s is, x being a double, and s is then below sqrt(x) (GAOL v5:
      GAOL compared s with x/s, a division, several times slower than a
-     product). */
+     product).
+
+     The products of this check and of gaol_minus_sqrt_down() reach 2^1024 for
+     an x next to the largest double, which raised the overflow exception for
+     a finite root (GAOL v5, point 79 of TODO.md: sqrt([1, DBL_MAX])). From
+     huge_root_argument, 2^1000, the root s >= 2^500 is scaled by 2^-512 and x
+     by 2^-1024 (x >= 2^-24 is then normal), exactly, and the products are
+     those of the check scaled by 2^-1024, rounded to the same bits. */
+  static const double huge_root_argument = 1.0715086071862673e+301; // 2^1000
+  static const double two_power_minus_512 = 7.458340731200207e-155;
+
+  // s*s rounded downward < x, for s the root of x
+  static inline bool square_down_below(double s, double x)
+  {
+    if (x > huge_root_argument) {
+      const double t = read_in_branch(s)*two_power_minus_512;
+      return -((-t)*t) < (read_in_branch(x)*two_power_minus_512)*two_power_minus_512;
+    }
+    return -((-s)*s) < x;
+  }
+
+  // u*u rounded upward == x, for u the root of x
+  static inline bool square_up_equals(double u, double x)
+  {
+    if (x > huge_root_argument) {
+      const double t = read_in_branch(u)*two_power_minus_512;
+      return t*t == (read_in_branch(x)*two_power_minus_512)*two_power_minus_512;
+    }
+    return u*u == x;
+  }
+
   static double gaol_sqrt_up(double x)
   {
     double s = ::sqrt(x);
-    if (-((-s)*s) < x) { // s*s rounded downward < x proves s < sqrt(x)
+    if (square_down_below(s, x)) { // s*s rounded downward < x proves s < sqrt(x)
       s += std::numeric_limits<double>::denorm_min();
     }
     return s;
@@ -614,7 +931,7 @@ namespace gaol_core {
      without setting the rounding direction downward. */
   static double gaol_minus_sqrt_down(double x, double u)
   {
-    return (u*u == x) ? -u : (-u + std::numeric_limits<double>::denorm_min());
+    return square_up_equals(u, x) ? -u : (-u + std::numeric_limits<double>::denorm_min());
   }
 
   /*
@@ -683,6 +1000,18 @@ namespace gaol_core {
     return (x == 1.0) ? 0.0 : ((x == 0.0) ? gaol_half_pi_up : ((x == -1.0) ? gaol_pi_up : upward::acos_up(x)));
   }
 
+  /*
+    From |x| = 2^54 on, atan(x) = pi/2 - 1/x is above the double below pi/2
+    (pi/2 exceeds it by 6.1e-17, and 1/x is at most 5.6e-17) and below pi/2,
+    so that its bounds are those of pi/2, as they are at the infinities.
+    CORE-MATH returns them from 0x1.d02967c31cdb5p+53 on without computing,
+    but after a test that Visual C++ (x64 and arm64, /fp:strict) compiles
+    with the sum x + x it returns for a NaN, which overflows from |x| = 2^1023
+    on: atan([DBL_MAX]) and atan_rel() raised the overflow exception for a
+    finite result (GAOL v5, point 79 of TODO.md; the continuous integration)
+  */
+  static const double atan_is_half_pi = 1.8014398509481984e+16; // 2^54
+
   // pi/4 is half of pi/2, exactly
   static double atan_lo(double x)
   {
@@ -690,7 +1019,7 @@ namespace gaol_core {
       return 0.0;
     }
     const double a = std::fabs(x);
-    if (a == 1.0 || a == GAOL_INFINITY) {
+    if (a == 1.0 || a >= atan_is_half_pi) {
       const double b = (a == 1.0) ? 0.5 : 1.0;
       return (x > 0.0) ? gaol_half_pi_dn*b : -gaol_half_pi_up*b;
     }
@@ -703,7 +1032,7 @@ namespace gaol_core {
       return 0.0;
     }
     const double a = std::fabs(x);
-    if (a == 1.0 || a == GAOL_INFINITY) {
+    if (a == 1.0 || a >= atan_is_half_pi) {
       const double b = (a == 1.0) ? 0.5 : 1.0;
       return (x > 0.0) ? gaol_half_pi_up*b : -gaol_half_pi_dn*b;
     }
@@ -860,6 +1189,89 @@ namespace gaol_core {
   }
 
   /*
+    CORE-MATH's pow(x, y) in the upward rounding, for a finite x > 0 and a y
+    of normal magnitude, without the overflow exception where x^y is above
+    the largest double (GAOL v5, point 79 of TODO.md). The reverse functions of
+    pow look for the bounds of c^(1/y) and log(c)/log(x) by powers d^y of the
+    doubles on either side of them, which overflow for a finite bound when c
+    is next to the largest double, or when y is huge, where d^y is beyond the
+    doubles for a d one double above 1. The answer there is +oo, the value
+    CORE-MATH gives, which the tests against a finite bound take as they take
+    the exception. The functions pow_rounded_up(), pow_rounded_dn(), pow_lo()
+    and pow_hi() call this one for the template argument quiet, which the
+    reverse functions give: pow keeps raising the exception for its infinite
+    upper bound, as doc/using.md says of the infinite bounds.
+    x^y can only overflow where it is above 1, for x > 1 and y > 0 or
+    x < 1 and y < 0, and it is the tiny power, 2^-1074 rounded upward, in the
+    other cases beyond t = 1100 below, where CORE-MATH squares y log(x) in its
+    first phase, which overflows from 2^512 on. The binary logarithm of x^y is
+    bounded by |y| |log2(x)|, with |log2(x)| at most |e| + 1, e being the
+    exponent of x as frexp() gives it: when that is below 1000, nothing
+    overflows. From |y| >= 2^500 on, |y log2(x)| >= 2^447, and x^y is beyond
+    the doubles, +oo or 2^-1074. Otherwise
+    t = |y| |log(x)|/log(2) is computed from the logarithm of CORE-MATH,
+    which is within a few units of 2^-52 of it relatively, so that
+    x^y < 2^(1024 - 2^-30) is no overflow for t < 1024 - 10^-9, and x^y is
+    beyond the doubles for t > 1024 + 10^-9. Only the powers in between ask
+    CORE-MATH to decide: they are computed with the exceptions masked, and
+    the environment of the program, its flags and the exceptions it enabled,
+    restored.
+  */
+  static double pow_up_without_overflow_exception(double x, double y)
+  {
+    if (!(x > 0.0 && x < GAOL_INFINITY) || x == 1.0) {
+      return upward::nthroot_up(x, y);
+    }
+    const bool grows = (x > 1.0) == (y > 0.0);
+    const double magnitude = std::fabs(y);
+    // |e| from the exponent field of x: e = field - 1022 for a normal x, and
+    // 1074 at most for a subnormal one
+    std::uint64_t bits;
+    std::memcpy(&bits, &x, sizeof bits);
+    const int field = static_cast<int>((bits >> 52) & 0x7ffu);
+    const int e = (field == 0) ? 1074 : std::abs(field - 1022);
+    if (magnitude < 1000.0/(e + 1)) {
+      return upward::nthroot_up(x, y);
+    }
+    if (magnitude >= two_power_500) {
+      return grows ? GAOL_INFINITY : std::numeric_limits<double>::denorm_min();
+    }
+    // 1/log(2), rounded to nearest: the margins below are far larger than its error
+    const double t = magnitude*std::fabs(upward::log_up(x))*1.4426950408889634;
+    if (!grows) {
+      // x^y < 1: nothing overflows but the square of y log(x) in the first
+      // phase of CORE-MATH, which is 2^1024 for |y log(x)| = 2^512 (Clang):
+      // the power is below 2^-1100 from t = 1100 on, and rounds upward to 2^-1074
+      return (t >= 1100.0) ? std::numeric_limits<double>::denorm_min() : upward::nthroot_up(x, y);
+    }
+    if (t < 1023.999999999) {
+      return upward::nthroot_up(x, y);
+    }
+    if (t > 1024.000000001) {
+      return GAOL_INFINITY;
+    }
+#if GAOL_POW_MASKS_MXCSR
+    // On x86 the doubles are computed by SSE instructions, whose exceptions
+    // the control register MXCSR masks (bits 7 to 12) and whose flags it holds
+    // (bits 0 to 5): written back as it was, it gives the program its masks
+    // and flags exactly, where the functions of <cfenv> of MinGW-w64 12 to 14
+    // left the flags of the masked section raised after fesetenv(), and
+    // crashed with fesetexceptflag() (the continuous integration)
+    const unsigned int csr = _mm_getcsr();
+    _mm_setcsr(csr | 0x1f80u);
+    const double power = upward::nthroot_up(x, y);
+    _mm_setcsr(csr);
+    return power;
+#else
+    std::fenv_t environment;
+    std::feholdexcept(&environment);
+    const double power = upward::nthroot_up(x, y);
+    std::fesetenv(&environment);
+    return power;
+#endif
+  }
+
+  /*
     x^y rounded upward for x >= 0 and a finite y, the rounding direction
     being upward: CORE-MATH's pow, which is correctly rounded in that
     direction, but for an exponent of extreme magnitude, |y| < 2^-969 or
@@ -881,13 +1293,22 @@ namespace gaol_core {
     bound it gives (pow_rounded_dn()). 1^y and x^0 are 1; CORE-MATH takes 0
     and +oo apart before its first phase.
   */
+  template <bool quiet = false>
   static inline double pow_rounded_up(double x, double y)
   {
     // 2^-969 and 2^1014, written in decimal with the digits that give them
     // exactly: C++11 has no hexadecimal floating literal
     const double magnitude = std::fabs(y);
-    if (magnitude >= 2.0041683600089728e-292 && magnitude < 1.7555597020139804e+305) {
-      return upward::nthroot_up(x, y);
+    // 2^450 too: from |y| = 2^450 on, a power below 1 is the tiny one, which
+    // CORE-MATH, squaring y log(x) in its first phase, raised the overflow
+    // exception to find, from |y log(x)| = 2^512 on (Clang), and the quiet
+    // powers do not need it either (GAOL v5, point 79 of TODO.md)
+    if (magnitude >= 2.0041683600089728e-292 && magnitude < (quiet ? 1.7555597020139804e+305 : 2.9073548971824276e+135)) {
+      return quiet ? pow_up_without_overflow_exception(x, y) : upward::nthroot_up(x, y);
+    }
+    if (!quiet && magnitude >= 2.9073548971824276e+135 && magnitude < 1.7555597020139804e+305) {
+      return (x > 0.0 && x < GAOL_INFINITY && x != 1.0 && (x > 1.0) != (y > 0.0))
+        ? std::numeric_limits<double>::denorm_min() : upward::nthroot_up(x, y);
     }
     if (x == 1.0 || y == 0.0) {
       return 1.0;
@@ -902,9 +1323,10 @@ namespace gaol_core {
     return above_one ? GAOL_INFINITY : std::numeric_limits<double>::denorm_min();
   }
 
+  template <bool quiet = false>
   static inline double pow_rounded_dn(double x, double y)
   {
-    return previous_float(pow_rounded_up(x, y));
+    return previous_float(pow_rounded_up<quiet>(x, y));
   }
 
   /*
@@ -930,6 +1352,7 @@ namespace gaol_core {
     return ((x > 1.0) == (y > 0.0)) ? GAOL_INFINITY : 0.0;
   }
 
+  template <bool quiet = false>
   static inline double pow_lo(double x, double y)
   {
     double d;
@@ -939,15 +1362,16 @@ namespace gaol_core {
     if (pow_is_limit(x, y)) {
       return pow_limit(x, y);
     }
-    return pow_is_double(x, y, d) ? d : maximum(pow_rounded_dn(x,y), 0.0);
+    return pow_is_double(x, y, d) ? d : maximum(pow_rounded_dn<quiet>(x,y), 0.0);
   }
 
+  template <bool quiet = false>
   static inline double pow_hi(double x, double y)
   {
     if (x == 1.0 || y == 0.0) {
       return 1.0;
     }
-    return pow_is_limit(x, y) ? pow_limit(x, y) : pow_rounded_up(x,y);
+    return pow_is_limit(x, y) ? pow_limit(x, y) : pow_rounded_up<quiet>(x,y);
   }
 
   static inline double sinh_lo(double x)
@@ -2675,14 +3099,28 @@ namespace gaol_core {
   static double root_of_power_near(double c, double y)
   {
     const double largest = std::numeric_limits<double>::max();
-    const double r = pow_rounded_up(c, 1.0/y);
-    if (r > 0.0 && r <= largest) {
-      const double p = pow_rounded_up(r, y);
-      const double q = y*p;
-      if (p != c && p >= std::numeric_limits<double>::min() && p <= largest && q != 0.0) {
-        const double s = r - r*((p - c)/q);
-        if (s > 0.0 && s <= largest) {
-          return s;
+    // 1/y overflows for a y next to 2^-1074, to +oo (-DBL_MAX for y < 0): the
+    // quotient_sat() that raises no exception (GAOL v5, point 79 of TODO.md)
+    const double r = pow_rounded_up<true>(c, quotient_sat(1.0, y));
+    // The step is for |y| up to 1024 and c up to 2^1000: r is then within
+    // about 2^-43 relatively of the root, so that r^y is within 2^-33 of c, and
+    // r^y cannot overflow. For a greater |y| the rounded 1/y moves r by less
+    // than 745/|y| 2^-53 relatively, below one double, and a step would take
+    // r^y, which overflows for |y| next to 2^52 (GAOL v5, point 79 of
+    // TODO.md: pow_rel([3], [2^512], I) raised the overflow exception)
+    if (r > 0.0 && r <= largest && std::fabs(y) <= 1024.0 && c <= huge_root_argument) {
+      const double p = pow_rounded_up<true>(r, y);
+      if (p != c && p >= std::numeric_limits<double>::min() && p <= largest) {
+        // r (p - c)/(y p), as (p - c)/p then /y, whose quotients saturate,
+        // where y p and the quotient of (p - c) by it overflowed (GAOL v5,
+        // point 79 of TODO.md), and which is left out where it is 1 or more
+        // in magnitude, the power being then no approximation of c
+        const double t = quotient_sat(quotient_sat(p - c, p), y);
+        if (std::fabs(t) < 1.0) {
+          const double s = r - r*t;
+          if (s > 0.0 && s <= largest) {
+            return s;
+          }
         }
       }
     }
@@ -2702,7 +3140,7 @@ namespace gaol_core {
   {
     const auto below = [c, y](std::uint64_t k) {
       const double d = key_double(k);
-      return (y > 0.0) ? pow_hi(d, y) <= c : pow_lo(d, y) >= c;
+      return (y > 0.0) ? pow_hi<true>(d, y) <= c : pow_lo<true>(d, y) >= c;
     };
     return key_double(last_key_holding(below, double_key(0.0), double_key(std::numeric_limits<double>::max()),
                                        double_key(near)));
@@ -2712,7 +3150,7 @@ namespace gaol_core {
   {
     const auto above = [c, y](std::uint64_t k) {
       const double d = key_double(k);
-      return (y > 0.0) ? pow_lo(d, y) >= c : pow_hi(d, y) <= c;
+      return (y > 0.0) ? pow_lo<true>(d, y) >= c : pow_hi<true>(d, y) <= c;
     };
     return key_double(first_key_holding(above, double_key(std::numeric_limits<double>::denorm_min()),
                                         double_key(GAOL_INFINITY), double_key(near)));
@@ -2736,7 +3174,7 @@ namespace gaol_core {
   {
     const auto below = [c, x](std::uint64_t k) {
       const double e = key_double(k);
-      return (x > 1.0) ? pow_hi(x, e) <= c : pow_lo(x, e) >= c;
+      return (x > 1.0) ? pow_hi<true>(x, e) <= c : pow_lo<true>(x, e) >= c;
     };
     return key_double(last_key_holding(below, double_key(-GAOL_INFINITY),
                                        double_key(std::numeric_limits<double>::max()),
@@ -2747,7 +3185,7 @@ namespace gaol_core {
   {
     const auto above = [c, x](std::uint64_t k) {
       const double e = key_double(k);
-      return (x > 1.0) ? pow_lo(x, e) >= c : pow_hi(x, e) <= c;
+      return (x > 1.0) ? pow_lo<true>(x, e) >= c : pow_hi<true>(x, e) <= c;
     };
     return key_double(first_key_holding(above, double_key(-std::numeric_limits<double>::max()),
                                         double_key(GAOL_INFINITY), double_key(log_ratio_near(c, x))));
@@ -2761,13 +3199,13 @@ namespace gaol_core {
   */
   static bool root_of_power_beyond(double c, double y, double d, bool above)
   {
-    return (above == (y > 0.0)) ? pow_hi(d, y) < c : pow_lo(d, y) > c;
+    return (above == (y > 0.0)) ? pow_hi<true>(d, y) < c : pow_lo<true>(d, y) > c;
   }
 
   // The same for log(c)/log(x) and a double e: x^e < c, or x^e > c, for x > 1
   static bool log_ratio_beyond(double c, double x, double e, bool above)
   {
-    return (above == (x > 1.0)) ? pow_hi(x, e) < c : pow_lo(x, e) > c;
+    return (above == (x > 1.0)) ? pow_hi<true>(x, e) < c : pow_lo<true>(x, e) > c;
   }
 
   /*
@@ -3277,11 +3715,24 @@ namespace gaol_core {
     if (r > std::numeric_limits<double>::max()) {
       return std::numeric_limits<double>::max();
     }
+    // The power of an r next to the root of an x above huge_root_argument may
+    // overflow, which raised the overflow exception (GAOL v5, point 79 of
+    // TODO.md): the step is left out, as for a subnormal x, and the search
+    // starts from the value of CORE-MATH
+    if (x > huge_root_argument) {
+      return r;
+    }
     const double p = ipow_hi(r,n);
     if (p >= std::numeric_limits<double>::min() && p <= std::numeric_limits<double>::max()) {
-      const double s = r - r*((p - x)/(double(n)*p));
-      if (s > 0.0 && s <= std::numeric_limits<double>::max()) {
-	return s;
+      // (p - x)/(n p) as ((p - x)/p)/n: n p overflowed for an n up to 2^32 and
+      // a p above 2^992 (GAOL v5, point 79 of TODO.md). The step is left out
+      // where it is 1 or more in magnitude, p being then no approximation of x
+      const double t = quotient_sat(p - x, p)/double(n);
+      if (std::fabs(t) < 1.0) {
+	const double s = r - r*t;
+	if (s > 0.0 && s <= std::numeric_limits<double>::max()) {
+	  return s;
+	}
       }
     }
     return r;
@@ -3433,14 +3884,21 @@ namespace gaol_core {
     }
   }
 
+  // The scaled proofs also for an x above huge_root_argument, 2^1000: the
+  // powers of the doubles next to the root, up to a relative 2^-17 beyond it
+  // as far as the search goes, stay below 2^1024 up to there, and the plain
+  // ones overflowed above the largest double for a finite root (GAOL v5, point
+  // 79 of TODO.md: nth_root([DBL_MAX], 5))
   static double proved_root_dn(double x, double r, unsigned int n)
   {
-    return (x < tiny_root_argument) ? proved_root_dn_by<scaled_proofs>(x,r,n) : proved_root_dn_by<plain_proofs>(x,r,n);
+    return (x < tiny_root_argument || x > huge_root_argument) ? proved_root_dn_by<scaled_proofs>(x,r,n)
+                                                              : proved_root_dn_by<plain_proofs>(x,r,n);
   }
 
   static double proved_root_up(double x, double r, unsigned int n)
   {
-    return (x < tiny_root_argument) ? proved_root_up_by<scaled_proofs>(x,r,n) : proved_root_up_by<plain_proofs>(x,r,n);
+    return (x < tiny_root_argument || x > huge_root_argument) ? proved_root_up_by<scaled_proofs>(x,r,n)
+                                                              : proved_root_up_by<plain_proofs>(x,r,n);
   }
 
   /*
@@ -3507,6 +3965,26 @@ namespace gaol_core {
   method then by bisection, which took 179 ns for a cube root against 67 ns
   here, and gave bounds up to 2 doubles from the tightest ones.
 */
+/*
+  u*u*u rounded upward == x, for u the cube root of x rounded upward. The
+  products reach 2^1024 for an x next to the largest double, which raised the
+  overflow exception for a finite root (GAOL v5, point 79 of TODO.md): from
+  huge_root_argument, the root u >= 2^333 is scaled by 2^-342 and x by 2^-1026,
+  exactly (x >= 2^-26 is then normal), as the square root is (see
+  gaol_sqrt_up()), and the products scaled with them are rounded to the same
+  bits
+*/
+static const double two_power_minus_342 = 1.1161986242990967e-103, two_power_minus_513 = 3.7291703656001034e-155;
+
+static inline bool cube_up_equals(double u, double x)
+{
+  if (x > huge_root_argument) {
+    const double t = read_in_branch(u)*two_power_minus_342;
+    return t*t*t == (read_in_branch(x)*two_power_minus_513)*two_power_minus_513;
+  }
+  return u*u*u == x;
+}
+
 // Inlined by force with GCC and Clang, as cube_root_upward() and cube_root()
 // below
 #if defined(__GNUC__) || defined(__clang__)
@@ -3523,7 +4001,7 @@ __attribute__((always_inline))
 static inline double cube_root_dn(double x) // x >= 0
 {
   const double u = gaol_cr_cbrt(x);
-  return (u * u * u == x) ? u : previous_float(u);
+  return cube_up_equals(u, x) ? u : previous_float(u);
 }
 
 // The rounding direction being upward already, after the check of cube_root()
@@ -4772,7 +5250,11 @@ interval nth_root(const interval& I, int q)
 
   static inline double upper_of_x_plus_half_pi_over_pi(double x)
   {
-    const double nr = x + gaol_half_pi_up;
+    // x + gaol_half_pi_up rounded upward is next to x or above it, +oo for the
+    // largest double only, which is not computed: the sum raised the overflow
+    // exception for a finite tangent (GAOL v5, point 79 of TODO.md:
+    // tan([DBL_MAX]))
+    const double nr = (x == (std::numeric_limits<double>::max)()) ? GAOL_INFINITY : read_in_branch(x) + gaol_half_pi_up;
     return nr / ((nr > 0.0) ? gaol_pi_dn : gaol_pi_up);
   }
 
@@ -4997,10 +5479,16 @@ interval nth_root(const interval& I, int q)
     }
     // The slopes read in the branches that divide or multiply by them: 0/0,
     // +oo/+oo, +oo * 0 and v/0 are left out (see read_in_branch())
-    double u_lo = (t_hi == GAOL_INFINITY || vl == 0.0) ? 0.0 : -((-vl)/read_in_branch(t_hi));
-    const double u_hi = (t_lo == 0.0) ? GAOL_INFINITY : ((vu == 0.0) ? 0.0 : vu/read_in_branch(t_lo));
-    const double v_lo = (ul == 0.0 || t_lo == 0.0) ? 0.0 : -((-ul)*read_in_branch(t_lo));
-    double v_hi = (t_hi == GAOL_INFINITY) ? GAOL_INFINITY : ((uu == 0.0 || t_hi == 0.0) ? 0.0 : uu*read_in_branch(t_hi));
+    // The quotients and the products of finite bounds, which are intersected
+    // with the box below, are those of the saturating operations: a slope next
+    // to 2^-1074 or to 2^54, with a bound next to the largest double, overflows
+    // for a finite result (GAOL v5, point 79 of TODO.md)
+    double u_lo = (t_hi == GAOL_INFINITY || vl == 0.0) ? 0.0 : quotient_dn_sat(vl, t_hi);
+    const double u_hi = (t_lo == 0.0) ? GAOL_INFINITY
+      : ((vu == 0.0) ? 0.0 : ((vu == GAOL_INFINITY) ? GAOL_INFINITY : quotient_up_sat(vu, t_lo)));
+    const double v_lo = (ul == 0.0 || t_lo == 0.0) ? 0.0 : product_dn_sat(ul, t_lo);
+    double v_hi = (t_hi == GAOL_INFINITY) ? GAOL_INFINITY
+      : ((uu == 0.0 || t_hi == 0.0) ? 0.0 : ((uu == GAOL_INFINITY) ? GAOL_INFINITY : product_up_sat(uu, t_hi)));
     if (t_hi_above) {
       if (u_lo > 0.0 && fma_once(u_lo, read_in_branch(t_hi), -vl) == 0.0) {
         u_lo = previous_float(u_lo);
@@ -5164,7 +5652,11 @@ interval nth_root(const interval& I, int q)
     return interval(l,r);
   }
 
-  static interval atanh_upward(const interval& I)
+  // by_division: the infinite bounds at -1 and 1 are those of CORE-MATH, which
+  // raises the division-by-zero exception for them; atanh_rel() takes them
+  // without a division, its result being a finite interval where I is (GAOL
+  // v5, point 79 of TODO.md: atanh_rel([0, 1], [0, 1]) raised it)
+  static interval atanh_upward(const interval& I, bool by_division = true)
   {
     const interval J = I & interval::minus_one_plus_one();
     // atanh is defined on (-1, 1) (IEEE 1788-2015, Table 9.1, GAOL v5): an I
@@ -5176,7 +5668,8 @@ interval nth_root(const interval& I, int q)
     if (J.is_empty() || J.left() == 1.0 || J.right() == -1.0) {
       return interval::emptyset();
     }
-    const double l = atanh_lo(J.left()), r = atanh_hi(J.right());
+    const double l = (!by_division && J.left() == -1.0) ? -GAOL_INFINITY : atanh_lo(J.left());
+    const double r = (!by_division && J.right() == 1.0) ? GAOL_INFINITY : atanh_hi(J.right());
     return interval(l,r);
   }
 
@@ -5493,7 +5986,7 @@ interval nth_root(const interval& I, int q)
   interval atanh_rel(const interval &J, const interval &I)
   {
     GAOL_RND_ENTER();
-    interval res = atanh_upward(J) & I;
+    interval res = atanh_upward(J, false) & I;
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
     return res;
@@ -5982,8 +6475,13 @@ interval nth_root(const interval& I, int q)
     }
 #elif GAOL_USING_NEON_INSTRUCTIONS
     // The roots of both bounds by one vector instruction (GAOL v5, see
-    // gaol/gaol_interval_neon.cpp)
-    return interval(neon_detail::sqrt_bounds(I.get_neoninterval()));
+    // gaol/gaol_interval_neon.cpp), unless the upper bound is above
+    // huge_root_argument: the vector product of its proof of exactness
+    // overflows, and the code below scales it (GAOL v5, point 79 of TODO.md).
+    // The empty set, whose bounds are NaN, is not above it
+    if (!gaol_detail::quiet_greater(I.right(), huge_root_argument)) {
+      return interval(neon_detail::sqrt_bounds(I.get_neoninterval()));
+    }
 #endif
     // The part of I in [0, +oo], as nth_root() takes it: the intersection
     // compares the bounds with quiet comparisons, and keeps an empty I as it
@@ -6127,10 +6625,13 @@ static inline interval cos_or_sin(double Il, double Ir)
       v = sine ? sin_hi(Iright) : cos_hi(Iright);
     }
   } else {
-    // The width of I, rounded upward: both extrema from 2 pi on, or for
-    // infinite bounds
-    const double w = Ir + Il;
-    if (!(w < 2.0*gaol_pi_dn)) {
+    // The half of the width of I, rounded upward: both extrema from 2 pi on,
+    // or for infinite bounds. The width itself, Ir + Il, overflowed for a
+    // finite result, [-1, 1], when a bound was next to the largest double
+    // (GAOL v5, point 79 of TODO.md: cos([-1, DBL_MAX])); the halves of the
+    // bounds are exact, and their sum is the half of the rounded sum
+    const double half_width = 0.5*Ir + 0.5*Il;
+    if (!(half_width < gaol_pi_dn)) {
       GAOL_RND_LEAVE();
       return interval::minus_one_plus_one();
     }
@@ -6174,7 +6675,7 @@ static inline interval cos_or_sin(double Il, double Ir)
         }
         if (sl != sr) {
             extremum = sl; // Increasing then decreasing: a maximum
-        } else if (w < gaol_pi_dn|| (narrow_halves && (sine ? sign_of_cos(middle) : -sign_of_sin(middle)) == sl)) {
+        } else if (half_width < 0.5*gaol_pi_dn || (narrow_halves && (sine ? sign_of_cos(middle) : -sign_of_sin(middle)) == sl)) {
             extremum = 0;
         } else {
             extremum = 2;

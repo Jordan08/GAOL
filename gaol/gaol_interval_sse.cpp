@@ -143,6 +143,24 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 	return interval::emptyset();
   }
 
+  // A quotient of the vectors that may overflow, though the result is finite,
+  // is computed on the bounds by div_rel_upward(), which saturates it (GAOL
+  // v5, point 79 of TODO.md): a finite bound of K of magnitude 2^500 or more,
+  // or a bound of J that is not 0 and is below 2^-500 in magnitude (the
+  // quotients are then below 2^1000 otherwise; those with a zero bound of J
+  // are not formed, and an infinite bound gives an infinity or a zero with no
+  // exception). The magnitudes are compared in the vectors, the NaN of an
+  // empty operand having been left above
+  {
+	const __m128d sign = _mm_set1_pd(-0.0), infinity = _mm_set1_pd(GAOL_INFINITY);
+	const __m128d k = _mm_andnot_pd(sign, K.xmmbounds), j = _mm_andnot_pd(sign, J.xmmbounds);
+	const __m128d big = _mm_and_pd(_mm_cmpge_pd(k, _mm_set1_pd(two_power_500)), _mm_cmplt_pd(k, infinity));
+	const __m128d tiny = _mm_and_pd(_mm_cmplt_pd(j, _mm_set1_pd(two_power_minus_500)), _mm_cmpneq_pd(j, _mm_setzero_pd()));
+	if (_mm_movemask_pd(_mm_or_pd(big, tiny)) != 0) {
+	  return div_rel_upward(K, J, I);
+	}
+  }
+
   // Where a branch keeps one half of a division, the other half is not
   // computed: _mm_div_sd() divides the low halves alone, the kept quotient
   // being moved to the high half where it belongs (GAOL v5, point D.24 of
