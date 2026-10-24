@@ -1005,9 +1005,10 @@ MinGW-w64 pour x86 n'avait pas de FMA (CORE-MATH et les puissances entières app
 | #168 (fermée) | noyau mixte du produit FPU | #157 piste |
 | #169 (fusionnée) | le vide dans `pow`, le carré FPU | #162 |
 | #170 (fusionnée) | jobs FPU x86-64 et arm64 GCC avec le sens préservé, commentaire d'`operator*=` | #157 `GAOL_RND_KEEP()` |
-| #171 | test des bits du signe de `x * d` | #161 |
-| #172 | GCC pour Windows en 32 bits : `-mfma -mprefer-vector-width=128`, un job sans FMA | #163, x86 32 bits |
+| #171 (fusionnée) | test des bits du signe de `x * d` | #161 |
+| #172 (fusionnée) | GCC pour Windows en 32 bits : `-mfma -mprefer-vector-width=128`, un job sans FMA | #163, x86 32 bits |
 | #173 | Cygwin x86-64 pris en charge : `_mm_malloc`, `previous_float()`/`next_float()` aux bords des doubles, `fma_once()` et le test d'exécution de `GAOL_FMA` en `__builtin_fma`, refusé sans FMA, pas de `package_source` (CPack), un job de CI (44 tests, trois sautés) ; décidé de le porter le 24 octobre | #163, Cygwin |
+| #174 | les restes de Cygwin : `is_bisectable()` par `next_float()`, `std::fma` sans optimisation dit dans les docs, le manuel et l'exemple 13 | #173 |
 
 Chacune a eu sa relecture indépendante (sauf #168, expérience, et #173, dont la première exécution tient lieu de relecture) ; la CI de #165, #166 et #167 à #171 était verte (le 23 octobre à minuit) ; #165 et #166 sont fusionnées par le mainteneur.
 

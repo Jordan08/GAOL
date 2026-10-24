@@ -121,14 +121,14 @@ plus grand sur les builds par défaut, puis les builds avec
     21. [S]
 16. **112 (AI), le reste** : les fonctions élémentaires avec
     `GAOL_PRESERVE_ROUNDING` (jusqu'à 27 %) ; le test des bits du signe de zéro
-    de `x * d` est fait par #171 (ouverte, CI verte) ; le défaut de CMake et les
+    de `x * d` est fait par #171 (fusionnée) ; le défaut de CMake et les
     descriptions d'options sont faits par #161. [M]
 17. **132 (AP)** : porter le noyau empaqueté de `pown` (`GAOL_POWN_PACKED`, FMA
     sur deux voies) sur arm64, environ 150 lignes d'intrinsèques, gain attendu
     de l'ordre de 1,5 ; décidé le 22 octobre (Q14a). [M]
 18. **133 (AP)** : GCC pour Windows : x86 32 bits sans FMA (MinGW-w64 12.2 à
-    15.2), fait par #172 (ouverte) après l'essai du 23 octobre ; et le portage
-    de Cygwin x86-64 avec un job de CI, fait par #173 (ouverte). [S]
+    15.2), fait par #172 (fusionnée) ; et le portage de Cygwin x86-64 avec un
+    job de CI, fait par #173 et #174 (ouvertes). [S]
 
 ### F. Signalements à d'autres projets
 
@@ -138,7 +138,8 @@ qui est prêt et qui a une valeur pour GAOL, puis ce qui demande une réplique �
 
 19. **#125 CORE-MATH** : les huit correctifs prêts (le 8, `exp_1()`, est fait
     dans la copie de GAOL par #144), refaits sur le master du jour.
-20. **#126 GCC**, **#127 mingw-w64**, **#129 ITF1788**, **#130 Boost.Interval**.
+20. **#126 GCC**, **#127 mingw-w64**, **#129 ITF1788**, **#130 Boost.Interval**,
+    **#175 Cygwin** (`fma()`, `nextafter()` au débordement, CPack).
 21. **#131 Microsoft**, **#132 Apple**, **#133 LLVM/Clang**, **#135 musl**,
     **#136 le benchmark de Tang et al.** : une réplique d'un fichier à écrire et
     à vérifier sur la plateforme.
@@ -207,22 +208,20 @@ originaux au commit `16a2f60`.
 
 ## En cours
 
-Trois pull requests ouvertes, du 23 octobre (leurs descriptions disent leurs
-relectures et leurs mesures) ; #165 à #167, #169 et #170 sont fusionnées par le
-mainteneur le même soir :
+Deux pull requests ouvertes, du 24 octobre (leurs descriptions disent leurs
+relectures et leurs mesures) ; #165 à #167 et #169 à #172 sont fusionnées par
+le mainteneur les 23 et 24 octobre :
 
-- **#171** : suite de #161 : le test des bits du signe de zéro de `x * d`
-  (fusionnée avec `configure-clean`, sa CI est verte).
-- **#172** : GCC pour Windows en 32 bits reçoit `-mfma
-  -mprefer-vector-width=128` comme en 64 bits (`pow(x, 3)` de 70 à 12 ns), un
-  job MinGW 15.2 avec la direction préservée et un job sans FMA qui garde le
-  `fma()` x87 de mingw-w64 11 ; sa CI est verte.
-- **#173** (sur la base de #172) : Cygwin x86-64 pris en charge : la mémoire
-  alignée par `_mm_malloc`, `previous_float()` et `next_float()` aux bords des
-  doubles (la borne de `sinh` fausse sous Cygwin), `fma_once()` et le test
-  d'exécution de `GAOL_FMA` en `__builtin_fma` (le `fma()` de Cygwin est faux),
-  Cygwin refusé sans FMA, `package_source` sans CPack sous Cygwin, et un job de
-  CI (44 tests passés dont trois sautés) ; relue.
+- **#173** : Cygwin x86-64 pris en charge : la mémoire alignée par
+  `_mm_malloc`, `previous_float()` et `next_float()` aux bords des doubles (la
+  borne de `sinh` fausse sous Cygwin), `fma_once()` et le test d'exécution de
+  `GAOL_FMA` en `__builtin_fma` (le `fma()` de Cygwin est faux), Cygwin refusé
+  sans FMA, `package_source` sans CPack sous Cygwin, et un job de CI (44 tests
+  passés dont trois sautés) ; relue.
+- **#174** (sur la base de #173) : les restes de Cygwin : `is_bisectable()` par
+  `next_float()` (le `nextafter()` de Cygwin rend `DBL_MAX` au lieu de +oo en
+  arrondi vers le bas), `std::fma` sans optimisation dit dans les docs, le
+  manuel et l'exemple 13 ; relue.
 
 ## À corriger avant la version
 
@@ -768,7 +767,7 @@ Les questions ouvertes de la description de #161, non corrigées et sans numéro
 - **La relecture des corrections** que la relecture indépendante a fait faire
   (points A à F) n'a pas été faite.
 - **Le test des bits du signe de zéro de `x * d`** (112) : *décidé le 23
-  octobre*, saut à l'exécution sans AVX-512 ; fait par #171 (ouverte, CI verte).
+  octobre*, saut à l'exécution sans AVX-512 ; fait par #171 (fusionnée).
 
 ### Remarqué par #162, à trier
 
@@ -1016,7 +1015,7 @@ compare, dans le même job, la base d'une pull request et sa tête
     », dite dans la documentation et les commentaires, sans changer le calcul ;
     il ne reste que, si l'on veut, un test qui compare les bits, qui demande un
     x86 avec AVX-512 pour comparer les deux chemins (#161 ne l'a pas fait ;
-    décidé le 23 octobre, saut à l'exécution sans AVX-512 : #171, ouverte).
+    décidé le 23 octobre, saut à l'exécution sans AVX-512 : #171, fusionnée).
 
   Fait par #161 : le défaut de CMake (un second `cmake` dans le même dossier
   faisait passer `GAOL_PREFER_AVX512` de ON à OFF sous `GAOL_PRESERVE_ROUNDING`,
@@ -1300,6 +1299,10 @@ sans l'accord explicite du mainteneur.
   FPBench, constantes décimales, README), **#137 libieeep1788** (probablement
   rien : les six cas sont dans #129) et **#138 la glibc** (probablement rien :
   relancer avec la glibc 2.44).
+- **#175 Cygwin** (24 octobre) : le `fma()` mal arrondi, le `nextafter()` qui
+  calcule le débordement dans le sens d'arrondi du programme, et CPack qui ne
+  met pas le lien `README` dans l'archive (cause non trouvée) ; mesures de CI
+  et brouillon anglais dans l'issue, à rejouer avant l'envoi.
 
 ## Ménage
 
@@ -1329,8 +1332,11 @@ sans l'accord explicite du mainteneur.
   scratchpad de la session, hors dépôt), comme `todo-ai-fpu-mixed-kernel` (#168,
   fermée sans fusion). Les branches de #165 (`todo-ai-textes-suites`), de #166
   (`todo-ai-perf-ci-suites`), de #167 (`todo-ai-win-gcc-suites`), de #169
-  (`todo-an-pow2-suites`) et de #170 (`todo-ai-fpu-keep-test`) sont supprimées
-  sur GitHub à la fusion. Reste sur
+  (`todo-an-pow2-suites`), de #170 (`todo-ai-fpu-keep-test`), de #171
+  (`todo-ai-avx512-sign-test`) et de #172 (`todo-ai-win32-fma`) sont supprimées
+  sur GitHub à la fusion. Les deux branches d'expérience du 24 octobre,
+  `exp-cygwin-diag` et `exp-cygwin-diag2` (les mesures de la bibliothèque C de
+  Cygwin pour #175), sont supprimées le jour même. Reste sur
   GitHub `todo-ai-msvc-avx512`
   (sans pull request, gardée, Q16) et celles des pull requests ouvertes
   ci-dessous.
