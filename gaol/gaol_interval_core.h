@@ -2165,44 +2165,44 @@ GAOL_NODISCARD GAOL_INLINE interval operator%(T n, const interval& I)
 // gaol_interval_sse.h, GAOL v5)
 GAOL_NODISCARD GAOL_INLINE interval operator+(const interval& I1, const interval& I2)
   {
-    return interval(add_bounds(I1.get_xmminterval(), I2.get_xmminterval()));
+    return interval(gaol_detail::add_bounds(I1.get_xmminterval(), I2.get_xmminterval()));
   }
 
 GAOL_NODISCARD GAOL_INLINE interval operator-(const interval& I1, const interval& I2)
   {
-    return interval(sub_bounds(I1.get_xmminterval(), I2.get_xmminterval()));
+    return interval(gaol_detail::sub_bounds(I1.get_xmminterval(), I2.get_xmminterval()));
   }
 
 GAOL_NODISCARD GAOL_INLINE interval operator*(const interval& I1, const interval& I2)
   {
-    return interval(mul_bounds(I1.get_xmminterval(), I2.get_xmminterval()));
+    return interval(gaol_detail::mul_bounds(I1.get_xmminterval(), I2.get_xmminterval()));
   }
 
 GAOL_NODISCARD GAOL_INLINE interval operator/(const interval& I1, const interval& I2)
   {
-    return interval(div_bounds(I1.get_xmminterval(), I2.get_xmminterval()));
+    return interval(gaol_detail::div_bounds(I1.get_xmminterval(), I2.get_xmminterval()));
   }
 #elif GAOL_USING_NEON_INSTRUCTIONS
 // The bounds in registers, from the operands to the result, as with the SSE2
 // intervals (see gaol_interval_neon.h, GAOL v5)
 GAOL_NODISCARD GAOL_INLINE interval operator+(const interval& I1, const interval& I2)
   {
-    return interval(add_bounds(I1.get_neoninterval(), I2.get_neoninterval()));
+    return interval(gaol_detail::add_bounds(I1.get_neoninterval(), I2.get_neoninterval()));
   }
 
 GAOL_NODISCARD GAOL_INLINE interval operator-(const interval& I1, const interval& I2)
   {
-    return interval(sub_bounds(I1.get_neoninterval(), I2.get_neoninterval()));
+    return interval(gaol_detail::sub_bounds(I1.get_neoninterval(), I2.get_neoninterval()));
   }
 
 GAOL_NODISCARD GAOL_INLINE interval operator*(const interval& I1, const interval& I2)
   {
-    return interval(mul_bounds(I1.get_neoninterval(), I2.get_neoninterval()));
+    return interval(gaol_detail::mul_bounds(I1.get_neoninterval(), I2.get_neoninterval()));
   }
 
 GAOL_NODISCARD GAOL_INLINE interval operator/(const interval& I1, const interval& I2)
   {
-    return interval(div_bounds(I1.get_neoninterval(), I2.get_neoninterval()));
+    return interval(gaol_detail::div_bounds(I1.get_neoninterval(), I2.get_neoninterval()));
   }
 #else
 GAOL_NODISCARD GAOL_INLINE interval operator+(const interval& I1, const interval& I2)
