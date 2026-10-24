@@ -380,6 +380,15 @@ ne se comparent pas d'un passage à l'autre : le banc A/B de `performance.yml`
    la seule solution, un mode de CORE-MATH où le sens est un paramètre,
    modifierait `3rd/math-core`, ce que le mainteneur a refusé le 22 octobre
    (Q15c) ; voir `TODO_AFTER.md`.
+6. **La division du chemin AVX-512** [S à M] (`doc/simd.md`, tableau
+   « Verdicts ») : essayer deux `vdivsd {er}` scalaires pour `/` dans le chemin
+   AVX-512 (`GAOL_PREFER_AVX512`). Sur Intel, la division 512 bits coûte 16
+   cycles de débit, contre 4 en 128 bits (uops.info) ; Zen 5 a des unités pleine
+   largeur. L'idée a réussi pour `sqrt` (deux racines scalaires à arrondi
+   intégré : 3,75 ns contre 6,30 avec SSE2) et n'a pas été essayée pour `/`.
+   À mesurer sur l'i7-1185G7 avec le banc A/B de `performance.yml` : les deux
+   `vdivsd {er}` et les permutations peuvent perdre sur un processeur Intel qui
+   divise les registres en deux. À rapprocher du 106.
 
 ## PH. Les signalements à d'autres projets [attend l'accord du mainteneur]
 
