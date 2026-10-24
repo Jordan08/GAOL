@@ -1010,8 +1010,12 @@ point Q), which `numbers` checks there too.
   program inside the reader (GAOL v5, #98). A null pointer has to be refused
   the same way, with the names of GAOL and with those of the standard, with
   no exception and the interval unchanged: `parse_interval()` took its length
-  with `std::strlen()` and died of a segmentation fault (GAOL v5). `[l, u]`
-  with l above u has to be the empty set, with the names of GAOL and with those
+  with `std::strlen()` and died of a segmentation fault (GAOL v5). A null
+  pointer given to `textToInterval()` (one string or two, in either place) and
+  to `exactToInterval()` has to throw `input_format_error`, with the names of
+  GAOL and with those of the standard, `std::string` being built from it
+  otherwise, which the standard leaves undefined (libstdc++ throws
+  `std::logic_error`; GAOL v5, point 128 of TODO.md). `[l, u]` with l above u has to be the empty set, with the names of GAOL and with those
   of the standard, where the numbers written are between the same doubles
   (`[9007199254740993, 9007199254740992]`, `[0x1.999999999999ap-4, 0.1]`,
   `[1.00000000000000001, 1]`, `[pi, 0x1.921fb54442d18p+1]`, `[1e400, dmax]`,

@@ -486,6 +486,16 @@ standard:
   replaces the constructor `interval(const char*)` of GAOL 4, reads the names
   of GAOL and throws: as for `pow`, a program calls the one of the namespace
   it opens.
+  A null pointer (`textToInterval(nullptr)`, `textToInterval(std::getenv("X"))`
+  of a variable that is not set, or `exactToInterval(nullptr)`) is no string,
+  and the standard says nothing about it: `gaol::textToInterval` and
+  `gaol_ieee1788::textToInterval` and `exactToInterval` all throw
+  `input_format_error` for it (GAOL v5; without exceptions, they print a
+  message and abort). They took only a `const std::string&`, which the call
+  builds from the pointer first, and the standard leaves that undefined:
+  libstdc++ throws `std::logic_error`. They have overloads of a C string now,
+  which take the null pointer before; `&gaol_ieee1788::textToInterval` needs
+  a cast or a typed pointer as `&gaol::textToInterval` always did.
 
 `erf` and `erfc`, the error function and its complement, which the standard
 does not name, are not in `gaol_ieee1788` (GAOL v5): a call `erf(x)` on an
@@ -963,7 +973,8 @@ example; they are listed here for the reader who looks in this page first.
   `invalid_action_error`, which is no `input_format_error`. The
   `textToInterval` of `gaol_ieee1788` throws neither: it gives the empty set for
   any text that is no interval, an answer that cannot be told from the one
-  for `"[empty]"`.
+  for `"[empty]"`. A null pointer is no text, and
+  throws `input_format_error` with both.
 - **A sign next to an uncertain number.** `10-3.56?1` and `10+3.56?1` throw
   `input_format_error`: the lexer reads `-3.56?1` as one token. A blank is
   needed: `10 - 3.56?1`.
