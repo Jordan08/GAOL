@@ -1,7 +1,7 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `c6639d6` de `configure-clean`, le 23
-octobre 2026, soir. Ce fichier ne garde que cela : le travail fait, ses pull
+Ce qui reste à faire sur GAOL v5 au commit `9f13923` de `configure-clean`, le 24
+octobre 2026. Ce fichier ne garde que cela : le travail fait, ses pull
 requests, ses décisions et ses mesures sont dans l'issue #49 (« Fusionné depuis
 le 30 septembre » et les sections « Décidé le… »), dans les descriptions des
 pull requests et dans l'historique de git (`git log -p TODO.md`, où la version
@@ -126,9 +126,6 @@ plus grand sur les builds par défaut, puis les builds avec
 17. **132 (AP)** : porter le noyau empaqueté de `pown` (`GAOL_POWN_PACKED`, FMA
     sur deux voies) sur arm64, environ 150 lignes d'intrinsèques, gain attendu
     de l'ordre de 1,5 ; décidé le 22 octobre (Q14a). [M]
-18. **133 (AP)** : GCC pour Windows : x86 32 bits sans FMA (MinGW-w64 12.2 à
-    15.2), fait par #172 (fusionnée) ; et le portage de Cygwin x86-64 avec un
-    job de CI, fait par #173 et #174 (ouvertes). [S]
 
 ### F. Signalements à d'autres projets
 
@@ -136,14 +133,14 @@ Chacun attend l'accord explicite du mainteneur ; rien n'est envoyé. Ordre : ce
 qui est prêt et qui a une valeur pour GAOL, puis ce qui demande une réplique à
 écrire, puis ce qui ne demande probablement rien.
 
-19. **#125 CORE-MATH** : les huit correctifs prêts (le 8, `exp_1()`, est fait
+18. **#125 CORE-MATH** : les huit correctifs prêts (le 8, `exp_1()`, est fait
     dans la copie de GAOL par #144), refaits sur le master du jour.
-20. **#126 GCC**, **#127 mingw-w64**, **#129 ITF1788**, **#130 Boost.Interval**,
+19. **#126 GCC**, **#127 mingw-w64**, **#129 ITF1788**, **#130 Boost.Interval**,
     **#175 Cygwin** (`fma()`, `nextafter()` au débordement, CPack).
-21. **#131 Microsoft**, **#132 Apple**, **#133 LLVM/Clang**, **#135 musl**,
+20. **#131 Microsoft**, **#132 Apple**, **#133 LLVM/Clang**, **#135 musl**,
     **#136 le benchmark de Tang et al.** : une réplique d'un fichier à écrire et
     à vérifier sur la plateforme.
-22. **#134 gmpy2**, **#137 libieeep1788**, **#138 la glibc** : probablement rien
+21. **#134 gmpy2**, **#137 libieeep1788**, **#138 la glibc** : probablement rien
     à envoyer ; vérifier, puis fermer.
 
 ### G. La version, dans cet ordre
@@ -151,28 +148,28 @@ qui est prêt et qui a une valeur pour GAOL, puis ce qui demande une réplique �
 En dernier : elle suppose les corrections faites et les études du groupe E
 faites (décidé le 19 octobre, rang 2).
 
-23. **La pull request de synthèse** (Y) : `ChangeLog` et `doc/differences.md`,
+22. **La pull request de synthèse** (Y) : `ChangeLog` et `doc/differences.md`,
     d'après `todo-notes/synthese.md` et les 53 descriptions de pull requests.
-24. **`examples/examples.md` et le manuel** (Y) : les marques **Fixed**, une
+23. **`examples/examples.md` et le manuel** (Y) : les marques **Fixed**, une
     seule régénération de `manual/v5/gaol.pdf`.
-25. **32 (Y)** : le rapport de couverture, et `numbers` en entier sous ASan +
+24. **32 (Y)** : le rapport de couverture, et `numbers` en entier sous ASan +
     UBSan, une fois.
-26. **33 (Y)** : les temps de `doc/compare/performance.md`, en dernier, sur le
+25. **33 (Y)** : les temps de `doc/compare/performance.md`, en dernier, sur le
     commit propre de la version, après les études du groupe E.
-27. **34 (Y)** : `configure-clean` dans `MATH-CORE` (avance rapide), `MATH-CORE`
+26. **34 (Y)** : `configure-clean` dans `MATH-CORE` (avance rapide), `MATH-CORE`
     dans `master`, l'étiquette `v5.0.0`, les recettes FetchContent.
-28. **71 (Y) et #128** : l'annonce à Frédéric Goualard, après l'étiquette.
+27. **71 (Y) et #128** : l'annonce à Frédéric Goualard, après l'étiquette.
 
 ### H. Après la version
 
-29. **113 (AJ)** : des noyaux qui laissent le sens d'arrondi au plus proche ;
+28. **113 (AJ)** : des noyaux qui laissent le sens d'arrondi au plus proche ;
     un prototype de `+ - * / sqrt` suffit à décider. Peut changer le
     comportement documenté et les noyaux ; *reporté après la version le 22
     octobre (Q7)*. [L]
-30. **70 (AK)** : le site GitHub Pages ; sans dépendance, mais l'annonce étant
+29. **70 (AK)** : le site GitHub Pages ; sans dépendance, mais l'annonce étant
     privée, rien ne l'exige pour la version.
-31. **28 (X)** : traits pour YalAA, backend pour VNODE-LP.
-32. **Le ménage de la fin** : les images Docker de #111, `todo-notes/`, ce qu'il
+30. **28 (X)** : traits pour YalAA, backend pour VNODE-LP.
+31. **Le ménage de la fin** : les images Docker de #111, `todo-notes/`, ce qu'il
     reste de `TODO.md`.
 
 Rien à faire pour le 46 (F, #64 : un intervalle par ligne, documenté, décidé
@@ -208,20 +205,8 @@ originaux au commit `16a2f60`.
 
 ## En cours
 
-Deux pull requests ouvertes, du 24 octobre (leurs descriptions disent leurs
-relectures et leurs mesures) ; #165 à #167 et #169 à #172 sont fusionnées par
-le mainteneur les 23 et 24 octobre :
-
-- **#173** : Cygwin x86-64 pris en charge : la mémoire alignée par
-  `_mm_malloc`, `previous_float()` et `next_float()` aux bords des doubles (la
-  borne de `sinh` fausse sous Cygwin), `fma_once()` et le test d'exécution de
-  `GAOL_FMA` en `__builtin_fma` (le `fma()` de Cygwin est faux), Cygwin refusé
-  sans FMA, `package_source` sans CPack sous Cygwin, et un job de CI (44 tests
-  passés dont trois sautés) ; relue.
-- **#174** (sur la base de #173) : les restes de Cygwin : `is_bisectable()` par
-  `next_float()` (le `nextafter()` de Cygwin rend `DBL_MAX` au lieu de +oo en
-  arrondi vers le bas), `std::fma` sans optimisation dit dans les docs, le
-  manuel et l'exemple 13 ; relue.
+Aucune pull request ouverte. Le mainteneur a fusionné #165 à #167 et #169 à
+#174 les 23 et 24 octobre.
 
 ## À corriger avant la version
 
@@ -308,7 +293,7 @@ génériques) est fait depuis le 15 octobre (`gaol_exact.*`, `sysdeps/` et
   les deux autres. Non vérifié sur une chaîne où le résultat changerait.
   Correction : lier, et vérifier les deux langages, dans les trois builds.
 
-### AP. Les suites des réponses du 22 et du 23 octobre (128 à 133)
+### AP. Les suites des réponses du 22 octobre (128 à 132)
 
 Chaque point vient d'une réponse du mainteneur (« Réponses du mainteneur », en
 bas) ; aucun n'est commencé.
@@ -347,32 +332,6 @@ bas) ; aucun n'est commencé.
   (jobs Ubuntu arm64 de la CI). Q14b (un test qui compare les bits du signe d'un
   zéro) et Q14c (jobs Clang 15 à 17 et GCC 9 à 10, test `mrs` et `msr` sur
   Neoverse) sont des « non ».
-- **133.** **GCC pour Windows : x86 32 bits sans FMA, et Cygwin** (#163, décidé
-  le 23 octobre). MinGW-w64 12.2 à 15.2 pour x86 prenait les intervalles SSE2
-  depuis #152 (`-faligned-new=8`) mais sans FMA pour CORE-MATH et les puissances
-  entières. L'essai du 23 octobre (une branche d'expérience, supprimée ensuite ;
-  ses résultats sont dans #172) : MinGW-w64 15.2 et 14.2, 38 tests réussis (deux
-  sautés) avec chaque jeu de drapeaux ; avec `-mfma -mprefer-vector-width=128`,
-  `pow(x, 3)` de 70 à 12 ns, `log` de 266 à 82, `cos` de 490 à 138 (GCC 15.2) ;
-  `-mfma` seul laisse 4 709 lignes `%ymm` dans les objets (600 avec 14.2) ;
-  `-mstackrealign` et `-mincoming-stack-boundary=2` ne changent aucun temps ; un
-  programme à fils (pile d'un `CreateThread` et d'un `std::thread`, avec `pow`,
-  `exp`, `log`, `sin`, `cos`) donne les résultats du fil principal dans toutes
-  les variantes. Décidé (réponse du 23 octobre) : `-mfma
-  -mprefer-vector-width=128` par défaut aussi à 32 bits, `GAOL_FMA=OFF` restant
-  le remède pour un processeur sans FMA : #172 (le bogue 54412 de GCC sur x86 32
-  bits n'est pas montré). Cygwin x86-64, dont un job de CI a montré qu'il ne
-  tenait pas (décidé de le porter, le 23 octobre) : #173 corrige
-  `posix_memalign` (`_mm_malloc`), le `nextafter()` de Cygwin au débordement (la
-  borne basse de `sinh(-711)` ne contenait pas la valeur ; `previous_float()` et
-  `next_float()`), le test d'exécution de `GAOL_FMA` qui appelait le `fma()` de
-  Cygwin à `-O0` (`__builtin_fma`), et refuse Cygwin sans `-mfma` (son `fma()`
-  est faux) ; le CPack de Cygwin ne fait aucune archive (TGZ, TBZ2, ZIP : «
-  Couldn't list extended attributes »), donc pas de `package_source` sous
-  Cygwin. Reste, petit : `is_bisectable()` appelle `std::nextafter` directement
-  (faux seulement pour un programme en arrondi vers le bas ou vers zéro), les
-  exemples recommandent `std::fma` pour TwoProd (faux à `-O0` sous Cygwin), et
-  un Debug complet de Cygwin n'est pas dans le job.
 
 ## Reportés, en attente d'une décision du mainteneur
 
@@ -842,7 +801,7 @@ Les questions ouvertes de la description de #163, non corrigées et sans numéro
   reçoivent les mêmes drapeaux).
 - **x86 32 bits** (MinGW-w64 12.2 à 15.2) reste sans FMA et n'est pas mesuré ;
   **`-mstackrealign`** n'a pas été essayé. *Décidé le 23 octobre* : l'essayer
-  par la CI ; c'est le 133.
+  par la CI ; fait par #172 et #173.
 - **Le `-faligned-new=8` pour un fichier C** (#152) : GCC avertit (« valid for
   C++/ObjC++ but not for C »), et avec `-Werror` c'est une erreur ; `gaol.pc` et
   `gaol_dep` de meson le donnent à tous les langages. *Décidé le 23 octobre* :
@@ -1064,7 +1023,7 @@ compare, dans le même job, la base d'une pull request et sa tête
 
 ### AJ. Se passer du changement du sens d'arrondi (113)
 
-*Reporté après la version le 22 octobre (Q7) : rang 29.*
+*Reporté après la version le 22 octobre (Q7) : rang 28.*
 
 Question du mainteneur, le 18 octobre : avec les algorithmes de base
 d'aujourd'hui, le changement du sens d'arrondi est-il toujours nécessaire, les
@@ -1333,8 +1292,10 @@ sans l'accord explicite du mainteneur.
   fermée sans fusion). Les branches de #165 (`todo-ai-textes-suites`), de #166
   (`todo-ai-perf-ci-suites`), de #167 (`todo-ai-win-gcc-suites`), de #169
   (`todo-an-pow2-suites`), de #170 (`todo-ai-fpu-keep-test`), de #171
-  (`todo-ai-avx512-sign-test`) et de #172 (`todo-ai-win32-fma`) sont supprimées
-  sur GitHub à la fusion. Les deux branches d'expérience du 24 octobre,
+  (`todo-ai-avx512-sign-test`), de #172 (`todo-ai-win32-fma`), de #173
+  (`todo-ai-cygwin-job`) et de #174 (`todo-ai-cygwin-leftovers`) sont supprimées
+  sur GitHub à la fusion ; en local, toutes celles des pull requests de #165 à
+  #174 le 24 octobre. Les deux branches d'expérience du 24 octobre,
   `exp-cygwin-diag` et `exp-cygwin-diag2` (les mesures de la bibliothèque C de
   Cygwin pour #175), sont supprimées le jour même. Reste sur
   GitHub `todo-ai-msvc-avx512`
@@ -1362,7 +1323,7 @@ sans l'accord explicite du mainteneur.
 26 : W ; 28 : X ; 32 : Y ; 33 : Y ; 34 : Y ; 46 : F ; 70 : AK ; 71 : Y ;
 79 : AB ; 82 : AC ; 85 : AD ; 92 : AE ; 95 : AE ; 105 : AH ; 106 : AI ;
 108 : AI ; 109 : AI ; 112 : AI ; 113 : AJ ; 116 : AI ; 128 : AP ; 129 : AP ;
-130 : AP ; 131 : AP ; 132 : AP ; 133 : AP.
+130 : AP ; 131 : AP ; 132 : AP.
 
 ## Réponses du mainteneur, 22 octobre 2026
 
@@ -1396,7 +1357,7 @@ octobre (les nouveaux numéros 128 à 133 sont ceux du point AP).
   alterne ses programmes. *Fait par #160.*
 - **Q7 (QE, 113 AJ)** : non, après v5.0.0. L'étude des noyaux au plus proche est
   reportée après la version ; le comportement actuel (changement du sens
-  d'arrondi) est documenté. *Le 113 est au rang 29 (groupe H).*
+  d'arrondi) est documenté. *Le 113 est au rang 28 (groupe H).*
 - **Q8 (QJ, #156, x86 32 bits)** : tout oui. (a) Lire MXCSR en ligne dans
   CORE-MATH sur x86 32 bits (`gaol/core_math_port.h` comme sur x86-64). (b)
   Ajouter un test de `x86_registers::read_control()`. (c) Garder le job
