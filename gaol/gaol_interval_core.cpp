@@ -39,6 +39,7 @@
 #include <ios>
 #include <sstream>
 #include <cmath>
+#include <cfenv>
 #include <string>
 #include <cerrno>
 #include <locale>
@@ -1168,6 +1169,75 @@ namespace gaol_core {
   }
 
   /*
+    CORE-MATH's pow(x, y) in the upward rounding, for a finite x > 0 and a y
+    of normal magnitude, without the overflow exception where x^y is above
+    the largest double (GAOL v5, point 79 of TODO.md). The reverse functions of
+    pow look for the bounds of c^(1/y) and log(c)/log(x) by powers d^y of the
+    doubles on either side of them, which overflow for a finite bound when c
+    is next to the largest double, or when y is huge, where d^y is beyond the
+    doubles for a d one double above 1. The answer there is +oo, the value
+    CORE-MATH gives, which the tests against a finite bound take as they take
+    the exception. The functions pow_rounded_up(), pow_rounded_dn(), pow_lo()
+    and pow_hi() call this one for the template argument quiet, which the
+    reverse functions give: pow keeps raising the exception for its infinite
+    upper bound, as doc/using.md says of the infinite bounds.
+    x^y can only overflow where it is above 1, for x > 1 and y > 0 or
+    x < 1 and y < 0, and it is the tiny power, 2^-1074 rounded upward, in the
+    other cases beyond t = 1100 below, where CORE-MATH squares y log(x) in its
+    first phase, which overflows from 2^512 on. The binary logarithm of x^y is
+    bounded by |y| |log2(x)|, with |log2(x)| at most |e| + 1, e being the
+    exponent of x as frexp() gives it: when that is below 1000, nothing
+    overflows. From |y| >= 2^500 on, |y log2(x)| >= 2^447, and x^y is beyond
+    the doubles, +oo or 2^-1074. Otherwise
+    t = |y| |log(x)|/log(2) is computed from the logarithm of CORE-MATH,
+    which is within a few units of 2^-52 of it relatively, so that
+    x^y < 2^(1024 - 2^-30) is no overflow for t < 1024 - 10^-9, and x^y is
+    beyond the doubles for t > 1024 + 10^-9. Only the powers in between ask
+    CORE-MATH to decide: they are computed with the exceptions masked, and
+    the environment of the program, its flags and the exceptions it enabled,
+    restored.
+  */
+  static double pow_up_without_overflow_exception(double x, double y)
+  {
+    if (!(x > 0.0 && x < GAOL_INFINITY) || x == 1.0) {
+      return upward::nthroot_up(x, y);
+    }
+    const bool grows = (x > 1.0) == (y > 0.0);
+    const double magnitude = std::fabs(y);
+    // |e| from the exponent field of x: e = field - 1022 for a normal x, and
+    // 1074 at most for a subnormal one
+    std::uint64_t bits;
+    std::memcpy(&bits, &x, sizeof bits);
+    const int field = static_cast<int>((bits >> 52) & 0x7ffu);
+    const int e = (field == 0) ? 1074 : std::abs(field - 1022);
+    if (magnitude < 1000.0/(e + 1)) {
+      return upward::nthroot_up(x, y);
+    }
+    if (magnitude >= two_power_500) {
+      return grows ? GAOL_INFINITY : std::numeric_limits<double>::denorm_min();
+    }
+    // 1/log(2), rounded to nearest: the margins below are far larger than its error
+    const double t = magnitude*std::fabs(upward::log_up(x))*1.4426950408889634;
+    if (!grows) {
+      // x^y < 1: nothing overflows but the square of y log(x) in the first
+      // phase of CORE-MATH, which is 2^1024 for |y log(x)| = 2^512 (Clang):
+      // the power is below 2^-1100 from t = 1100 on, and rounds upward to 2^-1074
+      return (t >= 1100.0) ? std::numeric_limits<double>::denorm_min() : upward::nthroot_up(x, y);
+    }
+    if (t < 1023.999999999) {
+      return upward::nthroot_up(x, y);
+    }
+    if (t > 1024.000000001) {
+      return GAOL_INFINITY;
+    }
+    std::fenv_t environment;
+    std::feholdexcept(&environment);
+    const double power = upward::nthroot_up(x, y);
+    std::fesetenv(&environment);
+    return power;
+  }
+
+  /*
     x^y rounded upward for x >= 0 and a finite y, the rounding direction
     being upward: CORE-MATH's pow, which is correctly rounded in that
     direction, but for an exponent of extreme magnitude, |y| < 2^-969 or
@@ -1189,13 +1259,22 @@ namespace gaol_core {
     bound it gives (pow_rounded_dn()). 1^y and x^0 are 1; CORE-MATH takes 0
     and +oo apart before its first phase.
   */
+  template <bool quiet = false>
   static inline double pow_rounded_up(double x, double y)
   {
     // 2^-969 and 2^1014, written in decimal with the digits that give them
     // exactly: C++11 has no hexadecimal floating literal
     const double magnitude = std::fabs(y);
-    if (magnitude >= 2.0041683600089728e-292 && magnitude < 1.7555597020139804e+305) {
-      return upward::nthroot_up(x, y);
+    // 2^450 too: from |y| = 2^450 on, a power below 1 is the tiny one, which
+    // CORE-MATH, squaring y log(x) in its first phase, raised the overflow
+    // exception to find, from |y log(x)| = 2^512 on (Clang), and the quiet
+    // powers do not need it either (GAOL v5, point 79 of TODO.md)
+    if (magnitude >= 2.0041683600089728e-292 && magnitude < (quiet ? 1.7555597020139804e+305 : 2.9073548971824276e+135)) {
+      return quiet ? pow_up_without_overflow_exception(x, y) : upward::nthroot_up(x, y);
+    }
+    if (!quiet && magnitude >= 2.9073548971824276e+135 && magnitude < 1.7555597020139804e+305) {
+      return (x > 0.0 && x < GAOL_INFINITY && x != 1.0 && (x > 1.0) != (y > 0.0))
+        ? std::numeric_limits<double>::denorm_min() : upward::nthroot_up(x, y);
     }
     if (x == 1.0 || y == 0.0) {
       return 1.0;
@@ -1210,9 +1289,10 @@ namespace gaol_core {
     return above_one ? GAOL_INFINITY : std::numeric_limits<double>::denorm_min();
   }
 
+  template <bool quiet = false>
   static inline double pow_rounded_dn(double x, double y)
   {
-    return previous_float(pow_rounded_up(x, y));
+    return previous_float(pow_rounded_up<quiet>(x, y));
   }
 
   /*
@@ -1238,6 +1318,7 @@ namespace gaol_core {
     return ((x > 1.0) == (y > 0.0)) ? GAOL_INFINITY : 0.0;
   }
 
+  template <bool quiet = false>
   static inline double pow_lo(double x, double y)
   {
     double d;
@@ -1247,15 +1328,16 @@ namespace gaol_core {
     if (pow_is_limit(x, y)) {
       return pow_limit(x, y);
     }
-    return pow_is_double(x, y, d) ? d : maximum(pow_rounded_dn(x,y), 0.0);
+    return pow_is_double(x, y, d) ? d : maximum(pow_rounded_dn<quiet>(x,y), 0.0);
   }
 
+  template <bool quiet = false>
   static inline double pow_hi(double x, double y)
   {
     if (x == 1.0 || y == 0.0) {
       return 1.0;
     }
-    return pow_is_limit(x, y) ? pow_limit(x, y) : pow_rounded_up(x,y);
+    return pow_is_limit(x, y) ? pow_limit(x, y) : pow_rounded_up<quiet>(x,y);
   }
 
   static inline double sinh_lo(double x)
@@ -2983,14 +3065,28 @@ namespace gaol_core {
   static double root_of_power_near(double c, double y)
   {
     const double largest = std::numeric_limits<double>::max();
-    const double r = pow_rounded_up(c, 1.0/y);
-    if (r > 0.0 && r <= largest) {
-      const double p = pow_rounded_up(r, y);
-      const double q = y*p;
-      if (p != c && p >= std::numeric_limits<double>::min() && p <= largest && q != 0.0) {
-        const double s = r - r*((p - c)/q);
-        if (s > 0.0 && s <= largest) {
-          return s;
+    // 1/y overflows for a y next to 2^-1074, to +oo (-DBL_MAX for y < 0): the
+    // quotient_sat() that raises no exception (GAOL v5, point 79 of TODO.md)
+    const double r = pow_rounded_up<true>(c, quotient_sat(1.0, y));
+    // The step is for |y| up to 1024 and c up to 2^1000: r is then within
+    // about 2^-43 relatively of the root, so that r^y is within 2^-33 of c, and
+    // r^y cannot overflow. For a greater |y| the rounded 1/y moves r by less
+    // than 745/|y| 2^-53 relatively, below one double, and a step would take
+    // r^y, which overflows for |y| next to 2^52 (GAOL v5, point 79 of
+    // TODO.md: pow_rel([3], [2^512], I) raised the overflow exception)
+    if (r > 0.0 && r <= largest && std::fabs(y) <= 1024.0 && c <= huge_root_argument) {
+      const double p = pow_rounded_up<true>(r, y);
+      if (p != c && p >= std::numeric_limits<double>::min() && p <= largest) {
+        // r (p - c)/(y p), as (p - c)/p then /y, whose quotients saturate,
+        // where y p and the quotient of (p - c) by it overflowed (GAOL v5,
+        // point 79 of TODO.md), and which is left out where it is 1 or more
+        // in magnitude, the power being then no approximation of c
+        const double t = quotient_sat(quotient_sat(p - c, p), y);
+        if (std::fabs(t) < 1.0) {
+          const double s = r - r*t;
+          if (s > 0.0 && s <= largest) {
+            return s;
+          }
         }
       }
     }
@@ -3010,7 +3106,7 @@ namespace gaol_core {
   {
     const auto below = [c, y](std::uint64_t k) {
       const double d = key_double(k);
-      return (y > 0.0) ? pow_hi(d, y) <= c : pow_lo(d, y) >= c;
+      return (y > 0.0) ? pow_hi<true>(d, y) <= c : pow_lo<true>(d, y) >= c;
     };
     return key_double(last_key_holding(below, double_key(0.0), double_key(std::numeric_limits<double>::max()),
                                        double_key(near)));
@@ -3020,7 +3116,7 @@ namespace gaol_core {
   {
     const auto above = [c, y](std::uint64_t k) {
       const double d = key_double(k);
-      return (y > 0.0) ? pow_lo(d, y) >= c : pow_hi(d, y) <= c;
+      return (y > 0.0) ? pow_lo<true>(d, y) >= c : pow_hi<true>(d, y) <= c;
     };
     return key_double(first_key_holding(above, double_key(std::numeric_limits<double>::denorm_min()),
                                         double_key(GAOL_INFINITY), double_key(near)));
@@ -3044,7 +3140,7 @@ namespace gaol_core {
   {
     const auto below = [c, x](std::uint64_t k) {
       const double e = key_double(k);
-      return (x > 1.0) ? pow_hi(x, e) <= c : pow_lo(x, e) >= c;
+      return (x > 1.0) ? pow_hi<true>(x, e) <= c : pow_lo<true>(x, e) >= c;
     };
     return key_double(last_key_holding(below, double_key(-GAOL_INFINITY),
                                        double_key(std::numeric_limits<double>::max()),
@@ -3055,7 +3151,7 @@ namespace gaol_core {
   {
     const auto above = [c, x](std::uint64_t k) {
       const double e = key_double(k);
-      return (x > 1.0) ? pow_lo(x, e) >= c : pow_hi(x, e) <= c;
+      return (x > 1.0) ? pow_lo<true>(x, e) >= c : pow_hi<true>(x, e) <= c;
     };
     return key_double(first_key_holding(above, double_key(-std::numeric_limits<double>::max()),
                                         double_key(GAOL_INFINITY), double_key(log_ratio_near(c, x))));
@@ -3069,13 +3165,13 @@ namespace gaol_core {
   */
   static bool root_of_power_beyond(double c, double y, double d, bool above)
   {
-    return (above == (y > 0.0)) ? pow_hi(d, y) < c : pow_lo(d, y) > c;
+    return (above == (y > 0.0)) ? pow_hi<true>(d, y) < c : pow_lo<true>(d, y) > c;
   }
 
   // The same for log(c)/log(x) and a double e: x^e < c, or x^e > c, for x > 1
   static bool log_ratio_beyond(double c, double x, double e, bool above)
   {
-    return (above == (x > 1.0)) ? pow_hi(x, e) < c : pow_lo(x, e) > c;
+    return (above == (x > 1.0)) ? pow_hi<true>(x, e) < c : pow_lo<true>(x, e) > c;
   }
 
   /*
@@ -5522,7 +5618,11 @@ interval nth_root(const interval& I, int q)
     return interval(l,r);
   }
 
-  static interval atanh_upward(const interval& I)
+  // by_division: the infinite bounds at -1 and 1 are those of CORE-MATH, which
+  // raises the division-by-zero exception for them; atanh_rel() takes them
+  // without a division, its result being a finite interval where I is (GAOL
+  // v5, point 79 of TODO.md: atanh_rel([0, 1], [0, 1]) raised it)
+  static interval atanh_upward(const interval& I, bool by_division = true)
   {
     const interval J = I & interval::minus_one_plus_one();
     // atanh is defined on (-1, 1) (IEEE 1788-2015, Table 9.1, GAOL v5): an I
@@ -5534,7 +5634,8 @@ interval nth_root(const interval& I, int q)
     if (J.is_empty() || J.left() == 1.0 || J.right() == -1.0) {
       return interval::emptyset();
     }
-    const double l = atanh_lo(J.left()), r = atanh_hi(J.right());
+    const double l = (!by_division && J.left() == -1.0) ? -GAOL_INFINITY : atanh_lo(J.left());
+    const double r = (!by_division && J.right() == 1.0) ? GAOL_INFINITY : atanh_hi(J.right());
     return interval(l,r);
   }
 
@@ -5851,7 +5952,7 @@ interval nth_root(const interval& I, int q)
   interval atanh_rel(const interval &J, const interval &I)
   {
     GAOL_RND_ENTER();
-    interval res = atanh_upward(J) & I;
+    interval res = atanh_upward(J, false) & I;
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
     return res;
