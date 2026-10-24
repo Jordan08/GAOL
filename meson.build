@@ -599,12 +599,20 @@ if get_option('enable-fma')
     endif
   endif
   if fma_args.length() > 0 and not meson.is_cross_build()
-    # fma(a, b, -1) is -2^-60 exactly, which a product rounded first gives as 0
+    # fma(a, b, -1) is -2^-60 exactly, which a product rounded first gives as 0.
+    # __builtin_fma, not std::fma: the test is built without optimization, and
+    # std::fma is then a call of the fma() of the library, which is not the
+    # instruction to run (and that of Cygwin gives 0: GAOL v5)
     fma_run = cpp_comp.run('''
     #include <cmath>
+    #if defined(__GNUC__)
+    #  define GAOL_TEST_FMA(a, b, c) __builtin_fma(a, b, c)
+    #else
+    #  define GAOL_TEST_FMA(a, b, c) std::fma(a, b, c)
+    #endif
     int main() {
       volatile double a = 1.0 + 1.0 / 1073741824.0, b = 1.0 - 1.0 / 1073741824.0, c = -1.0;
-      return std::fma(a, b, c) == -1.0 / 1152921504606846976.0 ? 0 : 1;
+      return GAOL_TEST_FMA(a, b, c) == -1.0 / 1152921504606846976.0 ? 0 : 1;
     }
     ''', args: fma_args, name: 'this machine runs a program compiled with ' + ' '.join(fma_args))
     if not (fma_run.compiled() and fma_run.returncode() == 0)

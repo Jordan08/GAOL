@@ -44,7 +44,8 @@ itself. With GCC and Clang, each where the compiler takes it:
   program that writes 256-bit intrinsics itself is exposed to that defect, as
   with `-mavx`, and so is one built with `-mavx512f` or a `-march` that turns on
   wider registers, which the option may not always undo (same section). Cygwin
-  and MSYS get them as the other GCC for Windows (not built here).
+  and MSYS get them as the other GCC for Windows (Cygwin is built and tested by
+  a job of the continuous integration, and refused without them).
 
 With Visual C++ and clang-cl, `/fp:strict`, `/arch:AVX2` for x64 with
 `GAOL_FMA`, and `-msse2` with clang-cl for 32-bit x86, which computes doubles

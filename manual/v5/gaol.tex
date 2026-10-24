@@ -277,7 +277,8 @@ The continuous integration of GAOL v5 builds it and runs its tests on:
 \item macOS 14, 15 and 26, on arm64 and x86-64, with AppleClang, the Clang of LLVM
   and GCC;
 \item Windows: Visual Studio 2022 and 2026 on x86, x64 and arm64; MinGW-w64 GCC 14
-  and 15 on x64, 12 to 15 on x86; MSYS2 (UCRT64 with GCC, CLANG64 with Clang).
+  and 15 on x64, 12 to 15 on x86; MSYS2 (UCRT64 with GCC, CLANG64 with Clang);
+  Cygwin (GCC, x64).
 \end{itemize}
 
 \noindent
@@ -309,7 +310,7 @@ nothing else to download.
 \begin{itemize}
 \item A C++11 and C99 compiler: GCC, Clang, AppleClang, Visual C++ (Visual
   Studio 2022 or later), clang-cl (the Clang of Visual Studio, Clang 16 or
-  later), or GCC and Clang for Windows (MinGW-w64, MSYS2).
+  later), or GCC and Clang for Windows (MinGW-w64, MSYS2, Cygwin).
 \index[idx]{c++!standard}%
 \item CMake 3.14 or later; or, for the autotools build, a shell and
   \cmd{make}; or, for the meson build, meson and ninja.
@@ -352,6 +353,12 @@ but the second one, which no macro of the compiler shows:
   mingw-w64 12 or later linking the UCRT (MinGW-Builds GCC 14 and 15, MSYS2
   UCRT64 and CLANG64) takes those of \file{ucrtbase.dll}, which pass the
   tests;
+\item Cygwin without the fused multiply-add instructions
+  (\option{GAOL\_FMA} \code{OFF}, or a processor without them): its
+  \code{fma()} is not correctly rounded (\code{fma(1 + 2\textasciicircum{}-30,
+  1 - 2\textasciicircum{}-30, -1)} gives 0), and \code{std::fma} is a call of it
+  without optimization; GAOL calls the instruction instead
+  (\option{-mfma}), and Cygwin is built and tested with it;
 \item \option{-ffast-math}, \option{-Ofast} and \option{/fp:fast}, with which
   the compiler rounds to nearest and drops the checks of NaN and infinities;
 \item \option{-ffinite-math-only}, which \option{-ffast-math} and

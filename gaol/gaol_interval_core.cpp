@@ -100,6 +100,19 @@ namespace gaol_core {
   using namespace gaol_detail;
   const double two_power_52 = 4503599627370496.0;
 
+  // fma(a, b, c) rounded once (GAOL v5). __builtin_fma, not std::fma: without
+  // optimization std::fma is a call of the fma() of the C library, and that of
+  // Cygwin is not correctly rounded, where the builtin is the instruction with
+  // -mfma (gaol_config.h refuses Cygwin without it)
+  static inline double fma_once(double a, double b, double c)
+  {
+#if defined(__GNUC__)
+    return __builtin_fma(a, b, c);
+#else
+    return std::fma(a, b, c);
+#endif
+  }
+
   /*
     x read through a volatile, for an operation that a test leaves out where
     it would raise an exception flag (GAOL v5): no compiler reads a volatile
@@ -390,17 +403,17 @@ namespace gaol_core {
   }
   static GAOL_POWN_INLINE pown_lanes pown_fms(pown_lanes a, pown_lanes b, pown_lanes c)
   {
-    const pown_lanes r = { std::fma(a.l0, b.l0, -c.l0), std::fma(a.l1, b.l1, -c.l1) };
+    const pown_lanes r = { fma_once(a.l0, b.l0, -c.l0), fma_once(a.l1, b.l1, -c.l1) };
     return r;
   }
   static GAOL_POWN_INLINE pown_lanes pown_fma(pown_lanes a, pown_lanes b, pown_lanes c)
   {
-    const pown_lanes r = { std::fma(a.l0, b.l0, c.l0), std::fma(a.l1, b.l1, c.l1) };
+    const pown_lanes r = { fma_once(a.l0, b.l0, c.l0), fma_once(a.l1, b.l1, c.l1) };
     return r;
   }
   static GAOL_POWN_INLINE pown_lanes pown_twice_plus(pown_lanes a, pown_lanes b)
   {
-    const pown_lanes r = { std::fma(2.0, a.l0, b.l0), std::fma(2.0, a.l1, b.l1) };
+    const pown_lanes r = { fma_once(2.0, a.l0, b.l0), fma_once(2.0, a.l1, b.l1) };
     return r;
   }
   static GAOL_POWN_INLINE pown_rests pown_first_rest(pown_lanes e)
@@ -496,15 +509,15 @@ namespace gaol_core {
       --ey;
       unsigned int bit = (1u << (L - 1u)) >> 1;
       double h = y*y;
-      double l = std::fma(y, y, -h);
+      double l = fma_once(y, y, -h);
       std::uint64_t s = pown_bits_of(l);
       long long z = 2LL*ey;
       for (;;) {
         if ((m & bit) != 0u) {
           const double q = h*y;
-          const double f = std::fma(h, y, -q);
+          const double f = fma_once(h, y, -q);
           s |= pown_bits_of(f);
-          l = std::fma(l, y, f);
+          l = fma_once(l, y, f);
           h = q;
           z += ey;
         }
@@ -518,9 +531,9 @@ namespace gaol_core {
           break;
         }
         const double p = h*h;
-        const double e = std::fma(h, h, -p);
+        const double e = fma_once(h, h, -p);
         s |= pown_bits_of(e);
-        l = std::fma(l, std::fma(2.0, h, l), e);
+        l = fma_once(l, fma_once(2.0, h, l), e);
         h = p;
         z *= 2;
         if (h > big) {
@@ -532,9 +545,9 @@ namespace gaol_core {
       double K;
       if (n < 0) {
         const double q = 1.0/h;
-        const double r = std::fma(-q, l, std::fma(-q, h, 1.0));
+        const double r = fma_once(-q, l, fma_once(-q, h, 1.0));
         const double qr = q*r;
-        l = std::fma(qr, r, qr);
+        l = fma_once(qr, r, qr);
         h = q;
         s |= pown_bits_of(r);
         z = -z;
@@ -545,8 +558,8 @@ namespace gaol_core {
       K = (s != 0u) ? K : 0.0;
       // h > 0: the bound above, and the opposite of the bound below, of y^n,
       // then scaled
-      const double up = h + std::fma(K, h, l);
-      const double down = -h + std::fma(K, h, -l);
+      const double up = h + fma_once(K, h, l);
+      const double down = -h + fma_once(K, h, -l);
       const int w = (z > 2200) ? 2200 : ((z < -2200) ? -2200 : static_cast<int>(z));
       hi = gaol_ldexp(up, w);
       lo = -gaol_ldexp(down, w);
@@ -1963,11 +1976,11 @@ namespace gaol_core {
         double K;
         if (negative) {
           const double q0 = 1.0/h.l0, q1 = 1.0/h.l1;
-          const double r0 = std::fma(-q0, l.l0, std::fma(-q0, h.l0, 1.0));
-          const double r1 = std::fma(-q1, l.l1, std::fma(-q1, h.l1, 1.0));
+          const double r0 = fma_once(-q0, l.l0, fma_once(-q0, h.l0, 1.0));
+          const double r1 = fma_once(-q1, l.l1, fma_once(-q1, h.l1, 1.0));
           const double qr0 = q0*r0, qr1 = q1*r1;
-          l.l0 = std::fma(qr0, r0, qr0);
-          l.l1 = std::fma(qr1, r1, qr1);
+          l.l0 = fma_once(qr0, r0, qr0);
+          l.l1 = fma_once(qr1, r1, qr1);
           h.l0 = q0;
           h.l1 = q1;
           s.l0 |= pown_bits_of(r0);
@@ -1980,8 +1993,8 @@ namespace gaol_core {
         // the signs of c0^n and c1^n, those of c0 and c1 for an odd m
         const double t0 = ((m & 1u) != 0u && std::signbit(c0)) ? -1.0 : 1.0;
         const double t1 = ((m & 1u) != 0u && std::signbit(c1)) ? -1.0 : 1.0;
-        const double down = -t0*h.l0 + std::fma(K0, h.l0, -t0*l.l0);
-        const double up = t1*h.l1 + std::fma(K1, h.l1, t1*l.l1);
+        const double down = -t0*h.l0 + fma_once(K0, h.l0, -t0*l.l0);
+        const double up = t1*h.l1 + fma_once(K1, h.l1, t1*l.l1);
         return interval(-down, up);
       }
 #endif
@@ -4316,7 +4329,7 @@ interval nth_root(const interval& I, int q)
     const double m = static_cast<double>(a);
     const double p = s * t, q = m * m;
     return p == std::ldexp(q, 2 * d)
-        && std::fma(s, t, -p) == std::ldexp(std::fma(m, m, -q), 2 * d);
+        && fma_once(s, t, -p) == std::ldexp(fma_once(m, m, -q), 2 * d);
   }
 
   /* Whether h, sqrt(a^2 + b^2) rounded upward, is the exact value, for
@@ -4461,7 +4474,7 @@ interval nth_root(const interval& I, int q)
   */
   static inline double fma_up(double a, double b, double c)
   {
-    return (a == 0.0 || b == 0.0) ? c : std::fma(a, b, c);
+    return (a == 0.0 || b == 0.0) ? c : fma_once(a, b, c);
   }
 
   /*
@@ -4474,7 +4487,7 @@ interval nth_root(const interval& I, int q)
   */
   static inline double fma_down(double a, double b, double c)
   {
-    return (a == 0.0 || b == 0.0) ? c : -gaol_core::rnd_keep(std::fma(-a, b, -c));
+    return (a == 0.0 || b == 0.0) ? c : -gaol_core::rnd_keep(fma_once(-a, b, -c));
   }
 
   interval fma(const interval& X, const interval& Y, const interval& Z)
@@ -4989,10 +5002,10 @@ interval nth_root(const interval& I, int q)
     const double v_lo = (ul == 0.0 || t_lo == 0.0) ? 0.0 : -((-ul)*read_in_branch(t_lo));
     double v_hi = (t_hi == GAOL_INFINITY) ? GAOL_INFINITY : ((uu == 0.0 || t_hi == 0.0) ? 0.0 : uu*read_in_branch(t_hi));
     if (t_hi_above) {
-      if (u_lo > 0.0 && std::fma(u_lo, read_in_branch(t_hi), -vl) == 0.0) {
+      if (u_lo > 0.0 && fma_once(u_lo, read_in_branch(t_hi), -vl) == 0.0) {
         u_lo = previous_float(u_lo);
       }
-      if (v_hi > 0.0 && v_hi < GAOL_INFINITY && std::fma(uu, read_in_branch(t_hi), -v_hi) == 0.0) {
+      if (v_hi > 0.0 && v_hi < GAOL_INFINITY && fma_once(uu, read_in_branch(t_hi), -v_hi) == 0.0) {
         v_hi = next_float(v_hi);
       }
     }
@@ -5280,7 +5293,7 @@ interval nth_root(const interval& I, int q)
     static const double pi_lo_dn = std::ldexp(4967757600021510.0,-105);
     static const double pi_lo_up = std::ldexp(4967757600021511.0,-105);
     const double p = k*gaol_pi_dn;
-    const double e = std::fma(k,gaol_pi_dn,-p);
+    const double e = fma_once(k,gaol_pi_dn,-p);
     // The products of k with the doubles around pi_lo, rounded outward
     const double below = (k >= 0.0) ? pi_lo_dn : pi_lo_up, above = (k >= 0.0) ? pi_lo_up : pi_lo_dn;
     const double lo_lo = -((-k)*below), lo_hi = k*above;

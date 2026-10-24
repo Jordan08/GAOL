@@ -71,6 +71,7 @@ differing too.
 
 #include "gaol/gaol_port.h"
 #include <fenv.h>
+#include <limits>
 
 // The control word of the x87 unit that reset_fpu_cw() of the original GAOL
 // wrote: 53 bits of precision (0x0200), all exceptions masked (0x003f),
@@ -97,13 +98,26 @@ differing too.
 
 namespace gaol_core {
   
+  /*
+    nextafter(-DBL_MAX, -oo) is -oo, and nextafter(DBL_MAX, +oo) is +oo; the
+    nextafter() of Cygwin computes that overflow as x + x, rounded in the
+    direction in effect, which is upward for GAOL: -DBL_MAX, so that sinh of
+    -711, whose value is below -DBL_MAX, had -DBL_MAX for lower bound and did
+    not enclose it (GAOL v5). The two cases are told apart here.
+  */
   GAOL_INLINE double previous_float(double d)
   {
+    if (d == -(std::numeric_limits<double>::max)()) {
+      return -GAOL_INFINITY;
+    }
     return nextafter(d,-GAOL_INFINITY);
   }
   
   GAOL_INLINE double next_float(double d)
   {
+    if (d == (std::numeric_limits<double>::max)()) {
+      return GAOL_INFINITY;
+    }
     return nextafter(d,GAOL_INFINITY);
   }
   

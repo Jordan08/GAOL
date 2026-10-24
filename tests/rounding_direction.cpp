@@ -3964,6 +3964,25 @@ int main()
   }
 
   /*
+    previous_float() and next_float() at the edge of the doubles (GAOL v5):
+    -oo below -DBL_MAX and +oo above DBL_MAX, whatever the direction of the
+    program. The nextafter() of Cygwin computes that overflow as x + x, in the
+    direction in effect: -DBL_MAX upward, which was the lower bound of sinh of
+    -711, below the value.
+  */
+  {
+    const double infinity = std::numeric_limits<double>::infinity();
+    for (const Direction& d : directions) {
+      set(d);
+      const double below = gaol_core::previous_float(gaol_core::rnd_keep(-(std::numeric_limits<double>::max)()));
+      const double above = gaol_core::next_float(gaol_core::rnd_keep((std::numeric_limits<double>::max)()));
+      check("previous_float(-DBL_MAX) is -oo and next_float(DBL_MAX) is +oo", below == -infinity && above == infinity,
+            [&] { return std::string("with the program ") + d.name + ": " + S(below) + " and " + S(above); });
+    }
+    set(directions[0]);
+  }
+
+  /*
     gaol::cleanup() sets back the rounding direction the first gaol::init()
     found, the x87 unit and the SSE instructions each theirs (GAOL v5): to
     nearest, as a program starts (C11, F.8.3), GAOL initializing itself before

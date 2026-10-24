@@ -57,7 +57,7 @@ build, and the CMake build follows them, apart from the errors corrected (see
   and only where the machine building runs a program so compiled, but when
   cross-compiling: under Rosetta on macOS 14, which has no AVX, the x86_64
   tests stopped on an illegal instruction.
-  GAOL's exact products (`std::fma()`) and CORE-MATH's functions then compute
+  GAOL's exact products (`fma_once()`) and CORE-MATH's functions then compute
   `fma()` with one instruction rather than with a call to the math library: on
   an Intel i7-1185G7 with Clang 21.1, `pow(x, 3)` of an interval takes 5.4 ns
   rather than 17.4, `sin` 1.3 times less and `cos` 2.5 times less, measured in
@@ -274,12 +274,33 @@ MSYS2 and, since the tests of the three builds name it (`CYGWIN` of CMake,
 `__CYGWIN__` of configure and meson; the AVX-512 path names `__CYGWIN__` too),
 Cygwin (GAOL v5; before, Cygwin got `-mfma` alone). The MSYS environment of
 MSYS2 (not its MinGW ones) is a Cygwin as far as these tests go, and gets the
-same flags. Cygwin was neither built nor measured: no job of the continuous
-integration has it, and the flags are given to it as to the other GCC for
-Windows. If the user gives a `-mprefer-vector-width=` of his own, the builds
+same flags. If the user gives a `-mprefer-vector-width=` of his own, the builds
 order it differently from GAOL's: CMake and configure put GAOL's flags after the
 user's (`CMAKE_CXX_FLAGS`, `CXXFLAGS`), meson puts them before `cpp_args`. The
 last of two such options is the one that counts (as tried with Clang).
+
+Cygwin x86-64 is built and tested by a job of the continuous integration
+(`windows.yml`, GCC 14.4, CMake 4.4, Release, GAOL v5; not measured), whose
+first runs found what Cygwin needed. Its `<stdlib.h>` does not declare
+`posix_memalign()` under `-std=c++11` (the aligned memory is `_mm_malloc()`
+there). Its `fma()` is not correctly rounded (`fma(1 + 2^-30, 1 - 2^-30, -1)`
+gives 0), and `std::fma` is a call of it without optimization: GAOL calls
+`__builtin_fma` (`fma_once()`), which is the instruction with `-mfma` at -O0 and
+at -O3 (both checked), and refuses Cygwin without `-mfma`. Its
+`nextafter(-DBL_MAX, -oo)` is `-DBL_MAX` in the rounding direction upward, which
+`previous_float()` and `next_float()` now tell apart (the lower bound of
+`sinh(-711)` did not enclose the value; `elementary` failed on it). A Debug
+build of Cygwin is not in the job; `tests/core_math.cpp` and
+`tests/arithmetic.cpp` call `__builtin_fma` as GAOL does.
+
+CPack of Cygwin could not make the archive of the sources in the job of 23
+October 2026 (CMake 4.4.4, libarchive 3.8): TGZ, TBZ2 and ZIP all failed to add
+`README`, a symbolic link to `README.md` in the repository, with "Couldn't list
+extended attributes", so that `package_source` is not available there and the
+test `cpack_stale_configure` says it is skipped. The cause was not found:
+`cmake -E tar`, GNU `tar` and `git archive` make an archive of the checked-out
+tree, and `listxattr()`, `llistxattr()` and `flistxattr()` find nothing wrong
+with its link.
 
 `-mprefer-vector-width=128` does not undo what other options of the user turn
 on. With the Clang that cross-compiles for x86-64, the objects of GAOL, CORE-MATH
@@ -344,6 +365,7 @@ alone refuses, when compiling:
 | `-ffast-math`, `-Ofast`, `/fp:fast` | The compiler then rounds to nearest and drops the checks of NaN and infinities. `-Ofast` is not refused where `-fno-fast-math` turns its fast-math optimizations off (below). Linking with them, or with `-funsafe-math-optimizations`, is a matter of its own (below). |
 | `-ffinite-math-only`, which `-ffast-math` and `-Ofast` turn on | The compiler then takes NaN and infinities never to occur, in GAOL's inline functions too: the empty interval has NaN bounds, and `([1, 2] & [3, 4]).is_empty()` is false (GCC 9.4 and 13 at `-O0`, `-O2` and `-O3`; Clang 18 at `-O0`, and at `-O2` and `-O3` when the bounds are `volatile`). |
 | Visual C++, and clang-cl from Clang 16, without `/fp:strict` (`/fp:precise`, their default) | They then assume rounding to nearest, and may evaluate or rewrite floating-point operations accordingly (clang-cl compiles with `-fno-rounding-math -ffp-contract=on`; GAOL v5 did not refuse it at first): no test gave a wrong bound so, but nothing certifies the bounds (see [What differs from GAOL](differences.md)). |
+| Cygwin without the fused multiply-add instructions (`GAOL_FMA=OFF`, or a processor without them) | **Bounds not certified.** The `fma()` of the C library of Cygwin is not correctly rounded: `fma(1 + 2^-30, 1 - 2^-30, -1)` gives 0 instead of -2^-60, and `std::fma` is a call of it without optimization. CORE-MATH computes with `fma()`. GAOL v5 has the instruction instead (`-mfma`, `__builtin_fma`), which every level of optimization keeps. | Refused by `gaol/gaol_config.h`; the Cygwin job of `windows.yml` checks the refusal, and builds and tests Cygwin with `-mfma` (GCC 14.4, Release, the tests passing but three skipped). |
 | Doubles computed on the x87 unit of 32-bit x86 processors (without `-msse2 -mfpmath=sse`, or `/arch:SSE2`) | CORE-MATH assumes every operation on doubles rounded to a double. Computed in extended precision, its results rounded to nearest are rounded twice, and 175 arguments gave the other neighbour of the exact value with GCC 12 on Debian 12 i386; with GCC 9, which rounds to nearest at compile time the constants CORE-MATH rounds in the direction in effect, GAOL's bounds of `exp2(-1075)`, `expm1(-800)` or `atan2()` of a tiny and a huge number did not enclose the exact values. `tests/extended_precision.cpp` checks these arguments. |
 
 `-fno-fast-math`, one of the flags of interval arithmetic, turns `-ffast-math`

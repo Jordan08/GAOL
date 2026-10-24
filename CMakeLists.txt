@@ -442,7 +442,7 @@ string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
 
 # The fused multiply-add instructions of the processor (GAOL v5), with
 # the flag that gives them to the compiler where it has one, as Codac takes
-# them: GAOL's exact products (std::fma() in gaol/gaol_interval_core.cpp, for the
+# them: GAOL's exact products (fma_once() in gaol/gaol_interval_core.cpp, for the
 # integer powers and the reduction of sin and cos) and CORE-MATH's functions
 # then compute fma() with one instruction, rather than with a call to the
 # fma() of the math library. The flags are given to the code using GAOL too
@@ -573,14 +573,22 @@ if(GAOL_FMA)
     endif()
   endif()
   if(GAOL_FMA_FLAGS AND NOT CMAKE_CROSSCOMPILING)
-    # fma(a, b, -1) is -2^-60 exactly, which a product rounded first gives as 0
+    # fma(a, b, -1) is -2^-60 exactly, which a product rounded first gives as 0.
+    # __builtin_fma, not std::fma: the test is built without optimization, and
+    # std::fma is then a call of the fma() of the library, which is not the
+    # instruction to run (and that of Cygwin gives 0: GAOL v5)
     string(REPLACE ";" " " _gaol_fma_flags "${GAOL_FMA_FLAGS}")
     set(CMAKE_REQUIRED_FLAGS "${GAOL_INTERVAL_FLAGS_STRING} ${_gaol_fma_flags}")
     check_cxx_source_runs("
       #include <cmath>
+      #if defined(__GNUC__)
+      #  define GAOL_TEST_FMA(a, b, c) __builtin_fma(a, b, c)
+      #else
+      #  define GAOL_TEST_FMA(a, b, c) std::fma(a, b, c)
+      #endif
       int main() {
         volatile double a = 1.0 + 1.0 / 1073741824.0, b = 1.0 - 1.0 / 1073741824.0, c = -1.0;
-        return std::fma(a, b, c) == -1.0 / 1152921504606846976.0 ? 0 : 1;
+        return GAOL_TEST_FMA(a, b, c) == -1.0 / 1152921504606846976.0 ? 0 : 1;
       }"
       GAOL_MACHINE_RUNS_FMA)
     unset(CMAKE_REQUIRED_FLAGS)

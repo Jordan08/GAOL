@@ -574,14 +574,22 @@ if test "$fma" = yes; then
         fi
     fi
     if test -n "${gaol_fma_flags}"; then
-        # fma(a, b, -1) is -2^-60 exactly, which a product rounded first gives as 0
+        # fma(a, b, -1) is -2^-60 exactly, which a product rounded first gives as 0.
+        # __builtin_fma, not std::fma: the test is built without optimization,
+        # and std::fma is then a call of the fma() of the library, which is not
+        # the instruction to run (and that of Cygwin gives 0: GAOL v5)
         AC_LANG_PUSH([C++])
         gaol_save_CXXFLAGS=$CXXFLAGS
         CXXFLAGS="${CXXFLAGS} ${gaol_fma_flags}"
         AC_MSG_CHECKING([whether this machine runs a program compiled with ${gaol_fma_flags}])
-        AC_RUN_IFELSE([AC_LANG_PROGRAM([[#include <cmath>]],
+        AC_RUN_IFELSE([AC_LANG_PROGRAM([[#include <cmath>
+#if defined(__GNUC__)
+#  define GAOL_TEST_FMA(a, b, c) __builtin_fma(a, b, c)
+#else
+#  define GAOL_TEST_FMA(a, b, c) std::fma(a, b, c)
+#endif]],
 [[volatile double a = 1.0 + 1.0 / 1073741824.0, b = 1.0 - 1.0 / 1073741824.0, c = -1.0;
-return std::fma(a, b, c) == -1.0 / 1152921504606846976.0 ? 0 : 1;]])],
+return GAOL_TEST_FMA(a, b, c) == -1.0 / 1152921504606846976.0 ? 0 : 1;]])],
             [gaol_runs_fma=yes], [gaol_runs_fma=no], [gaol_runs_fma="not checked, cross-compiling"])
         CXXFLAGS=$gaol_save_CXXFLAGS
         AC_LANG_POP([C++])

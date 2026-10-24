@@ -224,7 +224,8 @@ end or before the comment that ends it, or is part of a comment beginning with
      `rsqrt` and `asinpi` did not enclose the exact values;
    - **Cygwin**, where GCC and Clang define `__x86_64__` but not `__WIN32__`,
      and newlib gives `FE_*` the values 0 to 3: as clang-cl (and presumably
-     the MSYS environment of MSYS2, whose runtime is Cygwin's, not checked).
+     the MSYS environment of MSYS2, whose runtime is Cygwin's, not checked);
+     a job of the continuous integration builds GAOL with Cygwin too (GAOL v5).
 
    GAOL's copy first made the two smallest changes, `mode = fegetround();`
    for `return fegetround();` in `cbrt.c` (mingw-w64) and `|| defined(_WIN32)`

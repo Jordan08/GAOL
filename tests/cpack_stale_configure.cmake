@@ -38,7 +38,9 @@
 # copy is configured with the generator, its program and the compilers that
 # built GAOL, the compilers given to CMake as CC and CXX, the way CMake reads
 # them with their arguments (CC="ccache gcc"). Without sh, or where the system
-# makes no symbolic link, the script says that it is skipped
+# makes no symbolic link, or where the CPack of the system cannot make the
+# archive (Cygwin: "Couldn't list extended attributes", after the warning of
+# CMake that this test is about), the script says that it is skipped
 # (SKIP_REGULAR_EXPRESSION of tests/CMakeLists.txt) rather than failing.
 #
 # ctest runs it (tests/CMakeLists.txt), and by hand:
@@ -196,6 +198,18 @@ execute_process(COMMAND "${CMAKE_CPACK_COMMAND}" --config CPackSourceConfig.cmak
   WORKING_DIRECTORY "${_build}" RESULT_VARIABLE _status OUTPUT_VARIABLE _output ERROR_VARIABLE _error)
 set(_title "VERSION.txt ${_new} after a configuration for ${_old}, package_source")
 if(NOT _status EQUAL 0)
+  if("${_output}\n${_error}" MATCHES "Couldn't list extended attributes")
+    # The CPack of Cygwin cannot read the extended attributes of a directory
+    # (libarchive: "Couldn't list extended attributes"): the archive is not
+    # made, whatever GAOL does. The warning of CMake, which is what this test
+    # is about, is in the output all the same
+    string(REGEX REPLACE "[ \t\r\n]+" " " _text "${_output} ${_error}")
+    string(FIND "${_text}" "configure was generated for GAOL ${_old}, and VERSION.txt holds ${_new}:" _found)
+    if(_found EQUAL -1)
+      message(FATAL_ERROR "${_title}: CPack did not configure again and warn:\n${_output}\n${_error}")
+    endif()
+    skip("the CPack of this system cannot make the archive (extended attributes), after the warning it was run for")
+  endif()
   message(FATAL_ERROR "${_title}: CPack did not make the archive (status ${_status}):\n${_output}\n${_error}")
 endif()
 # Without a warning of CMake for the files CPack reads: those of GAOL, which it

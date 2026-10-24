@@ -2208,7 +2208,7 @@ namespace
       // and the lower bounds were rounded upward (the continuous integration,
       // armhf and s390x)
       std::fesetround(direction);
-      const double v = gaol_core::rnd_keep(std::fma(a, b, c));
+      const double v = gaol_core::rnd_keep(fma_as_gaol(a, b, c));
       std::fesetround(FE_UPWARD);
       return v;
     };
