@@ -35,16 +35,32 @@
 
 namespace gaol_core {
   
+  namespace {
+    /*
+      A null pointer is no file name (GAOL v5, decided on 2026-10-24):
+      operator<< sent it to a stream, which the standard leaves undefined
+      and libstdc++ puts in the state bad, so that the diagnostics written
+      after it were lost. The macros of GAOL always give __FILE__; a direct
+      call can give a null pointer. The exception then reports an unknown
+      file, and file() is never null (a class of the user that assigns a null
+      pointer to which_file_ itself keeps the defect).
+    */
+    const char* known_file(const char* f)
+    {
+      return (f != nullptr) ? f : "(unknown file)";
+    }
+  }
+
   // Class gaol_exception
   gaol_exception::gaol_exception(const char* f, unsigned l)
   {
-    which_file_=f;
+    which_file_=known_file(f);
     which_line_=l;
   }
   
   gaol_exception::gaol_exception(const char* f, unsigned l, const char* e)
   {
-    which_file_=f;
+    which_file_=known_file(f);
     which_line_=l;
     // A null pointer is no explanation: the derived classes passed it on to
     // the constructor of std::string, which is undefined behavior (GAOL v5)
@@ -55,7 +71,7 @@ namespace gaol_core {
   
   gaol_exception::gaol_exception(const char* f, unsigned l, const std::string& e)
   {
-    which_file_=f;
+    which_file_=known_file(f);
     which_line_=l;
     explanation_ = e;
   }

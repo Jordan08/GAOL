@@ -185,9 +185,21 @@ namespace gaol_core {
     the_null_expr = 0;
   }
   
+  namespace {
+    /*
+      A null pointer is no file name (GAOL v5, as for gaol_exception): written
+      to a stream, which the standard leaves undefined and libstdc++ puts in the
+      state bad, so that the diagnostics that followed on std::cerr were lost.
+    */
+    const char* known_file(const char *file)
+    {
+      return (file != nullptr) ? file : "(unknown file)";
+    }
+  }
+
   void gaol_warning(const char *file, int line, const char *warn)
   {
-    std::cerr << "[gaol warning in " << file << ':' << line << "]: " << warn << std::endl;
+    std::cerr << "[gaol warning in " << known_file(file) << ':' << line << "]: " << warn << std::endl;
   }
   
   void gaol_warning(const char *warn)
@@ -197,7 +209,7 @@ namespace gaol_core {
   
   void gaol_error(const char *file, int line, const char *err)
   {
-    std::cerr << "[gaol error in " << file << ':' << line << "]: " << err << std::endl;
+    std::cerr << "[gaol error in " << known_file(file) << ':' << line << "]: " << err << std::endl;
   }
   
   void gaol_error(const char *err)
