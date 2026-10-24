@@ -3940,11 +3940,11 @@ int main()
   */
   {
     const double infinity = std::numeric_limits<double>::infinity();
-    const double largest = (std::numeric_limits<double>::max)();
+    const double dbl_max = (std::numeric_limits<double>::max)();
     for (const Direction& d : directions) {
       set(d);
-      const interval below = opaque(interval(gaol_core::rnd_keep(-infinity), gaol_core::rnd_keep(-largest)));
-      const interval above = opaque(interval(gaol_core::rnd_keep(largest), gaol_core::rnd_keep(infinity)));
+      const interval below = opaque(interval(gaol_core::rnd_keep(-infinity), gaol_core::rnd_keep(-dbl_max)));
+      const interval above = opaque(interval(gaol_core::rnd_keep(dbl_max), gaol_core::rnd_keep(infinity)));
       const interval whole = opaque(interval(gaol_core::rnd_keep(-infinity), gaol_core::rnd_keep(infinity)));
       check("is_bisectable() of [-oo, -DBL_MAX] and [DBL_MAX, +oo] is false, of [-oo, +oo] true",
             !below.is_bisectable() && !above.is_bisectable() && whole.is_bisectable(),
