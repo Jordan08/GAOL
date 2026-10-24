@@ -57,9 +57,8 @@ GAOL_INLINE interval::interval(const __m128d& xmm, gaol_detail::unchecked_bounds
 }
 
 // The stored bounds <-l, r>: -oo in a lane is l = +oo or r = -oo, which no
-// interval has (IEEE 1788-2015, 10.5.8). cmpeqpd raises nothing on a NaN, the
-// empty set holding it in both lanes
-
+// interval has (IEEE 1788-2015, 10.5.8). cmpeqpd raises nothing on a quiet NaN,
+// the empty set holding it in both lanes
 GAOL_INLINE interval::interval(const __m128d& xmm)
 {
   if (_mm_movemask_pd(_mm_cmpeq_pd(xmm, _mm_set1_pd(-std::numeric_limits<double>::infinity()))) != 0) {

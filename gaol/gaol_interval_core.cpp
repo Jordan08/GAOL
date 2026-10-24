@@ -2695,8 +2695,9 @@ namespace gaol_core {
   /*
     [+oo] and [-oo] contain no real number: numsToInterval(l, u) of IEEE
     1788-2015 has no value for l = +oo or u = -oo (10.5.8). The constructors
-    and the operations make none, but interval(const __m128d&) and its NEON
-    counterpart do. pow gives the empty set for one as an exponent, and
+    and the operations make none, but the constructors of the registers
+    without a check (gaol_detail::unchecked_bounds) do, as the code of GAOL
+    may use them (the ones of the interface give the empty set). pow gives the empty set for one as an exponent, and
     pow_rel() and pow_exponent_rel() for one as the power, or as the exponent
     or the base (GAOL v5: they took it for the limit of x^y). The caller has
     tested for the empty set, whose NaN bounds this would compare with the
@@ -2867,9 +2868,9 @@ namespace gaol_core {
     }
     // [+oo] and [-oo] contain no real number: numsToInterval(l,u) of IEEE 1788
     // has no value for l = +oo or u = -oo (10.5.8). The constructors and the
-    // operations make none, but interval(const __m128d&) and get_xmminterval()
-    // of the SSE2 intervals do, as in tan() (GAOL v5: kept, TODO.md B.1 having
-    // taken the test for one that is never true)
+    // operations make none, but get_xmminterval() of the SSE2 intervals and the
+    // constructor of a register without a check do, as in tan() (GAOL v5: kept,
+    // TODO.md B.1 having taken the test for one that is never true)
     if (J.left() == J.right() && !(std::fabs(J.left()) <= (std::numeric_limits<double>::max)())) {
       return interval::emptyset();
     }
