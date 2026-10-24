@@ -1230,10 +1230,17 @@ namespace gaol_core {
     if (t > 1024.000000001) {
       return GAOL_INFINITY;
     }
+    // The flags the program had are given back by fesetexceptflag(), which
+    // raises no exception, after fesetenv(): MinGW-w64 for 32-bit x86 left the
+    // flags of the masked section raised
+    std::fexcept_t flags;
+    std::fegetexceptflag(&flags, FE_ALL_EXCEPT);
     std::fenv_t environment;
     std::feholdexcept(&environment);
     const double power = upward::nthroot_up(x, y);
     std::fesetenv(&environment);
+    std::feclearexcept(FE_ALL_EXCEPT);
+    std::fesetexceptflag(&flags, FE_ALL_EXCEPT);
     return power;
   }
 
