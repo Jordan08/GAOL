@@ -5120,7 +5120,11 @@ interval nth_root(const interval& I, int q)
 
   static inline double upper_of_x_plus_half_pi_over_pi(double x)
   {
-    const double nr = x + gaol_half_pi_up;
+    // x + gaol_half_pi_up rounded upward is next to x or above it, +oo for the
+    // largest double only, which is not computed: the sum raised the overflow
+    // exception for a finite tangent (GAOL v5, point 79 of TODO.md:
+    // tan([DBL_MAX]))
+    const double nr = (x == (std::numeric_limits<double>::max)()) ? GAOL_INFINITY : read_in_branch(x) + gaol_half_pi_up;
     return nr / ((nr > 0.0) ? gaol_pi_dn : gaol_pi_up);
   }
 
@@ -5345,10 +5349,16 @@ interval nth_root(const interval& I, int q)
     }
     // The slopes read in the branches that divide or multiply by them: 0/0,
     // +oo/+oo, +oo * 0 and v/0 are left out (see read_in_branch())
-    double u_lo = (t_hi == GAOL_INFINITY || vl == 0.0) ? 0.0 : -((-vl)/read_in_branch(t_hi));
-    const double u_hi = (t_lo == 0.0) ? GAOL_INFINITY : ((vu == 0.0) ? 0.0 : vu/read_in_branch(t_lo));
-    const double v_lo = (ul == 0.0 || t_lo == 0.0) ? 0.0 : -((-ul)*read_in_branch(t_lo));
-    double v_hi = (t_hi == GAOL_INFINITY) ? GAOL_INFINITY : ((uu == 0.0 || t_hi == 0.0) ? 0.0 : uu*read_in_branch(t_hi));
+    // The quotients and the products of finite bounds, which are intersected
+    // with the box below, are those of the saturating operations: a slope next
+    // to 2^-1074 or to 2^54, with a bound next to the largest double, overflows
+    // for a finite result (GAOL v5, point 79 of TODO.md)
+    double u_lo = (t_hi == GAOL_INFINITY || vl == 0.0) ? 0.0 : quotient_dn_sat(vl, t_hi);
+    const double u_hi = (t_lo == 0.0) ? GAOL_INFINITY
+      : ((vu == 0.0) ? 0.0 : ((vu == GAOL_INFINITY) ? GAOL_INFINITY : quotient_up_sat(vu, t_lo)));
+    const double v_lo = (ul == 0.0 || t_lo == 0.0) ? 0.0 : product_dn_sat(ul, t_lo);
+    double v_hi = (t_hi == GAOL_INFINITY) ? GAOL_INFINITY
+      : ((uu == 0.0 || t_hi == 0.0) ? 0.0 : ((uu == GAOL_INFINITY) ? GAOL_INFINITY : product_up_sat(uu, t_hi)));
     if (t_hi_above) {
       if (u_lo > 0.0 && fma_once(u_lo, read_in_branch(t_hi), -vl) == 0.0) {
         u_lo = previous_float(u_lo);
@@ -6480,10 +6490,13 @@ static inline interval cos_or_sin(double Il, double Ir)
       v = sine ? sin_hi(Iright) : cos_hi(Iright);
     }
   } else {
-    // The width of I, rounded upward: both extrema from 2 pi on, or for
-    // infinite bounds
-    const double w = Ir + Il;
-    if (!(w < 2.0*gaol_pi_dn)) {
+    // The half of the width of I, rounded upward: both extrema from 2 pi on,
+    // or for infinite bounds. The width itself, Ir + Il, overflowed for a
+    // finite result, [-1, 1], when a bound was next to the largest double
+    // (GAOL v5, point 79 of TODO.md: cos([-1, DBL_MAX])); the halves of the
+    // bounds are exact, and their sum is the half of the rounded sum
+    const double half_width = 0.5*Ir + 0.5*Il;
+    if (!(half_width < gaol_pi_dn)) {
       GAOL_RND_LEAVE();
       return interval::minus_one_plus_one();
     }
@@ -6527,7 +6540,7 @@ static inline interval cos_or_sin(double Il, double Ir)
         }
         if (sl != sr) {
             extremum = sl; // Increasing then decreasing: a maximum
-        } else if (w < gaol_pi_dn|| (narrow_halves && (sine ? sign_of_cos(middle) : -sign_of_sin(middle)) == sl)) {
+        } else if (half_width < 0.5*gaol_pi_dn || (narrow_halves && (sine ? sign_of_cos(middle) : -sign_of_sin(middle)) == sl)) {
             extremum = 0;
         } else {
             extremum = 2;
