@@ -1584,13 +1584,15 @@ namespace
     are the tightest ones: a point for a double, the two doubles around the
     other numbers.
   */
+  // The expected bounds are literals, not products: with the underflow exception enabled, the processor signals
+  // a tiny result, exact or not, and Clang does not fold it
   const double smallest_double_read = std::numeric_limits<double>::denorm_min();
   const EmptyOperand readings_below_the_least_normal_double[] = {
     { "1e-400", [] { return bounds_are(textToInterval("1e-400"), 0.0, smallest_double_read); } },
     { "-1e-400", [] { return bounds_are(textToInterval("-1e-400"), -smallest_double_read, 0.0); } },
     { "0x1p-1075", [] { return bounds_are(textToInterval("0x1p-1075"), 0.0, smallest_double_read); } },
     { "0x1p-1074", [] { return bounds_are(textToInterval("0x1p-1074"), smallest_double_read, smallest_double_read); } },
-    { "0x1.8p-1074", [] { return bounds_are(textToInterval("0x1.8p-1074"), smallest_double_read, 2*smallest_double_read); } },
+    { "0x1.8p-1074", [] { return bounds_are(textToInterval("0x1.8p-1074"), smallest_double_read, 0x1p-1073); } },
     { "0x1p-1022", [] { return bounds_are(textToInterval("0x1p-1022"), 0x1p-1022, 0x1p-1022); } },
     { "0x1p-1021", [] { return bounds_are(textToInterval("0x1p-1021"), 0x1p-1021, 0x1p-1021); } },
     { "4.9e-324", [] { return bounds_are(textToInterval("4.9e-324"), 0.0, smallest_double_read); } },
@@ -1598,7 +1600,7 @@ namespace
         const interval x = textToInterval("1e-310");
         return x.set_contains(1e-310) && x.left() < x.right(); } },
     { "2.3e-308", [] { return textToInterval("2.3e-308").set_contains(2.3e-308); } },
-    { "9?e-324", [] { return bounds_are(textToInterval("9?e-324"), smallest_double_read, 2*smallest_double_read); } },
+    { "9?e-324", [] { return bounds_are(textToInterval("9?e-324"), smallest_double_read, 0x1p-1073); } },
     { "gaol_ieee1788::textToInterval(1e-400)", [] {
         return bounds_are(gaol_ieee1788::textToInterval("1e-400"), 0.0, smallest_double_read); } },
   };
