@@ -992,6 +992,18 @@ namespace gaol_core {
     return (x == 1.0) ? 0.0 : ((x == 0.0) ? gaol_half_pi_up : ((x == -1.0) ? gaol_pi_up : upward::acos_up(x)));
   }
 
+  /*
+    From |x| = 2^54 on, atan(x) = pi/2 - 1/x is above the double below pi/2
+    (pi/2 exceeds it by 6.1e-17, and 1/x is at most 5.6e-17) and below pi/2,
+    so that its bounds are those of pi/2, as they are at the infinities.
+    CORE-MATH returns them from 0x1.d02967c31cdb5p+53 on without computing,
+    but after a test that Visual C++ (x64 and arm64, /fp:strict) compiles
+    with the sum x + x it returns for a NaN, which overflows from |x| = 2^1023
+    on: atan([DBL_MAX]) and atan_rel() raised the overflow exception for a
+    finite result (GAOL v5, point 79 of TODO.md; the continuous integration)
+  */
+  static const double atan_is_half_pi = 1.8014398509481984e+16; // 2^54
+
   // pi/4 is half of pi/2, exactly
   static double atan_lo(double x)
   {
@@ -999,7 +1011,7 @@ namespace gaol_core {
       return 0.0;
     }
     const double a = std::fabs(x);
-    if (a == 1.0 || a == GAOL_INFINITY) {
+    if (a == 1.0 || a >= atan_is_half_pi) {
       const double b = (a == 1.0) ? 0.5 : 1.0;
       return (x > 0.0) ? gaol_half_pi_dn*b : -gaol_half_pi_up*b;
     }
@@ -1012,7 +1024,7 @@ namespace gaol_core {
       return 0.0;
     }
     const double a = std::fabs(x);
-    if (a == 1.0 || a == GAOL_INFINITY) {
+    if (a == 1.0 || a >= atan_is_half_pi) {
       const double b = (a == 1.0) ? 0.5 : 1.0;
       return (x > 0.0) ? gaol_half_pi_up*b : -gaol_half_pi_dn*b;
     }
