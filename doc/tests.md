@@ -315,9 +315,9 @@ point Q), which `numbers` checks there too.
   DBL_MAX + 1, and raised the flag for `floor_rel([DBL_MAX], [0, 1])`, which
   is empty, and for `floor_rel([0, DBL_MAX], [0, 1])`, [0, 1] (GAOL v5);
   Clang for 64-bit ARM still did, computing the sum before the test that
-  leaves it out and choosing afterwards. Then 28 calls of functions that
+  leaves it out and choosing afterwards. Then 29 calls of functions that
   computed beyond the largest double on the way, `sqrt()`, `nth_root()` with
-  orders of every kind, `sin()`, `cos()`, `tan()`, `sqrt_rel()`,
+  orders of every kind, `atan()`, `sin()`, `cos()`, `tan()`, `sqrt_rel()`,
   `nth_root_rel()`, `acos_rel()`, `asin_rel()`, `atan_rel()`, `atanh_rel()`,
   `div_rel()`, `atan2_rel_x()`, `atan2_rel_y()`, `pow()`, `pow_rel()` and
   `pow_exponent_rel()`, are run on 20 000 draws of operands each, from the

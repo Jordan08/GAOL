@@ -2156,6 +2156,7 @@ namespace
       { "nth_root(x, -2)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, -2); } },
       { "nth_root(x, -3)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, -3); } },
       { "nth_root(x, -2147483648)", 1, [](const interval& x, const interval&, const interval&) { return nth_root(x, -2147483647LL - 1); } },
+      { "atan(x)", 1, [](const interval& x, const interval&, const interval&) { return atan(x); } },
       { "sin(x)", 1, [](const interval& x, const interval&, const interval&) { return sin(x); } },
       { "cos(x)", 1, [](const interval& x, const interval&, const interval&) { return cos(x); } },
       { "tan(x)", 1, [](const interval& x, const interval&, const interval&) { return tan(x); } },
