@@ -989,7 +989,7 @@ Le noyau empaqueté de `pown` (FMA sur deux voies, `vfmaq_f64`), environ 150 lig
 
 ---
 
-### QK.6 — 133 (AP) : GCC pour Windows, x86 32 bits sans FMA, et un job Cygwin [S] — DÉCIDÉ (23 octobre), en cours (#172, #173)
+### QK.6 — 133 (AP) : GCC pour Windows, x86 32 bits sans FMA, et un job Cygwin [S] — FAIT par #172, #173 et #174
 
 MinGW-w64 pour x86 n'avait pas de FMA (CORE-MATH et les puissances entières appelaient un `fma()` logiciel). L'essai (une branche d'expérience, supprimée) a construit, testé et mesuré MinGW-w64 15.2 et 14.2 : 38 tests réussis avec chaque jeu de drapeaux ; `-mfma -mprefer-vector-width=128` donne `pow(x, 3)` 70 → 12 ns, `log` 266 → 82, `cos` 490 → 138 (GCC 15.2), `-mfma` seul laisse 4 709 lignes `%ymm` ; `-mstackrealign` ne change rien ; un programme à fils donne les résultats du fil principal dans toutes les variantes. Décidé : ON par défaut (`GAOL_FMA=OFF` reste le remède pour un processeur sans FMA) : #172 (ouverte), avec un job sans FMA qui garde le `fma()` x87 de mingw-w64 11. Et un job Cygwin x86-64 (#173, brouillon), le premier à construire GAOL avec Cygwin. **Suivi.** TODO.md rang 18.
 
@@ -1007,8 +1007,8 @@ MinGW-w64 pour x86 n'avait pas de FMA (CORE-MATH et les puissances entières app
 | #170 (fusionnée) | jobs FPU x86-64 et arm64 GCC avec le sens préservé, commentaire d'`operator*=` | #157 `GAOL_RND_KEEP()` |
 | #171 (fusionnée) | test des bits du signe de `x * d` | #161 |
 | #172 (fusionnée) | GCC pour Windows en 32 bits : `-mfma -mprefer-vector-width=128`, un job sans FMA | #163, x86 32 bits |
-| #173 | Cygwin x86-64 pris en charge : `_mm_malloc`, `previous_float()`/`next_float()` aux bords des doubles, `fma_once()` et le test d'exécution de `GAOL_FMA` en `__builtin_fma`, refusé sans FMA, pas de `package_source` (CPack), un job de CI (44 tests, trois sautés) ; décidé de le porter le 24 octobre | #163, Cygwin |
-| #174 | les restes de Cygwin : `is_bisectable()` par `next_float()`, `std::fma` sans optimisation dit dans les docs, le manuel et l'exemple 13 | #173 |
+| #173 (fusionnée) | Cygwin x86-64 pris en charge : `_mm_malloc`, `previous_float()`/`next_float()` aux bords des doubles, `fma_once()` et le test d'exécution de `GAOL_FMA` en `__builtin_fma`, refusé sans FMA, pas de `package_source` (CPack), un job de CI (44 tests, trois sautés) ; décidé de le porter le 24 octobre | #163, Cygwin |
+| #174 (fusionnée) | les restes de Cygwin : `is_bisectable()` par `next_float()`, `std::fma` sans optimisation dit dans les docs, le manuel et l'exemple 13 | #173 |
 
 Chacune a eu sa relecture indépendante (sauf #168, expérience, et #173, dont la première exécution tient lieu de relecture) ; la CI de #165, #166 et #167 à #171 était verte (le 23 octobre à minuit) ; #165 et #166 sont fusionnées par le mainteneur.
 
