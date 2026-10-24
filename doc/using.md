@@ -1096,7 +1096,11 @@ exactness upward; pairs of very different magnitudes keep it, the error of
 the product of the split parts they drop staying below the error of the
 rounded product), and is exact in every direction when it is computed with
 `std::fma` instead: the error of a rounded product is a double, which
-`std::fma` computes however it rounds. Compensated sums, and the
+`std::fma` computes however it rounds (provided it is correctly rounded: the
+instruction, or a call of a C library whose `fma()` is; with GCC, `std::fma`
+without optimization is a call of the library, and the `fma()` of Cygwin is not
+correctly rounded, where `__builtin_fma` is the instruction with `-mfma`, which
+GAOL calls itself). Compensated sums, and the
 double-double arithmetic built on such algorithms, lose their accuracy the
 same way. Built with `GAOL_PRESERVE_ROUNDING`, the program computes the right-hand
 column all the time.

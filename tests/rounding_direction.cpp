@@ -3983,6 +3983,28 @@ int main()
   }
 
   /*
+    is_bisectable() at the edge of the doubles (GAOL v5): [-oo, -DBL_MAX] and
+    [DBL_MAX, +oo] hold no double strictly between their bounds, whatever the
+    direction of the program, where the nextafter() of Cygwin gave
+    [DBL_MAX, +oo] one rounding downward or toward zero.
+  */
+  {
+    const double infinity = std::numeric_limits<double>::infinity();
+    const double dbl_max = (std::numeric_limits<double>::max)();
+    for (const Direction& d : directions) {
+      set(d);
+      const interval below = opaque(interval(gaol_core::rnd_keep(-infinity), gaol_core::rnd_keep(-dbl_max)));
+      const interval above = opaque(interval(gaol_core::rnd_keep(dbl_max), gaol_core::rnd_keep(infinity)));
+      const interval whole = opaque(interval(gaol_core::rnd_keep(-infinity), gaol_core::rnd_keep(infinity)));
+      check("is_bisectable() of [-oo, -DBL_MAX] and [DBL_MAX, +oo] is false, of [-oo, +oo] true",
+            !below.is_bisectable() && !above.is_bisectable() && whole.is_bisectable(),
+            [&] { return std::string("with the program ") + d.name + ": " + S(below.is_bisectable()) + ", "
+                         + S(above.is_bisectable()) + ", " + S(whole.is_bisectable()); });
+    }
+    set(directions[0]);
+  }
+
+  /*
     gaol::cleanup() sets back the rounding direction the first gaol::init()
     found, the x87 unit and the SSE instructions each theirs (GAOL v5): to
     nearest, as a program starts (C11, F.8.3), GAOL initializing itself before
