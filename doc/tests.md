@@ -882,7 +882,11 @@ point Q), which `numbers` checks there too.
   overflow flag, which `1e400*0`, `[0]`, must not carry either, nor stop a
   program that enabled that exception: the reader gave every number to
   `strtod()`, which computes +oo for these and raises it (GAOL v5, point 79
-  of TODO.md).
+  of TODO.md). The same for a number below the least normal double (`1e-400`,
+  `-1e-400`, `1e-310`, `0x1p-1075`, `0x1p-1074`, `9?e-324`, and those times 0),
+  with the underflow exception and the tightest bounds, 0 and the least
+  subnormal for `1e-400`: `strtod()` rounds them to a subnormal or to 0 and
+  raises it (GAOL v5, decided on 2026-10-24).
   `nth_root(I, q)` for
   q = `INT_MIN` and `INT_MIN + 1` has to be the inverse of the root of order
   2<sup>31</sup> and 2<sup>31</sup> − 1, `[1]` at `[1]`, empty at a negative
@@ -1021,14 +1025,14 @@ point Q), which `numbers` checks there too.
   `<1/3, 0x1.5555555555555p-2>` and `<0x1.5555555555556p-2, 1/3>` were read as
   the point of the other bound, the lower or the upper bound of the value of
   the first; `<[0.5], 0.5>` and `<2*0.25, 0.5>`, whose bounds are points, are
-  read (GAOL v5, decided on 2026-10-24). The exponent of a text of 536870500
-  characters (`1e` and 9s) has to put the number above the largest double,
-  `[DBL_MAX, +oo]`: the reader held the ceiling of the exponent, 4L + 2000 for
-  a text of L characters, in a `long`, which wraps beyond 2^31 − 1 where a
-  `long` has 32 bits (Windows, 32-bit processors), and read `[0, 2^-1074]`
-  (GAOL v5, point 85 of TODO.md). The test allocates the 512 MiB text, and
-  only runs where a `long` has 32 bits, and says so where there is not enough
-  memory. The second argument
+  read (GAOL v5, decided on 2026-10-24). The ceiling of the exponent of a
+  text of 536870500 characters (`1e` and 9s), 4L + 2000 for a text of L
+  characters, was held in a `long`, which wraps beyond 2^31 − 1 where a `long`
+  has 32 bits (Windows, 32-bit processors): the number was read `[0, 2^-1074]`
+  instead of `[DBL_MAX, +oo]` (GAOL v5, point 85 of TODO.md). The correction,
+  `long long`, has no test: the text is 512 MiB, read through two more copies
+  of it, which was dropped on 2026-10-24 (it had run in a Debian i386
+  container, and failed without the correction). The second argument
   of `nth_root`, `pown` and `rootn` may be an integer beyond the ints:
   `nth_root(8,3000000000)` and `rootn(8,-3000000000)` equal `nth_root(8,
   3000000000LL)` and `nth_root(8, -3000000000LL)` and enclose the root, within

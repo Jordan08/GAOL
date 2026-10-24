@@ -1563,7 +1563,10 @@ Linux) instead of letting the operation give its bounds.\newinvfive
   infinite bound, and a program that had enabled the exception died while it
   read. The interval read is \itv{\text{DBL\_MAX}}{+\infty}; an operation on
   it raises the flag where its own result overflows, as for any other
-  interval.\newinvfive
+  interval. Nor does reading a number below the least normal double
+  (\code{1e-310}, \code{1e-400}) raise the underflow exception, which
+  \code{strtod()} raises when it rounds such a number to a subnormal or to
+  $0$.\newinvfive
 \item Almost every operation raises the inexact exception: most bounds are
   rounded results, and where GAOL checks the rounding direction with an
   addition, $1+2^{-60}$ or $1+(2^{-1060}+0)$, whose result is inexact
