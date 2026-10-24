@@ -636,10 +636,10 @@ namespace gaol_core {
   /*
     The same operations on a NEON register, vmulq_f64() and the fused
     vfmaq_f64() (GAOL v5, point AP of TODO.md): a * b - c is a * b + (-c), the
-    negation being exact, so that the product is rounded once, as _mm_fmsub_pd()
-    does, and the rests, which are exact, do not depend on the direction. The
-    operations are those of the pair of doubles below, lane by lane, so that
-    the bounds are the same bit for bit
+    negation being exact, so that the sum is rounded once and the product not
+    at all, as _mm_fmsub_pd() does. The operations are those of the pair of
+    doubles below, lane by lane, in the direction upward, so that the bounds
+    are the same bit for bit
   */
   typedef float64x2_t pown_lanes;
   typedef uint64x2_t pown_rests;
@@ -2376,11 +2376,14 @@ namespace gaol_core {
     if (!negative || a > 0.0 || b < 0.0) {
 #if GAOL_POWN_PACKED_NEON
       // The block below on a NEON register (GAOL v5, point AP of TODO.md): the
-      // same operations in the same order, so the same bounds, bit for bit
-      // (the sum of the products by the fused vfmaq_f64()). The lanes are
-      // all ones, or all zeros, where the corner is in the range of the tables
-      const double lanes[2] = { a, b }, negated[2] = { -b, -a };
-      const float64x2_t ab = vld1q_f64(lanes), nba = vld1q_f64(negated), zero = vdupq_n_f64(0.0);
+      // same operations in the same order, so the same bounds, bit for bit.
+      // Keep them alike, with pown_large_er() (tests/tools/pow/mutate.py has
+      // the mutants of the SSE2 block). The bounds (a, b) and (-b, -a) are made
+      // from the stored register <-a, b> without going through memory: two
+      // stores of a double and a load of the pair do not forward on many cores
+      const float64x2_t zero = vdupq_n_f64(0.0);
+      const float64x2_t ab = neon_detail::negate_first(I.get_neoninterval());
+      const float64x2_t nba = vnegq_f64(vextq_f64(ab, ab, 1));
       float64x2_t c = ab;
       if ((m & 1u) == 0u) {
         const float64x2_t greater = vmaxq_f64(ab, nba);
