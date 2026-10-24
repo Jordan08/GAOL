@@ -76,13 +76,15 @@ i386 et armhf de la CI).
    au-delà desquels le lexeur lève `std::bad_alloc` : `"1e"` suivi de 536,8
    millions de 9 serait lu [0, 2^-1074] au lieu de [DBL_MAX, +∞]. Non vérifié,
    faute de chaîne 32 bits sur la machine. Correction : ces variables en `long
-   long`. *En cours : #182.*
+   long`. *En cours : #182* ; le test de 512 Mio qui la gardait est retiré,
+   décidé le 24 octobre (1,5 Gio sur les jobs Windows x64).
 3. **79 (AB), la lecture de `1e400`** [S] : lire `1e400`, ou tout nombre au-delà
    du plus grand double, lève `FE_OVERFLOW` : le `strtod()` du lexeur
    (`gaol_enclose_number()`) le calcule, et un programme qui a activé le piège
    meurt à la lecture ; déjà ainsi avant #149, qui l'a relevé ; ajouté au 79 le
    20 octobre. C'est la partie du 79 qui touche le lexeur ; le reste du 79 est
-   dans PB. *En cours : #182.*
+   dans PB. *En cours : #182*, qui règle aussi `FE_UNDERFLOW` de `strtod()` pour
+   les nombres sous le plus petit double normal (décidé le 24 octobre).
 4. **`<a, b>` et une borne calculée** [S] (#149) : `<a, b>` accepte encore une
    borne calculée qui n'est pas un double (`<[0.1], 0x1.9999999999999p-4>`, un
    littéral comme borne) ; seuls les nombres écrits et pi sont refusés. *Décidé
@@ -95,7 +97,9 @@ i386 et armhf de la CI).
    `operator<<`, qui passe à l'état `bad` avec libstdc++, et les diagnostics
    suivants sont perdus. Les macros de GAOL passent toujours `__FILE__` ; seuls
    des appels directs sont en cause. *Décidé le 24 octobre* : un `file` nul
-   s'écrit « (unknown file) », avec un test. *En cours : #181.*
+   s'écrit « (unknown file) », avec un test. *En cours : #181*, qui traite aussi
+   un message nul de `gaol_warning()` et de `gaol_error()` (décidé le 24
+   octobre).
 
 ## PB. Les exceptions flottantes levées à tort, les réciproques de `pow` [L]
 
@@ -380,15 +384,15 @@ ne se comparent pas d'un passage à l'autre : le banc A/B de `performance.yml`
    la seule solution, un mode de CORE-MATH où le sens est un paramètre,
    modifierait `3rd/math-core`, ce que le mainteneur a refusé le 22 octobre
    (Q15c) ; voir `TODO_AFTER.md`.
-6. **La division du chemin AVX-512** [S à M] (`doc/simd.md`, tableau
-   « Verdicts ») : essayer deux `vdivsd {er}` scalaires pour `/` dans le chemin
-   AVX-512 (`GAOL_PREFER_AVX512`). Sur Intel, la division 512 bits coûte 16
-   cycles de débit, contre 4 en 128 bits (uops.info) ; Zen 5 a des unités pleine
-   largeur. L'idée a réussi pour `sqrt` (deux racines scalaires à arrondi
-   intégré : 3,75 ns contre 6,30 avec SSE2) et n'a pas été essayée pour `/`.
-   À mesurer sur l'i7-1185G7 avec le banc A/B de `performance.yml` : les deux
-   `vdivsd {er}` et les permutations peuvent perdre sur un processeur Intel qui
-   divise les registres en deux. À rapprocher du 106.
+6. **La division du chemin AVX-512** [S à M] (`doc/simd.md`, tableau « Verdicts
+   ») : essayer deux `vdivsd {er}` scalaires pour `/` dans le chemin AVX-512
+   (`GAOL_PREFER_AVX512`). Sur Intel, la division 512 bits coûte 16 cycles de
+   débit, contre 4 en 128 bits (uops.info) ; Zen 5 a des unités pleine largeur.
+   L'idée a réussi pour `sqrt` (deux racines scalaires à arrondi intégré : 3,75
+   ns contre 6,30 avec SSE2) et n'a pas été essayée pour `/`. À mesurer sur
+   l'i7-1185G7 avec le banc A/B de `performance.yml` : les deux `vdivsd {er}` et
+   les permutations peuvent perdre sur un processeur Intel qui divise les
+   registres en deux. À rapprocher du 106.
 
 ## PH. Les signalements à d'autres projets [attend l'accord du mainteneur]
 
