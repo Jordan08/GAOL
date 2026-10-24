@@ -459,21 +459,6 @@ jobs:
         run: sh .github/scripts/check-gcc-windows-fma.sh build
       - name: Tests (make test)
         run: cmake --build build --target test
-      # package_source on Cygwin: the CPack of Cygwin could not list the extended
-      # attributes of a directory ("Couldn't list extended attributes"); which
-      # generators make the archive of the sources here (informational: it does
-      # not fail the job, so that the day CPack is repaired this step says so)
-      - name: Which generators of CPack make the archive of the sources
-        if: always()
-        run: |
-          cd build
-          for g in TGZ TBZ2 ZIP; do
-            if cpack --config CPackSourceConfig.cmake -G $g > cpack-$g.log 2>&1; then
-              echo "$g: made the archive"
-            else
-              echo "$g: failed: $(grep -m1 -A6 'CPack Error' cpack-$g.log | tr '\n' ' ')"
-            fi
-          done
       # fma_once(): without optimization the objects of GAOL call no fma() of the
       # C library, which is the one of Cygwin, not correctly rounded, where
       # std::fma is such a call (the library only: the tests are not built)
