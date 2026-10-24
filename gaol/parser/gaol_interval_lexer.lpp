@@ -289,10 +289,16 @@ namespace {
     // for a text of 2^29 characters, where a long of 32 bits (Windows, i386,
     // armhf) wrapped (GAOL v5, point 85 of TODO.md)
     long long kb;
+    // v may be above the largest double, whose strtod() raises the overflow
+    // exception: it is not known to be below it from the exponent and the
+    // digits (below 10^308 in decimal, or 2^1023 in base 16, 8 or 2) or is
+    // far above it (beyond is +1). It is false for v = 0, and for the numbers
+    // far below the least positive double (GAOL v5, point 79 of TODO.md)
+    bool may_overflow;
     gaol_natural scaled;  // N*5^k if k >= 0, N otherwise
     gaol_natural pow5;    // 5^-k if k < 0, no digit otherwise
 
-    gaol_number() : is_zero(true), beyond(0), kb(0) {}
+    gaol_number() : is_zero(true), beyond(0), kb(0), may_overflow(false) {}
   };
 
   // The number s writes, taken apart
@@ -361,6 +367,7 @@ namespace {
     // the largest double or below the least positive one
     if (power_of_two ? k2 + digit_bits*(ndigits - 1) > 1025 : k + ndigits - 1 > 310) {
       v.beyond = 1;
+      v.may_overflow = true;
       return v;
     }
     if (power_of_two ? k2 + digit_bits*ndigits < -1080 : k + ndigits < -330) {
@@ -368,6 +375,8 @@ namespace {
       return v;
     }
     v.kb = k + k2;
+    // v < 10^(k+ndigits) < 10^308, or v < 2^(k2+b ndigits) <= 2^1023, is below the largest double
+    v.may_overflow = power_of_two ? k2 + digit_bits*ndigits > 1023 : k + ndigits > 308;
     v.scaled.swap(N);
     if (k >= 0) {
       gaol_natural_mul_pow5(v.scaled, k);
@@ -460,7 +469,20 @@ namespace {
     // failed allocation left the direction to nearest (GAOL v5)
     const rounding_guard rnd;
     round_nearest();
-    const uint64_t guess = gaol_bits_of(strtod(s,NULL)); // in [0, +oo]
+    // strtod() of a number above the largest double gives +oo and raises the
+    // overflow exception, which stops a program that enabled it and, for a
+    // number that is read and not computed with, left a flag that stands for
+    // an infinite bound of the interval (doc/using.md, The floating-point
+    // exceptions): 1e400*0 is [0], and raised it. A number that may reach the
+    // largest double is compared with it first, and when it is above, strtod()
+    // is not called: the largest double is the guess, which the steps and the
+    // bisection below place. Below it, strtod() cannot overflow, and gives the
+    // guess as it did, so that the reading takes as long as before (GAOL v5,
+    // point 79 of TODO.md)
+    const double largest = (std::numeric_limits<double>::max)();
+    const bool above_the_doubles = v.may_overflow && gaol_compare_number(v, largest) > 0;
+    const uint64_t guess = above_the_doubles ? gaol_bits_of(largest)
+                                             : gaol_bits_of(strtod(s,NULL)); // in [0, +oo]
     const uint64_t top = gaol_bits_of(std::numeric_limits<double>::infinity());
     // gaol_double_of(lo) <= the number < gaol_double_of(hi), sign_lo being
     // the comparison of the number with gaol_double_of(lo)
