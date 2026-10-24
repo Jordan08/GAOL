@@ -533,9 +533,9 @@ endif
 # Visual C++ but for 32-bit x86, where it breaks the rounding direction; -mfma
 # on x86, where it defines __FMA__, but with GCC for Windows (MinGW, Cygwin),
 # which does not align the stack for the 256-bit registers of the AVX that
-# -mfma turns on (GCC bug 54412): -mfma -mprefer-vector-width=128 there for
-# x86-64, which keeps the vectorizer to the 128-bit registers, and nothing for
-# 32-bit x86; -mfpu=neon-vfpv4 -mfloat-abi=hard on 32-bit ARM, where FMA is not
+# -mfma turns on (GCC bug 54412): -mfma -mprefer-vector-width=128 there, for
+# x86-64 and 32-bit x86, which keeps the vectorizer to the 128-bit registers;
+# -mfpu=neon-vfpv4 -mfloat-abi=hard on 32-bit ARM, where FMA is not
 # on already. Given to the C and C++ sources (GAOL, CORE-MATH), and to the code
 # using GAOL (gaol.pc), compiled for the same processor. -ffp-contract=off
 # stays. Left out where the machine building does not run a program compiled
@@ -567,17 +567,17 @@ if get_option('enable-fma')
     int main() { return 0; }
     '''
     if mingw_gcc
-      mingw_x86_64 = cpp_comp.compiles('''
-      #if !defined(__x86_64__)
-      #error not an x86-64 target
+      mingw_x86 = cpp_comp.compiles('''
+      #if !defined(__x86_64__) && !defined(__i386__)
+      #error not an x86 target
       #endif
       int main() { return 0; }
-      ''', name: 'the target is x86-64')
+      ''', name: 'the target is x86')
       # Both options, or none: -mfma alone lets GCC spill 256-bit registers to
       # a stack it does not align on Windows (see CMakeLists.txt)
       mingw_args = ['-mfma', '-mprefer-vector-width=128']
-      if not mingw_x86_64
-        message('Fused multiply-add instructions left out: GCC for Windows takes them for x86-64 only (not measured for 32-bit x86)')
+      if not mingw_x86
+        message('Fused multiply-add instructions left out: GCC for Windows takes them for x86 only')
       elif cpp_comp.links(fma_check.format('__FMA__'), args: mingw_args, name: '-mfma -mprefer-vector-width=128 gives the fused multiply-add instructions (C++)') and c_comp.links(fma_check.format('__FMA__'), args: mingw_args, name: '-mfma -mprefer-vector-width=128 gives the fused multiply-add instructions (C)')
         fma_args = mingw_args
       else

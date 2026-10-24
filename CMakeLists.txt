@@ -457,7 +457,7 @@ string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
 #    there, Visual C++ with /arch:AVX2 reused a product rounded upward after
 #    the rounding direction had changed, in spite of /fp:strict (in Codac,
 #    with Visual Studio 2022 and 2026).
-#  - GCC for Windows (MinGW-w64, MSYS2, Cygwin) for x86-64: -mfma
+#  - GCC for Windows (MinGW-w64, MSYS2, Cygwin) for x86-64 and 32-bit x86: -mfma
 #    -mprefer-vector-width=128 (GAOL v5, point 110 of TODO.md). -mfma turns AVX
 #    on, and GCC then vectorizes with the 256-bit registers (ymm), which it may
 #    spill to a stack it takes to be aligned on 32 bytes, where the Windows x64
@@ -471,9 +471,21 @@ string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
 #    and the integer powers had no FMA kernel: pow(x, 3) took 52.3 ns rather
 #    than 8.7, log 106.4 rather than 33.6, cos 260.5 rather than 55.4 (medians
 #    of 3 rounds alternated in one job, GitHub runner, MSYS2 UCRT64 GCC 16.2).
-#    The option is from GCC 8, and a GCC without it gets no flag. Not for
-#    32-bit x86, which is not measured. Code using GAOL that writes 256-bit
-#    intrinsics itself stays exposed to the defect, as with -mavx.
+#    The option is from GCC 8, and a GCC without it gets no flag. For 32-bit
+#    x86 too (GAOL v5; MinGW-w64 15.2 and 14.2 for i686 on the runners of
+#    GitHub, the 38 tests passing in each variant): pow(x, 3) took 70.5 ns
+#    rather than 12.2, log 265.7 rather than 81.2 and cos 489.6 rather than
+#    138.2 (15.2). The objects held 4709 lines with %ymm with -mfma alone (600
+#    with 14.2) and none with the two options, at the same speed (GCC 13.2:
+#    9 lines in two test objects, with both); that bug
+#    54412 acts on x86 too was not shown (GCC realigns the stack itself for
+#    the 256-bit spills it makes for 32-bit Linux), and the two options are
+#    given together there so that the objects hold no 256-bit register.
+#    -mstackrealign, for the 4-byte stack of Windows threads (GCC bug 40838),
+#    changed no time with 15.2, and a program that runs pow, exp, log, sin
+#    and cos on the stack of a Win32 thread and of a std::thread gave main's
+#    results with and without -mfma. Code using GAOL that writes 256-bit
+#    intrinsics itself stays exposed to the defect on x64, as with -mavx.
 #  - 32-bit ARM: -mfpu=neon-vfpv4 -mfloat-abi=hard where FMA is not on
 #    already (__ARM_FEATURE_FMA), and the libraries of the system take the
 #    hard-float ABI.
@@ -503,12 +515,12 @@ if(GAOL_FMA)
     endif()
   elseif((WIN32 OR CYGWIN) AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     check_cxx_source_compiles("
-      #if !defined(__x86_64__)
-      #error not an x86-64 target
+      #if !defined(__x86_64__) && !defined(__i386__)
+      #error not an x86 target
       #endif
       int main() { return 0; }"
-      GAOL_GCC_WINDOWS_TARGET_IS_X86_64)
-    if(GAOL_GCC_WINDOWS_TARGET_IS_X86_64)
+      GAOL_GCC_WINDOWS_TARGET_IS_X86)
+    if(GAOL_GCC_WINDOWS_TARGET_IS_X86)
       # Both options, or none: -mfma alone lets GCC spill 256-bit registers
       # to a stack it does not align on Windows (see above)
       set(CMAKE_REQUIRED_FLAGS "${GAOL_INTERVAL_FLAGS_STRING} -mfma -mprefer-vector-width=128")
@@ -525,7 +537,7 @@ if(GAOL_FMA)
         message(STATUS "Fused multiply-add instructions left out: this GCC for Windows takes no -mfma -mprefer-vector-width=128 (the option is from GCC 8), and -mfma alone leaves its 256-bit registers on a stack it does not align")
       endif()
     else()
-      message(STATUS "Fused multiply-add instructions left out: GCC for Windows takes them for x86-64 only (not measured for 32-bit x86)")
+      message(STATUS "Fused multiply-add instructions left out: GCC for Windows takes them for x86 only")
     endif()
   else()
     set(CMAKE_REQUIRED_FLAGS "${GAOL_INTERVAL_FLAGS_STRING} -mfma")

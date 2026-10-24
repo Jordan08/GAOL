@@ -1,7 +1,8 @@
 # Builds GAOL with CMake on Windows, with Visual Studio 2022 and 2026 (x86, x64,
 # arm64; Release and Debug), the clang-cl of Visual Studio 2022 (x64; Release
 # and Debug) and 2026 (x86, x64, arm64; Release), MinGW-w64 15 (x86, x64;
-# Release and Debug), 14 (x86, x64), 12 and 13 (x86), and MSYS2 (UCRT64 GCC,
+# Release and Debug), 14 (x86, x64), 12 and 13 (x86; 13 without GAOL_FMA too),
+# and MSYS2 (UCRT64 GCC,
 # CLANG64 Clang), runs its tests, installs it, and builds the tests again with
 # the installed GAOL; with Visual Studio 2026 x64 and x86 and /W4 /WX too (GAOL
 # v5). The AVX-512 path of Visual C++ and clang-cl runs under Intel SDE, the
@@ -17,7 +18,7 @@
 # is wrong: on x64, GCC 11 to 13 and MSYS2 MINGW64 (linked with msvcrt.dll),
 # whose fma() and round() are those of mingw-w64's own math library; on x86,
 # GCC 11, whose fma() rounds each of its partial sums to a double.
-# Checks that the objects GCC for Windows builds on x64 hold the fused
+# Checks that the objects GCC for Windows builds on x64 and x86 hold the fused
 # multiply-add instructions GAOL_FMA gives them (-mfma) and no 256-bit
 # instruction (-mprefer-vector-width=128; GCC bug 54412, GAOL v5).
 #
@@ -278,6 +279,10 @@ jobs:
           - { version: '15.2.0',         bin: 'C:\ProgramData\mingw64\mingw32\bin', choco_flags: '--x86', config: Release, desc: 'MinGW-w64 15.2.0 x86 Release' }
           - { version: '15.2.0',         bin: 'C:\ProgramData\mingw64\mingw64\bin', choco_flags: '',      config: Debug,   desc: 'MinGW-w64 15.2.0 x64 Debug' }
           - { version: '15.2.0',         bin: 'C:\ProgramData\mingw64\mingw32\bin', choco_flags: '--x86', config: Debug,   desc: 'MinGW-w64 15.2.0 x86 Debug' }
+          # -mfma is on x86 too (GAOL v5, __FMA__ defined): the rounding
+          # direction preserved, which no MinGW-w64 job for 32-bit x86 ran,
+          # with it
+          - { version: '15.2.0',         bin: 'C:\ProgramData\mingw64\mingw32\bin', choco_flags: '--x86', config: Release, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'MinGW-w64 15.2.0 x86 Release, rounding direction preserved' }
           # The older MinGW-w64 GAOL builds with: GAOL v5 takes no elementary
           # function from the math library of the system and no longer calls
           # fesetround() for its elementary functions. Those whose fma() or
@@ -285,11 +290,13 @@ jobs:
           # (see gaol/gaol_config.h): MinGW-w64 GCC 11 to 13 on x86-64, and GCC
           # 11 on 32-bit x86, which the job mingw-refused checks. GCC 12 and 13
           # on 32-bit x86 compute the fma() of mingw-w64 11 on the x87 unit,
-          # in extended precision: it passes the tests, though it is not
-          # correctly rounded.
+          # in extended precision, when GAOL_FMA is off: it passes the tests,
+          # though it is not correctly rounded (the job 13.2.0 x86 Release,
+          # no FMA). With GAOL_FMA, the default, they get -mfma (GAOL v5).
           - { version: '14.2.0',          bin: 'C:\ProgramData\mingw64\mingw64\bin', choco_flags: '',      config: Release, desc: 'MinGW-w64 14.2.0 x64 Release' }
           - { version: '14.2.0',          bin: 'C:\ProgramData\mingw64\mingw32\bin', choco_flags: '--x86', config: Release, desc: 'MinGW-w64 14.2.0 x86 Release' }
           - { version: '13.2.0',          bin: 'C:\ProgramData\mingw64\mingw32\bin', choco_flags: '--x86', config: Release, desc: 'MinGW-w64 13.2.0 x86 Release' }
+          - { version: '13.2.0',          bin: 'C:\ProgramData\mingw64\mingw32\bin', choco_flags: '--x86', config: Release, opts: '-DGAOL_FMA=OFF', desc: 'MinGW-w64 13.2.0 x86 Release, no FMA' }
           - { version: '12.2.0.03042023', bin: 'C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw32\bin', choco_flags: '--x86', config: Release, desc: 'MinGW-w64 12.2.0 x86 Release' }
     steps:
       - uses: actions/checkout@v7
@@ -302,7 +309,7 @@ jobs:
           which gcc g++ mingw32-make
           g++ --version
           g++ -dumpmachine
-          cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{ matrix.cfg.config }} -DWITH_TESTS=ON -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install"
+          cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{ matrix.cfg.config }} -DWITH_TESTS=ON -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install" ${{ matrix.cfg.opts }}
       # The SSE2 intervals on x86 as on x64, with -faligned-new=8 on x86, where
       # the C runtime aligns the memory of new on 8 bytes (GAOL v5)
       - name: The intervals
@@ -313,15 +320,16 @@ jobs:
           fi
       - name: Build
         run: cmake --build build -j 4
-      # GAOL_FMA gives GCC for Windows on x64 -mfma -mprefer-vector-width=128
-      # (CMakeLists.txt, point 110 of TODO.md): the objects of the Release
-      # builds hold fused multiply-add instructions, which CORE-MATH and the
-      # integer powers need to be fast, and none on a 256-bit register, which
-      # GCC would spill to a stack that Windows aligns on 16 bytes (GCC bug
-      # 54412). Not on x86, which gets no flag, nor in Debug, where the
-      # vectorizer does not run (GAOL v5)
+      # GAOL_FMA gives GCC for Windows on x64 and on x86 -mfma
+      # -mprefer-vector-width=128 (CMakeLists.txt, point 110 of TODO.md): the
+      # objects of the Release builds hold fused multiply-add instructions,
+      # which CORE-MATH and the integer powers need to be fast, and none on a
+      # 256-bit register, which GCC would spill to a stack that Windows x64
+      # aligns on 16 bytes (GCC bug 54412; on x86 the lines with %ymm are
+      # listed and noticed, not an error). Not in Debug, where the vectorizer
+      # does not run, nor without GAOL_FMA (GAOL v5)
       - name: Fused multiply-add instructions, and no 256-bit register in the objects
-        if: matrix.cfg.choco_flags == '' && matrix.cfg.config == 'Release'
+        if: matrix.cfg.config == 'Release' && !contains(matrix.cfg.opts, 'GAOL_FMA=OFF')
         run: |
           PATH="$(cygpath -u '${{ matrix.cfg.bin }}'):$PATH"
           export PATH
@@ -410,9 +418,9 @@ jobs:
 
   # The mingw-w64 whose fma() or round() is wrong are refused when compiling
   # (gaol/gaol_config.h): CORE-MATH computes with that fma() where the build
-  # has no -mfma (32-bit x86, GAOL_FMA OFF; GAOL_FMA gives it to GCC on x86-64,
-  # where their round() is wrong too), so that the bounds would not enclose the
-  # exact values. On x86-64, GCC 12.2.0 and 13.2.0 of Chocolatey are
+  # has no -mfma (GAOL_FMA OFF; GAOL_FMA gives it to GCC for Windows on x86-64
+  # and on 32-bit x86, and these toolchains stay refused, their round() being
+  # wrong too), so that the bounds would not enclose the exact values. On x86-64, GCC 12.2.0 and 13.2.0 of Chocolatey are
   # MinGW-Builds of mingw-w64 11 (UCRT) and GCC 11.2.0 is WinLibs mingw-w64 9
   # (msvcrt.dll), all before 12: their fma() and round() are those of
   # mingw-w64's own math library. On 32-bit x86, GCC 11.2.0 is WinLibs

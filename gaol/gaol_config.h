@@ -370,8 +370,8 @@
      error-free products fma(a, b, -a*b) and 25 to 73 % of other triples,
      depending on the rounding direction, were wrong. CORE-MATH computes with
      __builtin_fma(), a call to fma() without -mfma (GCC for Windows then,
-     before GAOL_FMA gave it -mfma -mprefer-vector-width=128 on x86-64, and
-     still with GAOL_FMA off; see CMakeLists.txt), and GAOL's exact products
+     before GAOL_FMA gave it -mfma -mprefer-vector-width=128 on x86-64 and on
+     32-bit x86, and still with GAOL_FMA off; see CMakeLists.txt), and GAOL's exact products
      with std::fma(): bounds of tan, asin, atan and others at small arguments
      did not enclose the exact values (tan(0x1.56e1fc2f8f359p-997) rounded
      upward was two doubles above the argument), in tests/core_math.cpp,
@@ -400,7 +400,9 @@
    mingw-w64 but whose math library is its own, does not say __MINGW32__.
 
    On 32-bit x86, the same fma() and round() compute on the x87 unit, in
-   extended precision where the compiler keeps the values in its registers.
+   extended precision where the compiler keeps the values in its registers
+   (CORE-MATH calls that fma() with GAOL_FMA off only: GCC for Windows takes
+   -mfma there as on x86-64, GAOL v5).
    The GCC 11.2 of WinLibs (mingw-w64 9) compiled fma() without optimization,
    each partial sum rounded to a double: the continuous integration saw the
    same wrong bounds as on x86-64, and mingw-w64 before 11 is refused.
