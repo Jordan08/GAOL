@@ -51,13 +51,18 @@ namespace gaol_core {
   class GAOL_PUBLIC gaol_exception : public std::exception {
     public:
     /*!
-    \param f Name of the file where the exception is thrown
+    \param f Name of the file where the exception is thrown; a null pointer
+    is no file name (GAOL v5: operator<< sent it to a stream, which the
+    standard leaves undefined, and libstdc++ puts in the state bad): the
+    exception then reports "(unknown file)", as with the other two
+    constructors
     \param l Line in the file where the exception is thrown
     */
     gaol_exception(const char* f, unsigned l);
     
     /*!
-    \param f Name of the file where the exception is thrown
+    \param f Name of the file where the exception is thrown; a null pointer
+    is "(unknown file)" (GAOL v5)
     \param l Line in the file where the exception is thrown
     \param e Explanation concerning the throwing; a null pointer is no
     explanation (GAOL v5: GAOL 4 built a std::string from it, which is
@@ -66,7 +71,8 @@ namespace gaol_core {
     gaol_exception(const char* f, unsigned l, const char* e);
     
     /*!
-    \param f Name of the file where the exception is thrown
+    \param f Name of the file where the exception is thrown; a null pointer
+    is "(unknown file)" (GAOL v5)
     \param l Line in the file where the exception is thrown
     \param e Explanation concerning the throwing
     */
@@ -76,7 +82,9 @@ namespace gaol_core {
     /*!
     \brief Accessor for the file name
     
-    \return the name of the C++ file in which occurred the exception
+    \return the name of the C++ file in which occurred the exception,
+    "(unknown file)" if a null pointer was given (GAOL v5); never a null
+    pointer
     */
     const char* file() const;
     /*!

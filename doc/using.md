@@ -903,7 +903,14 @@ the error, `gaol_exception` not overriding `what()`. Where an exception has no
 explanation, `what()` is `gaol_exception`, never an empty text. A handler of
 `gaol_exception` also has `explanation()`, the same text in a `std::string`,
 and `file()` and `line()`, where GAOL threw the exception; `std::cerr << e`
-writes the three, as `file.cpp, line 12: exception thrown: <explanation>`.
+writes the three, as `file.cpp, line 12: exception thrown: <explanation>`. The
+macros of GAOL give `__FILE__`; a null file name, which only a direct call of
+the constructor can give, is the file `(unknown file)` (GAOL v5): `file()` of
+the exceptions of GAOL is never a null pointer, and `operator<<` no longer
+sends one to the stream, which the standard leaves undefined (libstdc++ puts
+it in the state bad, losing what followed). `gaol_warning()` and `gaol_error()`
+do the same for `std::cerr`, and write nothing for a null message, as a null
+explanation is none.
 
 Where memory runs out, GAOL throws the `std::bad_alloc` of C++: the reader of
 strings too, where flex ended the program with `exit(2)` when it could not

@@ -51,6 +51,7 @@
 #include <clocale>
 #include <cstdio>
 #include <functional>
+#include <iostream>
 #include <random>
 #include <type_traits>
 #include <utility>
@@ -959,6 +960,43 @@ namespace
 #endif
   }
 
+  /* gaol_warning() and gaol_error() with a null file name or a null message
+     (GAOL v5, decided on 2026-10-24): they wrote the pointer to std::cerr,
+     which the standard leaves undefined and libstdc++ puts in the state bad,
+     and the diagnostics written after it were lost. They write "(unknown
+     file)" for a null file name and nothing for a null message now, and
+     std::cerr stays good. std::cerr is redirected to a string for the time of
+     the calls. */
+  void null_pointers_in_diagnostics()
+  {
+    std::ostringstream captured;
+    std::streambuf *const saved = std::cerr.rdbuf(captured.rdbuf());
+    const char* const none = nullptr;
+    gaol_core::gaol_warning(none, 7, "careful");
+    gaol_core::gaol_error(none, 8, "wrong");
+    gaol_core::gaol_warning("a.cpp", 9, none);
+    gaol_core::gaol_error("b.cpp", 10, none);
+    gaol_core::gaol_warning(none);
+    gaol_core::gaol_error(none);
+    gaol_core::gaol_warning(none, 11, none);
+    gaol_core::gaol_warning("a.cpp", 12, "after");
+    const bool cerr_is_good = std::cerr.good();
+    std::cerr.rdbuf(saved);
+    std::cerr.clear();
+    check("gaol_warning() and gaol_error() write an unknown file for a null file name and no text for a null message, "
+          "and std::cerr stays good",
+          cerr_is_good
+          && captured.str() == "[gaol warning in (unknown file):7]: careful\n"
+                               "[gaol error in (unknown file):8]: wrong\n"
+                               "[gaol warning in a.cpp:9]: \n"
+                               "[gaol error in b.cpp:10]: \n"
+                               "[gaol warning]: \n"
+                               "[gaol error]: \n"
+                               "[gaol warning in (unknown file):11]: \n"
+                               "[gaol warning in a.cpp:12]: after\n",
+          [&] { return captured.str(); });
+  }
+
 #if GAOL_EXCEPTIONS_ENABLED
   /* What an exception of GAOL says as a std::exception (GAOL v5). Its what()
      was the one of the standard class, "std::exception" with libstdc++ and
@@ -983,6 +1021,12 @@ namespace
     const Exception without(__FILE__, line);
     const Exception with_null(__FILE__, line, no_text);
     const Exception with_nul_first(__FILE__, line, std::string("\0boom", 5));
+    // A null pointer is no file name either (GAOL v5, decided on 2026-10-24):
+    // operator<< sent it to the stream, which went bad and lost what followed
+    const char* const no_file = nullptr;
+    const Exception without_file_text(no_file, line, "boom");
+    const Exception without_file_string(no_file, line, std::string("boom"));
+    const Exception without_file(no_file, line);
 
     // Through the base class, as a handler of std::exception reads them
     const std::exception& a = with_text;
@@ -1012,6 +1056,23 @@ namespace
     check("exception: operator<< writes no explanation where there is none",
           shown_without.str() == where && shown_null.str() == where,
           [&] { return std::string(name) + ": " + shown_without.str() + " | " + shown_null.str(); });
+
+    const std::string unknown = "(unknown file), line " + std::to_string(line) + ": exception thrown";
+    std::ostringstream shown_no_file, shown_no_file_string, shown_no_file_without;
+    shown_no_file << without_file_text << " and then " << with_text;
+    shown_no_file_string << without_file_string;
+    shown_no_file_without << without_file;
+    check("exception: a null file name is \"(unknown file)\", never a null pointer",
+          without_file_text.file() != nullptr && without_file_string.file() != nullptr && without_file.file() != nullptr
+          && std::string(without_file_text.file()) == "(unknown file)"
+          && std::string(without_file_string.file()) == "(unknown file)"
+          && std::string(without_file.file()) == "(unknown file)",
+          [&] { return std::string(name); });
+    check("exception: operator<< writes an unknown file for a null file name, and the stream stays good for what follows",
+          shown_no_file.good() && shown_no_file.str() == unknown + ": boom and then " + where + ": boom"
+          && shown_no_file_string.str() == unknown + ": boom" && shown_no_file_without.str() == unknown,
+          [&] { return std::string(name) + ": " + shown_no_file.str() + " | " + shown_no_file_string.str()
+                       + " | " + shown_no_file_without.str(); });
   }
 
   /* f, which has to throw an exception of GAOL, caught as a std::exception
@@ -2030,6 +2091,7 @@ int main()
   step("wrong_strings");     wrong_strings();
   step("null_pointer");      null_pointer();
   step("null_text");         null_text();
+  step("null_diagnostics");  null_pointers_in_diagnostics();
   step("reversed_bounds");   reversed_bounds();
   step("degenerate_bounds"); degenerate_bounds();
   step("integer_exponents"); integer_exponents();

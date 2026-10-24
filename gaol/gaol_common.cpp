@@ -185,24 +185,26 @@ namespace gaol_core {
     the_null_expr = 0;
   }
   
+  // A null file name is "(unknown file)", and a null message an empty text
+  // (gaol_detail::known_file() and known_text() of gaol/gaol_common.h; GAOL v5)
   void gaol_warning(const char *file, int line, const char *warn)
   {
-    std::cerr << "[gaol warning in " << file << ':' << line << "]: " << warn << std::endl;
+    std::cerr << "[gaol warning in " << ::gaol_detail::known_file(file) << ':' << line << "]: " << ::gaol_detail::known_text(warn) << std::endl;
   }
   
   void gaol_warning(const char *warn)
   {
-    std::cerr << "[gaol warning]: " << warn << std::endl;
+    std::cerr << "[gaol warning]: " << ::gaol_detail::known_text(warn) << std::endl;
   }
   
   void gaol_error(const char *file, int line, const char *err)
   {
-    std::cerr << "[gaol error in " << file << ':' << line << "]: " << err << std::endl;
+    std::cerr << "[gaol error in " << ::gaol_detail::known_file(file) << ':' << line << "]: " << ::gaol_detail::known_text(err) << std::endl;
   }
   
   void gaol_error(const char *err)
   {
-    std::cerr << "[gaol error]: " << err << std::endl;
+    std::cerr << "[gaol error]: " << ::gaol_detail::known_text(err) << std::endl;
   }
   
   /* The larger and the smaller of two doubles, +0 and -0 for two zeros of

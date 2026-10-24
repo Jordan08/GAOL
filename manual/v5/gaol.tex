@@ -6136,7 +6136,9 @@ The \code{gaol\_error()} function is defined as follows:
 \begin{deffun}{void}{gaol\_error}{(const char *\var{file}, int \var{line},
 const char *\var{err})}
 Displays a message on the standard error output. The ternary version should be
-called with the \code{GAOL\_FILE\_POS} macro for the first two parameters.
+called with the \code{GAOL\_FILE\_POS} macro for the first two parameters. A null
+\var{file} is written \code{(unknown file)}, and a null \var{err} is an empty
+text.\newinvfive
 \end{deffun}
 
 The \code{GAOL\_FILE\_POS} macro is described in the next section.
@@ -6182,14 +6184,20 @@ consequence, the constructors for \code{gaol\_exception} are as follows:
 \begin{defmethod}{gaol\_exception}{}{gaol\_exception}{(const char* \var{f}, unsigned \var{l}, \\\hbox{}\hfill const std::string\& \var{e})}
 Constructs a \code{gaol\_exception} being thrown from file \var{f} at
 line \var{l}. The second and third forms permit adding some explanatory
-string \var{e}. A null pointer \var{e} is no explanation.\newinvfive
+string \var{e}. A null pointer \var{e} is no explanation.\newinvfive{} A null
+pointer \var{f} is no file name: the exception reports the file
+\code{(unknown file)}, so that \code{file()} is not a null pointer and the
+``\code{<{}<}'' operator does not send one to a stream, which the C++
+standard leaves undefined (libstdc++ puts it in the state bad).\newinvfive
 \end{defmethod}
 
 \noindent
 The class offers the following accessors:
 
 \begin{defmethod}{gaol\_exception}{const char*}{file}{(void) const}
-  Return the name of the file from where the exception was thrown.
+  Return the name of the file from where the exception was thrown,
+  \code{(unknown file)} for a null pointer given to the constructor, never a
+  null pointer.\newinvfive
 \end{defmethod}
 
 \begin{defmethod}{gaol\_exception}{unsigned int}{line}{(void) const}
@@ -6292,6 +6300,8 @@ The methods of the class are inherited from \code{gaol\_exception} (\pxref{sec:g
 \begin{deffun}{void}{gaol\_warning}{(const char *\var{file}, int \var{line}, const char *\var{warn})}
 Prints the message \var{warn} on the standard error output. The second form
 should be called with the \code{GAOL\_FILE\_POS} macro for the first two parameters.
+A null \var{file} is written \code{(unknown file)}, and a null \var{warn} is an
+empty text.\newinvfive
 \end{deffun}
 
 \chapter{Debugging facilities}\label{sec:debugging-facilities}
