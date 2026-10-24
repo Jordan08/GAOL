@@ -1556,6 +1556,14 @@ Linux) instead of letting the operation give its bounds.\newinvfive
   \code{log(interval(0,~1))}, which is \itv{-\infty}{0}, raises the
   divide-by-zero exception; \code{interval(1e308)*10}, which is
   \itv{\text{DBL\_MAX}}{+\infty}, raises the overflow exception.
+\item Reading a number above the largest double (\code{1e400}, \code{1.8e308},
+  \code{0x1p1024}) raises no overflow exception: the reader gave it to
+  \code{strtod()}, which computes $+\infty$ and raises it, so that
+  \code{1e400*0}, which is \itv{0}{0}, raised the flag that stands for an
+  infinite bound, and a program that had enabled the exception died while it
+  read. The interval read is \itv{\text{DBL\_MAX}}{+\infty}; an operation on
+  it raises the flag where its own result overflows, as for any other
+  interval.\newinvfive
 \item Almost every operation raises the inexact exception: most bounds are
   rounded results, and where GAOL checks the rounding direction with an
   addition, $1+2^{-60}$ or $1+(2^{-1060}+0)$, whose result is inexact
@@ -4964,6 +4972,12 @@ that evaluate to the same double even for different rounding directions: an
 \code{"<0.1, 0.1>"}, a number that is not a double being no bound of
 \code{<a, b>}.\newinvfive{} \code{"<0.1, 0x1.9999999999999p-4>"}, the double
 just below $0.1$, was read as the point $[$\code{0x1.9999999999999p-4}$]$.
+A bound that is computed is a double when its value is a point, as
+\code{0.5}, \code{(0.25+0.25)} and \code{[0.5]} are; \code{"<[0.1],
+0x1.9999999999999p-4>"} and \code{"<0x1.5555555555556p-2, 1/3>"}, whose first
+or second bound has the two doubles around the number for its value, throw
+\code{input\_format\_error} too, where they were read as the point of the
+other bound.\newinvfive{}
 The two doubles are compared by their bits, $-0$ and $+0$
 being the same bound, so that the mode of the processor that reads the
 subnormal numbers as zero (denormals-are-zero) changes nothing:

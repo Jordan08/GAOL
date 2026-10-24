@@ -103,7 +103,9 @@ namespace gaol_core {
       bounds that are computed (1/3, sqrt(2)...) are not told apart: the
       literal is then the interval from the lower bound of l to the upper
       bound of u. <a, b> is [a, b], whose bounds have to be the same double:
-      a number that is not a double is refused, <0.1, 0.1> as well.
+      a number that is not a double is refused, <0.1, 0.1> as well, and so
+      is a bound that is computed and whose value is not a point, as
+      <[0.1], 0x1.9999999999999p-4> (GAOL v5).
     - The functions are those of GAOL, or those of IEEE 1788-2015 with
       parsing_names::ieee1788, with their arguments.
 
@@ -118,8 +120,8 @@ namespace gaol_core {
     leaving out as it was (GAOL v5).
 
     \note A call with a wrong number of arguments, an uncertain number as a
-    bound and two different bounds, or a bound that is no double, in <a, b>
-    throw input_format_error, and a
+    bound and two different bounds, or a bound that is no double (or whose
+    value is not a point), in <a, b> throw input_format_error, and a
     second argument of nth_root, pown or rootn that is no integer
     invalid_action_error. That argument is an integer of any size that a
     double holds, beyond the ints too (GAOL v5): nth_root(8,3000000000) is
