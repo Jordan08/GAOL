@@ -1640,10 +1640,19 @@ le travail qu'elles décident est fait le même soir et ouvert en pull requests
   change, aux deux familles, mesuré par le banc A/B ; PG.4 le seuil de la liste
   de `compare-performance.py` : 1,5 ; PJ.4 le second paragraphe de l'annonce à
   Frédéric Goualard : le garder tel quel. La première tâche à traiter est PA.
+- **Quatre décisions sur les pull requests #180 à #182** (24 octobre, après leur
+  ouverture) : `tests/numbers.cpp` garde son contournement du défaut de GCC 12.2
+  sur aarch64 (les appels de `textToInterval()` construisent leur `std::string`,
+  #180) ; le test de l'exposant de 512 Mio est retiré, la correction `long long`
+  reste (#182) ; `FE_UNDERFLOW` de la lecture d'un nombre sous le plus petit
+  double normal est corrigé dans #182, et un message nul de `gaol_warning()` et
+  de `gaol_error()` dans #181 ; on attend les fusions du mainteneur pour mettre
+  à jour les registres.
 - **Les registres** : ménage des TODO. #49 et #142 sont fermées,
   `TODO_mistral.md` est supprimé, `TODO.md` est vidé puis réécrit avec le reste
-  à faire en tâches PA à PJ ; les trois nouveaux registres sont #177 (ce
-  fichier, `TODO_DONE.md`), #178 (`TODO_AFTER.md`) et #179 (`TODO.md`).
+  à faire en tâches PA à PJ ; les trois nouveaux registres sont #{N_DONE} (ce
+  fichier, `TODO_DONE.md`), #{N_AFTER} (`TODO_AFTER.md`) et #{N_TODO}
+  (`TODO.md`).
 - **Les issues restées ouvertes** : #107 (corrigé par #147) et #159 (rapport
   d'état périmé) fermées ; #67 reste ouverte (reportée indéfiniment), les issues
   « À communiquer… » ne sont pas touchées.
