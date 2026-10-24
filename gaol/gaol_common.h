@@ -155,7 +155,7 @@ namespace gaol_core {
   \brief Reports a benign error
   \note this function only prints a message to the standard error stream.
   With a file name (the second form), a null pointer there is written
-  "(unknown file)" (GAOL v5).
+  "(unknown file)", and a null message is an empty text (GAOL v5).
   */
   extern GAOL_PUBLIC void gaol_warning(const char *warn);
   extern GAOL_PUBLIC void gaol_warning(const char *file, int line, const char *warn);
@@ -166,7 +166,7 @@ namespace gaol_core {
   \note this function only prints a message to the standard error stream.
   It is up to the user to decide how and when to stop the program.
   With a file name (the second form), a null pointer there is written
-  "(unknown file)" (GAOL v5).
+  "(unknown file)", and a null message is an empty text (GAOL v5).
   */
   extern GAOL_PUBLIC void gaol_error(const char *err);
   extern GAOL_PUBLIC void gaol_error(const char *file, int line, const char *err);

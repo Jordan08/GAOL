@@ -195,26 +195,35 @@ namespace gaol_core {
     {
       return (file != nullptr) ? file : "(unknown file)";
     }
+
+    /*
+      A null pointer is no message either (GAOL v5, decided on 2026-10-24): an
+      empty text, as a null explanation is none for gaol_exception
+    */
+    const char* known_text(const char *text)
+    {
+      return (text != nullptr) ? text : "";
+    }
   }
 
   void gaol_warning(const char *file, int line, const char *warn)
   {
-    std::cerr << "[gaol warning in " << known_file(file) << ':' << line << "]: " << warn << std::endl;
+    std::cerr << "[gaol warning in " << known_file(file) << ':' << line << "]: " << known_text(warn) << std::endl;
   }
   
   void gaol_warning(const char *warn)
   {
-    std::cerr << "[gaol warning]: " << warn << std::endl;
+    std::cerr << "[gaol warning]: " << known_text(warn) << std::endl;
   }
   
   void gaol_error(const char *file, int line, const char *err)
   {
-    std::cerr << "[gaol error in " << known_file(file) << ':' << line << "]: " << err << std::endl;
+    std::cerr << "[gaol error in " << known_file(file) << ':' << line << "]: " << known_text(err) << std::endl;
   }
   
   void gaol_error(const char *err)
   {
-    std::cerr << "[gaol error]: " << err << std::endl;
+    std::cerr << "[gaol error]: " << known_text(err) << std::endl;
   }
   
   /* The larger and the smaller of two doubles, +0 and -0 for two zeros of
