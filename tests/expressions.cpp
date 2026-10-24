@@ -48,6 +48,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <climits>
 #include <clocale>
 #include <cstdio>
 #include <functional>
@@ -726,7 +727,15 @@ namespace
      the double just below 0.1, was the point interval [0x1.9999999999999p-4]:
      the lower bound of the interval of 0.1 is that double. The bounds are
      written as the doubles around 0.1, around the largest double and around 0,
-     and as numbers behind signs and parentheses. */
+     and as numbers behind signs and parentheses.
+     A bound that is computed and is no double is refused too (GAOL v5,
+     decided on 2026-10-24): [0.1], 0.1 + 0, 1/3 and their kind are the
+     interval of the two doubles around the number, and a bound given as one
+     of them, the other bound being the double just below or above, was read
+     as that double (<[0.1], 0x1.9999999999999p-4> was [0x1.9999999999999p-4],
+     the lower bound of [0.1]; <0x1.5555555555556p-2, 1/3> was the point
+     0x1.5555555555556p-2, the upper bound of 1/3). A bound is a double when
+     its value is a point, as 0.5, (0.25+0.25), 2*0.25 and [0.5] are. */
   void degenerate_bounds()
   {
     const char *const wrong[] = {
@@ -744,6 +753,14 @@ namespace
       "<0x1.fffffffffffffp+1023, 1e400>",
       "<1e-400, 0>",                         // below the least one
       "<0, 1e-400>",
+      "<[0.1], 0x1.9999999999999p-4>",      // a bound that is the interval of the two doubles around 0.1
+      "<0x1.999999999999ap-4, [0.1]>",
+      "<0.1+0, 0x1.9999999999999p-4>",      // computed: [0x1.9999999999999p-4, 0x1.999999999999ap-4]
+      "<0x1.999999999999ap-4, 0.1+0>",
+      "<1/3, 0x1.5555555555555p-2>",        // the lower bound of 1/3
+      "<0x1.5555555555556p-2, 1/3>",        // the upper bound of 1/3
+      "<-[0.1], -0x1.999999999999ap-4>",
+      "<[0.1], [0.1]>",
     };
     for (const char *text : wrong) {
       refused(text);
@@ -763,10 +780,51 @@ namespace
             gaol_ieee1788::textToInterval(text).is_empty(), [&] { return text; });
     }
     same("<0.5, 0.5>", interval(0.5));
+    same("<[0.5], 0.5>", interval(0.5));      // a point is a double, however it is written
+    same("<0.5, [0.5]>", interval(0.5));
+    same("<2*0.25, 0.5>", interval(0.5));
+    same("<[0.5], [0.5]>", interval(0.5));
     same("<0x1.999999999999ap-4, 0x1.999999999999ap-4>", interval(0x1.999999999999ap-4));
     same("<(0.25+0.25), 0.5>", interval(0.5));
     same("<-0x1.999999999999ap-4, -(0x1.999999999999ap-4)>", interval(-0x1.999999999999ap-4));
     same("<0x1.fffffffffffffp+1023, 0x1.fffffffffffffp+1023>", interval(0x1.fffffffffffffp+1023));
+  }
+
+  /* The ceiling of the exponent of a number (GAOL v5, point 85 of TODO.md): the
+     reader keeps an exponent at 4L + 2000, L being the length of the text,
+     beyond which the number is above the largest double or below the least
+     one whatever its digits, and held it in a long: a text of more than
+     536870411 characters, where that is more than 2^31 - 1, put an overflowing
+     long in the exponent where a long has 32 bits (Windows, the 32-bit
+     processors). "1e" followed by 536.8 million 9 was read [0, 2^-1074]
+     instead of [DBL_MAX, +oo], the cast of 4L + 2000 giving a negative
+     exponent. The text is 512 MiB, read through two more copies of it: the
+     check runs only where a long has 32 bits, as the error is only there, and
+     it says so where there is not enough memory. */
+  void exponent_of_a_huge_text()
+  {
+    // A preprocessor test, not a constant condition (C4127 of Visual C++)
+#if LONG_MAX > 0x7fffffffL
+    std::printf("A long has more than 32 bits here: the exponent of a text of 512 MiB is not checked\n");
+#else
+    const std::size_t length = 536870500; // More than 536870411 and less than 2^29, where the reader gives up
+    interval x;
+    bool memory = true;
+    try {
+      std::string text("1e");
+      text.append(length - 2, '9');
+      x = textToInterval(text);
+    } catch (const std::bad_alloc&) {
+      memory = false;
+    }
+    if (!memory) {
+      std::printf("Not enough memory to read a text of 512 MiB: the exponent of a huge text is not checked\n");
+      return;
+    }
+    check("a number of 536870500 characters, \"1e\" and 9s, is above the largest double",
+          x.left() == (std::numeric_limits<double>::max)() && x.right() == std::numeric_limits<double>::infinity(),
+          [&] { return hex(x); });
+#endif
   }
 
   /* The integer second argument of nth_root(), pown() and rootn() beyond the
@@ -1953,6 +2011,7 @@ int main()
   step("null_pointer");      null_pointer();
   step("reversed_bounds");   reversed_bounds();
   step("degenerate_bounds"); degenerate_bounds();
+  step("exponent_of_a_huge_text"); exponent_of_a_huge_text();
   step("integer_exponents"); integer_exponents();
 #if GAOL_EXCEPTIONS_ENABLED
   step("exception_messages"); exception_messages();

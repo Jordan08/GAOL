@@ -1544,6 +1544,37 @@ namespace
   };
 
   /*
+    The reading of a number above the largest double (GAOL v5, point 79 of
+    TODO.md): the reader gave the text of every number to strtod(), which
+    computes +oo for these and raises the overflow exception, so that 1e400 * 0,
+    which is [0], raised the flag that stands for an infinite bound of the
+    interval, and a program that had enabled the exception died while it
+    read. The reader now gives it only the numbers that cannot be above the
+    largest double (less than 10^308, or than 2^1023 in the other bases), and
+    places the others against the doubles by itself, from the largest one.
+    The bounds are the tightest ones: the largest double and +oo. The
+    uncertain form has its own path to the numbers.
+  */
+  const double dbl_max = (std::numeric_limits<double>::max)();
+  const EmptyOperand readings_above_the_largest_double[] = {
+    { "1e400", [] { return bounds_are(textToInterval("1e400"), dbl_max, GAOL_INFINITY); } },
+    { "-1e400", [] { return bounds_are(textToInterval("-1e400"), -GAOL_INFINITY, -dbl_max); } },
+    { "1.8e308", [] { return bounds_are(textToInterval("1.8e308"), dbl_max, GAOL_INFINITY); } },
+    { "0x1p1024", [] { return bounds_are(textToInterval("0x1p1024"), dbl_max, GAOL_INFINITY); } },
+    { "0x1.8p1024", [] { return bounds_are(textToInterval("0x1.8p1024"), dbl_max, GAOL_INFINITY); } },
+    { "9?e308", [] { return bounds_are(textToInterval("9?e308"), dbl_max, GAOL_INFINITY); } },
+    { "gaol_ieee1788::textToInterval(1e400)", [] { return bounds_are(gaol_ieee1788::textToInterval("1e400"), dbl_max, GAOL_INFINITY); } },
+    { "1e400*0", [] { return bounds_are(textToInterval("1e400*0"), 0.0, 0.0); } },
+    { "-1e400*0", [] { return bounds_are(textToInterval("-1e400*0"), 0.0, 0.0); } },
+    { "1.8e308*0", [] { return bounds_are(textToInterval("1.8e308*0"), 0.0, 0.0); } },
+    { "0x1p1024*0", [] { return bounds_are(textToInterval("0x1p1024*0"), 0.0, 0.0); } },
+    { "9?e308*0", [] { return bounds_are(textToInterval("9?e308*0"), 0.0, 0.0); } },
+    // The largest double itself, and numbers just below it, which strtod() does not overflow on
+    { "0x1.fffffffffffffp1023", [] { return bounds_are(textToInterval("0x1.fffffffffffffp1023"), dbl_max, dbl_max); } },
+    { "1.7e308", [] { return textToInterval("1.7e308").set_contains(1.7e308); } },
+  };
+
+  /*
     Integer powers at the ends of the doubles (GAOL v5, points 8, 72, 73 and
     74 of TODO.md): an infinite bound, a power beyond the largest double or
     below the least subnormal, 0 for n < 0, and the exponents beyond the ints.
@@ -3650,6 +3681,14 @@ int main()
           [&] { return std::string(e.name); });
     check("a power next to the largest double: the expected result", right, [&] { return std::string(e.name); });
   }
+  for (const EmptyOperand& e : readings_above_the_largest_double) {
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const volatile bool right = e.run();
+    const int raised = std::fetestexcept(FE_OVERFLOW);
+    check("reading a number above the largest double raises no overflow flag", raised == 0,
+          [&] { return std::string(e.name); });
+    check("reading a number above the largest double: the tightest enclosure", right, [&] { return std::string(e.name); });
+  }
   for (const EmptyOperand& e : integer_powers_at_the_ends) {
     std::feclearexcept(FE_ALL_EXCEPT);
     const volatile bool right = e.run();
@@ -3851,6 +3890,11 @@ int main()
       const Outcome oe = run_with_exceptions_enabled(FE_OVERFLOW, [&] { return midpoints_of(huge[i]) == huge_midpoints[i]; });
       check("the midpoints of an interval with a huge bound, FE_OVERFLOW enabled", oe == returned_true,
             [&] { return std::string(huge[i].name) + ": " + outcome_text(oe); });
+    }
+    for (const EmptyOperand& e : readings_above_the_largest_double) {
+      const Outcome oe = run_with_exceptions_enabled(FE_OVERFLOW, e.run);
+      check("reading a number above the largest double, FE_OVERFLOW enabled", oe == returned_true,
+            [&] { return std::string(e.name) + ": " + outcome_text(oe); });
     }
     const Outcome of = run_with_exceptions_enabled(FE_OVERFLOW, floor_rel_at_dbl_max_is_right);
     check("floor_rel() of a Z ending at DBL_MAX, without an infinite bound, FE_OVERFLOW enabled", of == returned_true,
