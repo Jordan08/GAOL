@@ -1405,6 +1405,15 @@ point Q), which `numbers` checks there too.
   `gaol_half_pi_dn` and `gaol_half_pi_up`. The test did not compile
   while `gaol` took `gaol_core` whole. A call `sin(x)` on an interval still
   finds the function of `gaol_core` by argument-dependent lookup.
+  `test_kernels_are_not_in_gaol_core` checks, with the SSE2 and NEON intervals,
+  that the kernels the operators call (`add_bounds()`, `sub_bounds()`,
+  `mul_bounds()`, `div_bounds()` and `sqr_bounds()`) are in `gaol_detail`, with
+  the other helpers of the library, and not in `gaol_core` (GAOL v5, point AP):
+  with `using namespace gaol_core`, a call finds the function of the same name
+  and type that the program declares, where the kernels in `gaol_core` made it
+  ambiguous and the program did not compile; and that the kernels in
+  `gaol_detail` give the bounds of `x + y`, `x - y`, `x * y`, `x / y` and
+  `sqr(x)`. The FPU intervals have no such kernels, and nothing is checked.
   `test_heap_alignment` checks that the heap holds a type as aligned as an
   interval, which holds no vector (a `char` aligned on `alignof(interval)`,
   16 bytes with the SSE2 and NEON intervals), aligned in `std::allocator`,
