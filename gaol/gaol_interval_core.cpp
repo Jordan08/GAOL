@@ -40,9 +40,13 @@
 #include <sstream>
 #include <cmath>
 #include <cfenv>
-// Whether the doubles are computed by SSE instructions, whose control register
-// MXCSR pow_up_without_overflow_exception() writes
-#if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+// Whether pow_up_without_overflow_exception() writes the control register of
+// the SSE instructions, MXCSR, which compute the doubles on x86 (not with
+// Visual C++ for 32-bit x86, where its Release build left the flag of the
+// masked section raised: it takes the functions of <cfenv>, which that C
+// library does right)
+#if (defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)) \
+    && !(defined(_MSC_VER) && !defined(__clang__) && defined(_M_IX86))
 #  include <xmmintrin.h>
 #  define GAOL_POW_MASKS_MXCSR 1
 #else
