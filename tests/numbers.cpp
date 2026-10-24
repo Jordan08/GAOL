@@ -38,6 +38,16 @@
 // --param max-inline-insns-single=20. The pragma turns off the inlining of
 // functions that are not declared inline for this file, on that compiler and
 // that architecture only.
+//
+// The same file made GCC 12.2 on aarch64 read `precisions` of decimal_output()
+// wrong again (0 and 1074790400, the high word of a double, for 1 and 2), and
+// the test hang, when the calls of textToInterval() with a C string chose the
+// overloads of a C string (GAOL v5, point 128 of TODO.md) rather than build a
+// std::string at the call: the code around them changed, and the inlining with
+// it. The calls below therefore build the std::string themselves, as they did,
+// so that the code of this file is the one that passed. Checked with the cross
+// compiler of Debian 12 (g++-aarch64-linux-gnu 12.2.0) and qemu-user: the test
+// with the overloads called did not end in 280 s, the one below ends in 68 s.
 #if defined(__GNUC__) && !defined(__clang__) && __GNUC__ == 12 && defined(__aarch64__)
 #  pragma GCC optimize("no-inline-functions")
 #endif
@@ -194,17 +204,17 @@ namespace
       { "[0.3, 1/3]", three_tenths, third },
     };
     for (const auto& e : expressions) {
-      const interval r = textToInterval(e.s);
+      const interval r = textToInterval(std::string(e.s));
       check("textToInterval(expression): the tightest enclosure", is_tightest_enclosure(r, e.lo, e.hi),
             [&] { return std::string("\"") + e.s + "\": " + hex(r); });
     }
     // Bounds in the wrong order: the empty set, as interval(2, 1) is
-    check("textToInterval(\"[1/3, 0.3]\"): empty", textToInterval("[1/3, 0.3]").is_empty(),
-          [&] { return hex(textToInterval("[1/3, 0.3]")); });
-    const interval two = textToInterval(".1", "0.3");
+    check("textToInterval(\"[1/3, 0.3]\"): empty", textToInterval(std::string("[1/3, 0.3]")).is_empty(),
+          [&] { return hex(textToInterval(std::string("[1/3, 0.3]"))); });
+    const interval two = textToInterval(std::string(".1"), std::string("0.3"));
     check("textToInterval(number, number): the tightest enclosure", is_tightest_enclosure(two, tenth, three_tenths),
           [&] { return hex(two); });
-    const interval sum = textToInterval("0.1+0.2");
+    const interval sum = textToInterval(std::string("0.1+0.2"));
     check("textToInterval(\"0.1+0.2\") encloses 3/10", is_enclosure(sum, three_tenths), [&] { return hex(sum); });
   }
 
@@ -418,7 +428,7 @@ namespace
           read = gaol_ieee1788::textToInterval(t);
 #if GAOL_EXCEPTIONS_ENABLED
           try {
-            const interval x = textToInterval(t);
+            const interval x = textToInterval(std::string(t));
             (void)x;
           } catch (const gaol_core::input_format_error&) {
             threw = true;
@@ -584,7 +594,7 @@ namespace
       { "interval::pi()", interval::pi(), pi_below, pi_above },
       { "interval::two_pi()", interval::two_pi(), pi_below*2.0, pi_above*2.0 },
       { "interval::half_pi()", interval::half_pi(), pi_below/2.0, pi_above/2.0 },
-      { "textToInterval(\"pi\")", textToInterval("pi"), pi_below, pi_above },
+      { "textToInterval(\"pi\")", textToInterval(std::string("pi")), pi_below, pi_above },
       { "interval::zero()", interval::zero(), 0.0, 0.0 },
       { "interval::one()", interval::one(), 1.0, 1.0 },
       { "interval::minus_one_plus_one()", interval::minus_one_plus_one(), -1.0, 1.0 },
@@ -592,7 +602,7 @@ namespace
       { "interval::universe()", interval::universe(), -inf, inf },
       { "interval::positive()", interval::positive(), 0.0, inf },
       { "interval::negative()", interval::negative(), -inf, 0.0 },
-      { "textToInterval(\"[dmax, inf]\")", textToInterval("[dmax, inf]"), std::numeric_limits<double>::max(), inf },
+      { "textToInterval(\"[dmax, inf]\")", textToInterval(std::string("[dmax, inf]")), std::numeric_limits<double>::max(), inf },
     };
     for (const auto& c : constants) {
       check(std::string(c.name) + ": the tightest enclosure", c.r.left() == c.lo && c.r.right() == c.hi,
@@ -691,7 +701,7 @@ namespace
       { "[0x.2P0, 1/3]", exact(0.125), third },
     };
     for (const auto& c : tightest) {
-      const interval r = evaluate(std::string("textToInterval(\"") + c.s + "\")", [&] { return textToInterval(c.s); },
+      const interval r = evaluate(std::string("textToInterval(\"") + c.s + "\")", [&] { return textToInterval(std::string(c.s)); },
                                   [] { return std::string(); });
       check("IEEE 1788 literals: the tightest enclosure", !r.is_empty() && is_tightest_enclosure(r, c.lo, c.hi),
             [&] { return std::string("\"") + c.s + "\": " + hex(r); });
@@ -733,7 +743,7 @@ namespace
       { "[0x2p0, 1/1]", 0., 0., true },
     };
     for (const auto& c : exactly) {
-      const interval r = evaluate(std::string("textToInterval(\"") + c.s + "\")", [&] { return textToInterval(c.s); },
+      const interval r = evaluate(std::string("textToInterval(\"") + c.s + "\")", [&] { return textToInterval(std::string(c.s)); },
                                   [] { return std::string(); });
       check("IEEE 1788 literals: exact", c.empty ? r.is_empty() : (!r.is_empty() && r.left() == c.lo && r.right() == c.hi),
             [&] { return std::string("\"") + c.s + "\": " + hex(r); });
@@ -751,7 +761,7 @@ namespace
     for (const char *s : invalid) {
       bool threw = false;
       try {
-        const interval x = textToInterval(s);
+        const interval x = textToInterval(std::string(s));
         (void)x;
       } catch (gaol_core::input_format_error&) {
         threw = true;
@@ -874,7 +884,7 @@ namespace
     for (const char *s : invalid) {
       bool threw = false;
       try {
-        const interval x = textToInterval(s);
+        const interval x = textToInterval(std::string(s));
         (void)x;
       } catch (gaol_core::input_format_error&) {
         threw = true;
@@ -931,10 +941,10 @@ namespace
                                   "[cosh(1), sinh(2)+tanh(1)]", "<1+1, 2>", "[1,]+[,2]", "[-inf, log(2)]",
                                   "1+pow(2, atan2(1,1))", "(1+2)*pow(1+2, atan2(1,1)+1)-3" };
     for (const char *s : valid) {
-      const interval first = textToInterval(s);
+      const interval first = textToInterval(std::string(s));
       bool same = true;
       for (int i = 0; i < 100; ++i) {
-        const interval r = textToInterval(s);
+        const interval r = textToInterval(std::string(s));
         same = same && r.left() == first.left() && r.right() == first.right();
       }
       check("textToInterval(expression) read again: the same interval", same, [&] { return std::string(s); });
@@ -949,7 +959,7 @@ namespace
       for (const char *s : invalid) {
         bool threw = false;
         try {
-          const interval x = textToInterval(s);
+          const interval x = textToInterval(std::string(s));
           (void)x;
         } catch (...) {
           threw = true;
@@ -960,14 +970,14 @@ namespace
 #endif
     // atan2(y, x) in expressions: 4 atan2(1, 1) is the tightest enclosure of
     // pi, and atan2(0, 0), which has no value, is empty
-    const interval four_angles = textToInterval("4*atan2(1, 1)"), none = textToInterval("atan2(0, 0)"),
-      cut = textToInterval("atan2([-1, 1], -1)");
+    const interval four_angles = textToInterval(std::string("4*atan2(1, 1)")), none = textToInterval(std::string("atan2(0, 0)")),
+      cut = textToInterval(std::string("atan2([-1, 1], -1)"));
     check("textToInterval(\"4*atan2(1, 1)\"): the tightest enclosure of pi", four_angles.set_eq(interval::pi()),
           [&] { return hex(four_angles); });
     check("textToInterval(\"atan2(0, 0)\"): empty", none.is_empty(), [&] { return hex(none); });
     check("textToInterval(\"atan2([-1, 1], -1)\"): [-pi, pi]", cut.left() == -interval::pi().right()
           && cut.right() == interval::pi().right(), [&] { return hex(cut); });
-    const interval r = textToInterval("1+2");
+    const interval r = textToInterval(std::string("1+2"));
     check("textToInterval(expression) after expressions not computed", r.left() == 3.0 && r.right() == 3.0,
           [&] { return hex(r); });
   }
@@ -1258,7 +1268,7 @@ namespace
     };
     for (const auto& a : angles) {
       const std::string name = "textToInterval() of the angles GAOL wrote for a point interval";
-      const interval back = evaluate(name, [&] { return textToInterval(a.text); }, [&] { return std::string(a.text); });
+      const interval back = evaluate(name, [&] { return textToInterval(std::string(a.text)); }, [&] { return std::string(a.text); });
       check(name + ": the point", back.left() == a.x && back.right() == a.x,
             [&] { return std::string(a.text) + " read " + hex(back); });
     }
@@ -2373,7 +2383,7 @@ namespace
     for (const char *s : { "0.1", "1.5", "2.5e-3", "123.456", "0.1000000000000000055511151231257827021181583404541015625" }) {
       expect_number("textToInterval(number) under a locale writing a decimal comma", s);
     }
-    const interval three = textToInterval("0x1.8p1");
+    const interval three = textToInterval(std::string("0x1.8p1"));
     check("textToInterval(\"0x1.8p1\") under a locale writing a decimal comma", three.left() == 3.0 && three.right() == 3.0,
           [&] { return hex(three); });
     for (double x : { 0.1, std::numeric_limits<double>::denorm_min(), -std::numeric_limits<double>::max() }) {

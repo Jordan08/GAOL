@@ -27,6 +27,7 @@
 #include <string>
 
 #include "gaol/gaol_config.h"
+#include "gaol/gaol_common.h"
 #include "gaol/gaol_exceptions.h"
 #include "gaol/gaol_ieee1788.h"
 #include "gaol/parser/gaol_parser.h"
@@ -57,6 +58,24 @@ namespace gaol_ieee1788 {
     interval x;
     return ::gaol_core::gaol_parse_string(s.data(), s.size(), x, ::gaol_core::parsing_names::ieee1788) ? x : interval::emptyset();
 #endif
+  }
+
+  /*
+    textToInterval(s) of a C string (GAOL v5, point 128 of TODO.md): a null
+    pointer is no string, so no literal, and the standard gives no answer for
+    it. It is an error of GAOL, as for gaol::textToInterval(): input_format_error
+    is thrown, or, without exceptions, a message is printed and abort() called.
+    It is not the empty set that a string which is no literal gives: the
+    overload of std::string would build a std::string from the null pointer,
+    which the standard leaves undefined (libstdc++ throws std::logic_error).
+  */
+  interval textToInterval(const char* s)
+  {
+    if (s == nullptr) {
+      GAOL_ERRNO = -1;
+      gaol_ERROR(input_format_error, "Null pointer in interval initialization: a null pointer is no string");
+    }
+    return textToInterval(std::string(s));
   }
 
   /*
