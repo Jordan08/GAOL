@@ -205,8 +205,10 @@ originaux au commit `16a2f60`.
 
 ## En cours
 
-Aucune pull request ouverte. Le mainteneur a fusionné #165 à #167 et #169 à
-#174 les 23 et 24 octobre.
+Une pull request ouverte : **#176**, qui retire du job Cygwin l'étape d'essai
+des générateurs de CPack (décidé le 24 octobre ; sans relecture indépendante,
+quinze lignes d'une étape informative). Le mainteneur a fusionné #165 à #167 et
+#169 à #174 les 23 et 24 octobre.
 
 ## À corriger avant la version
 
