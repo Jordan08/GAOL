@@ -363,8 +363,9 @@ namespace
                       interval(0x1.0000000000002p+0)));
   }
 
-  // [+oo] and [-oo], which no constructor makes, built from a register of the
-  // SSE2 or the NEON intervals (the FPU intervals make none): they hold no
+  // [+oo] and [-oo], which no constructor makes but the one of a register
+  // without a check (gaol_detail::unchecked_bounds), built from a register of
+  // the SSE2 or the NEON intervals (the FPU intervals make none): they hold no
   // real number, so that pow_rel() and pow_exponent_rel() are empty for one
   // as any argument, as gaol_ieee1788::pow(x, y) is for an exponent: as the
   // power, the exponent or the base, which they test, and as the x or y to

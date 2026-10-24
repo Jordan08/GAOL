@@ -731,10 +731,10 @@ namespace
 #if defined(GAOL_USING_SSE2_INSTRUCTIONS) && GAOL_USING_SSE2_INSTRUCTIONS
     // [+oo] and [-oo], which no constructor makes but the one of GAOL without
     // a check, built from an SSE2 register, the lower bound stored negated:
-    // the guard of pow(x, y) has to hold when GAOL's own code makes them, pow(x, y) is empty,
-    // such an exponent holding no real number, where a pow() taking it for an
-    // integer beyond the ints would give a power of 4 (GAOL v5: TODO.md B.1 took
-    // the test of these exponents for one that is never true)
+    // pow(x, y) has to be empty for one as the exponent, such an exponent
+    // holding no real number, where a pow() taking it for an integer beyond the
+    // ints would give a power of 4 (GAOL v5: TODO.md B.1 took the test of these
+    // exponents for one that is never true)
     for (const double d : { inf, -inf }) {
       const interval J(_mm_set_pd(d, -d), gaol_detail::unchecked_bounds);
       const interval r = pow(interval(4.), J);
@@ -779,7 +779,8 @@ namespace
       gaol_ieee1788::pow(J, [2]) and gaol::pow(J, [2]) [+oo], sqr(J) [+oo],
       exp(J) [DBL_MAX, +oo], div_rel([2], J, universe) [0, 0] and
       sqrt_rel(universe, J) [+oo] (measured on 2026-10-24). Each of them is
-      empty for such a J now.
+      empty for such a J now. The registers of the intervals that exist are
+      kept, and a single lane at -oo gives the empty set as well.
     */
     for (const double d : { inf, -inf }) {
 #  if defined(GAOL_USING_SSE2_INSTRUCTIONS) && GAOL_USING_SSE2_INSTRUCTIONS
@@ -797,6 +798,34 @@ namespace
       check("exp(J) for J of the register of [+oo] or [-oo]: empty", exp(J).is_empty(), describe);
       check("div_rel([2],J,universe) for J of the register of [+oo] or [-oo]: empty", div_rel(two, J, universe).is_empty(), describe);
       check("sqrt_rel(universe,J) for J of the register of [+oo] or [-oo]: empty", sqrt_rel(universe, J).is_empty(), describe);
+    }
+    // The lanes <-left, right>, as a register of the SSE2 or the NEON intervals holds them
+    struct Lanes
+    {
+      double first, second;
+      bool empty;
+      double left, right;
+    };
+    const Lanes lanes_cases[] = {
+      { inf, inf, false, -inf, inf },     // the universe
+      { -5.0, inf, false, 5.0, inf },     // [5, +oo]
+      { inf, 5.0, false, -inf, 5.0 },     // [-oo, 5]
+      { 1.0, 2.0, false, -1.0, 2.0 },     // [-1, 2]
+      { -0.0, 0.0, false, 0.0, 0.0 },     // [0, 0]
+      { -inf, 3.0, true, 0.0, 0.0 },      // l = +oo, u = 3
+      { 1.0, -inf, true, 0.0, 0.0 },      // l = -1, u = -oo
+      { std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN(), true, 0.0, 0.0 },
+    };
+    for (const Lanes& c : lanes_cases) {
+#  if defined(GAOL_USING_SSE2_INSTRUCTIONS) && GAOL_USING_SSE2_INSTRUCTIONS
+      const interval K(_mm_set_pd(c.second, c.first));
+#  else
+      const double values[2] = { c.first, c.second };
+      const interval K(vld1q_f64(values));
+#  endif
+      check("the interval of a register: the empty set for a lane at -oo, else the interval of its lanes",
+            K.is_empty() == c.empty && (c.empty || (K.left() == c.left && K.right() == c.right)),
+            [&] { return "lanes <" + hex(c.first) + ", " + hex(c.second) + ">: " + hex(K); });
     }
 #endif
 
