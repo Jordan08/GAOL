@@ -407,6 +407,20 @@ point Q), which `numbers` checks there too.
   `numbers`. A mode the processor keeps without honouring it, as an emulator
   may, is named and skipped: one that flushes neither the exact subnormal sum
   2^-1060 + 0 nor the inexact product 1e-300·1e-20.
+  `bisect(ratio)` and `is_bisectable()` have to give, with each of these modes
+  set before them and in each rounding direction, the cut and the answer that
+  the bits of the bounds give, told by integers (the order of the doubles): on
+  intervals of subnormal bounds of both signs and with 0, a ratio from
+  2^-1074 to 1 − 10^-9, two parts that share the cut and cover the interval,
+  strictly smaller than it when a double lies between its bounds. The cut
+  was put within the bounds after the direction was restored, and
+  `is_bisectable()` compared the next double above the lower bound with the
+  upper one as doubles, both read as 0 under the mode (GAOL v5, point Q);
+  the parts were made after the restoring too, and `[c, r]` of two subnormal
+  bounds then came out as the empty set with GCC 15 (the comparison of the
+  constructor was probably merged with the one of the cut, made before it):
+  with the sources of `configure-clean`, 1944 of these checks fail with the
+  SSE2 intervals, 2904 with `GAOL_PRESERVE_ROUNDING`.
   `gaol::cleanup()` has to set back the direction the first `gaol::init()`
   found, to nearest, or to leave it as it is with `GAOL_PRESERVE_ROUNDING`,
   although an interval computed in the initialization of a static object set
