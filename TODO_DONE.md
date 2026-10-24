@@ -1,8 +1,8 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 24 octobre 2026
-(commit `fd19509` de `configure-clean`, deux pull requests ouvertes : #183 et
-#184). Ce fichier et l'issue #177 ont le même contenu.
+(commit `6f802aa` de `configure-clean`, aucune pull request ouverte). Ce
+fichier et l'issue #177 ont le même contenu.
 
 Il réunit l'historique de l'ancienne issue #49 (« Suivi du TODO de GAOL v5 »),
 ce qui est fait dans l'ancienne issue #142 (« Reste à faire sur GAOL v5 »), dans
@@ -10,7 +10,7 @@ l'ancien `TODO.md` et dans `TODO_mistral.md`, avec les réponses du mainteneur
 des 22 et 23 octobre. #49 et #142 sont fermées le 24 octobre, `TODO_mistral.md`
 est supprimé. Le reste du travail est dans deux autres registres :
 
-- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PB à PJ ;
+- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PC à PJ ;
 - `TODO_AFTER.md` (issue #178) : ce qui est reporté, après la version, jusqu'à
   une décision ou jusqu'à du matériel.
 
@@ -40,7 +40,7 @@ est supprimé. Le reste du travail est dans deux autres registres :
   : elle s'applique telle quelle.
 - Le classement par rang et par tiers (A à I) de l'ancien #142 n'existe plus :
   un « rang N » cité dans un texte d'avant le 24 octobre désigne cet ancien
-  classement. Ce qui reste à faire est classé en tâches PB à PJ dans `TODO.md`.
+  classement. Ce qui reste à faire est classé en tâches PC à PJ dans `TODO.md`.
 - Ce qui sert encore des rapports des agents est dans
   [todo-notes/synthese.md](todo-notes/synthese.md), leurs originaux au commit
   `16a2f60` (`todo-notes/`, ceux du 30 septembre dans `todo-notes/2026-09-30/`)
@@ -53,16 +53,15 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 
 ## 1. L'état au 24 octobre 2026
 
-- **`configure-clean`** est au commit `fd19509` (fusion de #181). Les pull
+- **`configure-clean`** est au commit `6f802aa` (fusion de #184). Les pull
   requests des corrections vont vers `configure-clean`, qui reste la branche de
   développement après v5.0.0 ; `MATH-CORE` et `master` (GAOL 4.3.2, plus deux
   commits de `.claude/CLAUDE.md`) ne bougent qu'à la version (point Y).
-- **Deux pull requests ouvertes** (tâche PB de `TODO.md`) : #183 et #184. Le
-  mainteneur a fusionné #165 à #167, #169 à #174, #176 et #180 à #182 les 23 et
-  24 octobre ; #168 est fermée sans fusion. La tâche PA est faite.
-- **Branches** : GitHub n'a que `configure-clean`, `MATH-CORE` et `master`, avec
-  les branches des deux pull requests ouvertes (`todo-ac-powrev-infinite`,
-  `todo-ab-overflow-flag`). Les branches fusionnées sont supprimées en local.
+- **Aucune pull request ouverte.** Le mainteneur a fusionné #165 à #167, #169 à
+  #174, #176 et #180 à #184 les 23 et 24 octobre ; #168 est fermée sans fusion.
+  Les tâches PA et PB sont faites.
+- **Branches** : GitHub n'a que `configure-clean`, `MATH-CORE` et `master` ; les
+  branches fusionnées sont supprimées en local.
 - **Aucune borne fausse n'est connue** : sur environ 1,3 million de puissances
   entières, 550 000 `pow` réels, 600 000 autres opérations et 760 lectures de
   nombres (relecture du 14 octobre, revérifiée le 18 octobre à `4eaf69a`), tout
@@ -72,10 +71,12 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   (Microsoft), #132 (Apple), #133 (LLVM/Clang), #134 (gmpy2), #135 (musl), #136
   (benchmark de Tang et al.), #137 (libieeep1788), #138 (glibc) et #175
   (Cygwin), dont rien n'est envoyé ; #67 (décorations, reportée indéfiniment le
-  22 octobre) ; et les trois registres #177, #178 et #179. #128 (l'annonce à
-  Frédéric Goualard) est fermée depuis le 18 octobre ; le brouillon est dans
-  Gmail. #107 (`parse_interval(nullptr)`, corrigé par #147) et #159 (rapport
-  d'état du 21 octobre, périmé) ont été fermées le 24 octobre.
+  22 octobre) ; #185 (le masquage des exceptions autour de CORE-MATH, question
+  reportée de #184 : `TODO.md`, PD.6) ; et les trois registres #177, #178 et
+  #179. #128 (l'annonce à Frédéric Goualard) est fermée depuis le 18 octobre ;
+  le brouillon est dans Gmail. #107 (`parse_interval(nullptr)`, corrigé par
+  #147) et #159 (rapport d'état du 21 octobre, périmé) ont été fermées le 24
+  octobre.
 
 ## 2. Les pull requests
 
@@ -715,6 +716,83 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   long pour `1.7e308` dans la première version, corrigé) ; 192 contrôles verts,
   dont un job MinGW relancé pour une erreur de l'exécuteur ; fusionnée le 24
   octobre)
+- #183 (point AC, ancien 82 : `pow_rel` et `pow_exponent_rel` (`powRev1` et
+  `powRev2`) rendent l'ensemble vide quand la puissance, l'exposant ou la base
+  est `[+oo]` ou `[-oo]`, que seuls les intervalles construits à partir d'un
+  registre SSE2 ou NEON peuvent être : `powRev1([+oo], [2])` rendait `[1, 1 +
+  2^-52]`, `powRev2([+oo], [2])` `[0, 2^-1074]`, `powRev1([2], [+oo])`
+  `[DBL_MAX, +oo]` et `powRev1([-oo], [0, 1])` `[1, +oo]`, là où `pow(x, [±oo])`
+  est vide. `holds_no_real()`, qui reprend le test de `pow_standard_upward()`,
+  est appelée pour la puissance K et l'exposant J dans `pow_rel_upward()`, pour
+  K et la base H dans `pow_exponent_rel_upward()`, après les tests de l'ensemble
+  vide ; le x (ou le y) à trouver n'a pas de garde, qui serait redondante (22
+  050 appels sans aucune garde, par le relecteur).
+  `pow_reverse_infinite_arguments()` de `tests/reverse.cpp` (`[+oo]` et `[-oo]`
+  aux trois places, huit valeurs pour chacun des deux autres arguments,
+  `pow_rel`, `pow_exponent_rel`, `powRev1` et `powRev2` avec et sans x) : 287
+  vérifications échouent sur 1 399 741 sans la correction, et le relecteur a
+  rendu chaque garde inactive tour à tour (35, 173, 34 et 65 échecs). Une
+  relecture indépendante (GCC 15 et Clang 18, SSE2 et FPU, mutations), aucun
+  point bloquant, trois remarques corrigées (la garde de l'inconnue, un sujet de
+  commit et un commentaire inexacts) ; la branche NEON du test est compilée pour
+  arm64 avec un simulacre de `interval(float64x2_t)`, non exécutée ; 191
+  contrôles verts ; fusionnée le 24 octobre)
+- #184 (point AB, ancien 79 pour les fonctions, et la phrase d'introduction des
+  exceptions flottantes de `doc/using.md` et du manuel : `FE_OVERFLOW` et
+  `FE_DIVBYZERO` ne sont plus levés pour un résultat sans borne infinie,
+  l'ensemble vide compris, par `sqrt`, `nth_root` (ordres jusqu'à 2^32), `atan`
+  (Visual C++), `sqrt_rel`, `nth_root_rel`, `sin`, `cos`, `tan`, `div_rel`,
+  `atan_rel`, `atan2_rel_x`, `atan2_rel_y`, `atanh_rel`, `pow_rel` et
+  `pow_exponent_rel`. Une sonde, hors dépôt, de 131 formes sur des opérandes
+  tirés près de `DBL_MAX`, de 2^k et des sous-normaux a trouvé 20,3 millions
+  d'appels fautifs avec `configure-clean` (SSE2, GCC 15), dans 34 formes, dont
+  `pow_rel`, `pow_exponent_rel`, `atanh_rel` et `nth_root` d'ordres jusqu'à 2^32
+  que le point ne nommait pas ; après, aucun avec les intervalles SSE2, les
+  intervalles FPU et le chemin AVX-512, et l'empreinte des bits des bornes de
+  chacune des 131 formes est celle de `configure-clean` (au signe d'un zéro
+  près). Corrections de `gaol/gaol_interval_core.cpp` : des quotients et des
+  produits saturants (`quotient_up_sat()`, `quotient_dn_sat()`,
+  `product_up_sat()`, `product_dn_sat()`, `quotient_sat()`) pour `div_rel` (le
+  corps des intervalles FPU et NEON devient `div_rel_upward()` ; les intervalles
+  SSE2 gardent leur code vectoriel, avec un test fait dans les registres),
+  `atan2_rel_x`, `atan2_rel_y` et l'amorce de `pow_rel` ; les racines mises à
+  l'échelle par des puissances exactes de 2 au-dessus de 2^1000
+  (`square_down_below()`, `square_up_equals()`, `cube_up_equals()`,
+  `scaled_proofs`), non par le produit fusionné `fma(u, u, -v)` que proposait le
+  point, qui aurait dépendu de l'instruction ou de son émulation ; `((p -
+  x)/p)/n` dans Newton ; `sqrt()` NEON par le chemin générique au-dessus de
+  2^1000 ; la demi-largeur `0,5 Ir + 0,5 Il` pour `sin` et `cos` ;
+  `tan([DBL_MAX])` sans calcul ; `atanh_rel()` qui pose `±oo` sans appeler
+  `atanh(1)` (`atanh()` garde son drapeau, la borne est infinie) ; `atan_lo()`
+  et `atan_hi()` qui rendent les bornes de pi/2 à partir de |x| = 2^54, car
+  `cr_atan()` de CORE-MATH calcule `x + x` pour un NaN et déborde avec Visual
+  C++ à partir de 2^1023 ; pour `pow_rel` et `pow_exponent_rel`,
+  `pow_up_without_overflow_exception()` (le seul endroit de la bibliothèque qui
+  masque des exceptions, pour les puissances dont le log2 est à 10^-9 de 1024 :
+  MXCSR sur x86, `<cfenv>` ailleurs) et un raccourci de `pow_rounded_up()` pour
+  une puissance inférieure à 1 et |y| au moins 2^450 (`cr_pow()` calcule `rh *
+  rh`, qui déborde à partir de |rh| = 2^512). `doc/using.md` et le manuel ne
+  disent plus qu'une borne infinie vient d'une division par zéro ou d'un
+  débordement (`1/[0, 1]` n'a aucun drapeau depuis #121), gardent `log([0, 1])`
+  et `[1e308]*10`, et listent les fonctions corrigées ; `doc/accuracy.md` dit le
+  signe d'un zéro de `div_rel` avec les intervalles SSE2. Tests de
+  `tests/rounding_direction.cpp` :
+  `flag_functions_raise_no_exception_for_a_finite_result()` (29 appels sur 20
+  000 tirages chacun) et `trap_cases()` (24 cas, aux bornes les plus fines, à un
+  ou deux doubles près pour trois, sans drapeau et dans un processus fils où
+  `feenableexcept()` active les pièges) : 93 252 vérifications échouent sur 1
+  135 741 avec les sources de `configure-clean`. Temps : sans changement
+  visible, sauf `pow_rel` (348 puis 383 ns, +10 %) et `pow_exponent_rel` (165
+  puis 183 ns). Une relecture indépendante (cinq configurations, 144 fonctions,
+  empreintes sur 1,5 million de tirages par fonction), aucun point bloquant,
+  quatre remarques corrigées (dont un test scalaire qui coûtait 13 % à
+  `div_rel`). La CI a demandé quatre commits de plus : `same_interval()`
+  inutilisée (AppleClang `-Werror`), `fesetenv()` de MinGW-w64 12 à 14 qui
+  laisse des drapeaux levés et `fesetexceptflag()` qui plante (d'où MXCSR sur
+  x86), `atan` avec Visual C++, et le drapeau que MXCSR laissait avec Visual C++
+  x86 en Release (d'où `<cfenv>` pour lui) ; une branche jetable,
+  `debug-msvc-flags`, a servi au diagnostic ; 192 contrôles verts ; fusionnée le
+  24 octobre)
 
 ### 2.4 Fermées sans fusion
 
@@ -1510,6 +1588,44 @@ fait le travail.
   long, est accepté : un meilleur point de départ est une question à `TODO.md`
   (PG.7)
 
+#### Décidé pendant la tâche PB (24 octobre), fait par #183 et #184
+
+- [x] Un `[+oo]` ou un `[-oo]` construit à partir d'un registre (`interval(const
+  __m128d&)` des intervalles SSE2 et son équivalent NEON) n'est pas un réel :
+  une garde dans le constructeur public, qui rend l'ensemble vide pour `l = +oo`
+  ou `u = -oo`, dans une pull request à part, non faite (`TODO.md`, PC.5) ; les
+  usages internes du constructeur (une vingtaine dans `gaol_interval_sse.cpp`,
+  dans les opérations) ne doivent pas payer la comparaison. Les gardes de
+  `pow_rel` et de `pow_exponent_rel` de #183 restent, comme filet des chemins
+  internes (décidé le 24 octobre, #183)
+- [x] Le masquage des exceptions de `pow_up_without_overflow_exception()`, le
+  seul de la bibliothèque (les puissances dont le log2 est à 10^-9 de 1024, c
+  voisin de `DBL_MAX` dans `pow_rel` et `pow_exponent_rel`), est reporté : issue
+  #185, `TODO.md` PD.6 ; #184 le garde en attendant la réponse (décidé le 24
+  octobre, #184)
+- [x] Le signe d'un zéro de `div_rel` avec les intervalles SSE2 (`[0, x]` au
+  lieu de `[-0, x]` quand `div_rel_upward()` calcule, un tirage sur 300) est
+  laissé tel quel et documenté dans `doc/accuracy.md`, commit 9da8118 (décidé le
+  24 octobre, #184)
+- [x] Les défauts de CORE-MATH que la CI et la sonde ont montrés (`rh * rh` de
+  `cr_pow()`, `x + x` de `cr_atan()`) sont contournés dans GAOL
+  (`pow_rounded_up()`, `atan_lo()` et `atan_hi()`), les sources reprises restent
+  intactes, et les deux correctifs sont à proposer en amont avec ceux de
+  `3rd/README.md` (`TODO.md`, PH.1) ; rien n'est écrit dans `3rd/README.md` ni
+  envoyé (décidé le 24 octobre, #184)
+- [x] La phrase d'introduction de la section sur les exceptions flottantes de
+  `doc/using.md` et du manuel, « An infinite bound comes from a division by zero
+  or from an overflow », est supprimée, avec les deux exemples `log([0, 1])` et
+  `[1e308]*10` gardés (décidé le 24 octobre, fait par #184) ; la phrase du
+  manuel et de `doc/using.md` qui disait que `atanh_rel([-1, 2], x)` d'un `x`
+  vide lève la division par zéro est retirée, `atanh_rel()` ne la levant plus
+- [x] Restés sans réponse à la fusion, les deux points que la description de
+  #184 demandait de confirmer : `atanh([0, 1])` et `pow` gardent leur drapeau
+  pour une borne infinie, que `atanh_rel()` et les réciproques de `pow` ne
+  lèvent plus ; `pow_rel` et `pow_exponent_rel` coûtent 5 à 10 % de plus (le
+  test de la puissance d'essai avant chaque appel de CORE-MATH). Le code est tel
+  que fusionné
+
 #### Le 18 octobre : les questions restées ouvertes dans la description de #99 (commentaire de #49)
 
 Les six questions que la case « Les questions restées ouvertes dans la
@@ -1752,6 +1868,16 @@ le travail qu'elles décident est fait le même soir et ouvert en pull requests
   double normal est corrigé dans #182, et un message nul de `gaol_warning()` et
   de `gaol_error()` dans #181 ; on attend les fusions du mainteneur pour mettre
   à jour les registres.
+- **Quatre décisions sur les pull requests #183 et #184** (24 octobre, après
+  leur ouverture) : le masquage des exceptions de
+  `pow_up_without_overflow_exception()` est reporté, issue #185, et #184 le
+  garde en attendant ; le signe d'un zéro de `div_rel` avec les intervalles SSE2
+  est laissé tel quel et documenté (`doc/accuracy.md`) ; un `[+oo]` ou un
+  `[-oo]` construit à partir d'un registre aura une garde dans le constructeur
+  public, dans une pull request à part (`TODO.md`, PC.5) ; les défauts de
+  CORE-MATH (`rh * rh` de `cr_pow()`, `x + x` de `cr_atan()`) sont contournés
+  dans GAOL et à proposer en amont (PH.1). #183 et #184 sont fusionnées le jour
+  même, et les registres mis à jour.
 - **Les registres** : ménage des TODO. #49 et #142 sont fermées,
   `TODO_mistral.md` est supprimé, `TODO.md` est vidé puis réécrit avec le reste
   à faire en tâches PA à PJ ; les trois nouveaux registres sont #177 (ce
@@ -1767,7 +1893,7 @@ le travail qu'elles décident est fait le même soir et ouvert en pull requests
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
-`TODO.md` (tâches PB à PJ) ou dans `TODO_AFTER.md` ; leur partie faite est dite
+`TODO.md` (tâches PC à PJ) ou dans `TODO_AFTER.md` ; leur partie faite est dite
 ici ou dans la section 5.
 
 ### Même changement, ou même code
@@ -1855,6 +1981,14 @@ ici ou dans la section 5.
   écarté (16 octobre) ; décidé le 14 octobre : les points AG et AH le suivent,
   et la phrase « sqr et pown passent par uipow » de la décision du point H est
   retirée
+- [x] **AB.** Des exceptions flottantes levées à tort (77 à 80) : le 77 (`pow`
+  près du dépassement) par #144, le 78 et le 80 (`cancel_minus`, `cancel_plus`,
+  `1/[0, 1]`) par #151, le 79 par #182 (la lecture de `1e400` et de `1e-310`) et
+  #184 (les fonctions, et la phrase d'introduction de `doc/using.md` et du
+  manuel)
+- [x] **AC.** Les réciproques de `pow` et `nth_root` (81, 82) : le 81
+  (`nth_root` d'un sous-normal) par #158, le 82 (`[+oo]` et `[-oo]` dans
+  `pow_rel` et `pow_exponent_rel`) par #183
 - [x] **AD.** La lecture et l'écriture des intervalles (83 à 89, 114) : les 83
   et 84 par #149, le 114 (`parse_interval(nullptr)`) par #147, les 87, 88 et 89
   (documentés) par #164, le 85 (l'exposant du lexeur en `long long`) par #182 ;
@@ -1908,12 +2042,6 @@ exacte. Le détail est dans `TODO.md`, anciens 77 à 103.
 Les points suivants gardent un reste (voir `TODO.md` et `TODO_AFTER.md`) ; voici
 leur partie faite.
 
-- **AB.** Des exceptions flottantes levées à tort : le 77 (`pow` près du
-  dépassement) par #144, le 78 et le 80 (`cancel_minus`, `cancel_plus`, `1/[0,
-  1]`) par #151, et la lecture de `1e400` et de `1e-310` (79) par #182. Reste le
-  79 des fonctions (#184 en cours).
-- **AC.** Les réciproques de `pow` et `nth_root` : le 81 (`nth_root` d'un
-  sous-normal) par #158. Reste le 82.
 - **AE.** Les trois builds : le 90 (le compilateur C vérifié comme le C++) par
   #145, les 91 et 94 par #164, le 93 (code mort exporté) le 15 octobre. Restent
   les 92 et 95.
@@ -1962,7 +2090,22 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
   les nombres sous 2^-1022 est réglé de la même façon (décidé le 24 octobre) ;
   `readings_above_the_largest_double[]` et
   `readings_below_the_least_normal_double[]` de `tests/rounding_direction.cpp`.
-  Reste le 79 des fonctions (`TODO.md`, PB)
+- **79 (les fonctions).** `sqrt([1, DBL_MAX])`, `nth_root([DBL_MAX], 3)`,
+  `sin([-1, DBL_MAX])`, `tan([DBL_MAX])`, `div_rel([1], [2^-1074, 1], [1, 2])`,
+  `sqrt_rel([DBL_MAX], [-3, 0])` et d'autres levaient `FE_OVERFLOW` pour un
+  résultat fini, alors que `doc/using.md` et le manuel disent que `FE_OVERFLOW`
+  ou `FE_DIVBYZERO` signalent une borne infinie. Décidé le 14 octobre : corriger
+  le code, non les textes ; mettre à l'échelle les vérifications de `sqrt` et
+  des racines, et chercher les autres débordements intermédiaires. Fait le 24
+  octobre par #184 (voir 2.3) : la sonde a trouvé 34 formes fautives sur 131,
+  dont `pow_rel`, `pow_exponent_rel`, `atanh_rel` (division par zéro) et
+  `nth_root` jusqu'à l'ordre 2^32, que le point ne nommait pas ; quotients et
+  produits saturants, racines mises à l'échelle (et non le produit fusionné
+  `fma(u, u, -v)`), `pow_up_without_overflow_exception()` ; la phrase « An
+  infinite bound comes from a division by zero or from an overflow » est
+  supprimée de `doc/using.md` et du manuel (décidé le 24 octobre) ;
+  `flag_functions_raise_no_exception_for_a_finite_result()` et `trap_cases()` de
+  `tests/rounding_direction.cpp`.
 - **80.** `1/[0, 1]` ne lève plus la division par zéro depuis #121, mais
   `doc/using.md` et le manuel le donnent encore en exemple : garder `log([0,
   1])` seul. Fait le 20 octobre par #151 : `1/[0, 1]` retiré de `doc/using.md`
@@ -1982,6 +2125,16 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
   fois avec les sources de `configure-clean` ; une borne peut être à 2 doubles
   de la plus serrée (4 pour q < 0), pour tout x, ce que disent le commentaire de
   `newton_root()` et `doc/accuracy.md`.
+- **82.** `pow_rel` et `pow_exponent_rel` (`powRev1`, `powRev2`) n'avaient pas
+  la garde de `[±oo]` de `pow` : `powRev1([+oo], [2], R)` rendait [1, 1 +
+  2^-52], `powRev2([+oo], [2], R)` [0, 2^-1074], `powRev1([2], [+oo], R)`
+  [DBL_MAX, +oo] et `powRev1([-oo], [0, 1], R)` [1, +oo], là où `pow(x, [±oo])`
+  est vide ; ces arguments ne se construisent qu'avec `interval(__m128d)` ou son
+  équivalent NEON. Fait le 24 octobre par #183 : `holds_no_real()` dans
+  `pow_rel_upward()` et `pow_exponent_rel_upward()`, et
+  `pow_reverse_infinite_arguments()` de `tests/reverse.cpp` (287 vérifications
+  échouent sans la correction). Reste, décidé le 24 octobre : une garde dans le
+  constructeur public (`TODO.md`, PC.5).
 
 ### AD. La lecture et l'écriture des intervalles
 
@@ -2199,7 +2352,7 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
 
 Les « Questions ouvertes » des descriptions de #146 à #163, que l'ancien
 `TODO.md` gardait sous « Remarqué par #NN, à trier », avec leur sort. Les
-questions qui restent sans réponse sont dans `TODO.md` (tâches PB à PJ) et
+questions qui restent sans réponse sont dans `TODO.md` (tâches PC à PJ) et
 `TODO_AFTER.md` ; elles ne sont pas répétées ici.
 
 ### #146
@@ -2592,6 +2745,10 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PB à PJ) et
 - #180, #181 et #182 (la tâche PA) fusionnées par le mainteneur ; `TODO.md`,
   `TODO_DONE.md` et `process.md` (§12) mis à jour pour elles, les branches
   fusionnées supprimées en local.
+- #183 et #184 (la tâche PB) fusionnées par le mainteneur ; `TODO.md`,
+  `TODO_DONE.md` et `process.md` (§12) mis à jour pour elles, l'issue #185 créée
+  pour le masquage des exceptions de `pow`, les branches fusionnées supprimées
+  en local.
 
 ## 8. Le ménage fait
 
@@ -2633,10 +2790,11 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PB à PJ) et
   sur GitHub (les 23 et 24 octobre), ainsi que `todo-ai-msvc-avx512` (sans pull
   request, un ancêtre de `configure-clean`, le 24 octobre). Celles de #176
   (`todo-ai-cygwin-cpack-step`), de #180 (`todo-ap-text-nullptr`), de #181
-  (`todo-ap-exception-file`) et de #182 (`todo-ad-lexer-numbers`), sur GitHub à
-  la fusion et en local le 24 octobre : sur GitHub, il ne reste que
-  `configure-clean`, `MATH-CORE` et `master`, et les branches des pull requests
-  ouvertes.
+  (`todo-ap-exception-file`), de #182 (`todo-ad-lexer-numbers`), de #183
+  (`todo-ac-powrev-infinite`) et de #184 (`todo-ab-overflow-flag`), sur GitHub à
+  la fusion et en local le 24 octobre, avec la branche jetable
+  `debug-msvc-flags` du diagnostic de la CI de #184 : sur GitHub, il ne reste
+  que `configure-clean`, `MATH-CORE` et `master`.
 - [x] Lignes de crédit retirées des descriptions de #50, #51, #53 à #57 et #59,
   d'un commentaire de #59 et de cette issue. Il en reste dans les messages des
   commits a0d3871, 790ca12 et f1f4239 de #99, fusionnée sans squash. Retirées

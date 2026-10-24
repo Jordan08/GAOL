@@ -646,7 +646,7 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
 
 ## 12. Où en est le travail (24 octobre 2026)
 
-Le reste à faire est dans `TODO.md` (tâches PB à PJ) et l'issue #179 ; ce
+Le reste à faire est dans `TODO.md` (tâches PC à PJ) et l'issue #179 ; ce
 qui est fait et décidé (pull requests fusionnées, décisions, mesures) est dans
 `TODO_DONE.md` et l'issue #177 ; ce qui est reporté est dans `TODO_AFTER.md` et
 l'issue #178. L'état qui suit est daté : les commandes ci-dessous, les trois
@@ -660,19 +660,19 @@ git ls-remote --heads origin
 ```
 
 - **Faits** : tout ce que dit `TODO_DONE.md` (sections 4 et 5), jusqu'à #176 et
-  #180 à #182 (la tâche PA) ;
+  #180 à #184 (les tâches PA et PB) ;
   l'audit du 13 octobre a vérifié dans `configure-clean` ce qu'annonçaient alors
   les points A, C à H et J à V.
-- **En cours** : deux pull requests ouvertes au 24 octobre, #183 et #184 (la
-  tâche PB) ; `configure-clean` est au commit de la fusion de #181, et ses
-  branches sur GitHub sont `configure-clean`, `MATH-CORE`, `master` et celles de
-  ces deux pull requests.
-- **À faire**, dans l'ordre de `TODO.md` : les corrections décidées (PB et PC),
+- **En cours** : aucune pull request ouverte au 24 octobre ; `configure-clean`
+  est au commit de la fusion de #184, et ses seules branches sur GitHub sont
+  `configure-clean`, `MATH-CORE` et `master`. L'issue #185 (le masquage des
+  exceptions de `pow`) attend la réponse du mainteneur.
+- **À faire**, dans l'ordre de `TODO.md` : les corrections décidées (PC),
   les textes, les tests et le ménage (PD), les trois builds et la CI (PE), x86
   32 bits et Windows (PF), les études de vitesse, toutes avant v5.0.0 (PG), les
   signalements à d'autres projets (PH, avec l'accord du mainteneur), puis la
   version (PI, PJ). Ce qui est reporté (le 113, le site, les traits pour YalAA
   et VNODE-LP, les décorations, ce qui attend du matériel) est dans
   `TODO_AFTER.md`. Les dépendances entre points sont écrites dans chaque tâche.
-  Le mainteneur donne les tâches ou les points un par un (« traite la tâche PB »,
+  Le mainteneur donne les tâches ou les points un par un (« traite la tâche PC »,
   « traite le point 129 ») : ne commence pas le suivant sans lui.

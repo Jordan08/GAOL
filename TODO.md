@@ -1,20 +1,19 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `fd19509` de `configure-clean`, le 24
-octobre 2026, en tâches PB à PJ (PA est faite : voir `TODO_DONE.md`). Ce fichier
-et l'issue #179 ont le même contenu. Ce qui est fait et décidé est dans
+Ce qui reste à faire sur GAOL v5 au commit `6f802aa` de `configure-clean`, le 24
+octobre 2026, en tâches PC à PJ (PA et PB sont faites : voir `TODO_DONE.md`). Ce
+fichier et l'issue #179 ont le même contenu. Ce qui est fait et décidé est dans
 `TODO_DONE.md` (issue #177), ce qui est reporté dans `TODO_AFTER.md` (issue
 #178). Les anciennes issues #49 et #142 sont fermées, et `TODO_mistral.md` est
 supprimé.
 
 Aucune borne fausse n'est connue. Rien n'est à fusionner, à envoyer à un autre
-projet ni à publier sans l'accord du mainteneur. Deux pull requests sont
-ouvertes, pour la tâche PB : #183 (le point 82) et #184 (le point 79, les
-fonctions).
+projet ni à publier sans l'accord du mainteneur. Aucune pull request n'est
+ouverte.
 
 ## Comment lire ce fichier
 
-- Une tâche (PB à PJ) regroupe des points qui touchent le même code, les mêmes
+- Une tâche (PC à PJ) regroupe des points qui touchent le même code, les mêmes
   fichiers ou les mêmes builds de validation, pour les traiter dans la même
   session ; chaque point reste une pull request à part (process.md : un point,
   une branche), sauf quand la tâche dit qu'une seule suffit. Les tâches sont
@@ -22,7 +21,7 @@ fonctions).
   plus cher en attendant (une décision qui bloque) ; ce qui tue un programme ou
   rompt une promesse écrite avant ce qui ne fait que ralentir ; le petit et sans
   dépendance avant le gros ; la version (PI, PJ) en dernier.
-- PB à PH ne dépendent pas les unes des autres, sauf quand le texte le dit (PI
+- PC à PH ne dépendent pas les unes des autres, sauf quand le texte le dit (PI
   décrit le travail de PA à PH, PJ suit PI et les études de PG).
 - Chaque point garde sa lettre et son ancien numéro, par exemple « 79 (AB) » :
   ce sont ceux des pull requests, des issues, des commentaires du code et de
@@ -40,8 +39,7 @@ fonctions).
 
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
-| PB | Les exceptions flottantes levées à tort, les réciproques de `pow` | 79, 82 | L |
-| PC | Les noyaux SSE2 et NEON | 131, 129, 132 | M |
+| PC | Les noyaux SSE2 et NEON | 131, 129, 132 et deux | M |
 | PD | `process.md`, les textes, les tests, le ménage | 130 et cinq petits | S |
 | PE | Les trois builds, la CI, les vérifications qui manquent | 95, 92 et quatre autres | M |
 | PF | x86 32 bits, Windows et le registre de contrôle | 108, 109 et trois | M |
@@ -49,48 +47,6 @@ fonctions).
 | PH | Les signalements à d'autres projets | #125 à #138, #175 | accord |
 | PI | La pull request de synthèse et les textes de la version | Y | L |
 | PJ | Les mesures et la publication de v5.0.0 | 32, 33, 34, 71 | M |
-
-## PB. Les exceptions flottantes levées à tort, les réciproques de `pow` [L]
-
-Ensemble parce que les deux sont dans `gaol/gaol_interval_core.cpp` et que le
-texte de `doc/using.md` et du manuel sur les exceptions flottantes en dépend.
-
-1. **79 (AB), les fonctions** [L] : `FE_OVERFLOW` est levé pour des résultats
-   finis : `sqrt([1, DBL_MAX])` (le produit de vérification u·u = 2^1024),
-   `nth_root([DBL_MAX], 3)`, `sin([-1, DBL_MAX])`, `tan([DBL_MAX])`,
-   `div_rel([1], [2^-1074, 1], [1, 2])`, `sqrt_rel([DBL_MAX], [-3, 0])`, et
-   `cos`, `nth_root_rel`, `atan_rel`, `atan2_rel_x` et `atan2_rel_y` dans des
-   tirages au hasard. `doc/using.md` (section sur les exceptions flottantes) et
-   le manuel disent que `FE_OVERFLOW` ou `FE_DIVBYZERO` signalent une borne
-   infinie de l'intervalle. *Décidé le 14 octobre* : corriger le code, non les
-   textes ; mettre à l'échelle les vérifications de `sqrt` et des racines,
-   chercher les autres débordements intermédiaires (`sin`, `cos`, `tan`,
-   `div_rel`, les fonctions `*_rel`), sans calcul qui puisse déborder pour un
-   résultat fini. Revérifié le 18 octobre à `4eaf69a` : les six premiers cas
-   lèvent encore `FE_OVERFLOW`. `sqrt([DBL_MAX])` le lève aussi avec NEON et
-   avec les intervalles FPU (le produit `u*u` du test d'exactitude déborde,
-   #146) : un produit fusionné `fma(u, u, -v)` le réglerait. Il touche beaucoup
-   de fonctions et ne se voit qu'avec le piège activé près de DBL_MAX ; les
-   tests sont des processus fils sous `feenableexcept()`, comme ceux de #50 et
-   #151. La lecture de `1e400` est faite par #182. *En cours : #184.*
-2. **82 (AC)** [S] : `pow_rel` et `pow_exponent_rel` (`powRev1`, `powRev2`)
-   n'ont pas la garde de `[±oo]` de `pow` : `powRev1([+oo], [2], R)` rend [1, 1 +
-   2^-52], `powRev2([+oo], [2], R)` [0, 2^-1074], `powRev1([2], [+oo], R)`
-   [DBL_MAX, +∞] et `powRev1([-oo], [0, 1], R)` [1, +∞], là où `pow(x, [±oo])`
-   est vide et ces réciproques avec lui. Ces résultats restent des encadrements,
-   et ces arguments ne se construisent qu'avec `interval(__m128d)`, dans les
-   builds SSE2. Correction : le test `!(l < +oo && u > -oo)` de
-   `pow_standard_upward()` dans `pow_rel_upward()` et
-   `pow_exponent_rel_upward()`. Non revérifié depuis le 14 octobre. *En cours :
-   #183.*
-3. **La phrase sur les exceptions flottantes, avec le 79** [S] (#151) : la
-   phrase d'introduction de la section sur les exceptions flottantes de
-   `doc/using.md` et du manuel, « An infinite bound comes from a division by
-   zero or from an overflow », reste vraie pour les deux exemples gardés,
-   `log([0, 1])` et `[1e308]*10`, mais n'est pas une règle : `1/[0, 1]` a une
-   borne infinie sans aucun indicateur depuis #121. *Décidé le 24 octobre* : la
-   supprimer de `doc/using.md` et du manuel quand le 79 est fait, en gardant les
-   deux exemples `log([0, 1])` et `[1e308]*10`.
 
 ## PC. Les noyaux SSE2 et NEON [M]
 
@@ -135,6 +91,24 @@ puis 132.
    Cygwin) depuis : *Décidé le 24 octobre* : revérifier le défaut d'abord, puis
    le corriger (comparer les bornes par leurs bits, ou avant le retour de FZ),
    avec un test qui échoue sans la correction.
+5. **Un `[+oo]` ou un `[-oo]` construit à partir d'un registre** [S à M] (#183)
+   : `interval(const __m128d&)` (`gaol/gaol_interval_sse.h`, déclaré dans
+   `gaol/gaol_interval_core.h`) et `interval(const float64x2_t&)`
+   (`gaol/gaol_interval_neon.h`) acceptent les registres de `[+oo]` et de
+   `[-oo]`, qui ne contiennent aucun réel (IEEE 1788-2015, 10.5.8) et que nul
+   autre constructeur ne fait. Les opérations les prennent pour des intervalles
+   : `gaol_ieee1788::pow([+oo], [2])` rend `[+oo]`, `gaol::pow([-oo], [2])`
+   aussi, `sqr([+oo])` rend `[+oo]`, `exp([+oo])` `[DBL_MAX, +oo]`,
+   `div_rel([2], [+oo], I)` `[0, 0]` et `sqrt_rel(I, [+oo])` `[+oo]` (mesuré le
+   24 octobre). #183 ne garde que les réciproques de `pow` (`holds_no_real()`).
+   *Décidé le 24 octobre* : une garde dans le constructeur public, qui rend
+   l'ensemble vide pour `l = +oo` ou `u = -oo`, dans une pull request à part,
+   avec un test par fonction qui échoue sans la garde ; les usages internes du
+   constructeur (une vingtaine dans `gaol_interval_sse.cpp`, dans les
+   opérations) ne passent pas par la garde, pour ne pas payer la comparaison : à
+   mesurer. Les gardes de #183 restent le filet des chemins internes, et
+   `pow_reverse_infinite_arguments()` de `tests/reverse.cpp` passe dans les deux
+   cas.
 
 ## PD. `process.md`, les textes, les tests, le ménage [S]
 
@@ -177,9 +151,20 @@ les bornes, qui tiennent dans une ou deux pull requests.
    `gaol::cleanup()`. `tests/arithmetic.cpp` donne donc ses x directement ; les
    autres tests qui calculent un x avec `std::pow` n'ont pas été relus pour un
    résultat sous-normal.
-6. **Une branche locale** [S] : `todo-ai-cygwin-cpack-step` (#176, fusionnée)
-   est à supprimer ; les branches locales `MATH-CORE` et `master` du mainteneur
-   ne se touchent pas.
+6. **Le masquage des exceptions autour de CORE-MATH** [S] (#184, issue #185) :
+   `pow_up_without_overflow_exception()` (`gaol/gaol_interval_core.cpp`) appelle
+   CORE-MATH avec les exceptions masquées pour les seules puissances dont log2
+   est à moins de 10^-9 de 1024 (c voisin de `DBL_MAX` dans `pow_rel` et
+   `pow_exponent_rel`, environ 2^12 valeurs de c), puis rétablit l'environnement
+   du programme : MXCSR écrit (`_mm_setcsr(csr | 0x1f80)`, puis `csr`) sur x86,
+   sauf avec Visual C++ pour x86 32 bits, et `feholdexcept()` puis `fesetenv()`
+   ailleurs. C'est le seul endroit de la bibliothèque qui masque des exceptions
+   ; celles de `<cfenv>` de MinGW-w64 12 à 14 laissent des drapeaux levés et
+   plantent, d'où MXCSR. *À décider* (le mainteneur l'a reportée le 24 octobre,
+   #184 garde le masquage en attendant) : le garder ; le retirer, ce qui laisse
+   le drapeau pour ces seuls appels, retire les deux cas de test et exclut ces
+   tirages du balayage de `tests/rounding_direction.cpp` ; ou ne le garder que
+   sur x86-64 avec glibc et UCRT, l'appel direct ailleurs.
 
 ## PE. Les trois builds, la CI, les vérifications qui manquent [M]
 
@@ -373,7 +358,18 @@ probablement rien.
    et comment (merge request sur gitlab.inria.fr ou `git format-patch` à
    core-math@inria.fr). Après un import d'un CORE-MATH d'après `c01f08c5` :
    retirer le contournement du `<` de `cr_pow` (`pow_rounded_up()` et
-   `pow_rounded_dn()`).
+   `pow_rounded_dn()`). Deux défauts de plus, que GAOL contourne sans toucher
+   aux sources (*décidé le 24 octobre*, #184), sont à proposer aussi, pas encore
+   écrits dans `3rd/README.md` : `cr_pow()` calcule `rh * rh` (rh = y log(x))
+   pour effacer un sous-dépassement parasite, et ce carré déborde à partir de
+   |rh| = 2^512 (`FE_OVERFLOW` pour une puissance qui s'annule, avec Clang et
+   avec GCC sans optimisation ; correctif d'une ligne, `fabs(rh) < 0x1p-511`),
+   que `pow_rounded_up()` évite pour une puissance inférieure à 1 et |y| au
+   moins 2^450 ; `cr_atan()` calcule `x + x` pour un NaN avant le test qui le
+   garde, ce qui lève `FE_OVERFLOW` à partir de |x| = 2^1023 avec Visual C++
+   (`/fp:strict`), que `atan_lo()` et `atan_hi()` évitent en rendant les bornes
+   de pi/2 à partir de |x| = 2^54. Un import de CORE-MATH qui reprendrait les
+   deux permet de retirer ces contournements.
 2. **#126 GCC** (la comparaison silencieuse rendue signalante par
    l'if-conversion sur ARM 32 bits et POWER9 et par la vectorisation, et le
    miscompilage de GCC 12.2 sur aarch64 dans `tests/numbers.cpp` ; le bogue
@@ -425,7 +421,7 @@ PA à PH faites ou décidées (PA l'est), et avant les mesures de PJ.
    et `ChangeLog` » : #71, #76, #77, #83 à #97, #99, #100, #105, #108, #111,
    #113, #114, #117 à #124, #139, #140, #141, #144 à #151, #155 à #158 et #160 à
    #164 (#123, #139, #155 et #160 n'ont rien à y mettre), et à lire aussi, #165
-   à #174, #176 et #180 à #182 (celle de #176 dit : rien). Les points K, L et
+   à #174, #176 et #180 à #184 (celle de #176 dit : rien). Les points K, L et
    `make distclean` (#72 à #75) n'ont pas cette section : à écrire d'après leurs
    descriptions. À écrire d'après les commits, sans pull request : les
    changements du 4 octobre (`nb_fp_numbers()` rend un `unsigned long long`,
