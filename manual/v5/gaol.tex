@@ -2202,6 +2202,16 @@ cout << gaol_ieee1788::textToInterval("[1, 2") << ' '
 @outputs^[empty] [empty]~
 \end{example}
 
+\noindent
+A null pointer is no text, and the \code{textToInterval()} of both namespaces
+and \code{exactToInterval()} throw \code{input\_format\_error} for it:
+\code{textToInterval(nullptr)}, \code{textToInterval(std::getenv("UNSET"))}
+and \code{gaol\_ieee1788::exactToInterval(nullptr)} do not reach the reader.
+Their argument is a \code{const std::string\&}, which the call builds from the
+pointer first, and the C++ standard leaves that undefined (libstdc++ throws
+\code{std::logic\_error}); the overloads of a C string take the null pointer
+before.\newinvfive
+
 \subsection{Threads and the global settings}
 %%.............................................
 \cindex{threads!output of intervals}%
@@ -2447,7 +2457,11 @@ interval x = textToInterval("[-23, inf]"),
   \code{gaol\_error()} function prints an error message before the program
   aborts (\pxref{chap:errors}). The \code{textToInterval()} of
   \code{gaol\_ieee1788} reads the names of the functions of the standard, and
-  returns the empty set instead (Chapter~\ref{chap:ieee1788}).
+  returns the empty set instead (Chapter~\ref{chap:ieee1788}). A null pointer
+  is no string: the overload for a \code{const char*}, which
+  \code{textToInterval(nullptr)} reaches, throws \code{input\_format\_error} in
+  both namespaces, and the same error without exception support (a message,
+  then \code{abort()}).\newinvfive
 
   GAOL v5 has no constructor from one string: \code{textToInterval()} takes
   the place of the constructor \code{interval(const char*)} of GAOL~4, which
@@ -2468,7 +2482,8 @@ interval x = textToInterval("[-23, inf]"),
  interval x = textToInterval("[-5,4]+1","[4,6]-[2,3]");
   \end{example}
   It is in the namespace \code{gaol}, and throws \code{input\_format\_error}
-  as \code{textToInterval(\var{s})} does. It takes the place of the
+  as \code{textToInterval(\var{s})} does, for a null pointer in either place
+  too. It takes the place of the
   constructor from two strings of GAOL~4, which kept the bounds
   \itv{2}{1} of \code{interval("2",~"1")}: \code{is\_empty()} was true, but
   its sum with \itv{0}{1} was \itv{2}{2}.\newinvfive
@@ -5447,7 +5462,8 @@ The functions of GAOL that have the name and the meaning the standard gives them
 \item \code{textToInterval} and \code{exactToInterval} read the names of the
   functions of the standard, and return the empty set for a string that is no
   interval (12.1.3), where \code{gaol::textToInterval} reads the names of
-  GAOL and throws (\pxref{sec:ieee1788-text});
+  GAOL and throws (\pxref{sec:ieee1788-text}); a null pointer is no string,
+  and they throw \code{input\_format\_error} for it too;\newinvfive
 \item \code{pownRev(c, x, p)} throws \code{std::invalid\_argument} for
   $p\leq0$, which GAOL does not provide, rather than give an interval it has
   not computed. Its $p$, and the $q$ of \code{rootn(x, q)}, may be of any
