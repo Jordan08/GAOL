@@ -1272,10 +1272,12 @@ Dekker's splitting of the operands, breaks the same way (1\,888 of the 50\,000
 pairs of the table, drawn in $[1,2)$, lose their exactness upward), and is
 exact in every direction when it is computed with \code{std::fma} instead: the
 error of a rounded product is a double, which \code{std::fma} computes however
-it rounds. Compensated sums, and the double-double arithmetic built on such
-algorithms, lose their accuracy the same way. Built with
-\option{GAOL\_PRESERVE\_ROUNDING}, the program computes the right-hand column
-all the time.
+it rounds (provided it is correctly rounded: with GCC, \code{std::fma} without
+optimization is a call of the C library, whose \code{fma()} is wrong on Cygwin;
+\code{\_\_builtin\_fma} is the instruction with \option{-mfma}). Compensated
+sums, and the double-double arithmetic built on such algorithms, lose their
+accuracy the same way. Built with \option{GAOL\_PRESERVE\_ROUNDING}, the program
+computes the right-hand column all the time.
 
 Other consequences:
 

@@ -33,6 +33,7 @@ FPU Handling when compiling with Microsoft Visual C++
 #include "gaol/gaol_port.h"
 
 #include <float.h>
+#include <limits>
 
 // The control word of the x87 unit of gaol_fpu_fenv.h: 53 bits of precision
 // (0x0200), all exceptions masked (0x003f), rounding upward (0x0800). No
@@ -56,13 +57,21 @@ FPU Handling when compiling with Microsoft Visual C++
 
 namespace gaol_core {
   
+  // As in gaol_fpu_fenv.h: -oo below -DBL_MAX and +oo above DBL_MAX, whatever
+  // the nextafter() of the C library does with the overflow (GAOL v5)
   GAOL_INLINE double previous_float(double d)
   {
+    if (d == -(std::numeric_limits<double>::max)()) {
+      return -GAOL_INFINITY;
+    }
     return nextafter(d,-GAOL_INFINITY);
   }
   
   GAOL_INLINE double next_float(double d)
   {
+    if (d == (std::numeric_limits<double>::max)()) {
+      return GAOL_INFINITY;
+    }
     return nextafter(d,GAOL_INFINITY);
   }
   
