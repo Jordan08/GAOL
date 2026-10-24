@@ -229,11 +229,27 @@ namespace gaol {
   */
   GAOL_NODISCARD extern GAOL_PUBLIC interval textToInterval(const std::string& s);
   /*!
+    textToInterval(s) for a C string (GAOL v5): the same, and a null pointer,
+    which is no string, throws input_format_error. A null pointer given to the
+    overload of std::string builds a std::string from it, which the standard
+    leaves undefined (libstdc++ throws std::logic_error): this overload takes
+    it before. textToInterval(std::getenv("UNSET")) and textToInterval(nullptr)
+    reach it.
+  */
+  GAOL_NODISCARD extern GAOL_PUBLIC interval textToInterval(const char* s);
+  /*!
     textToInterval(sl, sr): the left bound of the interval sl writes and the
     right bound of the one sr writes, which the constructor from two strings
-    of GAOL 4 gave; a string that is no interval throws input_format_error
+    of GAOL 4 gave; a string that is no interval throws input_format_error, and
+    so does a null pointer (GAOL v5), given as C string in either place
   */
   GAOL_NODISCARD extern GAOL_PUBLIC interval textToInterval(const std::string& sl, const std::string& sr);
+  //! \overload textToInterval(sl, sr) with C strings: a null pointer throws input_format_error (GAOL v5)
+  GAOL_NODISCARD extern GAOL_PUBLIC interval textToInterval(const char* sl, const char* sr);
+  //! \overload textToInterval(sl, sr) with a C string and a std::string: a null pointer throws input_format_error (GAOL v5)
+  GAOL_NODISCARD extern GAOL_PUBLIC interval textToInterval(const char* sl, const std::string& sr);
+  //! \overload textToInterval(sl, sr) with a std::string and a C string: a null pointer throws input_format_error (GAOL v5)
+  GAOL_NODISCARD extern GAOL_PUBLIC interval textToInterval(const std::string& sl, const char* sr);
 
 } // namespace gaol
 

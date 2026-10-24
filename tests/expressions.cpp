@@ -559,6 +559,64 @@ namespace
     }
   }
 
+  /* A null pointer is no text for the functions that read one either (GAOL
+     v5, point 128 of TODO.md): gaol::textToInterval(nullptr),
+     textToInterval(nullptr, "1"), gaol_ieee1788::textToInterval(nullptr) and
+     exactToInterval(nullptr) took a const std::string&, which the call builds
+     from the pointer before GAOL is reached, and the standard leaves that
+     undefined (libstdc++ throws std::logic_error, libc++ and Visual C++
+     probably read the pointer with strlen()). The overloads of a C string
+     throw input_format_error, with the names of GAOL and with those of the
+     standard, whose textToInterval() gives the empty set for a text that is
+     no interval. The literal nullptr and a null pointer variable are both
+     read, as is a null pointer in either place of the two bounds. Without
+     exceptions, the error is a message and abort(), which cannot be checked
+     here. */
+  void null_text()
+  {
+#if GAOL_EXCEPTIONS_ENABLED
+    const char *volatile none = nullptr;
+    const std::string one("1");
+    const struct { const char *label; std::function<void()> read; } readings[] = {
+      { "gaol::textToInterval(nullptr)", [] { static_cast<void>(gaol::textToInterval(nullptr)); } },
+      { "gaol::textToInterval(a null variable)", [&] { static_cast<void>(gaol::textToInterval(none)); } },
+      { "gaol::textToInterval(nullptr, \"1\")", [] { static_cast<void>(gaol::textToInterval(nullptr, "1")); } },
+      { "gaol::textToInterval(\"1\", nullptr)", [] { static_cast<void>(gaol::textToInterval("1", nullptr)); } },
+      { "gaol::textToInterval(nullptr, nullptr)", [] { static_cast<void>(gaol::textToInterval(nullptr, nullptr)); } },
+      { "gaol::textToInterval(nullptr, std::string)", [&] { static_cast<void>(gaol::textToInterval(none, one)); } },
+      { "gaol::textToInterval(std::string, nullptr)", [&] { static_cast<void>(gaol::textToInterval(one, none)); } },
+      { "gaol_ieee1788::textToInterval(nullptr)", [] { static_cast<void>(gaol_ieee1788::textToInterval(nullptr)); } },
+      { "gaol_ieee1788::textToInterval(a null variable)", [&] { static_cast<void>(gaol_ieee1788::textToInterval(none)); } },
+      { "gaol_ieee1788::exactToInterval(nullptr)", [] { static_cast<void>(gaol_ieee1788::exactToInterval(nullptr)); } },
+      { "gaol_ieee1788::exactToInterval(a null variable)", [&] { static_cast<void>(gaol_ieee1788::exactToInterval(none)); } },
+    };
+    for (const auto& r : readings) {
+      bool format_error = false, other = false;
+      try {
+        r.read();
+      } catch (const gaol_core::input_format_error&) {
+        format_error = true;
+      } catch (...) {
+        other = true;
+      }
+      check("a null pointer given to textToInterval() or exactToInterval() throws input_format_error",
+            format_error && !other,
+            [&] { return std::string(r.label) + (other ? ": threw another exception" : ": no exception"); });
+    }
+    // The C strings that are not null are read as the std::string of them
+    check("textToInterval of a C string is the one of its std::string",
+          gaol::textToInterval("[1, 2]").set_eq(interval(1.0, 2.0))
+          && gaol::textToInterval("1", "2").set_eq(interval(1.0, 2.0))
+          && gaol::textToInterval("1", std::string("2")).set_eq(interval(1.0, 2.0))
+          && gaol::textToInterval(std::string("1"), "2").set_eq(interval(1.0, 2.0))
+          && gaol_ieee1788::textToInterval("[1, 2]").set_eq(interval(1.0, 2.0))
+          && gaol_ieee1788::exactToInterval("[1, 2]").set_eq(interval(1.0, 2.0))
+          && gaol_ieee1788::textToInterval("[1, 2").is_empty());
+#else
+    std::printf("Without exceptions, a null pointer given to textToInterval() is a message and abort(): not checked\n");
+#endif
+  }
+
   // The text read with the names of GAOL or with those of the standard, as gaol::textToInterval() and
   // gaol_ieee1788::textToInterval() read it: the empty set, with a failure of the check, when it throws
   interval read_as(const char *names, const std::string& text)
@@ -2012,6 +2070,7 @@ int main()
   step("names_under_turkish_locale"); names_under_turkish_locale();
   step("wrong_strings");     wrong_strings();
   step("null_pointer");      null_pointer();
+  step("null_text");         null_text();
   step("null_diagnostics");  null_pointers_in_diagnostics();
   step("reversed_bounds");   reversed_bounds();
   step("degenerate_bounds"); degenerate_bounds();
