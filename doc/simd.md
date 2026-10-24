@@ -325,7 +325,8 @@ Before a path is added (the steps the issue lists, with the rules of GAOL):
   intrinsic for commutative). It now clears the lanes whose sign bit is set, a
   negative number or `-0`, with a mask, as the part of the interval in
   `[0, +oo]` (GAOL v5): the same bits as the maximum with `AH` clear, on 20
-  million pairs of bounds and every pair of the special values (the infinities,
+  million pairs of bounds that are no NaN (the empty set is told before) and
+  every pair of the special values (the infinities,
   the zeros, the largest and smallest numbers), and no dependence on `AH` or on
   the order of the operands. The Linux and XNU kernels and the glibc, whose
   sources were read, do not set `AH` by default; a program that does (an

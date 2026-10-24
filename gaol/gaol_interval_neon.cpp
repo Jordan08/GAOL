@@ -397,8 +397,9 @@
     if (any_lane(nan_lanes(x)) || ((right_bits >> 63) != 0 && (right_bits << 1) != 0)) { // empty, or an upper bound below 0
       res = nan_pair();
     } else {
-      // <max(l, 0), max(r, 0)>: the lanes with the sign bit set are cleared (the lane of
-      // an upper bound r is no NaN, nor negative but -0 here)
+      // <max(l, 0), max(r, 0)>: the lanes with the sign bit set are cleared. Neither lane
+      // is a NaN here (told above), which the mask would turn into +0, and the upper bound
+      // is no negative number but -0
       const float64x2_t natural = negate_first(x);
       const uint64x2_t negative = vcltzq_s64(vreinterpretq_s64_f64(natural));
       const float64x2_t v = from_bits(vbicq_u64(bits_of(natural), negative));
