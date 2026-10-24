@@ -872,11 +872,41 @@ namespace gaol_core {
      s*s rounded downward, -((-s)*s) when rounding upward, is below x exactly
      when s*s is, x being a double, and s is then below sqrt(x) (GAOL v5:
      GAOL compared s with x/s, a division, several times slower than a
-     product). */
+     product).
+
+     The products of this check and of gaol_minus_sqrt_down() reach 2^1024 for
+     an x next to the largest double, which raised the overflow exception for
+     a finite root (GAOL v5, point 79 of TODO.md: sqrt([1, DBL_MAX])). From
+     huge_root_argument, 2^1000, the root s >= 2^500 is scaled by 2^-512 and x
+     by 2^-1024 (x >= 2^-24 is then normal), exactly, and the products are
+     those of the check scaled by 2^-1024, rounded to the same bits. */
+  static const double huge_root_argument = 1.0715086071862673e+301; // 2^1000
+  static const double two_power_minus_512 = 7.458340731200207e-155;
+
+  // s*s rounded downward < x, for s the root of x
+  static inline bool square_down_below(double s, double x)
+  {
+    if (x > huge_root_argument) {
+      const double t = read_in_branch(s)*two_power_minus_512;
+      return -((-t)*t) < (read_in_branch(x)*two_power_minus_512)*two_power_minus_512;
+    }
+    return -((-s)*s) < x;
+  }
+
+  // u*u rounded upward == x, for u the root of x
+  static inline bool square_up_equals(double u, double x)
+  {
+    if (x > huge_root_argument) {
+      const double t = read_in_branch(u)*two_power_minus_512;
+      return t*t == (read_in_branch(x)*two_power_minus_512)*two_power_minus_512;
+    }
+    return u*u == x;
+  }
+
   static double gaol_sqrt_up(double x)
   {
     double s = ::sqrt(x);
-    if (-((-s)*s) < x) { // s*s rounded downward < x proves s < sqrt(x)
+    if (square_down_below(s, x)) { // s*s rounded downward < x proves s < sqrt(x)
       s += std::numeric_limits<double>::denorm_min();
     }
     return s;
@@ -892,7 +922,7 @@ namespace gaol_core {
      without setting the rounding direction downward. */
   static double gaol_minus_sqrt_down(double x, double u)
   {
-    return (u*u == x) ? -u : (-u + std::numeric_limits<double>::denorm_min());
+    return square_up_equals(u, x) ? -u : (-u + std::numeric_limits<double>::denorm_min());
   }
 
   /*
@@ -3555,11 +3585,24 @@ namespace gaol_core {
     if (r > std::numeric_limits<double>::max()) {
       return std::numeric_limits<double>::max();
     }
+    // The power of an r next to the root of an x above huge_root_argument may
+    // overflow, which raised the overflow exception (GAOL v5, point 79 of
+    // TODO.md): the step is left out, as for a subnormal x, and the search
+    // starts from the value of CORE-MATH
+    if (x > huge_root_argument) {
+      return r;
+    }
     const double p = ipow_hi(r,n);
     if (p >= std::numeric_limits<double>::min() && p <= std::numeric_limits<double>::max()) {
-      const double s = r - r*((p - x)/(double(n)*p));
-      if (s > 0.0 && s <= std::numeric_limits<double>::max()) {
-	return s;
+      // (p - x)/(n p) as ((p - x)/p)/n: n p overflowed for an n up to 2^32 and
+      // a p above 2^992 (GAOL v5, point 79 of TODO.md). The step is left out
+      // where it is 1 or more in magnitude, p being then no approximation of x
+      const double t = quotient_sat(p - x, p)/double(n);
+      if (std::fabs(t) < 1.0) {
+	const double s = r - r*t;
+	if (s > 0.0 && s <= std::numeric_limits<double>::max()) {
+	  return s;
+	}
       }
     }
     return r;
@@ -3711,14 +3754,21 @@ namespace gaol_core {
     }
   }
 
+  // The scaled proofs also for an x above huge_root_argument, 2^1000: the
+  // powers of the doubles next to the root, up to a relative 2^-17 beyond it
+  // as far as the search goes, stay below 2^1024 up to there, and the plain
+  // ones overflowed above the largest double for a finite root (GAOL v5, point
+  // 79 of TODO.md: nth_root([DBL_MAX], 5))
   static double proved_root_dn(double x, double r, unsigned int n)
   {
-    return (x < tiny_root_argument) ? proved_root_dn_by<scaled_proofs>(x,r,n) : proved_root_dn_by<plain_proofs>(x,r,n);
+    return (x < tiny_root_argument || x > huge_root_argument) ? proved_root_dn_by<scaled_proofs>(x,r,n)
+                                                              : proved_root_dn_by<plain_proofs>(x,r,n);
   }
 
   static double proved_root_up(double x, double r, unsigned int n)
   {
-    return (x < tiny_root_argument) ? proved_root_up_by<scaled_proofs>(x,r,n) : proved_root_up_by<plain_proofs>(x,r,n);
+    return (x < tiny_root_argument || x > huge_root_argument) ? proved_root_up_by<scaled_proofs>(x,r,n)
+                                                              : proved_root_up_by<plain_proofs>(x,r,n);
   }
 
   /*
@@ -3785,6 +3835,26 @@ namespace gaol_core {
   method then by bisection, which took 179 ns for a cube root against 67 ns
   here, and gave bounds up to 2 doubles from the tightest ones.
 */
+/*
+  u*u*u rounded upward == x, for u the cube root of x rounded upward. The
+  products reach 2^1024 for an x next to the largest double, which raised the
+  overflow exception for a finite root (GAOL v5, point 79 of TODO.md): from
+  huge_root_argument, the root u >= 2^333 is scaled by 2^-342 and x by 2^-1026,
+  exactly (x >= 2^-26 is then normal), as the square root is (see
+  gaol_sqrt_up()), and the products scaled with them are rounded to the same
+  bits
+*/
+static const double two_power_minus_342 = 1.1161986242990967e-103, two_power_minus_513 = 3.7291703656001034e-155;
+
+static inline bool cube_up_equals(double u, double x)
+{
+  if (x > huge_root_argument) {
+    const double t = read_in_branch(u)*two_power_minus_342;
+    return t*t*t == (read_in_branch(x)*two_power_minus_513)*two_power_minus_513;
+  }
+  return u*u*u == x;
+}
+
 // Inlined by force with GCC and Clang, as cube_root_upward() and cube_root()
 // below
 #if defined(__GNUC__) || defined(__clang__)
@@ -3801,7 +3871,7 @@ __attribute__((always_inline))
 static inline double cube_root_dn(double x) // x >= 0
 {
   const double u = gaol_cr_cbrt(x);
-  return (u * u * u == x) ? u : previous_float(u);
+  return cube_up_equals(u, x) ? u : previous_float(u);
 }
 
 // The rounding direction being upward already, after the check of cube_root()
@@ -6260,8 +6330,13 @@ interval nth_root(const interval& I, int q)
     }
 #elif GAOL_USING_NEON_INSTRUCTIONS
     // The roots of both bounds by one vector instruction (GAOL v5, see
-    // gaol/gaol_interval_neon.cpp)
-    return interval(neon_detail::sqrt_bounds(I.get_neoninterval()));
+    // gaol/gaol_interval_neon.cpp), unless the upper bound is above
+    // huge_root_argument: the vector product of its proof of exactness
+    // overflows, and the code below scales it (GAOL v5, point 79 of TODO.md).
+    // The empty set, whose bounds are NaN, is not above it
+    if (!gaol_detail::quiet_greater(I.right(), huge_root_argument)) {
+      return interval(neon_detail::sqrt_bounds(I.get_neoninterval()));
+    }
 #endif
     // The part of I in [0, +oo], as nth_root() takes it: the intersection
     // compares the bounds with quiet comparisons, and keeps an empty I as it
