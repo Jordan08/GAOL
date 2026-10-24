@@ -6432,6 +6432,25 @@ interval nth_root(const interval& I, int q)
     program may have set. The cut point is put within [l, r] before the
     direction is restored, by the bits as well (GAOL v5, point Q of TODO.md).
   */
+  // The double next to x on the side of y, x and y finite and different, from the bits of x:
+  // nextafter() of the C library may compare doubles, which the modes that flush the
+  // subnormals to zero change (GAOL v5, point Q of TODO.md)
+  static double bisect_step_toward(double x, double y)
+  {
+    std::uint64_t bits = gaol_detail::bound_bits(x);
+    const bool up = gaol_detail::bound_key(y) > gaol_detail::bound_key(x);
+    if ((bits << 1) == 0u) { // 0, of either sign: the least subnormal on the side of y
+      bits = up ? 1u : 0x8000000000000001ull;
+    } else if (up != ((bits >> 63) != 0u)) { // away from zero
+      ++bits;
+    } else {
+      --bits;
+    }
+    double next;
+    std::memcpy(&next, &bits, sizeof next);
+    return next;
+  }
+
   std::pair<interval, interval> interval::bisect(double ratio) const
   {
     if (!(gaol_detail::bound_greater(ratio, 0.0) && gaol_detail::bound_less(ratio, 1.0))) {
@@ -6453,9 +6472,9 @@ interval nth_root(const interval& I, int q)
       GAOL_RND_KEEP(c);
       // Within [l, r], and strictly inside when the interval is bisectable, before the
       // direction is restored: with GAOL_PRESERVE_ROUNDING the modes that flush the
-      // subnormals to zero come back with it, and c < l, c == l and the nextafter()
-      // of a C library that compares doubles read two subnormal bounds as zeros. The
-      // comparisons are those of the bits, whatever the modes
+      // subnormals to zero come back with it, and c < l and c == l read two subnormal
+      // bounds as zeros. The comparisons and the step to the next double are those of the
+      // bits, whatever the modes
       if (gaol_detail::bound_less(c, l)) {
         c = l;
       } else if (gaol_detail::bound_greater(c, r)) {
@@ -6463,22 +6482,22 @@ interval nth_root(const interval& I, int q)
       }
       if (is_bisectable()) {
         if (gaol_detail::bound_equal(c, l)) {
-          c = std::nextafter(l, r);
+          c = bisect_step_toward(l, r);
         } else if (gaol_detail::bound_equal(c, r)) {
-          c = std::nextafter(r, l);
+          c = bisect_step_toward(r, l);
         }
       }
       // The parts are made in the same way, before the direction is restored. Made after
       // it, with denormals-are-zero back, [c, r] of two subnormals came out as the empty
-      // set with GCC 15: the comparison c <= r of its constructor is the one of
-      // bound_equal(c, r) above, which the compiler can compute once for both, not
-      // knowing that the modes change in between
-      const interval first(l, c), second(c, r);
-      interval kept_first(first), kept_second(second);
-      GAOL_RND_KEEP(kept_first);
-      GAOL_RND_KEEP(kept_second);
+      // set with GCC 15 in a first version of this function; probably the comparison
+      // c <= r of the constructor of [c, r] met a comparison of c and r made before the
+      // modes changed (bound_equal(c, r) above), which the compiler does not know can
+      // differ (not verified)
+      interval first(l, c), second(c, r);
+      GAOL_RND_KEEP(first);
+      GAOL_RND_KEEP(second);
       GAOL_RND_LEAVE();
-      return std::make_pair(kept_first, kept_second);
+      return std::make_pair(first, second);
     }
     return std::make_pair(interval(l, c), interval(c, r));
   }
