@@ -80,12 +80,18 @@
 #include "gaol/gaol_ldexp.h"
 
 // The FMA instructions on two doubles at once, for the integer powers, where
-// the build has them (GAOL v5, see pown_products())
+// the build has them (GAOL v5, see pown_products()): SSE2 with FMA on x86, and
+// the NEON intervals, whose processors all have the fused multiply-add
 #if GAOL_USING_SSE2_INSTRUCTIONS && (defined(__FMA__) || (defined(_MSC_VER) && defined(__AVX2__)))
 #  define GAOL_POWN_PACKED 1
+#  define GAOL_POWN_PACKED_NEON 0
 #  include <immintrin.h>
+#elif GAOL_USING_NEON_INSTRUCTIONS
+#  define GAOL_POWN_PACKED 1
+#  define GAOL_POWN_PACKED_NEON 1
 #else
 #  define GAOL_POWN_PACKED 0
+#  define GAOL_POWN_PACKED_NEON 0
 #endif
 // The same kernel rounded upward by the embedded rounding of AVX-512, where
 // GAOL_AVX512_ARITHMETIC is (GAOL v5, point ZZ of TODO.md, see
@@ -453,8 +459,8 @@ namespace gaol_core {
 
     The bounds come from two corners c0 and c1 (pown_corners()): x^n is c0^n
     at its least and c1^n at its greatest. Both powers are computed at once,
-    |c0|^m in lane 0 and |c1|^m in lane 1 of an SSE2 register (of a pair of
-    doubles in the other builds, the same operations in the same order), as
+    |c0|^m in lane 0 and |c1|^m in lane 1 of an SSE2 register, or of a NEON one
+    (of a pair of doubles in the other builds, the same operations in the same order), as
     h + l, h being the power rounded and l a rest, the sign of c being given
     back to it at the end for an odd m: the products of c and of -c, rounded
     upward, are not opposite, and the powers of c itself would make
@@ -623,9 +629,27 @@ namespace gaol_core {
     return bits;
   }
 
-  // The two lanes: an SSE2 register where the FMA instructions are, a pair
-  // of doubles elsewhere; the rests or-ed together
-#if GAOL_POWN_PACKED
+  // The two lanes: an SSE2 register where the FMA instructions are, a NEON
+  // register with the NEON intervals, a pair of doubles elsewhere; the rests
+  // or-ed together
+#if GAOL_POWN_PACKED_NEON
+  /*
+    The same operations on a NEON register, vmulq_f64() and the fused
+    vfmaq_f64() (GAOL v5, point AP of TODO.md): a * b - c is a * b + (-c), the
+    negation being exact, so that the product is rounded once, as _mm_fmsub_pd()
+    does, and the rests, which are exact, do not depend on the direction. The
+    operations are those of the pair of doubles below, lane by lane, so that
+    the bounds are the same bit for bit
+  */
+  typedef float64x2_t pown_lanes;
+  typedef uint64x2_t pown_rests;
+  static GAOL_POWN_INLINE pown_lanes pown_mul(pown_lanes a, pown_lanes b) { return vmulq_f64(a, b); }
+  static GAOL_POWN_INLINE pown_lanes pown_fms(pown_lanes a, pown_lanes b, pown_lanes c) { return vfmaq_f64(vnegq_f64(c), a, b); }
+  static GAOL_POWN_INLINE pown_lanes pown_fma(pown_lanes a, pown_lanes b, pown_lanes c) { return vfmaq_f64(c, a, b); }
+  static GAOL_POWN_INLINE pown_lanes pown_twice_plus(pown_lanes a, pown_lanes b) { return vfmaq_f64(b, vdupq_n_f64(2.0), a); }
+  static GAOL_POWN_INLINE pown_rests pown_first_rest(pown_lanes e) { return vreinterpretq_u64_f64(e); }
+  static GAOL_POWN_INLINE void pown_add_rest(pown_rests& s, pown_lanes e) { s = vorrq_u64(s, vreinterpretq_u64_f64(e)); }
+#elif GAOL_POWN_PACKED
   typedef __m128d pown_lanes;
   typedef __m128d pown_rests;
   static GAOL_POWN_INLINE pown_lanes pown_mul(pown_lanes a, pown_lanes b) { return _mm_mul_pd(a, b); }
@@ -2350,7 +2374,54 @@ namespace gaol_core {
     const unsigned int L = pown_bit_length(m);
     const double a = I.left(), b = I.right();
     if (!negative || a > 0.0 || b < 0.0) {
-#if GAOL_POWN_PACKED
+#if GAOL_POWN_PACKED_NEON
+      // The block below on a NEON register (GAOL v5, point AP of TODO.md): the
+      // same operations in the same order, so the same bounds, bit for bit
+      // (the sum of the products by the fused vfmaq_f64()). The lanes are
+      // all ones, or all zeros, where the corner is in the range of the tables
+      const double lanes[2] = { a, b }, negated[2] = { -b, -a };
+      const float64x2_t ab = vld1q_f64(lanes), nba = vld1q_f64(negated), zero = vdupq_n_f64(0.0);
+      float64x2_t c = ab;
+      if ((m & 1u) == 0u) {
+        const float64x2_t greater = vmaxq_f64(ab, nba);
+        c = vcombine_f64(vget_low_f64(vmaxq_f64(greater, zero)), vget_high_f64(greater));
+      }
+      if (negative) {
+        c = vextq_f64(c, c, 1);
+      }
+      const float64x2_t g = vabsq_f64(c);
+      uint64x2_t ok = vandq_u64(vcgeq_f64(g, vdupq_n_f64(pown_least[L])), vcleq_f64(g, vdupq_n_f64(pown_greatest[L])));
+      if (!negative) {
+        ok = vorrq_u64(ok, vceqq_f64(c, zero));
+      }
+      if ((vgetq_lane_u64(ok, 0) & vgetq_lane_u64(ok, 1)) != 0u) {
+        float64x2_t h, l, K;
+        uint64x2_t s;
+        pown_powers(g, m, h, l, s);
+        if (negative) {
+          const float64x2_t one = vdupq_n_f64(1.0);
+          const float64x2_t q = vdivq_f64(one, h);
+          const float64x2_t r = vfmsq_f64(vfmsq_f64(one, q, h), q, l); // (1 - q h) - q l
+          const float64x2_t qr = vmulq_f64(q, r);
+          l = vfmaq_f64(qr, qr, r); // q (r + r^2)
+          h = q;
+          s = vorrq_u64(s, vreinterpretq_u64_f64(r));
+          K = vdupq_n_f64(pown_bound_inverse(m, L));
+        } else {
+          K = vdupq_n_f64(pown_bound(m, L));
+        }
+        // The rests compared as integers (see below): K is 0 where they are
+        K = vreinterpretq_f64_u64(vbicq_u64(vreinterpretq_u64_f64(K), vceqzq_u64(s)));
+        // (-v0 + RU(K h - w0), v1 + RU(K h + w1)), v + w being +-(h + l), of
+        // the sign of c for an odd m, the lower bound negated
+        const std::uint64_t sign_bit = 0x8000000000000000ull;
+        const uint64x2_t odd = ((m & 1u) != 0u) ? vandq_u64(vreinterpretq_u64_f64(c), vdupq_n_u64(sign_bit)) : vdupq_n_u64(0u);
+        const uint64x2_t sign = veorq_u64(vcombine_u64(vcreate_u64(sign_bit), vcreate_u64(0u)), odd);
+        const float64x2_t v = vreinterpretq_f64_u64(veorq_u64(vreinterpretq_u64_f64(h), sign));
+        const float64x2_t w = vreinterpretq_f64_u64(veorq_u64(vreinterpretq_u64_f64(l), sign));
+        return interval(vaddq_f64(v, vfmaq_f64(w, K, h)));
+      }
+#elif GAOL_POWN_PACKED
       // (a, b), or (max(a, -b, 0), max(-a, b)) for an even m, and the
       // other way around for n < 0, with the operations of the register:
       // Clang calls std::fmax() under -frounding-math
