@@ -295,10 +295,17 @@ namespace {
     // far above it (beyond is +1). It is false for v = 0, and for the numbers
     // far below the least positive double (GAOL v5, point 79 of TODO.md)
     bool may_overflow;
+    // v may be below 2^-1022, the least normal double: strtod() of a number
+    // that is subnormal, or below the least subnormal, raises the underflow
+    // exception (GAOL v5, decided on 2026-10-24). It is not known to be above
+    // it from the exponent and the digits (at least 10^-307, above 2^-1022, in
+    // decimal, 2^-1022 in base 16, 8 or 2), or it is far below the least
+    // positive double (beyond is -1). It is false for v = 0
+    bool may_underflow;
     gaol_natural scaled;  // N*5^k if k >= 0, N otherwise
     gaol_natural pow5;    // 5^-k if k < 0, no digit otherwise
 
-    gaol_number() : is_zero(true), beyond(0), kb(0), may_overflow(false) {}
+    gaol_number() : is_zero(true), beyond(0), kb(0), may_overflow(false), may_underflow(false) {}
   };
 
   // The number s writes, taken apart
@@ -372,11 +379,14 @@ namespace {
     }
     if (power_of_two ? k2 + digit_bits*ndigits < -1080 : k + ndigits < -330) {
       v.beyond = -1;
+      v.may_underflow = true;
       return v;
     }
     v.kb = k + k2;
     // v < 10^(k+ndigits) < 10^308, or v < 2^(k2+b ndigits) <= 2^1023, is below the largest double
     v.may_overflow = power_of_two ? k2 + digit_bits*ndigits > 1023 : k + ndigits > 308;
+    // v >= 10^(k+ndigits-1) >= 10^-307 > 2^-1022, or v >= 2^(k2+b(ndigits-1)) >= 2^-1022, is a normal double or more
+    v.may_underflow = power_of_two ? k2 + digit_bits*(ndigits - 1) < -1022 : k + ndigits - 1 < -307;
     v.scaled.swap(N);
     if (k >= 0) {
       gaol_natural_mul_pow5(v.scaled, k);
@@ -478,11 +488,19 @@ namespace {
     // is not called: the largest double is the guess, which the steps and the
     // bisection below place. Below it, strtod() cannot overflow, and gives the
     // guess as it did, so that the reading takes as long as before (GAOL v5,
-    // point 79 of TODO.md)
+    // point 79 of TODO.md).
+    // The same for the underflow exception, which strtod() raises for a number
+    // below the least normal double, as it rounds it to a subnormal or to 0:
+    // a number that may be below it is compared with 2^-1022, and when it is
+    // below, 0 is the guess, which the steps and the bisection place, in at
+    // most about a hundred comparisons (GAOL v5, decided on 2026-10-24)
     const double largest = (std::numeric_limits<double>::max)();
+    const double least_normal = gaol_double_of(uint64_t(1) << 52); // 2^-1022
     const bool above_the_doubles = v.may_overflow && gaol_compare_number(v, largest) > 0;
+    const bool below_the_normals = v.may_underflow && gaol_compare_number(v, least_normal) < 0;
     const uint64_t guess = above_the_doubles ? gaol_bits_of(largest)
-                                             : gaol_bits_of(strtod(s,NULL)); // in [0, +oo]
+                           : below_the_normals ? uint64_t(0)
+                           : gaol_bits_of(strtod(s,NULL)); // in [0, +oo]
     const uint64_t top = gaol_bits_of(std::numeric_limits<double>::infinity());
     // gaol_double_of(lo) <= the number < gaol_double_of(hi), sign_lo being
     // the comparison of the number with gaol_double_of(lo)
