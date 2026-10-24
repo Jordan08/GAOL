@@ -944,7 +944,8 @@ point Q), which `numbers` checks there too.
   program with, and `operator<<` wrote it next to the explanation (GAOL v5).
   A null file name given to the same exceptions has to be `(unknown file)`,
   from `file()` and from `operator<<`, which has to leave the stream good for
-  what follows, as have `gaol_warning()` and `gaol_error()` for `std::cerr`:
+  what follows, as have `gaol_warning()` and `gaol_error()` for `std::cerr`,
+  which also have to write no text for a null message:
   the null pointer was sent to the stream, which the standard leaves undefined
   and libstdc++ puts in the state bad (GAOL v5, decided on 2026-10-24).
   The reading of strings by four threads at once, where the reader,

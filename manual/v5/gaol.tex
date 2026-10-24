@@ -6103,7 +6103,9 @@ The \code{gaol\_error()} function is defined as follows:
 \begin{deffun}{void}{gaol\_error}{(const char *\var{file}, int \var{line},
 const char *\var{err})}
 Displays a message on the standard error output. The ternary version should be
-called with the \code{GAOL\_FILE\_POS} macro for the first two parameters.
+called with the \code{GAOL\_FILE\_POS} macro for the first two parameters. A null
+\var{file} is written \code{(unknown file)}, and a null \var{err} is an empty
+text.\newinvfive
 \end{deffun}
 
 The \code{GAOL\_FILE\_POS} macro is described in the next section.
@@ -6265,6 +6267,8 @@ The methods of the class are inherited from \code{gaol\_exception} (\pxref{sec:g
 \begin{deffun}{void}{gaol\_warning}{(const char *\var{file}, int \var{line}, const char *\var{warn})}
 Prints the message \var{warn} on the standard error output. The second form
 should be called with the \code{GAOL\_FILE\_POS} macro for the first two parameters.
+A null \var{file} is written \code{(unknown file)}, and a null \var{warn} is an
+empty text.\newinvfive
 \end{deffun}
 
 \chapter{Debugging facilities}\label{sec:debugging-facilities}

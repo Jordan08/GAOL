@@ -899,7 +899,8 @@ the constructor can give, is the file `(unknown file)` (GAOL v5): `file()` of
 the exceptions of GAOL is never a null pointer, and `operator<<` no longer
 sends one to the stream, which the standard leaves undefined (libstdc++ puts
 it in the state bad, losing what followed). `gaol_warning()` and `gaol_error()`
-do the same for `std::cerr`.
+do the same for `std::cerr`, and write nothing for a null message, as a null
+explanation is none.
 
 Where memory runs out, GAOL throws the `std::bad_alloc` of C++: the reader of
 strings too, where flex ended the program with `exit(2)` when it could not
