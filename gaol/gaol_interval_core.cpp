@@ -132,6 +132,284 @@ namespace gaol_core {
     return v;
   }
 
+  /*
+    Quotients and products of finite doubles a >= 0 and b > 0 (b >= 0 for a
+    product) that return what the operation returns when it overflows,
+    without executing it, so that no overflow exception is raised (GAOL v5,
+    point 79 of TODO.md): +oo rounded upward, and the largest double for
+    -((-a)/b) and -((-a)*b), the same operations rounded downward by the
+    upward rounding GAOL computes in. The intermediate values of the
+    relational functions, which are then intersected with a finite interval,
+    overflow for a finite result: the divisor of div_rel() next to 2^-1074,
+    the slope of a cone of atan2_rel_y()... The exponents e of a and f of b
+    (frexp(), 2^(e-1) <= a < 2^e) tell: a / b is below 2^(e-f+1), so that it
+    is below 2^1023 for e - f <= 1022, and above 2^(e-f-1), so that it is
+    above 2^1024 for e - f >= 1025. Between them, for e - f = 1023 or 1024
+    (e + f = 1024 or 1025 for a product), a quarter of a gives a result
+    between 2^1020 and 2^1023, to compare with a quarter of the largest
+    double: the rounding being monotonic, the result is above the largest
+    double exactly when its quarter is above that quarter, and the scaling by
+    4 is exact (a >= 2^-51 there). The operands go through read_in_branch() where the operation is
+    executed, as above. A first test tells the usual operands, for which the
+    exponents are not computed.
+  */
+  static const double two_power_500 = 3.273390607896142e+150, two_power_minus_500 = 3.054936363499605e-151;
+
+  static inline double dbl_max_quarter()
+  {
+    return 0.25*(std::numeric_limits<double>::max)();
+  }
+
+  // The e of frexp() for a finite d: 2^(e-1) <= d < 2^e for d > 0
+  static inline int exponent_of(double d)
+  {
+    int e;
+    (void)std::frexp(d, &e);
+    return e;
+  }
+
+  static inline double quotient_up_sat(double a, double b)
+  {
+    if (a < two_power_500 && b > two_power_minus_500) { // The quotient is below 2^1000
+      return read_in_branch(a)/b;
+    }
+    const int e = exponent_of(a), f = exponent_of(b);
+    if (e - f <= 1022) {
+      return read_in_branch(a)/b;
+    }
+    if (e - f >= 1025) {
+      return GAOL_INFINITY;
+    }
+    const double q = (0.25*a)/read_in_branch(b);
+    return (q > dbl_max_quarter()) ? GAOL_INFINITY : 4.0*q;
+  }
+
+  // -((-a)/b)
+  static inline double quotient_dn_sat(double a, double b)
+  {
+    if (a < two_power_500 && b > two_power_minus_500) {
+      return -((-read_in_branch(a))/b);
+    }
+    const int e = exponent_of(a), f = exponent_of(b);
+    if (e - f <= 1022) {
+      return -((-read_in_branch(a))/b);
+    }
+    if (e - f >= 1025) {
+      return (std::numeric_limits<double>::max)();
+    }
+    const double q = -((-0.25*a)/read_in_branch(b));
+    return (q >= dbl_max_quarter()) ? (std::numeric_limits<double>::max)() : 4.0*q;
+  }
+
+  static inline double product_up_sat(double a, double b)
+  {
+    if (a < two_power_500 && b < two_power_500) { // The product is below 2^1000
+      return read_in_branch(a)*b;
+    }
+    const int e = exponent_of(a), f = exponent_of(b);
+    if (e + f <= 1023) {
+      return read_in_branch(a)*b;
+    }
+    if (e + f >= 1026) {
+      return GAOL_INFINITY;
+    }
+    const double q = (0.25*a)*read_in_branch(b);
+    return (q > dbl_max_quarter()) ? GAOL_INFINITY : 4.0*q;
+  }
+
+  // -((-a)*b)
+  static inline double product_dn_sat(double a, double b)
+  {
+    if (a < two_power_500 && b < two_power_500) {
+      return -((-read_in_branch(a))*b);
+    }
+    const int e = exponent_of(a), f = exponent_of(b);
+    if (e + f <= 1023) {
+      return -((-read_in_branch(a))*b);
+    }
+    if (e + f >= 1026) {
+      return (std::numeric_limits<double>::max)();
+    }
+    const double q = -((-0.25*a)*read_in_branch(b));
+    return (q >= dbl_max_quarter()) ? (std::numeric_limits<double>::max)() : 4.0*q;
+  }
+
+  /*
+    The quotient a / b of two doubles of any signs, b other than 0, rounded
+    upward, like a / b in the upward rounding GAOL computes in, but for the
+    overflow: it gives the infinity, or the largest double of the opposite
+    sign, that an overflowing quotient gives (see quotient_up_sat()),
+    without raising the exception (GAOL v5, point 79 of TODO.md)
+  */
+  static inline double quotient_sat(double a, double b)
+  {
+    const double x = std::fabs(a), y = std::fabs(b);
+    if (x == 0.0 || (x < two_power_500 && y > two_power_minus_500) || !(x <= (std::numeric_limits<double>::max)())
+        || !(y <= (std::numeric_limits<double>::max)())) {
+      return read_in_branch(a)/b; // The quotient is below 2^1000, or 0, or has an infinite operand
+    }
+    return ((a < 0.0) == (b < 0.0)) ? quotient_up_sat(x, y) : -quotient_dn_sat(x, y);
+  }
+
+  /*
+    div_rel(), mulRev of IEEE 1788-2015, after the check of the rounding
+    direction: the hull of the x of I with an x y in K for a y of J, from the
+    quotients of the bounds of K by those of J, whichever the signs. The FPU
+    and the NEON intervals compute it so, and the SSE2 intervals where a
+    quotient of their vectors could overflow (see div_rel() in
+    gaol/gaol_interval_sse.cpp). The quotients are those of quotient_sat():
+    one that overflows is the infinity it gives, which is intersected with a
+    finite I or joined to an infinite bound of the hull, where the division
+    raised the overflow exception for a finite result, as in div_rel([0, 1/2],
+    [2^-1074, 2^-1022], [0, 1]) (GAOL v5, point 79 of TODO.md). The code is
+    that of the FPU and the NEON intervals, which took the stored bounds of
+    their operands, the opposite of the lower bound being -K.left().
+  */
+  static interval div_rel_upward(const interval &K, const interval &J, const interval &I)
+  {
+    if (K.is_empty() || J.is_empty() || I.is_empty()) {
+      return interval::emptyset();
+    }
+
+    if (K.right() < 0.0) { // [this] N1
+      if (J.right() < 0.0) { // [J] N1
+	// I & [K.r/J.l, K.l/J.r]
+	interval tmp(-(quotient_sat(K.right(), -J.left())),quotient_sat(-K.left(), -J.right()));
+	return I & tmp; // N1 N1
+      } else { // [J] P or Z
+	if (J.right() == 0.0) { // [J] N0 or Z
+	  if (J.left() == 0.0) { // [J] Z
+	    return interval::emptyset(); // N1 Z
+	  }
+	  // I & [K.r/J.l,+oo]
+	  interval tmp(-(quotient_sat(K.right(), -J.left())),GAOL_INFINITY);
+	  return I & tmp; // N1 N0
+	} else { // [I] P or M
+	  if (J.left() < 0.0) { // [J] M
+	    interval tmp(-GAOL_INFINITY,quotient_sat(K.right(), J.right()));
+	    // The lower bound rounded downward, the rounding direction being
+	    // upward (GAOL v5: K.right()/J.left() was rounded upward, and the
+	    // result left out the doubles below it that belong to the hull)
+	    interval tmp2(-(quotient_sat(K.right(), -J.left())),GAOL_INFINITY);
+	    return (I&tmp) | (I&tmp2); // N1 M
+	  } else { // [J] P0 or P1
+	    if (J.left() == 0.0) { // [J] P0
+	      interval tmp2 = I & interval(-GAOL_INFINITY,quotient_sat(K.right(), J.right())); // N1 P0
+	      return tmp2; // N1 P0
+	    } else { // [J] P1
+	      interval tmp(-(quotient_sat(-K.left(), J.left())),quotient_sat(K.right(), J.right()));
+	      return I & tmp; // N1 P1
+	    }
+	  }
+	}
+      }
+    } else { // [this] N0, Z, M, or P
+      if (K.right() == 0.0) { // [this] N0 or Z
+	if (K.left() == 0.0) { // [this] Z
+	  if (J.straddles_zero()) {
+	    return I; // Z (N0, M, P0)
+	  } else {
+	    return I & interval::zero(); // Z (N1, P1)
+	  }
+	} else { // [this] N0
+	  if (J.right() < 0.0) { // [J] N1
+	    interval tmp2 = I & interval(0.0,quotient_sat(K.left(), J.right())); // N0 N1
+	    return tmp2;
+	  } else { // [J] P or Z
+	    if (J.right() == 0.0) { // [J] N0 or Z
+	      if (J.left() == 0.0) { // [J] Z
+		return I; // N0 Z
+	      }
+	      return I; // N0 N0
+	    } else { // [J] P or M
+	      if (J.left() < 0.0) { // [J] M
+		return I; // N0 M
+	      } else { // [J] P0 or P1
+		if (J.left() == 0.0) { // [J] P0
+		  return I; // N0 P0
+		} else { // [J] P1
+		  interval tmp(-(quotient_sat(-K.left(), J.left())),0.0);
+		  return I & tmp; // N0 P1
+		}
+	      }
+	    }
+	  }
+	}
+      } else { // [this] M, P0, or P1
+	if (K.left() < 0.0) { // [this] M
+	  if (J.right() < 0.0) { // [J] N1
+	    interval tmp(-(quotient_sat(K.right(), -J.right())),quotient_sat(-K.left(), -J.right()));
+	    return I & tmp; // M N1
+	  } else { // [J] P or Z
+	    if (J.right() == 0.0) { // [J] N0 or Z
+	      return I; // M N0
+	    } else { // [J] P or M
+	      if (J.left() < 0.0) { // [J] M
+		return I; // M M
+	      } else { // [J] P0 or P1
+		if (J.left() == 0.0) { // [J] P0
+		  return I; // M P0
+		} else { // [J] P1
+		  interval tmp(-(quotient_sat(-K.left(), J.left())),quotient_sat(K.right(), J.left()));
+		  return I & tmp; // M P1
+		}
+	      }
+	    }
+	  }
+	} else { // [this] P0 or P1
+	  if (K.left() == 0.0) { // [this] P0
+	    if (J.right() < 0.0) { // [J] N1
+	      interval tmp(-(quotient_sat(K.right(), -J.right())),0.0);
+	      return I & tmp; // P0 N1
+	    } else { // [J] P or Z
+	      if (J.right() == 0.0) { // [J] N0 or Z
+		return I; // P0 (Z or N0)
+	      } else { // [J] P or M
+		if (J.left() < 0.0) { // [J] M
+		  return I; // P0 M
+		} else { // [J] P0 or P1
+		  if (J.left() == 0.0) { // [J] P0
+		    return I; // P0 P0
+		  } else { // [J] P1
+		    interval tmp2 = I & interval(0.0,quotient_sat(K.right(), J.left())); // P0 P1
+		    return tmp2;
+		  }
+		}
+	      }
+	    }
+	  } else { // [this] P1
+	    if (J.right() < 0.0) { // [J] N1
+	      interval tmp(-(quotient_sat(K.right(), -J.right())),quotient_sat(-K.left(), -J.left()));
+	      return I & tmp; // P1 N1
+	    } else { // [J] P or Z
+	      if (J.right() == 0.0) { // [J] N0 or Z
+		if (J.left() == 0.0) { // [J] Z
+		  return interval::emptyset(); // P1 Z
+		}
+		interval tmp2 = I & interval(-GAOL_INFINITY,quotient_sat(-K.left(), -J.left())); // P1 N0
+		return tmp2;
+	      } else { // [J] P or M
+		if (J.left() < 0.0) { // [J] M
+		  interval tmp(-GAOL_INFINITY,quotient_sat(-K.left(), -J.left()));
+		  interval tmp2 = interval(-(quotient_sat(-K.left(), J.right())),GAOL_INFINITY);
+		  return (I&tmp) | (I&tmp2); // P1 M
+		} else { // [J] P0 or P1
+		  if (J.left() == 0.0) { // [J] P0
+		    interval tmp(-(quotient_sat(-K.left(), J.right())),GAOL_INFINITY);
+		    return I & tmp; // P1 P0
+		  } else { // [J] P1
+		    interval tmp(-(quotient_sat(-K.left(), J.right())),quotient_sat(K.right(), J.left()));
+		    return I & tmp; // P1 P1
+		  }
+		}
+	      }
+	    }
+	  }
+	}
+      }
+    }
+  }
+
 #if (defined(__x86_64__) || defined(_M_X64)) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_AVX512_ARITHMETIC
   // GAOL_AVX512_ARITHMETIC, decided when GAOL is configured: +, -, *, /, sqr,
   // sqrt and, with FMA, the integer powers beyond 1 and -1 take the AVX-512
