@@ -3318,6 +3318,60 @@ int main()
         }
       }
     }
+#if defined(__aarch64__)
+    /*
+      FPCR.AH (bit 1, FEAT_AFP of Armv8.7; GAOL v5, point AP of TODO.md), which
+      GAOL does not clear: with it, FMAX and FMAXP return the second operand for
+      two zeros of different signs (and for a NaN), where they rank +0 above -0.
+      The NEON kernels take a maximum (the products, the square) and sqrt() took
+      one with +0, whose operands a compiler may exchange; it now clears the
+      lanes by their sign bits. With AH set, the sums, differences, products,
+      quotients, squares and square roots of the intervals with the bounds
+      -oo, -4, -0, 0, 4 and +oo, and of the empty set, are those with AH clear,
+      the sign of a zero bound aside, which the maxima of the products leave to
+      the processor (doc/accuracy.md); the square root is the same bit for bit.
+      The processors before Armv8.7, the Apple M2 among them, and the emulators
+      do not retain the bit: nothing is then checked, and the test says so.
+    */
+    const unsigned long long ah = retained(0x2ull);
+    if (ah == 0ull) {
+      std::printf("FPCR has no AH (FEAT_AFP) here: the operations are not checked with it\n");
+    } else {
+      struct AhOperation
+      {
+        const char *name;
+        interval (*run)(const interval& x, const interval& y);
+        bool same_bits;
+      };
+      const AhOperation ah_operations[] = {
+        { "x + y", [](const interval& x, const interval& y) { return x + y; }, false },
+        { "x - y", [](const interval& x, const interval& y) { return x - y; }, false },
+        { "x * y", [](const interval& x, const interval& y) { return x * y; }, false },
+        { "x / y", [](const interval& x, const interval& y) { return x / y; }, false },
+        { "sqr(x)", [](const interval& x, const interval&) { return sqr(x); }, false },
+        { "sqrt(x)", [](const interval& x, const interval&) { return sqrt(x); }, true },
+      };
+      const std::vector<interval> ah_operands = infinite_operands();
+      for (const AhOperation& op : ah_operations) {
+        for (const interval& x : ah_operands) {
+          for (const interval& y : ah_operands) {
+            write_fpcr(saved);
+            const interval without = op.run(x, y);
+            write_fpcr(saved | ah);
+            const interval with = op.run(x, y);
+            const unsigned long long after = read_fpcr();
+            write_fpcr(saved);
+            const auto describe = [&] { return "x = " + hex(x) + ", y = " + hex(y) + ": " + hex(with) + " with AH, " + hex(without) + " without"; };
+            check(std::string(op.name) + " with FPCR.AH set: the bounds it gives without", same_result(with, without), describe);
+            if (op.same_bits) {
+              check(std::string(op.name) + " with FPCR.AH set: the same bits", hex(with) == hex(without), describe);
+            }
+            check(std::string(op.name) + " with FPCR.AH set: AH kept", (after & ah) == ah, describe);
+          }
+        }
+      }
+    }
+#endif
     write_fpcr(saved);
     std::feclearexcept(FE_ALL_EXCEPT);
   }
