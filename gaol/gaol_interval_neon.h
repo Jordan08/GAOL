@@ -83,13 +83,13 @@ namespace neon_detail {
 // when it is compiled, the lanes here are written in the code that uses them
 GAOL_INLINE interval interval::universe(void)
 {
-  return interval(vdupq_n_f64(GAOL_INFINITY));
+  return interval(vdupq_n_f64(GAOL_INFINITY), gaol_detail::unchecked_bounds);
 }
 
 // <+0, +0>, as the SSE2 intervals: [0, 0] with -0 as its left bound
 GAOL_INLINE interval interval::zero(void)
 {
-  return interval(vdupq_n_f64(0.0));
+  return interval(vdupq_n_f64(0.0), gaol_detail::unchecked_bounds);
 }
 
 // Both bounds NaN, as interval(double) sets them for a NaN, but without the
@@ -97,12 +97,25 @@ GAOL_INLINE interval interval::zero(void)
 // a NaN, and a build without optimization runs them (GAOL v5)
 GAOL_INLINE interval interval::emptyset(void)
 {
-  return interval(vdupq_n_f64(std::numeric_limits<double>::quiet_NaN()));
+  return interval(vdupq_n_f64(std::numeric_limits<double>::quiet_NaN()), gaol_detail::unchecked_bounds);
 }
 
-GAOL_INLINE interval::interval(const float64x2_t& v)
+GAOL_INLINE interval::interval(const float64x2_t& v, gaol_detail::unchecked_bounds_t)
 {
   neonbounds = v;
+}
+
+// The stored bounds <-l, r>: -oo in a lane is l = +oo or r = -oo, which no
+// interval has (IEEE 1788-2015, 10.5.8). Told by the bits, with integer
+// instructions: nothing is compared as a double
+GAOL_INLINE interval::interval(const float64x2_t& v)
+{
+  using namespace neon_detail;
+  if (any_lane(vceqq_u64(bits_of(v), vdupq_n_u64(infinity_bits | 0x8000000000000000ull)))) {
+    neonbounds = vdupq_n_f64(std::numeric_limits<double>::quiet_NaN());
+  } else {
+    neonbounds = v;
+  }
 }
 
 GAOL_INLINE interval interval::positive(void)
@@ -183,7 +196,7 @@ GAOL_INLINE float64x2_t& interval::get_neoninterval(void)
 // of the empty set)
 GAOL_INLINE interval interval::operator-(void) const
 {
-  return interval(vextq_f64(neonbounds, neonbounds, 1));
+  return interval(vextq_f64(neonbounds, neonbounds, 1), gaol_detail::unchecked_bounds);
 }
 
 /*
@@ -269,7 +282,7 @@ GAOL_INLINE interval& interval::operator/=(const interval& I)
 //! I^2
 GAOL_NODISCARD GAOL_INLINE interval sqr(const interval& I)
 {
-  return interval(sqr_bounds(I.get_neoninterval()));
+  return interval(sqr_bounds(I.get_neoninterval()), gaol_detail::unchecked_bounds);
 }
 
 #endif // GAOL_INTERVAL_NEON_H

@@ -158,7 +158,7 @@
   // check (GAOL v5)
   interval interval::sqr_upward(const interval& I)
   {
-    return interval(neon_detail::sqr_products(I.neonbounds));
+    return interval(neon_detail::sqr_products(I.neonbounds), gaol_detail::unchecked_bounds);
   }
 
   namespace neon_detail {
@@ -431,7 +431,7 @@
     if (neon_detail::any_lane(neon_detail::nan_lanes(I.neonbounds))) {
       return interval::emptyset();
     }
-    return interval(neon_detail::divide_upward(neon_detail::stored(-1.0, 1.0), I.neonbounds, false));
+    return interval(neon_detail::divide_upward(neon_detail::stored(-1.0, 1.0), I.neonbounds, false), gaol_detail::unchecked_bounds);
   }
 
   interval interval::inverse() const
@@ -441,7 +441,7 @@
     }
 
     GAOL_RND_ENTER();
-    interval res = inverse_upward(interval(neon_detail::reread_bounds(neonbounds)));
+    interval res = inverse_upward(interval(neon_detail::reread_bounds(neonbounds), gaol_detail::unchecked_bounds));
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
     return res;

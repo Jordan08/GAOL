@@ -2388,7 +2388,7 @@ namespace gaol_core {
         // the sign of c for an odd m, the lower bound negated
         const __m128d odd = ((m & 1u) != 0u) ? minus_zero : zero;
         const __m128d sign = _mm_xor_pd(_mm_set_pd(0.0, -0.0), _mm_and_pd(c, odd));
-        return interval(_mm_add_pd(_mm_xor_pd(h, sign), _mm_fmadd_pd(K, h, _mm_xor_pd(l, sign))));
+        return interval(_mm_add_pd(_mm_xor_pd(h, sign), _mm_fmadd_pd(K, h, _mm_xor_pd(l, sign))), gaol_detail::unchecked_bounds);
       }
 #else
       double c0, c1;
@@ -2619,7 +2619,7 @@ namespace gaol_core {
       const flush_guard flush;
       __m128d stored;
       if (pown_large_er(flush_guard::in(I.left()), flush_guard::in(I.right()), n, stored)) {
-        return interval(flush_guard::out(stored));
+        return interval(flush_guard::out(stored), gaol_detail::unchecked_bounds);
       }
     }
 #endif
@@ -6494,7 +6494,7 @@ interval nth_root(const interval& I, int q)
        checks the modes for the intersection, a lower bound -1e-310 having
        been compared equal to 0) */
     if (!I.is_empty()) {
-      return interval(fast_sqrt(I.get_xmminterval()));
+      return interval(fast_sqrt(I.get_xmminterval()), gaol_detail::unchecked_bounds);
     }
 #elif GAOL_USING_NEON_INSTRUCTIONS
     // The roots of both bounds by one vector instruction (GAOL v5, see
@@ -6503,7 +6503,7 @@ interval nth_root(const interval& I, int q)
     // overflows, and the code below scales it (GAOL v5, point 79 of TODO.md).
     // The empty set, whose bounds are NaN, is not above it
     if (!gaol_detail::quiet_greater(I.right(), huge_root_argument)) {
-      return interval(neon_detail::sqrt_bounds(I.get_neoninterval()));
+      return interval(neon_detail::sqrt_bounds(I.get_neoninterval()), gaol_detail::unchecked_bounds);
     }
 #endif
     // The part of I in [0, +oo], as nth_root() takes it: the intersection
