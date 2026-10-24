@@ -120,6 +120,16 @@ namespace gaol_ieee1788 {
   */
   GAOL_NODISCARD extern GAOL_PUBLIC interval textToInterval(const std::string& s);
   
+  /*!
+  textToInterval(s) for a C string (GAOL v5): the same, except for a null
+  pointer, which is no string and throws input_format_error as
+  gaol::textToInterval() does, where a string that is no interval gives the
+  empty set. A null pointer given to the overload of std::string builds a
+  std::string from it, which the standard leaves undefined. Without
+  exceptions, a message and abort() then, as for any error of GAOL.
+  */
+  GAOL_NODISCARD extern GAOL_PUBLIC interval textToInterval(const char* s);
+
   // ----------------------------------------------------------------------
   // Forward elementary functions (Table 9.1)
   // ----------------------------------------------------------------------
@@ -485,6 +495,8 @@ namespace gaol_ieee1788 {
   
   //! exactToInterval(s): textToInterval(s)
   GAOL_NODISCARD inline interval exactToInterval(const std::string& s) { return textToInterval(s); }
+  //! exactToInterval(s) for a C string: textToInterval(s), which throws input_format_error for a null pointer (GAOL v5)
+  GAOL_NODISCARD inline interval exactToInterval(const char* s) { return textToInterval(s); }
   
   /*!
     mulRevToPair(b, c): the two-output division of IEEE 1788-2015 (10.5.5)

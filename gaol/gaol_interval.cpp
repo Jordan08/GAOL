@@ -51,6 +51,35 @@ namespace gaol {
     return tmp;
   }
 
+  namespace {
+    /*
+      A null pointer is no string (GAOL v5, point 128 of TODO.md): the
+      overloads of std::string would build a std::string from it, which the
+      standard leaves undefined (libstdc++ throws std::logic_error, and libc++
+      and Visual C++ probably read it with strlen()). what names the argument
+      in the message, as a syntax error does. The throw is the error of GAOL for
+      a reading that fails, input_format_error; without exceptions, a message
+      and abort() then.
+    */
+    void refuse_null_pointer(const char* s, const char* what)
+    {
+      if (s == nullptr) {
+        std::string err_msg("Null pointer in ");
+        err_msg += what;
+        err_msg += " initialization: a null pointer is no string";
+        GAOL_ERRNO = -1;
+        gaol_ERROR(input_format_error,err_msg.c_str());
+      }
+    }
+  }
+
+  // textToInterval(s) of a C string, which takes the null pointer
+  interval textToInterval(const char* s)
+  {
+    refuse_null_pointer(s, "interval");
+    return textToInterval(std::string(s));
+  }
+
   // The constructor interval(const char*, const char*) of GAOL 4, as a
   // function (GAOL v5): the left bound of the interval sl writes and the
   // right bound of the one sr writes
@@ -74,6 +103,27 @@ namespace gaol {
     // when the constructor compared them with <=, which raises the
     // invalid-operation exception on a NaN)
     return interval(tmpl.left(), tmpr.right());
+  }
+
+  // textToInterval(sl, sr) with C strings, in either place or both, which take
+  // the null pointer (GAOL v5, point 128 of TODO.md)
+  interval textToInterval(const char* sl, const char* sr)
+  {
+    refuse_null_pointer(sl, "left bound");
+    refuse_null_pointer(sr, "right bound");
+    return textToInterval(std::string(sl), std::string(sr));
+  }
+
+  interval textToInterval(const char* sl, const std::string& sr)
+  {
+    refuse_null_pointer(sl, "left bound");
+    return textToInterval(std::string(sl), sr);
+  }
+
+  interval textToInterval(const std::string& sl, const char* sr)
+  {
+    refuse_null_pointer(sr, "right bound");
+    return textToInterval(sl, std::string(sr));
   }
 
 } // namespace gaol
