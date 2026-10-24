@@ -138,7 +138,7 @@ namespace {
   }
 
   // n = n*5^e, with e >= 0
-  void gaol_natural_mul_pow5(gaol_natural& n, long e)
+  void gaol_natural_mul_pow5(gaol_natural& n, long long e)
   {
     for (; e >= 13; e -= 13) {
       gaol_natural_mul_add(n, 1220703125u, 0); // 5^13
@@ -151,7 +151,7 @@ namespace {
   }
 
   // n = n*2^e, with e >= 0
-  void gaol_natural_shift_left(gaol_natural& n, long e)
+  void gaol_natural_shift_left(gaol_natural& n, long long e)
   {
     if (n.empty()) {
       return;
@@ -284,7 +284,11 @@ namespace {
     // marked). 0 otherwise, numbers just beyond the doubles included, which the
     // comparisons place.
     int beyond;
-    long kb;              // k + k2
+    // k + k2: long long, as k and k2, which are worth up to 5 times the
+    // length of the text (8 times in base 16, 4 bits a digit): 2^31 and more
+    // for a text of 2^29 characters, where a long of 32 bits (Windows, i386,
+    // armhf) wrapped (GAOL v5, point 85 of TODO.md)
+    long long kb;
     gaol_natural scaled;  // N*5^k if k >= 0, N otherwise
     gaol_natural pow5;    // 5^-k if k < 0, no digit otherwise
 
@@ -296,7 +300,7 @@ namespace {
   {
     // v = N*10^k*2^k2, N being written with ndigits digits
     gaol_natural N;
-    long k = 0, k2 = 0, ndigits = 0;
+    long long k = 0, k2 = 0, ndigits = 0;
     const long long exponent_bound = gaol_exponent_bound(s);
     const bool hexadecimal = (s[0] == '0' && (s[1] == 'x' || s[1] == 'X'));
     const bool octal = (s[0] == '0' && (s[1] == 'o' || s[1] == 'O'));
@@ -304,7 +308,7 @@ namespace {
     // A number in base 16, 8 or 2 has a binary exponent, after a p, and each
     // of its digits after the point is worth 4, 3 or 1 bits
     const bool power_of_two = hexadecimal || octal || binary;
-    const long digit_bits = hexadecimal ? 4 : (octal ? 3 : 1);
+    const long long digit_bits = hexadecimal ? 4 : (octal ? 3 : 1);
     const uint32_t base = hexadecimal ? 16 : (octal ? 8 : (binary ? 2 : 10));
     if (power_of_two) {
       s += 2;
@@ -344,7 +348,7 @@ namespace {
       if (e > exponent_bound) {
         e = exponent_bound;
       }
-      (power_of_two ? k2 : k) += static_cast<long>(negative ? -e : e);
+      (power_of_two ? k2 : k) += (negative ? -e : e);
     }
 
     gaol_number v;
@@ -584,7 +588,7 @@ namespace {
   }
 
   // The tightest interval of doubles [l, r] enclosing a*10^q
-  void gaol_enclose_decimal(const gaol_decimal& a, long q, double& l, double& r)
+  void gaol_enclose_decimal(const gaol_decimal& a, long long q, double& l, double& r)
   {
     const std::string s = a.magnitude + "e" + std::to_string(q);
     double lo, hi;
@@ -615,7 +619,7 @@ namespace {
     if (*s == '-' || *s == '+') {
       ++s;
     }
-    long places = 0; // Digits after the point
+    long long places = 0; // Digits after the point
     bool fraction = false;
     for (; *s != '?'; ++s) {
       if (*s == '.') {
@@ -643,7 +647,7 @@ namespace {
       direction = static_cast<char>(*s | 0x20);
       ++s;
     }
-    long exponent = 0;
+    long long exponent = 0;
     if (*s == 'e' || *s == 'E') {
       ++s;
       const bool negative = (*s == '-');
@@ -656,7 +660,7 @@ namespace {
           e = 10*e + (*s - '0');
         }
       }
-      exponent = static_cast<long>((e > exponent_bound) ? exponent_bound : e);
+      exponent = (e > exponent_bound) ? exponent_bound : e;
       if (negative) {
         exponent = -exponent;
       }
@@ -679,7 +683,7 @@ namespace {
       r10.magnitude = radius.empty() ? std::string("5") : radius + "0";
       minus_r10.negative = true;
       minus_r10.magnitude = r10.magnitude;
-      const long q = exponent - places - 1;
+      const long long q = exponent - places - 1;
       double lo, hi;
       gaol_enclose_decimal((direction == 'u') ? m10 : gaol_decimal_add(m10, minus_r10), q, l, hi);
       gaol_enclose_decimal((direction == 'd') ? m10 : gaol_decimal_add(m10, r10), q, lo, r);
