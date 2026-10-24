@@ -1412,8 +1412,10 @@ point Q), which `numbers` checks there too.
   with `using namespace gaol_core`, a call finds the function of the same name
   and type that the program declares, where the kernels in `gaol_core` made it
   ambiguous and the program did not compile; and that the kernels in
-  `gaol_detail` give the bounds of `x + y`, `x - y`, `x * y`, `x / y` and
-  `sqr(x)`. The FPU intervals have no such kernels, and nothing is checked.
+  `gaol_detail`, called on the bounds in the registers, give the sum, the
+  difference, the product, the quotient and the square of `[-3, 2]` and
+  `[0.5, 4]`, which are exact in doubles. The FPU intervals have no such
+  kernels, and nothing is checked.
   `test_heap_alignment` checks that the heap holds a type as aligned as an
   interval, which holds no vector (a `char` aligned on `alignof(interval)`,
   16 bytes with the SSE2 and NEON intervals), aligned in `std::allocator`,
