@@ -2335,10 +2335,12 @@ namespace
     return z.left() <= c.l && z.left() >= lo && z.right() >= c.r && z.right() <= hi;
   }
 
+#if GAOL_TESTS_TRAPS
   bool same_interval(const interval& a, const interval& b)
   {
     return (a.is_empty() && b.is_empty()) || (!a.is_empty() && !b.is_empty() && a.left() == b.left() && a.right() == b.right());
   }
+#endif
 
   /*
     The relations in loops, which a compiler vectorizes or if-converts (GAOL
