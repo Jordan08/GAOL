@@ -882,27 +882,40 @@ namespace
 #endif
   }
 
-  /* gaol_warning() and gaol_error() with a null file name (GAOL v5, decided on
-     2026-10-24): they wrote the pointer to std::cerr, which went to the state
-     bad, and the diagnostics written after it were lost. They write "(unknown
-     file)" now, and std::cerr stays good. std::cerr is redirected to a string
-     for the time of the calls. */
-  void unknown_file_in_diagnostics()
+  /* gaol_warning() and gaol_error() with a null file name or a null message
+     (GAOL v5, decided on 2026-10-24): they wrote the pointer to std::cerr,
+     which the standard leaves undefined and libstdc++ puts in the state bad,
+     and the diagnostics written after it were lost. They write "(unknown
+     file)" for a null file name and nothing for a null message now, and
+     std::cerr stays good. std::cerr is redirected to a string for the time of
+     the calls. */
+  void null_pointers_in_diagnostics()
   {
     std::ostringstream captured;
     std::streambuf *const saved = std::cerr.rdbuf(captured.rdbuf());
-    const char* const no_file = nullptr;
-    gaol_core::gaol_warning(no_file, 7, "careful");
-    gaol_core::gaol_error(no_file, 8, "wrong");
-    gaol_core::gaol_warning("a.cpp", 9, "after");
+    const char* const none = nullptr;
+    gaol_core::gaol_warning(none, 7, "careful");
+    gaol_core::gaol_error(none, 8, "wrong");
+    gaol_core::gaol_warning("a.cpp", 9, none);
+    gaol_core::gaol_error("b.cpp", 10, none);
+    gaol_core::gaol_warning(none);
+    gaol_core::gaol_error(none);
+    gaol_core::gaol_warning(none, 11, none);
+    gaol_core::gaol_warning("a.cpp", 12, "after");
     const bool cerr_is_good = std::cerr.good();
     std::cerr.rdbuf(saved);
     std::cerr.clear();
-    check("gaol_warning() and gaol_error() write an unknown file for a null file name, and std::cerr stays good",
+    check("gaol_warning() and gaol_error() write an unknown file for a null file name and no text for a null message, "
+          "and std::cerr stays good",
           cerr_is_good
           && captured.str() == "[gaol warning in (unknown file):7]: careful\n"
                                "[gaol error in (unknown file):8]: wrong\n"
-                               "[gaol warning in a.cpp:9]: after\n",
+                               "[gaol warning in a.cpp:9]: \n"
+                               "[gaol error in b.cpp:10]: \n"
+                               "[gaol warning]: \n"
+                               "[gaol error]: \n"
+                               "[gaol warning in (unknown file):11]: \n"
+                               "[gaol warning in a.cpp:12]: after\n",
           [&] { return captured.str(); });
   }
 
@@ -1999,7 +2012,7 @@ int main()
   step("names_under_turkish_locale"); names_under_turkish_locale();
   step("wrong_strings");     wrong_strings();
   step("null_pointer");      null_pointer();
-  step("unknown_file");      unknown_file_in_diagnostics();
+  step("null_diagnostics");  null_pointers_in_diagnostics();
   step("reversed_bounds");   reversed_bounds();
   step("degenerate_bounds"); degenerate_bounds();
   step("integer_exponents"); integer_exponents();
