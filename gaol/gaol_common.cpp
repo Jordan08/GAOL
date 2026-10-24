@@ -185,45 +185,26 @@ namespace gaol_core {
     the_null_expr = 0;
   }
   
-  namespace {
-    /*
-      A null pointer is no file name (GAOL v5, as for gaol_exception): written
-      to a stream, which the standard leaves undefined and libstdc++ puts in the
-      state bad, so that the diagnostics that followed on std::cerr were lost.
-    */
-    const char* known_file(const char *file)
-    {
-      return (file != nullptr) ? file : "(unknown file)";
-    }
-
-    /*
-      A null pointer is no message either (GAOL v5, decided on 2026-10-24): an
-      empty text, as a null explanation is none for gaol_exception
-    */
-    const char* known_text(const char *text)
-    {
-      return (text != nullptr) ? text : "";
-    }
-  }
-
+  // A null file name is "(unknown file)", and a null message an empty text
+  // (gaol_detail::known_file() and known_text() of gaol/gaol_common.h; GAOL v5)
   void gaol_warning(const char *file, int line, const char *warn)
   {
-    std::cerr << "[gaol warning in " << known_file(file) << ':' << line << "]: " << known_text(warn) << std::endl;
+    std::cerr << "[gaol warning in " << ::gaol_detail::known_file(file) << ':' << line << "]: " << ::gaol_detail::known_text(warn) << std::endl;
   }
   
   void gaol_warning(const char *warn)
   {
-    std::cerr << "[gaol warning]: " << known_text(warn) << std::endl;
+    std::cerr << "[gaol warning]: " << ::gaol_detail::known_text(warn) << std::endl;
   }
   
   void gaol_error(const char *file, int line, const char *err)
   {
-    std::cerr << "[gaol error in " << known_file(file) << ':' << line << "]: " << known_text(err) << std::endl;
+    std::cerr << "[gaol error in " << ::gaol_detail::known_file(file) << ':' << line << "]: " << ::gaol_detail::known_text(err) << std::endl;
   }
   
   void gaol_error(const char *err)
   {
-    std::cerr << "[gaol error]: " << known_text(err) << std::endl;
+    std::cerr << "[gaol error]: " << ::gaol_detail::known_text(err) << std::endl;
   }
   
   /* The larger and the smaller of two doubles, +0 and -0 for two zeros of

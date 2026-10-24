@@ -209,6 +209,31 @@ namespace gaol_core {
   
 } // namespace gaol_core
 
+// What GAOL's headers define for their own use (see gaol/gaol_port.h)
+namespace gaol_detail {
+  /*
+    A null pointer is no file name (GAOL v5, decided on 2026-10-24): written
+    to a stream, which the standard leaves undefined and libstdc++ puts in the
+    state bad, the diagnostics that followed were lost. The name of the file of
+    gaol_exception, gaol_warning() and gaol_error() is this one: "(unknown
+    file)" for a null pointer. The macros of GAOL always give __FILE__; a
+    direct call can give a null pointer.
+  */
+  inline const char* known_file(const char* file)
+  {
+    return (file != nullptr) ? file : "(unknown file)";
+  }
+
+  /*
+    A null pointer is no message either (GAOL v5, decided on 2026-10-24): an
+    empty text, as a null explanation is none for gaol_exception
+  */
+  inline const char* known_text(const char* text)
+  {
+    return (text != nullptr) ? text : "";
+  }
+} // namespace gaol_detail
+
 // In the namespace gaol too, as in GAOL 4, and restore_rounding() of GAOL v5;
 // not gaol_initializer (see gaol/gaol_interval_core.h)
 namespace gaol {
