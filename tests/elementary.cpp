@@ -799,34 +799,28 @@ namespace
       check("div_rel([2],J,universe) for J of the register of [+oo] or [-oo]: empty", div_rel(two, J, universe).is_empty(), describe);
       check("sqrt_rel(universe,J) for J of the register of [+oo] or [-oo]: empty", sqrt_rel(universe, J).is_empty(), describe);
     }
-    // The lanes <-left, right>, as a register of the SSE2 or the NEON intervals holds them
-    struct Lanes
-    {
-      double first, second;
-      bool empty;
-      double left, right;
-    };
-    const Lanes lanes_cases[] = {
-      { inf, inf, false, -inf, inf },     // the universe
-      { -5.0, inf, false, 5.0, inf },     // [5, +oo]
-      { inf, 5.0, false, -inf, 5.0 },     // [-oo, 5]
-      { 1.0, 2.0, false, -1.0, 2.0 },     // [-1, 2]
-      { -0.0, 0.0, false, 0.0, 0.0 },     // [0, 0]
-      { -inf, 3.0, true, 0.0, 0.0 },      // l = +oo, u = 3
-      { 1.0, -inf, true, 0.0, 0.0 },      // l = -1, u = -oo
-      { std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN(), true, 0.0, 0.0 },
-    };
-    for (const Lanes& c : lanes_cases) {
+    // The lanes <-left, right>, as a register of the SSE2 or the NEON intervals holds them.
+    // A function called for each case, not a table of structures: GCC 12.2 on aarch64 at -O2
+    // gave the loop over such a table values that are not the ones of the table
+    const auto register_case = [&](double first, double second, bool empty, double left, double right) {
 #  if defined(GAOL_USING_SSE2_INSTRUCTIONS) && GAOL_USING_SSE2_INSTRUCTIONS
-      const interval K(_mm_set_pd(c.second, c.first));
+      const interval K(_mm_set_pd(second, first));
 #  else
-      const double values[2] = { c.first, c.second };
+      const double values[2] = { first, second };
       const interval K(vld1q_f64(values));
 #  endif
       check("the interval of a register: the empty set for a lane at -oo, else the interval of its lanes",
-            K.is_empty() == c.empty && (c.empty || (K.left() == c.left && K.right() == c.right)),
-            [&] { return "lanes <" + hex(c.first) + ", " + hex(c.second) + ">: " + hex(K); });
-    }
+            K.is_empty() == empty && (empty || (K.left() == left && K.right() == right)),
+            [&] { return "lanes <" + hex(first) + ", " + hex(second) + ">: " + hex(K); });
+    };
+    register_case(inf, inf, false, -inf, inf);   // the universe
+    register_case(-5.0, inf, false, 5.0, inf);   // [5, +oo]
+    register_case(inf, 5.0, false, -inf, 5.0);   // [-oo, 5]
+    register_case(1.0, 2.0, false, -1.0, 2.0);   // [-1, 2]
+    register_case(-0.0, 0.0, false, 0.0, 0.0);   // [0, 0]
+    register_case(-inf, 3.0, true, 0.0, 0.0);    // l = +oo, u = 3
+    register_case(1.0, -inf, true, 0.0, 0.0);    // l = -1, u = -oo
+    register_case(std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN(), true, 0.0, 0.0);
 #endif
 
     // An integer exponent beyond the ints, for which pow(const interval&, int)
