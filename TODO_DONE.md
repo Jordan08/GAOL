@@ -1629,6 +1629,16 @@ le travail qu'elles décident est fait le même soir et ouvert en pull requests
   quatre sens, `nextafter()` qui calcule le débordement dans le sens d'arrondi
   du programme, CPack qui ne met pas le lien `README` dans l'archive) est un
   brouillon : rien n'est envoyé.
+- **Sept questions de `TODO.md`, tranchées par le mainteneur** (24 octobre) :
+  PA.4 `<a, b>` avec une borne calculée qui n'est pas un double : la refuser
+  aussi ; PA.5 une `gaol_exception` avec un `file` nul : écrire « (unknown file)
+  » ; PB.3 la phrase d'introduction des exceptions flottantes de `doc/using.md`
+  et du manuel : la supprimer, quand le 79 est fait ; PC.4 `bisect(ratio)` et
+  `is_bisectable()` sous FZ : revérifier, puis corriger ; PF.3
+  `GAOL_RND_NEAREST_ENTER()` et `GAOL_RND_ENTER_SSE()` : n'écrire que si ça
+  change, aux deux familles, mesuré par le banc A/B ; PG.4 le seuil de la liste
+  de `compare-performance.py` : 1,5 ; PJ.4 le second paragraphe de l'annonce à
+  Frédéric Goualard : le garder tel quel. La première tâche à traiter est PA.
 - **Les registres** : ménage des TODO. #49 et #142 sont fermées,
   `TODO_mistral.md` est supprimé, `TODO.md` est vidé puis réécrit avec le reste
   à faire en tâches PA à PJ ; les trois nouveaux registres sont #177 (ce

@@ -38,7 +38,7 @@ ouverte.
 
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
-| PA | La lecture des textes : pointeurs nuls, exposants, `1e400` | 128, 85, 79 (lecture) | S |
+| PA | La lecture des textes : pointeurs nuls, exposants, `1e400`, `<a, b>`, `file` nul | 128, 85, 79 (lecture), et deux | S |
 | PB | Les exceptions flottantes levées à tort, les réciproques de `pow` | 79, 82 | L |
 | PC | Les noyaux SSE2 et NEON | 131, 129, 132 | M |
 | PD | `process.md`, les textes, les tests, le ménage | 130 et cinq petits | S |
@@ -82,14 +82,18 @@ i386 et armhf de la CI).
    meurt à la lecture ; déjà ainsi avant #149, qui l'a relevé ; ajouté au 79 le
    20 octobre. C'est la partie du 79 qui touche le lexeur ; le reste du 79 est
    dans PB.
-4. **À décider** (#149) : `<a, b>` accepte encore une borne calculée qui n'est
-   pas un double (`<[0.1], 0x1.9999999999999p-4>`, un littéral comme borne) ;
-   seuls les nombres écrits et pi sont refusés. Refuser aussi, ou documenter.
-5. **À décider, peu prioritaire** (#147) : une `gaol_exception` construite avec
-   un `file` nul (`gaol_exception(f, l)`, `gaol_warning`, `gaol_error`) envoie
-   un `const char*` nul à un flux dans `operator<<`, qui passe à l'état `bad`
-   avec libstdc++, et les diagnostics suivants sont perdus. Les macros de GAOL
-   passent toujours `__FILE__` ; seuls des appels directs sont en cause.
+4. **`<a, b>` et une borne calculée** [S] (#149) : `<a, b>` accepte encore une
+   borne calculée qui n'est pas un double (`<[0.1], 0x1.9999999999999p-4>`, un
+   littéral comme borne) ; seuls les nombres écrits et pi sont refusés. *Décidé
+   le 24 octobre* : refuser aussi, par `input_format_error`, toute borne qui
+   n'est pas un double, avec un test qui échoue sans la correction.
+5. **Un `file` nul dans une `gaol_exception`** [S, peu prioritaire] (#147) : une
+   `gaol_exception` construite avec un `file` nul (`gaol_exception(f, l)`,
+   `gaol_warning`, `gaol_error`) envoie un `const char*` nul à un flux dans
+   `operator<<`, qui passe à l'état `bad` avec libstdc++, et les diagnostics
+   suivants sont perdus. Les macros de GAOL passent toujours `__FILE__` ; seuls
+   des appels directs sont en cause. *Décidé le 24 octobre* : un `file` nul
+   s'écrit « (unknown file) », avec un test.
 
 ## PB. Les exceptions flottantes levées à tort, les réciproques de `pow` [L]
 
@@ -123,12 +127,14 @@ texte de `doc/using.md` et du manuel sur les exceptions flottantes en dépend.
    builds SSE2. Correction : le test `!(l < +oo && u > -oo)` de
    `pow_standard_upward()` dans `pow_rel_upward()` et
    `pow_exponent_rel_upward()`. Non revérifié depuis le 14 octobre.
-3. **À décider, avec le 79** (#151) : la phrase d'introduction de la section sur
-   les exceptions flottantes de `doc/using.md` et du manuel, « An infinite bound
-   comes from a division by zero or from an overflow », reste vraie pour les
-   deux exemples gardés, `log([0, 1])` et `[1e308]*10`, mais n'est pas une règle
-   : `1/[0, 1]` a une borne infinie sans aucun indicateur depuis #121. La
-   reformuler quand le 79 est fait.
+3. **La phrase sur les exceptions flottantes, avec le 79** [S] (#151) : la
+   phrase d'introduction de la section sur les exceptions flottantes de
+   `doc/using.md` et du manuel, « An infinite bound comes from a division by
+   zero or from an overflow », reste vraie pour les deux exemples gardés,
+   `log([0, 1])` et `[1e308]*10`, mais n'est pas une règle : `1/[0, 1]` a une
+   borne infinie sans aucun indicateur depuis #121. *Décidé le 24 octobre* : la
+   supprimer de `doc/using.md` et du manuel quand le 79 est fait, en gardant les
+   deux exemples `log([0, 1])` et `[1e308]*10`.
 
 ## PC. Les noyaux SSE2 et NEON [M]
 
@@ -163,14 +169,16 @@ puis 132.
    Ubuntu arm64 de la CI). *Décidé le 22 octobre (Q14a, #146).* Q14b (un test
    qui compare les bits du signe d'un zéro) et Q14c (jobs Clang 15 à 17 et GCC 9
    à 10, test `mrs` et `msr` sur Neoverse) sont des « non ».
-4. **À décider, ou à revérifier d'abord** (#146) : `bisect(ratio)` et
+4. **`bisect(ratio)` et `is_bisectable()`** [S à M] (#146) : `bisect(ratio)` et
    `is_bisectable()` dépendent du mode FZ de l'appelant avec
    `GAOL_PRESERVE_ROUNDING` (`LEAVE` rétablit FZ avant les comparaisons de `c`
    avec `l` et `r`), pour les sous-normaux : 634 résultats faux sur 200 000
    intervalles sous-normaux, avec les intervalles NEON comme FPU. L'encadrement
    n'est pas violé ; les post-conditions documentées le sont (point Q de
    `TODO_DONE.md`). #174 a changé `is_bisectable()` (par `next_float()`, pour
-   Cygwin) depuis : revérifier le défaut, puis corriger ou documenter.
+   Cygwin) depuis : *Décidé le 24 octobre* : revérifier le défaut d'abord, puis
+   le corriger (comparer les bornes par leurs bits, ou avant le retour de FZ),
+   avec un test qui échoue sans la correction.
 
 ## PD. `process.md`, les textes, les tests, le ménage [S]
 
@@ -300,9 +308,12 @@ SDE).
    la ligne de 15 `+` avec le chemin AVX-512 refusé), sans que l'on sache
    pourquoi. Fichiers : `gaol/gaol_fpu.h`, `gaol/gaol_fpu_fenv.h` (macros
    `GAOL_RND_ENTER_SSE`).
-3. **À décider** (#156) : `GAOL_RND_NEAREST_ENTER()`/`LEAVE()` et
-   `GAOL_RND_ENTER_SSE()`/`LEAVE_SSE()` écrivent sans comparer. La même méthode
-   (écrire si ça change) serait possible ; non touchées, hors du point 108.
+3. **Écrire seulement si ça change** [M] (#156) :
+   `GAOL_RND_NEAREST_ENTER()`/`LEAVE()` et `GAOL_RND_ENTER_SSE()`/`LEAVE_SSE()`
+   écrivent sans comparer. La même méthode (écrire si ça change) était possible
+   ; non touchées, hors du point 108. *Décidé le 24 octobre* : l'appliquer aux
+   deux familles, en mesurant avant et après par le banc A/B de la CI, avec les
+   tests de `rounding_direction.cpp`.
 4. **L'alignement de la pile 32 bits** (#152) : `-faligned-new=8` ne règle que
    le tas ; l'alignement de la pile 32 bits (GCC, bogue 40838) concernerait des
    intervalles locaux dans des fonctions que l'API de Windows appelle avec une
@@ -357,10 +368,11 @@ ne se comparent pas d'un passage à l'autre : le banc A/B de `performance.yml`
    `__vectorcall` (les noyaux `add_bounds()` et les autres de Visual C++ et
    clang-cl x64, #148) n'est pas séparé dans les temps de la CI. À rapprocher de
    `doc/simd.md` (#154).
-4. **À décider** (#160) : le seuil de la liste des lignes écartées par
-   `compare-performance.py` (un facteur 2 au moins et au-delà de la dispersion)
-   : les mesures donnent des rapports jusqu'à 1,17 pour du code identique ; 1,5
-   serait possible (une ligne de l'outil et de son test).
+4. **Le seuil de la liste** [S] (#160) : le seuil de la liste des lignes
+   écartées par `compare-performance.py` (un facteur 2 au moins et au-delà de la
+   dispersion) : les mesures donnent des rapports jusqu'à 1,17 pour du code
+   identique ; 1,5 était possible. *Décidé le 24 octobre* : 1,5 (une ligne de
+   l'outil et de son test).
 5. **112 (AI)** : rien à faire pour les fonctions élémentaires avec
    `GAOL_PRESERVE_ROUNDING` (deux écritures de MXCSR, jusqu'à 27 % pour `exp`) :
    la seule solution, un mode de CORE-MATH où le sens est un paramètre,
@@ -551,6 +563,6 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    Release, l'étiquette suffisant (*décidé le 3 octobre*). Le message est écrit,
    en brouillon dans Gmail (objet « GAOL v5.0.0 ») ; il suppose que l'étiquette
    existe. À faire avant l'envoi : vérifier l'adresse (celle du brouillon vient
-   d'un échange de 2014 et d'une liste de 2020 : elle peut avoir changé) ; à
-   décider : garder ou couper le second paragraphe (les défauts de GAOL 4), qui
-   dépasse l'annonce décidée le 3 octobre.
+   d'un échange de 2014 et d'une liste de 2020 : elle peut avoir changé) ; le
+   second paragraphe (les défauts de GAOL 4) dépasse l'annonce décidée le 3
+   octobre, mais *décidé le 24 octobre* : le garder tel quel.
