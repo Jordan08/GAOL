@@ -729,13 +729,14 @@ namespace
       check(std::string(e.name) + ": empty", r.is_empty(), [&] { return hex(r); });
     }
 #if defined(GAOL_USING_SSE2_INSTRUCTIONS) && GAOL_USING_SSE2_INSTRUCTIONS
-    // [+oo] and [-oo], which no constructor makes, built from an SSE2
-    // register, the lower bound stored negated: pow(x, y) has to be empty,
+    // [+oo] and [-oo], which no constructor makes but the one of GAOL without
+    // a check, built from an SSE2 register, the lower bound stored negated:
+    // the guard of pow(x, y) has to hold when GAOL's own code makes them, pow(x, y) is empty,
     // such an exponent holding no real number, where a pow() taking it for an
     // integer beyond the ints would give a power of 4 (GAOL v5: TODO.md B.1 took
     // the test of these exponents for one that is never true)
     for (const double d : { inf, -inf }) {
-      const interval J(_mm_set_pd(d, -d));
+      const interval J(_mm_set_pd(d, -d), gaol_detail::unchecked_bounds);
       const interval r = pow(interval(4.), J);
       check("pow([4],J) for J = [+oo] or [-oo] built from an SSE2 register: empty",
             J.left() == d && J.right() == d && r.is_empty(),
@@ -750,13 +751,13 @@ namespace
     }
 #endif
 #if defined(GAOL_USING_NEON_INSTRUCTIONS) && GAOL_USING_NEON_INSTRUCTIONS
-    // The same [+oo] and [-oo], built from a NEON register with the explicit
-    // constructor interval(const float64x2_t&), the lanes holding the stored
+    // The same [+oo] and [-oo], built from a NEON register with the
+    // constructor of GAOL without a check, the lanes holding the stored
     // bounds <-left, right> (GAOL v5): a build with the NEON intervals does
     // not lose the checks above
     for (const double d : { inf, -inf }) {
       const double lanes[2] = { -d, d };
-      const interval J(vld1q_f64(lanes));
+      const interval J(vld1q_f64(lanes), gaol_detail::unchecked_bounds);
       const interval r = pow(interval(4.), J);
       check("pow([4],J) for J = [+oo] or [-oo] built from a NEON register: empty",
             J.left() == d && J.right() == d && r.is_empty(),
@@ -766,6 +767,36 @@ namespace
         check("gaol_ieee1788::pow(x,J) for J = [+oo] or [-oo] built from a NEON register: empty", s.is_empty(),
               [&] { return "x = " + hex(x) + ", J = " + hex(J) + ": " + hex(s); });
       }
+    }
+#endif
+#if (defined(GAOL_USING_SSE2_INSTRUCTIONS) && GAOL_USING_SSE2_INSTRUCTIONS) \
+    || (defined(GAOL_USING_NEON_INSTRUCTIONS) && GAOL_USING_NEON_INSTRUCTIONS)
+    /*
+      The constructor of the interface from a register (GAOL v5, decided on
+      2026-10-24, point AC of TODO.md) gives the empty set for the lanes of
+      [+oo] and [-oo], which hold no real number (IEEE 1788-2015, 10.5.8):
+      the operations took them for intervals, and gave, for J = [+oo],
+      gaol_ieee1788::pow(J, [2]) and gaol::pow(J, [2]) [+oo], sqr(J) [+oo],
+      exp(J) [DBL_MAX, +oo], div_rel([2], J, universe) [0, 0] and
+      sqrt_rel(universe, J) [+oo] (measured on 2026-10-24). Each of them is
+      empty for such a J now.
+    */
+    for (const double d : { inf, -inf }) {
+#  if defined(GAOL_USING_SSE2_INSTRUCTIONS) && GAOL_USING_SSE2_INSTRUCTIONS
+      const interval J(_mm_set_pd(d, -d));
+#  else
+      const double lanes[2] = { -d, d };
+      const interval J(vld1q_f64(lanes));
+#  endif
+      const auto describe = [&] { return "J = " + hex(J); };
+      check("the interval of the register of [+oo] or [-oo] is empty", J.is_empty(), describe);
+      const interval two(2.0), universe = interval::universe();
+      check("gaol_ieee1788::pow(J,[2]) for J of the register of [+oo] or [-oo]: empty", gaol_ieee1788::pow(J, two).is_empty(), describe);
+      check("gaol::pow(J,[2]) for J of the register of [+oo] or [-oo]: empty", gaol::pow(J, two).is_empty(), describe);
+      check("sqr(J) for J of the register of [+oo] or [-oo]: empty", sqr(J).is_empty(), describe);
+      check("exp(J) for J of the register of [+oo] or [-oo]: empty", exp(J).is_empty(), describe);
+      check("div_rel([2],J,universe) for J of the register of [+oo] or [-oo]: empty", div_rel(two, J, universe).is_empty(), describe);
+      check("sqrt_rel(universe,J) for J of the register of [+oo] or [-oo]: empty", sqrt_rel(universe, J).is_empty(), describe);
     }
 #endif
 

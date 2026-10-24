@@ -377,13 +377,13 @@ namespace
     std::vector<interval> infinite;
 #if defined(GAOL_USING_SSE2_INSTRUCTIONS) && GAOL_USING_SSE2_INSTRUCTIONS
     for (const double d : { GAOL_INFINITY, -GAOL_INFINITY }) {
-      infinite.push_back(interval(_mm_set_pd(d, -d)));
+      infinite.push_back(interval(_mm_set_pd(d, -d), gaol_detail::unchecked_bounds));
     }
 #elif defined(GAOL_USING_NEON_INSTRUCTIONS) && GAOL_USING_NEON_INSTRUCTIONS
     // The lanes hold the stored bounds <-left, right>
     for (const double d : { GAOL_INFINITY, -GAOL_INFINITY }) {
       const double lanes[2] = { -d, d };
-      infinite.push_back(interval(vld1q_f64(lanes)));
+      infinite.push_back(interval(vld1q_f64(lanes), gaol_detail::unchecked_bounds));
     }
 #endif
     if (infinite.empty()) {

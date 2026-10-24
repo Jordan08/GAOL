@@ -154,10 +154,17 @@ point Q), which `numbers` checks there too.
   `acos(1)`, `acos(-1)`, `asin(1)`, `atan(1)`, `atan([-oo, +oo])`,
   `acosh(1)`...), and `cosh`, `sinh` and `tanh` beyond the largest double and
   near 1. With the NEON intervals, `[+oo]` and `[-oo]`, which no constructor
-  makes, are built from a `float64x2_t` with the explicit constructor
-  `interval(const float64x2_t&)`, the lanes holding `<-left, right>`:
-  `pow([4], J)` and `gaol_ieee1788::pow(x, J)` have to be empty for them, as
-  for the ones built from an SSE2 register (GAOL v5). `pow(x, y)` has to be within one double of the tightest bounds at
+  makes but the one of GAOL without a check, are built from a `float64x2_t`
+  with `interval(const float64x2_t&, gaol_detail::unchecked_bounds)`, the lanes
+  holding `<-left, right>`: `pow([4], J)` and `gaol_ieee1788::pow(x, J)` have
+  to be empty for them, as for the ones built from an SSE2 register (GAOL v5).
+  The constructor of the interface from a register, `interval(const
+  __m128d&)` or `interval(const float64x2_t&)`, gives the empty set for these
+  lanes (GAOL v5, point AC, decided on 2026-10-24): the operations took them
+  for intervals, and `gaol_ieee1788::pow(J, [2])`, `gaol::pow(J, [2])` and
+  `sqr(J)` were `[+oo]`, `exp(J)` `[DBL_MAX, +oo]`, `div_rel([2], J, universe)`
+  `[0, 0]` and `sqrt_rel(universe, J)` `[+oo]`. `J` has to be empty and each of
+  them too. `pow(x, y)` has to be within one double of the tightest bounds at
   points, `pow([2], [1023.5])` among them, and over 385 boxes of bases and
   exponents in every position about the base 1 and the exponent 0, and the
   power itself as lower bound where it is a double: `pow([4], 0.5)` is `[2]`.
