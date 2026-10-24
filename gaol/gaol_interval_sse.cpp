@@ -484,7 +484,7 @@ namespace gaol_core {
   interval interval::sqr_upward(const interval& I)
   {
 #if GAOL_AVX512_ARITHMETIC
-    return interval(sqr_bounds(I.xmmbounds));
+    return interval(gaol_detail::sqr_bounds(I.xmmbounds));
 #else
     return interval(sqr_products(I.xmmbounds));
 #endif
