@@ -3474,10 +3474,16 @@ int main()
             set(d);
             const interval x(subnormal(b.l), subnormal(b.r));
             const double l = x.left(), r = x.right();
-            const bool bisectable = key(r) > key(l) + 1;
+            // The bounds are the multiples asked for (the keys of the subnormals are the multiples
+            // of 2^-1074), and a double lies between them when they are two or more apart
+            const bool bisectable = b.r - b.l >= 2;
+            check("the keys of the bounds of the case", key(l) == b.l && key(r) == b.r, [&] { return hex(x); });
+            set(d);
+            set_flush_bits(0u);
+            const std::pair<interval, interval> cleared = x.bisect(ratio);
             set(d);
             set_flush_bits(m.bits);
-            // is_bisectable() first: without GAOL_PRESERVE_ROUNDING, bisect(ratio) leaves the modes cleared
+            // is_bisectable() first: without GAOL_PRESERVE_ROUNDING, bisect(ratio) mostly leaves the modes cleared
             const bool found = x.is_bisectable();
             std::pair<interval, interval> parts(x, x);
             bool refused = false;
@@ -3486,6 +3492,7 @@ int main()
             } catch (const std::exception&) {
               refused = true;
             }
+            const unsigned int after = flush_bits();
             set_flush_bits(0u);
             const double c = parts.first.right();
             const auto describe = [&] {
@@ -3499,6 +3506,14 @@ int main()
                   && key(l) <= key(c) && key(c) <= key(r), describe);
             check("bisect(ratio) of a bisectable interval with a flush-to-zero mode: two parts smaller than x",
                   !bisectable || (key(l) < key(c) && key(c) < key(r)), describe);
+            check("bisect(ratio) with a flush-to-zero mode: the cut it has with the modes cleared",
+                  key(c) == key(cleared.first.right()) && key(parts.second.left()) == key(cleared.second.left()), describe);
+#if GAOL_PRESERVE_ROUNDING
+            check("bisect(ratio): flush-to-zero modes restored", after == m.bits, describe);
+#else
+            // The cut of a point or of an interval symmetric about 0 at ratio 0.5 is made without a check
+            check("bisect(ratio): flush-to-zero modes cleared, or unchanged", after == 0u || after == m.bits, describe);
+#endif
           }
         }
       }
