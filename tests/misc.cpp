@@ -7,6 +7,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <deque>
 #include <istream>
 #include <list>
@@ -517,7 +518,9 @@ public:
   // aligns the memory of new on 8 bytes: only a compiler told so asks for
   // aligned memory for the types that need it (-faligned-new=8; see
   // gaol/gaol_config.h), and GCC taking it to be aligned on 16 made a
-  // std::vector of SSE2 intervals stop the program. A type as aligned as an
+  // std::vector of SSE2 intervals stop the program. With Visual C++ and
+  // clang-cl the alignment of an interval is 8, and the test below checks that
+  // the intervals work at such an address. A type as aligned as an
   // interval, with no vector instruction to stop on a misaligned address, stands
   // for the interval, so that the test fails where the program used to stop.
   void test_heap_alignment() {
@@ -570,6 +573,53 @@ public:
     delete heap;
   }
 
+  // The SSE2 intervals that keep their bounds as two doubles (Visual C++ and
+  // clang-cl on 32-bit Windows, where the memory of new is aligned on 8 bytes
+  // and the compiler cannot be told otherwise; any SSE2 build of CMake with
+  // -DGAOL_SSE2_UNALIGNED_STORAGE=ON; GAOL v5; see gaol/gaol_config.h) work at an
+  // address aligned on 8 bytes only, one in two of the addresses of the heap
+  // there, which a member of a __m128d would stop on (movaps). Three intervals
+  // are put at addresses of 8 modulo 16 and every kind of operation reads and
+  // writes them; with a load or a store aligned in gaol_detail::unaligned_xmm,
+  // the program stops here
+  void test_intervals_aligned_on_8_bytes() {
+#if GAOL_USING_SSE2_INSTRUCTIONS && GAOL_SSE2_UNALIGNED_STORAGE
+    static_assert(alignof(interval) == alignof(double), "the bounds of the interval are two doubles");
+    alignas(16) unsigned char buffer[3*sizeof(interval) + 16];
+    unsigned char* odd = buffer + 8;
+    TEST_TRUE(reinterpret_cast<std::uintptr_t>(odd) % 16 == 8);
+    interval* x = new (odd) interval(1.0, 2.0);
+    interval* y = new (odd + sizeof(interval)) interval(3.0, 4.0);
+    interval* z = new (odd + 2*sizeof(interval)) interval(*x);
+    TEST_TRUE(reinterpret_cast<std::uintptr_t>(y) % 16 == 8 && reinterpret_cast<std::uintptr_t>(z) % 16 == 8);
+    TEST_SEQ(*z, interval(1.0, 2.0));
+    *z += *y;
+    TEST_SEQ(*z, interval(4.0, 6.0));
+    *z = *x * *y;
+    TEST_SEQ(*z, interval(3.0, 8.0));
+    *z = *y / *x;
+    TEST_SEQ(*z, interval(1.5, 4.0));
+    *z = sqr(*x);
+    TEST_SEQ(*z, interval(1.0, 4.0));
+    *z = -*x;
+    TEST_SEQ(*z, interval(-2.0, -1.0));
+    *z = *x;
+    *z &= *y;
+    TEST_TRUE(z->is_empty());
+    *z = *x | *y;
+    TEST_SEQ(*z, interval(1.0, 4.0));
+    *z = sqrt(*y);
+    TEST_TRUE(z->set_contains(interval(1.7320508075688772, 2.0)));
+    *z = *x;
+    *z *= 2.5;
+    TEST_TRUE(z->set_contains(interval(2.5, 5.0)));
+    TEST_TRUE(x->midpoint() == 1.5);
+    x->~interval(); y->~interval(); z->~interval();
+#else
+    std::printf("The bounds of the SSE2 intervals are a __m128d here (or the intervals are not SSE2 ones): nothing to check at an address of 8 modulo 16\n");
+#endif
+  }
+
   // Tests of logical predicates ===================================================================
   void test_predicates() {
     // is_empty()
@@ -610,4 +660,5 @@ GAOL_UNIT_MAIN(misc_test, "misc",
                GAOL_UNIT_TEST(test_namespace_detail_of_the_program),
                GAOL_UNIT_TEST(test_names_of_gaol),
                GAOL_UNIT_TEST(test_kernels_are_not_in_gaol_core),
-               GAOL_UNIT_TEST(test_heap_alignment))
+               GAOL_UNIT_TEST(test_heap_alignment),
+               GAOL_UNIT_TEST(test_intervals_aligned_on_8_bytes))
