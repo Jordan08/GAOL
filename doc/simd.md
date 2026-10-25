@@ -36,10 +36,11 @@ source or its machine; what no machine of ours could run is said in
   supported by Clang, and the C++ proposals are not adopted. The paths are
   written with intrinsics or inline assembly.
 - What is left to try, by order of interest: the RISC-V scalar path with a
-  static rounding mode (needs a real board), the scalar embedded rounding for
-  the division on the Intel processors that halve the 512-bit registers (the
-  square root takes it already), and a few kernels that are scalar today (see
-  [Cheap gains](#cheap-gains-that-need-no-new-instruction-set)).
+  static rounding mode (needs a real board), and a few kernels that are scalar
+  today (see [Cheap gains](#cheap-gains-that-need-no-new-instruction-set)). The
+  scalar embedded rounding, which the division and the square root of the
+  AVX-512 path take on the Intel processors that halve the 512-bit registers,
+  is done (see [Verdicts](#verdicts)).
 
 ## What GAOL computes with vectors today
 
@@ -52,7 +53,7 @@ opposite, so that one addition rounded upward gives both bounds
 | Build | Vector kernels | Scalar |
 |---|---|---|
 | SSE2 (x86, `GAOL_SIMD`) | `+ - * / sqr`, the operations with a double, `inverse`, `%=`, `-x`, the integer powers with `__FMA__`, the leaves of `div_rel` | `sqrt`, `&=`, `\|=`, `mid`, `midpoint`, the relations, the elementary functions, the reverse functions |
-| AVX-512 (`GAOL_PREFER_AVX512`) | `+ - * / sqr`, the operations with a double and the integer powers (with `__FMA__`), with the rounding direction in the instruction; `sqrt` as two scalar square roots with embedded rounding | as SSE2, and `inverse`, `%=` and the leaves of `div_rel`, which stay SSE2 kernels that set the direction |
+| AVX-512 (`GAOL_PREFER_AVX512`) | `+ - * / sqr`, the operations with a double and the integer powers (with `__FMA__`), with the rounding direction in the instruction; `sqrt` as two scalar square roots and `/` as two scalar divisions, with embedded rounding | as SSE2, and `inverse`, `%=` and the leaves of `div_rel`, which stay SSE2 kernels that set the direction |
 | NEON (arm64, `GAOL_ARM64`) | `+ - * / sqr sqrt`, the operations with a double, `%=`, `inverse`, `&=`, `\|=`, `-x`, the integer powers (two lanes with `vfmaq_f64`) | `mid`, `midpoint`, `div_rel`, the elementary functions |
 | FPU (the rest) | none | everything |
 
@@ -240,7 +241,7 @@ the T-Head C910 the draft 0.7.1.
 |---|---|---|---|
 | SSE4.1, AVX, AVX2 (a 256-bit path) | no path | A batch of two intervals per register needs an interface of arrays, and nothing makes one interval faster; `ROUNDPD` rounds to an integer, not as an operation | An interface of boxes or arrays of intervals, and a program bound by the computation and not by the memory |
 | FMA3 | in use (`GAOL_FMA`) | It pays in the elementary functions and the integer powers, none in the basic operations | The exact transformations that would replace the directed rounding are another study (the rounding direction left to nearest) |
-| AVX-512 path | keep; try the scalar embedded rounding for `/` | On Intel the 512-bit division takes 16 cycles of throughput against 4 for the 128-bit one (uops.info), and Zen 5 has full-width units; the square root of the path already takes two scalar embedded roots (3.75 ns against 6.30 with SSE2) | Two `vdivsd {er}` and the permutations losing on an Intel processor that halves the registers |
+| AVX-512 path | keep; the division and the square root are two scalar instructions with the embedded rounding | On Intel the 512-bit division takes 16 cycles of throughput against 4 for the scalar one (uops.info), and Zen 5 has full-width units; the square root of the path takes two scalar embedded roots (3.75 ns against 6.30 with SSE2), `x / y` two scalar divisions (GAOL v5), and `x / d` of a double too (2.8 ns against 3.7 with the 512-bit form, an Intel i7-1185G7, Clang 21; the divisors with a zero and the negative powers did not change) | A processor where the two scalar divisions lose to the 512-bit one (not seen: Zen 5 was not measured) |
 | AVX-512VL, AVX10.2 at 128 and 256 bits | nothing to build | No embedded rounding at these widths | A new revision of the Intel manual restoring it (revision 3.0 of AVX10.2 had it) |
 | NEON (arm64) | keep | Done: 1.3 to 4 times faster on an M2 | Hardware with FPCR.AH set (see below) |
 | SVE, SVE2, SME | no path | The same FPCR, and 128-bit vectors on most of the processors | An interface of arrays, on a 256 or 512-bit implementation; a static rounding in the instruction set |
