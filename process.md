@@ -224,7 +224,8 @@ un est refusée, quel que soit son gain.
       `gaol::init()` est automatique : ne le montre pas.
 11. Ne vérifie pas et ne rapporte pas les effets d'un changement sur IBEX ou
     Codac. Les comparaisons de performance se font avec Clang 21 (depuis le 13
-    octobre), sans `GAOL_PRESERVE_ROUNDING`.
+    octobre), sans `GAOL_PRESERVE_ROUNDING`, avec en plus, pour GAOL v5, une
+    colonne avec la direction préservée (`doc/compare/performance.md`).
 
 ## 5. Les tests
 
