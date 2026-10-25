@@ -36,9 +36,13 @@ build, and the CMake build follows them, apart from the errors corrected (see
   that they ask for aligned memory for the intervals and for what holds one, and
   `gaol::gaol` and `gaol.pc` give the flag to the code using GAOL too, as it
   allocates them; `gaol/gaol_config.h` refuses the SSE2 intervals compiled
-  without it. Visual C++ and clang-cl have no such flag, and keep the FPU
-  intervals there (GAOL v5: Visual C++ x64 and clang-cl x64 take the SSE2
-  intervals);
+  without it. Visual C++ and clang-cl have no such flag (`/Zc:alignedNew` does
+  nothing in C++14 with `cl`, and breaks the STL of clang-cl, and only C++17 turns
+  the aligned `new` on): their SSE2 intervals keep their two bounds as two
+  doubles, whose alignment is 8, and load and store them with `movupd`
+  (`GAOL_SSE2_UNALIGNED_STORAGE` of `gaol/gaol_config.h`, which derives it from
+  the target: GAOL v5), so that they need no aligned memory, and the class
+  allocators that aligned the intervals on 16 bytes are not compiled;
 - on 64-bit ARM processors, the intervals are computed with NEON instructions
   (`GAOL_ARM64`, `--enable-arm64`, `-Denable-arm64`; no flag), on by default
   with every compiler of them: GCC, Clang and AppleClang under Linux and macOS,
@@ -185,12 +189,14 @@ On a 64-bit ARM processor, measured the same way on an Apple M2 with AppleClang
   nothing (x × y 44.4 ns rather than 42.2 for the former code, measured in the
   same session, and 44.3 rather than 49.1 for operands of random signs). These
   are the figures of this processor, with AppleClang. The processors of the
-  continuous integration that run the FPU intervals (32-bit ARM, Visual C++ and
-  clang-cl for x86, Ubuntu with GCC and Clang, macOS; and, when they were
-  measured, Visual C++ and clang-cl for arm64, which have the NEON intervals
-  now), measured in turn, give other ratios, losses included (the line of 7
-  products 0.58 with GCC on Ubuntu, 0.57 with clang-cl for arm64); POWER,
-  s390x and RISC-V are not measured. See
+  continuous integration that run the FPU intervals (32-bit ARM, Ubuntu with
+  GCC and Clang, macOS; and, when they were measured, Visual C++ and clang-cl
+  for x86 and for arm64, which have the SSE2 and the NEON intervals now: the
+  columns "VS x86" and "clang-cl x86" of
+  [The FPU intervals](using.md#the-fpu-intervals) are those of the FPU),
+  measured in turn, give other ratios, losses included (the line of 7 products
+  0.58 with GCC on Ubuntu, 0.57 with clang-cl for arm64); POWER, s390x and
+  RISC-V are not measured. See
   [The FPU intervals](using.md#the-fpu-intervals).
 - **The rounding direction is read with one `mrs` of FPCR** (0.8 ns on this
   processor) and written with `msr` only when the program's is not upward:

@@ -44,6 +44,7 @@
 	const __m128d interval::m128_infinf = {std::numeric_limits<double>::infinity(),
 	                                       std::numeric_limits<double>::infinity()};
 
+#if !GAOL_SSE2_UNALIGNED_STORAGE
 	void* interval::operator new(size_t sz)
 	{
 		void *buf;
@@ -88,6 +89,7 @@
   void interval::operator delete(void *, void *)
   {
   }
+#endif // !GAOL_SSE2_UNALIGNED_STORAGE
 
 	double hausdorff(const interval &I1, const interval &I2)
 	{

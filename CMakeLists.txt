@@ -734,14 +734,16 @@ endif()
 # -faligned-new=8, which sets __STDCPP_DEFAULT_NEW_ALIGNMENT__ to 8 and turns
 # the aligned new on in every standard: GAOL_ALIGNED_NEW_FLAGS, given to both
 # (gaol::gaol, gaol.pc), and checked by gaol/gaol_config.h. Visual C++ and
-# clang-cl have no such flag, and keep the FPU intervals there, as does Clang
-# for a target of Visual C++ (_MSC_VER): their
-# /Zc:alignedNew does nothing in C++14 (cl) or breaks the STL (clang-cl,
+# clang-cl have no such flag, as Clang for a target of Visual C++ (_MSC_VER):
+# their /Zc:alignedNew does nothing in C++14 (cl) or breaks the STL (clang-cl,
 # align_val_t not being an enumeration there), and only C++17 turns the aligned
-# new on, which would make every code using GAOL compile in C++17. A compiler
-# that does not take the flag keeps the FPU intervals too. On 64-bit Windows
-# the memory is aligned on 16 bytes, and the tests pass without it (MinGW-w64,
-# MSYS2 with GCC and Clang).
+# new on, which would make every code using GAOL compile in C++17. They take the
+# SSE2 intervals all the same (GAOL v5): the intervals keep their two bounds as
+# two doubles, which need 8 bytes of alignment, and load them with movupd
+# (GAOL_SSE2_UNALIGNED_STORAGE of gaol/gaol_config.h, which derives it from the
+# target). A compiler of another kind that does not take the flag keeps the FPU
+# intervals. On 64-bit Windows the memory is aligned on 16 bytes, and the tests
+# pass without it (MinGW-w64, MSYS2 with GCC and Clang).
 set(GAOL_USING_SSE2_INSTRUCTIONS OFF)
 set(GAOL_USING_SSE3_INSTRUCTIONS OFF)
 set(GAOL_USING_NEON_INSTRUCTIONS OFF)
@@ -775,8 +777,7 @@ if(GAOL_SIMD)
         int main() { return 0; }"
         GAOL_COMPILER_SIMULATES_MSVC)
       if(GAOL_COMPILER_SIMULATES_MSVC)
-        message(STATUS "SSE2 intervals left out on 32-bit Windows with Visual C++ and the compilers that simulate it (clang-cl...): they have no flag to ask for the aligned memory the intervals need")
-        set(_gaol_sse2_intervals OFF)
+        message(STATUS "SSE2 intervals on 32-bit Windows with Visual C++ and the compilers that simulate it (clang-cl...): the bounds are two doubles, loaded unaligned, and need no aligned memory")
       else()
         set(CMAKE_REQUIRED_FLAGS "${GAOL_INTERVAL_FLAGS_STRING}")
         check_cxx_compiler_flag(-faligned-new=8 GAOL_COMPILER_SUPPORTS_FALIGNED_NEW)
@@ -816,6 +817,9 @@ message(STATUS "Interval arithmetic flags: ${GAOL_INTERVAL_FLAGS_STRING}")
 message(STATUS "SSE2 intervals: ${GAOL_USING_SSE2_INSTRUCTIONS}, SSE3: ${GAOL_USING_SSE3_INSTRUCTIONS}")
 if(GAOL_ALIGNED_NEW_FLAGS_STRING)
   message(STATUS "Aligned memory for the SSE2 intervals on 32-bit Windows: ${GAOL_ALIGNED_NEW_FLAGS_STRING}")
+endif()
+if(GAOL_SSE2_UNALIGNED_STORAGE)
+  message(STATUS "SSE2 intervals with their two bounds as two doubles (GAOL_SSE2_UNALIGNED_STORAGE, a switch of a developer)")
 endif()
 
 # On 64-bit ARM processors, with GAOL_ARM64 (--enable-arm64 of configure,

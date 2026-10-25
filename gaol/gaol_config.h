@@ -78,10 +78,12 @@
    The convention of Windows for x86-64 passes a __m128d by a hidden reference
    to a copy in the frame of the caller; __vectorcall of Visual C++ and
    clang-cl passes it in xmm0 and xmm1, as the x86-64 conventions of Linux and
-   macOS do. It is empty with the other compilers: MinGW-w64 and MSYS2 keep the
-   convention of Windows. */
+   macOS do. On 32-bit x86 the convention of Windows passes it by value on the
+   stack, and __vectorcall in xmm0 and xmm1 too (GAOL v5, with the SSE2
+   intervals of Visual C++ and clang-cl there). It is empty with the other
+   compilers: MinGW-w64 and MSYS2 keep the convention of Windows. */
 #ifndef GAOL_VECTORCALL
-#  if defined(_MSC_VER) && defined(_M_X64)
+#  if defined(_MSC_VER) && (defined(_M_X64) || defined(_M_IX86))
 #    define GAOL_VECTORCALL __vectorcall
 #  else
 #    define GAOL_VECTORCALL
@@ -323,7 +325,24 @@
              || GAOL_NEON_MSVC))
 #  error "GAOL computes its intervals with NEON instructions on 64-bit ARM processors only, with GCC, Clang or Visual C++, and not together with the SSE2 intervals (GAOL_USING_NEON_INSTRUCTIONS)"
 #endif
-/* The SSE2 intervals on 32-bit Windows (GAOL v5): an interval, a __m128d, has
+/* 1 when an SSE2 interval keeps its two bounds as two doubles, which need an
+   alignment of 8 bytes only, and loads and stores them with unaligned
+   instructions (movupd), rather than as a __m128d, which needs 16 (GAOL v5).
+   The memory of new is aligned on 8 bytes on 32-bit Windows, and Visual C++
+   and clang-cl have no flag asking the compiler for the aligned memory that a
+   __m128d needs (see below): they take this form there, with the Clang that
+   targets Visual C++ (_MSC_VER is defined for all of them).
+   -DGAOL_SSE2_UNALIGNED_STORAGE=ON of CMake, which writes it in
+   gaol/gaol_configuration.h, gives it to any SSE2 build, which the tests use
+   to run it where the memory is aligned on 16. Always defined, to 0 or 1 */
+#ifndef GAOL_SSE2_UNALIGNED_STORAGE
+#  if GAOL_USING_SSE2_INSTRUCTIONS && defined(_WIN32) && !defined(_WIN64) && defined(_MSC_VER)
+#    define GAOL_SSE2_UNALIGNED_STORAGE 1
+#  else
+#    define GAOL_SSE2_UNALIGNED_STORAGE 0
+#  endif
+#endif
+/* The SSE2 intervals of a __m128d on 32-bit Windows (GAOL v5): an interval has
    to be aligned on 16 bytes, and the C runtime of 32-bit Windows aligns the
    memory of malloc() and new on 8. GCC takes the memory of new to be aligned on
    __STDCPP_DEFAULT_NEW_ALIGNMENT__ bytes, 16 there, so that a std::vector of
@@ -335,12 +354,14 @@
    made in the code using GAOL, which needs the flag too (gaol::gaol of CMake
    and gaol.pc give it). Visual C++ and clang-cl have no such flag, their
    /Zc:alignedNew doing nothing in C++14 (cl) or breaking the STL (clang-cl),
-   and only C++17 turning the aligned new on: the three builds keep the FPU
-   intervals there, and this refuses the SSE2 ones should a build give them.
+   and only C++17 turning the aligned new on: they keep the bounds as two
+   doubles (GAOL_SSE2_UNALIGNED_STORAGE above), and this refuses the SSE2
+   intervals of a __m128d compiled without aligned new.
    Checked with the macros of the standard: __cpp_aligned_new says the compiler
    asks for aligned memory, and __STDCPP_DEFAULT_NEW_ALIGNMENT__, when it is
    defined, that it is told 8 bytes at most. */
-#if defined(__cplusplus) && GAOL_USING_SSE2_INSTRUCTIONS && defined(_WIN32) && !defined(_WIN64) \
+#if defined(__cplusplus) && GAOL_USING_SSE2_INSTRUCTIONS && !GAOL_SSE2_UNALIGNED_STORAGE \
+    && defined(_WIN32) && !defined(_WIN64) \
     && !(defined(__cpp_aligned_new) \
          && (!defined(__STDCPP_DEFAULT_NEW_ALIGNMENT__) || __STDCPP_DEFAULT_NEW_ALIGNMENT__ <= 8))
 #  error "GAOL's SSE2 intervals on 32-bit Windows need the compiler to ask for aligned memory: the C runtime aligns the memory of new on 8 bytes, and an interval needs 16, so that a std::vector of intervals would crash on its first movaps. Compile with -faligned-new=8 (GCC and Clang; gaol::gaol of CMake and gaol.pc give it), or use the FPU intervals (GAOL_SIMD=OFF)"

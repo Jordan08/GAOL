@@ -53,6 +53,30 @@
 #  undef max
 #endif
 
+#if GAOL_USING_SSE2_INSTRUCTIONS && GAOL_SSE2_UNALIGNED_STORAGE
+namespace gaol_detail {
+  /*
+    The two bounds of an SSE2 interval as two doubles in memory, alignment 8,
+    for the targets whose memory of new is aligned on 8 bytes and whose compiler
+    cannot be told to ask for more (Visual C++ and clang-cl on 32-bit Windows;
+    see GAOL_SSE2_UNALIGNED_STORAGE of gaol/gaol_config.h): a __m128d member
+    would put 16 on every object that holds an interval, and a std::vector of
+    them would stop on its first movaps. The register is loaded and stored with
+    movupd, which costs no more than movapd on the processors since Nehalem
+    where the data does not cross a cache line (nothing measurable on an Intel
+    i7-1185G7). It converts to and from a __m128d, so that the code reads and
+    writes it as it does the register (GAOL v5)
+  */
+  struct unaligned_xmm {
+    double lanes[2];
+    unaligned_xmm() {}
+    unaligned_xmm(const __m128d& v) { _mm_storeu_pd(lanes, v); }
+    operator __m128d() const { return _mm_loadu_pd(lanes); }
+    unaligned_xmm& operator=(const __m128d& v) { _mm_storeu_pd(lanes, v); return *this; }
+  };
+}
+#endif
+
 
 namespace gaol_core {
 
@@ -750,7 +774,10 @@ namespace gaol_core {
     /// < +oo +oo>
     static const __m128d m128_infinf;
 
-    // Allocators defined to enforce alignment on a 16 bytes boundary
+#  if !GAOL_SSE2_UNALIGNED_STORAGE
+    // Allocators defined to enforce alignment on a 16 bytes boundary (not for
+    // the bounds kept as two doubles, which need 8: the allocators of the
+    // program and of the containers, and the placement new, serve as they are)
 	void *operator new(size_t sz);
 	void operator delete(void *p);
 
@@ -759,6 +786,7 @@ namespace gaol_core {
 
 	void *operator new(size_t sz, void *p);
 	void operator delete(void *p, void *place);
+#  endif
 
 #endif // GAOL_USING_SSE2_INSTRUCTIONS
     GAOL_NODISCARD static interval zero(void);
@@ -858,9 +886,15 @@ namespace gaol_core {
 
 #if GAOL_USING_SSE2_INSTRUCTIONS
     typedef GAOL_ALIGN16(double xmm2d[2]);
+    //! What holds the two stored bounds: a __m128d, or two doubles of alignment 8 (GAOL_SSE2_UNALIGNED_STORAGE)
+#  if GAOL_SSE2_UNALIGNED_STORAGE
+    typedef gaol_detail::unaligned_xmm xmm_bounds;
+#  else
+    typedef __m128d xmm_bounds;
+#  endif
     void get_bounds(xmm2d& b) const;
-    const __m128d& get_xmminterval(void) const;
-    __m128d& get_xmminterval(void);
+    const xmm_bounds& get_xmminterval(void) const;
+    xmm_bounds& get_xmminterval(void);
 #elif GAOL_USING_NEON_INSTRUCTIONS
     //! The two stored bounds, <-left, right> (GAOL v5)
     const float64x2_t& get_neoninterval(void) const;
@@ -869,7 +903,7 @@ namespace gaol_core {
 
   private:
 #if GAOL_USING_SSE2_INSTRUCTIONS
-    __m128d xmmbounds; // Lower 64 bits: left bound negated, upper 64 bits: right bound
+    xmm_bounds xmmbounds; // Lower 64 bits: left bound negated, upper 64 bits: right bound
 #elif GAOL_USING_NEON_INSTRUCTIONS
     float64x2_t neonbounds; // First lane: left bound negated, second lane: right bound (GAOL v5)
 #else
@@ -927,7 +961,7 @@ namespace gaol_core {
 
   GAOL_INLINE interval rnd_keep(const interval& x)
   {
-    return interval(rnd_keep(x.get_xmminterval()), gaol_detail::unchecked_bounds); // the lower bound stored negated
+    return interval(rnd_keep(static_cast<__m128d>(x.get_xmminterval())), gaol_detail::unchecked_bounds); // the lower bound stored negated
   }
 #elif GAOL_USING_NEON_INSTRUCTIONS
   /*

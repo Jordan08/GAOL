@@ -127,7 +127,7 @@ build type or the configuration (below).
 | `CMAKE_POSITION_INDEPENDENT_CODE` | `ON` | Compile GAOL as position-independent code (`-fPIC`), which linking them into a shared library needs; a project building GAOL with FetchContent that sets it is followed |
 | `WITH_TESTS` | `OFF` | Build the unit tests of `tests/`, which `make test` and `make check` run (see [below](#tests-examples-performance-and-the-parser)) |
 | `WITH_EXAMPLES` | `OFF` | Build the examples of `examples/`, which `make check` runs |
-| `GAOL_SIMD` | `ON` | Compute the intervals with SSE2 instructions on x86 processors (`-msse2 -msse3`, no flag with Visual C++ and clang-cl for x64); on 32-bit Windows with GCC and Clang, with `-faligned-new=8`, which `gaol::gaol` gives to the code using GAOL too; not with Visual C++ and clang-cl there (GAOL v5, see [The three builds](three-builds.md)) |
+| `GAOL_SIMD` | `ON` | Compute the intervals with SSE2 instructions on x86 processors (`-msse2 -msse3`, no flag with Visual C++ and clang-cl for x64); on 32-bit Windows with GCC and Clang, with `-faligned-new=8`, which `gaol::gaol` gives to the code using GAOL too, and with Visual C++ and clang-cl, whose intervals keep their two bounds as two doubles, which need no aligned memory (GAOL v5, see [The three builds](three-builds.md)) |
 | `GAOL_ARM64` | `ON` | Compute the intervals with NEON instructions on 64-bit ARM processors, which need no flag (GAOL v5): `ON` by default on 64-bit ARM with every compiler: GCC, Clang and AppleClang under Linux and macOS, clang-cl and the Clang of MinGW-w64 and MSYS2 (FPCR is read and written by `mrs` and `msr` in an asm statement), and Visual C++ (`cl`, with `_ReadStatusReg()` and `_WriteStatusReg()`); not offered with 32-bit ARM, whose NEON has no vector of doubles, nor in a universal build of macOS, where the option is ignored and the FPU computes the intervals, as before. Independent of `GAOL_SIMD`, which stays for x86 processors; `OFF` has the FPU compute them on 64-bit ARM too |
 | `GAOL_COVERAGE` | `OFF` | Compile GAOL and its tests with the counters of gcov, and add the target `coverage`, which runs the tests and writes `coverage/coverage.html` and the page of conclusions [coverage/README.md](../coverage/README.md). GCC and Clang, with `-DCMAKE_BUILD_TYPE=Debug` |
 | `GAOL_U128_EMULATION` | `OFF` | Compute the 128-bit integer of the accurate phases with two 64-bit halves, as where the compiler has no 128-bit type (Visual C++, and GCC for a 32-bit target): the way to run that code on an ordinary machine |
@@ -356,7 +356,13 @@ Each build writes `gaol/gaol_configuration.h`, which `gaol/gaol_config.h`
 includes with every compiler: CMake from `cmake/gaol_configuration.h.in`,
 configure from `gaol/gaol_configuration.h.in` (written by hand, not by
 autoheader), meson from `gaol/gaol_configuration_meson.h.in`. The three define
-the same macros, and nothing else; the continuous integration checks that they
+the same macros, and nothing else, but for the switch of a developer that CMake
+alone writes, `GAOL_SSE2_UNALIGNED_STORAGE` (`-DGAOL_SSE2_UNALIGNED_STORAGE=ON`:
+the SSE2 intervals keep their two bounds as two doubles, as they do on 32-bit
+Windows with Visual C++ and clang-cl, whose target decides it by itself; a
+program must not define that macro, a mismatch with the library being a
+mismatch of the layout of the intervals; GAOL v5); the continuous integration
+checks that they
 write the same header on each kind of machine (`.github/audit`). The sources of
 GAOL read all of them but `GAOL_HAVE_AVX512_TARGET` and `GAOL_PREFER_AVX512`,
 which the three builds use to decide `GAOL_AVX512_ARITHMETIC` and the
@@ -377,7 +383,7 @@ now true of each of them.
 | `GAOL_PREFER_AVX512` | +, -, *, /, sqr, sqrt and, with FMA, the integer powers beyond 1 and -1 are to take the AVX-512 instructions | `GAOL_PREFER_AVX512` (with `GAOL_PRESERVE_ROUNDING`) | `--enable-prefer-avx512` (with `--enable-preserve-rounding`) | `enable-prefer-avx512` (with `enable-preserve-rounding`) |
 | `GAOL_AVX512_ARITHMETIC` | +, -, *, /, sqr, sqrt and, with FMA, the integer powers beyond 1 and -1 take the AVX-512 instructions: `GAOL_PREFER_AVX512`, `GAOL_HAVE_AVX512_TARGET`, and a machine building that runs them, not when cross-compiling; the library then needs a processor with them (GAOL v5) | checked | checked | checked |
 | `GAOL_VERBOSE_MODE` | A line on the standard error when GAOL initializes and cleans up | `GAOL_VERBOSE_MODE` | `--enable-verbose-mode` | `enable-verbose-mode` |
-| `GAOL_USING_SSE2_INSTRUCTIONS` | The intervals computed with SSE2 (x86; on 32-bit Windows with GCC and Clang told to ask for aligned memory, `-faligned-new=8`, not with Visual C++ and clang-cl) | `GAOL_SIMD` (default) | `--enable-simd` (default) | `enable-simd` (default) |
+| `GAOL_USING_SSE2_INSTRUCTIONS` | The intervals computed with SSE2 (x86; on 32-bit Windows with GCC and Clang told to ask for aligned memory, `-faligned-new=8`, and with Visual C++ and clang-cl, whose bounds are two doubles there) | `GAOL_SIMD` (default) | `--enable-simd` (default) | `enable-simd` (default) |
 | `GAOL_USING_NEON_INSTRUCTIONS` | The intervals computed with NEON (64-bit ARM, with every compiler; not 32-bit ARM; independent of `GAOL_SIMD`) (GAOL v5) | `GAOL_ARM64` (default) | `--enable-arm64` (default) | `enable-arm64` (default) |
 | `GAOL_USING_SSE3_INSTRUCTIONS` | And compiled with `-msse3` | where the compiler takes it | where the compiler takes it | where the compiler takes it |
 | `GAOL_HAVE_AVX512_TARGET` | The compiler takes `__attribute__((target("avx512f")))` and `__builtin_cpu_supports("avx512f")`, which the AVX-512 path of +, -, *, /, sqr, sqrt and, with FMA, the integer powers beyond 1 and -1 needs; never GCC for Windows (MinGW-w64, Cygwin), which does not align the stack for the AVX-512 registers (GCC bug 54412); Visual C++ for x64 takes the instructions in any function and tells the processor by `cpuid` and `xgetbv`, clang-cl has the attribute and does the same (GAOL v5) | checked | checked | checked |

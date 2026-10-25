@@ -1286,7 +1286,8 @@ point Q), which `numbers` checks there too.
   `tests/fp_strict` is the check of Visual C++ without `/fp:strict`.
 - **`refused_aligned_new`, `refused_aligned_new_cxx17` and
   `refused_aligned_new_positive`** (CMake build, where the intervals are the SSE2
-  ones, on a system that is not Windows, with GCC or Clang), and the end of
+  ones, on a system that is not Windows, with GCC or Clang, and not where
+  `GAOL_SSE2_UNALIGNED_STORAGE` is on), and the end of
   **`refused_options.sh`** and **`refused_options`** (autotools and meson
   builds): the SSE2 intervals on 32-bit Windows, which `gaol/gaol_config.h`
   refuses where the compiler is not told to ask for aligned memory. The C
@@ -1451,7 +1452,8 @@ point Q), which `numbers` checks there too.
   kernels, and nothing is checked.
   `test_heap_alignment` checks that the heap holds a type as aligned as an
   interval, which holds no vector (a `char` aligned on `alignof(interval)`,
-  16 bytes with the SSE2 and NEON intervals), aligned in `std::allocator`,
+  16 bytes with the SSE2 and NEON intervals, 8 where the SSE2 intervals keep
+  their bounds as two doubles), aligned in `std::allocator`,
   `new`, `new[]`, `std::vector`, `std::list`, `std::deque`, `std::map` and
   `std::make_shared`, then computes with intervals in a `std::vector` and in
   a `new`. On 32-bit Windows, where the C runtime aligns the memory of `new`
@@ -1460,7 +1462,13 @@ point Q), which `numbers` checks there too.
   type with no vector tells which allocation is wrong instead (GAOL v5). Run
   on Linux with a `::operator new` that aligns on 8 bytes alone, it fails
   without `-faligned-new=8` (GCC 15, Clang 21, `-O2` and `-O3`) and passes with
-  it.
+  it. `test_intervals_aligned_on_8_bytes` runs where the SSE2 intervals keep
+  their bounds as two doubles (Visual C++ and clang-cl on 32-bit Windows;
+  `-DGAOL_SSE2_UNALIGNED_STORAGE=ON` of CMake elsewhere; GAOL v5): intervals
+  built at addresses of 8 modulo 16 are constructed, copied, added, multiplied,
+  divided, squared, negated, intersected, hulled, rooted, multiplied by a
+  double and given a midpoint, and the program stops there with an aligned
+  load; it only prints a line elsewhere.
   `check/fpu.cpp`, an empty test, and `check/essai.cpp`, which printed an
   interval, are gone, as is `check/performances.cpp`, the benchmark of GAOL 4,
   which `make perf` replaces (see

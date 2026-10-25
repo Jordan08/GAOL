@@ -302,8 +302,10 @@ endif
 # new is aligned on 8 bytes and an SSE2 interval needs 16, the SSE2 intervals
 # need the compiler to ask for aligned memory, in GAOL and in the code using it:
 # -faligned-new=8 with GCC and Clang, as CMakeLists.txt gives it (GAOL v5).
-# Visual C++ and clang-cl have no such flag, and a compiler that does not take
-# it keeps the FPU intervals there too.
+# Visual C++ and clang-cl have no such flag: their intervals keep their bounds
+# as two doubles, which need 8 bytes only (GAOL_SSE2_UNALIGNED_STORAGE of
+# gaol/gaol_config.h). A compiler of another kind that does not take the flag
+# keeps the FPU intervals.
 use_sse2 = false
 aligned_new_args = []
 x86_args = []
@@ -337,8 +339,7 @@ if target_x86
 int main() { return 0; }
 ''', name: 'the compiler simulates Visual C++ (_MSC_VER)')
     if simulates_msvc
-      sse2_possible = false
-      message('SSE2 intervals left out on 32-bit Windows with Visual C++ and the compilers that simulate it (clang-cl...): they have no flag to ask for the aligned memory the intervals need')
+      message('SSE2 intervals on 32-bit Windows with Visual C++ and the compilers that simulate it (clang-cl...): the bounds are two doubles, loaded unaligned, and need no aligned memory')
     elif cpp_comp.has_argument('-faligned-new=8')
       aligned_new_args = ['-faligned-new=8']
     else

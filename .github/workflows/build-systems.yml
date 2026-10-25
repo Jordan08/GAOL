@@ -400,11 +400,12 @@ jobs:
             if (Test-Path "$prefix/include/gaol/$f") { Write-Output "$f is installed"; exit 1 }
           }
       # The intervals meson took, as CMake does (windows.yml): the SSE2 ones on
-      # x64, the NEON ones on arm64 (GAOL v5), the FPU ones on x86
+      # x64 and on x86, where their bounds are two doubles, and the NEON ones on
+      # arm64 (GAOL v5)
       - name: The intervals
         shell: bash
         run: |
-          case "${{ matrix.cfg.arch }}" in x64) expected=sse2 ;; arm64) expected=neon ;; *) expected=fpu ;; esac
+          case "${{ matrix.cfg.arch }}" in x64|x86) expected=sse2 ;; arm64) expected=neon ;; *) expected=fpu ;; esac
           sh .github/scripts/check-intervals.sh build-meson/gaol/gaol_configuration.h $expected
       - name: Tests (ninja test, make test of meson)
         run: |

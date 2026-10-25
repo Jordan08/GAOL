@@ -93,6 +93,17 @@ jobs:
           # program changed the direction fail if a compiler computes a
           # product after it, which only the jobs that preserve the direction
           # can show (GAOL v5)
+          # The SSE2 intervals of Visual C++ and clang-cl on 32-bit Windows keep
+          # their two bounds as two doubles of alignment 8, loaded and stored
+          # with movupd (GAOL_SSE2_UNALIGNED_STORAGE, gaol/gaol_config.h; GAOL
+          # v5): these jobs give that form to the SSE2 intervals of Linux
+          # (-DGAOL_SSE2_UNALIGNED_STORAGE=ON, written in the configuration, so
+          # that the code using the installed GAOL has it too), where
+          # the suite runs it with every compiler of the continuous
+          # integration, and tests/misc.cpp runs the intervals at an address of
+          # 8 modulo 16
+          - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     opts: '-DGAOL_SSE2_UNALIGNED_STORAGE=ON', desc: 'Ubuntu 24.04 x86_64 GCC, SSE2 intervals of two doubles' }
+          - { os: ubuntu-24.04,     cc: clang, cxx: clang++, opts: '-DGAOL_SSE2_UNALIGNED_STORAGE=ON -DGAOL_PRESERVE_ROUNDING=ON', desc: 'Ubuntu 24.04 x86_64 Clang, SSE2 intervals of two doubles, rounding direction preserved' }
           - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     opts: '-DGAOL_SIMD=OFF', desc: 'Ubuntu 24.04 x86_64 GCC, FPU intervals' }
           - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     opts: '-DGAOL_SIMD=OFF -DGAOL_PRESERVE_ROUNDING=ON', desc: 'Ubuntu 24.04 x86_64 GCC, FPU intervals, rounding direction preserved' }
           - { os: ubuntu-24.04,     cc: clang, cxx: clang++, opts: '-DGAOL_SIMD=OFF -DGAOL_PRESERVE_ROUNDING=ON', desc: 'Ubuntu 24.04 x86_64 Clang, FPU intervals, rounding direction preserved' }
@@ -136,6 +147,9 @@ jobs:
         run: |
           case "$(uname -m)" in aarch64) expected=neon ;; *) expected=sse2 ;; esac
           case "${{ matrix.cfg.opts }}" in *GAOL_ARM64=OFF*|*GAOL_SIMD=OFF*) expected=fpu ;; esac
+          # The form of the SSE2 intervals that Visual C++ and clang-cl take on x86
+          case "${{ matrix.cfg.opts }}" in *GAOL_SSE2_UNALIGNED_STORAGE=ON*)
+            grep -q "^#define GAOL_SSE2_UNALIGNED_STORAGE 1" build/gaol/gaol_configuration.h ;; esac
           sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h $expected
       # The processor of the runner, and whether the arithmetic takes the
       # AVX-512 path, which the configuration decides from the instructions
