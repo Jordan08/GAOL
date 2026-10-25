@@ -75,6 +75,10 @@ jobs:
           # (gaol/gaol_fpu.h, GAOL v5): this job runs it with the rounding
           # direction restored by each operation too, which no job did
           - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', arch: Win32, config: Release, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Visual Studio 2026 x86 Release, rounding direction preserved' }
+          # The FPU intervals, which the SSE2 ones replace on x86 with Visual C++
+          # (GAOL v5), so that their code, and the rounding direction they keep
+          # through the x87 unit and MXCSR, stay covered
+          - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', arch: Win32, config: Release, opts: '-DGAOL_SIMD=OFF', desc: 'Visual Studio 2026 x86 Release, FPU intervals' }
           - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', arch: x64,   config: Debug,   desc: 'Visual Studio 2026 x64 Debug' }
           - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', arch: ARM64, config: Debug,   desc: 'Visual Studio 2026 arm64 Debug' }
           - { os: windows-2022,          generator: 'Visual Studio 17 2022', arch: Win32, config: Release, desc: 'Visual Studio 2022 x86 Release' }
@@ -131,12 +135,15 @@ jobs:
           if [ "${{ matrix.cfg.clang_cl }}" = "true" ]; then
             test "$(grep -c -E "The (C|CXX) compiler identification is Clang .* with MSVC-like command-line" configure.log)" = 2
           fi
-      # The intervals of the build: the SSE2 ones on x64, where Visual C++ and
-      # clang-cl take them (GAOL v5), and the FPU ones on x86 and arm64, where
-      # NEON is not offered to them (GAOL_ARM64)
+      # The intervals of the build: the SSE2 ones on x64 and on x86, where Visual
+      # C++ and clang-cl take them (on x86 with their two bounds as two doubles
+      # of alignment 8, GAOL_SSE2_UNALIGNED_STORAGE; GAOL v5), and the FPU ones
+      # on arm64, where NEON is not offered to them (GAOL_ARM64), or where the
+      # job asks for them (-DGAOL_SIMD=OFF)
       - name: The intervals
         run: |
-          if [ "${{ matrix.cfg.arch }}" = "x64" ]; then expected=sse2; else expected=fpu; fi
+          case "${{ matrix.cfg.arch }}" in x64|Win32) expected=sse2 ;; *) expected=fpu ;; esac
+          case "${{ matrix.cfg.opts }}" in *GAOL_SIMD=OFF*) expected=fpu ;; esac
           sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h $expected
       # On x64, the processor of the runner, and whether the arithmetic takes
       # the AVX-512 path, which the configuration decides from the
