@@ -53,7 +53,7 @@ opposite, so that one addition rounded upward gives both bounds
 |---|---|---|
 | SSE2 (x86, `GAOL_SIMD`) | `+ - * / sqr`, the operations with a double, `inverse`, `%=`, `-x`, the integer powers with `__FMA__`, the leaves of `div_rel` | `sqrt`, `&=`, `\|=`, `mid`, `midpoint`, the relations, the elementary functions, the reverse functions |
 | AVX-512 (`GAOL_PREFER_AVX512`) | `+ - * / sqr`, the operations with a double and the integer powers (with `__FMA__`), with the rounding direction in the instruction; `sqrt` as two scalar square roots with embedded rounding | as SSE2, and `inverse`, `%=` and the leaves of `div_rel`, which stay SSE2 kernels that set the direction |
-| NEON (arm64, `GAOL_ARM64`) | `+ - * / sqr sqrt`, the operations with a double, `%=`, `inverse`, `&=`, `\|=`, `-x` | the integer powers (two scalar lanes with `std::fma`), `mid`, `midpoint`, `div_rel`, the elementary functions |
+| NEON (arm64, `GAOL_ARM64`) | `+ - * / sqr sqrt`, the operations with a double, `%=`, `inverse`, `&=`, `\|=`, `-x`, the integer powers (two lanes with `vfmaq_f64`) | `mid`, `midpoint`, `div_rel`, the elementary functions |
 | FPU (the rest) | none | everything |
 
 The AVX-512 path is off by default: `GAOL_PREFER_AVX512` is on by default only
@@ -278,8 +278,24 @@ which is done, and none needs a new path.
 - **`sqrt` on SSE2** is scalar (6.3 ns on the i7-1185G7, 3.75 with the AVX-512
   path and the direction preserved, 1.7 on the M2 with NEON); the NEON kernel
   ports to `_mm_sqrt_pd`. `sqrt_rel` follows.
-- **The integer powers on NEON** have two scalar lanes with `std::fma`; a
-  `vfmaq_f64` kernel of about 150 lines gains perhaps 1.5 times.
+- **The integer powers on NEON** (done, GAOL v5, a small gain): the kernel of
+  `pown` on two lanes with `vfmaq_f64` (`pown_neon_ops` and `pown_large_inline()`
+  in `gaol/gaol_interval_neon.cpp`, 80 lines), as the SSE2 one with `__FMA__`
+  (`gaol_interval_sse.cpp`), where it was two scalar lanes with `std::fma`; the
+  generic part, `pown_products()`, `pown_powers()` and `pown_point()`, is in
+  `gaol_interval_core.cpp`, and each kind of intervals defines the operations
+  of its lanes as a class and its `pown_large_inline()`.
+  The bounds are the same bit for bit (4 million powers hashed, and
+  `tests/tools/pow/diffpow.py` on 70 500 lines). The gain is far below the 1.5
+  times that was hoped for: `pow(x, 3)` takes 5.7 ns where it took 6.1 (1.07
+  times; 5 passes alternated by `.github/scripts/performance-ab.sh`, an Apple
+  M2, AppleClang 21), `gaol::pow(x, 3)` alone 6.0 against 6.4 and
+  `gaol_ieee1788::pow(x, [3])` on a base about 0 11.3 against 14.7
+  (`tests/tools/pow/bench.cpp`, 6 passes alternated); the other rows move by
+  less than 3 %. The two scalar lanes ran side by side already, perhaps, the
+  chain of dependent products staying the same (not checked). Making the
+  corners from the stored register rather than from two stores and a load did
+  not change the ratio.
 - **`mid()`** takes 8.5 to 12 ns on the M2 for an addition at 0.9; a two-lane
   kernel would keep the rare branches.
 - **The argument reduction of `sin`, `cos` and `tan`** (the quotients by pi and

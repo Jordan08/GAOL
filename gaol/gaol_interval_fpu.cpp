@@ -821,3 +821,10 @@ double hausdorff(const interval &I1, const interval &I2)
   }
 
 
+
+  // The integer powers (GAOL v5): the corners and the bounds in plain doubles
+  // (pown_scalar_ops in gaol/gaol_interval_core.cpp)
+  static GAOL_POWN_INLINE_T interval pown_large_inline(const interval& I, int n)
+  {
+    return pown_scalar_ops::large(I, n);
+  }

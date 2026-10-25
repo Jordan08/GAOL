@@ -30,7 +30,7 @@ GAOL, or a build with mpmath, and their results are read by whoever changes
 | `evalrows.cpp` | Computes `gaol_ieee1788::pow` and `gaol::pow` on the boxes of a rows file |
 | `gen_table.py` | Reads the table of `pow_on_boxes()` into a rows file (`extract`), writes the table from a rows file (`cpp`, `--into` to replace it in `tests/ieee1788.cpp`), and lists the boxes whose bounds differ between two rows files (`diff`) |
 | `checkrows.py` | Checks the bounds of a rows file against the exact power, computed with 500 bits by mpmath: they have to enclose it, within one double of the tightest bounds |
-| `mutate.py` | Mutation testing: builds GAOL with one deliberate error in `pow` or in the integer power at a time (79 mutants), runs the tests, and runs `diffpow` on the mutants that survive, to tell an equivalent mutant from a box the tests lack |
+| `mutate.py` | Mutation testing: builds GAOL with one deliberate error in `pow` or in the integer power at a time (100 mutants), runs the tests, and runs `diffpow` on the mutants that survive, to tell an equivalent mutant from a box the tests lack |
 | `pown_bound.py` | Checks with rationals the induction of the comment of `pown_products()`, which bounds beforehand the error of the exact products of the integer power, and the bound K drawn from it, for c<sup>m</sup> and c<sup>−m</sup> |
 | `bench.cpp` | The time per call of the pow functions, on each path of `pow_standard()` |
 | `build.py` | Compiles `diffpow.cpp`, `evalrows.cpp` or `bench.cpp` against a build of GAOL; the other scripts import it |
@@ -183,12 +183,20 @@ equivalent mutants up to date too (`--list` tells which no longer apply), or
 give another list with `--mutants FILE`.
 
 The mutants of the integer power (GAOL v5, the third pull request of B) are
-named `pown-*` where they edit the code of both builds, `sse-fma-*` where
-they edit the two lanes in an SSE2 register, compiled with the SSE2 intervals
-and the FMA instructions only, and `fpu-*` where they edit the pair of
-doubles of the other builds: each family is run in the build that compiles
-it, with the arguments `pown sse-fma` or `pown fpu` (above), a mutant of the
-other family surviving there, not being compiled. The error bound K of the
+named `pown-*` where they edit the code of all the builds (the generic part,
+`gaol/gaol_interval_core.cpp`), `sse-fma-*` where they edit the two lanes in
+an SSE2 register (`gaol/gaol_interval_sse.cpp`), compiled with the SSE2
+intervals and the FMA instructions only, `er-*` for the embedded rounding of
+AVX-512 (`gaol/gaol_interval_avx512.cpp`), `neon-*` for the NEON register
+(`gaol/gaol_interval_neon.cpp`, compiled on a 64-bit ARM processor only,
+where they mirror the `sse-fma-*` ones, but for `sse-fma-exact-flag-as-doubles`,
+which has no NEON twin, and `neon-sign-dropped`, which has no SSE2 one) and `fpu-*` where they edit the pair
+of doubles of the other builds (`pown_scalar_ops::large()`; the tests
+`ieee1788` and `elementary` kill `fpu-no-exact-flag`, `--test arithmetic`
+kills `fpu-inverse-uncorrected` and `fpu-powers-of-c`): each family is run in
+the build that compiles it, with the arguments `pown sse-fma`, `pown fpu` or
+`pown neon` (above), a mutant of the other family surviving there, not being
+compiled. The error bound K of the
 exact products itself has no mutant: with K = 0, the bounds are those of
 h + l rounded, tighter where c<sup>n</sup> is within K of a double, and no
 test finds them wrong; `pown_bound.py` checks its proof instead. Its value 0
