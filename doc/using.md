@@ -90,8 +90,8 @@ A program includes `gaol/gaol` (or `gaol/gaol.h`), and
 `gaol/parser/gaol_expression.h` for the expressions, with
 `gaol/parser/gaol_expr_eval.h` to evaluate them. The three builds install these and the
 headers they include, each of which compiles alone but the four that other
-headers include in the middle of their code (`gaol_interval_fpu.h`,
-`gaol_interval_neon.h`, `gaol_interval_sse.h`) or for Visual C++ only (`gaol_fpu_msvc.h`), and not the
+headers include in the middle of their code (`gaol/core/gaol_interval_fpu.h`,
+`gaol/core/gaol_interval_neon.h`, `gaol/core/gaol_interval_sse.h`) or for Visual C++ only (`gaol_fpu_msvc.h`), and not the
 headers of GAOL's sources (GAOL v5): `gaol/parser/gaol_interval_parser.h`,
 which did not compile when included, `gaol_init_cleanup.h`, `gaol_core_math.h`
 and `gaol_u128.h`; `gaol_parameters.h`, which declared nothing,

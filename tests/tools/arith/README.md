@@ -8,8 +8,8 @@ Part of the [tests](../../../doc/tests.md) of GAOL v5.
 arithmetic: the FPU, the SSE2 and the NEON intervals (`GAOL_SIMD`,
 `GAOL_ARM64`), a version before a change and the one after, or two compilers.
 It was written for the NEON intervals of 64-bit ARM processors, whose kernels
-(`gaol/gaol_interval_neon.cpp`) replace the code of the FPU intervals
-(`gaol/gaol_interval_fpu.cpp`), and which have to give the same bounds and the
+(`gaol/core/gaol_interval_neon.cpp`) replace the code of the FPU intervals
+(`gaol/core/gaol_interval_fpu.cpp`), and which have to give the same bounds and the
 same exception flags, but for the sign of a zero.
 
 It is not part of the build nor of `make test`: it compares builds, and its

@@ -37,7 +37,7 @@ AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
 AM_CXXFLAGS = $(GAOL_CXX_STD)
 
 libgaol_la_SOURCES = \
-	gaol_interval.cpp gaol_interval_core.cpp gaol_ieee1788.cpp gaol_common.cpp \
+	gaol_interval.cpp core/gaol_interval_core.cpp gaol_ieee1788.cpp gaol_common.cpp \
 	parser/gaol_parser.cpp parser/gaol_expression.cpp \
 	parser/gaol_interval_parser.cpp parser/gaol_interval_lexer.cpp \
 	gaol_port.cpp \
@@ -71,9 +71,16 @@ library_includedir=$(includedir)/gaol
 library_include_HEADERS = gaol gaol.h \
 	gaol_common.h gaol_config.h gaol_exceptions.h \
 	gaol_fpu.h gaol_fpu_fenv.h gaol_fpu_msvc.h gaol_ieee1788.h \
-	gaol_interval.h gaol_interval_core.h gaol_interval_fpu.h gaol_interval_neon.h gaol_interval_sse.h \
+	gaol_interval.h \
 	gaol_port.h gaol_roundeven.h \
 	gaol_version.h gaol_configuration.h
+
+# The headers of the intervals, which gaol_interval.h includes: installed in
+# gaol/core/ as in the sources (GAOL v5)
+library_core_includedir = $(includedir)/gaol/core
+library_core_include_HEADERS = core/gaol_interval_core.h \
+	core/gaol_interval_fpu.h core/gaol_interval_neon.h \
+	core/gaol_interval_sse.h
 
 # The headers of the parser of the strings and of the expressions, which a
 # program includes as gaol/parser/gaol_expression.h and
@@ -96,7 +103,7 @@ noinst_HEADERS = gaol_core_math.h \
 	gaol_ldexp.h
 
 tags: TAGS
-	etags --language=c++ *.cpp *.h *.c
+	etags --language=c++ *.cpp *.h *.c core/*.cpp core/*.h
 
 TAGS: $(gaol_HEADERS) $(libgaol_la_SOURCES)
 
@@ -106,8 +113,8 @@ install-data-local:
 
 
 # make distclean removes the files of the dependencies one by one and leaves
-# their directories, in gaol/ and in gaol/parser/ where the sources of the
-# parser are: removed here, so that it gives the sources back as git has them
-# (GAOL v5)
+# their directories, in gaol/, in gaol/core/ where the sources of the intervals
+# are and in gaol/parser/ where the sources of the parser are: removed here, so
+# that it gives the sources back as git has them (GAOL v5)
 distclean-local:
-	-rm -rf ./$(DEPDIR) parser/$(DEPDIR)
+	-rm -rf ./$(DEPDIR) core/$(DEPDIR) parser/$(DEPDIR)

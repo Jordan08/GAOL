@@ -74,7 +74,7 @@
 #endif
 
 /* GAOL_VECTORCALL: the calling convention of the functions taking a __m128d
-   by value (add_bounds() and the others of gaol/gaol_interval_sse.h, GAOL v5).
+   by value (add_bounds() and the others of gaol/core/gaol_interval_sse.h, GAOL v5).
    The convention of Windows for x86-64 passes a __m128d by a hidden reference
    to a copy in the frame of the caller; __vectorcall of Visual C++ and
    clang-cl passes it in xmm0 and xmm1, as the x86-64 conventions of Linux and
@@ -99,7 +99,7 @@
    nothing: GAOL leaves them out, and none of its three builds has an option
    to compile them (GAOL v5). A developer of GAOL working on them defines
    GAOL_FLOAT_INTERVALS below, for GAOL and the code using them alike:
-   gaol/gaol_interval_core.cpp then compiles them, gaol::interval2f where SSE3
+   gaol/core/gaol_interval_core.cpp then compiles them, gaol::interval2f where SSE3
    instructions are used (GAOL_USING_SSE3_INSTRUCTIONS), and the code using them
    includes their headers, gaol/float/gaol_intervalf.h and
    gaol/float/gaol_interval2f.h, which the builds do not install and

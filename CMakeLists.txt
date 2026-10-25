@@ -443,7 +443,7 @@ string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
 
 # The fused multiply-add instructions of the processor (GAOL v5), with
 # the flag that gives them to the compiler where it has one, as Codac takes
-# them: GAOL's exact products (fma_once() in gaol/gaol_interval_core.cpp, for the
+# them: GAOL's exact products (fma_once() in gaol/core/gaol_interval_core.cpp, for the
 # integer powers and the reduction of sin and cos) and CORE-MATH's functions
 # then compute fma() with one instruction, rather than with a call to the
 # fma() of the math library. The flags are given to the code using GAOL too
@@ -714,11 +714,11 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR GAOL_DEBUG)
 endif()
 
 # On x86 processors, with GAOL_SIMD (--enable-simd of configure), the intervals
-# of GAOL are computed with SSE2 instructions (gaol/gaol_interval_sse.h), and
+# of GAOL are computed with SSE2 instructions (gaol/core/gaol_interval_sse.h), and
 # -msse3 is given where the compiler takes it, as the autotools build on a
 # processor with SSE3. Visual C++ and clang-cl take them on x64 (GAOL v5),
 # where SSE2 is the baseline of the processor and no flag is to be given
-# (cl does not know -msse2): gaol/gaol_interval_sse.cpp is written for the
+# (cl does not know -msse2): gaol/core/gaol_interval_sse.cpp is written for the
 # __m128d of Visual C++, a structure and not a vector, and needs no asm
 # statement there (clang-cl keeps the ones of Clang).
 #
@@ -855,7 +855,7 @@ endif()
 
 # On 64-bit ARM processors, with GAOL_ARM64 (--enable-arm64 of configure,
 # enable-arm64 of meson), the intervals are computed with NEON instructions
-# (gaol/gaol_interval_neon.h; GAOL v5). Where the test below compiles: GCC,
+# (gaol/core/gaol_interval_neon.h; GAOL v5). Where the test below compiles: GCC,
 # Clang and AppleClang for AArch64 under Linux and macOS, with the
 # intrinsics of <arm_neon.h> and the registers of the rounding mode, which
 # the code of gaol/gaol_fpu.h already writes. NEON needs no flag. The test is
@@ -933,7 +933,7 @@ endif()
 # cached under a name of its own, GAOL_COMPILER_TAKES_AVX512_PATH, so that a
 # build directory configured before that check checks again. Only the
 # functions of the AVX-512 path of +, -, *, /, sqr, sqrt and, with FMA, the
-# integer powers beyond 1 and -1 (gaol/gaol_interval_avx512.cpp) carry the
+# integer powers beyond 1 and -1 (gaol/core/gaol_interval_avx512.cpp) carry the
 # attribute, and the rest of the library is compiled as without it; the path
 # is compiled in where GAOL_AVX512_ARITHMETIC below is (GAOL v5).
 # The program that finds out whether Visual C++ and clang-cl for x64 run the
@@ -1101,19 +1101,19 @@ configure_file(cmake/gaol_configuration.h.in "${CMAKE_CURRENT_BINARY_DIR}/gaol/g
 # libgaol
 ################################################################################
 #
-# The sources listed in gaol/meson.build. gaol_interval_core.cpp includes
-# gaol_interval_neon.cpp (GAOL v5), gaol_interval_sse.cpp or
-# gaol_interval_fpu.cpp itself, according to GAOL_USING_NEON_INSTRUCTIONS and
-# GAOL_USING_SSE2_INSTRUCTIONS, and gaol/float/gaol_intervalf.cpp and
-# gaol/float/gaol_interval2f.cpp where a developer of GAOL defines
-# GAOL_FLOAT_INTERVALS (see gaol/gaol_config.h).
+# The sources listed in gaol/meson.build, those of the intervals in gaol/core/
+# (GAOL v5). gaol_interval_core.cpp includes gaol_interval_neon.cpp,
+# gaol_interval_sse.cpp or gaol_interval_fpu.cpp itself, according to
+# GAOL_USING_NEON_INSTRUCTIONS and GAOL_USING_SSE2_INSTRUCTIONS, and
+# gaol/float/gaol_intervalf.cpp and gaol/float/gaol_interval2f.cpp where a
+# developer of GAOL defines GAOL_FLOAT_INTERVALS (see gaol/gaol_config.h).
 #
 # A static library, or a shared one with BUILD_SHARED_LIBS=ON: for Visual
 # C++, always a static one, GAOL's declarations being compiled without
 # __declspec(dllexport) or dllimport (GAOL_PUBLIC, gaol/gaol_config.h).
 
 set(GAOL_SOURCES
-  gaol_interval.cpp gaol_interval_core.cpp gaol_ieee1788.cpp gaol_common.cpp
+  gaol_interval.cpp core/gaol_interval_core.cpp gaol_ieee1788.cpp gaol_common.cpp
   parser/gaol_parser.cpp parser/gaol_expression.cpp gaol_port.cpp gaol_exceptions.cpp gaol_init_cleanup.cpp
   parser/gaol_interval_lexer.cpp
   parser/gaol_interval_parser.cpp
@@ -1268,10 +1268,14 @@ set(GAOL_HEADERS
   gaol/gaol.h gaol/gaol_common.h
   gaol/gaol_config.h gaol/gaol_exceptions.h
   gaol/gaol_fpu.h gaol/gaol_fpu_fenv.h gaol/gaol_fpu_msvc.h
-  gaol/gaol_ieee1788.h gaol/gaol_interval.h gaol/gaol_interval_core.h gaol/gaol_interval_fpu.h
-  gaol/gaol_interval_neon.h gaol/gaol_interval_sse.h
+  gaol/gaol_ieee1788.h gaol/gaol_interval.h
   gaol/gaol_port.h gaol/gaol_roundeven.h
   gaol/gaol_version.h)
+# The headers of the intervals, which gaol/gaol_interval.h includes: installed
+# in gaol/core/ as in the sources (GAOL v5)
+set(GAOL_CORE_HEADERS
+  gaol/core/gaol_interval_core.h gaol/core/gaol_interval_fpu.h
+  gaol/core/gaol_interval_neon.h gaol/core/gaol_interval_sse.h)
 # The headers of the parser of the strings and of the expressions, which a
 # program includes as gaol/parser/gaol_expression.h and
 # gaol/parser/gaol_parser.h: installed in gaol/parser/ as in the sources
@@ -1284,6 +1288,10 @@ install(FILES
   ${GAOL_HEADERS}
   "${CMAKE_CURRENT_BINARY_DIR}/gaol/gaol_configuration.h"
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gaol
+)
+install(FILES
+  ${GAOL_CORE_HEADERS}
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gaol/core
 )
 install(FILES
   ${GAOL_PARSER_HEADERS}

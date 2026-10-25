@@ -5,7 +5,7 @@
 Part of the [tests](../../../doc/tests.md) of GAOL v5.
 
 The programs and scripts of this directory check a change of the `pow`
-functions of `gaol/gaol_interval_core.cpp`: `pow_standard()`, the pow of
+functions of `gaol/core/gaol_interval_core.cpp`: `pow_standard()`, the pow of
 IEEE 1788-2015 (Table 9.1), which `gaol_ieee1788::pow` is, the integer power
 that `gaol::pow(x, y)` (`gaol_pow_hybrid()`) and `gaol::pow(x, p)`
 (`gaol_pow_real()`) add to it, the corners of a box (`pow_lo()`, `pow_hi()`,
@@ -151,7 +151,7 @@ python3 tests/tools/pow/mutate.py --work /tmp/pow/mutants-fpu --cmake-option=-DG
 ```
 
 The sources are copied to `WORK/src` and built in `WORK/build`; each mutant
-edits the copy of `gaol/gaol_interval_core.cpp`, rebuilds the tests (`--jobs`
+edits the copy of `gaol/core/gaol_interval_core.cpp`, rebuilds the tests (`--jobs`
 processes, 2 by default) and runs them: `ieee1788` and `elementary` by
 default, the tests given with `--test` otherwise (`--test ieee1788` alone
 shows what `pow_on_boxes()` catches; `arithmetic`, `rounding_direction`,
@@ -186,11 +186,11 @@ give another list with `--mutants FILE`.
 
 The mutants of the integer power (GAOL v5, the third pull request of B) are
 named `pown-*` where they edit the code of all the builds (the generic part,
-`gaol/gaol_interval_core.cpp`), `sse-fma-*` where they edit the two lanes in
-an SSE2 register (`gaol/gaol_interval_sse.cpp`), compiled with the SSE2
+`gaol/core/gaol_interval_core.cpp`), `sse-fma-*` where they edit the two lanes in
+an SSE2 register (`gaol/core/gaol_interval_sse.cpp`), compiled with the SSE2
 intervals and the FMA instructions only, `er-*` for the embedded rounding of
-AVX-512 (`gaol/gaol_interval_avx512.cpp`), `neon-*` for the NEON register
-(`gaol/gaol_interval_neon.cpp`, compiled on a 64-bit ARM processor only,
+AVX-512 (`gaol/core/gaol_interval_avx512.cpp`), `neon-*` for the NEON register
+(`gaol/core/gaol_interval_neon.cpp`, compiled on a 64-bit ARM processor only,
 where they mirror the `sse-fma-*` ones, but for `sse-fma-exact-flag-as-doubles`,
 which has no NEON twin, and `neon-sign-dropped`, which has no SSE2 one) and `fpu-*` where they edit the pair
 of doubles of the other builds (`pown_scalar_ops::large()`; the tests

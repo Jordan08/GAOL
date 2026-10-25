@@ -16,7 +16,7 @@
  * bound, and the double below it as the lower one, which is RD(f(x)) unless
  * f(x) is a double: so GAOL's bounds have to enclose the tightest ones, and to
  * be within one double of them below and equal above. Where the operations of
- * gaol/gaol_interval_core.cpp give the exact value themselves (log(1) = 0,
+ * gaol/core/gaol_interval_core.cpp give the exact value themselves (log(1) = 0,
  * sin(0) = 0, the bounds of pi/2 at asin(1)...), they are the tightest ones.
  *
  * Each function is tried on the values at the ends of its domain and next to
@@ -178,11 +178,11 @@ namespace
     CORE-MATH computes with __builtin_fma(), one instruction where the
     compiler has the fused multiply-add instructions (GAOL_FMA) and a call to
     fma() otherwise, as fma_once() is in the exact products of
-    gaol/gaol_interval_core.cpp: the functions and the bounds are right only if
+    gaol/core/gaol_interval_core.cpp: the functions and the bounds are right only if
     that fma() is correctly rounded, in the four rounding directions. The test
     calls __builtin_fma() too (fma_as_gaol(), tests/gaol_tests.h), so that it
     checks the instruction where there is one. round() is
-    roundTiesToAway (round_ties_to_away() of gaol/gaol_interval_core.h, and pow of
+    roundTiesToAway (round_ties_to_away() of gaol/core/gaol_interval_core.h, and pow of
     CORE-MATH), which does not depend on the rounding direction.
 
     The fma() of mingw-w64's own math library (see gaol/gaol_config.h) adds

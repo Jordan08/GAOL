@@ -1550,7 +1550,7 @@ and three times with its head, in turn, and compares them (see
 [Continuous integration](continuous-integration.md#the-speed-of-a-pull-request)).
 
 `tests/tools/pow/` holds the tools that check a change of `pow` in
-`gaol/gaol_interval_core.cpp` (see [its README](../tests/tools/pow/README.md)).
+`gaol/core/gaol_interval_core.cpp` (see [its README](../tests/tools/pow/README.md)).
 They are not tests either: no build compiles them and no job runs them.
 `diffpow.py` prints the bounds of `gaol_ieee1788::pow` and `gaol::pow` with
 two builds of GAOL, on 70 500 boxes and under the four rounding directions at
@@ -1564,7 +1564,7 @@ which `ieee1788`, `elementary`, `arithmetic`, `rounding_direction` and
 `expressions` have to catch, but for those that give the same bounds, and
 runs `diffpow` on the errors no test catches. `pown_bound.py` checks with
 rationals the induction that bounds the error of the integer powers
-beforehand (`pown_products()` in `gaol/gaol_interval_core.cpp`). `bench.cpp`
+beforehand (`pown_products()` in `gaol/core/gaol_interval_core.cpp`). `bench.cpp`
 measures the time per call of each path of `pow`.
 
 `tests/tools/arith/` holds a tool of the same kind for the arithmetic (see

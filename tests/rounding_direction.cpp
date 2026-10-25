@@ -1124,7 +1124,7 @@ namespace
     // operand is empty where it did not know the answer from operator&= (#60),
     // and on the empty interval alone, as GCC for POWER9 did with xscmpgedp;
     // is_empty() now tells the NaN bounds with std::isunordered() first there
-    // (see gaol/gaol_interval_core.h). Where the compiler optimizes for size (-Os),
+    // (see gaol/core/gaol_interval_core.h). Where the compiler optimizes for size (-Os),
     // GCC 14 for 32-bit ARM and GCC 13 for POWER9 call operator& or operator&=
     // rather than inlining it, and the choice is then made on is_empty() of an
     // empty interval alone: these choices were not checked there
@@ -4599,7 +4599,7 @@ int main()
      building that runs the AVX-512 instructions), the addition takes the
      embedded rounding: it sets no direction, and the one the program left
      stays (to nearest here, as restore_rounding() set it), as it stays with
-     GAOL_PRESERVE_ROUNDING (GAOL v5, gaol/gaol_interval_avx512.cpp) */
+     GAOL_PRESERVE_ROUNDING (GAOL v5, gaol/core/gaol_interval_avx512.cpp) */
 #if defined(GAOL_USING_SSE2_INSTRUCTIONS) && GAOL_USING_SSE2_INSTRUCTIONS \
     && defined(GAOL_AVX512_ARITHMETIC) && GAOL_AVX512_ARITHMETIC
   check("rounding direction set back by gaol::restore_rounding() as many times as needed",

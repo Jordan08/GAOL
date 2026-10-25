@@ -246,7 +246,7 @@ jobs:
   # (-DGAOL_MACHINE_RUNS_AVX512=1, which CMake takes for the result of its own
   # check), and the unit tests run under SDE (.github/scripts/sde-tests.sh),
   # those that compute with intervals only. Visual C++ orders the operations of
-  # the path by volatile accesses and calls (gaol/gaol_interval_avx512.cpp),
+  # the path by volatile accesses and calls (gaol/core/gaol_interval_avx512.cpp),
   # which only the tests of the rounding direction and of the flush-to-zero
   # modes can show wrong. The action sets SDE up from the binaries of its own
   # repository, after checking their SHA-256: by using it, the project accepts
@@ -497,7 +497,7 @@ jobs:
         run: |
           cmake -S . -B build-debug -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_MAKE_PROGRAM=/usr/bin/make
           cmake --build build-debug -j 4 --target gaol
-          object=build-debug/CMakeFiles/gaol.dir/gaol/gaol_interval_core.cpp.o
+          object=build-debug/CMakeFiles/gaol.dir/gaol/core/gaol_interval_core.cpp.o
           count=$(objdump -d --no-show-raw-insn "$object" | grep -c 'vfmadd' || true)
           echo "$count fused multiply-add instructions"
           # not grep -q: it ends before objdump does, which pipefail reads as 141

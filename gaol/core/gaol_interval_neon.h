@@ -35,7 +35,7 @@ right> in the two lanes, so that one addition rounded upward gives both bounds.
 
 /*
   The helpers of the intersection and the hull, and of the kernels of
-  gaol/gaol_interval_neon.cpp (GAOL v5). They work on the bits of the bounds, with
+  gaol/core/gaol_interval_neon.cpp (GAOL v5). They work on the bits of the bounds, with
   integer instructions: these depend neither on the rounding direction nor on the
   modes that flush the subnormals to zero, which the operations that only compare
   or copy bounds do not check (point Q of TODO.md), and raise nothing on a NaN,

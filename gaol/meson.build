@@ -86,7 +86,7 @@ core_math_lib = static_library(
 gaol_SOURCES = []
 gaol_SOURCES += [
   'gaol_interval.cpp',
-  'gaol_interval_core.cpp',
+  'core/gaol_interval_core.cpp',
   'gaol_ieee1788.cpp',
   'gaol_common.cpp',
   'parser/gaol_parser.cpp',
@@ -119,13 +119,18 @@ gaol_HEADERS = [
   'gaol_fpu_msvc.h',
   'gaol_ieee1788.h',
   'gaol_interval.h',
-  'gaol_interval_core.h',
-  'gaol_interval_fpu.h',
-  'gaol_interval_neon.h',
-  'gaol_interval_sse.h',
   'gaol_port.h',
   'gaol_roundeven.h',
   'gaol_version.h',
+]
+
+# The headers of the intervals, which gaol_interval.h includes: installed in
+# gaol/core/ as in the sources (GAOL v5)
+gaol_CORE_HEADERS = [
+  'core/gaol_interval_core.h',
+  'core/gaol_interval_fpu.h',
+  'core/gaol_interval_neon.h',
+  'core/gaol_interval_sse.h',
 ]
 
 # The headers of the parser of the strings and of the expressions, which a
@@ -150,9 +155,9 @@ EXTRA_DIST = [
   'gaol_ldexp.h',
   'parser/gaol_interval_lexer.lpp',
   'parser/gaol_interval_parser.ypp',
-  'gaol_interval_sse.cpp',
-  'gaol_interval_neon.cpp',
-  'gaol_interval_avx512.cpp',
+  'core/gaol_interval_sse.cpp',
+  'core/gaol_interval_neon.cpp',
+  'core/gaol_interval_avx512.cpp',
   # Headers and sources of GAOL, not installed: the bounds at doubles, *_dn()
   # and *_up(), which are not part of its interface, and the intervals of
   # floats, which gaol_interval_core.cpp includes where a developer of GAOL
@@ -222,4 +227,5 @@ gaol_dep = declare_dependency(
 )
 
 install_headers(gaol_HEADERS, subdir: 'gaol')
+install_headers(gaol_CORE_HEADERS, subdir: 'gaol/core')
 install_headers(gaol_PARSER_HEADERS, subdir: 'gaol/parser')

@@ -19,7 +19,7 @@
 *
 * uses GAOL under the names of the standard, without naming gaol: a program
 * opens one of the two namespaces, not both. The type interval and GAOL's
-* functions are in gaol_core (gaol/gaol_interval_core.h), the only namespace where
+* functions are in gaol_core (gaol/core/gaol_interval_core.h), the only namespace where
 * argument-dependent lookup looks for a call sin(x) on an interval, so that
 * it finds neither gaol's functions nor these. The functions of GAOL that
 * have the name and the meaning the standard gives them (sin, exp, sqrt,
