@@ -407,6 +407,21 @@ point Q), which `numbers` checks there too.
   `numbers`. A mode the processor keeps without honouring it, as an emulator
   may, is named and skipped: one that flushes neither the exact subnormal sum
   2^-1060 + 0 nor the inexact product 1e-300·1e-20.
+  `bisect(ratio)` and `is_bisectable()` have to give, with each of these modes
+  set before them and in each rounding direction, what the bits of the bounds
+  give, told by integers (the order of the doubles, in which the subnormal
+  multiples of 2^-1074 are their own numbers): on intervals of subnormal bounds
+  of both signs and with 0, a ratio from 2^-1074 to 1 − 10^-9 is accepted, and
+  the cut is the one with the modes cleared; the two parts share the cut and
+  cover the interval, and are strictly smaller than it when the bounds are two
+  multiples or more apart; the modes are the ones set before the call with
+  `GAOL_PRESERVE_ROUNDING`, and cleared or unchanged without it. The cut was
+  put within the bounds after the direction was restored, the ratio compared
+  with 0 and 1 in the modes of the program, and `is_bisectable()` compared the
+  next double above the lower bound with the upper one as doubles, both read
+  as 0 under the mode (GAOL v5, point Q): with the sources of
+  `configure-clean`, 2280 of these checks fail with the SSE2 intervals, and
+  4008 with `GAOL_PRESERVE_ROUNDING`.
   `gaol::cleanup()` has to set back the direction the first `gaol::init()`
   found, to nearest, or to leave it as it is with `GAOL_PRESERVE_ROUNDING`,
   although an interval computed in the initialization of a static object set

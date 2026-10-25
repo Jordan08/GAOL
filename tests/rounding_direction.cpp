@@ -3488,6 +3488,94 @@ int main()
   }
 
   /*
+    bisect(ratio) and is_bisectable() with a mode that flushes the subnormals to
+    zero set (GAOL v5, point Q of TODO.md). bisect(ratio) put its cut point
+    within [l, r], and strictly inside, after GAOL_RND_LEAVE(), which gives the
+    modes back with GAOL_PRESERVE_ROUNDING, and compared the ratio with 0 and 1
+    in the modes of the program; is_bisectable() compared the next double above
+    l with r in the modes of the program too. Flush-to-zero and
+    denormals-are-zero, or FZ, read two subnormals as two zeros: with
+    denormals-are-zero set and GAOL_PRESERVE_ROUNDING on x86, 100 099 cuts in
+    200 000 random intervals of subnormal bounds were not within [l, r] or not
+    strictly inside, and is_bisectable() was false for all of them (TODO.md
+    counted 634 on ARM). The bounds, the cut and the doubles between are told by
+    the integers of the bits (the order of the doubles, -0 and +0 one number),
+    not by comparisons of doubles, which the modes change. A subnormal ratio is
+    one of the cases: it was refused, as 0, with the modes set.
+  */
+  {
+    const auto key = [](double d) {
+      std::uint64_t bits;
+      std::memcpy(&bits, &d, sizeof bits);
+      const long long magnitude = static_cast<long long>(bits & 0x7fffffffffffffffull);
+      return ((bits >> 63) != 0) ? -magnitude : magnitude;
+    };
+    struct Bounds
+    {
+      long long l, r; // multiples of 2^-1074
+    };
+    const Bounds cases[] = {
+      { 0, 1 }, { 0, 2 }, { 1, 2 }, { 1, 3 }, { 3, 5 }, { -1, 1 }, { -2, -1 }, { -5, -3 }, { -3, 5 }, { 100, 300 },
+      { -300, -100 }, { 7, 7 }, { 0, 0 }, { -4, 0 }, { 0, 4 }, { 4503599627370494, 4503599627370496 },
+    };
+    const double ratios[] = { 0.25, 0.5, 0.75, 1.0/3.0, 1e-9, 1.0 - 1e-9, 0x1p-1074, 0x1p-1060 };
+    for (const FlushMode& m : flush_modes_honoured) {
+      for (const Direction& d : directions) {
+        for (const Bounds& b : cases) {
+          for (const double ratio : ratios) {
+            // The interval and what to expect of it are made with the modes cleared
+            set_flush_bits(0u);
+            set(d);
+            const interval x(subnormal(b.l), subnormal(b.r));
+            const double l = x.left(), r = x.right();
+            // The bounds are the multiples asked for (the keys of the subnormals are the multiples
+            // of 2^-1074), and a double lies between them when they are two or more apart
+            const bool bisectable = b.r - b.l >= 2;
+            check("the keys of the bounds of the case", key(l) == b.l && key(r) == b.r, [&] { return hex(x); });
+            set(d);
+            set_flush_bits(0u);
+            const std::pair<interval, interval> cleared = x.bisect(ratio);
+            set(d);
+            set_flush_bits(m.bits);
+            // is_bisectable() first: without GAOL_PRESERVE_ROUNDING, bisect(ratio) mostly leaves the modes cleared
+            const bool found = x.is_bisectable();
+            std::pair<interval, interval> parts(x, x);
+            bool refused = false;
+            try {
+              parts = x.bisect(ratio);
+            } catch (const std::exception&) {
+              refused = true;
+            }
+            const unsigned int after = flush_bits();
+            set_flush_bits(0u);
+            const double c = parts.first.right();
+            const auto describe = [&] {
+              return m.name + " set, rounding direction " + d.name + ", x = " + hex(x) + ", ratio " + hex(ratio) + ": "
+                   + hex(parts.first) + " " + hex(parts.second);
+            };
+            check("is_bisectable() with a flush-to-zero mode: a double strictly between the bounds", found == bisectable, describe);
+            check("bisect(ratio) with a flush-to-zero mode: a ratio in (0, 1) is accepted", !refused, describe);
+            check("bisect(ratio) with a flush-to-zero mode: two parts sharing a point of x, which they cover",
+                  key(parts.first.left()) == key(l) && key(parts.second.right()) == key(r) && key(parts.second.left()) == key(c)
+                  && key(l) <= key(c) && key(c) <= key(r), describe);
+            check("bisect(ratio) of a bisectable interval with a flush-to-zero mode: two parts smaller than x",
+                  !bisectable || (key(l) < key(c) && key(c) < key(r)), describe);
+            check("bisect(ratio) with a flush-to-zero mode: the cut it has with the modes cleared",
+                  key(c) == key(cleared.first.right()) && key(parts.second.left()) == key(cleared.second.left()), describe);
+#if GAOL_PRESERVE_ROUNDING
+            check("bisect(ratio): flush-to-zero modes restored", after == m.bits, describe);
+#else
+            // The cut of a point or of an interval symmetric about 0 at ratio 0.5 is made without a check
+            check("bisect(ratio): flush-to-zero modes cleared, or unchanged", after == 0u || after == m.bits, describe);
+#endif
+          }
+        }
+      }
+    }
+    set(directions[0]);
+  }
+
+  /*
     Every operation that checks the rounding direction, with each of the modes
     set just before it, gives what it gives with the modes cleared, which the
     cases above show to be the tightest bounds, and leaves them cleared, or
