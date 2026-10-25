@@ -375,13 +375,15 @@ endif
 # do (see CMakeLists.txt), independently of enable-simd. Where the test below
 # compiles, whatever the processor of the machine building: GCC, Clang and
 # AppleClang for AArch64 under Linux and macOS, with the intrinsics of
-# <arm_neon.h> and the registers of the rounding mode. NEON needs no flag. Not
-# for Visual C++ and clang-cl, nor for a target of Windows (MinGW-w64 and MSYS2
-# define __aarch64__ too), nor for 32-bit ARM or x86: the option is then
-# ignored, and the intervals are computed with the FPU. The refusals above
-# (Clang 14, Clang on 32-bit ARM) come first. The program is the same as that of
-# CMakeLists.txt and configure; the flags of interval arithmetic are given to
-# it, as the checks of the compiler do not get add_project_arguments().
+# <arm_neon.h> and the registers of the rounding mode. NEON needs no flag.
+# Visual C++ (cl) for 64-bit ARM too, with _ReadStatusReg() and
+# _WriteStatusReg() for the registers (GAOL v5). Not for clang-cl, nor for a
+# target of Windows with another compiler (MinGW-w64 and MSYS2 define
+# __aarch64__ too), nor for 32-bit ARM or x86: the option is then ignored, and
+# the intervals are computed with the FPU. The refusals above (Clang 14, Clang
+# on 32-bit ARM) come first. The program is the same as that of CMakeLists.txt
+# and configure; the flags of interval arithmetic are given to it, as the
+# checks of the compiler do not get add_project_arguments().
 use_neon = false
 if arm64 and not msvc
   use_neon = cpp_comp.compiles('''
@@ -401,6 +403,24 @@ int main()
   return static_cast<int>(vgetq_lane_f64(x, 0)) - 3;
 }
 ''', args: pc_cflags, name: 'the compiler takes the NEON intrinsics and the registers of the rounding mode for a 64-bit ARM target')
+  if use_neon
+    conf_data.set('GAOL_USING_NEON_INSTRUCTIONS', 1)
+  endif
+elif arm64 and cpp_comp.get_id() == 'msvc'
+  use_neon = cpp_comp.compiles('''
+#if !defined(_M_ARM64) || defined(__clang__)
+#error GAOL computes its intervals with NEON on 64-bit ARM processors only
+#endif
+#include <arm_neon.h>
+#include <intrin.h>
+int main()
+{
+  const unsigned long long fpcr = static_cast<unsigned long long>(_ReadStatusReg(ARM64_FPCR));
+  _WriteStatusReg(ARM64_FPCR, static_cast<__int64>(fpcr));
+  const float64x2_t x = vaddq_f64(vdupq_n_f64(1.0), vdupq_n_f64(2.0));
+  return static_cast<int>(vgetq_lane_f64(x, 0)) - 3;
+}
+''', args: pc_cflags, name: 'Visual C++ takes the NEON intrinsics and the registers of the rounding mode for a 64-bit ARM target')
   if use_neon
     conf_data.set('GAOL_USING_NEON_INSTRUCTIONS', 1)
   endif
