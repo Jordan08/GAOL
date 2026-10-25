@@ -44,7 +44,8 @@ build, and the CMake build follows them, apart from the errors corrected (see
   with GCC, Clang or AppleClang under Linux and macOS and with Visual C++
   (`cl`, whose registers are those of `_ReadStatusReg()` and
   `_WriteStatusReg()`; GAOL v5), whose compiler each build tests with the same
-  program: the intrinsics of `<arm_neon.h>` and the registers of the rounding
+  program (CMake and meson for Visual C++, which configure does not build
+  with): the intrinsics of `<arm_neon.h>` and the registers of the rounding
   mode. Not with clang-cl, MinGW-w64 nor 32-bit ARM, nor in a universal build
   of macOS: the option is then ignored, and
   the FPU computes the intervals, as before. Independent of `GAOL_SIMD`, which
@@ -469,7 +470,8 @@ with GCC 9.4 and 13, after `-funsafe-math-optimizations`.
 **Linking with them, or loading code built with them, makes the bounds wrong.**
 GAOL v5 defends itself:
 
-- on x86 processors, and on ARM processors with GCC and Clang, each operation
+- on x86 processors, and on ARM processors with GCC and Clang and with the NEON
+  intervals of Visual C++, each operation
   that computes bounds clears the modes when it starts, in the check that sets
   the rounding direction upward, which uses a subnormal number to see them as
   well as the direction (`round_upward_if_needed()` in `gaol/gaol_fpu.h`).
@@ -495,13 +497,14 @@ GAOL v5 defends itself:
   program, and a program linked by a compiler that refuses it (Clang 18, a GCC
   before 11.4, GCC 12.0 to 12.3, GCC for ARM) is to be linked without it.
 
-The modes of other processors, and of ARM with Visual C++, are neither checked
-nor cleared; GCC links `crtfastmath.o` for none of the other processors of the
+The modes of other processors, and of ARM with the FPU intervals of Visual C++,
+are neither checked nor cleared; GCC links `crtfastmath.o` for none of the other processors of the
 continuous integration (POWER, s390x, RISC-V). `tests/rounding_direction.cpp`
 sets each mode before operations with subnormal operands and results, and
 checks that their bounds are the tightest ones, and that every operation that
 checks the rounding direction gives, with a mode set just before it, what it
-gives with the modes cleared (x86, and ARM with GCC and Clang), on what each
+gives with the modes cleared (x86, and ARM with GCC and Clang, and with the NEON
+intervals of Visual C++), on what each
 compiler emits; `tests/fast_math_link.cpp`, linked with `-ffast-math`, checks that the
 modes are clear when `main()` starts where the build gives `-mno-daz-ftz`, and
 that the operations clear them otherwise.

@@ -254,8 +254,7 @@ rounding direction preserved, and with GCC and with Clang and the FPU
 intervals; Ubuntu 24.04 arm64 with GCC and with Clang (the
 NEON intervals) and with GCC and the FPU intervals (the kernels of #157); macOS
 26 arm64 (the NEON intervals) and macOS 15 x86_64; Visual Studio 2026 x64, x86,
-arm64 (the NEON intervals, and the FPU ones with `-DGAOL_ARM64=OFF`), and x64 and
-arm64 with the rounding direction preserved, and with clang-cl for
+arm64, and x64 with the rounding direction preserved, and with clang-cl for
 x64, x86 and arm64; MSYS2 UCRT64 (GCC) and CLANG64 (Clang); and Debian 13
 containers for i386 and armhf, `gaol_performance` alone and no cache there (the
 image of Debian changes under the job). The other platforms (POWER, s390x,

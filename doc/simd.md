@@ -225,7 +225,11 @@ the T-Head C910 the draft 0.7.1.
   `reread_bounds()` and `rnd_reread()` are empty `asm` statements,
   `GAOL_RND_KEEP()` is a copy through volatile memory with SSE2 and the FPU and
   an empty `asm` with NEON, and `GAOL_RND_BARRIER()` is a memory barrier. A path
-  written with intrinsics needs the same.
+  written with intrinsics needs the same. Visual C++ for arm64 has no `asm`
+  statement: its NEON intervals copy the result through volatile memory,
+  `GAOL_RND_BARRIER()` and the writes of FPCR are `_ReadWriteBarrier()`, and
+  the operands rely on `/fp:strict` (checked by the generated code and by
+  `tests/rounding_direction.cpp`, not by the language).
 - **Intrinsics of the other families**: NEON `float64x2_t` with GCC, Clang and
   Visual C++ for arm64 from 19.26; SVE `<arm_sve.h>` with GCC 14 and Clang 18, and
   in Visual C++ 19.50 and 19.51 only partially (`svmla_f64_x` becomes an

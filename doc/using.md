@@ -1281,7 +1281,9 @@ FPCR through the intrinsics `_ReadStatusReg()` and `_WriteStatusReg()`, where
 GCC and Clang have `mrs` and `msr` in an asm statement; it has no asm statement
 to order its operations with respect to those writes, and relies on `/fp:strict`
 to keep them where the source puts them, which `tests/rounding_direction.cpp`
-checks. clang-cl, MinGW-w64 (any target of Windows) and 32-bit ARM, whose NEON
+checks. A GAOL built with Visual C++ for arm64 has the NEON intervals in its
+`gaol_configuration.h`, which clang-cl and MinGW-w64 refuse: a program built
+by them uses a GAOL built by them. clang-cl, MinGW-w64 (any target of Windows) and 32-bit ARM, whose NEON
 has no vector of doubles, do not take them, nor does a universal build of
 macOS: the option is ignored there, and the FPU computes the intervals, as
 before.
@@ -1588,7 +1590,8 @@ did before version 13.
 `-funsafe-math-optimizations`, or loading code built with them, makes the
 bounds wrong**, and GAOL defends itself in two ways:
 
-- On x86 processors, and on ARM processors with GCC and Clang, each operation
+- On x86 processors, and on ARM processors with GCC and Clang and with the NEON
+  intervals of Visual C++, each operation
   of GAOL that computes bounds clears the modes when it starts, in the check
   that sets the rounding direction upward: the check is one comparison with a
   subnormal number, which shows the modes as well as the direction (see
@@ -1694,7 +1697,7 @@ of every operation (an operation with an empty operand may return before its
 check, the modes left as it found them), nor the test by which `hausdorff()`
 returns +oo before its check when a bound is infinite in one of its two
 intervals only. The modes of other processors, and
-of ARM with Visual C++, are neither checked nor cleared, though the functions
+of ARM with the FPU intervals of Visual C++, are neither checked nor cleared, though the functions
 above compare the bounds right there too, and `operator<<` writes a subnormal
 bound outward, as 2^-1022 away from zero and 0 toward it; GCC links
 `crtfastmath.o` for none of the other processors GAOL is tested on. Link a

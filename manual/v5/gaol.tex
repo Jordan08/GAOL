@@ -1446,7 +1446,8 @@ loading code built with them, makes the bounds wrong}, and GAOL defends itself
 in two ways:
 
 \begin{itemize}
-\item on x86 processors, and on ARM processors with GCC and Clang, each
+\item on x86 processors, and on ARM processors with GCC and Clang and with
+  the NEON intervals of Visual C++, each
   operation that computes bounds clears the modes when it starts, in the check
   that sets the rounding direction upward: the check is one comparison with a
   subnormal number, which shows the modes as well as the direction, or, with
@@ -1530,8 +1531,8 @@ of the empty set, made before the check of every operation (an operation with
 an empty operand may return before its check, the modes left as it found
 them), nor the test by which \code{hausdorff()} returns $+\infty$ before its
 check when a bound is infinite in one of its two intervals only. The modes of
-other processors, and of ARM with Visual C++, are neither checked nor
-cleared, though the functions above compare the bounds right there too, and
+other processors, and of ARM with the FPU intervals of Visual C++, are
+neither checked nor cleared, though the functions above compare the bounds right there too, and
 \code{operator<{}<} writes a subnormal bound outward, as $2^{-1022}$ away from
 zero and 0 toward it; GCC links \file{crtfastmath.o} for none of the other processors GAOL is tested
 on. Link a program that uses GAOL without these options, or with
@@ -2053,8 +2054,8 @@ A bound that is zero has a sign, which differs between the builds:
 \code{sqr(interval(-1, 2))} is \itv{-0}{4} with the SSE2 intervals, which the
 default build uses on x86 processors, and with the NEON intervals, which it
 uses on 64-bit ARM processors, and \itv{0}{4} with the FPU intervals, those of
-the other processors, of Visual C++ and clang-cl on x86 and arm64, and of the
-builds with \option{GAOL\_SIMD} off on x86 and \option{GAOL\_ARM64} off on 64-bit ARM
+the other processors, of Visual C++ on x86 and of clang-cl on x86 and arm64,
+and of the builds with \option{GAOL\_SIMD} off on x86 and \option{GAOL\_ARM64} off on 64-bit ARM
 (Visual C++ and clang-cl for x64 have the SSE2 intervals)\newinvfive;
 \code{interval::zero()} is \itv{-0}{0} with the first two and \itv{0}{0} with
 the third. \code{pow(x, 2)} is \code{sqr(x)}, and has the same
