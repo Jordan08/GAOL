@@ -50,15 +50,16 @@
  * test as they run (gaol::init() set one, which every operation tested, until point
  * AA of TODO.md): they never touch the rounding direction, whatever the
  * program left, and clear the modes that flush the subnormals to zero only
- * where they are set, as the other operations do. The divisions and the square roots take
- * it too, the embedded rounding of their 512-bit form being slower only
- * on the processors that halve it (the i7-1185G7 measures 6.0 ns against
- * 1.8 for a division, 8.0 against 2.0 for a square root, where an
- * addition takes 0.9 against 1.8 and a product 0.8 against 1.9). The
- * operations the path does not take are unchanged: the integer powers
- * beyond the range of their exact products, and the exponents 0, 1 and -1,
- * the relational divisions, the reverse functions, the reading of a number,
- * which set the direction as they always did.
+ * where they are set, as the other operations do. The divisions and the square
+ * roots take it as scalar instructions, a division of the two bounds being two
+ * of them (er_div2() below), the embedded rounding of their 512-bit form being
+ * slower on the processors that halve it (the i7-1185G7 measures 6.0 ns against
+ * 1.8 for a division, 8.0 against 2.0 for a square root, where an addition takes
+ * 0.9 against 1.8 and a product 0.8 against 1.9). The operations the path does
+ * not take are unchanged: the integer powers beyond the range of their exact
+ * products, and the exponents 0, 1 and -1, the relational divisions, the
+ * reverse functions, the reading of a number, which set the direction as they
+ * always did.
  *
  * The dispatch of the products and of the divisions below compares the
  * bounds with 0. It reads the sign and the magnitude of their bits, not
@@ -332,6 +333,35 @@
   }
 
   /*
+    The quotients of the lanes of a by those of b, by scalar divisions with the
+    embedded rounding, as div_bounds() of gaol/gaol_interval_sse.cpp has them:
+    the packed division takes the embedded rounding on its 512-bit form only,
+    which divides at the rate of eight doubles (16 cycles of throughput on the
+    Intel processors that halve the 512-bit registers, uops.info) where a
+    scalar one takes 4. The quotient of a lane is the same bits whichever form
+    divides it (GAOL v5). er_div_low() divides the low lanes, the high lane of
+    its result being the one of a; er_div_high() divides the high ones, its
+    result in the low lane: the cases of div_unguarded() that keep one lane of
+    the quotients divide that one. On an Intel i7-1185G7 (Clang 21,
+    GAOL_PRESERVE_ROUNDING, medians of 7 runs alternated with the 512-bit form)
+    x / d takes 2.8 ns rather than 3.7, and x /= d the same; the divisors with a
+    zero of div_unguarded() (5.5 ns) and the negative powers (pow(x, -3), 9.1
+    ns) take the same time with either form, their time being elsewhere.
+  */
+  GAOL_AVX512_TARGET GAOL_INLINE __m128d er_div_low(__m128d a, __m128d b)
+  {
+    return _mm_div_round_sd(a, b, gaol_er);
+  }
+  GAOL_AVX512_TARGET GAOL_INLINE __m128d er_div_high(__m128d a, __m128d b)
+  {
+    return _mm_div_round_sd(_mm_unpackhi_pd(a, a), _mm_unpackhi_pd(b, b), gaol_er);
+  }
+  GAOL_AVX512_TARGET GAOL_INLINE __m128d er_div2(__m128d a, __m128d b)
+  {
+    return _mm_unpacklo_pd(er_div_low(a, b), er_div_high(a, b));
+  }
+
+  /*
     The max of the two candidates of the product of two operands that
     strictly straddle zero, which the SSE2 path makes with _mm_max_pd: the
     candidates of each half are positive in the stored form (the low half
@@ -426,7 +456,7 @@
     const flush_guard flush;
     const __m128d a = flush_guard::in(x);
     const double divisor = flush_guard::in(d);
-    return flush_guard::out(back128(_mm512_div_round_pd(lo512(a), _mm512_set1_pd(divisor), gaol_er)));
+    return flush_guard::out(er_div2(a, _mm_set1_pd(divisor)));
   }
 
   // The plain products of two stored pairs
@@ -540,24 +570,22 @@
     if (stored_right_below_zero(x)) { // [x] N1
       if (stored_right_below_zero(y)) { // [y] N1
         const __m128d r = _mm_xor_pd(x, interval::lbsignmask);
-        return back128(_mm512_div_round_pd(lo512(_mm_shuffle_pd(r, r, 1)), lo512(y), gaol_er)); // N1 N1
+        return er_div2(_mm_shuffle_pd(r, r, 1), y); // N1 N1
       }
       if (bit_zero(high_of(y))) { // [y] N0 or Z
         if (bit_zero(low_of(y))) { // [y] Z
           return interval::m128_nan; // N1 Z
         }
-        return _mm_move_sd(interval::m128_infinf,
-                           back128(_mm512_div_round_pd(lo512(_mm_shuffle_pd(x, x, 1)), lo512(y), gaol_er))); // N1 N0
+        return _mm_move_sd(interval::m128_infinf, er_div_low(_mm_shuffle_pd(x, x, 1), y)); // N1 N0
       }
       if (stored_left_below_zero(y)) { // [y] M
         return interval::m128_infinf; // N1 M: the universe
       }
       if (bit_zero(low_of(y))) { // [y] P0
-        return _mm_move_sd(back128(_mm512_div_round_pd(lo512(x), lo512(y), gaol_er)),
-                           interval::m128_infinf); // N1 P0
+        return _mm_unpacklo_pd(interval::m128_infinf, er_div_high(x, y)); // N1 P0
       }
       // [y] P1
-      return back128(_mm512_div_round_pd(lo512(x), lo512(_mm_xor_pd(y, interval::lbsignmask)), gaol_er)); // N1 P1
+      return er_div2(x, _mm_xor_pd(y, interval::lbsignmask)); // N1 P1
     }
     if (bit_zero(high_of(x))) { // [x] N0 or Z
       if (bit_zero(low_of(x))) { // [x] Z
@@ -569,8 +597,7 @@
       // [x] N0
       if (stored_right_below_zero(y)) { // [y] N1
         const __m128d r1 = _mm_xor_pd(x, interval::lbsignmask);
-        return _mm_move_sd(back128(_mm512_div_round_pd(lo512(_mm_shuffle_pd(r1, r1, 1)), lo512(y), gaol_er)),
-                           interval::m128_zero); // N0 N1
+        return _mm_unpacklo_pd(interval::m128_zero, er_div_high(_mm_shuffle_pd(r1, r1, 1), y)); // N0 N1
       }
       if (bit_zero(high_of(y))) { // [y] N0 or Z
         if (bit_zero(low_of(y))) { // [y] Z
@@ -585,14 +612,12 @@
         return _mm_set_pd(0.0, GAOL_INFINITY); // N0 P0: [-oo, 0]
       }
       // [y] P1
-      return _mm_move_sd(interval::m128_zero,
-                         back128(_mm512_div_round_pd(lo512(x), lo512(_mm_xor_pd(y, interval::lbsignmask)), gaol_er))); // N0 P1
+      return _mm_move_sd(interval::m128_zero, er_div_low(x, _mm_xor_pd(y, interval::lbsignmask))); // N0 P1
     }
     if (stored_left_below_zero(x)) { // [x] M
       if (stored_right_below_zero(y)) { // [y] N1
         const __m128d r1 = _mm_xor_pd(x, interval::lbrbsignmask);
-        return back128(_mm512_div_round_pd(lo512(_mm_shuffle_pd(r1, r1, 1)),
-                                           lo512(_mm_unpackhi_pd(y, y)), gaol_er)); // M N1
+        return er_div2(_mm_shuffle_pd(r1, r1, 1), _mm_unpackhi_pd(y, y)); // M N1
       }
       if (bit_zero(high_of(y))) { // [y] N0 or Z
         if (bit_zero(low_of(y))) { // [y] Z
@@ -609,14 +634,13 @@
       // [y] P1
       {
         const __m128d r1 = _mm_xor_pd(y, interval::lbsignmask);
-        return back128(_mm512_div_round_pd(lo512(x), lo512(_mm_unpacklo_pd(r1, r1)), gaol_er)); // M P1
+        return er_div2(x, _mm_unpacklo_pd(r1, r1)); // M P1
       }
     }
     if (bit_zero(low_of(x))) { // [x] P0
       if (stored_right_below_zero(y)) { // [y] N1
         const __m128d r1 = _mm_xor_pd(_mm_shuffle_pd(x, x, 1), interval::lbsignmask);
-        return _mm_move_sd(interval::m128_zero,
-                           back128(_mm512_div_round_pd(lo512(r1), lo512(_mm_shuffle_pd(y, y, 1)), gaol_er))); // P0 N1
+        return _mm_move_sd(interval::m128_zero, er_div_low(r1, _mm_shuffle_pd(y, y, 1))); // P0 N1
       }
       if (bit_zero(high_of(y))) { // [y] N0 or Z
         if (bit_zero(low_of(y))) { // [y] Z
@@ -633,35 +657,32 @@
       // [y] P1
       {
         const __m128d r1 = _mm_xor_pd(y, interval::lbsignmask);
-        return _mm_move_sd(back128(_mm512_div_round_pd(lo512(x), lo512(_mm_shuffle_pd(r1, r1, 1)), gaol_er)),
-                          interval::m128_zero); // P0 P1
+        return _mm_unpacklo_pd(interval::m128_zero, er_div_high(x, _mm_shuffle_pd(r1, r1, 1))); // P0 P1
       }
     }
     // [x] P1
     if (stored_right_below_zero(y)) { // [y] N1
       const __m128d r1 = _mm_xor_pd(_mm_shuffle_pd(x, x, 1), interval::lbrbsignmask);
       const __m128d r2 = _mm_xor_pd(y, interval::lbsignmask);
-      return back128(_mm512_div_round_pd(lo512(r1), lo512(_mm_shuffle_pd(r2, r2, 1)), gaol_er)); // P1 N1
+      return er_div2(r1, _mm_shuffle_pd(r2, r2, 1)); // P1 N1
     }
     if (bit_zero(high_of(y))) { // [y] N0 or Z
       if (bit_zero(low_of(y))) { // [y] Z
         return interval::m128_nan; // P1 Z
       }
-      return _mm_move_sd(back128(_mm512_div_round_pd(lo512(_mm_shuffle_pd(x, x, 1)),
-                                                    lo512(_mm_shuffle_pd(y, y, 1)), gaol_er)),
-                         interval::m128_infinf); // P1 N0
+      return _mm_unpacklo_pd(interval::m128_infinf,
+                             er_div_high(_mm_shuffle_pd(x, x, 1), _mm_shuffle_pd(y, y, 1))); // P1 N0
     }
     if (stored_left_below_zero(y)) { // [y] M
       return interval::m128_infinf; // P1 M
     }
     if (bit_zero(low_of(y))) { // [y] P0
-      return _mm_move_sd(interval::m128_infinf,
-                         back128(_mm512_div_round_pd(lo512(x), lo512(_mm_shuffle_pd(y, y, 1)), gaol_er))); // P1 P0
+      return _mm_move_sd(interval::m128_infinf, er_div_low(x, _mm_shuffle_pd(y, y, 1))); // P1 P0
     }
     // [y] P1
     {
       const __m128d r1 = _mm_xor_pd(y, interval::lbsignmask);
-      return back128(_mm512_div_round_pd(lo512(x), lo512(_mm_shuffle_pd(r1, r1, 1)), gaol_er)); // P1 P1
+      return er_div2(x, _mm_shuffle_pd(r1, r1, 1)); // P1 P1
     }
   }
 
@@ -816,7 +837,7 @@
     }
     static GAOL_POWN_INLINE_T lanes div(lanes a, lanes b)
     {
-      const lanes r = { back128(_mm512_div_round_pd(lo512(a.v), lo512(b.v), gaol_er)) };
+      const lanes r = { er_div2(a.v, b.v) };
       return r;
     }
     static GAOL_POWN_INLINE_T lanes add(lanes a, lanes b)
