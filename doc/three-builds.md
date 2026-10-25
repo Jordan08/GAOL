@@ -41,13 +41,14 @@ build, and the CMake build follows them, apart from the errors corrected (see
   intervals);
 - on 64-bit ARM processors, the intervals are computed with NEON instructions
   (`GAOL_ARM64`, `--enable-arm64`, `-Denable-arm64`; no flag), on by default
-  with GCC, Clang or AppleClang under Linux and macOS and with Visual C++
-  (`cl`, whose registers are those of `_ReadStatusReg()` and
-  `_WriteStatusReg()`; GAOL v5), whose compiler each build tests with the same
-  program (CMake and meson for Visual C++, which configure does not build
-  with): the intrinsics of `<arm_neon.h>` and the registers of the rounding
-  mode. Not with clang-cl, MinGW-w64 nor 32-bit ARM, nor in a universal build
-  of macOS: the option is then ignored, and
+  with every compiler of them: GCC, Clang and AppleClang under Linux and macOS,
+  clang-cl and the Clang of MinGW-w64 and MSYS2, and Visual C++ (`cl`, whose
+  registers are those of `_ReadStatusReg()` and `_WriteStatusReg()`; GAOL v5),
+  whose compiler each build tests with the same program (CMake and meson for
+  Visual C++, which configure does not build with): the intrinsics of
+  `<arm_neon.h>` and the registers of the rounding mode. Not with 32-bit ARM,
+  whose NEON has no vector of doubles, nor in a universal build of macOS: the
+  option is then ignored, and
   the FPU computes the intervals, as before. Independent of `GAOL_SIMD`, which
   is for x86 processors (GAOL v5);
 - GAOL and CORE-MATH are compiled with the fused multiply-add
