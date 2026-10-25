@@ -36,9 +36,13 @@ build, and the CMake build follows them, apart from the errors corrected (see
   that they ask for aligned memory for the intervals and for what holds one, and
   `gaol::gaol` and `gaol.pc` give the flag to the code using GAOL too, as it
   allocates them; `gaol/gaol_config.h` refuses the SSE2 intervals compiled
-  without it. Visual C++ and clang-cl have no such flag, and keep the FPU
-  intervals there (GAOL v5: Visual C++ x64 and clang-cl x64 take the SSE2
-  intervals);
+  without it. Visual C++ and clang-cl have no such flag (`/Zc:alignedNew` does
+  nothing in C++14 with `cl`, and breaks the STL of clang-cl, and only C++17 turns
+  the aligned `new` on): their SSE2 intervals keep their two bounds as two
+  doubles, whose alignment is 8, and load and store them with `movupd`
+  (`GAOL_SSE2_UNALIGNED_STORAGE` of `gaol/gaol_config.h`, which derives it from
+  the target: GAOL v5), so that they need no aligned memory, and the class
+  allocators that aligned the intervals on 16 bytes are not compiled;
 - on 64-bit ARM processors, the intervals are computed with NEON instructions
   (`GAOL_ARM64`, `--enable-arm64`, `-Denable-arm64`; no flag), on by default
   with GCC, Clang or AppleClang under Linux and macOS, whose compiler each build

@@ -25,8 +25,9 @@ itself. With GCC and Clang, each where the compiler takes it:
   `gaol.pc`, or `gaol_dep` of meson, are given to every file of a target
   (`gaol::gaol` of CMake gives it to the C++ files only): give it to the C++
   files only, pkg-config having no flag for one language.
-  Visual C++ and clang-cl have no such flag and keep the FPU intervals on
-  32-bit Windows;
+  Visual C++ and clang-cl have no such flag, and need none: their SSE2 intervals
+  on 32-bit Windows keep their two bounds as two doubles, whose alignment is 8
+  (`GAOL_SSE2_UNALIGNED_STORAGE`, `gaol/gaol_config.h`);
 - nothing more on 64-bit ARM processors with the NEON intervals
   (`GAOL_ARM64`, GAOL v5, see [The NEON intervals](#the-neon-intervals)): the
   first line is all they ask for;
@@ -1340,11 +1341,10 @@ The intervals of the processors that have neither SSE2 nor NEON keep their two
 bounds as two doubles, the lower one negated as in the SSE2 and the NEON
 intervals, and compute with the scalar floating-point unit. They are the
 intervals of 32-bit ARM, POWER, s390x, RISC-V and the other processors; of
-Windows on 32-bit x86 with Visual C++ and clang-cl (and the Clang that simulates
-Visual C++), which have no flag to ask for the aligned memory the SSE2
-intervals need (MinGW-w64 with GCC and Clang takes the SSE2 intervals there,
-with `-faligned-new=8`, unless the compiler does not take the flag, and so does
-64-bit Windows, Visual C++ and clang-cl included); of Windows on arm64 with
+Windows on 32-bit x86 with a compiler that takes no flag asking for the aligned
+memory the SSE2 intervals need (MinGW-w64 with GCC and Clang takes the SSE2
+intervals there, with `-faligned-new=8`, and so do Visual C++ and clang-cl,
+whose intervals need no aligned memory, and 64-bit Windows); of Windows on arm64 with
 Visual C++, clang-cl and MinGW-w64 (the NEON intervals are for Linux and macOS,
 with GCC and Clang); and of the builds that ask for them (`-DGAOL_SIMD=OFF` on
 x86, `-DGAOL_ARM64=OFF` on 64-bit ARM, which leave `GAOL_USING_SSE2_INSTRUCTIONS`
