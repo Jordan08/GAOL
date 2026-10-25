@@ -45,8 +45,8 @@
  * accept the AVX-512 instructions in them alone, and the code outside them
  * is compiled as before; the library then needs a processor with the
  * instructions. +, -, *, / and sqrt take this path, and so do sqr() and the
- * integer powers of gaol_pown() (pown_large_er() of
- * gaol/gaol_interval_core.cpp; GAOL v5, point ZZ of TODO.md), with no flag to
+ * integer powers of gaol_pown() (pown_large_er() of this file; GAOL v5, point
+ * ZZ of TODO.md), with no flag to
  * test as they run (gaol::init() set one, which every operation tested, until point
  * AA of TODO.md): they never touch the rounding direction, whatever the
  * program left, and clear the modes that flush the subnormals to zero only
@@ -81,8 +81,10 @@
  * COPYING file for information.
  *--------------------------------------------------------------------------*/
 
-/* The target of the functions (GAOL_AVX512_TARGET) and GAOL_NOINLINE are defined in
-   gaol/gaol_interval_core.cpp, before the integer powers that carry the target too. */
+/* The target of the functions (GAOL_AVX512_TARGET) and GAOL_NOINLINE are defined
+   in gaol/gaol_interval_core.cpp, before the generic part of the integer powers
+   (the templates pown_products() and pown_powers(), whose functions carry the
+   target too), which this file needs before its pown_er_ops. */
 
   // The sign and the zero of a double, from its bits: the operations of the
   // AVX-512 path read them where the SSE2 path compares values, which the

@@ -544,7 +544,7 @@ namespace gaol_core {
 #  define GAOL_POWN_INLINE inline
 #  define GAOL_POWN_NOINLINE
 #endif
-// The functions that inline the operations of pown_er_lanes (and the ones
+// The functions that inline the operations of pown_er_ops (and the ones
 // that call them) carry the target of those: the compiler refuses to inline a
 // function of an AVX-512 target into another. The library needs a processor
 // with AVX-512 where GAOL_POWN_ER is, as for the other operations of the path
@@ -874,62 +874,65 @@ namespace gaol_core {
     /*
       I^n for |n| >= 2 and a nonempty I, the rounding direction being upward,
       with the pair of doubles: the corners and the bounds as pown_large_inline()
-      of the other intervals makes them (see below)
+      of the other intervals makes them (see pown_large_inline() below)
     */
     static GAOL_POWN_INLINE_T interval large(const interval& I, int n)
-  {
-    const bool negative = n < 0;
-    const unsigned int m = negative ? 0u - static_cast<unsigned int>(n) : static_cast<unsigned int>(n);
-    const unsigned int L = pown_bit_length(m);
-    const double a = I.left(), b = I.right();
-    if (!negative || a > 0.0 || b < 0.0) {
-      double c0, c1;
-      (void)pown_corners(a, b, negative, (m & 1u) != 0u, c0, c1);
-      const double least = pown_least[L], greatest = pown_greatest[L];
-      const double g0 = std::fabs(c0), g1 = std::fabs(c1);
-      if (((g0 >= least && g0 <= greatest) || (!negative && g0 == 0.0))
-          && ((g1 >= least && g1 <= greatest) || (!negative && g1 == 0.0))) {
-        const lanes c = { g0, g1 };
-        lanes h, l;
-        rests s;
-        pown_powers<pown_scalar_ops>(c, m, h, l, s);
-        double K;
-        if (negative) {
-          const double q0 = 1.0/h.l0, q1 = 1.0/h.l1;
-          const double r0 = fma_once(-q0, l.l0, fma_once(-q0, h.l0, 1.0));
-          const double r1 = fma_once(-q1, l.l1, fma_once(-q1, h.l1, 1.0));
-          const double qr0 = q0*r0, qr1 = q1*r1;
-          l.l0 = fma_once(qr0, r0, qr0);
-          l.l1 = fma_once(qr1, r1, qr1);
-          h.l0 = q0;
-          h.l1 = q1;
-          s.l0 |= pown_bits_of(r0);
-          s.l1 |= pown_bits_of(r1);
-          K = pown_bound_inverse(m, L);
-        } else {
-          K = pown_bound(m, L);
+    {
+      const bool negative = n < 0;
+      const unsigned int m = negative ? 0u - static_cast<unsigned int>(n) : static_cast<unsigned int>(n);
+      const unsigned int L = pown_bit_length(m);
+      const double a = I.left(), b = I.right();
+      if (!negative || a > 0.0 || b < 0.0) {
+        double c0, c1;
+        (void)pown_corners(a, b, negative, (m & 1u) != 0u, c0, c1);
+        const double least = pown_least[L], greatest = pown_greatest[L];
+        const double g0 = std::fabs(c0), g1 = std::fabs(c1);
+        if (((g0 >= least && g0 <= greatest) || (!negative && g0 == 0.0))
+            && ((g1 >= least && g1 <= greatest) || (!negative && g1 == 0.0))) {
+          const lanes c = { g0, g1 };
+          lanes h, l;
+          rests s;
+          pown_powers<pown_scalar_ops>(c, m, h, l, s);
+          double K;
+          if (negative) {
+            const double q0 = 1.0/h.l0, q1 = 1.0/h.l1;
+            const double r0 = fma_once(-q0, l.l0, fma_once(-q0, h.l0, 1.0));
+            const double r1 = fma_once(-q1, l.l1, fma_once(-q1, h.l1, 1.0));
+            const double qr0 = q0*r0, qr1 = q1*r1;
+            l.l0 = fma_once(qr0, r0, qr0);
+            l.l1 = fma_once(qr1, r1, qr1);
+            h.l0 = q0;
+            h.l1 = q1;
+            s.l0 |= pown_bits_of(r0);
+            s.l1 |= pown_bits_of(r1);
+            K = pown_bound_inverse(m, L);
+          } else {
+            K = pown_bound(m, L);
+          }
+          const double K0 = (s.l0 != 0u) ? K : 0.0, K1 = (s.l1 != 0u) ? K : 0.0;
+          // the signs of c0^n and c1^n, those of c0 and c1 for an odd m
+          const double t0 = ((m & 1u) != 0u && std::signbit(c0)) ? -1.0 : 1.0;
+          const double t1 = ((m & 1u) != 0u && std::signbit(c1)) ? -1.0 : 1.0;
+          const double down = -t0*h.l0 + fma_once(K0, h.l0, -t0*l.l0);
+          const double up = t1*h.l1 + fma_once(K1, h.l1, t1*l.l1);
+          return interval(-down, up);
         }
-        const double K0 = (s.l0 != 0u) ? K : 0.0, K1 = (s.l1 != 0u) ? K : 0.0;
-        // the signs of c0^n and c1^n, those of c0 and c1 for an odd m
-        const double t0 = ((m & 1u) != 0u && std::signbit(c0)) ? -1.0 : 1.0;
-        const double t1 = ((m & 1u) != 0u && std::signbit(c1)) ? -1.0 : 1.0;
-        const double down = -t0*h.l0 + fma_once(K0, h.l0, -t0*l.l0);
-        const double up = t1*h.l1 + fma_once(K1, h.l1, t1*l.l1);
-        return interval(-down, up);
       }
+      return pown_by_corners(a, b, n);
     }
-    return pown_by_corners(a, b, n);
-  }
   };
 
   /*
-    I^n for |n| >= 2 and a nonempty I, the rounding direction being upward:
-    both corners at once where they are within the range of pown_least[] and
-    pown_greatest[], and pown_by_corners() otherwise (see pown_products()).
-    Inlined in pown_checked() alone, the body of gaol_pown() for n != 2 (defined with the
-    intervals, in gaol/gaol_interval_sse.cpp, _neon.cpp and _fpu.cpp): its
-    switch over the small exponents is long, and the callers that take
-    pown_upward() after their own check call pown_large_upward().
+    pown_large_inline(I, n), I^n for |n| >= 2 and a nonempty I, the rounding
+    direction being upward, is defined by the file of each kind of intervals,
+    included below (gaol_interval_sse.cpp, _neon.cpp and _fpu.cpp): both
+    corners at once, in the lanes of the kind, where they are within the range
+    of pown_least[] and pown_greatest[], and pown_by_corners() otherwise (see
+    pown_products()). It is inlined in pown_checked() alone, the body of
+    gaol_pown() for n != 2: its switch over the small exponents is long, and
+    the callers that take pown_upward() after their own check call
+    pown_large_upward(). pown_large_er() of gaol_interval_avx512.cpp is its
+    twin rounded by the embedded rounding.
   */
 
 #if (defined(__x86_64__) || defined(_M_X64)) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_AVX512_ARITHMETIC

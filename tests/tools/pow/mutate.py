@@ -5,7 +5,8 @@
 # Tools of GAOL v5: mutation testing of pow. Each mutant is GAOL with one
 # deliberate error in pow_standard_upward(), pow_hybrid_upward(),
 # gaol_pow_real(), pow_lo(), pow_hi() or gaol_ieee1788::pow
-# (gaol/gaol_interval_core.cpp); the tests have to fail on it, unless it computes
+# (gaol/gaol_interval_core.cpp), or in the integer power, whose kernels are in the files of the kinds
+# of intervals (gaol_interval_sse.cpp, _neon.cpp, _fpu.cpp and _avx512.cpp, GAOL v5); the tests have to fail on it, unless it computes
 # the same bounds (an equivalent mutant, which the list says).
 #
 #     python3 mutate.py [--sources DIR] [--work DIR] [--cmake-option=OPT]...
@@ -339,7 +340,7 @@ MUTANTS = [
     # The same kernel rounded upward by the embedded rounding of AVX-512, pown_large_er() (GAOL v5, point ZZ of
     # TODO.md): compiled where GAOL_AVX512_ARITHMETIC is only (--cmake-option=-DGAOL_PREFER_AVX512=ON, and
     # -DGAOL_PRESERVE_ROUNDING=ON to have the library take no direction), where the SSE2 mutants above are the
-    # mutants of pown_large_upward(), which the other powers call
+    # mutants of pown_large_inline() (gaol_interval_sse.cpp), which the other powers call
     dict(name='er-no-exact-flag',
          file='gaol/gaol_interval_avx512.cpp',
          edits=[('\n    K = _mm_andnot_pd(_mm_castsi128_pd(_mm_cmpeq_epi64(_mm_castpd_si128(s), _mm_setzero_si128())), K);\n', '\n')]),
@@ -428,7 +429,9 @@ MUTANTS = [
                  'const uint64x2_t odd = vdupq_n_u64(0u);')]),
     dict(name='neon-powers-of-c',
          file='gaol/gaol_interval_neon.cpp',
-         edits=[('pown_powers<pown_neon_ops>(g, m, h, l, s);', 'pown_powers<pown_neon_ops>(c, m, h, l, s);')]),
+         edits=[('pown_powers<pown_neon_ops>(g, m, h, l, s);', 'pown_powers<pown_neon_ops>(c, m, h, l, s);'),
+                ('vandq_u64(vreinterpretq_u64_f64(c), vdupq_n_u64(sign_bit))', 'vandq_u64(vreinterpretq_u64_f64(zero), vdupq_n_u64(sign_bit))'),
+                ('vfmaq_f64(w, K, h)', 'vfmaq_f64(w, K, vabsq_f64(h))')]),
 ]
 
 

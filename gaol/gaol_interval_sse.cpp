@@ -1599,7 +1599,8 @@ interval interval::inverse() const
   // I^n for |n| >= 2 and a nonempty I, the rounding direction being upward: both
   // corners at once, in the SSE2 register, where they are within the range of
   // pown_least[] and pown_greatest[], and pown_by_corners() otherwise (see
-  // pown_products(), and the comment of the declaration of this function above).
+  // pown_products(), and the comment of gaol_interval_core.cpp before the includes of the
+  // files of the kinds of intervals).
   // Keep it alike with pown_large_er() (gaol_interval_avx512.cpp) and with the
   // block of the NEON intervals (gaol_interval_neon.cpp)
   static GAOL_POWN_INLINE_T interval pown_large_inline(const interval& I, int n)

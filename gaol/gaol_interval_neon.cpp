@@ -714,7 +714,7 @@ double hausdorff(const interval &I1, const interval &I2)
         } else {
           K = vdupq_n_f64(pown_bound(m, L));
         }
-        // The rests compared as integers (see below): K is 0 where they are
+        // The rests compared as integers (see gaol_interval_sse.cpp): K is 0 where they are
         K = vreinterpretq_f64_u64(vbicq_u64(vreinterpretq_u64_f64(K), vceqzq_u64(s)));
         // (-v0 + RU(K h - w0), v1 + RU(K h + w1)), v + w being +-(h + l), of
         // the sign of c for an odd m, the lower bound negated
