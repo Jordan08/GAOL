@@ -177,7 +177,8 @@ is not listed as equivalent, or that cannot be applied or compiled.
 
 The mutants are the list `MUTANTS` of `mutate.py`, written for the code of
 `configure-clean` on 2026-10-04 and brought up to date with the pull
-requests of B (the corners and their limits of B.2 included): a change of
+requests of B (the corners and their limits of B.2 included) and with #183,
+#184 and #191: a change of
 `pow` that edits the code they replace has to bring their texts and the
 equivalent mutants up to date too (`--list` tells which no longer apply), or
 give another list with `--mutants FILE`.
@@ -317,8 +318,8 @@ called CORE-MATH at once.
   it does not check the sign of a zero.
 - The rows file and the table do not tell -0 from +0, nor does the test; the
   differential test does.
-- `mutate.py` knows the code of the pull requests of B; its texts have to
-  follow the code. It edits one file at a time and runs only the tests
+- `mutate.py` knows the code of the pull requests of B, #183, #184 and #191;
+  its texts have to follow the code. It edits one file at a time and runs only the tests
   given; `diffpow` tells an equivalent mutant on its boxes only.
 - `bench.cpp` measures one machine and one compiler; the 2 to 3 % of #37 were
   measured with GCC 9.4 only.
