@@ -310,8 +310,12 @@ namespace gaol_core {
     FE_UPWARD, FE_DOWNWARD and FE_TOWARDZERO of the C libraries of 64-bit and
     32-bit ARM are these bits, which the assertion checks.
   */
+#  if !GAOL_NEON_MSVC
+  // Not those of Visual C++, whose FE_* are the bits of its own control word (0x100 for
+  // FE_DOWNWARD): GAOL reads and writes FPCR itself there, and never gives them to fesetround()
   static_assert(FE_TONEAREST == 0 && FE_UPWARD == 0x400000 && FE_DOWNWARD == 0x800000
                 && FE_TOWARDZERO == 0xc00000, "FE_* are the RMode bits of FPCR");
+#  endif
 
   // The control register, FPCR on 64-bit ARM and FPSCR on 32-bit ARM
 #  if GAOL_USING_NEON_INSTRUCTIONS
@@ -322,19 +326,27 @@ namespace gaol_core {
 
   GAOL_INLINE fp_control fpcr_get(void)
   {
-    fp_control fpcr;
-#  if GAOL_USING_NEON_INSTRUCTIONS
-    __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));
+#  if GAOL_NEON_MSVC
+    return static_cast<fp_control>(_ReadStatusReg(ARM64_FPCR));
 #  else
+    fp_control fpcr;
+#    if GAOL_USING_NEON_INSTRUCTIONS
+    __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));
+#    else
     __asm__ __volatile__ ("vmrs %0, fpscr" : "=r" (fpcr));
-#  endif
+#    endif
     return fpcr;
+#  endif
   }
 
   // The "memory" clobber is a compiler barrier: the memory read after it is read after it
+  // (_ReadWriteBarrier() with Visual C++)
   GAOL_INLINE void fpcr_set(fp_control fpcr)
   {
-#  if GAOL_USING_NEON_INSTRUCTIONS
+#  if GAOL_NEON_MSVC
+    _WriteStatusReg(ARM64_FPCR, static_cast<__int64>(fpcr));
+    _ReadWriteBarrier();
+#  elif GAOL_USING_NEON_INSTRUCTIONS
     __asm__ __volatile__ ("msr fpcr, %0" : : "r" (fpcr) : "memory");
 #  else
     __asm__ __volatile__ ("vmsr fpscr, %0" : : "r" (fpcr) : "memory");

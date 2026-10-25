@@ -47,10 +47,14 @@
   // register it is in, at no cost, so that no compiler computes with it, or
   // compares it, before the check has set the direction and cleared the
   // modes that flush the subnormals to zero (see rnd_reread() of
-  // gaol/gaol_fpu.h, for a double)
+  // gaol/gaol_fpu.h, for a double). Visual C++ has no asm statement on ARM64,
+  // and keeps the operations where the source puts them with respect to the
+  // writes of FPCR (see GAOL_RND_BARRIER() of gaol/gaol_fpu.h): x as it is
   GAOL_INLINE float64x2_t reread_bounds(float64x2_t x)
   {
+#  if !GAOL_NEON_MSVC
     __asm__ __volatile__ ("" : "+w" (x));
+#  endif
     return x;
   }
 

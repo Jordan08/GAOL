@@ -934,13 +934,21 @@ namespace gaol_core {
     The two lanes stay in their register: an empty asm statement gives x back
     as it is, so that no compiler computes with it before the direction is
     restored, at no cost, where the volatile memory of the template of
-    gaol/gaol_fpu.h would copy it a byte at a time (GAOL v5)
+    gaol/gaol_fpu.h would copy it a byte at a time (GAOL v5). Visual C++ has
+    no asm statement on ARM64: the two lanes go through volatile doubles, as
+    those of an __m128d do above
   */
   GAOL_INLINE float64x2_t rnd_keep(const float64x2_t& x)
   {
+#  if GAOL_NEON_MSVC
+    volatile double first = vgetq_lane_f64(x, 0);
+    volatile double second = vgetq_lane_f64(x, 1);
+    return vcombine_f64(vdup_n_f64(first), vdup_n_f64(second));
+#  else
     float64x2_t y = x;
     __asm__ __volatile__ ("" : "+w" (y));
     return y;
+#  endif
   }
 
   GAOL_INLINE interval rnd_keep(const interval& x)
