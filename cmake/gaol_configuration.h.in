@@ -47,12 +47,21 @@
 
 /* Defined to 1 where the intervals are computed with SSE2 instructions
    (x86 processors; on 32-bit Windows with GCC or Clang told to ask for aligned
-   memory, -faligned-new=8, not with Visual C++ and clang-cl; GAOL_SIMD,
+   memory, -faligned-new=8, and with Visual C++ and clang-cl, whose bounds are
+   two doubles there; GAOL_SIMD,
    --enable-simd, -Denable-simd, on by default) */
 #cmakedefine GAOL_USING_SSE2_INSTRUCTIONS 1
 
 /* Defined to 1 where they are compiled with -msse3 too */
 #cmakedefine GAOL_USING_SSE3_INSTRUCTIONS 1
+
+/* Defined to 1 to give the SSE2 intervals the form that Visual C++ and
+   clang-cl take on 32-bit Windows, whose two bounds are two doubles loaded
+   with movupd (see GAOL_SSE2_UNALIGNED_STORAGE in gaol/gaol_config.h, which
+   derives it from the target when it is not defined here): a way for a
+   developer to run that form on another system, -DGAOL_SSE2_UNALIGNED_STORAGE=ON
+   of CMake, with no other build (GAOL v5) */
+#cmakedefine GAOL_SSE2_UNALIGNED_STORAGE 1
 
 /* Defined to 1 where the intervals are computed with NEON instructions
    (64-bit ARM processors, with GCC, Clang or AppleClang under Linux and

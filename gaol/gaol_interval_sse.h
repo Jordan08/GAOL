@@ -236,12 +236,12 @@ GAOL_INLINE void interval::get_bounds(interval::xmm2d& b) const
   _mm_store_pd(b,xmmbounds);
 }
 
-GAOL_INLINE const __m128d& interval::get_xmminterval(void) const
+GAOL_INLINE const interval::xmm_bounds& interval::get_xmminterval(void) const
 {
   return xmmbounds;
 }
 
-GAOL_INLINE __m128d& interval::get_xmminterval(void)
+GAOL_INLINE interval::xmm_bounds& interval::get_xmminterval(void)
 {
   return xmmbounds;
 }

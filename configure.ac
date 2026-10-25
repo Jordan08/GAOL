@@ -284,7 +284,9 @@ AC_ARG_ENABLE(simd,
 # bytes and an SSE2 interval needs 16, the SSE2 intervals need the compiler to
 # ask for aligned memory, -faligned-new=8, which the code using GAOL is given
 # too (GAOL_PC_CFLAGS; GAOL v5, see CMakeLists.txt). A compiler that does not
-# take it keeps the FPU intervals there.
+# take it keeps the FPU intervals there. Clang with its driver for a target of
+# Visual C++ has no such flag to give, and takes the SSE2 intervals that keep
+# their bounds as two doubles (GAOL_SSE2_UNALIGNED_STORAGE of gaol/gaol_config.h).
 using_sse2=no
 has_sse3=no
 AC_LANG_PUSH([C++])
@@ -309,9 +311,11 @@ if test "${target_x86}" = yes; then
         GAOL_ADD_INTERVAL_FLAG([-msse2 -mfpmath=sse])
     fi
     has_aligned_new=yes
+    simulates_msvc=no
     if test "$simd" = yes && test "${target_win32}" = yes; then
         # Clang with its driver for a target of Visual C++ simulates it (_MSC_VER):
-        # no flag asks for the aligned memory of its STL (see CMakeLists.txt)
+        # no flag asks for the aligned memory of its STL, and its SSE2 intervals
+        # need none (see CMakeLists.txt)
         AC_LANG_PUSH([C++])
         AC_MSG_CHECKING([whether the compiler simulates Visual C++])
         AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#ifndef _MSC_VER
@@ -319,9 +323,7 @@ if test "${target_x86}" = yes; then
 #endif]], [[]])],[simulates_msvc=yes],[simulates_msvc=no])
         AC_MSG_RESULT(${simulates_msvc})
         AC_LANG_POP([C++])
-        if test "${simulates_msvc}" = yes; then
-            has_aligned_new=no
-        else
+        if test "${simulates_msvc}" != yes; then
             GAOL_CHECK_CXX_FLAG([-faligned-new=8], [has_aligned_new])
         fi
         if test "${has_aligned_new}" = no; then
@@ -334,7 +336,7 @@ if test "${target_x86}" = yes; then
             using_sse2=yes
             CXXFLAGS="${CXXFLAGS} -msse2"
             GAOL_PC_CFLAGS="${GAOL_PC_CFLAGS} -msse2"
-            if test "${target_win32}" = yes; then
+            if test "${target_win32}" = yes && test "${simulates_msvc}" != yes; then
                 CXXFLAGS="${CXXFLAGS} -faligned-new=8"
                 GAOL_PC_CFLAGS="${GAOL_PC_CFLAGS} -faligned-new=8"
             fi
