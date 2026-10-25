@@ -284,8 +284,8 @@ The continuous integration of GAOL v5 builds it and runs its tests on:
 \noindent
 The bounds GAOL computes are the same on all of them. On 64-bit ARM processors,
 GAOL computes its intervals with NEON instructions when it is built by GCC,
-Clang or AppleClang under Linux and macOS, and with the FPU when it is built by
-Visual C++ (\pxref{sec:neon}).\newinvfive
+Clang or AppleClang under Linux and macOS, or by Visual C++, and with the FPU
+when it is built by clang-cl or MinGW-w64 (\pxref{sec:neon}).\newinvfive
 
 \section{Getting the software}
 %%----------------------------
@@ -502,9 +502,9 @@ The options are given to the first command, as \option{-D\var{option}=\var{value
 \cindex{SSE2}%
 \item \option{GAOL\_ARM64}. \code{ON} by default: the intervals are computed
   with NEON instructions on 64-bit ARM processors, their two bounds in one
-  register, with GCC, Clang or AppleClang under Linux and macOS; NEON needs no
-  flag (\pxref{sec:neon}). Not with Visual C++, clang-cl, MinGW-w64 nor on
-  32-bit ARM, nor in a universal build of macOS, where the option is ignored
+  register, with GCC, Clang or AppleClang under Linux and macOS, and with
+  Visual C++; NEON needs no flag (\pxref{sec:neon}). Not with clang-cl,
+  MinGW-w64 nor on 32-bit ARM, nor in a universal build of macOS, where the option is ignored
   and the FPU computes the intervals, as before. It is independent of
   \option{GAOL\_SIMD}, which is for x86 processors;\newinvfive
 \cindex{NEON}%
@@ -1365,13 +1365,13 @@ bounds are one vector square root rounded upward, the lower bound being that
 root where it is exact, and the double below it otherwise.
 
 They are the intervals of GAOL on 64-bit ARM, with GCC, Clang or AppleClang
-under Linux and macOS, by default (\option{GAOL\_ARM64} of CMake,
+under Linux and macOS and with Visual C++, by default (\option{GAOL\_ARM64} of CMake,
 \loption{enable-arm64} of \cmd{configure}, \code{enable-arm64} of meson; the
 macro \code{GAOL\_USING\_NEON\_INSTRUCTIONS} is then 1 in
 \file{gaol/gaol\_configuration.h}), and need no flag beyond those of interval
 arithmetic (\pxref{sec:compiling}). They do not depend on
-\option{GAOL\_SIMD}, which is for x86 processors. Visual C++, clang-cl,
-MinGW-w64 (any target of Windows) and 32-bit ARM, whose NEON has no vector of
+\option{GAOL\_SIMD}, which is for x86 processors. clang-cl, MinGW-w64 (any
+target of Windows) and 32-bit ARM, whose NEON has no vector of
 doubles, do not take them, nor does a universal build of macOS: the option is
 ignored there, and the FPU computes the intervals, as before.
 

@@ -1272,12 +1272,17 @@ vector square root rounded upward, the lower bound being that root where it is
 exact, and the double below it otherwise.
 
 They are the intervals of GAOL on 64-bit ARM with GCC, Clang and AppleClang
-under Linux and macOS, by default (`GAOL_ARM64` of CMake, `--enable-arm64` of
-configure, `-Denable-arm64` of meson; `GAOL_USING_NEON_INSTRUCTIONS` is then 1
-in `gaol_configuration.h`), and need no flag beyond those of interval
-arithmetic. They do not depend on `GAOL_SIMD`, which is for x86 processors.
-Visual C++, clang-cl, MinGW-w64 (any target of Windows) and 32-bit ARM, whose
-NEON has no vector of doubles, do not take them, nor does a universal build of
+under Linux and macOS, and with Visual C++ (GAOL v5), by default (`GAOL_ARM64`
+of CMake, `--enable-arm64` of configure, `-Denable-arm64` of meson;
+`GAOL_USING_NEON_INSTRUCTIONS` is then 1 in `gaol_configuration.h`), and need
+no flag beyond those of interval arithmetic. They do not depend on
+`GAOL_SIMD`, which is for x86 processors. Visual C++ writes the control register
+FPCR through the intrinsics `_ReadStatusReg()` and `_WriteStatusReg()`, where
+GCC and Clang have `mrs` and `msr` in an asm statement; it has no asm statement
+to order its operations with respect to those writes, and relies on `/fp:strict`
+to keep them where the source puts them, which `tests/rounding_direction.cpp`
+checks. clang-cl, MinGW-w64 (any target of Windows) and 32-bit ARM, whose NEON
+has no vector of doubles, do not take them, nor does a universal build of
 macOS: the option is ignored there, and the FPU computes the intervals, as
 before.
 
@@ -1345,8 +1350,8 @@ Visual C++), which have no flag to ask for the aligned memory the SSE2
 intervals need (MinGW-w64 with GCC and Clang takes the SSE2 intervals there,
 with `-faligned-new=8`, unless the compiler does not take the flag, and so does
 64-bit Windows, Visual C++ and clang-cl included); of Windows on arm64 with
-Visual C++, clang-cl and MinGW-w64 (the NEON intervals are for Linux and macOS,
-with GCC and Clang); and of the builds that ask for them (`-DGAOL_SIMD=OFF` on
+clang-cl and MinGW-w64 (the NEON intervals are for Linux and macOS, with GCC and
+Clang, and for Visual C++); and of the builds that ask for them (`-DGAOL_SIMD=OFF` on
 x86, `-DGAOL_ARM64=OFF` on 64-bit ARM, which leave `GAOL_USING_SSE2_INSTRUCTIONS`
 and `GAOL_USING_NEON_INSTRUCTIONS` at 0 in `gaol_configuration.h`). The first
 measurements below are those of an Apple M2 with AppleClang; the processors of
