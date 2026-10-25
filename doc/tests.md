@@ -369,8 +369,8 @@ point Q), which `numbers` checks there too.
   does not see; GAOL v5); where the intervals are not SSE2 the test says it
   checks nothing, and `d * x` is left alone, its bits being undocumented.
   With a mode that flushes the subnormal numbers to zero set (on x86,
-  flush-to-zero, denormals-are-zero or both; on ARM with GCC and Clang, FZ,
-  and FIZ where the processor has it), and the rounding direction upward or
+  flush-to-zero, denormals-are-zero or both; on ARM with GCC and Clang and with
+  the NEON intervals of Visual C++, FZ, and FIZ where the processor has it), and the rounding direction upward or
   not, products, sums, differences, quotients by an interval and by a double,
   squares and `exp` with a subnormal operand or result have to be the tightest
   enclosures, computed apart with exact rational arithmetic (and mpmath for
@@ -649,8 +649,9 @@ point Q), which `numbers` checks there too.
   With each mode flushing the subnormals to zero that the processor honours,
   alone and with the others (flush-to-zero and denormals-are-zero of MXCSR on
   x86, and, with GCC and Clang, FZ and FIZ of FPCR on 64-bit ARM and FZ of
-  FPSCR on 32-bit ARM; with Visual C++ for 64-bit ARM, FZ set through
-  `_controlfp_s()`; GAOL v5, point F), the numbers from 0 to the
+  FPSCR on 32-bit ARM; with Visual C++ for 64-bit ARM, FZ and FIZ of FPCR
+  through `_ReadStatusReg()` and `_WriteStatusReg()` with its NEON intervals,
+  and FZ set through `_controlfp_s()` with its FPU intervals; GAOL v5, point F), the numbers from 0 to the
   least normal double, in decimal and in hexadecimal, alone, in intervals and
   in the uncertain form, have to be read as the tightest intervals enclosing
   them, and the doubles among them, 0 included, as themselves: the reader
@@ -675,7 +676,7 @@ point Q), which `numbers` checks there too.
   too where it uses gdtoa (FreeBSD, macOS) and writes 0, and whose Debug
   runtime of Visual C++ reports a failed assertion: the test skipped them,
   and now checks them, where the sum 2^-1060 + 0 by which GAOL checks the
-  mode is 0 under it. With Visual C++ for 64-bit ARM, where GAOL cannot
+  mode is 0 under it. With the FPU intervals of Visual C++ for 64-bit ARM, where GAOL cannot
   clear the modes, FZ is set by `_controlfp_s()` as a program would, and the
   bounds written have to be on their side of the subnormal bounds, which
   `operator<<` writes as 2^-1022 or 0: written to nearest, the upper bound of

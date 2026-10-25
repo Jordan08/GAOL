@@ -47,21 +47,34 @@
 
 #include "gaol/gaol"
 
+// 1 with Visual C++ and the NEON intervals, whose tests read and write FPCR
+// through _ReadStatusReg() and _WriteStatusReg(), where GCC and Clang have
+// the instructions mrs and msr in an asm statement (GAOL v5)
+#if GAOL_NEON_MSVC && GAOL_USING_NEON_INSTRUCTIONS
+#  include <intrin.h>
+#  define GAOL_TESTS_FPCR_MSVC 1
+#else
+#  define GAOL_TESTS_FPCR_MSVC 0
+#endif
+
 // The modes that flush the subnormal numbers to zero, which the tests set and
 // clear themselves, apart from GAOL (GAOL v5): flush-to-zero and
 // denormals-are-zero of MXCSR on x86 processors, FZ and FIZ of FPCR on 64-bit
 // ARM processors, FZ of FPSCR on 32-bit ARM processors with a floating-point
-// unit (the last two with GCC and Clang, whose asm reads and writes them).
+// unit (the last two with GCC and Clang, whose asm reads and writes them; FPCR
+// with Visual C++ and the NEON intervals too).
 // GAOL_TESTS_FLUSH is 1 there, where GAOL clears the modes too
 // (GAOL_RND_FLUSH_BITS of gaol/gaol_fpu.h), and 0 elsewhere.
 // GAOL_TESTS_SET_FLUSH is 1 where the tests can set the modes: there, and with
-// Visual C++ (and clang-cl) for 64-bit ARM, where they set FZ through
+// the FPU intervals of Visual C++ for 64-bit ARM, where they set FZ through
 // _controlfp_s(), and where GAOL does not clear it (GAOL v5, point F of
 // TODO.md).
 #if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
 #  include <xmmintrin.h>
 #  define GAOL_TESTS_FLUSH 1
-#elif (defined(__aarch64__) || (defined(__arm__) && defined(__ARM_FP))) && defined(__GNUC__)
+#elif (defined(__aarch64__) || (defined(__arm__) && defined(__ARM_FP))) && (defined(__GNUC__) || defined(__clang__))
+#  define GAOL_TESTS_FLUSH 1
+#elif GAOL_TESTS_FPCR_MSVC
 #  define GAOL_TESTS_FLUSH 1
 #else
 #  define GAOL_TESTS_FLUSH 0
@@ -312,7 +325,7 @@ namespace gaol_tests
   const unsigned int all_flush_bits = 0x1000000u;
 #  elif defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
   const unsigned int all_flush_bits = 0x8040u;
-#  elif defined(__aarch64__)
+#  elif defined(__aarch64__) || GAOL_TESTS_FPCR_MSVC
   const unsigned int all_flush_bits = 0x1000001u;
 #  else
   const unsigned int all_flush_bits = 0x1000000u;
@@ -327,6 +340,8 @@ namespace gaol_tests
     return ((control & _MCW_DN) == _DN_FLUSH) ? all_flush_bits : 0u;
 #  elif defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
     return _mm_getcsr() & all_flush_bits;
+#  elif GAOL_TESTS_FPCR_MSVC
+    return static_cast<unsigned int>(_ReadStatusReg(ARM64_FPCR)) & all_flush_bits;
 #  elif defined(__aarch64__)
     unsigned long long fpcr;
     __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));
@@ -347,6 +362,11 @@ namespace gaol_tests
     _controlfp_s(&ignored, ((bits & all_flush_bits) != 0u) ? _DN_FLUSH : _DN_SAVE, _MCW_DN);
 #  elif defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
     _mm_setcsr((_mm_getcsr() & ~all_flush_bits) | bits);
+#  elif GAOL_TESTS_FPCR_MSVC
+    const unsigned long long fpcr = static_cast<unsigned long long>(_ReadStatusReg(ARM64_FPCR));
+    _ReadWriteBarrier();
+    _WriteStatusReg(ARM64_FPCR, static_cast<__int64>((fpcr & ~static_cast<unsigned long long>(all_flush_bits)) | bits));
+    _ReadWriteBarrier();
 #  elif defined(__aarch64__)
     unsigned long long fpcr;
     __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));
@@ -396,7 +416,7 @@ namespace gaol_tests
 #  elif defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
     const std::vector<FlushMode> all = { { "flush-to-zero", 0x8000u }, { "denormals-are-zero", 0x0040u },
                                          { "flush-to-zero and denormals-are-zero", 0x8040u } };
-#  elif defined(__aarch64__)
+#  elif defined(__aarch64__) || GAOL_TESTS_FPCR_MSVC
     const std::vector<FlushMode> all = { { "FZ", 0x1000000u }, { "FIZ", 0x1u }, { "FZ and FIZ", 0x1000001u } };
 #  else
     const std::vector<FlushMode> all = { { "FZ", 0x1000000u } };

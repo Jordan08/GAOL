@@ -47,10 +47,14 @@
   // register it is in, at no cost, so that no compiler computes with it, or
   // compares it, before the check has set the direction and cleared the
   // modes that flush the subnormals to zero (see rnd_reread() of
-  // gaol/gaol_fpu.h, for a double)
+  // gaol/gaol_fpu.h, for a double). Visual C++ has no asm statement on ARM64,
+  // and keeps the operations where the source puts them with respect to the
+  // writes of FPCR (see GAOL_RND_BARRIER() of gaol/gaol_fpu.h): x as it is
   GAOL_INLINE float64x2_t reread_bounds(float64x2_t x)
   {
+#  if !GAOL_NEON_MSVC
     __asm__ __volatile__ ("" : "+w" (x));
+#  endif
     return x;
   }
 
@@ -665,12 +669,28 @@ double hausdorff(const interval &I1, const interval &I2)
     double mid_left, mid_right;
     const double big = 8.9884656743115795e+307; // 2^1023 (C++11 has no hexadecimal floating literal)
     if (std::fabs(l) >= big || std::fabs(r) >= big) {
+#if GAOL_NEON_MSVC
+      // Each half with a negated factor goes through rnd_keep(), whose volatile
+      // memory keeps it as written: Visual C++ (/O2 /fp:strict) rewrites
+      // (-.5)*x + y into y - .5*x, which rounds the half of x in the wrong
+      // direction when it is inexact, and mid([2^-1074, MAX]) was
+      // [MAX/2, MAX/2], as with the SSE2 and the FPU intervals (gaol_interval_sse.cpp)
+      mid_left  = -(.5*l + gaol_core::rnd_keep((-.5)*r));
+      mid_right = gaol_core::rnd_keep((-.5)*l) + .5*r;
+#else
       mid_left  = -(.5*l + (-.5)*r);
       mid_right = (-.5)*l + .5*r;
+#endif
     } else {
       double sum = r - l;     // a+b, rounded upward
       double opp_sum = l - r; // -(a+b), rounded upward
+#if GAOL_NEON_MSVC
+      // The half goes through rnd_keep() before it is negated, for the reason
+      // given above (-(.5*x) is not (-.5)*x in the rounding direction upward)
+      mid_left  = -gaol_core::rnd_keep(.5*opp_sum);
+#else
       mid_left  = -(.5*opp_sum);
+#endif
       mid_right = .5*sum;
     }
     GAOL_RND_KEEP(mid_left); GAOL_RND_KEEP(mid_right);

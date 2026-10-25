@@ -51,7 +51,7 @@ opposite, so that one addition rounded upward gives both bounds
 |---|---|---|
 | SSE2 (x86, `GAOL_SIMD`) | `+ - * / sqr`, the operations with a double, `inverse`, `%=`, `-x`, the integer powers with `__FMA__`, the leaves of `div_rel` | `sqrt`, `&=`, `\|=`, `mid`, `midpoint`, the relations, the elementary functions, the reverse functions |
 | AVX-512 (`GAOL_PREFER_AVX512`) | `+ - * / sqr`, the operations with a double and the integer powers (with `__FMA__`), with the rounding direction in the instruction; `sqrt` as two scalar square roots and `/` as two scalar divisions, with embedded rounding | as SSE2, and `inverse`, `%=` and the leaves of `div_rel`, which stay SSE2 kernels that set the direction |
-| NEON (arm64, `GAOL_ARM64`) | `+ - * / sqr sqrt`, the operations with a double, `%=`, `inverse`, `&=`, `\|=`, `-x`, the integer powers (two lanes with `vfmaq_f64`) | `mid`, `midpoint`, `div_rel`, the elementary functions |
+| NEON (arm64, `GAOL_ARM64`; every compiler) | `+ - * / sqr sqrt`, the operations with a double, `%=`, `inverse`, `&=`, `\|=`, `-x`, the integer powers (two lanes with `vfmaq_f64`) | `mid`, `midpoint`, `div_rel`, the elementary functions |
 | FPU (the rest) | none | everything |
 
 The AVX-512 path is off by default: `GAOL_PREFER_AVX512` is on by default only
@@ -224,7 +224,11 @@ the T-Head C910 the draft 0.7.1.
   `reread_bounds()` and `rnd_reread()` are empty `asm` statements,
   `GAOL_RND_KEEP()` is a copy through volatile memory with SSE2 and the FPU and
   an empty `asm` with NEON, and `GAOL_RND_BARRIER()` is a memory barrier. A path
-  written with intrinsics needs the same.
+  written with intrinsics needs the same. Visual C++ for arm64 has no `asm`
+  statement: its NEON intervals copy the result through volatile memory,
+  `GAOL_RND_BARRIER()` and the writes of FPCR are `_ReadWriteBarrier()`, and
+  the operands rely on `/fp:strict` (checked by the generated code and by
+  `tests/rounding_direction.cpp`, not by the language).
 - **Intrinsics of the other families**: NEON `float64x2_t` with GCC, Clang and
   Visual C++ for arm64 from 19.26; SVE `<arm_sve.h>` with GCC 14 and Clang 18, and
   in Visual C++ 19.50 and 19.51 only partially (`svmla_f64_x` becomes an
@@ -363,6 +367,20 @@ Before a path is added (the steps the issue lists, with the rules of GAOL):
   have to.
 - **The pragma `FENV_ROUND`, the `_mm256_add_round_pd` of Clang 20 and the
   256-bit `{ru-sae}` assembly** compile and are wrong (above).
+- **The NEON quotient on a Neoverse N2** (the arm64 runners of GitHub, Azure
+  Cobalt 100; the A/B of `performance.yml`, five runs of each build, one
+  execution): `x / y` takes 5.36 ns with clang-cl and 5.40 with Visual C++,
+  where the FPU intervals take 4.35 with clang-cl, so that the one operation the
+  NEON intervals lose there is the quotient (`x * y` 5.71 to 5.19, `x + y` 2.98
+  to 1.19). It is not the vector division: two scalar divisions in its place
+  (`vdiv_f64` on each lane, the same bounds) take 6.17 and 6.30 ns there, and
+  2.76 ns against 2.38 on the Apple M2 (`x / y`, and the line of 7 quotients
+  18.80 to 22.54 ns; a local A/B, the machine not idle). The time is in the rest
+  of the kernel, about 150 instructions in `div_bounds()` of which some 55 are
+  vector ones (counted in the object of GCC 12.2, the common path being a part
+  of them): `x * y` takes 5.2 ns there where the Apple M2 takes 2.15, a ratio
+  that the two vector pipes of the N2 against the four of the M2 would explain
+  (not measured: `perf` is not allowed on the runners and the machine).
 
 ## What was not measured
 

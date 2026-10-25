@@ -45,10 +45,14 @@ build, and the CMake build follows them, apart from the errors corrected (see
   allocators that aligned the intervals on 16 bytes are not compiled;
 - on 64-bit ARM processors, the intervals are computed with NEON instructions
   (`GAOL_ARM64`, `--enable-arm64`, `-Denable-arm64`; no flag), on by default
-  with GCC, Clang or AppleClang under Linux and macOS, whose compiler each build
-  tests with the same program: the intrinsics of `<arm_neon.h>` and the
-  registers of the rounding mode. Not with Visual C++, clang-cl, MinGW-w64 nor
-  32-bit ARM, nor in a universal build of macOS: the option is then ignored, and
+  with every compiler of them: GCC, Clang and AppleClang under Linux and macOS,
+  clang-cl and the Clang of MinGW-w64 and MSYS2, and Visual C++ (`cl`, whose
+  registers are those of `_ReadStatusReg()` and `_WriteStatusReg()`; GAOL v5),
+  whose compiler each build tests with the same program (CMake and meson for
+  Visual C++, which configure does not build with): the intrinsics of
+  `<arm_neon.h>` and the registers of the rounding mode. Not with 32-bit ARM,
+  whose NEON has no vector of doubles, nor in a universal build of macOS: the
+  option is then ignored, and
   the FPU computes the intervals, as before. Independent of `GAOL_SIMD`, which
   is for x86 processors (GAOL v5);
 - GAOL and CORE-MATH are compiled with the fused multiply-add
@@ -185,13 +189,14 @@ On a 64-bit ARM processor, measured the same way on an Apple M2 with AppleClang
   nothing (x × y 44.4 ns rather than 42.2 for the former code, measured in the
   same session, and 44.3 rather than 49.1 for operands of random signs). These
   are the figures of this processor, with AppleClang. The processors of the
-  continuous integration that run the FPU intervals (32-bit ARM, Visual C++ and
-  clang-cl for arm64, Ubuntu with GCC and Clang, macOS), measured in turn, give
-  other ratios, losses included (the line of 7 products 0.58 with GCC on
-  Ubuntu, 0.57 with clang-cl for arm64); Visual C++ and clang-cl for x86 had the
-  FPU intervals then (they have the SSE2 ones now: the columns "VS x86" and
-  "clang-cl x86" of [The FPU intervals](using.md#the-fpu-intervals) are those
-  of the FPU); POWER, s390x, RISC-V and MinGW-w64 for arm64 are not measured. See
+  continuous integration that run the FPU intervals (32-bit ARM, Ubuntu with
+  GCC and Clang, macOS; and, when they were measured, Visual C++ and clang-cl
+  for x86 and for arm64, which have the SSE2 and the NEON intervals now: the
+  columns "VS x86" and "clang-cl x86" of
+  [The FPU intervals](using.md#the-fpu-intervals) are those of the FPU),
+  measured in turn, give other ratios, losses included (the line of 7 products
+  0.58 with GCC on Ubuntu, 0.57 with clang-cl for arm64); POWER, s390x and
+  RISC-V are not measured. See
   [The FPU intervals](using.md#the-fpu-intervals).
 - **The rounding direction is read with one `mrs` of FPCR** (0.8 ns on this
   processor) and written with `msr` only when the program's is not upward:
@@ -369,7 +374,7 @@ alone refuses, when compiling:
 |---|---|
 | Clang for 32-bit ARM processors | It does not honour the rounding direction there: built by Clang 21, 4556 of 16000 random products, squares and cubes did not enclose their exact values. GCC does. |
 | A compiler saying of `-frounding-math` "overriding currently unsupported rounding mode on this target", as Clang 14 for 64-bit ARM | Bounds of `pow()` and `nth_root()` did not enclose the exact values. Clang 18 honours the rounding direction there. |
-| MinGW-w64 whose `fma()` or `round()` is wrong: on x64, before mingw-w64 12 (GCC 11 to 13 of Chocolatey) and linked with `msvcrt.dll` rather than the UCRT (MSYS2 MINGW64, the cross compilers of Debian and Ubuntu); on 32-bit x86, before 11 (GCC 11 of WinLibs); on ARM, as on x64, before 12 or linked with `msvcrt.dll` (not tested) | On x64, the `fma()` and `round()` of mingw-w64's own math library, computed in doubles: that `fma()` is not correctly rounded (10.7 % of the error-free products `fma(a, b, -a*b)` wrong), and CORE-MATH computes with it wherever the compiler has no `-mfma` (`GAOL_FMA` off; GCC for Windows on x86-64 and on 32-bit x86 takes it by default, and these toolchains stay refused, their `round()` being wrong too); that `round()` depends on the rounding direction. On 32-bit x86, the `fma()` of the mingw-w64 9 of WinLibs rounds each of its partial sums to a double. On ARM, that `round()` too; GAOL v5 is not tested there. Bounds of `tan()`, `asin()`, `atan()` and others did not enclose the exact values. MinGW-w64 GCC 14 and 15 on x64, 12 to 15 on 32-bit x86 (GCC 13 also with `GAOL_FMA` off), and MSYS2 UCRT64 and CLANG64 are built and tested. |
+| MinGW-w64 whose `fma()` or `round()` is wrong: on x64, before mingw-w64 12 (GCC 11 to 13 of Chocolatey) and linked with `msvcrt.dll` rather than the UCRT (MSYS2 MINGW64, the cross compilers of Debian and Ubuntu); on 32-bit x86, before 11 (GCC 11 of WinLibs); on ARM, as on x64, before 12 or linked with `msvcrt.dll` (the refusal is not tested there; MSYS2 CLANGARM64, which links the UCRT, is built and tested) | On x64, the `fma()` and `round()` of mingw-w64's own math library, computed in doubles: that `fma()` is not correctly rounded (10.7 % of the error-free products `fma(a, b, -a*b)` wrong), and CORE-MATH computes with it wherever the compiler has no `-mfma` (`GAOL_FMA` off; GCC for Windows on x86-64 and on 32-bit x86 takes it by default, and these toolchains stay refused, their `round()` being wrong too); that `round()` depends on the rounding direction. On 32-bit x86, the `fma()` of the mingw-w64 9 of WinLibs rounds each of its partial sums to a double. On ARM, that `round()` too; GAOL v5 is not tested there. Bounds of `tan()`, `asin()`, `atan()` and others did not enclose the exact values. MinGW-w64 GCC 14 and 15 on x64, 12 to 15 on 32-bit x86 (GCC 13 also with `GAOL_FMA` off), and MSYS2 UCRT64 and CLANG64 are built and tested. |
 | `-ffast-math`, `-Ofast`, `/fp:fast` | The compiler then rounds to nearest and drops the checks of NaN and infinities. `-Ofast` is not refused where `-fno-fast-math` turns its fast-math optimizations off (below). Linking with them, or with `-funsafe-math-optimizations`, is a matter of its own (below). |
 | `-ffinite-math-only`, which `-ffast-math` and `-Ofast` turn on | The compiler then takes NaN and infinities never to occur, in GAOL's inline functions too: the empty interval has NaN bounds, and `([1, 2] & [3, 4]).is_empty()` is false (GCC 9.4 and 13 at `-O0`, `-O2` and `-O3`; Clang 18 at `-O0`, and at `-O2` and `-O3` when the bounds are `volatile`). |
 | Visual C++, and clang-cl from Clang 16, without `/fp:strict` (`/fp:precise`, their default) | They then assume rounding to nearest, and may evaluate or rewrite floating-point operations accordingly (clang-cl compiles with `-fno-rounding-math -ffp-contract=on`; GAOL v5 did not refuse it at first): no test gave a wrong bound so, but nothing certifies the bounds (see [What differs from GAOL](differences.md)). |
@@ -473,7 +478,8 @@ with GCC 9.4 and 13, after `-funsafe-math-optimizations`.
 **Linking with them, or loading code built with them, makes the bounds wrong.**
 GAOL v5 defends itself:
 
-- on x86 processors, and on ARM processors with GCC and Clang, each operation
+- on x86 processors, and on ARM processors with GCC and Clang and with the NEON
+  intervals of Visual C++, each operation
   that computes bounds clears the modes when it starts, in the check that sets
   the rounding direction upward, which uses a subnormal number to see them as
   well as the direction (`round_upward_if_needed()` in `gaol/gaol_fpu.h`).
@@ -499,13 +505,14 @@ GAOL v5 defends itself:
   program, and a program linked by a compiler that refuses it (Clang 18, a GCC
   before 11.4, GCC 12.0 to 12.3, GCC for ARM) is to be linked without it.
 
-The modes of other processors, and of ARM with Visual C++, are neither checked
-nor cleared; GCC links `crtfastmath.o` for none of the other processors of the
+The modes of other processors, and of ARM with the FPU intervals of Visual C++,
+are neither checked nor cleared; GCC links `crtfastmath.o` for none of the other processors of the
 continuous integration (POWER, s390x, RISC-V). `tests/rounding_direction.cpp`
 sets each mode before operations with subnormal operands and results, and
 checks that their bounds are the tightest ones, and that every operation that
 checks the rounding direction gives, with a mode set just before it, what it
-gives with the modes cleared (x86, and ARM with GCC and Clang), on what each
+gives with the modes cleared (x86, and ARM with GCC and Clang, and with the NEON
+intervals of Visual C++), on what each
 compiler emits; `tests/fast_math_link.cpp`, linked with `-ffast-math`, checks that the
 modes are clear when `main()` starts where the build gives `-mno-daz-ftz`, and
 that the operations clear them otherwise.

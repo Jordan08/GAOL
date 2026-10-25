@@ -72,6 +72,9 @@ differing too.
 #include "gaol/gaol_port.h"
 #include <fenv.h>
 #include <limits>
+#if GAOL_NEON_MSVC
+#  include <intrin.h> // _ReadStatusReg(), _WriteStatusReg(), _ReadWriteBarrier()
+#endif
 
 // The control word of the x87 unit that reset_fpu_cw() of the original GAOL
 // wrote: 53 bits of precision (0x0200), all exceptions masked (0x003f),
@@ -310,8 +313,13 @@ namespace gaol_core {
     FE_UPWARD, FE_DOWNWARD and FE_TOWARDZERO of the C libraries of 64-bit and
     32-bit ARM are these bits, which the assertion checks.
   */
+#  if !defined(_WIN32)
+  // Not those of Windows (Visual C++, clang-cl, MinGW-w64), whose FE_* are the bits of
+  // the control word of the C runtime (0x100 for FE_DOWNWARD): GAOL reads and writes
+  // FPCR itself there, and never gives them to fesetround()
   static_assert(FE_TONEAREST == 0 && FE_UPWARD == 0x400000 && FE_DOWNWARD == 0x800000
                 && FE_TOWARDZERO == 0xc00000, "FE_* are the RMode bits of FPCR");
+#  endif
 
   // The control register, FPCR on 64-bit ARM and FPSCR on 32-bit ARM
 #  if GAOL_USING_NEON_INSTRUCTIONS
@@ -322,19 +330,30 @@ namespace gaol_core {
 
   GAOL_INLINE fp_control fpcr_get(void)
   {
-    fp_control fpcr;
-#  if GAOL_USING_NEON_INSTRUCTIONS
-    __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));
+#  if GAOL_NEON_MSVC
+    return static_cast<fp_control>(_ReadStatusReg(ARM64_FPCR));
 #  else
+    fp_control fpcr;
+#    if GAOL_USING_NEON_INSTRUCTIONS
+    __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));
+#    else
     __asm__ __volatile__ ("vmrs %0, fpscr" : "=r" (fpcr));
-#  endif
+#    endif
     return fpcr;
+#  endif
   }
 
   // The "memory" clobber is a compiler barrier: the memory read after it is read after it
+  // (_ReadWriteBarrier() with Visual C++, before the write as well as after it: the
+  // volatile accesses of rnd_keep() that precede it stay before it, which
+  // /volatile:iso, the default of Visual C++ for ARM64, does not give by itself)
   GAOL_INLINE void fpcr_set(fp_control fpcr)
   {
-#  if GAOL_USING_NEON_INSTRUCTIONS
+#  if GAOL_NEON_MSVC
+    _ReadWriteBarrier();
+    _WriteStatusReg(ARM64_FPCR, static_cast<__int64>(fpcr));
+    _ReadWriteBarrier();
+#  elif GAOL_USING_NEON_INSTRUCTIONS
     __asm__ __volatile__ ("msr fpcr, %0" : : "r" (fpcr) : "memory");
 #  else
     __asm__ __volatile__ ("vmsr fpscr, %0" : : "r" (fpcr) : "memory");
