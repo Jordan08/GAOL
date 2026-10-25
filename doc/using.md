@@ -1282,9 +1282,14 @@ FPCR through the intrinsics `_ReadStatusReg()` and `_WriteStatusReg()`, where
 GCC and Clang have `mrs` and `msr` in an asm statement; it has no asm statement
 to order its operations with respect to those writes, and relies on `/fp:strict`
 to keep them where the source puts them, which `tests/rounding_direction.cpp`
-checks. 32-bit ARM, whose NEON has no vector of doubles, does not take them,
-nor does a universal build of macOS: the option is ignored there, and the FPU
-computes the intervals, as before.
+checks. With `/W4`, Visual C++ for arm64 warns (C4324, "structure was padded
+due to alignment specifier") of each structure that holds an interval, its
+`float64x2_t` being aligned on 16 bytes there, and of `expr_eval` of the
+installed `gaol/parser/gaol_expr_eval.h`: the warning is harmless, and no job of
+the continuous integration compiles with `/W4 /WX` for arm64 (GAOL v5). 32-bit
+ARM, whose NEON has no vector of doubles, does not take them, nor does a
+universal build of macOS: the option is ignored there, and the FPU computes the
+intervals, as before.
 
 64-bit ARM has no instruction that carries its own rounding direction, as the
 AVX-512 path has: the direction is the field RMode of the control register
