@@ -277,8 +277,8 @@ The continuous integration of GAOL v5 builds it and runs its tests on:
 \item macOS 14, 15 and 26, on arm64 and x86-64, with AppleClang, the Clang of LLVM
   and GCC;
 \item Windows: Visual Studio 2022 and 2026 on x86, x64 and arm64; MinGW-w64 GCC 14
-  and 15 on x64, 12 to 15 on x86; MSYS2 (UCRT64 with GCC, CLANG64 with Clang);
-  Cygwin (GCC, x64).
+  and 15 on x64, 12 to 15 on x86; MSYS2 (UCRT64 with GCC, CLANG64 and CLANGARM64
+  with Clang); Cygwin (GCC, x64).
 \end{itemize}
 
 \noindent
@@ -1364,9 +1364,8 @@ divisor has no zero, and single divisions otherwise; the square roots of both
 bounds are one vector square root rounded upward, the lower bound being that
 root where it is exact, and the double below it otherwise.
 
-They are the intervals of GAOL on 64-bit ARM, with GCC, Clang or AppleClang
-with every compiler (GCC, Clang, AppleClang, clang-cl, Visual C++ and the
-Clang of MinGW-w64), by default (\option{GAOL\_ARM64} of CMake,
+They are the intervals of GAOL on 64-bit ARM with every compiler (GCC, Clang,
+AppleClang, clang-cl, Visual C++ and the Clang of MinGW-w64), by default (\option{GAOL\_ARM64} of CMake,
 \loption{enable-arm64} of \cmd{configure}, \code{enable-arm64} of meson; the
 macro \code{GAOL\_USING\_NEON\_INSTRUCTIONS} is then 1 in
 \file{gaol/gaol\_configuration.h}), and need no flag beyond those of interval

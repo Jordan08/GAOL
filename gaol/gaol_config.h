@@ -435,7 +435,8 @@
 
    On ARM, mingw-w64 is refused as on x86-64, before version 12 or linked
    with msvcrt.dll (decided for point A.6 of TODO.md; mingw-w64 before 11 only
-   was refused before), GAOL v5 not being tested there. Its fma() is an
+   was refused before), the refusal not being tested there (MSYS2 CLANGARM64,
+   which links the UCRT, is built and tested). Its fma() is an
    instruction: fmadd, fused, on 64-bit ARM; fmacd, which is vmla.f64, a
    product and a sum each rounded, on 32-bit ARM, where Clang, the only
    compiler of mingw-w64 there, is refused above. Its round() is the code

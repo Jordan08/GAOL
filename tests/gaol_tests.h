@@ -66,7 +66,7 @@
 // GAOL_TESTS_FLUSH is 1 there, where GAOL clears the modes too
 // (GAOL_RND_FLUSH_BITS of gaol/gaol_fpu.h), and 0 elsewhere.
 // GAOL_TESTS_SET_FLUSH is 1 where the tests can set the modes: there, and with
-// Visual C++ (and clang-cl) for 64-bit ARM, where they set FZ through
+// the FPU intervals of Visual C++ for 64-bit ARM, where they set FZ through
 // _controlfp_s(), and where GAOL does not clear it (GAOL v5, point F of
 // TODO.md).
 #if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)

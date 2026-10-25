@@ -1425,8 +1425,9 @@ language, and no test holds it: `GAOL_RND_KEEP()` would make it one, for 2.6 ns
 more with `GAOL_PRESERVE_ROUNDING`, and the former product and `x + y` did
 without.
 
-The processors and compilers of the continuous integration that take the FPU
-intervals were measured in turn too (GAOL v5; run 39817973814 of GitHub
+The processors and compilers of the continuous integration that took the FPU
+intervals were measured in turn too (Visual C++ and clang-cl for arm64 take the
+NEON intervals since; GAOL v5; run 39817973814 of GitHub
 Actions, on an experiment branch that is not to be merged): each job builds the
 code before the kernels (`c89c2ac`) and after them (`711ec1a`), and runs
 `gaol_performance` five times with each, alternately, with the tools of
