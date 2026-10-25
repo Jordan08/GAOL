@@ -35,6 +35,11 @@
 #include <cstddef>
 #include "gaol/gaol_config.h"
 
+#if GAOL_NEON_MSVC
+// _ReadStatusReg() and _WriteStatusReg() of FPCR, _ReadWriteBarrier() (GAOL v5)
+#  include <intrin.h>
+#endif
+
 #if defined(__x86_64__) || defined(_M_X64) || defined(__SSE2__) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
 #  include <xmmintrin.h>
 // The rounding direction of the SSE instructions, which compute the doubles
@@ -58,11 +63,13 @@ sets them on x86 and on ARM Linux; so does Clang on Linux. GAOL clears them
 subnormal results, and denormals-are-zero (DAZ, bit 6), which reads the
 subnormal operands as zeros, of MXCSR (_MM_FLUSH_ZERO_MASK, and
 _MM_DENORMALS_ZERO_MASK of <pmmintrin.h>);
-- on 64-bit ARM processors, with GCC and Clang, FZ (bit 24), which flushes
+- on 64-bit ARM processors, with GCC and Clang (clang-cl and the Clang of
+MinGW-w64 included), FZ (bit 24), which flushes
 the subnormal operands and results, and FIZ (bit 0, from Armv8.7 on),
-which flushes the subnormal operands, of FPCR (instructions mrs and msr).
-Not with Visual C++, whose C runtime sets them only when the program asks
-for it (_controlfp());
+which flushes the subnormal operands, of FPCR (instructions mrs and msr), and
+with Visual C++ and the NEON intervals (_ReadStatusReg(ARM64_FPCR) and
+_WriteStatusReg()). Not with the FPU intervals of Visual C++, whose C runtime
+sets them only when the program asks for it (_controlfp());
 - on 32-bit ARM processors with a floating-point unit, FZ (bit 24) of FPSCR
 (instructions vmrs and vmsr), with GCC, the only compiler GAOL takes
 there.
@@ -73,7 +80,7 @@ states of the same kind as FTZ and DAZ, stay as the program left them (not
 tested on these processors; GAOL v5). */
 #if GAOL_RND_SSE_REGISTER
 #  define GAOL_RND_FLUSH_BITS 0x8040u
-#elif defined(__aarch64__) && defined(__GNUC__)
+#elif (defined(__aarch64__) && (defined(__GNUC__) || defined(__clang__))) || (GAOL_NEON_MSVC && GAOL_USING_NEON_INSTRUCTIONS)
 #  define GAOL_RND_FPCR_REGISTER 1
 #  define GAOL_RND_FLUSH_BITS 0x1000001u
 #elif defined(__arm__) && defined(__ARM_FP) && defined(__GNUC__)
@@ -94,9 +101,13 @@ floating-point operations where the source puts them with respect to the
 writes of the control register under /fp:strict, with which GAOL is
 compiled (tests/rounding_direction.cpp checks it in the continuous
 integration); not the intrinsics with an embedded rounding of the AVX-512
-path, which it moves past them (gaol/gaol_interval_avx512.cpp). */
+path, which it moves past them (gaol/gaol_interval_avx512.cpp). The NEON
+intervals of Visual C++ have _ReadWriteBarrier() after the writes of FPCR,
+as the asm statements of the others have a "memory" clobber (GAOL v5). */
 #if defined(__GNUC__) || defined(__clang__)
 #  define GAOL_RND_BARRIER() __asm__ __volatile__ ("" : : : "memory")
+#elif GAOL_NEON_MSVC
+#  define GAOL_RND_BARRIER() _ReadWriteBarrier()
 #else
 #  define GAOL_RND_BARRIER() ((void)0)
 #endif
@@ -601,6 +612,8 @@ namespace gaol_core {
   {
     #  if GAOL_RND_SSE_REGISTER
     return _mm_getcsr() & GAOL_RND_FLUSH_BITS;
+    #  elif GAOL_NEON_MSVC
+    return static_cast<unsigned int>(fpcr_get()) & GAOL_RND_FLUSH_BITS;
     #  elif GAOL_RND_FPCR_REGISTER
     unsigned long long fpcr; // mrs and msr take a 64-bit register
     __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));

@@ -2,7 +2,7 @@
 # x64, arm64; Release and Debug), the clang-cl of Visual Studio 2022 (x64;
 # Release and Debug) and 2026 (x86, x64, arm64; Release), MinGW-w64 15 (x86,
 # x64; Release and Debug), 14 (x86, x64), 12 and 13 (x86; 13 without GAOL_FMA
-# too), MSYS2 (UCRT64 GCC, CLANG64 Clang) and Cygwin (GCC, x64; GAOL v5), runs
+# too), MSYS2 (UCRT64 GCC, CLANG64 Clang, CLANGARM64 Clang) and Cygwin (GCC, x64; GAOL v5), runs
 # its tests, installs it, and builds the tests again with the installed GAOL
 # (but Cygwin, which builds, checks the objects and runs the tests, and checks
 # that a build without FMA is refused); with Visual Studio 2026 x64 and x86
@@ -83,6 +83,14 @@ jobs:
           - { os: windows-2022,          generator: 'Visual Studio 17 2022', arch: Win32, config: Debug,   desc: 'Visual Studio 2022 x86 Debug' }
           - { os: windows-2022,          generator: 'Visual Studio 17 2022', arch: x64,   config: Debug,   desc: 'Visual Studio 2022 x64 Debug' }
           - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', toolset: '-T v143', cl: '19.44', arch: ARM64, config: Debug,   desc: 'Visual Studio 2022 arm64 Debug' }
+          # The NEON intervals of Visual C++ for arm64 (GAOL v5) read and write
+          # FPCR through _ReadStatusReg() and _WriteStatusReg(), and no asm
+          # statement orders their operations: the jobs above and
+          # tests/rounding_direction.cpp are what checks them. This one runs
+          # them with the rounding direction restored by each operation too,
+          # and the next one the FPU intervals, which -DGAOL_ARM64=OFF gives
+          - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', arch: ARM64, config: Release, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Visual Studio 2026 arm64 Release, rounding direction preserved' }
+          - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', arch: ARM64, config: Release, opts: '-DGAOL_ARM64=OFF', desc: 'Visual Studio 2026 arm64 Release, FPU intervals' }
           - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', arch: x64,   config: Release, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Visual Studio 2026 x64 Release, rounding direction preserved' }
           # The AVX-512 path of the arithmetic (GAOL_PREFER_AVX512), which
           # Visual C++ and clang-cl take as GCC and Clang do: on a runner with
@@ -112,6 +120,9 @@ jobs:
           - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', toolset: '-T ClangCL', clang_cl: true, arch: x64,   config: Release, desc: 'Visual Studio 2026 clang-cl x64 Release' }
           - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', toolset: '-T ClangCL', clang_cl: true, arch: Win32, config: Release, desc: 'Visual Studio 2026 clang-cl x86 Release' }
           - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', toolset: '-T ClangCL', clang_cl: true, arch: ARM64, config: Release, desc: 'Visual Studio 2026 clang-cl arm64 Release' }
+          # The FPU intervals of clang-cl on arm64, which the NEON ones replace
+          # there (GAOL v5): they read and write FPCR with asm, as the NEON ones
+          - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', toolset: '-T ClangCL', clang_cl: true, arch: ARM64, config: Release, opts: '-DGAOL_ARM64=OFF', desc: 'Visual Studio 2026 clang-cl arm64 Release, FPU intervals' }
           # clang-cl x64 keeps the asm statements of Clang in the AVX-512 path and
           # takes the SSE2 intervals with the rounding direction preserved through
           # MXCSR alone (/arch:AVX2 defines __FMA__ for it, not for cl), which no
@@ -132,11 +143,12 @@ jobs:
             test "$(grep -c -E "The (C|CXX) compiler identification is Clang .* with MSVC-like command-line" configure.log)" = 2
           fi
       # The intervals of the build: the SSE2 ones on x64, where Visual C++ and
-      # clang-cl take them (GAOL v5), and the FPU ones on x86 and arm64, where
-      # NEON is not offered to them (GAOL_ARM64)
+      # clang-cl take them (GAOL v5), the NEON ones on arm64 with Visual C++ and
+      # clang-cl (GAOL_ARM64, on by default; GAOL v5), and the FPU ones on x86
       - name: The intervals
         run: |
-          if [ "${{ matrix.cfg.arch }}" = "x64" ]; then expected=sse2; else expected=fpu; fi
+          case "${{ matrix.cfg.arch }}" in x64) expected=sse2 ;; ARM64) expected=neon ;; *) expected=fpu ;; esac
+          case "${{ matrix.cfg.opts }}" in *GAOL_ARM64=OFF*) expected=fpu ;; esac
           sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h $expected
       # On x64, the processor of the runner, and whether the arithmetic takes
       # the AVX-512 path, which the configuration decides from the
@@ -362,7 +374,7 @@ jobs:
 
   msys2:
     name: ${{ matrix.cfg.desc }}
-    runs-on: windows-2022
+    runs-on: ${{ matrix.cfg.os || 'windows-2022' }}
     timeout-minutes: 60
     defaults:
       run:
@@ -392,6 +404,12 @@ jobs:
           # alone: the same configuration as the GCC entry above, with the same C
           # runtime (the step that counts the instructions is GCC's)
           - { msystem: CLANG64, packages: clang-x86_64, cc: clang, cxx: clang++, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'MSYS2 CLANG64 Clang x64, rounding direction preserved' }
+          # MSYS2 for arm64, on the arm64 runners: the Clang of MinGW-w64 takes the
+          # NEON intervals as that of Linux and macOS does, FPCR being read and
+          # written by the asm statements of Clang, and the UCRT of Windows having
+          # FE_* values that are not the bits of FPCR (GAOL v5)
+          - { os: windows-11-vs2026-arm, msystem: CLANGARM64, packages: clang-aarch64, cc: clang, cxx: clang++, desc: 'MSYS2 CLANGARM64 Clang arm64' }
+          - { os: windows-11-vs2026-arm, msystem: CLANGARM64, packages: clang-aarch64, cc: clang, cxx: clang++, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'MSYS2 CLANGARM64 Clang arm64, rounding direction preserved' }
     steps:
       - uses: actions/checkout@v7
       - uses: msys2/setup-msys2@v2
@@ -404,6 +422,11 @@ jobs:
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_C_COMPILER=${{ matrix.cfg.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }} ${{ matrix.cfg.opts }}
       - name: Build
         run: cmake --build build -j 4
+      # The intervals of the build: the SSE2 ones on x64 and the NEON ones on arm64
+      - name: The intervals
+        run: |
+          case "${{ matrix.cfg.msystem }}" in CLANGARM64) expected=neon ;; *) expected=sse2 ;; esac
+          sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h $expected
       # GAOL_FMA gives GCC for Windows -mfma -mprefer-vector-width=128
       # (CMakeLists.txt, point 110 of TODO.md), as the job above checks (GAOL
       # v5). Not Clang, which aligns its stack and gets -mfma alone
@@ -539,7 +562,7 @@ jobs:
   # MSYS2 MINGW64 links msvcrt.dll rather than the UCRT: its mingw-w64, 12 or
   # later, still gives the programs the fma() and round() of mingw-w64's own
   # math library, which gaol/gaol_config.h refuses, with GCC and with Clang
-  # (_UCRT undefined). UCRT64 and CLANG64 are built and tested above.
+  # (_UCRT undefined). UCRT64, CLANG64 and CLANGARM64 are built and tested above.
   msys2-refused:
     name: ${{ matrix.cfg.desc }}
     runs-on: windows-2022

@@ -68,7 +68,7 @@
 #include <ostream>
 #include <streambuf>
 #include <type_traits>
-#if defined(_MSC_VER) && defined(_M_ARM64)
+#if defined(_MSC_VER) && defined(_M_ARM64) && !GAOL_TESTS_FLUSH
 #  include <float.h>
 #endif
 
@@ -224,7 +224,8 @@ namespace
   // the rounding direction and the flags being left alone: the bits of the
   // control register of tests/gaol_tests.h, flush-to-zero and
   // denormals-are-zero of MXCSR on x86, FZ and FIZ of FPCR on 64-bit ARM, FZ
-  // of FPSCR on 32-bit ARM, and FZ through _controlfp_s() with Visual C++ for
+  // of FPSCR on 32-bit ARM, FZ and FIZ of FPCR with the NEON intervals of
+  // Visual C++, and FZ through _controlfp_s() with its FPU intervals for
   // 64-bit ARM (GAOL v5)
   class Flushing
   {
@@ -316,9 +317,10 @@ namespace
     doubles as doubles too. Each mode the processor honours is set, alone and
     with the others: flush-to-zero and denormals-are-zero on x86, and on ARM,
     with GCC and Clang, FZ, which crtfastmath.o sets on ARM Linux, and FIZ
-    (64-bit, Armv8.7), which read a subnormal as 0 too, and FZ with Visual C++
-    for 64-bit ARM, set through _controlfp_s(), which GAOL does not clear
-    there (GAOL v5, point F of TODO.md: the test ran on x86 only). Nothing is
+    (64-bit, Armv8.7), which read a subnormal as 0 too, and, with the FPU
+    intervals of Visual C++ for 64-bit ARM, FZ set through _controlfp_s(),
+    which GAOL does not clear there (GAOL v5, point F of TODO.md: the test ran
+    on x86 only). Nothing is
     checked where the tests cannot set the modes, nor with a mode the
     processor does not honour.
   */
@@ -395,7 +397,7 @@ namespace
     gaol_ieee1788::textToInterval(), with or without exceptions, and the
     input_format_error of gaol::textToInterval(). With each mode the processor
     honours that reads a subnormal as 0: denormals-are-zero on x86, FZ and FIZ
-    on ARM, FZ with Visual C++ for 64-bit ARM too (GAOL v5, point F of
+    on ARM, FZ with the FPU intervals of Visual C++ for 64-bit ARM too (GAOL v5, point F of
     TODO.md: denormals-are-zero alone, on x86).
   */
   void degenerate_subnormals()
@@ -466,8 +468,8 @@ namespace
     or, as the literal [a] of a point, [0]. It compares their bits. With each
     mode the processor honours that reads a subnormal as 0, denormals-are-zero
     on x86, FZ and FIZ on ARM, where GAOL sees it (GAOL v5, point F of
-    TODO.md: denormals-are-zero alone, on x86). Not with Visual C++ for 64-bit
-    ARM, where GAOL does not clear the modes, and writes a subnormal bound
+    TODO.md: denormals-are-zero alone, on x86). Not with the FPU intervals of
+    Visual C++ for 64-bit ARM, where GAOL does not clear the modes, and writes a subnormal bound
     outward: subnormal_output_flush_not_cleared() below checks it there.
     The text has to be the one written without the mode too: operator<<
     clears it before it writes (GAOL v5, point Q of TODO.md). It wrote a
@@ -526,8 +528,8 @@ namespace
   }
 
   /*
-    Visual C++ for 64-bit ARM, where GAOL cannot clear the modes that flush
-    the subnormals to zero: a program that sets FZ itself (_controlfp_s(),
+    The FPU intervals of Visual C++ for 64-bit ARM (GAOL_ARM64=OFF), where GAOL
+    cannot clear the modes that flush the subnormals to zero: a program that sets FZ itself (_controlfp_s(),
     _DN_FLUSH) has operator<< write a subnormal bound outward, as 2^-1022 away
     from zero and 0 toward it, without the C library, which may write it 0
     under the mode; it was written to nearest, below an upper bound (GAOL v5,
@@ -538,7 +540,7 @@ namespace
   */
   void subnormal_output_flush_not_cleared()
   {
-#if defined(_MSC_VER) && defined(_M_ARM64)
+#if defined(_MSC_VER) && defined(_M_ARM64) && !GAOL_TESTS_FLUSH
     unsigned int saved = 0, ignored = 0;
     if (_controlfp_s(&saved, 0, 0) != 0) {
       std::printf("_controlfp_s() does not read the control word: the output of subnormals with FZ is not checked\n");
@@ -583,7 +585,7 @@ namespace
     interval::precision(saved_precision);
     interval::format(saved_format);
 #else
-    std::printf("Not Visual C++ for 64-bit ARM: the output of subnormals where GAOL cannot clear FZ is not checked\n");
+    std::printf("Not the FPU intervals of Visual C++ for 64-bit ARM: the output of subnormals where GAOL cannot clear FZ is not checked\n");
 #endif
   }
 

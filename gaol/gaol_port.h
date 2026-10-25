@@ -288,7 +288,7 @@ namespace gaol_detail {
     1.7 ns (gaol_performance). The comparisons are quiet ones, as those
     above, and write nothing to the control register: they are the same with
     GAOL_PRESERVE_ROUNDING, and right too where GAOL cannot clear the modes
-    (ARM with Visual C++).
+    (ARM with the FPU intervals of Visual C++).
   */
 
   //! The bits of x

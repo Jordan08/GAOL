@@ -1271,15 +1271,25 @@ zero, and single divisions otherwise; the square root of both bounds is one
 vector square root rounded upward, the lower bound being that root where it is
 exact, and the double below it otherwise.
 
-They are the intervals of GAOL on 64-bit ARM with GCC, Clang and AppleClang
-under Linux and macOS, by default (`GAOL_ARM64` of CMake, `--enable-arm64` of
-configure, `-Denable-arm64` of meson; `GAOL_USING_NEON_INSTRUCTIONS` is then 1
-in `gaol_configuration.h`), and need no flag beyond those of interval
-arithmetic. They do not depend on `GAOL_SIMD`, which is for x86 processors.
-Visual C++, clang-cl, MinGW-w64 (any target of Windows) and 32-bit ARM, whose
-NEON has no vector of doubles, do not take them, nor does a universal build of
-macOS: the option is ignored there, and the FPU computes the intervals, as
-before.
+They are the intervals of GAOL on 64-bit ARM with every compiler: GCC, Clang
+and AppleClang under Linux and macOS, clang-cl and the Clang of MinGW-w64 and
+MSYS2, and Visual C++ (GAOL v5), by default (`GAOL_ARM64`
+of CMake, `--enable-arm64` of configure, `-Denable-arm64` of meson;
+`GAOL_USING_NEON_INSTRUCTIONS` is then 1 in `gaol_configuration.h`), and need
+no flag beyond those of interval arithmetic. They do not depend on
+`GAOL_SIMD`, which is for x86 processors. Visual C++ writes the control register
+FPCR through the intrinsics `_ReadStatusReg()` and `_WriteStatusReg()`, where
+GCC and Clang have `mrs` and `msr` in an asm statement; it has no asm statement
+to order its operations with respect to those writes, and relies on `/fp:strict`
+to keep them where the source puts them, which `tests/rounding_direction.cpp`
+checks. With `/W4`, Visual C++ for arm64 warns (C4324, "structure was padded
+due to alignment specifier") of each structure that holds an interval, its
+`float64x2_t` being aligned on 16 bytes there, and of `expr_eval` of the
+installed `gaol/parser/gaol_expr_eval.h`: the warning is harmless, and no job of
+the continuous integration compiles with `/W4 /WX` for arm64 (GAOL v5). 32-bit
+ARM, whose NEON has no vector of doubles, does not take them, nor does a
+universal build of macOS: the option is ignored there, and the FPU computes the
+intervals, as before.
 
 64-bit ARM has no instruction that carries its own rounding direction, as the
 AVX-512 path has: the direction is the field RMode of the control register
@@ -1344,9 +1354,7 @@ Windows on 32-bit x86 with Visual C++ and clang-cl (and the Clang that simulates
 Visual C++), which have no flag to ask for the aligned memory the SSE2
 intervals need (MinGW-w64 with GCC and Clang takes the SSE2 intervals there,
 with `-faligned-new=8`, unless the compiler does not take the flag, and so does
-64-bit Windows, Visual C++ and clang-cl included); of Windows on arm64 with
-Visual C++, clang-cl and MinGW-w64 (the NEON intervals are for Linux and macOS,
-with GCC and Clang); and of the builds that ask for them (`-DGAOL_SIMD=OFF` on
+64-bit Windows, Visual C++ and clang-cl included); and of the builds that ask for them (`-DGAOL_SIMD=OFF` on
 x86, `-DGAOL_ARM64=OFF` on 64-bit ARM, which leave `GAOL_USING_SSE2_INSTRUCTIONS`
 and `GAOL_USING_NEON_INSTRUCTIONS` at 0 in `gaol_configuration.h`). The first
 measurements below are those of an Apple M2 with AppleClang; the processors of
@@ -1421,8 +1429,9 @@ language, and no test holds it: `GAOL_RND_KEEP()` would make it one, for 2.6 ns
 more with `GAOL_PRESERVE_ROUNDING`, and the former product and `x + y` did
 without.
 
-The processors and compilers of the continuous integration that take the FPU
-intervals were measured in turn too (GAOL v5; run 39817973814 of GitHub
+The processors and compilers of the continuous integration that took the FPU
+intervals were measured in turn too (Visual C++ and clang-cl for arm64 take the
+NEON intervals since; GAOL v5; run 39817973814 of GitHub
 Actions, on an experiment branch that is not to be merged): each job builds the
 code before the kernels (`c89c2ac`) and after them (`711ec1a`), and runs
 `gaol_performance` five times with each, alternately, with the tools of
@@ -1583,7 +1592,8 @@ did before version 13.
 `-funsafe-math-optimizations`, or loading code built with them, makes the
 bounds wrong**, and GAOL defends itself in two ways:
 
-- On x86 processors, and on ARM processors with GCC and Clang, each operation
+- On x86 processors, and on ARM processors with GCC and Clang and with the NEON
+  intervals of Visual C++, each operation
   of GAOL that computes bounds clears the modes when it starts, in the check
   that sets the rounding direction upward: the check is one comparison with a
   subnormal number, which shows the modes as well as the direction (see
@@ -1689,7 +1699,7 @@ of every operation (an operation with an empty operand may return before its
 check, the modes left as it found them), nor the test by which `hausdorff()`
 returns +oo before its check when a bound is infinite in one of its two
 intervals only. The modes of other processors, and
-of ARM with Visual C++, are neither checked nor cleared, though the functions
+of ARM with the FPU intervals of Visual C++, are neither checked nor cleared, though the functions
 above compare the bounds right there too, and `operator<<` writes a subnormal
 bound outward, as 2^-1022 away from zero and 0 toward it; GCC links
 `crtfastmath.o` for none of the other processors GAOL is tested on. Link a

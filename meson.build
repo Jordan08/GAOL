@@ -373,23 +373,37 @@ endif
 # enable-arm64 (GAOL v5): on 64-bit ARM processors, the intervals are computed
 # with NEON instructions (gaol_interval_neon.h), as CMakeLists.txt and configure
 # do (see CMakeLists.txt), independently of enable-simd. Where the test below
-# compiles, whatever the processor of the machine building: GCC, Clang and
-# AppleClang for AArch64 under Linux and macOS, with the intrinsics of
-# <arm_neon.h> and the registers of the rounding mode. NEON needs no flag. Not
-# for Visual C++ and clang-cl, nor for a target of Windows (MinGW-w64 and MSYS2
-# define __aarch64__ too), nor for 32-bit ARM or x86: the option is then
-# ignored, and the intervals are computed with the FPU. The refusals above
-# (Clang 14, Clang on 32-bit ARM) come first. The program is the same as that of
-# CMakeLists.txt and configure; the flags of interval arithmetic are given to
-# it, as the checks of the compiler do not get add_project_arguments().
+# compiles, whatever the processor of the machine building: every compiler of
+# AArch64, GCC, Clang and AppleClang, clang-cl and the Clang of MinGW-w64 and
+# MSYS2 included (GAOL v5), with the intrinsics of <arm_neon.h> and the
+# registers of the rounding mode. NEON needs no flag. Visual C++ (cl) has
+# _ReadStatusReg() and _WriteStatusReg() for the registers, and a test of its
+# own. Not for 32-bit ARM or x86: the option is then ignored, and the intervals
+# are computed with the FPU. The refusals above (Clang 14, Clang on 32-bit ARM)
+# come first. The program is the same as that of CMakeLists.txt (and configure,
+# for GCC and Clang: it does not build with Visual C++); the flags of interval
+# arithmetic are given to it, as the checks of the compiler do not get
+# add_project_arguments().
 use_neon = false
-if arm64 and not msvc
+if arm64 and cpp_comp.get_id() == 'msvc'
+  use_neon = cpp_comp.compiles('''
+#if !defined(_M_ARM64) || defined(__clang__)
+#error GAOL computes its intervals with NEON on 64-bit ARM processors only
+#endif
+#include <arm_neon.h>
+#include <intrin.h>
+int main()
+{
+  const unsigned long long fpcr = static_cast<unsigned long long>(_ReadStatusReg(ARM64_FPCR));
+  _WriteStatusReg(ARM64_FPCR, static_cast<__int64>(fpcr));
+  const float64x2_t x = vaddq_f64(vdupq_n_f64(1.0), vdupq_n_f64(2.0));
+  return static_cast<int>(vgetq_lane_f64(x, 0)) - 3;
+}
+''', args: pc_cflags, name: 'Visual C++ takes the NEON intrinsics and the registers of the rounding mode for a 64-bit ARM target')
+elif arm64
   use_neon = cpp_comp.compiles('''
 #if !defined(__aarch64__)
 #error GAOL computes its intervals with NEON on 64-bit ARM processors only
-#endif
-#if defined(_WIN32)
-#error not for Windows
 #endif
 #include <arm_neon.h>
 int main()
@@ -401,9 +415,9 @@ int main()
   return static_cast<int>(vgetq_lane_f64(x, 0)) - 3;
 }
 ''', args: pc_cflags, name: 'the compiler takes the NEON intrinsics and the registers of the rounding mode for a 64-bit ARM target')
-  if use_neon
-    conf_data.set('GAOL_USING_NEON_INSTRUCTIONS', 1)
-  endif
+endif
+if use_neon
+  conf_data.set('GAOL_USING_NEON_INSTRUCTIONS', 1)
 endif
 
 # enable-prefer-avx512: the AVX-512 path of +, -, *, /, sqr, sqrt and, with

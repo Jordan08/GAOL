@@ -354,10 +354,10 @@ fi
 # with NEON instructions (gaol_interval_neon.h), as CMakeLists.txt and
 # meson.build do (see CMakeLists.txt), independently of --enable-simd. Where
 # the test below compiles, whatever the processor of the machine building: GCC,
-# Clang and AppleClang for AArch64 under Linux and macOS, with the intrinsics
-# of <arm_neon.h> and the registers of the rounding mode. NEON needs no flag.
-# Not for a target of Windows (MinGW-w64 and MSYS2 define __aarch64__ too),
-# nor for 32-bit ARM or x86: the option is then ignored, and the intervals are
+# Clang and AppleClang for AArch64 under Linux and macOS, and the Clang of
+# MinGW-w64 and MSYS2 for Windows (GAOL v5), with the intrinsics of
+# <arm_neon.h> and the registers of the rounding mode. NEON needs no flag.
+# Not for 32-bit ARM or x86: the option is then ignored, and the intervals are
 # computed with the FPU. The refusals above (Clang 14, Clang on 32-bit ARM)
 # come first. The program is the same as that of CMakeLists.txt and meson.build.
 AC_ARG_ENABLE(arm64,
@@ -371,9 +371,6 @@ if test "$arm64" = yes; then
     AC_MSG_CHECKING([whether the compiler takes the NEON intrinsics and the registers of the rounding mode for a 64-bit ARM target])
     AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#if !defined(__aarch64__)
 #error GAOL computes its intervals with NEON on 64-bit ARM processors only
-#endif
-#if defined(_WIN32)
-#error not for Windows
 #endif
 #include <arm_neon.h>
 int main()

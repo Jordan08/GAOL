@@ -55,8 +55,7 @@
 #undef GAOL_USING_SSE3_INSTRUCTIONS
 
 /* Defined to 1 where the intervals are computed with NEON instructions
-   (64-bit ARM processors, with GCC, Clang or AppleClang under Linux and
-   macOS; not with Visual C++, clang-cl, MinGW-w64, 32-bit ARM or a
+   (64-bit ARM processors, with every compiler; not with 32-bit ARM or a
    universal build of macOS; GAOL_ARM64, --enable-arm64, -Denable-arm64,
    on by default; independent of GAOL_SIMD) (GAOL v5) */
 #undef GAOL_USING_NEON_INSTRUCTIONS

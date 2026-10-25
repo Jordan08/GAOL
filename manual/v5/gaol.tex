@@ -277,15 +277,15 @@ The continuous integration of GAOL v5 builds it and runs its tests on:
 \item macOS 14, 15 and 26, on arm64 and x86-64, with AppleClang, the Clang of LLVM
   and GCC;
 \item Windows: Visual Studio 2022 and 2026 on x86, x64 and arm64; MinGW-w64 GCC 14
-  and 15 on x64, 12 to 15 on x86; MSYS2 (UCRT64 with GCC, CLANG64 with Clang);
-  Cygwin (GCC, x64).
+  and 15 on x64, 12 to 15 on x86; MSYS2 (UCRT64 with GCC, CLANG64 and CLANGARM64
+  with Clang); Cygwin (GCC, x64).
 \end{itemize}
 
 \noindent
 The bounds GAOL computes are the same on all of them. On 64-bit ARM processors,
-GAOL computes its intervals with NEON instructions when it is built by GCC,
-Clang or AppleClang under Linux and macOS, and with the FPU when it is built by
-Visual C++ (\pxref{sec:neon}).\newinvfive
+GAOL computes its intervals with NEON instructions, whatever the compiler:
+GCC, Clang, AppleClang, clang-cl, Visual C++ and the Clang of MinGW-w64
+(\pxref{sec:neon}).\newinvfive
 
 \section{Getting the software}
 %%----------------------------
@@ -502,9 +502,8 @@ The options are given to the first command, as \option{-D\var{option}=\var{value
 \cindex{SSE2}%
 \item \option{GAOL\_ARM64}. \code{ON} by default: the intervals are computed
   with NEON instructions on 64-bit ARM processors, their two bounds in one
-  register, with GCC, Clang or AppleClang under Linux and macOS; NEON needs no
-  flag (\pxref{sec:neon}). Not with Visual C++, clang-cl, MinGW-w64 nor on
-  32-bit ARM, nor in a universal build of macOS, where the option is ignored
+  register, with every compiler; NEON needs no flag (\pxref{sec:neon}). Not
+  on 32-bit ARM, nor in a universal build of macOS, where the option is ignored
   and the FPU computes the intervals, as before. It is independent of
   \option{GAOL\_SIMD}, which is for x86 processors;\newinvfive
 \cindex{NEON}%
@@ -1364,16 +1363,15 @@ divisor has no zero, and single divisions otherwise; the square roots of both
 bounds are one vector square root rounded upward, the lower bound being that
 root where it is exact, and the double below it otherwise.
 
-They are the intervals of GAOL on 64-bit ARM, with GCC, Clang or AppleClang
-under Linux and macOS, by default (\option{GAOL\_ARM64} of CMake,
+They are the intervals of GAOL on 64-bit ARM with every compiler (GCC, Clang,
+AppleClang, clang-cl, Visual C++ and the Clang of MinGW-w64), by default (\option{GAOL\_ARM64} of CMake,
 \loption{enable-arm64} of \cmd{configure}, \code{enable-arm64} of meson; the
 macro \code{GAOL\_USING\_NEON\_INSTRUCTIONS} is then 1 in
 \file{gaol/gaol\_configuration.h}), and need no flag beyond those of interval
 arithmetic (\pxref{sec:compiling}). They do not depend on
-\option{GAOL\_SIMD}, which is for x86 processors. Visual C++, clang-cl,
-MinGW-w64 (any target of Windows) and 32-bit ARM, whose NEON has no vector of
-doubles, do not take them, nor does a universal build of macOS: the option is
-ignored there, and the FPU computes the intervals, as before.
+\option{GAOL\_SIMD}, which is for x86 processors. 32-bit ARM, whose NEON has no
+vector of doubles, does not take them, nor does a universal build of macOS: the
+option is ignored there, and the FPU computes the intervals, as before.
 
 64-bit ARM has no instruction that carries its own rounding direction, as the
 AVX-512 path has: the direction is the field RMode of the control register
@@ -1446,7 +1444,8 @@ loading code built with them, makes the bounds wrong}, and GAOL defends itself
 in two ways:
 
 \begin{itemize}
-\item on x86 processors, and on ARM processors with GCC and Clang, each
+\item on x86 processors, and on ARM processors with GCC and Clang and with
+  the NEON intervals of Visual C++, each
   operation that computes bounds clears the modes when it starts, in the check
   that sets the rounding direction upward: the check is one comparison with a
   subnormal number, which shows the modes as well as the direction, or, with
@@ -1530,8 +1529,8 @@ of the empty set, made before the check of every operation (an operation with
 an empty operand may return before its check, the modes left as it found
 them), nor the test by which \code{hausdorff()} returns $+\infty$ before its
 check when a bound is infinite in one of its two intervals only. The modes of
-other processors, and of ARM with Visual C++, are neither checked nor
-cleared, though the functions above compare the bounds right there too, and
+other processors, and of ARM with the FPU intervals of Visual C++, are
+neither checked nor cleared, though the functions above compare the bounds right there too, and
 \code{operator<{}<} writes a subnormal bound outward, as $2^{-1022}$ away from
 zero and 0 toward it; GCC links \file{crtfastmath.o} for none of the other processors GAOL is tested
 on. Link a program that uses GAOL without these options, or with
@@ -2053,8 +2052,7 @@ A bound that is zero has a sign, which differs between the builds:
 \code{sqr(interval(-1, 2))} is \itv{-0}{4} with the SSE2 intervals, which the
 default build uses on x86 processors, and with the NEON intervals, which it
 uses on 64-bit ARM processors, and \itv{0}{4} with the FPU intervals, those of
-the other processors, of Visual C++ and clang-cl on x86 and arm64, and of the
-builds with \option{GAOL\_SIMD} off on x86 and \option{GAOL\_ARM64} off on 64-bit ARM
+the other processors, of Visual C++ and clang-cl on x86, and of the builds with \option{GAOL\_SIMD} off on x86 and \option{GAOL\_ARM64} off on 64-bit ARM
 (Visual C++ and clang-cl for x64 have the SSE2 intervals)\newinvfive;
 \code{interval::zero()} is \itv{-0}{0} with the first two and \itv{0}{0} with
 the third. \code{pow(x, 2)} is \code{sqr(x)}, and has the same

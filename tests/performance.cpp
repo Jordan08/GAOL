@@ -40,6 +40,10 @@
 
 #include "gaol/gaol.h"
 
+#if GAOL_NEON_MSVC
+#  include <intrin.h> // _ReadStatusReg() of FPCR
+#endif
+
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -300,8 +304,12 @@ int main()
   // The check of each operation with the NEON intervals is the read of FPCR
   // (gaol_core::round_upward_if_needed()), not an addition (GAOL v5)
   const double check_fpcr_ns = nanoseconds_per_operation([&](std::size_t) {
+#  if GAOL_NEON_MSVC
+      const unsigned long long fpcr = static_cast<unsigned long long>(_ReadStatusReg(ARM64_FPCR));
+#  else
       unsigned long long fpcr;
       __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));
+#  endif
       sink = static_cast<double>(fpcr); }, n);
   std::printf("\nThe check of each operation, the read of the control register FPCR with mrs: %.2f ns\n", check_fpcr_ns);
 #elif GAOL_RND_X86_DIRECT
