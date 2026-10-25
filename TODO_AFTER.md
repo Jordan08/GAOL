@@ -1,6 +1,6 @@
 # Reporté
 
-Tout ce qui est reporté sur GAOL v5 au 24 octobre 2026 (commit `1fd96ec` de
+Tout ce qui est reporté sur GAOL v5 au 25 octobre 2026 (commit `1a41cda` de
 `configure-clean`) : ce qui attend la version v5.0.0, ce que le mainteneur a
 reporté indéfiniment, ce qu'il a écarté en laissant une porte ouverte, et ce qui
 attend du matériel. Ce fichier et l'issue #178 ont le même contenu. Ce qui reste
@@ -141,17 +141,37 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    paramètre les supprimerait, au prix de modifier `3rd/math-core`. *Refusé le
    22 octobre (Q15c)* : `3rd/math-core` reste proche de l'amont. À rouvrir
    seulement si cette règle change, ou avec l'étude 113 (en 1).
+3. **Le quotient NEON par deux divisions scalaires** (#195, fermée sans fusion
+   le 25 octobre). Un essai du `div_bounds()` de NEON avec deux divisions
+   scalaires à la place de la division vectorielle, pour chercher pourquoi `x /
+   y` de clang-cl est plus lent en NEON qu'avec le FPU (#192) : plus lent
+   partout, de 5,36 à 6,17 ns avec clang-cl et de 5,40 à 6,30 avec Visual C++
+   sur le Neoverse N2 des runners arm64 de GitHub, de 2,38 à 2,76 ns sur l'Apple
+   M2 (chiffres dans `doc/simd.md`). La branche est supprimée. *À rouvrir*
+   seulement si un processeur ARM 64 bits divise nettement plus vite en
+   scalaire.
+4. **Des drapeaux propres à la tranche x86_64 d'un build universel de macOS**
+   (#194). Cette tranche n'a pas le fusionné multiplie-addition (`-mfma` échoue
+   pour la tranche arm64) : CORE-MATH y appelle le `fma()` de la bibliothèque de
+   macOS et les puissances entières n'ont pas le noyau empaqueté. *Décidé le 25
+   octobre* : le documenter seulement (`doc/building.md`, ligne `GAOL_FMA`),
+   sans mesurer ce que cela coûte ni donner `-mfma` à cette seule tranche
+   (drapeaux par architecture de Xcode, ou `-Xarch_x86_64`). *À rouvrir* si les
+   builds universels deviennent courants ou si la perte, mesurée sur un Mac
+   Intel, est grande. Le Rosetta de macOS 14 n'a pas AVX : une tranche compilée
+   avec `-mfma` s'y arrêterait sur une instruction illégale.
 
 ## 4. En attente de matériel ou d'un environnement qui manque
 
 1. **Les pistes de `doc/simd.md`** (#154, qui répond aux quatre étapes de
    l'issue #101, fermée) : le RISC-V scalaire à `rm` statique (il faut une
-   carte), POWER et s390x (du matériel), l'arrondi embarqué scalaire pour `/`
-   sur les processeurs Intel qui divisent les registres de 512 bits. Et les
-   gains sans nouveau jeu d'instructions que la page liste : `sqrt` en SSE2, les
-   puissances entières en NEON (fait par #188 : 1,03 à 1,07 sur un M2), `mid()`,
-   la réduction d'argument de `sin` et `cos`. Une voie AVX2, SVE, VSX ou RISC-V
-   seulement après des mesures.
+   carte), POWER et s390x (du matériel) ; l'arrondi embarqué scalaire pour `/`
+   sur les processeurs Intel qui divisent les registres de 512 bits est fait par
+   #191 (voir 4.6 pour d'autres processeurs). Et les gains sans nouveau jeu
+   d'instructions que la page liste : `sqrt` en SSE2, les puissances entières en
+   NEON (fait par #188 : 1,03 à 1,07 sur un M2), `mid()`, la réduction
+   d'argument de `sin` et `cos`. Une voie AVX2, SVE, VSX ou RISC-V seulement
+   après des mesures.
 2. **ARM 32 bits sur du vrai matériel** (#150) : les mesures de #150 ne valent
    que pour les runners arm64 de GitHub, qui exécutent l'armhf en natif
    (Neoverse N2, « 32-bit EL0 Support » au démarrage, aucune entrée `qemu-arm`,
@@ -180,6 +200,19 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    retient (Neoverse V3 de Graviton 5, ou plus récent) n'a servi. Le défaut
    qu'il guette, un compilateur qui permute les opérandes de `vmaxq_f64`, est
    théorique avec les compilateurs d'aujourd'hui.
+6. **Le gain de `x / d` de #191 sur d'autres processeurs** : il n'est mesuré que
+   sur un Tiger Lake (i7-1185G7) ; les deux `vdivsd {ru-sae}` peuvent perdre sur
+   un Intel qui divise les registres en deux, et rien n'est mesuré sur AMD Zen 4
+   et Zen 5 (unités pleine largeur) ni sur d'autres Intel. Les jobs SDE de la CI
+   exécutent le chemin avec Visual C++ et clang-cl x64, sans le mesurer.
+7. **Ce que #192 et #193 n'ont pas pu vérifier** : ARM64EC (la condition de
+   `gaol/gaol_config.h` l'exclut) ; un MinGW-w64 avec GCC pour arm64 (la CI
+   construit le Clang de MSYS2 CLANGARM64, pas GCC) ; les versions de Visual C++
+   que la CI n'a pas (avant 19.44) ; l'exécution de Visual C++ pour x86 hors de
+   la CI (Compiler Explorer échoue avec 0xC000007B) ; la tranche x86_64 d'un
+   build universel de macOS, que la session MACarm2 (Apple M2, sans Rosetta)
+   compile et lie sans l'exécuter, et que seul le job `macOS 26 universal`
+   exécute.
 
 ## 5. Une limite connue, documentée, sans décision de la lever
 

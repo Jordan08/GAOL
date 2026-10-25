@@ -1,7 +1,7 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `6eabe20` de `configure-clean`, le 25
-octobre 2026, en tâches PD à PJ (PA, PB et PC sont faites : voir
+Ce qui reste à faire sur GAOL v5 au commit `1a41cda` de `configure-clean`, le 25
+octobre 2026, en tâches PD à PJ (PA, PB et PC sont faites, PG est entamée : voir
 `TODO_DONE.md`). Ce fichier et l'issue #179 ont le même contenu. Ce qui est fait
 et décidé est dans `TODO_DONE.md` (issue #177), ce qui est reporté dans
 `TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142 sont fermées, et
@@ -42,7 +42,7 @@ ouverte.
 | PD | `process.md`, les textes, les tests, le ménage | 130 et sept petits | S |
 | PE | Les trois builds, la CI, les vérifications qui manquent | 95, 92 et quatre autres | M |
 | PF | x86 32 bits, Windows et le registre de contrôle | 108, 109 et trois | M |
-| PG | Les études de vitesse | 105, 116, 106 | M |
+| PG | Les études de vitesse | 105, 116, 106 et six petits | M |
 | PH | Les signalements à d'autres projets | #125 à #138, #175 | accord |
 | PI | La pull request de synthèse et les textes de la version | Y | L |
 | PJ | Les mesures et la publication de v5.0.0 | 32, 33, 34, 71 | M |
@@ -61,7 +61,7 @@ les bornes, qui tiennent dans une ou deux pull requests.
    environnement virtuel), et une date et un commit dans l'en-tête, au lieu du
    renvoi au §12. *Décidé le 22 octobre (Q9a, Q9c, #155).* Pas de ligne pour
    `GAOL_V9/GAOL` au §3.3 (Q9b : garder « 4 cœurs au plus »).
-2. **Deux pièges pour `process.md`, §11** [S] : (a) *(#149)* le test de
+2. **Les pièges pour `process.md`, §11** [S] : (a) *(#149)* le test de
    `tests/expressions.cpp` compte les allocations par le `operator new` qu'il
    remplace, qui ne voit pas celles d'un `std::string` que fait la bibliothèque
    C++ quand elle est dans une DLL (Windows : libstdc++ de MSYS2 et de
@@ -75,7 +75,20 @@ les bornes, qui tiennent dans une ou deux pull requests.
    programme. La règle est dans `gaol/gaol_fpu.h` (lire les bornes après la
    vérification, un double passé par valeur à travers `rnd_reread()`) ; un test
    doit appeler la fonction sur un intervalle construit dans la même fonction,
-   pas sur un intervalle relu en mémoire, qui cache le défaut.
+   pas sur un intervalle relu en mémoire, qui cache le défaut. (c) *(#192)* un
+   script qui édite un long fichier avec `s.index("# un commentaire")` peut
+   tomber sur une occurrence plus haute et dupliquer des centaines de lignes
+   (`meson.build`, de 775 à 1097 lignes, que meson exécutait en dernier : aucun
+   job de CI ne le voyait) : contrôler `wc -l` et `git diff --stat` après toute
+   édition par script. (d) *(#192)* avec `cl` sur ARM64, `/volatile:iso` est le
+   réglage par défaut : un `volatile` n'est pas ordonné avec le reste, d'où
+   `_ReadWriteBarrier()` avant et après `_WriteStatusReg()` ; `float64x2_t`,
+   `uint64x2_t` et `int64x2_t` sont un seul type (`__n128`), et `/O2 /fp:strict`
+   réécrit `(-.5)*l + .5*r` en `.5*r - .5*l` (`mid()` veut `rnd_keep()` des
+   moitiés dans toutes les sortes d'intervalles). (e) *(#194)* `arch -x86_64
+   ctest` échoue quand le `ctest` du runner (Homebrew) n'est que pour arm64 :
+   lancer les programmes de test un à un ; et `! grep ...` ne fait jamais
+   échouer une étape sous `bash -e` : un `if` explicite.
 3. **`doc/accuracy.md`** [S] (#149) : le tableau cite encore `interval(sl, su)`
    pour `textToInterval(s)`, qui n'existe plus depuis GAOL v5.
 4. **`doc/compare/itf1788/itf1788.py`, l. 821** [S] (#146) : nomme « SSE2 » le
@@ -152,6 +165,13 @@ CI.
    pour Windows 32 bits n'est vérifié que par simulation (`CXXFLAGS=-D_WIN32`).
    Pour Cygwin, restent non vérifiés « le Debug complet de Cygwin et autotools
    et meson sous Cygwin » (le job fait un build Debug sans appel de `fma()`).
+   Pour #193 : aucun job ne construit autotools ni meson avec un Clang pour
+   cible Visual C++ sans clang-cl (configure.ac l'accepte sans lui donner
+   `-faligned-new=8`). Pour #194 : le build universel de macOS n'a qu'un job
+   (macOS 26, `macos.yml`) et n'est reconnu que par une liste explicite
+   d'architectures dans `CMAKE_OSX_ARCHITECTURES` (non vérifié avec le
+   générateur Xcode, qui les prend de `$(ARCHS_STANDARD)`). *À décider* : un job
+   suffit-il pour ce cas rare de CMake, ou en faut-il un par version de macOS ?
 4. **Les remarques des outils** (#160) : `actionlint` dit que
    `suppress-deprecation-warnings` n'est pas une entrée de
    `msys2/setup-msys2@v2` (job `msys2-refused` de `windows.yml`), et
@@ -210,7 +230,11 @@ SDE).
    écrivent sans comparer. La même méthode (écrire si ça change) était possible
    ; non touchées, hors du point 108. *Décidé le 24 octobre* : l'appliquer aux
    deux familles, en mesurant avant et après par le banc A/B de la CI, avec les
-   tests de `rounding_direction.cpp`.
+   tests de `rounding_direction.cpp`. Depuis #193, avec Visual C++ pour x86 et
+   la direction préservée, `GAOL_RND_ENTER_SSE()` et `GAOL_RND_LEAVE_SSE()` sont
+   les macros complètes `GAOL_RND_ENTER()` et `GAOL_RND_LEAVE()` : `cl` calcule
+   sur l'unité x87 un `double` renvoyé par une fonction (le `fdiv` de
+   `quotient_sat()`), dont le mot de contrôle doit être réglé aussi.
 4. **L'alignement de la pile 32 bits** (#152) : `-faligned-new=8` ne règle que
    le tas ; l'alignement de la pile 32 bits (GCC, bogue 40838) concernerait des
    intervalles locaux dans des fonctions que l'API de Windows appelle avec une
@@ -242,7 +266,11 @@ ne se comparent pas d'un passage à l'autre : le banc A/B de `performance.yml`
    y`, au code inchangé, passe de 4,96 à 4,69 ns ; `[1] / p`, de 7,0 à 8,1 ns
    quand seul `sqr()` change). À mesurer : le gain sur le Xeon, le coût sur
    l'i7, qui n'a pas l'erratum, et ce que les trois builds peuvent donner aux
-   compilateurs qui prennent l'option.
+   compilateurs qui prennent l'option. #191 l'a montré encore : le banc A/B y
+   donnait `x + y` 1,46 puis 1,92 ns pour un `add_bounds()` identique octet pour
+   octet, dont seule l'adresse changeait (alignée sur 64 octets, puis décalée
+   de 16), et `-falign-functions=64` donné aux deux builds ramenait tous les
+   rapports entre 0,98 et 1,03.
 2. **116 (AI)** [S] : des écarts de temps sans cause trouvée, relevés par des
    pull requests : `cos(x)` 6 ns plus lent et `sin(x)` 2,4 ns plus rapide dans
    `gaol_performance` après #100 (Clang 18, i7-1185G7), alors que le code de
@@ -254,17 +282,21 @@ ne se comparent pas d'un passage à l'autre : le banc A/B de `performance.yml`
    permis sur cette machine. Les mesures d'alors sont faites avec Clang 18 : les
    refaire d'abord avec Clang 21, le compilateur des mesures depuis le 13
    octobre, avant de chercher.
-3. **106 (AI), le reste** [M] : (a) pour Visual C++ arm64, offrir NEON
-   (`arm64_neon.h`) : NEON n'y est pas pris aujourd'hui, ni avec clang-cl ni
-   avec MinGW-w64 ; (b) mesurer les noyaux de #157 sur POWER, s390x, RISC-V et
-   MinGW-w64 arm64 (sur POWER8, s390x et RISC-V, GCC met des branches sur les
-   comparaisons de produits : le noyau y est plus long que l'ancien code et y
-   perd peut-être sans rien gagner) : il faut du matériel, les temps sous qemu
-   ne sont pas ceux d'un processeur ; (c) les opérations avec un double (`x *
-   2.0`) n'ont ces noyaux sur aucune cible (#124) ; (d) l'effet de
-   `__vectorcall` (les noyaux `add_bounds()` et les autres de Visual C++ et
-   clang-cl x64, #148) n'est pas séparé dans les temps de la CI. À rapprocher de
-   `doc/simd.md` (#154).
+3. **106 (AI), le reste** [M] : le (a), NEON pour Visual C++ arm64, est fait
+   par #192, qui l'a donné aussi à clang-cl, à MinGW-w64 et à MSYS2 (à la
+   demande du mainteneur : NEON avec tous les compilateurs de l'arm64, SSE2 avec
+   tous ceux de l'x86, le FPU là où l'on n'a pas le choix), avec SSE2 pour
+   Visual C++ et clang-cl sur x86 32 bits (#193) et le build universel de macOS
+   (#194). Restent : (b) mesurer les noyaux de #157 sur POWER, s390x et RISC-V
+   (sur POWER8, s390x et RISC-V, GCC met des branches sur les comparaisons de
+   produits : le noyau y est plus long que l'ancien code et y perd peut-être
+   sans rien gagner) : il faut du matériel, les temps sous qemu ne sont pas ceux
+   d'un processeur ; (c) les opérations avec un double (`x * 2.0`) n'ont ces
+   noyaux sur aucune cible (#124) ; (d) l'effet de `__vectorcall` (les noyaux
+   `add_bounds()` et les autres de Visual C++ et clang-cl x64, #148) n'est pas
+   séparé dans les temps de la CI : #193 l'a étendu à x86 32 bits, où le banc
+   A/B ne montre aucune différence au-delà de 5 % sur ses rapports FPU/SSE2, et
+   le mainteneur l'y a gardé. À rapprocher de `doc/simd.md` (#154).
 4. **Le seuil de la liste** [S] (#160) : le seuil de la liste des lignes
    écartées par `compare-performance.py` (un facteur 2 au moins et au-delà de la
    dispersion) : les mesures donnent des rapports jusqu'à 1,17 pour du code
@@ -275,16 +307,7 @@ ne se comparent pas d'un passage à l'autre : le banc A/B de `performance.yml`
    la seule solution, un mode de CORE-MATH où le sens est un paramètre,
    modifierait `3rd/math-core`, ce que le mainteneur a refusé le 22 octobre
    (Q15c) ; voir `TODO_AFTER.md`.
-6. **La division du chemin AVX-512** [S à M] (`doc/simd.md`, tableau « Verdicts
-   ») : essayer deux `vdivsd {er}` scalaires pour `/` dans le chemin AVX-512
-   (`GAOL_PREFER_AVX512`). Sur Intel, la division 512 bits coûte 16 cycles de
-   débit, contre 4 en 128 bits (uops.info) ; Zen 5 a des unités pleine largeur.
-   L'idée a réussi pour `sqrt` (deux racines scalaires à arrondi intégré : 3,75
-   ns contre 6,30 avec SSE2) et n'a pas été essayée pour `/`. À mesurer sur
-   l'i7-1185G7 avec le banc A/B de `performance.yml` : les deux `vdivsd {er}` et
-   les permutations peuvent perdre sur un processeur Intel qui divise les
-   registres en deux. À rapprocher du 106.
-7. **La lecture d'un nombre sous-normal** [S] (#182) : `1e-310` et les nombres
+6. **La lecture d'un nombre sous-normal** [S] (#182) : `1e-310` et les nombres
    au-dessous de 2^-1022 ne sont plus donnés à `strtod()`, qui lève
    `FE_UNDERFLOW` pour eux : le lexeur part de 0 et les place par des pas
    doublés puis la bissection (une centaine de comparaisons exactes). Leur
@@ -295,8 +318,7 @@ ne se comparent pas d'un passage à l'autre : le banc A/B de `performance.yml`
    comparaisons, au prix de code de plus dans le lexeur. *À décider* : le faire,
    ou laisser tel quel (la description de #182 propose de le faire si quelqu'un
    lit des sous-normaux en texte).
-
-8. **La cause du gain faible du noyau NEON de `pown`** [S] (#188) : le noyau à
+7. **La cause du gain faible du noyau NEON de `pown`** [S] (#188) : le noyau à
    deux voies de `pown` pour NEON (`vfmaq_f64`, fusionné) ne gagne que 1,03 à
    1,07 sur `pow(x, 3)` avec un Apple M2 (1,30 pour les intervalles autour de 0
    dans `tests/tools/pow/bench.cpp`), 1,23 avec GCC et 0,90 avec Clang sur le
@@ -306,6 +328,34 @@ ne se comparent pas d'un passage à l'autre : le banc A/B de `performance.yml`
    dépendants restant la même. *À décider* : chercher (compter les cycles,
    essayer de couper la chaîne en démarrant la boucle des carrés plus tôt), ou
    laisser tel quel.
+8. **Le quotient des intervalles NEON avec clang-cl** [S] (#192, #195) : sur
+   les Neoverse N2 des runners arm64 de GitHub, `x / y` est plus lent en NEON
+   qu'avec le FPU avec clang-cl (5,36 ns contre 4,38, la même mesure sur deux
+   exécutions du banc A/B), alors qu'avec Visual C++ NEON gagne (5,40 contre
+   10,08) et que `x * y` et `sqrt(x)` gagnent avec clang-cl aussi (5,19 contre
+   5,71, 5,65 contre 11,02). Le mainteneur a demandé de garder NEON et de
+   chercher la cause. L'essai (#195, fermée sans fusion : deux divisions
+   scalaires à la place de la division vectorielle) est plus lent partout, de
+   5,36 à 6,17 ns avec clang-cl, de 5,40 à 6,30 avec Visual C++ et de 2,38 à
+   2,76 sur l'Apple M2 : la perte n'est pas dans la division mais dans le reste
+   du noyau. Une hypothèse, non mesurée (`perf` n'est pas permis ici) : le
+   nombre d'instructions vectorielles du noyau de `div_bounds()` face aux deux
+   pipelines vectoriels du N2. Les chiffres sont dans `doc/simd.md`. *À
+   décider* : compter les instructions de ce noyau dans l'assembleur de
+   clang-cl et en chercher un plus court, ou laisser tel quel.
+9. **`x / d` dans le banc A/B** [S] (#191) : les deux `vdivsd {ru-sae}`
+   scalaires de #191 font passer `x / d` de 3,62 à 2,76 ns (meilleur temps, d >
+   0, i7-1185G7), mais le banc A/B de `performance.yml` n'a aucune ligne `x /
+   d` : il ne verra ni ce gain ni une perte. *À décider*, trois questions de
+   #191 sans réponse : (a) ajouter cette ligne à `tests/performance.cpp` (les
+   lignes de la table sont décrites dans `doc/tests.md` et choisies par
+   `compare-performance.py`) ; (b) les divisions du dispatch d'un diviseur qui
+   contient 0 et du `1/h` des puissances négatives sont converties sans gain
+   mesuré (rapports de 0,92 à 1,04) : les garder pour la cohérence, ou les
+   remettre en forme 512 bits ; (c) `div_bounds()` répète à la main ce que fait
+   `er_div2()` : les rapprocher, ce que #191 n'a pas fait pour ne pas déplacer
+   de code (l'effet de placement du 105). Le gain de `x / d` n'est mesuré que
+   sur un Tiger Lake (`TODO_AFTER.md`, 4.6).
 
 ## PH. Les signalements à d'autres projets [attend l'accord du mainteneur]
 
@@ -388,7 +438,8 @@ PA à PH faites ou décidées (PA l'est), et avant les mesures de PJ.
    et `ChangeLog` » : #71, #76, #77, #83 à #97, #99, #100, #105, #108, #111,
    #113, #114, #117 à #124, #139, #140, #141, #144 à #151, #155 à #158 et #160 à
    #164 (#123, #139, #155 et #160 n'ont rien à y mettre), et à lire aussi, #165
-   à #174, #176 et #180 à #184 (celle de #176 dit : rien). Les points K, L et
+   à #174, #176, #180 à #184 (celle de #176 dit : rien) et #191 à #194. Les
+   points K, L et
    `make distclean` (#72 à #75) n'ont pas cette section : à écrire d'après leurs
    descriptions. À écrire d'après les commits, sans pull request : les
    changements du 4 octobre (`nb_fp_numbers()` rend un `unsigned long long`,
@@ -433,7 +484,14 @@ PA à PH faites ou décidées (PA l'est), et avant les mesures de PJ.
    chiffres, qu'une espace est nécessaire entre un signe et un nombre incertain,
    le piège de `namespace gaol { }`, et que `gaol_performance` est compilé en
    C++14 ; celle de #143 que la phrase de `doc/differences.md` sur « les macros
-   que lisent les sources de GAOL » reste à corriger ici. *Décidé le 3 octobre*
+   que lisent les sources de GAOL » reste à corriger ici ; celles de #192 à
+   #194 que la même ligne 333 ne vaut plus pour aucun compilateur de l'arm64
+   (NEON avec Visual C++, clang-cl, MinGW-w64 et MSYS2 comme avec GCC et Clang),
+   ni pour x86 32 bits avec Visual C++ et clang-cl (SSE2, leurs bornes rangées
+   en deux `double` d'alignement 8), ni pour un build universel de macOS (NEON
+   pour arm64, SSE2 pour x86_64), et que les opérations NEON de Visual C++
+   effacent FZ et FIZ de FPCR, ce que ses intervalles FPU ne faisaient pas.
+   *Décidé le 3 octobre*
    : la puce de `atanh` de `doc/differences.md` reste, en disant que GAOL 4
    n'est pas mesuré, les puces de `hausdorff()` sont fusionnées.
 3. **`examples/examples.md`** : marquer **Fixed** les n° 2, 3, 4, 5, 7, 8, 10,
@@ -480,7 +538,12 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    version, la machine ne faisant rien d'autre (`doc/compare/code/run_bench.sh`,
    ou `make perf`), puis reprendre le tableau de `doc/compare/README.md`. Les
    temps pris sur une machine non au repos (#158, les racines d'un x
-   sous-normal) sont à refaire ici si on les cite.
+   sous-normal) sont à refaire ici si on les cite. Refaire aussi, au même
+   commit, les colonnes de Visual C++ et de clang-cl pour x86 et pour arm64 de
+   `doc/using.md` (« The FPU intervals ») et de `doc/three-builds.md` : elles
+   ont été mesurées avec les intervalles FPU, avant #192 et #193 (une phrase le
+   dit), et ces compilateurs ont maintenant SSE2 et NEON. *Décidé le 25
+   octobre* (#192, #193) : à la fin.
 3. **34** : les recettes FetchContent récupèrent GAOL 4 : `doc/using.md`, le
    manuel et `tests/fetch_content` prennent la branche `master` de
    `Jordan08/GAOL`, et le `git clone` de `doc/building.md` la branche par

@@ -1,7 +1,7 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 25 octobre 2026
-(commit `6eabe20` de `configure-clean`, aucune pull request ouverte). Ce
+(commit `1a41cda` de `configure-clean`, aucune pull request ouverte). Ce
 fichier et l'issue #177 ont le même contenu.
 
 Il réunit l'historique de l'ancienne issue #49 (« Suivi du TODO de GAOL v5 »),
@@ -53,13 +53,24 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 
 ## 1. L'état au 25 octobre 2026
 
-- **`configure-clean`** est au commit `6eabe20` (fusion de #189). Les pull
+- **`configure-clean`** est au commit `1a41cda` (fusion de #194). Les pull
   requests des corrections vont vers `configure-clean`, qui reste la branche de
   développement après v5.0.0 ; `MATH-CORE` et `master` (GAOL 4.3.2, plus deux
   commits de `.claude/CLAUDE.md`) ne bougent qu'à la version (point Y).
 - **Aucune pull request ouverte.** Le mainteneur a fusionné #165 à #167, #169 à
-  #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #190 le 25 octobre ;
-  #168 est fermée sans fusion. Les tâches PA, PB et PC sont faites.
+  #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194 le 25 octobre ;
+  #168 et #195 sont fermées sans fusion. Les tâches PA, PB et PC sont faites ;
+  PG est entamée (la division du chemin AVX-512, le 106 a : #191 à #194).
+- **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
+  sur tout processeur ARM 64 bits avec tous les compilateurs (GCC, Clang,
+  AppleClang, clang-cl, Visual C++, MinGW-w64, MSYS2), SSE2 sur tout processeur
+  x86 avec tous les compilateurs (sur Windows 32 bits, GCC et Clang avec
+  `-faligned-new=8`, Visual C++ et clang-cl avec des bornes en deux `double`),
+  le chemin AVX-512 (`GAOL_PREFER_AVX512`) par-dessus SSE2 où le compilateur et
+  la machine le permettent, et le FPU seulement où l'on n'a pas le choix (ARM 32
+  bits, POWER, s390x, RISC-V...) ou quand on le demande (`GAOL_SIMD=OFF`,
+  `GAOL_ARM64=OFF`). Un build universel de macOS (CMake, plusieurs
+  architectures) prend NEON pour arm64 et SSE2 pour x86_64, sans FMA ni AVX-512.
 - **Branches** : GitHub n'a que `configure-clean`, `MATH-CORE` et `master` ; les
   branches fusionnées sont supprimées en local.
 - **Aucune borne fausse n'est connue** : sur environ 1,3 million de puissances
@@ -910,6 +921,115 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   contrôles verts (un job macOS 14 Rosetta a échoué une fois sur `arithmetic`,
   `gaol_ieee1788::pow(x, [2])` attendu vide, et est passé à la relance) ;
   fusionnée le 25 octobre)
+- #191 (point PG.6, la division du chemin AVX-512 : `er_div_low()`,
+  `er_div_high()` et `er_div2()` de `gaol/gaol_interval_avx512.cpp` font une ou
+  deux divisions scalaires à arrondi intégré (`vdivsd {ru-sae}`) là où trois
+  endroits divisaient encore en 512 bits : `fast_div_by()` (`x / d` et `x /=
+  d`), les 14 divisions de `div_unguarded()` (l'aiguillage d'un diviseur qui
+  contient 0) et le `1/h` des puissances négatives (`pown_er_ops::div`) ; plus
+  aucune division de 512 bits dans la bibliothèque. La description de PG.6 et
+  `doc/simd.md` disaient que l'idée n'avait pas été essayée pour `/` : le `x /
+  y` de l'interface, `div_bounds()`, la faisait depuis cf60ef6. Bornes
+  identiques bit à bit : le hachage de 4,3 millions de résultats (`x / y`, `x /
+  d`, `x /= d`, `pow(x, n)` pour onze exposants négatifs, les quatre sens, FTZ
+  et DAZ effacés et posés, MXCSR compris) est `fdfc6b07716f6333` avant et après,
+  et celui sans MXCSR est celui du build SSE2 ; cinq mutants du code changé sont
+  tués par les tests existants ; dix des 14 divisions de `div_unguarded()` ne
+  sont pas atteignables par l'interface, leur égalité repose sur l'algèbre des
+  voies (relue). Mesures (i7-1185G7, Clang 21, `GAOL_PRESERVE_ROUNDING=ON`,
+  meilleur temps) : `x / d` de 3,62 à 2,76 ns pour d > 0 (0,76), de 3,66 à 3,01
+  pour d < 0, `x /= d` de 3,64 à 2,82 ; les diviseurs avec 0, les puissances
+  négatives et les témoins au bruit près. Le banc A/B de la CI n'a aucune ligne
+  `x / d` ; ses lignes bougeaient de 30 % pour un `add_bounds()` identique octet
+  pour octet, dont seule l'adresse changeait (l'effet de placement du 105), et
+  `-falign-functions=64` pour les deux builds ramène tout entre 0,98 et 1,03.
+  Une relecture indépendante, aucun point bloquant, des phrases de `doc/simd.md`
+  corrigées ; CI verte ; fusionnée le 25 octobre)
+- #192 (point PG.106 a, puis, à la demande du mainteneur, NEON avec tous les
+  compilateurs de l'arm64 : `GAOL_NEON_MSVC` (`cl` pour `_M_ARM64`) ouvre la
+  condition de `gaol/gaol_config.h` qui refusait NEON ; `cl` n'a pas d'asm sur
+  ARM64, FPCR est lu et écrit par `_ReadStatusReg(ARM64_FPCR)` et
+  `_WriteStatusReg()`, avec `_ReadWriteBarrier()` avant et après l'écriture
+  (`fpcr_get()` et `fpcr_set()`), et `reread_bounds()` et
+  `rnd_keep(float64x2_t)` n'ont pas d'asm (des `double` volatils) ; clang-cl et
+  le Clang de MinGW-w64 et de MSYS2 lisent et écrivent FPCR par l'asm GNU comme
+  sous Linux (condition `__aarch64__ && __ARM_NEON && (__GNUC__ || __clang__)`,
+  le `static_assert` des valeurs `FE_*` retiré sous Windows). Les trois builds :
+  une sonde pour `cl` et une pour les autres compilateurs avec CMake et meson,
+  la ligne `#error` de configure retirée (`configure` régénéré, 11 lignes). Le
+  `mid()` de NEON reprend le contournement des intervalles SSE2 et FPU,
+  `rnd_keep()` des moitiés : `cl` (`/O2 /fp:strict`) réécrit `(-.5)*l + .5*r` et
+  `mid([2^-1074, DBL_MAX])` rendait le point `DBL_MAX/2` (trouvé par les jobs
+  arm64 de la CI). Les opérations NEON de Visual C++ effacent FZ et FIZ, ce que
+  ses intervalles FPU ne faisaient pas. Tests : FPCR lu et écrit pour les trois
+  cas, le test de FIZ tourne pour `cl`. CI : les jobs arm64 attendent `neon`, et
+  six jobs de plus (Visual Studio 2026 arm64 avec la direction préservée, FPU,
+  clang-cl arm64 FPU, MSYS2 CLANGARM64 avec et sans la direction préservée,
+  meson Visual Studio 2026 arm64). Banc A/B (runners arm64 de GitHub, FPU puis
+  NEON, ns) : Visual C++ `x + y` 2,30 à 1,43, `x * y` 10,77 à 5,39, `x / y`
+  10,08 à 5,40, `sqrt` 22,99 à 7,24, ligne de 15 `+` 43,13 à 13,26 ; clang-cl `x
+  * y` 5,71 à 5,19, `x / y` 4,38 à 5,36 (il perd : voir PG.8 de `TODO.md` et
+  #195), `sqrt` 11,02 à 5,65. Un script de modification de `meson.build` y avait
+  inséré une copie de 300 lignes (775 à 1097), que meson exécutait en dernier
+  (clang-cl et MinGW-w64 seraient restés en FPU sans qu'aucun job le voie) :
+  trouvée par le relecteur. Deux relectures indépendantes ; GCC 12.2 croisé sous
+  qemu (`rounding_direction`, `misc`, `arithmetic`), un Apple M2 par la session
+  MACarm2 (55 tests sur 55 en défaut, avec `GAOL_PRESERVE_ROUNDING=ON` et
+  `-Werror`), MSVC 19.44 et 19.51 pour ARM64 par Compiler Explorer (bibliothèque
+  et cinq tests compilés, assembleur des noyaux lu : `msr FPCR` précède la
+  première opération flottante, qui précède la restauration) ; 198 contrôles
+  verts ; fusionnée le 25 octobre)
+- #193 (SSE2 sur Windows 32 bits avec Visual C++ et clang-cl, à la demande du
+  mainteneur : les bornes d'un intervalle sont rangées dans
+  `gaol_detail::unaligned_xmm`, deux `double` d'alignement 8 chargés par
+  `_mm_loadu_pd` et rangés par `_mm_storeu_pd`, qui se convertit en `__m128d` et
+  depuis lui (les 200 emplois de `xmmbounds` et de `get_xmminterval()` ne
+  changent pas) ; la macro `GAOL_SSE2_UNALIGNED_STORAGE` (`gaol/gaol_config.h`)
+  le décide d'après la cible (`_WIN32` sans `_WIN64`, `_MSC_VER`, SSE2), et un
+  réglage de développeur de CMake la pose pour Linux, où deux jobs de
+  `linux.yml` passent toute la suite de tests dans cette forme ; les allocateurs
+  de classe (16 octets) n'existent plus dans cette forme et l'`#error` « le
+  compilateur doit demander de la mémoire alignée » ne vaut plus pour elle.
+  `GAOL_VECTORCALL` vaut `__vectorcall` sur x86 32 bits aussi. Un défaut trouvé
+  en chemin par le job x86 avec la direction préservée : `cl` renvoie un
+  `double` dans ST0 et le calcule sur l'unité x87 (le `fdiv` de
+  `quotient_sat()`), dont la direction restait fausse ; `GAOL_RND_ENTER_SSE()`
+  et `GAOL_RND_LEAVE_SSE()` deviennent les macros complètes avec Visual C++ pour
+  x86. Le test `test_intervals_aligned_on_8_bytes` de `tests/misc.cpp` a des
+  dents (un chargement aligné fait mourir le programme par SIGSEGV) ; coût du
+  stockage en deux `double` sur x86-64 : aucune ligne hors du bruit (0,91 à
+  1,11). Banc A/B de la CI (Windows 32 bits, FPU puis SSE2, ns) : Visual C++ `x
+  * y` 10,65 à 9,38, ligne de 15 `+` 206,0 à 123,4, ligne de 13 `+ - * /` 215,2
+  à 112,7 ; clang-cl `x * y` 9,72 à 7,66, ligne de 15 `+` 183,8 à 100,6 ;
+  `__vectorcall` sans différence au-delà de 5 %. Les trois builds : CMake et
+  meson ne laissent plus SSE2 de côté pour ces compilateurs, configure accepte
+  le Clang pour une cible de Visual C++ sans lui donner `-faligned-new=8`, et
+  l'audit des trois builds compare la macro. Une relecture indépendante (201
+  emplois lus), aucun point bloquant ; MSVC 19.44 et 19.51 pour x86 par Compiler
+  Explorer (compilation seulement, l'exécution échoue avec 0xC000007B) ;
+  conflits de texte avec #192 résolus en fusionnant `configure-clean` ; CI verte
+  sur le dernier commit ; fusionnée le 25 octobre)
+- #194 (le build universel de macOS, à la demande du mainteneur :
+  `CMakeLists.txt` le reconnaît (plusieurs architectures dans
+  `CMAKE_OSX_ARCHITECTURES`), saute les sondes, qui échouaient pour l'une des
+  architectures, et pose `GAOL_UNIVERSAL_SSE2` et `GAOL_UNIVERSAL_NEON` ;
+  `cmake/gaol_configuration.h.in` les change en `GAOL_USING_SSE2_INSTRUCTIONS`
+  et `GAOL_USING_SSE3_INSTRUCTIONS` (`__x86_64__`) et en
+  `GAOL_USING_NEON_INSTRUCTIONS` (`__aarch64__`) : le préprocesseur de chaque
+  tranche choisit, sans drapeau. Le fusionné multiplie-addition et le chemin
+  AVX-512 restent éteints (leurs sondes échouent pour une architecture) ;
+  configure et meson ne font pas de build universel (documenté). Avant, les deux
+  tranches calculaient avec le FPU sans que rien le dise. Nouveau job `macOS 26
+  universal (arm64 and x86_64)` : les macros de chaque tranche relues par `c++
+  -arch ... -dM -E`, 41 tests en natif, 29 programmes de test de la tranche
+  x86_64 sous Rosetta, un par un (`arch -x86_64 ctest` échoue avec le `ctest`
+  d'Homebrew, arm64 seul), et la première ligne de `gaol_performance` pour
+  chaque tranche. Un relecteur indépendant, aucun point bloquant ; un Apple M2
+  (MACarm2) : le build universel passe, `lipo` dit `x86_64 arm64`, la tranche
+  x86_64 y est compilée et liée seulement (Rosetta n'y est pas installé) ; Linux
+  x86-64 et GCC 12.2 croisé sous qemu après la fusion de `configure-clean` ; CI
+  verte sur le commit qui précède cette fusion, qui a eu lieu quand la CI du
+  commit de fusion n'avait pas commencé ; fusionnée le 25 octobre)
 
 ### 2.4 Fermées sans fusion
 
@@ -930,6 +1050,15 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
 - **#168** (23 octobre) : le noyau mixte du produit FPU, une expérience pour le
   banc A/B, fermée par le mainteneur après lecture des tableaux (voir
   `TODO_AFTER.md`).
+- **#195** (25 octobre) : « [EXPÉRIENCE] Quotient NEON : deux divisions
+  scalaires (ne pas fusionner) », une pull request jetable demandée par le
+  mainteneur pour chercher pourquoi `x / y` de clang-cl est plus lent en NEON
+  qu'avec le FPU (#192) : deux divisions scalaires à la place de la division
+  vectorielle sont plus lentes sur le Neoverse N2 (de 5,36 à 6,17 ns avec
+  clang-cl, de 5,40 à 6,30 avec Visual C++) et sur l'Apple M2 (de 2,38 à 2,76
+  ns), si bien que la perte n'est pas dans la division ; fermée sans fusion, sa
+  branche `experiment-neon-scalar-div` est supprimée (voir `TODO.md`, PG.8, et
+  `doc/simd.md`).
 
 ### 2.5 Les pull requests du 23 octobre au soir et les décisions qu'elles exécutent
 
@@ -1703,7 +1832,7 @@ fait le travail.
   plus petit double normal ne lève plus `FE_UNDERFLOW` non plus (décidé le 24
   octobre, dans #182). Le temps de lecture d'un sous-normal, 3 à 10 fois plus
   long, est accepté : un meilleur point de départ est une question à `TODO.md`
-  (PG.7)
+  (PG.6)
 
 #### Décidé pendant la tâche PB (24 octobre), fait par #183 et #184
 
@@ -1757,7 +1886,7 @@ fait le travail.
   CI, au lieu de 1,5), à condition que les noyaux soient répartis dans
   `gaol_interval_neon.cpp`, `gaol_interval_sse.cpp`, `gaol_interval_fpu.cpp` (et
   `gaol_interval_avx512.cpp`) au lieu de `#if` dans `gaol_interval_core.cpp` (25
-  octobre, #188). La cause du gain faible n'est pas cherchée (`TODO.md`, PG.8)
+  octobre, #188). La cause du gain faible n'est pas cherchée (`TODO.md`, PG.7)
 - [x] Les conflits de texte entre #186, #188 et #189 (les mêmes lignes) se
   règlent en fusionnant `configure-clean` dans la seconde pull request à
   fusionner (25 octobre)
@@ -1768,6 +1897,47 @@ fait le travail.
 - [x] Pour tester `FPCR.AH`, une image Docker locale (Debian 13, `qemu-user`
   10.0) ; supprimée ensuite, comme celle d'Ubuntu 24.04 (qemu 8.2) qui ne
   retient pas le bit, à la demande du mainteneur (25 octobre)
+
+#### Décidé pendant la tâche PG (25 octobre), fait par #191 à #194
+
+- [x] Les intervalles de chaque build : NEON sur tout processeur ARM 64 bits
+  avec tous les compilateurs, SSE2 sur tout processeur x86 avec tous les
+  compilateurs, le FPU seulement où l'on n'a pas le choix (« le FPU ne doit être
+  utilisé que si on n'a pas le choix », 25 octobre, #192 à #194)
+- [x] Visual C++ et clang-cl sur x86 32 bits utilisent SSE2 (#193) ; clang-cl,
+  MinGW-w64, MSYS2 et le build universel de macOS sur arm64 utilisent NEON
+  (#192, #194) (25 octobre)
+- [x] La phrase de PG.6 et de `doc/simd.md` selon laquelle l'arrondi embarqué
+  scalaire « n'a pas été essayé pour `/` » était inexacte : `div_bounds()`
+  faisait déjà deux divisions scalaires depuis cf60ef6 ; les trois endroits qui
+  divisaient encore en 512 bits sont convertis et la phrase est corrigée (25
+  octobre, #191)
+- [x] `x / y` de clang-cl plus lent en NEON qu'avec le FPU (4,38 contre 5,36 ns)
+  : garder NEON et chercher la cause (25 octobre, #192). Fait par #195 (fermée
+  sans fusion) : deux divisions scalaires sont plus lentes, la division n'est
+  pas en cause ; la cause n'est pas trouvée (`TODO.md`, PG.8)
+- [x] C4324 avec `/W4` sur arm64 (les structures qui contiennent un intervalle
+  NEON, alignées sur 16 octets) : documenter seulement, sans job ni pragma (25
+  octobre, #192, `doc/using.md`)
+- [x] `GAOL_VECTORCALL` sur x86 32 bits : à faire dans #193 ; gardé, bien que le
+  banc A/B ne montre aucune différence au-delà de 5 % (25 octobre, #193)
+- [x] Les mesures de `doc/using.md` et de `doc/three-builds.md` pour Visual C++
+  et clang-cl, qui sont celles du FPU : à refaire à la fin, au commit de la
+  version (25 octobre, #192 et #193, `TODO.md` PJ.2)
+- [x] Le réglage de développeur `-DGAOL_SSE2_UNALIGNED_STORAGE=ON` de CMake (la
+  forme à deux `double` des intervalles SSE2 de Visual C++, que deux jobs Linux
+  éprouvent) reste sans option documentée, comme `GAOL_FLOAT_INTERVALS` (25
+  octobre, #193)
+- [x] La tranche x86_64 d'un build universel de macOS n'a pas le fusionné
+  multiplie-addition (`-mfma` échoue pour la tranche arm64 ; CORE-MATH appelle
+  le `fma()` de la bibliothèque de macOS et les puissances entières n'ont pas le
+  noyau empaqueté) : le documenter seulement (`doc/building.md`, ligne
+  `GAOL_FMA`), sans le mesurer ni donner de drapeaux propres à cette tranche (25
+  octobre, #194)
+- [x] Les conflits de texte entre #192, #193 et #194 (les mêmes lignes de
+  documentation et de workflows) se règlent en fusionnant `configure-clean` dans
+  la pull request suivante après chaque fusion ; les registres ne sont mis à
+  jour qu'après la fusion de #194, quand le mainteneur le dit (25 octobre)
 
 #### Le 18 octobre : les questions restées ouvertes dans la description de #99 (commentaire de #49)
 
@@ -2192,13 +2362,16 @@ leur partie faite.
   NEON) par #146, pour Visual C++ et clang-cl x64 (SSE2) par #148, pour Windows
   32 bits avec GCC et Clang (SSE2 avec `-faligned-new=8`) par #152, pour ARM 32
   bits avec GCC (lecture directe de FPSCR) par #150, pour tous les intervalles
-  FPU (noyaux sans branche) par #157 ; le 107 (FPCR en ligne sur arm64) par #146
-  ; le 108 (x87 et MXCSR en ligne sur x86 32 bits) par #156 ; le 110 (GCC pour
-  Windows, `-mfma -mprefer-vector-width=128`) par #163, puis le 133 (x86 32 bits
-  et Cygwin) par #172, #173 et #174 ; les 111 et 115 (banc A/B, dix lignes de
-  `run_lines.sh`) par #160 et #166 ; le 112, le défaut de CMake et les
-  descriptions d'options par #161, le test des bits du signe de `x * d` par
-  #171. Restent les 105 (AH), 106, 108, 109, 112 et 116.
+  FPU (noyaux sans branche) par #157, pour Visual C++, clang-cl, MinGW-w64 et
+  MSYS2 sur arm64 (NEON, le 106 a) par #192, pour Visual C++ et clang-cl sur
+  Windows 32 bits (SSE2, bornes en deux `double`) par #193 et pour le build
+  universel de macOS (NEON et SSE2 par tranche) par #194 ; le 107 (FPCR en ligne
+  sur arm64) par #146 ; le 108 (x87 et MXCSR en ligne sur x86 32 bits) par #156
+  ; le 110 (GCC pour Windows, `-mfma -mprefer-vector-width=128`) par #163, puis
+  le 133 (x86 32 bits et Cygwin) par #172, #173 et #174 ; les 111 et 115 (banc
+  A/B, dix lignes de `run_lines.sh`) par #160 et #166 ; le 112, le défaut de
+  CMake et les descriptions d'options par #161, le test des bits du signe de `x
+  * d` par #171. Restent les 105 (AH), 106 (b, c, d), 108, 109, 112 et 116.
 - **AJ, AK, W, X, Y.** Rien n'est fait ; voir `TODO_AFTER.md` (AJ, AK, W, X) et
   `TODO.md` (Y, tâches PI et PJ).
 
@@ -2489,11 +2662,23 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
   qui répond aux quatre étapes de l'issue #101 ; le `// TODO: Rewrite as many
   functions as possible to use SIMD instructions` de
   `gaol/gaol_interval_core.cpp` est remplacé). Ce qui reste (durcir
-  `sqrt_bounds()` contre `FPCR.AH`, fait par #187 le 25 octobre ; RISC-V
-  scalaire, POWER, s390x, l'arrondi embarqué scalaire de `/` sur Intel) est dans
-  `TODO_AFTER.md` ; `pow(x, 2)` par `sqr` est fait par #162 (3,3 fois plus
-  rapide avec NEON, 2,5 avec la FPU, au signe d'un zéro et aux indicateurs de
-  `sqr` près).
+  `sqrt_bounds()` contre `FPCR.AH`, fait par #187 le 25 octobre ; l'arrondi
+  embarqué scalaire de `/` sur Intel, fait par #191 le 25 octobre ; RISC-V
+  scalaire, POWER, s390x) est dans `TODO_AFTER.md` ; `pow(x, 2)` par `sqr` est
+  fait par #162 (3,3 fois plus rapide avec NEON, 2,5 avec la FPU, au signe d'un
+  zéro et aux indicateurs de `sqr` près).
+- **106 (a).** NEON pour Visual C++ arm64 (`arm64_neon.h`), qui n'y était pas
+  pris, ni avec clang-cl ni avec MinGW-w64. Fait le 25 octobre par #192, puis, à
+  la demande du mainteneur (NEON avec tous les compilateurs de l'arm64, SSE2
+  avec tous ceux de l'x86, le FPU là où l'on n'a pas le choix), par #193 (SSE2
+  pour Visual C++ et clang-cl sur x86 32 bits) et #194 (le build universel de
+  macOS) : voir 2.3 pour les mesures et la section 1 pour la règle.
+- **PG.6** (tâche PG, nouveau). La division du chemin AVX-512 : essayer deux
+  `vdivsd {er}` scalaires pour `/` (`doc/simd.md`, tableau « Verdicts »). Fait
+  le 25 octobre par #191 : `x / d` de 3,62 à 2,76 ns sur l'i7-1185G7 ; le `x /
+  y` de l'interface le faisait déjà depuis cf60ef6, ce que la description du
+  point ignorait ; les divisions du dispatch et du `1/h` sont converties sans
+  gain (`TODO.md`, PG.9, pour les questions restées ouvertes).
 
 ### Décisions du mainteneur attendues (reportées)
 
@@ -2918,6 +3103,14 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PD à PJ) et
   de `configure-clean` dans leurs branches ; `TODO.md`, `TODO_DONE.md`,
   `TODO_AFTER.md` et `process.md` (§12) mis à jour pour elles, les branches
   fusionnées supprimées en local.
+- #191, #192, #193 et #194 (la tâche PG en partie : la division du chemin
+  AVX-512, NEON et SSE2 avec tous les compilateurs) fusionnées par le mainteneur
+  le 25 octobre, #191 le matin, #192 en fin d'après-midi, puis #193 et #194
+  après la fusion de `configure-clean` dans leurs branches (la CI de #194
+  n'avait pas commencé sur ce dernier commit quand il l'a fusionnée) ; #195
+  (l'expérience du quotient NEON) fermée sans fusion ; `TODO.md`,
+  `TODO_DONE.md`, `TODO_AFTER.md` et `process.md` (§12) mis à jour pour elles,
+  les branches fusionnées supprimées en local.
 
 ## 8. Le ménage fait
 
@@ -2965,8 +3158,12 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PD à PJ) et
   `debug-msvc-flags` du diagnostic de la CI de #184 ; celles de #186
   (`todo-ap-kernels-detail`), #187 (`todo-ap-neon-sqrt-mask`), #188
   (`todo-ap-neon-pown-packed`), #189 (`todo-ac-register-guard`) et #190
-  (`todo-q-bisect-flush`), sur GitHub à la fusion et en local le 25 octobre :
-  sur GitHub, il ne reste que `configure-clean`, `MATH-CORE` et `master`.
+  (`todo-q-bisect-flush`), sur GitHub à la fusion et en local le 25 octobre ;
+  celles de #191 (`todo-pg-avx512-div`), #192 (`todo-pg-msvc-arm64-neon`), #193
+  (`todo-pg-sse2-win32-msvc`) et #194 (`todo-pg-universal-macos`), et la
+  jetable de l'expérience #195 (`experiment-neon-scalar-div`), sur GitHub à la
+  fusion et en local le 25 octobre : sur GitHub, il ne reste que
+  `configure-clean`, `MATH-CORE` et `master`.
 - [x] Lignes de crédit retirées des descriptions de #50, #51, #53 à #57 et #59,
   d'un commentaire de #59 et de cette issue. Il en reste dans les messages des
   commits a0d3871, 790ca12 et f1f4239 de #99, fusionnée sans squash. Retirées
