@@ -2,7 +2,7 @@
 # x64, arm64; Release and Debug), the clang-cl of Visual Studio 2022 (x64;
 # Release and Debug) and 2026 (x86, x64, arm64; Release), MinGW-w64 15 (x86,
 # x64; Release and Debug), 14 (x86, x64), 12 and 13 (x86; 13 without GAOL_FMA
-# too), MSYS2 (UCRT64 GCC, CLANG64 Clang) and Cygwin (GCC, x64; GAOL v5), runs
+# too), MSYS2 (UCRT64 GCC, CLANG64 Clang, CLANGARM64 Clang) and Cygwin (GCC, x64; GAOL v5), runs
 # its tests, installs it, and builds the tests again with the installed GAOL
 # (but Cygwin, which builds, checks the objects and runs the tests, and checks
 # that a build without FMA is refused); with Visual Studio 2026 x64 and x86
@@ -140,14 +140,11 @@ jobs:
             test "$(grep -c -E "The (C|CXX) compiler identification is Clang .* with MSVC-like command-line" configure.log)" = 2
           fi
       # The intervals of the build: the SSE2 ones on x64, where Visual C++ and
-      # clang-cl take them (GAOL v5), the NEON ones on arm64 with Visual C++
-      # (GAOL_ARM64, on by default; GAOL v5), and the FPU ones on x86 and with
-      # clang-cl on arm64, where NEON is not offered to it
+      # clang-cl take them (GAOL v5), the NEON ones on arm64 with Visual C++ and
+      # clang-cl (GAOL_ARM64, on by default; GAOL v5), and the FPU ones on x86
       - name: The intervals
         run: |
-          if [ "${{ matrix.cfg.arch }}" = "x64" ]; then expected=sse2
-          elif [ "${{ matrix.cfg.arch }}" = "ARM64" ] && [ "${{ matrix.cfg.clang_cl }}" != "true" ]; then expected=neon
-          else expected=fpu; fi
+          case "${{ matrix.cfg.arch }}" in x64) expected=sse2 ;; ARM64) expected=neon ;; *) expected=fpu ;; esac
           case "${{ matrix.cfg.opts }}" in *GAOL_ARM64=OFF*) expected=fpu ;; esac
           sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h $expected
       # On x64, the processor of the runner, and whether the arithmetic takes
@@ -374,7 +371,7 @@ jobs:
 
   msys2:
     name: ${{ matrix.cfg.desc }}
-    runs-on: windows-2022
+    runs-on: ${{ matrix.cfg.os || 'windows-2022' }}
     timeout-minutes: 60
     defaults:
       run:
@@ -404,6 +401,12 @@ jobs:
           # alone: the same configuration as the GCC entry above, with the same C
           # runtime (the step that counts the instructions is GCC's)
           - { msystem: CLANG64, packages: clang-x86_64, cc: clang, cxx: clang++, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'MSYS2 CLANG64 Clang x64, rounding direction preserved' }
+          # MSYS2 for arm64, on the arm64 runners: the Clang of MinGW-w64 takes the
+          # NEON intervals as that of Linux and macOS does, FPCR being read and
+          # written by the asm statements of Clang, and the UCRT of Windows having
+          # FE_* values that are not the bits of FPCR (GAOL v5)
+          - { os: windows-11-vs2026-arm, msystem: CLANGARM64, packages: clang-aarch64, cc: clang, cxx: clang++, desc: 'MSYS2 CLANGARM64 Clang arm64' }
+          - { os: windows-11-vs2026-arm, msystem: CLANGARM64, packages: clang-aarch64, cc: clang, cxx: clang++, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'MSYS2 CLANGARM64 Clang arm64, rounding direction preserved' }
     steps:
       - uses: actions/checkout@v7
       - uses: msys2/setup-msys2@v2
@@ -416,6 +419,11 @@ jobs:
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_C_COMPILER=${{ matrix.cfg.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }} ${{ matrix.cfg.opts }}
       - name: Build
         run: cmake --build build -j 4
+      # The intervals of the build: the SSE2 ones on x64 and the NEON ones on arm64
+      - name: The intervals
+        run: |
+          case "${{ matrix.cfg.msystem }}" in CLANGARM64) expected=neon ;; *) expected=sse2 ;; esac
+          sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h $expected
       # GAOL_FMA gives GCC for Windows -mfma -mprefer-vector-width=128
       # (CMakeLists.txt, point 110 of TODO.md), as the job above checks (GAOL
       # v5). Not Clang, which aligns its stack and gets -mfma alone
