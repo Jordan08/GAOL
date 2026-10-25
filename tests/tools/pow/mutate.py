@@ -386,6 +386,23 @@ MUTANTS = [
          survives='the quotient q = 1/h is corrected by the rest r of 1 - q (h + l), whichever way it is rounded, '
                   'and K covers the rounding of r and of the correction: the bounds are those of the quotient '
                   'rounded upward but where 1/c^m is within about 2^-100 of a double, which no test reaches'),
+    # er_div_low(), er_div_high() and er_div2(), the two scalar divisions that x / d, the divisors with a zero
+    # of div_unguarded() and the 1/h of the negative powers take (#191)
+    dict(name='er-div-low-downward',
+         file='gaol/gaol_interval_avx512.cpp',
+         edits=[('return _mm_div_round_sd(a, b, gaol_er);', 'return _mm_div_round_sd(a, b, gaol_er_down);')]),
+    dict(name='er-div-high-downward',
+         file='gaol/gaol_interval_avx512.cpp',
+         edits=[('return _mm_div_round_sd(_mm_unpackhi_pd(a, a), _mm_unpackhi_pd(b, b), gaol_er);',
+                 'return _mm_div_round_sd(_mm_unpackhi_pd(a, a), _mm_unpackhi_pd(b, b), gaol_er_down);')]),
+    dict(name='er-div-high-on-low-lanes',
+         file='gaol/gaol_interval_avx512.cpp',
+         edits=[('return _mm_div_round_sd(_mm_unpackhi_pd(a, a), _mm_unpackhi_pd(b, b), gaol_er);',
+                 'return _mm_div_round_sd(a, b, gaol_er);')]),
+    dict(name='er-div2-lanes-swapped',
+         file='gaol/gaol_interval_avx512.cpp',
+         edits=[('return _mm_unpacklo_pd(er_div_low(a, b), er_div_high(a, b));',
+                 'return _mm_unpacklo_pd(er_div_high(a, b), er_div_low(a, b));')]),
     dict(name='er-modes-not-cleared',
          edits=[('      const flush_guard flush;\n      __m128d stored;', '      __m128d stored;')]),
     # The pair of doubles (FPU intervals, SSE2 intervals without FMA)
