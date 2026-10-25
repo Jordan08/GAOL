@@ -1282,9 +1282,10 @@ FPCR through the intrinsics `_ReadStatusReg()` and `_WriteStatusReg()`, where
 GCC and Clang have `mrs` and `msr` in an asm statement; it has no asm statement
 to order its operations with respect to those writes, and relies on `/fp:strict`
 to keep them where the source puts them, which `tests/rounding_direction.cpp`
-checks. 32-bit ARM, whose NEON has no vector of doubles, does not take them,
-nor does a universal build of macOS: the option is ignored there, and the FPU
-computes the intervals, as before.
+checks. 32-bit ARM, whose NEON has no vector of doubles, does not take them:
+the option is ignored there, and the FPU computes the intervals, as before. A
+universal build of macOS made by CMake takes them for its arm64 part, and the
+SSE2 intervals for its x86_64 part.
 
 64-bit ARM has no instruction that carries its own rounding direction, as the
 AVX-512 path has: the direction is the field RMode of the control register
