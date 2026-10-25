@@ -1,19 +1,20 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `1a41cda` de `configure-clean`, le 25
-octobre 2026, en tâches PD à PJ (PA, PB et PC sont faites, PG est entamée : voir
+Ce qui reste à faire sur GAOL v5 au commit `df28d24` de `configure-clean`, le 25
+octobre 2026, en tâches PE à PJ (PA à PD sont faites, PG est entamée : voir
 `TODO_DONE.md`). Ce fichier et l'issue #179 ont le même contenu. Ce qui est fait
 et décidé est dans `TODO_DONE.md` (issue #177), ce qui est reporté dans
 `TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142 sont fermées, et
 `TODO_mistral.md` est supprimé.
 
-Aucune borne fausse n'est connue. Rien n'est à fusionner, à envoyer à un autre
-projet ni à publier sans l'accord du mainteneur. Aucune pull request n'est
-ouverte.
+Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
+lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
+non trouvée). Rien n'est à fusionner, à envoyer à un autre projet ni à publier
+sans l'accord du mainteneur. Aucune pull request n'est ouverte.
 
 ## Comment lire ce fichier
 
-- Une tâche (PD à PJ) regroupe des points qui touchent le même code, les mêmes
+- Une tâche (PE à PJ) regroupe des points qui touchent le même code, les mêmes
   fichiers ou les mêmes builds de validation, pour les traiter dans la même
   session ; chaque point reste une pull request à part (process.md : un point,
   une branche), sauf quand la tâche dit qu'une seule suffit. Les tâches sont
@@ -21,7 +22,7 @@ ouverte.
   plus cher en attendant (une décision qui bloque) ; ce qui tue un programme ou
   rompt une promesse écrite avant ce qui ne fait que ralentir ; le petit et sans
   dépendance avant le gros ; la version (PI, PJ) en dernier.
-- PD à PH ne dépendent pas les unes des autres, sauf quand le texte le dit (PI
+- PE à PH ne dépendent pas les unes des autres, sauf quand le texte le dit (PI
   décrit le travail de PA à PH, PJ suit PI et les études de PG).
 - Chaque point garde sa lettre et son ancien numéro, par exemple « 79 (AB) » :
   ce sont ceux des pull requests, des issues, des commentaires du code et de
@@ -39,101 +40,12 @@ ouverte.
 
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
-| PD | `process.md`, les textes, les tests, le ménage | 130 et sept petits | S |
 | PE | Les trois builds, la CI, les vérifications qui manquent | 95, 92 et quatre autres | M |
 | PF | x86 32 bits, Windows et le registre de contrôle | 108, 109 et trois | M |
 | PG | Les études de vitesse | 105, 116, 106 et six petits | M |
 | PH | Les signalements à d'autres projets | #125 à #138, #175 | accord |
 | PI | La pull request de synthèse et les textes de la version | Y | L |
 | PJ | Les mesures et la publication de v5.0.0 | 32, 33, 34, 71 | M |
-
-## PD. `process.md`, les textes, les tests, le ménage [S]
-
-Ensemble parce que ce sont de petits textes et de petits tests, sans risque pour
-les bornes, qui tiennent dans une ou deux pull requests.
-
-1. **130 (AP)** [S] : `process.md` : une phrase plus courte à la place du
-   paragraphe du §6.1 que #155 a retiré (l'arbre `GAOL_V9/GAOL`, les 19 et 20
-   octobre, avait bien les outils qu'il décrivait : Ubuntu 24.04, GCC 13.3,
-   Clang 18 et 20, CMake 3.28, python 3.12, sans autoconf, automake, libtool,
-   meson ni ninja, 4 cœurs ; autoconf 2.72 s'y construit depuis le tarball de
-   ftp.gnu.org, sha256 vérifié, meson et ninja s'installent dans un
-   environnement virtuel), et une date et un commit dans l'en-tête, au lieu du
-   renvoi au §12. *Décidé le 22 octobre (Q9a, Q9c, #155).* Pas de ligne pour
-   `GAOL_V9/GAOL` au §3.3 (Q9b : garder « 4 cœurs au plus »).
-2. **Les pièges pour `process.md`, §11** [S] : (a) *(#149)* le test de
-   `tests/expressions.cpp` compte les allocations par le `operator new` qu'il
-   remplace, qui ne voit pas celles d'un `std::string` que fait la bibliothèque
-   C++ quand elle est dans une DLL (Windows : libstdc++ de MSYS2 et de
-   MinGW-w64, libc++ de CLANG64), alors que son destructeur en ligne appelle le
-   `operator delete` du programme : un `std::string` de plus de 15 caractères
-   dans le code de la lecture fait échouer « a reading frees all it allocated »
-   (quatre jobs de #149) ; un `std::vector` est sans danger. (b) *(#150)* une
-   écriture du registre de contrôle par `asm volatile` n'est ordonnée qu'avec
-   les autres `asm`, pas avec les opérations sur des registres ; une fonction en
-   ligne qui lit ses bornes avant `GAOL_RND_ENTER()` calcule dans le sens du
-   programme. La règle est dans `gaol/gaol_fpu.h` (lire les bornes après la
-   vérification, un double passé par valeur à travers `rnd_reread()`) ; un test
-   doit appeler la fonction sur un intervalle construit dans la même fonction,
-   pas sur un intervalle relu en mémoire, qui cache le défaut. (c) *(#192)* un
-   script qui édite un long fichier avec `s.index("# un commentaire")` peut
-   tomber sur une occurrence plus haute et dupliquer des centaines de lignes
-   (`meson.build`, de 775 à 1097 lignes, que meson exécutait en dernier : aucun
-   job de CI ne le voyait) : contrôler `wc -l` et `git diff --stat` après toute
-   édition par script. (d) *(#192)* avec `cl` sur ARM64, `/volatile:iso` est le
-   réglage par défaut : un `volatile` n'est pas ordonné avec le reste, d'où
-   `_ReadWriteBarrier()` avant et après `_WriteStatusReg()` ; `float64x2_t`,
-   `uint64x2_t` et `int64x2_t` sont un seul type (`__n128`), et `/O2 /fp:strict`
-   réécrit `(-.5)*l + .5*r` en `.5*r - .5*l` (`mid()` veut `rnd_keep()` des
-   moitiés dans toutes les sortes d'intervalles). (e) *(#194)* `arch -x86_64
-   ctest` échoue quand le `ctest` du runner (Homebrew) n'est que pour arm64 :
-   lancer les programmes de test un à un ; et `! grep ...` ne fait jamais
-   échouer une étape sous `bash -e` : un `if` explicite.
-3. **`doc/accuracy.md`** [S] (#149) : le tableau cite encore `interval(sl, su)`
-   pour `textToInterval(s)`, qui n'existe plus depuis GAOL v5.
-4. **`doc/compare/itf1788/itf1788.py`, l. 821** [S] (#146) : nomme « SSE2 » le
-   build par défaut, qui est NEON sur arm64.
-5. **Les tests qui calculent un x avec `std::pow`** [S] (#158) : le `pow()` de
-   la bibliothèque C de macOS n'est pas exact en arrondi dirigé pour certains
-   résultats sous-normaux (`pow(3·2^-95, 11)` en arrondi vers le haut rend
-   `0x1.59fd80000004p-1028` au lieu de `0x1.59fd8p-1028`), alors qu'il l'est au
-   plus proche ; un programme lié à GAOL est en arrondi vers le haut jusqu'à
-   `gaol::cleanup()`. `tests/arithmetic.cpp` donne donc ses x directement ; les
-   autres tests qui calculent un x avec `std::pow` n'ont pas été relus pour un
-   résultat sous-normal.
-6. **Le masquage des exceptions autour de CORE-MATH** [S] (#184, issue #185) :
-   `pow_up_without_overflow_exception()` (`gaol/gaol_interval_core.cpp`) appelle
-   CORE-MATH avec les exceptions masquées pour les seules puissances dont log2
-   est à moins de 10^-9 de 1024 (c voisin de `DBL_MAX` dans `pow_rel` et
-   `pow_exponent_rel`, environ 2^12 valeurs de c), puis rétablit l'environnement
-   du programme : MXCSR écrit (`_mm_setcsr(csr | 0x1f80)`, puis `csr`) sur x86,
-   sauf avec Visual C++ pour x86 32 bits, et `feholdexcept()` puis `fesetenv()`
-   ailleurs. C'est le seul endroit de la bibliothèque qui masque des exceptions
-   ; celles de `<cfenv>` de MinGW-w64 12 à 14 laissent des drapeaux levés et
-   plantent, d'où MXCSR. *À décider* (le mainteneur l'a reportée le 24 octobre,
-   #184 garde le masquage en attendant) : le garder ; le retirer, ce qui laisse
-   le drapeau pour ces seuls appels, retire les deux cas de test et exclut ces
-   tirages du balayage de `tests/rounding_direction.cpp` ; ou ne le garder que
-   sur x86-64 avec glibc et UCRT, l'appel direct ailleurs.
-
-7. **Les mutants de `tests/tools/pow/mutate.py`** [S] (#188) : (a) quatre
-   mutants ne s'appliquent plus au code, déjà avant la tâche PC
-   (`std-empty-y-unchecked`, `std-infinite-exponent-unchecked`,
-   `corner-lower-not-exact`, `corner-upper-no-limit` ; `mutate.py --list` les
-   dit) : les remettre à jour ou les retirer ; (b) les dix mutants `neon-*`
-   ajoutés par #188, qui reprennent ceux de `sse-fma-*`, n'ont jamais été
-   lancés, faute de processeur ARM 64 bits dans la session (une compilation
-   croisée sous qemu n'est pas prévue par l'outil) : les lancer sur un Apple M2
-   ou un runner arm64, et dire lesquels survivent.
-8. **Un échec de CI non reproduit** [S] (#189) : le job « macOS 14 x86_64
-   (Rosetta) » a échoué une fois sur `arithmetic` (`gaol_ieee1788::pow(x, [2])
-   is sqr(x & [0, +oo]), [0] for [0], the same bits`, avec x =
-   [-0x1.0d8146092a4f3p+345, 0x1.d324166d86984p+204], « the caller's direction
-   downward, flush modes 0 » : GAOL a rendu [0, 0x1.aa365774f4ea3p+409] et le
-   calcul de référence, `sqr(x & [0, +oo])`, le vide) et est passé à la relance,
-   sans lien visible avec le diff de #189. Non reproduit en local ni
-   dans les autres jobs de #186 à #190. Si cela revient, regarder si Rosetta lit
-   le sens d'arrondi ou les modes de MXCSR comme un processeur.
 
 ## PE. Les trois builds, la CI, les vérifications qui manquent [M]
 
@@ -425,7 +337,7 @@ probablement rien.
 
 Ensemble parce que ce sont les textes de la version (`ChangeLog`,
 `doc/differences.md`, `examples/examples.md`, `manual/v5/`), à écrire une fois
-PA à PH faites ou décidées (PA l'est), et avant les mesures de PJ.
+PA à PH faites ou décidées (PA à PD le sont), et avant les mesures de PJ.
 
 1. **La pull request de synthèse** : `ChangeLog` (une entrée du 27 septembre,
    touchée le 4 octobre) et `doc/differences.md` (28 septembre, puis des commits
@@ -438,7 +350,8 @@ PA à PH faites ou décidées (PA l'est), et avant les mesures de PJ.
    et `ChangeLog` » : #71, #76, #77, #83 à #97, #99, #100, #105, #108, #111,
    #113, #114, #117 à #124, #139, #140, #141, #144 à #151, #155 à #158 et #160 à
    #164 (#123, #139, #155 et #160 n'ont rien à y mettre), et à lire aussi, #165
-   à #174, #176, #180 à #184 (celle de #176 dit : rien) et #191 à #194. Les
+   à #174, #176, #180 à #184 (celle de #176 dit : rien), #191 à #194 et #196 et
+   #197 (qui disent : rien). Les
    points K, L et
    `make distclean` (#72 à #75) n'ont pas cette section : à écrire d'après leurs
    descriptions. À écrire d'après les commits, sans pull request : les
@@ -490,7 +403,9 @@ PA à PH faites ou décidées (PA l'est), et avant les mesures de PJ.
    ni pour x86 32 bits avec Visual C++ et clang-cl (SSE2, leurs bornes rangées
    en deux `double` d'alignement 8), ni pour un build universel de macOS (NEON
    pour arm64, SSE2 pour x86_64), et que les opérations NEON de Visual C++
-   effacent FZ et FIZ de FPCR, ce que ses intervalles FPU ne faisaient pas.
+   effacent FZ et FIZ de FPCR, ce que ses intervalles FPU ne faisaient pas ;
+   celle de #196 que `doc/differences.md` (ligne 790) cite encore
+   `interval(sl, sr)`, qui n'existe plus.
    *Décidé le 3 octobre*
    : la puce de `atanh` de `doc/differences.md` reste, en disant que GAOL 4
    n'est pas mesuré, les puces de `hausdorff()` sont fusionnées.

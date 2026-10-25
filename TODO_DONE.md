@@ -1,7 +1,7 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 25 octobre 2026
-(commit `1a41cda` de `configure-clean`, aucune pull request ouverte). Ce
+(commit `df28d24` de `configure-clean`, aucune pull request ouverte). Ce
 fichier et l'issue #177 ont le même contenu.
 
 Il réunit l'historique de l'ancienne issue #49 (« Suivi du TODO de GAOL v5 »),
@@ -10,7 +10,7 @@ l'ancien `TODO.md` et dans `TODO_mistral.md`, avec les réponses du mainteneur
 des 22 et 23 octobre. #49 et #142 sont fermées le 24 octobre, `TODO_mistral.md`
 est supprimé. Le reste du travail est dans deux autres registres :
 
-- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PD à PJ ;
+- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PE à PJ ;
 - `TODO_AFTER.md` (issue #178) : ce qui est reporté, après la version, jusqu'à
   une décision ou jusqu'à du matériel.
 
@@ -40,7 +40,7 @@ est supprimé. Le reste du travail est dans deux autres registres :
   : elle s'applique telle quelle.
 - Le classement par rang et par tiers (A à I) de l'ancien #142 n'existe plus :
   un « rang N » cité dans un texte d'avant le 24 octobre désigne cet ancien
-  classement. Ce qui reste à faire est classé en tâches PD à PJ dans `TODO.md`.
+  classement. Ce qui reste à faire est classé en tâches PE à PJ dans `TODO.md`.
 - Ce qui sert encore des rapports des agents est dans
   [todo-notes/synthese.md](todo-notes/synthese.md), leurs originaux au commit
   `16a2f60` (`todo-notes/`, ceux du 30 septembre dans `todo-notes/2026-09-30/`)
@@ -53,14 +53,15 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 
 ## 1. L'état au 25 octobre 2026
 
-- **`configure-clean`** est au commit `1a41cda` (fusion de #194). Les pull
+- **`configure-clean`** est au commit `df28d24` (fusion de #197). Les pull
   requests des corrections vont vers `configure-clean`, qui reste la branche de
   développement après v5.0.0 ; `MATH-CORE` et `master` (GAOL 4.3.2, plus deux
   commits de `.claude/CLAUDE.md`) ne bougent qu'à la version (point Y).
 - **Aucune pull request ouverte.** Le mainteneur a fusionné #165 à #167, #169 à
-  #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194 le 25 octobre ;
-  #168 et #195 sont fermées sans fusion. Les tâches PA, PB et PC sont faites ;
-  PG est entamée (la division du chemin AVX-512, le 106 a : #191 à #194).
+  #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194, #196 et #197
+  le 25 octobre ; #168 et #195 sont fermées sans fusion. Les tâches PA, PB, PC
+  et PD sont faites ; PG est entamée (la division du chemin AVX-512, le 106 a :
+  #191 à #194).
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
   sur tout processeur ARM 64 bits avec tous les compilateurs (GCC, Clang,
   AppleClang, clang-cl, Visual C++, MinGW-w64, MSYS2), SSE2 sur tout processeur
@@ -71,23 +72,27 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   bits, POWER, s390x, RISC-V...) ou quand on le demande (`GAOL_SIMD=OFF`,
   `GAOL_ARM64=OFF`). Un build universel de macOS (CMake, plusieurs
   architectures) prend NEON pour arm64 et SSE2 pour x86_64, sans FMA ni AVX-512.
-- **Branches** : GitHub n'a que `configure-clean`, `MATH-CORE` et `master` ; les
+- **Branches** : GitHub a `configure-clean`, `MATH-CORE`, `master` et
+  `perf-doc-rerun` (les scripts des mesures reportées, hors des points) ; les
   branches fusionnées sont supprimées en local.
 - **Aucune borne fausse n'est connue** : sur environ 1,3 million de puissances
   entières, 550 000 `pow` réels, 600 000 autres opérations et 760 lectures de
   nombres (relecture du 14 octobre, revérifiée le 18 octobre à `4eaf69a`), tout
-  résultat contient la valeur exacte.
+  résultat contient la valeur exacte. Une exception possible : un programme qui
+  met lui-même `FPCR.AH` sur arm64, où `x / y` des intervalles NEON a donné des
+  bornes différentes sur un runner de la CI le 25 octobre, dont une borne
+  inférieure NaN (issue #198, cause non trouvée).
 - **Issues ouvertes** : les issues « À communiquer… » #125 (CORE-MATH), #126
   (GCC), #127 (mingw-w64), #129 (ITF1788), #130 (Boost.Interval), #131
   (Microsoft), #132 (Apple), #133 (LLVM/Clang), #134 (gmpy2), #135 (musl), #136
   (benchmark de Tang et al.), #137 (libieeep1788), #138 (glibc) et #175
   (Cygwin), dont rien n'est envoyé ; #67 (décorations, reportée indéfiniment le
-  22 octobre) ; #185 (le masquage des exceptions autour de CORE-MATH, question
-  reportée de #184 : `TODO.md`, PD.6) ; et les trois registres #177, #178 et
-  #179. #128 (l'annonce à Frédéric Goualard) est fermée depuis le 18 octobre ;
-  le brouillon est dans Gmail. #107 (`parse_interval(nullptr)`, corrigé par
-  #147) et #159 (rapport d'état du 21 octobre, périmé) ont été fermées le 24
-  octobre.
+  22 octobre) ; #198 (`x / y` des intervalles NEON avec `FPCR.AH`, remarqué
+  pendant la tâche PD) ; et les trois registres #177, #178 et #179. #128
+  (l'annonce à Frédéric Goualard) est fermée depuis le 18 octobre ; le brouillon
+  est dans Gmail. #107 (`parse_interval(nullptr)`, corrigé par #147) et #159
+  (rapport d'état du 21 octobre, périmé) ont été fermées le 24 octobre, et #185
+  (le masquage des exceptions autour de CORE-MATH, gardé) le 25 octobre.
 
 ## 2. Les pull requests
 
@@ -1031,6 +1036,58 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   verte sur le commit qui précède cette fusion, qui a eu lieu quand la CI du
   commit de fusion n'avait pas commencé ; fusionnée le 25 octobre)
 
+- #196 (tâche PD, première des deux pull requests : le point 130 et des restes
+  de textes. `process.md` : l'en-tête porte une date et un commit (décidé le 22
+  octobre, Q9c), le §6.1 une phrase pour une machine sous Ubuntu 24.04 (Q9a), le
+  §4.11 « Clang 21 (depuis le 13 octobre) » et la colonne avec la direction
+  préservée de `doc/compare/performance.md`, le §9 et le §3.4 disent que
+  l'en-tête et le §12 se mettent à jour avec les registres, et cinq pièges de
+  plus au §11 (le compteur d'allocations de `tests/expressions.cpp` avec une DLL
+  de Windows, #149 ; l'`asm volatile` du registre de contrôle et le test qui
+  construit son intervalle dans la même fonction, #150 ; le script qui duplique
+  300 lignes de `meson.build`, #192 ; Visual C++ pour ARM64, #192 ;
+  `arch -x86_64 ctest` et `! grep` sous `bash -e`, #194), dont trois énoncés de
+  `TODO.md` corrigés après la relecture (`! grep` ne fait échouer l'étape que
+  s'il n'est pas sa dernière commande, 22 caractères dans l'objet pour libc++,
+  l'`asm` avec « memory » ordonné avec la mémoire). `doc/accuracy.md` ne cite
+  plus `interval(sl, su)`. Le build par défaut de `run.sh` s'appelle « default »
+  (SSE2 sur x86, NEON sur arm64) dans `itf1788.py`, `itf1788.md`,
+  `doc/compare/README.md` et `tang2021.md`, sauf où une phrase décrit une mesure
+  faite sur x86. Une relecture indépendante, un point bloquant (`! grep`),
+  corrigé ; les trois derniers commits (§4.11 deux fois, libellés de
+  `tang2021.md`) n'ont pas été relus. Le job « Ubuntu 26.04 arm64 Clang » a
+  échoué au premier passage, sur le bloc `FPCR.AH` de `rounding_direction`, puis
+  est passé à la relance (issue #198) ; fusionnée le 25 octobre, avant la fin de
+  sa CI)
+- #197 (tâche PD, seconde pull request : le point 7 de la tâche, les mutants de
+  `tests/tools/pow/mutate.py`. Les cinq mutants qui ne s'appliquaient plus
+  (`std-empty-y-unchecked`, `std-infinite-exponent-unchecked`,
+  `corner-lower-not-exact`, `corner-upper-no-limit`, et `er-division-downward`
+  depuis #191, que `TODO.md` ne comptait pas) suivent le code de #183
+  (`holds_no_real()`), de #184 (`quiet`) et de #191 (`er_div2()`) ;
+  `std-empty-y-unchecked` est équivalent parce que ses deux seuls appelants
+  rendent le vide avant d'appeler `pow_standard_upward()`, le texte de
+  `survives` qui disait que `rounding_direction` le tue est réécrit ; quatre
+  mutants de plus pour `er_div_low()`, `er_div_high()` et `er_div2()`, tués par
+  `arithmetic` (104 mutants). Les dix `neon-*` ont tourné sur l'Apple M2 par la
+  session MACarm2 : 8 tués, 2 équivalents, aucun survivant. Deux mutants ne
+  tenaient qu'à 1 et 5 vérifications d'`arithmetic` (`powers-of-c`,
+  `inverse-first-order`, leurs jumeaux de SSE2, d'AVX-512, du FPU et de NEON),
+  d'où deux changements de `tests/arithmetic.cpp` : le tableau des grandes
+  puissances négatives passe de 6 à 46 lignes (bornes de mpmath ; le script
+  `tests/tools/pow/negative_power_rows.py` les écrit et le relecteur en a
+  recalculé 40 sur 40 sans mpmath, en rationnels exacts), et 12 736 points de
+  plus pour `pow([-c], n)` (c à 16 doubles de 1, n de 2 à 200). Avant, après :
+  `inverse-first-order` 5 puis 44 vérifications en échec, `powers-of-c` 1 puis 5
+  (un point de la grille, c = 1 + 2^-51 et n = 21, était déjà dans la boucle
+  existante ; des tirages au hasard et une grille jusqu'à 64 doubles de 1 n'en
+  donnaient pas plus). `arithmetic` passe sans mutant en SSE2 avec FMA, AVX-512,
+  FPU et NEON, avec GCC 15.2, Clang 18 et Apple clang 21, et en
+  `-Wall -Wextra -Werror`. Deux relectures indépendantes, aucun point bloquant ;
+  la marge « 2^8 fois 2K » du commentaire était fausse pour n < 0 (au moins 13
+  fois 2K avec `pown_bound_inverse()`), corrigée ; fusionnée le 25 octobre,
+  avant la fin de sa CI)
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -1847,8 +1904,8 @@ fait le travail.
 - [x] Le masquage des exceptions de `pow_up_without_overflow_exception()`, le
   seul de la bibliothèque (les puissances dont le log2 est à 10^-9 de 1024, c
   voisin de `DBL_MAX` dans `pow_rel` et `pow_exponent_rel`), est reporté : issue
-  #185, `TODO.md` PD.6 ; #184 le garde en attendant la réponse (décidé le 24
-  octobre, #184)
+  #185 ; #184 le garde en attendant la réponse (décidé le 24 octobre, #184),
+  puis gardé le 25 octobre (tâche PD, plus bas)
 - [x] Le signe d'un zéro de `div_rel` avec les intervalles SSE2 (`[0, x]` au
   lieu de `[-0, x]` quand `div_rel_upward()` calcule, un tirage sur 300) est
   laissé tel quel et documenté dans `doc/accuracy.md`, commit 9da8118 (décidé le
@@ -1938,6 +1995,45 @@ fait le travail.
   documentation et de workflows) se règlent en fusionnant `configure-clean` dans
   la pull request suivante après chaque fusion ; les registres ne sont mis à
   jour qu'après la fusion de #194, quand le mainteneur le dit (25 octobre)
+
+#### Décidé pendant la tâche PD (25 octobre), fait par #196 et #197
+
+- [x] Le masquage des exceptions de `pow_up_without_overflow_exception()` (issue
+  #185) est gardé, sans changement de code : le mainteneur a choisi de le
+  garder plutôt que de le retirer (le drapeau resterait levé pour ces 2^12
+  valeurs de c, la phrase de `doc/using.md` et du manuel serait à changer) ou de
+  ne le garder que sur x86-64 avec glibc et UCRT ; #185 est fermée
+- [x] `process.md` : l'en-tête porte une date et un commit, avec le renvoi au
+  §12 gardé ; le §6.1 une phrase pour Ubuntu 24.04 ; rien pour `GAOL_V9/GAOL` au
+  §3.3 (22 octobre, Q9a à Q9c, fait par #196) ; le §4.11 dit « Clang 21 (depuis
+  le 13 octobre) » et la colonne avec la direction préservée (corrigé dans #196
+  sur la demande du mainteneur)
+- [x] Les libellés « SSE2 » du build par défaut sont alignés dans les rapports
+  de `doc/compare/` dans #196 (réponse du mainteneur : dans cette pull request),
+  sauf ceux qui décrivent une mesure faite sur x86 (`tang2021.md` lignes 180 et
+  254, `special_cases.md` ligne 34), où « SSE2 » est exact
+- [x] `doc/differences.md` (ligne 790) cite encore `interval(sl, sr)` : pour la
+  pull request de synthèse (tâche PI) ; celle d'`examples/examples.md` (ligne
+  1110) est le texte de la revue d'origine
+- [x] Les tests de `std::pow` : il n'en reste qu'un dans `tests/`
+  (`arithmetic.cpp`, racines n-ièmes), à résultats normaux et gardé par
+  `compare()` : rien à changer
+- [x] Les mutants qui ne tenaient qu'à 1 et 5 vérifications : tests renforcés
+  dans #197 (réponse du mainteneur : dans cette pull request, plutôt qu'à part)
+  ; les dix `neon-*` lancés sur l'Apple M2 par la session MACarm2 (sur un Apple
+  M2 plutôt qu'un job de CI ou une compilation croisée)
+- [x] Quatre mutants des divisions de #191 ajoutés dans #197 (réponse du
+  mainteneur)
+- [x] Le défaut possible de `x / y` des intervalles NEON avec `FPCR.AH` (52 des
+  441 paires du bloc de #187, sur un runner arm64 de la CI, vert à la relance) :
+  une issue (#198), sans tâche dans `TODO.md` (25 octobre) ; après la relance
+  du job, le mainteneur a gardé « reporter » plutôt que de chercher la cause
+  tout de suite
+- [x] L'échec de CI de macOS 14 x86_64 (Rosetta), non reproduit (ancien PD.8) :
+  passe dans `TODO_AFTER.md` (4.8), à reprendre s'il revient
+- [x] Les registres se mettent à jour après les fusions du mainteneur, et le
+  commit des registres est fait au-dessus de son commit local « update
+  README.md. », que le même push emporte (25 octobre)
 
 #### Le 18 octobre : les questions restées ouvertes dans la description de #99 (commentaire de #49)
 
@@ -2206,7 +2302,7 @@ le travail qu'elles décident est fait le même soir et ouvert en pull requests
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
-`TODO.md` (tâches PD à PJ) ou dans `TODO_AFTER.md` ; leur partie faite est dite
+`TODO.md` (tâches PE à PJ) ou dans `TODO_AFTER.md` ; leur partie faite est dite
 ici ou dans la section 5.
 
 ### Même changement, ou même code
@@ -2553,6 +2649,10 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
   de signe, à la place du maximum, contre `FPCR.AH`. Décidé le 22 octobre (Q10a,
   #154) : validé sur une copie, bit à bit identique, dans une pull request à
   part. Fait le 25 octobre par #187.
+- **130.** `process.md` : une phrase pour Ubuntu 24.04 au §6.1 à la place du
+  paragraphe que #155 avait retiré, une date et un commit dans l'en-tête, rien
+  pour `GAOL_V9/GAOL` au §3.3. Décidé le 22 octobre (Q9a à Q9c, #155). Fait le
+  25 octobre par #196.
 - **132.** Porter le noyau empaqueté de `pown` (`GAOL_POWN_PACKED`) sur arm64.
   Décidé le 22 octobre (Q14a, #146) ; Q14b (un test des bits du signe d'un zéro)
   et Q14c (jobs Clang 15 à 17 et GCC 9 à 10, test `mrs` et `msr` sur Neoverse)
@@ -2561,6 +2661,13 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
 - **`bisect(ratio)` et `is_bisectable()` sous FZ** (reste du point Q, #146).
   Décidé le 24 octobre : revérifier le défaut, puis le corriger par les bits,
   avec un test qui échoue sans la correction. Fait le 25 octobre par #190.
+- **Les restes de la tâche PD** (25 octobre) : les cinq pièges de #149, #150,
+  #192 et #194 dans `process.md` §11 ; `doc/accuracy.md` sans `interval(sl, su)`
+  (#149) ; le nom du build par défaut dans `itf1788.py` (#146) ; les tests de
+  `std::pow` (#158), rien à changer ; le masquage des exceptions de #184 (#185),
+  gardé ; les mutants de `mutate.py` (#188), dont les dix `neon-*` lancés sur un
+  Apple M2 ; l'échec de CI de #189, passé dans `TODO_AFTER.md`. Faits par #196
+  et #197 (voir 2.3).
 
 ### Restes des relectures de pull requests, de `process.md` et de la documentation (AL, nouveau)
 
@@ -2698,7 +2805,7 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
 
 Les « Questions ouvertes » des descriptions de #146 à #163, que l'ancien
 `TODO.md` gardait sous « Remarqué par #NN, à trier », avec leur sort. Les
-questions qui restent sans réponse sont dans `TODO.md` (tâches PD à PJ) et
+questions qui restent sans réponse sont dans `TODO.md` (tâches PE à PJ) et
 `TODO_AFTER.md` ; elles ne sont pas répétées ici.
 
 ### #146
@@ -3111,6 +3218,13 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PD à PJ) et
   (l'expérience du quotient NEON) fermée sans fusion ; `TODO.md`,
   `TODO_DONE.md`, `TODO_AFTER.md` et `process.md` (§12) mis à jour pour elles,
   les branches fusionnées supprimées en local.
+- #196 et #197 (la tâche PD) fusionnées par le mainteneur le 25 octobre, dans la
+  soirée, avant la fin de leur CI (aucun échec parmi les jobs finis, après la
+  relance du job « Ubuntu 26.04 arm64 Clang » de #196) ; l'issue #198 créée
+  pour le défaut de `x / y` sous `FPCR.AH`, #185 fermée ; `TODO.md`,
+  `TODO_DONE.md`, `TODO_AFTER.md` et `process.md` (§12) mis à jour pour elles,
+  au-dessus du commit local du mainteneur « update README.md. », poussé avec ;
+  les branches fusionnées supprimées en local.
 
 ## 8. Le ménage fait
 
@@ -3162,8 +3276,10 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PD à PJ) et
   celles de #191 (`todo-pg-avx512-div`), #192 (`todo-pg-msvc-arm64-neon`), #193
   (`todo-pg-sse2-win32-msvc`) et #194 (`todo-pg-universal-macos`), et la
   jetable de l'expérience #195 (`experiment-neon-scalar-div`), sur GitHub à la
-  fusion et en local le 25 octobre : sur GitHub, il ne reste que
-  `configure-clean`, `MATH-CORE` et `master`.
+  fusion et en local le 25 octobre ; celles de #196 (`todo-pd-texts`) et de
+  #197 (`todo-pd-pow-mutants`), sur GitHub à la fusion et en local le 25
+  octobre : sur GitHub, il ne reste que `configure-clean`, `MATH-CORE`, `master`
+  et `perf-doc-rerun`.
 - [x] Lignes de crédit retirées des descriptions de #50, #51, #53 à #57 et #59,
   d'un commentaire de #59 et de cette issue. Il en reste dans les messages des
   commits a0d3871, 790ca12 et f1f4239 de #99, fusionnée sans squash. Retirées

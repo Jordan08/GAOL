@@ -1,6 +1,6 @@
 # Reporté
 
-Tout ce qui est reporté sur GAOL v5 au 25 octobre 2026 (commit `1a41cda` de
+Tout ce qui est reporté sur GAOL v5 au 25 octobre 2026 (commit `df28d24` de
 `configure-clean`) : ce qui attend la version v5.0.0, ce que le mainteneur a
 reporté indéfiniment, ce qu'il a écarté en laissant une porte ouverte, et ce qui
 attend du matériel. Ce fichier et l'issue #178 ont le même contenu. Ce qui reste
@@ -193,13 +193,22 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    #162, toute exécution sur x86 (le signe d'un zéro de l'ancien `pow` avec
    SSE2, le chemin AVX-512), avec GCC et sous Windows ; les temps de #162
    viennent d'un seul M2 partagé, et pas avec `GAOL_PRESERVE_ROUNDING`.
-5. **`FPCR.AH` (FEAT_AFP, Armv8.7) sur un vrai processeur** (#187) : le bloc de
-   `tests/rounding_direction.cpp` qui met `AH` et compare les opérations avec
-   `AH` mis et effacé n'a été exécuté que sous QEMU 10.0 (`-cpu max`) : l'Apple
-   M2 et QEMU 7.2 et 8.2 ne retiennent pas le bit, et aucun processeur qui le
-   retient (Neoverse V3 de Graviton 5, ou plus récent) n'a servi. Le défaut
-   qu'il guette, un compilateur qui permute les opérandes de `vmaxq_f64`, est
-   théorique avec les compilateurs d'aujourd'hui.
+5. **`FPCR.AH` (FEAT_AFP, Armv8.7) sur un vrai processeur** (#187, issue #198) :
+   le bloc de `tests/rounding_direction.cpp` qui met `AH` et compare les
+   opérations avec `AH` mis et effacé n'avait été exécuté que sous QEMU 10.0
+   (`-cpu max`) : l'Apple M2 et QEMU 7.2 et 8.2 ne retiennent pas le bit. Le 25
+   octobre, un runner arm64 de la CI (le job « Ubuntu 26.04 arm64 Clang » de
+   #196, vert à la relance) l'a retenu, et le bloc y a trouvé 52 échecs sur 441
+   paires de `x / y` (des bornes différentes avec `AH` mis, dont une borne
+   inférieure NaN pour `x = [-inf, 0]` et `y = [-inf, -0]`) : le défaut n'est
+   plus théorique pour `x / y`, et aucun `vmaxq_f64` ne l'explique, car
+   `div_bounds()` n'en a pas. Cause non trouvée, décidé le 25 octobre de n'en
+   faire qu'une issue (#198), sans tâche. *À reprendre* en faisant afficher au
+   test le processeur du runner et si `AH` est retenu, puis en reproduisant sous
+   QEMU 10 ou sur un processeur qui a FEAT_AFP (Neoverse V3 de Graviton 5, ou
+   plus récent). Le défaut de `sqrt_bounds()` que #187 a écarté (un compilateur
+   qui permute les opérandes de `vmaxq_f64`) reste théorique avec les
+   compilateurs d'aujourd'hui.
 6. **Le gain de `x / d` de #191 sur d'autres processeurs** : il n'est mesuré que
    sur un Tiger Lake (i7-1185G7) ; les deux `vdivsd {ru-sae}` peuvent perdre sur
    un Intel qui divise les registres en deux, et rien n'est mesuré sur AMD Zen 4
@@ -213,6 +222,15 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    build universel de macOS, que la session MACarm2 (Apple M2, sans Rosetta)
    compile et lie sans l'exécuter, et que seul le job `macOS 26 universal`
    exécute.
+8. **Un échec de CI non reproduit** (#189) : le job « macOS 14 x86_64 (Rosetta)
+   » a échoué une fois sur `arithmetic` (`gaol_ieee1788::pow(x, [2]) is sqr(x &
+   [0, +oo]), [0] for [0], the same bits`, avec x = [-0x1.0d8146092a4f3p+345,
+   0x1.d324166d86984p+204], « the caller's direction downward, flush modes 0 » :
+   GAOL a rendu [0, 0x1.aa365774f4ea3p+409] et le calcul de référence, `sqr(x &
+   [0, +oo])`, le vide) et est passé à la relance, sans lien visible avec le
+   diff de #189. Non reproduit en local ni dans les autres jobs de #186 à #190.
+   *À reprendre si cela revient* : voir si Rosetta lit le sens d'arrondi ou les
+   modes de MXCSR comme un processeur.
 
 ## 5. Une limite connue, documentée, sans décision de la lever
 

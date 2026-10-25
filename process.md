@@ -8,7 +8,7 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12. Dernière mise à jour : 25 octobre 2026, au
-commit `1a41cda` de `configure-clean` (la fusion de #194).
+commit `df28d24` de `configure-clean` (la fusion de #197).
 
 ## 1. Le contexte
 
@@ -721,7 +721,7 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
 
 ## 12. Où en est le travail (25 octobre 2026)
 
-Le reste à faire est dans `TODO.md` (tâches PD à PJ) et l'issue #179 ; ce
+Le reste à faire est dans `TODO.md` (tâches PE à PJ) et l'issue #179 ; ce
 qui est fait et décidé (pull requests fusionnées, décisions, mesures) est dans
 `TODO_DONE.md` et l'issue #177 ; ce qui est reporté est dans `TODO_AFTER.md` et
 l'issue #178. L'état qui suit est daté : les commandes ci-dessous, les trois
@@ -735,21 +735,23 @@ git ls-remote --heads origin
 ```
 
 - **Faits** : tout ce que dit `TODO_DONE.md` (sections 4 et 5), jusqu'à #176,
-  #180 à #184 et #186 à #190 (les tâches PA, PB et PC), et #191 à #194 (de la
-  tâche PG : la division du chemin AVX-512, puis NEON avec tous les compilateurs
-  de l'arm64, SSE2 avec tous ceux de l'x86, le FPU en dernier recours) ; l'audit
-  du 13 octobre a vérifié dans `configure-clean` ce qu'annonçaient alors les
-  points A, C à H et J à V.
+  #180 à #184 et #186 à #190 (les tâches PA, PB et PC), #196 et #197 (la tâche
+  PD), et #191 à #194 (de la tâche PG : la division du chemin AVX-512, puis NEON
+  avec tous les compilateurs de l'arm64, SSE2 avec tous ceux de l'x86, le FPU en
+  dernier recours) ; l'audit du 13 octobre a vérifié dans `configure-clean` ce
+  qu'annonçaient alors les points A, C à H et J à V.
 - **En cours** : aucune pull request ouverte au 25 octobre ; `configure-clean`
-  est au commit de la fusion de #194, et ses seules branches sur GitHub sont
-  `configure-clean`, `MATH-CORE` et `master`. L'issue #185 (le masquage des
-  exceptions de `pow`) attend la réponse du mainteneur.
-- **À faire**, dans l'ordre de `TODO.md` : les textes, les tests et le ménage
-  (PD), les trois builds et la CI (PE), x86 32 bits et Windows (PF), les études
-  de vitesse, toutes avant v5.0.0 (PG, entamée), les signalements à d'autres
-  projets (PH, avec l'accord du mainteneur), puis la version (PI, PJ). Ce qui
+  est au commit de la fusion de #197, et ses branches sur GitHub sont
+  `configure-clean`, `MATH-CORE`, `master` et `perf-doc-rerun` (les scripts des
+  mesures reportées, hors des points). L'issue #198 (`x / y` des intervalles
+  NEON avec `FPCR.AH`) est ouverte, sans tâche dans `TODO.md` ; #185 est
+  fermée, le masquage des exceptions de `pow` est gardé.
+- **À faire**, dans l'ordre de `TODO.md` : les trois builds et la CI (PE), x86
+  32 bits et Windows (PF), les études de vitesse, toutes avant v5.0.0 (PG,
+  entamée), les signalements à d'autres projets (PH, avec l'accord du
+  mainteneur), puis la version (PI, PJ). Ce qui
   est reporté (le 113, le site, les traits pour YalAA et VNODE-LP, les
   décorations, ce qui attend du matériel) est dans `TODO_AFTER.md`. Les
   dépendances entre points sont écrites dans chaque tâche. Le mainteneur donne
-  les tâches ou les points un par un (« traite la tâche PD », « traite le point
+  les tâches ou les points un par un (« traite la tâche PE », « traite le point
   129 ») : ne commence pas le suivant sans lui.
