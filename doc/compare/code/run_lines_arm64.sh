@@ -108,6 +108,8 @@ grep -q "^#define GAOL_PRESERVE_ROUNDING 1" "$GAOL_PRESERVE_PREFIX/include/gaol/
 ## The last GAOL of Frédéric Goualard with mathlib, built with their configure
 ## as setup.sh does, without the x86 flags, static, the rounding direction not
 ## preserved, its verbose mode off
+goualard_build=
+if [ "$(uname -s)" = Darwin ]; then goualard_build=--build=arm-apple-darwin; fi
 if [ -f "$GAOL_GOUALARD_PREFIX/include/gaol/gaol.h" ]; then
   echo "== GAOL $GAOL_GOUALARD_VERSION of Frédéric Goualard: already in $GAOL_GOUALARD_PREFIX"
 else
@@ -129,10 +131,8 @@ else
   # Its configure.ac knows arm-apple-* (ARM_MACOSX), but the configure it
   # commits (2020) does not, and the config.guess of automake 1.19 says
   # aarch64-apple-darwin: configure is generated again, and told arm-apple-darwin
-  goualard_build=
   if [ "$(uname -s)" = Darwin ]; then
     (cd gaol-goualard && LIBTOOLIZE=glibtoolize autoreconf -fi > autoreconf.log 2>&1)
-    goualard_build=--build=arm-apple-darwin
   fi
   (cd gaol-goualard &&
    ./configure $goualard_build --prefix="$GAOL_GOUALARD_PREFIX" --libdir="$GAOL_GOUALARD_PREFIX/lib" --disable-shared \
