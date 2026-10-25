@@ -334,7 +334,10 @@ Before a path is added (the steps the issue lists, with the rules of GAOL):
   results: the bounds are those of the kernels, but for the sign of a zero.
   `tests/rounding_direction.cpp` runs the operations with `AH` set where the
   processor retains the bit, and says so where it does not (the M2 and the
-  emulators QEMU 7.2 and 8.2 do not).
+  emulators QEMU 7.2 and 8.2 do not; QEMU 10.0 does, with `qemu-aarch64 -cpu
+  max`, where the test runs on 441 pairs of operands per operation, and fails
+  189 checks with the operands of the former maximum exchanged, the square root
+  of `[-0, r]` being then a half-NaN interval).
 - **The modes that make a result approximate or flush it** are cleared by GAOL
   where it has a path that reads the control register: FZ and FIZ on 64-bit ARM
   (FZ alone on 32-bit ARM), FTZ and DAZ on x86 (the AVX-512 path does not read
