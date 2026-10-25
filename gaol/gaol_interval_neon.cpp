@@ -71,6 +71,10 @@
 
   } // namespace neon_detail
 
+} // namespace gaol_core
+
+namespace gaol_detail {
+
   /*
     The sum, on the stored bounds: <-l1, r1> + <-l2, r2> = <-(l1 + l2), r1 +
     r2>. An empty operand has NaN in both lanes, which the addition carries
@@ -80,6 +84,7 @@
   */
   float64x2_t add_bounds(float64x2_t x, float64x2_t y)
   {
+    using namespace gaol_core;
     using namespace neon_detail;
     GAOL_RND_ENTER();
     const float64x2_t xx = reread_bounds(x), yy = reread_bounds(y);
@@ -92,6 +97,7 @@
   // x - y is x + [-r, -l], the bounds of y exchanged
   float64x2_t sub_bounds(float64x2_t x, float64x2_t y)
   {
+    using namespace gaol_core;
     using namespace neon_detail;
     GAOL_RND_ENTER();
     const float64x2_t xx = reread_bounds(x), yy = reread_bounds(y);
@@ -100,6 +106,10 @@
     GAOL_RND_LEAVE();
     return res;
   }
+
+} // namespace gaol_detail
+
+namespace gaol_core {
 
   namespace neon_detail {
 
@@ -125,6 +135,10 @@
 
   } // namespace neon_detail
 
+} // namespace gaol_core
+
+namespace gaol_detail {
+
   /*
     The square from two products and a maximum, no branch but the one of the
     empty set (GAOL v5), as sqr_bounds() of the SSE2 intervals: with x = <a,
@@ -141,6 +155,7 @@
   */
   float64x2_t sqr_bounds(float64x2_t x)
   {
+    using namespace gaol_core;
     using namespace neon_detail;
     if (any_lane(nan_lanes(x))) { // the empty set, as it is
       return x;
@@ -152,6 +167,10 @@
     GAOL_RND_LEAVE();
     return res;
   }
+
+} // namespace gaol_detail
+
+namespace gaol_core {
 
   // sqr() of a non-empty I, the rounding direction being upward already (see
   // gaol_interval_core.h): the square that pow() takes for x^2 after its own
@@ -182,6 +201,10 @@
 
   } // namespace neon_detail
 
+} // namespace gaol_core
+
+namespace gaol_detail {
+
   /*
     The product: the four products of the corners, taken lane by lane, and
     their maximum (GAOL v5). With x = <-l1, r1> and y = <-l2, r2>, yc = <l2,
@@ -208,6 +231,7 @@
   */
   float64x2_t mul_bounds(float64x2_t x, float64x2_t y)
   {
+    using namespace gaol_core;
     using namespace neon_detail;
     const uint64x2_t nonfinite = vorrq_u64(nonfinite_lanes(x), nonfinite_lanes(y));
     const bool special = any_lane(nonfinite);
@@ -232,6 +256,10 @@
     GAOL_RND_LEAVE();
     return res;
   }
+
+} // namespace gaol_detail
+
+namespace gaol_core {
 
   namespace neon_detail {
 
@@ -348,8 +376,13 @@
 
   } // namespace neon_detail
 
+} // namespace gaol_core
+
+namespace gaol_detail {
+
   float64x2_t div_bounds(float64x2_t x, float64x2_t y)
   {
+    using namespace gaol_core;
     using namespace neon_detail;
     if (any_lane(vorrq_u64(nan_lanes(x), nan_lanes(y)))) { // an empty operand
       return nan_pair();
@@ -362,6 +395,10 @@
     GAOL_RND_LEAVE();
     return res;
   }
+
+} // namespace gaol_detail
+
+namespace gaol_core {
 
   namespace neon_detail {
 

@@ -417,6 +417,10 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
   }
 #endif
 
+} // namespace gaol_core
+
+namespace gaol_detail {
+
   /*
     The square of I, the empty set or not, whose stored bounds are <-l, r>:
     both products it can need are computed, <-rnddn(l^2), rndup(r^2)> and
@@ -434,6 +438,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
   */
   GAOL_BOUNDS_TARGET __m128d GAOL_VECTORCALL sqr_bounds(__m128d x)
   {
+    using namespace gaol_core;
     if (_mm_movemask_pd(_mm_cmpunord_pd(x, x)) != 0) { // the empty set
       return x;
     }
@@ -465,6 +470,10 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 #endif
   }
 
+} // namespace gaol_detail
+
+namespace gaol_core {
+
   /*
     sqr() of a non-empty I, the rounding direction being upward already (see
     gaol_interval_core.h): the square that pow() takes for x^2 after its own
@@ -475,15 +484,20 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
   interval interval::sqr_upward(const interval& I)
   {
 #if GAOL_AVX512_ARITHMETIC
-    return interval(sqr_bounds(I.xmmbounds));
+    return interval(gaol_detail::sqr_bounds(I.xmmbounds));
 #else
     return interval(sqr_products(I.xmmbounds));
 #endif
   }
 
 
+} // namespace gaol_core
+
+namespace gaol_detail {
+
   GAOL_BOUNDS_TARGET __m128d GAOL_VECTORCALL add_bounds(__m128d x, __m128d y)
   {
+    using namespace gaol_core;
 #if GAOL_AVX512_ARITHMETIC
     return fast_add(x, y);
 #else
@@ -498,6 +512,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 
   GAOL_BOUNDS_TARGET __m128d GAOL_VECTORCALL sub_bounds(__m128d x, __m128d y)
   {
+    using namespace gaol_core;
 #if GAOL_AVX512_ARITHMETIC
     return fast_sub(x, y);
 #else
@@ -509,6 +524,10 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
     return res;
 #endif
   }
+
+} // namespace gaol_detail
+
+namespace gaol_core {
 
   // The operations with a double tell an infinite d and a NaN with quiet
   // comparisons, as interval(double): a NaN d, which < compared, raised the
@@ -1031,6 +1050,10 @@ namespace {
 #endif
 }
 
+} // namespace gaol_core
+
+namespace gaol_detail {
+
 /*
   x * y of the stored bounds <-l, r> (GAOL v5, point ZZ of TODO.md): the four
   products l_x l_y, l_x r_y, r_x l_y and r_x r_y, the largest of each of the two
@@ -1046,6 +1069,7 @@ namespace {
 */
 GAOL_BOUNDS_TARGET __m128d GAOL_VECTORCALL mul_bounds(__m128d x, __m128d y)
 {
+  using namespace gaol_core;
 #if GAOL_AVX512_ARITHMETIC
   /*
     The AVX-512 path: the same four products and the same tree of maxima as
@@ -1096,6 +1120,10 @@ GAOL_BOUNDS_TARGET __m128d GAOL_VECTORCALL mul_bounds(__m128d x, __m128d y)
   return res;
 #endif
 }
+
+} // namespace gaol_detail
+
+namespace gaol_core {
 #endif
 
 
@@ -1269,6 +1297,10 @@ namespace {
 }
 #endif
 
+} // namespace gaol_core
+
+namespace gaol_detail {
+
 /*
   x / y of the stored bounds <-l, r>, in the common case where y has no zero
   and no operand is empty (GAOL v5, point ZZ of TODO.md): the quotient is the
@@ -1288,6 +1320,7 @@ namespace {
 */
 GAOL_BOUNDS_TARGET __m128d GAOL_VECTORCALL div_bounds(__m128d x, __m128d y)
 {
+  using namespace gaol_core;
 #if GAOL_AVX512_ARITHMETIC
   // The AVX-512 path: the same choice of the denominators as below, the
   // division being the one of the embedded rounding; a divisor with a zero is
@@ -1349,6 +1382,10 @@ GAOL_BOUNDS_TARGET __m128d GAOL_VECTORCALL div_bounds(__m128d x, __m128d y)
   return res;
 #endif
 }
+
+} // namespace gaol_detail
+
+namespace gaol_core {
 
 // The branch #else, not compiled, has no inverse_upward(), which the integer
 // powers and nth_root(I, q) for q < 0 call (GAOL v5)
