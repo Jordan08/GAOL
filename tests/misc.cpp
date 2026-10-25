@@ -579,8 +579,8 @@ public:
   // -DGAOL_SSE2_UNALIGNED_STORAGE=ON; GAOL v5; see gaol/gaol_config.h) work at an
   // address aligned on 8 bytes only, one in two of the addresses of the heap
   // there, which a member of a __m128d would stop on (movaps). Three intervals
-  // are put at addresses of 8 modulo 16 and every kind of operation reads and
-  // writes them; with a load or a store aligned in gaol_detail::unaligned_xmm,
+  // are put at addresses of 8 modulo 16 and a representative set of operations
+  // reads and writes them; with a load or a store aligned in gaol_detail::unaligned_xmm,
   // the program stops here
   void test_intervals_aligned_on_8_bytes() {
 #if GAOL_USING_SSE2_INSTRUCTIONS && GAOL_SSE2_UNALIGNED_STORAGE

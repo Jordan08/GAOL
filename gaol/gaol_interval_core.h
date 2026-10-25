@@ -62,8 +62,9 @@ namespace gaol_detail {
     see GAOL_SSE2_UNALIGNED_STORAGE of gaol/gaol_config.h): a __m128d member
     would put 16 on every object that holds an interval, and a std::vector of
     them would stop on its first movaps. The register is loaded and stored with
-    movupd, which costs no more than movapd where the data does not cross a
-    cache line. It converts to and from a __m128d, so that the code reads and
+    movupd, which costs no more than movapd on the processors since Nehalem
+    where the data does not cross a cache line (nothing measurable on an Intel
+    i7-1185G7). It converts to and from a __m128d, so that the code reads and
     writes it as it does the register (GAOL v5)
   */
   struct unaligned_xmm {

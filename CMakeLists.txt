@@ -817,6 +817,9 @@ message(STATUS "SSE2 intervals: ${GAOL_USING_SSE2_INSTRUCTIONS}, SSE3: ${GAOL_US
 if(GAOL_ALIGNED_NEW_FLAGS_STRING)
   message(STATUS "Aligned memory for the SSE2 intervals on 32-bit Windows: ${GAOL_ALIGNED_NEW_FLAGS_STRING}")
 endif()
+if(GAOL_SSE2_UNALIGNED_STORAGE)
+  message(STATUS "SSE2 intervals with their two bounds as two doubles (GAOL_SSE2_UNALIGNED_STORAGE, a switch of a developer)")
+endif()
 
 # On 64-bit ARM processors, with GAOL_ARM64 (--enable-arm64 of configure,
 # enable-arm64 of meson), the intervals are computed with NEON instructions

@@ -182,9 +182,10 @@ jobs:
       - name: GAOL's headers refused without /fp:strict
         run: cmake -S tests/fp_strict -B build-fp-strict -G "${{ matrix.cfg.generator }}" -A ${{ matrix.cfg.arch }} ${{ matrix.cfg.toolset }} -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
 
-  # /W4 /WX with the Visual C++ of Visual Studio 2026 x64, whose intervals are
-  # the SSE2 ones, and x86, where size_t has 32 bits and the intervals are
-  # those of the FPU (GAOL v5), as -Wall -Wextra -Werror with GCC and Clang
+  # /W4 /WX with the Visual C++ of Visual Studio 2026 x64 and x86, whose
+  # intervals are the SSE2 ones, those of x86 keeping their two bounds as two
+  # doubles (GAOL v5), x86 being where size_t has 32 bits, as
+  # -Wall -Wextra -Werror with GCC and Clang
   # (linux.yml) and AppleClang (macos.yml):
   # the library, the sources of CORE-MATH included, the tests and the examples.
   # /W4 goes to every compilation, through CFLAGS and CXXFLAGS, which CMake
