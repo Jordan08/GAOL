@@ -121,7 +121,7 @@ ITF1788.
 [The benchmark of Tang et al. (2021) on GAOL v5](tang2021.md) runs the
 benchmark of interval libraries of Tang, Ferguson, Schneider, Zorin, Kamil
 and Panozzo (PPAM 2022) on GAOL v5 under the names of the standard
-(`gaol_ieee1788`), with the SSE2 and the FPU builds: on
+(`gaol_ieee1788`), with the default and the FPU builds: on
 100 000 inputs of each of its 132 expressions, every interval of GAOL encloses
 the value of the expression computed, the single operations are the tightest,
 and the intervals are narrower than those of filib's C version, the paper's
