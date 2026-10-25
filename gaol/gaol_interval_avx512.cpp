@@ -334,19 +334,19 @@
 
   /*
     The quotients of the lanes of a by those of b, by scalar divisions with the
-    embedded rounding, as div_bounds() of gaol/gaol_interval_sse.cpp has them:
-    the packed division takes the embedded rounding on its 512-bit form only,
-    which divides at the rate of eight doubles (16 cycles of throughput on the
-    Intel processors that halve the 512-bit registers, uops.info) where a
-    scalar one takes 4. The quotient of a lane is the same bits whichever form
-    divides it (GAOL v5). er_div_low() divides the low lanes, the high lane of
-    its result being the one of a; er_div_high() divides the high ones, its
-    result in the low lane: the cases of div_unguarded() that keep one lane of
-    the quotients divide that one. On an Intel i7-1185G7 (Clang 21,
-    GAOL_PRESERVE_ROUNDING, medians of 7 runs alternated with the 512-bit form)
-    x / d takes 2.8 ns rather than 3.7, and x /= d the same; the divisors with a
-    zero of div_unguarded() (5.5 ns) and the negative powers (pow(x, -3), 9.1
-    ns) take the same time with either form, their time being elsewhere.
+    embedded rounding, as div_bounds() of gaol/gaol_interval_sse.cpp has them
+    (GAOL v5): the packed division takes the embedded rounding on its 512-bit
+    form only, which is a division of eight doubles (16 cycles of throughput
+    on Ice Lake and Tiger Lake, uops.info), where two scalar ones take 2 x 4.
+    The quotient of a lane is the same bits whichever form divides it.
+    er_div_low() divides the low lanes, the high lane of its result being the
+    one of a; er_div_high() divides the high ones, its result in the low lane:
+    the cases of div_unguarded() that keep one lane of the quotients divide
+    that one. On an Intel i7-1185G7 (Clang 21, GAOL_PRESERVE_ROUNDING, medians
+    of 7 runs alternated with the 512-bit form) x / d takes 2.8 ns rather than
+    3.7 for d > 0 (3.0 rather than 3.7 for d < 0), and x /= d the same; the
+    divisors with a zero of div_unguarded() (5.5 ns) and pow(x, -3) (9.1 ns)
+    stay within the noise.
   */
   GAOL_AVX512_TARGET GAOL_INLINE __m128d er_div_low(__m128d a, __m128d b)
   {
@@ -567,6 +567,9 @@
   */
   GAOL_AVX512_TARGET GAOL_INLINE __m128d div_unguarded(__m128d x, __m128d y)
   {
+    // fast_div() calls it, and div_bounds() calls fast_div() for a divisor with a
+    // zero only: the cases of a divisor without one (N1 N1, P1 P1...) are not
+    // reached through the interface, and keep the table of divide_general()
     if (stored_right_below_zero(x)) { // [x] N1
       if (stored_right_below_zero(y)) { // [y] N1
         const __m128d r = _mm_xor_pd(x, interval::lbsignmask);
@@ -798,7 +801,8 @@
   /*
     The two lanes of the kernel of pown_products() rounded upward by the
     embedded rounding of AVX-512 (_mm512_*_round_pd on the 512 bits of which
-    the upper ones are not used, as er_mul2() does) rather than by the
+    the upper ones are not used, as er_mul2() does; two scalar divisions for
+    div(), see er_div2()) rather than by the
     direction of MXCSR: the same operations in the same order as the ones of
     the SSE2 register, so the same bits, with no write of MXCSR, which cost 3
     to 6 ns an operation with GAOL_PRESERVE_ROUNDING (GAOL v5). A struct, so

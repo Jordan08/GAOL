@@ -37,10 +37,7 @@ source or its machine; what no machine of ours could run is said in
   written with intrinsics or inline assembly.
 - What is left to try, by order of interest: the RISC-V scalar path with a
   static rounding mode (needs a real board), and a few kernels that are scalar
-  today (see [Cheap gains](#cheap-gains-that-need-no-new-instruction-set)). The
-  scalar embedded rounding, which the division and the square root of the
-  AVX-512 path take on the Intel processors that halve the 512-bit registers,
-  is done (see [Verdicts](#verdicts)).
+  today (see [Cheap gains](#cheap-gains-that-need-no-new-instruction-set)).
 
 ## What GAOL computes with vectors today
 
@@ -60,9 +57,10 @@ opposite, so that one addition rounded upward gives both bounds
 The AVX-512 path is off by default: `GAOL_PREFER_AVX512` is on by default only
 with `GAOL_PRESERVE_ROUNDING`, and the library then needs a processor with the
 instructions ([three builds](three-builds.md)). The timings of the AVX-512
-path below are those of that configuration. For `+ - * /` and `sqr` it puts the
+path below are those of that configuration. For `+ - *` and `sqr` it puts the
 two bounds in two of the eight lanes of a 512-bit register, for the embedded
-rounding only.
+rounding only; `/` and `sqrt` are scalar instructions with the embedded
+rounding, two of them for the two bounds ([Verdicts](#verdicts)).
 
 CORE-MATH (`3rd/math-core`; GAOL calls 38 of its binary64 functions) is scalar,
 with no vector variant; its functions are called once per bound. `GAOL_FMA` pays
@@ -241,7 +239,7 @@ the T-Head C910 the draft 0.7.1.
 |---|---|---|---|
 | SSE4.1, AVX, AVX2 (a 256-bit path) | no path | A batch of two intervals per register needs an interface of arrays, and nothing makes one interval faster; `ROUNDPD` rounds to an integer, not as an operation | An interface of boxes or arrays of intervals, and a program bound by the computation and not by the memory |
 | FMA3 | in use (`GAOL_FMA`) | It pays in the elementary functions and the integer powers, none in the basic operations | The exact transformations that would replace the directed rounding are another study (the rounding direction left to nearest) |
-| AVX-512 path | keep; the division and the square root are two scalar instructions with the embedded rounding | On Intel the 512-bit division takes 16 cycles of throughput against 4 for the scalar one (uops.info), and Zen 5 has full-width units; the square root of the path takes two scalar embedded roots (3.75 ns against 6.30 with SSE2), `x / y` two scalar divisions (GAOL v5), and `x / d` of a double too (2.8 ns against 3.7 with the 512-bit form, an Intel i7-1185G7, Clang 21; the divisors with a zero and the negative powers did not change) | A processor where the two scalar divisions lose to the 512-bit one (not seen: Zen 5 was not measured) |
+| AVX-512 path | keep; the division and the square root are scalar instructions with the embedded rounding, two for the two bounds | On Intel the 512-bit division takes 16 cycles of throughput against 4 for the 128-bit one (uops.info), and Zen 5 has full-width units; the square root of the path takes two scalar embedded roots (3.75 ns against 6.30 with SSE2), `x / y` two scalar divisions, and so do `x / d` of a double (2.8 ns against 3.7 for d > 0, 3.0 to 3.3 for d < 0, on an Intel i7-1185G7 with Clang 21), the divisors with a zero (5.5 ns) and the negative integer powers (`pow(x, -3)` 9.1 ns), which the change left within the noise | A processor where the two scalar divisions lose to the 512-bit one (not seen on the i7-1185G7; no other processor was measured, Zen 5 included) |
 | AVX-512VL, AVX10.2 at 128 and 256 bits | nothing to build | No embedded rounding at these widths | A new revision of the Intel manual restoring it (revision 3.0 of AVX10.2 had it) |
 | NEON (arm64) | keep | Done: 1.3 to 4 times faster on an M2 | Hardware with FPCR.AH set (see below) |
 | SVE, SVE2, SME | no path | The same FPCR, and 128-bit vectors on most of the processors | An interface of arrays, on a 256 or 512-bit implementation; a static rounding in the instruction set |
@@ -368,7 +366,9 @@ Before a path is added (the steps the issue lists, with the rules of GAOL):
 
 ## What was not measured
 
-- Nothing ran on x86 (the SSE2 and AVX-512 paths), RISC-V, POWER, s390x,
+- Nothing ran on x86 (the SSE2 and AVX-512 paths) but an Intel i7-1185G7, for
+  the times of [performance](compare/performance.md) and the divisions of the
+  [Verdicts](#verdicts), RISC-V, POWER, s390x,
   LoongArch, MIPS or WebAssembly; their timings come from the pages of this
   documentation, uops.info or the references, and every compilation of other
   targets was made on Compiler Explorer, without running the code. The calls
