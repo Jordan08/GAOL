@@ -31,6 +31,7 @@ GAOL, or a build with mpmath, and their results are read by whoever changes
 | `gen_table.py` | Reads the table of `pow_on_boxes()` into a rows file (`extract`), writes the table from a rows file (`cpp`, `--into` to replace it in `tests/ieee1788.cpp`), and lists the boxes whose bounds differ between two rows files (`diff`) |
 | `checkrows.py` | Checks the bounds of a rows file against the exact power, computed with 500 bits by mpmath: they have to enclose it, within one double of the tightest bounds |
 | `mutate.py` | Mutation testing: builds GAOL with one deliberate error in `pow` or in the integer power at a time (104 mutants), runs the tests, and runs `diffpow` on the mutants that survive, to tell an equivalent mutant from a box the tests lack |
+| `negative_power_rows.py` | Writes the rows `{ x, n, lo, hi }` of the table of large negative powers of `large_powers()` in `tests/arithmetic.cpp`: the tightest bounds of x<sup>n</sup>, n from -2<sup>31</sup> + 1 to -2<sup>27</sup>, computed with mpmath on 2000 bits, for the powers that lie at least 1/16 of the spacing of the doubles from each double |
 | `pown_bound.py` | Checks with rationals the induction of the comment of `pown_products()`, which bounds beforehand the error of the exact products of the integer power, and the bound K drawn from it, for c<sup>m</sup> and c<sup>−m</sup> |
 | `bench.cpp` | The time per call of the pow functions, on each path of `pow_standard()` |
 | `build.py` | Compiles `diffpow.cpp`, `evalrows.cpp` or `bench.cpp` against a build of GAOL; the other scripts import it |
