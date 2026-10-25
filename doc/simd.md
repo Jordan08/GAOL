@@ -332,16 +332,28 @@ Before a path is added (the steps the issue lists, with the rules of GAOL):
   different signs, and when either is a NaN, in which case they also raise the
   invalid-operation exception. GAOL clears FZ and FIZ and not AH. The kernels
   never give a NaN to a maximum, and the zeros of the maxima of `mul_bounds()`
-  differ only in sign (already documented). The one dependence is the square
-  root, which takes the maximum of the interval with its left bound in its
-  natural sign, `<l, r>`, and of `<+0, +0>`, in that order; a compiler that
-  swapped the operands would turn `sqrt([-0, r])` into the empty set under `AH`.
-  Apple clang 21 and GCC 14 to its trunk keep the order, but Clang 21 merges
+  differ only in sign (already documented). The square root used to depend on
+  the order of the operands of a maximum, of the interval with its left bound
+  in its natural sign, `<l, r>`, and of `<+0, +0>`: a compiler that swapped the
+  operands would have turned `sqrt([-0, r])` into the empty set under `AH`
+  (Apple clang 21 and GCC 14 to its trunk keep the order, but Clang 21 merges
   `vmaxq_f64(x, y)` and `vmaxq_f64(y, x)` into one instruction: it takes the
-  intrinsic for commutative. The Linux and XNU kernels and the glibc, whose
+  intrinsic for commutative). It now clears the lanes whose sign bit is set, a
+  negative number or `-0`, with a mask, as the part of the interval in
+  `[0, +oo]` (GAOL v5): the same bits as the maximum with `AH` clear, on 20
+  million pairs of bounds that are no NaN (the empty set is told before) and
+  every pair of the special values (the infinities,
+  the zeros, the largest and smallest numbers), and no dependence on `AH` or on
+  the order of the operands. The Linux and XNU kernels and the glibc, whose
   sources were read, do not set `AH` by default; a program that does (an
   emulator) is outside what GAOL supports. Modelled in software on 25.8 million
   results: the bounds are those of the kernels, but for the sign of a zero.
+  `tests/rounding_direction.cpp` runs the operations with `AH` set where the
+  processor retains the bit, and says so where it does not (the M2 and the
+  emulators QEMU 7.2 and 8.2 do not; QEMU 10.0 does, with `qemu-aarch64 -cpu
+  max`, where the test runs on 441 pairs of operands per operation, and fails
+  189 checks with the operands of the former maximum exchanged, the square root
+  of `[-0, r]` being then a half-NaN interval).
 - **The modes that make a result approximate or flush it** are cleared by GAOL
   where it has a path that reads the control register: FZ and FIZ on 64-bit ARM
   (FZ alone on 32-bit ARM), FTZ and DAZ on x86 (the AVX-512 path does not read

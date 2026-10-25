@@ -289,8 +289,9 @@ gives 0), and `std::fma` is a call of it without optimization: GAOL calls
 at -O3 (both checked), and refuses Cygwin without `-mfma`. Its
 `nextafter(-DBL_MAX, -oo)` is `-DBL_MAX` in the rounding direction upward, which
 `previous_float()` and `next_float()` now tell apart (the lower bound of
-`sinh(-711)` did not enclose the value; `elementary` failed on it), and
-`is_bisectable()` calls `next_float()`. A Debug
+`sinh(-711)` did not enclose the value; `elementary` failed on it).
+`is_bisectable()` and `bisect()` call no `nextafter()`: they tell the bounds
+by their bits. A Debug
 build of Cygwin is not in the job; `tests/core_math.cpp` and
 `tests/arithmetic.cpp` call `__builtin_fma` as GAOL does.
 

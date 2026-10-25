@@ -1396,13 +1396,19 @@ namespace gaol_core {
     A double strictly between the bounds (GAOL v5): the next double above the
     lower bound is below the upper bound, -MAX above -oo for [-oo, b], +oo
     above MAX for [MAX, +oo]. The bounds of a non-empty interval are no NaN.
-    next_float(), not nextafter(): that of Cygwin computes the overflow of
-    nextafter(MAX, +oo) as MAX + MAX, in the direction of the program, so that
-    [MAX, +oo] was bisectable rounding downward or toward zero (GAOL v5).
+    Told by the bits of the bounds, as the integers bound_key() gives, which
+    are in the order of the doubles with -0 and +0 alike: two keys apart by
+    two or more have a double between them. No call of nextafter(), that of
+    Cygwin computing the overflow of nextafter(MAX, +oo) as MAX + MAX, in the
+    direction of the program, so that [MAX, +oo] was bisectable rounding
+    downward or toward zero; and no comparison of doubles, which the modes
+    that flush the subnormals to zero, that the program may have set (they are
+    not cleared here), change: with them, [3 2^-1074, 5 2^-1074] was not
+    bisectable, the comparison reading both bounds as zeros (GAOL v5).
   */
   GAOL_INLINE bool interval::is_bisectable() const
   {
-    return !is_empty() && next_float(left()) < right();
+    return !is_empty() && gaol_detail::bound_key(right()) > gaol_detail::bound_key(left()) + 1;
   }
 
   GAOL_INLINE interval interval::split_left(void) const
@@ -2165,44 +2171,44 @@ GAOL_NODISCARD GAOL_INLINE interval operator%(T n, const interval& I)
 // gaol_interval_sse.h, GAOL v5)
 GAOL_NODISCARD GAOL_INLINE interval operator+(const interval& I1, const interval& I2)
   {
-    return interval(add_bounds(I1.get_xmminterval(), I2.get_xmminterval()));
+    return interval(gaol_detail::add_bounds(I1.get_xmminterval(), I2.get_xmminterval()));
   }
 
 GAOL_NODISCARD GAOL_INLINE interval operator-(const interval& I1, const interval& I2)
   {
-    return interval(sub_bounds(I1.get_xmminterval(), I2.get_xmminterval()));
+    return interval(gaol_detail::sub_bounds(I1.get_xmminterval(), I2.get_xmminterval()));
   }
 
 GAOL_NODISCARD GAOL_INLINE interval operator*(const interval& I1, const interval& I2)
   {
-    return interval(mul_bounds(I1.get_xmminterval(), I2.get_xmminterval()));
+    return interval(gaol_detail::mul_bounds(I1.get_xmminterval(), I2.get_xmminterval()));
   }
 
 GAOL_NODISCARD GAOL_INLINE interval operator/(const interval& I1, const interval& I2)
   {
-    return interval(div_bounds(I1.get_xmminterval(), I2.get_xmminterval()));
+    return interval(gaol_detail::div_bounds(I1.get_xmminterval(), I2.get_xmminterval()));
   }
 #elif GAOL_USING_NEON_INSTRUCTIONS
 // The bounds in registers, from the operands to the result, as with the SSE2
 // intervals (see gaol_interval_neon.h, GAOL v5)
 GAOL_NODISCARD GAOL_INLINE interval operator+(const interval& I1, const interval& I2)
   {
-    return interval(add_bounds(I1.get_neoninterval(), I2.get_neoninterval()));
+    return interval(gaol_detail::add_bounds(I1.get_neoninterval(), I2.get_neoninterval()));
   }
 
 GAOL_NODISCARD GAOL_INLINE interval operator-(const interval& I1, const interval& I2)
   {
-    return interval(sub_bounds(I1.get_neoninterval(), I2.get_neoninterval()));
+    return interval(gaol_detail::sub_bounds(I1.get_neoninterval(), I2.get_neoninterval()));
   }
 
 GAOL_NODISCARD GAOL_INLINE interval operator*(const interval& I1, const interval& I2)
   {
-    return interval(mul_bounds(I1.get_neoninterval(), I2.get_neoninterval()));
+    return interval(gaol_detail::mul_bounds(I1.get_neoninterval(), I2.get_neoninterval()));
   }
 
 GAOL_NODISCARD GAOL_INLINE interval operator/(const interval& I1, const interval& I2)
   {
-    return interval(div_bounds(I1.get_neoninterval(), I2.get_neoninterval()));
+    return interval(gaol_detail::div_bounds(I1.get_neoninterval(), I2.get_neoninterval()));
   }
 #else
 GAOL_NODISCARD GAOL_INLINE interval operator+(const interval& I1, const interval& I2)

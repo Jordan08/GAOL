@@ -415,6 +415,31 @@ namespace {
   };
 }
 
+#if GAOL_USING_SSE2_INSTRUCTIONS || GAOL_USING_NEON_INSTRUCTIONS
+/*
+  The functions of the program that have the names and the types of the
+  kernels of the SSE2 and NEON intervals (add_bounds()...), and a result of
+  another type, to tell which one a call finds when the program opens
+  gaol_core. Only declared: the calls are in decltype (registers_of_the_program()
+  gives the arguments, rather than std::declval, which makes the vector type a
+  template argument: older GCC warns that its attributes are ignored)
+*/
+namespace kernels_of_the_program {
+  struct result {};
+#  if GAOL_USING_SSE2_INSTRUCTIONS
+  typedef __m128d registers;
+#  else
+  typedef float64x2_t registers;
+#  endif
+}
+kernels_of_the_program::registers registers_of_the_program();
+kernels_of_the_program::result add_bounds(kernels_of_the_program::registers, kernels_of_the_program::registers);
+kernels_of_the_program::result sub_bounds(kernels_of_the_program::registers, kernels_of_the_program::registers);
+kernels_of_the_program::result mul_bounds(kernels_of_the_program::registers, kernels_of_the_program::registers);
+kernels_of_the_program::result div_bounds(kernels_of_the_program::registers, kernels_of_the_program::registers);
+kernels_of_the_program::result sqr_bounds(kernels_of_the_program::registers);
+#endif
+
 class misc_test {
 public:
   void setUp() {
@@ -445,6 +470,45 @@ public:
     interval y;
     TEST_TRUE(gaol::evaluate_expr(gaol::exp2(gaol::expression(interval(3.0))), y) && y.set_eq(interval(8.0)));
     TEST_TRUE(gaol_names_adl::same_as_gaol_core(interval(0.5, 2.0)));
+  }
+
+  // The kernels that the operators of the SSE2 and NEON intervals call are in
+  // gaol_detail, with the other helpers of the library, and not in gaol_core
+  // (GAOL v5, point AP of TODO.md). Opened, gaol_core brings none of them: a
+  // call finds the function of the program, which the kernels in gaol_core
+  // made ambiguous, and the program did not compile. The FPU intervals have no
+  // such kernels, and nothing to check
+  void test_kernels_are_not_in_gaol_core() {
+#if GAOL_USING_SSE2_INSTRUCTIONS || GAOL_USING_NEON_INSTRUCTIONS
+    using namespace gaol_core;
+    typedef kernels_of_the_program::result result;
+    static_assert(std::is_same<decltype(add_bounds(registers_of_the_program(), registers_of_the_program())), result>::value,
+                  "add_bounds() is found in gaol_core");
+    static_assert(std::is_same<decltype(sub_bounds(registers_of_the_program(), registers_of_the_program())), result>::value,
+                  "sub_bounds() is found in gaol_core");
+    static_assert(std::is_same<decltype(mul_bounds(registers_of_the_program(), registers_of_the_program())), result>::value,
+                  "mul_bounds() is found in gaol_core");
+    static_assert(std::is_same<decltype(div_bounds(registers_of_the_program(), registers_of_the_program())), result>::value,
+                  "div_bounds() is found in gaol_core");
+    static_assert(std::is_same<decltype(sqr_bounds(registers_of_the_program())), result>::value,
+                  "sqr_bounds() is found in gaol_core");
+
+    // The kernels of gaol_detail, on the bounds in the registers (the left one
+    // stored negated), give the bounds of the sum, the difference, the
+    // product, the quotient and the square, which are doubles here
+    const interval x(-3.0, 2.0), y(0.5, 4.0);
+#  if GAOL_USING_SSE2_INSTRUCTIONS
+#    define KERNEL_ARGUMENT(I) (I).get_xmminterval()
+#  else
+#    define KERNEL_ARGUMENT(I) (I).get_neoninterval()
+#  endif
+    TEST_SEQ(interval(gaol_detail::add_bounds(KERNEL_ARGUMENT(x), KERNEL_ARGUMENT(y))), interval(-2.5, 6.0));
+    TEST_SEQ(interval(gaol_detail::sub_bounds(KERNEL_ARGUMENT(x), KERNEL_ARGUMENT(y))), interval(-7.0, 1.5));
+    TEST_SEQ(interval(gaol_detail::mul_bounds(KERNEL_ARGUMENT(x), KERNEL_ARGUMENT(y))), interval(-12.0, 8.0));
+    TEST_SEQ(interval(gaol_detail::div_bounds(KERNEL_ARGUMENT(x), KERNEL_ARGUMENT(y))), interval(-6.0, 4.0));
+    TEST_SEQ(interval(gaol_detail::sqr_bounds(KERNEL_ARGUMENT(x))), interval(0.0, 9.0));
+#  undef KERNEL_ARGUMENT
+#endif
   }
 
   // The memory the heap gives holds the intervals aligned on alignof(interval)
@@ -545,4 +609,5 @@ GAOL_UNIT_MAIN(misc_test, "misc",
                GAOL_UNIT_TEST(test_predicates),
                GAOL_UNIT_TEST(test_namespace_detail_of_the_program),
                GAOL_UNIT_TEST(test_names_of_gaol),
+               GAOL_UNIT_TEST(test_kernels_are_not_in_gaol_core),
                GAOL_UNIT_TEST(test_heap_alignment))
