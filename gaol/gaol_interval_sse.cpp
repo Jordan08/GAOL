@@ -1616,3 +1616,83 @@ interval interval::inverse() const
 		out << tmp[1] << " : " << tmp[0];
 		return out;
 	}
+
+#if GAOL_POWN_PACKED
+  /*
+    The two lanes of the kernel of pown_products() in an SSE2 register, with
+    the FMA instructions (GAOL v5)
+  */
+  struct pown_sse_ops {
+    typedef __m128d lanes;
+    typedef __m128d rests;
+    static GAOL_POWN_INLINE lanes mul(lanes a, lanes b) { return _mm_mul_pd(a, b); }
+    static GAOL_POWN_INLINE lanes fms(lanes a, lanes b, lanes c) { return _mm_fmsub_pd(a, b, c); }
+    static GAOL_POWN_INLINE lanes fma(lanes a, lanes b, lanes c) { return _mm_fmadd_pd(a, b, c); }
+    static GAOL_POWN_INLINE lanes twice_plus(lanes a, lanes b) { return _mm_fmadd_pd(_mm_set1_pd(2.0), a, b); }
+    static GAOL_POWN_INLINE rests first_rest(lanes e) { return e; }
+    static GAOL_POWN_INLINE void add_rest(rests& s, lanes e) { s = _mm_or_pd(s, e); }
+  };
+
+  // I^n for |n| >= 2 and a nonempty I, the rounding direction being upward: both
+  // corners at once, in the SSE2 register, where they are within the range of
+  // pown_least[] and pown_greatest[], and pown_by_corners() otherwise (see
+  // pown_products(), and the comment of gaol_interval_core.cpp before the includes of the
+  // files of the kinds of intervals).
+  // Keep it alike with pown_large_er() (gaol_interval_avx512.cpp) and with the
+  // block of the NEON intervals (gaol_interval_neon.cpp)
+  static GAOL_POWN_INLINE_T interval pown_large_inline(const interval& I, int n)
+  {
+    const bool negative = n < 0;
+    const unsigned int m = negative ? 0u - static_cast<unsigned int>(n) : static_cast<unsigned int>(n);
+    const unsigned int L = pown_bit_length(m);
+    const double a = I.left(), b = I.right();
+    if (!negative || a > 0.0 || b < 0.0) {
+      // (a, b), or (max(a, -b, 0), max(-a, b)) for an even m, and the
+      // other way around for n < 0, with the operations of the register:
+      // Clang calls std::fmax() under -frounding-math
+      const __m128d ab = _mm_set_pd(b, a), nba = _mm_set_pd(-a, -b), zero = _mm_setzero_pd();
+      __m128d c = ((m & 1u) != 0u) ? ab : _mm_max_sd(_mm_max_pd(ab, nba), zero);
+      if (negative) {
+        c = _mm_shuffle_pd(c, c, 1);
+      }
+      const __m128d minus_zero = _mm_set1_pd(-0.0);
+      const __m128d g = _mm_andnot_pd(minus_zero, c);
+      __m128d ok = _mm_and_pd(_mm_cmpge_pd(g, _mm_set1_pd(pown_least[L])), _mm_cmple_pd(g, _mm_set1_pd(pown_greatest[L])));
+      if (!negative) {
+        ok = _mm_or_pd(ok, _mm_cmpeq_pd(c, zero));
+      }
+      if (_mm_movemask_pd(ok) == 3) {
+        __m128d h, l, s, K;
+        pown_powers<pown_sse_ops>(g, m, h, l, s);
+        if (negative) {
+          const __m128d one = _mm_set1_pd(1.0);
+          const __m128d q = _mm_div_pd(one, h);
+          const __m128d r = _mm_fnmadd_pd(q, l, _mm_fnmadd_pd(q, h, one)); // (1 - q h) - q l
+          const __m128d qr = _mm_mul_pd(q, r);
+          l = _mm_fmadd_pd(qr, r, qr); // q (r + r^2)
+          h = q;
+          s = _mm_or_pd(s, r);
+          K = _mm_set1_pd(pown_bound_inverse(m, L));
+        } else {
+          K = _mm_set1_pd(pown_bound(m, L));
+        }
+        // The rests compared as integers: or-ed together, they may make the
+        // bits of a signaling NaN, which a comparison of doubles would take
+        // for one, raising the invalid-operation exception
+        K = _mm_andnot_pd(_mm_castsi128_pd(_mm_cmpeq_epi64(_mm_castpd_si128(s), _mm_setzero_si128())), K);
+        // (-v0 + RU(K h - w0), v1 + RU(K h + w1)), v + w being +-(h + l), of
+        // the sign of c for an odd m, the lower bound negated
+        const __m128d odd = ((m & 1u) != 0u) ? minus_zero : zero;
+        const __m128d sign = _mm_xor_pd(_mm_set_pd(0.0, -0.0), _mm_and_pd(c, odd));
+        return interval(_mm_add_pd(_mm_xor_pd(h, sign), _mm_fmadd_pd(K, h, _mm_xor_pd(l, sign))));
+      }
+    }
+    return pown_by_corners(a, b, n);
+  }
+#else
+  // Without the FMA instructions, the corners and the bounds in plain doubles
+  static GAOL_POWN_INLINE_T interval pown_large_inline(const interval& I, int n)
+  {
+    return pown_scalar_ops::large(I, n);
+  }
+#endif

@@ -45,8 +45,8 @@
  * accept the AVX-512 instructions in them alone, and the code outside them
  * is compiled as before; the library then needs a processor with the
  * instructions. +, -, *, / and sqrt take this path, and so do sqr() and the
- * integer powers of gaol_pown() (pown_large_er() of
- * gaol/gaol_interval_core.cpp; GAOL v5, point ZZ of TODO.md), with no flag to
+ * integer powers of gaol_pown() (pown_large_er() of this file; GAOL v5, point
+ * ZZ of TODO.md), with no flag to
  * test as they run (gaol::init() set one, which every operation tested, until point
  * AA of TODO.md): they never touch the rounding direction, whatever the
  * program left, and clear the modes that flush the subnormals to zero only
@@ -81,19 +81,10 @@
  * COPYING file for information.
  *--------------------------------------------------------------------------*/
 
-/* GCC and Clang accept the AVX-512 instructions in the functions that carry
-   the target, and nowhere else. Visual C++ has no such attribute and needs
-   none: it takes the intrinsics of any instruction set in any function,
-   whatever /arch says, and emits the instructions they stand for (the
-   embedded rounding included), with a vzeroupper where the code goes back to
-   SSE; clang-cl is Clang and has the attribute (GAOL v5). */
-#if defined(__GNUC__) || defined(__clang__)
-#  define GAOL_AVX512_TARGET __attribute__((target("avx512f")))
-#  define GAOL_NOINLINE __attribute__((noinline))
-#else
-#  define GAOL_AVX512_TARGET
-#  define GAOL_NOINLINE __declspec(noinline)
-#endif
+/* The target of the functions (GAOL_AVX512_TARGET) and GAOL_NOINLINE are defined
+   in gaol/gaol_interval_core.cpp, before the generic part of the integer powers
+   (the templates pown_products() and pown_powers(), whose functions carry the
+   target too), which this file needs before its pown_er_ops. */
 
   // The sign and the zero of a double, from its bits: the operations of the
   // AVX-512 path read them where the SSE2 path compares values, which the
@@ -781,3 +772,127 @@
     }
     return opaque(x);
   }
+
+#if GAOL_POWN_ER
+  /*
+    The two lanes of the kernel of pown_products() rounded upward by the
+    embedded rounding of AVX-512 (_mm512_*_round_pd on the 512 bits of which
+    the upper ones are not used, as er_mul2() does) rather than by the
+    direction of MXCSR: the same operations in the same order as the ones of
+    the SSE2 register, so the same bits, with no write of MXCSR, which cost 3
+    to 6 ns an operation with GAOL_PRESERVE_ROUNDING (GAOL v5). A struct, so
+    that no operation of a register of the other kind is taken for one of
+    this: the compiler refuses it, and would otherwise round it by the
+    direction of MXCSR, which is not upward.
+  */
+  struct pown_er_lanes { __m128d v; };
+  struct pown_er_ops {
+    typedef pown_er_lanes lanes;
+    typedef __m128d rests;
+    static GAOL_POWN_INLINE_T lanes mul(lanes a, lanes b)
+    {
+      const lanes r = { er_mul2(a.v, b.v) };
+      return r;
+    }
+    static GAOL_POWN_INLINE_T lanes fms(lanes a, lanes b, lanes c)
+    {
+      const lanes r = { back128(_mm512_fmsub_round_pd(lo512(a.v), lo512(b.v), lo512(c.v), gaol_er)) };
+      return r;
+    }
+    static GAOL_POWN_INLINE_T lanes fma(lanes a, lanes b, lanes c)
+    {
+      const lanes r = { back128(_mm512_fmadd_round_pd(lo512(a.v), lo512(b.v), lo512(c.v), gaol_er)) };
+      return r;
+    }
+    static GAOL_POWN_INLINE_T lanes fnmadd(lanes a, lanes b, lanes c)
+    {
+      const lanes r = { back128(_mm512_fnmadd_round_pd(lo512(a.v), lo512(b.v), lo512(c.v), gaol_er)) };
+      return r;
+    }
+    static GAOL_POWN_INLINE_T lanes twice_plus(lanes a, lanes b)
+    {
+      const lanes r = { back128(_mm512_fmadd_round_pd(_mm512_set1_pd(2.0), lo512(a.v), lo512(b.v), gaol_er)) };
+      return r;
+    }
+    static GAOL_POWN_INLINE_T lanes div(lanes a, lanes b)
+    {
+      const lanes r = { back128(_mm512_div_round_pd(lo512(a.v), lo512(b.v), gaol_er)) };
+      return r;
+    }
+    static GAOL_POWN_INLINE_T lanes add(lanes a, lanes b)
+    {
+      const lanes r = { back128(_mm512_add_round_pd(lo512(a.v), lo512(b.v), gaol_er)) };
+      return r;
+    }
+    static GAOL_POWN_INLINE rests first_rest(lanes e) { return e.v; }
+    static GAOL_POWN_INLINE void add_rest(rests& s, lanes e) { s = _mm_or_pd(s, e.v); }
+  };
+
+  /*
+    The packed kernel of pown_large_inline(), rounded upward by the embedded
+    rounding (GAOL v5, point ZZ of TODO.md): the same operations in the same
+    order, on pown_er_lanes, so that the bounds are the same bit for bit, and
+    no direction of MXCSR is read or written. With GAOL_PRESERVE_ROUNDING,
+    gaol_pown() saved the direction, set it upward and restored it around the
+    kernel: pown(x, 3) took 19.0 ns, the direction being read and written
+    through the C library and the control word of the x87 unit as well, 8.4
+    ns with the writes of MXCSR alone (see gaol/gaol_fpu.h), and takes 6.2
+    with this kernel, against the 5.1 of the direction left upward (an
+    i7-1185G7, Clang 21): the two writes of MXCSR cost 3 to 6 ns, each one
+    waiting for the operations in flight. The function gives false, res left
+    alone, where the corners are not both in the range of pown_least[] and
+    pown_greatest[] (pown_by_corners(), which rounds by the direction, is
+    called then), and for an n < 0 with 0 in I. The bounds a and b of I are
+    read after the clearing of the modes that flush the subnormals to zero
+    (flush_guard), which the embedded rounding honours. res is the stored
+    pair, <-lower, upper>. It repeats the block of pown_large_inline() of the SSE2
+    intervals (gaol_interval_sse.cpp), on the other lanes: keep them alike. They give the
+    same bounds on 8.8 million powers (tests/tools/pow/mutate.py has
+    mutants of both).
+  */
+  static GAOL_POWN_INLINE_T bool pown_large_er(double a, double b, int n, __m128d& res)
+  {
+    const bool negative = n < 0;
+    const unsigned int m = negative ? 0u - static_cast<unsigned int>(n) : static_cast<unsigned int>(n);
+    const unsigned int L = pown_bit_length(m);
+    if (negative && !(a > 0.0 || b < 0.0)) {
+      return false;
+    }
+    const __m128d ab = _mm_set_pd(b, a), nba = _mm_set_pd(-a, -b), zero = _mm_setzero_pd();
+    __m128d c = ((m & 1u) != 0u) ? ab : _mm_max_sd(_mm_max_pd(ab, nba), zero);
+    if (negative) {
+      c = _mm_shuffle_pd(c, c, 1);
+    }
+    const __m128d minus_zero = _mm_set1_pd(-0.0);
+    const __m128d g = _mm_andnot_pd(minus_zero, c);
+    __m128d ok = _mm_and_pd(_mm_cmpge_pd(g, _mm_set1_pd(pown_least[L])), _mm_cmple_pd(g, _mm_set1_pd(pown_greatest[L])));
+    if (!negative) {
+      ok = _mm_or_pd(ok, _mm_cmpeq_pd(c, zero));
+    }
+    if (_mm_movemask_pd(ok) != 3) {
+      return false;
+    }
+    pown_er_lanes h, l;
+    __m128d s, K;
+    const pown_er_lanes gl = { g };
+    pown_powers<pown_er_ops>(gl, m, h, l, s);
+    if (negative) {
+      const pown_er_lanes one = { _mm_set1_pd(1.0) };
+      const pown_er_lanes q = pown_er_ops::div(one, h);
+      const pown_er_lanes r = pown_er_ops::fnmadd(q, l, pown_er_ops::fnmadd(q, h, one)); // (1 - q h) - q l
+      const pown_er_lanes qr = pown_er_ops::mul(q, r);
+      l = pown_er_ops::fma(qr, r, qr); // q (r + r^2)
+      h = q;
+      pown_er_ops::add_rest(s, r);
+      K = _mm_set1_pd(pown_bound_inverse(m, L));
+    } else {
+      K = _mm_set1_pd(pown_bound(m, L));
+    }
+    K = _mm_andnot_pd(_mm_castsi128_pd(_mm_cmpeq_epi64(_mm_castpd_si128(s), _mm_setzero_si128())), K);
+    const __m128d odd = ((m & 1u) != 0u) ? minus_zero : zero;
+    const __m128d sign = _mm_xor_pd(_mm_set_pd(0.0, -0.0), _mm_and_pd(c, odd));
+    const pown_er_lanes vs = { _mm_xor_pd(h.v, sign) }, ws = { _mm_xor_pd(l.v, sign) }, Kl = { K };
+    res = pown_er_ops::add(vs, pown_er_ops::fma(Kl, h, ws)).v;
+    return true;
+  }
+#endif
