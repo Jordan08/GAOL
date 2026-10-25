@@ -248,41 +248,49 @@ GAOL_INLINE interval& interval::operator|=(const interval& I)
   in one. They are not part of the interface. The check of the rounding
   direction, and the code that depends on it, are in the library, compiled
   with its flags, not in the code of the program that calls them (GAOL v5).
+  They are in gaol_detail, with the other helpers of the library, and not in
+  gaol_core, which holds the interface.
 */
+} // namespace gaol_core
+
+namespace gaol_detail {
 GAOL_NODISCARD extern GAOL_PUBLIC float64x2_t add_bounds(float64x2_t x, float64x2_t y);
 GAOL_NODISCARD extern GAOL_PUBLIC float64x2_t sub_bounds(float64x2_t x, float64x2_t y);
 GAOL_NODISCARD extern GAOL_PUBLIC float64x2_t mul_bounds(float64x2_t x, float64x2_t y);
 GAOL_NODISCARD extern GAOL_PUBLIC float64x2_t div_bounds(float64x2_t x, float64x2_t y);
 GAOL_NODISCARD extern GAOL_PUBLIC float64x2_t sqr_bounds(float64x2_t x);
+} // namespace gaol_detail
+
+namespace gaol_core {
 
 GAOL_INLINE interval& interval::operator+=(const interval& I)
 {
-  neonbounds = add_bounds(neonbounds, I.neonbounds);
+  neonbounds = gaol_detail::add_bounds(neonbounds, I.neonbounds);
   return *this;
 }
 
 GAOL_INLINE interval& interval::operator-=(const interval& I)
 {
-  neonbounds = sub_bounds(neonbounds, I.neonbounds);
+  neonbounds = gaol_detail::sub_bounds(neonbounds, I.neonbounds);
   return *this;
 }
 
 GAOL_INLINE interval& interval::operator*=(const interval& I)
 {
-  neonbounds = mul_bounds(neonbounds, I.neonbounds);
+  neonbounds = gaol_detail::mul_bounds(neonbounds, I.neonbounds);
   return *this;
 }
 
 GAOL_INLINE interval& interval::operator/=(const interval& I)
 {
-  neonbounds = div_bounds(neonbounds, I.neonbounds);
+  neonbounds = gaol_detail::div_bounds(neonbounds, I.neonbounds);
   return *this;
 }
 
 //! I^2
 GAOL_NODISCARD GAOL_INLINE interval sqr(const interval& I)
 {
-  return interval(sqr_bounds(I.get_neoninterval()), gaol_detail::unchecked_bounds);
+  return interval(gaol_detail::sqr_bounds(I.get_neoninterval()), gaol_detail::unchecked_bounds);
 }
 
 #endif // GAOL_INTERVAL_NEON_H

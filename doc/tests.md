@@ -417,6 +417,21 @@ point Q), which `numbers` checks there too.
   `numbers`. A mode the processor keeps without honouring it, as an emulator
   may, is named and skipped: one that flushes neither the exact subnormal sum
   2^-1060 + 0 nor the inexact product 1e-300·1e-20.
+  `bisect(ratio)` and `is_bisectable()` have to give, with each of these modes
+  set before them and in each rounding direction, what the bits of the bounds
+  give, told by integers (the order of the doubles, in which the subnormal
+  multiples of 2^-1074 are their own numbers): on intervals of subnormal bounds
+  of both signs and with 0, a ratio from 2^-1074 to 1 − 10^-9 is accepted, and
+  the cut is the one with the modes cleared; the two parts share the cut and
+  cover the interval, and are strictly smaller than it when the bounds are two
+  multiples or more apart; the modes are the ones set before the call with
+  `GAOL_PRESERVE_ROUNDING`, and cleared or unchanged without it. The cut was
+  put within the bounds after the direction was restored, the ratio compared
+  with 0 and 1 in the modes of the program, and `is_bisectable()` compared the
+  next double above the lower bound with the upper one as doubles, both read
+  as 0 under the mode (GAOL v5, point Q): with the sources of
+  `configure-clean`, 2280 of these checks fail with the SSE2 intervals, and
+  4008 with `GAOL_PRESERVE_ROUNDING`.
   `gaol::cleanup()` has to set back the direction the first `gaol::init()`
   found, to nearest, or to leave it as it is with `GAOL_PRESERVE_ROUNDING`,
   although an interval computed in the initialization of a static object set
@@ -456,8 +471,14 @@ point Q), which `numbers` checks there too.
   and the modes it had or cleared without it. The operations with exact
   results, which all check the direction, must leave the direction exactly
   upward with the modes cleared. `cancel_minus` and `cancel_plus`, which
-  compute to nearest, are in the table. The bits a processor does not retain
-  are skipped and the test says so. The 30 forms of `+ - * / %`, `sqr`, `sqrt`
+  compute to nearest, are in the table. On 64-bit ARM, where FPCR retains
+  the AH bit (FEAT_AFP of Armv8.7, which GAOL does not clear), the sums,
+  differences, products, quotients, squares and square roots of the intervals
+  with the bounds -oo, -4, -0, 0, 4 and +oo, and of the empty set, run with AH
+  set must have the bounds they have with AH clear (the square roots the same
+  bits, the sign of a zero bound of the products aside) and must leave AH set
+  (GAOL v5, point 129). The bits a processor does not retain are skipped and
+  the test says so. The 30 forms of `+ - * / %`, `sqr`, `sqrt`
   and `inverse` with intervals, with a double and as compound assignments have
   to be the tightest enclosures of the exact result, computed from the four
   corners of random operands, in a loop changing the rounding direction before
@@ -1416,6 +1437,17 @@ point Q), which `numbers` checks there too.
   `gaol_half_pi_dn` and `gaol_half_pi_up`. The test did not compile
   while `gaol` took `gaol_core` whole. A call `sin(x)` on an interval still
   finds the function of `gaol_core` by argument-dependent lookup.
+  `test_kernels_are_not_in_gaol_core` checks, with the SSE2 and NEON intervals,
+  that the kernels the operators call (`add_bounds()`, `sub_bounds()`,
+  `mul_bounds()`, `div_bounds()` and `sqr_bounds()`) are in `gaol_detail`, with
+  the other helpers of the library, and not in `gaol_core` (GAOL v5, point AP):
+  with `using namespace gaol_core`, a call finds the function of the same name
+  and type that the program declares, where the kernels in `gaol_core` made it
+  ambiguous and the program did not compile; and that the kernels in
+  `gaol_detail`, called on the bounds in the registers, give the sum, the
+  difference, the product, the quotient and the square of `[-3, 2]` and
+  `[0.5, 4]`, which are exact in doubles. The FPU intervals have no such
+  kernels, and nothing is checked.
   `test_heap_alignment` checks that the heap holds a type as aligned as an
   interval, which holds no vector (a `char` aligned on `alignof(interval)`,
   16 bytes with the SSE2 and NEON intervals), aligned in `std::allocator`,

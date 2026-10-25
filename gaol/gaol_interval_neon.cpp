@@ -71,6 +71,10 @@
 
   } // namespace neon_detail
 
+} // namespace gaol_core
+
+namespace gaol_detail {
+
   /*
     The sum, on the stored bounds: <-l1, r1> + <-l2, r2> = <-(l1 + l2), r1 +
     r2>. An empty operand has NaN in both lanes, which the addition carries
@@ -80,6 +84,7 @@
   */
   float64x2_t add_bounds(float64x2_t x, float64x2_t y)
   {
+    using namespace gaol_core;
     using namespace neon_detail;
     GAOL_RND_ENTER();
     const float64x2_t xx = reread_bounds(x), yy = reread_bounds(y);
@@ -92,6 +97,7 @@
   // x - y is x + [-r, -l], the bounds of y exchanged
   float64x2_t sub_bounds(float64x2_t x, float64x2_t y)
   {
+    using namespace gaol_core;
     using namespace neon_detail;
     GAOL_RND_ENTER();
     const float64x2_t xx = reread_bounds(x), yy = reread_bounds(y);
@@ -100,6 +106,10 @@
     GAOL_RND_LEAVE();
     return res;
   }
+
+} // namespace gaol_detail
+
+namespace gaol_core {
 
   namespace neon_detail {
 
@@ -125,6 +135,10 @@
 
   } // namespace neon_detail
 
+} // namespace gaol_core
+
+namespace gaol_detail {
+
   /*
     The square from two products and a maximum, no branch but the one of the
     empty set (GAOL v5), as sqr_bounds() of the SSE2 intervals: with x = <a,
@@ -141,6 +155,7 @@
   */
   float64x2_t sqr_bounds(float64x2_t x)
   {
+    using namespace gaol_core;
     using namespace neon_detail;
     if (any_lane(nan_lanes(x))) { // the empty set, as it is
       return x;
@@ -152,6 +167,10 @@
     GAOL_RND_LEAVE();
     return res;
   }
+
+} // namespace gaol_detail
+
+namespace gaol_core {
 
   // sqr() of a non-empty I, the rounding direction being upward already (see
   // gaol_interval_core.h): the square that pow() takes for x^2 after its own
@@ -182,6 +201,10 @@
 
   } // namespace neon_detail
 
+} // namespace gaol_core
+
+namespace gaol_detail {
+
   /*
     The product: the four products of the corners, taken lane by lane, and
     their maximum (GAOL v5). With x = <-l1, r1> and y = <-l2, r2>, yc = <l2,
@@ -208,6 +231,7 @@
   */
   float64x2_t mul_bounds(float64x2_t x, float64x2_t y)
   {
+    using namespace gaol_core;
     using namespace neon_detail;
     const uint64x2_t nonfinite = vorrq_u64(nonfinite_lanes(x), nonfinite_lanes(y));
     const bool special = any_lane(nonfinite);
@@ -232,6 +256,10 @@
     GAOL_RND_LEAVE();
     return res;
   }
+
+} // namespace gaol_detail
+
+namespace gaol_core {
 
   namespace neon_detail {
 
@@ -348,8 +376,13 @@
 
   } // namespace neon_detail
 
+} // namespace gaol_core
+
+namespace gaol_detail {
+
   float64x2_t div_bounds(float64x2_t x, float64x2_t y)
   {
+    using namespace gaol_core;
     using namespace neon_detail;
     if (any_lane(vorrq_u64(nan_lanes(x), nan_lanes(y)))) { // an empty operand
       return nan_pair();
@@ -363,6 +396,10 @@
     return res;
   }
 
+} // namespace gaol_detail
+
+namespace gaol_core {
+
   namespace neon_detail {
 
   /*
@@ -372,11 +409,17 @@
     the lower one, in the first lane, being the root rounded downward. This
     one is the root when u * u is exactly the argument v, and else the double
     below the root u rounded upward, whose bits are those of u less one (u is
-    a positive normal number, or 0, or +oo, for which u * u is v). An argument
-    -0, which the maximum with +0 makes +0 (it ranks +0 above -0), is a root +0.
-    Neither the empty set nor the sign of the upper bound is told with a
-    comparison of doubles: the first is a NaN in the bits, the second the
-    sign bit of a bound that is not a zero.
+    a positive normal number, or 0, or +oo, for which u * u is v). The part
+    of x in [0, +oo] is taken with the sign bits, not a maximum with +0: a
+    bound whose sign bit is set, negative or -0, becomes +0, whose root is +0.
+    The maximum of 64-bit ARM ranks +0 above -0, but with FPCR.AH (FEAT_AFP,
+    Armv8.7), which GAOL does not clear, FMAX returns its second operand for
+    two zeros of different signs, and the operands of vmaxq_f64() may be
+    exchanged by a compiler (Clang takes it for commutative): the maximum
+    would have given the empty set for [-0, r]. Neither the empty set nor
+    the sign of the upper bound is told with a comparison of doubles: the
+    first is a NaN in the bits, the second the sign bit of a bound that is
+    not a zero.
   */
   GAOL_INLINE float64x2_t sqrt_bounds(float64x2_t x)
   {
@@ -391,7 +434,12 @@
     if (any_lane(nan_lanes(x)) || ((right_bits >> 63) != 0 && (right_bits << 1) != 0)) { // empty, or an upper bound below 0
       res = nan_pair();
     } else {
-      const float64x2_t v = vmaxq_f64(negate_first(x), vdupq_n_f64(0.0)); // <max(l, 0), max(r, 0)>
+      // <max(l, 0), max(r, 0)>: the lanes with the sign bit set are cleared. Neither lane
+      // is a NaN here (told above), which the mask would turn into +0, and the upper bound
+      // is no negative number but -0
+      const float64x2_t natural = negate_first(x);
+      const uint64x2_t negative = vcltzq_s64(vreinterpretq_s64_f64(natural));
+      const float64x2_t v = from_bits(vbicq_u64(bits_of(natural), negative));
       const float64x2_t u = vsqrtq_f64(v);
       const uint64x2_t exact = vceqq_u64(bits_of(vmulq_f64(u, u)), bits_of(v));
       const float64x2_t below = from_bits(vsubq_u64(bits_of(u), vdupq_n_u64(1)));
