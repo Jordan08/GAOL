@@ -50,37 +50,6 @@ empty set, infinite bounds, the domains of the functions, the comparisons,
 the interval literals, and the accuracy of each operation, which
 [Accuracy of the operations](doc/accuracy.md) documents.
 
-### Two namespaces: `gaol` and `gaol_ieee1788`
-
-A program uses GAOL v5 through one of two namespaces, which hold the same
-`interval` and compute with the same functions:
-
-- `gaol`, GAOL under its own names, to stay compatible with GAOL 4: a program
-  written for GAOL 4, or for IBEX and Codac, keeps its names and, but for the
-  [results that change](doc/differences.md), its results;
-- `gaol_ieee1788`, GAOL under the names of IEEE 1788-2015 (`numsToInterval`,
-  `mulRev`, `sinPi`, `pown`...), to follow the standard.
-
-The main difference between the two is the power. The `pow` of
-`gaol_ieee1788` is the real power of the standard, e^(y log x), defined for
-x > 0 only (and x = 0 when y > 0), and its `pown(x, n)` the integer power;
-the `pow` of `gaol` is GAOL's, which takes the integer power for an integer
-exponent, a negative base included, and the real power otherwise:
-`pow([-4, -1], 2)` is [1, 16] in `gaol` and the empty set in
-`gaol_ieee1788`, where `pown([-4, -1], 2)` is [1, 16]. The other few cases
-where `gaol` differs from the standard are listed in
-[the special cases](doc/compare/special_cases.md#what-the-cases-show), and
-[Using GAOL](doc/using.md#the-powers-in-the-two-namespaces) gives the powers of
-both namespaces side by side.
-
-```cpp
-#include <gaol/gaol.h>
-
-gaol::interval x(-4, -1);
-gaol::interval a = gaol::pow(x, 2);           // [1, 16]
-gaol::interval b = gaol_ieee1788::pow(x, 2);  // the empty set
-gaol::interval c = gaol_ieee1788::pown(x, 2); // [1, 16]
-```
 
 ## Quick start
 
@@ -90,6 +59,8 @@ cmake --build build --config Release
 cmake --build build --target test
 cmake --install build --config Release
 ```
+
+To see the configuration options, see [Build GAOL](doc/building.md).
 
 Each build compiles the sources of
 [CORE-MATH](https://core-math.gitlabpages.inria.fr/), the mathematical library
@@ -152,6 +123,38 @@ a contractor and a branch and bound; the sixteen programs of
 [`examples/`](examples/examples.md#12-the-programs), which check what they
 print, go further, and [Using GAOL](doc/using.md) gives the pitfalls and the
 names of IBEX, Codac, C-XSC and Boost.Interval next to GAOL's.
+
+### Two namespaces: `gaol` and `gaol_ieee1788`
+
+A program uses GAOL v5 through one of two namespaces, which hold the same
+`interval` and compute with the same functions:
+
+- `gaol`, GAOL under its own names, to stay compatible with GAOL 4: a program
+  written for GAOL 4, or for IBEX and Codac, keeps its names and, but for the
+  [results that change](doc/differences.md), its results;
+- `gaol_ieee1788`, GAOL under the names of IEEE 1788-2015 (`numsToInterval`,
+  `mulRev`, `sinPi`, `pown`...), to follow the standard.
+
+The main difference between the two is the power. The `pow` of
+`gaol_ieee1788` is the real power of the standard, e^(y log x), defined for
+x > 0 only (and x = 0 when y > 0), and its `pown(x, n)` the integer power;
+the `pow` of `gaol` is GAOL's, which takes the integer power for an integer
+exponent, a negative base included, and the real power otherwise:
+`pow([-4, -1], 2)` is [1, 16] in `gaol` and the empty set in
+`gaol_ieee1788`, where `pown([-4, -1], 2)` is [1, 16]. The other few cases
+where `gaol` differs from the standard are listed in
+[the special cases](doc/compare/special_cases.md#what-the-cases-show), and
+[Using GAOL](doc/using.md#the-powers-in-the-two-namespaces) gives the powers of
+both namespaces side by side.
+
+```cpp
+#include <gaol/gaol.h>
+
+gaol::interval x(-4, -1);
+gaol::interval a = gaol::pow(x, 2);           // [1, 16]
+gaol::interval b = gaol_ieee1788::pow(x, 2);  // the empty set
+gaol::interval c = gaol_ieee1788::pown(x, 2); // [1, 16]
+```
 
 ## Documentation
 
