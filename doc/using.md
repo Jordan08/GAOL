@@ -1435,7 +1435,9 @@ the kernels to the median after them, so that a ratio above 1 means that the
 kernels are faster, and, in parentheses, the spread of the five runs where it
 exceeds 1.15 (the ratio is then noise, as it is on the macOS runner); the
 ratios below 0.9 of a stable row are in bold. These are figures of shared
-runners, of one run:
+runners, of one run, of the FPU intervals as they were: Visual C++ and clang-cl
+for x86 have the SSE2 intervals since (GAOL v5), with their two bounds as two
+doubles, and their columns here are no longer those of the default build:
 
 | | Ubuntu GCC 13 | Ubuntu Clang 18 | armhf GCC 14 | VS x86 | VS x86, direction preserved | VS arm64 | clang-cl x86 | clang-cl arm64 | macOS FPU |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|

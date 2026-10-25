@@ -356,7 +356,13 @@ Each build writes `gaol/gaol_configuration.h`, which `gaol/gaol_config.h`
 includes with every compiler: CMake from `cmake/gaol_configuration.h.in`,
 configure from `gaol/gaol_configuration.h.in` (written by hand, not by
 autoheader), meson from `gaol/gaol_configuration_meson.h.in`. The three define
-the same macros, and nothing else; the continuous integration checks that they
+the same macros, and nothing else, but for the switch of a developer that CMake
+alone writes, `GAOL_SSE2_UNALIGNED_STORAGE` (`-DGAOL_SSE2_UNALIGNED_STORAGE=ON`:
+the SSE2 intervals keep their two bounds as two doubles, as they do on 32-bit
+Windows with Visual C++ and clang-cl, whose target decides it by itself; a
+program must not define that macro, a mismatch with the library being a
+mismatch of the layout of the intervals; GAOL v5); the continuous integration
+checks that they
 write the same header on each kind of machine (`.github/audit`). The sources of
 GAOL read all of them but `GAOL_HAVE_AVX512_TARGET` and `GAOL_PREFER_AVX512`,
 which the three builds use to decide `GAOL_AVX512_ARITHMETIC` and the

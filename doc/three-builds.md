@@ -186,10 +186,12 @@ On a 64-bit ARM processor, measured the same way on an Apple M2 with AppleClang
   same session, and 44.3 rather than 49.1 for operands of random signs). These
   are the figures of this processor, with AppleClang. The processors of the
   continuous integration that run the FPU intervals (32-bit ARM, Visual C++ and
-  clang-cl for x86 and arm64, Ubuntu with GCC and Clang, macOS), measured in
-  turn, give other ratios, losses included (the line of 7 products 0.58 with
-  GCC on Ubuntu, 0.57 with clang-cl for arm64); POWER, s390x, RISC-V and
-  MinGW-w64 for arm64 are not measured. See
+  clang-cl for arm64, Ubuntu with GCC and Clang, macOS), measured in turn, give
+  other ratios, losses included (the line of 7 products 0.58 with GCC on
+  Ubuntu, 0.57 with clang-cl for arm64); Visual C++ and clang-cl for x86 had the
+  FPU intervals then (they have the SSE2 ones now: the columns "VS x86" and
+  "clang-cl x86" of [The FPU intervals](using.md#the-fpu-intervals) are those
+  of the FPU); POWER, s390x, RISC-V and MinGW-w64 for arm64 are not measured. See
   [The FPU intervals](using.md#the-fpu-intervals).
 - **The rounding direction is read with one `mrs` of FPCR** (0.8 ns on this
   processor) and written with `msr` only when the program's is not upward:
