@@ -80,18 +80,13 @@
 #include "gaol/gaol_ldexp.h"
 
 // The FMA instructions on two doubles at once, for the integer powers, where
-// the build has them (GAOL v5, see pown_products()): SSE2 with FMA on x86, and
-// the NEON intervals, whose processors all have the fused multiply-add
+// the build has them (GAOL v5, see pown_products()): SSE2 with FMA on x86. The
+// NEON intervals have them all (gaol/gaol_interval_neon.cpp)
 #if GAOL_USING_SSE2_INSTRUCTIONS && (defined(__FMA__) || (defined(_MSC_VER) && defined(__AVX2__)))
 #  define GAOL_POWN_PACKED 1
-#  define GAOL_POWN_PACKED_NEON 0
 #  include <immintrin.h>
-#elif GAOL_USING_NEON_INSTRUCTIONS
-#  define GAOL_POWN_PACKED 1
-#  define GAOL_POWN_PACKED_NEON 1
 #else
 #  define GAOL_POWN_PACKED 0
-#  define GAOL_POWN_PACKED_NEON 0
 #endif
 // The same kernel rounded upward by the embedded rounding of AVX-512, where
 // GAOL_AVX512_ARITHMETIC is (GAOL v5, point ZZ of TODO.md, see
@@ -430,21 +425,20 @@ namespace gaol_core {
   }
 
 #if (defined(__x86_64__) || defined(_M_X64)) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_AVX512_ARITHMETIC
-  // GAOL_AVX512_ARITHMETIC, decided when GAOL is configured: +, -, *, /, sqr,
-  // sqrt and, with FMA, the integer powers beyond 1 and -1 take the AVX-512
-  // path of gaol/gaol_interval_avx512.cpp, which sets no rounding direction,
-  // and clears the flush-to-zero modes as the other operations do
-  // (flush_guard there; GAOL v5, point Q of TODO.md)
-#  include <immintrin.h>   // the AVX-512 intrinsics of the path below
-#  include "gaol/gaol_interval_avx512.cpp"
-#endif
-#if GAOL_USING_SSE2_INSTRUCTIONS
-#  include "gaol/gaol_interval_sse.cpp"
-#elif GAOL_USING_NEON_INSTRUCTIONS
-#  include "gaol/gaol_interval_neon.cpp"
+/* GCC and Clang accept the AVX-512 instructions in the functions that carry
+   the target, and nowhere else. Visual C++ has no such attribute and needs
+   none: it takes the intrinsics of any instruction set in any function,
+   whatever /arch says, and emits the instructions they stand for (the
+   embedded rounding included), with a vzeroupper where the code goes back to
+   SSE; clang-cl is Clang and has the attribute (GAOL v5). */
+#if defined(__GNUC__) || defined(__clang__)
+#  define GAOL_AVX512_TARGET __attribute__((target("avx512f")))
+#  define GAOL_NOINLINE __attribute__((noinline))
 #else
-#  include "gaol/gaol_interval_fpu.cpp"
-#endif // GAOL_USING_SSE2_INSTRUCTIONS
+#  define GAOL_AVX512_TARGET
+#  define GAOL_NOINLINE __declspec(noinline)
+#endif
+#endif
 
   /*
     x^n for an int n, |n| >= 2 but n = 2 (x^2 is sqr(), which gaol_pown() and
@@ -629,157 +623,47 @@ namespace gaol_core {
     return bits;
   }
 
-  // The two lanes: an SSE2 register where the FMA instructions are, a NEON
-  // register with the NEON intervals, a pair of doubles elsewhere; the rests
-  // or-ed together
-#if GAOL_POWN_PACKED_NEON
   /*
-    The same operations on a NEON register, vmulq_f64() and the fused
-    vfmaq_f64() (GAOL v5, point AP of TODO.md): a * b - c is a * b + (-c), the
-    negation being exact, so that the sum is rounded once and the product not
-    at all, as _mm_fmsub_pd() does. The operations are those of the pair of
-    doubles below, lane by lane, in the direction upward, so that the bounds
-    are the same bit for bit
-  */
-  typedef float64x2_t pown_lanes;
-  typedef uint64x2_t pown_rests;
-  static GAOL_POWN_INLINE pown_lanes pown_mul(pown_lanes a, pown_lanes b) { return vmulq_f64(a, b); }
-  static GAOL_POWN_INLINE pown_lanes pown_fms(pown_lanes a, pown_lanes b, pown_lanes c) { return vfmaq_f64(vnegq_f64(c), a, b); }
-  static GAOL_POWN_INLINE pown_lanes pown_fma(pown_lanes a, pown_lanes b, pown_lanes c) { return vfmaq_f64(c, a, b); }
-  static GAOL_POWN_INLINE pown_lanes pown_twice_plus(pown_lanes a, pown_lanes b) { return vfmaq_f64(b, vdupq_n_f64(2.0), a); }
-  static GAOL_POWN_INLINE pown_rests pown_first_rest(pown_lanes e) { return vreinterpretq_u64_f64(e); }
-  static GAOL_POWN_INLINE void pown_add_rest(pown_rests& s, pown_lanes e) { s = vorrq_u64(s, vreinterpretq_u64_f64(e)); }
-#elif GAOL_POWN_PACKED
-  typedef __m128d pown_lanes;
-  typedef __m128d pown_rests;
-  static GAOL_POWN_INLINE pown_lanes pown_mul(pown_lanes a, pown_lanes b) { return _mm_mul_pd(a, b); }
-  static GAOL_POWN_INLINE pown_lanes pown_fms(pown_lanes a, pown_lanes b, pown_lanes c) { return _mm_fmsub_pd(a, b, c); }
-  static GAOL_POWN_INLINE pown_lanes pown_fma(pown_lanes a, pown_lanes b, pown_lanes c) { return _mm_fmadd_pd(a, b, c); }
-  static GAOL_POWN_INLINE pown_lanes pown_twice_plus(pown_lanes a, pown_lanes b) { return _mm_fmadd_pd(_mm_set1_pd(2.0), a, b); }
-  static GAOL_POWN_INLINE pown_rests pown_first_rest(pown_lanes e) { return e; }
-  static GAOL_POWN_INLINE void pown_add_rest(pown_rests& s, pown_lanes e) { s = _mm_or_pd(s, e); }
-#  if GAOL_POWN_ER
-  /*
-    The two lanes of the kernel rounded upward by the embedded rounding of
-    AVX-512 (_mm512_*_round_pd on the 512 bits of which the upper ones are not
-    used, as er_mul2() does) rather than by the direction of MXCSR: the same
-    operations in the same order as the ones above, so the same bits, with no
-    write of MXCSR, which cost 3 to 6 ns an operation with
-    GAOL_PRESERVE_ROUNDING. A struct, so that no operation of a register of
-    the other kind is taken for one of this: the compiler refuses it, and
-    would otherwise round it by the direction of MXCSR, which is not upward.
-  */
-  struct pown_er_lanes { __m128d v; };
-  static GAOL_POWN_INLINE_T pown_er_lanes pown_mul(pown_er_lanes a, pown_er_lanes b)
-  {
-    const pown_er_lanes r = { er_mul2(a.v, b.v) };
-    return r;
-  }
-  static GAOL_POWN_INLINE_T pown_er_lanes pown_fms(pown_er_lanes a, pown_er_lanes b, pown_er_lanes c)
-  {
-    const pown_er_lanes r = { back128(_mm512_fmsub_round_pd(lo512(a.v), lo512(b.v), lo512(c.v), gaol_er)) };
-    return r;
-  }
-  static GAOL_POWN_INLINE_T pown_er_lanes pown_fma(pown_er_lanes a, pown_er_lanes b, pown_er_lanes c)
-  {
-    const pown_er_lanes r = { back128(_mm512_fmadd_round_pd(lo512(a.v), lo512(b.v), lo512(c.v), gaol_er)) };
-    return r;
-  }
-  static GAOL_POWN_INLINE_T pown_er_lanes pown_fnmadd(pown_er_lanes a, pown_er_lanes b, pown_er_lanes c)
-  {
-    const pown_er_lanes r = { back128(_mm512_fnmadd_round_pd(lo512(a.v), lo512(b.v), lo512(c.v), gaol_er)) };
-    return r;
-  }
-  static GAOL_POWN_INLINE_T pown_er_lanes pown_twice_plus(pown_er_lanes a, pown_er_lanes b)
-  {
-    const pown_er_lanes r = { back128(_mm512_fmadd_round_pd(_mm512_set1_pd(2.0), lo512(a.v), lo512(b.v), gaol_er)) };
-    return r;
-  }
-  static GAOL_POWN_INLINE_T pown_er_lanes pown_div(pown_er_lanes a, pown_er_lanes b)
-  {
-    const pown_er_lanes r = { back128(_mm512_div_round_pd(lo512(a.v), lo512(b.v), gaol_er)) };
-    return r;
-  }
-  static GAOL_POWN_INLINE_T pown_er_lanes pown_add(pown_er_lanes a, pown_er_lanes b)
-  {
-    const pown_er_lanes r = { back128(_mm512_add_round_pd(lo512(a.v), lo512(b.v), gaol_er)) };
-    return r;
-  }
-  static GAOL_POWN_INLINE pown_rests pown_first_rest(pown_er_lanes e) { return e.v; }
-  static GAOL_POWN_INLINE void pown_add_rest(pown_rests& s, pown_er_lanes e) { s = _mm_or_pd(s, e.v); }
-#  endif
-#else
-  struct pown_lanes { double l0, l1; };
-  struct pown_rests { std::uint64_t l0, l1; };
-  static GAOL_POWN_INLINE pown_lanes pown_mul(pown_lanes a, pown_lanes b)
-  {
-    const pown_lanes r = { a.l0*b.l0, a.l1*b.l1 };
-    return r;
-  }
-  static GAOL_POWN_INLINE pown_lanes pown_fms(pown_lanes a, pown_lanes b, pown_lanes c)
-  {
-    const pown_lanes r = { fma_once(a.l0, b.l0, -c.l0), fma_once(a.l1, b.l1, -c.l1) };
-    return r;
-  }
-  static GAOL_POWN_INLINE pown_lanes pown_fma(pown_lanes a, pown_lanes b, pown_lanes c)
-  {
-    const pown_lanes r = { fma_once(a.l0, b.l0, c.l0), fma_once(a.l1, b.l1, c.l1) };
-    return r;
-  }
-  static GAOL_POWN_INLINE pown_lanes pown_twice_plus(pown_lanes a, pown_lanes b)
-  {
-    const pown_lanes r = { fma_once(2.0, a.l0, b.l0), fma_once(2.0, a.l1, b.l1) };
-    return r;
-  }
-  static GAOL_POWN_INLINE pown_rests pown_first_rest(pown_lanes e)
-  {
-    const pown_rests s = { pown_bits_of(e.l0), pown_bits_of(e.l1) };
-    return s;
-  }
-  static GAOL_POWN_INLINE void pown_add_rest(pown_rests& s, pown_lanes e)
-  {
-    s.l0 |= pown_bits_of(e.l0);
-    s.l1 |= pown_bits_of(e.l1);
-  }
-#endif
-
-  /*
-    c^m as h + l in each lane, m >= 2, and the rests or-ed in s (see above).
+    c^m as h + l in each lane, m >= 2, and the rests or-ed in s (see above),
+    the operations on the two lanes being those of the class Ops (see below).
     Inlined by force, so that each constant m of pown_powers() unrolls it:
     the loop and its tests cost as much as the products for a small m
     (x^3 took 6.1 ns rather than 4.1 with Clang 18 on an i7-1185G7, in a
     prototype).
   */
-  template <class Lanes, class Rests>
-  static GAOL_POWN_INLINE_T void pown_products(const Lanes& c, unsigned int m, Lanes& h, Lanes& l, Rests& s)
+  template <class Ops>
+  static GAOL_POWN_INLINE_T void pown_products(const typename Ops::lanes& c, unsigned int m, typename Ops::lanes& h,
+                                               typename Ops::lanes& l, typename Ops::rests& s)
   {
+    typedef typename Ops::lanes Lanes;
     unsigned int bit = (1u << (pown_bit_length(m) - 1u)) >> 1;
-    h = pown_mul(c, c);
-    l = pown_fms(c, c, h); // c^2 = h + l, exactly
-    s = pown_first_rest(l);
+    h = Ops::mul(c, c);
+    l = Ops::fms(c, c, h); // c^2 = h + l, exactly
+    s = Ops::first_rest(l);
     for (;;) {
       if ((m & bit) != 0u) {
-        const Lanes q = pown_mul(h, c);
-        const Lanes f = pown_fms(h, c, q);
-        pown_add_rest(s, f);
-        l = pown_fma(l, c, f);
+        const Lanes q = Ops::mul(h, c);
+        const Lanes f = Ops::fms(h, c, q);
+        Ops::add_rest(s, f);
+        l = Ops::fma(l, c, f);
         h = q;
       }
       bit >>= 1;
       if (bit == 0u) {
         break;
       }
-      const Lanes p = pown_mul(h, h);
-      const Lanes e = pown_fms(h, h, p);
-      pown_add_rest(s, e);
-      l = pown_fma(l, pown_twice_plus(h, l), e); // 2h + l rounded once, 2h being exact
+      const Lanes p = Ops::mul(h, h);
+      const Lanes e = Ops::fms(h, h, p);
+      Ops::add_rest(s, e);
+      l = Ops::fma(l, Ops::twice_plus(h, l), e); // 2h + l rounded once, 2h being exact
       h = p;
     }
   }
 
-#define GAOL_POWN_CASE(k) case k: pown_products(c, k##u, h, l, s); break;
-  template <class Lanes, class Rests>
-  static GAOL_POWN_INLINE_T void pown_powers(const Lanes& c, unsigned int m, Lanes& h, Lanes& l, Rests& s)
+#define GAOL_POWN_CASE(k) case k: pown_products<Ops>(c, k##u, h, l, s); break;
+  template <class Ops>
+  static GAOL_POWN_INLINE_T void pown_powers(const typename Ops::lanes& c, unsigned int m, typename Ops::lanes& h,
+                                             typename Ops::lanes& l, typename Ops::rests& s)
   {
     switch (m) {
       GAOL_POWN_CASE(2) GAOL_POWN_CASE(3) GAOL_POWN_CASE(4) GAOL_POWN_CASE(5)
@@ -791,7 +675,7 @@ namespace gaol_core {
       GAOL_POWN_CASE(26) GAOL_POWN_CASE(27) GAOL_POWN_CASE(28) GAOL_POWN_CASE(29)
       GAOL_POWN_CASE(30) GAOL_POWN_CASE(31) GAOL_POWN_CASE(32)
     default:
-      pown_products(c, m, h, l, s);
+      pown_products<Ops>(c, m, h, l, s);
       break;
     }
   }
@@ -886,7 +770,184 @@ namespace gaol_core {
     }
   }
 
+  /*
+    The corners of x^n on [a, b], |n| >= 2 (see pown_products()): c0, where
+    x^n is the least, and c1, where it is the greatest. x^n increases for an
+    odd n > 0, and decreases on each side of 0 for an odd n < 0; for an even
+    n, it is |x|^n, increasing in |x| for n > 0 and decreasing for n < 0. A
+    corner at 0 for n < 0 is the limit of x^n on the side of 0 x lies on:
+    -oo at -0, +oo at +0 (pown_point()). false where x^n has no value on x,
+    which is [0] for n < 0: 0^n has none (IEEE 1788-2015, Table 9.1).
+  */
+  static GAOL_POWN_INLINE bool pown_corners(double a, double b, bool negative, bool odd_n, double& c0, double& c1)
+  {
+    if (!negative) {
+      if (odd_n) {
+        c0 = a;
+        c1 = b;
+      } else {
+        c0 = (a > 0.0) ? a : ((b < 0.0) ? -b : 0.0);
+        c1 = (-a > b) ? -a : b;
+      }
+    } else if (a > 0.0 || b < 0.0) {
+      if (odd_n) {
+        c0 = b;
+        c1 = a;
+      } else {
+        c0 = (a > 0.0) ? b : -a;
+        c1 = (a > 0.0) ? a : -b;
+      }
+    } else if (a == 0.0 && b == 0.0) {
+      return false;
+    } else if (odd_n) {
+      c0 = (a < 0.0) ? -0.0 : b;
+      c1 = (b > 0.0) ? 0.0 : a;
+    } else {
+      c0 = (-a > b) ? -a : b;
+      c1 = 0.0;
+    }
+    return true;
+  }
 
+  // x^n on [a, b] for |n| >= 2, one bound at a time (pown_point())
+  static interval pown_by_corners(double a, double b, int n)
+  {
+    double c0, c1, lo, hi, other;
+    if (!pown_corners(a, b, n < 0, (n & 1) != 0, c0, c1)) {
+      return interval::emptyset();
+    }
+    pown_point(c0, n, lo, other);
+    pown_point(c1, n, other, hi);
+    return interval(lo, hi);
+  }
+
+  /*
+    The operations on the two lanes are those of a class for each kind of
+    intervals (GAOL v5, point AP of TODO.md): a pair of doubles here, for the
+    FPU intervals and for the SSE2 intervals without the FMA instructions; an
+    SSE2 register with FMA in gaol/gaol_interval_sse.cpp, the embedded rounding
+    of AVX-512 in gaol/gaol_interval_avx512.cpp and a NEON register in
+    gaol/gaol_interval_neon.cpp. Each has the types lanes and rests (the rests
+    or-ed together) and the operations mul, fms (a * b - c), fma, twice_plus
+    (2 a + b), first_rest and add_rest; the file of the intervals defines the
+    function pown_large_inline() that makes the two corners and the bounds from
+    the powers pown_powers<Ops>() gives (the others are generic: the powers
+    pown_products() and pown_powers(), the corners and the corner alone,
+    pown_point()). The class of the pair of doubles also has the function of
+    the corners and the bounds in plain doubles, which the intervals without
+    a kernel of their own call, pown_scalar_ops::large().
+  */
+  struct pown_scalar_ops {
+    struct lanes { double l0, l1; };
+    struct rests { std::uint64_t l0, l1; };
+    static GAOL_POWN_INLINE lanes mul(lanes a, lanes b)
+    {
+      const lanes r = { a.l0*b.l0, a.l1*b.l1 };
+      return r;
+    }
+    static GAOL_POWN_INLINE lanes fms(lanes a, lanes b, lanes c)
+    {
+      const lanes r = { fma_once(a.l0, b.l0, -c.l0), fma_once(a.l1, b.l1, -c.l1) };
+      return r;
+    }
+    static GAOL_POWN_INLINE lanes fma(lanes a, lanes b, lanes c)
+    {
+      const lanes r = { fma_once(a.l0, b.l0, c.l0), fma_once(a.l1, b.l1, c.l1) };
+      return r;
+    }
+    static GAOL_POWN_INLINE lanes twice_plus(lanes a, lanes b)
+    {
+      const lanes r = { fma_once(2.0, a.l0, b.l0), fma_once(2.0, a.l1, b.l1) };
+      return r;
+    }
+    static GAOL_POWN_INLINE rests first_rest(lanes e)
+    {
+      const rests s = { pown_bits_of(e.l0), pown_bits_of(e.l1) };
+      return s;
+    }
+    static GAOL_POWN_INLINE void add_rest(rests& s, lanes e)
+    {
+      s.l0 |= pown_bits_of(e.l0);
+      s.l1 |= pown_bits_of(e.l1);
+    }
+
+    /*
+      I^n for |n| >= 2 and a nonempty I, the rounding direction being upward,
+      with the pair of doubles: the corners and the bounds as pown_large_inline()
+      of the other intervals makes them (see below)
+    */
+    static GAOL_POWN_INLINE_T interval large(const interval& I, int n)
+  {
+    const bool negative = n < 0;
+    const unsigned int m = negative ? 0u - static_cast<unsigned int>(n) : static_cast<unsigned int>(n);
+    const unsigned int L = pown_bit_length(m);
+    const double a = I.left(), b = I.right();
+    if (!negative || a > 0.0 || b < 0.0) {
+      double c0, c1;
+      (void)pown_corners(a, b, negative, (m & 1u) != 0u, c0, c1);
+      const double least = pown_least[L], greatest = pown_greatest[L];
+      const double g0 = std::fabs(c0), g1 = std::fabs(c1);
+      if (((g0 >= least && g0 <= greatest) || (!negative && g0 == 0.0))
+          && ((g1 >= least && g1 <= greatest) || (!negative && g1 == 0.0))) {
+        const lanes c = { g0, g1 };
+        lanes h, l;
+        rests s;
+        pown_powers<pown_scalar_ops>(c, m, h, l, s);
+        double K;
+        if (negative) {
+          const double q0 = 1.0/h.l0, q1 = 1.0/h.l1;
+          const double r0 = fma_once(-q0, l.l0, fma_once(-q0, h.l0, 1.0));
+          const double r1 = fma_once(-q1, l.l1, fma_once(-q1, h.l1, 1.0));
+          const double qr0 = q0*r0, qr1 = q1*r1;
+          l.l0 = fma_once(qr0, r0, qr0);
+          l.l1 = fma_once(qr1, r1, qr1);
+          h.l0 = q0;
+          h.l1 = q1;
+          s.l0 |= pown_bits_of(r0);
+          s.l1 |= pown_bits_of(r1);
+          K = pown_bound_inverse(m, L);
+        } else {
+          K = pown_bound(m, L);
+        }
+        const double K0 = (s.l0 != 0u) ? K : 0.0, K1 = (s.l1 != 0u) ? K : 0.0;
+        // the signs of c0^n and c1^n, those of c0 and c1 for an odd m
+        const double t0 = ((m & 1u) != 0u && std::signbit(c0)) ? -1.0 : 1.0;
+        const double t1 = ((m & 1u) != 0u && std::signbit(c1)) ? -1.0 : 1.0;
+        const double down = -t0*h.l0 + fma_once(K0, h.l0, -t0*l.l0);
+        const double up = t1*h.l1 + fma_once(K1, h.l1, t1*l.l1);
+        return interval(-down, up);
+      }
+    }
+    return pown_by_corners(a, b, n);
+  }
+  };
+
+  /*
+    I^n for |n| >= 2 and a nonempty I, the rounding direction being upward:
+    both corners at once where they are within the range of pown_least[] and
+    pown_greatest[], and pown_by_corners() otherwise (see pown_products()).
+    Inlined in pown_checked() alone, the body of gaol_pown() for n != 2 (defined with the
+    intervals, in gaol/gaol_interval_sse.cpp, _neon.cpp and _fpu.cpp): its
+    switch over the small exponents is long, and the callers that take
+    pown_upward() after their own check call pown_large_upward().
+  */
+
+#if (defined(__x86_64__) || defined(_M_X64)) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_AVX512_ARITHMETIC
+  // GAOL_AVX512_ARITHMETIC, decided when GAOL is configured: +, -, *, /, sqr,
+  // sqrt and, with FMA, the integer powers beyond 1 and -1 take the AVX-512
+  // path of gaol/gaol_interval_avx512.cpp, which sets no rounding direction,
+  // and clears the flush-to-zero modes as the other operations do
+  // (flush_guard there; GAOL v5, point Q of TODO.md)
+#  include <immintrin.h>   // the AVX-512 intrinsics of the path below
+#  include "gaol/gaol_interval_avx512.cpp"
+#endif
+#if GAOL_USING_SSE2_INSTRUCTIONS
+#  include "gaol/gaol_interval_sse.cpp"
+#elif GAOL_USING_NEON_INSTRUCTIONS
+#  include "gaol/gaol_interval_neon.cpp"
+#else
+#  include "gaol/gaol_interval_fpu.cpp"
+#endif // GAOL_USING_SSE2_INSTRUCTIONS
 
   // Default format for output
   interval_format::format_t interval::output = interval_format::bounds;
@@ -2307,272 +2368,6 @@ namespace gaol_core {
     static interval inverse(const interval& I) { return interval::inverse_upward(I); }
     static interval sqr(const interval& I) { return interval::sqr_upward(I); }
   };
-
-  /*
-    The corners of x^n on [a, b], |n| >= 2 (see pown_products()): c0, where
-    x^n is the least, and c1, where it is the greatest. x^n increases for an
-    odd n > 0, and decreases on each side of 0 for an odd n < 0; for an even
-    n, it is |x|^n, increasing in |x| for n > 0 and decreasing for n < 0. A
-    corner at 0 for n < 0 is the limit of x^n on the side of 0 x lies on:
-    -oo at -0, +oo at +0 (pown_point()). false where x^n has no value on x,
-    which is [0] for n < 0: 0^n has none (IEEE 1788-2015, Table 9.1).
-  */
-  static GAOL_POWN_INLINE bool pown_corners(double a, double b, bool negative, bool odd_n, double& c0, double& c1)
-  {
-    if (!negative) {
-      if (odd_n) {
-        c0 = a;
-        c1 = b;
-      } else {
-        c0 = (a > 0.0) ? a : ((b < 0.0) ? -b : 0.0);
-        c1 = (-a > b) ? -a : b;
-      }
-    } else if (a > 0.0 || b < 0.0) {
-      if (odd_n) {
-        c0 = b;
-        c1 = a;
-      } else {
-        c0 = (a > 0.0) ? b : -a;
-        c1 = (a > 0.0) ? a : -b;
-      }
-    } else if (a == 0.0 && b == 0.0) {
-      return false;
-    } else if (odd_n) {
-      c0 = (a < 0.0) ? -0.0 : b;
-      c1 = (b > 0.0) ? 0.0 : a;
-    } else {
-      c0 = (-a > b) ? -a : b;
-      c1 = 0.0;
-    }
-    return true;
-  }
-
-  // x^n on [a, b] for |n| >= 2, one bound at a time (pown_point())
-  static interval pown_by_corners(double a, double b, int n)
-  {
-    double c0, c1, lo, hi, other;
-    if (!pown_corners(a, b, n < 0, (n & 1) != 0, c0, c1)) {
-      return interval::emptyset();
-    }
-    pown_point(c0, n, lo, other);
-    pown_point(c1, n, other, hi);
-    return interval(lo, hi);
-  }
-
-  /*
-    I^n for |n| >= 2 and a nonempty I, the rounding direction being upward:
-    both corners at once where they are within the range of pown_least[] and
-    pown_greatest[], and pown_by_corners() otherwise (see pown_products()).
-    Inlined in pown_checked() alone, the body of gaol_pown() for n != 2: its
-    switch over the small exponents is long, and the callers that take
-    pown_upward() after their own check call pown_large_upward().
-  */
-  static GAOL_POWN_INLINE_T interval pown_large_inline(const interval& I, int n)
-  {
-    const bool negative = n < 0;
-    const unsigned int m = negative ? 0u - static_cast<unsigned int>(n) : static_cast<unsigned int>(n);
-    const unsigned int L = pown_bit_length(m);
-    const double a = I.left(), b = I.right();
-    if (!negative || a > 0.0 || b < 0.0) {
-#if GAOL_POWN_PACKED_NEON
-      // The block below on a NEON register (GAOL v5, point AP of TODO.md): the
-      // same operations in the same order, so the same bounds, bit for bit.
-      // Keep them alike, with pown_large_er() (tests/tools/pow/mutate.py has
-      // the mutants of the SSE2 block). The bounds (a, b) and (-b, -a) are made
-      // from the stored register <-a, b> without going through memory: two
-      // stores of a double and a load of the pair do not forward on many cores
-      const float64x2_t zero = vdupq_n_f64(0.0);
-      const float64x2_t ab = neon_detail::negate_first(I.get_neoninterval());
-      const float64x2_t nba = vnegq_f64(vextq_f64(ab, ab, 1));
-      float64x2_t c = ab;
-      if ((m & 1u) == 0u) {
-        const float64x2_t greater = vmaxq_f64(ab, nba);
-        c = vcombine_f64(vget_low_f64(vmaxq_f64(greater, zero)), vget_high_f64(greater));
-      }
-      if (negative) {
-        c = vextq_f64(c, c, 1);
-      }
-      const float64x2_t g = vabsq_f64(c);
-      uint64x2_t ok = vandq_u64(vcgeq_f64(g, vdupq_n_f64(pown_least[L])), vcleq_f64(g, vdupq_n_f64(pown_greatest[L])));
-      if (!negative) {
-        ok = vorrq_u64(ok, vceqq_f64(c, zero));
-      }
-      if ((vgetq_lane_u64(ok, 0) & vgetq_lane_u64(ok, 1)) != 0u) {
-        float64x2_t h, l, K;
-        uint64x2_t s;
-        pown_powers(g, m, h, l, s);
-        if (negative) {
-          const float64x2_t one = vdupq_n_f64(1.0);
-          const float64x2_t q = vdivq_f64(one, h);
-          const float64x2_t r = vfmsq_f64(vfmsq_f64(one, q, h), q, l); // (1 - q h) - q l
-          const float64x2_t qr = vmulq_f64(q, r);
-          l = vfmaq_f64(qr, qr, r); // q (r + r^2)
-          h = q;
-          s = vorrq_u64(s, vreinterpretq_u64_f64(r));
-          K = vdupq_n_f64(pown_bound_inverse(m, L));
-        } else {
-          K = vdupq_n_f64(pown_bound(m, L));
-        }
-        // The rests compared as integers (see below): K is 0 where they are
-        K = vreinterpretq_f64_u64(vbicq_u64(vreinterpretq_u64_f64(K), vceqzq_u64(s)));
-        // (-v0 + RU(K h - w0), v1 + RU(K h + w1)), v + w being +-(h + l), of
-        // the sign of c for an odd m, the lower bound negated
-        const std::uint64_t sign_bit = 0x8000000000000000ull;
-        const uint64x2_t odd = ((m & 1u) != 0u) ? vandq_u64(vreinterpretq_u64_f64(c), vdupq_n_u64(sign_bit)) : vdupq_n_u64(0u);
-        const uint64x2_t sign = veorq_u64(vcombine_u64(vcreate_u64(sign_bit), vcreate_u64(0u)), odd);
-        const float64x2_t v = vreinterpretq_f64_u64(veorq_u64(vreinterpretq_u64_f64(h), sign));
-        const float64x2_t w = vreinterpretq_f64_u64(veorq_u64(vreinterpretq_u64_f64(l), sign));
-        return interval(vaddq_f64(v, vfmaq_f64(w, K, h)));
-      }
-#elif GAOL_POWN_PACKED
-      // (a, b), or (max(a, -b, 0), max(-a, b)) for an even m, and the
-      // other way around for n < 0, with the operations of the register:
-      // Clang calls std::fmax() under -frounding-math
-      const __m128d ab = _mm_set_pd(b, a), nba = _mm_set_pd(-a, -b), zero = _mm_setzero_pd();
-      __m128d c = ((m & 1u) != 0u) ? ab : _mm_max_sd(_mm_max_pd(ab, nba), zero);
-      if (negative) {
-        c = _mm_shuffle_pd(c, c, 1);
-      }
-      const __m128d minus_zero = _mm_set1_pd(-0.0);
-      const __m128d g = _mm_andnot_pd(minus_zero, c);
-      __m128d ok = _mm_and_pd(_mm_cmpge_pd(g, _mm_set1_pd(pown_least[L])), _mm_cmple_pd(g, _mm_set1_pd(pown_greatest[L])));
-      if (!negative) {
-        ok = _mm_or_pd(ok, _mm_cmpeq_pd(c, zero));
-      }
-      if (_mm_movemask_pd(ok) == 3) {
-        __m128d h, l, s, K;
-        pown_powers(g, m, h, l, s);
-        if (negative) {
-          const __m128d one = _mm_set1_pd(1.0);
-          const __m128d q = _mm_div_pd(one, h);
-          const __m128d r = _mm_fnmadd_pd(q, l, _mm_fnmadd_pd(q, h, one)); // (1 - q h) - q l
-          const __m128d qr = _mm_mul_pd(q, r);
-          l = _mm_fmadd_pd(qr, r, qr); // q (r + r^2)
-          h = q;
-          s = _mm_or_pd(s, r);
-          K = _mm_set1_pd(pown_bound_inverse(m, L));
-        } else {
-          K = _mm_set1_pd(pown_bound(m, L));
-        }
-        // The rests compared as integers: or-ed together, they may make the
-        // bits of a signaling NaN, which a comparison of doubles would take
-        // for one, raising the invalid-operation exception
-        K = _mm_andnot_pd(_mm_castsi128_pd(_mm_cmpeq_epi64(_mm_castpd_si128(s), _mm_setzero_si128())), K);
-        // (-v0 + RU(K h - w0), v1 + RU(K h + w1)), v + w being +-(h + l), of
-        // the sign of c for an odd m, the lower bound negated
-        const __m128d odd = ((m & 1u) != 0u) ? minus_zero : zero;
-        const __m128d sign = _mm_xor_pd(_mm_set_pd(0.0, -0.0), _mm_and_pd(c, odd));
-        return interval(_mm_add_pd(_mm_xor_pd(h, sign), _mm_fmadd_pd(K, h, _mm_xor_pd(l, sign))));
-      }
-#else
-      double c0, c1;
-      (void)pown_corners(a, b, negative, (m & 1u) != 0u, c0, c1);
-      const double least = pown_least[L], greatest = pown_greatest[L];
-      const double g0 = std::fabs(c0), g1 = std::fabs(c1);
-      if (((g0 >= least && g0 <= greatest) || (!negative && g0 == 0.0))
-          && ((g1 >= least && g1 <= greatest) || (!negative && g1 == 0.0))) {
-        const pown_lanes c = { g0, g1 };
-        pown_lanes h, l;
-        pown_rests s;
-        pown_powers(c, m, h, l, s);
-        double K;
-        if (negative) {
-          const double q0 = 1.0/h.l0, q1 = 1.0/h.l1;
-          const double r0 = fma_once(-q0, l.l0, fma_once(-q0, h.l0, 1.0));
-          const double r1 = fma_once(-q1, l.l1, fma_once(-q1, h.l1, 1.0));
-          const double qr0 = q0*r0, qr1 = q1*r1;
-          l.l0 = fma_once(qr0, r0, qr0);
-          l.l1 = fma_once(qr1, r1, qr1);
-          h.l0 = q0;
-          h.l1 = q1;
-          s.l0 |= pown_bits_of(r0);
-          s.l1 |= pown_bits_of(r1);
-          K = pown_bound_inverse(m, L);
-        } else {
-          K = pown_bound(m, L);
-        }
-        const double K0 = (s.l0 != 0u) ? K : 0.0, K1 = (s.l1 != 0u) ? K : 0.0;
-        // the signs of c0^n and c1^n, those of c0 and c1 for an odd m
-        const double t0 = ((m & 1u) != 0u && std::signbit(c0)) ? -1.0 : 1.0;
-        const double t1 = ((m & 1u) != 0u && std::signbit(c1)) ? -1.0 : 1.0;
-        const double down = -t0*h.l0 + fma_once(K0, h.l0, -t0*l.l0);
-        const double up = t1*h.l1 + fma_once(K1, h.l1, t1*l.l1);
-        return interval(-down, up);
-      }
-#endif
-    }
-    return pown_by_corners(a, b, n);
-  }
-
-#if GAOL_POWN_ER
-  /*
-    The packed kernel of pown_large_inline(), rounded upward by the embedded
-    rounding (GAOL v5, point ZZ of TODO.md): the same operations in the same
-    order, on pown_er_lanes, so that the bounds are the same bit for bit, and
-    no direction of MXCSR is read or written. With GAOL_PRESERVE_ROUNDING,
-    gaol_pown() saved the direction, set it upward and restored it around the
-    kernel: pown(x, 3) took 19.0 ns, the direction being read and written
-    through the C library and the control word of the x87 unit as well, 8.4
-    ns with the writes of MXCSR alone (see gaol/gaol_fpu.h), and takes 6.2
-    with this kernel, against the 5.1 of the direction left upward (an
-    i7-1185G7, Clang 21): the two writes of MXCSR cost 3 to 6 ns, each one
-    waiting for the operations in flight. The function gives false, res left
-    alone, where the corners are not both in the range of pown_least[] and
-    pown_greatest[] (pown_by_corners(), which rounds by the direction, is
-    called then), and for an n < 0 with 0 in I. The bounds a and b of I are
-    read after the clearing of the modes that flush the subnormals to zero
-    (flush_guard), which the embedded rounding honours. res is the stored
-    pair, <-lower, upper>. It repeats the block of pown_large_inline() for
-    the packed kernel, on the other lanes: keep them alike. They give the
-    same bounds on 8.8 million powers (tests/tools/pow/mutate.py has
-    mutants of both).
-  */
-  static GAOL_POWN_INLINE_T bool pown_large_er(double a, double b, int n, __m128d& res)
-  {
-    const bool negative = n < 0;
-    const unsigned int m = negative ? 0u - static_cast<unsigned int>(n) : static_cast<unsigned int>(n);
-    const unsigned int L = pown_bit_length(m);
-    if (negative && !(a > 0.0 || b < 0.0)) {
-      return false;
-    }
-    const __m128d ab = _mm_set_pd(b, a), nba = _mm_set_pd(-a, -b), zero = _mm_setzero_pd();
-    __m128d c = ((m & 1u) != 0u) ? ab : _mm_max_sd(_mm_max_pd(ab, nba), zero);
-    if (negative) {
-      c = _mm_shuffle_pd(c, c, 1);
-    }
-    const __m128d minus_zero = _mm_set1_pd(-0.0);
-    const __m128d g = _mm_andnot_pd(minus_zero, c);
-    __m128d ok = _mm_and_pd(_mm_cmpge_pd(g, _mm_set1_pd(pown_least[L])), _mm_cmple_pd(g, _mm_set1_pd(pown_greatest[L])));
-    if (!negative) {
-      ok = _mm_or_pd(ok, _mm_cmpeq_pd(c, zero));
-    }
-    if (_mm_movemask_pd(ok) != 3) {
-      return false;
-    }
-    pown_er_lanes h, l;
-    __m128d s, K;
-    const pown_er_lanes gl = { g };
-    pown_powers(gl, m, h, l, s);
-    if (negative) {
-      const pown_er_lanes one = { _mm_set1_pd(1.0) };
-      const pown_er_lanes q = pown_div(one, h);
-      const pown_er_lanes r = pown_fnmadd(q, l, pown_fnmadd(q, h, one)); // (1 - q h) - q l
-      const pown_er_lanes qr = pown_mul(q, r);
-      l = pown_fma(qr, r, qr); // q (r + r^2)
-      h = q;
-      pown_add_rest(s, r);
-      K = _mm_set1_pd(pown_bound_inverse(m, L));
-    } else {
-      K = _mm_set1_pd(pown_bound(m, L));
-    }
-    K = _mm_andnot_pd(_mm_castsi128_pd(_mm_cmpeq_epi64(_mm_castpd_si128(s), _mm_setzero_si128())), K);
-    const __m128d odd = ((m & 1u) != 0u) ? minus_zero : zero;
-    const __m128d sign = _mm_xor_pd(_mm_set_pd(0.0, -0.0), _mm_and_pd(c, odd));
-    const pown_er_lanes vs = { _mm_xor_pd(h.v, sign) }, ws = { _mm_xor_pd(l.v, sign) }, Kl = { K };
-    res = pown_add(vs, pown_fma(Kl, h, ws)).v;
-    return true;
-  }
-#endif
 
   static GAOL_POWN_TARGET interval pown_large_upward(const interval& I, int n)
   {

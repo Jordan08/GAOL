@@ -642,3 +642,89 @@ double hausdorff(const interval &I1, const interval &I2)
     GAOL_RND_LEAVE();
     return res;
   }
+
+  /*
+    The integer powers (GAOL v5, point AP of TODO.md): the two lanes of the
+    kernel of pown_products() in a NEON register, vmulq_f64() and the fused
+    vfmaq_f64(): a * b - c is a * b + (-c), the negation being exact, so that
+    the sum is rounded once and the product not at all, as _mm_fmsub_pd()
+    does. The operations are those of the pair of doubles of pown_scalar_ops,
+    lane by lane, in the direction upward, so that the bounds are the same bit
+    for bit.
+  */
+  struct pown_neon_ops {
+    typedef float64x2_t lanes;
+    typedef uint64x2_t rests;
+    static GAOL_POWN_INLINE lanes mul(lanes a, lanes b) { return vmulq_f64(a, b); }
+    static GAOL_POWN_INLINE lanes fms(lanes a, lanes b, lanes c) { return vfmaq_f64(vnegq_f64(c), a, b); }
+    static GAOL_POWN_INLINE lanes fma(lanes a, lanes b, lanes c) { return vfmaq_f64(c, a, b); }
+    static GAOL_POWN_INLINE lanes twice_plus(lanes a, lanes b) { return vfmaq_f64(b, vdupq_n_f64(2.0), a); }
+    static GAOL_POWN_INLINE rests first_rest(lanes e) { return vreinterpretq_u64_f64(e); }
+    static GAOL_POWN_INLINE void add_rest(rests& s, lanes e) { s = vorrq_u64(s, vreinterpretq_u64_f64(e)); }
+  };
+
+  /*
+    I^n for |n| >= 2 and a nonempty I with the NEON intervals, the rounding
+    direction being upward: both corners at once, in the NEON register, where
+    they are within the range of pown_least[] and pown_greatest[], and
+    pown_by_corners() otherwise (see pown_products()). It repeats the block of
+    the SSE2 intervals (gaol/gaol_interval_sse.cpp), the same operations in the
+    same order: keep them alike, with pown_large_er() (gaol_interval_avx512.cpp).
+    tests/tools/pow/mutate.py has the mutants of the SSE2 block.
+  */
+  static GAOL_POWN_INLINE_T interval pown_large_inline(const interval& I, int n)
+  {
+    const bool negative = n < 0;
+    const unsigned int m = negative ? 0u - static_cast<unsigned int>(n) : static_cast<unsigned int>(n);
+    const unsigned int L = pown_bit_length(m);
+    const double a = I.left(), b = I.right();
+    if (!negative || a > 0.0 || b < 0.0) {
+      // The bounds (a, b) and (-b, -a) are made
+      // from the stored register <-a, b> without going through memory: two
+      // stores of a double and a load of the pair do not forward on many cores
+      const float64x2_t zero = vdupq_n_f64(0.0);
+      const float64x2_t ab = neon_detail::negate_first(I.get_neoninterval());
+      const float64x2_t nba = vnegq_f64(vextq_f64(ab, ab, 1));
+      float64x2_t c = ab;
+      if ((m & 1u) == 0u) {
+        const float64x2_t greater = vmaxq_f64(ab, nba);
+        c = vcombine_f64(vget_low_f64(vmaxq_f64(greater, zero)), vget_high_f64(greater));
+      }
+      if (negative) {
+        c = vextq_f64(c, c, 1);
+      }
+      const float64x2_t g = vabsq_f64(c);
+      uint64x2_t ok = vandq_u64(vcgeq_f64(g, vdupq_n_f64(pown_least[L])), vcleq_f64(g, vdupq_n_f64(pown_greatest[L])));
+      if (!negative) {
+        ok = vorrq_u64(ok, vceqq_f64(c, zero));
+      }
+      if ((vgetq_lane_u64(ok, 0) & vgetq_lane_u64(ok, 1)) != 0u) {
+        float64x2_t h, l, K;
+        uint64x2_t s;
+        pown_powers<pown_neon_ops>(g, m, h, l, s);
+        if (negative) {
+          const float64x2_t one = vdupq_n_f64(1.0);
+          const float64x2_t q = vdivq_f64(one, h);
+          const float64x2_t r = vfmsq_f64(vfmsq_f64(one, q, h), q, l); // (1 - q h) - q l
+          const float64x2_t qr = vmulq_f64(q, r);
+          l = vfmaq_f64(qr, qr, r); // q (r + r^2)
+          h = q;
+          s = vorrq_u64(s, vreinterpretq_u64_f64(r));
+          K = vdupq_n_f64(pown_bound_inverse(m, L));
+        } else {
+          K = vdupq_n_f64(pown_bound(m, L));
+        }
+        // The rests compared as integers (see below): K is 0 where they are
+        K = vreinterpretq_f64_u64(vbicq_u64(vreinterpretq_u64_f64(K), vceqzq_u64(s)));
+        // (-v0 + RU(K h - w0), v1 + RU(K h + w1)), v + w being +-(h + l), of
+        // the sign of c for an odd m, the lower bound negated
+        const std::uint64_t sign_bit = 0x8000000000000000ull;
+        const uint64x2_t odd = ((m & 1u) != 0u) ? vandq_u64(vreinterpretq_u64_f64(c), vdupq_n_u64(sign_bit)) : vdupq_n_u64(0u);
+        const uint64x2_t sign = veorq_u64(vcombine_u64(vcreate_u64(sign_bit), vcreate_u64(0u)), odd);
+        const float64x2_t v = vreinterpretq_f64_u64(veorq_u64(vreinterpretq_u64_f64(h), sign));
+        const float64x2_t w = vreinterpretq_f64_u64(veorq_u64(vreinterpretq_u64_f64(l), sign));
+        return interval(vaddq_f64(v, vfmaq_f64(w, K, h)));
+      }
+    }
+    return pown_by_corners(a, b, n);
+  }
