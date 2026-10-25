@@ -303,8 +303,9 @@ endif()
 # mingw-w64 9 of WinLibs (GCC 11), whose fma() rounds each of its partial sums
 # to a double (the one of mingw-w64 11, accepted, keeps them in extended
 # precision and passes the tests, though not correctly rounded). On ARM, as on
-# x86-64, before version 12 or linked with msvcrt.dll, GAOL v5 not being tested
-# there. From version 12 on, a toolchain linking the UCRT takes those of
+# x86-64, before version 12 or linked with msvcrt.dll, the refusal not being
+# tested there (MSYS2 CLANGARM64, which links the UCRT, is built and tested).
+# From version 12 on, a toolchain linking the UCRT takes those of
 # ucrtbase.dll, which pass the tests.
 #
 # Two reasons had GAOL refuse the MinGW-w64 of Chocolatey before version 15,
@@ -326,7 +327,7 @@ endif()
 #
 # The continuous integration builds GAOL with the MinGW-w64 GCC 14.2.0 and
 # 15.2.0 of Chocolatey on x86-64, and 12.2.0 to 15.2.0 on 32-bit x86, and with
-# MSYS2 UCRT64 and CLANG64, runs the tests with them, and checks that GCC
+# MSYS2 UCRT64, CLANG64 and CLANGARM64, runs the tests with them, and checks that GCC
 # 11.2.0 to 13.2.0 and MSYS2 MINGW64 are refused on x86-64 and GCC 11.2.0 on
 # 32-bit x86 (.github/workflows/windows.yml).
 

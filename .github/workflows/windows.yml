@@ -120,6 +120,9 @@ jobs:
           - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', toolset: '-T ClangCL', clang_cl: true, arch: x64,   config: Release, desc: 'Visual Studio 2026 clang-cl x64 Release' }
           - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', toolset: '-T ClangCL', clang_cl: true, arch: Win32, config: Release, desc: 'Visual Studio 2026 clang-cl x86 Release' }
           - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', toolset: '-T ClangCL', clang_cl: true, arch: ARM64, config: Release, desc: 'Visual Studio 2026 clang-cl arm64 Release' }
+          # The FPU intervals of clang-cl on arm64, which the NEON ones replace
+          # there (GAOL v5): they read and write FPCR with asm, as the NEON ones
+          - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', toolset: '-T ClangCL', clang_cl: true, arch: ARM64, config: Release, opts: '-DGAOL_ARM64=OFF', desc: 'Visual Studio 2026 clang-cl arm64 Release, FPU intervals' }
           # clang-cl x64 keeps the asm statements of Clang in the AVX-512 path and
           # takes the SSE2 intervals with the rounding direction preserved through
           # MXCSR alone (/arch:AVX2 defines __FMA__ for it, not for cl), which no
@@ -559,7 +562,7 @@ jobs:
   # MSYS2 MINGW64 links msvcrt.dll rather than the UCRT: its mingw-w64, 12 or
   # later, still gives the programs the fma() and round() of mingw-w64's own
   # math library, which gaol/gaol_config.h refuses, with GCC and with Clang
-  # (_UCRT undefined). UCRT64 and CLANG64 are built and tested above.
+  # (_UCRT undefined). UCRT64, CLANG64 and CLANGARM64 are built and tested above.
   msys2-refused:
     name: ${{ matrix.cfg.desc }}
     runs-on: windows-2022
