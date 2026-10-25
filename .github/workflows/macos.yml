@@ -91,6 +91,49 @@ jobs:
           cmake --build build-find-package -j 4
           cmake --build build-find-package --target test
 
+  # A universal build (arm64 and x86_64 compiled from one configuration, GAOL
+  # v5): each architecture takes its own intervals, NEON for arm64 and SSE2 for
+  # x86_64, which the configuration header derives from __aarch64__ and
+  # __x86_64__ (GAOL_UNIVERSAL_NEON and GAOL_UNIVERSAL_SSE2). The macros are
+  # read for each architecture by the preprocessor, then the tests run natively
+  # (the arm64 part) and under Rosetta (the x86_64 part), and the program of
+  # performance says which intervals each one has.
+  universal:
+    name: macOS 26 universal (arm64 and x86_64)
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - name: Rosetta, to run x86_64 programs on arm64
+        run: sudo softwareupdate --install-rosetta --agree-to-license
+      - name: Configure
+        run: |
+          c++ --version
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON "-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64"
+      - name: The intervals of each architecture
+        run: |
+          for spec in "arm64 NEON SSE2" "x86_64 SSE2 NEON"; do
+            set -- $spec
+            echo '#include "gaol/gaol_configuration.h"' | c++ -arch $1 -I build -x c++ -dM -E - | grep GAOL_USING_ > macros-$1.txt
+            cat macros-$1.txt
+            grep -q "^#define GAOL_USING_$2_INSTRUCTIONS 1" macros-$1.txt
+            ! grep -q "^#define GAOL_USING_$3_INSTRUCTIONS 1" macros-$1.txt
+          done
+      - name: Build
+        run: cmake --build build -j 4
+      - name: Tests of the arm64 part (natively)
+        run: |
+          lipo -archs build/tests/gaol_test_arithmetic
+          cmake --build build --target test
+      - name: Tests of the x86_64 part (Rosetta)
+        run: arch -x86_64 ctest --test-dir build -j 4 --output-on-failure
+      - name: Which intervals each part has
+        run: |
+          build/tests/gaol_performance | head -n 1 | tee arm64.txt
+          arch -x86_64 build/tests/gaol_performance | head -n 1 | tee x86_64.txt
+          grep -q "NEON intervals" arm64.txt
+          grep -q "SSE2 intervals" x86_64.txt
+
   # -Wall -Wextra -Werror with the AppleClang of macOS 26 arm64 (GAOL v5), as
   # with GCC and Clang in linux.yml: the library, the sources of CORE-MATH
   # included, the tests and the examples, and each header GAOL installs,
