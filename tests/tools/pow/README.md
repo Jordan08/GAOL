@@ -30,7 +30,8 @@ GAOL, or a build with mpmath, and their results are read by whoever changes
 | `evalrows.cpp` | Computes `gaol_ieee1788::pow` and `gaol::pow` on the boxes of a rows file |
 | `gen_table.py` | Reads the table of `pow_on_boxes()` into a rows file (`extract`), writes the table from a rows file (`cpp`, `--into` to replace it in `tests/ieee1788.cpp`), and lists the boxes whose bounds differ between two rows files (`diff`) |
 | `checkrows.py` | Checks the bounds of a rows file against the exact power, computed with 500 bits by mpmath: they have to enclose it, within one double of the tightest bounds |
-| `mutate.py` | Mutation testing: builds GAOL with one deliberate error in `pow` or in the integer power at a time (100 mutants), runs the tests, and runs `diffpow` on the mutants that survive, to tell an equivalent mutant from a box the tests lack |
+| `mutate.py` | Mutation testing: builds GAOL with one deliberate error in `pow` or in the integer power at a time (104 mutants), runs the tests, and runs `diffpow` on the mutants that survive, to tell an equivalent mutant from a box the tests lack |
+| `negative_power_rows.py` | Writes the rows `{ x, n, lo, hi }` of the table of large negative powers of `large_powers()` in `tests/arithmetic.cpp`: the tightest bounds of x<sup>n</sup>, n from −2<sup>31</sup> + 1 to −2<sup>27</sup>, computed with mpmath on 2000 bits, for the powers that lie at least 1/16 of the spacing of the doubles from each double |
 | `pown_bound.py` | Checks with rationals the induction of the comment of `pown_products()`, which bounds beforehand the error of the exact products of the integer power, and the bound K drawn from it, for c<sup>m</sup> and c<sup>−m</sup> |
 | `bench.cpp` | The time per call of the pow functions, on each path of `pow_standard()` |
 | `build.py` | Compiles `diffpow.cpp`, `evalrows.cpp` or `bench.cpp` against a build of GAOL; the other scripts import it |
@@ -177,7 +178,8 @@ is not listed as equivalent, or that cannot be applied or compiled.
 
 The mutants are the list `MUTANTS` of `mutate.py`, written for the code of
 `configure-clean` on 2026-10-04 and brought up to date with the pull
-requests of B (the corners and their limits of B.2 included): a change of
+requests of B (the corners and their limits of B.2 included) and with #183,
+#184 and #191: a change of
 `pow` that edits the code they replace has to bring their texts and the
 equivalent mutants up to date too (`--list` tells which no longer apply), or
 give another list with `--mutants FILE`.
@@ -317,8 +319,8 @@ called CORE-MATH at once.
   it does not check the sign of a zero.
 - The rows file and the table do not tell -0 from +0, nor does the test; the
   differential test does.
-- `mutate.py` knows the code of the pull requests of B; its texts have to
-  follow the code. It edits one file at a time and runs only the tests
+- `mutate.py` knows the code of the pull requests of B, #183, #184 and #191;
+  its texts have to follow the code. It edits one file at a time and runs only the tests
   given; `diffpow` tells an equivalent mutant on its boxes only.
 - `bench.cpp` measures one machine and one compiler; the 2 to 3 % of #37 were
   measured with GCC 9.4 only.
