@@ -55,10 +55,25 @@
 #cmakedefine GAOL_USING_SSE3_INSTRUCTIONS 1
 
 /* Defined to 1 where the intervals are computed with NEON instructions
-   (64-bit ARM processors, with every compiler; not with 32-bit ARM or a
-   universal build of macOS; GAOL_ARM64, --enable-arm64, -Denable-arm64,
-   on by default; independent of GAOL_SIMD) (GAOL v5) */
+   (64-bit ARM processors, with every compiler; not with 32-bit ARM;
+   GAOL_ARM64, --enable-arm64, -Denable-arm64, on by default; independent of
+   GAOL_SIMD) (GAOL v5) */
 #cmakedefine GAOL_USING_NEON_INSTRUCTIONS 1
+
+/* Defined to 1 by a universal build of macOS (CMake only; several
+   architectures compiled from one configuration): SSE2 for the x86_64 part,
+   where GAOL_SIMD allows it, and NEON for the arm64 part, where GAOL_ARM64
+   does. The macros above are then those of the architecture being compiled
+   (GAOL v5) */
+#cmakedefine GAOL_UNIVERSAL_SSE2 1
+#cmakedefine GAOL_UNIVERSAL_NEON 1
+#if defined(GAOL_UNIVERSAL_SSE2) && defined(__x86_64__)
+#  define GAOL_USING_SSE2_INSTRUCTIONS 1
+#  define GAOL_USING_SSE3_INSTRUCTIONS 1
+#endif
+#if defined(GAOL_UNIVERSAL_NEON) && defined(__aarch64__)
+#  define GAOL_USING_NEON_INSTRUCTIONS 1
+#endif
 
 /* Defined to 1 where the compiler accepts the AVX-512 instructions in the
    functions that carry __attribute__((target("avx512f"))) and
