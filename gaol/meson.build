@@ -157,6 +157,7 @@ EXTRA_DIST = [
   'parser/gaol_interval_parser.ypp',
   'core/gaol_interval_sse.cpp',
   'core/gaol_interval_neon.cpp',
+  'core/gaol_interval_fpu.cpp',
   'core/gaol_interval_avx512.cpp',
   # Headers and sources of GAOL, not installed: the bounds at doubles, *_dn()
   # and *_up(), which are not part of its interface, and the intervals of
