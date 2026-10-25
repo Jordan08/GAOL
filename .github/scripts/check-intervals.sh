@@ -9,6 +9,11 @@
 #
 #   sh .github/scripts/check-intervals.sh <gaol_configuration.h> neon|sse2|fpu
 #
+# It reads the macros the build defined at the start of a line. A universal
+# build of macOS (GAOL_UNIVERSAL_SSE2 and GAOL_UNIVERSAL_NEON) defines them by
+# architecture, indented, so that it would say fpu: the job of macos.yml for it
+# asks the preprocessor of each architecture instead.
+#
 header=$1
 expected=$2
 if [ ! -f "$header" ] || [ -z "$expected" ]; then

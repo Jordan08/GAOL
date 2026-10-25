@@ -37,8 +37,11 @@ only (see [The speed of a pull request](#the-speed-of-a-pull-request)). The badg
     where GCC calls the intersection rather than inlining it, and
     `tests/rounding_direction.cpp` checks the choices a program makes on
     `is_empty()` of an empty interval there too.
-- **macOS:** 14, 15 and 26, on arm64 and x86_64 (natively or under Rosetta), and
-  with the sanitizers with AppleClang, LLVM's Clang and GCC.
+- **macOS:** 14, 15 and 26, on arm64 and x86_64 (natively or under Rosetta), a
+  universal build (arm64 and x86_64, GAOL v5: the macros of each part, the tests
+  of the arm64 part natively and the test programs of the x86_64 part under
+  Rosetta, and the intervals each part says it has), and with the sanitizers
+  with AppleClang, LLVM's Clang and GCC.
 - **Windows:**
   - Visual Studio 2022 and 2026, on x86, x64 and arm64, Release and Debug (on
     arm64, the compiler of Visual Studio 2022, MSVC 14.44, installed with

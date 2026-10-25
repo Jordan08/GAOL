@@ -117,7 +117,10 @@ jobs:
             echo '#include "gaol/gaol_configuration.h"' | c++ -arch $1 -I build -x c++ -dM -E - | grep GAOL_USING_ > macros-$1.txt
             cat macros-$1.txt
             grep -q "^#define GAOL_USING_$2_INSTRUCTIONS 1" macros-$1.txt
-            ! grep -q "^#define GAOL_USING_$3_INSTRUCTIONS 1" macros-$1.txt
+            if grep -q "^#define GAOL_USING_$3_INSTRUCTIONS 1" macros-$1.txt; then
+              echo "::error::the $1 part has the $3 intervals"
+              exit 1
+            fi
           done
       - name: Build
         run: cmake --build build -j 4
@@ -125,8 +128,21 @@ jobs:
         run: |
           lipo -archs build/tests/gaol_test_arithmetic
           cmake --build build --target test
+      # The test programs themselves, not ctest, which is arm64 only on the
+      # runner (Homebrew): a program that skips gives 77
       - name: Tests of the x86_64 part (Rosetta)
-        run: arch -x86_64 ctest --test-dir build -j 4 --output-on-failure
+        run: |
+          for t in build/tests/gaol_test_*; do
+            if [ -f "$t" ] && [ -x "$t" ]; then
+              echo "== $t"
+              status=0
+              arch -x86_64 "$t" || status=$?
+              if [ "$status" != 0 ] && [ "$status" != 77 ]; then
+                echo "::error::$t failed ($status)"
+                exit 1
+              fi
+            fi
+          done
       - name: Which intervals each part has
         run: |
           build/tests/gaol_performance | head -n 1 | tee arm64.txt
