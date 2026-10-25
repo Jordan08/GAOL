@@ -7,7 +7,8 @@ propose une pull request, et comment on tient les registres à jour une fois la
 pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
-en cours, ce qui reste) est au §12.
+en cours, ce qui reste) est au §12. Dernière mise à jour : 25 octobre 2026, au
+commit `efd943b` de `configure-clean`.
 
 ## 1. Le contexte
 
@@ -130,7 +131,8 @@ commits.
   autre tâche (`autotools-distclean`, `no-explicit-libm`).
 - Une seule exception : on commite **directement sur `configure-clean`**
   - la mise à jour de `TODO.md`, `TODO_DONE.md` et `TODO_AFTER.md` après une
-    fusion (section 9) ;
+    fusion, avec celle de la date et du commit de l'en-tête de `process.md` et
+    de son §12 (section 9) ;
   - les corrections que le mainteneur a explicitement autorisées là, comme les
     avertissements trouvés par les jobs `-Werror` et `/WX` ou un délai de la
     CI.
@@ -268,7 +270,10 @@ Ce sont les outils d'Ubuntu 26.04, tous dans le `PATH` (constaté le 11 octobre
 ici » ce que la machine ne permet pas. La machine d'Ubuntu 26.04 n'a plus GCC 9,
 que couvre le job `gcc-9` de `linux.yml`, ni meson 0.53.2, la plus ancienne
 version que le build meson prend en charge, que couvre le job `meson-oldest` de
-`build-systems.yml` (#110).
+`build-systems.yml` (#110). Sur une machine sous Ubuntu 24.04 (GCC 13.3, CMake
+3.28, python 3.12), qui n'a ni autoconf, ni automake, ni libtool, ni meson, ni
+ninja, construis autoconf 2.72 depuis le tarball de ftp.gnu.org (sha256
+vérifié), et installe meson et ninja dans un environnement virtuel.
 
 Le processeur (i7-1185G7) a AVX-512 et FMA. Il ne voit donc jamais les chemins
 sans FMA : la CI les couvre.
@@ -519,7 +524,9 @@ commite pas. Fais seulement ta mise à jour, ou demande-lui. Ensuite :
   X (<date>), fait par #NN »), le point fait à la section 4 ou 5, la ligne du
   jour à la section 7 et, à la section 8, les branches supprimées ; mets à jour
   l'état de la section 1 ;
-- `TODO_AFTER.md` : seulement si quelque chose est reporté, écarté ou repris.
+- `TODO_AFTER.md` : seulement si quelque chose est reporté, écarté ou repris ;
+- `process.md` : la date et le commit de l'en-tête, et l'état du §12 (pull
+  requests ouvertes, faits, à faire).
 
 Garde des lignes de 80 colonnes au plus. Commite seulement les fichiers que tu
 as changés, en les nommant (`git add TODO.md TODO_DONE.md`), avec un sujet comme
@@ -675,6 +682,38 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   `[[deprecated]]` provisoirement et compile avec chaque configuration : SSE2,
   SSE2 avec AVX-512, NEON en compilation croisée), non par `grep`, et recommence
   après chaque fusion de `configure-clean`.
+- Le test d'allocations de `tests/expressions.cpp` remplace `operator new` et
+  `operator delete` du programme. Quand la bibliothèque C++ est dans une DLL
+  (Windows : libstdc++ de MSYS2 et de MinGW-w64, libc++ de CLANG64), il ne voit
+  pas les allocations qu'elle fait pour un `std::string`, dont le destructeur en
+  ligne appelle pourtant le `operator delete` du programme : un `std::string` de
+  plus de 15 caractères dans le code de la lecture fait échouer « a reading
+  frees all it allocated » (quatre jobs de #149). Un `std::vector` est sans
+  danger.
+- Une écriture du registre de contrôle par `asm volatile` n'est ordonnée
+  qu'avec les autres `asm`, non avec les opérations sur des registres (bogue
+  34678 de GCC) : une fonction en ligne qui lit ses bornes avant
+  `GAOL_RND_ENTER()` calcule dans le sens du programme (#150). La règle est
+  dans le commentaire de `gaol/gaol_fpu.h` : lire les bornes après la
+  vérification, et passer un `double` pris par valeur par `rnd_reread()`. Un
+  test doit appeler la fonction sur un intervalle construit dans la même
+  fonction, non sur un intervalle relu en mémoire, qui cache le défaut.
+- Un script qui édite un long fichier avec `s.index("# un commentaire")` peut
+  tomber sur une occurrence plus haute et dupliquer des centaines de lignes :
+  `meson.build` est passé de 775 à 1097 lignes dans #192, et la copie, que
+  meson exécutait en dernier, aurait laissé clang-cl et MinGW-w64 en FPU sans
+  qu'aucun job de la CI le voie. Contrôle `wc -l` et `git diff --stat` après
+  toute édition par script.
+- Visual C++ pour ARM64 (#192) : `/volatile:iso` y est le réglage par défaut, et
+  un `volatile` n'y est pas ordonné avec le reste, d'où `_ReadWriteBarrier()`
+  avant et après `_WriteStatusReg()` (`gaol/gaol_fpu_fenv.h`) ; `float64x2_t`,
+  `uint64x2_t` et `int64x2_t` y sont un seul type (`__n128`) ; `/O2 /fp:strict`
+  réécrit `(-.5)*l + .5*r` en `.5*r - .5*l`, d'où le `rnd_keep()` des moitiés
+  dans `mid()` de toutes les sortes d'intervalles.
+- Sur le runner macOS, `arch -x86_64 ctest` échoue quand le `ctest` (Homebrew)
+  n'est que pour arm64 : lance les programmes de test un à un (#194). Et `!
+  grep ...` ne fait jamais échouer une étape sous `bash -e` : écris un `if`
+  explicite.
 
 ## 12. Où en est le travail (25 octobre 2026)
 
