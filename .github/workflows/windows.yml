@@ -83,6 +83,14 @@ jobs:
           - { os: windows-2022,          generator: 'Visual Studio 17 2022', arch: Win32, config: Debug,   desc: 'Visual Studio 2022 x86 Debug' }
           - { os: windows-2022,          generator: 'Visual Studio 17 2022', arch: x64,   config: Debug,   desc: 'Visual Studio 2022 x64 Debug' }
           - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', toolset: '-T v143', cl: '19.44', arch: ARM64, config: Debug,   desc: 'Visual Studio 2022 arm64 Debug' }
+          # The NEON intervals of Visual C++ for arm64 (GAOL v5) read and write
+          # FPCR through _ReadStatusReg() and _WriteStatusReg(), and no asm
+          # statement orders their operations: the jobs above and
+          # tests/rounding_direction.cpp are what checks them. This one runs
+          # them with the rounding direction restored by each operation too,
+          # and the next one the FPU intervals, which -DGAOL_ARM64=OFF gives
+          - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', arch: ARM64, config: Release, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Visual Studio 2026 arm64 Release, rounding direction preserved' }
+          - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', arch: ARM64, config: Release, opts: '-DGAOL_ARM64=OFF', desc: 'Visual Studio 2026 arm64 Release, FPU intervals' }
           - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', arch: x64,   config: Release, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Visual Studio 2026 x64 Release, rounding direction preserved' }
           # The AVX-512 path of the arithmetic (GAOL_PREFER_AVX512), which
           # Visual C++ and clang-cl take as GCC and Clang do: on a runner with
@@ -132,11 +140,15 @@ jobs:
             test "$(grep -c -E "The (C|CXX) compiler identification is Clang .* with MSVC-like command-line" configure.log)" = 2
           fi
       # The intervals of the build: the SSE2 ones on x64, where Visual C++ and
-      # clang-cl take them (GAOL v5), and the FPU ones on x86 and arm64, where
-      # NEON is not offered to them (GAOL_ARM64)
+      # clang-cl take them (GAOL v5), the NEON ones on arm64 with Visual C++
+      # (GAOL_ARM64, on by default; GAOL v5), and the FPU ones on x86 and with
+      # clang-cl on arm64, where NEON is not offered to it
       - name: The intervals
         run: |
-          if [ "${{ matrix.cfg.arch }}" = "x64" ]; then expected=sse2; else expected=fpu; fi
+          if [ "${{ matrix.cfg.arch }}" = "x64" ]; then expected=sse2
+          elif [ "${{ matrix.cfg.arch }}" = "ARM64" ] && [ "${{ matrix.cfg.clang_cl }}" != "true" ]; then expected=neon
+          else expected=fpu; fi
+          case "${{ matrix.cfg.opts }}" in *GAOL_ARM64=OFF*) expected=fpu ;; esac
           sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h $expected
       # On x64, the processor of the runner, and whether the arithmetic takes
       # the AVX-512 path, which the configuration decides from the

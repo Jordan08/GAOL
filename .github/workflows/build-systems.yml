@@ -369,6 +369,7 @@ jobs:
           - { os: windows-2022,        arch: x64, desc: 'Meson, Visual Studio 2022 x64' }
           - { os: windows-2025-vs2026, arch: x64, desc: 'Meson, Visual Studio 2026 x64' }
           - { os: windows-2022,        arch: x86, desc: 'Meson, Visual Studio 2022 x86' }
+          - { os: windows-11-vs2026-arm, arch: arm64, desc: 'Meson, Visual Studio 2026 arm64' }
     steps:
       - uses: actions/checkout@v7
       - uses: ilammy/msvc-dev-cmd@v1
@@ -399,11 +400,11 @@ jobs:
             if (Test-Path "$prefix/include/gaol/$f") { Write-Output "$f is installed"; exit 1 }
           }
       # The intervals meson took, as CMake does (windows.yml): the SSE2 ones on
-      # x64 (GAOL v5), the FPU ones on x86
+      # x64, the NEON ones on arm64 (GAOL v5), the FPU ones on x86
       - name: The intervals
         shell: bash
         run: |
-          if [ "${{ matrix.cfg.arch }}" = "x64" ]; then expected=sse2; else expected=fpu; fi
+          case "${{ matrix.cfg.arch }}" in x64) expected=sse2 ;; arm64) expected=neon ;; *) expected=fpu ;; esac
           sh .github/scripts/check-intervals.sh build-meson/gaol/gaol_configuration.h $expected
       - name: Tests (ninja test, make test of meson)
         run: |
