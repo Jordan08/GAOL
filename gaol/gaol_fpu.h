@@ -63,7 +63,8 @@ sets them on x86 and on ARM Linux; so does Clang on Linux. GAOL clears them
 subnormal results, and denormals-are-zero (DAZ, bit 6), which reads the
 subnormal operands as zeros, of MXCSR (_MM_FLUSH_ZERO_MASK, and
 _MM_DENORMALS_ZERO_MASK of <pmmintrin.h>);
-- on 64-bit ARM processors, with GCC and Clang, FZ (bit 24), which flushes
+- on 64-bit ARM processors, with GCC and Clang (clang-cl and the Clang of
+MinGW-w64 included), FZ (bit 24), which flushes
 the subnormal operands and results, and FIZ (bit 0, from Armv8.7 on),
 which flushes the subnormal operands, of FPCR (instructions mrs and msr), and
 with Visual C++ and the NEON intervals (_ReadStatusReg(ARM64_FPCR) and
@@ -79,7 +80,7 @@ states of the same kind as FTZ and DAZ, stay as the program left them (not
 tested on these processors; GAOL v5). */
 #if GAOL_RND_SSE_REGISTER
 #  define GAOL_RND_FLUSH_BITS 0x8040u
-#elif (defined(__aarch64__) && defined(__GNUC__)) || (GAOL_NEON_MSVC && GAOL_USING_NEON_INSTRUCTIONS)
+#elif (defined(__aarch64__) && (defined(__GNUC__) || defined(__clang__))) || (GAOL_NEON_MSVC && GAOL_USING_NEON_INSTRUCTIONS)
 #  define GAOL_RND_FPCR_REGISTER 1
 #  define GAOL_RND_FLUSH_BITS 0x1000001u
 #elif defined(__arm__) && defined(__ARM_FP) && defined(__GNUC__)

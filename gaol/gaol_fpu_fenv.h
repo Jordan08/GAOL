@@ -313,9 +313,10 @@ namespace gaol_core {
     FE_UPWARD, FE_DOWNWARD and FE_TOWARDZERO of the C libraries of 64-bit and
     32-bit ARM are these bits, which the assertion checks.
   */
-#  if !GAOL_NEON_MSVC
-  // Not those of Visual C++, whose FE_* are the bits of its own control word (0x100 for
-  // FE_DOWNWARD): GAOL reads and writes FPCR itself there, and never gives them to fesetround()
+#  if !defined(_WIN32)
+  // Not those of Windows (Visual C++, clang-cl, MinGW-w64), whose FE_* are the bits of
+  // the control word of the C runtime (0x100 for FE_DOWNWARD): GAOL reads and writes
+  // FPCR itself there, and never gives them to fesetround()
   static_assert(FE_TONEAREST == 0 && FE_UPWARD == 0x400000 && FE_DOWNWARD == 0x800000
                 && FE_TOWARDZERO == 0xc00000, "FE_* are the RMode bits of FPCR");
 #  endif

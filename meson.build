@@ -373,18 +373,340 @@ endif
 # enable-arm64 (GAOL v5): on 64-bit ARM processors, the intervals are computed
 # with NEON instructions (gaol_interval_neon.h), as CMakeLists.txt and configure
 # do (see CMakeLists.txt), independently of enable-simd. Where the test below
-# compiles, whatever the processor of the machine building: GCC, Clang and
-# AppleClang for AArch64 under Linux and macOS, with the intrinsics of
-# <arm_neon.h> and the registers of the rounding mode. NEON needs no flag.
-# Visual C++ (cl) for 64-bit ARM too, with _ReadStatusReg() and
-# _WriteStatusReg() for the registers (GAOL v5). Not for clang-cl, nor for a
-# target of Windows with another compiler (MinGW-w64 and MSYS2 define
-# __aarch64__ too), nor for 32-bit ARM or x86: the option is then ignored, and
-# the intervals are computed with the FPU. The refusals above (Clang 14, Clang
-# on 32-bit ARM) come first. The program is the same as that of CMakeLists.txt
-# (and configure, for GCC and Clang: it does not build with Visual C++); the
-# flags of interval arithmetic are given to it, as the checks of the compiler do
-# not get add_project_arguments().
+# compiles, whatever the processor of the machine building: every compiler of
+# AArch64, GCC, Clang and AppleClang, clang-cl and the Clang of MinGW-w64 and
+# MSYS2 included (GAOL v5), with the intrinsics of <arm_neon.h> and the
+# registers of the rounding mode. NEON needs no flag. Visual C++ (cl) has
+# _ReadStatusReg() and _WriteStatusReg() for the registers, and a test of its
+# own. Not for 32-bit ARM or x86: the option is then ignored, and the intervals
+# are computed with the FPU. The refusals above (Clang 14, Clang on 32-bit ARM)
+# come first. The program is the same as that of CMakeLists.txt (and configure,
+# for GCC and Clang: it does not build with Visual C++); the flags of interval
+# arithmetic are given to it, as the checks of the compiler do not get
+# add_project_arguments().
+use_neon = false
+if arm64 and cpp_comp.get_id() == 'msvc'
+  use_neon = cpp_comp.compiles('''
+#if !defined(_M_ARM64) || defined(__clang__)
+#error GAOL computes its intervals with NEON on 64-bit ARM processors only
+#endif
+#include <arm_neon.h>
+#include <intrin.h>
+int main()
+{
+  const unsigned long long fpcr = static_cast<unsigned long long>(_ReadStatusReg(ARM64_FPCR));
+  _WriteStatusReg(ARM64_FPCR, static_cast<__int64>(fpcr));
+  const float64x2_t x = vaddq_f64(vdupq_n_f64(1.0), vdupq_n_f64(2.0));
+  return static_cast<int>(vgetq_lane_f64(x, 0)) - 3;
+}
+''', args: pc_cflags, name: 'Visual C++ takes the NEON intrinsics and the registers of the rounding mode for a 64-bit ARM target')
+elif arm64
+  use_neon = cpp_comp.compiles('''
+#if !defined(__aarch64__)
+#error GAOL computes its intervals with NEON on 64-bit ARM processors only
+#endif
+#include <arm_neon.h>
+int main()
+{
+  unsigned long long fpcr;
+  __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));
+  __asm__ __volatile__ ("msr fpcr, %0" : : "r" (fpcr) : "memory");
+  const float64x2_t x = vaddq_f64(vdupq_n_f64(1.0), vdupq_n_f64(2.0));
+  return static_cast<int>(vgetq_lane_f64(x, 0)) - 3;
+}
+''', args: pc_cflags, name: 'the compiler takes the NEON intrinsics and the registers of the rounding mode for a 64-bit ARM target')
+endif
+if use_neon
+  conf_data.set('GAOL_USING_NEON_INSTRUCTIONS', 1)
+endif
+
+# enable-prefer-avx512: auto (the default), true or false (see below)
+prefer_avx512_option = get_option('enable-prefer-avx512')
+prefer_avx512_requested = prefer_avx512_option == 'true'
+exception = get_option('enable-exception')
+# The Debug build, as CMAKE_BUILD_TYPE=Debug and configure --enable-debug:
+# GAOL checks its assertions (GAOL_DEBUGGING). The build type gives it with the
+# optimizations, and enable-optimize is gone (GAOL v5)
+debug = get_option('buildtype') == 'debug'
+release = get_option('buildtype') == 'release'
+# The options of the libraries of GAOL and CORE-MATH (gaol/meson.build)
+gaol_build_options = []
+# enable-debug builds them for debugging whatever the build type, a subproject
+# included, as GAOL_DEBUG of CMake: without optimization, without NDEBUG, and
+# with GAOL_DEBUGGING (GAOL v5: it defined GAOL_DEBUGGING alone, and was gone)
+#
+# Brought in as a subproject, GAOL is built in release by default, as CMake and
+# configure build it brought into another project (GAOL v5). meson 1.8.4 and
+# later give a subproject its own default build type, release here; earlier
+# ones give it the build type of the project, without optimization in meson's
+# default, debug, and before 1.8 with GAOL_DEBUGGING too, while 1.8.0 to 1.8.3
+# have get_option('buildtype') read the release of GAOL: the options
+# optimization and debug tell the build type of the project there. A
+# subproject cannot tell meson's default from a --buildtype=debug asked for:
+# where they are those of debug, the libraries of GAOL and CORE-MATH are
+# compiled as in release (override_options, gaol/meson.build), and in the
+# release of the project with NDEBUG, which the b_ndebug=if-release of
+# default_options gives where they apply. Not with Visual C++ before meson
+# 0.57, whose build type debug gives /RTC1, which cl refuses with the /O2 of
+# optimization=3, and whose C runtime follows the build type of the target.
+if get_option('enable-debug')
+  gaol_build_options = ['optimization=0', 'debug=true', 'b_ndebug=false']
+  debug = true
+elif meson.is_subproject() and meson.version().version_compare('<1.8.4') and not (msvc and meson.version().version_compare('<0.57'))
+  debug = false
+  release = get_option('optimization') == '3' and not get_option('debug')
+  if get_option('optimization') == '0' and get_option('debug')
+    gaol_build_options = ['optimization=3', 'debug=false', 'b_ndebug=true']
+    release = true
+  elif release
+    gaol_build_options = ['b_ndebug=true']
+  endif
+endif
+# The mathematical library
+#
+# GAOL bounds every one of its elementary functions with CORE-MATH
+# (https://core-math.gitlabpages.inria.fr, MIT licence), whose sources are in
+# 3rd/math-core and are compiled into libgaol itself (gaol/meson.build): there
+# is no library to find, to build apart or to link along with GAOL.
+message('Elementary functions: CORE-MATH, from 3rd/math-core (correctly rounded)')
+
+doc = get_option('with-doc')
+# The unit tests of tests/ and the examples of examples/, as WITH_TESTS and
+# WITH_EXAMPLES of CMake, --with-tests and --with-examples of configure (GAOL
+# v5; with-test before)
+build_tests = get_option('with-tests')
+build_examples = get_option('with-examples')
+
+# No math library of the system (GAOL v5): GAOL and CORE-MATH still call its
+# functions (those of <fenv.h>, sqrt, floor, round, fma where the processor has
+# no such instruction...), which the C++ compiler links itself, as with CMake
+# and configure
+deps = []
+
+os_win = host_machine.system() == 'windows'
+
+message('CPU: ' + host_machine.cpu_family() + ' (' + host_machine.cpu() + ')')
+message('OS: ' + host_machine.system())
+
+# The processor and the system: gaol/gaol_config.h names them from the macros
+# of the compiler, for the three builds alike, and every processor is accepted
+# (meson.build refused every cpu() other than aarch64, x86 and x86_64, i686
+# and armv7l included)
+
+# gaol/gaol_configuration.h: the macros of the configuration of GAOL, the same
+# as with CMake and configure (see doc/building.md). The checks of headers,
+# functions, types and sizes nothing read are gone (GAOL v5).
+conf_data = configuration_data()
+conf_data.set('GAOL_MAJOR_VERSION', major_version)
+conf_data.set('GAOL_MINOR_VERSION', minor_version)
+conf_data.set('GAOL_MICRO_VERSION', micro_version)
+conf_data.set_quoted('GAOL_VERSION', meson.project_version())
+
+if exception
+  conf_data.set('GAOL_EXCEPTIONS_ENABLED', 1)
+endif
+if debug
+  conf_data.set('GAOL_DEBUGGING', 1)
+endif
+if preserve_rounding
+  conf_data.set('GAOL_PRESERVE_ROUNDING', 1)
+endif
+# No option for the intervals of floats, gaol::intervalf and gaol::interval2f,
+# unfinished, which only a developer of GAOL compiles (see gaol/gaol_config.h)
+if get_option('enable-verbose-mode')
+  conf_data.set('GAOL_VERBOSE_MODE', 1)
+endif
+
+# gaol/gaol_fpu.h: <fenv.h>
+if cpp_comp.has_header('fenv.h')
+  conf_data.set('GAOL_HAVE_FENV_H', 1)
+endif
+
+# The compilers CMakeLists.txt and configure refuse, for the same reasons (see
+# CMakeLists.txt): Clang for 32-bit ARM processors, which does not honour the
+# rounding direction, and a compiler that takes -frounding-math and says it
+# does not honour the rounding direction on the target ("overriding currently
+# unsupported rounding mode on this target"), as Clang 14 for 64-bit ARM. Both
+# the C++ compiler and the C compiler are checked: the C compiler builds
+# CORE-MATH, whose bounds the C++ compiler's refusal in gaol/gaol_config.h does
+# not reach (GAOL v5)
+foreach lang_compiler : [['C++', cpp_comp], ['C', c_comp]]
+  lang_name = lang_compiler[0]
+  lang_comp = lang_compiler[1]
+  lang_comp_name = lang_comp.get_id() + ' ' + lang_comp.version()
+  if not lang_comp.compiles('''
+#if defined(__arm__) && !defined(__aarch64__) && defined(__clang__)
+#error Clang for a 32-bit ARM processor
+#endif
+int main(void) { return 0; }
+''', name: 'the ' + lang_name + ' compiler is not Clang for a 32-bit ARM processor')
+    error('GAOL cannot be built with the ' + lang_name + ' compiler ' + lang_comp_name + ', Clang for a 32-bit ARM processor.\n'
+      + 'Clang does not honour the rounding direction on 32-bit ARM processors: it does not support -frounding-math there (overriding currently unsupported rounding mode on this target) and optimizes floating-point operations as if they were always rounded to nearest. GAOL computes with the rounding direction set upward, so that the intervals it computes would not enclose the values they should (built by Clang 21, 4556 of 16000 random products, squares and cubes did not). The C compiler builds CORE-MATH and the C++ compiler the rest of GAOL: neither may be Clang there.\n'
+      + 'Build GAOL with GCC, which honours the rounding direction on 32-bit ARM processors: CXX=g++ CC=gcc meson setup ...')
+  endif
+  if lang_comp.has_argument('-frounding-math')
+    if not lang_comp.compiles('int main(void) { return 0; }', args: ['-frounding-math', '-Werror'],
+                              name: 'the ' + lang_name + ' compiler honours the rounding direction on this target')
+      error('GAOL cannot be built with the ' + lang_name + ' compiler ' + lang_comp_name + ' for this target.\n'
+        + 'This compiler does not honour the rounding direction on this target, and says so of -frounding-math (overriding currently unsupported rounding mode on this target). GAOL computes with the rounding direction set upward, so that the intervals it computes would not enclose the values they should (built by Clang 14 for 64-bit ARM processors, bounds of pow() and nth_root() did not). The C compiler builds CORE-MATH and the C++ compiler the rest of GAOL: neither may be such a compiler.\n'
+        + 'Build GAOL with a compiler that honours the rounding direction on this target, such as GCC or a later version of Clang (Clang 18 does on 64-bit ARM processors).')
+    endif
+  endif
+endforeach
+
+
+# The flags of interval arithmetic, each where the compiler accepts it, as
+# CMakeLists.txt and configure give them: -frounding-math; -ffp-contract=off
+# (without it, compilers contract a multiplication and an addition into a fused
+# one as if rounding to nearest: on 64-bit ARM, -(.5*l - .5*r) and -.5*l + .5*r
+# both became fnma(.5, l, .5*r), and mid() a single double); -fno-fast-math.
+# These flags, and the others below, are arguments of the project rather than
+# global ones, which meson refuses in a subproject: GAOL can then be a
+# subproject of a meson project, whose own targets they do not reach, and
+# gaol_dep gives that project's code the flags gaol.pc gives (pc_cflags, see
+# gaol/meson.build) (GAOL v5)
+pc_cflags = []  # the flags of interval arithmetic, which gaol.pc gives the code using GAOL
+foreach flag : ['-frounding-math', '-ffp-contract=off', '-fno-fast-math']
+  if cpp_comp.has_argument(flag)
+    add_project_arguments([flag], language: 'cpp')
+    pc_cflags += [flag]
+  endif
+  if c_comp.has_argument(flag)
+    add_project_arguments([flag], language: 'c')
+  endif
+endforeach
+# Visual C++: /fp:strict, as CMakeLists.txt gives it to GAOL and to CORE-MATH,
+# without which gaol/gaol_config.h refuses to compile
+if msvc
+  add_project_arguments(['/fp:strict'], language: ['c', 'cpp'])
+  pc_cflags += ['/fp:strict']
+  # clang-cl for 32-bit x86 computes doubles on the x87 unit, even with
+  # /arch:SSE2, which gaol/gaol_config.h refuses: -msse2 has it compute them
+  # in SSE2, as CMakeLists.txt gives it
+  if cpp_comp.get_id() == 'clang-cl' and host_machine.cpu_family() == 'x86'
+    add_project_arguments(['-msse2'], language: ['c', 'cpp'])
+    pc_cflags += ['-msse2']
+  endif
+endif
+
+# The library compiled with hidden visibility, as configure builds it: GAOL's
+# public declarations carry __attribute__ ((visibility("default")))
+if cpp_comp.has_multi_arguments('-fvisibility-inlines-hidden', '-fvisibility=hidden')
+  conf_data.set('GAOL_HAVE_VISIBILITY_OPTIONS', 1)
+  add_project_arguments(['-fvisibility-inlines-hidden', '-fvisibility=hidden'], language: 'cpp')
+endif
+if cpp_comp.has_argument('-Wconversion')
+  add_project_arguments(['-Wconversion'], language: 'cpp')
+endif
+if c_comp.has_argument('-Wconversion')
+  add_project_arguments(['-Wconversion'], language: 'c')
+endif
+# The optimizations configure (--enable-optimize) and the Release build of
+# CMake add to -O3, in the release build type, where the compiler takes them
+if release
+  foreach flag : ['-funroll-loops', '-fomit-frame-pointer', '-fexpensive-optimizations']
+    if cpp_comp.has_argument(flag)
+      add_project_arguments([flag], language: 'cpp')
+    endif
+    if c_comp.has_argument(flag)
+      add_project_arguments([flag], language: 'c')
+    endif
+  endforeach
+endif
+
+# On x86 processors (the target of the compiler, as CMakeLists.txt and
+# configure): the intervals are computed with SSE2 instructions
+# (gaol_interval_sse.cpp), -msse3 is given where the compiler takes it, and on
+# 32-bit x86 the doubles are computed with SSE2
+# (-mfpmath=sse) rather than on the x87 unit, where CORE-MATH rounds some
+# results twice and some bounds are wrong (see CMakeLists.txt). Visual C++
+# and clang-cl take the SSE2 intervals on x64, where no flag is to be given
+# (cl does not know -msse2; GAOL v5). On 32-bit Windows, where the memory of
+# new is aligned on 8 bytes and an SSE2 interval needs 16, the SSE2 intervals
+# need the compiler to ask for aligned memory, in GAOL and in the code using it:
+# -faligned-new=8 with GCC and Clang, as CMakeLists.txt gives it (GAOL v5).
+# Visual C++ and clang-cl have no such flag, and a compiler that does not take
+# it keeps the FPU intervals there too.
+use_sse2 = false
+aligned_new_args = []
+x86_args = []
+target_x86 = cpp_comp.compiles('''
+#if !(defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64))
+#error not an x86 processor
+#endif
+int main() { return 0; }
+''', name: 'the target is an x86 processor')
+target_x86_32 = cpp_comp.compiles('''
+#if !(defined(__i386__) || defined(_M_IX86))
+#error not a 32-bit x86 processor
+#endif
+int main() { return 0; }
+''', name: 'the target is a 32-bit x86 processor')
+if target_x86
+  if target_x86_32 and cpp_comp.has_multi_arguments('-msse2', '-mfpmath=sse')
+    x86_args = ['-msse2', '-mfpmath=sse']
+    add_project_arguments(x86_args, language: 'cpp')
+    add_project_arguments(x86_args, language: 'c')
+    pc_cflags += x86_args
+  endif
+  sse2_possible = simd
+  if simd and target_x86_32 and os_win
+    # Visual C++, clang-cl, and Clang with its driver for a target of Visual C++
+    # (msvc is false for it): the macro tells, as it tells the STL
+    simulates_msvc = msvc or cpp_comp.compiles('''
+#ifndef _MSC_VER
+#error neither Visual C++ nor a compiler that simulates it
+#endif
+int main() { return 0; }
+''', name: 'the compiler simulates Visual C++ (_MSC_VER)')
+    if simulates_msvc
+      sse2_possible = false
+      message('SSE2 intervals left out on 32-bit Windows with Visual C++ and the compilers that simulate it (clang-cl...): they have no flag to ask for the aligned memory the intervals need')
+    elif cpp_comp.has_argument('-faligned-new=8')
+      aligned_new_args = ['-faligned-new=8']
+    else
+      sse2_possible = false
+      message('SSE2 intervals left out on 32-bit Windows: the compiler cannot be told to ask for the aligned memory they need (-faligned-new=8)')
+    endif
+  endif
+  if sse2_possible
+    if msvc
+      use_sse2 = true
+      conf_data.set('GAOL_USING_SSE2_INSTRUCTIONS', 1)
+    elif cpp_comp.has_argument('-msse2')
+      use_sse2 = true
+      conf_data.set('GAOL_USING_SSE2_INSTRUCTIONS', 1)
+      add_project_arguments(['-msse2'], language: 'cpp')
+      pc_cflags += ['-msse2']
+      if cpp_comp.has_argument('-msse3')
+        conf_data.set('GAOL_USING_SSE3_INSTRUCTIONS', 1)
+        add_project_arguments(['-msse3'], language: 'cpp')
+        pc_cflags += ['-msse3']
+      endif
+    endif
+  endif
+  # The aligned memory, for the code of C++ only, GAOL's and the code using it
+  # (gaol_dep, gaol.pc)
+  if use_sse2 and aligned_new_args.length() > 0
+    add_project_arguments(aligned_new_args, language: 'cpp')
+    pc_cflags += aligned_new_args
+  endif
+endif
+
+# enable-arm64 (GAOL v5): on 64-bit ARM processors, the intervals are computed
+# with NEON instructions (gaol_interval_neon.h), as CMakeLists.txt and configure
+# do (see CMakeLists.txt), independently of enable-simd. Where the test below
+# compiles, whatever the processor of the machine building: every compiler of
+# AArch64, GCC, Clang and AppleClang, clang-cl and the Clang of MinGW-w64 and
+# MSYS2 included (GAOL v5), with the intrinsics of <arm_neon.h> and the
+# registers of the rounding mode. NEON needs no flag. Visual C++ (cl) has
+# _ReadStatusReg() and _WriteStatusReg() for the registers, and a test of its
+# own. Not for 32-bit ARM or x86: the option is then ignored, and the intervals
+# are computed with the FPU. The refusals above (Clang 14, Clang on 32-bit ARM)
+# come first. The program is the same as that of CMakeLists.txt (and configure,
+# for GCC and Clang: it does not build with Visual C++); the flags of interval
+# arithmetic are given to it, as the checks of the compiler do not get
+# add_project_arguments().
 use_neon = false
 if arm64 and not msvc
   use_neon = cpp_comp.compiles('''

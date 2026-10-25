@@ -303,8 +303,8 @@
    <arm_neon.h> as the others', and which reads and writes the control register
    FPCR through the intrinsics _ReadStatusReg() and _WriteStatusReg() where GCC
    and Clang have the instructions mrs and msr in an asm statement (GAOL v5).
-   Not clang-cl, which GAOL keeps on the FPU intervals, nor ARM64EC, which is a
-   build for x64. Always defined, to 0 or 1 */
+   Not clang-cl, which has that asm statement, nor ARM64EC, which is a build
+   for x64. Always defined, to 0 or 1 */
 #if defined(_MSC_VER) && !defined(__clang__) && defined(_M_ARM64)
 #  define GAOL_NEON_MSVC 1
 #else
@@ -312,15 +312,16 @@
 #endif
 /* The NEON intervals (GAOL v5, GAOL_ARM64 of the builds): the two bounds in a
    float64x2_t, on 64-bit ARM processors only (NEON of 32-bit ARM has no
-   vector of doubles), with GCC or Clang under Linux or macOS (the rounding
-   direction is written into FPCR with mrs and msr, see gaol_fpu.h), or with
+   vector of doubles), with every compiler of them: GCC, Clang and AppleClang,
+   clang-cl and the Clang of MinGW-w64 and MSYS2 (the rounding direction is
+   written into FPCR with mrs and msr in an asm statement, see gaol_fpu.h), and
    Visual C++ (GAOL_NEON_MSVC); and never together with the SSE2 intervals. */
 #if GAOL_USING_NEON_INSTRUCTIONS \
     && (GAOL_USING_SSE2_INSTRUCTIONS \
-        || !((defined(__aarch64__) && defined(__ARM_NEON) && defined(__GNUC__) \
-              && !defined(_WIN32) && !defined(_MSC_VER)) \
+        || !((defined(__aarch64__) && defined(__ARM_NEON) \
+              && (defined(__GNUC__) || defined(__clang__))) \
              || GAOL_NEON_MSVC))
-#  error "GAOL computes its intervals with NEON instructions on 64-bit ARM processors only, with GCC or Clang under Linux or macOS or with Visual C++, and not together with the SSE2 intervals (GAOL_USING_NEON_INSTRUCTIONS)"
+#  error "GAOL computes its intervals with NEON instructions on 64-bit ARM processors only, with GCC, Clang or Visual C++, and not together with the SSE2 intervals (GAOL_USING_NEON_INSTRUCTIONS)"
 #endif
 /* The SSE2 intervals on 32-bit Windows (GAOL v5): an interval, a __m128d, has
    to be aligned on 16 bytes, and the C runtime of 32-bit Windows aligns the

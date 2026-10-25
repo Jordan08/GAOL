@@ -823,39 +823,15 @@ endif()
 # Clang and AppleClang for AArch64 under Linux and macOS, with the
 # intrinsics of <arm_neon.h> and the registers of the rounding mode, which
 # the code of gaol/gaol_fpu.h already writes. NEON needs no flag. The test is
-# the same with the three builds. With Visual C++ (cl) for 64-bit ARM too, the
-# registers of the rounding mode being those of _ReadStatusReg() and
-# _WriteStatusReg() (GAOL v5). Nowhere else: not with clang-cl (it is MSVC to
-# CMake, its compiler id being Clang), not for a target of Windows with
-# another compiler (MinGW-w64 and MSYS2 define __aarch64__ too, and no job of
-# the CI builds them), nor for 32-bit ARM, x86, or a universal build of macOS,
-# whose x86_64 part fails the test: the option is then ignored, and the
+# the same with the three builds. With Visual C++ (cl) for 64-bit ARM the
+# registers of the rounding mode are those of _ReadStatusReg() and
+# _WriteStatusReg() (GAOL v5), and the test is its own. Every other compiler
+# of 64-bit ARM takes the first test, clang-cl (it is MSVC to CMake, its
+# compiler id being Clang) and the Clang of MinGW-w64 and MSYS2 included (GAOL
+# v5). Not for 32-bit ARM nor x86: the option is then ignored, and the
 # intervals are computed with the FPU. The refusals above (Clang 14, Clang on
 # 32-bit ARM) come first.
-if(GAOL_ARM64 AND NOT MSVC)
-  set(CMAKE_REQUIRED_FLAGS "${GAOL_INTERVAL_FLAGS_STRING}")
-  check_cxx_source_compiles([=[
-    #if !defined(__aarch64__)
-    #error GAOL computes its intervals with NEON on 64-bit ARM processors only
-    #endif
-    #if defined(_WIN32)
-    #error not for Windows
-    #endif
-    #include <arm_neon.h>
-    int main()
-    {
-      unsigned long long fpcr;
-      __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));
-      __asm__ __volatile__ ("msr fpcr, %0" : : "r" (fpcr) : "memory");
-      const float64x2_t x = vaddq_f64(vdupq_n_f64(1.0), vdupq_n_f64(2.0));
-      return static_cast<int>(vgetq_lane_f64(x, 0)) - 3;
-    }]=]
-    GAOL_NEON_INTERVALS)
-  unset(CMAKE_REQUIRED_FLAGS)
-  if(GAOL_NEON_INTERVALS)
-    set(GAOL_USING_NEON_INSTRUCTIONS ON)
-  endif()
-elseif(GAOL_ARM64 AND CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+if(GAOL_ARM64 AND CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   set(CMAKE_REQUIRED_FLAGS "${GAOL_INTERVAL_FLAGS_STRING}")
   check_cxx_source_compiles([=[
     #if !defined(_M_ARM64) || defined(__clang__)
@@ -873,6 +849,26 @@ elseif(GAOL_ARM64 AND CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     GAOL_NEON_INTERVALS_MSVC)
   unset(CMAKE_REQUIRED_FLAGS)
   if(GAOL_NEON_INTERVALS_MSVC)
+    set(GAOL_USING_NEON_INSTRUCTIONS ON)
+  endif()
+elseif(GAOL_ARM64)
+  set(CMAKE_REQUIRED_FLAGS "${GAOL_INTERVAL_FLAGS_STRING}")
+  check_cxx_source_compiles([=[
+    #if !defined(__aarch64__)
+    #error GAOL computes its intervals with NEON on 64-bit ARM processors only
+    #endif
+    #include <arm_neon.h>
+    int main()
+    {
+      unsigned long long fpcr;
+      __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));
+      __asm__ __volatile__ ("msr fpcr, %0" : : "r" (fpcr) : "memory");
+      const float64x2_t x = vaddq_f64(vdupq_n_f64(1.0), vdupq_n_f64(2.0));
+      return static_cast<int>(vgetq_lane_f64(x, 0)) - 3;
+    }]=]
+    GAOL_NEON_INTERVALS)
+  unset(CMAKE_REQUIRED_FLAGS)
+  if(GAOL_NEON_INTERVALS)
     set(GAOL_USING_NEON_INSTRUCTIONS ON)
   endif()
 endif()
