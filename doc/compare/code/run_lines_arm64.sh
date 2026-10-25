@@ -22,6 +22,12 @@
 # FORCE_GAOL      1: rebuild the two GAOLs of this repository after a change
 # GAOL_COMMIT     what the description of the machine calls the commit of this
 #                 checkout, when it has no .git (a copy made by git archive)
+# MATHLIB_HOST    a platform name given to mathlib's configure with --host (on
+#                 macOS: aarch64-unknown-linux-gnu): its configure.ac knows no
+#                 macOS on ARM, and stops with "this system is not yet
+#                 supported"; the name makes it define MATHLIB_AARCH64, which
+#                 uses only <fenv.h>. It is only for linking GAOL 4.2.3: the
+#                 lines + - * / do not call mathlib
 # REPORT          the report to write (default: ../performance.md)
 #
 # macOS has no taskset, so the programs are not pinned to a processor: the
@@ -43,6 +49,8 @@ CODE_DIR="$(cd "$(dirname "$0")" && pwd)"
 WORK="${WORK:-$CODE_DIR/work/arm64}"
 source "$CODE_DIR/env.sh"
 
+# mathlib's configure refuses macOS on ARM (see the header)
+if [ "$(uname -s)" = Darwin ]; then MATHLIB_HOST="${MATHLIB_HOST-aarch64-unknown-linux-gnu}"; fi
 N="${N:-1000000}"
 ROUNDS="${ROUNDS:-3}"
 REPEATS="${REPEATS:-5}"
@@ -109,6 +117,7 @@ else
   rm -rf "mathlib-$MATHLIB_VERSION" && tar xzf "mathlib-$MATHLIB_VERSION.tar.gz"
   (cd "mathlib-$MATHLIB_VERSION" &&
    ./configure --prefix="$GAOL_GOUALARD_PREFIX" --libdir="$GAOL_GOUALARD_PREFIX/lib" --disable-shared \
+               ${MATHLIB_HOST:+--host="$MATHLIB_HOST"} \
                CC="$CC" CFLAGS="-O3 -ffp-contract=off" > configure.log &&
    make -j"$JOBS" > make.log && make install > install.log)
 
@@ -117,8 +126,16 @@ else
     git clone -q "$GAOL_GOUALARD_REPO" gaol-goualard
   fi
   git -C gaol-goualard checkout -q "$GAOL_GOUALARD_COMMIT"
+  # Its configure.ac knows arm-apple-* (ARM_MACOSX), but the configure it
+  # commits (2020) does not, and the config.guess of automake 1.19 says
+  # aarch64-apple-darwin: configure is generated again, and told arm-apple-darwin
+  goualard_build=
+  if [ "$(uname -s)" = Darwin ]; then
+    (cd gaol-goualard && LIBTOOLIZE=glibtoolize autoreconf -fi > autoreconf.log 2>&1)
+    goualard_build=--build=arm-apple-darwin
+  fi
   (cd gaol-goualard &&
-   ./configure --prefix="$GAOL_GOUALARD_PREFIX" --libdir="$GAOL_GOUALARD_PREFIX/lib" --disable-shared \
+   ./configure $goualard_build --prefix="$GAOL_GOUALARD_PREFIX" --libdir="$GAOL_GOUALARD_PREFIX/lib" --disable-shared \
                --disable-preserve-rounding --disable-verbose-mode \
                --with-mathlib-include="$GAOL_GOUALARD_PREFIX/include" \
                --with-mathlib-lib="$GAOL_GOUALARD_PREFIX/lib" \
@@ -175,7 +192,15 @@ gaol_commit="${GAOL_COMMIT:-$(git -C "$ROOT_DIR" describe --always 2>/dev/null |
   echo "C++ flags:       -std=c++11 $CXXFLAGS_BENCH (GAOL: $(pc "$PREFIX" --cflags | sed -e "s# *-I[^ ]*##g" -e "s#^ *##"); GAOL 4.2.3: $IA_CXXFLAGS)"
   echo "GAOL V5.0.0:     the branch of this checkout ($gaol_commit), CMake Release, NEON intervals, CORE-MATH of 3rd/math-core compiled into the library, the rounding direction not preserved"
   echo "GAOL V5.0.0 preserved: the same, built with GAOL_PRESERVE_ROUNDING=ON, the rounding direction restored after each operation (the FPCR register, read and written by each operation)"
-  echo "GAOL $GAOL_GOUALARD_VERSION:      the last version of Frédéric Goualard (${GAOL_GOUALARD_COMMIT:0:7} of $GAOL_GOUALARD_REPO), its configure, the rounding direction not preserved, mathlib $MATHLIB_VERSION"
+  goualard_note="its configure"
+  [ -n "${goualard_build:-}" ] && goualard_note="its configure generated again by autoreconf and told $goualard_build (the one it commits does not know macOS on ARM)"
+  mathlib_note="mathlib $MATHLIB_VERSION"
+  [ -n "${MATHLIB_HOST:-}" ] && mathlib_note="$mathlib_note configured with --host=$MATHLIB_HOST (its configure knows no macOS on ARM; no line here calls it)"
+  # What the intervals of GAOL 4.2.3 are: it has no NEON, and SSE2 only on x86
+  goualard_intervals="the FPU intervals (it has no instructions of 64-bit ARM to compute them with)"
+  grep -q "^#define USING_SSE2_INSTRUCTIONS" "$GAOL_GOUALARD_PREFIX/include/gaol/gaol_configuration.h" 2>/dev/null \
+    && goualard_intervals="the SSE2 intervals"
+  echo "GAOL $GAOL_GOUALARD_VERSION:      the last version of Frédéric Goualard (${GAOL_GOUALARD_COMMIT:0:7} of $GAOL_GOUALARD_REPO), $goualard_note, the rounding direction not preserved, $goualard_intervals, $mathlib_note"
 } > "$OUT/machine.txt"
 
 python3 "$CODE_DIR/bench.py" arm64-report "$RESULTS" "$OUT/machine.txt" "$REPORT"
