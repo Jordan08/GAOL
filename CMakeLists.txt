@@ -749,7 +749,34 @@ set(GAOL_USING_SSE3_INSTRUCTIONS OFF)
 set(GAOL_USING_NEON_INSTRUCTIONS OFF)
 set(GAOL_ALIGNED_NEW_FLAGS "")  # for GCC and Clang, C++ only
 set(GAOL_ALIGNED_NEW_FLAGS_STRING "")
-if(GAOL_SIMD)
+# A universal build of macOS (several architectures in CMAKE_OSX_ARCHITECTURES)
+# compiles each source once per architecture with one gaol_configuration.h, and
+# the tests below, made for one target, fail for the other: the intervals are
+# chosen by the architecture being compiled instead, SSE2 for x86_64 and NEON
+# for arm64, where GAOL_SIMD and GAOL_ARM64 allow them
+# (GAOL_UNIVERSAL_SSE2 and GAOL_UNIVERSAL_NEON, which the configuration header
+# turns into GAOL_USING_SSE2_INSTRUCTIONS and GAOL_USING_NEON_INSTRUCTIONS
+# according to __x86_64__ and __aarch64__; GAOL v5). No flag: SSE2 and SSE3 are
+# the baseline of the x86_64 of macOS, and NEON of its arm64. The other
+# probes of the compiler (the fused multiply-add, the AVX-512 path) fail
+# for one architecture or the other, and stay off.
+set(GAOL_UNIVERSAL_SSE2 OFF)
+set(GAOL_UNIVERSAL_NEON OFF)
+set(GAOL_UNIVERSAL_MACOS OFF)
+if(APPLE)
+  list(LENGTH CMAKE_OSX_ARCHITECTURES _gaol_architectures_count)
+  if(_gaol_architectures_count GREATER 1)
+    set(GAOL_UNIVERSAL_MACOS ON)
+    if(GAOL_SIMD AND "x86_64" IN_LIST CMAKE_OSX_ARCHITECTURES)
+      set(GAOL_UNIVERSAL_SSE2 ON)
+    endif()
+    if(GAOL_ARM64 AND "arm64" IN_LIST CMAKE_OSX_ARCHITECTURES)
+      set(GAOL_UNIVERSAL_NEON ON)
+    endif()
+    message(STATUS "Universal build of macOS (${CMAKE_OSX_ARCHITECTURES}): SSE2 intervals for x86_64: ${GAOL_UNIVERSAL_SSE2}, NEON intervals for arm64: ${GAOL_UNIVERSAL_NEON}")
+  endif()
+endif()
+if(GAOL_SIMD AND NOT GAOL_UNIVERSAL_MACOS)
   set(CMAKE_REQUIRED_FLAGS "${GAOL_INTERVAL_FLAGS_STRING}")
   check_cxx_source_compiles("
     #if !(defined(__x86_64__) || defined(__i386__) || defined(_M_X64) || defined(_M_IX86))
@@ -814,7 +841,11 @@ if(NOT GAOL_USING_SSE2_INSTRUCTIONS)
 endif()
 string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
 message(STATUS "Interval arithmetic flags: ${GAOL_INTERVAL_FLAGS_STRING}")
-message(STATUS "SSE2 intervals: ${GAOL_USING_SSE2_INSTRUCTIONS}, SSE3: ${GAOL_USING_SSE3_INSTRUCTIONS}")
+if(GAOL_UNIVERSAL_MACOS)
+  message(STATUS "SSE2 intervals: by architecture, ${GAOL_UNIVERSAL_SSE2} for x86_64")
+else()
+  message(STATUS "SSE2 intervals: ${GAOL_USING_SSE2_INSTRUCTIONS}, SSE3: ${GAOL_USING_SSE3_INSTRUCTIONS}")
+endif()
 if(GAOL_ALIGNED_NEW_FLAGS_STRING)
   message(STATUS "Aligned memory for the SSE2 intervals on 32-bit Windows: ${GAOL_ALIGNED_NEW_FLAGS_STRING}")
 endif()
@@ -835,8 +866,8 @@ endif()
 # compiler id being Clang) and the Clang of MinGW-w64 and MSYS2 included (GAOL
 # v5). Not for 32-bit ARM nor x86: the option is then ignored, and the
 # intervals are computed with the FPU. The refusals above (Clang 14, Clang on
-# 32-bit ARM) come first.
-if(GAOL_ARM64 AND CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+# 32-bit ARM) come first. A universal build of macOS skips the tests: see above.
+if(GAOL_ARM64 AND NOT GAOL_UNIVERSAL_MACOS AND CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   set(CMAKE_REQUIRED_FLAGS "${GAOL_INTERVAL_FLAGS_STRING}")
   check_cxx_source_compiles([=[
     #if !defined(_M_ARM64) || defined(__clang__)
@@ -856,7 +887,7 @@ if(GAOL_ARM64 AND CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   if(GAOL_NEON_INTERVALS_MSVC)
     set(GAOL_USING_NEON_INSTRUCTIONS ON)
   endif()
-elseif(GAOL_ARM64)
+elseif(GAOL_ARM64 AND NOT GAOL_UNIVERSAL_MACOS)
   set(CMAKE_REQUIRED_FLAGS "${GAOL_INTERVAL_FLAGS_STRING}")
   check_cxx_source_compiles([=[
     #if !defined(__aarch64__)
@@ -877,7 +908,11 @@ elseif(GAOL_ARM64)
     set(GAOL_USING_NEON_INSTRUCTIONS ON)
   endif()
 endif()
-message(STATUS "NEON intervals: ${GAOL_USING_NEON_INSTRUCTIONS}")
+if(GAOL_UNIVERSAL_MACOS)
+  message(STATUS "NEON intervals: by architecture, ${GAOL_UNIVERSAL_NEON} for arm64")
+else()
+  message(STATUS "NEON intervals: ${GAOL_USING_NEON_INSTRUCTIONS}")
+endif()
 
 # GAOL_HAVE_AVX512_TARGET: the compiler accepts the AVX-512 instructions in
 # the functions that carry __attribute__((target("avx512f"))), and

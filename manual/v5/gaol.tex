@@ -504,8 +504,9 @@ The options are given to the first command, as \option{-D\var{option}=\var{value
 \item \option{GAOL\_ARM64}. \code{ON} by default: the intervals are computed
   with NEON instructions on 64-bit ARM processors, their two bounds in one
   register, with every compiler; NEON needs no flag (\pxref{sec:neon}). Not
-  on 32-bit ARM, nor in a universal build of macOS, where the option is ignored
-  and the FPU computes the intervals, as before. It is independent of
+  on 32-bit ARM, where the option is ignored and the FPU computes the
+  intervals, as before. A universal build of macOS made by CMake takes them for
+  its arm64 part and the SSE2 intervals for its x86\_64 part. It is independent of
   \option{GAOL\_SIMD}, which is for x86 processors;\newinvfive
 \cindex{NEON}%
 \item \option{GAOL\_FMA}. \code{ON} by default: GAOL and CORE-MATH are compiled
@@ -1372,8 +1373,9 @@ macro \code{GAOL\_USING\_NEON\_INSTRUCTIONS} is then 1 in
 \file{gaol/gaol\_configuration.h}), and need no flag beyond those of interval
 arithmetic (\pxref{sec:compiling}). They do not depend on
 \option{GAOL\_SIMD}, which is for x86 processors. 32-bit ARM, whose NEON has no
-vector of doubles, does not take them, nor does a universal build of macOS: the
-option is ignored there, and the FPU computes the intervals, as before.
+vector of doubles, does not take them: the option is ignored there, and the FPU
+computes the intervals, as before. A universal build of macOS made by CMake
+takes them for its arm64 part, and the SSE2 intervals for its x86\_64 part.
 
 64-bit ARM has no instruction that carries its own rounding direction, as the
 AVX-512 path has: the direction is the field RMode of the control register

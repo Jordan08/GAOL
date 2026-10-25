@@ -51,9 +51,14 @@ build, and the CMake build follows them, apart from the errors corrected (see
   whose compiler each build tests with the same program (CMake and meson for
   Visual C++, which configure does not build with): the intrinsics of
   `<arm_neon.h>` and the registers of the rounding mode. Not with 32-bit ARM,
-  whose NEON has no vector of doubles, nor in a universal build of macOS: the
-  option is then ignored, and
-  the FPU computes the intervals, as before. Independent of `GAOL_SIMD`, which
+  whose NEON has no vector of doubles: the option is then ignored, and the FPU
+  computes the intervals, as before. A universal build of macOS, which CMake
+  alone makes (`CMAKE_OSX_ARCHITECTURES` with several architectures), compiles
+  each source once per architecture with one configuration, and takes the
+  intervals of the architecture being compiled, NEON for arm64 and SSE2 for
+  x86_64, where `GAOL_ARM64` and `GAOL_SIMD` allow them
+  (`GAOL_UNIVERSAL_NEON` and `GAOL_UNIVERSAL_SSE2` of
+  `gaol_configuration.h`; GAOL v5). Independent of `GAOL_SIMD`, which
   is for x86 processors (GAOL v5);
 - GAOL and CORE-MATH are compiled with the fused multiply-add
   instructions of the processor, where the compiler has a flag for them

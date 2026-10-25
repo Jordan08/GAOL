@@ -1288,9 +1288,10 @@ due to alignment specifier") of each structure that holds an interval, its
 `float64x2_t` being aligned on 16 bytes there, and of `expr_eval` of the
 installed `gaol/parser/gaol_expr_eval.h`: the warning is harmless, and no job of
 the continuous integration compiles with `/W4 /WX` for arm64 (GAOL v5). 32-bit
-ARM, whose NEON has no vector of doubles, does not take them, nor does a
-universal build of macOS: the option is ignored there, and the FPU computes the
-intervals, as before.
+ARM, whose NEON has no vector of doubles, does not take them: the option is
+ignored there, and the FPU computes the intervals, as before. A universal build
+of macOS made by CMake takes them for its arm64 part, and the SSE2 intervals for
+its x86_64 part.
 
 64-bit ARM has no instruction that carries its own rounding direction, as the
 AVX-512 path has: the direction is the field RMode of the control register
