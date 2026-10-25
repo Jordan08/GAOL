@@ -8,7 +8,7 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12. Dernière mise à jour : 25 octobre 2026, au
-commit `efd943b` de `configure-clean`.
+commit `1a41cda` de `configure-clean` (la fusion de #194).
 
 ## 1. Le contexte
 
@@ -272,8 +272,9 @@ que couvre le job `gcc-9` de `linux.yml`, ni meson 0.53.2, la plus ancienne
 version que le build meson prend en charge, que couvre le job `meson-oldest` de
 `build-systems.yml` (#110). Sur une machine sous Ubuntu 24.04 (GCC 13.3, CMake
 3.28, python 3.12), qui n'a ni autoconf, ni automake, ni libtool, ni meson, ni
-ninja, construis autoconf 2.72 depuis le tarball de ftp.gnu.org (sha256
-vérifié), et installe meson et ninja dans un environnement virtuel.
+ninja, construis autoconf 2.72 (celui qui a généré le `configure` du dépôt)
+depuis le tarball de ftp.gnu.org (sha256 vérifié), et installe meson et ninja
+dans un environnement virtuel.
 
 Le processeur (i7-1185G7) a AVX-512 et FMA. Il ne voit donc jamais les chemins
 sans FMA : la CI les couvre.
@@ -687,33 +688,35 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   (Windows : libstdc++ de MSYS2 et de MinGW-w64, libc++ de CLANG64), il ne voit
   pas les allocations qu'elle fait pour un `std::string`, dont le destructeur en
   ligne appelle pourtant le `operator delete` du programme : un `std::string` de
-  plus de 15 caractères dans le code de la lecture fait échouer « a reading
-  frees all it allocated » (quatre jobs de #149). Un `std::vector` est sans
-  danger.
-- Une écriture du registre de contrôle par `asm volatile` n'est ordonnée
-  qu'avec les autres `asm`, non avec les opérations sur des registres (bogue
-  34678 de GCC) : une fonction en ligne qui lit ses bornes avant
-  `GAOL_RND_ENTER()` calcule dans le sens du programme (#150). La règle est
-  dans le commentaire de `gaol/gaol_fpu.h` : lire les bornes après la
-  vérification, et passer un `double` pris par valeur par `rnd_reread()`. Un
-  test doit appeler la fonction sur un intervalle construit dans la même
-  fonction, non sur un intervalle relu en mémoire, qui cache le défaut.
+  plus de 15 caractères (22 avec libc++) dans le code de la lecture fait
+  échouer « a reading frees all it allocated » (quatre jobs de #149). Un
+  `std::vector` est sans danger.
+- Une écriture du registre de contrôle par `asm volatile` (avec « memory » dans
+  les clobbers) est ordonnée avec les accès à la mémoire et avec les autres
+  `asm`, non avec les opérations sur des valeurs en registres (bogue 34678 de
+  GCC) : une fonction en ligne qui lit ses bornes avant `GAOL_RND_ENTER()`
+  calcule dans le sens du programme (#150). La règle est dans le commentaire
+  de `gaol/gaol_fpu.h` : lire les bornes après la vérification, et passer un
+  `double` pris par valeur par `rnd_reread()`. Un test doit appeler la
+  fonction sur un intervalle construit dans la même fonction, non sur un
+  intervalle relu en mémoire, qui cache le défaut.
 - Un script qui édite un long fichier avec `s.index("# un commentaire")` peut
   tomber sur une occurrence plus haute et dupliquer des centaines de lignes :
   `meson.build` est passé de 775 à 1097 lignes dans #192, et la copie, que
   meson exécutait en dernier, aurait laissé clang-cl et MinGW-w64 en FPU sans
   qu'aucun job de la CI le voie. Contrôle `wc -l` et `git diff --stat` après
   toute édition par script.
-- Visual C++ pour ARM64 (#192) : `/volatile:iso` y est le réglage par défaut, et
-  un `volatile` n'y est pas ordonné avec le reste, d'où `_ReadWriteBarrier()`
-  avant et après `_WriteStatusReg()` (`gaol/gaol_fpu_fenv.h`) ; `float64x2_t`,
-  `uint64x2_t` et `int64x2_t` y sont un seul type (`__n128`) ; `/O2 /fp:strict`
-  réécrit `(-.5)*l + .5*r` en `.5*r - .5*l`, d'où le `rnd_keep()` des moitiés
-  dans `mid()` de toutes les sortes d'intervalles.
+- Visual C++ (`cl`) pour ARM64 (#192) : `/volatile:iso` y est le réglage par
+  défaut, et un `volatile` n'y est pas ordonné avec le reste, d'où
+  `_ReadWriteBarrier()` avant et après `_WriteStatusReg()`
+  (`gaol/gaol_fpu_fenv.h`) ; `float64x2_t`, `uint64x2_t` et `int64x2_t` y sont
+  un seul type, `__n128` (non revérifié ici). Et `/O2
+  /fp:strict` réécrit `(-.5)*l + .5*r` en `.5*r - .5*l` : `mid()` passe les
+  moitiés négatives par `rnd_keep()`, dans toutes les sortes d'intervalles.
 - Sur le runner macOS, `arch -x86_64 ctest` échoue quand le `ctest` (Homebrew)
-  n'est que pour arm64 : lance les programmes de test un à un (#194). Et `!
-  grep ...` ne fait jamais échouer une étape sous `bash -e` : écris un `if`
-  explicite.
+  n'est que pour arm64 : lance les programmes de test un à un (#194). Et sous
+  `bash -e`, un `! grep ...` au milieu d'une étape ne la fait pas échouer (seule
+  la dernière commande donne son statut) : écris un `if` explicite.
 
 ## 12. Où en est le travail (25 octobre 2026)
 
