@@ -72,7 +72,7 @@
 #if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
 #  include <xmmintrin.h>
 #  define GAOL_TESTS_FLUSH 1
-#elif (defined(__aarch64__) || (defined(__arm__) && defined(__ARM_FP))) && defined(__GNUC__)
+#elif (defined(__aarch64__) || (defined(__arm__) && defined(__ARM_FP))) && (defined(__GNUC__) || defined(__clang__))
 #  define GAOL_TESTS_FLUSH 1
 #elif GAOL_TESTS_FPCR_MSVC
 #  define GAOL_TESTS_FLUSH 1

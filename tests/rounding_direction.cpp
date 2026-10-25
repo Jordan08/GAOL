@@ -144,12 +144,13 @@
 #  define GAOL_TESTS_X87_STATE 0
 #endif
 
-// 64-bit ARM with GCC or Clang: FPCR, the control register holding the rounding
-// direction, the modes that flush the subnormals to zero, the default-NaN mode
-// and the enables of the traps, is read with mrs and written with msr, as
-// tests/gaol_tests.h does for the flush modes; with Visual C++ and the NEON
-// intervals, through _ReadStatusReg() and _WriteStatusReg() (GAOL v5)
-#if (defined(__aarch64__) && defined(__GNUC__)) || GAOL_TESTS_FPCR_MSVC
+// 64-bit ARM with GCC or Clang (clang-cl included): FPCR, the control register
+// holding the rounding direction, the modes that flush the subnormals to zero,
+// the default-NaN mode and the enables of the traps, is read with mrs and
+// written with msr, as tests/gaol_tests.h does for the flush modes; with Visual
+// C++ and the NEON intervals, through _ReadStatusReg() and _WriteStatusReg()
+// (GAOL v5)
+#if (defined(__aarch64__) && (defined(__GNUC__) || defined(__clang__))) || GAOL_TESTS_FPCR_MSVC
 #  define GAOL_TESTS_FPCR 1
 #else
 #  define GAOL_TESTS_FPCR 0
