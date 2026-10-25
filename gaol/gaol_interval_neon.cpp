@@ -177,7 +177,7 @@ namespace gaol_core {
   // check (GAOL v5)
   interval interval::sqr_upward(const interval& I)
   {
-    return interval(neon_detail::sqr_products(I.neonbounds));
+    return interval(neon_detail::sqr_products(I.neonbounds), gaol_detail::unchecked_bounds);
   }
 
   namespace neon_detail {
@@ -479,7 +479,7 @@ namespace gaol_core {
     if (neon_detail::any_lane(neon_detail::nan_lanes(I.neonbounds))) {
       return interval::emptyset();
     }
-    return interval(neon_detail::divide_upward(neon_detail::stored(-1.0, 1.0), I.neonbounds, false));
+    return interval(neon_detail::divide_upward(neon_detail::stored(-1.0, 1.0), I.neonbounds, false), gaol_detail::unchecked_bounds);
   }
 
   interval interval::inverse() const
@@ -489,7 +489,7 @@ namespace gaol_core {
     }
 
     GAOL_RND_ENTER();
-    interval res = inverse_upward(interval(neon_detail::reread_bounds(neonbounds)));
+    interval res = inverse_upward(interval(neon_detail::reread_bounds(neonbounds), gaol_detail::unchecked_bounds));
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
     return res;
@@ -771,7 +771,7 @@ double hausdorff(const interval &I1, const interval &I2)
         const uint64x2_t sign = veorq_u64(vcombine_u64(vcreate_u64(sign_bit), vcreate_u64(0u)), odd);
         const float64x2_t v = vreinterpretq_f64_u64(veorq_u64(vreinterpretq_u64_f64(h), sign));
         const float64x2_t w = vreinterpretq_f64_u64(veorq_u64(vreinterpretq_u64_f64(l), sign));
-        return interval(vaddq_f64(v, vfmaq_f64(w, K, h)));
+        return interval(vaddq_f64(v, vfmaq_f64(w, K, h)), gaol_detail::unchecked_bounds);
       }
     }
     return pown_by_corners(a, b, n);

@@ -363,8 +363,9 @@ namespace
                       interval(0x1.0000000000002p+0)));
   }
 
-  // [+oo] and [-oo], which no constructor makes, built from a register of the
-  // SSE2 or the NEON intervals (the FPU intervals make none): they hold no
+  // [+oo] and [-oo], which no constructor makes but the one of a register
+  // without a check (gaol_detail::unchecked_bounds), built from a register of
+  // the SSE2 or the NEON intervals (the FPU intervals make none): they hold no
   // real number, so that pow_rel() and pow_exponent_rel() are empty for one
   // as any argument, as gaol_ieee1788::pow(x, y) is for an exponent: as the
   // power, the exponent or the base, which they test, and as the x or y to
@@ -377,13 +378,13 @@ namespace
     std::vector<interval> infinite;
 #if defined(GAOL_USING_SSE2_INSTRUCTIONS) && GAOL_USING_SSE2_INSTRUCTIONS
     for (const double d : { GAOL_INFINITY, -GAOL_INFINITY }) {
-      infinite.push_back(interval(_mm_set_pd(d, -d)));
+      infinite.push_back(interval(_mm_set_pd(d, -d), gaol_detail::unchecked_bounds));
     }
 #elif defined(GAOL_USING_NEON_INSTRUCTIONS) && GAOL_USING_NEON_INSTRUCTIONS
     // The lanes hold the stored bounds <-left, right>
     for (const double d : { GAOL_INFINITY, -GAOL_INFINITY }) {
       const double lanes[2] = { -d, d };
-      infinite.push_back(interval(vld1q_f64(lanes)));
+      infinite.push_back(interval(vld1q_f64(lanes), gaol_detail::unchecked_bounds));
     }
 #endif
     if (infinite.empty()) {

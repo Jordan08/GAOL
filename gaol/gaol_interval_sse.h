@@ -35,12 +35,12 @@ GAOL_PUBLIC std::ostream& operator<<(std::ostream& out, const __m128d& x);
 
 GAOL_INLINE interval interval::universe(void)
 {
-  return interval(interval::m128_infinf);
+  return interval(interval::m128_infinf, gaol_detail::unchecked_bounds);
 }
 
 GAOL_INLINE interval interval::zero(void)
 {
-  return interval(interval::m128_zero);
+  return interval(interval::m128_zero, gaol_detail::unchecked_bounds);
 }
 
 // Both bounds NaN, as interval(double) sets them for a NaN, but without the
@@ -48,12 +48,24 @@ GAOL_INLINE interval interval::zero(void)
 // a NaN, and a build without optimization runs them (GAOL v5)
 GAOL_INLINE interval interval::emptyset(void)
 {
-  return interval(_mm_set1_pd(std::numeric_limits<double>::quiet_NaN()));
+  return interval(_mm_set1_pd(std::numeric_limits<double>::quiet_NaN()), gaol_detail::unchecked_bounds);
 }
 
-GAOL_INLINE interval::interval(const __m128d& xmm)
+GAOL_INLINE interval::interval(const __m128d& xmm, gaol_detail::unchecked_bounds_t)
 {
   xmmbounds = xmm;
+}
+
+// The stored bounds <-l, r>: -oo in a lane is l = +oo or r = -oo, which no
+// interval has (IEEE 1788-2015, 10.5.8). cmpeqpd raises nothing on a quiet NaN,
+// the empty set holding it in both lanes
+GAOL_INLINE interval::interval(const __m128d& xmm)
+{
+  if (_mm_movemask_pd(_mm_cmpeq_pd(xmm, _mm_set1_pd(-std::numeric_limits<double>::infinity()))) != 0) {
+    xmmbounds = _mm_set1_pd(std::numeric_limits<double>::quiet_NaN());
+  } else {
+    xmmbounds = xmm;
+  }
 }
 
 GAOL_INLINE interval interval::positive(void)
@@ -288,7 +300,7 @@ GAOL_INLINE interval& interval::operator/=(const interval& I)
 //! I^2
 GAOL_NODISCARD GAOL_INLINE interval sqr(const interval& I)
 {
-  return interval(gaol_detail::sqr_bounds(I.get_xmminterval()));
+  return interval(gaol_detail::sqr_bounds(I.get_xmminterval()), gaol_detail::unchecked_bounds);
 }
 
 

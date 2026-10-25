@@ -2491,7 +2491,7 @@ namespace gaol_core {
       const flush_guard flush;
       __m128d stored;
       if (pown_large_er(flush_guard::in(I.left()), flush_guard::in(I.right()), n, stored)) {
-        return interval(flush_guard::out(stored));
+        return interval(flush_guard::out(stored), gaol_detail::unchecked_bounds);
       }
     }
 #endif
@@ -2567,8 +2567,9 @@ namespace gaol_core {
   /*
     [+oo] and [-oo] contain no real number: numsToInterval(l, u) of IEEE
     1788-2015 has no value for l = +oo or u = -oo (10.5.8). The constructors
-    and the operations make none, but interval(const __m128d&) and its NEON
-    counterpart do. pow gives the empty set for one as an exponent, and
+    and the operations make none, but the constructors of the registers
+    without a check (gaol_detail::unchecked_bounds) do, as the code of GAOL
+    may use them (the ones of the interface give the empty set). pow gives the empty set for one as an exponent, and
     pow_rel() and pow_exponent_rel() for one as the power, or as the exponent
     or the base (GAOL v5: they took it for the limit of x^y). The caller has
     tested for the empty set, whose NaN bounds this would compare with the
@@ -2739,9 +2740,9 @@ namespace gaol_core {
     }
     // [+oo] and [-oo] contain no real number: numsToInterval(l,u) of IEEE 1788
     // has no value for l = +oo or u = -oo (10.5.8). The constructors and the
-    // operations make none, but interval(const __m128d&) and get_xmminterval()
-    // of the SSE2 intervals do, as in tan() (GAOL v5: kept, TODO.md B.1 having
-    // taken the test for one that is never true)
+    // operations make none, but get_xmminterval() of the SSE2 intervals and the
+    // constructor of a register without a check do, as in tan() (GAOL v5: kept,
+    // TODO.md B.1 having taken the test for one that is never true)
     if (J.left() == J.right() && !(std::fabs(J.left()) <= (std::numeric_limits<double>::max)())) {
       return interval::emptyset();
     }
@@ -6404,7 +6405,7 @@ interval nth_root(const interval& I, int q)
        checks the modes for the intersection, a lower bound -1e-310 having
        been compared equal to 0) */
     if (!I.is_empty()) {
-      return interval(fast_sqrt(I.get_xmminterval()));
+      return interval(fast_sqrt(I.get_xmminterval()), gaol_detail::unchecked_bounds);
     }
 #elif GAOL_USING_NEON_INSTRUCTIONS
     // The roots of both bounds by one vector instruction (GAOL v5, see
@@ -6413,7 +6414,7 @@ interval nth_root(const interval& I, int q)
     // overflows, and the code below scales it (GAOL v5, point 79 of TODO.md).
     // The empty set, whose bounds are NaN, is not above it
     if (!gaol_detail::quiet_greater(I.right(), huge_root_argument)) {
-      return interval(neon_detail::sqrt_bounds(I.get_neoninterval()));
+      return interval(neon_detail::sqrt_bounds(I.get_neoninterval()), gaol_detail::unchecked_bounds);
     }
 #endif
     // The part of I in [0, +oo], as nth_root() takes it: the intersection

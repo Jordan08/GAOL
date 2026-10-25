@@ -176,14 +176,14 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
     if ( J.right() < 0.0 ) { // [J] N1
       __m128d r = _mm_xor_pd(K.xmmbounds,interval::lbsignmask);
       __m128d r2 = _mm_div_pd(_mm_shuffle_pd(r,r,1),J.xmmbounds);
-      return I & interval(r2); // N1 N1
+      return I & interval(r2, gaol_detail::unchecked_bounds); // N1 N1
     } else { // [J] P or Z
       if ( J.right() == 0.0 ) { // [J] N0 or Z
         if ( J.left() == 0.0 ) { // [J] Z
           return interval::emptyset(); // N1 Z
         } else {
           __m128d r = _mm_move_sd(interval::m128_infinf,_mm_div_sd(_mm_shuffle_pd(K.xmmbounds,K.xmmbounds,1),J.xmmbounds));
-          return I & interval(r); // N1 N0
+          return I & interval(r, gaol_detail::unchecked_bounds); // N1 N0
         }
       } else { // [J] P or M
         if ( J.left() < 0.0 ) { // [J] M // FIXME: replace with SSE code
@@ -198,10 +198,10 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
             __m128d r = _mm_unpacklo_pd(interval::m128_infinf,
                                         _mm_div_sd(_mm_unpackhi_pd(K.xmmbounds,K.xmmbounds),
                                                    _mm_unpackhi_pd(J.xmmbounds,J.xmmbounds))); // N1 P0
-            return I & interval(r);
+            return I & interval(r, gaol_detail::unchecked_bounds);
           } else { // [J] P1
             __m128d r = _mm_div_pd(K.xmmbounds,_mm_xor_pd(J.xmmbounds,interval::lbsignmask)); // N1 P1
-            return I & interval(r);
+            return I & interval(r, gaol_detail::unchecked_bounds);
           }
         }
       }
@@ -218,7 +218,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 		if ( J.right() < 0.0 ) { // [J] N1
 			__m128d r1 = _mm_xor_pd(K.xmmbounds,interval::lbsignmask);
 			__m128d r2 = _mm_move_sd(_mm_div_pd(_mm_shuffle_pd(r1,r1,1),J.xmmbounds),interval::m128_zero);	// N0 N1
-			return I & interval(r2);
+			return I & interval(r2, gaol_detail::unchecked_bounds);
 		} else { // [J] P or Z
 		  if ( J.right() == 0.0 ) { // [J] N0 or Z
         if ( J.left() == 0.0 ) { // [J] Z
@@ -234,7 +234,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
           return I; // N0 P0
 			  } else { // [J] P1
           __m128d r = _mm_move_sd(interval::m128_zero,_mm_div_pd(K.xmmbounds,_mm_xor_pd(J.xmmbounds,interval::lbsignmask))); 
-          return I & interval(r); // N0 P1
+          return I & interval(r, gaol_detail::unchecked_bounds); // N0 P1
 			  }
 			}
 		  }
@@ -245,7 +245,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 		if ( J.right() < 0.0 ) { // [J] N1
 		  __m128d r1 = _mm_xor_pd(K.xmmbounds,interval::lbrbsignmask);
 		  __m128d r2 = _mm_div_pd(_mm_shuffle_pd(r1,r1,1),_mm_unpackhi_pd(J.xmmbounds,J.xmmbounds));
-      return I & interval(r2); // M N1
+      return I & interval(r2, gaol_detail::unchecked_bounds); // M N1
 		} else { // [J] P or Z
 		  if ( J.right() == 0.0 ) { // [J] N0 or Z
         return I; // M N0
@@ -258,7 +258,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 			  } else { // [J] P1
           __m128d r1 = _mm_xor_pd(J.xmmbounds,interval::lbsignmask);
           __m128d r2 = _mm_div_pd(K.xmmbounds,_mm_unpacklo_pd(r1,r1)); 
-          return I & interval(r2); // M P1
+          return I & interval(r2, gaol_detail::unchecked_bounds); // M P1
 			  }
 			}
 		  }
@@ -269,7 +269,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
         __m128d r1 = _mm_xor_pd(_mm_shuffle_pd(K.xmmbounds,K.xmmbounds,1),interval::lbsignmask);
         __m128d r2 = _mm_shuffle_pd(J.xmmbounds,J.xmmbounds,1);
         __m128d r3 = _mm_move_sd(interval::m128_zero,_mm_div_pd(r1,r2));
-        return I & interval(r3); // P0 N1
+        return I & interval(r3, gaol_detail::unchecked_bounds); // P0 N1
 		  } else { // [J] P or Z
 			if ( J.right() == 0.0 ) { // [J] N0 or Z
         return I; // P0 (Z or N0)
@@ -283,7 +283,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 				  __m128d r1 = _mm_xor_pd(J.xmmbounds,interval::lbsignmask);
 				  __m128d r2 = _mm_shuffle_pd(r1,r1,1);
 				  __m128d r3 = _mm_move_sd(_mm_div_pd(K.xmmbounds,r2),interval::m128_zero);// P0 P1
-          return I & interval(r3);
+          return I & interval(r3, gaol_detail::unchecked_bounds);
 				}
 			  }
 			}
@@ -293,14 +293,14 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
         __m128d r1 = _mm_xor_pd(_mm_shuffle_pd(K.xmmbounds,K.xmmbounds,1),interval::lbrbsignmask);
         __m128d r2 = _mm_xor_pd(J.xmmbounds,interval::lbsignmask);
         __m128d r3 = _mm_div_pd(r1,_mm_shuffle_pd(r2,r2,1)); 
-        return I & interval(r3); // P1 N1
+        return I & interval(r3, gaol_detail::unchecked_bounds); // P1 N1
       } else { // [J] P or Z
         if ( J.right() == 0.0 ) { // [J] N0 or Z
 			  if ( J.left() == 0.0 ) { // [J] Z
 				return interval::emptyset(); // P1 Z
 			  } else {
           __m128d r = _mm_unpacklo_pd(interval::m128_infinf,_mm_div_sd(K.xmmbounds,J.xmmbounds));
-          return I & interval(r); // P1 N0
+          return I & interval(r, gaol_detail::unchecked_bounds); // P1 N0
 			  }
 			} else { // [J] P or M
 			  if ( J.left() < 0.0 ) { // [J] M
@@ -308,17 +308,17 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 				  __m128d r2 = _mm_move_sd(interval::m128_infinf,
                         _mm_div_sd(K.xmmbounds,
 												_mm_shuffle_pd(J.xmmbounds,J.xmmbounds,1))); // P1 P0
-          return (I & interval(r)) | (I & interval(r2)); // P1 M
+          return (I & interval(r, gaol_detail::unchecked_bounds)) | (I & interval(r2, gaol_detail::unchecked_bounds)); // P1 M
 			  } else { // [J] P0 or P1
 				if ( J.left() == 0.0 ) { // [J] P0
 				  __m128d r = _mm_move_sd(interval::m128_infinf,
                         _mm_div_sd(K.xmmbounds,
 												_mm_shuffle_pd(J.xmmbounds,J.xmmbounds,1))); // P1 P0
-          return I & interval(r);
+          return I & interval(r, gaol_detail::unchecked_bounds);
 				} else { // [J] P1
 				  __m128d r1 = _mm_xor_pd(J.xmmbounds,interval::lbsignmask);
 				  __m128d r2 = _mm_div_pd(K.xmmbounds,_mm_shuffle_pd(r1,r1,1));
-          return I & interval(r2); // P1 P1
+          return I & interval(r2, gaol_detail::unchecked_bounds); // P1 P1
 				}
 			  }
 			}
@@ -335,7 +335,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 
   interval interval::operator-() const
   {
-    return interval(_mm_shuffle_pd(xmmbounds,xmmbounds,_MM_SHUFFLE2(0,1)));
+    return interval(_mm_shuffle_pd(xmmbounds,xmmbounds,_MM_SHUFFLE2(0,1)), gaol_detail::unchecked_bounds);
   }
 
   /*
@@ -484,9 +484,9 @@ namespace gaol_core {
   interval interval::sqr_upward(const interval& I)
   {
 #if GAOL_AVX512_ARITHMETIC
-    return interval(gaol_detail::sqr_bounds(I.xmmbounds));
+    return interval(gaol_detail::sqr_bounds(I.xmmbounds), gaol_detail::unchecked_bounds);
 #else
-    return interval(sqr_products(I.xmmbounds));
+    return interval(sqr_products(I.xmmbounds), gaol_detail::unchecked_bounds);
 #endif
   }
 
@@ -1144,8 +1144,8 @@ namespace gaol_core {
 namespace {
   GAOL_NOINLINE_COLD __m128d divide_general(__m128d xb, __m128d yb)
   {
-	interval x(xb);
-	const interval I(yb);
+	interval x(xb, gaol_detail::unchecked_bounds);
+	const interval I(yb, gaol_detail::unchecked_bounds);
 	if (x.is_empty() || I.is_empty()) {
 		return interval::emptyset().get_xmminterval();
 	}
@@ -1419,7 +1419,7 @@ interval interval::inverse_upward(const interval& I)
   __m128d r16 = _mm_and_pd(r15, interval::m128_infinf); // r14 == < ((-c)>0 && d>0) ? inf : 0, ((-c)>0 && d>0) ? inf : 0 >
   __m128d r17 = _mm_andnot_pd(r15, r12); // r17 ==  < ((-c)<=0 || d<=0) ? hi(r12) : 0, ((-c)<=0 || d<=0) ? lo(r12) : 0 >
   __m128d r18 = _mm_or_pd(r16,r17); // < ((-c)>0 && d>0) ? inf : hi(r12), ((-c)>0 && d>0) ? inf : lo(r12) >
-  return interval(r18);
+  return interval(r18, gaol_detail::unchecked_bounds);
 }
 
 interval interval::inverse() const
@@ -1431,7 +1431,7 @@ interval interval::inverse() const
   __m128d res = inverse_upward(*this).get_xmminterval();
   GAOL_RND_KEEP(res);
   GAOL_RND_LEAVE_SSE();
-  return interval(res);
+  return interval(res, gaol_detail::unchecked_bounds);
 }
 // #else
 //   interval interval::inverse() const
@@ -1684,7 +1684,7 @@ interval interval::inverse() const
         // the sign of c for an odd m, the lower bound negated
         const __m128d odd = ((m & 1u) != 0u) ? minus_zero : zero;
         const __m128d sign = _mm_xor_pd(_mm_set_pd(0.0, -0.0), _mm_and_pd(c, odd));
-        return interval(_mm_add_pd(_mm_xor_pd(h, sign), _mm_fmadd_pd(K, h, _mm_xor_pd(l, sign))));
+        return interval(_mm_add_pd(_mm_xor_pd(h, sign), _mm_fmadd_pd(K, h, _mm_xor_pd(l, sign))), gaol_detail::unchecked_bounds);
       }
     }
     return pown_by_corners(a, b, n);

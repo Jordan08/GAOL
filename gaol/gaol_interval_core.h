@@ -134,6 +134,15 @@ namespace gaol_core {
 
 namespace gaol_detail {
   /*
+    The tag of the constructors of an interval from the two lanes of a
+    register that make no check (GAOL v5, point AC of TODO.md): the code of
+    GAOL gives them the lanes it computed, which are right, where the
+    constructor of the interface refuses the lanes of [+oo] and [-oo]
+  */
+  struct unchecked_bounds_t {};
+  const unchecked_bounds_t unchecked_bounds = unchecked_bounds_t();
+
+  /*
     The integers GAOL takes as they are (GAOL v5, point D.21 of TODO.md):
     the integer types but bool. An integer given where GAOL takes a double
     was converted to a double, the nearest one or the one of the rounding
@@ -418,15 +427,31 @@ namespace gaol_core {
     template <class T, gaol_detail::if_integer<T> = 0>
     interval& operator=(T n) { return *this = interval(n); }
 #if GAOL_USING_SSE2_INSTRUCTIONS
+    /*
+      The interval whose stored bounds are the two lanes of xmm, the left
+      bound negated in the first one (GAOL v5). The lanes of [+oo] and [-oo],
+      which hold no real number (IEEE 1788-2015, 10.5.8) and which no other
+      constructor makes, give the empty set (decided on 2026-10-24): the
+      operations took them for intervals, and sqr([+oo]) was [+oo]. Bounds in
+      the wrong order are not checked. explicit, as GAOL v5 adds no implicit
+      conversion
+    */
     explicit interval(const __m128d& xmm);
+    //! The same without the check of [+oo] and [-oo], for the code of GAOL (see gaol_detail::unchecked_bounds)
+    interval(const __m128d& xmm, gaol_detail::unchecked_bounds_t);
 #elif GAOL_USING_NEON_INSTRUCTIONS
     /*
       The interval whose stored bounds are the two lanes of v, the left bound
-      negated in the first one, without any check: it can build [+oo] or
-      [-oo], or bounds in the wrong order (GAOL v5). explicit, as GAOL v5
-      adds no implicit conversion
+      negated in the first one (GAOL v5). The lanes of [+oo] and [-oo], which
+      hold no real number (IEEE 1788-2015, 10.5.8) and which no other
+      constructor makes, give the empty set (decided on 2026-10-24): the
+      operations took them for intervals, and sqr([+oo]) was [+oo]. Bounds in
+      the wrong order are not checked. explicit, as GAOL v5 adds no implicit
+      conversion
     */
     explicit interval(const float64x2_t& v);
+    //! The same without the check of [+oo] and [-oo], for the code of GAOL (see gaol_detail::unchecked_bounds)
+    interval(const float64x2_t& v, gaol_detail::unchecked_bounds_t);
 #endif // GAOL_USING_SSE2_INSTRUCTIONS
 
     /*
@@ -902,7 +927,7 @@ namespace gaol_core {
 
   GAOL_INLINE interval rnd_keep(const interval& x)
   {
-    return interval(rnd_keep(x.get_xmminterval())); // the lower bound stored negated
+    return interval(rnd_keep(x.get_xmminterval()), gaol_detail::unchecked_bounds); // the lower bound stored negated
   }
 #elif GAOL_USING_NEON_INSTRUCTIONS
   /*
@@ -920,7 +945,7 @@ namespace gaol_core {
 
   GAOL_INLINE interval rnd_keep(const interval& x)
   {
-    return interval(rnd_keep(x.get_neoninterval())); // the lower bound stored negated
+    return interval(rnd_keep(x.get_neoninterval()), gaol_detail::unchecked_bounds); // the lower bound stored negated
   }
 #else
   GAOL_INLINE interval rnd_keep(const interval& x)
@@ -2171,44 +2196,44 @@ GAOL_NODISCARD GAOL_INLINE interval operator%(T n, const interval& I)
 // gaol_interval_sse.h, GAOL v5)
 GAOL_NODISCARD GAOL_INLINE interval operator+(const interval& I1, const interval& I2)
   {
-    return interval(gaol_detail::add_bounds(I1.get_xmminterval(), I2.get_xmminterval()));
+    return interval(gaol_detail::add_bounds(I1.get_xmminterval(), I2.get_xmminterval()), gaol_detail::unchecked_bounds);
   }
 
 GAOL_NODISCARD GAOL_INLINE interval operator-(const interval& I1, const interval& I2)
   {
-    return interval(gaol_detail::sub_bounds(I1.get_xmminterval(), I2.get_xmminterval()));
+    return interval(gaol_detail::sub_bounds(I1.get_xmminterval(), I2.get_xmminterval()), gaol_detail::unchecked_bounds);
   }
 
 GAOL_NODISCARD GAOL_INLINE interval operator*(const interval& I1, const interval& I2)
   {
-    return interval(gaol_detail::mul_bounds(I1.get_xmminterval(), I2.get_xmminterval()));
+    return interval(gaol_detail::mul_bounds(I1.get_xmminterval(), I2.get_xmminterval()), gaol_detail::unchecked_bounds);
   }
 
 GAOL_NODISCARD GAOL_INLINE interval operator/(const interval& I1, const interval& I2)
   {
-    return interval(gaol_detail::div_bounds(I1.get_xmminterval(), I2.get_xmminterval()));
+    return interval(gaol_detail::div_bounds(I1.get_xmminterval(), I2.get_xmminterval()), gaol_detail::unchecked_bounds);
   }
 #elif GAOL_USING_NEON_INSTRUCTIONS
 // The bounds in registers, from the operands to the result, as with the SSE2
 // intervals (see gaol_interval_neon.h, GAOL v5)
 GAOL_NODISCARD GAOL_INLINE interval operator+(const interval& I1, const interval& I2)
   {
-    return interval(gaol_detail::add_bounds(I1.get_neoninterval(), I2.get_neoninterval()));
+    return interval(gaol_detail::add_bounds(I1.get_neoninterval(), I2.get_neoninterval()), gaol_detail::unchecked_bounds);
   }
 
 GAOL_NODISCARD GAOL_INLINE interval operator-(const interval& I1, const interval& I2)
   {
-    return interval(gaol_detail::sub_bounds(I1.get_neoninterval(), I2.get_neoninterval()));
+    return interval(gaol_detail::sub_bounds(I1.get_neoninterval(), I2.get_neoninterval()), gaol_detail::unchecked_bounds);
   }
 
 GAOL_NODISCARD GAOL_INLINE interval operator*(const interval& I1, const interval& I2)
   {
-    return interval(gaol_detail::mul_bounds(I1.get_neoninterval(), I2.get_neoninterval()));
+    return interval(gaol_detail::mul_bounds(I1.get_neoninterval(), I2.get_neoninterval()), gaol_detail::unchecked_bounds);
   }
 
 GAOL_NODISCARD GAOL_INLINE interval operator/(const interval& I1, const interval& I2)
   {
-    return interval(gaol_detail::div_bounds(I1.get_neoninterval(), I2.get_neoninterval()));
+    return interval(gaol_detail::div_bounds(I1.get_neoninterval(), I2.get_neoninterval()), gaol_detail::unchecked_bounds);
   }
 #else
 GAOL_NODISCARD GAOL_INLINE interval operator+(const interval& I1, const interval& I2)
