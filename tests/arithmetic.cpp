@@ -1891,20 +1891,34 @@ namespace
     // upward are not the opposites of those of -c (pow([-(1 + 2^-51)], 21)
     // would have the upper bound -0x1.0000000000029p+0 from c itself, rather
     // than -0x1.000000000002ap+0)
+    const auto opposite_powers = [](double c, int n) {
+      const interval p = pow(interval(c), n), q = pow(interval(-c), n), w = pow(interval(-1e300, -c), n);
+      // -c gives the upper bound of x^n on [-1e300, -c] where x^n increases there
+      const bool upper = (n > 0) == (n % 2 != 0);
+      const double t = upper ? w.right() : w.left(), u = upper ? q.right() : q.left();
+      check("pow([-c], n): the opposite of pow([c], n) for an odd n, pow([c], n) for an even one, "
+            "and the bound of the corner -c alone",
+            !p.is_empty() && !q.is_empty() && t == u
+              && ((n % 2 != 0) ? (q.left() == -p.right() && q.right() == -p.left())
+                               : (q.left() == p.left() && q.right() == p.right())),
+            [&] { return "c = " + hex(c) + ", n = " + std::to_string(n) + ": " + hex(p) + " " + hex(q)
+                         + " " + hex(w); });
+    };
     for (int k = 1; k <= 16; ++k) {
       for (const double c : { 1.0 + k*0x1p-52, 1.0 - k*0x1p-53, 1.5 + k*0x1p-52, 3.0 + k*0x1p-51 }) {
         for (int n : { 3, 4, 5, 7, 9, 13, 21, 31, 33, 63, 101, -2, -3, -5, -21, -33, -64 }) {
-          const interval p = pow(interval(c), n), q = pow(interval(-c), n), w = pow(interval(-1e300, -c), n);
-          // -c gives the upper bound of x^n on [-1e300, -c] where x^n increases there
-          const bool upper = (n > 0) == (n % 2 != 0);
-          const double t = upper ? w.right() : w.left(), u = upper ? q.right() : q.left();
-          check("pow([-c], n): the opposite of pow([c], n) for an odd n, pow([c], n) for an even one, "
-                "and the bound of the corner -c alone",
-                !p.is_empty() && !q.is_empty() && t == u
-                  && ((n % 2 != 0) ? (q.left() == -p.right() && q.right() == -p.left())
-                                   : (q.left() == p.left() && q.right() == p.right())),
-                [&] { return "c = " + hex(c) + ", n = " + std::to_string(n) + ": " + hex(p) + " " + hex(q)
-                             + " " + hex(w); });
+          opposite_powers(c, n);
+        }
+      }
+    }
+    // The same for every n from 2 to 200 in magnitude, c within 16 doubles of 1: it is there, where
+    // c^n is within the bound K of the error of a double, that the lanes taking the powers of c
+    // rather than those of |c| give other bounds for -c than the opposites of those of c
+    for (int k = 1; k <= 16; ++k) {
+      for (const double c : { 1.0 + k*0x1p-52, 1.0 - k*0x1p-53 }) {
+        for (int m = 2; m <= 200; ++m) {
+          opposite_powers(c, m);
+          opposite_powers(c, -m);
         }
       }
     }
@@ -1997,6 +2011,51 @@ namespace
       { 0.9999999, -2147483647, 0x1.c2d297bd940f4p+309, 0x1.c2d297bd940f5p+309 },
       { 1.0000001, -16777217, 0x1.7e9085a4ba4adp-3, 0x1.7e9085a4ba4aep-3 },
       { 1.0000001, -268435455, 0x1.3551ae28dc2adp-39, 0x1.3551ae28dc2aep-39 },
+      // More of them, for n from -2^31 + 1 to -2^27 and x within 2e-6 of 1 (the powers are normal
+      // doubles between 2^-300 and 2^306), computed with mpmath as above by
+      // tests/tools/pow/negative_power_rows.py. Each power is at least 1/16 of the spacing of the
+      // doubles away from the two doubles around it, 2^8 times the 2K of the bound K of the
+      // products at the largest n, so that the bounds are the tightest in every build
+      { 0x1.fffffc64425b6p-1, -1586573248, 0x1.1b8155e7c7563p+246, 0x1.1b8155e7c7564p+246 },
+      { 0x1.00000ae5de022p+0, -288974074, 0x1.2503cc188f53cp-271, 0x1.2503cc188f53dp-271 },
+      { 0x1.fffff27ab9cb3p-1, -444027020, 0x1.172ebfc9e7796p+258, 0x1.172ebfc9e7797p+258 },
+      { 0x1.0000071cb9f98p+0, -244544055, 0x1.5b366913542edp-150, 0x1.5b366913542eep-150 },
+      { 0x1.0000008bf68d0p+0, -1761371944, 0x1.242be34230fa5p-83, 0x1.242be34230fa6p-83 },
+      { 0x1.00000286219ebp+0, -1380615817, 0x1.473966c6d36b3p-300, 0x1.473966c6d36b4p-300 },
+      { 0x1.000002500b18cp+0, -1494301926, 0x1.c6c1143a779dfp-298, 0x1.c6c1143a779e0p-298 },
+      { 0x1.fffffa438af4bp-1, -687859113, 0x1.90cc9e8053082p+169, 0x1.90cc9e8053083p+169 },
+      { 0x1.fffffe901cf0dp-1, -1192653591, 0x1.9d3c5364d2893p+73, 0x1.9d3c5364d2894p+73 },
+      { 0x1.00000305b011cp+0, -623743628, 0x1.dd488123a3890p-163, 0x1.dd488123a3891p-163 },
+      { 0x1.00000136f203fp+0, -1395322063, 0x1.32f339b97c914p-146, 0x1.32f339b97c915p-146 },
+      { 0x1.000002652415cp+0, -1115269102, 0x1.3be85979f1cdbp-230, 0x1.3be85979f1cdcp-230 },
+      { 0x1.fffffc4544ef1p-1, -758919231, 0x1.9d810bf8b8635p+121, 0x1.9d810bf8b8636p+121 },
+      { 0x1.fffffe696777bp-1, -2106680103, 0x1.d14e7037b07a5p+143, 0x1.d14e7037b07a6p+143 },
+      { 0x1.000003eda8137p+0, -814387810, 0x1.dcab111e30dafp-276, 0x1.dcab111e30db0p-276 },
+      { 0x1.000002941c6bep+0, -924605811, 0x1.fa459588a53dcp-206, 0x1.fa459588a53ddp-206 },
+      { 0x1.fffffd1cd33a5p-1, -1324134212, 0x1.4e73a08578c52p+164, 0x1.4e73a08578c53p+164 },
+      { 0x1.00000ca077a6cp+0, -221758529, 0x1.2930770ba5a6dp-241, 0x1.2930770ba5a6ep-241 },
+      { 0x1.fffffaa08ea18p-1, -949078751, 0x1.2f5d4ed4a459cp+219, 0x1.2f5d4ed4a459dp+219 },
+      { 0x1.000002eb1088dp+0, -773531681, 0x1.d9f970d6e3bb8p-195, 0x1.d9f970d6e3bb9p-195 },
+      { 0x1.00000214e59b4p+0, -614192193, 0x1.0a924f4079841p-110, 0x1.0a924f4079842p-110 },
+      { 0x1.000002dd6ed86p+0, -972190576, 0x1.6725ef8b5d6fep-240, 0x1.6725ef8b5d6ffp-240 },
+      { 0x1.fffff90090b81p-1, -923536919, 0x1.d387db43c0856p+277, 0x1.d387db43c0857p+277 },
+      { 0x1.00000248a38d9p+0, -1171719734, 0x1.dc0e10ff146ccp-231, 0x1.dc0e10ff146cdp-231 },
+      { 0x1.000002650a983p+0, -1448971522, 0x1.8a74eeb270c8ep-299, 0x1.8a74eeb270c8fp-299 },
+      { 0x1.000004f284343p+0, -617131935, 0x1.5ef6a1822cac9p-263, 0x1.5ef6a1822cacap-263 },
+      { 0x1.0000016586486p+0, -560582265, 0x1.99741ff527ec4p-68, 0x1.99741ff527ec5p-68 },
+      { 0x1.0000040c905bfp+0, -660919645, 0x1.d64577dcdcea0p-231, 0x1.d64577dcdcea1p-231 },
+      { 0x1.fffffb942ced8p-1, -1166156738, 0x1.994f23ebebcadp+221, 0x1.994f23ebebcaep+221 },
+      { 0x1.00000177d992bp+0, -1254354729, 0x1.8e883dc10b667p-159, 0x1.8e883dc10b668p-159 },
+      { 0x1.0000029a9eb2ap+0, -1099937781, 0x1.a06c7e1e6e5c8p-247, 0x1.a06c7e1e6e5c9p-247 },
+      { 0x1.0000032781347p+0, -1075447589, 0x1.395756377f73cp-292, 0x1.395756377f73dp-292 },
+      { 0x1.ffffdae902e08p-1, -188091747, 0x1.ee9e6c73ba8e1p+299, 0x1.ee9e6c73ba8e2p+299 },
+      { 0x1.fffffb7fff528p-1, -1579012648, 0x1.6c4443b4c5c8ap+305, 0x1.6c4443b4c5c8bp+305 },
+      { 0x1.fffffa83f55eap-1, -1296389798, 0x1.a0db09bd33049p+305, 0x1.a0db09bd3304ap+305 },
+      { 0x1.fffffb454757dp-1, -1218515848, 0x1.b683db0439d7fp+247, 0x1.b683db0439d80p+247 },
+      { 0x1.000001a1adc2ap+0, -786810704, 0x1.86e3db4f04befp-111, 0x1.86e3db4f04bf0p-111 },
+      { 0x1.fffffd3afffd5p-1, -1980831244, 0x1.d4e467abb7b69p+235, 0x1.d4e467abb7b6ap+235 },
+      { 0x1.000002a62793cp+0, -1211133679, 0x1.14589e2a395ddp-276, 0x1.14589e2a395dep-276 },
+      { 0x1.fffffba697848p-1, -1572877458, 0x1.1770437be1cacp+294, 0x1.1770437be1cadp+294 },
     };
     for (const auto& c : negative) {
       const interval x(c.x), r = pow(x, c.n);
