@@ -68,7 +68,7 @@
 #include <ostream>
 #include <streambuf>
 #include <type_traits>
-#if defined(_MSC_VER) && defined(_M_ARM64)
+#if defined(_MSC_VER) && defined(_M_ARM64) && !GAOL_TESTS_FLUSH
 #  include <float.h>
 #endif
 
@@ -538,7 +538,7 @@ namespace
   */
   void subnormal_output_flush_not_cleared()
   {
-#if defined(_MSC_VER) && defined(_M_ARM64)
+#if defined(_MSC_VER) && defined(_M_ARM64) && !GAOL_TESTS_FLUSH
     unsigned int saved = 0, ignored = 0;
     if (_controlfp_s(&saved, 0, 0) != 0) {
       std::printf("_controlfp_s() does not read the control word: the output of subnormals with FZ is not checked\n");

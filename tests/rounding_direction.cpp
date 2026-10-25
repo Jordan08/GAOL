@@ -147,11 +147,18 @@
 // 64-bit ARM with GCC or Clang: FPCR, the control register holding the rounding
 // direction, the modes that flush the subnormals to zero, the default-NaN mode
 // and the enables of the traps, is read with mrs and written with msr, as
-// tests/gaol_tests.h does for the flush modes (GAOL v5)
-#if defined(__aarch64__) && defined(__GNUC__)
+// tests/gaol_tests.h does for the flush modes; with Visual C++ and the NEON
+// intervals, through _ReadStatusReg() and _WriteStatusReg() (GAOL v5)
+#if (defined(__aarch64__) && defined(__GNUC__)) || GAOL_TESTS_FPCR_MSVC
 #  define GAOL_TESTS_FPCR 1
 #else
 #  define GAOL_TESTS_FPCR 0
+#endif
+// FPCR is the register of a 64-bit ARM processor (FPSCR is the 32-bit one)
+#if defined(__aarch64__) || GAOL_TESTS_FPCR_MSVC
+#  define GAOL_TESTS_FPCR64 1
+#else
+#  define GAOL_TESTS_FPCR64 0
 #endif
 // The same for the sequence of a write of the control register and an
 // operation, which 32-bit ARM processors with a floating-point unit have too:
@@ -1984,7 +1991,9 @@ namespace
   */
   unsigned long long read_fpcr()
   {
-#if defined(__aarch64__)
+#if GAOL_TESTS_FPCR_MSVC
+    return static_cast<unsigned long long>(_ReadStatusReg(ARM64_FPCR));
+#elif defined(__aarch64__)
     unsigned long long fpcr;
     __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));
     return fpcr;
@@ -1997,7 +2006,10 @@ namespace
 
   void write_fpcr(unsigned long long fpcr)
   {
-#if defined(__aarch64__)
+#if GAOL_TESTS_FPCR_MSVC
+    _WriteStatusReg(ARM64_FPCR, static_cast<__int64>(fpcr));
+    _ReadWriteBarrier();
+#elif defined(__aarch64__)
     __asm__ __volatile__ ("msr fpcr, %0" : : "r" (fpcr) : "memory");
 #else
     const unsigned int fpscr = static_cast<unsigned int>(fpcr);
@@ -2013,7 +2025,7 @@ namespace
   }
 
   const unsigned long long fpcr_rmode_bits = 0xc00000ull;
-#if defined(__aarch64__)
+#if GAOL_TESTS_FPCR64
   const unsigned long long fpcr_flush_bits = 0x1000001ull; // FZ and FIZ
   const unsigned long long fpcr_dn_fz16_bits = 0x2080000ull;
   const unsigned long long fpcr_flag_bits = 0ull; // the flags of the exceptions are in FPSR
@@ -3318,7 +3330,7 @@ int main()
         }
       }
     }
-#if defined(__aarch64__)
+#if GAOL_TESTS_FPCR64
     /*
       FPCR.AH (bit 1, FEAT_AFP of Armv8.7; GAOL v5, point 129 of TODO.md), which
       GAOL does not clear: with it, FMAX and FMAXP return the second operand for
