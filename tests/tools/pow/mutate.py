@@ -97,18 +97,24 @@ FILE = 'gaol/gaol_interval_core.cpp'
 # an SSE2 register holds, gives the empty set (std-infinite-exponent-*); x^2 is
 # sqr(), which gaol_pown() and pown_upward() take before pown_products(), and
 # the mutant pown-square-bound, which gave K back to m = 2 in pown_bound(), went
-# with that branch of pown_bound(), no n reaching it any longer.
+# with that branch of pown_bound(), no n reaching it any longer. The texts of
+# std-empty-y-unchecked and std-infinite-exponent-unchecked follow
+# holds_no_real(), which pow_standard_upward() calls for the exponent [+oo] or
+# [-oo] (#183), and those of corner-lower-not-exact and corner-upper-no-limit
+# follow the template argument quiet of pow_lo() and pow_hi() (#184);
+# er-division-downward divides in 512 bits downward where pown_er_ops::div()
+# now takes er_div2() (#191).
 MUTANTS = [
     # pow_standard_upward(): the pow of Table 9.1
     dict(name='std-empty-y-unchecked',
-         edits=[('if (x.is_empty() || y.is_empty() || !(y.left() < GAOL_INFINITY',
-                 'if (x.is_empty() || !(y.left() < GAOL_INFINITY')],
-         survives='the NaN bounds of an empty y fail the test of an infinite exponent too, which gives the '
-                  'empty set: the same bounds, but rounding_direction finds the invalid-operation flag that '
-                  'comparing them raises'),
+         edits=[('if (x.is_empty() || y.is_empty() || holds_no_real(y)) {',
+                 'if (x.is_empty() || holds_no_real(y)) {')],
+         survives='pow_standard() and pow_hybrid_upward(), its only callers, return the empty set for an empty '
+                  'operand before they call it: an empty y never reaches its test (the NaN bounds would fail '
+                  'holds_no_real() too, and give the empty set), the same bounds and the same flags'),
     dict(name='std-infinite-exponent-unchecked',
-         edits=[('y.is_empty() || !(y.left() < GAOL_INFINITY && y.right() > -GAOL_INFINITY)) {',
-                 'y.is_empty()) {')]),
+         edits=[('if (x.is_empty() || y.is_empty() || holds_no_real(y)) {',
+                 'if (x.is_empty() || y.is_empty()) {')]),
     dict(name='std-no-cut-to-positive',
          edits=[('const interval base = x & interval::positive();', 'const interval base = x;')]),
     dict(name='std-empty-base-unchecked',
@@ -185,8 +191,8 @@ MUTANTS = [
          edits=[('(yl < 0.0) ? yl : 0.0', '(yl < 0.0) ? 0.0 : yl')]),
     # pow_lo() and pow_hi(): the bounds at a corner
     dict(name='corner-lower-not-exact',
-         edits=[('return pow_is_double(x, y, d) ? d : maximum(pow_rounded_dn(x,y), 0.0);',
-                 'return maximum(pow_rounded_dn(x,y), 0.0);')]),
+         edits=[('return pow_is_double(x, y, d) ? d : maximum(pow_rounded_dn<quiet>(x,y), 0.0);',
+                 'return maximum(pow_rounded_dn<quiet>(x,y), 0.0);')]),
     dict(name='corner-lower-no-one',
          edits=[('if (x == 1.0 || y == 0.0) {\n      return 1.0;\n    }\n    if (pow_is_limit(x, y)) {',
                  'if (pow_is_limit(x, y)) {')]),
@@ -197,8 +203,8 @@ MUTANTS = [
          edits=[('    if (pow_is_limit(x, y)) {\n      return pow_limit(x, y);\n    }\n    return pow_is_double',
                  '    return pow_is_double')]),
     dict(name='corner-upper-no-limit',
-         edits=[('return pow_is_limit(x, y) ? pow_limit(x, y) : pow_rounded_up(x,y);',
-                 'return pow_rounded_up(x,y);')]),
+         edits=[('return pow_is_limit(x, y) ? pow_limit(x, y) : pow_rounded_up<quiet>(x,y);',
+                 'return pow_rounded_up<quiet>(x,y);')]),
     dict(name='corner-limit-inverted',
          edits=[('return ((x > 1.0) == (y > 0.0)) ? GAOL_INFINITY : 0.0;',
                  'return ((x > 1.0) == (y > 0.0)) ? 0.0 : GAOL_INFINITY;')]),
@@ -375,10 +381,28 @@ MUTANTS = [
          edits=[('_mm512_fmadd_round_pd(lo512(a.v), lo512(b.v), lo512(c.v), gaol_er)', '_mm512_fmadd_round_pd(lo512(a.v), lo512(b.v), lo512(c.v), gaol_er_down)')]),
     dict(name='er-division-downward',
          file='gaol/gaol_interval_avx512.cpp',
-         edits=[('_mm512_div_round_pd(lo512(a.v), lo512(b.v), gaol_er)', '_mm512_div_round_pd(lo512(a.v), lo512(b.v), gaol_er_down)')],
+         edits=[('const lanes r = { er_div2(a.v, b.v) };',
+                 'const lanes r = { back128(_mm512_div_round_pd(lo512(a.v), lo512(b.v), gaol_er_down)) };')],
          survives='the quotient q = 1/h is corrected by the rest r of 1 - q (h + l), whichever way it is rounded, '
                   'and K covers the rounding of r and of the correction: the bounds are those of the quotient '
                   'rounded upward but where 1/c^m is within about 2^-100 of a double, which no test reaches'),
+    # er_div_low(), er_div_high() and er_div2(), the two scalar divisions that x / d, the divisors with a zero
+    # of div_unguarded() and the 1/h of the negative powers take (#191)
+    dict(name='er-div-low-downward',
+         file='gaol/gaol_interval_avx512.cpp',
+         edits=[('return _mm_div_round_sd(a, b, gaol_er);', 'return _mm_div_round_sd(a, b, gaol_er_down);')]),
+    dict(name='er-div-high-downward',
+         file='gaol/gaol_interval_avx512.cpp',
+         edits=[('return _mm_div_round_sd(_mm_unpackhi_pd(a, a), _mm_unpackhi_pd(b, b), gaol_er);',
+                 'return _mm_div_round_sd(_mm_unpackhi_pd(a, a), _mm_unpackhi_pd(b, b), gaol_er_down);')]),
+    dict(name='er-div-high-on-low-lanes',
+         file='gaol/gaol_interval_avx512.cpp',
+         edits=[('return _mm_div_round_sd(_mm_unpackhi_pd(a, a), _mm_unpackhi_pd(b, b), gaol_er);',
+                 'return _mm_div_round_sd(a, b, gaol_er);')]),
+    dict(name='er-div2-lanes-swapped',
+         file='gaol/gaol_interval_avx512.cpp',
+         edits=[('return _mm_unpacklo_pd(er_div_low(a, b), er_div_high(a, b));',
+                 'return _mm_unpacklo_pd(er_div_high(a, b), er_div_low(a, b));')]),
     dict(name='er-modes-not-cleared',
          edits=[('      const flush_guard flush;\n      __m128d stored;', '      __m128d stored;')]),
     # The pair of doubles (FPU intervals, SSE2 intervals without FMA)

@@ -110,15 +110,19 @@ point Q), which `numbers` checks there too.
   compared fail without the call of `sqr()` in `pown_upward()`, 5 without the
   one in `gaol_pown()`), and (-c)^n has to be c^n or
   -c^n, and the bound of a corner the same whether the other corner is
-  computed with it or alone, at 1 088 points near 1, 1.5 and 3, where the
-  power is within the error bound of a double: the lanes take |c|, the
-  products of c and -c rounded upward not being opposite.
+  computed with it or alone, at 1 088 points near 1, 1.5 and 3 and 12 736 more
+  (c within 16 doubles of 1, n from 2 to 200 in magnitude), where the power is
+  within the error bound of a double: the lanes take |c|, the products of c
+  and -c rounded upward not being opposite (5 of these checks fail with lanes
+  that take c).
   `gaol::pow(x, n)` for an unsigned n has to give what it gives
   for an int n, `[1]` for n = 0 and the empty set for an empty x. Integer
   powers for n from 2^24 + 1 to 2^32 − 1 have to be the tightest enclosures,
   against bounds computed with mpmath: the lower bound left out the square of
   the rest it carries, and was 1962 doubles below the tightest for
-  `pow([1.0000001], 2^32 − 1)`. The n-th roots of x below 2^-1020, the
+  `pow([1.0000001], 2^32 − 1)`. The same for 46 negative n from −2^31 to
+  −2^24, 1/x^n corrected to the second order (44 of these checks fail without
+  the term r^2 of the correction). The n-th roots of x below 2^-1020, the
   subnormal x included, have to be as tight as those of the other x: within 2
   doubles of the tightest bounds (4 for `rootn(x, q)`, q < 0, the inverse of a
   root) for n = 4, 5, 33, 65, 129 and 1025 against exact arithmetic and for n
