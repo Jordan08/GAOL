@@ -818,7 +818,8 @@ def md(text):
     return text.replace("|", "\\|")
 
 
-BUILD_NAMES = {"sse": "SSE2", "fpu": "FPU"}
+# "sse" is the default build of run.sh: the SSE2 intervals on x86, the NEON ones on 64-bit ARM
+BUILD_NAMES = {"sse": "default", "fpu": "FPU"}
 
 
 def report(out, programs, builds, gaol_label, itf_label):
