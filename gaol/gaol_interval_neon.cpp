@@ -375,7 +375,10 @@ namespace gaol_core {
     // The denominator of each lane: the larger bound d' where the stored bound of
     // x is negative (its left bound l >= 0), c' where it is not
     const uint64x2_t x_negative = vcltzq_s64(vreinterpretq_s64_f64(xp));
-    return vdivq_f64(xp, vbslq_f64(x_negative, dd, cc));
+    // EXPERIMENT (not to be merged): two scalar divisions instead of one on both lanes
+    const float64x2_t den = vbslq_f64(x_negative, dd, cc);
+    return vcombine_f64(vdiv_f64(vget_low_f64(xp), vget_low_f64(den)),
+                        vdiv_f64(vget_high_f64(xp), vget_high_f64(den)));
   }
 
   } // namespace neon_detail
