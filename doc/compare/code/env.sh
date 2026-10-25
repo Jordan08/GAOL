@@ -77,6 +77,10 @@ CXXFLAGS_BENCH="${CXXFLAGS_BENCH:--O3 -DNDEBUG}"
 # setup.sh builds and to every program, as GAOL takes them by default
 # (GAOL_FMA): FMA_FLAGS= (empty) for a processor without them
 FMA_FLAGS="${FMA_FLAGS--mfma}"
+# SSE2 and SSE3 for Goualard's GAOL, whose headers choose their intervals by them
+# (SSE_FLAGS= (empty) on a 64-bit ARM processor, whose compilers refuse them:
+# run_lines_arm64.sh)
+SSE_FLAGS="${SSE_FLAGS--msse2 -msse3}"
 F90FLAGS_BENCH="${F90FLAGS_BENCH:--O3 -xia}"
 F90FLAGS_CASES="${F90FLAGS_CASES:--O3 -xia}"
 
@@ -90,7 +94,7 @@ gaol_preserve_cflags() { PKG_CONFIG_PATH="$GAOL_PRESERVE_PREFIX/lib/pkgconfig" p
 gaol_preserve_libs() { PKG_CONFIG_PATH="$GAOL_PRESERVE_PREFIX/lib/pkgconfig" pkg-config --libs gaol; }
 # Goualard's GAOL installs no gaol.pc: its headers hold the SSE2 and SSE3
 # intervals its configure found, and its library calls mathlib's
-gaol_goualard_cflags() { echo "-I$GAOL_GOUALARD_PREFIX/include $IA_CXXFLAGS -msse2 -msse3 $FMA_FLAGS"; }
+gaol_goualard_cflags() { echo "-I$GAOL_GOUALARD_PREFIX/include $IA_CXXFLAGS $SSE_FLAGS $FMA_FLAGS"; }
 gaol_goualard_libs() { echo "-L$GAOL_GOUALARD_PREFIX/lib -lgaol -lultim -lm"; }
 p1788_cflags() { echo "-std=c++11 -I$PREFIX/include"; }
 p1788_libs() { echo "-L$PREFIX/lib -lmpfr -lgmp"; }

@@ -12,8 +12,11 @@
 # LINE_LIST       a comma-separated list of lines (default: all of them, see
 #                 bench_ops.h; set and empty: none, as for run_perf.sh)
 # CPU             a processor to run the programs on, with taskset
-# LIBS            the libraries to run (default: "double gaol5 gaol filib
-#                 profil boost p1788", Solaris Studio having no line)
+# LIBS            the libraries to run (default: "double gaol5 gaol5p gaol
+#                 filib profil boost p1788", Solaris Studio having no line):
+#                 gaol5p is GAOL of this repository built with
+#                 GAOL_PRESERVE_ROUNDING=ON, a column of the table of the times
+#                 only, as in run_bench.sh
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -33,7 +36,7 @@ if [ -z "$LINE_LIST" ]; then
   exit 0
 fi
 CPU="${CPU:-}"
-LIBS="${LIBS:-double gaol5 gaol filib profil boost p1788}"
+LIBS="${LIBS:-double gaol5 gaol5p gaol filib profil boost p1788}"
 OUT="$WORK/lines"
 REPORT="${REPORT:-$CODE_DIR/../performance.md}"
 mkdir -p "$OUT"
@@ -62,6 +65,7 @@ for round in $(seq "$ROUNDS"); do
       double) run "$OUT/bench_double" "$DATA" "$REPEATS" "$LINE_LIST" ;;
       gaol) run "$OUT/bench_gaol" "$DATA" "$REPEATS" "$LINE_LIST" ;;
       gaol5) run "$OUT/bench_gaol5" "$DATA" "$REPEATS" "$LINE_LIST" ;;
+      gaol5p) run "$OUT/bench_gaol5p" "$DATA" "$REPEATS" "$LINE_LIST" ;;
       p1788) run "$OUT/bench_p1788" "$DATA" "$P1788_REPEATS" "$LINE_LIST" ;;
       filib) run "$OUT/bench_filib" "$DATA" "$REPEATS" "$LINE_LIST" ;;
       profil) run "$OUT/bench_profil" "$DATA" "$REPEATS" "$LINE_LIST" ;;
@@ -76,7 +80,7 @@ machine_description > "$OUT/machine.txt"
 python3 "$CODE_DIR/bench.py" lines-report "$RESULTS" "$OUT/machine.txt" "$REPORT"
 echo "== tables written to $REPORT"
 # The results of a whole run, as run_bench.sh keeps its own
-if [ "$LINE_LIST" = "$ALL_LINES" ] && [ "$LIBS" = "double gaol5 gaol filib profil boost p1788" ]; then
+if [ "$LINE_LIST" = "$ALL_LINES" ] && [ "$LIBS" = "double gaol5 gaol5p gaol filib profil boost p1788" ]; then
   cp "$RESULTS" "$CODE_DIR/results_lines.csv"
   cp "$OUT/machine.txt" "$CODE_DIR/machine_lines.txt"
   echo "== results kept in $CODE_DIR/results_lines.csv and machine_lines.txt"
