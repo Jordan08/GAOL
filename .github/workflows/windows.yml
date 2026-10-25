@@ -75,6 +75,10 @@ jobs:
           # (gaol/gaol_fpu.h, GAOL v5): this job runs it with the rounding
           # direction restored by each operation too, which no job did
           - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', arch: Win32, config: Release, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Visual Studio 2026 x86 Release, rounding direction preserved' }
+          # The FPU intervals, which the SSE2 ones replace on x86 with Visual C++
+          # (GAOL v5), so that their code, and the rounding direction they keep
+          # through the x87 unit and MXCSR, stay covered
+          - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', arch: Win32, config: Release, opts: '-DGAOL_SIMD=OFF', desc: 'Visual Studio 2026 x86 Release, FPU intervals' }
           - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', arch: x64,   config: Debug,   desc: 'Visual Studio 2026 x64 Debug' }
           - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', arch: ARM64, config: Debug,   desc: 'Visual Studio 2026 arm64 Debug' }
           - { os: windows-2022,          generator: 'Visual Studio 17 2022', arch: Win32, config: Release, desc: 'Visual Studio 2022 x86 Release' }
@@ -142,13 +146,16 @@ jobs:
           if [ "${{ matrix.cfg.clang_cl }}" = "true" ]; then
             test "$(grep -c -E "The (C|CXX) compiler identification is Clang .* with MSVC-like command-line" configure.log)" = 2
           fi
-      # The intervals of the build: the SSE2 ones on x64, where Visual C++ and
-      # clang-cl take them (GAOL v5), the NEON ones on arm64 with Visual C++ and
-      # clang-cl (GAOL_ARM64, on by default; GAOL v5), and the FPU ones on x86
+      # The intervals of the build: the SSE2 ones on x64 and on x86, where Visual
+      # C++ and clang-cl take them (on x86 with their two bounds as two doubles
+      # of alignment 8, GAOL_SSE2_UNALIGNED_STORAGE; GAOL v5), the NEON ones on
+      # arm64 with Visual C++ and clang-cl (GAOL_ARM64, on by default; GAOL v5),
+      # and the FPU ones where the job asks for them (-DGAOL_SIMD=OFF on x86 and
+      # x64, -DGAOL_ARM64=OFF on arm64)
       - name: The intervals
         run: |
-          case "${{ matrix.cfg.arch }}" in x64) expected=sse2 ;; ARM64) expected=neon ;; *) expected=fpu ;; esac
-          case "${{ matrix.cfg.opts }}" in *GAOL_ARM64=OFF*) expected=fpu ;; esac
+          case "${{ matrix.cfg.arch }}" in x64|Win32) expected=sse2 ;; ARM64) expected=neon ;; *) expected=fpu ;; esac
+          case "${{ matrix.cfg.opts }}" in *GAOL_SIMD=OFF*|*GAOL_ARM64=OFF*) expected=fpu ;; esac
           sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h $expected
       # On x64, the processor of the runner, and whether the arithmetic takes
       # the AVX-512 path, which the configuration decides from the
@@ -187,9 +194,10 @@ jobs:
       - name: GAOL's headers refused without /fp:strict
         run: cmake -S tests/fp_strict -B build-fp-strict -G "${{ matrix.cfg.generator }}" -A ${{ matrix.cfg.arch }} ${{ matrix.cfg.toolset }} -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
 
-  # /W4 /WX with the Visual C++ of Visual Studio 2026 x64, whose intervals are
-  # the SSE2 ones, and x86, where size_t has 32 bits and the intervals are
-  # those of the FPU (GAOL v5), as -Wall -Wextra -Werror with GCC and Clang
+  # /W4 /WX with the Visual C++ of Visual Studio 2026 x64 and x86, whose
+  # intervals are the SSE2 ones, those of x86 keeping their two bounds as two
+  # doubles (GAOL v5), x86 being where size_t has 32 bits, as
+  # -Wall -Wextra -Werror with GCC and Clang
   # (linux.yml) and AppleClang (macos.yml):
   # the library, the sources of CORE-MATH included, the tests and the examples.
   # /W4 goes to every compilation, through CFLAGS and CXXFLAGS, which CMake

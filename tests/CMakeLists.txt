@@ -214,7 +214,9 @@ endif()
 # Clang; on 32-bit Windows itself the whole suite is the test, the SSE2
 # intervals crashing without the option. The autotools and meson builds run the
 # same checks with tests/refused_options.sh.
-if(GAOL_USING_SSE2_INSTRUCTIONS AND NOT WIN32 AND NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+# Not where the build gives the SSE2 intervals the form of Visual C++ and clang-cl
+# (-DGAOL_SSE2_UNALIGNED_STORAGE=ON), whose bounds need no aligned memory.
+if(GAOL_USING_SSE2_INSTRUCTIONS AND NOT GAOL_SSE2_UNALIGNED_STORAGE AND NOT WIN32 AND NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   function(gaol_aligned_new_test name standard flag text)
     gaol_compile_test(${name} refused_aligned_new.cpp "${text}")
     set_target_properties(gaol_${name} PROPERTIES CXX_STANDARD ${standard} CXX_STANDARD_REQUIRED ON)

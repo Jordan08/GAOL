@@ -18951,7 +18951,9 @@ fi
 # bytes and an SSE2 interval needs 16, the SSE2 intervals need the compiler to
 # ask for aligned memory, -faligned-new=8, which the code using GAOL is given
 # too (GAOL_PC_CFLAGS; GAOL v5, see CMakeLists.txt). A compiler that does not
-# take it keeps the FPU intervals there.
+# take it keeps the FPU intervals there. Clang with its driver for a target of
+# Visual C++ has no such flag to give, and takes the SSE2 intervals that keep
+# their bounds as two doubles (GAOL_SSE2_UNALIGNED_STORAGE of gaol/gaol_config.h).
 using_sse2=no
 has_sse3=no
 ac_ext=cpp
@@ -19130,9 +19132,11 @@ if test "${gaol_cxx_takes}" = yes; then
 fi
     fi
     has_aligned_new=yes
+    simulates_msvc=no
     if test "$simd" = yes && test "${target_win32}" = yes; then
         # Clang with its driver for a target of Visual C++ simulates it (_MSC_VER):
-        # no flag asks for the aligned memory of its STL (see CMakeLists.txt)
+        # no flag asks for the aligned memory of its STL, and its SSE2 intervals
+        # need none (see CMakeLists.txt)
         ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -19170,9 +19174,7 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-        if test "${simulates_msvc}" = yes; then
-            has_aligned_new=no
-        else
+        if test "${simulates_msvc}" != yes; then
             ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -19260,7 +19262,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
             using_sse2=yes
             CXXFLAGS="${CXXFLAGS} -msse2"
             GAOL_PC_CFLAGS="${GAOL_PC_CFLAGS} -msse2"
-            if test "${target_win32}" = yes; then
+            if test "${target_win32}" = yes && test "${simulates_msvc}" != yes; then
                 CXXFLAGS="${CXXFLAGS} -faligned-new=8"
                 GAOL_PC_CFLAGS="${GAOL_PC_CFLAGS} -faligned-new=8"
             fi
