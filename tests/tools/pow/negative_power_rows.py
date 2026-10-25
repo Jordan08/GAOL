@@ -15,8 +15,8 @@
 # double between 2^-1000 and 2^1000 and lies between 1/16 and 15/16 of the
 # spacing of the doubles around it: the bounds of GAOL are the tightest only
 # where x^n is farther from a double than twice the bound K of the error of
-# the products (gaol/gaol_interval_core.cpp: 2^-65 at n = 2^31 - 1, 2^-12 of
-# that spacing), and these rows are 2^8 times farther in every build.
+# 1/x^|n| (pown_bound_inverse() in gaol/gaol_interval_core.cpp: 2^-61.7 at
+# n = -2^31 + 1), and these rows are at least 13 times farther in every build.
 #
 #     python3 negative_power_rows.py [COUNT] [--seed S]
 #

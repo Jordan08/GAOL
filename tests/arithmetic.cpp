@@ -2014,8 +2014,9 @@ namespace
       // More of them, for n from -2^31 + 1 to -2^27 and x within 2e-6 of 1 (the powers are normal
       // doubles between 2^-300 and 2^306), computed with mpmath as above by
       // tests/tools/pow/negative_power_rows.py. Each power is at least 1/16 of the spacing of the
-      // doubles away from the two doubles around it, 2^8 times the 2K of the bound K of the
-      // products at the largest n, so that the bounds are the tightest in every build
+      // doubles away from the two doubles around it, at least 13 times the 2K of the bound K of
+      // 1/c^m (pown_bound_inverse(): 2^-61.7 at n = -2^31 + 1), so that the bounds are the tightest
+      // in every build
       { 0x1.fffffc64425b6p-1, -1586573248, 0x1.1b8155e7c7563p+246, 0x1.1b8155e7c7564p+246 },
       { 0x1.00000ae5de022p+0, -288974074, 0x1.2503cc188f53cp-271, 0x1.2503cc188f53dp-271 },
       { 0x1.fffff27ab9cb3p-1, -444027020, 0x1.172ebfc9e7796p+258, 0x1.172ebfc9e7797p+258 },
