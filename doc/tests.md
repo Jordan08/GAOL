@@ -446,8 +446,14 @@ point Q), which `numbers` checks there too.
   and the modes it had or cleared without it. The operations with exact
   results, which all check the direction, must leave the direction exactly
   upward with the modes cleared. `cancel_minus` and `cancel_plus`, which
-  compute to nearest, are in the table. The bits a processor does not retain
-  are skipped and the test says so. The 30 forms of `+ - * / %`, `sqr`, `sqrt`
+  compute to nearest, are in the table. On 64-bit ARM, where FPCR retains
+  the AH bit (FEAT_AFP of Armv8.7, which GAOL does not clear), the sums,
+  differences, products, quotients, squares and square roots of the intervals
+  with the bounds -oo, -4, -0, 0, 4 and +oo, and of the empty set, run with AH
+  set must have the bounds they have with AH clear (the square roots the same
+  bits, the sign of a zero bound of the products aside) and must leave AH set
+  (GAOL v5, point 129). The bits a processor does not retain are skipped and
+  the test says so. The 30 forms of `+ - * / %`, `sqr`, `sqrt`
   and `inverse` with intervals, with a double and as compound assignments have
   to be the tightest enclosures of the exact result, computed from the four
   corners of random operands, in a loop changing the rounding direction before
