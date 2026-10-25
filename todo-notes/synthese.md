@@ -1095,7 +1095,7 @@ Copied from `todo-notes/2026-10-01/armhf.md`, lines 271 to 283:
 ````text
 **For ChangeLog**
 
-gaol/gaol_interval_fpu.h: on 32-bit ARM, `operator&=` tells an empty operand
+gaol/core/gaol_interval_fpu.h: on 32-bit ARM, `operator&=` tells an empty operand
 with `std::isunordered()` before comparing the bounds. GCC 12 to 14 compiled
 its quiet comparisons into the signaling `vcmpe` where it turned the choice of
 a bound into a conditional move, so that `x & y`, `intersection()` and the

@@ -407,10 +407,10 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   `containers.yml` et `clang-14-arm64` de `linux.yml` vérifient les neuf refus,
   le C seul, le C++ seul et les deux, par les trois builds ; 137 jobs verts)
 - #146 (points AI.106 et AI.107 : des intervalles NEON pour arm64, sur le modèle
-  des SSE2 (`gaol/gaol_interval_neon.h` et `.cpp`), choisis par `GAOL_ARM64`
-  (CMake), `--enable-arm64` (configure), `enable-arm64` (meson) et la macro
-  `GAOL_USING_NEON_INSTRUCTIONS`, indépendants de `GAOL_SIMD` ; le registre FPCR
-  lu par `mrs` et écrit par `msr` seulement s'il change,
+  des SSE2 (`gaol/core/gaol_interval_neon.h` et `.cpp`), choisis par
+  `GAOL_ARM64` (CMake), `--enable-arm64` (configure), `enable-arm64` (meson) et
+  la macro `GAOL_USING_NEON_INSTRUCTIONS`, indépendants de `GAOL_SIMD` ; le
+  registre FPCR lu par `mrs` et écrit par `msr` seulement s'il change,
   `GAOL_PRESERVE_ROUNDING` de 39 à 27 ns par opération sur un M2, `x - y`, `x *
   y`, `x / y`, `sqr` et `sqrt` de 1,3 à 4 fois plus rapides ;
   `tests/arithmetic.cpp` (environ 1,5 million de vérifications contre une
@@ -512,7 +512,7 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   donnent les compilateurs (`#pragma STDC FENV_ROUND` est ignoré par GCC et
   Visual C++ et « non supporté » par Clang, sans erreur), un verdict par piste ;
   le `// TODO: Rewrite as many functions as possible to use SIMD instructions`
-  de GAOL 4 dans `gaol/gaol_interval_core.cpp` remplacé par ce que l'étude
+  de GAOL 4 dans `gaol/core/gaol_interval_core.cpp` remplacé par ce que l'étude
   trouve ; deux relectures indépendantes, leurs erreurs corrigées)
 - #155 (point AL, ancien 118 : `process.md` mis à jour. Au §6.1, le paragraphe
   du 12 octobre sur une machine Ubuntu 24.04 est retiré, « Vérifie donc les
@@ -560,9 +560,9 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   Deux relectures indépendantes, leurs remarques reprises ; 158 jobs verts)
 - #157 (point AI, ancien 106, intervalles FPU : des noyaux scalaires sans
   branche sur les signes pour `x * y` (huit produits), `x / y`, `x % y` et
-  `sqr(x)` (`gaol/gaol_interval_fpu.cpp`), et `x - y`, qui lit ses bornes après
-  `GAOL_RND_ENTER()` et prend le temps de `x + y` (3,62 à 1,18 ns), pour les
-  builds sans intervalles SSE2 ni NEON : ARM 32 bits, POWER, s390x, RISC-V,
+  `sqr(x)` (`gaol/core/gaol_interval_fpu.cpp`), et `x - y`, qui lit ses bornes
+  après `GAOL_RND_ENTER()` et prend le temps de `x + y` (3,62 à 1,18 ns), pour
+  les builds sans intervalles SSE2 ni NEON : ARM 32 bits, POWER, s390x, RISC-V,
   Visual C++ et clang-cl en x86 32 bits et en arm64, MinGW-w64 en arm64,
   `GAOL_SIMD=OFF` et `GAOL_ARM64=OFF`. Sur un M2, `x * y` de signes aléatoires
   de 12,4 à 3,3 ns (16 384 opérandes), `x / y` de 9,3 à 3,2, `sqr` de 5,9 à 1,8,
@@ -766,8 +766,8 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   que le point ne nommait pas ; après, aucun avec les intervalles SSE2, les
   intervalles FPU et le chemin AVX-512, et l'empreinte des bits des bornes de
   chacune des 131 formes est celle de `configure-clean` (au signe d'un zéro
-  près). Corrections de `gaol/gaol_interval_core.cpp` : des quotients et des
-  produits saturants (`quotient_up_sat()`, `quotient_dn_sat()`,
+  près). Corrections de `gaol/core/gaol_interval_core.cpp` : des quotients et
+  des produits saturants (`quotient_up_sat()`, `quotient_dn_sat()`,
   `product_up_sat()`, `product_dn_sat()`, `quotient_sat()`) pour `div_rel` (le
   corps des intervalles FPU et NEON devient `div_rel_upward()` ; les intervalles
   SSE2 gardent leur code vectoriel, avec un test fait dans les registres),
@@ -927,10 +927,10 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   `gaol_ieee1788::pow(x, [2])` attendu vide, et est passé à la relance) ;
   fusionnée le 25 octobre)
 - #191 (point PG.6, la division du chemin AVX-512 : `er_div_low()`,
-  `er_div_high()` et `er_div2()` de `gaol/gaol_interval_avx512.cpp` font une ou
-  deux divisions scalaires à arrondi intégré (`vdivsd {ru-sae}`) là où trois
-  endroits divisaient encore en 512 bits : `fast_div_by()` (`x / d` et `x /=
-  d`), les 14 divisions de `div_unguarded()` (l'aiguillage d'un diviseur qui
+  `er_div_high()` et `er_div2()` de `gaol/core/gaol_interval_avx512.cpp` font
+  une ou deux divisions scalaires à arrondi intégré (`vdivsd {ru-sae}`) là où
+  trois endroits divisaient encore en 512 bits : `fast_div_by()` (`x / d` et `x
+  /= d`), les 14 divisions de `div_unguarded()` (l'aiguillage d'un diviseur qui
   contient 0) et le `1/h` des puissances négatives (`pown_er_ops::div`) ; plus
   aucune division de 512 bits dans la bibliothèque. La description de PG.6 et
   `doc/simd.md` disaient que l'idée n'avait pas été essayée pour `/` : le `x /
@@ -2074,7 +2074,7 @@ viennent de la section « Questions ouvertes » de la description de
 - [x] **L'exception de `bisect`** : un ratio hors de ]0, 1[, ou NaN, lève
   `invalid_action_error`, comme `nth_root` avec un second argument non entier.
   Rien ne change : le comportement est dans
-  [`interval::bisect`](https://github.com/Jordan08/GAOL/blob/496a3f2/gaol/gaol_interval_core.cpp#L5671),
+  [`interval::bisect`](https://github.com/Jordan08/GAOL/blob/496a3f2/gaol/core/gaol_interval_core.cpp#L5671),
   [`doc/using.md`](https://github.com/Jordan08/GAOL/blob/496a3f2/doc/using.md#L495),
   le
   [manuel](https://github.com/Jordan08/GAOL/blob/496a3f2/manual/v5/gaol.tex#L4051)
@@ -2588,8 +2588,8 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
 - **89.** Le format `agreeing` écrit `interval(4.0)` `4.000000000000000`, quand
   `bounds` écrit `[4]` : à documenter dans le commentaire d'`interval_format` et
   dans le manuel. Fait le 23 octobre par #164 : documenté dans le commentaire
-  d'`interval_format` (`gaol/gaol_interval_core.h`) et dans le manuel (section «
-  Output format ») ; un zéro s'écrit `[0]` dans tous les formats.
+  d'`interval_format` (`gaol/core/gaol_interval_core.h`) et dans le manuel
+  (section « Output format ») ; un zéro s'écrit `[0]` dans tous les formats.
 - **114.** (nouveau, issue #107) `parse_interval(nullptr)` plante (`strlen` d'un
   pointeur nul) : rendre `false`, avec un test dans `tests/expressions.cpp` et
   une note Doxygen dans `gaol/parser/gaol_parser.h`. Fait le 20 octobre par #147
@@ -2768,7 +2768,7 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
 - **126 (AN).** Évaluer les pistes SIMD et FMA : fait par #154 (`doc/simd.md`,
   qui répond aux quatre étapes de l'issue #101 ; le `// TODO: Rewrite as many
   functions as possible to use SIMD instructions` de
-  `gaol/gaol_interval_core.cpp` est remplacé). Ce qui reste (durcir
+  `gaol/core/gaol_interval_core.cpp` est remplacé). Ce qui reste (durcir
   `sqrt_bounds()` contre `FPCR.AH`, fait par #187 le 25 octobre ; l'arrondi
   embarqué scalaire de `/` sur Intel, fait par #191 le 25 octobre ; RISC-V
   scalaire, POWER, s390x) est dans `TODO_AFTER.md` ; `pow(x, 2)` par `sqr` est
@@ -2929,7 +2929,7 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PE à PJ) et
   sauf arm64 GCC (1,30) ; rien avec Clang x86-64 (0,90 la ligne de 7 `*`) ni
   Visual C++ x86 (0,95). Le mainteneur l'a fermée sans fusion le 23 octobre, ces
   tableaux lus : l'essai est un changement de `mul_finite()` dans
-  `gaol/gaol_interval_fpu.cpp` (commit `f86ada7`, lisible dans #168), qu'on
+  `gaol/core/gaol_interval_fpu.cpp` (commit `f86ada7`, lisible dans #168), qu'on
   reprendrait si les signes réguliers deviennent le cas qu'on veut servir (rang
   11).
 - **`gaol_performance` apprend ses opérandes par cœur** : 1 024 opérandes
