@@ -279,8 +279,12 @@ which is done, and none needs a new path.
   path and the direction preserved, 1.7 on the M2 with NEON); the NEON kernel
   ports to `_mm_sqrt_pd`. `sqrt_rel` follows.
 - **The integer powers on NEON** (done, GAOL v5, a small gain): the kernel of
-  `pown` on two lanes with `vfmaq_f64` (`GAOL_POWN_PACKED_NEON`, 78 lines), as
-  the SSE2 one with `__FMA__`, where it was two scalar lanes with `std::fma`.
+  `pown` on two lanes with `vfmaq_f64` (`pown_neon_ops` and `pown_large_inline()`
+  in `gaol/gaol_interval_neon.cpp`, 80 lines), as the SSE2 one with `__FMA__`
+  (`gaol_interval_sse.cpp`), where it was two scalar lanes with `std::fma`; the
+  generic part, `pown_products()`, `pown_powers()` and `pown_point()`, is in
+  `gaol_interval_core.cpp`, and each kind of intervals defines the operations
+  of its lanes as a class and its `pown_large_inline()`.
   The bounds are the same bit for bit (4 million powers hashed, and
   `tests/tools/pow/diffpow.py` on 70 500 lines). The gain is far below the 1.5
   times that was hoped for: `pow(x, 3)` takes 5.7 ns where it took 6.1 (1.07
