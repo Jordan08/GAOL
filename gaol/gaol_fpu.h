@@ -361,6 +361,25 @@ use no x87 instruction, keep MXCSR alone and leave the x87 unit as it is.
 #endif
 
 /*
+With Visual C++ and clang-cl for 32-bit x86 and the SSE2 intervals, the operations
+that GAOL_RND_ENTER_SSE() and GAOL_RND_LEAVE_SSE() frame set both units too, as
+the macros above do (GAOL v5). A double a function returns is in ST0 there, and
+Visual C++ computes it on the x87 unit: quotient_sat() of
+gaol/gaol_interval_core.cpp, which div_rel() calls, divides with fdiv, in the
+direction of the x87 control word, which the macros for MXCSR alone leave as the
+program had it, and the bounds were rounded to nearest (the job "Visual Studio
+2026 x86 Release, rounding direction preserved", div_rel() with a subnormal
+bound of the divisor). GCC and Clang compute with SSE there (-mfpmath=sse), and
+the x86-64 builds have no x87 instruction, whatever the compiler.
+*/
+#if GAOL_PRESERVE_ROUNDING && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_RND_X86_DIRECT && defined(_MSC_VER)
+#  undef GAOL_RND_ENTER_SSE
+#  undef GAOL_RND_LEAVE_SSE
+#  define GAOL_RND_ENTER_SSE() GAOL_RND_ENTER()
+#  define GAOL_RND_LEAVE_SSE() GAOL_RND_LEAVE()
+#endif
+
+/*
 GAOL_RND_NEAREST_ENTER() and GAOL_RND_NEAREST_LEAVE() frame the evaluations
 of the mathematical library of an operation, made with the functions of
 gaol::nearest, which need the rounding direction to nearest (GAOL v5):
