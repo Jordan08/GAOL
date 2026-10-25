@@ -364,7 +364,9 @@ namespace gaol_tests
     _mm_setcsr((_mm_getcsr() & ~all_flush_bits) | bits);
 #  elif GAOL_TESTS_FPCR_MSVC
     const unsigned long long fpcr = static_cast<unsigned long long>(_ReadStatusReg(ARM64_FPCR));
+    _ReadWriteBarrier();
     _WriteStatusReg(ARM64_FPCR, static_cast<__int64>((fpcr & ~static_cast<unsigned long long>(all_flush_bits)) | bits));
+    _ReadWriteBarrier();
 #  elif defined(__aarch64__)
     unsigned long long fpcr;
     __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (fpcr));
@@ -414,7 +416,7 @@ namespace gaol_tests
 #  elif defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
     const std::vector<FlushMode> all = { { "flush-to-zero", 0x8000u }, { "denormals-are-zero", 0x0040u },
                                          { "flush-to-zero and denormals-are-zero", 0x8040u } };
-#  elif defined(__aarch64__)
+#  elif defined(__aarch64__) || GAOL_TESTS_FPCR_MSVC
     const std::vector<FlushMode> all = { { "FZ", 0x1000000u }, { "FIZ", 0x1u }, { "FZ and FIZ", 0x1000001u } };
 #  else
     const std::vector<FlushMode> all = { { "FZ", 0x1000000u } };

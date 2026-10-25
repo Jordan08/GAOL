@@ -382,8 +382,9 @@ endif
 # __aarch64__ too), nor for 32-bit ARM or x86: the option is then ignored, and
 # the intervals are computed with the FPU. The refusals above (Clang 14, Clang
 # on 32-bit ARM) come first. The program is the same as that of CMakeLists.txt
-# and configure; the flags of interval arithmetic are given to it, as the
-# checks of the compiler do not get add_project_arguments().
+# (and configure, for GCC and Clang: it does not build with Visual C++); the
+# flags of interval arithmetic are given to it, as the checks of the compiler do
+# not get add_project_arguments().
 use_neon = false
 if arm64 and not msvc
   use_neon = cpp_comp.compiles('''

@@ -72,6 +72,9 @@ differing too.
 #include "gaol/gaol_port.h"
 #include <fenv.h>
 #include <limits>
+#if GAOL_NEON_MSVC
+#  include <intrin.h> // _ReadStatusReg(), _WriteStatusReg(), _ReadWriteBarrier()
+#endif
 
 // The control word of the x87 unit that reset_fpu_cw() of the original GAOL
 // wrote: 53 bits of precision (0x0200), all exceptions masked (0x003f),
@@ -340,10 +343,13 @@ namespace gaol_core {
   }
 
   // The "memory" clobber is a compiler barrier: the memory read after it is read after it
-  // (_ReadWriteBarrier() with Visual C++)
+  // (_ReadWriteBarrier() with Visual C++, before the write as well as after it: the
+  // volatile accesses of rnd_keep() that precede it stay before it, which
+  // /volatile:iso, the default of Visual C++ for ARM64, does not give by itself)
   GAOL_INLINE void fpcr_set(fp_control fpcr)
   {
 #  if GAOL_NEON_MSVC
+    _ReadWriteBarrier();
     _WriteStatusReg(ARM64_FPCR, static_cast<__int64>(fpcr));
     _ReadWriteBarrier();
 #  elif GAOL_USING_NEON_INSTRUCTIONS

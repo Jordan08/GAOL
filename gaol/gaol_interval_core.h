@@ -936,7 +936,10 @@ namespace gaol_core {
     restored, at no cost, where the volatile memory of the template of
     gaol/gaol_fpu.h would copy it a byte at a time (GAOL v5). Visual C++ has
     no asm statement on ARM64: the two lanes go through volatile doubles, as
-    those of an __m128d do above
+    those of an __m128d do above, and the write of FPCR that restores the
+    direction is preceded by _ReadWriteBarrier() (fpcr_set()), the volatile
+    accesses being ordered with it by that barrier and not by /volatile:iso,
+    the default of Visual C++ for ARM64
   */
   GAOL_INLINE float64x2_t rnd_keep(const float64x2_t& x)
   {
