@@ -1,11 +1,11 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `6f802aa` de `configure-clean`, le 24
-octobre 2026, en tâches PC à PJ (PA et PB sont faites : voir `TODO_DONE.md`). Ce
-fichier et l'issue #179 ont le même contenu. Ce qui est fait et décidé est dans
-`TODO_DONE.md` (issue #177), ce qui est reporté dans `TODO_AFTER.md` (issue
-#178). Les anciennes issues #49 et #142 sont fermées, et `TODO_mistral.md` est
-supprimé.
+Ce qui reste à faire sur GAOL v5 au commit `6eabe20` de `configure-clean`, le 25
+octobre 2026, en tâches PD à PJ (PA, PB et PC sont faites : voir
+`TODO_DONE.md`). Ce fichier et l'issue #179 ont le même contenu. Ce qui est fait
+et décidé est dans `TODO_DONE.md` (issue #177), ce qui est reporté dans
+`TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142 sont fermées, et
+`TODO_mistral.md` est supprimé.
 
 Aucune borne fausse n'est connue. Rien n'est à fusionner, à envoyer à un autre
 projet ni à publier sans l'accord du mainteneur. Aucune pull request n'est
@@ -13,7 +13,7 @@ ouverte.
 
 ## Comment lire ce fichier
 
-- Une tâche (PC à PJ) regroupe des points qui touchent le même code, les mêmes
+- Une tâche (PD à PJ) regroupe des points qui touchent le même code, les mêmes
   fichiers ou les mêmes builds de validation, pour les traiter dans la même
   session ; chaque point reste une pull request à part (process.md : un point,
   une branche), sauf quand la tâche dit qu'une seule suffit. Les tâches sont
@@ -21,7 +21,7 @@ ouverte.
   plus cher en attendant (une décision qui bloque) ; ce qui tue un programme ou
   rompt une promesse écrite avant ce qui ne fait que ralentir ; le petit et sans
   dépendance avant le gros ; la version (PI, PJ) en dernier.
-- PC à PH ne dépendent pas les unes des autres, sauf quand le texte le dit (PI
+- PD à PH ne dépendent pas les unes des autres, sauf quand le texte le dit (PI
   décrit le travail de PA à PH, PJ suit PI et les études de PG).
 - Chaque point garde sa lettre et son ancien numéro, par exemple « 79 (AB) » :
   ce sont ceux des pull requests, des issues, des commentaires du code et de
@@ -39,76 +39,13 @@ ouverte.
 
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
-| PC | Les noyaux SSE2 et NEON | 131, 129, 132 et deux | M |
-| PD | `process.md`, les textes, les tests, le ménage | 130 et cinq petits | S |
+| PD | `process.md`, les textes, les tests, le ménage | 130 et sept petits | S |
 | PE | Les trois builds, la CI, les vérifications qui manquent | 95, 92 et quatre autres | M |
 | PF | x86 32 bits, Windows et le registre de contrôle | 108, 109 et trois | M |
 | PG | Les études de vitesse | 105, 116, 106 | M |
 | PH | Les signalements à d'autres projets | #125 à #138, #175 | accord |
 | PI | La pull request de synthèse et les textes de la version | Y | L |
 | PJ | Les mesures et la publication de v5.0.0 | 32, 33, 34, 71 | M |
-
-## PC. Les noyaux SSE2 et NEON [M]
-
-Ensemble parce que ce sont les mêmes fichiers (`gaol/gaol_interval_sse.cpp` et
-ses en-têtes, `gaol/gaol_interval_neon.h` et `.cpp`,
-`gaol/gaol_interval_core.cpp` pour `pown`), les mêmes tests
-(`tests/arithmetic.cpp`, `tests/rounding_direction.cpp`) et les mêmes jobs
-(x86-64, arm64 Ubuntu et macOS). Ordre : 131, qui change les en-têtes, puis 129,
-puis 132.
-
-1. **131 (AP)** [S] : mettre les noyaux exportés de SSE2 (`add_bounds()`,
-   `sub_bounds()`, `mul_bounds()`, `div_bounds()`, `sqr_bounds()`, exportés avec
-   la visibilité par défaut dans l'espace de noms `gaol`) dans `gaol_detail`,
-   comme les autres aides internes ; les en-têtes qui les citent changent avec
-   eux. *Décidé le 22 octobre (Q15a, #124).* Q15b (garder le plus rapide, le
-   signe des zéros diffère, c'est documenté) et Q15c (ne pas passer le sens
-   d'arrondi en paramètre à `3rd/math-core`) sont des « non ».
-2. **129 (AP)** [S] : durcir `sqrt_bounds()` des intervalles NEON par un masque
-   sur le bit de signe, à la place du maximum. Avec `FEAT_AFP` (`FPCR.AH`, non
-   effacé par GAOL), `FMAX` renvoie le second opérande pour deux zéros de signes
-   différents ; `sqrt_bounds()` suppose l'ordre des opérandes de `vmaxq_f64`,
-   que Clang 21 traite comme commutatif, et un compilateur qui les permuterait
-   donnerait l'ensemble vide pour `sqrt([-0, r])` sous AH (défaut théorique,
-   documenté dans `doc/simd.md` ; modélisé en logiciel sur 25,8 millions de
-   résultats, les bornes sont celles des noyaux, au signe d'un zéro près).
-   *Décidé le 22 octobre (Q10a, #154)* : validé sur une copie, bit à bit
-   identique au code d'aujourd'hui, en une pull request à part.
-3. **132 (AP)** [M] : porter le noyau empaqueté de `pown` (`GAOL_POWN_PACKED`,
-   FMA sur deux voies, `vfmaq_f64`), qui n'existe que pour SSE2, sur arm64 :
-   `pow(x, 3)` y prend 6,5 ns. Environ 150 lignes d'intrinsèques, gain attendu
-   de l'ordre de 1,5 (non essayé) ; à vérifier sur un M2 et sur Neoverse (jobs
-   Ubuntu arm64 de la CI). *Décidé le 22 octobre (Q14a, #146).* Q14b (un test
-   qui compare les bits du signe d'un zéro) et Q14c (jobs Clang 15 à 17 et GCC 9
-   à 10, test `mrs` et `msr` sur Neoverse) sont des « non ».
-4. **`bisect(ratio)` et `is_bisectable()`** [S à M] (#146) : `bisect(ratio)` et
-   `is_bisectable()` dépendent du mode FZ de l'appelant avec
-   `GAOL_PRESERVE_ROUNDING` (`LEAVE` rétablit FZ avant les comparaisons de `c`
-   avec `l` et `r`), pour les sous-normaux : 634 résultats faux sur 200 000
-   intervalles sous-normaux, avec les intervalles NEON comme FPU. L'encadrement
-   n'est pas violé ; les post-conditions documentées le sont (point Q de
-   `TODO_DONE.md`). #174 a changé `is_bisectable()` (par `next_float()`, pour
-   Cygwin) depuis : *Décidé le 24 octobre* : revérifier le défaut d'abord, puis
-   le corriger (comparer les bornes par leurs bits, ou avant le retour de FZ),
-   avec un test qui échoue sans la correction.
-5. **Un `[+oo]` ou un `[-oo]` construit à partir d'un registre** [S à M] (#183)
-   : `interval(const __m128d&)` (`gaol/gaol_interval_sse.h`, déclaré dans
-   `gaol/gaol_interval_core.h`) et `interval(const float64x2_t&)`
-   (`gaol/gaol_interval_neon.h`) acceptent les registres de `[+oo]` et de
-   `[-oo]`, qui ne contiennent aucun réel (IEEE 1788-2015, 10.5.8) et que nul
-   autre constructeur ne fait. Les opérations les prennent pour des intervalles
-   : `gaol_ieee1788::pow([+oo], [2])` rend `[+oo]`, `gaol::pow([-oo], [2])`
-   aussi, `sqr([+oo])` rend `[+oo]`, `exp([+oo])` `[DBL_MAX, +oo]`,
-   `div_rel([2], [+oo], I)` `[0, 0]` et `sqrt_rel(I, [+oo])` `[+oo]` (mesuré le
-   24 octobre). #183 ne garde que les réciproques de `pow` (`holds_no_real()`).
-   *Décidé le 24 octobre* : une garde dans le constructeur public, qui rend
-   l'ensemble vide pour `l = +oo` ou `u = -oo`, dans une pull request à part,
-   avec un test par fonction qui échoue sans la garde ; les usages internes du
-   constructeur (une vingtaine dans `gaol_interval_sse.cpp`, dans les
-   opérations) ne passent pas par la garde, pour ne pas payer la comparaison : à
-   mesurer. Les gardes de #183 restent le filet des chemins internes, et
-   `pow_reverse_infinite_arguments()` de `tests/reverse.cpp` passe dans les deux
-   cas.
 
 ## PD. `process.md`, les textes, les tests, le ménage [S]
 
@@ -165,6 +102,25 @@ les bornes, qui tiennent dans une ou deux pull requests.
    le drapeau pour ces seuls appels, retire les deux cas de test et exclut ces
    tirages du balayage de `tests/rounding_direction.cpp` ; ou ne le garder que
    sur x86-64 avec glibc et UCRT, l'appel direct ailleurs.
+
+7. **Les mutants de `tests/tools/pow/mutate.py`** [S] (#188) : (a) quatre
+   mutants ne s'appliquent plus au code, déjà avant la tâche PC
+   (`std-empty-y-unchecked`, `std-infinite-exponent-unchecked`,
+   `corner-lower-not-exact`, `corner-upper-no-limit` ; `mutate.py --list` les
+   dit) : les remettre à jour ou les retirer ; (b) les dix mutants `neon-*`
+   ajoutés par #188, qui reprennent ceux de `sse-fma-*`, n'ont jamais été
+   lancés, faute de processeur ARM 64 bits dans la session (une compilation
+   croisée sous qemu n'est pas prévue par l'outil) : les lancer sur un Apple M2
+   ou un runner arm64, et dire lesquels survivent.
+8. **Un échec de CI non reproduit** [S] (#189) : le job « macOS 14 x86_64
+   (Rosetta) » a échoué une fois sur `arithmetic` (`gaol_ieee1788::pow(x, [2])
+   is sqr(x & [0, +oo]), [0] for [0], the same bits`, avec x =
+   [-0x1.0d8146092a4f3p+345, 0x1.d324166d86984p+204], « the caller's direction
+   downward, flush modes 0 » : GAOL a rendu [0, 0x1.aa365774f4ea3p+409] et le
+   calcul de référence, `sqr(x & [0, +oo])`, le vide) et est passé à la relance,
+   sans lien visible avec le diff de #189. Non reproduit en local ni
+   dans les autres jobs de #186 à #190. Si cela revient, regarder si Rosetta lit
+   le sens d'arrondi ou les modes de MXCSR comme un processeur.
 
 ## PE. Les trois builds, la CI, les vérifications qui manquent [M]
 
@@ -339,6 +295,17 @@ ne se comparent pas d'un passage à l'autre : le banc A/B de `performance.yml`
    comparaisons, au prix de code de plus dans le lexeur. *À décider* : le faire,
    ou laisser tel quel (la description de #182 propose de le faire si quelqu'un
    lit des sous-normaux en texte).
+
+8. **La cause du gain faible du noyau NEON de `pown`** [S] (#188) : le noyau à
+   deux voies de `pown` pour NEON (`vfmaq_f64`, fusionné) ne gagne que 1,03 à
+   1,07 sur `pow(x, 3)` avec un Apple M2 (1,30 pour les intervalles autour de 0
+   dans `tests/tools/pow/bench.cpp`), 1,23 avec GCC et 0,90 avec Clang sur le
+   Neoverse des jobs arm64 de la CI, au lieu du 1,5 attendu ; les rangées que
+   #188 ne touche pas y bougent de 5 à 13 %. Une hypothèse, non vérifiée : les
+   deux voies scalaires s'exécutaient déjà côte à côte, la chaîne de produits
+   dépendants restant la même. *À décider* : chercher (compter les cycles,
+   essayer de couper la chaîne en démarrant la boucle des carrés plus tôt), ou
+   laisser tel quel.
 
 ## PH. Les signalements à d'autres projets [attend l'accord du mainteneur]
 

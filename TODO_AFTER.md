@@ -149,7 +149,7 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    carte), POWER et s390x (du matériel), l'arrondi embarqué scalaire pour `/`
    sur les processeurs Intel qui divisent les registres de 512 bits. Et les
    gains sans nouveau jeu d'instructions que la page liste : `sqrt` en SSE2, les
-   puissances entières en NEON (c'est le 132, tâche PC de `TODO.md`), `mid()`,
+   puissances entières en NEON (fait par #188 : 1,03 à 1,07 sur un M2), `mid()`,
    la réduction d'argument de `sin` et `cos`. Une voie AVX2, SVE, VSX ou RISC-V
    seulement après des mesures.
 2. **ARM 32 bits sur du vrai matériel** (#150) : les mesures de #150 ne valent
@@ -173,6 +173,13 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    #162, toute exécution sur x86 (le signe d'un zéro de l'ancien `pow` avec
    SSE2, le chemin AVX-512), avec GCC et sous Windows ; les temps de #162
    viennent d'un seul M2 partagé, et pas avec `GAOL_PRESERVE_ROUNDING`.
+5. **`FPCR.AH` (FEAT_AFP, Armv8.7) sur un vrai processeur** (#187) : le bloc de
+   `tests/rounding_direction.cpp` qui met `AH` et compare les opérations avec
+   `AH` mis et effacé n'a été exécuté que sous QEMU 10.0 (`-cpu max`) : l'Apple
+   M2 et QEMU 7.2 et 8.2 ne retiennent pas le bit, et aucun processeur qui le
+   retient (Neoverse V3 de Graviton 5, ou plus récent) n'a servi. Le défaut
+   qu'il guette, un compilateur qui permute les opérandes de `vmaxq_f64`, est
+   théorique avec les compilateurs d'aujourd'hui.
 
 ## 5. Une limite connue, documentée, sans décision de la lever
 

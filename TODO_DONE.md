@@ -1,7 +1,7 @@
 # Fait et décidé sur GAOL v5
 
-Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 24 octobre 2026
-(commit `6f802aa` de `configure-clean`, aucune pull request ouverte). Ce
+Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 25 octobre 2026
+(commit `6eabe20` de `configure-clean`, aucune pull request ouverte). Ce
 fichier et l'issue #177 ont le même contenu.
 
 Il réunit l'historique de l'ancienne issue #49 (« Suivi du TODO de GAOL v5 »),
@@ -10,7 +10,7 @@ l'ancien `TODO.md` et dans `TODO_mistral.md`, avec les réponses du mainteneur
 des 22 et 23 octobre. #49 et #142 sont fermées le 24 octobre, `TODO_mistral.md`
 est supprimé. Le reste du travail est dans deux autres registres :
 
-- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PC à PJ ;
+- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PD à PJ ;
 - `TODO_AFTER.md` (issue #178) : ce qui est reporté, après la version, jusqu'à
   une décision ou jusqu'à du matériel.
 
@@ -40,26 +40,26 @@ est supprimé. Le reste du travail est dans deux autres registres :
   : elle s'applique telle quelle.
 - Le classement par rang et par tiers (A à I) de l'ancien #142 n'existe plus :
   un « rang N » cité dans un texte d'avant le 24 octobre désigne cet ancien
-  classement. Ce qui reste à faire est classé en tâches PC à PJ dans `TODO.md`.
+  classement. Ce qui reste à faire est classé en tâches PD à PJ dans `TODO.md`.
 - Ce qui sert encore des rapports des agents est dans
   [todo-notes/synthese.md](todo-notes/synthese.md), leurs originaux au commit
   `16a2f60` (`todo-notes/`, ceux du 30 septembre dans `todo-notes/2026-09-30/`)
   ; la procédure suivie pour chaque point est dans `process.md`.
 
-Sommaire : 1. L'état au 24 octobre ; 2. Les pull requests ; 3. Les décisions,
+Sommaire : 1. L'état au 25 octobre ; 2. Les pull requests ; 3. Les décisions,
 par date ; 4. Les points faits, par lettre ; 5. Les anciens numéros faits ; 6.
 Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 `configure-clean` ; 8. Le ménage fait.
 
-## 1. L'état au 24 octobre 2026
+## 1. L'état au 25 octobre 2026
 
-- **`configure-clean`** est au commit `6f802aa` (fusion de #184). Les pull
+- **`configure-clean`** est au commit `6eabe20` (fusion de #189). Les pull
   requests des corrections vont vers `configure-clean`, qui reste la branche de
   développement après v5.0.0 ; `MATH-CORE` et `master` (GAOL 4.3.2, plus deux
   commits de `.claude/CLAUDE.md`) ne bougent qu'à la version (point Y).
 - **Aucune pull request ouverte.** Le mainteneur a fusionné #165 à #167, #169 à
-  #174, #176 et #180 à #184 les 23 et 24 octobre ; #168 est fermée sans fusion.
-  Les tâches PA et PB sont faites.
+  #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #190 le 25 octobre ;
+  #168 est fermée sans fusion. Les tâches PA, PB et PC sont faites.
 - **Branches** : GitHub n'a que `configure-clean`, `MATH-CORE` et `master` ; les
   branches fusionnées sont supprimées en local.
 - **Aucune borne fausse n'est connue** : sur environ 1,3 million de puissances
@@ -793,6 +793,123 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   x86 en Release (d'où `<cfenv>` pour lui) ; une branche jetable,
   `debug-msvc-flags`, a servi au diagnostic ; 192 contrôles verts ; fusionnée le
   24 octobre)
+
+- #186 (point AP, ancien 131 : `add_bounds()`, `sub_bounds()`, `mul_bounds()`,
+  `div_bounds()` et `sqr_bounds()`, les noyaux que les opérateurs des
+  intervalles SSE2 appellent sur les bornes en registres, étaient déclarés dans
+  `gaol_core` avec la visibilité par défaut, dans des en-têtes installés : des
+  noms et des symboles de l'espace de noms de l'interface, et un appel ambigu
+  pour un programme qui ouvre `gaol_core` et écrit une fonction du même nom et
+  du même type. Ils passent dans `gaol_detail`, comme les autres aides internes
+  ; ceux des intervalles NEON aussi, la décision Q15a ne nommant que SSE2 («
+  très bien », 25 octobre). Les déclarations et les définitions sont entre deux
+  `} // namespace gaol_core` et `namespace gaol_core {`, avec un `using
+  namespace gaol_core;` dans chaque corps : aucune ligne de calcul ne change,
+  chemin AVX-512 compris. `test_kernels_are_not_in_gaol_core` de
+  `tests/misc.cpp` déclare des fonctions de même nom et de même type, ouvre
+  `gaol_core` et vérifie par `static_assert` que l'appel trouve les siennes (le
+  test ne compile pas, appel ambigu, sans le déplacement), puis appelle les cinq
+  noyaux sur des bornes exactes en doubles. Une relecture indépendante, aucun
+  point bloquant, remarques corrigées (un appel de `sqr_bounds()` non qualifié
+  dans la branche AVX-512, une partie du test qui comparait les noyaux à
+  eux-mêmes, `std::declval` d'un type vecteur, l'ordre de `doc/tests.md`) ;
+  testée en natif sur un Apple M2 (57 tests, `-Werror` sans avertissement) ; 191
+  contrôles verts ; fusionnée le 25 octobre)
+- #187 (point AP, ancien 129 : `sqrt_bounds()` des intervalles NEON prend la
+  partie de x dans [0, +oo] par les bits de signe (`vcltzq_s64` et `vbicq_u64`)
+  et non par `vmaxq_f64(…, 0)`, dont un compilateur pouvait permuter les
+  opérandes : avec `FPCR.AH` (FEAT_AFP, que GAOL n'efface pas), `FMAX` rend le
+  second opérande pour `+0` et `-0`, et `sqrt([-0, r])` aurait eu une borne NaN.
+  Identique bit à bit à l'ancien code sur les 9 604 paires de valeurs spéciales
+  et 20 millions de paires tirées (programme jetable, sous qemu). Un bloc de
+  `tests/rounding_direction.cpp` (aarch64) met `AH` quand le processeur le
+  retient et compare les sommes, différences, produits, quotients, carrés et
+  racines avec `AH` mis et effacé ; l'Apple M2 et QEMU 7.2 et 8.2 ne retiennent
+  pas le bit (le bloc le dit et ne vérifie rien), QEMU 10.0 (`-cpu max`, dans
+  une image Debian 13 locale, supprimée ensuite) le retient : 441 paires
+  d'opérandes par opération, 0 échec, et 189 vérifications échouent avec les
+  opérandes de l'ancien maximum échangés (`sqrt([-0, -0])` rend `[-nan, -0]`).
+  `doc/simd.md` et `doc/tests.md` dits. Une relecture, aucun point bloquant,
+  plusieurs remarques corrigées ; M2 : 766 654 vérifications de
+  `rounding_direction` ; 191 contrôles verts ; fusionnée le 25 octobre)
+- #190 (point Q, reste de #146 : `bisect(ratio)` et `is_bisectable()`
+  dépendaient du mode FZ de l'appelant pour des bornes sous-normales, que
+  flush-to-zero et denormals-are-zero lisent comme des zéros. `is_bisectable()`
+  comparait `next_float(left()) < right()` en doubles, sans vérifier la
+  direction ni effacer les modes (faux pour tout intervalle aux bornes
+  sous-normales, avec ou sans `GAOL_PRESERVE_ROUNDING`) ; `bisect(ratio)`
+  refusait un rapport sous-normal comme 0 et, avec `GAOL_PRESERVE_ROUNDING`,
+  rétablissait les modes avant de comparer le point de coupe aux bornes (100 099
+  coupes fausses sur 200 000 intervalles tirés, sur x86 avec denormals-are-zero
+  ; le chiffre de 634 sur ARM n'est pas reproduit tel quel). `is_bisectable()`
+  compare les clés entières des bornes (`gaol_detail::bound_key()`, un double
+  entre elles si les clés diffèrent d'au moins 2 ; plus de `nextafter()`) ;
+  `bisect(ratio)` compare le rapport par `bound_greater()` et `bound_less()`,
+  remet le point de coupe dans [l, r] et le décale d'un double
+  (`bisect_step_toward()`, par les bits) avant `GAOL_RND_LEAVE()`, et construit
+  aussi les deux parties avant (construites après, `[c, r]` de deux sous-normaux
+  sortait vide avec GCC 15 ; la cause, probablement une comparaison que le
+  compilateur ne sait pas séparée par un changement de mode, n'est pas
+  vérifiée). Le test de `tests/rounding_direction.cpp`, dans le bloc des modes
+  qui vident les sous-normaux (16 intervalles, 8 rapports de 2^-1074 à 1 −
+  10^-9, chaque mode et chaque direction ; référence en multiples de 2^-1074) :
+  2 280 vérifications échouent avec les sources de `configure-clean` avec les
+  intervalles SSE2, 4 008 avec `GAOL_PRESERVE_ROUNDING`, 808 sur un Apple M2 (un
+  état antérieur du test). Une relecture, aucun point bloquant, des sondes
+  écrites par elle (350 intervalles, 117 986 vérifications par build), plusieurs
+  remarques corrigées ; 191 contrôles verts ; fusionnée le 25 octobre)
+- #188 (point AP, ancien 132 : le noyau empaqueté de `pown` (deux voies,
+  multiplication-addition fusionnée), qui n'existait que pour SSE2 avec FMA,
+  existe pour les intervalles NEON, en `float64x2_t` avec `vmulq_f64` et
+  `vfmaq_f64` (`a * b - c` par `vfmaq_f64(-c, a, b)`, la négation étant exacte).
+  Bornes identiques bit à bit : le hachage de 4 millions de `pow(x, n)` est
+  `494dcfe17924a141` sur x86 et sur aarch64, `diffpow.py` donne 70 500 lignes
+  identiques sur un M2, un mutant fait à la main fait échouer `arithmetic`,
+  `elementary` et `other_functions`. Le gain est faible, loin du 1,5 attendu :
+  `pow(x, 3)` 6,07 / 5,68 ns sur le M2 (1,07), 1,23 avec GCC et 0,90 avec Clang
+  sur le Neoverse de la CI (les rangées non touchées y bougent de 5 à 13 %). À
+  la demande du mainteneur (25 octobre), les noyaux sont répartis par sorte
+  d'intervalles : les opérations des deux voies sont une classe par sorte
+  (`pown_scalar_ops` dans `gaol_interval_core.cpp`, qui a aussi le noyau en
+  doubles `large()`, `pown_sse_ops` dans `gaol_interval_sse.cpp`,
+  `pown_neon_ops` dans `gaol_interval_neon.cpp`, `pown_er_ops` dans
+  `gaol_interval_avx512.cpp`), `pown_products<Ops>()` et `pown_powers<Ops>()`
+  sont communs et placés avant les inclusions, `pown_large_inline()` est défini
+  à la fin du fichier de chaque sorte, et `GAOL_AVX512_TARGET` passe
+  d'`avx512.cpp` à `core.cpp`. Après le déplacement : le même hachage pour SSE2
+  avec et sans FMA, FPU, AVX-512 avec et sans préservation et NEON ; le banc A/B
+  x86 sans changement (6,34 / 6,20 ns) ; Clang 18 avec AVX-512 en `-Werror`.
+  `tests/tools/pow/mutate.py` : les mutants disent leur fichier, dix `neon-*`
+  sont ajoutés (non lancés : il faut un processeur ARM), trois mutants périmés
+  sont remis à jour. Avec `FPCR.AH` mis (QEMU 10.0), le même hachage. Deux
+  relectures, aucun point bloquant ; M2 : 57 tests, `-Werror`, `diffpow.py`,
+  noyau FPU compris ; 191 contrôles verts ; fusionnée le 25 octobre)
+- #189 (point AC, reste du 82 : `interval(const __m128d&)` et `interval(const
+  float64x2_t&)` rendent l'ensemble vide pour les voies de `[+oo]` et de `[-oo]`
+  (une voie à -oo : `_mm_cmpeq_pd` pour SSE2, les bits pour NEON), qui ne
+  contiennent aucun réel et que nul autre constructeur ne fait ; sqr, `pow`,
+  `exp`, `div_rel` et `sqrt_rel` les prenaient pour des intervalles. Les 36
+  usages internes (les opérateurs, `sqr()`, `rnd_keep()`, les constantes,
+  `divide_general()`, `sqrt()`, `pown_large_inline()`, les fonctions de NEON)
+  passent par `interval(registre, gaol_detail::unchecked_bounds)`, trouvés en
+  marquant provisoirement le constructeur à un argument `[[deprecated]]` et en
+  compilant en SSE2, en SSE2 avec AVX-512 et pour NEON (compilation croisée),
+  refait après chaque fusion ; les gardes de #183 restent le filet. Coût de la
+  garde pour qui construit depuis un registre : 1,086 ns avec et sans (x86), les
+  opérateurs à 1,00 sur le M2. `tests/elementary.cpp` : le registre de `[+oo]`
+  et de `[-oo]` est vide et six fonctions (`gaol_ieee1788::pow`, `gaol::pow`,
+  `sqr`, `exp`, `div_rel`, `sqrt_rel`) le sont aussi, les registres des
+  intervalles qui existent sont gardés, une voie à -oo et l'autre finie donne le
+  vide ; 13 vérifications échouent sans la garde ; `elementary` et `reverse`
+  bâtissent `[+oo]` avec le constructeur sans garde pour continuer d'éprouver
+  les gardes de #183. GCC 12.2 sur aarch64 lisait de mauvaises valeurs dans une
+  boucle sur un tableau de structures du test (`-O2` et `-O3`) : une fonction
+  par cas. Une relecture, aucun point bloquant, plusieurs remarques corrigées ;
+  M2 : 57 tests dans trois builds, banc A/B entre 0,98 et 1,03 ; conflits de
+  texte avec #186 puis #188 résolus en fusionnant `configure-clean` ; 191
+  contrôles verts (un job macOS 14 Rosetta a échoué une fois sur `arithmetic`,
+  `gaol_ieee1788::pow(x, [2])` attendu vide, et est passé à la relance) ;
+  fusionnée le 25 octobre)
 
 ### 2.4 Fermées sans fusion
 
@@ -1593,7 +1710,7 @@ fait le travail.
 - [x] Un `[+oo]` ou un `[-oo]` construit à partir d'un registre (`interval(const
   __m128d&)` des intervalles SSE2 et son équivalent NEON) n'est pas un réel :
   une garde dans le constructeur public, qui rend l'ensemble vide pour `l = +oo`
-  ou `u = -oo`, dans une pull request à part, non faite (`TODO.md`, PC.5) ; les
+  ou `u = -oo`, dans une pull request à part, faite par #189 le 25 octobre ; les
   usages internes du constructeur (une vingtaine dans `gaol_interval_sse.cpp`,
   dans les opérations) ne doivent pas payer la comparaison. Les gardes de
   `pow_rel` et de `pow_exponent_rel` de #183 restent, comme filet des chemins
@@ -1625,6 +1742,32 @@ fait le travail.
   lèvent plus ; `pow_rel` et `pow_exponent_rel` coûtent 5 à 10 % de plus (le
   test de la puissance d'essai avant chaque appel de CORE-MATH). Le code est tel
   que fusionné
+
+#### Décidé pendant la tâche PC (25 octobre), fait par #186 à #190
+
+- [x] Les noyaux NEON `add_bounds()`, `sub_bounds()`, `mul_bounds()`,
+  `div_bounds()` et `sqr_bounds()` passent dans `gaol_detail` avec ceux de SSE2,
+  bien que la décision Q15a ne nomme que SSE2 : « très bien » (25 octobre, #186)
+- [x] `sqrt_bounds()` de NEON n'a pas de test qui échoue avec les compilateurs
+  d'aujourd'hui : le défaut est théorique. Le bloc de test de `FPCR.AH` a des
+  dents avec QEMU 10.0, qui retient le bit ; il saute les vérifications sur
+  l'Apple M2 et sous QEMU 7.2 et 8.2 (25 octobre, #187)
+- [x] Le portage du noyau de `pown` vers NEON est gardé malgré un gain faible
+  (1,03 à 1,07 sur un M2, 1,23 avec GCC et 0,90 avec Clang sur le Neoverse de la
+  CI, au lieu de 1,5), à condition que les noyaux soient répartis dans
+  `gaol_interval_neon.cpp`, `gaol_interval_sse.cpp`, `gaol_interval_fpu.cpp` (et
+  `gaol_interval_avx512.cpp`) au lieu de `#if` dans `gaol_interval_core.cpp` (25
+  octobre, #188). La cause du gain faible n'est pas cherchée (`TODO.md`, PG.8)
+- [x] Les conflits de texte entre #186, #188 et #189 (les mêmes lignes) se
+  règlent en fusionnant `configure-clean` dans la seconde pull request à
+  fusionner (25 octobre)
+- [x] `bisect(ratio)` d'un intervalle non borné, ou à `ratio == 0.5` pour un
+  point ou un intervalle symétrique par rapport à 0, ne vérifie pas la direction
+  et laisse les modes de l'appelant tels quels sans `GAOL_PRESERVE_ROUNDING`,
+  comme `midpoint()` : laissé tel quel (25 octobre, remarqué par #190)
+- [x] Pour tester `FPCR.AH`, une image Docker locale (Debian 13, `qemu-user`
+  10.0) ; supprimée ensuite, comme celle d'Ubuntu 24.04 (qemu 8.2) qui ne
+  retient pas le bit, à la demande du mainteneur (25 octobre)
 
 #### Le 18 octobre : les questions restées ouvertes dans la description de #99 (commentaire de #49)
 
@@ -1893,7 +2036,7 @@ le travail qu'elles décident est fait le même soir et ouvert en pull requests
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
-`TODO.md` (tâches PC à PJ) ou dans `TODO_AFTER.md` ; leur partie faite est dite
+`TODO.md` (tâches PD à PJ) ou dans `TODO_AFTER.md` ; leur partie faite est dite
 ici ou dans la section 5.
 
 ### Même changement, ou même code
@@ -2133,8 +2276,8 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
   équivalent NEON. Fait le 24 octobre par #183 : `holds_no_real()` dans
   `pow_rel_upward()` et `pow_exponent_rel_upward()`, et
   `pow_reverse_infinite_arguments()` de `tests/reverse.cpp` (287 vérifications
-  échouent sans la correction). Reste, décidé le 24 octobre : une garde dans le
-  constructeur public (`TODO.md`, PC.5).
+  échouent sans la correction). Le reste, décidé le 24 octobre, une garde dans
+  le constructeur public, est fait le 25 octobre par #189.
 
 ### AD. La lecture et l'écriture des intervalles
 
@@ -2227,6 +2370,24 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
   `package_source` sous Cygwin, un job de CI ; `is_bisectable()` par
   `next_float()`). Fusionnées les 23 et 24 octobre. Restent le Debug complet de
   Cygwin et autotools et meson sous Cygwin, non vérifiés.
+- **131.** Les noyaux de SSE2 (`add_bounds()`, `sub_bounds()`, `mul_bounds()`,
+  `div_bounds()`, `sqr_bounds()`) exportés dans `gaol_core` : dans
+  `gaol_detail`, comme les autres aides internes. Décidé le 22 octobre (Q15a,
+  #124) ; Q15b (garder le plus rapide) et Q15c (ne pas passer le sens d'arrondi
+  à `3rd/math-core`) sont des « non ». Fait le 25 octobre par #186, avec les
+  noyaux NEON (voir 2.3).
+- **129.** Durcir `sqrt_bounds()` des intervalles NEON par un masque sur le bit
+  de signe, à la place du maximum, contre `FPCR.AH`. Décidé le 22 octobre (Q10a,
+  #154) : validé sur une copie, bit à bit identique, dans une pull request à
+  part. Fait le 25 octobre par #187.
+- **132.** Porter le noyau empaqueté de `pown` (`GAOL_POWN_PACKED`) sur arm64.
+  Décidé le 22 octobre (Q14a, #146) ; Q14b (un test des bits du signe d'un zéro)
+  et Q14c (jobs Clang 15 à 17 et GCC 9 à 10, test `mrs` et `msr` sur Neoverse)
+  sont des « non ». Fait le 25 octobre par #188, avec la répartition des noyaux
+  par sorte d'intervalles (voir 2.3) : gain de 1,03 à 1,07 sur un M2.
+- **`bisect(ratio)` et `is_bisectable()` sous FZ** (reste du point Q, #146).
+  Décidé le 24 octobre : revérifier le défaut, puis le corriger par les bits,
+  avec un test qui échoue sans la correction. Fait le 25 octobre par #190.
 
 ### Restes des relectures de pull requests, de `process.md` et de la documentation (AL, nouveau)
 
@@ -2328,8 +2489,8 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
   qui répond aux quatre étapes de l'issue #101 ; le `// TODO: Rewrite as many
   functions as possible to use SIMD instructions` de
   `gaol/gaol_interval_core.cpp` est remplacé). Ce qui reste (durcir
-  `sqrt_bounds()` contre `FPCR.AH`, RISC-V scalaire, POWER, s390x, l'arrondi
-  embarqué scalaire de `/` sur Intel) est dans `TODO.md` (tâche PC) et
+  `sqrt_bounds()` contre `FPCR.AH`, fait par #187 le 25 octobre ; RISC-V
+  scalaire, POWER, s390x, l'arrondi embarqué scalaire de `/` sur Intel) est dans
   `TODO_AFTER.md` ; `pow(x, 2)` par `sqr` est fait par #162 (3,3 fois plus
   rapide avec NEON, 2,5 avec la FPU, au signe d'un zéro et aux indicateurs de
   `sqr` près).
@@ -2352,7 +2513,7 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
 
 Les « Questions ouvertes » des descriptions de #146 à #163, que l'ancien
 `TODO.md` gardait sous « Remarqué par #NN, à trier », avec leur sort. Les
-questions qui restent sans réponse sont dans `TODO.md` (tâches PC à PJ) et
+questions qui restent sans réponse sont dans `TODO.md` (tâches PD à PJ) et
 `TODO_AFTER.md` ; elles ne sont pas répétées ici.
 
 ### #146
@@ -2750,6 +2911,14 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PC à PJ) et
   pour le masquage des exceptions de `pow`, les branches fusionnées supprimées
   en local.
 
+### 7.4 Le 25 octobre
+
+- #186, #187, #188, #189 et #190 (la tâche PC) fusionnées par le mainteneur le
+  25 octobre, #186, #187 et #190 le matin, #188 et #189 ensuite après la fusion
+  de `configure-clean` dans leurs branches ; `TODO.md`, `TODO_DONE.md`,
+  `TODO_AFTER.md` et `process.md` (§12) mis à jour pour elles, les branches
+  fusionnées supprimées en local.
+
 ## 8. Le ménage fait
 
 ### 8.1 Branches, lignes de crédit, outillage
@@ -2793,8 +2962,11 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PC à PJ) et
   (`todo-ap-exception-file`), de #182 (`todo-ad-lexer-numbers`), de #183
   (`todo-ac-powrev-infinite`) et de #184 (`todo-ab-overflow-flag`), sur GitHub à
   la fusion et en local le 24 octobre, avec la branche jetable
-  `debug-msvc-flags` du diagnostic de la CI de #184 : sur GitHub, il ne reste
-  que `configure-clean`, `MATH-CORE` et `master`.
+  `debug-msvc-flags` du diagnostic de la CI de #184 ; celles de #186
+  (`todo-ap-kernels-detail`), #187 (`todo-ap-neon-sqrt-mask`), #188
+  (`todo-ap-neon-pown-packed`), #189 (`todo-ac-register-guard`) et #190
+  (`todo-q-bisect-flush`), sur GitHub à la fusion et en local le 25 octobre :
+  sur GitHub, il ne reste que `configure-clean`, `MATH-CORE` et `master`.
 - [x] Lignes de crédit retirées des descriptions de #50, #51, #53 à #57 et #59,
   d'un commentaire de #59 et de cette issue. Il en reste dans les messages des
   commits a0d3871, 790ca12 et f1f4239 de #99, fusionnée sans squash. Retirées

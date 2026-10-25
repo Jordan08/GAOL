@@ -643,10 +643,42 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   - ne touche pas à une branche non fusionnée sans son accord (par exemple
     `fix-path-core-math`, qui est la seule copie de son travail) ;
   - ne lance pas `git stash` sur ses fichiers.
+- Le compilateur fusionne les comparaisons de doubles de part et d'autre d'un
+  changement de mode (`GAOL_RND_ENTER()` et `GAOL_RND_LEAVE()` avec
+  `GAOL_PRESERVE_ROUNDING`, flush-to-zero ou denormals-are-zero du programme qui
+  reviennent) : un `asm volatile` ne les ordonne pas avec les opérations sur les
+  registres, et une comparaison refaite après `LEAVE` peut reprendre la valeur
+  calculée dans la fenêtre (`[c, r]` de deux sous-normaux sortait vide avec GCC
+  15 dans `bisect(ratio)`). Compare par les bits (`gaol_detail::bound_less()`,
+  `bound_key()`...) ou fais tout, la construction du résultat comprise, avant
+  `LEAVE`.
+- GCC 12.2 sur aarch64 (le job Debian 12 arm64) lit de mauvaises valeurs dans
+  une boucle sur un tableau local de structures (`-O2` et `-O3` ; `-O0` et `-O1`
+  donnent les bonnes) : écris un appel de fonction par cas. C'est le même défaut
+  que celui de `tests/numbers.cpp`, qui dépasse son délai de 300 s quand le code
+  autour des appels change.
+- Sans matériel ARM : une compilation croisée avec GCC 12.2 dans une image
+  Docker locale (`debian:bookworm`, `g++-aarch64-linux-gnu`, `qemu-user`, au
+  plus 4 cœurs avec `--cpus`), les tests lancés par `qemu-aarch64 -L
+  /usr/aarch64-linux-gnu`. QEMU 7.2 (Debian 12) et 8.2 (Ubuntu 24.04) ne
+  retiennent pas `FPCR.AH` ; QEMU 10.0 (Debian 13), avec `-cpu max`, le retient.
+  Les binaires de Debian 12 tournent sous le QEMU de Debian 13. Les images
+  créées pour un essai se suppriment ensuite (`docker rmi`), celles des sessions
+  précédentes (`gaol-bookworm-cross`, `gaol-i386-build`) restent.
+- Pour montrer qu'un test échoue sans la correction, ne remets que les fichiers
+  de la correction, par leur nom (`git checkout origin/configure-clean --
+  gaol/f.cpp`), jamais `git checkout origin/configure-clean -- .`, qui efface
+  aussi les modifications non commitées du test ; garde la correction en patch
+  pour la rétablir.
+- Un changement de signature d'un en-tête installé touche beaucoup de lignes :
+  cherche les usages internes avec le compilateur (marque la fonction
+  `[[deprecated]]` provisoirement et compile avec chaque configuration : SSE2,
+  SSE2 avec AVX-512, NEON en compilation croisée), non par `grep`, et recommence
+  après chaque fusion de `configure-clean`.
 
-## 12. Où en est le travail (24 octobre 2026)
+## 12. Où en est le travail (25 octobre 2026)
 
-Le reste à faire est dans `TODO.md` (tâches PC à PJ) et l'issue #179 ; ce
+Le reste à faire est dans `TODO.md` (tâches PD à PJ) et l'issue #179 ; ce
 qui est fait et décidé (pull requests fusionnées, décisions, mesures) est dans
 `TODO_DONE.md` et l'issue #177 ; ce qui est reporté est dans `TODO_AFTER.md` et
 l'issue #178. L'état qui suit est daté : les commandes ci-dessous, les trois
@@ -659,20 +691,20 @@ gh api 'repos/Jordan08/GAOL/pulls?state=open' --jq '.[] | "#\(.number) \(.head.r
 git ls-remote --heads origin
 ```
 
-- **Faits** : tout ce que dit `TODO_DONE.md` (sections 4 et 5), jusqu'à #176 et
-  #180 à #184 (les tâches PA et PB) ;
+- **Faits** : tout ce que dit `TODO_DONE.md` (sections 4 et 5), jusqu'à #176,
+  #180 à #184 et #186 à #190 (les tâches PA, PB et PC) ;
   l'audit du 13 octobre a vérifié dans `configure-clean` ce qu'annonçaient alors
   les points A, C à H et J à V.
-- **En cours** : aucune pull request ouverte au 24 octobre ; `configure-clean`
-  est au commit de la fusion de #184, et ses seules branches sur GitHub sont
+- **En cours** : aucune pull request ouverte au 25 octobre ; `configure-clean`
+  est au commit de la fusion de #189, et ses seules branches sur GitHub sont
   `configure-clean`, `MATH-CORE` et `master`. L'issue #185 (le masquage des
   exceptions de `pow`) attend la réponse du mainteneur.
-- **À faire**, dans l'ordre de `TODO.md` : les corrections décidées (PC),
-  les textes, les tests et le ménage (PD), les trois builds et la CI (PE), x86
+- **À faire**, dans l'ordre de `TODO.md` : les textes, les tests et le ménage
+  (PD), les trois builds et la CI (PE), x86
   32 bits et Windows (PF), les études de vitesse, toutes avant v5.0.0 (PG), les
   signalements à d'autres projets (PH, avec l'accord du mainteneur), puis la
   version (PI, PJ). Ce qui est reporté (le 113, le site, les traits pour YalAA
   et VNODE-LP, les décorations, ce qui attend du matériel) est dans
   `TODO_AFTER.md`. Les dépendances entre points sont écrites dans chaque tâche.
-  Le mainteneur donne les tâches ou les points un par un (« traite la tâche PC »,
+  Le mainteneur donne les tâches ou les points un par un (« traite la tâche PD »,
   « traite le point 129 ») : ne commence pas le suivant sans lui.
