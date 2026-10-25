@@ -367,6 +367,20 @@ Before a path is added (the steps the issue lists, with the rules of GAOL):
   have to.
 - **The pragma `FENV_ROUND`, the `_mm256_add_round_pd` of Clang 20 and the
   256-bit `{ru-sae}` assembly** compile and are wrong (above).
+- **The NEON quotient on a Neoverse N2** (the arm64 runners of GitHub, Azure
+  Cobalt 100; the A/B of `performance.yml`, five runs of each build, one
+  execution): `x / y` takes 5.36 ns with clang-cl and 5.40 with Visual C++,
+  where the FPU intervals take 4.35 with clang-cl, so that the one operation the
+  NEON intervals lose there is the quotient (`x * y` 5.71 to 5.19, `x + y` 2.98
+  to 1.19). It is not the vector division: two scalar divisions in its place
+  (`vdiv_f64` on each lane, the same bounds) take 6.17 and 6.30 ns there, and
+  2.76 ns against 2.38 on the Apple M2 (`x / y`, and the line of 7 quotients
+  18.80 to 22.54 ns; a local A/B, the machine not idle). The time is in the rest
+  of the kernel, about 150 instructions in `div_bounds()` of which some 55 are
+  vector ones (counted in the object of GCC 12.2, the common path being a part
+  of them): `x * y` takes 5.2 ns there where the Apple M2 takes 2.15, a ratio
+  that the two vector pipes of the N2 against the four of the M2 would explain
+  (not measured: `perf` is not allowed on the runners and the machine).
 
 ## What was not measured
 
