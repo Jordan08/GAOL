@@ -84,6 +84,27 @@
 	library, __GAOL_PUBLIC__, no libm); only the macros the sources read.
 	The headers of the meson files name Raphael Chenouard, who wrote
 	them.
+	* CMakeLists.txt, configure.ac, meson.build: the same options with
+	the three builds: GAOL_PRESERVE_ROUNDING, GAOL_SIMD (SSE2 on x86,
+	NEON on 64-bit ARM, the FPU if it is off; GAOL_ARM64, --enable-arm64
+	and enable-arm64 are gone), GAOL_COVERAGE (--enable-coverage,
+	enable-coverage), WITH_TESTS, WITH_EXAMPLES, BUILD_SHARED_LIBS (the
+	static library alone by default with configure and meson too, which
+	made both), the build type, the position-independent code, and
+	CMAKE_OSX_ARCHITECTURES (a universal build of macOS with configure
+	and meson, by several -arch in the flags).  The fused multiply-add
+	instructions, the AVX-512 path (taken with GAOL_PRESERVE_ROUNDING),
+	the 128-bit integer and the debugging are decided by checks that
+	compile, link and run a program, and are no longer options (the
+	developers keep them as settings); in a cross-compilation the fused
+	multiply-add instructions and the AVX-512 path are left out unless
+	GAOL_MACHINE_RUNS_FMA, gaol_cv_machine_runs_fma or machine-runs-fma
+	say that the machine runs them.  configure's --enable-optimize is
+	gone.
+	* configure.ac, 3rd/Makefile.am, meson.build, gaol/meson.build: the
+	C sources of CORE-MATH are compiled with -std=gnu99, -msse2 -msse3
+	and -fvisibility=hidden by the three builds; the audit compares the
+	flags of one of them.
 	* check/: moved into tests/, without CppUnit (tests/unit_tests.h);
 	check/fpu.cpp, check/essai.cpp and the benchmark of GAOL 4 are gone.
 	* tests/debugging.cpp: GAOL's headers with GAOL_DEBUGGING.
