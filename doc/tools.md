@@ -71,7 +71,7 @@ what the programs check.
 | [meson_subproject/check_flags.py](../tests/meson_subproject/check_flags.py) | Checks that a meson project which takes GAOL as a subproject gets the flags of its `gaol.pc`. |
 | [compile_error.cmake](../tests/compile_error.cmake) | A `cmake -P` script that compiles a source whose compilation has to fail (the tests `refused_*` and `nodiscard_discard_cxx<N>`). |
 | [cpack_stale_configure.cmake](../tests/cpack_stale_configure.cmake) | Tests the warning of CPack when the committed `configure` was generated for another version. |
-| [prefer_avx512_reconfigure.cmake](../tests/prefer_avx512_reconfigure.cmake) | Tests that a second `cmake` in the same directory keeps the right value of `GAOL_PREFER_AVX512`. |
+| [automatic_configuration.cmake](../tests/automatic_configuration.cmake) | Tests the configuration that GAOL decides by itself (the fused multiply-add instructions, the AVX-512 path, the 128-bit integer, the debugging, the vector intervals) and the settings of the developers, in several configurations of one directory and in a cross-compilation. |
 | [version_file.cmake](../tests/version_file.cmake) | Tests the reading of `VERSION.txt` by `gaol_read_version()` (byte order mark and other ways of writing it). |
 
 ## Tools for the tests

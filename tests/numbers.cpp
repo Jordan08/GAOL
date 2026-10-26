@@ -528,7 +528,7 @@ namespace
   }
 
   /*
-    The FPU intervals of Visual C++ for 64-bit ARM (GAOL_ARM64=OFF), where GAOL
+    The FPU intervals of Visual C++ for 64-bit ARM (GAOL_SIMD=OFF), where GAOL
     cannot clear the modes that flush the subnormals to zero: a program that sets FZ itself (_controlfp_s(),
     _DN_FLUSH) has operator<< write a subnormal bound outward, as 2^-1022 away
     from zero and 0 toward it, without the C library, which may write it 0

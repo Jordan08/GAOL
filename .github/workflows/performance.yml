@@ -92,7 +92,7 @@ jobs:
           # of #157 serve on the processors that have no NEON doubles
           - { os: ubuntu-24.04-arm, opts: '-DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++',     desc: 'Ubuntu 24.04 arm64 GCC' }
           - { os: ubuntu-24.04-arm, opts: '-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++', desc: 'Ubuntu 24.04 arm64 Clang' }
-          - { os: ubuntu-24.04-arm, opts: '-DGAOL_ARM64=OFF -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++', desc: 'Ubuntu 24.04 arm64 GCC, FPU intervals' }
+          - { os: ubuntu-24.04-arm, opts: '-DGAOL_SIMD=OFF -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++', desc: 'Ubuntu 24.04 arm64 GCC, FPU intervals' }
           - { os: macos-26, opts: '', desc: 'macOS 26 arm64' }
           - { os: macos-15-intel, opts: '', desc: 'macOS 15 x86_64' }
           - { os: windows-2025-vs2026, generator: 'Visual Studio 18 2026', arch: x64,   python: python, opts: '', desc: 'Visual Studio 2026 x64' }

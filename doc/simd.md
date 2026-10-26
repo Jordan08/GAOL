@@ -51,13 +51,15 @@ opposite, so that one addition rounded upward gives both bounds
 |---|---|---|
 | SSE2 (x86, `GAOL_SIMD`) | `+ - * / sqr`, the operations with a double, `inverse`, `%=`, `-x`, the integer powers with `__FMA__`, the leaves of `div_rel` | `sqrt`, `&=`, `\|=`, `mid`, `midpoint`, the relations, the elementary functions, the reverse functions |
 | AVX-512 (`GAOL_PREFER_AVX512`) | `+ - * / sqr`, the operations with a double and the integer powers (with `__FMA__`), with the rounding direction in the instruction; `sqrt` as two scalar square roots and `/` as two scalar divisions, with embedded rounding | as SSE2, and `inverse`, `%=` and the leaves of `div_rel`, which stay SSE2 kernels that set the direction |
-| NEON (arm64, `GAOL_ARM64`; every compiler) | `+ - * / sqr sqrt`, the operations with a double, `%=`, `inverse`, `&=`, `\|=`, `-x`, the integer powers (two lanes with `vfmaq_f64`) | `mid`, `midpoint`, `div_rel`, the elementary functions |
+| NEON (arm64, `GAOL_SIMD`; every compiler) | `+ - * / sqr sqrt`, the operations with a double, `%=`, `inverse`, `&=`, `\|=`, `-x`, the integer powers (two lanes with `vfmaq_f64`) | `mid`, `midpoint`, `div_rel`, the elementary functions |
 | FPU (the rest) | none | everything |
 
-The AVX-512 path is off by default: `GAOL_PREFER_AVX512` is on by default only
-with `GAOL_PRESERVE_ROUNDING`, and the library then needs a processor with the
-instructions ([three builds](three-builds.md)). The timings of the AVX-512
-path below are those of that configuration. For `+ - *` and `sqr` it puts the
+The AVX-512 path is off by default: the build takes it only with
+`GAOL_PRESERVE_ROUNDING`, where the compiler has the instructions and the
+machine runs them (see [below](#when-the-build-takes-the-avx-512-path); it was
+the default of the option `GAOL_PREFER_AVX512`), and the library then needs a
+processor with the instructions ([three builds](three-builds.md)). The timings
+of the AVX-512 path below are those of that configuration. For `+ - *` and `sqr` it puts the
 two bounds in two of the eight lanes of a 512-bit register, for the embedded
 rounding only; `/` and `sqrt` are scalar instructions with the embedded
 rounding, two of them for the two bounds ([Verdicts](#verdicts)).

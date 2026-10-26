@@ -20,7 +20,13 @@ only (see [The speed of a pull request](#the-speed-of-a-pull-request)). The badg
   with the compilers of Ubuntu 22.04 (GCC 11 and Clang 14 on x86_64, GCC 11
   on arm64), whose images GitHub retires by April 2027, with GCC 9, which has
   no `__builtin_roundeven()` (see [3rd/README.md](../3rd/README.md)), and as a
-  shared library (`BUILD_SHARED_LIBS`); the test `cpack_stale_configure` also
+  shared library (`BUILD_SHARED_LIBS`, `--enable-shared` and
+  `-Ddefault_library=shared`: the static library is the default of the three
+  builds, GAOL v5); the test `automatic_configuration` configures GAOL several
+  times, with the settings of a user and of a developer and in a
+  cross-compilation, and holds the header and the messages to what the checks
+  found (the fused multiply-add instructions, the AVX-512 path, the 128-bit
+  integer, the debugging, the vector intervals); the test `cpack_stale_configure` also
   runs with `CC="ccache gcc"` and a Ninja outside `PATH`, which it has to pass
   on to the copies of the tree it configures; and the tests run with the
   `FE_*` values of Cygwin (newlib, 0 to 3) put over those of glibc for the
@@ -40,8 +46,10 @@ only (see [The speed of a pull request](#the-speed-of-a-pull-request)). The badg
 - **macOS:** 14, 15 and 26, on arm64 and x86_64 (natively or under Rosetta), a
   universal build (arm64 and x86_64, GAOL v5: the macros of each part, the tests
   of the arm64 part natively and the test programs of the x86_64 part under
-  Rosetta, and the intervals each part says it has), and with the sanitizers
-  with AppleClang, LLVM's Clang and GCC.
+  Rosetta, and the intervals each part says it has) with CMake, with autotools
+  (`-arch` twice in `CFLAGS`, `CXXFLAGS` and `LDFLAGS`) and with meson (in
+  `c_args`, `cpp_args` and the link arguments), and with the sanitizers with
+  AppleClang, LLVM's Clang and GCC.
 - **Windows:**
   - Visual Studio 2022 and 2026, on x86, x64 and arm64, Release and Debug (on
     arm64, the compiler of Visual Studio 2022, MSVC 14.44, installed with
@@ -52,9 +60,10 @@ only (see [The speed of a pull request](#the-speed-of-a-pull-request)). The badg
     job on x86 asks for the FPU intervals (`GAOL_SIMD=OFF`), so that their code,
     and the rounding direction they keep through the x87 unit and MXCSR, stay
     covered, and a job on arm64 with Visual C++ and another with clang-cl do
-    the same (`GAOL_ARM64=OFF`). Two x64 jobs ask
-    for the AVX-512 path (`GAOL_PREFER_AVX512`), as the one with the rounding
-    direction preserved does by default: they take it where the runner has the
+    the same (`GAOL_SIMD=OFF`). Two x64 jobs ask
+    for the AVX-512 path (`GAOL_PREFER_AVX512`, a setting of the developers), as
+    the one with the rounding direction preserved gets it from the configuration:
+    they take it where the runner has the
     instructions, which the step tells, with a warning where it has not. The
     runners have none, so that five more jobs run the unit tests that compute
     with intervals under Intel SDE, which emulates a processor with them
@@ -141,14 +150,15 @@ compares: `performance.yml` compares the base of a pull request with its head
 (see [The speed of a pull request](#the-speed-of-a-pull-request)).
 
 On 64-bit ARM processors the intervals are the NEON ones by default
-(`GAOL_ARM64`, `--enable-arm64`, `-Denable-arm64`; GAOL v5), so that the jobs of
+(`GAOL_SIMD`, `--enable-simd`, `-Denable-simd`; GAOL v5: `GAOL_ARM64`,
+`--enable-arm64` and `-Denable-arm64` were an option of their own), so that the jobs of
 Ubuntu arm64, macOS arm64 and the aarch64 containers, and those of autotools
 and meson on arm64, test them. A few jobs build the FPU intervals instead,
 which the NEON ones replace on these processors, so that their code stays
 covered, the preserved rounding direction included: the GCC and the Clang of
-Ubuntu 24.04 arm64 (`-DGAOL_ARM64=OFF`), and both with the rounding direction
-preserved too, macOS 15 arm64 (`-DGAOL_ARM64=OFF`), and autotools
-(`--disable-arm64`) and meson (`-Denable-arm64=false`) on Ubuntu 24.04 arm64.
+Ubuntu 24.04 arm64 (`-DGAOL_SIMD=OFF`), and both with the rounding direction
+preserved too, macOS 15 arm64 (`-DGAOL_SIMD=OFF`), and autotools
+(`--disable-simd`) and meson (`-Denable-simd=false`) on Ubuntu 24.04 arm64.
 The GCC and the Clang of Ubuntu 24.04 x86-64 build them too
 (`-DGAOL_SIMD=OFF`), GCC without and with the direction preserved and Clang
 with it: the compound products and quotients of the FPU intervals hold the
@@ -162,7 +172,7 @@ check which intervals the configuration took, in a step "The intervals"
 `gaol_configuration.h`, and fails if they are not the expected ones): the main
 jobs of `linux.yml`, those of `macos.yml`, autotools and meson expect the NEON
 intervals on 64-bit ARM, the SSE2 intervals on x86-64, and the FPU intervals
-where the option (`GAOL_ARM64` or `GAOL_SIMD`) is off; the Visual Studio jobs
+where the option (`GAOL_SIMD`) is off; the Visual Studio jobs
 of `windows.yml`, those of clang-cl included, expect the SSE2 intervals on x64
 and on x86 (GAOL v5) and the NEON intervals on arm64; the MSYS2 jobs, the SSE2
 ones on x64 and the NEON ones on arm64; two jobs of `linux.yml` give the SSE2
@@ -403,8 +413,8 @@ change with its measures.
     tests of `check/` are in `tests/`.
   - A shared `libgaol` (configure, meson) did not export the classes and
     functions of the expressions (`gaol/parser/gaol_expression.h`), and a program
-    building one did not link with it. The shared library job of CMake and
-    the meson jobs, whose tests link with the installed `libgaol.so`, build
+    building one did not link with it. The shared library jobs of CMake,
+    autotools and meson, whose tests link with the installed `libgaol.so`, build
     `tests/expressions.cpp`.
 - **Reports of the sanitizers that were suppressed at first**, and are fixed
   now: the nodes the parser did not free (`lsan.supp`,

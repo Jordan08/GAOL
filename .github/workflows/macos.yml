@@ -53,7 +53,7 @@ jobs:
           - { os: macos-14,       arch: x86_64, desc: 'macOS 14 x86_64 (Rosetta)' }
           - { os: macos-15,       arch: arm64,  opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'macOS 15 arm64, rounding direction preserved' }
           # The FPU intervals, which the NEON ones replace on arm64 (GAOL v5)
-          - { os: macos-15,       arch: arm64,  opts: '-DGAOL_ARM64=OFF', desc: 'macOS 15 arm64, FPU intervals' }
+          - { os: macos-15,       arch: arm64,  opts: '-DGAOL_SIMD=OFF', desc: 'macOS 15 arm64, FPU intervals' }
     steps:
       - uses: actions/checkout@v7
       - name: Rosetta, to run x86_64 programs on arm64
@@ -64,12 +64,12 @@ jobs:
           c++ --version
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_OSX_ARCHITECTURES=${{ matrix.cfg.arch }} -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install" ${{ matrix.cfg.opts }}
       # NEON on arm64, SSE2 on x86_64 (under Rosetta too), the FPU where
-      # -DGAOL_ARM64=OFF asked for it (GAOL v5)
+      # -DGAOL_SIMD=OFF asked for it (GAOL v5)
       - name: The intervals
         run: |
           expected=sse2
           if [ "${{ matrix.cfg.arch }}" = arm64 ]; then expected=neon; fi
-          case "${{ matrix.cfg.opts }}" in *GAOL_ARM64=OFF*) expected=fpu ;; esac
+          case "${{ matrix.cfg.opts }}" in *GAOL_SIMD=OFF*) expected=fpu ;; esac
           sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h $expected
       - name: Build
         run: cmake --build build -j 4
@@ -147,6 +147,125 @@ jobs:
         run: |
           build/tests/gaol_performance | head -n 1 | tee arm64.txt
           arch -x86_64 build/tests/gaol_performance | head -n 1 | tee x86_64.txt
+          grep -q "NEON intervals" arm64.txt
+          grep -q "SSE2 intervals" x86_64.txt
+
+  # The same universal build with autotools and with meson (GAOL v5): the
+  # architectures are in the flags of the compilers (-arch twice), configure and
+  # meson reading them, and the configuration is the one CMake gives
+  # (GAOL_UNIVERSAL_SSE2 and GAOL_UNIVERSAL_NEON of gaol_configuration.h): the
+  # intervals of each architecture are read by the preprocessor, the tests run
+  # natively (arm64) and under Rosetta (x86_64), and the program of performance
+  # says which intervals each part has. Not checked on a machine other than the
+  # runner (the maintainer's has no macOS).
+  universal-autotools:
+    name: macOS 26 universal (arm64 and x86_64), autotools
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - name: Rosetta, to run x86_64 programs on arm64
+        run: sudo softwareupdate --install-rosetta --agree-to-license
+      - name: Configure
+        run: |
+          c++ --version
+          archs="-arch arm64 -arch x86_64"
+          ./configure CFLAGS="$archs" CXXFLAGS="$archs" LDFLAGS="$archs" --with-tests | tee configure.log
+          grep -q "universal build of macOS" configure.log
+      - name: The intervals of each architecture
+        run: |
+          for spec in "arm64 NEON SSE2" "x86_64 SSE2 NEON"; do
+            set -- $spec
+            echo '#include "gaol/gaol_configuration.h"' | c++ -arch $1 -I . -x c++ -dM -E - | grep GAOL_USING_ > macros-$1.txt
+            cat macros-$1.txt
+            grep -q "^#define GAOL_USING_$2_INSTRUCTIONS 1" macros-$1.txt
+            if grep -q "^#define GAOL_USING_$3_INSTRUCTIONS 1" macros-$1.txt; then
+              echo "::error::the $1 part has the $3 intervals"
+              exit 1
+            fi
+          done
+      - name: Build
+        run: make -j 4
+      - name: Tests of the arm64 part (natively)
+        run: |
+          lipo -archs tests/arithmetic
+          make -j 4 test || { cat tests/test-suite.log; exit 1; }
+      # The test programs themselves: a program that skips gives 77
+      - name: Tests of the x86_64 part (Rosetta)
+        run: |
+          for t in tests/*; do
+            if [ -f "$t" ] && [ -x "$t" ] && lipo -archs "$t" > /dev/null 2>&1; then
+              echo "== $t"
+              status=0
+              arch -x86_64 "$t" || status=$?
+              if [ "$status" != 0 ] && [ "$status" != 77 ]; then
+                echo "::error::$t failed ($status)"
+                exit 1
+              fi
+            fi
+          done
+      - name: Which intervals each part has
+        run: |
+          tests/gaol_performance | head -n 1 | tee arm64.txt
+          arch -x86_64 tests/gaol_performance | head -n 1 | tee x86_64.txt
+          grep -q "NEON intervals" arm64.txt
+          grep -q "SSE2 intervals" x86_64.txt
+
+  universal-meson:
+    name: macOS 26 universal (arm64 and x86_64), meson
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - name: Rosetta, to run x86_64 programs on arm64
+        run: sudo softwareupdate --install-rosetta --agree-to-license
+      - name: Tools
+        run: |
+          brew install pipx
+          pipx install meson
+          pipx install ninja
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Configure
+        run: |
+          c++ --version
+          archs="-arch arm64 -arch x86_64"
+          meson setup build-meson -Dwith-tests=true "-Dc_args=$archs" "-Dcpp_args=$archs" "-Dc_link_args=$archs" "-Dcpp_link_args=$archs" | tee configure.log
+          grep -q "Universal build of macOS" configure.log
+      - name: The intervals of each architecture
+        run: |
+          for spec in "arm64 NEON SSE2" "x86_64 SSE2 NEON"; do
+            set -- $spec
+            echo '#include "gaol/gaol_configuration.h"' | c++ -arch $1 -I build-meson -x c++ -dM -E - | grep GAOL_USING_ > macros-$1.txt
+            cat macros-$1.txt
+            grep -q "^#define GAOL_USING_$2_INSTRUCTIONS 1" macros-$1.txt
+            if grep -q "^#define GAOL_USING_$3_INSTRUCTIONS 1" macros-$1.txt; then
+              echo "::error::the $1 part has the $3 intervals"
+              exit 1
+            fi
+          done
+      - name: Build
+        run: meson compile -C build-meson
+      - name: Tests of the arm64 part (natively)
+        run: |
+          lipo -archs build-meson/tests/gaol_test_arithmetic
+          meson test -C build-meson --print-errorlogs
+      - name: Tests of the x86_64 part (Rosetta)
+        run: |
+          for t in build-meson/tests/gaol_test_*; do
+            if [ -f "$t" ] && [ -x "$t" ] && lipo -archs "$t" > /dev/null 2>&1; then
+              echo "== $t"
+              status=0
+              arch -x86_64 "$t" || status=$?
+              if [ "$status" != 0 ] && [ "$status" != 77 ]; then
+                echo "::error::$t failed ($status)"
+                exit 1
+              fi
+            fi
+          done
+      - name: Which intervals each part has
+        run: |
+          build-meson/tests/gaol_performance | head -n 1 | tee arm64.txt
+          arch -x86_64 build-meson/tests/gaol_performance | head -n 1 | tee x86_64.txt
           grep -q "NEON intervals" arm64.txt
           grep -q "SSE2 intervals" x86_64.txt
 

@@ -80,9 +80,9 @@ jobs:
           # The FPU intervals, which the NEON ones replace on 64-bit ARM
           # (GAOL_ARM64, on by default): their code stays covered there, the
           # preserved direction included (GAOL v5)
-          - { os: ubuntu-24.04-arm, cc: gcc,   cxx: g++,     opts: '-DGAOL_ARM64=OFF', desc: 'Ubuntu 24.04 arm64 GCC, FPU intervals' }
-          - { os: ubuntu-24.04-arm, cc: clang, cxx: clang++, opts: '-DGAOL_ARM64=OFF', desc: 'Ubuntu 24.04 arm64 Clang, FPU intervals' }
-          - { os: ubuntu-24.04-arm, cc: clang, cxx: clang++, opts: '-DGAOL_ARM64=OFF -DGAOL_PRESERVE_ROUNDING=ON', desc: 'Ubuntu 24.04 arm64 Clang, FPU intervals, rounding direction preserved' }
+          - { os: ubuntu-24.04-arm, cc: gcc,   cxx: g++,     opts: '-DGAOL_SIMD=OFF', desc: 'Ubuntu 24.04 arm64 GCC, FPU intervals' }
+          - { os: ubuntu-24.04-arm, cc: clang, cxx: clang++, opts: '-DGAOL_SIMD=OFF', desc: 'Ubuntu 24.04 arm64 Clang, FPU intervals' }
+          - { os: ubuntu-24.04-arm, cc: clang, cxx: clang++, opts: '-DGAOL_SIMD=OFF -DGAOL_PRESERVE_ROUNDING=ON', desc: 'Ubuntu 24.04 arm64 Clang, FPU intervals, rounding direction preserved' }
           # The FPU intervals on x86-64 too, with GCC and Clang (the first
           # job without the direction preserved, as a default build takes
           # them where SIMD is off), and on arm64 with GCC, with the
@@ -107,7 +107,7 @@ jobs:
           - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     opts: '-DGAOL_SIMD=OFF', desc: 'Ubuntu 24.04 x86_64 GCC, FPU intervals' }
           - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     opts: '-DGAOL_SIMD=OFF -DGAOL_PRESERVE_ROUNDING=ON', desc: 'Ubuntu 24.04 x86_64 GCC, FPU intervals, rounding direction preserved' }
           - { os: ubuntu-24.04,     cc: clang, cxx: clang++, opts: '-DGAOL_SIMD=OFF -DGAOL_PRESERVE_ROUNDING=ON', desc: 'Ubuntu 24.04 x86_64 Clang, FPU intervals, rounding direction preserved' }
-          - { os: ubuntu-24.04-arm, cc: gcc,   cxx: g++,     opts: '-DGAOL_ARM64=OFF -DGAOL_PRESERVE_ROUNDING=ON', desc: 'Ubuntu 24.04 arm64 GCC, FPU intervals, rounding direction preserved' }
+          - { os: ubuntu-24.04-arm, cc: gcc,   cxx: g++,     opts: '-DGAOL_SIMD=OFF -DGAOL_PRESERVE_ROUNDING=ON', desc: 'Ubuntu 24.04 arm64 GCC, FPU intervals, rounding direction preserved' }
           # With Clang on x86_64, which takes the AVX-512 path by default
           # there: Clang 18 computed the difference of that path after its
           # guard had set flush-to-zero back, and [3e-308] - [2.9e-308] was
@@ -141,12 +141,12 @@ jobs:
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_C_COMPILER=${{ matrix.cfg.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }} -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install" ${{ matrix.cfg.opts }}
       # NEON on the 64-bit ARM runners, SSE2 on the x86-64 ones, the FPU
-      # where -DGAOL_ARM64=OFF asked for it: a configuration that fell back
+      # where -DGAOL_SIMD=OFF asked for it: a configuration that fell back
       # to the FPU intervals would keep every test green (GAOL v5)
       - name: The intervals
         run: |
           case "$(uname -m)" in aarch64) expected=neon ;; *) expected=sse2 ;; esac
-          case "${{ matrix.cfg.opts }}" in *GAOL_ARM64=OFF*|*GAOL_SIMD=OFF*) expected=fpu ;; esac
+          case "${{ matrix.cfg.opts }}" in *GAOL_SIMD=OFF*) expected=fpu ;; esac
           # The form of the SSE2 intervals that Visual C++ and clang-cl take on x86
           case "${{ matrix.cfg.opts }}" in *GAOL_SSE2_UNALIGNED_STORAGE=ON*)
             grep -q "^#define GAOL_SSE2_UNALIGNED_STORAGE 1" build/gaol/gaol_configuration.h ;; esac

@@ -44,22 +44,23 @@ build, and the CMake build follows them, apart from the errors corrected (see
   the target: GAOL v5), so that they need no aligned memory, and the class
   allocators that aligned the intervals on 16 bytes are not compiled;
 - on 64-bit ARM processors, the intervals are computed with NEON instructions
-  (`GAOL_ARM64`, `--enable-arm64`, `-Denable-arm64`; no flag), on by default
+  (`GAOL_SIMD`, `--enable-simd`, `-Denable-simd`; no flag), on by default
   with every compiler of them: GCC, Clang and AppleClang under Linux and macOS,
   clang-cl and the Clang of MinGW-w64 and MSYS2, and Visual C++ (`cl`, whose
   registers are those of `_ReadStatusReg()` and `_WriteStatusReg()`; GAOL v5),
   whose compiler each build tests with the same program (CMake and meson for
   Visual C++, which configure does not build with): the intrinsics of
   `<arm_neon.h>` and the registers of the rounding mode. Not with 32-bit ARM,
-  whose NEON has no vector of doubles: the option is then ignored, and the FPU
-  computes the intervals, as before. A universal build of macOS, which CMake
-  alone makes (`CMAKE_OSX_ARCHITECTURES` with several architectures), compiles
-  each source once per architecture with one configuration, and takes the
-  intervals of the architecture being compiled, NEON for arm64 and SSE2 for
-  x86_64, where `GAOL_ARM64` and `GAOL_SIMD` allow them
-  (`GAOL_UNIVERSAL_NEON` and `GAOL_UNIVERSAL_SSE2` of
-  `gaol_configuration.h`; GAOL v5). Independent of `GAOL_SIMD`, which
-  is for x86 processors (GAOL v5);
+  whose NEON has no vector of doubles: the FPU computes the intervals there, as
+  before. A universal build of macOS (`CMAKE_OSX_ARCHITECTURES` with several
+  architectures, or `-arch` several times in the flags of configure and meson)
+  compiles each source once per architecture with one configuration, and takes
+  the intervals of the architecture being compiled, NEON for arm64 and SSE2 for
+  x86_64, where `GAOL_SIMD` allows them (`GAOL_UNIVERSAL_NEON` and
+  `GAOL_UNIVERSAL_SSE2` of `gaol_configuration.h`; GAOL v5). `GAOL_SIMD` chooses
+  between them and the FPU on every processor (GAOL v5: `GAOL_ARM64`,
+  `--enable-arm64` and `-Denable-arm64` were an option of their own for the NEON
+  intervals, independent of `GAOL_SIMD`);
 - GAOL and CORE-MATH are compiled with the fused multiply-add
   instructions of the processor, where the compiler has a flag for them
   (`GAOL_FMA`, `--enable-fma`, `-Denable-fma`): `-mfma` on x86; with GCC for
@@ -167,12 +168,12 @@ On a 64-bit ARM processor, measured the same way on an Apple M2 with AppleClang
 
 | | x + y | x − y | x × y | x ÷ y | sqr(x) | sqrt(x) | 13 operations in a line |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| `-DGAOL_ARM64=OFF` (FPU intervals) | 1.18 | 1.18 | 3.33 | 3.30 | 1.82 | 4.60 | 51.7 |
+| `-DGAOL_SIMD=OFF` (FPU intervals) | 1.18 | 1.18 | 3.33 | 3.30 | 1.82 | 4.60 | 51.7 |
 | Default (NEON intervals) | 0.91 | 0.89 | 2.14 | 2.39 | 1.48 | 1.70 | 19.2 |
-| `-DGAOL_ARM64=OFF -DGAOL_PRESERVE_ROUNDING=ON` | 38.8 | 38.7 | 44.4 | 45.2 | 43.7 | 48.5 | 537 |
+| `-DGAOL_SIMD=OFF -DGAOL_PRESERVE_ROUNDING=ON` | 38.8 | 38.7 | 44.4 | 45.2 | 43.7 | 48.5 | 537 |
 | `-DGAOL_PRESERVE_ROUNDING=ON` (NEON intervals) | 26.9 | 27.3 | 29.3 | 34.0 | 27.3 | 34.3 | 377 |
 
-- **The NEON intervals (`GAOL_ARM64`) pay on every operation of the table**:
+- **The NEON intervals (`GAOL_SIMD`) pay on every operation of the table**:
   x − y takes 0.89 ns rather than 1.18, x × y 2.14 rather than 3.33 (of operands
   of random signs 2.18 rather than 3.38), x ÷ y 2.39 rather than 3.30, sqrt
   1.70 rather than 4.60, and a line of 13 operations 19.2 ns rather than 51.7

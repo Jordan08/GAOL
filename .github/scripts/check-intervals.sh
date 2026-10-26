@@ -1,7 +1,7 @@
 #!/bin/sh
 # The intervals GAOL was configured to compute with (GAOL v5): NEON on 64-bit
-# ARM processors, SSE2 on x86, the FPU where neither is taken (GAOL_ARM64=OFF,
-# --disable-arm64, -Denable-arm64=false, or a processor that has neither). A
+# ARM processors, SSE2 on x86, the FPU where neither is taken (GAOL_SIMD=OFF,
+# --disable-simd, -Denable-simd=false, or a processor that has neither). A
 # build that falls back to the FPU intervals silently keeps the continuous
 # integration green with the wrong code, which the tests do not tell apart:
 # this fails if the configuration is not the expected one. To be run after the
