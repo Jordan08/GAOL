@@ -52,6 +52,17 @@ In [.github/scripts/](../.github/scripts/).
 | [compare-performance.py](../.github/scripts/compare-performance.py) | Compares two series of measures (median, ratio, spread) and writes a Markdown table for the summary of a job. |
 | [test-performance-tools.py](../.github/scripts/test-performance-tools.py) | Tests `compare-performance.py` and `processor_name()` of `run_perf.sh`, in Python alone and without a build. |
 
+The workflows of [.github/workflows/](../.github/workflows/) are read by
+[actionlint](https://github.com/rhysd/actionlint), which runs `shellcheck` on
+the steps that have a script, and reports nothing (GAOL v5):
+
+```sh
+docker run --rm -v "$PWD:/repo:ro" --workdir /repo rhysd/actionlint:latest
+```
+
+[.github/actionlint.yaml](../.github/actionlint.yaml) lists the one remark it
+leaves out, with the reason.
+
 ## Tests
 
 In [tests/](../tests/). The five `*_values.py` scripts write the headers of

@@ -361,20 +361,23 @@ jobs:
       # 0xc0000139, entry point not found).
       - name: Tests (make test)
         run: |
-          export PATH="$(cygpath -u '${{ matrix.cfg.bin }}'):$PATH"
+          bindir=$(cygpath -u '${{ matrix.cfg.bin }}')
+          export PATH="$bindir:$PATH"
           cmake --build build --target test
       - name: The test numbers ran under a locale writing a decimal comma
         run: sh .github/scripts/comma-locale.sh check build
       - name: Performance
         if: matrix.cfg.config == 'Release'
         run: |
-          export PATH="$(cygpath -u '${{ matrix.cfg.bin }}'):$PATH"
+          bindir=$(cygpath -u '${{ matrix.cfg.bin }}')
+          export PATH="$bindir:$PATH"
           build/tests/gaol_performance.exe | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Install
         run: cmake --install build
       - name: Tests built with the installed GAOL
         run: |
-          export PATH="$(cygpath -u '${{ matrix.cfg.bin }}'):$PATH"
+          bindir=$(cygpath -u '${{ matrix.cfg.bin }}')
+          export PATH="$bindir:$PATH"
           cmake -S tests/find_package -B build-find-package -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{ matrix.cfg.config }} -DCMAKE_CXX_COMPILER=g++ -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
           cmake --build build-find-package -j 4
           cmake --build build-find-package --target test

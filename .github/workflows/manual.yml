@@ -66,12 +66,12 @@ jobs:
           # The manual of GAOL v5 had 122 pages when written, that of GAOL 4 94
           for manual in v5:110 v4:90; do
             dir=${manual%:*}
-            pages_autotools=$(pdfinfo build-autotools/manual/$dir/gaol.pdf | awk '/^Pages:/ { print $2 }')
-            pages_meson=$(pdfinfo build-meson/manual/$dir/gaol.pdf | awk '/^Pages:/ { print $2 }')
+            pages_autotools=$(pdfinfo "build-autotools/manual/$dir/gaol.pdf" | awk '/^Pages:/ { print $2 }')
+            pages_meson=$(pdfinfo "build-meson/manual/$dir/gaol.pdf" | awk '/^Pages:/ { print $2 }')
             echo "$dir: autotools: $pages_autotools pages, meson: $pages_meson pages"
             test "$pages_autotools" = "$pages_meson"
             test "$pages_autotools" -ge "${manual#*:}"
-            pdffonts build-autotools/manual/$dir/gaol.pdf
+            pdffonts "build-autotools/manual/$dir/gaol.pdf"
           done
       - uses: actions/upload-artifact@v7
         with:

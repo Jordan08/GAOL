@@ -180,6 +180,8 @@ jobs:
           # With the flags and libraries of gaol.pc alone, then with find_package()
           export PKG_CONFIG_PATH="$PWD/gaol-install/lib/pkgconfig"
           pkg-config --cflags --libs gaol
+          # The flags are several words, which are to be split
+          # shellcheck disable=SC2046
           ${{ matrix.cfg.cxx }} -std=c++17 -O2 $(pkg-config --cflags gaol) -Itests tests/rounding_direction.cpp $(pkg-config --libs gaol) -Wl,-rpath,"$PWD/gaol-install/lib" -o rounding_direction_pc
           ./rounding_direction_pc | tail -1
           cmake -S tests/find_package -B build-find-package -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }} -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
@@ -218,11 +220,12 @@ jobs:
             grep -q "GAOL cannot be built with" configure.log
           }
           for pair in "clang-14 clang++-14" "clang-14 g++" "gcc clang++-14"; do
+            # shellcheck disable=SC2086
             set -- $pair
             rm -rf build build-ac build-meson && mkdir build-ac
-            refused "CMake with $1 and $2" env CC=$1 CXX=$2 cmake -S . -B build
+            refused "CMake with $1 and $2" env CC="$1" CXX="$2" cmake -S . -B build
             refused "configure with $1 and $2" sh -c "cd build-ac && CC=$1 CXX=$2 ../configure"
-            refused "meson with $1 and $2" env CC=$1 CXX=$2 meson setup build-meson
+            refused "meson with $1 and $2" env CC="$1" CXX="$2" meson setup build-meson
           done
 
   sanitizers:
