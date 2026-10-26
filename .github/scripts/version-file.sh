@@ -83,6 +83,7 @@ accepted() {
   minor=${minor%%.*}
   pattern=$(echo "$version" | sed 's/\./\\./g')
   header=build/gaol/gaol_configuration.h
+  # shellcheck disable=SC2059
   printf "$2" > src/VERSION.txt
   if ! run; then
     fail "$1: refused"; grep 'VERSION.txt' log | head -3
@@ -121,6 +122,7 @@ refused() {
     autoconf) where='^configure\.ac:[0-9][0-9]*: error: ' ;;
     *) where='' ;;
   esac
+  # shellcheck disable=SC2059
   printf "$2" > src/VERSION.txt
   if run; then
     fail "$1: accepted"

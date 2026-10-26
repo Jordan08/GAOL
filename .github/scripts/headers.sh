@@ -37,7 +37,7 @@ set -e
 export LC_ALL=C
 prefix=${1:?the prefix of an installed GAOL}
 cxx=${CXX:-c++}
-pc=$(ls "$prefix"/lib*/pkgconfig/gaol.pc "$prefix"/lib/*/pkgconfig/gaol.pc 2> /dev/null | head -n 1)
+pc=$(find "$prefix"/lib*/pkgconfig "$prefix"/lib/*/pkgconfig -name gaol.pc 2> /dev/null | sort | head -n 1)
 if [ -n "$pc" ] && command -v pkg-config > /dev/null; then
   flags=$(PKG_CONFIG_PATH=$(dirname "$pc") pkg-config --cflags gaol)
 else
@@ -60,6 +60,7 @@ for f in "$prefix"/include/gaol/* "$prefix"/include/gaol/core/* "$prefix"/includ
     core/gaol_interval_fpu.h|core/gaol_interval_neon.h|core/gaol_interval_sse.h|gaol_fpu_msvc.h) continue ;;
   esac
   printf '#include <gaol/%s>\n' "$h" > "$work/alone.cpp"
+  # shellcheck disable=SC2086
   if $cxx $flags -fsyntax-only "$work/alone.cpp" > "$work/alone.log" 2>&1; then
     echo "gaol/$h alone: ok"
   else
@@ -86,6 +87,7 @@ cat "$work/system.cpp" "$work/gaol.cpp" > "$work/both.cpp"
 # The macros defined after each file, the output of the preprocessor written
 # to a file first: in a pipe, its failure would go unseen
 for f in system both; do
+  # shellcheck disable=SC2086
   if ! $cxx $flags -E -dM "$work/$f.cpp" > "$work/$f.dM" 2> "$work/$f.log"; then
     echo "The preprocessor failed on the headers of GAOL and of the system:"
     cat "$work/$f.cpp" "$work/$f.log"

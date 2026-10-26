@@ -17,6 +17,8 @@
 # Copyright (c) 2026 ENSTA, France
 #
 # Created 2026-09-20 by Jordan NININ
+# The flags and the libraries are lists of words, which the shell has to split
+# shellcheck disable=SC2086,SC2046
 set -e
 prefix=$1
 linking=$2
@@ -60,7 +62,8 @@ if command -v pkg-config > /dev/null; then
   # has to be on the PATH (meson installs it in bin), as a Unix path under
   # MSYS2, where the colon of a Windows path breaks the PATH
   if command -v cygpath > /dev/null; then
-    export PATH="$(cygpath -u "$prefix")/bin:$(cygpath -u "$prefix")/lib:$PATH"
+    unix_prefix=$(cygpath -u "$prefix")
+    export PATH="$unix_prefix/bin:$unix_prefix/lib:$PATH"
   else
     export PATH="$prefix/bin:$prefix/lib:$PATH"
   fi
