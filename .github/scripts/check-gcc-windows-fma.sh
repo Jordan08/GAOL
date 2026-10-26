@@ -1,7 +1,7 @@
 #!/bin/sh
 # check-gcc-windows-fma.sh BUILD_DIR...: checks the objects of a CMake build of
 # GAOL by GCC for Windows (x86-64 and 32-bit x86), which GAOL_FMA gives -mfma
-# -mprefer-vector-width=128 (CMakeLists.txt; GAOL v5, point 110 of TODO.md):
+# -mprefer-vector-width=128 (CMakeLists.txt; GAOL v5, point AI.110 of TODO_DONE.md):
 #
 # - no object, GAOL's, CORE-MATH's and the tests', holds an instruction that
 #   names a 256-bit or 512-bit register (%ymm, %zmm). GCC takes the stack to be
@@ -100,7 +100,7 @@ for source in gaol_interval_core.cpp cos.c; do
     n=$(grep -c -E '[[:space:]]vfn?m(add|sub)[0-9]*[sp][sd][[:space:]]' "$work/dis")
     echo "$n fused multiply-add instructions: $object"
     if [ "$n" = 0 ]; then
-      echo "::error::no fused multiply-add instruction in $object: GAOL_FMA gave GCC for Windows no -mfma (CMakeLists.txt), so that CORE-MATH calls a software fma() and pow(x, 3), log and cos take 3 to 6 times as long (point 110 of TODO.md)"
+      echo "::error::no fused multiply-add instruction in $object: GAOL_FMA gave GCC for Windows no -mfma (CMakeLists.txt), so that CORE-MATH calls a software fma() and pow(x, 3), log and cos take 3 to 6 times as long (point AI.110 of TODO_DONE.md)"
       failed=1
     fi
   done < "$work/fma-objects"
