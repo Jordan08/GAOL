@@ -444,8 +444,8 @@ jobs:
       fail-fast: false
       matrix:
         cfg:
-          - { arch: x64, target: x86_64-pc-windows-msvc, desc: 'Meson, Clang for Visual C++ x64 (clang++)' }
-          - { arch: x86, target: i686-pc-windows-msvc,   desc: 'Meson, Clang for Visual C++ x86 (clang++)' }
+          - { arch: x64, target: x86_64-pc-windows-msvc, cpu_family: x86_64, cpu: x86_64, desc: 'Meson, Clang for Visual C++ x64 (clang++)' }
+          - { arch: x86, target: i686-pc-windows-msvc,   cpu_family: x86,    cpu: i686,   desc: 'Meson, Clang for Visual C++ x86 (clang++)' }
     steps:
       - uses: actions/checkout@v7
       - uses: ilammy/msvc-dev-cmd@v1
@@ -453,15 +453,38 @@ jobs:
           arch: ${{ matrix.cfg.arch }}
       - name: Tools
         run: pip install meson ninja
+      # meson does not read the target of Clang: it takes the machine it runs on
+      # (x86_64) for the host, and gives the linker /MACHINE:X64 whatever the
+      # arguments say. A file of cross-compilation names the machine; the
+      # programs of x86 run on the runner, so that no wrapper is needed
+      - name: The file of cross-compilation
+        run: |
+          @"
+          [binaries]
+          c = 'clang'
+          cpp = 'clang++'
+
+          [built-in options]
+          c_args = ['--target=${{ matrix.cfg.target }}']
+          cpp_args = ['--target=${{ matrix.cfg.target }}']
+          c_link_args = ['--target=${{ matrix.cfg.target }}']
+          cpp_link_args = ['--target=${{ matrix.cfg.target }}']
+
+          [host_machine]
+          system = 'windows'
+          cpu_family = '${{ matrix.cfg.cpu_family }}'
+          cpu = '${{ matrix.cfg.cpu }}'
+          endian = 'little'
+
+          [properties]
+          needs_exe_wrapper = false
+          "@ | Set-Content -Encoding ascii cross.txt
+          Get-Content cross.txt
       - name: Configure, build and install
         run: |
           clang++ --version
           $prefix = "$env:RUNNER_TEMP/gaol" -replace '\\', '/'
-          $env:CC = 'clang'
-          $env:CXX = 'clang++'
-          # The target in the options, for the compilations and for the links
-          $target = '--target=${{ matrix.cfg.target }}'
-          meson setup build-meson --prefix="$prefix" --libdir=lib -Dwith-tests=true "-Dc_args=$target" "-Dcpp_args=$target" "-Dc_link_args=$target" "-Dcpp_link_args=$target"
+          meson setup build-meson --cross-file cross.txt --prefix="$prefix" --libdir=lib -Dwith-tests=true
           if ($LASTEXITCODE) { exit 1 }
           meson compile -C build-meson
           if ($LASTEXITCODE) { exit 1 }
