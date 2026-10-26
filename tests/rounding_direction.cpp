@@ -129,7 +129,7 @@
 #  define GAOL_TESTS_X86_32 0
 #endif
 
-// mingw-w64 on x86-64 (GAOL v5, point 110 of TODO.md): from its version 13,
+// mingw-w64 on x86-64 (GAOL v5, point AI.110 of TODO_DONE.md): from its version 13,
 // fegetround() joins the field RC of the x87 unit and that of MXCSR by OR, and
 // fesetround() clears the exception flags of MXCSR when it changes it. The
 // control word of the x87 unit is then read apart from fegetround(), as on a
@@ -339,6 +339,16 @@ namespace
     return cw & 0x0c00u;
   }
 
+  // The other bits of that control word, the precision and the masks of the
+  // exceptions, which no operation of GAOL changes: gaol::cleanup() and
+  // gaol::restore_rounding() write the field RC only (fldcw of the word read)
+  unsigned x87_other_bits()
+  {
+    unsigned short cw;
+    __asm__ __volatile__ ("fnstcw %0" : "=m" (cw));
+    return cw & ~0x0c00u;
+  }
+
   // The five flags of IEEE 754 raised, and the six of MXCSR (the denormal-operand one included)
   void raise_all_flags()
   {
@@ -420,7 +430,7 @@ namespace
     of them at most (the states of directions[]). The registers are written
     from the fields below, with the numbers the hardware gives them, and never
     with the FE_* of <fenv.h> (0x0400 and 0x0800 with glibc, 0x0100 and 0x0200
-    with the C runtime of Windows).
+    with the C runtime of Windows and with mingw-w64 13 and later).
   */
   struct SimulatedRegisters
   {
@@ -3119,8 +3129,8 @@ int main()
     with the SSE instructions, four elsewhere), not from upward only (GAOL v5):
     with mingw-w64 on x86-64, the functions that set the direction to nearest
     and back (midpoint(), chi()...) changed MXCSR through fesetround() from
-    the other directions only, which cleared its flags there (point 110 of
-    TODO.md); everywhere else the check was made from upward only, where a
+    every direction but to nearest (split() lost the flags from five of the
+    six), which cleared its flags there (point AI.110 of TODO_DONE.md); everywhere else the check was made from upward only, where a
     function can change the direction and lose a flag the same way.
   */
   std::feclearexcept(FE_ALL_EXCEPT);
@@ -4539,10 +4549,11 @@ int main()
   set(directions[0]);
   const State before_cleanup = state();
 #if GAOL_TESTS_X87_STATE
+  const unsigned x87_other_before = x87_other_bits();
   // The exception flags raised since gaol::init() are the program's: neither
   // gaol::cleanup() nor gaol::restore_rounding() clears the six of MXCSR, as
   // fesetround() of mingw-w64 did when it changed the direction (GAOL v5,
-  // point 110 of TODO.md), with GAOL_PRESERVE_ROUNDING or without
+  // point AI.110 of TODO_DONE.md), with GAOL_PRESERVE_ROUNDING or without
   raise_all_flags();
 #endif
   gaol::cleanup();
@@ -4553,6 +4564,9 @@ int main()
 #if GAOL_TESTS_X87_STATE
   check("the SSE exception flags kept by gaol::cleanup()", (csr_after_cleanup & 0x3fu) == 0x3fu,
         [&] { return "MXCSR " + std::to_string(csr_after_cleanup) + " after it"; });
+  check("the precision and the masks of the x87 control word kept by gaol::cleanup()",
+        x87_other_bits() == x87_other_before,
+        [&] { return std::to_string(x87_other_bits()) + " after it, " + std::to_string(x87_other_before) + " before"; });
   std::feclearexcept(FE_ALL_EXCEPT);
 #endif
 #if GAOL_PRESERVE_ROUNDING
@@ -4581,8 +4595,12 @@ int main()
   static_cast<void>(back);
   const State after_operation = state();
 #if GAOL_TESTS_X87_STATE
-  // The first call changes MXCSR, upward after the addition, back to nearest
+  // The first call changes MXCSR, upward after the addition, back to nearest.
+  // Upward is set here as well: the addition of the AVX-512 path sets no
+  // direction, and the call would have nothing to change, nor to clear
+  set(directions[0]);
   raise_all_flags();
+  const unsigned x87_other_restore = x87_other_bits();
 #endif
   gaol::restore_rounding();
 #if GAOL_TESTS_X87_STATE
@@ -4593,6 +4611,9 @@ int main()
 #if GAOL_TESTS_X87_STATE
   check("the SSE exception flags kept by gaol::restore_rounding()", (csr_after_restore & 0x3fu) == 0x3fu,
         [&] { return "MXCSR " + std::to_string(csr_after_restore) + " after it"; });
+  check("the precision and the masks of the x87 control word kept by gaol::restore_rounding()",
+        x87_other_bits() == x87_other_restore,
+        [&] { return std::to_string(x87_other_bits()) + " after it, " + std::to_string(x87_other_restore) + " before"; });
   std::feclearexcept(FE_ALL_EXCEPT);
 #endif
   /* Where GAOL_AVX512_ARITHMETIC is (GAOL_PREFER_AVX512, and a machine
