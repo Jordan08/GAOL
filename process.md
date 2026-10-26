@@ -7,8 +7,8 @@ propose une pull request, et comment on tient les registres à jour une fois la
 pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
-en cours, ce qui reste) est au §12. Dernière mise à jour : 25 octobre 2026, au
-commit `df28d24` de `configure-clean` (la fusion de #197).
+en cours, ce qui reste) est au §12. Dernière mise à jour : 26 octobre 2026, au
+commit `e831a19` de `configure-clean` (la fusion de #199).
 
 ## 1. Le contexte
 
@@ -719,7 +719,7 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   `bash -e`, un `! grep ...` au milieu d'une étape ne la fait pas échouer (seule
   la dernière commande donne son statut) : écris un `if` explicite.
 
-## 12. Où en est le travail (25 octobre 2026)
+## 12. Où en est le travail (26 octobre 2026)
 
 Le reste à faire est dans `TODO.md` (tâches PE à PJ) et l'issue #179 ; ce
 qui est fait et décidé (pull requests fusionnées, décisions, mesures) est dans
@@ -738,10 +738,11 @@ git ls-remote --heads origin
   #180 à #184 et #186 à #190 (les tâches PA, PB et PC), #196 et #197 (la tâche
   PD), et #191 à #194 (de la tâche PG : la division du chemin AVX-512, puis NEON
   avec tous les compilateurs de l'arm64, SSE2 avec tous ceux de l'x86, le FPU en
-  dernier recours) ; l'audit du 13 octobre a vérifié dans `configure-clean` ce
+  dernier recours) ; #199 (hors des tâches : les sources des intervalles dans
+  `gaol/core/`) ; l'audit du 13 octobre a vérifié dans `configure-clean` ce
   qu'annonçaient alors les points A, C à H et J à V.
-- **En cours** : aucune pull request ouverte au 25 octobre ; `configure-clean`
-  est au commit de la fusion de #197, et ses branches sur GitHub sont
+- **En cours** : aucune pull request ouverte au 26 octobre ; `configure-clean`
+  est au commit de la fusion de #199, et ses branches sur GitHub sont
   `configure-clean`, `MATH-CORE`, `master` et `perf-doc-rerun` (les scripts des
   mesures reportées, hors des points). L'issue #198 (`x / y` des intervalles
   NEON avec `FPCR.AH`) est ouverte, sans tâche dans `TODO.md` ; #185 est

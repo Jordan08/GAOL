@@ -1,7 +1,7 @@
 # Fait et décidé sur GAOL v5
 
-Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 25 octobre 2026
-(commit `df28d24` de `configure-clean`, aucune pull request ouverte). Ce
+Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 26 octobre 2026
+(commit `e831a19` de `configure-clean`, aucune pull request ouverte). Ce
 fichier et l'issue #177 ont le même contenu.
 
 Il réunit l'historique de l'ancienne issue #49 (« Suivi du TODO de GAOL v5 »),
@@ -46,22 +46,22 @@ est supprimé. Le reste du travail est dans deux autres registres :
   `16a2f60` (`todo-notes/`, ceux du 30 septembre dans `todo-notes/2026-09-30/`)
   ; la procédure suivie pour chaque point est dans `process.md`.
 
-Sommaire : 1. L'état au 25 octobre ; 2. Les pull requests ; 3. Les décisions,
+Sommaire : 1. L'état au 26 octobre ; 2. Les pull requests ; 3. Les décisions,
 par date ; 4. Les points faits, par lettre ; 5. Les anciens numéros faits ; 6.
 Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 `configure-clean` ; 8. Le ménage fait.
 
-## 1. L'état au 25 octobre 2026
+## 1. L'état au 26 octobre 2026
 
-- **`configure-clean`** est au commit `df28d24` (fusion de #197). Les pull
+- **`configure-clean`** est au commit `e831a19` (fusion de #199). Les pull
   requests des corrections vont vers `configure-clean`, qui reste la branche de
   développement après v5.0.0 ; `MATH-CORE` et `master` (GAOL 4.3.2, plus deux
   commits de `.claude/CLAUDE.md`) ne bougent qu'à la version (point Y).
 - **Aucune pull request ouverte.** Le mainteneur a fusionné #165 à #167, #169 à
   #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194, #196 et #197
-  le 25 octobre ; #168 et #195 sont fermées sans fusion. Les tâches PA, PB, PC
-  et PD sont faites ; PG est entamée (la division du chemin AVX-512, le 106 a :
-  #191 à #194).
+  le 25 octobre, #199 le 26 octobre ; #168 et #195 sont fermées sans fusion. Les
+  tâches PA, PB, PC et PD sont faites ; PG est entamée (la division du chemin
+  AVX-512, le 106 a : #191 à #194).
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
   sur tout processeur ARM 64 bits avec tous les compilateurs (GCC, Clang,
   AppleClang, clang-cl, Visual C++, MinGW-w64, MSYS2), SSE2 sur tout processeur
@@ -1087,6 +1087,30 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   la marge « 2^8 fois 2K » du commentaire était fausse pour n < 0 (au moins 13
   fois 2K avec `pown_bound_inverse()`), corrigée ; fusionnée le 25 octobre,
   avant la fin de sa CI)
+- #199 (hors des tâches, à la demande du mainteneur : les neuf fichiers
+  `gaol_interval_core.*`, `gaol_interval_neon.*`, `gaol_interval_fpu.*`,
+  `gaol_interval_sse.*` et `gaol_interval_avx512.*` passent de `gaol/` à
+  `gaol/core/` (`git mv`, renommages reconnus à 98-100 %), sans qu'une ligne de
+  calcul change. Les includes (`"gaol/core/gaol_interval_core.h"`...), les trois
+  builds (CMake : `GAOL_SOURCES` et une liste `GAOL_CORE_HEADERS` ; autotools :
+  `gaol/Makefile.am`, avec `gaol/Makefile.in` régénéré par automake 1.18.1 ;
+  meson : `gaol/meson.build`), `.github/scripts/headers.sh` et tous les chemins
+  `gaol/gaol_interval_{core,neon,fpu,sse,avx512}` des commentaires, de la
+  documentation, des tests, des outils (`tests/tools/pow/mutate.py`), de la CI
+  et des registres deviennent `gaol/core/...`. Les quatre en-têtes
+  `gaol_interval_{core,fpu,neon,sse}.h` sont installés dans `include/gaol/core/`
+  (avant : `include/gaol/`), comme ceux du parser dans `include/gaol/parser/`,
+  sans en-tête de renvoi. `gaol_interval_fpu.cpp` rejoint les trois autres
+  `.cpp` inclus dans l'`EXTRA_DIST` de `gaol/meson.build`. Le lexeur et le
+  parser, régénérés, sont identiques. En local : CMake SSE2 avec tests et
+  exemples, 61 sur 61 ; CMake FPU et chemin AVX-512, la bibliothèque ; meson, 29
+  réussis et 2 sautés ; autotools, `make check` réussi et `make distclean` sans
+  reste ; les mêmes 23 en-têtes installés par les trois builds, `headers.sh`
+  sans échec sur chacun. Pas de relecture indépendante (demande du mainteneur) ;
+  `check_branch` échoue sur `doc/differences.md`, que le mainteneur a gardé,
+  avec les registres, dans la pull request ; 47 lignes passent 80 colonnes,
+  laissées ; 201 jobs verts sur le dernier commit de la branche, NEON, Windows
+  et macOS compris ; fusionnée le 26 octobre)
 
 ### 2.4 Fermées sans fusion
 
@@ -2034,6 +2058,29 @@ fait le travail.
 - [x] Les registres se mettent à jour après les fusions du mainteneur, et le
   commit des registres est fait au-dessus de son commit local « update
   README.md. », que le même push emporte (25 octobre)
+
+#### Décidé pendant le déplacement dans gaol/core/ (25 octobre), fait par #199
+
+- [x] Le dossier est `gaol/core/` ; les en-têtes des quatre sortes d'intervalles
+  et de leur noyau y sont installés dans `include/gaol/core/`, sur le modèle de
+  `gaol/parser/` (25 octobre, #199)
+- [x] Aucun en-tête de renvoi aux anciens chemins
+  `include/gaol/gaol_interval_{core,fpu,neon,sse}.h` : comme pour le parser,
+  tant pis pour la rétrocompatibilité ; l'installation dans `include/gaol/core/`
+  est à écrire dans `ChangeLog` et `doc/differences.md` (tâche PI) (25 octobre,
+  #199)
+- [x] Le second commit de #199 (`TODO_DONE.md`, `TODO_AFTER.md`,
+  `doc/differences.md`, `todo-notes/`) reste dans la pull request, bien que
+  `process.md` §7.5 veuille les registres hors des branches et que
+  `check_branch` refuse `doc/differences.md` : le mainteneur avait demandé «
+  tous les fichiers » (25 octobre, #199)
+- [x] `gaol_interval_fpu.cpp` ajouté à l'`EXTRA_DIST` de `gaol/meson.build` dans
+  #199, plutôt qu'une pull request à part ou une issue (25 octobre)
+- [x] Les 47 lignes de commentaires, de documentation et de tests que les
+  chemins plus longs font passer au-dessus de 80 colonnes sont laissées, pour un
+  diff mécanique ; celles des registres sont refaites (25 octobre, #199)
+- [x] Pas de relecture indépendante pour #199, une substitution de chemins
+  vérifiée par les trois builds et la CI (demande du mainteneur, 25 octobre)
 
 #### Le 18 octobre : les questions restées ouvertes dans la description de #99 (commentaire de #49)
 
@@ -3226,6 +3273,16 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PE à PJ) et
   au-dessus du commit local du mainteneur « update README.md. », poussé avec ;
   les branches fusionnées supprimées en local.
 
+### 7.5 Le 26 octobre
+
+- #199 (le déplacement des sources des intervalles dans `gaol/core/`) fusionnée
+  par le mainteneur le 26 octobre au matin, la CI de son dernier commit verte
+  (201 jobs) : la CI du commit de fusion, redondante (même arbre que le dernier
+  commit de la branche), n'est pas attendue (§10) ; `TODO.md`, `TODO_DONE.md`,
+  `TODO_AFTER.md` et `process.md` (§12) mis à jour pour elle, l'issue #198 reste
+  ouverte, la branche supprimée sur GitHub à la fusion et en local le 26
+  octobre.
+
 ## 8. Le ménage fait
 
 ### 8.1 Branches, lignes de crédit, outillage
@@ -3276,10 +3333,11 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PE à PJ) et
   celles de #191 (`todo-pg-avx512-div`), #192 (`todo-pg-msvc-arm64-neon`), #193
   (`todo-pg-sse2-win32-msvc`) et #194 (`todo-pg-universal-macos`), et la
   jetable de l'expérience #195 (`experiment-neon-scalar-div`), sur GitHub à la
-  fusion et en local le 25 octobre ; celles de #196 (`todo-pd-texts`) et de
-  #197 (`todo-pd-pow-mutants`), sur GitHub à la fusion et en local le 25
-  octobre : sur GitHub, il ne reste que `configure-clean`, `MATH-CORE`, `master`
-  et `perf-doc-rerun`.
+  fusion et en local le 25 octobre ; celles de #196 (`todo-pd-texts`) et de #197
+  (`todo-pd-pow-mutants`), sur GitHub à la fusion et en local le 25 octobre ;
+  celle de #199 (`interval-sources-in-core`), sur GitHub à la fusion et en local
+  le 26 octobre : sur GitHub, il ne reste que `configure-clean`, `MATH-CORE`,
+  `master` et `perf-doc-rerun`.
 - [x] Lignes de crédit retirées des descriptions de #50, #51, #53 à #57 et #59,
   d'un commentaire de #59 et de cette issue. Il en reste dans les messages des
   commits a0d3871, 790ca12 et f1f4239 de #99, fusionnée sans squash. Retirées

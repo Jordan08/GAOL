@@ -1,6 +1,6 @@
 # Reporté
 
-Tout ce qui est reporté sur GAOL v5 au 25 octobre 2026 (commit `df28d24` de
+Tout ce qui est reporté sur GAOL v5 au 26 octobre 2026 (commit `e831a19` de
 `configure-clean`) : ce qui attend la version v5.0.0, ce que le mainteneur a
 reporté indéfiniment, ce qu'il a écarté en laissant une porte ouverte, et ce qui
 attend du matériel. Ce fichier et l'issue #178 ont le même contenu. Ce qui reste

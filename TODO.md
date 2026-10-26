@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `df28d24` de `configure-clean`, le 25
+Ce qui reste à faire sur GAOL v5 au commit `e831a19` de `configure-clean`, le 26
 octobre 2026, en tâches PE à PJ (PA à PD sont faites, PG est entamée : voir
 `TODO_DONE.md`). Ce fichier et l'issue #179 ont le même contenu. Ce qui est fait
 et décidé est dans `TODO_DONE.md` (issue #177), ce qui est reporté dans
@@ -351,7 +351,8 @@ PA à PH faites ou décidées (PA à PD le sont), et avant les mesures de PJ.
    #113, #114, #117 à #124, #139, #140, #141, #144 à #151, #155 à #158 et #160 à
    #164 (#123, #139, #155 et #160 n'ont rien à y mettre), et à lire aussi, #165
    à #174, #176, #180 à #184 (celle de #176 dit : rien), #191 à #194 et #196 et
-   #197 (qui disent : rien). Les
+   #197 (qui disent : rien), et #199 (l'installation des en-têtes dans
+   `include/gaol/core/`). Les
    points K, L et
    `make distclean` (#72 à #75) n'ont pas cette section : à écrire d'après leurs
    descriptions. À écrire d'après les commits, sans pull request : les
@@ -405,7 +406,10 @@ PA à PH faites ou décidées (PA à PD le sont), et avant les mesures de PJ.
    pour arm64, SSE2 pour x86_64), et que les opérations NEON de Visual C++
    effacent FZ et FIZ de FPCR, ce que ses intervalles FPU ne faisaient pas ;
    celle de #196 que `doc/differences.md` (ligne 790) cite encore
-   `interval(sl, sr)`, qui n'existe plus.
+   `interval(sl, sr)`, qui n'existe plus ; celle de #199 que
+   `gaol_interval_core.h`, `gaol_interval_fpu.h`, `gaol_interval_neon.h` et
+   `gaol_interval_sse.h` sont installés dans `include/gaol/core/` et non plus
+   dans `include/gaol/`, sans en-tête de renvoi (*décidé le 25 octobre*).
    *Décidé le 3 octobre*
    : la puce de `atanh` de `doc/differences.md` reste, en disant que GAOL 4
    n'est pas mesuré, les puces de `hausdorff()` sont fusionnées.
