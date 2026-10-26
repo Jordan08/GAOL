@@ -3,7 +3,7 @@
 # as the CMake build does. Each build runs the unit tests (make test, ninja
 # test), and the tests are built again with each installed GAOL, on Linux
 # (x86_64, arm64, and i386 and armhf in containers), macOS (arm64, x86_64) and
-# Windows (MSYS2, and Visual C++ with meson). Checks that the three builds give
+# Windows (MSYS2 for x64 and for x86, and Visual C++ with meson). Checks that the three builds give
 # GAOL the same configuration on each kind of machine (.github/audit). Each job
 # that runs the unit tests checks that numbers read and wrote numbers under a
 # locale writing a decimal comma, which the Linux jobs and the containers
@@ -481,14 +481,20 @@ jobs:
       fail-fast: false
       matrix:
         cfg:
-          - { build: autotools, desc: 'Autotools, MSYS2 UCRT64 GCC x64' }
-          - { build: meson,     desc: 'Meson, MSYS2 UCRT64 GCC x64' }
+          - { build: autotools, msystem: UCRT64,  pkg: mingw-w64-ucrt-x86_64, intervals: sse2, desc: 'Autotools, MSYS2 UCRT64 GCC x64' }
+          - { build: meson,     msystem: UCRT64,  pkg: mingw-w64-ucrt-x86_64, intervals: sse2, desc: 'Meson, MSYS2 UCRT64 GCC x64' }
+          # The 32-bit Windows of MinGW-w64 with configure and meson, which
+          # only simulated it (CXXFLAGS=-D_WIN32) before, and the CMake jobs of
+          # windows.yml (Chocolatey) built alone: the SSE2 intervals need
+          # -faligned-new=8 there, the memory of new being aligned on 8 bytes
+          - { build: autotools, msystem: MINGW32, pkg: mingw-w64-i686,        intervals: sse2, desc: 'Autotools, MSYS2 MINGW32 GCC x86' }
+          - { build: meson,     msystem: MINGW32, pkg: mingw-w64-i686,        intervals: sse2, desc: 'Meson, MSYS2 MINGW32 GCC x86' }
     steps:
       - uses: actions/checkout@v7
       - uses: msys2/setup-msys2@v2
         with:
-          msystem: UCRT64
-          install: mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-meson make libtool
+          msystem: ${{ matrix.cfg.msystem }}
+          install: ${{ matrix.cfg.pkg }}-toolchain ${{ matrix.cfg.pkg }}-cmake ${{ matrix.cfg.pkg }}-ninja ${{ matrix.cfg.pkg }}-meson make libtool
       - name: VERSION.txt with a byte order mark and the line ends of Windows
         if: matrix.cfg.build == 'meson'
         run: sh .github/scripts/version-file.sh meson
@@ -499,11 +505,15 @@ jobs:
             find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
             ./configure --prefix="$prefix" --with-tests
             grep -E '^(CXXFLAGS|CPPFLAGS) =' gaol/Makefile
+            sh .github/scripts/check-intervals.sh gaol/gaol_configuration.h ${{ matrix.cfg.intervals }}
+            if [ "$MSYSTEM" = MINGW32 ]; then grep -F -e -faligned-new=8 gaol/Makefile; fi
             make -j 4 && make install
             make -j 4 test
             sh .github/scripts/comma-locale.sh check tests/numbers.log
           else
             meson setup build-meson --prefix="$prefix" --libdir=lib -Dwith-tests=true
+            sh .github/scripts/check-intervals.sh build-meson/gaol/gaol_configuration.h ${{ matrix.cfg.intervals }}
+            if [ "$MSYSTEM" = MINGW32 ]; then grep -F -e -faligned-new=8 build-meson/compile_commands.json > /dev/null; fi
             meson compile -C build-meson && meson install -C build-meson
             ninja -C build-meson test
             sh .github/scripts/comma-locale.sh check build-meson/meson-logs/testlog.txt
@@ -577,18 +587,24 @@ jobs:
           cat agree.md >> "$GITHUB_STEP_SUMMARY"
 
   agree-msys2:
-    name: The builds agree, MSYS2 UCRT64 GCC x64
+    name: ${{ matrix.cfg.desc }}
     runs-on: windows-2022
     timeout-minutes: 45
     defaults:
       run:
         shell: msys2 {0}
+    strategy:
+      fail-fast: false
+      matrix:
+        cfg:
+          - { msystem: UCRT64,  pkg: mingw-w64-ucrt-x86_64, desc: 'The builds agree, MSYS2 UCRT64 GCC x64' }
+          - { msystem: MINGW32, pkg: mingw-w64-i686,        desc: 'The builds agree, MSYS2 MINGW32 GCC x86' }
     steps:
       - uses: actions/checkout@v7
       - uses: msys2/setup-msys2@v2
         with:
-          msystem: UCRT64
-          install: mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-meson mingw-w64-ucrt-x86_64-python make libtool
+          msystem: ${{ matrix.cfg.msystem }}
+          install: ${{ matrix.cfg.pkg }}-toolchain ${{ matrix.cfg.pkg }}-cmake ${{ matrix.cfg.pkg }}-ninja ${{ matrix.cfg.pkg }}-meson ${{ matrix.cfg.pkg }}-python make libtool
       - name: Configure with the three builds and compare
         run: |
           export CMAKE_GENERATOR=Ninja

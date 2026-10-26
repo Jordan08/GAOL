@@ -106,7 +106,8 @@ only (see [The speed of a pull request](#the-speed-of-a-pull-request)). The badg
     listed and noticed, not an error.
 
 They also build GAOL with autotools and meson on Ubuntu (x86_64, arm64),
-Debian (i386, armhf), macOS (arm64, x86_64) and MSYS2, and with meson and
+Debian (i386, armhf), macOS (arm64, x86_64) and MSYS2 (UCRT64 for x64, MINGW32
+for x86, GAOL v5), and with meson and
 Visual Studio 2022 and 2026 (x64, x86), and with meson 0.53.2, the oldest the
 meson build takes (Ubuntu x86_64, GAOL v5), run the tests (`make test`,
 `ninja test`), and build them again with the
