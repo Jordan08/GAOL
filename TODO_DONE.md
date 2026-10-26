@@ -2178,6 +2178,17 @@ fait le travail.
   `ON`/`OFF` (pas d'option `AUTO`), qui n'est plus une option ; les 19 et 20
   octobre, les intervalles NEON indépendants de `GAOL_SIMD` (#146), que
   `GAOL_SIMD` choisit maintenant
+- [x] La suite de la tâche PE (le reste du 95 et les points 3 à 6) à la demande
+  du mainteneur, après la fusion de #200 ; le reste du 95 (lier la sonde de la
+  cible AVX-512 avec autotools et meson, vérifier le C des drapeaux de FMA avec
+  CMake) dans une pull request à part, partie de `configure-clean` une fois #201
+  fusionnée (26 octobre)
+- [x] La règle du chemin AVX-512, mesurée sur un seul processeur, est gardée
+  avec sa limite dite dans `doc/simd.md` ; la mesure sur une machine à AVX-512
+  pleine largeur va dans PJ, avec les mesures de la version (26 octobre)
+- [x] Les passages de `doc/differences.md` et de `ChangeLog` qui citent les
+  anciennes options, et le texte des drapeaux C de CORE-MATH, sont corrigés dans
+  la pull request #201 et non dans la pull request de synthèse (26 octobre)
 - [x] Les dossiers de build des sessions précédentes dans `/tmp/claude-1000` (11
   Go, sur un quota presque atteint) supprimés à la demande du mainteneur (26
   octobre)

@@ -65,6 +65,8 @@ CI.
    avec édition de liens dans les deux autres. Non vérifié sur une chaîne où le
    résultat changerait. Correction : `AC_LINK_IFELSE` et `links()` pour la sonde
    de la cible, un `check_c_source_compiles` des drapeaux de FMA avec CMake.
+   *Décidé le 26 octobre* : une pull request à part, partie de `configure-clean`
+   une fois #201 fusionnée (elle touche déjà `configure.ac` et `meson.build`).
 2. **92 (AE)** [M], *pull request #201 ouverte le 26 octobre
    (`todo-ae-c-flags`)* : les sources C n'ont pas les mêmes drapeaux dans les
    trois builds : CMake leur donne `-msse2 -msse3 -fvisibility=hidden`,
@@ -423,8 +425,9 @@ PA à PH faites ou décidées (PA à PD le sont), et avant les mesures de PJ.
    `--enable-optimize` n'existent plus, que `GAOL_SIMD=OFF` vaut aussi pour
    NEON, que le chemin AVX-512 suit `GAOL_PRESERVE_ROUNDING`, que les
    instructions FMA et l'entier 128 bits sont décidés par des tests de la
-   configuration, et que les passages de `doc/differences.md` et de `ChangeLog`
-   qui citent les anciennes options sont à relire d'après `doc/building.md`.
+   configuration ; ces passages de `doc/differences.md` et de `ChangeLog` sont
+   corrigés dans la pull request #201 (*décidé le 26 octobre*), à relire ici
+   seulement.
    *Décidé le 3 octobre*
    : la puce de `atanh` de `doc/differences.md` reste, en disant que GAOL 4
    n'est pas mesuré, les puces de `hausdorff()` sont fusionnées.
@@ -478,6 +481,14 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    ont été mesurées avec les intervalles FPU, avant #192 et #193 (une phrase le
    dit), et ces compilateurs ont maintenant SSE2 et NEON. *Décidé le 25
    octobre* (#192, #193) : à la fin.
+   Refaire enfin, au même commit, la mesure de la règle du chemin AVX-512 de
+   `doc/simd.md` (il suit `GAOL_PRESERVE_ROUNDING`, seuil d'un gain médian de 5
+   %, mesuré le 26 octobre sur le seul i7-1185G7, dont l'AVX-512 est à
+   demi-largeur), sur une machine à AVX-512 pleine largeur si le mainteneur en
+   donne l'accès (un Xeon, un Zen 4) :
+   `.github/scripts/performance-ab.sh --runs 9 --lines`, quatre builds de la
+   même source ; corriger la règle et `doc/simd.md` si le résultat diffère.
+   *Décidé le 26 octobre* : avec les mesures de PJ, pas avant.
 3. **34** : les recettes FetchContent récupèrent GAOL 4 : `doc/using.md`, le
    manuel et `tests/fetch_content` prennent la branche `master` de
    `Jordan08/GAOL`, et le `git clone` de `doc/building.md` la branche par
