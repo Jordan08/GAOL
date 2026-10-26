@@ -31,7 +31,7 @@
 
 #include <string>
 
-#include "gaol/gaol_interval_core.h"
+#include "gaol/core/gaol_interval_core.h"
 #include "gaol/gaol_version.h"
 
 /*
@@ -73,7 +73,7 @@
   opening gaol met all of these names.
 
   A using-declaration names the overloads declared before it: this file
-  includes gaol/gaol_interval_core.h, which includes the headers of what it
+  includes gaol/core/gaol_interval_core.h, which includes the headers of what it
   names, and names it after them; gaol/gaol_common.h and the headers of the
   expressions name theirs at their end, and gaol/parser/gaol_expression.h
   names again the functions and the operators it overloads for the

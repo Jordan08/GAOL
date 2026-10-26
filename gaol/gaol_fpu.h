@@ -101,7 +101,7 @@ floating-point operations where the source puts them with respect to the
 writes of the control register under /fp:strict, with which GAOL is
 compiled (tests/rounding_direction.cpp checks it in the continuous
 integration); not the intrinsics with an embedded rounding of the AVX-512
-path, which it moves past them (gaol/gaol_interval_avx512.cpp). The NEON
+path, which it moves past them (gaol/core/gaol_interval_avx512.cpp). The NEON
 intervals of Visual C++ have _ReadWriteBarrier() after the writes of FPCR,
 as the asm statements of the others have a "memory" clobber (GAOL v5). */
 #if defined(__GNUC__) || defined(__clang__)
@@ -376,7 +376,7 @@ With Visual C++ and clang-cl for 32-bit x86 and the SSE2 intervals, the operatio
 that GAOL_RND_ENTER_SSE() and GAOL_RND_LEAVE_SSE() frame set both units too, as
 the macros above do (GAOL v5). A double a function returns is in ST0 there, and
 Visual C++ computes it on the x87 unit: quotient_sat() of
-gaol/gaol_interval_core.cpp, which div_rel() calls, divides with fdiv, in the
+gaol/core/gaol_interval_core.cpp, which div_rel() calls, divides with fdiv, in the
 direction of the x87 control word, which the macros for MXCSR alone leave as the
 program had it, and the bounds were rounded to nearest (the job "Visual Studio
 2026 x86 Release, rounding direction preserved", div_rel() with a subnormal
@@ -977,7 +977,7 @@ namespace gaol_core {
   change, in the direction it sets back (see above, and doc/using.md). GCC
   does so even with -frounding-math, and the terms of the TwoSum of the
   differences of the bounds of cancel_minus(), kept this way, are the ones
-  computed to nearest (gaol/gaol_interval_core.cpp).
+  computed to nearest (gaol/core/gaol_interval_core.cpp).
   */
   template<class T>
   T rnd_keep(const T& x)

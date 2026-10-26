@@ -19,7 +19,7 @@
 
 /*
     This file is not meant to be compiled. It is only to be included
-        by gaol/gaol_interval_core.cpp.
+        by gaol/core/gaol_interval_core.cpp.
 */
 
 // TODO: check existence of stdint.h in configure.in

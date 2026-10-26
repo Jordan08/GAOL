@@ -122,8 +122,9 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
 	$(top_srcdir)/VERSION.txt $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
-DIST_COMMON = $(srcdir)/Makefile.am $(library_include_HEADERS) \
-	$(library_parser_include_HEADERS) $(noinst_HEADERS)
+DIST_COMMON = $(srcdir)/Makefile.am $(library_core_include_HEADERS) \
+	$(library_include_HEADERS) $(library_parser_include_HEADERS) \
+	$(noinst_HEADERS)
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = gaol_configuration.h
 CONFIG_CLEAN_FILES =
@@ -155,12 +156,13 @@ am__uninstall_files_from_dir = { \
        $(am__cd) "$$dir" && echo $$files | $(am__xargs_n) 40 $(am__rm_f); }; \
   }
 am__installdirs = "$(DESTDIR)$(libdir)" \
+	"$(DESTDIR)$(library_core_includedir)" \
 	"$(DESTDIR)$(library_includedir)" \
 	"$(DESTDIR)$(library_parser_includedir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
 libgaol_la_DEPENDENCIES = $(top_builddir)/3rd/libgaolcoremath.la
 am__dirstamp = $(am__leading_dot)dirstamp
-am_libgaol_la_OBJECTS = gaol_interval.lo gaol_interval_core.lo \
+am_libgaol_la_OBJECTS = gaol_interval.lo core/gaol_interval_core.lo \
 	gaol_ieee1788.lo gaol_common.lo parser/gaol_parser.lo \
 	parser/gaol_expression.lo parser/gaol_interval_parser.lo \
 	parser/gaol_interval_lexer.lo gaol_port.lo gaol_exceptions.lo \
@@ -191,8 +193,8 @@ am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/gaol_common.Plo \
 	./$(DEPDIR)/gaol_exceptions.Plo ./$(DEPDIR)/gaol_ieee1788.Plo \
 	./$(DEPDIR)/gaol_init_cleanup.Plo \
-	./$(DEPDIR)/gaol_interval.Plo \
-	./$(DEPDIR)/gaol_interval_core.Plo ./$(DEPDIR)/gaol_port.Plo \
+	./$(DEPDIR)/gaol_interval.Plo ./$(DEPDIR)/gaol_port.Plo \
+	core/$(DEPDIR)/gaol_interval_core.Plo \
 	parser/$(DEPDIR)/gaol_expression.Plo \
 	parser/$(DEPDIR)/gaol_interval_lexer.Plo \
 	parser/$(DEPDIR)/gaol_interval_parser.Plo \
@@ -222,8 +224,8 @@ am__can_run_installinfo = \
     n|no|NO) false;; \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
-HEADERS = $(library_include_HEADERS) $(library_parser_include_HEADERS) \
-	$(noinst_HEADERS)
+HEADERS = $(library_core_include_HEADERS) $(library_include_HEADERS) \
+	$(library_parser_include_HEADERS) $(noinst_HEADERS)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP) \
 	gaol_configuration.h.in
 # Read a list of newline-separated strings from the standard input,
@@ -398,7 +400,7 @@ AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
 # GAOL in C++11, as with CMake and meson (see configure.ac)
 AM_CXXFLAGS = $(GAOL_CXX_STD)
 libgaol_la_SOURCES = \
-	gaol_interval.cpp gaol_interval_core.cpp gaol_ieee1788.cpp gaol_common.cpp \
+	gaol_interval.cpp core/gaol_interval_core.cpp gaol_ieee1788.cpp gaol_common.cpp \
 	parser/gaol_parser.cpp parser/gaol_expression.cpp \
 	parser/gaol_interval_parser.cpp parser/gaol_interval_lexer.cpp \
 	gaol_port.cpp \
@@ -431,9 +433,17 @@ library_includedir = $(includedir)/gaol
 library_include_HEADERS = gaol gaol.h \
 	gaol_common.h gaol_config.h gaol_exceptions.h \
 	gaol_fpu.h gaol_fpu_fenv.h gaol_fpu_msvc.h gaol_ieee1788.h \
-	gaol_interval.h gaol_interval_core.h gaol_interval_fpu.h gaol_interval_neon.h gaol_interval_sse.h \
+	gaol_interval.h \
 	gaol_port.h gaol_roundeven.h \
 	gaol_version.h gaol_configuration.h
+
+
+# The headers of the intervals, which gaol_interval.h includes: installed in
+# gaol/core/ as in the sources (GAOL v5)
+library_core_includedir = $(includedir)/gaol/core
+library_core_include_HEADERS = core/gaol_interval_core.h \
+	core/gaol_interval_fpu.h core/gaol_interval_neon.h \
+	core/gaol_interval_sse.h
 
 
 # The headers of the parser of the strings and of the expressions, which a
@@ -539,6 +549,14 @@ clean-libLTLIBRARIES:
 	      sort -u`; \
 	echo rm -f $${locs}; \
 	$(am__rm_f) $${locs}
+core/$(am__dirstamp):
+	@$(MKDIR_P) core
+	@: >>core/$(am__dirstamp)
+core/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) core/$(DEPDIR)
+	@: >>core/$(DEPDIR)/$(am__dirstamp)
+core/gaol_interval_core.lo: core/$(am__dirstamp) \
+	core/$(DEPDIR)/$(am__dirstamp)
 parser/$(am__dirstamp):
 	@$(MKDIR_P) parser
 	@: >>parser/$(am__dirstamp)
@@ -559,6 +577,8 @@ libgaol.la: $(libgaol_la_OBJECTS) $(libgaol_la_DEPENDENCIES) $(EXTRA_libgaol_la_
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
+	-rm -f core/*.$(OBJEXT)
+	-rm -f core/*.lo
 	-rm -f parser/*.$(OBJEXT)
 	-rm -f parser/*.lo
 
@@ -570,8 +590,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gaol_ieee1788.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gaol_init_cleanup.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gaol_interval.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gaol_interval_core.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gaol_port.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@core/$(DEPDIR)/gaol_interval_core.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@parser/$(DEPDIR)/gaol_expression.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@parser/$(DEPDIR)/gaol_interval_lexer.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@parser/$(DEPDIR)/gaol_interval_parser.Plo@am__quote@ # am--include-marker
@@ -612,7 +632,29 @@ mostlyclean-libtool:
 
 clean-libtool:
 	-rm -rf .libs _libs
+	-rm -rf core/.libs core/_libs
 	-rm -rf parser/.libs parser/_libs
+install-library_core_includeHEADERS: $(library_core_include_HEADERS)
+	@$(NORMAL_INSTALL)
+	@list='$(library_core_include_HEADERS)'; test -n "$(library_core_includedir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(library_core_includedir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(library_core_includedir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_HEADER) $$files '$(DESTDIR)$(library_core_includedir)'"; \
+	  $(INSTALL_HEADER) $$files "$(DESTDIR)$(library_core_includedir)" || exit $$?; \
+	done
+
+uninstall-library_core_includeHEADERS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(library_core_include_HEADERS)'; test -n "$(library_core_includedir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	dir='$(DESTDIR)$(library_core_includedir)'; $(am__uninstall_files_from_dir)
 install-library_includeHEADERS: $(library_include_HEADERS)
 	@$(NORMAL_INSTALL)
 	@list='$(library_include_HEADERS)'; test -n "$(library_includedir)" || list=; \
@@ -709,7 +751,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(LTLIBRARIES) $(HEADERS) gaol_configuration.h
 installdirs:
-	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(library_includedir)" "$(DESTDIR)$(library_parser_includedir)"; do \
+	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(library_core_includedir)" "$(DESTDIR)$(library_includedir)" "$(DESTDIR)$(library_parser_includedir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -739,6 +781,8 @@ distclean-generic:
 	-$(am__rm_f) $(CONFIG_CLEAN_FILES)
 	-test . = "$(srcdir)" || $(am__rm_f) $(CONFIG_CLEAN_VPATH_FILES)
 	-$(am__rm_f) $(DISTCLEANFILES)
+	-$(am__rm_f) core/$(DEPDIR)/$(am__dirstamp)
+	-$(am__rm_f) core/$(am__dirstamp)
 	-$(am__rm_f) parser/$(DEPDIR)/$(am__dirstamp)
 	-$(am__rm_f) parser/$(am__dirstamp)
 
@@ -756,8 +800,8 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/gaol_ieee1788.Plo
 	-rm -f ./$(DEPDIR)/gaol_init_cleanup.Plo
 	-rm -f ./$(DEPDIR)/gaol_interval.Plo
-	-rm -f ./$(DEPDIR)/gaol_interval_core.Plo
 	-rm -f ./$(DEPDIR)/gaol_port.Plo
+	-rm -f core/$(DEPDIR)/gaol_interval_core.Plo
 	-rm -f parser/$(DEPDIR)/gaol_expression.Plo
 	-rm -f parser/$(DEPDIR)/gaol_interval_lexer.Plo
 	-rm -f parser/$(DEPDIR)/gaol_interval_parser.Plo
@@ -778,7 +822,9 @@ info: info-am
 
 info-am:
 
-install-data-am: install-data-local install-library_includeHEADERS \
+install-data-am: install-data-local \
+	install-library_core_includeHEADERS \
+	install-library_includeHEADERS \
 	install-library_parser_includeHEADERS
 
 install-dvi: install-dvi-am
@@ -813,8 +859,8 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/gaol_ieee1788.Plo
 	-rm -f ./$(DEPDIR)/gaol_init_cleanup.Plo
 	-rm -f ./$(DEPDIR)/gaol_interval.Plo
-	-rm -f ./$(DEPDIR)/gaol_interval_core.Plo
 	-rm -f ./$(DEPDIR)/gaol_port.Plo
+	-rm -f core/$(DEPDIR)/gaol_interval_core.Plo
 	-rm -f parser/$(DEPDIR)/gaol_expression.Plo
 	-rm -f parser/$(DEPDIR)/gaol_interval_lexer.Plo
 	-rm -f parser/$(DEPDIR)/gaol_interval_parser.Plo
@@ -836,6 +882,7 @@ ps: ps-am
 ps-am:
 
 uninstall-am: uninstall-libLTLIBRARIES \
+	uninstall-library_core_includeHEADERS \
 	uninstall-library_includeHEADERS \
 	uninstall-library_parser_includeHEADERS
 
@@ -849,13 +896,15 @@ uninstall-am: uninstall-libLTLIBRARIES \
 	install-data install-data-am install-data-local install-dvi \
 	install-dvi-am install-exec install-exec-am install-html \
 	install-html-am install-info install-info-am \
-	install-libLTLIBRARIES install-library_includeHEADERS \
+	install-libLTLIBRARIES install-library_core_includeHEADERS \
+	install-library_includeHEADERS \
 	install-library_parser_includeHEADERS install-man install-pdf \
 	install-pdf-am install-ps install-ps-am install-strip \
 	installcheck installcheck-am installdirs maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-compile \
 	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
 	tags tags-am uninstall uninstall-am uninstall-libLTLIBRARIES \
+	uninstall-library_core_includeHEADERS \
 	uninstall-library_includeHEADERS \
 	uninstall-library_parser_includeHEADERS
 
@@ -865,7 +914,7 @@ uninstall-am: uninstall-libLTLIBRARIES \
 .PHONY: tags
 
 tags: TAGS
-	etags --language=c++ *.cpp *.h *.c
+	etags --language=c++ *.cpp *.h *.c core/*.cpp core/*.h
 
 TAGS: $(gaol_HEADERS) $(libgaol_la_SOURCES)
 
@@ -874,11 +923,11 @@ install-data-local:
 	$(INSTALL_DATA) ../gaol.pc $(DESTDIR)$(libdir)/pkgconfig/gaol.pc
 
 # make distclean removes the files of the dependencies one by one and leaves
-# their directories, in gaol/ and in gaol/parser/ where the sources of the
-# parser are: removed here, so that it gives the sources back as git has them
-# (GAOL v5)
+# their directories, in gaol/, in gaol/core/ where the sources of the intervals
+# are and in gaol/parser/ where the sources of the parser are: removed here, so
+# that it gives the sources back as git has them (GAOL v5)
 distclean-local:
-	-rm -rf ./$(DEPDIR) parser/$(DEPDIR)
+	-rm -rf ./$(DEPDIR) core/$(DEPDIR) parser/$(DEPDIR)
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

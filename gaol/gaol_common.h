@@ -235,7 +235,7 @@ namespace gaol_detail {
 } // namespace gaol_detail
 
 // In the namespace gaol too, as in GAOL 4, and restore_rounding() of GAOL v5;
-// not gaol_initializer (see gaol/gaol_interval_core.h)
+// not gaol_initializer (see gaol/core/gaol_interval_core.h)
 namespace gaol {
   using gaol_core::debug_level;
   using gaol_core::odd;

@@ -19,7 +19,7 @@
 
 /*
     This file is not meant to be compiled. It is only to be included
-        by gaol/gaol_interval_core.cpp.
+        by gaol/core/gaol_interval_core.cpp.
     The intervals of 64-bit ARM processors, whose two stored bounds <-left,
     right> are the two lanes of a float64x2_t (GAOL v5): the counterpart of
     gaol_interval_sse.cpp, with the NEON instructions.
@@ -702,7 +702,7 @@ double hausdorff(const interval &I1, const interval &I2)
   {
     // One check, before the bounds are compared, as in the SSE2 build (GAOL
     // v5, see gaol/gaol_fpu.h). The quotients are those of div_rel_upward()
-    // of gaol/gaol_interval_core.cpp, which raise no overflow exception for a
+    // of gaol/core/gaol_interval_core.cpp, which raise no overflow exception for a
     // finite result (GAOL v5, point 79 of TODO.md)
     GAOL_RND_ENTER();
     interval res = div_rel_upward(K, J, I);
@@ -736,7 +736,7 @@ double hausdorff(const interval &I1, const interval &I2)
     direction being upward: both corners at once, in the NEON register, where
     they are within the range of pown_least[] and pown_greatest[], and
     pown_by_corners() otherwise (see pown_products()). It repeats the block of
-    the SSE2 intervals (gaol/gaol_interval_sse.cpp), the same operations in the
+    the SSE2 intervals (gaol/core/gaol_interval_sse.cpp), the same operations in the
     same order: keep them alike, with pown_large_er() (gaol_interval_avx512.cpp).
     tests/tools/pow/mutate.py has the mutants of the SSE2 block.
   */

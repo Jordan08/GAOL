@@ -29,7 +29,7 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
      algorithmes actuels supposent l'arrondi vers le haut, et ne sont pas
      valables au plus proche : les noyaux SSE2 calculent `<-inf, sup>` par un
      seul arrondi vers le haut (`_mm_add_pd`, `_mm_mul_pd`, `_mm_div_pd` de
-     `gaol/gaol_interval_sse.cpp`), et `sup` pourrait alors passer sous la
+     `gaol/core/gaol_interval_sse.cpp`), et `sup` pourrait alors passer sous la
      valeur exacte ; CORE-MATH lit le sens dans MXCSR, `f_up(x)` y est la borne
      supérieure et `previous_float(f_up(x))` l'inférieure
      (`gaol/gaol_double_op.h`). Ce qu'il faut, c'est un arrondi dirigé, non un
@@ -123,17 +123,17 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    le 23 octobre). Un noyau qui garde le chemin à une branche quand les deux
    opérandes ont le même signe (deux produits) et le noyau à huit produits sinon
    : l'essai est un changement de `mul_finite()` dans
-   `gaol/gaol_interval_fpu.cpp` (commit `f86ada7`, lisible dans #168). En local
-   (i7-1185G7, médianes de 5 passes alternées) la ligne de 7 `*` gagne 1,44 fois
-   avec GCC 15.2 mais `x * y` de signes aléatoires, `mul8` et `mix_tree` perdent
-   11 à 24 %, et avec Clang 21 rien ne gagne. Le banc A/B de la CI (base / PR,
-   médianes de 3 passages) : la ligne de 7 `*` gagne 1,96 fois (GCC x86-64),
-   1,70 (arm64 GCC), 1,46 (Visual C++ arm64), 1,67 (clang-cl arm64) et 1,43
-   (armhf), et `x * y` de signes aléatoires perd 5 à 19 % (0,89 GCC x86-64, 0,93
-   Visual C++ arm64, 0,81 clang-cl arm64, 0,91 armhf), sauf arm64 GCC (1,30) ;
-   rien avec Clang x86-64 (0,90 la ligne de 7 `*`) ni Visual C++ x86 (0,95). Le
-   mainteneur l'a fermée sans fusion, ces tableaux lus. *À reprendre si les
-   signes réguliers deviennent le cas qu'on veut servir.*
+   `gaol/core/gaol_interval_fpu.cpp` (commit `f86ada7`, lisible dans #168). En
+   local (i7-1185G7, médianes de 5 passes alternées) la ligne de 7 `*` gagne
+   1,44 fois avec GCC 15.2 mais `x * y` de signes aléatoires, `mul8` et
+   `mix_tree` perdent 11 à 24 %, et avec Clang 21 rien ne gagne. Le banc A/B de
+   la CI (base / PR, médianes de 3 passages) : la ligne de 7 `*` gagne 1,96 fois
+   (GCC x86-64), 1,70 (arm64 GCC), 1,46 (Visual C++ arm64), 1,67 (clang-cl
+   arm64) et 1,43 (armhf), et `x * y` de signes aléatoires perd 5 à 19 % (0,89
+   GCC x86-64, 0,93 Visual C++ arm64, 0,81 clang-cl arm64, 0,91 armhf), sauf
+   arm64 GCC (1,30) ; rien avec Clang x86-64 (0,90 la ligne de 7 `*`) ni Visual
+   C++ x86 (0,95). Le mainteneur l'a fermée sans fusion, ces tableaux lus. *À
+   reprendre si les signes réguliers deviennent le cas qu'on veut servir.*
 2. **112 (AI), les fonctions élémentaires avec `GAOL_PRESERVE_ROUNDING`** :
    elles paient deux écritures de MXCSR, jusqu'à 27 % de plus que sans (`exp`),
    parce que CORE-MATH calcule avec le sens matériel et qu'aucun arrondi

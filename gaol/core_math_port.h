@@ -232,7 +232,7 @@ The sources take their square roots with __builtin_sqrt(): pow.c for
 y = 0.5 where its first phase cannot round, and acos, asin, acosh, asinh,
 atanh, hypot, rsqrt, asinpi and acospi. The square root of the C libraries
 of Windows for 32-bit x86 is rounded to nearest in every rounding direction
-(see gaol_sqrt_up() in gaol/gaol_interval_core.cpp). Visual C++ calls it for the
+(see gaol_sqrt_up() in gaol/core/gaol_interval_core.cpp). Visual C++ calls it for the
 builtin, and so does GCC for mingw-w64 where it does not optimize (-O0,
 the Debug builds) and in the accurate phases of acos, asin and asinpi,
 which the sources mark cold, at -O2 too (GCC 13); elsewhere it writes

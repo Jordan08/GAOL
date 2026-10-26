@@ -12,7 +12,7 @@
  *
  * Two places call it:
  *
- * - round_ties_to_even(I) of intervals (gaol/gaol_interval_core.h), the
+ * - round_ties_to_even(I) of intervals (gaol/core/gaol_interval_core.h), the
  *   roundTiesToEven of IEEE 1788-2015 (gaol_ieee1788::roundTiesToEven): the
  *   rounding to the nearest integer being non-decreasing, the interval it
  *   returns has for bounds the two bounds of I rounded, each a double that is

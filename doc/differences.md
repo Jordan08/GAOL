@@ -264,7 +264,7 @@ where it comes from.
     intervals build their interval from these doubles, which the compiler
     folds, rather than copy the static intervals `interval::cst_one`,
     `cst_pi`..., which are gone.
-  - The masks of the SSE2 intervals (`gaol/gaol_interval_sse.cpp`) are
+  - The masks of the SSE2 intervals (`gaol/core/gaol_interval_sse.cpp`) are
     written as vectors, which GCC and Clang, the only compilers of the SSE2
     intervals, put in read-only memory, rather than computed with
     `_mm_set_pd()` and `_mm_cmpeq_pd()`.
@@ -676,7 +676,7 @@ where it comes from.
   `!=` are removed**, and so is the option that chose what the relation
   symbols mean (`--enable-relations`, `-Denable-relations`), gone from
   configure and meson. The code is kept in comments in
-  `gaol/gaol_interval_core.h`.
+  `gaol/core/gaol_interval_core.h`.
   - **Why.** `certainly_neq()` was `!certainly_eq()`, which is "possibly not
     equal": `[3, 4]` was certainly not equal to `[3, 4]`, and so was `!=` with
     the certainly relations, the default of every build. IEEE 1788-2015 has
@@ -845,7 +845,7 @@ where it comes from.
   once; expressions built apart in each thread are independent.
 - **`uipow()`**, the `pown` of IEEE 1788-2015 for an unsigned exponent, is
   `pow(I, n)` for an `unsigned` n in `gaol`, `gaol_uipow()` in `gaol_core`,
-  declared in `gaol/gaol_interval_core.h` and exported with the SSE2 intervals too,
+  declared in `gaol/core/gaol_interval_core.h` and exported with the SSE2 intervals too,
   where it was `INLINE` ([issue #10](https://github.com/Jordan08/GAOL/issues/10)).
   - **Before.** `gaol::uipow()` was not found, and `uipow()` did not link.
   - **Now.** It gives `[1]` for an exponent 0, and the empty set for an empty
@@ -970,7 +970,7 @@ where it comes from.
   `GAOL_FLOAT_INTERVALS` of CMake, `--enable-float-intervals` of configure
   and `enable-float-intervals` of meson, which compiled them for a while,
   are gone. A developer working on them defines the macro in
-  `gaol/gaol_config.h`: `gaol/gaol_interval_core.cpp` then includes their sources,
+  `gaol/gaol_config.h`: `gaol/core/gaol_interval_core.cpp` then includes their sources,
   as it includes those of the SSE2 and FPU intervals. Their headers are not
   installed, `gaol/gaol` does not include them, and their tests,
   `tests/intervalf.cpp` and `tests/interval2f.cpp`, are skipped.
