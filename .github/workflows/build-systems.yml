@@ -444,8 +444,8 @@ jobs:
       fail-fast: false
       matrix:
         cfg:
-          - { arch: x64, target: x86_64-pc-windows-msvc, cpu_family: x86_64, cpu: x86_64, desc: 'Meson, Clang for Visual C++ x64 (clang++)' }
-          - { arch: x86, target: i686-pc-windows-msvc,   cpu_family: x86,    cpu: i686,   desc: 'Meson, Clang for Visual C++ x86 (clang++)' }
+          - { arch: x64, target: x86_64-pc-windows-msvc, cpu_family: x86_64, cpu: x86_64, machine: X64, desc: 'Meson, Clang for Visual C++ x64 (clang++)' }
+          - { arch: x86, target: i686-pc-windows-msvc,   cpu_family: x86,    cpu: i686,   machine: X86, desc: 'Meson, Clang for Visual C++ x86 (clang++)' }
     steps:
       - uses: actions/checkout@v7
       - uses: ilammy/msvc-dev-cmd@v1
@@ -453,17 +453,22 @@ jobs:
           arch: ${{ matrix.cfg.arch }}
       - name: Tools
         run: pip install meson ninja
-      # meson gives the linker of Clang the machine that "clang --version" shows
-      # (/MACHINE:X64 for a Clang whose target is x86_64), whatever --target the
-      # arguments hold: the target is in the command of the compiler, in a file
-      # of cross-compilation that names the machine too. The programs of x86 run
-      # on the runner, so that no wrapper is needed
+      # meson gives the linker /MACHINE:X64 for Clang with the driver of GCC and
+      # the target of Visual C++, whatever the target (the file of
+      # cross-compilation names the machine, the target is in the command of the
+      # compiler, and the machine is given again to the linker, whose last
+      # option counts). The programs of x86 run on the runner, so that no wrapper
+      # is needed
       - name: The file of cross-compilation
         run: |
           @"
           [binaries]
           c = ['clang', '--target=${{ matrix.cfg.target }}']
           cpp = ['clang++', '--target=${{ matrix.cfg.target }}']
+
+          [built-in options]
+          c_link_args = ['-Wl,/MACHINE:${{ matrix.cfg.machine }}']
+          cpp_link_args = ['-Wl,/MACHINE:${{ matrix.cfg.machine }}']
 
           [host_machine]
           system = 'windows'
