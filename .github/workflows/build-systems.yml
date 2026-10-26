@@ -453,22 +453,17 @@ jobs:
           arch: ${{ matrix.cfg.arch }}
       - name: Tools
         run: pip install meson ninja
-      # meson does not read the target of Clang: it takes the machine it runs on
-      # (x86_64) for the host, and gives the linker /MACHINE:X64 whatever the
-      # arguments say. A file of cross-compilation names the machine; the
-      # programs of x86 run on the runner, so that no wrapper is needed
+      # meson gives the linker of Clang the machine that "clang --version" shows
+      # (/MACHINE:X64 for a Clang whose target is x86_64), whatever --target the
+      # arguments hold: the target is in the command of the compiler, in a file
+      # of cross-compilation that names the machine too. The programs of x86 run
+      # on the runner, so that no wrapper is needed
       - name: The file of cross-compilation
         run: |
           @"
           [binaries]
-          c = 'clang'
-          cpp = 'clang++'
-
-          [built-in options]
-          c_args = ['--target=${{ matrix.cfg.target }}']
-          cpp_args = ['--target=${{ matrix.cfg.target }}']
-          c_link_args = ['--target=${{ matrix.cfg.target }}']
-          cpp_link_args = ['--target=${{ matrix.cfg.target }}']
+          c = ['clang', '--target=${{ matrix.cfg.target }}']
+          cpp = ['clang++', '--target=${{ matrix.cfg.target }}']
 
           [host_machine]
           system = 'windows'
