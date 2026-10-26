@@ -171,12 +171,18 @@ EXTRA_DIST = [
 ]
 
 
-# The static library libgaol.a and the shared one, libgaol.so.5.0.0, whose
-# soname is libgaol.so.5, as CMake (BUILD_SHARED_LIBS) and configure name it
-# (GAOL v5). With Visual C++, the static library alone, as with CMake: GAOL's
-# declarations carry no __declspec(dllexport) nor dllimport there (GAOL_PUBLIC
-# is empty, gaol/gaol_config.h), and gaol_dep and gaol.pc no longer give the
-# code using GAOL __GAOL_PUBLIC__ defined empty (GAOL v5).
+# The static library libgaol.a, or with -Ddefault_library=shared the shared one,
+# libgaol.so.5.0.0, whose soname is libgaol.so.5, and with
+# -Ddefault_library=both the two, as CMake (BUILD_SHARED_LIBS) and configure
+# (--enable-shared) name them (GAOL v5: both libraries by default; the static
+# one, compiled as position-independent code, b_staticpic being true, is the
+# default of the three builds). With Visual C++, the static library alone, as
+# with CMake: GAOL's declarations carry no __declspec(dllexport) nor dllimport
+# there (GAOL_PUBLIC is empty, gaol/gaol_config.h), and gaol_dep and gaol.pc no
+# longer give the code using GAOL __GAOL_PUBLIC__ defined empty (GAOL v5).
+# gaollib_static is the library that the tests and the benchmark link: the
+# static one, or the shared one where there is no other.
+gaol_default_library = get_option('default_library')
 if msvc
   # The lexer includes <unistd.h>, which Visual C++ does not have
   # (cmake/msvc/unistd.h), and the warnings CMake turns off too
@@ -195,6 +201,32 @@ if msvc
     include_directories: [incdir, include_directories('../cmake/msvc')],
     c_args: gaol_msvc_args,
     cpp_args: gaol_msvc_args,
+    override_options: gaol_build_options,
+  )
+  gaollib_static = gaollib
+elif gaol_default_library == 'static'
+  gaollib = static_library(
+    'gaol',
+    sources: gaol_SOURCES,
+    dependencies: deps,
+    link_whole: core_math_lib,
+    install: true,
+    extra_files: EXTRA_DIST,
+    include_directories: incdir,
+    override_options: gaol_build_options,
+  )
+  gaollib_static = gaollib
+elif gaol_default_library == 'shared'
+  gaollib = shared_library(
+    'gaol',
+    sources: gaol_SOURCES,
+    dependencies: deps,
+    link_whole: core_math_lib,
+    install: true,
+    extra_files: EXTRA_DIST,
+    include_directories: incdir,
+    version: meson.project_version(),
+    soversion: major_version.to_string(),
     override_options: gaol_build_options,
   )
   gaollib_static = gaollib

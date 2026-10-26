@@ -3,22 +3,40 @@
 # Created 2025-11-25 by Raphaël Chenouard
 # Modified in 2026 by Jordan NININ (GAOL v5)
 #
+# The options of the user, the same with the three builds (GAOL v5):
+# enable-preserve-rounding, enable-simd, enable-coverage, with-tests,
+# with-examples (and with-doc, which builds the manuals), with the options of
+# meson itself: buildtype for CMAKE_BUILD_TYPE (release, the default, or debug),
+# default_library for BUILD_SHARED_LIBS (static, the default, or shared) and
+# b_staticpic for CMAKE_POSITION_INDEPENDENT_CODE. The rest of the
+# configuration -- the fused multiply-add instructions, the AVX-512 path, the
+# debugging, the memory the intervals need -- is decided by checks of the
+# compiler and of the machine (compiled, linked and run: GAOL assumes that the
+# compiler, the architecture and the system that configure and compile it are
+# those of the code using it), and is told in the summary of meson setup.
+# The options marked [developers] are settings the checks decide by themselves,
+# which a developer gives to run a path the machine would not take; meson lists
+# every option, and cannot leave them out of that list.
+#
 # The build type gives the optimizations and the debugging, as with CMake:
 # --buildtype=release (the default) for -O3 and the optimizations of
-# configure's --enable-optimize, --buildtype=debug for GAOL_DEBUGGING, as
+# configure's former --enable-optimize, --buildtype=debug for GAOL_DEBUGGING, as
 # configure's --enable-debug. enable-debug builds the libraries of GAOL for
 # debugging whatever the build type, as GAOL_DEBUG of CMake, a subproject
 # included, which meson before 1.8.4 builds in release otherwise (see
-# meson.build). The options enable-optimize, enable-relations, with-test and
-# check-perf are gone (GAOL v5).
-option('enable-simd', type : 'boolean', value : true, description : 'Compute the intervals with SSE2 instructions on x86 processors [default=yes, as configure]')
-option('enable-arm64', type : 'boolean', value : true, description : 'Compute the intervals with NEON instructions on 64-bit ARM processors, with GCC, Clang or AppleClang under Linux and macOS (GAOL v5; independent of enable-simd, ignored elsewhere) [default=yes, as configure and CMake]')
-option('enable-fma', type : 'boolean', value : true, description : 'Compile GAOL and CORE-MATH with the fused multiply-add instructions of the processor, where the compiler has a flag for them (false: a library for any processor of the architecture) [default=yes, as configure and CMake]')
-option('enable-verbose-mode', type : 'boolean', value : false, description : 'Write a line on the standard error when GAOL initializes and cleans up [default=no: GAOL is silent, as with configure and CMake]')
+# meson.build). The options enable-arm64 (GAOL v5: the NEON intervals follow
+# enable-simd), enable-optimize, enable-relations, with-test and check-perf are
+# gone.
+option('enable-simd', type : 'boolean', value : true, description : 'Compute the intervals with the vector instructions of the processor, SSE2 on x86 and NEON on 64-bit ARM, rather than with the FPU [default=yes, as configure and CMake]')
 option('enable-preserve-rounding', type : 'boolean', value : false, description : 'Restore the rounding direction after each operation, rather than leaving it upward')
-option('enable-prefer-avx512', type : 'combo', choices : ['auto', 'true', 'false'], value : 'auto', description : 'Have +, -, *, /, sqr, sqrt and, with FMA, the integer powers beyond 1 and -1 take the AVX-512 instructions and the rounding direction they carry in themselves, which sets no rounding direction, where the machine building runs them, the library then needing a processor with them [default=auto: true with enable-preserve-rounding on a compiler that takes the path, false otherwise; false refuses the path under enable-preserve-rounding, as -DGAOL_PREFER_AVX512=OFF of CMake and --disable-prefer-avx512 of configure do]')
-option('enable-debug', type: 'boolean', value: false, description: 'Build GAOL and CORE-MATH for debugging, without optimization and with GAOL_DEBUGGING, whatever the build type, a subproject included [default=no, as GAOL_DEBUG of CMake; configure --enable-debug]')
-option('enable-exception', type: 'boolean', value: true, description: 'Raise exceptions to signal errors [default=yes]')
-option('with-tests', type: 'boolean', value: false, description: 'Build the unit tests of tests/, which meson test (make test) and ninja check (make check) run [default=no, as WITH_TESTS of CMake and --with-tests of configure]')
-option('with-examples', type: 'boolean', value: false, description: 'Build the examples of examples/, which ninja check (make check) runs [default=no, as WITH_EXAMPLES of CMake and --with-examples of configure]')
-option('with-doc', type: 'boolean', value: false, description: 'Build the manuals (ninja pdf)')
+option('enable-coverage', type : 'boolean', value : false, description : 'Compile GAOL and its tests with the counters of gcov, and add the target gaol-coverage, which runs the tests (with-tests) and writes the report in coverage/; GCC and Clang, with --buildtype=debug [default=no, as GAOL_COVERAGE of CMake and --enable-coverage of configure]')
+option('with-tests', type : 'boolean', value : false, description : 'Build the unit tests of tests/, which meson test (make test) and ninja check (make check) run [default=no, as WITH_TESTS of CMake and --with-tests of configure]')
+option('with-examples', type : 'boolean', value : false, description : 'Build the examples of examples/, which ninja check (make check) runs [default=no, as WITH_EXAMPLES of CMake and --with-examples of configure]')
+option('with-doc', type : 'boolean', value : false, description : 'Build the manuals (ninja pdf)')
+option('enable-fma', type : 'boolean', value : true, description : '[developers] The fused multiply-add instructions of the processor are taken whenever the machine runs a program compiled with them; false leaves them out, for a library for any processor of the architecture [as GAOL_FMA of CMake and --disable-fma of configure]')
+option('enable-prefer-avx512', type : 'combo', choices : ['auto', 'true', 'false'], value : 'auto', description : '[developers] The AVX-512 path of +, -, *, /, sqr, sqrt and, with FMA, the integer powers beyond 1 and -1, which the instructions with the rounding direction in themselves relieve of the store of the direction: auto follows enable-preserve-rounding, where the compiler takes the path and the machine runs it, true asks for it without, false refuses it with [as GAOL_PREFER_AVX512 of CMake and --enable-prefer-avx512 of configure]')
+option('enable-debug', type: 'boolean', value: false, description: '[developers] Build GAOL and CORE-MATH for debugging, without optimization and with GAOL_DEBUGGING, whatever the build type, a subproject included [as GAOL_DEBUG of CMake and --enable-debug of configure]')
+option('enable-exception', type: 'boolean', value: true, description: '[developers] Raise exceptions to signal errors; false aborts instead [as GAOL_EXCEPTIONS_ENABLED of CMake and --disable-exceptions of configure]')
+option('enable-verbose-mode', type : 'boolean', value : false, description : '[developers] Write a line on the standard error when GAOL initializes and cleans up [as GAOL_VERBOSE_MODE of CMake and --enable-verbose-mode of configure]')
+option('machine-runs-fma', type : 'boolean', value : false, description : '[developers] In a cross build, where no program can be run to check the machine: the machine running GAOL has the fused multiply-add instructions [as GAOL_MACHINE_RUNS_FMA of CMake and gaol_cv_machine_runs_fma=yes of configure]')
+option('machine-runs-avx512', type : 'boolean', value : false, description : '[developers] In a cross build: the machine running GAOL runs the AVX-512 instructions [as GAOL_MACHINE_RUNS_AVX512 of CMake and gaol_cv_machine_runs_avx512=yes of configure]')

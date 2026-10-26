@@ -36,8 +36,11 @@ project(
   # Optimized by default, as configure builds GAOL (meson's own default, debug,
   # does not optimize), with NDEBUG as configure and the Release build of CMake
   # define it: meson setup --buildtype=debug builds it for debugging, as the
-  # Debug build of CMake and configure --enable-debug (GAOL_DEBUGGING)
-  default_options: ['cpp_std=c++11', 'c_std=c99', 'buildtype=release', 'b_ndebug=if-release'],
+  # Debug build of CMake and configure --enable-debug (GAOL_DEBUGGING). The
+  # static library, compiled as position-independent code, is the default of
+  # the three builds, as BUILD_SHARED_LIBS=OFF and
+  # CMAKE_POSITION_INDEPENDENT_CODE=ON of CMake (GAOL v5: both libraries)
+  default_options: ['cpp_std=c++11', 'c_std=c99', 'buildtype=release', 'b_ndebug=if-release', 'default_library=static', 'b_staticpic=true'],
 )
 # Three numbers without leading zeros, which the macros write as C integers
 gaol_version = meson.project_version().split('.')
@@ -95,7 +98,35 @@ msvc = cpp_comp.get_argument_syntax() == 'msvc'
 
 # Options
 simd = get_option('enable-simd')
-arm64 = get_option('enable-arm64')
+# A universal build of macOS (GAOL v5, as CMAKE_OSX_ARCHITECTURES of CMake with
+# several architectures): several -arch in the arguments of the C++ compiler,
+# which compile each source once per architecture with one configuration, e.g.
+#   meson setup build -Dc_args="-arch arm64 -arch x86_64" \
+#     -Dcpp_args="-arch arm64 -arch x86_64" \
+#     -Dc_link_args="-arch arm64 -arch x86_64" -Dcpp_link_args="-arch arm64 -arch x86_64"
+# The intervals are chosen by the architecture being compiled, SSE2 for x86_64
+# and NEON for arm64 where enable-simd allows them (GAOL_UNIVERSAL_SSE2 and
+# GAOL_UNIVERSAL_NEON of gaol/gaol_configuration.h, which the header turns into
+# GAOL_USING_SSE2_INSTRUCTIONS and GAOL_USING_NEON_INSTRUCTIONS according to
+# __x86_64__ and __aarch64__); the checks made for one target fail for the
+# other, so those of the processor are not made: the fused multiply-add
+# instructions and the AVX-512 path stay off.
+cpp_user_args = get_option('cpp_args')
+universal_archs = []
+if cpp_user_args.length() > 1
+  foreach i : range(cpp_user_args.length() - 1)
+    if cpp_user_args[i] == '-arch' and not universal_archs.contains(cpp_user_args[i + 1])
+      universal_archs += [cpp_user_args[i + 1]]
+    endif
+  endforeach
+endif
+universal = universal_archs.length() > 1
+if universal
+  message('Universal build of macOS (' + ' '.join(universal_archs) + '): the intervals are chosen by the architecture being compiled')
+endif
+# The NEON intervals of 64-bit ARM processors follow enable-simd (GAOL v5):
+# enable-arm64 was an option of its own, independent of enable-simd, and is gone
+arm64 = simd and not universal
 preserve_rounding = get_option('enable-preserve-rounding')
 # enable-prefer-avx512: auto (the default), true or false (see below)
 prefer_avx512_option = get_option('enable-prefer-avx512')
@@ -309,18 +340,30 @@ endif
 use_sse2 = false
 aligned_new_args = []
 x86_args = []
-target_x86 = cpp_comp.compiles('''
+target_x86 = false
+target_x86_32 = false
+if universal
+  # The SSE2 and NEON intervals of a universal build (see above)
+  if simd and universal_archs.contains('x86_64')
+    conf_data.set('GAOL_UNIVERSAL_SSE2', 1)
+  endif
+  if simd and universal_archs.contains('arm64')
+    conf_data.set('GAOL_UNIVERSAL_NEON', 1)
+  endif
+else
+  target_x86 = cpp_comp.compiles('''
 #if !(defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64))
 #error not an x86 processor
 #endif
 int main() { return 0; }
 ''', name: 'the target is an x86 processor')
-target_x86_32 = cpp_comp.compiles('''
+  target_x86_32 = cpp_comp.compiles('''
 #if !(defined(__i386__) || defined(_M_IX86))
 #error not a 32-bit x86 processor
 #endif
 int main() { return 0; }
 ''', name: 'the target is a 32-bit x86 processor')
+endif
 if target_x86
   if target_x86_32 and cpp_comp.has_multi_arguments('-msse2', '-mfpmath=sse')
     x86_args = ['-msse2', '-mfpmath=sse']
@@ -490,11 +533,15 @@ endif
 # auto, its default, and enable-preserve-rounding is true, which the path
 # relieves of the store of the rounding direction every operation pays, and
 # the compiler takes the path; false refuses it, as -DGAOL_PREFER_AVX512=OFF
-# and --disable-prefer-avx512 do. The option was a boolean, whose false
-# could not be told from the default: under enable-preserve-rounding, meson
-# kept the path where CMake and configure let it go, which, chosen when GAOL
-# is configured, makes on a machine with the AVX-512 instructions a library
-# that needs them (GAOL v5, point AA of TODO.md)
+# and --disable-prefer-avx512 do. It is no option of the user (GAOL v5; the
+# build decides, as CMakeLists.txt says, from the measures of doc/simd.md): with
+# enable-preserve-rounding every operation gains, and without it they cost, so
+# it follows enable-preserve-rounding; true and false are settings of the
+# developers, and of the users who build a package for any processor. The
+# option was a boolean, whose false could not be told from the default: under
+# enable-preserve-rounding, meson kept the path where CMake and configure let it
+# go, which, chosen when GAOL is configured, makes on a machine with the AVX-512
+# instructions a library that needs them (GAOL v5, point AA of TODO.md)
 if prefer_avx512_requested and not have_avx512_target
   error('GAOL_PREFER_AVX512 takes the SSE2 intervals of x86-64, with Clang, Visual C++, or GCC except on Windows (MinGW-w64, Cygwin)')
 endif
@@ -510,7 +557,12 @@ endif
 # v5)
 avx512_taken = false
 if prefer_avx512
-  if not meson.is_cross_build()
+  if meson.is_cross_build()
+    # No program can be run: the path is left out, unless machine-runs-avx512
+    # says that the machine running GAOL runs it (GAOL_MACHINE_RUNS_AVX512 of
+    # CMake)
+    avx512_taken = get_option('machine-runs-avx512')
+  else
     if msvc
       avx512_run_source = avx512_msvc_probe + '''
     int main()
@@ -556,8 +608,18 @@ endif
 # stays. Left out where the machine building does not run a program compiled
 # with them, but when cross-compiling (see CMakeLists.txt: macOS 14 under
 # Rosetta).
+#
+# There is no option of the user (GAOL v5; enable-fma was one, true by default):
+# the instructions are taken whenever the machine building runs a program
+# compiled with them, which a program compiled and run tells. enable-fma=false,
+# a setting of the developers, leaves them out, for a library for any processor
+# of the architecture. In a cross build no program can be run, and they are left
+# out, unless machine-runs-fma=true says that the machine running GAOL has them
+# (GAOL_MACHINE_RUNS_FMA of CMake).
 fma_args = []
-if get_option('enable-fma')
+if get_option('enable-fma') and universal
+  message('Fused multiply-add instructions left out: universal build of macOS, -mfma fails for its arm64 part, which has them without a flag')
+elif get_option('enable-fma')
   if msvc
     msvc_x86_32 = cpp_comp.compiles('''
     #if !defined(_M_IX86)
@@ -613,7 +675,10 @@ if get_option('enable-fma')
       endif
     endif
   endif
-  if fma_args.length() > 0 and not meson.is_cross_build()
+  if fma_args.length() > 0 and meson.is_cross_build() and not get_option('machine-runs-fma')
+    message('Fused multiply-add instructions left out: cross-compiling, a program compiled with ' + ' '.join(fma_args) + ' cannot be run here (-Dmachine-runs-fma=true says that the machine running GAOL has them)')
+    fma_args = []
+  elif fma_args.length() > 0 and not meson.is_cross_build()
     # fma(a, b, -1) is -2^-60 exactly, which a product rounded first gives as 0.
     # __builtin_fma, not std::fma: the test is built without optimization, and
     # std::fma is then a call of the fma() of the library, which is not the
@@ -677,6 +742,40 @@ if not msvc and cpp_comp.has_link_argument('-mno-daz-ftz')
 endif
 message('Link flags of the code using GAOL: ' + ' '.join(gaol_link_args))
 
+# The 128-bit integer of the accurate phases of CORE-MATH and of GAOL's exact
+# products (gaol/gaol_u128.h): the type of the compiler where it has one, else
+# two 64-bit halves, which gaol_u128.h takes by itself (Visual C++ and the
+# 32-bit targets of GCC). The check asks that header, as CMakeLists.txt does, and
+# says which; -Dc_args=-DGAOL_U128_FORCE_EMULATION=1 and -Dcpp_args=... have the
+# halves where the compiler has a type, a setting of the developers (GAOL v5).
+has_u128 = cpp_comp.compiles('''
+#include "gaol/gaol_u128.h"
+#if !GAOL_U128_NATIVE
+#error the compiler has no 128-bit integer type
+#endif
+int main() { return 0; }
+''', include_directories: include_directories('.'), name: 'the compiler has a 128-bit integer type')
+if not has_u128
+  message('128-bit integer: the two halves of gaol/gaol_u128.h, as with Visual C++ and on a 32-bit target')
+endif
+
+# enable-coverage: GAOL and its tests compiled with the counters of gcov
+# (--coverage), and the target gaol-coverage, which runs the tests and writes the
+# report in coverage/ with gcovr, as the target coverage of CMake and configure
+# (GAOL v5; meson keeps the name coverage for its own report of b_coverage). GCC and Clang only; the build should be the Debug one
+# for the counts to follow the source.
+coverage = get_option('enable-coverage')
+if coverage
+  if not (cpp_comp.get_id() in ['gcc', 'clang'])
+    error('enable-coverage needs GCC or Clang, and this build uses ' + cpp_comp.get_id())
+  endif
+  if not debug
+    warning('enable-coverage without --buildtype=debug: the optimizations move the code around, and the counts no longer follow the source')
+  endif
+  add_project_arguments(['--coverage', '-fprofile-update=atomic'], language: ['c', 'cpp'])
+  add_project_link_arguments(['--coverage'], language: ['c', 'cpp'])
+endif
+
 subdir('gaol')
 
 # make test and make check, as with CMake and configure (GAOL v5): the unit
@@ -705,6 +804,29 @@ if (build_tests or build_examples) and not meson.is_subproject()
   run_target('check',
     command: [find_program('meson'), 'test', '-C', meson.current_build_dir(), '--no-rebuild', '--print-errorlogs']
              + (meson.version().version_compare('>=0.57') ? ['--setup', 'check'] : []),
+    depends: check_targets)
+endif
+
+# The target gaol-coverage (enable-coverage; meson keeps the name coverage for
+# its own report of b_coverage): the tests run and gcovr writes
+# coverage/coverage.html and the page of conclusions coverage/README.md. GAOL's
+# own sources (gaol/) are counted apart from those of CORE-MATH (3rd/math-core),
+# whose accurate phases are reached by a handful of arguments in a million; the
+# raw data of gcovr (coverage.json) is written in the build directory. The tests
+# are those of the suite check (all of them, the examples too) where meson has
+# test setups (0.57 and later)
+if coverage and not meson.is_subproject()
+  gcovr = find_program('gcovr')
+  python3 = find_program('python3')
+  coverage_setup = meson.version().version_compare('>=0.57') ? ['--setup', 'check'] : []
+  run_target('gaol-coverage',
+    command: [find_program('sh'), '-c',
+      'cd "$2" && find . -name "*.gcda" -delete && "$1" test -C "$2" --no-rebuild --print-errorlogs ' + ' '.join(coverage_setup)
+      + ' && mkdir -p "$3/coverage" && "$4" --root "$3" --gcov-ignore-errors=no_working_dir_found'
+      + ' --filter "$3/gaol/" --filter "$3/3rd/math-core/" --html --html-self-contained'
+      + ' --html-title "Coverage of GAOL" --output "$3/coverage/coverage.html" --json coverage.json --print-summary .'
+      + ' && "$5" "$3/coverage/coverage_summary.py" coverage.json "$3/coverage/README.md"',
+      'sh', find_program('meson'), meson.current_build_dir(), meson.current_source_dir(), gcovr, python3],
     depends: check_targets)
 endif
 
@@ -759,11 +881,14 @@ summary({
   'Bug reports': gaol_bug_report,
   'Home page': gaol_url,
   'Debug (GAOL_DEBUGGING)': debug,
+  'Coverage': coverage,
+  'Universal build of macOS': universal ? ' '.join(universal_archs) : 'no',
   'Preserve rounding': preserve_rounding,
   'AVX-512 path taken': avx512_taken,
   'SSE2 intervals': use_sse2,
   'NEON intervals': use_neon,
   'Fused multiply-add': ' '.join(fma_args),
+  '128-bit integer type': has_u128,
   'Unit tests': build_tests,
   'Examples': build_examples,
 })
