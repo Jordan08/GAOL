@@ -1,7 +1,7 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 26 octobre 2026
-(commit `e831a19` de `configure-clean`, aucune pull request ouverte). Ce
+(commit `f404e8e` de `configure-clean`, une pull request ouverte : #201). Ce
 fichier et l'issue #177 ont le même contenu.
 
 Il réunit l'historique de l'ancienne issue #49 (« Suivi du TODO de GAOL v5 »),
@@ -53,28 +53,38 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 
 ## 1. L'état au 26 octobre 2026
 
-- **`configure-clean`** est au commit `e831a19` (fusion de #199). Les pull
+- **`configure-clean`** est au commit `f404e8e` (fusion de #200). Les pull
   requests des corrections vont vers `configure-clean`, qui reste la branche de
   développement après v5.0.0 ; `MATH-CORE` et `master` (GAOL 4.3.2, plus deux
   commits de `.claude/CLAUDE.md`) ne bougent qu'à la version (point Y).
-- **Aucune pull request ouverte.** Le mainteneur a fusionné #165 à #167, #169 à
-  #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194, #196 et #197
-  le 25 octobre, #199 le 26 octobre ; #168 et #195 sont fermées sans fusion. Les
-  tâches PA, PB, PC et PD sont faites ; PG est entamée (la division du chemin
-  AVX-512, le 106 a : #191 à #194).
+- **Une pull request ouverte** : #201 (PE.2, les drapeaux C de CORE-MATH). Le
+  mainteneur a fusionné #165 à #167, #169 à #174, #176 et #180 à #184 les 23 et
+  24 octobre, et #186 à #194, #196 et #197 le 25 octobre, #199 et #200 le 26
+  octobre ; #168 et #195 sont fermées sans fusion. Les tâches PA, PB, PC et PD
+  sont faites ; PG est entamée (la division du chemin AVX-512, le 106 a : #191
+  à #194), et PE aussi (#200 pour le 95 en partie, #201 pour le 92).
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
   sur tout processeur ARM 64 bits avec tous les compilateurs (GCC, Clang,
   AppleClang, clang-cl, Visual C++, MinGW-w64, MSYS2), SSE2 sur tout processeur
   x86 avec tous les compilateurs (sur Windows 32 bits, GCC et Clang avec
   `-faligned-new=8`, Visual C++ et clang-cl avec des bornes en deux `double`),
-  le chemin AVX-512 (`GAOL_PREFER_AVX512`) par-dessus SSE2 où le compilateur et
-  la machine le permettent, et le FPU seulement où l'on n'a pas le choix (ARM 32
-  bits, POWER, s390x, RISC-V...) ou quand on le demande (`GAOL_SIMD=OFF`,
-  `GAOL_ARM64=OFF`). Un build universel de macOS (CMake, plusieurs
-  architectures) prend NEON pour arm64 et SSE2 pour x86_64, sans FMA ni AVX-512.
-- **Branches** : GitHub a `configure-clean`, `MATH-CORE`, `master` et
-  `perf-doc-rerun` (les scripts des mesures reportées, hors des points) ; les
-  branches fusionnées sont supprimées en local.
+  le chemin AVX-512 par-dessus SSE2 avec `GAOL_PRESERVE_ROUNDING`, où le
+  compilateur et la machine le permettent, et le FPU seulement où l'on n'a pas
+  le choix (ARM 32 bits, POWER, s390x, RISC-V...) ou quand on le demande
+  (`GAOL_SIMD=OFF`, qui vaut aussi pour NEON depuis #200 : `GAOL_ARM64` n'est
+  plus une option). Un build universel de macOS (CMake, autotools, meson,
+  plusieurs architectures) prend NEON pour arm64 et SSE2 pour x86_64, sans FMA
+  ni AVX-512.
+- **Les options** (décidé le 26 octobre, #200) : les trois builds ont les
+  mêmes, `GAOL_PRESERVE_ROUNDING`, `GAOL_SIMD`, `GAOL_COVERAGE`, `WITH_TESTS`,
+  `WITH_EXAMPLES`, `BUILD_SHARED_LIBS`, `CMAKE_BUILD_TYPE`, le code indépendant
+  de la position et `CMAKE_OSX_ARCHITECTURES`, avec la bibliothèque statique par
+  défaut ; les instructions FMA, le chemin AVX-512, l'entier 128 bits et le
+  débogage sont décidés par des tests de la configuration, les anciennes
+  options restant des réglages des développeurs (`doc/building.md`).
+- **Branches** : GitHub a `configure-clean`, `MATH-CORE`, `master`,
+  `perf-doc-rerun` (les scripts des mesures reportées, hors des points) et
+  `todo-ae-c-flags` (#201) ; les branches fusionnées sont supprimées en local.
 - **Aucune borne fausse n'est connue** : sur environ 1,3 million de puissances
   entières, 550 000 `pow` réels, 600 000 autres opérations et 760 lectures de
   nombres (relecture du 14 octobre, revérifiée le 18 octobre à `4eaf69a`), tout
@@ -1111,6 +1121,47 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   avec les registres, dans la pull request ; 47 lignes passent 80 colonnes,
   laissées ; 201 jobs verts sur le dernier commit de la branche, NEON, Windows
   et macOS compris ; fusionnée le 26 octobre)
+- #200 (hors des tâches, à la demande du mainteneur : les trois builds ont les
+  mêmes options, celles de l'utilisateur, et le reste est décidé par des tests
+  qui compilent et exécutent. Les options : `GAOL_PRESERVE_ROUNDING`,
+  `GAOL_SIMD` (SSE2 sur x86, NEON sur ARM 64 bits, le FPU sinon ; `GAOL_ARM64`,
+  `--enable-arm64` et `enable-arm64` ne sont plus des options), `GAOL_COVERAGE`
+  (`--enable-coverage` et `make coverage` pour configure, `enable-coverage` et
+  `ninja gaol-coverage` pour meson, `coverage` étant réservé par meson),
+  `WITH_TESTS`, `WITH_EXAMPLES`, `BUILD_SHARED_LIBS` (la bibliothèque statique
+  est le défaut des trois builds : configure et meson construisaient les deux),
+  `CMAKE_BUILD_TYPE`, le code indépendant de la position, et
+  `CMAKE_OSX_ARCHITECTURES` (le build universel de macOS aussi avec autotools et
+  meson, par `-arch` plusieurs fois dans les drapeaux). Décidés par la
+  configuration : les instructions FMA (prises quand la machine exécute un
+  programme compilé avec elles ; en compilation croisée, laissées de côté sauf
+  `-DGAOL_MACHINE_RUNS_FMA=1`, `gaol_cv_machine_runs_fma=yes` ou
+  `-Dmachine-runs-fma=true`, et de même pour AVX-512), le chemin AVX-512 (il
+  suit `GAOL_PRESERVE_ROUNDING` : les quatre builds mesurés dans `doc/simd.md`
+  donnent, sur un i7-1185G7 à demi-largeur, une médiane de 2,80 avec la
+  direction préservée et de 0,83 sans), l'entier 128 bits (les deux moitiés
+  seulement sans type du compilateur) et le débogage (le type `Debug`). Les
+  anciennes options restent comme réglages des développeurs : lues avec
+  `DEFINED` par CMake, sans aide dans `configure --help`, marquées
+  `[developers]` par meson ; `--enable-optimize` est supprimée. Le test
+  `automatic_configuration` remplace `prefer_avx512_reconfigure` et échoue sur
+  l'ancien `CMakeLists.txt` à six endroits ; le test d'exécution de FMA de
+  Visual C++ et de clang-cl exécute l'intrinsèque `_mm_fmadd_sd` au lieu
+  d'appeler `std::fma` ; l'audit des trois builds est inchangé. Les workflows
+  passent de `GAOL_ARM64=OFF` à `GAOL_SIMD=OFF`, deux jobs « bibliothèque
+  partagée » et deux jobs de build universel de macOS s'y ajoutent. Une
+  relecture indépendante, aucun point bloquant, tous ses constats corrigés
+  (`range()` de meson 0.58, le manuel et des commentaires, CORE-MATH sans les
+  compteurs de gcov avec CMake, une entrée d'un ancien répertoire de build,
+  `make coverage` sans `--enable-coverage`). En local : CMake (défaut, direction
+  préservée, FPU, Clang 18, Debug avec ASan et UBSan, `-Werror` avec GCC et
+  Clang) à 100 % ; autotools et meson, avec installation, `headers.sh` et
+  `tests.sh` ; `make coverage` 94,1 % et `ninja gaol-coverage` 94,0 %. Le
+  premier passage de la CI a trouvé deux défauts de meson (`has_header()` lance
+  le préprocesseur, que clang refuse avec plusieurs `-arch`, et le test
+  `automatic_cleanup` avec la bibliothèque partagée), corrigés ; 206 jobs verts
+  sur le dernier commit, les trois builds universels de macOS compris ;
+  fusionnée le 26 octobre à 20 h 45)
 
 ### 2.4 Fermées sans fusion
 
@@ -1608,7 +1659,7 @@ fait le travail.
 
 - [x] Les intervalles NEON se choisissent par `GAOL_ARM64`, `--enable-arm64` et
   `enable-arm64`, indépendamment de `GAOL_SIMD`, qui reste pour x86 (décision du
-  mainteneur)
+  mainteneur ; remplacée le 26 octobre par #200 : `GAOL_SIMD` les choisit)
 - [x] NEON est pris par défaut sur AArch64 avec GCC, Clang et AppleClang sous
   Linux et macOS ; pas avec Visual C++, clang-cl, MinGW-w64, ARM 32 bits (le
   NEON d'ARMv7 n'a pas de vecteur de doubles) ni dans un build universel de
@@ -1851,7 +1902,8 @@ fait le travail.
   ajouté au filtre de chemins, `make perf` sur macOS et `gaol_bench` partout
   gardés ; dix jobs de plus, le cache des programmes de la base et `LINE_LIST`
   vide (#166) ; `performance.yml` dans `process.md` §10 (#165)
-- [x] `GAOL_PREFER_AVX512` reste `ON`/`OFF` ; les commentaires « + - * / et sqrt
+- [x] `GAOL_PREFER_AVX512` reste `ON`/`OFF` (plus une option depuis #200, le
+  26 octobre) ; les commentaires « + - * / et sqrt
   » mis à jour et `-UGAOL_PREFER_AVX512` retiré de `setup.sh`, avec les sept
   dossiers de build d'avant #161 supprimés (#165) ; le test des bits du signe de
   zéro de `x * d`, sauté sans AVX-512 (#171)
@@ -2081,6 +2133,54 @@ fait le travail.
   diff mécanique ; celles des registres sont refaites (25 octobre, #199)
 - [x] Pas de relecture indépendante pour #199, une substitution de chemins
   vérifiée par les trois builds et la CI (demande du mainteneur, 25 octobre)
+
+#### Décidé pendant la tâche des options (26 octobre), fait par #200
+
+- [x] Les réglages que la CI et les développeurs donnent (FPU sur x86, sans FMA,
+  sans AVX-512, émulation de l'entier 128 bits, `GAOL_SSE2_UNALIGNED_STORAGE`,
+  `GAOL_DEBUG` sur un sous-projet) restent acceptés mais cachés : lus avec
+  `DEFINED` par CMake, sans texte d'aide dans configure, marqués `[developers]`
+  par meson, qui ne peut pas les masquer ; section « The settings of the
+  developers » de `doc/building.md` (26 octobre)
+- [x] En compilation croisée, où aucune sonde ne s'exécute, la configuration
+  prend les chemins sûrs : ni FMA ni AVX-512, avec un message, sauf
+  `-DGAOL_MACHINE_RUNS_FMA=1` et `-DGAOL_MACHINE_RUNS_AVX512=1` (CMake),
+  `gaol_cv_machine_runs_*=yes` (configure) ou `-Dmachine-runs-*=true` (meson)
+  (26 octobre ; avant : les instructions FMA étaient prises sur la parole du
+  compilateur)
+- [x] Le chemin AVX-512 se décide par une mesure sur place, quatre builds de la
+  même source, `performance-ab.sh --runs 9 --lines`, seuil d'un gain médian de 5
+  % : il suit `GAOL_PRESERVE_ROUNDING` (médiane de sept opérations 2,80 avec,
+  0,83 sans ; dix lignes 3,39 et 0,68) ; une seule machine, à demi-largeur
+  AVX-512, dans `doc/simd.md` (26 octobre)
+- [x] La bibliothèque statique est le défaut des trois builds, et le code est
+  indépendant de la position ; `--enable-shared` et `-Ddefault_library=shared`
+  demandent la partagée (26 octobre)
+- [x] Le build universel de macOS pour autotools et meson aussi (choix du
+  mainteneur, contre la recommandation d'en rester à CMake) : `-arch` plusieurs
+  fois dans les drapeaux, la dépendance de dépôt d'automake coupée ; les trois
+  jobs universels sont verts (26 octobre)
+- [x] `GAOL_VERBOSE_MODE` et la désactivation des exceptions sont des réglages
+  des développeurs dans les trois builds, celle des exceptions ajoutée à CMake
+  (26 octobre)
+- [x] Une seule pull request, un commit par étape, l'audit des trois builds
+  n'étant vert qu'à la fin (26 octobre)
+- [x] Le test d'exécution de FMA de Visual C++ et de clang-cl exécute
+  l'instruction (`_mm_fmadd_sd`), dans cette pull request (réponse du mainteneur
+  le 26 octobre)
+- [x] Le type `Debug` fixe `GAOL_DEBUG`, donc `-O0 -g` pour GAOL et CORE-MATH,
+  un `-O1` de `CMAKE_CXX_FLAGS_DEBUG` écarté pour la bibliothèque : gardé tel
+  quel (26 octobre)
+- [x] Le point 92 (PE.2, les drapeaux C de CORE-MATH) sur une branche à part,
+  `todo-ae-c-flags`, partie de celle de #200, et sa pull request #201 ouverte
+  après la fusion de #200 (26 octobre)
+- [x] Remplace deux décisions : le 23 octobre, `GAOL_PREFER_AVX512` reste
+  `ON`/`OFF` (pas d'option `AUTO`), qui n'est plus une option ; les 19 et 20
+  octobre, les intervalles NEON indépendants de `GAOL_SIMD` (#146), que
+  `GAOL_SIMD` choisit maintenant
+- [x] Les dossiers de build des sessions précédentes dans `/tmp/claude-1000` (11
+  Go, sur un quota presque atteint) supprimés à la demande du mainteneur (26
+  octobre)
 
 #### Le 18 octobre : les questions restées ouvertes dans la description de #99 (commentaire de #49)
 
@@ -2476,6 +2576,9 @@ ici ou dans la section 5.
   lisent corrigée par #143 (celle de `doc/differences.md` reste pour la pull
   request de synthèse)
 
+- [x] **Hors des points (26 octobre).** Les options des trois builds : fait par
+  #200 ; décidé pendant le travail : voir 3.4.
+
 ### Trouvé par la relecture de `configure-clean` du 14 octobre (62dad3a) : ce qui est fait
 
 Six relecteurs indépendants (puissances entières, `pow` réel et réciproques,
@@ -2499,8 +2602,10 @@ Les points suivants gardent un reste (voir `TODO.md` et `TODO_AFTER.md`) ; voici
 leur partie faite.
 
 - **AE.** Les trois builds : le 90 (le compilateur C vérifié comme le C++) par
-  #145, les 91 et 94 par #164, le 93 (code mort exporté) le 15 octobre. Restent
-  les 92 et 95.
+  #145, les 91 et 94 par #164, le 93 (code mort exporté) le 15 octobre, le 95
+  en partie par #200 (les sondes d'exécution de FMA et d'AVX-512 dans les trois
+  builds). Le 92 est fait par #201 (ouverte). Reste le reste du 95 (voir
+  `TODO.md`, PE.1).
 - **AI.** La vitesse sur macOS, Windows et ARM : le 106 pour arm64 (intervalles
   NEON) par #146, pour Visual C++ et clang-cl x64 (SSE2) par #148, pour Windows
   32 bits avec GCC et Clang (SSE2 avec `-faligned-new=8`) par #152, pour ARM 32
@@ -3055,7 +3160,7 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PE à PJ) et
   `CMakeLists.txt` (le texte d'aide de la ligne de commande sert à reconnaître
   une demande ; la variable ordinaire d'un projet englobant), mais change le
   type de l'option et ce que lit un projet englobant. *Décidé le 23 octobre* :
-  garder `ON`/`OFF`.
+  garder `ON`/`OFF` (remplacé le 26 octobre : plus une option, #200).
 - **`configure` a été édité à la main** (par #161 et par #163), sans autoconf
   2.72 : vérifié le 23 octobre à `601fc63`, `autoconf` 2.72 (celui de cette
   machine), lancé sur une copie des fichiers suivis, régénère un `configure`
@@ -3282,6 +3387,13 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PE à PJ) et
   `TODO_AFTER.md` et `process.md` (§12) mis à jour pour elle, l'issue #198 reste
   ouverte, la branche supprimée sur GitHub à la fusion et en local le 26
   octobre.
+- #200 (les options des trois builds, hors des tâches) fusionnée par le
+  mainteneur le 26 octobre à 20 h 45, ses 206 jobs verts sur le dernier commit ;
+  la CI du commit de fusion, redondante, n'est pas attendue (§10) ; la branche
+  supprimée sur GitHub à la fusion et en local le 26 octobre ; `TODO.md`,
+  `TODO_DONE.md` et `process.md` (§12) mis à jour pour elle. La pull request
+  #201 (le point 92, PE.2) ouverte juste après, sur `todo-ae-c-flags` où
+  `configure-clean` est fusionnée.
 
 ## 8. Le ménage fait
 
@@ -3336,8 +3448,10 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PE à PJ) et
   fusion et en local le 25 octobre ; celles de #196 (`todo-pd-texts`) et de #197
   (`todo-pd-pow-mutants`), sur GitHub à la fusion et en local le 25 octobre ;
   celle de #199 (`interval-sources-in-core`), sur GitHub à la fusion et en local
-  le 26 octobre : sur GitHub, il ne reste que `configure-clean`, `MATH-CORE`,
-  `master` et `perf-doc-rerun`.
+  le 26 octobre ; celle de #200 (`automatic-configuration`), sur GitHub à la
+  fusion et en local le 26 octobre : sur GitHub, il ne reste que
+  `configure-clean`, `MATH-CORE`, `master`, `perf-doc-rerun` et
+  `todo-ae-c-flags` (#201).
 - [x] Lignes de crédit retirées des descriptions de #50, #51, #53 à #57 et #59,
   d'un commentaire de #59 et de cette issue. Il en reste dans les messages des
   commits a0d3871, 790ca12 et f1f4239 de #99, fusionnée sans squash. Retirées

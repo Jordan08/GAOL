@@ -1,16 +1,17 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `e831a19` de `configure-clean`, le 26
-octobre 2026, en tâches PE à PJ (PA à PD sont faites, PG est entamée : voir
-`TODO_DONE.md`). Ce fichier et l'issue #179 ont le même contenu. Ce qui est fait
-et décidé est dans `TODO_DONE.md` (issue #177), ce qui est reporté dans
+Ce qui reste à faire sur GAOL v5 au commit `f404e8e` de `configure-clean`, le 26
+octobre 2026, en tâches PE à PJ (PA à PD sont faites, PE et PG sont entamées :
+voir `TODO_DONE.md`). Ce fichier et l'issue #179 ont le même contenu. Ce qui est
+fait et décidé est dans `TODO_DONE.md` (issue #177), ce qui est reporté dans
 `TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142 sont fermées, et
 `TODO_mistral.md` est supprimé.
 
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à fusionner, à envoyer à un autre projet ni à publier
-sans l'accord du mainteneur. Aucune pull request n'est ouverte.
+sans l'accord du mainteneur. Une pull request est ouverte : #201 (le point 92,
+PE.2).
 
 ## Comment lire ce fichier
 
@@ -40,7 +41,7 @@ sans l'accord du mainteneur. Aucune pull request n'est ouverte.
 
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
-| PE | Les trois builds, la CI, les vérifications qui manquent | 95, 92 et quatre autres | M |
+| PE | Les trois builds, la CI, les vérifications qui manquent | 95 (reste), 92 (#201) et quatre autres | M |
 | PF | x86 32 bits, Windows et le registre de contrôle | 108, 109 et trois | M |
 | PG | Les études de vitesse | 105, 116, 106 et six petits | M |
 | PH | Les signalements à d'autres projets | #125 à #138, #175 | accord |
@@ -54,23 +55,26 @@ et `configure`, `meson.build`, `.github/audit/`, `.github/workflows/`) et la
 même validation : les trois builds sur la matrice de `process.md` §6.2, puis la
 CI.
 
-1. **95 (AE)** [M] : les détections compilent dans un build et lient dans les
-   autres. La sonde de la cible AVX-512 lie avec CMake, mais ne fait que
-   compiler avec autotools (`AC_COMPILE_IFELSE`) et meson, alors que
+1. **95 (AE), ce qui reste** [S] : #200 (26 octobre) a mis dans les trois builds
+   des sondes qui compilent, lient et exécutent pour FMA et pour AVX-512, mais
+   deux détections ne lient pas encore dans tous les builds. La sonde de la
+   cible AVX-512 lie avec CMake, mais ne fait que compiler avec autotools
+   (`AC_COMPILE_IFELSE`) et meson (`compiles()`), alors que
    `__builtin_cpu_supports` demande `__cpu_model` à l'édition de liens ; la
-   sonde de FMA, à l'inverse, ne vérifie que le C++ avec CMake, et le C et le
-   C++ avec édition de liens dans les deux autres. Non vérifié sur une chaîne où
-   le résultat changerait. Correction : lier, et vérifier les deux langages,
-   dans les trois builds.
-2. **92 (AE)** [M] : les sources C n'ont pas les mêmes drapeaux dans les trois
-   builds : CMake leur donne `-msse2 -msse3 -fvisibility=hidden`, autotools et
-   meson au C++ seulement ; `-ffloat-store` va au C et au C++ avec CMake et
-   meson, au C++ seul avec autotools ; le C est gnu99 avec CMake, c99 ou gnu11
-   avec meson, celui du compilateur avec autotools. `.github/audit` ne compare
-   que les drapeaux de `gaol_interval.cpp`. Correction : les mêmes drapeaux C
-   partout, et un source C dans `probe_build.py`. (Principe 6 de `process.md` :
-   les mêmes bibliothèque, en-têtes et options partout. Aucun effet connu sur
-   les bornes.)
+   sonde des drapeaux de FMA ne vérifie que le C++ avec CMake, et le C et le C++
+   avec édition de liens dans les deux autres. Non vérifié sur une chaîne où le
+   résultat changerait. Correction : `AC_LINK_IFELSE` et `links()` pour la sonde
+   de la cible, un `check_c_source_compiles` des drapeaux de FMA avec CMake.
+2. **92 (AE)** [M], *pull request #201 ouverte le 26 octobre
+   (`todo-ae-c-flags`)* : les sources C n'ont pas les mêmes drapeaux dans les
+   trois builds : CMake leur donne `-msse2 -msse3 -fvisibility=hidden`,
+   autotools et meson au C++ seulement ; `-ffloat-store` va au C et au C++ avec
+   CMake et meson, au C++ seul avec autotools ; le C est gnu99 avec CMake, c99
+   ou gnu11 avec meson, celui du compilateur avec autotools. `.github/audit` ne
+   compare que les drapeaux de `gaol_interval.cpp`. Correction : les mêmes
+   drapeaux C partout, et un source C dans `probe_build.py`. (Principe 6 de
+   `process.md` : les mêmes bibliothèque, en-têtes et options partout. Aucun
+   effet connu sur les bornes.)
 3. **Les jobs qui manquent** (#152, #173, #174) : aucun job ne construit
    autotools ni meson avec MinGW-w64 x86 (le MSYS2 de `build-systems.yml` est
    x64), et l'audit des trois builds ne tourne pas sous Windows : leur accord
@@ -351,8 +355,9 @@ PA à PH faites ou décidées (PA à PD le sont), et avant les mesures de PJ.
    #113, #114, #117 à #124, #139, #140, #141, #144 à #151, #155 à #158 et #160 à
    #164 (#123, #139, #155 et #160 n'ont rien à y mettre), et à lire aussi, #165
    à #174, #176, #180 à #184 (celle de #176 dit : rien), #191 à #194 et #196 et
-   #197 (qui disent : rien), et #199 (l'installation des en-têtes dans
-   `include/gaol/core/`). Les
+   #197 (qui disent : rien), #199 (l'installation des en-têtes dans
+   `include/gaol/core/`), #200 (les options des trois builds : voir 2) et #201
+   (les drapeaux C de CORE-MATH, quand elle sera fusionnée). Les
    points K, L et
    `make distclean` (#72 à #75) n'ont pas cette section : à écrire d'après leurs
    descriptions. À écrire d'après les commits, sans pull request : les
@@ -409,7 +414,17 @@ PA à PH faites ou décidées (PA à PD le sont), et avant les mesures de PJ.
    `interval(sl, sr)`, qui n'existe plus ; celle de #199 que
    `gaol_interval_core.h`, `gaol_interval_fpu.h`, `gaol_interval_neon.h` et
    `gaol_interval_sse.h` sont installés dans `include/gaol/core/` et non plus
-   dans `include/gaol/`, sans en-tête de renvoi (*décidé le 25 octobre*).
+   dans `include/gaol/`, sans en-tête de renvoi (*décidé le 25 octobre*) ; celle
+   de #200 que les trois builds ont les mêmes options (`GAOL_PRESERVE_ROUNDING`,
+   `GAOL_SIMD`, `GAOL_COVERAGE`, `WITH_TESTS`, `WITH_EXAMPLES`,
+   `BUILD_SHARED_LIBS`, le type de build, le code indépendant de la position et
+   `CMAKE_OSX_ARCHITECTURES`), que la bibliothèque statique est le défaut des
+   trois (configure et meson construisaient les deux), que `GAOL_ARM64` et
+   `--enable-optimize` n'existent plus, que `GAOL_SIMD=OFF` vaut aussi pour
+   NEON, que le chemin AVX-512 suit `GAOL_PRESERVE_ROUNDING`, que les
+   instructions FMA et l'entier 128 bits sont décidés par des tests de la
+   configuration, et que les passages de `doc/differences.md` et de `ChangeLog`
+   qui citent les anciennes options sont à relire d'après `doc/building.md`.
    *Décidé le 3 octobre*
    : la puce de `atanh` de `doc/differences.md` reste, en disant que GAOL 4
    n'est pas mesuré, les puces de `hausdorff()` sont fusionnées.

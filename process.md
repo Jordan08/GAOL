@@ -8,7 +8,7 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12. Dernière mise à jour : 26 octobre 2026, au
-commit `e831a19` de `configure-clean` (la fusion de #199).
+commit `f404e8e` de `configure-clean` (la fusion de #200).
 
 ## 1. Le contexte
 
@@ -176,8 +176,10 @@ un est refusée, quel que soit son gain.
    ARM 32 bits et POWER9, absence de `__builtin_roundeven()` avec GCC 9, etc.
 6. **Les trois builds restent pareils.** CMake, autotools et meson doivent
    donner la même bibliothèque, les mêmes en-têtes installés, les mêmes tests et
-   les mêmes options. Si tu ajoutes ou retires une source, un en-tête, un test
-   ou une option, mets à jour les trois :
+   les mêmes options (celles de l'utilisateur sont les mêmes dans les trois, et
+   le reste se décide par des tests de la configuration : `doc/building.md`,
+   section « The options »). Si tu ajoutes ou retires une source, un en-tête, un
+   test ou une option, mets à jour les trois :
    - `CMakeLists.txt` ;
    - `Makefile.am`, avec son `Makefile.in` régénéré (section 6.3) ;
    - `meson.build` ;
@@ -740,21 +742,24 @@ git ls-remote --heads origin
   #180 à #184 et #186 à #190 (les tâches PA, PB et PC), #196 et #197 (la tâche
   PD), et #191 à #194 (de la tâche PG : la division du chemin AVX-512, puis NEON
   avec tous les compilateurs de l'arm64, SSE2 avec tous ceux de l'x86, le FPU en
-  dernier recours) ; #199 (hors des tâches : les sources des intervalles dans
-  `gaol/core/`) ; l'audit du 13 octobre a vérifié dans `configure-clean` ce
-  qu'annonçaient alors les points A, C à H et J à V.
-- **En cours** : aucune pull request ouverte au 26 octobre ; `configure-clean`
-  est au commit de la fusion de #199, et ses branches sur GitHub sont
-  `configure-clean`, `MATH-CORE`, `master` et `perf-doc-rerun` (les scripts des
-  mesures reportées, hors des points). L'issue #198 (`x / y` des intervalles
-  NEON avec `FPCR.AH`) est ouverte, sans tâche dans `TODO.md` ; #185 est
-  fermée, le masquage des exceptions de `pow` est gardé.
-- **À faire**, dans l'ordre de `TODO.md` : les trois builds et la CI (PE), x86
-  32 bits et Windows (PF), les études de vitesse, toutes avant v5.0.0 (PG,
-  entamée), les signalements à d'autres projets (PH, avec l'accord du
-  mainteneur), puis la version (PI, PJ). Ce qui
-  est reporté (le 113, le site, les traits pour YalAA et VNODE-LP, les
-  décorations, ce qui attend du matériel) est dans `TODO_AFTER.md`. Les
-  dépendances entre points sont écrites dans chaque tâche. Le mainteneur donne
-  les tâches ou les points un par un (« traite la tâche PE », « traite le point
-  129 ») : ne commence pas le suivant sans lui.
+  dernier recours) ; #199 et #200 (hors des tâches : les sources des intervalles
+  dans `gaol/core/`, puis les options des trois builds : les mêmes options pour
+  l'utilisateur, tout le reste décidé par la configuration) ; l'audit du 13
+  octobre a vérifié dans `configure-clean` ce qu'annonçaient alors les points A,
+  C à H et J à V.
+- **En cours** : une pull request ouverte au 26 octobre, #201 (le point 92 : les
+  drapeaux C de CORE-MATH, branche `todo-ae-c-flags`) ; `configure-clean` est au
+  commit de la fusion de #200, et ses branches sur GitHub sont
+  `configure-clean`, `MATH-CORE`, `master`, `perf-doc-rerun` (les scripts des
+  mesures reportées, hors des points) et `todo-ae-c-flags`. L'issue #198
+  (`x / y` des intervalles NEON avec `FPCR.AH`) est ouverte, sans tâche dans
+  `TODO.md` ; #185 est fermée, le masquage des exceptions de `pow` est gardé.
+- **À faire**, dans l'ordre de `TODO.md` : les trois builds et la CI (PE,
+  entamée : #200 et #201), x86 32 bits et Windows (PF), les études de vitesse,
+  toutes avant v5.0.0 (PG, entamée), les signalements à d'autres projets (PH,
+  avec l'accord du mainteneur), puis la version (PI, PJ). Ce qui est reporté (le
+  113, le site, les traits pour YalAA et VNODE-LP, les décorations, ce qui
+  attend du matériel) est dans `TODO_AFTER.md`. Les dépendances entre points
+  sont écrites dans chaque tâche. Le mainteneur donne les tâches ou les points
+  un par un (« traite la tâche PE », « traite le point 129 ») : ne commence pas
+  le suivant sans lui.
