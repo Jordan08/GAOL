@@ -168,23 +168,24 @@ inline assembly with Visual C++). Always defined, to 0 or 1. */
 get_rounding() and the functions that set the direction back (GAOL_RND_PRESERVE(),
 GAOL_RND_RESTORE(), rounding_guard...) read and write the control word of the
 x87 unit and MXCSR themselves, as x86_set_modes() does for a 32-bit x86
-processor, rather than call fegetround() and fesetround() (GAOL v5, point 110
-of TODO.md, found by tests/rounding_direction.cpp in the continuous
+processor, rather than call fegetround() and fesetround() (GAOL v5, point AI.110
+of TODO_DONE.md, found by tests/rounding_direction.cpp in the continuous
 integration). From mingw-w64 13 (commit 5c5973cf, "fenv: Use MSVC-compatible
 ABI for fenv.h functions", in v13.0.0 and not in v12.0.0) both are
 implemented with its own _controlfp() (__mingw_controlfp,
 mingw-w64-crt/misc/mingw_controlfp.c): fegetround() gives the two fields RC of
-the x87 unit and of MXCSR joined by OR, which is the direction of neither
-where the units differ, as they do inside an operation that keeps MXCSR alone
-(GAOL_RND_ENTER_SSE()): to nearest and upward give upward (FE_UPWARD), and
-downward and upward give FE_UPWARD | FE_DOWNWARD, which is FE_TOWARDZERO
-there, a direction that fesetround() then wrote into both units; and
-fesetround() clears the six exception flags of MXCSR whenever it changes its
-value (__mingw_setfp_sse(), "clear status word if anything changes"), so that
-midpoint(), chi(), the writing and the reading of an interval, which set the
-direction to nearest and back, lost the flags the program had raised, as did
-gaol::cleanup() and gaol::restore_rounding(), through set_rounding(), even
-without GAOL_PRESERVE_ROUNDING. Before version 13, fegetround() reads the
+the x87 unit and of MXCSR joined by OR, which is the direction of both only
+where they agree. They differ inside an operation that keeps MXCSR alone
+(GAOL_RND_ENTER_SSE()): to nearest and upward give upward (FE_UPWARD), the
+direction of one of them, and downward and upward give FE_UPWARD | FE_DOWNWARD,
+which is FE_TOWARDZERO there, the direction of neither, which fesetround() then
+wrote into both units; and fesetround() clears the six exception flags of
+MXCSR whenever it changes its value (__mingw_setfp_sse(), "clear status word
+if anything changes"), so that with GAOL_PRESERVE_ROUNDING midpoint(), chi(),
+the writing and the reading of an interval, which set the direction to nearest
+and back, lost the flags the program had raised (without it they write the
+registers themselves), as did gaol::cleanup() and gaol::restore_rounding(),
+through set_rounding(), with it or without it. Before version 13, fegetround() reads the
 control word of the x87 unit alone and fesetround() keeps the flags. Not with
 Visual C++ and clang-cl, whose C runtime reads MXCSR alone on x64. Always
 defined, to 0 or 1. */
@@ -465,7 +466,7 @@ namespace gaol_core {
     subnormals to zero. These are not the FE_* of <fenv.h>, which are the values
     of the C library (0x0400 and 0x0800 for downward and upward with glibc,
     0x0100 and 0x0200 with the C runtime of Windows, whose fegetround() gives
-    -1 when the two units differ): a field read from a register is never
+    -1 when the two units differ, and with mingw-w64 13 and later): a field read from a register is never
     compared with one of them.
 
     The functions below do not touch the processor: the registers are those of
