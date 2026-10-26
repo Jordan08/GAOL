@@ -13,6 +13,12 @@
 # gaol/gaol_config.h refuses to compile, and on 32-bit Windows -faligned-new=8
 # too, which the SSE2 intervals need there and gaol/gaol_config.h checks; and
 # -Wno-psabi where the compiler takes it, as tests/CMakeLists.txt gives it.
+# Where pkg-config finds the gaol.pc that was installed, its Cflags are given
+# too: they are what the code using GAOL is compiled with, -mfma among them
+# where the build took the fused multiply-add instructions. Without it the
+# fma() of arithmetic.cpp and core_math.cpp was the one of the C library, which
+# is not correctly rounded with MSYS2 MINGW32 (msvcrt), and 44 of the 100000
+# checks of fma failed there (GAOL v5).
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -25,6 +31,10 @@ case "$(${CXX:-c++} -dumpmachine 2>/dev/null)" in
   i?86-*mingw*|i?86-*windows*) flags="$flags -msse2 -mfpmath=sse -faligned-new=8" ;;
   i?86-*) flags="$flags -msse2 -mfpmath=sse" ;;
 esac
+# The flags of gaol.pc, which the code using GAOL is given (GAOL v5)
+if command -v pkg-config > /dev/null && PKG_CONFIG_PATH="$prefix/lib/pkgconfig" pkg-config --exists gaol; then
+  flags="$flags $(PKG_CONFIG_PATH="$prefix/lib/pkgconfig" pkg-config --cflags gaol)"
+fi
 # -Wno-psabi where the compiler takes it, as tests/CMakeLists.txt gives it,
 # to every test below, the one built with gaol.pc included (GAOL v5)
 psabi=""
