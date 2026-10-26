@@ -657,6 +657,9 @@ parser:
 @COVERAGE_TRUE@	  --output $(abs_srcdir)/coverage/coverage.html \
 @COVERAGE_TRUE@	  --json coverage.json --print-summary .
 @COVERAGE_TRUE@	$(PYTHON3) $(abs_srcdir)/coverage/coverage_summary.py coverage.json $(abs_srcdir)/coverage/README.md
+# Without --enable-coverage the target fails, as those of CMake and meson do
+@COVERAGE_FALSE@coverage:
+@COVERAGE_FALSE@	@echo "make coverage needs ./configure --enable-coverage (and --enable-debug, --with-tests)" >&2; exit 1
 
 .PHONY: test perf parser coverage
 

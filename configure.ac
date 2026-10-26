@@ -742,17 +742,16 @@ AC_ARG_ENABLE(debug,
             [debug=${enable_debug}],
             [debug="no"])
 
-# --enable-optimize, the Release build, a setting of the developers that --help
-# does not list (the Release build is the default; GAOL v5)
-AC_ARG_ENABLE(optimize, [],
-            [optimize=${enable_optimize}],
-            [optimize="yes"])
+# The Release build is the default, and --enable-optimize is gone (GAOL v5; it
+# was the Release build, and --disable-optimize compiled with -O): CMake never
+# had it, and meson's is gone
+optimize="yes"
 if test "$debug" = yes; then
     optimize="no (--enable-debug)"
     AC_DEFINE(GAOL_DEBUGGING,1,[Define this to 1 to have GAOL check its assertions (Debug build)])
     CXXFLAGS="${CXXFLAGS} -g"
     CFLAGS="${CFLAGS} -g"
-elif test "$optimize" = yes; then
+else
     # With any compiler, each flag where the compiler accepts it (they were
     # added when the compiler was named g++ exactly, and clang++ or g++-13
     # compiled without any optimization), and NDEBUG, as the Release build of
@@ -761,9 +760,6 @@ elif test "$optimize" = yes; then
         GAOL_ADD_FLAG([${gaol_flag}])
     done
     CPPFLAGS="${CPPFLAGS} -DNDEBUG"
-else
-   CXXFLAGS="${CXXFLAGS} -O"
-   CFLAGS="${CFLAGS} -O"
 fi
 GAOL_CHECK_CXX_FLAG([-fvisibility-inlines-hidden -fvisibility=hidden], [has_visibility_opt])
 if test "${has_visibility_opt}" = yes; then

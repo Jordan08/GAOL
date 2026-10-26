@@ -841,7 +841,6 @@ enable_prefer_avx512
 enable_fma
 enable_verbose_mode
 enable_debug
-enable_optimize
 enable_exceptions
 enable_coverage
 with_tests
@@ -20273,17 +20272,10 @@ esac
 fi
 
 
-# --enable-optimize, the Release build, a setting of the developers that --help
-# does not list (the Release build is the default; GAOL v5)
-# Check whether --enable-optimize was given.
-if test ${enable_optimize+y}
-then :
-  enableval=$enable_optimize; optimize=${enable_optimize}
-else case e in #(
-  e) optimize="yes" ;;
-esac
-fi
-
+# The Release build is the default, and --enable-optimize is gone (GAOL v5; it
+# was the Release build, and --disable-optimize compiled with -O): CMake never
+# had it, and meson's is gone
+optimize="yes"
 if test "$debug" = yes; then
     optimize="no (--enable-debug)"
 
@@ -20291,7 +20283,7 @@ printf "%s\n" "#define GAOL_DEBUGGING 1" >>confdefs.h
 
     CXXFLAGS="${CXXFLAGS} -g"
     CFLAGS="${CFLAGS} -g"
-elif test "$optimize" = yes; then
+else
     # With any compiler, each flag where the compiler accepts it (they were
     # added when the compiler was named g++ exactly, and clang++ or g++-13
     # compiled without any optimization), and NDEBUG, as the Release build of
@@ -20381,9 +20373,6 @@ if test "${gaol_c_takes}" = yes; then
 fi
     done
     CPPFLAGS="${CPPFLAGS} -DNDEBUG"
-else
-   CXXFLAGS="${CXXFLAGS} -O"
-   CFLAGS="${CFLAGS} -O"
 fi
 ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'

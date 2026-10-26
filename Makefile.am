@@ -74,6 +74,10 @@ coverage:
 	  --output $(abs_srcdir)/coverage/coverage.html \
 	  --json coverage.json --print-summary .
 	$(PYTHON3) $(abs_srcdir)/coverage/coverage_summary.py coverage.json $(abs_srcdir)/coverage/README.md
+else
+# Without --enable-coverage the target fails, as those of CMake and meson do
+coverage:
+	@echo "make coverage needs ./configure --enable-coverage (and --enable-debug, --with-tests)" >&2; exit 1
 endif
 
 .PHONY: test perf parser coverage
