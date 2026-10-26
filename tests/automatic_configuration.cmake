@@ -156,9 +156,24 @@ endfunction()
 
 set(_build "${GAOL_WORK_DIR}/build")
 
-# The processor of the machine, which a script of CMake does not know
-# (CMAKE_HOST_SYSTEM_PROCESSOR is empty in -P mode)
-execute_process(COMMAND uname -m OUTPUT_VARIABLE _machine OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+# The target of the compiler that built GAOL, which a script of CMake does not
+# know (CMAKE_HOST_SYSTEM_PROCESSOR is empty in -P mode, and the processor of the
+# machine is not that of the compiler in a 32-bit container on a 64-bit kernel,
+# armhf on aarch64): its predefined macros. Not asked of a configuration of
+# another architecture (GAOL_CONFIGURE_ARGS).
+set(_target "")
+if("${GAOL_CONFIGURE_ARGS}" STREQUAL "")
+  separate_arguments(_cxx UNIX_COMMAND "${GAOL_CXX_COMPILER}")
+  execute_process(COMMAND ${_cxx} -dM -E -x c++ -
+    INPUT_FILE /dev/null OUTPUT_VARIABLE _predefined ERROR_QUIET RESULT_VARIABLE _status)
+  if(_status EQUAL 0)
+    if(_predefined MATCHES "#define __x86_64__ 1" OR _predefined MATCHES "#define __i386__ 1")
+      set(_target x86)
+    elseif(_predefined MATCHES "#define __aarch64__ 1")
+      set(_target aarch64)
+    endif()
+  endif()
+endif()
 
 # ---- The defaults ------------------------------------------------------------
 
@@ -168,9 +183,9 @@ expect("the defaults: the AVX-512 path is for GAOL_PRESERVE_ROUNDING" "PREFER_AV
 math(EXPR _vector_kinds "${USING_SSE2_INSTRUCTIONS} + ${USING_NEON_INSTRUCTIONS}")
 expect("the defaults: one kind of vector intervals at most" "_vector_kinds LESS 2")
 # The vector instructions of the processor, as soon as it has them
-if(_machine MATCHES "^(x86_64|AMD64|amd64)$")
+if(_target STREQUAL "x86")
   expect("the defaults on x86-64: SSE2" "USING_SSE2_INSTRUCTIONS EQUAL 1 AND USING_NEON_INSTRUCTIONS EQUAL 0")
-elseif(_machine MATCHES "^(aarch64|arm64|ARM64)$")
+elseif(_target STREQUAL "aarch64")
   expect("the defaults on 64-bit ARM: NEON" "USING_NEON_INSTRUCTIONS EQUAL 1 AND USING_SSE2_INSTRUCTIONS EQUAL 0")
 endif()
 set(_default_sse2 ${USING_SSE2_INSTRUCTIONS})
@@ -307,7 +322,7 @@ message(STATUS "GAOL_EXCEPTIONS_ENABLED=OFF and GAOL_VERBOSE_MODE=ON: as expecte
 # CMAKE_SYSTEM_NAME given makes CMake cross-compile, here for the machine's own
 # system, so that the program that checks the machine cannot be run
 set(_cross "${GAOL_WORK_DIR}/cross")
-set(_cross_args -DCMAKE_SYSTEM_NAME=${CMAKE_HOST_SYSTEM_NAME} -DCMAKE_SYSTEM_PROCESSOR=${_machine} -DGAOL_PRESERVE_ROUNDING=ON)
+set(_cross_args -DCMAKE_SYSTEM_NAME=${CMAKE_HOST_SYSTEM_NAME} -DGAOL_PRESERVE_ROUNDING=ON)
 configure_ok("a cross-compilation" "${_cross}" ${_cross_args})
 if(NOT output MATCHES "Fused multiply-add flags: \n")
   message(FATAL_ERROR "a cross-compilation takes the fused multiply-add instructions on the word of the compiler:\n${output}")
