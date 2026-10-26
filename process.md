@@ -295,15 +295,17 @@ git ls-files -co --exclude-standard | tar -c -T - | tar -x -C $N/src
 
    ```sh
    cmake -S . -B $N/sse   -DWITH_TESTS=ON -DWITH_EXAMPLES=ON                 # GCC, SSE2
-   cmake -S . -B $N/fpu   -DWITH_TESTS=ON -DWITH_EXAMPLES=ON -DGAOL_SIMD=OFF -DGAOL_ARM64=OFF # GCC, FPU
+   cmake -S . -B $N/fpu   -DWITH_TESTS=ON -DWITH_EXAMPLES=ON -DGAOL_SIMD=OFF # GCC, FPU
    CC=clang-18 CXX=clang++-18 cmake -S . -B $N/clang -DWITH_TESTS=ON -DWITH_EXAMPLES=ON
    cmake --build $N/sse -j4 && (cd $N/sse && ctest -j4 --output-on-failure)
    ```
 
    `intervalf` et `interval2f` sont « Skipped » par construction.
-   `-DGAOL_SIMD=OFF` donne les intervalles FPU sur x86 ; sur arm64, où les
-   intervalles NEON sont le choix par défaut, il faut y ajouter
-   `-DGAOL_ARM64=OFF` (sans effet sur x86).
+   `-DGAOL_SIMD=OFF` donne les intervalles FPU, sur x86 comme sur arm64, où
+   les intervalles NEON sont le choix par défaut (`GAOL_ARM64` n'est plus une
+   option). Les autres réglages (FMA, chemin AVX-512, entier 128 bits, débogage)
+   sont décidés par la configuration ; `-DGAOL_FMA=OFF` et les autres réglages
+   des développeurs sont dans `doc/building.md`.
 2. **Avertissements** : une compilation avec
    `-DCMAKE_CXX_FLAGS="-Wall -Wextra" -DCMAKE_C_FLAGS="-Wall -Wextra"` et
    `-DCMAKE_COMPILE_WARNING_AS_ERROR=ON`, avec GCC et avec Clang. Ce réglage ne
