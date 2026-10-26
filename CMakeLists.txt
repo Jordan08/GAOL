@@ -196,11 +196,23 @@ option(GAOL_COVERAGE "Compile GAOL and its tests with the counters of gcov, and 
 # GAOL_DEBUG, GAOL_VERBOSE_MODE, GAOL_U128_EMULATION and the record
 # GAOL_PREFER_AVX512_DERIVED) that an older build directory holds are harmless
 # but for GAOL_PREFER_AVX512, which the older CMake kept with the value it had
-# derived: the record tells it, and both entries go.
+# derived, and whose record GAOL_PREFER_AVX512_DERIVED tells it.
+#
+# The older CMake told the default it had derived from a request by the help
+# string of the entry, which the command line sets, and by the value, equal to
+# the record: the entry goes where it is no request, and stays where it is one.
+# A directory from before that CMake, which holds no record, keeps the OFF its
+# option() cached, a refusal: -UGAOL_PREFER_AVX512 gives the default again.
 if(DEFINED GAOL_PREFER_AVX512_DERIVED)
-  unset(GAOL_PREFER_AVX512 CACHE)
+  get_property(_gaol_help CACHE GAOL_PREFER_AVX512 PROPERTY HELPSTRING)
+  if(NOT DEFINED CACHE{GAOL_PREFER_AVX512}
+     OR ("$CACHE{GAOL_PREFER_AVX512}" STREQUAL "${GAOL_PREFER_AVX512_DERIVED}"
+         AND NOT "${_gaol_help}" STREQUAL "No help, variable specified on the command line."))
+    unset(GAOL_PREFER_AVX512 CACHE)
+    unset(GAOL_PREFER_AVX512)
+  endif()
   unset(GAOL_PREFER_AVX512_DERIVED CACHE)
-  unset(GAOL_PREFER_AVX512)
+  unset(GAOL_PREFER_AVX512_DERIVED)
 endif()
 
 # As configure.ac and meson.build ask: -std=c++11; C99 for the sources of
@@ -1229,15 +1241,23 @@ check_cxx_source_compiles("
   int main() { return 0; }"
   GAOL_COMPILER_HAS_U128)
 unset(CMAKE_REQUIRED_INCLUDES)
-if(NOT GAOL_COMPILER_HAS_U128)
-  set(GAOL_U128_EMULATION ON)
-elseif(GAOL_U128_EMULATION)
+set(_gaol_u128_asked OFF)
+if(GAOL_U128_EMULATION)
+  set(_gaol_u128_asked ON)
+endif()
+if(NOT GAOL_COMPILER_HAS_U128 OR _gaol_u128_asked)
   set(GAOL_U128_EMULATION ON)
 else()
   set(GAOL_U128_EMULATION OFF)
 endif()
 if(GAOL_U128_EMULATION)
   message(STATUS "128-bit integer: the two halves of gaol/gaol_u128.h, as with Visual C++ and on a 32-bit target")
+endif()
+# Where the compiler has the type, the halves are asked for with the macro
+# GAOL_U128_FORCE_EMULATION; where it has none, gaol_u128.h takes the halves by
+# itself, as configure and meson leave it to, and no definition reaches the code
+# using GAOL (GAOL v5)
+if(_gaol_u128_asked AND GAOL_COMPILER_HAS_U128)
   target_compile_definitions(gaol PUBLIC GAOL_U128_FORCE_EMULATION=1)
   # The sources of CORE-MATH, which are the ones computing with the 128-bit
   # integer, are compiled in gaol_core_math, which the definitions of gaol do
@@ -1672,6 +1692,10 @@ if(GAOL_COVERAGE)
   message(STATUS "Coverage: ON, target coverage (report in ${CMAKE_CURRENT_SOURCE_DIR}/coverage)")
   target_compile_options(gaol PUBLIC --coverage -fprofile-update=atomic)
   target_link_options(gaol PUBLIC --coverage)
+  # The sources of CORE-MATH are an object library apart from gaol, which the
+  # options of gaol do not reach: configure and meson count them too, and the
+  # report has its part of them (GAOL v5)
+  target_compile_options(gaol_core_math PRIVATE --coverage -fprofile-update=atomic)
 
   find_program(GAOL_GCOVR gcovr)
   if(NOT GAOL_GCOVR)

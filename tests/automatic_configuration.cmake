@@ -89,6 +89,7 @@ endif()
 # The settings that a configuration gives and the next one must not keep
 set(_unset
   -UGAOL_PRESERVE_ROUNDING -UGAOL_SIMD -UGAOL_ARM64 -UGAOL_FMA -UGAOL_PREFER_AVX512
+  -UGAOL_PREFER_AVX512_DERIVED
   -UGAOL_U128_EMULATION -UGAOL_DEBUG -UGAOL_DEBUGGING -UGAOL_VERBOSE_MODE
   -UGAOL_EXCEPTIONS_ENABLED -UCMAKE_BUILD_TYPE)
 
@@ -192,6 +193,7 @@ set(_default_sse2 ${USING_SSE2_INSTRUCTIONS})
 set(_default_neon ${USING_NEON_INSTRUCTIONS})
 set(_has_avx512_target ${HAVE_AVX512_TARGET})
 cache_value("${_build}" GAOL_MACHINE_RUNS_FMA _runs_fma OFF)
+string(REGEX MATCH "Fused multiply-add flags: [^\n]*\n" _default_fma_line "${output}")
 cache_value("${_build}" GAOL_COMPILER_HAS_U128 _has_u128 ON)
 # The fused multiply-add flags, as the message says them: not empty where the
 # machine runs the instructions the flag gives, on x86
@@ -284,6 +286,19 @@ else()
 endif()
 message(STATUS "-DGAOL_PREFER_AVX512=ON without GAOL_PRESERVE_ROUNDING: as expected")
 
+# A build directory of the older CMake, which kept GAOL_PREFER_AVX512 with the
+# record GAOL_PREFER_AVX512_DERIVED: an entry that differs from the record, or
+# that the command line gave, is a request and is kept; the record goes
+if(_has_avx512_target)
+  configure_gaol("${_build}" ${_unset} -DGAOL_PREFER_AVX512_DERIVED=OFF -DGAOL_PREFER_AVX512=ON)
+  expect("a request of ON next to the record of an older CMake" "status EQUAL 0 AND PREFER_AVX512 EQUAL 1")
+  file(STRINGS "${_build}/CMakeCache.txt" _records REGEX "^GAOL_PREFER_AVX512_DERIVED")
+  if(_records)
+    message(FATAL_ERROR "the record GAOL_PREFER_AVX512_DERIVED of an older CMake is kept:\n${_records}")
+  endif()
+  message(STATUS "The record of an older CMake: as expected")
+endif()
+
 # ---- Debugging ----------------------------------------------------------------
 
 configure_ok("Debug" "${_build}" -DCMAKE_BUILD_TYPE=Debug)
@@ -334,6 +349,11 @@ file(REMOVE_RECURSE "${_cross}")
 configure_ok("a cross-compilation for a machine that runs them" "${_cross}" ${_cross_args}
   -DGAOL_MACHINE_RUNS_FMA=1 -DGAOL_MACHINE_RUNS_AVX512=1)
 expect("-DGAOL_MACHINE_RUNS_AVX512=1 in a cross-compilation" "PREFER_AVX512 EQUAL ${_cross_prefer} AND AVX512_ARITHMETIC EQUAL ${_cross_prefer}")
+# ... and -DGAOL_MACHINE_RUNS_FMA=1 has it take the flags a native configuration took
+string(FIND "${output}" "${_default_fma_line}" _fma_found)
+if(_fma_found EQUAL -1)
+  message(FATAL_ERROR "-DGAOL_MACHINE_RUNS_FMA=1 in a cross-compilation does not give the flags of the native configuration, ${_default_fma_line}:\n${output}")
+endif()
 message(STATUS "A cross-compilation: as expected")
 
 file(REMOVE_RECURSE "${GAOL_WORK_DIR}")
