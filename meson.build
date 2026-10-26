@@ -543,7 +543,10 @@ if use_sse2 and host_machine.cpu_family() == 'x86_64'
     }
     int main() { return __builtin_cpu_supports("avx512f") != 0 ? 0 : 1; }'''
   endif
-  if cpp_comp.compiles(avx512_target_source)
+  # Linked, not only compiled: __builtin_cpu_supports() needs __cpu_model,
+  # which the link finds in the library of the compiler (GAOL v5; CMake links
+  # it too)
+  if cpp_comp.links(avx512_target_source, name: 'the compiler takes the AVX-512 path (linked)')
     have_avx512_target = true
     conf_data.set('GAOL_HAVE_AVX512_TARGET', 1)
   endif
