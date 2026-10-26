@@ -1,4 +1,5 @@
-"""Writes a C++ file which, preprocessed with the flags of a build, shows the configuration GAOL sees."""
+"""Writes a C++ file which, preprocessed with the flags of a build, shows the configuration GAOL sees;
+with the argument c, a C file for the flags of the C sources, those of CORE-MATH (GAOL v5)."""
 
 # Copyright (c) 2026 ENSTA, France
 #
@@ -16,6 +17,19 @@ text = ['GAOL_INLINE', 'GAOL_PUBLIC', 'GAOL_MAJOR_VERSION', 'GAOL_MINOR_VERSION'
 compiler = ['__cplusplus', '__STRICT_ANSI__', '__OPTIMIZE__', 'NDEBUG', '_GLIBCXX_ASSERTIONS', '__FAST_MATH__', '__FINITE_MATH_ONLY__', 'FLT_EVAL_METHOD',
             '__SSE2__', '__SSE3__', '__SSE2_MATH__', '__PIC__', '__x86_64__', '__i386__', '__aarch64__', '__arm__', '__APPLE__',
             '__linux__', '_WIN32', '__MINGW64_VERSION_MAJOR', '__cpp_aligned_new', '__STDCPP_DEFAULT_NEW_ALIGNMENT__']
+import sys
+if len(sys.argv) > 1 and sys.argv[1] == 'c':
+    # The C sources of CORE-MATH, which the three builds are to compile alike
+    c_macros = ['__STDC_VERSION__', '__STRICT_ANSI__', '__OPTIMIZE__', 'NDEBUG', '__FAST_MATH__', '__FINITE_MATH_ONLY__',
+                'FLT_EVAL_METHOD', '__SSE2__', '__SSE3__', '__FMA__', '__ARM_FEATURE_FMA', '__SSE2_MATH__', '__PIC__',
+                '__x86_64__', '__i386__', '__aarch64__', '__arm__', '__APPLE__', '__linux__', '_WIN32', '__MINGW64_VERSION_MAJOR']
+    lines = ['#include <float.h>']
+    for n in c_macros:
+        lines += ['#ifdef %s' % n, 'GAOLPROBE_%s = %s' % (n, n), '#else', 'GAOLPROBE_%s undefined' % n, '#endif']
+    for n in c_macros:
+        lines += ['#if defined(%s) && (%s + 0)' % (n, n), 'GAOLPROBEIF_%s true' % n, '#else', 'GAOLPROBEIF_%s false' % n, '#endif']
+    print('\n'.join(lines))
+    sys.exit(0)
 lines = ['#include <cfloat>', '#include "gaol/gaol.h"']
 for n in config + text + compiler:
     lines += ['#ifdef %s' % n, 'GAOLPROBE_%s = %s' % (n, n), '#else', 'GAOLPROBE_%s undefined' % n, '#endif']

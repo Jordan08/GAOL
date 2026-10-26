@@ -10,7 +10,8 @@ fast-math, x87 or SSE2 doubles, SSE2 or NEON intervals, optimization, C++ standa
 
 `audit.sh` configures the three builds, and `probe_build.py` preprocesses
 `make_probe.py`'s program with the flags each build gives
-`gaol_interval.cpp`, which shows the macros GAOL sees. `compare.py`
+`gaol_interval.cpp`, which shows the macros GAOL sees, and a C program with the
+flags each gives a source of CORE-MATH (`sin.c`). `compare.py`
 prints what differs, and with `--check` fails when a build did not configure
 or when the configurations differ. The continuous integration runs it on each
 kind of machine (`.github/workflows/build-systems.yml`).
