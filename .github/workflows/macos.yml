@@ -181,7 +181,12 @@ jobs:
         run: |
           xcodebuild -version
           cmake -S . -B build -G Xcode -DWITH_TESTS=ON ${ARCHS:+"$ARCHS"}
+      - name: What Xcode builds
+        run: |
+          grep -E "OSX_ARCH|GENERATOR" build/CMakeCache.txt || true
+          xcodebuild -project build/gaol.xcodeproj -target gaol -configuration Release -showBuildSettings | grep -E " (ARCHS|ARCHS_STANDARD|ONLY_ACTIVE_ARCH|NATIVE_ARCH_ACTUAL) =" || true
       - name: The intervals of each architecture
+        continue-on-error: ${{ matrix.cfg.archs == '' }}
         run: |
           for spec in "arm64 NEON SSE2" "x86_64 SSE2 NEON"; do
             # shellcheck disable=SC2086
