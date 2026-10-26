@@ -682,6 +682,7 @@ PYTHON3
 GCOVR
 CORE_MATH_EXCESS_PRECISION
 CORE_MATH_NO_LTO
+GAOL_MSVC_CPPFLAGS
 GAOL_CXX_STD
 CXXCPP
 LT_SYS_LIBRARY_PATH
@@ -18766,9 +18767,15 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
+GAOL_MSVC_CPPFLAGS=""
 if test "${gaol_simulates_msvc}" = yes; then
     GAOL_CXX_STD="-std=c++14"
+    # The lexer includes <unistd.h>, which Visual C++ has not
+    # (cmake/msvc/unistd.h), and the warnings of its C runtime that the other
+    # builds turn off
+    GAOL_MSVC_CPPFLAGS='-I$(top_srcdir)/cmake/msvc -D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_WARNINGS'
 fi
+
 
 
 # GAOL_CHECK_CXX_FLAG(flag, variable): whether the C++ compiler accepts flag,

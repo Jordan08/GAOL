@@ -221,10 +221,16 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#ifndef _MSC_VER
 #endif]], [[]])],[gaol_simulates_msvc=yes],[gaol_simulates_msvc=no])
 AC_MSG_RESULT(${gaol_simulates_msvc})
 AC_LANG_POP([C++])
+GAOL_MSVC_CPPFLAGS=""
 if test "${gaol_simulates_msvc}" = yes; then
     GAOL_CXX_STD="-std=c++14"
+    # The lexer includes <unistd.h>, which Visual C++ has not
+    # (cmake/msvc/unistd.h), and the warnings of its C runtime that the other
+    # builds turn off
+    GAOL_MSVC_CPPFLAGS='-I$(top_srcdir)/cmake/msvc -D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_WARNINGS'
 fi
 AC_SUBST([GAOL_CXX_STD])
+AC_SUBST([GAOL_MSVC_CPPFLAGS])
 
 # GAOL_CHECK_CXX_FLAG(flag, variable): whether the C++ compiler accepts flag,
 # with -Werror, so that a flag it only warns about (Clang and

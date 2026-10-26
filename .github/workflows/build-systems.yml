@@ -459,10 +459,9 @@ jobs:
           $prefix = "$env:RUNNER_TEMP/gaol" -replace '\\', '/'
           $env:CC = 'clang'
           $env:CXX = 'clang++'
-          $env:CFLAGS = '--target=${{ matrix.cfg.target }}'
-          $env:CXXFLAGS = '--target=${{ matrix.cfg.target }}'
-          $env:LDFLAGS = '--target=${{ matrix.cfg.target }}'
-          meson setup build-meson --prefix="$prefix" --libdir=lib -Dwith-tests=true
+          # The target in the options, for the compilations and for the links
+          $target = '--target=${{ matrix.cfg.target }}'
+          meson setup build-meson --prefix="$prefix" --libdir=lib -Dwith-tests=true "-Dc_args=$target" "-Dcpp_args=$target" "-Dc_link_args=$target" "-Dcpp_link_args=$target"
           if ($LASTEXITCODE) { exit 1 }
           meson compile -C build-meson
           if ($LASTEXITCODE) { exit 1 }
