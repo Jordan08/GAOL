@@ -128,8 +128,9 @@ machine does, and the headers and `gaol.pc` carry the flags of the code using
 GAOL.
 
 - **The fused multiply-add instructions** (was `GAOL_FMA`, `--enable-fma`,
-  `enable-fma`): GAOL and CORE-MATH are compiled with them whenever the machine
-  building runs a program compiled with them (a program that runs the
+  `enable-fma`): GAOL and CORE-MATH are compiled with them whenever the C++ and
+  the C compiler take their flag and the machine building runs a program
+  compiled with them (a program that runs the
   instruction itself: `__builtin_fma()`, and the intrinsic `_mm_fmadd_sd()` with
   Visual C++ and clang-cl for x64, which a processor without FMA3 stops on). `-mfma` on x86 (with
   `-mprefer-vector-width=128` with GCC for Windows, on x86-64 and on 32-bit
@@ -151,8 +152,9 @@ GAOL.
   `enable-prefer-avx512`): +, -, *, /, sqr, sqrt and, with FMA, the integer
   powers beyond 1 and -1 take the AVX-512 instructions and the rounding
   direction they carry in themselves, which sets no rounding direction, where
-  `GAOL_PRESERVE_ROUNDING` is on, the compiler takes the instructions and the
-  machine building runs them; otherwise the SSE2 intervals compute them. The
+  `GAOL_PRESERVE_ROUNDING` is on, the compiler takes the instructions (a
+  program that uses them, linked) and the machine building runs them; otherwise
+  the SSE2 intervals compute them. The
   rule comes from the measures of [SIMD, FMA and the rounding
   direction](simd.md#when-the-build-takes-the-avx-512-path): the path spares the
   store of the rounding direction that every operation pays with
