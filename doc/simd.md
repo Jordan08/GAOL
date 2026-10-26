@@ -62,6 +62,47 @@ two bounds in two of the eight lanes of a 512-bit register, for the embedded
 rounding only; `/` and `sqrt` are scalar instructions with the embedded
 rounding, two of them for the two bounds ([Verdicts](#verdicts)).
 
+### When the build takes the AVX-512 path
+
+The build decides it, the same way with the three builds (GAOL v5): the path is
+taken where `GAOL_PRESERVE_ROUNDING` is on, the compiler takes the instructions
+and the machine building runs them, and left out otherwise. The rule comes from
+four builds of one source, `GAOL_PRESERVE_ROUNDING` on or off, each with the
+path (`GAOL_PREFER_AVX512` on) and without it, measured by
+`.github/scripts/performance-ab.sh --runs 9 --lines` (`gaol_performance` and
+the long lines of `doc/compare/code/run_lines.sh`, the two builds run in turn,
+median of 9 runs, in ns; Intel i7-1185G7, whose AVX-512 units are halved, Clang
+21.1.8, `-O3 -mfma`, 26 October 2026, the machine doing nothing else). The
+ratio is the time with SSE2 over the time with the path: above 1, the path is
+faster.
+
+| Operation | Not preserved: SSE2 | AVX-512 | Ratio | Preserved: SSE2 | AVX-512 | Ratio |
+|---|---:|---:|---:|---:|---:|---:|
+| `x + y` | 1.13 | 1.46 | 0.77 | 8.39 | 1.92 | 4.37 |
+| `x - y` | 1.27 | 1.37 | 0.93 | 8.32 | 1.92 | 4.33 |
+| `x * y` | 2.27 | 3.69 | 0.62 | 8.41 | 3.60 | 2.34 |
+| `x / y` | 2.62 | 4.10 | 0.64 | 8.66 | 3.97 | 2.18 |
+| `sqr(x)` | 1.73 | 2.02 | 0.86 | 8.26 | 2.01 | 4.11 |
+| `sqrt(x)` | 8.80 | 4.39 | 2.00 | 12.00 | 4.29 | 2.80 |
+| `pow(x, 3)` | 6.49 | 7.78 | 0.83 | 9.90 | 7.49 | 1.32 |
+| line of 15 `+` (`sum16`) | 24.41 | 32.15 | 0.76 | 133.5 | 27.74 | 4.81 |
+| line of 7 `*` (`mul8`) | 19.00 | 29.48 | 0.64 | 61.04 | 26.50 | 2.30 |
+| line of 7 `/` (`quot8`) | 21.09 | 36.60 | 0.58 | 62.41 | 33.49 | 1.86 |
+| line of 13 `+ - * /` (`mix13`) | 23.87 | 35.10 | 0.68 | 110.7 | 32.61 | 3.39 |
+
+The median of the seven operations is 0.83 without `GAOL_PRESERVE_ROUNDING`
+(the path loses 17 %, and 32 % on the ten long lines, whose median is 0.68; only
+`sqrt` gains) and 2.80 with it (every operation gains, the ten lines by 1.75 to
+4.81, median 3.39). The path pays where each operation would otherwise write
+the control register twice, and costs where it writes it only if the direction
+is not upward already, as it is by default: so the rule is that of
+`GAOL_PRESERVE_ROUNDING`. The threshold was a median gain of 5 % over `+ - * /
+sqr sqrt` and `pown`. One processor was measured, and not one with full-width
+AVX-512 units: such a processor is expected to lose less without
+`GAOL_PRESERVE_ROUNDING` (see [What was not measured](#what-was-not-measured)),
+which the rule does not rely on. The medians of the other rows are in the output
+of the script.
+
 CORE-MATH (`3rd/math-core`; GAOL calls 38 of its binary64 functions) is scalar,
 with no vector variant; its functions are called once per bound. `GAOL_FMA` pays
 in them and in the integer powers of GAOL
