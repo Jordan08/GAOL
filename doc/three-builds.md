@@ -12,7 +12,8 @@ build, and the CMake build follows them, apart from the errors corrected (see
 
 - GAOL is compiled in release: `-O3` and the optimizations configure adds
   (`-funroll-loops -fomit-frame-pointer -fexpensive-optimizations`, each where
-  the compiler takes it), `NDEBUG`, `-std=c++11`, hidden visibility
+  the compiler takes it), `NDEBUG`, `-std=c++11` (`-std=c++14` for Clang with
+  the target of Visual C++, whose standard library needs it), hidden visibility
   (`-fvisibility=hidden -fvisibility-inlines-hidden`) and `-Wall -Wconversion`,
   which GAOL compiles without warnings, `-Wsign-conversion` of Clang included.
   Its libraries are compiled in release too where a project brings GAOL in

@@ -202,7 +202,7 @@ if msvc or clang_msvc
     include_directories: [incdir, include_directories('../cmake/msvc')],
     c_args: gaol_msvc_args,
     cpp_args: gaol_msvc_args,
-    override_options: gaol_build_options,
+    override_options: gaol_lib_options,
   )
   gaollib_static = gaollib
 elif gaol_default_library == 'static'
@@ -214,7 +214,7 @@ elif gaol_default_library == 'static'
     install: true,
     extra_files: EXTRA_DIST,
     include_directories: incdir,
-    override_options: gaol_build_options,
+    override_options: gaol_lib_options,
   )
   gaollib_static = gaollib
 elif gaol_default_library == 'shared'
@@ -228,7 +228,7 @@ elif gaol_default_library == 'shared'
     include_directories: incdir,
     version: meson.project_version(),
     soversion: major_version.to_string(),
-    override_options: gaol_build_options,
+    override_options: gaol_lib_options,
   )
   gaollib_static = gaollib
 else
@@ -242,7 +242,7 @@ else
     include_directories: incdir,
     version: meson.project_version(),
     soversion: major_version.to_string(),
-    override_options: gaol_build_options,
+    override_options: gaol_lib_options,
   )
   gaollib_static = gaollib.get_static_lib()
 endif

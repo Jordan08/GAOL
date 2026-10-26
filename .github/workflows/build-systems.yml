@@ -3,18 +3,19 @@
 # as the CMake build does. Each build runs the unit tests (make test, ninja
 # test), and the tests are built again with each installed GAOL, on Linux
 # (x86_64, arm64, and i386 and armhf in containers), macOS (arm64, x86_64) and
-# Windows (MSYS2 for x64 and for x86, and Visual C++ with meson). Checks that the three builds give
-# GAOL the same configuration on each kind of machine (.github/audit). Each job
-# that runs the unit tests checks that numbers read and wrote numbers under a
-# locale writing a decimal comma, which the Linux jobs and the containers
-# generate first, macOS and Windows having one (.github/scripts/comma-locale.sh,
-# GAOL v5). The autotools jobs check that make distclean gives the sources back
-# as git has them. One job builds GAOL as a subproject of a meson project
-# (tests/meson_subproject, GAOL v5). An autotools job (--disable-exceptions)
-# and a meson job (-Denable-exception=false) build GAOL without exceptions,
-# where an error ends the program, and run the examples and the tests, which
-# leave out the checks of an exception there (GAOL v5). One job builds and
-# tests GAOL with meson 0.53.2, the oldest meson the build takes (GAOL v5).
+# Windows (MSYS2 for x64 and for x86, Cygwin, and Visual C++ and Clang with
+# meson). Checks that the three builds give GAOL the same configuration on each
+# kind of machine (.github/audit). Each job that runs the unit tests checks
+# that numbers read and wrote numbers under a locale writing a decimal comma,
+# which the Linux jobs and the containers generate first, macOS and Windows
+# having one (.github/scripts/comma-locale.sh, GAOL v5). The autotools jobs
+# check that make distclean gives the sources back as git has them. One job
+# builds GAOL as a subproject of a meson project (tests/meson_subproject, GAOL
+# v5). An autotools job (--disable-exceptions) and a meson job
+# (-Denable-exception=false) build GAOL without exceptions, where an error ends
+# the program, and run the examples and the tests, which leave out the checks
+# of an exception there (GAOL v5). One job builds and tests GAOL with meson
+# 0.53.2, the oldest meson the build takes (GAOL v5).
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -526,7 +527,7 @@ jobs:
           export CC=clang CXX=clang++ AR=llvm-ar RANLIB=llvm-ranlib LDFLAGS=-fuse-ld=lld
           ./configure --with-tests
           sh .github/scripts/check-intervals.sh gaol/gaol_configuration.h sse2
-          grep -E '^GAOL_CXX_STD =' gaol/Makefile
+          grep -E '^GAOL_CXX_STD = -std=c\+\+14$' gaol/Makefile
           make -j 4
           make -j 4 test
 

@@ -455,7 +455,7 @@ jobs:
   # __builtin_fma, which is the instruction at every level of optimization;
   # tests/core_math.cpp checks first the fma() and round() of its C library
   cygwin:
-    name: Cygwin GCC x64 Release
+    name: Cygwin GCC x64 Release and Debug
     runs-on: windows-2025
     timeout-minutes: 60
     defaults:

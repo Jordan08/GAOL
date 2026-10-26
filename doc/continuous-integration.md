@@ -48,8 +48,10 @@ only (see [The speed of a pull request](#the-speed-of-a-pull-request)). The badg
   of the arm64 part natively and the test programs of the x86_64 part under
   Rosetta, and the intervals each part says it has) with CMake, with autotools
   (`-arch` twice in `CFLAGS`, `CXXFLAGS` and `LDFLAGS`) and with meson (in
-  `c_args`, `cpp_args` and the link arguments), and with the sanitizers with
-  AppleClang, LLVM's Clang and GCC.
+  `c_args`, `cpp_args` and the link arguments), on macOS 15 and 26; the
+  generator of Xcode, with the list `arm64;x86_64` (universal) and without any
+  (CMake gives Xcode the architecture of the machine: `lipo` says `arm64`
+  alone); and the sanitizers with AppleClang, LLVM's Clang and GCC.
 - **Windows:**
   - Visual Studio 2022 and 2026, on x86, x64 and arm64, Release and Debug (on
     arm64, the compiler of Visual Studio 2022, MSVC 14.44, installed with
@@ -90,11 +92,19 @@ only (see [The speed of a pull request](#the-speed-of-a-pull-request)). The badg
     again with `GAOL_PRESERVE_ROUNDING`, which takes `-mfma` and the same path),
     and CLANGARM64 on the arm64 runners (Clang, the NEON intervals, and Clang
     again with `GAOL_PRESERVE_ROUNDING`);
-  - Cygwin, GCC for x86-64, Release (GAOL v5): `-mfma -mprefer-vector-width=128`
-    in the flags, the objects read as below, all the tests passing but those
-    that are skipped (`intervalf`, `interval2f`, and `cpack_stale_configure`,
-    the CPack of Cygwin not making an archive), and a configuration with
-    `GAOL_FMA=OFF` that `gaol/gaol_config.h` has to refuse;
+  - Cygwin, GCC for x86-64, Release and Debug (GAOL v5): `-mfma
+    -mprefer-vector-width=128` in the flags, the objects read as below, all the
+    tests passing but those that are skipped (`intervalf`, `interval2f`, and
+    `cpack_stale_configure`, the CPack of Cygwin not making an archive) in both
+    build types, and a configuration with `GAOL_FMA=OFF` that
+    `gaol/gaol_config.h` has to refuse; with autotools and meson as well, and
+    the tests built again with the installed GAOL (`tests.sh`);
+  - Clang with the target of Visual C++ and the driver of GCC (`clang++`, not
+    clang-cl), in the environment of Visual Studio (GAOL v5): CMake and meson
+    for x64 and x86 (meson with a file of cross-compilation for x86, which
+    names the machine and the target), and autotools for x64 (in a shell of
+    MSYS2, with `lld` and `llvm-ar`); the library is built in C++14 there, the
+    standard library of Visual C++ needing it;
   - With GCC on x64 and on x86, in Release, MinGW-w64 15, 14, 13 (x86) and 12
     (x86), MSYS2 UCRT64 and Cygwin, a step reads the objects with `objdump`
     (`.github/scripts/check-gcc-windows-fma.sh`, GAOL v5):
@@ -106,8 +116,8 @@ only (see [The speed of a pull request](#the-speed-of-a-pull-request)). The badg
     listed and noticed, not an error.
 
 They also build GAOL with autotools and meson on Ubuntu (x86_64, arm64),
-Debian (i386, armhf), macOS (arm64, x86_64) and MSYS2 (UCRT64 for x64, MINGW32
-for x86, GAOL v5), and with meson and
+Debian (i386, armhf), macOS (arm64, x86_64), MSYS2 (UCRT64 for x64, MINGW32
+for x86, GAOL v5) and Cygwin, and with meson and
 Visual Studio 2022 and 2026 (x64, x86), and with meson 0.53.2, the oldest the
 meson build takes (Ubuntu x86_64, GAOL v5), run the tests (`make test`,
 `ninja test`), and build them again with the

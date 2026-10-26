@@ -232,8 +232,10 @@ endif()
 set(CMAKE_CXX_STANDARD 11)
 # The standard library of Visual C++ needs C++14 (GAOL v5): Clang with the
 # driver of GCC for the target of Visual C++ (clang++ for x86_64-pc-windows-msvc
-# or i686-pc-windows-msvc, not clang-cl, which CMake gives /std:c++14 for 11)
-# simulates it, and its -std=c++11 does not compile the headers of that library
+# or i686-pc-windows-msvc) simulates it, and the -std=c++11 that CMake 3.14 gives
+# it does not compile the headers of that library (the more recent CMakes map 11
+# to 14 there already). clang-cl simulates it too, and gets /std:c++14, which is
+# its default
 if(CMAKE_CXX_SIMULATE_ID STREQUAL "MSVC")
   set(CMAKE_CXX_STANDARD 14)
 endif()
@@ -1233,7 +1235,11 @@ if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
   target_compile_options(gaol_core_math PRIVATE /wd4068 /wd4201 /wd4245 /wd4189 /wd4098)
 endif()
 
-if(MSVC)
+# A static library with Visual C++ and the compilers that simulate it: they
+# declare GAOL's classes and functions without __declspec(dllexport), so that a
+# DLL would export nothing (gaol/gaol_config.h; meson builds the static library
+# alone then too)
+if(MSVC OR CMAKE_CXX_SIMULATE_ID STREQUAL "MSVC")
   add_library(gaol STATIC ${GAOL_SOURCES} $<TARGET_OBJECTS:gaol_core_math>)
 else()
   add_library(gaol ${GAOL_SOURCES} $<TARGET_OBJECTS:gaol_core_math>)

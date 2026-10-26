@@ -166,6 +166,13 @@ GAOL.
 - **The 128-bit integer** (was `GAOL_U128_EMULATION`): the type of the compiler
   where it has one, else two 64-bit halves (Visual C++, and GCC for a 32-bit
   target), which `gaol/gaol_u128.h` takes by itself and the configuration says.
+- **Clang with the target of Visual C++** (`clang++` for
+  `x86_64-pc-windows-msvc` or `i686-pc-windows-msvc`, with the driver of GCC,
+  not clang-cl; GAOL v5): it defines `_MSC_VER`, which the three builds read
+  (`CMAKE_CXX_SIMULATE_ID` of CMake) to compile GAOL in C++14, the standard
+  library of Visual C++ needing it, with the `unistd.h` of `cmake/msvc` for the
+  lexer and without the warnings of the C runtime, and to build the static
+  library alone, as with Visual C++ (a DLL would export nothing).
 - **The debugging** (was `GAOL_DEBUG`, `GAOL_DEBUGGING`): GAOL and CORE-MATH are
   built for debugging, without optimization nor `NDEBUG`, with debugging
   information and `GAOL_DEBUGGING`, for the Debug build type (`CMAKE_BUILD_TYPE`,
