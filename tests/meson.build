@@ -25,8 +25,10 @@ gaol_tests = [
 ]
 # The rounding direction after the automatic cleanup of GAOL, read by a
 # function registered in a constructor of priority 101, which ELF runs before
-# GAOL initializes itself
-if host_machine.system() == 'linux'
+# GAOL initializes itself: a static libgaol only, a shared one initializing
+# itself before that constructor runs (as tests/CMakeLists.txt, BUILD_SHARED_LIBS;
+# GAOL v5: the tests linked the static library whatever default_library)
+if host_machine.system() == 'linux' and get_option('default_library') != 'shared'
   gaol_tests += ['automatic_cleanup']
 endif
 tests_args = []

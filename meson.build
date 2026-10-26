@@ -228,7 +228,12 @@ if get_option('enable-verbose-mode')
 endif
 
 # gaol/gaol_fpu.h: <fenv.h>
-if cpp_comp.has_header('fenv.h')
+# Compiled, not preprocessed (has_header() runs the preprocessor, which refuses
+# several -arch: a universal build of macOS would find no <fenv.h>; GAOL v5)
+if cpp_comp.compiles('''
+#include <fenv.h>
+int main(void) { return 0; }
+''', name: 'the compiler has <fenv.h>')
   conf_data.set('GAOL_HAVE_FENV_H', 1)
 endif
 
