@@ -29,9 +29,10 @@
    messages (GAOL_DEBUG_VERBOSE) */
 #undef GAOL_DEBUGGING
 
-/* Defined to 1 to raise exceptions instead of aborting: always with CMake,
-   by default with configure (--disable-exceptions) and meson
-   (-Denable-exception=false) */
+/* Defined to 1 to raise exceptions instead of aborting: by default with the
+   three builds; -DGAOL_EXCEPTIONS_ENABLED=OFF of CMake, --disable-exceptions
+   of configure and -Denable-exception=false of meson abort instead (settings of
+   the developers; GAOL v5) */
 #undef GAOL_EXCEPTIONS_ENABLED
 
 /* Defined to 1 to restore the rounding direction after each operation,
@@ -41,8 +42,9 @@
 #undef GAOL_PRESERVE_ROUNDING
 
 /* Defined to 1 to write a line on the standard error when GAOL initializes
-   and cleans up (GAOL_VERBOSE_MODE, --enable-verbose-mode,
-   -Denable-verbose-mode=true; off by default) */
+   and cleans up (-DGAOL_VERBOSE_MODE=ON of CMake, --enable-verbose-mode of
+   configure, -Denable-verbose-mode=true of meson; off by default: a setting of
+   the developers; GAOL v5) */
 #undef GAOL_VERBOSE_MODE
 
 /* Defined to 1 where the intervals are computed with SSE2 instructions
@@ -56,11 +58,27 @@
 #undef GAOL_USING_SSE3_INSTRUCTIONS
 
 /* Defined to 1 where the intervals are computed with NEON instructions
-   (64-bit ARM processors, with every compiler; not with 32-bit ARM or a
-   universal build of macOS; GAOL_ARM64, --enable-arm64, -Denable-arm64,
-   on by default; independent of GAOL_SIMD) (GAOL v5) */
+   (64-bit ARM processors, with every compiler; not with 32-bit ARM;
+   GAOL_SIMD, --enable-simd, -Denable-simd, on by default, as for the SSE2
+   intervals) (GAOL v5: GAOL_ARM64, --enable-arm64 and -Denable-arm64 were
+   options of their own, independent of GAOL_SIMD) */
 #undef GAOL_USING_NEON_INSTRUCTIONS
 
+/* Defined to 1 by a universal build of macOS (several architectures in
+   CMAKE_OSX_ARCHITECTURES of CMake, or -arch several times in the flags of
+   configure and meson; one configuration compiled for each): SSE2 for the
+   x86_64 part, where GAOL_SIMD allows it, and NEON for the arm64 part, where
+   it does too. The macros above are then those of the architecture being
+   compiled (GAOL v5) */
+#undef GAOL_UNIVERSAL_SSE2
+#undef GAOL_UNIVERSAL_NEON
+#if defined(GAOL_UNIVERSAL_SSE2) && defined(__x86_64__)
+#  define GAOL_USING_SSE2_INSTRUCTIONS 1
+#  define GAOL_USING_SSE3_INSTRUCTIONS 1
+#endif
+#if defined(GAOL_UNIVERSAL_NEON) && defined(__aarch64__)
+#  define GAOL_USING_NEON_INSTRUCTIONS 1
+#endif
 /* Defined to 1 where the compiler accepts the AVX-512 instructions in the
    functions that carry __attribute__((target("avx512f"))) and
    __builtin_cpu_supports("avx512f"), which the AVX-512 path of +, -, *, /,
@@ -69,9 +87,12 @@
    function and tells the processor by cpuid (GAOL v5) */
 #undef GAOL_HAVE_AVX512_TARGET
 
-/* Defined to 1 to ask for that path (GAOL_PREFER_AVX512,
-   --enable-prefer-avx512; on by default where GAOL_PRESERVE_ROUNDING is,
-   off otherwise), which
+/* Defined to 1 to ask for that path (GAOL_PREFER_AVX512): the build decides, on
+   where GAOL_PRESERVE_ROUNDING is and off otherwise, which is what the
+   measures of doc/simd.md ask for; -DGAOL_PREFER_AVX512=ON|OFF of CMake,
+   --enable-prefer-avx512 and --disable-prefer-avx512 of configure,
+   -Denable-prefer-avx512=true|false of meson ask otherwise (settings of the
+   developers, and of the users who build a package for any processor), which
    GAOL_AVX512_ARITHMETIC below takes where it can: +, -, *, /, sqr, sqrt
    and, with FMA, the integer powers beyond 1 and -1 then set no rounding
    direction, their instructions carrying theirs and raising no exception
@@ -83,8 +104,11 @@
 /* Defined to 1 where +, -, *, /, sqr, sqrt and, with FMA, the integer powers
    beyond 1 and -1 take the AVX-512 path, which the configuration decides:
    GAOL_PREFER_AVX512, a compiler that takes the path
-   (GAOL_HAVE_AVX512_TARGET), and a machine building that runs it, never when
-   cross-compiling. The library then needs a processor with the AVX-512
+   (GAOL_HAVE_AVX512_TARGET), and a machine building that runs it (when
+   cross-compiling no program can be run, and the path is left out unless
+   GAOL_MACHINE_RUNS_AVX512 of CMake, gaol_cv_machine_runs_avx512=yes of
+   configure or machine-runs-avx512 of meson says that the machine running GAOL
+   runs it). The library then needs a processor with the AVX-512
    instructions, and the operations test nothing as they run (GAOL v5, point
    AA of TODO.md) */
 #undef GAOL_AVX512_ARITHMETIC
