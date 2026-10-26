@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 # ITF1788 on GAOL v5: fetches ITF1788 (fetch.sh), builds and installs GAOL v5
 # from this repository with CMake, once with the SSE2 or NEON intervals (the
-# default) and once with the FPU ones (GAOL_SIMD=OFF and GAOL_ARM64=OFF, which
-# the NEON intervals of 64-bit ARM processors, GAOL v5, need as well; harmless
-# on x86), generates a program per .itl
+# default) and once with the FPU ones (GAOL_SIMD=OFF, which the NEON intervals
+# of 64-bit ARM processors follow too, GAOL v5), generates a program per .itl
 # file of the suite (itf1788.py generate), compiles and runs the programs with
 # each build, and writes the tables of doc/compare/itf1788.md (itf1788.py
 # report), between its markers.
@@ -40,7 +39,7 @@ REPORT="${REPORT:-$HERE/../itf1788.md}"
 for b in $BUILDS; do
   case "$b" in
     sse) options="" ;;
-    fpu) options="-DGAOL_SIMD=OFF -DGAOL_ARM64=OFF" ;;
+    fpu) options="-DGAOL_SIMD=OFF" ;;
     *) echo "error: unknown build $b (sse or fpu)" >&2; exit 1 ;;
   esac
   if [ -n "${FORCE_GAOL:-}" ] || [ ! -f "$WORK/$b/prefix/lib/pkgconfig/gaol.pc" ]; then

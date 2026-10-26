@@ -63,14 +63,14 @@ Each build is a CMake build with the tests and the compile commands:
 
 ```bash
 cmake -S . -B build-sse -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-cmake -S . -B build-fpu -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DGAOL_SIMD=OFF -DGAOL_ARM64=OFF
+cmake -S . -B build-fpu -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DGAOL_SIMD=OFF
 cmake --build build-sse -j 4
 cmake --build build-fpu -j 4
 ```
 
 `build-sse` has the SSE2 intervals, the default on x86 (the NEON ones on 64-bit
-ARM, GAOL v5), and `build-fpu` the FPU ones (`-DGAOL_SIMD=OFF
--DGAOL_ARM64=OFF`: the second switch is for 64-bit ARM, and harmless on x86).
+ARM, GAOL v5), and `build-fpu` the FPU ones (`-DGAOL_SIMD=OFF`; GAOL v5:
+`-DGAOL_ARM64=OFF` was needed as well on 64-bit ARM).
 To compare a change with the code before it,
 build the code before it the same way from a second tree, for instance
 `git worktree add ../gaol-base configure-clean`, then
@@ -142,12 +142,12 @@ Y = [p], as the test does, and exits with 1 where they do not.
 ```bash
 python3 tests/tools/pow/mutate.py --work /tmp/pow/mutants
 python3 tests/tools/pow/mutate.py --work /tmp/pow/mutants --test ieee1788
-python3 tests/tools/pow/mutate.py --work /tmp/pow/mutants-fpu --cmake-option=-DGAOL_SIMD=OFF --cmake-option=-DGAOL_ARM64=OFF corner gaol-
+python3 tests/tools/pow/mutate.py --work /tmp/pow/mutants-fpu --cmake-option=-DGAOL_SIMD=OFF corner gaol-
 python3 tests/tools/pow/mutate.py --list
 # the integer powers: the SSE2 build with FMA, then the FPU one
 T="--test ieee1788 --test elementary --test arithmetic --test rounding_direction --test expressions"
 python3 tests/tools/pow/mutate.py --work /tmp/pow/mutants $T std corner gaol real ieee pown sse-fma
-python3 tests/tools/pow/mutate.py --work /tmp/pow/mutants-fpu --cmake-option=-DGAOL_SIMD=OFF --cmake-option=-DGAOL_ARM64=OFF $T std corner gaol real ieee pown fpu
+python3 tests/tools/pow/mutate.py --work /tmp/pow/mutants-fpu --cmake-option=-DGAOL_SIMD=OFF $T std corner gaol real ieee pown fpu
 ```
 
 The sources are copied to `WORK/src` and built in `WORK/build`; each mutant
@@ -156,8 +156,8 @@ processes, 2 by default) and runs them: `ieee1788` and `elementary` by
 default, the tests given with `--test` otherwise (`--test ieee1788` alone
 shows what `pow_on_boxes()` catches; `arithmetic`, `rounding_direction`,
 `core_math` and `other_functions` call `pow` too, and take a few seconds
-more). A CMake option is written `--cmake-option=-DGAOL_SIMD=OFF`, with `=`; the FPU
-build also needs `--cmake-option=-DGAOL_ARM64=OFF` on 64-bit ARM (GAOL v5).
+more). A CMake option is written `--cmake-option=-DGAOL_SIMD=OFF`, with `=`,
+which is all the FPU build needs, on 64-bit ARM too (GAOL v5).
 A run of the 48 mutants takes about 5 minutes (4 jobs); the arguments
 after the options select the mutants whose name contains one of them.
 

@@ -96,6 +96,117 @@ meson and autoconf.
 The editions of the manuals (`GAOL_V5_EDITION`, `GAOL_EDITION`) are their own,
 set in `configure.ac` and `manual/meson.build`.
 
+## The options
+
+The three builds have the same options (GAOL v5; each had options of its own,
+and those of the fused multiply-add instructions, of the AVX-512 path, of the
+128-bit integer, of the debugging and of the NEON intervals are gone as options:
+the configuration decides them, see [below](#what-the-configuration-decides)).
+The standard options of each tool do the rest:
+
+| CMake | configure | meson | Default | |
+|---|---|---|---|---|
+| `GAOL_PRESERVE_ROUNDING` | `--enable-preserve-rounding` | `-Denable-preserve-rounding=true` | off | Restore the rounding direction found after each operation, rather than leaving it upward (see [The rounding direction](using.md#the-rounding-direction)) |
+| `GAOL_SIMD` | `--enable-simd` | `-Denable-simd=true` | on | Compute the intervals with the vector instructions of the processor, as soon as it has them: SSE2 on x86 (`-msse2 -msse3`, no flag with Visual C++ and clang-cl for x64; on 32-bit Windows with GCC and Clang, with `-faligned-new=8`, which `gaol::gaol` gives to the code using GAOL too, and with Visual C++ and clang-cl, whose intervals keep their two bounds as two doubles, which need no aligned memory), NEON on 64-bit ARM with every compiler (GCC, Clang and AppleClang under Linux and macOS, clang-cl, Visual C++, the Clang of MinGW-w64 and MSYS2; no flag; GAOL v5: `GAOL_ARM64`, `--enable-arm64` and `enable-arm64` were an option of their own, independent of `GAOL_SIMD`). Off, or on any other processor (32-bit ARM, POWER, s390x, RISC-V...), the FPU computes them (see [The three builds](three-builds.md)) |
+| `GAOL_COVERAGE` | `--enable-coverage` | `-Denable-coverage=true` | off | Compile GAOL and its tests with the counters of gcov, and add the target that runs the tests and writes `coverage/coverage.html` and the page of conclusions [coverage/README.md](../coverage/README.md): `cmake --build <build> --target coverage`, `make coverage`, `ninja -C <build> gaol-coverage` (meson keeps `coverage` for its own report). GCC and Clang, with the Debug build, `gcovr` and Python 3; the tests have to be built (`WITH_TESTS`, `--with-tests`, `with-tests`) |
+| `WITH_TESTS` | `--with-tests` | `-Dwith-tests=true` | off | Build the unit tests of `tests/`, which `make test` and `make check` run (see [below](#tests-examples-performance-and-the-parser)) |
+| `WITH_EXAMPLES` | `--with-examples` | `-Dwith-examples=true` | off | Build the examples of `examples/`, which `make check` runs |
+| `BUILD_SHARED_LIBS` | `--enable-shared` | `-Ddefault_library=shared` | off | A static library `libgaol.a`; on, the shared library `libgaol.so.5.0.0` (soname `libgaol.so.5`). With configure the static library is built too unless `--disable-static` (as with `-Ddefault_library=both` of meson); always static with Visual C++ (GAOL v5: configure and meson built both by default) |
+| `CMAKE_BUILD_TYPE` | `--enable-debug` | `--buildtype=debug` | `Release` | `Debug` builds GAOL without optimization, with debugging information, and without `NDEBUG`, so that `assert()` stays active; the Release build is `-O3`, `NDEBUG` and `-funroll-loops -fomit-frame-pointer -fexpensive-optimizations`. With configure, `--enable-debug` brought into another project with `AC_CONFIG_SUBDIRS` is the `--enable-debug` of its configure, which passes on its options (and which that configure may read too), for the tests of GAOL as well. Brought in as a subproject by a project that leaves the build type to its default, GAOL is built in release (see [Using GAOL](using.md#from-pkg-config)) |
+| `CMAKE_POSITION_INDEPENDENT_CODE` | `--enable-pic` (`--disable-pic`; `--with-pic` too) | `-Db_staticpic=true` | on | Compile GAOL as position-independent code (`-fPIC`), which linking it into a shared library needs; a project building GAOL with FetchContent that sets it is followed (GAOL v5: configure compiled the static library without it) |
+| `CMAKE_OSX_ARCHITECTURES` | `-arch` several times in `CFLAGS`, `CXXFLAGS` and `LDFLAGS` | `-arch` several times in `-Dc_args`, `-Dcpp_args`, `-Dc_link_args` and `-Dcpp_link_args` | the machine's | A universal build of macOS, one configuration compiled for each architecture: SSE2 for x86_64 and NEON for arm64, where `GAOL_SIMD` allows them, and no fused multiply-add instructions nor AVX-512 path (GAOL v5: CMake only; configure and meson are not checked on a Mac of ours, only by the continuous integration) |
+| `CMAKE_INSTALL_PREFIX` | `--prefix` | `--prefix` | the system's | Where GAOL is installed |
+
+### What the configuration decides
+
+The rest of the configuration is decided by checks of the compiler and of the
+machine, the same with the three builds, each told in the messages of `cmake`,
+`configure` and `meson setup`. They assume that the compiler, the architecture
+and the system that configure and compile GAOL are those of the code using it
+(GAOL v5): a program compiled and run by the configuration tells what the
+machine does, and the headers and `gaol.pc` carry the flags of the code using
+GAOL.
+
+- **The fused multiply-add instructions** (was `GAOL_FMA`, `--enable-fma`,
+  `enable-fma`): GAOL and CORE-MATH are compiled with them whenever the machine
+  building runs a program compiled with them (a program that runs the
+  instruction itself: `__builtin_fma()`, and the intrinsic `_mm_fmadd_sd()` with
+  Visual C++ and clang-cl for x64, which a processor without FMA3 stops on). `-mfma` on x86 (with
+  `-mprefer-vector-width=128` with GCC for Windows, on x86-64 and on 32-bit
+  x86), `/arch:AVX2` with Visual C++ for x64, `-mfpu=neon-vfpv4
+  -mfloat-abi=hard` on 32-bit ARM; 64-bit ARM, POWER, s390x and RISC-V have
+  them without a flag. The library then needs a processor with them (on x86,
+  Intel Haswell and AMD Piledriver, 2012-2013, and later). The code using GAOL
+  is given the flag too, in `gaol::gaol` and `gaol.pc`, and `-ffp-contract=off`
+  stays (see [The three builds](three-builds.md)). Where no program can be run,
+  in a cross-compilation, they are left out, with a message. A universal build
+  of macOS leaves the flag out, its arm64 part refusing `-mfma` while it has the
+  instructions without a flag: the x86_64 part is then built without them, runs
+  on any x86_64 processor, Rosetta 2 included, but CORE-MATH and GAOL's exact
+  products call the `fma()` of the system library, and the integer powers beyond
+  1 and -1 do not take the packed kernel that uses the instruction; a build for
+  x86_64 alone (`CMAKE_OSX_ARCHITECTURES=x86_64`) takes `-mfma` where the
+  machine building runs a program compiled with it.
+- **The AVX-512 path** (was `GAOL_PREFER_AVX512`, `--enable-prefer-avx512`,
+  `enable-prefer-avx512`): +, -, *, /, sqr, sqrt and, with FMA, the integer
+  powers beyond 1 and -1 take the AVX-512 instructions and the rounding
+  direction they carry in themselves, which sets no rounding direction, where
+  `GAOL_PRESERVE_ROUNDING` is on, the compiler takes the instructions and the
+  machine building runs them; otherwise the SSE2 intervals compute them. The
+  rule comes from the measures of [SIMD, FMA and the rounding
+  direction](simd.md#when-the-build-takes-the-avx-512-path): the path spares the
+  store of the rounding direction that every operation pays with
+  `GAOL_PRESERVE_ROUNDING`, where it gains 1.3 to 4.4 times at the median of 2.8
+  on an Intel i7-1185G7, and costs 17 % at the median without it (the processor
+  halves the AVX-512 units, and no other was measured). The library then needs a
+  processor with the instructions, as with the fused multiply-add instructions,
+  and `gaol::init()` stops a program run on another one with a message (see
+  [The AVX-512 path](using.md#the-avx-512-path)). In a cross-compilation, where
+  no program can be run, the path is left out, with a message.
+- **The 128-bit integer** (was `GAOL_U128_EMULATION`): the type of the compiler
+  where it has one, else two 64-bit halves (Visual C++, and GCC for a 32-bit
+  target), which `gaol/gaol_u128.h` takes by itself and the configuration says.
+- **The debugging** (was `GAOL_DEBUG`, `GAOL_DEBUGGING`): GAOL and CORE-MATH are
+  built for debugging, without optimization nor `NDEBUG`, with debugging
+  information and `GAOL_DEBUGGING`, for the Debug build type (`CMAKE_BUILD_TYPE`,
+  `--enable-debug`, `--buildtype=debug`); there is no target `perf` then. Each
+  configuration keeps its other flags (the C runtime of Visual C++,
+  sanitizers...); the tests and the examples, and the code of a project bringing
+  GAOL in, keep their build type.
+- **The memory and the flags of the intervals**: the aligned memory the SSE2
+  intervals need on 32-bit Windows, the flags of interval arithmetic, the link
+  option `-mno-daz-ftz`, `<fenv.h>`, the visibility, the type of the intervals
+  of a universal build.
+
+### The settings of the developers
+
+The checks above decide by themselves. A developer who wants to run a path the
+machine would not take, or a package for any processor, gives one of these. They
+are not options of the user: `configure --help` does not list them, and
+`meson configure` lists them with the mark \[developers\] since meson cannot
+leave them out. CMake reads them where they apply, without having them in the
+cache unless they were given.
+
+| CMake | configure | meson | |
+|---|---|---|---|
+| `-DGAOL_FMA=OFF` | `--disable-fma` | `-Denable-fma=false` | No fused multiply-add instructions: a library for any processor of the architecture |
+| `-DGAOL_PREFER_AVX512=ON`, `=OFF` | `--enable-prefer-avx512`, `--disable-prefer-avx512` | `-Denable-prefer-avx512=true`, `=false` | The AVX-512 path asked for without `GAOL_PRESERVE_ROUNDING`, or refused with it (a package for any processor); asked for where the compiler cannot take it, an error |
+| `-DGAOL_U128_EMULATION=ON` | `CPPFLAGS=-DGAOL_U128_FORCE_EMULATION=1` | `-Dc_args=-DGAOL_U128_FORCE_EMULATION=1 -Dcpp_args=-DGAOL_U128_FORCE_EMULATION=1` | The two 64-bit halves where the compiler has a 128-bit type: the code of Visual C++ and of the 32-bit targets on an ordinary machine |
+| `-DGAOL_DEBUG=ON` | `--enable-debug` | `-Denable-debug=true` | GAOL and CORE-MATH built for debugging whatever the build type, a project bringing GAOL in included (`-Dgaol:enable-debug=true` for a subproject of meson); the tests and the examples keep the build type |
+| `-DGAOL_EXCEPTIONS_ENABLED=OFF` | `--disable-exceptions` | `-Denable-exception=false` | GAOL aborts to signal an error instead of raising an exception |
+| `-DGAOL_VERBOSE_MODE=ON` | `--enable-verbose-mode` | `-Denable-verbose-mode=true` | A line on the standard error when GAOL initializes and cleans up; GAOL is silent by default |
+| `-DGAOL_SSE2_UNALIGNED_STORAGE=ON` | `CXXFLAGS=-DGAOL_SSE2_UNALIGNED_STORAGE=1` | `-Dcpp_args=-DGAOL_SSE2_UNALIGNED_STORAGE=1` | The SSE2 intervals with their two bounds as two doubles, as on 32-bit Windows with Visual C++ and clang-cl: that layout on another system (a program must not define that macro, a mismatch with the library being a mismatch of the layout) |
+| `-DGAOL_MACHINE_RUNS_FMA=1`, `-DGAOL_MACHINE_RUNS_AVX512=1` | `gaol_cv_machine_runs_fma=yes`, `gaol_cv_machine_runs_avx512=yes` | `-Dmachine-runs-fma=true`, `-Dmachine-runs-avx512=true` | In a cross-compilation, or under an emulator, where no program can be run: the machine running GAOL has the fused multiply-add instructions or runs the AVX-512 ones |
+
+An option that GAOL had and no longer has is refused or warned of: meson refuses
+`-Denable-arm64`, CMake and configure warn that `GAOL_ARM64=OFF` and
+`--disable-arm64` are no longer read, and say `GAOL_SIMD=OFF` and
+`--disable-simd`. A build directory of CMake configured before this holds the
+entries of the options that are gone (`GAOL_FMA`, `GAOL_DEBUG`...), which stay
+harmless, and `GAOL_PREFER_AVX512`, which the older CMake kept with the value it
+had derived: the record `GAOL_PREFER_AVX512_DERIVED` tells it, and both entries
+go.
+
 ## With CMake
 
 ```bash
@@ -116,26 +227,14 @@ optimization). With a generator of several configurations (Visual Studio,
 Xcode, Ninja Multi-Config), GAOL built alone puts Release first among them,
 which Ninja Multi-Config builds by default, unless `CMAKE_CONFIGURATION_TYPES`
 is given; `cmake --build` with Visual Studio builds Debug all the same without
-`--config` (GAOL v5). `GAOL_DEBUG` builds GAOL for debugging whatever the
-build type or the configuration (below).
+`--config` (GAOL v5). The Debug build type builds GAOL for debugging (see
+[What the configuration decides](#what-the-configuration-decides)).
 
-| Option | Default | |
-|---|---|---|
-| `CMAKE_BUILD_TYPE` | `Release` | `Debug` builds GAOL without optimization, with debugging information, and without `NDEBUG`, so that `assert()` stays active, as `configure --enable-debug` and `meson setup --buildtype=debug` |
-| `CMAKE_INSTALL_PREFIX` | the system's | Where `cmake --install` puts GAOL |
-| `BUILD_SHARED_LIBS` | `OFF` | `ON` builds the shared library `libgaol.so.5.0.0` (soname `libgaol.so.5`), as configure and meson do; always static with Visual C++ |
-| `CMAKE_POSITION_INDEPENDENT_CODE` | `ON` | Compile GAOL as position-independent code (`-fPIC`), which linking them into a shared library needs; a project building GAOL with FetchContent that sets it is followed |
-| `WITH_TESTS` | `OFF` | Build the unit tests of `tests/`, which `make test` and `make check` run (see [below](#tests-examples-performance-and-the-parser)) |
-| `WITH_EXAMPLES` | `OFF` | Build the examples of `examples/`, which `make check` runs |
-| `GAOL_SIMD` | `ON` | Compute the intervals with SSE2 instructions on x86 processors (`-msse2 -msse3`, no flag with Visual C++ and clang-cl for x64); on 32-bit Windows with GCC and Clang, with `-faligned-new=8`, which `gaol::gaol` gives to the code using GAOL too, and with Visual C++ and clang-cl, whose intervals keep their two bounds as two doubles, which need no aligned memory (GAOL v5, see [The three builds](three-builds.md)) |
-| `GAOL_ARM64` | `ON` | Compute the intervals with NEON instructions on 64-bit ARM processors, which need no flag (GAOL v5): `ON` by default on 64-bit ARM with every compiler: GCC, Clang and AppleClang under Linux and macOS, clang-cl and the Clang of MinGW-w64 and MSYS2 (FPCR is read and written by `mrs` and `msr` in an asm statement), and Visual C++ (`cl`, with `_ReadStatusReg()` and `_WriteStatusReg()`); not offered with 32-bit ARM, whose NEON has no vector of doubles. A universal build of macOS (CMake, `CMAKE_OSX_ARCHITECTURES` with several architectures) takes them for its arm64 part and the SSE2 intervals for its x86_64 part (GAOL v5). Independent of `GAOL_SIMD`, which stays for x86 processors; `OFF` has the FPU compute them on 64-bit ARM too |
-| `GAOL_COVERAGE` | `OFF` | Compile GAOL and its tests with the counters of gcov, and add the target `coverage`, which runs the tests and writes `coverage/coverage.html` and the page of conclusions [coverage/README.md](../coverage/README.md). GCC and Clang, with `-DCMAKE_BUILD_TYPE=Debug` |
-| `GAOL_U128_EMULATION` | `OFF` | Compute the 128-bit integer of the accurate phases with two 64-bit halves, as where the compiler has no 128-bit type (Visual C++, and GCC for a 32-bit target): the way to run that code on an ordinary machine |
-| `GAOL_FMA` | `ON` | Compile GAOL and CORE-MATH with the fused multiply-add instructions of the processor, where the compiler has a flag for them and the machine building runs a program compiled with it (not checked when cross-compiling): `-mfma` on x86 (with `-mprefer-vector-width=128` with GCC for Windows, on x86-64 and on 32-bit x86; GAOL v5), `/arch:AVX2` with Visual C++ for x64, `-mfpu=neon-vfpv4 -mfloat-abi=hard` on 32-bit ARM; 64-bit ARM, POWER, s390x and RISC-V have them without a flag. The library then needs a processor with them (on x86, Intel Haswell and AMD Piledriver, 2012-2013, and later); `OFF` builds it for any processor of the architecture. The code using GAOL is given the flag too, in `gaol::gaol` and `gaol.pc`, and `-ffp-contract=off` stays (see [The three builds](three-builds.md)). A universal build of macOS leaves the flag out, its arm64 part refusing `-mfma` while it has the instructions without a flag: the x86_64 part is then built without them, runs on any x86_64 processor, Rosetta 2 included, but CORE-MATH and GAOL's exact products call the `fma()` of the system library, and the integer powers beyond 1 and -1 do not take the packed kernel that uses the instruction; a build for x86_64 alone (`CMAKE_OSX_ARCHITECTURES=x86_64`) takes `-mfma` where the machine building runs a program compiled with it (GAOL v5) |
-| `GAOL_VERBOSE_MODE` | `OFF` | Write a line on the standard error when GAOL initializes and cleans up (`GAOL_VERBOSE_MODE`); GAOL is silent by default |
-| `GAOL_DEBUG` | `OFF` | Build `libgaol` and CORE-MATH for debugging, without optimization nor `NDEBUG`, with debugging information and `GAOL_DEBUGGING`, whatever the build type or the configuration, a project bringing GAOL in included, as `enable-debug` of meson and `--enable-debug` of configure. Each configuration keeps its other flags (the C runtime of Visual C++, sanitizers...); the tests and the examples, and the code of that project, keep their build type; there is no target `perf` (GAOL v5) |
-| `GAOL_PRESERVE_ROUNDING` | `OFF` | Restore the rounding direction found after each operation, rather than leaving it upward (see [The rounding direction](using.md#the-rounding-direction)) |
-| `GAOL_PREFER_AVX512` | `OFF`, `ON` with `GAOL_PRESERVE_ROUNDING` | Have +, -, *, /, sqr, sqrt and, with FMA, the integer powers beyond 1 and -1 take the AVX-512 instructions and the rounding direction they carry in themselves, which sets no rounding direction, where the compiler takes them and the machine building runs them (not checked when cross-compiling, where the path is left out): the library then needs a processor with them, as with `GAOL_FMA`; `OFF` builds it for any processor of the architecture. Asked for explicitly on a machine without them, the path is left out with a message, where a compiler that cannot take it is an error. The default is derived again at every `cmake` that is given no value for it, so a second `cmake` in the same directory, or one with another `GAOL_PRESERVE_ROUNDING`, gives the configuration a first one would; a value given on the command line stays until `-UGAOL_PREFER_AVX512` (GAOL v5, see [The rounding direction](using.md#the-avx-512-path); a second `cmake` took the first one's entry for a value given, and left the path out) |
+The options are those of [The options](#the-options), with the variables of
+CMake that are not GAOL's: `CMAKE_BUILD_TYPE`, `CMAKE_INSTALL_PREFIX`,
+`BUILD_SHARED_LIBS`, `CMAKE_POSITION_INDEPENDENT_CODE` and
+`CMAKE_OSX_ARCHITECTURES`. The settings of the developers are given with
+`-D`, as the table above says.
 
 ### The archive of the sources and the packages
 
@@ -144,7 +243,7 @@ build made the archive of the sources:
 
 ```bash
 git clone https://github.com/Jordan08/GAOL.git gaol && cd gaol
-cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/usr -DGAOL_FMA=OFF
+cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/usr -DGAOL_FMA=OFF -DGAOL_PREFER_AVX512=OFF
 cmake --build build --config Release
 cmake --build build --target package_source
 cmake --build build --target package
@@ -172,14 +271,15 @@ and CPack does when `VERSION.txt` holds another version than the build
 directory was configured for (`cmake/gaol_package_source.cmake`, GAOL v5),
 where the Makefile generators ran CPack at once.
 
-The packages hold `libgaol` as the build compiled it: with `GAOL_FMA` `ON`,
-the default, only the processors that have the fused multiply-add
-instructions run it, and the code using it is compiled with `-mfma`;
+The packages hold `libgaol` as the build compiled it: where the machine
+building has the fused multiply-add instructions, only the processors that have
+them run it, and the code using it is compiled with `-mfma`;
 `-DGAOL_FMA=OFF` makes packages for any processor of the architecture. So
 does `-DGAOL_PREFER_AVX512=OFF` where `GAOL_PRESERVE_ROUNDING` is `ON`,
-whose default `GAOL_PREFER_AVX512` makes a library that only the
-processors with the AVX-512 instructions run, when the machine building has
-them (GAOL v5; Visual C++ and clang-cl for x64 too).
+whose AVX-512 path makes a library that only the processors with the AVX-512
+instructions run, when the machine building has them (GAOL v5; Visual C++ and
+clang-cl for x64 too). See [The settings of the
+developers](#the-settings-of-the-developers).
 `-DCMAKE_INSTALL_PREFIX=/usr` gives the library directory of Debian and Ubuntu
 (`lib/x86_64-linux-gnu`); with another prefix, the `.deb` puts the files in
 `/usr/lib`.
@@ -227,21 +327,33 @@ their defaults:
 
 | Option | Default | |
 |---|---|---|
-| `--enable-optimize` | `yes` | `-O3 -funroll-loops -fomit-frame-pointer -fexpensive-optimizations` and `NDEBUG`, for the C++ and C sources alike (GAOL and CORE-MATH), as the Release build of CMake; `--disable-optimize` compiles with `-O` |
-| `--enable-debug` | `no` | The Debug build of CMake: `-g`, no optimization and no `NDEBUG` (`--enable-optimize` is then ignored), so that `assert()` stays active; brought into another project with `AC_CONFIG_SUBDIRS`, the `--enable-debug` of its configure, which passes on its options (and which that configure may read too), for the tests of GAOL as well, where `GAOL_DEBUG` of CMake and `enable-debug` of meson build the libraries alone so |
-| `--enable-simd` | `yes` | The SSE2 intervals on x86 processors, as `GAOL_SIMD` |
-| `--enable-arm64` | `yes` | The NEON intervals on 64-bit ARM processors, as `GAOL_ARM64` (GAOL v5): `yes` by default on 64-bit ARM with GCC and Clang, those of MinGW-w64 and MSYS2 included (configure does not build with Visual C++ nor clang-cl); not offered with 32-bit ARM, where it is ignored; independent of `--enable-simd` |
-| `--enable-fma` | `yes` | The fused multiply-add instructions of the processor, as `GAOL_FMA` |
-| `--enable-verbose-mode` | `no` | The line on the standard error, as `GAOL_VERBOSE_MODE` |
+| `--enable-simd` | `yes` | The vector intervals, SSE2 or NEON, as `GAOL_SIMD` |
 | `--enable-preserve-rounding` | `no` | Restore the rounding direction after each operation, as `GAOL_PRESERVE_ROUNDING` |
-| `--enable-prefer-avx512` | `no`, `yes` with `--enable-preserve-rounding` | Have +, -, *, /, sqr, sqrt and, with FMA, the integer powers beyond 1 and -1 take the AVX-512 instructions and the rounding direction they carry in themselves, where the machine building runs them, as `GAOL_PREFER_AVX512` (GAOL v5) |
-| `--enable-exceptions` | `yes` | Raise exceptions to signal errors, rather than abort |
+| `--enable-coverage` | `no` | The counters of gcov and the target `make coverage`, as `GAOL_COVERAGE` |
+| `--enable-debug` | `no` | The Debug build of CMake |
+| `--enable-shared`, `--enable-static` | `no`, `yes` | The shared library `libgaol.so.5.0.0` too; the static library alone by default, as CMake (libtool's options) |
+| `--enable-pic` | `yes` | Position-independent code, as `CMAKE_POSITION_INDEPENDENT_CODE` |
 | `--with-tests` | `no` | Build the unit tests of `tests/`, which `make test` and `make check` run, as `WITH_TESTS` |
 | `--with-examples` | `no` | Build the examples of `examples/`, which `make check` runs, as `WITH_EXAMPLES` |
 
-`make` builds `libgaol.a` and the shared library `libgaol.so.5.0.0`, whose
-soname is `libgaol.so.5`, as CMake (`BUILD_SHARED_LIBS`) and meson name them;
-it was `libgaol-5.0.so.0`. `configure --help` ends with the address for the bug
+These are [the options](#the-options) of the three builds, and
+`configure --help` lists them (with the options of libtool and automake).
+`--enable-optimize` (the Release build, which is the default, and `-O` with
+`--disable-optimize`) and `--enable-arm64` (GAOL v5: the NEON intervals follow
+`--enable-simd`) are no longer options; the other options of GAOL 4 and of GAOL v5's earlier days
+(`--enable-fma`, `--enable-prefer-avx512`, `--enable-verbose-mode`,
+`--enable-exceptions`) are [settings of the
+developers](#the-settings-of-the-developers), which `--help` does not list. A
+universal build of macOS is configured with `-arch` several times in the flags
+of the compilers (GAOL v5): `./configure CFLAGS="-arch arm64 -arch x86_64"
+CXXFLAGS="-arch arm64 -arch x86_64" LDFLAGS="-arch arm64 -arch x86_64"`; the
+dependency tracking of automake, which the compilers do not take with several
+`-arch`, is turned off then.
+
+`make` builds `libgaol.a`, and with `--enable-shared` the shared library
+`libgaol.so.5.0.0` too, whose soname is `libgaol.so.5`, as CMake
+(`BUILD_SHARED_LIBS`) and meson name them; it was `libgaol-5.0.so.0`. It built
+the shared library by default before GAOL v5. `configure --help` ends with the address for the bug
 reports, jordan.ninin@ensta.fr, and the page of GAOL v5,
 https://github.com/Jordan08/GAOL.
 
@@ -264,28 +376,35 @@ Ubuntu 20.04, `ninja -C build` builds GAOL as well. The options
 
 | Option | Default | |
 |---|---|---|
-| `buildtype` | `release` | `-O3`, `NDEBUG` and `-funroll-loops -fomit-frame-pointer -fexpensive-optimizations`, as the Release build of CMake and configure; `debug` builds GAOL without optimization, with debugging information, and without `NDEBUG`, so that `assert()` stays active, as the Debug build of CMake and `configure --enable-debug`. The option `enable-optimize` is gone. Brought in as a subproject, GAOL is built in `release` too where the project leaves the build type to its default (GAOL v5, see [Using GAOL](using.md#from-pkg-config)) |
-| `enable-simd` | `true` | The SSE2 intervals on x86 processors, as `GAOL_SIMD` |
-| `enable-arm64` | `true` | The NEON intervals on 64-bit ARM processors, as `GAOL_ARM64` (GAOL v5): `true` by default on 64-bit ARM with every compiler: GCC, Clang, AppleClang, clang-cl, Visual C++ (`cl`) and the Clang of MinGW-w64 and MSYS2; not offered with 32-bit ARM, where it is ignored; independent of `enable-simd` |
-| `enable-fma` | `true` | The fused multiply-add instructions of the processor, as `GAOL_FMA` |
-| `enable-debug` | `false` | Build `libgaol` and CORE-MATH for debugging, without optimization nor `NDEBUG` and with `GAOL_DEBUGGING`, whatever the build type, a subproject included (`-Dgaol:enable-debug=true`), as `GAOL_DEBUG` of CMake and `--enable-debug` of configure; the tests and the examples keep the build type, and there is no target `perf` (GAOL v5: it defined `GAOL_DEBUGGING` alone, and was gone) |
-| `enable-verbose-mode` | `false` | The line on the standard error, as `GAOL_VERBOSE_MODE` |
+| `enable-simd` | `true` | The vector intervals, SSE2 or NEON, as `GAOL_SIMD` |
 | `enable-preserve-rounding` | `false` | Restore the rounding direction after each operation, as `GAOL_PRESERVE_ROUNDING` |
-| `enable-prefer-avx512` | `auto`: `true` with `enable-preserve-rounding`, `false` otherwise | Have +, -, *, /, sqr, sqrt and, with FMA, the integer powers beyond 1 and -1 take the AVX-512 instructions and the rounding direction they carry in themselves, where the machine building runs them, as `GAOL_PREFER_AVX512`; `false` refuses the path under `enable-preserve-rounding`, as `-DGAOL_PREFER_AVX512=OFF` of CMake and `--disable-prefer-avx512` of configure do (GAOL v5: a boolean before, which could not refuse it) |
-| `enable-exception` | `true` | Raise exceptions to signal errors, rather than abort |
+| `enable-coverage` | `false` | The counters of gcov and the target `ninja gaol-coverage`, as `GAOL_COVERAGE` |
+| `buildtype` | `release` | `-O3`, `NDEBUG` and `-funroll-loops -fomit-frame-pointer -fexpensive-optimizations`, as the Release build of CMake and configure; `debug` builds GAOL without optimization, with debugging information, and without `NDEBUG`, so that `assert()` stays active, as the Debug build of CMake and `configure --enable-debug`. The option `enable-optimize` is gone. Brought in as a subproject, GAOL is built in `release` too where the project leaves the build type to its default (GAOL v5, see [Using GAOL](using.md#from-pkg-config)) |
+| `default_library` | `static` | `shared` builds the shared library `libgaol.so.5.0.0`, `both` the two, as `BUILD_SHARED_LIBS` (it was `both`; GAOL v5) |
+| `b_staticpic` | `true` | Position-independent code, as `CMAKE_POSITION_INDEPENDENT_CODE` |
 | `with-tests` | `false` | Build the unit tests of `tests/`, which `meson test` and `ninja check` run, as `WITH_TESTS` (it was `with-test`) |
 | `with-examples` | `false` | Build the examples of `examples/`, which `ninja check` runs, as `WITH_EXAMPLES` |
 | `with-doc` | `false` | The target `pdf`, which builds the manuals, `manual/v5/gaol.pdf` for GAOL v5 and `manual/v4/gaol.pdf` for GAOL 4, with pdflatex, bibtex and makeindex (`make -C manual pdf` with autotools) |
 
-meson builds `libgaol.a` and the shared library `libgaol.so.5.0.0`, whose
-soname is `libgaol.so.5`, as configure and CMake name them; with Visual C++,
-the static library alone, as CMake does, and `gaol_dep` and `gaol.pc` no
+These are [the options](#the-options) of the three builds. `enable-fma`,
+`enable-prefer-avx512`, `enable-debug`, `enable-exception`,
+`enable-verbose-mode`, `machine-runs-fma` and `machine-runs-avx512` are
+[settings of the developers](#the-settings-of-the-developers), which
+`meson configure` lists with the mark [developers]; `enable-arm64` (GAOL v5:
+the NEON intervals follow `enable-simd`) is gone. A universal build of macOS is
+configured with `-arch` several times in `c_args`, `cpp_args`, `c_link_args`
+and `cpp_link_args` (GAOL v5).
+
+meson builds `libgaol.a`, and with `-Ddefault_library=shared` the shared
+library `libgaol.so.5.0.0` (`both` the two), whose soname is `libgaol.so.5`, as
+configure and CMake name them; with Visual C++, the static library alone, as
+CMake does, and `gaol_dep` and `gaol.pc` no
 longer give the code using it `__GAOL_PUBLIC__` defined empty (GAOL v5, see
 [Using GAOL](using.md#from-cmake)). The summary of `meson setup` gives the
 address for the bug reports, jordan.ninin@ensta.fr, and the page of GAOL v5,
 https://github.com/Jordan08/GAOL.
-The option `check-perf` and the options `enable-relations` and `with-test`,
-gone, are refused.
+The option `check-perf` and the options `enable-relations`, `with-test` and
+`enable-arm64`, gone, are refused.
 
 `meson setup` runs Python once, in `project()`, to read `VERSION.txt` (see
 [The version of GAOL](#the-version-of-gaol)), and twice more for the message
@@ -377,16 +496,16 @@ now true of each of them.
 | Macro | 1 when | CMake | configure | meson |
 |---|---|---|---|---|
 | `GAOL_MAJOR_VERSION`, `GAOL_MINOR_VERSION`, `GAOL_MICRO_VERSION`, `GAOL_VERSION` | Always, from `VERSION.txt` (see [above](#the-version-of-gaol)): `5`, `0`, `0` and `"5.0.0"` for GAOL 5.0.0 | `project()` | `VERSION.txt`, read when configure runs | `project()` |
-| `GAOL_DEBUGGING` | In a Debug build: `GAOL_DEBUG_VERBOSE(level, command)` runs its commands | `CMAKE_BUILD_TYPE=Debug`, or `GAOL_DEBUG` | `--enable-debug` | `--buildtype=debug`, or `enable-debug` |
-| `GAOL_EXCEPTIONS_ENABLED` | GAOL raises exceptions rather than abort | always | `--enable-exceptions` (default) | `enable-exception` (default) |
+| `GAOL_DEBUGGING` | In a Debug build: `GAOL_DEBUG_VERBOSE(level, command)` runs its commands | `CMAKE_BUILD_TYPE=Debug` (`GAOL_DEBUG=ON`, a setting of the developers) | `--enable-debug` | `--buildtype=debug` (`enable-debug`) |
+| `GAOL_EXCEPTIONS_ENABLED` | GAOL raises exceptions rather than abort | by default (`GAOL_EXCEPTIONS_ENABLED=OFF`, a setting of the developers) | by default (`--disable-exceptions`) | by default (`enable-exception=false`) |
 | `GAOL_PRESERVE_ROUNDING` | The operations restore the rounding direction they found | `GAOL_PRESERVE_ROUNDING` | `--enable-preserve-rounding` | `enable-preserve-rounding` |
-| `GAOL_PREFER_AVX512` | +, -, *, /, sqr, sqrt and, with FMA, the integer powers beyond 1 and -1 are to take the AVX-512 instructions | `GAOL_PREFER_AVX512` (with `GAOL_PRESERVE_ROUNDING`) | `--enable-prefer-avx512` (with `--enable-preserve-rounding`) | `enable-prefer-avx512` (with `enable-preserve-rounding`) |
+| `GAOL_PREFER_AVX512` | +, -, *, /, sqr, sqrt and, with FMA, the integer powers beyond 1 and -1 are to take the AVX-512 instructions | with `GAOL_PRESERVE_ROUNDING` (`GAOL_PREFER_AVX512=ON` or `OFF`, a setting of the developers) | with `--enable-preserve-rounding` (`--enable-prefer-avx512`, `--disable-prefer-avx512`) | with `enable-preserve-rounding` (`enable-prefer-avx512`) |
 | `GAOL_AVX512_ARITHMETIC` | +, -, *, /, sqr, sqrt and, with FMA, the integer powers beyond 1 and -1 take the AVX-512 instructions: `GAOL_PREFER_AVX512`, `GAOL_HAVE_AVX512_TARGET`, and a machine building that runs them, not when cross-compiling; the library then needs a processor with them (GAOL v5) | checked | checked | checked |
-| `GAOL_VERBOSE_MODE` | A line on the standard error when GAOL initializes and cleans up | `GAOL_VERBOSE_MODE` | `--enable-verbose-mode` | `enable-verbose-mode` |
+| `GAOL_VERBOSE_MODE` | A line on the standard error when GAOL initializes and cleans up | `GAOL_VERBOSE_MODE=ON`, a setting of the developers | `--enable-verbose-mode` | `enable-verbose-mode` |
 | `GAOL_USING_SSE2_INSTRUCTIONS` | The intervals computed with SSE2 (x86; on 32-bit Windows with GCC and Clang told to ask for aligned memory, `-faligned-new=8`, and with Visual C++ and clang-cl, whose bounds are two doubles there) | `GAOL_SIMD` (default) | `--enable-simd` (default) | `enable-simd` (default) |
-| `GAOL_USING_NEON_INSTRUCTIONS` | The intervals computed with NEON (64-bit ARM, with every compiler; not 32-bit ARM; independent of `GAOL_SIMD`) (GAOL v5) | `GAOL_ARM64` (default) | `--enable-arm64` (default) | `enable-arm64` (default) |
+| `GAOL_USING_NEON_INSTRUCTIONS` | The intervals computed with NEON (64-bit ARM, with every compiler; not 32-bit ARM) (GAOL v5; `GAOL_ARM64`, `--enable-arm64` and `enable-arm64` were options of their own) | `GAOL_SIMD` (default) | `--enable-simd` (default) | `enable-simd` (default) |
 | `GAOL_USING_SSE3_INSTRUCTIONS` | And compiled with `-msse3` | where the compiler takes it | where the compiler takes it | where the compiler takes it |
-| `GAOL_UNIVERSAL_SSE2`, `GAOL_UNIVERSAL_NEON` | A universal build of macOS (several architectures in `CMAKE_OSX_ARCHITECTURES`): the three macros above are then those of the architecture being compiled, `GAOL_USING_SSE2_INSTRUCTIONS` and `GAOL_USING_SSE3_INSTRUCTIONS` for x86_64 and `GAOL_USING_NEON_INSTRUCTIONS` for arm64, where `GAOL_SIMD` and `GAOL_ARM64` allow them; the fused multiply-add and the AVX-512 path stay off, their tests failing for one of the architectures (GAOL v5) | CMake only | no universal build: the tests fail for one architecture and the FPU computes the intervals | no universal build: the tests fail for one architecture and the FPU computes the intervals |
+| `GAOL_UNIVERSAL_SSE2`, `GAOL_UNIVERSAL_NEON` | A universal build of macOS (several architectures in `CMAKE_OSX_ARCHITECTURES`, or `-arch` several times in the flags of configure and meson): the three macros above are then those of the architecture being compiled, `GAOL_USING_SSE2_INSTRUCTIONS` and `GAOL_USING_SSE3_INSTRUCTIONS` for x86_64 and `GAOL_USING_NEON_INSTRUCTIONS` for arm64, where `GAOL_SIMD` allows them; the fused multiply-add and the AVX-512 path stay off, their tests failing for one of the architectures (GAOL v5) | `CMAKE_OSX_ARCHITECTURES` | `-arch` several times | `-arch` several times |
 | `GAOL_HAVE_AVX512_TARGET` | The compiler takes `__attribute__((target("avx512f")))` and `__builtin_cpu_supports("avx512f")`, which the AVX-512 path of +, -, *, /, sqr, sqrt and, with FMA, the integer powers beyond 1 and -1 needs; never GCC for Windows (MinGW-w64, Cygwin), which does not align the stack for the AVX-512 registers (GCC bug 54412); Visual C++ for x64 takes the instructions in any function and tells the processor by `cpuid` and `xgetbv`, clang-cl has the attribute and does the same (GAOL v5) | checked | checked | checked |
 | `GAOL_HAVE_VISIBILITY_OPTIONS` | The library is compiled with `-fvisibility=hidden` | checked | checked | checked |
 | `GAOL_HAVE_FENV_H` | The compiler has `<fenv.h>` | checked (required) | checked | checked |

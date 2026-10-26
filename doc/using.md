@@ -29,7 +29,7 @@ itself. With GCC and Clang, each where the compiler takes it:
   on 32-bit Windows keep their two bounds as two doubles, whose alignment is 8
   (`GAOL_SSE2_UNALIGNED_STORAGE`, `gaol/gaol_config.h`);
 - nothing more on 64-bit ARM processors with the NEON intervals
-  (`GAOL_ARM64`, GAOL v5, see [The NEON intervals](#the-neon-intervals)): the
+  (`GAOL_SIMD`, GAOL v5, see [The NEON intervals](#the-neon-intervals)): the
   first line is all they ask for;
 - `-ffloat-store` where doubles are still computed on the x87 unit;
 - `-mfma` on x86, and `-mfpu=neon-vfpv4 -mfloat-abi=hard` on 32-bit ARM, where
@@ -1185,12 +1185,17 @@ What to do:
 
 ### The AVX-512 path
 
-Built with `GAOL_PREFER_AVX512` (`--enable-prefer-avx512`,
-`-Denable-prefer-avx512=true`), on by default where the rounding direction
-is preserved, whose every operation of `+`, `-`, `*`, `/`, `sqrt` and `sqr`,
-and the integer powers (below), the path relieves of the store of that direction — `--disable-prefer-avx512`,
-`-DGAOL_PREFER_AVX512=OFF` and `-Denable-prefer-avx512=false` refuse it
-there —, on a machine that runs
+Taken by the build where the rounding direction is preserved, whose every
+operation of `+`, `-`, `*`, `/`, `sqrt` and `sqr`, and the integer powers
+(below), the path relieves of the store of that direction (GAOL v5: it was the
+default of the option `GAOL_PREFER_AVX512`, `--enable-prefer-avx512`,
+`-Denable-prefer-avx512`, which is now a setting of the developers: `=ON` asks
+for the path without the preserved direction, and `-DGAOL_PREFER_AVX512=OFF`,
+`--disable-prefer-avx512` and `-Denable-prefer-avx512=false` refuse it there, for
+a package for any processor, see [Building
+GAOL](building.md#the-settings-of-the-developers); the measures that decide it
+are in [SIMD, FMA and the rounding
+direction](simd.md#when-the-build-takes-the-avx-512-path)), on a machine that runs
 the AVX-512 instructions (`GAOL_AVX512_ARITHMETIC` in
 `gaol_configuration.h`), GAOL has `x + y`, `x - y`, `x * y`, `x / y`,
 `sqrt(x)` and `sqr(x)`, and the operations of `+`, `-`, `*` and `/` with a
@@ -1230,7 +1235,7 @@ the sign of a zero; `rounding_direction` checks the bits of that one case, in
 each path, GAOL v5; every result of the operations of intervals and with a
 double on the intervals of two bounds among 0 of either sign, ±1, ±2.5, ±3,
 ±1e-310, ±1e300 and ±∞ was compared bit for bit). The path is decided when GAOL
-is configured, as the fused multiply-add instructions of `GAOL_FMA` are: the
+is configured, as the fused multiply-add instructions are: the
 machine building has to run the AVX-512 instructions, a cross-compilation
 leaves the path out, and the operations test nothing as they run. A library
 built with the path then needs a processor with the instructions, and
@@ -1274,11 +1279,12 @@ exact, and the double below it otherwise.
 
 They are the intervals of GAOL on 64-bit ARM with every compiler: GCC, Clang
 and AppleClang under Linux and macOS, clang-cl and the Clang of MinGW-w64 and
-MSYS2, and Visual C++ (GAOL v5), by default (`GAOL_ARM64`
-of CMake, `--enable-arm64` of configure, `-Denable-arm64` of meson;
-`GAOL_USING_NEON_INSTRUCTIONS` is then 1 in `gaol_configuration.h`), and need
-no flag beyond those of interval arithmetic. They do not depend on
-`GAOL_SIMD`, which is for x86 processors. Visual C++ writes the control register
+MSYS2, and Visual C++ (GAOL v5), by default (`GAOL_SIMD`
+of CMake, `--enable-simd` of configure, `-Denable-simd` of meson, as for the
+SSE2 intervals of x86; `GAOL_USING_NEON_INSTRUCTIONS` is then 1 in
+`gaol_configuration.h`), and need no flag beyond those of interval arithmetic
+(GAOL v5: `GAOL_ARM64`, `--enable-arm64` and `-Denable-arm64` were an option of
+their own, independent of `GAOL_SIMD`, and are gone). Visual C++ writes the control register
 FPCR through the intrinsics `_ReadStatusReg()` and `_WriteStatusReg()`, where
 GCC and Clang have `mrs` and `msr` in an asm statement; it has no asm statement
 to order its operations with respect to those writes, and relies on `/fp:strict`
@@ -1356,9 +1362,9 @@ Windows on 32-bit x86 with a compiler that takes no flag asking for the aligned
 memory the SSE2 intervals need (MinGW-w64 with GCC and Clang takes the SSE2
 intervals there, with `-faligned-new=8`, and so do Visual C++ and clang-cl,
 whose intervals need no aligned memory, and 64-bit Windows); and of the builds
-that ask for them (`-DGAOL_SIMD=OFF` on
-x86, `-DGAOL_ARM64=OFF` on 64-bit ARM, which leave `GAOL_USING_SSE2_INSTRUCTIONS`
-and `GAOL_USING_NEON_INSTRUCTIONS` at 0 in `gaol_configuration.h`). The first
+that ask for them (`-DGAOL_SIMD=OFF`, `--disable-simd` or
+`-Denable-simd=false`, which leave `GAOL_USING_SSE2_INSTRUCTIONS` and
+`GAOL_USING_NEON_INSTRUCTIONS` at 0 in `gaol_configuration.h`). The first
 measurements below are those of an Apple M2 with AppleClang; the processors of
 the continuous integration come after them.
 
@@ -1387,7 +1393,7 @@ as the sum, the bounds being kept across the calls of the rare path of the
 check.
 
 Measured with `gaol_performance` on an Apple M2 with AppleClang 21
-(`-DGAOL_ARM64=OFF`), the median of nine runs of each program, in turn with the
+(`-DGAOL_SIMD=OFF`), the median of nine runs of each program, in turn with the
 others, in nanoseconds:
 
 | | GAOL 4 code | v5 kernels |
@@ -1441,7 +1447,7 @@ code before the kernels (`c89c2ac`) and after them (`711ec1a`), and runs
 are GCC 13.3 and Clang 18.1 on Ubuntu 24.04 for x86-64 (`-DGAOL_SIMD=OFF`), GCC
 14.2 on Debian 13 for 32-bit ARM, run natively on an arm64 runner, Visual C++
 19.51 for x86 and arm64, clang-cl 22.1 for x86 and arm64, and AppleClang 21 on
-macOS 26 (`-DGAOL_ARM64=OFF`). The table gives the ratio of the median before
+macOS 26 (`-DGAOL_SIMD=OFF`). The table gives the ratio of the median before
 the kernels to the median after them, so that a ratio above 1 means that the
 kernels are faster, and, in parentheses, the spread of the five runs where it
 exceeds 1.15 (the ratio is then noise, as it is on the macOS runner); the

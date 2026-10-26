@@ -312,7 +312,7 @@
 #else
 #  define GAOL_NEON_MSVC 0
 #endif
-/* The NEON intervals (GAOL v5, GAOL_ARM64 of the builds): the two bounds in a
+/* The NEON intervals (GAOL v5, GAOL_SIMD of the builds): the two bounds in a
    float64x2_t, on 64-bit ARM processors only (NEON of 32-bit ARM has no
    vector of doubles), with every compiler of them: GCC, Clang and AppleClang,
    clang-cl and the Clang of MinGW-w64 and MSYS2 (the rounding direction is

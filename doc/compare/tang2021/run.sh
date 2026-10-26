@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Runs the benchmark of Tang et al. (2021) on GAOL v5 (see ../tang2021.md):
 # fetch.sh first, then, for each build of GAOL of VARIANTS (default "sse fpu":
-# GAOL_SIMD and GAOL_ARM64 ON and OFF), <variant> below being followed by SUFFIX (default
+# GAOL_SIMD ON and OFF), <variant> below being followed by SUFFIX (default
 # empty: SUFFIX=-clang for another compiler, for instance),
 #   - builds GAOL from this repository with CMake in Release and installs it
 #     under $WORK/gaol-<variant> (FORCE_GAOL=1 builds it again after a change);
@@ -53,8 +53,8 @@ for v in $VARIANTS; do
   if [ -f "$gaol/lib/cmake/gaol/gaolConfig.cmake" ] && [ -z "${FORCE_GAOL:-}" ]; then
     echo "== GAOL ($name): already in $gaol (FORCE_GAOL=1 to rebuild)"
   else
-    echo "== GAOL ($name, GAOL_SIMD=$simd, GAOL_ARM64=$simd, $(git -C "$ROOT_DIR" describe --always --dirty 2>/dev/null || echo "?"))"
-    "$CMAKE" -S "$ROOT_DIR" -B "$WORK/gaol-build-$name" -DCMAKE_BUILD_TYPE=Release -DGAOL_SIMD=$simd -DGAOL_ARM64=$simd \
+    echo "== GAOL ($name, GAOL_SIMD=$simd, $(git -C "$ROOT_DIR" describe --always --dirty 2>/dev/null || echo "?"))"
+    "$CMAKE" -S "$ROOT_DIR" -B "$WORK/gaol-build-$name" -DCMAKE_BUILD_TYPE=Release -DGAOL_SIMD=$simd \
              -DCMAKE_C_COMPILER="$CC" -DCMAKE_CXX_COMPILER="$CXX" \
              -DCMAKE_INSTALL_PREFIX="$gaol" -DCMAKE_INSTALL_LIBDIR=lib > "$WORK/gaol-configure-$name.log" 2>&1 \
       || die "see $WORK/gaol-configure-$name.log"

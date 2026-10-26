@@ -62,8 +62,9 @@ jobs:
           - { os: macos-15-intel,   configure: '',                           desc: 'Autotools, macOS 15 x86_64' }
           - { os: ubuntu-24.04,     configure: '--enable-preserve-rounding', desc: 'Autotools, Ubuntu 24.04 x86_64, rounding direction preserved' }
           - { os: ubuntu-24.04-arm, configure: '--enable-preserve-rounding', desc: 'Autotools, Ubuntu 24.04 arm64, rounding direction preserved' }
-          - { os: ubuntu-24.04-arm, configure: '--disable-arm64',            desc: 'Autotools, Ubuntu 24.04 arm64, FPU intervals' }
+          - { os: ubuntu-24.04-arm, configure: '--disable-simd',             desc: 'Autotools, Ubuntu 24.04 arm64, FPU intervals' }
           - { os: ubuntu-24.04,     configure: '--disable-exceptions --with-examples', desc: 'Autotools, Ubuntu 24.04 x86_64, without exceptions' }
+          - { os: ubuntu-24.04,     configure: '--enable-shared',            desc: 'Autotools, Ubuntu 24.04 x86_64, shared library', linking: shared }
     steps:
       - uses: actions/checkout@v7
       - name: Tools
@@ -118,12 +119,12 @@ jobs:
           grep -q "elementary functions" "$RUNNER_TEMP/configure.log"
           ls "$RUNNER_TEMP/gaol/lib"
           ! ls "$RUNNER_TEMP/gaol/lib" | grep "^lib" | grep -v "^libgaol"
-      # NEON on 64-bit ARM, SSE2 on x86-64, the FPU where --disable-arm64
+      # NEON on 64-bit ARM, SSE2 on x86-64, the FPU where --disable-simd
       # asked for it (GAOL v5)
       - name: The intervals
         run: |
           case "$(uname -m)" in aarch64|arm64) expected=neon ;; *) expected=sse2 ;; esac
-          case "${{ matrix.cfg.configure }}" in *--disable-arm64*) expected=fpu ;; esac
+          case "${{ matrix.cfg.configure }}" in *--disable-simd*) expected=fpu ;; esac
           sh .github/scripts/check-intervals.sh gaol/gaol_configuration.h $expected
       - name: Locale writing a decimal comma
         if: runner.os == 'Linux'
@@ -152,7 +153,7 @@ jobs:
             echo "make distclean left the files or the empty directories above, or changed files"; exit 1; }
       - name: Tests built with the installed GAOL
         run: |
-          sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" static
+          sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" ${{ matrix.cfg.linking || 'static' }}
       - name: Performance
         run: |
           set -o pipefail
@@ -172,8 +173,9 @@ jobs:
           - { os: macos-15-intel,   options: '',                                desc: 'Meson, macOS 15 x86_64' }
           - { os: ubuntu-24.04,     options: '-Denable-preserve-rounding=true', desc: 'Meson, Ubuntu 24.04 x86_64, rounding direction preserved' }
           - { os: macos-15,         options: '-Denable-preserve-rounding=true', desc: 'Meson, macOS 15 arm64, rounding direction preserved' }
-          - { os: ubuntu-24.04-arm, options: '-Denable-arm64=false',            desc: 'Meson, Ubuntu 24.04 arm64, FPU intervals' }
+          - { os: ubuntu-24.04-arm, options: '-Denable-simd=false',             desc: 'Meson, Ubuntu 24.04 arm64, FPU intervals' }
           - { os: ubuntu-24.04,     options: '-Denable-exception=false -Dwith-examples=true', desc: 'Meson, Ubuntu 24.04 x86_64, without exceptions' }
+          - { os: ubuntu-24.04,     options: '-Ddefault_library=shared',      desc: 'Meson, Ubuntu 24.04 x86_64, shared library', linking: shared }
     steps:
       - uses: actions/checkout@v7
       - name: Tools
@@ -225,12 +227,12 @@ jobs:
           grep -qi "elementary functions" configure.log
           ls "$RUNNER_TEMP/gaol/lib"
           ! ls "$RUNNER_TEMP/gaol/lib" | grep "^lib" | grep -v "^libgaol"
-      # NEON on 64-bit ARM, SSE2 on x86-64, the FPU where -Denable-arm64=false
+      # NEON on 64-bit ARM, SSE2 on x86-64, the FPU where -Denable-simd=false
       # asked for it (GAOL v5)
       - name: The intervals
         run: |
           case "$(uname -m)" in aarch64|arm64) expected=neon ;; *) expected=sse2 ;; esac
-          case "${{ matrix.cfg.options }}" in *-Denable-arm64=false*) expected=fpu ;; esac
+          case "${{ matrix.cfg.options }}" in *-Denable-simd=false*) expected=fpu ;; esac
           sh .github/scripts/check-intervals.sh build-meson/gaol/gaol_configuration.h $expected
       # enable-prefer-avx512=false refuses the AVX-512 path where
       # enable-preserve-rounding asks for it by default: the option was a
@@ -253,7 +255,7 @@ jobs:
       - name: The test numbers ran under a locale writing a decimal comma
         run: sh .github/scripts/comma-locale.sh check build-meson/meson-logs/testlog.txt
       - name: Tests built with the installed GAOL
-        run: sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" shared
+        run: sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" ${{ matrix.cfg.linking || 'static' }}
       - name: Performance
         run: |
           set -o pipefail
@@ -292,7 +294,7 @@ jobs:
       - name: The test numbers ran under a locale writing a decimal comma
         run: sh .github/scripts/comma-locale.sh check build-meson/meson-logs/testlog.txt
       - name: Tests built with the installed GAOL
-        run: sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" shared
+        run: sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" static
 
   # GAOL as a subproject of a meson project, tests/meson_subproject, which
   # builds tests of tests/ with gaol_dep and checks that their code gets the
@@ -462,7 +464,7 @@ jobs:
               meson compile -C build-meson && meson install -C build-meson
               ninja -C build-meson test
               sh .github/scripts/comma-locale.sh check build-meson/meson-logs/testlog.txt
-              sh .github/scripts/tests.sh /tmp/gaol shared
+              sh .github/scripts/tests.sh /tmp/gaol static
             fi
             ./performance > /gaol/performance.md
             cat /gaol/performance.md"

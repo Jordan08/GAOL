@@ -57,4 +57,27 @@ perf:
 parser:
 	$(SHELL) $(top_srcdir)/gaol/parser/regenerate_parser.sh
 
-.PHONY: test perf parser
+# make coverage, with --enable-coverage (GAOL v5, as the target coverage of
+# CMake and meson): the tests run and gcovr writes coverage/coverage.html and
+# the page of conclusions coverage/README.md. GAOL's own sources (gaol/) are
+# counted apart from those of CORE-MATH (3rd/math-core), whose accurate phases
+# are reached by a handful of arguments in a million; the raw data of gcovr
+# (coverage.json) is written in the build directory.
+if COVERAGE
+coverage:
+	find . -name '*.gcda' -delete
+	$(MAKE) $(AM_MAKEFLAGS) check
+	$(MKDIR_P) $(abs_srcdir)/coverage
+	$(GCOVR) --root $(abs_srcdir) --gcov-ignore-errors=no_working_dir_found \
+	  --filter $(abs_srcdir)/gaol/ --filter $(abs_srcdir)/3rd/math-core/ \
+	  --html --html-self-contained --html-title "Coverage of GAOL" \
+	  --output $(abs_srcdir)/coverage/coverage.html \
+	  --json coverage.json --print-summary .
+	$(PYTHON3) $(abs_srcdir)/coverage/coverage_summary.py coverage.json $(abs_srcdir)/coverage/README.md
+else
+# Without --enable-coverage the target fails, as those of CMake and meson do
+coverage:
+	@echo "make coverage needs ./configure --enable-coverage (and --enable-debug, --with-tests)" >&2; exit 1
+endif
+
+.PHONY: test perf parser coverage
