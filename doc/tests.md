@@ -1384,7 +1384,7 @@ point Q), which `numbers` checks there too.
   `-DCMAKE_OSX_ARCHITECTURES=x86_64;-DGAOL_MACHINE_RUNS_AVX512=1;-DGAOL_MACHINE_RUNS_FMA=1`
   takes the path where the programs of the checks, which cannot run without
   Rosetta, are given their result. It configures directories of its own and
-  builds nothing, so it takes about eight seconds, the first `cmake` running the
+  builds nothing, so it takes about ten seconds, the first `cmake` running the
   checks of the compiler and the others reusing them. Only the CMake build has
   it: configure and meson are checked by the audit of the three builds
   (`.github/audit`) and by their jobs of the continuous integration.

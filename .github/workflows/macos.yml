@@ -168,6 +168,7 @@ jobs:
         run: sudo softwareupdate --install-rosetta --agree-to-license
       - name: Configure
         run: |
+          set -o pipefail
           c++ --version
           archs="-arch arm64 -arch x86_64"
           ./configure CFLAGS="$archs" CXXFLAGS="$archs" LDFLAGS="$archs" --with-tests | tee configure.log
@@ -193,7 +194,9 @@ jobs:
       # The test programs themselves: a program that skips gives 77
       - name: Tests of the x86_64 part (Rosetta)
         run: |
+          count=0
           for t in tests/*; do
+            case "$t" in */gaol_performance) continue ;; esac
             if [ -f "$t" ] && [ -x "$t" ] && lipo -archs "$t" > /dev/null 2>&1; then
               echo "== $t"
               status=0
@@ -202,8 +205,11 @@ jobs:
                 echo "::error::$t failed ($status)"
                 exit 1
               fi
+              count=$((count + 1))
             fi
           done
+          echo "$count test programs ran under Rosetta"
+          test "$count" -ge 20
       - name: Which intervals each part has
         run: |
           tests/gaol_performance | head -n 1 | tee arm64.txt
@@ -227,6 +233,7 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Configure
         run: |
+          set -o pipefail
           c++ --version
           archs="-arch arm64 -arch x86_64"
           meson setup build-meson -Dwith-tests=true "-Dc_args=$archs" "-Dcpp_args=$archs" "-Dc_link_args=$archs" "-Dcpp_link_args=$archs" | tee configure.log
@@ -251,6 +258,7 @@ jobs:
           meson test -C build-meson --print-errorlogs
       - name: Tests of the x86_64 part (Rosetta)
         run: |
+          count=0
           for t in build-meson/tests/gaol_test_*; do
             if [ -f "$t" ] && [ -x "$t" ] && lipo -archs "$t" > /dev/null 2>&1; then
               echo "== $t"
@@ -260,8 +268,11 @@ jobs:
                 echo "::error::$t failed ($status)"
                 exit 1
               fi
+              count=$((count + 1))
             fi
           done
+          echo "$count test programs ran under Rosetta"
+          test "$count" -ge 20
       - name: Which intervals each part has
         run: |
           build-meson/tests/gaol_performance | head -n 1 | tee arm64.txt

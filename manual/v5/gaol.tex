@@ -821,8 +821,9 @@ Each build installs:
 \begin{itemize}
 \item the headers, in \file{\var{prefix}/include/gaol};
 \item the library, \file{libgaol}, which holds CORE-MATH: static with CMake,
-  or shared with \option{BUILD\_SHARED\_LIBS}; static and shared with autotools
-  and meson (static only with Visual C++). The shared library is
+  or shared with \option{BUILD\_SHARED\_LIBS}, \loption{enable-shared} of
+  \cmd{configure} and \option{-Ddefault\_library=shared} of meson (static only
+  with Visual C++). The shared library is
   \file{libgaol.so.5.0.0}, whose soname is \file{libgaol.so.5}, with the three
   builds;
 \item \file{gaol.pc}, for pkg-config, in the \file{pkgconfig} directory of the
@@ -1388,10 +1389,9 @@ AppleClang, clang-cl, Visual C++ and the Clang of MinGW-w64), by default (\optio
 \loption{enable-simd} of \cmd{configure}, \code{enable-simd} of meson, as for the
 SSE2 intervals; the macro \code{GAOL\_USING\_NEON\_INSTRUCTIONS} is then 1 in
 \file{gaol/gaol\_configuration.h}), and need no flag beyond those of interval
-arithmetic (\pxref{sec:compiling}). They do not depend on
-\option{GAOL\_SIMD}, which is for x86 processors. 32-bit ARM, whose NEON has no
-vector of doubles, does not take them: the option is ignored there, and the FPU
-computes the intervals, as before. A universal build of macOS made by CMake
+arithmetic (\pxref{sec:compiling}). 32-bit ARM, whose NEON has no
+vector of doubles, does not take them: the FPU computes the intervals there, as
+before. A universal build of macOS
 takes them for its arm64 part, and the SSE2 intervals for its x86\_64 part.
 
 64-bit ARM has no instruction that carries its own rounding direction, as the

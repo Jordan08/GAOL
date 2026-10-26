@@ -78,7 +78,7 @@ jobs:
           # GAOL v5)
           - { os: ubuntu-24.04-arm, cc: gcc,   cxx: g++,     opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Ubuntu 24.04 arm64 GCC, rounding direction preserved' }
           # The FPU intervals, which the NEON ones replace on 64-bit ARM
-          # (GAOL_ARM64, on by default): their code stays covered there, the
+          # (GAOL_SIMD, on by default): their code stays covered there, the
           # preserved direction included (GAOL v5)
           - { os: ubuntu-24.04-arm, cc: gcc,   cxx: g++,     opts: '-DGAOL_SIMD=OFF', desc: 'Ubuntu 24.04 arm64 GCC, FPU intervals' }
           - { os: ubuntu-24.04-arm, cc: clang, cxx: clang++, opts: '-DGAOL_SIMD=OFF', desc: 'Ubuntu 24.04 arm64 Clang, FPU intervals' }

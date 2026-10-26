@@ -149,9 +149,8 @@ jobs:
       # The intervals of the build: the SSE2 ones on x64 and on x86, where Visual
       # C++ and clang-cl take them (on x86 with their two bounds as two doubles
       # of alignment 8, GAOL_SSE2_UNALIGNED_STORAGE; GAOL v5), the NEON ones on
-      # arm64 with Visual C++ and clang-cl (GAOL_ARM64, on by default; GAOL v5),
-      # and the FPU ones where the job asks for them (-DGAOL_SIMD=OFF on x86 and
-      # x64, -DGAOL_SIMD=OFF on arm64)
+      # arm64 with Visual C++ and clang-cl (GAOL_SIMD, on by default; GAOL v5),
+      # and the FPU ones where the job asks for them (-DGAOL_SIMD=OFF)
       - name: The intervals
         run: |
           case "${{ matrix.cfg.arch }}" in x64|Win32) expected=sse2 ;; ARM64) expected=neon ;; *) expected=fpu ;; esac

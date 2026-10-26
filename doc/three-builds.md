@@ -63,7 +63,9 @@ build, and the CMake build follows them, apart from the errors corrected (see
   intervals, independent of `GAOL_SIMD`);
 - GAOL and CORE-MATH are compiled with the fused multiply-add
   instructions of the processor, where the compiler has a flag for them
-  (`GAOL_FMA`, `--enable-fma`, `-Denable-fma`): `-mfma` on x86; with GCC for
+  (whenever the machine building runs a program compiled with them: no option
+  of the user, `-DGAOL_FMA=OFF` of the developers leaves them out, see [Building
+  GAOL](building.md#what-the-configuration-decides)): `-mfma` on x86; with GCC for
   Windows, on x86-64 and on 32-bit x86, `-mfma -mprefer-vector-width=128`
   (GAOL v5, see [GCC for Windows](#gcc-for-windows) below);
   `/arch:AVX2` with Visual C++ for x64, not for 32-bit x86, where it broke

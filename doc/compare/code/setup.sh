@@ -153,9 +153,14 @@ if [ -f "$GAOL_PRESERVE_PREFIX/include/gaol/gaol.h" ] && [ -z "${FORCE_GAOL:-}" 
 else
   echo "== GAOL, rounding direction preserved ($(git -C "$ROOT_DIR" describe --always --dirty 2>/dev/null || echo "?"))"
   # GAOL_PREFER_AVX512 is left to the configuration, which takes the path with
-  # GAOL_PRESERVE_ROUNDING (CMakeLists.txt); a directory configured before
-  # that (before the options were folded into the checks) keeps entries that
-  # the configuration removes itself
+  # GAOL_PRESERVE_ROUNDING (CMakeLists.txt) and keeps no entry of it unless it
+  # is given on the command line. A directory configured before that holds
+  # one, derived or cached by an option(), which is read as a request (the OFF
+  # of a directory from before #161 refuses the path): it is configured afresh
+  if [ -f "$WORK/gaol-preserve-build/CMakeCache.txt" ] \
+     && grep -q '^GAOL_PREFER_AVX512:' "$WORK/gaol-preserve-build/CMakeCache.txt"; then
+    rm -rf "$WORK/gaol-preserve-build"
+  fi
   cmake -S "$ROOT_DIR" -B "$WORK/gaol-preserve-build" -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="$GAOL_PRESERVE_PREFIX" -DCMAKE_INSTALL_LIBDIR=lib \
         -DCMAKE_CXX_COMPILER="$CXX" -DCMAKE_C_COMPILER="$CC" -DGAOL_PRESERVE_ROUNDING=ON \

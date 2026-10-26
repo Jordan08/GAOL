@@ -336,9 +336,9 @@ their defaults:
 
 These are [the options](#the-options) of the three builds, and
 `configure --help` lists them (with the options of libtool and automake).
-`--enable-optimize`, which compiled with `-O` where `--disable-optimize`, and
-`--enable-arm64` (GAOL v5: the NEON intervals follow `--enable-simd`) are no
-longer options; the other options of GAOL 4 and of GAOL v5's earlier days
+`--enable-optimize` (the Release build, which is the default, and `-O` with
+`--disable-optimize`) and `--enable-arm64` (GAOL v5: the NEON intervals follow
+`--enable-simd`) are no longer options; the other options of GAOL 4 and of GAOL v5's earlier days
 (`--enable-fma`, `--enable-prefer-avx512`, `--enable-verbose-mode`,
 `--enable-exceptions`) are [settings of the
 developers](#the-settings-of-the-developers), which `--help` does not list. A
