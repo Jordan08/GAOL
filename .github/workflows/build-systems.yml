@@ -528,6 +528,63 @@ jobs:
           set -o pipefail
           ./performance | tee -a "$GITHUB_STEP_SUMMARY"
 
+  # Cygwin, GCC for x86-64 (GAOL v5), with autotools and with meson as with
+  # CMake in windows.yml: GAOL_FMA gives it -mfma -mprefer-vector-width=128,
+  # without which gaol/gaol_config.h refuses it (its fma() is not correctly
+  # rounded). Cygwin is not mingw-w64 (__CYGWIN__, not __MINGW32__).
+  cygwin:
+    name: ${{ matrix.cfg.desc }}
+    runs-on: windows-2025
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: C:\cygwin\bin\bash.exe --noprofile --norc -eo pipefail -o igncr '{0}'
+    strategy:
+      fail-fast: false
+      matrix:
+        cfg:
+          - { build: autotools, desc: 'Autotools, Cygwin GCC x64' }
+          - { build: meson,     desc: 'Meson, Cygwin GCC x64' }
+    steps:
+      - run: git config --global core.autocrlf input
+        shell: pwsh
+      - uses: actions/checkout@v7
+      - uses: cygwin/cygwin-install-action@v6
+        with:
+          packages: |
+            gcc-g++
+            make
+            binutils
+            pkg-config
+            meson
+            ninja
+      - name: Configure, build and install
+        run: |
+          g++ --version
+          g++ -dumpmachine
+          prefix="$PWD/../gaol-prefix"
+          if [ ${{ matrix.cfg.build }} = autotools ]; then
+            ./configure --prefix="$prefix" --with-tests
+            sh .github/scripts/check-intervals.sh gaol/gaol_configuration.h sse2
+            grep -E '^(CXXFLAGS|CPPFLAGS) =' gaol/Makefile
+            grep -F -e "-mfma -mprefer-vector-width=128" gaol/Makefile
+            make -j 4 && make install
+            make -j 4 test
+          else
+            meson setup build-meson --prefix="$prefix" --libdir=lib -Dwith-tests=true
+            sh .github/scripts/check-intervals.sh build-meson/gaol/gaol_configuration.h sse2
+            grep -F -e "-mfma" build-meson/compile_commands.json > /dev/null
+            meson compile -C build-meson && meson install -C build-meson
+            ninja -C build-meson test
+          fi
+          # CORE-MATH is compiled into libgaol: no other library is installed
+          ls "$prefix/lib"
+          for f in "$prefix"/lib/lib*; do
+            case "${f##*/}" in libgaol*) ;; *) echo "$f: not GAOL's"; exit 1 ;; esac
+          done
+      - name: Tests built with the installed GAOL
+        run: sh .github/scripts/tests.sh "$PWD/../gaol-prefix" static
+
   # The three builds give GAOL the same configuration (.github/audit)
   agree:
     name: ${{ matrix.cfg.desc }}

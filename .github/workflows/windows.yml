@@ -491,11 +491,12 @@ jobs:
         run: cmake --build build --target test
       # fma_once(): without optimization the objects of GAOL call no fma() of the
       # C library, which is the one of Cygwin, not correctly rounded, where
-      # std::fma is such a call (the library only: the tests are not built)
+      # std::fma is such a call. The tests are built and run too (GAOL v5): the
+      # Debug build of Cygwin was only compiled before
       - name: No call of the fma() of the library in a build without optimization
         run: |
-          cmake -S . -B build-debug -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_MAKE_PROGRAM=/usr/bin/make
-          cmake --build build-debug -j 4 --target gaol
+          cmake -S . -B build-debug -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DWITH_TESTS=ON -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_MAKE_PROGRAM=/usr/bin/make
+          cmake --build build-debug -j 4
           object=build-debug/CMakeFiles/gaol.dir/gaol/core/gaol_interval_core.cpp.o
           count=$(objdump -d --no-show-raw-insn "$object" | grep -c 'vfmadd' || true)
           echo "$count fused multiply-add instructions"
@@ -505,6 +506,8 @@ jobs:
             echo "gaol_interval_core.cpp.o calls the fma() of the C library"
             exit 1
           fi
+      - name: Tests (make test), Debug
+        run: cmake --build build-debug --target test
       # Without the fused multiply-add instructions Cygwin has the fma() of its
       # C library, which is wrong: the build has to be refused
       - name: Cygwin without GAOL_FMA is refused
