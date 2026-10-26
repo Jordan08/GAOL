@@ -219,6 +219,13 @@ endif()
 # CORE-MATH, with the GNU extensions (CMake's default), which the inline
 # assembly of atan2 needs (see 3rd/README.md)
 set(CMAKE_CXX_STANDARD 11)
+# The standard library of Visual C++ needs C++14 (GAOL v5): Clang with the
+# driver of GCC for the target of Visual C++ (clang++ for x86_64-pc-windows-msvc
+# or i686-pc-windows-msvc, not clang-cl, which CMake gives /std:c++14 for 11)
+# simulates it, and its -std=c++11 does not compile the headers of that library
+if(CMAKE_CXX_SIMULATE_ID STREQUAL "MSVC")
+  set(CMAKE_CXX_STANDARD 14)
+endif()
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_C_STANDARD 99)
 

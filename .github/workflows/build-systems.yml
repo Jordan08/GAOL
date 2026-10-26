@@ -609,6 +609,9 @@ jobs:
           g++ --version
           g++ -dumpmachine
           prefix="$PWD/../gaol-prefix"
+          # The compilers of Cygwin: meson would find the ccache of Strawberry
+          # Perl, first in PATH, which cannot run them ("cannot compile programs")
+          export CC=gcc CXX=g++
           if [ ${{ matrix.cfg.build }} = autotools ]; then
             ./configure --prefix="$prefix" --with-tests
             sh .github/scripts/check-intervals.sh gaol/gaol_configuration.h sse2

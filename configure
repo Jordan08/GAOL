@@ -18725,6 +18725,50 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 # examples/Makefile.am): the standard is not in CXXFLAGS, which comes after
 # the flags of each directory and would override theirs
 GAOL_CXX_STD="-std=c++11"
+# The standard library of Visual C++ needs C++14 (GAOL v5): Clang with its
+# driver for the target of Visual C++ (clang++ for x86_64-pc-windows-msvc or
+# i686-pc-windows-msvc, not clang-cl) simulates it (_MSC_VER), and -std=c++11
+# does not compile the headers of that library
+ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether the C++ compiler simulates Visual C++, so that it needs C++14" >&5
+printf %s "checking whether the C++ compiler simulates Visual C++, so that it needs C++14... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#ifndef _MSC_VER
+#error neither Visual C++ nor a compiler that simulates it
+#endif
+int
+main (void)
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"
+then :
+  gaol_simulates_msvc=yes
+else case e in #(
+  e) gaol_simulates_msvc=no ;;
+esac
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: ${gaol_simulates_msvc}" >&5
+printf "%s\n" "${gaol_simulates_msvc}" >&6; }
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+if test "${gaol_simulates_msvc}" = yes; then
+    GAOL_CXX_STD="-std=c++14"
+fi
 
 
 # GAOL_CHECK_CXX_FLAG(flag, variable): whether the C++ compiler accepts flag,

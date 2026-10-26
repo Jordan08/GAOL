@@ -210,6 +210,20 @@ LT_INIT([disable-shared pic-only])
 # examples/Makefile.am): the standard is not in CXXFLAGS, which comes after
 # the flags of each directory and would override theirs
 GAOL_CXX_STD="-std=c++11"
+# The standard library of Visual C++ needs C++14 (GAOL v5): Clang with its
+# driver for the target of Visual C++ (clang++ for x86_64-pc-windows-msvc or
+# i686-pc-windows-msvc, not clang-cl) simulates it (_MSC_VER), and -std=c++11
+# does not compile the headers of that library
+AC_LANG_PUSH([C++])
+AC_MSG_CHECKING([whether the C++ compiler simulates Visual C++, so that it needs C++14])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#ifndef _MSC_VER
+#error neither Visual C++ nor a compiler that simulates it
+#endif]], [[]])],[gaol_simulates_msvc=yes],[gaol_simulates_msvc=no])
+AC_MSG_RESULT(${gaol_simulates_msvc})
+AC_LANG_POP([C++])
+if test "${gaol_simulates_msvc}" = yes; then
+    GAOL_CXX_STD="-std=c++14"
+fi
 AC_SUBST([GAOL_CXX_STD])
 
 # GAOL_CHECK_CXX_FLAG(flag, variable): whether the C++ compiler accepts flag,
