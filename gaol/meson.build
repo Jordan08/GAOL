@@ -63,15 +63,16 @@ else
 endif
 
 # The sources use the GNU extensions of C (the inline asm of atan2's tint.h),
-# which the c99 of the project refuses, but with Visual C++, which has no GNU
-# C and compiles them as CMake does. And b_lto=false keeps the interprocedural
+# which the c99 of the project refuses: gnu99, as CMake and configure give it
+# (GAOL v5: gnu11), but with Visual C++, which has no GNU C and compiles them
+# as CMake does. And b_lto=false keeps the interprocedural
 # optimization of -Db_lto=true away from them: reached by it, sin and cos took
 # half as long again (see doc/three-builds.md). The options of enable-debug, or
 # in a subproject those of release where meson gives it the build type of the
 # project (gaol_build_options, see meson.build)
 core_math_overrides = ['b_lto=false'] + gaol_build_options
 if not msvc
-  core_math_overrides += ['c_std=gnu11']
+  core_math_overrides += ['c_std=gnu99']
 endif
 core_math_lib = static_library(
   'gaol_core_math',

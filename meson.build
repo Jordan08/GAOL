@@ -310,6 +310,11 @@ if cpp_comp.has_multi_arguments('-fvisibility-inlines-hidden', '-fvisibility=hid
   conf_data.set('GAOL_HAVE_VISIBILITY_OPTIONS', 1)
   add_project_arguments(['-fvisibility-inlines-hidden', '-fvisibility=hidden'], language: 'cpp')
 endif
+# The C sources (CORE-MATH) hidden too, as CMake builds them: the symbols of the
+# shared library are the same with the three builds (GAOL v5)
+if c_comp.has_argument('-fvisibility=hidden')
+  add_project_arguments(['-fvisibility=hidden'], language: 'c')
+endif
 if cpp_comp.has_argument('-Wconversion')
   add_project_arguments(['-Wconversion'], language: 'cpp')
 endif
@@ -406,10 +411,17 @@ int main() { return 0; }
       conf_data.set('GAOL_USING_SSE2_INSTRUCTIONS', 1)
       add_project_arguments(['-msse2'], language: 'cpp')
       pc_cflags += ['-msse2']
+      # And the C sources, those of CORE-MATH, as CMake gives them (GAOL v5)
+      if c_comp.has_argument('-msse2')
+        add_project_arguments(['-msse2'], language: 'c')
+      endif
       if cpp_comp.has_argument('-msse3')
         conf_data.set('GAOL_USING_SSE3_INSTRUCTIONS', 1)
         add_project_arguments(['-msse3'], language: 'cpp')
         pc_cflags += ['-msse3']
+        if c_comp.has_argument('-msse3')
+          add_project_arguments(['-msse3'], language: 'c')
+        endif
       endif
     endif
   endif

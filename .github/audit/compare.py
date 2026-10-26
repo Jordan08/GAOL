@@ -35,6 +35,16 @@ FLAGS = ('-frounding-math', '-ffp-contract=off', '-fno-fast-math', '-ffloat-stor
          '-mfpu=neon-vfpv4', '-mfloat-abi=hard', '-faligned-new=8', '-mprefer-vector-width=128')
 
 
+# The flags and macros of the C sources, those of CORE-MATH, which the three builds compile alike (GAOL v5)
+C_FLAGS = ('-frounding-math', '-ffp-contract=off', '-fno-fast-math', '-ffloat-store', '-mfpmath=sse', '-msse2',
+           '-msse3', '-fvisibility=hidden', '-funroll-loops', '-fomit-frame-pointer', '-fexpensive-optimizations',
+           '-Wall', '-Wconversion', '-mfma', '/arch:AVX2', '-mfpu=neon-vfpv4', '-mfloat-abi=hard',
+           '-fexcess-precision=standard')
+C_MACROS = ('NDEBUG', '__FAST_MATH__', '__FINITE_MATH_ONLY__', '__OPTIMIZE__', '__SSE2_MATH__', '__STRICT_ANSI__',
+            '__SSE2__', '__SSE3__', '__FMA__', '__ARM_FEATURE_FMA')
+C_VALUES = ('FLT_EVAL_METHOD', '__STDC_VERSION__')
+
+
 def truth(entry, name):
     # As GAOL reads them, with #if: undefined and 0 are both false
     return 'true' if entry['ifs'].get(name) else 'false'
@@ -67,6 +77,30 @@ def main():
                 print('  %-9s %s: %s' % (b, e.get('version', ''), ' '.join(e['flags'])))
                 ok.append(b)
         rows = []
+        cs = [r[b].get('c', {}) for b in ok]
+        cok = [b for b, c in zip(ok, cs) if 'macros' in c]
+        for b, c in zip(ok, cs):
+            if 'macros' not in c:
+                print('  %-9s C sources: %s' % (b, c.get('error', 'not probed')))
+                failed = True
+            else:
+                print('  %-9s C sources: %s' % (b, ' '.join(c['flags'])))
+        for n in C_MACROS:
+            vals = [truth(r[b]['c'], n) for b in cok]
+            if len(set(vals)) > 1:
+                rows.append(('C: ' + n, vals))
+        for n in C_VALUES:
+            vals = [str(r[b]['c']['macros'].get(n)) for b in cok]
+            if len(set(vals)) > 1:
+                rows.append(('C: ' + n, vals))
+        for f in C_FLAGS:
+            vals = ['yes' if f in r[b]['c']['flags'] else 'no' for b in cok]
+            if len(set(vals)) > 1:
+                rows.append(('C: ' + f, vals))
+        for name, fn in (('C: optimization', optimization), ('C: standard', standard)):
+            vals = [fn(r[b]['c']['flags']) for b in cok]
+            if len(set(vals)) > 1:
+                rows.append((name, vals))
         for n in MACROS:
             vals = [truth(r[b], n) for b in ok]
             if len(set(vals)) > 1:

@@ -138,8 +138,11 @@ that project, and the tests and the examples, keep their own (GAOL v5).
 
 `.github/audit/` configures the three builds and compares the macros GAOL
 sees, the macros each writes into `gaol/gaol_configuration.h`, and the flags
-GAOL is compiled with (`compare.py --check`); the continuous integration runs
-it on each kind of machine.
+GAOL is compiled with, those of its C++ sources and those of a C source of
+CORE-MATH (`compare.py --check`; GAOL v5: only the C++ flags were compared, and
+the C sources had `-msse2 -msse3 -fvisibility=hidden` with CMake alone and the
+standard of the compiler with configure, `gnu11` with meson, `gnu99` with CMake);
+the continuous integration runs it on each kind of machine.
 
 ## What the options are worth
 
