@@ -61,7 +61,11 @@ docker run --rm -v "$PWD:/repo:ro" --workdir /repo rhysd/actionlint:latest
 ```
 
 [.github/actionlint.yaml](../.github/actionlint.yaml) lists the one remark it
-leaves out, with the reason.
+leaves out, with the reason. The scripts of [.github/](../.github/) and of
+[doc/compare/code/](compare/code/) are read by `shellcheck`, run from the root
+of the repository (its options are in [.shellcheckrc](../.shellcheckrc)), which
+reports nothing either: the lists of flags that the shell has to split carry a
+`# shellcheck disable=` with the reason.
 
 ## Tests
 

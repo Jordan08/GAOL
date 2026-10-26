@@ -19,7 +19,9 @@
 #
 # Created 2026-10-17 by Jordan NININ
 set -euo pipefail
+# shellcheck source=env.sh
 source "$(dirname "$0")/env.sh"
+# shellcheck source=build_benchmarks.sh
 source "$(dirname "$0")/build_benchmarks.sh"
 
 N="${N:-1000000}"

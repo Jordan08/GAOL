@@ -30,8 +30,12 @@
 # Copyright (c) 2026 ENSTA, France
 #
 # Created 2026-09-20 by Jordan NININ
+# The flags of the Fortran compiler are a list of words, which the shell has to split
+# shellcheck disable=SC2086
 set -euo pipefail
+# shellcheck source=env.sh
 source "$(dirname "$0")/env.sh"
+# shellcheck source=build_benchmarks.sh
 source "$(dirname "$0")/build_benchmarks.sh"
 
 N="${N:-1000000}"
