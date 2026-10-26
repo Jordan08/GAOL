@@ -689,11 +689,15 @@ elif get_option('enable-fma')
     # fma(a, b, -1) is -2^-60 exactly, which a product rounded first gives as 0.
     # __builtin_fma, not std::fma: the test is built without optimization, and
     # std::fma is then a call of the fma() of the library, which is not the
-    # instruction to run (and that of Cygwin gives 0: GAOL v5)
+    # instruction to run (and that of Cygwin gives 0: GAOL v5). Visual C++ and
+    # clang-cl for x64 run the intrinsic of the instruction (see CMakeLists.txt)
     fma_run = cpp_comp.run('''
     #include <cmath>
     #if defined(__GNUC__)
     #  define GAOL_TEST_FMA(a, b, c) __builtin_fma(a, b, c)
+    #elif defined(_MSC_VER) && defined(_M_X64)
+    #  include <immintrin.h>
+    #  define GAOL_TEST_FMA(a, b, c) _mm_cvtsd_f64(_mm_fmadd_sd(_mm_set_sd(a), _mm_set_sd(b), _mm_set_sd(c)))
     #else
     #  define GAOL_TEST_FMA(a, b, c) std::fma(a, b, c)
     #endif

@@ -129,7 +129,9 @@ GAOL.
 
 - **The fused multiply-add instructions** (was `GAOL_FMA`, `--enable-fma`,
   `enable-fma`): GAOL and CORE-MATH are compiled with them whenever the machine
-  building runs a program compiled with them. `-mfma` on x86 (with
+  building runs a program compiled with them (a program that runs the
+  instruction itself: `__builtin_fma()`, and the intrinsic `_mm_fmadd_sd()` with
+  Visual C++ and clang-cl for x64, which a processor without FMA3 stops on). `-mfma` on x86 (with
   `-mprefer-vector-width=128` with GCC for Windows, on x86-64 and on 32-bit
   x86), `/arch:AVX2` with Visual C++ for x64, `-mfpu=neon-vfpv4
   -mfloat-abi=hard` on 32-bit ARM; 64-bit ARM, POWER, s390x and RISC-V have
