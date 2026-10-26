@@ -113,13 +113,15 @@ simd = get_option('enable-simd')
 # instructions and the AVX-512 path stay off.
 cpp_user_args = get_option('cpp_args')
 universal_archs = []
-if cpp_user_args.length() > 1
-  foreach i : range(cpp_user_args.length() - 1)
-    if cpp_user_args[i] == '-arch' and not universal_archs.contains(cpp_user_args[i + 1])
-      universal_archs += [cpp_user_args[i + 1]]
-    endif
-  endforeach
-endif
+# No range() or indexing loop: they need meson 0.58, and meson 0.53 is the
+# oldest this build takes
+previous_arg = ''
+foreach arg : cpp_user_args
+  if previous_arg == '-arch' and not universal_archs.contains(arg)
+    universal_archs += [arg]
+  endif
+  previous_arg = arg
+endforeach
 universal = universal_archs.length() > 1
 if universal
   message('Universal build of macOS (' + ' '.join(universal_archs) + '): the intervals are chosen by the architecture being compiled')
