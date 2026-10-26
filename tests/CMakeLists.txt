@@ -263,30 +263,30 @@ if(CMAKE_HOST_UNIX AND NOT CMAKE_CROSSCOMPILING AND EXISTS "${PROJECT_SOURCE_DIR
     SKIP_REGULAR_EXPRESSION "cpack_stale_configure: skipped")
 endif()
 
-# GAOL_PREFER_AVX512 at the second cmake in a directory (GAOL v5): the default
-# GAOL_PRESERVE_ROUNDING derives was taken for a request of the command line at
-# the second configure, and a directory configured with
-# -DGAOL_PRESERVE_ROUNDING=ON lost the AVX-512 path (point 112 of TODO.md). A
-# script that configures GAOL as the project built, several times in one
-# directory of the test, with the generator and the compilers that built it,
-# and compares what each derives or is given (prefer_avx512_reconfigure.cmake).
-# It runs where the system builds for itself and is Unix (the generator and the
-# compilers are passed as for cpack_stale_configure; not on Windows, not in a
-# cross-compilation), on every architecture: where the compiler has no AVX-512
-# path (ARM), it holds the messages and the cache apart from the header. It
-# configures a directory of its own and builds nothing, so it needs not the
-# lock of the compile tests, which build in the directory of this build.
+# The configuration GAOL decides by itself (GAOL v5): the fused multiply-add
+# instructions, the AVX-512 path, the 128-bit integer, the debugging, the vector
+# intervals of the processor. A script that configures GAOL as the project
+# built, several times, with the settings of a user and of a developer, with the
+# generator and the compilers that built it, and holds the header and the
+# messages of each to what the checks found (automatic_configuration.cmake). It
+# keeps what the second cmake of a directory had lost, the AVX-512 path under
+# GAOL_PRESERVE_ROUNDING (point 112 of TODO.md). It runs where the system builds
+# for itself and is Unix (the generator and the compilers are passed as for
+# cpack_stale_configure; not on Windows, not in a cross-compilation), on every
+# architecture: it asks of a platform what its own checks found. It configures
+# directories of its own and builds nothing, so it needs not the lock of the
+# compile tests, which build in the directory of this build.
 if(CMAKE_HOST_UNIX AND NOT CMAKE_CROSSCOMPILING)
-  add_test(NAME prefer_avx512_reconfigure
+  add_test(NAME automatic_configuration
     COMMAND "${CMAKE_COMMAND}"
       "-DGAOL_SOURCE_DIR=${PROJECT_SOURCE_DIR}"
-      "-DGAOL_WORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/prefer_avx512_reconfigure"
+      "-DGAOL_WORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/automatic_configuration"
       "-DGAOL_GENERATOR=${CMAKE_GENERATOR}"
       "-DGAOL_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}"
       "-DGAOL_C_COMPILER=${_gaol_C_compiler}"
       "-DGAOL_CXX_COMPILER=${_gaol_CXX_compiler}"
-      -P "${CMAKE_CURRENT_SOURCE_DIR}/prefer_avx512_reconfigure.cmake")
-  set_tests_properties(prefer_avx512_reconfigure PROPERTIES LABELS unit TIMEOUT 600)
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/automatic_configuration.cmake")
+  set_tests_properties(automatic_configuration PROPERTIES LABELS unit TIMEOUT 600)
 endif()
 
 # Commented out: the tests run no thread (GAOL v5)
