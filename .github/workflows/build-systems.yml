@@ -430,6 +430,52 @@ jobs:
           ./rounding_direction.exe
           if ($LASTEXITCODE) { exit 1 }
 
+  # Clang with the target of Visual C++ and the driver of GCC (clang++, not
+  # clang-cl), in the environment of Visual Studio (GAOL v5), as the CMake job
+  # of windows.yml
+  meson-clang-msvc:
+    name: ${{ matrix.cfg.desc }}
+    runs-on: windows-2022
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    strategy:
+      fail-fast: false
+      matrix:
+        cfg:
+          - { arch: x64, target: x86_64-pc-windows-msvc, desc: 'Meson, Clang for Visual C++ x64 (clang++)' }
+          - { arch: x86, target: i686-pc-windows-msvc,   desc: 'Meson, Clang for Visual C++ x86 (clang++)' }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.cfg.arch }}
+      - name: Tools
+        run: pip install meson ninja
+      - name: Configure, build and install
+        run: |
+          clang++ --version
+          $prefix = "$env:RUNNER_TEMP/gaol" -replace '\\', '/'
+          $env:CC = 'clang'
+          $env:CXX = 'clang++'
+          $env:CFLAGS = '--target=${{ matrix.cfg.target }}'
+          $env:CXXFLAGS = '--target=${{ matrix.cfg.target }}'
+          $env:LDFLAGS = '--target=${{ matrix.cfg.target }}'
+          meson setup build-meson --prefix="$prefix" --libdir=lib -Dwith-tests=true
+          if ($LASTEXITCODE) { exit 1 }
+          meson compile -C build-meson
+          if ($LASTEXITCODE) { exit 1 }
+          meson install -C build-meson
+          if ($LASTEXITCODE) { exit 1 }
+      - name: The intervals
+        shell: bash
+        run: sh .github/scripts/check-intervals.sh build-meson/gaol/gaol_configuration.h sse2
+      - name: Tests (ninja test)
+        run: |
+          ninja -C build-meson test
+          if ($LASTEXITCODE) { Get-Content build-meson/meson-logs/testlog.txt; exit 1 }
+
   container:
     name: ${{ matrix.cfg.desc }}
     runs-on: ${{ matrix.cfg.os }}

@@ -524,6 +524,46 @@ jobs:
             exit 1
           }
 
+  # Clang with the target of Visual C++ and the driver of GCC (clang++, not
+  # clang-cl), from the LLVM of the runner, in the environment of Visual Studio
+  # (GAOL v5): the compiler of the programs that name the target
+  # x86_64-pc-windows-msvc or i686-pc-windows-msvc, with CMake here, and with
+  # meson in build-systems.yml
+  clang-msvc:
+    name: ${{ matrix.cfg.desc }}
+    runs-on: windows-2022
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    strategy:
+      fail-fast: false
+      matrix:
+        cfg:
+          - { arch: x64, target: x86_64-pc-windows-msvc, desc: 'Clang for Visual C++ x64 (clang++), Release' }
+          - { arch: x86, target: i686-pc-windows-msvc,   desc: 'Clang for Visual C++ x86 (clang++), Release' }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.cfg.arch }}
+      - name: Configure
+        run: |
+          clang++ --version
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER_TARGET=${{ matrix.cfg.target }} -DCMAKE_CXX_COMPILER_TARGET=${{ matrix.cfg.target }}
+          if ($LASTEXITCODE) { exit 1 }
+      - name: The intervals
+        shell: bash
+        run: sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h sse2
+      - name: Build
+        run: |
+          cmake --build build -j 4
+          if ($LASTEXITCODE) { exit 1 }
+      - name: Tests (make test)
+        run: |
+          cmake --build build --target test
+          if ($LASTEXITCODE) { exit 1 }
+
   # The mingw-w64 whose fma() or round() is wrong are refused when compiling
   # (gaol/gaol_config.h): CORE-MATH computes with that fma() where the build
   # has no -mfma (GAOL_FMA OFF; GAOL_FMA gives it to GCC for Windows on x86-64
