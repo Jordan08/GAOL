@@ -7,8 +7,8 @@ propose une pull request, et comment on tient les registres à jour une fois la
 pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
-en cours, ce qui reste) est au §12. Dernière mise à jour : 26 octobre 2026, au
-commit `f404e8e` de `configure-clean` (la fusion de #200).
+en cours, ce qui reste) est au §12. Dernière mise à jour : 27 octobre 2026, au
+commit `f625bbc` de `configure-clean` (la fusion de #201).
 
 ## 1. Le contexte
 
@@ -723,7 +723,7 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   `bash -e`, un `! grep ...` au milieu d'une étape ne la fait pas échouer (seule
   la dernière commande donne son statut) : écris un `if` explicite.
 
-## 12. Où en est le travail (26 octobre 2026)
+## 12. Où en est le travail (27 octobre 2026)
 
 Le reste à faire est dans `TODO.md` (tâches PE à PJ) et l'issue #179 ; ce
 qui est fait et décidé (pull requests fusionnées, décisions, mesures) est dans
@@ -744,22 +744,27 @@ git ls-remote --heads origin
   avec tous les compilateurs de l'arm64, SSE2 avec tous ceux de l'x86, le FPU en
   dernier recours) ; #199 et #200 (hors des tâches : les sources des intervalles
   dans `gaol/core/`, puis les options des trois builds : les mêmes options pour
-  l'utilisateur, tout le reste décidé par la configuration) ; l'audit du 13
-  octobre a vérifié dans `configure-clean` ce qu'annonçaient alors les points A,
-  C à H et J à V.
-- **En cours** : une pull request ouverte au 26 octobre, #201 (le point 92 : les
-  drapeaux C de CORE-MATH, branche `todo-ae-c-flags`) ; `configure-clean` est au
-  commit de la fusion de #200, et ses branches sur GitHub sont
-  `configure-clean`, `MATH-CORE`, `master`, `perf-doc-rerun` (les scripts des
-  mesures reportées, hors des points) et `todo-ae-c-flags`. L'issue #198
-  (`x / y` des intervalles NEON avec `FPCR.AH`) est ouverte, sans tâche dans
-  `TODO.md` ; #185 est fermée, le masquage des exceptions de `pow` est gardé.
-- **À faire**, dans l'ordre de `TODO.md` : les trois builds et la CI (PE,
-  entamée : #200 et #201), x86 32 bits et Windows (PF), les études de vitesse,
-  toutes avant v5.0.0 (PG, entamée), les signalements à d'autres projets (PH,
-  avec l'accord du mainteneur), puis la version (PI, PJ). Ce qui est reporté (le
-  113, le site, les traits pour YalAA et VNODE-LP, les décorations, ce qui
-  attend du matériel) est dans `TODO_AFTER.md`. Les dépendances entre points
-  sont écrites dans chaque tâche. Le mainteneur donne les tâches ou les points
-  un par un (« traite la tâche PE », « traite le point 129 ») : ne commence pas
-  le suivant sans lui.
+  l'utilisateur, tout le reste décidé par la configuration) et #201 (les mêmes
+  drapeaux C pour CORE-MATH, comparés par l'audit) ; l'audit du 13 octobre a
+  vérifié dans `configure-clean` ce qu'annonçaient alors les points A, C à H et
+  J à V.
+- **En cours** : deux pull requests ouvertes au 27 octobre, #202 (le point 4 de
+  PE : les remarques d'actionlint et de shellcheck, branche
+  `todo-pe-tool-remarks`) et #203 (le point 6 : la relecture des commits d'après
+  #163, branche `todo-pe-review-fixes`) ; la branche `todo-pe-mingw32` (le point
+  3 : les jobs qui manquent) attend sa relecture et sa pull request ;
+  `configure-clean` est au commit de la fusion de #201, et ses branches sur
+  GitHub sont `configure-clean`, `MATH-CORE`, `master`, `perf-doc-rerun` (les
+  scripts des mesures reportées, hors des points) et celles de ces trois
+  travaux. L'issue #198 (`x / y` des intervalles NEON avec `FPCR.AH`) est
+  ouverte, sans tâche dans `TODO.md` ; #185 est fermée, le masquage des
+  exceptions de `pow` est gardé.
+- **À faire**, dans l'ordre de `TODO.md` : le reste des trois builds et de la CI
+  (PE : le reste du 95 avec le commentaire du bogue 54412, la pull request du
+  point 3), x86 32 bits et Windows (PF), les études de vitesse, toutes avant
+  v5.0.0 (PG, entamée), les signalements à d'autres projets (PH, avec l'accord
+  du mainteneur), puis la version (PI, PJ). Ce qui est reporté (le 113, le site,
+  les traits pour YalAA et VNODE-LP, les décorations, ce qui attend du matériel)
+  est dans `TODO_AFTER.md`. Les dépendances entre points sont écrites dans
+  chaque tâche. Le mainteneur donne les tâches ou les points un par un (« traite
+  la tâche PE », « traite le point 129 ») : ne commence pas le suivant sans lui.

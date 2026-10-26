@@ -273,6 +273,17 @@ if test "${gaol_cxx_takes}" = yes; then
 fi])
 GAOL_PC_CFLAGS=""
 
+# The sources of CORE-MATH in C99 with the GNU extensions, which the inline
+# assembly of atan2 needs, as CMake (gnu99) and meson give it (GAOL v5: configure
+# left the standard of the C compiler, and meson took gnu11). Not in CFLAGS,
+# which come after the flags of each directory and would override theirs
+GAOL_CHECK_C_FLAG([-std=gnu99], [c_takes_gnu99])
+GAOL_C_STD=""
+if test "${c_takes_gnu99}" = yes; then
+    GAOL_C_STD="-std=gnu99"
+fi
+AC_SUBST([GAOL_C_STD])
+
 # The compilers CMakeLists.txt refuses, for the same reasons (see there):
 # - Clang for 32-bit ARM processors, which does not honour the rounding
 #   direction: built by Clang 21, 4556 of 16000 random products, squares and
@@ -405,6 +416,11 @@ if test "${target_x86}" = yes; then
         if test "${has_sse2}" = yes; then
             using_sse2=yes
             CXXFLAGS="${CXXFLAGS} -msse2"
+            # And the C sources, those of CORE-MATH, as CMake gives them (GAOL v5)
+            GAOL_CHECK_C_FLAG([-msse2], [c_has_sse2])
+            if test "${c_has_sse2}" = yes; then
+                CFLAGS="${CFLAGS} -msse2"
+            fi
             GAOL_PC_CFLAGS="${GAOL_PC_CFLAGS} -msse2"
             if test "${target_win32}" = yes && test "${simulates_msvc}" != yes; then
                 CXXFLAGS="${CXXFLAGS} -faligned-new=8"
@@ -416,6 +432,10 @@ if test "${target_x86}" = yes; then
             if test "${has_sse3}" = yes; then
                 CXXFLAGS="${CXXFLAGS} -msse3"
                 GAOL_PC_CFLAGS="${GAOL_PC_CFLAGS} -msse3"
+                GAOL_CHECK_C_FLAG([-msse3], [c_has_sse3])
+                if test "${c_has_sse3}" = yes; then
+                    CFLAGS="${CFLAGS} -msse3"
+                fi
                 AC_DEFINE([GAOL_USING_SSE3_INSTRUCTIONS],1,
                     [Define this to 1 if SSE3 instructions are to be used])
             fi
@@ -781,6 +801,12 @@ if test "${has_visibility_opt}" = yes; then
     AC_DEFINE(GAOL_HAVE_VISIBILITY_OPTIONS,1,
                 [Define this to 1 if the compiler supports the "-fvisibility" option])
 fi
+# The C sources (CORE-MATH) hidden too, as CMake builds them: the symbols of the
+# shared library are the same with the three builds (GAOL v5)
+GAOL_CHECK_C_FLAG([-fvisibility=hidden], [c_has_visibility_opt])
+if test "${c_has_visibility_opt}" = yes; then
+    CFLAGS="${CFLAGS} -fvisibility=hidden"
+fi
 
 CFLAGS="${CFLAGS} -Wall -Wconversion"
 CXXFLAGS="${CXXFLAGS} -Wall -Wconversion"
@@ -803,6 +829,11 @@ if test "${float_store_needed}" = no; then
     CXXFLAGS=${OLD_CXXFLAGS}
 else
     GAOL_PC_CFLAGS="${GAOL_PC_CFLAGS} -ffloat-store"
+    # And the C sources, as CMake and meson give it (GAOL v5)
+    GAOL_CHECK_C_FLAG([-ffloat-store], [c_has_float_store])
+    if test "${c_has_float_store}" = yes; then
+        CFLAGS="${CFLAGS} -ffloat-store"
+    fi
 fi
 AC_LANG_POP([C++])
 

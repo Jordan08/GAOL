@@ -1,8 +1,8 @@
 # Fait et décidé sur GAOL v5
 
-Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 26 octobre 2026
-(commit `f404e8e` de `configure-clean`, une pull request ouverte : #201). Ce
-fichier et l'issue #177 ont le même contenu.
+Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 27 octobre 2026
+(commit `f625bbc` de `configure-clean`, deux pull requests ouvertes : #202 et
+#203). Ce fichier et l'issue #177 ont le même contenu.
 
 Il réunit l'historique de l'ancienne issue #49 (« Suivi du TODO de GAOL v5 »),
 ce qui est fait dans l'ancienne issue #142 (« Reste à faire sur GAOL v5 »), dans
@@ -53,16 +53,18 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 
 ## 1. L'état au 26 octobre 2026
 
-- **`configure-clean`** est au commit `f404e8e` (fusion de #200). Les pull
+- **`configure-clean`** est au commit `f625bbc` (fusion de #201). Les pull
   requests des corrections vont vers `configure-clean`, qui reste la branche de
   développement après v5.0.0 ; `MATH-CORE` et `master` (GAOL 4.3.2, plus deux
   commits de `.claude/CLAUDE.md`) ne bougent qu'à la version (point Y).
-- **Une pull request ouverte** : #201 (PE.2, les drapeaux C de CORE-MATH). Le
+- **Deux pull requests ouvertes** : #202 (PE.4, les remarques d'actionlint et de
+  shellcheck) et #203 (PE.6, la relecture des corrections de #163) ; la branche
+  `todo-pe-mingw32` (PE.3, les jobs qui manquent) attend sa relecture. Le
   mainteneur a fusionné #165 à #167, #169 à #174, #176 et #180 à #184 les 23 et
-  24 octobre, et #186 à #194, #196 et #197 le 25 octobre, #199 et #200 le 26
-  octobre ; #168 et #195 sont fermées sans fusion. Les tâches PA, PB, PC et PD
-  sont faites ; PG est entamée (la division du chemin AVX-512, le 106 a : #191
-  à #194), et PE aussi (#200 pour le 95 en partie, #201 pour le 92).
+  24 octobre, et #186 à #194, #196 et #197 le 25 octobre, #199, #200 et #201 le
+  26 octobre ; #168 et #195 sont fermées sans fusion. Les tâches PA, PB, PC et
+  PD sont faites ; PG est entamée (la division du chemin AVX-512, le 106 a :
+  #191 à #194), et PE aussi (#200 pour le 95 en partie, #201 pour le 92).
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
   sur tout processeur ARM 64 bits avec tous les compilateurs (GCC, Clang,
   AppleClang, clang-cl, Visual C++, MinGW-w64, MSYS2), SSE2 sur tout processeur
@@ -1161,7 +1163,22 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   le préprocesseur, que clang refuse avec plusieurs `-arch`, et le test
   `automatic_cleanup` avec la bibliothèque partagée), corrigés ; 206 jobs verts
   sur le dernier commit, les trois builds universels de macOS compris ;
-  fusionnée le 26 octobre à 20 h 45)
+  fusionnée le 26 octobre à 18 h 45 UTC)
+- #201 (hors des tâches ; le point 92 de `TODO.md`, ancien AE : les sources C de
+  CORE-MATH reçoivent les mêmes drapeaux avec CMake, autotools et meson,
+  `-std=gnu99`, `-msse2 -msse3` là où les intervalles SSE2 sont pris,
+  `-fvisibility=hidden`, et `-ffloat-store` du C avec configure ; avant, CMake
+  seul donnait les deux premiers, configure laissait la norme au compilateur
+  (C23 avec GCC 15) et meson prenait `gnu11` ; l'audit des trois builds compare
+  maintenant un source C de CORE-MATH, `sin.c` (`make_probe.py c`, la commande
+  de compilation du C lue dans `compile_commands.json` et dans `make -n -C 3rd`,
+  drapeaux, norme, optimisation et macros comparés) ; il échoue contre les
+  sources de #200 (`C: __STDC_VERSION__`, `C: -msse2`, `C: standard`...) et
+  passe avec GCC 15 et Clang 21 ; une bibliothèque partagée exporte les mêmes 38
+  symboles avec les trois builds ; sur décision du mainteneur,
+  `doc/differences.md` et `ChangeLog` disent aussi ce que #200 a changé aux
+  options ; 205 jobs verts sur le dernier commit ; fusionnée le 26 octobre à 21
+  h 03 UTC)
 
 ### 2.4 Fermées sans fusion
 
@@ -2193,6 +2210,42 @@ fait le travail.
   Go, sur un quota presque atteint) supprimés à la demande du mainteneur (26
   octobre)
 
+#### Décidé pendant la tâche PE (26 et 27 octobre), fait par #201 et les pull requests qui suivent
+
+- [x] Les quatre cas qui restaient du point 3 (#152, #173, #174, #193, #194)
+  sont tous traités, aucun laissé de côté : autotools et meson sous Cygwin,
+  Clang pour la cible de Visual C++ avec le pilote de GCC (sans clang-cl), le
+  build universel de macOS sur chaque version, et le générateur d'Xcode
+- [x] Le point 3 en une seule pull request ; `tests.sh` donne partout les Cflags
+  du `gaol.pc` installé ; pour autotools avec Clang vers MSVC, deux essais de CI
+  au plus (le premier a réussi, une fois le `unistd.h` réglé) ; si un job échoue
+  à cause de GAOL, la correction va dans la même pull request (elle a trouvé le
+  C++14 de la STL de Visual C++, le `unistd.h` du lexeur et l'architecture
+  d'Xcode)
+- [x] Le générateur d'Xcode sans `CMAKE_OSX_ARCHITECTURES` : CMake lui donne
+  l'architecture de la machine, comme les autres générateurs, configure et meson
+  ; la liste `arm64;x86_64` donne le build universel
+- [x] `shellcheck` installé par le mainteneur ; `actionlint` dans l'image Docker
+  officielle `rhysd/actionlint` ; toutes les remarques de `shellcheck` des
+  scripts (101, `.github/scripts` et `doc/compare/code`) sont traitées dans
+  #202, avec des `# shellcheck disable=` là où une liste de drapeaux doit être
+  découpée
+- [x] Le commentaire de `CMakeLists.txt` sur le bogue 54412 de GCC se corrige
+  avec le reste du 95, dans une pull request à part ; la relecture des
+  corrections A à F de #161 n'est pas refaite (#200 a supprimé le test et
+  l'option ; le point A est vérifié dans le code) ; les 350 références « point X
+  of TODO.md » des sources restent
+- [x] Les registres sont mis à jour à la fusion de chaque pull request, non
+  avant
+- [x] Vérifié le 26 octobre (point 5) : le correctif du bogue 54412 de GCC est
+  le commit `8aaa5f6e6207` (« function: honour over-alignment in
+  assign_stack_local [PR54412] », validé le 25 septembre 2026 sur la branche de
+  développement, GCC 17, non publié) ; « fixed for GCC 17 only » est donc exact,
+  sans rétroportage vu pour GCC 16 ; les paquets `mingw` de Chocolatey ont les
+  bibliothèques mingw-w64 v10 (12.2.0), v11 (13.2.0), v12 (14.2.0) et v13
+  (15.2.0), dont les sources de `fesetround()` et `fegetround()` sont celles
+  lues
+
 #### Le 18 octobre : les questions restées ouvertes dans la description de #99 (commentaire de #49)
 
 Les six questions que la case « Les questions restées ouvertes dans la
@@ -2615,8 +2668,8 @@ leur partie faite.
 - **AE.** Les trois builds : le 90 (le compilateur C vérifié comme le C++) par
   #145, les 91 et 94 par #164, le 93 (code mort exporté) le 15 octobre, le 95
   en partie par #200 (les sondes d'exécution de FMA et d'AVX-512 dans les trois
-  builds). Le 92 est fait par #201 (ouverte). Reste le reste du 95 (voir
-  `TODO.md`, PE.1).
+  builds). Le 92 est fait par #201 (fusionnée le 26 octobre). Reste le reste du
+  95 (voir `TODO.md`, PE.1).
 - **AI.** La vitesse sur macOS, Windows et ARM : le 106 pour arm64 (intervalles
   NEON) par #146, pour Visual C++ et clang-cl x64 (SSE2) par #148, pour Windows
   32 bits avec GCC et Clang (SSE2 avec `-faligned-new=8`) par #152, pour ARM 32
@@ -3399,12 +3452,16 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PE à PJ) et
   ouverte, la branche supprimée sur GitHub à la fusion et en local le 26
   octobre.
 - #200 (les options des trois builds, hors des tâches) fusionnée par le
-  mainteneur le 26 octobre à 20 h 45, ses 206 jobs verts sur le dernier commit ;
-  la CI du commit de fusion, redondante, n'est pas attendue (§10) ; la branche
-  supprimée sur GitHub à la fusion et en local le 26 octobre ; `TODO.md`,
-  `TODO_DONE.md` et `process.md` (§12) mis à jour pour elle. La pull request
-  #201 (le point 92, PE.2) ouverte juste après, sur `todo-ae-c-flags` où
-  `configure-clean` est fusionnée.
+  mainteneur le 26 octobre à 18 h 45 UTC, ses 206 jobs verts sur le dernier
+  commit ; la CI du commit de fusion, redondante, n'est pas attendue (§10) ; la
+  branche supprimée sur GitHub à la fusion et en local le 26 octobre ;
+  `TODO.md`, `TODO_DONE.md` et `process.md` (§12) mis à jour pour elle. La pull
+  request #201 (le point 92, PE.2) ouverte juste après, sur `todo-ae-c-flags` où
+  `configure-clean` est fusionnée. #201 fusionnée par le mainteneur le 26
+  octobre à 21 h 03 UTC, ses 205 jobs verts sur le dernier commit ; la CI du
+  commit de fusion, redondante, n'est pas attendue (§10) ; la branche supprimée
+  sur GitHub à la fusion et en local le 27 octobre ; `TODO.md`, `TODO_DONE.md`
+  et `process.md` (§12) mis à jour pour elle
 
 ## 8. Le ménage fait
 
@@ -3454,15 +3511,17 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PE à PJ) et
   (`todo-ap-neon-pown-packed`), #189 (`todo-ac-register-guard`) et #190
   (`todo-q-bisect-flush`), sur GitHub à la fusion et en local le 25 octobre ;
   celles de #191 (`todo-pg-avx512-div`), #192 (`todo-pg-msvc-arm64-neon`), #193
-  (`todo-pg-sse2-win32-msvc`) et #194 (`todo-pg-universal-macos`), et la
-  jetable de l'expérience #195 (`experiment-neon-scalar-div`), sur GitHub à la
-  fusion et en local le 25 octobre ; celles de #196 (`todo-pd-texts`) et de #197
+  (`todo-pg-sse2-win32-msvc`) et #194 (`todo-pg-universal-macos`), et la jetable
+  de l'expérience #195 (`experiment-neon-scalar-div`), sur GitHub à la fusion et
+  en local le 25 octobre ; celles de #196 (`todo-pd-texts`) et de #197
   (`todo-pd-pow-mutants`), sur GitHub à la fusion et en local le 25 octobre ;
   celle de #199 (`interval-sources-in-core`), sur GitHub à la fusion et en local
-  le 26 octobre ; celle de #200 (`automatic-configuration`), sur GitHub à la
-  fusion et en local le 26 octobre : sur GitHub, il ne reste que
-  `configure-clean`, `MATH-CORE`, `master`, `perf-doc-rerun` et
-  `todo-ae-c-flags` (#201).
+  le 26 octobre ; celle de #201 (`todo-ae-c-flags`), sur GitHub à la fusion et
+  en local le 27 octobre ; celle de #200 (`automatic-configuration`), sur GitHub
+  à la fusion et en local le 26 octobre : sur GitHub, il ne reste que
+  `configure-clean`, `MATH-CORE`, `master`, `perf-doc-rerun` et les branches des
+  pull requests ouvertes (`todo-pe-tool-remarks`, `todo-pe-review-fixes`,
+  `todo-pe-mingw32`).
 - [x] Lignes de crédit retirées des descriptions de #50, #51, #53 à #57 et #59,
   d'un commentaire de #59 et de cette issue. Il en reste dans les messages des
   commits a0d3871, 790ca12 et f1f4239 de #99, fusionnée sans squash. Retirées

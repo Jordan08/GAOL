@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `f404e8e` de `configure-clean`, le 26
+Ce qui reste à faire sur GAOL v5 au commit `f625bbc` de `configure-clean`, le 27
 octobre 2026, en tâches PE à PJ (PA à PD sont faites, PE et PG sont entamées :
 voir `TODO_DONE.md`). Ce fichier et l'issue #179 ont le même contenu. Ce qui est
 fait et décidé est dans `TODO_DONE.md` (issue #177), ce qui est reporté dans
@@ -10,8 +10,8 @@ fait et décidé est dans `TODO_DONE.md` (issue #177), ce qui est reporté dans
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à fusionner, à envoyer à un autre projet ni à publier
-sans l'accord du mainteneur. Une pull request est ouverte : #201 (le point 92,
-PE.2).
+sans l'accord du mainteneur. Deux pull requests sont ouvertes : #202 (PE.4) et
+#203 (PE.6).
 
 ## Comment lire ce fichier
 
@@ -41,7 +41,7 @@ PE.2).
 
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
-| PE | Les trois builds, la CI, les vérifications qui manquent | 95 (reste), 92 (#201) et quatre autres | M |
+| PE | Les trois builds, la CI, les vérifications qui manquent | 95 (reste), 3 (en cours), 4 et 6 (en PR), 5 | M |
 | PF | x86 32 bits, Windows et le registre de contrôle | 108, 109 et trois | M |
 | PG | Les études de vitesse | 105, 116, 106 et six petits | M |
 | PH | Les signalements à d'autres projets | #125 à #138, #175 | accord |
@@ -66,48 +66,41 @@ CI.
    résultat changerait. Correction : `AC_LINK_IFELSE` et `links()` pour la sonde
    de la cible, un `check_c_source_compiles` des drapeaux de FMA avec CMake.
    *Décidé le 26 octobre* : une pull request à part, partie de `configure-clean`
-   une fois #201 fusionnée (elle touche déjà `configure.ac` et `meson.build`).
-2. **92 (AE)** [M], *pull request #201 ouverte le 26 octobre
-   (`todo-ae-c-flags`)* : les sources C n'ont pas les mêmes drapeaux dans les
-   trois builds : CMake leur donne `-msse2 -msse3 -fvisibility=hidden`,
-   autotools et meson au C++ seulement ; `-ffloat-store` va au C et au C++ avec
-   CMake et meson, au C++ seul avec autotools ; le C est gnu99 avec CMake, c99
-   ou gnu11 avec meson, celui du compilateur avec autotools. `.github/audit` ne
-   compare que les drapeaux de `gaol_interval.cpp`. Correction : les mêmes
-   drapeaux C partout, et un source C dans `probe_build.py`. (Principe 6 de
-   `process.md` : les mêmes bibliothèque, en-têtes et options partout. Aucun
-   effet connu sur les bornes.)
-3. **Les jobs qui manquent** (#152, #173, #174) : aucun job ne construit
-   autotools ni meson avec MinGW-w64 x86 (le MSYS2 de `build-systems.yml` est
-   x64), et l'audit des trois builds ne tourne pas sous Windows : leur accord
-   pour Windows 32 bits n'est vérifié que par simulation (`CXXFLAGS=-D_WIN32`).
-   Pour Cygwin, restent non vérifiés « le Debug complet de Cygwin et autotools
-   et meson sous Cygwin » (le job fait un build Debug sans appel de `fma()`).
-   Pour #193 : aucun job ne construit autotools ni meson avec un Clang pour
-   cible Visual C++ sans clang-cl (configure.ac l'accepte sans lui donner
-   `-faligned-new=8`). Pour #194 : le build universel de macOS n'a qu'un job
-   (macOS 26, `macos.yml`) et n'est reconnu que par une liste explicite
-   d'architectures dans `CMAKE_OSX_ARCHITECTURES` (non vérifié avec le
-   générateur Xcode, qui les prend de `$(ARCHS_STANDARD)`). *À décider* : un job
-   suffit-il pour ce cas rare de CMake, ou en faut-il un par version de macOS ?
-4. **Les remarques des outils** (#160) : `actionlint` dit que
-   `suppress-deprecation-warnings` n'est pas une entrée de
-   `msys2/setup-msys2@v2` (job `msys2-refused` de `windows.yml`), et
-   `shellcheck` fait des remarques sur des étapes de `build-systems.yml`,
-   `linux.yml`, `manual.yml` et `windows.yml`.
-5. **Les affirmations non vérifiées** (#163) : le commentaire de
-   `CMakeLists.txt` dit que le bogue 54412 de GCC (la pile de Windows x64
-   alignée sur 16 octets, non sur 32) est « fixed for GCC 17 only » : Bugzilla
-   refuse l'accès, l'état vient de lectures indirectes (ouvert jusqu'à GCC 16,
-   un correctif sur gcc-patches le 6 juin 2026), plausible et non vérifié. Les
-   `fesetround()` et `fegetround()` de mingw-w64 ont été lus dans les sources de
-   `master`, du CRT de MSYS2 de la CI (`4564ee4b5`) et des étiquettes v13 et
-   v14, non dans ceux de Chocolatey : une version qui garderait les indicateurs
-   ne gênerait pas la correction, mais n'a pas été cherchée.
-6. **Les relectures indépendantes qui manquent** : les corrections que la
-   relecture de #161 a fait faire (points A à F) n'ont pas été relues ; les
-   corrections qui ont suivi les deux relectures de #163 (`704ca0c`, `e80b6f0`,
-   `1de1df0`, `15399b5`) non plus.
+   (#201 est fusionnée depuis le 26 octobre), avec la correction du commentaire
+   du bogue 54412 de GCC (point 5).
+2. **92 (AE)** : fait par #201 (fusionnée le 26 octobre) : voir `TODO_DONE.md`.
+3. **Les jobs qui manquent** (#152, #173, #174, #193, #194) [M] : *en cours*,
+   branche `todo-pe-mingw32`, sans pull request encore (relecture indépendante
+   en cours le 27 octobre). Tous les cas sont traités (*décidé le 26 octobre*) :
+   MSYS2 MINGW32 avec autotools, meson et l'audit des trois builds, Cygwin avec
+   autotools et meson et un Debug complet, Clang pour la cible de Visual C++
+   avec le pilote de GCC (CMake x64 et x86, meson x64 et x86, autotools x64), le
+   build universel de macOS sur macOS 15 et le générateur d'Xcode. Ils ont
+   trouvé quatre défauts, corrigés dans la même branche : le `fma()` de msvcrt
+   dans les tests compilés sans `-mfma` (`tests.sh` donne les Cflags du
+   `gaol.pc`), le C++14 que demande la STL de Visual C++ et le `unistd.h` du
+   lexeur pour Clang vers MSVC, l'architecture d'Xcode sans liste (CMake lui
+   donne celle de la machine). Reste : la relecture, la pull request, la CI
+   complète, et un job autotools pour Clang vers MSVC en x86 si l'on en veut un.
+4. **Les remarques des outils** (#160) [S] : *pull request #202 ouverte le 26
+   octobre* (`todo-pe-tool-remarks`) : les 34 remarques d'actionlint (dont un
+   faux positif, `suppress-deprecation-warnings`, que `.github/actionlint.yaml`
+   écarte) et les 101 de shellcheck sur les scripts sont traitées ; rien ne
+   reste après sa fusion.
+5. **Les affirmations non vérifiées** (#163) [S] : *vérifiées le 26 octobre*. Le
+   commentaire de `CMakeLists.txt` « fixed for GCC 17 only » est exact : le
+   correctif du bogue 54412 est le commit `8aaa5f6e6207` (« function: honour
+   over-alignment in assign_stack_local [PR54412] », 25 septembre 2026, sur la
+   branche de développement de GCC, la 17, non publiée). Les paquets `mingw` de
+   Chocolatey ont les bibliothèques mingw-w64 v10 (12.2.0), v11 (13.2.0), v12
+   (14.2.0) et v13 (15.2.0). Reste : citer ce commit dans le commentaire de
+   `CMakeLists.txt`, avec le 95 (*décidé le 26 octobre*).
+6. **Les relectures indépendantes qui manquent** [S] : *pull request #203
+   ouverte le 26 octobre* (`todo-pe-review-fixes`) : relecture des commits
+   `704ca0c`, `e80b6f0`, `1de1df0` et `15399b5` (aucun point bloquant, six
+   constats mineurs corrigés, deux mutants tués). Celle des corrections A à F de
+   #161 n'est pas refaite (#200 a supprimé le test et l'option ; le point A est
+   vérifié dans le code) (*décidé le 26 octobre*).
 
 ## PF. x86 32 bits, Windows et le registre de contrôle [M]
 
@@ -359,7 +352,7 @@ PA à PH faites ou décidées (PA à PD le sont), et avant les mesures de PJ.
    à #174, #176, #180 à #184 (celle de #176 dit : rien), #191 à #194 et #196 et
    #197 (qui disent : rien), #199 (l'installation des en-têtes dans
    `include/gaol/core/`), #200 (les options des trois builds : voir 2) et #201
-   (les drapeaux C de CORE-MATH, quand elle sera fusionnée). Les
+   (les drapeaux C de CORE-MATH, déjà dans `doc/differences.md`). Les
    points K, L et
    `make distclean` (#72 à #75) n'ont pas cette section : à écrire d'après leurs
    descriptions. À écrire d'après les commits, sans pull request : les
@@ -426,8 +419,8 @@ PA à PH faites ou décidées (PA à PD le sont), et avant les mesures de PJ.
    NEON, que le chemin AVX-512 suit `GAOL_PRESERVE_ROUNDING`, que les
    instructions FMA et l'entier 128 bits sont décidés par des tests de la
    configuration ; ces passages de `doc/differences.md` et de `ChangeLog` sont
-   corrigés dans la pull request #201 (*décidé le 26 octobre*), à relire ici
-   seulement.
+   corrigés par #201 (fusionnée le 26 octobre, *décidé le 26
+   octobre*), à relire ici seulement.
    *Décidé le 3 octobre*
    : la puce de `atanh` de `doc/differences.md` reste, en disant que GAOL 4
    n'est pas mesuré, les puces de `hausdorff()` sont fusionnées.

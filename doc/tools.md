@@ -30,8 +30,8 @@ In [.github/audit/](../.github/audit/).
 | Script | What it is for |
 |---|---|
 | [audit.sh](../.github/audit/audit.sh) | Configures GAOL with CMake, autotools and meson, and writes `OUT/LABEL.json` (with `probe_build.py`). |
-| [probe_build.py](../.github/audit/probe_build.py) | For the three configured builds, reads the compiler flags and the configuration GAOL sees. |
-| [make_probe.py](../.github/audit/make_probe.py) | Writes a C++ file which, preprocessed with the flags of a build, shows the configuration GAOL sees. |
+| [probe_build.py](../.github/audit/probe_build.py) | For the three configured builds, reads the compiler flags and the configuration GAOL sees, for a C++ source and for a C source of CORE-MATH. |
+| [make_probe.py](../.github/audit/make_probe.py) | Writes a C++ file which, preprocessed with the flags of a build, shows the configuration GAOL sees, or with the argument `c` a C file for the C sources. |
 | [compare.py](../.github/audit/compare.py) | Compares the macros and the flags of the three builds, and with `--check` fails if they differ. |
 | [logs.sh](../.github/audit/logs.sh) | When the audit fails, prints the end of the logs of the three builds, then exits with the same status. |
 
