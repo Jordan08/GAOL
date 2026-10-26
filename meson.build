@@ -100,12 +100,13 @@ msvc = cpp_comp.get_argument_syntax() == 'msvc'
 # or i686-pc-windows-msvc, not clang-cl) simulates it (_MSC_VER), and the
 # -std=c++11 of cpp_std does not compile the headers of that library. The
 # argument of the project comes after the option of the standard in the command
-if not msvc and cpp_comp.compiles('''
+clang_msvc = not msvc and cpp_comp.compiles('''
 #ifndef _MSC_VER
 #error neither Visual C++ nor a compiler that simulates it
 #endif
 int main() { return 0; }
 ''', name: 'the compiler simulates Visual C++ (_MSC_VER), so that it needs C++14')
+if clang_msvc
   add_project_arguments(['-std=c++14'], language: 'cpp')
 endif
 

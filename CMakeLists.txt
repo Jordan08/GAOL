@@ -60,6 +60,17 @@ endif()
 
 project(gaol VERSION ${_gaol_version} LANGUAGES C CXX)
 
+# The generator of Xcode builds the architectures of Xcode ($(ARCHS_STANDARD):
+# arm64 and x86_64) when CMAKE_OSX_ARCHITECTURES is not given, and the
+# configuration of GAOL below is that of one architecture, as with the other
+# generators, configure and meson: it gives Xcode the architecture of the
+# machine (GAOL v5). A list of architectures, which the user gives, is kept: the
+# build is universal then.
+if(CMAKE_GENERATOR STREQUAL "Xcode" AND NOT CMAKE_OSX_ARCHITECTURES AND CMAKE_HOST_SYSTEM_PROCESSOR)
+  set(CMAKE_OSX_ARCHITECTURES "${CMAKE_HOST_SYSTEM_PROCESSOR}")
+  message(STATUS "The generator of Xcode builds for the architecture of the machine, ${CMAKE_OSX_ARCHITECTURES}: CMAKE_OSX_ARCHITECTURES=\"arm64;x86_64\" asks for a universal build")
+endif()
+
 # A change of VERSION.txt configures again
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/VERSION.txt")
 
@@ -1334,7 +1345,10 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES AND NOT GAOL_DEBUG)
     target_compile_definitions(${target} PRIVATE NDEBUG)
   endforeach()
 endif()
-if(MSVC)
+# Clang with the driver of GCC for the target of Visual C++ simulates it
+# (CMAKE_CXX_SIMULATE_ID), and has the C runtime and the library of that target
+# (GAOL v5)
+if(MSVC OR CMAKE_CXX_SIMULATE_ID STREQUAL "MSVC")
   # The lexer includes <unistd.h>, which Visual C++ does not have
   target_include_directories(gaol PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/msvc")
   # Visual C++ only: clang-cl does not know the option, and warned of it for

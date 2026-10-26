@@ -183,9 +183,10 @@ EXTRA_DIST = [
 # gaollib_static is the library that the tests and the benchmark link: the
 # static one, or the shared one where there is no other.
 gaol_default_library = get_option('default_library')
-if msvc
+if msvc or clang_msvc
   # The lexer includes <unistd.h>, which Visual C++ does not have
-  # (cmake/msvc/unistd.h), and the warnings CMake turns off too
+  # (cmake/msvc/unistd.h), and the warnings CMake turns off too; the same with
+  # Clang and the driver of GCC for its target (clang_msvc, in meson.build)
   gaol_msvc_args = ['-D_CRT_SECURE_NO_WARNINGS', '-D_CRT_NONSTDC_NO_WARNINGS']
   # Visual C++ only: clang-cl does not know the option, and warns of it
   if cpp_comp.get_id() == 'msvc'
