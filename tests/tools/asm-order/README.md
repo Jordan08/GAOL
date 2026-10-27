@@ -23,6 +23,10 @@ python3 tests/tools/asm-order/check_order.py --build build --preserve
 python3 tests/tools/asm-order/check_order.py --selftest
 ```
 
+The self-test runs in the continuous integration (`.github/workflows/linux.yml`,
+the job `asm-order-selftest`, Python alone); the check of the builds is not
+done there.
+
 `--build` compiles the sources of `gaol/` again with `-S` and the flags of the
 build (into `build/asm-order`), and [inline.cpp](inline.cpp) with the flags of
 `gaol_interval.cpp`: `width()`, `rad()` and `mid_rad()` are inline in a header,
