@@ -8,7 +8,7 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12. Dernière mise à jour : 27 octobre 2026, au
-commit `8db1b6f` de `configure-clean` (la fusion de #203).
+commit `ec3fefd` de `configure-clean` (la fusion de #204).
 
 ## 1. Le contexte
 
@@ -746,20 +746,20 @@ git ls-remote --heads origin
   dans `gaol/core/`, puis les options des trois builds : les mêmes options pour
   l'utilisateur, tout le reste décidé par la configuration), #201 (les mêmes
   drapeaux C pour CORE-MATH, comparés par l'audit), #202 (les remarques
-  d'actionlint et de shellcheck) et #203 (relecture des commits d'après #163) ;
-  l'audit du 13 octobre a vérifié dans `configure-clean` ce qu'annonçaient alors
-  les points A, C à H et J à V.
-- **En cours** : deux pull requests ouvertes au 27 octobre, #204 (le reste du 95
-  de PE et le commentaire du bogue 54412, branche `todo-pe-probes`) et #205 (le
-  point 3 : les jobs qui manquent, branche `todo-pe-mingw32`), toutes deux à CI
-  verte ; `configure-clean` est au commit de la fusion de #203, et ses branches
-  sur GitHub sont `configure-clean`, `MATH-CORE`, `master`, `perf-doc-rerun`
-  (les scripts des mesures reportées, hors des points) et celles de ces deux
-  travaux. L'issue #198 (`x / y` des intervalles NEON avec `FPCR.AH`) est
-  ouverte, sans tâche dans `TODO.md` ; #185 est fermée, le masquage des
-  exceptions de `pow` est gardé.
+  d'actionlint et de shellcheck), #203 (relecture des commits d'après #163) et
+  #204 (les sondes liées, le C des drapeaux de FMA avec CMake) ; l'audit du 13
+  octobre a vérifié dans `configure-clean` ce qu'annonçaient alors les points A,
+  C à H et J à V.
+- **En cours** : une pull request ouverte au 27 octobre, #205 (le point 3 de
+  PE, les jobs qui manquent, branche `todo-pe-mingw32`), à CI verte ;
+  `configure-clean` est au commit de la fusion de #204, et ses branches sur
+  GitHub sont `configure-clean`, `MATH-CORE`, `master`, `perf-doc-rerun` (les
+  scripts des mesures reportées, hors des points) et celle de ce travail.
+  L'issue #198 (`x / y` des intervalles NEON avec `FPCR.AH`) est ouverte, sans
+  tâche dans `TODO.md` ; #185 est fermée, le masquage des exceptions de `pow`
+  est gardé.
 - **À faire**, dans l'ordre de `TODO.md` : le reste des trois builds et de la CI
-  (PE : la fusion de #204 et #205, et leurs suites), x86 32 bits et
+  (PE : la fusion de #205 et ses suites), x86 32 bits et
   Windows (PF), les études de vitesse, toutes avant v5.0.0 (PG, entamée), les
   signalements à d'autres projets (PH, avec l'accord du mainteneur), puis la
   version (PI, PJ). Ce qui est reporté (le 113, le site, les traits pour YalAA

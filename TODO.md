@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `8db1b6f` de `configure-clean`, le 27
+Ce qui reste à faire sur GAOL v5 au commit `ec3fefd` de `configure-clean`, le 27
 octobre 2026, en tâches PE à PJ (PA à PD sont faites, PE et PG sont entamées :
 voir `TODO_DONE.md`). Ce fichier et l'issue #179 ont le même contenu. Ce qui est
 fait et décidé est dans `TODO_DONE.md` (issue #177), ce qui est reporté dans
@@ -10,8 +10,7 @@ fait et décidé est dans `TODO_DONE.md` (issue #177), ce qui est reporté dans
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à fusionner, à envoyer à un autre projet ni à publier
-sans l'accord du mainteneur. Deux pull requests sont ouvertes : #204 (le reste
-du 95) et #205 (PE.3).
+sans l'accord du mainteneur. Une pull request est ouverte : #205 (PE.3).
 
 ## Comment lire ce fichier
 
@@ -41,7 +40,7 @@ du 95) et #205 (PE.3).
 
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
-| PE | Les trois builds, la CI, les vérifications qui manquent | 95 (reste) et 5 (#204), 3 (#205) | M |
+| PE | Les trois builds, la CI, les vérifications qui manquent | 3 (#205) | M |
 | PF | x86 32 bits, Windows et le registre de contrôle | 108, 109 et trois | M |
 | PG | Les études de vitesse | 105, 116, 106 et six petits | M |
 | PH | Les signalements à d'autres projets | #125 à #138, #175 | accord |
@@ -55,21 +54,8 @@ et `configure`, `meson.build`, `.github/audit/`, `.github/workflows/`) et la
 même validation : les trois builds sur la matrice de `process.md` §6.2, puis la
 CI.
 
-1. **95 (AE), ce qui reste** [S] : #200 (26 octobre) a mis dans les trois builds
-   des sondes qui compilent, lient et exécutent pour FMA et pour AVX-512, mais
-   deux détections ne lient pas encore dans tous les builds. La sonde de la
-   cible AVX-512 lie avec CMake, mais ne fait que compiler avec autotools
-   (`AC_COMPILE_IFELSE`) et meson (`compiles()`), alors que
-   `__builtin_cpu_supports` demande `__cpu_model` à l'édition de liens ; la
-   sonde des drapeaux de FMA ne vérifie que le C++ avec CMake, et le C et le C++
-   avec édition de liens dans les deux autres. Non vérifié sur une chaîne où le
-   résultat changerait. Correction : `AC_LINK_IFELSE` et `links()` pour la sonde
-   de la cible, un `check_c_source_compiles` des drapeaux de FMA avec CMake.
-   *Pull request #204 ouverte le 27 octobre* (`todo-pe-probes`, partie de
-   `configure-clean`), avec la correction du commentaire du bogue 54412 de GCC
-   (point 5) (*décidé le 26 octobre*) : sa CI est verte (205 jobs) ; le test de
-   la configuration a une étape de plus, avec un compilateur C qui refuse le
-   premier drapeau de FMA.
+1. **95 (AE), ce qui reste** [S] : fait par #204 (fusionnée le 27 octobre) :
+   voir `TODO_DONE.md`.
 2. **92 (AE)** : fait par #201 (fusionnée le 26 octobre) : voir `TODO_DONE.md`.
 3. **Les jobs qui manquent** (#152, #173, #174, #193, #194) [M] : *pull request
    #205 ouverte le 27 octobre* (`todo-pe-mingw32`), relue par un agent
@@ -89,14 +75,9 @@ CI.
    l'on en veut un.
 4. **Les remarques des outils** (#160) [S] : fait par #202 (fusionnée le 27
    octobre) : voir `TODO_DONE.md`.
-5. **Les affirmations non vérifiées** (#163) [S] : *vérifiées le 26 octobre*. Le
-   commentaire de `CMakeLists.txt` « fixed for GCC 17 only » est exact : le
-   correctif du bogue 54412 est le commit `8aaa5f6e6207` (« function: honour
-   over-alignment in assign_stack_local [PR54412] », 25 septembre 2026, sur la
-   branche de développement de GCC, la 17, non publiée). Les paquets `mingw` de
-   Chocolatey ont les bibliothèques mingw-w64 v10 (12.2.0), v11 (13.2.0), v12
-   (14.2.0) et v13 (15.2.0). Le commentaire de `CMakeLists.txt` cite
-   ce commit dans la pull request #204, avec le 95 (*décidé le 26 octobre*).
+5. **Les affirmations non vérifiées** (#163) [S] : fait, vérifié le 26
+   octobre et le commentaire de `CMakeLists.txt` corrigé par #204 (fusionnée
+   le 27 octobre) : voir `TODO_DONE.md`.
 6. **Les relectures indépendantes qui manquent** [S] : fait par #203
    (fusionnée le 27 octobre) : voir `TODO_DONE.md`.
 
