@@ -1,8 +1,8 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 27 octobre 2026
-(commit `ec3fefd` de `configure-clean`, une pull request ouverte : #205). Ce
-fichier et l'issue #177 ont le même contenu.
+(commit `9deb2e1` de `configure-clean`, aucune pull request ouverte). Ce fichier
+et l'issue #177 ont le même contenu.
 
 Il réunit l'historique de l'ancienne issue #49 (« Suivi du TODO de GAOL v5 »),
 ce qui est fait dans l'ancienne issue #142 (« Reste à faire sur GAOL v5 »), dans
@@ -10,7 +10,7 @@ l'ancien `TODO.md` et dans `TODO_mistral.md`, avec les réponses du mainteneur
 des 22 et 23 octobre. #49 et #142 sont fermées le 24 octobre, `TODO_mistral.md`
 est supprimé. Le reste du travail est dans deux autres registres :
 
-- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PE à PJ ;
+- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PF à PJ ;
 - `TODO_AFTER.md` (issue #178) : ce qui est reporté, après la version, jusqu'à
   une décision ou jusqu'à du matériel.
 
@@ -40,7 +40,7 @@ est supprimé. Le reste du travail est dans deux autres registres :
   : elle s'applique telle quelle.
 - Le classement par rang et par tiers (A à I) de l'ancien #142 n'existe plus :
   un « rang N » cité dans un texte d'avant le 24 octobre désigne cet ancien
-  classement. Ce qui reste à faire est classé en tâches PE à PJ dans `TODO.md`.
+  classement. Ce qui reste à faire est classé en tâches PF à PJ dans `TODO.md`.
 - Ce qui sert encore des rapports des agents est dans
   [todo-notes/synthese.md](todo-notes/synthese.md), leurs originaux au commit
   `16a2f60` (`todo-notes/`, ceux du 30 septembre dans `todo-notes/2026-09-30/`)
@@ -53,18 +53,17 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 
 ## 1. L'état au 27 octobre 2026
 
-- **`configure-clean`** est au commit `ec3fefd` (fusion de #204). Les pull
+- **`configure-clean`** est au commit `9deb2e1` (fusion de #205). Les pull
   requests des corrections vont vers `configure-clean`, qui reste la branche de
   développement après v5.0.0 ; `MATH-CORE` et `master` (GAOL 4.3.2, plus deux
   commits de `.claude/CLAUDE.md`) ne bougent qu'à la version (point Y).
-- **Une pull request ouverte** : #205 (PE.3, les jobs qui manquent). Le
-  mainteneur a fusionné #165 à #167, #169 à #174, #176 et #180 à #184 les 23 et
-  24 octobre, et #186 à #194, #196 et #197 le 25 octobre, #199, #200 et #201 le
-  26 octobre, #202, #203 et #204 le 27 ; #168 et #195 sont fermées sans fusion.
-  Les tâches PA, PB, PC et PD sont faites ; PG est entamée (la division du
-  chemin AVX-512, le 106 a : #191 à #194), et PE aussi (#200 pour le 95 en
-  partie, #201 pour le 92, #202 pour le 4, #203 pour le 6, #204 pour le reste du
-  95 et le 5).
+- **Aucune pull request ouverte.** Le mainteneur a fusionné #165 à #167, #169 à
+  #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194, #196 et #197
+  le 25 octobre, #199, #200 et #201 le 26 octobre, #202 à #205 le 27 ; #168 et
+  #195 sont fermées sans fusion. Les tâches PA, PB, PC, PD et PE sont faites
+  (PE : #200 et #204 pour le 95, #201 pour le 92, #205 pour le 3, #202 pour le
+  4, #204 pour le 5, #203 pour le 6) ; PG est entamée (la division du chemin
+  AVX-512, le 106 a : #191 à #194).
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
   sur tout processeur ARM 64 bits avec tous les compilateurs (GCC, Clang,
   AppleClang, clang-cl, Visual C++, MinGW-w64, MSYS2), SSE2 sur tout processeur
@@ -84,10 +83,9 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   défaut ; les instructions FMA, le chemin AVX-512, l'entier 128 bits et le
   débogage sont décidés par des tests de la configuration, les anciennes
   options restant des réglages des développeurs (`doc/building.md`).
-- **Branches** : GitHub a `configure-clean`, `MATH-CORE`, `master`,
-  `perf-doc-rerun` (les scripts des mesures reportées, hors des points) et celle
-  de la pull request ouverte (`todo-pe-mingw32`) ; les branches fusionnées sont
-  supprimées en local.
+- **Branches** : GitHub a `configure-clean`, `MATH-CORE`, `master` et
+  `perf-doc-rerun` (les scripts des mesures reportées, hors des points) ; les
+  branches fusionnées sont supprimées en local.
 - **Aucune borne fausse n'est connue** : sur environ 1,3 million de puissances
   entières, 550 000 `pow` réels, 600 000 autres opérations et 760 lectures de
   nombres (relecture du 14 octobre, revérifiée le 18 octobre à `4eaf69a`), tout
@@ -1219,6 +1217,34 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   « fixed for GCC 17 only » cite le commit `8aaa5f6e6207` du bogue 54412 de
   GCC ; 205 jobs verts sur le dernier commit ; fusionnée le 27 octobre à 8 h
   44 UTC)
+- #205 (hors des points numérotés ; le point 3 de la tâche PE, les jobs qui
+  manquent de #152, #173, #174, #193 et #194 : MSYS2 MINGW32 avec autotools,
+  meson et l'audit des trois builds, Cygwin avec autotools et meson et un Debug
+  complet, Clang pour la cible de Visual C++ avec le pilote de GCC (CMake x64 et
+  x86, meson x64 et x86, autotools x64), les trois builds universels de macOS
+  sur macOS 15 et 26, le générateur d'Xcode avec la liste `arm64;x86_64` et sans
+  liste ; ils ont trouvé quatre défauts, corrigés dans la même pull request : le
+  `fma()` de msvcrt dans les tests compilés sans `-mfma` (44 des 100 000
+  vérifications de `fma` de `tests/arithmetic.cpp` ; `tests.sh` donne partout
+  les Cflags du `gaol.pc` installé), le C++14 que demande la bibliothèque
+  standard de Visual C++ (`CMAKE_CXX_STANDARD 14`, `GAOL_CXX_STD` de
+  `configure.ac`, `cpp_std=c++14` des seules bibliothèques avec meson), le
+  `unistd.h` du lexeur pour un compilateur qui simule Visual C++
+  (`cmake/msvc/unistd.h`, `GAOL_MSVC_CPPFLAGS`, `clang_msvc` de `meson.build`,
+  bibliothèque statique) et l'architecture du générateur d'Xcode sans liste
+  (CMake lui donne celle de la machine) ; sur décision du mainteneur du 27
+  octobre, `gaol/gaol_config.h` refuse mingw-w64 12 ou plus pour x86 32 bits lié
+  à `msvcrt.dll` (MSYS2 MINGW32) sans `-mfma`, comme msvcrt sur x86-64, et un
+  job de CI (`msys2-refused`, paramétré par `msystem`) vérifie le refus, dont
+  les dents sont les macros d'un mingw-w64 32 bits simulé sur Linux (accepté
+  avant, refusé après) ; la version 11 reste acceptée sans FMA, pour garder le
+  job « MinGW-w64 13.2.0 x86 Release, no FMA » (question ouverte de la pull
+  request : voir `TODO_AFTER.md`) ; pas de job autotools avec Clang vers MSVC en
+  x86 (décidé le 27 octobre) ; relue par un agent indépendant, sans risque pour
+  les bornes, ses constats corrigés (la branche en retard sur
+  `configure-clean`, le `-std=c++14` de meson en argument de projet, la
+  documentation et des commentaires, la bibliothèque partagée de CMake) ; 222
+  jobs verts sur le dernier commit ; fusionnée le 27 octobre à 11 h 18 UTC)
 
 ### 2.4 Fermées sans fusion
 
@@ -2285,6 +2311,16 @@ fait le travail.
   bibliothèques mingw-w64 v10 (12.2.0), v11 (13.2.0), v12 (14.2.0) et v13
   (15.2.0), dont les sources de `fesetround()` et `fegetround()` sont celles
   lues
+- [x] MSYS2 MINGW32 lie le `fma()` de msvcrt : `gaol_config.h` le refuse sans
+  `-mfma` (`__FMA__` non défini), comme msvcrt sur x86-64, pour mingw-w64 12 ou
+  plus seulement, la version 11 restant acceptée sans FMA pour garder le job
+  « MinGW-w64 13.2.0 x86 Release, no FMA » (réponse du 27 octobre ; l'écart de
+  la 11 est une question ouverte de #205, voir `TODO_AFTER.md`) ; avec `-mfma`,
+  le défaut, MSYS2 MINGW32 est construit et testé
+- [x] Pas de job autotools avec Clang vers MSVC en x86 : CMake et meson couvrent
+  l'x86, autotools l'x64 (27 octobre)
+- [x] Après #205, s'arrêter et attendre : aucune autre tâche (PF, PG...) sans la
+  demande du mainteneur (27 octobre)
 
 #### Le 18 octobre : les questions restées ouvertes dans la description de #99 (commentaire de #49)
 
@@ -2553,7 +2589,7 @@ le travail qu'elles décident est fait le même soir et ouvert en pull requests
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
-`TODO.md` (tâches PE à PJ) ou dans `TODO_AFTER.md` ; leur partie faite est dite
+`TODO.md` (tâches PF à PJ) ou dans `TODO_AFTER.md` ; leur partie faite est dite
 ici ou dans la section 5.
 
 ### Même changement, ou même code
@@ -2719,12 +2755,15 @@ leur partie faite.
   MSYS2 sur arm64 (NEON, le 106 a) par #192, pour Visual C++ et clang-cl sur
   Windows 32 bits (SSE2, bornes en deux `double`) par #193 et pour le build
   universel de macOS (NEON et SSE2 par tranche) par #194 ; le 107 (FPCR en ligne
-  sur arm64) par #146 ; le 108 (x87 et MXCSR en ligne sur x86 32 bits) par #156
-  ; le 110 (GCC pour Windows, `-mfma -mprefer-vector-width=128`) par #163, puis
-  le 133 (x86 32 bits et Cygwin) par #172, #173 et #174 ; les 111 et 115 (banc
-  A/B, dix lignes de `run_lines.sh`) par #160 et #166 ; le 112, le défaut de
-  CMake et les descriptions d'options par #161, le test des bits du signe de `x
-  * d` par #171. Restent les 105 (AH), 106 (b, c, d), 108, 109, 112 et 116.
+  sur arm64) par #146 ; le 108 (x87 et MXCSR en ligne sur x86 32 bits) par
+  #156 ; le 110 (GCC pour Windows, `-mfma -mprefer-vector-width=128`) par #163,
+  puis le 133 (x86 32 bits et Cygwin) par #172, #173 et #174, et les jobs qui
+  manquent de #152, #173, #174, #193 et #194 (MSYS2 MINGW32, Cygwin avec
+  autotools et meson, Clang vers Visual C++, macOS 15, Xcode) par #205 ; les 111
+  et 115 (banc A/B, dix lignes de `run_lines.sh`) par #160 et #166 ; le 112, le
+  défaut de CMake et les descriptions d'options par #161, le test des bits du
+  signe de `x * d` par #171. Restent les 105 (AH), 106 (b, c, d), 108, 109, 112
+  et 116.
 - **AJ, AK, W, X, Y.** Rien n'est fait ; voir `TODO_AFTER.md` (AJ, AK, W, X) et
   `TODO.md` (Y, tâches PI et PJ).
 
@@ -3062,7 +3101,7 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
 
 Les « Questions ouvertes » des descriptions de #146 à #163, que l'ancien
 `TODO.md` gardait sous « Remarqué par #NN, à trier », avec leur sort. Les
-questions qui restent sans réponse sont dans `TODO.md` (tâches PE à PJ) et
+questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
 `TODO_AFTER.md` ; elles ne sont pas répétées ici.
 
 ### #146
@@ -3502,20 +3541,24 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PE à PJ) et
   octobre à 21 h 03 UTC, ses 205 jobs verts sur le dernier commit ; la CI du
   commit de fusion, redondante, n'est pas attendue (§10) ; la branche supprimée
   sur GitHub à la fusion et en local le 27 octobre ; `TODO.md`, `TODO_DONE.md`
-  et `process.md` (§12) mis à jour pour elle. #202 (le point 4 de PE)
-  fusionnée par le mainteneur le 27 octobre à 8 h 39 UTC, ses 185 jobs verts
-  sur le dernier commit ; la CI du commit de fusion, redondante, n'est pas
-  attendue (§10) ; la branche supprimée sur GitHub à la fusion et en local le
-  27 octobre ; `TODO.md`, `TODO_DONE.md` et `process.md` (§12) mis à jour pour
-  elle. #203 (le point 6 de PE) fusionnée par le mainteneur le 27 octobre à 8
-  h 41 UTC, ses 205 jobs verts sur le dernier commit ; la CI du commit de
-  fusion, redondante, n'est pas attendue (§10) ; la branche supprimée sur
-  GitHub à la fusion et en local le 27 octobre ; mêmes registres mis à jour
-  pour elle, avec #202, dans le même commit. #204 (le reste du 95 et le 5 de
-  PE) fusionnée par le mainteneur le 27 octobre à 8 h 44 UTC, ses 205 jobs
-  verts sur le dernier commit ; la CI du commit de fusion, redondante, n'est
-  pas attendue (§10) ; la branche supprimée sur GitHub à la fusion et en local
-  le 27 octobre ; mêmes registres mis à jour pour elle
+  et `process.md` (§12) mis à jour pour elle. #202 (le point 4 de PE) fusionnée
+  par le mainteneur le 27 octobre à 8 h 39 UTC, ses 185 jobs verts sur le
+  dernier commit ; la CI du commit de fusion, redondante, n'est pas attendue
+  (§10) ; la branche supprimée sur GitHub à la fusion et en local le 27
+  octobre ; `TODO.md`, `TODO_DONE.md` et `process.md` (§12) mis à jour pour
+  elle. #203 (le point 6 de PE) fusionnée par le mainteneur le 27 octobre à 8 h
+  41 UTC, ses 205 jobs verts sur le dernier commit ; la CI du commit de fusion,
+  redondante, n'est pas attendue (§10) ; la branche supprimée sur GitHub à la
+  fusion et en local le 27 octobre ; mêmes registres mis à jour pour elle, avec
+  #202, dans le même commit. #204 (le reste du 95 et le 5 de PE) fusionnée par
+  le mainteneur le 27 octobre à 8 h 44 UTC, ses 205 jobs verts sur le dernier
+  commit ; la CI du commit de fusion, redondante, n'est pas attendue (§10) ; la
+  branche supprimée sur GitHub à la fusion et en local le 27 octobre ; mêmes
+  registres mis à jour pour elle. #205 (le point 3 de PE) fusionnée par le
+  mainteneur le 27 octobre à 11 h 18 UTC, ses 222 jobs verts sur le dernier
+  commit ; la CI du commit de fusion, redondante, n'est pas attendue (§10) ; la
+  branche supprimée sur GitHub à la fusion et en local le 27 octobre ; mêmes
+  registres mis à jour pour elle ; la tâche PE est faite
 
 ## 8. Le ménage fait
 
@@ -3570,13 +3613,12 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PE à PJ) et
   en local le 25 octobre ; celles de #196 (`todo-pd-texts`) et de #197
   (`todo-pd-pow-mutants`), sur GitHub à la fusion et en local le 25 octobre ;
   celle de #199 (`interval-sources-in-core`), sur GitHub à la fusion et en local
-le 26 octobre ; celles de #201 (`todo-ae-c-flags`), de #202
-  (`todo-pe-tool-remarks`), de #203 (`todo-pe-review-fixes`) et de #204
-  (`todo-pe-probes`), sur GitHub à la fusion et en local le 27 octobre ; celle
-  de #200 (`automatic-configuration`), sur GitHub à la fusion et en local le 26
-  octobre : sur GitHub, il ne reste que `configure-clean`, `MATH-CORE`,
-  `master`, `perf-doc-rerun` et la branche de la pull request ouverte
-  (`todo-pe-mingw32`).
+  le 26 octobre ; celles de #201 (`todo-ae-c-flags`), de #202
+  (`todo-pe-tool-remarks`), de #203 (`todo-pe-review-fixes`), de #204
+  (`todo-pe-probes`) et de #205 (`todo-pe-mingw32`), sur GitHub à la fusion et
+  en local le 27 octobre ; celle de #200 (`automatic-configuration`), sur GitHub
+  à la fusion et en local le 26 octobre : sur GitHub, il ne reste que
+  `configure-clean`, `MATH-CORE`, `master` et `perf-doc-rerun`.
 - [x] Lignes de crédit retirées des descriptions de #50, #51, #53 à #57 et #59,
   d'un commentaire de #59 et de cette issue. Il en reste dans les messages des
   commits a0d3871, 790ca12 et f1f4239 de #99, fusionnée sans squash. Retirées

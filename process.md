@@ -8,7 +8,7 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12. Dernière mise à jour : 27 octobre 2026, au
-commit `ec3fefd` de `configure-clean` (la fusion de #204).
+commit `9deb2e1` de `configure-clean` (la fusion de #205).
 
 ## 1. Le contexte
 
@@ -725,7 +725,7 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
 
 ## 12. Où en est le travail (27 octobre 2026)
 
-Le reste à faire est dans `TODO.md` (tâches PE à PJ) et l'issue #179 ; ce
+Le reste à faire est dans `TODO.md` (tâches PF à PJ) et l'issue #179 ; ce
 qui est fait et décidé (pull requests fusionnées, décisions, mesures) est dans
 `TODO_DONE.md` et l'issue #177 ; ce qui est reporté est dans `TODO_AFTER.md` et
 l'issue #178. L'état qui suit est daté : les commandes ci-dessous, les trois
@@ -746,24 +746,22 @@ git ls-remote --heads origin
   dans `gaol/core/`, puis les options des trois builds : les mêmes options pour
   l'utilisateur, tout le reste décidé par la configuration), #201 (les mêmes
   drapeaux C pour CORE-MATH, comparés par l'audit), #202 (les remarques
-  d'actionlint et de shellcheck), #203 (relecture des commits d'après #163) et
-  #204 (les sondes liées, le C des drapeaux de FMA avec CMake) ; l'audit du 13
-  octobre a vérifié dans `configure-clean` ce qu'annonçaient alors les points A,
-  C à H et J à V.
-- **En cours** : une pull request ouverte au 27 octobre, #205 (le point 3 de
-  PE, les jobs qui manquent, branche `todo-pe-mingw32`), à CI verte ;
-  `configure-clean` est au commit de la fusion de #204, et ses branches sur
-  GitHub sont `configure-clean`, `MATH-CORE`, `master`, `perf-doc-rerun` (les
-  scripts des mesures reportées, hors des points) et celle de ce travail.
-  L'issue #198 (`x / y` des intervalles NEON avec `FPCR.AH`) est ouverte, sans
-  tâche dans `TODO.md` ; #185 est fermée, le masquage des exceptions de `pow`
-  est gardé.
-- **À faire**, dans l'ordre de `TODO.md` : le reste des trois builds et de la CI
-  (PE : la fusion de #205 et ses suites), x86 32 bits et
-  Windows (PF), les études de vitesse, toutes avant v5.0.0 (PG, entamée), les
-  signalements à d'autres projets (PH, avec l'accord du mainteneur), puis la
-  version (PI, PJ). Ce qui est reporté (le 113, le site, les traits pour YalAA
-  et VNODE-LP, les décorations, ce qui attend du matériel) est dans
-  `TODO_AFTER.md`. Les dépendances entre points sont écrites dans chaque tâche.
-  Le mainteneur donne les tâches ou les points un par un (« traite la tâche PE
-  », « traite le point 129 ») : ne commence pas le suivant sans lui.
+  d'actionlint et de shellcheck), #203 (relecture des commits d'après #163),
+  #204 (les sondes liées, le C des drapeaux de FMA avec CMake) et #205 (les jobs
+  qui manquent, MSYS2 MINGW32 sans FMA refusé : la tâche PE est faite) ; l'audit
+  du 13 octobre a vérifié dans `configure-clean` ce qu'annonçaient alors les
+  points A, C à H et J à V.
+- **En cours** : aucune pull request ouverte au 27 octobre ; `configure-clean`
+  est au commit de la fusion de #205, et ses branches sur GitHub sont
+  `configure-clean`, `MATH-CORE`, `master` et `perf-doc-rerun` (les scripts des
+  mesures reportées, hors des points). L'issue #198 (`x / y` des intervalles
+  NEON avec `FPCR.AH`) est ouverte, sans tâche dans `TODO.md` ; #185 est fermée,
+  le masquage des exceptions de `pow` est gardé.
+- **À faire**, dans l'ordre de `TODO.md` : x86 32 bits et Windows (PF), les
+  études de vitesse, toutes avant v5.0.0 (PG, entamée), les signalements à
+  d'autres projets (PH, avec l'accord du mainteneur), puis la version (PI, PJ).
+  Ce qui est reporté (le 113, le site, les traits pour YalAA et VNODE-LP, les
+  décorations, ce qui attend du matériel) est dans `TODO_AFTER.md`. Les
+  dépendances entre points sont écrites dans chaque tâche. Le mainteneur donne
+  les tâches ou les points un par un (« traite la tâche PF », « traite le point
+  129 ») : ne commence pas le suivant sans lui.

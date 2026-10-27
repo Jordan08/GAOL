@@ -1,20 +1,20 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `ec3fefd` de `configure-clean`, le 27
-octobre 2026, en tâches PE à PJ (PA à PD sont faites, PE et PG sont entamées :
-voir `TODO_DONE.md`). Ce fichier et l'issue #179 ont le même contenu. Ce qui est
-fait et décidé est dans `TODO_DONE.md` (issue #177), ce qui est reporté dans
+Ce qui reste à faire sur GAOL v5 au commit `9deb2e1` de `configure-clean`, le 27
+octobre 2026, en tâches PF à PJ (PA à PE sont faites, PG est entamée : voir
+`TODO_DONE.md`). Ce fichier et l'issue #179 ont le même contenu. Ce qui est fait
+et décidé est dans `TODO_DONE.md` (issue #177), ce qui est reporté dans
 `TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142 sont fermées, et
 `TODO_mistral.md` est supprimé.
 
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à fusionner, à envoyer à un autre projet ni à publier
-sans l'accord du mainteneur. Une pull request est ouverte : #205 (PE.3).
+sans l'accord du mainteneur. Aucune pull request n'est ouverte.
 
 ## Comment lire ce fichier
 
-- Une tâche (PE à PJ) regroupe des points qui touchent le même code, les mêmes
+- Une tâche (PF à PJ) regroupe des points qui touchent le même code, les mêmes
   fichiers ou les mêmes builds de validation, pour les traiter dans la même
   session ; chaque point reste une pull request à part (process.md : un point,
   une branche), sauf quand la tâche dit qu'une seule suffit. Les tâches sont
@@ -22,7 +22,7 @@ sans l'accord du mainteneur. Une pull request est ouverte : #205 (PE.3).
   plus cher en attendant (une décision qui bloque) ; ce qui tue un programme ou
   rompt une promesse écrite avant ce qui ne fait que ralentir ; le petit et sans
   dépendance avant le gros ; la version (PI, PJ) en dernier.
-- PE à PH ne dépendent pas les unes des autres, sauf quand le texte le dit (PI
+- PF à PH ne dépendent pas les unes des autres, sauf quand le texte le dit (PI
   décrit le travail de PA à PH, PJ suit PI et les études de PG).
 - Chaque point garde sa lettre et son ancien numéro, par exemple « 79 (AB) » :
   ce sont ceux des pull requests, des issues, des commentaires du code et de
@@ -40,46 +40,11 @@ sans l'accord du mainteneur. Une pull request est ouverte : #205 (PE.3).
 
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
-| PE | Les trois builds, la CI, les vérifications qui manquent | 3 (#205) | M |
 | PF | x86 32 bits, Windows et le registre de contrôle | 108, 109 et trois | M |
 | PG | Les études de vitesse | 105, 116, 106 et six petits | M |
 | PH | Les signalements à d'autres projets | #125 à #138, #175 | accord |
 | PI | La pull request de synthèse et les textes de la version | Y | L |
 | PJ | Les mesures et la publication de v5.0.0 | 32, 33, 34, 71 | M |
-
-## PE. Les trois builds, la CI, les vérifications qui manquent [M]
-
-Ensemble parce que ce sont les mêmes fichiers (`CMakeLists.txt`, `configure.ac`
-et `configure`, `meson.build`, `.github/audit/`, `.github/workflows/`) et la
-même validation : les trois builds sur la matrice de `process.md` §6.2, puis la
-CI.
-
-1. **95 (AE), ce qui reste** [S] : fait par #204 (fusionnée le 27 octobre) :
-   voir `TODO_DONE.md`.
-2. **92 (AE)** : fait par #201 (fusionnée le 26 octobre) : voir `TODO_DONE.md`.
-3. **Les jobs qui manquent** (#152, #173, #174, #193, #194) [M] : *pull request
-   #205 ouverte le 27 octobre* (`todo-pe-mingw32`), relue par un agent
-   indépendant, sa CI est verte (221 jobs). Tous les cas sont traités (*décidé
-   le 26 octobre*) :
-   MSYS2 MINGW32 avec autotools, meson et l'audit des trois builds, Cygwin avec
-   autotools et meson et un Debug complet, Clang pour la cible de Visual C++
-   avec le pilote de GCC (CMake x64 et x86, meson x64 et x86, autotools x64), le
-   build universel de macOS sur macOS 15 et le générateur d'Xcode. Ils ont
-   trouvé quatre défauts, corrigés dans la même branche : le `fma()` de msvcrt
-   dans les tests compilés sans `-mfma` (`tests.sh` donne les Cflags du
-   `gaol.pc`), le C++14 que demande la STL de Visual C++ et le `unistd.h` du
-   lexeur pour Clang vers MSVC, l'architecture d'Xcode sans liste (CMake lui
-   donne celle de la machine). Reste : une décision du mainteneur (MSYS2
-   MINGW32 lie le `fma()` de msvcrt, que `gaol_config.h` refuse déjà en x86-64 ;
-   question ouverte de #205), et un job autotools pour Clang vers MSVC en x86 si
-   l'on en veut un.
-4. **Les remarques des outils** (#160) [S] : fait par #202 (fusionnée le 27
-   octobre) : voir `TODO_DONE.md`.
-5. **Les affirmations non vérifiées** (#163) [S] : fait, vérifié le 26
-   octobre et le commentaire de `CMakeLists.txt` corrigé par #204 (fusionnée
-   le 27 octobre) : voir `TODO_DONE.md`.
-6. **Les relectures indépendantes qui manquent** [S] : fait par #203
-   (fusionnée le 27 octobre) : voir `TODO_DONE.md`.
 
 ## PF. x86 32 bits, Windows et le registre de contrôle [M]
 
@@ -315,7 +280,7 @@ probablement rien.
 
 Ensemble parce que ce sont les textes de la version (`ChangeLog`,
 `doc/differences.md`, `examples/examples.md`, `manual/v5/`), à écrire une fois
-PA à PH faites ou décidées (PA à PD le sont), et avant les mesures de PJ.
+PA à PH faites ou décidées (PA à PE le sont), et avant les mesures de PJ.
 
 1. **La pull request de synthèse** : `ChangeLog` (une entrée du 27 septembre,
    touchée le 4 octobre) et `doc/differences.md` (28 septembre, puis des commits
@@ -330,11 +295,11 @@ PA à PH faites ou décidées (PA à PD le sont), et avant les mesures de PJ.
    #164 (#123, #139, #155 et #160 n'ont rien à y mettre), et à lire aussi, #165
    à #174, #176, #180 à #184 (celle de #176 dit : rien), #191 à #194 et #196 et
    #197 (qui disent : rien), #199 (l'installation des en-têtes dans
-   `include/gaol/core/`), #200 (les options des trois builds : voir 2) et #201
-   (les drapeaux C de CORE-MATH, déjà dans `doc/differences.md`). Les
-   points K, L et
-   `make distclean` (#72 à #75) n'ont pas cette section : à écrire d'après leurs
-   descriptions. À écrire d'après les commits, sans pull request : les
+   `include/gaol/core/`), #200 (les options des trois builds : voir 2), #201
+   (les drapeaux C de CORE-MATH, déjà dans `doc/differences.md`), #202 à #204
+   (qui disent : rien) et #205 (les jobs qui manquent : voir 2). Les points K,
+   L et `make distclean` (#72 à #75) n'ont pas cette section : à écrire d'après
+   leurs descriptions. À écrire d'après les commits, sans pull request : les
    changements du 4 octobre (`nb_fp_numbers()` rend un `unsigned long long`,
    `gaol_parameters.h` supprimé) et ceux du 15 au 18 octobre, qui changent
    l'interface installée : les en-têtes du parser et des expressions dans
@@ -399,7 +364,15 @@ PA à PH faites ou décidées (PA à PD le sont), et avant les mesures de PJ.
    instructions FMA et l'entier 128 bits sont décidés par des tests de la
    configuration ; ces passages de `doc/differences.md` et de `ChangeLog` sont
    corrigés par #201 (fusionnée le 26 octobre, *décidé le 26
-   octobre*), à relire ici seulement.
+   octobre*), à relire ici seulement ; celle de #205 que Clang avec le pilote
+   de GCC pour la cible de Visual C++ est pris en charge par les trois builds
+   (C++14, `unistd.h` de `cmake/msvc`, bibliothèque statique), que le
+   générateur d'Xcode sans `CMAKE_OSX_ARCHITECTURES` construit pour
+   l'architecture de la machine (la liste `arm64;x86_64` donne le build
+   universel), que `.github/scripts/tests.sh` compile les tests avec les
+   Cflags du `gaol.pc` installé, et que MSYS2 MINGW32 (mingw-w64 12 ou plus,
+   `msvcrt.dll`) est refusé sans `-mfma`, comme msvcrt sur x86-64 (*décidé le
+   27 octobre*).
    *Décidé le 3 octobre*
    : la puce de `atanh` de `doc/differences.md` reste, en disant que GAOL 4
    n'est pas mesuré, les puces de `hausdorff()` sont fusionnées.

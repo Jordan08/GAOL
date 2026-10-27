@@ -1,6 +1,6 @@
 # Reporté
 
-Tout ce qui est reporté sur GAOL v5 au 26 octobre 2026 (commit `e831a19` de
+Tout ce qui est reporté sur GAOL v5 au 27 octobre 2026 (commit `9deb2e1` de
 `configure-clean`) : ce qui attend la version v5.0.0, ce que le mainteneur a
 reporté indéfiniment, ce qu'il a écarté en laissant une porte ouverte, et ce qui
 attend du matériel. Ce fichier et l'issue #178 ont le même contenu. Ce qui reste
@@ -160,6 +160,15 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    builds universels deviennent courants ou si la perte, mesurée sur un Mac
    Intel, est grande. Le Rosetta de macOS 14 n'a pas AVX : une tranche compilée
    avec `-mfma` s'y arrêterait sur une instruction illégale.
+5. **mingw-w64 11 lié à `msvcrt.dll`, sans FMA, sur x86 32 bits** (#205). Son
+   `fma()` est le même code (`math/fma.c`, inchangé de la version 9 à la 13) que
+   celui que `gaol_config.h` refuse depuis #205 pour la version 12 ou plus ; la
+   11 reste acceptée sans FMA parce que le job « MinGW-w64 13.2.0 x86 Release,
+   no FMA » de `windows.yml` (#172) la teste, avec la mesure : 125 résultats sur
+   400 000 à un double près (`TODO_DONE.md`, section 3, réponse 6). C'est la
+   question ouverte de #205, fusionnée sans réponse écrite. *À rouvrir* si le
+   mainteneur veut la même règle pour la 11 : la condition de `gaol_config.h`
+   vaut alors pour la 11 et plus, et le job « no FMA » est retiré.
 
 ## 4. En attente de matériel ou d'un environnement qui manque
 
