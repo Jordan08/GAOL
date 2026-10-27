@@ -1486,17 +1486,17 @@ namespace
      it computes with the 128-bit integer throughout, and it is ported to
      gaol_u128 the same way (3rd/README.md). The arguments are drawn to reach
      its branches: the reduction of the argument rounding k up or not, the index
-     i1 of the multiple of pi/64 below, equal to and above 32, the three ways of
+     i1 of t1 = i1 pi/64 below, equal to and above 32, the three ways of
      combining cos(z) cos(r) and sin(z) sin(r) (their sum, their difference, and
      their difference changing the sign, next to an odd multiple of pi/2), every
      range of exponents of the table of 1/(2 pi) beyond 2^31, and the four
      arguments whose cosine has 72 to 88 identical bits after the rounding bit,
      which exceptions() rounds apart. The values are the roundings of cos(x)
-     computed apart, with mpmath at 4000 bits, and are also those of the
-     upstream sources compiled unchanged, in the four roundings: the jobs of the
-     continuous integration that compute with the two 64-bit halves
-     (GAOL_U128_EMULATION, Visual C++, the 32-bit targets) have to find them
-     too. */
+     computed apart, with mpmath at 4000 bits (tests/tools/cos/), and are also
+     those of the upstream sources compiled unchanged, in the four roundings:
+     the jobs of the continuous integration that compute with the two 64-bit
+     halves (GAOL_U128_EMULATION, Visual C++, the 32-bit targets) have to find
+     them too. */
   void cos_accurate_path()
   {
     struct Value { double x, rn, ru, rd, rz; };
@@ -1542,7 +1542,8 @@ namespace
       {-0x1.c268f810ada3dp+892, 0x1.234e478e8029ap-5, 0x1.234e478e8029bp-5, 0x1.234e478e8029ap-5, 0x1.234e478e8029ap-5},
       {0x1.81f61c074a6a7p+948, 0x1.7dd82afa1561p-1, 0x1.7dd82afa15611p-1, 0x1.7dd82afa1561p-1, 0x1.7dd82afa1561p-1},
       {0x1.97351e56837d3p+1017, -0x1.4e14eacd7d5e6p-1, -0x1.4e14eacd7d5e5p-1, -0x1.4e14eacd7d5e6p-1, -0x1.4e14eacd7d5e5p-1},
-      // the four arguments exceptions() rounds apart, with their two signs
+      // the four arguments exceptions() rounds apart, with their two signs (2^-23 to 2^-20: the
+      // accurate path in the three directed roundings only)
       {0x1.8000000000009p-23, 0x1.fffffffffff7p-1, 0x1.fffffffffff71p-1, 0x1.fffffffffff7p-1, 0x1.fffffffffff7p-1},
       {-0x1.8000000000009p-23, 0x1.fffffffffff7p-1, 0x1.fffffffffff71p-1, 0x1.fffffffffff7p-1, 0x1.fffffffffff7p-1},
       {0x1.8000000000024p-22, 0x1.ffffffffffdcp-1, 0x1.ffffffffffdc1p-1, 0x1.ffffffffffdcp-1, 0x1.ffffffffffdcp-1},

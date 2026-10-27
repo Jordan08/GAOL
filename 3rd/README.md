@@ -385,12 +385,14 @@ comparison rather than by reading:
   `cos.c` in the upward rounding against the roundings computed with mpmath at
   4,000 bits, which the upstream file gives too, in the four directions: they
   reach the branches of `cos_large_accurate()` and every range of exponents of
-  the table of 1/(2π). It reports a fault in 15 of 17 changes made one at a
-  time to the lines of `cos.c` that carry `/* GAOL */`, with the native type
-  and with the halves forced, the halves of the tables swapped included. The
-  other two change no result: `k` is read through its bits 0 to 12 only, and
-  a remainder off by 2<sup>-128</sup> (the `+ 1` of `mask + 1` dropped) gave
-  the upstream file's bits over 2.4 billion calls;
+  the table of 1/(2π) (`tests/tools/cos/` recomputes them and tells how they
+  were found). 15 of 17 errors put in the lines of `cos.c` that carry
+  `/* GAOL */`, one at a time (listed there, with `mutate.py`), make it fail,
+  with the native type and with the halves forced, the halves of the tables
+  swapped included. The two others, a mask of `k` that its bits 0 to 12
+  ignore and the `+ 1` of `mask + 1`, change no result seen: the test finds a
+  fault that moves one by more than about 2<sup>-70</sup> relatively, and its
+  only hard-to-round arguments are those of `exceptions()`;
 - **against the native type.** `tests/u128.cpp` compares every operation of the
   two halves with the same operation on `unsigned __int128` and `__int128`, over
   8 million values and every shift count, and the whole of GAOL is built and
