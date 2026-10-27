@@ -86,8 +86,9 @@ only (see [The speed of a pull request](#the-speed-of-a-pull-request)). The badg
     mingw-w64 11 on the x87 unit);
   - MSYS2 UCRT64 (GCC, and GCC again with `GAOL_PRESERVE_ROUNDING`, with and
     without `GAOL_FMA`: with `-mfma`, `__FMA__` is defined, so that the rounding
-    direction goes through MXCSR alone, which only Linux and clang-cl ran, and
-    mingw-w64 13 and later read it with a `fegetround()` that joins the two
+    direction goes through MXCSR alone, which Linux, clang-cl and Visual C++
+    x64 with `/arch:AVX2` run, and mingw-w64 13 and later read it with a
+    `fegetround()` that joins the two
     units and set it with a `fesetround()` that clears the exception flags,
     which GAOL does not call there; GAOL v5) and CLANG64 (Clang, and Clang
     again with `GAOL_PRESERVE_ROUNDING`, which takes `-mfma` and the same path,
@@ -271,11 +272,13 @@ job:
    the commit of the base, `--before-cache` of `performance-ab.sh`), so that
    the next push of the same pull request builds only the pull request (GAOL
    v5). What is kept is the programs, not the times, which are measured in
-   turn in every run; the image of the runner and the model of the processor
-   are in the key so that the two builds come from the same tools and the same
-   choices (the AVX-512 path and the fused multiply-add instructions are taken
-   where the machine building runs them, and a program built on a runner with
-   AVX-512 stops on one that has none); a key has no comma, which the names of
+   turn in every run; the image of the runner, the model of the processor and
+   whether it has the AVX-512 instructions (processors of one model do not all
+   have them) are in the key so that the two builds come from the same tools
+   and the same choices (the AVX-512 path and the fused multiply-add
+   instructions are taken where the machine building runs them, and a program
+   built on a runner with AVX-512 stops on one that has none); a key has no
+   comma, which the names of
    the jobs have, so they are written with underscores in it;
 3. runs `gaol_performance` three times with each build, the base first in the
    first and third runs and the pull request first in the second
@@ -291,8 +294,10 @@ rounding direction preserved, and with GCC and with Clang and the FPU
 intervals; Ubuntu 24.04 arm64 with GCC and with Clang (the
 NEON intervals) and with GCC and the FPU intervals (the kernels of #157); macOS
 26 arm64 (the NEON intervals) and macOS 15 x86_64; Visual Studio 2026 x64, x86,
-arm64, and x64 with the rounding direction preserved, and with clang-cl for
-x64, x86 and arm64; MSYS2 UCRT64 (GCC), CLANG64 (Clang) and CLANGARM64 (Clang);
+arm64, and x64 with the rounding direction preserved (with the AVX-512 path
+left out too, which measures the macros that write MXCSR alone), and with
+clang-cl for x64 (with the direction preserved and the AVX-512 path left out
+too), x86 and arm64; MSYS2 UCRT64 (GCC), CLANG64 (Clang) and CLANGARM64 (Clang);
 and Debian 13
 containers for i386 and armhf, `gaol_performance` alone and no cache there (the
 image of Debian changes under the job). The other platforms (POWER, s390x,

@@ -98,8 +98,13 @@ jobs:
           - { os: windows-2025-vs2026, generator: 'Visual Studio 18 2026', arch: x64,   python: python, opts: '', desc: 'Visual Studio 2026 x64' }
           - { os: windows-2025-vs2026, generator: 'Visual Studio 18 2026', arch: Win32, python: python, opts: '', desc: 'Visual Studio 2026 x86' }
           - { os: windows-2025-vs2026, generator: 'Visual Studio 18 2026', arch: x64,   python: python, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Visual Studio 2026 x64, rounding direction preserved' }
+          # The same without the AVX-512 path, which some runners of GitHub for Windows (AMD EPYC 9V74 with AVX-512,
+          # and others of the same model without) take with the rounding direction preserved: these two measure the
+          # macros that write MXCSR alone (GAOL_RND_MXCSR_ONLY, gaol/gaol_fpu.h), whichever the runner is
+          - { os: windows-2025-vs2026, generator: 'Visual Studio 18 2026', arch: x64,   python: python, opts: '-DGAOL_PRESERVE_ROUNDING=ON -DGAOL_PREFER_AVX512=OFF', desc: 'Visual Studio 2026 x64, rounding direction preserved, AVX-512 arithmetic not taken' }
           - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', arch: ARM64, python: python, opts: '', desc: 'Visual Studio 2026 arm64' }
           - { os: windows-2025-vs2026, generator: 'Visual Studio 18 2026', arch: x64,   toolset: ClangCL, python: python, opts: '', desc: 'Visual Studio 2026 clang-cl x64' }
+          - { os: windows-2025-vs2026, generator: 'Visual Studio 18 2026', arch: x64,   toolset: ClangCL, python: python, opts: '-DGAOL_PRESERVE_ROUNDING=ON -DGAOL_PREFER_AVX512=OFF', desc: 'Visual Studio 2026 clang-cl x64, rounding direction preserved, AVX-512 arithmetic not taken' }
           - { os: windows-2025-vs2026, generator: 'Visual Studio 18 2026', arch: Win32, toolset: ClangCL, python: python, opts: '', desc: 'Visual Studio 2026 clang-cl x86' }
           - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', arch: ARM64, toolset: ClangCL, python: python, opts: '', desc: 'Visual Studio 2026 clang-cl arm64' }
     steps:
@@ -127,19 +132,30 @@ jobs:
       # which the env context does not hold), and the processor decides the
       # build (the AVX-512 path and the fused multiply-add instructions are
       # taken where the machine building runs them: a base built on a runner
-      # with AVX-512 stops on another that has none). A key has no comma
+      # with AVX-512 stops on another that has none, and the model of the
+      # processor does not tell: the key has the AVX-512 instructions of the
+      # processor, GAOL v5). A key has no comma
       - name: The key of the cache
         id: image
         env:
           DESC: ${{ matrix.cfg.desc }}
         run: |
+          # The processors of a runner of one model do not all have the AVX-512 instructions
+          # (the same PROCESSOR_IDENTIFIER of the AMD EPYC 9V74 with and without them): the key
+          # tells which the processor has, as the build decides on it
           case "$RUNNER_OS" in
-            Linux) cpu=$(grep -m1 -E '^(model name|CPU part)' /proc/cpuinfo | cut -d: -f2) ;;
-            macOS) cpu=$(sysctl -n machdep.cpu.brand_string) ;;
-            *) cpu=${PROCESSOR_IDENTIFIER:-} ;;
+            Linux)
+              cpu=$(grep -m1 -E '^(model name|CPU part)' /proc/cpuinfo | cut -d: -f2)
+              if grep -q -w avx512f /proc/cpuinfo; then avx=avx512; else avx=no-avx512; fi ;;
+            macOS)
+              cpu=$(sysctl -n machdep.cpu.brand_string)
+              if sysctl -n machdep.cpu.leaf7_features 2> /dev/null | grep -q -w AVX512F; then avx=avx512; else avx=no-avx512; fi ;;
+            *)
+              cpu=${PROCESSOR_IDENTIFIER:-}
+              avx=$(pwsh -NoProfile -Command '[System.Runtime.Intrinsics.X86.Avx512F]::IsSupported' 2> /dev/null | tr -d '\r' || true) ;;
           esac
           slug() { printf %s "$1" | tr -c 'A-Za-z0-9._-' _; }
-          echo "key=perf-base-$(slug "$DESC")-$(slug "${ImageVersion:-unknown-image}")-$(slug "${cpu:-unknown-cpu}")" >> "$GITHUB_OUTPUT"
+          echo "key=perf-base-$(slug "$DESC")-$(slug "${ImageVersion:-unknown-image}")-$(slug "${cpu:-unknown-cpu}")-$(slug "${avx:-unknown-avx512}")" >> "$GITHUB_OUTPUT"
       - name: The programs of the base, kept from an earlier run
         uses: actions/cache@v6
         with:
@@ -211,8 +227,10 @@ jobs:
         env:
           DESC: ${{ matrix.cfg.desc }}
         run: |
+          # As in the jobs above: the AVX-512 instructions of the processor are in the key
+          avx=$(pwsh -NoProfile -Command '[System.Runtime.Intrinsics.X86.Avx512F]::IsSupported' 2> /dev/null | tr -d '\r' || true)
           slug() { printf %s "$1" | tr -c 'A-Za-z0-9._-' _; }
-          echo "key=perf-base-$(slug "$DESC")-$(slug "${ImageVersion:-unknown-image}")-$(slug "${PROCESSOR_IDENTIFIER:-unknown-cpu}")" >> "$GITHUB_OUTPUT"
+          echo "key=perf-base-$(slug "$DESC")-$(slug "${ImageVersion:-unknown-image}")-$(slug "${PROCESSOR_IDENTIFIER:-unknown-cpu}")-$(slug "${avx:-unknown-avx512}")" >> "$GITHUB_OUTPUT"
       - name: The programs of the base, kept from an earlier run
         uses: actions/cache@v6
         with:

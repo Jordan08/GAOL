@@ -421,6 +421,20 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 
 } // namespace gaol_core
 
+// Temporary control of the A/B bench of the pull request about Visual C++ x64 (not to be merged): a function
+// that nothing calls, kept by the pointer below, which moves the code that follows it by a few bytes
+namespace gaol_ab_control {
+  double unused(double x)
+  {
+    volatile double v = x;
+    for (int i = 0; i < 5; ++i) {
+      v = v * 1.0000001 + 0.5;
+    }
+    return v;
+  }
+  double (*volatile keep)(double) = &unused;
+}
+
 namespace gaol_detail {
 
   /*
