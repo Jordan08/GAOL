@@ -22,9 +22,10 @@
 #   - the Debug build type is the build for debugging, GAOL_DEBUGGING follows it,
 #     and nothing but it and -DGAOL_DEBUG=ON sets it: -DGAOL_DEBUGGING=ON is
 #     overwritten;
-#   - -DGAOL_FMA=OFF leaves the fused multiply-add instructions out; -DGAOL_U128_
-#     EMULATION=ON has the two halves of the 128-bit integer; the settings of the
-#     developers GAOL_EXCEPTIONS_ENABLED=OFF and GAOL_VERBOSE_MODE=ON;
+#   - -DGAOL_FMA=OFF leaves the fused multiply-add instructions out, and so does
+#     a C compiler that refuses their flag; -DGAOL_U128_EMULATION=ON has the two
+#     halves of the 128-bit integer; the settings of the developers
+#     GAOL_EXCEPTIONS_ENABLED=OFF and GAOL_VERBOSE_MODE=ON;
 #   - a cross-compilation, where no program can be run to check the machine,
 #     leaves the fused multiply-add instructions and the AVX-512 path out, and
 #     takes them on the word of -DGAOL_MACHINE_RUNS_FMA=1 and
@@ -331,6 +332,42 @@ expect("-DGAOL_EXCEPTIONS_ENABLED=OFF, -DGAOL_VERBOSE_MODE=ON" "EXCEPTIONS_ENABL
 configure_ok("the defaults again" "${_build}")
 expect("the settings of the developers, taken out of the cache" "EXCEPTIONS_ENABLED EQUAL 1 AND VERBOSE_MODE EQUAL 0 AND DEBUGGING EQUAL 0")
 message(STATUS "GAOL_EXCEPTIONS_ENABLED=OFF and GAOL_VERBOSE_MODE=ON: as expected")
+
+# ---- The C compiler takes the flags too ----------------------------------------
+
+# CORE-MATH, in C, is compiled with the flags of the fused multiply-add
+# instructions: a C compiler that refuses the first of them (-mfma on x86,
+# -mfpu=neon-vfpv4 on 32-bit ARM), with a C++ compiler that takes them, leaves
+# them out (CMake checked the C++ compiler alone, where configure and meson
+# check both: point 95 of TODO.md). Where the default configuration takes flags,
+# and a script of sh can be the C compiler
+if(UNIX AND _default_fma_line MATCHES "flags: [^\n]")
+  string(REGEX REPLACE "^Fused multiply-add flags: ([^\n]*)\n$" "\\1" _fma_flags "${_default_fma_line}")
+  string(REGEX MATCH "^[^ ]+" _first_flag "${_fma_flags}")
+  set(_c_compiler "${GAOL_C_COMPILER}")
+  set(_wrapper "${GAOL_WORK_DIR}/cc-without-fma-flag")
+  file(WRITE "${_wrapper}"
+    "#!/bin/sh\n"
+    "# A C compiler that does not know ${_first_flag}\n"
+    "for argument in \"$@\"; do\n"
+    "  case \"$argument\" in ${_first_flag}*) echo \"cc: error: unrecognized command-line option '$argument'\" >&2; exit 1 ;; esac\n"
+    "done\n"
+    "exec ${_c_compiler} \"$@\"\n")
+  execute_process(COMMAND chmod +x "${_wrapper}" RESULT_VARIABLE _chmod)
+  if(NOT _chmod EQUAL 0)
+    message(FATAL_ERROR "chmod +x ${_wrapper} failed (${_chmod})")
+  endif()
+  set(GAOL_C_COMPILER "${_wrapper}")
+  configure_ok("a C compiler that refuses ${_first_flag}" "${GAOL_WORK_DIR}/c-without-fma-flag")
+  set(GAOL_C_COMPILER "${_c_compiler}")
+  string(FIND "${output}" "Fused multiply-add instructions left out: the C compiler does not take ${_fma_flags}" _left_out)
+  if(_left_out EQUAL -1 OR NOT output MATCHES "Fused multiply-add flags: \n")
+    message(FATAL_ERROR "the C compiler refuses ${_first_flag}, and the configuration takes the flags of the fused multiply-add instructions:\n${output}")
+  endif()
+  message(STATUS "A C compiler that refuses ${_first_flag}: as expected")
+else()
+  message(STATUS "A C compiler that refuses the flag of the fused multiply-add instructions: not made, the default configuration takes none")
+endif()
 
 # ---- A cross-compilation --------------------------------------------------------
 
