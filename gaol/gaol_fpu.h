@@ -163,6 +163,15 @@ inline assembly with Visual C++). Always defined, to 0 or 1. */
 #else
 #  define GAOL_RND_X86_DIRECT 0
 #endif
+/* round_upward_if_needed() has no other way to check a 32-bit x86 processor
+than to read its two registers. It had one with fegetround() for a compiler
+GAOL_RND_X86_DIRECT does not take, which no build could reach (the three builds
+need <fenv.h>, and gaol_config.h takes GCC, Clang and Visual C++ there); it is
+an error now rather than a check that would leave a register unseen (GAOL v5,
+point AI.108 of TODO_DONE.md) */
+#if (defined(__i386__) || defined(_M_IX86)) && !GAOL_RND_X86_DIRECT
+#  error "GAOL reads and writes the control registers of a 32-bit x86 processor itself, and cannot with this compiler"
+#endif
 
 /* GAOL_RND_MINGW64_X87: 1 with mingw-w64 (GCC or Clang) on x86-64, where
 get_rounding() and the functions that set the direction back (GAOL_RND_PRESERVE(),
@@ -908,18 +917,6 @@ namespace gaol_core {
     clear_flush_to_zero(), which wrote both registers whichever differed */
     x86_registers hw;
     x86_round_upward_if_needed(hw);
-    #elif (defined(__i386__) || defined(_M_IX86)) && GAOL_RND_SSE_REGISTER
-    /* The same, with the functions of the C library, for a compiler whose
-    control registers GAOL does not read directly (GAOL_RND_X86_DIRECT is 0):
-    either being elsewhere, round_upward() sets both. The control register is read
-    already: FTZ and DAZ are checked in the same read (GAOL v5). */
-    if (fegetround() != FE_UPWARD
-    || (_mm_getcsr() & static_cast<unsigned int>(_MM_ROUND_MASK | GAOL_RND_FLUSH_BITS))
-    != static_cast<unsigned int>(_MM_ROUND_UP)) {
-      clear_flush_to_zero();
-      round_upward();
-      GAOL_RND_BARRIER();
-    }
     #else
     if (fegetround() != FE_UPWARD) {
       round_upward();
