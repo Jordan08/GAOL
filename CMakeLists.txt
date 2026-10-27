@@ -461,7 +461,7 @@ string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
 #    the rounding direction had changed, in spite of /fp:strict (in Codac,
 #    with Visual Studio 2022 and 2026).
 #  - GCC for Windows (MinGW-w64, MSYS2, Cygwin) for x86-64 and 32-bit x86: -mfma
-#    -mprefer-vector-width=128 (GAOL v5, point 110 of TODO.md). -mfma turns AVX
+#    -mprefer-vector-width=128 (GAOL v5, point AI.110 of TODO_DONE.md). -mfma turns AVX
 #    on, and GCC then vectorizes with the 256-bit registers (ymm), which it may
 #    spill to a stack it takes to be aligned on 32 bytes, where the Windows x64
 #    ABI aligns it on 16 (GCC bug 54412: an aligned vmovaps to such a slot
@@ -584,6 +584,34 @@ if(_gaol_fma_wanted)
           list(APPEND GAOL_FMA_FLAGS -mfpu=neon-vfpv4 -mfloat-abi=hard)
         endif()
       endif()
+    endif()
+  endif()
+  # The C compiler too: CORE-MATH, in C, is compiled with the same flags, and
+  # configure and meson check both languages (GAOL v5; CMake checked the C++
+  # compiler alone)
+  if(GAOL_FMA_FLAGS)
+    string(REPLACE ";" " " _gaol_fma_flags "${GAOL_FMA_FLAGS}")
+    if(MSVC)
+      check_c_compiler_flag(/arch:AVX2 GAOL_C_COMPILER_SUPPORTS_ARCH_AVX2)
+      set(_gaol_c_takes_fma_flags ${GAOL_C_COMPILER_SUPPORTS_ARCH_AVX2})
+    else()
+      # The result is cached under the name of the flags, which differ with the
+      # target (GCC for Windows, 32-bit ARM)
+      string(MAKE_C_IDENTIFIER "GAOL_C_COMPILER_TAKES_FMA_FLAGS${_gaol_fma_flags}" _gaol_fma_c_variable)
+      set(CMAKE_REQUIRED_FLAGS "${_gaol_fma_flags}")
+      check_c_source_compiles("
+        #if !defined(__FMA__) && !defined(__ARM_FEATURE_FMA)
+        #error these flags do not give the fused multiply-add instructions
+        #endif
+        int main(void) { return 0; }"
+        ${_gaol_fma_c_variable})
+      unset(CMAKE_REQUIRED_FLAGS)
+      set(_gaol_c_takes_fma_flags ${${_gaol_fma_c_variable}})
+    endif()
+    if(NOT _gaol_c_takes_fma_flags)
+      message(STATUS "Fused multiply-add instructions left out: the C compiler does not take ${_gaol_fma_flags}")
+      set(GAOL_FMA_FLAGS "")
+      set(_gaol_fma_left_out ON)
     endif()
   endif()
   if(GAOL_FMA_FLAGS AND CMAKE_CROSSCOMPILING AND NOT GAOL_MACHINE_RUNS_FMA)
@@ -982,9 +1010,10 @@ endif()
 # __builtin_cpu_supports("avx512f"), with GCC and Clang on x86-64, but
 # GCC for Windows (MinGW-w64 and Cygwin), which does not align the stack
 # beyond 16 bytes, the 64 of a zmm register it spills there (GCC bug 54412,
-# fixed for GCC 17 only; GAOL_FMA gives GCC for Windows -mfma with
-# -mprefer-vector-width=128, which keeps it out of the 32 bytes of the ymm
-# registers of AVX). The code of the path compiled by MinGW-w64 GCC 13 makes no
+# fixed for GCC 17 only, by commit 8aaa5f6e6207 of 25 September 2026 on the
+# development branch, which no release has yet; GAOL_FMA gives GCC for Windows
+# -mfma with -mprefer-vector-width=128, which keeps it out of the 32 bytes of
+# the ymm registers of AVX). The code of the path compiled by MinGW-w64 GCC 13 makes no
 # aligned access of a zmm register to the stack, but nothing keeps the
 # compiler from doing it (GAOL v5, point AA of TODO.md). Visual C++ and
 # clang-cl for x64 take it too (GAOL v5): Visual C++ needs no attribute, it

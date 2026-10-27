@@ -1,0 +1,18 @@
+# The configuration of actionlint (https://github.com/rhysd/actionlint), which
+# reads the workflows of this directory: `actionlint` from the root of the
+# repository, or the official image of Docker,
+#
+#   docker run --rm -v "$PWD:/repo:ro" --workdir /repo rhysd/actionlint:latest
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-10-26 by Jordan NININ
+
+paths:
+  .github/workflows/windows.yml:
+    ignore:
+      # actionlint 1.7.12 knows the inputs of msys2/setup-msys2@v2 as of its
+      # release; the action has this one (suppress-deprecation-warnings, which
+      # the jobs of MINGW64 give to say that they build it on purpose): see
+      # https://github.com/msys2/setup-msys2/blob/main/action.yml
+      - 'input "suppress-deprecation-warnings" is not defined in action "msys2/setup-msys2@v2"'

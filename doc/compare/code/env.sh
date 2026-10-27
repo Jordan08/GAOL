@@ -16,6 +16,9 @@
 #
 # Created 2026-09-20 by Jordan NININ
 
+# shellcheck shell=bash
+# The variables are read by the scripts that source this one
+# shellcheck disable=SC2034
 CODE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$CODE_DIR/../../.." && pwd)"
 WORK="${WORK:-$CODE_DIR/work}"

@@ -10,6 +10,8 @@
 # bench_double, bench_gaol5 (the GAOL of this repository), bench_gaol5p (the
 # same, built with GAOL_PRESERVE_ROUNDING=ON), bench_gaol (the last GAOL of
 # Frédéric Goualard), bench_p1788, bench_filib, bench_profil and bench_boost
+# The flags and the libraries are lists of words, which the shell has to split
+# shellcheck disable=SC2086,SC2046
 compile_cpp_benchmarks() {
 $CXX -std=c++11 $CXXFLAGS_BENCH $FMA_FLAGS -I"$CODE_DIR" "$CODE_DIR/bench_double.cpp" -o "$OUT/bench_double"
 # The same source for the three GAOL: this repository's, under the name gaol5,

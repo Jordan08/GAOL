@@ -359,13 +359,16 @@ point Q), which `numbers` checks there too.
   are checked from each direction the test runs, six with the SSE instructions
   and four elsewhere (GAOL v5; they were checked from upward only, mingw-w64 on
   x86-64 apart), and after `gaol::cleanup()` and `gaol::restore_rounding()`.
-  With mingw-w64 on x86-64 (GAOL v5, point 110 of TODO.md), the control word of
-  the x87 unit is read apart (`fnstcw`) and is part of the state that has to be
-  the same before and after each operation, as `fegetround()` of mingw-w64 13
-  and later joins the fields RC of the two units by OR; `fesetround()` of
+  With mingw-w64 on x86-64 (GAOL v5, point AI.110 of TODO_DONE.md), the
+  control word of the x87 unit is read apart (`fnstcw`) and is part of the
+  state that has to be the same before and after each operation, as
+  `fegetround()` of mingw-w64 13 and later joins the fields RC of the two units
+  by OR; the other bits of the word (the precision and the masks) have to be
+  the same after `cleanup()` and `restore_rounding()`; `fesetround()` of
   mingw-w64 13 and later clears the six flags of MXCSR when it changes it,
-  which `midpoint()`, `rad()`, `split()`, `chi()`, the reading and the writing
-  of an interval, `cleanup()` and `restore_rounding()` called.
+  which, with `GAOL_PRESERVE_ROUNDING`, `midpoint()`, `rad()`, `split()`,
+  `chi()`, the reading and the writing of an interval called, and `cleanup()`
+  and `restore_rounding()` called with it or without it.
   With the SSE2 intervals, `x * d` and `x *= d` of `[+0, -0]` for eight
   nonzero doubles, from each direction, have the zero bounds of their path,
   `[-0, +0]` with the AVX-512 path of `GAOL_PREFER_AVX512` and `[+0, -0]`

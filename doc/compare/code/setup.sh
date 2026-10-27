@@ -20,6 +20,7 @@
 #
 # Created 2026-09-20 by Jordan NININ
 set -euo pipefail
+# shellcheck source=env.sh
 source "$(dirname "$0")/env.sh"
 
 mkdir -p "$WORK/src" "$PREFIX"
@@ -120,6 +121,8 @@ else
   fi
   fetch "$PROFIL_URL" "Profil-$PROFIL_VERSION.tgz" "$PROFIL_SHA256"
   rm -rf "Profil-$PROFIL_VERSION" && tar xzf "Profil-$PROFIL_VERSION.tgz"
+  # The format of printf holds the $(...) of make, which no shell expands
+  # shellcheck disable=SC2016
   (cd "Profil-$PROFIL_VERSION" &&
    printf '# Written by doc/compare/code/setup.sh, as Configure would\nARCH\t= x86-64-Linux-compat-gcc\ninclude $(BASEDIR)/config/$(ARCH)/Host.cfg\nCC\t= %s\nCCPLUS\t= %s\nCFLAGS\t:= $(patsubst -O2,-O3 %s -ffp-contract=off,$(CFLAGS))\nCPLUSFLAGS\t= $(CFLAGS) -std=c++11\n' "$CC" "$CXX" "$FMA_FLAGS" > Host.cfg &&
    make all > make.log 2>&1 && make install > install.log 2>&1 && make check > check.log 2>&1 &&

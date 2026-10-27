@@ -506,11 +506,14 @@ fi
 AC_ARG_ENABLE(prefer-avx512, [],
             [prefer_avx512=${enable_prefer_avx512}; prefer_avx512_explicit=yes],
             [prefer_avx512=${preserve_rounding}; prefer_avx512_explicit=no])
+# The program is linked, not only compiled: __builtin_cpu_supports() needs
+# __cpu_model, which the link finds in the library of the compiler (GAOL v5;
+# CMake and meson link it too)
 have_avx512_target=no
 if test "${using_sse2}" = yes; then
     AC_LANG_PUSH([C++])
     AC_MSG_CHECKING([whether the compiler takes the AVX-512 instructions in a function with the target attribute])
-    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <immintrin.h>
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <immintrin.h>
 #if !defined(__x86_64__)
 #error not x86-64
 #endif

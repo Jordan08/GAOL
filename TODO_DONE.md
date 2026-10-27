@@ -1,8 +1,8 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 27 octobre 2026
-(commit `f625bbc` de `configure-clean`, deux pull requests ouvertes : #202 et
-#203). Ce fichier et l'issue #177 ont le même contenu.
+(commit `ec3fefd` de `configure-clean`, une pull request ouverte : #205). Ce
+fichier et l'issue #177 ont le même contenu.
 
 Il réunit l'historique de l'ancienne issue #49 (« Suivi du TODO de GAOL v5 »),
 ce qui est fait dans l'ancienne issue #142 (« Reste à faire sur GAOL v5 »), dans
@@ -51,20 +51,20 @@ par date ; 4. Les points faits, par lettre ; 5. Les anciens numéros faits ; 6.
 Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 `configure-clean` ; 8. Le ménage fait.
 
-## 1. L'état au 26 octobre 2026
+## 1. L'état au 27 octobre 2026
 
-- **`configure-clean`** est au commit `f625bbc` (fusion de #201). Les pull
+- **`configure-clean`** est au commit `ec3fefd` (fusion de #204). Les pull
   requests des corrections vont vers `configure-clean`, qui reste la branche de
   développement après v5.0.0 ; `MATH-CORE` et `master` (GAOL 4.3.2, plus deux
   commits de `.claude/CLAUDE.md`) ne bougent qu'à la version (point Y).
-- **Deux pull requests ouvertes** : #202 (PE.4, les remarques d'actionlint et de
-  shellcheck) et #203 (PE.6, la relecture des corrections de #163) ; la branche
-  `todo-pe-mingw32` (PE.3, les jobs qui manquent) attend sa relecture. Le
+- **Une pull request ouverte** : #205 (PE.3, les jobs qui manquent). Le
   mainteneur a fusionné #165 à #167, #169 à #174, #176 et #180 à #184 les 23 et
   24 octobre, et #186 à #194, #196 et #197 le 25 octobre, #199, #200 et #201 le
-  26 octobre ; #168 et #195 sont fermées sans fusion. Les tâches PA, PB, PC et
-  PD sont faites ; PG est entamée (la division du chemin AVX-512, le 106 a :
-  #191 à #194), et PE aussi (#200 pour le 95 en partie, #201 pour le 92).
+  26 octobre, #202, #203 et #204 le 27 ; #168 et #195 sont fermées sans fusion.
+  Les tâches PA, PB, PC et PD sont faites ; PG est entamée (la division du
+  chemin AVX-512, le 106 a : #191 à #194), et PE aussi (#200 pour le 95 en
+  partie, #201 pour le 92, #202 pour le 4, #203 pour le 6, #204 pour le reste du
+  95 et le 5).
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
   sur tout processeur ARM 64 bits avec tous les compilateurs (GCC, Clang,
   AppleClang, clang-cl, Visual C++, MinGW-w64, MSYS2), SSE2 sur tout processeur
@@ -85,8 +85,9 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   débogage sont décidés par des tests de la configuration, les anciennes
   options restant des réglages des développeurs (`doc/building.md`).
 - **Branches** : GitHub a `configure-clean`, `MATH-CORE`, `master`,
-  `perf-doc-rerun` (les scripts des mesures reportées, hors des points) et
-  `todo-ae-c-flags` (#201) ; les branches fusionnées sont supprimées en local.
+  `perf-doc-rerun` (les scripts des mesures reportées, hors des points) et celle
+  de la pull request ouverte (`todo-pe-mingw32`) ; les branches fusionnées sont
+  supprimées en local.
 - **Aucune borne fausse n'est connue** : sur environ 1,3 million de puissances
   entières, 550 000 `pow` réels, 600 000 autres opérations et 760 lectures de
   nombres (relecture du 14 octobre, revérifiée le 18 octobre à `4eaf69a`), tout
@@ -1179,6 +1180,45 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   `doc/differences.md` et `ChangeLog` disent aussi ce que #200 a changé aux
   options ; 205 jobs verts sur le dernier commit ; fusionnée le 26 octobre à 21
   h 03 UTC)
+- #202 (hors des points numérotés ; le point 4 de la tâche PE, les remarques des
+  outils de #160 : les 34 remarques d'actionlint 1.7.12 sur les workflows, dont
+  un faux positif, `suppress-deprecation-warnings` de `msys2/setup-msys2`, que
+  `.github/actionlint.yaml` écarte avec sa raison, et les 101 de shellcheck 0.11
+  sur les scripts, 12 de `.github/scripts/` et 89 de `doc/compare/code/` ; aucun
+  comportement ne change : les listes de drapeaux que le shell doit découper
+  portent un `# shellcheck disable=` avec la raison, la boucle `for` remplace
+  `ls | grep` dans le contrôle des bibliothèques installées, et `.shellcheckrc`
+  lit un script avec ceux qu'il charge ; `doc/tools.md` dit comment lancer les
+  deux outils ; 185 jobs verts sur le dernier commit ; fusionnée le 27 octobre à
+  8 h 39 UTC)
+- #203 (hors des points numérotés ; le point 6 de la tâche PE, la relecture
+  indépendante des commits `704ca0c`, `e80b6f0`, `1de1df0` et `15399b5`, faite
+  par un sous-agent sans le contexte de la session : aucun point bloquant, six
+  constats mineurs corrigés : `rounding_direction.cpp` suit les bits de l'x87
+  autres que RC (`x87_other_bits()`) après `cleanup()` et `restore_rounding()`
+  et règle la direction avant de lever les indicateurs de MXCSR, deux phrases
+  que les journaux de la CI contredisaient, « la direction d'aucune »
+  (`gaol_fpu.h`, `doc/using.md`), les valeurs de `FE_*` de mingw-w64 13 et
+  plus, les onze « point 110 de `TODO.md` » devenus AI.110 ; deux mutants
+  tués sur une copie où le chemin de mingw-w64 est forcé sur Linux ; 205 jobs
+  verts sur le dernier commit ; fusionnée le 27 octobre à 8 h 41 UTC)
+- #204 (hors des points numérotés ; le reste du point 95 de la tâche PE et le
+  point 5 : la sonde de la cible AVX-512 lie avec autotools (`AC_LINK_IFELSE`,
+  `configure` régénéré par autoconf 2.72) et avec meson (`links()`), comme avec
+  CMake, parce que `__builtin_cpu_supports` demande `__cpu_model` à l'édition
+  de liens ; CMake essaie aussi le compilateur C avec les drapeaux de FMA
+  (`check_c_source_compiles`, qui exige `__FMA__` ou `__ARM_FEATURE_FMA`, et
+  `check_c_compiler_flag(/arch:AVX2)` avec Visual C++ et clang-cl) et, s'il
+  les refuse, laisse les instructions de côté avec un message ; une étape de
+  plus de `tests/automatic_configuration.cmake` donne à CMake un compilateur C
+  qui refuse le premier drapeau de FMA pris (le premier essai, qui ne
+  refusait que `-mfma`, a fait échouer les quatre jobs armhf, où le drapeau
+  est `-mfpu=neon-vfpv4`), et échoue contre l'ancien `CMakeLists.txt` ; la
+  sonde liée de la cible AVX-512 n'a pas de dents, aucune chaîne de la machine
+  ne compile sans lier ce programme ; le commentaire de `CMakeLists.txt`
+  « fixed for GCC 17 only » cite le commit `8aaa5f6e6207` du bogue 54412 de
+  GCC ; 205 jobs verts sur le dernier commit ; fusionnée le 27 octobre à 8 h
+  44 UTC)
 
 ### 2.4 Fermées sans fusion
 
@@ -2668,8 +2708,9 @@ leur partie faite.
 - **AE.** Les trois builds : le 90 (le compilateur C vérifié comme le C++) par
   #145, les 91 et 94 par #164, le 93 (code mort exporté) le 15 octobre, le 95
   en partie par #200 (les sondes d'exécution de FMA et d'AVX-512 dans les trois
-  builds). Le 92 est fait par #201 (fusionnée le 26 octobre). Reste le reste du
-  95 (voir `TODO.md`, PE.1).
+  builds). Le 92 est fait par #201 (fusionnée le 26 octobre). Le reste du
+  95 (les sondes liées, le C des drapeaux de FMA avec CMake) est fait par #204
+  (fusionnée le 27 octobre) : AE est faite en entier.
 - **AI.** La vitesse sur macOS, Windows et ARM : le 106 pour arm64 (intervalles
   NEON) par #146, pour Visual C++ et clang-cl x64 (SSE2) par #148, pour Windows
   32 bits avec GCC et Clang (SSE2 avec `-faligned-new=8`) par #152, pour ARM 32
@@ -3461,7 +3502,20 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PE à PJ) et
   octobre à 21 h 03 UTC, ses 205 jobs verts sur le dernier commit ; la CI du
   commit de fusion, redondante, n'est pas attendue (§10) ; la branche supprimée
   sur GitHub à la fusion et en local le 27 octobre ; `TODO.md`, `TODO_DONE.md`
-  et `process.md` (§12) mis à jour pour elle
+  et `process.md` (§12) mis à jour pour elle. #202 (le point 4 de PE)
+  fusionnée par le mainteneur le 27 octobre à 8 h 39 UTC, ses 185 jobs verts
+  sur le dernier commit ; la CI du commit de fusion, redondante, n'est pas
+  attendue (§10) ; la branche supprimée sur GitHub à la fusion et en local le
+  27 octobre ; `TODO.md`, `TODO_DONE.md` et `process.md` (§12) mis à jour pour
+  elle. #203 (le point 6 de PE) fusionnée par le mainteneur le 27 octobre à 8
+  h 41 UTC, ses 205 jobs verts sur le dernier commit ; la CI du commit de
+  fusion, redondante, n'est pas attendue (§10) ; la branche supprimée sur
+  GitHub à la fusion et en local le 27 octobre ; mêmes registres mis à jour
+  pour elle, avec #202, dans le même commit. #204 (le reste du 95 et le 5 de
+  PE) fusionnée par le mainteneur le 27 octobre à 8 h 44 UTC, ses 205 jobs
+  verts sur le dernier commit ; la CI du commit de fusion, redondante, n'est
+  pas attendue (§10) ; la branche supprimée sur GitHub à la fusion et en local
+  le 27 octobre ; mêmes registres mis à jour pour elle
 
 ## 8. Le ménage fait
 
@@ -3516,12 +3570,13 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PE à PJ) et
   en local le 25 octobre ; celles de #196 (`todo-pd-texts`) et de #197
   (`todo-pd-pow-mutants`), sur GitHub à la fusion et en local le 25 octobre ;
   celle de #199 (`interval-sources-in-core`), sur GitHub à la fusion et en local
-  le 26 octobre ; celle de #201 (`todo-ae-c-flags`), sur GitHub à la fusion et
-  en local le 27 octobre ; celle de #200 (`automatic-configuration`), sur GitHub
-  à la fusion et en local le 26 octobre : sur GitHub, il ne reste que
-  `configure-clean`, `MATH-CORE`, `master`, `perf-doc-rerun` et les branches des
-  pull requests ouvertes (`todo-pe-tool-remarks`, `todo-pe-review-fixes`,
-  `todo-pe-mingw32`).
+le 26 octobre ; celles de #201 (`todo-ae-c-flags`), de #202
+  (`todo-pe-tool-remarks`), de #203 (`todo-pe-review-fixes`) et de #204
+  (`todo-pe-probes`), sur GitHub à la fusion et en local le 27 octobre ; celle
+  de #200 (`automatic-configuration`), sur GitHub à la fusion et en local le 26
+  octobre : sur GitHub, il ne reste que `configure-clean`, `MATH-CORE`,
+  `master`, `perf-doc-rerun` et la branche de la pull request ouverte
+  (`todo-pe-mingw32`).
 - [x] Lignes de crédit retirées des descriptions de #50, #51, #53 à #57 et #59,
   d'un commentaire de #59 et de cette issue. Il en reste dans les messages des
   commits a0d3871, 790ca12 et f1f4239 de #99, fusionnée sans squash. Retirées
