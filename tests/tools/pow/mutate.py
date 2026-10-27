@@ -44,7 +44,8 @@
 # for a mutant that survives, but those the list expects to, or one that
 # cannot be applied or compiled.
 #
-# --mutants FILE takes the list from a Python file defining MUTANTS, a list
+# --mutants FILE takes the list from a Python file defining MUTANTS (that of
+# tests/tools/x86-csr/ mutates gaol/gaol_fpu.h and runs rounding_direction), a list
 # of dict(name=..., edits=[(old, new), ...], file='gaol/core/gaol_interval_core.cpp',
 # survives='why it is equivalent'), file and survives being optional; --list
 # prints the mutants and whether they apply to the sources.
