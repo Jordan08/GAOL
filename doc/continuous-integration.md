@@ -291,8 +291,10 @@ rounding direction preserved, and with GCC and with Clang and the FPU
 intervals; Ubuntu 24.04 arm64 with GCC and with Clang (the
 NEON intervals) and with GCC and the FPU intervals (the kernels of #157); macOS
 26 arm64 (the NEON intervals) and macOS 15 x86_64; Visual Studio 2026 x64, x86,
-arm64, and x64 with the rounding direction preserved, and with clang-cl for
-x64, x86 and arm64; MSYS2 UCRT64 (GCC), CLANG64 (Clang) and CLANGARM64 (Clang);
+arm64, and x64 with the rounding direction preserved (with the AVX-512 path
+left out too, which measures the macros that write MXCSR alone), and with
+clang-cl for x64 (with the direction preserved and the AVX-512 path left out
+too), x86 and arm64; MSYS2 UCRT64 (GCC), CLANG64 (Clang) and CLANGARM64 (Clang);
 and Debian 13
 containers for i386 and armhf, `gaol_performance` alone and no cache there (the
 image of Debian changes under the job). The other platforms (POWER, s390x,

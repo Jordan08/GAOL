@@ -98,8 +98,13 @@ jobs:
           - { os: windows-2025-vs2026, generator: 'Visual Studio 18 2026', arch: x64,   python: python, opts: '', desc: 'Visual Studio 2026 x64' }
           - { os: windows-2025-vs2026, generator: 'Visual Studio 18 2026', arch: Win32, python: python, opts: '', desc: 'Visual Studio 2026 x86' }
           - { os: windows-2025-vs2026, generator: 'Visual Studio 18 2026', arch: x64,   python: python, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Visual Studio 2026 x64, rounding direction preserved' }
+          # The same without the AVX-512 path, which the runners of GitHub for Windows (AMD EPYC 9V74, with AVX-512)
+          # take with the rounding direction preserved: these two measure the macros that write MXCSR alone
+          # (GAOL_RND_MXCSR_ONLY, gaol/gaol_fpu.h)
+          - { os: windows-2025-vs2026, generator: 'Visual Studio 18 2026', arch: x64,   python: python, opts: '-DGAOL_PRESERVE_ROUNDING=ON -DGAOL_PREFER_AVX512=OFF', desc: 'Visual Studio 2026 x64, rounding direction preserved, AVX-512 arithmetic not taken' }
           - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', arch: ARM64, python: python, opts: '', desc: 'Visual Studio 2026 arm64' }
           - { os: windows-2025-vs2026, generator: 'Visual Studio 18 2026', arch: x64,   toolset: ClangCL, python: python, opts: '', desc: 'Visual Studio 2026 clang-cl x64' }
+          - { os: windows-2025-vs2026, generator: 'Visual Studio 18 2026', arch: x64,   toolset: ClangCL, python: python, opts: '-DGAOL_PRESERVE_ROUNDING=ON -DGAOL_PREFER_AVX512=OFF', desc: 'Visual Studio 2026 clang-cl x64, rounding direction preserved, AVX-512 arithmetic not taken' }
           - { os: windows-2025-vs2026, generator: 'Visual Studio 18 2026', arch: Win32, toolset: ClangCL, python: python, opts: '', desc: 'Visual Studio 2026 clang-cl x86' }
           - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', arch: ARM64, toolset: ClangCL, python: python, opts: '', desc: 'Visual Studio 2026 clang-cl arm64' }
     steps:
