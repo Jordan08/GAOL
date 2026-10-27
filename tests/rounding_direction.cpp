@@ -848,12 +848,13 @@ namespace
         f.ftz = ((i >> 2) & 1u) != 0u;
         f.daz = ((i >> 3) & 1u) != 0u;
         for (unsigned int other : mxcsr_others) {
-          const unsigned int csr = mxcsr_register(other, f);
 #  if GAOL_TESTS_X86_32
           write_x87_word(x87_register(x87_others[i & 3u], f));
           const unsigned int cw = read_x87_word(); // the reserved bits read as the hardware has them
 #  endif
-          _mm_setcsr(csr);
+          // Read back: an emulator (Rosetta of macOS) keeps the exceptions masked, whatever MXCSR is given
+          _mm_setcsr(mxcsr_register(other, f));
+          const unsigned int csr = static_cast<unsigned int>(_mm_getcsr());
           fn.run();
           const unsigned int csr_after = static_cast<unsigned int>(_mm_getcsr());
 #  if GAOL_TESTS_X86_32
