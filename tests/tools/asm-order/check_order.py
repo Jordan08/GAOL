@@ -38,7 +38,11 @@
 #   direction), that the function runs before the write on a path from its
 #   entry to that write, and before the jump of the probe. Instructions that
 #   the function runs without a write, because the probe found the direction
-#   upward, are not these: only those with a write after them. A conversion
+#   upward, are not these: only those with a write after them. Where the
+#   writes are conditional (the code after one is reached without it), the
+#   jump that goes around the write is where the check is made, like the jump
+#   of the probe: the instructions before it are the ones that precede the
+#   check, and past it the register holds what the write would have put there. A conversion
 #   of a 32-bit integer to a double is not one either: it is exact. The edges
 #   that go back to a loop are left out, so that the instructions of an
 #   iteration are not taken for the ones before the write of the next.
@@ -405,14 +409,30 @@ def check_function(asm, entry, pads, preserve):
                 pred[j].append(i)
         reverse[key] = pred
     # BEFORE, on the graph without the edges that return to a loop: reached from the entry without a write
-    # before it, and from which a write can be reached
+    # before it, and from which a write can be reached. A write is conditional when the code after it can
+    # be reached from the entry without it (the start and the end of an operation write only if the
+    # register has to change). The jump that goes around the write is then where the check is made, as
+    # the jump of the probe is: past it the register holds what the write would have put there, and the
+    # edge of that jump is left out; the instructions before the jump are the ones that precede the check
     probes, branches = probe_nodes(asm, nodes)
-    free_dag = closure([entry], dag, wset | branches)
+    around_edges = set()
+    for w in writes:
+        around = closure([entry], dag, {w})
+        around.discard(w)
+        merge = around & closure(dag[w], dag)
+        if not merge:
+            continue
+        to_write = closure([w], reverse['dag'])
+        to_merge = closure(merge, reverse['dag'])
+        for p in around:
+            around_edges.update((p, j) for j in dag[p] if j not in to_write and j in to_merge)
+    free_edges = {i: [j for j in js if (i, j) not in around_edges] for i, js in dag.items()}
+    free_dag = closure([entry], free_edges, wset | branches)
+    free_full = closure([entry], full, wset)
     leads_dag = closure(writes, reverse['dag'])
     # AFTER, on the whole graph (the body of a loop between two writes leads to the second): reached from a
     # write without another write before it, not from the entry without a write, and from which no write
     # can be reached
-    free_full = closure([entry], full, wset)
     leads_full = closure(writes, reverse['full'])
     after = closure([j for w in writes for j in full[w]], full, wset)
     found = []
@@ -945,6 +965,174 @@ _ZN9gaol_coreL19difference_at_leastEdddd:
 	mulsd	%xmm1, %xmm0
 	ret
 ''', None, True),
+    'conditional writes, the check first, the body between': ('''
+	.type	f, @function
+f:
+	stmxcsr	4(%rsp)
+	movl	4(%rsp), %eax
+	testl	%eax, %eax
+	je	.L2
+	ldmxcsr	(%rsp)
+.L2:
+	mulsd	%xmm1, %xmm0
+	movl	%eax, %edx
+	testl	%edx, %edx
+	je	.L3
+	stmxcsr	8(%rsp)
+	ldmxcsr	12(%rsp)
+.L3:
+	ret
+''', None, True),
+    'conditional writes, a sum before the check': ('''
+	.type	f, @function
+f:
+	mulsd	%xmm1, %xmm0
+	stmxcsr	4(%rsp)
+	movl	4(%rsp), %eax
+	testl	%eax, %eax
+	je	.L2
+	ldmxcsr	(%rsp)
+.L2:
+	movl	%eax, %edx
+	testl	%edx, %edx
+	je	.L3
+	stmxcsr	8(%rsp)
+	ldmxcsr	12(%rsp)
+.L3:
+	ret
+''', 'BEFORE', True),
+    'conditional writes, fegetround() first, a sum before it': ('''
+	.type	f, @function
+f:
+	mulsd	%xmm1, %xmm0
+	call	fegetround@PLT
+	testl	%eax, %eax
+	je	.L2
+	movl	$0x800, %edi
+	call	fesetround@PLT
+.L2:
+	ret
+''', 'BEFORE', True),
+    'conditional writes, fegetround() first, the body after it': ('''
+	.type	f, @function
+f:
+	call	fegetround@PLT
+	testl	%eax, %eax
+	je	.L2
+	movl	$0x800, %edi
+	call	fesetround@PLT
+.L2:
+	mulsd	%xmm1, %xmm0
+	movl	%eax, %edi
+	testl	%edi, %edi
+	je	.L3
+	call	fesetround@PLT
+.L3:
+	ret
+''', None, True),
+    'a conditional start, an unconditional end': ('''
+	.type	f, @function
+f:
+	stmxcsr	4(%rsp)
+	movl	4(%rsp), %eax
+	testl	%eax, %eax
+	je	.L2
+	ldmxcsr	(%rsp)
+.L2:
+	mulsd	%xmm1, %xmm0
+	call	fesetround@PLT
+	ret
+''', None, True),
+    'a conditional start, a sum before the read, an unconditional end': ('''
+	.type	f, @function
+f:
+	mulsd	%xmm1, %xmm0
+	stmxcsr	4(%rsp)
+	movl	4(%rsp), %eax
+	testl	%eax, %eax
+	je	.L2
+	ldmxcsr	(%rsp)
+.L2:
+	call	fesetround@PLT
+	ret
+''', 'BEFORE', True),
+    'a read, a sum, an unconditional write': ('''
+	.type	f, @function
+f:
+	stmxcsr	4(%rsp)
+	mulsd	%xmm1, %xmm0
+	ldmxcsr	(%rsp)
+	ret
+''', 'BEFORE', True),
+    'a read, a sum, an unconditional write, then a conditional one': ('''
+	.type	f, @function
+f:
+	stmxcsr	4(%rsp)
+	mulsd	%xmm1, %xmm0
+	ldmxcsr	(%rsp)
+	stmxcsr	8(%rsp)
+	movl	8(%rsp), %eax
+	testl	%eax, %eax
+	je	.L2
+	ldmxcsr	12(%rsp)
+.L2:
+	ret
+''', 'BEFORE', True),
+    'a conditional start, a sum between the read and the jump': ('''
+	.type	f, @function
+f:
+	stmxcsr	4(%rsp)
+	mulsd	%xmm1, %xmm0
+	movl	4(%rsp), %eax
+	testl	%eax, %eax
+	je	.L2
+	ldmxcsr	(%rsp)
+.L2:
+	call	fesetround@PLT
+	ret
+''', 'BEFORE', True),
+    'a conditional start, a sum in the write block': ('''
+	.type	f, @function
+f:
+	stmxcsr	4(%rsp)
+	movl	4(%rsp), %eax
+	testl	%eax, %eax
+	je	.L2
+	mulsd	%xmm1, %xmm0
+	ldmxcsr	(%rsp)
+.L2:
+	call	fesetround@PLT
+	ret
+''', 'BEFORE', True),
+    'the probe, a skip path that has its own write': ('''
+	.type	f, @function
+f:
+	movsd	_ZZ17round_upward_if_neededvE9subnormal(%rip), %xmm2
+	addsd	.LC1(%rip), %xmm2
+	ucomisd	.LC0(%rip), %xmm2
+	ja	.L2
+	ldmxcsr	(%rsp)
+	ret
+.L2:
+	addsd	%xmm1, %xmm0
+	ldmxcsr	4(%rsp)
+	ret
+''', None, False),
+    'a conditional write, and a path to another write': ('''
+	.type	f, @function
+f:
+	testl	%edi, %edi
+	je	.L2
+	testl	%esi, %esi
+	je	.L3
+	ldmxcsr	(%rsp)
+.L3:
+	ret
+.L2:
+	addsd	%xmm1, %xmm0
+	ldmxcsr	4(%rsp)
+	ret
+''', 'BEFORE', True),
     'a tail call to another function is no arc': ('''
 	.type	f, @function
 f:
