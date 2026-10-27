@@ -145,9 +145,9 @@ upward in GAOL), and it does not depend on that direction.
 It is given as well to the compilers that have no such builtin: GCC before
 10 and the Clang whose __has_builtin() says so. The other sources of
 CORE-MATH take __builtin_roundeven() only from GCC 10 and Clang 17 and
-round by themselves before, but sin.c calls it unguarded since its rewrite
-(upstream commit 6b844573), which GCC 9.4 took for an undeclared function
-and did not link.
+round by themselves before, but sin.c called it unguarded from its rewrite
+(upstream commit 6b844573) to commit 19e85418 (5 October 2026), which GCC 9.4
+took for an undeclared function and did not link.
 --------------------------------------------------------------------------*/
 
 #include "gaol/gaol_roundeven.h"

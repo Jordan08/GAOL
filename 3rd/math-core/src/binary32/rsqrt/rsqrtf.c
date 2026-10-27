@@ -1,6 +1,6 @@
 /* Correctly-rounded reciprocal square root of binary32 value.
 
-Copyright (c) 2022-2023 Alexei Sibidanov.
+Copyright (c) 2022-2026 Alexei Sibidanov and Paul Zimmermann
 
 This file is part of the CORE-MATH project
 (https://core-math.gitlabpages.inria.fr/).
@@ -38,7 +38,6 @@ SOFTWARE.
 #pragma STDC FENV_ACCESS ON
 
 typedef union {float f; uint32_t u;} b32u32_u;
-typedef union {double f; uint64_t u;} b64u64_u;
 
 float cr_rsqrtf(float x){
   double xd = x;
@@ -63,21 +62,16 @@ float cr_rsqrtf(float x){
     if(!(ix.u<<9)) return 0.0f;
     return x + x; // nan
   }
+  double c = 1.0, sq = __builtin_sqrt(xd);
   unsigned m = ix.u<<8;
   if(__builtin_expect(ix.u == 0x2f7e2au || m == 0xbdf8a800u || m == 0x55b7bd00u, 0)){
-    if(ix.u != 0x0055b7bdu){
-      unsigned e = ix.u>>23, k = 1;
-      if(ix.u == 0x2f7e2au) e = -1;
-      if(m == 0x55b7bd00u) k = 0;
-      static const b32u32_u tb[] = {{.u = 0x000c1740u}, {.u = 0x005222e0u}};
-      b32u32_u r = tb[k], dr;
-      e = (512 - e)/2 - 578;
-      r.u |= e<<23;
-      dr.u = (e-25)<<23;
-      return r.f - dr.f;
-    }
+    /* The expression 1/xd*sqrt(xd) fails to return the correct rounding for
+       x=0x1.7bf15p-128*2^(2k) and x=0x1.ab6f7ap-125*2^(2k) with k>=0, for rndu,
+       where the returned value is 1 ulp too large. We multiply by a correcting
+       factor just below 1, which guarantees correct rounding in these cases. */
+    c = 0x1.ffffffffffffep-1;
   }
-  return (1.0/xd)*__builtin_sqrt(xd);
+  return sq*(c/xd);
 }
 
 #ifdef __INTEL_CLANG_COMPILER

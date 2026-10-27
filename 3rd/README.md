@@ -21,7 +21,7 @@ library it uses: the other libraries GAOL could be built with are gone (see
 | | |
 | --- | --- |
 | Upstream | <https://gitlab.inria.fr/core-math/core-math> |
-| Commit | `6b84457310ad90b644b3335af2faa8c7301e1c47` (25 September 2026) |
+| Commit | `0b2ae6d114d2f34051235d97f72c041b8e0ff66c` (27 October 2026) |
 | Taken | the whole tree, without the `.wc` files |
 | Built | `math-core/src/binary64/<f>/<f>.c` for the thirty-eight functions below, compiled into libgaol itself |
 
@@ -53,9 +53,10 @@ of `gaol/gaol_u128.h`, what Visual C++ has not of GCC (`__builtin_clzll`,
 `__builtin_roundeven`, `__attribute__`...), the `roundeven()` the math library
 of Windows has not (`gaol/gaol_roundeven.h`, which GAOL's own sources use too),
 given as well for `__builtin_roundeven()` to the compilers that have no such
-builtin, GCC before 10 among them: `sin.c` calls it without the guard of the
-other sources since its rewrite (upstream commit `6b84457`), and GCC 9.4 did
-not link it,
+builtin, GCC before 10 among them: `sin.c` called it without the guard of the
+other sources from its rewrite (upstream commit `6b84457`) to commit
+`19e85418` (5 October 2026), and GCC 9.4 did not link it; `sin.c` and `cos.c`
+have their own `roundeven_finite()` now,
 and, on a 32-bit x86 Windows, `fegetexceptflag()` and `fesetexceptflag()`
 written on MXCSR: `cbrt`, `pow`, `atan2` and `hypot` keep the exception flags
 around their work with them, and the ones of mingw-w64 clear the mask bits of
@@ -132,15 +133,19 @@ end or before the comment that ends it, or is part of a comment beginning with
    right are `gaol_u128_imul64()`, `gaol_u128_of_i64()` and `gaol_u128_sar()`.
    `log1p/dint.h` is unchanged: `log1p.c` does not include it.
 
-   `sin.c`, rewritten upstream (commit `6b84457`), no longer has the
-   extended-arithmetic functions of `dint.h`: its accurate path computes in
-   fixed point on the 128-bit integer throughout, the argument reduction
-   (`reduce_large()`, `reduce_large_acc()`), the truncated product `mhUU()`,
-   the polynomials (`evalPS()`, `evalPC()`), the combination of the tables in
-   `sin_large_accurate()` and the rounding to double (`u128_tod()`). Each
-   operation on `u128` there is a `gaol_u128_*()` call, and the tables of
-   128-bit constants are written with `U128()`, which gives the two halves as
-   designated initialisers where the type is the structure.
+   `sin.c`, rewritten upstream (commit `6b84457`), and `cos.c`, rewritten on
+   its model ("code adapted from sin.c", the commits of 26 and 27 October 2026
+   that end at `0ce319bc`), no longer have the extended-arithmetic functions
+   of `dint.h`: their accurate path computes in fixed point on the 128-bit
+   integer throughout, the argument reduction (`reduce_large()` in `sin.c`,
+   `reduce_large_acc()`), the truncated product `mhUU()`, the polynomials
+   (`evalPS()`, `evalPC()`), the combination of the tables in
+   `sin_large_accurate()` and `cos_large_accurate()` and the rounding to double
+   (`u128_tod()`). Each operation on `u128` there is a `gaol_u128_*()` call,
+   and the tables of 128-bit constants are written with `U128()`, which gives
+   the two halves as designated initialisers where the type is the structure.
+   The two files are the same code twice: a change in one is made in the
+   other.
 
    There is no way round this: C has no operator overloading, and the files
    cannot be compiled as C++ because their tables initialise anonymous unions
@@ -157,13 +162,16 @@ end or before the comment that ends it, or is part of a comment beginning with
    [proposed to CORE-MATH](#1-masks-written-with-long).
 
 3. **Three signed shifts made unsigned** in `cospi/cospi.c` (the test of an
-   integer or half-integer argument). `m` is a signed 64-bit integer holding
-   the significand with its hidden bit, 2^52, and shifting it left by 11 to 13
-   places overflows: undefined behaviour in C, which UBSan reported in the tests
-   run with the sanitizers. `sinpi.c` and `tanpi.c`, which do the same, convert
-   `m` to `uint64_t` before shifting it; `cospi.c` now does too, and gives the
-   same values bit for bit. Upstream has made the same fix since
-   ([commit `b1a4badf`](#already-fixed-upstream-the-shifts-of-cospic)).
+   integer or half-integer argument): **no longer a change.** `m` was a signed
+   64-bit integer holding the significand with its hidden bit, 2^52, and
+   shifting it left by 11 to 13 places overflows: undefined behaviour in C,
+   which UBSan reported in the tests run with the sanitizers. GAOL's copy
+   converted `m` to `uint64_t` before shifting it, as `sinpi.c` and `tanpi.c`
+   do, and gave the same values bit for bit. Upstream made the same fix, by
+   declaring `m` as `uint64_t` ([commit
+   `b1a4badf`](#already-fixed-upstream-the-shifts-of-cospic)), and `cospi.c` is
+   upstream's file since the import of 27 October 2026. The number stays, as
+   other files cite the items by it.
 
 4. **A 128-bit shift written on 128 bits** in `asinpi/asinpi.c`
    (`asinpi_acc`). `D`, the 64-bit integer `dc` times 2<sup>ss</sup>, was made
@@ -179,16 +187,20 @@ end or before the comment that ends it, or is part of a comment beginning with
    [proposed to CORE-MATH](#2-the-shift-of-asinpi_acc).
 
 5. **A 64-bit test made a comparison** in `rsqrt/rsqrt.c` (`cr_rsqrt`, the
-   subnormal x). `__builtin_expect(ix.u, 1)` passed the 64 bits of x where
-   `__builtin_expect` takes a `long`, which has 32 bits on the 32-bit targets
-   and on Windows: the high half was dropped, and a subnormal whose low 32
-   bits are 0, 2^-1042 to 2^-1024 among the powers of 4, was taken for +0,
-   its rsqrt being +oo rather than 2^521 to 2^512 (the continuous integration,
-   Debian i386 and armhf, MinGW-w64 and MSYS2; Visual C++, where
-   `__builtin_expect(x, y)` is `(x)`, was right). It is now
-   `__builtin_expect(ix.u != 0, 1)`. The other `__builtin_expect` of the
-   sources GAOL compiles take a comparison, or an integer of 32 bits or less.
-   The fix is [proposed to CORE-MATH](#3-the-__builtin_expect-of-rsqrtc).
+   subnormal x): **no longer a change.** `__builtin_expect(ix.u, 1)` passed
+   the 64 bits of x where `__builtin_expect` takes a `long`, which has 32 bits
+   on the 32-bit targets and on Windows: the high half was dropped, and a
+   subnormal whose low 32 bits are 0, 2^-1042 to 2^-1024 among the powers of
+   4, was taken for +0, its rsqrt being +oo rather than 2^521 to 2^512 (the
+   continuous integration, Debian i386 and armhf, MinGW-w64 and MSYS2; Visual
+   C++, where `__builtin_expect(x, y)` is `(x)`, was right). GAOL's copy
+   wrote `__builtin_expect(ix.u != 0, 1)`. Upstream rewrote the test in commit
+   `0d8b885a` (14 October 2026, "improve test for common case"): the subnormal
+   branch is `if (ix.u)` now, with no builtin, so `rsqrt.c` keeps no change of
+   this kind since the import of 27 October 2026. The other
+   `__builtin_expect` of the sources GAOL compiles take a comparison, or an
+   integer of 32 bits or less. The number stays, as other files cite the
+   items by it.
 
 6. **The rounding field of MXCSR** in `cbrt/cbrt.c`, `rsqrt/rsqrt.c` and
    `asinpi/asinpi.c` (`get_rounding_mode()`), the
@@ -271,10 +283,11 @@ end or before the comment that ends it, or is part of a comment beginning with
    against their exact values. The fix is
    [proposed to CORE-MATH](#7-the-exact-and-midpoint-powers-of-pow-on-32-bit-arm).
 
-8. **Shifts of a 64-bit result written on 64 bits** in `cos/cos.c`, `tan/tan.c`
-   and `hypot/hypot.c`, which the warnings of Visual C++ at `/W4` (C4334)
-   point at, in the job of the continuous integration that compiles GAOL with
-   `/W4 /WX`. In `cos.c` and `tan.c`, `1l << (a->ex + 1073)` is written
+8. **Shifts of a 64-bit result written on 64 bits** in `tan/tan.c` and
+   `hypot/hypot.c` (and in `cos/cos.c` until the import of 27 October 2026,
+   which rewrote it without that line), which the warnings of Visual C++ at
+   `/W4` (C4334) point at, in the job of the continuous integration that
+   compiles GAOL with `/W4 /WX`. In `tan.c`, `1l << (a->ex + 1073)` is written
    `1ll << ...`: the shift goes up to 51 places, undefined where `long` has 32
    bits, as on Windows, though no argument reaches it (see the
    [proposed fix](#1-masks-written-with-long), which writes it so). In
@@ -346,6 +359,32 @@ comparison rather than by reading:
   from 400 000 to 3 million differences over a hundredth of these arguments. `tests/core_math.cpp` checks 19
   arguments that take the accurate path in the upward rounding against the
   values of the upstream file, in the four directions;
+- **the import of 27 October 2026** (upstream `0b2ae6d1`), which rewrote
+  `cos.c` after the model of `sin.c` and changed `sin.c`, `exp.c`, `log.c`,
+  `rsqrt.c`, `pow.c` and others: the 17 functions whose files changed (`sin`,
+  `cos`, `sinh`, `cosh`, `sinpi`, `cospi`, `tanpi`, `rsqrt`, `asin`, `exp`,
+  `exp2`, `exp10`, `log`, `log2`, `log10`, `pow` and `hypot`), compiled from
+  this tree with the native type and with the two halves forced, against the
+  pristine upstream file (GCC 15.2, x86-64 Linux): the same bits in the four
+  rounding directions over 20 million arguments or pairs each (random bit
+  patterns, [−20, 20], [−10<sup>-4</sup>, 10<sup>-4</sup>], beyond 2^31, the
+  doubles next to the multiples k·π/2 with k < 2^30, the subnormals, small
+  rationals, and the four arguments `cos.c` treats as exceptions). With gcov,
+  every line of `sin.c` and `cos.c` that carries `/* GAOL */` runs,
+  `sin_large_accurate()` and `cos_large_accurate()` among them. Six faults put
+  in the two halves each make it report differences: a term of `mhUU()`
+  dropped (sin and cos), a shift count of `reduce_large_acc()` or of
+  `u128_tod()`, a comparison inverted, from 1,300 to 47,000 over 1.2 million
+  calls, and the `+ 5` of the exceptions of `cos.c` changed to `+ 4`, 9 over
+  the six exceptional arguments in the four directions. The two branches
+  of `roundeven_finite()` that GCC 10 and Clang 17 do not take (the
+  instruction of the processor, and the portable code that Visual C++ takes)
+  were compared the same way, over 8 million calls of `sin` and `cos` each.
+  The whole of GAOL
+  passed its tests in CMake with GCC 15.2 (SSE2, FPU and the halves forced,
+  `-Wall -Wextra -Werror`, and Debug with ASan and UBSan), with Clang 18 and
+  21, with autotools and meson, on Debian i386 (GCC 14.2, the type native and
+  the halves forced), and cross-built for aarch64 (GCC 12.2, under qemu);
 - **against the native type.** `tests/u128.cpp` compares every operation of the
   two halves with the same operation on `unsigned __int128` and `__int128`, over
   8 million values and every shift count, and the whole of GAOL is built and
@@ -361,12 +400,17 @@ comparison rather than by reading:
 
 ### To update CORE-MATH
 
-Copy the upstream tree again without the `.wc` files, then make the nine
-changes above. `git diff` against the previous version shows them: each changed
-line carries `/* GAOL */`, at its end or before the comment that ends it, or is
-part of a comment beginning with `/* GAOL:`, and no other line differs. A
-change upstream has made in the meantime is not made again: that of `cospi.c`
-from commit `b1a4badf` on, and those of the [patches
+Copy the upstream tree again without the `.wc` files, then make the changes
+above (seven of the nine items now: 3 and 5 are upstream's). `git diff`
+against the previous version shows them: each changed line carries
+`/* GAOL */`, at its end or before the comment that ends it, or is part of a
+comment beginning with `/* GAOL:`, and no other line differs. A file GAOL
+changed and upstream changed too is merged with the pristine file of the
+previous commit as the base (`git merge-file`), and a file upstream rewrote, as
+`cos.c` was in October 2026, is ported again from the model of the one GAOL
+has already ported (`sin.c` for `cos.c`). A change upstream has made in the
+meantime is not made again: that of `cospi.c` from commit `b1a4badf` on, that
+of `rsqrt.c` from commit `0d8b885a` on, and those of the [patches
 below](#changes-to-propose-upstream) once upstream takes them. Patch 4 is made
 from commit `19e85418` (5 October 2026) on: `sin.c` then guards its
 `__builtin_roundeven()` as the other sources do, and no longer needs the
@@ -376,10 +420,11 @@ can stay; the one of Windows is still needed.
 ## Changes to propose upstream
 
 Seven of the [changes above](#what-differs-from-upstream) are fixes rather than
-adaptations to GAOL (2 to 7 and 9; upstream has made the one of item 3
+adaptations to GAOL (2 to 7 and 9; upstream has made the ones of items 3 and 5
 since), and `gaol/core_math_port.h` makes up for an eighth defect, the
-`__builtin_roundeven()` of `sin.c` (see [How GAOL builds
-them](#how-gaol-builds-them)). They are written below as patches against
+`__builtin_roundeven()` of `sin.c`, which upstream has fixed since too (see
+[How GAOL builds them](#how-gaol-builds-them)). They are written below as
+patches against
 upstream master `b1a4badf`, with two more found while preparing them or since:
 the masks of item 2 in other files, `expm1q.c` of `binary128` and `atan2l.c` of
 `binary80` among them, and the rounding direction `pow` reads for its subnormal
@@ -390,28 +435,34 @@ since version 2.41, so each defect was looked for there as well.
 **Nothing has been sent**, neither to CORE-MATH nor to glibc: sending them is
 for the maintainer of GAOL v5, as said in each part below.
 
-| Defect | CORE-MATH master, `b1a4badf` | glibc master (`30f988f`), 2.41 to 2.44 |
+The second column is the master of 27 October 2026, `0b2ae6d1`, which each
+patch was applied to with `git apply --check` (the patches were written
+against `b1a4badf`, 29 September 2026).
+
+| Defect | CORE-MATH master, `0b2ae6d1` | glibc master (`30f988f`), 2.41 to 2.44 |
 | --- | --- | --- |
-| [masks of `long`](#1-masks-written-with-long) | present | absent: its copies write `MANTISSA_MASK` or `~UINT64_C(0) >> 12` |
+| [masks of `long`](#1-masks-written-with-long) | present, the patch no longer applies | absent: its copies write `MANTISSA_MASK` or `~UINT64_C(0) >> 12` |
 | [shift of `asinpi_acc()`](#2-the-shift-of-asinpi_acc) | present | no `asinpi` of doubles from CORE-MATH |
-| [`__builtin_expect` of `rsqrt.c`](#3-the-__builtin_expect-of-rsqrtc) | present | no `rsqrt` of CORE-MATH |
-| [`__builtin_roundeven` of `sin.c`](#4-the-__builtin_roundeven-of-sinc) | present | no `sin` of CORE-MATH |
+| [`__builtin_expect` of `rsqrt.c`](#3-the-__builtin_expect-of-rsqrtc) | fixed by `0d8b885a` | no `rsqrt` of CORE-MATH |
+| [`__builtin_roundeven` of `sin.c`](#4-the-__builtin_roundeven-of-sinc) | fixed by `19e85418` | no `sin` of CORE-MATH |
 | [rounding direction of `pow`](#5-the-rounding-direction-of-pow) | present | no `pow` of CORE-MATH; the x87 unit by design |
 | [rounding field of MXCSR in `cbrt.c`, `rsqrt.c`, `asinpi.c`, `powl.c`](#6-the-rounding-field-of-mxcsr-in-cbrtc-rsqrtc-asinpic-and-powlc) | present | absent: its `cbrt` maps glibc's own `FE_*` values with a switch |
 | [exact and midpoint powers of `pow` on 32-bit ARM](#7-the-exact-and-midpoint-powers-of-pow-on-32-bit-arm) | present | no `pow` of CORE-MATH |
 | [first phase of `pow` next to the overflow](#8-the-first-phase-of-pow-next-to-the-overflow) | present | no `pow` of CORE-MATH |
 | [signed shifts of `cospi.c`](#already-fixed-upstream-the-shifts-of-cospic) | fixed by `b1a4badf` | no `cospi` of doubles from CORE-MATH |
 
-Upstream has moved since. Its master of 12 October 2026, `ea7a421f`, 57 commits
-after `b1a4badf`, has made patch 4 itself, with the same guard (commit
-`19e85418`, 5 October), and has fixed the spurious underflow of `pow` downward
-at a result of −2<sup>−1022</sup>, which is the one said below (commit
-`e072473e`, 5 October; the check was not run again); it still has the six other
-defects of patches 1 to 7. Patches 2, 3, 5, 6 and 7 apply to it as they are,
-and patch 1 conflicts with later changes of `sinh.c` and `cosh.c`, whose masks
-are still there. Before the patches are sent (issue #125), patch 1 is to be
-made again on the master of the day. Patch 8, written on 19 October 2026,
-applies as it is to the master of that day, `6fc21797`, which has its defect.
+Upstream has moved since. Its master of 27 October 2026, `0b2ae6d1`, has made
+patch 4 itself, with the same guard (commit `19e85418`, 5 October), patch 3
+too (commit `0d8b885a`, 14 October: the rewritten `cr_rsqrt()` tests
+`if (ix.u)` and no longer passes 64 bits to `__builtin_expect`), and has fixed
+the spurious underflow of `pow` downward at a result of −2<sup>−1022</sup>,
+which is the one said below (commit `e072473e`, 5 October; the check was not
+run again). It still has the defects of patches 1, 2 and 5 to 8. Patches 2 and
+5 to 8 apply to it as they are; patch 1 does not, `cos.c` having been
+rewritten without the line it changed and the lines of `cosh.c` having moved
+(the masks of `sinh.c` and `cosh.c` are still there, in new lines too), so that
+patch 1 is to be made again on the master of the day before the patches are
+sent (issue #125).
 
 ### CORE-MATH
 
@@ -844,8 +895,9 @@ directions. The directed roundings of `atan2l` with a 32-bit `long` are to be
 pointed out to the authors when the patches are sent (issue #125).
 
 **Status.** Present in master; GAOL makes the change in `sinh.c`, `cosh.c`,
-`tanh.c`, `sinpi.c` and `log1p.c` (item 2 above), and the `1ll` of `cos.c` and
-`tan.c` (item 8), the files of the patch it compiles.
+`tanh.c`, `sinpi.c` and `log1p.c` (item 2 above), and the `1ll` of `tan.c`
+(item 8), the files of the patch it compiles. The `sinh.c` and
+`cosh.c` of the master of 27 October 2026 (`0b2ae6d1`) still have their masks.
 
 #### 2. The shift of `asinpi_acc()`
 
@@ -941,7 +993,11 @@ subnormals. GCC 13 makes the same object code before and after on x86-64
 Linux. GAOL's continuous integration found it on Debian i386 and armhf, with
 MinGW-w64 and with MSYS2 (item 5 above).
 
-**Status.** Present in master; GAOL makes the same change.
+**Status.** Fixed in master by `0d8b885a` (14 October 2026), which rewrote the
+test (`if (ix.u)`, a comparison of the 64 bits that `__builtin_expect` no
+longer sees); the patch no longer applies, and there is nothing to send.
+GAOL's copy had made the same change, and went back to upstream's file with the
+import of 27 October 2026.
 
 #### 4. The `__builtin_roundeven` of `sin.c`
 
@@ -1027,9 +1083,9 @@ values, half of them halfway between two integers. No compiler without the
 builtin was at hand.
 
 **Status.** Fixed in master since, by commit `19e85418` (5 October 2026), with
-this very guard: not to send. GAOL's copy, taken at `6b84457`, still calls the
-builtin unguarded, and `gaol/core_math_port.h` gives the sources a
-`__builtin_roundeven()` where the compiler has none.
+this very guard: not to send. GAOL's copy has it since the import of 27 October
+2026 (the new `cos.c` has it too), and `gaol/core_math_port.h` still gives the
+other sources a `__builtin_roundeven()` where the compiler has none.
 
 #### 5. The rounding direction of `pow`
 
@@ -1573,8 +1629,8 @@ fixed upstream on 29 September 2026 by `b1a4badf` ("[cospi] make the sanitizer
 happy"), which declares `m` as `uint64_t` rather than converting it at each
 shift. Over 4 million arguments (integers and half-integers among them) in the
 four directions, `cospi` of master gives the results of GAOL's, and UBSan,
-which stops on `6b84457`, reports nothing. Nothing to send: GAOL's change goes
-at the next import.
+which stops on `6b84457`, reports nothing. Nothing to send: GAOL's change went
+with the import of 27 October 2026, and `cospi.c` is upstream's file again.
 
 ### glibc
 
