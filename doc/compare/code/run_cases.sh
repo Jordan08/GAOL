@@ -9,7 +9,10 @@
 # Copyright (c) 2026 ENSTA, France
 #
 # Created 2026-09-20 by Jordan NININ
+# The flags and the libraries are lists of words, which the shell has to split
+# shellcheck disable=SC2086,SC2046
 set -euo pipefail
+# shellcheck source=env.sh
 source "$(dirname "$0")/env.sh"
 
 OUT="$WORK/cases"

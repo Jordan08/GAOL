@@ -113,11 +113,12 @@ jobs:
       - name: The intervals of each architecture
         run: |
           for spec in "arm64 NEON SSE2" "x86_64 SSE2 NEON"; do
+            # shellcheck disable=SC2086
             set -- $spec
-            echo '#include "gaol/gaol_configuration.h"' | c++ -arch $1 -I build -x c++ -dM -E - | grep GAOL_USING_ > macros-$1.txt
-            cat macros-$1.txt
-            grep -q "^#define GAOL_USING_$2_INSTRUCTIONS 1" macros-$1.txt
-            if grep -q "^#define GAOL_USING_$3_INSTRUCTIONS 1" macros-$1.txt; then
+            echo '#include "gaol/gaol_configuration.h"' | c++ -arch "$1" -I build -x c++ -dM -E - | grep GAOL_USING_ > "macros-$1.txt"
+            cat "macros-$1.txt"
+            grep -q "^#define GAOL_USING_$2_INSTRUCTIONS 1" "macros-$1.txt"
+            if grep -q "^#define GAOL_USING_$3_INSTRUCTIONS 1" "macros-$1.txt"; then
               echo "::error::the $1 part has the $3 intervals"
               exit 1
             fi
@@ -176,11 +177,12 @@ jobs:
       - name: The intervals of each architecture
         run: |
           for spec in "arm64 NEON SSE2" "x86_64 SSE2 NEON"; do
+            # shellcheck disable=SC2086
             set -- $spec
-            echo '#include "gaol/gaol_configuration.h"' | c++ -arch $1 -I . -x c++ -dM -E - | grep GAOL_USING_ > macros-$1.txt
-            cat macros-$1.txt
-            grep -q "^#define GAOL_USING_$2_INSTRUCTIONS 1" macros-$1.txt
-            if grep -q "^#define GAOL_USING_$3_INSTRUCTIONS 1" macros-$1.txt; then
+            echo '#include "gaol/gaol_configuration.h"' | c++ -arch "$1" -I . -x c++ -dM -E - | grep GAOL_USING_ > "macros-$1.txt"
+            cat "macros-$1.txt"
+            grep -q "^#define GAOL_USING_$2_INSTRUCTIONS 1" "macros-$1.txt"
+            if grep -q "^#define GAOL_USING_$3_INSTRUCTIONS 1" "macros-$1.txt"; then
               echo "::error::the $1 part has the $3 intervals"
               exit 1
             fi
@@ -241,11 +243,12 @@ jobs:
       - name: The intervals of each architecture
         run: |
           for spec in "arm64 NEON SSE2" "x86_64 SSE2 NEON"; do
+            # shellcheck disable=SC2086
             set -- $spec
-            echo '#include "gaol/gaol_configuration.h"' | c++ -arch $1 -I build-meson -x c++ -dM -E - | grep GAOL_USING_ > macros-$1.txt
-            cat macros-$1.txt
-            grep -q "^#define GAOL_USING_$2_INSTRUCTIONS 1" macros-$1.txt
-            if grep -q "^#define GAOL_USING_$3_INSTRUCTIONS 1" macros-$1.txt; then
+            echo '#include "gaol/gaol_configuration.h"' | c++ -arch "$1" -I build-meson -x c++ -dM -E - | grep GAOL_USING_ > "macros-$1.txt"
+            cat "macros-$1.txt"
+            grep -q "^#define GAOL_USING_$2_INSTRUCTIONS 1" "macros-$1.txt"
+            if grep -q "^#define GAOL_USING_$3_INSTRUCTIONS 1" "macros-$1.txt"; then
               echo "::error::the $1 part has the $3 intervals"
               exit 1
             fi

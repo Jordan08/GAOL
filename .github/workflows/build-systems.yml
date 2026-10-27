@@ -118,7 +118,9 @@ jobs:
           # CORE-MATH is compiled into libgaol: no other library is installed
           grep -q "elementary functions" "$RUNNER_TEMP/configure.log"
           ls "$RUNNER_TEMP/gaol/lib"
-          ! ls "$RUNNER_TEMP/gaol/lib" | grep "^lib" | grep -v "^libgaol"
+          for f in "$RUNNER_TEMP"/gaol/lib/lib*; do
+            case "${f##*/}" in libgaol*) ;; *) echo "$f: not GAOL's"; exit 1 ;; esac
+          done
       # NEON on 64-bit ARM, SSE2 on x86-64, the FPU where --disable-simd
       # asked for it (GAOL v5)
       - name: The intervals
@@ -226,7 +228,9 @@ jobs:
           # CORE-MATH is compiled into libgaol: no other library is installed
           grep -qi "elementary functions" configure.log
           ls "$RUNNER_TEMP/gaol/lib"
-          ! ls "$RUNNER_TEMP/gaol/lib" | grep "^lib" | grep -v "^libgaol"
+          for f in "$RUNNER_TEMP"/gaol/lib/lib*; do
+            case "${f##*/}" in libgaol*) ;; *) echo "$f: not GAOL's"; exit 1 ;; esac
+          done
       # NEON on 64-bit ARM, SSE2 on x86-64, the FPU where -Denable-simd=false
       # asked for it (GAOL v5)
       - name: The intervals
