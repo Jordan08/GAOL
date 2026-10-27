@@ -1294,9 +1294,10 @@ namespace gaol_core {
     reverse functions give: pow keeps raising the exception for its infinite
     upper bound, as doc/using.md says of the infinite bounds.
     x^y can only overflow where it is above 1, for x > 1 and y > 0 or
-    x < 1 and y < 0: CORE-MATH's pow goes its way in the other cases (before
-    upstream commit c01f08c5, 5 October 2026, it squared y log(x) in its first
-    phase, which overflowed from 2^512 on, for a power that is tiny).
+    x < 1 and y < 0: CORE-MATH's pow goes its way in the other cases, where
+    pow_rounded_up() has taken the tiny powers of |y| >= 2^1013 apart (before
+    upstream commit c01f08c5, 5 October 2026, CORE-MATH squared y log(x) in
+    its first phase, which overflowed from 2^512 on, for a power that is tiny).
     The binary logarithm of x^y is
     bounded by |y| |log2(x)|, with |log2(x)| at most |e| + 1, e being the
     exponent of x as frexp() gives it: when that is below 1000, nothing
@@ -1368,11 +1369,14 @@ namespace gaol_core {
     exception where the power is above the largest double
     (pow_up_without_overflow_exception()). The one power computed here is the
     tiny one, x^y < 1 for a finite x > 0 other than 1 and |y| >= 2^1013:
-    |y log(x)| >= 2^960 there, and x^y rounded upward is 2^-1074. The
-    is_exact() of CORE-MATH's pow multiplies y by the exponent e of a power of
-    two x, a product that overflows from |y e| = 2^1024 on (|e| is at most
-    1074), which raises the overflow exception for this finite result (GAOL
-    v5, point 79 of TODO.md; pow(2^-1074, 1.5 2^1014) does).
+    |y log(x)| >= 2^960 there, and x^y rounded upward is 2^-1074 (for an
+    infinite y, whose power is 0, it is an upper bound, which is all
+    root_of_power_near() asks of it). The is_exact() of CORE-MATH's pow
+    multiplies y by the exponent e of a power of two x, a product that
+    overflows from |y e| = 2^1024 on (|e| is at most 1074), which raises the
+    overflow exception for this finite result (GAOL v5, point 79 of TODO.md;
+    pow(2^-1074, 1.5 2^1014) does): it needs y > 0, so x < 1, but the power is
+    right for the other sign too, and cheaper than CORE-MATH.
     Until upstream commit c01f08c5 (5 October 2026) CORE-MATH's pow raised two
     more exceptions, and GAOL computed the powers of an exponent of extreme
     magnitude itself: the invalid-operation exception for |y| < 2^-969 and for
@@ -2959,9 +2963,10 @@ namespace gaol_core {
     and other than 0, which the bounds below are looked for from: CORE-MATH's
     pow with the exponent 1/y rounded, |log(c^(1/y))| 2^-53 away relatively,
     after a step of Newton's method on r^y = c, r - r (r^y - c)/(y r^y),
-    which brings it within about 2^-52/|y| relatively. 1/y is +oo for a
-    subnormal y, which CORE-MATH's pow takes as it takes an infinite exponent.
-    Rounding upward
+    which brings it within about 2^-52/|y| relatively. 1/y is +oo for a tiny
+    y, and -DBL_MAX for a tiny negative one (quotient_sat()): the exponents of
+    extreme magnitude pow_rounded_up() takes apart, 1/y included. Rounding
+    upward
   */
   static double root_of_power_near(double c, double y)
   {
