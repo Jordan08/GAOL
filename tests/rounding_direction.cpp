@@ -83,7 +83,6 @@
  *--------------------------------------------------------------------------*/
 
 #include "gaol_tests.h"
-#include "gaol/gaol_core_math.h"
 
 #include <algorithm>
 #include <climits>
@@ -303,47 +302,6 @@ namespace
     _mm_setcsr((_mm_getcsr() & ~static_cast<unsigned int>(_MM_ROUND_MASK)) | d.sse);
 #endif
   }
-
-#if GAOL_TESTS_SSE && (defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64))
-  /*
-    CORE-MATH called without GAOL, in each of the directions of directions[],
-    among them the two where the x87 unit and the SSE instructions differ (GAOL
-    v5, point AI.108 of TODO_DONE.md): the doubles it computes are rounded by the
-    SSE instructions, and what it rounds by itself, a subnormal result of pow
-    and the hardest cases of cbrt, follows the direction of MXCSR as well,
-    whatever the C library's fegetround() reads, which is the control word of
-    the x87 unit with glibc and gives -1 with Visual C++ for x86 when the two
-    differ (gaol/core_math_port.h). The operations of GAOL set both units
-    before they call it, which hides the difference: the functions are called
-    here. The powers of subnormal_powers[] have a fractional part below one half
-    (the nearest and the downward roundings are lo), and the cube root of
-    0x1.3a9ccd7f022dbp+0 is less than 10^-15 ulp above a double (see
-    cbrt_hard_cases() of tests/core_math.cpp), below or above being the double
-    on each side of it.
-  */
-  void core_math_reads_the_sse_direction()
-  {
-    const double cbrt_x = 0x1.3a9ccd7f022dbp+0, cbrt_below = 0x1.1236160ba9b93p+0, cbrt_above = 0x1.1236160ba9b94p+0;
-    for (const Direction& d : directions) {
-      const bool upward = d.sse == SSE_DIRECTION(_MM_ROUND_UP);
-      for (const SubnormalPower& p : subnormal_powers) {
-        set(d);
-        const double z = gaol_core::rnd_keep(gaol_cr_pow(p.x, p.y));
-        set(directions[0]);
-        const double want = subnormal(upward ? p.hi : p.lo);
-        check("pow of CORE-MATH with a subnormal result rounds in the direction of MXCSR", z == want,
-              [&] { return std::string("rounding direction ") + d.name + ", x=" + hex(p.x) + " y=" + hex(p.y) + ": "
-                           + hex(z) + " rather than " + hex(want); });
-      }
-      set(d);
-      const double c = gaol_core::rnd_keep(gaol_cr_cbrt(cbrt_x));
-      set(directions[0]);
-      const double want_cbrt = upward ? cbrt_above : cbrt_below;
-      check("cbrt of CORE-MATH at a hard case rounds in the direction of MXCSR", c == want_cbrt,
-            [&] { return std::string("rounding direction ") + d.name + ": " + hex(c) + " rather than " + hex(want_cbrt); });
-    }
-  }
-#endif
 
   /*
     An interval built in the function from its arguments (GAOL v5), so that its
@@ -796,7 +754,7 @@ namespace
     for (const FlushMode& m : flush_modes()) {
       flushes.push_back(m.bits);
     }
-    const gaol_core::x86_registers hw;
+    gaol_core::x86_registers hw;
     for (std::size_t d = 0; d < nb_directions; ++d) {
       for (unsigned int flush : flushes) {
         write_x86_fields(register_directions[d], flush);
@@ -4115,10 +4073,6 @@ int main()
             });
     }
   }
-
-#if GAOL_TESTS_SSE && (defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64))
-  core_math_reads_the_sse_direction();
-#endif
 
   /*
     An empty interval is told empty without an exception (GAOL v5). GAOL holds

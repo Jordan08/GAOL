@@ -140,10 +140,13 @@ the direction with fegetround(), which gives the one of the x87 unit on
 Windows: with the two differing, pow() rounded as if to nearest while GAOL
 computed upward, and gave bounds one double apart from the ones it gives
 when the two agree (GAOL v5, found by tests/rounding_direction.cpp in
-the continuous integration, with Visual C++ for 32-bit x86). There the
-direction of both units is read directly (GAOL_RND_X86_DIRECT below), which
-fegetround() did through a call that cost about 80 ns with Visual C++, and
-the one that is not upward is set. */
+the continuous integration, with Visual C++ for 32-bit x86). They read MXCSR
+now, the register of their doubles (gaol/core_math_port.h), but the other
+things the x87 unit computes (the square root and the fma() of a C library,
+a long double) still follow its direction, so that the direction of both
+units is read directly (GAOL_RND_X86_DIRECT below), which fegetround() did
+through a call that cost about 80 ns with Visual C++, and the one that is not
+upward is set. */
 #if defined(__i386__) || defined(_M_IX86)
 #  undef GAOL_RND_PROBE
 #endif
@@ -165,12 +168,12 @@ inline assembly with Visual C++). Always defined, to 0 or 1. */
 #endif
 /* round_upward_if_needed() has no other way to check a 32-bit x86 processor
 than to read its two registers. It had one with fegetround() for a compiler
-GAOL_RND_X86_DIRECT does not take, which no build could reach (the three builds
-need <fenv.h>, and gaol_config.h takes GCC, Clang and Visual C++ there); it is
-an error now rather than a check that would leave a register unseen (GAOL v5,
+GAOL_RND_X86_DIRECT does not take (not GCC, Clang or Visual C++, or without
+<fenv.h>), which no configuration the three builds accept reached; it is an
+error now rather than a check that would leave a register unseen (GAOL v5,
 point AI.108 of TODO_DONE.md) */
 #if (defined(__i386__) || defined(_M_IX86)) && !GAOL_RND_X86_DIRECT
-#  error "GAOL reads and writes the control registers of a 32-bit x86 processor itself, and cannot with this compiler"
+#  error "GAOL reads and writes the control registers of a 32-bit x86 processor itself, and cannot: it needs <fenv.h> and GCC, Clang or Visual C++"
 #endif
 
 /* GAOL_RND_MINGW64_X87: 1 with mingw-w64 (GCC or Clang) on x86-64, where
@@ -902,9 +905,11 @@ namespace gaol_core {
     #elif GAOL_RND_X86_DIRECT
     /* On a 32-bit x86 processor the x87 unit and the SSE instructions each
     have their own rounding direction, and both have to be upward: GAOL
-    computes its bounds with SSE, and the elementary functions of CORE-MATH
-    read the direction with fegetround(), which gives the one of the x87
-    unit. Either being elsewhere, it is set upward (GAOL v5, found by
+    computes its bounds with SSE, and what the x87 unit computes, the square
+    root and the fma() of a C library, follows its direction (the elementary
+    functions of CORE-MATH read MXCSR, gaol/core_math_port.h; they read the
+    x87 unit with the fegetround() of a C library before GAOL v5, point
+    AI.108). Either being elsewhere, it is set upward (GAOL v5, found by
     tests/rounding_direction.cpp in the continuous integration, which leaves
     the two differing on purpose). Not the probe above, which shows the
     direction of the unit computing GAOL's doubles only. The two registers

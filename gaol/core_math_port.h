@@ -311,9 +311,8 @@ call into the C library, about 80 ns with Visual C++ for x86 (which gives -1
 when the units differ), and cbrt and asinpi call it on every call.
 MXCSR is read by one instruction, stmxcsr, and is the register of the doubles
 of CORE-MATH there as on x86-64 (gaol/gaol_config.h refuses an x86 target
-that computes its doubles elsewhere). tests/rounding_direction.cpp calls pow
-and cbrt with the x87 unit and MXCSR differing, which only this reading gets
-right.
+that computes its doubles elsewhere). tests/core_math.cpp calls pow and cbrt
+with the x87 unit and MXCSR differing, which only this reading gets right.
 --------------------------------------------------------------------------*/
 
 #if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
@@ -334,7 +333,7 @@ static inline int gaol_fegetround(void)
 #undef fegetround
 #define fegetround gaol_fegetround
 
-#endif /* x86-64 */
+#endif /* x86 */
 
 /*---------------------------------------------------------------------------
 What Visual C++ has not of GCC and Clang

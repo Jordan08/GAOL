@@ -96,9 +96,9 @@ of Triangle leaves, `pow` rounded to nearest and its upper bound was below the
 exact value for about half of the arguments with a subnormal result.
 `<fenv.h>` is included first and the sources see `fegetround` renamed by a
 macro, which changes nothing for the rest of GAOL;
-`tests/rounding_direction.cpp` checks it, on 32-bit x86 by calling `pow` and
-`cbrt` with the two units differing. On a 32-bit x86 processor GAOL reads both
-units and sets both when one is not upward, so that they do not differ when
+`tests/rounding_direction.cpp` checks it, and `tests/core_math.cpp` by calling
+`pow` and `cbrt` with the two units differing. On a 32-bit x86 processor GAOL reads both
+units and sets the one that is not upward, so that they do not differ when
 CORE-MATH runs from an operation of GAOL, and reading MXCSR, one instruction,
 spares the call of the C library (about 80 ns with Visual C++ for x86), which
 `cbrt` and `asinpi` made on every call.

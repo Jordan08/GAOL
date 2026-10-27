@@ -25,7 +25,9 @@ python3 tests/tools/pow/mutate.py --mutants tests/tools/x86-csr/mutants.py \
         --test rounding_direction --no-diffpow --jobs 4
 ```
 
-Each mutant is an error in one of the functions `x86_is_upward()`,
+The whole library is built again for each mutant, `gaol_fpu.h` being included
+everywhere: the 46 mutants took 713 s with 4 cores. Each mutant is an error in
+one of the functions `x86_is_upward()`,
 `x86_set_modes()`, `x86_set_upward()`, `x86_enter_registers()`,
 `x86_get_state()`, `x86_enter_upward()`, `x86_set_rounding()`,
 `x86_set_rounding_and_flush_modes()` and `x86_leave()`: a wrong mask or value,
@@ -40,7 +42,7 @@ writes always, with no change of the state, is killed by the count.
 
 One mutant is listed as equivalent: `x87_rc_upward = FE_UPWARD`, which has the
 value 0x0800 of the hardware with glibc and is another only where `<fenv.h>`
-says otherwise (macOS, Windows). The constants `x86_flush_mask`,
+says otherwise (macOS on arm64, Windows). The constants `x86_flush_mask`,
 `sse_rc_mask` and `sse_rc_upward` are not mutated: a `static_assert` compares
 them with those of `<xmmintrin.h>`.
 
@@ -62,8 +64,11 @@ includes, and the `gaol/gaol_configuration.h` that the options say
 (`--define GAOL_PRESERVE_ROUNDING`, and so on), in one file (33 000 lines
 with the two options above), which compiles with the flags of the builds (`-std=c++17 -O2 -frounding-math -ffp-contract=off -msse2 -mfpmath=sse`
 with GCC and Clang for x86, `/std:c++17 /O2 /fp:strict` with Visual C++; C++17
-because the test writes hexadecimal floating literals). GCC 15 compiles it in
-10 seconds with `-Wall -Wextra` and no warning. Compiling is all it does for a
+because the test writes hexadecimal floating literals; add `-faligned-new=8`
+for GCC and Clang on 32-bit Windows). GCC 15 compiles it in 10 to 15 seconds
+with `-Wall -Wextra` and no warning; Clang 21 warns 4 times of an unused
+constant (`version_major`... of `gaol_version.h`, which it sees as the main
+file). Compiling is all it does for a
 target that cannot be run; and a Compiler Explorer stops a compilation after
 about 20 seconds, which #156 met with `GAOL_PRESERVE_ROUNDING` and GCC at
 `-O2`. Another list of units, the other `--define`s and `--root` are in the

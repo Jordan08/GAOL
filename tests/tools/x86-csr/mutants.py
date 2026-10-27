@@ -45,7 +45,7 @@ MUTANTS = [
     m('x87-upward-wrong', 'const unsigned int x87_rc_upward = 0x0800u;', 'const unsigned int x87_rc_upward = 0x0400u;'),
     m('x87-upward-is-FE_UPWARD', 'const unsigned int x87_rc_upward = 0x0800u;',
       'const unsigned int x87_rc_upward = static_cast<unsigned int>(FE_UPWARD);',
-      survives='FE_UPWARD is 0x0800 with glibc: only a host whose <fenv.h> says otherwise (macOS, Windows) kills it'),
+      survives='FE_UPWARD is 0x0800 with glibc: only a host whose <fenv.h> says otherwise (macOS on arm64, Windows) kills it'),
 
     # x86_is_upward()
     m('is-upward-or', 'return (x87_cw & x87_rc_mask) == x87_rc_upward\n        && (mxcsr',

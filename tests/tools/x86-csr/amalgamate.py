@@ -2,11 +2,13 @@
 #---------------------------------------------------------------------------
 # gaol -- NOT Just Another Interval Library
 #---------------------------------------------------------------------------
-# Tools of GAOL v5: one source file made of the sources of GAOL, for a
+# Tools of GAOL v5: one source file made of three units of GAOL (the core of
+# the intervals, the common code and the test of the rounding direction), for a
 # compiler that is not here and takes one file, such as the ones of Compiler
 # Explorer (https://godbolt.org): Visual C++ for x86 and x64, clang-cl, a GCC
-# or a Clang for another target. It compiles what the three builds compile,
-# with a configuration written by hand. Nothing is run by this script.
+# or a Clang for another target. The file is meant to be compiled, not linked
+# (the parser, the port, CORE-MATH... are not in it), with a configuration
+# written by hand. Nothing is run by this script.
 #
 #     python3 amalgamate.py [--root DIR] [--define NAME[=VALUE]]...
 #                           [--output FILE] [UNIT...]
@@ -30,7 +32,8 @@
 # #cmakedefine is defined to 1 if a --define says so (--define
 # GAOL_USING_SSE2_INSTRUCTIONS --define GAOL_USING_SSE3_INSTRUCTIONS for the
 # SSE2 intervals, --define GAOL_PRESERVE_ROUNDING, --define GAOL_HAVE_FENV_H,
-# and --define NAME=VALUE for another value), and left undefined otherwise.
+# and --define NAME=VALUE for another value), and left undefined otherwise; a
+# name that the template does not know is an error.
 # GAOL_HAVE_FENV_H is defined, as the three builds do, unless --define
 # GAOL_HAVE_FENV_H=0 says otherwise.
 #
@@ -39,9 +42,11 @@
 # compute its doubles in the rounding direction GAOL asks for, and a compiler
 # that is not told so): -std=c++17 (the test writes hexadecimal floating
 # literals) -O2 -frounding-math -ffp-contract=off -msse2 -mfpmath=sse for GCC
-# and Clang on x86, /std:c++17 /O2 /fp:strict with Visual C++. The result is
-# large (the three units, 33 000 lines), and a Compiler Explorer stops a
-# compilation at about 20 seconds.
+# and Clang on x86, /std:c++17 /O2 /fp:strict with Visual C++; and
+# -faligned-new=8 for GCC and Clang on 32-bit Windows with the SSE2 intervals
+# (gaol/gaol_config.h refuses them without it). The result is large (the three
+# units, 33 000 lines), and a Compiler Explorer stops a compilation at about 20
+# seconds.
 #---------------------------------------------------------------------------
 # gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
 # COPYING file for information.
@@ -94,6 +99,13 @@ class Amalgam:
         return None
 
     @staticmethod
+    def is_pragma_once(text):
+        text = re.sub(r'/\*.*?\*/', '', text, flags=re.S)
+        text = re.sub(r'//[^\n]*', '', text)
+        lines = [l.strip() for l in text.splitlines() if l.strip()]
+        return lines[:1] == ['#pragma once']
+
+    @staticmethod
     def guarded(text):
         """Whether the file starts with #pragma once, or #ifndef X followed by #define X"""
         text = re.sub(r'/\*.*?\*/', '', text, flags=re.S)
@@ -109,13 +121,14 @@ class Amalgam:
         path = os.path.normpath(path)
         text = open(path, encoding='utf-8').read()
         guarded = self.guarded(text)
+        pragma_once = guarded and self.is_pragma_once(text)
         if guarded and path in self.done:
             return
         if guarded and certain:
             self.done.add(path)
         self.out.append('// ---- %s\n' % os.path.relpath(path, self.root))
         depth = 0           # the #if that are open, the guard of the file itself apart
-        guard_open = guarded
+        guard_open = guarded and not pragma_once    # the first #ifndef of a file with a guard is the guard
         for line in text.splitlines(True):
             d = re.match(r'^\s*#\s*(if|ifdef|ifndef|endif)\b', line)
             if d:
@@ -156,8 +169,12 @@ def main():
     a = p.parse_args()
 
     defines = {'GAOL_HAVE_FENV_H': '1'}
+    known = set(re.findall(r'^#cmakedefine ([A-Za-z0-9_]+) 1$',
+                           open(os.path.join(a.root, 'cmake', 'gaol_configuration.h.in')).read(), flags=re.M))
     for d in a.define:
         name, _, value = d.partition('=')
+        if name not in known:
+            sys.exit('amalgamate.py: %s is no macro of cmake/gaol_configuration.h.in (%s)' % (name, ', '.join(sorted(known))))
         defines[name] = value or '1'
     amalgam = Amalgam(os.path.abspath(a.root), defines)
     for unit in a.units or UNITS:

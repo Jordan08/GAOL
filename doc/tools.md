@@ -103,7 +103,7 @@ In [tests/tools/](../tests/tools/), with a `README.md` in each directory.
 | [pow/mutate.py](../tests/tools/pow/mutate.py) | Mutation testing of `pow`: puts one deliberate error in the code, and the tests have to fail. |
 | [pow/pown_bound.py](../tests/tools/pow/pown_bound.py) | Checks, with rationals, the bound K of the error of the integer powers of `pown_products()`. |
 | [x86-csr/mutants.py](../tests/tools/x86-csr/mutants.py) | The mutants of `gaol_core::x86_*()` of `gaol/gaol_fpu.h`, the writes of the control registers of a 32-bit x86 processor, for `pow/mutate.py`: `rounding_direction` has to fail on each. |
-| [x86-csr/amalgamate.py](../tests/tools/x86-csr/amalgamate.py) | One source file from the sources of GAOL (the library and `rounding_direction.cpp`), for a compiler that takes one file, such as those of Compiler Explorer. |
+| [x86-csr/amalgamate.py](../tests/tools/x86-csr/amalgamate.py) | One source file from three units of GAOL (the core of the intervals, the common code and `rounding_direction.cpp`), to compile with a compiler that takes one file, such as those of Compiler Explorer. |
 
 ## Comparisons with other libraries
 
