@@ -317,7 +317,7 @@ changes no bound, and is left as the program had it. The operations then read
 MXCSR once at their start, write it only if it is not upward with the modes
 that flush the subnormals clear, and write back at their end what they found
 only if it was not (see gaol_core::sse_enter_upward() and sse_leave(); GAOL v5,
-point AI.108), where the macros
+point 108 (AI) of TODO.md), where the macros
 for the other builds read the direction through fegetround() and set it
 back through fesetround() as well, which write the control word of the x87
 unit and MXCSR again, and clear the flush-to-zero modes and set the direction
@@ -554,8 +554,8 @@ namespace gaol_core {
   /*
     The start and the end of an operation under GAOL_PRESERVE_ROUNDING that
     keeps MXCSR alone (GAOL_RND_ENTER_SSE() and GAOL_RND_LEAVE_SSE()), on the
-    model of x86_enter_upward() and x86_leave() (GAOL v5, point AI.108 of
-    TODO_DONE.md; they read and wrote MXCSR twice whatever it held, which cost
+    model of x86_enter_upward() and x86_leave() (GAOL v5, point 108 (AI) of
+    TODO.md; they read and wrote MXCSR twice whatever it held, which cost
     about 20 ns an operation on the AMD EPYC runners of GitHub and 7 on an
     Intel i7-1185G7): saved is MXCSR as the
     operation found it, read once. The direction upward and the modes that
