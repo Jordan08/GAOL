@@ -85,18 +85,22 @@ rounding upward from x = 26.54 on (Visual C++ and clang-cl); the one of
 macOS gave 0 for 2<sup>−1127</sup> rounded upward. `tests/core_math.cpp`
 checks the flags, the square root, `NAN` and `INFINITY`, and `gaol_ldexp()`.
 
-On x86-64 it also gives them a `fegetround()` that reads MXCSR, the register
-that rounds their doubles, rather than the control word of the x87 unit, which
-the `fegetround()` of glibc reads. `pow`, and `cos` and `tan`, whose accurate
-phases carry the same code, round a subnormal result themselves, in the
-direction `fegetround()` gives: with the x87 unit to nearest and MXCSR upward,
-the state the `exactinit()` of the predicates of Shewchuk and of Triangle
-leaves, `pow` rounded to nearest and its upper bound was below the exact value
-for about half of the arguments with a subnormal result. `<fenv.h>` is included
-first and the sources see `fegetround` renamed by a macro, which changes
-nothing for the rest of GAOL; `tests/rounding_direction.cpp` checks it. On a
-32-bit x86 processor, GAOL reads both units and sets both when one is not
-upward, so that they never differ when CORE-MATH runs.
+On x86, 32-bit and 64-bit, it also gives them a `fegetround()` that reads
+MXCSR, the register that rounds their doubles, rather than the control word of
+the x87 unit, which the `fegetround()` of glibc reads. `pow`, and `cos` and
+`tan`, whose accurate phases carry the same code, round a subnormal result
+themselves, in the direction `fegetround()` gives: with the x87 unit to nearest
+and MXCSR upward, the state the `exactinit()` of the predicates of Shewchuk and
+of Triangle leaves, `pow` rounded to nearest and its upper bound was below the
+exact value for about half of the arguments with a subnormal result.
+`<fenv.h>` is included first and the sources see `fegetround` renamed by a
+macro, which changes nothing for the rest of GAOL;
+`tests/rounding_direction.cpp` checks it, on 32-bit x86 by calling `pow` and
+`cbrt` with the two units differing. On a 32-bit x86 processor GAOL reads both
+units and sets both when one is not upward, so that they do not differ when
+CORE-MATH runs from an operation of GAOL, and reading MXCSR, one instruction,
+spares the call of the C library (about 80 ns with Visual C++ for x86), which
+`cbrt` and `asinpi` made on every call.
 
 They are compiled with the flags of interval arithmetic, as CORE-MATH asks
 (`-frounding-math -ffp-contract=off`, `/fp:strict` for Visual C++), and with the

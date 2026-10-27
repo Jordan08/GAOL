@@ -244,7 +244,18 @@ point Q), which `numbers` checks there too.
   units upward and the modes clear, or as they were found with
   `GAOL_PRESERVE_ROUNDING`, no other bit changed, and the sums and products
   the tightest enclosures right after the program wrote the registers (600
-  operands for each mode). `cbrt`, `pow` and `atan2` have to leave the
+  operands for each mode); `gaol_core::x86_registers`, the type through which
+  the library reads and writes the two registers, has to read the words the
+  test reads and write the words it is given, and nothing else, in each of
+  these states (GAOL v5, point AI.108 of TODO_DONE.md). CORE-MATH, called
+  without GAOL in each direction of the test, has to round in the direction of
+  MXCSR, which the doubles it computes follow: `pow` with a subnormal result
+  and `cbrt` at one of its hard cases give the double above in the direction
+  upward of the SSE instructions and the one below otherwise, whatever the
+  direction of the x87 unit. On a 32-bit x86 processor, GAOL's operations set
+  both units before they call it, which hides the difference, and its
+  `fegetround()` was the C library's, reading the x87 unit (glibc) or giving -1
+  (Visual C++). `cbrt`, `pow` and `atan2` have to leave the
   exception masks of the SSE control register as they found them, and an empty interval to be told
   empty after them: the `fesetexceptflag()` of mingw-w64 for 32-bit
   Windows unmasked the exceptions, and the comparison of the NaN
