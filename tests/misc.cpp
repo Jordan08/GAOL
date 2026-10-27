@@ -442,20 +442,24 @@ kernels_of_the_program::result sqr_bounds(kernels_of_the_program::registers);
 #endif
 
 /*
-  32-bit Windows with GCC or Clang (GAOL v5, point AI.106 of TODO_DONE.md): the
-  system calls its threads and its callbacks with the stack aligned on 4 bytes,
-  where GCC takes a function to be entered with it aligned on 16 and puts the
+  32-bit Windows with GCC (GAOL v5, point AI.106 of TODO_DONE.md): the system
+  calls its threads and its callbacks with the stack aligned on 4 bytes, where
+  GCC takes a function to be entered with it aligned on 16 and puts the
   intervals it keeps in locals at addresses that movaps needs aligned (bug
   40838 of GCC). test_stack_entered_aligned_on_4_bytes() enters a function that
   works on local intervals with the stack at each of the four alignments of 4
-  bytes. Not elsewhere: the ABI of Linux and of macOS has the stack aligned on
-  16 at every call, and Visual C++ aligns the stack by itself. A developer can
-  run it on Linux for a 32-bit target with -DGAOL_TESTS_STACK_ON_4_BYTES=1
-  (the functions then stop the program for the three misaligned entries,
-  as they do on Windows when GCC does not align the stack of the function)
+  bytes, and checks that it was entered so. Not elsewhere: the ABI of Linux and
+  of macOS has the stack aligned on 16 at every call, Visual C++ aligns the
+  stack by itself, and so does Clang for the targets of Windows (its code has
+  movups for the registers it spills and an andl of the stack in the prologue
+  of a function that keeps a vector in a local), so that it cannot fail there.
+  A developer can run it on Linux for a 32-bit target with
+  -DGAOL_TESTS_STACK_ON_4_BYTES=1 (GCC then stops the program for the three
+  misaligned entries, as it does on Windows when it does not align the stack of
+  the function, and the test says so)
 */
 #if !defined(GAOL_TESTS_STACK_ON_4_BYTES)
-#  if defined(__i386__) && defined(_WIN32) && (defined(__GNUC__) || defined(__clang__)) && GAOL_USING_SSE2_INSTRUCTIONS
+#  if defined(__i386__) && defined(_WIN32) && defined(__GNUC__) && !defined(__clang__) && GAOL_USING_SSE2_INSTRUCTIONS
 #    define GAOL_TESTS_STACK_ON_4_BYTES 1
 #  else
 #    define GAOL_TESTS_STACK_ON_4_BYTES 0
@@ -463,6 +467,7 @@ kernels_of_the_program::result sqr_bounds(kernels_of_the_program::registers);
 #endif
 
 #if GAOL_TESTS_STACK_ON_4_BYTES
+static_assert(sizeof(void*) == 4, "the test enters a function with the stack of a 32-bit x86 processor");
 #  include <csetjmp>
 #  include <csignal>
 #  if defined(__unix__)
@@ -494,12 +499,14 @@ namespace {
     void (*f)(void*);
     void* argument;
     int pad;
+    unsigned int seen;     // (esp + 4) % 16 at the entry of f, as the trampoline saw it
   };
 
   // f(argument) entered with (esp + 4) modulo 16 equal to 0 (the ABI of Linux), 4, 8 or 12 (the
   // alignments on 4 bytes that Windows can give): the stack is aligned on 16, then
-  // moved down by pad bytes, and the argument and the return address take 8
-  void call_with_stack_entry(const stack_call& c)
+  // moved down by pad bytes, and the argument and the return address take 8. The
+  // trampoline writes the modulo it gave, esp before the call, into c.seen
+  void call_with_stack_entry(stack_call& c)
   {
     __asm__ __volatile__(
       "movl 8(%%edi), %%edx\n\t"
@@ -509,6 +516,9 @@ namespace {
       "andl $-16, %%esp\n\t"
       "subl %%edx, %%esp\n\t"
       "pushl %%ecx\n\t"
+      "movl %%esp, %%edx\n\t"
+      "andl $15, %%edx\n\t"
+      "movl %%edx, 12(%%edi)\n\t"
       "call *%%eax\n\t"
       "movl %%esi, %%esp\n\t"
       : : "D" (&c) : "eax", "ecx", "edx", "esi", "memory", "cc",
@@ -523,14 +533,14 @@ namespace {
   void on_stack_fault(int) { std::signal(SIGSEGV, on_stack_fault); std::longjmp(stack_env, 1); }
 #  endif
 
-  // Whether f(argument) returned, the stack aligned on 16 minus misalign bytes at its entry
-  bool returns_with_stack_entry(stack_work& w, int misalign)
+  // Whether f(argument) returned, entered with (esp + 4) % 16 equal to misalign, which seen says it was
+  bool returns_with_stack_entry(stack_work& w, int misalign, bool& entered_so)
   {
     const int pad = 12 - misalign; // (esp + 4) % 16 == misalign after the push of the argument and the call
-    const stack_call c = { work_on_local_intervals, &w, pad };
+    stack_call c = { work_on_local_intervals, &w, pad, 99u };
     volatile bool returned = false;
 #  if defined(__unix__)
-    struct sigaction action, old_segv, old_bus;
+    struct sigaction action = {}, old_segv, old_bus;
     sigemptyset(&action.sa_mask);
     action.sa_flags = 0;
     action.sa_handler = on_stack_fault;
@@ -550,6 +560,7 @@ namespace {
     }
     std::signal(SIGSEGV, old);
 #  endif
+    entered_so = c.seen == static_cast<unsigned int>(misalign);
     return returned;
   }
 }
@@ -739,13 +750,18 @@ public:
   // the bounds it gives when entered with the stack aligned on 16 (see GAOL_TESTS_STACK_ON_4_BYTES above)
   void test_stack_entered_aligned_on_4_bytes() {
 #if GAOL_TESTS_STACK_ON_4_BYTES
+    // The function that entered with the stack aligned as the ABI of Linux has it works: its bounds
+    // are far from 0, and are those the other entries have to give
     stack_work reference = { 1.5, 0.0, 0.0 };
-    TEST_TRUE(returns_with_stack_entry(reference, 0));
-    TEST_TRUE(reference.left <= reference.right);
+    bool entered_so = false;
+    TEST_TRUE(returns_with_stack_entry(reference, 0, entered_so));
+    TEST_TRUE(entered_so);
+    TEST_TRUE(reference.left > 8.0 && reference.left <= reference.right);
     std::string failed;
     for (int misalign = 4; misalign < 16; misalign += 4) {
       stack_work w = { 1.5, 0.0, 0.0 };
-      const bool returned = returns_with_stack_entry(w, misalign);
+      const bool returned = returns_with_stack_entry(w, misalign, entered_so);
+      TEST_TRUE(entered_so);
       if (!returned) {
         failed += (failed.empty() ? "" : ", ") + std::to_string(misalign);
       } else {
@@ -757,7 +773,7 @@ public:
     }
     TEST_TRUE(failed.empty());
 #else
-    std::printf("The functions of the system are entered with the stack aligned on 16 here (or not with GCC or Clang): nothing to check\n");
+    std::printf("The functions of the system are entered with the stack aligned on 16 here (or not with GCC for 32-bit Windows): nothing to check\n");
 #endif
   }
 
