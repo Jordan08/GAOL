@@ -65,7 +65,8 @@ only (see [The speed of a pull request](#the-speed-of-a-pull-request)). The badg
     the one with the rounding direction preserved gets it from the configuration:
     they take it where the runner has the
     instructions, which the step tells, with a warning where it has not. The
-    runners have none, so that five more jobs run the unit tests that compute
+    runners have them or not, according to the machine GitHub gives, so that
+    five more jobs run the unit tests that compute
     with intervals under Intel SDE, which emulates a processor with them
     (Visual Studio 2022 and 2026, Release and Debug, and clang-cl, with
     `GAOL_PRESERVE_ROUNDING` or `GAOL_PREFER_AVX512`);
@@ -87,7 +88,9 @@ only (see [The speed of a pull request](#the-speed-of-a-pull-request)). The badg
     mingw-w64 13 and later read it with a `fegetround()` that joins the two
     units and set it with a `fesetround()` that clears the exception flags,
     which GAOL does not call there; GAOL v5) and CLANG64 (Clang, and Clang
-    again with `GAOL_PRESERVE_ROUNDING`, which takes `-mfma` and the same path),
+    again with `GAOL_PRESERVE_ROUNDING`, which takes `-mfma` and the same path,
+    but the AVX-512 one where the runner has the instructions, GCC for Windows
+    never taking it),
     and CLANGARM64 on the arm64 runners (Clang, the NEON intervals, and Clang
     again with `GAOL_PRESERVE_ROUNDING`);
   - Cygwin, GCC for x86-64, Release (GAOL v5): `-mfma -mprefer-vector-width=128`

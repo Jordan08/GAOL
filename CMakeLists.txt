@@ -441,7 +441,7 @@ string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
 #    the rounding direction had changed, in spite of /fp:strict (in Codac,
 #    with Visual Studio 2022 and 2026).
 #  - GCC for Windows (MinGW-w64, MSYS2, Cygwin) for x86-64 and 32-bit x86: -mfma
-#    -mprefer-vector-width=128 (GAOL v5, point 110 of TODO.md). -mfma turns AVX
+#    -mprefer-vector-width=128 (GAOL v5, point AI.110 of TODO_DONE.md). -mfma turns AVX
 #    on, and GCC then vectorizes with the 256-bit registers (ymm), which it may
 #    spill to a stack it takes to be aligned on 32 bytes, where the Windows x64
 #    ABI aligns it on 16 (GCC bug 54412: an aligned vmovaps to such a slot

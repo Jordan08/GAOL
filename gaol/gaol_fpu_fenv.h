@@ -208,7 +208,7 @@ namespace gaol_core {
   being its bits 11 and 10 (0x0c00) and the one of MXCSR its bits 14 and 13
   (0x6000), and not the FE_* of <fenv.h>, which the C libraries give other
   values (0x0400 and 0x0800 with glibc, 0x0100 and 0x0200 with the C runtime
-  of Windows).
+  of Windows and with mingw-w64 13 and later).
   */
   GAOL_INLINE void gaol_read_x86_control(unsigned int& x87_cw, unsigned int& mxcsr)
   {

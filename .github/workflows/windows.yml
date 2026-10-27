@@ -7,7 +7,8 @@
 # (but Cygwin, which builds, checks the objects and runs the tests, and checks
 # that a build without FMA is refused); with Visual Studio 2026 x64 and x86
 # and /W4 /WX too (GAOL v5). The AVX-512 path of Visual C++ and clang-cl runs
-# under Intel SDE, the runners having no AVX-512 instructions.
+# under Intel SDE, the runners having AVX-512 instructions or not, according to
+# the machine GitHub gives.
 # Windows has French_France.1252, a locale writing a decimal comma: each job
 # that runs the tests but Cygwin's checks that numbers read and wrote numbers
 # under it (.github/scripts/comma-locale.sh) (GAOL v5). On arm64, the compiler
@@ -341,7 +342,7 @@ jobs:
       - name: Build
         run: cmake --build build -j 4
       # GAOL_FMA gives GCC for Windows on x64 and on x86 -mfma
-      # -mprefer-vector-width=128 (CMakeLists.txt, point 110 of TODO.md): the
+      # -mprefer-vector-width=128 (CMakeLists.txt, point AI.110 of TODO_DONE.md): the
       # objects of the Release builds hold fused multiply-add instructions,
       # which CORE-MATH and the integer powers need to be fast, and none on a
       # 256-bit register, which GCC would spill to a stack that Windows x64
@@ -401,7 +402,7 @@ jobs:
           # mingw-w64 13 and later read the direction with a fegetround() that
           # joins the x87 unit and MXCSR, and set it with a fesetround() that
           # clears the exception flags: GAOL reads and writes the registers
-          # itself there (GAOL_RND_MINGW64_X87, point 110 of TODO.md)
+          # itself there (GAOL_RND_MINGW64_X87, point AI.110 of TODO_DONE.md)
           - { msystem: UCRT64,  packages: ucrt-x86_64,  cc: gcc,   cxx: g++,     opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'MSYS2 UCRT64 GCC x64, rounding direction preserved' }
           # The same without the fused multiply-add instructions: __FMA__ is
           # not defined, and the operations that are not SSE2 ones (the
@@ -412,7 +413,13 @@ jobs:
           # Clang for Windows has taken -mfma since GAOL_FMA exists, so that
           # __FMA__ is defined there and the direction is kept through MXCSR
           # alone: the same configuration as the GCC entry above, with the same C
-          # runtime (the step that counts the instructions is GCC's)
+          # runtime (the step that counts the instructions is GCC's), but for the
+          # AVX-512 path: Clang takes it where the runner has the instructions
+          # (the step tells), GCC for Windows never does. Then +, -, *, /, sqr and
+          # sqrt of this job set no direction, and GAOL_RND_ENTER_SSE() is only
+          # covered by the GCC entry; the readers and writers of the registers
+          # (midpoint(), chi(), split(), the reading and the writing of an
+          # interval), which this job runs, are covered whatever the runner
           - { msystem: CLANG64, packages: clang-x86_64, cc: clang, cxx: clang++, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'MSYS2 CLANG64 Clang x64, rounding direction preserved' }
           # MSYS2 for arm64, on the arm64 runners: the Clang of MinGW-w64 takes the
           # NEON intervals as that of Linux and macOS does, FPCR being read and
@@ -438,7 +445,7 @@ jobs:
           case "${{ matrix.cfg.msystem }}" in CLANGARM64) expected=neon ;; *) expected=sse2 ;; esac
           sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h $expected
       # GAOL_FMA gives GCC for Windows -mfma -mprefer-vector-width=128
-      # (CMakeLists.txt, point 110 of TODO.md), as the job above checks (GAOL
+      # (CMakeLists.txt, point AI.110 of TODO_DONE.md), as the job above checks (GAOL
       # v5). Not Clang, which aligns its stack and gets -mfma alone
       - name: Fused multiply-add instructions, and no 256-bit register in the objects
         if: matrix.cfg.cc == 'gcc' && !contains(matrix.cfg.opts, 'GAOL_FMA=OFF')
