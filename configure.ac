@@ -210,7 +210,27 @@ LT_INIT([disable-shared pic-only])
 # examples/Makefile.am): the standard is not in CXXFLAGS, which comes after
 # the flags of each directory and would override theirs
 GAOL_CXX_STD="-std=c++11"
+# The standard library of Visual C++ needs C++14 (GAOL v5): Clang with its
+# driver for the target of Visual C++ (clang++ for x86_64-pc-windows-msvc or
+# i686-pc-windows-msvc, not clang-cl) simulates it (_MSC_VER), and -std=c++11
+# does not compile the headers of that library
+AC_LANG_PUSH([C++])
+AC_MSG_CHECKING([whether the C++ compiler simulates Visual C++, so that it needs C++14])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#ifndef _MSC_VER
+#error neither Visual C++ nor a compiler that simulates it
+#endif]], [[]])],[gaol_simulates_msvc=yes],[gaol_simulates_msvc=no])
+AC_MSG_RESULT(${gaol_simulates_msvc})
+AC_LANG_POP([C++])
+GAOL_MSVC_CPPFLAGS=""
+if test "${gaol_simulates_msvc}" = yes; then
+    GAOL_CXX_STD="-std=c++14"
+    # The lexer includes <unistd.h>, which Visual C++ has not
+    # (cmake/msvc/unistd.h), and the warnings of its C runtime that the other
+    # builds turn off
+    GAOL_MSVC_CPPFLAGS='-I$(top_srcdir)/cmake/msvc -D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_WARNINGS'
+fi
 AC_SUBST([GAOL_CXX_STD])
+AC_SUBST([GAOL_MSVC_CPPFLAGS])
 
 # GAOL_CHECK_CXX_FLAG(flag, variable): whether the C++ compiler accepts flag,
 # with -Werror, so that a flag it only warns about (Clang and
@@ -383,13 +403,7 @@ if test "${target_x86}" = yes; then
         # Clang with its driver for a target of Visual C++ simulates it (_MSC_VER):
         # no flag asks for the aligned memory of its STL, and its SSE2 intervals
         # need none (see CMakeLists.txt)
-        AC_LANG_PUSH([C++])
-        AC_MSG_CHECKING([whether the compiler simulates Visual C++])
-        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#ifndef _MSC_VER
-#error neither Visual C++ nor a compiler that simulates it
-#endif]], [[]])],[simulates_msvc=yes],[simulates_msvc=no])
-        AC_MSG_RESULT(${simulates_msvc})
-        AC_LANG_POP([C++])
+        simulates_msvc=${gaol_simulates_msvc}
         if test "${simulates_msvc}" != yes; then
             GAOL_CHECK_CXX_FLAG([-faligned-new=8], [has_aligned_new])
         fi

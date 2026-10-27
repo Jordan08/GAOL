@@ -280,7 +280,9 @@ EXEEXT = @EXEEXT@
 FGREP = @FGREP@
 FILECMD = @FILECMD@
 GAOL_CXX_STD = @GAOL_CXX_STD@
+GAOL_C_STD = @GAOL_C_STD@
 GAOL_EDITION = @GAOL_EDITION@
+GAOL_MSVC_CPPFLAGS = @GAOL_MSVC_CPPFLAGS@
 GAOL_PC_CFLAGS = @GAOL_PC_CFLAGS@
 GAOL_PC_LIBS = @GAOL_PC_LIBS@
 GAOL_TESTS_CXXFLAGS = @GAOL_TESTS_CXXFLAGS@
@@ -288,6 +290,7 @@ GAOL_UPDATED = @GAOL_UPDATED@
 GAOL_V5_EDITION = @GAOL_V5_EDITION@
 GAOL_V5_UPDATED = @GAOL_V5_UPDATED@
 GAOL_VERSION = @GAOL_VERSION@
+GCOVR = @GCOVR@
 GREP = @GREP@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
@@ -325,6 +328,7 @@ PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PDFLATEX = @PDFLATEX@
 PTHREAD_FLAGS = @PTHREAD_FLAGS@
+PYTHON3 = @PYTHON3@
 RANLIB = @RANLIB@
 SED = @SED@
 SET_MAKE = @SET_MAKE@
@@ -396,7 +400,7 @@ DISTCLEANFILES = *.~* *.obj TAGS
 # GAOL's own directories before those given in CPPFLAGS, which come first
 # otherwise: a prefix given there may hold an installed GAOL too, whose headers
 # were then included rather than those of the sources
-AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
+AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir) $(GAOL_MSVC_CPPFLAGS)
 # GAOL in C++11, as with CMake and meson (see configure.ac)
 AM_CXXFLAGS = $(GAOL_CXX_STD)
 libgaol_la_SOURCES = \

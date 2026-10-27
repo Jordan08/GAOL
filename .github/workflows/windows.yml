@@ -465,7 +465,7 @@ jobs:
   # __builtin_fma, which is the instruction at every level of optimization;
   # tests/core_math.cpp checks first the fma() and round() of its C library
   cygwin:
-    name: Cygwin GCC x64 Release
+    name: Cygwin GCC x64 Release and Debug
     runs-on: windows-2025
     timeout-minutes: 60
     defaults:
@@ -501,11 +501,12 @@ jobs:
         run: cmake --build build --target test
       # fma_once(): without optimization the objects of GAOL call no fma() of the
       # C library, which is the one of Cygwin, not correctly rounded, where
-      # std::fma is such a call (the library only: the tests are not built)
+      # std::fma is such a call. The tests are built and run too (GAOL v5): the
+      # Debug build of Cygwin was only compiled before
       - name: No call of the fma() of the library in a build without optimization
         run: |
-          cmake -S . -B build-debug -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_MAKE_PROGRAM=/usr/bin/make
-          cmake --build build-debug -j 4 --target gaol
+          cmake -S . -B build-debug -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DWITH_TESTS=ON -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_MAKE_PROGRAM=/usr/bin/make
+          cmake --build build-debug -j 4
           object=build-debug/CMakeFiles/gaol.dir/gaol/core/gaol_interval_core.cpp.o
           count=$(objdump -d --no-show-raw-insn "$object" | grep -c 'vfmadd' || true)
           echo "$count fused multiply-add instructions"
@@ -515,6 +516,8 @@ jobs:
             echo "gaol_interval_core.cpp.o calls the fma() of the C library"
             exit 1
           fi
+      - name: Tests (make test), Debug
+        run: cmake --build build-debug --target test
       # Without the fused multiply-add instructions Cygwin has the fma() of its
       # C library, which is wrong: the build has to be refused
       - name: Cygwin without GAOL_FMA is refused
@@ -530,6 +533,46 @@ jobs:
             echo "The build was refused, but not for that reason"
             exit 1
           }
+
+  # Clang with the target of Visual C++ and the driver of GCC (clang++, not
+  # clang-cl), from the LLVM of the runner, in the environment of Visual Studio
+  # (GAOL v5): the compiler of the programs that name the target
+  # x86_64-pc-windows-msvc or i686-pc-windows-msvc, with CMake here, and with
+  # meson in build-systems.yml
+  clang-msvc:
+    name: ${{ matrix.cfg.desc }}
+    runs-on: windows-2022
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    strategy:
+      fail-fast: false
+      matrix:
+        cfg:
+          - { arch: x64, target: x86_64-pc-windows-msvc, desc: 'Clang for Visual C++ x64 (clang++), Release' }
+          - { arch: x86, target: i686-pc-windows-msvc,   desc: 'Clang for Visual C++ x86 (clang++), Release' }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.cfg.arch }}
+      - name: Configure
+        run: |
+          clang++ --version
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER_TARGET=${{ matrix.cfg.target }} -DCMAKE_CXX_COMPILER_TARGET=${{ matrix.cfg.target }}
+          if ($LASTEXITCODE) { exit 1 }
+      - name: The intervals
+        shell: bash
+        run: sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h sse2
+      - name: Build
+        run: |
+          cmake --build build -j 4
+          if ($LASTEXITCODE) { exit 1 }
+      - name: Tests (make test)
+        run: |
+          cmake --build build --target test
+          if ($LASTEXITCODE) { exit 1 }
 
   # The mingw-w64 whose fma() or round() is wrong are refused when compiling
   # (gaol/gaol_config.h): CORE-MATH computes with that fma() where the build
@@ -579,7 +622,10 @@ jobs:
   # MSYS2 MINGW64 links msvcrt.dll rather than the UCRT: its mingw-w64, 12 or
   # later, still gives the programs the fma() and round() of mingw-w64's own
   # math library, which gaol/gaol_config.h refuses, with GCC and with Clang
-  # (_UCRT undefined). UCRT64, CLANG64 and CLANGARM64 are built and tested above.
+  # (_UCRT undefined). MINGW32 links it too: its fma() is refused where the
+  # build has no -mfma (GAOL_FMA OFF here; with it, the default, MINGW32 is
+  # built and tested in build-systems.yml). UCRT64, CLANG64 and CLANGARM64 are
+  # built and tested above.
   msys2-refused:
     name: ${{ matrix.cfg.desc }}
     runs-on: windows-2022
@@ -591,25 +637,27 @@ jobs:
       fail-fast: false
       matrix:
         cfg:
-          - { cc: gcc,   cxx: g++,     packages: '',                       desc: 'MSYS2 MINGW64 GCC x64, refused' }
-          - { cc: clang, cxx: clang++, packages: 'mingw-w64-x86_64-clang', desc: 'MSYS2 MINGW64 Clang x64, refused' }
+          - { msystem: MINGW64, pkg: mingw-w64-x86_64, cc: gcc,   cxx: g++,     packages: '',                       opts: '',               message: "or linked with msvcrt.dll rather than the UCRT, its fma() and round() are those of mingw-w64's own math library", desc: 'MSYS2 MINGW64 GCC x64, refused' }
+          - { msystem: MINGW64, pkg: mingw-w64-x86_64, cc: clang, cxx: clang++, packages: 'mingw-w64-x86_64-clang', opts: '',               message: "or linked with msvcrt.dll rather than the UCRT, its fma() and round() are those of mingw-w64's own math library", desc: 'MSYS2 MINGW64 Clang x64, refused' }
+          - { msystem: MINGW32, pkg: mingw-w64-i686,   cc: gcc,   cxx: g++,     packages: '',                       opts: '-DGAOL_FMA=OFF', message: "linked with msvcrt.dll rather than the UCRT, without the fused multiply-add instructions", desc: 'MSYS2 MINGW32 GCC x86 without FMA, refused' }
     steps:
       - uses: actions/checkout@v7
       - uses: msys2/setup-msys2@v2
         with:
-          msystem: MINGW64
+          msystem: ${{ matrix.cfg.msystem }}
           # What these jobs check is that GAOL refuses MINGW64, which the action calls deprecated
           suppress-deprecation-warnings: msystem-mingw64
-          install: mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja ${{ matrix.cfg.packages }}
+          install: ${{ matrix.cfg.pkg }}-toolchain ${{ matrix.cfg.pkg }}-cmake ${{ matrix.cfg.pkg }}-ninja ${{ matrix.cfg.packages }}
       - name: The version and the C runtime of mingw-w64, and a build that has to fail
         run: |
           ${{ matrix.cfg.cxx }} --version
           echo '#include <stdlib.h>' | ${{ matrix.cfg.cxx }} -dM -E -x c++ - | grep -E '__MINGW64_VERSION_(MAJOR|MINOR) |__MSVCRT_VERSION__ |define _UCRT( |$)'
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=${{ matrix.cfg.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }}
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=${{ matrix.cfg.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }} ${{ matrix.cfg.opts }}
           if cmake --build build > build.log 2>&1; then
             cat build.log
             echo "This MinGW-w64 was not refused"
             exit 1
           fi
           cat build.log
-          grep -F -q "or linked with msvcrt.dll rather than the UCRT, its fma() and round() are those of mingw-w64's own math library" build.log
+          grep -F -q "GAOL cannot be compiled with this mingw-w64" build.log
+          grep -F -q "${{ matrix.cfg.message }}" build.log

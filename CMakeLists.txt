@@ -60,6 +60,17 @@ endif()
 
 project(gaol VERSION ${_gaol_version} LANGUAGES C CXX)
 
+# The generator of Xcode builds the architectures of Xcode ($(ARCHS_STANDARD):
+# arm64 and x86_64) when CMAKE_OSX_ARCHITECTURES is not given, and the
+# configuration of GAOL below is that of one architecture, as with the other
+# generators, configure and meson: it gives Xcode the architecture of the
+# machine (GAOL v5). A list of architectures, which the user gives, is kept: the
+# build is universal then.
+if(CMAKE_GENERATOR STREQUAL "Xcode" AND NOT CMAKE_OSX_ARCHITECTURES AND CMAKE_HOST_SYSTEM_PROCESSOR)
+  set(CMAKE_OSX_ARCHITECTURES "${CMAKE_HOST_SYSTEM_PROCESSOR}")
+  message(STATUS "The generator of Xcode builds for the architecture of the machine, ${CMAKE_OSX_ARCHITECTURES}: CMAKE_OSX_ARCHITECTURES=\"arm64;x86_64\" asks for a universal build")
+endif()
+
 # A change of VERSION.txt configures again
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/VERSION.txt")
 
@@ -219,6 +230,15 @@ endif()
 # CORE-MATH, with the GNU extensions (CMake's default), which the inline
 # assembly of atan2 needs (see 3rd/README.md)
 set(CMAKE_CXX_STANDARD 11)
+# The standard library of Visual C++ needs C++14 (GAOL v5): Clang with the
+# driver of GCC for the target of Visual C++ (clang++ for x86_64-pc-windows-msvc
+# or i686-pc-windows-msvc) simulates it, and the -std=c++11 that CMake 3.14 gives
+# it does not compile the headers of that library (the more recent CMakes map 11
+# to 14 there already). clang-cl simulates it too, and gets /std:c++14, which is
+# its default
+if(CMAKE_CXX_SIMULATE_ID STREQUAL "MSVC")
+  set(CMAKE_CXX_STANDARD 14)
+endif()
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_C_STANDARD 99)
 
@@ -284,7 +304,9 @@ endif()
 # mingw-w64 computes them on the x87 unit, before version 11, as the
 # mingw-w64 9 of WinLibs (GCC 11), whose fma() rounds each of its partial sums
 # to a double (the one of mingw-w64 11, accepted, keeps them in extended
-# precision and passes the tests, though not correctly rounded). On ARM, as on
+# precision and passes the tests, though not correctly rounded), nor, without
+# -mfma, the one of mingw-w64 12 or later linked with msvcrt.dll (MSYS2
+# MINGW32). On ARM, as on
 # x86-64, before version 12 or linked with msvcrt.dll, the refusal not being
 # tested there (MSYS2 CLANGARM64, which links the UCRT, is built and tested).
 # From version 12 on, a toolchain linking the UCRT takes those of
@@ -1244,7 +1266,11 @@ if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
   target_compile_options(gaol_core_math PRIVATE /wd4068 /wd4201 /wd4245 /wd4189 /wd4098)
 endif()
 
-if(MSVC)
+# A static library with Visual C++ and the compilers that simulate it: they
+# declare GAOL's classes and functions without __declspec(dllexport), so that a
+# DLL would export nothing (gaol/gaol_config.h; meson builds the static library
+# alone then too)
+if(MSVC OR CMAKE_CXX_SIMULATE_ID STREQUAL "MSVC")
   add_library(gaol STATIC ${GAOL_SOURCES} $<TARGET_OBJECTS:gaol_core_math>)
 else()
   add_library(gaol ${GAOL_SOURCES} $<TARGET_OBJECTS:gaol_core_math>)
@@ -1356,7 +1382,10 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES AND NOT GAOL_DEBUG)
     target_compile_definitions(${target} PRIVATE NDEBUG)
   endforeach()
 endif()
-if(MSVC)
+# Clang with the driver of GCC for the target of Visual C++ simulates it
+# (CMAKE_CXX_SIMULATE_ID), and has the C runtime and the library of that target
+# (GAOL v5)
+if(MSVC OR CMAKE_CXX_SIMULATE_ID STREQUAL "MSVC")
   # The lexer includes <unistd.h>, which Visual C++ does not have
   target_include_directories(gaol PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/msvc")
   # Visual C++ only: clang-cl does not know the option, and warned of it for

@@ -95,6 +95,18 @@ c_comp = meson.get_compiler('c')
 # tested (see CMakeLists.txt)
 
 msvc = cpp_comp.get_argument_syntax() == 'msvc'
+# The standard library of Visual C++ needs C++14 (GAOL v5): Clang with the
+# driver of GCC for the target of Visual C++ (clang++ for x86_64-pc-windows-msvc
+# or i686-pc-windows-msvc, not clang-cl) simulates it (_MSC_VER), and the
+# -std=c++11 of cpp_std does not compile the headers of that library. The
+# libraries of GAOL are given cpp_std=c++14 (gaol_lib_options, below); the tests
+# and the examples ask for C++17 themselves (override_options)
+clang_msvc = not msvc and cpp_comp.compiles('''
+#ifndef _MSC_VER
+#error neither Visual C++ nor a compiler that simulates it
+#endif
+int main() { return 0; }
+''', name: 'the compiler simulates Visual C++ (_MSC_VER), so that it needs C++14')
 
 # Options
 simd = get_option('enable-simd')
@@ -171,6 +183,11 @@ elif meson.is_subproject() and meson.version().version_compare('<1.8.4') and not
   elif release
     gaol_build_options = ['b_ndebug=true']
   endif
+endif
+# The options of the libraries of GAOL, C++ ones too
+gaol_lib_options = gaol_build_options
+if clang_msvc
+  gaol_lib_options += ['cpp_std=c++14']
 endif
 # The mathematical library
 #
@@ -387,12 +404,7 @@ if target_x86
   if simd and target_x86_32 and os_win
     # Visual C++, clang-cl, and Clang with its driver for a target of Visual C++
     # (msvc is false for it): the macro tells, as it tells the STL
-    simulates_msvc = msvc or cpp_comp.compiles('''
-#ifndef _MSC_VER
-#error neither Visual C++ nor a compiler that simulates it
-#endif
-int main() { return 0; }
-''', name: 'the compiler simulates Visual C++ (_MSC_VER)')
+    simulates_msvc = msvc or clang_msvc
     if simulates_msvc
       message('SSE2 intervals on 32-bit Windows with Visual C++ and the compilers that simulate it (clang-cl...): the bounds are two doubles, loaded unaligned, and need no aligned memory')
     elif cpp_comp.has_argument('-faligned-new=8')

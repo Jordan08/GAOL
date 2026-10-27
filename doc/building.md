@@ -114,7 +114,7 @@ The standard options of each tool do the rest:
 | `BUILD_SHARED_LIBS` | `--enable-shared` | `-Ddefault_library=shared` | off | A static library `libgaol.a`; on, the shared library `libgaol.so.5.0.0` (soname `libgaol.so.5`). With configure the static library is built too unless `--disable-static` (as with `-Ddefault_library=both` of meson); always static with Visual C++ (GAOL v5: configure and meson built both by default) |
 | `CMAKE_BUILD_TYPE` | `--enable-debug` | `--buildtype=debug` | `Release` | `Debug` builds GAOL without optimization, with debugging information, and without `NDEBUG`, so that `assert()` stays active; the Release build is `-O3`, `NDEBUG` and `-funroll-loops -fomit-frame-pointer -fexpensive-optimizations`. With configure, `--enable-debug` brought into another project with `AC_CONFIG_SUBDIRS` is the `--enable-debug` of its configure, which passes on its options (and which that configure may read too), for the tests of GAOL as well. Brought in as a subproject by a project that leaves the build type to its default, GAOL is built in release (see [Using GAOL](using.md#from-pkg-config)) |
 | `CMAKE_POSITION_INDEPENDENT_CODE` | `--enable-pic` (`--disable-pic`; `--with-pic` too) | `-Db_staticpic=true` | on | Compile GAOL as position-independent code (`-fPIC`), which linking it into a shared library needs; a project building GAOL with FetchContent that sets it is followed (GAOL v5: configure compiled the static library without it) |
-| `CMAKE_OSX_ARCHITECTURES` | `-arch` several times in `CFLAGS`, `CXXFLAGS` and `LDFLAGS` | `-arch` several times in `-Dc_args`, `-Dcpp_args`, `-Dc_link_args` and `-Dcpp_link_args` | the machine's | A universal build of macOS, one configuration compiled for each architecture: SSE2 for x86_64 and NEON for arm64, where `GAOL_SIMD` allows them, and no fused multiply-add instructions nor AVX-512 path (GAOL v5: CMake only; configure and meson are not checked on a Mac of ours, only by the continuous integration) |
+| `CMAKE_OSX_ARCHITECTURES` | `-arch` several times in `CFLAGS`, `CXXFLAGS` and `LDFLAGS` | `-arch` several times in `-Dc_args`, `-Dcpp_args`, `-Dc_link_args` and `-Dcpp_link_args` | the machine's | A universal build of macOS, one configuration compiled for each architecture: SSE2 for x86_64 and NEON for arm64, where `GAOL_SIMD` allows them, and no fused multiply-add instructions nor AVX-512 path (GAOL v5: CMake only; configure and meson are not checked on a Mac of ours, only by the continuous integration). The generator of Xcode, which builds arm64 and x86_64 by itself when no list is given, is given the architecture of the machine, as the other generators build for it; the list `arm64;x86_64` asks for the universal build |
 | `CMAKE_INSTALL_PREFIX` | `--prefix` | `--prefix` | the system's | Where GAOL is installed |
 
 ### What the configuration decides
@@ -168,6 +168,13 @@ GAOL.
 - **The 128-bit integer** (was `GAOL_U128_EMULATION`): the type of the compiler
   where it has one, else two 64-bit halves (Visual C++, and GCC for a 32-bit
   target), which `gaol/gaol_u128.h` takes by itself and the configuration says.
+- **Clang with the target of Visual C++** (`clang++` for
+  `x86_64-pc-windows-msvc` or `i686-pc-windows-msvc`, with the driver of GCC,
+  not clang-cl; GAOL v5): it defines `_MSC_VER`, which the three builds read
+  (`CMAKE_CXX_SIMULATE_ID` of CMake) to compile GAOL in C++14, the standard
+  library of Visual C++ needing it, with the `unistd.h` of `cmake/msvc` for the
+  lexer and without the warnings of the C runtime, and to build the static
+  library alone, as with Visual C++ (a DLL would export nothing).
 - **The debugging** (was `GAOL_DEBUG`, `GAOL_DEBUGGING`): GAOL and CORE-MATH are
   built for debugging, without optimization nor `NDEBUG`, with debugging
   information and `GAOL_DEBUGGING`, for the Debug build type (`CMAKE_BUILD_TYPE`,

@@ -184,9 +184,10 @@ EXTRA_DIST = [
 # gaollib_static is the library that the tests and the benchmark link: the
 # static one, or the shared one where there is no other.
 gaol_default_library = get_option('default_library')
-if msvc
+if msvc or clang_msvc
   # The lexer includes <unistd.h>, which Visual C++ does not have
-  # (cmake/msvc/unistd.h), and the warnings CMake turns off too
+  # (cmake/msvc/unistd.h), and the warnings CMake turns off too; the same with
+  # Clang and the driver of GCC for its target (clang_msvc, in meson.build)
   gaol_msvc_args = ['-D_CRT_SECURE_NO_WARNINGS', '-D_CRT_NONSTDC_NO_WARNINGS']
   # Visual C++ only: clang-cl does not know the option, and warns of it
   if cpp_comp.get_id() == 'msvc'
@@ -202,7 +203,7 @@ if msvc
     include_directories: [incdir, include_directories('../cmake/msvc')],
     c_args: gaol_msvc_args,
     cpp_args: gaol_msvc_args,
-    override_options: gaol_build_options,
+    override_options: gaol_lib_options,
   )
   gaollib_static = gaollib
 elif gaol_default_library == 'static'
@@ -214,7 +215,7 @@ elif gaol_default_library == 'static'
     install: true,
     extra_files: EXTRA_DIST,
     include_directories: incdir,
-    override_options: gaol_build_options,
+    override_options: gaol_lib_options,
   )
   gaollib_static = gaollib
 elif gaol_default_library == 'shared'
@@ -228,7 +229,7 @@ elif gaol_default_library == 'shared'
     include_directories: incdir,
     version: meson.project_version(),
     soversion: major_version.to_string(),
-    override_options: gaol_build_options,
+    override_options: gaol_lib_options,
   )
   gaollib_static = gaollib
 else
@@ -242,7 +243,7 @@ else
     include_directories: incdir,
     version: meson.project_version(),
     soversion: major_version.to_string(),
-    override_options: gaol_build_options,
+    override_options: gaol_lib_options,
   )
   gaollib_static = gaollib.get_static_lib()
 endif

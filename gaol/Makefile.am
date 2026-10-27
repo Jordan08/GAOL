@@ -32,7 +32,7 @@ DISTCLEANFILES = *.~* *.obj TAGS
 # GAOL's own directories before those given in CPPFLAGS, which come first
 # otherwise: a prefix given there may hold an installed GAOL too, whose headers
 # were then included rather than those of the sources
-AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
+AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir) $(GAOL_MSVC_CPPFLAGS)
 # GAOL in C++11, as with CMake and meson (see configure.ac)
 AM_CXXFLAGS = $(GAOL_CXX_STD)
 
