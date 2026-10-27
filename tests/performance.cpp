@@ -193,6 +193,17 @@ int main()
     SY[i] = interval(sb[i], sb[i] + 1e-3*uniform(generator));
   }
 
+  // The operands of nth_root(x, 3), the cube root, and asinpi(x), drawn after all the others so that those of the rows above stay as
+  // they were (GAOL v5, point 108): asinpi() is defined on [-1, 1]. They are the rows that show a function of CORE-MATH
+  // reading the rounding direction at each call, through fegetround() of the C library on a 32-bit x86 processor
+  std::uniform_real_distribution<double> within_unit(-0.9, 0.9);
+  std::vector<double> u(n);
+  std::vector<interval> U(n);
+  for (std::size_t i = 0; i < n; ++i) {
+    u[i] = within_unit(generator);
+    U[i] = interval(u[i], u[i] + 1e-3*uniform(generator));
+  }
+
   struct Row
   {
     const char *operation;
@@ -231,6 +242,10 @@ int main()
                nanoseconds_per_operation([&](std::size_t i) { sink = std::sin(a[i]); }, n) },
     { "cos(x)", nanoseconds_per_operation([&](std::size_t i) { const interval z = cos(X[i]); sink = z.left(); sink = z.right(); }, n),
                nanoseconds_per_operation([&](std::size_t i) { sink = std::cos(a[i]); }, n) },
+    { "nth_root(x, 3)", nanoseconds_per_operation([&](std::size_t i) { const interval z = nth_root(X[i], 3); sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = std::cbrt(a[i]); }, n) },
+    { "asinpi(x)", nanoseconds_per_operation([&](std::size_t i) { const interval z = asinpi(U[i]); sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = std::asin(u[i]) / 3.14159265358979323846; }, n) },
     { "interval(a, b)", nanoseconds_per_operation([&](std::size_t i) { const interval z(a[i], c[i]); sink = z.left(); sink = z.right(); }, n),
                nanoseconds_per_operation([&](std::size_t i) { sink = a[i]; sink = c[i]; }, n) },
     { "floor(x)", nanoseconds_per_operation([&](std::size_t i) { const interval z = floor(X[i]); sink = z.left(); sink = z.right(); }, n),
