@@ -336,18 +336,21 @@ message(STATUS "GAOL_EXCEPTIONS_ENABLED=OFF and GAOL_VERBOSE_MODE=ON: as expecte
 # ---- The C compiler takes the flags too ----------------------------------------
 
 # CORE-MATH, in C, is compiled with the flags of the fused multiply-add
-# instructions: a C compiler that refuses -mfma, with a C++ compiler that takes
-# it, leaves them out (CMake checked the C++ compiler alone, where configure and
-# meson check both: point 95 of TODO.md). Where the default configuration takes a
-# flag, and a script of sh can be the C compiler
+# instructions: a C compiler that refuses the first of them (-mfma on x86,
+# -mfpu=neon-vfpv4 on 32-bit ARM), with a C++ compiler that takes them, leaves
+# them out (CMake checked the C++ compiler alone, where configure and meson
+# check both: point 95 of TODO.md). Where the default configuration takes flags,
+# and a script of sh can be the C compiler
 if(UNIX AND _default_fma_line MATCHES "flags: [^\n]")
+  string(REGEX REPLACE "^Fused multiply-add flags: ([^\n]*)\n$" "\\1" _fma_flags "${_default_fma_line}")
+  string(REGEX MATCH "^[^ ]+" _first_flag "${_fma_flags}")
   set(_c_compiler "${GAOL_C_COMPILER}")
-  set(_wrapper "${GAOL_WORK_DIR}/cc-without-mfma")
+  set(_wrapper "${GAOL_WORK_DIR}/cc-without-fma-flag")
   file(WRITE "${_wrapper}"
     "#!/bin/sh\n"
-    "# A C compiler that does not know -mfma\n"
+    "# A C compiler that does not know ${_first_flag}\n"
     "for argument in \"$@\"; do\n"
-    "  case \"$argument\" in -mfma*) echo \"cc: error: unrecognized command-line option '$argument'\" >&2; exit 1 ;; esac\n"
+    "  case \"$argument\" in ${_first_flag}*) echo \"cc: error: unrecognized command-line option '$argument'\" >&2; exit 1 ;; esac\n"
     "done\n"
     "exec ${_c_compiler} \"$@\"\n")
   execute_process(COMMAND chmod +x "${_wrapper}" RESULT_VARIABLE _chmod)
@@ -355,15 +358,15 @@ if(UNIX AND _default_fma_line MATCHES "flags: [^\n]")
     message(FATAL_ERROR "chmod +x ${_wrapper} failed (${_chmod})")
   endif()
   set(GAOL_C_COMPILER "${_wrapper}")
-  configure_ok("a C compiler that refuses -mfma" "${GAOL_WORK_DIR}/c-without-mfma")
+  configure_ok("a C compiler that refuses ${_first_flag}" "${GAOL_WORK_DIR}/c-without-fma-flag")
   set(GAOL_C_COMPILER "${_c_compiler}")
-  if(NOT output MATCHES "Fused multiply-add instructions left out: the C compiler does not take -mfma"
-     OR NOT output MATCHES "Fused multiply-add flags: \n")
-    message(FATAL_ERROR "the C compiler refuses -mfma, and the configuration takes the flags of the fused multiply-add instructions:\n${output}")
+  string(FIND "${output}" "Fused multiply-add instructions left out: the C compiler does not take ${_fma_flags}" _left_out)
+  if(_left_out EQUAL -1 OR NOT output MATCHES "Fused multiply-add flags: \n")
+    message(FATAL_ERROR "the C compiler refuses ${_first_flag}, and the configuration takes the flags of the fused multiply-add instructions:\n${output}")
   endif()
-  message(STATUS "A C compiler that refuses -mfma: as expected")
+  message(STATUS "A C compiler that refuses ${_first_flag}: as expected")
 else()
-  message(STATUS "A C compiler that refuses -mfma: not made, the default configuration takes no flag of the fused multiply-add instructions")
+  message(STATUS "A C compiler that refuses the flag of the fused multiply-add instructions: not made, the default configuration takes none")
 endif()
 
 # ---- A cross-compilation --------------------------------------------------------
