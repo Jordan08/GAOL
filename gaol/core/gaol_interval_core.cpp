@@ -1294,13 +1294,14 @@ namespace gaol_core {
     reverse functions give: pow keeps raising the exception for its infinite
     upper bound, as doc/using.md says of the infinite bounds.
     x^y can only overflow where it is above 1, for x > 1 and y > 0 or
-    x < 1 and y < 0, and it is the tiny power, 2^-1074 rounded upward, in the
-    other cases beyond t = 1100 below, where CORE-MATH squares y log(x) in its
-    first phase, which overflows from 2^512 on. The binary logarithm of x^y is
+    x < 1 and y < 0: CORE-MATH's pow goes its way in the other cases (before
+    upstream commit c01f08c5, 5 October 2026, it squared y log(x) in its first
+    phase, which overflowed from 2^512 on, for a power that is tiny).
+    The binary logarithm of x^y is
     bounded by |y| |log2(x)|, with |log2(x)| at most |e| + 1, e being the
     exponent of x as frexp() gives it: when that is below 1000, nothing
     overflows. From |y| >= 2^500 on, |y log2(x)| >= 2^447, and x^y is beyond
-    the doubles, +oo or 2^-1074. Otherwise
+    the doubles, +oo. Otherwise
     t = |y| |log(x)|/log(2) is computed from the logarithm of CORE-MATH,
     which is within a few units of 2^-52 of it relatively, so that
     x^y < 2^(1024 - 2^-30) is no overflow for t < 1024 - 10^-9, and x^y is
@@ -1315,6 +1316,9 @@ namespace gaol_core {
       return upward::nthroot_up(x, y);
     }
     const bool grows = (x > 1.0) == (y > 0.0);
+    if (!grows) {
+      return upward::nthroot_up(x, y);
+    }
     const double magnitude = std::fabs(y);
     // |e| from the exponent field of x: e = field - 1022 for a normal x, and
     // 1074 at most for a subnormal one
@@ -1326,16 +1330,10 @@ namespace gaol_core {
       return upward::nthroot_up(x, y);
     }
     if (magnitude >= two_power_500) {
-      return grows ? GAOL_INFINITY : std::numeric_limits<double>::denorm_min();
+      return GAOL_INFINITY;
     }
     // 1/log(2), rounded to nearest: the margins below are far larger than its error
     const double t = magnitude*std::fabs(upward::log_up(x))*1.4426950408889634;
-    if (!grows) {
-      // x^y < 1: nothing overflows but the square of y log(x) in the first
-      // phase of CORE-MATH, which is 2^1024 for |y log(x)| = 2^512 (Clang):
-      // the power is below 2^-1100 from t = 1100 on, and rounds upward to 2^-1074
-      return (t >= 1100.0) ? std::numeric_limits<double>::denorm_min() : upward::nthroot_up(x, y);
-    }
     if (t < 1023.999999999) {
       return upward::nthroot_up(x, y);
     }
@@ -1364,55 +1362,35 @@ namespace gaol_core {
   }
 
   /*
-    x^y rounded upward for x >= 0 and a finite y, the rounding direction
+    x^y rounded upward for x >= 0 and y finite or not, the rounding direction
     being upward: CORE-MATH's pow, which is correctly rounded in that
-    direction, but for an exponent of extreme magnitude, |y| < 2^-969 or
-    |y| >= 2^1014, and a finite x > 0 other than 1, whose power is computed
-    here (GAOL v5). For those, the first phase of CORE-MATH's pow makes its
-    approximation of log(x) a NaN on purpose (the exponent field of y below
-    0x36 or from 0x7f5 on), so that its rounding test fails, and compares the
-    NaN product with 2^-1022 with <, which raises the invalid-operation
-    exception: pow([1, 2], [1e-300]) and pow([1, 2], [1e300, 1e308]) raised
-    it, and killed a program that enabled it. The value is known there,
-    |log(x)| being between 2^-54 and 745 for a positive double x other than 1:
-    - |y| < 2^-969: 0 < |y log(x)| < 2^-959, and x^y is within 2^-958 of 1,
-      above 1 where y log(x) > 0: x^y rounded upward is the double above 1
-      there, and 1 otherwise;
-    - |y| >= 2^1014: |y log(x)| > 2^960, and x^y is above DBL_MAX where
-      y log(x) > 0, rounded upward to +oo, and below 2^-1074 otherwise,
-      rounded upward to 2^-1074.
-    These are the values CORE-MATH gives, and the double below each the lower
-    bound it gives (pow_rounded_dn()). 1^y and x^0 are 1; CORE-MATH takes 0
-    and +oo apart before its first phase.
+    direction, and for the template argument quiet without the overflow
+    exception where the power is above the largest double
+    (pow_up_without_overflow_exception()). The one power computed here is the
+    tiny one, x^y < 1 for a finite x > 0 other than 1 and |y| >= 2^1013:
+    |y log(x)| >= 2^960 there, and x^y rounded upward is 2^-1074. The
+    is_exact() of CORE-MATH's pow multiplies y by the exponent e of a power of
+    two x, a product that overflows from |y e| = 2^1024 on (|e| is at most
+    1074), which raises the overflow exception for this finite result (GAOL
+    v5, point 79 of TODO.md; pow(2^-1074, 1.5 2^1014) does).
+    Until upstream commit c01f08c5 (5 October 2026) CORE-MATH's pow raised two
+    more exceptions, and GAOL computed the powers of an exponent of extreme
+    magnitude itself: the invalid-operation exception for |y| < 2^-969 and for
+    |y| >= 2^1014, where it compared with < the NaN it makes of its first
+    approximation of log(x) (pow([1, 2], [1e-300]) killed a program that
+    enabled it), and the overflow exception from |y log(x)| = 2^512 on, where
+    it squared that product, for a tiny power.
   */
   template <bool quiet = false>
   static inline double pow_rounded_up(double x, double y)
   {
-    // 2^-969 and 2^1014, written in decimal with the digits that give them
-    // exactly: C++11 has no hexadecimal floating literal
-    const double magnitude = std::fabs(y);
-    // 2^450 too: from |y| = 2^450 on, a power below 1 is the tiny one, which
-    // CORE-MATH, squaring y log(x) in its first phase, raised the overflow
-    // exception to find, from |y log(x)| = 2^512 on (Clang), and the quiet
-    // powers do not need it either (GAOL v5, point 79 of TODO.md)
-    if (magnitude >= 2.0041683600089728e-292 && magnitude < (quiet ? 1.7555597020139804e+305 : 2.9073548971824276e+135)) {
-      return quiet ? pow_up_without_overflow_exception(x, y) : upward::nthroot_up(x, y);
+    // 2^1013, written in decimal with the digits that give it exactly: C++11
+    // has no hexadecimal floating literal
+    if (std::fabs(y) >= 8.777798510069902e+304 && x > 0.0 && x < GAOL_INFINITY && x != 1.0
+        && (x > 1.0) != (y > 0.0)) {
+      return std::numeric_limits<double>::denorm_min();
     }
-    if (!quiet && magnitude >= 2.9073548971824276e+135 && magnitude < 1.7555597020139804e+305) {
-      return (x > 0.0 && x < GAOL_INFINITY && x != 1.0 && (x > 1.0) != (y > 0.0))
-        ? std::numeric_limits<double>::denorm_min() : upward::nthroot_up(x, y);
-    }
-    if (x == 1.0 || y == 0.0) {
-      return 1.0;
-    }
-    if (x == 0.0 || x == GAOL_INFINITY) {
-      return upward::nthroot_up(x, y);
-    }
-    const bool above_one = (x > 1.0) == (y > 0.0);
-    if (magnitude < 1.0) {
-      return above_one ? 1.0 + std::numeric_limits<double>::epsilon() : 1.0;
-    }
-    return above_one ? GAOL_INFINITY : std::numeric_limits<double>::denorm_min();
+    return quiet ? pow_up_without_overflow_exception(x, y) : upward::nthroot_up(x, y);
   }
 
   template <bool quiet = false>
@@ -2981,10 +2959,9 @@ namespace gaol_core {
     and other than 0, which the bounds below are looked for from: CORE-MATH's
     pow with the exponent 1/y rounded, |log(c^(1/y))| 2^-53 away relatively,
     after a step of Newton's method on r^y = c, r - r (r^y - c)/(y r^y),
-    which brings it within about 2^-52/|y| relatively. pow_rounded_up() takes
-    the exponents of extreme magnitude apart, 1/y included (+oo for a
-    subnormal y), on which CORE-MATH's pow would raise the invalid-operation
-    exception. Rounding upward
+    which brings it within about 2^-52/|y| relatively. 1/y is +oo for a
+    subnormal y, which CORE-MATH's pow takes as it takes an infinite exponent.
+    Rounding upward
   */
   static double root_of_power_near(double c, double y)
   {

@@ -1469,9 +1469,10 @@ namespace
   /*
     pow for an exponent of extreme magnitude (GAOL v5, point D.24): CORE-MATH's
     pow makes its approximation of log(x) a NaN on purpose for |y| < 2^-969 and
-    |y| >= 2^1014, and compares the NaN product with <, which raised the
-    invalid-operation exception at the corners of these boxes. The bounds are
-    the tightest ones, known apart from any pow: for |y| < 2^-969 and a
+    |y| >= 2^1014, and compared the NaN product with < until upstream commit
+    c01f08c5 (5 October 2026), which raised the invalid-operation exception at
+    the corners of these boxes, and GAOL computed these powers itself. The
+    bounds are the tightest ones, known apart from any pow: for |y| < 2^-969 and a
     positive x other than 1, |y log(x)| < 745 2^-969 < 2^-959, and x^y is
     within 2^-958 of 1, above 1 where y log(x) > 0, so that its tightest
     enclosure is [1, 1 + 2^-52] there and [1 - 2^-53, 1] otherwise; for
@@ -2411,6 +2412,13 @@ namespace
       { "pow_exponent_rel([DBL_MAX], [2], [0, 2000])", [] { return pow_exponent_rel(make(largest, largest), make(2.0, 2.0), make(0.0, 2000.0)); },
         0x1.fffffffffffffp+9, 0x1p10, 0, false },
       { "atanh_rel([0, 1], [0])", [] { return atanh_rel(make(0.0, 1.0), make(0.0, 0.0)); }, 0.0, 0.0, 0, false },
+      // The is_exact() of CORE-MATH's pow multiplies y by the exponent of a power of two x, which overflows from
+      // |y e| = 2^1024 on, for a power that is tiny: [0, 2^-1074] (x = 2^-1074 and e = -1074, then e = -16 and -1000)
+      { "pow([2^-1074], [1.5 2^1014])", [] { return pow(make(smallest, smallest), make(0x1.8p+1014, 0x1.8p+1014)); },
+        0.0, smallest, 0, false },
+      { "pow([2^-16], 2^1020)", [] { return pow(make(0x1p-16, 0x1p-16), 0x1p+1020); }, 0.0, smallest, 0, false },
+      { "gaol_ieee1788::pow([2^-1000], [2^1013, 2^1020])",
+        [] { return gaol_ieee1788::pow(make(0x1p-1000, 0x1p-1000), make(0x1p+1013, 0x1p+1020)); }, 0.0, smallest, 0, false },
     };
     return cases;
   }
