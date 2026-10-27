@@ -86,8 +86,9 @@ only (see [The speed of a pull request](#the-speed-of-a-pull-request)). The badg
     mingw-w64 11 on the x87 unit);
   - MSYS2 UCRT64 (GCC, and GCC again with `GAOL_PRESERVE_ROUNDING`, with and
     without `GAOL_FMA`: with `-mfma`, `__FMA__` is defined, so that the rounding
-    direction goes through MXCSR alone, which only Linux and clang-cl ran, and
-    mingw-w64 13 and later read it with a `fegetround()` that joins the two
+    direction goes through MXCSR alone, which Linux, clang-cl and Visual C++
+    x64 with `/arch:AVX2` run, and mingw-w64 13 and later read it with a
+    `fegetround()` that joins the two
     units and set it with a `fesetround()` that clears the exception flags,
     which GAOL does not call there; GAOL v5) and CLANG64 (Clang, and Clang
     again with `GAOL_PRESERVE_ROUNDING`, which takes `-mfma` and the same path,

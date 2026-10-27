@@ -621,7 +621,7 @@ public:
   }
 
   // The builds that write MXCSR alone in GAOL_RND_ENTER() and GAOL_RND_LEAVE() with
-  // GAOL_PRESERVE_ROUNDING (GAOL v5, point AI.109 of TODO_DONE.md; see gaol/gaol_fpu.h): x86-64
+  // GAOL_PRESERVE_ROUNDING (GAOL v5, point 109 (AI) of TODO.md; see gaol/gaol_fpu.h): x86-64
   // with the SSE2 intervals and the fused multiply-add, which is __FMA__ for GCC, Clang and
   // clang-cl and /arch:AVX2 (__AVX2__) for Visual C++. Written again here so that a build
   // that loses them, and takes the macros that call fegetround() and fesetround() and write the

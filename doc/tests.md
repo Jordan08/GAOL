@@ -1489,9 +1489,11 @@ point Q), which `numbers` checks there too.
   `GAOL_PRESERVE_ROUNDING` whose operations write MXCSR alone
   (`GAOL_RND_MXCSR_ONLY` of `gaol/gaol_fpu.h`): x86-64 with the SSE2 intervals
   and the fused multiply-add instructions, `__FMA__` for GCC, Clang and
-  clang-cl and `/arch:AVX2` for Visual C++ (GAOL v5, point AI.109 of
-  TODO_DONE.md); any other has the macros that call `fegetround()` and
-  `fesetround()` and write the control word of the x87 unit too.
+  clang-cl and `/arch:AVX2` for Visual C++ (GAOL v5, point 109 (AI) of
+  TODO.md); any other build, on x86-64 (GCC or Clang without `-mfma`, Visual
+  C++ without `/arch:AVX2`) or elsewhere, has the macros of its own, which call
+  `fegetround()` and `fesetround()` or write the control register of the
+  processor.
   `check/fpu.cpp`, an empty test, and `check/essai.cpp`, which printed an
   interval, are gone, as is `check/performances.cpp`, the benchmark of GAOL 4,
   which `make perf` replaces (see

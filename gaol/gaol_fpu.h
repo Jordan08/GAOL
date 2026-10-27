@@ -306,8 +306,8 @@ direction when it is preserved.
 /*
 On x86-64 with SSE2 intervals and the fused multiply-add as an instruction
 (__FMA__, GAOL_FMA; with Visual C++, /arch:AVX2, which implies them and
-defines __AVX2__, and which GAOL_FMA gives it: GAOL v5, point AI.109 of
-TODO_DONE.md), GAOL_RND_ENTER() and GAOL_RND_LEAVE() are GAOL_RND_ENTER_SSE()
+defines __AVX2__, and which GAOL_FMA gives it: GAOL v5, point 109 (AI) of
+TODO.md), GAOL_RND_ENTER() and GAOL_RND_LEAVE() are GAOL_RND_ENTER_SSE()
 and GAOL_RND_LEAVE_SSE() with GAOL_PRESERVE_ROUNDING (GAOL v5, point ZZ of
 TODO.md): every double GAOL computes is an SSE one there, the elementary
 functions of CORE-MATH read the direction from MXCSR (gaol/core_math_port.h),
