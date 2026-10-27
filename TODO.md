@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `f625bbc` de `configure-clean`, le 27
+Ce qui reste à faire sur GAOL v5 au commit `8db1b6f` de `configure-clean`, le 27
 octobre 2026, en tâches PE à PJ (PA à PD sont faites, PE et PG sont entamées :
 voir `TODO_DONE.md`). Ce fichier et l'issue #179 ont le même contenu. Ce qui est
 fait et décidé est dans `TODO_DONE.md` (issue #177), ce qui est reporté dans
@@ -10,8 +10,8 @@ fait et décidé est dans `TODO_DONE.md` (issue #177), ce qui est reporté dans
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à fusionner, à envoyer à un autre projet ni à publier
-sans l'accord du mainteneur. Deux pull requests sont ouvertes : #202 (PE.4) et
-#203 (PE.6).
+sans l'accord du mainteneur. Deux pull requests sont ouvertes : #204 (le reste
+du 95) et #205 (PE.3).
 
 ## Comment lire ce fichier
 
@@ -41,7 +41,7 @@ sans l'accord du mainteneur. Deux pull requests sont ouvertes : #202 (PE.4) et
 
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
-| PE | Les trois builds, la CI, les vérifications qui manquent | 95 (reste), 3 (en cours), 4 et 6 (en PR), 5 | M |
+| PE | Les trois builds, la CI, les vérifications qui manquent | 95 (reste) et 5 (#204), 3 (#205) | M |
 | PF | x86 32 bits, Windows et le registre de contrôle | 108, 109 et trois | M |
 | PG | Les études de vitesse | 105, 116, 106 et six petits | M |
 | PH | Les signalements à d'autres projets | #125 à #138, #175 | accord |
@@ -65,13 +65,16 @@ CI.
    avec édition de liens dans les deux autres. Non vérifié sur une chaîne où le
    résultat changerait. Correction : `AC_LINK_IFELSE` et `links()` pour la sonde
    de la cible, un `check_c_source_compiles` des drapeaux de FMA avec CMake.
-   *Décidé le 26 octobre* : une pull request à part, partie de `configure-clean`
-   (#201 est fusionnée depuis le 26 octobre), avec la correction du commentaire
-   du bogue 54412 de GCC (point 5).
+   *Pull request #204 ouverte le 27 octobre* (`todo-pe-probes`, partie de
+   `configure-clean`), avec la correction du commentaire du bogue 54412 de GCC
+   (point 5) (*décidé le 26 octobre*) : sa CI est verte (205 jobs) ; le test de
+   la configuration a une étape de plus, avec un compilateur C qui refuse le
+   premier drapeau de FMA.
 2. **92 (AE)** : fait par #201 (fusionnée le 26 octobre) : voir `TODO_DONE.md`.
-3. **Les jobs qui manquent** (#152, #173, #174, #193, #194) [M] : *en cours*,
-   branche `todo-pe-mingw32`, sans pull request encore (relecture indépendante
-   en cours le 27 octobre). Tous les cas sont traités (*décidé le 26 octobre*) :
+3. **Les jobs qui manquent** (#152, #173, #174, #193, #194) [M] : *pull request
+   #205 ouverte le 27 octobre* (`todo-pe-mingw32`), relue par un agent
+   indépendant, sa CI est verte (221 jobs). Tous les cas sont traités (*décidé
+   le 26 octobre*) :
    MSYS2 MINGW32 avec autotools, meson et l'audit des trois builds, Cygwin avec
    autotools et meson et un Debug complet, Clang pour la cible de Visual C++
    avec le pilote de GCC (CMake x64 et x86, meson x64 et x86, autotools x64), le
@@ -80,27 +83,22 @@ CI.
    dans les tests compilés sans `-mfma` (`tests.sh` donne les Cflags du
    `gaol.pc`), le C++14 que demande la STL de Visual C++ et le `unistd.h` du
    lexeur pour Clang vers MSVC, l'architecture d'Xcode sans liste (CMake lui
-   donne celle de la machine). Reste : la relecture, la pull request, la CI
-   complète, et un job autotools pour Clang vers MSVC en x86 si l'on en veut un.
-4. **Les remarques des outils** (#160) [S] : *pull request #202 ouverte le 26
-   octobre* (`todo-pe-tool-remarks`) : les 34 remarques d'actionlint (dont un
-   faux positif, `suppress-deprecation-warnings`, que `.github/actionlint.yaml`
-   écarte) et les 101 de shellcheck sur les scripts sont traitées ; rien ne
-   reste après sa fusion.
+   donne celle de la machine). Reste : une décision du mainteneur (MSYS2
+   MINGW32 lie le `fma()` de msvcrt, que `gaol_config.h` refuse déjà en x86-64 ;
+   question ouverte de #205), et un job autotools pour Clang vers MSVC en x86 si
+   l'on en veut un.
+4. **Les remarques des outils** (#160) [S] : fait par #202 (fusionnée le 27
+   octobre) : voir `TODO_DONE.md`.
 5. **Les affirmations non vérifiées** (#163) [S] : *vérifiées le 26 octobre*. Le
    commentaire de `CMakeLists.txt` « fixed for GCC 17 only » est exact : le
    correctif du bogue 54412 est le commit `8aaa5f6e6207` (« function: honour
    over-alignment in assign_stack_local [PR54412] », 25 septembre 2026, sur la
    branche de développement de GCC, la 17, non publiée). Les paquets `mingw` de
    Chocolatey ont les bibliothèques mingw-w64 v10 (12.2.0), v11 (13.2.0), v12
-   (14.2.0) et v13 (15.2.0). Reste : citer ce commit dans le commentaire de
-   `CMakeLists.txt`, avec le 95 (*décidé le 26 octobre*).
-6. **Les relectures indépendantes qui manquent** [S] : *pull request #203
-   ouverte le 26 octobre* (`todo-pe-review-fixes`) : relecture des commits
-   `704ca0c`, `e80b6f0`, `1de1df0` et `15399b5` (aucun point bloquant, six
-   constats mineurs corrigés, deux mutants tués). Celle des corrections A à F de
-   #161 n'est pas refaite (#200 a supprimé le test et l'option ; le point A est
-   vérifié dans le code) (*décidé le 26 octobre*).
+   (14.2.0) et v13 (15.2.0). Le commentaire de `CMakeLists.txt` cite
+   ce commit dans la pull request #204, avec le 95 (*décidé le 26 octobre*).
+6. **Les relectures indépendantes qui manquent** [S] : fait par #203
+   (fusionnée le 27 octobre) : voir `TODO_DONE.md`.
 
 ## PF. x86 32 bits, Windows et le registre de contrôle [M]
 

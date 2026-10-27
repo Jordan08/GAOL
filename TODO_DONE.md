@@ -1,8 +1,8 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 27 octobre 2026
-(commit `f625bbc` de `configure-clean`, deux pull requests ouvertes : #202 et
-#203). Ce fichier et l'issue #177 ont le même contenu.
+(commit `8db1b6f` de `configure-clean`, deux pull requests ouvertes : #204 et
+#205). Ce fichier et l'issue #177 ont le même contenu.
 
 Il réunit l'historique de l'ancienne issue #49 (« Suivi du TODO de GAOL v5 »),
 ce qui est fait dans l'ancienne issue #142 (« Reste à faire sur GAOL v5 »), dans
@@ -51,20 +51,20 @@ par date ; 4. Les points faits, par lettre ; 5. Les anciens numéros faits ; 6.
 Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 `configure-clean` ; 8. Le ménage fait.
 
-## 1. L'état au 26 octobre 2026
+## 1. L'état au 27 octobre 2026
 
-- **`configure-clean`** est au commit `f625bbc` (fusion de #201). Les pull
+- **`configure-clean`** est au commit `8db1b6f` (fusion de #203). Les pull
   requests des corrections vont vers `configure-clean`, qui reste la branche de
   développement après v5.0.0 ; `MATH-CORE` et `master` (GAOL 4.3.2, plus deux
   commits de `.claude/CLAUDE.md`) ne bougent qu'à la version (point Y).
-- **Deux pull requests ouvertes** : #202 (PE.4, les remarques d'actionlint et de
-  shellcheck) et #203 (PE.6, la relecture des corrections de #163) ; la branche
-  `todo-pe-mingw32` (PE.3, les jobs qui manquent) attend sa relecture. Le
-  mainteneur a fusionné #165 à #167, #169 à #174, #176 et #180 à #184 les 23 et
-  24 octobre, et #186 à #194, #196 et #197 le 25 octobre, #199, #200 et #201 le
-  26 octobre ; #168 et #195 sont fermées sans fusion. Les tâches PA, PB, PC et
-  PD sont faites ; PG est entamée (la division du chemin AVX-512, le 106 a :
-  #191 à #194), et PE aussi (#200 pour le 95 en partie, #201 pour le 92).
+- **Deux pull requests ouvertes** : #204 (le reste du 95 et le commentaire du
+  bogue 54412 de GCC) et #205 (PE.3, les jobs qui manquent). Le mainteneur a
+  fusionné #165 à #167, #169 à #174, #176 et #180 à #184 les 23 et 24 octobre,
+  et #186 à #194, #196 et #197 le 25 octobre, #199, #200 et #201 le 26 octobre,
+  #202 et #203 le 27 ; #168 et #195 sont fermées sans fusion. Les tâches PA, PB,
+  PC et PD sont faites ; PG est entamée (la division du chemin AVX-512, le 106
+  a : #191 à #194), et PE aussi (#200 pour le 95 en partie, #201 pour le 92,
+  #202 pour le 4, #203 pour le 6).
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
   sur tout processeur ARM 64 bits avec tous les compilateurs (GCC, Clang,
   AppleClang, clang-cl, Visual C++, MinGW-w64, MSYS2), SSE2 sur tout processeur
@@ -86,7 +86,8 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   options restant des réglages des développeurs (`doc/building.md`).
 - **Branches** : GitHub a `configure-clean`, `MATH-CORE`, `master`,
   `perf-doc-rerun` (les scripts des mesures reportées, hors des points) et
-  `todo-ae-c-flags` (#201) ; les branches fusionnées sont supprimées en local.
+  celles des pull requests ouvertes (`todo-pe-probes`, `todo-pe-mingw32`) ; les
+  branches fusionnées sont supprimées en local.
 - **Aucune borne fausse n'est connue** : sur environ 1,3 million de puissances
   entières, 550 000 `pow` réels, 600 000 autres opérations et 760 lectures de
   nombres (relecture du 14 octobre, revérifiée le 18 octobre à `4eaf69a`), tout
@@ -1179,6 +1180,28 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   `doc/differences.md` et `ChangeLog` disent aussi ce que #200 a changé aux
   options ; 205 jobs verts sur le dernier commit ; fusionnée le 26 octobre à 21
   h 03 UTC)
+- #202 (hors des points numérotés ; le point 4 de la tâche PE, les remarques des
+  outils de #160 : les 34 remarques d'actionlint 1.7.12 sur les workflows, dont
+  un faux positif, `suppress-deprecation-warnings` de `msys2/setup-msys2`, que
+  `.github/actionlint.yaml` écarte avec sa raison, et les 101 de shellcheck 0.11
+  sur les scripts, 12 de `.github/scripts/` et 89 de `doc/compare/code/` ; aucun
+  comportement ne change : les listes de drapeaux que le shell doit découper
+  portent un `# shellcheck disable=` avec la raison, la boucle `for` remplace
+  `ls | grep` dans le contrôle des bibliothèques installées, et `.shellcheckrc`
+  lit un script avec ceux qu'il charge ; `doc/tools.md` dit comment lancer les
+  deux outils ; 185 jobs verts sur le dernier commit ; fusionnée le 27 octobre à
+  8 h 39 UTC)
+- #203 (hors des points numérotés ; le point 6 de la tâche PE, la relecture
+  indépendante des commits `704ca0c`, `e80b6f0`, `1de1df0` et `15399b5`, faite
+  par un sous-agent sans le contexte de la session : aucun point bloquant, six
+  constats mineurs corrigés : `rounding_direction.cpp` suit les bits de l'x87
+  autres que RC (`x87_other_bits()`) après `cleanup()` et `restore_rounding()`
+  et règle la direction avant de lever les indicateurs de MXCSR, deux phrases
+  que les journaux de la CI contredisaient, « la direction d'aucune »
+  (`gaol_fpu.h`, `doc/using.md`), les valeurs de `FE_*` de mingw-w64 13 et
+  plus, les onze « point 110 de `TODO.md` » devenus AI.110 ; deux mutants
+  tués sur une copie où le chemin de mingw-w64 est forcé sur Linux ; 205 jobs
+  verts sur le dernier commit ; fusionnée le 27 octobre à 8 h 41 UTC)
 
 ### 2.4 Fermées sans fusion
 
@@ -3461,7 +3484,16 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PE à PJ) et
   octobre à 21 h 03 UTC, ses 205 jobs verts sur le dernier commit ; la CI du
   commit de fusion, redondante, n'est pas attendue (§10) ; la branche supprimée
   sur GitHub à la fusion et en local le 27 octobre ; `TODO.md`, `TODO_DONE.md`
-  et `process.md` (§12) mis à jour pour elle
+  et `process.md` (§12) mis à jour pour elle. #202 (le point 4 de PE)
+  fusionnée par le mainteneur le 27 octobre à 8 h 39 UTC, ses 185 jobs verts
+  sur le dernier commit ; la CI du commit de fusion, redondante, n'est pas
+  attendue (§10) ; la branche supprimée sur GitHub à la fusion et en local le
+  27 octobre ; `TODO.md`, `TODO_DONE.md` et `process.md` (§12) mis à jour pour
+  elle. #203 (le point 6 de PE) fusionnée par le mainteneur le 27 octobre à 8
+  h 41 UTC, ses 205 jobs verts sur le dernier commit ; la CI du commit de
+  fusion, redondante, n'est pas attendue (§10) ; la branche supprimée sur
+  GitHub à la fusion et en local le 27 octobre ; mêmes registres mis à jour
+  pour elle, avec #202, dans le même commit
 
 ## 8. Le ménage fait
 
@@ -3516,12 +3548,12 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PE à PJ) et
   en local le 25 octobre ; celles de #196 (`todo-pd-texts`) et de #197
   (`todo-pd-pow-mutants`), sur GitHub à la fusion et en local le 25 octobre ;
   celle de #199 (`interval-sources-in-core`), sur GitHub à la fusion et en local
-  le 26 octobre ; celle de #201 (`todo-ae-c-flags`), sur GitHub à la fusion et
-  en local le 27 octobre ; celle de #200 (`automatic-configuration`), sur GitHub
-  à la fusion et en local le 26 octobre : sur GitHub, il ne reste que
+  le 26 octobre ; celles de #201 (`todo-ae-c-flags`), de #202
+  (`todo-pe-tool-remarks`) et de #203 (`todo-pe-review-fixes`), sur GitHub à la
+  fusion et en local le 27 octobre ; celle de #200 (`automatic-configuration`),
+  sur GitHub à la fusion et en local le 26 octobre : sur GitHub, il ne reste que
   `configure-clean`, `MATH-CORE`, `master`, `perf-doc-rerun` et les branches des
-  pull requests ouvertes (`todo-pe-tool-remarks`, `todo-pe-review-fixes`,
-  `todo-pe-mingw32`).
+  pull requests ouvertes (`todo-pe-probes`, `todo-pe-mingw32`).
 - [x] Lignes de crédit retirées des descriptions de #50, #51, #53 à #57 et #59,
   d'un commentaire de #59 et de cette issue. Il en reste dans les messages des
   commits a0d3871, 790ca12 et f1f4239 de #99, fusionnée sans squash. Retirées
