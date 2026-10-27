@@ -1823,7 +1823,7 @@ bounds.
   `pow([1], [1, +oo])`; `pow` did in every build, through CORE-MATH's `pow`,
   for an exponent of extreme magnitude (`pow([1, 2], [4.9e-324])`,
   `pow([1, 2], [1e-300])`, an exponent interval with a bound near `DBL_MAX`
-  such as `[1e300, 1e308]`), whose power GAOL now computes itself, and for a
+  such as `[1e300, 1e308]`), which CORE-MATH itself has since fixed, and for a
   power next to the largest double (`pow([2], [1023.9999])`,
   `pow([0x1.000003f82a1fp+0], 3000000001LL)`), where CORE-MATH multiplied its
   first approximation by 2^1024, an infinity, and computed Inf - Inf (changed
