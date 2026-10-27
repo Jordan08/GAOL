@@ -247,7 +247,11 @@ point Q), which `numbers` checks there too.
   operands for each mode); `gaol_core::x86_registers`, the type through which
   the library reads and writes the two registers, has to read the words the
   test reads and write the words it is given, and nothing else, in each of
-  these states (GAOL v5, point AI.108 of TODO_DONE.md). `cbrt`, `pow` and
+  these states and with four sets of the other bits of the registers (the
+  precision and the exception masks of the control word, the exception masks
+  and flags of MXCSR, an exception unmasked in each), so that a read that
+  drops the flags or a write that forces the masks is seen (GAOL v5, point
+  AI.108 of TODO_DONE.md). `cbrt`, `pow` and
   `atan2` have to leave the exception masks of the SSE control register as they
   found them, and an empty interval to be told empty after them: the
   `fesetexceptflag()` of mingw-w64 for 32-bit Windows unmasked the exceptions,

@@ -49,7 +49,15 @@ them with those of `<xmmintrin.h>`.
 What only the processor runs, `x86_registers` and `gaol_read_x86_control()`
 of `gaol/gaol_fpu_fenv.h`, is checked by `x86_registers_on_the_processor()`
 of the same test, on a 32-bit x86 processor (an i386 image of Docker runs it on
-an x86-64 machine, as does the continuous integration with Debian i386).
+an x86-64 machine, as does the continuous integration with Debian i386), in the
+six directions, with each mode that flushes the subnormals and with four sets
+of the other bits (the precision and the exception masks of the control word,
+the masks and the flags of MXCSR, with one exception unmasked in each, whose
+flags the test clears first). Mutations made by hand, and killed by it: a read
+of the wrong register, a control word truncated to 8 bits, a write of the
+control word with the wrong field RC or without the precision or with the
+masks forced, a write of MXCSR that clears the field RC or the flags or forces
+the masks, a read that drops the flags or the masks.
 
 ## The amalgamation
 
