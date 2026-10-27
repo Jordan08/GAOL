@@ -67,10 +67,13 @@ differing too.
 */
 
 #ifndef GAOL_FPU_FENV_H
+// This file uses macros that gaol/gaol_fpu.h defines before it includes this file
+// (GAOL_RND_SSE_REGISTER, GAOL_RND_FLUSH_BITS, GAOL_RND_NOINLINE): included first, it has
+// gaol_fpu.h included, which includes it back (GAOL v5)
+#ifndef GAOL_FPU_H
+#  include "gaol/gaol_fpu.h"
+#else
 #define GAOL_FPU_FENV_H
-
-// Included by gaol/gaol_fpu.h, after the macros that it defines and that this file uses
-// (GAOL_RND_SSE_REGISTER, GAOL_RND_FLUSH_BITS, GAOL_RND_NOINLINE): not on its own (GAOL v5)
 
 #include "gaol/gaol_port.h"
 #include <fenv.h>
@@ -472,4 +475,5 @@ namespace gaol_core {
 
 } // namespace gaol_core
 
+#endif /* GAOL_FPU_H */
 #endif /* GAOL_FPU_FENV_H */
