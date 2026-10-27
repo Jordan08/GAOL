@@ -1493,7 +1493,7 @@ point Q), which `numbers` checks there too.
   `cos`), entered through a trampoline in assembly with the stack at each of
   the four alignments of 4 bytes (the trampoline says which it gave, and the
   test checks it), has to return, and give the bounds it gives with the stack
-  aligned on 16, far from 0 (GAOL v5, point AI.106 of TODO_DONE.md). A signal
+  aligned on 16, far from 0 (GAOL v5, point 106 (AI) of TODO.md). A signal
   handler turns the stop of the program into a failure. The ABI of Linux and
   macOS has the stack aligned on 16 at every call, Visual C++ aligns it by
   itself, and so does Clang for the targets of Windows: elsewhere the test only

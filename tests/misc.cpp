@@ -442,7 +442,7 @@ kernels_of_the_program::result sqr_bounds(kernels_of_the_program::registers);
 #endif
 
 /*
-  32-bit Windows with GCC (GAOL v5, point AI.106 of TODO_DONE.md): the system
+  32-bit Windows with GCC (GAOL v5, point 106 (AI) of TODO.md): the system
   calls its threads and its callbacks with the stack aligned on 4 bytes, where
   GCC takes a function to be entered with it aligned on 16 and puts the
   intervals it keeps in locals at addresses that movaps needs aligned (bug
