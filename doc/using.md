@@ -1550,8 +1550,14 @@ back at its end what it found, in the register that differs from what the
 operation left: a program that computes upward already, with the flush modes
 clear, pays no write. The SSE2 operations (`+`, `-`, `*`, `/`, `sqr()`...),
 which use no x87 instruction, keep MXCSR alone with `GAOL_PRESERVE_ROUNDING` and
-leave the x87 unit as it is. `round_upward()`, `round_nearest()` and
-`round_downward()` still write both registers, and `gaol::cleanup()` and
+leave the x87 unit as it is, and write it only if it is not upward with the
+flush modes clear, and give back what they found only if it was not (GAOL v5):
+a program that computes upward already pays no write there either, `x + y`
+taking 1.7 ns rather than 8.2 and `x * y` 2.5 rather than 8.3 (GCC 15.2, an
+i7-1185G7, the best of 15 runs of a loop; a program to nearest pays 0.2 ns
+more, 8.4 for `x + y`). `round_upward()`, `round_nearest()` and
+`round_downward()` write the register whose direction is not the one they set
+(both, as `fesetround()` does, when neither is), and `gaol::cleanup()` and
 `gaol::restore_rounding()` set back the direction that `gaol::init()` found in
 each unit. The values are those of the hardware (0x0800 for upward in the
 control word, 0x4000 in MXCSR), not the `FE_*` constants of `<fenv.h>`, which
