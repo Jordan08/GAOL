@@ -380,7 +380,17 @@ comparison rather than by reading:
   passed its tests in CMake with GCC 15.2 (SSE2, FPU and the halves forced,
   `-Wall -Wextra -Werror`, and Debug with ASan and UBSan), with Clang 18 and
   21, with autotools and meson, on Debian i386 (GCC 14.2, the type native and
-  the halves forced), and cross-built for aarch64 (GCC 12.2, under qemu);
+  the halves forced), and cross-built for aarch64 (GCC 12.2, under qemu).
+  `tests/core_math.cpp` checks 45 arguments that take the accurate path of
+  `cos.c` in the upward rounding against the roundings computed with mpmath at
+  4,000 bits, which the upstream file gives too, in the four directions: they
+  reach the branches of `cos_large_accurate()` and every range of exponents of
+  the table of 1/(2π). It reports a fault in 15 of 17 changes made one at a
+  time to the lines of `cos.c` that carry `/* GAOL */`, with the native type
+  and with the halves forced, the halves of the tables swapped included. The
+  other two change no result: `k` is read through its bits 0 to 12 only, and
+  a remainder off by 2<sup>-128</sup> (the `+ 1` of `mask + 1` dropped) gave
+  the upstream file's bits over 2.4 billion calls;
 - **against the native type.** `tests/u128.cpp` compares every operation of the
   two halves with the same operation on `unsigned __int128` and `__int128`, over
   8 million values and every shift count, and the whole of GAOL is built and
