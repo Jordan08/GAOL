@@ -304,7 +304,9 @@ endif()
 # mingw-w64 computes them on the x87 unit, before version 11, as the
 # mingw-w64 9 of WinLibs (GCC 11), whose fma() rounds each of its partial sums
 # to a double (the one of mingw-w64 11, accepted, keeps them in extended
-# precision and passes the tests, though not correctly rounded). On ARM, as on
+# precision and passes the tests, though not correctly rounded), nor, without
+# -mfma, the one of mingw-w64 12 or later linked with msvcrt.dll (MSYS2
+# MINGW32). On ARM, as on
 # x86-64, before version 12 or linked with msvcrt.dll, the refusal not being
 # tested there (MSYS2 CLANGARM64, which links the UCRT, is built and tested).
 # From version 12 on, a toolchain linking the UCRT takes those of

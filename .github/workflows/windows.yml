@@ -622,7 +622,10 @@ jobs:
   # MSYS2 MINGW64 links msvcrt.dll rather than the UCRT: its mingw-w64, 12 or
   # later, still gives the programs the fma() and round() of mingw-w64's own
   # math library, which gaol/gaol_config.h refuses, with GCC and with Clang
-  # (_UCRT undefined). UCRT64, CLANG64 and CLANGARM64 are built and tested above.
+  # (_UCRT undefined). MINGW32 links it too: its fma() is refused where the
+  # build has no -mfma (GAOL_FMA OFF here; with it, the default, MINGW32 is
+  # built and tested in build-systems.yml). UCRT64, CLANG64 and CLANGARM64 are
+  # built and tested above.
   msys2-refused:
     name: ${{ matrix.cfg.desc }}
     runs-on: windows-2022
@@ -634,25 +637,27 @@ jobs:
       fail-fast: false
       matrix:
         cfg:
-          - { cc: gcc,   cxx: g++,     packages: '',                       desc: 'MSYS2 MINGW64 GCC x64, refused' }
-          - { cc: clang, cxx: clang++, packages: 'mingw-w64-x86_64-clang', desc: 'MSYS2 MINGW64 Clang x64, refused' }
+          - { msystem: MINGW64, pkg: mingw-w64-x86_64, cc: gcc,   cxx: g++,     packages: '',                       opts: '',               message: "or linked with msvcrt.dll rather than the UCRT, its fma() and round() are those of mingw-w64's own math library", desc: 'MSYS2 MINGW64 GCC x64, refused' }
+          - { msystem: MINGW64, pkg: mingw-w64-x86_64, cc: clang, cxx: clang++, packages: 'mingw-w64-x86_64-clang', opts: '',               message: "or linked with msvcrt.dll rather than the UCRT, its fma() and round() are those of mingw-w64's own math library", desc: 'MSYS2 MINGW64 Clang x64, refused' }
+          - { msystem: MINGW32, pkg: mingw-w64-i686,   cc: gcc,   cxx: g++,     packages: '',                       opts: '-DGAOL_FMA=OFF', message: "linked with msvcrt.dll rather than the UCRT, without the fused multiply-add instructions", desc: 'MSYS2 MINGW32 GCC x86 without FMA, refused' }
     steps:
       - uses: actions/checkout@v7
       - uses: msys2/setup-msys2@v2
         with:
-          msystem: MINGW64
+          msystem: ${{ matrix.cfg.msystem }}
           # What these jobs check is that GAOL refuses MINGW64, which the action calls deprecated
           suppress-deprecation-warnings: msystem-mingw64
-          install: mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja ${{ matrix.cfg.packages }}
+          install: ${{ matrix.cfg.pkg }}-toolchain ${{ matrix.cfg.pkg }}-cmake ${{ matrix.cfg.pkg }}-ninja ${{ matrix.cfg.packages }}
       - name: The version and the C runtime of mingw-w64, and a build that has to fail
         run: |
           ${{ matrix.cfg.cxx }} --version
           echo '#include <stdlib.h>' | ${{ matrix.cfg.cxx }} -dM -E -x c++ - | grep -E '__MINGW64_VERSION_(MAJOR|MINOR) |__MSVCRT_VERSION__ |define _UCRT( |$)'
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=${{ matrix.cfg.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }}
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=${{ matrix.cfg.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }} ${{ matrix.cfg.opts }}
           if cmake --build build > build.log 2>&1; then
             cat build.log
             echo "This MinGW-w64 was not refused"
             exit 1
           fi
           cat build.log
-          grep -F -q "or linked with msvcrt.dll rather than the UCRT, its fma() and round() are those of mingw-w64's own math library" build.log
+          grep -F -q "GAOL cannot be compiled with this mingw-w64" build.log
+          grep -F -q "${{ matrix.cfg.message }}" build.log
