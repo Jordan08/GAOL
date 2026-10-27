@@ -102,6 +102,7 @@ In [tests/tools/](../tests/tools/), with a `README.md` in each directory.
 | [pow/checkrows.py](../tests/tools/pow/checkrows.py) | Checks the bounds of `pow` in a file of such lines against the exact power (mpmath, 500 bits). |
 | [pow/mutate.py](../tests/tools/pow/mutate.py) | Mutation testing of `pow`: puts one deliberate error in the code, and the tests have to fail. |
 | [pow/pown_bound.py](../tests/tools/pow/pown_bound.py) | Checks, with rationals, the bound K of the error of the integer powers of `pown_products()`. |
+| [asm-order/check_order.py](../tests/tools/asm-order/check_order.py) | Reads the assembly of the library (x86-64, GCC and Clang) for an instruction that rounds on the wrong side of a write of the control register (GCC bug 34678). |
 
 ## Comparisons with other libraries
 
