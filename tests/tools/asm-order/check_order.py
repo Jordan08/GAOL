@@ -40,7 +40,8 @@
 #   the function runs without a write, because the probe found the direction
 #   upward, are not these: only those with a write after them. Where the
 #   writes are conditional (the code after one is reached without it), the
-#   jump that goes around the write is where the check is made, like the jump
+#   jump that goes around the write, after a read of the register (stmxcsr,
+#   fnstcw, a call of fegetround()), is where the check is made, like the jump
 #   of the probe: the instructions before it are the ones that precede the
 #   check, and past it the register holds what the write would have put there. A conversion
 #   of a 32-bit integer to a double is not one either: it is exact. The edges
@@ -107,6 +108,9 @@ INT32_TO_DOUBLE = re.compile(r'^v?cvtu?si2sd[lq]?$')
 VECTOR_REGISTER = re.compile(r'%[xyz]mm\d+')
 
 PROBE_SYMBOL = re.compile(r'(subnormal|tiny)', re.I)
+# The instructions and the calls that read the control register, which a jump around a write follows
+READ_REGISTER = re.compile(r'^(v?stmxcsr|fnstcw|fstcw|fnstenv|v?fxsave(64)?)$')
+READ_CALLS = re.compile(r'(fegetround|fegetenv|get_rounding|get_flush_modes)')
 
 # The findings that are right and harmless, read on the code of 2026-10-27: kind, a regular expression for the name
 # of the function (demangled), and why. A finding of the list is printed as "known" and does not make the check
@@ -411,10 +415,14 @@ def check_function(asm, entry, pads, preserve):
     # BEFORE, on the graph without the edges that return to a loop: reached from the entry without a write
     # before it, and from which a write can be reached. A write is conditional when the code after it can
     # be reached from the entry without it (the start and the end of an operation write only if the
-    # register has to change). The jump that goes around the write is then where the check is made, as
-    # the jump of the probe is: past it the register holds what the write would have put there, and the
-    # edge of that jump is left out; the instructions before the jump are the ones that precede the check
+    # register has to change). The jump that goes around the write, after a read of the register, is then
+    # where the check is made, as the jump of the probe is: past it the register holds what the write
+    # would have put there, and the edge of that jump is left out; the instructions before the jump are
+    # the ones that precede the check. A jump that no read precedes checks nothing
     probes, branches = probe_nodes(asm, nodes)
+    reads = {i for i in nodes if READ_REGISTER.match(asm.insns[i].mnemonic)
+             or (asm.insns[i].mnemonic in ('call', 'callq') and READ_CALLS.search(asm.insns[i].operands))}
+    before_read = closure([entry], dag, reads) - reads
     around_edges = set()
     for w in writes:
         around = closure([entry], dag, {w})
@@ -424,7 +432,7 @@ def check_function(asm, entry, pads, preserve):
             continue
         to_write = closure([w], reverse['dag'])
         to_merge = closure(merge, reverse['dag'])
-        for p in around:
+        for p in around - before_read:
             around_edges.update((p, j) for j in dag[p] if j not in to_write and j in to_merge)
     free_edges = {i: [j for j in js if (i, j) not in around_edges] for i, js in dag.items()}
     free_dag = closure([entry], free_edges, wset | branches)
@@ -1121,6 +1129,7 @@ f:
     'a conditional write, and a path to another write': ('''
 	.type	f, @function
 f:
+	stmxcsr	4(%rsp)
 	testl	%edi, %edi
 	je	.L2
 	testl	%esi, %esi
@@ -1133,6 +1142,43 @@ f:
 	ldmxcsr	4(%rsp)
 	ret
 ''', 'BEFORE', True),
+    'a jump around the write that no read precedes': ('''
+	.type	f, @function
+f:
+	testl	%edi, %edi
+	je	.LJ
+	stmxcsr	4(%rsp)
+	movl	4(%rsp), %eax
+	cmpl	$0x4000, %eax
+	je	.LJ
+	ldmxcsr	(%rsp)
+.LJ:
+	mulsd	%xmm1, %xmm0
+	movl	%eax, %edx
+	testl	%edx, %edx
+	je	.L3
+	stmxcsr	8(%rsp)
+	ldmxcsr	12(%rsp)
+.L3:
+	ret
+''', 'BEFORE', True),
+    'a jump around the write after a read of fegetround()': ('''
+	.type	f, @function
+f:
+	call	fegetround@PLT
+	testl	%eax, %eax
+	je	.LJ
+	movl	$0x800, %edi
+	call	fesetround@PLT
+.LJ:
+	mulsd	%xmm1, %xmm0
+	movl	%eax, %edx
+	testl	%edx, %edx
+	je	.L3
+	call	fesetround@PLT
+.L3:
+	ret
+''', None, True),
     'a tail call to another function is no arc': ('''
 	.type	f, @function
 f:

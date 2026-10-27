@@ -50,9 +50,11 @@ write it), on the paths of its control flow graph, the jump tables of the
   direction; a sum of the program placed among them is not one. Past that jump
   the direction is known. The same goes for any conditional write (the code
   after it is reached without it: a write made only if the register has to
-  change): the jump that goes around it is where the check is made, the
-  instructions before that jump are checked, and past it the register holds
-  what the write would have put there. A conversion of a 32-bit integer to a
+  change): the jump that goes around it, after a read of the register
+  (`stmxcsr`, `fnstcw`, a call of `fegetround()`), is where the check is made,
+  the instructions before that jump are checked, and past it the register
+  holds what the write would have put there; a jump that no read precedes
+  checks nothing. A conversion of a 32-bit integer to a
   double is exact.
 - **AFTER** (with `--preserve`): an instruction that rounds after the write
   that sets the direction back, that no other write follows and that the entry
@@ -124,10 +126,10 @@ builds of this run.
 With `GAOL_RND_KEEP()` removed from `width()`, GCC 15 still kept the subtraction
 before the write that sets the direction back, at `-O1` to `-O3`, and Clang 21
 at `-O1` and `-O3`: `inline.cpp` is what reads `width()` in a build. The check
-has teeth on assembly written for it (`--selftest`, 52 cases: a sum before a
+has teeth on assembly written for it (`--selftest`, 54 cases: a sum before a
 write, after the write that sets back, hoisted above the probe, among the
 instructions of the probe, in a loop, behind a jump table of GCC and of Clang,
-in a cold section, after a tail call...), and 53 of the 59 changes made to the
+in a cold section, after a tail call...), and 57 of the 63 changes made to the
 script, one at a time, make it fail; the six that do not are equivalent (the
 `.cfi_endproc` that `.type` follows, the comments after an instruction, the
 write that a closure need not stop at...).
