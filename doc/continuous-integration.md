@@ -272,11 +272,13 @@ job:
    the commit of the base, `--before-cache` of `performance-ab.sh`), so that
    the next push of the same pull request builds only the pull request (GAOL
    v5). What is kept is the programs, not the times, which are measured in
-   turn in every run; the image of the runner and the model of the processor
-   are in the key so that the two builds come from the same tools and the same
-   choices (the AVX-512 path and the fused multiply-add instructions are taken
-   where the machine building runs them, and a program built on a runner with
-   AVX-512 stops on one that has none); a key has no comma, which the names of
+   turn in every run; the image of the runner, the model of the processor and
+   whether it has the AVX-512 instructions (processors of one model do not all
+   have them) are in the key so that the two builds come from the same tools
+   and the same choices (the AVX-512 path and the fused multiply-add
+   instructions are taken where the machine building runs them, and a program
+   built on a runner with AVX-512 stops on one that has none); a key has no
+   comma, which the names of
    the jobs have, so they are written with underscores in it;
 3. runs `gaol_performance` three times with each build, the base first in the
    first and third runs and the pull request first in the second
