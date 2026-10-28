@@ -1533,10 +1533,12 @@ A 32-bit x86 processor has two units that round, each with a direction of its
 own: the x87 unit, in the field RC of its control word (bits 11 and 10), and the
 SSE instructions, which compute GAOL's doubles, in the field RC of MXCSR (bits
 14 and 13), where the modes that flush the subnormals to zero are too (FTZ, bit
-15, and DAZ, bit 6). Both have to be upward: the elementary functions of
-CORE-MATH read the direction with `fegetround()`, which gives the one of the x87
-unit with glibc and `-1` with the C runtime of Windows when the two differ, and
-the addition that shows the direction elsewhere sees the SSE instructions only.
+15, and DAZ, bit 6). Both have to be upward: the square root and the `fma()`
+of a C library, and a `long double`, follow the direction of the x87 unit (the
+elementary functions of CORE-MATH read MXCSR, as on x86-64, after having read
+the one of the x87 unit with `fegetround()`: the one of glibc, and `-1` with the
+C runtime of Windows when the two differ), and the addition that shows the
+direction elsewhere sees the SSE instructions only.
 Each operation therefore reads the two registers, the control word with `fnstcw`
 and MXCSR with `stmxcsr`, in one asm statement (inline assembly with Visual
 C++), where it called `fegetround()` and read MXCSR (GAOL v5). That call took
@@ -1550,8 +1552,14 @@ back at its end what it found, in the register that differs from what the
 operation left: a program that computes upward already, with the flush modes
 clear, pays no write. The SSE2 operations (`+`, `-`, `*`, `/`, `sqr()`...),
 which use no x87 instruction, keep MXCSR alone with `GAOL_PRESERVE_ROUNDING` and
-leave the x87 unit as it is. `round_upward()`, `round_nearest()` and
-`round_downward()` still write both registers, and `gaol::cleanup()` and
+leave the x87 unit as it is, and write it only if it is not upward with the
+flush modes clear, and give back what they found only if it was not (GAOL v5):
+a program that computes upward already pays no write there either, `x + y`
+taking 1.7 ns rather than 8.2 and `x * y` 2.5 rather than 8.3 (GCC 15.2, an
+i7-1185G7, the best of 15 runs of a loop; a program to nearest pays 0.2 ns
+more, 8.4 for `x + y`). `round_upward()`, `round_nearest()` and
+`round_downward()` write the register whose direction is not the one they set
+(both, as `fesetround()` does, when neither is), and `gaol::cleanup()` and
 `gaol::restore_rounding()` set back the direction that `gaol::init()` found in
 each unit. The values are those of the hardware (0x0800 for upward in the
 control word, 0x4000 in MXCSR), not the `FE_*` constants of `<fenv.h>`, which
@@ -1823,8 +1831,8 @@ bounds.
   `pow([1], [1, +oo])`; `pow` did in every build, through CORE-MATH's `pow`,
   for an exponent of extreme magnitude (`pow([1, 2], [4.9e-324])`,
   `pow([1, 2], [1e-300])`, an exponent interval with a bound near `DBL_MAX`
-  such as `[1e300, 1e308]`), whose power GAOL now computes itself, and for a
-  power next to the largest double (`pow([2], [1023.9999])`,
+  such as `[1e300, 1e308]`), which the CORE-MATH of GAOL v5 no longer does, and
+  for a power next to the largest double (`pow([2], [1023.9999])`,
   `pow([0x1.000003f82a1fp+0], 3000000001LL)`), where CORE-MATH multiplied its
   first approximation by 2^1024, an infinity, and computed Inf - Inf (changed
   in the vendored sources, see [3rd/README.md](../3rd/README.md)); and with

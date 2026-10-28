@@ -86,18 +86,22 @@ rounding upward from x = 26.54 on (Visual C++ and clang-cl); the one of
 macOS gave 0 for 2<sup>−1127</sup> rounded upward. `tests/core_math.cpp`
 checks the flags, the square root, `NAN` and `INFINITY`, and `gaol_ldexp()`.
 
-On x86-64 it also gives them a `fegetround()` that reads MXCSR, the register
-that rounds their doubles, rather than the control word of the x87 unit, which
-the `fegetround()` of glibc reads. `pow`, and `cos` and `tan`, whose accurate
-phases carry the same code, round a subnormal result themselves, in the
-direction `fegetround()` gives: with the x87 unit to nearest and MXCSR upward,
-the state the `exactinit()` of the predicates of Shewchuk and of Triangle
-leaves, `pow` rounded to nearest and its upper bound was below the exact value
-for about half of the arguments with a subnormal result. `<fenv.h>` is included
-first and the sources see `fegetround` renamed by a macro, which changes
-nothing for the rest of GAOL; `tests/rounding_direction.cpp` checks it. On a
-32-bit x86 processor, GAOL reads both units and sets both when one is not
-upward, so that they never differ when CORE-MATH runs.
+On x86, 32-bit and 64-bit, it also gives them a `fegetround()` that reads
+MXCSR, the register that rounds their doubles, rather than the control word of
+the x87 unit, which the `fegetround()` of glibc reads. `pow`, and `cos` and
+`tan`, whose accurate phases carry the same code, round a subnormal result
+themselves, in the direction `fegetround()` gives: with the x87 unit to nearest
+and MXCSR upward, the state the `exactinit()` of the predicates of Shewchuk and
+of Triangle leaves, `pow` rounded to nearest and its upper bound was below the
+exact value for about half of the arguments with a subnormal result.
+`<fenv.h>` is included first and the sources see `fegetround` renamed by a
+macro, which changes nothing for the rest of GAOL;
+`tests/rounding_direction.cpp` checks it, and `tests/core_math.cpp` by calling
+`pow` and `cbrt` with the two units differing. On a 32-bit x86 processor GAOL reads both
+units and sets the one that is not upward, so that they do not differ when
+CORE-MATH runs from an operation of GAOL, and reading MXCSR, one instruction,
+spares the call of the C library (about 80 ns with Visual C++ for x86), which
+`cbrt` and `asinpi` made on every call.
 
 They are compiled with the flags of interval arithmetic, as CORE-MATH asks
 (`-frounding-math -ffp-contract=off`, `/fp:strict` for Visual C++), and with the
@@ -380,7 +384,19 @@ comparison rather than by reading:
   passed its tests in CMake with GCC 15.2 (SSE2, FPU and the halves forced,
   `-Wall -Wextra -Werror`, and Debug with ASan and UBSan), with Clang 18 and
   21, with autotools and meson, on Debian i386 (GCC 14.2, the type native and
-  the halves forced), and cross-built for aarch64 (GCC 12.2, under qemu);
+  the halves forced), and cross-built for aarch64 (GCC 12.2, under qemu).
+  `tests/core_math.cpp` checks 45 arguments that take the accurate path of
+  `cos.c` in the upward rounding against the roundings computed with mpmath at
+  4,000 bits, which the upstream file gives too, in the four directions: they
+  reach the branches of `cos_large_accurate()` and every range of exponents of
+  the table of 1/(2π) (`tests/tools/cos/` recomputes them and tells how they
+  were found). 15 of 17 errors put in the lines of `cos.c` that carry
+  `/* GAOL */`, one at a time (listed there, with `mutate.py`), make it fail,
+  with the native type and with the halves forced, the halves of the tables
+  swapped included. The two others, a mask of `k` that its bits 0 to 12
+  ignore and the `+ 1` of `mask + 1`, change no result seen: the test finds a
+  fault that moves one by more than about 2<sup>-70</sup> relatively, and its
+  only hard-to-round arguments are those of `exceptions()`;
 - **against the native type.** `tests/u128.cpp` compares every operation of the
   two halves with the same operation on `unsigned __int128` and `__int128`, over
   8 million values and every shift count, and the whole of GAOL is built and

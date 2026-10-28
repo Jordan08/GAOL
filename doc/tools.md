@@ -96,12 +96,17 @@ In [tests/tools/](../tests/tools/), with a `README.md` in each directory.
 | Script | What it is for |
 |---|---|
 | [arith/diffarith.py](../tests/tools/arith/diffarith.py) | Differential test of the arithmetic: compiles `diffarith.cpp` against two builds or more and compares the outputs. |
+| [cos/accurate_values.py](../tests/tools/cos/accurate_values.py) | Computes the roundings of cos(x) with mpmath and checks the table of `cos_accurate_path()` of `tests/core_math.cpp`. |
+| [cos/mutate.py](../tests/tools/cos/mutate.py) | Mutation testing of the port of `cos.c` to `gaol_u128`: the test `core_math` has to fail. |
 | [pow/build.py](../tests/tools/pow/build.py) | Compiles a program of `tests/tools/pow` against a build of GAOL, with the flags that build gives its own tests. |
 | [pow/diffpow.py](../tests/tools/pow/diffpow.py) | Differential test of `pow`, on the same principle as `diffarith.py`. |
 | [pow/gen_table.py](../tests/tools/pow/gen_table.py) | Reads and rewrites the table `pow_on_boxes()` of `tests/ieee1788.cpp` as lines "X \| Y \| S \| H". |
 | [pow/checkrows.py](../tests/tools/pow/checkrows.py) | Checks the bounds of `pow` in a file of such lines against the exact power (mpmath, 500 bits). |
 | [pow/mutate.py](../tests/tools/pow/mutate.py) | Mutation testing of `pow`: puts one deliberate error in the code, and the tests have to fail. |
 | [pow/pown_bound.py](../tests/tools/pow/pown_bound.py) | Checks, with rationals, the bound K of the error of the integer powers of `pown_products()`. |
+| [asm-order/check_order.py](../tests/tools/asm-order/check_order.py) | Reads the assembly of the library (x86-64, GCC and Clang) for an instruction that rounds on the wrong side of a write of the control register (GCC bug 34678). |
+| [x86-csr/mutants.py](../tests/tools/x86-csr/mutants.py) | The mutants of `gaol_core::x86_*()` of `gaol/gaol_fpu.h`, the writes of the control registers of a 32-bit x86 processor, for `pow/mutate.py`: `rounding_direction` has to fail on each. |
+| [x86-csr/amalgamate.py](../tests/tools/x86-csr/amalgamate.py) | One source file from three units of GAOL (the core of the intervals, the common code and `rounding_direction.cpp`), to compile with a compiler that takes one file, such as those of Compiler Explorer. |
 
 ## Comparisons with other libraries
 

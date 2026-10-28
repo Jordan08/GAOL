@@ -1,8 +1,8 @@
 # Fait et décidé sur GAOL v5
 
-Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 27 octobre 2026
-(commit `9deb2e1` de `configure-clean`, aucune pull request ouverte). Ce fichier
-et l'issue #177 ont le même contenu.
+Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 28 octobre 2026
+(commit `5a6683c` de `configure-clean`, quatre pull requests ouvertes : voir la
+section 1). Ce fichier et l'issue #177 ont le même contenu.
 
 Il réunit l'historique de l'ancienne issue #49 (« Suivi du TODO de GAOL v5 »),
 ce qui est fait dans l'ancienne issue #142 (« Reste à faire sur GAOL v5 »), dans
@@ -51,19 +51,23 @@ par date ; 4. Les points faits, par lettre ; 5. Les anciens numéros faits ; 6.
 Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 `configure-clean` ; 8. Le ménage fait.
 
-## 1. L'état au 27 octobre 2026
+## 1. L'état au 28 octobre 2026
 
-- **`configure-clean`** est au commit `9deb2e1` (fusion de #205). Les pull
+- **`configure-clean`** est au commit `5a6683c` (la fusion de #213, après celles
+  de #206 et de #212 ; l'import de CORE-MATH `0b2ae6d1` est de la veille, voir
+  7.6 et 7.7). Les pull
   requests des corrections vont vers `configure-clean`, qui reste la branche de
   développement après v5.0.0 ; `MATH-CORE` et `master` (GAOL 4.3.2, plus deux
   commits de `.claude/CLAUDE.md`) ne bougent qu'à la version (point Y).
-- **Aucune pull request ouverte.** Le mainteneur a fusionné #165 à #167, #169 à
+- **Pull requests ouvertes** : #207 à #210 (la tâche PF, d'une autre session,
+  dont #206 est fusionnée le 28 octobre sans entrée dans la section 2.3 : elle
+  est à faire par cette session). Le mainteneur a fusionné #165 à #167, #169 à
   #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194, #196 et #197
-  le 25 octobre, #199, #200 et #201 le 26 octobre, #202 à #205 le 27 ; #168 et
-  #195 sont fermées sans fusion. Les tâches PA, PB, PC, PD et PE sont faites
-  (PE : #200 et #204 pour le 95, #201 pour le 92, #205 pour le 3, #202 pour le
-  4, #204 pour le 5, #203 pour le 6) ; PG est entamée (la division du chemin
-  AVX-512, le 106 a : #191 à #194).
+  le 25 octobre, #199, #200 et #201 le 26 octobre, #202 à #205 le 27, #206, #212
+  et #213 le 28 ; #168 et #195 sont fermées sans fusion. Les tâches PA, PB, PC,
+  PD et PE sont faites (PE : #200 et #204 pour le 95, #201 pour le 92, #205 pour
+  le 3, #202 pour le 4, #204 pour le 5, #203 pour le 6) ; PG est entamée (la
+  division du chemin AVX-512, le 106 a : #191 à #194).
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
   sur tout processeur ARM 64 bits avec tous les compilateurs (GCC, Clang,
   AppleClang, clang-cl, Visual C++, MinGW-w64, MSYS2), SSE2 sur tout processeur
@@ -84,8 +88,9 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   débogage sont décidés par des tests de la configuration, les anciennes
   options restant des réglages des développeurs (`doc/building.md`).
 - **Branches** : GitHub a `configure-clean`, `MATH-CORE`, `master` et
-  `perf-doc-rerun` (les scripts des mesures reportées, hors des points) ; les
-  branches fusionnées sont supprimées en local.
+  `perf-doc-rerun` (les scripts des mesures reportées, hors des points), avec
+  les branches des pull requests ouvertes ; les branches fusionnées sont
+  supprimées en local.
 - **Aucune borne fausse n'est connue** : sur environ 1,3 million de puissances
   entières, 550 000 `pow` réels, 600 000 autres opérations et 760 lectures de
   nombres (relecture du 14 octobre, revérifiée le 18 octobre à `4eaf69a`), tout
@@ -1245,6 +1250,50 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   `configure-clean`, le `-std=c++14` de meson en argument de projet, la
   documentation et des commentaires, la bibliothèque partagée de CMake) ; 222
   jobs verts sur le dernier commit ; fusionnée le 27 octobre à 11 h 18 UTC)
+- #212 (hors des points numérotés ; la suite de l'import de CORE-MATH
+  `0b2ae6d1` : `cos.c` réécrit par l'amont et porté sur `gaol_u128`, que le
+  reste de `tests/core_math.cpp` ne peut pas voir puisqu'il compare CORE-MATH à
+  lui-même ; `cos_accurate_path()` prend 45 arguments du chemin précis
+  (`cos_large_accurate()`), choisis pour atteindre les branches : la réduction
+  de l'argument, `i1` sous 32, égal à 32 et au-dessus, les trois façons de
+  combiner `cos(z) cos(r)` et `sin(z) sin(r)`, les 17 plages de la table de
+  1/(2π) au-delà de 2^31 et les quatre arguments que `exceptions()` arrondit à
+  part, avec leurs deux signes ; `gaol_cr_cos(x)` dans les quatre sens doit
+  donner les arrondis de cos(x) calculés à part avec mpmath à 4 000 bits, et
+  `cos(interval(x))` doit être `[RD, RU]` ; 0,57 % des arguments de 2^-13 à 2^31
+  prennent ce chemin dans chaque arrondi ; les outils de `tests/tools/cos/`
+  (`accurate_values.py`, qui recalcule les lignes, et `mutate.py`, qui met une
+  erreur à la fois dans une ligne `/* GAOL */` de `cos.c`) ; dents : 17 erreurs
+  mises une à une, le test en voit 15, avec le type natif comme avec les
+  moitiés forcées, et les deux autres sont équivalentes ou changent le reste de
+  2^-128 ; limite : une faute de moins de 2^-70 environ en relatif échappe ;
+  relue par un agent indépendant, sans point bloquant, qui a recalculé les 45
+  lignes à 3 000 et 5 000 bits et mis 37 erreurs (29 vues, les 8 autres sous
+  2^-70 ou équivalentes) ; ses constats corrigés (le texte de `3rd/README.md`,
+  le script des valeurs, des commentaires, `doc/tests.md`) ; vérifiée avec GCC
+  15.2, les moitiés forcées, le FPU, Clang 18, ASan et UBSan et Debian i386 ;
+  221 jobs verts sur le dernier commit ; fusionnée le 28 octobre à 8 h 51 UTC)
+- #213 (le point PH.1 de `TODO.md`, hors des points numérotés : les
+  contournements de `cr_pow()` que l'amont a rendus inutiles par `c01f08c5`, la
+  comparaison `<` d'un NaN et le carré `rh * rh` qui déborde ;
+  `pow_rounded_up()` ne calcule plus à part les exposants de grandeur extrême ni
+  les puissances inférieures à 1 pour |y| ≥ 2^450, et
+  `pow_up_without_overflow_exception()` n'a plus la branche de `t ≥ 1100` ;
+  reste une seule puissance calculée à part, x^y < 1 avec |y| ≥ 2^1013, qui vaut
+  2^-1074 vers le haut, parce que `is_exact()` de `cr_pow()` calcule `y * e` et
+  déborde (`FE_OVERFLOW` pour un résultat fini) ; trois cas nouveaux dans
+  `trap_cases()` de `tests/rounding_direction.cpp` la protègent (ils échouent
+  sans elle) ; dents : avec l'ancien `pow.c`, `rounding_direction` échoue 1 899
+  fois sur 1 151 964 vérifications ; comparaison avec la base sur 107 715
+  résultats : aucune différence de borne, aucune invalidité (33 345 avec
+  l'ancien `pow.c`), et `FE_OVERFLOW` en plus dans 14 642 cas, tous avec une
+  borne supérieure infinie, ce que dit `doc/using.md` ; relue par un agent
+  indépendant, sans point bloquant, qui a comparé environ 9 millions de sorties
+  ; ses constats corrigés (des commentaires, `tests/ieee1788.cpp`,
+  `doc/using.md` et le manuel, qui se construit avec le seul « Overfull » de la
+  base) ; vérifiée avec GCC 15.2, le FPU, Clang 18, ASan et UBSan (Clang 21 et
+  Debian i386 par le relecteur) ; 222 jobs verts sur le dernier commit ;
+  fusionnée le 28 octobre à 8 h 53 UTC)
 
 ### 2.4 Fermées sans fusion
 
@@ -2586,6 +2635,42 @@ le travail qu'elles décident est fait le même soir et ouvert en pull requests
   script qui joint les lignes pour les issues) et §12 (état au 24 octobre) sont
   réécrits pour #177 à #179, ainsi que les renvois des §3, §7 et §6.
 
+### 3.8 Le 27 octobre : l'import de CORE-MATH `0b2ae6d1` et ce qui le suit
+
+- **L'import se fait directement sur `configure-clean`** (demande explicite du
+  mainteneur : « mets à jour notre version, commit sur `configure-clean`
+  directement »), en deux commits, `cb731c0` (les sources) et `2927cfe`
+  (`3rd/README.md` et le commentaire de `gaol/core_math_port.h`), sans pull
+  request. Le CORE-MATH vendu passe de l'amont `6b84457` au master du 27
+  octobre, `0b2ae6d114d2f34051235d97f72c041b8e0ff66c`. Voir 7.6.
+- **Trois suites, décidées le même jour** : (1) le test de `cos` sur son chemin
+  précis, comme celui de `sin`, en pull request (#212) ; (2) retirer les
+  contournements de `cr_pow` que l'amont rend inutiles (PH.1), en pull request
+  selon `process.md` (#213) ; (3) mettre à jour les registres, ce qui est fait
+  ici ; les mesures de `doc/compare/performance.md`, qui cite encore l'amont
+  `6b84457`, se refont dans la tâche PJ (point 33).
+- **Constat** : l'import rend sans objet les correctifs 3 (`rsqrt.c`) et 4
+  (`sin.c`) de `3rd/README.md` (l'amont les a faits, `0d8b885a` et `19e85418`),
+  et le correctif 1 (les masques de `long`) est à refaire sur le master du jour
+  (`cos.c` est réécrit, les lignes de `cosh.c` ont bougé) ; le `rh * rh` de
+  `cr_pow()` est corrigé par l'amont (`c01f08c5`, qui teste l'exposant de `rh`
+  au lieu de comparer son carré avec `<`). Un défaut de plus de `cr_pow()`,
+  trouvé en retirant les contournements (#213) : `is_exact()` calcule `y * e`
+  (e est l'exposant de x quand x est une puissance de 2), qui déborde à partir
+  de |y e| = 2^1024 et lève `FE_OVERFLOW` pour une puissance minuscule ; #213
+  garde donc la puissance minuscule de |y| ≥ 2^1013, et le défaut est à
+  proposer à l'amont (`TODO.md`, PH.1).
+- **Réponses du mainteneur le 28 octobre**, aux questions qui closaient la
+  session : (1) #213 garde le raccourci de |y| ≥ 2^1013 (PH.1 demandait de tout
+  retirer, `is_exact()` l'en empêche) ; (2) le défaut d'`is_exact()` : préparer
+  le rapport pour l'amont et le lui montrer, ce qui est fait (réplique et
+  correctif d'une ligne vérifiés sur 50 896 000 appels, rien d'envoyé, rien
+  d'écrit dans `3rd/README.md` ni dans #125) ; (3) pas d'arguments de `cos.wc`
+  pour #212, les 45 suffisent (question fermée) ; (4) attendre la CI sans
+  démarrer d'autre tâche. La CI est entièrement verte : #212 (221 jobs), #213
+  (222 jobs) et `configure-clean` au commit `1f92634`. Le mainteneur a fusionné
+  #212 et #213 le même jour (voir 7.7).
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -3560,6 +3645,51 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
   branche supprimée sur GitHub à la fusion et en local le 27 octobre ; mêmes
   registres mis à jour pour elle ; la tâche PE est faite
 
+### 7.6 Le 27 octobre (après #205)
+
+- Le CORE-MATH vendu (`3rd/math-core`) mis à jour de l'amont `6b84457` au master
+  du 27 octobre, `0b2ae6d1`, directement sur `configure-clean` à la demande du
+  mainteneur : `cb731c0` (56 fichiers, dont 48 modifiés et 8 ajoutés : `cos.c`
+  réécrit par l'amont et porté sur `gaol_u128` d'après `sin.c`, `sin.c` ramené à
+  l'amont avec ses conversions refaites, `cosh.c`, `sinh.c`, `cospi.c`,
+  `rsqrt.c`, `hypot.c`, `pow.c`, `log/dint.h`, des tables et des scripts) et
+  `2927cfe` (`3rd/README.md`, commentaire de `core_math_port.h`). Fusion à trois
+  voies avec le fichier amont d'avant pour base ; `cospi.c` et le morceau de
+  `rsqrt.c` en conflit prennent la version de l'amont, qui a corrigé les mêmes
+  défauts. 21 fichiers diffèrent encore de l'amont, tous marqués `/* GAOL */`.
+  Vérifié : les 17 fonctions dont le fichier a changé, compilées depuis l'arbre
+  avec le type natif et avec les moitiés forcées, donnent les mêmes bits que
+  l'amont compilé sans changement dans les quatre sens sur 20 millions
+  d'arguments chacune ; avec gcov toutes les lignes `/* GAOL */` de `sin.c` et
+  de `cos.c` s'exécutent ; six erreurs mises dans le port sont toutes vues ;
+  Debian i386 et aarch64 (GCC 12.2, qemu) passent. La CI de `2927cfe` : 5
+  workflows et 200 jobs verts (Linux 45, conteneurs 22, macOS 21, Windows 64,
+  autotools et meson 48).
+- Ouvertes le même jour : #212 (le test de `cos` sur son chemin précis, les
+  outils de `tests/tools/cos/`) et #213 (les contournements de `cr_pow` que
+  `c01f08c5` rend inutiles) ; `TODO.md`, `TODO_DONE.md` et `process.md` (§12)
+  mis à jour pour l'import et pour elles, sans attendre leur fusion pour
+  l'import seul. Elles sont fusionnées le 28 octobre (voir 7.7).
+
+### 7.7 Le 28 octobre (après #206, #212 et #213)
+
+- Le mainteneur a fusionné #206 (la tâche PF, d'une autre session) à 8 h 31
+  UTC, #212 à 8 h 51 et #213 à 8 h 53 : `configure-clean` est au commit
+  `5a6683c`. Les registres sont mis à jour pour #212 et #213 (2.3, ci-dessus) ;
+  #206 n'y est pas encore, c'est à la session PF de l'y mettre.
+- Fait le même jour dans #125 : le brouillon du défaut d'`is_exact()`
+  (réplique, correctif d'une ligne, 50 896 000 appels comparés dans les quatre
+  arrondis) ajouté à la demande du mainteneur (point 9 et brouillon anglais,
+  avec `repro.c`, `is_exact.patch` et `diff.c` dans un bloc repliable ; rien
+  n'est envoyé, rien n'est dans `3rd/README.md`), et la case « retirer le
+  contournement du `<` de `cr_pow` » cochée par la fusion de #213. Les
+  décisions du jour sont dans 3.8.
+- La CI du commit de fusion `5a6683c` (#206, #212 et #213 ensemble ; #206 et
+  #212 touchent tous deux `tests/core_math.cpp`) n'avait pas commencé (jobs en
+  file d'attente) quand le push des registres l'a annulée ; le commit des
+  registres, qui ne change que des fichiers Markdown, la remplace pour le même
+  code.
+
 ## 8. Le ménage fait
 
 ### 8.1 Branches, lignes de crédit, outillage
@@ -3616,7 +3746,9 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
   le 26 octobre ; celles de #201 (`todo-ae-c-flags`), de #202
   (`todo-pe-tool-remarks`), de #203 (`todo-pe-review-fixes`), de #204
   (`todo-pe-probes`) et de #205 (`todo-pe-mingw32`), sur GitHub à la fusion et
-  en local le 27 octobre ; celle de #200 (`automatic-configuration`), sur GitHub
+  en local le 27 octobre ; celles de #212 (`cos-accurate-path-test`) et de #213
+  (`todo-ph-pow-workarounds`), sur GitHub à la fusion et en local le 28
+  octobre ; celle de #200 (`automatic-configuration`), sur GitHub
   à la fusion et en local le 26 octobre : sur GitHub, il ne reste que
   `configure-clean`, `MATH-CORE`, `master` et `perf-doc-rerun`.
 - [x] Lignes de crédit retirées des descriptions de #50, #51, #53 à #57 et #59,

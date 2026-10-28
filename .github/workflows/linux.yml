@@ -14,6 +14,11 @@
 # checks after them that numbers used it (.github/scripts/comma-locale.sh)
 # (GAOL v5).
 #
+# The self-test of the check of the order of the computations and of the writes
+# of the control register in the assembly of the library
+# (tests/tools/asm-order/check_order.py --selftest) runs in a job of Python
+# alone (GAOL v5).
+#
 # The job Ubuntu 24.04 x86_64 GCC also compiles the examples of the manual of
 # GAOL v5 that show what they print with the GAOL it installs, and checks that
 # they print it (manual/check_examples.py) (GAOL v5).
@@ -308,6 +313,15 @@ jobs:
         run: cmake --install build
       - name: The headers of the installed GAOL, each alone, and their macros
         run: CXX=${{ matrix.cfg.cxx }} sh .github/scripts/headers.sh "$PWD/gaol-install"
+
+  asm-order-selftest:
+    name: Self-test of the check of the assembly (Python)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Self-test
+        run: python3 tests/tools/asm-order/check_order.py --selftest
 
   cmake-3-14:
     name: Ubuntu 24.04 x86_64 GCC, CMake 3.14.7
