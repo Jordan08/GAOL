@@ -4,14 +4,17 @@
 
 Tools of GAOL v5 for `gaol_core::x86_*()` of [gaol/gaol_fpu.h](../../../gaol/gaol_fpu.h),
 the functions that decide what to write in the control word of the x87 unit
-and in MXCSR (point AI.108 of [TODO_DONE.md](../../../TODO_DONE.md)). They
+and in MXCSR (point AI.108 of [TODO_DONE.md](../../../TODO_DONE.md)), and for
+`gaol_core::sse_enter_upward()` and `sse_leave()`, which decide what the
+operations write in MXCSR alone with `GAOL_PRESERVE_ROUNDING` (point 3 of PF,
+which writes the register only if it changes). They
 were written for [#156](https://github.com/Jordan08/GAOL/pull/156) on a Mac
 and kept out of the repository; their files were lost, and these are written
 again.
 
 | File | What it is for |
 |---|---|
-| [mutants.py](mutants.py) | 46 mutants of `gaol/gaol_fpu.h`, for `../pow/mutate.py`: the test `rounding_direction` has to fail on each. |
+| [mutants.py](mutants.py) | 63 mutants of `gaol/gaol_fpu.h` and `gaol/gaol_fpu_fenv.h`, for `../pow/mutate.py`: the test `rounding_direction` has to fail on each. |
 | [amalgamate.py](amalgamate.py) | One source file from the sources of GAOL, to give to a compiler that is not here and takes one file (Compiler Explorer). |
 
 ## The mutants
@@ -26,19 +29,25 @@ python3 tests/tools/pow/mutate.py --mutants tests/tools/x86-csr/mutants.py \
 ```
 
 The whole library is built again for each mutant, `gaol_fpu.h` being included
-everywhere: the 46 mutants took 713 s with 4 cores. Each mutant is an error in
+everywhere: the 63 mutants took 1000 s with 4 cores. Each mutant is an error in
 one of the functions `x86_is_upward()`,
-`x86_set_modes()`, `x86_set_upward()`, `x86_enter_registers()`,
+`x86_set_modes()` (and the constants of the fields, which are in
+`gaol_fpu_fenv.h` with it), `x86_set_upward()`, `x86_enter_registers()`,
 `x86_get_state()`, `x86_enter_upward()`, `x86_set_rounding()`,
-`x86_set_rounding_and_flush_modes()` and `x86_leave()`: a wrong mask or value,
-`&&` for `||`, a write that is always or never made, a register overwritten
-whole, the exception flags cleared, the flush modes forgotten, the state read
-in the wrong register. These functions are templates over a type for the
-registers, and `x86_registers_simulated()` of `tests/rounding_direction.cpp`
-runs them on every platform, on two variables, so that the mutants are killed
-on the machine of a developer who has no 32-bit x86 processor. The test counts
-the reads of the registers as well as their final state: `x86_leave()` that
-writes always, with no change of the state, is killed by the count.
+`x86_set_rounding_and_flush_modes()`, `x86_leave()`, `sse_enter_upward()` and
+`sse_leave()`: a wrong mask or value, `&&` for `||`, a write that is always or
+never made, a register overwritten whole, the exception flags cleared, the
+flush modes forgotten, the state read in the wrong register. These functions
+are templates over a type for the registers, and `x86_registers_simulated()`
+and `sse_register_simulated()` of `tests/rounding_direction.cpp` run them on
+every platform, on variables, so that the mutants are killed on the machine of
+a developer who has no 32-bit x86 processor. The test counts the reads of the
+registers as well as their final state: `x86_leave()` that writes always, with
+no change of the state, is killed by the count, and so is `sse_leave()` that
+reads always (`sse-leave-always`, which writes the same bytes as the original).
+Two mutants that overwrite a whole register (`set-modes-x87-overwritten`,
+`set-modes-sse-overwritten`) are killed by a `SIGFPE` of the test: the
+register they overwrite no longer masks the exceptions.
 
 One mutant is listed as equivalent: `x87_rc_upward = FE_UPWARD`, which has the
 value 0x0800 of the hardware with glibc and is another only where `<fenv.h>`
