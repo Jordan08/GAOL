@@ -238,7 +238,21 @@ point Q), which `numbers` checks there too.
   exception flags that an operation raises between its start and its end, which
   must not be lost, the registers written are those that differ only, MXCSR
   once for the direction and the modes, and the registers are read once, and
-  once more for a write (GAOL v5). With GCC, Clang or Visual C++ for 32-bit x86,
+  once more for a write (GAOL v5). The start and the end of the SSE2 operations
+  with `GAOL_PRESERVE_ROUNDING`, which keep MXCSR alone
+  (`gaol_core::sse_enter_upward()` and `sse_leave()`), are checked on one
+  variable for it, in the 16 states of the field RC and the two flush modes,
+  with other bits that must not change and the exception flags raised in
+  between, which must not be lost: MXCSR is written when the direction is not
+  upward or a mode is set, once, and read only to give back what was found,
+  never when that was upward with the modes clear, nor written when it holds it
+  already (GAOL v5, point 108 (AI) of TODO.md). On an x86 processor,
+  `round_upward()`, `round_nearest()` and `round_downward()` are called from the
+  16 states of the field RC and the two flush modes of MXCSR, with other bits
+  that must not change: the field RC is the direction asked, and no other bit
+  changes, the flush modes and the exception flags among them (and, for 32-bit
+  x86, the same of the control word of the x87 unit). With GCC, Clang or Visual
+  C++ for 32-bit x86,
   the registers themselves, read and written by the test apart from the library
   in the six states above and with each flush mode, after ten operations: both
   units upward and the modes clear, or as they were found with

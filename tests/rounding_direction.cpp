@@ -652,6 +652,83 @@ namespace
     }
   }
 
+  /*
+    MXCSR alone, as a variable (GAOL v5, point 108 (AI) of TODO.md): the
+    start and the end of the operations that keep it alone with
+    GAOL_PRESERVE_ROUNDING (GAOL_RND_ENTER_SSE() and GAOL_RND_LEAVE_SSE()) are
+    gaol_core::sse_enter_upward() and sse_leave(), which decide what to write
+    from the registers they are given, as the functions of the two registers do
+  */
+  struct SimulatedMxcsr
+  {
+    unsigned int csr;
+    mutable int reads;
+    int writes;
+
+    explicit SimulatedMxcsr(unsigned int mxcsr) : csr(mxcsr), reads(0), writes(0) {}
+
+    unsigned int read() const
+    {
+      ++reads;
+      return csr;
+    }
+
+    void write(unsigned int mxcsr)
+    {
+      csr = mxcsr;
+      ++writes;
+    }
+  };
+
+  // sse_enter_upward() and sse_leave() in the 16 states of the field RC and the two flush modes of MXCSR, with other
+  // bits that must not change and the exception flags that an operation raises between its start and its end,
+  // which must not be lost: MXCSR is written when the direction is not upward or a mode is set, once, and read
+  // only to give back what was found, never when that was upward with the modes clear
+  void sse_register_simulated()
+  {
+    const std::string where = " of MXCSR";
+    for (unsigned int i = 0; i < 16; ++i) {
+      X86Fields f;
+      f.x87_rc = 0u;
+      f.sse_rc = i & 3u;
+      f.ftz = ((i >> 2) & 1u) != 0u;
+      f.daz = ((i >> 3) & 1u) != 0u;
+      const bool upward = f.sse_rc == 2u && !f.ftz && !f.daz;
+      X86Fields up = f;
+      up.sse_rc = 2u;
+      up.ftz = false;
+      up.daz = false;
+      for (unsigned int other : mxcsr_others) {
+        const unsigned int csr = mxcsr_register(other, f), csr_upward = mxcsr_register(other, up);
+        const auto describe = [&] { return x86_text(f) + ", MXCSR " + x86_hex(csr); };
+
+        SimulatedMxcsr start(csr);
+        gaol_core::sse_enter_upward(start, csr);
+        check("sse_enter_upward(): upward, the modes clear, nothing else changed" + where, start.csr == csr_upward,
+              [&] { return describe() + ": " + x86_hex(start.csr); });
+        check("sse_enter_upward(): one write if the direction is not upward or a mode is set, none otherwise, no read" + where,
+              start.writes == (upward ? 0 : 1) && start.reads == 0,
+              [&] { return describe() + ": " + std::to_string(start.writes) + " writes, " + std::to_string(start.reads) + " reads"; });
+
+        for (unsigned int flags : { 0x0000u, 0x003fu }) {
+          SimulatedMxcsr end(csr_upward | flags);
+          gaol_core::sse_leave(end, csr);
+          check("sse_leave(): what the operation found is back, with the exception flags it raised" + where,
+                end.csr == (csr | flags), [&] { return describe() + ", flags " + x86_hex(flags) + ": " + x86_hex(end.csr); });
+          check("sse_leave(): nothing read or written when the direction found was upward, one read and one write otherwise" + where,
+                end.writes == (upward ? 0 : 1) && end.reads == (upward ? 0 : 1),
+                [&] { return describe() + ": " + std::to_string(end.writes) + " writes, " + std::to_string(end.reads) + " reads"; });
+        }
+
+        // MXCSR holds what was found already: it is read, and not written
+        SimulatedMxcsr same(csr);
+        gaol_core::sse_leave(same, csr);
+        check("sse_leave(): no write when MXCSR holds what was found" + where,
+              same.csr == csr && same.writes == 0 && same.reads == (upward ? 0 : 1), describe);
+      }
+    }
+  }
+
 #if GAOL_TESTS_X86_32
   /*
     The control word of the x87 unit, read and written apart from the library
@@ -837,6 +914,73 @@ namespace
   }
 #  endif // GAOL_RND_X86_DIRECT
 #endif // GAOL_TESTS_X86_32
+
+#if GAOL_RND_X86_REGISTERS
+  /*
+    round_upward(), round_nearest() and round_downward() on the processor
+    (GAOL v5, point 108 (AI) of TODO.md): the field RC of MXCSR is the direction
+    asked, and no other bit changes, not the modes that flush the subnormals to
+    zero, the exception masks nor the exception flags the program had; a
+    register is written only if its field differs (the checks do not see that,
+    which the simulated registers above do). On a 32-bit x86 processor, the
+    same of the control word of the x87 unit.
+  */
+  void round_functions_change_the_direction_only()
+  {
+    struct Function
+    {
+      const char *name;
+      void (*run)();
+      unsigned int x87_rc, sse_rc; // the fields, as the hardware has them
+    };
+    static const Function functions[] = {
+      { "round_upward()", [] { gaol_core::round_upward(); }, 2u, 2u },
+      { "round_nearest()", [] { gaol_core::round_nearest(); }, 0u, 0u },
+      { "round_downward()", [] { gaol_core::round_downward(); }, 1u, 1u },
+    };
+    const unsigned int saved_csr = static_cast<unsigned int>(_mm_getcsr());
+#  if GAOL_TESTS_X86_32
+    const unsigned int saved_cw = read_x87_word();
+#  endif
+    for (const Function& fn : functions) {
+      for (unsigned int i = 0; i < 16; ++i) {
+        X86Fields f;
+        f.x87_rc = i & 3u;
+        f.sse_rc = i & 3u;
+        f.ftz = ((i >> 2) & 1u) != 0u;
+        f.daz = ((i >> 3) & 1u) != 0u;
+        for (unsigned int other : mxcsr_others) {
+#  if GAOL_TESTS_X86_32
+          write_x87_word(x87_register(x87_others[i & 3u], f));
+          const unsigned int cw = read_x87_word(); // the reserved bits read as the hardware has them
+#  endif
+          // Read back: an emulator (Rosetta of macOS) keeps the exceptions masked, whatever MXCSR is given
+          _mm_setcsr(mxcsr_register(other, f));
+          const unsigned int csr = static_cast<unsigned int>(_mm_getcsr());
+          fn.run();
+          const unsigned int csr_after = static_cast<unsigned int>(_mm_getcsr());
+#  if GAOL_TESTS_X86_32
+          const unsigned int cw_after = read_x87_word();
+#  endif
+          _mm_setcsr(saved_csr);
+          const std::string where = std::string(fn.name) + " from MXCSR " + x86_hex(csr);
+          check(std::string(fn.name) + ": the field RC of MXCSR is the direction asked", ((csr_after >> 13) & 3u) == fn.sse_rc,
+                [&] { return where + ": " + x86_hex(csr_after); });
+          check(std::string(fn.name) + ": no other bit of MXCSR changes, the modes and the flags among them",
+                (csr_after & ~0x6000u) == (csr & ~0x6000u), [&] { return where + ": " + x86_hex(csr_after); });
+#  if GAOL_TESTS_X86_32
+          check(std::string(fn.name) + ": the field RC of the control word is the direction asked and nothing else changes",
+                ((cw_after >> 10) & 3u) == fn.x87_rc && (cw_after & ~0x0c00u) == (cw & ~0x0c00u),
+                [&] { return where + ", control word " + x86_hex(cw) + ": " + x86_hex(cw_after); });
+#  endif
+        }
+      }
+    }
+#  if GAOL_TESTS_X86_32
+    write_x87_word(saved_cw);
+#  endif
+  }
+#endif // GAOL_RND_X86_REGISTERS
 
   /*
     The operations other than the product and the sum, after the caller
@@ -2796,6 +2940,10 @@ int main()
   // What gaol_core::x86_*() decide on the registers of a 32-bit x86 processor,
   // simulated, on every platform (GAOL v5)
   x86_registers_simulated();
+  sse_register_simulated();
+#if GAOL_RND_X86_REGISTERS
+  round_functions_change_the_direction_only();
+#endif
 
   // x within [0,1] and y above 1, the domain of every function below
   Random random;
