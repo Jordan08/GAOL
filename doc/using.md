@@ -28,6 +28,17 @@ itself. With GCC and Clang, each where the compiler takes it:
   Visual C++ and clang-cl have no such flag, and need none: their SSE2 intervals
   on 32-bit Windows keep their two bounds as two doubles, whose alignment is 8
   (`GAOL_SSE2_UNALIGNED_STORAGE`, `gaol/gaol_config.h`);
+- `-mstackrealign` (or `-mincoming-stack-boundary=2`) with GCC on 32-bit x86,
+  only for code that something calls with the stack aligned on 4 bytes, not on
+  16 as GCC takes it (bug 40838 of GCC): a caller that does not follow the ABI
+  of Linux, a hand-written trampoline or a foreign runtime for instance. A
+  function of the program that keeps intervals in locals then stops on a
+  `movaps` at an address that is not aligned (GAOL v5,
+  `test_stack_entered_aligned_on_4_bytes` of `tests/misc.cpp`, see
+  [Tests](tests.md)). The programs for 32-bit Windows need neither: the system
+  enters its threads and its callbacks with the stack aligned on 4 bytes, and
+  that test passes without them with GCC for MinGW-w64, with Clang and with
+  clang-cl, in the continuous integration;
 - nothing more on 64-bit ARM processors with the NEON intervals
   (`GAOL_SIMD`, GAOL v5, see [The NEON intervals](#the-neon-intervals)): the
   first line is all they ask for;
