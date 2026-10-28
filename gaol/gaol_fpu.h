@@ -304,6 +304,20 @@ direction when it is preserved.
 #endif // GAOL_PRESERVE_ROUNDING
 
 /*
+1 where the build has the fused multiply-add as an instruction (GAOL v5, point
+109 (AI) of TODO.md): __FMA__ for GCC, Clang and clang-cl, and /arch:AVX2
+(__AVX2__, which implies it) for Visual C++: __AVX2__ alone says nothing of
+the instruction for clang-cl, which has -mavx2 without -mfma. The packed
+products of the integer powers (gaol/core/gaol_interval_core.cpp) and the
+macros below ask for it, and tests/misc.cpp writes the condition again
+*/
+#if defined(__FMA__) || (defined(_MSC_VER) && !defined(__clang__) && defined(__AVX2__))
+#  define GAOL_FMA_AS_INSTRUCTION 1
+#else
+#  define GAOL_FMA_AS_INSTRUCTION 0
+#endif
+
+/*
 On x86-64 with SSE2 intervals and the fused multiply-add as an instruction
 (__FMA__, GAOL_FMA; with Visual C++, /arch:AVX2, which implies them and
 defines __AVX2__, and which GAOL_FMA gives it: GAOL v5, point 109 (AI) of
@@ -331,7 +345,7 @@ themselves with mingw-w64 on x86-64, which does not call fegetround() and
 fesetround() any more (GAOL_RND_MINGW64_X87 above).
 */
 #if GAOL_PRESERVE_ROUNDING && GAOL_USING_SSE2_INSTRUCTIONS && (defined(__x86_64__) || defined(_M_X64)) \
-    && (defined(__FMA__) || (defined(_MSC_VER) && !defined(__clang__) && defined(__AVX2__)))
+    && GAOL_FMA_AS_INSTRUCTION
 #  undef GAOL_RND_ENTER
 #  undef GAOL_RND_LEAVE
 #  define GAOL_RND_ENTER() GAOL_RND_ENTER_SSE()
