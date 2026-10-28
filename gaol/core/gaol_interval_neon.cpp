@@ -361,13 +361,18 @@ namespace gaol_core {
   */
   GAOL_INLINE float64x2_t divide_upward(float64x2_t x, float64x2_t y, bool modulo)
   {
-    const uint64x2_t y_negative = vcltzq_s64(vreinterpretq_s64_f64(y));
-    const uint64x2_t y_nonzero = vtstq_u64(bits_of(y), vdupq_n_u64(abs_mask));
-    // lane 0: c > 0 (-c < 0, not a zero), lane 1: d < 0
-    if (!any_lane(vandq_u64(y_negative, y_nonzero))) {
+    // The signs of the stored bounds of y, told on the integer side (the bits of the two lanes in
+    // general registers), where two reductions and the broadcast of a lane cost vector operations
+    // (GAOL v5, experiment of point PG.8)
+    const std::uint64_t y_low_bits = vgetq_lane_u64(bits_of(y), 0), y_high_bits = vgetq_lane_u64(bits_of(y), 1);
+    // lane 0: c > 0 (-c < 0, not a zero), lane 1: d < 0; with bitwise operators, so that no branch
+    // depends on the signs of y, which are random in a program
+    const std::uint64_t c_positive = (y_low_bits >> 63) & static_cast<std::uint64_t>((y_low_bits << 1) != 0);
+    const std::uint64_t d_below_zero = (y_high_bits >> 63) & static_cast<std::uint64_t>((y_high_bits << 1) != 0);
+    if ((c_positive | d_below_zero) == 0) {
       return divide_by_zero_containing(x, y, modulo);
     }
-    const uint64x2_t d_negative = vdupq_laneq_u64(y_negative, 1);
+    const uint64x2_t d_negative = vdupq_n_u64(0ull - (y_high_bits >> 63)); // all ones if the sign of d is set
     const float64x2_t xp = vbslq_f64(d_negative, swap_lanes(x), x);
     const float64x2_t yp = vbslq_f64(d_negative, swap_lanes(y), y); // <-c', d'>
     const float64x2_t dd = vdupq_laneq_f64(yp, 1);                   // <d', d'>
