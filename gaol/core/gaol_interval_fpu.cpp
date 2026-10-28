@@ -19,17 +19,16 @@
 
 /*
     This file is not meant to be compiled. It is only to be included
-        by gaol/gaol_interval_core.cpp.
+        by gaol/core/gaol_interval_core.cpp.
 
     The intervals of the builds that have neither SSE2 nor NEON intervals
     (gaol/gaol_configuration.h): 32-bit ARM, POWER, s390x, RISC-V and the other
     processors; Windows on 32-bit x86 with Visual C++ and clang-cl (MinGW-w64
-    takes the SSE2 intervals there); and the builds with GAOL_SIMD=OFF or
-    GAOL_ARM64=OFF. The
+    takes the SSE2 intervals there); and the builds with GAOL_SIMD=OFF. The
     product, the quotient and the square take no branch on the signs of the
     bounds in the source (GAOL v5, the kernels of fpu_detail below, on two
-    doubles as those of gaol/gaol_interval_sse.cpp and
-    gaol/gaol_interval_neon.cpp are on a vector): see doc/using.md, The FPU
+    doubles as those of gaol/core/gaol_interval_sse.cpp and
+    gaol/core/gaol_interval_neon.cpp are on a vector): see doc/using.md, The FPU
     intervals.
 */
 
@@ -97,7 +96,7 @@ double hausdorff(const interval &I1, const interval &I2)
     taking mul_infinite(). GCC for 32-bit ARM and for POWER9 turns a quiet
     comparison into a signaling one where it makes a choice on it with a
     conditional move, which raises the invalid-operation exception on a NaN
-    (see is_empty() in gaol/gaol_interval_core.h): no comparison is made here
+    (see is_empty() in gaol/core/gaol_interval_core.h): no comparison is made here
     that a NaN could reach, and the only choices on bounds are the maxima of
     larger_of().
   */
@@ -623,7 +622,7 @@ double hausdorff(const interval &I1, const interval &I2)
   /*
     The rounding direction being upward already (see gaol_interval_core.h). The
     bound that is 0 in the other branch, I.rb_ for N1 and I.lb_ for P1, is
-    read in its branch (read_in_branch(), gaol/gaol_interval_core.cpp):
+    read in its branch (read_in_branch(), gaol/core/gaol_interval_core.cpp):
     AppleClang computed -1/I.rb_ for N0 too, inverse() choosing between the
     branches afterwards, and inverse([-2, 0]) raised the division-by-zero
     exception (macOS arm64, GAOL_PRESERVE_ROUNDING; GAOL v5). Not the
@@ -720,7 +719,7 @@ double hausdorff(const interval &I1, const interval &I2)
   {
     // One check, before the bounds are compared, as in the SSE2 build (GAOL
     // v5, see gaol/gaol_fpu.h). The quotients are those of div_rel_upward()
-    // of gaol/gaol_interval_core.cpp, which raise no overflow exception for a
+    // of gaol/core/gaol_interval_core.cpp, which raise no overflow exception for a
     // finite result (GAOL v5, point 79 of TODO.md)
     GAOL_RND_ENTER();
     interval res = div_rel_upward(K, J, I);
@@ -823,7 +822,7 @@ double hausdorff(const interval &I1, const interval &I2)
 
 
   // The integer powers (GAOL v5): the corners and the bounds in plain doubles
-  // (pown_scalar_ops in gaol/gaol_interval_core.cpp)
+  // (pown_scalar_ops in gaol/core/gaol_interval_core.cpp)
   static GAOL_POWN_INLINE_T interval pown_large_inline(const interval& I, int n)
   {
     return pown_scalar_ops::large(I, n);

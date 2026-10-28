@@ -28,8 +28,19 @@ itself. With GCC and Clang, each where the compiler takes it:
   Visual C++ and clang-cl have no such flag, and need none: their SSE2 intervals
   on 32-bit Windows keep their two bounds as two doubles, whose alignment is 8
   (`GAOL_SSE2_UNALIGNED_STORAGE`, `gaol/gaol_config.h`);
+- `-mstackrealign` (or `-mincoming-stack-boundary=2`) with GCC on 32-bit x86,
+  only for code that something calls with the stack aligned on 4 bytes, not on
+  16 as GCC takes it (bug 40838 of GCC): a caller that does not follow the ABI
+  of Linux, a hand-written trampoline or a foreign runtime for instance. A
+  function of the program that keeps intervals in locals then stops on a
+  `movaps` at an address that is not aligned (GAOL v5,
+  `test_stack_entered_aligned_on_4_bytes` of `tests/misc.cpp`, see
+  [Tests](tests.md)). The programs for 32-bit Windows need neither: the system
+  enters its threads and its callbacks with the stack aligned on 4 bytes, and
+  that test passes without them with GCC for MinGW-w64, with Clang and with
+  clang-cl, in the continuous integration;
 - nothing more on 64-bit ARM processors with the NEON intervals
-  (`GAOL_ARM64`, GAOL v5, see [The NEON intervals](#the-neon-intervals)): the
+  (`GAOL_SIMD`, GAOL v5, see [The NEON intervals](#the-neon-intervals)): the
   first line is all they ask for;
 - `-ffloat-store` where doubles are still computed on the x87 unit;
 - `-mfma` on x86, and `-mfpu=neon-vfpv4 -mfloat-abi=hard` on 32-bit ARM, where
@@ -90,8 +101,8 @@ A program includes `gaol/gaol` (or `gaol/gaol.h`), and
 `gaol/parser/gaol_expression.h` for the expressions, with
 `gaol/parser/gaol_expr_eval.h` to evaluate them. The three builds install these and the
 headers they include, each of which compiles alone but the four that other
-headers include in the middle of their code (`gaol_interval_fpu.h`,
-`gaol_interval_neon.h`, `gaol_interval_sse.h`) or for Visual C++ only (`gaol_fpu_msvc.h`), and not the
+headers include in the middle of their code (`gaol/core/gaol_interval_fpu.h`,
+`gaol/core/gaol_interval_neon.h`, `gaol/core/gaol_interval_sse.h`) or for Visual C++ only (`gaol_fpu_msvc.h`), and not the
 headers of GAOL's sources (GAOL v5): `gaol/parser/gaol_interval_parser.h`,
 which did not compile when included, `gaol_init_cleanup.h`, `gaol_core_math.h`
 and `gaol_u128.h`; `gaol_parameters.h`, which declared nothing,
@@ -1185,12 +1196,17 @@ What to do:
 
 ### The AVX-512 path
 
-Built with `GAOL_PREFER_AVX512` (`--enable-prefer-avx512`,
-`-Denable-prefer-avx512=true`), on by default where the rounding direction
-is preserved, whose every operation of `+`, `-`, `*`, `/`, `sqrt` and `sqr`,
-and the integer powers (below), the path relieves of the store of that direction — `--disable-prefer-avx512`,
-`-DGAOL_PREFER_AVX512=OFF` and `-Denable-prefer-avx512=false` refuse it
-there —, on a machine that runs
+Taken by the build where the rounding direction is preserved, whose every
+operation of `+`, `-`, `*`, `/`, `sqrt` and `sqr`, and the integer powers
+(below), the path relieves of the store of that direction (GAOL v5: it was the
+default of the option `GAOL_PREFER_AVX512`, `--enable-prefer-avx512`,
+`-Denable-prefer-avx512`, which is now a setting of the developers: `=ON` asks
+for the path without the preserved direction, and `-DGAOL_PREFER_AVX512=OFF`,
+`--disable-prefer-avx512` and `-Denable-prefer-avx512=false` refuse it there, for
+a package for any processor, see [Building
+GAOL](building.md#the-settings-of-the-developers); the measures that decide it
+are in [SIMD, FMA and the rounding
+direction](simd.md#when-the-build-takes-the-avx-512-path)), on a machine that runs
 the AVX-512 instructions (`GAOL_AVX512_ARITHMETIC` in
 `gaol_configuration.h`), GAOL has `x + y`, `x - y`, `x * y`, `x / y`,
 `sqrt(x)` and `sqr(x)`, and the operations of `+`, `-`, `*` and `/` with a
@@ -1230,7 +1246,7 @@ the sign of a zero; `rounding_direction` checks the bits of that one case, in
 each path, GAOL v5; every result of the operations of intervals and with a
 double on the intervals of two bounds among 0 of either sign, ±1, ±2.5, ±3,
 ±1e-310, ±1e300 and ±∞ was compared bit for bit). The path is decided when GAOL
-is configured, as the fused multiply-add instructions of `GAOL_FMA` are: the
+is configured, as the fused multiply-add instructions are: the
 machine building has to run the AVX-512 instructions, a cross-compilation
 leaves the path out, and the operations test nothing as they run. A library
 built with the path then needs a processor with the instructions, and
@@ -1274,11 +1290,12 @@ exact, and the double below it otherwise.
 
 They are the intervals of GAOL on 64-bit ARM with every compiler: GCC, Clang
 and AppleClang under Linux and macOS, clang-cl and the Clang of MinGW-w64 and
-MSYS2, and Visual C++ (GAOL v5), by default (`GAOL_ARM64`
-of CMake, `--enable-arm64` of configure, `-Denable-arm64` of meson;
-`GAOL_USING_NEON_INSTRUCTIONS` is then 1 in `gaol_configuration.h`), and need
-no flag beyond those of interval arithmetic. They do not depend on
-`GAOL_SIMD`, which is for x86 processors. Visual C++ writes the control register
+MSYS2, and Visual C++ (GAOL v5), by default (`GAOL_SIMD`
+of CMake, `--enable-simd` of configure, `-Denable-simd` of meson, as for the
+SSE2 intervals of x86; `GAOL_USING_NEON_INSTRUCTIONS` is then 1 in
+`gaol_configuration.h`), and need no flag beyond those of interval arithmetic
+(GAOL v5: `GAOL_ARM64`, `--enable-arm64` and `-Denable-arm64` were an option of
+their own, independent of `GAOL_SIMD`, and are gone). Visual C++ writes the control register
 FPCR through the intrinsics `_ReadStatusReg()` and `_WriteStatusReg()`, where
 GCC and Clang have `mrs` and `msr` in an asm statement; it has no asm statement
 to order its operations with respect to those writes, and relies on `/fp:strict`
@@ -1356,9 +1373,9 @@ Windows on 32-bit x86 with a compiler that takes no flag asking for the aligned
 memory the SSE2 intervals need (MinGW-w64 with GCC and Clang takes the SSE2
 intervals there, with `-faligned-new=8`, and so do Visual C++ and clang-cl,
 whose intervals need no aligned memory, and 64-bit Windows); and of the builds
-that ask for them (`-DGAOL_SIMD=OFF` on
-x86, `-DGAOL_ARM64=OFF` on 64-bit ARM, which leave `GAOL_USING_SSE2_INSTRUCTIONS`
-and `GAOL_USING_NEON_INSTRUCTIONS` at 0 in `gaol_configuration.h`). The first
+that ask for them (`-DGAOL_SIMD=OFF`, `--disable-simd` or
+`-Denable-simd=false`, which leave `GAOL_USING_SSE2_INSTRUCTIONS` and
+`GAOL_USING_NEON_INSTRUCTIONS` at 0 in `gaol_configuration.h`). The first
 measurements below are those of an Apple M2 with AppleClang; the processors of
 the continuous integration come after them.
 
@@ -1387,7 +1404,7 @@ as the sum, the bounds being kept across the calls of the rare path of the
 check.
 
 Measured with `gaol_performance` on an Apple M2 with AppleClang 21
-(`-DGAOL_ARM64=OFF`), the median of nine runs of each program, in turn with the
+(`-DGAOL_SIMD=OFF`), the median of nine runs of each program, in turn with the
 others, in nanoseconds:
 
 | | GAOL 4 code | v5 kernels |
@@ -1441,7 +1458,7 @@ code before the kernels (`c89c2ac`) and after them (`711ec1a`), and runs
 are GCC 13.3 and Clang 18.1 on Ubuntu 24.04 for x86-64 (`-DGAOL_SIMD=OFF`), GCC
 14.2 on Debian 13 for 32-bit ARM, run natively on an arm64 runner, Visual C++
 19.51 for x86 and arm64, clang-cl 22.1 for x86 and arm64, and AppleClang 21 on
-macOS 26 (`-DGAOL_ARM64=OFF`). The table gives the ratio of the median before
+macOS 26 (`-DGAOL_SIMD=OFF`). The table gives the ratio of the median before
 the kernels to the median after them, so that a ratio above 1 means that the
 kernels are faster, and, in parentheses, the spread of the five runs where it
 exceeds 1.15 (the ratio is then noise, as it is on the macOS runner); the
@@ -1527,10 +1544,12 @@ A 32-bit x86 processor has two units that round, each with a direction of its
 own: the x87 unit, in the field RC of its control word (bits 11 and 10), and the
 SSE instructions, which compute GAOL's doubles, in the field RC of MXCSR (bits
 14 and 13), where the modes that flush the subnormals to zero are too (FTZ, bit
-15, and DAZ, bit 6). Both have to be upward: the elementary functions of
-CORE-MATH read the direction with `fegetround()`, which gives the one of the x87
-unit with glibc and `-1` with the C runtime of Windows when the two differ, and
-the addition that shows the direction elsewhere sees the SSE instructions only.
+15, and DAZ, bit 6). Both have to be upward: the square root and the `fma()`
+of a C library, and a `long double`, follow the direction of the x87 unit (the
+elementary functions of CORE-MATH read MXCSR, as on x86-64, after having read
+the one of the x87 unit with `fegetround()`: the one of glibc, and `-1` with the
+C runtime of Windows when the two differ), and the addition that shows the
+direction elsewhere sees the SSE instructions only.
 Each operation therefore reads the two registers, the control word with `fnstcw`
 and MXCSR with `stmxcsr`, in one asm statement (inline assembly with Visual
 C++), where it called `fegetround()` and read MXCSR (GAOL v5). That call took
@@ -1544,13 +1563,19 @@ back at its end what it found, in the register that differs from what the
 operation left: a program that computes upward already, with the flush modes
 clear, pays no write. The SSE2 operations (`+`, `-`, `*`, `/`, `sqr()`...),
 which use no x87 instruction, keep MXCSR alone with `GAOL_PRESERVE_ROUNDING` and
-leave the x87 unit as it is. `round_upward()`, `round_nearest()` and
-`round_downward()` still write both registers, and `gaol::cleanup()` and
+leave the x87 unit as it is, and write it only if it is not upward with the
+flush modes clear, and give back what they found only if it was not (GAOL v5):
+a program that computes upward already pays no write there either, `x + y`
+taking 1.7 ns rather than 8.2 and `x * y` 2.5 rather than 8.3 (GCC 15.2, an
+i7-1185G7, the best of 15 runs of a loop; a program to nearest pays 0.2 ns
+more, 8.4 for `x + y`). `round_upward()`, `round_nearest()` and
+`round_downward()` write the register whose direction is not the one they set
+(both, as `fesetround()` does, when neither is), and `gaol::cleanup()` and
 `gaol::restore_rounding()` set back the direction that `gaol::init()` found in
 each unit. The values are those of the hardware (0x0800 for upward in the
 control word, 0x4000 in MXCSR), not the `FE_*` constants of `<fenv.h>`, which
 are 0x0400 and 0x0800 for downward and upward with glibc and 0x0100 and 0x0200
-with the C runtime of Windows.
+with the C runtime of Windows and with mingw-w64 13 and later.
 
 mingw-w64 on x86-64 (MinGW-w64 of Chocolatey, MSYS2; GAOL v5) has the two units
 too, and GAOL reads and writes their registers itself there, as above, where it
@@ -1558,10 +1583,13 @@ restores a direction (`GAOL_PRESERVE_ROUNDING`, `gaol::cleanup()`,
 `gaol::restore_rounding()`, and the operations that set the direction to nearest
 and back: `midpoint()`, `chi()`, the writing and the reading of an interval),
 rather than call `fegetround()` and `fesetround()`: from mingw-w64 13, the first
-joins the fields RC of the two units by OR, which is the direction of neither
-where they differ (`FE_DOWNWARD | FE_UPWARD` is `FE_TOWARDZERO`), and the
-second clears the six exception flags of MXCSR when it changes its value, so
-that the program's flags were lost. The register that differs is written only,
+joins the fields RC of the two units by OR, which is the direction of both only
+where they agree (to nearest and upward give upward, `FE_DOWNWARD | FE_UPWARD`
+is `FE_TOWARDZERO`), and the second clears the six exception flags of MXCSR
+when it changes its value, so that the program's flags were lost, in the
+operations with `GAOL_PRESERVE_ROUNDING`, and in `gaol::cleanup()` and
+`gaol::restore_rounding()` with it or without it. The register that differs is
+written only,
 with `fldcw` or `ldmxcsr`, which keep the flags.
 
 ## Flush-to-zero and denormals-are-zero
@@ -1814,8 +1842,8 @@ bounds.
   `pow([1], [1, +oo])`; `pow` did in every build, through CORE-MATH's `pow`,
   for an exponent of extreme magnitude (`pow([1, 2], [4.9e-324])`,
   `pow([1, 2], [1e-300])`, an exponent interval with a bound near `DBL_MAX`
-  such as `[1e300, 1e308]`), whose power GAOL now computes itself, and for a
-  power next to the largest double (`pow([2], [1023.9999])`,
+  such as `[1e300, 1e308]`), which the CORE-MATH of GAOL v5 no longer does, and
+  for a power next to the largest double (`pow([2], [1023.9999])`,
   `pow([0x1.000003f82a1fp+0], 3000000001LL)`), where CORE-MATH multiplied its
   first approximation by 2^1024, an infinity, and computed Inf - Inf (changed
   in the vendored sources, see [3rd/README.md](../3rd/README.md)); and with

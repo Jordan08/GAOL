@@ -12,7 +12,8 @@ build, and the CMake build follows them, apart from the errors corrected (see
 
 - GAOL is compiled in release: `-O3` and the optimizations configure adds
   (`-funroll-loops -fomit-frame-pointer -fexpensive-optimizations`, each where
-  the compiler takes it), `NDEBUG`, `-std=c++11`, hidden visibility
+  the compiler takes it), `NDEBUG`, `-std=c++11` (`-std=c++14` for Clang with
+  the target of Visual C++, whose standard library needs it), hidden visibility
   (`-fvisibility=hidden -fvisibility-inlines-hidden`) and `-Wall -Wconversion`,
   which GAOL compiles without warnings, `-Wsign-conversion` of Clang included.
   Its libraries are compiled in release too where a project brings GAOL in
@@ -44,25 +45,28 @@ build, and the CMake build follows them, apart from the errors corrected (see
   the target: GAOL v5), so that they need no aligned memory, and the class
   allocators that aligned the intervals on 16 bytes are not compiled;
 - on 64-bit ARM processors, the intervals are computed with NEON instructions
-  (`GAOL_ARM64`, `--enable-arm64`, `-Denable-arm64`; no flag), on by default
+  (`GAOL_SIMD`, `--enable-simd`, `-Denable-simd`; no flag), on by default
   with every compiler of them: GCC, Clang and AppleClang under Linux and macOS,
   clang-cl and the Clang of MinGW-w64 and MSYS2, and Visual C++ (`cl`, whose
   registers are those of `_ReadStatusReg()` and `_WriteStatusReg()`; GAOL v5),
   whose compiler each build tests with the same program (CMake and meson for
   Visual C++, which configure does not build with): the intrinsics of
   `<arm_neon.h>` and the registers of the rounding mode. Not with 32-bit ARM,
-  whose NEON has no vector of doubles: the option is then ignored, and the FPU
-  computes the intervals, as before. A universal build of macOS, which CMake
-  alone makes (`CMAKE_OSX_ARCHITECTURES` with several architectures), compiles
-  each source once per architecture with one configuration, and takes the
-  intervals of the architecture being compiled, NEON for arm64 and SSE2 for
-  x86_64, where `GAOL_ARM64` and `GAOL_SIMD` allow them
-  (`GAOL_UNIVERSAL_NEON` and `GAOL_UNIVERSAL_SSE2` of
-  `gaol_configuration.h`; GAOL v5). Independent of `GAOL_SIMD`, which
-  is for x86 processors (GAOL v5);
+  whose NEON has no vector of doubles: the FPU computes the intervals there, as
+  before. A universal build of macOS (`CMAKE_OSX_ARCHITECTURES` with several
+  architectures, or `-arch` several times in the flags of configure and meson)
+  compiles each source once per architecture with one configuration, and takes
+  the intervals of the architecture being compiled, NEON for arm64 and SSE2 for
+  x86_64, where `GAOL_SIMD` allows them (`GAOL_UNIVERSAL_NEON` and
+  `GAOL_UNIVERSAL_SSE2` of `gaol_configuration.h`; GAOL v5). `GAOL_SIMD` chooses
+  between them and the FPU on every processor (GAOL v5: `GAOL_ARM64`,
+  `--enable-arm64` and `-Denable-arm64` were an option of their own for the NEON
+  intervals, independent of `GAOL_SIMD`);
 - GAOL and CORE-MATH are compiled with the fused multiply-add
   instructions of the processor, where the compiler has a flag for them
-  (`GAOL_FMA`, `--enable-fma`, `-Denable-fma`): `-mfma` on x86; with GCC for
+  (whenever the machine building runs a program compiled with them: no option
+  of the user, `-DGAOL_FMA=OFF` of the developers leaves them out, see [Building
+  GAOL](building.md#what-the-configuration-decides)): `-mfma` on x86; with GCC for
   Windows, on x86-64 and on 32-bit x86, `-mfma -mprefer-vector-width=128`
   (GAOL v5, see [GCC for Windows](#gcc-for-windows) below);
   `/arch:AVX2` with Visual C++ for x64, not for 32-bit x86, where it broke
@@ -135,8 +139,11 @@ that project, and the tests and the examples, keep their own (GAOL v5).
 
 `.github/audit/` configures the three builds and compares the macros GAOL
 sees, the macros each writes into `gaol/gaol_configuration.h`, and the flags
-GAOL is compiled with (`compare.py --check`); the continuous integration runs
-it on each kind of machine.
+GAOL is compiled with, those of its C++ sources and those of a C source of
+CORE-MATH (`compare.py --check`; GAOL v5: only the C++ flags were compared, and
+the C sources had `-msse2 -msse3 -fvisibility=hidden` with CMake alone and the
+standard of the compiler with configure, `gnu11` with meson, `gnu99` with CMake);
+the continuous integration runs it on each kind of machine.
 
 ## What the options are worth
 
@@ -167,12 +174,12 @@ On a 64-bit ARM processor, measured the same way on an Apple M2 with AppleClang
 
 | | x + y | x − y | x × y | x ÷ y | sqr(x) | sqrt(x) | 13 operations in a line |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| `-DGAOL_ARM64=OFF` (FPU intervals) | 1.18 | 1.18 | 3.33 | 3.30 | 1.82 | 4.60 | 51.7 |
+| `-DGAOL_SIMD=OFF` (FPU intervals) | 1.18 | 1.18 | 3.33 | 3.30 | 1.82 | 4.60 | 51.7 |
 | Default (NEON intervals) | 0.91 | 0.89 | 2.14 | 2.39 | 1.48 | 1.70 | 19.2 |
-| `-DGAOL_ARM64=OFF -DGAOL_PRESERVE_ROUNDING=ON` | 38.8 | 38.7 | 44.4 | 45.2 | 43.7 | 48.5 | 537 |
+| `-DGAOL_SIMD=OFF -DGAOL_PRESERVE_ROUNDING=ON` | 38.8 | 38.7 | 44.4 | 45.2 | 43.7 | 48.5 | 537 |
 | `-DGAOL_PRESERVE_ROUNDING=ON` (NEON intervals) | 26.9 | 27.3 | 29.3 | 34.0 | 27.3 | 34.3 | 377 |
 
-- **The NEON intervals (`GAOL_ARM64`) pay on every operation of the table**:
+- **The NEON intervals (`GAOL_SIMD`) pay on every operation of the table**:
   x − y takes 0.89 ns rather than 1.18, x × y 2.14 rather than 3.33 (of operands
   of random signs 2.18 rather than 3.38), x ÷ y 2.39 rather than 3.30, sqrt
   1.70 rather than 4.60, and a line of 13 operations 19.2 ns rather than 51.7
@@ -379,7 +386,7 @@ alone refuses, when compiling:
 |---|---|
 | Clang for 32-bit ARM processors | It does not honour the rounding direction there: built by Clang 21, 4556 of 16000 random products, squares and cubes did not enclose their exact values. GCC does. |
 | A compiler saying of `-frounding-math` "overriding currently unsupported rounding mode on this target", as Clang 14 for 64-bit ARM | Bounds of `pow()` and `nth_root()` did not enclose the exact values. Clang 18 honours the rounding direction there. |
-| MinGW-w64 whose `fma()` or `round()` is wrong: on x64, before mingw-w64 12 (GCC 11 to 13 of Chocolatey) and linked with `msvcrt.dll` rather than the UCRT (MSYS2 MINGW64, the cross compilers of Debian and Ubuntu); on 32-bit x86, before 11 (GCC 11 of WinLibs); on ARM, as on x64, before 12 or linked with `msvcrt.dll` (the refusal is not tested there; MSYS2 CLANGARM64, which links the UCRT, is built and tested) | On x64, the `fma()` and `round()` of mingw-w64's own math library, computed in doubles: that `fma()` is not correctly rounded (10.7 % of the error-free products `fma(a, b, -a*b)` wrong), and CORE-MATH computes with it wherever the compiler has no `-mfma` (`GAOL_FMA` off; GCC for Windows on x86-64 and on 32-bit x86 takes it by default, and these toolchains stay refused, their `round()` being wrong too); that `round()` depends on the rounding direction. On 32-bit x86, the `fma()` of the mingw-w64 9 of WinLibs rounds each of its partial sums to a double. On ARM, that `round()` too; GAOL v5 is not tested there. Bounds of `tan()`, `asin()`, `atan()` and others did not enclose the exact values. MinGW-w64 GCC 14 and 15 on x64, 12 to 15 on 32-bit x86 (GCC 13 also with `GAOL_FMA` off), and MSYS2 UCRT64 and CLANG64 are built and tested. |
+| MinGW-w64 whose `fma()` or `round()` is wrong: on x64, before mingw-w64 12 (GCC 11 to 13 of Chocolatey) and linked with `msvcrt.dll` rather than the UCRT (MSYS2 MINGW64, the cross compilers of Debian and Ubuntu); on 32-bit x86, before 11 (GCC 11 of WinLibs), and, without `-mfma`, from 12 on and linked with `msvcrt.dll` (MSYS2 MINGW32); on ARM, as on x64, before 12 or linked with `msvcrt.dll` (the refusal is not tested there; MSYS2 CLANGARM64, which links the UCRT, is built and tested) | On x64, the `fma()` and `round()` of mingw-w64's own math library, computed in doubles: that `fma()` is not correctly rounded (10.7 % of the error-free products `fma(a, b, -a*b)` wrong), and CORE-MATH computes with it wherever the compiler has no `-mfma` (`GAOL_FMA` off; GCC for Windows on x86-64 and on 32-bit x86 takes it by default, and these toolchains stay refused, their `round()` being wrong too); that `round()` depends on the rounding direction. On 32-bit x86, the `fma()` of the mingw-w64 9 of WinLibs rounds each of its partial sums to a double; linked with `msvcrt.dll`, that of mingw-w64 12 or later is refused where the build has no `-mfma`. On ARM, that `round()` too; GAOL v5 is not tested there. Bounds of `tan()`, `asin()`, `atan()` and others did not enclose the exact values. MinGW-w64 GCC 14 and 15 on x64, 12 to 15 on 32-bit x86 (GCC 13 also with `GAOL_FMA` off), and MSYS2 UCRT64 and CLANG64 are built and tested. |
 | `-ffast-math`, `-Ofast`, `/fp:fast` | The compiler then rounds to nearest and drops the checks of NaN and infinities. `-Ofast` is not refused where `-fno-fast-math` turns its fast-math optimizations off (below). Linking with them, or with `-funsafe-math-optimizations`, is a matter of its own (below). |
 | `-ffinite-math-only`, which `-ffast-math` and `-Ofast` turn on | The compiler then takes NaN and infinities never to occur, in GAOL's inline functions too: the empty interval has NaN bounds, and `([1, 2] & [3, 4]).is_empty()` is false (GCC 9.4 and 13 at `-O0`, `-O2` and `-O3`; Clang 18 at `-O0`, and at `-O2` and `-O3` when the bounds are `volatile`). |
 | Visual C++, and clang-cl from Clang 16, without `/fp:strict` (`/fp:precise`, their default) | They then assume rounding to nearest, and may evaluate or rewrite floating-point operations accordingly (clang-cl compiles with `-fno-rounding-math -ffp-contract=on`; GAOL v5 did not refuse it at first): no test gave a wrong bound so, but nothing certifies the bounds (see [What differs from GAOL](differences.md)). |
@@ -461,7 +468,9 @@ there its `round()` is right, and the `fma()` of mingw-w64 11 (MinGW-Builds
 GCC 12 and 13), accepted and called only with `GAOL_FMA` off (the default gives
 GCC for Windows `-mfma` there too), keeps its partial sums in extended
 precision and passes the tests, though it is not correctly rounded; that of the mingw-w64 9
-of WinLibs, compiled without optimization, rounds each of them to a double.
+of WinLibs, compiled without optimization, rounds each of them to a double;
+that of a mingw-w64 12 or later linking `msvcrt.dll` (MSYS2 MINGW32) is
+refused with `GAOL_FMA` off, as on x64.
 
 ### Linking with `-Ofast`, `-ffast-math` or `-funsafe-math-optimizations`
 

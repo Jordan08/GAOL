@@ -168,7 +168,7 @@ namespace gaol_core {
 
   /*
     The bounds of pi and pi/2, which interval::pi(), interval::two_pi() and
-    interval::half_pi() give (gaol/gaol_interval_core.h), written exactly in
+    interval::half_pi() give (gaol/core/gaol_interval_core.h), written exactly in
     decimal: a literal is converted when compiling, where the unions of GAOL 4
     were read when the program started, by the dynamic initialization of each
     file including this header, and a static object of the program calling
@@ -352,7 +352,7 @@ namespace gaol_detail {
     integers or zeros. No comparison of x as a double: GCC vectorizes the
     loops of floor() into signaling comparisons, which raise the
     invalid-operation exception on the NaN bounds of the empty set (see
-    GAOL_FPU_SCALAR() in gaol/gaol_interval_core.h).
+    GAOL_FPU_SCALAR() in gaol/core/gaol_interval_core.h).
   */
   //! Whether x is subnormal, as its bits tell
   GAOL_INLINE bool bound_is_subnormal(double x)

@@ -110,15 +110,19 @@ point Q), which `numbers` checks there too.
   compared fail without the call of `sqr()` in `pown_upward()`, 5 without the
   one in `gaol_pown()`), and (-c)^n has to be c^n or
   -c^n, and the bound of a corner the same whether the other corner is
-  computed with it or alone, at 1 088 points near 1, 1.5 and 3, where the
-  power is within the error bound of a double: the lanes take |c|, the
-  products of c and -c rounded upward not being opposite.
+  computed with it or alone, at 1 088 points near 1, 1.5 and 3 and 12 736 more
+  (c within 16 doubles of 1, n from 2 to 200 in magnitude), where the power is
+  within the error bound of a double: the lanes take |c|, the products of c
+  and -c rounded upward not being opposite (5 of these checks fail with lanes
+  that take c).
   `gaol::pow(x, n)` for an unsigned n has to give what it gives
   for an int n, `[1]` for n = 0 and the empty set for an empty x. Integer
   powers for n from 2^24 + 1 to 2^32 − 1 have to be the tightest enclosures,
   against bounds computed with mpmath: the lower bound left out the square of
   the rest it carries, and was 1962 doubles below the tightest for
-  `pow([1.0000001], 2^32 − 1)`. The n-th roots of x below 2^-1020, the
+  `pow([1.0000001], 2^32 − 1)`. The same for 46 negative n from −2^31 to
+  −2^24, 1/x^n corrected to the second order (44 of these checks fail without
+  the term r^2 of the correction). The n-th roots of x below 2^-1020, the
   subnormal x included, have to be as tight as those of the other x: within 2
   doubles of the tightest bounds (4 for `rootn(x, q)`, q < 0, the inverse of a
   root) for n = 4, 5, 33, 65, 129 and 1025 against exact arithmetic and for n
@@ -234,17 +238,39 @@ point Q), which `numbers` checks there too.
   exception flags that an operation raises between its start and its end, which
   must not be lost, the registers written are those that differ only, MXCSR
   once for the direction and the modes, and the registers are read once, and
-  once more for a write (GAOL v5). With GCC, Clang or Visual C++ for 32-bit x86,
+  once more for a write (GAOL v5). The start and the end of the SSE2 operations
+  with `GAOL_PRESERVE_ROUNDING`, which keep MXCSR alone
+  (`gaol_core::sse_enter_upward()` and `sse_leave()`), are checked on one
+  variable for it, in the 16 states of the field RC and the two flush modes,
+  with other bits that must not change and the exception flags raised in
+  between, which must not be lost: MXCSR is written when the direction is not
+  upward or a mode is set, once, and read only to give back what was found,
+  never when that was upward with the modes clear, nor written when it holds it
+  already (GAOL v5, point 108 (AI) of TODO.md). On an x86 processor,
+  `round_upward()`, `round_nearest()` and `round_downward()` are called from the
+  16 states of the field RC and the two flush modes of MXCSR, with other bits
+  that must not change: the field RC is the direction asked, and no other bit
+  changes, the flush modes and the exception flags among them (and, for 32-bit
+  x86, the same of the control word of the x87 unit). With GCC, Clang or Visual
+  C++ for 32-bit x86,
   the registers themselves, read and written by the test apart from the library
   in the six states above and with each flush mode, after ten operations: both
   units upward and the modes clear, or as they were found with
   `GAOL_PRESERVE_ROUNDING`, no other bit changed, and the sums and products
   the tightest enclosures right after the program wrote the registers (600
-  operands for each mode). `cbrt`, `pow` and `atan2` have to leave the
-  exception masks of the SSE control register as they found them, and an empty interval to be told
-  empty after them: the `fesetexceptflag()` of mingw-w64 for 32-bit
-  Windows unmasked the exceptions, and the comparison of the NaN
-  bounds of an empty interval then killed the program (GAOL v5).
+  operands for each mode); `gaol_core::x86_registers`, the type through which
+  the library reads and writes the two registers, has to read the words the
+  test reads and write the words it is given, and nothing else, in each of
+  these states and with four sets of the other bits of the registers (the
+  precision and the exception masks of the control word, the exception masks
+  and flags of MXCSR, an exception unmasked in each), so that a read that
+  drops the flags or a write that forces the masks is seen (GAOL v5, point
+  AI.108 of TODO_DONE.md). `cbrt`, `pow` and
+  `atan2` have to leave the exception masks of the SSE control register as they
+  found them, and an empty interval to be told empty after them: the
+  `fesetexceptflag()` of mingw-w64 for 32-bit Windows unmasked the exceptions,
+  and the comparison of the NaN bounds of an empty interval then killed the
+  program (GAOL v5).
   The square of an empty interval and the forms of `pow` that return as `sqr`
   does for it (`pow(x, 2)` with an `int`, an `unsigned`, a `long long`, a
   `double` and an interval `[2]`, `pow(x, 2.5)`, `pow(x, 5000000000LL)`,
@@ -293,7 +319,8 @@ point Q), which `numbers` checks there too.
   `inverse([0, 2])` raising the division-by-zero flag, where the FPU ones
   raised none); 13 powers with an
   exponent of extreme magnitude, which have to be the tightest enclosures
-  (CORE-MATH's `pow` compares a NaN it makes on purpose there); 13 integer
+  (CORE-MATH's `pow` compared a NaN it makes on purpose there until its commit
+  `c01f08c5`); 13 integer
   powers at the ends of the doubles, an infinite bound, an overflow, 0 for a
   negative exponent, exponents beyond the ints, which have to be the tightest
   enclosures, and `pow([5.3, 5.5], 25)`, whose rests of the exact products,
@@ -334,11 +361,14 @@ point Q), which `numbers` checks there too.
   doubles next to the largest and the smallest ones, powers of 2 and their
   neighbours, any exponent and subnormal ones: whatever the draw, a result
   with no infinite bound (the empty set included) has to come with neither the
-  overflow nor the division-by-zero flag (GAOL v5, point 79 of TODO.md). 24
+  overflow nor the division-by-zero flag (GAOL v5, point 79 of TODO.md). 27
   cases of TODO.md and their like (`sqrt([1, DBL_MAX])`, `nth_root([DBL_MAX],
   3)`, `sin([-1, DBL_MAX])`, `tan([DBL_MAX])`, `div_rel([1], [2^-1074, 1], [1,
   2])`, `sqrt_rel([DBL_MAX], [-3, 0])`, `pow_rel([DBL_MAX], [2], I)`,
-  `pow_exponent_rel([DBL_MAX], [2], I)`, `atanh_rel([0, 1], [0])`...) have to
+  `pow_exponent_rel([DBL_MAX], [2], I)`, `atanh_rel([0, 1], [0])`, and the
+  tiny powers of a power of two to an exponent next to 2<sup>1014</sup> or
+  more, `pow([2^-1074], [1.5 2^1014])`, where CORE-MATH's `pow` overflows
+  multiplying the exponent by that of the base...) have to
   give their tightest bounds, computed apart with exact arithmetic and, for
   the tangent, mpmath (a double or two more for the fifth root, for
   `nth_root([DBL_MAX], -3)` and for `pow_rel()` with an exponent next to
@@ -355,13 +385,16 @@ point Q), which `numbers` checks there too.
   are checked from each direction the test runs, six with the SSE instructions
   and four elsewhere (GAOL v5; they were checked from upward only, mingw-w64 on
   x86-64 apart), and after `gaol::cleanup()` and `gaol::restore_rounding()`.
-  With mingw-w64 on x86-64 (GAOL v5, point 110 of TODO.md), the control word of
-  the x87 unit is read apart (`fnstcw`) and is part of the state that has to be
-  the same before and after each operation, as `fegetround()` of mingw-w64 13
-  and later joins the fields RC of the two units by OR; `fesetround()` of
+  With mingw-w64 on x86-64 (GAOL v5, point AI.110 of TODO_DONE.md), the
+  control word of the x87 unit is read apart (`fnstcw`) and is part of the
+  state that has to be the same before and after each operation, as
+  `fegetround()` of mingw-w64 13 and later joins the fields RC of the two units
+  by OR; the other bits of the word (the precision and the masks) have to be
+  the same after `cleanup()` and `restore_rounding()`; `fesetround()` of
   mingw-w64 13 and later clears the six flags of MXCSR when it changes it,
-  which `midpoint()`, `rad()`, `split()`, `chi()`, the reading and the writing
-  of an interval, `cleanup()` and `restore_rounding()` called.
+  which, with `GAOL_PRESERVE_ROUNDING`, `midpoint()`, `rad()`, `split()`,
+  `chi()`, the reading and the writing of an interval called, and `cleanup()`
+  and `restore_rounding()` called with it or without it.
   With the SSE2 intervals, `x * d` and `x *= d` of `[+0, -0]` for eight
   nonzero doubles, from each direction, have the zero bounds of their path,
   `[-0, +0]` with the AVX-512 path of `GAOL_PREFER_AVX512` and `[+0, -0]`
@@ -877,7 +910,16 @@ point Q), which `numbers` checks there too.
   the upward rounding, which computes with the 128-bit integer GAOL ports
   (see [3rd/README.md](../3rd/README.md)): comparing CORE-MATH with itself,
   the rest of the test cannot see a fault of that port, which the jobs
-  computing with the two 64-bit halves would then find here. First of all,
+  computing with the two 64-bit halves would then find here. `cos` is checked
+  in the four rounding directions at 45 arguments of its accurate path, against
+  its roundings computed with mpmath at 4 000 bits (the upstream sources
+  compiled unchanged give them too; `tests/tools/cos/` recomputes them and
+  tells how the arguments were found), and the bounds of `cos` of each have to
+  be the tightest ones. The arguments reach the branches of that path (the
+  reduction of the argument rounding up or not, the three ways of combining the
+  two products, every range of exponents of the table of 1/(2π) beyond
+  2<sup>31</sup>, the four arguments `exceptions()` rounds apart, with both
+  signs) (GAOL v5). First of all,
   the test checks the `fma()` and `round()` of the C library, which CORE-MATH
   and GAOL call (`fma()` wherever the compiler has no fused multiply-add
   instruction, as with `GAOL_FMA` off; GCC for Windows takes `-mfma`, and the
@@ -950,7 +992,17 @@ point Q), which `numbers` checks there too.
   (1 + 2<sup>−52</sup>)<sup>−1/2</sup> shows: its accurate phase rounds them
   upward from the direction its `get_rounding_mode()` reads, which clang-cl on
   x86-64 took for toward zero, in `cbrt` and `asinpi` too, the upper bound
-  being below 1/sqrt(x) (GAOL v5). `erf` and `erfc` have to be the tightest
+  being below 1/sqrt(x) (GAOL v5). CORE-MATH, called without GAOL in each of
+  the six directions of `rounding_direction`, the two where the x87 unit and
+  the SSE instructions differ among them, has to round in the direction of
+  MXCSR, which the doubles it computes follow: `pow` with a subnormal result
+  and `cbrt` at one of its hard cases give the double above in the direction
+  upward of the SSE instructions and the one below otherwise, whatever the
+  direction of the x87 unit. GAOL's operations set both units before they call
+  it, which hides the difference, and on a 32-bit x86 processor its
+  `fegetround()` was the C library's, reading the x87 unit (glibc) or giving -1
+  (Visual C++) when the two differ (GAOL v5, point AI.108 of TODO_DONE.md).
+  `erf` and `erfc` have to be the tightest
   enclosures over 80 000 intervals, whose bounds are drawn among 0, the
   infinities, the subnormals, the arguments past which their values are within
   2^-53 of ±1 or of 2, subnormal or below 2^-1074, and those at which CORE-MATH
@@ -1340,41 +1392,50 @@ point Q), which `numbers` checks there too.
   the CMake build has it: CPack makes the archive, and the autotools jobs of the
   continuous integration compare `configure --version` with `VERSION.txt`
   already (GAOL v5).
-- **`prefer_avx512_reconfigure`** (CMake build, on a Unix system that builds for
-  itself): a script, not a program (`tests/prefer_avx512_reconfigure.cmake`).
-  `GAOL_PREFER_AVX512` is `ON` by default where `GAOL_PRESERVE_ROUNDING` is, and
-  `OFF` otherwise, and what the command line gives wins. `CMakeLists.txt` told
-  the two apart by `DEFINED`, which saw at the second `cmake` of a directory the
-  entry the first one had made, and took it for the command line's: a directory
-  configured with `-DGAOL_PRESERVE_ROUNDING=ON` lost the AVX-512 path at its
-  second `cmake` (point 112 of `TODO.md`). The script configures GAOL as the
-  project built, with the generator and the compilers that built it, several
-  times in the same directory, and compares what each configuration says and
-  writes: the messages about the path, the entry `GAOL_PREFER_AVX512` of the
-  cache and the record `GAOL_PREFER_AVX512_DERIVED`, and the lines of
-  `gaol_configuration.h`. The second `cmake`, with and without
-  `-DGAOL_PRESERVE_ROUNDING=ON`, has to give the configuration of the first;
-  the default has to follow `GAOL_PRESERVE_ROUNDING` off and on again; a
-  `-DGAOL_PREFER_AVX512=OFF` has to refuse the path under
-  `GAOL_PRESERVE_ROUNDING` and to stay for the next `cmake`, after a default
-  that was `ON` and after one that was `OFF` (the request then equals what the
-  entry holds), until `-UGAOL_PREFER_AVX512` derives the default again; a
-  `-DGAOL_PREFER_AVX512=ON` has to stay too, and so has a request of ON made by
-  editing the value of the entry in `CMakeCache.txt` between two `cmake`, as
-  `ccmake` does (no `-D`: only the value tells it from the default derived).
-  The entry has to say what the configuration uses. Where the compiler has no AVX-512 path (ARM), the default
-  derived under `GAOL_PRESERVE_ROUNDING` is left out with a message that every
-  `cmake` has to give, and `-DGAOL_PREFER_AVX512=ON` is an error each time;
-  where it has one, the header differs too. The script takes
+- **`automatic_configuration`** (CMake build, on a Unix system that builds for
+  itself): a script, not a program (`tests/automatic_configuration.cmake`). The
+  configuration of GAOL is decided by checks of the compiler and of the machine
+  (GAOL v5): the fused multiply-add instructions, the AVX-512 path, the 128-bit
+  integer, the debugging and the vector intervals have no option, and the
+  settings of the developers (`GAOL_FMA=OFF`, `GAOL_PREFER_AVX512`,
+  `GAOL_U128_EMULATION=ON`, `GAOL_DEBUG=ON`, `GAOL_EXCEPTIONS_ENABLED=OFF`,
+  `GAOL_VERBOSE_MODE=ON`, `GAOL_MACHINE_RUNS_FMA` and
+  `GAOL_MACHINE_RUNS_AVX512`) are read where they apply, without being in the
+  cache unless they were given. The script configures GAOL as the project built,
+  with the generator and the compilers that built it, in the same directory for
+  most of them, and holds `gaol_configuration.h` and the messages of CMake to
+  what each configuration asks for and to what the checks found, which the cache
+  of CMake keeps (an entry that a platform may not give, an AVX-512 path on ARM
+  or a flag of the fused multiply-add instructions on 64-bit ARM, is not
+  asked for): the defaults (no AVX-512 path, no debugging, exceptions, silent,
+  SSE2 on x86-64 and NEON on 64-bit ARM, the two halves of the 128-bit integer
+  only where the compiler has no type); `GAOL_SIMD=OFF` (the FPU, and no AVX-512
+  path) and the old `GAOL_ARM64=OFF`, which is read no more and says so; the
+  AVX-512 path, which follows `GAOL_PRESERVE_ROUNDING` at every `cmake` of a
+  directory, off and on again (a default that the second `cmake` took for a
+  request left the path out, point 112 of `TODO.md`), is refused by
+  `-DGAOL_PREFER_AVX512=OFF` and stays so for the next `cmake` until
+  `-UGAOL_PREFER_AVX512`, and asked for by `=ON`, which is an error where the
+  compiler has no path; the Debug build type, which sets `GAOL_DEBUGGING` and
+  nothing else does (`-DGAOL_DEBUGGING=ON` is overwritten); `-DGAOL_FMA=OFF` and
+  `-DGAOL_U128_EMULATION=ON`; `-DGAOL_EXCEPTIONS_ENABLED=OFF` and
+  `-DGAOL_VERBOSE_MODE=ON`, which are taken out of the cache by the next
+  configuration; and a cross-compilation (`CMAKE_SYSTEM_NAME` given), where no
+  program can be run, which leaves the fused multiply-add instructions and the
+  AVX-512 path out and takes them on the word of `-DGAOL_MACHINE_RUNS_FMA=1` and
+  `-DGAOL_MACHINE_RUNS_AVX512=1`. Run against the CMake build before this
+  change, it fails on the 128-bit integer message, on `GAOL_ARM64`, on
+  `GAOL_DEBUGGING`, on the settings of the exceptions and of the verbose mode,
+  and on both cross-compilations. The script takes
   `-DGAOL_CONFIGURE_ARGS=...` for the arguments of a configuration of another
   architecture: on an ARM Mac,
   `-DCMAKE_OSX_ARCHITECTURES=x86_64;-DGAOL_MACHINE_RUNS_AVX512=1;-DGAOL_MACHINE_RUNS_FMA=1`
   takes the path where the programs of the checks, which cannot run without
-  Rosetta, are given their result. It configures a directory of its own and
-  builds nothing, so it takes about three seconds, the first `cmake` running the
+  Rosetta, are given their result. It configures directories of its own and
+  builds nothing, so it takes about ten seconds, the first `cmake` running the
   checks of the compiler and the others reusing them. Only the CMake build has
-  it: configure and meson keep no entry of that kind, the first recomputing the
-  default at every run and the second keeping `auto` (GAOL v5).
+  it: configure and meson are checked by the audit of the three builds
+  (`.github/audit`) and by their jobs of the continuous integration.
 - **The unit tests of GAOL 4:** `arithmetic_operators` (`check/arithmetic.cpp`),
   `assignment`, `constants`, `constructor`, `float_functions`,
   `generic_functions`, `input_output`, `interval_functions`, `misc`,
@@ -1469,6 +1530,41 @@ point Q), which `numbers` checks there too.
   divided, squared, negated, intersected, hulled, rooted, multiplied by a
   double and given a midpoint, and the program stops there with an aligned
   load; it only prints a line elsewhere.
+  `test_stack_entered_aligned_on_4_bytes` runs on 32-bit Windows with GCC or
+  Clang and the SSE2 intervals (MinGW-w64, MSYS2, Clang for Visual C++,
+  clang-cl), where the system calls its threads and its callbacks with the
+  stack aligned on 4 bytes, not on 16 as GCC takes it (bug 40838 of GCC): a
+  function that works on local intervals and calls
+  the library (sums, differences, products, a quotient, `sqr`, `exp`, `sin`,
+  `cos`), entered through a trampoline in assembly with the stack at each of
+  the four alignments of 4 bytes (the trampoline says which it gave, and the
+  test checks it), has to return, and give the bounds it gives with the stack
+  aligned on 16, far from 0 (GAOL v5, point 106 (AI) of TODO.md). A signal
+  handler turns the stop of the program into a failure. The test prints a
+  line when it runs and passes, which the jobs of the continuous integration
+  for 32-bit Windows show (`ctest -V`). The ABI of Linux and macOS has the
+  stack aligned on 16 at every call, and Visual C++ aligns it by itself:
+  elsewhere the test only prints a line. Clang aligns it too for the targets
+  of Windows (Clang 18 and 21 put an `andl` of the stack in the prologue of a
+  function that keeps a vector in a local), and so the test cannot fail with
+  it, but it runs there. `-DGAOL_TESTS_STACK_ON_4_BYTES=1` runs it on Linux
+  for 32-bit x86, where GCC 14 at `-O2` stops the program for the three
+  misaligned entries, and does not with `-mstackrealign` or
+  `-mincoming-stack-boundary=2` given to the file of the test (`libgaol.a` is
+  compiled without).
+  `test_rounding_macros_write_mxcsr_alone` tells the builds with
+  `GAOL_PRESERVE_ROUNDING` whose operations write MXCSR alone
+  (`GAOL_RND_MXCSR_ONLY` of `gaol/gaol_fpu.h`): x86-64 with the SSE2 intervals
+  and the fused multiply-add instructions, `__FMA__` for GCC, Clang and
+  clang-cl and `/arch:AVX2` for Visual C++ (GAOL v5, point 109 (AI) of
+  TODO.md); any other build, on x86-64 (GCC or Clang without `-mfma`, Visual
+  C++ without `/arch:AVX2`) or elsewhere, has the macros of its own, which call
+  `fegetround()` and `fesetround()` or write the control register of the
+  processor. The test checks the macro against a copy of the condition, which
+  a build that loses `/arch:AVX2` would satisfy too, so that it prints the
+  value (`GAOL_RND_MXCSR_ONLY is 1`) and the jobs of the continuous
+  integration for Visual C++ and clang-cl on x64 with the direction preserved
+  look for it (`ctest -V`).
   `check/fpu.cpp`, an empty test, and `check/essai.cpp`, which printed an
   interval, are gone, as is `check/performances.cpp`, the benchmark of GAOL 4,
   which `make perf` replaces (see
@@ -1520,7 +1616,9 @@ integration configures (GAOL v5).
 
 `tests/performance.cpp` (`gaol_performance`) measures the time per operation of
 GAOL's arithmetic and elementary functions, of the constructor `interval(a, b)`,
-`floor()`, `x &= y`, `x | y`, `max()`, `midpoint()` and two relations, which
+`floor()`, `x &= y`, `x | y`, `max()`, `midpoint()`, `nth_root(x, 3)`, the cube root, and `asinpi()` (the
+functions of CORE-MATH that read the rounding direction at each call, GAOL v5,
+point 108) and two relations, which
 compare bounds with the quiet comparisons of `<cmath>` (one instruction each
 with GCC and Clang on x86, perhaps a call with Visual C++) and, where two
 compare equal, by their bits (GAOL v5, point Q), and of the same operations on
@@ -1546,7 +1644,7 @@ and three times with its head, in turn, and compares them (see
 [Continuous integration](continuous-integration.md#the-speed-of-a-pull-request)).
 
 `tests/tools/pow/` holds the tools that check a change of `pow` in
-`gaol/gaol_interval_core.cpp` (see [its README](../tests/tools/pow/README.md)).
+`gaol/core/gaol_interval_core.cpp` (see [its README](../tests/tools/pow/README.md)).
 They are not tests either: no build compiles them and no job runs them.
 `diffpow.py` prints the bounds of `gaol_ieee1788::pow` and `gaol::pow` with
 two builds of GAOL, on 70 500 boxes and under the four rounding directions at
@@ -1560,7 +1658,7 @@ which `ieee1788`, `elementary`, `arithmetic`, `rounding_direction` and
 `expressions` have to catch, but for those that give the same bounds, and
 runs `diffpow` on the errors no test catches. `pown_bound.py` checks with
 rationals the induction that bounds the error of the integer powers
-beforehand (`pown_products()` in `gaol/gaol_interval_core.cpp`). `bench.cpp`
+beforehand (`pown_products()` in `gaol/core/gaol_interval_core.cpp`). `bench.cpp`
 measures the time per call of each path of `pow`.
 
 `tests/tools/arith/` holds a tool of the same kind for the arithmetic (see

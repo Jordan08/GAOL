@@ -74,15 +74,16 @@
 #include "gaol/gaol_common.h"
 #include "gaol/parser/gaol_parser.h"
 #include "gaol/gaol_port.h"
-#include "gaol/gaol_interval_core.h"
+#include "gaol/core/gaol_interval_core.h"
 #include "gaol/gaol_exceptions.h"
 // x * 2^n rounded once, for the integer powers beyond the doubles (GAOL v5)
 #include "gaol/gaol_ldexp.h"
 
 // The FMA instructions on two doubles at once, for the integer powers, where
-// the build has them (GAOL v5, see pown_products()): SSE2 with FMA on x86. The
-// NEON intervals have them all (gaol/gaol_interval_neon.cpp)
-#if GAOL_USING_SSE2_INSTRUCTIONS && (defined(__FMA__) || (defined(_MSC_VER) && defined(__AVX2__)))
+// the build has them (GAOL v5, see pown_products()): SSE2 with FMA on x86
+// (GAOL_FMA_AS_INSTRUCTION, gaol/gaol_fpu.h). The NEON intervals have them all
+// (gaol/core/gaol_interval_neon.cpp)
+#if GAOL_USING_SSE2_INSTRUCTIONS && GAOL_FMA_AS_INSTRUCTION
 #  define GAOL_POWN_PACKED 1
 #  include <immintrin.h>
 #else
@@ -91,7 +92,7 @@
 // The same kernel rounded upward by the embedded rounding of AVX-512, where
 // GAOL_AVX512_ARITHMETIC is (GAOL v5, point ZZ of TODO.md, see
 // pown_large_er()): it needs the packed kernel, and runs in functions that
-// carry the target of gaol/gaol_interval_avx512.cpp
+// carry the target of gaol/core/gaol_interval_avx512.cpp
 #if GAOL_POWN_PACKED && (defined(__x86_64__) || defined(_M_X64)) && GAOL_AVX512_ARITHMETIC
 #  define GAOL_POWN_ER 1
 #else
@@ -271,7 +272,7 @@ namespace gaol_core {
     quotients of the bounds of K by those of J, whichever the signs. The FPU
     and the NEON intervals compute it so, and the SSE2 intervals where a
     quotient of their vectors could overflow (see div_rel() in
-    gaol/gaol_interval_sse.cpp). The quotients are those of quotient_sat():
+    gaol/core/gaol_interval_sse.cpp). The quotients are those of quotient_sat():
     one that overflows is the infinity it gives, which is intersected with a
     finite I or joined to an infinite bound of the hull, where the division
     raised the overflow exception for a finite result, as in div_rel([0, 1/2],
@@ -825,9 +826,9 @@ namespace gaol_core {
     The operations on the two lanes are those of a class for each kind of
     intervals (GAOL v5, point AP of TODO.md): a pair of doubles here, for the
     FPU intervals and for the SSE2 intervals without the FMA instructions; an
-    SSE2 register with FMA in gaol/gaol_interval_sse.cpp, the embedded rounding
-    of AVX-512 in gaol/gaol_interval_avx512.cpp and a NEON register in
-    gaol/gaol_interval_neon.cpp. Each has the types lanes and rests (the rests
+    SSE2 register with FMA in gaol/core/gaol_interval_sse.cpp, the embedded rounding
+    of AVX-512 in gaol/core/gaol_interval_avx512.cpp and a NEON register in
+    gaol/core/gaol_interval_neon.cpp. Each has the types lanes and rests (the rests
     or-ed together) and the operations mul, fms (a * b - c), fma, twice_plus
     (2 a + b), first_rest and add_rest; the file of the intervals defines the
     function pown_large_inline() that makes the two corners and the bounds from
@@ -938,18 +939,18 @@ namespace gaol_core {
 #if (defined(__x86_64__) || defined(_M_X64)) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_AVX512_ARITHMETIC
   // GAOL_AVX512_ARITHMETIC, decided when GAOL is configured: +, -, *, /, sqr,
   // sqrt and, with FMA, the integer powers beyond 1 and -1 take the AVX-512
-  // path of gaol/gaol_interval_avx512.cpp, which sets no rounding direction,
+  // path of gaol/core/gaol_interval_avx512.cpp, which sets no rounding direction,
   // and clears the flush-to-zero modes as the other operations do
   // (flush_guard there; GAOL v5, point Q of TODO.md)
 #  include <immintrin.h>   // the AVX-512 intrinsics of the path below
-#  include "gaol/gaol_interval_avx512.cpp"
+#  include "gaol/core/gaol_interval_avx512.cpp"
 #endif
 #if GAOL_USING_SSE2_INSTRUCTIONS
-#  include "gaol/gaol_interval_sse.cpp"
+#  include "gaol/core/gaol_interval_sse.cpp"
 #elif GAOL_USING_NEON_INSTRUCTIONS
-#  include "gaol/gaol_interval_neon.cpp"
+#  include "gaol/core/gaol_interval_neon.cpp"
 #else
-#  include "gaol/gaol_interval_fpu.cpp"
+#  include "gaol/core/gaol_interval_fpu.cpp"
 #endif // GAOL_USING_SSE2_INSTRUCTIONS
 
   // Default format for output
@@ -1294,13 +1295,15 @@ namespace gaol_core {
     reverse functions give: pow keeps raising the exception for its infinite
     upper bound, as doc/using.md says of the infinite bounds.
     x^y can only overflow where it is above 1, for x > 1 and y > 0 or
-    x < 1 and y < 0, and it is the tiny power, 2^-1074 rounded upward, in the
-    other cases beyond t = 1100 below, where CORE-MATH squares y log(x) in its
-    first phase, which overflows from 2^512 on. The binary logarithm of x^y is
+    x < 1 and y < 0: CORE-MATH's pow goes its way in the other cases, where
+    pow_rounded_up() has taken the tiny powers of |y| >= 2^1013 apart (before
+    upstream commit c01f08c5, 5 October 2026, CORE-MATH squared y log(x) in
+    its first phase, which overflowed from 2^512 on, for a power that is tiny).
+    The binary logarithm of x^y is
     bounded by |y| |log2(x)|, with |log2(x)| at most |e| + 1, e being the
     exponent of x as frexp() gives it: when that is below 1000, nothing
     overflows. From |y| >= 2^500 on, |y log2(x)| >= 2^447, and x^y is beyond
-    the doubles, +oo or 2^-1074. Otherwise
+    the doubles, +oo. Otherwise
     t = |y| |log(x)|/log(2) is computed from the logarithm of CORE-MATH,
     which is within a few units of 2^-52 of it relatively, so that
     x^y < 2^(1024 - 2^-30) is no overflow for t < 1024 - 10^-9, and x^y is
@@ -1315,6 +1318,9 @@ namespace gaol_core {
       return upward::nthroot_up(x, y);
     }
     const bool grows = (x > 1.0) == (y > 0.0);
+    if (!grows) {
+      return upward::nthroot_up(x, y);
+    }
     const double magnitude = std::fabs(y);
     // |e| from the exponent field of x: e = field - 1022 for a normal x, and
     // 1074 at most for a subnormal one
@@ -1326,16 +1332,10 @@ namespace gaol_core {
       return upward::nthroot_up(x, y);
     }
     if (magnitude >= two_power_500) {
-      return grows ? GAOL_INFINITY : std::numeric_limits<double>::denorm_min();
+      return GAOL_INFINITY;
     }
     // 1/log(2), rounded to nearest: the margins below are far larger than its error
     const double t = magnitude*std::fabs(upward::log_up(x))*1.4426950408889634;
-    if (!grows) {
-      // x^y < 1: nothing overflows but the square of y log(x) in the first
-      // phase of CORE-MATH, which is 2^1024 for |y log(x)| = 2^512 (Clang):
-      // the power is below 2^-1100 from t = 1100 on, and rounds upward to 2^-1074
-      return (t >= 1100.0) ? std::numeric_limits<double>::denorm_min() : upward::nthroot_up(x, y);
-    }
     if (t < 1023.999999999) {
       return upward::nthroot_up(x, y);
     }
@@ -1364,55 +1364,38 @@ namespace gaol_core {
   }
 
   /*
-    x^y rounded upward for x >= 0 and a finite y, the rounding direction
+    x^y rounded upward for x >= 0 and y finite or not, the rounding direction
     being upward: CORE-MATH's pow, which is correctly rounded in that
-    direction, but for an exponent of extreme magnitude, |y| < 2^-969 or
-    |y| >= 2^1014, and a finite x > 0 other than 1, whose power is computed
-    here (GAOL v5). For those, the first phase of CORE-MATH's pow makes its
-    approximation of log(x) a NaN on purpose (the exponent field of y below
-    0x36 or from 0x7f5 on), so that its rounding test fails, and compares the
-    NaN product with 2^-1022 with <, which raises the invalid-operation
-    exception: pow([1, 2], [1e-300]) and pow([1, 2], [1e300, 1e308]) raised
-    it, and killed a program that enabled it. The value is known there,
-    |log(x)| being between 2^-54 and 745 for a positive double x other than 1:
-    - |y| < 2^-969: 0 < |y log(x)| < 2^-959, and x^y is within 2^-958 of 1,
-      above 1 where y log(x) > 0: x^y rounded upward is the double above 1
-      there, and 1 otherwise;
-    - |y| >= 2^1014: |y log(x)| > 2^960, and x^y is above DBL_MAX where
-      y log(x) > 0, rounded upward to +oo, and below 2^-1074 otherwise,
-      rounded upward to 2^-1074.
-    These are the values CORE-MATH gives, and the double below each the lower
-    bound it gives (pow_rounded_dn()). 1^y and x^0 are 1; CORE-MATH takes 0
-    and +oo apart before its first phase.
+    direction, and for the template argument quiet without the overflow
+    exception where the power is above the largest double
+    (pow_up_without_overflow_exception()). The one power computed here is the
+    tiny one, x^y < 1 for a finite x > 0 other than 1 and |y| >= 2^1013:
+    |y log(x)| >= 2^960 there, and x^y rounded upward is 2^-1074 (for an
+    infinite y, whose power is 0, it is an upper bound, which is all
+    root_of_power_near() asks of it). The is_exact() of CORE-MATH's pow
+    multiplies y by the exponent e of a power of two x, a product that
+    overflows from |y e| = 2^1024 on (|e| is at most 1074), which raises the
+    overflow exception for this finite result (GAOL v5, point 79 of TODO.md;
+    pow(2^-1074, 1.5 2^1014) does): it needs y > 0, so x < 1, but the power is
+    right for the other sign too, and cheaper than CORE-MATH.
+    Until upstream commit c01f08c5 (5 October 2026) CORE-MATH's pow raised two
+    more exceptions, and GAOL computed the powers of an exponent of extreme
+    magnitude itself: the invalid-operation exception for |y| < 2^-969 and for
+    |y| >= 2^1014, where it compared with < the NaN it makes of its first
+    approximation of log(x) (pow([1, 2], [1e-300]) killed a program that
+    enabled it), and the overflow exception from |y log(x)| = 2^512 on, where
+    it squared that product, for a tiny power.
   */
   template <bool quiet = false>
   static inline double pow_rounded_up(double x, double y)
   {
-    // 2^-969 and 2^1014, written in decimal with the digits that give them
-    // exactly: C++11 has no hexadecimal floating literal
-    const double magnitude = std::fabs(y);
-    // 2^450 too: from |y| = 2^450 on, a power below 1 is the tiny one, which
-    // CORE-MATH, squaring y log(x) in its first phase, raised the overflow
-    // exception to find, from |y log(x)| = 2^512 on (Clang), and the quiet
-    // powers do not need it either (GAOL v5, point 79 of TODO.md)
-    if (magnitude >= 2.0041683600089728e-292 && magnitude < (quiet ? 1.7555597020139804e+305 : 2.9073548971824276e+135)) {
-      return quiet ? pow_up_without_overflow_exception(x, y) : upward::nthroot_up(x, y);
+    // 2^1013, written in decimal with the digits that give it exactly: C++11
+    // has no hexadecimal floating literal
+    if (std::fabs(y) >= 8.777798510069902e+304 && x > 0.0 && x < GAOL_INFINITY && x != 1.0
+        && (x > 1.0) != (y > 0.0)) {
+      return std::numeric_limits<double>::denorm_min();
     }
-    if (!quiet && magnitude >= 2.9073548971824276e+135 && magnitude < 1.7555597020139804e+305) {
-      return (x > 0.0 && x < GAOL_INFINITY && x != 1.0 && (x > 1.0) != (y > 0.0))
-        ? std::numeric_limits<double>::denorm_min() : upward::nthroot_up(x, y);
-    }
-    if (x == 1.0 || y == 0.0) {
-      return 1.0;
-    }
-    if (x == 0.0 || x == GAOL_INFINITY) {
-      return upward::nthroot_up(x, y);
-    }
-    const bool above_one = (x > 1.0) == (y > 0.0);
-    if (magnitude < 1.0) {
-      return above_one ? 1.0 + std::numeric_limits<double>::epsilon() : 1.0;
-    }
-    return above_one ? GAOL_INFINITY : std::numeric_limits<double>::denorm_min();
+    return quiet ? pow_up_without_overflow_exception(x, y) : upward::nthroot_up(x, y);
   }
 
   template <bool quiet = false>
@@ -2361,7 +2344,7 @@ namespace gaol_core {
 
 
   /*
-    inverse_upward() and sqr_upward() of gaol/gaol_interval_core.h, which are
+    inverse_upward() and sqr_upward() of gaol/core/gaol_interval_core.h, which are
     private to interval, for pown_upward() and nth_root(I, q) for q < 0: they
     check the rounding direction once and take the inverse or the square after
     it, without checking it again as inverse() and sqr() do (GAOL v5)
@@ -2981,10 +2964,10 @@ namespace gaol_core {
     and other than 0, which the bounds below are looked for from: CORE-MATH's
     pow with the exponent 1/y rounded, |log(c^(1/y))| 2^-53 away relatively,
     after a step of Newton's method on r^y = c, r - r (r^y - c)/(y r^y),
-    which brings it within about 2^-52/|y| relatively. pow_rounded_up() takes
-    the exponents of extreme magnitude apart, 1/y included (+oo for a
-    subnormal y), on which CORE-MATH's pow would raise the invalid-operation
-    exception. Rounding upward
+    which brings it within about 2^-52/|y| relatively. 1/y is +oo for a tiny
+    y, and -DBL_MAX for a tiny negative one (quotient_sat()): the exponents of
+    extreme magnitude pow_rounded_up() takes apart, 1/y included. Rounding
+    upward
   */
   static double root_of_power_near(double c, double y)
   {
@@ -4036,7 +4019,7 @@ interval nth_root(const interval& I, int q)
   /*
     The root of order q of I for a q beyond the ints and the unsigned ints,
     after one check of the rounding direction (GAOL v5: the template
-    gaol_detail::huge_root() of gaol/gaol_interval_core.h computed it, where 1/|q|
+    gaol_detail::huge_root() of gaol/core/gaol_interval_core.h computed it, where 1/|q|
     and the two powers checked it once each): order is the tightest interval
     holding |q|, negative and odd tell the sign and the parity of q, and the
     inverse of order has positive bounds. Declared in no header, and not
@@ -6409,7 +6392,7 @@ interval nth_root(const interval& I, int q)
     }
 #elif GAOL_USING_NEON_INSTRUCTIONS
     // The roots of both bounds by one vector instruction (GAOL v5, see
-    // gaol/gaol_interval_neon.cpp), unless the upper bound is above
+    // gaol/core/gaol_interval_neon.cpp), unless the upper bound is above
     // huge_root_argument: the vector product of its proof of exactness
     // overflows, and the code below scales it (GAOL v5, point 79 of TODO.md).
     // The empty set, whose bounds are NaN, is not above it

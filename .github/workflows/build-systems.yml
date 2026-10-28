@@ -3,18 +3,19 @@
 # as the CMake build does. Each build runs the unit tests (make test, ninja
 # test), and the tests are built again with each installed GAOL, on Linux
 # (x86_64, arm64, and i386 and armhf in containers), macOS (arm64, x86_64) and
-# Windows (MSYS2, and Visual C++ with meson). Checks that the three builds give
-# GAOL the same configuration on each kind of machine (.github/audit). Each job
-# that runs the unit tests checks that numbers read and wrote numbers under a
-# locale writing a decimal comma, which the Linux jobs and the containers
-# generate first, macOS and Windows having one (.github/scripts/comma-locale.sh,
-# GAOL v5). The autotools jobs check that make distclean gives the sources back
-# as git has them. One job builds GAOL as a subproject of a meson project
-# (tests/meson_subproject, GAOL v5). An autotools job (--disable-exceptions)
-# and a meson job (-Denable-exception=false) build GAOL without exceptions,
-# where an error ends the program, and run the examples and the tests, which
-# leave out the checks of an exception there (GAOL v5). One job builds and
-# tests GAOL with meson 0.53.2, the oldest meson the build takes (GAOL v5).
+# Windows (MSYS2 for x64 and for x86, Cygwin, and Visual C++ and Clang with
+# meson). Checks that the three builds give GAOL the same configuration on each
+# kind of machine (.github/audit). Each job that runs the unit tests checks
+# that numbers read and wrote numbers under a locale writing a decimal comma,
+# which the Linux jobs and the containers generate first, macOS and Windows
+# having one (.github/scripts/comma-locale.sh, GAOL v5). The autotools jobs
+# check that make distclean gives the sources back as git has them. One job
+# builds GAOL as a subproject of a meson project (tests/meson_subproject, GAOL
+# v5). An autotools job (--disable-exceptions) and a meson job
+# (-Denable-exception=false) build GAOL without exceptions, where an error ends
+# the program, and run the examples and the tests, which leave out the checks
+# of an exception there (GAOL v5). One job builds and tests GAOL with meson
+# 0.53.2, the oldest meson the build takes (GAOL v5).
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -62,8 +63,9 @@ jobs:
           - { os: macos-15-intel,   configure: '',                           desc: 'Autotools, macOS 15 x86_64' }
           - { os: ubuntu-24.04,     configure: '--enable-preserve-rounding', desc: 'Autotools, Ubuntu 24.04 x86_64, rounding direction preserved' }
           - { os: ubuntu-24.04-arm, configure: '--enable-preserve-rounding', desc: 'Autotools, Ubuntu 24.04 arm64, rounding direction preserved' }
-          - { os: ubuntu-24.04-arm, configure: '--disable-arm64',            desc: 'Autotools, Ubuntu 24.04 arm64, FPU intervals' }
+          - { os: ubuntu-24.04-arm, configure: '--disable-simd',             desc: 'Autotools, Ubuntu 24.04 arm64, FPU intervals' }
           - { os: ubuntu-24.04,     configure: '--disable-exceptions --with-examples', desc: 'Autotools, Ubuntu 24.04 x86_64, without exceptions' }
+          - { os: ubuntu-24.04,     configure: '--enable-shared',            desc: 'Autotools, Ubuntu 24.04 x86_64, shared library', linking: shared }
     steps:
       - uses: actions/checkout@v7
       - name: Tools
@@ -117,13 +119,15 @@ jobs:
           # CORE-MATH is compiled into libgaol: no other library is installed
           grep -q "elementary functions" "$RUNNER_TEMP/configure.log"
           ls "$RUNNER_TEMP/gaol/lib"
-          ! ls "$RUNNER_TEMP/gaol/lib" | grep "^lib" | grep -v "^libgaol"
-      # NEON on 64-bit ARM, SSE2 on x86-64, the FPU where --disable-arm64
+          for f in "$RUNNER_TEMP"/gaol/lib/lib*; do
+            case "${f##*/}" in libgaol*) ;; *) echo "$f: not GAOL's"; exit 1 ;; esac
+          done
+      # NEON on 64-bit ARM, SSE2 on x86-64, the FPU where --disable-simd
       # asked for it (GAOL v5)
       - name: The intervals
         run: |
           case "$(uname -m)" in aarch64|arm64) expected=neon ;; *) expected=sse2 ;; esac
-          case "${{ matrix.cfg.configure }}" in *--disable-arm64*) expected=fpu ;; esac
+          case "${{ matrix.cfg.configure }}" in *--disable-simd*) expected=fpu ;; esac
           sh .github/scripts/check-intervals.sh gaol/gaol_configuration.h $expected
       - name: Locale writing a decimal comma
         if: runner.os == 'Linux'
@@ -152,7 +156,7 @@ jobs:
             echo "make distclean left the files or the empty directories above, or changed files"; exit 1; }
       - name: Tests built with the installed GAOL
         run: |
-          sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" static
+          sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" ${{ matrix.cfg.linking || 'static' }}
       - name: Performance
         run: |
           set -o pipefail
@@ -172,8 +176,9 @@ jobs:
           - { os: macos-15-intel,   options: '',                                desc: 'Meson, macOS 15 x86_64' }
           - { os: ubuntu-24.04,     options: '-Denable-preserve-rounding=true', desc: 'Meson, Ubuntu 24.04 x86_64, rounding direction preserved' }
           - { os: macos-15,         options: '-Denable-preserve-rounding=true', desc: 'Meson, macOS 15 arm64, rounding direction preserved' }
-          - { os: ubuntu-24.04-arm, options: '-Denable-arm64=false',            desc: 'Meson, Ubuntu 24.04 arm64, FPU intervals' }
+          - { os: ubuntu-24.04-arm, options: '-Denable-simd=false',             desc: 'Meson, Ubuntu 24.04 arm64, FPU intervals' }
           - { os: ubuntu-24.04,     options: '-Denable-exception=false -Dwith-examples=true', desc: 'Meson, Ubuntu 24.04 x86_64, without exceptions' }
+          - { os: ubuntu-24.04,     options: '-Ddefault_library=shared',      desc: 'Meson, Ubuntu 24.04 x86_64, shared library', linking: shared }
     steps:
       - uses: actions/checkout@v7
       - name: Tools
@@ -224,13 +229,15 @@ jobs:
           # CORE-MATH is compiled into libgaol: no other library is installed
           grep -qi "elementary functions" configure.log
           ls "$RUNNER_TEMP/gaol/lib"
-          ! ls "$RUNNER_TEMP/gaol/lib" | grep "^lib" | grep -v "^libgaol"
-      # NEON on 64-bit ARM, SSE2 on x86-64, the FPU where -Denable-arm64=false
+          for f in "$RUNNER_TEMP"/gaol/lib/lib*; do
+            case "${f##*/}" in libgaol*) ;; *) echo "$f: not GAOL's"; exit 1 ;; esac
+          done
+      # NEON on 64-bit ARM, SSE2 on x86-64, the FPU where -Denable-simd=false
       # asked for it (GAOL v5)
       - name: The intervals
         run: |
           case "$(uname -m)" in aarch64|arm64) expected=neon ;; *) expected=sse2 ;; esac
-          case "${{ matrix.cfg.options }}" in *-Denable-arm64=false*) expected=fpu ;; esac
+          case "${{ matrix.cfg.options }}" in *-Denable-simd=false*) expected=fpu ;; esac
           sh .github/scripts/check-intervals.sh build-meson/gaol/gaol_configuration.h $expected
       # enable-prefer-avx512=false refuses the AVX-512 path where
       # enable-preserve-rounding asks for it by default: the option was a
@@ -253,7 +260,7 @@ jobs:
       - name: The test numbers ran under a locale writing a decimal comma
         run: sh .github/scripts/comma-locale.sh check build-meson/meson-logs/testlog.txt
       - name: Tests built with the installed GAOL
-        run: sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" shared
+        run: sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" ${{ matrix.cfg.linking || 'static' }}
       - name: Performance
         run: |
           set -o pipefail
@@ -292,7 +299,7 @@ jobs:
       - name: The test numbers ran under a locale writing a decimal comma
         run: sh .github/scripts/comma-locale.sh check build-meson/meson-logs/testlog.txt
       - name: Tests built with the installed GAOL
-        run: sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" shared
+        run: sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" static
 
   # GAOL as a subproject of a meson project, tests/meson_subproject, which
   # builds tests of tests/ with gaol_dep and checks that their code gets the
@@ -428,6 +435,106 @@ jobs:
           ./rounding_direction.exe
           if ($LASTEXITCODE) { exit 1 }
 
+  # Clang with the target of Visual C++ and the driver of GCC (clang++, not
+  # clang-cl), in the environment of Visual Studio (GAOL v5), as the CMake job
+  # of windows.yml
+  meson-clang-msvc:
+    name: ${{ matrix.cfg.desc }}
+    runs-on: windows-2022
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    strategy:
+      fail-fast: false
+      matrix:
+        cfg:
+          - { arch: x64, target: x86_64-pc-windows-msvc, cpu_family: x86_64, cpu: x86_64, machine: X64, desc: 'Meson, Clang for Visual C++ x64 (clang++)' }
+          - { arch: x86, target: i686-pc-windows-msvc,   cpu_family: x86,    cpu: i686,   machine: X86, desc: 'Meson, Clang for Visual C++ x86 (clang++)' }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.cfg.arch }}
+      - name: Tools
+        run: pip install meson ninja
+      # meson gives the linker /MACHINE:X64 for Clang with the driver of GCC and
+      # the target of Visual C++, whatever the target (the file of
+      # cross-compilation names the machine, the target is in the command of the
+      # compiler, and the machine is given again to the linker, whose last
+      # option counts). The programs of x86 run on the runner, so that no wrapper
+      # is needed
+      - name: The file of cross-compilation
+        run: |
+          @"
+          [binaries]
+          c = ['clang', '--target=${{ matrix.cfg.target }}']
+          cpp = ['clang++', '--target=${{ matrix.cfg.target }}']
+
+          [built-in options]
+          c_link_args = ['-Wl,/MACHINE:${{ matrix.cfg.machine }}']
+          cpp_link_args = ['-Wl,/MACHINE:${{ matrix.cfg.machine }}']
+
+          [host_machine]
+          system = 'windows'
+          cpu_family = '${{ matrix.cfg.cpu_family }}'
+          cpu = '${{ matrix.cfg.cpu }}'
+          endian = 'little'
+
+          [properties]
+          needs_exe_wrapper = false
+          "@ | Set-Content -Encoding ascii cross.txt
+          Get-Content cross.txt
+      - name: Configure, build and install
+        run: |
+          clang++ --version
+          $prefix = "$env:RUNNER_TEMP/gaol" -replace '\\', '/'
+          meson setup build-meson --cross-file cross.txt --prefix="$prefix" --libdir=lib -Dwith-tests=true
+          if ($LASTEXITCODE) { exit 1 }
+          meson compile -C build-meson
+          if ($LASTEXITCODE) { exit 1 }
+          meson install -C build-meson
+          if ($LASTEXITCODE) { exit 1 }
+      - name: The intervals
+        shell: bash
+        run: sh .github/scripts/check-intervals.sh build-meson/gaol/gaol_configuration.h sse2
+      - name: Tests (ninja test)
+        run: |
+          ninja -C build-meson test
+          if ($LASTEXITCODE) { Get-Content build-meson/meson-logs/testlog.txt; exit 1 }
+
+  # Autotools with Clang for the target of Visual C++ and the driver of GCC
+  # (clang++, not clang-cl), in the shell of MSYS2 with the environment of Visual
+  # Studio (GAOL v5): the link.exe of MSYS2 (coreutils) comes before that of
+  # Visual Studio in PATH, so that the linker is lld, and the archiver that of
+  # LLVM
+  autotools-clang-msvc:
+    name: Autotools, Clang for Visual C++ x64 (clang++)
+    runs-on: windows-2022
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MSYS
+          path-type: inherit
+          install: make libtool
+      - name: Configure, build and test
+        run: |
+          clang++ --version
+          export CC=clang CXX=clang++ AR=llvm-ar RANLIB=llvm-ranlib LDFLAGS=-fuse-ld=lld
+          ./configure --with-tests
+          sh .github/scripts/check-intervals.sh gaol/gaol_configuration.h sse2
+          grep -E '^GAOL_CXX_STD = -std=c\+\+14$' gaol/Makefile
+          make -j 4
+          make -j 4 test
+
   container:
     name: ${{ matrix.cfg.desc }}
     runs-on: ${{ matrix.cfg.os }}
@@ -462,7 +569,7 @@ jobs:
               meson compile -C build-meson && meson install -C build-meson
               ninja -C build-meson test
               sh .github/scripts/comma-locale.sh check build-meson/meson-logs/testlog.txt
-              sh .github/scripts/tests.sh /tmp/gaol shared
+              sh .github/scripts/tests.sh /tmp/gaol static
             fi
             ./performance > /gaol/performance.md
             cat /gaol/performance.md"
@@ -479,14 +586,20 @@ jobs:
       fail-fast: false
       matrix:
         cfg:
-          - { build: autotools, desc: 'Autotools, MSYS2 UCRT64 GCC x64' }
-          - { build: meson,     desc: 'Meson, MSYS2 UCRT64 GCC x64' }
+          - { build: autotools, msystem: UCRT64,  pkg: mingw-w64-ucrt-x86_64, intervals: sse2, desc: 'Autotools, MSYS2 UCRT64 GCC x64' }
+          - { build: meson,     msystem: UCRT64,  pkg: mingw-w64-ucrt-x86_64, intervals: sse2, desc: 'Meson, MSYS2 UCRT64 GCC x64' }
+          # The 32-bit Windows of MinGW-w64 with configure and meson, which
+          # only simulated it (CXXFLAGS=-D_WIN32) before, and the CMake jobs of
+          # windows.yml (Chocolatey) built alone: the SSE2 intervals need
+          # -faligned-new=8 there, the memory of new being aligned on 8 bytes
+          - { build: autotools, msystem: MINGW32, pkg: mingw-w64-i686,        intervals: sse2, desc: 'Autotools, MSYS2 MINGW32 GCC x86' }
+          - { build: meson,     msystem: MINGW32, pkg: mingw-w64-i686,        intervals: sse2, desc: 'Meson, MSYS2 MINGW32 GCC x86' }
     steps:
       - uses: actions/checkout@v7
       - uses: msys2/setup-msys2@v2
         with:
-          msystem: UCRT64
-          install: mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-meson make libtool
+          msystem: ${{ matrix.cfg.msystem }}
+          install: ${{ matrix.cfg.pkg }}-toolchain ${{ matrix.cfg.pkg }}-cmake ${{ matrix.cfg.pkg }}-ninja ${{ matrix.cfg.pkg }}-meson make libtool
       - name: VERSION.txt with a byte order mark and the line ends of Windows
         if: matrix.cfg.build == 'meson'
         run: sh .github/scripts/version-file.sh meson
@@ -497,11 +610,15 @@ jobs:
             find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
             ./configure --prefix="$prefix" --with-tests
             grep -E '^(CXXFLAGS|CPPFLAGS) =' gaol/Makefile
+            sh .github/scripts/check-intervals.sh gaol/gaol_configuration.h ${{ matrix.cfg.intervals }}
+            if [ "$MSYSTEM" = MINGW32 ]; then grep -F -e -faligned-new=8 gaol/Makefile; fi
             make -j 4 && make install
             make -j 4 test
             sh .github/scripts/comma-locale.sh check tests/numbers.log
           else
             meson setup build-meson --prefix="$prefix" --libdir=lib -Dwith-tests=true
+            sh .github/scripts/check-intervals.sh build-meson/gaol/gaol_configuration.h ${{ matrix.cfg.intervals }}
+            if [ "$MSYSTEM" = MINGW32 ]; then grep -F -e -faligned-new=8 build-meson/compile_commands.json > /dev/null; fi
             meson compile -C build-meson && meson install -C build-meson
             ninja -C build-meson test
             sh .github/scripts/comma-locale.sh check build-meson/meson-logs/testlog.txt
@@ -515,6 +632,66 @@ jobs:
         run: |
           set -o pipefail
           ./performance | tee -a "$GITHUB_STEP_SUMMARY"
+
+  # Cygwin, GCC for x86-64 (GAOL v5), with autotools and with meson as with
+  # CMake in windows.yml: GAOL_FMA gives it -mfma -mprefer-vector-width=128,
+  # without which gaol/gaol_config.h refuses it (its fma() is not correctly
+  # rounded). Cygwin is not mingw-w64 (__CYGWIN__, not __MINGW32__).
+  cygwin:
+    name: ${{ matrix.cfg.desc }}
+    runs-on: windows-2025
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: C:\cygwin\bin\bash.exe --noprofile --norc -eo pipefail -o igncr '{0}'
+    strategy:
+      fail-fast: false
+      matrix:
+        cfg:
+          - { build: autotools, desc: 'Autotools, Cygwin GCC x64' }
+          - { build: meson,     desc: 'Meson, Cygwin GCC x64' }
+    steps:
+      - run: git config --global core.autocrlf input
+        shell: pwsh
+      - uses: actions/checkout@v7
+      - uses: cygwin/cygwin-install-action@v6
+        with:
+          packages: |
+            gcc-g++
+            make
+            binutils
+            pkg-config
+            meson
+            ninja
+      - name: Configure, build and install
+        run: |
+          g++ --version
+          g++ -dumpmachine
+          prefix="$PWD/../gaol-prefix"
+          # The compilers of Cygwin: meson would find the ccache of Strawberry
+          # Perl, first in PATH, which cannot run them ("cannot compile programs")
+          export CC=gcc CXX=g++
+          if [ ${{ matrix.cfg.build }} = autotools ]; then
+            ./configure --prefix="$prefix" --with-tests
+            sh .github/scripts/check-intervals.sh gaol/gaol_configuration.h sse2
+            grep -E '^(CXXFLAGS|CPPFLAGS) =' gaol/Makefile
+            grep -F -e "-mfma -mprefer-vector-width=128" gaol/Makefile
+            make -j 4 && make install
+            make -j 4 test
+          else
+            meson setup build-meson --prefix="$prefix" --libdir=lib -Dwith-tests=true
+            sh .github/scripts/check-intervals.sh build-meson/gaol/gaol_configuration.h sse2
+            grep -F -e "-mfma" build-meson/compile_commands.json > /dev/null
+            meson compile -C build-meson && meson install -C build-meson
+            ninja -C build-meson test
+          fi
+          # CORE-MATH is compiled into libgaol: no other library is installed
+          ls "$prefix/lib"
+          for f in "$prefix"/lib/lib*; do
+            case "${f##*/}" in libgaol*) ;; *) echo "$f: not GAOL's"; exit 1 ;; esac
+          done
+      - name: Tests built with the installed GAOL
+        run: sh .github/scripts/tests.sh "$PWD/../gaol-prefix" static
 
   # The three builds give GAOL the same configuration (.github/audit)
   agree:
@@ -575,18 +752,24 @@ jobs:
           cat agree.md >> "$GITHUB_STEP_SUMMARY"
 
   agree-msys2:
-    name: The builds agree, MSYS2 UCRT64 GCC x64
+    name: ${{ matrix.cfg.desc }}
     runs-on: windows-2022
     timeout-minutes: 45
     defaults:
       run:
         shell: msys2 {0}
+    strategy:
+      fail-fast: false
+      matrix:
+        cfg:
+          - { msystem: UCRT64,  pkg: mingw-w64-ucrt-x86_64, desc: 'The builds agree, MSYS2 UCRT64 GCC x64' }
+          - { msystem: MINGW32, pkg: mingw-w64-i686,        desc: 'The builds agree, MSYS2 MINGW32 GCC x86' }
     steps:
       - uses: actions/checkout@v7
       - uses: msys2/setup-msys2@v2
         with:
-          msystem: UCRT64
-          install: mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-meson mingw-w64-ucrt-x86_64-python make libtool
+          msystem: ${{ matrix.cfg.msystem }}
+          install: ${{ matrix.cfg.pkg }}-toolchain ${{ matrix.cfg.pkg }}-cmake ${{ matrix.cfg.pkg }}-ninja ${{ matrix.cfg.pkg }}-meson ${{ matrix.cfg.pkg }}-python make libtool
       - name: Configure with the three builds and compare
         run: |
           export CMAKE_GENERATOR=Ninja

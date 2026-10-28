@@ -103,8 +103,8 @@ intervals of floats are disabled). Variants:
 ```
 # sse: the default (GCC 9.4, SSE2 intervals, Release)
 gcore cmake -S $WT -B $SCR/build/<slug>-sse -DWITH_TESTS=ON -DWITH_EXAMPLES=ON
-# fpu: the FPU implementation (gaol/gaol_interval_fpu.cpp) instead of SSE2 (or of NEON on 64-bit ARM)
-gcore cmake -S $WT -B $SCR/build/<slug>-fpu -DWITH_TESTS=ON -DWITH_EXAMPLES=ON -DGAOL_SIMD=OFF -DGAOL_ARM64=OFF
+# fpu: the FPU implementation (gaol/core/gaol_interval_fpu.cpp) instead of SSE2 (or of NEON on 64-bit ARM)
+gcore cmake -S $WT -B $SCR/build/<slug>-fpu -DWITH_TESTS=ON -DWITH_EXAMPLES=ON -DGAOL_SIMD=OFF
 # clang: Clang 18
 CC=clang-18 CXX=clang++-18 gcore cmake -S $WT -B $SCR/build/<slug>-clang -DWITH_TESTS=ON -DWITH_EXAMPLES=ON
 ```

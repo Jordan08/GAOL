@@ -16,7 +16,7 @@
  * bound, and the double below it as the lower one, which is RD(f(x)) unless
  * f(x) is a double: so GAOL's bounds have to enclose the tightest ones, and to
  * be within one double of them below and equal above. Where the operations of
- * gaol/gaol_interval_core.cpp give the exact value themselves (log(1) = 0,
+ * gaol/core/gaol_interval_core.cpp give the exact value themselves (log(1) = 0,
  * sin(0) = 0, the bounds of pi/2 at asin(1)...), they are the tightest ones.
  *
  * Each function is tried on the values at the ends of its domain and next to
@@ -178,11 +178,11 @@ namespace
     CORE-MATH computes with __builtin_fma(), one instruction where the
     compiler has the fused multiply-add instructions (GAOL_FMA) and a call to
     fma() otherwise, as fma_once() is in the exact products of
-    gaol/gaol_interval_core.cpp: the functions and the bounds are right only if
+    gaol/core/gaol_interval_core.cpp: the functions and the bounds are right only if
     that fma() is correctly rounded, in the four rounding directions. The test
     calls __builtin_fma() too (fma_as_gaol(), tests/gaol_tests.h), so that it
     checks the instruction where there is one. round() is
-    roundTiesToAway (round_ties_to_away() of gaol/gaol_interval_core.h, and pow of
+    roundTiesToAway (round_ties_to_away() of gaol/core/gaol_interval_core.h, and pow of
     CORE-MATH), which does not depend on the rounding direction.
 
     The fma() of mingw-w64's own math library (see gaol/gaol_config.h) adds
@@ -1481,6 +1481,101 @@ namespace
     }
   }
 
+  /* cos at arguments that take the accurate path of CORE-MATH's cos.c in the
+     upward rounding GAOL computes in, cos_large_accurate(): like that of sin.c
+     it computes with the 128-bit integer throughout, and it is ported to
+     gaol_u128 the same way (3rd/README.md). The arguments are drawn to reach
+     its branches: the reduction of the argument rounding k up or not, the index
+     i1 of t1 = i1 pi/64 below, equal to and above 32, the three ways of
+     combining cos(z) cos(r) and sin(z) sin(r) (their sum, their difference, and
+     their difference changing the sign, next to an odd multiple of pi/2), every
+     range of exponents of the table of 1/(2 pi) beyond 2^31, and the four
+     arguments whose cosine has 72 to 88 identical bits after the rounding bit,
+     which exceptions() rounds apart. The values are the roundings of cos(x)
+     computed apart, with mpmath at 4000 bits (tests/tools/cos/), and are also
+     those of the upstream sources compiled unchanged, in the four roundings:
+     the jobs of the continuous integration that compute with the two 64-bit
+     halves (GAOL_U128_EMULATION, Visual C++, the 32-bit targets) have to find
+     them too. */
+  void cos_accurate_path()
+  {
+    struct Value { double x, rn, ru, rd, rz; };
+    const Value values[] = {
+      // from 2^-16: no word of 1/(2 pi) above the first (i = -1 in reduce_large_acc())
+      {-0x1.6b763ff6553dp-16, 0x1.fffffffdfbf77p-1, 0x1.fffffffdfbf77p-1, 0x1.fffffffdfbf76p-1, 0x1.fffffffdfbf76p-1},
+      {-0x1.d0939914c083bp-16, 0x1.fffffffcb4e8ap-1, 0x1.fffffffcb4e8ap-1, 0x1.fffffffcb4e89p-1, 0x1.fffffffcb4e89p-1},
+      // from 2^-12 to 2^-10
+      {-0x1.ed467fcfbf543p-11, 0x1.fffff1261da3ap-1, 0x1.fffff1261da3ap-1, 0x1.fffff1261da39p-1, 0x1.fffff1261da39p-1},
+      {-0x1.b0b7cc158e23bp-12, 0x1.fffffd24932bfp-1, 0x1.fffffd24932bfp-1, 0x1.fffffd24932bep-1, 0x1.fffffd24932bep-1},
+      // from 1 to 2^31, the reduction of the argument to k/2^13 + r
+      {0x1.2ee37e0264e18p+30, -0x1.7523f0fa318aap-22, -0x1.7523f0fa318aap-22, -0x1.7523f0fa318abp-22, -0x1.7523f0fa318aap-22},
+      {0x1.67368339fa044p+30, 0x1.a24c91b1961f7p-22, 0x1.a24c91b1961f8p-22, 0x1.a24c91b1961f7p-22, 0x1.a24c91b1961f7p-22},
+      {0x1.f03e4200e3f87p+15, -0x1.7c853b2672a94p-1, -0x1.7c853b2672a93p-1, -0x1.7c853b2672a94p-1, -0x1.7c853b2672a93p-1},
+      {0x1.f56f67b49f99fp+13, 0x1.e91eec03e5d8bp-3, 0x1.e91eec03e5d8cp-3, 0x1.e91eec03e5d8bp-3, 0x1.e91eec03e5d8bp-3},
+      {-0x1.caf47385fd2abp+27, 0x1p+0, 0x1p+0, 0x1.fffffffffffffp-1, 0x1.fffffffffffffp-1},
+      {0x1.6a67464e35629p+24, -0x1.921affb4bcbbap-11, -0x1.921affb4bcbb9p-11, -0x1.921affb4bcbbap-11, -0x1.921affb4bcbb9p-11},
+      {-0x1.1e03bee3d4cdap+29, 0x1.fa8547a082722p-23, 0x1.fa8547a082723p-23, 0x1.fa8547a082722p-23, 0x1.fa8547a082722p-23},
+      {-0x1.48c0377826f2fp+29, -0x1.aea45d32e2a5p-23, -0x1.aea45d32e2a4fp-23, -0x1.aea45d32e2a5p-23, -0x1.aea45d32e2a4fp-23},
+      {0x1.933ecd5848a44p+0, -0x1.1f17d7d823c8dp-8, -0x1.1f17d7d823c8cp-8, -0x1.1f17d7d823c8dp-8, -0x1.1f17d7d823c8cp-8},
+      {-0x1.875395cc1b484p+23, 0x1.921d3c0e6b3f6p-11, 0x1.921d3c0e6b3f6p-11, 0x1.921d3c0e6b3f5p-11, 0x1.921d3c0e6b3f5p-11},
+      {-0x1.c350415be31b4p+23, -0x1.949ac08e86bf8p-4, -0x1.949ac08e86bf8p-4, -0x1.949ac08e86bf9p-4, -0x1.949ac08e86bf8p-4},
+      {0x1.c9ae2d27ad736p+15, 0x1.e531d024e124p-3, 0x1.e531d024e124p-3, 0x1.e531d024e123fp-3, 0x1.e531d024e123fp-3},
+      {-0x1.606bbe0e7784fp+24, 0x1p+0, 0x1p+0, 0x1.fffffffffffffp-1, 0x1.fffffffffffffp-1},
+      {-0x1.2ca13bc5d695ep+24, -0x1.46b8b90b945a8p-7, -0x1.46b8b90b945a7p-7, -0x1.46b8b90b945a8p-7, -0x1.46b8b90b945a7p-7},
+      {-0x1.79eb9fbf89bf5p+30, 0x1.d2d131b7d6db4p-46, 0x1.d2d131b7d6db4p-46, 0x1.d2d131b7d6db3p-46, 0x1.d2d131b7d6db3p-46},
+      {-0x1.90055582be656p+30, -0x1.90121b4bb34a9p-27, -0x1.90121b4bb34a9p-27, -0x1.90121b4bb34aap-27, -0x1.90121b4bb34a9p-27},
+      // beyond 2^31, from the first to the last word of the table of 1/(2 pi)
+      {0x1.6a453bf147a38p+33, 0x1.4112042dbf61ap-5, 0x1.4112042dbf61bp-5, 0x1.4112042dbf61ap-5, 0x1.4112042dbf61ap-5},
+      {-0x1.fe987b8e0facp+52, -0x1.ffce2db7d14b8p-1, -0x1.ffce2db7d14b7p-1, -0x1.ffce2db7d14b8p-1, -0x1.ffce2db7d14b7p-1},
+      {-0x1.851567c53b227p+162, -0x1.54330d65b5e6ep-1, -0x1.54330d65b5e6dp-1, -0x1.54330d65b5e6ep-1, -0x1.54330d65b5e6dp-1},
+      {-0x1.8113b456ee14fp+225, 0x1.b4d97fdd9b47dp-13, 0x1.b4d97fdd9b47dp-13, 0x1.b4d97fdd9b47cp-13, 0x1.b4d97fdd9b47cp-13},
+      {-0x1.f62d050b41ec8p+298, -0x1.fa07152afe447p-10, -0x1.fa07152afe447p-10, -0x1.fa07152afe448p-10, -0x1.fa07152afe447p-10},
+      {-0x1.4975514fd6701p+308, 0x1.8d8284ab098b5p-2, 0x1.8d8284ab098b5p-2, 0x1.8d8284ab098b4p-2, 0x1.8d8284ab098b4p-2},
+      {-0x1.484817a1d2da6p+399, -0x1.fc395df2caea9p-2, -0x1.fc395df2caea9p-2, -0x1.fc395df2caeaap-2, -0x1.fc395df2caea9p-2},
+      {-0x1.963cac186460fp+436, -0x1.f523c973f2df7p-10, -0x1.f523c973f2df6p-10, -0x1.f523c973f2df7p-10, -0x1.f523c973f2df6p-10},
+      {0x1.75c02535479e3p+503, -0x1.f4126ad13ccdp-1, -0x1.f4126ad13cccfp-1, -0x1.f4126ad13ccdp-1, -0x1.f4126ad13cccfp-1},
+      {-0x1.47ceba12a481fp+564, -0x1.af147303624d2p-2, -0x1.af147303624d1p-2, -0x1.af147303624d2p-2, -0x1.af147303624d1p-2},
+      {0x1.4de60997b73a3p+687, -0x1.d7c8581d9a8f3p-13, -0x1.d7c8581d9a8f3p-13, -0x1.d7c8581d9a8f4p-13, -0x1.d7c8581d9a8f3p-13},
+      {-0x1.3d85363335b71p+692, -0x1.242cd7d96eecbp-5, -0x1.242cd7d96eecap-5, -0x1.242cd7d96eecbp-5, -0x1.242cd7d96eecap-5},
+      {0x1.34789508c7f7p+790, -0x1.a7e5107d4f13cp-1, -0x1.a7e5107d4f13bp-1, -0x1.a7e5107d4f13cp-1, -0x1.a7e5107d4f13bp-1},
+      {-0x1.da63c07ce1e82p+820, 0x1.f5568e9b1acefp-1, 0x1.f5568e9b1acfp-1, 0x1.f5568e9b1acefp-1, 0x1.f5568e9b1acefp-1},
+      {-0x1.c268f810ada3dp+892, 0x1.234e478e8029ap-5, 0x1.234e478e8029bp-5, 0x1.234e478e8029ap-5, 0x1.234e478e8029ap-5},
+      {0x1.81f61c074a6a7p+948, 0x1.7dd82afa1561p-1, 0x1.7dd82afa15611p-1, 0x1.7dd82afa1561p-1, 0x1.7dd82afa1561p-1},
+      {0x1.97351e56837d3p+1017, -0x1.4e14eacd7d5e6p-1, -0x1.4e14eacd7d5e5p-1, -0x1.4e14eacd7d5e6p-1, -0x1.4e14eacd7d5e5p-1},
+      // the four arguments exceptions() rounds apart, with their two signs (2^-23 to 2^-20: the
+      // accurate path in the three directed roundings only)
+      {0x1.8000000000009p-23, 0x1.fffffffffff7p-1, 0x1.fffffffffff71p-1, 0x1.fffffffffff7p-1, 0x1.fffffffffff7p-1},
+      {-0x1.8000000000009p-23, 0x1.fffffffffff7p-1, 0x1.fffffffffff71p-1, 0x1.fffffffffff7p-1, 0x1.fffffffffff7p-1},
+      {0x1.8000000000024p-22, 0x1.ffffffffffdcp-1, 0x1.ffffffffffdc1p-1, 0x1.ffffffffffdcp-1, 0x1.ffffffffffdcp-1},
+      {-0x1.8000000000024p-22, 0x1.ffffffffffdcp-1, 0x1.ffffffffffdc1p-1, 0x1.ffffffffffdcp-1, 0x1.ffffffffffdcp-1},
+      {0x1.800000000009p-21, 0x1.ffffffffff7p-1, 0x1.ffffffffff701p-1, 0x1.ffffffffff7p-1, 0x1.ffffffffff7p-1},
+      {0x1.20000000000f3p-20, 0x1.fffffffffebcp-1, 0x1.fffffffffebc1p-1, 0x1.fffffffffebcp-1, 0x1.fffffffffebcp-1},
+      {-0x1.20000000000f3p-20, 0x1.fffffffffebcp-1, 0x1.fffffffffebc1p-1, 0x1.fffffffffebcp-1, 0x1.fffffffffebcp-1},
+      {-0x1.800000000009p-21, 0x1.ffffffffff7p-1, 0x1.ffffffffff701p-1, 0x1.ffffffffff7p-1, 0x1.ffffffffff7p-1},
+    };
+    const int directions[] = {FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO};
+    for (const Value& e : values) {
+      const double want[4] = {e.rn, e.ru, e.rd, e.rz};
+      double v[4];
+      for (int d = 0; d < 4; ++d) {
+        std::fesetround(directions[d]);
+        v[d] = gaol_cr_cos(e.x);
+      }
+      std::fesetround(FE_UPWARD);
+      check("cos on its accurate path: the values computed apart in the four roundings",
+            v[0] == want[0] && v[1] == want[1] && v[2] == want[2] && v[3] == want[3],
+            [&] {
+              return "cos(" + show(e.x) + ") = " + show(v[0]) + ", " + show(v[1]) + ", " + show(v[2]) + ", "
+                   + show(v[3]) + " rather than " + show(want[0]) + ", " + show(want[1]) + ", "
+                   + show(want[2]) + ", " + show(want[3]);
+            });
+      const interval got = cos(interval(e.x));
+      check("cos on its accurate path: the tightest bounds",
+            !got.is_empty() && got.left() == e.rd && got.right() == e.ru,
+            [&] { return "cos([" + show(e.x) + "]) = " + hex(got); });
+    }
+  }
+
   /* cbrt at the seven arguments of wlist in CORE-MATH's cbrt.c, whose cube
      roots are less than 10^-15 ulp above a double: cr_cbrt() rounds them
      apart, away from zero when get_rounding_mode() gives it 2, the upward
@@ -1539,6 +1634,65 @@ namespace
       }
     }
   }
+
+#if defined(GAOL_TESTS_HAVE_MXCSR) && (defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64))
+  /* pow with a subnormal result and cbrt at a hard case, called without GAOL in
+     each direction where the x87 unit and the SSE instructions differ as well
+     (GAOL v5, point AI.108 of TODO_DONE.md): the doubles of CORE-MATH are
+     rounded by the SSE instructions, and what it rounds by itself follows the
+     direction of MXCSR too, whatever fegetround() of the C library reads, which
+     is the control word of the x87 unit with glibc and gives -1 with Visual C++
+     for x86 when the two differ (gaol/core_math_port.h). The operations of GAOL
+     set both units before they call CORE-MATH, which hides the difference, so
+     the functions are called here. The powers have a fractional part below one
+     half (the roundings to nearest and downward are lo), the three rows of
+     subnormal_powers[] of tests/rounding_direction.cpp, in multiples of
+     2^-1074 computed with mpmath; the cube root of 0x1.3a9ccd7f022dbp+0 is less
+     than 10^-15 ulp above a double (see cbrt_hard_cases()), below or above
+     being the double on each side of it. */
+  void core_math_follows_mxcsr()
+  {
+    struct Direction { const char *name; int fenv; unsigned sse; };
+    const Direction directions[] = {
+      { "upward", FE_UPWARD, _MM_ROUND_UP },
+      { "to nearest", FE_TONEAREST, _MM_ROUND_NEAREST },
+      { "downward", FE_DOWNWARD, _MM_ROUND_DOWN },
+      { "toward zero", FE_TOWARDZERO, _MM_ROUND_TOWARD_ZERO },
+      { "upward, and to nearest for SSE", FE_UPWARD, _MM_ROUND_NEAREST },
+      { "to nearest, and upward for SSE", FE_TONEAREST, _MM_ROUND_UP },
+    };
+    struct Power { double x, y; long long lo, hi; };
+    const Power powers[] = {
+      { 0x1.4a1249ba9b6d5p-1, 0x1.97f9e85175cf7p+10, 1458662373659LL, 1458662373660LL },
+      { 0x1.0d00c0deaf87fp-2, 0x1.117ee54c23de1p+9, 567863LL, 567864LL },
+      { 0x1.999999999999ap-1, 0x1.a0df226893p+11, 1LL, 2LL },
+    };
+    const double cbrt_x = 0x1.3a9ccd7f022dbp+0, cbrt_below = 0x1.1236160ba9b93p+0, cbrt_above = 0x1.1236160ba9b94p+0;
+    const auto set = [](const Direction& d) {
+      std::fesetround(d.fenv);
+      _mm_setcsr((_mm_getcsr() & ~static_cast<unsigned int>(_MM_ROUND_MASK)) | d.sse);
+    };
+    for (const Direction& d : directions) {
+      const bool upward = d.sse == static_cast<unsigned>(_MM_ROUND_UP);
+      for (const Power& p : powers) {
+        set(d);
+        const double z = gaol_core::rnd_keep(gaol_cr_pow(p.x, p.y));
+        set(directions[0]);
+        const double want = static_cast<double>(upward ? p.hi : p.lo) * 0x1p-1074;
+        check("pow of CORE-MATH with a subnormal result rounds in the direction of MXCSR", z == want,
+              [&] { return std::string("rounding direction ") + d.name + ", x=" + show(p.x) + " y=" + show(p.y) + ": "
+                           + show(z) + " rather than " + show(want); });
+      }
+      set(d);
+      const double c = gaol_core::rnd_keep(gaol_cr_cbrt(cbrt_x));
+      set(directions[0]);
+      const double want_cbrt = upward ? cbrt_above : cbrt_below;
+      check("cbrt of CORE-MATH at a hard case rounds in the direction of MXCSR", c == want_cbrt,
+            [&] { return std::string("rounding direction ") + d.name + ": " + show(c) + " rather than " + show(want_cbrt); });
+    }
+    std::fesetround(FE_UPWARD);
+  }
+#endif
 
   /* rsqrt at the successors of the powers of 4, x = 4^k (1 + 2^-52), for
      every k where x and 2^-k are normal: 1/sqrt(x) is 2^-k (1 + 2^-52)^(-1/2),
@@ -1972,7 +2126,11 @@ int main()
   recommended_intervals();
   recommended_tightest();
   sin_accurate_path();
+  cos_accurate_path();
   cbrt_hard_cases();
+#if defined(GAOL_TESTS_HAVE_MXCSR) && (defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64))
+  core_math_follows_mxcsr();
+#endif
   rsqrt_hard_cases();
   error_functions();
   std::fesetround(FE_UPWARD);

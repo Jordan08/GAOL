@@ -67,6 +67,12 @@ differing too.
 */
 
 #ifndef GAOL_FPU_FENV_H
+// This file uses macros that gaol/gaol_fpu.h defines before it includes this file
+// (GAOL_RND_SSE_REGISTER, GAOL_RND_FLUSH_BITS, GAOL_RND_NOINLINE): included first, it has
+// gaol_fpu.h included, which includes it back (GAOL v5)
+#ifndef GAOL_FPU_H
+#  include "gaol/gaol_fpu.h"
+#else
 #define GAOL_FPU_FENV_H
 
 #include "gaol/gaol_port.h"
@@ -100,7 +106,47 @@ differing too.
 
 
 namespace gaol_core {
-  
+
+  /*
+    The fields of the control word of the x87 unit and of MXCSR of an x86
+    processor, as the hardware has them (see gaol/gaol_fpu.h), and the function
+    that writes them (GAOL v5, point 108 (AI) of TODO.md): round_upward()
+    and the others below write a register only if it has to change
+  */
+  const unsigned int x87_rc_mask = 0x0c00u;
+  const unsigned int x87_rc_upward = 0x0800u;
+  const unsigned int sse_rc_mask = 0x6000u;
+  const unsigned int sse_rc_upward = 0x4000u;
+  const unsigned int x86_flush_mask = 0x8040u;
+  #if GAOL_RND_SSE_REGISTER
+  static_assert(sse_rc_mask == static_cast<unsigned int>(_MM_ROUND_MASK)
+                && sse_rc_upward == static_cast<unsigned int>(_MM_ROUND_UP)
+                && x86_flush_mask == static_cast<unsigned int>(GAOL_RND_FLUSH_BITS),
+                "the fields of MXCSR");
+  #endif
+
+
+  /*
+    Sets the field RC of the control word of the x87 unit to x87_rc, and the
+    bits of MXCSR that sse_mask selects to sse_bits (a subset of sse_mask),
+    and nothing else: a register is written only if one of these bits has to
+    change, with the bits that the other fields and the exception flags hold
+    just before the write, read here.
+  */
+  template <class Registers>
+  GAOL_RND_NOINLINE void x86_set_modes(Registers& r, unsigned int x87_rc, unsigned int sse_mask, unsigned int sse_bits)
+  {
+    unsigned int cw, csr;
+    r.read_control(cw, csr);
+    if ((cw & x87_rc_mask) != x87_rc) {
+      r.write_x87_control((cw & ~x87_rc_mask) | x87_rc);
+    }
+    if ((csr & sse_mask) != sse_bits) {
+      r.write_mxcsr((csr & ~sse_mask) | sse_bits);
+    }
+  }
+
+
   /*
     nextafter(-DBL_MAX, -oo) is -oo, and nextafter(DBL_MAX, +oo) is +oo; the
     nextafter() of Cygwin computes that overflow as x + x, rounded in the
@@ -185,15 +231,8 @@ namespace gaol_core {
   */
   #if (defined(__i386__) || defined(__x86_64__)) && (defined(__GNUC__) || defined(__clang__))
   #  define GAOL_RND_X86_REGISTERS 1
+  #  define GAOL_RND_X86_CONTROL_WORD 1
   #  include <xmmintrin.h>
-  GAOL_INLINE void gaol_set_rounding_x86(unsigned short x87_rc, unsigned int sse_rc)
-  {
-    unsigned short cw;
-    __asm__ __volatile__ ("fnstcw %0" : "=m" (cw));
-    cw = static_cast<unsigned short>((cw & 0xF3FFu) | x87_rc);
-    __asm__ __volatile__ ("fldcw %0" : : "m" (cw) : "memory");
-    _mm_setcsr((_mm_getcsr() & ~static_cast<unsigned int>(_MM_ROUND_MASK)) | sse_rc);
-  }
 
   /*
   The control word of the x87 unit and MXCSR, read in one asm statement and
@@ -208,7 +247,7 @@ namespace gaol_core {
   being its bits 11 and 10 (0x0c00) and the one of MXCSR its bits 14 and 13
   (0x6000), and not the FE_* of <fenv.h>, which the C libraries give other
   values (0x0400 and 0x0800 with glibc, 0x0100 and 0x0200 with the C runtime
-  of Windows).
+  of Windows and with mingw-w64 13 and later).
   */
   GAOL_INLINE void gaol_read_x86_control(unsigned int& x87_cw, unsigned int& mxcsr)
   {
@@ -228,22 +267,9 @@ namespace gaol_core {
   #elif defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_X64))
   #  define GAOL_RND_X86_REGISTERS 1
   #  include <xmmintrin.h>
-  GAOL_INLINE void gaol_set_rounding_x86(unsigned short x87_rc, unsigned int sse_rc)
-  {
-    #  if defined(_M_IX86)
-    unsigned short cw;
-    __asm fnstcw cw
-    // The mask of the 16 bits of the control word, which the cast of
-    // ~0x0C00u truncated (C4310 of Visual C++, GAOL v5)
-    cw = static_cast<unsigned short>((cw & 0xF3FFu) | x87_rc);
-    __asm fldcw cw
-    #  else
-    (void)x87_rc;
-    #  endif
-    _mm_setcsr((_mm_getcsr() & ~static_cast<unsigned int>(_MM_ROUND_MASK)) | sse_rc);
-  }
 
   #  if defined(_M_IX86)
+  #    define GAOL_RND_X86_CONTROL_WORD 1
   /*
   The control word of the x87 unit and MXCSR, read by one block of inline
   assembly (GAOL v5; see the version of GCC and Clang above): Visual C++ for
@@ -275,6 +301,38 @@ namespace gaol_core {
   #else
   // 0, so that #if reads it under -Wundef (GAOL v5, point Z of TODO.md)
   #  define GAOL_RND_X86_REGISTERS 0
+  #endif
+
+  #if GAOL_RND_X86_REGISTERS && defined(GAOL_RND_X86_CONTROL_WORD)
+  //! The registers of the processor, for the functions above that decide what to write
+  struct x86_registers
+  {
+    void read_control(unsigned int& x87_cw, unsigned int& mxcsr) const { gaol_read_x86_control(x87_cw, mxcsr); }
+    void write_x87_control(unsigned int x87_cw) const { gaol_write_x87_control(x87_cw); }
+    void write_mxcsr(unsigned int mxcsr) const { _mm_setcsr(mxcsr); }
+  };
+
+  /*
+    The fields RC of the control word of the x87 unit and of MXCSR set to
+    x87_rc and sse_rc (0x0000, 0x0400 or 0x0800 and the _MM_ROUND_* of
+    <xmmintrin.h>), a register written only if its field is not that already
+    (GAOL v5, point 108 (AI) of TODO.md; it wrote both whatever they held)
+  */
+  GAOL_INLINE void gaol_set_rounding_x86(unsigned short x87_rc, unsigned int sse_rc)
+  {
+    x86_registers hw;
+    x86_set_modes(hw, x87_rc, sse_rc_mask, sse_rc);
+  }
+  #elif GAOL_RND_X86_REGISTERS
+  // Visual C++ for x64 has no inline assembly and does not use the x87 unit
+  GAOL_INLINE void gaol_set_rounding_x86(unsigned short x87_rc, unsigned int sse_rc)
+  {
+    (void)x87_rc;
+    const unsigned int csr = static_cast<unsigned int>(_mm_getcsr());
+    if ((csr & static_cast<unsigned int>(_MM_ROUND_MASK)) != sse_rc) {
+      _mm_setcsr((csr & ~static_cast<unsigned int>(_MM_ROUND_MASK)) | sse_rc);
+    }
+  }
   #endif
   
   #if GAOL_RND_X86_REGISTERS
@@ -417,4 +475,5 @@ namespace gaol_core {
 
 } // namespace gaol_core
 
+#endif /* GAOL_FPU_H */
 #endif /* GAOL_FPU_FENV_H */

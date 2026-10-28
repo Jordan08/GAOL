@@ -495,74 +495,100 @@ The options are given to the first command, as \option{-D\var{option}=\var{value
 \item \option{WITH\_EXAMPLES}. \code{OFF} by default: builds the examples of
   \file{examples}, which \cmd{make check} runs;
 \item \option{GAOL\_SIMD}. \code{ON} by default: the intervals are computed
-  with SSE2 instructions on x86 processors (\option{-msse2 -msse3}), their two
-  bounds in one register; no flag with Visual C++ and clang-cl for x64; on
+  with the vector instructions of the processor as soon as it has them, their
+  two bounds in one register: SSE2 instructions on x86 processors
+  (\option{-msse2 -msse3}; no flag with Visual C++ and clang-cl for x64; on
   32-bit Windows with GCC and Clang and \option{-faligned-new=8}, which the code
   using GAOL is given too, and with Visual C++ and clang-cl, whose intervals keep
-  their two bounds as two doubles and need no aligned memory;
+  their two bounds as two doubles and need no aligned memory), and NEON
+  instructions on 64-bit ARM processors, with every compiler and no flag
+  (\pxref{sec:neon}); the FPU computes them otherwise, and on any other
+  processor (32-bit ARM, POWER, s390x, RISC-V...). A universal build of macOS
+  takes the NEON intervals for its arm64 part and the SSE2 intervals for its
+  x86\_64 part. \option{GAOL\_ARM64}, \loption{enable-arm64} and
+  \code{enable-arm64} were an option of the NEON intervals, independent of
+  \option{GAOL\_SIMD}, and are gone;\newinvfive
 \cindex{SSE2}%
-\item \option{GAOL\_ARM64}. \code{ON} by default: the intervals are computed
-  with NEON instructions on 64-bit ARM processors, their two bounds in one
-  register, with every compiler; NEON needs no flag (\pxref{sec:neon}). Not
-  on 32-bit ARM, where the option is ignored and the FPU computes the
-  intervals, as before. A universal build of macOS made by CMake takes them for
-  its arm64 part and the SSE2 intervals for its x86\_64 part. It is independent of
-  \option{GAOL\_SIMD}, which is for x86 processors;\newinvfive
 \cindex{NEON}%
-\item \option{GAOL\_FMA}. \code{ON} by default: GAOL and CORE-MATH are compiled
-  with the fused multiply-add instructions of the processor, where the compiler
-  has a flag for them and the machine building runs a program compiled with it:
+\item \option{GAOL\_PRESERVE\_ROUNDING}. \code{OFF} by default: each operation
+  restores the rounding direction it found, rather than leaving it upward
+  (\pxref{sec:rounding-direction});
+\cindex{rounding!preserving}%
+\item \option{GAOL\_COVERAGE}. \code{OFF} by default: compiles GAOL and its
+  tests with the counters of gcov, and adds the target \code{coverage}, which
+  runs the tests and writes the report of their coverage (GCC and Clang, with
+  \code{Debug}; \loption{enable-coverage} and the target \code{make coverage}
+  of \cmd{configure}, \code{enable-coverage} and the target
+  \code{ninja gaol-coverage} of meson).
+\end{itemize}
+
+\noindent
+These options, and those of CMake itself, are those of the three builds.
+\newinvfive{} The rest of the configuration has no option: it is decided by
+checks of the compiler and of the machine, which a program compiled and run by
+the configuration makes, since GAOL assumes that the compiler, the
+architecture and the system that configure and compile it are those of the code
+using it. The checks are told in the messages of \cmd{cmake}:
+
+\begin{itemize}
+\item the fused multiply-add instructions of the processor: GAOL and CORE-MATH
+  are compiled with them whenever the machine building runs a program compiled
+  with them, with the flag the compiler has for them:
   \option{-mfma} on x86 (\option{-mfma -mprefer-vector-width=128} with GCC for
   Windows, on x86-64 and on 32-bit x86), \option{/arch:AVX2} with
   Visual C++ for x64, \option{-mfpu=neon-vfpv4 -mfloat-abi=hard} on 32-bit ARM;
   64-bit ARM, POWER, s390x and RISC-V have them without a flag. The library then
   needs a processor with them (on x86, Intel Haswell and AMD Piledriver,
-  2012--2013, and later), and the code using GAOL is given the flag too;
-  \code{OFF} builds GAOL for any processor of the architecture. The elementary
-  functions are much faster with them: \code{cos} 2.5 times, \code{log} 1.6
-  times, \code{sin} 1.3 times (Intel i7-1185G7, Clang~21.1), and with GCC~16.2
-  for Windows \code{cos} 4.7 times, \code{log} 3.2 times and \code{sin} 2.0
-  times (GitHub runner, MSYS2 UCRT64). GCC for Windows does not align its stack
-  on 32 bytes for the 256-bit registers that \option{-mfma} alone would have it
-  use (GCC bug 54412): \option{-mprefer-vector-width=128} keeps it to the
-  128-bit ones, and the objects of GAOL built so by GCC~16.2 have no
-  instruction on a 256-bit register;\newinvfive
+  2012--2013, and later), and the code using GAOL is given the flag too. The
+  elementary functions are much faster with them: \code{cos} 2.5 times,
+  \code{log} 1.6 times, \code{sin} 1.3 times (Intel i7-1185G7, Clang~21.1), and
+  with GCC~16.2 for Windows \code{cos} 4.7 times, \code{log} 3.2 times and
+  \code{sin} 2.0 times (GitHub runner, MSYS2 UCRT64). GCC for Windows does not
+  align its stack on 32 bytes for the 256-bit registers that \option{-mfma} alone
+  would have it use (GCC bug 54412): \option{-mprefer-vector-width=128} keeps it
+  to the 128-bit ones, and the objects of GAOL built so by GCC~16.2 have no
+  instruction on a 256-bit register. In a cross-compilation, where no program
+  can be run, they are left out;
 \cindex{fused multiply-add}%
-\item \option{GAOL\_VERBOSE\_MODE}. \code{OFF} by default: writes a line on the
-  standard error when GAOL initializes and cleans up;
-\cindex{verbose mode}%
-\item \option{GAOL\_DEBUG}. \code{OFF} by default: builds \file{libgaol} and
-  CORE-MATH for debugging, without optimization nor \code{NDEBUG} and with
-  \code{GAOL\_DEBUGGING}, whatever the build type or the configuration, a
-  project bringing GAOL in included, as \code{enable-debug} of meson and
-  \loption{enable-debug} of \cmd{configure};\newinvfive
-\item \option{GAOL\_PRESERVE\_ROUNDING}. \code{OFF} by default: each operation
-  restores the rounding direction it found, rather than leaving it upward
+\item the AVX-512 path: the four arithmetic operations, the square, the square
+  root and, with FMA, the integer powers beyond 1 and $-1$ take the AVX-512
+  instructions, which carry their rounding direction and set none, where
+  \option{GAOL\_PRESERVE\_ROUNDING} is on, the compiler takes them and the
+  machine building runs them. With that option every operation gains (2.8 times
+  at the median of seven operations, from 1.3 to 4.4 times, on an Intel
+  i7-1185G7, whose AVX-512 units are halved); without it they cost (17~\% at the
+  median), the direction being written only when it is not upward already, so
+  the path is left out. The library then needs a processor with the
+  instructions, as with the fused multiply-add instructions
   (\pxref{sec:rounding-direction});
-\cindex{rounding!preserving}%
-\item \option{GAOL\_PREFER\_AVX512}. \code{OFF} by default, and \code{ON}
-  by default with the previous option: the four arithmetic operations, the
-  square, the square root and, with FMA, the integer powers beyond 1 and
-  $-1$ take the AVX-512 instructions, which carry their rounding direction
-  and set none, where the compiler takes them and the machine building runs
-  them, never when cross-compiling. The library then needs a processor with
-  them, as with \option{GAOL\_FMA}, and \code{OFF} builds it for any
-  processor of the architecture (\pxref{sec:rounding-direction}). The default
-  is derived again at every \cmd{cmake} that is given no value for it, and a
-  value given stays until \option{-UGAOL\_PREFER\_AVX512};\newinvfive
 \cindex{AVX-512}%
-\item \option{GAOL\_COVERAGE}. \code{OFF} by default: compiles GAOL and its
-  tests with the counters of gcov, and adds the target \code{coverage}, which
-  runs the tests and writes the report of their coverage (GCC and Clang, with
-  \code{Debug});
-\item \option{GAOL\_U128\_EMULATION}. \code{OFF} by default: computes the
-  128-bit integer of the accurate phases of CORE-MATH with two 64-bit halves,
-  as where the compiler has no 128-bit type (Visual C++, and GCC for 32-bit
-  targets).
+\item the 128-bit integer of the accurate phases of CORE-MATH: the type of the
+  compiler where it has one, else two 64-bit halves (Visual C++, and GCC for
+  32-bit targets);
+\item the debugging facilities (\pxref{sec:debugging-facilities}), for the
+  \code{Debug} build type: GAOL and CORE-MATH without optimization nor
+  \code{NDEBUG}, with debugging information and \code{GAOL\_DEBUGGING}.
 \end{itemize}
 
 \noindent
-The CMake build always reports errors by exceptions (\pxref{sec:exceptions}).
+A developer, or a user who builds a package for any processor, can give these
+checks the answer they would not give: \option{-DGAOL\_FMA=OFF} (no fused
+multiply-add instructions), \option{-DGAOL\_PREFER\_AVX512=ON} or \code{OFF}
+(the AVX-512 path asked for or refused), \option{-DGAOL\_U128\_EMULATION=ON}
+(the two halves of the 128-bit integer), \option{-DGAOL\_DEBUG=ON} (debugging
+whatever the build type), \option{-DGAOL\_EXCEPTIONS\_ENABLED=OFF} (errors end the
+program), \option{-DGAOL\_VERBOSE\_MODE=ON} (a line on the standard error when
+GAOL initializes and cleans up) and, in a cross-compilation,
+\option{-DGAOL\_MACHINE\_RUNS\_FMA=1} and \option{-DGAOL\_MACHINE\_RUNS\_AVX512=1}.
+They are not options of the user: \cmd{configure --help} does not list them
+(\loption{disable-fma}, \loption{enable-prefer-avx512},
+\loption{enable-verbose-mode}, \loption{disable-exceptions}), and meson lists
+them with the mark `developers' (\code{enable-fma}, \code{enable-prefer-avx512},
+\code{enable-debug}, \code{enable-exception}, \code{enable-verbose-mode},
+\code{machine-runs-fma} and \code{machine-runs-avx512}).
+
+\noindent
+The CMake build reports errors by exceptions (\pxref{sec:exceptions}).
 
 Interprocedural optimization is not offered, and \code{gaol::gaol} carries no
 such flag: with GCC, it moves floating-point operations across the changes of
@@ -576,7 +602,7 @@ exact results.
 CPack makes them from the CMake build, in the directory of the build:
 
 \begin{cmdshell}
-% cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/usr -DGAOL_FMA=OFF
+% cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/usr -DGAOL_FMA=OFF -DGAOL_PREFER_AVX512=OFF
 % cmake --build build --config Release
 % cmake --build build --target package_source
 % cmake --build build --target package
@@ -598,12 +624,12 @@ CPack makes them from the CMake build, in the directory of the build:
 \end{itemize}
 
 \noindent
-The packages hold \file{libgaol} as the build compiled it: with
-\option{GAOL\_FMA} \code{ON}, the default, only the processors that have the
-fused multiply-add instructions run it, and \option{-DGAOL\_FMA=OFF} makes
-packages for any processor of the architecture. So does
-\option{-DGAOL\_PREFER\_AVX512=OFF} with \option{GAOL\_PRESERVE\_ROUNDING}, on a
-machine that has the AVX-512 instructions.\newinvfive
+The packages hold \file{libgaol} as the build compiled it: where the machine
+building has the fused multiply-add instructions, only the processors that
+have them run it, and \option{-DGAOL\_FMA=OFF} makes packages for any processor
+of the architecture. So does \option{-DGAOL\_PREFER\_AVX512=OFF} with
+\option{GAOL\_PRESERVE\_ROUNDING}, on a machine that has the AVX-512
+instructions.\newinvfive
 
 \section{Building and installing with autotools}\label{sec:configuration}
 %%---------------------------------------------
@@ -638,46 +664,31 @@ will be installed. It defaults to \file{/usr/local};
 libraries. It defaults to \file{\var{prefix-dir}/lib};
 \item \loption{includedir=\var{include-dir}}. The directory where to
 put the header files. It defaults to \file{\var{prefix-dir}/include};
-\item \loption{enable-optimize[=\var{yes/no}]}. Compiles GAOL and CORE-MATH
-  with \option{-O3} and \code{NDEBUG}, and with the flags
-  \option{-funroll-loops}, \option{-fomit-frame-pointer} and
-  \option{-fexpensive-optimizations} where the compiler takes them, as the
-  \code{Release} build of CMake; with \option{-O} otherwise. This option
-  defaults to \code{yes};
-\cindex{optimization!configuration option}%
-\item \loption{enable-debug[=\var{yes/no}]}. Compiles GAOL as the \code{Debug}
-  build of CMake: with \option{-g}, without optimization nor \code{NDEBUG}
-  (\loption{enable-optimize} is then ignored), and with the debugging
-  facilities (\pxref{sec:debugging-facilities}). This option defaults to
-  \code{no};
+\item \loption{enable-debug[=\var{yes/no}]}. Builds GAOL as the \code{Debug}
+  build of CMake: with \option{-g}, without optimization nor \code{NDEBUG},
+  and with the debugging facilities (\pxref{sec:debugging-facilities}); the
+  \code{Release} build of CMake otherwise, with \option{-O3} and \code{NDEBUG},
+  and the flags \option{-funroll-loops}, \option{-fomit-frame-pointer} and
+  \option{-fexpensive-optimizations} where the compiler takes them. This option
+  defaults to \code{no};
 \cindex{debugging!option}%
-\item \loption{enable-simd[=\var{yes/no}]}. The SSE2 intervals on x86
-  processors, as \option{GAOL\_SIMD} (\pxref{sec:cmake-options}). This option
-  defaults to \code{yes};
-\item \loption{enable-arm64[=\var{yes/no}]}. The NEON intervals on 64-bit ARM
-  processors, as \option{GAOL\_ARM64} (\pxref{sec:cmake-options}). This option
-  defaults to \code{yes};\newinvfive
-\item \loption{enable-fma[=\var{yes/no}]}. The fused multiply-add instructions
-  of the processor, as \option{GAOL\_FMA}. This option defaults to \code{yes};
-\item \loption{enable-verbose-mode[=\var{yes/no}]}. Writes a line on the
-  standard error when GAOL initializes and cleans up. This option defaults to
-  \code{no};
-\cindex{verbose mode}%
-\cindex{messages!avoiding printing of}%
+\cindex{optimization!configuration option}%
+\item \loption{enable-simd[=\var{yes/no}]}. The vector intervals, SSE2 on x86
+  processors and NEON on 64-bit ARM processors, as \option{GAOL\_SIMD}
+  (\pxref{sec:cmake-options}). This option defaults to \code{yes};\newinvfive
 \item \loption{enable-preserve-rounding[=\var{yes/no}]}. Each operation
   restores the rounding direction it found (\pxref{sec:rounding-direction}).
   This option defaults to \code{no};
 \cindex{rounding!preserving}%
-\item \loption{enable-prefer-avx512[=\var{yes/no}]}. The AVX-512 instructions
-  for the four arithmetic operations, the square, the square root and, with
-  FMA, the integer powers beyond 1 and $-1$, where the machine building runs
-  them, as \option{GAOL\_PREFER\_AVX512}. This option defaults to the value of
-  \loption{enable-preserve-rounding};\newinvfive
-\item \loption{enable-exceptions[=\var{yes/no}]}. If enabled, errors
-  are reported by throwing an exception (\pxref{sec:exceptions}); otherwise,
-  by calling \code{gaol\_error()}, which prints a message to the standard error
-  channel, and aborting. This option defaults to \code{yes};
-\cindex{error!raising an exception}%
+\item \loption{enable-coverage[=\var{yes/no}]}. Compiles GAOL and its tests
+  with the counters of gcov, and adds the target \cmd{make coverage}, as
+  \option{GAOL\_COVERAGE}. This option defaults to \code{no};\newinvfive
+\item \loption{enable-shared[=\var{yes/no}]}, \loption{enable-static[=\var{yes/no}]}.
+  The static library \file{libgaol.a}, which is all that is built by default,
+  as with CMake; \loption{enable-shared} builds the shared library
+  \file{libgaol.so.5.0.0} too (it was built by default before GAOL v5);
+  \loption{enable-pic} (the default) compiles the code as position-independent
+  code;\newinvfive
 \item \loption{with-tests[=\var{yes/no}]}. Builds the unit tests of
   \file{tests}, which \cmd{make test} and \cmd{make check} run, as
   \option{WITH\_TESTS}. This option defaults to \code{no};
@@ -689,11 +700,19 @@ put the header files. It defaults to \file{\var{prefix-dir}/include};
 Note that, as usual, \loption{disable-\var{xxx}} is
 equivalent to \loption{enable-\var{xxx}=no}. Moreover,
 \loption{enable-\var{xxx}} is equivalent to
-\loption{enable-\var{xxx}=yes}.
+\loption{enable-\var{xxx}=yes}. These options are those of the three builds
+(\pxref{sec:cmake-options}): the fused multiply-add instructions, the AVX-512
+path, the 128-bit integer and the NEON intervals are decided by checks of the
+compiler and of the machine, and \loption{enable-fma}, \loption{enable-prefer-avx512},
+\loption{enable-verbose-mode} and \loption{enable-exceptions}, which
+\cmd{configure --help} does not list, are settings of the developers. A universal
+build of macOS is configured with \option{-arch} several times in the flags:
+\code{./configure CFLAGS="-arch arm64 -arch x86\_64" CXXFLAGS="-arch arm64 -arch
+x86\_64" LDFLAGS="-arch arm64 -arch x86\_64"}.\newinvfive
 
 The targets of the \file{Makefile} in the root directory are \option{all},
-which builds \file{libgaol.a} and the shared library \file{libgaol.so.5.0.0}
-(soname \file{libgaol.so.5}), \option{test}, \option{check}, \option{perf} and
+which builds \file{libgaol.a} (and the shared library \file{libgaol.so.5.0.0},
+soname \file{libgaol.so.5}, with \loption{enable-shared}), \option{test}, \option{check}, \option{perf} and
 \option{parser}, those of the three builds (\pxref{sec:tests}),
 \option{install}, \option{clean} and \option{distclean}. \option{clean} erases
 what \cmd{make} built, and keeps what \cmd{configure} made, so that \cmd{make}
@@ -718,9 +737,10 @@ page of GAOL v5, \code{https://github.com/Jordan08/GAOL}.
 meson compiles the sources of CORE-MATH into \file{libgaol}, as CMake and
 \cmd{configure} do, and the lexer and the parser committed with the sources:
 neither flex nor bison is needed. \cmd{meson compile} needs meson 0.54; with an older one,
-\cmd{ninja -C build} builds GAOL as well. It builds \file{libgaol.a} and
-\file{libgaol.so.5.0.0}, as \cmd{configure}; with Visual C++, the static
-library alone, as CMake. The options are given to \cmd{meson setup}, as
+\cmd{ninja -C build} builds GAOL as well. It builds \file{libgaol.a}, and
+\file{libgaol.so.5.0.0} with \option{-Ddefault\_library=shared} (\code{both} for the
+two), as \cmd{configure} with \loption{enable-shared}; with Visual C++, the
+static library alone, as CMake. The options are given to \cmd{meson setup}, as
 \option{-D\var{option}=\var{value}}; the build type gives the optimizations and
 the debugging facilities, as with CMake (\code{--buildtype=debug} for the
 \code{Debug} build), and the others are those of \cmd{configure}:
@@ -730,15 +750,12 @@ the debugging facilities, as with CMake (\code{--buildtype=debug} for the
     \hline
     \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default}\\
     \hline\hline
-    \code{buildtype} & \code{release}: \option{-O3}, \code{NDEBUG} and the optimizations of \loption{enable-optimize}\\
+    \code{buildtype} & \code{release}: \option{-O3}, \code{NDEBUG} and the optimizations of the \code{Release} build of CMake; \code{debug} for the \code{Debug} build\\
     \code{enable-simd} & \code{true}\\
-    \code{enable-arm64} & \code{true}\\
-    \code{enable-fma} & \code{true}\\
-    \code{enable-verbose-mode} & \code{false}\\
     \code{enable-preserve-rounding} & \code{false}\\
-    \code{enable-prefer-avx512} & \code{auto}: \code{true} with \code{enable-preserve-rounding}, \code{false} otherwise, as \option{GAOL\_PREFER\_AVX512}\\
-    \code{enable-debug} & \code{false}; builds \file{libgaol} for debugging whatever the build type, as \option{GAOL\_DEBUG}\\
-    \code{enable-exception} & \code{true}\\
+    \code{enable-coverage} & \code{false}; the target \code{ninja gaol-coverage}\\
+    \code{default\_library} & \code{static}; \code{shared} builds the shared library\\
+    \code{b\_staticpic} & \code{true}\\
     \code{with-tests} & \code{false}; builds the unit tests\\
     \code{with-examples} & \code{false}; builds the examples\\
     \code{with-doc} & \code{false}; the target \code{pdf} then builds this manual and the manual of GAOL~4\\
@@ -804,8 +821,9 @@ Each build installs:
 \begin{itemize}
 \item the headers, in \file{\var{prefix}/include/gaol};
 \item the library, \file{libgaol}, which holds CORE-MATH: static with CMake,
-  or shared with \option{BUILD\_SHARED\_LIBS}; static and shared with autotools
-  and meson (static only with Visual C++). The shared library is
+  or shared with \option{BUILD\_SHARED\_LIBS}, \loption{enable-shared} of
+  \cmd{configure} and \option{-Ddefault\_library=shared} of meson (static only
+  with Visual C++). The shared library is
   \file{libgaol.so.5.0.0}, whose soname is \file{libgaol.so.5}, with the three
   builds;
 \item \file{gaol.pc}, for pkg-config, in the \file{pkgconfig} directory of the
@@ -946,7 +964,7 @@ takes it:
   Visual C++ and clang-cl have no such flag, and need none: their SSE2 intervals
   keep their two bounds as two doubles there;\newinvfive
 \item nothing more on 64-bit ARM processors with the NEON intervals
-  (\option{GAOL\_ARM64}, \pxref{sec:neon}): the first item is all they ask
+  (\option{GAOL\_SIMD}, \pxref{sec:neon}): the first item is all they ask
   for;\newinvfive
 \item \option{-ffloat-store} where doubles are still computed on the x87 unit;
 \item \option{-mfma} on x86, and \option{-mfpu=neon-vfpv4 -mfloat-abi=hard} on
@@ -1164,8 +1182,8 @@ restores the rounding direction it found, which makes the arithmetic
 operations slower, 1.3 to 1.7 times with the AVX-512 path below and several
 times without it (\pxref{sec:upward-effects}); it also restores the modes flushing the
 subnormals to zero that the operation cleared (\pxref{sec:ftz}). It is off by
-default in the three builds. With it, \option{GAOL\_PREFER\_AVX512} is on by
-default: where the machine building has the AVX-512 instructions, the four
+default in the three builds. With it, the build takes the AVX-512 path (it was the
+default of an option, \option{GAOL\_PREFER\_AVX512}): where the machine building has the AVX-512 instructions, the four
 arithmetic operations, the square, the square root and, with FMA, the integer
 powers beyond 1 and $-1$ take them, which carry their rounding direction, set
 none and store none, and the library then needs a processor with
@@ -1367,14 +1385,13 @@ bounds are one vector square root rounded upward, the lower bound being that
 root where it is exact, and the double below it otherwise.
 
 They are the intervals of GAOL on 64-bit ARM with every compiler (GCC, Clang,
-AppleClang, clang-cl, Visual C++ and the Clang of MinGW-w64), by default (\option{GAOL\_ARM64} of CMake,
-\loption{enable-arm64} of \cmd{configure}, \code{enable-arm64} of meson; the
-macro \code{GAOL\_USING\_NEON\_INSTRUCTIONS} is then 1 in
+AppleClang, clang-cl, Visual C++ and the Clang of MinGW-w64), by default (\option{GAOL\_SIMD} of CMake,
+\loption{enable-simd} of \cmd{configure}, \code{enable-simd} of meson, as for the
+SSE2 intervals; the macro \code{GAOL\_USING\_NEON\_INSTRUCTIONS} is then 1 in
 \file{gaol/gaol\_configuration.h}), and need no flag beyond those of interval
-arithmetic (\pxref{sec:compiling}). They do not depend on
-\option{GAOL\_SIMD}, which is for x86 processors. 32-bit ARM, whose NEON has no
-vector of doubles, does not take them: the option is ignored there, and the FPU
-computes the intervals, as before. A universal build of macOS made by CMake
+arithmetic (\pxref{sec:compiling}). 32-bit ARM, whose NEON has no
+vector of doubles, does not take them: the FPU computes the intervals there, as
+before. A universal build of macOS
 takes them for its arm64 part, and the SSE2 intervals for its x86\_64 part.
 
 64-bit ARM has no instruction that carries its own rounding direction, as the
@@ -1660,9 +1677,9 @@ Linux) instead of letting the operation give its bounds.\newinvfive
   every build, through the \code{pow} of CORE-MATH, for an exponent of
   extreme magnitude (\code{pow(interval(1,~2),~interval(4.9e-324))},
   \code{pow(interval(1,~2),~interval(1e-300))}, an exponent interval with a
-  bound near \code{DBL\_MAX} such as \itv{10^{300}}{10^{308}}), whose power
-  GAOL now computes itself, and for a power next to the largest double
-  (\code{pow(interval(2),~interval(1023.9999))},
+  bound near \code{DBL\_MAX} such as \itv{10^{300}}{10^{308}}), which
+  the CORE-MATH of GAOL v5 no longer does, and for a power next to the largest
+  double (\code{pow(interval(2),~interval(1023.9999))},
   \code{pow(interval(0x1.000003f82a1fp+0),~3000000001LL)}), where CORE-MATH
   multiplied its first approximation by $2^{1024}$, an infinity, and computed
   $\infty-\infty$ (changed in the vendored sources, see
@@ -2056,7 +2073,7 @@ A bound that is zero has a sign, which differs between the builds:
 \code{sqr(interval(-1, 2))} is \itv{-0}{4} with the SSE2 intervals, which the
 default build uses on x86 processors, and with the NEON intervals, which it
 uses on 64-bit ARM processors, and \itv{0}{4} with the FPU intervals, those of
-the other processors, of Visual C++ and clang-cl on x86, and of the builds with \option{GAOL\_SIMD} off on x86 and \option{GAOL\_ARM64} off on 64-bit ARM
+the other processors, of Visual C++ and clang-cl on x86, and of the builds with \option{GAOL\_SIMD} off
 (Visual C++ and clang-cl for x64 have the SSE2 intervals)\newinvfive;
 \code{interval::zero()} is \itv{-0}{0} with the first two and \itv{0}{0} with
 the third. \code{pow(x, 2)} is \code{sqr(x)}, and has the same

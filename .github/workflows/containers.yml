@@ -134,7 +134,7 @@ jobs:
       matrix:
         cfg:
           - { platform: linux/arm/v7, before: '-DCMAKE_CXX_FLAGS=-DGAOL_RND_FPSCR_DIRECT=0', before_label: 'C library', after_label: 'FPSCR', desc: 'Rounding direction preserved, armhf: FPSCR or the C library' }
-          - { platform: linux/arm64, before: '-DGAOL_ARM64=OFF', before_label: 'FPU intervals, C library', after_label: 'NEON intervals, FPCR', desc: 'Rounding direction preserved, arm64: FPCR with the NEON intervals or the C library' }
+          - { platform: linux/arm64, before: '-DGAOL_SIMD=OFF', before_label: 'FPU intervals, C library', after_label: 'NEON intervals, FPCR', desc: 'Rounding direction preserved, arm64: FPCR with the NEON intervals or the C library' }
     steps:
       - uses: actions/checkout@v7
       - name: Build both and measure

@@ -5,7 +5,7 @@
 Part of the [tests](../../../doc/tests.md) of GAOL v5.
 
 The programs and scripts of this directory check a change of the `pow`
-functions of `gaol/gaol_interval_core.cpp`: `pow_standard()`, the pow of
+functions of `gaol/core/gaol_interval_core.cpp`: `pow_standard()`, the pow of
 IEEE 1788-2015 (Table 9.1), which `gaol_ieee1788::pow` is, the integer power
 that `gaol::pow(x, y)` (`gaol_pow_hybrid()`) and `gaol::pow(x, p)`
 (`gaol_pow_real()`) add to it, the corners of a box (`pow_lo()`, `pow_hi()`,
@@ -30,7 +30,8 @@ GAOL, or a build with mpmath, and their results are read by whoever changes
 | `evalrows.cpp` | Computes `gaol_ieee1788::pow` and `gaol::pow` on the boxes of a rows file |
 | `gen_table.py` | Reads the table of `pow_on_boxes()` into a rows file (`extract`), writes the table from a rows file (`cpp`, `--into` to replace it in `tests/ieee1788.cpp`), and lists the boxes whose bounds differ between two rows files (`diff`) |
 | `checkrows.py` | Checks the bounds of a rows file against the exact power, computed with 500 bits by mpmath: they have to enclose it, within one double of the tightest bounds |
-| `mutate.py` | Mutation testing: builds GAOL with one deliberate error in `pow` or in the integer power at a time (100 mutants), runs the tests, and runs `diffpow` on the mutants that survive, to tell an equivalent mutant from a box the tests lack |
+| `mutate.py` | Mutation testing: builds GAOL with one deliberate error in `pow` or in the integer power at a time (104 mutants), runs the tests, and runs `diffpow` on the mutants that survive, to tell an equivalent mutant from a box the tests lack |
+| `negative_power_rows.py` | Writes the rows `{ x, n, lo, hi }` of the table of large negative powers of `large_powers()` in `tests/arithmetic.cpp`: the tightest bounds of x<sup>n</sup>, n from −2<sup>31</sup> + 1 to −2<sup>27</sup>, computed with mpmath on 2000 bits, for the powers that lie at least 1/16 of the spacing of the doubles from each double |
 | `pown_bound.py` | Checks with rationals the induction of the comment of `pown_products()`, which bounds beforehand the error of the exact products of the integer power, and the bound K drawn from it, for c<sup>m</sup> and c<sup>−m</sup> |
 | `bench.cpp` | The time per call of the pow functions, on each path of `pow_standard()` |
 | `build.py` | Compiles `diffpow.cpp`, `evalrows.cpp` or `bench.cpp` against a build of GAOL; the other scripts import it |
@@ -62,14 +63,14 @@ Each build is a CMake build with the tests and the compile commands:
 
 ```bash
 cmake -S . -B build-sse -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-cmake -S . -B build-fpu -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DGAOL_SIMD=OFF -DGAOL_ARM64=OFF
+cmake -S . -B build-fpu -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DGAOL_SIMD=OFF
 cmake --build build-sse -j 4
 cmake --build build-fpu -j 4
 ```
 
 `build-sse` has the SSE2 intervals, the default on x86 (the NEON ones on 64-bit
-ARM, GAOL v5), and `build-fpu` the FPU ones (`-DGAOL_SIMD=OFF
--DGAOL_ARM64=OFF`: the second switch is for 64-bit ARM, and harmless on x86).
+ARM, GAOL v5), and `build-fpu` the FPU ones (`-DGAOL_SIMD=OFF`; GAOL v5:
+`-DGAOL_ARM64=OFF` was needed as well on 64-bit ARM).
 To compare a change with the code before it,
 build the code before it the same way from a second tree, for instance
 `git worktree add ../gaol-base configure-clean`, then
@@ -141,22 +142,22 @@ Y = [p], as the test does, and exits with 1 where they do not.
 ```bash
 python3 tests/tools/pow/mutate.py --work /tmp/pow/mutants
 python3 tests/tools/pow/mutate.py --work /tmp/pow/mutants --test ieee1788
-python3 tests/tools/pow/mutate.py --work /tmp/pow/mutants-fpu --cmake-option=-DGAOL_SIMD=OFF --cmake-option=-DGAOL_ARM64=OFF corner gaol-
+python3 tests/tools/pow/mutate.py --work /tmp/pow/mutants-fpu --cmake-option=-DGAOL_SIMD=OFF corner gaol-
 python3 tests/tools/pow/mutate.py --list
 # the integer powers: the SSE2 build with FMA, then the FPU one
 T="--test ieee1788 --test elementary --test arithmetic --test rounding_direction --test expressions"
 python3 tests/tools/pow/mutate.py --work /tmp/pow/mutants $T std corner gaol real ieee pown sse-fma
-python3 tests/tools/pow/mutate.py --work /tmp/pow/mutants-fpu --cmake-option=-DGAOL_SIMD=OFF --cmake-option=-DGAOL_ARM64=OFF $T std corner gaol real ieee pown fpu
+python3 tests/tools/pow/mutate.py --work /tmp/pow/mutants-fpu --cmake-option=-DGAOL_SIMD=OFF $T std corner gaol real ieee pown fpu
 ```
 
 The sources are copied to `WORK/src` and built in `WORK/build`; each mutant
-edits the copy of `gaol/gaol_interval_core.cpp`, rebuilds the tests (`--jobs`
+edits the copy of `gaol/core/gaol_interval_core.cpp`, rebuilds the tests (`--jobs`
 processes, 2 by default) and runs them: `ieee1788` and `elementary` by
 default, the tests given with `--test` otherwise (`--test ieee1788` alone
 shows what `pow_on_boxes()` catches; `arithmetic`, `rounding_direction`,
 `core_math` and `other_functions` call `pow` too, and take a few seconds
-more). A CMake option is written `--cmake-option=-DGAOL_SIMD=OFF`, with `=`; the FPU
-build also needs `--cmake-option=-DGAOL_ARM64=OFF` on 64-bit ARM (GAOL v5).
+more). A CMake option is written `--cmake-option=-DGAOL_SIMD=OFF`, with `=`,
+which is all the FPU build needs, on 64-bit ARM too (GAOL v5).
 A run of the 48 mutants takes about 5 minutes (4 jobs); the arguments
 after the options select the mutants whose name contains one of them.
 
@@ -177,18 +178,19 @@ is not listed as equivalent, or that cannot be applied or compiled.
 
 The mutants are the list `MUTANTS` of `mutate.py`, written for the code of
 `configure-clean` on 2026-10-04 and brought up to date with the pull
-requests of B (the corners and their limits of B.2 included): a change of
+requests of B (the corners and their limits of B.2 included) and with #183,
+#184 and #191: a change of
 `pow` that edits the code they replace has to bring their texts and the
 equivalent mutants up to date too (`--list` tells which no longer apply), or
 give another list with `--mutants FILE`.
 
 The mutants of the integer power (GAOL v5, the third pull request of B) are
 named `pown-*` where they edit the code of all the builds (the generic part,
-`gaol/gaol_interval_core.cpp`), `sse-fma-*` where they edit the two lanes in
-an SSE2 register (`gaol/gaol_interval_sse.cpp`), compiled with the SSE2
+`gaol/core/gaol_interval_core.cpp`), `sse-fma-*` where they edit the two lanes in
+an SSE2 register (`gaol/core/gaol_interval_sse.cpp`), compiled with the SSE2
 intervals and the FMA instructions only, `er-*` for the embedded rounding of
-AVX-512 (`gaol/gaol_interval_avx512.cpp`), `neon-*` for the NEON register
-(`gaol/gaol_interval_neon.cpp`, compiled on a 64-bit ARM processor only,
+AVX-512 (`gaol/core/gaol_interval_avx512.cpp`), `neon-*` for the NEON register
+(`gaol/core/gaol_interval_neon.cpp`, compiled on a 64-bit ARM processor only,
 where they mirror the `sse-fma-*` ones, but for `sse-fma-exact-flag-as-doubles`,
 which has no NEON twin, and `neon-sign-dropped`, which has no SSE2 one) and `fpu-*` where they edit the pair
 of doubles of the other builds (`pown_scalar_ops::large()`; the tests
@@ -317,8 +319,8 @@ called CORE-MATH at once.
   it does not check the sign of a zero.
 - The rows file and the table do not tell -0 from +0, nor does the test; the
   differential test does.
-- `mutate.py` knows the code of the pull requests of B; its texts have to
-  follow the code. It edits one file at a time and runs only the tests
+- `mutate.py` knows the code of the pull requests of B, #183, #184 and #191;
+  its texts have to follow the code. It edits one file at a time and runs only the tests
   given; `diffpow` tells an equivalent mutant on its boxes only.
 - `bench.cpp` measures one machine and one compiler; the 2 to 3 % of #37 were
   measured with GCC 9.4 only.

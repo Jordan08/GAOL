@@ -8,9 +8,9 @@
 #   the oldest standard GAOL takes, and -Wall -Wextra -Wold-style-cast
 #   -Wundef -Werror (no cast of C in GAOL's headers, GAOL v5, and no #if on a
 #   macro left undefined, point Z of TODO.md), but those that other headers
-#   include in the middle of their own code (gaol_interval_fpu.h,
-#   gaol_interval_neon.h and gaol_interval_sse.h, the inline functions of
-#   gaol_interval.h) or with Visual C++ only (gaol_fpu_msvc.h);
+#   include in the middle of their own code (core/gaol_interval_fpu.h,
+#   core/gaol_interval_neon.h and core/gaol_interval_sse.h, the inline
+#   functions of gaol_interval.h) or with Visual C++ only (gaol_fpu_msvc.h);
 # - including gaol/gaol, gaol/parser/gaol_expression.h and
 #   gaol/parser/gaol_expr_eval.h defines no macro whose name does not start
 #   with GAOL_ or gaol_ (__GAOL, __gaol for the include guards): the macros
@@ -37,7 +37,7 @@ set -e
 export LC_ALL=C
 prefix=${1:?the prefix of an installed GAOL}
 cxx=${CXX:-c++}
-pc=$(ls "$prefix"/lib*/pkgconfig/gaol.pc "$prefix"/lib/*/pkgconfig/gaol.pc 2> /dev/null | head -n 1)
+pc=$(find "$prefix"/lib*/pkgconfig "$prefix"/lib/*/pkgconfig -name gaol.pc 2> /dev/null | sort | head -n 1)
 if [ -n "$pc" ] && command -v pkg-config > /dev/null; then
   flags=$(PKG_CONFIG_PATH=$(dirname "$pc") pkg-config --cflags gaol)
 else
@@ -53,13 +53,14 @@ work=$(mktemp -d "${TMPDIR:-/tmp}/gaol-headers.XXXXXX")
 trap 'rm -rf "$work"' EXIT INT TERM
 status=0
 
-for f in "$prefix"/include/gaol/* "$prefix"/include/gaol/parser/*; do
+for f in "$prefix"/include/gaol/* "$prefix"/include/gaol/core/* "$prefix"/include/gaol/parser/*; do
   [ -f "$f" ] || continue
   h=${f#"$prefix"/include/gaol/}
   case "$h" in
-    gaol_interval_fpu.h|gaol_interval_neon.h|gaol_interval_sse.h|gaol_fpu_msvc.h) continue ;;
+    core/gaol_interval_fpu.h|core/gaol_interval_neon.h|core/gaol_interval_sse.h|gaol_fpu_msvc.h) continue ;;
   esac
   printf '#include <gaol/%s>\n' "$h" > "$work/alone.cpp"
+  # shellcheck disable=SC2086
   if $cxx $flags -fsyntax-only "$work/alone.cpp" > "$work/alone.log" 2>&1; then
     echo "gaol/$h alone: ok"
   else
@@ -71,7 +72,7 @@ done
 
 # The headers of the system the headers of GAOL include
 printf '#include <gaol/gaol>\n#include <gaol/parser/gaol_expression.h>\n#include <gaol/parser/gaol_expr_eval.h>\n' > "$work/gaol.cpp"
-sed -n 's/^[[:space:]]*#[[:space:]]*include[[:space:]]*<\([^>]*\)>.*/\1/p' "$prefix"/include/gaol/*.h "$prefix"/include/gaol/gaol "$prefix"/include/gaol/parser/*.h |
+sed -n 's/^[[:space:]]*#[[:space:]]*include[[:space:]]*<\([^>]*\)>.*/\1/p' "$prefix"/include/gaol/*.h "$prefix"/include/gaol/gaol "$prefix"/include/gaol/core/*.h "$prefix"/include/gaol/parser/*.h |
   grep -v '^gaol/' | sort -u |
   while read -r s; do
     case "$s" in
@@ -86,6 +87,7 @@ cat "$work/system.cpp" "$work/gaol.cpp" > "$work/both.cpp"
 # The macros defined after each file, the output of the preprocessor written
 # to a file first: in a pipe, its failure would go unseen
 for f in system both; do
+  # shellcheck disable=SC2086
   if ! $cxx $flags -E -dM "$work/$f.cpp" > "$work/$f.dM" 2> "$work/$f.log"; then
     echo "The preprocessor failed on the headers of GAOL and of the system:"
     cat "$work/$f.cpp" "$work/$f.log"

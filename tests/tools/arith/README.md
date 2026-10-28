@@ -5,11 +5,11 @@
 Part of the [tests](../../../doc/tests.md) of GAOL v5.
 
 `diffarith` compares two builds of GAOL on the operations of the interval
-arithmetic: the FPU, the SSE2 and the NEON intervals (`GAOL_SIMD`,
-`GAOL_ARM64`), a version before a change and the one after, or two compilers.
+arithmetic: the FPU, the SSE2 and the NEON intervals (`GAOL_SIMD`),
+a version before a change and the one after, or two compilers.
 It was written for the NEON intervals of 64-bit ARM processors, whose kernels
-(`gaol/gaol_interval_neon.cpp`) replace the code of the FPU intervals
-(`gaol/gaol_interval_fpu.cpp`), and which have to give the same bounds and the
+(`gaol/core/gaol_interval_neon.cpp`) replace the code of the FPU intervals
+(`gaol/core/gaol_interval_fpu.cpp`), and which have to give the same bounds and the
 same exception flags, but for the sign of a zero.
 
 It is not part of the build nor of `make test`: it compares builds, and its
@@ -26,7 +26,7 @@ program with the command and the library of each build):
 
 ```bash
 cmake -S . -B build-neon -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-cmake -S . -B build-fpu  -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DGAOL_ARM64=OFF
+cmake -S . -B build-fpu  -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DGAOL_SIMD=OFF
 cmake --build build-neon -j 4
 cmake --build build-fpu -j 4
 python3 tests/tools/arith/diffarith.py run --out /tmp/arith neon=build-neon fpu=build-fpu

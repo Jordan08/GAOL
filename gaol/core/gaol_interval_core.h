@@ -753,13 +753,13 @@ namespace gaol_core {
     GAOL_NODISCARD static interval_format::format_t format(void);
 
     /* The masks of the SSE2 operations, initialized when compiling
-       (gaol/gaol_interval_sse.cpp), so that the operations computed in the
+       (gaol/core/gaol_interval_sse.cpp), so that the operations computed in the
        initialization of the static objects of a program are right, before
        the files of GAOL are initialized (GAOL v5). The constants of intervals
        (one(), pi()...) are built by the functions giving them, from doubles
        written in gaol/gaol_port.h, rather than held in static intervals, which
        only the dynamic initialization of gaol/gaol_interval.cpp, now
-       gaol/gaol_interval_core.cpp, computed. */
+       gaol/core/gaol_interval_core.cpp, computed. */
 #if GAOL_USING_SSE2_INSTRUCTIONS
      /// Mask for the sign bit of the left operand of an xmm register
     static const __m128d lbsignmask;
@@ -929,7 +929,7 @@ namespace gaol_core {
     static interval sqr_upward(const interval& I);
     /*
       Gives inverse_upward() and sqr_upward() to the functions of
-      gaol/gaol_interval_core.cpp that check the rounding direction once and
+      gaol/core/gaol_interval_core.cpp that check the rounding direction once and
       take the inverse or the square after it: the integer power of pow() and
       the roots of negative order, which have no access of their own (GAOL
       v5). Defined there alone
@@ -1073,11 +1073,11 @@ namespace gaol_core {
 #endif
 
 #if GAOL_USING_SSE2_INSTRUCTIONS
-#   include "gaol/gaol_interval_sse.h"
+#   include "gaol/core/gaol_interval_sse.h"
 #elif GAOL_USING_NEON_INSTRUCTIONS
-#   include "gaol/gaol_interval_neon.h"
+#   include "gaol/core/gaol_interval_neon.h"
 #else
-#   include "gaol/gaol_interval_fpu.h"
+#   include "gaol/core/gaol_interval_fpu.h"
 #endif // GAOL_USING_SSE2_INSTRUCTIONS
 
 
@@ -1640,7 +1640,7 @@ namespace gaol_core {
     The pow of IEEE 1788-2015 (Table 9.1), after one check of the rounding
     direction: gaol_ieee1788::pow() is this function (GAOL v5), the inline
     function of gaol/gaol_ieee1788.h calling it, so that it is exported
-    (GAOL_PUBLIC). Defined in gaol/gaol_interval_core.cpp, with the other
+    (GAOL_PUBLIC). Defined in gaol/core/gaol_interval_core.cpp, with the other
     powers.
   */
   GAOL_NODISCARD extern GAOL_PUBLIC interval pow_standard(const interval &I, const interval &J);
@@ -2042,7 +2042,7 @@ GAOL_NODISCARD GAOL_INLINE interval integer(const interval &I)
 
   Each tests the empty set first. GAOL holds the empty interval as the two
   bounds NaN, in both of its representations (interval::emptyset() of
-  gaol/gaol_interval_sse.h and of gaol/gaol_interval_fpu.h), and
+  gaol/core/gaol_interval_sse.h and of gaol/core/gaol_interval_fpu.h), and
   is_empty() reads it as !std::islessequal(left(), right()), which a NaN makes
   true. trunc and the two roundings send a NaN to itself, so they would give
   the empty set back without the test, but the constructor would compare the

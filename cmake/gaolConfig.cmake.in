@@ -6,7 +6,7 @@
 # gaol::gaol carries GAOL's include directory, the compilation flags interval
 # arithmetic needs (-frounding-math, -ffp-contract=off, /fp:strict...), the
 # flag of the fused multiply-add instructions GAOL is compiled with (-mfma,
-# /arch:AVX2..., GAOL_FMA; -mfma -mprefer-vector-width=128 with GCC for Windows
+# /arch:AVX2...; -mfma -mprefer-vector-width=128 with GCC for Windows
 # on x86-64 and 32-bit x86, GAOL v5), on 32-bit Windows with the SSE2 intervals (GCC and
 # Clang) the flag that has the compiler ask for the aligned memory they need
 # (-faligned-new=8, for the C++ only), and, where GAOL's compiler takes it, the link

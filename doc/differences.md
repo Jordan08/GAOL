@@ -264,7 +264,7 @@ where it comes from.
     intervals build their interval from these doubles, which the compiler
     folds, rather than copy the static intervals `interval::cst_one`,
     `cst_pi`..., which are gone.
-  - The masks of the SSE2 intervals (`gaol/gaol_interval_sse.cpp`) are
+  - The masks of the SSE2 intervals (`gaol/core/gaol_interval_sse.cpp`) are
     written as vectors, which GCC and Clang, the only compilers of the SSE2
     intervals, put in read-only memory, rather than computed with
     `_mm_set_pd()` and `_mm_cmpeq_pd()`.
@@ -329,15 +329,15 @@ where it comes from.
   double give the empty set for an infinite double, as `interval(d)` is empty:
   they no longer repair NaN bounds, and `x *= d` takes 3.6 ns rather than
   4.8 ns.
-- **`x -= x`, `x /= x` and `x %= x`** enclose their results in the FPU
-  intervals (`GAOL_SIMD=OFF`: the intervals of ARM, of Visual C++ and of
-  32-bit Windows), the bounds of the operand being read before those of the
-  interval are written. The operand being the interval itself, GAOL wrote one
-  bound before reading it: `x -= x` was `[a - b, 2b - a]` for x = [a, b],
-  `[-2, 1]` for `[-3, -1]`, and `x /= x` and `x %= x` were `[a/b, b²/a]` for
-  0 < a ≤ b, `[0.5, 1]` for `[0.25, 0.5]`, neither containing the exact
-  result; `[0.1] /= [0.1]` was empty. Normalising a row by its pivot,
-  `row[j] /= row[i]` down to j = i, did it. The SSE2 intervals were right.
+- **`x -= x`, `x /= x` and `x %= x`** enclose their results in the FPU intervals
+  (`GAOL_SIMD=OFF`, and the processors with neither SSE2 nor NEON: 32-bit ARM,
+  POWER, s390x and RISC-V), the bounds of the operand being read before those of
+  the interval are written. The operand being the interval itself, GAOL wrote
+  one bound before reading it: `x -= x` was `[a - b, 2b - a]` for x = [a, b],
+  `[-2, 1]` for `[-3, -1]`, and `x /= x` and `x %= x` were `[a/b, b²/a]` for 0 <
+  a ≤ b, `[0.5, 1]` for `[0.25, 0.5]`, neither containing the exact result;
+  `[0.1] /= [0.1]` was empty. Normalising a row by its pivot, `row[j] /= row[i]`
+  down to j = i, did it. The SSE2 intervals were right.
 - **Square roots** are bounded whatever the rounding of the C library's `sqrt`,
   which Visual C++ for 32-bit x86 rounds to nearest in every rounding direction.
   Where `sqrt` rounds as it should, the results are unchanged.
@@ -676,7 +676,7 @@ where it comes from.
   `!=` are removed**, and so is the option that chose what the relation
   symbols mean (`--enable-relations`, `-Denable-relations`), gone from
   configure and meson. The code is kept in comments in
-  `gaol/gaol_interval_core.h`.
+  `gaol/core/gaol_interval_core.h`.
   - **Why.** `certainly_neq()` was `!certainly_eq()`, which is "possibly not
     equal": `[3, 4]` was certainly not equal to `[3, 4]`, and so was `!=` with
     the certainly relations, the default of every build. IEEE 1788-2015 has
@@ -845,7 +845,7 @@ where it comes from.
   once; expressions built apart in each thread are independent.
 - **`uipow()`**, the `pown` of IEEE 1788-2015 for an unsigned exponent, is
   `pow(I, n)` for an `unsigned` n in `gaol`, `gaol_uipow()` in `gaol_core`,
-  declared in `gaol/gaol_interval_core.h` and exported with the SSE2 intervals too,
+  declared in `gaol/core/gaol_interval_core.h` and exported with the SSE2 intervals too,
   where it was `INLINE` ([issue #10](https://github.com/Jordan08/GAOL/issues/10)).
   - **Before.** `gaol::uipow()` was not found, and `uipow()` did not link.
   - **Now.** It gives `[1]` for an exponent 0, and the empty set for an empty
@@ -970,7 +970,7 @@ where it comes from.
   `GAOL_FLOAT_INTERVALS` of CMake, `--enable-float-intervals` of configure
   and `enable-float-intervals` of meson, which compiled them for a while,
   are gone. A developer working on them defines the macro in
-  `gaol/gaol_config.h`: `gaol/gaol_interval_core.cpp` then includes their sources,
+  `gaol/gaol_config.h`: `gaol/core/gaol_interval_core.cpp` then includes their sources,
   as it includes those of the SSE2 and FPU intervals. Their headers are not
   installed, `gaol/gaol` does not include them, and their tests,
   `tests/intervalf.cpp` and `tests/interval2f.cpp`, are skipped.
@@ -1009,6 +1009,43 @@ where it comes from.
     `gaol/gaol_config.h` undefined before including it, undefining those of
     the code including GAOL. The template of configure,
     `gaol/gaol_configuration.h.in`, is written by hand.
+  - **The same options** (see [The options](building.md#the-options)):
+    `GAOL_PRESERVE_ROUNDING`, `GAOL_SIMD`, `GAOL_COVERAGE`, `WITH_TESTS`,
+    `WITH_EXAMPLES`, `BUILD_SHARED_LIBS`, the build type, the
+    position-independent code and `CMAKE_OSX_ARCHITECTURES` have their
+    counterpart in configure (`--enable-preserve-rounding`, `--enable-simd`,
+    `--enable-coverage`, `--with-tests`, `--with-examples`, `--enable-shared`,
+    `--enable-debug`, `--enable-pic`) and in meson (`enable-preserve-rounding`,
+    `enable-simd`, `enable-coverage`, `with-tests`, `with-examples`,
+    `default_library`, `buildtype`, `b_staticpic`); a universal build of macOS
+    is made with configure and meson as with CMake, by several `-arch` in the
+    flags. `GAOL_SIMD` chooses the intervals of every processor: SSE2 on x86,
+    NEON on 64-bit ARM (`GAOL_ARM64`, `--enable-arm64` and `enable-arm64` were
+    an option of their own and are gone), the FPU if it is off. The rest is
+    decided by checks that compile, link and run a program, the same with the
+    three builds: the fused multiply-add instructions, the AVX-512 path (taken
+    with `GAOL_PRESERVE_ROUNDING`, where it computes 2.8 times faster at the
+    median on an Intel i7-1185G7, and left out without it, where it costs
+    17 %), the 128-bit integer and the debugging (see [SIMD, FMA and the
+    rounding direction](simd.md#when-the-build-takes-the-avx-512-path)).
+    `GAOL_FMA`, `GAOL_PREFER_AVX512`, `GAOL_U128_EMULATION`, `GAOL_DEBUG` and
+    the options of configure and meson that matched them are no longer
+    options, the developers of GAOL keeping them as settings (see
+    [Building GAOL](building.md#the-settings-of-the-developers)); in a
+    cross-compilation, where no program can be run, the fused multiply-add
+    instructions and the AVX-512 path are left out unless the builder says
+    that the machine runs them (`GAOL_MACHINE_RUNS_FMA`,
+    `gaol_cv_machine_runs_fma`, `machine-runs-fma`): the fused multiply-add
+    instructions were taken on the word of the compiler there.
+  - **The C sources of CORE-MATH** are compiled with `-std=gnu99` (the C99
+    that the inline assembly of `atan2` needs, with the extensions of GNU),
+    `-msse2 -msse3` where the SSE2 intervals are used and
+    `-fvisibility=hidden` by the three builds, and with `-ffloat-store` where
+    the x87 unit computes the doubles. Before, CMake alone gave the second and
+    the third flags, configure left the standard to the compiler (C23 with
+    GCC 15) and meson took `gnu11`, and the audit of the three builds compared
+    the flags of the C++ sources only (see [The three builds](three-builds.md)).
+    A shared `libgaol` exports the same 38 symbols with the three builds.
   - **The Debug build** of each (`CMAKE_BUILD_TYPE=Debug`,
     `configure --enable-debug`, `meson setup --buildtype=debug`) compiles
     GAOL with `-g`, without optimization nor `NDEBUG`, so that `assert()`
@@ -1017,7 +1054,9 @@ where it comes from.
     and GAOL did not compile with it: `gaol/parser/gaol_expression.h` wrote on
     `std::cout` in `GAOL_DEBUG` without including `<iostream>`
     (`tests/debugging.cpp`). meson's options `enable-debug` and
-    `enable-optimize` are gone: its build type gives both, as CMake's.
+    `enable-optimize` are gone: its build type gives both, as CMake's. So is
+    the `--enable-optimize` of configure, which gave `-O3` (`-O` with
+    `--disable-optimize`): the Release build does.
   - **The tests and the examples:** `WITH_TESTS` and `WITH_EXAMPLES` of
     CMake (`GAOL_BUILD_TESTS` before), `--with-tests` and `--with-examples`
     of configure, `with-tests` and `with-examples` of meson (`with-test`
@@ -1039,7 +1078,12 @@ where it comes from.
   - **The shared library** is `libgaol.so.5.0.0`, whose soname is
     `libgaol.so.5`, with configure (`libgaol-5.0.so.0` before), meson (no
     version before) and CMake, which builds it with `BUILD_SHARED_LIBS` (a
-    static library only before). A shared `libgaol` exports the classes and
+    static library only before). The three builds make the static library
+    alone by default, compiled as position-independent code, and the shared
+    one when asked (`BUILD_SHARED_LIBS=ON`, `--enable-shared`,
+    `-Ddefault_library=shared`); configure and meson made both, so that
+    `make install` and `meson install` put `libgaol.a` alone under the prefix
+    unless asked. A shared `libgaol` exports the classes and
     functions of the expressions (`gaol/parser/gaol_expression.h`), which it did not.
   - **meson with Visual C++** installs `gaol/gaol_configuration.h` in the
     directory of the headers (in `include/gaol` under the prefix before,

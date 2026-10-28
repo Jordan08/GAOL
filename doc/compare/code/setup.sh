@@ -20,6 +20,7 @@
 #
 # Created 2026-09-20 by Jordan NININ
 set -euo pipefail
+# shellcheck source=env.sh
 source "$(dirname "$0")/env.sh"
 
 mkdir -p "$WORK/src" "$PREFIX"
@@ -120,6 +121,8 @@ else
   fi
   fetch "$PROFIL_URL" "Profil-$PROFIL_VERSION.tgz" "$PROFIL_SHA256"
   rm -rf "Profil-$PROFIL_VERSION" && tar xzf "Profil-$PROFIL_VERSION.tgz"
+  # The format of printf holds the $(...) of make, which no shell expands
+  # shellcheck disable=SC2016
   (cd "Profil-$PROFIL_VERSION" &&
    printf '# Written by doc/compare/code/setup.sh, as Configure would\nARCH\t= x86-64-Linux-compat-gcc\ninclude $(BASEDIR)/config/$(ARCH)/Host.cfg\nCC\t= %s\nCCPLUS\t= %s\nCFLAGS\t:= $(patsubst -O2,-O3 %s -ffp-contract=off,$(CFLAGS))\nCPLUSFLAGS\t= $(CFLAGS) -std=c++11\n' "$CC" "$CXX" "$FMA_FLAGS" > Host.cfg &&
    make all > make.log 2>&1 && make install > install.log 2>&1 && make check > check.log 2>&1 &&
@@ -142,8 +145,8 @@ else
 fi
 
 ## GAOL again, with the rounding direction preserved (GAOL_PRESERVE_ROUNDING=ON),
-## in a prefix of its own: the benchmark has a column for it. GAOL_PREFER_AVX512
-## is left at its default, which is ON with GAOL_PRESERVE_ROUNDING where the
+## in a prefix of its own: the benchmark has a column for it. The AVX-512 path is
+## the configuration's to take, which it does with GAOL_PRESERVE_ROUNDING where the
 ## compiler takes the AVX-512 instructions and the machine building runs them:
 ## +, -, *, /, sqr, sqrt and, with FMA, the integer powers beyond 1 and -1 then
 ## take them, the rounding direction being in the instruction (the library then
@@ -152,12 +155,13 @@ if [ -f "$GAOL_PRESERVE_PREFIX/include/gaol/gaol.h" ] && [ -z "${FORCE_GAOL:-}" 
   echo "== GAOL, rounding direction preserved: already in $GAOL_PRESERVE_PREFIX (FORCE_GAOL=1 to rebuild)"
 else
   echo "== GAOL, rounding direction preserved ($(git -C "$ROOT_DIR" describe --always --dirty 2>/dev/null || echo "?"))"
-  # GAOL_PREFER_AVX512 is left at its default, which is derived at every
-  # configure where the command line says nothing (CMakeLists.txt). A directory
-  # configured before that (before #161) holds the OFF its option() cached,
-  # which CMake takes for a request of OFF and keeps: it is configured afresh
+  # GAOL_PREFER_AVX512 is left to the configuration, which takes the path with
+  # GAOL_PRESERVE_ROUNDING (CMakeLists.txt) and keeps no entry of it unless it
+  # is given on the command line. A directory configured before that holds
+  # one, derived or cached by an option(), which is read as a request (the OFF
+  # of a directory from before #161 refuses the path): it is configured afresh
   if [ -f "$WORK/gaol-preserve-build/CMakeCache.txt" ] \
-     && ! grep -q '^GAOL_PREFER_AVX512_DERIVED' "$WORK/gaol-preserve-build/CMakeCache.txt"; then
+     && grep -q '^GAOL_PREFER_AVX512:' "$WORK/gaol-preserve-build/CMakeCache.txt"; then
     rm -rf "$WORK/gaol-preserve-build"
   fi
   cmake -S "$ROOT_DIR" -B "$WORK/gaol-preserve-build" -DCMAKE_BUILD_TYPE=Release \

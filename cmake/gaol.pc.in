@@ -2,7 +2,7 @@
 #   pkg-config --cflags --libs gaol
 # Cflags carries the flags interval arithmetic needs (see the README), which
 # the code including GAOL's headers has to be compiled with, and the flag of
-# the fused multiply-add instructions GAOL is compiled with (GAOL_FMA), and
+# the fused multiply-add instructions GAOL is compiled with, and
 # on 32-bit Windows with the SSE2 intervals (GCC and Clang) the flag that has the
 # compiler ask for aligned memory for them (-faligned-new=8; GAOL v5), and
 # Libs the libraries to link: the elementary functions of CORE-MATH are

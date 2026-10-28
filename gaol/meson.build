@@ -63,15 +63,16 @@ else
 endif
 
 # The sources use the GNU extensions of C (the inline asm of atan2's tint.h),
-# which the c99 of the project refuses, but with Visual C++, which has no GNU
-# C and compiles them as CMake does. And b_lto=false keeps the interprocedural
+# which the c99 of the project refuses: gnu99, as CMake and configure give it
+# (GAOL v5: gnu11), but with Visual C++, which has no GNU C and compiles them
+# as CMake does. And b_lto=false keeps the interprocedural
 # optimization of -Db_lto=true away from them: reached by it, sin and cos took
 # half as long again (see doc/three-builds.md). The options of enable-debug, or
 # in a subproject those of release where meson gives it the build type of the
 # project (gaol_build_options, see meson.build)
 core_math_overrides = ['b_lto=false'] + gaol_build_options
 if not msvc
-  core_math_overrides += ['c_std=gnu11']
+  core_math_overrides += ['c_std=gnu99']
 endif
 core_math_lib = static_library(
   'gaol_core_math',
@@ -86,7 +87,7 @@ core_math_lib = static_library(
 gaol_SOURCES = []
 gaol_SOURCES += [
   'gaol_interval.cpp',
-  'gaol_interval_core.cpp',
+  'core/gaol_interval_core.cpp',
   'gaol_ieee1788.cpp',
   'gaol_common.cpp',
   'parser/gaol_parser.cpp',
@@ -119,13 +120,18 @@ gaol_HEADERS = [
   'gaol_fpu_msvc.h',
   'gaol_ieee1788.h',
   'gaol_interval.h',
-  'gaol_interval_core.h',
-  'gaol_interval_fpu.h',
-  'gaol_interval_neon.h',
-  'gaol_interval_sse.h',
   'gaol_port.h',
   'gaol_roundeven.h',
   'gaol_version.h',
+]
+
+# The headers of the intervals, which gaol_interval.h includes: installed in
+# gaol/core/ as in the sources (GAOL v5)
+gaol_CORE_HEADERS = [
+  'core/gaol_interval_core.h',
+  'core/gaol_interval_fpu.h',
+  'core/gaol_interval_neon.h',
+  'core/gaol_interval_sse.h',
 ]
 
 # The headers of the parser of the strings and of the expressions, which a
@@ -150,9 +156,10 @@ EXTRA_DIST = [
   'gaol_ldexp.h',
   'parser/gaol_interval_lexer.lpp',
   'parser/gaol_interval_parser.ypp',
-  'gaol_interval_sse.cpp',
-  'gaol_interval_neon.cpp',
-  'gaol_interval_avx512.cpp',
+  'core/gaol_interval_sse.cpp',
+  'core/gaol_interval_neon.cpp',
+  'core/gaol_interval_fpu.cpp',
+  'core/gaol_interval_avx512.cpp',
   # Headers and sources of GAOL, not installed: the bounds at doubles, *_dn()
   # and *_up(), which are not part of its interface, and the intervals of
   # floats, which gaol_interval_core.cpp includes where a developer of GAOL
@@ -165,15 +172,22 @@ EXTRA_DIST = [
 ]
 
 
-# The static library libgaol.a and the shared one, libgaol.so.5.0.0, whose
-# soname is libgaol.so.5, as CMake (BUILD_SHARED_LIBS) and configure name it
-# (GAOL v5). With Visual C++, the static library alone, as with CMake: GAOL's
-# declarations carry no __declspec(dllexport) nor dllimport there (GAOL_PUBLIC
-# is empty, gaol/gaol_config.h), and gaol_dep and gaol.pc no longer give the
-# code using GAOL __GAOL_PUBLIC__ defined empty (GAOL v5).
-if msvc
+# The static library libgaol.a, or with -Ddefault_library=shared the shared one,
+# libgaol.so.5.0.0, whose soname is libgaol.so.5, and with
+# -Ddefault_library=both the two, as CMake (BUILD_SHARED_LIBS) and configure
+# (--enable-shared) name them (GAOL v5: both libraries by default; the static
+# one, compiled as position-independent code, b_staticpic being true, is the
+# default of the three builds). With Visual C++, the static library alone, as
+# with CMake: GAOL's declarations carry no __declspec(dllexport) nor dllimport
+# there (GAOL_PUBLIC is empty, gaol/gaol_config.h), and gaol_dep and gaol.pc no
+# longer give the code using GAOL __GAOL_PUBLIC__ defined empty (GAOL v5).
+# gaollib_static is the library that the tests and the benchmark link: the
+# static one, or the shared one where there is no other.
+gaol_default_library = get_option('default_library')
+if msvc or clang_msvc
   # The lexer includes <unistd.h>, which Visual C++ does not have
-  # (cmake/msvc/unistd.h), and the warnings CMake turns off too
+  # (cmake/msvc/unistd.h), and the warnings CMake turns off too; the same with
+  # Clang and the driver of GCC for its target (clang_msvc, in meson.build)
   gaol_msvc_args = ['-D_CRT_SECURE_NO_WARNINGS', '-D_CRT_NONSTDC_NO_WARNINGS']
   # Visual C++ only: clang-cl does not know the option, and warns of it
   if cpp_comp.get_id() == 'msvc'
@@ -189,7 +203,33 @@ if msvc
     include_directories: [incdir, include_directories('../cmake/msvc')],
     c_args: gaol_msvc_args,
     cpp_args: gaol_msvc_args,
-    override_options: gaol_build_options,
+    override_options: gaol_lib_options,
+  )
+  gaollib_static = gaollib
+elif gaol_default_library == 'static'
+  gaollib = static_library(
+    'gaol',
+    sources: gaol_SOURCES,
+    dependencies: deps,
+    link_whole: core_math_lib,
+    install: true,
+    extra_files: EXTRA_DIST,
+    include_directories: incdir,
+    override_options: gaol_lib_options,
+  )
+  gaollib_static = gaollib
+elif gaol_default_library == 'shared'
+  gaollib = shared_library(
+    'gaol',
+    sources: gaol_SOURCES,
+    dependencies: deps,
+    link_whole: core_math_lib,
+    install: true,
+    extra_files: EXTRA_DIST,
+    include_directories: incdir,
+    version: meson.project_version(),
+    soversion: major_version.to_string(),
+    override_options: gaol_lib_options,
   )
   gaollib_static = gaollib
 else
@@ -203,7 +243,7 @@ else
     include_directories: incdir,
     version: meson.project_version(),
     soversion: major_version.to_string(),
-    override_options: gaol_build_options,
+    override_options: gaol_lib_options,
   )
   gaollib_static = gaollib.get_static_lib()
 endif
@@ -222,4 +262,5 @@ gaol_dep = declare_dependency(
 )
 
 install_headers(gaol_HEADERS, subdir: 'gaol')
+install_headers(gaol_CORE_HEADERS, subdir: 'gaol/core')
 install_headers(gaol_PARSER_HEADERS, subdir: 'gaol/parser')

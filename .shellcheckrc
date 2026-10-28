@@ -1,0 +1,9 @@
+# The configuration of shellcheck, run from the root of the repository on the
+# scripts of .github/ and doc/compare/code/ (GAOL v5): a script that sources
+# another is read with it, the path being the one of the directory of the script
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# Created 2026-10-26 by Jordan NININ
+external-sources=true
+source-path=SCRIPTDIR

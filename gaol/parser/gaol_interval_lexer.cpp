@@ -1516,7 +1516,7 @@ namespace {
 namespace gaol_detail {
   // The sign of v - x, v being the number s writes, with no sign, and x a
   // double, compared exactly: for the output of intervals
-  // (gaol/gaol_interval_core.cpp), whose decimal bounds are rounded outward
+  // (gaol/core/gaol_interval_core.cpp), whose decimal bounds are rounded outward
   // whatever the C library (declared in gaol/parser/gaol_parser.h)
   int compare_number_with_double(const char *s, double x)
   {

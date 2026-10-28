@@ -92,7 +92,7 @@ namespace gaol_ieee1788 {
     4, none of them a literal, and the text changed with the format another
     thread was setting.
     The writing itself is ::gaol_core::literal_text() (gaol/parser/gaol_parser.h),
-    in gaol/gaol_interval_core.cpp, which holds the writers of intervals.
+    in gaol/core/gaol_interval_core.cpp, which holds the writers of intervals.
   */
   std::string intervalToText(const interval& x)
   {

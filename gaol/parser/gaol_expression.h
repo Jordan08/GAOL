@@ -61,7 +61,7 @@ namespace gaol_core {
     };
   };
   // prec_t, which GAOL 4 declared in its namespace gaol too, is not in gaol:
-  // GAOL uses it for itself (see gaol/gaol_interval_core.h)
+  // GAOL uses it for itself (see gaol/core/gaol_interval_core.h)
   
   /*!
   Use of Interval_struct instead of interval to overcome the fact that a

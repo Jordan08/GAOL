@@ -5,7 +5,7 @@
 # Tools of GAOL v5: mutation testing of pow. Each mutant is GAOL with one
 # deliberate error in pow_standard_upward(), pow_hybrid_upward(),
 # gaol_pow_real(), pow_lo(), pow_hi() or gaol_ieee1788::pow
-# (gaol/gaol_interval_core.cpp), or in the integer power, whose kernels are in the files of the kinds
+# (gaol/core/gaol_interval_core.cpp), or in the integer power, whose kernels are in the files of the kinds
 # of intervals (gaol_interval_sse.cpp, _neon.cpp, _fpu.cpp and _avx512.cpp, GAOL v5); the tests have to fail on it, unless it computes
 # the same bounds (an equivalent mutant, which the list says).
 #
@@ -20,8 +20,7 @@
 # Linux), which are configured with CMake in WORK/build
 # (-DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON
 # -DCMAKE_EXPORT_COMPILE_COMMANDS=ON, and each --cmake-option, such as
-# --cmake-option=-DGAOL_SIMD=OFF --cmake-option=-DGAOL_ARM64=OFF for the FPU
-# build), so that the tests are built with the flags
+# --cmake-option=-DGAOL_SIMD=OFF for the FPU build), so that the tests are built with the flags
 # of the build, and the sources given are never written. The tests
 # gaol_test_NAME of each --test (by default ieee1788, with the boxes of
 # pow_on_boxes(), and elementary, with pow over 385 boxes and at points; also
@@ -45,8 +44,9 @@
 # for a mutant that survives, but those the list expects to, or one that
 # cannot be applied or compiled.
 #
-# --mutants FILE takes the list from a Python file defining MUTANTS, a list
-# of dict(name=..., edits=[(old, new), ...], file='gaol/gaol_interval_core.cpp',
+# --mutants FILE takes the list from a Python file defining MUTANTS (that of
+# tests/tools/x86-csr/ mutates gaol/gaol_fpu.h and runs rounding_direction), a list
+# of dict(name=..., edits=[(old, new), ...], file='gaol/core/gaol_interval_core.cpp',
 # survives='why it is equivalent'), file and survives being optional; --list
 # prints the mutants and whether they apply to the sources.
 #---------------------------------------------------------------------------
@@ -72,7 +72,7 @@ import build
 import diffpow
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-FILE = 'gaol/gaol_interval_core.cpp'
+FILE = 'gaol/core/gaol_interval_core.cpp'
 
 # The mutants of the code of configure-clean on 2026-10-04 (after #61 and
 # #63), their texts brought to the code of the pull requests of B: the
@@ -97,18 +97,24 @@ FILE = 'gaol/gaol_interval_core.cpp'
 # an SSE2 register holds, gives the empty set (std-infinite-exponent-*); x^2 is
 # sqr(), which gaol_pown() and pown_upward() take before pown_products(), and
 # the mutant pown-square-bound, which gave K back to m = 2 in pown_bound(), went
-# with that branch of pown_bound(), no n reaching it any longer.
+# with that branch of pown_bound(), no n reaching it any longer. The texts of
+# std-empty-y-unchecked and std-infinite-exponent-unchecked follow
+# holds_no_real(), which pow_standard_upward() calls for the exponent [+oo] or
+# [-oo] (#183), and those of corner-lower-not-exact and corner-upper-no-limit
+# follow the template argument quiet of pow_lo() and pow_hi() (#184);
+# er-division-downward divides in 512 bits downward where pown_er_ops::div()
+# now takes er_div2() (#191).
 MUTANTS = [
     # pow_standard_upward(): the pow of Table 9.1
     dict(name='std-empty-y-unchecked',
-         edits=[('if (x.is_empty() || y.is_empty() || !(y.left() < GAOL_INFINITY',
-                 'if (x.is_empty() || !(y.left() < GAOL_INFINITY')],
-         survives='the NaN bounds of an empty y fail the test of an infinite exponent too, which gives the '
-                  'empty set: the same bounds, but rounding_direction finds the invalid-operation flag that '
-                  'comparing them raises'),
+         edits=[('if (x.is_empty() || y.is_empty() || holds_no_real(y)) {',
+                 'if (x.is_empty() || holds_no_real(y)) {')],
+         survives='pow_standard() and pow_hybrid_upward(), its only callers, return the empty set for an empty '
+                  'operand before they call it: an empty y never reaches its test (the NaN bounds would fail '
+                  'holds_no_real() too, and give the empty set), the same bounds and the same flags'),
     dict(name='std-infinite-exponent-unchecked',
-         edits=[('y.is_empty() || !(y.left() < GAOL_INFINITY && y.right() > -GAOL_INFINITY)) {',
-                 'y.is_empty()) {')]),
+         edits=[('if (x.is_empty() || y.is_empty() || holds_no_real(y)) {',
+                 'if (x.is_empty() || y.is_empty()) {')]),
     dict(name='std-no-cut-to-positive',
          edits=[('const interval base = x & interval::positive();', 'const interval base = x;')]),
     dict(name='std-empty-base-unchecked',
@@ -185,8 +191,8 @@ MUTANTS = [
          edits=[('(yl < 0.0) ? yl : 0.0', '(yl < 0.0) ? 0.0 : yl')]),
     # pow_lo() and pow_hi(): the bounds at a corner
     dict(name='corner-lower-not-exact',
-         edits=[('return pow_is_double(x, y, d) ? d : maximum(pow_rounded_dn(x,y), 0.0);',
-                 'return maximum(pow_rounded_dn(x,y), 0.0);')]),
+         edits=[('return pow_is_double(x, y, d) ? d : maximum(pow_rounded_dn<quiet>(x,y), 0.0);',
+                 'return maximum(pow_rounded_dn<quiet>(x,y), 0.0);')]),
     dict(name='corner-lower-no-one',
          edits=[('if (x == 1.0 || y == 0.0) {\n      return 1.0;\n    }\n    if (pow_is_limit(x, y)) {',
                  'if (pow_is_limit(x, y)) {')]),
@@ -197,8 +203,8 @@ MUTANTS = [
          edits=[('    if (pow_is_limit(x, y)) {\n      return pow_limit(x, y);\n    }\n    return pow_is_double',
                  '    return pow_is_double')]),
     dict(name='corner-upper-no-limit',
-         edits=[('return pow_is_limit(x, y) ? pow_limit(x, y) : pow_rounded_up(x,y);',
-                 'return pow_rounded_up(x,y);')]),
+         edits=[('return pow_is_limit(x, y) ? pow_limit(x, y) : pow_rounded_up<quiet>(x,y);',
+                 'return pow_rounded_up<quiet>(x,y);')]),
     dict(name='corner-limit-inverted',
          edits=[('return ((x > 1.0) == (y > 0.0)) ? GAOL_INFINITY : 0.0;',
                  'return ((x > 1.0) == (y > 0.0)) ? 0.0 : GAOL_INFINITY;')]),
@@ -295,44 +301,44 @@ MUTANTS = [
     dict(name='pown-unsigned-beyond-ints-as-int',
          edits=[('(e <= static_cast<unsigned int>(INT_MAX))', '(true)')]),
     dict(name='pown-beyond-64-bits-parity',
-         file='gaol/gaol_interval_core.h',
+         file='gaol/core/gaol_interval_core.h',
          edits=[('(n % 2 != 0) ? 9223372036854775807LL : 9223372036854775806LL',
                  '(n % 2 != 0) ? 9223372036854775806LL : 9223372036854775807LL')]),
     # The SSE2 register, with the FMA instructions
     dict(name='sse-fma-no-exact-flag',
-         file='gaol/gaol_interval_sse.cpp',
+         file='gaol/core/gaol_interval_sse.cpp',
          edits=[('        K = _mm_andnot_pd(_mm_castsi128_pd(_mm_cmpeq_epi64(_mm_castpd_si128(s), _mm_setzero_si128())), K);',
                  '')]),
     dict(name='sse-fma-exact-flag-as-doubles',
-         file='gaol/gaol_interval_sse.cpp',
+         file='gaol/core/gaol_interval_sse.cpp',
          edits=[('        K = _mm_andnot_pd(_mm_castsi128_pd(_mm_cmpeq_epi64(_mm_castpd_si128(s), _mm_setzero_si128())), K);',
                  '        K = _mm_and_pd(K, _mm_cmpneq_pd(s, zero));')]),
     dict(name='sse-fma-range-unchecked',
-         file='gaol/gaol_interval_sse.cpp',
+         file='gaol/core/gaol_interval_sse.cpp',
          edits=[('if (_mm_movemask_pd(ok) == 3) {', 'if (true) {')]),
     dict(name='sse-fma-zero-corners-apart',
-         file='gaol/gaol_interval_sse.cpp',
+         file='gaol/core/gaol_interval_sse.cpp',
          edits=[('        ok = _mm_or_pd(ok, _mm_cmpeq_pd(c, zero));\n', '')],
          survives='a corner at 0 takes pown_point(), which gives 0 too, more slowly'),
     dict(name='sse-fma-even-lower-without-zero',
-         file='gaol/gaol_interval_sse.cpp',
+         file='gaol/core/gaol_interval_sse.cpp',
          edits=[('? ab : _mm_max_sd(_mm_max_pd(ab, nba), zero);\n      if (negative) {', '? ab : _mm_max_pd(ab, nba);\n      if (negative) {')]),
     dict(name='sse-fma-negative-not-swapped',
-         file='gaol/gaol_interval_sse.cpp',
+         file='gaol/core/gaol_interval_sse.cpp',
          edits=[('        c = _mm_shuffle_pd(c, c, 1);\n', '')]),
     dict(name='sse-fma-inverse-uncorrected',
-         file='gaol/gaol_interval_sse.cpp',
+         file='gaol/core/gaol_interval_sse.cpp',
          edits=[('l = _mm_fmadd_pd(qr, r, qr); // q (r + r^2)', 'l = _mm_setzero_pd();')]),
     dict(name='sse-fma-inverse-first-order',
-         file='gaol/gaol_interval_sse.cpp',
+         file='gaol/core/gaol_interval_sse.cpp',
          edits=[('l = _mm_fmadd_pd(qr, r, qr); // q (r + r^2)', 'l = qr;')]),
     dict(name='sse-fma-inverse-unflagged',
-         file='gaol/gaol_interval_sse.cpp',
+         file='gaol/core/gaol_interval_sse.cpp',
          edits=[('          s = _mm_or_pd(s, r);\n', '')],
          survives='where every rest of c^m is 0 but 1/c^m is no double, q + q(r + r^2) is within 2^-100 of it or '
                   'so, and its bounds rounded without K are those with K but where it is that close to a double'),
     dict(name='sse-fma-powers-of-c',
-         file='gaol/gaol_interval_sse.cpp',
+         file='gaol/core/gaol_interval_sse.cpp',
          edits=[('pown_powers<pown_sse_ops>(g, m, h, l, s);', 'pown_powers<pown_sse_ops>(c, m, h, l, s);'),
                 ('        const __m128d sign = _mm_xor_pd(_mm_set_pd(0.0, -0.0), _mm_and_pd(c, odd));',
                  '        const __m128d sign = _mm_xor_pd(_mm_set_pd(0.0, -0.0), _mm_and_pd(zero, odd));'),
@@ -342,43 +348,61 @@ MUTANTS = [
     # -DGAOL_PRESERVE_ROUNDING=ON to have the library take no direction), where the SSE2 mutants above are the
     # mutants of pown_large_inline() (gaol_interval_sse.cpp), which the other powers call
     dict(name='er-no-exact-flag',
-         file='gaol/gaol_interval_avx512.cpp',
+         file='gaol/core/gaol_interval_avx512.cpp',
          edits=[('\n    K = _mm_andnot_pd(_mm_castsi128_pd(_mm_cmpeq_epi64(_mm_castpd_si128(s), _mm_setzero_si128())), K);\n', '\n')]),
     dict(name='er-range-unchecked',
-         file='gaol/gaol_interval_avx512.cpp',
+         file='gaol/core/gaol_interval_avx512.cpp',
          edits=[('if (_mm_movemask_pd(ok) != 3) {', 'if (false) {')]),
     dict(name='er-even-lower-without-zero',
-         file='gaol/gaol_interval_avx512.cpp',
+         file='gaol/core/gaol_interval_avx512.cpp',
          edits=[('? ab : _mm_max_sd(_mm_max_pd(ab, nba), zero);\n    if (negative) {', '? ab : _mm_max_pd(ab, nba);\n    if (negative) {')]),
     dict(name='er-negative-not-swapped',
-         file='gaol/gaol_interval_avx512.cpp',
+         file='gaol/core/gaol_interval_avx512.cpp',
          edits=[('    if (negative) {\n      c = _mm_shuffle_pd(c, c, 1);\n    }\n', '')]),
     dict(name='er-inverse-uncorrected',
-         file='gaol/gaol_interval_avx512.cpp',
+         file='gaol/core/gaol_interval_avx512.cpp',
          edits=[('l = pown_er_ops::fma(qr, r, qr); // q (r + r^2)', 'l.v = _mm_setzero_pd(); // q (r + r^2)')]),
     dict(name='er-inverse-first-order',
-         file='gaol/gaol_interval_avx512.cpp',
+         file='gaol/core/gaol_interval_avx512.cpp',
          edits=[('l = pown_er_ops::fma(qr, r, qr); // q (r + r^2)', 'l = qr;')]),
     dict(name='er-inverse-unflagged',
-         file='gaol/gaol_interval_avx512.cpp',
+         file='gaol/core/gaol_interval_avx512.cpp',
          edits=[('      pown_er_ops::add_rest(s, r);\n', '')],
          survives='as sse-fma-inverse-unflagged'),
     dict(name='er-sign-dropped',
-         file='gaol/gaol_interval_avx512.cpp',
+         file='gaol/core/gaol_interval_avx512.cpp',
          edits=[('    const __m128d sign = _mm_xor_pd(_mm_set_pd(0.0, -0.0), _mm_and_pd(c, odd));\n    const pown_er_lanes vs',
                  '    const __m128d sign = _mm_xor_pd(_mm_set_pd(0.0, -0.0), _mm_and_pd(zero, odd));\n    const pown_er_lanes vs')]),
     dict(name='er-upper-bound-downward',
-         file='gaol/gaol_interval_avx512.cpp',
+         file='gaol/core/gaol_interval_avx512.cpp',
          edits=[('_mm512_add_round_pd(lo512(a.v), lo512(b.v), gaol_er)', '_mm512_add_round_pd(lo512(a.v), lo512(b.v), gaol_er_down)')]),
     dict(name='er-fma-downward',
-         file='gaol/gaol_interval_avx512.cpp',
+         file='gaol/core/gaol_interval_avx512.cpp',
          edits=[('_mm512_fmadd_round_pd(lo512(a.v), lo512(b.v), lo512(c.v), gaol_er)', '_mm512_fmadd_round_pd(lo512(a.v), lo512(b.v), lo512(c.v), gaol_er_down)')]),
     dict(name='er-division-downward',
-         file='gaol/gaol_interval_avx512.cpp',
-         edits=[('_mm512_div_round_pd(lo512(a.v), lo512(b.v), gaol_er)', '_mm512_div_round_pd(lo512(a.v), lo512(b.v), gaol_er_down)')],
+         file='gaol/core/gaol_interval_avx512.cpp',
+         edits=[('const lanes r = { er_div2(a.v, b.v) };',
+                 'const lanes r = { back128(_mm512_div_round_pd(lo512(a.v), lo512(b.v), gaol_er_down)) };')],
          survives='the quotient q = 1/h is corrected by the rest r of 1 - q (h + l), whichever way it is rounded, '
                   'and K covers the rounding of r and of the correction: the bounds are those of the quotient '
                   'rounded upward but where 1/c^m is within about 2^-100 of a double, which no test reaches'),
+    # er_div_low(), er_div_high() and er_div2(), the two scalar divisions that x / d, the divisors with a zero
+    # of div_unguarded() and the 1/h of the negative powers take (#191)
+    dict(name='er-div-low-downward',
+         file='gaol/core/gaol_interval_avx512.cpp',
+         edits=[('return _mm_div_round_sd(a, b, gaol_er);', 'return _mm_div_round_sd(a, b, gaol_er_down);')]),
+    dict(name='er-div-high-downward',
+         file='gaol/core/gaol_interval_avx512.cpp',
+         edits=[('return _mm_div_round_sd(_mm_unpackhi_pd(a, a), _mm_unpackhi_pd(b, b), gaol_er);',
+                 'return _mm_div_round_sd(_mm_unpackhi_pd(a, a), _mm_unpackhi_pd(b, b), gaol_er_down);')]),
+    dict(name='er-div-high-on-low-lanes',
+         file='gaol/core/gaol_interval_avx512.cpp',
+         edits=[('return _mm_div_round_sd(_mm_unpackhi_pd(a, a), _mm_unpackhi_pd(b, b), gaol_er);',
+                 'return _mm_div_round_sd(a, b, gaol_er);')]),
+    dict(name='er-div2-lanes-swapped',
+         file='gaol/core/gaol_interval_avx512.cpp',
+         edits=[('return _mm_unpacklo_pd(er_div_low(a, b), er_div_high(a, b));',
+                 'return _mm_unpacklo_pd(er_div_high(a, b), er_div_low(a, b));')]),
     dict(name='er-modes-not-cleared',
          edits=[('      const flush_guard flush;\n      __m128d stored;', '      __m128d stored;')]),
     # The pair of doubles (FPU intervals, SSE2 intervals without FMA)
@@ -394,41 +418,41 @@ MUTANTS = [
                 ('const double t1 = ((m & 1u) != 0u && std::signbit(c1)) ? -1.0 : 1.0;', 'const double t1 = 1.0;'),
                 ('fma_once(K0, h.l0, -t0*l.l0)', 'fma_once(K0, std::fabs(h.l0), -t0*l.l0)'),
                 ('fma_once(K1, h.l1, t1*l.l1)', 'fma_once(K1, std::fabs(h.l1), t1*l.l1)')]),
-    # The NEON register (GAOL v5, point AP of TODO.md), pown_large_inline() of gaol/gaol_interval_neon.cpp:
-    # compiled on a 64-bit ARM processor only (--cmake-option=-DGAOL_ARM64=ON by default there); the mutants
+    # The NEON register (GAOL v5, point AP of TODO.md), pown_large_inline() of gaol/core/gaol_interval_neon.cpp:
+    # compiled on a 64-bit ARM processor only (GAOL_SIMD, on by default there); the mutants
     # mirror the SSE2 ones
     dict(name='neon-no-exact-flag',
-         file='gaol/gaol_interval_neon.cpp',
+         file='gaol/core/gaol_interval_neon.cpp',
          edits=[('        K = vreinterpretq_f64_u64(vbicq_u64(vreinterpretq_u64_f64(K), vceqzq_u64(s)));\n', '')]),
     dict(name='neon-range-unchecked',
-         file='gaol/gaol_interval_neon.cpp',
+         file='gaol/core/gaol_interval_neon.cpp',
          edits=[('if ((vgetq_lane_u64(ok, 0) & vgetq_lane_u64(ok, 1)) != 0u) {', 'if (true) {')]),
     dict(name='neon-zero-corners-apart',
-         file='gaol/gaol_interval_neon.cpp',
+         file='gaol/core/gaol_interval_neon.cpp',
          edits=[('        ok = vorrq_u64(ok, vceqq_f64(c, zero));\n', '')],
          survives='a corner at 0 takes pown_point(), which gives 0 too, more slowly'),
     dict(name='neon-even-lower-without-zero',
-         file='gaol/gaol_interval_neon.cpp',
+         file='gaol/core/gaol_interval_neon.cpp',
          edits=[('c = vcombine_f64(vget_low_f64(vmaxq_f64(greater, zero)), vget_high_f64(greater));', 'c = greater;')]),
     dict(name='neon-negative-not-swapped',
-         file='gaol/gaol_interval_neon.cpp',
+         file='gaol/core/gaol_interval_neon.cpp',
          edits=[('        c = vextq_f64(c, c, 1);\n', '')]),
     dict(name='neon-inverse-uncorrected',
-         file='gaol/gaol_interval_neon.cpp',
+         file='gaol/core/gaol_interval_neon.cpp',
          edits=[('l = vfmaq_f64(qr, qr, r); // q (r + r^2)', 'l = vdupq_n_f64(0.0);')]),
     dict(name='neon-inverse-first-order',
-         file='gaol/gaol_interval_neon.cpp',
+         file='gaol/core/gaol_interval_neon.cpp',
          edits=[('l = vfmaq_f64(qr, qr, r); // q (r + r^2)', 'l = qr;')]),
     dict(name='neon-inverse-unflagged',
-         file='gaol/gaol_interval_neon.cpp',
+         file='gaol/core/gaol_interval_neon.cpp',
          edits=[('          s = vorrq_u64(s, vreinterpretq_u64_f64(r));\n', '')],
          survives='as sse-fma-inverse-unflagged'),
     dict(name='neon-sign-dropped',
-         file='gaol/gaol_interval_neon.cpp',
+         file='gaol/core/gaol_interval_neon.cpp',
          edits=[('const uint64x2_t odd = ((m & 1u) != 0u) ? vandq_u64(vreinterpretq_u64_f64(c), vdupq_n_u64(sign_bit)) : vdupq_n_u64(0u);',
                  'const uint64x2_t odd = vdupq_n_u64(0u);')]),
     dict(name='neon-powers-of-c',
-         file='gaol/gaol_interval_neon.cpp',
+         file='gaol/core/gaol_interval_neon.cpp',
          edits=[('pown_powers<pown_neon_ops>(g, m, h, l, s);', 'pown_powers<pown_neon_ops>(c, m, h, l, s);'),
                 ('vandq_u64(vreinterpretq_u64_f64(c), vdupq_n_u64(sign_bit))', 'vandq_u64(vreinterpretq_u64_f64(zero), vdupq_n_u64(sign_bit))'),
                 ('vfmaq_f64(w, K, h)', 'vfmaq_f64(w, K, vabsq_f64(h))')]),
@@ -516,7 +540,7 @@ def main():
                                                     os.path.join(tempfile.gettempdir(), 'gaol-pow-mutants')),
                    help='the work directory: the copy, its build and the logs (%(default)s)')
     p.add_argument('--cmake-option', action='append', default=[], metavar='OPT',
-                   help='an option of the CMake configuration, written --cmake-option=-DGAOL_SIMD=OFF (and --cmake-option=-DGAOL_ARM64=OFF for the FPU build on a 64-bit ARM processor)')
+                   help='an option of the CMake configuration, written --cmake-option=-DGAOL_SIMD=OFF for the FPU build')
     p.add_argument('--test', action='append', metavar='NAME',
                    help='a test of tests/ to run, in place of ieee1788 and elementary')
     p.add_argument('--jobs', type=int, default=2, help='the processes of each build (2)')

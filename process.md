@@ -7,7 +7,9 @@ propose une pull request, et comment on tient les registres à jour une fois la
 pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
-en cours, ce qui reste) est au §12.
+en cours, ce qui reste) est au §12. Dernière mise à jour : 28 octobre 2026, au
+commit `5a6683c` de `configure-clean` (la fusion de #213, après celles de #206
+et de #212 ; l'import de CORE-MATH `0b2ae6d1` est de la veille).
 
 ## 1. Le contexte
 
@@ -130,7 +132,8 @@ commits.
   autre tâche (`autotools-distclean`, `no-explicit-libm`).
 - Une seule exception : on commite **directement sur `configure-clean`**
   - la mise à jour de `TODO.md`, `TODO_DONE.md` et `TODO_AFTER.md` après une
-    fusion (section 9) ;
+    fusion, avec celle de la date et du commit de l'en-tête de `process.md` et
+    de son §12 (section 9) ;
   - les corrections que le mainteneur a explicitement autorisées là, comme les
     avertissements trouvés par les jobs `-Werror` et `/WX` ou un délai de la
     CI.
@@ -174,8 +177,10 @@ un est refusée, quel que soit son gain.
    ARM 32 bits et POWER9, absence de `__builtin_roundeven()` avec GCC 9, etc.
 6. **Les trois builds restent pareils.** CMake, autotools et meson doivent
    donner la même bibliothèque, les mêmes en-têtes installés, les mêmes tests et
-   les mêmes options. Si tu ajoutes ou retires une source, un en-tête, un test
-   ou une option, mets à jour les trois :
+   les mêmes options (celles de l'utilisateur sont les mêmes dans les trois, et
+   le reste se décide par des tests de la configuration : `doc/building.md`,
+   section « The options »). Si tu ajoutes ou retires une source, un en-tête, un
+   test ou une option, mets à jour les trois :
    - `CMakeLists.txt` ;
    - `Makefile.am`, avec son `Makefile.in` régénéré (section 6.3) ;
    - `meson.build` ;
@@ -221,8 +226,9 @@ un est refusée, quel que soit son gain.
       `gaol::cleanup();`, après le dernier usage de GAOL et avant `return`.
       `gaol::init()` est automatique : ne le montre pas.
 11. Ne vérifie pas et ne rapporte pas les effets d'un changement sur IBEX ou
-    Codac. Les comparaisons de performance se font avec clang-18, sans
-    `GAOL_PRESERVE_ROUNDING`.
+    Codac. Les comparaisons de performance se font avec Clang 21 (depuis le 13
+    octobre), sans `GAOL_PRESERVE_ROUNDING`, avec en plus, pour GAOL v5, une
+    colonne avec la direction préservée (`doc/compare/performance.md`).
 
 ## 5. Les tests
 
@@ -268,7 +274,11 @@ Ce sont les outils d'Ubuntu 26.04, tous dans le `PATH` (constaté le 11 octobre
 ici » ce que la machine ne permet pas. La machine d'Ubuntu 26.04 n'a plus GCC 9,
 que couvre le job `gcc-9` de `linux.yml`, ni meson 0.53.2, la plus ancienne
 version que le build meson prend en charge, que couvre le job `meson-oldest` de
-`build-systems.yml` (#110).
+`build-systems.yml` (#110). Sur une machine sous Ubuntu 24.04 (GCC 13.3, CMake
+3.28, python 3.12), qui n'a ni autoconf, ni automake, ni libtool, ni meson, ni
+ninja, construis autoconf 2.72 (celui qui a généré le `configure` du dépôt)
+depuis le tarball de ftp.gnu.org (sha256 vérifié), et installe meson et ninja
+dans un environnement virtuel.
 
 Le processeur (i7-1185G7) a AVX-512 et FMA. Il ne voit donc jamais les chemins
 sans FMA : la CI les couvre.
@@ -288,15 +298,17 @@ git ls-files -co --exclude-standard | tar -c -T - | tar -x -C $N/src
 
    ```sh
    cmake -S . -B $N/sse   -DWITH_TESTS=ON -DWITH_EXAMPLES=ON                 # GCC, SSE2
-   cmake -S . -B $N/fpu   -DWITH_TESTS=ON -DWITH_EXAMPLES=ON -DGAOL_SIMD=OFF -DGAOL_ARM64=OFF # GCC, FPU
+   cmake -S . -B $N/fpu   -DWITH_TESTS=ON -DWITH_EXAMPLES=ON -DGAOL_SIMD=OFF # GCC, FPU
    CC=clang-18 CXX=clang++-18 cmake -S . -B $N/clang -DWITH_TESTS=ON -DWITH_EXAMPLES=ON
    cmake --build $N/sse -j4 && (cd $N/sse && ctest -j4 --output-on-failure)
    ```
 
    `intervalf` et `interval2f` sont « Skipped » par construction.
-   `-DGAOL_SIMD=OFF` donne les intervalles FPU sur x86 ; sur arm64, où les
-   intervalles NEON sont le choix par défaut, il faut y ajouter
-   `-DGAOL_ARM64=OFF` (sans effet sur x86).
+   `-DGAOL_SIMD=OFF` donne les intervalles FPU, sur x86 comme sur arm64, où
+   les intervalles NEON sont le choix par défaut (`GAOL_ARM64` n'est plus une
+   option). Les autres réglages (FMA, chemin AVX-512, entier 128 bits, débogage)
+   sont décidés par la configuration ; `-DGAOL_FMA=OFF` et les autres réglages
+   des développeurs sont dans `doc/building.md`.
 2. **Avertissements** : une compilation avec
    `-DCMAKE_CXX_FLAGS="-Wall -Wextra" -DCMAKE_C_FLAGS="-Wall -Wextra"` et
    `-DCMAKE_COMPILE_WARNING_AS_ERROR=ON`, avec GCC et avec Clang. Ce réglage ne
@@ -519,7 +531,9 @@ commite pas. Fais seulement ta mise à jour, ou demande-lui. Ensuite :
   X (<date>), fait par #NN »), le point fait à la section 4 ou 5, la ligne du
   jour à la section 7 et, à la section 8, les branches supprimées ; mets à jour
   l'état de la section 1 ;
-- `TODO_AFTER.md` : seulement si quelque chose est reporté, écarté ou repris.
+- `TODO_AFTER.md` : seulement si quelque chose est reporté, écarté ou repris ;
+- `process.md` : la date et le commit de l'en-tête, et l'état du §12 (pull
+  requests ouvertes, faits, à faire).
 
 Garde des lignes de 80 colonnes au plus. Commite seulement les fichiers que tu
 as changés, en les nommant (`git add TODO.md TODO_DONE.md`), avec un sujet comme
@@ -675,10 +689,44 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   `[[deprecated]]` provisoirement et compile avec chaque configuration : SSE2,
   SSE2 avec AVX-512, NEON en compilation croisée), non par `grep`, et recommence
   après chaque fusion de `configure-clean`.
+- Le test d'allocations de `tests/expressions.cpp` remplace `operator new` et
+  `operator delete` du programme. Quand la bibliothèque C++ est dans une DLL
+  (Windows : libstdc++ de MSYS2 et de MinGW-w64, libc++ de CLANG64), il ne voit
+  pas les allocations qu'elle fait pour un `std::string`, dont le destructeur en
+  ligne appelle pourtant le `operator delete` du programme : un `std::string` de
+  plus de 15 caractères (22 avec libc++) dans le code de la lecture fait
+  échouer « a reading frees all it allocated » (quatre jobs de #149). Un
+  `std::vector` est sans danger.
+- Une écriture du registre de contrôle par `asm volatile` (avec « memory » dans
+  les clobbers) est ordonnée avec les accès à la mémoire et avec les autres
+  `asm`, non avec les opérations sur des valeurs en registres (bogue 34678 de
+  GCC) : une fonction en ligne qui lit ses bornes avant `GAOL_RND_ENTER()`
+  calcule dans le sens du programme (#150). La règle est dans le commentaire
+  de `gaol/gaol_fpu.h` : lire les bornes après la vérification, et passer un
+  `double` pris par valeur par `rnd_reread()`. Un test doit appeler la
+  fonction sur un intervalle construit dans la même fonction, non sur un
+  intervalle relu en mémoire, qui cache le défaut.
+- Un script qui édite un long fichier avec `s.index("# un commentaire")` peut
+  tomber sur une occurrence plus haute et dupliquer des centaines de lignes :
+  `meson.build` est passé de 775 à 1097 lignes dans #192, et la copie, que
+  meson exécutait en dernier, aurait laissé clang-cl et MinGW-w64 en FPU sans
+  qu'aucun job de la CI le voie. Contrôle `wc -l` et `git diff --stat` après
+  toute édition par script.
+- Visual C++ (`cl`) pour ARM64 (#192) : `/volatile:iso` y est le réglage par
+  défaut, et un `volatile` n'y est pas ordonné avec le reste, d'où
+  `_ReadWriteBarrier()` avant et après `_WriteStatusReg()`
+  (`gaol/gaol_fpu_fenv.h`) ; `float64x2_t`, `uint64x2_t` et `int64x2_t` y sont
+  un seul type, `__n128` (non revérifié ici). Et `/O2
+  /fp:strict` réécrit `(-.5)*l + .5*r` en `.5*r - .5*l` : `mid()` passe les
+  moitiés négatives par `rnd_keep()`, dans toutes les sortes d'intervalles.
+- Sur le runner macOS, `arch -x86_64 ctest` échoue quand le `ctest` (Homebrew)
+  n'est que pour arm64 : lance les programmes de test un à un (#194). Et sous
+  `bash -e`, un `! grep ...` au milieu d'une étape ne la fait pas échouer (seule
+  la dernière commande donne son statut) : écris un `if` explicite.
 
-## 12. Où en est le travail (25 octobre 2026)
+## 12. Où en est le travail (28 octobre 2026)
 
-Le reste à faire est dans `TODO.md` (tâches PD à PJ) et l'issue #179 ; ce
+Le reste à faire est dans `TODO.md` (tâches PF à PJ) et l'issue #179 ; ce
 qui est fait et décidé (pull requests fusionnées, décisions, mesures) est dans
 `TODO_DONE.md` et l'issue #177 ; ce qui est reporté est dans `TODO_AFTER.md` et
 l'issue #178. L'état qui suit est daté : les commandes ci-dessous, les trois
@@ -692,21 +740,36 @@ git ls-remote --heads origin
 ```
 
 - **Faits** : tout ce que dit `TODO_DONE.md` (sections 4 et 5), jusqu'à #176,
-  #180 à #184 et #186 à #190 (les tâches PA, PB et PC), et #191 à #194 (de la
-  tâche PG : la division du chemin AVX-512, puis NEON avec tous les compilateurs
-  de l'arm64, SSE2 avec tous ceux de l'x86, le FPU en dernier recours) ; l'audit
-  du 13 octobre a vérifié dans `configure-clean` ce qu'annonçaient alors les
-  points A, C à H et J à V.
-- **En cours** : aucune pull request ouverte au 25 octobre ; `configure-clean`
-  est au commit de la fusion de #194, et ses seules branches sur GitHub sont
-  `configure-clean`, `MATH-CORE` et `master`. L'issue #185 (le masquage des
-  exceptions de `pow`) attend la réponse du mainteneur.
-- **À faire**, dans l'ordre de `TODO.md` : les textes, les tests et le ménage
-  (PD), les trois builds et la CI (PE), x86 32 bits et Windows (PF), les études
-  de vitesse, toutes avant v5.0.0 (PG, entamée), les signalements à d'autres
-  projets (PH, avec l'accord du mainteneur), puis la version (PI, PJ). Ce qui
-  est reporté (le 113, le site, les traits pour YalAA et VNODE-LP, les
+  #180 à #184 et #186 à #190 (les tâches PA, PB et PC), #196 et #197 (la tâche
+  PD), et #191 à #194 (de la tâche PG : la division du chemin AVX-512, puis NEON
+  avec tous les compilateurs de l'arm64, SSE2 avec tous ceux de l'x86, le FPU en
+  dernier recours) ; #199 et #200 (hors des tâches : les sources des intervalles
+  dans `gaol/core/`, puis les options des trois builds : les mêmes options pour
+  l'utilisateur, tout le reste décidé par la configuration), #201 (les mêmes
+  drapeaux C pour CORE-MATH, comparés par l'audit), #202 (les remarques
+  d'actionlint et de shellcheck), #203 (relecture des commits d'après #163),
+  #204 (les sondes liées, le C des drapeaux de FMA avec CMake) et #205 (les jobs
+  qui manquent, MSYS2 MINGW32 sans FMA refusé : la tâche PE est faite) ; le
+  CORE-MATH vendu mis à jour de l'amont `6b84457` à `0b2ae6d1` le 27 octobre,
+  directement sur `configure-clean` (`cb731c0` et `2927cfe`, voir
+  `TODO_DONE.md` 7.6) ; #212 (le test de `cos` sur son chemin précis) et #213
+  (les contournements de `cr_pow` que l'amont rend inutiles, sauf la puissance
+  minuscule de |y| ≥ 2^1013), fusionnées le 28 octobre, comme #206 (la tâche PF,
+  d'une autre session, pas encore au registre) ; l'audit du 13 octobre a
+  vérifié dans `configure-clean`
+  ce qu'annonçaient alors les points A, C à H et J à V.
+- **En cours** : au 28 octobre, #207 à #210 (la tâche PF, d'une autre session)
+  sont ouvertes ; `configure-clean` est au commit de la fusion de #213, et ses
+  branches sur GitHub sont `configure-clean`, `MATH-CORE`, `master` et
+  `perf-doc-rerun` (les scripts des mesures reportées, hors des points), avec
+  celles de ces pull requests. L'issue #198 (`x / y` des
+  intervalles NEON avec `FPCR.AH`) est ouverte, sans tâche dans `TODO.md` ; #185
+  est fermée, le masquage des exceptions de `pow` est gardé.
+- **À faire**, dans l'ordre de `TODO.md` : x86 32 bits et Windows (PF), les
+  études de vitesse, toutes avant v5.0.0 (PG, entamée), les signalements à
+  d'autres projets (PH, avec l'accord du mainteneur), puis la version (PI, PJ).
+  Ce qui est reporté (le 113, le site, les traits pour YalAA et VNODE-LP, les
   décorations, ce qui attend du matériel) est dans `TODO_AFTER.md`. Les
   dépendances entre points sont écrites dans chaque tâche. Le mainteneur donne
-  les tâches ou les points un par un (« traite la tâche PD », « traite le point
+  les tâches ou les points un par un (« traite la tâche PF », « traite le point
   129 ») : ne commence pas le suivant sans lui.

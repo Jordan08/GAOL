@@ -1,6 +1,6 @@
 # Reporté
 
-Tout ce qui est reporté sur GAOL v5 au 25 octobre 2026 (commit `1a41cda` de
+Tout ce qui est reporté sur GAOL v5 au 27 octobre 2026 (commit `9deb2e1` de
 `configure-clean`) : ce qui attend la version v5.0.0, ce que le mainteneur a
 reporté indéfiniment, ce qu'il a écarté en laissant une porte ouverte, et ce qui
 attend du matériel. Ce fichier et l'issue #178 ont le même contenu. Ce qui reste
@@ -29,7 +29,7 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
      algorithmes actuels supposent l'arrondi vers le haut, et ne sont pas
      valables au plus proche : les noyaux SSE2 calculent `<-inf, sup>` par un
      seul arrondi vers le haut (`_mm_add_pd`, `_mm_mul_pd`, `_mm_div_pd` de
-     `gaol/gaol_interval_sse.cpp`), et `sup` pourrait alors passer sous la
+     `gaol/core/gaol_interval_sse.cpp`), et `sup` pourrait alors passer sous la
      valeur exacte ; CORE-MATH lit le sens dans MXCSR, `f_up(x)` y est la borne
      supérieure et `previous_float(f_up(x))` l'inférieure
      (`gaol/gaol_double_op.h`). Ce qu'il faut, c'est un arrondi dirigé, non un
@@ -123,17 +123,17 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    le 23 octobre). Un noyau qui garde le chemin à une branche quand les deux
    opérandes ont le même signe (deux produits) et le noyau à huit produits sinon
    : l'essai est un changement de `mul_finite()` dans
-   `gaol/gaol_interval_fpu.cpp` (commit `f86ada7`, lisible dans #168). En local
-   (i7-1185G7, médianes de 5 passes alternées) la ligne de 7 `*` gagne 1,44 fois
-   avec GCC 15.2 mais `x * y` de signes aléatoires, `mul8` et `mix_tree` perdent
-   11 à 24 %, et avec Clang 21 rien ne gagne. Le banc A/B de la CI (base / PR,
-   médianes de 3 passages) : la ligne de 7 `*` gagne 1,96 fois (GCC x86-64),
-   1,70 (arm64 GCC), 1,46 (Visual C++ arm64), 1,67 (clang-cl arm64) et 1,43
-   (armhf), et `x * y` de signes aléatoires perd 5 à 19 % (0,89 GCC x86-64, 0,93
-   Visual C++ arm64, 0,81 clang-cl arm64, 0,91 armhf), sauf arm64 GCC (1,30) ;
-   rien avec Clang x86-64 (0,90 la ligne de 7 `*`) ni Visual C++ x86 (0,95). Le
-   mainteneur l'a fermée sans fusion, ces tableaux lus. *À reprendre si les
-   signes réguliers deviennent le cas qu'on veut servir.*
+   `gaol/core/gaol_interval_fpu.cpp` (commit `f86ada7`, lisible dans #168). En
+   local (i7-1185G7, médianes de 5 passes alternées) la ligne de 7 `*` gagne
+   1,44 fois avec GCC 15.2 mais `x * y` de signes aléatoires, `mul8` et
+   `mix_tree` perdent 11 à 24 %, et avec Clang 21 rien ne gagne. Le banc A/B de
+   la CI (base / PR, médianes de 3 passages) : la ligne de 7 `*` gagne 1,96 fois
+   (GCC x86-64), 1,70 (arm64 GCC), 1,46 (Visual C++ arm64), 1,67 (clang-cl
+   arm64) et 1,43 (armhf), et `x * y` de signes aléatoires perd 5 à 19 % (0,89
+   GCC x86-64, 0,93 Visual C++ arm64, 0,81 clang-cl arm64, 0,91 armhf), sauf
+   arm64 GCC (1,30) ; rien avec Clang x86-64 (0,90 la ligne de 7 `*`) ni Visual
+   C++ x86 (0,95). Le mainteneur l'a fermée sans fusion, ces tableaux lus. *À
+   reprendre si les signes réguliers deviennent le cas qu'on veut servir.*
 2. **112 (AI), les fonctions élémentaires avec `GAOL_PRESERVE_ROUNDING`** :
    elles paient deux écritures de MXCSR, jusqu'à 27 % de plus que sans (`exp`),
    parce que CORE-MATH calcule avec le sens matériel et qu'aucun arrondi
@@ -160,6 +160,15 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    builds universels deviennent courants ou si la perte, mesurée sur un Mac
    Intel, est grande. Le Rosetta de macOS 14 n'a pas AVX : une tranche compilée
    avec `-mfma` s'y arrêterait sur une instruction illégale.
+5. **mingw-w64 11 lié à `msvcrt.dll`, sans FMA, sur x86 32 bits** (#205). Son
+   `fma()` est le même code (`math/fma.c`, inchangé de la version 9 à la 13) que
+   celui que `gaol_config.h` refuse depuis #205 pour la version 12 ou plus ; la
+   11 reste acceptée sans FMA parce que le job « MinGW-w64 13.2.0 x86 Release,
+   no FMA » de `windows.yml` (#172) la teste, avec la mesure : 125 résultats sur
+   400 000 à un double près (`TODO_DONE.md`, section 3, réponse 6). C'est la
+   question ouverte de #205, fusionnée sans réponse écrite. *À rouvrir* si le
+   mainteneur veut la même règle pour la 11 : la condition de `gaol_config.h`
+   vaut alors pour la 11 et plus, et le job « no FMA » est retiré.
 
 ## 4. En attente de matériel ou d'un environnement qui manque
 
@@ -193,13 +202,22 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    #162, toute exécution sur x86 (le signe d'un zéro de l'ancien `pow` avec
    SSE2, le chemin AVX-512), avec GCC et sous Windows ; les temps de #162
    viennent d'un seul M2 partagé, et pas avec `GAOL_PRESERVE_ROUNDING`.
-5. **`FPCR.AH` (FEAT_AFP, Armv8.7) sur un vrai processeur** (#187) : le bloc de
-   `tests/rounding_direction.cpp` qui met `AH` et compare les opérations avec
-   `AH` mis et effacé n'a été exécuté que sous QEMU 10.0 (`-cpu max`) : l'Apple
-   M2 et QEMU 7.2 et 8.2 ne retiennent pas le bit, et aucun processeur qui le
-   retient (Neoverse V3 de Graviton 5, ou plus récent) n'a servi. Le défaut
-   qu'il guette, un compilateur qui permute les opérandes de `vmaxq_f64`, est
-   théorique avec les compilateurs d'aujourd'hui.
+5. **`FPCR.AH` (FEAT_AFP, Armv8.7) sur un vrai processeur** (#187, issue #198) :
+   le bloc de `tests/rounding_direction.cpp` qui met `AH` et compare les
+   opérations avec `AH` mis et effacé n'avait été exécuté que sous QEMU 10.0
+   (`-cpu max`) : l'Apple M2 et QEMU 7.2 et 8.2 ne retiennent pas le bit. Le 25
+   octobre, un runner arm64 de la CI (le job « Ubuntu 26.04 arm64 Clang » de
+   #196, vert à la relance) l'a retenu, et le bloc y a trouvé 52 échecs sur 441
+   paires de `x / y` (des bornes différentes avec `AH` mis, dont une borne
+   inférieure NaN pour `x = [-inf, 0]` et `y = [-inf, -0]`) : le défaut n'est
+   plus théorique pour `x / y`, et aucun `vmaxq_f64` ne l'explique, car
+   `div_bounds()` n'en a pas. Cause non trouvée, décidé le 25 octobre de n'en
+   faire qu'une issue (#198), sans tâche. *À reprendre* en faisant afficher au
+   test le processeur du runner et si `AH` est retenu, puis en reproduisant sous
+   QEMU 10 ou sur un processeur qui a FEAT_AFP (Neoverse V3 de Graviton 5, ou
+   plus récent). Le défaut de `sqrt_bounds()` que #187 a écarté (un compilateur
+   qui permute les opérandes de `vmaxq_f64`) reste théorique avec les
+   compilateurs d'aujourd'hui.
 6. **Le gain de `x / d` de #191 sur d'autres processeurs** : il n'est mesuré que
    sur un Tiger Lake (i7-1185G7) ; les deux `vdivsd {ru-sae}` peuvent perdre sur
    un Intel qui divise les registres en deux, et rien n'est mesuré sur AMD Zen 4
@@ -213,6 +231,15 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    build universel de macOS, que la session MACarm2 (Apple M2, sans Rosetta)
    compile et lie sans l'exécuter, et que seul le job `macOS 26 universal`
    exécute.
+8. **Un échec de CI non reproduit** (#189) : le job « macOS 14 x86_64 (Rosetta)
+   » a échoué une fois sur `arithmetic` (`gaol_ieee1788::pow(x, [2]) is sqr(x &
+   [0, +oo]), [0] for [0], the same bits`, avec x = [-0x1.0d8146092a4f3p+345,
+   0x1.d324166d86984p+204], « the caller's direction downward, flush modes 0 » :
+   GAOL a rendu [0, 0x1.aa365774f4ea3p+409] et le calcul de référence, `sqr(x &
+   [0, +oo])`, le vide) et est passé à la relance, sans lien visible avec le
+   diff de #189. Non reproduit en local ni dans les autres jobs de #186 à #190.
+   *À reprendre si cela revient* : voir si Rosetta lit le sens d'arrondi ou les
+   modes de MXCSR comme un processeur.
 
 ## 5. Une limite connue, documentée, sans décision de la lever
 

@@ -184,7 +184,7 @@ namespace gaol_core {
     The text of x that gaol_ieee1788::intervalToText() returns, an interval
     literal of IEEE 1788-2015 (12.11), the literal that textToInterval() reads
     back (GAOL v5). A function of the library for its own files, which it does
-    not export (GAOL_PUBLIC). Defined in gaol/gaol_interval_core.cpp, with the
+    not export (GAOL_PUBLIC). Defined in gaol/core/gaol_interval_core.cpp, with the
     other writers of intervals.
   */
   std::string literal_text(const interval& x);
@@ -210,7 +210,7 @@ namespace gaol_detail {
   /*
     The sign of v - x, v being the number s writes, with no sign, and x a
     double, compared exactly: for the output of intervals
-    (gaol/gaol_interval_core.cpp), whose decimal bounds are rounded outward
+    (gaol/core/gaol_interval_core.cpp), whose decimal bounds are rounded outward
     whatever the C library. Defined in gaol/parser/gaol_interval_lexer.lpp,
     which reads the numbers (GAOL v5).
   */

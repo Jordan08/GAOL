@@ -1,8 +1,8 @@
 # Fait et décidé sur GAOL v5
 
-Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 25 octobre 2026
-(commit `1a41cda` de `configure-clean`, aucune pull request ouverte). Ce
-fichier et l'issue #177 ont le même contenu.
+Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 28 octobre 2026
+(commit `5a6683c` de `configure-clean`, quatre pull requests ouvertes : voir la
+section 1). Ce fichier et l'issue #177 ont le même contenu.
 
 Il réunit l'historique de l'ancienne issue #49 (« Suivi du TODO de GAOL v5 »),
 ce qui est fait dans l'ancienne issue #142 (« Reste à faire sur GAOL v5 »), dans
@@ -10,7 +10,7 @@ l'ancien `TODO.md` et dans `TODO_mistral.md`, avec les réponses du mainteneur
 des 22 et 23 octobre. #49 et #142 sont fermées le 24 octobre, `TODO_mistral.md`
 est supprimé. Le reste du travail est dans deux autres registres :
 
-- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PD à PJ ;
+- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PF à PJ ;
 - `TODO_AFTER.md` (issue #178) : ce qui est reporté, après la version, jusqu'à
   une décision ou jusqu'à du matériel.
 
@@ -40,54 +40,75 @@ est supprimé. Le reste du travail est dans deux autres registres :
   : elle s'applique telle quelle.
 - Le classement par rang et par tiers (A à I) de l'ancien #142 n'existe plus :
   un « rang N » cité dans un texte d'avant le 24 octobre désigne cet ancien
-  classement. Ce qui reste à faire est classé en tâches PD à PJ dans `TODO.md`.
+  classement. Ce qui reste à faire est classé en tâches PF à PJ dans `TODO.md`.
 - Ce qui sert encore des rapports des agents est dans
   [todo-notes/synthese.md](todo-notes/synthese.md), leurs originaux au commit
   `16a2f60` (`todo-notes/`, ceux du 30 septembre dans `todo-notes/2026-09-30/`)
   ; la procédure suivie pour chaque point est dans `process.md`.
 
-Sommaire : 1. L'état au 25 octobre ; 2. Les pull requests ; 3. Les décisions,
+Sommaire : 1. L'état au 26 octobre ; 2. Les pull requests ; 3. Les décisions,
 par date ; 4. Les points faits, par lettre ; 5. Les anciens numéros faits ; 6.
 Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 `configure-clean` ; 8. Le ménage fait.
 
-## 1. L'état au 25 octobre 2026
+## 1. L'état au 28 octobre 2026
 
-- **`configure-clean`** est au commit `1a41cda` (fusion de #194). Les pull
+- **`configure-clean`** est au commit `5a6683c` (la fusion de #213, après celles
+  de #206 et de #212 ; l'import de CORE-MATH `0b2ae6d1` est de la veille, voir
+  7.6 et 7.7). Les pull
   requests des corrections vont vers `configure-clean`, qui reste la branche de
   développement après v5.0.0 ; `MATH-CORE` et `master` (GAOL 4.3.2, plus deux
   commits de `.claude/CLAUDE.md`) ne bougent qu'à la version (point Y).
-- **Aucune pull request ouverte.** Le mainteneur a fusionné #165 à #167, #169 à
-  #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194 le 25 octobre ;
-  #168 et #195 sont fermées sans fusion. Les tâches PA, PB et PC sont faites ;
-  PG est entamée (la division du chemin AVX-512, le 106 a : #191 à #194).
+- **Pull requests ouvertes** : #207 à #210 (la tâche PF, d'une autre session,
+  dont #206 est fusionnée le 28 octobre sans entrée dans la section 2.3 : elle
+  est à faire par cette session). Le mainteneur a fusionné #165 à #167, #169 à
+  #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194, #196 et #197
+  le 25 octobre, #199, #200 et #201 le 26 octobre, #202 à #205 le 27, #206, #212
+  et #213 le 28 ; #168 et #195 sont fermées sans fusion. Les tâches PA, PB, PC,
+  PD et PE sont faites (PE : #200 et #204 pour le 95, #201 pour le 92, #205 pour
+  le 3, #202 pour le 4, #204 pour le 5, #203 pour le 6) ; PG est entamée (la
+  division du chemin AVX-512, le 106 a : #191 à #194).
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
   sur tout processeur ARM 64 bits avec tous les compilateurs (GCC, Clang,
   AppleClang, clang-cl, Visual C++, MinGW-w64, MSYS2), SSE2 sur tout processeur
   x86 avec tous les compilateurs (sur Windows 32 bits, GCC et Clang avec
   `-faligned-new=8`, Visual C++ et clang-cl avec des bornes en deux `double`),
-  le chemin AVX-512 (`GAOL_PREFER_AVX512`) par-dessus SSE2 où le compilateur et
-  la machine le permettent, et le FPU seulement où l'on n'a pas le choix (ARM 32
-  bits, POWER, s390x, RISC-V...) ou quand on le demande (`GAOL_SIMD=OFF`,
-  `GAOL_ARM64=OFF`). Un build universel de macOS (CMake, plusieurs
-  architectures) prend NEON pour arm64 et SSE2 pour x86_64, sans FMA ni AVX-512.
-- **Branches** : GitHub n'a que `configure-clean`, `MATH-CORE` et `master` ; les
-  branches fusionnées sont supprimées en local.
+  le chemin AVX-512 par-dessus SSE2 avec `GAOL_PRESERVE_ROUNDING`, où le
+  compilateur et la machine le permettent, et le FPU seulement où l'on n'a pas
+  le choix (ARM 32 bits, POWER, s390x, RISC-V...) ou quand on le demande
+  (`GAOL_SIMD=OFF`, qui vaut aussi pour NEON depuis #200 : `GAOL_ARM64` n'est
+  plus une option). Un build universel de macOS (CMake, autotools, meson,
+  plusieurs architectures) prend NEON pour arm64 et SSE2 pour x86_64, sans FMA
+  ni AVX-512.
+- **Les options** (décidé le 26 octobre, #200) : les trois builds ont les
+  mêmes, `GAOL_PRESERVE_ROUNDING`, `GAOL_SIMD`, `GAOL_COVERAGE`, `WITH_TESTS`,
+  `WITH_EXAMPLES`, `BUILD_SHARED_LIBS`, `CMAKE_BUILD_TYPE`, le code indépendant
+  de la position et `CMAKE_OSX_ARCHITECTURES`, avec la bibliothèque statique par
+  défaut ; les instructions FMA, le chemin AVX-512, l'entier 128 bits et le
+  débogage sont décidés par des tests de la configuration, les anciennes
+  options restant des réglages des développeurs (`doc/building.md`).
+- **Branches** : GitHub a `configure-clean`, `MATH-CORE`, `master` et
+  `perf-doc-rerun` (les scripts des mesures reportées, hors des points), avec
+  les branches des pull requests ouvertes ; les branches fusionnées sont
+  supprimées en local.
 - **Aucune borne fausse n'est connue** : sur environ 1,3 million de puissances
   entières, 550 000 `pow` réels, 600 000 autres opérations et 760 lectures de
   nombres (relecture du 14 octobre, revérifiée le 18 octobre à `4eaf69a`), tout
-  résultat contient la valeur exacte.
+  résultat contient la valeur exacte. Une exception possible : un programme qui
+  met lui-même `FPCR.AH` sur arm64, où `x / y` des intervalles NEON a donné des
+  bornes différentes sur un runner de la CI le 25 octobre, dont une borne
+  inférieure NaN (issue #198, cause non trouvée).
 - **Issues ouvertes** : les issues « À communiquer… » #125 (CORE-MATH), #126
   (GCC), #127 (mingw-w64), #129 (ITF1788), #130 (Boost.Interval), #131
   (Microsoft), #132 (Apple), #133 (LLVM/Clang), #134 (gmpy2), #135 (musl), #136
   (benchmark de Tang et al.), #137 (libieeep1788), #138 (glibc) et #175
   (Cygwin), dont rien n'est envoyé ; #67 (décorations, reportée indéfiniment le
-  22 octobre) ; #185 (le masquage des exceptions autour de CORE-MATH, question
-  reportée de #184 : `TODO.md`, PD.6) ; et les trois registres #177, #178 et
-  #179. #128 (l'annonce à Frédéric Goualard) est fermée depuis le 18 octobre ;
-  le brouillon est dans Gmail. #107 (`parse_interval(nullptr)`, corrigé par
-  #147) et #159 (rapport d'état du 21 octobre, périmé) ont été fermées le 24
-  octobre.
+  22 octobre) ; #198 (`x / y` des intervalles NEON avec `FPCR.AH`, remarqué
+  pendant la tâche PD) ; et les trois registres #177, #178 et #179. #128
+  (l'annonce à Frédéric Goualard) est fermée depuis le 18 octobre ; le brouillon
+  est dans Gmail. #107 (`parse_interval(nullptr)`, corrigé par #147) et #159
+  (rapport d'état du 21 octobre, périmé) ont été fermées le 24 octobre, et #185
+  (le masquage des exceptions autour de CORE-MATH, gardé) le 25 octobre.
 
 ## 2. Les pull requests
 
@@ -402,10 +423,10 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   `containers.yml` et `clang-14-arm64` de `linux.yml` vérifient les neuf refus,
   le C seul, le C++ seul et les deux, par les trois builds ; 137 jobs verts)
 - #146 (points AI.106 et AI.107 : des intervalles NEON pour arm64, sur le modèle
-  des SSE2 (`gaol/gaol_interval_neon.h` et `.cpp`), choisis par `GAOL_ARM64`
-  (CMake), `--enable-arm64` (configure), `enable-arm64` (meson) et la macro
-  `GAOL_USING_NEON_INSTRUCTIONS`, indépendants de `GAOL_SIMD` ; le registre FPCR
-  lu par `mrs` et écrit par `msr` seulement s'il change,
+  des SSE2 (`gaol/core/gaol_interval_neon.h` et `.cpp`), choisis par
+  `GAOL_ARM64` (CMake), `--enable-arm64` (configure), `enable-arm64` (meson) et
+  la macro `GAOL_USING_NEON_INSTRUCTIONS`, indépendants de `GAOL_SIMD` ; le
+  registre FPCR lu par `mrs` et écrit par `msr` seulement s'il change,
   `GAOL_PRESERVE_ROUNDING` de 39 à 27 ns par opération sur un M2, `x - y`, `x *
   y`, `x / y`, `sqr` et `sqrt` de 1,3 à 4 fois plus rapides ;
   `tests/arithmetic.cpp` (environ 1,5 million de vérifications contre une
@@ -507,7 +528,7 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   donnent les compilateurs (`#pragma STDC FENV_ROUND` est ignoré par GCC et
   Visual C++ et « non supporté » par Clang, sans erreur), un verdict par piste ;
   le `// TODO: Rewrite as many functions as possible to use SIMD instructions`
-  de GAOL 4 dans `gaol/gaol_interval_core.cpp` remplacé par ce que l'étude
+  de GAOL 4 dans `gaol/core/gaol_interval_core.cpp` remplacé par ce que l'étude
   trouve ; deux relectures indépendantes, leurs erreurs corrigées)
 - #155 (point AL, ancien 118 : `process.md` mis à jour. Au §6.1, le paragraphe
   du 12 octobre sur une machine Ubuntu 24.04 est retiré, « Vérifie donc les
@@ -555,9 +576,9 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   Deux relectures indépendantes, leurs remarques reprises ; 158 jobs verts)
 - #157 (point AI, ancien 106, intervalles FPU : des noyaux scalaires sans
   branche sur les signes pour `x * y` (huit produits), `x / y`, `x % y` et
-  `sqr(x)` (`gaol/gaol_interval_fpu.cpp`), et `x - y`, qui lit ses bornes après
-  `GAOL_RND_ENTER()` et prend le temps de `x + y` (3,62 à 1,18 ns), pour les
-  builds sans intervalles SSE2 ni NEON : ARM 32 bits, POWER, s390x, RISC-V,
+  `sqr(x)` (`gaol/core/gaol_interval_fpu.cpp`), et `x - y`, qui lit ses bornes
+  après `GAOL_RND_ENTER()` et prend le temps de `x + y` (3,62 à 1,18 ns), pour
+  les builds sans intervalles SSE2 ni NEON : ARM 32 bits, POWER, s390x, RISC-V,
   Visual C++ et clang-cl en x86 32 bits et en arm64, MinGW-w64 en arm64,
   `GAOL_SIMD=OFF` et `GAOL_ARM64=OFF`. Sur un M2, `x * y` de signes aléatoires
   de 12,4 à 3,3 ns (16 384 opérandes), `x / y` de 9,3 à 3,2, `sqr` de 5,9 à 1,8,
@@ -761,8 +782,8 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   que le point ne nommait pas ; après, aucun avec les intervalles SSE2, les
   intervalles FPU et le chemin AVX-512, et l'empreinte des bits des bornes de
   chacune des 131 formes est celle de `configure-clean` (au signe d'un zéro
-  près). Corrections de `gaol/gaol_interval_core.cpp` : des quotients et des
-  produits saturants (`quotient_up_sat()`, `quotient_dn_sat()`,
+  près). Corrections de `gaol/core/gaol_interval_core.cpp` : des quotients et
+  des produits saturants (`quotient_up_sat()`, `quotient_dn_sat()`,
   `product_up_sat()`, `product_dn_sat()`, `quotient_sat()`) pour `div_rel` (le
   corps des intervalles FPU et NEON devient `div_rel_upward()` ; les intervalles
   SSE2 gardent leur code vectoriel, avec un test fait dans les registres),
@@ -922,10 +943,10 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   `gaol_ieee1788::pow(x, [2])` attendu vide, et est passé à la relance) ;
   fusionnée le 25 octobre)
 - #191 (point PG.6, la division du chemin AVX-512 : `er_div_low()`,
-  `er_div_high()` et `er_div2()` de `gaol/gaol_interval_avx512.cpp` font une ou
-  deux divisions scalaires à arrondi intégré (`vdivsd {ru-sae}`) là où trois
-  endroits divisaient encore en 512 bits : `fast_div_by()` (`x / d` et `x /=
-  d`), les 14 divisions de `div_unguarded()` (l'aiguillage d'un diviseur qui
+  `er_div_high()` et `er_div2()` de `gaol/core/gaol_interval_avx512.cpp` font
+  une ou deux divisions scalaires à arrondi intégré (`vdivsd {ru-sae}`) là où
+  trois endroits divisaient encore en 512 bits : `fast_div_by()` (`x / d` et `x
+  /= d`), les 14 divisions de `div_unguarded()` (l'aiguillage d'un diviseur qui
   contient 0) et le `1/h` des puissances négatives (`pown_er_ops::div`) ; plus
   aucune division de 512 bits dans la bibliothèque. La description de PG.6 et
   `doc/simd.md` disaient que l'idée n'avait pas été essayée pour `/` : le `x /
@@ -1030,6 +1051,249 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   x86-64 et GCC 12.2 croisé sous qemu après la fusion de `configure-clean` ; CI
   verte sur le commit qui précède cette fusion, qui a eu lieu quand la CI du
   commit de fusion n'avait pas commencé ; fusionnée le 25 octobre)
+
+- #196 (tâche PD, première des deux pull requests : le point 130 et des restes
+  de textes. `process.md` : l'en-tête porte une date et un commit (décidé le 22
+  octobre, Q9c), le §6.1 une phrase pour une machine sous Ubuntu 24.04 (Q9a), le
+  §4.11 « Clang 21 (depuis le 13 octobre) » et la colonne avec la direction
+  préservée de `doc/compare/performance.md`, le §9 et le §3.4 disent que
+  l'en-tête et le §12 se mettent à jour avec les registres, et cinq pièges de
+  plus au §11 (le compteur d'allocations de `tests/expressions.cpp` avec une DLL
+  de Windows, #149 ; l'`asm volatile` du registre de contrôle et le test qui
+  construit son intervalle dans la même fonction, #150 ; le script qui duplique
+  300 lignes de `meson.build`, #192 ; Visual C++ pour ARM64, #192 ;
+  `arch -x86_64 ctest` et `! grep` sous `bash -e`, #194), dont trois énoncés de
+  `TODO.md` corrigés après la relecture (`! grep` ne fait échouer l'étape que
+  s'il n'est pas sa dernière commande, 22 caractères dans l'objet pour libc++,
+  l'`asm` avec « memory » ordonné avec la mémoire). `doc/accuracy.md` ne cite
+  plus `interval(sl, su)`. Le build par défaut de `run.sh` s'appelle « default »
+  (SSE2 sur x86, NEON sur arm64) dans `itf1788.py`, `itf1788.md`,
+  `doc/compare/README.md` et `tang2021.md`, sauf où une phrase décrit une mesure
+  faite sur x86. Une relecture indépendante, un point bloquant (`! grep`),
+  corrigé ; les trois derniers commits (§4.11 deux fois, libellés de
+  `tang2021.md`) n'ont pas été relus. Le job « Ubuntu 26.04 arm64 Clang » a
+  échoué au premier passage, sur le bloc `FPCR.AH` de `rounding_direction`, puis
+  est passé à la relance (issue #198) ; fusionnée le 25 octobre, avant la fin de
+  sa CI)
+- #197 (tâche PD, seconde pull request : le point 7 de la tâche, les mutants de
+  `tests/tools/pow/mutate.py`. Les cinq mutants qui ne s'appliquaient plus
+  (`std-empty-y-unchecked`, `std-infinite-exponent-unchecked`,
+  `corner-lower-not-exact`, `corner-upper-no-limit`, et `er-division-downward`
+  depuis #191, que `TODO.md` ne comptait pas) suivent le code de #183
+  (`holds_no_real()`), de #184 (`quiet`) et de #191 (`er_div2()`) ;
+  `std-empty-y-unchecked` est équivalent parce que ses deux seuls appelants
+  rendent le vide avant d'appeler `pow_standard_upward()`, le texte de
+  `survives` qui disait que `rounding_direction` le tue est réécrit ; quatre
+  mutants de plus pour `er_div_low()`, `er_div_high()` et `er_div2()`, tués par
+  `arithmetic` (104 mutants). Les dix `neon-*` ont tourné sur l'Apple M2 par la
+  session MACarm2 : 8 tués, 2 équivalents, aucun survivant. Deux mutants ne
+  tenaient qu'à 1 et 5 vérifications d'`arithmetic` (`powers-of-c`,
+  `inverse-first-order`, leurs jumeaux de SSE2, d'AVX-512, du FPU et de NEON),
+  d'où deux changements de `tests/arithmetic.cpp` : le tableau des grandes
+  puissances négatives passe de 6 à 46 lignes (bornes de mpmath ; le script
+  `tests/tools/pow/negative_power_rows.py` les écrit et le relecteur en a
+  recalculé 40 sur 40 sans mpmath, en rationnels exacts), et 12 736 points de
+  plus pour `pow([-c], n)` (c à 16 doubles de 1, n de 2 à 200). Avant, après :
+  `inverse-first-order` 5 puis 44 vérifications en échec, `powers-of-c` 1 puis 5
+  (un point de la grille, c = 1 + 2^-51 et n = 21, était déjà dans la boucle
+  existante ; des tirages au hasard et une grille jusqu'à 64 doubles de 1 n'en
+  donnaient pas plus). `arithmetic` passe sans mutant en SSE2 avec FMA, AVX-512,
+  FPU et NEON, avec GCC 15.2, Clang 18 et Apple clang 21, et en
+  `-Wall -Wextra -Werror`. Deux relectures indépendantes, aucun point bloquant ;
+  la marge « 2^8 fois 2K » du commentaire était fausse pour n < 0 (au moins 13
+  fois 2K avec `pown_bound_inverse()`), corrigée ; fusionnée le 25 octobre,
+  avant la fin de sa CI)
+- #199 (hors des tâches, à la demande du mainteneur : les neuf fichiers
+  `gaol_interval_core.*`, `gaol_interval_neon.*`, `gaol_interval_fpu.*`,
+  `gaol_interval_sse.*` et `gaol_interval_avx512.*` passent de `gaol/` à
+  `gaol/core/` (`git mv`, renommages reconnus à 98-100 %), sans qu'une ligne de
+  calcul change. Les includes (`"gaol/core/gaol_interval_core.h"`...), les trois
+  builds (CMake : `GAOL_SOURCES` et une liste `GAOL_CORE_HEADERS` ; autotools :
+  `gaol/Makefile.am`, avec `gaol/Makefile.in` régénéré par automake 1.18.1 ;
+  meson : `gaol/meson.build`), `.github/scripts/headers.sh` et tous les chemins
+  `gaol/gaol_interval_{core,neon,fpu,sse,avx512}` des commentaires, de la
+  documentation, des tests, des outils (`tests/tools/pow/mutate.py`), de la CI
+  et des registres deviennent `gaol/core/...`. Les quatre en-têtes
+  `gaol_interval_{core,fpu,neon,sse}.h` sont installés dans `include/gaol/core/`
+  (avant : `include/gaol/`), comme ceux du parser dans `include/gaol/parser/`,
+  sans en-tête de renvoi. `gaol_interval_fpu.cpp` rejoint les trois autres
+  `.cpp` inclus dans l'`EXTRA_DIST` de `gaol/meson.build`. Le lexeur et le
+  parser, régénérés, sont identiques. En local : CMake SSE2 avec tests et
+  exemples, 61 sur 61 ; CMake FPU et chemin AVX-512, la bibliothèque ; meson, 29
+  réussis et 2 sautés ; autotools, `make check` réussi et `make distclean` sans
+  reste ; les mêmes 23 en-têtes installés par les trois builds, `headers.sh`
+  sans échec sur chacun. Pas de relecture indépendante (demande du mainteneur) ;
+  `check_branch` échoue sur `doc/differences.md`, que le mainteneur a gardé,
+  avec les registres, dans la pull request ; 47 lignes passent 80 colonnes,
+  laissées ; 201 jobs verts sur le dernier commit de la branche, NEON, Windows
+  et macOS compris ; fusionnée le 26 octobre)
+- #200 (hors des tâches, à la demande du mainteneur : les trois builds ont les
+  mêmes options, celles de l'utilisateur, et le reste est décidé par des tests
+  qui compilent et exécutent. Les options : `GAOL_PRESERVE_ROUNDING`,
+  `GAOL_SIMD` (SSE2 sur x86, NEON sur ARM 64 bits, le FPU sinon ; `GAOL_ARM64`,
+  `--enable-arm64` et `enable-arm64` ne sont plus des options), `GAOL_COVERAGE`
+  (`--enable-coverage` et `make coverage` pour configure, `enable-coverage` et
+  `ninja gaol-coverage` pour meson, `coverage` étant réservé par meson),
+  `WITH_TESTS`, `WITH_EXAMPLES`, `BUILD_SHARED_LIBS` (la bibliothèque statique
+  est le défaut des trois builds : configure et meson construisaient les deux),
+  `CMAKE_BUILD_TYPE`, le code indépendant de la position, et
+  `CMAKE_OSX_ARCHITECTURES` (le build universel de macOS aussi avec autotools et
+  meson, par `-arch` plusieurs fois dans les drapeaux). Décidés par la
+  configuration : les instructions FMA (prises quand la machine exécute un
+  programme compilé avec elles ; en compilation croisée, laissées de côté sauf
+  `-DGAOL_MACHINE_RUNS_FMA=1`, `gaol_cv_machine_runs_fma=yes` ou
+  `-Dmachine-runs-fma=true`, et de même pour AVX-512), le chemin AVX-512 (il
+  suit `GAOL_PRESERVE_ROUNDING` : les quatre builds mesurés dans `doc/simd.md`
+  donnent, sur un i7-1185G7 à demi-largeur, une médiane de 2,80 avec la
+  direction préservée et de 0,83 sans), l'entier 128 bits (les deux moitiés
+  seulement sans type du compilateur) et le débogage (le type `Debug`). Les
+  anciennes options restent comme réglages des développeurs : lues avec
+  `DEFINED` par CMake, sans aide dans `configure --help`, marquées
+  `[developers]` par meson ; `--enable-optimize` est supprimée. Le test
+  `automatic_configuration` remplace `prefer_avx512_reconfigure` et échoue sur
+  l'ancien `CMakeLists.txt` à six endroits ; le test d'exécution de FMA de
+  Visual C++ et de clang-cl exécute l'intrinsèque `_mm_fmadd_sd` au lieu
+  d'appeler `std::fma` ; l'audit des trois builds est inchangé. Les workflows
+  passent de `GAOL_ARM64=OFF` à `GAOL_SIMD=OFF`, deux jobs « bibliothèque
+  partagée » et deux jobs de build universel de macOS s'y ajoutent. Une
+  relecture indépendante, aucun point bloquant, tous ses constats corrigés
+  (`range()` de meson 0.58, le manuel et des commentaires, CORE-MATH sans les
+  compteurs de gcov avec CMake, une entrée d'un ancien répertoire de build,
+  `make coverage` sans `--enable-coverage`). En local : CMake (défaut, direction
+  préservée, FPU, Clang 18, Debug avec ASan et UBSan, `-Werror` avec GCC et
+  Clang) à 100 % ; autotools et meson, avec installation, `headers.sh` et
+  `tests.sh` ; `make coverage` 94,1 % et `ninja gaol-coverage` 94,0 %. Le
+  premier passage de la CI a trouvé deux défauts de meson (`has_header()` lance
+  le préprocesseur, que clang refuse avec plusieurs `-arch`, et le test
+  `automatic_cleanup` avec la bibliothèque partagée), corrigés ; 206 jobs verts
+  sur le dernier commit, les trois builds universels de macOS compris ;
+  fusionnée le 26 octobre à 18 h 45 UTC)
+- #201 (hors des tâches ; le point 92 de `TODO.md`, ancien AE : les sources C de
+  CORE-MATH reçoivent les mêmes drapeaux avec CMake, autotools et meson,
+  `-std=gnu99`, `-msse2 -msse3` là où les intervalles SSE2 sont pris,
+  `-fvisibility=hidden`, et `-ffloat-store` du C avec configure ; avant, CMake
+  seul donnait les deux premiers, configure laissait la norme au compilateur
+  (C23 avec GCC 15) et meson prenait `gnu11` ; l'audit des trois builds compare
+  maintenant un source C de CORE-MATH, `sin.c` (`make_probe.py c`, la commande
+  de compilation du C lue dans `compile_commands.json` et dans `make -n -C 3rd`,
+  drapeaux, norme, optimisation et macros comparés) ; il échoue contre les
+  sources de #200 (`C: __STDC_VERSION__`, `C: -msse2`, `C: standard`...) et
+  passe avec GCC 15 et Clang 21 ; une bibliothèque partagée exporte les mêmes 38
+  symboles avec les trois builds ; sur décision du mainteneur,
+  `doc/differences.md` et `ChangeLog` disent aussi ce que #200 a changé aux
+  options ; 205 jobs verts sur le dernier commit ; fusionnée le 26 octobre à 21
+  h 03 UTC)
+- #202 (hors des points numérotés ; le point 4 de la tâche PE, les remarques des
+  outils de #160 : les 34 remarques d'actionlint 1.7.12 sur les workflows, dont
+  un faux positif, `suppress-deprecation-warnings` de `msys2/setup-msys2`, que
+  `.github/actionlint.yaml` écarte avec sa raison, et les 101 de shellcheck 0.11
+  sur les scripts, 12 de `.github/scripts/` et 89 de `doc/compare/code/` ; aucun
+  comportement ne change : les listes de drapeaux que le shell doit découper
+  portent un `# shellcheck disable=` avec la raison, la boucle `for` remplace
+  `ls | grep` dans le contrôle des bibliothèques installées, et `.shellcheckrc`
+  lit un script avec ceux qu'il charge ; `doc/tools.md` dit comment lancer les
+  deux outils ; 185 jobs verts sur le dernier commit ; fusionnée le 27 octobre à
+  8 h 39 UTC)
+- #203 (hors des points numérotés ; le point 6 de la tâche PE, la relecture
+  indépendante des commits `704ca0c`, `e80b6f0`, `1de1df0` et `15399b5`, faite
+  par un sous-agent sans le contexte de la session : aucun point bloquant, six
+  constats mineurs corrigés : `rounding_direction.cpp` suit les bits de l'x87
+  autres que RC (`x87_other_bits()`) après `cleanup()` et `restore_rounding()`
+  et règle la direction avant de lever les indicateurs de MXCSR, deux phrases
+  que les journaux de la CI contredisaient, « la direction d'aucune »
+  (`gaol_fpu.h`, `doc/using.md`), les valeurs de `FE_*` de mingw-w64 13 et
+  plus, les onze « point 110 de `TODO.md` » devenus AI.110 ; deux mutants
+  tués sur une copie où le chemin de mingw-w64 est forcé sur Linux ; 205 jobs
+  verts sur le dernier commit ; fusionnée le 27 octobre à 8 h 41 UTC)
+- #204 (hors des points numérotés ; le reste du point 95 de la tâche PE et le
+  point 5 : la sonde de la cible AVX-512 lie avec autotools (`AC_LINK_IFELSE`,
+  `configure` régénéré par autoconf 2.72) et avec meson (`links()`), comme avec
+  CMake, parce que `__builtin_cpu_supports` demande `__cpu_model` à l'édition
+  de liens ; CMake essaie aussi le compilateur C avec les drapeaux de FMA
+  (`check_c_source_compiles`, qui exige `__FMA__` ou `__ARM_FEATURE_FMA`, et
+  `check_c_compiler_flag(/arch:AVX2)` avec Visual C++ et clang-cl) et, s'il
+  les refuse, laisse les instructions de côté avec un message ; une étape de
+  plus de `tests/automatic_configuration.cmake` donne à CMake un compilateur C
+  qui refuse le premier drapeau de FMA pris (le premier essai, qui ne
+  refusait que `-mfma`, a fait échouer les quatre jobs armhf, où le drapeau
+  est `-mfpu=neon-vfpv4`), et échoue contre l'ancien `CMakeLists.txt` ; la
+  sonde liée de la cible AVX-512 n'a pas de dents, aucune chaîne de la machine
+  ne compile sans lier ce programme ; le commentaire de `CMakeLists.txt`
+  « fixed for GCC 17 only » cite le commit `8aaa5f6e6207` du bogue 54412 de
+  GCC ; 205 jobs verts sur le dernier commit ; fusionnée le 27 octobre à 8 h
+  44 UTC)
+- #205 (hors des points numérotés ; le point 3 de la tâche PE, les jobs qui
+  manquent de #152, #173, #174, #193 et #194 : MSYS2 MINGW32 avec autotools,
+  meson et l'audit des trois builds, Cygwin avec autotools et meson et un Debug
+  complet, Clang pour la cible de Visual C++ avec le pilote de GCC (CMake x64 et
+  x86, meson x64 et x86, autotools x64), les trois builds universels de macOS
+  sur macOS 15 et 26, le générateur d'Xcode avec la liste `arm64;x86_64` et sans
+  liste ; ils ont trouvé quatre défauts, corrigés dans la même pull request : le
+  `fma()` de msvcrt dans les tests compilés sans `-mfma` (44 des 100 000
+  vérifications de `fma` de `tests/arithmetic.cpp` ; `tests.sh` donne partout
+  les Cflags du `gaol.pc` installé), le C++14 que demande la bibliothèque
+  standard de Visual C++ (`CMAKE_CXX_STANDARD 14`, `GAOL_CXX_STD` de
+  `configure.ac`, `cpp_std=c++14` des seules bibliothèques avec meson), le
+  `unistd.h` du lexeur pour un compilateur qui simule Visual C++
+  (`cmake/msvc/unistd.h`, `GAOL_MSVC_CPPFLAGS`, `clang_msvc` de `meson.build`,
+  bibliothèque statique) et l'architecture du générateur d'Xcode sans liste
+  (CMake lui donne celle de la machine) ; sur décision du mainteneur du 27
+  octobre, `gaol/gaol_config.h` refuse mingw-w64 12 ou plus pour x86 32 bits lié
+  à `msvcrt.dll` (MSYS2 MINGW32) sans `-mfma`, comme msvcrt sur x86-64, et un
+  job de CI (`msys2-refused`, paramétré par `msystem`) vérifie le refus, dont
+  les dents sont les macros d'un mingw-w64 32 bits simulé sur Linux (accepté
+  avant, refusé après) ; la version 11 reste acceptée sans FMA, pour garder le
+  job « MinGW-w64 13.2.0 x86 Release, no FMA » (question ouverte de la pull
+  request : voir `TODO_AFTER.md`) ; pas de job autotools avec Clang vers MSVC en
+  x86 (décidé le 27 octobre) ; relue par un agent indépendant, sans risque pour
+  les bornes, ses constats corrigés (la branche en retard sur
+  `configure-clean`, le `-std=c++14` de meson en argument de projet, la
+  documentation et des commentaires, la bibliothèque partagée de CMake) ; 222
+  jobs verts sur le dernier commit ; fusionnée le 27 octobre à 11 h 18 UTC)
+- #212 (hors des points numérotés ; la suite de l'import de CORE-MATH
+  `0b2ae6d1` : `cos.c` réécrit par l'amont et porté sur `gaol_u128`, que le
+  reste de `tests/core_math.cpp` ne peut pas voir puisqu'il compare CORE-MATH à
+  lui-même ; `cos_accurate_path()` prend 45 arguments du chemin précis
+  (`cos_large_accurate()`), choisis pour atteindre les branches : la réduction
+  de l'argument, `i1` sous 32, égal à 32 et au-dessus, les trois façons de
+  combiner `cos(z) cos(r)` et `sin(z) sin(r)`, les 17 plages de la table de
+  1/(2π) au-delà de 2^31 et les quatre arguments que `exceptions()` arrondit à
+  part, avec leurs deux signes ; `gaol_cr_cos(x)` dans les quatre sens doit
+  donner les arrondis de cos(x) calculés à part avec mpmath à 4 000 bits, et
+  `cos(interval(x))` doit être `[RD, RU]` ; 0,57 % des arguments de 2^-13 à 2^31
+  prennent ce chemin dans chaque arrondi ; les outils de `tests/tools/cos/`
+  (`accurate_values.py`, qui recalcule les lignes, et `mutate.py`, qui met une
+  erreur à la fois dans une ligne `/* GAOL */` de `cos.c`) ; dents : 17 erreurs
+  mises une à une, le test en voit 15, avec le type natif comme avec les
+  moitiés forcées, et les deux autres sont équivalentes ou changent le reste de
+  2^-128 ; limite : une faute de moins de 2^-70 environ en relatif échappe ;
+  relue par un agent indépendant, sans point bloquant, qui a recalculé les 45
+  lignes à 3 000 et 5 000 bits et mis 37 erreurs (29 vues, les 8 autres sous
+  2^-70 ou équivalentes) ; ses constats corrigés (le texte de `3rd/README.md`,
+  le script des valeurs, des commentaires, `doc/tests.md`) ; vérifiée avec GCC
+  15.2, les moitiés forcées, le FPU, Clang 18, ASan et UBSan et Debian i386 ;
+  221 jobs verts sur le dernier commit ; fusionnée le 28 octobre à 8 h 51 UTC)
+- #213 (le point PH.1 de `TODO.md`, hors des points numérotés : les
+  contournements de `cr_pow()` que l'amont a rendus inutiles par `c01f08c5`, la
+  comparaison `<` d'un NaN et le carré `rh * rh` qui déborde ;
+  `pow_rounded_up()` ne calcule plus à part les exposants de grandeur extrême ni
+  les puissances inférieures à 1 pour |y| ≥ 2^450, et
+  `pow_up_without_overflow_exception()` n'a plus la branche de `t ≥ 1100` ;
+  reste une seule puissance calculée à part, x^y < 1 avec |y| ≥ 2^1013, qui vaut
+  2^-1074 vers le haut, parce que `is_exact()` de `cr_pow()` calcule `y * e` et
+  déborde (`FE_OVERFLOW` pour un résultat fini) ; trois cas nouveaux dans
+  `trap_cases()` de `tests/rounding_direction.cpp` la protègent (ils échouent
+  sans elle) ; dents : avec l'ancien `pow.c`, `rounding_direction` échoue 1 899
+  fois sur 1 151 964 vérifications ; comparaison avec la base sur 107 715
+  résultats : aucune différence de borne, aucune invalidité (33 345 avec
+  l'ancien `pow.c`), et `FE_OVERFLOW` en plus dans 14 642 cas, tous avec une
+  borne supérieure infinie, ce que dit `doc/using.md` ; relue par un agent
+  indépendant, sans point bloquant, qui a comparé environ 9 millions de sorties
+  ; ses constats corrigés (des commentaires, `tests/ieee1788.cpp`,
+  `doc/using.md` et le manuel, qui se construit avec le seul « Overfull » de la
+  base) ; vérifiée avec GCC 15.2, le FPU, Clang 18, ASan et UBSan (Clang 21 et
+  Debian i386 par le relecteur) ; 222 jobs verts sur le dernier commit ;
+  fusionnée le 28 octobre à 8 h 53 UTC)
 
 ### 2.4 Fermées sans fusion
 
@@ -1527,7 +1791,7 @@ fait le travail.
 
 - [x] Les intervalles NEON se choisissent par `GAOL_ARM64`, `--enable-arm64` et
   `enable-arm64`, indépendamment de `GAOL_SIMD`, qui reste pour x86 (décision du
-  mainteneur)
+  mainteneur ; remplacée le 26 octobre par #200 : `GAOL_SIMD` les choisit)
 - [x] NEON est pris par défaut sur AArch64 avec GCC, Clang et AppleClang sous
   Linux et macOS ; pas avec Visual C++, clang-cl, MinGW-w64, ARM 32 bits (le
   NEON d'ARMv7 n'a pas de vecteur de doubles) ni dans un build universel de
@@ -1770,7 +2034,8 @@ fait le travail.
   ajouté au filtre de chemins, `make perf` sur macOS et `gaol_bench` partout
   gardés ; dix jobs de plus, le cache des programmes de la base et `LINE_LIST`
   vide (#166) ; `performance.yml` dans `process.md` §10 (#165)
-- [x] `GAOL_PREFER_AVX512` reste `ON`/`OFF` ; les commentaires « + - * / et sqrt
+- [x] `GAOL_PREFER_AVX512` reste `ON`/`OFF` (plus une option depuis #200, le
+  26 octobre) ; les commentaires « + - * / et sqrt
   » mis à jour et `-UGAOL_PREFER_AVX512` retiré de `setup.sh`, avec les sept
   dossiers de build d'avant #161 supprimés (#165) ; le test des bits du signe de
   zéro de `x * d`, sauté sans AVX-512 (#171)
@@ -1847,8 +2112,8 @@ fait le travail.
 - [x] Le masquage des exceptions de `pow_up_without_overflow_exception()`, le
   seul de la bibliothèque (les puissances dont le log2 est à 10^-9 de 1024, c
   voisin de `DBL_MAX` dans `pow_rel` et `pow_exponent_rel`), est reporté : issue
-  #185, `TODO.md` PD.6 ; #184 le garde en attendant la réponse (décidé le 24
-  octobre, #184)
+  #185 ; #184 le garde en attendant la réponse (décidé le 24 octobre, #184),
+  puis gardé le 25 octobre (tâche PD, plus bas)
 - [x] Le signe d'un zéro de `div_rel` avec les intervalles SSE2 (`[0, x]` au
   lieu de `[-0, x]` quand `div_rel_upward()` calcule, un tirage sur 300) est
   laissé tel quel et documenté dans `doc/accuracy.md`, commit 9da8118 (décidé le
@@ -1939,6 +2204,173 @@ fait le travail.
   la pull request suivante après chaque fusion ; les registres ne sont mis à
   jour qu'après la fusion de #194, quand le mainteneur le dit (25 octobre)
 
+#### Décidé pendant la tâche PD (25 octobre), fait par #196 et #197
+
+- [x] Le masquage des exceptions de `pow_up_without_overflow_exception()` (issue
+  #185) est gardé, sans changement de code : le mainteneur a choisi de le
+  garder plutôt que de le retirer (le drapeau resterait levé pour ces 2^12
+  valeurs de c, la phrase de `doc/using.md` et du manuel serait à changer) ou de
+  ne le garder que sur x86-64 avec glibc et UCRT ; #185 est fermée
+- [x] `process.md` : l'en-tête porte une date et un commit, avec le renvoi au
+  §12 gardé ; le §6.1 une phrase pour Ubuntu 24.04 ; rien pour `GAOL_V9/GAOL` au
+  §3.3 (22 octobre, Q9a à Q9c, fait par #196) ; le §4.11 dit « Clang 21 (depuis
+  le 13 octobre) » et la colonne avec la direction préservée (corrigé dans #196
+  sur la demande du mainteneur)
+- [x] Les libellés « SSE2 » du build par défaut sont alignés dans les rapports
+  de `doc/compare/` dans #196 (réponse du mainteneur : dans cette pull request),
+  sauf ceux qui décrivent une mesure faite sur x86 (`tang2021.md` lignes 180 et
+  254, `special_cases.md` ligne 34), où « SSE2 » est exact
+- [x] `doc/differences.md` (ligne 790) cite encore `interval(sl, sr)` : pour la
+  pull request de synthèse (tâche PI) ; celle d'`examples/examples.md` (ligne
+  1110) est le texte de la revue d'origine
+- [x] Les tests de `std::pow` : il n'en reste qu'un dans `tests/`
+  (`arithmetic.cpp`, racines n-ièmes), à résultats normaux et gardé par
+  `compare()` : rien à changer
+- [x] Les mutants qui ne tenaient qu'à 1 et 5 vérifications : tests renforcés
+  dans #197 (réponse du mainteneur : dans cette pull request, plutôt qu'à part)
+  ; les dix `neon-*` lancés sur l'Apple M2 par la session MACarm2 (sur un Apple
+  M2 plutôt qu'un job de CI ou une compilation croisée)
+- [x] Quatre mutants des divisions de #191 ajoutés dans #197 (réponse du
+  mainteneur)
+- [x] Le défaut possible de `x / y` des intervalles NEON avec `FPCR.AH` (52 des
+  441 paires du bloc de #187, sur un runner arm64 de la CI, vert à la relance) :
+  une issue (#198), sans tâche dans `TODO.md` (25 octobre) ; après la relance
+  du job, le mainteneur a gardé « reporter » plutôt que de chercher la cause
+  tout de suite
+- [x] L'échec de CI de macOS 14 x86_64 (Rosetta), non reproduit (ancien PD.8) :
+  passe dans `TODO_AFTER.md` (4.8), à reprendre s'il revient
+- [x] Les registres se mettent à jour après les fusions du mainteneur, et le
+  commit des registres est fait au-dessus de son commit local « update
+  README.md. », que le même push emporte (25 octobre)
+
+#### Décidé pendant le déplacement dans gaol/core/ (25 octobre), fait par #199
+
+- [x] Le dossier est `gaol/core/` ; les en-têtes des quatre sortes d'intervalles
+  et de leur noyau y sont installés dans `include/gaol/core/`, sur le modèle de
+  `gaol/parser/` (25 octobre, #199)
+- [x] Aucun en-tête de renvoi aux anciens chemins
+  `include/gaol/gaol_interval_{core,fpu,neon,sse}.h` : comme pour le parser,
+  tant pis pour la rétrocompatibilité ; l'installation dans `include/gaol/core/`
+  est à écrire dans `ChangeLog` et `doc/differences.md` (tâche PI) (25 octobre,
+  #199)
+- [x] Le second commit de #199 (`TODO_DONE.md`, `TODO_AFTER.md`,
+  `doc/differences.md`, `todo-notes/`) reste dans la pull request, bien que
+  `process.md` §7.5 veuille les registres hors des branches et que
+  `check_branch` refuse `doc/differences.md` : le mainteneur avait demandé «
+  tous les fichiers » (25 octobre, #199)
+- [x] `gaol_interval_fpu.cpp` ajouté à l'`EXTRA_DIST` de `gaol/meson.build` dans
+  #199, plutôt qu'une pull request à part ou une issue (25 octobre)
+- [x] Les 47 lignes de commentaires, de documentation et de tests que les
+  chemins plus longs font passer au-dessus de 80 colonnes sont laissées, pour un
+  diff mécanique ; celles des registres sont refaites (25 octobre, #199)
+- [x] Pas de relecture indépendante pour #199, une substitution de chemins
+  vérifiée par les trois builds et la CI (demande du mainteneur, 25 octobre)
+
+#### Décidé pendant la tâche des options (26 octobre), fait par #200
+
+- [x] Les réglages que la CI et les développeurs donnent (FPU sur x86, sans FMA,
+  sans AVX-512, émulation de l'entier 128 bits, `GAOL_SSE2_UNALIGNED_STORAGE`,
+  `GAOL_DEBUG` sur un sous-projet) restent acceptés mais cachés : lus avec
+  `DEFINED` par CMake, sans texte d'aide dans configure, marqués `[developers]`
+  par meson, qui ne peut pas les masquer ; section « The settings of the
+  developers » de `doc/building.md` (26 octobre)
+- [x] En compilation croisée, où aucune sonde ne s'exécute, la configuration
+  prend les chemins sûrs : ni FMA ni AVX-512, avec un message, sauf
+  `-DGAOL_MACHINE_RUNS_FMA=1` et `-DGAOL_MACHINE_RUNS_AVX512=1` (CMake),
+  `gaol_cv_machine_runs_*=yes` (configure) ou `-Dmachine-runs-*=true` (meson)
+  (26 octobre ; avant : les instructions FMA étaient prises sur la parole du
+  compilateur)
+- [x] Le chemin AVX-512 se décide par une mesure sur place, quatre builds de la
+  même source, `performance-ab.sh --runs 9 --lines`, seuil d'un gain médian de 5
+  % : il suit `GAOL_PRESERVE_ROUNDING` (médiane de sept opérations 2,80 avec,
+  0,83 sans ; dix lignes 3,39 et 0,68) ; une seule machine, à demi-largeur
+  AVX-512, dans `doc/simd.md` (26 octobre)
+- [x] La bibliothèque statique est le défaut des trois builds, et le code est
+  indépendant de la position ; `--enable-shared` et `-Ddefault_library=shared`
+  demandent la partagée (26 octobre)
+- [x] Le build universel de macOS pour autotools et meson aussi (choix du
+  mainteneur, contre la recommandation d'en rester à CMake) : `-arch` plusieurs
+  fois dans les drapeaux, la dépendance de dépôt d'automake coupée ; les trois
+  jobs universels sont verts (26 octobre)
+- [x] `GAOL_VERBOSE_MODE` et la désactivation des exceptions sont des réglages
+  des développeurs dans les trois builds, celle des exceptions ajoutée à CMake
+  (26 octobre)
+- [x] Une seule pull request, un commit par étape, l'audit des trois builds
+  n'étant vert qu'à la fin (26 octobre)
+- [x] Le test d'exécution de FMA de Visual C++ et de clang-cl exécute
+  l'instruction (`_mm_fmadd_sd`), dans cette pull request (réponse du mainteneur
+  le 26 octobre)
+- [x] Le type `Debug` fixe `GAOL_DEBUG`, donc `-O0 -g` pour GAOL et CORE-MATH,
+  un `-O1` de `CMAKE_CXX_FLAGS_DEBUG` écarté pour la bibliothèque : gardé tel
+  quel (26 octobre)
+- [x] Le point 92 (PE.2, les drapeaux C de CORE-MATH) sur une branche à part,
+  `todo-ae-c-flags`, partie de celle de #200, et sa pull request #201 ouverte
+  après la fusion de #200 (26 octobre)
+- [x] Remplace deux décisions : le 23 octobre, `GAOL_PREFER_AVX512` reste
+  `ON`/`OFF` (pas d'option `AUTO`), qui n'est plus une option ; les 19 et 20
+  octobre, les intervalles NEON indépendants de `GAOL_SIMD` (#146), que
+  `GAOL_SIMD` choisit maintenant
+- [x] La suite de la tâche PE (le reste du 95 et les points 3 à 6) à la demande
+  du mainteneur, après la fusion de #200 ; le reste du 95 (lier la sonde de la
+  cible AVX-512 avec autotools et meson, vérifier le C des drapeaux de FMA avec
+  CMake) dans une pull request à part, partie de `configure-clean` une fois #201
+  fusionnée (26 octobre)
+- [x] La règle du chemin AVX-512, mesurée sur un seul processeur, est gardée
+  avec sa limite dite dans `doc/simd.md` ; la mesure sur une machine à AVX-512
+  pleine largeur va dans PJ, avec les mesures de la version (26 octobre)
+- [x] Les passages de `doc/differences.md` et de `ChangeLog` qui citent les
+  anciennes options, et le texte des drapeaux C de CORE-MATH, sont corrigés dans
+  la pull request #201 et non dans la pull request de synthèse (26 octobre)
+- [x] Les dossiers de build des sessions précédentes dans `/tmp/claude-1000` (11
+  Go, sur un quota presque atteint) supprimés à la demande du mainteneur (26
+  octobre)
+
+#### Décidé pendant la tâche PE (26 et 27 octobre), fait par #201 et les pull requests qui suivent
+
+- [x] Les quatre cas qui restaient du point 3 (#152, #173, #174, #193, #194)
+  sont tous traités, aucun laissé de côté : autotools et meson sous Cygwin,
+  Clang pour la cible de Visual C++ avec le pilote de GCC (sans clang-cl), le
+  build universel de macOS sur chaque version, et le générateur d'Xcode
+- [x] Le point 3 en une seule pull request ; `tests.sh` donne partout les Cflags
+  du `gaol.pc` installé ; pour autotools avec Clang vers MSVC, deux essais de CI
+  au plus (le premier a réussi, une fois le `unistd.h` réglé) ; si un job échoue
+  à cause de GAOL, la correction va dans la même pull request (elle a trouvé le
+  C++14 de la STL de Visual C++, le `unistd.h` du lexeur et l'architecture
+  d'Xcode)
+- [x] Le générateur d'Xcode sans `CMAKE_OSX_ARCHITECTURES` : CMake lui donne
+  l'architecture de la machine, comme les autres générateurs, configure et meson
+  ; la liste `arm64;x86_64` donne le build universel
+- [x] `shellcheck` installé par le mainteneur ; `actionlint` dans l'image Docker
+  officielle `rhysd/actionlint` ; toutes les remarques de `shellcheck` des
+  scripts (101, `.github/scripts` et `doc/compare/code`) sont traitées dans
+  #202, avec des `# shellcheck disable=` là où une liste de drapeaux doit être
+  découpée
+- [x] Le commentaire de `CMakeLists.txt` sur le bogue 54412 de GCC se corrige
+  avec le reste du 95, dans une pull request à part ; la relecture des
+  corrections A à F de #161 n'est pas refaite (#200 a supprimé le test et
+  l'option ; le point A est vérifié dans le code) ; les 350 références « point X
+  of TODO.md » des sources restent
+- [x] Les registres sont mis à jour à la fusion de chaque pull request, non
+  avant
+- [x] Vérifié le 26 octobre (point 5) : le correctif du bogue 54412 de GCC est
+  le commit `8aaa5f6e6207` (« function: honour over-alignment in
+  assign_stack_local [PR54412] », validé le 25 septembre 2026 sur la branche de
+  développement, GCC 17, non publié) ; « fixed for GCC 17 only » est donc exact,
+  sans rétroportage vu pour GCC 16 ; les paquets `mingw` de Chocolatey ont les
+  bibliothèques mingw-w64 v10 (12.2.0), v11 (13.2.0), v12 (14.2.0) et v13
+  (15.2.0), dont les sources de `fesetround()` et `fegetround()` sont celles
+  lues
+- [x] MSYS2 MINGW32 lie le `fma()` de msvcrt : `gaol_config.h` le refuse sans
+  `-mfma` (`__FMA__` non défini), comme msvcrt sur x86-64, pour mingw-w64 12 ou
+  plus seulement, la version 11 restant acceptée sans FMA pour garder le job
+  « MinGW-w64 13.2.0 x86 Release, no FMA » (réponse du 27 octobre ; l'écart de
+  la 11 est une question ouverte de #205, voir `TODO_AFTER.md`) ; avec `-mfma`,
+  le défaut, MSYS2 MINGW32 est construit et testé
+- [x] Pas de job autotools avec Clang vers MSVC en x86 : CMake et meson couvrent
+  l'x86, autotools l'x64 (27 octobre)
+- [x] Après #205, s'arrêter et attendre : aucune autre tâche (PF, PG...) sans la
+  demande du mainteneur (27 octobre)
+
 #### Le 18 octobre : les questions restées ouvertes dans la description de #99 (commentaire de #49)
 
 Les six questions que la case « Les questions restées ouvertes dans la
@@ -1978,7 +2410,7 @@ viennent de la section « Questions ouvertes » de la description de
 - [x] **L'exception de `bisect`** : un ratio hors de ]0, 1[, ou NaN, lève
   `invalid_action_error`, comme `nth_root` avec un second argument non entier.
   Rien ne change : le comportement est dans
-  [`interval::bisect`](https://github.com/Jordan08/GAOL/blob/496a3f2/gaol/gaol_interval_core.cpp#L5671),
+  [`interval::bisect`](https://github.com/Jordan08/GAOL/blob/496a3f2/gaol/core/gaol_interval_core.cpp#L5671),
   [`doc/using.md`](https://github.com/Jordan08/GAOL/blob/496a3f2/doc/using.md#L495),
   le
   [manuel](https://github.com/Jordan08/GAOL/blob/496a3f2/manual/v5/gaol.tex#L4051)
@@ -2203,10 +2635,46 @@ le travail qu'elles décident est fait le même soir et ouvert en pull requests
   script qui joint les lignes pour les issues) et §12 (état au 24 octobre) sont
   réécrits pour #177 à #179, ainsi que les renvois des §3, §7 et §6.
 
+### 3.8 Le 27 octobre : l'import de CORE-MATH `0b2ae6d1` et ce qui le suit
+
+- **L'import se fait directement sur `configure-clean`** (demande explicite du
+  mainteneur : « mets à jour notre version, commit sur `configure-clean`
+  directement »), en deux commits, `cb731c0` (les sources) et `2927cfe`
+  (`3rd/README.md` et le commentaire de `gaol/core_math_port.h`), sans pull
+  request. Le CORE-MATH vendu passe de l'amont `6b84457` au master du 27
+  octobre, `0b2ae6d114d2f34051235d97f72c041b8e0ff66c`. Voir 7.6.
+- **Trois suites, décidées le même jour** : (1) le test de `cos` sur son chemin
+  précis, comme celui de `sin`, en pull request (#212) ; (2) retirer les
+  contournements de `cr_pow` que l'amont rend inutiles (PH.1), en pull request
+  selon `process.md` (#213) ; (3) mettre à jour les registres, ce qui est fait
+  ici ; les mesures de `doc/compare/performance.md`, qui cite encore l'amont
+  `6b84457`, se refont dans la tâche PJ (point 33).
+- **Constat** : l'import rend sans objet les correctifs 3 (`rsqrt.c`) et 4
+  (`sin.c`) de `3rd/README.md` (l'amont les a faits, `0d8b885a` et `19e85418`),
+  et le correctif 1 (les masques de `long`) est à refaire sur le master du jour
+  (`cos.c` est réécrit, les lignes de `cosh.c` ont bougé) ; le `rh * rh` de
+  `cr_pow()` est corrigé par l'amont (`c01f08c5`, qui teste l'exposant de `rh`
+  au lieu de comparer son carré avec `<`). Un défaut de plus de `cr_pow()`,
+  trouvé en retirant les contournements (#213) : `is_exact()` calcule `y * e`
+  (e est l'exposant de x quand x est une puissance de 2), qui déborde à partir
+  de |y e| = 2^1024 et lève `FE_OVERFLOW` pour une puissance minuscule ; #213
+  garde donc la puissance minuscule de |y| ≥ 2^1013, et le défaut est à
+  proposer à l'amont (`TODO.md`, PH.1).
+- **Réponses du mainteneur le 28 octobre**, aux questions qui closaient la
+  session : (1) #213 garde le raccourci de |y| ≥ 2^1013 (PH.1 demandait de tout
+  retirer, `is_exact()` l'en empêche) ; (2) le défaut d'`is_exact()` : préparer
+  le rapport pour l'amont et le lui montrer, ce qui est fait (réplique et
+  correctif d'une ligne vérifiés sur 50 896 000 appels, rien d'envoyé, rien
+  d'écrit dans `3rd/README.md` ni dans #125) ; (3) pas d'arguments de `cos.wc`
+  pour #212, les 45 suffisent (question fermée) ; (4) attendre la CI sans
+  démarrer d'autre tâche. La CI est entièrement verte : #212 (221 jobs), #213
+  (222 jobs) et `configure-clean` au commit `1f92634`. Le mainteneur a fusionné
+  #212 et #213 le même jour (voir 7.7).
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
-`TODO.md` (tâches PD à PJ) ou dans `TODO_AFTER.md` ; leur partie faite est dite
+`TODO.md` (tâches PF à PJ) ou dans `TODO_AFTER.md` ; leur partie faite est dite
 ici ou dans la section 5.
 
 ### Même changement, ou même code
@@ -2333,6 +2801,9 @@ ici ou dans la section 5.
   lisent corrigée par #143 (celle de `doc/differences.md` reste pour la pull
   request de synthèse)
 
+- [x] **Hors des points (26 octobre).** Les options des trois builds : fait par
+  #200 ; décidé pendant le travail : voir 3.4.
+
 ### Trouvé par la relecture de `configure-clean` du 14 octobre (62dad3a) : ce qui est fait
 
 Six relecteurs indépendants (puissances entières, `pow` réel et réciproques,
@@ -2356,8 +2827,11 @@ Les points suivants gardent un reste (voir `TODO.md` et `TODO_AFTER.md`) ; voici
 leur partie faite.
 
 - **AE.** Les trois builds : le 90 (le compilateur C vérifié comme le C++) par
-  #145, les 91 et 94 par #164, le 93 (code mort exporté) le 15 octobre. Restent
-  les 92 et 95.
+  #145, les 91 et 94 par #164, le 93 (code mort exporté) le 15 octobre, le 95
+  en partie par #200 (les sondes d'exécution de FMA et d'AVX-512 dans les trois
+  builds). Le 92 est fait par #201 (fusionnée le 26 octobre). Le reste du
+  95 (les sondes liées, le C des drapeaux de FMA avec CMake) est fait par #204
+  (fusionnée le 27 octobre) : AE est faite en entier.
 - **AI.** La vitesse sur macOS, Windows et ARM : le 106 pour arm64 (intervalles
   NEON) par #146, pour Visual C++ et clang-cl x64 (SSE2) par #148, pour Windows
   32 bits avec GCC et Clang (SSE2 avec `-faligned-new=8`) par #152, pour ARM 32
@@ -2366,12 +2840,15 @@ leur partie faite.
   MSYS2 sur arm64 (NEON, le 106 a) par #192, pour Visual C++ et clang-cl sur
   Windows 32 bits (SSE2, bornes en deux `double`) par #193 et pour le build
   universel de macOS (NEON et SSE2 par tranche) par #194 ; le 107 (FPCR en ligne
-  sur arm64) par #146 ; le 108 (x87 et MXCSR en ligne sur x86 32 bits) par #156
-  ; le 110 (GCC pour Windows, `-mfma -mprefer-vector-width=128`) par #163, puis
-  le 133 (x86 32 bits et Cygwin) par #172, #173 et #174 ; les 111 et 115 (banc
-  A/B, dix lignes de `run_lines.sh`) par #160 et #166 ; le 112, le défaut de
-  CMake et les descriptions d'options par #161, le test des bits du signe de `x
-  * d` par #171. Restent les 105 (AH), 106 (b, c, d), 108, 109, 112 et 116.
+  sur arm64) par #146 ; le 108 (x87 et MXCSR en ligne sur x86 32 bits) par
+  #156 ; le 110 (GCC pour Windows, `-mfma -mprefer-vector-width=128`) par #163,
+  puis le 133 (x86 32 bits et Cygwin) par #172, #173 et #174, et les jobs qui
+  manquent de #152, #173, #174, #193 et #194 (MSYS2 MINGW32, Cygwin avec
+  autotools et meson, Clang vers Visual C++, macOS 15, Xcode) par #205 ; les 111
+  et 115 (banc A/B, dix lignes de `run_lines.sh`) par #160 et #166 ; le 112, le
+  défaut de CMake et les descriptions d'options par #161, le test des bits du
+  signe de `x * d` par #171. Restent les 105 (AH), 106 (b, c, d), 108, 109, 112
+  et 116.
 - **AJ, AK, W, X, Y.** Rien n'est fait ; voir `TODO_AFTER.md` (AJ, AK, W, X) et
   `TODO.md` (Y, tâches PI et PJ).
 
@@ -2492,8 +2969,8 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
 - **89.** Le format `agreeing` écrit `interval(4.0)` `4.000000000000000`, quand
   `bounds` écrit `[4]` : à documenter dans le commentaire d'`interval_format` et
   dans le manuel. Fait le 23 octobre par #164 : documenté dans le commentaire
-  d'`interval_format` (`gaol/gaol_interval_core.h`) et dans le manuel (section «
-  Output format ») ; un zéro s'écrit `[0]` dans tous les formats.
+  d'`interval_format` (`gaol/core/gaol_interval_core.h`) et dans le manuel
+  (section « Output format ») ; un zéro s'écrit `[0]` dans tous les formats.
 - **114.** (nouveau, issue #107) `parse_interval(nullptr)` plante (`strlen` d'un
   pointeur nul) : rendre `false`, avec un test dans `tests/expressions.cpp` et
   une note Doxygen dans `gaol/parser/gaol_parser.h`. Fait le 20 octobre par #147
@@ -2553,6 +3030,10 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
   de signe, à la place du maximum, contre `FPCR.AH`. Décidé le 22 octobre (Q10a,
   #154) : validé sur une copie, bit à bit identique, dans une pull request à
   part. Fait le 25 octobre par #187.
+- **130.** `process.md` : une phrase pour Ubuntu 24.04 au §6.1 à la place du
+  paragraphe que #155 avait retiré, une date et un commit dans l'en-tête, rien
+  pour `GAOL_V9/GAOL` au §3.3. Décidé le 22 octobre (Q9a à Q9c, #155). Fait le
+  25 octobre par #196.
 - **132.** Porter le noyau empaqueté de `pown` (`GAOL_POWN_PACKED`) sur arm64.
   Décidé le 22 octobre (Q14a, #146) ; Q14b (un test des bits du signe d'un zéro)
   et Q14c (jobs Clang 15 à 17 et GCC 9 à 10, test `mrs` et `msr` sur Neoverse)
@@ -2561,6 +3042,13 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
 - **`bisect(ratio)` et `is_bisectable()` sous FZ** (reste du point Q, #146).
   Décidé le 24 octobre : revérifier le défaut, puis le corriger par les bits,
   avec un test qui échoue sans la correction. Fait le 25 octobre par #190.
+- **Les restes de la tâche PD** (25 octobre) : les cinq pièges de #149, #150,
+  #192 et #194 dans `process.md` §11 ; `doc/accuracy.md` sans `interval(sl, su)`
+  (#149) ; le nom du build par défaut dans `itf1788.py` (#146) ; les tests de
+  `std::pow` (#158), rien à changer ; le masquage des exceptions de #184 (#185),
+  gardé ; les mutants de `mutate.py` (#188), dont les dix `neon-*` lancés sur un
+  Apple M2 ; l'échec de CI de #189, passé dans `TODO_AFTER.md`. Faits par #196
+  et #197 (voir 2.3).
 
 ### Restes des relectures de pull requests, de `process.md` et de la documentation (AL, nouveau)
 
@@ -2661,7 +3149,7 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
 - **126 (AN).** Évaluer les pistes SIMD et FMA : fait par #154 (`doc/simd.md`,
   qui répond aux quatre étapes de l'issue #101 ; le `// TODO: Rewrite as many
   functions as possible to use SIMD instructions` de
-  `gaol/gaol_interval_core.cpp` est remplacé). Ce qui reste (durcir
+  `gaol/core/gaol_interval_core.cpp` est remplacé). Ce qui reste (durcir
   `sqrt_bounds()` contre `FPCR.AH`, fait par #187 le 25 octobre ; l'arrondi
   embarqué scalaire de `/` sur Intel, fait par #191 le 25 octobre ; RISC-V
   scalaire, POWER, s390x) est dans `TODO_AFTER.md` ; `pow(x, 2)` par `sqr` est
@@ -2698,7 +3186,7 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
 
 Les « Questions ouvertes » des descriptions de #146 à #163, que l'ancien
 `TODO.md` gardait sous « Remarqué par #NN, à trier », avec leur sort. Les
-questions qui restent sans réponse sont dans `TODO.md` (tâches PD à PJ) et
+questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
 `TODO_AFTER.md` ; elles ne sont pas répétées ici.
 
 ### #146
@@ -2822,7 +3310,7 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PD à PJ) et
   sauf arm64 GCC (1,30) ; rien avec Clang x86-64 (0,90 la ligne de 7 `*`) ni
   Visual C++ x86 (0,95). Le mainteneur l'a fermée sans fusion le 23 octobre, ces
   tableaux lus : l'essai est un changement de `mul_finite()` dans
-  `gaol/gaol_interval_fpu.cpp` (commit `f86ada7`, lisible dans #168), qu'on
+  `gaol/core/gaol_interval_fpu.cpp` (commit `f86ada7`, lisible dans #168), qu'on
   reprendrait si les signes réguliers deviennent le cas qu'on veut servir (rang
   11).
 - **`gaol_performance` apprend ses opérandes par cœur** : 1 024 opérandes
@@ -2901,7 +3389,7 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PD à PJ) et
   `CMakeLists.txt` (le texte d'aide de la ligne de commande sert à reconnaître
   une demande ; la variable ordinaire d'un projet englobant), mais change le
   type de l'option et ce que lit un projet englobant. *Décidé le 23 octobre* :
-  garder `ON`/`OFF`.
+  garder `ON`/`OFF` (remplacé le 26 octobre : plus une option, #200).
 - **`configure` a été édité à la main** (par #161 et par #163), sans autoconf
   2.72 : vérifié le 23 octobre à `601fc63`, `autoconf` 2.72 (celui de cette
   machine), lancé sur une copie des fichiers suivis, régénère un `configure`
@@ -3111,6 +3599,96 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PD à PJ) et
   (l'expérience du quotient NEON) fermée sans fusion ; `TODO.md`,
   `TODO_DONE.md`, `TODO_AFTER.md` et `process.md` (§12) mis à jour pour elles,
   les branches fusionnées supprimées en local.
+- #196 et #197 (la tâche PD) fusionnées par le mainteneur le 25 octobre, dans la
+  soirée, avant la fin de leur CI (aucun échec parmi les jobs finis, après la
+  relance du job « Ubuntu 26.04 arm64 Clang » de #196) ; l'issue #198 créée
+  pour le défaut de `x / y` sous `FPCR.AH`, #185 fermée ; `TODO.md`,
+  `TODO_DONE.md`, `TODO_AFTER.md` et `process.md` (§12) mis à jour pour elles,
+  au-dessus du commit local du mainteneur « update README.md. », poussé avec ;
+  les branches fusionnées supprimées en local.
+
+### 7.5 Le 26 octobre
+
+- #199 (le déplacement des sources des intervalles dans `gaol/core/`) fusionnée
+  par le mainteneur le 26 octobre au matin, la CI de son dernier commit verte
+  (201 jobs) : la CI du commit de fusion, redondante (même arbre que le dernier
+  commit de la branche), n'est pas attendue (§10) ; `TODO.md`, `TODO_DONE.md`,
+  `TODO_AFTER.md` et `process.md` (§12) mis à jour pour elle, l'issue #198 reste
+  ouverte, la branche supprimée sur GitHub à la fusion et en local le 26
+  octobre.
+- #200 (les options des trois builds, hors des tâches) fusionnée par le
+  mainteneur le 26 octobre à 18 h 45 UTC, ses 206 jobs verts sur le dernier
+  commit ; la CI du commit de fusion, redondante, n'est pas attendue (§10) ; la
+  branche supprimée sur GitHub à la fusion et en local le 26 octobre ;
+  `TODO.md`, `TODO_DONE.md` et `process.md` (§12) mis à jour pour elle. La pull
+  request #201 (le point 92, PE.2) ouverte juste après, sur `todo-ae-c-flags` où
+  `configure-clean` est fusionnée. #201 fusionnée par le mainteneur le 26
+  octobre à 21 h 03 UTC, ses 205 jobs verts sur le dernier commit ; la CI du
+  commit de fusion, redondante, n'est pas attendue (§10) ; la branche supprimée
+  sur GitHub à la fusion et en local le 27 octobre ; `TODO.md`, `TODO_DONE.md`
+  et `process.md` (§12) mis à jour pour elle. #202 (le point 4 de PE) fusionnée
+  par le mainteneur le 27 octobre à 8 h 39 UTC, ses 185 jobs verts sur le
+  dernier commit ; la CI du commit de fusion, redondante, n'est pas attendue
+  (§10) ; la branche supprimée sur GitHub à la fusion et en local le 27
+  octobre ; `TODO.md`, `TODO_DONE.md` et `process.md` (§12) mis à jour pour
+  elle. #203 (le point 6 de PE) fusionnée par le mainteneur le 27 octobre à 8 h
+  41 UTC, ses 205 jobs verts sur le dernier commit ; la CI du commit de fusion,
+  redondante, n'est pas attendue (§10) ; la branche supprimée sur GitHub à la
+  fusion et en local le 27 octobre ; mêmes registres mis à jour pour elle, avec
+  #202, dans le même commit. #204 (le reste du 95 et le 5 de PE) fusionnée par
+  le mainteneur le 27 octobre à 8 h 44 UTC, ses 205 jobs verts sur le dernier
+  commit ; la CI du commit de fusion, redondante, n'est pas attendue (§10) ; la
+  branche supprimée sur GitHub à la fusion et en local le 27 octobre ; mêmes
+  registres mis à jour pour elle. #205 (le point 3 de PE) fusionnée par le
+  mainteneur le 27 octobre à 11 h 18 UTC, ses 222 jobs verts sur le dernier
+  commit ; la CI du commit de fusion, redondante, n'est pas attendue (§10) ; la
+  branche supprimée sur GitHub à la fusion et en local le 27 octobre ; mêmes
+  registres mis à jour pour elle ; la tâche PE est faite
+
+### 7.6 Le 27 octobre (après #205)
+
+- Le CORE-MATH vendu (`3rd/math-core`) mis à jour de l'amont `6b84457` au master
+  du 27 octobre, `0b2ae6d1`, directement sur `configure-clean` à la demande du
+  mainteneur : `cb731c0` (56 fichiers, dont 48 modifiés et 8 ajoutés : `cos.c`
+  réécrit par l'amont et porté sur `gaol_u128` d'après `sin.c`, `sin.c` ramené à
+  l'amont avec ses conversions refaites, `cosh.c`, `sinh.c`, `cospi.c`,
+  `rsqrt.c`, `hypot.c`, `pow.c`, `log/dint.h`, des tables et des scripts) et
+  `2927cfe` (`3rd/README.md`, commentaire de `core_math_port.h`). Fusion à trois
+  voies avec le fichier amont d'avant pour base ; `cospi.c` et le morceau de
+  `rsqrt.c` en conflit prennent la version de l'amont, qui a corrigé les mêmes
+  défauts. 21 fichiers diffèrent encore de l'amont, tous marqués `/* GAOL */`.
+  Vérifié : les 17 fonctions dont le fichier a changé, compilées depuis l'arbre
+  avec le type natif et avec les moitiés forcées, donnent les mêmes bits que
+  l'amont compilé sans changement dans les quatre sens sur 20 millions
+  d'arguments chacune ; avec gcov toutes les lignes `/* GAOL */` de `sin.c` et
+  de `cos.c` s'exécutent ; six erreurs mises dans le port sont toutes vues ;
+  Debian i386 et aarch64 (GCC 12.2, qemu) passent. La CI de `2927cfe` : 5
+  workflows et 200 jobs verts (Linux 45, conteneurs 22, macOS 21, Windows 64,
+  autotools et meson 48).
+- Ouvertes le même jour : #212 (le test de `cos` sur son chemin précis, les
+  outils de `tests/tools/cos/`) et #213 (les contournements de `cr_pow` que
+  `c01f08c5` rend inutiles) ; `TODO.md`, `TODO_DONE.md` et `process.md` (§12)
+  mis à jour pour l'import et pour elles, sans attendre leur fusion pour
+  l'import seul. Elles sont fusionnées le 28 octobre (voir 7.7).
+
+### 7.7 Le 28 octobre (après #206, #212 et #213)
+
+- Le mainteneur a fusionné #206 (la tâche PF, d'une autre session) à 8 h 31
+  UTC, #212 à 8 h 51 et #213 à 8 h 53 : `configure-clean` est au commit
+  `5a6683c`. Les registres sont mis à jour pour #212 et #213 (2.3, ci-dessus) ;
+  #206 n'y est pas encore, c'est à la session PF de l'y mettre.
+- Fait le même jour dans #125 : le brouillon du défaut d'`is_exact()`
+  (réplique, correctif d'une ligne, 50 896 000 appels comparés dans les quatre
+  arrondis) ajouté à la demande du mainteneur (point 9 et brouillon anglais,
+  avec `repro.c`, `is_exact.patch` et `diff.c` dans un bloc repliable ; rien
+  n'est envoyé, rien n'est dans `3rd/README.md`), et la case « retirer le
+  contournement du `<` de `cr_pow` » cochée par la fusion de #213. Les
+  décisions du jour sont dans 3.8.
+- La CI du commit de fusion `5a6683c` (#206, #212 et #213 ensemble ; #206 et
+  #212 touchent tous deux `tests/core_math.cpp`) n'avait pas commencé (jobs en
+  file d'attente) quand le push des registres l'a annulée ; le commit des
+  registres, qui ne change que des fichiers Markdown, la remplace pour le même
+  code.
 
 ## 8. Le ménage fait
 
@@ -3160,10 +3738,19 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PD à PJ) et
   (`todo-ap-neon-pown-packed`), #189 (`todo-ac-register-guard`) et #190
   (`todo-q-bisect-flush`), sur GitHub à la fusion et en local le 25 octobre ;
   celles de #191 (`todo-pg-avx512-div`), #192 (`todo-pg-msvc-arm64-neon`), #193
-  (`todo-pg-sse2-win32-msvc`) et #194 (`todo-pg-universal-macos`), et la
-  jetable de l'expérience #195 (`experiment-neon-scalar-div`), sur GitHub à la
-  fusion et en local le 25 octobre : sur GitHub, il ne reste que
-  `configure-clean`, `MATH-CORE` et `master`.
+  (`todo-pg-sse2-win32-msvc`) et #194 (`todo-pg-universal-macos`), et la jetable
+  de l'expérience #195 (`experiment-neon-scalar-div`), sur GitHub à la fusion et
+  en local le 25 octobre ; celles de #196 (`todo-pd-texts`) et de #197
+  (`todo-pd-pow-mutants`), sur GitHub à la fusion et en local le 25 octobre ;
+  celle de #199 (`interval-sources-in-core`), sur GitHub à la fusion et en local
+  le 26 octobre ; celles de #201 (`todo-ae-c-flags`), de #202
+  (`todo-pe-tool-remarks`), de #203 (`todo-pe-review-fixes`), de #204
+  (`todo-pe-probes`) et de #205 (`todo-pe-mingw32`), sur GitHub à la fusion et
+  en local le 27 octobre ; celles de #212 (`cos-accurate-path-test`) et de #213
+  (`todo-ph-pow-workarounds`), sur GitHub à la fusion et en local le 28
+  octobre ; celle de #200 (`automatic-configuration`), sur GitHub
+  à la fusion et en local le 26 octobre : sur GitHub, il ne reste que
+  `configure-clean`, `MATH-CORE`, `master` et `perf-doc-rerun`.
 - [x] Lignes de crédit retirées des descriptions de #50, #51, #53 à #57 et #59,
   d'un commentaire de #59 et de cette issue. Il en reste dans les messages des
   commits a0d3871, 790ca12 et f1f4239 de #99, fusionnée sans squash. Retirées

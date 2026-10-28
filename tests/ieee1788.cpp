@@ -322,8 +322,9 @@ namespace
     const interval one = pow(interval(1.0), interval(-1e12));
     check("pow([1], [-1e12]) = [1]", one.set_eq(interval(1.0)), [&] { return hex(one); });
     // A base with no point in [0, +oo], whose part there is empty: the powers
-    // beyond 2^1014, computed without CORE-MATH, gave [0, 2^-1074] to its NaN
-    // bounds if the empty part were not caught first (GAOL v5)
+    // beyond 2^1014, which GAOL computed itself before upstream commit
+    // c01f08c5, gave [0, 2^-1074] to its NaN bounds if the empty part were not
+    // caught first (GAOL v5)
     const interval no_base = pow(numsToInterval(-4.0, -1.0), interval(dmax));
     check("pow([-4, -1], [DBL_MAX]): empty", no_base.is_empty(), [&] { return hex(no_base); });
 
@@ -338,7 +339,7 @@ namespace
   }
 
   /*
-    The pow of Table 9.1 is written once, in gaol/gaol_interval_core.cpp:
+    The pow of Table 9.1 is written once, in gaol/core/gaol_interval_core.cpp:
     gaol_ieee1788::pow(x, y) is that function, and gaol::pow(x, y) calls it for
     every exponent but a degenerate integer, which takes pown on the whole of x,
     beyond the ints too. Each box below reaches a branch of the
@@ -349,7 +350,7 @@ namespace
     the tightest bound, but for the integer power [0, 1 + 2^-52]^-2, whose
     lower bound is one double below, (1 + 2^-52)^-2 being within the bound K
     of the error of the integer powers of a double
-    (gaol/gaol_interval_core.cpp). They are compared with ==, which does not
+    (gaol/core/gaol_interval_core.cpp). They are compared with ==, which does not
     tell -0 from +0: the sign of a zero bound is not checked.
   */
   void pow_on_boxes()

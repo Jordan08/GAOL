@@ -30,8 +30,8 @@ In [.github/audit/](../.github/audit/).
 | Script | What it is for |
 |---|---|
 | [audit.sh](../.github/audit/audit.sh) | Configures GAOL with CMake, autotools and meson, and writes `OUT/LABEL.json` (with `probe_build.py`). |
-| [probe_build.py](../.github/audit/probe_build.py) | For the three configured builds, reads the compiler flags and the configuration GAOL sees. |
-| [make_probe.py](../.github/audit/make_probe.py) | Writes a C++ file which, preprocessed with the flags of a build, shows the configuration GAOL sees. |
+| [probe_build.py](../.github/audit/probe_build.py) | For the three configured builds, reads the compiler flags and the configuration GAOL sees, for a C++ source and for a C source of CORE-MATH. |
+| [make_probe.py](../.github/audit/make_probe.py) | Writes a C++ file which, preprocessed with the flags of a build, shows the configuration GAOL sees, or with the argument `c` a C file for the C sources. |
 | [compare.py](../.github/audit/compare.py) | Compares the macros and the flags of the three builds, and with `--check` fails if they differ. |
 | [logs.sh](../.github/audit/logs.sh) | When the audit fails, prints the end of the logs of the three builds, then exits with the same status. |
 
@@ -52,6 +52,21 @@ In [.github/scripts/](../.github/scripts/).
 | [compare-performance.py](../.github/scripts/compare-performance.py) | Compares two series of measures (median, ratio, spread) and writes a Markdown table for the summary of a job. |
 | [test-performance-tools.py](../.github/scripts/test-performance-tools.py) | Tests `compare-performance.py` and `processor_name()` of `run_perf.sh`, in Python alone and without a build. |
 
+The workflows of [.github/workflows/](../.github/workflows/) are read by
+[actionlint](https://github.com/rhysd/actionlint), which runs `shellcheck` on
+the steps that have a script, and reports nothing (GAOL v5):
+
+```sh
+docker run --rm -v "$PWD:/repo:ro" --workdir /repo rhysd/actionlint:latest
+```
+
+[.github/actionlint.yaml](../.github/actionlint.yaml) lists the one remark it
+leaves out, with the reason. The scripts of [.github/](../.github/) and of
+[doc/compare/code/](compare/code/) are read by `shellcheck`, run from the root
+of the repository (its options are in [.shellcheckrc](../.shellcheckrc)), which
+reports nothing either: the lists of flags that the shell has to split carry a
+`# shellcheck disable=` with the reason.
+
 ## Tests
 
 In [tests/](../tests/). The five `*_values.py` scripts write the headers of
@@ -71,7 +86,7 @@ what the programs check.
 | [meson_subproject/check_flags.py](../tests/meson_subproject/check_flags.py) | Checks that a meson project which takes GAOL as a subproject gets the flags of its `gaol.pc`. |
 | [compile_error.cmake](../tests/compile_error.cmake) | A `cmake -P` script that compiles a source whose compilation has to fail (the tests `refused_*` and `nodiscard_discard_cxx<N>`). |
 | [cpack_stale_configure.cmake](../tests/cpack_stale_configure.cmake) | Tests the warning of CPack when the committed `configure` was generated for another version. |
-| [prefer_avx512_reconfigure.cmake](../tests/prefer_avx512_reconfigure.cmake) | Tests that a second `cmake` in the same directory keeps the right value of `GAOL_PREFER_AVX512`. |
+| [automatic_configuration.cmake](../tests/automatic_configuration.cmake) | Tests the configuration that GAOL decides by itself (the fused multiply-add instructions, the AVX-512 path, the 128-bit integer, the debugging, the vector intervals) and the settings of the developers, in several configurations of one directory and in a cross-compilation. |
 | [version_file.cmake](../tests/version_file.cmake) | Tests the reading of `VERSION.txt` by `gaol_read_version()` (byte order mark and other ways of writing it). |
 
 ## Tools for the tests
@@ -81,12 +96,17 @@ In [tests/tools/](../tests/tools/), with a `README.md` in each directory.
 | Script | What it is for |
 |---|---|
 | [arith/diffarith.py](../tests/tools/arith/diffarith.py) | Differential test of the arithmetic: compiles `diffarith.cpp` against two builds or more and compares the outputs. |
+| [cos/accurate_values.py](../tests/tools/cos/accurate_values.py) | Computes the roundings of cos(x) with mpmath and checks the table of `cos_accurate_path()` of `tests/core_math.cpp`. |
+| [cos/mutate.py](../tests/tools/cos/mutate.py) | Mutation testing of the port of `cos.c` to `gaol_u128`: the test `core_math` has to fail. |
 | [pow/build.py](../tests/tools/pow/build.py) | Compiles a program of `tests/tools/pow` against a build of GAOL, with the flags that build gives its own tests. |
 | [pow/diffpow.py](../tests/tools/pow/diffpow.py) | Differential test of `pow`, on the same principle as `diffarith.py`. |
 | [pow/gen_table.py](../tests/tools/pow/gen_table.py) | Reads and rewrites the table `pow_on_boxes()` of `tests/ieee1788.cpp` as lines "X \| Y \| S \| H". |
 | [pow/checkrows.py](../tests/tools/pow/checkrows.py) | Checks the bounds of `pow` in a file of such lines against the exact power (mpmath, 500 bits). |
 | [pow/mutate.py](../tests/tools/pow/mutate.py) | Mutation testing of `pow`: puts one deliberate error in the code, and the tests have to fail. |
 | [pow/pown_bound.py](../tests/tools/pow/pown_bound.py) | Checks, with rationals, the bound K of the error of the integer powers of `pown_products()`. |
+| [asm-order/check_order.py](../tests/tools/asm-order/check_order.py) | Reads the assembly of the library (x86-64, GCC and Clang) for an instruction that rounds on the wrong side of a write of the control register (GCC bug 34678). |
+| [x86-csr/mutants.py](../tests/tools/x86-csr/mutants.py) | The mutants of `gaol_core::x86_*()` of `gaol/gaol_fpu.h`, the writes of the control registers of a 32-bit x86 processor, for `pow/mutate.py`: `rounding_direction` has to fail on each. |
+| [x86-csr/amalgamate.py](../tests/tools/x86-csr/amalgamate.py) | One source file from three units of GAOL (the core of the intervals, the common code and `rounding_direction.cpp`), to compile with a compiler that takes one file, such as those of Compiler Explorer. |
 
 ## Comparisons with other libraries
 
