@@ -19,7 +19,8 @@
 #                         the square root, midpoint() and the long lines), the
 #                         others being the same code in builds that differ by
 #                         that register alone
-#   --factor F            a row is listed as different from F times (default 2)
+#   --factor F            a row is listed as different from F times (default
+#                         1.5)
 #   --optional            a table that cannot be made is a notice, not an error
 #                         (the long lines, which are an addition)
 #
@@ -29,10 +30,11 @@
 # larger of the two builds. The runners are shared virtual machines, whose
 # speed changes from one moment to the next (x * y with Visual C++ took 7.9 and
 # then 16.3 ns, sqrt with MSYS2 6.8 and then 170 ns, on code that had not
-# changed): only a difference of several times, on rows that share their code,
-# is one. A row is listed under the table as different when its ratio is F
-# times from 1 or more and beyond the spread: a ratio within the spread is
-# noise.
+# changed), and the same code has given a ratio of up to 1.17 between two
+# builds (#160, the placement of the code alone): only a difference well beyond
+# that, on rows that share their code, is one. A row is listed under the table
+# as different when its ratio is F times from 1 or more (1.5 by default, GAOL
+# v5) and beyond the spread: a ratio within the spread is noise.
 #
 # Times never make it fail. It fails (status 1, with the reason) when the
 # tables cannot be compared: a file with no row, or no row common to the two
@@ -113,7 +115,7 @@ def fixed(value):
 def main():
     args = sys.argv[1:]
     rows_shown = 'all'
-    factor = 2.0
+    factor = 1.5
     optional = False
     while args and args[0].startswith('--') and args[0] != '--':
         if args[0] == '--optional':
@@ -186,7 +188,7 @@ def main():
     else:
         print('No row is %g times apart or more beyond the spread of the runs.' % factor)
     print('The runner is a virtual machine shared with other jobs, whose speed changes from one moment to '
-          'the next: only a difference of several times, on rows that share their code, means something '
+          'the next: only a large difference, on rows that share their code, means something '
           '(a ratio within the spread of the runs is noise). No time fails the job.')
     for label, title in ((a[0], title_a), (b[0], title_b)):
         if title:
