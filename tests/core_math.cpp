@@ -1540,6 +1540,65 @@ namespace
     }
   }
 
+#if defined(GAOL_TESTS_HAVE_MXCSR) && (defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64))
+  /* pow with a subnormal result and cbrt at a hard case, called without GAOL in
+     each direction where the x87 unit and the SSE instructions differ as well
+     (GAOL v5, point AI.108 of TODO_DONE.md): the doubles of CORE-MATH are
+     rounded by the SSE instructions, and what it rounds by itself follows the
+     direction of MXCSR too, whatever fegetround() of the C library reads, which
+     is the control word of the x87 unit with glibc and gives -1 with Visual C++
+     for x86 when the two differ (gaol/core_math_port.h). The operations of GAOL
+     set both units before they call CORE-MATH, which hides the difference, so
+     the functions are called here. The powers have a fractional part below one
+     half (the roundings to nearest and downward are lo), the three rows of
+     subnormal_powers[] of tests/rounding_direction.cpp, in multiples of
+     2^-1074 computed with mpmath; the cube root of 0x1.3a9ccd7f022dbp+0 is less
+     than 10^-15 ulp above a double (see cbrt_hard_cases()), below or above
+     being the double on each side of it. */
+  void core_math_follows_mxcsr()
+  {
+    struct Direction { const char *name; int fenv; unsigned sse; };
+    const Direction directions[] = {
+      { "upward", FE_UPWARD, _MM_ROUND_UP },
+      { "to nearest", FE_TONEAREST, _MM_ROUND_NEAREST },
+      { "downward", FE_DOWNWARD, _MM_ROUND_DOWN },
+      { "toward zero", FE_TOWARDZERO, _MM_ROUND_TOWARD_ZERO },
+      { "upward, and to nearest for SSE", FE_UPWARD, _MM_ROUND_NEAREST },
+      { "to nearest, and upward for SSE", FE_TONEAREST, _MM_ROUND_UP },
+    };
+    struct Power { double x, y; long long lo, hi; };
+    const Power powers[] = {
+      { 0x1.4a1249ba9b6d5p-1, 0x1.97f9e85175cf7p+10, 1458662373659LL, 1458662373660LL },
+      { 0x1.0d00c0deaf87fp-2, 0x1.117ee54c23de1p+9, 567863LL, 567864LL },
+      { 0x1.999999999999ap-1, 0x1.a0df226893p+11, 1LL, 2LL },
+    };
+    const double cbrt_x = 0x1.3a9ccd7f022dbp+0, cbrt_below = 0x1.1236160ba9b93p+0, cbrt_above = 0x1.1236160ba9b94p+0;
+    const auto set = [](const Direction& d) {
+      std::fesetround(d.fenv);
+      _mm_setcsr((_mm_getcsr() & ~static_cast<unsigned int>(_MM_ROUND_MASK)) | d.sse);
+    };
+    for (const Direction& d : directions) {
+      const bool upward = d.sse == static_cast<unsigned>(_MM_ROUND_UP);
+      for (const Power& p : powers) {
+        set(d);
+        const double z = gaol_core::rnd_keep(gaol_cr_pow(p.x, p.y));
+        set(directions[0]);
+        const double want = static_cast<double>(upward ? p.hi : p.lo) * 0x1p-1074;
+        check("pow of CORE-MATH with a subnormal result rounds in the direction of MXCSR", z == want,
+              [&] { return std::string("rounding direction ") + d.name + ", x=" + show(p.x) + " y=" + show(p.y) + ": "
+                           + show(z) + " rather than " + show(want); });
+      }
+      set(d);
+      const double c = gaol_core::rnd_keep(gaol_cr_cbrt(cbrt_x));
+      set(directions[0]);
+      const double want_cbrt = upward ? cbrt_above : cbrt_below;
+      check("cbrt of CORE-MATH at a hard case rounds in the direction of MXCSR", c == want_cbrt,
+            [&] { return std::string("rounding direction ") + d.name + ": " + show(c) + " rather than " + show(want_cbrt); });
+    }
+    std::fesetround(FE_UPWARD);
+  }
+#endif
+
   /* rsqrt at the successors of the powers of 4, x = 4^k (1 + 2^-52), for
      every k where x and 2^-k are normal: 1/sqrt(x) is 2^-k (1 + 2^-52)^(-1/2),
      strictly between 2^-k (1 - 2^-53), the double below 2^-k, and 2^-k, and
@@ -1973,6 +2032,9 @@ int main()
   recommended_tightest();
   sin_accurate_path();
   cbrt_hard_cases();
+#if defined(GAOL_TESTS_HAVE_MXCSR) && (defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64))
+  core_math_follows_mxcsr();
+#endif
   rsqrt_hard_cases();
   error_functions();
   std::fesetround(FE_UPWARD);

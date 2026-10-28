@@ -1533,10 +1533,12 @@ A 32-bit x86 processor has two units that round, each with a direction of its
 own: the x87 unit, in the field RC of its control word (bits 11 and 10), and the
 SSE instructions, which compute GAOL's doubles, in the field RC of MXCSR (bits
 14 and 13), where the modes that flush the subnormals to zero are too (FTZ, bit
-15, and DAZ, bit 6). Both have to be upward: the elementary functions of
-CORE-MATH read the direction with `fegetround()`, which gives the one of the x87
-unit with glibc and `-1` with the C runtime of Windows when the two differ, and
-the addition that shows the direction elsewhere sees the SSE instructions only.
+15, and DAZ, bit 6). Both have to be upward: the square root and the `fma()`
+of a C library, and a `long double`, follow the direction of the x87 unit (the
+elementary functions of CORE-MATH read MXCSR, as on x86-64, after having read
+the one of the x87 unit with `fegetround()`: the one of glibc, and `-1` with the
+C runtime of Windows when the two differ), and the addition that shows the
+direction elsewhere sees the SSE instructions only.
 Each operation therefore reads the two registers, the control word with `fnstcw`
 and MXCSR with `stmxcsr`, in one asm statement (inline assembly with Visual
 C++), where it called `fegetround()` and read MXCSR (GAOL v5). That call took

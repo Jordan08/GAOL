@@ -682,6 +682,17 @@ namespace
 #  endif
   }
 
+  // The exception flags of the x87 unit cleared: a flag that an earlier x87 instruction set (a conversion of a
+  // long double, in the other tests) traps the next waiting instruction (fldcw) once its exception is unmasked
+  void clear_x87_exceptions()
+  {
+#  if defined(__GNUC__) || defined(__clang__)
+    __asm__ __volatile__ ("fnclex");
+#  else
+    __asm fnclex
+#  endif
+  }
+
   // The directions of directions[], as the fields of the two registers: the
   // four in which the units agree, upward in the x87 unit and to nearest in
   // the SSE instructions, and the reverse
@@ -734,6 +745,97 @@ namespace
       product[i] = interval(a[i]) * interval(b[i]);
     }
   }
+
+#  if GAOL_RND_X86_DIRECT
+  /*
+    gaol_core::x86_registers, the type through which the library reads and
+    writes the two registers, against the reads and the writes of the test
+    above (GAOL v5, point AI.108 of TODO_DONE.md): the checks of
+    x86_registers_simulated() hold for the decisions the library takes on the
+    registers it is given, and say nothing of a read of the wrong register, of
+    the wrong size, or of a write that goes elsewhere. In each of the six
+    states, with each mode that flushes the subnormals: read_control() gives
+    the words the test reads, and changes neither register; write_x87_control()
+    and write_mxcsr() set the registers to the words they are given. And with
+    the other bits of the registers as the program may have them: the
+    precision and the exception masks of the control word, the exception masks
+    and the exception flags of MXCSR (one exception unmasked in each, which
+    nothing the test does between a write and the checks can raise: they are
+    all integer operations), so that a read that drops
+    the flags, or a write that forces the masks, is seen.
+  */
+  void x86_registers_on_the_processor()
+  {
+    const std::size_t nb_directions = sizeof(register_directions)/sizeof(register_directions[0]);
+    std::vector<unsigned int> flushes(1, 0u);
+    for (const FlushMode& m : flush_modes()) {
+      flushes.push_back(m.bits);
+    }
+    // The other bits: of the control word, 64 and 53 bits of precision, the infinity control, and the denormal
+    // operand unmasked (a flag that an x87 instruction may have set, which a write of the word could trap on
+    // later: the flags are cleared first); of MXCSR, every exception masked, with the flags raised or not, and the invalid operation
+    // unmasked. The flags are raised with the exceptions masked, so that no write traps
+    const unsigned int x87_hw_others[] = { 0x037fu, 0x027fu, 0x133fu, 0x037du };
+    const unsigned int mxcsr_hw_others[] = { 0x1f80u, 0x1fbfu, 0x1fa0u, 0x1f00u };
+    const unsigned int saved_cw = read_x87_word(), saved_csr = static_cast<unsigned int>(_mm_getcsr());
+    gaol_core::x86_registers hw;
+    for (std::size_t d = 0; d < nb_directions; ++d) {
+      for (unsigned int flush : flushes) {
+        for (std::size_t o = 0; o < sizeof(x87_hw_others)/sizeof(x87_hw_others[0]); ++o) {
+          // The six states, the modes and the other bits, as the test writes them
+          const auto set_state = [&] {
+            write_x86_fields(register_directions[d], flush);
+            clear_x87_exceptions();
+            write_x87_word((read_x87_word() & 0x0c00u) | x87_hw_others[o]);
+            _mm_setcsr((static_cast<unsigned int>(_mm_getcsr()) & (0x6000u | 0x8040u)) | mxcsr_hw_others[o]);
+          };
+          // Everything is read with the registers in the state of the test, and checked after they are given back to the
+          // program: with an exception unmasked in them, nothing but the instructions below runs
+          set_state();
+          const unsigned int cw = read_x87_word(), csr = static_cast<unsigned int>(_mm_getcsr());
+          unsigned int read_cw = 0xffffffffu, read_csr = 0xffffffffu;
+          hw.read_control(read_cw, read_csr);
+          const unsigned int cw_after = read_x87_word(), csr_after = static_cast<unsigned int>(_mm_getcsr());
+          // The four directions of each unit, written through the library: the word read back is the word written
+          unsigned int new_cw[4], cw_written[4], csr_untouched[4], new_csr[4], csr_written[4], cw_untouched[4];
+          for (unsigned int rc = 0; rc < 4; ++rc) {
+            new_cw[rc] = (cw & ~0x0c00u) | (rc << 10);
+            hw.write_x87_control(new_cw[rc]);
+            cw_written[rc] = read_x87_word();
+            csr_untouched[rc] = static_cast<unsigned int>(_mm_getcsr());
+            set_state();
+            new_csr[rc] = (csr & ~0x6000u) | (rc << 13);
+            hw.write_mxcsr(new_csr[rc]);
+            csr_written[rc] = static_cast<unsigned int>(_mm_getcsr());
+            cw_untouched[rc] = read_x87_word();
+            set_state();
+          }
+          write_x87_word(saved_cw);
+          _mm_setcsr(saved_csr);
+
+          const auto describe = [&] {
+            return std::string("in ") + directions[d].name + " with the modes " + x86_hex(flush) + ": control word "
+                 + x86_hex(cw) + ", MXCSR " + x86_hex(csr) + ", read " + x86_hex(read_cw) + " and " + x86_hex(read_csr);
+          };
+          check("x86_registers::read_control(): the control word of the x87 unit, as the test reads it", read_cw == cw, describe);
+          check("x86_registers::read_control(): MXCSR, as the test reads it", read_csr == csr, describe);
+          check("x86_registers::read_control() writes neither register", cw_after == cw && csr_after == csr, describe);
+          for (unsigned int rc = 0; rc < 4; ++rc) {
+            check("x86_registers::write_x87_control(): the control word is the one given, MXCSR is not touched",
+                  cw_written[rc] == new_cw[rc] && csr_untouched[rc] == csr_after,
+                  [&] { return describe() + ": wrote " + x86_hex(new_cw[rc]) + ", read " + x86_hex(cw_written[rc]) + " and " + x86_hex(csr_untouched[rc]); });
+            check("x86_registers::write_mxcsr(): MXCSR is the word given, the control word is not touched",
+                  csr_written[rc] == new_csr[rc] && cw_untouched[rc] == cw,
+                  [&] { return describe() + ": wrote " + x86_hex(new_csr[rc]) + ", read " + x86_hex(csr_written[rc]) + " and " + x86_hex(cw_untouched[rc]); });
+          }
+        }
+      }
+    }
+    write_x87_word(saved_cw);
+    _mm_setcsr(saved_csr);
+    write_x86_fields(register_directions[0], 0u);
+  }
+#  endif // GAOL_RND_X86_DIRECT
 #endif // GAOL_TESTS_X86_32
 
   /*
@@ -2980,6 +3082,9 @@ int main()
     const std::size_t nb_directions = sizeof(register_directions)/sizeof(register_directions[0]);
     static_assert(sizeof(directions)/sizeof(directions[0]) == sizeof(register_directions)/sizeof(register_directions[0]),
                   "the six states of the tests");
+#  if GAOL_RND_X86_DIRECT
+    x86_registers_on_the_processor();
+#  endif
     const std::vector<FlushMode> modes = flush_modes();
     std::vector<unsigned int> flushes(1, 0u);
     for (const FlushMode& m : modes) {
