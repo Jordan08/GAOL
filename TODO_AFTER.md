@@ -5,7 +5,7 @@ Tout ce qui est reporté sur GAOL v5 au 27 octobre 2026 (commit `9deb2e1` de
 reporté indéfiniment, ce qu'il a écarté en laissant une porte ouverte, et ce qui
 attend du matériel. Ce fichier et l'issue #178 ont le même contenu. Ce qui reste
 à faire avant la version est dans `TODO.md` (issue #179), ce qui est fait et
-décidé dans `TODO_DONE.md` (issue #177).
+décidé dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour).
 
 Rien de ce fichier n'est à faire avant v5.0.0, ni sans l'accord du mainteneur.
 Après v5.0.0, le développement continue dans `configure-clean` et `master` ne

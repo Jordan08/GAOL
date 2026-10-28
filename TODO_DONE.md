@@ -2,7 +2,8 @@
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 28 octobre 2026
 (commit `b270147` de `configure-clean`, aucune pull request ouverte : voir la
-section 1). Ce fichier et l'issue #177 ont le même contenu.
+section 1). Ce fichier fait foi : l'issue #177, qui avait le même contenu,
+n'est plus mise à jour depuis le 28 octobre (voir 7.8).
 
 Il réunit l'historique de l'ancienne issue #49 (« Suivi du TODO de GAOL v5 »),
 ce qui est fait dans l'ancienne issue #142 (« Reste à faire sur GAOL v5 »), dans
@@ -3949,9 +3950,11 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
   annule la CI de ce commit, qui n'a changé ni `gaol/` ni les tests.
 - L'issue #177 ne peut plus recevoir `TODO_DONE.md` : GitHub borne le corps
   d'une issue à 262 144 octets et ignore sans erreur une mise à jour plus
-  grosse (HTTP 200, rien d'enregistré) ; le texte joint en fait plus de 268 000.
-  Elle garde le texte d'avant la tâche PF en attendant la décision du
-  mainteneur ; #178 et #179 sont à jour.
+  grosse (HTTP 200, rien d'enregistré) ; le texte joint en fait plus de 270 000.
+  *Décidé le 28 octobre* : la laisser telle quelle, avec le texte d'avant la
+  tâche PF, `TODO_DONE.md` faisant foi (les autres choix étaient de condenser
+  environ 10 Ko, ou de couper le corps et de mettre les sections 5 à 8 dans un
+  commentaire, plafonné à 65 536 octets) ; #178 et #179 sont à jour.
 
 ## 8. Le ménage fait
 

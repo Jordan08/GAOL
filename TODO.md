@@ -3,9 +3,9 @@
 Ce qui reste à faire sur GAOL v5 au commit `b270147` de `configure-clean` (la
 fusion de #216), le 28 octobre 2026, en tâches PG à PJ (PA à PF sont faites, PG
 est entamée : voir `TODO_DONE.md`). Ce fichier et l'issue #179 ont le même
-contenu. Ce qui est fait et décidé est dans `TODO_DONE.md` (issue #177), ce qui
-est reporté dans `TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142
-sont fermées, et `TODO_mistral.md` est supprimé.
+contenu. Ce qui est fait et décidé est dans `TODO_DONE.md` (l'issue #177 n'est
+plus mise à jour), ce qui est reporté dans `TODO_AFTER.md` (issue #178). Les
+anciennes issues #49 et #142 sont fermées, et `TODO_mistral.md` est supprimé.
 
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause

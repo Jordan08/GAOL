@@ -44,7 +44,7 @@ commit `b270147` de `configure-clean` (la fusion de #216, après celles de #206 
 | Quoi | Où |
 | --- | --- |
 | Le reste à faire, en tâches PA à PJ qui regroupent des points (lettre et ancien numéro), avec leurs décisions | `TODO.md` de `configure-clean`, et l'issue #179 (même texte) |
-| Ce qui est fait et décidé : pull requests fusionnées, décisions par date, points faits, mesures | `TODO_DONE.md` de `configure-clean`, et l'issue #177 (même texte) |
+| Ce qui est fait et décidé : pull requests fusionnées, décisions par date, points faits, mesures | `TODO_DONE.md` de `configure-clean` (l'issue #177 n'est plus mise à jour depuis le 28 octobre) |
 | Ce qui est reporté : après la version, indéfiniment, en attente de matériel | `TODO_AFTER.md` de `configure-clean`, et l'issue #178 (même texte) |
 | Les signalements à d'autres projets, et les questions reportées | issues « À communiquer… » (#125 à #138 sauf #128, et #175), #67 (décorations), et celles qui suivront |
 | Ce qui reste utile des rapports des agents (textes pour la synthèse, mesures, cas de test), l'outillage (`HOUSE_RULES.md`, `check_branch`, `gcore`...) | `todo-notes/` (index : `todo-notes/README.md`) ; les rapports d'origine sont dans l'historique, au commit `16a2f60` |
@@ -450,8 +450,8 @@ Ce que tu ne peux pas tester ici (Windows, macOS, ARM, gros-boutiste, sans FMA),
     Le mainteneur demande souvent « est-ce que tu as des questions ? » à la fin
     d'un point : prépare-les.
 12. **Après la fusion par le mainteneur**, mets à jour `TODO.md`,
-    `TODO_DONE.md` et leurs issues #179 et #177 (section 9) et supprime ta
-    branche locale (`git branch -d`).
+    `TODO_DONE.md` et l'issue #179 (section 9 ; l'issue #177 est gelée) et
+    supprime ta branche locale (`git branch -d`).
 
 ## 8. Le texte de la pull request
 
@@ -504,7 +504,7 @@ texte :
 | Registre | Fichier | Issue |
 | --- | --- | --- |
 | Le reste à faire, en tâches PA à PJ | `TODO.md` | #179 |
-| Le fait et le décidé | `TODO_DONE.md` | #177 |
+| Le fait et le décidé | `TODO_DONE.md` | #177 (gelée le 28 octobre) |
 | Le reporté | `TODO_AFTER.md` | #178 |
 
 Les fichiers se mettent à jour **directement sur `configure-clean`**, et les
@@ -567,7 +567,10 @@ gh issue edit 179 --body-file issue.md
 gh issue view 179 --json body --jq .body | diff - issue.md   # seul le saut de ligne final diffère
 ```
 
-Pour `TODO_DONE.md` c'est l'issue #177, pour `TODO_AFTER.md` l'issue #178.
+Pour `TODO_AFTER.md` c'est l'issue #178. Pour `TODO_DONE.md`, l'issue #177 n'est
+plus mise à jour depuis le 28 octobre 2026 (*décidé*) : GitHub borne le corps
+d'une issue à 262 144 octets et ignore sans erreur, avec un HTTP 200, une mise à
+jour plus grosse ; le texte joint fait plus de 270 000. `TODO_DONE.md` fait foi.
 
 Si `gh issue edit` ou `gh pr edit` échoue avec « Projects (classic) is being
 deprecated » (constaté avec `gh pr edit`), passe par l'API REST :
@@ -726,13 +729,14 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
 
 ## 12. Où en est le travail (28 octobre 2026)
 
-Le reste à faire est dans `TODO.md` (tâches PG à PJ) et l'issue #179 ; ce
-qui est fait et décidé (pull requests fusionnées, décisions, mesures) est dans
-`TODO_DONE.md` et l'issue #177 ; ce qui est reporté est dans `TODO_AFTER.md` et
-l'issue #178. L'état qui suit est daté : les commandes ci-dessous, les trois
-fichiers et les issues font foi. Avant de commencer un point, regarde les pull
-requests ouvertes et les branches distantes : une autre session peut déjà le
-traiter (le 19 octobre, la même mise à jour de `TODO.md` a été faite deux fois).
+Le reste à faire est dans `TODO.md` (tâches PG à PJ) et l'issue #179 ; ce qui
+est fait et décidé (pull requests fusionnées, décisions, mesures) est dans
+`TODO_DONE.md` (l'issue #177 n'est plus mise à jour) ; ce qui est reporté est
+dans `TODO_AFTER.md` et l'issue #178. L'état qui suit est daté : les commandes
+ci-dessous, les trois fichiers et les issues font foi. Avant de commencer un
+point, regarde les pull requests ouvertes et les branches distantes : une autre
+session peut déjà le traiter (le 19 octobre, la même mise à jour de `TODO.md` a
+été faite deux fois).
 
 ```sh
 gh api 'repos/Jordan08/GAOL/pulls?state=open' --jq '.[] | "#\(.number) \(.head.ref) \(.title)"'
@@ -767,9 +771,9 @@ git ls-remote --heads origin
   GitHub sont `configure-clean`, `MATH-CORE` et `master`. L'issue #198 (`x / y`
   des intervalles NEON avec `FPCR.AH`) est ouverte, sans tâche dans `TODO.md` ;
   #185 est fermée, le masquage des exceptions de `pow` est gardé. L'issue #177
-  (`TODO_DONE.md`) a le texte d'avant la tâche PF : GitHub borne le corps d'une
-  issue à 262 144 octets et le texte joint en fait plus de 268 000 (voir
-  `TODO_DONE.md` 7.8).
+  (`TODO_DONE.md`) n'est plus mise à jour (*décidé le 28 octobre*) : GitHub
+  borne le corps d'une issue à 262 144 octets et le texte joint en fait plus de
+  270 000 (voir `TODO_DONE.md` 7.8).
 - **À faire**, dans l'ordre de `TODO.md` : les études de vitesse, toutes avant
   v5.0.0 (PG, entamée), les signalements à
   d'autres projets (PH, avec l'accord du mainteneur), puis la version (PI, PJ).
