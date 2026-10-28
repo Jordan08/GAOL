@@ -116,6 +116,12 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    version. *Décidé le 22 octobre (Q5)* : rien pour l'instant, GAOL reste un
    intervalle nu et les pièges sont documentés (#140) ; reporté indéfiniment.
    L'issue #67 reste ouverte.
+2. **Le contrôle de l'assembleur de x86-64 dans la CI** (#207) : le `--selftest`
+   de `tests/tools/asm-order/check_order.py` tourne dans la CI (job
+   `asm-order-selftest` de `linux.yml`), pas le contrôle des compilations. Un
+   job de plus qui compile les sources avec `-S` en GCC 15 à `-O3` avec
+   `GAOL_PRESERVE_ROUNDING` (une quinzaine de secondes) le ferait ; reporté, à
+   faire si le mainteneur le veut.
 
 ## 3. Écarté, à rouvrir si une condition change
 
@@ -212,12 +218,17 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    inférieure NaN pour `x = [-inf, 0]` et `y = [-inf, -0]`) : le défaut n'est
    plus théorique pour `x / y`, et aucun `vmaxq_f64` ne l'explique, car
    `div_bounds()` n'en a pas. Cause non trouvée, décidé le 25 octobre de n'en
-   faire qu'une issue (#198), sans tâche. *À reprendre* en faisant afficher au
-   test le processeur du runner et si `AH` est retenu, puis en reproduisant sous
-   QEMU 10 ou sur un processeur qui a FEAT_AFP (Neoverse V3 de Graviton 5, ou
-   plus récent). Le défaut de `sqrt_bounds()` que #187 a écarté (un compilateur
-   qui permute les opérandes de `vmaxq_f64`) reste théorique avec les
-   compilateurs d'aujourd'hui.
+   faire qu'une issue (#198), sans tâche. Revenu le 28 octobre sur un runner
+   Windows arm64 (les jobs « MSYS2 CLANGARM64 Clang arm64 » de #215, run
+   40672302929, image `windows-11-vs2026-arm64` 20261025.196.1) : les mêmes 52
+   échecs sur 441 et les mêmes cinq cas, avec le Clang de MSYS2 ; ils sont
+   repassés au vert à la relance, sur l'image 20261022.194.1, sans que le
+   journal dise si `AH` y était retenu (commentaire de l'issue #198). *À
+   reprendre* en faisant afficher au test le processeur du runner et si `AH` est
+   retenu, puis en reproduisant sous QEMU 10 ou sur un processeur qui a FEAT_AFP
+   (Neoverse V3 de Graviton 5, ou plus récent). Le défaut de `sqrt_bounds()` que
+   #187 a écarté (un compilateur qui permute les opérandes de `vmaxq_f64`) reste
+   théorique avec les compilateurs d'aujourd'hui.
 6. **Le gain de `x / d` de #191 sur d'autres processeurs** : il n'est mesuré que
    sur un Tiger Lake (i7-1185G7) ; les deux `vdivsd {ru-sae}` peuvent perdre sur
    un Intel qui divise les registres en deux, et rien n'est mesuré sur AMD Zen 4
@@ -231,15 +242,41 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    build universel de macOS, que la session MACarm2 (Apple M2, sans Rosetta)
    compile et lie sans l'exécuter, et que seul le job `macOS 26 universal`
    exécute.
-8. **Un échec de CI non reproduit** (#189) : le job « macOS 14 x86_64 (Rosetta)
-   » a échoué une fois sur `arithmetic` (`gaol_ieee1788::pow(x, [2]) is sqr(x &
-   [0, +oo]), [0] for [0], the same bits`, avec x = [-0x1.0d8146092a4f3p+345,
-   0x1.d324166d86984p+204], « the caller's direction downward, flush modes 0 » :
-   GAOL a rendu [0, 0x1.aa365774f4ea3p+409] et le calcul de référence, `sqr(x &
-   [0, +oo])`, le vide) et est passé à la relance, sans lien visible avec le
-   diff de #189. Non reproduit en local ni dans les autres jobs de #186 à #190.
-   *À reprendre si cela revient* : voir si Rosetta lit le sens d'arrondi ou les
-   modes de MXCSR comme un processeur.
+8. **Un échec de CI sous Rosetta, non reproduit** (#189, #208) : le job « macOS
+   14 x86_64 (Rosetta) » a échoué une fois sur `arithmetic`
+   (`gaol_ieee1788::pow(x, [2]) is sqr(x & [0, +oo]), [0] for [0], the same
+   bits`, avec x = [-0x1.0d8146092a4f3p+345, 0x1.d324166d86984p+204], « the
+   caller's direction downward, flush modes 0 » : GAOL a rendu [0,
+   0x1.aa365774f4ea3p+409] et le calcul de référence, `sqr(x & [0, +oo])`, le
+   vide) et est passé à la relance, sans lien visible avec le diff de #189. Non
+   reproduit en local ni dans les autres jobs de #186 à #190. Il est revenu le
+   28 octobre sur #208 (`007c1f3`, run 40668659623, job 122750002962, « macOS 26
+   universal (arm64 and x86_64), meson », tranche x86_64 sous Rosetta) :
+   `ieee1788` a écrit « FAILED pown(x, n) beyond the long longs: x^(2^64 - 1) as
+   x^(2^63 - 1), x^(2^64 - 2) as x^(2^63 - 2) ». Ce contrôle de
+   `tests/ieee1788.cpp` relie quatre sous-vérifications par `&&` et n'affiche
+   que le résultat de la première, conforme à l'attendu : on ne sait pas
+   laquelle a échoué. Le job est repassé à la relance, sans changement de code,
+   et #208 ne touche ni `pown` ni ce test. La session MACarm3 (Apple M2, macOS
+   27.0.1) a fait tourner `ieee1788` 16000 fois sans un échec, sur
+   `configure-clean` 2100eb5 avec un diagnostic qui affiche les quatre
+   résultats : Release `-O3` (5000 passages), Debug (5000), Release `-O0` (3000)
+   et Release `-O2` (3000), sous `arch -x86_64` et en arm64 natif, seul et avec
+   quatre boucles en parallèle (charge de 4 à 5). Cette machine n'imite pas le
+   runner de GitHub (autre macOS, autre Rosetta, exécuteur lent) : l'échec n'est
+   ni expliqué ni écarté. *À reprendre si cela revient* : mettre ce diagnostic
+   dans `tests/ieee1788.cpp` (calculer les quatre intervalles avant le `check`
+   et les afficher tous les quatre dans son détail), pour que le journal dise
+   laquelle des quatre sous-vérifications diffère, puis voir si Rosetta lit le
+   sens d'arrondi ou les modes de MXCSR comme un processeur.
+9. **Un délai de test juste pour un exécuteur lent** (#215) :
+   `automatic_configuration` (600 s) a dépassé son délai le 28 octobre dans le
+   job « macOS 26 Xcode generator, universal (arm64 and x86_64) » de #215, sur
+   un exécuteur environ 2,5 fois plus lent que d'habitude
+   (`cpack_stale_configure` 254 s contre 99 s, `arithmetic` 10,8 s contre 5,4
+   s) ; relancé, il a pris 256 s, comme sur un exécuteur ordinaire (259 s dans
+   #208) : la marge n'est que d'un facteur 2,3. Rien n'est changé. *À reprendre
+   si cela revient* : relever le délai de ce test (process.md, §10).
 
 ## 5. Une limite connue, documentée, sans décision de la lever
 
@@ -254,3 +291,14 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    plus de chiffres ; les nombres loin au-delà, la comparaison de leurs
    exposants et de leurs premiers chiffres. Les autres cas (deux nombres entre
    les mêmes deux doubles) sont départagés exactement depuis #149.
+2. **Trois inversions du banc A/B de `cl`** (#209) : `x / y` et `sqr(x)` sont
+   plus lents avec #209 (+54 et +48 ns) et `x - y` plus rapide (−41 ns) dans les
+   deux jobs de Visual C++ x64 à direction préservée, sans mécanisme : leurs
+   noyaux n'emploient que `GAOL_RND_ENTER_SSE()`, que #209 ne touche pas, et le
+   contrôle de #211 (la base contre la base plus une fonction que rien
+   n'appelle) ne les reproduit pas, mais un décalage seul fait passer
+   `x.midpoint()` de 68,9 à 26,8 ns et #210 déplace une ou deux opérations de
+   base de 50 ns environ : la signature d'un effet de disposition du binaire sur
+   ces exécuteurs, sans preuve (un `dumpbin /disasm` des noyaux la donnerait).
+   Le mainteneur a fusionné #209 avec cette réserve, sans ce désassemblage dans
+   la CI.

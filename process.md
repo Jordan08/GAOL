@@ -8,8 +8,9 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12. Dernière mise à jour : 28 octobre 2026, au
-commit `5a6683c` de `configure-clean` (la fusion de #213, après celles de #206
-et de #212 ; l'import de CORE-MATH `0b2ae6d1` est de la veille).
+commit `2ceeb51` de `configure-clean` (la fusion de #209, après celles de #206 à
+#208, #210, #212, #213 et #215 ; l'import de CORE-MATH `0b2ae6d1` est de la
+veille).
 
 ## 1. Le contexte
 
@@ -726,7 +727,7 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
 
 ## 12. Où en est le travail (28 octobre 2026)
 
-Le reste à faire est dans `TODO.md` (tâches PF à PJ) et l'issue #179 ; ce
+Le reste à faire est dans `TODO.md` (tâches PG à PJ) et l'issue #179 ; ce
 qui est fait et décidé (pull requests fusionnées, décisions, mesures) est dans
 `TODO_DONE.md` et l'issue #177 ; ce qui est reporté est dans `TODO_AFTER.md` et
 l'issue #178. L'état qui suit est daté : les commandes ci-dessous, les trois
@@ -754,19 +755,21 @@ git ls-remote --heads origin
   directement sur `configure-clean` (`cb731c0` et `2927cfe`, voir
   `TODO_DONE.md` 7.6) ; #212 (le test de `cos` sur son chemin précis) et #213
   (les contournements de `cr_pow` que l'amont rend inutiles, sauf la puissance
-  minuscule de |y| ≥ 2^1013), fusionnées le 28 octobre, comme #206 (la tâche PF,
-  d'une autre session, pas encore au registre) ; l'audit du 13 octobre a
+  minuscule de |y| ≥ 2^1013), fusionnées le 28 octobre, comme
+  #206 à #210 et #215 (la tâche PF : le reste du 108, le 109, écrire seulement
+  si ça change, l'alignement de la pile 32 bits, le contrôle de l'assembleur de
+  x86-64) ; l'audit du 13 octobre a
   vérifié dans `configure-clean`
   ce qu'annonçaient alors les points A, C à H et J à V.
-- **En cours** : au 28 octobre, #207 à #210 (la tâche PF, d'une autre session)
-  sont ouvertes ; `configure-clean` est au commit de la fusion de #213, et ses
-  branches sur GitHub sont `configure-clean`, `MATH-CORE`, `master` et
-  `perf-doc-rerun` (les scripts des mesures reportées, hors des points), avec
-  celles de ces pull requests. L'issue #198 (`x / y` des
+- **En cours** : au 28 octobre, aucune pull request n'est ouverte ;
+  `configure-clean` est au commit de la fusion de #209, et ses branches sur
+  GitHub sont `configure-clean`, `MATH-CORE`, `master` et `perf-doc-rerun` (le
+  tableau ARM des lignes longues de `performance.md`, en préparation, décidé le
+  28 octobre ; hors des points). L'issue #198 (`x / y` des
   intervalles NEON avec `FPCR.AH`) est ouverte, sans tâche dans `TODO.md` ; #185
   est fermée, le masquage des exceptions de `pow` est gardé.
-- **À faire**, dans l'ordre de `TODO.md` : x86 32 bits et Windows (PF), les
-  études de vitesse, toutes avant v5.0.0 (PG, entamée), les signalements à
+- **À faire**, dans l'ordre de `TODO.md` : les études de vitesse, toutes avant
+  v5.0.0 (PG, entamée), les signalements à
   d'autres projets (PH, avec l'accord du mainteneur), puis la version (PI, PJ).
   Ce qui est reporté (le 113, le site, les traits pour YalAA et VNODE-LP, les
   décorations, ce qui attend du matériel) est dans `TODO_AFTER.md`. Les

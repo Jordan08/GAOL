@@ -1,7 +1,7 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 28 octobre 2026
-(commit `5a6683c` de `configure-clean`, quatre pull requests ouvertes : voir la
+(commit `2ceeb51` de `configure-clean`, aucune pull request ouverte : voir la
 section 1). Ce fichier et l'issue #177 ont le même contenu.
 
 Il réunit l'historique de l'ancienne issue #49 (« Suivi du TODO de GAOL v5 »),
@@ -53,20 +53,21 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 
 ## 1. L'état au 28 octobre 2026
 
-- **`configure-clean`** est au commit `5a6683c` (la fusion de #213, après celles
-  de #206 et de #212 ; l'import de CORE-MATH `0b2ae6d1` est de la veille, voir
-  7.6 et 7.7). Les pull
-  requests des corrections vont vers `configure-clean`, qui reste la branche de
-  développement après v5.0.0 ; `MATH-CORE` et `master` (GAOL 4.3.2, plus deux
-  commits de `.claude/CLAUDE.md`) ne bougent qu'à la version (point Y).
-- **Pull requests ouvertes** : #207 à #210 (la tâche PF, d'une autre session,
-  dont #206 est fusionnée le 28 octobre sans entrée dans la section 2.3 : elle
-  est à faire par cette session). Le mainteneur a fusionné #165 à #167, #169 à
-  #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194, #196 et #197
-  le 25 octobre, #199, #200 et #201 le 26 octobre, #202 à #205 le 27, #206, #212
-  et #213 le 28 ; #168 et #195 sont fermées sans fusion. Les tâches PA, PB, PC,
-  PD et PE sont faites (PE : #200 et #204 pour le 95, #201 pour le 92, #205 pour
-  le 3, #202 pour le 4, #204 pour le 5, #203 pour le 6) ; PG est entamée (la
+- **`configure-clean`** est au commit `2ceeb51` (la fusion de #209, après
+  celles de #207, #210, #208 et #215 ; l'import de CORE-MATH `0b2ae6d1` est du
+  27 octobre, voir 7.6 à 7.8). Les pull requests des corrections vont vers
+  `configure-clean`, qui reste la branche de développement après v5.0.0 ;
+  `MATH-CORE` et `master` (GAOL 4.3.2, plus deux commits de `.claude/CLAUDE.md`)
+  ne bougent qu'à la version (point Y).
+- **Pull requests ouvertes** : aucune. Le mainteneur a fusionné #165 à #167,
+  #169 à #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194, #196 et
+  #197 le 25 octobre, #199, #200 et #201 le 26 octobre, #202 à #205 le 27, #206
+  à #210, #212, #213 et #215 le 28 ; #168, #195, #211 et #214 sont fermées sans
+  fusion. Les tâches PA, PB, PC, PD, PE et PF sont faites (PE : #200 et #204
+  pour le 95, #201 pour le 92, #205 pour le 3, #202 pour le 4, #204 pour le 5,
+  #203 pour le 6 ; PF : #206 pour le reste du 108, #209 pour le 109, #210 et
+  #215 pour écrire seulement si ça change, #208 pour l'alignement de la pile 32
+  bits, #207 pour le contrôle de l'assembleur de x86-64) ; PG est entamée (la
   division du chemin AVX-512, le 106 a : #191 à #194).
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
   sur tout processeur ARM 64 bits avec tous les compilateurs (GCC, Clang,
@@ -88,23 +89,25 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   débogage sont décidés par des tests de la configuration, les anciennes
   options restant des réglages des développeurs (`doc/building.md`).
 - **Branches** : GitHub a `configure-clean`, `MATH-CORE`, `master` et
-  `perf-doc-rerun` (les scripts des mesures reportées, hors des points), avec
-  les branches des pull requests ouvertes ; les branches fusionnées sont
-  supprimées en local.
+  `perf-doc-rerun` (le tableau ARM des lignes longues de `performance.md`, en
+  préparation, hors des points), avec les branches des pull requests ouvertes ;
+  les branches fusionnées sont supprimées en local.
 - **Aucune borne fausse n'est connue** : sur environ 1,3 million de puissances
   entières, 550 000 `pow` réels, 600 000 autres opérations et 760 lectures de
   nombres (relecture du 14 octobre, revérifiée le 18 octobre à `4eaf69a`), tout
   résultat contient la valeur exacte. Une exception possible : un programme qui
   met lui-même `FPCR.AH` sur arm64, où `x / y` des intervalles NEON a donné des
-  bornes différentes sur un runner de la CI le 25 octobre, dont une borne
-  inférieure NaN (issue #198, cause non trouvée).
+  bornes différentes sur des runners arm64 de la CI le 25 octobre (Ubuntu) et
+  le 28 octobre (Windows, MSYS2 CLANGARM64), dont une borne inférieure NaN
+  (issue #198, cause non trouvée).
 - **Issues ouvertes** : les issues « À communiquer… » #125 (CORE-MATH), #126
   (GCC), #127 (mingw-w64), #129 (ITF1788), #130 (Boost.Interval), #131
   (Microsoft), #132 (Apple), #133 (LLVM/Clang), #134 (gmpy2), #135 (musl), #136
   (benchmark de Tang et al.), #137 (libieeep1788), #138 (glibc) et #175
   (Cygwin), dont rien n'est envoyé ; #67 (décorations, reportée indéfiniment le
   22 octobre) ; #198 (`x / y` des intervalles NEON avec `FPCR.AH`, remarqué
-  pendant la tâche PD) ; et les trois registres #177, #178 et #179. #128
+  pendant la tâche PD, revenu le 28 octobre sur Windows arm64) ; et les trois
+  registres #177, #178 et #179. #128
   (l'annonce à Frédéric Goualard) est fermée depuis le 18 octobre ; le brouillon
   est dans Gmail. #107 (`parse_interval(nullptr)`, corrigé par #147) et #159
   (rapport d'état du 21 octobre, périmé) ont été fermées le 24 octobre, et #185
@@ -1294,6 +1297,140 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   base) ; vérifiée avec GCC 15.2, le FPU, Clang 18, ASan et UBSan (Clang 21 et
   Debian i386 par le relecteur) ; 222 jobs verts sur le dernier commit ;
   fusionnée le 28 octobre à 8 h 53 UTC)
+- #206 (le reste du point 108 (AI), PF.1, décidé le 22 octobre (Q8, tout oui,
+  #156) ; (a) `gaol/core_math_port.h` donne aux sources de CORE-MATH un
+  `fegetround()` qui lit MXCSR (`stmxcsr`) sur x86 32 bits comme sur x86-64, au
+  lieu de l'appel de la bibliothèque C (environ 80 ns avec Visual C++ pour x86)
+  que `cbrt` et `asinpi` font à chaque appel ; les bornes ne changent pas ; deux
+  lignes de plus dans `tests/performance.cpp` (`nth_root(x, 3)` et
+  `asinpi(x)`) ; mesure à usage unique par la pull request jetable #214 : Visual
+  C++ x86 `nth_root(x, 3)` de 355,3 à 179,4 ns et `asinpi(x)` de 1 005,1 à 793,8
+  ns, clang-cl x86 de 324,4 à 119,7 et de 437,5 à 254,8 ns, rien sur Debian i386
+  (glibc) ; `core_math_follows_mxcsr()` de `tests/core_math.cpp` : avec l'ancien
+  port 8 vérifications échouent sur 2 176 370 ; (b)
+  `x86_registers_on_the_processor()` : `read_control()`, `write_x87_control()`
+  et `write_mxcsr()` contre les lectures du test dans les six états et avec
+  chaque mode de vidage, étendu après coup à quatre jeux des autres bits ;
+  dents : dix mutations matérielles faites à la main sur Debian i386, toutes
+  tuées ; (c) le job « Visual Studio 2026 x86 Release, rounding direction
+  preserved » gardé ; (d) `tests/tools/x86-csr/` réécrit d'après la description
+  de #156, dont les fichiers étaient dans le dossier temporaire d'une session
+  sur un Mac : `mutants.py` (46 mutants de `gaol_core::x86_*()`, 45 tués par
+  `rounding_direction`, un équivalent, 713 s avec 4 cœurs) et `amalgamate.py`
+  (un fichier pour Compiler Explorer), l'émulateur `emu/` n'étant pas refait ;
+  (e) le repli de `round_upward_if_needed()` avec `fegetround()` retiré, un
+  `#error` à sa place ; relue par un agent indépendant : un point bloquant
+  corrigé (le test de CORE-MATH était dans `rounding_direction.cpp`, compilé
+  contre un GAOL installé qui n'a pas `gaol/gaol_core_math.h` : déplacé dans
+  `tests/core_math.cpp`) et des remarques reprises ; vérifiée avec Debian 13
+  i386, GCC 15, Clang 18 et 21, ASan et UBSan ; 221 jobs verts sur le dernier
+  commit ; fusionnée le 28 octobre à 8 h 31 UTC)
+- #207 (le point 5 de PF, la suite de #150 : le contrôle de l'ordre entre
+  l'écriture du registre de contrôle et les opérations flottantes dans
+  l'assembleur de la bibliothèque, refait pour x86-64 avec GCC et Clang ;
+  `tests/tools/asm-order/check_order.py` lit l'assembleur (`-S`, AT&T) par le
+  graphe de flot de contrôle, tables de saut comprises, et cherche BEFORE (une
+  instruction qui arrondit avant la première écriture), AFTER (après la
+  dernière, avec `--preserve`) et BLIND, avec une règle pour les écritures
+  conditionnelles de #210 ; 40 compilations de la bibliothèque et de
+  `inline.cpp` (GCC 15.2 à `-O2` et `-O3`, Clang 18 et 21, par défaut, direction
+  préservée, AVX-512, FPU, sans FMA) : aucune instruction qui dépende du sens
+  avant la première écriture ou après la dernière, hors deux constats justes et
+  inoffensifs (`pow_up_without_overflow_exception()` et `difference_at_least()`
+  avec Clang) ; dents : `--selftest` de 54 cas, et 57 des 63 changements d'une
+  ligne du script le font échouer (les six autres sont équivalents) ; ce que
+  l'outil ne voit pas est dans son README (le chemin AVX-512, les comparaisons,
+  un appelé, une valeur calculée dans le mauvais sens puis employée) : ce n'est
+  pas une preuve, le sens est éprouvé par `rounding_direction.cpp` ; aucun
+  fichier de la bibliothèque ni des builds ne change ; le `--selftest` tourne
+  dans la CI (job `asm-order-selftest` de `linux.yml`) ; relue par un agent
+  indépendant : quatre points bloquants corrigés (les tables de saut, la portée
+  de AFTER, l'exemption de la sonde, l'AVX-512), les corrections qui ont suivi
+  non relues ; un essai unique sur du `-m32` (GCC 14.2), posté en commentaire :
+  l'outil n'y vérifie rien ; 201 jobs verts sur le dernier commit ; fusionnée le
+  28 octobre à 9 h 19 UTC)
+- #210 (le point 3 de PF, écrire seulement si ça change ; avec
+  `GAOL_PRESERVE_ROUNDING` et les intervalles SSE2, `GAOL_RND_ENTER_SSE()` lit
+  MXCSR une fois et `sse_enter_upward()` ne l'écrit que s'il n'est pas vers le
+  haut avec les modes de vidage à zéro, `GAOL_RND_LEAVE_SSE()` par `sse_leave()`
+  ne l'écrit que s'il diffère de ce qu'il faut rendre ; `round_upward()`,
+  `round_nearest()` et `round_downward()` passent par `x86_set_modes()`, qui
+  n'écrit que le registre dont le champ RC diffère et aucun autre bit, les
+  constantes et `x86_registers` passant de `gaol_fpu.h` à `gaol_fpu_fenv.h` ;
+  les bornes ne changent pas ; mesure (GCC 15.2, i7-1185G7) : `x + y` vers le
+  haut de 8,16 à 1,70 ns, `x * y` de 8,34 à 2,47, `sin(x)` de 35 à 29,5, et 0,2
+  ns de plus pour un programme au plus proche : le gain n'existe que pour un
+  programme qui calcule déjà vers le haut, que le banc A/B de la CI (au plus
+  proche) voit neutre ; tests avec des dents : `sse_register_simulated()` (16
+  états, cinq jeux d'autres bits, drapeaux levés entre le début et la fin),
+  `round_functions_change_the_direction_only()` sur le processeur, 17 mutants de
+  `sse_enter_upward()` et `sse_leave()` tous tués (leur fichier est dans #215)
+  et deux de `gaol_set_rounding_x86()` ; relue par un agent indépendant, sans
+  point bloquant : 8 388 608 états comparés, aucune opération entre `ENTER_SSE`
+  et `LEAVE_SSE` ne laisse la direction changée ; ses constats corrigés, dont
+  `gaol_fpu_fenv.h`, qui ne se compilait plus seul (`headers.sh`) ; un test
+  échoué sous Rosetta, qui garde les masques d'exception à 1 (`0x0000` s'y relit
+  `0x1f80`), compare maintenant à ce qu'il relit ; vérifiée avec GCC 15.2, Clang
+  18 et 21, ASan, UBSan et Debian i386 ; 221 jobs verts sur le dernier commit ;
+  fusionnée le 28 octobre à 10 h 16 UTC)
+- #208 (le point 4 de PF, l'alignement de la pile 32 bits, #152 ; sous Windows
+  32 bits le système appelle un fil d'exécution ou un rappel avec la pile
+  alignée sur 4 octets, que GCC et Clang prennent pour 16 ;
+  `test_stack_entered_aligned_on_4_bytes()` de `tests/misc.cpp` appelle une
+  fonction qui travaille sur des intervalles locaux par un tremplin en
+  assembleur, avec la pile à chacun des quatre alignements de 4 octets : elle
+  doit revenir avec les bornes de l'entrée alignée sur 16, et un gestionnaire de
+  signal transforme l'arrêt en échec ; dents : forcé sur Debian 13 i386
+  (`-DGAOL_TESTS_STACK_ON_4_BYTES=1`, GCC 14.2 `-O2`), il arrête le programme
+  pour les trois entrées mal alignées et passe avec `-mstackrealign` ; la CI de
+  Windows (`ctest -V` et `grep` de la ligne imprimée) montre que le corps du
+  test s'exécute et passe avec MinGW-w64 12.2 à 15.2, clang-cl et Clang pour
+  Visual C++ x86 : GCC pour Windows 32 bits ne s'arrête pas avec la pile alignée
+  sur 4 octets, où Debian i386 s'arrête, si bien que `-mstackrealign` n'y est
+  pas nécessaire d'après ces jobs (une phrase dans `doc/using.md`) ; Clang 18 et
+  21 réalignent la pile pour les cibles de Windows, si bien que le test ne peut
+  y échouer ; relue par un agent indépendant : un point bloquant corrigé (le
+  test n'avait pas de dents contre un tremplin défectueux : il lit maintenant
+  l'alignement donné), les quatre commits d'après non relus ; 201 jobs verts sur
+  le dernier commit ; fusionnée le 28 octobre à 13 h 24 UTC)
+- #215 (hors des points numérotés, la suite de #210 : les 17 mutants de
+  `sse_enter_upward()` et `sse_leave()` dans `tests/tools/x86-csr/mutants.py`,
+  63 en tout ; #210 ayant déplacé les constantes et les fonctions `x86_*()` de
+  `gaol_fpu.h` vers `gaol_fpu_fenv.h`, 14 des 46 mutants de #206 portent
+  maintenant sur ce fichier (`file=`) et un quinzième change de texte ; 62 tués
+  par `rounding_direction` et un équivalent attendu, 1 000 s avec 4 cœurs ; le
+  README dit le SIGFPE de `set-modes-x87-overwritten` et de
+  `set-modes-sse-overwritten` ; sans relecture indépendante (un outil de test
+  seulement) ; 201 jobs verts sur le dernier commit, après la relance de quatre
+  jobs échoués par accident (voir 7.8) ; fusionnée le 28 octobre à 13 h 30 UTC)
+- #209 (le point 109 (AI), PF.2 ; `GAOL_RND_ENTER()` et `GAOL_RND_LEAVE()`
+  n'écrivent plus que MXCSR avec Visual C++ pour x64 compilé avec `/arch:AVX2`
+  (`_MSC_VER` sans `__clang__` et `__AVX2__`), comme avec GCC, Clang et clang-cl
+  avec `__FMA__` : plus de `fegetround()`, `fesetround()` ni d'écriture de
+  l'unité x87, dont aucun code de GAOL ne se sert pour `cl` x64 ; une macro
+  commune `GAOL_FMA_AS_INSTRUCTION` pour cette condition et pour
+  `GAOL_POWN_PACKED`, qui ne compilait pas avec Clang pour Visual C++ ou
+  clang-cl en `-mavx2` sans `-mfma`, et `GAOL_RND_MXCSR_ONLY` qui dit ce que le
+  build a ; les 22,6 ns de clang-cl ne lui sont pas propres : de 17 à 23 ns sur
+  les EPYC des exécuteurs de GitHub contre 8 ns sur l'i7-1185G7, pour le détour
+  par MXCSR que `x + y` faisait déjà avec `cl` ; le gain est de 60 ns environ
+  par appel pour `pow(x, 3)` (91,6 à 29,4 ns), `sqrt()`, `exp()`, `log()`,
+  `sin()` et `cos()`, et nul pour `x + y` et `x * y` ; trois inversions du banc
+  A/B sans mécanisme (`x / y` et `sqr(x)` de +54 et +48 ns, `x - y` de −41 ns),
+  que le contrôle de la pull request jetable #211 ne reproduit pas et qu'un
+  décalage seul reproduit sur `x.midpoint()` (de 68,9 à 26,8 ns), attribuées à
+  un effet de disposition du binaire, sans preuve ; le test
+  `test_rounding_macros_write_mxcsr_alone()` de `tests/misc.cpp` (dents :
+  `__FMA__` changé en `__FMA_NOT__` le fait échouer deux fois) imprime
+  `GAOL_RND_MXCSR_ONLY is 1`, que les étapes de `windows.yml` pour `cl` et
+  clang-cl x64 lisent par `ctest -V` et `grep` (la CI l'a vu) ; la clé du cache
+  de la base du banc A/B contient la disponibilité d'AVX-512 ; un seul job de
+  plus pour `cl`, le chemin AVX-512 refusé ; relue par un agent indépendant,
+  sans point bloquant ; `configure-clean` fusionné dans la branche après #210,
+  puis après #208 et #215, avec des conflits de texte seulement, résolus en
+  gardant les deux textes ; 221 jobs verts sur 223 sur le dernier commit à la
+  fusion (un job macOS 14 arm64 annulé faute d'exécuteur, un en file
+  d'attente) ; fusionnée le 28 octobre à 14 h 41 UTC)
 
 ### 2.4 Fermées sans fusion
 
@@ -1323,6 +1460,16 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   ns), si bien que la perte n'est pas dans la division ; fermée sans fusion, sa
   branche `experiment-neon-scalar-div` est supprimée (voir `TODO.md`, PG.8, et
   `doc/simd.md`).
+- **#211** (27 octobre) : « Contrôle de l'A/B de #209 », une pull request
+  jetable demandée par le mainteneur : la base contre la base plus une fonction
+  que rien n'appelle, pour savoir si les inversions de `x / y`, `sqr(x)` et `x -
+  y` de #209 viennent du code ; elle ne les reproduit pas (`x - y` 65,17 puis
+  65,30 ns) ; fermée sans fusion, sa branche `todo-ai-ab-control-tmp` est
+  supprimée.
+- **#214** (27 octobre) : « Mesure de #206 (a) avec Visual C++ x86 », une pull
+  request jetable : une base qui a les deux lignes de #206 (`nth_root(x, 3)` et
+  `asinpi(x)`) contre cette base plus #206, dans le banc A/B de la CI ; fermée
+  sans fusion, sa branche `todo-ai-ab-206-head-tmp` est supprimée.
 
 ### 2.5 Les pull requests du 23 octobre au soir et les décisions qu'elles exécutent
 
@@ -2671,6 +2818,54 @@ le travail qu'elles décident est fait le même soir et ouvert en pull requests
   (222 jobs) et `configure-clean` au commit `1f92634`. Le mainteneur a fusionné
   #212 et #213 le même jour (voir 7.7).
 
+### 3.9 Le 28 octobre : la tâche PF
+
+Les décisions du mainteneur pendant les pull requests #206 à #210 et #215, le
+jour de leur fusion.
+
+- **#206** : l'émulateur Unicorn (`emu/`) de #156 n'est pas refait (un conteneur
+  Docker i386 et la CI exécutent le vrai code) ; pas d'outil de mutants pour les
+  fonctions matérielles (`x86_registers`, `gaol_read_x86_control()`) : le test
+  sur le processeur est étendu à la place, à quatre jeux des autres bits ; deux
+  lignes de plus dans `tests/performance.cpp`, `nth_root(x, 3)` et `asinpi(x)`,
+  les deux fonctions de CORE-MATH qui lisent la direction à chaque appel.
+- **#207** : le `--selftest` tourne dans la CI (job `asm-order-selftest`), pas
+  le contrôle des compilations (reporté : `TODO_AFTER.md`, 2.2) ; le calcul de K
+  de `pown_bound_inverse()` est laissé tel quel ; pas de relecture de plus des
+  corrections faites après la relecture ; l'essai sur du `-m32` est fait une
+  fois, à part, en commentaire (l'outil n'y vérifie rien).
+- **#208** : une phrase dans `doc/using.md` sur `-mstackrealign` (GCC pour x86
+  32 bits, quand l'appelant n'aligne la pile que sur 4 octets), `ctest -V` et
+  `grep` de la ligne imprimée dans les jobs de Windows 32 bits qui exécutent le
+  test, et le test exécuté aussi avec Clang.
+- **#209** : fusionner avec la réserve des inversions de `x / y`, `sqr(x)` et
+  `x - y` (sans `dumpbin /disasm` des noyaux dans la CI) ; le test imprime la
+  valeur de `GAOL_RND_MXCSR_ONLY` et la CI la lit ; une macro commune,
+  `GAOL_FMA_AS_INSTRUCTION` ; seul le job de `cl` du banc A/B reste.
+- **#210** : les 17 mutants de `sse_enter_upward()` et `sse_leave()` dans le
+  dépôt (ils sont dans #215, #206 ayant été fusionnée avant) ; la mesure de
+  l'i7-1185G7 gardée, sans mesure sur les EPYC ; pas de relecture de plus des
+  commits faits après la relecture.
+- **L'ordre des fusions** : le mainteneur fusionne la première des pull requests
+  qui se touchent, et la session fusionne `configure-clean` dans l'autre (#209
+  avec #210, puis avec #208 et #215 : des conflits de texte seulement, dans
+  `gaol/gaol_fpu.h`, `doc/tests.md` et `tests/misc.cpp`) ; les deux branches
+  jetables de #211 et de #214 sont supprimées.
+- **Les essais du jour** : l'échec de CI sous Rosetta de #208 (le contrôle de
+  `pown` de `ieee1788`) cherché sur le Mac M2 de la session MACarm3, par 16 000
+  passages sans échec (`TODO_AFTER.md`, 4.8) ; le nouveau relevé de #198 sur
+  Windows arm64 posté en commentaire de l'issue, la décision de la reporter
+  gardée (`TODO_AFTER.md`, 4.5).
+- **Les branches** : supprimées en local, celles des pull requests fusionnées
+  de la tâche PF et `todo-ai-fpu-kernels` (fusionnée depuis longtemps), puis
+  `todo-ai-write-if-changed` (ses 17 mutants sont ceux de #215) et
+  `todo-ai-msvc-win-v1` (du 20 octobre : ses cinq commits demandaient C++17 à
+  Visual C++ et à clang-cl pour les intervalles SSE2 de Windows 32 bits, ce que
+  28acce4 a remplacé par `GAOL_SSE2_UNALIGNED_STORAGE` ; GCC et Clang étaient
+  déjà dans b071b41). `perf-doc-rerun` est gardée : le mainteneur veut le
+  tableau ARM des lignes longues à la fin de `doc/compare/performance.md`, que
+  son `run_lines_arm64.sh` mesure sur un Mac M2 (session MACarm4).
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -2840,15 +3035,18 @@ leur partie faite.
   MSYS2 sur arm64 (NEON, le 106 a) par #192, pour Visual C++ et clang-cl sur
   Windows 32 bits (SSE2, bornes en deux `double`) par #193 et pour le build
   universel de macOS (NEON et SSE2 par tranche) par #194 ; le 107 (FPCR en ligne
-  sur arm64) par #146 ; le 108 (x87 et MXCSR en ligne sur x86 32 bits) par
-  #156 ; le 110 (GCC pour Windows, `-mfma -mprefer-vector-width=128`) par #163,
-  puis le 133 (x86 32 bits et Cygwin) par #172, #173 et #174, et les jobs qui
-  manquent de #152, #173, #174, #193 et #194 (MSYS2 MINGW32, Cygwin avec
-  autotools et meson, Clang vers Visual C++, macOS 15, Xcode) par #205 ; les 111
-  et 115 (banc A/B, dix lignes de `run_lines.sh`) par #160 et #166 ; le 112, le
-  défaut de CMake et les descriptions d'options par #161, le test des bits du
-  signe de `x * d` par #171. Restent les 105 (AH), 106 (b, c, d), 108, 109, 112
-  et 116.
+  sur arm64) par #146 ; le 108 (x87 et MXCSR en ligne sur x86 32 bits) par #156,
+  puis son reste (CORE-MATH, les tests des registres, les outils) par #206 ; le
+  109 (Visual C++ x64) par #209 ; écrire le registre seulement s'il change par
+  #210 et #215 ; l'alignement de la pile 32 bits par #208 ; le contrôle de
+  l'assembleur de x86-64 par #207 ; le 110 (GCC pour Windows, `-mfma
+  -mprefer-vector-width=128`) par #163, puis le 133 (x86 32 bits et Cygwin) par
+  #172, #173 et #174, et les jobs qui manquent de #152, #173, #174, #193 et #194
+  (MSYS2 MINGW32, Cygwin avec autotools et meson, Clang vers Visual C++, macOS
+  15, Xcode) par #205 ; les 111 et 115 (banc A/B, dix lignes de `run_lines.sh`)
+  par #160 et #166 ; le 112, le défaut de CMake et les descriptions d'options
+  par #161, le test des bits du signe de `x * d` par #171. Restent les 105 (AH),
+  106 (b, c, d), 112 et 116.
 - **AJ, AK, W, X, Y.** Rien n'est fait ; voir `TODO_AFTER.md` (AJ, AK, W, X) et
   `TODO.md` (Y, tâches PI et PJ).
 
@@ -3689,6 +3887,32 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
   file d'attente) quand le push des registres l'a annulée ; le commit des
   registres, qui ne change que des fichiers Markdown, la remplace pour le même
   code.
+
+### 7.8 Le 28 octobre (après #207 à #210 et #215)
+
+- Le mainteneur a fusionné #207 à 9 h 19 UTC, #210 à 10 h 16, #208 à 13 h 24,
+  #215 à 13 h 30 et #209 à 14 h 41 : `configure-clean` est au commit `2ceeb51`
+  et la tâche PF est faite. Les registres sont mis à jour pour #206 à #210 et
+  #215 (2.3), et pour les deux pull requests jetables #211 et #214 (2.4).
+- Les échecs de CI du jour, repassés au vert à la relance sans changement de
+  code : l'installation de MinGW-w64 13.2.0 par Chocolatey (une réponse 504,
+  dans #215) ; les deux jobs « MSYS2 CLANGARM64 Clang arm64 » de #215
+  (`FPCR.AH`, issue #198 : les mêmes 52 échecs sur 441 et les mêmes cinq cas que
+  sous Ubuntu le 25 octobre, sur l'image 20261025.196.1 ; verts sur la
+  20261022.194.1 ; `TODO_AFTER.md`, 4.5) ; `automatic_configuration` du job
+  « macOS 26 Xcode generator, universal » de #215, au-delà de son délai de 600 s
+  sur un exécuteur lent (256 s à la relance ; `TODO_AFTER.md`, 4.9) ; le
+  contrôle de `pown` de `ieee1788` sous Rosetta pour #208 (« macOS 26 universal,
+  meson »), que la session MACarm3 n'a pas reproduit en 16 000 passages (Release
+  `-O3`, Debug, `-O0` et `-O2`, sous Rosetta et en arm64) ; un job macOS 14
+  arm64 de #209 annulé faute d'exécuteur. L'installation de MinGW-w64 par
+  Chocolatey a aussi échoué dans deux runs de `configure-clean`, aux fusions de
+  #207 (la 13.2.0 sans FMA) et de #210 (la 11.2.0) : non relancés, la CI des
+  fusions suivantes les remplace.
+- Sur #209, la session a fusionné `configure-clean` à `39d65f6` (après #210) et
+  à `3a8e914` (après #208 et #215), refait chaque fois les sept configurations
+  de CMake, autotools et meson avant le push, et mis à jour le corps de la pull
+  request.
 
 ## 8. Le ménage fait
 

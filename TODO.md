@@ -1,7 +1,7 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `5a6683c` de `configure-clean` (la
-fusion de #213), le 28 octobre 2026, en tâches PF à PJ (PA à PE sont faites, PG
+Ce qui reste à faire sur GAOL v5 au commit `2ceeb51` de `configure-clean` (la
+fusion de #209), le 28 octobre 2026, en tâches PG à PJ (PA à PF sont faites, PG
 est entamée : voir `TODO_DONE.md`). Ce fichier et l'issue #179 ont le même
 contenu. Ce qui est fait et décidé est dans `TODO_DONE.md` (issue #177), ce qui
 est reporté dans `TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142
@@ -10,13 +10,12 @@ sont fermées, et `TODO_mistral.md` est supprimé.
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à fusionner, à envoyer à un autre projet ni à publier
-sans l'accord du mainteneur. Les pull requests ouvertes sont #207 à #210 (la
-tâche PF, d'une autre session, dont #206 est fusionnée le 28 octobre sans que
-les registres le disent encore).
+sans l'accord du mainteneur. Aucune pull request n'est ouverte ; celle du
+tableau ARM de `performance.md` est en préparation (branche `perf-doc-rerun`).
 
 ## Comment lire ce fichier
 
-- Une tâche (PF à PJ) regroupe des points qui touchent le même code, les mêmes
+- Une tâche (PG à PJ) regroupe des points qui touchent le même code, les mêmes
   fichiers ou les mêmes builds de validation, pour les traiter dans la même
   session ; chaque point reste une pull request à part (process.md : un point,
   une branche), sauf quand la tâche dit qu'une seule suffit. Les tâches sont
@@ -24,7 +23,7 @@ les registres le disent encore).
   plus cher en attendant (une décision qui bloque) ; ce qui tue un programme ou
   rompt une promesse écrite avant ce qui ne fait que ralentir ; le petit et sans
   dépendance avant le gros ; la version (PI, PJ) en dernier.
-- PF à PH ne dépendent pas les unes des autres, sauf quand le texte le dit (PI
+- PG et PH ne dépendent pas l'une de l'autre, sauf quand le texte le dit (PI
   décrit le travail de PA à PH, PJ suit PI et les études de PG).
 - Chaque point garde sa lettre et son ancien numéro, par exemple « 79 (AB) » :
   ce sont ceux des pull requests, des issues, des commentaires du code et de
@@ -42,70 +41,10 @@ les registres le disent encore).
 
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
-| PF | x86 32 bits, Windows et le registre de contrôle | 108, 109 et trois | M |
 | PG | Les études de vitesse | 105, 116, 106 et six petits | M |
 | PH | Les signalements à d'autres projets | #125 à #138, #175 | accord |
 | PI | La pull request de synthèse et les textes de la version | Y | L |
 | PJ | Les mesures et la publication de v5.0.0 | 32, 33, 34, 71 | M |
-
-## PF. x86 32 bits, Windows et le registre de contrôle [M]
-
-Ensemble parce que c'est le même code (`gaol/gaol_fpu.h`,
-`gaol/gaol_fpu_fenv.h`, `gaol/core_math_port.h`, `tests/rounding_direction.cpp`)
-et les mêmes jobs (Visual Studio 2026 x86 et x64, MinGW-w64 et MSYS2, Intel
-SDE).
-
-1. **108 (AI), le reste** [M] : la lecture de x87 et de MXCSR en ligne est faite
-   par #156 (`fnstcw` et `stmxcsr`, `GAOL_RND_X86_DIRECT`, sans `fegetround()`
-   qui coûtait environ 80 ns). Restent, *décidés le 22 octobre (Q8, tout oui,
-   #156)* : (a) lire MXCSR en ligne dans CORE-MATH sur x86 32 bits
-   (`gaol/core_math_port.h` comme sur x86-64) : `sin`, `cos`, `tan`, `pow`,
-   `cbrt`, `rsqrt` et `asinpi` y appellent encore `fegetround()`, qui coûte
-   autant qu'avant ; (b) un test de `x86_registers::read_control()` contre
-   `read_x87_word()` et `_mm_getcsr()` du test, dans les six états, sur x86
-   seulement ; (c) garder le job « Visual Studio 2026 x86 Release » avec la
-   direction préservée ; (d) ajouter au dépôt (`tests/tools/`) l'outil de
-   mutation (`tools/mutate.py`), l'amalgamation pour Compiler Explorer et
-   l'émulateur (`emu/`) du travail de #156 ; (e) retirer le chemin de repli de
-   `round_upward_if_needed()` avec `fegetround()`, du code mort aujourd'hui. Le
-   gain de #156 n'a pas été mesuré (la machine de travail n'a ni Windows ni x86)
-   : il se lit dans l'étape « Performance » de la CI de #156, à comparer à celle
-   de `configure-clean`.
-2. **109 (AI)** [M] : `GAOL_PRESERVE_ROUNDING` coûte 24 ns par opération avec
-   Visual C++ x64 depuis #148 (43 à 87 avant ; 2,5 sans) : les macros de #124
-   (`GAOL_RND_ENTER()` n'écrit que MXCSR, une fois à l'entrée et une fois à la
-   sortie) demandent des intervalles SSE2 et `__FMA__`, que `cl` ne définit pas
-   ; il y reste `fegetround()`, `fesetround()` et deux écritures séparées.
-   *Décidé le 20 octobre*, dans une pull request qui suit #148 : la condition
-   des macros avec `_M_X64` et `__AVX2__` pour `cl` ; et chercher ce qui coûte
-   22,6 ns avec clang-cl, qui définit `__FMA__` avec `/arch:AVX2` (518 ns pour
-   la ligne de 15 `+` avec le chemin AVX-512 refusé), sans que l'on sache
-   pourquoi. Fichiers : `gaol/gaol_fpu.h`, `gaol/gaol_fpu_fenv.h` (macros
-   `GAOL_RND_ENTER_SSE`).
-3. **Écrire seulement si ça change** [M] (#156) :
-   `GAOL_RND_NEAREST_ENTER()`/`LEAVE()` et `GAOL_RND_ENTER_SSE()`/`LEAVE_SSE()`
-   écrivent sans comparer. La même méthode (écrire si ça change) était possible
-   ; non touchées, hors du point 108. *Décidé le 24 octobre* : l'appliquer aux
-   deux familles, en mesurant avant et après par le banc A/B de la CI, avec les
-   tests de `rounding_direction.cpp`. Depuis #193, avec Visual C++ pour x86 et
-   la direction préservée, `GAOL_RND_ENTER_SSE()` et `GAOL_RND_LEAVE_SSE()` sont
-   les macros complètes `GAOL_RND_ENTER()` et `GAOL_RND_LEAVE()` : `cl` calcule
-   sur l'unité x87 un `double` renvoyé par une fonction (le `fdiv` de
-   `quotient_sat()`), dont le mot de contrôle doit être réglé aussi.
-4. **L'alignement de la pile 32 bits** (#152) : `-faligned-new=8` ne règle que
-   le tas ; l'alignement de la pile 32 bits (GCC, bogue 40838) concernerait des
-   intervalles locaux dans des fonctions que l'API de Windows appelle avec une
-   pile alignée sur 4 octets (fils d'exécution, rappels) ; non testé.
-   (`-mstackrealign` a été essayé par la CI pour le x86 32 bits : sans effet,
-   #172.)
-5. **Le même contrôle de l'assembleur pour x86-64** (#150) : l'ordre entre
-   l'écriture du registre de contrôle et les opérations sur des registres (bogue
-   34678 de GCC) a été vérifié sur l'assembleur de toute la bibliothèque pour
-   AArch64 et ARM 32 bits (GCC 14.3 croisés : aucune instruction flottante qui
-   dépende du sens entre `mrs`/`vmrs` et `msr`/`vmsr`), non pour x86-64, où
-   `_mm_setcsr` n'est pas mieux ordonné. `width()` en est le cas connu (corrigé
-   sur x86 32 bits avec GCC 9.4, 12.2 et 15.2 par `rnd_reread()`, #150) ; à
-   refaire avec un GCC pour x86-64.
 
 ## PG. Les études de vitesse [M]
 
@@ -213,6 +152,13 @@ ne se comparent pas d'un passage à l'autre : le banc A/B de `performance.yml`
    `er_div2()` : les rapprocher, ce que #191 n'a pas fait pour ne pas déplacer
    de code (l'effet de placement du 105). Le gain de `x / d` n'est mesuré que
    sur un Tiger Lake (`TODO_AFTER.md`, 4.6).
+10. **`set_rounding()` et `set_rounding_and_flush_modes()` sans écrire pour
+   rien** [S] (#210) : `GAOL_RND_NEAREST_LEAVE()` et `GAOL_RND_RESTORE()`
+   passent par `fesetround()` de la glibc sur x86-64, qui écrit l'unité x87 et
+   MXCSR comme avant #210, parce que le cas courant y change la direction (de au
+   plus proche à vers le haut) et que l'économie ne serait que celle d'un
+   `fldcw`. #210 recommandait de ne pas le faire. *À décider* : le laisser tel
+   quel, ou l'étendre.
 
 ## PH. Les signalements à d'autres projets [attend l'accord du mainteneur]
 
@@ -447,6 +393,11 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    ont été mesurées avec les intervalles FPU, avant #192 et #193 (une phrase le
    dit), et ces compilateurs ont maintenant SSE2 et NEON. *Décidé le 25
    octobre* (#192, #193) : à la fin.
+   Refaire aussi, au même commit, le tableau des lignes longues sur un
+   processeur ARM de 64 bits, à la fin de `performance.md`
+   (`doc/compare/code/run_lines_arm64.sh` sur un Mac M2, branche
+   `perf-doc-rerun`) : *décidé le 28 octobre* de l'ajouter, une première fois
+   avant la version.
    Refaire enfin, au même commit, la mesure de la règle du chemin AVX-512 de
    `doc/simd.md` (il suit `GAOL_PRESERVE_ROUNDING`, seuil d'un gain médian de 5
    %, mesuré le 26 octobre sur le seul i7-1185G7, dont l'AVX-512 est à
