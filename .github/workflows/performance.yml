@@ -6,8 +6,7 @@
 # machines shared with other jobs: x * y with Visual C++ x64 took 7.9 and then
 # 16.3 ns, sqrt with MSYS2 6.8 and then 170 ns, on code that had not changed),
 # so that two builds are measured in turn in one job instead. The table never
-# fails a job: only a difference of several times means something, and the
-# table says so.
+# fails a job: only a large difference means something, and the table says so.
 #
 # Only for a pull request that changes what is measured (the paths below), and
 # with the CMake build alone, for gaol_performance and, on Linux, macOS and
