@@ -64,7 +64,8 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   #197 le 25 octobre, #199, #200 et #201 le 26 octobre, #202 à #205 le 27, #206
   à #210, #212, #213, #215 et #216 le 28 (#216, hors des points : le tableau des
   lignes longues sur ARM 64 bits, à la fin de `performance.md`) ; #168, #195,
-  #211 et #214 sont fermées sans fusion. Les tâches PA, PB, PC, PD, PE et PF sont faites (PE : #200 et #204
+  #211 et #214 sont fermées sans fusion. Les tâches PA, PB, PC, PD, PE et PF
+  sont faites (PE : #200 et #204
   pour le 95, #201 pour le 92, #205 pour le 3, #202 pour le 4, #204 pour le 5,
   #203 pour le 6 ; PF : #206 pour le reste du 108, #209 pour le 109, #210 et
   #215 pour écrire seulement si ça change, #208 pour l'alignement de la pile 32
@@ -4011,8 +4012,8 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
   en local le 27 octobre ; celles de #212 (`cos-accurate-path-test`) et de #213
   (`todo-ph-pow-workarounds`), sur GitHub à la fusion et en local le 28
   octobre ; celle de #200 (`automatic-configuration`), sur GitHub
-  à la fusion et en local le 26 octobre ; celles de #206 (`todo-ai-x86-csr-rest`),
-  de #207 (`todo-ai-asm-order-x86-64`), de #208 (`todo-ai-stack-alignment-32`),
+  à la fusion et en local le 26 octobre ; celles de #206
+  (`todo-ai-x86-csr-rest`), de #207 (`todo-ai-asm-order-x86-64`), de #208 (`todo-ai-stack-alignment-32`),
   de #209 (`todo-ai-msvc-x64-preserve`), de #210 (`todo-ai-write-if-changed`),
   de #215 (`todo-ai-x86-csr-sse-mutants`) et de #216 (`perf-doc-rerun`), sur
   GitHub à la fusion et en local le 28 octobre, avec `todo-ai-fpu-kernels`
