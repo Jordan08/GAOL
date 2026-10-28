@@ -11,7 +11,8 @@ Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à envoyer à un autre projet ni à publier sans l'accord
 du mainteneur. La seule pull request ouverte est #216 (le tableau des lignes
-longues sur ARM 64 bits, à la fin de `performance.md`, branche `perf-doc-rerun`).
+longues sur ARM 64 bits, à la fin de `performance.md`, branche
+`perf-doc-rerun`).
 
 ## Comment lire ce fichier
 
