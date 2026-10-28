@@ -1,8 +1,8 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 27 octobre 2026
-(commit `9deb2e1` de `configure-clean`, aucune pull request ouverte). Ce fichier
-et l'issue #177 ont le même contenu.
+(commit `2927cfe` de `configure-clean`, sept pull requests ouvertes : voir la
+section 1). Ce fichier et l'issue #177 ont le même contenu.
 
 Il réunit l'historique de l'ancienne issue #49 (« Suivi du TODO de GAOL v5 »),
 ce qui est fait dans l'ancienne issue #142 (« Reste à faire sur GAOL v5 »), dans
@@ -53,14 +53,17 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 
 ## 1. L'état au 27 octobre 2026
 
-- **`configure-clean`** est au commit `9deb2e1` (fusion de #205). Les pull
+- **`configure-clean`** est au commit `2927cfe` (l'import de CORE-MATH
+  `0b2ae6d1`, voir 7.6, après la fusion de #205). Les pull
   requests des corrections vont vers `configure-clean`, qui reste la branche de
   développement après v5.0.0 ; `MATH-CORE` et `master` (GAOL 4.3.2, plus deux
   commits de `.claude/CLAUDE.md`) ne bougent qu'à la version (point Y).
-- **Aucune pull request ouverte.** Le mainteneur a fusionné #165 à #167, #169 à
-  #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194, #196 et #197
-  le 25 octobre, #199, #200 et #201 le 26 octobre, #202 à #205 le 27 ; #168 et
-  #195 sont fermées sans fusion. Les tâches PA, PB, PC, PD et PE sont faites
+- **Pull requests ouvertes** : #206 à #210 (la tâche PF, d'une autre session),
+  #212 (le test de `cos` sur son chemin précis) et #213 (les contournements de
+  `cr_pow` que l'amont a rendus inutiles). Le mainteneur a fusionné #165 à #167,
+  #169 à #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194, #196 et
+  #197 le 25 octobre, #199, #200 et #201 le 26 octobre, #202 à #205 le 27 ; #168
+  et #195 sont fermées sans fusion. Les tâches PA, PB, PC, PD et PE sont faites
   (PE : #200 et #204 pour le 95, #201 pour le 92, #205 pour le 3, #202 pour le
   4, #204 pour le 5, #203 pour le 6) ; PG est entamée (la division du chemin
   AVX-512, le 106 a : #191 à #194).
@@ -84,8 +87,9 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   débogage sont décidés par des tests de la configuration, les anciennes
   options restant des réglages des développeurs (`doc/building.md`).
 - **Branches** : GitHub a `configure-clean`, `MATH-CORE`, `master` et
-  `perf-doc-rerun` (les scripts des mesures reportées, hors des points) ; les
-  branches fusionnées sont supprimées en local.
+  `perf-doc-rerun` (les scripts des mesures reportées, hors des points), avec
+  les branches des pull requests ouvertes ; les branches fusionnées sont
+  supprimées en local.
 - **Aucune borne fausse n'est connue** : sur environ 1,3 million de puissances
   entières, 550 000 `pow` réels, 600 000 autres opérations et 760 lectures de
   nombres (relecture du 14 octobre, revérifiée le 18 octobre à `4eaf69a`), tout
@@ -2586,6 +2590,41 @@ le travail qu'elles décident est fait le même soir et ouvert en pull requests
   script qui joint les lignes pour les issues) et §12 (état au 24 octobre) sont
   réécrits pour #177 à #179, ainsi que les renvois des §3, §7 et §6.
 
+### 3.8 Le 27 octobre : l'import de CORE-MATH `0b2ae6d1` et ce qui le suit
+
+- **L'import se fait directement sur `configure-clean`** (demande explicite du
+  mainteneur : « mets à jour notre version, commit sur `configure-clean`
+  directement »), en deux commits, `cb731c0` (les sources) et `2927cfe`
+  (`3rd/README.md` et le commentaire de `gaol/core_math_port.h`), sans pull
+  request. Le CORE-MATH vendu passe de l'amont `6b84457` au master du 27
+  octobre, `0b2ae6d114d2f34051235d97f72c041b8e0ff66c`. Voir 7.6.
+- **Trois suites, décidées le même jour** : (1) le test de `cos` sur son chemin
+  précis, comme celui de `sin`, en pull request (#212) ; (2) retirer les
+  contournements de `cr_pow` que l'amont rend inutiles (PH.1), en pull request
+  selon `process.md` (#213) ; (3) mettre à jour les registres, ce qui est fait
+  ici ; les mesures de `doc/compare/performance.md`, qui cite encore l'amont
+  `6b84457`, se refont dans la tâche PJ (point 33).
+- **Constat** : l'import rend sans objet les correctifs 3 (`rsqrt.c`) et 4
+  (`sin.c`) de `3rd/README.md` (l'amont les a faits, `0d8b885a` et `19e85418`),
+  et le correctif 1 (les masques de `long`) est à refaire sur le master du jour
+  (`cos.c` est réécrit, les lignes de `cosh.c` ont bougé) ; le `rh * rh` de
+  `cr_pow()` est corrigé par l'amont (`c01f08c5`, qui teste l'exposant de `rh`
+  au lieu de comparer son carré avec `<`). Un défaut de plus de `cr_pow()`,
+  trouvé en retirant les contournements (#213) : `is_exact()` calcule `y * e`
+  (e est l'exposant de x quand x est une puissance de 2), qui déborde à partir
+  de |y e| = 2^1024 et lève `FE_OVERFLOW` pour une puissance minuscule ; #213
+  garde donc la puissance minuscule de |y| ≥ 2^1013, et le défaut est à
+  proposer à l'amont (`TODO.md`, PH.1).
+- **Réponses du mainteneur le 28 octobre**, aux questions qui closaient la
+  session : (1) #213 garde le raccourci de |y| ≥ 2^1013 (PH.1 demandait de tout
+  retirer, `is_exact()` l'en empêche) ; (2) le défaut d'`is_exact()` : préparer
+  le rapport pour l'amont et le lui montrer, ce qui est fait (réplique et
+  correctif d'une ligne vérifiés sur 50 896 000 appels, rien d'envoyé, rien
+  d'écrit dans `3rd/README.md` ni dans #125) ; (3) pas d'arguments de `cos.wc`
+  pour #212, les 45 suffisent (question fermée) ; (4) attendre la CI sans
+  démarrer d'autre tâche. La CI est entièrement verte : #212 (221 jobs), #213
+  (222 jobs) et `configure-clean` au commit `1f92634`.
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -3559,6 +3598,32 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
   commit ; la CI du commit de fusion, redondante, n'est pas attendue (§10) ; la
   branche supprimée sur GitHub à la fusion et en local le 27 octobre ; mêmes
   registres mis à jour pour elle ; la tâche PE est faite
+
+### 7.6 Le 27 octobre (après #205)
+
+- Le CORE-MATH vendu (`3rd/math-core`) mis à jour de l'amont `6b84457` au master
+  du 27 octobre, `0b2ae6d1`, directement sur `configure-clean` à la demande du
+  mainteneur : `cb731c0` (56 fichiers, dont 48 modifiés et 8 ajoutés : `cos.c`
+  réécrit par l'amont et porté sur `gaol_u128` d'après `sin.c`, `sin.c` ramené à
+  l'amont avec ses conversions refaites, `cosh.c`, `sinh.c`, `cospi.c`,
+  `rsqrt.c`, `hypot.c`, `pow.c`, `log/dint.h`, des tables et des scripts) et
+  `2927cfe` (`3rd/README.md`, commentaire de `core_math_port.h`). Fusion à trois
+  voies avec le fichier amont d'avant pour base ; `cospi.c` et le morceau de
+  `rsqrt.c` en conflit prennent la version de l'amont, qui a corrigé les mêmes
+  défauts. 21 fichiers diffèrent encore de l'amont, tous marqués `/* GAOL */`.
+  Vérifié : les 17 fonctions dont le fichier a changé, compilées depuis l'arbre
+  avec le type natif et avec les moitiés forcées, donnent les mêmes bits que
+  l'amont compilé sans changement dans les quatre sens sur 20 millions
+  d'arguments chacune ; avec gcov toutes les lignes `/* GAOL */` de `sin.c` et
+  de `cos.c` s'exécutent ; six erreurs mises dans le port sont toutes vues ;
+  Debian i386 et aarch64 (GCC 12.2, qemu) passent. La CI de `2927cfe` : 5
+  workflows et 200 jobs verts (Linux 45, conteneurs 22, macOS 21, Windows 64,
+  autotools et meson 48).
+- Ouvertes le même jour : #212 (le test de `cos` sur son chemin précis, les
+  outils de `tests/tools/cos/`) et #213 (les contournements de `cr_pow` que
+  `c01f08c5` rend inutiles) ; `TODO.md`, `TODO_DONE.md` et `process.md` (§12)
+  mis à jour pour l'import et pour elles, sans attendre leur fusion pour
+  l'import seul.
 
 ## 8. Le ménage fait
 

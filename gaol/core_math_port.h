@@ -22,7 +22,7 @@
 *   written on MXCSR, which leave its exception masks alone;
 * - on 32-bit x86, the square root of SSE2, rounded in the direction in
 *   effect, rather than the one of the C library;
-* - on x86-64, a fegetround() that reads MXCSR, where their doubles are
+* - on x86, a fegetround() that reads MXCSR, where their doubles are
 *   rounded, rather than the x87 unit, which the C library may read;
 * - what Visual C++ has not of GCC: the builtins the sources call,
 *   __attribute__, and NAN and INFINITY as constants;
@@ -273,7 +273,7 @@ static inline double gaol_sqrt(double x)
 #endif /* 32-bit x86 */
 
 /*---------------------------------------------------------------------------
-fegetround() on x86-64: the direction of the SSE instructions
+fegetround() on x86: the direction of the SSE instructions
 
 pow, and cos and tan, whose accurate phases carry the same code, round a
 subnormal result themselves, in the direction fegetround() gives, where every
@@ -300,14 +300,22 @@ once), which the switch gives back whichever they are.
 The standard lets fegetround() be a macro, and it is a function in the C
 libraries known here: what the sources call is renamed by a macro of ours,
 after <fenv.h> has declared it, and only for the sources of CORE-MATH, the
-only ones this header is included in. Not on a 32-bit x86 processor, where
-round_upward_if_needed() of gaol/gaol_fpu.h reads both units and sets the one
-that is not upward (or both), so that they never differ when CORE-MATH runs.
-ARM64EC, which no build of GAOL targets, defines _M_X64 too, and would read
-the MXCSR its emulation keeps.
+only ones this header is included in. ARM64EC, which no build of GAOL
+targets, defines _M_X64 too, and would read the MXCSR its emulation keeps.
+
+On a 32-bit x86 processor too (GAOL v5, point AI.108 of TODO_DONE.md). The
+operations that call CORE-MATH have read both units there and set the one that
+is not upward (round_upward_if_needed() of gaol/gaol_fpu.h), so that the two
+agree when it runs and the answer has been the same; but fegetround() is a
+call into the C library, about 80 ns with Visual C++ for x86 (which gives -1
+when the units differ), and cbrt and asinpi call it on every call.
+MXCSR is read by one instruction, stmxcsr, and is the register of the doubles
+of CORE-MATH there as on x86-64 (gaol/gaol_config.h refuses an x86 target
+that computes its doubles elsewhere). tests/core_math.cpp calls pow and cbrt
+with the x87 unit and MXCSR differing, which only this reading gets right.
 --------------------------------------------------------------------------*/
 
-#if defined(__x86_64__) || defined(_M_X64)
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
 
 #include <fenv.h>
 #include <xmmintrin.h>
@@ -325,7 +333,7 @@ static inline int gaol_fegetround(void)
 #undef fegetround
 #define fegetround gaol_fegetround
 
-#endif /* x86-64 */
+#endif /* x86 */
 
 /*---------------------------------------------------------------------------
 What Visual C++ has not of GCC and Clang

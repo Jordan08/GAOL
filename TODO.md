@@ -1,6 +1,6 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `9deb2e1` de `configure-clean`, le 27
+Ce qui reste à faire sur GAOL v5 au commit `2927cfe` de `configure-clean`, le 27
 octobre 2026, en tâches PF à PJ (PA à PE sont faites, PG est entamée : voir
 `TODO_DONE.md`). Ce fichier et l'issue #179 ont le même contenu. Ce qui est fait
 et décidé est dans `TODO_DONE.md` (issue #177), ce qui est reporté dans
@@ -10,7 +10,9 @@ et décidé est dans `TODO_DONE.md` (issue #177), ce qui est reporté dans
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à fusionner, à envoyer à un autre projet ni à publier
-sans l'accord du mainteneur. Aucune pull request n'est ouverte.
+sans l'accord du mainteneur. Les pull requests ouvertes sont #206 à #210 (la
+tâche PF, d'une autre session), #212 (le test de `cos` sur son chemin précis) et
+#213 (les contournements de `cr_pow` que l'amont a rendus inutiles).
 
 ## Comment lire ce fichier
 
@@ -221,27 +223,41 @@ l'accord explicite du mainteneur. Ordre : ce qui est prêt et qui a une valeur
 pour GAOL, puis ce qui demande une réplique à écrire, puis ce qui ne demande
 probablement rien.
 
-1. **#125 CORE-MATH** : huit correctifs de `3rd/README.md` à refaire sur le
-   master du jour (le 1 entre en conflit avec des changements récents de
-   `sinh.c` et `cosh.c` ; le 8, `exp_1()`, fait dans la copie de GAOL par #144,
-   s'applique tel quel au master du 19 octobre, `6fc21797`), et des défauts sans
-   correctif (`atan2l.c`, la borne de `ss` de `asinpi_acc()`, `return` d'une
-   expression `void` dans `erfc.c`, `erfc` et `__builtin_ldexp()`) ; qui envoie
-   et comment (merge request sur gitlab.inria.fr ou `git format-patch` à
-   core-math@inria.fr). Après un import d'un CORE-MATH d'après `c01f08c5` :
-   retirer le contournement du `<` de `cr_pow` (`pow_rounded_up()` et
-   `pow_rounded_dn()`). Deux défauts de plus, que GAOL contourne sans toucher
-   aux sources (*décidé le 24 octobre*, #184), sont à proposer aussi, pas encore
-   écrits dans `3rd/README.md` : `cr_pow()` calcule `rh * rh` (rh = y log(x))
-   pour effacer un sous-dépassement parasite, et ce carré déborde à partir de
-   |rh| = 2^512 (`FE_OVERFLOW` pour une puissance qui s'annule, avec Clang et
-   avec GCC sans optimisation ; correctif d'une ligne, `fabs(rh) < 0x1p-511`),
-   que `pow_rounded_up()` évite pour une puissance inférieure à 1 et |y| au
-   moins 2^450 ; `cr_atan()` calcule `x + x` pour un NaN avant le test qui le
-   garde, ce qui lève `FE_OVERFLOW` à partir de |x| = 2^1023 avec Visual C++
-   (`/fp:strict`), que `atan_lo()` et `atan_hi()` évitent en rendant les bornes
-   de pi/2 à partir de |x| = 2^54. Un import de CORE-MATH qui reprendrait les
-   deux permet de retirer ces contournements.
+1. **#125 CORE-MATH** : six correctifs de `3rd/README.md` à refaire ou à envoyer
+   sur le master du jour, `0b2ae6d1` (importé le 27 octobre). L'amont a fait
+   lui-même le 3 (`rsqrt.c`, `0d8b885a`) et le 4 (`sin.c`, `19e85418`) ; le 1
+   (les masques de `long`) ne s'applique plus, `cos.c` ayant été réécrit et les
+   lignes de `cosh.c` ayant bougé (ceux de `sinh.c` et de `cosh.c` restent),
+   donc à refaire ; les 2 et 5 à 8 s'appliquent tels quels (le 8, `exp_1()`, est
+   fait dans la copie de GAOL par #144). Des défauts sans correctif :
+   `atan2l.c`, la borne de `ss` de `asinpi_acc()`, `return` d'une expression
+   `void` dans `erfc.c`, `erfc` et `__builtin_ldexp()` ; qui envoie et comment
+   (merge request sur gitlab.inria.fr ou `git format-patch` à
+   core-math@inria.fr). Les deux défauts de `cr_pow()` que GAOL contournait
+   (*décidé le 24 octobre*, #184), la comparaison `<` d'un NaN (invalidité) et
+   le carré `rh * rh` qui déborde, sont corrigés par `c01f08c5` (5 octobre),
+   dans l'import : la pull request #213 retire les contournements, sauf la
+   puissance minuscule de |y| ≥ 2^1013, qu'un défaut de plus de `cr_pow()`
+   impose encore (`is_exact()` calcule `y * e`, qui déborde à partir de |y e| =
+   2^1024 quand x est une puissance de 2 : `FE_OVERFLOW` pour une puissance qui
+   s'annule) ; #213 garde le raccourci (*décidé le 28 octobre*), qui sera retiré
+   si l'amont corrige. Ce défaut est à proposer aussi : la réplique et le
+   correctif d'une ligne (`y <= 1074 &&` devant `-1074 <= y * e`, car e ≠ 0
+   dans ce cas) sont écrits et vérifiés le 28 octobre sur 50 896 000 appels dans
+   les quatre arrondis (mêmes résultats, mêmes indicateurs sauf `FE_OVERFLOW`,
+   levé exactement quand 2^(e y) déborde, contre 4 551 008 indicateurs en trop
+   avant), le brouillon a été montré au mainteneur ; pas encore écrit dans
+   `3rd/README.md` (correctif 9) ni dans #125. Un autre, que
+   GAOL contourne sans toucher aux sources, est à proposer aussi : `cr_atan()`
+   calcule `x + x` pour un NaN avant le test qui le garde, ce qui lève
+   `FE_OVERFLOW` à partir de |x| = 2^1023 avec Visual C++ (`/fp:strict`), que
+   `atan_lo()` et `atan_hi()` évitent en rendant les bornes de pi/2 à partir de
+   |x| = 2^54 ; un import qui le corrigerait permettrait de retirer ce
+   contournement. Question de #212 sur des arguments difficiles à arrondir de
+   `cos.wc` (le fichier des pires cas de l'amont, absent de l'arbre) : *décidé
+   le 28 octobre*, non, les 45 arguments de `cos_accurate_path()` suffisent ;
+   elle ne voit pas les fautes de moins de 2^-70 environ en relatif, et les deux
+   mutants qui survivent ne changent aucun résultat observable.
 2. **#126 GCC** (la comparaison silencieuse rendue signalante par
    l'if-conversion sur ARM 32 bits et POWER9 et par la vectorisation, et le
    miscompilage de GCC 12.2 sur aarch64 dans `tests/numbers.cpp` ; le bogue
@@ -418,8 +434,11 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    le 18 (`7fd5c09`), avec Clang 21 sur l'i7-1185G7 ; les études de PG peuvent
    encore les changer. À remesurer en dernier, sur le commit propre de la
    version, la machine ne faisant rien d'autre (`doc/compare/code/run_bench.sh`,
-   ou `make perf`), puis reprendre le tableau de `doc/compare/README.md`. Les
-   temps pris sur une machine non au repos (#158, les racines d'un x
+   ou `make perf`), puis reprendre le tableau de `doc/compare/README.md` :
+   `performance.md` cite encore l'amont de CORE-MATH `6b84457`, et l'import du
+   27 octobre (`0b2ae6d1`) a réécrit `sin`, `cos` et d'autres fonctions, dont
+   les temps peuvent changer (*décidé le 27 octobre* : dans PJ). Les temps
+   pris sur une machine non au repos (#158, les racines d'un x
    sous-normal) sont à refaire ici si on les cite. Refaire aussi, au même
    commit, les colonnes de Visual C++ et de clang-cl pour x86 et pour arm64 de
    `doc/using.md` (« The FPU intervals ») et de `doc/three-builds.md` : elles

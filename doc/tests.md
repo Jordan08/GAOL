@@ -244,11 +244,19 @@ point Q), which `numbers` checks there too.
   units upward and the modes clear, or as they were found with
   `GAOL_PRESERVE_ROUNDING`, no other bit changed, and the sums and products
   the tightest enclosures right after the program wrote the registers (600
-  operands for each mode). `cbrt`, `pow` and `atan2` have to leave the
-  exception masks of the SSE control register as they found them, and an empty interval to be told
-  empty after them: the `fesetexceptflag()` of mingw-w64 for 32-bit
-  Windows unmasked the exceptions, and the comparison of the NaN
-  bounds of an empty interval then killed the program (GAOL v5).
+  operands for each mode); `gaol_core::x86_registers`, the type through which
+  the library reads and writes the two registers, has to read the words the
+  test reads and write the words it is given, and nothing else, in each of
+  these states and with four sets of the other bits of the registers (the
+  precision and the exception masks of the control word, the exception masks
+  and flags of MXCSR, an exception unmasked in each), so that a read that
+  drops the flags or a write that forces the masks is seen (GAOL v5, point
+  AI.108 of TODO_DONE.md). `cbrt`, `pow` and
+  `atan2` have to leave the exception masks of the SSE control register as they
+  found them, and an empty interval to be told empty after them: the
+  `fesetexceptflag()` of mingw-w64 for 32-bit Windows unmasked the exceptions,
+  and the comparison of the NaN bounds of an empty interval then killed the
+  program (GAOL v5).
   The square of an empty interval and the forms of `pow` that return as `sqr`
   does for it (`pow(x, 2)` with an `int`, an `unsigned`, a `long long`, a
   `double` and an interval `[2]`, `pow(x, 2.5)`, `pow(x, 5000000000LL)`,
@@ -957,7 +965,17 @@ point Q), which `numbers` checks there too.
   (1 + 2<sup>−52</sup>)<sup>−1/2</sup> shows: its accurate phase rounds them
   upward from the direction its `get_rounding_mode()` reads, which clang-cl on
   x86-64 took for toward zero, in `cbrt` and `asinpi` too, the upper bound
-  being below 1/sqrt(x) (GAOL v5). `erf` and `erfc` have to be the tightest
+  being below 1/sqrt(x) (GAOL v5). CORE-MATH, called without GAOL in each of
+  the six directions of `rounding_direction`, the two where the x87 unit and
+  the SSE instructions differ among them, has to round in the direction of
+  MXCSR, which the doubles it computes follow: `pow` with a subnormal result
+  and `cbrt` at one of its hard cases give the double above in the direction
+  upward of the SSE instructions and the one below otherwise, whatever the
+  direction of the x87 unit. GAOL's operations set both units before they call
+  it, which hides the difference, and on a 32-bit x86 processor its
+  `fegetround()` was the C library's, reading the x87 unit (glibc) or giving -1
+  (Visual C++) when the two differ (GAOL v5, point AI.108 of TODO_DONE.md).
+  `erf` and `erfc` have to be the tightest
   enclosures over 80 000 intervals, whose bounds are drawn among 0, the
   infinities, the subnormals, the arguments past which their values are within
   2^-53 of ±1 or of 2, subnormal or below 2^-1074, and those at which CORE-MATH
@@ -1536,7 +1554,9 @@ integration configures (GAOL v5).
 
 `tests/performance.cpp` (`gaol_performance`) measures the time per operation of
 GAOL's arithmetic and elementary functions, of the constructor `interval(a, b)`,
-`floor()`, `x &= y`, `x | y`, `max()`, `midpoint()` and two relations, which
+`floor()`, `x &= y`, `x | y`, `max()`, `midpoint()`, `nth_root(x, 3)`, the cube root, and `asinpi()` (the
+functions of CORE-MATH that read the rounding direction at each call, GAOL v5,
+point 108) and two relations, which
 compare bounds with the quiet comparisons of `<cmath>` (one instruction each
 with GCC and Clang on x86, perhaps a call with Visual C++) and, where two
 compare equal, by their bits (GAOL v5, point Q), and of the same operations on
