@@ -181,6 +181,15 @@ jobs:
         run: cmake --build build --config ${{ matrix.cfg.config }} --target RUN_TESTS
       - name: The test numbers ran under a locale writing a decimal comma
         run: sh .github/scripts/comma-locale.sh check build
+      # Visual C++ with /arch:AVX2 (GAOL_FMA) and clang-cl write MXCSR alone in the
+      # macros of the rounding direction preserved on x64 (GAOL_RND_MXCSR_ONLY,
+      # gaol/gaol_fpu.h, GAOL v5): the value of the macro as the compiler gave it,
+      # which misc prints and ctest shows only with -V
+      - name: The macros of the rounding direction write MXCSR alone
+        if: matrix.cfg.arch == 'x64' && contains(matrix.cfg.opts, 'GAOL_PRESERVE_ROUNDING=ON')
+        run: |
+          ctest --test-dir build -C ${{ matrix.cfg.config }} -R '^misc$' -V | tee misc.log
+          grep -F "GAOL_RND_MXCSR_ONLY is 1:" misc.log
       - name: Performance
         if: matrix.cfg.config == 'Release'
         run: build/tests/${{ matrix.cfg.config }}/gaol_performance.exe | tee -a "$GITHUB_STEP_SUMMARY"

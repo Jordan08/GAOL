@@ -646,6 +646,12 @@ public:
     std::printf("The rounding direction is not preserved (or the processor is not an x86-64): nothing to check\n");
     TEST_TRUE(GAOL_RND_MXCSR_ONLY == 0);
 #endif
+#if GAOL_PRESERVE_ROUNDING
+    // What the build has, as the compiler gave it: the jobs of the continuous integration for Visual C++ and
+    // clang-cl on x64 look for the "is 1" (ctest -V), which the copy of the condition above would not see go
+    std::printf("GAOL_RND_MXCSR_ONLY is %d: GAOL_RND_ENTER() and GAOL_RND_LEAVE() %s\n", GAOL_RND_MXCSR_ONLY,
+                GAOL_RND_MXCSR_ONLY ? "write MXCSR alone" : "are those of the other builds");
+#endif
   }
 
   // Tests of logical predicates ===================================================================
