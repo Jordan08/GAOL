@@ -316,20 +316,37 @@ direction when it is preserved.
 #endif // GAOL_PRESERVE_ROUNDING
 
 /*
+1 where the build has the fused multiply-add as an instruction (GAOL v5, point
+109 (AI) of TODO.md): __FMA__ for GCC, Clang and clang-cl, and /arch:AVX2
+(__AVX2__, which implies it) for Visual C++: __AVX2__ alone says nothing of
+the instruction for clang-cl, which has -mavx2 without -mfma. The packed
+products of the integer powers (gaol/core/gaol_interval_core.cpp) and the
+macros below ask for it, and tests/misc.cpp writes the condition again
+*/
+#if defined(__FMA__) || (defined(_MSC_VER) && !defined(__clang__) && defined(__AVX2__))
+#  define GAOL_FMA_AS_INSTRUCTION 1
+#else
+#  define GAOL_FMA_AS_INSTRUCTION 0
+#endif
+
+/*
 On x86-64 with SSE2 intervals and the fused multiply-add as an instruction
-(__FMA__, GAOL_FMA), GAOL_RND_ENTER() and GAOL_RND_LEAVE() are
-GAOL_RND_ENTER_SSE() and GAOL_RND_LEAVE_SSE() with GAOL_PRESERVE_ROUNDING
-(GAOL v5, point ZZ of TODO.md): every double GAOL computes is an SSE one
-there, the elementary functions of CORE-MATH read the direction from MXCSR
-(gaol/core_math_port.h), and no code of GAOL uses the x87 unit, a long double
-or a function of the C library that the x87 unit would round (the fma() of
-mingw-w64 is an instruction with __FMA__, ldexp() is gaol_ldexp(), and the
-square root is a bound whatever its rounding): the direction of the x87 unit
-changes no bound, and is left as the program had it. The operations then read
-MXCSR once at their start, write it only if it is not upward with the modes
-that flush the subnormals clear, and write back at their end what they found
-only if it was not (see gaol_core::sse_enter_upward() and sse_leave(); GAOL v5,
-point 108 (AI) of TODO.md), where the macros
+(__FMA__, GAOL_FMA; with Visual C++, /arch:AVX2, which implies them and
+defines __AVX2__, and which GAOL_FMA gives it: GAOL v5, point 109 (AI) of
+TODO.md), GAOL_RND_ENTER() and GAOL_RND_LEAVE() are GAOL_RND_ENTER_SSE()
+and GAOL_RND_LEAVE_SSE() with GAOL_PRESERVE_ROUNDING (GAOL v5, point ZZ of
+TODO.md): every double GAOL computes is an SSE one there, the elementary
+functions of CORE-MATH read the direction from MXCSR (gaol/core_math_port.h),
+and no code of GAOL uses the x87 unit, a long double or a function of the C
+library that the x87 unit would round (the fma() of mingw-w64 is an
+instruction with __FMA__, ldexp() is gaol_ldexp(), and the square root is a
+bound whatever its rounding; Visual C++ for x64 has no x87 code at all, its
+long double is a double): the direction of the x87 unit changes no bound, and
+is left as the program had it. The operations then read MXCSR once at their
+start, write it only if it is not upward with the modes that flush the
+subnormals clear, and write back at their end what they found only if it was
+not (see gaol_core::sse_enter_upward() and sse_leave(); GAOL v5, point 108
+(AI) of TODO.md), where the macros
 for the other builds read the direction through fegetround() and set it
 back through fesetround() as well, which write the control word of the x87
 unit and MXCSR again, and clear the flush-to-zero modes and set the direction
@@ -342,11 +359,16 @@ and the others) read and write the control word of the x87 unit and MXCSR
 themselves with mingw-w64 on x86-64, which does not call fegetround() and
 fesetround() any more (GAOL_RND_MINGW64_X87 above).
 */
-#if GAOL_PRESERVE_ROUNDING && GAOL_USING_SSE2_INSTRUCTIONS && (defined(__x86_64__) || defined(_M_X64)) && defined(__FMA__)
+#if GAOL_PRESERVE_ROUNDING && GAOL_USING_SSE2_INSTRUCTIONS && (defined(__x86_64__) || defined(_M_X64)) \
+    && GAOL_FMA_AS_INSTRUCTION
 #  undef GAOL_RND_ENTER
 #  undef GAOL_RND_LEAVE
 #  define GAOL_RND_ENTER() GAOL_RND_ENTER_SSE()
 #  define GAOL_RND_LEAVE() GAOL_RND_LEAVE_SSE()
+// 1 where the two macros above write MXCSR alone (GAOL v5; tests/misc.cpp checks which builds have it)
+#  define GAOL_RND_MXCSR_ONLY 1
+#else
+#  define GAOL_RND_MXCSR_ONLY 0
 #endif
 
 /*

@@ -783,6 +783,40 @@ public:
 #endif
   }
 
+  // The builds that write MXCSR alone in GAOL_RND_ENTER() and GAOL_RND_LEAVE() with
+  // GAOL_PRESERVE_ROUNDING (GAOL v5, point 109 (AI) of TODO.md; see gaol/gaol_fpu.h): x86-64
+  // with the SSE2 intervals and the fused multiply-add, which is __FMA__ for GCC, Clang and
+  // clang-cl and /arch:AVX2 (__AVX2__) for Visual C++. Written again here so that a build
+  // that loses them, and takes the macros that call fegetround() and fesetround() and write the
+  // control word of the x87 unit as well (24 ns per operation with Visual C++ x64), does not go unseen
+  void test_rounding_macros_write_mxcsr_alone() {
+    // GAOL_FMA_AS_INSTRUCTION, which the macros below and the packed products of the integer
+    // powers share, is the condition of the compiler written again
+#if defined(__FMA__) || (defined(_MSC_VER) && !defined(__clang__) && defined(__AVX2__))
+    TEST_TRUE(GAOL_FMA_AS_INSTRUCTION == 1);
+#else
+    TEST_TRUE(GAOL_FMA_AS_INSTRUCTION == 0);
+#endif
+#if GAOL_PRESERVE_ROUNDING && GAOL_USING_SSE2_INSTRUCTIONS && (defined(__x86_64__) || defined(_M_X64))
+#  if defined(__FMA__) || (defined(_MSC_VER) && !defined(__clang__) && defined(__AVX2__))
+    TEST_TRUE(GAOL_RND_MXCSR_ONLY == 1);
+#  else
+    TEST_TRUE(GAOL_RND_MXCSR_ONLY == 0);
+#  endif
+#elif GAOL_PRESERVE_ROUNDING
+    TEST_TRUE(GAOL_RND_MXCSR_ONLY == 0);
+#else
+    std::printf("The rounding direction is not preserved (or the processor is not an x86-64): nothing to check\n");
+    TEST_TRUE(GAOL_RND_MXCSR_ONLY == 0);
+#endif
+#if GAOL_PRESERVE_ROUNDING
+    // What the build has, as the compiler gave it: the jobs of the continuous integration for Visual C++ and
+    // clang-cl on x64 look for the "is 1" (ctest -V), which the copy of the condition above would not see go
+    std::printf("GAOL_RND_MXCSR_ONLY is %d: GAOL_RND_ENTER() and GAOL_RND_LEAVE() %s\n", GAOL_RND_MXCSR_ONLY,
+                GAOL_RND_MXCSR_ONLY ? "write MXCSR alone" : "are those of the other builds");
+#endif
+  }
+
   // Tests of logical predicates ===================================================================
   void test_predicates() {
     // is_empty()
@@ -825,4 +859,5 @@ GAOL_UNIT_MAIN(misc_test, "misc",
                GAOL_UNIT_TEST(test_kernels_are_not_in_gaol_core),
                GAOL_UNIT_TEST(test_heap_alignment),
                GAOL_UNIT_TEST(test_intervals_aligned_on_8_bytes),
-               GAOL_UNIT_TEST(test_stack_entered_aligned_on_4_bytes))
+               GAOL_UNIT_TEST(test_stack_entered_aligned_on_4_bytes),
+               GAOL_UNIT_TEST(test_rounding_macros_write_mxcsr_alone))

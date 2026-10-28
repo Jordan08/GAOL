@@ -80,9 +80,10 @@
 #include "gaol/gaol_ldexp.h"
 
 // The FMA instructions on two doubles at once, for the integer powers, where
-// the build has them (GAOL v5, see pown_products()): SSE2 with FMA on x86. The
-// NEON intervals have them all (gaol/core/gaol_interval_neon.cpp)
-#if GAOL_USING_SSE2_INSTRUCTIONS && (defined(__FMA__) || (defined(_MSC_VER) && defined(__AVX2__)))
+// the build has them (GAOL v5, see pown_products()): SSE2 with FMA on x86
+// (GAOL_FMA_AS_INSTRUCTION, gaol/gaol_fpu.h). The NEON intervals have them all
+// (gaol/core/gaol_interval_neon.cpp)
+#if GAOL_USING_SSE2_INSTRUCTIONS && GAOL_FMA_AS_INSTRUCTION
 #  define GAOL_POWN_PACKED 1
 #  include <immintrin.h>
 #else

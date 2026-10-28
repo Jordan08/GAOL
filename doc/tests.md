@@ -1552,6 +1552,19 @@ point Q), which `numbers` checks there too.
   misaligned entries, and does not with `-mstackrealign` or
   `-mincoming-stack-boundary=2` given to the file of the test (`libgaol.a` is
   compiled without).
+  `test_rounding_macros_write_mxcsr_alone` tells the builds with
+  `GAOL_PRESERVE_ROUNDING` whose operations write MXCSR alone
+  (`GAOL_RND_MXCSR_ONLY` of `gaol/gaol_fpu.h`): x86-64 with the SSE2 intervals
+  and the fused multiply-add instructions, `__FMA__` for GCC, Clang and
+  clang-cl and `/arch:AVX2` for Visual C++ (GAOL v5, point 109 (AI) of
+  TODO.md); any other build, on x86-64 (GCC or Clang without `-mfma`, Visual
+  C++ without `/arch:AVX2`) or elsewhere, has the macros of its own, which call
+  `fegetround()` and `fesetround()` or write the control register of the
+  processor. The test checks the macro against a copy of the condition, which
+  a build that loses `/arch:AVX2` would satisfy too, so that it prints the
+  value (`GAOL_RND_MXCSR_ONLY is 1`) and the jobs of the continuous
+  integration for Visual C++ and clang-cl on x64 with the direction preserved
+  look for it (`ctest -V`).
   `check/fpu.cpp`, an empty test, and `check/essai.cpp`, which printed an
   interval, are gone, as is `check/performances.cpp`, the benchmark of GAOL 4,
   which `make perf` replaces (see
