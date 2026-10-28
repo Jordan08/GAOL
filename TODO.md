@@ -240,17 +240,24 @@ probablement rien.
    puissance minuscule de |y| ≥ 2^1013, qu'un défaut de plus de `cr_pow()`
    impose encore (`is_exact()` calcule `y * e`, qui déborde à partir de |y e| =
    2^1024 quand x est une puissance de 2 : `FE_OVERFLOW` pour une puissance qui
-   s'annule) ; ce défaut est à proposer aussi, pas encore écrit dans
-   `3rd/README.md`, et le raccourci sera retiré s'il est corrigé. Un autre, que
+   s'annule) ; #213 garde le raccourci (*décidé le 28 octobre*), qui sera retiré
+   si l'amont corrige. Ce défaut est à proposer aussi : la réplique et le
+   correctif d'une ligne (`y <= 1074 &&` devant `-1074 <= y * e`, car e ≠ 0
+   dans ce cas) sont écrits et vérifiés le 28 octobre sur 50 896 000 appels dans
+   les quatre arrondis (mêmes résultats, mêmes indicateurs sauf `FE_OVERFLOW`,
+   levé exactement quand 2^(e y) déborde, contre 4 551 008 indicateurs en trop
+   avant), le brouillon a été montré au mainteneur ; pas encore écrit dans
+   `3rd/README.md` (correctif 9) ni dans #125. Un autre, que
    GAOL contourne sans toucher aux sources, est à proposer aussi : `cr_atan()`
    calcule `x + x` pour un NaN avant le test qui le garde, ce qui lève
    `FE_OVERFLOW` à partir de |x| = 2^1023 avec Visual C++ (`/fp:strict`), que
    `atan_lo()` et `atan_hi()` évitent en rendant les bornes de pi/2 à partir de
    |x| = 2^54 ; un import qui le corrigerait permettrait de retirer ce
-   contournement. *À décider* (question ouverte de #212) : des arguments
-   difficiles à arrondir pour `cos`, tirés du fichier `cos.wc` des pires cas de
-   l'amont (qui n'est pas dans l'arbre), pour que `cos_accurate_path()` voie
-   aussi les fautes de moins de 2^-70 environ en relatif ?
+   contournement. Question de #212 sur des arguments difficiles à arrondir de
+   `cos.wc` (le fichier des pires cas de l'amont, absent de l'arbre) : *décidé
+   le 28 octobre*, non, les 45 arguments de `cos_accurate_path()` suffisent ;
+   elle ne voit pas les fautes de moins de 2^-70 environ en relatif, et les deux
+   mutants qui survivent ne changent aucun résultat observable.
 2. **#126 GCC** (la comparaison silencieuse rendue signalante par
    l'if-conversion sur ARM 32 bits et POWER9 et par la vectorisation, et le
    miscompilage de GCC 12.2 sur aarch64 dans `tests/numbers.cpp` ; le bogue

@@ -2615,6 +2615,15 @@ le travail qu'elles décident est fait le même soir et ouvert en pull requests
   de |y e| = 2^1024 et lève `FE_OVERFLOW` pour une puissance minuscule ; #213
   garde donc la puissance minuscule de |y| ≥ 2^1013, et le défaut est à
   proposer à l'amont (`TODO.md`, PH.1).
+- **Réponses du mainteneur le 28 octobre**, aux questions qui closaient la
+  session : (1) #213 garde le raccourci de |y| ≥ 2^1013 (PH.1 demandait de tout
+  retirer, `is_exact()` l'en empêche) ; (2) le défaut d'`is_exact()` : préparer
+  le rapport pour l'amont et le lui montrer, ce qui est fait (réplique et
+  correctif d'une ligne vérifiés sur 50 896 000 appels, rien d'envoyé, rien
+  d'écrit dans `3rd/README.md` ni dans #125) ; (3) pas d'arguments de `cos.wc`
+  pour #212, les 45 suffisent (question fermée) ; (4) attendre la CI sans
+  démarrer d'autre tâche. La CI est entièrement verte : #212 (221 jobs), #213
+  (222 jobs) et `configure-clean` au commit `1f92634`.
 
 ## 4. Les points faits, par lettre
 
