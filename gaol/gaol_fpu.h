@@ -177,11 +177,11 @@ point AI.108 of TODO_DONE.md) */
 #endif
 
 /* GAOL_RND_X86_64_DIRECT: 1 on x86-64, with GCC, Clang (clang-cl, mingw-w64,
-Cygwin and macOS included) or Visual C++, where get_rounding() and the functions
-that set the direction back (GAOL_RND_PRESERVE(), GAOL_RND_RESTORE(),
-GAOL_RND_NEAREST_LEAVE(), rounding_guard, gaol::cleanup()...) read the control
-word of the x87 unit and MXCSR themselves and write the register that differs
-from the state to set back, and none when both hold it, as x86_set_modes() does
+Cygwin and macOS included) or Visual C++, where get_rounding() (which
+GAOL_RND_PRESERVE() calls) and the functions that set the direction back
+(GAOL_RND_RESTORE(), GAOL_RND_NEAREST_LEAVE(), rounding_guard,
+gaol::cleanup()...) read the control word of the x87 unit and MXCSR themselves
+and write the register that differs from the state to set back, and none when both hold it, as x86_set_modes() does
 for a 32-bit x86 processor (GAOL_RND_X86_DIRECT above), rather than call
 fegetround() and fesetround() (GAOL v5, point PG.10 of TODO.md). fesetround()
 writes both registers whatever they hold, and GAOL wrote MXCSR a second time
@@ -208,7 +208,8 @@ the writing and the reading of an interval, which set the direction to nearest
 and back, lost the flags the program had raised (without it they write the
 registers themselves), as did gaol::cleanup() and gaol::restore_rounding(),
 through set_rounding(), with it or without it. Before version 13, fegetround() reads the
-control word of the x87 unit alone and fesetround() keeps the flags. Always
+control word of the x87 unit alone and fesetround() keeps the flags. Not
+ARM64EC, which defines _M_X64 and which gaol/gaol_config.h refuses. Always
 defined, to 0 or 1. */
 #if (defined(__x86_64__) || defined(_M_X64)) && GAOL_RND_SSE_REGISTER && GAOL_HAVE_FENV_H \
     && (defined(__GNUC__) || defined(__clang__) || defined(_MSC_VER))

@@ -213,4 +213,13 @@ MUTANTS = [
 
   /*
     The fields RC'''),
+    mf('registers-write-mxcsr-flags-raised', '''    void write_mxcsr(unsigned int mxcsr) const { _mm_setcsr(mxcsr); }
+  };
+
+  /*
+    The fields RC''', '''    void write_mxcsr(unsigned int mxcsr) const { _mm_setcsr(mxcsr | 0x3fu); }
+  };
+
+  /*
+    The fields RC'''),
 ]

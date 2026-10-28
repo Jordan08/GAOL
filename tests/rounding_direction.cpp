@@ -66,13 +66,17 @@
  * assignments give the tightest bounds after the program changes the
  * direction, as the product and the sum do (GAOL v5).
  *
- * On a 32-bit x86 processor, the control word of the x87 unit and MXCSR are
- * read and written directly (GAOL v5): what gaol_core::x86_*() decide to write,
- * and the values, are checked on every platform, with two variables for the
- * registers, in every state of the two rounding fields and the two flush modes;
- * and, with GCC, Clang or Visual C++ for 32-bit x86, the registers themselves,
- * which the tests read and write apart from the library, after operations and
- * right before them, in the six states where the units agree or differ.
+ * On a 32-bit x86 processor, and on x86-64 for get_rounding(), set_rounding()
+ * and set_rounding_and_flush_modes() (point PG.10 of TODO.md), the control word
+ * of the x87 unit and MXCSR are read and written directly (GAOL v5): what
+ * gaol_core::x86_*() decide to write, and the values, are checked on every
+ * platform, with two variables for the registers, in every state of the two
+ * rounding fields and the two flush modes, and with the MXCSR alone of Visual
+ * C++ for x64; and, with GCC, Clang or Visual C++ for 32-bit x86, the registers
+ * themselves, which the tests read and write apart from the library, after
+ * operations and right before them, in the six states where the units agree or
+ * differ; on x86-64, the state that get_rounding() reads and the registers that
+ * set_rounding() and set_rounding_and_flush_modes() write.
  *
  * Copyright (c) 2026 ENSTA, France
  *
@@ -663,6 +667,78 @@ namespace
   }
 
   /*
+    The registers of Visual C++ for x64 (gaol_core::x86_registers of
+    gaol/gaol_fpu_fenv.h, GAOL v5, point PG.10 of TODO.md): MXCSR alone, the
+    control word of the x87 unit read as 0 and never written, there being no
+    x87 unit that it uses and no inline assembly to reach it. Only the
+    continuous integration of Windows runs that type; the decisions that
+    x86_get_state(), x86_set_rounding() and x86_set_rounding_and_flush_modes()
+    take on registers of this kind are checked on every platform: the state has
+    no x87 field (0), the control word is never written, MXCSR is written once
+    if its direction (or, for the second, its modes) differs from the state
+    and not otherwise, and no other bit of it changes.
+  */
+  struct MxcsrOnlyRegisters
+  {
+    unsigned int csr;
+    int x87_writes, mxcsr_writes;
+
+    explicit MxcsrOnlyRegisters(unsigned int mxcsr) : csr(mxcsr), x87_writes(0), mxcsr_writes(0) {}
+
+    void read_control(unsigned int& x87_cw, unsigned int& mxcsr) const
+    {
+      x87_cw = 0u;
+      mxcsr = csr;
+    }
+
+    void write_x87_control(unsigned int)
+    {
+      ++x87_writes;
+    }
+
+    void write_mxcsr(unsigned int mxcsr)
+    {
+      csr = mxcsr;
+      ++mxcsr_writes;
+    }
+  };
+
+  void mxcsr_only_registers_simulated()
+  {
+    const std::string where = " of the registers of Visual C++ for x64";
+    for (unsigned int j = 0; j < nb_x86_fields; ++j) {
+      const X86Fields saved = x86_fields(j);
+      const unsigned int saved_sse = saved.sse_rc << 13;
+      const unsigned int saved_flush = (saved.ftz ? 1u << 15 : 0u) | (saved.daz ? 1u << 6 : 0u);
+      MxcsrOnlyRegisters source(mxcsr_register(0x1f80u, saved));
+      SimulatedState s;
+      gaol_core::x86_get_state(source, s);
+      check("x86_get_state()" + where, s.x87 == 0u && s.sse == saved_sse && s.flush == saved_flush,
+            [&] { return "from " + x86_text(saved) + ": " + x86_hex(s.x87) + ", " + x86_hex(s.sse) + ", " + x86_hex(s.flush); });
+      for (unsigned int i = 0; i < nb_x86_fields; ++i) {
+        const X86Fields now = x86_fields(i);
+        for (unsigned int other : mxcsr_others) {
+          const unsigned int csr = mxcsr_register(other, now);
+          const auto describe = [&] { return "from " + x86_text(now) + " to " + x86_text(saved) + ", MXCSR " + x86_hex(csr); };
+          const unsigned int direction_kept = csr & ~0x6000u;
+          const unsigned int all_kept = csr & ~(0x6000u | 0x8040u);
+          MxcsrOnlyRegisters r(csr), q(csr);
+          gaol_core::x86_set_rounding(r, s);
+          gaol_core::x86_set_rounding_and_flush_modes(q, s);
+          check("x86_set_rounding(): the direction set back, no other bit changed, the control word not written" + where,
+                r.csr == (direction_kept | saved_sse) && r.x87_writes == 0, describe);
+          check("x86_set_rounding(): one write if the direction differs, none otherwise" + where,
+                r.mxcsr_writes == (now.sse_rc != saved.sse_rc ? 1 : 0), describe);
+          check("x86_set_rounding_and_flush_modes(): the direction and the modes set back, no other bit changed, the control word not written" + where,
+                q.csr == (all_kept | saved_sse | saved_flush) && q.x87_writes == 0, describe);
+          check("x86_set_rounding_and_flush_modes(): one write if the direction or a mode differs, none otherwise" + where,
+                q.mxcsr_writes == ((now.sse_rc != saved.sse_rc || now.ftz != saved.ftz || now.daz != saved.daz) ? 1 : 0), describe);
+        }
+      }
+    }
+  }
+
+  /*
     MXCSR alone, as a variable (GAOL v5, point 108 (AI) of TODO.md): the
     start and the end of the operations that keep it alone with
     GAOL_PRESERVE_ROUNDING (GAOL_RND_ENTER_SSE() and GAOL_RND_LEAVE_SSE()) are
@@ -1045,7 +1121,7 @@ namespace
       write_x86_fields(register_directions[d], flush);
       clear_x87_exceptions();
       write_x87_word((read_x87_word() & 0x0c00u) | other);
-      _mm_setcsr(static_cast<unsigned int>(_mm_getcsr()) | flags);
+      _mm_setcsr((static_cast<unsigned int>(_mm_getcsr()) & ~0x003fu) | flags);
     };
     for (std::size_t d = 0; d < nb_directions; ++d) {
       for (unsigned int flush : flushes) {
@@ -3061,6 +3137,7 @@ int main()
   // What gaol_core::x86_*() decide on the registers of a 32-bit x86 processor,
   // simulated, on every platform (GAOL v5)
   x86_registers_simulated();
+  mxcsr_only_registers_simulated();
   sse_register_simulated();
 #if GAOL_RND_X86_REGISTERS
   round_functions_change_the_direction_only();

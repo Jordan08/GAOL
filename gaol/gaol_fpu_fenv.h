@@ -45,11 +45,11 @@ refuses doubles computed on it, and the three builds give -msse2
 Since then:
 - get_rounding() and set_rounding() (gaol_fpu.h) read and write the rounding
 direction with fegetround() and fesetround(), and the rounding bits of MXCSR
-as well; on an x86 processor, 32-bit or x86-64 (GAOL_RND_X86_STATE: with
-mingw-w64 fegetround() joins the two units and fesetround() clears the
-exception flags of MXCSR), the rounding bits of the x87 control word and of
-MXCSR directly, with fnstcw and stmxcsr, fldcw and ldmxcsr, the register that
-differs only (GAOL v5). The get_fpu_cw() and reset_fpu_cw() of GAOL 4 read and wrote the
+as well; on an x86 processor, 32-bit or x86-64 (GAOL_RND_X86_STATE), the
+rounding bits of the x87 control word and of MXCSR directly, with fnstcw and
+stmxcsr, fldcw and ldmxcsr, the register that differs only (GAOL v5; with
+mingw-w64, fegetround() joins the two units and fesetround() clears the
+exception flags of MXCSR, which showed it first). The get_fpu_cw() and reset_fpu_cw() of GAOL 4 read and wrote the
 control word of the x87 unit on x86 Linux and macOS, which left the direction
 of the SSE instructions unrestored, and 16 bits of the FPCR on 64-bit ARM,
 which left out its rounding bits.

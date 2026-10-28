@@ -14,7 +14,7 @@ again.
 
 | File | What it is for |
 |---|---|
-| [mutants.py](mutants.py) | 70 mutants of `gaol/gaol_fpu.h` and `gaol/gaol_fpu_fenv.h`, for `../pow/mutate.py`: the test `rounding_direction` has to fail on each. |
+| [mutants.py](mutants.py) | 71 mutants of `gaol/gaol_fpu.h` and `gaol/gaol_fpu_fenv.h`, for `../pow/mutate.py`: the test `rounding_direction` has to fail on each. |
 | [amalgamate.py](amalgamate.py) | One source file from the sources of GAOL, to give to a compiler that is not here and takes one file (Compiler Explorer). |
 
 ## The mutants
@@ -29,7 +29,7 @@ python3 tests/tools/pow/mutate.py --mutants tests/tools/x86-csr/mutants.py \
 ```
 
 The whole library is built again for each mutant, `gaol_fpu.h` being included
-everywhere: the 63 mutants took 1000 s with 4 cores. Each mutant is an error in
+everywhere: the first 63 mutants took 1000 s with 4 cores (the 7 of point PG.10, 154 s). Each mutant is an error in
 one of the functions `x86_is_upward()`,
 `x86_set_modes()` (and the constants of the fields, which are in
 `gaol_fpu_fenv.h` with it), `x86_set_upward()`, `x86_enter_registers()`,
@@ -61,11 +61,17 @@ point PG.10 of `TODO.md` (they called `fegetround()` and `fesetround()`), and
 the registers themselves (`x86_registers` and `gaol_read_x86_control()` of
 `gaol/gaol_fpu_fenv.h`) are checked on an x86-64 processor by
 `rounding_state_on_the_processor()` of the same test, in the six directions,
-with each flush mode and with other bits in the registers: seven mutants of the
+with each flush mode and with other bits in the registers: eight mutants of the
 list (`get-rounding-reads-nothing`, `set-rounding-also-sets-the-modes`,
 `set-rounding-and-flush-modes-sets-no-mode`, `registers-read-swapped`,
-`registers-read-x87-bit-lost`, `registers-write-x87-direction-lost` and
-`registers-write-mxcsr-flags-lost`) are killed by it.
+`registers-read-x87-bit-lost`, `registers-write-x87-direction-lost`,
+`registers-write-mxcsr-flags-lost` and `registers-write-mxcsr-flags-raised`)
+are killed by it, the first three by it alone, the others by earlier checks of
+the test as well (the direction after an operation, the flags kept); the last
+one is seen by the cases where the program had raised no flag, which the test
+clears the flags for. `mxcsr_only_registers_simulated()` runs the same
+decisions on the MXCSR alone of Visual C++ for x64, whose type only the
+continuous integration of Windows compiles.
 
 The same registers, with four sets of other bits that include an exception
 unmasked in each, are checked by `x86_registers_on_the_processor()`
