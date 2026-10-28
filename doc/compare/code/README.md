@@ -101,7 +101,7 @@ nothing else meanwhile. Their variables:
 | `REPEATS` | `5` | Runs of each operation in a round |
 | `P1788_REPEATS` | `1` | The same for libieeep1788, far slower than the others |
 | `OPS` | all | Operations to run, separated by commas: `add,sin,shekel5` |
-| `LINE_LIST` | all | The same for `run_lines.sh`, the long lines of `bench_ops.h` (`sum16,mul8,mix13...`), which `run_bench.sh` does not run; `LIBS` has no `sun` there |
+| `LINE_LIST` | all | The same for `run_lines.sh`, the long lines of `bench_ops.h` (`sum16,mul8,mix13...`), which `run_bench.sh` does not run; `LIBS` has no `sun` there, and has `gaol5p` there too (a column of the table of the times of the lines only) |
 | `LIBS` | `double gaol5 gaol5p gaol filib profil boost sun p1788` | Libraries to run: `gaol5` is the GAOL of this repository, `gaol5p` the same built with `GAOL_PRESERVE_ROUNDING=ON` (a column of the table of the times only), `gaol` the last GAOL of Frédéric Goualard |
 | `MERGE` | | `1`: the times of what ran (`LIBS`, `OPS`) replace their rows of `results.csv`, the other rows being kept, and the report is written from all of them, as `make perf` does for GAOL v5: `MERGE=1 LIBS=gaol5p CPU=2 ./run_bench.sh` measures the preserved direction alone |
 | `CPU` | | Processor to run on (`taskset -c`) |
@@ -112,6 +112,23 @@ nothing else meanwhile. Their variables:
 | `FILIB_DIR` | the one `setup.sh` was given, or `PREFIX` | An installed filib++ (`include/interval/interval.hpp`, `lib/libprim.a`) |
 | `PROFIL_TGZ` | | A copy of `Profil-2.0.8.tgz`, for `setup.sh` when the site of PROFIL/BIAS is down |
 | `ENCLOSURE_N` | `100000` | Arguments of each function for `run_enclosure.sh`, whose values mpmath computes with 2000 bits, about 5 minutes the first time for 100 000 |
+
+## The long lines on a 64-bit ARM processor
+
+`run_lines_arm64.sh` runs the long lines on a 64-bit ARM processor, with three
+GAOLs only: GAOL V5.0.0, GAOL V5.0.0 built with `GAOL_PRESERVE_ROUNDING=ON`
+(the NEON intervals reading and writing FPCR, where the library on x86 has the
+AVX-512 instructions) and GAOL 4.2.3, whose configure knows macOS on ARM as
+`arm-apple-*`. The other libraries are not built there: `setup.sh` builds
+libraries and passes flags that are x86 only. It needs a C++ compiler, CMake,
+git, curl, pkg-config and Python 3 with numpy, builds under `work/arm64`, and
+draws the same intervals as `run_bench.sh` (the generator is seeded). macOS has
+no `taskset`: the programs are not pinned, and the machine should be on mains
+power and do nothing else meanwhile.
+
+```bash
+cd doc/compare/code && ./run_lines_arm64.sh   # -> the end of ../performance.md
+```
 
 ## GAOL v5 alone: `make perf`
 
@@ -173,6 +190,7 @@ of the job (`performance.yml`, with `.github/scripts/performance-ab.sh`: see
 | `bench_common.h`, `bench_ops.h` | The benchmark in C++: reading the intervals, timing, and the operations and the long lines, written once for every C++ library |
 | `build_benchmarks.sh` | The compilation of the C++ programs and the description of the machine, which `run_bench.sh` and `run_lines.sh` share (sourced) |
 | `run_lines.sh` | Compiles and runs the long lines of + - * / of `bench_ops.h` with the C++ libraries, and writes their tables at the end of `performance.md`; after a whole run, keeps its results in `results_lines.csv` and `machine_lines.txt` |
+| `run_lines_arm64.sh` | The same long lines on a 64-bit ARM processor (an Apple M2 under macOS), with GAOL V5.0.0, GAOL V5.0.0 with the rounding direction preserved and GAOL 4.2.3 alone: builds the three itself, and writes the table at the very end of `performance.md`, keeping its results in `results_lines_arm64.csv` and `machine_lines_arm64.txt` |
 | `bench_gaol.cpp`, `bench_p1788.cpp`, `bench_filib.cpp`, `bench_profil.cpp`, `bench_boost.cpp`, `bench_double.cpp` | The benchmark with GAOL, libieeep1788, filib++, PROFIL/BIAS and Boost.Interval, and on doubles for reference |
 | `boost_policies.h` | The intervals of Boost.Interval that the benchmark, the special cases and the test of enclosure use, and why |
 | `bench_sun.f90` | The same operations in Fortran, for Solaris Studio |
@@ -182,6 +200,7 @@ of the job (`performance.yml`, with `.github/scripts/performance-ab.sh`: see
 | `run_enclosure.sh` | Draws the arguments, compiles and runs the two programs of the test of enclosure, and writes its tables |
 | `run_perf.sh` | `make perf`: runs the benchmark of GAOL v5 alone, the long lines included, and writes the tables with its new times (see below) |
 | `results.csv`, `machine.txt`, `results_lines.csv`, `machine_lines.txt` | The results of the last whole run, of the operations and of the long lines, and what they were measured on, which `run_perf.sh` keeps for the other libraries |
+| `results_lines_arm64.csv`, `machine_lines_arm64.txt` | The results of the long lines on the 64-bit ARM processor, and what they were measured on |
 | `run_all.sh` | `setup.sh`, `run_cases.sh`, `run_enclosure.sh` and `run_bench.sh` |
 
 To add a special case, add a line `case(expression, result of IEEE 1788, note)`

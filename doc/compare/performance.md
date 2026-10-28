@@ -490,3 +490,73 @@ and exactly on the others, where GAOL 4.2.3's differ from them by 2.3e-16 on the
 lines of quotients; PROFIL/BIAS's sums of midpoints differ because its `Mid`
 rounds upward (see above), by a lot where the sum of a line, `diff16`, is as
 small as 10^-12 for a million values.
+
+## The same lines on a 64-bit ARM processor
+
+<!-- BEGIN GENERATED ARM64 (doc/compare/code/bench.py) -->
+
+Measured on:
+
+```
+Date:            2026-10-28
+Processor:       Apple M2 (not pinned to a processor: no taskset on macOS), power: AC Power
+System:          Darwin 27.0.0, macOS 27.0.1
+C++ compiler:    Apple clang version 21.0.0 (clang-2100.3.34.2)
+C++ flags:       -std=c++11 -O3 -DNDEBUG (GAOL: -frounding-math -fno-fast-math -ffp-contract=off; GAOL 4.2.3: -frounding-math -fno-fast-math -ffp-contract=off)
+GAOL V5.0.0:     the branch of this checkout (2a69f89), CMake Release, NEON intervals, CORE-MATH of 3rd/math-core compiled into the library, the rounding direction not preserved
+GAOL V5.0.0 preserved: the same, built with GAOL_PRESERVE_ROUNDING=ON, the rounding direction restored after each operation (the FPCR register, read and written by each operation)
+GAOL 4.2.3:      the last version of Frédéric Goualard (cd0ee1a of https://github.com/goualard-f/GAOL), its configure generated again by autoreconf and told --build=arm-apple-darwin (the one it commits does not know macOS on ARM), the rounding direction not preserved, the FPU intervals (it has no instructions of 64-bit ARM to compute them with), mathlib 2.1.1 configured with --host=aarch64-unknown-linux-gnu (its configure knows no macOS on ARM; no line here calls it)
+```
+
+1 000 000 evaluations of each line, on the same intervals (drawn by the same program as above). Each time is the best of 3 rounds, each program being run in turn with the others: 15 runs for GAOL V5.0.0, 15 runs for GAOL V5.0.0, rounding direction preserved, 15 runs for GAOL 4.2.3 in all.
+
+#### Time per evaluation of a line (nanoseconds)
+
+| Line | Operations | GAOL V5.0.0 | GAOL V5.0.0, rounding direction preserved | GAOL 4.2.3 | GAOL V5.0.0, rounding direction preserved / GAOL V5.0.0 | GAOL 4.2.3 / GAOL V5.0.0 |
+|---|---:|---|---|---|---|---|
+| `sum16` | 15 | 9.05 | 384 | 42.0 | 42.4 | 4.6 |
+| `diff16` | 15 | 9.13 | 389 | 77.4 | 42.6 | 8.5 |
+| `mul8` | 7 | 16.0 | 202 | 28.1 | 12.6 | 1.8 |
+| `mul8_tree` | 7 | 14.4 | 202 | 24.5 | 14.0 | 1.7 |
+| `quot8` | 7 | 17.7 | 221 | 37.2 | 12.5 | 2.1 |
+| `mix13` | 13 | 17.0 | 360 | 61.4 | 21.1 | 3.6 |
+| `mix_tree` | 19 | 20.7 | 525 | 82.6 | 25.4 | 4.0 |
+| `pos_sum16` | 15 | 8.85 | 387 | 39.6 | 43.7 | 4.5 |
+| `pos_mul8` | 7 | 15.1 | 205 | 16.1 | 13.6 | 1.1 |
+| `pos_quot8` | 7 | 17.7 | 221 | 46.3 | 12.5 | 2.6 |
+
+#### Same results?
+
+The sum of the midpoints of the results and their mean width, with the relative difference of the other versions from GAOL V5.0.0:
+
+| Line | Σ midpoints (GAOL V5.0.0) | Δ GAOL V5.0.0, rounding direction preserved | Δ GAOL 4.2.3 | mean width (GAOL V5.0.0) | excess GAOL V5.0.0, rounding direction preserved | excess GAOL 4.2.3 |
+|---|---|---|---|---|---|---|
+| `sum16` | 54024197.3 | 0.0e+00 | 0.0e+00 | 1.03024 | -1.1e-16 | 0.0e+00 |
+| `diff16` | -4.690193546e-13 | 0.0e+00 | 0.0e+00 | 1.03024 | -1.1e-16 | 0.0e+00 |
+| `mul8` | 255576459.8 | 0.0e+00 | 0.0e+00 | 13602.3 | 0.0e+00 | 0.0e+00 |
+| `mul8_tree` | 255576459.8 | 0.0e+00 | 0.0e+00 | 13602.3 | 0.0e+00 | 0.0e+00 |
+| `quot8` | -1016.492029 | -1.1e-16 | 0.0e+00 | 0.0625416 | 0.0e+00 | 0.0e+00 |
+| `mix13` | 738436463 | 0.0e+00 | 0.0e+00 | 79.6756 | 0.0e+00 | 0.0e+00 |
+| `mix_tree` | -155881.5083 | 0.0e+00 | 0.0e+00 | 1.24303 | 0.0e+00 | 0.0e+00 |
+| `pos_sum16` | 56040038.03 | 0.0e+00 | 0.0e+00 | 0.64606 | 0.0e+00 | 0.0e+00 |
+| `pos_mul8` | 2.178309922e+10 | 0.0e+00 | 0.0e+00 | 1161.99 | 0.0e+00 | 0.0e+00 |
+| `pos_quot8` | 138457.8704 | 0.0e+00 | 0.0e+00 | 0.0326453 | 0.0e+00 | -1.1e-16 |
+
+<!-- END GENERATED ARM64 -->
+
+GAOL V5.0.0 takes 8.85 to 20.7 ns for a line of 7 to 19 operations on this
+processor, 0.6 to 2.5 ns an operation, where GAOL 4.2.3, which has no
+instructions of 64-bit ARM to compute its FPU intervals with, takes 1.1 to 8.5
+times as long. With the rounding direction preserved the same lines take 202 to
+525 ns, 25.6 to 31.6 ns an operation, 12.5 to 43.7 times as long as without:
+the program computes to nearest, so each operation sets the direction upward and
+puts nearest back, two `msr` of FPCR of 11 ns each that change it, with the
+`mrs` of 0.8 ns that reads it, the 27 ns an operation of
+[The three builds](../three-builds.md). The sums of the midpoints and of the
+widths of the three agree to 1.1e-16 relatively.
+
+The processor is not pinned and the machine was on mains power, the low power
+mode off, with a load average of 1.5 at the start and 1.8 at the end and no
+other process above 10 % of a core (`top`). The three rounds of a line differ by
+2.4 % at the median and by 8.8 % at most (`diff16` of GAOL V5.0.0, whose third
+round is the slowest); the best of the three is kept.

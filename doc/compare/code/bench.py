@@ -11,6 +11,11 @@
     bench.py lines-report RESULTS.csv MACHINE.txt REPORT.md
         writes the tables of the long lines (run_lines.sh) between their own
         markers at the end of REPORT.md
+    bench.py arm64-report RESULTS.csv MACHINE.txt REPORT.md
+        writes the table of the long lines measured on a 64-bit ARM processor
+        (run_lines_arm64.sh: GAOL V5.0.0, GAOL V5.0.0 with the rounding
+        direction preserved and GAOL 4.2.3) between its own markers at the end
+        of REPORT.md
     bench.py line-names
         prints the names of the long lines, separated by commas, as the programs
         take them (run_perf.sh, .github/scripts/performance-ab.sh)
@@ -74,7 +79,7 @@ LINES = [
     ("pos_mul8", "p · e · p · e · p · e · p · e", "products of intervals of one sign"),
     ("pos_quot8", "p / e / p / e / p / e / p / e", "quotients of intervals of one sign"),
 ]
-LINE_LIBRARIES = ["double", "libieeep1788", "gaol5", "gaol", "filib", "profil", "boost"]
+LINE_LIBRARIES = ["double", "libieeep1788", "gaol5", "gaol5p", "gaol", "filib", "profil", "boost"]
 
 
 def line_operations(formula):
@@ -300,17 +305,18 @@ def lines_report(results_path, machine_path, out):
     with open(machine_path) as f:
         machine = f.read().strip()
     names = dict(LIBRARIES)
-    libs = [(key, names[key]) for key in LINE_LIBRARIES if any(k[0] == key for k in results)]
+    all_libs = [(key, names[key]) for key in LINE_LIBRARIES if any(k[0] == key for k in results)]
+    libs = [(key, name) for key, name in all_libs if key not in TIME_ONLY]
     lines = [(name, formula, what, line_operations(formula)) for name, formula, what in LINES
              if any(k[1] == name for k in results)]
     text = []
     text.append("Measured on:\n\n```\n" + machine + "\n```\n\n")
     n = max(r["n"] for r in results.values())
-    runs = {key: max((r["repeats"] for k, r in results.items() if k[0] == key), default=0) for key, _ in libs}
+    runs = {key: max((r["repeats"] for k, r in results.items() if k[0] == key), default=0) for key, _ in all_libs}
     rounds = max(r["rounds"] for r in results.values())
     text.append(f"{n:,}".replace(",", " ") + " evaluations of each line, on the same intervals. Each time is the "
                 f"best of {rounds} rounds, each program being run in turn with the others: "
-                + ", ".join(f"{runs[key]} runs for {name}" for key, name in libs) + " in all.\n\n")
+                + ", ".join(f"{runs[key]} runs for {name}" for key, name in all_libs) + " in all.\n\n")
 
     text.append("#### The lines\n\n")
     text.append("a and b are intervals centred in [−10, 10], p in [1, 10], e in [0.5, 2.5], s1 to s4 in [0, 10]; "
@@ -322,15 +328,15 @@ def lines_report(results_path, machine_path, out):
 
     reference = REFERENCE if any(k[0] == REFERENCE for k in results) else "gaol"
     reference_name = names[reference]
-    ratios = [(key, name) for key, name in libs if key not in ("double", reference)]
+    ratios = [(key, name) for key, name in all_libs if key not in ("double", reference)]
 
     text.append("#### Time per evaluation of a line (nanoseconds)\n\n")
-    text.append("| Line | " + " | ".join(name for _, name in libs)
+    text.append("| Line | " + " | ".join(name for _, name in all_libs)
                 + "".join(f" | {name} / {reference_name}" for _, name in ratios) + " |\n")
-    text.append("|---" * (1 + len(libs) + len(ratios)) + "|\n")
+    text.append("|---" * (1 + len(all_libs) + len(ratios)) + "|\n")
     for name, _, _, _ in lines:
         cells = []
-        for key, _ in libs:
+        for key, _ in all_libs:
             r = results.get((key, name))
             cells.append(ns(r["ns"]) if r else "—")
         g = results.get((reference, name))
@@ -339,6 +345,14 @@ def lines_report(results_path, machine_path, out):
             cells.append(ratio(r["ns"], g["ns"]) if r and g else "—")
         text.append(f"| `{name}` | " + " | ".join(cells) + " |\n")
     text.append("\n")
+    if any(k[0] == "gaol5p" for k in results):
+        text.append("GAOL V5.0.0, rounding direction preserved, is the same GAOL built with "
+                    "`GAOL_PRESERVE_ROUNDING=ON`, as in the table of the operations above: each operation of the "
+                    "line restores the rounding direction it found, where GAOL V5.0.0 leaves it upward, and "
+                    "AVX-512 stays enabled in it, so that `+`, `−`, `×` and `/` take the AVX-512 instructions, "
+                    "the rounding direction being in the instruction (the machine description above says "
+                    "whether the library took them). Its column is in this table only: its results are those "
+                    "of GAOL V5.0.0.\n\n")
 
     text.append("#### Time per operation of a line (nanoseconds)\n\n")
     text.append("The time of the line divided by its number of operations.\n\n")
@@ -391,6 +405,87 @@ def lines_report(results_path, machine_path, out):
         f.write(content)
 
 
+BEGIN_ARM64 = "<!-- BEGIN GENERATED ARM64 (doc/compare/code/bench.py) -->"
+END_ARM64 = "<!-- END GENERATED ARM64 -->"
+ARM64_LIBRARIES = ["gaol5", "gaol5p", "gaol"]
+
+
+def arm64_report(results_path, machine_path, out):
+    """The long lines on a 64-bit ARM processor: GAOL V5.0.0, GAOL V5.0.0 with the rounding direction
+    preserved and GAOL 4.2.3, on the same intervals"""
+    results = read_results(results_path)
+    with open(machine_path) as f:
+        machine = f.read().strip()
+    names = dict(LIBRARIES)
+    libs = [(key, names[key]) for key in ARM64_LIBRARIES if any(k[0] == key for k in results)]
+    lines = [(name, formula, what, line_operations(formula)) for name, formula, what in LINES
+             if any(k[1] == name for k in results)]
+    text = []
+    text.append("Measured on:\n\n```\n" + machine + "\n```\n\n")
+    n = max(r["n"] for r in results.values())
+    runs = {key: max((r["repeats"] for k, r in results.items() if k[0] == key), default=0) for key, _ in libs}
+    rounds = max(r["rounds"] for r in results.values())
+    text.append(f"{n:,}".replace(",", " ") + " evaluations of each line, on the same intervals (drawn by the "
+                f"same program as above). Each time is the best of {rounds} rounds, each program being run in "
+                "turn with the others: " + ", ".join(f"{runs[key]} runs for {name}" for key, name in libs)
+                + " in all.\n\n")
+
+    reference = "gaol5"
+    ratios = [(key, name) for key, name in libs if key != reference]
+    text.append("#### Time per evaluation of a line (nanoseconds)\n\n")
+    text.append("| Line | Operations | " + " | ".join(name for _, name in libs)
+                + "".join(f" | {name} / {names[reference]}" for _, name in ratios) + " |\n")
+    text.append("|---|---:" + "|---" * (len(libs) + len(ratios)) + "|\n")
+    for name, _, _, ops in lines:
+        cells = []
+        for key, _ in libs:
+            r = results.get((key, name))
+            cells.append(ns(r["ns"]) if r else "—")
+        g = results.get((reference, name))
+        for key, _ in ratios:
+            r = results.get((key, name))
+            cells.append(ratio(r["ns"], g["ns"]) if r and g else "—")
+        text.append(f"| `{name}` | {ops} | " + " | ".join(cells) + " |\n")
+    text.append("\n")
+
+    # The three libraries compute the same lines: the sums of the midpoints and of the widths of the results
+    # tell whether their bounds are the same
+    text.append("#### Same results?\n\n")
+    text.append("The sum of the midpoints of the results and their mean width, with the relative difference "
+                "of the other versions from GAOL V5.0.0:\n\n")
+    others = [(key, name) for key, name in libs if key != reference]
+    text.append("| Line | Σ midpoints (GAOL V5.0.0) | " + " | ".join(f"Δ {name}" for _, name in others)
+                + " | mean width (GAOL V5.0.0) | " + " | ".join(f"excess {name}" for _, name in others) + " |\n")
+    text.append("|---" * (3 + 2 * len(others)) + "|\n")
+    for name, _, _, _ in lines:
+        p = results.get((reference, name))
+        if not p:
+            continue
+        mid_cells, wid_cells = [], []
+        for key, _ in others:
+            r = results.get((key, name))
+            mid_cells.append(f"{(r['sum_mid'] - p['sum_mid']) / abs(p['sum_mid']):.1e}" if r and p["sum_mid"] else "—")
+            wid_cells.append(f"{(r['sum_wid'] - p['sum_wid']) / p['sum_wid']:.1e}" if r else "—")
+        text.append(f"| `{name}` | {p['sum_mid']:.10g} | " + " | ".join(mid_cells)
+                    + f" | {p['sum_wid'] / p['n']:.6g} | " + " | ".join(wid_cells) + " |\n")
+    text.append("\n")
+
+    block = BEGIN_ARM64 + "\n\n" + "".join(text) + END_ARM64 + "\n"
+    try:
+        with open(out) as f:
+            content = f.read()
+    except FileNotFoundError:
+        content = ""
+    if BEGIN_ARM64 in content and END_ARM64 in content:
+        head, rest = content.split(BEGIN_ARM64, 1)
+        tail = rest.split(END_ARM64, 1)[1]
+        content = head + block + ("\n" + tail.lstrip("\n") if tail.strip() else "")
+    else:
+        content = (content.rstrip("\n") + "\n\n## The same lines on a 64-bit ARM processor\n\n" + block)
+    with open(out, "w") as f:
+        f.write(content)
+
+
 if __name__ == "__main__":
     if len(sys.argv) == 4 and sys.argv[1] == "data":
         data(int(sys.argv[2]), sys.argv[3])
@@ -398,6 +493,8 @@ if __name__ == "__main__":
         report(sys.argv[2], sys.argv[3], sys.argv[4])
     elif len(sys.argv) == 5 and sys.argv[1] == "lines-report":
         lines_report(sys.argv[2], sys.argv[3], sys.argv[4])
+    elif len(sys.argv) == 5 and sys.argv[1] == "arm64-report":
+        arm64_report(sys.argv[2], sys.argv[3], sys.argv[4])
     elif len(sys.argv) == 2 and sys.argv[1] == "line-names":
         print(",".join(name for name, _, _ in LINES))
     elif len(sys.argv) == 5 and sys.argv[1] == "merge":
