@@ -4013,8 +4013,8 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
   (`todo-ph-pow-workarounds`), sur GitHub à la fusion et en local le 28
   octobre ; celle de #200 (`automatic-configuration`), sur GitHub
   à la fusion et en local le 26 octobre ; celles de #206
-  (`todo-ai-x86-csr-rest`), de #207 (`todo-ai-asm-order-x86-64`), de #208 (`todo-ai-stack-alignment-32`),
-  de #209 (`todo-ai-msvc-x64-preserve`), de #210 (`todo-ai-write-if-changed`),
+  (`todo-ai-x86-csr-rest`), de #207 (`todo-ai-asm-order-x86-64`), de #208
+  (`todo-ai-stack-alignment-32`), de #209 (`todo-ai-msvc-x64-preserve`), de #210 (`todo-ai-write-if-changed`),
   de #215 (`todo-ai-x86-csr-sse-mutants`) et de #216 (`perf-doc-rerun`), sur
   GitHub à la fusion et en local le 28 octobre, avec `todo-ai-fpu-kernels`
   (fusionnée depuis longtemps), `todo-ai-msvc-win-v1` (jamais poussée,
