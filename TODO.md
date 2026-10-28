@@ -1,18 +1,18 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `2927cfe` de `configure-clean`, le 27
-octobre 2026, en tâches PF à PJ (PA à PE sont faites, PG est entamée : voir
-`TODO_DONE.md`). Ce fichier et l'issue #179 ont le même contenu. Ce qui est fait
-et décidé est dans `TODO_DONE.md` (issue #177), ce qui est reporté dans
-`TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142 sont fermées, et
-`TODO_mistral.md` est supprimé.
+Ce qui reste à faire sur GAOL v5 au commit `5a6683c` de `configure-clean` (la
+fusion de #213), le 28 octobre 2026, en tâches PF à PJ (PA à PE sont faites, PG
+est entamée : voir `TODO_DONE.md`). Ce fichier et l'issue #179 ont le même
+contenu. Ce qui est fait et décidé est dans `TODO_DONE.md` (issue #177), ce qui
+est reporté dans `TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142
+sont fermées, et `TODO_mistral.md` est supprimé.
 
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à fusionner, à envoyer à un autre projet ni à publier
-sans l'accord du mainteneur. Les pull requests ouvertes sont #206 à #210 (la
-tâche PF, d'une autre session), #212 (le test de `cos` sur son chemin précis) et
-#213 (les contournements de `cr_pow` que l'amont a rendus inutiles).
+sans l'accord du mainteneur. Les pull requests ouvertes sont #207 à #210 (la
+tâche PF, d'une autre session, dont #206 est fusionnée le 28 octobre sans que
+les registres le disent encore).
 
 ## Comment lire ce fichier
 
@@ -236,28 +236,30 @@ probablement rien.
    core-math@inria.fr). Les deux défauts de `cr_pow()` que GAOL contournait
    (*décidé le 24 octobre*, #184), la comparaison `<` d'un NaN (invalidité) et
    le carré `rh * rh` qui déborde, sont corrigés par `c01f08c5` (5 octobre),
-   dans l'import : la pull request #213 retire les contournements, sauf la
-   puissance minuscule de |y| ≥ 2^1013, qu'un défaut de plus de `cr_pow()`
-   impose encore (`is_exact()` calcule `y * e`, qui déborde à partir de |y e| =
-   2^1024 quand x est une puissance de 2 : `FE_OVERFLOW` pour une puissance qui
-   s'annule) ; #213 garde le raccourci (*décidé le 28 octobre*), qui sera retiré
-   si l'amont corrige. Ce défaut est à proposer aussi : la réplique et le
-   correctif d'une ligne (`y <= 1074 &&` devant `-1074 <= y * e`, car e ≠ 0
-   dans ce cas) sont écrits et vérifiés le 28 octobre sur 50 896 000 appels dans
-   les quatre arrondis (mêmes résultats, mêmes indicateurs sauf `FE_OVERFLOW`,
-   levé exactement quand 2^(e y) déborde, contre 4 551 008 indicateurs en trop
-   avant), le brouillon a été montré au mainteneur ; pas encore écrit dans
-   `3rd/README.md` (correctif 9) ni dans #125. Un autre, que
+   dans l'import : la pull request #213 (fusionnée le 28 octobre) a retiré les
+   contournements, sauf la puissance minuscule de |y| ≥ 2^1013, qu'un défaut de
+   plus de `cr_pow()` impose encore (`is_exact()` calcule `y * e`, qui déborde à
+   partir de |y e| = 2^1024 quand x est une puissance de 2 : `FE_OVERFLOW` pour
+   une puissance qui s'annule) ; #213 a gardé le raccourci (*décidé le 28
+   octobre*), qui sera retiré si l'amont corrige. Ce défaut est à proposer
+   aussi : la réplique et le correctif d'une ligne (`y <= 1074 &&` devant
+   `-1074 <= y * e`, car e ≠ 0 dans ce cas) sont écrits et vérifiés le 28
+   octobre sur 50 896 000 appels dans les quatre arrondis (mêmes résultats,
+   mêmes indicateurs sauf `FE_OVERFLOW`, levé exactement quand 2^(e y) déborde,
+   contre 4 551 008 indicateurs en trop avant) ; le brouillon anglais, avec la
+   réplique, est dans #125 (point 9, ajouté le 28 octobre à la demande du
+   mainteneur), pas encore dans `3rd/README.md` (correctif 9). Un autre, que
    GAOL contourne sans toucher aux sources, est à proposer aussi : `cr_atan()`
    calcule `x + x` pour un NaN avant le test qui le garde, ce qui lève
    `FE_OVERFLOW` à partir de |x| = 2^1023 avec Visual C++ (`/fp:strict`), que
    `atan_lo()` et `atan_hi()` évitent en rendant les bornes de pi/2 à partir de
    |x| = 2^54 ; un import qui le corrigerait permettrait de retirer ce
-   contournement. Question de #212 sur des arguments difficiles à arrondir de
-   `cos.wc` (le fichier des pires cas de l'amont, absent de l'arbre) : *décidé
-   le 28 octobre*, non, les 45 arguments de `cos_accurate_path()` suffisent ;
-   elle ne voit pas les fautes de moins de 2^-70 environ en relatif, et les deux
-   mutants qui survivent ne changent aucun résultat observable.
+   contournement. Question de #212 (fusionnée le 28 octobre) sur des arguments
+   difficiles à arrondir de `cos.wc` (le fichier des pires cas de l'amont,
+   absent de l'arbre) : *décidé le 28 octobre*, non, les 45 arguments de
+   `cos_accurate_path()` suffisent ; elle ne voit pas les fautes de moins de
+   2^-70 environ en relatif, et les deux mutants qui survivent ne changent aucun
+   résultat observable.
 2. **#126 GCC** (la comparaison silencieuse rendue signalante par
    l'if-conversion sur ARM 32 bits et POWER9 et par la vectorisation, et le
    miscompilage de GCC 12.2 sur aarch64 dans `tests/numbers.cpp` ; le bogue
