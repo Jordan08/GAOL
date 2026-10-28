@@ -1,8 +1,8 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 28 octobre 2026
-(commit `2ceeb51` de `configure-clean`, aucune pull request ouverte : voir la
-section 1). Ce fichier et l'issue #177 ont le même contenu.
+(commit `2ceeb51` de `configure-clean`, une pull request ouverte, #216 : voir
+la section 1). Ce fichier et l'issue #177 ont le même contenu.
 
 Il réunit l'historique de l'ancienne issue #49 (« Suivi du TODO de GAOL v5 »),
 ce qui est fait dans l'ancienne issue #142 (« Reste à faire sur GAOL v5 »), dans
@@ -59,7 +59,8 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   `configure-clean`, qui reste la branche de développement après v5.0.0 ;
   `MATH-CORE` et `master` (GAOL 4.3.2, plus deux commits de `.claude/CLAUDE.md`)
   ne bougent qu'à la version (point Y).
-- **Pull requests ouvertes** : aucune. Le mainteneur a fusionné #165 à #167,
+- **Pull requests ouvertes** : #216 (le tableau des lignes longues sur ARM 64
+  bits, à la fin de `performance.md`). Le mainteneur a fusionné #165 à #167,
   #169 à #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194, #196 et
   #197 le 25 octobre, #199, #200 et #201 le 26 octobre, #202 à #205 le 27, #206
   à #210, #212, #213 et #215 le 28 ; #168, #195, #211 et #214 sont fermées sans
@@ -89,9 +90,8 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   débogage sont décidés par des tests de la configuration, les anciennes
   options restant des réglages des développeurs (`doc/building.md`).
 - **Branches** : GitHub a `configure-clean`, `MATH-CORE`, `master` et
-  `perf-doc-rerun` (le tableau ARM des lignes longues de `performance.md`, en
-  préparation, hors des points), avec les branches des pull requests ouvertes ;
-  les branches fusionnées sont supprimées en local.
+  `perf-doc-rerun` (celle de #216, hors des points), avec les branches des
+  pull requests ouvertes ; les branches fusionnées sont supprimées en local.
 - **Aucune borne fausse n'est connue** : sur environ 1,3 million de puissances
   entières, 550 000 `pow` réels, 600 000 autres opérations et 760 lectures de
   nombres (relecture du 14 octobre, revérifiée le 18 octobre à `4eaf69a`), tout
@@ -2864,7 +2864,10 @@ jour de leur fusion.
   28acce4 a remplacé par `GAOL_SSE2_UNALIGNED_STORAGE` ; GCC et Clang étaient
   déjà dans b071b41). `perf-doc-rerun` est gardée : le mainteneur veut le
   tableau ARM des lignes longues à la fin de `doc/compare/performance.md`, que
-  son `run_lines_arm64.sh` mesure sur un Mac M2 (session MACarm4).
+  son `run_lines_arm64.sh` mesure sur un Mac M2 (session MACarm4, sur secteur,
+  mode économie coupé, charge de 1,5 à 1,8) ; la pull request est #216. Avec la
+  direction préservée, une ligne coûte 12,5 à 43,7 fois plus (25,6 à 31,6 ns
+  l'opération : les deux `msr` de FPCR).
 
 ## 4. Les points faits, par lettre
 

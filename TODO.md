@@ -9,9 +9,9 @@ sont fermées, et `TODO_mistral.md` est supprimé.
 
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
-non trouvée). Rien n'est à fusionner, à envoyer à un autre projet ni à publier
-sans l'accord du mainteneur. Aucune pull request n'est ouverte ; celle du
-tableau ARM de `performance.md` est en préparation (branche `perf-doc-rerun`).
+non trouvée). Rien n'est à envoyer à un autre projet ni à publier sans l'accord
+du mainteneur. La seule pull request ouverte est #216 (le tableau des lignes
+longues sur ARM 64 bits, à la fin de `performance.md`, branche `perf-doc-rerun`).
 
 ## Comment lire ce fichier
 
@@ -396,8 +396,8 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    Refaire aussi, au même commit, le tableau des lignes longues sur un
    processeur ARM de 64 bits, à la fin de `performance.md`
    (`doc/compare/code/run_lines_arm64.sh` sur un Mac M2, branche
-   `perf-doc-rerun`) : *décidé le 28 octobre* de l'ajouter, une première fois
-   avant la version.
+   `perf-doc-rerun`) : #216 le propose, avec une première mesure du 28 octobre
+   (*décidé le 28 octobre*).
    Refaire enfin, au même commit, la mesure de la règle du chemin AVX-512 de
    `doc/simd.md` (il suit `GAOL_PRESERVE_ROUNDING`, seuil d'un gain médian de 5
    %, mesuré le 26 octobre sur le seul i7-1185G7, dont l'AVX-512 est à

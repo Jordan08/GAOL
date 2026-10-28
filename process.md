@@ -761,11 +761,12 @@ git ls-remote --heads origin
   x86-64) ; l'audit du 13 octobre a
   vérifié dans `configure-clean`
   ce qu'annonçaient alors les points A, C à H et J à V.
-- **En cours** : au 28 octobre, aucune pull request n'est ouverte ;
+- **En cours** : au 28 octobre, la seule pull request ouverte est #216 (le
+  tableau des lignes longues sur ARM 64 bits, à la fin de `performance.md`,
+  branche `perf-doc-rerun`, décidé le 28 octobre ; hors des points) ;
   `configure-clean` est au commit de la fusion de #209, et ses branches sur
-  GitHub sont `configure-clean`, `MATH-CORE`, `master` et `perf-doc-rerun` (le
-  tableau ARM des lignes longues de `performance.md`, en préparation, décidé le
-  28 octobre ; hors des points). L'issue #198 (`x / y` des
+  GitHub sont `configure-clean`, `MATH-CORE`, `master` et `perf-doc-rerun`.
+  L'issue #198 (`x / y` des
   intervalles NEON avec `FPCR.AH`) est ouverte, sans tâche dans `TODO.md` ; #185
   est fermée, le masquage des exceptions de `pow` est gardé.
 - **À faire**, dans l'ordre de `TODO.md` : les études de vitesse, toutes avant
