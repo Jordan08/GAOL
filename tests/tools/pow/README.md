@@ -35,7 +35,7 @@ GAOL, or a build with mpmath, and their results are read by whoever changes
 | `pown_bound.py` | Checks with rationals the induction of the comment of `pown_products()`, which bounds beforehand the error of the exact products of the integer power, and the bound K drawn from it, for c<sup>m</sup> and c<sup>−m</sup> |
 | `bench.cpp` | The time per call of the pow functions, on each path of `pow_standard()` |
 | `pownhash.cpp` | The FNV-1a hash of the bits of the bounds of about four million `gaol::pow(x, n)` for an integer n (boxes of special values, then drawn ones; `d` prints each box and its bounds), to tell at once whether a change of the integer power changed a bound, the sign of a zero included |
-| `pownedge.cpp` | The same hash for `gaol::pow(x, n)` at the edges of the range of the packed kernel of the integer power (`pown_least[L]` and `pown_greatest[L]`, read from `gaol/core/gaol_interval_core.cpp`) and at their neighbours, where no test of the repository has a value |
+| `pownedge.cpp` | The same hash for `gaol::pow(x, n)` at the edges of the range of the packed kernel of the integer power (`pown_least[L]` and `pown_greatest[L]`, read from `gaol/core/gaol_interval_core.cpp`) and at their neighbours, for exponents of each length L from 2 to 32 bits, where the tests of the repository have no value |
 | `build.py` | Compiles `diffpow.cpp`, `evalrows.cpp` or `bench.cpp` against a build of GAOL; the other scripts import it |
 
 A rows file has one box per line, `X | Y | S | H`: the base X, the exponent Y,
@@ -231,9 +231,10 @@ integer power or of the comparisons that choose it (point PG.7 of `TODO.md`):
 the two programs print a hash of the bounds, which a change that keeps every
 bound leaves as it is, and which the SSE2, NEON and FPU intervals share but for
 the sign of a zero (the same hash was found with SSE2 intervals and with NEON
-ones for `GAOL_PRESERVE_ROUNDING`; compare builds with the same option, the
-draws of `pownhash` being doubles that the program computes in its own
-rounding direction):
+ones; compare builds with the same option for `pownhash`, whose draws are
+doubles that the program computes in its own rounding direction, which
+`GAOL_PRESERVE_ROUNDING` leaves to nearest and the other builds set upward;
+`pownedge` makes its boxes with exact operations and has one hash):
 
 ```bash
 python3 tests/tools/pow/build.py --build build-sse -o /tmp/pow/new/pownhash tests/tools/pow/pownhash.cpp
@@ -242,9 +243,12 @@ python3 tests/tools/pow/build.py --build build-sse -o /tmp/pow/new/pownedge test
 /tmp/pow/new/pownedge gaol/core/gaol_interval_core.cpp
 ```
 
-The mutants `neon-range-least-strict` and `neon-range-greatest-strict` change
-the bounds at an edge of the range, which `pownedge` sees and `diffpow` and the
-tests do not.
+The mutants `neon-range-least-strict` and `neon-range-greatest-strict` send a
+base at an edge of the range to the corners instead of the kernel: the bounds
+are the same but for the sign of a zero lower bound (-0 with the kernel, +0
+with the corners), which `pownedge` sees because its hash includes the sign of
+a zero, and `diffpow` and the tests do not compare. They are listed as
+equivalent.
 
 ## What a passing run looks like
 

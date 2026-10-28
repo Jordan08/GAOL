@@ -434,13 +434,15 @@ MUTANTS = [
     dict(name='neon-range-least-strict',
          file='gaol/core/gaol_interval_neon.cpp',
          edits=[('vcageq_f64(g, vdupq_n_f64(pown_least[L]))', 'vcagtq_f64(g, vdupq_n_f64(pown_least[L]))')],
-         survives='a base at pown_least[L] itself takes the corners, whose bounds are valid: the bounds there change '
-                  '(pownedge.cpp tells it by its hash), and no test of the repository has a value at a limit (point PG.7)'),
+         survives='a base at pown_least[L] itself takes the corners instead of the kernel: the same bounds, but a zero '
+                  'lower bound is -0 with the kernel and +0 with the corners (pownedge.cpp hashes the sign of a zero, '
+                  'which the tests do not compare; point PG.7)'),
     dict(name='neon-range-greatest-strict',
          file='gaol/core/gaol_interval_neon.cpp',
          edits=[('vcaleq_f64(g, vdupq_n_f64(pown_greatest[L]))', 'vcaltq_f64(g, vdupq_n_f64(pown_greatest[L]))')],
-         survives='a base at pown_greatest[L] itself takes the corners, whose bounds are valid: the bounds there change '
-                  '(pownedge.cpp tells it by its hash), and no test of the repository has a value at a limit (point PG.7)'),
+         survives='a base at pown_greatest[L] itself takes the corners instead of the kernel: the same bounds, but a zero '
+                  'lower bound is -0 with the kernel and +0 with the corners (pownedge.cpp hashes the sign of a zero, '
+                  'which the tests do not compare; point PG.7)'),
     dict(name='neon-even-lower-without-zero',
          file='gaol/core/gaol_interval_neon.cpp',
          edits=[('c = vcombine_f64(vget_low_f64(vmaxq_f64(greater, zero)), vget_high_f64(greater));', 'c = greater;')]),

@@ -790,8 +790,9 @@ double hausdorff(const interval &I1, const interval &I2)
           s = vorrq_u64(s, vreinterpretq_u64_f64(r));
           K = vdupq_n_f64(pown_bound_inverse(m, L));
         } else {
-          // pown_bound(m, L), (8 m L + 16) 2^-104, whose operations are all exact
-          // (8 m L + 16 < 2^41): one conversion of an integer and a product
+          // pown_bound(m, L) of gaol_interval_core.cpp, (8 m L + 16) 2^-104, whose operations
+          // are all exact (8 m L + 16 < 2^41): one conversion of an integer and a product,
+          // to keep in step with it
           K = vdupq_n_f64(static_cast<double>(8ull*m*L + 16ull)*4.930380657631324e-32);
         }
         // The rests compared as integers (see gaol_interval_sse.cpp): K is 0 where they are

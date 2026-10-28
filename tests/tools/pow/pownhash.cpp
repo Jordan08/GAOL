@@ -14,21 +14,23 @@
  * exponents are the integers from -70 to 70 but -1, 0 and 1, and larger ones
  * up to 2^31 - 1. The program prints the number of calls and the FNV-1a hash
  * of the bits of the bounds, the empty set being a mark of its own. With `d`
- * it prints each box and its bounds in hexadecimal as well, one line each, to
- * compare two builds with diff when their hashes differ (the sign of a zero
- * bound shows there; diffpow.py tells it from the rest, on its own boxes).
+ * it prints each box and its bounds in hexadecimal as well (the empty set as
+ * `empty`), one line each, to compare two builds with diff when their hashes
+ * differ (the sign of a zero bound shows there; diffpow.py tells it from the
+ * rest, on its own boxes).
  *
  * Two builds that give the same hash give the same bounds, the sign of a zero
  * included. The hash depends on the rounding direction the program computes
  * its boxes in, the draws being doubles computed in it (GAOL_PRESERVE_ROUNDING
  * leaves the direction of the program, to nearest, and the others leave
  * upward): compare hashes of builds with the same option. It is compiled with
- * build.py, like the other programs of the directory.
+ * build.py, like the other programs of the directory, in C++17 (hexadecimal
+ * floating literals).
  *
  * Copyright (c) 2026 ENSTA, France
  *
- * Created 2026-10-29 by Jordan NININ (from the program of the session MACarm4
- * that found the cause of the weak gain of the NEON kernel of pown)
+ * Created 2026-10-28 by Jordan NININ (from a program of the study of the weak
+ * gain of the NEON kernel of pown, point PG.7)
  *------------------------------------------------------------------------------
  * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING file for information.
@@ -65,8 +67,15 @@ namespace
 int main(int argc, char** argv)
 {
   gaol::init();
-  const bool dump = argc > 1 && argv[1][0] == 'd';
-  const long calls_wanted = argc > 2 ? std::atol(argv[2]) : 4000000;
+  bool dump = false;
+  long calls_wanted = 4000000;
+  for (int i = 1; i < argc; ++i) {
+    if (argv[i][0] == 'd') {
+      dump = true;
+    } else {
+      calls_wanted = std::atol(argv[i]);
+    }
+  }
   // xorshift64: the draws are the program's, whatever the library
   std::uint64_t s = 0x9E3779B97F4A7C15ULL;
   const auto rnd = [&s] {
@@ -97,6 +106,9 @@ int main(int argc, char** argv)
       mix(1.0);
       mix(0.0);
       hash ^= 0x55;
+      if (dump) {
+        std::printf("%d %a %a empty\n", n, x.left(), x.right());
+      }
       return;
     }
     mix(z.left());
