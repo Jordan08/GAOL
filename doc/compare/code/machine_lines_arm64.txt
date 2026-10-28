@@ -1,0 +1,8 @@
+Date:            2026-10-28
+Processor:       Apple M2 (not pinned to a processor: no taskset on macOS), power: AC Power
+System:          Darwin 27.0.0, macOS 27.0.1
+C++ compiler:    Apple clang version 21.0.0 (clang-2100.3.34.2)
+C++ flags:       -std=c++11 -O3 -DNDEBUG (GAOL: -frounding-math -fno-fast-math -ffp-contract=off; GAOL 4.2.3: -frounding-math -fno-fast-math -ffp-contract=off)
+GAOL V5.0.0:     the branch of this checkout (2a69f89), CMake Release, NEON intervals, CORE-MATH of 3rd/math-core compiled into the library, the rounding direction not preserved
+GAOL V5.0.0 preserved: the same, built with GAOL_PRESERVE_ROUNDING=ON, the rounding direction restored after each operation (the FPCR register, read and written by each operation)
+GAOL 4.2.3:      the last version of Frédéric Goualard (cd0ee1a of https://github.com/goualard-f/GAOL), its configure generated again by autoreconf and told --build=arm-apple-darwin (the one it commits does not know macOS on ARM), the rounding direction not preserved, the FPU intervals (it has no instructions of 64-bit ARM to compute them with), mathlib 2.1.1 configured with --host=aarch64-unknown-linux-gnu (its configure knows no macOS on ARM; no line here calls it)
