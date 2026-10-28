@@ -14,7 +14,7 @@ again.
 
 | File | What it is for |
 |---|---|
-| [mutants.py](mutants.py) | 63 mutants of `gaol/gaol_fpu.h` and `gaol/gaol_fpu_fenv.h`, for `../pow/mutate.py`: the test `rounding_direction` has to fail on each. |
+| [mutants.py](mutants.py) | 70 mutants of `gaol/gaol_fpu.h` and `gaol/gaol_fpu_fenv.h`, for `../pow/mutate.py`: the test `rounding_direction` has to fail on each. |
 | [amalgamate.py](amalgamate.py) | One source file from the sources of GAOL, to give to a compiler that is not here and takes one file (Compiler Explorer). |
 
 ## The mutants
@@ -55,8 +55,20 @@ says otherwise (macOS on arm64, Windows). The constants `x86_flush_mask`,
 `sse_rc_mask` and `sse_rc_upward` are not mutated: a `static_assert` compares
 them with those of `<xmmintrin.h>`.
 
-What only the processor runs, `x86_registers` and `gaol_read_x86_control()`
-of `gaol/gaol_fpu_fenv.h`, is checked by `x86_registers_on_the_processor()`
+`get_rounding()`, `set_rounding()` and `set_rounding_and_flush_modes()`, which
+give the registers of the processor to these functions on x86-64 as well since
+point PG.10 of `TODO.md` (they called `fegetround()` and `fesetround()`), and
+the registers themselves (`x86_registers` and `gaol_read_x86_control()` of
+`gaol/gaol_fpu_fenv.h`) are checked on an x86-64 processor by
+`rounding_state_on_the_processor()` of the same test, in the six directions,
+with each flush mode and with other bits in the registers: seven mutants of the
+list (`get-rounding-reads-nothing`, `set-rounding-also-sets-the-modes`,
+`set-rounding-and-flush-modes-sets-no-mode`, `registers-read-swapped`,
+`registers-read-x87-bit-lost`, `registers-write-x87-direction-lost` and
+`registers-write-mxcsr-flags-lost`) are killed by it.
+
+The same registers, with four sets of other bits that include an exception
+unmasked in each, are checked by `x86_registers_on_the_processor()`
 of the same test, on a 32-bit x86 processor (an i386 image of Docker runs it on
 an x86-64 machine, as does the continuous integration with Debian i386), in the
 six directions, with each mode that flushes the subnormals and with four sets

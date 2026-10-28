@@ -129,6 +129,16 @@
 #  define GAOL_TESTS_X86_32 0
 #endif
 
+// x86-64, where the library reads and writes the control word of the x87 unit
+// (GCC, Clang, clang-cl) and MXCSR directly, and the register that differs only
+// (GAOL v5, point PG.10 of TODO.md); Visual C++ has MXCSR alone there, and the
+// tests see no x87 unit (its control word reads as 0)
+#if defined(GAOL_TESTS_SSE) && (defined(__x86_64__) || defined(_M_X64))
+#  define GAOL_TESTS_X86_64 1
+#else
+#  define GAOL_TESTS_X86_64 0
+#endif
+
 // mingw-w64 on x86-64 (GAOL v5, point AI.110 of TODO_DONE.md): from its version 13,
 // fegetround() joins the field RC of the x87 unit and that of MXCSR by OR, and
 // fesetround() clears the exception flags of MXCSR when it changes it. The
@@ -729,32 +739,40 @@ namespace
     }
   }
 
-#if GAOL_TESTS_X86_32
+#if GAOL_TESTS_X86_32 || GAOL_TESTS_X86_64
   /*
     The control word of the x87 unit, read and written apart from the library
     (GAOL v5): the registers that gaol_core::x86_registers reads and writes,
     which the checks below read and write themselves, in the six states that the
     tests have for the two units, with the fields as the hardware has them (see
     SimulatedRegisters). Visual C++ for x86 and GCC and Clang do not take the
-    same assembly.
+    same assembly, and Visual C++ for x64 has none: no x87 unit there, its
+    control word reads as 0 and writing it does nothing.
   */
   unsigned int read_x87_word()
   {
-    unsigned short cw;
 #  if defined(__GNUC__) || defined(__clang__)
+    unsigned short cw;
     __asm__ __volatile__ ("fnstcw %0" : "=m" (cw));
-#  else
-    __asm fnstcw cw
-#  endif
     return cw;
+#  elif defined(_M_X64)
+    return 0u;
+#  else
+    unsigned short cw;
+    __asm fnstcw cw
+    return cw;
+#  endif
   }
 
   void write_x87_word(unsigned int word)
   {
-    unsigned short cw = static_cast<unsigned short>(word);
 #  if defined(__GNUC__) || defined(__clang__)
+    unsigned short cw = static_cast<unsigned short>(word);
     __asm__ __volatile__ ("fldcw %0" : : "m" (cw) : "memory");
+#  elif defined(_M_X64)
+    static_cast<void>(word);
 #  else
+    unsigned short cw = static_cast<unsigned short>(word);
     __asm fldcw cw
 #  endif
   }
@@ -765,6 +783,7 @@ namespace
   {
 #  if defined(__GNUC__) || defined(__clang__)
     __asm__ __volatile__ ("fnclex");
+#  elif defined(_M_X64)
 #  else
     __asm fnclex
 #  endif
@@ -790,7 +809,9 @@ namespace
   // exception flags, which they only add to
   const unsigned int x87_not_direction = ~0x0c00u;
   const unsigned int mxcsr_not_direction = ~(0x6000u | 0x8040u | 0x003fu);
+#endif // GAOL_TESTS_X86_32 || GAOL_TESTS_X86_64
 
+#if GAOL_TESTS_X86_32
   struct RegisterOperation
   {
     const char *name;
@@ -981,6 +1002,106 @@ namespace
 #  endif
   }
 #endif // GAOL_RND_X86_REGISTERS
+
+#if GAOL_TESTS_X86_64 && GAOL_RND_X86_64_DIRECT
+  /*
+    get_rounding(), set_rounding() and set_rounding_and_flush_modes() on the
+    processor, x86-64 (GAOL v5, point PG.10 of TODO.md): they read the control
+    word of the x87 unit and MXCSR, as the hardware holds them, and write the
+    register that differs from the state to set back, where they called
+    fegetround() and fesetround(), which write both registers whatever they
+    hold (and with mingw-w64 13 and later clear the exception flags of MXCSR).
+    x86_registers_simulated() checks what gaol_core::x86_*() decide to write;
+    this checks that the library gives them the registers of the processor,
+    and the right field of the state to each. In each of the six states of the
+    two units, with each mode that flushes the subnormals and with other bits
+    in the registers (the precision and the infinity control of the control
+    word, the exception flags of MXCSR): the state that get_rounding() reads is
+    the fields of the registers, and it changes neither; set back over each
+    state of the registers, the direction of both units is the saved one, the
+    flush modes stay as they are (set_rounding()) or are the saved ones
+    (set_rounding_and_flush_modes()), and no other bit changes, the exception
+    flags among them. Visual C++ for x64 has MXCSR alone: there the field of the
+    x87 unit is 0, and its control word is left as it is.
+  */
+  void rounding_state_on_the_processor()
+  {
+#  if defined(_MSC_VER) && !defined(__clang__)
+    const bool x87_seen = false;
+#  else
+    const bool x87_seen = true;
+#  endif
+    const std::size_t nb_directions = sizeof(register_directions)/sizeof(register_directions[0]);
+    std::vector<unsigned int> flushes(1, 0u);
+    for (const FlushMode& m : flush_modes()) {
+      flushes.push_back(m.bits);
+    }
+    const unsigned int cw_others[] = { 0x037fu, 0x027fu, 0x133fu };
+    const unsigned int csr_flags[] = { 0x0000u, 0x003fu };
+    const unsigned int saved_cw = read_x87_word(), saved_csr = static_cast<unsigned int>(_mm_getcsr());
+    // The registers in a state of the tests: the directions, the modes, the other bits of the control word and the
+    // exception flags (all the exceptions stay masked, so that nothing traps)
+    const auto set_state = [&](std::size_t d, unsigned int flush, unsigned int other, unsigned int flags) {
+      write_x86_fields(register_directions[d], flush);
+      clear_x87_exceptions();
+      write_x87_word((read_x87_word() & 0x0c00u) | other);
+      _mm_setcsr(static_cast<unsigned int>(_mm_getcsr()) | flags);
+    };
+    for (std::size_t d = 0; d < nb_directions; ++d) {
+      for (unsigned int flush : flushes) {
+        for (unsigned int other : cw_others) {
+          set_state(d, flush, other, 0x003fu);
+          const unsigned int cw = read_x87_word(), csr = static_cast<unsigned int>(_mm_getcsr());
+          const gaol_core::rounding_state s = gaol_core::get_rounding();
+          const unsigned int cw_after = read_x87_word(), csr_after = static_cast<unsigned int>(_mm_getcsr());
+          const auto describe_state = [&] {
+            return std::string("in ") + directions[d].name + " with the modes " + x86_hex(flush) + ": control word "
+                 + x86_hex(cw) + ", MXCSR " + x86_hex(csr) + ", read " + x86_hex(s.x87) + ", " + x86_hex(s.sse) + ", " + x86_hex(s.flush);
+          };
+          check("get_rounding(): the field RC of the control word of the x87 unit (0 without one)",
+                s.x87 == (x87_seen ? (cw & 0x0c00u) : 0u), describe_state);
+          check("get_rounding(): the field RC of MXCSR", s.sse == (csr & 0x6000u), describe_state);
+          check("get_rounding(): the modes that flush the subnormals to zero", s.flush == (csr & 0x8040u), describe_state);
+          check("get_rounding() changes neither register", cw_after == cw && csr_after == csr, describe_state);
+
+          for (std::size_t e = 0; e < nb_directions; ++e) {
+            for (unsigned int flush_now : flushes) {
+              for (unsigned int flags : csr_flags) {
+                for (int and_modes = 0; and_modes < 2; ++and_modes) {
+                  set_state(e, flush_now, cw_others[(e + d) % (sizeof(cw_others)/sizeof(cw_others[0]))], flags);
+                  const unsigned int cw_now = read_x87_word(), csr_now = static_cast<unsigned int>(_mm_getcsr());
+                  if (and_modes != 0) {
+                    gaol_core::set_rounding_and_flush_modes(s);
+                  } else {
+                    gaol_core::set_rounding(s);
+                  }
+                  const unsigned int cw_end = read_x87_word(), csr_end = static_cast<unsigned int>(_mm_getcsr());
+                  const std::string name = and_modes != 0 ? "set_rounding_and_flush_modes()" : "set_rounding()";
+                  const auto describe = [&] {
+                    return describe_state() + ", set over " + directions[e].name + " with the modes " + x86_hex(flush_now)
+                         + " and flags " + x86_hex(flags) + ": control word " + x86_hex(cw_now) + " then " + x86_hex(cw_end)
+                         + ", MXCSR " + x86_hex(csr_now) + " then " + x86_hex(csr_end);
+                  };
+                  // The directions: the saved ones; the control word of the x87 unit stays as it is where there is none
+                  check(name + ": the direction of the x87 unit is the saved one",
+                        (cw_end & 0x0c00u) == (x87_seen ? s.x87 : (cw_now & 0x0c00u)), describe);
+                  check(name + ": the direction of the SSE instructions is the saved one", (csr_end & 0x6000u) == s.sse, describe);
+                  check(name + ": the flush modes", (csr_end & 0x8040u) == (and_modes != 0 ? s.flush : (csr_now & 0x8040u)), describe);
+                  check(name + ": no other bit of the control word changes", (cw_end & x87_not_direction) == (cw_now & x87_not_direction), describe);
+                  check(name + ": no other bit of MXCSR changes, the exception flags the program had among them",
+                        (csr_end & mxcsr_not_direction) == (csr_now & mxcsr_not_direction) && (csr_end & 0x003fu) == (csr_now & 0x003fu), describe);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    write_x87_word(saved_cw);
+    _mm_setcsr(saved_csr);
+    write_x86_fields(register_directions[0], 0u);
+  }
+#endif // GAOL_TESTS_X86_64 && GAOL_RND_X86_64_DIRECT
 
   /*
     The operations other than the product and the sum, after the caller
@@ -2943,6 +3064,9 @@ int main()
   sse_register_simulated();
 #if GAOL_RND_X86_REGISTERS
   round_functions_change_the_direction_only();
+#endif
+#if GAOL_TESTS_X86_64 && GAOL_RND_X86_64_DIRECT
+  rounding_state_on_the_processor();
 #endif
 
   // x within [0,1] and y above 1, the domain of every function below

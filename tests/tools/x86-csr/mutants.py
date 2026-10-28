@@ -18,8 +18,9 @@
 # The constants x86_flush_mask, sse_rc_mask and sse_rc_upward are not mutated:
 # a static_assert compares them with those of <xmmintrin.h>, and a mutant
 # that fails to compile is no mutant. The processor itself (x86_registers,
-# gaol_read_x86_control()) is not here either: only a 32-bit x86 processor runs
-# it (x86_registers_on_the_processor() of the test).
+# gaol_read_x86_control()) and the functions that give it to x86_*()
+# (get_rounding(), set_rounding()...) are here since point PG.10 of TODO.md:
+# an x86-64 processor runs them (rounding_state_on_the_processor() of the test).
 #---------------------------------------------------------------------------
 # gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
 # COPYING file for information.
@@ -175,4 +176,41 @@ MUTANTS = [
     m('sse-leave-writes-saved', SSE_WANTED, 'const unsigned int wanted = saved;'),
     m('sse-leave-keeps-the-modes', SSE_WANTED, 'const unsigned int wanted = csr;'),
     m('sse-leave-direction-only', SSE_WANTED, 'const unsigned int wanted = (csr & ~sse_rc_mask) | (saved & sse_rc_mask);'),
+
+    # get_rounding(), set_rounding() and set_rounding_and_flush_modes() on the processor, and the registers they give
+    # to the functions above (x86-64 and 32-bit x86, point PG.10): rounding_state_on_the_processor() of the test, which
+    # reads and writes the registers apart from the library, kills them on x86-64
+    m('get-rounding-reads-nothing', 'x86_get_state(hw, s);', 's.x87 = 0u; s.sse = 0u; s.flush = 0u;'),
+    m('set-rounding-also-sets-the-modes', 'x86_set_rounding(hw, s);', 'x86_set_rounding_and_flush_modes(hw, s);'),
+    m('set-rounding-and-flush-modes-sets-no-mode', 'x86_set_rounding_and_flush_modes(hw, s);', 'x86_set_rounding(hw, s);'),
+    mf('registers-read-swapped',
+      'void read_control(unsigned int& x87_cw, unsigned int& mxcsr) const { gaol_read_x86_control(x87_cw, mxcsr); }',
+      'void read_control(unsigned int& x87_cw, unsigned int& mxcsr) const { gaol_read_x86_control(mxcsr, x87_cw); }'),
+    mf('registers-read-x87-bit-lost', '''    x87_cw = cw;
+    mxcsr = csr;
+  }
+
+  //! Writes the whole control word of the x87 unit
+  GAOL_INLINE void gaol_write_x87_control(unsigned int x87_cw)
+  {
+    const unsigned short cw''', '''    x87_cw = cw & ~0x0400u;
+    mxcsr = csr;
+  }
+
+  //! Writes the whole control word of the x87 unit
+  GAOL_INLINE void gaol_write_x87_control(unsigned int x87_cw)
+  {
+    const unsigned short cw'''),
+    mf('registers-write-x87-direction-lost',
+      'void write_x87_control(unsigned int x87_cw) const { gaol_write_x87_control(x87_cw); }',
+      'void write_x87_control(unsigned int x87_cw) const { gaol_write_x87_control(x87_cw & ~0x0c00u); }'),
+    mf('registers-write-mxcsr-flags-lost', '''    void write_mxcsr(unsigned int mxcsr) const { _mm_setcsr(mxcsr); }
+  };
+
+  /*
+    The fields RC''', '''    void write_mxcsr(unsigned int mxcsr) const { _mm_setcsr(mxcsr & ~0x3fu); }
+  };
+
+  /*
+    The fields RC'''),
 ]
