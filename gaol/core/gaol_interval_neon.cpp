@@ -760,11 +760,21 @@ double hausdorff(const interval &I1, const interval &I2)
       }
       if (negative) {
         c = vextq_f64(c, c, 1);
+#if !GAOL_NEON_MSVC
+        // Clang makes a select of this swap, with a move from a general register
+        // to the vector one on the way to the kernel (GAOL v5, point PG.7)
+        __asm__ ("" : "+w" (c));
+#endif
       }
       const float64x2_t g = vabsq_f64(c);
-      uint64x2_t ok = vandq_u64(vcgeq_f64(g, vdupq_n_f64(pown_least[L])), vcleq_f64(g, vdupq_n_f64(pown_greatest[L])));
+      // The absolute comparisons, g being |c| and the limits positive: with
+      // -frounding-math Clang scalarizes the plain vcgeq_f64(), vcleq_f64() and
+      // vceqq_f64() (a fcmpe or fcmp, a csetm and a move for each lane: 18
+      // instructions more in pow(x, 3) for the same masks), and vcageq_f64() and
+      // vcaleq_f64() stay on the vector unit; c == 0 is |c| <= 0 (GAOL v5, point PG.7)
+      uint64x2_t ok = vandq_u64(vcageq_f64(g, vdupq_n_f64(pown_least[L])), vcaleq_f64(g, vdupq_n_f64(pown_greatest[L])));
       if (!negative) {
-        ok = vorrq_u64(ok, vceqq_f64(c, zero));
+        ok = vorrq_u64(ok, vcaleq_f64(c, zero));
       }
       if ((vgetq_lane_u64(ok, 0) & vgetq_lane_u64(ok, 1)) != 0u) {
         float64x2_t h, l, K;
@@ -780,7 +790,9 @@ double hausdorff(const interval &I1, const interval &I2)
           s = vorrq_u64(s, vreinterpretq_u64_f64(r));
           K = vdupq_n_f64(pown_bound_inverse(m, L));
         } else {
-          K = vdupq_n_f64(pown_bound(m, L));
+          // pown_bound(m, L), (8 m L + 16) 2^-104, whose operations are all exact
+          // (8 m L + 16 < 2^41): one conversion of an integer and a product
+          K = vdupq_n_f64(static_cast<double>(8ull*m*L + 16ull)*4.930380657631324e-32);
         }
         // The rests compared as integers (see gaol_interval_sse.cpp): K is 0 where they are
         K = vreinterpretq_f64_u64(vbicq_u64(vreinterpretq_u64_f64(K), vceqzq_u64(s)));
