@@ -892,7 +892,16 @@ point Q), which `numbers` checks there too.
   the upward rounding, which computes with the 128-bit integer GAOL ports
   (see [3rd/README.md](../3rd/README.md)): comparing CORE-MATH with itself,
   the rest of the test cannot see a fault of that port, which the jobs
-  computing with the two 64-bit halves would then find here. First of all,
+  computing with the two 64-bit halves would then find here. `cos` is checked
+  in the four rounding directions at 45 arguments of its accurate path, against
+  its roundings computed with mpmath at 4 000 bits (the upstream sources
+  compiled unchanged give them too; `tests/tools/cos/` recomputes them and
+  tells how the arguments were found), and the bounds of `cos` of each have to
+  be the tightest ones. The arguments reach the branches of that path (the
+  reduction of the argument rounding up or not, the three ways of combining the
+  two products, every range of exponents of the table of 1/(2π) beyond
+  2<sup>31</sup>, the four arguments `exceptions()` rounds apart, with both
+  signs) (GAOL v5). First of all,
   the test checks the `fma()` and `round()` of the C library, which CORE-MATH
   and GAOL call (`fma()` wherever the compiler has no fused multiply-add
   instruction, as with `GAOL_FMA` off; GCC for Windows takes `-mfma`, and the
