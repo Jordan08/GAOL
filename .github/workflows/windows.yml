@@ -184,6 +184,16 @@ jobs:
       - name: Performance
         if: matrix.cfg.config == 'Release'
         run: build/tests/${{ matrix.cfg.config }}/gaol_performance.exe | tee -a "$GITHUB_STEP_SUMMARY"
+      # The test of misc that enters a function with the stack aligned on 4
+      # bytes, as 32-bit Windows enters its threads and its callbacks (GAOL v5,
+      # tests/misc.cpp): it runs with clang-cl on x86 and prints a line when it
+      # does, which ctest shows only with -V, and which this step looks for. After the
+      # check of the locale, which reads the output of the last ctest (LastTest.log)
+      - name: The stack entered aligned on 4 bytes
+        if: matrix.cfg.clang_cl && matrix.cfg.arch == 'Win32'
+        run: |
+          ctest --test-dir build -C ${{ matrix.cfg.config }} -R '^misc$' -V | tee misc.log
+          grep -F "returned the bounds of the entry aligned on 16 with the stack aligned on 16 minus 4, 8 and 12 bytes at its entry" misc.log
       - name: Install
         run: cmake --install build --config ${{ matrix.cfg.config }}
       - name: Tests built with the installed GAOL
@@ -367,6 +377,17 @@ jobs:
           cmake --build build --target test
       - name: The test numbers ran under a locale writing a decimal comma
         run: sh .github/scripts/comma-locale.sh check build
+      # The test of misc with the stack aligned on 4 bytes (see the job
+      # visual-studio): GCC for x86 stops on it where it does not align the
+      # stack of the function. After the check of the locale, which reads the output of
+      # the last ctest (LastTest.log)
+      - name: The stack entered aligned on 4 bytes
+        if: matrix.cfg.choco_flags == '--x86'
+        run: |
+          bindir=$(cygpath -u '${{ matrix.cfg.bin }}')
+          export PATH="$bindir:$PATH"
+          ctest --test-dir build -R '^misc$' -V | tee misc.log
+          grep -F "returned the bounds of the entry aligned on 16 with the stack aligned on 16 minus 4, 8 and 12 bytes at its entry" misc.log
       - name: Performance
         if: matrix.cfg.config == 'Release'
         run: |
@@ -573,6 +594,14 @@ jobs:
         run: |
           cmake --build build --target test
           if ($LASTEXITCODE) { exit 1 }
+      # The test of misc with the stack aligned on 4 bytes (see the job
+      # visual-studio)
+      - name: The stack entered aligned on 4 bytes
+        if: matrix.cfg.arch == 'x86'
+        run: |
+          ctest --test-dir build -R '^misc$' -V | Tee-Object -FilePath misc.log
+          if ($LASTEXITCODE) { exit 1 }
+          if (-not (Select-String -Path misc.log -SimpleMatch -Pattern "returned the bounds of the entry aligned on 16 with the stack aligned on 16 minus 4, 8 and 12 bytes at its entry" -Quiet)) { exit 1 }
 
   # The mingw-w64 whose fma() or round() is wrong are refused when compiling
   # (gaol/gaol_config.h): CORE-MATH computes with that fma() where the build

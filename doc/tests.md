@@ -1530,6 +1530,28 @@ point Q), which `numbers` checks there too.
   divided, squared, negated, intersected, hulled, rooted, multiplied by a
   double and given a midpoint, and the program stops there with an aligned
   load; it only prints a line elsewhere.
+  `test_stack_entered_aligned_on_4_bytes` runs on 32-bit Windows with GCC or
+  Clang and the SSE2 intervals (MinGW-w64, MSYS2, Clang for Visual C++,
+  clang-cl), where the system calls its threads and its callbacks with the
+  stack aligned on 4 bytes, not on 16 as GCC takes it (bug 40838 of GCC): a
+  function that works on local intervals and calls
+  the library (sums, differences, products, a quotient, `sqr`, `exp`, `sin`,
+  `cos`), entered through a trampoline in assembly with the stack at each of
+  the four alignments of 4 bytes (the trampoline says which it gave, and the
+  test checks it), has to return, and give the bounds it gives with the stack
+  aligned on 16, far from 0 (GAOL v5, point 106 (AI) of TODO.md). A signal
+  handler turns the stop of the program into a failure. The test prints a
+  line when it runs and passes, which the jobs of the continuous integration
+  for 32-bit Windows show (`ctest -V`). The ABI of Linux and macOS has the
+  stack aligned on 16 at every call, and Visual C++ aligns it by itself:
+  elsewhere the test only prints a line. Clang aligns it too for the targets
+  of Windows (Clang 18 and 21 put an `andl` of the stack in the prologue of a
+  function that keeps a vector in a local), and so the test cannot fail with
+  it, but it runs there. `-DGAOL_TESTS_STACK_ON_4_BYTES=1` runs it on Linux
+  for 32-bit x86, where GCC 14 at `-O2` stops the program for the three
+  misaligned entries, and does not with `-mstackrealign` or
+  `-mincoming-stack-boundary=2` given to the file of the test (`libgaol.a` is
+  compiled without).
   `check/fpu.cpp`, an empty test, and `check/essai.cpp`, which printed an
   interval, are gone, as is `check/performances.cpp`, the benchmark of GAOL 4,
   which `make perf` replaces (see
