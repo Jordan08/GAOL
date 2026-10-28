@@ -1615,7 +1615,9 @@ built alone and brought into another project, which the continuous
 integration configures (GAOL v5).
 
 `tests/performance.cpp` (`gaol_performance`) measures the time per operation of
-GAOL's arithmetic and elementary functions, of the constructor `interval(a, b)`,
+GAOL's arithmetic and elementary functions, of the quotient by a positive
+double (`x / d`, whose two scalar divisions of the AVX-512 path no other row
+sees, GAOL v5, point PG.9 of TODO.md), of the constructor `interval(a, b)`,
 `floor()`, `x &= y`, `x | y`, `max()`, `midpoint()`, `nth_root(x, 3)`, the cube root, and `asinpi()` (the
 functions of CORE-MATH that read the rounding direction at each call, GAOL v5,
 point 108) and two relations, which
