@@ -442,24 +442,27 @@ kernels_of_the_program::result sqr_bounds(kernels_of_the_program::registers);
 #endif
 
 /*
-  32-bit Windows with GCC (GAOL v5, point 106 (AI) of TODO.md): the system
-  calls its threads and its callbacks with the stack aligned on 4 bytes, where
-  GCC takes a function to be entered with it aligned on 16 and puts the
+  32-bit Windows with GCC or Clang (GAOL v5, point 106 (AI) of TODO.md): the
+  system calls its threads and its callbacks with the stack aligned on 4 bytes,
+  where GCC takes a function to be entered with it aligned on 16 and puts the
   intervals it keeps in locals at addresses that movaps needs aligned (bug
   40838 of GCC). test_stack_entered_aligned_on_4_bytes() enters a function that
   works on local intervals with the stack at each of the four alignments of 4
   bytes, and checks that it was entered so. Not elsewhere: the ABI of Linux and
-  of macOS has the stack aligned on 16 at every call, Visual C++ aligns the
-  stack by itself, and so does Clang for the targets of Windows (its code has
-  movups for the registers it spills and an andl of the stack in the prologue
-  of a function that keeps a vector in a local), so that it cannot fail there.
+  of macOS has the stack aligned on 16 at every call, and Visual C++ aligns the
+  stack by itself. Clang for the targets of Windows does too (Clang 18 and 21
+  put an andl of the stack in the prologue of a function that keeps a vector in
+  a local, for i686-w64-mingw32 and i686-pc-windows-msvc, and not for
+  i686-linux-gnu), and the intervals of Clang for Visual C++ and of clang-cl
+  keep their two bounds as two doubles: the test runs on them all the same, and
+  has to pass.
   A developer can run it on Linux for a 32-bit target with
-  -DGAOL_TESTS_STACK_ON_4_BYTES=1 (GCC then stops the program for the three
-  misaligned entries, as it does on Windows when it does not align the stack of
-  the function, and the test says so)
+  -DGAOL_TESTS_STACK_ON_4_BYTES=1 (GCC and Clang then stop the program for the
+  three misaligned entries, as GCC does on Windows when it does not align the
+  stack of the function, and the test says so)
 */
 #if !defined(GAOL_TESTS_STACK_ON_4_BYTES)
-#  if defined(__i386__) && defined(_WIN32) && defined(__GNUC__) && !defined(__clang__) && GAOL_USING_SSE2_INSTRUCTIONS
+#  if defined(__i386__) && defined(_WIN32) && (defined(__GNUC__) || defined(__clang__)) && GAOL_USING_SSE2_INSTRUCTIONS
 #    define GAOL_TESTS_STACK_ON_4_BYTES 1
 #  else
 #    define GAOL_TESTS_STACK_ON_4_BYTES 0
@@ -772,8 +775,11 @@ public:
       std::printf("The function stopped the program with the stack aligned on 16 minus %s bytes at its entry\n", failed.c_str());
     }
     TEST_TRUE(failed.empty());
+    if (failed.empty()) {
+      std::printf("The function returned the bounds of the entry aligned on 16 with the stack aligned on 16 minus 4, 8 and 12 bytes at its entry\n");
+    }
 #else
-    std::printf("The functions of the system are entered with the stack aligned on 16 here (or not with GCC for 32-bit Windows): nothing to check\n");
+    std::printf("The functions of the system are entered with the stack aligned on 16 here (or not with GCC or Clang for 32-bit Windows): nothing to check\n");
 #endif
   }
 
