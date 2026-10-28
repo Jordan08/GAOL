@@ -1,7 +1,7 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `2ceeb51` de `configure-clean` (la
-fusion de #209), le 28 octobre 2026, en tâches PG à PJ (PA à PF sont faites, PG
+Ce qui reste à faire sur GAOL v5 au commit `b270147` de `configure-clean` (la
+fusion de #216), le 28 octobre 2026, en tâches PG à PJ (PA à PF sont faites, PG
 est entamée : voir `TODO_DONE.md`). Ce fichier et l'issue #179 ont le même
 contenu. Ce qui est fait et décidé est dans `TODO_DONE.md` (issue #177), ce qui
 est reporté dans `TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142
@@ -10,9 +10,7 @@ sont fermées, et `TODO_mistral.md` est supprimé.
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à envoyer à un autre projet ni à publier sans l'accord
-du mainteneur. La seule pull request ouverte est #216 (le tableau des lignes
-longues sur ARM 64 bits, à la fin de `performance.md`, branche
-`perf-doc-rerun`).
+du mainteneur. Aucune pull request n'est ouverte.
 
 ## Comment lire ce fichier
 
@@ -396,9 +394,9 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    octobre* (#192, #193) : à la fin.
    Refaire aussi, au même commit, le tableau des lignes longues sur un
    processeur ARM de 64 bits, à la fin de `performance.md`
-   (`doc/compare/code/run_lines_arm64.sh` sur un Mac M2, branche
-   `perf-doc-rerun`) : #216 le propose, avec une première mesure du 28 octobre
-   (*décidé le 28 octobre*).
+   (`doc/compare/code/run_lines_arm64.sh` sur un Mac M2 sur secteur, sans mode
+   économie d'énergie, au repos) : #216 l'a ajouté avec une première mesure du
+   28 octobre (*décidé le 28 octobre*).
    Refaire enfin, au même commit, la mesure de la règle du chemin AVX-512 de
    `doc/simd.md` (il suit `GAOL_PRESERVE_ROUNDING`, seuil d'un gain médian de 5
    %, mesuré le 26 octobre sur le seul i7-1185G7, dont l'AVX-512 est à

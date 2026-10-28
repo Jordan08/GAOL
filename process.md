@@ -8,9 +8,8 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12. Dernière mise à jour : 28 octobre 2026, au
-commit `2ceeb51` de `configure-clean` (la fusion de #209, après celles de #206 à
-#208, #210, #212, #213 et #215 ; l'import de CORE-MATH `0b2ae6d1` est de la
-veille).
+commit `b270147` de `configure-clean` (la fusion de #216, après celles de #206 à
+#210, #212, #213 et #215 ; l'import de CORE-MATH `0b2ae6d1` est de la veille).
 
 ## 1. Le contexte
 
@@ -758,17 +757,19 @@ git ls-remote --heads origin
   minuscule de |y| ≥ 2^1013), fusionnées le 28 octobre, comme
   #206 à #210 et #215 (la tâche PF : le reste du 108, le 109, écrire seulement
   si ça change, l'alignement de la pile 32 bits, le contrôle de l'assembleur de
-  x86-64) ; l'audit du 13 octobre a
+  x86-64) et #216 (hors des points : le tableau des lignes longues sur ARM 64
+  bits, à la fin de `doc/compare/performance.md`, mesuré sur un Mac M2) ;
+  l'audit du 13 octobre a
   vérifié dans `configure-clean`
   ce qu'annonçaient alors les points A, C à H et J à V.
-- **En cours** : au 28 octobre, la seule pull request ouverte est #216 (le
-  tableau des lignes longues sur ARM 64 bits, à la fin de `performance.md`,
-  branche `perf-doc-rerun`, décidé le 28 octobre ; hors des points) ;
-  `configure-clean` est au commit de la fusion de #209, et ses branches sur
-  GitHub sont `configure-clean`, `MATH-CORE`, `master` et `perf-doc-rerun`.
-  L'issue #198 (`x / y` des
-  intervalles NEON avec `FPCR.AH`) est ouverte, sans tâche dans `TODO.md` ; #185
-  est fermée, le masquage des exceptions de `pow` est gardé.
+- **En cours** : au 28 octobre, aucune pull request n'est ouverte ;
+  `configure-clean` est au commit de la fusion de #216, et ses branches sur
+  GitHub sont `configure-clean`, `MATH-CORE` et `master`. L'issue #198 (`x / y`
+  des intervalles NEON avec `FPCR.AH`) est ouverte, sans tâche dans `TODO.md` ;
+  #185 est fermée, le masquage des exceptions de `pow` est gardé. L'issue #177
+  (`TODO_DONE.md`) a le texte d'avant la tâche PF : GitHub borne le corps d'une
+  issue à 262 144 octets et le texte joint en fait plus de 268 000 (voir
+  `TODO_DONE.md` 7.8).
 - **À faire**, dans l'ordre de `TODO.md` : les études de vitesse, toutes avant
   v5.0.0 (PG, entamée), les signalements à
   d'autres projets (PH, avec l'accord du mainteneur), puis la version (PI, PJ).

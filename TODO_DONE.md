@@ -1,8 +1,8 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 28 octobre 2026
-(commit `2ceeb51` de `configure-clean`, une pull request ouverte, #216 : voir
-la section 1). Ce fichier et l'issue #177 ont le même contenu.
+(commit `b270147` de `configure-clean`, aucune pull request ouverte : voir la
+section 1). Ce fichier et l'issue #177 ont le même contenu.
 
 Il réunit l'historique de l'ancienne issue #49 (« Suivi du TODO de GAOL v5 »),
 ce qui est fait dans l'ancienne issue #142 (« Reste à faire sur GAOL v5 »), dans
@@ -53,18 +53,18 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 
 ## 1. L'état au 28 octobre 2026
 
-- **`configure-clean`** est au commit `2ceeb51` (la fusion de #209, après
-  celles de #207, #210, #208 et #215 ; l'import de CORE-MATH `0b2ae6d1` est du
-  27 octobre, voir 7.6 à 7.8). Les pull requests des corrections vont vers
-  `configure-clean`, qui reste la branche de développement après v5.0.0 ;
+- **`configure-clean`** est au commit `b270147` (la fusion de #216, après
+  celles de #207, #210, #208, #215 et #209 ; l'import de CORE-MATH `0b2ae6d1`
+  est du 27 octobre, voir 7.6 à 7.8). Les pull requests des corrections vont
+  vers `configure-clean`, qui reste la branche de développement après v5.0.0 ;
   `MATH-CORE` et `master` (GAOL 4.3.2, plus deux commits de `.claude/CLAUDE.md`)
   ne bougent qu'à la version (point Y).
-- **Pull requests ouvertes** : #216 (le tableau des lignes longues sur ARM 64
-  bits, à la fin de `performance.md`). Le mainteneur a fusionné #165 à #167,
+- **Pull requests ouvertes** : aucune. Le mainteneur a fusionné #165 à #167,
   #169 à #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194, #196 et
   #197 le 25 octobre, #199, #200 et #201 le 26 octobre, #202 à #205 le 27, #206
-  à #210, #212, #213 et #215 le 28 ; #168, #195, #211 et #214 sont fermées sans
-  fusion. Les tâches PA, PB, PC, PD, PE et PF sont faites (PE : #200 et #204
+  à #210, #212, #213, #215 et #216 le 28 (#216, hors des points : le tableau des
+  lignes longues sur ARM 64 bits, à la fin de `performance.md`) ; #168, #195,
+  #211 et #214 sont fermées sans fusion. Les tâches PA, PB, PC, PD, PE et PF sont faites (PE : #200 et #204
   pour le 95, #201 pour le 92, #205 pour le 3, #202 pour le 4, #204 pour le 5,
   #203 pour le 6 ; PF : #206 pour le reste du 108, #209 pour le 109, #210 et
   #215 pour écrire seulement si ça change, #208 pour l'alignement de la pile 32
@@ -89,9 +89,9 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   défaut ; les instructions FMA, le chemin AVX-512, l'entier 128 bits et le
   débogage sont décidés par des tests de la configuration, les anciennes
   options restant des réglages des développeurs (`doc/building.md`).
-- **Branches** : GitHub a `configure-clean`, `MATH-CORE`, `master` et
-  `perf-doc-rerun` (celle de #216, hors des points), avec les branches des
-  pull requests ouvertes ; les branches fusionnées sont supprimées en local.
+- **Branches** : GitHub a `configure-clean`, `MATH-CORE` et `master`, avec les
+  branches des pull requests ouvertes ; les branches fusionnées sont supprimées
+  en local.
 - **Aucune borne fausse n'est connue** : sur environ 1,3 million de puissances
   entières, 550 000 `pow` réels, 600 000 autres opérations et 760 lectures de
   nombres (relecture du 14 octobre, revérifiée le 18 octobre à `4eaf69a`), tout
@@ -1431,6 +1431,27 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   gardant les deux textes ; 221 jobs verts sur 223 sur le dernier commit à la
   fusion (un job macOS 14 arm64 annulé faute d'exécuteur, un en file
   d'attente) ; fusionnée le 28 octobre à 14 h 41 UTC)
+- #216 (hors des points : le tableau des lignes longues sur ARM 64 bits, à la
+  fin de `doc/compare/performance.md`, que le mainteneur a demandé le 28
+  octobre ; trois commits du 25 octobre de la branche `perf-doc-rerun` :
+  `run_lines_arm64.sh`, qui construit GAOL V5.0.0, le même avec
+  `GAOL_PRESERVE_ROUNDING=ON` et GAOL 4.2.3 (`autoreconf` et
+  `--build=arm-apple-darwin` sur macOS, mathlib avec
+  `--host=aarch64-unknown-linux-gnu`), la commande `arm64-report` de
+  `bench.py`, la colonne « rounding direction preserved » du tableau x86 des
+  lignes longues, `gaol5p` dans les `LIBS` de `run_lines.sh` ; les mesures d'un
+  Apple M2 de la session MACarm4 (sur secteur, mode économie coupé, charge de
+  1,5 à 1,8, les trois tours écartés de 2,4 % au médian et de 8,8 % au plus) :
+  GAOL V5.0.0 prend 8,85 à 20,7 ns la ligne (0,6 à 2,5 ns l'opération), GAOL
+  4.2.3 de 1,1 à 8,5 fois plus, la direction préservée de 12,5 à 43,7 fois
+  plus (25,6 à 31,6 ns l'opération : les deux `msr` de FPCR de 11 ns, les 27 ns
+  de `doc/three-builds.md`), les sommes de milieux et de largeurs des trois à
+  1,1e-16 près ; `bench.py lines-report` sur `results_lines.csv` rend le
+  `performance.md` de `configure-clean` octet pour octet ; le changement de
+  `run_lines.sh` (`gaol5p` par défaut sur x86) lu et non exécuté ; ni `gaol/`
+  ni les tests ne changent, pas de relecteur indépendant ; 69 jobs verts sur
+  201 à la fusion, aucun rouge, la CI n'étant pas finie ; fusionnée le 28
+  octobre à 18 h 25 UTC, huit minutes après le début de la CI)
 
 ### 2.4 Fermées sans fusion
 
@@ -2862,12 +2883,18 @@ jour de leur fusion.
   `todo-ai-msvc-win-v1` (du 20 octobre : ses cinq commits demandaient C++17 à
   Visual C++ et à clang-cl pour les intervalles SSE2 de Windows 32 bits, ce que
   28acce4 a remplacé par `GAOL_SSE2_UNALIGNED_STORAGE` ; GCC et Clang étaient
-  déjà dans b071b41). `perf-doc-rerun` est gardée : le mainteneur veut le
-  tableau ARM des lignes longues à la fin de `doc/compare/performance.md`, que
-  son `run_lines_arm64.sh` mesure sur un Mac M2 (session MACarm4, sur secteur,
-  mode économie coupé, charge de 1,5 à 1,8) ; la pull request est #216. Avec la
-  direction préservée, une ligne coûte 12,5 à 43,7 fois plus (25,6 à 31,6 ns
-  l'opération : les deux `msr` de FPCR).
+  déjà dans b071b41). `perf-doc-rerun`, que le mainteneur trouvait inutile,
+  est gardée : il veut le tableau ARM des lignes longues à la fin de
+  `doc/compare/performance.md`, que son `run_lines_arm64.sh` mesure sur un Mac
+  M2 ; la pull request est #216, la branche est supprimée à la fusion, et la
+  branche des registres `todo-ai-after-rosetta` après elle (les commits des
+  registres vont directement sur `configure-clean`).
+- **#216** : la mesure demandée à la session MACarm4 (MACarm3 n'existait plus),
+  qui l'a refusée tant que le Mac était sur batterie, en mode économie
+  d'énergie, puis avec Chrome en marche (charge de 4,4), et l'a lancée à 1,52 de
+  charge, avec la règle donnée de la lancer sous 1,5, ou entre 1,5 et 2,2 sans
+  processus au-dessus de 10 % d'un cœur ; fusionnée huit minutes après le début
+  de la CI, sans attendre sa fin (une pull request de documentation).
 
 ## 4. Les points faits, par lettre
 
@@ -3891,7 +3918,7 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
   registres, qui ne change que des fichiers Markdown, la remplace pour le même
   code.
 
-### 7.8 Le 28 octobre (après #207 à #210 et #215)
+### 7.8 Le 28 octobre (après #207 à #210, #215 et #216)
 
 - Le mainteneur a fusionné #207 à 9 h 19 UTC, #210 à 10 h 16, #208 à 13 h 24,
   #215 à 13 h 30 et #209 à 14 h 41 : `configure-clean` est au commit `2ceeb51`
@@ -3916,6 +3943,14 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
   à `3a8e914` (après #208 et #215), refait chaque fois les sept configurations
   de CMake, autotools et meson avant le push, et mis à jour le corps de la pull
   request.
+- #216 a été fusionnée à 18 h 25 UTC, huit minutes après le début de sa CI :
+  `configure-clean` est au commit `b270147`. Le push des registres qui suit
+  annule la CI de ce commit, qui n'a changé ni `gaol/` ni les tests.
+- L'issue #177 ne peut plus recevoir `TODO_DONE.md` : GitHub borne le corps
+  d'une issue à 262 144 octets et ignore sans erreur une mise à jour plus
+  grosse (HTTP 200, rien d'enregistré) ; le texte joint en fait plus de 268 000.
+  Elle garde le texte d'avant la tâche PF en attendant la décision du
+  mainteneur ; #178 et #179 sont à jour.
 
 ## 8. Le ménage fait
 
@@ -3976,8 +4011,15 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
   en local le 27 octobre ; celles de #212 (`cos-accurate-path-test`) et de #213
   (`todo-ph-pow-workarounds`), sur GitHub à la fusion et en local le 28
   octobre ; celle de #200 (`automatic-configuration`), sur GitHub
-  à la fusion et en local le 26 octobre : sur GitHub, il ne reste que
-  `configure-clean`, `MATH-CORE`, `master` et `perf-doc-rerun`.
+  à la fusion et en local le 26 octobre ; celles de #206 (`todo-ai-x86-csr-rest`),
+  de #207 (`todo-ai-asm-order-x86-64`), de #208 (`todo-ai-stack-alignment-32`),
+  de #209 (`todo-ai-msvc-x64-preserve`), de #210 (`todo-ai-write-if-changed`),
+  de #215 (`todo-ai-x86-csr-sse-mutants`) et de #216 (`perf-doc-rerun`), sur
+  GitHub à la fusion et en local le 28 octobre, avec `todo-ai-fpu-kernels`
+  (fusionnée depuis longtemps), `todo-ai-msvc-win-v1` (jamais poussée,
+  remplacée par 28acce4 et b071b41) et la branche des registres
+  `todo-ai-after-rosetta` : sur GitHub, il ne reste que `configure-clean`,
+  `MATH-CORE` et `master`.
 - [x] Lignes de crédit retirées des descriptions de #50, #51, #53 à #57 et #59,
   d'un commentaire de #59 et de cette issue. Il en reste dans les messages des
   commits a0d3871, 790ca12 et f1f4239 de #99, fusionnée sans squash. Retirées
