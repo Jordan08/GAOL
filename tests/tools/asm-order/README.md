@@ -75,7 +75,10 @@ write it), on the paths of its control flow graph, the jump tables of the
   reached from its entry: what they write is seen, not analysed.
 
 A store of 1 or of 0 through the x87 unit (`fld1`, `fstpl`: GCC writes a
-constant so) is exact and is not one that rounds.
+constant so) is exact and is not one that rounds, and neither is the store of
+an extended constant that is a double (`fldt .LC15(%rip)`, `fstpl`: GCC loads
+`std::numeric_limits<double>::denorm_min()` so; the tool reads the three words
+of the constant, and the store is exempt when the value is a double exactly).
 
 ## What it does not see
 
@@ -99,11 +102,11 @@ constant so) is exact and is not one that rounds.
 - The text of an `asm` statement is read as code: the `fldcw` of the library all
   come from one.
 
-Two findings are right and harmless, and `KNOWN` in the script lists them with
+Four findings are right and harmless, and `KNOWN` in the script lists them with
 their reason; they are printed with `--verbose` and do not make the check fail.
-`KNOWN` is for a function and a kind, not for an instruction: another finding
-in these functions would be hidden too. With `--build --verbose`, an entry that
-matches nothing is reported.
+`KNOWN` is for a function and a kind, and for two entries a mnemonic (`mulsd`,
+`divsd`, `subsd`): another finding in these functions would be hidden too. With
+`--build --verbose`, an entry that matches nothing is reported.
 
 ## What it found
 
@@ -127,13 +130,35 @@ rounding (`pown_checked()`, `pown_bound_inverse()`), which the first version of
 the tool showed before a write of `flush_guard`, is computed after it in the
 builds of this run.
 
+On the code of 2026-10-29 (`dc628bb`), the GCC 15.2 builds with the direction
+preserved (default, no FMA, FPU intervals, FPU without FMA) showed 105 to 127
+findings in eight functions that Clang 21 and 18 do not show (`root_end()`,
+`log_ratio_end()`, the lambdas of `root_of_power_up()`, `root_of_power_dn()`,
+`log_ratio_up()` and `log_ratio_dn()`, `pow_rel_beyond()` and `pow_lo<true>()`
+of the reverse functions of `pow`), of two kinds, both harmless, which `KNOWN`
+lists now:
+- the conversion by `fstpl` of the constant `denorm_min()` loaded as an
+  extended number, exact: the tool tells it now (`extended_is_double()`);
+- products and quotients that come before a write, in GCC's copies of
+  `pow_up_without_overflow_exception()` (inlined into these functions, so that
+  the entry of 2026-10-27, which names the function, does not match: the
+  estimates `|y| |log(x)| / log(2)` and `1000/(e + 1)`, with margins of 10^-9
+  and 2 %), and in `root_end()` and `log_ratio_end()` the hints
+  `root_of_power_near()` and `log_ratio_near()`, from which
+  `last_key_holding()` and `first_key_holding()` start a search by gallop and
+  bisection of a monotone proof. With the two hints replaced by constants
+  (1.0 and 0.0), `reverse`, `elementary`, `rounding_direction` and `ieee1788`
+  pass, so the hint changes the number of powers computed and no bound.
+
 With `GAOL_RND_KEEP()` removed from `width()`, GCC 15 still kept the subtraction
 before the write that sets the direction back, at `-O1` to `-O3`, and Clang 21
 at `-O1` and `-O3`: `inline.cpp` is what reads `width()` in a build. The check
-has teeth on assembly written for it (`--selftest`, 54 cases: a sum before a
+has teeth on assembly written for it (`--selftest`, 58 cases: a sum before a
 write, after the write that sets back, hoisted above the probe, among the
 instructions of the probe, in a loop, behind a jump table of GCC and of Clang,
-in a cold section, after a tail call...), and 57 of the 63 changes made to the
-script, one at a time, make it fail; the six that do not are equivalent (the
+in a cold section, after a tail call, the store of an extended constant that
+is a double or that is not, a known function on a mnemonic its entry names or not...), and 57 of the 63 changes made to the script of
+2026-10-27, one at a time, make it fail (not repeated for the changes of
+2026-10-29); the six that do not are equivalent (the
 `.cfi_endproc` that `.type` follows, the comments after an instruction, the
 write that a closure need not stop at...).
