@@ -305,7 +305,8 @@ point Q), which `numbers` checks there too.
   `inverse([0, 2])` raising the division-by-zero flag, where the FPU ones
   raised none); 13 powers with an
   exponent of extreme magnitude, which have to be the tightest enclosures
-  (CORE-MATH's `pow` compares a NaN it makes on purpose there); 13 integer
+  (CORE-MATH's `pow` compared a NaN it makes on purpose there until its commit
+  `c01f08c5`); 13 integer
   powers at the ends of the doubles, an infinite bound, an overflow, 0 for a
   negative exponent, exponents beyond the ints, which have to be the tightest
   enclosures, and `pow([5.3, 5.5], 25)`, whose rests of the exact products,
@@ -346,11 +347,14 @@ point Q), which `numbers` checks there too.
   doubles next to the largest and the smallest ones, powers of 2 and their
   neighbours, any exponent and subnormal ones: whatever the draw, a result
   with no infinite bound (the empty set included) has to come with neither the
-  overflow nor the division-by-zero flag (GAOL v5, point 79 of TODO.md). 24
+  overflow nor the division-by-zero flag (GAOL v5, point 79 of TODO.md). 27
   cases of TODO.md and their like (`sqrt([1, DBL_MAX])`, `nth_root([DBL_MAX],
   3)`, `sin([-1, DBL_MAX])`, `tan([DBL_MAX])`, `div_rel([1], [2^-1074, 1], [1,
   2])`, `sqrt_rel([DBL_MAX], [-3, 0])`, `pow_rel([DBL_MAX], [2], I)`,
-  `pow_exponent_rel([DBL_MAX], [2], I)`, `atanh_rel([0, 1], [0])`...) have to
+  `pow_exponent_rel([DBL_MAX], [2], I)`, `atanh_rel([0, 1], [0])`, and the
+  tiny powers of a power of two to an exponent next to 2<sup>1014</sup> or
+  more, `pow([2^-1074], [1.5 2^1014])`, where CORE-MATH's `pow` overflows
+  multiplying the exponent by that of the base...) have to
   give their tightest bounds, computed apart with exact arithmetic and, for
   the tangent, mpmath (a double or two more for the fifth root, for
   `nth_root([DBL_MAX], -3)` and for `pow_rel()` with an exponent next to
