@@ -84,6 +84,7 @@
 
 import argparse
 import collections
+from fractions import Fraction
 import json
 import os
 import re
@@ -112,9 +113,10 @@ PROBE_SYMBOL = re.compile(r'(subnormal|tiny)', re.I)
 READ_REGISTER = re.compile(r'^(v?stmxcsr|fnstcw|fstcw|fnstenv|v?fxsave(64)?)$')
 READ_CALLS = re.compile(r'(fegetround|fegetenv|get_rounding|get_flush_modes)')
 
-# The findings that are right and harmless, read on the code of 2026-10-27: kind, a regular expression for the name
-# of the function (demangled), and why. A finding of the list is printed as "known" and does not make the check
-# fail. It is for the function and the kind, not for the instruction: a new finding in these functions is hidden.
+# The findings that are right and harmless, read on the code of 2026-10-27 and 2026-10-29: kind, a regular expression
+# for the name of the function (demangled), why, and for some a regular expression for the mnemonic of the
+# instruction. A finding of the list is printed as "known" and does not make the check fail. It is for the function
+# and the kind (and the mnemonic when it is given): another finding in these functions is hidden.
 KNOWN = [
     ('AFTER', r'difference_at_least',
      'the halving 0.5 * a of the bounds of the recursive call is exact in every direction: the bounds are 2^970 '
@@ -124,6 +126,19 @@ KNOWN = [
      'the write sets the exception masks of MXCSR and leaves the direction; what comes before it only decides '
      'whether the masks are needed, with margins far larger than the rounding of the estimate '
      '(1.4426950408889634 is rounded to nearest on purpose)'),
+    # GCC inlines pow_up_without_overflow_exception() (and pow_rounded_up<true>()) into the callers below instead of
+    # keeping the function that the entry above names, and the same estimates come before its write: the products
+    # |y| |log(x)| 1.44... and the quotient 1000/(e + 1) that decide whether the masks are needed (point PG, 2026-10-29).
+    # root_end() and log_ratio_end() have the hints of the search for the tightest bound of c^(1/y) and of
+    # log(c)/log(x) as well (root_of_power_near() and log_ratio_near()): they only say where to start
+    ('BEFORE', r'pow_lo<true>|log_ratio_(up|dn)\(double, double\)::|root_of_power_(up|dn)\(double, double, double\)::|'
+               r'pow_rel_beyond|root_end|log_ratio_end',
+     'the estimates of the inlined pow_up_without_overflow_exception(): the products and the quotient that decide '
+     'whether the exceptions are masked, with margins (1000/(e + 1), 1023.999999999, 1024.000000001) far larger '
+     'than their rounding; and, in root_end() and log_ratio_end(), the hints root_of_power_near() and '
+     'log_ratio_near() from which last_key_holding() and first_key_holding() look for the bound by gallop and '
+     'bisection of a monotone proof: the bound is the same for any hint (the tests pass with the two hints '
+     'replaced by constants, 2026-10-29), only the number of powers computed changes', r'^v?(mul|div|sub)sd$'),
 ]
 
 # The functions that write the control register, whose call is a write seen from the caller
@@ -166,6 +181,25 @@ def rounds(mn, ops):
     return False
 
 
+def extended_is_double(words):
+    """Whether the x87 constant of three 32-bit words (the low and the high half of the significand, then the sign
+    and the exponent) is a double, so that a store of it as a double rounds nothing"""
+    if len(words) < 3:
+        return False
+    low, high, sign_exponent = (w & 0xffffffff for w in words[:3])
+    exponent = sign_exponent & 0x7fff
+    significand = (high << 32) | low
+    if exponent == 0:
+        return significand == 0  # zero; a denormal of the x87 unit is smaller than any double
+    if (high >> 31) == 0:
+        return False             # an unnormal, and the pseudo zero: no compiler writes them, the x87 unit refuses them
+    value = Fraction(significand) * Fraction(2)**(exponent - 16383 - 63)
+    try:
+        return Fraction(float(value)) == value
+    except OverflowError:
+        return False             # beyond the largest double, infinity and not a number (exponent 0x7fff) too
+
+
 class Insn:
     __slots__ = ('mnemonic', 'operands', 'text', 'line', 'run', 'rounds')
 
@@ -175,6 +209,7 @@ class Insn:
 
 JUMP_CONDITIONAL = re.compile(r'^j(n?[abceglopsz]|ae|be|ge|le|na|nb|nc|ne|ng|nl|no|np|ns|nz|pe|po|cxz|ecxz|rcxz)$')
 LABEL_REFERENCE = re.compile(r'\.L[\w.$]+')
+CONTROL_TRANSFER = re.compile(r'^(j[a-z]+|callq?|retq?)$')
 
 
 class Assembly:
@@ -188,8 +223,11 @@ class Assembly:
         self.tables = {}         # label of a jump table -> the labels it holds
         self.unresolved = set()  # the indirect jumps whose table is not known
         self.pads = set()        # the labels the tables of exceptions name, where the unwinder jumps to
+        self.longs = {}          # label of a constant -> the 32-bit numbers of its .long directives
+        self.stores = []         # (instruction index, label) of the fst* that follows a fldt of a constant
         self.lines = text.splitlines()
         self._parse()
+        self._exact_constants()
 
     def _parse(self):
         run = 0
@@ -233,6 +271,9 @@ class Assembly:
                     targets = [t for t in LABEL_REFERENCE.findall(s) if t != last_label]
                     if targets:
                         self.tables.setdefault(last_label, []).extend(targets)
+                    number = re.match(r'^\.long\s+(-?\d+)\s*$', s)
+                    if number:
+                        self.longs.setdefault(last_label, []).append(int(number.group(1)))
                 continue
             parts = s.split(None, 1)
             mn = parts[0]
@@ -244,15 +285,31 @@ class Assembly:
             rounding = rounds(mn, ops)
             if rounding and mn.startswith('fst'):
                 # the store of 1 or of 0 is exact (GCC loads a constant so): the x87 instruction before it, in
-                # the few instructions that come before, is fld1 or fldz
-                for previous in reversed(self.insns[-6:]):
+                # the few instructions that come before, is fld1 or fldz; the same for a constant of the memory that
+                # is a double (see _exact_constants()), stored as a double. Only when the instructions between are
+                # a straight line: no label (another path can reach the store) and no jump or call
+                here = len(self.insns)
+                for back, previous in enumerate(reversed(self.insns[-6:]), 1):
                     if previous.run != run:
                         break
                     if previous.mnemonic.startswith('f'):
-                        rounding = previous.mnemonic not in ('fld1', 'fldz')
+                        first = here - back
+                        straight = (not any(first < i <= here for i in self.labels.values())
+                                    and not any(CONTROL_TRANSFER.match(i.mnemonic) for i in self.insns[first + 1:]))
+                        rounding = not (straight and previous.mnemonic in ('fld1', 'fldz'))
+                        constant = re.match(r'^(\.LC\d+)\(%rip\)$', previous.operands.strip()) if previous.mnemonic == 'fldt' else None
+                        if constant and straight and mn in ('fstl', 'fstpl'):
+                            self.stores.append((here, constant.group(1)))
                         break
             self.insns.append(Insn(mn, ops, s, n, run, rounding))
             last_label = None
+
+    def _exact_constants(self):
+        """The store of a double after the load of an extended constant that is a double rounds nothing (GCC loads
+        std::numeric_limits<double>::denorm_min() so: fldt .LC15(%rip), fstpl)"""
+        for index, label in self.stores:
+            if extended_is_double(self.longs.get(label, [])):
+                self.insns[index].rounds = False
 
     def table_of(self, i):
         """The labels of the jump table that the indirect jump i reads, or None"""
@@ -466,10 +523,12 @@ def demangle(names):
 KNOWN_SEEN = set()
 
 
-def known(kind, name):
-    """Why a finding of this kind in this function is harmless, or None"""
-    for k, pattern, why in KNOWN:
-        if k == kind and re.search(pattern, name):
+def known(kind, name, mnemonic=''):
+    """Why a finding of this kind in this function (on this instruction, for the entries that name some) is
+    harmless, or None"""
+    for entry in KNOWN:
+        k, pattern, why = entry[:3]
+        if k == kind and re.search(pattern, name) and (len(entry) < 4 or re.search(entry[3], mnemonic)):
             return why
     return None
 
@@ -507,7 +566,7 @@ def check_file(path, text, preserve, verbose, out):
         for kind, i in found:
             ins = asm.insns[i]
             fname = pretty.get(name, name)
-            why = known(kind, fname)
+            why = known(kind, fname, ins.mnemonic)
             if why is not None:
                 stats['known findings'] += 1
                 KNOWN_SEEN.add(why)
@@ -838,6 +897,153 @@ f:
 	ldmxcsr	(%rsp)
 	ret
 ''', None, False),
+    'a store of an extended constant that is a double is exact': ('''
+	.type	f, @function
+f:
+	fldt	.LC15(%rip)
+	movapd	%xmm4, %xmm15
+	fstpl	(%rsp)
+	ldmxcsr	(%rsp)
+	ret
+	.section	.rodata
+.LC15:
+	.long	0
+	.long	-2147483648
+	.long	15309
+	.long	0
+''', None, False),
+    'a store of an extended constant that is not a double is not': ('''
+	.type	f, @function
+f:
+	fldt	.LC16(%rip)
+	movapd	%xmm4, %xmm15
+	fstpl	(%rsp)
+	ldmxcsr	(%rsp)
+	ret
+	.section	.rodata
+.LC16:
+	.long	1
+	.long	-2147483648
+	.long	16383
+	.long	0
+''', 'BEFORE', False),
+    'a store without pop of an extended constant that is a double is exact': ('''
+	.type	f, @function
+f:
+	fldt	.LC15(%rip)
+	fstl	(%rsp)
+	ldmxcsr	(%rsp)
+	ret
+	.section	.rodata
+.LC15:
+	.long	0
+	.long	-2147483648
+	.long	15309
+	.long	0
+''', None, False),
+    'a store five instructions after the load of a constant is exact': ('''
+	.type	f, @function
+f:
+	fldt	.LC15(%rip)
+	movapd	%xmm4, %xmm15
+	movapd	%xmm4, %xmm15
+	movapd	%xmm4, %xmm15
+	movapd	%xmm4, %xmm15
+	movapd	%xmm4, %xmm15
+	fstpl	(%rsp)
+	ldmxcsr	(%rsp)
+	ret
+	.section	.rodata
+.LC15:
+	.long	0
+	.long	-2147483648
+	.long	15309
+	.long	0
+''', None, False),
+    'a store six instructions after the load of a constant is not looked at': ('''
+	.type	f, @function
+f:
+	fldt	.LC15(%rip)
+	movapd	%xmm4, %xmm15
+	movapd	%xmm4, %xmm15
+	movapd	%xmm4, %xmm15
+	movapd	%xmm4, %xmm15
+	movapd	%xmm4, %xmm15
+	movapd	%xmm4, %xmm15
+	fstpl	(%rsp)
+	ldmxcsr	(%rsp)
+	ret
+	.section	.rodata
+.LC15:
+	.long	0
+	.long	-2147483648
+	.long	15309
+	.long	0
+''', 'BEFORE', False),
+    'a single-precision store of an extended constant that is a double rounds': ('''
+	.type	f, @function
+f:
+	fldt	.LC15(%rip)
+	movapd	%xmm4, %xmm15
+	fstps	(%rsp)
+	ldmxcsr	(%rsp)
+	ret
+	.section	.rodata
+.LC15:
+	.long	0
+	.long	-2147483648
+	.long	15309
+	.long	0
+''', 'BEFORE', False),
+    'a store behind a label that another path reaches is not exact': ('''
+	.type	f, @function
+f:
+	testl	%edi, %edi
+	je	.L4
+	fildll	8(%rsp)
+	jmp	.L5
+.L4:
+	fldt	.LC15(%rip)
+.L5:
+	fstpl	(%rsp)
+	ldmxcsr	(%rsp)
+	ret
+	.section	.rodata
+.LC15:
+	.long	0
+	.long	-2147483648
+	.long	15309
+	.long	0
+''', 'BEFORE', False),
+    'a store of 1 behind a label that another path reaches is not exact': ('''
+	.type	f, @function
+f:
+	testl	%edi, %edi
+	je	.L4
+	fildll	8(%rsp)
+	jmp	.L5
+.L4:
+	fld1
+.L5:
+	fstpl	(%rsp)
+	ldmxcsr	(%rsp)
+	ret
+''', 'BEFORE', False),
+    'a store of an extended constant after a call is not exact': ('''
+	.type	f, @function
+f:
+	fldt	.LC15(%rip)
+	call	g@PLT
+	fstpl	(%rsp)
+	ldmxcsr	(%rsp)
+	ret
+	.section	.rodata
+.LC15:
+	.long	0
+	.long	-2147483648
+	.long	15309
+	.long	0
+''', 'BEFORE', False),
     'a store of a computed x87 value is not': ('''
 	.type	f, @function
 f:
@@ -973,6 +1179,20 @@ _ZN9gaol_coreL19difference_at_leastEdddd:
 	mulsd	%xmm1, %xmm0
 	ret
 ''', None, True),
+    'a finding of a known function on a mnemonic that its entry does not name is one': ('''
+	.type	_ZN9gaol_coreL8root_endEddb, @function
+_ZN9gaol_coreL8root_endEddb:
+	addsd	%xmm1, %xmm0
+	ldmxcsr	(%rsp)
+	ret
+''', 'BEFORE', False),
+    'a finding of a known function on a mnemonic that its entry names is known': ('''
+	.type	_ZN9gaol_coreL8root_endEddb, @function
+_ZN9gaol_coreL8root_endEddb:
+	mulsd	%xmm1, %xmm0
+	ldmxcsr	(%rsp)
+	ret
+''', None, False),
     'conditional writes, the check first, the body between': ('''
 	.type	f, @function
 f:
@@ -1192,6 +1412,64 @@ g:
 }
 
 
+def extended(sign, exponent, significand):
+    """The three .long words of an x87 constant (the way GCC writes them: signed)"""
+    words = [significand & 0xffffffff, significand >> 32, (sign << 15) | exponent]
+    return [w - (1 << 32) if w >= 1 << 31 else w for w in words]
+
+
+# Which x87 constants are doubles: name, the three words, wanted
+EXTENDED_DOUBLES = [
+    ('1', extended(0, 16383, 1 << 63), True),
+    ('-1.5', extended(1, 16383, 3 << 62), True),
+    ('the largest double', extended(0, 16383 + 1023, ((1 << 53) - 1) << 11), True),
+    ('2^1024', extended(0, 16383 + 1024, 1 << 63), False),
+    ('the smallest subnormal double, 2^-1074', extended(0, 16383 - 1074, 1 << 63), True),
+    ('3 * 2^-1074', extended(0, 16383 - 1074 + 1, 3 << 62), True),
+    ('2^-1075', extended(0, 16383 - 1075, 1 << 63), False),
+    ('0', extended(0, 0, 0), True),
+    ('-0', extended(1, 0, 0), True),
+    ('infinity', extended(0, 0x7fff, 1 << 63), False),
+    ('not a number', extended(0, 0x7fff, 3 << 62), False),
+    ('a denormal of the x87 unit', extended(0, 0, 1), False),
+    ('a pseudo denormal', extended(0, 0, 1 << 63), False),
+    ('an unnormal (the integer bit clear)', extended(0, 16383, 1 << 62), False),
+    ('a pseudo zero', extended(0, 16383, 0), False),
+    ('54 bits of significand', extended(0, 16383 + 100, ((1 << 54) - 1) << 10), False),
+    ('0.1 rounded to 64 bits', extended(0, 16379, 0xCCCCCCCCCCCCCCCD), False),
+    ('1 + 2^-63', extended(0, 16383, (1 << 63) | 1), False),
+    ('two words only', [0, 0], False),
+]
+
+# The findings of KNOWN: kind, the name of the function, the mnemonic, whether it is known
+KNOWN_CASES = [
+    ('BEFORE', 'double gaol_core::pow_lo<true>(double, double) [clone .part.0]', 'vmulsd', True),
+    ('BEFORE', 'double gaol_core::pow_lo<true>(double, double) [clone .part.0]', 'vdivsd', True),
+    ('BEFORE', 'double gaol_core::pow_lo<true>(double, double) [clone .part.0]', 'vaddsd', False),
+    ('BEFORE', 'gaol_core::root_end(double, double, bool)', 'vsubsd', True),
+    ('BEFORE', 'gaol_core::root_end(double, double, bool)', 'subsd', True),
+    ('BEFORE', 'gaol_core::root_end(double, double, bool)', 'vsqrtsd', False),
+    ('BEFORE', 'gaol_core::root_end(double, double, bool)', 'vmulpd', False),
+    ('BEFORE', 'gaol_core::root_end(double, double, bool)', None, False),
+    ('BEFORE', 'gaol_core::log_ratio_end(double, double, bool)', 'divsd', True),
+    ('BEFORE', 'gaol_core::log_ratio_end(double, double, bool)', 'addsd', False),
+    ('BEFORE', 'gaol_core::pow_rel_beyond(gaol_core::pow_rel_end const&, double, bool)', 'mulsd', True),
+    ('BEFORE', 'gaol_core::pow_rel_beyond(gaol_core::pow_rel_end const&, double, bool)', 'addsd', False),
+    ('BEFORE', 'gaol_core::log_ratio_up(double, double)::{lambda(unsigned long)#1}::operator()(unsigned long) const',
+     'vdivsd', True),
+    ('BEFORE', 'gaol_core::log_ratio_dn(double, double)::{lambda(unsigned long)#1}::operator()(unsigned long) const',
+     'vmulsd', True),
+    ('BEFORE', 'gaol_core::log_ratio_dn(double, double)::{lambda(unsigned long)#1}::operator()(unsigned long) const',
+     'vfmadd231sd', False),
+    ('BEFORE', 'gaol_core::root_of_power_up(double, double, double)::{lambda(unsigned long)#1}::operator()(unsigned long) const',
+     'vmulsd', True),
+    ('BEFORE', 'gaol_core::root_of_power_dn(double, double, double)::{lambda(unsigned long)#1}::operator()(unsigned long) const',
+     'vaddsd', False),
+    ('AFTER', 'gaol_core::root_end(double, double, bool)', 'vmulsd', False),
+    ('BEFORE', 'double gaol_core::pow_hi<true>(double, double)', 'vmulsd', False),
+]
+
+
 def selftest():
     """Runs the checks on the assembly of SELFTEST: the kinds of the findings must be the one wanted, or the pair
     (kind, function) where the case names the function"""
@@ -1208,6 +1486,15 @@ def selftest():
         else:
             ok = [kind for kind, _ in found] == [want]
         print('%-60s %s' % (name, 'ok' if ok else 'FAILED: %r wanted, %r found' % (want, found)))
+        bad += 0 if ok else 1
+    for name, words, want in EXTENDED_DOUBLES:
+        ok = extended_is_double(words) == want
+        print('%-60s %s' % ('extended_is_double: ' + name, 'ok' if ok else 'FAILED: %r wanted' % want))
+        bad += 0 if ok else 1
+    for kind, function, mnemonic, want in KNOWN_CASES:
+        ok = ((known(kind, function) if mnemonic is None else known(kind, function, mnemonic)) is not None) == want
+        print('%-60s %s' % ('known: %s %s %s' % (kind, function.split('(')[0].split('::')[-1], mnemonic),
+                            'ok' if ok else 'FAILED: %r wanted' % want))
         bad += 0 if ok else 1
     return bad
 
@@ -1246,7 +1533,8 @@ def main():
         sys.exit('check_order.py: no function of the build writes the control register: nothing was checked')
     print('%d files; %s; findings: %d' % (len(files), ', '.join('%s %d' % kv for kv in sorted(total.items())), bad))
     if a.build and a.verbose:
-        for k, pattern, why in KNOWN:
+        for entry in KNOWN:
+            k, pattern, why = entry[:3]
             if why not in KNOWN_SEEN:
                 print('known finding not seen in this build (in the other configurations, or out of date): %s %s' % (k, pattern))
     sys.exit(1 if bad else 0)
