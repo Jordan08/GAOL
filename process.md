@@ -8,8 +8,8 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12. Dernière mise à jour : 29 octobre 2026, au
-commit `ba3009f` de `configure-clean` (la fusion de #225, après celles de #217,
-#218, #219, #222 et #223).
+commit `38afa59` de `configure-clean` (la fusion de #235, après celles de #217 à
+#220, #222 à #225, #227 à #232 et #234).
 
 ## 1. Le contexte
 
@@ -763,27 +763,34 @@ git ls-remote --heads origin
   si ça change, l'alignement de la pile 32 bits, le contrôle de l'assembleur de
   x86-64) et #216 (hors des points : le tableau des lignes longues sur ARM 64
   bits, à la fin de `doc/compare/performance.md`, mesuré sur un Mac M2) ; puis
-  #217, #218, #219, #222, #223 et #225 (de la tâche PG : le seuil de la liste
-  du banc A/B, `set_rounding()` sans écrire pour rien, le noyau de `pown` de
-  NEON, `nth_root(x, -2)`, le tri du contrôle de l'assembleur avec GCC et le
-  quotient NEON), fusionnées le 28 et le 29 octobre ;
+  #217 à #220, #222 à #225, #227 à #232, #234 et #235 (de la tâche PG : le seuil
+  de la liste du banc A/B, `set_rounding()` sans écrire pour rien, le noyau de
+  `pown` de NEON, la ligne `x / d`, `nth_root(x, -2)` et `sqrt()` (la
+  constante `denorm_min()` avec GCC), le tri du contrôle de l'assembleur avec
+  GCC, son garde `DENORMAL` et son job de CI, le quotient NEON, la grille de
+  `diffarith`, les masques d'exceptions de `pow_rel()`, et les écarts de GCC
+  avec Clang : les écritures de registres hors ligne, l'alignement des
+  fonctions sur 64 octets, `x | y` et `x &= y` de SSE2, `x * y` de NEON),
+  fusionnées du 28 au 29 octobre ;
   l'audit du 13 octobre a
   vérifié dans `configure-clean`
   ce qu'annonçaient alors les points A, C à H et J à V.
-- **En cours** : au 29 octobre, onze pull requests sont ouvertes, toutes de la
-  tâche PG (#220, #224, #227 à #232, #234 et #235, et le brouillon jetable #233
-  : `TODO.md` dit ce que chacune attend) ; `configure-clean` est au commit de la
-  fusion de #225. Ses branches sur GitHub sont `configure-clean`, `MATH-CORE` et
-  `master`, avec celles des pull requests ouvertes et trois branches d'essais
-  jetables gardées (`experiment-pg8-neon-div`, `experiment-pg2-row`,
-  `experiment-pg2-n2`). L'issue #198 (`x / y` des intervalles NEON avec
-  `FPCR.AH`) est ouverte, sans tâche dans `TODO.md` ; #185 est fermée, le
+- **En cours** : au 29 octobre, aucune pull request n'est ouverte ;
+  `configure-clean` est au commit de la fusion de #235. La pull request de
+  `max(x, y)` et `min(x, y)` (un noyau SSE2 et un noyau NEON, tâche PG, 2) est
+  en préparation : la branche locale `todo-pg-max` n'est pas poussée. Les
+  branches de GitHub sont `configure-clean`, `MATH-CORE` et `master`, avec trois
+  branches d'essais jetables gardées (`experiment-pg8-neon-div`,
+  `experiment-pg2-row`, `experiment-pg2-n2`) et la branche fusionnée de #235
+  (`todo-pg-neon-mul`), à supprimer. L'issue #198 (`x / y` des intervalles NEON
+  avec `FPCR.AH`) est ouverte, sans tâche dans `TODO.md` ; #185 est fermée, le
   masquage des exceptions de `pow` est gardé. L'issue #177 (`TODO_DONE.md`)
   n'est plus mise à jour (*décidé le 28 octobre*) : GitHub borne le corps d'une
   issue à 262 144 octets et le texte joint en fait plus de 270 000 (voir
   `TODO_DONE.md` 7.8).
 - **À faire**, dans l'ordre de `TODO.md` : les études de vitesse, toutes avant
-  v5.0.0 (PG, presque faite : ses pull requests ouvertes), les signalements à
+  v5.0.0 (PG, presque faite : `max` et `min`, les autres noyaux NEON, le tableau
+  de Clang 21), les signalements à
   d'autres projets (PH, avec l'accord du mainteneur), puis la version (PI, PJ).
   Ce qui est reporté (le 113, le site, les traits pour YalAA et VNODE-LP, les
   décorations, ce qui attend du matériel) est dans `TODO_AFTER.md`. Les

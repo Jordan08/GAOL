@@ -123,8 +123,8 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    `GAOL_PRESERVE_ROUNDING` (une quinzaine de secondes) le ferait ; reporté, à
    faire si le mainteneur le veut. *Décidé le 29 octobre* : le faire, avec tous
    les constats (`BEFORE`, `AFTER` et `DENORMAL`), GCC 13.3 et Clang 18, avec et
-   sans la préservation, dans un seul job de quatre étapes : #228 (ouverte) ;
-   cet article sort de ce fichier à sa fusion.
+   sans la préservation, dans un seul job de quatre étapes : fait par #228
+   (fusionnée le 29 octobre) ; cet article sort de ce fichier.
 3. **106 (AI), le reste (c) et (d)** (*décidé le 28 octobre* : rien) : (c) les
    opérations avec un double (`x * 2.0`) n'ont pas les noyaux de #157 sur aucune
    cible (#124) ; (d) l'effet de `__vectorcall` (les noyaux `add_bounds()` et
@@ -197,9 +197,11 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    l'erratum. #230 l'a montré de nouveau (`line of 15 +` de 13,5 à 23,3 ns avec
    Clang 21 pour un chemin rapide identique octet pour octet) ; le
    `-falign-functions=64` des fonctions de la bibliothèque est la pull request
-   #232 (ouverte). *À rouvrir si* un programme cible des processeurs Skylake à
-   Comet Lake et qu'une mesure de sa part montre un gain stable de l'option,
-   au-delà des 5 % de dispersion.
+   #232 (fusionnée le 29 octobre : `line of 15 +` de 22,4 à 13,2 ns avec Clang
+   21, de 20,45 à 15,84 avec Clang 18 sur un Xeon, neutre avec GCC). *À
+   rouvrir si* un programme cible des processeurs Skylake à Comet Lake et qu'une
+   mesure de sa part montre un gain stable de l'option, au-delà des 5 % de
+   dispersion.
 
 ## 4. En attente de matériel ou d'un environnement qui manque
 
