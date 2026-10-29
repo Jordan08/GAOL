@@ -157,21 +157,34 @@ GAOL_INLINE interval& interval::operator&=(const interval& I)
     xmmbounds = _mm_set1_pd(std::numeric_limits<double>::quiet_NaN());
     return *this;
   }
+  // The bound of I that replaces one of *this is taken in the register (a move
+  // of the low double, a shuffle for the high one), and the bounds kept for the
+  // test below are doubles of their own: GCC 15.2 moved the bounds written to
+  // bd[] back through general registers (vpextrq, vpinsrq). In gaol_performance
+  // x | y took 2.67 ns rather than 1.70 and x &= y 2.2 rather than 2.0, and
+  // twice as long on the paths that the branches do not predict (Intel
+  // i7-1185G7, GCC of Ubuntu). Clang 21 stays within 0.2 ns, a little slower
+  // for x &= y (1.79 to 1.97) and where both bounds of x | y are replaced (1.27
+  // to 1.54) (GAOL v5, point PG of TODO.md)
+  __m128d res = xmmbounds;
+  double lo = bd[0], hi = bd[1];
   if (!gaol_detail::bound_greater_equal(Ibd[0], bd[0])) { // Left bounds negated
-    bd[0] = Ibd[0];
+    res = _mm_move_sd(res, I.xmmbounds);
+    lo = Ibd[0];
   }
   if (!gaol_detail::bound_greater_equal(Ibd[1], bd[1])) {
-    bd[1] = Ibd[1];
+    res = _mm_shuffle_pd(res, I.xmmbounds, 2);
+    hi = Ibd[1];
   }
   
   // Disjoint intervals give the empty set, [NaN, NaN] as
   // interval::emptyset() (GAOL v5): their bounds in the wrong
   // order, [3, 2] for [1, 2] & [3, 4], were empty for is_empty(), but
   // the operations computing on the bounds gave [3, 2] + [0, 1] = [3, 3]
-  if (!gaol_detail::bound_less_equal(-bd[0], bd[1])) {
+  if (!gaol_detail::bound_less_equal(-lo, hi)) {
     xmmbounds = _mm_set1_pd(std::numeric_limits<double>::quiet_NaN());
   } else {
-    xmmbounds = _mm_load_pd(bd);
+    xmmbounds = res;
   }
   return *this;
 }
@@ -192,13 +205,16 @@ GAOL_INLINE interval& interval::operator|=(const interval& I)
   _mm_store_pd(bd,xmmbounds);
   _mm_store_pd(Ibd,I.xmmbounds);
   
+  // The bounds of I that replace those of *this are taken in the register, as
+  // in operator&=()
+  __m128d res = xmmbounds;
   if (gaol_detail::bound_greater(Ibd[0], bd[0])) { // Left bounds negated
-    bd[0] = Ibd[0];
+    res = _mm_move_sd(res, I.xmmbounds);
   }
   if (gaol_detail::bound_greater(Ibd[1], bd[1])) {
-    bd[1] = Ibd[1];
+    res = _mm_shuffle_pd(res, I.xmmbounds, 2);
   }
-  xmmbounds = _mm_load_pd(bd);
+  xmmbounds = res;
   return *this;
 }
 
