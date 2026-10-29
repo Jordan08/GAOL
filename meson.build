@@ -350,6 +350,19 @@ if release
     endif
   endforeach
 endif
+# -falign-functions=64, explained in CMakeLists.txt, for the library alone as
+# CMake gives it, not for the tests, the examples and the benchmarks: given to
+# the targets of gaol/meson.build (the static library of CORE-MATH and libgaol)
+gaol_align_cpp_args = []
+gaol_align_c_args = []
+if release
+  if cpp_comp.has_argument('-falign-functions=64')
+    gaol_align_cpp_args = ['-falign-functions=64']
+  endif
+  if c_comp.has_argument('-falign-functions=64')
+    gaol_align_c_args = ['-falign-functions=64']
+  endif
+endif
 
 # On x86 processors (the target of the compiler, as CMakeLists.txt and
 # configure): the intervals are computed with SSE2 instructions

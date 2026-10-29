@@ -783,6 +783,8 @@ AC_ARG_ENABLE(debug,
 # was the Release build, and --disable-optimize compiled with -O): CMake never
 # had it, and meson's is gone
 optimize="yes"
+GAOL_ALIGN_CXXFLAGS=""
+GAOL_ALIGN_CFLAGS=""
 if test "$debug" = yes; then
     optimize="no (--enable-debug)"
     AC_DEFINE(GAOL_DEBUGGING,1,[Define this to 1 to have GAOL check its assertions (Debug build)])
@@ -797,7 +799,21 @@ else
         GAOL_ADD_FLAG([${gaol_flag}])
     done
     CPPFLAGS="${CPPFLAGS} -DNDEBUG"
+    # -falign-functions=64, explained in CMakeLists.txt, for the library alone
+    # as CMake gives it, not for the tests, the examples and the benchmarks:
+    # substituted into gaol/Makefile.am and 3rd/Makefile.am, not added to
+    # CXXFLAGS and CFLAGS
+    GAOL_CHECK_CXX_FLAG([-falign-functions=64], [gaol_cxx_takes_align])
+    if test "${gaol_cxx_takes_align}" = yes; then
+        GAOL_ALIGN_CXXFLAGS="-falign-functions=64"
+    fi
+    GAOL_CHECK_C_FLAG([-falign-functions=64], [gaol_c_takes_align])
+    if test "${gaol_c_takes_align}" = yes; then
+        GAOL_ALIGN_CFLAGS="-falign-functions=64"
+    fi
 fi
+AC_SUBST([GAOL_ALIGN_CXXFLAGS])
+AC_SUBST([GAOL_ALIGN_CFLAGS])
 GAOL_CHECK_CXX_FLAG([-fvisibility-inlines-hidden -fvisibility=hidden], [has_visibility_opt])
 if test "${has_visibility_opt}" = yes; then
     CXXFLAGS="${CXXFLAGS} -fvisibility-inlines-hidden -fvisibility=hidden"
