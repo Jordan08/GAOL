@@ -49,7 +49,10 @@
   // modes that flush the subnormals to zero (see rnd_reread() of
   // gaol/gaol_fpu.h, for a double). Visual C++ has no asm statement on ARM64,
   // and keeps the operations where the source puts them with respect to the
-  // writes of FPCR (see GAOL_RND_BARRIER() of gaol/gaol_fpu.h): x as it is
+  // writes of FPCR (see GAOL_RND_BARRIER() of gaol/gaol_fpu.h): x as it is.
+  // It also serves before the check, in the branch of a test on bits that
+  // Clang would compute before the branch: an asm statement is not moved above
+  // it (the test of NaN of mul_bounds(), GAOL v5)
   GAOL_INLINE float64x2_t reread_bounds(float64x2_t x)
   {
 #  if !GAOL_NEON_MSVC
@@ -239,15 +242,18 @@ namespace gaol_detail {
     using namespace neon_detail;
     const uint64x2_t nonfinite = vorrq_u64(nonfinite_lanes(x), nonfinite_lanes(y));
     const bool special = any_lane(nonfinite);
-    // The test of NaN is made in this branch only: the empty asm statements of
-    // reread_bounds() keep the comparisons from being computed before the test
-    // of special, as Clang 18 to 21 did (they are cheap and have no effect),
-    // which cost the product of finite bounds, the one that runs, a second
-    // reduction of vector (umaxv, fmov): x * y 5.29 to 4.11 ns on a Neoverse
-    // N2 (Clang 18) and 2.16 to 1.83 on an Apple M2, GCC and Visual C++ the
-    // same. A call would give them a frame on this path, as the canary of
-    // gaol_fpu.h did (GAOL v5, point PG of TODO.md)
-    if (special && any_lane(vorrq_u64(nan_lanes(reread_bounds(x)), nan_lanes(reread_bounds(y))))) { // an empty operand
+    // The test of NaN is made in this branch only. Clang 18 to 21 computed it
+    // before the test of special, the comparisons being cheap and without
+    // effect, and the product of finite bounds, the case that runs, paid a
+    // second vector reduction (umaxv, fmov): x * y 5.29 to 4.11 ns on a
+    // Neoverse N2 with Clang 18, 2.16 to 1.83 on an Apple M2 with Apple clang
+    // 21. The empty asm statements of reread_bounds() are not moved above the
+    // test of special, and hold the comparisons back with them (the test works
+    // on bits, which the check of the rounding direction does not change).
+    // GCC and Visual C++ are unchanged; a call in this branch would give them a
+    // frame on the path that runs (GAOL v5, point PG of TODO.md)
+    if (special && any_lane(vorrq_u64(nan_lanes(reread_bounds(x)),
+                                      nan_lanes(reread_bounds(y))))) { // an empty operand
       return nan_pair();
     }
     GAOL_RND_ENTER();
