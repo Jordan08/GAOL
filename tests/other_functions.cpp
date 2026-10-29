@@ -331,6 +331,35 @@ namespace
     }
   }
 
+  // The settings of the modes that flush the subnormals to zero a test goes through: none
+  // first, then each mode the processor honours; only none where the tests cannot set them
+  // (the FPU intervals of processors without such modes, GAOL v5)
+  struct FlushSetting
+  {
+    std::string name; // " with <mode> set", or empty
+    unsigned int bits;
+  };
+
+  std::vector<FlushSetting> flush_settings()
+  {
+    std::vector<FlushSetting> settings = { { "", 0u } };
+#if GAOL_TESTS_SET_FLUSH
+    for (const FlushMode& m : flush_modes()) {
+      settings.push_back({ " with " + m.name + " set", m.bits });
+    }
+#endif
+    return settings;
+  }
+
+  void set_flush_setting(unsigned int bits)
+  {
+#if GAOL_TESTS_SET_FLUSH
+    set_flush_bits(bits);
+#else
+    (void)bits;
+#endif
+  }
+
   // The order of two bounds that are no NaN, -1, 0 or 1, from their exact values
   // and not from a comparison of the processor, which a mode of denormals-are-zero
   // makes with the subnormal numbers read as zeros; 0 for two zeros of any signs
@@ -375,39 +404,35 @@ namespace
   void max_and_min_on_special_bounds()
   {
     const double tiny = std::numeric_limits<double>::denorm_min(), least = std::numeric_limits<double>::min();
-    const double huge = std::numeric_limits<double>::max(), inf = std::numeric_limits<double>::infinity();
-    const double bounds[] = { -inf, -huge, -2.0, -1.0, -least, -5 * tiny, -3 * tiny, -tiny, -0.0, 0.0,
-                              tiny, 3 * tiny, 5 * tiny, least, 1.0, 2.0, huge, inf };
+    const double huge = std::numeric_limits<double>::max(), infinity = std::numeric_limits<double>::infinity();
+    const double bounds[] = { -infinity, -huge, -2.0, -1.0, -least, -5 * tiny, -3 * tiny, -tiny, -0.0, 0.0,
+                              tiny, 3 * tiny, 5 * tiny, least, 1.0, 2.0, huge, infinity };
     const std::size_t nb_bounds = sizeof bounds / sizeof bounds[0];
     std::vector<interval> intervals;
     for (std::size_t i = 0; i < nb_bounds; ++i) {
       for (std::size_t j = i; j < nb_bounds; ++j) {
-        if (bounds[i] < inf && bounds[j] > -inf) {
+        if (bounds[i] < infinity && bounds[j] > -infinity) {
           intervals.push_back(interval(bounds[i], bounds[j]));
         }
       }
     }
     intervals.push_back(interval(0.0, -0.0)); // its zero bounds in the other order, which the constructor accepts
     intervals.push_back(interval::emptyset());
-    struct Mode { std::string name; unsigned int bits; };
-    std::vector<Mode> modes = { { "", 0u } };
-    for (const FlushMode& m : flush_modes()) {
-      modes.push_back({ " with " + m.name + " set", m.bits });
-    }
+    const std::vector<FlushSetting> modes = flush_settings();
     std::vector<interval> maxima, minima;
     maxima.reserve(intervals.size() * intervals.size());
     minima.reserve(intervals.size() * intervals.size());
-    for (const Mode& mode : modes) {
+    for (const FlushSetting& mode : modes) {
       maxima.clear();
       minima.clear();
-      set_flush_bits(mode.bits);
+      set_flush_setting(mode.bits);
       for (const interval& x : intervals) {
         for (const interval& y : intervals) {
           maxima.push_back(max(x, y));
           minima.push_back(min(x, y));
         }
       }
-      set_flush_bits(0u);
+      set_flush_setting(0u);
       std::size_t k = 0;
       for (const interval& x : intervals) {
         for (const interval& y : intervals) {
@@ -456,16 +481,12 @@ namespace
   void max_and_min_on_stored_lanes()
   {
     const double tiny = std::numeric_limits<double>::denorm_min(), least = std::numeric_limits<double>::min();
-    const double huge = std::numeric_limits<double>::max(), inf = std::numeric_limits<double>::infinity();
+    const double huge = std::numeric_limits<double>::max(), infinity = std::numeric_limits<double>::infinity();
     const double nan = std::numeric_limits<double>::quiet_NaN();
     const double lanes[] = { 0.0, -0.0, tiny, -tiny, 3 * tiny, -3 * tiny, least, -least, 1.0, -1.0, 2.0, -2.0,
-                             huge, -huge, inf, -inf, nan, -nan };
+                             huge, -huge, infinity, -infinity, nan, -nan };
     const std::size_t nb = sizeof lanes / sizeof lanes[0];
-    struct Mode { std::string name; unsigned int bits; };
-    std::vector<Mode> modes = { { "", 0u } };
-    for (const FlushMode& m : flush_modes()) {
-      modes.push_back({ " with " + m.name + " set", m.bits });
-    }
+    const std::vector<FlushSetting> modes = flush_settings();
     std::vector<interval> xs, ys;
     for (std::size_t a = 0; a < nb; ++a) for (std::size_t b = 0; b < nb; ++b) {
       xs.push_back(stored_lanes(lanes[a], lanes[b]));
@@ -474,10 +495,10 @@ namespace
     std::vector<interval> maxima, minima;
     maxima.reserve(xs.size() * ys.size());
     minima.reserve(xs.size() * ys.size());
-    for (const Mode& mode : modes) {
+    for (const FlushSetting& mode : modes) {
       maxima.clear();
       minima.clear();
-      set_flush_bits(mode.bits);
+      set_flush_setting(mode.bits);
       for (const interval& x : xs) for (const interval& y : ys) {
         maxima.push_back(max(x, y));
         minima.push_back(min(x, y));
@@ -490,7 +511,7 @@ namespace
         wanted_max.push_back(interval(maximum(x.left(), y.left()), maximum(x.right(), y.right())));
         wanted_min.push_back(interval(minimum(x.left(), y.left()), minimum(x.right(), y.right())));
       }
-      set_flush_bits(0u);
+      set_flush_setting(0u);
       std::size_t k = 0;
       for (const interval& x : xs) for (const interval& y : ys) {
         const auto describe = [&] {
