@@ -330,26 +330,36 @@ jobs:
         run: python3 tests/tools/asm-order/check_order.py --selftest
 
   asm-order-library:
-    name: Check of the assembly of the library, ${{ matrix.cfg.name }}
+    name: Check of the assembly of the library
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        cfg:
-          - { name: "GCC", cxx: g++, cmake: "", check: "" }
-          - { name: "GCC, rounding direction preserved", cxx: g++, cmake: -DGAOL_PRESERVE_ROUNDING=ON, check: --preserve }
-          - { name: "Clang", cxx: clang++, cmake: "", check: "" }
-          - { name: "Clang, rounding direction preserved", cxx: clang++, cmake: -DGAOL_PRESERVE_ROUNDING=ON, check: --preserve }
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
-      - name: Configure
+      # One configuration (CMake alone, the compilations are those of the check) per step, each after the one before
+      # whatever its outcome, so that a job that fails says which of the four
+      - name: GCC
         run: |
-          ${{ matrix.cfg.cxx }} --version | head -1
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-            -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }} ${{ matrix.cfg.cmake }}
-      - name: Check the assembly of the library
-        run: python3 tests/tools/asm-order/check_order.py --build build ${{ matrix.cfg.check }}
+          g++ --version | head -1
+          cmake -S . -B build-gcc -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_COMPILER=g++
+          python3 tests/tools/asm-order/check_order.py --build build-gcc
+      - name: GCC, rounding direction preserved
+        if: ${{ !cancelled() }}
+        run: |
+          cmake -S . -B build-gcc-preserved -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DCMAKE_CXX_COMPILER=g++ -DGAOL_PRESERVE_ROUNDING=ON
+          python3 tests/tools/asm-order/check_order.py --build build-gcc-preserved --preserve
+      - name: Clang
+        if: ${{ !cancelled() }}
+        run: |
+          clang++ --version | head -1
+          cmake -S . -B build-clang -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_COMPILER=clang++
+          python3 tests/tools/asm-order/check_order.py --build build-clang
+      - name: Clang, rounding direction preserved
+        if: ${{ !cancelled() }}
+        run: |
+          cmake -S . -B build-clang-preserved -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DCMAKE_CXX_COMPILER=clang++ -DGAOL_PRESERVE_ROUNDING=ON
+          python3 tests/tools/asm-order/check_order.py --build build-clang-preserved --preserve
 
   cmake-3-14:
     name: Ubuntu 24.04 x86_64 GCC, CMake 3.14.7
