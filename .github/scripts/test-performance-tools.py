@@ -9,6 +9,7 @@
 #
 # COMPARE_PERFORMANCE and RUN_PERF give other copies of the two programs to
 # test (to check that a test fails on a copy with a deliberate error).
+import ast
 import os
 import re
 import shutil
@@ -71,11 +72,19 @@ class Compare(unittest.TestCase):
         self.assertIn('Medians of 3 runs of base and 3 of PR', out)
 
     def test_threshold(self):
-        rows_a = [('just under', 1.99), ('twice', 2.0), ('half', 0.5), ('just over half', 0.51), ('same', 1.0)]
-        rc, out, _ = self.compare([table(rows_a)], [table([(name, 1.0) for name, _ in rows_a])])
+        # By default a row is listed from 1.5 times apart: 1.49 and 0.67 (above
+        # 2/3) are not, 1.5 and 0.6 are
+        rows_a = [('just under', 1.49), ('one and a half', 1.5), ('three fifths', 0.6), ('just over two thirds', 0.67), ('same', 1.0)]
+        rows_b = [(name, 1.0) for name, _ in rows_a]
+        rc, out, _ = self.compare([table(rows_a)], [table(rows_b)])
         self.assertEqual(rc, 0)
+        self.assertEqual(self.listed(out), ['one and a half', 'three fifths'])
+        # --factor gives another one
+        rows_a = [('just under', 1.99), ('twice', 2.0), ('half', 0.5), ('just over half', 0.51), ('same', 1.0)]
+        rows_b = [(name, 1.0) for name, _ in rows_a]
+        rc, out, _ = self.compare([table(rows_a)], [table(rows_b)], '--factor', '2')
         self.assertEqual(self.listed(out), ['twice', 'half'])
-        rc, out, _ = self.compare([table(rows_a)], [table([(name, 1.0) for name, _ in rows_a])], '--factor', '1.5')
+        rc, out, _ = self.compare([table(rows_a)], [table(rows_b)])
         self.assertEqual(self.listed(out), ['just under', 'twice', 'half', 'just over half'])
 
     def test_ratio_within_the_spread_is_noise(self):
@@ -91,9 +100,9 @@ class Compare(unittest.TestCase):
         self.assertEqual(self.listed(out), ['five'])
 
     def test_no_row_listed(self):
-        rc, out, _ = self.compare([table([('x', 1.1)])], [table([('x', 1.0)])])
+        rc, out, _ = self.compare([table([('x', 1.4)])], [table([('x', 1.0)])])
         self.assertEqual(rc, 0)
-        self.assertIn('No row is 2 times apart or more beyond the spread of the runs.', out)
+        self.assertIn('No row is 1.5 times apart or more beyond the spread of the runs.', out)
 
     def test_row_on_one_side_only(self):
         rc, out, _ = self.compare([table([('x', 2), ('only base', 3)])], [table([('x', 2), ('only PR', 4)])])
@@ -181,6 +190,17 @@ class Compare(unittest.TestCase):
         rc, out, _ = self.compare([table([('x', 1)], 'GAOL performance: A')], [table([('x', 1)], 'GAOL performance: B')])
         self.assertIn('base: GAOL performance: A', out)
         self.assertIn('PR: GAOL performance: B', out)
+
+    def test_register_rows_are_rows_of_gaol_performance(self):
+        # --rows register drops the names of REGISTER_ROWS that no table has: a name changed in one file only would
+        # leave the row out of the summaries without a word
+        with open(COMPARE) as f:
+            names = ast.literal_eval(re.search(r'^REGISTER_ROWS = (\(.*\))$', f.read(), re.M).group(1))
+        with open(os.path.join(HERE, '..', '..', 'tests', 'performance.cpp')) as f:
+            source = f.read()
+        for name in names:
+            with self.subTest(name=name):
+                self.assertIn('{ "%s",' % name, source)
 
     def test_usage(self):
         for options in (['base', 'x'], ['--rows', 'some', 'a', 'x', '--', 'b', 'y'], ['--factor', '1', 'a', 'x', '--', 'b', 'y'],

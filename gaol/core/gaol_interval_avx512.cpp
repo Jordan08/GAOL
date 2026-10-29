@@ -334,7 +334,7 @@
 
   /*
     The quotients of the lanes of a by those of b, by scalar divisions with the
-    embedded rounding, as div_bounds() of gaol/core/gaol_interval_sse.cpp has them
+    embedded rounding, which div_bounds() of gaol/core/gaol_interval_sse.cpp calls
     (GAOL v5): the packed division takes the embedded rounding on its 512-bit
     form only, which is a division of eight doubles (16 cycles of throughput
     on Ice Lake and Tiger Lake, uops.info), where two scalar ones take 2 x 4.

@@ -3,7 +3,7 @@
 # gaol -- NOT Just Another Interval Library
 #---------------------------------------------------------------------------
 # Tools of GAOL v5: compiles one of the programs of tests/tools/pow
-# (diffpow.cpp, evalrows.cpp, bench.cpp) against a build of GAOL, with the
+# (diffpow.cpp, evalrows.cpp, bench.cpp, pownhash.cpp, pownedge.cpp) against a build of GAOL, with the
 # compiler and the flags that build compiles its own tests with.
 #
 # The GAOL is given in one of three ways:
@@ -177,7 +177,7 @@ def main():
     p = argparse.ArgumentParser(description='Compiles a program of tests/tools/pow against a build of GAOL.')
     add_arguments(p)
     p.add_argument('-o', dest='output', required=True, help='the program to write')
-    p.add_argument('source', help='diffpow.cpp, evalrows.cpp or bench.cpp')
+    p.add_argument('source', help='diffpow.cpp, evalrows.cpp, bench.cpp, pownhash.cpp or pownedge.cpp')
     a = p.parse_args()
     compile_tool(a.source, a.output, a.build, a.pkg_config, a.cxx, a.cxxflags, a.ldflags)
 

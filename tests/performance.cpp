@@ -218,6 +218,11 @@ int main()
                nanoseconds_per_operation([&](std::size_t i) { sink = a[i] * b[i]; }, n) },
     { "x / y", nanoseconds_per_operation([&](std::size_t i) { const interval z = X[i] / Y[i]; sink = z.left(); sink = z.right(); }, n),
                nanoseconds_per_operation([&](std::size_t i) { sink = a[i] / b[i]; }, n) },
+    // The quotient by a positive double (GAOL v5, point PG.9 of TODO.md): D[0] is drawn for the lines of the last rows,
+    // and is only read here. It is the one row that divides by a double: on the AVX-512 path that is fast_div_by(),
+    // whose scalar divisions with the embedded rounding (#191) no other row runs (x / y runs div_bounds())
+    { "x / d", nanoseconds_per_operation([&](std::size_t i) { const interval z = X[i] / D[0][i]; sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = a[i] / D[0][i]; }, n) },
     { "sqr(x)", nanoseconds_per_operation([&](std::size_t i) { const interval z = sqr(X[i]); sink = z.left(); sink = z.right(); }, n),
                nanoseconds_per_operation([&](std::size_t i) { sink = a[i] * a[i]; }, n) },
     { "x * y, random signs", nanoseconds_per_operation([&](std::size_t i) { const interval z = SX[i] * SY[i]; sink = z.left(); sink = z.right(); }, n),
@@ -244,6 +249,11 @@ int main()
                nanoseconds_per_operation([&](std::size_t i) { sink = std::cos(a[i]); }, n) },
     { "nth_root(x, 3)", nanoseconds_per_operation([&](std::size_t i) { const interval z = nth_root(X[i], 3); sink = z.left(); sink = z.right(); }, n),
                nanoseconds_per_operation([&](std::size_t i) { sink = std::cbrt(a[i]); }, n) },
+    // The root of a negative order, one check for the root and its inverse (GAOL v5,
+    // point PG.2 of TODO.md): -2 goes through the square root, which has a vector
+    // path on some builds
+    { "nth_root(x, -2)", nanoseconds_per_operation([&](std::size_t i) { const interval z = nth_root(X[i], -2); sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = 1.0/std::sqrt(a[i]); }, n) },
     { "asinpi(x)", nanoseconds_per_operation([&](std::size_t i) { const interval z = asinpi(U[i]); sink = z.left(); sink = z.right(); }, n),
                nanoseconds_per_operation([&](std::size_t i) { sink = std::asin(u[i]) / 3.14159265358979323846; }, n) },
     { "interval(a, b)", nanoseconds_per_operation([&](std::size_t i) { const interval z(a[i], c[i]); sink = z.left(); sink = z.right(); }, n),

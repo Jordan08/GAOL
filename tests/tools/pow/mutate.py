@@ -429,8 +429,20 @@ MUTANTS = [
          edits=[('if ((vgetq_lane_u64(ok, 0) & vgetq_lane_u64(ok, 1)) != 0u) {', 'if (true) {')]),
     dict(name='neon-zero-corners-apart',
          file='gaol/core/gaol_interval_neon.cpp',
-         edits=[('        ok = vorrq_u64(ok, vceqq_f64(c, zero));\n', '')],
+         edits=[('        ok = vorrq_u64(ok, vcaleq_f64(c, zero));\n', '')],
          survives='a corner at 0 takes pown_point(), which gives 0 too, more slowly'),
+    dict(name='neon-range-least-strict',
+         file='gaol/core/gaol_interval_neon.cpp',
+         edits=[('vcageq_f64(g, vdupq_n_f64(pown_least[L]))', 'vcagtq_f64(g, vdupq_n_f64(pown_least[L]))')],
+         survives='a base at pown_least[L] itself takes the corners instead of the kernel: the same bounds, but a zero '
+                  'lower bound is -0 with the kernel and +0 with the corners (pownedge.cpp hashes the sign of a zero, '
+                  'which the tests do not compare; point PG.7)'),
+    dict(name='neon-range-greatest-strict',
+         file='gaol/core/gaol_interval_neon.cpp',
+         edits=[('vcaleq_f64(g, vdupq_n_f64(pown_greatest[L]))', 'vcaltq_f64(g, vdupq_n_f64(pown_greatest[L]))')],
+         survives='a base at pown_greatest[L] itself takes the corners instead of the kernel: the same bounds, but a zero '
+                  'lower bound is -0 with the kernel and +0 with the corners (pownedge.cpp hashes the sign of a zero, '
+                  'which the tests do not compare; point PG.7)'),
     dict(name='neon-even-lower-without-zero',
          file='gaol/core/gaol_interval_neon.cpp',
          edits=[('c = vcombine_f64(vget_low_f64(vmaxq_f64(greater, zero)), vget_high_f64(greater));', 'c = greater;')]),

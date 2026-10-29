@@ -1,8 +1,8 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `b270147` de `configure-clean` (la
-fusion de #216), le 28 octobre 2026, en tâches PG à PJ (PA à PF sont faites, PG
-est entamée : voir `TODO_DONE.md`). Ce fichier et l'issue #179 ont le même
+Ce qui reste à faire sur GAOL v5 au commit `ba3009f` de `configure-clean` (la
+fusion de #225), le 29 octobre 2026, en tâches PG à PJ (PA à PF sont faites, PG
+est presque faite : voir `TODO_DONE.md`). Ce fichier et l'issue #179 ont le même
 contenu. Ce qui est fait et décidé est dans `TODO_DONE.md` (l'issue #177 n'est
 plus mise à jour), ce qui est reporté dans `TODO_AFTER.md` (issue #178). Les
 anciennes issues #49 et #142 sont fermées, et `TODO_mistral.md` est supprimé.
@@ -10,7 +10,8 @@ anciennes issues #49 et #142 sont fermées, et `TODO_mistral.md` est supprimé.
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à envoyer à un autre projet ni à publier sans l'accord
-du mainteneur. Aucune pull request n'est ouverte.
+du mainteneur. Onze pull requests sont ouvertes, toutes de la tâche PG : #220,
+#224, #227 à #232, #234 et #235, et le brouillon jetable #233.
 
 ## Comment lire ce fichier
 
@@ -40,124 +41,72 @@ du mainteneur. Aucune pull request n'est ouverte.
 
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
-| PG | Les études de vitesse | 105, 116, 106 et six petits | M |
+| PG | Les études de vitesse | les pull requests ouvertes et trois études | S |
 | PH | Les signalements à d'autres projets | #125 à #138, #175 | accord |
 | PI | La pull request de synthèse et les textes de la version | Y | L |
 | PJ | Les mesures et la publication de v5.0.0 | 32, 33, 34, 71 | M |
 
-## PG. Les études de vitesse [M]
+## PG. Les études de vitesse [S, presque faite]
 
 Des mesures d'abord, toutes avant v5.0.0 (*décidé le 19 octobre* ; sauf l'étude
-113, reportée après la version le 22 octobre : `TODO_AFTER.md`). Ordre : l'écart
-mesuré le plus grand sur les builds par défaut, puis les builds avec
-`GAOL_PRESERVE_ROUNDING`, puis ce qui est un gain à porter. Les mesures de la CI
-ne se comparent pas d'un passage à l'autre : le banc A/B de `performance.yml`
-(#160, #166) compare dans le même job la base d'une pull request et sa tête.
+113, reportée après la version le 22 octobre : `TODO_AFTER.md`). Les mesures de
+la CI ne se comparent pas d'un passage à l'autre : le banc A/B de
+`performance.yml` (#160, #166) compare dans le même job la base d'une pull
+request et sa tête. Sont faits, le 28 et le 29 octobre : le 105 (non adopté), le
+116 (#222), le seuil de la liste (#217), le 112 (rien), la lecture des
+sous-normaux (laissée telle quelle), la cause du noyau de `pown` de NEON (#219),
+le quotient NEON (#225), `set_rounding()` sans écrire pour rien (#218) et le tri
+du contrôle de l'assembleur avec GCC (#223) ; le reste du 106 est reporté
+(`TODO_AFTER.md`). Voir `TODO_DONE.md` (2.3, 3.10 et 5).
 
-1. **105 (AH)** [M] : `-mbranches-within-32B-boundaries` pour les builds de
-   GAOL, *décidé le 14 octobre* à la fin du point AA, sur le Xeon E3-1220 v6 et
-   sur l'i7-1185G7. L'erratum des sauts des processeurs Skylake à Comet Lake y
-   déplace une opération jusqu'à 1 ns selon le seul placement du code (#122 : `x *
-   y`, au code inchangé, passe de 4,96 à 4,69 ns ; `[1] / p`, de 7,0 à 8,1 ns
-   quand seul `sqr()` change). À mesurer : le gain sur le Xeon, le coût sur
-   l'i7, qui n'a pas l'erratum, et ce que les trois builds peuvent donner aux
-   compilateurs qui prennent l'option. #191 l'a montré encore : le banc A/B y
-   donnait `x + y` 1,46 puis 1,92 ns pour un `add_bounds()` identique octet pour
-   octet, dont seule l'adresse changeait (alignée sur 64 octets, puis décalée
-   de 16), et `-falign-functions=64` donné aux deux builds ramenait tous les
-   rapports entre 0,98 et 1,03.
-2. **116 (AI)** [S] : des écarts de temps sans cause trouvée, relevés par des
-   pull requests : `cos(x)` 6 ns plus lent et `sin(x)` 2,4 ns plus rapide dans
-   `gaol_performance` après #100 (Clang 18, i7-1185G7), alors que le code de
-   `cos()` ne diffère que par l'ordre de deux branches ; `asinh_rel` et
-   `nth_root_rel` plus lents de 16 % et 13 % avec Clang 18 après #117, avec
-   moins d'instructions (311 contre 330 et 367 contre 399, comptées par
-   valgrind) ; `nth_root(x, -2)` à 22,9 ns au lieu de 18,2 avec
-   `GAOL_PRESERVE_ROUNDING` (205 instructions contre 266). `perf` n'est pas
-   permis sur cette machine. Les mesures d'alors sont faites avec Clang 18 : les
-   refaire d'abord avec Clang 21, le compilateur des mesures depuis le 13
-   octobre, avant de chercher.
-3. **106 (AI), le reste** [M] : le (a), NEON pour Visual C++ arm64, est fait
-   par #192, qui l'a donné aussi à clang-cl, à MinGW-w64 et à MSYS2 (à la
-   demande du mainteneur : NEON avec tous les compilateurs de l'arm64, SSE2 avec
-   tous ceux de l'x86, le FPU là où l'on n'a pas le choix), avec SSE2 pour
-   Visual C++ et clang-cl sur x86 32 bits (#193) et le build universel de macOS
-   (#194). Restent : (b) mesurer les noyaux de #157 sur POWER, s390x et RISC-V
-   (sur POWER8, s390x et RISC-V, GCC met des branches sur les comparaisons de
-   produits : le noyau y est plus long que l'ancien code et y perd peut-être
-   sans rien gagner) : il faut du matériel, les temps sous qemu ne sont pas ceux
-   d'un processeur ; (c) les opérations avec un double (`x * 2.0`) n'ont ces
-   noyaux sur aucune cible (#124) ; (d) l'effet de `__vectorcall` (les noyaux
-   `add_bounds()` et les autres de Visual C++ et clang-cl x64, #148) n'est pas
-   séparé dans les temps de la CI : #193 l'a étendu à x86 32 bits, où le banc
-   A/B ne montre aucune différence au-delà de 5 % sur ses rapports FPU/SSE2, et
-   le mainteneur l'y a gardé. À rapprocher de `doc/simd.md` (#154).
-4. **Le seuil de la liste** [S] (#160) : le seuil de la liste des lignes
-   écartées par `compare-performance.py` (un facteur 2 au moins et au-delà de la
-   dispersion) : les mesures donnent des rapports jusqu'à 1,17 pour du code
-   identique ; 1,5 était possible. *Décidé le 24 octobre* : 1,5 (une ligne de
-   l'outil et de son test).
-5. **112 (AI)** : rien à faire pour les fonctions élémentaires avec
-   `GAOL_PRESERVE_ROUNDING` (deux écritures de MXCSR, jusqu'à 27 % pour `exp`) :
-   la seule solution, un mode de CORE-MATH où le sens est un paramètre,
-   modifierait `3rd/math-core`, ce que le mainteneur a refusé le 22 octobre
-   (Q15c) ; voir `TODO_AFTER.md`.
-6. **La lecture d'un nombre sous-normal** [S] (#182) : `1e-310` et les nombres
-   au-dessous de 2^-1022 ne sont plus donnés à `strtod()`, qui lève
-   `FE_UNDERFLOW` pour eux : le lexeur part de 0 et les place par des pas
-   doublés puis la bissection (une centaine de comparaisons exactes). Leur
-   lecture prend de 3 à 10 fois plus de temps qu'avant (`1e-310` : 1 019 ns puis
-   8 700 à 12 800, `1e-320` : 1 001 puis 2 250 à 3 270, mesurés une fois sur une
-   machine occupée) ; celle des nombres normaux ne change pas. Un point de
-   départ plus proche, calculé des premiers chiffres, la ramènerait à quelques
-   comparaisons, au prix de code de plus dans le lexeur. *À décider* : le faire,
-   ou laisser tel quel (la description de #182 propose de le faire si quelqu'un
-   lit des sous-normaux en texte).
-7. **La cause du gain faible du noyau NEON de `pown`** [S] (#188) : le noyau à
-   deux voies de `pown` pour NEON (`vfmaq_f64`, fusionné) ne gagne que 1,03 à
-   1,07 sur `pow(x, 3)` avec un Apple M2 (1,30 pour les intervalles autour de 0
-   dans `tests/tools/pow/bench.cpp`), 1,23 avec GCC et 0,90 avec Clang sur le
-   Neoverse des jobs arm64 de la CI, au lieu du 1,5 attendu ; les rangées que
-   #188 ne touche pas y bougent de 5 à 13 %. Une hypothèse, non vérifiée : les
-   deux voies scalaires s'exécutaient déjà côte à côte, la chaîne de produits
-   dépendants restant la même. *À décider* : chercher (compter les cycles,
-   essayer de couper la chaîne en démarrant la boucle des carrés plus tôt), ou
-   laisser tel quel.
-8. **Le quotient des intervalles NEON avec clang-cl** [S] (#192, #195) : sur
-   les Neoverse N2 des runners arm64 de GitHub, `x / y` est plus lent en NEON
-   qu'avec le FPU avec clang-cl (5,36 ns contre 4,38, la même mesure sur deux
-   exécutions du banc A/B), alors qu'avec Visual C++ NEON gagne (5,40 contre
-   10,08) et que `x * y` et `sqrt(x)` gagnent avec clang-cl aussi (5,19 contre
-   5,71, 5,65 contre 11,02). Le mainteneur a demandé de garder NEON et de
-   chercher la cause. L'essai (#195, fermée sans fusion : deux divisions
-   scalaires à la place de la division vectorielle) est plus lent partout, de
-   5,36 à 6,17 ns avec clang-cl, de 5,40 à 6,30 avec Visual C++ et de 2,38 à
-   2,76 sur l'Apple M2 : la perte n'est pas dans la division mais dans le reste
-   du noyau. Une hypothèse, non mesurée (`perf` n'est pas permis ici) : le
-   nombre d'instructions vectorielles du noyau de `div_bounds()` face aux deux
-   pipelines vectoriels du N2. Les chiffres sont dans `doc/simd.md`. *À
-   décider* : compter les instructions de ce noyau dans l'assembleur de
-   clang-cl et en chercher un plus court, ou laisser tel quel.
-9. **`x / d` dans le banc A/B** [S] (#191) : les deux `vdivsd {ru-sae}`
-   scalaires de #191 font passer `x / d` de 3,62 à 2,76 ns (meilleur temps, d >
-   0, i7-1185G7), mais le banc A/B de `performance.yml` n'a aucune ligne `x /
-   d` : il ne verra ni ce gain ni une perte. *À décider*, trois questions de
-   #191 sans réponse : (a) ajouter cette ligne à `tests/performance.cpp` (les
-   lignes de la table sont décrites dans `doc/tests.md` et choisies par
-   `compare-performance.py`) ; (b) les divisions du dispatch d'un diviseur qui
-   contient 0 et du `1/h` des puissances négatives sont converties sans gain
-   mesuré (rapports de 0,92 à 1,04) : les garder pour la cohérence, ou les
-   remettre en forme 512 bits ; (c) `div_bounds()` répète à la main ce que fait
-   `er_div2()` : les rapprocher, ce que #191 n'a pas fait pour ne pas déplacer
-   de code (l'effet de placement du 105). Le gain de `x / d` n'est mesuré que
-   sur un Tiger Lake (`TODO_AFTER.md`, 4.6).
-10. **`set_rounding()` et `set_rounding_and_flush_modes()` sans écrire pour
-   rien** [S] (#210) : `GAOL_RND_NEAREST_LEAVE()` et `GAOL_RND_RESTORE()`
-   passent par `fesetround()` de la glibc sur x86-64, qui écrit l'unité x87 et
-   MXCSR comme avant #210, parce que le cas courant y change la direction (de au
-   plus proche à vers le haut) et que l'économie ne serait que celle d'un
-   `fldcw`. #210 recommandait de ne pas le faire. *À décider* : le laisser tel
-   quel, ou l'étendre.
+1. **Les pull requests ouvertes** [attendent le mainteneur] : #220 (la ligne `x
+   / d` du banc A/B et `div_bounds()` qui appelle `er_div2()`, PG.9 a et c ; le
+   code compilé est le même octet pour octet ; relue) ; #224 (`denorm_min()` est
+   converti à chaque emploi par l'unité x87 avec GCC et `-frounding-math`,
+   `fldt` puis `fstpl` : `sqrt(x)` de 124 à 8 ns sur Intel, 158 à 161 ns pour la
+   conversion sur un Xeon, 99 sur l'i7-1185G7, sans effet sur AMD ni sur ARM ;
+   relue), puis #227 (le garde `DENORMAL` de l'outil d'assembleur : 38 à 44
+   constats sans #224) et #228 (le job de CI du contrôle de l'assembleur, avec
+   GCC 13.3 et Clang 18, qui reprend les deux commits de #224 : fusionner #224
+   d'abord, et qui corrige le chemin `--build` relatif de l'outil) ; #229 (la
+   grille de `diffarith` avec ±0,5, ±2 et ±4 : le mutant `<< 2` de #225 passe de
+   0 à 51 840 lignes différentes) ; #230 et #232 **à fusionner ensemble** (#230
+   met hors ligne les écritures de registres de `round_upward_if_needed()` : GCC
+   `x + y` de 1,74 à 1,35 ns et `line of 15 +` de 23,2 à 16,4, la cause étant la
+   protection de pile de GCC d'Ubuntu ; #232 aligne les fonctions de la
+   bibliothèque sur 64 octets, `-falign-functions=64` dans les trois builds,
+   `configure` régénéré, ce qui lève l'effet de placement que #230 donne à Clang
+   21 : `line of 15 +` de 13,5 à 23,3 ns avec #230 seule, 14,8 avec les deux ;
+   #230 relue) ; #231 (un contrôle de plus dans `rounding_direction.cpp` :
+   `pow_rel()` et `pow_exponent_rel()` près de `DBL_MAX` rendent au programme
+   les masques d'exceptions de MXCSR, ce que les 45 tests ne voyaient pas) ;
+   #234 (`x &= y` et `x | y` des intervalles SSE2 gardent les bornes dans le
+   registre : GCC `x | y` 1,6 fois plus rapide ; relue ; le recul de 10 % de
+   Clang 21 sur `x &= y` est la question ouverte) ; #235 (`x * y` de NEON, voir
+   4) et son brouillon jetable #233. Chacune a ses chiffres et ses questions
+   dans sa description.
+2. **Le tableau de Clang 21** [S] : *À décider* quand #230 et #232 sont
+   fusionnées : remesurer le tableau de `doc/compare/performance.md` et de
+   `process.md` §4.11 (il peut perdre sur `x + y` et sur les lignes de 15
+   additions par simple déplacement du code), ou l'accepter.
+3. **`max(x, y)`** [S] : GCC 6,2 contre Clang 4,9 ns au micro-banc (8,6 contre
+   5,3 dans `gaol_performance`). `max()` fait deux appels de `maximum()` (dans
+   `gaol_common.cpp`, hors ligne) et le constructeur ; la cause n'est pas
+   trouvée : GCC est plus rapide pour `maximum()` seule (1,1 contre 1,45 ns) et
+   pour le constructeur (0,38 contre 0,85). *À décider* : chercher, ou laisser
+   tel quel.
+4. **`x * y` de NEON** [S] (#235, et le brouillon jetable #233) : avec Clang, le
+   noyau de `mul_bounds()` fait deux réductions de vecteur par produit (`umaxv`,
+   `fmov`), la seconde étant calculée avant le branchement ; #235 fait le test
+   de NaN derrière les instructions `asm` vides de `reread_bounds()` (une ligne)
+   : `x * y` de 5,29 à 4,11 ns avec Clang 18 sur le Neoverse N2 (1,29 fois),
+   1,32 avec clang-cl, de 2,16 à 1,83 sur l'Apple M2 (session MACarm4), GCC et
+   Visual C++ inchangés, les mêmes sorties que la base sur toute la grille de
+   `diffarith` (sous qemu, et sur le M2 avec et sans la préservation). La
+   première variante (#233), le test dans une fonction hors ligne, perdait 15 %
+   avec GCC et 8 à 23 % avec Visual C++ : un appel force un cadre de pile.
+   Critère du mainteneur : *aucune perte nulle part* ; relecture indépendante en
+   cours.
 
 ## PH. Les signalements à d'autres projets [attend l'accord du mainteneur]
 

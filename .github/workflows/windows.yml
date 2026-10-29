@@ -432,7 +432,7 @@ jobs:
           # mingw-w64 13 and later read the direction with a fegetround() that
           # joins the x87 unit and MXCSR, and set it with a fesetround() that
           # clears the exception flags: GAOL reads and writes the registers
-          # itself there (GAOL_RND_MINGW64_X87, point AI.110 of TODO_DONE.md)
+          # itself there (GAOL_RND_X86_64_DIRECT, points AI.110 and PG.10)
           - { msystem: UCRT64,  packages: ucrt-x86_64,  cc: gcc,   cxx: g++,     opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'MSYS2 UCRT64 GCC x64, rounding direction preserved' }
           # The same without the fused multiply-add instructions: __FMA__ is
           # not defined, and the operations that are not SSE2 ones (the

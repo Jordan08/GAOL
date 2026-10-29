@@ -985,6 +985,20 @@ namespace gaol_core {
   static const double huge_root_argument = 1.0715086071862673e+301; // 2^1000
   static const double two_power_minus_512 = 7.458340731200207e-155;
 
+  /* The smallest positive double, 2^-1074, written as a literal rather than as
+     std::numeric_limits<double>::denorm_min(): that is __DBL_DENORM_MIN__, a
+     long double constant converted to double, and GCC does not fold the
+     conversion of a long double to a subnormal double with -frounding-math
+     ((double) 0x1p-1022L is folded, 0x1p-1023L is not). GCC 15.2 on x86-64
+     loaded the constant as an extended number (fldt) and stored it as a double
+     (fstpl) at each use, a microcode assist of about 100 ns on an Intel
+     i7-1185G7 and 160 ns on an Intel Xeon (sqrt() took 111 ns, against 10 ns
+     with Clang, which defines __DBL_DENORM_MIN__ as a double), and GCC 12.2 on
+     aarch64 calls __trunctfdf2 (GAOL v5, #224). The literal has the 17
+     significant digits that Clang gives __DBL_DENORM_MIN__ (5e-324 is the
+     shortest), C++11 having no hexadecimal floating literal */
+  static const double double_denorm_min = 4.9406564584124654e-324;
+
   // s*s rounded downward < x, for s the root of x
   static inline bool square_down_below(double s, double x)
   {
@@ -1009,7 +1023,7 @@ namespace gaol_core {
   {
     double s = ::sqrt(x);
     if (square_down_below(s, x)) { // s*s rounded downward < x proves s < sqrt(x)
-      s += std::numeric_limits<double>::denorm_min();
+      s += double_denorm_min;
     }
     return s;
   }
@@ -1024,7 +1038,7 @@ namespace gaol_core {
      without setting the rounding direction downward. */
   static double gaol_minus_sqrt_down(double x, double u)
   {
-    return square_up_equals(u, x) ? -u : (-u + std::numeric_limits<double>::denorm_min());
+    return square_up_equals(u, x) ? -u : (-u + double_denorm_min);
   }
 
   /*
@@ -1393,7 +1407,7 @@ namespace gaol_core {
     // has no hexadecimal floating literal
     if (std::fabs(y) >= 8.777798510069902e+304 && x > 0.0 && x < GAOL_INFINITY && x != 1.0
         && (x > 1.0) != (y > 0.0)) {
-      return std::numeric_limits<double>::denorm_min();
+      return double_denorm_min;
     }
     return quiet ? pow_up_without_overflow_exception(x, y) : upward::nthroot_up(x, y);
   }
@@ -1529,7 +1543,7 @@ namespace gaol_core {
     }
     std::uint64_t bits = gaol_detail::bound_bits(x);
     if ((bits << 1) == 0) {
-      return std::numeric_limits<double>::denorm_min();
+      return double_denorm_min;
     }
     if ((bits >> 63) != 0) {
       --bits; // a smaller magnitude
@@ -3025,7 +3039,7 @@ namespace gaol_core {
       const double d = key_double(k);
       return (y > 0.0) ? pow_lo<true>(d, y) >= c : pow_hi<true>(d, y) <= c;
     };
-    return key_double(first_key_holding(above, double_key(std::numeric_limits<double>::denorm_min()),
+    return key_double(first_key_holding(above, double_key(double_denorm_min),
                                         double_key(GAOL_INFINITY), double_key(near)));
   }
 
@@ -3664,7 +3678,7 @@ namespace gaol_core {
   // A step of about one double at r, which doubles
   static inline double first_step(double r)
   {
-    return maximum(r*std::numeric_limits<double>::epsilon(), std::numeric_limits<double>::denorm_min());
+    return maximum(r*std::numeric_limits<double>::epsilon(), double_denorm_min);
   }
 
   /*
@@ -4006,6 +4020,22 @@ interval nth_root(const interval& I, int q)
 	// did -static_cast<long>(q) where a long has 32 bits too, with Visual C++,
 	// MinGW-w64 and on 32-bit Linux (GAOL v5)
 	const unsigned int n = 0u - static_cast<unsigned int>(q);
+#if ((defined(__x86_64__) || defined(_M_X64)) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_AVX512_ARITHMETIC) \
+    || (GAOL_USING_NEON_INSTRUCTIONS && !GAOL_PRESERVE_ROUNDING)
+	// The square root has a vector path of its own, by the embedded rounding of
+	// AVX-512 and by one vector instruction with NEON, which sqrt_upward() below
+	// does not have: the one check before the scalar root took nth_root(x, -2) from
+	// 17.8 to 22.2 ns with GAOL_PRESERVE_ROUNDING (an Intel i7-1185G7, Clang 21),
+	// where the cube root, which has only the scalar body, went from 53.0 to 45.9.
+	// Not with NEON where the direction is preserved: sqrt() changes the direction
+	// at its entry and sets it back at its exit there, and inverse() does it again,
+	// which the one check of the code below pays once (an Apple M2, Clang 21:
+	// 46.4 ns against 67.6 ns with this path, 8.4 against 5.5 without the
+	// preservation) (GAOL v5, point PG.2 of TODO.md)
+	if (n == 2u) {
+		return inverse(sqrt(I));
+	}
+#endif
 	// One check, before the root and its inverse, which do not check the
 	// direction again (GAOL v5: the root and inverse() checked it each)
 	GAOL_RND_ENTER();
