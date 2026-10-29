@@ -272,6 +272,7 @@ namespace gaol_names_absent
   absent set_rounding(...);
   absent set_rounding_and_flush_modes(...);
   template <class T = void> absent round_upward_if_needed();
+  template <class T = void> absent round_upward_with_flush_cleared();
   absent gaol_set_rounding_x86(...);
   template <class T = void> absent get_flush_modes();
   absent set_flush_modes(...);
@@ -325,6 +326,7 @@ namespace gaol_names
   GAOL_NAMES_ABSENT((set_rounding)(std::declval<const gaol_core::rounding_state&>()));
   GAOL_NAMES_ABSENT((set_rounding_and_flush_modes)(std::declval<const gaol_core::rounding_state&>()));
   GAOL_NAMES_ABSENT((round_upward_if_needed)());
+  GAOL_NAMES_ABSENT((round_upward_with_flush_cleared)());
   GAOL_NAMES_ABSENT((gaol_set_rounding_x86)(0, 0u));
   GAOL_NAMES_ABSENT((get_flush_modes)());
   GAOL_NAMES_ABSENT((set_flush_modes)(0u));

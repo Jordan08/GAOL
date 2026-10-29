@@ -130,15 +130,13 @@ of the way */
 expand, the writes of the registers that follow the probe of the direction
 (round_upward_with_flush_cleared(), GAOL v5). GCC expanded them in
 round_upward_if_needed(), whose locals (the registers it reads and writes
-through the memory) made the functions that hold the check of x + y, x - y
-and midpoint() build a frame and, with -fstack-protector-strong, which
-Ubuntu's GCC, Fedora's and Arch's use by default, set and check a canary, on
-the path that finds the direction upward, the one that is run: x + y 1.76 ns
-rather than 1.35 and a line of 15 additions 23.3 ns rather than 16.3 (Intel
-i7-1185G7, GCC 15.2 of Ubuntu); Clang called round_upward() and did not.
-Nothing for Visual C++ (its x86 has GAOL_RND_NOINLINE above), which has no
-attribute that would not change what it makes of the check elsewhere, and
-that no measure showed this for */
+through the memory) made the functions that hold the check of x + y and
+x - y build a frame and, with -fstack-protector-strong, which Ubuntu's GCC
+uses by default, set and check a canary, on the path that finds the direction
+upward, the one that is run: x + y 1.76 ns rather than 1.35 and a line of 15
+additions 23.3 ns rather than 16.3 (Intel i7-1185G7, GCC 15.2 of Ubuntu);
+Clang called round_upward() and did not. Nothing for Visual C++, where no
+measure showed this */
 #if defined(__GNUC__) || defined(__clang__)
 #  define GAOL_RND_OUT_OF_LINE __attribute__((noinline))
 #else
@@ -863,7 +861,10 @@ namespace gaol_core {
   #endif // GAOL_RND_X86_DIRECT
   
   #if !GAOL_USING_NEON_INSTRUCTIONS && GAOL_RND_PROBE && defined(GAOL_RND_FLUSH_BITS)
-  //! What round_upward_if_needed() does where the probe finds the direction not upward, out of line (GAOL v5)
+  /*! What round_upward_if_needed() does where the probe finds the direction not upward, out of line (GAOL v5).
+  Keep "round_upward" in the name: tests/tools/asm-order/check_order.py takes a call of a function whose name has
+  it for a write of the control register (WRITE_CALLS), and sees nothing of the operations around one it does
+  not know */
   GAOL_RND_OUT_OF_LINE inline void round_upward_with_flush_cleared()
   {
     clear_flush_to_zero();
