@@ -680,6 +680,8 @@ COVERAGE_FALSE
 COVERAGE_TRUE
 PYTHON3
 GCOVR
+GAOL_ALIGN_CFLAGS
+GAOL_ALIGN_CXXFLAGS
 CORE_MATH_EXCESS_PRECISION
 CORE_MATH_NO_LTO
 GAOL_C_STD
@@ -20427,6 +20429,8 @@ fi
 # was the Release build, and --disable-optimize compiled with -O): CMake never
 # had it, and meson's is gone
 optimize="yes"
+GAOL_ALIGN_CXXFLAGS=""
+GAOL_ALIGN_CFLAGS=""
 if test "$debug" = yes; then
     optimize="no (--enable-debug)"
 
@@ -20438,9 +20442,8 @@ else
     # With any compiler, each flag where the compiler accepts it (they were
     # added when the compiler was named g++ exactly, and clang++ or g++-13
     # compiled without any optimization), and NDEBUG, as the Release build of
-    # CMake and meson define it; -falign-functions=64 is explained in
-    # CMakeLists.txt
-    for gaol_flag in -O3 -funroll-loops -fomit-frame-pointer -fexpensive-optimizations -falign-functions=64; do
+    # CMake and meson define it
+    for gaol_flag in -O3 -funroll-loops -fomit-frame-pointer -fexpensive-optimizations; do
         ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -20525,7 +20528,95 @@ if test "${gaol_c_takes}" = yes; then
 fi
     done
     CPPFLAGS="${CPPFLAGS} -DNDEBUG"
+    # -falign-functions=64, explained in CMakeLists.txt, for the library alone
+    # as CMake gives it, not for the tests, the examples and the benchmarks:
+    # substituted into gaol/Makefile.am and 3rd/Makefile.am, not added to
+    # CXXFLAGS and CFLAGS
+    ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+gaol_save_CXXFLAGS=$CXXFLAGS
+CXXFLAGS="-Werror -falign-functions=64"
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether the C++ compiler accepts -falign-functions=64" >&5
+printf %s "checking whether the C++ compiler accepts -falign-functions=64... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main (void)
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"
+then :
+  gaol_cxx_takes_align=yes
+else case e in #(
+  e) gaol_cxx_takes_align=no ;;
+esac
 fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: ${gaol_cxx_takes_align}" >&5
+printf "%s\n" "${gaol_cxx_takes_align}" >&6; }
+CXXFLAGS=$gaol_save_CXXFLAGS
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+    if test "${gaol_cxx_takes_align}" = yes; then
+        GAOL_ALIGN_CXXFLAGS="-falign-functions=64"
+    fi
+    ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+gaol_save_CFLAGS=$CFLAGS
+CFLAGS="-Werror -falign-functions=64"
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether the C compiler accepts -falign-functions=64" >&5
+printf %s "checking whether the C compiler accepts -falign-functions=64... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main (void)
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"
+then :
+  gaol_c_takes_align=yes
+else case e in #(
+  e) gaol_c_takes_align=no ;;
+esac
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: ${gaol_c_takes_align}" >&5
+printf "%s\n" "${gaol_c_takes_align}" >&6; }
+CFLAGS=$gaol_save_CFLAGS
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+    if test "${gaol_c_takes_align}" = yes; then
+        GAOL_ALIGN_CFLAGS="-falign-functions=64"
+    fi
+fi
+
+
 ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'

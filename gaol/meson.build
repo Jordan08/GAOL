@@ -77,7 +77,7 @@ endif
 core_math_lib = static_library(
   'gaol_core_math',
   core_math_sources,
-  c_args: core_math_args,
+  c_args: core_math_args + gaol_align_c_args,
   include_directories: incdir,
   override_options: core_math_overrides,
   pic: true,
@@ -202,7 +202,7 @@ if msvc or clang_msvc
     extra_files: EXTRA_DIST,
     include_directories: [incdir, include_directories('../cmake/msvc')],
     c_args: gaol_msvc_args,
-    cpp_args: gaol_msvc_args,
+    cpp_args: gaol_msvc_args + gaol_align_cpp_args,
     override_options: gaol_lib_options,
   )
   gaollib_static = gaollib
@@ -215,6 +215,7 @@ elif gaol_default_library == 'static'
     install: true,
     extra_files: EXTRA_DIST,
     include_directories: incdir,
+    cpp_args: gaol_align_cpp_args,
     override_options: gaol_lib_options,
   )
   gaollib_static = gaollib
@@ -229,6 +230,7 @@ elif gaol_default_library == 'shared'
     include_directories: incdir,
     version: meson.project_version(),
     soversion: major_version.to_string(),
+    cpp_args: gaol_align_cpp_args,
     override_options: gaol_lib_options,
   )
   gaollib_static = gaollib
@@ -243,6 +245,7 @@ else
     include_directories: incdir,
     version: meson.project_version(),
     soversion: major_version.to_string(),
+    cpp_args: gaol_align_cpp_args,
     override_options: gaol_lib_options,
   )
   gaollib_static = gaollib.get_static_lib()

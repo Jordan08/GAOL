@@ -1209,7 +1209,8 @@ if(NOT MSVC)
   # the end of a line, a line of 15 additions took 23.3 ns instead of 14.2
   # with Clang 21, the code being the same bytes at another address (GAOL v5,
   # point PG.105 of TODO.md and #230); GCC 15.2 gained 16.2 against 17.0 ns
-  # and 15.8 against 19.9 for a line of 15 additions and subtractions
+  # and 15.8 against 19.9 for a line of 15 additions and subtractions. For the
+  # library alone, here and with configure and meson
   set(GAOL_RELEASE_FLAGS "")
   foreach(flag -funroll-loops -fomit-frame-pointer -fexpensive-optimizations -falign-functions=64)
     string(MAKE_C_IDENTIFIER "${flag}" _flag_id)

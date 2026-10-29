@@ -11,8 +11,9 @@ build, and the CMake build follows them, apart from the errors corrected (see
 [What differs from GAOL](differences.md)). In every build, by default:
 
 - GAOL is compiled in release: `-O3` and the optimizations configure adds
-  (`-funroll-loops -fomit-frame-pointer -fexpensive-optimizations
-  -falign-functions=64`, each where the compiler takes it), `NDEBUG`, `-std=c++11` (`-std=c++14` for Clang with
+  (`-funroll-loops -fomit-frame-pointer -fexpensive-optimizations`, each where
+  the compiler takes it), `-falign-functions=64` for the library alone (not for
+  the tests, the examples and the benchmarks), `NDEBUG`, `-std=c++11` (`-std=c++14` for Clang with
   the target of Visual C++, whose standard library needs it), hidden visibility
   (`-fvisibility=hidden -fvisibility-inlines-hidden`) and `-Wall -Wconversion`,
   which GAOL compiles without warnings, `-Wsign-conversion` of Clang included.
