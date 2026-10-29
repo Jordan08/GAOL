@@ -45,11 +45,11 @@ refuses doubles computed on it, and the three builds give -msse2
 Since then:
 - get_rounding() and set_rounding() (gaol_fpu.h) read and write the rounding
 direction with fegetround() and fesetround(), and the rounding bits of MXCSR
-as well; on a 32-bit x86 processor, and with mingw-w64 on x86-64
-(GAOL_RND_MINGW64_X87, whose fegetround() joins the two units and whose
-fesetround() clears the exception flags of MXCSR), the rounding bits of the
-x87 control word and of MXCSR directly, with fnstcw and stmxcsr, fldcw and
-ldmxcsr (GAOL v5). The get_fpu_cw() and reset_fpu_cw() of GAOL 4 read and wrote the
+as well; on an x86 processor, 32-bit or x86-64 (GAOL_RND_X86_STATE), the
+rounding bits of the x87 control word and of MXCSR directly, with fnstcw and
+stmxcsr, fldcw and ldmxcsr, the register that differs only (GAOL v5; with
+mingw-w64, fegetround() joins the two units and fesetround() clears the
+exception flags of MXCSR, which showed it first). The get_fpu_cw() and reset_fpu_cw() of GAOL 4 read and wrote the
 control word of the x87 unit on x86 Linux and macOS, which left the direction
 of the SSE instructions unrestored, and 16 bits of the FPCR on 64-bit ARM,
 which left out its rounding bits.
@@ -324,7 +324,24 @@ namespace gaol_core {
     x86_set_modes(hw, x87_rc, sse_rc_mask, sse_rc);
   }
   #elif GAOL_RND_X86_REGISTERS
-  // Visual C++ for x64 has no inline assembly and does not use the x87 unit
+  /*
+    Visual C++ for x64 has no inline assembly and does not use the x87 unit:
+    its registers are MXCSR alone, read with the control word of the x87 unit
+    as 0 (the field RC of the state that get_rounding() saves is then 0, and
+    writing it back never writes the control word) and written as MXCSR only
+    (GAOL v5, point PG.10 of TODO.md)
+  */
+  struct x86_registers
+  {
+    void read_control(unsigned int& x87_cw, unsigned int& mxcsr) const
+    {
+      x87_cw = 0u;
+      mxcsr = static_cast<unsigned int>(_mm_getcsr());
+    }
+    void write_x87_control(unsigned int) const { }
+    void write_mxcsr(unsigned int mxcsr) const { _mm_setcsr(mxcsr); }
+  };
+
   GAOL_INLINE void gaol_set_rounding_x86(unsigned short x87_rc, unsigned int sse_rc)
   {
     (void)x87_rc;

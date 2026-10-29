@@ -1577,20 +1577,25 @@ control word, 0x4000 in MXCSR), not the `FE_*` constants of `<fenv.h>`, which
 are 0x0400 and 0x0800 for downward and upward with glibc and 0x0100 and 0x0200
 with the C runtime of Windows and with mingw-w64 13 and later.
 
-mingw-w64 on x86-64 (MinGW-w64 of Chocolatey, MSYS2; GAOL v5) has the two units
-too, and GAOL reads and writes their registers itself there, as above, where it
-restores a direction (`GAOL_PRESERVE_ROUNDING`, `gaol::cleanup()`,
-`gaol::restore_rounding()`, and the operations that set the direction to nearest
-and back: `midpoint()`, `chi()`, the writing and the reading of an interval),
-rather than call `fegetround()` and `fesetround()`: from mingw-w64 13, the first
-joins the fields RC of the two units by OR, which is the direction of both only
-where they agree (to nearest and upward give upward, `FE_DOWNWARD | FE_UPWARD`
-is `FE_TOWARDZERO`), and the second clears the six exception flags of MXCSR
-when it changes its value, so that the program's flags were lost, in the
-operations with `GAOL_PRESERVE_ROUNDING`, and in `gaol::cleanup()` and
-`gaol::restore_rounding()` with it or without it. The register that differs is
-written only,
-with `fldcw` or `ldmxcsr`, which keep the flags.
+An x86-64 processor has the two units too, and GAOL reads and writes their
+registers itself there, as above, where it restores a direction
+(`GAOL_PRESERVE_ROUNDING`, `gaol::cleanup()`, `gaol::restore_rounding()`, and
+the operations that set the direction to nearest and back: `midpoint()`,
+`chi()`, the writing and the reading of an interval), rather than call
+`fegetround()` and `fesetround()` (GAOL v5; mingw-w64 alone did so before point
+PG.10 of `TODO.md`), which write both registers whatever they hold, and then
+MXCSR once more for the direction of the SSE instructions: three writes and a
+call, where a program that computes to nearest needs one and a program that
+computes upward none. The register that differs is written only, with `fldcw`
+or `ldmxcsr`, which keep the flags; Visual C++ for x64, which has no inline
+assembly and uses no x87 unit, reads and writes MXCSR alone. mingw-w64 had its
+reasons: from version 13, `fegetround()` joins the fields RC of the two units
+by OR, which is the direction of both only where they agree (to nearest and
+upward give upward, `FE_DOWNWARD | FE_UPWARD` is `FE_TOWARDZERO`), and
+`fesetround()` clears the six exception flags of MXCSR when it changes its
+value, so that the program's flags were lost, in the operations with
+`GAOL_PRESERVE_ROUNDING`, and in `gaol::cleanup()` and `gaol::restore_rounding()`
+with it or without it.
 
 ## Flush-to-zero and denormals-are-zero
 

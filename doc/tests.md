@@ -251,7 +251,17 @@ point Q), which `numbers` checks there too.
   16 states of the field RC and the two flush modes of MXCSR, with other bits
   that must not change: the field RC is the direction asked, and no other bit
   changes, the flush modes and the exception flags among them (and, for 32-bit
-  x86, the same of the control word of the x87 unit). With GCC, Clang or Visual
+  x86, the same of the control word of the x87 unit). On an x86-64 processor,
+  `get_rounding()`, `set_rounding()` and `set_rounding_and_flush_modes()` are
+  called in the six states above, with each flush mode and with other bits in
+  the registers (the precision of the control word, the exception flags of
+  MXCSR): the state read is the fields of the registers, which the test reads
+  apart from the library, and changes neither; set back over each state of the
+  registers, the flags raised or not, the direction of both units is the saved
+  one, the flush modes stay as they are (`set_rounding()`) or are the saved ones
+  (`set_rounding_and_flush_modes()`), and no other bit changes, the exception
+  flags among them; Visual C++ for x64 has MXCSR alone, and its x87 unit is left
+  as it is (GAOL v5, point PG.10 of TODO.md). With GCC, Clang or Visual
   C++ for 32-bit x86,
   the registers themselves, read and written by the test apart from the library
   in the six states above and with each flush mode, after ten operations: both
