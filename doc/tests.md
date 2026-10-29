@@ -1616,7 +1616,9 @@ integration configures (GAOL v5).
 
 `tests/performance.cpp` (`gaol_performance`) measures the time per operation of
 GAOL's arithmetic and elementary functions, of the constructor `interval(a, b)`,
-`floor()`, `x &= y`, `x | y`, `max()`, `midpoint()`, `nth_root(x, 3)`, the cube root, `nth_root(x, -2)`, the inverse of the square root (GAOL v5, point PG.2 of `TODO.md`), and `asinpi()` (the
+`floor()`, `x &= y`, `x | y`, `max()`, `midpoint()`, `nth_root(x, -2)` (the
+inverse of the square root, GAOL v5, point PG.2 of `TODO.md`), `nth_root(x, 3)`,
+the cube root, and `asinpi()` (the
 functions of CORE-MATH that read the rounding direction at each call, GAOL v5,
 point 108) and two relations, which
 compare bounds with the quiet comparisons of `<cmath>` (one instruction each
