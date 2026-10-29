@@ -1,7 +1,7 @@
 # Fait et décidé sur GAOL v5
 
-Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 29 octobre 2026
-(commit `38afa59` de `configure-clean`, aucune pull request ouverte : voir la
+Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 30 octobre 2026
+(commit `063e800` de `configure-clean`, aucune pull request ouverte : voir la
 section 1). Ce fichier fait foi : l'issue #177, qui avait le même
 contenu, n'est plus mise à jour depuis le 28 octobre (voir 7.8).
 
@@ -54,11 +54,11 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 
 ## 1. L'état au 29 octobre 2026
 
-- **`configure-clean`** est au commit `38afa59` (la fusion de #235, après celles
+- **`configure-clean`** est au commit `063e800` (la fusion de #236, après celles
   de #217 le 28 octobre, de #218, #219, #222, #223 et #225 le matin du 29, de
-  #220, #224 et #227 à #231 de 18 h 04 à 18 h 19 UTC, et de #232, #234 et #235
-  de 19 h 55 à 19 h 57 ; l'import de CORE-MATH `0b2ae6d1` est du 27 octobre,
-  voir 7.6 à 7.9). Les pull requests des corrections vont vers
+  #220, #224 et #227 à #231 de 18 h 04 à 18 h 19 UTC, de #232, #234 et #235 de
+  19 h 55 à 19 h 57 et de #236 à 23 h 42 ; l'import de CORE-MATH `0b2ae6d1` est
+  du 27 octobre, voir 7.6 à 7.9). Les pull requests des corrections vont vers
   `configure-clean`, qui reste la branche de développement après v5.0.0 ;
   `MATH-CORE` et `master` (GAOL 4.3.2, plus deux commits de `.claude/CLAUDE.md`)
   ne bougent qu'à la version (point Y).
@@ -68,21 +68,21 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   à #210, #212, #213, #215 et #216 le 28 (#216, hors des points : le tableau des
   lignes longues sur ARM 64 bits, à la fin de `performance.md`), #217 le 28 à 23
   h 19 UTC, #218, #219, #222, #223 et #225 le 29 au matin, #220, #224 et #227 à
-  #231 le 29 de 18 h 04 à 18 h 19, #232, #234 et #235 le 29 de 19 h 55 à 19 h 57
-  ; #168, #195, #211, #214, #221, #226 et #233 sont fermées sans fusion. Les
-  tâches PA, PB, PC, PD, PE et PF sont faites (PE : #200 et #204 pour le 95,
-  #201 pour le 92, #205 pour le 3, #202 pour le 4, #204 pour le 5, #203 pour le
-  6 ; PF : #206 pour le reste du 108, #209 pour le 109, #210 et #215 pour écrire
-  seulement si ça change, #208 pour l'alignement de la pile 32 bits, #207 pour
-  le contrôle de l'assembleur de x86-64) ; PG est presque faite (la division du
-  chemin AVX-512, le 106 a : #191 à #194 ; puis #217 pour le seuil de la liste,
-  #218 pour `set_rounding()`, #219 pour le noyau de `pown` de NEON, #222 et #224
-  pour `nth_root(x, -2)` et `sqrt()`, #223, #227 et #228 pour le contrôle de
-  l'assembleur avec GCC, #225 pour le quotient NEON, #220 pour la ligne `x / d`,
-  #229 pour la grille de `diffarith`, #230, #232, #234 et #235 pour les écarts
-  de GCC avec Clang, #231 pour les masques d'exceptions de `pow_rel()` ; il
-  reste `max(x, y)` et `min(x, y)`, les autres noyaux NEON et le tableau de
-  Clang 21 : voir `TODO.md`).
+  #231 le 29 de 18 h 04 à 18 h 19, #232, #234 et #235 le 29 de 19 h 55 à 19 h
+  57, #236 le 29 à 23 h 42 ; #168, #195, #211, #214, #221, #226 et #233 sont
+  fermées sans fusion. Les tâches PA, PB, PC, PD, PE et PF sont faites (PE :
+  #200 et #204 pour le 95, #201 pour le 92, #205 pour le 3, #202 pour le 4, #204
+  pour le 5, #203 pour le 6 ; PF : #206 pour le reste du 108, #209 pour le 109,
+  #210 et #215 pour écrire seulement si ça change, #208 pour l'alignement de la
+  pile 32 bits, #207 pour le contrôle de l'assembleur de x86-64) ; PG est
+  presque faite (la division du chemin AVX-512, le 106 a : #191 à #194 ; puis
+  #217 pour le seuil de la liste, #218 pour `set_rounding()`, #219 pour le noyau
+  de `pown` de NEON, #222 et #224 pour `nth_root(x, -2)` et `sqrt()`, #223, #227
+  et #228 pour le contrôle de l'assembleur avec GCC, #225 pour le quotient NEON,
+  #220 pour la ligne `x / d`, #229 pour la grille de `diffarith`, #230, #232,
+  #234 et #235 pour les écarts de GCC avec Clang, #231 pour les masques
+  d'exceptions de `pow_rel()` ; #236 pour `max(x, y)` et `min(x, y)` ; il reste
+  les autres noyaux NEON et le tableau de Clang 21 : voir `TODO.md`).
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
   sur tout processeur ARM 64 bits avec tous les compilateurs (GCC, Clang,
   AppleClang, clang-cl, Visual C++, MinGW-w64, MSYS2), SSE2 sur tout processeur
@@ -1715,6 +1715,51 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   mainteneur : *aucune perte nulle part* ; relue par un agent indépendant ; 223
   jobs verts ; fusionnée le 29 octobre à 19 h 57 UTC)
 
+- #236 (les écarts de GCC avec Clang, `max(x, y)` et `min(x, y)`, décidés le 29
+  octobre : un **noyau dédié** aux intervalles SSE2, **une seule pull request
+  pour `max` et `min`**, **un noyau NEON dans la même** ; `max()` faisait deux
+  appels de `maximum()` (hors ligne, dans `gaol_common.cpp`) puis le
+  constructeur de deux bornes, 8,5 ns avec GCC 15.2 et 5,6 avec Clang 21 ; les
+  noyaux prennent les deux bornes d'un coup à partir des voies stockées `<-l,
+  r>` : SSE2, par un échange de voies sous le masque d'un `cmpgt` (non `minpd`
+  et `maxpd`, qui signalent l'invalidité pour un NaN et rendent un zéro pour un
+  sous-normal avec `denormals-are-zero`), sur le chemin rapide pour les voies de
+  mêmes bits, les zéros de signes opposés (un OR ou un AND des bits de signe) et
+  un résultat réduit à un point (le ReLU), le reste allant hors ligne et à froid
+  à l'ancien code, qui rend ses bornes dans un registre (rendre un `interval`
+  par le pointeur caché mettait un cadre de pile et un canari sur le chemin
+  rapide) ; NEON, par la comparaison des voies comme des entiers signés tirés
+  des bits (aucune dépendance à `FZ`) et un `vbsl`, le constructeur de deux
+  bornes validant le résultat ; une ligne `min(x, y)` dans `gaol_performance` ;
+  i7-1185G7 : `max` de 8,50 à 2,32 ns (3,66 fois) et `min` de 8,49 à 2,34 avec
+  GCC 15.2, 5,63 à 1,97 (2,86) et 5,64 à 2,00 avec Clang 21, les 42 autres
+  lignes de 0,96 à 1,02 ; Xeon de cloud1 (21 passes, deux passages) ×4,1 à ×4,2
+  avec GCC 13.3 et ×3,3 à ×3,4 avec Clang 18, aucune ligne sous 0,95 aux deux
+  passages ; M2 de MACarm4, sur batterie avec une charge élevée (*décidé le 29
+  octobre* : mesurer ainsi), 5,68 à 2,42 ns (2,35 fois) et 5,70 à 2,40, plus
+  rapides dans 21 passes sur 21 ; banc A/B de la CI : 1,61 (GCC 13.3) et 1,49
+  (Clang 18) sur le Neoverse N2, 2,27 avec Visual C++ arm64, 1,67 avec clang-cl
+  arm64 ; les mêmes bornes bit à bit que l'ancienne formule sur environ 180
+  millions de cas par bibliothèque pour le relecteur (x86-64, i386 réel, aarch64
+  sous qemu) et 38,7 millions (SSE2) et 19,36 millions (NEON, sous qemu et en
+  natif sur le M2) pour l'auteur ; deux tests de plus dans `other_functions.cpp`
+  : tous les couples d'intervalles de bornes spéciales contre un oracle exact,
+  avec les modes qui mettent les sous-normaux à zéro, et tous les couples de
+  voies stockées de 18 doubles spéciaux écrites par leurs octets (un NaN dans
+  une voie, des bornes à l'envers, une borne infinie...) contre l'ancienne
+  formule bit à bit ; 17 mutants du noyau SSE2 sur 18 tués (le survivant ne
+  change que le temps) et 12 sur 12 du noyau NEON ; relue par un agent
+  indépendant, qui a trouvé que la première version envoyait les voies égales à
+  l'ancien code, plus lent que lui de 1,3 à 2,4 ns, et que le test ne voyait pas
+  les états bruts : les deux sont corrigés ; l'exception d'invalidité d'un NaN
+  signalant avec Clang, que l'ancienne bibliothèque compilée par Clang ne levait
+  pas, est acceptée (*décidé le 29 octobre*) ; le premier passage de la CI a
+  échoué sur dix jobs (le test utilisait `FlushMode` là où les en-têtes de test
+  ne le définissent pas : ppc64le, s390x, riscv64 ; une variable `inf` qui
+  masquait une déclaration globale : Visual C++ `/W4 /WX` ; une sauvegarde du
+  cache de MSYS2), corrigés dans `de64d94` ; 224 jobs verts ; fusionnée le 29
+  octobre à 23 h 42 UTC)
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -3233,10 +3278,10 @@ exécutent (2.3).
   branchement, mis derrière les instructions `asm` vides de `reread_bounds()`
   (#235, relue ; son essai jetable #233, un appel hors ligne, gagnait 1,29 avec
   Clang 18 et perdait 15 % avec GCC et 8 à 23 % avec Visual C++ : le critère du
-  mainteneur est *aucune perte nulle part*) ; `max(x, y)` : `max()` faisait deux
-  appels de `maximum()` puis le constructeur ; un noyau SSE2 qui prend les deux
-  bornes d'un coup donne 2,3 ns avec GCC et 2,0 avec Clang 21 au lieu de 8,9 et
-  de 5,5 à 6,4 (en cours : `TODO.md`, PG, 2).
+  mainteneur est *aucune perte nulle part*) ; `max(x, y)` et `min(x, y)` : deux
+  appels de `maximum()` puis le constructeur, remplacés par un noyau SSE2 et un
+  noyau NEON qui prennent les deux bornes d'un coup (#236, relue : 3 à 4 fois
+  plus rapides sur x86).
 - **Le soir du 29 octobre, les réponses du mainteneur** : #233 est fermée et sa
   branche supprimée (remplacée par #235) ; le recul de Clang 21 sur `x &= y` de
   #234 (rapport 0,92, et `x | y` quand les deux bornes sont remplacées, +21 %)
@@ -3252,6 +3297,23 @@ exécutent (2.3).
   fait ici. Les mesures de #232 refaites le soir sur la base à jour (3329935,
   #230 fusionnée) : i7-1185G7, Xeon de cloud1 (famille 6 modèle 207, GCC 13.3 et
   Clang 18.1.3, 9 passes) et M2 de MACarm4 (21 passes) : voir 2.3, #232.
+- **La nuit du 29 au 30 octobre, les réponses du mainteneur** : la mesure du
+  noyau NEON sur le M2 se fait **sur batterie** (la première passe de MACarm4,
+  lancée sur batterie avec le mode économie d'énergie et une veille de 3
+  minutes, était invalide ; la seconde a été faite sous `caffeinate`, capot
+  ouvert, avec l'état d'alimentation relevé avant et après) ; la pull request de
+  `max` et `min` est **ouverte tout de suite** (#236), la mesure du Xeon et du
+  M2 s'y ajoutant ensuite ; l'exception d'invalidité d'un NaN signalant avec
+  Clang est **acceptée** et écrite dans la pull request ; les branches
+  fusionnées : le mainteneur a supprimé celle de #235 sur GitHub, et les dix
+  branches locales de #220 à #235 sont supprimées sur son accord (la suppression
+  en lot que j'avais tentée avait été refusée par le contrôle des actions de la
+  session). Le témoin de placement demandé à cloud1 (`todo-pg-max-control`,
+  l'ancien `max` avec les noyaux gardés mais non appelés) a montré que les
+  écarts de 5 à 25 % vus avec 9 passes sur des lignes qui n'appellent ni `max`
+  ni `min` étaient du placement et du bruit de série : les mêmes binaires
+  donnent des médianes qui varient jusqu'à 1,4 fois d'une série à l'autre, et
+  les rapports ne sont pas transitifs.
 - **Les tests sur un processeur ARM** (à la demande du mainteneur le 29 octobre,
   la session MACarm4, un Apple M2, Apple clang 21) : un seul passage de 21
   alternances de cinq programmes (la base `03adefb`, #233 variante 2, la base
@@ -3805,7 +3867,7 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
 - **Les écarts de GCC avec Clang** (tâche PG, *décidé le 29 octobre*). `x + y`,
   `x - y` et les lignes d'additions avec GCC : fait par #230 ; le placement de
   Clang 21 : #232 ; `x | y` et `x &= y` de SSE2 : #234 ; `x * y` de NEON : #235.
-  `max(x, y)` et `min(x, y)` : en cours (`TODO.md`, PG, 2). Le contrôle de
+  `max(x, y)` et `min(x, y)` : #236. Le contrôle de
   l'assembleur avec GCC : #223, puis son garde `DENORMAL` #227 et son job de CI
   #228 ; la grille de `diffarith` : #229 ; les masques d'exceptions de
   `pow_rel()` : #231.
@@ -4368,22 +4430,23 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
   environ 10 Ko, ou de couper le corps et de mettre les sections 5 à 8 dans un
   commentaire, plafonné à 65 536 octets) ; #178 et #179 sont à jour.
 
-### 7.9 Le 29 octobre (après #217 à #235)
+### 7.9 Le 29 et le 30 octobre (après #217 à #236)
 
 - Le mainteneur a fusionné #217 le 28 à 23 h 19 UTC, puis le 29 #218 à 9 h 41,
   #219 à 11 h 12, #222 à 11 h 16, #223 à 11 h 18 et #225 à 12 h 57 ; #224 à 18 h
   04, #220 à 18 h 05, #227 à 18 h 08, #228 à 18 h 12, #229 à 18 h 13, #230 à 18
-  h 18 et #231 à 18 h 19 ; #232 à 19 h 55, #234 à 19 h 56 et #235 à 19 h 57 :
-  `configure-clean` est au commit `38afa59`. Les registres sont mis à jour pour
-  ces seize pull requests (2.3), pour #221, #226 et #233 (2.4) et pour les
-  décisions de la tâche PG (3.10) : une première fois après les six du matin
-  (`49430ce`), une seconde après #235, comme le mainteneur l'a demandé (« après
-  #232, #234 et #235 »).
+  h 18 et #231 à 18 h 19 ; #232 à 19 h 55, #234 à 19 h 56, #235 à 19 h 57 et
+  #236 à 23 h 42 : `configure-clean` est au commit `063e800`. Les registres sont
+  mis à jour pour ces dix-sept pull requests (2.3), pour #221, #226 et #233
+  (2.4) et pour les décisions de la tâche PG (3.10) : une première fois après
+  les six du matin (`49430ce`), une deuxième après #235 (`20f1f07`), comme le
+  mainteneur l'a demandé (« après #232, #234 et #235 »), et une troisième après
+  #236.
 - Une seule session a traité la tâche PG, avec la session MACarm4 (un Apple M2,
   Remote Control) pour NEON et la session cloud1 (un Xeon dans le nuage) pour
-  l'étude du 105, de `denorm_min()` et de l'alignement ; elle a ouvert dix-neuf
-  pull requests, #217 à #235 (16 fusionnées, 3 fermées sans fusion, toutes des
-  brouillons jetables).
+  l'étude du 105, de `denorm_min()`, de l'alignement et de `max` et `min` ; elle
+  a ouvert vingt pull requests, #217 à #236 (17 fusionnées, 3 fermées sans
+  fusion, toutes des brouillons jetables).
 - Les échecs de CI du jour : l'outil d'assembleur avec un chemin `--build`
   relatif (`cc1plus: cannot open build-gcc/asm-order/...` : le compilateur
   tourne dans le répertoire du build ; défaut de #207, trouvé par le premier
@@ -4392,12 +4455,26 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
   `autoconf`, process.md 6.3) ; un job « Debian 12 i386 » de #230 qui a reçu une
   erreur 500 de Docker (repassé au vert à la relance) ; un job « macOS 14 arm64
   » de #224 et un job « macOS » de #235 annulés faute d'exécuteur (relancés) ;
-  un job MinGW de #233 (Chocolatey, relancé).
+  un job MinGW de #233 (Chocolatey, relancé) ; dix jobs de #236 : un test qui
+  utilisait `FlushMode` et `set_flush_bits` là où les en-têtes de test ne les
+  définissent pas (le chemin FPU de POWER, s390x et RISC-V), une variable locale
+  `inf` qui masquait une déclaration globale (C4459 de Visual C++ avec `/W4
+  /WX`), et la sauvegarde du cache de MSYS2 CLANGARM64 (`paccache`, code 127),
+  tous repassés au vert par `de64d94`.
 - Deux pièges de la machine : le dossier `/tmp` est un tmpfs de 16 Go, que les
   dossiers de construction et de relecture de la session ont rempli («
   Débordement du quota d'espace disque » dans `cc1plus`) ; les dossiers créés
   par Docker en root ne s'effacent pas sans lui (lancer les conteneurs avec
   `--user`).
+- Les pièges de la mesure : les mêmes binaires donnent des médianes qui varient
+  jusqu'à 1,4 fois d'une série à l'autre sur le Xeon de cloud1 (la machine
+  redémarre entre les demandes, une machine virtuelle partagée), si bien qu'une
+  série de 9 passes ne tranche pas un écart de 5 à 25 % sur une ligne que le
+  changement ne touche pas : 21 passes et un second passage avec les mêmes
+  binaires, et un témoin de placement quand un motif revient ; le Mac ne mesure
+  pas pendant une veille ni capot fermé sur batterie ; un banc dont les
+  opérandes n'ont jamais de voies égales ne voit pas le chemin lent d'un noyau
+  (trouvé par le relecteur de #236).
 - Le piège de GCC d'Ubuntu, revu avec `max()` : la protection de pile par défaut
   (`-fstack-protector-strong`) posait un cadre et un canari sur le chemin rapide
   de `max()` quand le chemin rare, hors ligne, rendait un `interval` (une
@@ -4485,10 +4562,14 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
   (`todo-pg-align-functions`) et #234 (`todo-pg-sse-hull`), supprimées sur
   GitHub à la fusion ; celle de la pull request jetable #233
   (`experiment-pg-neon-mul`), sur GitHub et en local le 29 octobre.
-- [ ] À supprimer, sur accord (la suppression en lot a été refusée par la
-  protection de l'outil) : la branche de #235 (`todo-pg-neon-mul`), restée sur
-  GitHub à la fusion, et en local les branches fusionnées de #220, #224, #227 à
-  #232, #234 et #235.
+- [x] Les branches de #235 (`todo-pg-neon-mul`), sur GitHub par le mainteneur et
+  en local sur son accord, et les neuf autres branches locales de #220, #224,
+  #227 à #232 et #234, supprimées le 29 octobre ; celle de #236 (`todo-pg-max`),
+  sur GitHub à la fusion ; les branches de mesure `todo-pg-max-base` et
+  `todo-pg-max-control` (le témoin de placement de cloud1), à supprimer une fois
+  cette mise à jour poussée. Les branches des pull requests jetables fermées
+  (`experiment-pg8-neon-div`, `experiment-pg2-row`, `experiment-pg2-n2`) sont
+  gardées.
 - [x] Lignes de crédit retirées des descriptions de #50, #51, #53 à #57 et #59,
   d'un commentaire de #59 et de cette issue. Il en reste dans les messages des
   commits a0d3871, 790ca12 et f1f4239 de #99, fusionnée sans squash. Retirées

@@ -7,9 +7,9 @@ propose une pull request, et comment on tient les registres à jour une fois la
 pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
-en cours, ce qui reste) est au §12. Dernière mise à jour : 29 octobre 2026, au
-commit `38afa59` de `configure-clean` (la fusion de #235, après celles de #217 à
-#220, #222 à #225, #227 à #232 et #234).
+en cours, ce qui reste) est au §12. Dernière mise à jour : 30 octobre 2026, au
+commit `063e800` de `configure-clean` (la fusion de #236, après celles de #217 à
+#220, #222 à #225, #227 à #232, #234 et #235).
 
 ## 1. Le contexte
 
@@ -727,7 +727,7 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   `bash -e`, un `! grep ...` au milieu d'une étape ne la fait pas échouer (seule
   la dernière commande donne son statut) : écris un `if` explicite.
 
-## 12. Où en est le travail (29 octobre 2026)
+## 12. Où en est le travail (30 octobre 2026)
 
 Le reste à faire est dans `TODO.md` (tâches PG à PJ) et l'issue #179 ; ce qui
 est fait et décidé (pull requests fusionnées, décisions, mesures) est dans
@@ -755,45 +755,41 @@ git ls-remote --heads origin
   #204 (les sondes liées, le C des drapeaux de FMA avec CMake) et #205 (les jobs
   qui manquent, MSYS2 MINGW32 sans FMA refusé : la tâche PE est faite) ; le
   CORE-MATH vendu mis à jour de l'amont `6b84457` à `0b2ae6d1` le 27 octobre,
-  directement sur `configure-clean` (`cb731c0` et `2927cfe`, voir
-  `TODO_DONE.md` 7.6) ; #212 (le test de `cos` sur son chemin précis) et #213
-  (les contournements de `cr_pow` que l'amont rend inutiles, sauf la puissance
-  minuscule de |y| ≥ 2^1013), fusionnées le 28 octobre, comme
-  #206 à #210 et #215 (la tâche PF : le reste du 108, le 109, écrire seulement
-  si ça change, l'alignement de la pile 32 bits, le contrôle de l'assembleur de
-  x86-64) et #216 (hors des points : le tableau des lignes longues sur ARM 64
-  bits, à la fin de `doc/compare/performance.md`, mesuré sur un Mac M2) ; puis
-  #217 à #220, #222 à #225, #227 à #232, #234 et #235 (de la tâche PG : le seuil
-  de la liste du banc A/B, `set_rounding()` sans écrire pour rien, le noyau de
-  `pown` de NEON, la ligne `x / d`, `nth_root(x, -2)` et `sqrt()` (la
-  constante `denorm_min()` avec GCC), le tri du contrôle de l'assembleur avec
-  GCC, son garde `DENORMAL` et son job de CI, le quotient NEON, la grille de
-  `diffarith`, les masques d'exceptions de `pow_rel()`, et les écarts de GCC
-  avec Clang : les écritures de registres hors ligne, l'alignement des
-  fonctions sur 64 octets, `x | y` et `x &= y` de SSE2, `x * y` de NEON),
-  fusionnées du 28 au 29 octobre ;
-  l'audit du 13 octobre a
-  vérifié dans `configure-clean`
-  ce qu'annonçaient alors les points A, C à H et J à V.
-- **En cours** : au 29 octobre, aucune pull request n'est ouverte ;
-  `configure-clean` est au commit de la fusion de #235. La pull request de
-  `max(x, y)` et `min(x, y)` (un noyau SSE2 et un noyau NEON, tâche PG, 2) est
-  en préparation : la branche locale `todo-pg-max` n'est pas poussée. Les
-  branches de GitHub sont `configure-clean`, `MATH-CORE` et `master`, avec trois
-  branches d'essais jetables gardées (`experiment-pg8-neon-div`,
-  `experiment-pg2-row`, `experiment-pg2-n2`) et la branche fusionnée de #235
-  (`todo-pg-neon-mul`), à supprimer. L'issue #198 (`x / y` des intervalles NEON
-  avec `FPCR.AH`) est ouverte, sans tâche dans `TODO.md` ; #185 est fermée, le
-  masquage des exceptions de `pow` est gardé. L'issue #177 (`TODO_DONE.md`)
-  n'est plus mise à jour (*décidé le 28 octobre*) : GitHub borne le corps d'une
-  issue à 262 144 octets et le texte joint en fait plus de 270 000 (voir
-  `TODO_DONE.md` 7.8).
+  directement sur `configure-clean` (`cb731c0` et `2927cfe`, voir `TODO_DONE.md`
+  7.6) ; #212 (le test de `cos` sur son chemin précis) et #213 (les
+  contournements de `cr_pow` que l'amont rend inutiles, sauf la puissance
+  minuscule de |y| ≥ 2^1013), fusionnées le 28 octobre, comme #206 à #210 et
+  #215 (la tâche PF : le reste du 108, le 109, écrire seulement si ça change,
+  l'alignement de la pile 32 bits, le contrôle de l'assembleur de x86-64) et
+  #216 (hors des points : le tableau des lignes longues sur ARM 64 bits, à la
+  fin de `doc/compare/performance.md`, mesuré sur un Mac M2) ; puis #217 à #220,
+  #222 à #225, #227 à #232 et #234 à #236 (de la tâche PG : le seuil de la liste
+  du banc A/B, `set_rounding()` sans écrire pour rien, le noyau de `pown` de
+  NEON, la ligne `x / d`, `nth_root(x, -2)` et `sqrt()` (la constante
+  `denorm_min()` avec GCC), le tri du contrôle de l'assembleur avec GCC, son
+  garde `DENORMAL` et son job de CI, le quotient NEON, la grille de `diffarith`,
+  les masques d'exceptions de `pow_rel()`, et les écarts de GCC avec Clang : les
+  écritures de registres hors ligne, l'alignement des fonctions sur 64 octets,
+  `x | y` et `x &= y` de SSE2, `x * y` de NEON, `max(x, y)` et `min(x, y)` de
+  SSE2 et de NEON), fusionnées du 28 au 29 octobre ; l'audit du 13 octobre a
+  vérifié dans `configure-clean` ce qu'annonçaient alors les points A, C à H et
+  J à V.
+- **En cours** : au 30 octobre, aucune pull request n'est ouverte ;
+  `configure-clean` est au commit de la fusion de #236. Ses branches sur GitHub
+  sont `configure-clean`, `MATH-CORE` et `master`, avec trois branches d'essais
+  jetables gardées (`experiment-pg8-neon-div`, `experiment-pg2-row`,
+  `experiment-pg2-n2`) et les deux branches de mesure de `max` et `min`
+  (`todo-pg-max-base`, `todo-pg-max-control`), à supprimer. L'issue #198 (`x /
+  y` des intervalles NEON avec `FPCR.AH`) est ouverte, sans tâche dans `TODO.md`
+  ; #185 est fermée, le masquage des exceptions de `pow` est gardé. L'issue #177
+  (`TODO_DONE.md`) n'est plus mise à jour (*décidé le 28 octobre*) : GitHub
+  borne le corps d'une issue à 262 144 octets et le texte joint en fait plus de
+  270 000 (voir `TODO_DONE.md` 7.8).
 - **À faire**, dans l'ordre de `TODO.md` : les études de vitesse, toutes avant
-  v5.0.0 (PG, presque faite : `max` et `min`, les autres noyaux NEON, le tableau
-  de Clang 21), les signalements à
-  d'autres projets (PH, avec l'accord du mainteneur), puis la version (PI, PJ).
-  Ce qui est reporté (le 113, le site, les traits pour YalAA et VNODE-LP, les
-  décorations, ce qui attend du matériel) est dans `TODO_AFTER.md`. Les
-  dépendances entre points sont écrites dans chaque tâche. Le mainteneur donne
-  les tâches ou les points un par un (« traite la tâche PF », « traite le point
-  129 ») : ne commence pas le suivant sans lui.
+  v5.0.0 (PG, presque faite : les autres noyaux NEON, le tableau de Clang 21),
+  les signalements à d'autres projets (PH, avec l'accord du mainteneur), puis la
+  version (PI, PJ). Ce qui est reporté (le 113, le site, les traits pour YalAA
+  et VNODE-LP, les décorations, ce qui attend du matériel) est dans
+  `TODO_AFTER.md`. Les dépendances entre points sont écrites dans chaque tâche.
+  Le mainteneur donne les tâches ou les points un par un (« traite la tâche PF
+  », « traite le point 129 ») : ne commence pas le suivant sans lui.

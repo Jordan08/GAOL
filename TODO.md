@@ -1,7 +1,7 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `38afa59` de `configure-clean` (la
-fusion de #235), le 29 octobre 2026, en tâches PG à PJ (PA à PF sont faites, PG
+Ce qui reste à faire sur GAOL v5 au commit `063e800` de `configure-clean` (la
+fusion de #236), le 30 octobre 2026, en tâches PG à PJ (PA à PF sont faites, PG
 est presque faite : voir `TODO_DONE.md`). Ce fichier et l'issue #179 ont le même
 contenu. Ce qui est fait et décidé est dans `TODO_DONE.md` (l'issue #177 n'est
 plus mise à jour), ce qui est reporté dans `TODO_AFTER.md` (issue #178). Les
@@ -10,8 +10,7 @@ anciennes issues #49 et #142 sont fermées, et `TODO_mistral.md` est supprimé.
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à envoyer à un autre projet ni à publier sans l'accord
-du mainteneur. Aucune pull request n'est ouverte ; la prochaine, celle de
-`max(x, y)` et `min(x, y)`, est en préparation (tâche PG, 2).
+du mainteneur. Aucune pull request n'est ouverte.
 
 ## Comment lire ce fichier
 
@@ -41,7 +40,7 @@ du mainteneur. Aucune pull request n'est ouverte ; la prochaine, celle de
 
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
-| PG | Les études de vitesse | trois études | S |
+| PG | Les études de vitesse | deux études | S |
 | PH | Les signalements à d'autres projets | #125 à #138, #175 | accord |
 | PI | La pull request de synthèse et les textes de la version | Y | L |
 | PJ | Les mesures et la publication de v5.0.0 | 32, 33, 34, 71 | M |
@@ -60,8 +59,9 @@ du contrôle de l'assembleur avec GCC (#223, #227 et #228), la ligne `x / d` du
 banc A/B (#220), la grille de `diffarith` (#229), le contrôle des masques
 d'exceptions de `pow_rel()` (#231), puis les écarts de GCC avec Clang :
 `x + y` et les lignes d'additions (#230), l'alignement des fonctions (#232), `x
-| y` et `x &= y` de SSE2 (#234) et `x * y` de NEON (#235) ; le reste du 106 est
-reporté (`TODO_AFTER.md`). Voir `TODO_DONE.md` (2.3, 3.10 et 5).
+| y` et `x &= y` de SSE2 (#234), `x * y` de NEON (#235) et `max(x, y)` et
+`min(x, y)` de SSE2 et de NEON (#236) ; le reste du 106 est reporté
+(`TODO_AFTER.md`). Voir `TODO_DONE.md` (2.3, 3.10 et 5).
 
 1. **Le tableau de Clang 21** [S] : *À décider* maintenant que #230 et #232 sont
    fusionnées : remesurer le tableau de `doc/compare/performance.md` et de
@@ -70,46 +70,16 @@ reporté (`TODO_AFTER.md`). Voir `TODO_DONE.md` (2.3, 3.10 et 5).
    sur `x &= y`, que #234 ralentit avec Clang 21 (rapport 0,92, accepté le 29
    octobre)), ou l'accepter jusqu'à la mesure de la version (PJ, 2).
 
-2. **`max(x, y)` et `min(x, y)`** [S, en cours] : la cause n'était ni
-   `maximum()` ni le constructeur seuls : `max()` faisait deux appels de
-   `maximum()` (dans `gaol_common.cpp`, hors ligne) puis le constructeur, 8,9 ns
-   avec GCC 15.2 et 5,5 à 6,4 avec Clang 21. Le noyau SSE2 prend les deux bornes
-   d'un coup (la borne basse est la plus petite des deux voies `-l`, la haute la
-   plus grande des deux voies `r`, choisies par une comparaison et non par
-   `minpd` et `maxpd`, qui signalent l'invalidité pour un NaN et rendent un zéro
-   pour un sous-normal avec `denormals-are-zero`) et laisse au code des autres
-   intervalles, hors ligne, les NaN, les voies égales et un résultat de bornes
-   égales : 2,3 ns avec GCC et 2,0 avec Clang 21 (3 à 4 fois plus rapide), `min`
-   de même ; les mêmes bornes bit à bit que l'ancien code sur 38,7 millions de
-   cas (infinis, sous-normaux, zéros de signes opposés, NaN, seize états de
-   `MXCSR`) ; un test de plus dans `other_functions.cpp` (tous les couples
-   d'intervalles de bornes spéciales, avec un oracle exact, avec et sans les
-   modes qui mettent les sous-normaux à zéro) dont les mutants du noyau SSE2
-   sont tués, treize sur quatorze (le quatorzième donne les mêmes bornes) ; une
-   ligne `min(x, y)` dans `gaol_performance`. Le noyau NEON compare les deux
-   voies comme des entiers signés tirés des bits (le zéro négatif sous le zéro
-   positif, les sous-normaux par leurs valeurs, donc sans cas à part ni
-   dépendance à FZ), les choisit par un `vbsl` et passe le résultat au
-   constructeur de deux bornes : les mêmes bornes que l'ancienne formule sur
-   19,36 millions de cas sous qemu aarch64 (GCC 12.2, huit états de FPCR), les
-   six programmes de test passent, six mutants sur huit sont tués (les deux
-   autres, le test de NaN retiré, donnent le même résultat pour tout intervalle
-   valide). Les configurations x86 (FPU, préservation avec Clang 21, stockage
-   non aligné, AVX-512) passent à 100 %. Les branches `todo-pg-max` (`a327382`)
-   et `todo-pg-max-base` (`7e1d8de` : la base plus la ligne `min(x, y)`) sont
-   poussées pour les mesures. *Décidé le 29 octobre* : une seule pull request
-   pour `max` et `min`, **avec un noyau NEON dans la même pull request**,
-   mesurée sur les trois machines (l'i7, le Xeon de cloud1 et le M2 de MACarm4)
-   ; critère : *aucune perte nulle part*. À faire : les mesures de vitesse
-   (l'i7, cloud1 et MACarm4 sont lancées), le différentiel natif sur le M2, la
-   relecture indépendante, puis la pull request. Avec #232 le M2 donne `max(x,
-   y)` 3 % plus lent (5,46 puis 5,64 ns), ce que ce noyau remplace.
-
-3. **Les autres noyaux NEON** [S] (*décidé le 29 octobre* : après `max` et
-   `min`) : les tests de NaN que Clang calcule avant le branchement (la cause de
-   #235) peuvent se trouver dans `sqr_bounds()`, `operator%=` et `inverse()` ;
-   même méthode (instructions `asm` vides de `reread_bounds()`, mesure sur le
-   Neoverse N2 et le M2, une pull request par noyau amélioré) et même critère.
+2. **Les autres noyaux NEON** [S] (*décidé le 29 octobre* : après `max` et
+   `min`, qui sont faits par #236) : les tests de NaN que Clang calcule avant le
+   branchement (la cause de #235) peuvent se trouver dans `sqr_bounds()`,
+   `operator%=` et `inverse()` ; même méthode (instructions `asm` vides de
+   `reread_bounds()`, mesure sur le Neoverse N2 et le M2, une pull request par
+   noyau amélioré) et même critère. Le noyau NEON de `max` et `min` lui-même
+   (#236) ne gagne que 1,5 à 1,6 fois sur le Neoverse N2 (2,35 sur le M2, 2,3
+   avec Visual C++ arm64, 1,7 avec clang-cl) : *À décider* s'il vaut d'être
+   raccourci (la réduction du test de NaN et le constructeur de deux bornes
+   pèsent plus sur ce coeur).
 
 ## PH. Les signalements à d'autres projets [attend l'accord du mainteneur]
 
@@ -212,24 +182,27 @@ PA à PH faites ou décidées (PA à PE le sont), et avant les mesures de PJ.
    #197 (qui disent : rien), #199 (l'installation des en-têtes dans
    `include/gaol/core/`), #200 (les options des trois builds : voir 2), #201
    (les drapeaux C de CORE-MATH, déjà dans `doc/differences.md`), #202 à #204
-   (qui disent : rien) et #205 (les jobs qui manquent : voir 2). Les points K,
-   L et `make distclean` (#72 à #75) n'ont pas cette section : à écrire d'après
-   leurs descriptions. À écrire d'après les commits, sans pull request : les
-   changements du 4 octobre (`nb_fp_numbers()` rend un `unsigned long long`,
-   `gaol_parameters.h` supprimé) et ceux du 15 au 18 octobre, qui changent
-   l'interface installée : les en-têtes du parser et des expressions dans
-   `include/gaol/parser/` (`gaol_expression.h`…), `gaol_interval.h` scindé en
-   `gaol_interval_core.h` et `gaol_interval.h`, les intervalles de floats dans
-   `gaol/float/`, `gaol_assert.h`, `gaol_profile.h` (la classe `timepiece`),
-   `gaol_exact.h`, `gaol_flags.h`, `gaol/dllmain.cpp` et `operator""_iv`
-   (`gaol_literals.h`) supprimés, `f_negate`, `f_negate_simple`, `gaol_opposite`
-   et `reset_fpu_cw` supprimés (a6786af), la lecture en bases 16, 8 et 2
-   (91dcce2) ; vérifier ce que `doc/differences.md` en dit déjà. Le point G n'a
-   pas de texte dans la description de #91 (écrite avant la fin du travail) : à
-   écrire d'après c7915a7, ccf694a et `doc/three-builds.md`. Les chiffres de
-   `todo-notes/synthese.md` sont à harmoniser (l'ancien 18 : « 2.5 s down to
-   0.03 s » contre 0,02 s), et `doc/differences.md` contredit déjà #71 (la
-   locale du flux pour le format `bounds`) : c'est dans ses notes.
+   (qui disent : rien) et #205 (les jobs qui manquent : voir 2), et, de la tâche
+   PG, #224 (`sqrt()` 16 fois plus lente avec GCC sur Intel, corrigée) et #236
+   (`max` et `min` 3 à 4 fois plus rapides ; l'exception d'invalidité d'un NaN
+   signalant avec Clang). Les points K, L et `make distclean` (#72 à #75) n'ont
+   pas cette section : à écrire d'après leurs descriptions. À écrire d'après les
+   commits, sans pull request : les changements du 4 octobre (`nb_fp_numbers()`
+   rend un `unsigned long long`, `gaol_parameters.h` supprimé) et ceux du 15 au
+   18 octobre, qui changent l'interface installée : les en-têtes du parser et
+   des expressions dans `include/gaol/parser/` (`gaol_expression.h`…),
+   `gaol_interval.h` scindé en `gaol_interval_core.h` et `gaol_interval.h`, les
+   intervalles de floats dans `gaol/float/`, `gaol_assert.h`, `gaol_profile.h`
+   (la classe `timepiece`), `gaol_exact.h`, `gaol_flags.h`, `gaol/dllmain.cpp`
+   et `operator""_iv` (`gaol_literals.h`) supprimés, `f_negate`,
+   `f_negate_simple`, `gaol_opposite` et `reset_fpu_cw` supprimés (a6786af), la
+   lecture en bases 16, 8 et 2 (91dcce2) ; vérifier ce que `doc/differences.md`
+   en dit déjà. Le point G n'a pas de texte dans la description de #91 (écrite
+   avant la fin du travail) : à écrire d'après c7915a7, ccf694a et
+   `doc/three-builds.md`. Les chiffres de `todo-notes/synthese.md` sont à
+   harmoniser (l'ancien 18 : « 2.5 s down to 0.03 s » contre 0,02 s), et
+   `doc/differences.md` contredit déjà #71 (la locale du flux pour le format
+   `bounds`) : c'est dans ses notes.
 2. **Ce que les descriptions demandent de corriger** dans `doc/differences.md`
    et `ChangeLog` : celle de #146 dit que la ligne 333 (« the intervals of ARM »
    sont FPU) n'est plus vraie sur arm64, et celle de #148 que la même ligne («
