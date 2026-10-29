@@ -251,7 +251,17 @@ point Q), which `numbers` checks there too.
   16 states of the field RC and the two flush modes of MXCSR, with other bits
   that must not change: the field RC is the direction asked, and no other bit
   changes, the flush modes and the exception flags among them (and, for 32-bit
-  x86, the same of the control word of the x87 unit). With GCC, Clang or Visual
+  x86, the same of the control word of the x87 unit). On an x86-64 processor,
+  `get_rounding()`, `set_rounding()` and `set_rounding_and_flush_modes()` are
+  called in the six states above, with each flush mode and with other bits in
+  the registers (the precision of the control word, the exception flags of
+  MXCSR): the state read is the fields of the registers, which the test reads
+  apart from the library, and changes neither; set back over each state of the
+  registers, the flags raised or not, the direction of both units is the saved
+  one, the flush modes stay as they are (`set_rounding()`) or are the saved ones
+  (`set_rounding_and_flush_modes()`), and no other bit changes, the exception
+  flags among them; Visual C++ for x64 has MXCSR alone, and its x87 unit is left
+  as it is (GAOL v5, point PG.10 of TODO.md). With GCC, Clang or Visual
   C++ for 32-bit x86,
   the registers themselves, read and written by the test apart from the library
   in the six states above and with each flush mode, after ten operations: both
@@ -1618,7 +1628,8 @@ integration configures (GAOL v5).
 GAOL's arithmetic and elementary functions, of the quotient by a positive
 double (`x / d`, the one row that divides by a double: `fast_div_by()` of the
 AVX-512 path, GAOL v5, point PG.9 of TODO.md), of the constructor
-`interval(a, b)`, `floor()`, `x &= y`, `x | y`, `max()`, `midpoint()`, `nth_root(x, 3)`, the cube root, and `asinpi()` (the
+`interval(a, b)`, `floor()`, `x &= y`, `x | y`, `max()`, `midpoint()`, `nth_root(x, -2)` (the
+inverse of the square root, GAOL v5, point PG.2 of `TODO.md`), `nth_root(x, 3)`, the cube root, and `asinpi()` (the
 functions of CORE-MATH that read the rounding direction at each call, GAOL v5,
 point 108) and two relations, which
 compare bounds with the quiet comparisons of `<cmath>` (one instruction each
@@ -1661,7 +1672,11 @@ which `ieee1788`, `elementary`, `arithmetic`, `rounding_direction` and
 runs `diffpow` on the errors no test catches. `pown_bound.py` checks with
 rationals the induction that bounds the error of the integer powers
 beforehand (`pown_products()` in `gaol/core/gaol_interval_core.cpp`). `bench.cpp`
-measures the time per call of each path of `pow`.
+measures the time per call of each path of `pow`. `pownhash.cpp` and
+`pownedge.cpp` print a hash of the bounds of four million integer powers and of
+the integer powers at the edges of the range of the packed kernel (the tests of
+the repository have no value there), the sign of a zero included (GAOL v5, point
+PG.7 of `TODO.md`).
 
 `tests/tools/arith/` holds a tool of the same kind for the arithmetic (see
 [its README](../tests/tools/arith/README.md)): `diffarith.py` prints the bounds

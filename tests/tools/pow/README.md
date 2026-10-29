@@ -30,10 +30,12 @@ GAOL, or a build with mpmath, and their results are read by whoever changes
 | `evalrows.cpp` | Computes `gaol_ieee1788::pow` and `gaol::pow` on the boxes of a rows file |
 | `gen_table.py` | Reads the table of `pow_on_boxes()` into a rows file (`extract`), writes the table from a rows file (`cpp`, `--into` to replace it in `tests/ieee1788.cpp`), and lists the boxes whose bounds differ between two rows files (`diff`) |
 | `checkrows.py` | Checks the bounds of a rows file against the exact power, computed with 500 bits by mpmath: they have to enclose it, within one double of the tightest bounds |
-| `mutate.py` | Mutation testing: builds GAOL with one deliberate error in `pow` or in the integer power at a time (104 mutants), runs the tests, and runs `diffpow` on the mutants that survive, to tell an equivalent mutant from a box the tests lack |
+| `mutate.py` | Mutation testing: builds GAOL with one deliberate error in `pow` or in the integer power at a time (106 mutants), runs the tests, and runs `diffpow` on the mutants that survive, to tell an equivalent mutant from a box the tests lack |
 | `negative_power_rows.py` | Writes the rows `{ x, n, lo, hi }` of the table of large negative powers of `large_powers()` in `tests/arithmetic.cpp`: the tightest bounds of x<sup>n</sup>, n from −2<sup>31</sup> + 1 to −2<sup>27</sup>, computed with mpmath on 2000 bits, for the powers that lie at least 1/16 of the spacing of the doubles from each double |
 | `pown_bound.py` | Checks with rationals the induction of the comment of `pown_products()`, which bounds beforehand the error of the exact products of the integer power, and the bound K drawn from it, for c<sup>m</sup> and c<sup>−m</sup> |
 | `bench.cpp` | The time per call of the pow functions, on each path of `pow_standard()` |
+| `pownhash.cpp` | The FNV-1a hash of the bits of the bounds of about four million `gaol::pow(x, n)` for an integer n (boxes of special values, then drawn ones; `d` prints each box and its bounds), to tell at once whether a change of the integer power changed a bound, the sign of a zero included |
+| `pownedge.cpp` | The same hash for `gaol::pow(x, n)` at the edges of the range of the packed kernel of the integer power (`pown_least[L]` and `pown_greatest[L]`, read from `gaol/core/gaol_interval_core.cpp`) and at their neighbours, for exponents of each length L from 2 to 32 bits, where the tests of the repository have no value |
 | `build.py` | Compiles `diffpow.cpp`, `evalrows.cpp` or `bench.cpp` against a build of GAOL; the other scripts import it |
 
 A rows file has one box per line, `X | Y | S | H`: the base X, the exponent Y,
@@ -223,6 +225,30 @@ for i in 1 2 3 4 5 6; do
   for b in base new; do taskset -c 2 /tmp/pow/$b/bench > /tmp/pow/$b/bench-$i.txt; done
 done
 ```
+
+**5. The hash of the integer powers.** For a change of the packed kernel of the
+integer power or of the comparisons that choose it (point PG.7 of `TODO.md`):
+the two programs print a hash of the bounds, which a change that keeps every
+bound leaves as it is, and which the SSE2, NEON and FPU intervals share but for
+the sign of a zero (the same hash was found with SSE2 intervals and with NEON
+ones; compare builds with the same option for `pownhash`, whose draws are
+doubles that the program computes in its own rounding direction, which
+`GAOL_PRESERVE_ROUNDING` leaves to nearest and the other builds set upward;
+`pownedge` makes its boxes with exact operations and has one hash):
+
+```bash
+python3 tests/tools/pow/build.py --build build-sse -o /tmp/pow/new/pownhash tests/tools/pow/pownhash.cpp
+python3 tests/tools/pow/build.py --build build-sse -o /tmp/pow/new/pownedge tests/tools/pow/pownedge.cpp
+/tmp/pow/new/pownhash
+/tmp/pow/new/pownedge gaol/core/gaol_interval_core.cpp
+```
+
+The mutants `neon-range-least-strict` and `neon-range-greatest-strict` send a
+base at an edge of the range to the corners instead of the kernel: the bounds
+are the same but for the sign of a zero lower bound (-0 with the kernel, +0
+with the corners), which `pownedge` sees because its hash includes the sign of
+a zero, and `diffpow` and the tests do not compare. They are listed as
+equivalent.
 
 ## What a passing run looks like
 

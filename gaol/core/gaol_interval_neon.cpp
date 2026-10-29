@@ -361,13 +361,18 @@ namespace gaol_core {
   */
   GAOL_INLINE float64x2_t divide_upward(float64x2_t x, float64x2_t y, bool modulo)
   {
-    const uint64x2_t y_negative = vcltzq_s64(vreinterpretq_s64_f64(y));
-    const uint64x2_t y_nonzero = vtstq_u64(bits_of(y), vdupq_n_u64(abs_mask));
-    // lane 0: c > 0 (-c < 0, not a zero), lane 1: d < 0
-    if (!any_lane(vandq_u64(y_negative, y_nonzero))) {
+    // The signs of the stored bounds of y, told on the integer side (the bits of the two lanes in
+    // general registers), where two reductions and the broadcast of a lane cost vector operations:
+    // x / y took 5.35 ns, and now 3.96, with Clang 18 on a Neoverse N2 (GAOL v5, point PG.8 of TODO.md)
+    const std::uint64_t y_low_bits = vgetq_lane_u64(bits_of(y), 0), y_high_bits = vgetq_lane_u64(bits_of(y), 1);
+    // lane 0: c > 0 (-c < 0, not a zero), lane 1: d < 0; with bitwise operators, so that the only
+    // branch is on whether y holds a zero, none on the sign of each bound (random in a program)
+    const std::uint64_t c_positive = (y_low_bits >> 63) & static_cast<std::uint64_t>((y_low_bits << 1) != 0);
+    const std::uint64_t d_below_zero = (y_high_bits >> 63) & static_cast<std::uint64_t>((y_high_bits << 1) != 0);
+    if ((c_positive | d_below_zero) == 0) {
       return divide_by_zero_containing(x, y, modulo);
     }
-    const uint64x2_t d_negative = vdupq_laneq_u64(y_negative, 1);
+    const uint64x2_t d_negative = vdupq_n_u64(0ull - (y_high_bits >> 63)); // all ones if the sign of d is set
     const float64x2_t xp = vbslq_f64(d_negative, swap_lanes(x), x);
     const float64x2_t yp = vbslq_f64(d_negative, swap_lanes(y), y); // <-c', d'>
     const float64x2_t dd = vdupq_laneq_f64(yp, 1);                   // <d', d'>
@@ -760,11 +765,21 @@ double hausdorff(const interval &I1, const interval &I2)
       }
       if (negative) {
         c = vextq_f64(c, c, 1);
+#if !GAOL_NEON_MSVC
+        // Clang makes a select of this swap, with a move from a general register
+        // to the vector one on the way to the kernel (GAOL v5, point PG.7)
+        __asm__ ("" : "+w" (c));
+#endif
       }
       const float64x2_t g = vabsq_f64(c);
-      uint64x2_t ok = vandq_u64(vcgeq_f64(g, vdupq_n_f64(pown_least[L])), vcleq_f64(g, vdupq_n_f64(pown_greatest[L])));
+      // The absolute comparisons, g being |c| and the limits positive: with
+      // -frounding-math Clang scalarizes the plain vcgeq_f64(), vcleq_f64() and
+      // vceqq_f64() (a fcmpe or fcmp, a csetm and a move for each lane: 18
+      // instructions more in pow(x, 3) for the same masks), and vcageq_f64() and
+      // vcaleq_f64() stay on the vector unit; c == 0 is |c| <= 0 (GAOL v5, point PG.7)
+      uint64x2_t ok = vandq_u64(vcageq_f64(g, vdupq_n_f64(pown_least[L])), vcaleq_f64(g, vdupq_n_f64(pown_greatest[L])));
       if (!negative) {
-        ok = vorrq_u64(ok, vceqq_f64(c, zero));
+        ok = vorrq_u64(ok, vcaleq_f64(c, zero));
       }
       if ((vgetq_lane_u64(ok, 0) & vgetq_lane_u64(ok, 1)) != 0u) {
         float64x2_t h, l, K;
