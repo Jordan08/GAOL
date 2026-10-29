@@ -1342,11 +1342,9 @@ GAOL_BOUNDS_TARGET __m128d GAOL_VECTORCALL div_bounds(__m128d x, __m128d y)
   const __m128d cc = _mm_xor_pd(_mm_unpacklo_pd(yp, yp), interval::lbrbsignmask);
   const __m128d ms = _mm_castsi128_pd(_mm_shuffle_epi32(_mm_srai_epi32(_mm_castpd_si128(xp), 31), _MM_SHUFFLE(3,3,1,1)));
   const __m128d den = _mm_or_pd(_mm_and_pd(ms, dd), _mm_andnot_pd(ms, cc));
-  // Two scalar divisions (er_div2() of gaol_interval_avx512.cpp, which
-  // div_bounds() wrote out by hand before point PG.9 of TODO.md), which take
-  // the embedded rounding as a packed division does only on 512 bits, whose
-  // latency and throughput are those of a division of 8 doubles (6.0 ns
-  // against 1.8 on an Intel i7-1185G7)
+  // Two scalar divisions with the embedded rounding, er_div2(): a packed
+  // division takes it on 512 bits only, whose latency and throughput are those
+  // of a division of 8 doubles (6.0 ns against 1.8 on an Intel i7-1185G7)
   return flush_guard::out(er_div2(xp, den));
 #else
   // A quiet comparison, which the modes that flush the subnormals to zero do

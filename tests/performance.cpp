@@ -219,8 +219,8 @@ int main()
     { "x / y", nanoseconds_per_operation([&](std::size_t i) { const interval z = X[i] / Y[i]; sink = z.left(); sink = z.right(); }, n),
                nanoseconds_per_operation([&](std::size_t i) { sink = a[i] / b[i]; }, n) },
     // The quotient by a positive double (GAOL v5, point PG.9 of TODO.md): D[0] is drawn for the lines of the last rows,
-    // and is only read here. No other row divides by a double, and the two scalar divisions with the embedded rounding
-    // that the AVX-512 path makes of it (#191) are seen by none
+    // and is only read here. It is the one row that divides by a double: on the AVX-512 path that is fast_div_by(),
+    // whose scalar divisions with the embedded rounding (#191) no other row runs (x / y runs div_bounds())
     { "x / d", nanoseconds_per_operation([&](std::size_t i) { const interval z = X[i] / D[0][i]; sink = z.left(); sink = z.right(); }, n),
                nanoseconds_per_operation([&](std::size_t i) { sink = a[i] / D[0][i]; }, n) },
     { "sqr(x)", nanoseconds_per_operation([&](std::size_t i) { const interval z = sqr(X[i]); sink = z.left(); sink = z.right(); }, n),
