@@ -157,12 +157,15 @@ GAOL_INLINE interval& interval::operator&=(const interval& I)
     xmmbounds = _mm_set1_pd(std::numeric_limits<double>::quiet_NaN());
     return *this;
   }
-  // The bound of I that replaces one of *this is taken in the register
-  // (movsd, shufpd), and the bound kept for the test below is a double of its
-  // own: GCC 15.2 moved the bounds written to bd[] back through general
-  // registers (vpextrq, vpinsrq), x &= y 2.2 ns rather than 1.5 and x | y
-  // 3.2 rather than 1.3 (Intel i7-1185G7, GCC of Ubuntu), and Clang 21 takes
-  // the same time with both (GAOL v5, point PG of TODO.md)
+  // The bound of I that replaces one of *this is taken in the register (a move
+  // of the low double, a shuffle for the high one), and the bounds kept for the
+  // test below are doubles of their own: GCC 15.2 moved the bounds written to
+  // bd[] back through general registers (vpextrq, vpinsrq). In gaol_performance
+  // x | y took 2.67 ns rather than 1.70 and x &= y 2.2 rather than 2.0, and
+  // twice as long on the paths that the branches do not predict (Intel
+  // i7-1185G7, GCC of Ubuntu). Clang 21 stays within 0.2 ns, a little slower
+  // for x &= y (1.79 to 1.97) and where both bounds of x | y are replaced (1.27
+  // to 1.54) (GAOL v5, point PG of TODO.md)
   __m128d res = xmmbounds;
   double lo = bd[0], hi = bd[1];
   if (!gaol_detail::bound_greater_equal(Ibd[0], bd[0])) { // Left bounds negated
