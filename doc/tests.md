@@ -733,11 +733,13 @@ point Q), which `numbers` checks there too.
   intervals made of special bounds (the infinities, the largest and smallest
   normal numbers, subnormals, the zeros of both signs, the empty set), with the
   bits of the zeros and the subnormals told by their values, with the modes that
-  flush the subnormals to zero set or not (the SSE2 and NEON intervals choose the
-  bounds themselves, and the SSE2 ones give the other cases to the code of the
-  other kinds), the
-  tools of interval algorithms (GAOL v5,
-  point P): `width_enclosure()`, `inflate(r)` and `interval::midrad(m, r)`
+  flush the subnormals to zero set or not (the SSE2 and NEON intervals choose
+  the bounds themselves, and the SSE2 ones give the other cases to the code of
+  the other kinds), and, for those two kinds, of every pair of stored lanes made
+  of special doubles (a NaN in one lane, bounds in the wrong order, an infinite
+  bound...), whose bits have to be those of the formula of the other kinds, the
+  constructor of the maxima of the bounds; the tools of interval algorithms
+  (GAOL v5, point P): `width_enclosure()`, `inflate(r)` and `interval::midrad(m, r)`
   have to be the tightest enclosures of the exact width, of [a − r, b + r] and
   of [m − r, m + r], computed with exact rationals, on random intervals and
   radii (the first version of the point rounded both bounds upward, and its
