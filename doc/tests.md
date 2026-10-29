@@ -1669,7 +1669,11 @@ which `ieee1788`, `elementary`, `arithmetic`, `rounding_direction` and
 runs `diffpow` on the errors no test catches. `pown_bound.py` checks with
 rationals the induction that bounds the error of the integer powers
 beforehand (`pown_products()` in `gaol/core/gaol_interval_core.cpp`). `bench.cpp`
-measures the time per call of each path of `pow`.
+measures the time per call of each path of `pow`. `pownhash.cpp` and
+`pownedge.cpp` print a hash of the bounds of four million integer powers and of
+the integer powers at the edges of the range of the packed kernel (the tests of
+the repository have no value there), the sign of a zero included (GAOL v5, point
+PG.7 of `TODO.md`).
 
 `tests/tools/arith/` holds a tool of the same kind for the arithmetic (see
 [its README](../tests/tools/arith/README.md)): `diffarith.py` prints the bounds
