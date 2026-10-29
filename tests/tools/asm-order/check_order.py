@@ -55,6 +55,12 @@
 #   the processors of 32-bit x86) reaches all of its code without one, and
 #   the check cannot tell a result computed after the write from one computed
 #   before it there.
+# - DENORMAL (independent of the writes): the conversion of an extended constant
+#   of the memory that is smaller than the smallest normal double to a double,
+#   fldt .LC(%rip) then fstpl or fstl. GCC makes one of
+#   std::numeric_limits<double>::denorm_min() with -frounding-math instead of a
+#   double constant, and the store of a subnormal through the x87 unit is a
+#   microcode assist of the processors of Intel, 100 to 160 ns each (#224).
 # - BLIND: an instruction that rounds or writes the register that no function
 #   of the file reaches (a jump table the check could not follow). The
 #   indirect jumps whose table is not found are counted.
@@ -200,6 +206,21 @@ def extended_is_double(words):
         return False             # beyond the largest double, infinity and not a number (exponent 0x7fff) too
 
 
+def extended_is_tiny(words):
+    """Whether the x87 constant of three 32-bit words is not zero and smaller in magnitude than the smallest normal
+    double, 2^-1022: stored as a double it is a subnormal (or zero), which the processors of Intel do with a
+    microcode assist"""
+    if len(words) < 3:
+        return False
+    low, high, sign_exponent = (w & 0xffffffff for w in words[:3])
+    exponent = sign_exponent & 0x7fff
+    if exponent == 0:
+        return (high | low) != 0     # a denormal of the x87 unit, smaller than any normal double
+    if (high >> 31) == 0:
+        return False             # an unnormal, and the pseudo zero: no compiler writes them
+    return exponent - 16383 < -1022
+
+
 class Insn:
     __slots__ = ('mnemonic', 'operands', 'text', 'line', 'run', 'rounds')
 
@@ -225,9 +246,12 @@ class Assembly:
         self.pads = set()        # the labels the tables of exceptions name, where the unwinder jumps to
         self.longs = {}          # label of a constant -> the 32-bit numbers of its .long directives
         self.stores = []         # (instruction index, label) of the fst* that follows a fldt of a constant
+        self.conversions = []    # (instruction index, label) of the fstl or fstpl that follows a fldt of a constant
+        self.tiny = []           # the indices of the conversions whose constant is smaller than any normal double
         self.lines = text.splitlines()
         self._parse()
         self._exact_constants()
+        self.tiny = [index for index, label in self.conversions if extended_is_tiny(self.longs.get(label, []))]
 
     def _parse(self):
         run = 0
@@ -298,8 +322,10 @@ class Assembly:
                                     and not any(CONTROL_TRANSFER.match(i.mnemonic) for i in self.insns[first + 1:]))
                         rounding = not (straight and previous.mnemonic in ('fld1', 'fldz'))
                         constant = re.match(r'^(\.LC\d+)\(%rip\)$', previous.operands.strip()) if previous.mnemonic == 'fldt' else None
-                        if constant and straight and mn in ('fstl', 'fstpl'):
-                            self.stores.append((here, constant.group(1)))
+                        if constant and mn in ('fstl', 'fstpl'):
+                            self.conversions.append((here, constant.group(1)))
+                            if straight:
+                                self.stores.append((here, constant.group(1)))
                         break
             self.insns.append(Insn(mn, ops, s, n, run, rounding))
             last_label = None
@@ -582,6 +608,22 @@ def check_file(path, text, preserve, verbose, out):
             if verbose:
                 for k in range(max(ins.line - 6, 1), min(ins.line + 5, len(asm.lines) + 1)):
                     out.append('    %4d  %s' % (k, asm.lines[k - 1]))
+    # the conversions of a constant smaller than any normal double to a double, in any function
+    for i in asm.tiny:
+        ins = asm.insns[i]
+        owner = max((entry for entry in starts if entry <= i), default=None)
+        fname = 'no function' if owner is None else pretty.get(next(f for f, e in asm.functions if e == owner), '?')
+        stats['conversions of a tiny constant'] += 1
+        why = known('DENORMAL', fname, ins.mnemonic)
+        if why is not None:
+            stats['known findings'] += 1
+            KNOWN_SEEN.add(why)
+            if verbose:
+                out.append('%s:%d: DENORMAL in %s: known' % (path, ins.line, fname))
+            continue
+        bad += 1
+        out.append('%s:%d: DENORMAL in %s' % (path, ins.line, fname))
+        out.append('    %s' % ins.text)
     # what no function reaches: a jump table that could not be followed hides it
     for i, ins in enumerate(asm.insns):
         if i not in covered and (ins.rounds or is_write(ins.mnemonic, ins.operands)):
@@ -909,7 +951,7 @@ f:
 .LC15:
 	.long	0
 	.long	-2147483648
-	.long	15309
+	.long	15383
 	.long	0
 ''', None, False),
     'a store of an extended constant that is not a double is not': ('''
@@ -938,7 +980,7 @@ f:
 .LC15:
 	.long	0
 	.long	-2147483648
-	.long	15309
+	.long	15383
 	.long	0
 ''', None, False),
     'a store five instructions after the load of a constant is exact': ('''
@@ -957,7 +999,7 @@ f:
 .LC15:
 	.long	0
 	.long	-2147483648
-	.long	15309
+	.long	15383
 	.long	0
 ''', None, False),
     'a store six instructions after the load of a constant is not looked at': ('''
@@ -977,7 +1019,7 @@ f:
 .LC15:
 	.long	0
 	.long	-2147483648
-	.long	15309
+	.long	15383
 	.long	0
 ''', 'BEFORE', False),
     'a single-precision store of an extended constant that is a double rounds': ('''
@@ -992,7 +1034,7 @@ f:
 .LC15:
 	.long	0
 	.long	-2147483648
-	.long	15309
+	.long	15383
 	.long	0
 ''', 'BEFORE', False),
     'a store behind a label that another path reaches is not exact': ('''
@@ -1012,7 +1054,7 @@ f:
 .LC15:
 	.long	0
 	.long	-2147483648
-	.long	15309
+	.long	15383
 	.long	0
 ''', 'BEFORE', False),
     'a store of 1 behind a label that another path reaches is not exact': ('''
@@ -1041,7 +1083,7 @@ f:
 .LC15:
 	.long	0
 	.long	-2147483648
-	.long	15309
+	.long	15383
 	.long	0
 ''', 'BEFORE', False),
     'a store of a computed x87 value is not': ('''
@@ -1053,6 +1095,172 @@ f:
 	ldmxcsr	(%rsp)
 	ret
 ''', 'BEFORE', False),
+    'DENORMAL, 2^-1074 stored as a double, in a function without a write': ('''
+	.type	f, @function
+f:
+	fldt	.LC15(%rip)
+	fstpl	-8(%rsp)
+	movsd	-8(%rsp), %xmm1
+	addsd	%xmm1, %xmm0
+	ret
+	.section	.rodata
+.LC15:
+	.long	0
+	.long	-2147483648
+	.long	15309
+	.long	0
+''', ('DENORMAL', 'f'), False),
+    'DENORMAL, the same without the pop': ('''
+	.type	f, @function
+f:
+	fldt	.LC15(%rip)
+	fstl	-8(%rsp)
+	ret
+	.section	.rodata
+.LC15:
+	.long	0
+	.long	-2147483648
+	.long	15309
+	.long	0
+''', ('DENORMAL', 'f'), False),
+    'DENORMAL, besides the exemption of an exact constant, in a function with a write': ('''
+	.type	f, @function
+f:
+	fldt	.LC15(%rip)
+	movapd	%xmm4, %xmm15
+	fstpl	(%rsp)
+	ldmxcsr	(%rsp)
+	ret
+	.section	.rodata
+.LC15:
+	.long	0
+	.long	-2147483648
+	.long	15309
+	.long	0
+''', ('DENORMAL', 'f'), False),
+    'DENORMAL, 2^-1023 is subnormal': ('''
+	.type	f, @function
+f:
+	fldt	.LC15(%rip)
+	fstpl	-8(%rsp)
+	ret
+	.section	.rodata
+.LC15:
+	.long	0
+	.long	-2147483648
+	.long	15360
+	.long	0
+''', ('DENORMAL', 'f'), False),
+    'DENORMAL, a denormal of the x87 unit': ('''
+	.type	f, @function
+f:
+	fldt	.LC15(%rip)
+	fstpl	-8(%rsp)
+	ret
+	.section	.rodata
+.LC15:
+	.long	1
+	.long	0
+	.long	0
+	.long	0
+''', ('DENORMAL', 'f'), False),
+    'DENORMAL, a negative constant': ('''
+	.type	f, @function
+f:
+	fldt	.LC15(%rip)
+	fstpl	-8(%rsp)
+	ret
+	.section	.rodata
+.LC15:
+	.long	0
+	.long	-2147483648
+	.long	-17459
+	.long	0
+''', ('DENORMAL', 'f'), False),
+    'DENORMAL, a label between the load and the store hides nothing': ('''
+	.type	f, @function
+f:
+	fldt	.LC15(%rip)
+	testl	%edi, %edi
+	je	.L2
+	movapd	%xmm4, %xmm15
+.L2:
+	fstpl	-8(%rsp)
+	ret
+	.section	.rodata
+.LC15:
+	.long	0
+	.long	-2147483648
+	.long	15309
+	.long	0
+''', ('DENORMAL', 'f'), False),
+    'DENORMAL, it names the function that holds it': ('''
+	.type	f, @function
+f:
+	addsd	%xmm1, %xmm0
+	ret
+	.type	g, @function
+g:
+	fldt	.LC15(%rip)
+	fstpl	-8(%rsp)
+	ret
+	.section	.rodata
+.LC15:
+	.long	0
+	.long	-2147483648
+	.long	15309
+	.long	0
+''', ('DENORMAL', 'g'), False),
+    'DENORMAL, 2^-1022, the smallest normal double, is not': ('''
+	.type	f, @function
+f:
+	fldt	.LC15(%rip)
+	fstpl	-8(%rsp)
+	ret
+	.section	.rodata
+.LC15:
+	.long	0
+	.long	-2147483648
+	.long	15361
+	.long	0
+''', None, False),
+    'DENORMAL, 1 is not': ('''
+	.type	f, @function
+f:
+	fldt	.LC15(%rip)
+	fstpl	-8(%rsp)
+	ret
+	.section	.rodata
+.LC15:
+	.long	0
+	.long	-2147483648
+	.long	16383
+	.long	0
+''', None, False),
+    'DENORMAL, the extended number stored whole is not converted': ('''
+	.type	f, @function
+f:
+	fldt	.LC15(%rip)
+	fstpt	-16(%rsp)
+	ret
+	.section	.rodata
+.LC15:
+	.long	0
+	.long	-2147483648
+	.long	15309
+	.long	0
+''', None, False),
+    'DENORMAL, a subnormal loaded as a double by the SSE unit is not': ('''
+	.type	f, @function
+f:
+	movsd	.LC1(%rip), %xmm1
+	addsd	%xmm1, %xmm0
+	ret
+	.section	.rodata
+.LC1:
+	.long	1
+	.long	0
+''', None, False),
     'a landing pad that writes is no blind spot': ('''
 	.type	f, @function
 f:
@@ -1441,6 +1649,25 @@ EXTENDED_DOUBLES = [
     ('two words only', [0, 0], False),
 ]
 
+# Which x87 constants are smaller than the smallest normal double: name, the three words, wanted
+EXTENDED_TINY = [
+    ('1', extended(0, 16383, 1 << 63), False),
+    ('2^-1022, the smallest normal double', extended(0, 16383 - 1022, 1 << 63), False),
+    ('2^-1023', extended(0, 16383 - 1023, 1 << 63), True),
+    ('the smallest subnormal double, 2^-1074', extended(0, 16383 - 1074, 1 << 63), True),
+    ('2^-1074, negative', extended(1, 16383 - 1074, 1 << 63), True),
+    ('2^-1075', extended(0, 16383 - 1075, 1 << 63), True),
+    ('2^-16000', extended(0, 383, 1 << 63), True),
+    ('the largest subnormal double', extended(0, 16383 - 1023, ((1 << 53) - 1) << 11), True),
+    ('0', extended(0, 0, 0), False),
+    ('-0', extended(1, 0, 0), False),
+    ('a denormal of the x87 unit', extended(0, 0, 1), True),
+    ('a pseudo denormal', extended(0, 0, 1 << 63), True),
+    ('an unnormal (the integer bit clear)', extended(0, 100, 1 << 62), False),
+    ('infinity', extended(0, 0x7fff, 1 << 63), False),
+    ('two words only', [1, 0], False),
+]
+
 # The findings of KNOWN: kind, the name of the function, the mnemonic, whether it is known
 KNOWN_CASES = [
     ('BEFORE', 'double gaol_core::pow_lo<true>(double, double) [clone .part.0]', 'vmulsd', True),
@@ -1476,7 +1703,7 @@ def selftest():
     bad = 0
     for name, (text, want, preserve) in sorted(SELFTEST.items()):
         out = []
-        check_file(name, text, preserve, False, out)
+        _, count = check_file(name, text, preserve, False, out)      # the count makes the exit status
         found = sorted(set(tuple(l.split(': ')[1].replace(',', '').split()[0:3:2]) for l in out
                            if ': ' in l and not l.startswith('    ')))
         if isinstance(want, tuple):
@@ -1485,11 +1712,16 @@ def selftest():
             ok = found == []
         else:
             ok = [kind for kind, _ in found] == [want]
-        print('%-60s %s' % (name, 'ok' if ok else 'FAILED: %r wanted, %r found' % (want, found)))
+        ok = ok and count == len([l for l in out if ': ' in l and not l.startswith('    ')])
+        print('%-60s %s' % (name, 'ok' if ok else 'FAILED: %r wanted, %r found, %d counted' % (want, found, count)))
         bad += 0 if ok else 1
     for name, words, want in EXTENDED_DOUBLES:
         ok = extended_is_double(words) == want
         print('%-60s %s' % ('extended_is_double: ' + name, 'ok' if ok else 'FAILED: %r wanted' % want))
+        bad += 0 if ok else 1
+    for name, words, want in EXTENDED_TINY:
+        ok = extended_is_tiny(words) == want
+        print('%-60s %s' % ('extended_is_tiny: ' + name, 'ok' if ok else 'FAILED: %r wanted' % want))
         bad += 0 if ok else 1
     for kind, function, mnemonic, want in KNOWN_CASES:
         ok = ((known(kind, function) if mnemonic is None else known(kind, function, mnemonic)) is not None) == want
