@@ -207,6 +207,26 @@ namespace gaol_core {
 
 } // namespace gaol_core
 
+namespace gaol_core {
+
+  namespace neon_detail {
+
+  // A NaN among the bounds of x and y, out of line (EXPERIMENT): the product of finite bounds, which runs, has one
+  // reduction of the bits of its four bounds and no other
+#  if defined(_MSC_VER) && !defined(__clang__)
+  __declspec(noinline)
+#  else
+  __attribute__((noinline))
+#  endif
+  inline bool has_nan_bound(float64x2_t x, float64x2_t y)
+  {
+    return any_lane(vorrq_u64(nan_lanes(x), nan_lanes(y)));
+  }
+
+  } // namespace neon_detail
+
+} // namespace gaol_core
+
 namespace gaol_detail {
 
   /*
@@ -239,7 +259,7 @@ namespace gaol_detail {
     using namespace neon_detail;
     const uint64x2_t nonfinite = vorrq_u64(nonfinite_lanes(x), nonfinite_lanes(y));
     const bool special = any_lane(nonfinite);
-    if (special && any_lane(vorrq_u64(nan_lanes(x), nan_lanes(y)))) { // an empty operand
+    if (special && has_nan_bound(x, y)) { // an empty operand
       return nan_pair();
     }
     GAOL_RND_ENTER();
