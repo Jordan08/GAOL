@@ -24,8 +24,11 @@ python3 tests/tools/asm-order/check_order.py --selftest
 ```
 
 The self-test runs in the continuous integration (`.github/workflows/linux.yml`,
-the job `asm-order-selftest`, Python alone); the check of the builds is not
-done there.
+the job `asm-order-selftest`, Python alone), and so does the check of the
+library, in the job `asm-order-library`: the assembly of GCC 13.3 and of Clang
+18 (Ubuntu 24.04), with and without `GAOL_PRESERVE_ROUNDING`. The job fails for
+any finding, DENORMAL included: it sees what the benchmark of the pull requests
+cannot, the runners being AMD processors.
 
 `--build` compiles the sources of `gaol/` again with `-S` and the flags of the
 build (into `build/asm-order`), and [inline.cpp](inline.cpp) with the flags of
