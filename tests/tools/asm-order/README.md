@@ -175,7 +175,7 @@ of the reverse functions of `pow`), of two kinds, both harmless:
 With `GAOL_RND_KEEP()` removed from `width()`, GCC 15 still kept the subtraction
 before the write that sets the direction back, at `-O1` to `-O3`, and Clang 21
 at `-O1` and `-O3`: `inline.cpp` is what reads `width()` in a build. The check
-has teeth on assembly written for it (`--selftest`, 130 cases: a sum before a
+has teeth on assembly written for it (`--selftest`, 131 cases: a sum before a
 write, after the write that sets back, hoisted above the probe, among the
 instructions of the probe, in a loop, behind a jump table of GCC and of Clang,
 in a cold section, after a tail call; the store of an extended constant that
