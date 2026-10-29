@@ -126,6 +126,25 @@ of the way */
 #  define GAOL_RND_NOINLINE
 #endif
 
+/* GAOL_RND_OUT_OF_LINE: what GCC and Clang are asked to call rather than
+expand, the writes of the registers that follow the probe of the direction
+(round_upward_with_flush_cleared(), GAOL v5). GCC expanded them in
+round_upward_if_needed(), whose locals (the registers it reads and writes
+through the memory) made the functions that hold the check of x + y, x - y
+and midpoint() build a frame and, with -fstack-protector-strong, which
+Ubuntu's GCC, Fedora's and Arch's use by default, set and check a canary, on
+the path that finds the direction upward, the one that is run: x + y 1.76 ns
+rather than 1.35 and a line of 15 additions 23.3 ns rather than 16.3 (Intel
+i7-1185G7, GCC 15.2 of Ubuntu); Clang called round_upward() and did not.
+Nothing for Visual C++ (its x86 has GAOL_RND_NOINLINE above), which has no
+attribute that would not change what it makes of the check elsewhere, and
+that no measure showed this for */
+#if defined(__GNUC__) || defined(__clang__)
+#  define GAOL_RND_OUT_OF_LINE __attribute__((noinline))
+#else
+#  define GAOL_RND_OUT_OF_LINE
+#endif
+
 // Doubles computed in double precision, whose rounding direction an addition
 // shows (see round_upward_if_needed())
 #if (defined(FLT_EVAL_METHOD) && FLT_EVAL_METHOD == 0) || defined(_M_X64) || defined(_M_ARM64) \
@@ -843,6 +862,15 @@ namespace gaol_core {
   }
   #endif // GAOL_RND_X86_DIRECT
   
+  #if !GAOL_USING_NEON_INSTRUCTIONS && GAOL_RND_PROBE && defined(GAOL_RND_FLUSH_BITS)
+  //! What round_upward_if_needed() does where the probe finds the direction not upward, out of line (GAOL v5)
+  GAOL_RND_OUT_OF_LINE inline void round_upward_with_flush_cleared()
+  {
+    clear_flush_to_zero();
+    round_upward();
+  }
+  #endif
+
   /*!
   \brief Sets the rounding direction upward, unless it already is, and on x86
   and ARM processors clears the modes that flush the subnormals to zero
@@ -932,8 +960,7 @@ namespace gaol_core {
     // TODO.md). The branch is the unlikely one, so that the code that sets the
     // direction is out of the way of the one that does not
     if (GAOL_UNLIKELY(!(1.0 + (subnormal + 0.0) > 1.0))) {
-      clear_flush_to_zero();
-      round_upward();
+      round_upward_with_flush_cleared();
       GAOL_RND_BARRIER();
     }
     #elif GAOL_RND_PROBE
