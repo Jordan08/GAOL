@@ -9,6 +9,7 @@
 #
 # COMPARE_PERFORMANCE and RUN_PERF give other copies of the two programs to
 # test (to check that a test fails on a copy with a deliberate error).
+import ast
 import os
 import re
 import shutil
@@ -189,6 +190,17 @@ class Compare(unittest.TestCase):
         rc, out, _ = self.compare([table([('x', 1)], 'GAOL performance: A')], [table([('x', 1)], 'GAOL performance: B')])
         self.assertIn('base: GAOL performance: A', out)
         self.assertIn('PR: GAOL performance: B', out)
+
+    def test_register_rows_are_rows_of_gaol_performance(self):
+        # --rows register drops the names of REGISTER_ROWS that no table has: a name changed in one file only would
+        # leave the row out of the summaries without a word
+        with open(COMPARE) as f:
+            names = ast.literal_eval(re.search(r'^REGISTER_ROWS = (\(.*\))$', f.read(), re.M).group(1))
+        with open(os.path.join(HERE, '..', '..', 'tests', 'performance.cpp')) as f:
+            source = f.read()
+        for name in names:
+            with self.subTest(name=name):
+                self.assertIn('{ "%s",' % name, source)
 
     def test_usage(self):
         for options in (['base', 'x'], ['--rows', 'some', 'a', 'x', '--', 'b', 'y'], ['--factor', '1', 'a', 'x', '--', 'b', 'y'],

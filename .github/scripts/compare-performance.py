@@ -43,7 +43,7 @@
 import statistics
 import sys
 
-REGISTER_ROWS = ('x + y', 'x - y', 'x * y', 'x / y', 'sqr(x)', 'sqrt(x)', 'x.midpoint()', 'line of 15 +', 'line of 7 *', 'line of 13 + - * /')
+REGISTER_ROWS = ('x + y', 'x - y', 'x * y', 'x / y', 'x / d', 'sqr(x)', 'sqrt(x)', 'x.midpoint()', 'line of 15 +', 'line of 7 *', 'line of 13 + - * /')
 USAGE = 'usage: compare-performance.py [--rows all|register] [--factor F] [--optional] "label A" a... -- "label B" b...'
 
 
