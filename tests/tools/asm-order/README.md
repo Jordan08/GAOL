@@ -73,6 +73,19 @@ write it), on the paths of its control flow graph, the jump tables of the
   pointer). The landing pads of the exceptions, named by the tables of
   exceptions of the file, are part of the function that holds them, and are not
   reached from its entry: what they write is seen, not analysed.
+- **DENORMAL** (whatever the writes, with or without `--preserve`): the
+  conversion to a double of an extended constant of the memory that is smaller
+  than the smallest normal double 2^-1022 (`fldt .LC15(%rip)`, then `fstpl` or
+  `fstl`, in the six instructions that follow the load, a label between them
+  not hiding it). It is a speed check, not a check of the order: with
+  `-frounding-math` GCC does not fold `std::numeric_limits<double>::denorm_min()`
+  (a constant of `long double` that it converts) and does that conversion at
+  each use, and the store of a subnormal through the x87 unit is a microcode
+  assist of the processors of Intel, 99 ns on an i7-1185G7 and 160 ns on a Xeon,
+  against 0.8 ns for 1.0: `sqrt(x)` was 16 times slower with GCC
+  (#224, which writes the constant as a literal). The runners of the continuous
+  integration are AMD processors, where the benchmark does not see it. The
+  constants of the SSE unit (`movsd`) are doubles already and not looked at.
 
 A store of 1 or of 0 through the x87 unit (`fld1`, `fstpl`: GCC writes a
 constant so) is exact and is not one that rounds, and neither is the store as
@@ -159,16 +172,32 @@ of the reverse functions of `pow`), of two kinds, both harmless:
 With `GAOL_RND_KEEP()` removed from `width()`, GCC 15 still kept the subtraction
 before the write that sets the direction back, at `-O1` to `-O3`, and Clang 21
 at `-O1` and `-O3`: `inline.cpp` is what reads `width()` in a build. The check
-has teeth on assembly written for it (`--selftest`, 103 cases: a sum before a
+has teeth on assembly written for it (`--selftest`, 130 cases: a sum before a
 write, after the write that sets back, hoisted above the probe, among the
 instructions of the probe, in a loop, behind a jump table of GCC and of Clang,
 in a cold section, after a tail call; the store of an extended constant that
 is a double or that is not, in single precision, behind a label, after a call,
 more than five instructions after the load; `extended_is_double()` on 19
-encodings of the x87 unit and `KNOWN` on 19 findings, called directly), and
+encodings of the x87 unit, `extended_is_tiny()` on 15 and `KNOWN` on 19
+findings, called directly; the 12 cases of DENORMAL: 2^-1074 stored with and
+without the pop, with a write in the function, 2^-1023, a denormal of the x87
+unit, a negative constant, behind a label, in the second of two functions, and
+what is not one: 2^-1022, 1, the number stored whole by `fstpt`, a subnormal
+loaded by `movsd`), and
 57 of the 63 changes made to the script of 2026-10-27, one at a time, make it
 fail; so do the 46 changes made to the code of 2026-10-29, one at a time
 (`extended_is_double()`, the exemption of the stores, the entries of `KNOWN`
-and their mnemonics). The six that do not are equivalent (the
+and their mnemonics), and 14 of the 15 made to DENORMAL (the threshold and its
+neighbours, the denormal and unnormal tests, the mnemonics, the label, the
+list of the constants, the name of the function, the count of the findings;
+the one that survives, `fldl` accepted as a load, changes nothing: a double
+has two words, which `extended_is_tiny()` refuses). The six that do not are equivalent (the
 `.cfi_endproc` that `.type` follows, the comments after an instruction, the
 write that a closure need not stop at...).
+
+On the sources of #223 (without #224), the GCC 15.2 builds show 38 (default)
+to 44 (direction preserved, FPU intervals) DENORMAL findings in `gaol_core`
+(`sqrt()`, `sqrt_rel_upward()`, `nth_root_upward()`, `pown_beyond_upward()`,
+`root_end()`, `log_ratio_end()`, `interval::is_canonical()`...), and Clang 21
+none (it folds the conversion); with #224, none in any of the GCC 15.2 builds
+(default, preserved, FPU) and the Clang 18 and 21 builds.
