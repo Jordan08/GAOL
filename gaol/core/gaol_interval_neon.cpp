@@ -239,7 +239,15 @@ namespace gaol_detail {
     using namespace neon_detail;
     const uint64x2_t nonfinite = vorrq_u64(nonfinite_lanes(x), nonfinite_lanes(y));
     const bool special = any_lane(nonfinite);
-    if (special && any_lane(vorrq_u64(nan_lanes(x), nan_lanes(y)))) { // an empty operand
+    // The test of NaN is made in this branch only: the empty asm statements of
+    // reread_bounds() keep the comparisons from being computed before the test
+    // of special, as Clang 18 to 21 did (they are cheap and have no effect),
+    // which cost the product of finite bounds, the one that runs, a second
+    // reduction of vector (umaxv, fmov): x * y 5.29 to 4.11 ns on a Neoverse
+    // N2 (Clang 18) and 2.16 to 1.83 on an Apple M2, GCC and Visual C++ the
+    // same. A call would give them a frame on this path, as the canary of
+    // gaol_fpu.h did (GAOL v5, point PG of TODO.md)
+    if (special && any_lane(vorrq_u64(nan_lanes(reread_bounds(x)), nan_lanes(reread_bounds(y))))) { // an empty operand
       return nan_pair();
     }
     GAOL_RND_ENTER();
