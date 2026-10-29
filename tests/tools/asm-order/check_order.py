@@ -637,8 +637,11 @@ def check_file(path, text, preserve, verbose, out):
 
 def compile_commands(build, keep, root):
     """Compiles the sources of gaol/ of the build with -S, and inline.cpp; the paths of the assembly files"""
+    # The compilers run in the directory of the build (the compile commands say so), where a relative path of the
+    # assembly files would name another place: --build build, as the README shows it, found no directory to write
+    build = os.path.abspath(build)
     db = json.load(open(os.path.join(build, 'compile_commands.json')))
-    out_dir = keep or os.path.join(build, 'asm-order')
+    out_dir = os.path.abspath(keep) if keep else os.path.join(build, 'asm-order')
     os.makedirs(out_dir, exist_ok=True)
     paths = []
     first = None
@@ -1697,6 +1700,33 @@ KNOWN_CASES = [
 ]
 
 
+def relative_build_path():
+    """Whether compile_commands() writes the assembly where it says when --build is a relative path, with a compiler
+    that writes the file of its -o in its working directory, as the compilers of the compile commands do"""
+    import tempfile
+    with tempfile.TemporaryDirectory() as t:
+        build = os.path.join(t, 'build')
+        os.makedirs(build)
+        os.makedirs(os.path.join(t, 'src', 'gaol'))
+        source = os.path.join(t, 'src', 'gaol', 'x.cpp')
+        open(source, 'w').close()
+        compiler = os.path.join(t, 'compiler.py')
+        with open(compiler, 'w') as f:
+            f.write("import sys\nopen(sys.argv[sys.argv.index('-o') + 1], 'w').write('f:\\n\\tret\\n')\n")
+        entry = {'directory': build, 'file': source, 'arguments': [sys.executable, compiler, '-c', source, '-o', 'x.o']}
+        with open(os.path.join(build, 'compile_commands.json'), 'w') as f:
+            json.dump([entry], f)
+        here = os.getcwd()
+        os.chdir(t)
+        try:
+            paths = compile_commands('build', None, os.path.join(t, 'src'))
+            return len(paths) >= 1 and all(os.path.exists(p) for p in paths)
+        except SystemExit:
+            return False
+        finally:
+            os.chdir(here)
+
+
 def selftest():
     """Runs the checks on the assembly of SELFTEST: the kinds of the findings must be the one wanted, or the pair
     (kind, function) where the case names the function"""
@@ -1723,6 +1753,9 @@ def selftest():
         ok = extended_is_tiny(words) == want
         print('%-60s %s' % ('extended_is_tiny: ' + name, 'ok' if ok else 'FAILED: %r wanted' % want))
         bad += 0 if ok else 1
+    ok = relative_build_path()
+    print('%-60s %s' % ('compile_commands(): --build as a relative path', 'ok' if ok else 'FAILED'))
+    bad += 0 if ok else 1
     for kind, function, mnemonic, want in KNOWN_CASES:
         ok = ((known(kind, function) if mnemonic is None else known(kind, function, mnemonic)) is not None) == want
         print('%-60s %s' % ('known: %s %s %s' % (kind, function.split('(')[0].split('::')[-1], mnemonic),

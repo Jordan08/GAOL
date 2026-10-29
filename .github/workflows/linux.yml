@@ -17,7 +17,13 @@
 # The self-test of the check of the order of the computations and of the writes
 # of the control register in the assembly of the library
 # (tests/tools/asm-order/check_order.py --selftest) runs in a job of Python
-# alone (GAOL v5).
+# alone (GAOL v5). The check itself runs in a job of its own on the assembly
+# that GCC 13.3 and Clang 18 make of the library, with and without
+# GAOL_PRESERVE_ROUNDING: an instruction that rounds on the wrong side of a
+# write of the control register, and the conversion of a subnormal constant by
+# the x87 unit, which the processors of Intel do in 100 ns or more and the
+# runners (AMD) do not show (std::numeric_limits<double>::denorm_min() with GCC
+# and -frounding-math: sqrt() was 16 times slower, #224) (GAOL v5).
 #
 # The job Ubuntu 24.04 x86_64 GCC also compiles the examples of the manual of
 # GAOL v5 that show what they print with the GAOL it installs, and checks that
@@ -322,6 +328,38 @@ jobs:
       - uses: actions/checkout@v7
       - name: Self-test
         run: python3 tests/tools/asm-order/check_order.py --selftest
+
+  asm-order-library:
+    name: Check of the assembly of the library
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      # One configuration (CMake alone, the compilations are those of the check) per step, each after the one before
+      # whatever its outcome, so that a job that fails says which of the four
+      - name: GCC
+        run: |
+          g++ --version | head -1
+          cmake -S . -B build-gcc -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_COMPILER=g++
+          python3 tests/tools/asm-order/check_order.py --build build-gcc
+      - name: GCC, rounding direction preserved
+        if: ${{ !cancelled() }}
+        run: |
+          cmake -S . -B build-gcc-preserved -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DCMAKE_CXX_COMPILER=g++ -DGAOL_PRESERVE_ROUNDING=ON
+          python3 tests/tools/asm-order/check_order.py --build build-gcc-preserved --preserve
+      - name: Clang
+        if: ${{ !cancelled() }}
+        run: |
+          clang++ --version | head -1
+          cmake -S . -B build-clang -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_COMPILER=clang++
+          python3 tests/tools/asm-order/check_order.py --build build-clang
+      - name: Clang, rounding direction preserved
+        if: ${{ !cancelled() }}
+        run: |
+          cmake -S . -B build-clang-preserved -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DCMAKE_CXX_COMPILER=clang++ -DGAOL_PRESERVE_ROUNDING=ON
+          python3 tests/tools/asm-order/check_order.py --build build-clang-preserved --preserve
 
   cmake-3-14:
     name: Ubuntu 24.04 x86_64 GCC, CMake 3.14.7

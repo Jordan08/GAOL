@@ -18,7 +18,8 @@ only (see [The speed of a pull request](#the-speed-of-a-pull-request)). The badg
   also with the address and undefined behaviour sanitizers, with `-Wall
   -Wextra -Werror` (see below), with CMake 3.14, with the self-test of
   the check of the assembly (`tests/tools/asm-order/check_order.py --selftest`,
-  Python alone, GAOL v5),
+  Python alone, and the check of the library itself with GCC 13.3 and Clang 18,
+  with and without the rounding direction preserved, GAOL v5),
   with the compilers of Ubuntu 22.04 (GCC 11 and Clang 14 on x86_64, GCC 11
   on arm64), whose images GitHub retires by April 2027, with GCC 9, which has
   no `__builtin_roundeven()` (see [3rd/README.md](../3rd/README.md)), and as a

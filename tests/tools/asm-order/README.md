@@ -24,8 +24,11 @@ python3 tests/tools/asm-order/check_order.py --selftest
 ```
 
 The self-test runs in the continuous integration (`.github/workflows/linux.yml`,
-the job `asm-order-selftest`, Python alone); the check of the builds is not
-done there.
+the job `asm-order-selftest`, Python alone), and so does the check of the
+library, in the job `asm-order-library`: the assembly of GCC 13.3 and of Clang
+18 (Ubuntu 24.04), with and without `GAOL_PRESERVE_ROUNDING`. The job fails for
+any finding, DENORMAL included: it sees what the benchmark of the pull requests
+cannot, the runners being AMD processors.
 
 `--build` compiles the sources of `gaol/` again with `-S` and the flags of the
 build (into `build/asm-order`), and [inline.cpp](inline.cpp) with the flags of
@@ -172,7 +175,7 @@ of the reverse functions of `pow`), of two kinds, both harmless:
 With `GAOL_RND_KEEP()` removed from `width()`, GCC 15 still kept the subtraction
 before the write that sets the direction back, at `-O1` to `-O3`, and Clang 21
 at `-O1` and `-O3`: `inline.cpp` is what reads `width()` in a build. The check
-has teeth on assembly written for it (`--selftest`, 130 cases: a sum before a
+has teeth on assembly written for it (`--selftest`, 131 cases: a sum before a
 write, after the write that sets back, hoisted above the probe, among the
 instructions of the probe, in a loop, behind a jump table of GCC and of Clang,
 in a cold section, after a tail call; the store of an extended constant that
