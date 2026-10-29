@@ -14,13 +14,17 @@
  *   x += d, x -= d, x *= d, x /= d, x %= d, for d in the grid of bounds below
  *   and for a NaN d.
  *
- * The boxes are the intervals [a, b] with a <= b of a grid of 23 bounds (the
- * infinities, +-DBL_MAX, +-1e300, -2.5, +-1, +-DBL_MIN, +-the smallest
- * subnormal, +-0, 0.1, 3 and six random numbers), the empty set, [-oo, +oo]
- * and interval::zero(). Each line is computed with the rounding direction of
- * the call set to nearest, upward, downward, then toward zero (the key of a
- * line starts with the direction, 0 to 3), the boxes being built once with the
- * direction to nearest, so that they are the same in every build.
+ * The boxes are the intervals [a, b] with a <= b of a grid of 29 bounds (the
+ * infinities, +-DBL_MAX, +-1e300, +-4, -2.5, +-2, +-1, +-0.5, +-DBL_MIN, +-the
+ * smallest subnormal, +-0, 0.1, 3 and six random numbers), the empty set,
+ * [-oo, +oo] and interval::zero(). The powers of two are there for the bit
+ * patterns with a single bit set besides the sign (2 is 0x4000000000000000,
+ * which a kernel of division that tests the exponent bits as it tests zero
+ * takes for a zero, GAOL v5, point PG.8 of TODO.md). Each line is computed
+ * with the rounding direction of the call set to nearest, upward, downward,
+ * then toward zero (the key of a line starts with the direction, 0 to 3), the
+ * boxes being built once with the direction to nearest, so that they are the
+ * same in every build.
  *
  * The same program linked with two builds of GAOL (the NEON and the FPU
  * intervals, say) prints the same lines where the two compute the same bounds:
@@ -100,9 +104,10 @@ int main(int argc, char **argv)
   }
 
   const double inf = std::numeric_limits<double>::infinity();
-  std::vector<double> S = { -inf, -std::numeric_limits<double>::max(), -1e300, -2.5, -1.0, -std::numeric_limits<double>::min(),
-                            -std::numeric_limits<double>::denorm_min(), -0.0, 0.0, std::numeric_limits<double>::denorm_min(),
-                            std::numeric_limits<double>::min(), 0.1, 1.0, 3.0, 1e300, std::numeric_limits<double>::max(), inf };
+  std::vector<double> S = { -inf, -std::numeric_limits<double>::max(), -1e300, -4.0, -2.5, -2.0, -1.0, -0.5,
+                            -std::numeric_limits<double>::min(), -std::numeric_limits<double>::denorm_min(), -0.0, 0.0,
+                            std::numeric_limits<double>::denorm_min(), std::numeric_limits<double>::min(), 0.1, 0.5, 1.0, 2.0,
+                            3.0, 4.0, 1e300, std::numeric_limits<double>::max(), inf };
   std::mt19937_64 generator(12345);
   std::uniform_real_distribution<double> uniform(-10.0, 10.0);
   for (int i = 0; i < 6; ++i) {
