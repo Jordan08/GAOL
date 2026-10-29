@@ -4007,13 +4007,17 @@ interval nth_root(const interval& I, int q)
 	// MinGW-w64 and on 32-bit Linux (GAOL v5)
 	const unsigned int n = 0u - static_cast<unsigned int>(q);
 #if ((defined(__x86_64__) || defined(_M_X64)) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_AVX512_ARITHMETIC) \
-    || GAOL_USING_NEON_INSTRUCTIONS
+    || (GAOL_USING_NEON_INSTRUCTIONS && !GAOL_PRESERVE_ROUNDING)
 	// The square root has a vector path of its own, by the embedded rounding of
 	// AVX-512 and by one vector instruction with NEON, which sqrt_upward() below
 	// does not have: the one check before the scalar root took nth_root(x, -2) from
 	// 17.8 to 22.2 ns with GAOL_PRESERVE_ROUNDING (an Intel i7-1185G7, Clang 21),
-	// where the cube root, which has only the scalar body, went from 53.0 to 45.9
-	// (GAOL v5, point PG.2 of TODO.md)
+	// where the cube root, which has only the scalar body, went from 53.0 to 45.9.
+	// Not with NEON where the direction is preserved: sqrt() changes the direction
+	// at its entry and sets it back at its exit there, and inverse() does it again,
+	// which the one check of the code below pays once (an Apple M2, Clang 21:
+	// 46.4 ns against 67.6 ns with this path, 8.4 against 5.5 without the
+	// preservation) (GAOL v5, point PG.2 of TODO.md)
 	if (n == 2u) {
 		return inverse(sqrt(I));
 	}
