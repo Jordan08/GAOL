@@ -792,8 +792,9 @@ else
     # With any compiler, each flag where the compiler accepts it (they were
     # added when the compiler was named g++ exactly, and clang++ or g++-13
     # compiled without any optimization), and NDEBUG, as the Release build of
-    # CMake and meson define it
-    for gaol_flag in -O3 -funroll-loops -fomit-frame-pointer -fexpensive-optimizations; do
+    # CMake and meson define it; -falign-functions=64 is explained in
+    # CMakeLists.txt
+    for gaol_flag in -O3 -funroll-loops -fomit-frame-pointer -fexpensive-optimizations -falign-functions=64; do
         GAOL_ADD_FLAG([${gaol_flag}])
     done
     CPPFLAGS="${CPPFLAGS} -DNDEBUG"

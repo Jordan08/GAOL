@@ -340,8 +340,9 @@ if c_comp.has_argument('-Wconversion')
 endif
 # The optimizations configure (--enable-optimize) and the Release build of
 # CMake add to -O3, in the release build type, where the compiler takes them
+# (-falign-functions=64 is explained in CMakeLists.txt)
 if release
-  foreach flag : ['-funroll-loops', '-fomit-frame-pointer', '-fexpensive-optimizations']
+  foreach flag : ['-funroll-loops', '-fomit-frame-pointer', '-fexpensive-optimizations', '-falign-functions=64']
     if cpp_comp.has_argument(flag)
       add_project_arguments([flag], language: 'cpp')
     endif
