@@ -2367,6 +2367,10 @@ namespace gaol_core {
   public:
     static interval inverse(const interval& I) { return interval::inverse_upward(I); }
     static interval sqr(const interval& I) { return interval::sqr_upward(I); }
+#if GAOL_USING_SSE2_INSTRUCTIONS
+    //! The stored bounds <-l, r>, for max() and min() (GAOL v5)
+    static __m128d stored_bounds(const interval& I) { return I.get_xmminterval(); }
+#endif
   };
 
   static GAOL_POWN_TARGET interval pown_large_upward(const interval& I, int n)
@@ -5989,12 +5993,93 @@ interval nth_root(const interval& I, int q)
   }
 
   /*
-    maximum() and minimum() give NaN bounds for an empty I or J, which give
-    the empty set: the constructor tells them with a quiet comparison (GAOL
-    v5). They were told first, with one more comparison, when the constructor
-    compared them with <=, which raises the invalid-operation exception on a
-    NaN; testing I and J first made max() 5 to 10% slower (Clang 18).
+    max() and min() of two intervals: the intervals of the larger and of the
+    smaller bounds. maximum() and minimum() give NaN bounds for an empty I or
+    J, which give the empty set: the constructor tells them with a quiet
+    comparison (GAOL v5). They were told first, with one more comparison, when
+    the constructor compared them with <=, which raises the invalid-operation
+    exception on a NaN; testing I and J first made max() 5 to 10% slower
+    (Clang 18).
+
+    The SSE2 intervals do not call maximum() and minimum() for the common
+    case, where the stored bounds <-l, r> of the two operands give both bounds
+    of the result at once: the larger lower bound is the smaller of the two
+    lanes <-l>, the larger upper bound the larger of the two lanes <r>. Two
+    calls of maximum() and the constructor took 8.9 ns with GCC 15.2 and 5.5
+    to 6.4 with Clang 21, the lanes taken by one comparison 2.3 and 2.0 (an
+    i7-1185G7, gaol_performance). The lanes are exchanged by a mask of
+    that comparison, not taken by minpd and maxpd, which signal the
+    invalid-operation exception for the NaN of an empty operand and, under
+    denormals-are-zero, give a zero for a subnormal lane. They are taken only
+    where
+      - no lane is a NaN: the empty set is given, without an exception. The NaN
+        and the equal lanes are told by two comparisons and two movemasks, not
+        one comparison of both: GCC merged cmpeq | cmpunord into the single
+        comparison of an unordered or equal pair, which signals;
+      - no two lanes are equal: maximum() and minimum() tell +0 from -0 by their
+        sign, and two subnormals by their bits (gaol_detail::bound_key()),
+        which a comparison under denormals-are-zero finds equal;
+      - the lower bound of the result is below its upper bound: a point
+        result, or a pair in the wrong order, which only a bound pair that no
+        interval holds can give, goes to the constructor.
+    The code of the other kinds of intervals takes the other cases, out of
+    line and cold, and gives the same bounds bit for bit: it returns the
+    stored bounds in a register, GCC adding a frame and a stack protector to
+    the common case when the function returns an interval through its hidden
+    pointer (see GAOL_RND_OUT_OF_LINE of gaol/gaol_fpu.h).
   */
+#if GAOL_USING_SSE2_INSTRUCTIONS
+  // The other cases, out of line: the stored bounds of the interval that the other kinds of intervals give
+  static GAOL_NOINLINE_COLD __m128d max_of_bounds(const interval &I, const interval &J)
+  {
+    return upward_access::stored_bounds(interval(maximum(I.left(),J.left()), maximum(I.right(),J.right())));
+  }
+
+  static GAOL_NOINLINE_COLD __m128d min_of_bounds(const interval &I, const interval &J)
+  {
+    return upward_access::stored_bounds(interval(minimum(I.left(),J.left()), minimum(I.right(),J.right())));
+  }
+
+  //! The lower bound -stored[0] is below the upper bound stored[1]: false for a NaN, the stored bounds of the empty set
+  GAOL_INLINE bool lower_below_upper(__m128d stored)
+  {
+    return gaol_detail::quiet_less(-_mm_cvtsd_f64(stored), _mm_cvtsd_f64(_mm_unpackhi_pd(stored, stored)));
+  }
+
+  interval  max(const interval &I, const interval &J)
+  {
+    const __m128d x = upward_access::stored_bounds(I), y = upward_access::stored_bounds(J);
+    __m128d res = _mm_set1_pd(std::numeric_limits<double>::quiet_NaN()); // the empty set, for an empty operand
+    if (_mm_movemask_pd(_mm_cmpunord_pd(x, y)) == 0) {
+      if (_mm_movemask_pd(_mm_cmpeq_pd(x, y)) == 0) { // else res is a NaN, and the bounds are told by the code below
+        const __m128d xx = reread_bounds(x), yy = reread_bounds(y);
+        const __m128d sel = _mm_and_pd(_mm_xor_pd(xx, yy), _mm_cmpgt_pd(xx, yy)); // the lanes where x is above y
+        res = _mm_move_sd(_mm_xor_pd(yy, sel), _mm_xor_pd(xx, sel)); // <the smaller lane 0, the larger lane 1>
+      }
+      if (!lower_below_upper(res)) {
+        res = max_of_bounds(I, J);
+      }
+    }
+    return interval(res, gaol_detail::unchecked_bounds);
+  }
+
+  interval  min(const interval &I, const interval &J)
+  {
+    const __m128d x = upward_access::stored_bounds(I), y = upward_access::stored_bounds(J);
+    __m128d res = _mm_set1_pd(std::numeric_limits<double>::quiet_NaN());
+    if (_mm_movemask_pd(_mm_cmpunord_pd(x, y)) == 0) {
+      if (_mm_movemask_pd(_mm_cmpeq_pd(x, y)) == 0) {
+        const __m128d xx = reread_bounds(x), yy = reread_bounds(y);
+        const __m128d sel = _mm_and_pd(_mm_xor_pd(xx, yy), _mm_cmpgt_pd(xx, yy));
+        res = _mm_move_sd(_mm_xor_pd(xx, sel), _mm_xor_pd(yy, sel)); // <the larger lane 0, the smaller lane 1>
+      }
+      if (!lower_below_upper(res)) {
+        res = min_of_bounds(I, J);
+      }
+    }
+    return interval(res, gaol_detail::unchecked_bounds);
+  }
+#else
   interval  max(const interval &I, const interval &J)
   {
     return interval(maximum(I.left(),J.left()), maximum(I.right(),J.right()));
@@ -6004,6 +6089,7 @@ interval nth_root(const interval& I, int q)
   {
     return interval(minimum(I.left(),J.left()), minimum(I.right(),J.right()));
   }
+#endif
 
   /*
     The reverse functions of max, min, sign and floor (GAOL v5, point P.25 of

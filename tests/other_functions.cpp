@@ -8,7 +8,7 @@
  * where a developer of GAOL compiles it, see gaol/gaol_config.h),
  * widths, magnitudes and mignitudes, Hausdorff distances (of intervals with
  * infinite bounds too), nb_fp_numbers() across the two zeros, splitting, integer
- * parts, radii; the tools of TODO point P: width_enclosure(), inflate(),
+ * parts, radii, max() and min() of special bounds; the tools of TODO point P: width_enclosure(), inflate(),
  * interval::midrad(), bisect(), is_bisectable(), hull() and intersect(); the
  * comparisons of IEEE 1788-2015 (Tables 10.3 and 10.4); and
  * the relational functions (sqrt_rel, div_rel...), which have to keep the
@@ -32,8 +32,10 @@
 #endif
 
 #include <algorithm>
+#include <cstring>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 using namespace gaol;
 using namespace gaol_tests;
@@ -326,6 +328,104 @@ namespace
                                interval(huge / 2, huge), interval(huge, huge) };
     for (const interval& X : mixed) {
       midpoints(X, " (subnormal and huge bounds)");
+    }
+  }
+
+  // The order of two bounds that are no NaN, -1, 0 or 1, from their exact values
+  // and not from a comparison of the processor, which a mode of denormals-are-zero
+  // makes with the subnormal numbers read as zeros; 0 for two zeros of any signs
+  int exact_order(double a, double b)
+  {
+    if (std::isinf(a) || std::isinf(b)) {
+      return (a < b) ? -1 : ((a > b) ? 1 : 0);
+    }
+    return compare(dyadic(a), dyadic(b));
+  }
+
+  // The larger of two bounds, +0 for two zeros of different signs
+  double larger_bound(double a, double b)
+  {
+    const int order = exact_order(a, b);
+    return (order > 0) ? a : ((order < 0) ? b : (std::signbit(a) ? b : a));
+  }
+
+  // The smaller of two bounds, -0 for two zeros of different signs
+  double smaller_bound(double a, double b)
+  {
+    const int order = exact_order(a, b);
+    return (order < 0) ? a : ((order > 0) ? b : (std::signbit(a) ? a : b));
+  }
+
+  bool same_bits(double a, double b)
+  {
+    return std::memcmp(&a, &b, sizeof a) == 0;
+  }
+
+  // max(x, y) and min(x, y) of every pair of intervals made of special bounds:
+  // the infinities, the largest and the smallest normal doubles, subnormals,
+  // and the zeros of both signs, the empty set too, with the modes that flush
+  // the subnormals to zero set or not. The result has the larger (the smaller)
+  // of the lower bounds and of the upper bounds, the bits of the zeros included
+  // (+0 for max, -0 for min where the zeros differ) and the subnormals told by
+  // their values: the SSE2 intervals choose the bounds of the result by a
+  // comparison of the processor, which finds two subnormals equal under
+  // denormals-are-zero, and take the code of the other intervals for these
+  // pairs, for the empty set, and for a result whose bounds are equal (GAOL v5)
+  void max_and_min_on_special_bounds()
+  {
+    const double tiny = std::numeric_limits<double>::denorm_min(), least = std::numeric_limits<double>::min();
+    const double huge = std::numeric_limits<double>::max(), inf = std::numeric_limits<double>::infinity();
+    const double bounds[] = { -inf, -huge, -2.0, -1.0, -least, -5 * tiny, -3 * tiny, -tiny, -0.0, 0.0,
+                              tiny, 3 * tiny, 5 * tiny, least, 1.0, 2.0, huge, inf };
+    const std::size_t nb_bounds = sizeof bounds / sizeof bounds[0];
+    std::vector<interval> intervals;
+    for (std::size_t i = 0; i < nb_bounds; ++i) {
+      for (std::size_t j = i; j < nb_bounds; ++j) {
+        if (bounds[i] < inf && bounds[j] > -inf) {
+          intervals.push_back(interval(bounds[i], bounds[j]));
+        }
+      }
+    }
+    intervals.push_back(interval(0.0, -0.0)); // its zero bounds in the other order, which the constructor accepts
+    intervals.push_back(interval::emptyset());
+    struct Mode { std::string name; unsigned int bits; };
+    std::vector<Mode> modes = { { "", 0u } };
+    for (const FlushMode& m : flush_modes()) {
+      modes.push_back({ " with " + m.name + " set", m.bits });
+    }
+    std::vector<interval> maxima, minima;
+    maxima.reserve(intervals.size() * intervals.size());
+    minima.reserve(intervals.size() * intervals.size());
+    for (const Mode& mode : modes) {
+      maxima.clear();
+      minima.clear();
+      set_flush_bits(mode.bits);
+      for (const interval& x : intervals) {
+        for (const interval& y : intervals) {
+          maxima.push_back(max(x, y));
+          minima.push_back(min(x, y));
+        }
+      }
+      set_flush_bits(0u);
+      std::size_t k = 0;
+      for (const interval& x : intervals) {
+        for (const interval& y : intervals) {
+          const interval& zmax = maxima[k];
+          const interval& zmin = minima[k];
+          ++k;
+          const auto describe = [&] { return "(" + hex(x) + ", " + hex(y) + "): max " + hex(zmax) + ", min " + hex(zmin); };
+          if (x.is_empty() || y.is_empty()) {
+            check("max(x, y), min(x, y) of the empty set" + mode.name, zmax.is_empty() && zmin.is_empty(), describe);
+            continue;
+          }
+          check("max(x, y) on special bounds" + mode.name,
+                same_bits(zmax.left(), larger_bound(x.left(), y.left()))
+                && same_bits(zmax.right(), larger_bound(x.right(), y.right())), describe);
+          check("min(x, y) on special bounds" + mode.name,
+                same_bits(zmin.left(), smaller_bound(x.left(), y.left()))
+                && same_bits(zmin.right(), smaller_bound(x.right(), y.right())), describe);
+        }
+      }
     }
   }
 
@@ -1457,6 +1557,7 @@ int main()
   measures("any doubles", [&] { return random.any(); });
   tools_of_point_p();
   subnormal_bounds();
+  max_and_min_on_special_bounds();
   hausdorff_of_infinite_bounds();
   nb_fp_numbers_across_zero();
   comparisons();
