@@ -1,6 +1,6 @@
 # Reporté
 
-Tout ce qui est reporté sur GAOL v5 au 27 octobre 2026 (commit `9deb2e1` de
+Tout ce qui est reporté sur GAOL v5 au 29 octobre 2026 (commit `ba3009f` de
 `configure-clean`) : ce qui attend la version v5.0.0, ce que le mainteneur a
 reporté indéfiniment, ce qu'il a écarté en laissant une porte ouverte, et ce qui
 attend du matériel. Ce fichier et l'issue #178 ont le même contenu. Ce qui reste
@@ -121,7 +121,18 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    `asm-order-selftest` de `linux.yml`), pas le contrôle des compilations. Un
    job de plus qui compile les sources avec `-S` en GCC 15 à `-O3` avec
    `GAOL_PRESERVE_ROUNDING` (une quinzaine de secondes) le ferait ; reporté, à
-   faire si le mainteneur le veut.
+   faire si le mainteneur le veut. *Décidé le 29 octobre* : le faire, avec tous
+   les constats (`BEFORE`, `AFTER` et `DENORMAL`), GCC 13.3 et Clang 18, avec et
+   sans la préservation, dans un seul job de quatre étapes : #228 (ouverte) ;
+   cet article sort de ce fichier à sa fusion.
+3. **106 (AI), le reste (c) et (d)** (*décidé le 28 octobre* : rien) : (c) les
+   opérations avec un double (`x * 2.0`) n'ont pas les noyaux de #157 sur aucune
+   cible (#124) ; (d) l'effet de `__vectorcall` (les noyaux `add_bounds()` et
+   les autres de Visual C++ et de clang-cl x64, #148) n'est pas séparé dans les
+   temps de la CI ; #193 l'a étendu à x86 32 bits, où le banc A/B ne montre
+   aucune différence au-delà de 5 % sur ses rapports FPU / SSE2, et le
+   mainteneur l'y a gardé. À rapprocher de `doc/simd.md` (#154). Reporté, sans
+   condition.
 
 ## 3. Écarté, à rouvrir si une condition change
 
@@ -175,6 +186,20 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    question ouverte de #205, fusionnée sans réponse écrite. *À rouvrir* si le
    mainteneur veut la même règle pour la 11 : la condition de `gaol_config.h`
    vaut alors pour la 11 et plus, et le job « no FMA » est retiré.
+6. **105 (AH), `-mbranches-within-32B-boundaries` pour les builds de GAOL**
+   (*décidé le 28 octobre* : non adopté). L'erratum des sauts des processeurs
+   Skylake à Comet Lake déplace une opération jusqu'à 1 ns selon le seul
+   placement du code (#122, #191). Mesuré avec la session cloud1, un Xeon (un
+   Cascade Lake, puis un autre Xeon, de la famille 6 modèle 207, la machine
+   ayant changé) : l'option change `x <= y` d'un facteur 3 avec GCC, mais
+   `-falign-functions=64` ne le fait pas, et les gains de Clang sur la ligne de
+   15 additions viennent de n'importe quel déplacement du code, pas de
+   l'erratum. #230 l'a montré de nouveau (`line of 15 +` de 13,5 à 23,3 ns avec
+   Clang 21 pour un chemin rapide identique octet pour octet) ; le
+   `-falign-functions=64` des fonctions de la bibliothèque est la pull request
+   #232 (ouverte). *À rouvrir si* un programme cible des processeurs Skylake à
+   Comet Lake et qu'une mesure de sa part montre un gain stable de l'option,
+   au-delà des 5 % de dispersion.
 
 ## 4. En attente de matériel ou d'un environnement qui manque
 
@@ -184,9 +209,9 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    sur les processeurs Intel qui divisent les registres de 512 bits est fait par
    #191 (voir 4.6 pour d'autres processeurs). Et les gains sans nouveau jeu
    d'instructions que la page liste : `sqrt` en SSE2, les puissances entières en
-   NEON (fait par #188 : 1,03 à 1,07 sur un M2), `mid()`, la réduction
-   d'argument de `sin` et `cos`. Une voie AVX2, SVE, VSX ou RISC-V seulement
-   après des mesures.
+   NEON (fait par #188 : 1,03 à 1,07 sur un M2, puis par #219, la cause du gain
+   faible), `mid()`, la réduction d'argument de `sin` et `cos`. Une voie AVX2,
+   SVE, VSX ou RISC-V seulement après des mesures.
 2. **ARM 32 bits sur du vrai matériel** (#150) : les mesures de #150 ne valent
    que pour les runners arm64 de GitHub, qui exécutent l'armhf en natif
    (Neoverse N2, « 32-bit EL0 Support » au démarrage, aucune entrée `qemu-arm`,
@@ -277,6 +302,11 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    s) ; relancé, il a pris 256 s, comme sur un exécuteur ordinaire (259 s dans
    #208) : la marge n'est que d'un facteur 2,3. Rien n'est changé. *À reprendre
    si cela revient* : relever le délai de ce test (process.md, §10).
+10. **106 (AI), le reste (b)** (*décidé le 28 octobre* : reporté) : mesurer les
+    noyaux de #157 sur POWER, s390x et RISC-V (sur POWER8, s390x et RISC-V, GCC
+    met des branches sur les comparaisons de produits : le noyau y est plus long
+    que l'ancien code et y perd peut-être sans rien gagner) : il faut du
+    matériel, les temps sous qemu ne sont pas ceux d'un processeur.
 
 ## 5. Une limite connue, documentée, sans décision de la lever
 

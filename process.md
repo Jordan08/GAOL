@@ -7,9 +7,9 @@ propose une pull request, et comment on tient les registres à jour une fois la
 pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
-en cours, ce qui reste) est au §12. Dernière mise à jour : 28 octobre 2026, au
-commit `b270147` de `configure-clean` (la fusion de #216, après celles de #206 à
-#210, #212, #213 et #215 ; l'import de CORE-MATH `0b2ae6d1` est de la veille).
+en cours, ce qui reste) est au §12. Dernière mise à jour : 29 octobre 2026, au
+commit `ba3009f` de `configure-clean` (la fusion de #225, après celles de #217,
+#218, #219, #222 et #223).
 
 ## 1. Le contexte
 
@@ -727,7 +727,7 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   `bash -e`, un `! grep ...` au milieu d'une étape ne la fait pas échouer (seule
   la dernière commande donne son statut) : écris un `if` explicite.
 
-## 12. Où en est le travail (28 octobre 2026)
+## 12. Où en est le travail (29 octobre 2026)
 
 Le reste à faire est dans `TODO.md` (tâches PG à PJ) et l'issue #179 ; ce qui
 est fait et décidé (pull requests fusionnées, décisions, mesures) est dans
@@ -762,20 +762,28 @@ git ls-remote --heads origin
   #206 à #210 et #215 (la tâche PF : le reste du 108, le 109, écrire seulement
   si ça change, l'alignement de la pile 32 bits, le contrôle de l'assembleur de
   x86-64) et #216 (hors des points : le tableau des lignes longues sur ARM 64
-  bits, à la fin de `doc/compare/performance.md`, mesuré sur un Mac M2) ;
+  bits, à la fin de `doc/compare/performance.md`, mesuré sur un Mac M2) ; puis
+  #217, #218, #219, #222, #223 et #225 (de la tâche PG : le seuil de la liste
+  du banc A/B, `set_rounding()` sans écrire pour rien, le noyau de `pown` de
+  NEON, `nth_root(x, -2)`, le tri du contrôle de l'assembleur avec GCC et le
+  quotient NEON), fusionnées le 28 et le 29 octobre ;
   l'audit du 13 octobre a
   vérifié dans `configure-clean`
   ce qu'annonçaient alors les points A, C à H et J à V.
-- **En cours** : au 28 octobre, aucune pull request n'est ouverte ;
-  `configure-clean` est au commit de la fusion de #216, et ses branches sur
-  GitHub sont `configure-clean`, `MATH-CORE` et `master`. L'issue #198 (`x / y`
-  des intervalles NEON avec `FPCR.AH`) est ouverte, sans tâche dans `TODO.md` ;
-  #185 est fermée, le masquage des exceptions de `pow` est gardé. L'issue #177
-  (`TODO_DONE.md`) n'est plus mise à jour (*décidé le 28 octobre*) : GitHub
-  borne le corps d'une issue à 262 144 octets et le texte joint en fait plus de
-  270 000 (voir `TODO_DONE.md` 7.8).
+- **En cours** : au 29 octobre, onze pull requests sont ouvertes, toutes de la
+  tâche PG (#220, #224, #227 à #232, #234 et #235, et le brouillon jetable #233
+  : `TODO.md` dit ce que chacune attend) ; `configure-clean` est au commit de la
+  fusion de #225. Ses branches sur GitHub sont `configure-clean`, `MATH-CORE` et
+  `master`, avec celles des pull requests ouvertes et trois branches d'essais
+  jetables gardées (`experiment-pg8-neon-div`, `experiment-pg2-row`,
+  `experiment-pg2-n2`). L'issue #198 (`x / y` des intervalles NEON avec
+  `FPCR.AH`) est ouverte, sans tâche dans `TODO.md` ; #185 est fermée, le
+  masquage des exceptions de `pow` est gardé. L'issue #177 (`TODO_DONE.md`)
+  n'est plus mise à jour (*décidé le 28 octobre*) : GitHub borne le corps d'une
+  issue à 262 144 octets et le texte joint en fait plus de 270 000 (voir
+  `TODO_DONE.md` 7.8).
 - **À faire**, dans l'ordre de `TODO.md` : les études de vitesse, toutes avant
-  v5.0.0 (PG, entamée), les signalements à
+  v5.0.0 (PG, presque faite : ses pull requests ouvertes), les signalements à
   d'autres projets (PH, avec l'accord du mainteneur), puis la version (PI, PJ).
   Ce qui est reporté (le 113, le site, les traits pour YalAA et VNODE-LP, les
   décorations, ce qui attend du matériel) est dans `TODO_AFTER.md`. Les
