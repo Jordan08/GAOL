@@ -3124,6 +3124,20 @@ namespace
     volatile double product = small*small;
     return product < small;
   }
+
+  // Whether the invalid-operation exception is still the only one enabled, as
+  // run_with_exceptions_enabled(FE_INVALID, ...) left it. fegetexcept() of
+  // glibc reads the control word of the x87 unit only: on x86 the mask of
+  // MXCSR, which the SSE instructions of GAOL's doubles obey, is read apart
+  bool only_the_invalid_operation_is_enabled()
+  {
+#if defined(GAOL_TESTS_SSE)
+    if ((_mm_getcsr() & 0x1f80u) != 0x1f00u) {
+      return false;
+    }
+#endif
+    return fegetexcept() == FE_INVALID;
+  }
 #endif // GAOL_TESTS_TRAPS
 }
 
@@ -4769,6 +4783,42 @@ int main()
       const Outcome oe = run_with_exceptions_enabled(FE_INVALID, e.run);
       check("a power next to the largest double, FE_INVALID enabled", oe == returned_true,
             [&] { return std::string(e.name) + ": " + outcome_text(oe); });
+    }
+    /*
+      The searches of pow_rel() and pow_exponent_rel() prove each candidate by
+      powers computed with pow_lo<true>() and pow_hi<true>(), whose test of
+      overflow (pow_up_without_overflow_exception()) computes the powers whose
+      |y log2(x)| is within 1e-9 of 1024 with the exceptions masked, and gives
+      the program back its masks and its flags (GAOL v5). For a power of
+      DBL_MAX or next to it, the candidates are in that case: with the
+      invalid-operation exception enabled, the call does not trap, the
+      exception is still enabled after it, and its flag is not raised. The
+      overflow and divide-by-zero exceptions are left masked, as everywhere in
+      this file: a power beyond the doubles raises them legitimately
+      (doc/using.md). A section that left the exceptions masked (the control
+      register written back with the masks set) passed every other check of
+      this file and of the tests.
+    */
+    const double largest = (std::numeric_limits<double>::max)();
+    // 2^1024 (1 - 2^-k) for k from 53 to 33, whose binary logarithm is 1024 - 1.4 2^-k
+    const double next_to_the_largest[] = { largest, 0x1.ffffffffffffep+1023, 0x1.fffffffffffp+1023, 0x1.ffffffffp+1023 };
+    for (const double c : next_to_the_largest) {
+      for (const double y : { 0.5, 2.0, 3.0, 7.0, 37.0, -2.0, -3.0 }) {
+        const Outcome op = run_with_exceptions_enabled(FE_INVALID, [c, y] {
+          const interval z = pow_rel(opaque(interval(c)), opaque(interval(y)), interval::universe());
+          return !z.is_empty() && only_the_invalid_operation_is_enabled() && std::fetestexcept(FE_INVALID) == 0;
+        });
+        check("pow_rel() of a power next to the largest double, FE_INVALID enabled: no trap, still enabled, no flag",
+              op == returned_true, [&] { return "c=" + hex(c) + " y=" + hex(y) + ": " + outcome_text(op); });
+      }
+      for (const double x : { 2.0, 1.5, 10.0, 0.5, 0.001, 1e300 }) {
+        const Outcome oe = run_with_exceptions_enabled(FE_INVALID, [c, x] {
+          const interval z = pow_exponent_rel(opaque(interval(c)), opaque(interval(x)), interval::universe());
+          return !z.is_empty() && only_the_invalid_operation_is_enabled() && std::fetestexcept(FE_INVALID) == 0;
+        });
+        check("pow_exponent_rel() of a power next to the largest double, FE_INVALID enabled: no trap, still enabled, no flag",
+              oe == returned_true, [&] { return "c=" + hex(c) + " x=" + hex(x) + ": " + outcome_text(oe); });
+      }
     }
     for (const EmptyOperand& e : integer_powers_at_the_ends) {
       const Outcome oe = run_with_exceptions_enabled(FE_INVALID, e.run);
