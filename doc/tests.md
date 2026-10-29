@@ -733,8 +733,9 @@ point Q), which `numbers` checks there too.
   intervals made of special bounds (the infinities, the largest and smallest
   normal numbers, subnormals, the zeros of both signs, the empty set), with the
   bits of the zeros and the subnormals told by their values, with the modes that
-  flush the subnormals to zero set or not (the SSE2 intervals choose the bounds
-  by a comparison, and give the other cases to the code of the other kinds), the
+  flush the subnormals to zero set or not (the SSE2 and NEON intervals choose the
+  bounds themselves, and the SSE2 ones give the other cases to the code of the
+  other kinds), the
   tools of interval algorithms (GAOL v5,
   point P): `width_enclosure()`, `inflate(r)` and `interval::midrad(m, r)`
   have to be the tightest enclosures of the exact width, of [a − r, b + r] and

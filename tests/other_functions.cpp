@@ -370,7 +370,8 @@ namespace
   // their values: the SSE2 intervals choose the bounds of the result by a
   // comparison of the processor, which finds two subnormals equal under
   // denormals-are-zero, and take the code of the other intervals for these
-  // pairs, for the empty set, and for a result whose bounds are equal (GAOL v5)
+  // pairs, for the empty set, and for a result whose bounds are equal; the NEON
+  // intervals compare the bits of the bounds as integers (GAOL v5)
   void max_and_min_on_special_bounds()
   {
     const double tiny = std::numeric_limits<double>::denorm_min(), least = std::numeric_limits<double>::min();

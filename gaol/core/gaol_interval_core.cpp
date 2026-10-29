@@ -2370,6 +2370,8 @@ namespace gaol_core {
 #if GAOL_USING_SSE2_INSTRUCTIONS
     //! The stored bounds <-l, r>, for max() and min() (GAOL v5)
     static __m128d stored_bounds(const interval& I) { return I.get_xmminterval(); }
+#elif GAOL_USING_NEON_INSTRUCTIONS
+    static float64x2_t stored_bounds(const interval& I) { return I.get_neoninterval(); }
 #endif
   };
 
@@ -6078,6 +6080,60 @@ interval nth_root(const interval& I, int q)
       }
     }
     return interval(res, gaol_detail::unchecked_bounds);
+  }
+#elif GAOL_USING_NEON_INSTRUCTIONS
+  /*
+    The same with the NEON intervals, without the case apart: the lanes are
+    compared as signed integers, from their bits (the comparisons of 64-bit
+    ARM on doubles signal the invalid-operation exception on a NaN, and the
+    modes that flush the subnormals to zero change them), and the order of the
+    integers is the one maximum() and minimum() give, -0 below +0 and the
+    subnormals by their values; the lanes are chosen by that order, and the
+    constructor of two bounds tells the result, as for the other kinds of
+    intervals (GAOL v5).
+  */
+  namespace neon_detail {
+
+  // The order of the doubles that are no NaN as signed integers, -0 below +0
+  // (bound_keys() makes the zeros equal)
+  GAOL_INLINE int64x2_t zero_apart_keys(float64x2_t x)
+  {
+    const int64x2_t bits = vreinterpretq_s64_f64(x);
+    return veorq_s64(bits, vreinterpretq_s64_u64(vshrq_n_u64(vreinterpretq_u64_s64(vshrq_n_s64(bits, 63)), 1)));
+  }
+
+  // The stored bounds of max(), or of min(), for the stored bounds x and y of
+  // two intervals that are not empty
+  GAOL_INLINE float64x2_t max_min_stored(float64x2_t x, float64x2_t y, bool maximum_wanted)
+  {
+    const uint64x2_t above = vcgtq_s64(zero_apart_keys(x), zero_apart_keys(y)); // x above y, lane by lane
+    const float64x2_t where_above = vcombine_f64(vget_low_f64(y), vget_high_f64(x));  // <y0, x1>
+    const float64x2_t where_not = vcombine_f64(vget_low_f64(x), vget_high_f64(y));    // <x0, y1>
+    return maximum_wanted ? vbslq_f64(above, where_above, where_not) : vbslq_f64(above, where_not, where_above);
+  }
+
+  } // namespace neon_detail
+
+  interval  max(const interval &I, const interval &J)
+  {
+    using namespace neon_detail;
+    const float64x2_t x = upward_access::stored_bounds(I), y = upward_access::stored_bounds(J);
+    if (any_lane(vorrq_u64(nan_lanes(x), nan_lanes(y)))) { // an empty operand
+      return interval::emptyset();
+    }
+    const float64x2_t res = max_min_stored(x, y, true);
+    return interval(-vgetq_lane_f64(res, 0), vgetq_lane_f64(res, 1));
+  }
+
+  interval  min(const interval &I, const interval &J)
+  {
+    using namespace neon_detail;
+    const float64x2_t x = upward_access::stored_bounds(I), y = upward_access::stored_bounds(J);
+    if (any_lane(vorrq_u64(nan_lanes(x), nan_lanes(y)))) { // an empty operand
+      return interval::emptyset();
+    }
+    const float64x2_t res = max_min_stored(x, y, false);
+    return interval(-vgetq_lane_f64(res, 0), vgetq_lane_f64(res, 1));
   }
 #else
   interval  max(const interval &I, const interval &J)
