@@ -985,6 +985,17 @@ namespace gaol_core {
   static const double huge_root_argument = 1.0715086071862673e+301; // 2^1000
   static const double two_power_minus_512 = 7.458340731200207e-155;
 
+  /* The smallest positive double, 2^-1074, written as a literal rather than as
+     std::numeric_limits<double>::denorm_min(): that is __DBL_DENORM_MIN__, a
+     long double constant converted to double, which GCC does not fold with
+     -frounding-math. GCC 15.2 on x86-64 loaded the constant as an extended number
+     (fldt) and stored it as a double (fstpl) at each use, a microcode assist of
+     about 100 ns on an Intel i7-1185G7 (sqrt() took 111 ns, against 10 ns with
+     Clang 21), and GCC 12.2 on aarch64 calls __trunctfdf2 (GAOL v5, point PG.2
+     of TODO.md). The digits are the shortest that give it, C++11 having no
+     hexadecimal floating literal */
+  static const double double_denorm_min = 4.9406564584124654e-324;
+
   // s*s rounded downward < x, for s the root of x
   static inline bool square_down_below(double s, double x)
   {
@@ -1009,7 +1020,7 @@ namespace gaol_core {
   {
     double s = ::sqrt(x);
     if (square_down_below(s, x)) { // s*s rounded downward < x proves s < sqrt(x)
-      s += std::numeric_limits<double>::denorm_min();
+      s += double_denorm_min;
     }
     return s;
   }
@@ -1024,7 +1035,7 @@ namespace gaol_core {
      without setting the rounding direction downward. */
   static double gaol_minus_sqrt_down(double x, double u)
   {
-    return square_up_equals(u, x) ? -u : (-u + std::numeric_limits<double>::denorm_min());
+    return square_up_equals(u, x) ? -u : (-u + double_denorm_min);
   }
 
   /*
@@ -1393,7 +1404,7 @@ namespace gaol_core {
     // has no hexadecimal floating literal
     if (std::fabs(y) >= 8.777798510069902e+304 && x > 0.0 && x < GAOL_INFINITY && x != 1.0
         && (x > 1.0) != (y > 0.0)) {
-      return std::numeric_limits<double>::denorm_min();
+      return double_denorm_min;
     }
     return quiet ? pow_up_without_overflow_exception(x, y) : upward::nthroot_up(x, y);
   }
@@ -1529,7 +1540,7 @@ namespace gaol_core {
     }
     std::uint64_t bits = gaol_detail::bound_bits(x);
     if ((bits << 1) == 0) {
-      return std::numeric_limits<double>::denorm_min();
+      return double_denorm_min;
     }
     if ((bits >> 63) != 0) {
       --bits; // a smaller magnitude
@@ -3025,7 +3036,7 @@ namespace gaol_core {
       const double d = key_double(k);
       return (y > 0.0) ? pow_lo<true>(d, y) >= c : pow_hi<true>(d, y) <= c;
     };
-    return key_double(first_key_holding(above, double_key(std::numeric_limits<double>::denorm_min()),
+    return key_double(first_key_holding(above, double_key(double_denorm_min),
                                         double_key(GAOL_INFINITY), double_key(near)));
   }
 
@@ -3664,7 +3675,7 @@ namespace gaol_core {
   // A step of about one double at r, which doubles
   static inline double first_step(double r)
   {
-    return maximum(r*std::numeric_limits<double>::epsilon(), std::numeric_limits<double>::denorm_min());
+    return maximum(r*std::numeric_limits<double>::epsilon(), double_denorm_min);
   }
 
   /*
