@@ -365,8 +365,8 @@ namespace gaol_core {
     // general registers), where two reductions and the broadcast of a lane cost vector operations:
     // x / y took 5.35 ns, and now 3.96, with Clang 18 on a Neoverse N2 (GAOL v5, point PG.8 of TODO.md)
     const std::uint64_t y_low_bits = vgetq_lane_u64(bits_of(y), 0), y_high_bits = vgetq_lane_u64(bits_of(y), 1);
-    // lane 0: c > 0 (-c < 0, not a zero), lane 1: d < 0; with bitwise operators, so that no branch
-    // depends on the signs of y, which are random in a program
+    // lane 0: c > 0 (-c < 0, not a zero), lane 1: d < 0; with bitwise operators, so that the only
+    // branch is on whether y holds a zero, none on the sign of each bound (random in a program)
     const std::uint64_t c_positive = (y_low_bits >> 63) & static_cast<std::uint64_t>((y_low_bits << 1) != 0);
     const std::uint64_t d_below_zero = (y_high_bits >> 63) & static_cast<std::uint64_t>((y_high_bits << 1) != 0);
     if ((c_positive | d_below_zero) == 0) {
