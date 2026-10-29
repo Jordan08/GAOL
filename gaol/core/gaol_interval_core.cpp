@@ -2367,6 +2367,12 @@ namespace gaol_core {
   public:
     static interval inverse(const interval& I) { return interval::inverse_upward(I); }
     static interval sqr(const interval& I) { return interval::sqr_upward(I); }
+#if GAOL_USING_SSE2_INSTRUCTIONS
+    //! The stored bounds <-l, r>, for max() and min() (GAOL v5)
+    static __m128d stored_bounds(const interval& I) { return I.get_xmminterval(); }
+#elif GAOL_USING_NEON_INSTRUCTIONS
+    static float64x2_t stored_bounds(const interval& I) { return I.get_neoninterval(); }
+#endif
   };
 
   static GAOL_POWN_TARGET interval pown_large_upward(const interval& I, int n)
@@ -5989,12 +5995,208 @@ interval nth_root(const interval& I, int q)
   }
 
   /*
-    maximum() and minimum() give NaN bounds for an empty I or J, which give
-    the empty set: the constructor tells them with a quiet comparison (GAOL
-    v5). They were told first, with one more comparison, when the constructor
-    compared them with <=, which raises the invalid-operation exception on a
-    NaN; testing I and J first made max() 5 to 10% slower (Clang 18).
+    max() and min() of two intervals: the intervals of the larger and of the
+    smaller bounds. maximum() and minimum() give NaN bounds for an empty I or
+    J, which give the empty set: the constructor tells them with a quiet
+    comparison (GAOL v5). They were told first, with one more comparison, when
+    the constructor compared them with <=, which raises the invalid-operation
+    exception on a NaN; testing I and J first made max() 5 to 10% slower
+    (Clang 18).
+
+    The SSE2 intervals do not call maximum() and minimum() for the common
+    case, where the stored bounds <-l, r> of the two operands give both bounds
+    of the result at once: the larger lower bound is the smaller of the two
+    lanes <-l>, the larger upper bound the larger of the two lanes <r>. Two
+    calls of maximum() and the constructor took 8.9 ns with GCC 15.2 and 5.5
+    to 6.4 with Clang 21, the lanes taken by one comparison 2.3 and 2.0 (an
+    i7-1185G7, gaol_performance). The lanes are exchanged by a mask of
+    that comparison, not taken by minpd and maxpd, which signal the
+    invalid-operation exception for the NaN of an empty operand and, under
+    denormals-are-zero, give a zero for a subnormal lane. They are taken only
+    where
+      - no lane is a NaN: the empty set is given, without an exception. The NaN
+        and the equal lanes are told by two comparisons and two movemasks, not
+        one comparison of both: GCC merged cmpeq | cmpunord into the single
+        comparison of an unordered or equal pair, which signals;
+      - the lanes equal as doubles have the same bits, or are zeros of both
+        signs: two lanes of the same bits, the lower bounds of [0, 1] and [0, 2]
+        or max(x, x), give the same lane whichever is chosen; for +0 and -0 the
+        lane is the one maximum() and minimum() give, +0 for the larger bound
+        and -0 for the smaller (an OR or an AND of the sign bits). Two
+        subnormals, or a subnormal and a zero, that denormals-are-zero makes
+        equal are told apart by maximum() and minimum() by the bits
+        (gaol_detail::bound_key()) and by the code below;
+      - the lower bound l of the result is below its upper bound r, or l and r
+        are the same finite double (a point result, max([-1, 0], [0, 0]) for
+        ReLU): the constructor of two bounds takes anything else, a pair in
+        the wrong order or with an infinite bound that no interval holds, for
+        the empty set.
+    The code of the other kinds of intervals takes the other cases, out of
+    line and cold, and gives the same bounds bit for bit: it returns the
+    stored bounds in a register, GCC adding a frame and a stack protector to
+    the common case when the function returns an interval through its hidden
+    pointer (see GAOL_RND_OUT_OF_LINE of gaol/gaol_fpu.h).
   */
+#if GAOL_USING_SSE2_INSTRUCTIONS
+  // The other cases, out of line: the stored bounds of the interval that the other kinds of intervals give
+  static GAOL_NOINLINE_COLD __m128d max_of_bounds(const interval &I, const interval &J)
+  {
+    return upward_access::stored_bounds(interval(maximum(I.left(),J.left()), maximum(I.right(),J.right())));
+  }
+
+  static GAOL_NOINLINE_COLD __m128d min_of_bounds(const interval &I, const interval &J)
+  {
+    return upward_access::stored_bounds(interval(minimum(I.left(),J.left()), minimum(I.right(),J.right())));
+  }
+
+  //! All ones in the lanes where x and y are equal as doubles and have different bits
+  GAOL_INLINE __m128d equal_lanes_of_different_bits(__m128d x, __m128d y)
+  {
+    const __m128i same_dwords = _mm_cmpeq_epi32(_mm_castpd_si128(x), _mm_castpd_si128(y));
+    const __m128i same_bits = _mm_and_si128(same_dwords, _mm_shuffle_epi32(same_dwords, _MM_SHUFFLE(2, 3, 0, 1)));
+    return _mm_andnot_pd(_mm_castsi128_pd(same_bits), _mm_cmpeq_pd(x, y));
+  }
+
+  //! All ones in the lanes where x and y are both zeros, of either sign
+  GAOL_INLINE __m128d zero_lanes(__m128d x, __m128d y)
+  {
+    const __m128i magnitudes = _mm_castpd_si128(_mm_andnot_pd(_mm_set1_pd(-0.0), _mm_or_pd(x, y)));
+    const __m128i zero_dwords = _mm_cmpeq_epi32(magnitudes, _mm_setzero_si128());
+    return _mm_castsi128_pd(_mm_and_si128(zero_dwords, _mm_shuffle_epi32(zero_dwords, _MM_SHUFFLE(2, 3, 0, 1))));
+  }
+
+  /*
+    The lanes of res where x and y are equal with different bits, for the
+    stored bounds of max() (maximum_wanted) or of min(): zeros of different
+    signs, -0 for the stored lane that is the bound -l of a larger lower bound
+    l = +0 (and for the smaller upper bound), +0 for the other; false for
+    other pairs (subnormals under denormals-are-zero), which the code below tells
+  */
+  GAOL_INLINE bool settle_ties(__m128d x, __m128d y, bool maximum_wanted, __m128d& res)
+  {
+    if (_mm_movemask_pd(_mm_cmpeq_pd(x, y)) == 0) {
+      return true;
+    }
+    const __m128d different = equal_lanes_of_different_bits(x, y);
+    if (_mm_movemask_pd(different) == 0) { // the same bits: either lane is the one
+      return true;
+    }
+    if (_mm_movemask_pd(_mm_andnot_pd(zero_lanes(x, y), different)) != 0) {
+      return false;
+    }
+    // max: <the OR of the lower lanes, the AND of the upper ones>, min: the other way round
+    const __m128d signs_or = _mm_or_pd(x, y), signs_and = _mm_and_pd(x, y);
+    const __m128d fix = maximum_wanted ? _mm_move_sd(signs_and, signs_or) : _mm_move_sd(signs_or, signs_and);
+    res = _mm_or_pd(_mm_and_pd(different, fix), _mm_andnot_pd(different, res));
+    return true;
+  }
+
+  /*
+    The stored bounds <-l, r> are those of an interval that the constructor of
+    two bounds would keep: l is below r, or l and r are the same finite double.
+    False for a NaN, the stored bounds of the empty set
+  */
+  GAOL_INLINE bool valid_stored_bounds(__m128d stored)
+  {
+    const double l = -_mm_cvtsd_f64(stored), r = _mm_cvtsd_f64(_mm_unpackhi_pd(stored, stored));
+    return gaol_detail::quiet_less(l, r)
+           || (gaol_detail::bound_bits(l) == gaol_detail::bound_bits(r)
+               && gaol_detail::quiet_less(l, GAOL_INFINITY) && gaol_detail::quiet_less(-GAOL_INFINITY, l));
+  }
+
+  // reread_bounds() keeps the comparison behind the test of NaN where a compiler
+  // would compute it first (Clang did with the test of NaN of mul_bounds() on NEON);
+  // none of the compilers tried moves it here
+  interval  max(const interval &I, const interval &J)
+  {
+    const __m128d x = upward_access::stored_bounds(I), y = upward_access::stored_bounds(J);
+    __m128d res = _mm_set1_pd(std::numeric_limits<double>::quiet_NaN()); // the empty set, for an empty operand
+    if (_mm_movemask_pd(_mm_cmpunord_pd(x, y)) == 0) {
+      const __m128d xx = reread_bounds(x), yy = reread_bounds(y);
+      const __m128d sel = _mm_and_pd(_mm_xor_pd(xx, yy), _mm_cmpgt_pd(xx, yy)); // the lanes where x is above y
+      res = _mm_move_sd(_mm_xor_pd(yy, sel), _mm_xor_pd(xx, sel)); // <the smaller lane 0, the larger lane 1>
+      if (!settle_ties(x, y, true, res)) {
+        res = _mm_set1_pd(std::numeric_limits<double>::quiet_NaN()); // the bounds are told by the code below
+      }
+      if (!valid_stored_bounds(res)) {
+        res = max_of_bounds(I, J);
+      }
+    }
+    return interval(res, gaol_detail::unchecked_bounds);
+  }
+
+  interval  min(const interval &I, const interval &J)
+  {
+    const __m128d x = upward_access::stored_bounds(I), y = upward_access::stored_bounds(J);
+    __m128d res = _mm_set1_pd(std::numeric_limits<double>::quiet_NaN());
+    if (_mm_movemask_pd(_mm_cmpunord_pd(x, y)) == 0) {
+      const __m128d xx = reread_bounds(x), yy = reread_bounds(y);
+      const __m128d sel = _mm_and_pd(_mm_xor_pd(xx, yy), _mm_cmpgt_pd(xx, yy));
+      res = _mm_move_sd(_mm_xor_pd(xx, sel), _mm_xor_pd(yy, sel)); // <the larger lane 0, the smaller lane 1>
+      if (!settle_ties(x, y, false, res)) {
+        res = _mm_set1_pd(std::numeric_limits<double>::quiet_NaN());
+      }
+      if (!valid_stored_bounds(res)) {
+        res = min_of_bounds(I, J);
+      }
+    }
+    return interval(res, gaol_detail::unchecked_bounds);
+  }
+#elif GAOL_USING_NEON_INSTRUCTIONS
+  /*
+    The same with the NEON intervals, without the case apart: the lanes are
+    compared as signed integers, from their bits (the comparisons of 64-bit
+    ARM on doubles signal the invalid-operation exception on a NaN, and the
+    modes that flush the subnormals to zero change them), and the order of the
+    integers is the one maximum() and minimum() give, -0 below +0 and the
+    subnormals by their values; the lanes are chosen by that order, and the
+    constructor of two bounds tells the result, as for the other kinds of
+    intervals (GAOL v5).
+  */
+  namespace neon_detail {
+
+  // The order of the doubles that are no NaN as signed integers, -0 below +0
+  // (bound_keys() makes the zeros equal)
+  GAOL_INLINE int64x2_t zero_apart_keys(float64x2_t x)
+  {
+    const int64x2_t bits = vreinterpretq_s64_f64(x);
+    return veorq_s64(bits, vreinterpretq_s64_u64(vshrq_n_u64(vreinterpretq_u64_s64(vshrq_n_s64(bits, 63)), 1)));
+  }
+
+  // The stored bounds of max(), or of min(), for the stored bounds x and y of
+  // two intervals that are not empty
+  GAOL_INLINE float64x2_t max_min_stored(float64x2_t x, float64x2_t y, bool maximum_wanted)
+  {
+    const uint64x2_t above = vcgtq_s64(zero_apart_keys(x), zero_apart_keys(y)); // x above y, lane by lane
+    const float64x2_t where_above = vcombine_f64(vget_low_f64(y), vget_high_f64(x));  // <y0, x1>
+    const float64x2_t where_not = vcombine_f64(vget_low_f64(x), vget_high_f64(y));    // <x0, y1>
+    return maximum_wanted ? vbslq_f64(above, where_above, where_not) : vbslq_f64(above, where_not, where_above);
+  }
+
+  } // namespace neon_detail
+
+  interval  max(const interval &I, const interval &J)
+  {
+    using namespace neon_detail;
+    const float64x2_t x = upward_access::stored_bounds(I), y = upward_access::stored_bounds(J);
+    if (any_lane(vorrq_u64(nan_lanes(x), nan_lanes(y)))) { // an empty operand
+      return interval::emptyset();
+    }
+    const float64x2_t res = max_min_stored(x, y, true);
+    return interval(-vgetq_lane_f64(res, 0), vgetq_lane_f64(res, 1));
+  }
+
+  interval  min(const interval &I, const interval &J)
+  {
+    using namespace neon_detail;
+    const float64x2_t x = upward_access::stored_bounds(I), y = upward_access::stored_bounds(J);
+    if (any_lane(vorrq_u64(nan_lanes(x), nan_lanes(y)))) { // an empty operand
+      return interval::emptyset();
+    }
+    const float64x2_t res = max_min_stored(x, y, false);
+    return interval(-vgetq_lane_f64(res, 0), vgetq_lane_f64(res, 1));
+  }
+#else
   interval  max(const interval &I, const interval &J)
   {
     return interval(maximum(I.left(),J.left()), maximum(I.right(),J.right()));
@@ -6004,6 +6206,7 @@ interval nth_root(const interval& I, int q)
   {
     return interval(minimum(I.left(),J.left()), minimum(I.right(),J.right()));
   }
+#endif
 
   /*
     The reverse functions of max, min, sign and floor (GAOL v5, point P.25 of

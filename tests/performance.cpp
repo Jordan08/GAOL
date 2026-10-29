@@ -266,6 +266,8 @@ int main()
                nanoseconds_per_operation([&](std::size_t i) { sink = std::max(a[i], b[i]); }, n) },
     { "max(x, y)", nanoseconds_per_operation([&](std::size_t i) { const interval z = max(X[i], Y[i]); sink = z.left(); sink = z.right(); }, n),
                nanoseconds_per_operation([&](std::size_t i) { sink = std::max(a[i], b[i]); }, n) },
+    { "min(x, y)", nanoseconds_per_operation([&](std::size_t i) { const interval z = min(X[i], Y[i]); sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = std::min(a[i], b[i]); }, n) },
     { "x.midpoint()", nanoseconds_per_operation([&](std::size_t i) { sink = X[i].midpoint(); }, n),
                nanoseconds_per_operation([&](std::size_t i) { sink = 0.5*(a[i] + c[i]); }, n) },
     { "x <= y", nanoseconds_per_operation([&](std::size_t i) { sink = (X[i] <= Y[i]) ? 1.0 : 0.0; }, n),
