@@ -987,13 +987,16 @@ namespace gaol_core {
 
   /* The smallest positive double, 2^-1074, written as a literal rather than as
      std::numeric_limits<double>::denorm_min(): that is __DBL_DENORM_MIN__, a
-     long double constant converted to double, which GCC does not fold with
-     -frounding-math. GCC 15.2 on x86-64 loaded the constant as an extended number
-     (fldt) and stored it as a double (fstpl) at each use, a microcode assist of
-     about 100 ns on an Intel i7-1185G7 (sqrt() took 111 ns, against 10 ns with
-     Clang 21), and GCC 12.2 on aarch64 calls __trunctfdf2 (GAOL v5, point PG.2
-     of TODO.md). The digits are the shortest that give it, C++11 having no
-     hexadecimal floating literal */
+     long double constant converted to double, and GCC does not fold the
+     conversion of a long double to a subnormal double with -frounding-math
+     ((double) 0x1p-1022L is folded, 0x1p-1023L is not). GCC 15.2 on x86-64
+     loaded the constant as an extended number (fldt) and stored it as a double
+     (fstpl) at each use, a microcode assist of about 100 ns on an Intel
+     i7-1185G7 and 160 ns on an Intel Xeon (sqrt() took 111 ns, against 10 ns
+     with Clang, which defines __DBL_DENORM_MIN__ as a double), and GCC 12.2 on
+     aarch64 calls __trunctfdf2 (GAOL v5, #224). The literal has the 17
+     significant digits that Clang gives __DBL_DENORM_MIN__ (5e-324 is the
+     shortest), C++11 having no hexadecimal floating literal */
   static const double double_denorm_min = 4.9406564584124654e-324;
 
   // s*s rounded downward < x, for s the root of x
