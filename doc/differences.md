@@ -2549,13 +2549,15 @@ where it comes from.
   vendored sources as patches against the master of CORE-MATH, to propose
   upstream (upstream has made two of them since).
 - **The manual of GAOL v5**, `manual/v5`, follows the manual of GAOL 4 and
-  describes GAOL v5: the three builds and their options, the flags of
-  interval arithmetic, the namespaces and the rounding direction, each
-  operation of GAOL, the new ones included, with examples whose outputs are
-  those of GAOL v5, the names of IEEE 1788-2015, the accuracy of each
-  operation, and what a program written for GAOL 4 has to change. The manual
-  of GAOL 4 is kept as it was in `manual/v4`, and `make -C manual pdf` and the
-  target `pdf` of the meson build build both.
+  describes GAOL v5: the three builds and their options, the flags of interval
+  arithmetic, the namespaces and the rounding direction, each operation of GAOL,
+  the new ones included, with examples whose outputs are those of GAOL v5
+  (`manual/check_examples.py` compiles each example that shows its output in its
+  listing with an installed GAOL and runs it, in the continuous integration
+  too), the names of IEEE 1788-2015, the accuracy of each operation, and what a
+  program written for GAOL 4 has to change. The manual of GAOL 4 is kept in
+  `manual/v4`, and `make -C manual pdf` and the target `pdf` of the meson build
+  build both.
 - **The manual of GAOL 4 compiles again** (issue #13): `manual/v4/gaol.pdf`
   was the PDF of 2009, and `gaol.tex` no longer compiled. The manual still
   describes the mathematical libraries and the options of GAOL 4.
@@ -2568,6 +2570,16 @@ where it comes from.
   the cm-super fonts are not installed. `manual/build-pdf.sh` builds it, for
   `make -C manual pdf` and for the target `pdf` of the meson build, which had
   none.
+- **The Goldstein-Price function of the manual and of
+  `examples/16_Goldstein_Price.cpp`** had the factor `(x + y)^2` where the
+  function has `(x + y + 1)^2`, as in GAOL 4 (`examples/Goldstein_Price.cpp`);
+  the manual said its output `[-56254330, 94177270]` was the range of the
+  function, which is `[3, 1015690.27...]` (148 times narrower). Both now
+  compute the true function, whose natural extension over `[-2, 2]^2` is
+  `[-87881320, 147125080]` (231 times as wide as the range); the manual says
+  that its result, `z`, encloses the range, and why it is wider. The example
+  checks its output (exact integer bounds computed apart), fails if a check
+  fails, and prints its time in milliseconds (`Elapsed time: N ms`).
 - **The CMake build**, derived from the CMake build of GAOL in IBEX
   (Cyril Bouvier, Gilles Chabert), with the compilation flags of the IBEX fork
   of Fabrice Le Bars.

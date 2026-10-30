@@ -970,6 +970,52 @@
 	diagnostics written after it were lost (gaol_detail::known_file()
 	and known_text() of gaol/gaol_common.h).
 
+	Tests, examples and documentation:
+
+	* tests/CMakeLists.txt (gaol_compile_test), tests/compile_error.cmake:
+	the compile tests whose compilation has to fail
+	(refused_finite_math_only, refused_fast_math, refused_aligned_new,
+	refused_aligned_new_cxx17, nodiscard_discard_cxx11,
+	nodiscard_discard_cxx14, nodiscard_discard_cxx17) compile a copy of
+	their source, which compile_error.cmake makes again and touches before
+	the build: they kept failing once their object had been compiled and a
+	header, or the source, was restored with its former modification time.
+	* tests/input_output.cpp (test_input): <-inf,-inf> and <inf,inf> have
+	to throw input_format_error; no try around the checks, which skipped
+	the six after <-inf,-inf>.
+	* tests/, examples/15_text_and_ieee1788.cpp: the checks of an
+	exception, and of a text the reader refuses, are under
+	GAOL_EXCEPTIONS_ENABLED, so that the tests and the examples build and
+	run without exceptions (--disable-exceptions,
+	-Denable-exception=false).  .github/workflows/build-systems.yml: an
+	autotools job and a meson job without exceptions.
+	* manual/check_examples.py: new; the examples of the manual that show
+	their output in their listing (@outputs in gaol.tex) are compiled with
+	an installed GAOL and run, and have to print it.
+	.github/workflows/linux.yml runs it in the job Ubuntu 24.04 x86_64
+	GCC, in C++11.
+	* examples/16_Goldstein_Price.cpp, manual/v5/gaol.tex:
+	goldstein_price() and the program of the manual have the factor
+	(x + y + 1)^2, as the function does (GAOL 4 had (x + y)^2); the
+	example checks its output and prints its time in ms; the manual
+	says that z encloses the range of the function.
+	* manual/v4/manual.cls, manual/build-pdf.sh,
+	.github/workflows/manual.yml: the manual of GAOL 4 compiles
+	again (marginbib.sty and multicol.sty are gone, bibentry
+	prints the references in the margin, Latin Modern fonts); make
+	-C manual pdf and the target pdf of meson build it, and a
+	workflow builds both manuals.
+	* README.md, examples/tutorial.md, doc/using.md, manual/v5: a first
+	program, a tutorial of four algorithms of interval computing, the
+	common errors (intervals in std::sort, std::set and std::max, and
+	gaol::lexicographic_less), the names of IBEX, Codac, C-XSC and
+	Boost.Interval next to GAOL's, and the operations that leave the
+	rounding direction as they found it.
+	* tests/CMakeLists.txt, tests/find_package/CMakeLists.txt,
+	tests/fetch_content/CMakeLists.txt: the cache variable
+	GAOL_NUMBERS_TIMEOUT (300 s) is the time allowed to the test
+	numbers.
+
 2020-05-10  Frederic Goualard  <Frederic.Goualard@univ-nantes.fr>
 
 	* configure.ac: using gcc standard strtod() instead of gdtoa's
