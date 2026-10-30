@@ -83,12 +83,27 @@
 namespace gaol_detail {
 
   /*
+    With Visual C++ for ARM64 (cl.exe, not clang-cl) add_bounds() and sub_bounds() are each in a code
+    section of their own (GAOL v5, point PG of TODO.md). The linker puts the functions of one object
+    file one after the other in .text$mn, 4 bytes aligned, so that the address of these two, and the
+    time of x + y, x - y and the lines of sums and differences, changed with the size of whatever
+    comes before them in the link: any change of the library, one that no operation of these rows
+    runs included, moved them by 16 to 48 bytes (modulo 64) and the rows by 8 to 17 % (x + y 1.54 or
+    1.43 ns, line of 15 + 15.3 or 13.0 ns on the runners of GitHub). A section of a name of its own is
+    aligned to the section alignment of the image, 4096: the two functions then start at a multiple
+    of 4096 whatever the link holds before them, and the rows keep the faster of the two times
+  */
+
+  /*
     The sum, on the stored bounds: <-l1, r1> + <-l2, r2> = <-(l1 + l2), r1 +
     r2>. An empty operand has NaN in both lanes, which the addition carries
     without raising anything. The infinite bounds are all +oo once stored (a
     stored -oo would be [+oo, ..] or [.., -oo], which the constructors refuse),
     so that inf - inf is never formed.
   */
+#  if defined(_MSC_VER) && !defined(__clang__) && defined(_M_ARM64)
+#    pragma code_seg(push, ".gadd")
+#  endif
   float64x2_t add_bounds(float64x2_t x, float64x2_t y)
   {
     using namespace gaol_core;
@@ -101,6 +116,10 @@ namespace gaol_detail {
     return res;
   }
 
+#  if defined(_MSC_VER) && !defined(__clang__) && defined(_M_ARM64)
+#    pragma code_seg(pop)
+#    pragma code_seg(push, ".gsub")
+#  endif
   // x - y is x + [-r, -l], the bounds of y exchanged
   float64x2_t sub_bounds(float64x2_t x, float64x2_t y)
   {
@@ -113,6 +132,9 @@ namespace gaol_detail {
     GAOL_RND_LEAVE();
     return res;
   }
+#  if defined(_MSC_VER) && !defined(__clang__) && defined(_M_ARM64)
+#    pragma code_seg(pop)
+#  endif
 
 } // namespace gaol_detail
 
