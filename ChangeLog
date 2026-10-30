@@ -491,6 +491,105 @@
 	interval(register, gaol_detail::unchecked_bounds) is the
 	constructor without the check, for the code of GAOL.
 
+	The rounding direction and the control registers:
+
+	* gaol/gaol_common.h: gaol::restore_rounding() sets back the
+	rounding direction that the first gaol::init() found, as many
+	times as the program needs, where gaol::cleanup() does so at its
+	first call only; it does nothing with GAOL_PRESERVE_ROUNDING.
+	* gaol/gaol_fpu.h: the modes flushing subnormals to zero (FTZ
+	and DAZ on x86, FZ on ARM) are detected by the check of each
+	operation that computes bounds (1 + (2^-1060 + 0), or a read of the
+	control register where GAOL reads it) and cleared; the check comes
+	before the bounds are read or compared, and the result is made before
+	the modes are set back with GAOL_PRESERVE_ROUNDING;
+	tests/rounding_direction.cpp compares each operation, under each mode
+	and direction, with its result with the modes cleared.
+	* CMakeLists.txt, configure.ac, meson.build,
+	tests/fast_math_link.cpp: -mno-daz-ftz is given to the link of
+	the code using GAOL where the compiler accepts it (gaol.pc,
+	gaol::gaol).
+	* gaol/gaol_port.h (bound_less, bound_less_equal, bound_greater,
+	bound_greater_equal, bound_equal, bound_key, bound_bits,
+	bound_is_subnormal, bound_floor, bound_ceil, bound_trunc,
+	bound_round): new.  The functions that make no check of the rounding
+	direction compare the bounds by their bits where they compare equal,
+	and round a subnormal bound from its bits, so that the flush-to-zero
+	and denormals-are-zero modes change none of their results: the
+	constructor from two bounds, &=, |=, the relations, sign, floor, ceil,
+	integer, trunc, round_ties_to_away (gaol/core/gaol_interval_core.h and
+	the SSE2, NEON and FPU intervals of gaol/core/), maximum and minimum
+	(gaol/gaol_common.cpp, hence max, min, abs, mag), mig, smig,
+	is_canonical, feven, nb_fp_numbers (gaol/core/gaol_interval_core.cpp),
+	inf and sup (gaol/gaol_ieee1788.h).
+	* gaol/core/gaol_interval_core.cpp (midpoint, chi, operator<<): the
+	check of the rounding direction, which clears these modes, before the
+	bounds are read; set back with GAOL_PRESERVE_ROUNDING.
+	(number_to_text): where GAOL cannot clear these modes, a subnormal
+	bound written outward, as 2^-1022 or 0.  (is_canonical): the double
+	above the left bound from its bits: nextafter() of the UCRT and of
+	macOS is wrong under denormals-are-zero.
+	* gaol/core/gaol_interval_avx512.cpp (flush_guard): the operands read
+	after the modes are cleared, the results made before they are set back
+	with GAOL_PRESERVE_ROUNDING: Clang 18 computed x - y after.  The
+	embedded rounding honours flush-to-zero.
+	* .github/workflows/linux.yml: Clang on x86_64 with
+	GAOL_PRESERVE_ROUNDING.
+	* tests/rounding_direction.cpp: the functions that make no check, and
+	those that do, under each mode.  tests/numbers.cpp (subnormal_output):
+	the text written under denormals-are-zero is the one written without
+	it.  tests/performance.cpp: x | y, max, midpoint, and the time of the
+	check with 2^-1060 and with 2^-60.
+	* gaol/core/gaol_interval_core.h, gaol/core/gaol_interval_core.cpp
+	(is_bisectable, bisect): the bounds told apart by their bits, so
+	that the results are the same whatever the flush-to-zero modes
+	(denormals-are-zero, FZ) of the program.
+	* gaol/gaol_fpu.h, gaol/gaol_fpu_fenv.h: on 32-bit x86, the control
+	word of the x87 unit and MXCSR are read in line (fnstcw, stmxcsr)
+	instead of through fegetround(), a call of about 80 ns with Visual
+	C++, and only the register that is not upward is written (fldcw,
+	ldmxcsr); with GAOL_PRESERVE_ROUNDING an operation reads the
+	registers it sets once and writes back what differs from what it
+	found, and gaol::cleanup() and gaol::restore_rounding() set each unit
+	back to its own direction.  tests/rounding_direction.cpp checks the
+	decisions on simulated registers.
+	* gaol/gaol_fpu.h: on x86-64 GAOL reads and writes the control
+	registers itself, with every compiler, and only the one that differs,
+	not through fegetround() and fesetround() (x.midpoint() takes 17.5 ns
+	rather than 27.9 with GAOL_PRESERVE_ROUNDING): with mingw-w64 13 and
+	later, fesetround() clears the six exception flags of MXCSR when it
+	changes it, and fegetround() joins by OR the rounding fields of the
+	x87 unit and of MXCSR.
+	* gaol/gaol_fpu.h, gaol/gaol_fpu_fenv.h: on x86, with
+	GAOL_PRESERVE_ROUNDING, the SSE2 operations read MXCSR once, write
+	it at their start only if the direction is not upward or a mode
+	flushing the subnormals to zero is set, and at their end only if
+	it differs from what they found (sse_enter_upward(), sse_leave());
+	round_upward(), round_nearest() and round_downward() write the x87
+	control word and MXCSR only where their direction differs, and no
+	other bit.  x + y takes 1.7 ns rather than 8.2 in a program that
+	computes upward.
+	* gaol/gaol_fpu.h: with GAOL_PRESERVE_ROUNDING, Visual C++ for x64
+	with /arch:AVX2 writes MXCSR alone in each operation, as GCC, Clang
+	and clang-cl do with __FMA__: GAOL_RND_ENTER() and
+	GAOL_RND_LEAVE() called fegetround() and fesetround() of the C
+	runtime there, and pow(x, 3), sqrt(), exp(), log(), sin() and cos()
+	take 60 to 64 ns less (AMD EPYC runners of GitHub).
+	* gaol/core/gaol_interval_core.h, gaol/core/gaol_interval_core.cpp
+	(width, bisect): the bounds go through rnd_reread() after the check of
+	the rounding direction.  Built in the calling code they are registers,
+	which GCC (and Clang on 64-bit ARM) subtracted before the control
+	register was written: with GAOL_PRESERVE_ROUNDING, and a program not
+	computing upward, the width of [1, 2^53 + 2] was 2^53;
+	tests/rounding_direction.cpp.
+	* gaol/gaol_config.h, gaol/gaol_fpu.h, gaol/gaol_fpu_fenv.h: on 32-bit
+	ARM with GCC and a floating-point unit of doubles, FPSCR is read with
+	vmrs and written with vmsr, only when it changes, rather than through
+	fegetround() and fesetround(): with GAOL_PRESERVE_ROUNDING x + y takes
+	22.5 ns, where it took 48 (GAOL_RND_FPSCR_DIRECT,
+	-DGAOL_RND_FPSCR_DIRECT=0 gives the C library back).  Without
+	GAOL_PRESERVE_ROUNDING nothing changes.
+
 2020-05-10  Frederic Goualard  <Frederic.Goualard@univ-nantes.fr>
 
 	* configure.ac: using gcc standard strtod() instead of gdtoa's

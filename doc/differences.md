@@ -156,9 +156,14 @@ where it comes from.
     included it, and `gaol/gaol_version.h` includes `gaol/gaol_config.h`,
     where it included `gaol/gaol_version_msvc.h` for Visual C++ and nothing for
     MinGW. The four headers are gone.
-- **The rounding direction** is set upward by each operation when it is not,
-  in every build. Built with CMake, GAOL set it once, in `gaol::init()`, and
-  computed in the direction the calling code left: rounding to nearest,
+- **The rounding direction** is set upward by each operation that computes a
+  bound when it is not, in every build; the operations of the AVX-512 path
+  (below) set none, their instructions carrying their rounding. An operation
+  that rounds nothing (`-x`, `abs()`, `min()`, `floor()`, the predicates...) or
+  returns before its check (`y * empty`, `exp(empty)`) leaves the direction as
+  it found it (see [Using GAOL](using.md#the-rounding-direction)). Built with
+  CMake, GAOL set it once, in `gaol::init()`, and computed in the direction the
+  calling code left: rounding to nearest,
   downward or toward zero, 30 operations gave other bounds, and sums and
   products did not enclose their exact values (3199 of the 13825 checks of
   `rounding_direction` failed with GCC 9.4 on x86-64). Built with autotools or
@@ -166,20 +171,27 @@ where it comes from.
   the x87 control word on x86-64, where GAOL computes with SSE (43 operations
   left the SSE instructions rounding to nearest or upward, whatever direction
   they found), and without the rounding bits of the FPCR register on arm64.
-  `GAOL_PRESERVE_ROUNDING`, now an option, saves and restores the direction with
-  `fegetround()` and `fesetround()` and the SSE register. Each value computed
-  before the rounding direction changes is then written to a `volatile`
-  variable: GCC does not implement `#pragma STDC FENV_ACCESS`, and moved the
-  computation of the midpoint after `fesetround()`
+  `GAOL_PRESERVE_ROUNDING`, now an option, saves and restores the direction by
+  reading and writing the control registers itself, a register only if it
+  differs from what is set back: the x87 control word and MXCSR of an x86
+  processor (below), FPCR with the NEON intervals, FPSCR with the FPU intervals
+  of 32-bit ARM processors and GCC; the other processors keep `fegetround()` and
+  `fesetround()`. Each value computed before the rounding direction changes is
+  then written to a `volatile` variable: GCC does not implement
+  `#pragma STDC FENV_ACCESS`, and moved the computation of the midpoint after
+  `fesetround()`
   ([GCC bug 34678](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=34678)).
   Whether the direction is upward is shown by an addition, 1 + 2^-60 with
   2^-60 read from `volatile` memory, wherever doubles are computed in double
-  precision.
-  Reading it instead, with the SSE register and `fegetround()`, made `x + y`
-  take 800 ns rather than 2.8 ns under Rosetta 2, 82 to 98 ns rather than 2.6
-  to 4 ns with 32-bit Visual C++, and 48 ns rather than 6.4 ns with 32-bit
-  MinGW-w64 15.2; and Clang 18 read MXCSR once for a whole loop that changed
-  the rounding direction.
+  precision; on x86-64 processors and, with GCC and Clang, on ARM ones it is
+  1 + (2^-1060 + 0), which shows the modes that flush the subnormal numbers to
+  zero as well (below). The NEON intervals of 64-bit ARM processors read the
+  register FPCR instead, and a 32-bit x86 processor the control registers of
+  the two units that round (below). Reading the direction with the SSE register
+  and `fegetround()` rather than by an addition made `x + y` take 800 ns rather
+  than 2.8 ns under Rosetta 2, 82 to 98 ns rather than 2.6 to 4 ns with 32-bit
+  Visual C++, and 48 ns rather than 6.4 ns with 32-bit MinGW-w64 15.2; and Clang
+  18 read MXCSR once for a whole loop that changed the rounding direction.
   - **Once per function of intervals.** The bounds of the elementary
     functions at doubles are computed by the functions of namespace `upward`
     (`gaol/gaol_double_op.h`), which take the direction to be upward already,
@@ -234,8 +246,12 @@ where it comes from.
     `gaol::init()` found, unless it is preserved: GAOL left it upward after
     its use, even after its automatic cleanup when the program ends or the
     library is unloaded, and a program computing to nearest after it had to
-    set it back itself. Only the rounding direction is set back, on x86 the
-    one of the x87 unit and the one of the SSE instructions (`rounding_state`,
+    set it back itself. `gaol::cleanup()` does so at its first call only, and
+    an operation of GAOL after it sets the direction upward again:
+    `gaol::restore_rounding()` sets it back as many times as the program needs,
+    and does nothing with `GAOL_PRESERVE_ROUNDING`. Only the rounding direction
+    is set back, on x86 the one of the x87 unit and the one of the SSE
+    instructions (`rounding_state`,
     `gaol/gaol_fpu.h`), not the rest of the environment that `gaol::init()`
     replaced with `fesetenv(FE_DFL_ENV)`: the exception flags raised since are
     the program's. `tests/rounding_direction.cpp` checks the direction after
@@ -298,9 +314,172 @@ where it comes from.
   of an interval took 535 to 630 ns with MinGW-w64 and MSYS2, and take 48 to
   209 ns; 250 to 340 ns with Visual C++ for x64, and 45 to 160 ns; 1050 to
   1750 ns with Visual C++ for x86, and 150 to 650 ns. Both registers are set,
-  as `fesetround()` sets them, and `fegetround()` reads the direction set;
-  with Visual C++ for x64, MXCSR only, the x87 unit being unused there.
-  Elsewhere (ARM, POWER, s390x, RISC-V), `fesetround()` still.
+  as `fesetround()` sets them, but a register is written only if its direction
+  differs from the one set (none when both hold it), and no other bit changes;
+  `fegetround()` reads the direction set; with Visual C++ for x64, MXCSR only,
+  the x87 unit being unused there. With mingw-w64 13 and later there is a
+  second reason: its `fesetround()` clears the six exception flags of MXCSR when
+  it changes the register, so that `gaol::cleanup()`, `gaol::restore_rounding()`
+  and, with `GAOL_PRESERVE_ROUNDING`, `midpoint()`, `chi()` and the writing and
+  the reading of an interval would lose the flags the program had raised, and
+  its `fegetround()` joins by OR the rounding fields of the x87 unit and of
+  MXCSR, which is the direction of both only where they agree. On a 32-bit x86
+  processor GAOL also reads them in line, the control word of the x87 unit with
+  `fnstcw` and MXCSR with `stmxcsr`, in one asm statement (inline assembly with
+  Visual C++ for x86), rather than through `fegetround()`, a call that took
+  about 80 ns with Visual C++ for x86: the check of each operation compares the
+  two, and writes (`fldcw`, `ldmxcsr`) only the register that is not upward,
+  MXCSR once for the direction and the flush modes. With
+  `GAOL_PRESERVE_ROUNDING`, an operation reads the registers it sets once at
+  its start and writes back at its end only the one that differs from what it
+  found: a program that computes upward already pays no write.
+  `gaol::cleanup()`, `gaol::restore_rounding()` and `GAOL_PRESERVE_ROUNDING` set
+  each unit back to its own direction, with Visual C++ for x86 too when the two
+  differ at the start, where `fegetround()` answers -1. On x86-64 with every
+  compiler, as on 32-bit x86, the operations that do not write MXCSR alone with
+  `GAOL_PRESERVE_ROUNDING`, `gaol::cleanup()`, `gaol::restore_rounding()` and
+  the operations that set the direction to nearest and back (`midpoint()`,
+  `chi()`, the reading and the writing of an interval) read both registers and
+  write the one that differs, none when both hold the direction to set back; the
+  `fesetround()` of glibc writes both whatever they hold, and GAOL then wrote
+  MXCSR again for the SSE instructions. With `GAOL_PRESERVE_ROUNDING`,
+  `x.midpoint()` takes 17.5 ns rather than 27.9 (GCC 15.2, Intel i7-1185G7),
+  and 52 ns rather than 131 with Visual C++ for x64 on the runners of the
+  continuous integration; the bounds are the same.
+- **On ARM processors GAOL writes the control register itself too.** With the
+  NEON intervals of 64-bit ARM processors the direction is the field RMode of
+  FPCR, read with `mrs` and written with `msr` (see the NEON intervals below).
+  On 32-bit ARM processors with GCC and a floating-point unit of doubles it is
+  the field RMode of FPSCR, read with `vmrs` and written with
+  `vmsr` (`GAOL_RND_FPSCR_DIRECT` of `gaol/gaol_config.h`;
+  `-DGAOL_RND_FPSCR_DIRECT=0` gives the functions of the C library back):
+  `round_upward()`, `round_nearest()` and `round_downward()` write it only if
+  the direction changes, and `GAOL_PRESERVE_ROUNDING` reads it once at the
+  start of an operation and writes back what it found at the end, only if that
+  differs from what the operation left, where it called `fegetround()` and
+  `fesetround()`: `x + y` takes 22.5 ns rather than 48 (the Debian armhf jobs of
+  the continuous integration, which run on the arm64 runners of GitHub). FPSCR
+  holds the flags of the exceptions too, so every write but the one at the
+  start of an operation, which comes before any computation, reads the register
+  again just before, and no flag raised since is lost. Without
+  `GAOL_PRESERVE_ROUNDING` nothing changes: the check of each operation stays
+  the addition, `vmrs` costing more than its two additions (`x + y` 6.1 ns
+  rather than 4.1). Elsewhere (POWER, s390x, RISC-V, MIPS, the FPU intervals of
+  64-bit ARM, and 32-bit ARM without GCC or without a floating-point unit of
+  doubles), `fesetround()` still.
+- **`GAOL_PRESERVE_ROUNDING` writes the control registers of an x86 processor
+  only if they have to change.** An operation of the SSE2 intervals read MXCSR
+  and wrote it twice, at its start and at its end, whatever it held, for
+  nothing when the program computed upward already. It reads MXCSR once, writes
+  it at its start only if the direction is not upward or a mode that flushes
+  the subnormals to zero is set, and at its end writes back what it found only
+  if that was not upward with the modes clear, and then only if MXCSR differs
+  from it, after reading it again so that the exception flags the operation
+  raised are kept; Visual C++ and clang-cl for 32-bit x86 do the same with the
+  two registers, the x87 unit computing some of their doubles too.
+  `round_upward()`, `round_nearest()` and `round_downward()`, which write a
+  register only if its direction differs (see above), change no other bit: the
+  flush modes, the exception masks and the flags stay. The bounds do not
+  change. With `GAOL_PRESERVE_ROUNDING`, in a program that computes upward,
+  `x + y` takes 1.7 ns rather than 8.2 and `x * y` 2.5 ns rather than 8.3; in a
+  program that computes to nearest, 0.2 ns more (GCC 15.2, Intel i7-1185G7, the
+  best of 15 runs of a loop).
+- **Visual C++ for x64 writes MXCSR alone with `GAOL_PRESERVE_ROUNDING`**, as
+  GCC, Clang and clang-cl do with the fused multiply-add instructions. The
+  operations that start with `GAOL_RND_ENTER()` (`pow(x, 3)`, `sqrt()`,
+  `exp()`, `log()`, `sin()` and `cos()` among them) called `fegetround()` and
+  `fesetround()` of the C runtime, because the macros that write MXCSR alone
+  asked for `__FMA__`, which `cl` does not define. No code of GAOL uses the x87
+  unit there (the `long double` of Visual C++ is a `double`), so the macros now
+  take `__AVX2__` for the instruction too, which `cl` defines with
+  `/arch:AVX2`, the flag that CMake and meson give it for x64. These
+  operations take 60 to 64 ns less on the runners of the continuous
+  integration (AMD EPYC, Visual Studio 2026): `pow(x, 3)` 29 ns rather than 92,
+  `sin(x)` 71 ns rather than 135. The bounds are the same, and `x + y` and
+  `x * y` already wrote MXCSR alone.
+- **The modes that flush subnormals to zero are cleared by each operation that
+  computes bounds.** On x86 the flush-to-zero and denormals-are-zero modes of
+  MXCSR, on ARM the mode FZ of FPCR (FPSCR), make every subnormal result a zero
+  and read every subnormal operand as a zero. With one of them set, the bounds
+  of every operation with a subnormal operand or result miss the exact result
+  whatever the rounding direction: `[1e-300] * [1e-20]` is `[0, 0]`, and with
+  the FPU intervals `[1e-300] / [100·2^-1074]` was empty. A program linked with
+  `-Ofast`, `-ffast-math` or `-funsafe-math-optimizations` has them
+  (`crtfastmath.o`), and so has one that loads a plug-in built so. The check of
+  the rounding direction above, `1 + 2^-60`, shows the direction only, and is
+  the one left where GAOL cannot clear them (POWER, s390x, RISC-V, MIPS, and the
+  FPU intervals of Visual C++ for ARM).
+  - **The check.** Each operation that computes bounds computes
+    `1 + (2^-1060 + 0)` (x86-64, and ARM with GCC and Clang), which shows the
+    modes as well as the direction, and clears them with the direction; a 32-bit
+    x86 processor and the NEON intervals of 64-bit ARM processors (Visual C++
+    too) read the control registers instead, which hold both. With
+    `GAOL_PRESERVE_ROUNDING` they are set back as they were. The check comes
+    before the operation reads, compares or copies a bound (the test of the
+    empty set aside), and the compiler is kept from moving a comparison before
+    it: `asinpi([100·2^-1074])` was above the exact value with GCC 13 at `-O3`,
+    `sqrt([-1e-310, 4])` and `atan2` gave the empty set, and `sinpi` was wrong
+    with `GAOL_PRESERVE_ROUNDING`. With that option the result, maxima and
+    minima of bounds included, is made before the modes are set back. The
+    functions that only read, compare or copy bounds make no check and give the
+    results they give with the modes cleared ([Using
+    GAOL](using.md#flush-to-zero-and-denormals-are-zero)).
+  - **At the link.** `gaol.pc` and `gaol::gaol` give `-mno-daz-ftz` to the code
+    using GAOL where the compiler accepts it (GCC 13 and later on x86, and
+    11.4 and 12.4 in the series 11 and 12; the builds test it by linking),
+    which keeps `crtfastmath.o` out of the program. The check of the operations
+    is the only defence against a plug-in, and on the other compilers; on POWER,
+    s390x, RISC-V and MIPS neither defence exists.
+  - **Cost.** `x * y`, `sqrt` and `pow(x, 3)` take 0.6 to 0.7 ns more than with
+    the direction alone (Intel Xeon Cascade Lake, Clang 18: 4.0 ns rather than
+    3.4, 11.0 rather than 10.3, 13.7 rather than 13.0), the cost of the second
+    addition of the check, not of the subnormal.
+  - **Tests.** `tests/rounding_direction.cpp` compares each operation that makes
+    the check, under each mode and each rounding direction, with its result
+    with the modes cleared, and checks the modes left after it;
+    `tests/fast_math_link.cpp` is linked with `-ffast-math`.
+- **The functions that only read, compare or copy bounds give right results
+  under the modes that flush the subnormals to zero.** With denormals-are-zero
+  (DAZ of MXCSR on x86, FZ on ARM), which a program linked with `-Ofast` has, a
+  comparison reads a subnormal as a zero. The operations that compute clear
+  these modes in their check of the rounding direction, but the functions that
+  make no check did not, and gave wrong results: `interval(2^-1073, 2^-1074)`
+  kept its bounds in the wrong order, `max([3, 100]·2^-1074, [200·2^-1074])` was
+  the first interval, `abs([-1e-309, -1e-310])` stayed negative,
+  `floor([-1e-310])` was `[-0]`, `[2, 5]·2^-1074` contained 7·2^-1074, the
+  midpoint of `[2, 4]·2^-1074` was 0 and `split()` made an empty half of it, and
+  `operator<<` wrote a subnormal bound rounded to nearest, below an upper bound.
+  The constructor from two bounds, the relations, `&`, `|`, `max`, `min`, `abs`,
+  `sign`, the roundings to an integer, `mig`, `mag`, `is_canonical`, `feven`,
+  `nb_fp_numbers`, and `inf` and `sup` of `gaol_ieee1788` now compare the bounds
+  as doubles first and, where these are equal, by their bits, which no mode
+  changes, and round a subnormal bound from its bits (the `floor()` of musl
+  returns a subnormal as it is under DAZ). They leave the modes as they found
+  them and write nothing to the control register, with `GAOL_PRESERVE_ROUNDING`
+  or without. `midpoint()`, `split()`, `chi()` and `operator<<` check the
+  rounding direction, which clears the modes, and set them back with
+  `GAOL_PRESERVE_ROUNDING`. Where GAOL does not clear them (the processors other
+  than x86 and ARM, and ARM with the FPU intervals of Visual C++), `operator<<`
+  writes a subnormal bound outward, as 2^-1022 away from zero and 0 toward it
+  (see [Flush-to-zero and
+  denormals-are-zero](using.md#flush-to-zero-and-denormals-are-zero)).
+- **`bisect(ratio)` and `is_bisectable()` give the same results whatever the
+  flush-to-zero modes of the program.** With denormals-are-zero set (DAZ of
+  MXCSR on x86, FZ of FPCR on ARM), as a program linked with `-Ofast` has it,
+  two subnormal bounds compared as doubles are two zeros: `[3·2^-1074,
+  5·2^-1074]` was not bisectable, `bisect(ratio)` refused a subnormal ratio as
+  a 0 and, with `GAOL_PRESERVE_ROUNDING`, could cut outside the interval or on
+  a bound of a bisectable one. Both now compare the bounds by their bits, the
+  cut point of `bisect(ratio)` included, before the modes are restored
+  (`tests/rounding_direction.cpp`).
+- **The AVX-512 path reads its operands once the modes that flush the
+  subnormals to zero are cleared, and makes its results before they are set
+  back** with `GAOL_PRESERVE_ROUNDING`: Clang 18 computed `x - y` after, and
+  `[3e-308] - [2.9e-308]` was `[0, 0]`. Its embedded rounding honours
+  flush-to-zero and denormals-are-zero (on an Intel i7-1185G7, with
+  flush-to-zero set, 3e-308 - 2.9e-308 and 1e-300·1e-20 are 0, and with
+  denormals-are-zero so is 2^-1060·1e10; see
+  [Using GAOL](using.md#the-avx-512-path)).
 - **`hausdorff()`** returns the tightest upper bound of the distance. It computed
   `fabs(a - c)` in the rounding direction of the caller, below the exact
   distance when rounded upward with a < c.
