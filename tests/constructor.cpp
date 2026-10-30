@@ -102,6 +102,17 @@ public:
     TEST_EMPTY(interval(two53 + 2, n));
     TEST_EMPTY(interval(ullmax, two64 - 2048));
     TEST_EMPTY(interval(1u, -1));
+    // The same magnitude with the signs the wrong way round: the bits of the bounds differ by the sign only. The
+    // operations tell an empty operand by the NaN of its lanes, so they are checked too, not only is_empty()
+    const interval wrong_way[] = { interval(1.0, -1.0),
+                                   interval(std::numeric_limits<double>::denorm_min(), -std::numeric_limits<double>::denorm_min()),
+                                   interval((std::numeric_limits<double>::max)(), -(std::numeric_limits<double>::max)()) };
+    for (const interval& w : wrong_way) {
+      TEST_EMPTY(w);
+      TEST_EMPTY(w * interval(2.0, 3.0));
+      TEST_EMPTY(w + interval(2.0, 3.0));
+      TEST_SEQ(w | interval(2.0, 3.0), interval(2.0, 3.0));
+    }
     TEST_EMPTY(interval(n, std::numeric_limits<double>::quiet_NaN()));
     TEST_TRUE(interval(two53, n).left() == two53 && interval(two53, n).right() == two53 + 2);
     TEST_TRUE(interval(1.0f, n).left() == 1 && interval(1.0f, n).right() == two53 + 2);
