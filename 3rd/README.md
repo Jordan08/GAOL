@@ -88,12 +88,13 @@ checks the flags, the square root, `NAN` and `INFINITY`, and `gaol_ldexp()`.
 
 On x86, 32-bit and 64-bit, it also gives them a `fegetround()` that reads
 MXCSR, the register that rounds their doubles, rather than the control word of
-the x87 unit, which the `fegetround()` of glibc reads. `pow`, and `cos` and
-`tan`, whose accurate phases carry the same code, round a subnormal result
-themselves, in the direction `fegetround()` gives: with the x87 unit to nearest
-and MXCSR upward, the state the `exactinit()` of the predicates of Shewchuk and
-of Triangle leaves, `pow` rounded to nearest and its upper bound was below the
-exact value for about half of the arguments with a subnormal result.
+the x87 unit, which the `fegetround()` of glibc reads. `pow` rounds a subnormal
+result itself, in the direction `fegetround()` gives (`tan` carries the same
+code, in an accurate phase that never gives a subnormal, and `cos` has none):
+with the x87 unit to nearest and MXCSR upward, the state the `exactinit()` of
+the predicates of Shewchuk and of Triangle leaves, `pow` rounded to nearest and
+its upper bound was below the exact value for about half of the arguments with
+a subnormal result.
 `<fenv.h>` is included first and the sources see `fegetround` renamed by a
 macro, which changes nothing for the rest of GAOL;
 `tests/rounding_direction.cpp` checks it, and `tests/core_math.cpp` by calling
@@ -1120,9 +1121,9 @@ already, with their `get_rounding_mode()`, but with mingw-w64 they call
 patch gives `pow.h` a `get_rounding_mode()` of the form patch 6 gives them,
 which on x86-64 reads the rounding field of MXCSR and looks its `FE_*` value up
 in a table, whatever values the C library gives them, and calls `fegetround()`
-elsewhere. `cos.c`, `tan.c` and `sincos.c` carry the same rounding code
+elsewhere. `tan.c` and `sincos.c` carry the same rounding code
 (`subnormalize_dint()`), but their accurate phases never give a subnormal, and
-they are left alone.
+they are left alone; `cos.c` has no such code.
 
 The patch, to commit as
 `[pow] read the rounding mode from MXCSR on x86-64 for the subnormal results`:

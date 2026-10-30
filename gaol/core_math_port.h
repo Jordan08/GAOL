@@ -275,17 +275,17 @@ static inline double gaol_sqrt(double x)
 /*---------------------------------------------------------------------------
 fegetround() on x86: the direction of the SSE instructions
 
-pow, and cos and tan, whose accurate phases carry the same code, round a
-subnormal result themselves, in the direction fegetround() gives, where every
-other double they compute is rounded by the SSE instructions, in the
-direction of MXCSR. On x86-64 the two are the same only if nothing left them
-differing: the fegetround() of glibc reads the control word of the x87 unit
-alone, and GAOL finds the direction upward when 1 + 2^-60, a sum of the SSE
-instructions, is above 1, without looking at the x87 unit. A program that
-leaves the x87 unit to nearest and MXCSR upward, as the exactinit() of the
-predicates of Shewchuk and of Triangle does, then had pow() round its
-subnormal results to nearest: the upper bound was below the exact value for
-about half of the arguments (tests/rounding_direction.cpp).
+pow rounds a subnormal result itself, in the direction fegetround() gives,
+where every other double it computes is rounded by the SSE instructions, in
+the direction of MXCSR (tan has the same code, in an accurate phase that never
+gives a subnormal, and cos has none). On x86-64 the two are the same only if
+nothing left them differing: the fegetround() of glibc reads the control word
+of the x87 unit alone, and GAOL finds the direction upward when 1 + 2^-60, a
+sum of the SSE instructions, is above 1, without looking at the x87 unit. A
+program that leaves the x87 unit to nearest and MXCSR upward, as the
+exactinit() of the predicates of Shewchuk and of Triangle does, then had pow()
+round its subnormal results to nearest: the upper bound was below the exact
+value for about half of the arguments (tests/rounding_direction.cpp).
 
 So the sources of CORE-MATH read the direction from MXCSR here, since the
 processor computes their doubles there, as the get_rounding_mode() of

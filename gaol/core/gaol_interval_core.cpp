@@ -481,9 +481,9 @@ namespace gaol_core {
     (without that, pown([2, 3], 3) was [8 - 2^-50, 27 + 2^-48]). They are one
     double beyond where c^m is within 2K of a double, relatively (K is 2^-98
     at m = 3, 2^-88 at m = 1000, 2^-65 at m = 2^31 - 1): 2^-46 of the bounds
-    at m = 3 at random, but a fifth of them where c is within a few doubles
-    of a number whose power is a double (c within 8 doubles of 1, m up to
-    200), c^m being then that close to a double: pow([1 + 2^-52], 3) is
+    at m = 3 at random, but 37.5 % of them where c is within 8 doubles of 1
+    (12 of 32 bounds at m = 3), 28.5 % over m = 3 to 10 and 8.3 % over m = 3
+    to 200, c^m being then that close to a double: pow([1 + 2^-52], 3) is
     [1 + 2^-51, 1 + 2^-50], [1 + 3 2^-52, 1 + 2^-50] being the tightest.
     Deciding these bounds with CORE-MATH's pow took 55 to 270 ns, these
     powers being its hard cases: they are left so (decided on 13 October

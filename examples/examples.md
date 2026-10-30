@@ -72,8 +72,9 @@ Appendices: [A. How the review was done](#appendix-a-how-the-review-was-done),
   decimal comma, and several crashes and I/O bugs follow (section 5). Each
   has a fix and a regression test that were validated on scratch builds;
   those of `x op= x` in the FPU build, of the reader under a comma locale, of
-  `operator<<` and `operator>>`, and of the expressions (threads, `/=`) are
-  applied, the others are not (Appendix B).
+  `operator<<` and `operator>>`, and of the expressions (threads, `/=`) were
+  applied by the review, the others were not, and the maintainer has fixed
+  them since, number 4 and number 20 in part (section 5, Appendix B).
 - **The documentation** is precise and its 86 examples of the manual print
   what it shows (though its overview program evaluated another function than
   Goldstein-Price's, without the +1: recommendation 16), but it has no
@@ -632,40 +633,42 @@ builds: the test fails on the original library (SSE2 and FPU builds) and
 passes with the fix, and the existing ctest suite still passes. **Numbers
 1, 9, 11, 13, 14 and 18 are fixed in the library**, with their regression
 tests in `tests/arithmetic.cpp`, `tests/numbers.cpp` and
-`tests/expressions.cpp`; the other changes to the sources are left to the
-maintainer. Appendix B gives each fix and its test.
+`tests/expressions.cpp`; the other changes to the sources were left to the
+maintainer, who has made since the ones marked **Fixed** below, some of them by
+another change than the one proposed. Appendix B gives each fix and its test.
+The column Where gives the lines of the code reviewed, not of the code now.
 
 ### 5.1 Wrong bounds
 
 | # | What | Where | Severity |
 |---|---|---|---|
 | 1 | In the FPU build (`GAOL_SIMD=OFF`, with `GAOL_ARM64=OFF` on 64-bit ARM at the time; the code of 32-bit ARM, Visual C++ and 32-bit Windows), `x -= x`, `x /= x` and `x %= x` gave bounds that missed the result: `c = [-3,-1]; c -= c` was [−2, 1], `a = [0.25, 0.5]; a /= a` was [0.5, 1], and `b = [0.1]; b /= b` was empty. A natural loop meets it: normalising a row by its pivot, `row[j] /= row[i]` down to j = i. The compound operator wrote one bound of `*this` before reading the operand's, which is `*this` itself. **Fixed**. | `gaol/core/gaol_interval_fpu.cpp:187`, `:636`, `:832` | high |
-| 2 | Flush-to-zero and denormals-are-zero make every operation with a subnormal result unsound: `[1e-300] * [1e-20]` is [0, 0]. They are set by `crtfastmath.o`, which GCC links into a program linked with `-Ofast`, `-ffast-math` or `-funsafe-math-optimizations`, even when GAOL's `-fno-fast-math` silenced the `#error` at compile time (GCC applies `-O` options first), and whose constructor runs after GAOL's initialization; also by loading a plug-in or Python module built with `-Ofast`. The check of each operation (1 + 2⁻⁶⁰ > 1) sees the rounding direction only. | `gaol/gaol_fpu.h:204` | high |
-| 3 | On x86-64 with glibc, when the x87 rounding bits say nearest and MXCSR says upward (what `exactinit()` of Shewchuk's Triangle and predicates does), `pow` with a subnormal result misses the exact value (205 of 400 random cases): CORE-MATH rounds those results itself in the direction `fegetround()` gives, which glibc reads from the x87 unit. GAOL's own test lists that state (`tests/rounding_direction.cpp:104`) but no subnormal `pow`. | `3rd/math-core/src/binary64/pow/pow.h:236, 261, 408` | medium |
-| 4 | `-ffinite-math-only` is not refused, and makes the empty set invisible: `([1,2] & [3,4]).is_empty()` is false, and the hull of the empty set with [1, 2] is empty. `-funsafe-math-optimizations` and `-ffast-math -fno-finite-math-only` are not refused either (no macro reveals them), and GCC then rewrites the probe `1 + tiny == 1` as `tiny == 0` in inline code, so that `width()` after a change of direction is below the exact width. | `gaol/gaol_config.h:199` | medium |
-| 5 | `atanh([1, 5])` and `atanh([1])` are [DBL_MAX, +∞] instead of the empty set (atanh is defined on (−1, 1)); `atanh([-5, -1])` is empty. `atanh_rel` and `tanhRev` inherit it. | `gaol/core/gaol_interval_core.cpp:2558` | low |
+| 2 | Flush-to-zero and denormals-are-zero make every operation with a subnormal result unsound: `[1e-300] * [1e-20]` is [0, 0]. They are set by `crtfastmath.o`, which GCC links into a program linked with `-Ofast`, `-ffast-math` or `-funsafe-math-optimizations`, even when GAOL's `-fno-fast-math` silenced the `#error` at compile time (GCC applies `-O` options first), and whose constructor runs after GAOL's initialization; also by loading a plug-in or Python module built with `-Ofast`. The check of each operation (1 + 2⁻⁶⁰ > 1) sees the rounding direction only. **Fixed**: the check of each operation reads the flush modes too, clears them, and `GAOL_PRESERVE_ROUNDING` sets them back; under flush-to-zero, denormals-are-zero and both, `[1e-300] * [1e-20]` has the bounds it has without them. | `gaol/gaol_fpu.h:204` | high |
+| 3 | On x86-64 with glibc, when the x87 rounding bits say nearest and MXCSR says upward (what `exactinit()` of Shewchuk's Triangle and predicates does), `pow` with a subnormal result misses the exact value (205 of 400 random cases): CORE-MATH rounds those results itself in the direction `fegetround()` gives, which glibc reads from the x87 unit. GAOL's own test lists that state (`tests/rounding_direction.cpp:104`) but no subnormal `pow`. **Fixed**: `gaol/core_math_port.h` gives the sources of CORE-MATH a `fegetround()` that reads MXCSR, the register that rounds their doubles; with the x87 unit to nearest and MXCSR upward, the 400 cases give the tightest bounds. | `3rd/math-core/src/binary64/pow/pow.h:236, 261, 408` | medium |
+| 4 | `-ffinite-math-only` is not refused, and makes the empty set invisible: `([1,2] & [3,4]).is_empty()` is false, and the hull of the empty set with [1, 2] is empty. `-funsafe-math-optimizations` and `-ffast-math -fno-finite-math-only` are not refused either (no macro reveals them), and GCC then rewrites the probe `1 + tiny == 1` as `tiny == 0` in inline code, so that `width()` after a change of direction is below the exact width. **Fixed** for `-ffinite-math-only`, which `gaol/gaol_config.h` refuses, as it does `-ffast-math` and `-Ofast`; `-funsafe-math-optimizations` and `-ffast-math -fno-finite-math-only` are still not refused, no macro revealing them. | `gaol/gaol_config.h:199` | medium |
+| 5 | `atanh([1, 5])` and `atanh([1])` are [DBL_MAX, +∞] instead of the empty set (atanh is defined on (−1, 1)); `atanh([-5, -1])` is empty. `atanh_rel` and `tanhRev` inherit it. **Fixed**: `atanh([1, 5])` and `atanh([1])` are the empty set, as `atanh([-5, -1])` is. | `gaol/core/gaol_interval_core.cpp:2558` | low |
 | 6 | `interval("2", "1")` (and `textToInterval(sl, sr)`) keeps the bounds [2, 1]: `is_empty()` is true, but `interval("2","1") + [0, 1]` is [2, 2]. **Fixed**: the constructor from two strings is gone, and `textToInterval("2", "1")` is the empty set. | `gaol/core/gaol_interval_core.cpp:519` | low |
-| 7 | `pow(x, n)` for large n: the lower bound loses the square of the rest it carries, 8 doubles below the tightest at n = 2²⁸ − 1, 557 at 2³¹ − 1, 1962 at 2³² − 1 (the manual promises the tightest or one double beyond). When one bound's power under- or overflows, both bounds take the rounded products, and the SSE2 and FPU builds multiply them in different orders: their bounds differ in 190 of 1 600 random cases, against "the same bounds on every machine" of `doc/accuracy.md`. | `gaol/core/gaol_interval_core.cpp:160` | low |
-| 8 | `tan(interval(-M_PI_2, M_PI_2))` is [−∞, +∞] where the tightest is ±1.63·10¹⁶: the width test uses `<` where `<=` is sound. | `gaol/core/gaol_interval_core.cpp:2387` | low (tightness) |
+| 7 | `pow(x, n)` for large n: the lower bound loses the square of the rest it carries, 8 doubles below the tightest at n = 2²⁸ − 1, 557 at 2³¹ − 1, 1962 at 2³² − 1 (the manual promises the tightest or one double beyond). When one bound's power under- or overflows, both bounds take the rounded products, and the SSE2 and FPU builds multiply them in different orders: their bounds differ in 190 of 1 600 random cases, against "the same bounds on every machine" of `doc/accuracy.md`. **Fixed**: the bounds are the tightest at n = 2²⁸ − 1, 2³¹ − 1 and 2³² − 1, and the SSE2 and the FPU builds give the same bits (`doc/accuracy.md` gives the margin within which a bound may be one double beyond the tightest). | `gaol/core/gaol_interval_core.cpp:160` | low |
+| 8 | `tan(interval(-M_PI_2, M_PI_2))` is [−∞, +∞] where the tightest is ±1.63·10¹⁶: the width test uses `<` where `<=` is sound. **Fixed**: `tan(interval(-M_PI_2, M_PI_2))` is [−0x1.d02967c31cdb5p+53, 0x1.d02967c31cdb5p+53], the tightest bounds. | `gaol/core/gaol_interval_core.cpp:2387` | low (tightness) |
 
 ### 5.2 Crashes, hangs and input/output
 
 | # | What | Where | Severity |
 |---|---|---|---|
 | 9 | The reader hung under a locale writing a decimal comma (`setlocale(LC_ALL, "")` with `LANG=fr_FR.UTF-8`, what Qt and GTK programs do): `textToInterval("0.1")` never returned, nor `operator>>`. `strtod` stopped at the `.`, and the lexer then walked from its value one double at a time (4.6·10¹⁸ steps for 0.1). Under the same locale, `exact_string()` wrote `0x1,999999999999ap-4`, which did not read back. **Fixed**, as the exponents of 7 digits or more, which the reader cut at 100000. | `gaol/parser/gaol_interval_lexer.lpp:226` (and the committed `.cpp:960`), `gaol/core/gaol_interval_core.cpp:756` | high |
-| 10 | `interval(nullptr, nullptr)` and `interval(std::getenv("UNSET"), "1")` compiled and crashed (`strlen` of a null pointer), and so did `interval((const char*)nullptr)` and `interval(1, 2) + nullptr`; none of them compiles now, GAOL v5 having no constructor from strings; `textToInterval(std::getenv("UNSET"))` throws the `std::logic_error` of `std::string` (libstdc++). | `gaol/parser/gaol_parser.cpp:58`, `gaol/core/gaol_interval_core.h:120` | medium |
+| 10 | `interval(nullptr, nullptr)` and `interval(std::getenv("UNSET"), "1")` compiled and crashed (`strlen` of a null pointer), and so did `interval((const char*)nullptr)` and `interval(1, 2) + nullptr`; none of them compiles now, GAOL v5 having no constructor from strings; `textToInterval(std::getenv("UNSET"))` throws the `std::logic_error` of `std::string` (libstdc++). **Fixed**: `parse_interval(nullptr)` returns false, and `textToInterval(nullptr)` and `textToInterval(std::getenv("UNSET"))` throw `input_format_error`. | `gaol/parser/gaol_parser.cpp:58`, `gaol/core/gaol_interval_core.h:120` | medium |
 | 11 | `gaol_core::expression` objects created with no argument in two threads crashed within a million iterations: they shared one global node whose reference count was a plain `unsigned`. **Fixed**. | `gaol/parser/gaol_expression.cpp:76` | medium |
-| 12 | A point interval is written `<0.1, 0.1000000000000001>` in the default format, which the reader refuses ("bounds of degenerate interval do not evaluate to the same value"), although the manual says the bounds format reads back; `textToInterval(intervalToText(interval(0.1)))` is the empty set. | `gaol/core/gaol_interval_core.cpp:728` | medium |
+| 12 | A point interval is written `<0.1, 0.1000000000000001>` in the default format, which the reader refuses ("bounds of degenerate interval do not evaluate to the same value"), although the manual says the bounds format reads back; `textToInterval(intervalToText(interval(0.1)))` is the empty set. **Fixed**: a point interval whose double the digits write exactly is written `[a]`, which the reader reads back as that point, and any other point as the bounds `[0.1, 0.1000000000000001]`, which it reads back as an interval containing it. | `gaol/core/gaol_interval_core.cpp:728` | medium |
 | 13 | `operator<<` set the stream's precision to `interval::precision()` and never restored it: after printing an interval, `std::cout << 1.0/3` printed 16 digits, and `std::setw` padded the `[` only. IBEX and Codac both work around it. **Fixed** (`std::setprecision` still does not apply to intervals, by design). | `gaol/core/gaol_interval_core.cpp:780` | medium |
 | 14 | `operator>>` read a whole line and threw `input_format_error` at the end of the input and on a blank line, without setting `failbit`: `while (in >> x)` always ended with an exception, and left x empty. **Fixed** at the end of the input, where `failbit` is now set and nothing thrown, and on a blank line, now skipped as the blanks before a number are. | `gaol/core/gaol_interval_core.cpp:556` | medium |
-| 15 | `gaol_exception` does not override `what()`: `catch (const std::exception& e)` prints `std::exception`, and an uncaught error ends with `what(): std::exception`. | `gaol/gaol_exceptions.h:56` | medium |
-| 16 | `gaol::sin(0.5)` (and every function of namespace `gaol` on a double) is ambiguous between the interval and the expression overloads. It compiled with GAOL 4, whose `<gaol/gaol>` did not include `gaol_expression.h`; GAOL v5's includes it through `gaol_ieee1788.h`. | `gaol/gaol_ieee1788.h:70` | low (regression) |
-| 17 | Parsing a sum of 100 000 terms overflows the stack (one frame per term, in the evaluation and the destruction of the tree), and so do expressions built through the public API. | `gaol/parser/gaol_interval_parser.ypp:422` | low |
+| 15 | `gaol_exception` does not override `what()`: `catch (const std::exception& e)` prints `std::exception`, and an uncaught error ends with `what(): std::exception`. **Fixed**: `what()` is the explanation, or the name of the class where there is none. | `gaol/gaol_exceptions.h:56` | medium |
+| 16 | `gaol::sin(0.5)` (and every function of namespace `gaol` on a double) is ambiguous between the interval and the expression overloads. It compiled with GAOL 4, whose `<gaol/gaol>` did not include `gaol_expression.h`; GAOL v5's includes it through `gaol_ieee1788.h`. **Fixed** as an ambiguity, not as a regression: the constructors from a double are explicit, so that nothing is ambiguous, but `gaol::sin(0.5)`, which compiled with GAOL 4, still does not compile, with or without `gaol_expression.h` (by design), and is written `gaol::sin(interval(0.5))`. | `gaol/gaol_ieee1788.h:70` | low (regression) |
+| 17 | Parsing a sum of 100 000 terms overflows the stack (one frame per term, in the evaluation and the destruction of the tree), and so do expressions built through the public API. **Fixed**: a sum of 1 000 000 terms is read from a string, evaluated and deleted, and so is one built through the public API: the stack of the program does not depend on the depth of the tree. | `gaol/parser/gaol_interval_parser.ypp:422` | low |
 | 18 | `expression::operator/=` was declared but not defined: a program using it did not link. **Fixed**. | `gaol/parser/gaol_expression.h:72` | low |
-| 19 | `hausdorff(x, x)` is +∞ for x = [1, +∞], and so is `hausdorff([1, +∞], [2, +∞])`, whose distance is 1: a fixed-point loop on a box with an unbounded side never stops. | `gaol/core/gaol_interval_sse.cpp:95`, `gaol/core/gaol_interval_fpu.cpp:30` | low |
-| 20 | `nb_fp_numbers(-0.0, 1.0)` wraps around to 13830554455654793217; `[1, 2] - 1` has the lower bound −0. | `gaol/core/gaol_interval_core.cpp:1451` | low |
-| 21 | The width and center output formats print a center and a radius rounded to nearest, which need not enclose the interval ([1, 1 + 2⁻⁵²] is written `1 (+/- 1.11e-16)`), and a radius of 0 for [0, 5·10⁻³²⁴], against the manual. `gaol_ieee1788::intervalToText` follows the global format and the global locale, so its text is not always an interval literal. | `gaol/core/gaol_interval_core.cpp:789`, `gaol/gaol_ieee1788.h:375` | low |
-| 22 | The installed `gaol_interval_parser.h` does not compile when included; it and `gaol_init_cleanup.h` are internal. `gaol_allocator.h` does not compile alone. | `CMakeLists.txt:650`, `gaol/meson.build:121`, `gaol/Makefile.am:61` | low |
+| 19 | `hausdorff(x, x)` is +∞ for x = [1, +∞], and so is `hausdorff([1, +∞], [2, +∞])`, whose distance is 1: a fixed-point loop on a box with an unbounded side never stops. **Fixed**: `hausdorff([1, +∞], [1, +∞])` is 0, `hausdorff([1, +∞], [2, +∞])` is 1, and `hausdorff([1, +∞], [1, 2])` is +∞. | `gaol/core/gaol_interval_sse.cpp:95`, `gaol/core/gaol_interval_fpu.cpp:30` | low |
+| 20 | `nb_fp_numbers(-0.0, 1.0)` wraps around to 13830554455654793217; `[1, 2] - 1` has the lower bound −0. **Fixed** for `nb_fp_numbers()`, which counts −0 and +0 as one number: `nb_fp_numbers(-0.0, 1.0)` is 4607182418800017409. `[1, 2] - 1` still has the lower bound −0, the same number as +0 (section 5.3). | `gaol/core/gaol_interval_core.cpp:1451` | low |
+| 21 | The width and center output formats print a center and a radius rounded to nearest, which need not enclose the interval ([1, 1 + 2⁻⁵²] is written `1 (+/- 1.11e-16)`), and a radius of 0 for [0, 5·10⁻³²⁴], against the manual. `gaol_ieee1788::intervalToText` follows the global format and the global locale, so its text is not always an interval literal. **Fixed**: the width format writes the midpoint rounded to nearest and the radius rounded upward, so that [1, 1 + 2⁻⁵²] is `1 (+/- 2.220446049250314e-16)` and [0, 5·10⁻³²⁴] has a radius of 5·10⁻³²⁴ (the digits of the midpoint are those of the precision: the formats are for the eye); `gaol_ieee1788::intervalToText` writes `[l, r]` whatever the format. | `gaol/core/gaol_interval_core.cpp:789`, `gaol/gaol_ieee1788.h:375` | low |
+| 22 | The installed `gaol_interval_parser.h` does not compile when included; it and `gaol_init_cleanup.h` are internal. `gaol_allocator.h` does not compile alone. **Fixed**: `gaol_interval_parser.h` and `gaol_init_cleanup.h` are not installed, and `gaol_allocator.h` is gone. | `CMakeLists.txt:650`, `gaol/meson.build:121`, `gaol/Makefile.am:61` | low |
 
 ### 5.3 Behaviours to document, or to decide on
 
@@ -683,8 +686,10 @@ reviewer and every example writer:
   Constrained template constructors for the integer types would fix it, and
   enclose integers beyond 2⁵³.
 - The rounding direction leaks into the program (section 2.8), `cleanup()`
-  restores only once, there is no scoped guard and no documented barrier
-  (`rnd_keep()` exists but is not presented as interface).
+  restored only once, there is no scoped guard and there was no documented
+  barrier (`rnd_keep()` existed but was not presented as interface;
+  `restore_rounding()` can be called any number of times since, and
+  `rnd_keep()` is in `doc/using.md` and the manual).
 - With floating-point traps enabled (`feenableexcept`), `1/[0,1]`,
   `log([0,1])`, `[1e308]*10` and every `is_empty()` of a computed empty set
   die with SIGFPE: the unbounded results are computed as overflows or
@@ -927,16 +932,19 @@ To take:
    the other bugs of section 5.2 that remain (numbers 3 to 8, 10, 19 and 20;
    numbers 1, 9, 11 and 18 are applied), with their regression tests
    (Appendix B). Each is small and was validated on the SSE2 and FPU
-   builds.
+   builds. (Done since, but for the options that number 4 cannot refuse and the
+   lower bound −0 of number 20: see section 5.)
 2. Decide on flush-to-zero (number 2). The fused probe of Appendix B detects
    the rounding direction, FTZ and DAZ in one comparison, measured at no cost
    on an i7-1185G7; it should be measured on the other processors of the
    continuous integration (an addition with a subnormal operand can be slow on
    some x86 processors) before it replaces the probe of every operation. At
    the least, document that linking with `-Ofast` or `-ffast-math`, or loading
-   code built so, breaks the bounds, and refuse `-ffinite-math-only`.
+   code built so, breaks the bounds, and refuse `-ffinite-math-only`. (Done
+   since: the check of every operation reads the flush modes, and
+   `-ffinite-math-only` is refused; see numbers 2 and 4 of section 5.)
 3. Make the SSE2 and FPU builds agree on the rounded-product powers, or say in
-   `doc/accuracy.md` that they differ (number 7).
+   `doc/accuracy.md` that they differ (number 7; done since: they agree).
 
 ### Priority 2: the rounding direction and the rest of the program
 
@@ -947,10 +955,13 @@ To take:
 5. Offer `gaol::restore_rounding()`, callable any number of times, a scoped
    guard computing a block to nearest, and a documented barrier (`rnd_keep()`
    exists); document `GAOL_PRESERVE_ROUNDING` as the way for a program to know
-   the policy, and its measured cost.
+   the policy, and its measured cost. (Done since: `restore_rounding()` and the
+   barrier `rnd_keep()`, see `doc/using.md`.)
 6. Document the floating-point flags GAOL raises and that traps must be off;
    `is_empty()` with a quiet comparison (`std::islessequal`) would stop raising
-   FE_INVALID at no cost.
+   FE_INVALID at no cost. (Done since: "The floating-point exceptions" of
+   `doc/using.md` and the manual, and `is_empty()` compares with
+   `std::islessequal()` and raises no invalid-operation exception.)
 
 ### Priority 3: natural code
 
@@ -962,7 +973,8 @@ To take:
    and the warning in `doc/using.md` and the manual).
 9. Finish the streams (numbers 12 and 15; 13 and 14 are applied): write point
    intervals as `[a, b]` when their two texts differ, make `what()` the
-   explanation, and consider reading one interval token rather than a line.
+   explanation, and consider reading one interval token rather than a line
+   (numbers 12 and 15 are done since).
 10. Add the helpers every algorithm writes: `mulRevToPair`/`div_rel_pair`,
     `inflate`, `bisect(ratio)` and `is_bisectable()`, a mid-radius
     constructor, `hull()` and `intersect()` as functions, an enclosure of the
@@ -971,7 +983,9 @@ To take:
     headers; stop installing the internal headers; silence the header warnings
     (a defaulted copy assignment, unnamed unused parameters); restore
     `gaol::sin(0.5)` by not including `gaol_expression.h` from
-    `gaol_ieee1788.h`.
+    `gaol_ieee1788.h`. (Done since: the internal headers are no longer
+    installed, number 22.) (Not done: the constructors from a double are
+    explicit instead, number 16.)
 
 ### Priority 4: documentation
 
@@ -1037,7 +1051,10 @@ the fix, the whole ctest suite passing too.
 ## Appendix B. The fixes of the confirmed bugs
 
 The numbers are those of section 5. Numbers 1, 9, 11, 13, 14 and 18 are
-applied in the repository, with the tests described.
+applied in the repository, with the tests described. The code below is the fix
+as the review proposed it: the numbers marked (fixed since) are fixed in the
+repository too, some of them by another change than the one proposed, which the
+rows of section 5 describe.
 
 **1. `x -= x`, `x /= x`, `x %= x` in the FPU build (applied).** In
 `gaol_interval_fpu.cpp`, read the operand's bounds before writing:
@@ -1059,7 +1076,8 @@ and, in the P1-P1 cases of `operator/=` and `operator%=`,
 without 0 in x `r /= r` and `r %= r`, each against the exact extremes; on the
 original FPU build, 12 989 of these checks fail.
 
-**2. Flush-to-zero and denormals-are-zero.** In `round_upward_if_needed()`,
+**2. Flush-to-zero and denormals-are-zero (fixed since).**
+In `round_upward_if_needed()`,
 where `GAOL_RND_SSE_REGISTER` is 1, probe with a subnormal, which also
 shows FTZ and DAZ:
 
@@ -1078,7 +1096,8 @@ SSE2 only): under FTZ, DAZ and both, `[1e-300]*[1e-20]`,
 `[3e-308]-[2.9e-308]`, `sqr([1e-160])` and `[100·2^-1074]*[1e10]` are the
 tightest enclosures.
 
-**3. `pow` with a subnormal result.** In `gaol/core_math_port.h`, which every
+**3. `pow` with a subnormal result (fixed since).**
+In `gaol/core_math_port.h`, which every
 source of CORE-MATH includes first, on x86-64, define `fegetround()` as a read
 of MXCSR (after including `<fenv.h>`), as CORE-MATH's own `get_rounding_mode()`
 of `rsqrt.c`, `asinpi.c` and `cbrt.c` already does; the vendored sources stay
@@ -1087,7 +1106,8 @@ unchanged. Test: add to the operations of `tests/rounding_direction.cpp`
 and two more with subnormal results; the direction "to nearest, and upward for
 SSE" fails 6 checks without the fix.
 
-**4. `-ffinite-math-only`.** In `gaol_config.h`, after the `-ffast-math`
+**4. `-ffinite-math-only` (fixed since).**
+In `gaol_config.h`, after the `-ffast-math`
 check:
 
 ```cpp
@@ -1101,13 +1121,14 @@ test with `PASS_REGULAR_EXPRESSION "ffinite-math-only"` (`tests/fp_strict`,
 the check of Visual C++ and clang-cl without `/fp:strict`, is a
 `try_compile()` at configure time instead).
 
-**5. `atanh([1, x])`.** In `atanh()`, return the empty set when
+**5. `atanh([1, x])` (fixed since).** In `atanh()`, return the empty set when
 `J.left() == 1.0 || J.right() == -1.0` (J being `I & [-1, 1]`), and write the
 domain (−1, 1) in `doc/accuracy.md:109` and the manual. Test: `atanh([1])`,
 `atanh([1,5])`, `atanh_rel([1], entire)` in the table of empty results of
 `tests/elementary.cpp`.
 
-**6. `interval(sl, sr)`.** At the end of the constructor, set the empty set
+**6. `interval(sl, sr)` (fixed since).**
+At the end of the constructor, set the empty set
 when `tmpl.is_empty() || tmpr.is_empty() || !(tmpl.left() <= tmpr.right())`.
 (Done since another way: the constructor from two strings is gone, and
 `textToInterval(sl, sr)` returns `interval(tmpl.left(), tmpr.right())`, the
@@ -1115,12 +1136,13 @@ empty set for bounds in the wrong order.)
 Test (`tests/expressions.cpp`): `interval("2", "1")` stays empty after adding
 [0, 1] and in `max()`.
 
-**7. `pow` with large exponents.** In `ipow_exact_dn()`:
+**7. `pow` with large exponents (fixed since).** In `ipow_exact_dn()`:
 `nl = std::fma(-h,h,p) + nl*(2.0*h - nl);` (keeping the square of the rest).
 Test (`tests/arithmetic.cpp`): `pow([1.0000001], n)` for n = 2²⁸ − 1, 2³¹ − 1
 and 2³² − 1 against the tightest bounds from mpmath.
 
-**8. `tan`.** `const bool narrower_than_pi = (w <= gaol_pi_dn);`: w, the width
+**8. `tan` (fixed since).**
+`const bool narrower_than_pi = (w <= gaol_pi_dn);`: w, the width
 rounded upward, at most the double below π proves the exact width below π.
 Test (`tests/elementary.cpp`): `tan([-M_PI_2, M_PI_2])` is
 [−0x1.d02967c31cdb5p+53, 0x1.d02967c31cdb5p+53].
@@ -1144,7 +1166,8 @@ exponent 1000001: it is kept at 4 times the length of the text plus 2000,
 beyond which the number is out of the doubles whatever its digits; tested on
 that number, in decimal, in hexadecimal and in the uncertain form.
 
-**10. Null pointers.** `parse_interval()` returns false for a null pointer,
+**10. Null pointers (fixed since).**
+`parse_interval()` returns false for a null pointer,
 and the error messages write `(null pointer)` instead of the string
 (`x + nullptr` no longer compiles). Test (`tests/numbers.cpp`):
 `interval(std::getenv(...), "1")` of an unset variable throws
@@ -1158,7 +1181,8 @@ other nodes; `std::atomic` counts would make building expressions 2.4 times
 slower). Test (`tests/expressions.cpp`, with no thread): the null node's count
 is the same before and while `expression e, f = e; expression g; g = f;` live.
 
-**12. Point intervals written `<a, b>`.** In `display_bounds()`, write `<a, a>`
+**12. Point intervals written `<a, b>` (fixed since).**
+In `display_bounds()`, write `<a, a>`
 only when the two texts are equal (`l == r && left == right`), `[l, r]`
 otherwise; correct the manual where it shows `<0.1, 0.1000000000000001>`.
 Test (`tests/numbers.cpp`): for special values and every precision, the text
@@ -1180,13 +1204,13 @@ the exception stays `input_format_error`. Test: `while (in >> x)` over
 `"[1, 2]\n[3, 4]\n"` reads 2 intervals and throws nothing; `"[1, 2"` and
 `"<3, 4>"` set `failbit` and throw `input_format_error`.
 
-**15. `what()`.** In `gaol_exception`:
+**15. `what()` (fixed since).** In `gaol_exception`:
 `const char* what() const noexcept override { return explanation_.empty() ? "gaol_exception" : explanation_.c_str(); }`,
 and in `operator<<` of the exceptions no longer print `what()` next to the
 explanation. Test (`tests/expressions.cpp`): the `what()` of a refused string
 is its explanation.
 
-**16. `gaol::sin(0.5)`.** Stop including `gaol_expression.h` from
+**16. `gaol::sin(0.5)` (fixed since).** Stop including `gaol_expression.h` from
 `gaol_ieee1788.h`, and move `gaol_ieee1788`'s two expression overloads
 (`pown(e, n)`, `pow(e1, e2)`) to the end of `gaol_expression.h`; a program
 using expressions includes `gaol_expression.h`, as with GAOL 4. Test
@@ -1197,7 +1221,8 @@ Since then, `interval(double)`, `expression(double)` and
 with or without `gaol_expression.h`, which `tests/other_functions.cpp` and
 `tests/expressions.cpp` check, and is written `gaol::sin(interval(0.5))`.
 
-**17. Long sums.** In `gaol_interval_parser.ypp`, fold each binary operation
+**17. Long sums (fixed since).**
+In `gaol_interval_parser.ypp`, fold each binary operation
 when it is read (`$$ = gaol_leaf(gaol_value($1) + gaol_value($3))`), as calls
 of functions already are, and regenerate the committed parser. Test
 (`tests/expressions.cpp`): a sum and a product of 200 000 terms.
@@ -1206,13 +1231,15 @@ of functions already are, and regenerate the committed parser. Test
 `div_node`. Test: the in-place operators of `tests/expressions.cpp` with
 `/=`.
 
-**19. `hausdorff()`.** In both builds, `max(|a − c|, |b − d|)` rounded upward,
+**19. `hausdorff()` (fixed since).**
+In both builds, `max(|a − c|, |b − d|)` rounded upward,
 equal bounds (the infinite ones included) being at distance 0:
 `fmax((a == c) ? 0.0 : fmax(a - c, c - a), (b == e) ? 0.0 : fmax(b - e, e - b))`.
 Test (`tests/other_functions.cpp`): `hausdorff([1,+∞], [1,+∞]) == 0`,
 `hausdorff([1,+∞], [2,+∞]) == 1`, `hausdorff([1,+∞], [1,2]) == +∞`.
 
-**20. `nb_fp_numbers()`.** Number the doubles by the bits of |a| and |b|:
+**20. `nb_fp_numbers()` (fixed since).**
+Number the doubles by the bits of |a| and |b|:
 `ai.d = std::fabs(a); bi.d = std::fabs(b);` and `bi.i + ai.i + 1` when a < 0 < b.
 Test: `nb_fp_numbers(-0.0, 1.0)` and `nb_fp_numbers(-1.0, 0.0)` are
 4607182418800017409.
@@ -1220,3 +1247,4 @@ Test: `nb_fp_numbers(-0.0, 1.0)` and `nb_fp_numbers(-1.0, 0.0)` are
 **21 and 22** (output formats, installed headers) are small changes of the
 code or of the build files described in section 5.2; for the width and center
 formats, documenting them as display formats is the smallest correct change.
+Both are fixed since.
