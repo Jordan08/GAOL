@@ -321,7 +321,10 @@ namespace gaol_detail {
     1 where the relations between intervals make the comparison of the bounds
     before the tests of the empty set (GAOL v5, gaol/core/gaol_interval_core.h
     tells why), 0 where they make it after; -DGAOL_RELATION_BOUNDS_FIRST=0 or 1
-    asks for either
+    asks for either. 0 for RISC-V, where GCC 14 made that comparison on the NaN
+    bounds of an empty operand a signaling one (FE_INVALID), and for Clang on
+    64-bit ARM, where that order, without the hints, made x <= y twice slower
+    on a Neoverse N2 and where the order with them has not been measured
   */
 #ifndef GAOL_RELATION_BOUNDS_FIRST
 #  if defined(__riscv)

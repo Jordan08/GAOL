@@ -1255,11 +1255,11 @@ namespace gaol_core {
     former order of the tests did not give (equal numbers of jumps for < and >
     with Clang, for <= and >= with GCC for x86-64).
     The comparison of the bounds comes first, where the tests of the empty set
-    made two or three more comparisons to tell "true", except for RISC-V
-    (GAOL_RELATION_BOUNDS_FIRST, gaol_port.h): it is then made on the NaN bounds
-    of an empty operand, which GCC 14 compiles into a signaling comparison in
-    some loops (FE_INVALID raised for an empty operand of x <= y,
-    tests/rounding_direction.cpp).
+    made two or three more comparisons to tell "true", except for RISC-V and for
+    Clang on 64-bit ARM (GAOL_RELATION_BOUNDS_FIRST, gaol_port.h). It is made on
+    the NaN bounds of an empty operand, which GCC 14 for RISC-V compiles into a
+    signaling comparison in some loops (FE_INVALID raised for an empty operand
+    of x <= y, tests/rounding_direction.cpp).
   */
   GAOL_INLINE bool interval::certainly_ge(const interval &I) const
   {
