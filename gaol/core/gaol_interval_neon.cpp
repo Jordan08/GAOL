@@ -77,13 +77,13 @@
   }
 
   /*
-    The tests on the bounds of the divisor of a quotient, 1 / y, x / y and x % y (GAOL v5, point PG of
-    TODO.md), are made on the bits of its two bounds, in general registers, with integer instructions
-    only: nothing is compared as a double, which would raise an exception on a NaN
+    The tests on the bounds of the divisor of 1 / y (GAOL v5, point PG of TODO.md) are made on the bits of
+    its two bounds, in general registers, with integer instructions only: nothing is compared as a double,
+    which would raise an exception on a NaN
   */
-  // The 64 bits of the lane 0 and of the lane 1 of x in a general register, by umov in an asm statement: GCC
-  // for 64-bit ARM gets the lane 1 through a register of doubles (dup, fmov) from vgetq_lane_u64(), and
-  // Clang makes vector operations of the integer tests that use them. Visual C++ has no asm statement
+  // The 64 bits of the lane 0 and of the lane 1 of x in a general register, by umov in an asm statement: Clang
+  // makes vector operations (a vector comparison, then dup and fmov) of the integer tests that use
+  // vgetq_lane_u64(). Visual C++ has no asm statement
   GAOL_INLINE std::uint64_t low_bits(float64x2_t x)
   {
 #  if GAOL_NEON_MSVC
@@ -111,6 +111,8 @@
   {
 #  if !GAOL_NEON_MSVC
     __asm__ ("" : "+r" (x));
+#  else
+    (void)x;
 #  endif
   }
 
@@ -451,7 +453,7 @@ namespace gaol_core {
     bounds read after its check (GAOL v5, point PG of TODO.md). For a y without a zero, the quotient of [1], stored
     <-1, 1>, by y of divide_upward() is -1 / d and 1 / -(-c) for the sign of d clear, 1 / -d and -1 / (-c)
     for a negative d: the numerator being a constant, each of the two bounds is the quotient of -1 by one of
-    the stored bounds of y, d for the lower bound and -c for the upper one, exchanged for a negative d, and the
+    the stored bounds of y, -1 / d for the lower bound and -1 / (-c) for the upper one, whichever the sign of d, and the
     same quotient however it is written (a division gives the correctly rounded value, the exceptions and the
     sign of its exact quotient: 1 / -v is -1 / v, the sign of a zero included). So one division
     of -1 by the stored bounds exchanged, <d, -c>, in both lanes, where divide_upward() selects the
@@ -561,7 +563,7 @@ namespace gaol_core {
     return *this;
   }
 
-  // 1 / I: the quotient of [1] by I, which the cases above give, the empty
+  // 1 / I: the quotient of [1] by I (inverse_bounds()), the empty
   // set for [0] included; the rounding direction is upward, as for the FPU
   // intervals (see gaol_interval_core.h)
   interval interval::inverse_upward(const interval& I)
@@ -577,7 +579,7 @@ namespace gaol_core {
   interval interval::inverse() const
   {
     // is_empty() is true for a NaN in a bound, the comparison it makes being false: no
-    // empty set is left below, where inverse_upward() would tell it again with a reduction
+    // empty set is left below, which a reduction as in inverse_upward() would tell again
     if (is_empty()) {
       return interval::emptyset();
     }
