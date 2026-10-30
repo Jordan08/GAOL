@@ -133,17 +133,21 @@ namespace neon_detail {
   /*
     Whether d is neither a NaN nor an infinity, for which interval(d) is the empty set (GAOL v5, point
     PG of TODO.md): |d| < +oo, one quiet comparison in place of the two with -oo and +oo of the old test
-    (-oo < d && d < +oo), which cost a constant in a vector register and a comparison each (3 of the 12
-    vector instructions of x + d). The same flags as before: the quiet comparison raises the
-    invalid-operation exception for a signaling NaN, and the flag of a subnormal d read as zero
-    under the modes that flush them (FPSR.IDC), as the first of the old comparisons did, and fabs()
-    changes neither (it is not an arithmetic instruction: it leaves a NaN as it is)
+    (-oo < d && d < +oo), which were 4 vector instructions (two constants and two comparisons) in place
+    of the 3 of the new one (fabs, the move of the result and the comparison). Counted under qemu, the
+    path of x + d is 20 instructions with GCC 12 in place of 23, and 21 with Clang 18 and 21 in place
+    of 26. The same flags as before: the quiet comparison raises the invalid-operation exception for a
+    signaling NaN, and the flag of a subnormal d read as zero under the modes that flush them
+    (FPSR.IDC), as the first of the old comparisons did, and fabs() changes neither (it raises nothing
+    and does not quiet a signaling NaN; with FPCR.AH clear it clears the sign of a NaN, which the
+    comparison does not read)
   */
   GAOL_INLINE bool finite_double(double d) { return gaol_detail::quiet_less(std::fabs(d), GAOL_INFINITY); }
 
-  // An empty asm statement in the branch of the empty set: no compiler makes a select of the two
-  // results, which Clang does for a test on bits, with a vector comparison and a bit select that
-  // cost five vector instructions more than the branch the test on doubles kept
+  // An empty asm statement in the branch of the empty set. Without it Clang 18 to 21 make a select of the
+  // two results in interval(d), a mask and a bit select that are 3 vector instructions and 2 scalar ones
+  // more than the branch, and in x op= d they move the constant NaN above the test, onto the path that
+  // runs. GCC 12 to 15 keep the branch either way
   GAOL_INLINE void keep_branch()
   {
 #  if !GAOL_NEON_MSVC
@@ -155,7 +159,7 @@ namespace neon_detail {
 
 // An infinite v gives the empty set, as in IBEX: IEEE 1788-2015 has no
 // interval [+oo, +oo] nor [-oo, -oo] (10.5.8). A NaN gives it too, told by
-// the bits of v (neon_detail::finite_double()). The bounds go
+// a quiet comparison of |v| with +oo (neon_detail::finite_double()). The bounds go
 // through GAOL_FPU_SCALAR() as with the FPU intervals (gaol_interval_core.h):
 // GCC for 64-bit ARM vectorizes loops of constructions and compares the
 // bounds of every element, an empty one included, with signaling comparisons
