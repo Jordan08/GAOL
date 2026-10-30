@@ -82,35 +82,36 @@ namespace neon_detail {
     The bounds l and r make an interval, the condition of the constructor of two
     bounds: gaol_detail::bound_less_equal(l, r) && l < +oo && r > -oo (GAOL v5,
     point PG of TODO.md). l < r (false for a NaN) is the case that runs, and it
-    needs no test of the infinities, since l < r <= +oo and -oo <= l < r. Else the
-    bounds are the same bits, which make an interval but for a NaN and for an
-    infinity (the same one in both bounds, told by the exponent field of the bits
-    being all ones, with two integer instructions), or, if they differ, two doubles
-    equal as doubles, which can only be zeros, or subnormal numbers under the
-    modes that flush them to zero, and which are in the right order when their
-    bound_key() are (gaol_port.h). The comparison l == r is made last, and only
-    where the bits differ: the bits are in registers of the integer unit already,
-    where the comparison of the doubles would be a second one for Clang (GCC
-    shares the flags of the first). The two comparisons with -oo and +oo of the
-    old condition cost a constant in a vector register and a comparison each:
-    counted under qemu, interval(l, r) takes 6 instructions where l < r, in place
-    of 14 with GCC 12 and 16 with Clang 18 to 21 (GCC 14 already dropped them), but
-    12 where the bounds are in the wrong order or a NaN, in place of 7 or 8.
-    The flags are those of bound_less_equal(), but where the compiler knows that
-    l and r are the same value (interval(d, d) with one variable, at -O1 and above
-    for GCC): it makes no comparison then, so that a signaling NaN, and a
-    subnormal number under the modes that flush them, raise nothing
+    needs no test of the infinities, since l < r <= +oo and -oo <= l < r. r < l
+    is the wrong order, which includes l = +oo and r = -oo with a bound that is
+    not the same infinity. What is left is the same double in both bounds, or a
+    NaN: l == r tells them (it is false for a NaN, and the compilers take it
+    from the flags of the same comparison), and the same bits make an interval
+    but for an infinity (told by the exponent field of the bits being all ones,
+    with two integer instructions); different bits, two doubles equal as
+    doubles, can only be zeros, or subnormal numbers under the modes that flush
+    them to zero, which are in the right order when their bound_key() are
+    (gaol_port.h). The two comparisons with -oo and +oo of the old condition
+    cost a constant in a vector register and a comparison each. Counted under
+    qemu (GCC 12 and 14), interval(l, r) takes 6 instructions where l < r (14
+    with GCC 12 before), 14 to 20 where the bounds are the same double or
+    zeros of different signs (19 to 28 before), and 7 for the wrong order and
+    a NaN, as before. The flags are those of bound_less_equal(): the same
+    quiet comparison first, and l == r after it, as there
   */
   GAOL_INLINE bool valid_bounds(double l, double r)
   {
     if (gaol_detail::quiet_less(l, r)) {
       return true;
     }
+    if (gaol_detail::quiet_less(r, l) || !(l == r)) {
+      return false;
+    }
     const std::uint64_t left_bits = gaol_detail::bound_bits(l);
     if (left_bits == gaol_detail::bound_bits(r)) {
-      return (left_bits << 1) < 0xffe0000000000000ull; // neither a NaN nor an infinity
+      return (left_bits << 1) < 0xffe0000000000000ull; // not an infinity
     }
-    return l == r && gaol_detail::bound_key(l) <= gaol_detail::bound_key(r);
+    return gaol_detail::bound_key(l) <= gaol_detail::bound_key(r);
   }
 
 } // namespace neon_detail
