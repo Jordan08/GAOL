@@ -273,12 +273,11 @@ where it comes from.
   rather than [−∞, +∞] and `sin([0, 4])` was [-0, 0], without any warning (25
   of the 45 checks of `tests/static_initialization.cpp` failed with the SSE2
   intervals, 24 with the others).
-  - `gaol_pi_dn`, `gaol_pi_up`, `gaol_half_pi_dn`, `gaol_half_pi_up`, `ln2_dn`
-    and `ln2_up` (`gaol/gaol_port.h`) are written in decimal, exactly, rather
-    than read from the unions that give their bits, which is not a constant
-    expression. The four of π and π/2 are in `gaol_core`, under these names
-    (GAOL 4 had them in `gaol` as `pi_dn`...), and `gaol` and `gaol_ieee1788`
-    name them too.
+  - `gaol_pi_dn`, `gaol_pi_up`, `gaol_half_pi_dn` and `gaol_half_pi_up`
+    (`gaol/gaol_port.h`) are written in decimal, exactly, rather than read from
+    the unions that give their bits, which is not a constant expression. They
+    are in `gaol_core`, under these names (GAOL 4 had them in `gaol` as
+    `pi_dn`...), and `gaol` and `gaol_ieee1788` name them too.
   - `interval::one()`, `pi()`, `universe()` and the other constants of
     intervals build their interval from these doubles, which the compiler
     folds, rather than copy the static intervals `interval::cst_one`,
@@ -819,24 +818,40 @@ where it comes from.
 - **The namespaces `gaol_core`, `gaol` and `gaol_ieee1788`** (see
   [Using GAOL](using.md#the-namespaces)). The type `interval`, GAOL's
   functions and its expressions are in `gaol_core`; `gaol` names them as GAOL
-  did, and `gaol_ieee1788` as IEEE 1788-2015 does. `pow` and
+  did, and `gaol_ieee1788` as IEEE 1788-2015 does. `gaol` names them one by one,
+  with using-declarations, rather than opening `gaol_core` whole: the names
+  GAOL 4 had in `gaol` that GAOL v5 still has, the functions on intervals GAOL
+  v5 adds (`exp2`, `hypot`, `fma`, `cancel_minus`, `trunc`... and the nodes of
+  their expressions), `restore_rounding()` and `exact_string()`. The two
+  namespaces differ mainly in the power, the standard having two where GAOL 4
+  had one: the `pow` of `gaol` takes the integer power for an integer exponent,
+  a negative base included, and the real power otherwise, while in
+  `gaol_ieee1788` `pow` is the real power, on the part of x in [0, +oo], and
+  `pown` the integer power (see [The powers in the two
+  namespaces](using.md#the-powers-in-the-two-namespaces)). `pow` and
   `textToInterval`, the functions of the same name whose meaning differs
   between the two, are in each of them and not in `gaol_core`, where
   argument-dependent lookup looks for a call on an interval: each namespace
   finds its own only. The powers of
-  `gaol_core` are named apart: `gaol_pown()`, `gaol_uipow()`,
+  `gaol_core` are named apart: `gaol_pown()`, `gaol_uipow()`, `gaol_pown_ll()`,
   `gaol_pow_real()`, `gaol_pow_hybrid()`, `gaol_pown_exp()` and
   `gaol_pow_exp()`, and the node of a power of expressions keeps the function
   that computes it. The reader of strings, `parse_interval()` and
   `parsing_names`, is in `gaol_core`, and its code takes GAOL's `pow`.
-  `gaol` does not name the exceptions, `rnd_keep()`, `NaN_val`, `eval_stack`,
-  `parse_interval()` nor `parsing_names`, which GAOL 4 had in `gaol`: a program
-  names them in `gaol_core`. `f_negate()`, `f_negate_simple()`, the macro
-  `opposite()`, `get_fpu_cw()` and `reset_fpu_cw()`, which nothing in GAOL
-  called, are gone. `gaol` and
-  `gaol_ieee1788` both name `version_major`, `version_minor`, `version_micro`
-  and `version`, and `gaol_pi_dn`, `gaol_pi_up`, `gaol_half_pi_dn` and
-  `gaol_half_pi_up`.
+  `gaol` does not name the exceptions, `NaN_val`, `eval_stack` nor
+  `parse_interval()`, which GAOL 4 had in `gaol`, nor `rnd_keep()` and
+  `parsing_names`, which GAOL v5 adds, nor what GAOL uses for itself: the
+  functions that get and set the `rounding_state`, the rounding direction and
+  the flush-to-zero modes (`get_rounding()`, `set_rounding()`,
+  `get_flush_modes()`...), and the internals of GAOL 4 that its manual did not
+  document (`gaol_signbit()`, `uintdouble`, `ullidouble`, `Interval_struct`,
+  `the_null_expr`, `prec_t`, `modulo_k_pi()`, `round_upward_sse()` and the other
+  `round_*_sse()`). A program names them in `gaol_core`, as
+  `gaol_core::get_rounding()`. `f_negate()`, `f_negate_simple()`, the macro
+  `opposite()`, `get_fpu_cw()` and `reset_fpu_cw()`, which GAOL v5 no longer
+  calls, are gone. `gaol` and `gaol_ieee1788` both name `version_major`,
+  `version_minor`, `version_micro` and `version`, and `gaol_pi_dn`,
+  `gaol_pi_up`, `gaol_half_pi_dn` and `gaol_half_pi_up`.
   - **`gaol/gaol.h`** no longer opens `gaol`: a program adds
     `using namespace gaol;` or `using namespace gaol_ieee1788;`, one of the
     two, `pow(x, y)` being ambiguous with both.
@@ -880,22 +895,153 @@ where it comes from.
   and `nearest`; `gaol/gaol` and `gaol/gaol_interval.h` included it, and the
   three builds installed it. It is now a header of the sources, which no
   installed header includes, and `gaol_ieee1788::pow()`, which called two of
-  its functions, is compiled in the library rather than inline in
-  `gaol/gaol_ieee1788.h`. The thirty-two functions that checked the rounding
-  direction for the code calling them from outside GAOL are gone, and
-  `tests/rounding_direction.cpp` no longer calls them; `gaol_core::upward`,
-  which the operations of intervals call, stays. `ipow_up()`, `ipow_dn()`,
-  `pow_up()` and `pow_dn()`, which no operation of GAOL called, are removed
-  from the header.
+  its functions, calls `gaol_core::pow_standard()`, which the library compiles
+  and exports, rather than compute inline in `gaol/gaol_ieee1788.h`. The
+  thirty-two functions that checked the rounding direction for the code calling
+  them from outside GAOL are gone, and `tests/rounding_direction.cpp` no longer
+  calls them; `gaol_core::upward`, which the operations of intervals call,
+  stays. `ipow_up()`, `ipow_dn()`, `pow_up()` and `pow_dn()`, which no operation
+  of GAOL called, are removed from the header.
+- **The `double` constants of `gaol/gaol_port.h` are no longer declared for the
+  code using GAOL.** GAOL 4 declared `two_pi`, `pi`, `half_pi`, `pi_dn`,
+  `pi_up`, `half_pi_dn`, `half_pi_up`, `ln2_dn`, `ln2_up`, `two_power_51` and
+  `two_power_52` in the namespace `gaol`: a program that opened it with `using
+  namespace gaol;` found them among its own names, and a `pi` of its own was
+  ambiguous. The bounds of π, π/2 and 2π are those of `interval::pi()`,
+  `interval::half_pi()` and `interval::two_pi()` (`interval::pi().left()` is π
+  rounded downward), and those of ln 2 are those of `log(interval(2.0))`. The
+  library of GAOL v5 uses none of `two_pi`, `pi`, `half_pi`, `ln2_dn`, `ln2_up`
+  and `two_power_51`, which are removed; `two_power_52` is a constant of
+  `gaol/core/gaol_interval_core.cpp`; the four doubles around π and π/2 that the
+  library does use are `gaol_pi_dn`, `gaol_pi_up`, `gaol_half_pi_dn` and
+  `gaol_half_pi_up` (see the namespaces above).
+- **The headers GAOL installs are the ones a program includes.** The three
+  builds install the same list: `gaol/gaol`, `gaol/gaol.h`, the headers they
+  include, and `gaol/parser/gaol_expression.h` and
+  `gaol/parser/gaol_expr_eval.h` for the expressions. They install no header of
+  GAOL's sources: neither `gaol/parser/gaol_interval_parser.h`
+  (`gaol/gaol_interval_parser.h` in GAOL 4), which did not compile when
+  included, nor `gaol/gaol_init_cleanup.h`, both of which GAOL 4 installed, nor
+  `gaol/gaol_core_math.h` and `gaol/gaol_u128.h`, which no installed header
+  includes (nor `gaol/gaol_double_op.h`, see above). Each installed header
+  compiles alone with `-std=c++11` and the flags of `gaol.pc`
+  (`.github/scripts/headers.sh` checks it on the installed GAOL), but four:
+  `gaol/core/gaol_interval_fpu.h`, `gaol/core/gaol_interval_neon.h` and
+  `gaol/core/gaol_interval_sse.h`, which other headers include in the middle of
+  their code, and `gaol/gaol_fpu_msvc.h`, for Visual C++ only.
+- **The expressions and the reader of strings are in `gaol/parser/`.** GAOL 4
+  installed the headers of the expressions (`gaol_expression.h`,
+  `gaol_expr_eval.h`, `gaol_expr_visitor.h`, `gaol_eval_stack.h`) and of the
+  reader of strings (`gaol_parser.h`) in `include/gaol/`, with the sources of
+  the expressions, the lexer and the parser in `gaol/`. The sources are in
+  `gaol/parser/` now (with `regenerate_parser.sh`), and the three builds
+  install the five headers in `include/gaol/parser/`: a program that builds
+  expressions includes `gaol/parser/gaol_expression.h`, with
+  `gaol/parser/gaol_expr_eval.h` to evaluate them, where it included
+  `gaol/gaol_expression.h`. No header is left in `include/gaol/` to include the
+  new ones, and `gaol/gaol`, which did not include the expressions in GAOL 4,
+  does not either.
+- **`gaol/gaol_interval.h` is split in two, and the headers of the intervals are
+  installed in `include/gaol/core/`.** GAOL 4 declared the class `interval`, its
+  functions and the namespace `gaol` in `gaol/gaol_interval.h`, defined them in
+  `gaol/gaol_interval.cpp`, and installed `gaol_interval_fpu.h` and
+  `gaol_interval_sse.h` beside it in `include/gaol/`. The class, the functions
+  and the helpers of `gaol_core` are declared in
+  `gaol/core/gaol_interval_core.h` and defined in
+  `gaol/core/gaol_interval_core.cpp` now, which includes the code of the SSE2,
+  NEON and FPU intervals; `gaol/gaol_interval.h` and `gaol/gaol_interval.cpp`
+  hold the namespace `gaol` alone (its using-declarations, its `pow` and
+  `textToInterval()`), as `gaol/gaol_ieee1788.h` and `gaol/gaol_ieee1788.cpp`
+  hold `gaol_ieee1788`. The three builds install `gaol_interval_core.h`,
+  `gaol_interval_fpu.h`, `gaol_interval_neon.h` and `gaol_interval_sse.h` in
+  `include/gaol/core/`, as their sources are in `gaol/core/`, and no header is
+  left at the old place. `gaol/gaol_interval.h` stays in `include/gaol/` and
+  includes `gaol/core/gaol_interval_core.h`, so that a program that includes it,
+  or `gaol/gaol`, is not touched by the move (see [Using
+  GAOL](using.md#the-headers)).
 - **The timing of GAOL 4 is gone: `gaol/gaol_profile.h` and
   `gaol/gaol_profile.cpp`.** `gaol/gaol` no longer includes the header, and
   the three builds neither install it nor compile the source. The class
   `timepiece` and the functions `get_time()`, `reset_time()`,
   `elapsed_time()` and `intermediate_elapsed_time()` leave the interface,
-  and so does the macro `GAOL_HAVE_GETRUSAGE` of
+  and so does the macro `HAVE_GETRUSAGE` of
   `gaol/gaol_configuration.h`, which nothing read but
   `gaol/gaol_profile.cpp`. A program measures the time with the clocks of
   the C++ standard library, as `examples/16_Goldstein_Price.cpp` does.
+- **`gaol/gaol_parameters.h` and `gaol/gaol_limits.h` are gone.** GAOL 4
+  installed both. The first declared an empty namespace `gaol` ("None at
+  present"); the second included `<limits>`, or, where the configuration did
+  not find it, declared a `std::numeric_limits` of its own for `double` and
+  `int`. A program that included them includes `<limits>` itself.
+- **`gaol/gaol_assert.h` and `GAOL_ASSERT` are gone.** GAOL 4 installed the
+  header, and its manual documented the macro: with `GAOL_DEBUGGING` it was
+  `assert()`, with `NDEBUG` undefined to keep it active, and it was nothing
+  otherwise. GAOL used it only in `ipow_up()` and `ipow_dn()`, which are gone
+  too (see above). A program that wants the check writes `assert()`;
+  `GAOL_DEBUGGING` only turns on `GAOL_DEBUG_VERBOSE`, and the Debug builds
+  define no `NDEBUG` (see below).
+- **`gaol/gaol_exact.h`, `get_inexact()` and `clear_inexact()` are gone**, with
+  the C file that defined them and `gaol/sysdeps/`, which held the versions for
+  C99 and for Visual C++. GAOL 4 installed them, and its lexer called them to
+  know whether `strtod()` had rounded a number. GAOL v5 reads numbers exactly,
+  without the inexact flag (see above), so nothing called them any longer: the
+  two C functions are no longer in `libgaol`, nor exported by its shared
+  library.
+- **`gaol/gaol_flags.h` and `s_nextafter()` are gone.** `gaol_flags.h` declared
+  a single class, `prec_t`, the priorities of the operators of the expressions,
+  which only `gaol/parser/gaol_expression.cpp` uses: it is in
+  `gaol/parser/gaol_expression.h` now, in `gaol_core` (`gaol` does not name it).
+  `s_nextafter()`, the function of `gaol/s_nextafter.c`, which GAOL 4 compiled
+  into its library and which `gaol/gaol_port.h` substituted for `nextafter` with
+  Visual C++ where the configuration found none, has no caller since that
+  substitution is gone (see below).
+- **`gaol/gaol_allocator.h` is gone**, with `gaol::aligned_allocator`, an
+  allocator of the containers of the standard library that aligned memory on
+  16 bytes for the SSE2 intervals. `gaol/gaol` included it with SSE3 and the
+  builds installed it; neither GAOL, Codac nor IBEX used it. The `operator new`
+  of the SSE2 intervals still aligns their memory (`GAOL_MEMALIGN` and
+  `GAOL_MEMFREE` of `gaol/gaol_port.h`), but for Visual C++ and clang-cl on
+  32-bit Windows, whose intervals need none.
+- **`__GAOL_PUBLIC__` is `GAOL_PUBLIC`, and is empty with Visual C++ and
+  clang-cl**, with which GAOL is always a static library. GAOL 4 declared its
+  functions `__declspec(dllimport)` there, or `__declspec(dllexport)` with
+  `_COMPILING__GAOL_PUBLIC__`, which no build defined, so that the code using
+  GAOL had to define `__GAOL_PUBLIC__` empty. GAOL v5 needs no definition: the
+  CMake build, the meson build, `gaol::gaol`, `gaol_dep` and `gaol.pc` define
+  none, no header reads `__GAOL_PUBLIC__` any longer (a definition left in a
+  project changes nothing), and a program may define `GAOL_PUBLIC` before
+  including GAOL to replace it. With GCC and Clang nothing changes:
+  `GAOL_PUBLIC` is the default visibility where the library is compiled with
+  `-fvisibility=hidden`, so that the shared library exports the declarations,
+  and nothing otherwise.
+- **`gaol/gaol_exceptions.h` no longer declares `string` and `exception` in the
+  global namespace, and the macros of GAOL's headers start with `GAOL_`**, so as
+  not to meet the names of the program or of another library.
+  - **Names.** `string` and `exception` were there by `using std::string;` and
+    `using std::exception;`: a program that counted on them writes `std::string`
+    and `std::exception`.
+  - **Macros.** `INLINE`, `MEMALIGN`, `__HI`, `__LO`, `HAVE_FENV_H`,
+    `USING_SSE2_INSTRUCTIONS`, `IX86_LINUX`, `WORDS_BIGENDIAN`,
+    `ULONGLONGINT`... are now `GAOL_INLINE`, `GAOL_MEMALIGN`, `GAOL_HI`,
+    `GAOL_LO`, `GAOL_HAVE_FENV_H`, `GAOL_USING_SSE2_INSTRUCTIONS`,
+    `GAOL_IX86_LINUX`, `GAOL_WORDS_BIGENDIAN`, `GAOL_ULONGLONGINT`..., in the
+    sources, in the three `gaol/gaol_configuration.h` and in the builds. The
+    macros that `gaol/gaol`, `gaol/parser/gaol_expression.h` and
+    `gaol/parser/gaol_expr_eval.h` define, beyond those of the system headers
+    they include, all start with `GAOL_` or `gaol_`
+    (`.github/scripts/headers.sh`).
+  - **`_XOPEN_SOURCE`** is no longer redefined to 600 by `gaol/gaol_port.h` (x86
+    and ARM on Linux): g++ and clang++ define `_GNU_SOURCE`, under which
+    `<stdlib.h>` declares `posix_memalign()`.
+  - **`nb_fp_numbers()`** returns an `unsigned long long`, where GAOL 4 returned
+    `ULONGLONGINT`, `unsigned long` where `long` has 64 bits.
+- **The headers compile without a warning** under `-Wall -Wextra`, and under
+  `-Wold-style-cast -Wundef`, in the code that includes them. With `-Wextra`,
+  every assignment `x = y` of intervals warned that the implicit assignment was
+  deprecated, the class having a copy constructor of its own: `interval&
+  operator=(const interval&) = default;` is declared (the class is still not
+  trivially copyable). The continuous integration compiles GAOL, its tests and
+  its examples with `-Wall -Wextra -Werror`, with GCC and Clang.
 - **The constructor from one string, `interval(const char*)`, is gone.**
   `gaol::textToInterval()` reads the string instead, with the same names of
   functions, and throws the same `input_format_error` for a string that is no
@@ -962,7 +1108,7 @@ where it comes from.
   18.3 ns, `sqrt(x)` 8.3 ns rather than 41.3 ns, and `log(x)` 73 ns rather than
   110 ns.
 - **The memory of GAOL's SSE2 intervals** is released with the function
-  matching the one that allocated it (`MEMFREE()` in `gaol/gaol_port.h`):
+  matching the one that allocated it (`GAOL_MEMFREE()` in `gaol/gaol_port.h`):
   `_aligned_malloc()` and `_aligned_free()` on Windows, where `malloc()` aligns
   on 8 bytes only on 32-bit systems, so that the SSE2 intervals can be used with
   MinGW-w64 and MSYS2 on x64. The placement `delete` of `interval` and
@@ -1113,10 +1259,13 @@ where it comes from.
   `GAOL_FLOAT_INTERVALS` of CMake, `--enable-float-intervals` of configure
   and `enable-float-intervals` of meson, which compiled them for a while,
   are gone. A developer working on them defines the macro in
-  `gaol/gaol_config.h`: `gaol/core/gaol_interval_core.cpp` then includes their sources,
-  as it includes those of the SSE2 and FPU intervals. Their headers are not
-  installed, `gaol/gaol` does not include them, and their tests,
-  `tests/intervalf.cpp` and `tests/interval2f.cpp`, are skipped.
+  `gaol/gaol_config.h`: `gaol/core/gaol_interval_core.cpp` then includes their
+  sources, `gaol/float/gaol_intervalf.cpp` and `gaol/float/gaol_interval2f.cpp`,
+  as it includes those of the SSE2 and FPU intervals. Their headers, in
+  `gaol/float/` too with `gaol_generator_mul_i2f.py`, the script that writes the
+  cases of the product of `interval2f`, are not installed, `gaol/gaol` does not
+  include them, and their tests, `tests/intervalf.cpp` and
+  `tests/interval2f.cpp`, are skipped.
 - **The archive of the sources and the packages are made by CMake**
   (CPack, see [Building GAOL](building.md#the-archive-of-the-sources-and-the-packages)):
   `cmake --build <build> --target package_source` gives `gaol-<version>.tar.gz`,
@@ -1154,8 +1303,8 @@ where it comes from.
   every C library.
 - **The meson build** did not compile on Linux without `GETRUSAGE_IN_HEADER`,
   which configure defined: `gaol/gaol_profile.cpp` declared `getrusage()`
-  itself, against the declaration of the C library; it no longer declares it,
-  and the macro is gone. meson installs the headers for MinGW and
+  itself, against the declaration of the C library. The file is gone (see
+  above), and the macro with it. meson installs the headers for MinGW and
   Visual C++, as configure now does too. Both install
   a `gaol.pc` carrying the flags of interval arithmetic. The meson build no
   longer requires flex and bison: it compiles the lexer and the parser
@@ -1173,6 +1322,20 @@ where it comes from.
     and `PACKAGE_*`, which `gaol/gaol_config.h` undefined before including it,
     undefining those of the code including GAOL. The template of configure,
     `gaol/gaol_configuration.h.in`, is written by hand.
+  - **The macros that the installed headers read with `#if` are 1 or 0, never
+    undefined**, so that GAOL's headers compile under `-Wundef -Werror`: the
+    options of `gaol/gaol_configuration.h` (`GAOL_PRESERVE_ROUNDING`,
+    `GAOL_DEBUGGING`, `GAOL_VERBOSE_MODE`, `GAOL_USING_SSE2_INSTRUCTIONS`, the
+    `GAOL_HAVE_*`...) and the macros of the target in `gaol/gaol_config.h`,
+    `gaol/gaol_fpu.h` and `gaol/gaol_fpu_fenv.h` (`GAOL_WORDS_BIGENDIAN`,
+    `GAOL_RND_SSE_REGISTER`, `GAOL_IX86_LINUX`...) are defined to 1 where they
+    hold and to 0 elsewhere, with the three builds. GAOL 4 left its options
+    undefined when they were off, and its headers read them with `#if`, which
+    warns under `-Wundef`. A program has to test these macros with `#if` as
+    well, not with `#ifdef`: `#ifdef GAOL_PRESERVE_ROUNDING` is now true
+    whatever the build. `.github/scripts/headers.sh` compiles each installed
+    header with `-Wundef` (see [Building
+    GAOL](building.md#the-configuration-of-gaol)).
   - **The same options** (see [The options](building.md#the-options)):
     `GAOL_PRESERVE_ROUNDING`, `GAOL_SIMD`, `GAOL_COVERAGE`, `WITH_TESTS`,
     `WITH_EXAMPLES`, `BUILD_SHARED_LIBS`, the build type, the
