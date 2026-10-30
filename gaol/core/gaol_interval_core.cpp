@@ -6163,8 +6163,8 @@ interval nth_root(const interval& I, int q)
     the constructor of two bounds would keep them: l is below r in the result
     as it is in the operands, and its words are among theirs. Nothing else is
     told, and no floating-point instruction runs. Counted under qemu (Clang 18
-    to 21 and GCC 12), the common case is 33 to 35 instructions, at most 2 of
-    them on the vector registers (the move of the two words to a vector
+    to 21, GCC 12 and 14), the common case is 33 to 36 instructions, at most 2
+    of them on the vector registers (the move of the two words to a vector
     register, when they are not stored as a pair), where the lanes compared as
     vectors and told by the constructor of two bounds were 41 to 43, 28 or 29
     of them on the vector registers (47 to 50 when the bounds of the result
@@ -6175,11 +6175,12 @@ interval nth_root(const interval& I, int q)
     words <-l> of the operands, as the empty set has in both words, is told by
     the first comparison of the common case, before the keys are computed: the
     larger of the two rotated words against the rotated -oo, below which are
-    the stored bounds and above which are the NaN. The code of the empty set
+    the stored bounds, equal to which is a stored -oo, and above which are the
+    NaN. The code of the empty set
     follows that comparison, and the common case jumps over it (the lanes
     tested as vectors did the same, and GAOL_MAXMIN_FIRST() tells the
     compilers to keep this order). An empty operand, whichever of the two it
-    is, then takes 15 instructions under qemu (Clang 18 to 21 and GCC 12),
+    is, then takes 15 instructions under qemu (Clang 18 to 21, GCC 12 and 14),
     one at most on the vector registers (the store of the empty set), and no
     taken branch, where the lanes tested as vectors took 16, 9 of them on the
     vector registers, and 19 with GCC. A second comparison tells a NaN from a
