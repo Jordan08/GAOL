@@ -1258,29 +1258,35 @@ namespace gaol_core {
     before them is made on the NaN bounds of an empty operand, which GCC 14 for
     RISC-V compiles into a signaling comparison in some loops (FE_INVALID
     raised for an empty operand of x <= y, tests/rounding_direction.cpp).
+    The equal bounds are found by quiet_less_equal(r, l), not by r == l: with
+    r == l after quiet_less(r, l), and a constant r other than zero (x >= 1.5,
+    1.5 <= x), GCC 14 for x86-64, 64-bit ARM and RISC-V knows the bounds to be
+    tied and folds the two into the signaling comparison r <= l, which raises
+    FE_INVALID for the NaN bounds of an empty operand wherever the compiler
+    makes it before the tests of the empty set, in a loop for instance.
   */
   GAOL_INLINE bool interval::certainly_ge(const interval &I) const
   {
     const double r = I.right(), l = left();
-    return GAOL_UNLIKELY(is_empty()) || GAOL_UNLIKELY(I.is_empty()) || GAOL_LIKELY(gaol_detail::quiet_less(r, l)) || (GAOL_UNLIKELY(r == l) && gaol_detail::bound_tied_less(r, l));
+    return GAOL_UNLIKELY(is_empty()) || GAOL_UNLIKELY(I.is_empty()) || GAOL_LIKELY(gaol_detail::quiet_less(r, l)) || (GAOL_UNLIKELY(gaol_detail::quiet_less_equal(r, l)) && gaol_detail::bound_tied_less(r, l));
   }
 
   GAOL_INLINE bool interval::certainly_geq(const interval &I) const
   {
     const double r = I.right(), l = left();
-    return GAOL_UNLIKELY(is_empty()) || GAOL_UNLIKELY(I.is_empty()) || GAOL_LIKELY(gaol_detail::quiet_less(r, l)) || (GAOL_UNLIKELY(r == l) && gaol_detail::bound_tied_less_equal(r, l));
+    return GAOL_UNLIKELY(is_empty()) || GAOL_UNLIKELY(I.is_empty()) || GAOL_LIKELY(gaol_detail::quiet_less(r, l)) || (GAOL_UNLIKELY(gaol_detail::quiet_less_equal(r, l)) && gaol_detail::bound_tied_less_equal(r, l));
   }
 
   GAOL_INLINE bool interval::certainly_le(const interval &I) const
   {
     const double r = right(), l = I.left();
-    return GAOL_UNLIKELY(is_empty()) || GAOL_UNLIKELY(I.is_empty()) || GAOL_LIKELY(gaol_detail::quiet_less(r, l)) || (GAOL_UNLIKELY(r == l) && gaol_detail::bound_tied_less(r, l));
+    return GAOL_UNLIKELY(is_empty()) || GAOL_UNLIKELY(I.is_empty()) || GAOL_LIKELY(gaol_detail::quiet_less(r, l)) || (GAOL_UNLIKELY(gaol_detail::quiet_less_equal(r, l)) && gaol_detail::bound_tied_less(r, l));
   }
 
   GAOL_INLINE bool interval::certainly_leq(const interval &I) const
   {
     const double r = right(), l = I.left();
-    return GAOL_UNLIKELY(is_empty()) || GAOL_UNLIKELY(I.is_empty()) || GAOL_LIKELY(gaol_detail::quiet_less(r, l)) || (GAOL_UNLIKELY(r == l) && gaol_detail::bound_tied_less_equal(r, l));
+    return GAOL_UNLIKELY(is_empty()) || GAOL_UNLIKELY(I.is_empty()) || GAOL_LIKELY(gaol_detail::quiet_less(r, l)) || (GAOL_UNLIKELY(gaol_detail::quiet_less_equal(r, l)) && gaol_detail::bound_tied_less_equal(r, l));
   }
 
 
