@@ -308,19 +308,32 @@ namespace gaol_detail {
   }
 
   /*
+    What bound_less() and bound_less_equal() add to the quiet comparison (GAOL
+    v5): false unless x == y, hence for a NaN. The relations between intervals
+    make the quiet comparison before these (gaol/core/gaol_interval_core.h).
     Two equal doubles of the same bits, the bounds of a point interval as
     floor() makes them, are the same bound: tested first, they spare the
     integers of bound_key(), which cost floor() 0.6 to 1 ns on an Intel i7-1185G7
     (Clang 18)
   */
+  GAOL_INLINE bool bound_tied_less(double x, double y)
+  {
+    return x == y && bound_bits(x) != bound_bits(y) && bound_key(x) < bound_key(y);
+  }
+
+  GAOL_INLINE bool bound_tied_less_equal(double x, double y)
+  {
+    return x == y && (bound_bits(x) == bound_bits(y) || bound_key(x) <= bound_key(y));
+  }
+
   GAOL_INLINE bool bound_less(double x, double y)
   {
-    return quiet_less(x, y) || (x == y && bound_bits(x) != bound_bits(y) && bound_key(x) < bound_key(y));
+    return quiet_less(x, y) || bound_tied_less(x, y);
   }
 
   GAOL_INLINE bool bound_less_equal(double x, double y)
   {
-    return quiet_less(x, y) || (x == y && (bound_bits(x) == bound_bits(y) || bound_key(x) <= bound_key(y)));
+    return quiet_less(x, y) || bound_tied_less_equal(x, y);
   }
 
   GAOL_INLINE bool bound_greater(double x, double y)

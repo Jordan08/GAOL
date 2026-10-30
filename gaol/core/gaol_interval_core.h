@@ -1240,25 +1240,40 @@ namespace gaol_core {
     which is true when either interval is empty (Table 10.4), as for
     certainly_ge() and certainly_geq(). GAOL gave false when only I was empty,
     respectively only *this (GAOL v5).
+    The relations are three tests ORed (GAOL v5): either interval is empty, or
+    the bounds are in order. The order of the tests does not change the result.
+    The test of *this comes first, then the quiet comparison of the bounds, then
+    the test of I: when the relation holds between two intervals, two tests tell
+    it where three did, and an empty *this is told by the first test as before.
+    The comparison is false for the NaN bounds of the empty set, as for any NaN.
+    Only equal bounds are left to compare as bits and as integers
+    (gaol_detail::bound_tied_less() and bound_tied_less_equal(), gaol_port.h).
+    With the tests of both intervals first, GCC 13.3 compiled x <= y into code
+    that took 5.9 ns instead of about 1.6 ns on an Intel i7-1185G7 (gaol_performance),
+    for some addresses of the code; GCC 15 and Clang 18 did not.
   */
   GAOL_INLINE bool interval::certainly_ge(const interval &I) const
   {
-    return is_empty() || I.is_empty() || gaol_detail::bound_greater(left(), I.right());
+    const double r = I.right(), l = left();
+    return is_empty() || gaol_detail::quiet_less(r, l) || I.is_empty() || gaol_detail::bound_tied_less(r, l);
   }
 
   GAOL_INLINE bool interval::certainly_geq(const interval &I) const
   {
-    return is_empty() || I.is_empty() || gaol_detail::bound_greater_equal(left(), I.right());
+    const double r = I.right(), l = left();
+    return is_empty() || gaol_detail::quiet_less(r, l) || I.is_empty() || gaol_detail::bound_tied_less_equal(r, l);
   }
 
   GAOL_INLINE bool interval::certainly_le(const interval &I) const
   {
-    return is_empty() || I.is_empty() || gaol_detail::bound_less(right(), I.left());
+    const double r = right(), l = I.left();
+    return is_empty() || gaol_detail::quiet_less(r, l) || I.is_empty() || gaol_detail::bound_tied_less(r, l);
   }
 
   GAOL_INLINE bool interval::certainly_leq(const interval &I) const
   {
-    return is_empty() || I.is_empty() || gaol_detail::bound_less_equal(right(), I.left());
+    const double r = right(), l = I.left();
+    return is_empty() || gaol_detail::quiet_less(r, l) || I.is_empty() || gaol_detail::bound_tied_less_equal(r, l);
   }
 
 
