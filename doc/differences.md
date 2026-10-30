@@ -93,31 +93,112 @@ where it comes from.
     `interval`, so that `using namespace gaol_ieee1788;` is enough to use them
     (see [Using GAOL](using.md#the-names-of-ieee-1788-2015)). Its `pow` is
     the standard's, `pow(x, 2)` being `pow(x, [2])` and the integer power
-    `pown(x, 2)`, and an integer exponent beyond the ints gives the pow of
-    CORE-MATH at the bounds of x, where the `pow` of `gaol` gives [-oo, +oo].
+    `pown(x, 2)`, and a degenerate integer exponent beyond the ints gives the
+    pow of CORE-MATH at the bounds of x in [0, +oo], where the `pow` of `gaol`
+    takes the integer power on the whole of x, a negative part included.
   - **`cospi.c` of CORE-MATH shifted a signed integer** out of its range,
     undefined behaviour that the tests run with UBSan reported; it shifts it
     unsigned now, as `sinpi.c` and `tanpi.c` do (see
     [3rd/README.md](../3rd/README.md)).
+  - **CORE-MATH reads the rounding direction as GAOL sets it.** Some sources of
+    CORE-MATH round a result themselves, in the direction they read, and two of
+    the ways they read it gave another direction than that of the doubles GAOL
+    computes, the one of MXCSR:
+    - `pow` rounds a subnormal result in the direction `fegetround()` gives,
+      which the C library of Linux reads from the x87 unit. With the x87 unit to
+      nearest and MXCSR upward, the state the `exactinit()` of the predicates of
+      Shewchuk and of Triangle leaves, the upper bound of `pow` was below the
+      exact value for about half of the arguments with a subnormal result.
+      `gaol/core_math_port.h` gives the sources a `fegetround()` that reads
+      MXCSR on x86, 32-bit and 64-bit, and the sources are unchanged there;
+      `tests/rounding_direction.cpp` checks `pow` in the six states of the two
+      units. On 32-bit x86 that spares `cbrt` and `asinpi` a call of the
+      `fegetround()` of the C library at each bound, and a few other functions
+      on their slow paths, about 80 ns a call with Visual C++ for x86: on the
+      runners of the continuous integration, `nth_root(x, 3)` takes 179 ns
+      rather than 355 and `asinpi(x)` 794 ns rather than 1005 with Visual C++
+      for x86, and 120 ns rather than 324 and 255 ns rather than 438 with
+      clang-cl for x86; `x + y` and `sin(x)` take the same time, and so do
+      `nth_root(x, 3)` and `asinpi(x)` with glibc, whose `fegetround()` is
+      cheap.
+    - `cbrt`, `rsqrt` and `asinpi` read the rounding field of MXCSR and turn it
+      into the `FE_*` value of the C library by a shift chosen from the macros
+      of the platform. With clang-cl and with Cygwin on x86-64, whose newlib
+      gives `FE_*` the values 0 to 3, the shift was wrong for the three: the
+      directed roundings were taken for toward zero, so that the bound of
+      `nth_root(x, 3)` farther from zero and the upper bounds of `rsqrt` and
+      `asinpi` did not enclose the exact values at hard arguments (`asinpi` was
+      wrong for about half of its arguments with clang-cl). With mingw-w64
+      before version 13 on x86-64 it was wrong for `cbrt` alone, whose seven
+      hardest arguments were rounded toward zero:
+      `nth_root([0x1.3a9ccd7f022dbp+0], 3)` was
+      `[0x1.1236160ba9b92p+0, 0x1.1236160ba9b93p+0]`, the root being above it.
+      The field is 0 to nearest, 1 downward, 2 upward and 3 toward zero on every
+      x86 processor, and the three functions now take it so, whatever the values
+      of the C library (change 6 of [3rd/README.md](../3rd/README.md)): `cbrt`
+      takes it as it is, and `rsqrt` and `asinpi` look their `FE_*` value up in
+      a table. `tests/core_math.cpp` checks their hard arguments against mpmath,
+      and the continuous integration builds GAOL with MinGW-w64, MSYS2, Cygwin
+      and clang-cl and, on Linux, with the `FE_*` values of Cygwin as well (the
+      job `cygwin-fe-values`).
+  - **CORE-MATH's `pow` is correctly rounded in every direction.**
+    `pow_exact_at_corners()` of `tests/core_math.cpp`, which checks `pow` where
+    x^y is a double, found three defects. With Visual C++, `NAN` and `INFINITY`,
+    which the UCRT writes for C as products of `1e+300`, were computed when the
+    program runs, in the rounding direction in effect, so that `pow` rounded
+    downward was `-0` from 2^-1075 to about 2^-947 (they are read from their
+    bits now). On 32-bit x86 the square root of the C libraries of Windows
+    rounds to nearest in every rounding direction, and Visual C++ calls it, as
+    does MinGW-w64 at `-O0`: the upper bound of
+    `pow([0x0.0000100020002p-1022], [0.5])` did not enclose the root, and
+    `pow(x, 0.5)` was below the root rounding upward at a subnormal x. CORE-MATH
+    takes its square root from the SSE2 instructions, in the direction of MXCSR,
+    on every 32-bit x86 (`gaol/core_math_port.h`); the `sqrt()` of glibc and
+    musl is the `fsqrt` of the x87 unit, right as long as that unit rounds as
+    MXCSR does, which GAOL sees to, so that there the change drops a dependency
+    and changes no result. On 32-bit ARM, `exact_pow()` converted its 54-bit
+    integer with `__aeabi_l2d`, which rounds to nearest, so that the upper bound
+    fell below x^y at a midpoint (`pow([3·2^-30], [34, 35])`; changed in
+    `pow/pow.c`, change 7 of [3rd/README.md](../3rd/README.md)).
+  - **`pow` of a result next to the largest double raises no invalid-operation
+    exception.** For y*log(x) from 709.78263 to 709.78267, a power between
+    1.7975e308 and 1.7976e308, the first phase of CORE-MATH's `pow` scaled its
+    approximation by 2^1024, an infinity, and computed Inf - Inf before its
+    second phase gave the right result: `pow([2], [1023.9999])` and
+    `pow(x, 3000000001LL)` for x = 0x1.000003f82a1fp+0 raised the exception, and
+    so did their equivalents in `gaol_ieee1788` and in a string, `pow_rel` and
+    `pow_exponent_rel`; a program that had enabled it died on SIGFPE. The bounds
+    were the tightest ones all the same. The vendored `pow.c` lowers the
+    constant `RHO2` of `exp_1()` so that those arguments go to the second phase,
+    as the ones above it already did (see [3rd/README.md](../3rd/README.md));
+    `tests/core_math.cpp` checks CORE-MATH's `pow` there in the four rounding
+    directions, and `tests/rounding_direction.cpp` the functions of GAOL, with
+    the invalid-operation exception enabled.
   - **The hexadecimal output is an interval literal.** Written with
     `interval_format::hexa` and read again, an interval now gives the same
-    bounds bit for bit, which is the recovery requirement of IEEE 1788-2015
-    (13.4). GAOL wrote the sixteen hexadecimal digits of each double
+    bounds bit for bit (a point interval of zero apart, below), which is the
+    recovery requirement of IEEE 1788-2015 (13.4). GAOL wrote the sixteen
+    hexadecimal digits of each double
     (`[3fb999999999999a, ...]`), which is no interval literal at all and which
     the parser refused; the note of 13.4.1 gives that very form as the one
     failing its readability test. The bounds are written in the
     hexadecimal-significand form instead (`[0x1.999999999999ap-4, ...]`), which
-    the lexer already read. The decimal formats, and the default one, are
-    unchanged. `exact_string(I)` gives that text without the global output
+    the lexer already read. The default format is still `bounds`, a decimal one,
+    changed below. `exact_string(I)` gives that text without the global output
     format, and `gaol_ieee1788::intervalToExact()` is it: switching the format
     to hexa and back, it showed hexa to the other threads meanwhile.
+    A point interval is written `[a]`, the literal of IEEE 1788-2015 for a point
+    (`[0x1p+2]`), and a point interval of zero `[0x0p+0]` whatever the signs of
+    its bounds (`interval::zero()` is `[-0, +0]` with the SSE2 and the NEON
+    intervals, `[+0, +0]` with the FPU ones): `[-0, +0]`, `[+0, +0]` and
+    `[-0, -0]` are all the set {0}, and the text is read back as that set.
   - **The reader of strings takes the new names.** `gaol::textToInterval("...")`
     reads `exp2`, `log2`, `cbrt`, `sign` and `trunc` besides the functions
-    GAOL already had, in the direct grammar and in the tree of
-    `gaol/parser/gaol_expression.h`; `cbrt(x)` is `nth_root(x, 3)`, as `sqrt(x)` is
-    `nth_root(x, 2)`, so it needs no node of its own, and the four others have
-    one each, which `gaol::exp2(expression)` and its companions build from C++
-    too. Read from a string, they gave a syntax error before.
+    GAOL already had. In the expressions of `gaol/parser/gaol_expression.h`,
+    `cbrt(x)` is `nth_root(x, 3)`, as `sqrt(x)` is `nth_root(x, 2)`, so it needs
+    no node of its own, and the four others have one each, which
+    `gaol::exp2(expression)` and its companions build from C++. Read from a
+    string, they gave a syntax error before.
   - **`nth_root(x, 3)` is CORE-MATH's `cbrt`**, at the magnitudes of the bounds,
     the root of a negative number being the opposite of the root of its
     magnitude: the tightest bounds, and the exact value where the cube root is
@@ -129,6 +210,17 @@ where it comes from.
     reader of strings takes it too: it converted the exponent to an unsigned
     int, and `interval("nth_root(16, -2)")` was the 4294967294-th root of 16,
     `[1.000000000645543, 1.000000000645544]`, rather than `[0.25]`.
+  - **The second argument of `nth_root`, `pown` and `rootn` read in a string
+    may be any integer a double holds.** `nth_root(8,3000000000)` threw
+    `invalid_action_error`, and `rootn(8,3000000000)` and
+    `pown([2,3],3000000000)`, read with the names of the standard, were the
+    empty set, where `nth_root(8, 3000000000LL)` called from C++ is computed.
+    Beyond the ints the argument is now a `long long`, and one of 2^63 or more
+    in magnitude, which is an even integer, is taken as +-(2^63 - 2): the
+    powers are the same for it and for any larger exponent, and the enclosure
+    of the roots of order 2^63 - 2 holds the roots of the larger orders. A
+    non-integer argument (`nth_root(8, 1.5)`), an interval, an infinity and the
+    empty set are refused as before.
   - **`sign`, `trunc`, `round_ties_to_even` and `round_ties_to_away`**, the
     integer functions IEEE 1788-2015 requires beside `ceil` and `floor`
     (Table 9.1), which GAOL did not provide. Each is non-decreasing, so the
@@ -139,6 +231,16 @@ where it comes from.
     read: `round_ties_to_even` therefore reads the bits
     (`gaol/gaol_roundeven.h`, which also gives CORE-MATH the `roundeven()` the
     math library of Windows has not).
+  - **`erf` and `erfc`**, the error function and its complement, which GAOL did
+    not provide, are bounded with CORE-MATH's, the tightest bounds, exact at 0
+    and at the infinities: `erf([0])` is `[0]` and `erfc([-oo, +oo])` is
+    `[0, 2]`. IEEE 1788-2015 names neither, so `gaol_ieee1788` has none. The
+    `erfc` of CORE-MATH rounds its subnormal results with `ldexp()`, which the C
+    libraries of Windows (the UCRT) and of macOS do not round in the direction
+    in effect: with every compiler, CORE-MATH calls `gaol_ldexp()`
+    (`gaol/gaol_ldexp.h`) instead, x·2<sup>n</sup> rounded once in the
+    direction in effect, so that its subnormal results depend on no `ldexp()`
+    of the C library (see [3rd/README.md](../3rd/README.md)).
 
 - **From the patch IBEX applies to GAOL** (Gilles Chabert,
   `interval_lib_wrapper/gaol/3rd/gaol-4.2.3alpha0.all.all.patch` of
@@ -156,9 +258,14 @@ where it comes from.
     included it, and `gaol/gaol_version.h` includes `gaol/gaol_config.h`,
     where it included `gaol/gaol_version_msvc.h` for Visual C++ and nothing for
     MinGW. The four headers are gone.
-- **The rounding direction** is set upward by each operation when it is not,
-  in every build. Built with CMake, GAOL set it once, in `gaol::init()`, and
-  computed in the direction the calling code left: rounding to nearest,
+- **The rounding direction** is set upward by each operation that computes a
+  bound when it is not, in every build; the operations of the AVX-512 path
+  (below) set none, their instructions carrying their rounding. An operation
+  that rounds nothing (`-x`, `abs()`, `min()`, `floor()`, the predicates...) or
+  returns before its check (`y * empty`, `exp(empty)`) leaves the direction as
+  it found it (see [Using GAOL](using.md#the-rounding-direction)). Built with
+  CMake, GAOL set it once, in `gaol::init()`, and computed in the direction the
+  calling code left: rounding to nearest,
   downward or toward zero, 30 operations gave other bounds, and sums and
   products did not enclose their exact values (3199 of the 13825 checks of
   `rounding_direction` failed with GCC 9.4 on x86-64). Built with autotools or
@@ -166,20 +273,27 @@ where it comes from.
   the x87 control word on x86-64, where GAOL computes with SSE (43 operations
   left the SSE instructions rounding to nearest or upward, whatever direction
   they found), and without the rounding bits of the FPCR register on arm64.
-  `GAOL_PRESERVE_ROUNDING`, now an option, saves and restores the direction with
-  `fegetround()` and `fesetround()` and the SSE register. Each value computed
-  before the rounding direction changes is then written to a `volatile`
-  variable: GCC does not implement `#pragma STDC FENV_ACCESS`, and moved the
-  computation of the midpoint after `fesetround()`
+  `GAOL_PRESERVE_ROUNDING`, now an option, saves and restores the direction by
+  reading and writing the control registers itself, a register only if it
+  differs from what is set back: the x87 control word and MXCSR of an x86
+  processor (below), FPCR with the NEON intervals, FPSCR with the FPU intervals
+  of 32-bit ARM processors and GCC; the other processors keep `fegetround()` and
+  `fesetround()`. Each value computed before the rounding direction changes is
+  then written to a `volatile` variable: GCC does not implement
+  `#pragma STDC FENV_ACCESS`, and moved the computation of the midpoint after
+  `fesetround()`
   ([GCC bug 34678](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=34678)).
   Whether the direction is upward is shown by an addition, 1 + 2^-60 with
   2^-60 read from `volatile` memory, wherever doubles are computed in double
-  precision.
-  Reading it instead, with the SSE register and `fegetround()`, made `x + y`
-  take 800 ns rather than 2.8 ns under Rosetta 2, 82 to 98 ns rather than 2.6
-  to 4 ns with 32-bit Visual C++, and 48 ns rather than 6.4 ns with 32-bit
-  MinGW-w64 15.2; and Clang 18 read MXCSR once for a whole loop that changed
-  the rounding direction.
+  precision; on x86-64 processors and, with GCC and Clang, on ARM ones it is
+  1 + (2^-1060 + 0), which shows the modes that flush the subnormal numbers to
+  zero as well (below). The NEON intervals of 64-bit ARM processors read the
+  register FPCR instead, and a 32-bit x86 processor the control registers of
+  the two units that round (below). Reading the direction with the SSE register
+  and `fegetround()` rather than by an addition made `x + y` take 800 ns rather
+  than 2.8 ns under Rosetta 2, 82 to 98 ns rather than 2.6 to 4 ns with 32-bit
+  Visual C++, and 48 ns rather than 6.4 ns with 32-bit MinGW-w64 15.2; and Clang
+  18 read MXCSR once for a whole loop that changed the rounding direction.
   - **Once per function of intervals.** The bounds of the elementary
     functions at doubles are computed by the functions of namespace `upward`
     (`gaol/gaol_double_op.h`), which take the direction to be upward already,
@@ -195,23 +309,39 @@ where it comes from.
     six times, calling `width()`, `+` and `/` on intervals after its own
     check, and `acos_rel()`, `asin_rel()` and `atan_rel()` six times too,
     with `acos()`, `asin()` or `atan()` of J and four operations of intervals;
-    `pow(x, -n)` two to five times, with `inverse()` and `gaol_uipow()`;
-    `pow(x, n)` twice where it falls back to the products rounded outward (a
-    bound 0 or infinite, a power not finite or below 2^-968); `nth_root(x, n)`
-    for n >= 4 twice; `gaol_ieee1788::pow(x, [n])` for an integer n beyond the
-    ints three times. They compute on doubles, or with the bodies of the
-    operations they called (`uipow_rounded_upward()`,
-    `interval::inverse_upward()`), after their one check, and give the same
-    bounds, bit for bit, in the SSE2 and FPU builds and with
-    `GAOL_PRESERVE_ROUNDING`. `sqrt_rel()` no longer sets the direction
-    downward then upward again, two changes per call in every build: its
-    lower bound is computed upward, as `sqrt()` computes it. `tan()` takes
-    22 % less time, `acos_rel()` 24 %, `sqrt_rel()` 29 %, `pow(x, -3)` 6 %;
-    with `GAOL_PRESERVE_ROUNDING`, where each check saves and restores the
-    direction, `tan()` 74 % and `acos_rel()` 83 % (Clang 18, i7-1185G7).
-    Still checking more than once: `pow(x, y)` where it takes exp(y log x)
-    (an infinite bound, or a base from 0 with an exponent not above 0),
-    `nth_root(x, q)` for q < 0, the inverse of a root, and `modulo_k_pi()`.
+    `nth_root(x, n)` for n >= 4 twice; `gaol_ieee1788::pow(x, [n])` for an
+    integer n beyond the ints three times; `pow(x, [n])`, `pow(x, n.0)` and
+    `gaol_ieee1788::pow(x, [n])` for an n within the ints, `nth_root(x, q)` for
+    q < 0, `acosh_rel()`, `asinh_rel()`, `atanh_rel()`, `nth_root_rel()` and
+    `modulo_k_pi()` twice; `nth_root(x, q)` for an order beyond the unsigned
+    ints (`long long`, `unsigned long long`) two or three times. They compute on
+    doubles, or with the bodies of the operations they called (`pown_upward()`,
+    `nth_root_upward()`, `interval::inverse_upward()`), after their one check,
+    and give the same bounds, bit for bit, in the SSE2 and FPU builds and with
+    `GAOL_PRESERVE_ROUNDING`, but for the quotients of `modulo_k_pi()` (below).
+    `sqrt_rel()` no longer sets the direction downward then upward again, two
+    changes per call in every build: its lower bound is computed upward, as
+    `sqrt()` computes it. `tan()` takes 22 % less time, `acos_rel()` 24 %,
+    `sqrt_rel()` 29 %, `pow(x, [3])` 7 %, `nth_root(x, -2)` 13 %, and
+    `modulo_k_pi()` 10 ns rather than 22, its quotients by pi being computed on
+    doubles, as `tan()` computes them (a bound 0 gives a quotient 0 of its own
+    sign, an infinite bound NaN); with `GAOL_PRESERVE_ROUNDING`, where each
+    check saves and restores the direction, `tan()` 74 %, `acos_rel()` 83 %,
+    `pow(x, [-3])` and `gaol_ieee1788::pow(x, [3])` 20 and 21 %, and
+    `nth_root(x, -3)` 15 % (Clang 18, i7-1185G7). Still checking more than once:
+    `nth_root(x, q)` for an order beyond 64 bits, which only an `__int128`
+    gives, and `nth_root(x, -2)` where the square root has a vector path of its
+    own (the AVX-512 intervals, taken with `GAOL_PRESERVE_ROUNDING`, and the
+    NEON ones without it), where it takes `sqrt()` and then `inverse()`, each
+    checking, faster than one check before the scalar root.
+  - **`GAOL_RND_KEEP()` of an interval keeps its two bounds**, with
+    `GAOL_PRESERVE_ROUNDING` (`rnd_keep()` of an interval,
+    `gaol/core/gaol_interval_core.h`): through two volatile doubles with the
+    SSE2 and FPU intervals, and in the register itself with the NEON ones where
+    the compiler has an `asm` statement, where the template of
+    `gaol/gaol_fpu.h` copied the interval a byte at a time into volatile
+    memory. `pow(x, [-3])` and `nth_root_rel()` take 26 to 27 % less time,
+    `asinh_rel()` and `atanh_rel()` 21 % (Clang 18, i7-1185G7).
   - **`tan()` keeps its bounds before setting the direction back**, with
     `GAOL_PRESERVE_ROUNDING`: it set it back first, and `GAOL_RND_KEEP()`,
     which writes the bounds to memory so that they are computed before, came
@@ -234,8 +364,12 @@ where it comes from.
     `gaol::init()` found, unless it is preserved: GAOL left it upward after
     its use, even after its automatic cleanup when the program ends or the
     library is unloaded, and a program computing to nearest after it had to
-    set it back itself. Only the rounding direction is set back, on x86 the
-    one of the x87 unit and the one of the SSE instructions (`rounding_state`,
+    set it back itself. `gaol::cleanup()` does so at its first call only, and
+    an operation of GAOL after it sets the direction upward again:
+    `gaol::restore_rounding()` sets it back as many times as the program needs,
+    and does nothing with `GAOL_PRESERVE_ROUNDING`. Only the rounding direction
+    is set back, on x86 the one of the x87 unit and the one of the SSE
+    instructions (`rounding_state`,
     `gaol/gaol_fpu.h`), not the rest of the environment that `gaol::init()`
     replaced with `fesetenv(FE_DFL_ENV)`: the exception flags raised since are
     the program's. `tests/rounding_direction.cpp` checks the direction after
@@ -264,6 +398,67 @@ where it comes from.
     call or a static object, whose destructors then wrote into freed memory:
     `tests/expressions.cpp` holds such a static expression, which the
     sanitizers of the continuous integration check.
+- **Operations raise no invalid-operation exception for the empty set**, nor
+  for a NaN the program gives, nor for a zero bound times an infinite one in
+  an SSE2 register (see
+  [The floating-point exceptions](using.md#the-floating-point-exceptions)).
+  - **Before.** The bounds of the empty set are NaN, and `is_empty()` was
+    `!(left() <= right())`, as `set_contains()`, `set_disjoint()` and the other
+    relations compared them with `<`, `<=`, `>` and `>=`: comparisons that
+    signal. With the exception enabled (`feenableexcept(FE_INVALID)`),
+    `is_empty()` of an empty interval and the operations that call it stopped
+    the program with SIGFPE, and with it masked they raised the flag. The SSE2
+    product computed `0 * oo` and cleared the NaN afterwards (`[0] * [1, +oo]`),
+    and the SSE2 `div_rel([2, +oo], [-oo, 2], I)` divided an infinite bound by
+    an infinite one in the half of a register it throws away.
+  - **Now.** The bounds of an empty operand are compared with the quiet
+    comparisons of `<cmath>` (`std::islessequal()`...), one instruction, as `<=`
+    is, with GCC and Clang on x86-64, as is the first comparison of the
+    constructor, which gives the empty set for NaN bounds, so that `floor()`,
+    `ceil()` and `split()` hand it the bounds of an empty operand as they are:
+    every operation, relation, function and output takes the empty set without
+    the exception, and so does a NaN the program gives (`interval(NAN)`,
+    `x += NAN`, `x <= NAN`, `pow(x, NAN)`). `x &= y` of the SSE2 and FPU
+    intervals tells an empty operand with one `std::isunordered()`, that of
+    the NEON ones from the bits of the bounds. The SSE2 product and `div_rel`
+    compute no `0 * oo` nor `oo / oo`, even in the half of a register they
+    discard, and `pow` raises no invalid-operation exception for an exponent
+    of extreme magnitude (`pow([1, 2], [1e-300])`). The SSE2 divisions, `%`,
+    `inverse()` and `div_rel()` raise no division-by-zero exception for a
+    divisor with a zero bound (`1/[0, 1]`, `[1, 2]/[0, 2]`, `inverse([0, 2])`),
+    which they raised in GAOL 4.
+  - **`midpoint()`** of `[DBL_MAX]` raises no overflow exception. GAOL 4 told
+    the case of the sum of the halves by the overflow of the sum of the
+    bounds; a bound of 2^1023 or more in magnitude tells it now, before the
+    bounds are added.
+  - **What stays.** The inexact exception is raised by almost every operation,
+    and `log([0, 1])` and `[1e308] * 10`, whose bounds are infinite, still
+    raise the division-by-zero and the overflow ones: a program that enables
+    an exception has to disable it while GAOL computes.
+    `tests/rounding_direction.cpp` checks the cases above with the exceptions
+    enabled, in a child process (glibc).
+- **A result with no infinite bound raises no overflow nor division-by-zero
+  exception** (see [The floating-point
+  exceptions](using.md#the-floating-point-exceptions)). Some functions computed
+  beyond the largest double on the way, or divided by zero, and raised
+  `FE_OVERFLOW` or `FE_DIVBYZERO` for a finite result, the empty set included,
+  so that a program that had enabled the exception was stopped by them:
+  `sqrt([1, DBL_MAX])`, `nth_root([DBL_MAX], 3)` and the roots of order 4 and
+  more, `sqrt_rel()`, `nth_root_rel()`, `sin([-1, DBL_MAX])` and `cos()` (the
+  width of the interval overflowed), `tan([DBL_MAX])` (x + π/2 overflowed),
+  `div_rel([1], [2^-1074, 1], [1, 2])`, `atan_rel()`, `atan2_rel_x()`,
+  `atan2_rel_y()`, `pow_rel()`, `pow_exponent_rel()`, `atanh_rel()` (atanh at
+  ±1) and, with Visual C++, `atan([DBL_MAX])`. A quotient, a product or a power
+  that would overflow is replaced by what the operation gives, the infinity or
+  the largest double, without being computed; the roots of an argument above
+  2^1000 are proved on the argument and the root scaled by powers of 2; `sin()`
+  and `cos()` compare the half of the width with π. `log([0, 1])` and
+  `[1e308] * 10`, whose bounds are infinite, still raise them. A probe of 131
+  functions and forms on operands next to the limits of the format found 34 that
+  raised them for a finite result; none does with the SSE2 intervals, the FPU
+  intervals and the AVX-512 path. The bounds are the same, bit for bit, up to
+  the sign of a zero bound of `div_rel()` with the SSE2 intervals (see [Accuracy
+  of the operations](accuracy.md)).
 - **The constants of GAOL are initialized when compiling**, so that the
   intervals computed in the initialization of the static objects of a program
   are right. They were computed by the dynamic initialization of GAOL's files,
@@ -283,9 +478,9 @@ where it comes from.
     folds, rather than copy the static intervals `interval::cst_one`,
     `cst_pi`..., which are gone.
   - The masks of the SSE2 intervals (`gaol/core/gaol_interval_sse.cpp`) are
-    written as vectors, which GCC and Clang, the only compilers of the SSE2
-    intervals, put in read-only memory, rather than computed with
-    `_mm_set_pd()` and `_mm_cmpeq_pd()`.
+    written as vectors, which the compilers of the SSE2 intervals put in
+    read-only memory (GCC and Clang) or in initialized data (Visual C++),
+    rather than computed with `_mm_set_pd()` and `_mm_cmpeq_pd()`.
 - **The rounding direction is set on x86 processors by writing the control
   registers** of the x87 and SSE units (`fnstcw`/`fldcw`, `stmxcsr`/`ldmxcsr`)
   rather than through `fesetround()`, which cost 130 ns per call with
@@ -298,18 +493,199 @@ where it comes from.
   of an interval took 535 to 630 ns with MinGW-w64 and MSYS2, and take 48 to
   209 ns; 250 to 340 ns with Visual C++ for x64, and 45 to 160 ns; 1050 to
   1750 ns with Visual C++ for x86, and 150 to 650 ns. Both registers are set,
-  as `fesetround()` sets them, and `fegetround()` reads the direction set;
-  with Visual C++ for x64, MXCSR only, the x87 unit being unused there.
-  Elsewhere (ARM, POWER, s390x, RISC-V), `fesetround()` still.
-- **`hausdorff()`** returns the tightest upper bound of the distance. It computed
-  `fabs(a - c)` in the rounding direction of the caller, below the exact
-  distance when rounded upward with a < c.
+  as `fesetround()` sets them, but a register is written only if its direction
+  differs from the one set (none when both hold it), and no other bit changes;
+  `fegetround()` reads the direction set; with Visual C++ for x64, MXCSR only,
+  the x87 unit being unused there. With mingw-w64 13 and later there is a
+  second reason: its `fesetround()` clears the six exception flags of MXCSR when
+  it changes the register, so that `gaol::cleanup()`, `gaol::restore_rounding()`
+  and, with `GAOL_PRESERVE_ROUNDING`, `midpoint()`, `chi()` and the writing and
+  the reading of an interval would lose the flags the program had raised, and
+  its `fegetround()` joins by OR the rounding fields of the x87 unit and of
+  MXCSR, which is the direction of both only where they agree. On a 32-bit x86
+  processor GAOL also reads them in line, the control word of the x87 unit with
+  `fnstcw` and MXCSR with `stmxcsr`, in one asm statement (inline assembly with
+  Visual C++ for x86), rather than through `fegetround()`, a call that took
+  about 80 ns with Visual C++ for x86: the check of each operation compares the
+  two, and writes (`fldcw`, `ldmxcsr`) only the register that is not upward,
+  MXCSR once for the direction and the flush modes. With
+  `GAOL_PRESERVE_ROUNDING`, an operation reads the registers it sets once at
+  its start and writes back at its end only the one that differs from what it
+  found: a program that computes upward already pays no write.
+  `gaol::cleanup()`, `gaol::restore_rounding()` and `GAOL_PRESERVE_ROUNDING` set
+  each unit back to its own direction, with Visual C++ for x86 too when the two
+  differ at the start, where `fegetround()` answers -1. On x86-64 with every
+  compiler, as on 32-bit x86, the operations that do not write MXCSR alone with
+  `GAOL_PRESERVE_ROUNDING`, `gaol::cleanup()`, `gaol::restore_rounding()` and
+  the operations that set the direction to nearest and back (`midpoint()`,
+  `chi()`, the reading and the writing of an interval) read both registers and
+  write the one that differs, none when both hold the direction to set back; the
+  `fesetround()` of glibc writes both whatever they hold, and GAOL then wrote
+  MXCSR again for the SSE instructions. With `GAOL_PRESERVE_ROUNDING`,
+  `x.midpoint()` takes 17.5 ns rather than 27.9 (GCC 15.2, Intel i7-1185G7),
+  and 52 ns rather than 131 with Visual C++ for x64 on the runners of the
+  continuous integration; the bounds are the same.
+- **On ARM processors GAOL writes the control register itself too.** With the
+  NEON intervals of 64-bit ARM processors the direction is the field RMode of
+  FPCR, read with `mrs` and written with `msr` (see the NEON intervals below).
+  On 32-bit ARM processors with GCC and a floating-point unit of doubles it is
+  the field RMode of FPSCR, read with `vmrs` and written with
+  `vmsr` (`GAOL_RND_FPSCR_DIRECT` of `gaol/gaol_config.h`;
+  `-DGAOL_RND_FPSCR_DIRECT=0` gives the functions of the C library back):
+  `round_upward()`, `round_nearest()` and `round_downward()` write it only if
+  the direction changes, and `GAOL_PRESERVE_ROUNDING` reads it once at the
+  start of an operation and writes back what it found at the end, only if that
+  differs from what the operation left, where it called `fegetround()` and
+  `fesetround()`: `x + y` takes 22.5 ns rather than 48 (the Debian armhf jobs of
+  the continuous integration, which run on the arm64 runners of GitHub). FPSCR
+  holds the flags of the exceptions too, so every write but the one at the
+  start of an operation, which comes before any computation, reads the register
+  again just before, and no flag raised since is lost. Without
+  `GAOL_PRESERVE_ROUNDING` nothing changes: the check of each operation stays
+  the addition, `vmrs` costing more than its two additions (`x + y` 6.1 ns
+  rather than 4.1). Elsewhere (POWER, s390x, RISC-V, MIPS, the FPU intervals of
+  64-bit ARM, and 32-bit ARM without GCC or without a floating-point unit of
+  doubles), `fesetround()` still.
+- **`GAOL_PRESERVE_ROUNDING` writes the control registers of an x86 processor
+  only if they have to change.** An operation of the SSE2 intervals read MXCSR
+  and wrote it twice, at its start and at its end, whatever it held, for
+  nothing when the program computed upward already. It reads MXCSR once, writes
+  it at its start only if the direction is not upward or a mode that flushes
+  the subnormals to zero is set, and at its end writes back what it found only
+  if that was not upward with the modes clear, and then only if MXCSR differs
+  from it, after reading it again so that the exception flags the operation
+  raised are kept; Visual C++ and clang-cl for 32-bit x86 do the same with the
+  two registers, the x87 unit computing some of their doubles too.
+  `round_upward()`, `round_nearest()` and `round_downward()`, which write a
+  register only if its direction differs (see above), change no other bit: the
+  flush modes, the exception masks and the flags stay. The bounds do not
+  change. With `GAOL_PRESERVE_ROUNDING`, in a program that computes upward,
+  `x + y` takes 1.7 ns rather than 8.2 and `x * y` 2.5 ns rather than 8.3; in a
+  program that computes to nearest, 0.2 ns more (GCC 15.2, Intel i7-1185G7, the
+  best of 15 runs of a loop).
+- **Visual C++ for x64 writes MXCSR alone with `GAOL_PRESERVE_ROUNDING`**, as
+  GCC, Clang and clang-cl do with the fused multiply-add instructions. The
+  operations that start with `GAOL_RND_ENTER()` (`pow(x, 3)`, `sqrt()`,
+  `exp()`, `log()`, `sin()` and `cos()` among them) called `fegetround()` and
+  `fesetround()` of the C runtime, because the macros that write MXCSR alone
+  asked for `__FMA__`, which `cl` does not define. No code of GAOL uses the x87
+  unit there (the `long double` of Visual C++ is a `double`), so the macros now
+  take `__AVX2__` for the instruction too, which `cl` defines with
+  `/arch:AVX2`, the flag that CMake and meson give it for x64. These
+  operations take 60 to 64 ns less on the runners of the continuous
+  integration (AMD EPYC, Visual Studio 2026): `pow(x, 3)` 29 ns rather than 92,
+  `sin(x)` 71 ns rather than 135. The bounds are the same, and `x + y` and
+  `x * y` already wrote MXCSR alone.
+- **The modes that flush subnormals to zero are cleared by each operation that
+  computes bounds.** On x86 the flush-to-zero and denormals-are-zero modes of
+  MXCSR, on ARM the mode FZ of FPCR (FPSCR), make every subnormal result a zero
+  and read every subnormal operand as a zero. With one of them set, the bounds
+  of every operation with a subnormal operand or result miss the exact result
+  whatever the rounding direction: `[1e-300] * [1e-20]` is `[0, 0]`, and with
+  the FPU intervals `[1e-300] / [100·2^-1074]` was empty. A program linked with
+  `-Ofast`, `-ffast-math` or `-funsafe-math-optimizations` has them
+  (`crtfastmath.o`), and so has one that loads a plug-in built so. The check of
+  the rounding direction above, `1 + 2^-60`, shows the direction only, and is
+  the one left where GAOL cannot clear them (POWER, s390x, RISC-V, MIPS, and the
+  FPU intervals of Visual C++ for ARM).
+  - **The check.** Each operation that computes bounds computes
+    `1 + (2^-1060 + 0)` (x86-64, and ARM with GCC and Clang), which shows the
+    modes as well as the direction, and clears them with the direction; a 32-bit
+    x86 processor and the NEON intervals of 64-bit ARM processors (Visual C++
+    too) read the control registers instead, which hold both. With
+    `GAOL_PRESERVE_ROUNDING` they are set back as they were. The check comes
+    before the operation reads, compares or copies a bound (the test of the
+    empty set aside), and the compiler is kept from moving a comparison before
+    it: `asinpi([100·2^-1074])` was above the exact value with GCC 13 at `-O3`,
+    `sqrt([-1e-310, 4])` and `atan2` gave the empty set, and `sinpi` was wrong
+    with `GAOL_PRESERVE_ROUNDING`. With that option the result, maxima and
+    minima of bounds included, is made before the modes are set back. The
+    functions that only read, compare or copy bounds make no check and give the
+    results they give with the modes cleared ([Using
+    GAOL](using.md#flush-to-zero-and-denormals-are-zero)).
+  - **At the link.** `gaol.pc` and `gaol::gaol` give `-mno-daz-ftz` to the code
+    using GAOL where the compiler accepts it (GCC 13 and later on x86, and
+    11.4 and 12.4 in the series 11 and 12; the builds test it by linking),
+    which keeps `crtfastmath.o` out of the program. The check of the operations
+    is the only defence against a plug-in, and on the other compilers; on POWER,
+    s390x, RISC-V and MIPS neither defence exists.
+  - **Cost.** `x * y`, `sqrt` and `pow(x, 3)` take 0.6 to 0.7 ns more than with
+    the direction alone (Intel Xeon Cascade Lake, Clang 18: 4.0 ns rather than
+    3.4, 11.0 rather than 10.3, 13.7 rather than 13.0), the cost of the second
+    addition of the check, not of the subnormal.
+  - **Tests.** `tests/rounding_direction.cpp` compares each operation that makes
+    the check, under each mode and each rounding direction, with its result
+    with the modes cleared, and checks the modes left after it;
+    `tests/fast_math_link.cpp` is linked with `-ffast-math`.
+- **The functions that only read, compare or copy bounds give right results
+  under the modes that flush the subnormals to zero.** With denormals-are-zero
+  (DAZ of MXCSR on x86, FZ on ARM), which a program linked with `-Ofast` has, a
+  comparison reads a subnormal as a zero. The operations that compute clear
+  these modes in their check of the rounding direction, but the functions that
+  make no check did not, and gave wrong results: `interval(2^-1073, 2^-1074)`
+  kept its bounds in the wrong order, `max([3, 100]·2^-1074, [200·2^-1074])` was
+  the first interval, `abs([-1e-309, -1e-310])` stayed negative,
+  `floor([-1e-310])` was `[-0]`, `[2, 5]·2^-1074` contained 7·2^-1074, the
+  midpoint of `[2, 4]·2^-1074` was 0 and `split()` made an empty half of it, and
+  `operator<<` wrote a subnormal bound rounded to nearest, below an upper bound.
+  The constructor from two bounds, the relations, `&`, `|`, `max`, `min`, `abs`,
+  `sign`, the roundings to an integer, `mig`, `mag`, `is_canonical`, `feven`,
+  `nb_fp_numbers`, and `inf` and `sup` of `gaol_ieee1788` now compare the bounds
+  as doubles first and, where these are equal, by their bits, which no mode
+  changes, and round a subnormal bound from its bits (the `floor()` of musl
+  returns a subnormal as it is under DAZ). They leave the modes as they found
+  them and write nothing to the control register, with `GAOL_PRESERVE_ROUNDING`
+  or without. `midpoint()`, `split()`, `chi()` and `operator<<` check the
+  rounding direction, which clears the modes, and set them back with
+  `GAOL_PRESERVE_ROUNDING`. Where GAOL does not clear them (the processors other
+  than x86 and ARM, and ARM with the FPU intervals of Visual C++), `operator<<`
+  writes a subnormal bound outward, as 2^-1022 away from zero and 0 toward it
+  (see [Flush-to-zero and
+  denormals-are-zero](using.md#flush-to-zero-and-denormals-are-zero)).
+- **`bisect(ratio)` and `is_bisectable()` give the same results whatever the
+  flush-to-zero modes of the program.** With denormals-are-zero set (DAZ of
+  MXCSR on x86, FZ of FPCR on ARM), as a program linked with `-Ofast` has it,
+  two subnormal bounds compared as doubles are two zeros: `[3·2^-1074,
+  5·2^-1074]` was not bisectable, `bisect(ratio)` refused a subnormal ratio as
+  a 0 and, with `GAOL_PRESERVE_ROUNDING`, could cut outside the interval or on
+  a bound of a bisectable one. Both now compare the bounds by their bits, the
+  cut point of `bisect(ratio)` included, before the modes are restored
+  (`tests/rounding_direction.cpp`).
+- **The AVX-512 path reads its operands once the modes that flush the
+  subnormals to zero are cleared, and makes its results before they are set
+  back** with `GAOL_PRESERVE_ROUNDING`: Clang 18 computed `x - y` after, and
+  `[3e-308] - [2.9e-308]` was `[0, 0]`. Its embedded rounding honours
+  flush-to-zero and denormals-are-zero (on an Intel i7-1185G7, with
+  flush-to-zero set, 3e-308 - 2.9e-308 and 1e-300·1e-20 are 0, and with
+  denormals-are-zero so is 2^-1060·1e10; see
+  [Using GAOL](using.md#the-avx-512-path)).
+- **`hausdorff()`** returns the tightest upper bound of the distance, and 0 for
+  equal bounds, infinite ones included. GAOL 4 computed `fabs(a - c)` in the
+  rounding direction of the caller, below the exact distance when rounded upward
+  with a < c, and returned +oo as soon as a bound was infinite (but for two
+  entire intervals): `hausdorff([1, +oo], [1, +oo])` and
+  `hausdorff([1, +oo], [2, +oo])`, whose distances are 0 and 1, were +oo, so
+  that a fixed-point loop on a box with an unbounded side never stopped. Each
+  difference is now rounded upward both ways, and equal bounds are at distance
+  0; an infinite bound in one interval only still puts them at +oo
+  (`hausdorff([1, +oo], [1, 2])`), as in GAOL 4, and the function returns it
+  before the rounding direction is checked, which it then leaves as it found it:
+  2.5 to 4.4 times as fast as through the computation of the distance (Intel
+  i7-1185G7, GCC 9.4 and Clang 18), the other cases paying the test, 0.1 to 1.4
+  ns.
+- **`nb_fp_numbers()`** numbers the doubles by the bits of the magnitudes of its
+  arguments, -0 and +0 being one number. GAOL 4 numbered them by the bits of a
+  and b, sign bit included: `nb_fp_numbers(-0.0, 1.0)` and
+  `nb_fp_numbers(-1.0, 0.0)` were 13830554455654793217 (the lower bound of
+  `[1, 2] - 1` is -0). They are 4607182418800017409 now, the number of the
+  doubles from 0 to 1.
 - **`mid()`** returns the tightest interval enclosing the midpoint, computed as
   `midpoint()` computes it with the rounding outward: the half of the sum of the
-  bounds, or the sum of their halves when the sum overflows (F. Goualard, *How
-  do you compute the midpoint of an interval?*). It computed `a/2 + b/2` rounded
-  upward, and for its lower bound subtracted the half of b rounded upward, which
-  is not exact when |b| < 2^-1021: `mid([0, 2^-1074])` was `[2^-1074, 2^-1074]`,
+  bounds, or the sum of their halves when a bound is 2^1023 or more in
+  magnitude, where the sum may overflow (F. Goualard, *How do you compute the
+  midpoint of an interval?*). It computed `a/2 + b/2` rounded upward, and for
+  its lower bound subtracted the half of b rounded upward, which is not exact
+  when |b| < 2^-1021: `mid([0, 2^-1074])` was `[2^-1074, 2^-1074]`,
   and 45150 of the 180901 intervals whose bounds are multiples of 2^-1074 from
   -300·2^-1074 to 300·2^-1074 did not enclose their midpoints;
   `mid([2^-1074, 2^-1074])` was `[2^-1074, 2^-1073]`, beyond the interval.
@@ -325,6 +701,21 @@ where it comes from.
   i7-1185G7 (GCC 9.4, CMake Release), `x += d` takes 3.9 ns rather than
   13.6 ns, `x *= d` 6.3 ns rather than 25.2 ns and `x /= d` 4.1 ns rather than
   18.0 ns, giving the same sets.
+- **`max(x, y)` and `min(x, y)` of the SSE2 and NEON intervals** take both
+  bounds of the result at once, from one comparison of the stored bounds of the
+  two operands, rather than call `maximum()` or `minimum()` once for each bound
+  and build the interval from two doubles. On an Intel i7-1185G7 (Release),
+  `max(x, y)` takes 2.3 ns rather than 8.5 ns with GCC 15.2 and 2.0 ns rather
+  than 5.6 ns with Clang 21, and `min(x, y)` the same; on 64-bit ARM they are
+  1.5 to 2.4 times faster (a Neoverse N2, an Apple M2). The bounds are the same,
+  bit for bit: of two zeros of opposite signs, `max` gives +0 and `min` -0, as
+  `maximum()` and `minimum()` do, and the empty set, with no exception, for an
+  empty operand. The FPU intervals are unchanged. With the SSE2 intervals, a
+  stored bound that is a signaling NaN raises the invalid-operation exception,
+  with GCC and Clang alike (the code that `max` and `min` replace raised it with
+  GCC and not with Clang); no constructor of GAOL leaves one in an interval,
+  each storing a quiet NaN, so only a program that writes the bytes of an
+  interval sees it.
 - **The constructors give the empty set** where their arguments are not an
   interval, as IBEX does: `interval(+oo)`, `interval(-oo)`,
   `interval(+oo, +oo)`, `interval(-oo, -oo)`, `interval(2, 1)` and bounds that
@@ -339,6 +730,17 @@ where it comes from.
   16-byte load stalls on the two 8-byte stores, and conditional moves make them
   depend on the comparison, which lengthens the loops accumulating intervals;
   either one costs several nanoseconds per construction.
+- **The constructors from a register give the empty set for the lanes of `[+oo]`
+  and `[-oo]`.** `interval(const __m128d&)` of the SSE2 intervals and
+  `interval(const float64x2_t&)` of the NEON ones give the empty set when a lane
+  is −∞, which is `l = +oo` or `u = -oo` (the lower bound is stored negated):
+  such an interval holds no real number (IEEE 1788-2015, 10.5.8), and no other
+  constructor makes it, `interval(+oo)` and `interval(a, b)` with `a = +oo`
+  being empty. GAOL 4 stored the lanes of an SSE2 register as they were, and the
+  operations took them for intervals. Both constructors are explicit now, and do
+  not check the order of the bounds. The code of GAOL builds its intervals from
+  registers with `interval(register, gaol_detail::unchecked_bounds)`, which does
+  not look at the lanes.
 - **A zero bound times an infinite bound** counts as 0 in the products of the
   FPU intervals, as in those of the SSE2 intervals: `[0, 1] * [1, +oo]` is
   `[0, +oo]`, `[-1, 0] * [1, +oo]` is `[-oo, 0]` and `[0, 0] * [1, +oo]` is
@@ -347,6 +749,86 @@ where it comes from.
   double give the empty set for an infinite double, as `interval(d)` is empty:
   they no longer repair NaN bounds, and `x *= d` takes 3.6 ns rather than
   4.8 ns.
+- **On 64-bit ARM processors the intervals are computed with NEON**
+  (`GAOL_SIMD`; see [The NEON intervals](using.md#the-neon-intervals)), with
+  every compiler of them: Visual C++, clang-cl and the Clang of MinGW-w64 and
+  MSYS2 as well as GCC, Clang and AppleClang under Linux and macOS. GAOL 4
+  computed the intervals of every ARM processor with the FPU, and 32-bit ARM,
+  whose NEON has no vector of doubles, still does. The two bounds are the two
+  lanes of a `float64x2_t`, as the SSE2 intervals keep them in a `__m128d`, and
+  `+`, `-`, `*`, `/`, `sqr()` and `sqrt()` are kernels that take and return
+  them in registers: the product is the maximum of four products, with no
+  branch on the signs, and the quotient one vector division when the divisor
+  holds no zero. On an Apple M2 (AppleClang 21.0), `x + y` takes 0.91 ns rather
+  than 1.18, `x * y` 2.14 ns rather than 3.33, `x / y` 2.39 ns rather than
+  3.30, `sqrt(x)` 1.70 ns rather than 4.60 and a line of 13 operations 19.2 ns
+  rather than 51.7, the second figures being those of the FPU intervals
+  (`GAOL_SIMD=OFF`). The bounds are the same, but for the sign of a zero bound,
+  which the maximum of 64-bit ARM, ranking +0 above -0, can set otherwise than
+  the SSE2 and the FPU intervals do: the lower bound of `[-1, 0] * [-1, 0]` is
+  -0 with NEON. The rounding direction is the field RMode of the register FPCR:
+  each operation checks it with one `mrs` (0.8 ns on the M2), which raises no
+  exception flag, and writes it with `msr` only if it is not upward or a flush
+  mode is set; with `GAOL_PRESERVE_ROUNDING`, an operation takes 27 ns rather
+  than 39. Visual C++ has no inline assembly for ARM64: GAOL reads and writes
+  FPCR there through `_ReadStatusReg(ARM64_FPCR)` and `_WriteStatusReg()`. The
+  operations clear the bits FZ and FIZ of FPCR, which flush the subnormal
+  numbers to zero, with Visual C++ as with the others; the FPU intervals of
+  Visual C++ for arm64 (`GAOL_SIMD=OFF`) clear neither.
+- **The AVX-512 path carries the rounding direction in the instruction.**
+  `x + y`, `x - y`, `x * y`, `x / y`, `sqrt(x)`, `sqr(x)`, the `+`, `-`, `*`
+  and `/` of an interval and a double, and the integer powers beyond 1 and -1
+  (with the fused multiply-add instructions) are computed with the rounding
+  that the AVX-512 instructions carry in themselves, on x86-64 where the
+  compiler takes them (never GCC for Windows, which does not align the stack
+  for the AVX-512 registers: GCC bug 54412). They set no rounding direction,
+  the program keeping its own, and raise no exception flag, the embedded
+  rounding suppressing them. The bounds are those of the SSE2 intervals bit for
+  bit, but for the sign of a zero bound of `x * d` and `x *= d` where the zero
+  bounds of the interval differ in sign: `[+0, -0]` times a double is `[+0, -0]`
+  with the SSE2 intervals and `[-0, +0]` with this path, +0 and -0 being the
+  same number; every other result of the operations of intervals and with a
+  double, compared bit for bit over the intervals of two bounds among 0 of
+  either sign, ±1, ±2.5, ±3, ±1e-310, ±1e300 and ±∞, is the same in the two
+  paths. The three builds take the path where `GAOL_PRESERVE_ROUNDING` is on and
+  the machine building runs the instructions (the figures are in the bullet on
+  the three builds below); the library then needs a processor with them, and
+  `gaol::init()` stops a program run on another one with a message (see [The
+  AVX-512 path](using.md#the-avx-512-path)).
+- **Visual C++ and clang-cl for x64 take the SSE2 intervals and the AVX-512
+  path**, as GCC and Clang do (`GAOL_SIMD`). The kernels of the SSE2 intervals
+  (`add_bounds()`, `mul_bounds()` and the others) are `__vectorcall` there
+  (`GAOL_VECTORCALL` of `gaol/gaol_config.h`), so that their `__m128d`
+  arguments go in registers. The bounds are the same, but for the sign of a
+  zero bound, which depends on the intervals: `sqr(interval(-1, 2))` is
+  `[-0, 4]` and `interval::zero()` is `[-0, 0]` with the SSE2 intervals, and
+  `[0, 4]` and `[0, 0]` with the FPU intervals (`GAOL_SIMD=OFF`). The AVX-512
+  path is taken under the rule of the bullet above, the processor being told by
+  `cpuid` and `xgetbv`.
+- **`*`, `/` and `sqr()` of the SSE2 intervals compute with no branch on the
+  signs of the bounds**, and `+`, `-`, `*`, `/` and `sqr()` hand the bounds over
+  in registers. GAOL 4 chose the product, the quotient and the square by
+  `switch`es and nested branches on the signs of the bounds, and a branch
+  predicted wrong costs more than the operation it chooses; its operators read
+  their operands and wrote their result through memory, and the next operation
+  read it again. `x * y` is now the larger of four products, each rounded
+  upward, in the two lanes of an SSE2 register; `x / y` one division of the two
+  lanes by the denominators that masks drawn from the signs choose; `sqr(x)` two
+  products and a mask that sets the lower bound of an interval holding 0 inside
+  to 0. The bounds of the operands go in a register to a function of the library
+  and those of the result come back in one, and only an empty operand, an
+  infinite bound or a divisor holding 0 takes a branch. The bounds are the same
+  but for the sign of a zero bound (next bullet). On an Intel i7-1185G7 with
+  Clang 21 (see [performance.md](compare/performance.md)), `x * y` takes 2.3 ns
+  rather than 10.0 with GAOL 4.2.3, `x / y` 2.5 ns rather than 7.5, and Shekel 5
+  108 ns rather than 189.
+- **The sign of a zero bound of a product or of a quotient** may differ from
+  GAOL 4's with the SSE2 intervals, the value never: the larger of four products
+  leaves `maxpd` to choose between a +0 and a -0 that compare equal, where GAOL
+  4 chose one product by the signs of the bounds. `[-1, 0] * [-1, 0]` has the
+  lower bound +0, where GAOL 4 had -0 (see [Accuracy of the
+  operations](accuracy.md#the-same-bounds-on-every-machine), which says which
+  build gives which).
 - **`x -= x`, `x /= x` and `x %= x`** enclose their results in the FPU intervals
   (`GAOL_SIMD=OFF`, and the processors with neither SSE2 nor NEON: 32-bit ARM,
   POWER, s390x and RISC-V), the bounds of the operand being read before those of
@@ -356,6 +838,43 @@ where it comes from.
   a ≤ b, `[0.5, 1]` for `[0.25, 0.5]`, neither containing the exact result;
   `[0.1] /= [0.1]` was empty. Normalising a row by its pivot, `row[j] /= row[i]`
   down to j = i, did it. The SSE2 intervals were right.
+- **The FPU intervals multiply, divide and square without a branch on the signs
+  of the bounds**, as the SSE2 and the NEON intervals do. GAOL 4 took one of
+  nine cases of the signs for a product, and went down a chain of up to eight
+  tests for a quotient, which a processor mispredicts when the signs come at
+  random. `x * y` of finite bounds is now the largest of four products for each
+  bound, those of the lower bound with a factor negated (a product and its
+  opposite are not rounded alike where the direction is always upward); `x / y`
+  and `x % y` by a divisor without zero divide each bound of the dividend by the
+  bound of the divisor that its sign chooses, two divisions whatever the signs;
+  `sqr(x)` is the largest of two squares for each bound. An interval with an
+  infinite bound goes to a function of its own, which keeps `0 * oo` from being
+  formed, and a divisor holding 0 to another. On an Apple M2 (AppleClang 21,
+  `-DGAOL_SIMD=OFF`), over the random intervals of the benchmark of
+  `doc/compare`, `x * y` takes 3.5 ns rather than 13.9, `x / y` 3.2 rather than
+  8.5, `sqr(x)` 1.8 rather than 6.9, and Shekel 5 138 ns rather than 298. A line
+  of products of operands of one sign, which a processor predicts, takes more
+  time (seven `*` in a row: 35.8 ns rather than 23.8, and 1.7 times longer with
+  GCC 13 on x86-64 in the continuous integration), and with
+  `GAOL_PRESERVE_ROUNDING` the kernels gain nothing: the write of the control
+  register waits for the result, which the kernel of the product delays (`x * y`
+  44.4 ns rather than 42.2).
+  - **The sign of a zero bound of a product is not specified.** The bounds are
+    those of the former code but for the sign of a zero bound. Where two
+    products are a +0 and a -0 (the lower bound of `[-1, 0] * [-1, 0]`, the
+    upper bound of `[-1, 0] * [0, 1]`), the maximum is a comparison and a
+    selection that the compiler compiles as it chooses: GCC 13 for POWER9 makes
+    an `xsmaxcdp` of it, which returns its first operand (-0 for the lower bound
+    on the jobs of the continuous integration, under QEMU; +0 with GCC for
+    32-bit ARM, as with SSE2). The value of the bound is the same, and `==` and
+    `<` do not see the sign. The sign of the zero bound of a quotient (the upper
+    bound of `[0, 1] / [-2, -1]` is -0, it was +0) and of a square (the lower
+    bound of `sqr([-1, 2])` is +0) depends on no tie, and is fixed.
+  - **The flags.** `x * y` forms every corner product, as the SSE2 and the NEON
+    intervals do, so that a subnormal corner that is no bound of the result and
+    is rounded raises `FE_UNDERFLOW`, and a corner that overflows `FE_OVERFLOW`,
+    the result then having an infinite bound; `FE_INVALID` and `FE_DIVBYZERO`
+    are raised as before.
 - **Square roots** are bounded whatever the rounding of the C library's `sqrt`,
   which Visual C++ for 32-bit x86 rounds to nearest in every rounding direction.
   Where `sqrt` rounds as it should, the results are unchanged.
@@ -367,26 +886,80 @@ where it comes from.
   are checked with a product rounded the other way rather than a division,
   and `sqrt()` takes the same time as before (9.0 ns on an Intel i7-1185G7,
   GCC 9.4).
+- **`sqrt()` is no longer slowed down by GCC on Intel processors.** `sqrt()`,
+  `nth_root()` and a few more operations use the smallest subnormal,
+  2^-1074, as a bound or a step, and GAOL took it from
+  `std::numeric_limits<double>::denorm_min()`, a `long double` constant. GCC
+  does not fold the conversion of a subnormal result to a double with
+  `-frounding-math`, which every build of GAOL gives: GCC 13.3 and 15.2 loaded
+  the constant as an extended number and stored it as a double (`fldt`,
+  `fstpl`) at each use, which the x87 unit does with a microcode assist on
+  Intel processors, about 100 ns on an i7-1185G7. `sqrt()` took 124 ns rather
+  than 7.8, and `nth_root(x, 2)` and `nth_root(x, -2)` 113 and 118 ns rather
+  than 6.8 and 10.2 (GCC 15.2, i7-1185G7); Clang folds the conversion. The
+  constant is a literal now (`gaol/core/gaol_interval_core.cpp`), and the
+  bounds are the same, bit for bit. The runners of the continuous integration,
+  AMD processors and 64-bit ARM, show no difference.
 - **Numbers are read exactly** (`gaol/parser/gaol_interval_lexer.lpp`). GAOL read them
   with `strtod()` rounding downward and upward, and relied on the inexact flag.
   The C runtime of Windows and musl on 64-bit ARM processors round to nearest in
   every direction and raise no flag, so `interval("0.1")` did not enclose 1/10
   there. Each number is now compared exactly with the doubles around it,
   whatever the number of digits of its significand and of its exponent.
+  The time to read a number is quadratic in the number of its digits: `"0."`
+  followed by 20000 digits `3` takes 0.017 s, 80000 digits 0.28 s and 320000
+  digits 4.4 s (about 45 s expected for a million), and the uncertain form 2.3
+  times as long, so that a text from elsewhere can block a program.
 - **Numbers are read, and exact texts written, whatever the locale** of the
   program. GAOL read numbers with `strtod()`, which reads the decimal point of
   the C locale: under a locale writing a decimal comma, as
   `setlocale(LC_ALL, "")` sets under a French one, it stopped at the `.` of
   `0.1`, and `interval("0.1")` was `[0, 0]`. The doubles around the number
-  are now bracketed by steps doubling from the double `strtod()` gives, then
-  found by bisection on their bits: two comparisons when `strtod()` gives the
-  nearest double, and at most about 125 whatever it gives. `exact_string()`
-  and the format `hexa` write the bounds from the bits of the doubles, in the
-  form glibc's `%a` has, with a point whatever the locale and the same text
-  whatever the C library. The decimal formats of `operator<<` keep the
-  decimal point of the locale of the stream, as for a double.
+  are now bracketed by steps doubling from the double `strtod()` gives (from
+  the largest double, or from 0, for a number above the largest double or below
+  the least normal one, which is not given to it), then found by bisection on
+  their bits: two comparisons when `strtod()` gives the nearest double, and at
+  most about 125 whatever it gives. The text of the number is taken apart once,
+  and not by each of those comparisons, which read it again in a time quadratic
+  in its length: a number of 20000 characters took over 2 s to read under a
+  locale writing a decimal comma, and takes about 0.02 s, as under the C locale.
+  `exact_string()` and the format `hexa` write the bounds from the bits of the
+  doubles, in the form glibc's `%a` has, with a point whatever the locale and
+  the same text whatever the C library. The formats `width` and `center` of
+  `operator<<` keep the decimal point and the grouping of the digits of the
+  locale of the stream, as for a double; the digits that the format `agreeing`
+  shares have the decimal point of the locale of the program, and the format
+  `bounds` that of the C locale (see below).
   `tests/numbers.cpp` reads and writes under such a locale where one is
   installed.
+- **Reading a number raises no overflow or underflow exception** (see [The
+  floating-point exceptions](using.md#the-floating-point-exceptions)). The
+  reader gave every number to `strtod()` to start from a double near it, and
+  with glibc `strtod()` raises `FE_OVERFLOW` for a number above the largest
+  double (`1e400`, `1.8e308`, `0x1p1024`) and `FE_UNDERFLOW` for one below the
+  least normal double (`1e-310`, `1e-400`, `0x1p-1075`), which it rounds to a
+  subnormal or to 0: `1e400*0`, which is `[0]`, raised the flag that stands for
+  an infinite bound, and a program that had enabled the exception died while it
+  read. A number that may be above the largest double, or below 2^-1022, is now
+  compared exactly with the largest double, or with 2^-1022, first, and one that
+  is beyond is not given to `strtod()`: the steps doubling and the bisection
+  start from the largest double, or from 0, in at most about a hundred
+  comparisons. The bounds are the same, bit for bit. Reading a subnormal takes 2
+  to 12 times longer than before, the more the nearer the number is to 2^-1022
+  (`1e-320`, `1e-310`).
+- **Numbers are read whatever the flush-to-zero and denormals-are-zero modes**
+  of the processor (`gaol/parser/gaol_interval_lexer.lpp`). With
+  denormals-are-zero, which a program linked with `-Ofast` has
+  (`crtfastmath.o`) and the code it loads can set, a subnormal is 0 in a
+  comparison and for `std::frexp()`. The reader compared each number with the
+  doubles around it as doubles, and took every subnormal for 0:
+  `textToInterval("1e-310")` was `[0x0.fffffffffffffp-1022, 0x1p-1022]`, which
+  does not contain 1e-310, and `textToInterval("0")` was the greatest
+  subnormal. The doubles are now taken apart by their bits, which no mode
+  changes, so that the bounds are the tightest whatever the modes
+  (flush-to-zero alone changed nothing: the reader computes no subnormal
+  result). `tests/numbers.cpp` reads subnormals with the modes set, wherever the
+  tests can set them. GAOL 4 was not measured under these modes.
 - **Intervals are written in decimal rounded outward**, whatever the C
   library ([issue #3](https://github.com/Jordan08/GAOL/issues/3)).
   - **Before.** `operator<<` set the rounding direction downward, then upward,
@@ -399,28 +972,118 @@ where it comes from.
     compared exactly with the bound, as the numbers read are, and its last
     digit is moved by one when it is on the wrong side. The general format is
     made from the scientific one by the rules of `%g`, glibc 2.31 writing
-    999999.5 with six digits and `showpoint` `1.e+06`. The flags, the
-    precision and the decimal point of the stream are kept.
+    999999.5 with six digits and `showpoint` `1.e+06`. The flags of the stream
+    apply to the bounds, to the center and to the radius (formats `width` and
+    `center`), but not to the digits that `agreeing` shares.
   - **Same text with glibc**, which rounds as asked: 1077546 bounds written
     in the general, scientific and fixed formats with 1 to 18 digits were the
     same, character for character.
-- **`operator<<` leaves the stream as it found it.** The interval is written
-  in a stream of its own, with the flags and the locale of the stream and the
-  precision of `interval::precision()`, then into the stream at once. GAOL set
-  the precision of the stream to `interval::precision()` and left it so, the
-  doubles written afterwards getting 16 digits, and wrote the `[` apart, which
-  `std::setw` padded alone: `std::setw(8) << interval(1, 2)` wrote 7 spaces
-  before `[1, 2]` rather than 2.
-- **`operator>>` ends with the input.** Where no line is left, it sets the
-  `failbit` of the stream, leaves the interval as it was and throws nothing,
-  as the reading of a double does, and `while (in >> x)` ends there. It read
-  the empty text left, threw `input_format_error` and emptied the interval:
-  such a loop always ended with an exception. A line that is no interval, a
-  blank one included, sets the `failbit` too, and empties the interval; then
+- **A point interval is written `[a]`.** In the format `bounds`, `operator<<`
+  writes a point interval whose double the digits write exactly as `[a]`, the
+  literal of IEEE 1788-2015 for a point (`[4]`, `[0.5]`), read back as that
+  point. A zero of either sign is `[0]`, whatever the build (`interval::zero()`
+  is `[-0, +0]` with the SSE2 and the NEON intervals and `[+0, +0]` with the
+  FPU ones; the hexadecimal format writes `[0x0p+0]`). Any other point is
+  written `[l, r]`, its two bounds rounded outward (`interval(0.1)` is
+  `[0.1, 0.1000000000000001]`), read back as an interval containing it.
+  - **Before.** GAOL wrote every point interval `<a, b>`, the text of its double
+    rounded downward and upward: `<4, 4>`, a form of GAOL that is no literal of
+    the standard, and `<0.1, 0.1000000000000001>` for `interval(0.1)`, which
+    the reader refused (`input_format_error`, the empty set with
+    `gaol_ieee1788::textToInterval`) because it takes `<a, b>` for two numbers
+    that are the same double: `textToInterval(intervalToText(interval(0.1)))`
+    was the empty set, as for about 61 % of 11 788 point intervals tried (1/3,
+    pi, 1e23, `DBL_MAX`, the subnormals, the negatives with 16 digits). The
+    reader still reads `<a, b>`, so the texts GAOL 4 wrote for exact points are
+    read back.
+  - **Tests.** `tests/numbers.cpp` reads back the text of point intervals
+    written with 1 to 25 digits and six sets of flags, and `tests/ieee1788.cpp`
+    checks `textToInterval(intervalToText(interval(0.1)))`.
+- **The format `width` writes the midpoint and the radius of IEEE 1788-2015,
+  `center` the midpoint, and the empty set is `[empty]` in every format.**
+  `c (+/- w)` is the `midpoint()` (12.12.8), rounded to nearest, and the
+  `rad()`, rounded upward: the interval is within c plus or minus w for the
+  doubles, and a radius that is not zero is never written 0; a point interval is
+  written as its center, and an unbounded one has an infinite radius. They are
+  displays, not enclosures: the digits of c are those of the precision, and the
+  formats `bounds`, `agreeing` and `hexa` are the ones that enclose. `[empty]`
+  is the literal of the standard (12.11.3), as the manual said. GAOL wrote
+  `(l+r)/2` and `(r-l)/2`, both rounded to nearest, and `empty`: `[1, 1+2^-52]`
+  was `1 (+/- 1.110223024625157e-16)`, which stops short of the upper bound,
+  `[0, 5e-324]` had a radius 0, `[1e308, 1.7e308]` a midpoint `inf`, and the
+  point interval 0.1 was written `0.1000000000000001`. The manual and the header
+  called the radius the width. The center 0 is written `0`, whatever its sign,
+  and the radius without a sign under `std::showpos`: GAOL wrote `+2 (+/- +1)`,
+  and `-0` for the center of `[-2^-1073, 2^-1074]`.
+- **`gaol_ieee1788::intervalToText()` writes an interval literal.** It writes
+  `[l, r]`, `[a]` for a point that the digits write exactly, or `[empty]`, with
+  the digits of `interval::precision()`, the flags of a new stream and a decimal
+  point, whatever the global output format and the locale, the bounds rounded
+  outward, so that `textToInterval()` reads the text back as an interval
+  containing the interval (13.3). It wrote what `operator<<` writes: the format
+  `width`, the digits that `agreeing` shares, a decimal comma under a comma
+  locale, and `<4, 4>` for a point, which is no literal of the standard. (GAOL 4
+  has no `intervalToText()`; that was its first version in GAOL v5.)
+- **The format `bounds` is written in the C locale** whatever the locale of the
+  stream, so that the reader reads the text again. GAOL wrote each bound as the
+  stream writes a double, with its decimal point and the grouping of its digits:
+  `[0,25, 0,5]` under a locale writing a decimal comma, which the reader
+  refuses. It writes `[0.25, 0.5]`, and `[-2.5]` for a point, with no grouping.
+  The intervals that the format `agreeing` writes with their bounds are written
+  so too, and so is the text of `gaol_ieee1788::intervalToText()` (above).
+- **`operator<<` leaves the stream as it found it.** The text of the interval is
+  made in a character string, with the precision of `interval::precision()`,
+  then written into the stream at once. GAOL set the precision of the stream to
+  `interval::precision()` and left it so, the doubles written afterwards getting
+  16 digits, and wrote the `[` apart, which `std::setw` padded alone:
+  `std::setw(8) << interval(1, 2)` wrote 7 spaces before `[1, 2]` rather than 2.
+  With `std::internal`, the fill goes after the sign of the center (formats
+  `width` and `center`) or of the digits two bounds share (`agreeing`), or after
+  the `0x` of the hexadecimal floating-point format of the stream, as for a
+  number, and before the `[` of the other texts, as `std::right` does. Made in a
+  string rather than in `std::ostringstream`s, one for the interval and one for
+  each bound, whose locale and facets were built and destroyed each time, the
+  text takes 30 to 45 % less time than in the earlier version of GAOL v5, which
+  used them (Clang 18, Release: `hexa` 45 %, `bounds` and `agreeing` 36 %,
+  `width` and `center` 30 %).
+- **`operator>>` ends with the input, and skips blank lines.** The blanks
+  before the line, line ends included, are skipped as before a number, under
+  `std::noskipws` too, which keeps a number from skipping them: an empty line,
+  or one of blanks, is not a line to read. GAOL read the rest of the line where
+  the previous value stopped, so that `in >> d >> x` over the lines `1.5` and
+  `[1, 2]` read the empty rest of the first one and threw `input_format_error`,
+  as `while (in >> x)` did over a file ending with an empty line. Where no line
+  is left, it sets the `failbit` of the stream, leaves the interval as it was
+  and throws nothing, as the reading of a double does, and `while (in >> x)`
+  ends there. GAOL read the empty text left, threw `input_format_error` and
+  emptied the interval: such a loop always ended with an exception. A line that
+  is no interval sets the `failbit` too, and empties the interval; then
   `input_format_error` is thrown as before, a stream whose `exceptions()`
-  include `failbit` included (`invalid_action_error` for a function called
-  with an argument it does not take). A program that reads on after it calls
-  `in.clear()` first: GAOL read the next line.
+  include `failbit` included (`invalid_action_error` for a function called with
+  an argument it does not take); an interval written on several lines is still
+  no interval. A program that reads on after it calls `in.clear()` first: GAOL
+  read the next line.
+- **`what()` of GAOL's exceptions is their explanation.** `gaol_exception`
+  overrides `what()`: it returns the explanation, or the name of the class of
+  the exception (`gaol_exception`, `input_format_error`,
+  `unavailable_feature_error` or `invalid_action_error`) where there is none
+  or where it starts with a NUL, so that `catch (const std::exception& e)` and
+  the message of an exception that nothing catches say what went wrong. GAOL 4
+  left the `what()` of `std::exception`, which is `std::exception` with
+  libstdc++ and libc++, whatever the error. A null pointer given as the
+  explanation is no explanation: GAOL 4 built a `std::string` from it, which is
+  undefined behaviour. `operator<<` of an exception writes the explanation
+  once, `file, line n: exception thrown: explanation`; it wrote `what()` next
+  to it, `file, line n: exception std::exception thrown: explanation`.
+- **A null file name is "(unknown file)"** in a `gaol_exception`, in
+  `gaol_warning()` and in `gaol_error()`, and a null message of the two
+  functions is an empty text. GAOL 4 kept the null pointer: `file()` of an
+  exception could be one, and the pointer was written to a stream as it was, by
+  `operator<<` of the exception and by the two functions to `std::cerr`. That is
+  undefined, and libstdc++ puts the stream in the state `bad`, so that the
+  diagnostics written after it were lost. `file()` of GAOL's exceptions is never
+  a null pointer now. The macros of GAOL (`gaol_ERROR`, `GAOL_FILE_POS`) always
+  give `__FILE__`: only a direct call can give a null pointer.
 - **The format of the agreeing digits** (`interval_format::agreeing`) keeps
   the digits of each bound. GAOL dropped from both bounds what followed the
   last character of the left one that is not a zero: `[1.25, 1.2567]` was
@@ -428,6 +1091,18 @@ where it comes from.
   the right bound. They are written `1.25~[0, 67]` and `100.~[0, 47]`; the
   zeros ending an exponent are no longer dropped, and the search for the
   common characters stops at the end of the shorter text.
+  The digits two bounds share are written once only for bounds that are finite,
+  not 0 and of the same sign, written with as many digits before the point and
+  the same exponent, and that share their first digit that is not 0; the other
+  intervals are written with their bounds, as the format `bounds` writes them:
+  `[1, 10]`, `[1, 2]` and `[0]` (the point zero). Two negative bounds share
+  their digits as two positive ones do: `-1.25~[67, 0]` for `[-1.2567, -1.25]`.
+  GAOL tested `r > 10 l`: `[1, 10]` was written `1~[., 0]`, the 1 of 10 being
+  taken for the 1 of 1, `[1, 2]` `~[1., 2.]`, with no digit shared, and every
+  negative interval with its bounds. A point interval that the digits write
+  exactly is written as a single number, `interval(4.0)` as `4.000000000000000`,
+  where the format `bounds` writes `[4]`; any other point has its digits shared
+  as any interval has, `interval(0.1)` being `0.100000000000000~[0, 1]`.
 - **Hyperbolic functions:** `sinh`, `cosh`, `tanh`, `asinh`, `acosh` and
   `atanh` are those of [CORE-MATH](https://core-math.gitlabpages.inria.fr/),
   correctly rounded upward, as the other elementary functions
@@ -441,9 +1116,10 @@ where it comes from.
   - **The sources.** The whole tree of CORE-MATH is vendored in
     `3rd/math-core` (MIT licence), compiled into GAOL's library under the
     names `gaol_cr_sinh()`... (`gaol/gaol_core_math.h`). The sources are kept as
-    CORE-MATH wrote them, `gaol/core_math_port.h` being force-included into each
-    of them by the compiler: [3rd/README.md](../3rd/README.md) lists what that
-    header gives and the changes the vendored sources carry.
+    CORE-MATH wrote them but for a few changes, marked `/* GAOL */`,
+    `gaol/core_math_port.h` being force-included into each of them by the
+    compiler: [3rd/README.md](../3rd/README.md) lists what that header gives and
+    the changes the vendored sources carry.
   - **Tests.** `tests/elementary.cpp` requires one double of every function,
     rather than 8.
   - At the overflow, the bounds were two floats wider than the
@@ -457,54 +1133,119 @@ where it comes from.
   - `pow(I, J)` computed the powers of the negative part of `I` on its
     magnitude: `pow([-4,-1], [0.5])` returned `[-1, 2]`. It is now hybrid: a
     degenerate integer exponent `[n]` always takes `pow(I, int)`, the `pown` of
-    IEEE 1788, which keeps the negative part of `I` and gives `0^0 = 1`, and
-    `[-oo, +oo]` for an `n` beyond the ints; any other exponent takes the `pow`
+    IEEE 1788, which keeps the negative part of `I` and gives `0^0 = 1`, and,
+    for an `n` beyond the ints, the bounds of the pow of CORE-MATH at the
+    corners of `I`; any other exponent takes the `pow`
     of IEEE 1788, on the part of `I` in `[0, +oo]`, where `0^y` is `0` for
     `y > 0` and has no value for `y <= 0`: `pow([0], [0.5])` was
     `[0, 4.9e-324]`, and `pow([0], [-0.5])` was `[MAX, +oo]`. An exponent
     `[+oo]` or `[-oo]`, which contains no real number, gives the empty set.
-- **`pow(I, J)` with finite bounds takes the tightest bounds at the corners
-  of the box**, but for a lower bound one double below where the power there
-  is a double ([issue #8](https://github.com/Jordan08/GAOL/issues/8)). x^y
-  increases with y for x > 1 and decreases for x < 1, increases with x for
-  y > 0 and decreases for y < 0: over a box of bases above 0 its extrema are
-  at corners, which the places of the bounds about 1 and 0 give, and the pow
-  of CORE-MATH, correctly rounded upward, is taken there; a base from 0 with
-  exponents above 0 has 0 for lower bound.
+- **`pow(I, J)` takes the tightest bounds at the corners of the box**
+  ([issue #8](https://github.com/Jordan08/GAOL/issues/8)). x^y increases with y
+  for x > 1 and decreases for x < 1, increases with x for y > 0 and decreases
+  for y < 0: over a box of bases above 0 its extrema are at corners, which the
+  places of the bounds about 1 and 0 give, and the pow of CORE-MATH, correctly
+  rounded upward, is taken there: as the upper bound, and, as the lower bound,
+  the double below it, or x^y itself where that is a double (`pow([4], 0.5)` is
+  `[2]`, and `pow([3, 4], [2, 3])` is `[9, 64]`), which `pow_is_double()` proves
+  from the bits of x and y, with integers and operations that are exact in every
+  rounding direction (see [Accuracy of the operations](accuracy.md)). A base
+  from 0 with exponents above 0 has 0 for lower bound. At a corner where x is 0
+  or +oo, or y infinite, the bound is the limit of x^y, 0 or +oo, or 1 for x = 1
+  or y = 0, and CORE-MATH is not called: `pow([4, +oo], 0.5)` is `[2, +oo]` and
+  `pow([0, 2^-1000], [-oo, -1])` is `[2^1000, +oo]`. These boxes raise no
+  division-by-zero exception, which `log(0)` and the pow of CORE-MATH at
+  (+0, n < 0) raised.
   - **Before.** `exp(J*log(I))` multiplied the relative width of `log(I)`, a
     few 2^-52, by |y log x|: `pow([2], [1023.5])` was 1425 doubles below the
-    exact value and 748 above. It is kept where a bound is infinite, or for
-    a base from 0 with an exponent that is not above 0, whose limits it gives.
+    exact value and 748 above, `pow([4, +oo], 0.5)` was `[2 - 2^-52, +oo]`, and
+    `pow([0, 2^-1000], [-oo, -1])` had a lower bound 617 doubles below 2^1000.
   - **Tightness.** Over the million powers of the benchmark of `doc/compare`,
-    its intervals are no wider than those of libieeep1788, which computes
-    each bound with MPFR, where `exp(J*log(I))` made them 5.9e-14 wider than
-    the tightest relatively.
-- **Integer powers are computed from exact products** (issue #7): `pow(x, n)`,
-  for an `int` or an `unsigned` n, gives the tightest bounds for n ≥ 3, where
-  GAOL rounded each product of its binary exponentiation outward and was up to
-  n + 1 doubles from them: 2, 3, 5, 6 and 8 doubles for n = 3 to 7, `pow([1.1], 3)` being two
-  doubles wide.
-  - **How.** Each product h·y is rounded to p, and `fma(h, y, -p)` gives its
-    rest h·y − p exactly: the power is carried as h + l, l being the sum of
-    the rests, and rounded outward once at the end. The upper bound keeps l
-    rounded upward, the lower bound keeps −l rounded upward and leaves out the
-    square of l, which would raise it: the bounds are proved, and the tightest
-    unless the power is within n·2^-104 of a double, where they are one double
-    beyond. The power of a double that is a double is exact.
-  - **Where not.** Below 2^-968 the rest of a product is no double, and at the
-    overflow neither is the product: the rounded products of before serve
-    there, as for the square, which is the tightest already. Over 2.4 million
-    powers of exponents 3, 4, 5, 8, 17, 100, −3 and −4 at every magnitude,
-    the bounds were never wider than before, and narrower for 47 %.
-  - **Time** (Intel i7-1185G7, GCC 9.4, x86_64 without FMA instructions
-    compiled in, `fma()` being the one of glibc): `pow(x, 3)` takes 32 ns
-    rather than 14.4 in the benchmark of `doc/compare`, and the line
-    `sqrt(p) * x^3 - exp(b/p)` 113 ns rather than 94; `sqr()` and Shekel 5 are
-    unchanged. Compiled with FMA instructions (`-mfma`, or on 64-bit ARM,
-    which always has them), the exact products cost about 1 ns more than the
-    rounded ones.
-  - **Tests.** `tests/arithmetic.cpp` requires the tightest bounds for
-    x between 2^-30 and 2^30, and n doubles over all the doubles, as before.
+    its intervals are no wider than those of libieeep1788, which computes each
+    bound with MPFR, where `exp(J*log(I))` made them 5.9e-14 wider than the
+    tightest relatively.
+  - **Time** (Clang 18, Intel i7-1185G7; 100,000 boxes, J within [0.5, 2.5], x
+    centred in [1, 10] but for the first): `gaol::pow(x, J)` with x = [1/b, b],
+    b from 1 to 10, takes 84 ns (GAOL 4: 138 ns), with x = [a, +oo] 55 ns
+    (GAOL 4: 99 ns) and with J = [a, +oo] 54 ns (GAOL 4: 126 ns).
+- **Integer powers are the tightest bounds, of either sign** (issue #7):
+  `pow(x, n)` of `gaol`, `pown(x, n)` of `gaol_ieee1788` and the integer
+  exponents of `pow(x, y)` and `pow(x, p)` (a degenerate `[n]`, an integer
+  double `p`) give the tightest bounds of x<sup>n</sup>, or one double beyond
+  where x<sup>n</sup> is within twice the error bound K of a double (K is
+  2<sup>-98</sup> relatively at n = 3 and about 2<sup>-62</sup> at the most, and
+  0 for n = 2, which is `sqr(x)`; at n = 3, one bound in 2<sup>46</sup> is one
+  double beyond for an x at random, and about a third of them for an x within 8
+  doubles of 1), and exact where x<sup>n</sup> is a double: `pow([2, 3], 3)` is
+  `[8, 27]`. GAOL rounded each product of its binary exponentiation outward and
+  was up to n + 1 doubles from the tightest bounds, 2, 3, 5, 6 and 8 doubles for
+  n = 3 to 7, `pow([1.1], 3)` being two doubles wide, and took x<sup>-n</sup>
+  for 1/x<sup>n</sup>, two roundings.
+  - **How.** Both bounds at once: the powers of the two corners of x where
+    x<sup>n</sup> is the least and the greatest, computed together, in the two
+    lanes of an SSE2 or a NEON register with the FMA instructions, or in a pair
+    of doubles otherwise (the FPU intervals, SSE2 without FMA), the same
+    operations in the same order. Each product h·y is rounded to p, and
+    `fma(h, y, -p)` gives its rest exactly: the power is carried as h + l, whose
+    error is bounded beforehand (the proof is in the comment of
+    `pown_products()` in `gaol/core/gaol_interval_core.cpp`, and
+    `tests/tools/pow/pown_bound.py` checks its recurrence with rationals), and
+    each bound is rounded once. The lanes compute |c|<sup>m</sup> and give the
+    sign at the end, so that the powers of −x are the opposites of those of x
+    for an odd n. x<sup>-n</sup> is the inverse of h corrected by the rest of
+    1 − q(h + l), rounded once, and x<sup>-1</sup> is `inverse()`.
+  - **Where the exact products do not hold.** A corner whose powers leave
+    [2<sup>-968</sup>, 2<sup>960</sup>] is computed alone, its base scaled to
+    [1, 2) and its power kept below 2<sup>501</sup> by powers of two, then
+    scaled back with one rounding in the direction of the bound: the tightest
+    beyond the largest double and among the subnormals too. The limits at 0 and
+    at the infinities are taken directly, and each bound keeps the tightest when
+    the other leaves the range. GAOL's 1/x<sup>n</sup> overflowed before the
+    inversion where x<sup>n</sup> is beyond the largest double:
+    `pow([10], -400)` was `[0, 5.6e-309]` rather than `[0, 2^-1074]`,
+    `pow([2], -1050)` `[0, 5.6e-309]` rather than `[2^-1050]`, and
+    `pow([-2, 2], -1050)` `[0, +oo]` rather than `[2^-1050, +oo]`.
+  - **Time** (Intel i7-1185G7, Clang 21): `pow(x, 3)` takes 5.1 ns against 9.1
+    with GAOL 4.2.3 (see [performance.md](compare/performance.md)).
+  - **The exponent 2 is `sqr(x)`.** `pow(x, 2)`, `pow(x, 2u)`, `pow(x, 2.0)`,
+    `pow(x, [2])`, `gaol_ieee1788::pown(x, 2)` and, on the part of x in
+    [0, +oo], `gaol_ieee1788::pow(x, [2])` call `sqr(x)`, the squares of the
+    bounds rounded outward, and not the exact products of the integer power,
+    which a square does not need: with them `pow(x, 2)` took 5.3 ns with the
+    NEON intervals and 5.2 with the FPU intervals, and it takes 1.7 and 2.2
+    now (Apple M2, AppleClang 21); the 6 million calls of `pow(x, 2)` of
+    `examples/16_Goldstein_Price.cpp` take 50 ms rather than 77 with the NEON
+    intervals. The sign of a zero bound is that of `sqr(x)` in each build:
+    `pow([-1, 2], 2)` is [-0, 4] with the SSE2 and NEON intervals and [0, 4]
+    with the FPU intervals, the two zeros comparing equal. The exception
+    flags are those of `sqr(x)` too: inexact and underflow are raised also by
+    the square of the bound that is not kept, and overflow only when the
+    upper bound is +oo.
+- **The integer powers beyond the ints** (`gaol::pow(x, n)` and
+  `gaol_ieee1788::pown(x, n)` for an n beyond the ints, an `unsigned int` above
+  `INT_MAX` or a wider type, and `pow(x, [n])` and `pow(x, n.0)` of `gaol`
+  beyond the ints) are computed from the pow of CORE-MATH at the corners of x,
+  the sign from the parity of n (`gaol_uipow()` up to `UINT_MAX`,
+  `gaol_pown_ll()` for a wider type): the tightest where n is a double, and
+  within three doubles of it beyond 2<sup>53</sup> for an n that is no double,
+  as x<sup>h</sup>·x<sup>l</sup>, n = h + l, h a double and |l| <
+  2<sup>11</sup>. Beyond 64 bits, n is taken as ±(2<sup>63</sup> − 1) or
+  ±(2<sup>63</sup> − 2) by its sign and parity, every power of a double but 0,
+  ±1 and ±∞ being beyond the doubles there. The powers of expressions,
+  `pow(e, n)` and `pown(e, n)`, follow: `pow(e, [n])` where n is a double, and
+  beyond 2<sup>53</sup> the product of `pow(e, [h])` and e<sup>l</sup>, within
+  three doubles for a point e and wider than the power of the interval where e
+  holds 0 inside.
+- **`pow` with an empty operand returns the empty set before it checks the
+  rounding direction**, as `sqr` does, and leaves the direction, and the modes
+  that flush the subnormals to zero (DAZ, FTZ), as the program had them: in
+  `pow(x, 2)` in all its forms, which is `sqr(x)`, in the forms with a real
+  exponent or an interval exponent (an empty exponent included) and with a
+  `long long` beyond the `unsigned` ints, and in `gaol_ieee1788::pow`. The
+  integer powers other than 2, of an `int` or an `unsigned`, check it first and
+  leave it upward. A program does not count on the direction after an operation
+  that computes no bound (see [The rounding
+  direction](using.md#the-rounding-direction)).
 - **`nth_root(I, n)`** is the `rootn` of IEEE 1788-2015 (Table 10.5): for an
   odd `n`, it is defined on the whole real line, the root of a negative number
   being the opposite of the root of its magnitude, and `nth_root([-8, 27], 3)`
@@ -516,15 +1257,19 @@ where it comes from.
   and now wants `[-1.3195, 1.2457]`.
   libieeep1788 has no `rootn`: its `pown_rev([-8, 27], 3)` is `[-2, 3]`.
 - **The n-th roots are proved with integer powers**, and are the tightest
-  bounds or one double beyond, for every n and every double (issue #7). GAOL
-  took the power of the mathematical library with the exponent 1/n rounded,
-  moved one double outward: the rounded exponent moves the root by
+  bounds or up to 2 doubles beyond (4 for `rootn(x, q)` with q < 0, the inverse
+  of a root), for every n and every double, the subnormal ones included
+  (issue #7). GAOL took the power of the mathematical library with the exponent
+  1/n rounded, moved one double outward: the rounded exponent moves the root by
   |log x|·2^-53/n relatively, and the bounds were up to 8 doubles from the
   tightest between 2^-30 and 2^30, and 234 over all the doubles;
   `nth_root([27], 3)` was `[0x1.7ffffffffffffp+1, 0x1.8000000000002p+1]`.
   - **The proof.** l is below the root when l^n, rounded upward, is at most x,
     and u above it when u^n, rounded downward, is at least x. The lower bound
     is the largest double so proved, the upper bound the smallest one.
+    A rounded product is within 2^-52 relatively, so that the n − 1 products of
+    l^n move the root by less than 2^-52 relatively: a bound is up to 2 doubles
+    from the tightest one.
   - **The search.** It starts from the pow of CORE-MATH with the exponent 1/n
     rounded, brought next to the root by a step of Newton's method,
     r - r (r^n - x)/(n r^n), and goes by steps that double until a proved and
@@ -533,6 +1278,19 @@ where it comes from.
     whatever the start.
   - **Exact roots.** The root of a double that is the n-th power of a double is
     that double: `nth_root([27], 3)` is `[3]`.
+  - **Tiny arguments.** For an x below 2^-1020 the proofs take scaled powers, of
+    l = c·2^e with c in [1, 2) (the same products on c in the same order), the
+    power being h·2^s with h in [1, 2^500], which is compared exactly with x.
+    The plain proof loses bits where a power of its binary exponentiation is
+    subnormal (l^32 is about 2^-1041.5 for x = 2^-1074 and n = 33, and has 33
+    bits): each product rounded there moved the proof away from the root by up
+    to 2^-32 relatively, so that `nth_root([2^-1074], 33)` was
+    `[0x1.5ecf527769956p-33, 0x1.5ecf527771187p-33]`, 1983 doubles below the
+    tightest lower bound and 28785 above the tightest upper bound, and
+    `rootn(x, q)` for q < 0, the inverse of a root, had the same excess. The
+    bounds enclosed the root all the same. From 2^-1020 the powers next to the
+    root stay above 2^-1022, and the plain powers are used. The square root and
+    the cube root (that of CORE-MATH) do not use these proofs.
   - **`nth_root_rel()`** takes the roots of `nth_root()`: it took the same
     powers, and kept a value within 23 doubles, now 2.
   - **Time.** A point interval takes 152 ns rather than 130, its only root
@@ -582,6 +1340,22 @@ where it comes from.
     each function: a few doubles around the doubles nearest to kπ/2, k up to
     2^55, widths about π and 2π from one extremum to the next, and consecutive
     doubles up to the largest.
+- **`tan()` is finite over an interval of doubles of width π̲, the double below
+  π, that holds no pole.** No double is a pole of the tangent: `[-M_PI_2,
+  M_PI_2]`, whose bounds are 6.1e-17 inside the poles −π/2 and π/2, holds
+  none, and its width is exactly π̲. `tan([-M_PI_2, M_PI_2])` was `[-oo, +oo]`,
+  and so were four other intervals of doubles whose exact width lies between
+  the double below π̲ and π̲ and rounds up to it (review #8 of
+  `examples/examples.md`). The width w of the interval, rounded upward, is at
+  least the exact width, so `w <= π̲` proves the exact width below π: at most
+  one pole is within the interval, and the signs of CORE-MATH's cosine at the
+  bounds tell whether it is. `tan([-M_PI_2, M_PI_2])` is
+  `[-0x1.d02967c31cdb5p+53, 0x1.d02967c31cdb5p+53]`, about ±1.63e16. Wider
+  intervals still give `[-oo, +oo]`, which is exact whenever they hold a pole;
+  an interval of doubles holding no pole whose exact width lies between π̲ and π
+  is a theoretical case, none being known. `tests/elementary.cpp` checks
+  `tan([-M_PI_2, M_PI_2])` and 158 intervals next to two consecutive poles
+  against mpmath.
 - **`acos_rel()`, `asin_rel()` and `atan_rel()`** enclose the multiples of
   π of the pieces of the preimage with π in double-double (issue #6): k·π_hi
   is p + e exactly, e being the rest of the product from `fma()`, and
@@ -641,17 +1415,20 @@ where it comes from.
   `tanh([MAX, +inf])` had `0x1.ffffffffffffdp-1` for left bound. `make check`
   passes all its 15 checks. On an Intel i7-1185G7 (GCC 9.4), the functions
   take the same time as before, within 1.5 ns (1 %).
-- **Negative integer powers** `pow(x, -n)` are computed as `(1/x)^n` where
-  `x^n` is beyond the largest double, rather than as `1/x^n`, whose `x^n`
-  overflowed before the inversion: `pow([10], -400)` was `[0, 5.6e-309]`
-  rather than `[0, 2^-1074]`, `pow([2], -1050)` `[0, 5.6e-309]` rather than
-  `[2^-1050]`, and `pow([-2, 2], -1050)` `[0, +oo]` rather than
-  `[2^-1050, +oo]`. Elsewhere `1/x^n` is kept, exact where `x^n` is exact, and
-  `pow(x, -3)` takes 0.8 ns more (14.6 ns rather than 13.8).
 - **`log()`** gives the empty set for an interval holding no positive number:
   `log` is defined on `(0, +oo)` (IEEE 1788-2015, Table 9.1). GAOL kept the part
   of the interval in `[0, +oo]`, and gave `[-oo, -MAX]` for `log([-4, 0])` and
   `log([0])`, which `check/non_arithmetic.cpp` wanted.
+- **`atanh()`** gives the empty set for an interval holding no point of
+  `(-1, 1)`, where atanh is defined (IEEE 1788-2015, Table 9.1): `atanh([1])`,
+  `atanh([1, 5])` and `atanh([1, +oo])` are empty, and so are
+  `atanh_rel([1], x)` and `tanhRev([1])`, which intersect `atanh([1])` with x
+  (with the whole line for `tanhRev`). The limits −∞ and +∞ at −1 and 1 stay the
+  bounds of an interval holding other points of `(-1, 1)`: `atanh([0, 1])` is
+  `[0, +oo]`. With CORE-MATH, whose value at 1 is `+oo`, the lower bound being
+  the double below it, these were `[MAX, +oo]`; `atanh([-1])` and
+  `atanh([-5, -1])` were empty already, because `interval(-oo, -oo)` is. GAOL 4
+  was not measured.
 - **The intersection of disjoint intervals** (`operator&`, `operator&=`) is the
   empty set of `interval::emptyset()`, whose bounds are NaN. GAOL kept the
   largest left bound and the smallest right bound, `[3, 2]` for
@@ -681,6 +1458,41 @@ where it comes from.
 - **`rad()` and `mid_rad()`**, `rad` and `midRad` of IEEE 1788-2015 (12.12.8):
   the radius, the smallest double r such that the interval is in
   `[m - r, m + r]`, m being `midpoint()`, and both at once.
+- **The tools that algorithms of intervals write for themselves** are new:
+  `width_enclosure()`, `inflate(r)`, `interval::midrad(m, r)`, `bisect(ratio)`,
+  `is_bisectable()`, and `hull(a, b)` and `intersect(a, b)`, the functions of
+  `a | b` and `a & b` (see [Using GAOL](using.md#tools-of-interval-algorithms)).
+  The first three compute with the operations of intervals, each bound rounded
+  outward: `interval::midrad(m, r)` encloses [m − r, m + r], which
+  `interval(m - r, m + r)` does not, both of its bounds being computed upward;
+  `inflate(r)` is `*this + interval(-r, r)`; `width_enclosure()` is
+  `interval(r) - interval(l)`, the enclosure of the exact width of [l, r] that
+  `width()` bounds from above, and [MAX, +oo] for an unbounded interval, whose
+  width is no real number. `bisect(ratio)` cuts at l(1 − ratio) + r·ratio, which
+  does not overflow and lies strictly between the bounds when `is_bisectable()`;
+  it cuts at `midpoint()`, as `split()` does, for 0.5, for a half-line and for
+  the whole line, and throws `invalid_action_error` for a ratio outside (0, 1)
+  or a NaN.
+  `is_bisectable()` is true when a double lies strictly between the bounds: not
+  for the empty set, a point, two consecutive doubles, nor [MAX, +oo] and [-oo,
+  -MAX], which `split()` cuts at their finite bound.
+- **The reverse functions of the power, `atan2`, `max`, `min`, `sign` and
+  `floor`** are new, their arguments in the order of `div_rel(K, J, I)`, the
+  image first and the interval contracted last: `pow_rel(K, J, I)`, the x of I
+  with an x<sup>y</sup> in K for a y of J, and `pow_exponent_rel(K, H, I)`, the
+  y of I with an x<sup>y</sup> in K for an x of H, the power being that of
+  IEEE 1788-2015; `atan2_rel_y(C, X, Y)` and `atan2_rel_x(C, Y, X)`;
+  `max_rel(Z, Y, X)`, `min_rel(Z, Y, X)`, `sign_rel(Z, X)` and
+  `floor_rel(Z, X)`. `gaol_ieee1788` names the first four `powRev1`, `powRev2`,
+  `atan2Rev1` and `atan2Rev2` (Table 10.1), and adds `mulRevToPair`, the
+  division of 10.5.5 with two outputs: the pair (u, v) of the parts of the
+  solution on either side of 0, u before v, whose hull is `mulRev(b, c)`. Of the
+  reverse operations of the standard, only `pownRev` for p ≤ 0 is missing. The
+  bounds of `max_rel`, `min_rel`, `sign_rel` and `floor_rel` are the tightest
+  ones, those of `pow_rel` and `pow_exponent_rel` are proved with powers of
+  CORE-MATH, and those of `atan2_rel_y` and `atan2_rel_x` are within 2 doubles
+  of the tightest ones where these are not empty (see
+  [Accuracy of the operations](accuracy.md)).
 - **The comparisons with the empty set and the infinities** follow IEEE
   1788-2015 (Tables 10.3 and 10.4). `certainly_leq()` and `certainly_le()`,
   `precedes` and `strictPrecedes`, and `certainly_geq()` and
@@ -709,6 +1521,19 @@ where it comes from.
     `GAOL_SET_RELATION`: they gave the possibly relations.
   - **Tests.** `tests/other_functions.cpp` checks that `==` and `!=` do not
     compile on intervals.
+- **`gaol::lexicographic_less`** is a total order on the intervals, for the
+  containers and the algorithms of the standard library that compare with `<`
+  (`std::set`, `std::map`, `std::sort`, `std::max`, `std::min`, `std::clamp`).
+  `<` serves none of them: it is `strictPrecedes`, true as soon as either
+  interval is empty, and no strict weak ordering. A `std::set<interval>` that
+  holds [1, 2] drops [1, 3], and `std::sort` of a vector that holds an empty
+  interval can read past its end (AddressSanitizer reports it with libstdc++). A
+  `std::set<interval, gaol::lexicographic_less>` keeps every interval: the empty
+  set comes first, then the intervals by their left bound and by their right
+  bound, -0.0 and +0.0 being the same bound, and two intervals with the same
+  bounds are not less than each other. `std::less` is not specialized for
+  `interval`, so a program gives the comparator itself (see
+  [Using GAOL](using.md#relations-sorting-and-containers)).
 - **Numbers in base 16, 8 and 2** are read, `0x10` (16), `0xff.8` (255.5),
   `0o17` (15), `0b101` (5) and `0b1.1p3` (12), the exponent after the `p` being
   optional: the hexadecimal number of the standard needs it (9.7.2), which
@@ -723,8 +1548,42 @@ where it comes from.
   or an upper bound written `-inf`, leaves no interval, as `numsToInterval`
   has it: `[inf]` and `[inf, inf]` are the empty set, where GAOL gave
   `[MAX, +oo]`, which `check/input_output.cpp` wanted; `inf` alone, an
-  expression, is still `[MAX, +oo]`. The lexer and the parser are regenerated
-  with flex 2.6.4 and bison 3.5.1.
+  expression, is still `[MAX, +oo]`. A sign next to an uncertain number needs
+  a blank after it: `10-3.56?1` and `10+3.56?1` throw `input_format_error`, the
+  lexer reading the sign as part of the number, and `10 - 3.56?1` is read. The
+  lexer and the parser are regenerated with flex 2.6.4 and bison 3.8.2.
+- **`[l, u]` with l above u is the empty set,** as IEEE 1788-2015 has it (9.7.4
+  a, 12.12.7), also where the bounds are numbers that are not doubles. The
+  literal was the interval from the lower bound of the doubles around l to the
+  upper bound of those around u, so that `[9007199254740993, 9007199254740992]`
+  was `[2^53]`, which does not hold 2^53 + 1, `[0x1.999999999999ap-4, 0.1]` was
+  `[0x1.999999999999ap-4]` and `[1.00000000000000001, 1]` was `[1]`, in both
+  namespaces, where `[2, 1]` was empty already. A number that is not a double
+  lies strictly between the two doubles around it, which tells the order when
+  the bounds share a double, and two such numbers between the same two doubles
+  are compared exactly, as digits, in every base:
+  `[1.00000000000000002, 1.00000000000000001]` is empty, and
+  `[1.00000000000000001, 1.00000000000000002]` is the interval of the two
+  doubles around them. `pi` and another number, a number far beyond the doubles
+  (about 10^311 or more, or about 10^-331 or less, in decimal) and bounds that
+  are computed (`1/3`, `sqrt(2)`) may not be told apart: the literal is then the
+  interval from the lower bound of l to the upper bound of u.
+- **A bound of `<a, b>` has to be a double.** `<0.1, 0x1.9999999999999p-4>`
+  (the double just below 0.1), `<0x1.999999999999ap-4, 0.1>` and `<1e-400, 0>`
+  were read as the point interval of a bound of the interval of the number
+  written, where the manual says that the bounds are the same double, while
+  `<0.1, 0.1>` was refused, the intervals of 0.1 not being equal. A number that
+  is not a double, `pi` included, is now refused, `<0.1, 0.1>` as before:
+  `input_format_error`, or a failed reading without exceptions
+  (`parse_interval()` returns false, `gaol_ieee1788::textToInterval()` gives
+  the empty set). `<0.5, 0.5>` and `<0.25+0.25, 0.5>` are read as before.
+  A bound that is computed is refused too when its value is not a point:
+  `<[0.1], 0x1.9999999999999p-4>` was read as the point `0x1.9999999999999p-4`,
+  the lower bound of `[0.1]`, and `<0x1.5555555555556p-2, 1/3>` as the point
+  `0x1.5555555555556p-2`, the upper bound of 1/3, GAOL 4 comparing only the
+  lower bound of the value of the first with the upper bound of the value of the
+  second. `0.5`, `(0.25+0.25)`, `2*0.25` and `[0.5]` have a point for value and
+  are read.
 - **The parser frees the nodes of the expressions it reads**
   (`gaol/parser/gaol_interval_parser.ypp`,
   [issue #4](https://github.com/Jordan08/GAOL/issues/4)).
@@ -741,7 +1600,7 @@ where it comes from.
   - **A crash.** The parser deleted the null node it gives `nth_root()` and
     `pow()` for an exponent it cannot use, which later expressions still
     used: reading `nth_root(8, 1.5)`, then `nth_root(8, 1.5)+1`, crashed.
-    Both now throw `input_format_error`.
+    Both now throw `invalid_action_error`.
 - **One grammar reads every string as an expression**
   (`gaol/parser/gaol_interval_parser.ypp`).
   - **Before.** GAOL read a string with two grammars: the numbers, the
@@ -755,8 +1614,9 @@ where it comes from.
     of success, which the next one set again: `[nth_root(8,1.5)]+[1,2]` gave
     `[-oo, +oo]` rather than an error.
   - **Now.** The literals of intervals, the uncertain numbers, `empty` and
-    `<a,b>` are leaves of the tree, computed when they are read, and the
-    operators and the functions are nodes over any expression. The grammar has
+    `<a,b>` are leaves of the tree, computed when they are read, as are the
+    calls of functions and the binary operations `+`, `-`, `*` and `/` on any
+    expression; only the unary minus stays a node. The grammar has
     no conflict, and an error found in an action stops the reading at once. An
     uncertain number is still no bound of a literal: `[5?1]` and `[1, 3.56?1]`
     throw `input_format_error`, IEEE 1788-2015 giving `[5?1]` as a string that
@@ -795,6 +1655,15 @@ where it comes from.
   - **Tests.** `tests/expressions.cpp` reads each name of GAOL and refuses
     those of the standard alone, and `tests/ieee1788.cpp` reads each name of
     the standard and gives the empty set for those of GAOL alone.
+- **Function names are read in any case of letters, whatever the locale**
+  (`gaol/parser/gaol_interval_parser.ypp`): `SIN([0,1])`, `Sin([0,1])` and
+  `ASINH(1)` are read, where GAOL 4 took lower-case names only. They are
+  compared in ASCII, not by `std::tolower()`, whose result depends on the
+  locale of the C library: under the `tr_TR.UTF-8` of glibc, where
+  `std::tolower('I')` is `'I'`, or `tr_TR.ISO-8859-9`, where it is the dotless
+  i, a program that had called `setlocale(LC_ALL, "")` there would have had
+  `"SIN([0,1])"` and every name holding a capital I (`ASINH`, `SINPI`,
+  `MIN`...) refused.
 - **Several threads can read strings at once.** The lexer of flex kept its
   buffer and its position in globals, the parser of bison its token and its
   value, and GAOL the interval read and the names of the functions: two
@@ -804,9 +1673,9 @@ where it comes from.
   (`%pure-parser`, `%parse-param`, `%lex-param`): each reading of a string has
   its own scanner and its own context, which holds the interval read, the
   exception an action raised and the names of the functions, and the strings
-  are read in parallel, with no lock. `parse_interval()`, which
-  `interval(sl, sr)`, `operator>>` and the two `textToInterval()` go through,
-  creates them. The grammar keeps the directives of Bison 2.3, the Bison of
+  are read in parallel, with no lock. `parse_interval()`, `operator>>` and the
+  `textToInterval()` of `gaol` and of `gaol_ieee1788` each create them. The
+  grammar keeps the directives of Bison 2.3, the Bison of
   macOS, which Bison 3 reads with a warning. The generated lexer and parser
   stay in the repository, and the three builds compile them; `make parser`
   regenerates them (see
@@ -815,6 +1684,60 @@ where it comes from.
   the globals; ThreadSanitizer reports nothing with the reentrant reader. That
   test is commented out in `tests/expressions.cpp`, the tests running no
   thread.
+- **Long expressions no longer overflow the stack.** A sum of 100000 terms
+  crashed the program, the evaluation and the destruction of its tree making one
+  call within another per node, and so did an expression as long built through
+  `gaol/parser/gaol_expression.h`. The parser now computes each operation
+  `+ - * /` when it reads it, as it computed the calls of functions, and keeps a
+  tree only for a chain of minus signs, which has to stay visible to recognize
+  `-inf` as a bound and an uncertain number behind signs. An expression is
+  evaluated by recursion down to 32 levels, then by a loop over a stack of tasks
+  of its own in the heap, the operations and their order being those of the
+  recursion, hence the same bounds; a node is destroyed by a loop. A sum of
+  100000 terms is read in a time proportional to its length and takes no more
+  of the stack of the program than a sum of two. The stack of the parser, 10000
+  entries, bounds the nesting: a string nested deeper (about 10000 parentheses
+  or signs, 5000 nested calls) is refused with `input_format_error`, as any text
+  that is no expression. `operator<<` of an expression is still a recursion per
+  level, which the stack of the program does not hold for a tree 100000 levels
+  deep. `eval_stack` and `expr_eval` are no longer copyable, the stack of an
+  evaluation growing in the heap.
+- **A `std::string` is read whole.** `gaol::textToInterval()`,
+  `gaol_ieee1788::textToInterval()` and `operator>>` give the parser the length
+  of the string, where the lexer stopped at the first NUL character: `"1\0junk"`
+  was read as 1 and `"[1,2]\0"` as `[1, 2]`. A NUL is the character of no token,
+  so that such a string is no expression, and the messages of
+  `gaol::textToInterval()` and `operator>>` write it `\0`, where `what()`
+  stopped at the first one. A string of more than 2<sup>32</sup> characters is
+  no longer read as its first characters, flex taking the length in an `int`.
+- **An allocation that fails throws `std::bad_alloc`, and the reader frees what
+  it allocated.** flex wrote "out of dynamic memory" and ended the program with
+  `exit(2)`, the nodes on the stack of the parser were lost when the lexer or an
+  action threw, a stack of the parser that could not grow was taken for a string
+  nested too deep (`input_format_error`), and `gaol_ieee1788::textToInterval()`
+  turned a `std::bad_alloc` into the empty set: it catches `gaol_exception`
+  alone now, and is compiled in the library, no longer inline in
+  `gaol/gaol_ieee1788.h`. A token (a number, a name or a run of blanks) holds
+  2<sup>29</sup> characters at most, flex keeping the size of its buffer in an
+  `int`: a longer one throws `std::bad_alloc`.
+- **Without exceptions, a wrong call in a string fails the reading.** Built with
+  `--disable-exceptions` or `-Denable-exception=false`, GAOL ended the program
+  (`gaol_ERROR`, then `abort()`) inside the reader on
+  `gaol_ieee1788::textToInterval("pown([2,5],2.5)")`, `"sin(1,2)"` or
+  `"fma(1,2)"`, where IEEE 1788-2015 (12.12.7) has the empty set. The reading
+  now fails as it does for a syntax error: `gaol_ieee1788::textToInterval()`
+  gives the empty set, `parse_interval()` returns false, and
+  `gaol::textToInterval()` and `operator>>` report the error and abort, as for
+  any text that is no expression.
+- **`<a, b>` compares its two numbers by their bits**: they have to be the same
+  double, -0 and +0 being the same bound. The reader compared them as doubles,
+  equal under denormals-are-zero: `<1e-310, 1e-309>` was read as
+  `[1e-310, 1e-309]`, and is refused, as without the mode.
+- **`parse_interval(nullptr)` returns false.** A null pointer is no string: the
+  reader took its length with `strlen()`, which read it, and the program died
+  of a segmentation fault (`parse_interval(std::getenv("UNSET"), x)`). It is
+  refused as a syntax error is, `parse_interval()` returning false with
+  exceptions or without, throwing nothing and leaving the interval as it was.
 - **The namespaces `gaol_core`, `gaol` and `gaol_ieee1788`** (see
   [Using GAOL](using.md#the-namespaces)). The type `interval`, GAOL's
   functions and its expressions are in `gaol_core`; `gaol` names them as GAOL
@@ -883,8 +1806,7 @@ where it comes from.
   where it was `INLINE` ([issue #10](https://github.com/Jordan08/GAOL/issues/10)).
   - **Before.** `gaol::uipow()` was not found, and `uipow()` did not link.
   - **Now.** It gives `[1]` for an exponent 0, and the empty set for an empty
-    interval. `sqr()` and `pow()` inline the same code as before, and take the
-    same time.
+    interval.
   - **Removed declarations.** `uipow_upup()` and `uipow_dnup()` computed parts
     of it on the stored bounds, and the SSE2 intervals did not define them.
     They are no longer declared.
@@ -1051,6 +1973,17 @@ where it comes from.
   `x + nullptr` compiled, and crashed. `tests/numbers.cpp` checks that
   neither a `const char*` nor `nullptr` converts to an interval, and that
   `interval(0)` is [0].
+  A null pointer is no string: `textToInterval(nullptr)` and
+  `textToInterval(std::getenv("UNSET"))` throw `input_format_error`, through an
+  overload for `const char*`, where the overload for `std::string` would build a
+  `std::string` from the pointer, which the standard leaves undefined
+  (`std::logic_error` with libstdc++). `textToInterval(sl, sr)` does the same
+  for a null pointer in either place or in both, and so do
+  `gaol_ieee1788::textToInterval()` and `exactToInterval()`, which give the
+  empty set for a text that is no interval but throw for a null pointer. The
+  address of `gaol_ieee1788::textToInterval` or `exactToInterval`, as that of
+  `gaol::textToInterval`, needs a cast or a typed pointer, being overloaded
+  (`interval (*)(const std::string&)`).
 - **The constructor from two strings, `interval(const char*, const char*)`,
   is gone** too: `interval("0.1", "0.3")` becomes
   `textToInterval("0.1", "0.3")`, which takes the left bound of the first
@@ -1060,6 +1993,24 @@ where it comes from.
   [0, 1] was [2, 2] (review #6 of `examples/examples.md`, checked by
   `tests/expressions.cpp`). The literal 0 being a null pointer too, it made
   `interval(0, 0)` ambiguous, which now compiles.
+- **A result thrown away gives a warning.** `sqrt(x);` or `x.emptyset();` alone
+  leaves x as it was. The functions and operators on intervals whose result is
+  all they do, their predicates, the names of `gaol_ieee1788` and the functions
+  building expressions carry `GAOL_NODISCARD` (`gaol/gaol_config.h`), so that
+  the compiler warns about such a call; GAOL 4 had no such attribute. It is
+  `[[nodiscard]]` in C++17 and later and, before, wherever the compiler takes
+  it there (GCC 7 and later, Visual C++ 2019 16.4 and later, warning C4834),
+  `__attribute__((warn_unused_result))` with Clang and GCC before 7, and
+  `_Check_return_` of `<sal.h>` with older Visual C++ (reported by `/analyze`
+  only). `gaol::gaol` sets no standard, so that a project which sets none gets
+  the warning with GCC 9 and Visual C++ 2019 16.4 and later, both C++14 by
+  default; a cast to void silences it, except with GCC before 7, and a program
+  that does not want it defines `GAOL_NODISCARD` empty
+  ([Using GAOL](using.md#a-result-thrown-away)).
+  Six CMake compile tests, `nodiscard_discard_cxx11`, `_cxx14` and `_cxx17`
+  (the call must fail to compile with the warning made an error) and
+  `nodiscard_used_cxx11`, `_cxx14` and `_cxx17` (the results used must
+  compile), check it.
 - **The constructor from one `double`, `interval(double)`, is explicit**, and
   so are `expression(double)` and `expression(const interval&)`. A `double`
   becomes an interval where the program writes `interval(d)`:
@@ -1079,8 +2030,47 @@ where it comes from.
   `tests/ieee1788.cpp` check that a `double` converts neither to an interval
   nor to an expression, `tests/assignment.cpp` and `tests/relations.cpp` the
   overloads of a `double`.
+- **Integers are taken as the integers they are.** An integer given where GAOL
+  takes a `double` was converted to a `double`, in the rounding direction in
+  effect, which an integer beyond 2^53 is not: `interval(9007199254740993LL)`,
+  2^53 + 1, was [2^53, 2^53] or [2^53 + 2, 2^53 + 2], neither containing it,
+  `[1, 2] - (2^53 + 1)` did not contain the exact difference whatever the
+  direction, and `[2^53] < 2^53 + 1` was false to nearest. An integer of any
+  type but `bool` is now taken as the integer it is by the constructors
+  (`interval(n)`, explicit as `interval(double)` is, and `interval(a, b)` with
+  an integer bound, which is empty for a > b compared as numbers, though both
+  lie between the same two doubles), `=`, `&=`, `|=`, the arithmetic operators
+  in either order and their assignments, the relations, `set_contains()`,
+  `set_strictly_contains()`, `expression(n)`, and `numsToInterval()` and
+  `isMember()` of `gaol_ieee1788`. `interval(n)` is the tightest interval
+  containing n: `[n, n]` where n is a double, the two doubles around it
+  otherwise (`interval(9007199254740993LL)` is [2^53, 2^53 + 2]); `x &= n` is
+  `interval(n)` where x contains n, and the empty set otherwise; the relations
+  compare n as the integer it is. The arithmetic operators enclose the exact
+  result, but not always with the tightest bounds, for an n that is no double:
+  `[1, 2] + (2^53 + 1)` is [2^53, 2^53 + 4], the exact sum lying in
+  [2^53 + 2, 2^53 + 3]. An integer that is a double gives what the double
+  gives. See [Using GAOL](using.md#integers).
+  - **The exponents.** `gaol::pow(x, n)` and `gaol_ieee1788::pown(x, n)` take an
+    exponent of any integer type. GAOL 4 had `pow(x, int)` only, so that an
+    exponent of another type was converted to an `int`, and one beyond the ints
+    wrapped: `pow(x, 3000000000u)` was `pow(x, -1294967296)`. An exponent
+    within the ints is taken as an `int`, one within the unsigned ints as an
+    `unsigned`, and a larger one from the `pow` of CORE-MATH at the bounds of x.
+  - **The roots.** `nth_root(x, q)`, `rootn(x, q)`, `pownRev(c, x, p)` and the
+    `pow(e, n)`, `pown(e, n)` and `nth_root(e, n)` of the expressions take an
+    integer of any type too. GAOL 4 converted the order of `nth_root` to an
+    `unsigned` (`nth_root(x, 5000000001LL)` was the order 705032705,
+    `nth_root(e, -2)` of an expression the order 4294967294) and the exponent
+    of a power of expressions to an `int`. An order beyond the unsigned ints is
+    enclosed through `pow` with the exponent 1/q, x<sup>1/q</sup> being within
+    2<sup>−21</sup> of 1 for every double x > 0 there; a negative order of an
+    expression within the ints is 1/`nth_root(e, |n|)`.
 - **`width()`** of the empty set is NaN, as `wid` of IEEE 1788-2015 (12.12.8),
   rather than -1, which the manual and `check/interval_functions.cpp` gave.
+- **`chi()` of the empty set** is the positive NaN that `width()` returns,
+  printed `nan` with every compiler. It was the quotient of the NaN bounds,
+  `-nan` with GCC and `nan` with Clang.
 - **The three builds agree** (see [The three builds](three-builds.md)).
   Before, each had its own idea: configure optimized only when the compiler
   was named `g++` exactly (`clang++` compiled without optimization), computed
@@ -1112,8 +2102,38 @@ where it comes from.
   `_aligned_malloc()` and `_aligned_free()` on Windows, where `malloc()` aligns
   on 8 bytes only on 32-bit systems, so that the SSE2 intervals can be used with
   MinGW-w64 and MSYS2 on x64. The placement `delete` of `interval` and
-  `interval2f`, called when a constructor throws (`interval("1", "x")`), freed
-  the caller's memory; it now leaves it alone.
+  `interval2f`, called when a constructor throws (`interval("1", "x")` in
+  GAOL 4), freed the caller's memory; it now leaves it alone.
+- **The SSE2 intervals are computed on 32-bit Windows with GCC, Clang, Visual
+  C++ and clang-cl.** An SSE2 interval holds a `__m128d` and has to be aligned
+  on 16 bytes, and the C runtime of 32-bit Windows aligns the memory of
+  `malloc()` and `new` on 8.
+  GCC takes the memory of `::operator new` to be aligned on
+  `__STDCPP_DEFAULT_NEW_ALIGNMENT__` bytes, 16 there, so that `std::allocator`
+  does not call the aligned `operator new` of C++17, and a `std::vector` of
+  intervals, or a `new` of a type that holds one, crashed on its first `movaps`
+  (MinGW-w64 14.2 and 15.2 for x86, in the continuous integration).
+  - **GCC and Clang** (MinGW-w64, MSYS2) compile the code using GAOL with
+    `-faligned-new=8`, which sets `__STDCPP_DEFAULT_NEW_ALIGNMENT__` to 8 in
+    every standard, so that the compiler asks for aligned memory for the types
+    that need it. The three builds give it to the library and to the code that
+    uses it, which is the one that allocates the intervals (`gaol::gaol` of
+    CMake, for C++ only, `gaol.pc`, and `gaol_dep` of meson), and
+    `gaol/gaol_config.h` stops the compilation of the SSE2 intervals on 32-bit
+    Windows without it, where the program would crash. A GCC or Clang that
+    takes no such flag keeps the FPU intervals, with a message at the
+    configuration.
+  - **Visual C++ and clang-cl** have no such flag (`/Zc:alignedNew` does
+    nothing in C++14 with `cl` and breaks the STL of clang-cl, and only C++17
+    turns the aligned `new` on). Their SSE2 intervals keep the two bounds as two
+    `double` of alignment 8, loaded with `movupd`
+    (`GAOL_SSE2_UNALIGNED_STORAGE` of `gaol/gaol_config.h`, decided by the
+    target), so that a program gives no flag. The class allocators that aligned
+    an interval on 16 bytes are not compiled there, the kernels of the
+    operations are `__vectorcall`, their bounds passed in `xmm0` and `xmm1`,
+    and, with `GAOL_PRESERVE_ROUNDING`, the operations set the control word of
+    the x87 unit as well as MXCSR: Visual C++ computes the quotients of
+    `div_rel()` on the x87 unit.
 - **Visual C++ and clang-cl without `/fp:strict`** are refused by
   `gaol/gaol_config.h`, as `/fp:fast` is. Built with `/fp:strict` for GAOL and
   without it for the tests, `rounding_direction` and `other_functions` crashed
@@ -1525,14 +2545,19 @@ where it comes from.
   [3rd/README.md](../3rd/README.md)): GAOL can be built as a part of another
   project, brought in by FetchContent, with no network access beyond its own
   sources (`tests/fetch_content`).
+  [3rd/README.md](../3rd/README.md) also writes the fixes GAOL makes to the
+  vendored sources as patches against the master of CORE-MATH, to propose
+  upstream (upstream has made two of them since).
 - **The manual of GAOL v5**, `manual/v5`, follows the manual of GAOL 4 and
-  describes GAOL v5: the three builds and their options, the flags of
-  interval arithmetic, the namespaces and the rounding direction, each
-  operation of GAOL, the new ones included, with examples whose outputs are
-  those of GAOL v5, the names of IEEE 1788-2015, the accuracy of each
-  operation, and what a program written for GAOL 4 has to change. The manual
-  of GAOL 4 is kept as it was in `manual/v4`, and `make -C manual pdf` and the
-  target `pdf` of the meson build build both.
+  describes GAOL v5: the three builds and their options, the flags of interval
+  arithmetic, the namespaces and the rounding direction, each operation of GAOL,
+  the new ones included, with examples whose outputs are those of GAOL v5
+  (`manual/check_examples.py` compiles each example that shows its output in its
+  listing with an installed GAOL and runs it, in the continuous integration
+  too), the names of IEEE 1788-2015, the accuracy of each operation, and what a
+  program written for GAOL 4 has to change. The manual of GAOL 4 is kept in
+  `manual/v4`, and `make -C manual pdf` and the target `pdf` of the meson build
+  build both.
 - **The manual of GAOL 4 compiles again** (issue #13): `manual/v4/gaol.pdf`
   was the PDF of 2009, and `gaol.tex` no longer compiled. The manual still
   describes the mathematical libraries and the options of GAOL 4.
@@ -1545,6 +2570,16 @@ where it comes from.
   the cm-super fonts are not installed. `manual/build-pdf.sh` builds it, for
   `make -C manual pdf` and for the target `pdf` of the meson build, which had
   none.
+- **The Goldstein-Price function of the manual and of
+  `examples/16_Goldstein_Price.cpp`** had the factor `(x + y)^2` where the
+  function has `(x + y + 1)^2`, as in GAOL 4 (`examples/Goldstein_Price.cpp`);
+  the manual said its output `[-56254330, 94177270]` was the range of the
+  function, which is `[3, 1015690.27...]` (148 times narrower). Both now
+  compute the true function, whose natural extension over `[-2, 2]^2` is
+  `[-87881320, 147125080]` (231 times as wide as the range); the manual says
+  that its result, `z`, encloses the range, and why it is wider. The example
+  checks its output (exact integer bounds computed apart), fails if a check
+  fails, and prints its time in milliseconds (`Elapsed time: N ms`).
 - **The CMake build**, derived from the CMake build of GAOL in IBEX
   (Cyril Bouvier, Gilles Chabert), with the compilation flags of the IBEX fork
   of Fabrice Le Bars.
