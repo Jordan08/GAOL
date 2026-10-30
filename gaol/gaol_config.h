@@ -47,11 +47,14 @@
 
 /* GAOL_UNLIKELY(condition): a condition the compiler is told is rarely true,
    so that it puts the code it guards out of the way of the one that is
-   usually run (GAOL v5) */
+   usually run (GAOL v5); GAOL_LIKELY(condition), one it is told is usually
+   true */
 #if defined(__GNUC__) || defined(__clang__)
 #  define GAOL_UNLIKELY(condition) __builtin_expect(!!(condition), 0)
+#  define GAOL_LIKELY(condition) __builtin_expect(!!(condition), 1)
 #else
 #  define GAOL_UNLIKELY(condition) (condition)
+#  define GAOL_LIKELY(condition) (condition)
 #endif
 
 /* GAOL_PUBLIC: what GAOL's public declarations carry, __GAOL_PUBLIC__ in
