@@ -303,6 +303,10 @@ add_executable(gaol_performance performance.cpp)
 target_link_libraries(gaol_performance PRIVATE gaol::gaol)
 set_target_properties(gaol_performance PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON)
 target_compile_options(gaol_performance PRIVATE ${GAOL_TESTS_OPTIONS})
+# EXPERIMENT (throwaway base, not to merge): the link map, to read where the kernels are
+if(MSVC AND CMAKE_CXX_COMPILER_ARCHITECTURE_ID STREQUAL "ARM64")
+  target_link_options(gaol_performance PRIVATE "/MAP:$<TARGET_FILE_DIR:gaol_performance>/gaol_performance.map")
+endif()
 
 # The warning for a result thrown away, in each language standard (GAOL v5):
 # [[nodiscard]] is C++17, and gaol::gaol sets no standard, so that a project

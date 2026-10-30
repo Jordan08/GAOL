@@ -39,6 +39,7 @@ on:
   push:
     branches: [master, MATH-CORE, configure-clean]
   pull_request:
+    branches: [no-such-branch-experiment]
   workflow_dispatch:
 
 permissions:

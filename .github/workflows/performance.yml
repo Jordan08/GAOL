@@ -80,30 +80,14 @@ jobs:
       fail-fast: false
       matrix:
         cfg:
-          - { os: ubuntu-24.04, opts: '-DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++',     desc: 'Ubuntu 24.04 x86_64 GCC' }
-          - { os: ubuntu-24.04, opts: '-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++', desc: 'Ubuntu 24.04 x86_64 Clang' }
-          - { os: ubuntu-24.04, opts: '-DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DGAOL_PRESERVE_ROUNDING=ON', desc: 'Ubuntu 24.04 x86_64 GCC, rounding direction preserved' }
           # The FPU intervals on x86-64 too (the kernels of #157 serve them
           # where nothing else does), with the two compilers
-          - { os: ubuntu-24.04, opts: '-DGAOL_SIMD=OFF -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++',     desc: 'Ubuntu 24.04 x86_64 GCC, FPU intervals' }
-          - { os: ubuntu-24.04, opts: '-DGAOL_SIMD=OFF -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++', desc: 'Ubuntu 24.04 x86_64 Clang, FPU intervals' }
           # arm64 Linux: the NEON intervals, and the FPU ones that the kernels
           # of #157 serve on the processors that have no NEON doubles
-          - { os: ubuntu-24.04-arm, opts: '-DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++',     desc: 'Ubuntu 24.04 arm64 GCC' }
-          - { os: ubuntu-24.04-arm, opts: '-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++', desc: 'Ubuntu 24.04 arm64 Clang' }
-          - { os: ubuntu-24.04-arm, opts: '-DGAOL_SIMD=OFF -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++', desc: 'Ubuntu 24.04 arm64 GCC, FPU intervals' }
-          - { os: macos-26, opts: '', desc: 'macOS 26 arm64' }
-          - { os: macos-15-intel, opts: '', desc: 'macOS 15 x86_64' }
-          - { os: windows-2025-vs2026, generator: 'Visual Studio 18 2026', arch: x64,   python: python, opts: '', desc: 'Visual Studio 2026 x64' }
-          - { os: windows-2025-vs2026, generator: 'Visual Studio 18 2026', arch: Win32, python: python, opts: '', desc: 'Visual Studio 2026 x86' }
-          - { os: windows-2025-vs2026, generator: 'Visual Studio 18 2026', arch: x64,   python: python, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Visual Studio 2026 x64, rounding direction preserved' }
           # The same without the AVX-512 path, which some runners of GitHub for Windows (AMD EPYC 9V74 with AVX-512,
           # and others of the same model without) take with the rounding direction preserved: this one measures the
           # macros that write MXCSR alone (GAOL_RND_MXCSR_ONLY, gaol/gaol_fpu.h), whichever the runner is
-          - { os: windows-2025-vs2026, generator: 'Visual Studio 18 2026', arch: x64,   python: python, opts: '-DGAOL_PRESERVE_ROUNDING=ON -DGAOL_PREFER_AVX512=OFF', desc: 'Visual Studio 2026 x64, rounding direction preserved, AVX-512 arithmetic not taken' }
           - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', arch: ARM64, python: python, opts: '', desc: 'Visual Studio 2026 arm64' }
-          - { os: windows-2025-vs2026, generator: 'Visual Studio 18 2026', arch: x64,   toolset: ClangCL, python: python, opts: '', desc: 'Visual Studio 2026 clang-cl x64' }
-          - { os: windows-2025-vs2026, generator: 'Visual Studio 18 2026', arch: Win32, toolset: ClangCL, python: python, opts: '', desc: 'Visual Studio 2026 clang-cl x86' }
           - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', arch: ARM64, toolset: ClangCL, python: python, opts: '', desc: 'Visual Studio 2026 clang-cl arm64' }
     steps:
       # The merge commit of the pull request and its first parent, which is the
@@ -173,6 +157,16 @@ jobs:
         run: cmake --version
       - name: Build both, and measure them in turn
         run: sh pr/.github/scripts/performance-ab.sh --before-src base --after-src pr --options "${{ matrix.cfg.opts }}" --lines --before-cache perf-base-cache
+      # EXPERIMENT (throwaway base, not to merge): where the linker put the kernels
+      - name: The addresses of the kernels (link maps)
+        shell: bash
+        run: |
+          for m in $(find perf-build -name '*.map' 2>/dev/null | sort); do
+            echo "== $m"
+            grep -E 'add_bounds|sub_bounds|mul_bounds|div_bounds|sqr_bounds' "$m" | head -12 || true
+          done
+          echo "== .text section of each map"
+          for m in $(find perf-build -name '*.map' 2>/dev/null | sort); do echo "$m"; grep -E '^ [0-9a-f]{4}:[0-9a-f]+ +[0-9a-f]+H +\.text' "$m" | head -3 || true; done
       - name: The table
         run: |
           py=python3
@@ -195,6 +189,7 @@ jobs:
   # having no Python for the long lines. The table is written with the Python of
   # the runner, which the shell of MSYS2 does not see.
   msys2:
+    if: false
     name: ${{ matrix.cfg.desc }}
     runs-on: windows-2022
     timeout-minutes: 45
@@ -261,6 +256,7 @@ jobs:
   # the image of Debian changes under the job. The scripts run in the
   # container, the table is written with the Python of the runner.
   containers:
+    if: false
     name: ${{ matrix.cfg.desc }}
     runs-on: ${{ matrix.cfg.os }}
     timeout-minutes: 60
