@@ -40,7 +40,9 @@ right> in the two lanes, so that one addition rounded upward gives both bounds.
   modes that flush the subnormals to zero, which the operations that only compare
   or copy bounds do not check (point Q of TODO.md), and raise nothing on a NaN,
   which the empty set holds in both bounds, where the comparisons of 64-bit ARM on
-  doubles signal the invalid-operation exception on a quiet NaN.
+  doubles signal the invalid-operation exception on a quiet NaN. valid_bounds() is
+  the exception: it starts with a quiet comparison of doubles, which raises nothing
+  on a quiet NaN either.
 */
 namespace neon_detail {
 
@@ -83,16 +85,21 @@ namespace neon_detail {
     needs no test of the infinities, since l < r <= +oo and -oo <= l < r. Else the
     bounds are the same bits, which make an interval but for a NaN and for an
     infinity (the same one in both bounds, told by the exponent field of the bits
-    being all ones, with one integer instruction), or, if they differ, two doubles
+    being all ones, with two integer instructions), or, if they differ, two doubles
     equal as doubles, which can only be zeros, or subnormal numbers under the
     modes that flush them to zero, and which are in the right order when their
-    bound_key() are (gaol_port.h). The comparison of the doubles is made last: the
-    bits are in registers of the integer unit already, where the comparison would
-    be a second one, equal to the first for the bounds of a point. The three
-    comparisons with -oo and +oo of the old condition cost a constant in a vector
-    register and a comparison each (3 of the 9 vector instructions of interval(l,
-    r)); nothing here compares a double but the first quiet comparison, which
-    raises what bound_less_equal() raised
+    bound_key() are (gaol_port.h). The comparison l == r is made last, and only
+    where the bits differ: the bits are in registers of the integer unit already,
+    where the comparison of the doubles would be a second one for Clang (GCC
+    shares the flags of the first). The two comparisons with -oo and +oo of the
+    old condition cost a constant in a vector register and a comparison each:
+    counted under qemu, interval(l, r) takes 6 instructions where l < r, in place
+    of 14 with GCC 12 and 16 with Clang 18 to 21 (GCC 14 already dropped them), but
+    12 where the bounds are in the wrong order or a NaN, in place of 7 or 8.
+    The flags are those of bound_less_equal(), but where the compiler knows that
+    l and r are the same value (interval(d, d) with one variable, at -O1 and above
+    for GCC): it makes no comparison then, so that a signaling NaN, and a
+    subnormal number under the modes that flush them, raise nothing
   */
   GAOL_INLINE bool valid_bounds(double l, double r)
   {
