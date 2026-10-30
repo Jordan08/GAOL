@@ -593,10 +593,11 @@ jobs:
 
   # The FE_* values of Cygwin (newlib: 0 to 3) for the sources of CORE-MATH,
   # put over those of glibc (.github/scripts/newlib-fe-values.h): Cygwin, which
-  # no job builds, defines __x86_64__ but not __WIN32__, as Linux, and with
-  # upstream's cbrt.c, rsqrt.c and asinpi.c the downward and upward roundings
-  # were taken for toward zero there (tests/core_math.cpp, 3rd/README.md,
-  # item 6). Only the C sources, CORE-MATH's, take the header (GAOL v5)
+  # the job cygwin of windows.yml builds, defines __x86_64__ but not __WIN32__,
+  # as Linux, and with upstream's cbrt.c, rsqrt.c and asinpi.c the downward and
+  # upward roundings were taken for toward zero there (tests/core_math.cpp,
+  # 3rd/README.md, item 6). Only the C sources, CORE-MATH's, take the header
+  # (GAOL v5)
   cygwin-fe-values:
     name: Ubuntu 24.04 x86_64 GCC, the FE_* values of Cygwin for CORE-MATH
     runs-on: ubuntu-24.04

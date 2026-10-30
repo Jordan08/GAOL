@@ -55,7 +55,8 @@
   - what GAOL's code uses for itself: the functions saving and setting the
     rounding direction and the modes flushing the subnormals to zero
     (rounding_state, get_rounding(), set_rounding(), round_upward_if_needed()
-    and gaol_set_rounding_x86(), which GAOL 4.3.2 declared in gaol,
+    and gaol_set_rounding_x86(), which GAOL v5 declared in gaol in its 4.3
+    releases and GAOL 4 did not,
     get_flush_modes()...), the functions computing GAOL's powers, which gaol
     names pow (gaol_pown(), gaol_uipow(), gaol_pown_ll(), gaol_pow_real(),
     gaol_pow_hybrid(), gaol_pown_exp(), gaol_pow_exp()), and the other
@@ -65,8 +66,9 @@
     its manual did not document) and rnd_reread(), gaol_sign_of(),
     rounding_guard and gaol_initializer;
   - the exceptions (gaol_exception, input_format_error,
-    unavailable_feature_error and invalid_action_error), rnd_keep() of GAOL
-    4.3.2, NaN_val of GAOL 4, which the macro GAOL_NAN names,
+    unavailable_feature_error and invalid_action_error), rnd_keep() (GAOL v5
+    adds it, and declared it in gaol in its 4.3 releases; GAOL 4 has none),
+    NaN_val of GAOL 4, which the macro GAOL_NAN names,
     eval_stack, and the reader of strings, parse_interval() and
     parsing_names.
   gaol took gaol_core whole before (using namespace gaol_core), and a program

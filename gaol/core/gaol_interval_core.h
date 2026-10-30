@@ -134,10 +134,13 @@ namespace gaol_core {
     share their first digit that is not 0: the other intervals are output in
     the bounds format, as "[1, 10]" or "[0]" (GAOL v5: GAOL wrote [1, 10]
     "1~[., 0.]" and [1, 2] "~[1., 2.]", and every interval with a negative or
-    zero bound in the bounds format). A point interval is output as a single
-    number, without the brackets: interval(4.0) is "4.000000000000000",
-    where the bounds format writes "[4]"; a zero is output "[0]" in every
-    format.
+    zero bound in the bounds format). A point interval that the digits write
+    exactly is output as a single number, without the brackets: interval(4.0)
+    is "4.000000000000000", where the bounds format writes "[4]"; any other
+    point interval is output as any interval is, interval(0.1) being
+    "0.100000000000000~[0, 1]". The point zero is output "[0]", as in the
+    bounds format (the formats width and center write it "0", and hexa
+    "[0x0p+0]").
 
     The empty set is output "[empty]" in every format (GAOL v5: the formats
     width and center wrote "empty", which is no literal of IEEE 1788-2015,

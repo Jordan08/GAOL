@@ -274,7 +274,7 @@ including its headers, through a library of the program for instance, or, with
 Clang, of an `inline` variable or a static member of a class template, whose
 initialization C++ does not order with the rest of the file.
 
-With the AVX-512 path of `GAOL_PREFER_AVX512` (see
+In a build that takes the AVX-512 path (see
 [The AVX-512 path](#the-avx-512-path)), the initialization stops the program,
 with a message on the standard error, when the processor or the system does
 not run the AVX-512 instructions, even in a program that computes nothing
@@ -338,16 +338,19 @@ the doubles around π and π/2, `gaol_pi_dn`, `gaol_pi_up`, `gaol_half_pi_dn` an
 `round_ties_to_even`... and the nodes of their expressions),
 `restore_rounding()` and `exact_string()`. The exceptions (`gaol_exception`,
 `input_format_error`, `invalid_action_error` and `unavailable_feature_error`),
-`rnd_keep()` of GAOL 4.3.2, `NaN_val`, `eval_stack`, and the reader of strings, `parse_interval()` and `parsing_names`, are in `gaol_core`
+`rnd_keep()` (GAOL v5 adds it, and had it in `gaol` in its 4.3 releases;
+GAOL 4 has none), `NaN_val`, `eval_stack`, and the reader of strings,
+`parse_interval()` and `parsing_names`, are in `gaol_core`
 only, as `catch (const gaol_core::input_format_error&)` or
 `gaol_core::rnd_keep(x)`. `gaol_ieee1788` names the version as `gaol` does.
 What GAOL's code uses for itself is
 in `gaol_core` only too, out of the way of the names of a program that opens
 `gaol`: the functions saving and setting the rounding direction and the
 flush-to-zero modes (`rounding_state`, `get_rounding()`, `set_rounding()`,
-`round_upward_if_needed()` and `gaol_set_rounding_x86()`, which GAOL 4.3.2 had
-in `gaol`, `get_flush_modes()`...), the functions computing the `pow` of
-`gaol` (below), and the internals GAOL 4 had in `gaol` without its manual
+`round_upward_if_needed()` and `gaol_set_rounding_x86()`, which GAOL v5 had
+in `gaol` in its 4.3 releases and GAOL 4 had not, `get_flush_modes()`...), the
+functions computing the `pow` of `gaol` (below), and the internals GAOL 4 had
+in `gaol` without its manual
 documenting them (`gaol_signbit()`, `uintdouble`, `ullidouble`,
 `Interval_struct`, `the_null_expr`, `prec_t`, `modulo_k_pi()`,
 `round_upward_sse()` and the other `round_*_sse()`). A program calling one of them names it in `gaol_core`, as
@@ -912,7 +915,9 @@ libstdc++: `terminate called after throwing an instance of
 'gaol_core::input_format_error'`, then `what():  Syntax error in interval
 initialization: [1, 2`). GAOL 4 wrote `std::exception` in both places, whatever
 the error, `gaol_exception` not overriding `what()`. Where an exception has no
-explanation, `what()` is `gaol_exception`, never an empty text. A handler of
+explanation, `what()` is the name of its class (`gaol_exception`,
+`input_format_error`, `unavailable_feature_error` or `invalid_action_error`),
+never an empty text. A handler of
 `gaol_exception` also has `explanation()`, the same text in a `std::string`,
 and `file()` and `line()`, where GAOL threw the exception; `std::cerr << e`
 writes the three, as `file.cpp, line 12: exception thrown: <explanation>`. The
@@ -995,8 +1000,9 @@ example; they are listed here for the reader who looks in this page first.
   for `"[empty]"`. A null pointer is no text, and
   throws `input_format_error` with both.
 - **A sign next to an uncertain number.** `10-3.56?1` and `10+3.56?1` throw
-  `input_format_error`: the lexer reads `-3.56?1` as one token. A blank is
-  needed: `10 - 3.56?1`.
+  `input_format_error`: the lexer reads `-3.56?1` (`+3.56?1` too) as one token,
+  and `10 -3.56?1` throws too. A blank is needed after the sign: `10 - 3.56?1`,
+  or `10- 3.56?1`.
 - **A long number.** Reading a long number takes a time quadratic in its
   number of digits: `"0."` followed by 20 000 digits `3` takes 0.017 s,
   80 000 digits 0.28 s, 320 000 digits 4.4 s (about 45 s expected for a
@@ -1062,8 +1068,7 @@ after one of them sets it itself.
   program counts on neither. And `hausdorff(x, y)` returns +∞ when a bound is
   infinite in one of the two intervals only, where it sets the direction
   upward otherwise.
-- The operations of the AVX-512 path of `GAOL_PREFER_AVX512` (below), which
-  set none.
+- The operations of the AVX-512 path (below), which set none.
 
 ### What the upward rounding does to the program
 
@@ -1072,10 +1077,10 @@ GAOL's results do not depend on it, each operation setting it upward when it is
 not, in every thread, but the doubles the program computes do. Unless GAOL is
 built with `GAOL_PRESERVE_ROUNDING`, they are rounded upward from GAOL's
 initialization, before `main()`, until `gaol::cleanup()`, and again after each
-operation of GAOL that follows it and sets the direction: with
-`GAOL_PREFER_AVX512` on a machine that has the AVX-512 instructions, the
-arithmetic operations set none (below), and the direction after one of them is
-the program's. The compiler does not undo it: with the
+operation of GAOL that follows it and sets the direction: in a build that takes
+the AVX-512 path (below), which without `GAOL_PRESERVE_ROUNDING` only the
+developers ask for, the arithmetic operations set none, and the direction after
+one of them is the program's. The compiler does not undo it: with the
 flags of `gaol::gaol`, `-frounding-math` in particular, an inexact operation on
 constants written in a function, `1.0 / 3.0`, is not evaluated when compiling,
 to nearest, but when the program runs, in the direction in effect. Only what
@@ -1187,7 +1192,8 @@ What to do:
   times longer, `x * y` and `x / y` 1.7 times, `sqr(x)` 1.2 times,
   `pow(x, 3)` 1.3 times, `exp(x)` 1.3 times, `log(x)` 1.1 times, `sin` and
   `cos` 1.1 to 1.2 times, and `sqrt(x)` 0.7 times (it is faster); without it
-  (`GAOL_PREFER_AVX512` off, or a processor without the instructions)
+  (a build for a machine without the instructions, or one that refuses the
+  path with `GAOL_PREFER_AVX512=OFF`, a setting of the developers)
   `x + y` and `x - y` take about 8 times longer, `x * y` 4 times, `x / y`
   3.7 times, `sqr(x)` 4.6 times, `pow(x, 3)` and `sqrt(x)` 1.7 times,
   `exp(x)` 1.3 times, `log(x)` 1.1 times, and `sin` and `cos` 1.2 times. A
@@ -1198,12 +1204,12 @@ What to do:
 
 Taken by the build where the rounding direction is preserved, whose every
 operation of `+`, `-`, `*`, `/`, `sqrt` and `sqr`, and the integer powers
-(below), the path relieves of the store of that direction (GAOL v5: it was the
-default of the option `GAOL_PREFER_AVX512`, `--enable-prefer-avx512`,
-`-Denable-prefer-avx512`, which is now a setting of the developers: `=ON` asks
+(below), the path relieves of the store of that direction (GAOL v5:
+`GAOL_PREFER_AVX512`, `--enable-prefer-avx512` and `-Denable-prefer-avx512`
+were options of the user, and are now settings of the developers: `=ON` asks
 for the path without the preserved direction, and `-DGAOL_PREFER_AVX512=OFF`,
-`--disable-prefer-avx512` and `-Denable-prefer-avx512=false` refuse it there, for
-a package for any processor, see [Building
+`--disable-prefer-avx512` and `-Denable-prefer-avx512=false` refuse it there,
+for a package for any processor, see [Building
 GAOL](building.md#the-settings-of-the-developers); the measures that decide it
 are in [SIMD, FMA and the rounding
 direction](simd.md#when-the-build-takes-the-avx-512-path)), on a machine that runs
@@ -1255,9 +1261,11 @@ than letting its first operation stop on an illegal instruction (an
 operation made before GAOL initializes itself, as
 [Initialization and cleanup](#initialization-and-cleanup) describes, still
 does); one for
-any processor of the architecture is built with `GAOL_PREFER_AVX512` `OFF`
-(GAOL v5: `gaol::init()` chose the path as the program ran, and every
-operation tested the flag it set, in the default build too). The
+any processor of the architecture is built with `-DGAOL_PREFER_AVX512=OFF`, a
+setting of the developers and of those who build a package (see [Building
+GAOL](building.md#the-settings-of-the-developers); GAOL v5: `gaol::init()`
+chose the path as the program ran, and every operation tested the flag it set,
+in the default build too). The
 operations of the path cost more
 time on a processor that halves its AVX-512 instructions, where they cost
 less on one that does not: on an Intel i7-1185G7 (halved), `x * y` takes
@@ -1344,9 +1352,9 @@ just before, and no flag raised since is lost. With `GAOL_PRESERVE_ROUNDING`,
 each operation reads FPSCR once at its start, writes it only if the direction
 is not upward or a flush mode is set, and writes back what it found at its end
 only if it differs. On the Debian armhf jobs of the continuous integration,
-which run on the arm64 runners of GitHub, `x + y` took 22 ns rather than 48 with
-`GAOL_PRESERVE_ROUNDING`, a line of 15 additions 317 ns rather than 706, and
-`midpoint()` 37 ns rather than 60 (GAOL v5). The check of every operation
+which run on the arm64 runners of GitHub, `x + y` took 22.5 ns rather than 48
+with `GAOL_PRESERVE_ROUNDING`, a line of 15 additions 317 ns rather than 706,
+and `midpoint()` 37 ns rather than 60 (GAOL v5). The check of every operation
 without it stays the addition: `vmrs` took longer than the two additions
 there, `x + y` 6.1 ns rather than 4.1 and a line of 15 additions 87 ns rather
 than 57, and the 32-bit ARM intervals keep their time.

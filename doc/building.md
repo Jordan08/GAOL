@@ -494,8 +494,11 @@ checks that they
 write the same header on each kind of machine (`.github/audit`). The sources of
 GAOL read all of them but `GAOL_HAVE_AVX512_TARGET` and `GAOL_PREFER_AVX512`,
 which the three builds use to decide `GAOL_AVX512_ARITHMETIC` and the
-continuous integration prints; and `GAOL_USING_SSE3_INSTRUCTIONS` is read only
-by the code of the intervals of floats, which a developer of GAOL compiles.
+continuous integration prints, and `GAOL_UNIVERSAL_SSE2` and
+`GAOL_UNIVERSAL_NEON`, which only the configuration header reads, to define the
+macros of the architecture being compiled; and `GAOL_USING_SSE3_INSTRUCTIONS`
+is read only by the code of the intervals of floats, which a developer of GAOL
+compiles.
 Each macro of the table but the version is 1 where the table says, and 0
 otherwise (GAOL v5): it was left undefined, so that a header reading it with
 `#if` warned under `-Wundef`, and a program could not include GAOL under
