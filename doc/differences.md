@@ -176,23 +176,29 @@ where it comes from.
     the invalid-operation exception enabled.
   - **The hexadecimal output is an interval literal.** Written with
     `interval_format::hexa` and read again, an interval now gives the same
-    bounds bit for bit, which is the recovery requirement of IEEE 1788-2015
-    (13.4). GAOL wrote the sixteen hexadecimal digits of each double
+    bounds bit for bit (a point interval of zero apart, below), which is the
+    recovery requirement of IEEE 1788-2015 (13.4). GAOL wrote the sixteen
+    hexadecimal digits of each double
     (`[3fb999999999999a, ...]`), which is no interval literal at all and which
     the parser refused; the note of 13.4.1 gives that very form as the one
     failing its readability test. The bounds are written in the
     hexadecimal-significand form instead (`[0x1.999999999999ap-4, ...]`), which
-    the lexer already read. The decimal formats, and the default one, are
-    unchanged. `exact_string(I)` gives that text without the global output
+    the lexer already read. The default format is still `bounds`, a decimal one,
+    changed below. `exact_string(I)` gives that text without the global output
     format, and `gaol_ieee1788::intervalToExact()` is it: switching the format
     to hexa and back, it showed hexa to the other threads meanwhile.
+    A point interval is written `[a]`, the literal of IEEE 1788-2015 for a point
+    (`[0x1p+2]`), and a point interval of zero `[0x0p+0]` whatever the signs of
+    its bounds (`interval::zero()` is `[-0, +0]` with the SSE2 and the NEON
+    intervals, `[+0, +0]` with the FPU ones): `[-0, +0]`, `[+0, +0]` and
+    `[-0, -0]` are all the set {0}, and the text is read back as that set.
   - **The reader of strings takes the new names.** `gaol::textToInterval("...")`
     reads `exp2`, `log2`, `cbrt`, `sign` and `trunc` besides the functions
-    GAOL already had, in the direct grammar and in the tree of
-    `gaol/parser/gaol_expression.h`; `cbrt(x)` is `nth_root(x, 3)`, as `sqrt(x)` is
-    `nth_root(x, 2)`, so it needs no node of its own, and the four others have
-    one each, which `gaol::exp2(expression)` and its companions build from C++
-    too. Read from a string, they gave a syntax error before.
+    GAOL already had. In the expressions of `gaol/parser/gaol_expression.h`,
+    `cbrt(x)` is `nth_root(x, 3)`, as `sqrt(x)` is `nth_root(x, 2)`, so it needs
+    no node of its own, and the four others have one each, which
+    `gaol::exp2(expression)` and its companions build from C++. Read from a
+    string, they gave a syntax error before.
   - **`nth_root(x, 3)` is CORE-MATH's `cbrt`**, at the magnitudes of the bounds,
     the root of a negative number being the opposite of the root of its
     magnitude: the tightest bounds, and the exact value where the cube root is
@@ -204,6 +210,17 @@ where it comes from.
     reader of strings takes it too: it converted the exponent to an unsigned
     int, and `interval("nth_root(16, -2)")` was the 4294967294-th root of 16,
     `[1.000000000645543, 1.000000000645544]`, rather than `[0.25]`.
+  - **The second argument of `nth_root`, `pown` and `rootn` read in a string
+    may be any integer a double holds.** `nth_root(8,3000000000)` threw
+    `invalid_action_error`, and `rootn(8,3000000000)` and
+    `pown([2,3],3000000000)`, read with the names of the standard, were the
+    empty set, where `nth_root(8, 3000000000LL)` called from C++ is computed.
+    Beyond the ints the argument is now a `long long`, and one of 2^63 or more
+    in magnitude, which is an even integer, is taken as +-(2^63 - 2): the
+    powers are the same for it and for any larger exponent, and the enclosure
+    of the roots of order 2^63 - 2 holds the roots of the larger orders. A
+    non-integer argument (`nth_root(8, 1.5)`), an interval, an infinity and the
+    empty set are refused as before.
   - **`sign`, `trunc`, `round_ties_to_even` and `round_ties_to_away`**, the
     integer functions IEEE 1788-2015 requires beside `ceil` and `floor`
     (Table 9.1), which GAOL did not provide. Each is non-decreasing, so the
@@ -214,6 +231,16 @@ where it comes from.
     read: `round_ties_to_even` therefore reads the bits
     (`gaol/gaol_roundeven.h`, which also gives CORE-MATH the `roundeven()` the
     math library of Windows has not).
+  - **`erf` and `erfc`**, the error function and its complement, which GAOL did
+    not provide, are bounded with CORE-MATH's, the tightest bounds, exact at 0
+    and at the infinities: `erf([0])` is `[0]` and `erfc([-oo, +oo])` is
+    `[0, 2]`. IEEE 1788-2015 names neither, so `gaol_ieee1788` has none. The
+    `erfc` of CORE-MATH rounds its subnormal results with `ldexp()`, which the C
+    libraries of Windows (the UCRT) and of macOS do not round in the direction
+    in effect: with every compiler, CORE-MATH calls `gaol_ldexp()`
+    (`gaol/gaol_ldexp.h`) instead, x·2<sup>n</sup> rounded once in the
+    direction in effect, so that its subnormal results depend on no `ldexp()`
+    of the C library (see [3rd/README.md](../3rd/README.md)).
 
 - **From the patch IBEX applies to GAOL** (Gilles Chabert,
   `interval_lib_wrapper/gaol/3rd/gaol-4.2.3alpha0.all.all.patch` of
@@ -632,9 +659,26 @@ where it comes from.
   flush-to-zero set, 3e-308 - 2.9e-308 and 1e-300·1e-20 are 0, and with
   denormals-are-zero so is 2^-1060·1e10; see
   [Using GAOL](using.md#the-avx-512-path)).
-- **`hausdorff()`** returns the tightest upper bound of the distance. It computed
-  `fabs(a - c)` in the rounding direction of the caller, below the exact
-  distance when rounded upward with a < c.
+- **`hausdorff()`** returns the tightest upper bound of the distance, and 0 for
+  equal bounds, infinite ones included. GAOL 4 computed `fabs(a - c)` in the
+  rounding direction of the caller, below the exact distance when rounded upward
+  with a < c, and returned +oo as soon as a bound was infinite (but for two
+  entire intervals): `hausdorff([1, +oo], [1, +oo])` and
+  `hausdorff([1, +oo], [2, +oo])`, whose distances are 0 and 1, were +oo, so
+  that a fixed-point loop on a box with an unbounded side never stopped. Each
+  difference is now rounded upward both ways, and equal bounds are at distance
+  0; an infinite bound in one interval only still puts them at +oo
+  (`hausdorff([1, +oo], [1, 2])`), as in GAOL 4, and the function returns it
+  before the rounding direction is checked, which it then leaves as it found it:
+  2.5 to 4.4 times as fast as through the computation of the distance (Intel
+  i7-1185G7, GCC 9.4 and Clang 18), the other cases paying the test, 0.1 to 1.4
+  ns.
+- **`nb_fp_numbers()`** numbers the doubles by the bits of the magnitudes of its
+  arguments, -0 and +0 being one number. GAOL 4 numbered them by the bits of a
+  and b, sign bit included: `nb_fp_numbers(-0.0, 1.0)` and
+  `nb_fp_numbers(-1.0, 0.0)` were 13830554455654793217 (the lower bound of
+  `[1, 2] - 1` is -0). They are 4607182418800017409 now, the number of the
+  doubles from 0 to 1.
 - **`mid()`** returns the tightest interval enclosing the midpoint, computed as
   `midpoint()` computes it with the rounding outward: the half of the sum of the
   bounds, or the sum of their halves when a bound is 2^1023 or more in
@@ -862,20 +906,60 @@ where it comes from.
   every direction and raise no flag, so `interval("0.1")` did not enclose 1/10
   there. Each number is now compared exactly with the doubles around it,
   whatever the number of digits of its significand and of its exponent.
+  The time to read a number is quadratic in the number of its digits: `"0."`
+  followed by 20000 digits `3` takes 0.017 s, 80000 digits 0.28 s and 320000
+  digits 4.4 s (about 45 s expected for a million), and the uncertain form 2.3
+  times as long, so that a text from elsewhere can block a program.
 - **Numbers are read, and exact texts written, whatever the locale** of the
   program. GAOL read numbers with `strtod()`, which reads the decimal point of
   the C locale: under a locale writing a decimal comma, as
   `setlocale(LC_ALL, "")` sets under a French one, it stopped at the `.` of
   `0.1`, and `interval("0.1")` was `[0, 0]`. The doubles around the number
-  are now bracketed by steps doubling from the double `strtod()` gives, then
-  found by bisection on their bits: two comparisons when `strtod()` gives the
-  nearest double, and at most about 125 whatever it gives. `exact_string()`
-  and the format `hexa` write the bounds from the bits of the doubles, in the
-  form glibc's `%a` has, with a point whatever the locale and the same text
-  whatever the C library. The decimal formats of `operator<<` keep the
-  decimal point of the locale of the stream, as for a double.
+  are now bracketed by steps doubling from the double `strtod()` gives (from
+  the largest double, or from 0, for a number above the largest double or below
+  the least normal one, which is not given to it), then found by bisection on
+  their bits: two comparisons when `strtod()` gives the nearest double, and at
+  most about 125 whatever it gives. The text of the number is taken apart once,
+  and not by each of those comparisons, which read it again in a time quadratic
+  in its length: a number of 20000 characters took over 2 s to read under a
+  locale writing a decimal comma, and takes about 0.02 s, as under the C locale.
+  `exact_string()` and the format `hexa` write the bounds from the bits of the
+  doubles, in the form glibc's `%a` has, with a point whatever the locale and
+  the same text whatever the C library. The formats `width` and `center` of
+  `operator<<` keep the decimal point and the grouping of the digits of the
+  locale of the stream, as for a double; the digits that the format `agreeing`
+  shares have the decimal point of the locale of the program, and the format
+  `bounds` that of the C locale (see below).
   `tests/numbers.cpp` reads and writes under such a locale where one is
   installed.
+- **Reading a number raises no overflow or underflow exception** (see [The
+  floating-point exceptions](using.md#the-floating-point-exceptions)). The
+  reader gave every number to `strtod()` to start from a double near it, and
+  with glibc `strtod()` raises `FE_OVERFLOW` for a number above the largest
+  double (`1e400`, `1.8e308`, `0x1p1024`) and `FE_UNDERFLOW` for one below the
+  least normal double (`1e-310`, `1e-400`, `0x1p-1075`), which it rounds to a
+  subnormal or to 0: `1e400*0`, which is `[0]`, raised the flag that stands for
+  an infinite bound, and a program that had enabled the exception died while it
+  read. A number that may be above the largest double, or below 2^-1022, is now
+  compared exactly with the largest double, or with 2^-1022, first, and one that
+  is beyond is not given to `strtod()`: the steps doubling and the bisection
+  start from the largest double, or from 0, in at most about a hundred
+  comparisons. The bounds are the same, bit for bit. Reading a subnormal takes 2
+  to 12 times longer than before, the more the nearer the number is to 2^-1022
+  (`1e-320`, `1e-310`).
+- **Numbers are read whatever the flush-to-zero and denormals-are-zero modes**
+  of the processor (`gaol/parser/gaol_interval_lexer.lpp`). With
+  denormals-are-zero, which a program linked with `-Ofast` has
+  (`crtfastmath.o`) and the code it loads can set, a subnormal is 0 in a
+  comparison and for `std::frexp()`. The reader compared each number with the
+  doubles around it as doubles, and took every subnormal for 0:
+  `textToInterval("1e-310")` was `[0x0.fffffffffffffp-1022, 0x1p-1022]`, which
+  does not contain 1e-310, and `textToInterval("0")` was the greatest
+  subnormal. The doubles are now taken apart by their bits, which no mode
+  changes, so that the bounds are the tightest whatever the modes
+  (flush-to-zero alone changed nothing: the reader computes no subnormal
+  result). `tests/numbers.cpp` reads subnormals with the modes set, wherever the
+  tests can set them. GAOL 4 was not measured under these modes.
 - **Intervals are written in decimal rounded outward**, whatever the C
   library ([issue #3](https://github.com/Jordan08/GAOL/issues/3)).
   - **Before.** `operator<<` set the rounding direction downward, then upward,
@@ -888,28 +972,118 @@ where it comes from.
     compared exactly with the bound, as the numbers read are, and its last
     digit is moved by one when it is on the wrong side. The general format is
     made from the scientific one by the rules of `%g`, glibc 2.31 writing
-    999999.5 with six digits and `showpoint` `1.e+06`. The flags, the
-    precision and the decimal point of the stream are kept.
+    999999.5 with six digits and `showpoint` `1.e+06`. The flags of the stream
+    apply to the bounds, to the center and to the radius (formats `width` and
+    `center`), but not to the digits that `agreeing` shares.
   - **Same text with glibc**, which rounds as asked: 1077546 bounds written
     in the general, scientific and fixed formats with 1 to 18 digits were the
     same, character for character.
-- **`operator<<` leaves the stream as it found it.** The interval is written
-  in a stream of its own, with the flags and the locale of the stream and the
-  precision of `interval::precision()`, then into the stream at once. GAOL set
-  the precision of the stream to `interval::precision()` and left it so, the
-  doubles written afterwards getting 16 digits, and wrote the `[` apart, which
-  `std::setw` padded alone: `std::setw(8) << interval(1, 2)` wrote 7 spaces
-  before `[1, 2]` rather than 2.
-- **`operator>>` ends with the input.** Where no line is left, it sets the
-  `failbit` of the stream, leaves the interval as it was and throws nothing,
-  as the reading of a double does, and `while (in >> x)` ends there. It read
-  the empty text left, threw `input_format_error` and emptied the interval:
-  such a loop always ended with an exception. A line that is no interval, a
-  blank one included, sets the `failbit` too, and empties the interval; then
+- **A point interval is written `[a]`.** In the format `bounds`, `operator<<`
+  writes a point interval whose double the digits write exactly as `[a]`, the
+  literal of IEEE 1788-2015 for a point (`[4]`, `[0.5]`), read back as that
+  point. A zero of either sign is `[0]`, whatever the build (`interval::zero()`
+  is `[-0, +0]` with the SSE2 and the NEON intervals and `[+0, +0]` with the
+  FPU ones; the hexadecimal format writes `[0x0p+0]`). Any other point is
+  written `[l, r]`, its two bounds rounded outward (`interval(0.1)` is
+  `[0.1, 0.1000000000000001]`), read back as an interval containing it.
+  - **Before.** GAOL wrote every point interval `<a, b>`, the text of its double
+    rounded downward and upward: `<4, 4>`, a form of GAOL that is no literal of
+    the standard, and `<0.1, 0.1000000000000001>` for `interval(0.1)`, which
+    the reader refused (`input_format_error`, the empty set with
+    `gaol_ieee1788::textToInterval`) because it takes `<a, b>` for two numbers
+    that are the same double: `textToInterval(intervalToText(interval(0.1)))`
+    was the empty set, as for about 61 % of 11 788 point intervals tried (1/3,
+    pi, 1e23, `DBL_MAX`, the subnormals, the negatives with 16 digits). The
+    reader still reads `<a, b>`, so the texts GAOL 4 wrote for exact points are
+    read back.
+  - **Tests.** `tests/numbers.cpp` reads back the text of point intervals
+    written with 1 to 25 digits and six sets of flags, and `tests/ieee1788.cpp`
+    checks `textToInterval(intervalToText(interval(0.1)))`.
+- **The format `width` writes the midpoint and the radius of IEEE 1788-2015,
+  `center` the midpoint, and the empty set is `[empty]` in every format.**
+  `c (+/- w)` is the `midpoint()` (12.12.8), rounded to nearest, and the
+  `rad()`, rounded upward: the interval is within c plus or minus w for the
+  doubles, and a radius that is not zero is never written 0; a point interval is
+  written as its center, and an unbounded one has an infinite radius. They are
+  displays, not enclosures: the digits of c are those of the precision, and the
+  formats `bounds`, `agreeing` and `hexa` are the ones that enclose. `[empty]`
+  is the literal of the standard (12.11.3), as the manual said. GAOL wrote
+  `(l+r)/2` and `(r-l)/2`, both rounded to nearest, and `empty`: `[1, 1+2^-52]`
+  was `1 (+/- 1.110223024625157e-16)`, which stops short of the upper bound,
+  `[0, 5e-324]` had a radius 0, `[1e308, 1.7e308]` a midpoint `inf`, and the
+  point interval 0.1 was written `0.1000000000000001`. The manual and the header
+  called the radius the width. The center 0 is written `0`, whatever its sign,
+  and the radius without a sign under `std::showpos`: GAOL wrote `+2 (+/- +1)`,
+  and `-0` for the center of `[-2^-1073, 2^-1074]`.
+- **`gaol_ieee1788::intervalToText()` writes an interval literal.** It writes
+  `[l, r]`, `[a]` for a point that the digits write exactly, or `[empty]`, with
+  the digits of `interval::precision()`, the flags of a new stream and a decimal
+  point, whatever the global output format and the locale, the bounds rounded
+  outward, so that `textToInterval()` reads the text back as an interval
+  containing the interval (13.3). It wrote what `operator<<` writes: the format
+  `width`, the digits that `agreeing` shares, a decimal comma under a comma
+  locale, and `<4, 4>` for a point, which is no literal of the standard. (GAOL 4
+  has no `intervalToText()`; that was its first version in GAOL v5.)
+- **The format `bounds` is written in the C locale** whatever the locale of the
+  stream, so that the reader reads the text again. GAOL wrote each bound as the
+  stream writes a double, with its decimal point and the grouping of its digits:
+  `[0,25, 0,5]` under a locale writing a decimal comma, which the reader
+  refuses. It writes `[0.25, 0.5]`, and `[-2.5]` for a point, with no grouping.
+  The intervals that the format `agreeing` writes with their bounds are written
+  so too, and so is the text of `gaol_ieee1788::intervalToText()` (above).
+- **`operator<<` leaves the stream as it found it.** The text of the interval is
+  made in a character string, with the precision of `interval::precision()`,
+  then written into the stream at once. GAOL set the precision of the stream to
+  `interval::precision()` and left it so, the doubles written afterwards getting
+  16 digits, and wrote the `[` apart, which `std::setw` padded alone:
+  `std::setw(8) << interval(1, 2)` wrote 7 spaces before `[1, 2]` rather than 2.
+  With `std::internal`, the fill goes after the sign of the center (formats
+  `width` and `center`) or of the digits two bounds share (`agreeing`), or after
+  the `0x` of the hexadecimal floating-point format of the stream, as for a
+  number, and before the `[` of the other texts, as `std::right` does. Made in a
+  string rather than in `std::ostringstream`s, one for the interval and one for
+  each bound, whose locale and facets were built and destroyed each time, the
+  text takes 30 to 45 % less time than in the earlier version of GAOL v5, which
+  used them (Clang 18, Release: `hexa` 45 %, `bounds` and `agreeing` 36 %,
+  `width` and `center` 30 %).
+- **`operator>>` ends with the input, and skips blank lines.** The blanks
+  before the line, line ends included, are skipped as before a number, under
+  `std::noskipws` too, which keeps a number from skipping them: an empty line,
+  or one of blanks, is not a line to read. GAOL read the rest of the line where
+  the previous value stopped, so that `in >> d >> x` over the lines `1.5` and
+  `[1, 2]` read the empty rest of the first one and threw `input_format_error`,
+  as `while (in >> x)` did over a file ending with an empty line. Where no line
+  is left, it sets the `failbit` of the stream, leaves the interval as it was
+  and throws nothing, as the reading of a double does, and `while (in >> x)`
+  ends there. GAOL read the empty text left, threw `input_format_error` and
+  emptied the interval: such a loop always ended with an exception. A line that
+  is no interval sets the `failbit` too, and empties the interval; then
   `input_format_error` is thrown as before, a stream whose `exceptions()`
-  include `failbit` included (`invalid_action_error` for a function called
-  with an argument it does not take). A program that reads on after it calls
-  `in.clear()` first: GAOL read the next line.
+  include `failbit` included (`invalid_action_error` for a function called with
+  an argument it does not take); an interval written on several lines is still
+  no interval. A program that reads on after it calls `in.clear()` first: GAOL
+  read the next line.
+- **`what()` of GAOL's exceptions is their explanation.** `gaol_exception`
+  overrides `what()`: it returns the explanation, or the name of the class of
+  the exception (`gaol_exception`, `input_format_error`,
+  `unavailable_feature_error` or `invalid_action_error`) where there is none
+  or where it starts with a NUL, so that `catch (const std::exception& e)` and
+  the message of an exception that nothing catches say what went wrong. GAOL 4
+  left the `what()` of `std::exception`, which is `std::exception` with
+  libstdc++ and libc++, whatever the error. A null pointer given as the
+  explanation is no explanation: GAOL 4 built a `std::string` from it, which is
+  undefined behaviour. `operator<<` of an exception writes the explanation
+  once, `file, line n: exception thrown: explanation`; it wrote `what()` next
+  to it, `file, line n: exception std::exception thrown: explanation`.
+- **A null file name is "(unknown file)"** in a `gaol_exception`, in
+  `gaol_warning()` and in `gaol_error()`, and a null message of the two
+  functions is an empty text. GAOL 4 kept the null pointer: `file()` of an
+  exception could be one, and the pointer was written to a stream as it was, by
+  `operator<<` of the exception and by the two functions to `std::cerr`. That is
+  undefined, and libstdc++ puts the stream in the state `bad`, so that the
+  diagnostics written after it were lost. `file()` of GAOL's exceptions is never
+  a null pointer now. The macros of GAOL (`gaol_ERROR`, `GAOL_FILE_POS`) always
+  give `__FILE__`: only a direct call can give a null pointer.
 - **The format of the agreeing digits** (`interval_format::agreeing`) keeps
   the digits of each bound. GAOL dropped from both bounds what followed the
   last character of the left one that is not a zero: `[1.25, 1.2567]` was
@@ -917,6 +1091,18 @@ where it comes from.
   the right bound. They are written `1.25~[0, 67]` and `100.~[0, 47]`; the
   zeros ending an exponent are no longer dropped, and the search for the
   common characters stops at the end of the shorter text.
+  The digits two bounds share are written once only for bounds that are finite,
+  not 0 and of the same sign, written with as many digits before the point and
+  the same exponent, and that share their first digit that is not 0; the other
+  intervals are written with their bounds, as the format `bounds` writes them:
+  `[1, 10]`, `[1, 2]` and `[0]` (the point zero). Two negative bounds share
+  their digits as two positive ones do: `-1.25~[67, 0]` for `[-1.2567, -1.25]`.
+  GAOL tested `r > 10 l`: `[1, 10]` was written `1~[., 0]`, the 1 of 10 being
+  taken for the 1 of 1, `[1, 2]` `~[1., 2.]`, with no digit shared, and every
+  negative interval with its bounds. A point interval that the digits write
+  exactly is written as a single number, `interval(4.0)` as `4.000000000000000`,
+  where the format `bounds` writes `[4]`; any other point has its digits shared
+  as any interval has, `interval(0.1)` being `0.100000000000000~[0, 1]`.
 - **Hyperbolic functions:** `sinh`, `cosh`, `tanh`, `asinh`, `acosh` and
   `atanh` are those of [CORE-MATH](https://core-math.gitlabpages.inria.fr/),
   correctly rounded upward, as the other elementary functions
@@ -1272,6 +1458,41 @@ where it comes from.
 - **`rad()` and `mid_rad()`**, `rad` and `midRad` of IEEE 1788-2015 (12.12.8):
   the radius, the smallest double r such that the interval is in
   `[m - r, m + r]`, m being `midpoint()`, and both at once.
+- **The tools that algorithms of intervals write for themselves** are new:
+  `width_enclosure()`, `inflate(r)`, `interval::midrad(m, r)`, `bisect(ratio)`,
+  `is_bisectable()`, and `hull(a, b)` and `intersect(a, b)`, the functions of
+  `a | b` and `a & b` (see [Using GAOL](using.md#tools-of-interval-algorithms)).
+  The first three compute with the operations of intervals, each bound rounded
+  outward: `interval::midrad(m, r)` encloses [m − r, m + r], which
+  `interval(m - r, m + r)` does not, both of its bounds being computed upward;
+  `inflate(r)` is `*this + interval(-r, r)`; `width_enclosure()` is
+  `interval(r) - interval(l)`, the enclosure of the exact width of [l, r] that
+  `width()` bounds from above, and [MAX, +oo] for an unbounded interval, whose
+  width is no real number. `bisect(ratio)` cuts at l(1 − ratio) + r·ratio, which
+  does not overflow and lies strictly between the bounds when `is_bisectable()`;
+  it cuts at `midpoint()`, as `split()` does, for 0.5, for a half-line and for
+  the whole line, and throws `invalid_action_error` for a ratio outside (0, 1)
+  or a NaN.
+  `is_bisectable()` is true when a double lies strictly between the bounds: not
+  for the empty set, a point, two consecutive doubles, nor [MAX, +oo] and [-oo,
+  -MAX], which `split()` cuts at their finite bound.
+- **The reverse functions of the power, `atan2`, `max`, `min`, `sign` and
+  `floor`** are new, their arguments in the order of `div_rel(K, J, I)`, the
+  image first and the interval contracted last: `pow_rel(K, J, I)`, the x of I
+  with an x<sup>y</sup> in K for a y of J, and `pow_exponent_rel(K, H, I)`, the
+  y of I with an x<sup>y</sup> in K for an x of H, the power being that of
+  IEEE 1788-2015; `atan2_rel_y(C, X, Y)` and `atan2_rel_x(C, Y, X)`;
+  `max_rel(Z, Y, X)`, `min_rel(Z, Y, X)`, `sign_rel(Z, X)` and
+  `floor_rel(Z, X)`. `gaol_ieee1788` names the first four `powRev1`, `powRev2`,
+  `atan2Rev1` and `atan2Rev2` (Table 10.1), and adds `mulRevToPair`, the
+  division of 10.5.5 with two outputs: the pair (u, v) of the parts of the
+  solution on either side of 0, u before v, whose hull is `mulRev(b, c)`. Of the
+  reverse operations of the standard, only `pownRev` for p ≤ 0 is missing. The
+  bounds of `max_rel`, `min_rel`, `sign_rel` and `floor_rel` are the tightest
+  ones, those of `pow_rel` and `pow_exponent_rel` are proved with powers of
+  CORE-MATH, and those of `atan2_rel_y` and `atan2_rel_x` are within 2 doubles
+  of the tightest ones where these are not empty (see
+  [Accuracy of the operations](accuracy.md)).
 - **The comparisons with the empty set and the infinities** follow IEEE
   1788-2015 (Tables 10.3 and 10.4). `certainly_leq()` and `certainly_le()`,
   `precedes` and `strictPrecedes`, and `certainly_geq()` and
@@ -1300,6 +1521,19 @@ where it comes from.
     `GAOL_SET_RELATION`: they gave the possibly relations.
   - **Tests.** `tests/other_functions.cpp` checks that `==` and `!=` do not
     compile on intervals.
+- **`gaol::lexicographic_less`** is a total order on the intervals, for the
+  containers and the algorithms of the standard library that compare with `<`
+  (`std::set`, `std::map`, `std::sort`, `std::max`, `std::min`, `std::clamp`).
+  `<` serves none of them: it is `strictPrecedes`, true as soon as either
+  interval is empty, and no strict weak ordering. A `std::set<interval>` that
+  holds [1, 2] drops [1, 3], and `std::sort` of a vector that holds an empty
+  interval can read past its end (AddressSanitizer reports it with libstdc++). A
+  `std::set<interval, gaol::lexicographic_less>` keeps every interval: the empty
+  set comes first, then the intervals by their left bound and by their right
+  bound, -0.0 and +0.0 being the same bound, and two intervals with the same
+  bounds are not less than each other. `std::less` is not specialized for
+  `interval`, so a program gives the comparator itself (see
+  [Using GAOL](using.md#relations-sorting-and-containers)).
 - **Numbers in base 16, 8 and 2** are read, `0x10` (16), `0xff.8` (255.5),
   `0o17` (15), `0b101` (5) and `0b1.1p3` (12), the exponent after the `p` being
   optional: the hexadecimal number of the standard needs it (9.7.2), which
@@ -1314,8 +1548,42 @@ where it comes from.
   or an upper bound written `-inf`, leaves no interval, as `numsToInterval`
   has it: `[inf]` and `[inf, inf]` are the empty set, where GAOL gave
   `[MAX, +oo]`, which `check/input_output.cpp` wanted; `inf` alone, an
-  expression, is still `[MAX, +oo]`. The lexer and the parser are regenerated
-  with flex 2.6.4 and bison 3.5.1.
+  expression, is still `[MAX, +oo]`. A sign next to an uncertain number needs
+  a blank after it: `10-3.56?1` and `10+3.56?1` throw `input_format_error`, the
+  lexer reading the sign as part of the number, and `10 - 3.56?1` is read. The
+  lexer and the parser are regenerated with flex 2.6.4 and bison 3.8.2.
+- **`[l, u]` with l above u is the empty set,** as IEEE 1788-2015 has it (9.7.4
+  a, 12.12.7), also where the bounds are numbers that are not doubles. The
+  literal was the interval from the lower bound of the doubles around l to the
+  upper bound of those around u, so that `[9007199254740993, 9007199254740992]`
+  was `[2^53]`, which does not hold 2^53 + 1, `[0x1.999999999999ap-4, 0.1]` was
+  `[0x1.999999999999ap-4]` and `[1.00000000000000001, 1]` was `[1]`, in both
+  namespaces, where `[2, 1]` was empty already. A number that is not a double
+  lies strictly between the two doubles around it, which tells the order when
+  the bounds share a double, and two such numbers between the same two doubles
+  are compared exactly, as digits, in every base:
+  `[1.00000000000000002, 1.00000000000000001]` is empty, and
+  `[1.00000000000000001, 1.00000000000000002]` is the interval of the two
+  doubles around them. `pi` and another number, a number far beyond the doubles
+  (about 10^311 or more, or about 10^-331 or less, in decimal) and bounds that
+  are computed (`1/3`, `sqrt(2)`) may not be told apart: the literal is then the
+  interval from the lower bound of l to the upper bound of u.
+- **A bound of `<a, b>` has to be a double.** `<0.1, 0x1.9999999999999p-4>`
+  (the double just below 0.1), `<0x1.999999999999ap-4, 0.1>` and `<1e-400, 0>`
+  were read as the point interval of a bound of the interval of the number
+  written, where the manual says that the bounds are the same double, while
+  `<0.1, 0.1>` was refused, the intervals of 0.1 not being equal. A number that
+  is not a double, `pi` included, is now refused, `<0.1, 0.1>` as before:
+  `input_format_error`, or a failed reading without exceptions
+  (`parse_interval()` returns false, `gaol_ieee1788::textToInterval()` gives
+  the empty set). `<0.5, 0.5>` and `<0.25+0.25, 0.5>` are read as before.
+  A bound that is computed is refused too when its value is not a point:
+  `<[0.1], 0x1.9999999999999p-4>` was read as the point `0x1.9999999999999p-4`,
+  the lower bound of `[0.1]`, and `<0x1.5555555555556p-2, 1/3>` as the point
+  `0x1.5555555555556p-2`, the upper bound of 1/3, GAOL 4 comparing only the
+  lower bound of the value of the first with the upper bound of the value of the
+  second. `0.5`, `(0.25+0.25)`, `2*0.25` and `[0.5]` have a point for value and
+  are read.
 - **The parser frees the nodes of the expressions it reads**
   (`gaol/parser/gaol_interval_parser.ypp`,
   [issue #4](https://github.com/Jordan08/GAOL/issues/4)).
@@ -1332,7 +1600,7 @@ where it comes from.
   - **A crash.** The parser deleted the null node it gives `nth_root()` and
     `pow()` for an exponent it cannot use, which later expressions still
     used: reading `nth_root(8, 1.5)`, then `nth_root(8, 1.5)+1`, crashed.
-    Both now throw `input_format_error`.
+    Both now throw `invalid_action_error`.
 - **One grammar reads every string as an expression**
   (`gaol/parser/gaol_interval_parser.ypp`).
   - **Before.** GAOL read a string with two grammars: the numbers, the
@@ -1346,8 +1614,9 @@ where it comes from.
     of success, which the next one set again: `[nth_root(8,1.5)]+[1,2]` gave
     `[-oo, +oo]` rather than an error.
   - **Now.** The literals of intervals, the uncertain numbers, `empty` and
-    `<a,b>` are leaves of the tree, computed when they are read, and the
-    operators and the functions are nodes over any expression. The grammar has
+    `<a,b>` are leaves of the tree, computed when they are read, as are the
+    calls of functions and the binary operations `+`, `-`, `*` and `/` on any
+    expression; only the unary minus stays a node. The grammar has
     no conflict, and an error found in an action stops the reading at once. An
     uncertain number is still no bound of a literal: `[5?1]` and `[1, 3.56?1]`
     throw `input_format_error`, IEEE 1788-2015 giving `[5?1]` as a string that
@@ -1386,6 +1655,15 @@ where it comes from.
   - **Tests.** `tests/expressions.cpp` reads each name of GAOL and refuses
     those of the standard alone, and `tests/ieee1788.cpp` reads each name of
     the standard and gives the empty set for those of GAOL alone.
+- **Function names are read in any case of letters, whatever the locale**
+  (`gaol/parser/gaol_interval_parser.ypp`): `SIN([0,1])`, `Sin([0,1])` and
+  `ASINH(1)` are read, where GAOL 4 took lower-case names only. They are
+  compared in ASCII, not by `std::tolower()`, whose result depends on the
+  locale of the C library: under the `tr_TR.UTF-8` of glibc, where
+  `std::tolower('I')` is `'I'`, or `tr_TR.ISO-8859-9`, where it is the dotless
+  i, a program that had called `setlocale(LC_ALL, "")` there would have had
+  `"SIN([0,1])"` and every name holding a capital I (`ASINH`, `SINPI`,
+  `MIN`...) refused.
 - **Several threads can read strings at once.** The lexer of flex kept its
   buffer and its position in globals, the parser of bison its token and its
   value, and GAOL the interval read and the names of the functions: two
@@ -1395,9 +1673,9 @@ where it comes from.
   (`%pure-parser`, `%parse-param`, `%lex-param`): each reading of a string has
   its own scanner and its own context, which holds the interval read, the
   exception an action raised and the names of the functions, and the strings
-  are read in parallel, with no lock. `parse_interval()`, which
-  `interval(sl, sr)`, `operator>>` and the two `textToInterval()` go through,
-  creates them. The grammar keeps the directives of Bison 2.3, the Bison of
+  are read in parallel, with no lock. `parse_interval()`, `operator>>` and the
+  `textToInterval()` of `gaol` and of `gaol_ieee1788` each create them. The
+  grammar keeps the directives of Bison 2.3, the Bison of
   macOS, which Bison 3 reads with a warning. The generated lexer and parser
   stay in the repository, and the three builds compile them; `make parser`
   regenerates them (see
@@ -1406,6 +1684,60 @@ where it comes from.
   the globals; ThreadSanitizer reports nothing with the reentrant reader. That
   test is commented out in `tests/expressions.cpp`, the tests running no
   thread.
+- **Long expressions no longer overflow the stack.** A sum of 100000 terms
+  crashed the program, the evaluation and the destruction of its tree making one
+  call within another per node, and so did an expression as long built through
+  `gaol/parser/gaol_expression.h`. The parser now computes each operation
+  `+ - * /` when it reads it, as it computed the calls of functions, and keeps a
+  tree only for a chain of minus signs, which has to stay visible to recognize
+  `-inf` as a bound and an uncertain number behind signs. An expression is
+  evaluated by recursion down to 32 levels, then by a loop over a stack of tasks
+  of its own in the heap, the operations and their order being those of the
+  recursion, hence the same bounds; a node is destroyed by a loop. A sum of
+  100000 terms is read in a time proportional to its length and takes no more
+  of the stack of the program than a sum of two. The stack of the parser, 10000
+  entries, bounds the nesting: a string nested deeper (about 10000 parentheses
+  or signs, 5000 nested calls) is refused with `input_format_error`, as any text
+  that is no expression. `operator<<` of an expression is still a recursion per
+  level, which the stack of the program does not hold for a tree 100000 levels
+  deep. `eval_stack` and `expr_eval` are no longer copyable, the stack of an
+  evaluation growing in the heap.
+- **A `std::string` is read whole.** `gaol::textToInterval()`,
+  `gaol_ieee1788::textToInterval()` and `operator>>` give the parser the length
+  of the string, where the lexer stopped at the first NUL character: `"1\0junk"`
+  was read as 1 and `"[1,2]\0"` as `[1, 2]`. A NUL is the character of no token,
+  so that such a string is no expression, and the messages of
+  `gaol::textToInterval()` and `operator>>` write it `\0`, where `what()`
+  stopped at the first one. A string of more than 2<sup>32</sup> characters is
+  no longer read as its first characters, flex taking the length in an `int`.
+- **An allocation that fails throws `std::bad_alloc`, and the reader frees what
+  it allocated.** flex wrote "out of dynamic memory" and ended the program with
+  `exit(2)`, the nodes on the stack of the parser were lost when the lexer or an
+  action threw, a stack of the parser that could not grow was taken for a string
+  nested too deep (`input_format_error`), and `gaol_ieee1788::textToInterval()`
+  turned a `std::bad_alloc` into the empty set: it catches `gaol_exception`
+  alone now, and is compiled in the library, no longer inline in
+  `gaol/gaol_ieee1788.h`. A token (a number, a name or a run of blanks) holds
+  2<sup>29</sup> characters at most, flex keeping the size of its buffer in an
+  `int`: a longer one throws `std::bad_alloc`.
+- **Without exceptions, a wrong call in a string fails the reading.** Built with
+  `--disable-exceptions` or `-Denable-exception=false`, GAOL ended the program
+  (`gaol_ERROR`, then `abort()`) inside the reader on
+  `gaol_ieee1788::textToInterval("pown([2,5],2.5)")`, `"sin(1,2)"` or
+  `"fma(1,2)"`, where IEEE 1788-2015 (12.12.7) has the empty set. The reading
+  now fails as it does for a syntax error: `gaol_ieee1788::textToInterval()`
+  gives the empty set, `parse_interval()` returns false, and
+  `gaol::textToInterval()` and `operator>>` report the error and abort, as for
+  any text that is no expression.
+- **`<a, b>` compares its two numbers by their bits**: they have to be the same
+  double, -0 and +0 being the same bound. The reader compared them as doubles,
+  equal under denormals-are-zero: `<1e-310, 1e-309>` was read as
+  `[1e-310, 1e-309]`, and is refused, as without the mode.
+- **`parse_interval(nullptr)` returns false.** A null pointer is no string: the
+  reader took its length with `strlen()`, which read it, and the program died
+  of a segmentation fault (`parse_interval(std::getenv("UNSET"), x)`). It is
+  refused as a syntax error is, `parse_interval()` returning false with
+  exceptions or without, throwing nothing and leaving the interval as it was.
 - **The namespaces `gaol_core`, `gaol` and `gaol_ieee1788`** (see
   [Using GAOL](using.md#the-namespaces)). The type `interval`, GAOL's
   functions and its expressions are in `gaol_core`; `gaol` names them as GAOL
@@ -1641,6 +1973,17 @@ where it comes from.
   `x + nullptr` compiled, and crashed. `tests/numbers.cpp` checks that
   neither a `const char*` nor `nullptr` converts to an interval, and that
   `interval(0)` is [0].
+  A null pointer is no string: `textToInterval(nullptr)` and
+  `textToInterval(std::getenv("UNSET"))` throw `input_format_error`, through an
+  overload for `const char*`, where the overload for `std::string` would build a
+  `std::string` from the pointer, which the standard leaves undefined
+  (`std::logic_error` with libstdc++). `textToInterval(sl, sr)` does the same
+  for a null pointer in either place or in both, and so do
+  `gaol_ieee1788::textToInterval()` and `exactToInterval()`, which give the
+  empty set for a text that is no interval but throw for a null pointer. The
+  address of `gaol_ieee1788::textToInterval` or `exactToInterval`, as that of
+  `gaol::textToInterval`, needs a cast or a typed pointer, being overloaded
+  (`interval (*)(const std::string&)`).
 - **The constructor from two strings, `interval(const char*, const char*)`,
   is gone** too: `interval("0.1", "0.3")` becomes
   `textToInterval("0.1", "0.3")`, which takes the left bound of the first
@@ -1650,6 +1993,24 @@ where it comes from.
   [0, 1] was [2, 2] (review #6 of `examples/examples.md`, checked by
   `tests/expressions.cpp`). The literal 0 being a null pointer too, it made
   `interval(0, 0)` ambiguous, which now compiles.
+- **A result thrown away gives a warning.** `sqrt(x);` or `x.emptyset();` alone
+  leaves x as it was. The functions and operators on intervals whose result is
+  all they do, their predicates, the names of `gaol_ieee1788` and the functions
+  building expressions carry `GAOL_NODISCARD` (`gaol/gaol_config.h`), so that
+  the compiler warns about such a call; GAOL 4 had no such attribute. It is
+  `[[nodiscard]]` in C++17 and later and, before, wherever the compiler takes
+  it there (GCC 7 and later, Visual C++ 2019 16.4 and later, warning C4834),
+  `__attribute__((warn_unused_result))` with Clang and GCC before 7, and
+  `_Check_return_` of `<sal.h>` with older Visual C++ (reported by `/analyze`
+  only). `gaol::gaol` sets no standard, so that a project which sets none gets
+  the warning with GCC 9 and Visual C++ 2019 16.4 and later, both C++14 by
+  default; a cast to void silences it, except with GCC before 7, and a program
+  that does not want it defines `GAOL_NODISCARD` empty
+  ([Using GAOL](using.md#a-result-thrown-away)).
+  Six CMake compile tests, `nodiscard_discard_cxx11`, `_cxx14` and `_cxx17`
+  (the call must fail to compile with the warning made an error) and
+  `nodiscard_used_cxx11`, `_cxx14` and `_cxx17` (the results used must
+  compile), check it.
 - **The constructor from one `double`, `interval(double)`, is explicit**, and
   so are `expression(double)` and `expression(const interval&)`. A `double`
   becomes an interval where the program writes `interval(d)`:
@@ -1707,6 +2068,9 @@ where it comes from.
     expression within the ints is 1/`nth_root(e, |n|)`.
 - **`width()`** of the empty set is NaN, as `wid` of IEEE 1788-2015 (12.12.8),
   rather than -1, which the manual and `check/interval_functions.cpp` gave.
+- **`chi()` of the empty set** is the positive NaN that `width()` returns,
+  printed `nan` with every compiler. It was the quotient of the NaN bounds,
+  `-nan` with GCC and `nan` with Clang.
 - **The three builds agree** (see [The three builds](three-builds.md)).
   Before, each had its own idea: configure optimized only when the compiler
   was named `g++` exactly (`clang++` compiled without optimization), computed
@@ -2185,13 +2549,15 @@ where it comes from.
   vendored sources as patches against the master of CORE-MATH, to propose
   upstream (upstream has made two of them since).
 - **The manual of GAOL v5**, `manual/v5`, follows the manual of GAOL 4 and
-  describes GAOL v5: the three builds and their options, the flags of
-  interval arithmetic, the namespaces and the rounding direction, each
-  operation of GAOL, the new ones included, with examples whose outputs are
-  those of GAOL v5, the names of IEEE 1788-2015, the accuracy of each
-  operation, and what a program written for GAOL 4 has to change. The manual
-  of GAOL 4 is kept as it was in `manual/v4`, and `make -C manual pdf` and the
-  target `pdf` of the meson build build both.
+  describes GAOL v5: the three builds and their options, the flags of interval
+  arithmetic, the namespaces and the rounding direction, each operation of GAOL,
+  the new ones included, with examples whose outputs are those of GAOL v5
+  (`manual/check_examples.py` compiles each example that shows its output in its
+  listing with an installed GAOL and runs it, in the continuous integration
+  too), the names of IEEE 1788-2015, the accuracy of each operation, and what a
+  program written for GAOL 4 has to change. The manual of GAOL 4 is kept in
+  `manual/v4`, and `make -C manual pdf` and the target `pdf` of the meson build
+  build both.
 - **The manual of GAOL 4 compiles again** (issue #13): `manual/v4/gaol.pdf`
   was the PDF of 2009, and `gaol.tex` no longer compiled. The manual still
   describes the mathematical libraries and the options of GAOL 4.
@@ -2204,6 +2570,16 @@ where it comes from.
   the cm-super fonts are not installed. `manual/build-pdf.sh` builds it, for
   `make -C manual pdf` and for the target `pdf` of the meson build, which had
   none.
+- **The Goldstein-Price function of the manual and of
+  `examples/16_Goldstein_Price.cpp`** had the factor `(x + y)^2` where the
+  function has `(x + y + 1)^2`, as in GAOL 4 (`examples/Goldstein_Price.cpp`);
+  the manual said its output `[-56254330, 94177270]` was the range of the
+  function, which is `[3, 1015690.27...]` (148 times narrower). Both now
+  compute the true function, whose natural extension over `[-2, 2]^2` is
+  `[-87881320, 147125080]` (231 times as wide as the range); the manual says
+  that its result, `z`, encloses the range, and why it is wider. The example
+  checks its output (exact integer bounds computed apart), fails if a check
+  fails, and prints its time in milliseconds (`Elapsed time: N ms`).
 - **The CMake build**, derived from the CMake build of GAOL in IBEX
   (Cyril Bouvier, Gilles Chabert), with the compilation flags of the IBEX fork
   of Fabrice Le Bars.
