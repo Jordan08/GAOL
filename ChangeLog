@@ -642,6 +642,62 @@
 	exception.  doc/using.md, manual/v5/gaol.tex: 1/[0, 1] is no example
 	of the division-by-zero exception any more.
 
+	CORE-MATH and the elementary functions:
+
+	* gaol/core_math_port.h: on x86, 32-bit and 64-bit, the sources of
+	CORE-MATH read the rounding direction from MXCSR, the register of
+	their doubles, not from the x87 unit nor through the fegetround() of
+	the C library, which cbrt and asinpi called at every call on 32-bit
+	x86; pow missed subnormal results when the two units differed
+	(tests/rounding_direction.cpp).  The square root is that of the SSE2
+	instructions on every 32-bit x86, because the one of the C libraries
+	of Windows rounds to nearest in every direction; NAN and INFINITY
+	are read from their bits with Visual C++ (pow rounded downward was
+	-0 for tiny results).
+	* 3rd/math-core/src/binary64/cbrt/cbrt.c, rsqrt/rsqrt.c,
+	asinpi/asinpi.c: get_rounding_mode() takes the rounding field
+	of MXCSR as 0 to 3 whatever the FE_* values of the C library,
+	which it took wrongly on x86-64 with clang-cl and Cygwin (the
+	three) and with mingw-w64 before 13 (cbrt): the bound of
+	nth_root(x, 3)
+	farther from zero and the upper bounds of rsqrt and asinpi did
+	not enclose (tests/core_math.cpp).
+	* 3rd/math-core/src/binary64/pow/pow.c: exact_pow() converts
+	its 54-bit integer in two exact halves on 32-bit ARM, where
+	__aeabi_l2d rounds to nearest in every direction: the upper
+	bound of pow([3*2^-30], [34, 35]) was below the power.
+	* 3rd/math-core/src/binary64/pow/pow.c (exp_1): RHO2 lowered to
+	0x1.62e42d29db3f0p+9, the largest rh with rh * INVLOG2 rounded below
+	2^22: from there to the former RHO2 the first phase scaled its
+	approximation by 2^1024 and computed Inf - Inf, which raised the
+	invalid-operation exception for a power next to the largest double
+	(pow([2], [1023.9999])); tests in tests/core_math.cpp and
+	tests/rounding_direction.cpp; 3rd/README.md: item 9 and patch 8 to
+	propose to CORE-MATH.
+	* 3rd/README.md: the fixes of the vendored CORE-MATH sources,
+	written as patches against CORE-MATH's master to propose
+	upstream (the masks of a 64-bit long, the shift of asinpi_acc,
+	the __builtin_expect of rsqrt, the __builtin_roundeven of sin,
+	the rounding direction of pow, the rounding field of MXCSR in
+	cbrt, rsqrt and asinpi, pow on 32-bit ARM, pow next to the
+	overflow), of which upstream has made the rsqrt and sin ones
+	since; glibc is checked for the same defects.
+	* gaol/core/gaol_interval_core.cpp: the smallest subnormal double
+	is a literal, where GCC converted
+	std::numeric_limits<double>::denorm_min() from long double at
+	each use with -frounding-math (a microcode assist on Intel
+	processors): sqrt() took 124 ns, it takes 7.8 ns (GCC 15.2, Intel
+	i7-1185G7).
+	* gaol/core/gaol_interval_core.cpp (tan): an interval whose
+	width rounded upward is at most the double below pi is
+	narrower than pi, so tan([-M_PI_2, M_PI_2]) is [-1.63e16,
+	1.63e16], no longer [-oo, +oo]; tests/elementary.cpp: tan next
+	to two consecutive poles, widths about the double below pi.
+	* gaol/core/gaol_interval_core.cpp (atanh): the empty set for
+	an interval with no point of (-1, 1), atanh([1]) having been
+	[MAX, +oo]; atanh_rel and tanhRev follow; tests in
+	tests/elementary.cpp and tests/reverse_mappings.cpp.
+
 2020-05-10  Frederic Goualard  <Frederic.Goualard@univ-nantes.fr>
 
 	* configure.ac: using gcc standard strtod() instead of gdtoa's

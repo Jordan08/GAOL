@@ -99,6 +99,80 @@ where it comes from.
     undefined behaviour that the tests run with UBSan reported; it shifts it
     unsigned now, as `sinpi.c` and `tanpi.c` do (see
     [3rd/README.md](../3rd/README.md)).
+  - **CORE-MATH reads the rounding direction as GAOL sets it.** Some sources of
+    CORE-MATH round a result themselves, in the direction they read, and two of
+    the ways they read it gave another direction than that of the doubles GAOL
+    computes, the one of MXCSR:
+    - `pow` rounds a subnormal result in the direction `fegetround()` gives,
+      which the C library of Linux reads from the x87 unit. With the x87 unit to
+      nearest and MXCSR upward, the state the `exactinit()` of the predicates of
+      Shewchuk and of Triangle leaves, the upper bound of `pow` was below the
+      exact value for about half of the arguments with a subnormal result.
+      `gaol/core_math_port.h` gives the sources a `fegetround()` that reads
+      MXCSR on x86, 32-bit and 64-bit, and the sources are unchanged there;
+      `tests/rounding_direction.cpp` checks `pow` in the six states of the two
+      units. On 32-bit x86 that spares `cbrt` and `asinpi` a call of the
+      `fegetround()` of the C library at each bound, and a few other functions
+      on their slow paths, about 80 ns a call with Visual C++ for x86: on the
+      runners of the continuous integration, `nth_root(x, 3)` takes 179 ns
+      rather than 355 and `asinpi(x)` 794 ns rather than 1005 with Visual C++
+      for x86, and 120 ns rather than 324 and 255 ns rather than 438 with
+      clang-cl for x86; `x + y` and `sin(x)` take the same time, and so do
+      `nth_root(x, 3)` and `asinpi(x)` with glibc, whose `fegetround()` is
+      cheap.
+    - `cbrt`, `rsqrt` and `asinpi` read the rounding field of MXCSR and turn it
+      into the `FE_*` value of the C library by a shift chosen from the macros
+      of the platform. With clang-cl and with Cygwin on x86-64, whose newlib
+      gives `FE_*` the values 0 to 3, the shift was wrong for the three: the
+      directed roundings were taken for toward zero, so that the bound of
+      `nth_root(x, 3)` farther from zero and the upper bounds of `rsqrt` and
+      `asinpi` did not enclose the exact values at hard arguments (`asinpi` was
+      wrong for about half of its arguments with clang-cl). With mingw-w64
+      before version 13 on x86-64 it was wrong for `cbrt` alone, whose seven
+      hardest arguments were rounded toward zero:
+      `nth_root([0x1.3a9ccd7f022dbp+0], 3)` was
+      `[0x1.1236160ba9b92p+0, 0x1.1236160ba9b93p+0]`, the root being above it.
+      The field is 0 to nearest, 1 downward, 2 upward and 3 toward zero on every
+      x86 processor, and the three functions now take it so, whatever the values
+      of the C library (change 6 of [3rd/README.md](../3rd/README.md)): `cbrt`
+      takes it as it is, and `rsqrt` and `asinpi` look their `FE_*` value up in
+      a table. `tests/core_math.cpp` checks their hard arguments against mpmath,
+      and the continuous integration builds GAOL with MinGW-w64, MSYS2, Cygwin
+      and clang-cl and, on Linux, with the `FE_*` values of Cygwin as well (the
+      job `cygwin-fe-values`).
+  - **CORE-MATH's `pow` is correctly rounded in every direction.**
+    `pow_exact_at_corners()` of `tests/core_math.cpp`, which checks `pow` where
+    x^y is a double, found three defects. With Visual C++, `NAN` and `INFINITY`,
+    which the UCRT writes for C as products of `1e+300`, were computed when the
+    program runs, in the rounding direction in effect, so that `pow` rounded
+    downward was `-0` from 2^-1075 to about 2^-947 (they are read from their
+    bits now). On 32-bit x86 the square root of the C libraries of Windows
+    rounds to nearest in every rounding direction, and Visual C++ calls it, as
+    does MinGW-w64 at `-O0`: the upper bound of
+    `pow([0x0.0000100020002p-1022], [0.5])` did not enclose the root, and
+    `pow(x, 0.5)` was below the root rounding upward at a subnormal x. CORE-MATH
+    takes its square root from the SSE2 instructions, in the direction of MXCSR,
+    on every 32-bit x86 (`gaol/core_math_port.h`); the `sqrt()` of glibc and
+    musl is the `fsqrt` of the x87 unit, right as long as that unit rounds as
+    MXCSR does, which GAOL sees to, so that there the change drops a dependency
+    and changes no result. On 32-bit ARM, `exact_pow()` converted its 54-bit
+    integer with `__aeabi_l2d`, which rounds to nearest, so that the upper bound
+    fell below x^y at a midpoint (`pow([3·2^-30], [34, 35])`; changed in
+    `pow/pow.c`, change 7 of [3rd/README.md](../3rd/README.md)).
+  - **`pow` of a result next to the largest double raises no invalid-operation
+    exception.** For y*log(x) from 709.78263 to 709.78267, a power between
+    1.7975e308 and 1.7976e308, the first phase of CORE-MATH's `pow` scaled its
+    approximation by 2^1024, an infinity, and computed Inf - Inf before its
+    second phase gave the right result: `pow([2], [1023.9999])` and
+    `pow(x, 3000000001LL)` for x = 0x1.000003f82a1fp+0 raised the exception, and
+    so did their equivalents in `gaol_ieee1788` and in a string, `pow_rel` and
+    `pow_exponent_rel`; a program that had enabled it died on SIGFPE. The bounds
+    were the tightest ones all the same. The vendored `pow.c` lowers the
+    constant `RHO2` of `exp_1()` so that those arguments go to the second phase,
+    as the ones above it already did (see [3rd/README.md](../3rd/README.md));
+    `tests/core_math.cpp` checks CORE-MATH's `pow` there in the four rounding
+    directions, and `tests/rounding_direction.cpp` the functions of GAOL, with
+    the invalid-operation exception enabled.
   - **The hexadecimal output is an interval literal.** Written with
     `interval_format::hexa` and read again, an interval now gives the same
     bounds bit for bit, which is the recovery requirement of IEEE 1788-2015
@@ -751,6 +825,20 @@ where it comes from.
   are checked with a product rounded the other way rather than a division,
   and `sqrt()` takes the same time as before (9.0 ns on an Intel i7-1185G7,
   GCC 9.4).
+- **`sqrt()` is no longer slowed down by GCC on Intel processors.** `sqrt()`,
+  `nth_root()` and a few more operations use the smallest subnormal,
+  2^-1074, as a bound or a step, and GAOL took it from
+  `std::numeric_limits<double>::denorm_min()`, a `long double` constant. GCC
+  does not fold the conversion of a subnormal result to a double with
+  `-frounding-math`, which every build of GAOL gives: GCC 13.3 and 15.2 loaded
+  the constant as an extended number and stored it as a double (`fldt`,
+  `fstpl`) at each use, which the x87 unit does with a microcode assist on
+  Intel processors, about 100 ns on an i7-1185G7. `sqrt()` took 124 ns rather
+  than 7.8, and `nth_root(x, 2)` and `nth_root(x, -2)` 113 and 118 ns rather
+  than 6.8 and 10.2 (GCC 15.2, i7-1185G7); Clang folds the conversion. The
+  constant is a literal now (`gaol/core/gaol_interval_core.cpp`), and the
+  bounds are the same, bit for bit. The runners of the continuous integration,
+  AMD processors and 64-bit ARM, show no difference.
 - **Numbers are read exactly** (`gaol/parser/gaol_interval_lexer.lpp`). GAOL read them
   with `strtod()` rounding downward and upward, and relied on the inexact flag.
   The C runtime of Windows and musl on 64-bit ARM processors round to nearest in
@@ -825,9 +913,10 @@ where it comes from.
   - **The sources.** The whole tree of CORE-MATH is vendored in
     `3rd/math-core` (MIT licence), compiled into GAOL's library under the
     names `gaol_cr_sinh()`... (`gaol/gaol_core_math.h`). The sources are kept as
-    CORE-MATH wrote them, `gaol/core_math_port.h` being force-included into each
-    of them by the compiler: [3rd/README.md](../3rd/README.md) lists what that
-    header gives and the changes the vendored sources carry.
+    CORE-MATH wrote them but for a few changes, marked `/* GAOL */`,
+    `gaol/core_math_port.h` being force-included into each of them by the
+    compiler: [3rd/README.md](../3rd/README.md) lists what that header gives and
+    the changes the vendored sources carry.
   - **Tests.** `tests/elementary.cpp` requires one double of every function,
     rather than 8.
   - At the overflow, the bounds were two floats wider than the
@@ -966,6 +1055,22 @@ where it comes from.
     each function: a few doubles around the doubles nearest to kπ/2, k up to
     2^55, widths about π and 2π from one extremum to the next, and consecutive
     doubles up to the largest.
+- **`tan()` is finite over an interval of doubles of width π̲, the double below
+  π, that holds no pole.** No double is a pole of the tangent: `[-M_PI_2,
+  M_PI_2]`, whose bounds are 6.1e-17 inside the poles −π/2 and π/2, holds
+  none, and its width is exactly π̲. `tan([-M_PI_2, M_PI_2])` was `[-oo, +oo]`,
+  and so were four other intervals of doubles whose exact width lies between
+  the double below π̲ and π̲ and rounds up to it (review #8 of
+  `examples/examples.md`). The width w of the interval, rounded upward, is at
+  least the exact width, so `w <= π̲` proves the exact width below π: at most
+  one pole is within the interval, and the signs of CORE-MATH's cosine at the
+  bounds tell whether it is. `tan([-M_PI_2, M_PI_2])` is
+  `[-0x1.d02967c31cdb5p+53, 0x1.d02967c31cdb5p+53]`, about ±1.63e16. Wider
+  intervals still give `[-oo, +oo]`, which is exact whenever they hold a pole;
+  an interval of doubles holding no pole whose exact width lies between π̲ and π
+  is a theoretical case, none being known. `tests/elementary.cpp` checks
+  `tan([-M_PI_2, M_PI_2])` and 158 intervals next to two consecutive poles
+  against mpmath.
 - **`acos_rel()`, `asin_rel()` and `atan_rel()`** enclose the multiples of
   π of the pieces of the preimage with π in double-double (issue #6): k·π_hi
   is p + e exactly, e being the rest of the product from `fma()`, and
@@ -1036,6 +1141,16 @@ where it comes from.
   `log` is defined on `(0, +oo)` (IEEE 1788-2015, Table 9.1). GAOL kept the part
   of the interval in `[0, +oo]`, and gave `[-oo, -MAX]` for `log([-4, 0])` and
   `log([0])`, which `check/non_arithmetic.cpp` wanted.
+- **`atanh()`** gives the empty set for an interval holding no point of
+  `(-1, 1)`, where atanh is defined (IEEE 1788-2015, Table 9.1): `atanh([1])`,
+  `atanh([1, 5])` and `atanh([1, +oo])` are empty, and so are
+  `atanh_rel([1], x)` and `tanhRev([1])`, which intersect `atanh([1])` with x
+  (with the whole line for `tanhRev`). The limits −∞ and +∞ at −1 and 1 stay the
+  bounds of an interval holding other points of `(-1, 1)`: `atanh([0, 1])` is
+  `[0, +oo]`. With CORE-MATH, whose value at 1 is `+oo`, the lower bound being
+  the double below it, these were `[MAX, +oo]`; `atanh([-1])` and
+  `atanh([-5, -1])` were empty already, because `interval(-oo, -oo)` is. GAOL 4
+  was not measured.
 - **The intersection of disjoint intervals** (`operator&`, `operator&=`) is the
   empty set of `interval::emptyset()`, whose bounds are NaN. GAOL kept the
   largest left bound and the smallest right bound, `[3, 2]` for
@@ -1938,6 +2053,9 @@ where it comes from.
   [3rd/README.md](../3rd/README.md)): GAOL can be built as a part of another
   project, brought in by FetchContent, with no network access beyond its own
   sources (`tests/fetch_content`).
+  [3rd/README.md](../3rd/README.md) also writes the fixes GAOL makes to the
+  vendored sources as patches against the master of CORE-MATH, to propose
+  upstream (upstream has made two of them since).
 - **The manual of GAOL v5**, `manual/v5`, follows the manual of GAOL 4 and
   describes GAOL v5: the three builds and their options, the flags of
   interval arithmetic, the namespaces and the rounding direction, each
