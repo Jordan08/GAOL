@@ -76,6 +76,36 @@ namespace neon_detail {
     return vbslq_s64(nan_lanes(x), vdupq_n_s64(std::numeric_limits<std::int64_t>::min()), bound_keys(x));
   }
 
+  /*
+    The bounds l and r make an interval, the condition of the constructor of two
+    bounds: gaol_detail::bound_less_equal(l, r) && l < +oo && r > -oo (GAOL v5,
+    point PG of TODO.md). l < r (false for a NaN) is the case that runs, and it
+    needs no test of the infinities, since l < r <= +oo and -oo <= l < r. Else the
+    bounds are the same bits, which make an interval but for a NaN and for an
+    infinity (the same one in both bounds, told by the exponent field of the bits
+    being all ones, with one integer instruction), or, if they differ, two doubles
+    equal as doubles, which can only be zeros, or subnormal numbers under the
+    modes that flush them to zero, and which are in the right order when their
+    bound_key() are (gaol_port.h). The comparison of the doubles is made last: the
+    bits are in registers of the integer unit already, where the comparison would
+    be a second one, equal to the first for the bounds of a point. The three
+    comparisons with -oo and +oo of the old condition cost a constant in a vector
+    register and a comparison each (3 of the 9 vector instructions of interval(l,
+    r)); nothing here compares a double but the first quiet comparison, which
+    raises what bound_less_equal() raised
+  */
+  GAOL_INLINE bool valid_bounds(double l, double r)
+  {
+    if (gaol_detail::quiet_less(l, r)) {
+      return true;
+    }
+    const std::uint64_t left_bits = gaol_detail::bound_bits(l);
+    if (left_bits == gaol_detail::bound_bits(r)) {
+      return (left_bits << 1) < 0xffe0000000000000ull; // neither a NaN nor an infinity
+    }
+    return l == r && gaol_detail::bound_key(l) <= gaol_detail::bound_key(r);
+  }
+
 } // namespace neon_detail
 
 // Built from the lanes, not held in static intervals (GAOL v5): the
@@ -148,13 +178,14 @@ GAOL_INLINE interval::interval(double v)
 // the wrong order and NaN bounds, as in IBEX; the first comparison is a quiet
 // one, as in is_empty() and the FPU and SSE2 constructors (GAOL v5, decided
 // for point D.24 of TODO.md), and the bounds are compared as bounds
-// (gaol_detail::bound_less_equal(), gaol_port.h), which the modes that flush
+// (neon_detail::valid_bounds(), which is gaol_detail::bound_less_equal() of
+// gaol_port.h and the tests of the infinities), which the modes that flush
 // the subnormals to zero do not change (point Q of TODO.md)
 GAOL_INLINE interval::interval(double l, double r)
 {
   GAOL_FPU_SCALAR(l);
   GAOL_FPU_SCALAR(r);
-  if (gaol_detail::bound_less_equal(l, r) && l < GAOL_INFINITY && r > -GAOL_INFINITY) {
+  if (neon_detail::valid_bounds(l, r)) {
     neonbounds = vcombine_f64(vdup_n_f64(-l), vdup_n_f64(r));
   } else {
     neonbounds = vdupq_n_f64(std::numeric_limits<double>::quiet_NaN());
