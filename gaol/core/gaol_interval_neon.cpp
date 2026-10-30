@@ -89,6 +89,11 @@ namespace gaol_detail {
     stored -oo would be [+oo, ..] or [.., -oo], which the constructors refuse),
     so that inf - inf is never formed.
   */
+#  if defined(_MSC_VER) && !defined(__clang__) && defined(_M_ARM64)
+  // EXPERIMENT: add_bounds() and sub_bounds() each in a section of their own, which the linker aligns to the
+  // section alignment (4096): their addresses no longer follow the size of what comes before them
+#    pragma code_seg(push, ".gadd")
+#  endif
   float64x2_t add_bounds(float64x2_t x, float64x2_t y)
   {
     using namespace gaol_core;
@@ -101,6 +106,10 @@ namespace gaol_detail {
     return res;
   }
 
+#  if defined(_MSC_VER) && !defined(__clang__) && defined(_M_ARM64)
+#    pragma code_seg(pop)
+#    pragma code_seg(push, ".gsub")
+#  endif
   // x - y is x + [-r, -l], the bounds of y exchanged
   float64x2_t sub_bounds(float64x2_t x, float64x2_t y)
   {
@@ -113,6 +122,9 @@ namespace gaol_detail {
     GAOL_RND_LEAVE();
     return res;
   }
+#  if defined(_MSC_VER) && !defined(__clang__) && defined(_M_ARM64)
+#    pragma code_seg(pop)
+#  endif
 
 } // namespace gaol_detail
 
