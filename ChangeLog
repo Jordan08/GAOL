@@ -928,6 +928,48 @@
 	(0x10, 0xff.8, 0o17, 0b101, 0b1.1p3) are read, the exponent after the
 	p being optional; a number that begins with 0 is decimal.
 
+	Writing intervals and the messages of the exceptions:
+
+	* gaol/core/gaol_interval_core.cpp (operator<<): the text is
+	made in a string and written at once, in 30 to 45 % less time
+	than with a std::ostringstream for each interval and each
+	bound; with std::internal the fill follows the sign or the 0x.
+	The bounds format is written in the C locale whatever the
+	locale of the stream, so that the reader reads it back
+	([0,25, 0,5] under a decimal comma before); the width format
+	writes the radius without a sign under showpos and a center 0
+	as 0; the agreeing format writes the digits two bounds share
+	only for finite bounds, not 0, of the same sign and aligned.
+	* gaol/core/gaol_interval_core.cpp (display_bounds): a point
+	interval whose double the digits write exactly is written [a],
+	the literal of IEEE 1788-2015, and a zero of either sign [0]
+	([0x0p+0] in hexadecimal), by operator<< and intervalToText,
+	instead of <a, a>; the other points are written [l, r], which
+	the reader takes back (interval(0.1) is [0.1,
+	0.1000000000000001]); the reader still reads <a, b>.
+	* gaol/core/gaol_interval_core.cpp (operator<<): the format
+	width writes the midpoint() and rad() of IEEE 1788-2015
+	(radius rounded upward, a point interval without radius),
+	center the midpoint alone, and the empty set is [empty] in
+	every format.
+	* gaol/gaol_ieee1788.cpp (intervalToText): [l, r], [a] or
+	[empty] with the digits of interval::precision(), whatever the
+	output format and the locale, so that textToInterval() reads the
+	text back.
+	* gaol/gaol_exceptions.h, gaol/gaol_exceptions.cpp:
+	gaol_exception::what() returns the explanation, or the name of the
+	class (gaol_exception, input_format_error...) if there is none or
+	if it starts with a NUL, where GAOL 4 left "std::exception"; a null
+	const char* explanation is none, where GAOL 4 built a std::string
+	from it; operator<< of the exceptions writes the explanation once.
+	* gaol/gaol_exceptions.cpp, gaol/gaol_common.cpp: a null file
+	name is "(unknown file)" in gaol_exception (file() is never a
+	null pointer), gaol_warning() and gaol_error(), and a null
+	message of the two functions is an empty text; libstdc++ put
+	std::cerr in the bad state for a null pointer, and the
+	diagnostics written after it were lost (gaol_detail::known_file()
+	and known_text() of gaol/gaol_common.h).
+
 2020-05-10  Frederic Goualard  <Frederic.Goualard@univ-nantes.fr>
 
 	* configure.ac: using gcc standard strtod() instead of gdtoa's
