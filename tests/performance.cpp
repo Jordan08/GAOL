@@ -327,11 +327,11 @@ int main()
     // The table is Markdown, which the jobs of the continuous integration copy into their summary: a pipe in the
     // name of a row (x | y) would end its cell, and is written \| (the scripts read it back as |)
     std::string operation;
-    for (const char* c = row.operation; *c != '\0'; ++c) {
-      if (*c == '|') {
+    for (const char* character = row.operation; *character != '\0'; ++character) {
+      if (*character == '|') {
         operation += '\\';
       }
-      operation += *c;
+      operation += *character;
     }
     std::printf("| %s | %.2f | %.2f | %.1f |\n", operation.c_str(), row.interval_ns, row.double_ns, row.interval_ns / row.double_ns);
   }
