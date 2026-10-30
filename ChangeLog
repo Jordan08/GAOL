@@ -928,6 +928,94 @@
 	(0x10, 0xff.8, 0o17, 0b101, 0b1.1p3) are read, the exponent after the
 	p being optional; a number that begins with 0 is decimal.
 
+	Writing intervals and the messages of the exceptions:
+
+	* gaol/core/gaol_interval_core.cpp (operator<<): the text is
+	made in a string and written at once, in 30 to 45 % less time
+	than with a std::ostringstream for each interval and each
+	bound; with std::internal the fill follows the sign or the 0x.
+	The bounds format is written in the C locale whatever the
+	locale of the stream, so that the reader reads it back
+	([0,25, 0,5] under a decimal comma before); the width format
+	writes the radius without a sign under showpos and a center 0
+	as 0; the agreeing format writes the digits two bounds share
+	only for finite bounds, not 0, of the same sign and aligned.
+	* gaol/core/gaol_interval_core.cpp (display_bounds): a point
+	interval whose double the digits write exactly is written [a],
+	the literal of IEEE 1788-2015, and a zero of either sign [0]
+	([0x0p+0] in hexadecimal), by operator<< and intervalToText,
+	instead of <a, a>; the other points are written [l, r], which
+	the reader takes back (interval(0.1) is [0.1,
+	0.1000000000000001]); the reader still reads <a, b>.
+	* gaol/core/gaol_interval_core.cpp (operator<<): the format
+	width writes the midpoint() and rad() of IEEE 1788-2015
+	(radius rounded upward, a point interval without radius),
+	center the midpoint alone, and the empty set is [empty] in
+	every format.
+	* gaol/gaol_ieee1788.cpp (intervalToText): [l, r], [a] or
+	[empty] with the digits of interval::precision(), whatever the
+	output format and the locale, so that textToInterval() reads the
+	text back.
+	* gaol/gaol_exceptions.h, gaol/gaol_exceptions.cpp:
+	gaol_exception::what() returns the explanation, or the name of the
+	class (gaol_exception, input_format_error...) if there is none or
+	if it starts with a NUL, where GAOL 4 left "std::exception"; a null
+	const char* explanation is none, where GAOL 4 built a std::string
+	from it; operator<< of the exceptions writes the explanation once.
+	* gaol/gaol_exceptions.cpp, gaol/gaol_common.cpp: a null file
+	name is "(unknown file)" in gaol_exception (file() is never a
+	null pointer), gaol_warning() and gaol_error(), and a null
+	message of the two functions is an empty text; libstdc++ put
+	std::cerr in the bad state for a null pointer, and the
+	diagnostics written after it were lost (gaol_detail::known_file()
+	and known_text() of gaol/gaol_common.h).
+
+	Tests, examples and documentation:
+
+	* tests/CMakeLists.txt (gaol_compile_test), tests/compile_error.cmake:
+	the compile tests whose compilation has to fail
+	(refused_finite_math_only, refused_fast_math, refused_aligned_new,
+	refused_aligned_new_cxx17, nodiscard_discard_cxx11,
+	nodiscard_discard_cxx14, nodiscard_discard_cxx17) compile a copy of
+	their source, which compile_error.cmake makes again and touches before
+	the build: they kept failing once their object had been compiled and a
+	header, or the source, was restored with its former modification time.
+	* tests/input_output.cpp (test_input): <-inf,-inf> and <inf,inf> have
+	to throw input_format_error; no try around the checks, which skipped
+	the six after <-inf,-inf>.
+	* tests/, examples/15_text_and_ieee1788.cpp: the checks of an
+	exception, and of a text the reader refuses, are under
+	GAOL_EXCEPTIONS_ENABLED, so that the tests and the examples build and
+	run without exceptions (--disable-exceptions,
+	-Denable-exception=false).  .github/workflows/build-systems.yml: an
+	autotools job and a meson job without exceptions.
+	* manual/check_examples.py: new; the examples of the manual that show
+	their output in their listing (@outputs in gaol.tex) are compiled with
+	an installed GAOL and run, and have to print it.
+	.github/workflows/linux.yml runs it in the job Ubuntu 24.04 x86_64
+	GCC, in C++11.
+	* examples/16_Goldstein_Price.cpp, manual/v5/gaol.tex:
+	goldstein_price() and the program of the manual have the factor
+	(x + y + 1)^2, as the function does (GAOL 4 had (x + y)^2); the
+	example checks its output and prints its time in ms; the manual
+	says that z encloses the range of the function.
+	* manual/v4/manual.cls, manual/build-pdf.sh,
+	.github/workflows/manual.yml: the manual of GAOL 4 compiles
+	again (marginbib.sty and multicol.sty are gone, bibentry
+	prints the references in the margin, Latin Modern fonts); make
+	-C manual pdf and the target pdf of meson build it, and a
+	workflow builds both manuals.
+	* README.md, examples/tutorial.md, doc/using.md, manual/v5: a first
+	program, a tutorial of four algorithms of interval computing, the
+	common errors (intervals in std::sort, std::set and std::max, and
+	gaol::lexicographic_less), the names of IBEX, Codac, C-XSC and
+	Boost.Interval next to GAOL's, and the operations that leave the
+	rounding direction as they found it.
+	* tests/CMakeLists.txt, tests/find_package/CMakeLists.txt,
+	tests/fetch_content/CMakeLists.txt: the cache variable
+	GAOL_NUMBERS_TIMEOUT (300 s) is the time allowed to the test
+	numbers.
+
 2020-05-10  Frederic Goualard  <Frederic.Goualard@univ-nantes.fr>
 
 	* configure.ac: using gcc standard strtod() instead of gdtoa's
