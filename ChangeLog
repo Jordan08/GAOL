@@ -388,6 +388,109 @@
 	f_negate(), f_negate_simple(), the macro opposite(), get_fpu_cw()
 	and reset_fpu_cw() are removed; GAOL v5 no longer calls them.
 
+	The kinds of intervals:
+
+	* gaol/core/gaol_interval_neon.h, gaol/core/gaol_interval_neon.cpp:
+	the intervals of 64-bit ARM computed with NEON, the two bounds in a
+	float64x2_t as the SSE2 intervals keep them in a __m128d (GAOL_SIMD,
+	GAOL_USING_NEON_INSTRUCTIONS): +, -, *, /, sqr and sqrt are kernels
+	over registers, the product the maximum of four products with no
+	branch on the signs, and no double is compared on bounds that may be
+	NaN.  The sign of a zero bound can differ from that of the SSE2 and FPU
+	intervals ([-1, 0] * [-1, 0] has the lower bound -0).
+	* gaol/gaol_fpu.h, gaol/gaol_fpu_fenv.h: on 64-bit ARM with the NEON
+	intervals the rounding direction (the field RMode of FPCR) is read
+	with mrs, which raises no flag, and written with msr only when it is
+	not upward or a flush mode is set, where the FPU intervals compute
+	1 + (2^-1060 + 0) to see it; with GAOL_PRESERVE_ROUNDING an operation
+	reads FPCR once and writes it back only if it differs (27 ns per
+	operation rather than 39 on an Apple M2).
+	* gaol/gaol_config.h, gaol/gaol_fpu_fenv.h, CMakeLists.txt,
+	configure.ac, meson.build: the NEON intervals with every compiler
+	of the 64-bit ARM processors: Visual C++ (FPCR read and written
+	with _ReadStatusReg() and _WriteStatusReg()), clang-cl and the
+	Clang of MinGW-w64 and MSYS2, as GCC and Clang; the operations
+	clear FZ and FIZ of FPCR with Visual C++ too.
+	* CMakeLists.txt, meson.build: Visual C++ and clang-cl for x64 compute
+	the intervals with SSE2, and take the AVX-512 path where the machine
+	building runs it and GAOL_PRESERVE_ROUNDING is on.
+	* gaol/core/gaol_interval_sse.cpp, gaol/core/gaol_interval_avx512.cpp,
+	gaol/gaol_common.cpp: written for the __m128d of Visual C++ (no vector
+	initializers, no asm statement, no target attribute), the operations
+	of the AVX-512 path ordered there by volatile accesses and calls;
+	cpu_runs_avx512f() tells the processor by cpuid and xgetbv.
+	* gaol/gaol_config.h, gaol/core/gaol_interval_sse.h,
+	gaol/core/gaol_interval_sse.cpp: GAOL_VECTORCALL (__vectorcall with
+	Visual C++ and clang-cl for x64) on add_bounds() and the other kernels
+	of the SSE2 intervals, whose __m128d arguments go in registers;
+	left_internal() and right_internal() read the register with Visual
+	C++; mid() keeps the halves with a negated factor as written.
+	* CMakeLists.txt, configure.ac, meson.build, cmake/gaol.pc.in,
+	gaol/gaol_config.h: the SSE2 intervals on 32-bit Windows
+	with GCC and Clang (MinGW-w64, MSYS2).  The C runtime aligns new on 8
+	bytes and GCC takes it to be aligned on 16, so that a std::vector of
+	intervals crashed on its first movaps; -faligned-new=8, given to the
+	library and, by gaol::gaol, gaol.pc and the dependency of meson, to
+	the code using it, makes the compiler ask for aligned memory, and
+	gaol_config.h refuses the SSE2 intervals without it.  A GCC or Clang
+	that takes no such flag keeps the FPU intervals.  tests/misc.cpp
+	(test_heap_alignment), tests/refused_aligned_new.cpp,
+	tests/refused_options.sh.
+	* gaol/gaol_config.h, gaol/gaol_fpu.h,
+	gaol/core/gaol_interval_core.h, CMakeLists.txt, configure.ac,
+	meson.build: Visual C++ and clang-cl compute with the SSE2
+	intervals on 32-bit Windows, the two bounds being two doubles of
+	alignment 8 loaded with movupd, which need no flag asking for
+	aligned memory (GAOL_SSE2_UNALIGNED_STORAGE); __vectorcall for the
+	kernels; with GAOL_PRESERVE_ROUNDING, the x87 control word is set
+	as well as MXCSR.
+	* gaol/core/gaol_interval_avx512.cpp: the AVX-512 path: x + y,
+	x - y, x * y, x / y, sqrt(x), sqr(x), the same four with a double
+	and, with FMA, the integer powers beyond 1 and -1 are computed with
+	the rounding the AVX-512 instructions carry; they set no rounding
+	direction and raise no exception flag, and their bounds are those
+	of the SSE2 intervals, but for the sign of a zero bound of x * d.
+	The three builds take the path with GAOL_PRESERVE_ROUNDING when the
+	machine building runs the instructions; gaol::init() stops a
+	program run on a processor without them.  GCC for Windows never
+	takes the path (GCC bug 54412).
+	* gaol/core/gaol_interval_sse.h, gaol/core/gaol_interval_sse.cpp: +,
+	-, * and / of two SSE2 intervals and sqr() of one take the bounds of
+	their operands in a register and give those of the result in one,
+	from functions of the library; *, / and sqr() no longer branch on the
+	signs of the bounds.  The sign of a zero bound of a product or of a
+	quotient may differ from GAOL 4's: [-1, 0] * [-1, 0] has the lower
+	bound +0.
+	* doc/compare/code/run_lines.sh, bench_ops.h: ten long lines of
+	operators, with their tables at the end of doc/compare/performance.md.
+	* gaol/core/gaol_interval_fpu.cpp: the FPU intervals (GAOL_SIMD=OFF,
+	32-bit ARM, POWER, s390x, RISC-V) compute the product, the quotient,
+	the remainder and the square without a branch on the signs of the
+	bounds, as the SSE2 and the NEON intervals do, where GAOL 4 took one
+	of nine cases of the signs for a product and went down up to eight
+	tests for a quotient: a product of random signs takes 3.5 ns, where
+	it took 13.9 (Apple M2, doc/compare).  A line of products of operands
+	of one sign takes more time (35.8 ns for seven, where it took 23.8).
+	The sign of a zero bound of a product is not specified.  A product
+	forms every corner, as with SSE2 and NEON: a rounded subnormal corner
+	that is no bound of the result raises FE_UNDERFLOW, and a corner that
+	overflows FE_OVERFLOW, the result then having an infinite bound;
+	tests/arithmetic.cpp.
+	* gaol/core/gaol_interval_core.cpp (max, min): the SSE2 and NEON
+	intervals take both bounds of the result at once, from one
+	comparison of the stored bounds, where maximum() and minimum() were
+	called for each bound: 3 to 4 times faster on x86-64, 1.5 to 2.4
+	times on 64-bit ARM, the same bounds bit for bit.  With the SSE2
+	intervals, a signaling NaN in a stored bound raises the
+	invalid-operation exception with Clang too, as it did with GCC.
+	* gaol/core/gaol_interval_core.h, gaol_interval_sse.h,
+	gaol_interval_neon.h: interval(const __m128d&) and
+	interval(const float64x2_t&) give the empty set for the lanes of
+	[+oo] and [-oo], which hold no real number and which no other
+	constructor makes (sqr([+oo]) was [+oo]), and are explicit;
+	interval(register, gaol_detail::unchecked_bounds) is the
+	constructor without the check, for the code of GAOL.
+
 2020-05-10  Frederic Goualard  <Frederic.Goualard@univ-nantes.fr>
 
 	* configure.ac: using gcc standard strtod() instead of gdtoa's

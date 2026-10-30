@@ -283,9 +283,9 @@ where it comes from.
     folds, rather than copy the static intervals `interval::cst_one`,
     `cst_pi`..., which are gone.
   - The masks of the SSE2 intervals (`gaol/core/gaol_interval_sse.cpp`) are
-    written as vectors, which GCC and Clang, the only compilers of the SSE2
-    intervals, put in read-only memory, rather than computed with
-    `_mm_set_pd()` and `_mm_cmpeq_pd()`.
+    written as vectors, which the compilers of the SSE2 intervals put in
+    read-only memory (GCC and Clang) or in initialized data (Visual C++),
+    rather than computed with `_mm_set_pd()` and `_mm_cmpeq_pd()`.
 - **The rounding direction is set on x86 processors by writing the control
   registers** of the x87 and SSE units (`fnstcw`/`fldcw`, `stmxcsr`/`ldmxcsr`)
   rather than through `fesetround()`, which cost 130 ns per call with
@@ -325,6 +325,21 @@ where it comes from.
   i7-1185G7 (GCC 9.4, CMake Release), `x += d` takes 3.9 ns rather than
   13.6 ns, `x *= d` 6.3 ns rather than 25.2 ns and `x /= d` 4.1 ns rather than
   18.0 ns, giving the same sets.
+- **`max(x, y)` and `min(x, y)` of the SSE2 and NEON intervals** take both
+  bounds of the result at once, from one comparison of the stored bounds of the
+  two operands, rather than call `maximum()` or `minimum()` once for each bound
+  and build the interval from two doubles. On an Intel i7-1185G7 (Release),
+  `max(x, y)` takes 2.3 ns rather than 8.5 ns with GCC 15.2 and 2.0 ns rather
+  than 5.6 ns with Clang 21, and `min(x, y)` the same; on 64-bit ARM they are
+  1.5 to 2.4 times faster (a Neoverse N2, an Apple M2). The bounds are the same,
+  bit for bit: of two zeros of opposite signs, `max` gives +0 and `min` -0, as
+  `maximum()` and `minimum()` do, and the empty set, with no exception, for an
+  empty operand. The FPU intervals are unchanged. With the SSE2 intervals, a
+  stored bound that is a signaling NaN raises the invalid-operation exception,
+  with GCC and Clang alike (the code that `max` and `min` replace raised it with
+  GCC and not with Clang); no constructor of GAOL leaves one in an interval,
+  each storing a quiet NaN, so only a program that writes the bytes of an
+  interval sees it.
 - **The constructors give the empty set** where their arguments are not an
   interval, as IBEX does: `interval(+oo)`, `interval(-oo)`,
   `interval(+oo, +oo)`, `interval(-oo, -oo)`, `interval(2, 1)` and bounds that
@@ -339,6 +354,17 @@ where it comes from.
   16-byte load stalls on the two 8-byte stores, and conditional moves make them
   depend on the comparison, which lengthens the loops accumulating intervals;
   either one costs several nanoseconds per construction.
+- **The constructors from a register give the empty set for the lanes of `[+oo]`
+  and `[-oo]`.** `interval(const __m128d&)` of the SSE2 intervals and
+  `interval(const float64x2_t&)` of the NEON ones give the empty set when a lane
+  is −∞, which is `l = +oo` or `u = -oo` (the lower bound is stored negated):
+  such an interval holds no real number (IEEE 1788-2015, 10.5.8), and no other
+  constructor makes it, `interval(+oo)` and `interval(a, b)` with `a = +oo`
+  being empty. GAOL 4 stored the lanes of an SSE2 register as they were, and the
+  operations took them for intervals. Both constructors are explicit now, and do
+  not check the order of the bounds. The code of GAOL builds its intervals from
+  registers with `interval(register, gaol_detail::unchecked_bounds)`, which does
+  not look at the lanes.
 - **A zero bound times an infinite bound** counts as 0 in the products of the
   FPU intervals, as in those of the SSE2 intervals: `[0, 1] * [1, +oo]` is
   `[0, +oo]`, `[-1, 0] * [1, +oo]` is `[-oo, 0]` and `[0, 0] * [1, +oo]` is
@@ -347,6 +373,86 @@ where it comes from.
   double give the empty set for an infinite double, as `interval(d)` is empty:
   they no longer repair NaN bounds, and `x *= d` takes 3.6 ns rather than
   4.8 ns.
+- **On 64-bit ARM processors the intervals are computed with NEON**
+  (`GAOL_SIMD`; see [The NEON intervals](using.md#the-neon-intervals)), with
+  every compiler of them: Visual C++, clang-cl and the Clang of MinGW-w64 and
+  MSYS2 as well as GCC, Clang and AppleClang under Linux and macOS. GAOL 4
+  computed the intervals of every ARM processor with the FPU, and 32-bit ARM,
+  whose NEON has no vector of doubles, still does. The two bounds are the two
+  lanes of a `float64x2_t`, as the SSE2 intervals keep them in a `__m128d`, and
+  `+`, `-`, `*`, `/`, `sqr()` and `sqrt()` are kernels that take and return
+  them in registers: the product is the maximum of four products, with no
+  branch on the signs, and the quotient one vector division when the divisor
+  holds no zero. On an Apple M2 (AppleClang 21.0), `x + y` takes 0.91 ns rather
+  than 1.18, `x * y` 2.14 ns rather than 3.33, `x / y` 2.39 ns rather than
+  3.30, `sqrt(x)` 1.70 ns rather than 4.60 and a line of 13 operations 19.2 ns
+  rather than 51.7, the second figures being those of the FPU intervals
+  (`GAOL_SIMD=OFF`). The bounds are the same, but for the sign of a zero bound,
+  which the maximum of 64-bit ARM, ranking +0 above -0, can set otherwise than
+  the SSE2 and the FPU intervals do: the lower bound of `[-1, 0] * [-1, 0]` is
+  -0 with NEON. The rounding direction is the field RMode of the register FPCR:
+  each operation checks it with one `mrs` (0.8 ns on the M2), which raises no
+  exception flag, and writes it with `msr` only if it is not upward or a flush
+  mode is set; with `GAOL_PRESERVE_ROUNDING`, an operation takes 27 ns rather
+  than 39. Visual C++ has no inline assembly for ARM64: GAOL reads and writes
+  FPCR there through `_ReadStatusReg(ARM64_FPCR)` and `_WriteStatusReg()`. The
+  operations clear the bits FZ and FIZ of FPCR, which flush the subnormal
+  numbers to zero, with Visual C++ as with the others; the FPU intervals of
+  Visual C++ for arm64 (`GAOL_SIMD=OFF`) clear neither.
+- **The AVX-512 path carries the rounding direction in the instruction.**
+  `x + y`, `x - y`, `x * y`, `x / y`, `sqrt(x)`, `sqr(x)`, the `+`, `-`, `*`
+  and `/` of an interval and a double, and the integer powers beyond 1 and -1
+  (with the fused multiply-add instructions) are computed with the rounding
+  that the AVX-512 instructions carry in themselves, on x86-64 where the
+  compiler takes them (never GCC for Windows, which does not align the stack
+  for the AVX-512 registers: GCC bug 54412). They set no rounding direction,
+  the program keeping its own, and raise no exception flag, the embedded
+  rounding suppressing them. The bounds are those of the SSE2 intervals bit for
+  bit, but for the sign of a zero bound of `x * d` and `x *= d` where the zero
+  bounds of the interval differ in sign: `[+0, -0]` times a double is `[+0, -0]`
+  with the SSE2 intervals and `[-0, +0]` with this path, +0 and -0 being the
+  same number; every other result of the operations of intervals and with a
+  double, compared bit for bit over the intervals of two bounds among 0 of
+  either sign, ±1, ±2.5, ±3, ±1e-310, ±1e300 and ±∞, is the same in the two
+  paths. The three builds take the path where `GAOL_PRESERVE_ROUNDING` is on and
+  the machine building runs the instructions (the figures are in the bullet on
+  the three builds below); the library then needs a processor with them, and
+  `gaol::init()` stops a program run on another one with a message (see [The
+  AVX-512 path](using.md#the-avx-512-path)).
+- **Visual C++ and clang-cl for x64 take the SSE2 intervals and the AVX-512
+  path**, as GCC and Clang do (`GAOL_SIMD`). The kernels of the SSE2 intervals
+  (`add_bounds()`, `mul_bounds()` and the others) are `__vectorcall` there
+  (`GAOL_VECTORCALL` of `gaol/gaol_config.h`), so that their `__m128d`
+  arguments go in registers. The bounds are the same, but for the sign of a
+  zero bound, which depends on the intervals: `sqr(interval(-1, 2))` is
+  `[-0, 4]` and `interval::zero()` is `[-0, 0]` with the SSE2 intervals, and
+  `[0, 4]` and `[0, 0]` with the FPU intervals (`GAOL_SIMD=OFF`). The AVX-512
+  path is taken under the rule of the bullet above, the processor being told by
+  `cpuid` and `xgetbv`.
+- **`*`, `/` and `sqr()` of the SSE2 intervals compute with no branch on the
+  signs of the bounds**, and `+`, `-`, `*`, `/` and `sqr()` hand the bounds over
+  in registers. GAOL 4 chose the product, the quotient and the square by
+  `switch`es and nested branches on the signs of the bounds, and a branch
+  predicted wrong costs more than the operation it chooses; its operators read
+  their operands and wrote their result through memory, and the next operation
+  read it again. `x * y` is now the larger of four products, each rounded
+  upward, in the two lanes of an SSE2 register; `x / y` one division of the two
+  lanes by the denominators that masks drawn from the signs choose; `sqr(x)` two
+  products and a mask that sets the lower bound of an interval holding 0 inside
+  to 0. The bounds of the operands go in a register to a function of the library
+  and those of the result come back in one, and only an empty operand, an
+  infinite bound or a divisor holding 0 takes a branch. The bounds are the same
+  but for the sign of a zero bound (next bullet). On an Intel i7-1185G7 with
+  Clang 21 (see [performance.md](compare/performance.md)), `x * y` takes 2.3 ns
+  rather than 10.0 with GAOL 4.2.3, `x / y` 2.5 ns rather than 7.5, and Shekel 5
+  108 ns rather than 189.
+- **The sign of a zero bound of a product or of a quotient** may differ from
+  GAOL 4's with the SSE2 intervals, the value never: the larger of four products
+  leaves `maxpd` to choose between a +0 and a -0 that compare equal, where GAOL
+  4 chose one product by the signs of the bounds. `[-1, 0] * [-1, 0]` has the
+  lower bound +0, where GAOL 4 had -0 (see [Accuracy of the
+  operations](accuracy.md#the-same-bounds-on-every-machine), which says which
+  build gives which).
 - **`x -= x`, `x /= x` and `x %= x`** enclose their results in the FPU intervals
   (`GAOL_SIMD=OFF`, and the processors with neither SSE2 nor NEON: 32-bit ARM,
   POWER, s390x and RISC-V), the bounds of the operand being read before those of
@@ -356,6 +462,43 @@ where it comes from.
   a ≤ b, `[0.5, 1]` for `[0.25, 0.5]`, neither containing the exact result;
   `[0.1] /= [0.1]` was empty. Normalising a row by its pivot, `row[j] /= row[i]`
   down to j = i, did it. The SSE2 intervals were right.
+- **The FPU intervals multiply, divide and square without a branch on the signs
+  of the bounds**, as the SSE2 and the NEON intervals do. GAOL 4 took one of
+  nine cases of the signs for a product, and went down a chain of up to eight
+  tests for a quotient, which a processor mispredicts when the signs come at
+  random. `x * y` of finite bounds is now the largest of four products for each
+  bound, those of the lower bound with a factor negated (a product and its
+  opposite are not rounded alike where the direction is always upward); `x / y`
+  and `x % y` by a divisor without zero divide each bound of the dividend by the
+  bound of the divisor that its sign chooses, two divisions whatever the signs;
+  `sqr(x)` is the largest of two squares for each bound. An interval with an
+  infinite bound goes to a function of its own, which keeps `0 * oo` from being
+  formed, and a divisor holding 0 to another. On an Apple M2 (AppleClang 21,
+  `-DGAOL_SIMD=OFF`), over the random intervals of the benchmark of
+  `doc/compare`, `x * y` takes 3.5 ns rather than 13.9, `x / y` 3.2 rather than
+  8.5, `sqr(x)` 1.8 rather than 6.9, and Shekel 5 138 ns rather than 298. A line
+  of products of operands of one sign, which a processor predicts, takes more
+  time (seven `*` in a row: 35.8 ns rather than 23.8, and 1.7 times longer with
+  GCC 13 on x86-64 in the continuous integration), and with
+  `GAOL_PRESERVE_ROUNDING` the kernels gain nothing: the write of the control
+  register waits for the result, which the kernel of the product delays (`x * y`
+  44.4 ns rather than 42.2).
+  - **The sign of a zero bound of a product is not specified.** The bounds are
+    those of the former code but for the sign of a zero bound. Where two
+    products are a +0 and a -0 (the lower bound of `[-1, 0] * [-1, 0]`, the
+    upper bound of `[-1, 0] * [0, 1]`), the maximum is a comparison and a
+    selection that the compiler compiles as it chooses: GCC 13 for POWER9 makes
+    an `xsmaxcdp` of it, which returns its first operand (-0 for the lower bound
+    on the jobs of the continuous integration, under QEMU; +0 with GCC for
+    32-bit ARM, as with SSE2). The value of the bound is the same, and `==` and
+    `<` do not see the sign. The sign of the zero bound of a quotient (the upper
+    bound of `[0, 1] / [-2, -1]` is -0, it was +0) and of a square (the lower
+    bound of `sqr([-1, 2])` is +0) depends on no tie, and is fixed.
+  - **The flags.** `x * y` forms every corner product, as the SSE2 and the NEON
+    intervals do, so that a subnormal corner that is no bound of the result and
+    is rounded raises `FE_UNDERFLOW`, and a corner that overflows `FE_OVERFLOW`,
+    the result then having an infinite bound; `FE_INVALID` and `FE_DIVBYZERO`
+    are raised as before.
 - **Square roots** are bounded whatever the rounding of the C library's `sqrt`,
   which Visual C++ for 32-bit x86 rounds to nearest in every rounding direction.
   Where `sqrt` rounds as it should, the results are unchanged.
@@ -883,8 +1026,7 @@ where it comes from.
   where it was `INLINE` ([issue #10](https://github.com/Jordan08/GAOL/issues/10)).
   - **Before.** `gaol::uipow()` was not found, and `uipow()` did not link.
   - **Now.** It gives `[1]` for an exponent 0, and the empty set for an empty
-    interval. `sqr()` and `pow()` inline the same code as before, and take the
-    same time.
+    interval.
   - **Removed declarations.** `uipow_upup()` and `uipow_dnup()` computed parts
     of it on the stored bounds, and the SSE2 intervals did not define them.
     They are no longer declared.
@@ -1112,8 +1254,38 @@ where it comes from.
   `_aligned_malloc()` and `_aligned_free()` on Windows, where `malloc()` aligns
   on 8 bytes only on 32-bit systems, so that the SSE2 intervals can be used with
   MinGW-w64 and MSYS2 on x64. The placement `delete` of `interval` and
-  `interval2f`, called when a constructor throws (`interval("1", "x")`), freed
-  the caller's memory; it now leaves it alone.
+  `interval2f`, called when a constructor throws (`interval("1", "x")` in
+  GAOL 4), freed the caller's memory; it now leaves it alone.
+- **The SSE2 intervals are computed on 32-bit Windows with GCC, Clang, Visual
+  C++ and clang-cl.** An SSE2 interval holds a `__m128d` and has to be aligned
+  on 16 bytes, and the C runtime of 32-bit Windows aligns the memory of
+  `malloc()` and `new` on 8.
+  GCC takes the memory of `::operator new` to be aligned on
+  `__STDCPP_DEFAULT_NEW_ALIGNMENT__` bytes, 16 there, so that `std::allocator`
+  does not call the aligned `operator new` of C++17, and a `std::vector` of
+  intervals, or a `new` of a type that holds one, crashed on its first `movaps`
+  (MinGW-w64 14.2 and 15.2 for x86, in the continuous integration).
+  - **GCC and Clang** (MinGW-w64, MSYS2) compile the code using GAOL with
+    `-faligned-new=8`, which sets `__STDCPP_DEFAULT_NEW_ALIGNMENT__` to 8 in
+    every standard, so that the compiler asks for aligned memory for the types
+    that need it. The three builds give it to the library and to the code that
+    uses it, which is the one that allocates the intervals (`gaol::gaol` of
+    CMake, for C++ only, `gaol.pc`, and `gaol_dep` of meson), and
+    `gaol/gaol_config.h` stops the compilation of the SSE2 intervals on 32-bit
+    Windows without it, where the program would crash. A GCC or Clang that
+    takes no such flag keeps the FPU intervals, with a message at the
+    configuration.
+  - **Visual C++ and clang-cl** have no such flag (`/Zc:alignedNew` does
+    nothing in C++14 with `cl` and breaks the STL of clang-cl, and only C++17
+    turns the aligned `new` on). Their SSE2 intervals keep the two bounds as two
+    `double` of alignment 8, loaded with `movupd`
+    (`GAOL_SSE2_UNALIGNED_STORAGE` of `gaol/gaol_config.h`, decided by the
+    target), so that a program gives no flag. The class allocators that aligned
+    an interval on 16 bytes are not compiled there, the kernels of the
+    operations are `__vectorcall`, their bounds passed in `xmm0` and `xmm1`,
+    and, with `GAOL_PRESERVE_ROUNDING`, the operations set the control word of
+    the x87 unit as well as MXCSR: Visual C++ computes the quotients of
+    `div_rel()` on the x87 unit.
 - **Visual C++ and clang-cl without `/fp:strict`** are refused by
   `gaol/gaol_config.h`, as `/fp:fast` is. Built with `/fp:strict` for GAOL and
   without it for the tests, `rounding_direction` and `other_functions` crashed
