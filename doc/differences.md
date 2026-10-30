@@ -280,6 +280,67 @@ where it comes from.
     call or a static object, whose destructors then wrote into freed memory:
     `tests/expressions.cpp` holds such a static expression, which the
     sanitizers of the continuous integration check.
+- **Operations raise no invalid-operation exception for the empty set**, nor
+  for a NaN the program gives, nor for a zero bound times an infinite one in
+  an SSE2 register (see
+  [The floating-point exceptions](using.md#the-floating-point-exceptions)).
+  - **Before.** The bounds of the empty set are NaN, and `is_empty()` was
+    `!(left() <= right())`, as `set_contains()`, `set_disjoint()` and the other
+    relations compared them with `<`, `<=`, `>` and `>=`: comparisons that
+    signal. With the exception enabled (`feenableexcept(FE_INVALID)`),
+    `is_empty()` of an empty interval and the operations that call it stopped
+    the program with SIGFPE, and with it masked they raised the flag. The SSE2
+    product computed `0 * oo` and cleared the NaN afterwards (`[0] * [1, +oo]`),
+    and the SSE2 `div_rel([2, +oo], [-oo, 2], I)` divided an infinite bound by
+    an infinite one in the half of a register it throws away.
+  - **Now.** The bounds of an empty operand are compared with the quiet
+    comparisons of `<cmath>` (`std::islessequal()`...), one instruction, as `<=`
+    is, with GCC and Clang on x86-64, as is the first comparison of the
+    constructor, which gives the empty set for NaN bounds, so that `floor()`,
+    `ceil()` and `split()` hand it the bounds of an empty operand as they are:
+    every operation, relation, function and output takes the empty set without
+    the exception, and so does a NaN the program gives (`interval(NAN)`,
+    `x += NAN`, `x <= NAN`, `pow(x, NAN)`). `x &= y` of the SSE2 and FPU
+    intervals tells an empty operand with one `std::isunordered()`, that of
+    the NEON ones from the bits of the bounds. The SSE2 product and `div_rel`
+    compute no `0 * oo` nor `oo / oo`, even in the half of a register they
+    discard, and `pow` raises no invalid-operation exception for an exponent
+    of extreme magnitude (`pow([1, 2], [1e-300])`). The SSE2 divisions, `%`,
+    `inverse()` and `div_rel()` raise no division-by-zero exception for a
+    divisor with a zero bound (`1/[0, 1]`, `[1, 2]/[0, 2]`, `inverse([0, 2])`),
+    which they raised in GAOL 4.
+  - **`midpoint()`** of `[DBL_MAX]` raises no overflow exception. GAOL 4 told
+    the case of the sum of the halves by the overflow of the sum of the
+    bounds; a bound of 2^1023 or more in magnitude tells it now, before the
+    bounds are added.
+  - **What stays.** The inexact exception is raised by almost every operation,
+    and `log([0, 1])` and `[1e308] * 10`, whose bounds are infinite, still
+    raise the division-by-zero and the overflow ones: a program that enables
+    an exception has to disable it while GAOL computes.
+    `tests/rounding_direction.cpp` checks the cases above with the exceptions
+    enabled, in a child process (glibc).
+- **A result with no infinite bound raises no overflow nor division-by-zero
+  exception** (see [The floating-point
+  exceptions](using.md#the-floating-point-exceptions)). Some functions computed
+  beyond the largest double on the way, or divided by zero, and raised
+  `FE_OVERFLOW` or `FE_DIVBYZERO` for a finite result, the empty set included,
+  so that a program that had enabled the exception was stopped by them:
+  `sqrt([1, DBL_MAX])`, `nth_root([DBL_MAX], 3)` and the roots of order 4 and
+  more, `sqrt_rel()`, `nth_root_rel()`, `sin([-1, DBL_MAX])` and `cos()` (the
+  width of the interval overflowed), `tan([DBL_MAX])` (x + π/2 overflowed),
+  `div_rel([1], [2^-1074, 1], [1, 2])`, `atan_rel()`, `atan2_rel_x()`,
+  `atan2_rel_y()`, `pow_rel()`, `pow_exponent_rel()`, `atanh_rel()` (atanh at
+  ±1) and, with Visual C++, `atan([DBL_MAX])`. A quotient, a product or a power
+  that would overflow is replaced by what the operation gives, the infinity or
+  the largest double, without being computed; the roots of an argument above
+  2^1000 are proved on the argument and the root scaled by powers of 2; `sin()`
+  and `cos()` compare the half of the width with π. `log([0, 1])` and
+  `[1e308] * 10`, whose bounds are infinite, still raise them. A probe of 131
+  functions and forms on operands next to the limits of the format found 34 that
+  raised them for a finite result; none does with the SSE2 intervals, the FPU
+  intervals and the AVX-512 path. The bounds are the same, bit for bit, up to
+  the sign of a zero bound of `div_rel()` with the SSE2 intervals (see [Accuracy
+  of the operations](accuracy.md)).
 - **The constants of GAOL are initialized when compiling**, so that the
   intervals computed in the initialization of the static objects of a program
   are right. They were computed by the dynamic initialization of GAOL's files,
@@ -485,10 +546,11 @@ where it comes from.
   distance when rounded upward with a < c.
 - **`mid()`** returns the tightest interval enclosing the midpoint, computed as
   `midpoint()` computes it with the rounding outward: the half of the sum of the
-  bounds, or the sum of their halves when the sum overflows (F. Goualard, *How
-  do you compute the midpoint of an interval?*). It computed `a/2 + b/2` rounded
-  upward, and for its lower bound subtracted the half of b rounded upward, which
-  is not exact when |b| < 2^-1021: `mid([0, 2^-1074])` was `[2^-1074, 2^-1074]`,
+  bounds, or the sum of their halves when a bound is 2^1023 or more in
+  magnitude, where the sum may overflow (F. Goualard, *How do you compute the
+  midpoint of an interval?*). It computed `a/2 + b/2` rounded upward, and for
+  its lower bound subtracted the half of b rounded upward, which is not exact
+  when |b| < 2^-1021: `mid([0, 2^-1074])` was `[2^-1074, 2^-1074]`,
   and 45150 of the 180901 intervals whose bounds are multiples of 2^-1074 from
   -300·2^-1074 to 300·2^-1074 did not enclose their midpoints;
   `mid([2^-1074, 2^-1074])` was `[2^-1074, 2^-1073]`, beyond the interval.

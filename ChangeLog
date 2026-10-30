@@ -590,6 +590,58 @@
 	-DGAOL_RND_FPSCR_DIRECT=0 gives the C library back).  Without
 	GAOL_PRESERVE_ROUNDING nothing changes.
 
+	Floating-point exceptions:
+
+	* gaol/: no operation, relation, function or output raises the
+	invalid-operation exception for the empty set: quiet comparisons
+	(std::islessequal(), std::isunordered()...) in is_empty(), &=,
+	set_contains(), set_disjoint(), set_leq(), straddles_zero(),
+	is_canonical(), chi(), the output and the first comparison of the
+	constructors, which gives the empty set for NaN bounds (floor, ceil,
+	integer, split, textToInterval(sl, sr)), and the empty set told
+	before them in sqrt, exp, modulo_k_pi and, with the SSE2 and NEON
+	intervals, min and max; the unary minus of the FPU intervals
+	exchanges the bounds.  Nor do they for a NaN the program
+	gives (interval(NAN), x += NAN, x <= NAN), for the SSE2 product of a
+	zero bound by an infinite one, for the SSE2 div_rel with infinite
+	bounds, nor for pow with an exponent of extreme magnitude: a program
+	that enabled the exception (feenableexcept(FE_INVALID)) no longer
+	dies on SIGFPE there.  midpoint() of [DBL_MAX] raises no overflow
+	exception.  With Visual C++ for x64, and for x86 with SSE2, the quiet
+	comparisons are ucomisd in line, not calls to the C library.
+	doc/using.md lists what is raised, and tests/rounding_direction.cpp
+	checks it with the exceptions enabled in a child process (glibc).
+	* gaol/core/gaol_interval_core.h, gaol/core/gaol_interval_fpu.h: on
+	32-bit ARM (GCC 12 to 14) and POWER9, is_empty() and the constructors
+	of the FPU intervals tell NaN bounds with std::isunordered() first,
+	GCC having compiled its quiet comparisons into signaling ones.
+	* gaol/core/gaol_interval_core.cpp, gaol_interval_fpu.cpp,
+	gaol_interval_sse.cpp, gaol_interval_neon.cpp: no overflow nor
+	division-by-zero exception for a result with no infinite bound,
+	the empty set included, from sqrt, nth_root, sin, cos, tan, atan
+	(Visual C++), sqrt_rel, nth_root_rel, div_rel, atan_rel,
+	atan2_rel_x, atan2_rel_y, atanh_rel, pow_rel and
+	pow_exponent_rel: a quotient, a product or a power that would
+	overflow is replaced by what the operation gives, without being
+	computed, the roots of an argument above 2^1000 are proved on
+	scaled values, and sin and cos take the half of the width.  The
+	bounds are the same, up to the sign of a zero bound of div_rel
+	with the SSE2 intervals.
+	* gaol/core/gaol_interval_core.cpp (two_sum): cancel_minus() and
+	cancel_plus() raise no invalid-operation exception when a difference
+	of the bounds is beyond DBL_MAX, nor when a sum next to DBL_MAX is
+	halfway between two doubles and rounds away from the exact one; the
+	error of the sum is computed by the Fast2Sum of Dekker, the operand of
+	the larger magnitude first, which cannot overflow, and an infinite sum
+	has no error.  cancel_minus([DBL_MAX - 2^971, DBL_MAX], [2^970,
+	3*2^970]) was [-oo, +oo]; tests/rounding_direction.cpp.
+	* gaol/core/gaol_interval_sse.cpp (/, %, inverse): the SSE2 intervals
+	divide only the half of a register that a branch keeps, so that a
+	divisor with a zero bound (1/[0, 1], [1, 2]/[0, 2], [1, 2]%[0, 2],
+	inverse([0, 2]), pow([0, 2], -1)) raises no division-by-zero
+	exception.  doc/using.md, manual/v5/gaol.tex: 1/[0, 1] is no example
+	of the division-by-zero exception any more.
+
 2020-05-10  Frederic Goualard  <Frederic.Goualard@univ-nantes.fr>
 
 	* configure.ac: using gcc standard strtod() instead of gdtoa's
