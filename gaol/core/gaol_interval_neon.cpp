@@ -76,6 +76,55 @@
     return vcombine_f64(vdup_n_f64(minus_left), vdup_n_f64(right));
   }
 
+  /*
+    The tests on the bounds of the divisor of a quotient, 1 / y, x / y and x % y (GAOL v5, point PG of
+    TODO.md), are made on the bits of its two bounds, in general registers, with integer instructions
+    only: nothing is compared as a double, which would raise an exception on a NaN
+  */
+  // The 64 bits of the lane 0 and of the lane 1 of x in a general register, by umov in an asm statement: GCC
+  // for 64-bit ARM gets the lane 1 through a register of doubles (dup, fmov) from vgetq_lane_u64(), and
+  // Clang makes vector operations of the integer tests that use them. Visual C++ has no asm statement
+  GAOL_INLINE std::uint64_t low_bits(float64x2_t x)
+  {
+#  if GAOL_NEON_MSVC
+    return vgetq_lane_u64(bits_of(x), 0);
+#  else
+    std::uint64_t bits;
+    __asm__ ("umov %0, %1.d[0]" : "=r" (bits) : "w" (x));
+    return bits;
+#  endif
+  }
+  GAOL_INLINE std::uint64_t high_bits(float64x2_t x)
+  {
+#  if GAOL_NEON_MSVC
+    return vgetq_lane_u64(bits_of(x), 1);
+#  else
+    std::uint64_t bits;
+    __asm__ ("umov %0, %1.d[1]" : "=r" (bits) : "w" (x));
+    return bits;
+#  endif
+  }
+
+  // x in the register it is in: the compiler cannot split a test on x into branches on its parts, whose
+  // outcome is random in a program (the signs of the bounds of a divisor), nor make vector operations of it
+  GAOL_INLINE void keep_in_register(std::uint64_t& x)
+  {
+#  if !GAOL_NEON_MSVC
+    __asm__ ("" : "+r" (x));
+#  endif
+  }
+
+  // 1 if the divisor y = <-c, d> has no zero, 0 if it has one: c > 0 (-c is negative and no zero) or d < 0.
+  // A negative double that is no zero has bits above those of -0, the sign bit alone, as an unsigned
+  // integer. The only branch of a quotient on y is on the result: none on the sign of each bound
+  GAOL_INLINE std::uint64_t divisor_without_zero(std::uint64_t y_low_bits, std::uint64_t y_high_bits)
+  {
+    const std::uint64_t minus_zero_bits = 0x8000000000000000ull;
+    std::uint64_t no_zero = static_cast<std::uint64_t>((y_low_bits > minus_zero_bits) | (y_high_bits > minus_zero_bits));
+    keep_in_register(no_zero);
+    return no_zero;
+  }
+
   } // namespace neon_detail
 
 } // namespace gaol_core
@@ -397,6 +446,26 @@ namespace gaol_core {
     return vdivq_f64(xp, vbslq_f64(x_negative, dd, cc));
   }
 
+  /*
+    1 / y of the stored bounds <-c, d> of a y that is no empty set, with the rounding direction upward, on
+    bounds read after its check (GAOL v5, point PG of TODO.md). For a y without a zero, the quotient of [1], stored
+    <-1, 1>, by y of divide_upward() is -1 / d and 1 / -(-c) for the sign of d clear, 1 / -d and -1 / (-c)
+    for a negative d: the numerator being a constant, each of the two bounds is the quotient of -1 by one of
+    the stored bounds of y, d for the lower bound and -c for the upper one, exchanged for a negative d, and the
+    same quotient however it is written (a division gives the correctly rounded value, the exceptions and the
+    sign of its exact quotient: 1 / -v is -1 / v, the sign of a zero included). So one division
+    of -1 by the stored bounds exchanged, <d, -c>, in both lanes, where divide_upward() selects the
+    lanes of x and of y and the denominator of each lane. A y with a zero, told as in divide_upward(),
+    takes the cases of divide_by_zero_containing()
+  */
+  GAOL_INLINE float64x2_t inverse_bounds(float64x2_t y)
+  {
+    if (divisor_without_zero(low_bits(y), high_bits(y)) == 0) {
+      return divide_by_zero_containing(stored(-1.0, 1.0), y, false);
+    }
+    return vdivq_f64(vdupq_n_f64(-1.0), swap_lanes(y));
+  }
+
   } // namespace neon_detail
 
 } // namespace gaol_core
@@ -502,17 +571,19 @@ namespace gaol_core {
     if (neon_detail::any_lane(neon_detail::nan_lanes(I.neonbounds))) {
       return interval::emptyset();
     }
-    return interval(neon_detail::divide_upward(neon_detail::stored(-1.0, 1.0), I.neonbounds, false), gaol_detail::unchecked_bounds);
+    return interval(neon_detail::inverse_bounds(I.neonbounds), gaol_detail::unchecked_bounds);
   }
 
   interval interval::inverse() const
   {
+    // is_empty() is true for a NaN in a bound, the comparison it makes being false: no
+    // empty set is left below, where inverse_upward() would tell it again with a reduction
     if (is_empty()) {
       return interval::emptyset();
     }
 
     GAOL_RND_ENTER();
-    interval res = inverse_upward(interval(neon_detail::reread_bounds(neonbounds), gaol_detail::unchecked_bounds));
+    interval res(neon_detail::inverse_bounds(neon_detail::reread_bounds(neonbounds)), gaol_detail::unchecked_bounds);
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
     return res;
