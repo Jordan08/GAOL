@@ -308,23 +308,11 @@ namespace gaol_detail {
   }
 
   /*
-    What bound_less() and bound_less_equal() add to the quiet comparison (GAOL
-    v5): false unless x == y, hence for a NaN. The relations between intervals
-    (gaol/core/gaol_interval_core.h) make the quiet comparison apart, and call
-    these where it found the bounds equal.
-    Two equal doubles of the same bits, the bounds of a point interval as
-    floor() makes them, are the same bound: tested first, they spare the
-    integers of bound_key(), which cost floor() 0.6 to 1 ns on an Intel i7-1185G7
-    (Clang 18)
-  */
-  /*
     1 where the relations between intervals make the comparison of the bounds
     before the tests of the empty set (GAOL v5, gaol/core/gaol_interval_core.h
     tells why), 0 where they make it after; -DGAOL_RELATION_BOUNDS_FIRST=0 or 1
     asks for either. 0 for RISC-V, where GCC 14 made that comparison on the NaN
-    bounds of an empty operand a signaling one (FE_INVALID), and for Clang on
-    64-bit ARM, where that order, without the hints, made x <= y twice slower
-    on a Neoverse N2 and where the order with them has not been measured
+    bounds of an empty operand a signaling one (FE_INVALID)
   */
 #ifndef GAOL_RELATION_BOUNDS_FIRST
 #  if defined(__riscv)
@@ -334,24 +322,36 @@ namespace gaol_detail {
 #  endif
 #endif
 
+  /*
+    What bound_less() and bound_less_equal() add to the quiet comparison (GAOL
+    v5), for two bounds that the quiet comparison x < y found false and
+    quiet_less_equal(x, y) true: the processor finds them equal, which the
+    relations between intervals (gaol/core/gaol_interval_core.h) know before
+    they call these, and which these do not test again. Both bounds are then no
+    NaN, so that their integers order them.
+    Two equal doubles of the same bits, the bounds of a point interval as
+    floor() makes them, are the same bound: tested first, they spare the
+    integers of bound_key(), which cost floor() 0.6 to 1 ns on an Intel i7-1185G7
+    (Clang 18)
+  */
   GAOL_INLINE bool bound_tied_less(double x, double y)
   {
-    return x == y && bound_bits(x) != bound_bits(y) && bound_key(x) < bound_key(y);
+    return bound_bits(x) != bound_bits(y) && bound_key(x) < bound_key(y);
   }
 
   GAOL_INLINE bool bound_tied_less_equal(double x, double y)
   {
-    return x == y && (bound_bits(x) == bound_bits(y) || bound_key(x) <= bound_key(y));
+    return bound_bits(x) == bound_bits(y) || bound_key(x) <= bound_key(y);
   }
 
   GAOL_INLINE bool bound_less(double x, double y)
   {
-    return quiet_less(x, y) || bound_tied_less(x, y);
+    return quiet_less(x, y) || (x == y && bound_tied_less(x, y));
   }
 
   GAOL_INLINE bool bound_less_equal(double x, double y)
   {
-    return quiet_less(x, y) || bound_tied_less_equal(x, y);
+    return quiet_less(x, y) || (x == y && bound_tied_less_equal(x, y));
   }
 
   GAOL_INLINE bool bound_greater(double x, double y)
