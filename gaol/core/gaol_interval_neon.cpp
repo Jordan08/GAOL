@@ -68,8 +68,6 @@
   {
     return vcombine_f64(vneg_f64(vget_low_f64(y)), vget_high_f64(y));
   }
-  // All ones in the lanes that hold a NaN or an infinity
-  GAOL_INLINE uint64x2_t nonfinite_lanes(float64x2_t x) { return vcgeq_u64(abs_bits(x), vdupq_n_u64(infinity_bits)); }
   GAOL_INLINE float64x2_t nan_pair() { return vdupq_n_f64(std::numeric_limits<double>::quiet_NaN()); }
   GAOL_INLINE float64x2_t stored(double minus_left, double right)
   {
@@ -257,6 +255,25 @@ namespace gaol_core {
     return vmulq_f64(from_bits(vbicq_u64(bits_of(u), mask)), from_bits(vbicq_u64(bits_of(v), mask)));
   }
 
+  /*
+    Whether a bound of x or of y is a NaN or an infinity, the exponent field of
+    its bits being all ones (GAOL v5, point PG of TODO.md). That is told by the
+    bits 62 to 31 of each lane, which vshrn_n_u64() narrows to 32 bits, the sign
+    bit dropped: they are at least 0xffe00000 for a NaN and an infinity, and
+    below for a finite number, whatever the low bits. The four narrowed values
+    go into one vector (shrn and shrn2), where one reduction gives their maximum:
+    4 vector instructions in place of 7 or 8, and no constant in a vector
+    register (the two absolute values, the two comparisons of 64-bit lanes
+    with the bits of +oo and their or, which were the test of each operand
+    before, then the same reduction). The same predicate on the bits, for
+    every pattern
+  */
+  GAOL_INLINE bool any_nonfinite(float64x2_t x, float64x2_t y)
+  {
+    const uint32x4_t exponents = vshrn_high_n_u64(vshrn_n_u64(bits_of(x), 31), bits_of(y), 31);
+    return vmaxvq_u32(exponents) >= 0xffe00000u;
+  }
+
   } // namespace neon_detail
 
 } // namespace gaol_core
@@ -281,18 +298,21 @@ namespace gaol_detail {
     A bound that is NaN, or infinite, takes the slower path of
     guarded_products(): the empty set, which has NaN in both lanes, makes
     the empty set; a zero times an infinity is zero, whatever the signs. The
-    test is one unsigned comparison of the bits. The maximum of 64-bit ARM
-    ranks +0 above -0 and x86 maxpd returns its second operand: where the
-    two lanes of a pair of zeros differ in sign, the sign of a zero bound
-    may differ from the one of the SSE2 intervals (GAOL v5, like the AVX-512
-    path; the values are equal).
+    test is any_nonfinite(): the exponent bits of the four bounds, narrowed
+    and reduced to one maximum, and one comparison of it. The maximum of
+    64-bit ARM ranks +0 above -0 and x86 maxpd returns its second operand:
+    where the two lanes of a pair of zeros differ in sign, the sign of a zero
+    bound may differ from the one of the SSE2 intervals (GAOL v5, like the
+    AVX-512 path; the values are equal). With FPCR.AH set, which GAOL does
+    not support, FMAX returns its second operand for zeros of different
+    signs, and the sign of a zero bound may differ from what it is with AH
+    clear, the order of the operands of the maxima having changed.
   */
   float64x2_t mul_bounds(float64x2_t x, float64x2_t y)
   {
     using namespace gaol_core;
     using namespace neon_detail;
-    const uint64x2_t nonfinite = vorrq_u64(nonfinite_lanes(x), nonfinite_lanes(y));
-    const bool special = any_lane(nonfinite);
+    const bool special = any_nonfinite(x, y);
     // The test of NaN is made in this branch only. Clang 18 to 21 computed it
     // before the test of special, the comparisons being cheap and without
     // effect, and the product of finite bounds, the case that runs, paid a
@@ -310,16 +330,26 @@ namespace gaol_detail {
     GAOL_RND_ENTER();
     x = reread_bounds(x);
     y = reread_bounds(y);
-    const float64x2_t yc = negate_first(y);
-    const float64x2_t yd = swap_lanes(yc);
-    const float64x2_t xo = vnegq_f64(swap_lanes(x));
     float64x2_t res;
     if (special) {
+      const float64x2_t yc = negate_first(y);
+      const float64x2_t yd = swap_lanes(yc);
+      const float64x2_t xo = vnegq_f64(swap_lanes(x));
       res = vmaxq_f64(vmaxq_f64(guarded_products(x, yc), guarded_products(x, yd)),
                       vmaxq_f64(guarded_products(xo, yc), guarded_products(xo, yd)));
     } else {
-      res = vmaxq_f64(vmaxq_f64(vmulq_f64(x, yc), vmulq_f64(x, yd)),
-                      vmaxq_f64(vmulq_f64(xo, yc), vmulq_f64(xo, yd)));
+      // The same eight products as above, grouped by the bound of y they are made with, so that
+      // two vectors of x and y make them all, by the multiplication by a lane: with x = <a, b>
+      // and y = <c, d>, a * (-c) and b * (-c), a * d and b * d, b * c and a * c (the swapped x),
+      // -b * d and -a * d. Each is the same double as the product of the same two numbers with the
+      // sign moved to the other factor, whichever the rounding direction (the rounding depends on
+      // the value and the sign of a product, not on the factor that holds the sign), so that
+      // the maxima are those of the four vectors above, in lane 0 as in lane 1. 2 vector
+      // instructions to prepare them in place of 6
+      const float64x2_t ny = vnegq_f64(y);
+      const float64x2_t sx = swap_lanes(x);
+      res = vmaxq_f64(vmaxq_f64(vmulq_laneq_f64(x, ny, 0), vmulq_laneq_f64(x, y, 1)),
+                      vmaxq_f64(vmulq_laneq_f64(sx, y, 0), vmulq_laneq_f64(sx, ny, 1)));
     }
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
