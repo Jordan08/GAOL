@@ -646,8 +646,8 @@ namespace gaol_core {
   /*
     The operations with a double. The empty interval and a d that is
     infinite or a NaN, for which interval(d) is empty, give the empty set,
-    told with quiet comparisons. Both lanes are computed, <-l, r> + <-d, d>
-    for the sum, and the product or the quotient by |d| of the bounds,
+    told by a quiet comparison of |d| with +oo (neon_detail::finite_double()). Both lanes are
+    computed, <-l, r> + <-d, d> for the sum, and the product or the quotient by |d| of the bounds,
     exchanged for a negative d (GAOL v5, as the SSE2 intervals). The bounds
     are read after the check of the direction (reread_bounds()), as are d
     (rnd_reread()) before it is compared, so that the modes that flush the
@@ -655,7 +655,8 @@ namespace gaol_core {
   */
   interval& interval::operator+=(double d)
   {
-    if (is_empty() || !(gaol_detail::quiet_less(-GAOL_INFINITY, d) && gaol_detail::quiet_less(d, GAOL_INFINITY))) { // interval(d) is empty for an infinite d and for a NaN
+    if (is_empty() || !neon_detail::finite_double(d)) { // interval(d) is empty for an infinite d and for a NaN
+      neon_detail::keep_branch();
       *this = interval::emptyset();
       return *this;
     }
@@ -668,7 +669,8 @@ namespace gaol_core {
 
   interval& interval::operator-=(double d)
   {
-    if (is_empty() || !(gaol_detail::quiet_less(-GAOL_INFINITY, d) && gaol_detail::quiet_less(d, GAOL_INFINITY))) { // interval(d) is empty for an infinite d and for a NaN
+    if (is_empty() || !neon_detail::finite_double(d)) { // interval(d) is empty for an infinite d and for a NaN
+      neon_detail::keep_branch();
       *this = interval::emptyset();
       return *this;
     }
@@ -681,7 +683,8 @@ namespace gaol_core {
 
   interval& interval::operator*=(double d)
   {
-    if (is_empty() || !(gaol_detail::quiet_less(-GAOL_INFINITY, d) && gaol_detail::quiet_less(d, GAOL_INFINITY))) { // interval(d) is empty for an infinite d and for a NaN
+    if (is_empty() || !neon_detail::finite_double(d)) { // interval(d) is empty for an infinite d and for a NaN
+      neon_detail::keep_branch();
       *this = interval::emptyset();
       return *this;
     }
@@ -704,7 +707,8 @@ namespace gaol_core {
 
   interval& interval::operator/=(double d)
   {
-    if (is_empty() || !(gaol_detail::quiet_less(-GAOL_INFINITY, d) && gaol_detail::quiet_less(d, GAOL_INFINITY))) { // interval(d) is empty for an infinite d and for a NaN
+    if (is_empty() || !neon_detail::finite_double(d)) { // interval(d) is empty for an infinite d and for a NaN
+      neon_detail::keep_branch();
       *this = interval::emptyset();
       return *this;
     }
@@ -727,7 +731,8 @@ namespace gaol_core {
 
   interval& interval::operator%=(double d)
   {
-    if (is_empty() || !(gaol_detail::quiet_less(-GAOL_INFINITY, d) && gaol_detail::quiet_less(d, GAOL_INFINITY))) { // interval(d) is empty for an infinite d and for a NaN
+    if (is_empty() || !neon_detail::finite_double(d)) { // interval(d) is empty for an infinite d and for a NaN
+      neon_detail::keep_branch();
       *this = interval::emptyset();
       return *this;
     }
