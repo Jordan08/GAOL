@@ -345,13 +345,16 @@ point Q), which `numbers` checks there too.
   in `gaol_ieee1788`), which have to be the tightest enclosures, and the
   `pow_rel` and `pow_exponent_rel` that have to contain the base and the
   exponent they were made from: CORE-MATH's `pow` computed ∞ − ∞ there
-  (GAOL v5); and 29 loops
+  (GAOL v5); and 30 loops
   of 64 relations, constructions, intersections or `floor()`, with every
   third x and every fifth y empty, which a compiler vectorizes or if-converts
   (with the FPU intervals, GCC 9.4 and 13 at `-O3` with `-mfma`, GCC 13 to 15
   for 32-bit x86, GCC 14 for POWER8 and GCC 11 to 15 for 64-bit ARM made some
   of them raise the exception, and with the SSE2 intervals the construction of
-  an interval), compared with each relation computed on its own. The midpoints
+  an interval; and for `x >= 1.5` or `1.5 <= x`, where GCC 14 folds the
+  comparison of the bounds and the test of the equal ones into a signaling
+  comparison unless the equality is tested by `quiet_less_equal()`), compared
+  with each relation computed on its own. The midpoints
   of five intervals with a bound of 2^1023 or more in magnitude, `[DBL_MAX]`
   among them, (`midpoint()`, `mid()`, `rad()`, `mid_rad()`, `split()`...)
   have to be right, `mid()` the tightest enclosure of the exact midpoint, and
