@@ -313,7 +313,10 @@ point Q), which `numbers` checks there too.
   `min`, `max`, `floor`, `set_contains()`, the output...). So do (GAOL v5,
   point D.24 of `TODO.md`) 18 operations given a NaN double, the empty set
   for `interval(d)` (`interval(NAN)`, `interval(NAN, 1)`, `x += NAN`,
-  `x <= NAN`, `pow(x, NAN)`..., which compared it with `<` or `<=`); the
+  `x <= NAN`, `pow(x, NAN)`..., which compared it with `<` or `<=`), and, with
+  the NEON intervals, `x += d`, `x -= d`, `x *= d`, `x /= d` and `x %= d` of an
+  empty `x` and a signaling NaN `d`, which raise nothing: the empty `x` is told
+  before `d` is compared; the
   products of the intervals with bounds in {-oo, -2, -0, 0, 3, +oo}, compared
   with the extrema of the products of their bounds, 0 for a zero by an
   infinite one (the SSE2 product multiplied 0 by +oo); `div_rel(K, J, I)` for

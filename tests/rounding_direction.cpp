@@ -4732,6 +4732,29 @@ int main()
     check("a loop of relations with empty operands raises no invalid-operation flag", raised == 0, [&] { return std::string(r.name); });
     check("a loop of relations with empty operands gives the relations", right, [&] { return std::string(r.name); });
   }
+#if GAOL_USING_NEON_INSTRUCTIONS
+  // x op= d with an empty x and a signaling NaN d (GAOL v5): the empty x is told first and d is not compared, so
+  // that nothing is raised (an order of the two tests swapped raises the invalid-operation flag for d)
+  {
+    const volatile double signaling = std::numeric_limits<double>::signaling_NaN();
+    struct CompoundWithDouble {
+      const char *name;
+      void (*f)(interval&, double);
+    };
+    static const CompoundWithDouble compounds[] = {
+      { "x += d", [](interval& x, double d) { x += d; } }, { "x -= d", [](interval& x, double d) { x -= d; } },
+      { "x *= d", [](interval& x, double d) { x *= d; } }, { "x /= d", [](interval& x, double d) { x /= d; } },
+      { "x %= d", [](interval& x, double d) { x %= d; } } };
+    for (const CompoundWithDouble& c : compounds) {
+      interval x = interval::emptyset();
+      std::feclearexcept(FE_ALL_EXCEPT);
+      c.f(x, signaling);
+      const int raised = std::fetestexcept(FE_INVALID);
+      check(std::string(c.name) + " with an empty x and a signaling NaN d raises no invalid-operation flag", raised == 0);
+      check(std::string(c.name) + " with an empty x and a signaling NaN d is empty", x.is_empty(), [&] { return hex(x); });
+    }
+  }
+#endif
 
 #if GAOL_TESTS_TRAPS
   // The empty sets, computed and told empty with the invalid-operation
