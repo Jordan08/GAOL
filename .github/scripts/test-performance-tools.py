@@ -117,6 +117,16 @@ class Compare(unittest.TestCase):
         self.assertIn('| x \\| y | 2.00 | 1.00 | 2.00 | 1.00 |', out)
         self.assertEqual(self.listed(out), ['x | y'])
 
+    def test_pipe_written_escaped_by_gaol_performance(self):
+        # gaol_performance writes the pipe of the name of a row as \| (a Markdown table copied into the summary of a job
+        # would end the cell at a bare |): the row is x | y, once, and the same as the one an older build wrote bare
+        for base, head in ((('x \\| y', 'x \\| y')), (('x | y', 'x \\| y')), (('x \\| y', 'x | y'))):
+            rc, out, _ = self.compare([table([(base, 2)])], [table([(head, 1)])])
+            self.assertEqual(rc, 0)
+            self.assertEqual(out.count('| x \\| y | 2.00 | 1.00 | 2.00 | 1.00 |'), 1, (base, head, out))
+            self.assertEqual(len([l for l in out.split('\n') if l.startswith('| x')]), 1, out)
+            self.assertEqual(self.listed(out), ['x | y'])
+
     def test_one_run_each(self):
         rc, out, _ = self.compare([table([('x', 3)])], [table([('x', 1)])])
         self.assertEqual(rc, 0)

@@ -324,7 +324,16 @@ int main()
   std::printf("| Operation | Interval (ns) | Double (ns) | Interval / double |\n");
   std::printf("|---|---:|---:|---:|\n");
   for (const Row& row : rows) {
-    std::printf("| %s | %.2f | %.2f | %.1f |\n", row.operation, row.interval_ns, row.double_ns, row.interval_ns / row.double_ns);
+    // The table is Markdown, which the jobs of the continuous integration copy into their summary: a pipe in the
+    // name of a row (x | y) would end its cell, and is written \| (the scripts read it back as |)
+    std::string operation;
+    for (const char* character = row.operation; *character != '\0'; ++character) {
+      if (*character == '|') {
+        operation += '\\';
+      }
+      operation += *character;
+    }
+    std::printf("| %s | %.2f | %.2f | %.1f |\n", operation.c_str(), row.interval_ns, row.double_ns, row.interval_ns / row.double_ns);
   }
 
 #if GAOL_USING_NEON_INSTRUCTIONS

@@ -59,6 +59,8 @@ def table(path):
                 title = line
             if line.startswith('|') and not line.startswith('|---') and 'Operation' not in line:
                 cells = [c.strip() for c in line.strip('|').rsplit('|', 3)]
+                # gaol_performance writes a pipe of the name of a row as \| (Markdown): x \| y is the row x | y
+                cells[0] = cells[0].replace('\\|', '|')
                 try:
                     rows[cells[0]] = float(cells[1])
                 except (ValueError, IndexError):
