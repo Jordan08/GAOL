@@ -39,9 +39,9 @@
 	AC_REVISION, the release of the RPM and the line "relations =" of the
 	summary.  no-define: no PACKAGE nor VERSION.
 	* gaol/gaol_configuration.h.in, gaol/gaol_configuration_meson.h.in,
-	cmake/gaol_configuration.h.in: the same macros with the three
-	builds, those the sources read (doc/building.md lists them); the
-	template of configure is written by hand.
+	cmake/gaol_configuration.h.in: the same macros with the three builds
+	(doc/building.md lists them, and says which the sources do not read);
+	the template of configure is written by hand.
 	* gaol/gaol_config.h, gaol/gaol_version.h: include the generated
 	configuration with every compiler.  gaol_config_msvc.h,
 	gaol_config_mingw.h, gaol_version_msvc.h, gaol_version_mingw.h:
@@ -77,11 +77,12 @@
 	* Makefile.am: the targets test, perf and parser.
 	* meson.build, meson_options.txt, gaol/meson.build: with-tests and
 	with-examples (with-test before); the build type gives the Debug
-	build, and enable-debug, enable-optimize, enable-relations and
-	check-perf are gone; libgaol.so.5.0.0; the targets check, perf and
-	parser; the install with Visual C++ (the directory of
-	gaol_configuration.h, gaol_fpu_msvc.h and sysdeps/, a static
-	library, __GAOL_PUBLIC__, no libm); only the macros the sources read.
+	build, and enable-optimize, enable-relations and check-perf are
+	gone, enable-debug being a setting of the developers;
+	libgaol.so.5.0.0; the targets check, perf and parser; the install
+	with Visual C++ (the directory of gaol_configuration.h and
+	gaol_fpu_msvc.h, a static library, no libm); the macros of the
+	other builds, and no other.
 	The headers of the meson files name Raphael Chenouard, who wrote
 	them.
 	* CMakeLists.txt, configure.ac, meson.build: the same options with
@@ -93,10 +94,13 @@
 	made both), the build type, the position-independent code, and
 	CMAKE_OSX_ARCHITECTURES (a universal build of macOS with configure
 	and meson, by several -arch in the flags).  The fused multiply-add
-	instructions, the AVX-512 path (taken with GAOL_PRESERVE_ROUNDING),
-	the 128-bit integer and the debugging are decided by checks that
-	compile, link and run a program, and are no longer options (the
-	developers keep them as settings); in a cross-compilation the fused
+	instructions and the AVX-512 path (taken with
+	GAOL_PRESERVE_ROUNDING) are decided by checks that compile, link
+	and run a program, the 128-bit integer by gaol/gaol_u128.h and the
+	debugging by the build type; none is an option any longer (the
+	developers keep them as settings, the exceptions and the verbose
+	mode too, which configure --help does not list and meson configure
+	marks [developers]); in a cross-compilation the fused
 	multiply-add instructions and the AVX-512 path are left out unless
 	GAOL_MACHINE_RUNS_FMA, gaol_cv_machine_runs_fma or machine-runs-fma
 	say that the machine runs them.  configure's --enable-optimize is
@@ -112,13 +116,99 @@
 	* gaol/regenerate_parser.sh: regenerates the lexer and the parser.
 	* doc/compare/code/run_perf.sh, results.csv, machine.txt: make perf
 	measures GAOL v5 alone and writes the tables of performance.md.
-	* .github: the continuous integration runs make test; a shared
-	library job with CMake and meson jobs with Visual C++; the audit
-	compares the configuration headers of the three builds.
+	* .github: the continuous integration runs make test; shared
+	library jobs and universal macOS jobs with the three builds, meson
+	jobs with Visual C++, jobs for MSYS2 MINGW32, Cygwin, Clang for the
+	target of Visual C++ and the generator of Xcode; the audit compares
+	the configuration headers of the three builds.
 	* Doxyfile, manual/gaol_doxygen.cfg.in, version.h, gaol.spec.in,
 	stamp-h.in, mkinstalldirs: removed.
 	* The lines $Id$ and "Last modified ... on pc-goualard" of the
 	headers: removed.
+
+	The builds, their options and the packages:
+
+	* CMakeLists.txt, configure.ac, meson.build, meson_options.txt,
+	cmake/gaol_configuration.h.in, gaol/gaol_configuration.h.in,
+	gaol/gaol_configuration_meson.h.in: GAOL_USING_ASM and its options
+	(GAOL_ASM, --enable-asm, enable-asm) are gone, nothing reading them
+	since f_negate() was removed; so is GAOL_HAVE_ROUNDING_MATH_OPTION
+	(HAVE_ROUNDING_MATH_OPTION in GAOL 4), which nothing read.
+	* gaol/Makefile.am, tests/Makefile.am, examples/Makefile.am,
+	meson.build, gaol.pc.in, cmake/gaol.pc.in: no explicit -lm
+	(LDADD, find_library('m'), Libs of gaol.pc): the C++ compiler
+	links the math library, which GAOL still calls (<fenv.h>,
+	sqrt, floor, fma...).
+	* CMakeLists.txt, configure.ac, meson.build, the three
+	gaol_configuration.h.in: a universal build of macOS computes its
+	arm64 part with the NEON intervals and its x86_64 part with the
+	SSE2 intervals (GAOL_UNIVERSAL_NEON, GAOL_UNIVERSAL_SSE2); the
+	fused multiply-add instructions and the AVX-512 path stay off.
+	* CMakeLists.txt, configure.ac, meson.build: Clang with the driver
+	of GCC for the target of Visual C++ (_MSC_VER defined) is supported
+	by the three builds: the libraries in C++14, which the standard
+	library of Visual C++ needs, the unistd.h of cmake/msvc for the
+	lexer, the static library alone (CMake and meson).
+	* CMakeLists.txt: the generator of Xcode without
+	CMAKE_OSX_ARCHITECTURES builds for the architecture of the
+	machine; "arm64;x86_64" gives the universal build.
+	* .github/scripts/tests.sh: the tests built with an installed GAOL
+	get the Cflags of its gaol.pc, -mfma among them.
+	* meson.build, gaol/meson.build: add_project_arguments() rather than
+	add_global_arguments(), which meson refuses in a subproject; gaol_dep
+	carries the flags of interval arithmetic and the link option of
+	gaol.pc; no test setup nor target check in a subproject; the
+	libraries in release in a subproject where meson before 1.8.4
+	gives the debug of the project.  tests/meson_subproject and a job
+	of build-systems.yml check it.
+	* CMakeLists.txt: without a build type (add_subdirectory,
+	FetchContent), gaol and gaol_core_math are compiled as in Release
+	(-O3, NDEBUG, -funroll-loops...); with a generator of several
+	configurations, Release comes first among them.
+	tests/release_flags.py checks it on tests/fetch_content, in
+	linux.yml.
+	* CMakeLists.txt, meson_options.txt, meson.build: GAOL_DEBUG and
+	enable-debug, settings of the developers, build the libraries of
+	GAOL and CORE-MATH for debugging whatever the build type or the
+	configuration, a project bringing GAOL in included.
+	tests/release_flags.py --debug, the job build-types of linux.yml.
+	* gaol/gaol_common.h, gaol/parser: the macro GAOL_DEBUG(lvl, cmd) is
+	named GAOL_DEBUG_VERBOSE; GAOL_DEBUG is the setting of CMake.
+	* CMakeLists.txt, cmake/gaol_version.cmake, meson.build,
+	configure.ac: the three builds read VERSION.txt by the same
+	rules: the six blanks of ASCII around the version and a UTF-8
+	byte order mark at the start are ignored, a NUL byte is
+	refused, UTF-16 is named in the message, which gives the first
+	bytes of the file in hexadecimal; tests version_file and
+	.github/scripts/version-file.sh.
+	* CMakeLists.txt, cmake/gaol_package_source.cmake,
+	tests/cpack_stale_configure.cmake: CMake warns, when it configures,
+	that configure was generated for another version than VERSION.txt
+	holds, which the archive of the sources (package_source) would
+	carry; package_source configures the build directory again first
+	after a change of VERSION.txt, with the Makefile generators too.
+	* CMakeLists.txt: CPACK_VERBATIM_VARIABLES, so that CPack reads
+	CPACK_SOURCE_IGNORE_FILES with its backslashes.
+	* tests/cpack_stale_configure.cmake, tests/CMakeLists.txt: the
+	compilers are passed with their arguments (CC="ccache gcc") and the
+	program of the generator (a Ninja outside PATH); skipped without sh
+	or symbolic links; checks package_source after a change of
+	VERSION.txt.
+	* .github/workflows/linux.yml: a job runs it with ccache in CC and
+	Ninja outside PATH.
+	* 3rd/Makefile.am, gaol/Makefile.am, tests/Makefile.am,
+	examples/Makefile.am: distclean-local removes the .deps
+	directories, which the Makefile.in of automake 1.18 empties and
+	leaves, so that make distclean gives the sources back as git has
+	them; the autotools jobs of build-systems.yml check it.
+	* meson.build, gaol/meson.build: meson compiles the committed
+	lexer and parser and no longer requires flex and bison; its
+	generators, whose output nothing compiled, are gone.
+	* doc/building.md, manual/v5/gaol.tex, meson.build: the Python
+	that meson setup runs (the first of python3 and python found,
+	then the one that runs meson) and the Microsoft Store aliases
+	of Python (WindowsApps) that meson 0.53.0 and earlier may take
+	for it.
 
 2020-05-10  Frederic Goualard  <Frederic.Goualard@univ-nantes.fr>
 
