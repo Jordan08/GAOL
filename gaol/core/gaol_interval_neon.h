@@ -40,7 +40,9 @@ right> in the two lanes, so that one addition rounded upward gives both bounds.
   modes that flush the subnormals to zero, which the operations that only compare
   or copy bounds do not check (point Q of TODO.md), and raise nothing on a NaN,
   which the empty set holds in both bounds, where the comparisons of 64-bit ARM on
-  doubles signal the invalid-operation exception on a quiet NaN.
+  doubles signal the invalid-operation exception on a quiet NaN. valid_bounds() is
+  the exception: it starts with a quiet comparison of doubles, which raises nothing
+  on a quiet NaN either.
 */
 namespace neon_detail {
 
@@ -74,6 +76,43 @@ namespace neon_detail {
   GAOL_INLINE int64x2_t bound_keys_nan_lowest(float64x2_t x)
   {
     return vbslq_s64(nan_lanes(x), vdupq_n_s64(std::numeric_limits<std::int64_t>::min()), bound_keys(x));
+  }
+
+  /*
+    The bounds l and r make an interval, the condition of the constructor of two
+    bounds: gaol_detail::bound_less_equal(l, r) && l < +oo && r > -oo (GAOL v5,
+    point PG of TODO.md). l < r (false for a NaN) is the case that runs, and it
+    needs no test of the infinities, since l < r <= +oo and -oo <= l < r. Else
+    l == r, the very next test, is false for the bounds in the wrong order (l =
+    +oo and r = -oo with a bound that is not the same infinity too) and for a
+    NaN: the empty set takes the two comparisons of the old code and no
+    instruction between them (the second one may reuse the flags of the first).
+    What is left is the same double in both bounds: the same bits make an
+    interval but for an infinity (told by the exponent field of the bits being
+    all ones, with two integer instructions); different bits, two doubles equal
+    as doubles, can only be zeros, or subnormal numbers under the modes that
+    flush them to zero, which are in the right order when their bound_key() are
+    (gaol_port.h). The two comparisons with -oo and +oo of the old condition
+    cost a constant in a vector register and a comparison each. Counted under
+    qemu (GCC 12 and 14), interval(l, r) takes 6 instructions where l < r (14
+    with GCC 12 before), 14 to 20 where the bounds are the same double or
+    zeros of different signs (19 to 28 before), and 7 for the wrong order and
+    a NaN, as before. The flags are those of bound_less_equal(): the same
+    quiet comparison first, and l == r after it, as there
+  */
+  GAOL_INLINE bool valid_bounds(double l, double r)
+  {
+    if (gaol_detail::quiet_less(l, r)) {
+      return true;
+    }
+    if (!(l == r)) {
+      return false;
+    }
+    const std::uint64_t left_bits = gaol_detail::bound_bits(l);
+    if (left_bits == gaol_detail::bound_bits(r)) {
+      return (left_bits << 1) < 0xffe0000000000000ull; // not an infinity
+    }
+    return gaol_detail::bound_key(l) <= gaol_detail::bound_key(r);
   }
 
 } // namespace neon_detail
@@ -178,13 +217,14 @@ GAOL_INLINE interval::interval(double v)
 // the wrong order and NaN bounds, as in IBEX; the first comparison is a quiet
 // one, as in is_empty() and the FPU and SSE2 constructors (GAOL v5, decided
 // for point D.24 of TODO.md), and the bounds are compared as bounds
-// (gaol_detail::bound_less_equal(), gaol_port.h), which the modes that flush
+// (neon_detail::valid_bounds(), which is gaol_detail::bound_less_equal() of
+// gaol_port.h and the tests of the infinities), which the modes that flush
 // the subnormals to zero do not change (point Q of TODO.md)
 GAOL_INLINE interval::interval(double l, double r)
 {
   GAOL_FPU_SCALAR(l);
   GAOL_FPU_SCALAR(r);
-  if (gaol_detail::bound_less_equal(l, r) && l < GAOL_INFINITY && r > -GAOL_INFINITY) {
+  if (neon_detail::valid_bounds(l, r)) {
     neonbounds = vcombine_f64(vdup_n_f64(-l), vdup_n_f64(r));
   } else {
     neonbounds = vdupq_n_f64(std::numeric_limits<double>::quiet_NaN());
