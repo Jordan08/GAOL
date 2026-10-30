@@ -6156,28 +6156,38 @@ interval nth_root(const interval& I, int q)
     are chosen the same way.
 
     The common case is told first, by the words alone: none is a NaN or a
-    stored -oo, which no interval holds (regular_word()), and l is below r
-    in each operand by the keys (the same double, or -0 below +0, is). The
-    bounds of max() and min() are then the lanes of the larger, or of the
-    smaller, keys, one comparison for each, and the constructor of two bounds
-    would keep them: l is below r in the result as it is in the operands, and
-    its words are among theirs. Nothing else is told, and no floating-point
-    instruction runs. Counted under qemu (Clang 18 to 21 and GCC 12), the
-    common case is 34 to 36 instructions, at most 2 of them on the vector
-    registers (the move of the two words to a vector register, when they
-    are not stored as a pair), where the lanes compared as vectors and told
-    by the constructor of two bounds were 41 to 43, 28 or 29 of them on the
-    vector registers (47 to 50 when the bounds of the result are equal, the
-    constructor then comparing their bits). The bounds are chosen by
-    conditional selects, not by branches.
+    stored -oo, which no interval holds (told on the words rotated by one bit,
+    rotated_word()), and l is below r in each operand by the keys (the same
+    double, or -0 below +0, is). The bounds of max() and min() are then the
+    lanes of the larger, or of the smaller, keys, one comparison for each, and
+    the constructor of two bounds would keep them: l is below r in the result
+    as it is in the operands, and its words are among theirs. Nothing else is
+    told, and no floating-point instruction runs. Counted under qemu (Clang 18
+    to 21 and GCC 12), the common case is 33 to 35 instructions, at most 2 of
+    them on the vector registers (the move of the two words to a vector
+    register, when they are not stored as a pair), where the lanes compared as
+    vectors and told by the constructor of two bounds were 41 to 43, 28 or 29
+    of them on the vector registers (47 to 50 when the bounds of the result
+    are equal, the constructor then comparing their bits). The bounds are
+    chosen by conditional selects, not by branches.
 
-    The empty set, a NaN in a single lane too, is told next (behind the branch
-    of the common case: the compilers compute the tests of NaN before it
-    otherwise), and gives the empty set. The other cases, bounds in the wrong
-    order, a stored -oo, the zeros of different signs as l and r ([+0, -0],
-    which the constructor of two bounds takes), are max_min_other_cases(), out
-    of line and cold: the lanes compared as vectors and the constructor, as
-    before, so that the bits are the same.
+    The empty set comes next, a NaN in a single word too. A NaN in the first
+    words <-l> of the operands, as the empty set has in both words, is told by
+    the first comparison of the common case, before the keys are computed: the
+    larger of the two rotated words against the rotated -oo, below which are
+    the stored bounds and above which are the NaN. The code of the empty set
+    follows that comparison, and the common case jumps over it (the lanes
+    tested as vectors did the same, and GAOL_MAXMIN_FIRST() tells the
+    compilers to keep this order). An empty operand, whichever of the two it
+    is, then takes 15 instructions under qemu (Clang 18 to 21 and GCC 12),
+    one at most on the vector registers (the store of the empty set), and no
+    taken branch, where the lanes tested as vectors took 16, 9 of them on the
+    vector registers, and 19 with GCC. A second comparison tells a NaN from a
+    stored -oo, and a NaN in the second words <r> from the other cases. These,
+    bounds in the wrong order, a stored -oo, the zeros of different signs as l
+    and r ([+0, -0], which the constructor of two bounds takes), are
+    max_min_other_cases(), out of line and cold: the lanes compared as vectors
+    and the constructor, as before, so that the bits are the same.
   */
 #  ifndef GAOL_NOINLINE_COLD
 #    if defined(__GNUC__) || defined(__clang__)
@@ -6190,6 +6200,12 @@ interval nth_root(const interval& I, int q)
 #  endif
 
 #  if defined(__GNUC__) || defined(__clang__)
+#    define GAOL_MAXMIN_FIRST(condition) __builtin_expect(!!(condition), 1)
+#  else
+#    define GAOL_MAXMIN_FIRST(condition) (condition)
+#  endif
+
+#  if defined(__GNUC__) || defined(__clang__)
 #    define GAOL_MAXMIN_INLINE __attribute__((always_inline)) inline
 #  elif defined(_MSC_VER)
 #    define GAOL_MAXMIN_INLINE __forceinline
@@ -6199,11 +6215,19 @@ interval nth_root(const interval& I, int q)
 
   namespace neon_detail {
 
-  // Whether the word is the stored bound of an interval: no NaN, and no -oo. The word rotated left by
-  // one bit, the sign last, is then at most +oo rotated (0xffe0000000000000), whatever the sign
-  GAOL_INLINE bool regular_word(std::uint64_t w)
+  // The word rotated left by one bit, the sign last. For the stored bound of an interval, no NaN and no
+  // -oo, it is at most the +oo rotated (0xffe0000000000000), whatever the sign; the stored -oo rotated is
+  // 0xffe0000000000001, and a NaN of either sign is above it
+  GAOL_INLINE std::uint64_t rotated_word(std::uint64_t w)
   {
-    return ((w << 1) | (w >> 63)) <= 0xffe0000000000000ull;
+    return (w << 1) | (w >> 63);
+  }
+
+  // The larger of the rotated words
+  GAOL_INLINE std::uint64_t larger_rotated(std::uint64_t u, std::uint64_t v)
+  {
+    const std::uint64_t ru = rotated_word(u), rv = rotated_word(v);
+    return ru > rv ? ru : rv;
   }
 
   // The word in the register it is in, at no cost: an empty asm statement that the compilers do not
@@ -6215,9 +6239,6 @@ interval nth_root(const interval& I, int q)
 #  endif
     return w;
   }
-
-  // Whether the word is a NaN, of either sign
-  GAOL_INLINE bool nan_word(std::uint64_t w) { return (w << 1) > 0xffe0000000000000ull; }
 
   // The order of the doubles that are no NaN as signed integers, -0 below +0
   GAOL_INLINE std::int64_t order_key(std::uint64_t w)
@@ -6268,27 +6289,37 @@ interval nth_root(const interval& I, int q)
     std::uint64_t a[2], b[2];
     stored_words(I, a);
     stored_words(J, b);
-    // Lane 0 holds -l: the key of l is the complement of the key of the lane. It is kept as such: the compilers
-    // turn the comparisons of the complements into those of the keys of the lanes, and compute them a second time
-    const std::int64_t la = static_cast<std::int64_t>(keep_word(static_cast<std::uint64_t>(~order_key(a[0])))),
-                       lb = static_cast<std::int64_t>(keep_word(static_cast<std::uint64_t>(~order_key(b[0])))),
-                       ra = order_key(a[1]), rb = order_key(b[1]);
-    if (GAOL_UNLIKELY(!(regular_word(a[0]) && regular_word(a[1]) && regular_word(b[0]) && regular_word(b[1])
-                        && la <= ra && lb <= rb))) {
-      // The tests of NaN, here and not before the branch above, where the compilers put them
-      if (nan_word(keep_word(a[0])) || nan_word(keep_word(a[1])) || nan_word(keep_word(b[0])) || nan_word(keep_word(b[1]))) {
-        return interval::emptyset();
+    // The rotated stored -oo: the rotated words of the stored bounds are below it, those of the NaN above it. It is
+    // kept in its register: the compilers would compare with the rotated +oo instead, a second constant
+    const std::uint64_t minus_infinity = keep_word(0xffe0000000000001ull);
+    const std::uint64_t larger0 = larger_rotated(a[0], b[0]);
+    // GAOL_MAXMIN_FIRST() is where the compilers put the code, not what the inputs are: the code that follows this
+    // test, the empty set, stays before the common case, so that the empty operand takes no branch
+    if (!GAOL_MAXMIN_FIRST(larger0 >= minus_infinity)) { // the first words, <-l> of the operands, are stored bounds
+      // Lane 0 holds -l: the key of l is the complement of the key of the lane. It is kept as such: the compilers
+      // turn the comparisons of the complements into those of the keys of the lanes, and compute them a second time
+      const std::int64_t la = static_cast<std::int64_t>(keep_word(static_cast<std::uint64_t>(~order_key(a[0])))),
+                         lb = static_cast<std::int64_t>(keep_word(static_cast<std::uint64_t>(~order_key(b[0])))),
+                         ra = order_key(a[1]), rb = order_key(b[1]);
+      if (!GAOL_UNLIKELY(larger_rotated(a[1], b[1]) >= minus_infinity || la > ra || lb > rb)) {
+        const std::uint64_t first = (maximum_wanted ? la > lb : la < lb) ? a[0] : b[0];
+        const std::uint64_t second = (maximum_wanted ? ra > rb : ra < rb) ? a[1] : b[1];
+        // The two words are written into the result, not moved to the lanes of a vector register that is stored
+        interval res = interval::emptyset();
+        const std::uint64_t words[2] = { first, second };
+        std::memcpy(&res.get_neoninterval(), words, sizeof words);
+        return res;
       }
-      return interval(max_min_other_cases(upward_access::stored_bounds(I), upward_access::stored_bounds(J), maximum_wanted),
-                      gaol_detail::unchecked_bounds);
     }
-    const std::uint64_t first = (maximum_wanted ? la > lb : la < lb) ? a[0] : b[0];
-    const std::uint64_t second = (maximum_wanted ? ra > rb : ra < rb) ? a[1] : b[1];
-    // The two words are written into the result, not moved to the lanes of a vector register that is stored
-    interval res = interval::emptyset();
-    const std::uint64_t words[2] = { first, second };
-    std::memcpy(&res.get_neoninterval(), words, sizeof words);
-    return res;
+    // Not the common case. The empty set, a NaN in a single word too, comes first: a NaN in the first words was
+    // told by the test of the common case, and a second one, on the second words, tells the others
+    if (GAOL_UNLIKELY(larger0 <= minus_infinity)) {
+      if (GAOL_UNLIKELY(larger_rotated(a[1], b[1]) <= minus_infinity)) { // no NaN: the other cases
+        return interval(max_min_other_cases(upward_access::stored_bounds(I), upward_access::stored_bounds(J), maximum_wanted),
+                        gaol_detail::unchecked_bounds);
+      }
+    }
+    return interval::emptyset();
   }
 
   interval  max(const interval &I, const interval &J)
