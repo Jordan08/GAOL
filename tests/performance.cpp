@@ -223,6 +223,12 @@ int main()
     // whose scalar divisions with the embedded rounding (#191) no other row runs (x / y runs div_bounds())
     { "x / d", nanoseconds_per_operation([&](std::size_t i) { const interval z = X[i] / D[0][i]; sink = z.left(); sink = z.right(); }, n),
                nanoseconds_per_operation([&](std::size_t i) { sink = a[i] / D[0][i]; }, n) },
+    // The extended quotient and the inverse (GAOL v5, point PG of TODO.md): operator%= and inverse() have kernels
+    // of their own with the NEON and SSE2 intervals, which no other row runs (the operands have no zero)
+    { "x % y", nanoseconds_per_operation([&](std::size_t i) { const interval z = X[i] % Y[i]; sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = a[i] / b[i]; }, n) },
+    { "x.inverse()", nanoseconds_per_operation([&](std::size_t i) { const interval z = X[i].inverse(); sink = z.left(); sink = z.right(); }, n),
+               nanoseconds_per_operation([&](std::size_t i) { sink = 1.0 / a[i]; }, n) },
     { "sqr(x)", nanoseconds_per_operation([&](std::size_t i) { const interval z = sqr(X[i]); sink = z.left(); sink = z.right(); }, n),
                nanoseconds_per_operation([&](std::size_t i) { sink = a[i] * a[i]; }, n) },
     { "x * y, random signs", nanoseconds_per_operation([&](std::size_t i) { const interval z = SX[i] * SY[i]; sink = z.left(); sink = z.right(); }, n),
