@@ -128,19 +128,45 @@ GAOL_INLINE interval interval::negative(void)
   return interval(-std::numeric_limits<double>::infinity(),0.0);
 }
 
+namespace neon_detail {
+
+  /*
+    Whether d is neither a NaN nor an infinity, for which interval(d) is the empty set (GAOL v5, point
+    PG of TODO.md): |d| < +oo, one quiet comparison in place of the two with -oo and +oo of the old test
+    (-oo < d && d < +oo), which cost a constant in a vector register and a comparison each (3 of the 12
+    vector instructions of x + d). The same flags as before: the quiet comparison raises the
+    invalid-operation exception for a signaling NaN, and the flag of a subnormal d read as zero
+    under the modes that flush them (FPSR.IDC), as the first of the old comparisons did, and fabs()
+    changes neither (it is not an arithmetic instruction: it leaves a NaN as it is)
+  */
+  GAOL_INLINE bool finite_double(double d) { return gaol_detail::quiet_less(std::fabs(d), GAOL_INFINITY); }
+
+  // An empty asm statement in the branch of the empty set: no compiler makes a select of the two
+  // results, which Clang does for a test on bits, with a vector comparison and a bit select that
+  // cost five vector instructions more than the branch the test on doubles kept
+  GAOL_INLINE void keep_branch()
+  {
+#  if !GAOL_NEON_MSVC
+    __asm__ __volatile__ ("");
+#  endif
+  }
+
+} // namespace neon_detail
+
 // An infinite v gives the empty set, as in IBEX: IEEE 1788-2015 has no
 // interval [+oo, +oo] nor [-oo, -oo] (10.5.8). A NaN gives it too, told by
-// a quiet first comparison (see interval(double, double)). The bounds go
+// the bits of v (neon_detail::finite_double()). The bounds go
 // through GAOL_FPU_SCALAR() as with the FPU intervals (gaol_interval_core.h):
 // GCC for 64-bit ARM vectorizes loops of constructions and compares the
 // bounds of every element, an empty one included, with signaling comparisons
 GAOL_INLINE interval::interval(double v)
 {
   GAOL_FPU_SCALAR(v);
-  if (gaol_detail::quiet_less(-GAOL_INFINITY, v) && v < GAOL_INFINITY) { // false for a NaN
-    neonbounds = vcombine_f64(vdup_n_f64(-v), vdup_n_f64(v));
-  } else {
+  if (GAOL_UNLIKELY(!neon_detail::finite_double(v))) { // a NaN and an infinity
+    neon_detail::keep_branch();
     neonbounds = vdupq_n_f64(std::numeric_limits<double>::quiet_NaN());
+  } else {
+    neonbounds = vcombine_f64(vdup_n_f64(-v), vdup_n_f64(v));
   }
 }
 
