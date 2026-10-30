@@ -214,6 +214,16 @@ where it comes from.
     read: `round_ties_to_even` therefore reads the bits
     (`gaol/gaol_roundeven.h`, which also gives CORE-MATH the `roundeven()` the
     math library of Windows has not).
+  - **`erf` and `erfc`**, the error function and its complement, which GAOL did
+    not provide, are bounded with CORE-MATH's, the tightest bounds, exact at 0
+    and at the infinities: `erf([0])` is `[0]` and `erfc([-oo, +oo])` is
+    `[0, 2]`. IEEE 1788-2015 names neither, so `gaol_ieee1788` has none. The
+    `erfc` of CORE-MATH rounds its subnormal results with `ldexp()`, which the C
+    libraries of Windows (the UCRT) and of macOS do not round in the direction
+    in effect: with every compiler, CORE-MATH calls `gaol_ldexp()`
+    (`gaol/gaol_ldexp.h`) instead, x·2<sup>n</sup> rounded once in the
+    direction in effect, so that its subnormal results depend on no `ldexp()`
+    of the C library (see [3rd/README.md](../3rd/README.md)).
 
 - **From the patch IBEX applies to GAOL** (Gilles Chabert,
   `interval_lib_wrapper/gaol/3rd/gaol-4.2.3alpha0.all.all.patch` of
@@ -632,9 +642,26 @@ where it comes from.
   flush-to-zero set, 3e-308 - 2.9e-308 and 1e-300·1e-20 are 0, and with
   denormals-are-zero so is 2^-1060·1e10; see
   [Using GAOL](using.md#the-avx-512-path)).
-- **`hausdorff()`** returns the tightest upper bound of the distance. It computed
-  `fabs(a - c)` in the rounding direction of the caller, below the exact
-  distance when rounded upward with a < c.
+- **`hausdorff()`** returns the tightest upper bound of the distance, and 0 for
+  equal bounds, infinite ones included. GAOL 4 computed `fabs(a - c)` in the
+  rounding direction of the caller, below the exact distance when rounded upward
+  with a < c, and returned +oo as soon as a bound was infinite (but for two
+  entire intervals): `hausdorff([1, +oo], [1, +oo])` and
+  `hausdorff([1, +oo], [2, +oo])`, whose distances are 0 and 1, were +oo, so
+  that a fixed-point loop on a box with an unbounded side never stopped. Each
+  difference is now rounded upward both ways, and equal bounds are at distance
+  0; an infinite bound in one interval only still puts them at +oo
+  (`hausdorff([1, +oo], [1, 2])`), as in GAOL 4, and the function returns it
+  before the rounding direction is checked, which it then leaves as it found it:
+  2.5 to 4.4 times as fast as through the computation of the distance (Intel
+  i7-1185G7, GCC 9.4 and Clang 18), the other cases paying the test, 0.1 to 1.4
+  ns.
+- **`nb_fp_numbers()`** numbers the doubles by the bits of the magnitudes of its
+  arguments, -0 and +0 being one number. GAOL 4 numbered them by the bits of a
+  and b, sign bit included: `nb_fp_numbers(-0.0, 1.0)` and
+  `nb_fp_numbers(-1.0, 0.0)` were 13830554455654793217 (the lower bound of
+  `[1, 2] - 1` is -0). They are 4607182418800017409 now, the number of the
+  doubles from 0 to 1.
 - **`mid()`** returns the tightest interval enclosing the midpoint, computed as
   `midpoint()` computes it with the rounding outward: the half of the sum of the
   bounds, or the sum of their halves when a bound is 2^1023 or more in
@@ -1272,6 +1299,41 @@ where it comes from.
 - **`rad()` and `mid_rad()`**, `rad` and `midRad` of IEEE 1788-2015 (12.12.8):
   the radius, the smallest double r such that the interval is in
   `[m - r, m + r]`, m being `midpoint()`, and both at once.
+- **The tools that algorithms of intervals write for themselves** are new:
+  `width_enclosure()`, `inflate(r)`, `interval::midrad(m, r)`, `bisect(ratio)`,
+  `is_bisectable()`, and `hull(a, b)` and `intersect(a, b)`, the functions of
+  `a | b` and `a & b` (see [Using GAOL](using.md#tools-of-interval-algorithms)).
+  The first three compute with the operations of intervals, each bound rounded
+  outward: `interval::midrad(m, r)` encloses [m − r, m + r], which
+  `interval(m - r, m + r)` does not, both of its bounds being computed upward;
+  `inflate(r)` is `*this + interval(-r, r)`; `width_enclosure()` is
+  `interval(r) - interval(l)`, the enclosure of the exact width of [l, r] that
+  `width()` bounds from above, and [MAX, +oo] for an unbounded interval, whose
+  width is no real number. `bisect(ratio)` cuts at l(1 − ratio) + r·ratio, which
+  does not overflow and lies strictly between the bounds when `is_bisectable()`;
+  it cuts at `midpoint()`, as `split()` does, for 0.5, for a half-line and for
+  the whole line, and throws `invalid_action_error` for a ratio outside (0, 1)
+  or a NaN.
+  `is_bisectable()` is true when a double lies strictly between the bounds: not
+  for the empty set, a point, two consecutive doubles, nor [MAX, +oo] and [-oo,
+  -MAX], which `split()` cuts at their finite bound.
+- **The reverse functions of the power, `atan2`, `max`, `min`, `sign` and
+  `floor`** are new, their arguments in the order of `div_rel(K, J, I)`, the
+  image first and the interval contracted last: `pow_rel(K, J, I)`, the x of I
+  with an x<sup>y</sup> in K for a y of J, and `pow_exponent_rel(K, H, I)`, the
+  y of I with an x<sup>y</sup> in K for an x of H, the power being that of
+  IEEE 1788-2015; `atan2_rel_y(C, X, Y)` and `atan2_rel_x(C, Y, X)`;
+  `max_rel(Z, Y, X)`, `min_rel(Z, Y, X)`, `sign_rel(Z, X)` and
+  `floor_rel(Z, X)`. `gaol_ieee1788` names the first four `powRev1`, `powRev2`,
+  `atan2Rev1` and `atan2Rev2` (Table 10.1), and adds `mulRevToPair`, the
+  division of 10.5.5 with two outputs: the pair (u, v) of the parts of the
+  solution on either side of 0, u before v, whose hull is `mulRev(b, c)`. Of the
+  reverse operations of the standard, only `pownRev` for p ≤ 0 is missing. The
+  bounds of `max_rel`, `min_rel`, `sign_rel` and `floor_rel` are the tightest
+  ones, those of `pow_rel` and `pow_exponent_rel` are proved with powers of
+  CORE-MATH, and those of `atan2_rel_y` and `atan2_rel_x` are within 2 doubles
+  of the tightest ones where these are not empty (see
+  [Accuracy of the operations](accuracy.md)).
 - **The comparisons with the empty set and the infinities** follow IEEE
   1788-2015 (Tables 10.3 and 10.4). `certainly_leq()` and `certainly_le()`,
   `precedes` and `strictPrecedes`, and `certainly_geq()` and
@@ -1300,6 +1362,19 @@ where it comes from.
     `GAOL_SET_RELATION`: they gave the possibly relations.
   - **Tests.** `tests/other_functions.cpp` checks that `==` and `!=` do not
     compile on intervals.
+- **`gaol::lexicographic_less`** is a total order on the intervals, for the
+  containers and the algorithms of the standard library that compare with `<`
+  (`std::set`, `std::map`, `std::sort`, `std::max`, `std::min`, `std::clamp`).
+  `<` serves none of them: it is `strictPrecedes`, true as soon as either
+  interval is empty, and no strict weak ordering. A `std::set<interval>` that
+  holds [1, 2] drops [1, 3], and `std::sort` of a vector that holds an empty
+  interval can read past its end (AddressSanitizer reports it with libstdc++). A
+  `std::set<interval, gaol::lexicographic_less>` keeps every interval: the empty
+  set comes first, then the intervals by their left bound and by their right
+  bound, -0.0 and +0.0 being the same bound, and two intervals with the same
+  bounds are not less than each other. `std::less` is not specialized for
+  `interval`, so a program gives the comparator itself (see
+  [Using GAOL](using.md#relations-sorting-and-containers)).
 - **Numbers in base 16, 8 and 2** are read, `0x10` (16), `0xff.8` (255.5),
   `0o17` (15), `0b101` (5) and `0b1.1p3` (12), the exponent after the `p` being
   optional: the hexadecimal number of the standard needs it (9.7.2), which
@@ -1650,6 +1725,24 @@ where it comes from.
   [0, 1] was [2, 2] (review #6 of `examples/examples.md`, checked by
   `tests/expressions.cpp`). The literal 0 being a null pointer too, it made
   `interval(0, 0)` ambiguous, which now compiles.
+- **A result thrown away gives a warning.** `sqrt(x);` or `x.emptyset();` alone
+  leaves x as it was. The functions and operators on intervals whose result is
+  all they do, their predicates, the names of `gaol_ieee1788` and the functions
+  building expressions carry `GAOL_NODISCARD` (`gaol/gaol_config.h`), so that
+  the compiler warns about such a call; GAOL 4 had no such attribute. It is
+  `[[nodiscard]]` in C++17 and later and, before, wherever the compiler takes
+  it there (GCC 7 and later, Visual C++ 2019 16.4 and later, warning C4834),
+  `__attribute__((warn_unused_result))` with Clang and GCC before 7, and
+  `_Check_return_` of `<sal.h>` with older Visual C++ (reported by `/analyze`
+  only). `gaol::gaol` sets no standard, so that a project which sets none gets
+  the warning with GCC 9 and Visual C++ 2019 16.4 and later, both C++14 by
+  default; a cast to void silences it, except with GCC before 7, and a program
+  that does not want it defines `GAOL_NODISCARD` empty
+  ([Using GAOL](using.md#a-result-thrown-away)).
+  Six CMake compile tests, `nodiscard_discard_cxx11`, `_cxx14` and `_cxx17`
+  (the call must fail to compile with the warning made an error) and
+  `nodiscard_used_cxx11`, `_cxx14` and `_cxx17` (the results used must
+  compile), check it.
 - **The constructor from one `double`, `interval(double)`, is explicit**, and
   so are `expression(double)` and `expression(const interval&)`. A `double`
   becomes an interval where the program writes `interval(d)`:
@@ -1707,6 +1800,9 @@ where it comes from.
     expression within the ints is 1/`nth_root(e, |n|)`.
 - **`width()`** of the empty set is NaN, as `wid` of IEEE 1788-2015 (12.12.8),
   rather than -1, which the manual and `check/interval_functions.cpp` gave.
+- **`chi()` of the empty set** is the positive NaN that `width()` returns,
+  printed `nan` with every compiler. It was the quotient of the NaN bounds,
+  `-nan` with GCC and `nan` with Clang.
 - **The three builds agree** (see [The three builds](three-builds.md)).
   Before, each had its own idea: configure optimized only when the compiler
   was named `g++` exactly (`clang++` compiled without optimization), computed

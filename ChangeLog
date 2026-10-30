@@ -775,6 +775,58 @@
 	CORE-MATH's value; pow_is_double() proves it exactly from the
 	bits of x and y.  pow([4], 0.5) is [2].
 
+	Functions of intervals:
+
+	* gaol/core/gaol_interval_core.h (width_enclosure, inflate, midrad,
+	bisect, is_bisectable, hull, intersect): new, the tools that
+	algorithms of intervals write for themselves, each bound rounded
+	outward.  bisect throws invalid_action_error for a ratio outside
+	(0, 1) or a NaN.  Named in gaol.
+	* gaol/core/gaol_interval_core.h (erf, erfc): new, the tightest
+	bounds, with the erf and erfc of CORE-MATH (3rd/math-core).
+	* gaol/core/gaol_interval_core.h (pow_rel, pow_exponent_rel,
+	atan2_rel_y, atan2_rel_x, max_rel, min_rel, sign_rel, floor_rel),
+	gaol/gaol_ieee1788.h (powRev1, powRev2, atan2Rev1, atan2Rev2,
+	mulRevToPair): new.  Of the reverse operations of IEEE 1788-2015, only
+	pownRev for p <= 0 is missing.
+	* gaol/gaol_ldexp.h, gaol/core_math_port.h: CORE-MATH calls
+	gaol_ldexp() with every compiler, x*2^n rounded once in the direction
+	in effect: erfc rounds its subnormal results with ldexp(), which the C
+	libraries of Windows and macOS do not round that way.
+	* doc/compare/: ITF1788 (itf1788/, itf1788.md), the benchmark of Tang
+	et al. 2021 (tang2021/, tang2021.md), Boost.Interval, and a test of
+	the enclosure of the elementary functions (enclosure.md).
+	* gaol/core/gaol_interval_sse.cpp, gaol_interval_fpu.cpp,
+	gaol_interval_neon.cpp (hausdorff): equal bounds, infinite
+	ones included, are at distance 0 (hausdorff([1,+oo],[2,+oo])
+	is 1, not +oo); gaol/core/gaol_interval_core.cpp
+	(nb_fp_numbers): the doubles are numbered by the bits of |a|
+	and |b|, so -0 is +0 (nb_fp_numbers(-0.0, 1.0) was
+	13830554455654793217).
+	* gaol/core/gaol_interval_sse.cpp, gaol/core/gaol_interval_fpu.cpp,
+	gaol/core/gaol_interval_neon.cpp (hausdorff): +oo returned before
+	the check of the rounding direction when a bound is infinite in one
+	interval only.
+	* tests/reverse_mappings.cpp: atanh_rel compared at its infinite
+	ends.
+	* gaol/core/gaol_interval_core.h (lexicographic_less): new, a total
+	order on the intervals for std::set, std::map and std::sort, which <
+	is not (it is strictPrecedes): the empty set first, then the intervals
+	by their left bound and by their right bound.  Named in gaol
+	(gaol/gaol_interval.h).
+	* gaol/gaol_config.h (GAOL_NODISCARD): the attribute of the
+	functions whose result is all they do, so that sqrt(x); gets a
+	warning.  It is [[nodiscard]] from C++17 and, before it, where
+	__has_cpp_attribute(nodiscard) says the compiler takes it (GCC 7
+	and later, Visual C++ 2019 16.4 and later),
+	__attribute__((warn_unused_result)) with Clang and GCC before 7,
+	and _Check_return_ of <sal.h> with older Visual C++;
+	tests/nodiscard.cpp: the compile tests nodiscard_discard_cxx11, 14
+	and 17 and nodiscard_used_cxx11, 14 and 17.
+	* gaol/core/gaol_interval_core.cpp (chi): GAOL_NAN for the
+	empty set, as width() returns; the quotient of the NaN bounds
+	was -nan with GCC and nan with Clang.
+
 2020-05-10  Frederic Goualard  <Frederic.Goualard@univ-nantes.fr>
 
 	* configure.ac: using gcc standard strtod() instead of gdtoa's
