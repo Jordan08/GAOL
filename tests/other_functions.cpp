@@ -528,6 +528,80 @@ namespace
   }
 #endif
 
+#if GAOL_USING_NEON_INSTRUCTIONS
+  // x / y, x %= y and y.inverse() of the NEON intervals when a stored lane of an operand holds a
+  // NaN of any kind, whatever the other lanes hold: a quiet or a signaling NaN of either sign, of the least
+  // and of the greatest payloads, in one lane or in several. The result is the empty set, of the bits of
+  // interval::emptyset(). The kernels tell an empty operand on the bits of the four lanes, as integers (a
+  // comparison of doubles would raise FE_INVALID on a NaN): a pattern just above the one of the infinity, the
+  // signaling NaN of the least payload, is the one a threshold that is off by one lets through (GAOL v5)
+  void quotient_on_nan_lanes()
+  {
+    const double tiny = std::numeric_limits<double>::denorm_min(), least = std::numeric_limits<double>::min();
+    const double huge = std::numeric_limits<double>::max(), infinity = std::numeric_limits<double>::infinity();
+    const std::uint64_t nan_patterns[] = { 0x7ff8000000000000ull, 0xfff8000000000000ull, 0x7ff0000000000001ull,
+                                           0xfff0000000000001ull, 0x7ff8000000000001ull, 0x7fffffffffffffffull,
+                                           0xffffffffffffffffull };
+    std::vector<double> lanes = { 0.0, -0.0, tiny, -tiny, least, -least, 1.0, -1.0, 2.0, -2.0, huge, -huge, infinity, -infinity };
+    const std::size_t nb_numbers = lanes.size();
+    for (std::uint64_t pattern : nan_patterns) {
+      double nan;
+      std::memcpy(&nan, &pattern, sizeof nan);
+      lanes.push_back(nan);
+    }
+    const std::size_t nb = lanes.size();
+    const interval empty = interval::emptyset();
+    const std::vector<FlushSetting> modes = flush_settings();
+    std::vector<interval> xs, ys;
+    for (std::size_t a = 0; a < nb; ++a) for (std::size_t b = 0; b < nb; ++b) {
+      xs.push_back(stored_lanes(lanes[a], lanes[b]));
+    }
+    ys = xs;
+    // an operand holds a NaN when one of its lanes is one of the patterns
+    const auto has_nan = [&](std::size_t k) { return k / nb >= nb_numbers || k % nb >= nb_numbers; };
+    std::vector<interval> quotients, moduli, inverses;
+    for (const FlushSetting& mode : modes) {
+      quotients.clear(); moduli.clear(); inverses.clear();
+      set_flush_setting(mode.bits);
+      for (std::size_t i = 0; i < xs.size(); ++i) for (std::size_t j = 0; j < ys.size(); ++j) {
+        if (!has_nan(i) && !has_nan(j)) {
+          continue;
+        }
+        quotients.push_back(xs[i] / ys[j]);
+        interval m = xs[i];
+        m %= ys[j];
+        moduli.push_back(m);
+      }
+      for (std::size_t j = 0; j < ys.size(); ++j) {
+        if (has_nan(j)) {
+          inverses.push_back(ys[j].inverse());
+        }
+      }
+      set_flush_setting(0u);
+      std::size_t k = 0, l = 0;
+      for (std::size_t i = 0; i < xs.size(); ++i) for (std::size_t j = 0; j < ys.size(); ++j) {
+        if (!has_nan(i) && !has_nan(j)) {
+          continue;
+        }
+        const auto describe = [&] { return "(" + hex(xs[i]) + ", " + hex(ys[j]) + "): x / y " + hex(quotients[k]) + ", x %= y " + hex(moduli[k]); };
+        check("x / y with a NaN in a stored lane is the empty set of the bits of emptyset()" + mode.name,
+              std::memcmp(&quotients[k], &empty, sizeof empty) == 0, describe);
+        check("x %= y with a NaN in a stored lane is the empty set of the bits of emptyset()" + mode.name,
+              std::memcmp(&moduli[k], &empty, sizeof empty) == 0, describe);
+        ++k;
+      }
+      for (std::size_t j = 0; j < ys.size(); ++j) {
+        if (has_nan(j)) {
+          const auto describe = [&] { return hex(ys[j]) + ": inverse " + hex(inverses[l]); };
+          check("y.inverse() with a NaN in a stored lane is the empty set of the bits of emptyset()" + mode.name,
+                std::memcmp(&inverses[l], &empty, sizeof empty) == 0, describe);
+          ++l;
+        }
+      }
+    }
+  }
+#endif
+
   // The Hausdorff distance of intervals with infinite bounds, and with zeros of
   // both signs, from the exact distances of their bounds: two equal bounds, the
   // infinite ones too (whose difference is a NaN), are at distance 0, and a bound
@@ -1659,6 +1733,9 @@ int main()
   max_and_min_on_special_bounds();
 #if GAOL_USING_SSE2_INSTRUCTIONS || GAOL_USING_NEON_INSTRUCTIONS
   max_and_min_on_stored_lanes();
+#endif
+#if GAOL_USING_NEON_INSTRUCTIONS
+  quotient_on_nan_lanes();
 #endif
   hausdorff_of_infinite_bounds();
   nb_fp_numbers_across_zero();
