@@ -738,7 +738,13 @@ point Q), which `numbers` checks there too.
   the other kinds), and, for those two kinds, of every pair of stored lanes made
   of special doubles (a NaN in one lane, bounds in the wrong order, an infinite
   bound...), whose bits have to be those of the formula of the other kinds, the
-  constructor of the maxima of the bounds; the tools of interval algorithms
+  constructor of the maxima of the bounds; `x / y`, `x %= y` and `y.inverse()`
+  of the NEON intervals when a stored lane of an operand holds a NaN (quiet or
+  signaling, of either sign, of the least and the greatest payloads), whatever
+  the other lanes hold, which have to give the bits of `interval::emptyset()`
+  (the kernels tell an empty operand on the integer bits of the four lanes: a
+  threshold off by one lets the signaling NaN of the least payload through);
+  the tools of interval algorithms
   (GAOL v5, point P): `width_enclosure()`, `inflate(r)` and `interval::midrad(m, r)`
   have to be the tightest enclosures of the exact width, of [a − r, b + r] and
   of [m − r, m + r], computed with exact rationals, on random intervals and
