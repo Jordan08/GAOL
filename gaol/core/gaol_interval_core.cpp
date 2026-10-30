@@ -6144,19 +6144,88 @@ interval nth_root(const interval& I, int q)
   }
 #elif GAOL_USING_NEON_INSTRUCTIONS
   /*
-    The same with the NEON intervals, without the case apart: the lanes are
-    compared as signed integers, from their bits (the comparisons of 64-bit
-    ARM on doubles signal the invalid-operation exception on a NaN, and the
-    modes that flush the subnormals to zero change them), and the order of the
-    integers is the one maximum() and minimum() give, -0 below +0 and the
-    subnormals by their values; the lanes are chosen by that order, and the
-    constructor of two bounds tells the result, as for the other kinds of
-    intervals (GAOL v5).
+    The same with the NEON intervals, told by integer instructions on the
+    four stored words <-l, r> of the operands (GAOL v5). The comparisons of
+    64-bit ARM on doubles signal the invalid-operation exception on a NaN, and
+    the modes that flush the subnormals to zero change them: the bounds are
+    compared as signed integers, the keys of order_key(), which order the
+    doubles that are no NaN as maximum() and minimum() do, -0 below +0 and the
+    subnormals by their values. The lane <-l> of the larger lower bound is
+    the lane of the smaller key, so that the key of l is the complement of the
+    key of the lane, and the larger lower bound and the larger upper bound
+    are chosen the same way.
+
+    The common case is told first, by the words alone: none is a NaN or a
+    stored -oo, which no interval holds (regular_word()), and l is below r
+    in each operand by the keys (the same double, or -0 below +0, is). The
+    bounds of max() and min() are then the lanes of the larger, or of the
+    smaller, keys, one comparison for each, and the constructor of two bounds
+    would keep them: l is below r in the result as it is in the operands, and
+    its words are among theirs. Nothing else is told, and no floating-point
+    instruction runs. Counted under qemu (Clang 18 to 21 and GCC 12), the
+    common case is 34 to 36 instructions, at most 2 of them on the vector
+    registers (the move of the two words to a vector register, when they
+    are not stored as a pair), where the lanes compared as vectors and told
+    by the constructor of two bounds were 41 to 43, 28 or 29 of them on the
+    vector registers (47 to 50 when the bounds of the result are equal, the
+    constructor then comparing their bits). The bounds are chosen by
+    conditional selects, not by branches.
+
+    The empty set, a NaN in a single lane too, is told next (behind the branch
+    of the common case: the compilers compute the tests of NaN before it
+    otherwise), and gives the empty set. The other cases, bounds in the wrong
+    order, a stored -oo, the zeros of different signs as l and r ([+0, -0],
+    which the constructor of two bounds takes), are max_min_other_cases(), out
+    of line and cold: the lanes compared as vectors and the constructor, as
+    before, so that the bits are the same.
   */
+#  ifndef GAOL_NOINLINE_COLD
+#    if defined(__GNUC__) || defined(__clang__)
+#      define GAOL_NOINLINE_COLD __attribute__((noinline, cold))
+#    elif defined(_MSC_VER)
+#      define GAOL_NOINLINE_COLD __declspec(noinline)
+#    else
+#      define GAOL_NOINLINE_COLD
+#    endif
+#  endif
+
+#  if defined(__GNUC__) || defined(__clang__)
+#    define GAOL_MAXMIN_INLINE __attribute__((always_inline)) inline
+#  elif defined(_MSC_VER)
+#    define GAOL_MAXMIN_INLINE __forceinline
+#  else
+#    define GAOL_MAXMIN_INLINE inline
+#  endif
+
   namespace neon_detail {
 
+  // Whether the word is the stored bound of an interval: no NaN, and no -oo. The word rotated left by
+  // one bit, the sign last, is then at most +oo rotated (0xffe0000000000000), whatever the sign
+  GAOL_INLINE bool regular_word(std::uint64_t w)
+  {
+    return ((w << 1) | (w >> 63)) <= 0xffe0000000000000ull;
+  }
+
+  // The word in the register it is in, at no cost: an empty asm statement that the compilers do not
+  // move a computation above (as reread_bounds() of gaol_interval_neon.cpp; Visual C++ has none on ARM64)
+  GAOL_INLINE std::uint64_t keep_word(std::uint64_t w)
+  {
+#  if !GAOL_NEON_MSVC
+    __asm__ __volatile__ ("" : "+r" (w));
+#  endif
+    return w;
+  }
+
+  // Whether the word is a NaN, of either sign
+  GAOL_INLINE bool nan_word(std::uint64_t w) { return (w << 1) > 0xffe0000000000000ull; }
+
   // The order of the doubles that are no NaN as signed integers, -0 below +0
-  // (bound_keys() makes the zeros equal)
+  GAOL_INLINE std::int64_t order_key(std::uint64_t w)
+  {
+    return static_cast<std::int64_t>(w ^ (static_cast<std::uint64_t>(static_cast<std::int64_t>(w) >> 63) >> 1));
+  }
+
+  // The order of the doubles that are no NaN as signed integers in both lanes, -0 below +0
   GAOL_INLINE int64x2_t zero_apart_keys(float64x2_t x)
   {
     const int64x2_t bits = vreinterpretq_s64_f64(x);
@@ -6173,28 +6242,63 @@ interval nth_root(const interval& I, int q)
     return maximum_wanted ? vbslq_f64(above, where_above, where_not) : vbslq_f64(above, where_not, where_above);
   }
 
+  // The stored bounds as two words
+  GAOL_INLINE void stored_words(const interval &I, std::uint64_t (&w)[2])
+  {
+    std::memcpy(w, &I.get_neoninterval(), sizeof w);
+  }
+
   } // namespace neon_detail
+
+  // The cases that the words do not tell, out of line: the stored bounds that the lanes compared as
+  // vectors and the constructor of two bounds give (the code that max() and min() were, GAOL v5)
+  static GAOL_NOINLINE_COLD float64x2_t max_min_other_cases(float64x2_t x, float64x2_t y, bool maximum_wanted)
+  {
+    using namespace neon_detail;
+    if (any_lane(vorrq_u64(nan_lanes(x), nan_lanes(y)))) { // an empty operand
+      return nan_pair();
+    }
+    const float64x2_t res = max_min_stored(x, y, maximum_wanted);
+    return upward_access::stored_bounds(interval(-vgetq_lane_f64(res, 0), vgetq_lane_f64(res, 1)));
+  }
+
+  template<bool maximum_wanted> GAOL_MAXMIN_INLINE interval max_min_words(const interval &I, const interval &J)
+  {
+    using namespace neon_detail;
+    std::uint64_t a[2], b[2];
+    stored_words(I, a);
+    stored_words(J, b);
+    // Lane 0 holds -l: the key of l is the complement of the key of the lane. It is kept as such: the compilers
+    // turn the comparisons of the complements into those of the keys of the lanes, and compute them a second time
+    const std::int64_t la = static_cast<std::int64_t>(keep_word(static_cast<std::uint64_t>(~order_key(a[0])))),
+                       lb = static_cast<std::int64_t>(keep_word(static_cast<std::uint64_t>(~order_key(b[0])))),
+                       ra = order_key(a[1]), rb = order_key(b[1]);
+    if (GAOL_UNLIKELY(!(regular_word(a[0]) && regular_word(a[1]) && regular_word(b[0]) && regular_word(b[1])
+                        && la <= ra && lb <= rb))) {
+      // The tests of NaN, here and not before the branch above, where the compilers put them
+      if (nan_word(keep_word(a[0])) || nan_word(keep_word(a[1])) || nan_word(keep_word(b[0])) || nan_word(keep_word(b[1]))) {
+        return interval::emptyset();
+      }
+      return interval(max_min_other_cases(upward_access::stored_bounds(I), upward_access::stored_bounds(J), maximum_wanted),
+                      gaol_detail::unchecked_bounds);
+    }
+    const std::uint64_t first = (maximum_wanted ? la > lb : la < lb) ? a[0] : b[0];
+    const std::uint64_t second = (maximum_wanted ? ra > rb : ra < rb) ? a[1] : b[1];
+    // The two words are written into the result, not moved to the lanes of a vector register that is stored
+    interval res = interval::emptyset();
+    const std::uint64_t words[2] = { first, second };
+    std::memcpy(&res.get_neoninterval(), words, sizeof words);
+    return res;
+  }
 
   interval  max(const interval &I, const interval &J)
   {
-    using namespace neon_detail;
-    const float64x2_t x = upward_access::stored_bounds(I), y = upward_access::stored_bounds(J);
-    if (any_lane(vorrq_u64(nan_lanes(x), nan_lanes(y)))) { // an empty operand
-      return interval::emptyset();
-    }
-    const float64x2_t res = max_min_stored(x, y, true);
-    return interval(-vgetq_lane_f64(res, 0), vgetq_lane_f64(res, 1));
+    return max_min_words<true>(I, J);
   }
 
   interval  min(const interval &I, const interval &J)
   {
-    using namespace neon_detail;
-    const float64x2_t x = upward_access::stored_bounds(I), y = upward_access::stored_bounds(J);
-    if (any_lane(vorrq_u64(nan_lanes(x), nan_lanes(y)))) { // an empty operand
-      return interval::emptyset();
-    }
-    const float64x2_t res = max_min_stored(x, y, false);
-    return interval(-vgetq_lane_f64(res, 0), vgetq_lane_f64(res, 1));
+    return max_min_words<false>(I, J);
   }
 #else
   interval  max(const interval &I, const interval &J)
