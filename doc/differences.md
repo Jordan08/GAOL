@@ -43,19 +43,29 @@ where it comes from.
     arguments in the four rounding directions, and give the same bits;
     `tests/u128.cpp` compares the halves with `unsigned __int128`, and a job of
     the continuous integration builds the whole of GAOL with the halves forced.
-  - mingw-w64 is no longer refused for its version. Both reasons are gone: the
-    hyperbolic functions of its math library, which GAOL no longer uses, and
-    the cost of its `fesetround()`, which GAOL no longer calls for its
-    elementary functions. MinGW-w64 GCC 12 to 15 are built and tested again
-    on 32-bit x86, and 14 and 15 on x86-64; only those whose `<fenv.h>` answers
-    `fegetround()` from a state of its own are still refused, CORE-MATH's
-    functions reading it to know the direction GAOL sets by writing the
-    registers (`gaol/gaol_config.h`).
-  - `tests/core_math.cpp` checks the bounds against CORE-MATH called in the
-    downward and the upward rounding, `tests/expressions.cpp` the intervals
-    read from a string, and `-DGAOL_COVERAGE=ON` writes the coverage of the
-    tests in [coverage/README.md](../coverage/README.md) (87 % of the lines of
-    GAOL).
+  - mingw-w64 is no longer refused for its version alone. Both former reasons
+    are gone: the hyperbolic functions of its math library, which GAOL no
+    longer uses, and the cost of its `fesetround()`, which GAOL no longer calls
+    for its elementary functions. MinGW-w64 GCC 12 to 15 are built and tested
+    again on 32-bit x86, GCC 14 and 15 on x86-64, and so are MSYS2 UCRT64 and
+    CLANG64. Still refused (`gaol/gaol_config.h`) are the mingw-w64 whose
+    `fma()` or `round()` is wrong, those of its own math library, computed in
+    doubles: that `fma()` is not correctly rounded (10.7 % of the error-free
+    products `fma(a, b, -a*b)` were wrong with mingw-w64 11 on x86-64), and
+    CORE-MATH computes with it wherever the compiler has no `-mfma`; that
+    `round()` depends on the rounding direction. On x86-64 these are the
+    mingw-w64 before version 12 and those linked with `msvcrt.dll` rather than
+    the UCRT (MSYS2 MINGW64, the cross compilers of Debian and Ubuntu); on
+    32-bit x86, those before version 11 and, from 12 on, those linked with
+    `msvcrt.dll` where the build has no `-mfma` (MSYS2 MINGW32); on ARM, as on
+    x86-64 but for `round()` alone (`fma()` is an instruction there), a refusal
+    that is not tested.
+  - `tests/core_math.cpp` checks the `fma()` and `round()` of the C library in
+    the four rounding directions, against exact rational arithmetic, then the
+    bounds against CORE-MATH called in the downward and the upward rounding,
+    `tests/expressions.cpp` the intervals read from a string, and
+    `-DGAOL_COVERAGE=ON` writes the coverage of the tests in
+    [coverage/README.md](../coverage/README.md) (87 % of the lines of GAOL).
   - **`exp2`, `exp10`, `log2` and `log10`**, which IEEE 1788-2015 requires
     among the forward elementary functions (Table 9.1) and which GAOL did not
     provide, are bounded with CORE-MATH's, the tightest bounds. The value that
@@ -958,15 +968,139 @@ where it comes from.
   MinGW-w64 and MSYS2 on x64. The placement `delete` of `interval` and
   `interval2f`, called when a constructor throws (`interval("1", "x")`), freed
   the caller's memory; it now leaves it alone.
-- **Visual C++ without `/fp:strict`** is refused by `gaol/gaol_config.h`, as
-  `/fp:fast` was. Built with `/fp:strict` for GAOL and without it for the tests,
-  `rounding_direction` and `other_functions` crashed with Visual Studio 2022 on
-  x86 and x64: `round_upward_if_needed()` initialized its 2^-60 as `1.0/2^60`,
-  which Visual C++ computed when the function first ran with `/fp:strict`, and
-  at compile time, in read-only memory, without; the linker kept one copy, and
-  GAOL wrote into it. 2^-60 is now a literal, and the tests pass so. Built
-  without `/fp:strict` everywhere, they passed too, but Visual C++ then assumes
-  rounding to nearest, and nothing certifies the bounds.
+- **Visual C++ and clang-cl without `/fp:strict`** are refused by
+  `gaol/gaol_config.h`, as `/fp:fast` is. Built with `/fp:strict` for GAOL and
+  without it for the tests, `rounding_direction` and `other_functions` crashed
+  with Visual Studio 2022 on x86 and x64: `round_upward_if_needed()` initialized
+  its 2^-60 as `1.0/2^60`, which Visual C++ computed when the function first ran
+  with `/fp:strict`, and at compile time, in read-only memory, without; the
+  linker kept one copy, and GAOL wrote into it. 2^-60 is now a literal, and the
+  tests pass so. Built without `/fp:strict` everywhere, they passed too, but
+  Visual C++ then assumes rounding to nearest, and nothing certifies the bounds.
+  clang-cl from Clang 16 defines the same macros of the floating-point model as
+  Visual C++ (`_M_FP_STRICT` with `/fp:strict` alone, `_M_FP_PRECISE` by
+  default): without `/fp:strict` it compiles with
+  `-fno-rounding-math -ffp-contract=on`, assuming rounding to nearest as Visual
+  C++ does, and was not refused. Before Clang 16 it does not tell its model, and
+  is not checked.
+- **clang-cl for 32-bit x86 is given `-msse2`.** clang-cl 18 computes the
+  doubles on the x87 unit there, even with `/arch:SSE2` (`_M_IX86_FP` is 1 and
+  `__SSE2_MATH__` is not defined), which `gaol/gaol_config.h` refuses, CORE-MATH
+  rounding some results twice. `-msse2` makes it compute them in SSE2
+  (`_M_IX86_FP` 2, `FLT_EVAL_METHOD` 0), as Visual C++ does by default. CMake
+  and meson give it to GAOL and, with the other flags of interval arithmetic, to
+  the code using GAOL (`gaol::gaol`, `gaol.pc`).
+- **`-ffinite-math-only` is refused** by `gaol/gaol_config.h`, as `-ffast-math`
+  and `/fp:fast` are; GAOL 4 refused none of them. `-ffast-math` and `-Ofast`
+  turn it on, and the compiler then takes NaN and infinities never to occur, in
+  the inline functions of the headers too: the empty interval has NaN bounds,
+  `is_empty()` reads it as `!std::islessequal(left(), right())`, and
+  `([1, 2] & [3, 4]).is_empty()` is false once the compiler has folded the test
+  away (GCC 9.4 and 13 at `-O0`, `-O2` and `-O3`; Clang 18 at `-O0`, and at
+  `-O2` and `-O3` when the bounds are `volatile`). The check reads
+  `__FINITE_MATH_ONLY__`, so it also refuses what `__FAST_MATH__` does not show:
+  with Clang, `-Ofast` or `-ffast-math` followed by `-frounding-math` leave
+  `__FAST_MATH__` undefined and `__FINITE_MATH_ONLY__` at 1.
+  - **The remedy** is the flags of interval arithmetic that `gaol.pc` and
+    `gaol::gaol` give, after the option: `-fno-fast-math` turns `-ffast-math`
+    and `-ffinite-math-only` off when it comes after them, and does nothing
+    when they come after it, where the compilation stops. With Clang,
+    `-ffast-math` and `-Ofast` turn `-frounding-math` off too, which
+    `-fno-fast-math` does not turn on again, and Clang 18 compiled GAOL's
+    operations as if rounding to nearest (54 of the 292728 checks of
+    `tests/rounding_direction.cpp` failed after `-ffast-math -fno-fast-math`,
+    126 after `-Ofast -fno-fast-math`, none with all the flags after the
+    option).
+  - **What no macro shows is not refused**, and the code using GAOL is not to
+    be compiled with it: `-funsafe-math-optimizations` and
+    `-ffast-math -fno-finite-math-only` with GCC, which rewrite the addition by
+    which GAOL tells the rounding direction, so that an operation does not set
+    the direction upward again after the code using GAOL left it to nearest, and
+    `width()` is below the exact width; `-fno-signed-zeros` with GCC and Clang,
+    which drops the `+ 0.0` of the addition that tells the modes flushing the
+    subnormals to zero; and `-fno-honor-nans` alone with Clang, which does to
+    the empty interval what `-ffinite-math-only` does (see [Compilers and
+    options refused](three-builds.md#compilers-and-options-refused)).
+  - **Tests.** The CMake tests `refused_finite_math_only` and
+    `refused_fast_math` compile `tests/refused_options.cpp` with each option
+    after the flags of interval arithmetic and check that the header refuses it,
+    `refused_positive` that it compiles without them (GCC and Clang);
+    `tests/refused_options.sh` does the same with configure and meson.
+- **The compilers that do not honour the rounding direction are refused**,
+  the C compiler as well as the C++ compiler, by the three builds when they
+  configure (see [Compilers and options
+  refused](three-builds.md#compilers-and-options-refused)): Clang for 32-bit
+  ARM processors, and any compiler that says of `-frounding-math` "overriding
+  currently unsupported rounding mode on this target", as Clang 14 does for
+  64-bit ARM. GAOL 4 accepted them; built by Clang 21 for 32-bit ARM, GAOL v5
+  gave 4556 of 16000 random products, squares and cubes that did not enclose
+  their exact values. The C compiler builds CORE-MATH and the C++ compiler
+  the rest of GAOL, and neither may be one of them: `CC=clang CXX=g++` on
+  armhf is refused. `gaol/gaol_config.h` refuses Clang for 32-bit ARM again
+  when the code including GAOL's headers is compiled.
+- **`GAOL_INFINITY` is `std::numeric_limits<double>::infinity()`**, a constant
+  of the compiler, where GAOL 4 took the `HUGE_VAL` of the C library. The UCRT
+  of Windows (SDK 10.0.26100) writes `HUGE_VAL` as `((double)(float)1e+300)`:
+  Visual C++ makes the conversion when compiling, but clang-cl under
+  `/fp:strict` makes it when the program runs, in the rounding direction of the
+  moment, and got `FLT_MAX` when that direction was downward or toward zero,
+  with the overflow flag. `interval()` was then `[-FLT_MAX, FLT_MAX]`,
+  `interval(1e300)` was empty and `[1] / [-1, 1]` did not contain 1e300;
+  `GAOL_INFINITY` being in the inline code of the public headers, the program
+  using GAOL got the same value.
+- **GCC for Windows is given the fused multiply-add instructions** (MinGW-w64,
+  MSYS2 and Cygwin, on x86-64 and on 32-bit x86): the three builds give it
+  `-mfma -mprefer-vector-width=128` under the conditions of the other compilers,
+  and a GCC older than 8, which has no `-mprefer-vector-width`, none. It had no
+  flag: `-mfma` turns AVX on, GCC then vectorizes with 256-bit registers and
+  spills them to a stack it takes to be aligned on 32 bytes, where the ABI of
+  Windows x64 guarantees 16 (GCC bug 54412, which crashed the MinGW builds of
+  Codac and is fixed in GCC 17), so that CORE-MATH called a software `fma()` and
+  the integer powers had no FMA kernel. With the second flag `objdump` finds no
+  `%ymm` in the objects of GAOL, CORE-MATH and the tests, against 30598 lines
+  with `-mfma` alone (GCC 16.2, MSYS2 UCRT64), and a step of the continuous
+  integration fails on any of them in the objects built for x86-64. On 32-bit
+  x86 the defect was not shown to act, and the two options go together so that
+  the objects hold no 256-bit register either (4709 lines with `-mfma` alone,
+  none with both, GCC 15.2; GCC 13.2 leaves 9 lines in two test objects with
+  both, which the step reports without failing). `-mstackrealign`, for the
+  4-byte stack of the threads of Windows, changed no time with GCC 15.2, and
+  GAOL does not give it. On the runner of GitHub (same compiler, x86-64),
+  `pow(x, 3)` takes 8.7 ns rather than 52.3, `log(x)` 33.6 rather than 106.4 and
+  `cos(x)` 55.4 rather than 260.5; with MinGW-w64 15.2 for 32-bit x86, 12.1 ns
+  rather than 70.5, 81.9 rather than 265.7 and 138.3 rather than 489.6; `x * y`
+  and `x / y` change by 7 % at most, within the noise of the runner. The
+  library, and the code using it through `gaol::gaol` or `gaol.pc`, then need a
+  processor with the FMA and AVX instructions (Intel Haswell, AMD Piledriver,
+  2012-2013, and later), as with the other x86 compilers; `-DGAOL_FMA=OFF`, a
+  setting of the developers, builds for any x86 processor with a MinGW-w64 that
+  links the UCRT (MSYS2 MINGW32, which links `msvcrt.dll`, is refused without
+  the instructions). The 256-bit intrinsics a program writes itself stay exposed
+  to the defect.
+- **Cygwin on x86-64 is built and tested**, with GCC, by the three builds in the
+  continuous integration, and **it is refused without the fused multiply-add
+  instructions**: the `fma()` of its C library is not correctly rounded
+  (`fma(1 + 2^-30, 1 - 2^-30, -1)` is 0 rather than -2^-60) and CORE-MATH
+  computes with `fma()`, so `gaol/gaol_config.h` stops the compilation without
+  `-mfma`, which the builds give it as they do to the other GCC for Windows. The
+  exact products of GAOL (`fma_once()`) and the program that the configuration
+  runs to know whether the machine runs `-mfma` call `__builtin_fma`, the
+  instruction at every level of optimization, where `std::fma` without
+  optimization is a call of that `fma()`. Three more things came with it:
+  - **`previous_float()` and `next_float()`** give `-oo` and `+oo` at `-DBL_MAX`
+    and `DBL_MAX` with every C library, where GAOL 4 called `nextafter()` as it
+    came. The `nextafter()` of Cygwin computes that overflow as `x + x` in the
+    rounding direction of the program, upward for GAOL: `nextafter(-DBL_MAX,
+    -oo)` was `-DBL_MAX`, and the lower bound of `sinh(-711)`, whose value is
+    below `-DBL_MAX`, did not enclose it.
+  - **The aligned memory** of the SSE2 intervals is `_mm_malloc()` and
+    `_mm_free()` of GCC there: the `<stdlib.h>` of Cygwin does not declare
+    `posix_memalign()` with `-std=c++11`.
+  - **`package_source` is not available there**: in the job of the continuous
+    integration (CMake 4.4.4, 23 October 2026) CPack, with TGZ, TBZ2 and ZIP
+    alike, failed to add `README`, a symbolic link to `README.md`, to the
+    archive ("Couldn't list extended attributes"). The cause was not found, and
+    `tests/cpack_stale_configure.cmake` says it is skipped.
 - **The intervals of floats are compiled by a developer of GAOL only**:
   `gaol::intervalf`, intervals of floats computed on the x87 unit, and
   `gaol::interval2f`, two of them in an SSE3 register, were compiled and

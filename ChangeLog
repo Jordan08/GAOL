@@ -210,6 +210,84 @@
 	of Python (WindowsApps) that meson 0.53.0 and earlier may take
 	for it.
 
+	Compilers and platforms:
+
+	* gaol/gaol_config.h: -ffast-math, -ffinite-math-only (which
+	-ffast-math turns on), /fp:fast and Visual C++ without /fp:strict are
+	refused; GAOL 4 refused none of them.  Clang's -Ofast and -ffast-math
+	followed by -frounding-math are refused too (__FINITE_MATH_ONLY__ is
+	1, __FAST_MATH__ is not defined).  The remedy is the flags of gaol.pc
+	after the option: Clang's -ffast-math turns -frounding-math off,
+	which -fno-fast-math does not turn on again.
+	* tests/CMakeLists.txt, tests/refused_options.cpp,
+	tests/refused_options.sh: the compile tests refused_finite_math_only,
+	refused_fast_math and refused_positive, and the same checks with
+	configure and meson.
+	* .github/audit: __FINITE_MATH_ONLY__ is compared too.
+	* gaol/gaol_config.h: clang-cl from Clang 16 is refused
+	without /fp:strict, as Visual C++ is (tests/fp_strict checks
+	it).
+	* CMakeLists.txt, meson.build, gaol/meson.build: -msse2 for clang-cl
+	on 32-bit x86, which computes doubles on the x87 unit even with
+	/arch:SSE2; /Zc:strictStrings- for Visual C++ alone, clang-cl warning
+	of it.
+	* .github/workflows/windows.yml: jobs with clang-cl of Visual
+	Studio 2022 (x64) and 2026 (x86, x64 and arm64).
+	* gaol/gaol_port.h: GAOL_INFINITY is
+	numeric_limits<double>::infinity(), where it was the HUGE_VAL
+	of the C library, which the UCRT writes (double)(float)1e+300
+	and clang-cl computes when the program runs: FLT_MAX in the
+	downward and the toward-zero rounding.
+	* CMakeLists.txt, configure.ac, meson.build: the C compiler, which
+	builds CORE-MATH, is refused as the C++ compiler is: when it is Clang
+	for a 32-bit ARM processor, or says of -frounding-math that the
+	rounding direction is not honoured on the target (Clang 14 for 64-bit
+	ARM); containers.yml and linux.yml check it for the three builds, for
+	the C compiler alone, the C++ compiler alone and both.
+	* gaol/gaol_config.h, tests/core_math.cpp: mingw-w64 is refused when
+	the program gets mingw-w64's own fma() and round(), computed in
+	doubles: that fma() is not correctly rounded, and CORE-MATH computes
+	with it where the build has no -mfma; that round() depends on the
+	rounding direction.  On x86-64, and on ARM for round() alone, those
+	before version 12 and those linked with msvcrt.dll rather than the
+	UCRT; on 32-bit x86, those before version 11 and, from 12 on, those
+	linked with msvcrt.dll where the build has no -mfma.  The test checks
+	first the fma() and round() of the C library in the four rounding
+	directions, against exact rational arithmetic.
+	* CMakeLists.txt, configure.ac, meson.build: GCC for Windows
+	(MinGW-w64, MSYS2, Cygwin), on x86-64 and on 32-bit x86, is given
+	-mfma -mprefer-vector-width=128 under the conditions of the other
+	compilers, and a GCC without the second option none: -mfma alone
+	lets GCC spill 256-bit registers to a stack it does not align (GCC
+	bug 54412, fixed in GCC 17).
+	.github/scripts/check-gcc-windows-fma.sh, run by windows.yml, fails
+	on a line with %ymm in the objects of x86-64 (on 32-bit x86 it only
+	reports them).  With MinGW-w64 15.2 for 32-bit x86, pow(x, 3) takes
+	12 ns rather than 70, log 82 rather than 266 and cos 138 rather than
+	490.  The library and the programs using it need a processor with the
+	fused multiply-add instructions (Intel Haswell, AMD Piledriver and
+	later); GAOL_FMA=OFF leaves them out, but MSYS2 MINGW32, which links
+	msvcrt.dll, is then refused.
+	* gaol/gaol_config.h: Cygwin is refused without -mfma, the fma() of
+	its C library not being correctly rounded; the three builds give it
+	-mfma, as they do to the other GCC for Windows.
+	* gaol/core/gaol_interval_core.cpp, CMakeLists.txt, configure.ac,
+	meson.build: the exact products and the test of the machine that
+	runs -mfma call __builtin_fma, the instruction with -mfma at every
+	level of optimization, where std::fma without optimization is a
+	call of the C library.
+	* gaol/gaol_fpu_fenv.h, gaol/gaol_fpu_msvc.h (previous_float,
+	next_float): give -oo and +oo at -DBL_MAX and DBL_MAX with every C
+	library; nextafter(-DBL_MAX, -oo) of Cygwin gave -DBL_MAX in the
+	upward rounding, and the lower bound of sinh(-711) did not enclose
+	its value.
+	* gaol/gaol_port.h: _mm_malloc() and _mm_free() on Cygwin, whose
+	<stdlib.h> does not declare posix_memalign() with -std=c++11.
+	* .github/workflows: Cygwin x86-64 (GCC) is built and tested with
+	the three builds.  package_source does not work there (CPack fails
+	on the link README); tests/cpack_stale_configure.cmake says it is
+	skipped.
+
 2020-05-10  Frederic Goualard  <Frederic.Goualard@univ-nantes.fr>
 
 	* configure.ac: using gcc standard strtod() instead of gdtoa's
