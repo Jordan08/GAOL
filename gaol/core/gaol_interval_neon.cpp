@@ -68,8 +68,6 @@
   {
     return vcombine_f64(vneg_f64(vget_low_f64(y)), vget_high_f64(y));
   }
-  // All ones in the lanes that hold a NaN or an infinity
-  GAOL_INLINE uint64x2_t nonfinite_lanes(float64x2_t x) { return vcgeq_u64(abs_bits(x), vdupq_n_u64(infinity_bits)); }
   GAOL_INLINE float64x2_t nan_pair() { return vdupq_n_f64(std::numeric_limits<double>::quiet_NaN()); }
   GAOL_INLINE float64x2_t stored(double minus_left, double right)
   {
@@ -213,10 +211,11 @@ namespace gaol_core {
     bit dropped: they are at least 0xffe00000 for a NaN and an infinity, and
     below for a finite number, whatever the low bits. The four narrowed values
     go into one vector (shrn and shrn2), where one reduction gives their maximum:
-    4 vector instructions in place of 8, and no constant in a vector register
-    (two absolute values, two comparisons of 64-bit lanes and their or, which
-    were the test of nonfinite_lanes() of the two operands). The same predicate
-    on the bits, for every pattern
+    4 vector instructions in place of 7 or 8, and no constant in a vector
+    register (the two absolute values, the two comparisons of 64-bit lanes
+    with the bits of +oo and their or, which were the test of each operand
+    before, then the same reduction). The same predicate on the bits, for
+    every pattern
   */
   GAOL_INLINE bool any_nonfinite(float64x2_t x, float64x2_t y)
   {
@@ -248,11 +247,15 @@ namespace gaol_detail {
     A bound that is NaN, or infinite, takes the slower path of
     guarded_products(): the empty set, which has NaN in both lanes, makes
     the empty set; a zero times an infinity is zero, whatever the signs. The
-    test is one unsigned comparison of the bits. The maximum of 64-bit ARM
-    ranks +0 above -0 and x86 maxpd returns its second operand: where the
-    two lanes of a pair of zeros differ in sign, the sign of a zero bound
-    may differ from the one of the SSE2 intervals (GAOL v5, like the AVX-512
-    path; the values are equal).
+    test is any_nonfinite(): the exponent bits of the four bounds, narrowed
+    and reduced to one maximum, and one comparison of it. The maximum of
+    64-bit ARM ranks +0 above -0 and x86 maxpd returns its second operand:
+    where the two lanes of a pair of zeros differ in sign, the sign of a zero
+    bound may differ from the one of the SSE2 intervals (GAOL v5, like the
+    AVX-512 path; the values are equal). With FPCR.AH set, which GAOL does
+    not support, FMAX returns its second operand for zeros of different
+    signs, and the sign of a zero bound may differ from what it is with AH
+    clear, the order of the operands of the maxima having changed.
   */
   float64x2_t mul_bounds(float64x2_t x, float64x2_t y)
   {
