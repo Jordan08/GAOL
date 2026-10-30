@@ -6149,14 +6149,63 @@ interval nth_root(const interval& I, int q)
     ARM on doubles signal the invalid-operation exception on a NaN, and the
     modes that flush the subnormals to zero change them), and the order of the
     integers is the one maximum() and minimum() give, -0 below +0 and the
-    subnormals by their values; the lanes are chosen by that order, and the
-    constructor of two bounds tells the result, as for the other kinds of
-    intervals (GAOL v5).
+    subnormals by their values; the lanes are chosen by that order, one mask
+    for both of them (GAOL v5).
+    The constructor of two bounds is not run on the result, whose comparisons
+    of doubles, the conversion of their flags to a mask and the branches
+    on them were most of the instructions on the vector pipelines: the two
+    words of the result are told in the integer registers, by the tests that
+    the constructor makes (regular_word(), no NaN and no -oo, and l below r
+    by the keys of order_key()), and only the result that fails them goes
+    through the constructor, whose bits it keeps whatever it does with the
+    zeros of different signs ([+0, -0]) and the pairs in the wrong order.
   */
+#  ifndef GAOL_NOINLINE_COLD
+#    if defined(__GNUC__) || defined(__clang__)
+#      define GAOL_NOINLINE_COLD __attribute__((noinline, cold))
+#    elif defined(_MSC_VER)
+#      define GAOL_NOINLINE_COLD __declspec(noinline)
+#    else
+#      define GAOL_NOINLINE_COLD
+#    endif
+#  endif
+
+#  if defined(__GNUC__) || defined(__clang__)
+#    define GAOL_MAXMIN_INLINE __attribute__((always_inline)) inline
+#  elif defined(_MSC_VER)
+#    define GAOL_MAXMIN_INLINE __forceinline
+#  else
+#    define GAOL_MAXMIN_INLINE inline
+#  endif
+
   namespace neon_detail {
 
+  // Not a NaN, and not -oo: rotated by one bit, the sign last, the word is at most +oo
+  GAOL_INLINE bool regular_word(std::uint64_t w)
+  {
+    return ((w << 1) | (w >> 63)) <= 0xffe0000000000000ull;
+  }
+
+  // The word in the register it is in, at no cost: an empty asm statement that the compilers
+  // do not move a computation above (see reread_bounds() of gaol_interval_neon.cpp)
+  GAOL_INLINE std::uint64_t keep_word(std::uint64_t w)
+  {
+#  if !GAOL_NEON_MSVC
+    __asm__ __volatile__ ("" : "+r" (w));
+#  endif
+    return w;
+  }
+
+  // A NaN
+  GAOL_INLINE bool nan_word(std::uint64_t w) { return (w << 1) > 0xffe0000000000000ull; }
+
   // The order of the doubles that are no NaN as signed integers, -0 below +0
-  // (bound_keys() makes the zeros equal)
+  GAOL_INLINE std::int64_t order_key(std::uint64_t w)
+  {
+    return static_cast<std::int64_t>(w ^ (static_cast<std::uint64_t>(static_cast<std::int64_t>(w) >> 63) >> 1));
+  }
+
+  // The order of the doubles that are no NaN as signed integers in both lanes, -0 below +0
   GAOL_INLINE int64x2_t zero_apart_keys(float64x2_t x)
   {
     const int64x2_t bits = vreinterpretq_s64_f64(x);
@@ -6173,28 +6222,51 @@ interval nth_root(const interval& I, int q)
     return maximum_wanted ? vbslq_f64(above, where_above, where_not) : vbslq_f64(above, where_not, where_above);
   }
 
+  // The stored bounds as two words
+  GAOL_INLINE void stored_words(const interval &I, std::uint64_t (&w)[2])
+  {
+    std::memcpy(w, &I.get_neoninterval(), sizeof w);
+  }
+
+
+  // The same with one mask for both lanes
+  GAOL_INLINE float64x2_t max_min_stored_one_mask(float64x2_t x, float64x2_t y, bool maximum_wanted)
+  {
+    const int64x2_t kx = zero_apart_keys(x), ky = zero_apart_keys(y);
+    const uint64x2_t above = vcgtq_s64(kx, ky);      // x above y, lane by lane
+    const uint64x2_t not_above = vcgeq_s64(ky, kx);  // x not above y
+    // max(): x is taken where it is not above y in the first lane, above it in the second; min() the other way round
+    const uint64x2_t take_x = maximum_wanted ? vcombine_u64(vget_low_u64(not_above), vget_high_u64(above))
+                                             : vcombine_u64(vget_low_u64(above), vget_high_u64(not_above));
+    return vbslq_f64(take_x, x, y);
+  }
+
   } // namespace neon_detail
 
-  interval  max(const interval &I, const interval &J)
+  template<bool maximum_wanted> GAOL_MAXMIN_INLINE interval max_min_checked(const interval &I, const interval &J)
   {
     using namespace neon_detail;
     const float64x2_t x = upward_access::stored_bounds(I), y = upward_access::stored_bounds(J);
     if (any_lane(vorrq_u64(nan_lanes(x), nan_lanes(y)))) { // an empty operand
       return interval::emptyset();
     }
-    const float64x2_t res = max_min_stored(x, y, true);
-    return interval(-vgetq_lane_f64(res, 0), vgetq_lane_f64(res, 1));
+    const float64x2_t res = max_min_stored_one_mask(x, y, maximum_wanted);
+    // What the constructor of two bounds keeps, told on the two words in the integer registers
+    const std::uint64_t first = vgetq_lane_u64(vreinterpretq_u64_f64(res), 0), second = vgetq_lane_u64(vreinterpretq_u64_f64(res), 1);
+    if (GAOL_UNLIKELY(!(regular_word(first) && regular_word(second) && ~order_key(first) <= order_key(second)))) {
+      return interval(-vgetq_lane_f64(res, 0), vgetq_lane_f64(res, 1));
+    }
+    return interval(res, gaol_detail::unchecked_bounds);
+  }
+
+  interval  max(const interval &I, const interval &J)
+  {
+    return max_min_checked<true>(I, J);
   }
 
   interval  min(const interval &I, const interval &J)
   {
-    using namespace neon_detail;
-    const float64x2_t x = upward_access::stored_bounds(I), y = upward_access::stored_bounds(J);
-    if (any_lane(vorrq_u64(nan_lanes(x), nan_lanes(y)))) { // an empty operand
-      return interval::emptyset();
-    }
-    const float64x2_t res = max_min_stored(x, y, false);
-    return interval(-vgetq_lane_f64(res, 0), vgetq_lane_f64(res, 1));
+    return max_min_checked<false>(I, J);
   }
 #else
   interval  max(const interval &I, const interval &J)
