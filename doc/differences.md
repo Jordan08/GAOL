@@ -93,8 +93,9 @@ where it comes from.
     `interval`, so that `using namespace gaol_ieee1788;` is enough to use them
     (see [Using GAOL](using.md#the-names-of-ieee-1788-2015)). Its `pow` is
     the standard's, `pow(x, 2)` being `pow(x, [2])` and the integer power
-    `pown(x, 2)`, and an integer exponent beyond the ints gives the pow of
-    CORE-MATH at the bounds of x, where the `pow` of `gaol` gives [-oo, +oo].
+    `pown(x, 2)`, and a degenerate integer exponent beyond the ints gives the
+    pow of CORE-MATH at the bounds of x in [0, +oo], where the `pow` of `gaol`
+    takes the integer power on the whole of x, a negative part included.
   - **`cospi.c` of CORE-MATH shifted a signed integer** out of its range,
     undefined behaviour that the tests run with UBSan reported; it shifts it
     unsigned now, as `sinpi.c` and `tanpi.c` do (see
@@ -281,23 +282,39 @@ where it comes from.
     six times, calling `width()`, `+` and `/` on intervals after its own
     check, and `acos_rel()`, `asin_rel()` and `atan_rel()` six times too,
     with `acos()`, `asin()` or `atan()` of J and four operations of intervals;
-    `pow(x, -n)` two to five times, with `inverse()` and `gaol_uipow()`;
-    `pow(x, n)` twice where it falls back to the products rounded outward (a
-    bound 0 or infinite, a power not finite or below 2^-968); `nth_root(x, n)`
-    for n >= 4 twice; `gaol_ieee1788::pow(x, [n])` for an integer n beyond the
-    ints three times. They compute on doubles, or with the bodies of the
-    operations they called (`uipow_rounded_upward()`,
-    `interval::inverse_upward()`), after their one check, and give the same
-    bounds, bit for bit, in the SSE2 and FPU builds and with
-    `GAOL_PRESERVE_ROUNDING`. `sqrt_rel()` no longer sets the direction
-    downward then upward again, two changes per call in every build: its
-    lower bound is computed upward, as `sqrt()` computes it. `tan()` takes
-    22 % less time, `acos_rel()` 24 %, `sqrt_rel()` 29 %, `pow(x, -3)` 6 %;
-    with `GAOL_PRESERVE_ROUNDING`, where each check saves and restores the
-    direction, `tan()` 74 % and `acos_rel()` 83 % (Clang 18, i7-1185G7).
-    Still checking more than once: `pow(x, y)` where it takes exp(y log x)
-    (an infinite bound, or a base from 0 with an exponent not above 0),
-    `nth_root(x, q)` for q < 0, the inverse of a root, and `modulo_k_pi()`.
+    `nth_root(x, n)` for n >= 4 twice; `gaol_ieee1788::pow(x, [n])` for an
+    integer n beyond the ints three times; `pow(x, [n])`, `pow(x, n.0)` and
+    `gaol_ieee1788::pow(x, [n])` for an n within the ints, `nth_root(x, q)` for
+    q < 0, `acosh_rel()`, `asinh_rel()`, `atanh_rel()`, `nth_root_rel()` and
+    `modulo_k_pi()` twice; `nth_root(x, q)` for an order beyond the unsigned
+    ints (`long long`, `unsigned long long`) two or three times. They compute on
+    doubles, or with the bodies of the operations they called (`pown_upward()`,
+    `nth_root_upward()`, `interval::inverse_upward()`), after their one check,
+    and give the same bounds, bit for bit, in the SSE2 and FPU builds and with
+    `GAOL_PRESERVE_ROUNDING`, but for the quotients of `modulo_k_pi()` (below).
+    `sqrt_rel()` no longer sets the direction downward then upward again, two
+    changes per call in every build: its lower bound is computed upward, as
+    `sqrt()` computes it. `tan()` takes 22 % less time, `acos_rel()` 24 %,
+    `sqrt_rel()` 29 %, `pow(x, [3])` 7 %, `nth_root(x, -2)` 13 %, and
+    `modulo_k_pi()` 10 ns rather than 22, its quotients by pi being computed on
+    doubles, as `tan()` computes them (a bound 0 gives a quotient 0 of its own
+    sign, an infinite bound NaN); with `GAOL_PRESERVE_ROUNDING`, where each
+    check saves and restores the direction, `tan()` 74 %, `acos_rel()` 83 %,
+    `pow(x, [-3])` and `gaol_ieee1788::pow(x, [3])` 20 and 21 %, and
+    `nth_root(x, -3)` 15 % (Clang 18, i7-1185G7). Still checking more than once:
+    `nth_root(x, q)` for an order beyond 64 bits, which only an `__int128`
+    gives, and `nth_root(x, -2)` where the square root has a vector path of its
+    own (the AVX-512 intervals, taken with `GAOL_PRESERVE_ROUNDING`, and the
+    NEON ones without it), where it takes `sqrt()` and then `inverse()`, each
+    checking, faster than one check before the scalar root.
+  - **`GAOL_RND_KEEP()` of an interval keeps its two bounds**, with
+    `GAOL_PRESERVE_ROUNDING` (`rnd_keep()` of an interval,
+    `gaol/core/gaol_interval_core.h`): through two volatile doubles with the
+    SSE2 and FPU intervals, and in the register itself with the NEON ones where
+    the compiler has an `asm` statement, where the template of
+    `gaol/gaol_fpu.h` copied the interval a byte at a time into volatile
+    memory. `pow(x, [-3])` and `nth_root_rel()` take 26 to 27 % less time,
+    `asinh_rel()` and `atanh_rel()` 21 % (Clang 18, i7-1185G7).
   - **`tan()` keeps its bounds before setting the direction back**, with
     `GAOL_PRESERVE_ROUNDING`: it set it back first, and `GAOL_RND_KEEP()`,
     which writes the bounds to memory so that they are computed before, came
@@ -930,54 +947,119 @@ where it comes from.
   - `pow(I, J)` computed the powers of the negative part of `I` on its
     magnitude: `pow([-4,-1], [0.5])` returned `[-1, 2]`. It is now hybrid: a
     degenerate integer exponent `[n]` always takes `pow(I, int)`, the `pown` of
-    IEEE 1788, which keeps the negative part of `I` and gives `0^0 = 1`, and
-    `[-oo, +oo]` for an `n` beyond the ints; any other exponent takes the `pow`
+    IEEE 1788, which keeps the negative part of `I` and gives `0^0 = 1`, and,
+    for an `n` beyond the ints, the bounds of the pow of CORE-MATH at the
+    corners of `I`; any other exponent takes the `pow`
     of IEEE 1788, on the part of `I` in `[0, +oo]`, where `0^y` is `0` for
     `y > 0` and has no value for `y <= 0`: `pow([0], [0.5])` was
     `[0, 4.9e-324]`, and `pow([0], [-0.5])` was `[MAX, +oo]`. An exponent
     `[+oo]` or `[-oo]`, which contains no real number, gives the empty set.
-- **`pow(I, J)` with finite bounds takes the tightest bounds at the corners
-  of the box**, but for a lower bound one double below where the power there
-  is a double ([issue #8](https://github.com/Jordan08/GAOL/issues/8)). x^y
-  increases with y for x > 1 and decreases for x < 1, increases with x for
-  y > 0 and decreases for y < 0: over a box of bases above 0 its extrema are
-  at corners, which the places of the bounds about 1 and 0 give, and the pow
-  of CORE-MATH, correctly rounded upward, is taken there; a base from 0 with
-  exponents above 0 has 0 for lower bound.
+- **`pow(I, J)` takes the tightest bounds at the corners of the box**
+  ([issue #8](https://github.com/Jordan08/GAOL/issues/8)). x^y increases with y
+  for x > 1 and decreases for x < 1, increases with x for y > 0 and decreases
+  for y < 0: over a box of bases above 0 its extrema are at corners, which the
+  places of the bounds about 1 and 0 give, and the pow of CORE-MATH, correctly
+  rounded upward, is taken there: as the upper bound, and, as the lower bound,
+  the double below it, or x^y itself where that is a double (`pow([4], 0.5)` is
+  `[2]`, and `pow([3, 4], [2, 3])` is `[9, 64]`), which `pow_is_double()` proves
+  from the bits of x and y, with integers and operations that are exact in every
+  rounding direction (see [Accuracy of the operations](accuracy.md)). A base
+  from 0 with exponents above 0 has 0 for lower bound. At a corner where x is 0
+  or +oo, or y infinite, the bound is the limit of x^y, 0 or +oo, or 1 for x = 1
+  or y = 0, and CORE-MATH is not called: `pow([4, +oo], 0.5)` is `[2, +oo]` and
+  `pow([0, 2^-1000], [-oo, -1])` is `[2^1000, +oo]`. These boxes raise no
+  division-by-zero exception, which `log(0)` and the pow of CORE-MATH at
+  (+0, n < 0) raised.
   - **Before.** `exp(J*log(I))` multiplied the relative width of `log(I)`, a
     few 2^-52, by |y log x|: `pow([2], [1023.5])` was 1425 doubles below the
-    exact value and 748 above. It is kept where a bound is infinite, or for
-    a base from 0 with an exponent that is not above 0, whose limits it gives.
+    exact value and 748 above, `pow([4, +oo], 0.5)` was `[2 - 2^-52, +oo]`, and
+    `pow([0, 2^-1000], [-oo, -1])` had a lower bound 617 doubles below 2^1000.
   - **Tightness.** Over the million powers of the benchmark of `doc/compare`,
-    its intervals are no wider than those of libieeep1788, which computes
-    each bound with MPFR, where `exp(J*log(I))` made them 5.9e-14 wider than
-    the tightest relatively.
-- **Integer powers are computed from exact products** (issue #7): `pow(x, n)`,
-  for an `int` or an `unsigned` n, gives the tightest bounds for n ≥ 3, where
-  GAOL rounded each product of its binary exponentiation outward and was up to
-  n + 1 doubles from them: 2, 3, 5, 6 and 8 doubles for n = 3 to 7, `pow([1.1], 3)` being two
-  doubles wide.
-  - **How.** Each product h·y is rounded to p, and `fma(h, y, -p)` gives its
-    rest h·y − p exactly: the power is carried as h + l, l being the sum of
-    the rests, and rounded outward once at the end. The upper bound keeps l
-    rounded upward, the lower bound keeps −l rounded upward and leaves out the
-    square of l, which would raise it: the bounds are proved, and the tightest
-    unless the power is within n·2^-104 of a double, where they are one double
-    beyond. The power of a double that is a double is exact.
-  - **Where not.** Below 2^-968 the rest of a product is no double, and at the
-    overflow neither is the product: the rounded products of before serve
-    there, as for the square, which is the tightest already. Over 2.4 million
-    powers of exponents 3, 4, 5, 8, 17, 100, −3 and −4 at every magnitude,
-    the bounds were never wider than before, and narrower for 47 %.
-  - **Time** (Intel i7-1185G7, GCC 9.4, x86_64 without FMA instructions
-    compiled in, `fma()` being the one of glibc): `pow(x, 3)` takes 32 ns
-    rather than 14.4 in the benchmark of `doc/compare`, and the line
-    `sqrt(p) * x^3 - exp(b/p)` 113 ns rather than 94; `sqr()` and Shekel 5 are
-    unchanged. Compiled with FMA instructions (`-mfma`, or on 64-bit ARM,
-    which always has them), the exact products cost about 1 ns more than the
-    rounded ones.
-  - **Tests.** `tests/arithmetic.cpp` requires the tightest bounds for
-    x between 2^-30 and 2^30, and n doubles over all the doubles, as before.
+    its intervals are no wider than those of libieeep1788, which computes each
+    bound with MPFR, where `exp(J*log(I))` made them 5.9e-14 wider than the
+    tightest relatively.
+  - **Time** (Clang 18, Intel i7-1185G7; 100,000 boxes, J within [0.5, 2.5], x
+    centred in [1, 10] but for the first): `gaol::pow(x, J)` with x = [1/b, b],
+    b from 1 to 10, takes 84 ns (GAOL 4: 138 ns), with x = [a, +oo] 55 ns
+    (GAOL 4: 99 ns) and with J = [a, +oo] 54 ns (GAOL 4: 126 ns).
+- **Integer powers are the tightest bounds, of either sign** (issue #7):
+  `pow(x, n)` of `gaol`, `pown(x, n)` of `gaol_ieee1788` and the integer
+  exponents of `pow(x, y)` and `pow(x, p)` (a degenerate `[n]`, an integer
+  double `p`) give the tightest bounds of x<sup>n</sup>, or one double beyond
+  where x<sup>n</sup> is within twice the error bound K of a double (K is
+  2<sup>-98</sup> relatively at n = 3 and about 2<sup>-62</sup> at the most, and
+  0 for n = 2, which is `sqr(x)`; at n = 3, one bound in 2<sup>46</sup> is one
+  double beyond for an x at random, and about a third of them for an x within 8
+  doubles of 1), and exact where x<sup>n</sup> is a double: `pow([2, 3], 3)` is
+  `[8, 27]`. GAOL rounded each product of its binary exponentiation outward and
+  was up to n + 1 doubles from the tightest bounds, 2, 3, 5, 6 and 8 doubles for
+  n = 3 to 7, `pow([1.1], 3)` being two doubles wide, and took x<sup>-n</sup>
+  for 1/x<sup>n</sup>, two roundings.
+  - **How.** Both bounds at once: the powers of the two corners of x where
+    x<sup>n</sup> is the least and the greatest, computed together, in the two
+    lanes of an SSE2 or a NEON register with the FMA instructions, or in a pair
+    of doubles otherwise (the FPU intervals, SSE2 without FMA), the same
+    operations in the same order. Each product h·y is rounded to p, and
+    `fma(h, y, -p)` gives its rest exactly: the power is carried as h + l, whose
+    error is bounded beforehand (the proof is in the comment of
+    `pown_products()` in `gaol/core/gaol_interval_core.cpp`, and
+    `tests/tools/pow/pown_bound.py` checks its recurrence with rationals), and
+    each bound is rounded once. The lanes compute |c|<sup>m</sup> and give the
+    sign at the end, so that the powers of −x are the opposites of those of x
+    for an odd n. x<sup>-n</sup> is the inverse of h corrected by the rest of
+    1 − q(h + l), rounded once, and x<sup>-1</sup> is `inverse()`.
+  - **Where the exact products do not hold.** A corner whose powers leave
+    [2<sup>-968</sup>, 2<sup>960</sup>] is computed alone, its base scaled to
+    [1, 2) and its power kept below 2<sup>501</sup> by powers of two, then
+    scaled back with one rounding in the direction of the bound: the tightest
+    beyond the largest double and among the subnormals too. The limits at 0 and
+    at the infinities are taken directly, and each bound keeps the tightest when
+    the other leaves the range. GAOL's 1/x<sup>n</sup> overflowed before the
+    inversion where x<sup>n</sup> is beyond the largest double:
+    `pow([10], -400)` was `[0, 5.6e-309]` rather than `[0, 2^-1074]`,
+    `pow([2], -1050)` `[0, 5.6e-309]` rather than `[2^-1050]`, and
+    `pow([-2, 2], -1050)` `[0, +oo]` rather than `[2^-1050, +oo]`.
+  - **Time** (Intel i7-1185G7, Clang 21): `pow(x, 3)` takes 5.1 ns against 9.1
+    with GAOL 4.2.3 (see [performance.md](compare/performance.md)).
+  - **The exponent 2 is `sqr(x)`.** `pow(x, 2)`, `pow(x, 2u)`, `pow(x, 2.0)`,
+    `pow(x, [2])`, `gaol_ieee1788::pown(x, 2)` and, on the part of x in
+    [0, +oo], `gaol_ieee1788::pow(x, [2])` call `sqr(x)`, the squares of the
+    bounds rounded outward, and not the exact products of the integer power,
+    which a square does not need: with them `pow(x, 2)` took 5.3 ns with the
+    NEON intervals and 5.2 with the FPU intervals, and it takes 1.7 and 2.2
+    now (Apple M2, AppleClang 21); the 6 million calls of `pow(x, 2)` of
+    `examples/16_Goldstein_Price.cpp` take 50 ms rather than 77 with the NEON
+    intervals. The sign of a zero bound is that of `sqr(x)` in each build:
+    `pow([-1, 2], 2)` is [-0, 4] with the SSE2 and NEON intervals and [0, 4]
+    with the FPU intervals, the two zeros comparing equal. The exception
+    flags are those of `sqr(x)` too: inexact and underflow are raised also by
+    the square of the bound that is not kept, and overflow only when the
+    upper bound is +oo.
+- **The integer powers beyond the ints** (`gaol::pow(x, n)` and
+  `gaol_ieee1788::pown(x, n)` for an n beyond the ints, an `unsigned int` above
+  `INT_MAX` or a wider type, and `pow(x, [n])` and `pow(x, n.0)` of `gaol`
+  beyond the ints) are computed from the pow of CORE-MATH at the corners of x,
+  the sign from the parity of n (`gaol_uipow()` up to `UINT_MAX`,
+  `gaol_pown_ll()` for a wider type): the tightest where n is a double, and
+  within three doubles of it beyond 2<sup>53</sup> for an n that is no double,
+  as x<sup>h</sup>·x<sup>l</sup>, n = h + l, h a double and |l| <
+  2<sup>11</sup>. Beyond 64 bits, n is taken as ±(2<sup>63</sup> − 1) or
+  ±(2<sup>63</sup> − 2) by its sign and parity, every power of a double but 0,
+  ±1 and ±∞ being beyond the doubles there. The powers of expressions,
+  `pow(e, n)` and `pown(e, n)`, follow: `pow(e, [n])` where n is a double, and
+  beyond 2<sup>53</sup> the product of `pow(e, [h])` and e<sup>l</sup>, within
+  three doubles for a point e and wider than the power of the interval where e
+  holds 0 inside.
+- **`pow` with an empty operand returns the empty set before it checks the
+  rounding direction**, as `sqr` does, and leaves the direction, and the modes
+  that flush the subnormals to zero (DAZ, FTZ), as the program had them: in
+  `pow(x, 2)` in all its forms, which is `sqr(x)`, in the forms with a real
+  exponent or an interval exponent (an empty exponent included) and with a
+  `long long` beyond the `unsigned` ints, and in `gaol_ieee1788::pow`. The
+  integer powers other than 2, of an `int` or an `unsigned`, check it first and
+  leave it upward. A program does not count on the direction after an operation
+  that computes no bound (see [The rounding
+  direction](using.md#the-rounding-direction)).
 - **`nth_root(I, n)`** is the `rootn` of IEEE 1788-2015 (Table 10.5): for an
   odd `n`, it is defined on the whole real line, the root of a negative number
   being the opposite of the root of its magnitude, and `nth_root([-8, 27], 3)`
@@ -989,15 +1071,19 @@ where it comes from.
   and now wants `[-1.3195, 1.2457]`.
   libieeep1788 has no `rootn`: its `pown_rev([-8, 27], 3)` is `[-2, 3]`.
 - **The n-th roots are proved with integer powers**, and are the tightest
-  bounds or one double beyond, for every n and every double (issue #7). GAOL
-  took the power of the mathematical library with the exponent 1/n rounded,
-  moved one double outward: the rounded exponent moves the root by
+  bounds or up to 2 doubles beyond (4 for `rootn(x, q)` with q < 0, the inverse
+  of a root), for every n and every double, the subnormal ones included
+  (issue #7). GAOL took the power of the mathematical library with the exponent
+  1/n rounded, moved one double outward: the rounded exponent moves the root by
   |log x|·2^-53/n relatively, and the bounds were up to 8 doubles from the
   tightest between 2^-30 and 2^30, and 234 over all the doubles;
   `nth_root([27], 3)` was `[0x1.7ffffffffffffp+1, 0x1.8000000000002p+1]`.
   - **The proof.** l is below the root when l^n, rounded upward, is at most x,
     and u above it when u^n, rounded downward, is at least x. The lower bound
     is the largest double so proved, the upper bound the smallest one.
+    A rounded product is within 2^-52 relatively, so that the n − 1 products of
+    l^n move the root by less than 2^-52 relatively: a bound is up to 2 doubles
+    from the tightest one.
   - **The search.** It starts from the pow of CORE-MATH with the exponent 1/n
     rounded, brought next to the root by a step of Newton's method,
     r - r (r^n - x)/(n r^n), and goes by steps that double until a proved and
@@ -1006,6 +1092,19 @@ where it comes from.
     whatever the start.
   - **Exact roots.** The root of a double that is the n-th power of a double is
     that double: `nth_root([27], 3)` is `[3]`.
+  - **Tiny arguments.** For an x below 2^-1020 the proofs take scaled powers, of
+    l = c·2^e with c in [1, 2) (the same products on c in the same order), the
+    power being h·2^s with h in [1, 2^500], which is compared exactly with x.
+    The plain proof loses bits where a power of its binary exponentiation is
+    subnormal (l^32 is about 2^-1041.5 for x = 2^-1074 and n = 33, and has 33
+    bits): each product rounded there moved the proof away from the root by up
+    to 2^-32 relatively, so that `nth_root([2^-1074], 33)` was
+    `[0x1.5ecf527769956p-33, 0x1.5ecf527771187p-33]`, 1983 doubles below the
+    tightest lower bound and 28785 above the tightest upper bound, and
+    `rootn(x, q)` for q < 0, the inverse of a root, had the same excess. The
+    bounds enclosed the root all the same. From 2^-1020 the powers next to the
+    root stay above 2^-1022, and the plain powers are used. The square root and
+    the cube root (that of CORE-MATH) do not use these proofs.
   - **`nth_root_rel()`** takes the roots of `nth_root()`: it took the same
     powers, and kept a value within 23 doubles, now 2.
   - **Time.** A point interval takes 152 ns rather than 130, its only root
@@ -1130,13 +1229,6 @@ where it comes from.
   `tanh([MAX, +inf])` had `0x1.ffffffffffffdp-1` for left bound. `make check`
   passes all its 15 checks. On an Intel i7-1185G7 (GCC 9.4), the functions
   take the same time as before, within 1.5 ns (1 %).
-- **Negative integer powers** `pow(x, -n)` are computed as `(1/x)^n` where
-  `x^n` is beyond the largest double, rather than as `1/x^n`, whose `x^n`
-  overflowed before the inversion: `pow([10], -400)` was `[0, 5.6e-309]`
-  rather than `[0, 2^-1074]`, `pow([2], -1050)` `[0, 5.6e-309]` rather than
-  `[2^-1050]`, and `pow([-2, 2], -1050)` `[0, +oo]` rather than
-  `[2^-1050, +oo]`. Elsewhere `1/x^n` is kept, exact where `x^n` is exact, and
-  `pow(x, -3)` takes 0.8 ns more (14.6 ns rather than 13.8).
 - **`log()`** gives the empty set for an interval holding no positive number:
   `log` is defined on `(0, +oo)` (IEEE 1788-2015, Table 9.1). GAOL kept the part
   of the interval in `[0, +oo]`, and gave `[-oo, -MAX]` for `log([-4, 0])` and
@@ -1577,6 +1669,42 @@ where it comes from.
   `tests/ieee1788.cpp` check that a `double` converts neither to an interval
   nor to an expression, `tests/assignment.cpp` and `tests/relations.cpp` the
   overloads of a `double`.
+- **Integers are taken as the integers they are.** An integer given where GAOL
+  takes a `double` was converted to a `double`, in the rounding direction in
+  effect, which an integer beyond 2^53 is not: `interval(9007199254740993LL)`,
+  2^53 + 1, was [2^53, 2^53] or [2^53 + 2, 2^53 + 2], neither containing it,
+  `[1, 2] - (2^53 + 1)` did not contain the exact difference whatever the
+  direction, and `[2^53] < 2^53 + 1` was false to nearest. An integer of any
+  type but `bool` is now taken as the integer it is by the constructors
+  (`interval(n)`, explicit as `interval(double)` is, and `interval(a, b)` with
+  an integer bound, which is empty for a > b compared as numbers, though both
+  lie between the same two doubles), `=`, `&=`, `|=`, the arithmetic operators
+  in either order and their assignments, the relations, `set_contains()`,
+  `set_strictly_contains()`, `expression(n)`, and `numsToInterval()` and
+  `isMember()` of `gaol_ieee1788`. `interval(n)` is the tightest interval
+  containing n: `[n, n]` where n is a double, the two doubles around it
+  otherwise (`interval(9007199254740993LL)` is [2^53, 2^53 + 2]); `x &= n` is
+  `interval(n)` where x contains n, and the empty set otherwise; the relations
+  compare n as the integer it is. The arithmetic operators enclose the exact
+  result, but not always with the tightest bounds, for an n that is no double:
+  `[1, 2] + (2^53 + 1)` is [2^53, 2^53 + 4], the exact sum lying in
+  [2^53 + 2, 2^53 + 3]. An integer that is a double gives what the double
+  gives. See [Using GAOL](using.md#integers).
+  - **The exponents.** `gaol::pow(x, n)` and `gaol_ieee1788::pown(x, n)` take an
+    exponent of any integer type. GAOL 4 had `pow(x, int)` only, so that an
+    exponent of another type was converted to an `int`, and one beyond the ints
+    wrapped: `pow(x, 3000000000u)` was `pow(x, -1294967296)`. An exponent
+    within the ints is taken as an `int`, one within the unsigned ints as an
+    `unsigned`, and a larger one from the `pow` of CORE-MATH at the bounds of x.
+  - **The roots.** `nth_root(x, q)`, `rootn(x, q)`, `pownRev(c, x, p)` and the
+    `pow(e, n)`, `pown(e, n)` and `nth_root(e, n)` of the expressions take an
+    integer of any type too. GAOL 4 converted the order of `nth_root` to an
+    `unsigned` (`nth_root(x, 5000000001LL)` was the order 705032705,
+    `nth_root(e, -2)` of an expression the order 4294967294) and the exponent
+    of a power of expressions to an `int`. An order beyond the unsigned ints is
+    enclosed through `pow` with the exponent 1/q, x<sup>1/q</sup> being within
+    2<sup>−21</sup> of 1 for every double x > 0 there; a negative order of an
+    expression within the ints is 1/`nth_root(e, |n|)`.
 - **`width()`** of the empty set is NaN, as `wid` of IEEE 1788-2015 (12.12.8),
   rather than -1, which the manual and `check/interval_functions.cpp` gave.
 - **The three builds agree** (see [The three builds](three-builds.md)).

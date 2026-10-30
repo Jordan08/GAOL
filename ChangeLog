@@ -698,6 +698,83 @@
 	[MAX, +oo]; atanh_rel and tanhRev follow; tests in
 	tests/elementary.cpp and tests/reverse_mappings.cpp.
 
+	Powers and roots:
+
+	* gaol/core/gaol_interval_core.cpp: pow(x, n) and
+	gaol_ieee1788::pown(x, n) give the tightest bounds of x^n, of either
+	sign, or one double beyond where x^n is within twice the error bound
+	of a double (2^-98 relatively at n = 3, never for n = 2, which is
+	sqr(x)): both bounds at once from exact products, with an error bound
+	proved beforehand; a corner whose powers leave [2^-968, 2^960] is
+	computed alone and scaled.  Beyond the ints, the pow of CORE-MATH at
+	the corners (gaol_pown_ll).
+	* README.md, doc/using.md, manual/v5: the two namespaces, gaol for
+	GAOL 4 and gaol_ieee1788 for IEEE 1788-2015, and their powers side by
+	side.
+	* gaol/core/gaol_interval_core.cpp: pow(x, [n]), pow(x, n.0) and
+	gaol_ieee1788::pow(x, [n]) for an integer n, nth_root(x, q) for q < 0,
+	acosh_rel(), asinh_rel(), atanh_rel() and nth_root_rel() check the
+	rounding direction once instead of twice, the bodies they call
+	(pown_upward(), nth_root_upward()...) no longer checking it; the
+	bounds are the same, bit for bit.
+	* gaol/core/gaol_interval_core.cpp (modulo_k_pi): one check of the
+	rounding direction, and the quotients by pi computed on doubles, as
+	tan() computes its own: 10 ns instead of 22; a bound 0 gives a
+	quotient 0 of its own sign, an infinite bound NaN.
+	* gaol/core/gaol_interval_core.cpp (nth_root): |q| is computed without
+	a signed overflow for q = INT_MIN, where long has 32 bits.
+	* gaol/core/gaol_interval_core.cpp (pow): pow(x, y) is taken at the
+	corners of every box, and exp(y log x) is gone: at a corner where x is
+	0 or +oo, or y infinite, the bound is the limit of x^y, 0 or +oo (1
+	for x = 1 or y = 0), so that pow([4, +oo], 0.5) is [2, +oo], and such
+	boxes no longer raise the division-by-zero exception.
+	* gaol/core/gaol_interval_core.h (nth_root): overloads for an order of
+	type long long and unsigned long long, which check the rounding
+	direction once beyond the unsigned ints.
+	* gaol/core/gaol_interval_core.h (rnd_keep): with
+	GAOL_PRESERVE_ROUNDING, rnd_keep() of an interval keeps its two
+	bounds, instead of copying the interval a byte at a time into volatile
+	memory: pow(x, [-3]) and nth_root_rel() 26 % faster.
+	* gaol/core/gaol_interval_core.cpp: fast_modulo_k_pi(), which tan()
+	no longer calls and no header declares, is removed.
+	* gaol/core/gaol_interval_core.h, gaol/gaol_ieee1788.h,
+	gaol/parser/gaol_expression.h: an integer of any type but bool is
+	taken as the integer it is where GAOL took a double: interval(n)
+	is the tightest interval containing n, so that interval(2^53+1) is
+	[2^53, 2^53+2], where the conversion to a double gave a point that
+	is not n; so do interval(a, b) with an integer bound, which is
+	empty for a > b compared as numbers, the assignments, the
+	arithmetic operators, the relations, set_contains(),
+	expression(n), numsToInterval() and isMember().  pow(x, n) and
+	pown(x, n) take an exponent of any integer type, where an exponent
+	beyond the ints was converted to an int.
+	* gaol/core/gaol_interval_core.h, gaol/gaol_ieee1788.h,
+	gaol/parser/gaol_expression.h: nth_root(x, q), rootn(x, q),
+	pownRev(c, x, p) and the pow(e, n), pown(e, n) and nth_root(e, n)
+	of the expressions take an integer of any type, as pow(x, n)
+	does; an order beyond the unsigned ints is enclosed through pow
+	with the exponent 1/q, and nth_root(e, -2) is no longer the
+	order 4294967294.
+	* gaol/core/gaol_interval_core.cpp: pow(x, y) with an interval
+	exponent, pow(x, d) with a double, pow(x, n) with a long long
+	beyond the unsigned ints and gaol_ieee1788::pow(x, y) return the
+	empty set for an empty operand before they check the rounding
+	direction, as sqr() does: the direction and the modes that flush
+	the subnormals to zero stay as the program had them.  The integer
+	powers other than 2, of an int or an unsigned, still check first.
+	* gaol/core/gaol_interval_core.cpp (nth_root): the proofs of the
+	bounds of the roots of an x below 2^-1020 take scaled powers, which
+	are never subnormal: nth_root([2^-1074], 33) was 1983 doubles below
+	its tightest lower bound and 28785 above its upper one, and
+	nth_root(x, q) for q < 0 followed.  The bounds are the tightest, or up
+	to 2 doubles beyond (4 for q < 0), for every x, where the
+	documentation said one double; tests/arithmetic.cpp.
+	* gaol/core/gaol_interval_core.cpp (pow): at the corner of the
+	box that gives the lower bound, where x^y is a double, the
+	lower bound is x^y itself instead of the double below
+	CORE-MATH's value; pow_is_double() proves it exactly from the
+	bits of x and y.  pow([4], 0.5) is [2].
+
 2020-05-10  Frederic Goualard  <Frederic.Goualard@univ-nantes.fr>
 
 	* configure.ac: using gcc standard strtod() instead of gdtoa's
