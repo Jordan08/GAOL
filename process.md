@@ -7,9 +7,10 @@ propose une pull request, et comment on tient les registres à jour une fois la
 pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
-en cours, ce qui reste) est au §12. Dernière mise à jour : 30 octobre 2026, au
-commit `063e800` de `configure-clean` (la fusion de #236, après celles de #217 à
-#220, #222 à #225, #227 à #232, #234 et #235).
+en cours, ce qui reste) est au §12. Dernière mise à jour : 31 octobre 2026, au
+commit `5aef739` de `configure-clean` (la fusion de #279, après celles de #217 à
+#220, #222 à #225, #227 à #232, #234 à #239, #242, #245, #248 à #250, #262 à
+#276).
 
 ## 1. Le contexte
 
@@ -727,9 +728,9 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   `bash -e`, un `! grep ...` au milieu d'une étape ne la fait pas échouer (seule
   la dernière commande donne son statut) : écris un `if` explicite.
 
-## 12. Où en est le travail (30 octobre 2026)
+## 12. Où en est le travail (31 octobre 2026)
 
-Le reste à faire est dans `TODO.md` (tâches PG à PJ) et l'issue #179 ; ce qui
+Le reste à faire est dans `TODO.md` (tâches PH à PK) et l'issue #179 ; ce qui
 est fait et décidé (pull requests fusionnées, décisions, mesures) est dans
 `TODO_DONE.md` (l'issue #177 n'est plus mise à jour) ; ce qui est reporté est
 dans `TODO_AFTER.md` et l'issue #178. L'état qui suit est daté : les commandes
@@ -771,25 +772,33 @@ git ls-remote --heads origin
   les masques d'exceptions de `pow_rel()`, et les écarts de GCC avec Clang : les
   écritures de registres hors ligne, l'alignement des fonctions sur 64 octets,
   `x | y` et `x &= y` de SSE2, `x * y` de NEON, `max(x, y)` et `min(x, y)` de
-  SSE2 et de NEON), fusionnées du 28 au 29 octobre ; l'audit du 13 octobre a
-  vérifié dans `configure-clean` ce qu'annonçaient alors les points A, C à H et
-  J à V.
-- **En cours** : au 30 octobre, aucune pull request n'est ouverte ;
-  `configure-clean` est au commit de la fusion de #236. Ses branches sur GitHub
-  sont `configure-clean`, `MATH-CORE` et `master`, avec trois branches d'essais
-  jetables gardées (`experiment-pg8-neon-div`, `experiment-pg2-row`,
-  `experiment-pg2-n2`) et les deux branches de mesure de `max` et `min`
-  (`todo-pg-max-base`, `todo-pg-max-control`), à supprimer. L'issue #198 (`x /
-  y` des intervalles NEON avec `FPCR.AH`) est ouverte, sans tâche dans `TODO.md`
-  ; #185 est fermée, le masquage des exceptions de `pow` est gardé. L'issue #177
+  SSE2 et de NEON), fusionnées du 28 au 29 octobre, puis, du 30 au 31 octobre,
+  #237 et #238 (les lignes `x % y` et `x.inverse()` du banc, le `|` d'un nom de
+  ligne), #239, #242, #245, #248, #249 et #250 (de la tâche PG : les autres
+  noyaux NEON, `max` et `min`, `inverse()` et son test des NaN, `interval(l,
+  r)`, `x * y` et `x op= d`), #262 (le placement de Visual C++ arm64), #279 (`x
+  <= y`, l'ordre des tests ; la tâche PG est faite) et, de la tâche PI, #263 à
+  #274 (la synthèse de `doc/differences.md` et du `ChangeLog` en douze thèmes)
+  et #275 (les phrases fausses hors de ces deux documents), avec #276 (macOS 27
+  à la place de macOS 14) ; l'audit du 13 octobre a vérifié dans
+  `configure-clean` ce qu'annonçaient alors les points A, C à H et J à V.
+- **En cours** : au 31 octobre, aucune pull request n'est ouverte ;
+  `configure-clean` est au commit de la fusion de #279. Ses branches sur GitHub
+  sont `configure-clean`, `MATH-CORE` et `master`, avec les branches des pull
+  requests jetables fermées, gardées (`experiment-pg*`, voir `TODO_DONE.md`
+  8.1), et deux branches fusionnées ou fermées que le mainteneur supprime
+  (`todo-pg-relations-order`, `todo-pg-xle-exfirst`). L'issue #198 (`x / y` des
+  intervalles NEON avec `FPCR.AH`) est ouverte, sans tâche dans `TODO.md` ; #185
+  est fermée, le masquage des exceptions de `pow` est gardé. L'issue #177
   (`TODO_DONE.md`) n'est plus mise à jour (*décidé le 28 octobre*) : GitHub
   borne le corps d'une issue à 262 144 octets et le texte joint en fait plus de
   270 000 (voir `TODO_DONE.md` 7.8).
-- **À faire**, dans l'ordre de `TODO.md` : les études de vitesse, toutes avant
-  v5.0.0 (PG, presque faite : les autres noyaux NEON, le tableau de Clang 21),
-  les signalements à d'autres projets (PH, avec l'accord du mainteneur), puis la
-  version (PI, PJ). Ce qui est reporté (le 113, le site, les traits pour YalAA
-  et VNODE-LP, les décorations, ce qui attend du matériel) est dans
-  `TODO_AFTER.md`. Les dépendances entre points sont écrites dans chaque tâche.
-  Le mainteneur donne les tâches ou les points un par un (« traite la tâche PF
-  », « traite le point 129 ») : ne commence pas le suivant sans lui.
+- **À faire**, dans l'ordre de `TODO.md` : un `FE_INVALID` à décider (PK, avec
+  Clang et les intervalles FPU), les signalements à d'autres projets (PH, avec
+  l'accord du mainteneur), les restes des textes de la version (PI), puis la
+  version (PJ, qui reprend le tableau de Clang 21, le manuel et la CI de macOS
+  27). Ce qui est reporté (le 113, le site, les traits pour YalAA et VNODE-LP,
+  les décorations, ce qui attend du matériel) est dans `TODO_AFTER.md`. Les
+  dépendances entre points sont écrites dans chaque tâche. Le mainteneur donne
+  les tâches ou les points un par un (« traite la tâche PF », « traite le point
+  129 ») : ne commence pas le suivant sans lui.

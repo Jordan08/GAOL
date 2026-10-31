@@ -1,6 +1,6 @@
 # Reporté
 
-Tout ce qui est reporté sur GAOL v5 au 29 octobre 2026 (commit `ba3009f` de
+Tout ce qui est reporté sur GAOL v5 au 31 octobre 2026 (commit `5aef739` de
 `configure-clean`) : ce qui attend la version v5.0.0, ce que le mainteneur a
 reporté indéfiniment, ce qu'il a écarté en laissant une porte ouverte, et ce qui
 attend du matériel. Ce fichier et l'issue #178 ont le même contenu. Ce qui reste
@@ -202,6 +202,23 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    rouvrir si* un programme cible des processeurs Skylake à Comet Lake et qu'une
    mesure de sa part montre un gain stable de l'option, au-delà des 5 % de
    dispersion.
+7. **NEON : les tests de NaN et de zéro sur les bits dans `x / y` et `x %= y`**
+   (#243 et #244, fermées sans fusion le 30 octobre). Deux variantes jetables,
+   nées de l'étude de #242 : sur le M2 elles perdent (`x / y` +3 à +4 %, `x % y`
+   +3 à +5 %, la ligne de 13 opérations +10 %) ; le diviseur à deux voies borne
+   le Neoverse N2 (llvm-mca : 17,1 cycles par itération avant, 17,0 après), si
+   bien qu'un gain d'instructions n'y change rien. Leurs branches
+   `experiment-pg-neon-divtests` et `-divtests-tbl` sont gardées. *À rouvrir*
+   seulement si un processeur ARM 64 bits divise assez vite pour que les tests
+   d'une division comptent.
+8. **NEON : `interval(d)` et `x op= d` par le test de `d` sur ses bits** (#251,
+   fermée sans fusion, *refusée par le mainteneur le 30 octobre*). Une
+   instruction entière et aucune comparaison à virgule flottante : `x / d` ×1,14
+   avec Clang et ×1,05 avec GCC sur le N2 (contre ×1,06 et ×1,07 pour #250),
+   0,736 sur le M2 (contre 0,846), mais deux drapeaux changent (l'invalidité
+   d'un NaN signalant, l'opérande dénormalisé sous `FZ`) ; #250 garde ceux de la
+   base. Sa branche `experiment-pg-neon-double-ops-bits` est gardée. *À rouvrir*
+   si le mainteneur accepte que ces deux drapeaux changent.
 
 ## 4. En attente de matériel ou d'un environnement qui manque
 
@@ -334,3 +351,20 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    ces exécuteurs, sans preuve (un `dumpbin /disasm` des noyaux la donnerait).
    Le mainteneur a fusionné #209 avec cette réserve, sans ce désassemblage dans
    la CI.
+3. **Les pertes de `x <= y` par #279** (fusionnée le 31 octobre, *décidé le 31
+   octobre* : « fusionne telle quelle »). Les quatre relations `x < y`, `x <=
+   y`, `x > y` et `x >= y` testent d'abord les bornes (`GAOL_LIKELY`), puis les
+   ensembles vides : un opérande vide prend le chemin long (×1,35 à ×1,57 en
+   temps sur l'i7-1185G7 avec GCC 15.2 et Clang 21, ×1,5 sur le M2, jusqu'à ×2,4
+   pour `x` vide avec `x < y` ou `x > y`, rapports 0,77 à 0,86 avec GCC et 0,63
+   à 0,75 avec Clang sur le Xeon, +0,12 à +0,33 ns), les bornes égales de `x <=
+   y` coûtent ×1,8 sur le M2 (1,50 à 2,69 ns), `x < y` et `x > y` perdent 10 et
+   13 % sur 65 536 intervalles sur le M2, GCC perd 2 à 5 % sur les réponses
+   fausses et le mélange du Xeon, et deux jobs x86 de la CI reculent de façon
+   reproductible (Clang x86-64 avec les intervalles FPU ×0,85, clang-cl x64
+   ×0,88), sans cause démontrée (le placement du code x86). Aucune ligne de
+   `gaol_performance` n'a d'opérande vide ; on ne sait pas à quelle fréquence
+   ils arrivent dans un programme. Les gains sont dans `TODO_DONE.md`, 2.3
+   (#279). *À rouvrir* si un programme réel a surtout des opérandes vides ou des
+   bornes égales sur ARM : le chemin des bornes égales de `x <= y` serait à
+   raccourcir (non étudié).

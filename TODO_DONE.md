@@ -1,7 +1,7 @@
 # Fait et décidé sur GAOL v5
 
-Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 30 octobre 2026
-(commit `063e800` de `configure-clean`, aucune pull request ouverte : voir la
+Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 31 octobre 2026
+(commit `5aef739` de `configure-clean`, aucune pull request ouverte : voir la
 section 1). Ce fichier fait foi : l'issue #177, qui avait le même
 contenu, n'est plus mise à jour depuis le 28 octobre (voir 7.8).
 
@@ -11,7 +11,7 @@ l'ancien `TODO.md` et dans `TODO_mistral.md`, avec les réponses du mainteneur
 des 22 et 23 octobre. #49 et #142 sont fermées le 24 octobre, `TODO_mistral.md`
 est supprimé. Le reste du travail est dans deux autres registres :
 
-- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PF à PJ ;
+- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PH à PJ ;
 - `TODO_AFTER.md` (issue #178) : ce qui est reporté, après la version, jusqu'à
   une décision ou jusqu'à du matériel.
 
@@ -41,27 +41,30 @@ est supprimé. Le reste du travail est dans deux autres registres :
   : elle s'applique telle quelle.
 - Le classement par rang et par tiers (A à I) de l'ancien #142 n'existe plus :
   un « rang N » cité dans un texte d'avant le 24 octobre désigne cet ancien
-  classement. Ce qui reste à faire est classé en tâches PF à PJ dans `TODO.md`.
+  classement. Ce qui reste à faire est classé en tâches PH à PJ dans `TODO.md`.
 - Ce qui sert encore des rapports des agents est dans
   [todo-notes/synthese.md](todo-notes/synthese.md), leurs originaux au commit
   `16a2f60` (`todo-notes/`, ceux du 30 septembre dans `todo-notes/2026-09-30/`)
   ; la procédure suivie pour chaque point est dans `process.md`.
 
-Sommaire : 1. L'état au 26 octobre ; 2. Les pull requests ; 3. Les décisions,
+Sommaire : 1. L'état au 31 octobre ; 2. Les pull requests ; 3. Les décisions,
 par date ; 4. Les points faits, par lettre ; 5. Les anciens numéros faits ; 6.
 Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 `configure-clean` ; 8. Le ménage fait.
 
-## 1. L'état au 29 octobre 2026
+## 1. L'état au 31 octobre 2026
 
-- **`configure-clean`** est au commit `063e800` (la fusion de #236, après celles
+- **`configure-clean`** est au commit `5aef739` (la fusion de #279, après celles
   de #217 le 28 octobre, de #218, #219, #222, #223 et #225 le matin du 29, de
   #220, #224 et #227 à #231 de 18 h 04 à 18 h 19 UTC, de #232, #234 et #235 de
-  19 h 55 à 19 h 57 et de #236 à 23 h 42 ; l'import de CORE-MATH `0b2ae6d1` est
-  du 27 octobre, voir 7.6 à 7.9). Les pull requests des corrections vont vers
-  `configure-clean`, qui reste la branche de développement après v5.0.0 ;
-  `MATH-CORE` et `master` (GAOL 4.3.2, plus deux commits de `.claude/CLAUDE.md`)
-  ne bougent qu'à la version (point Y).
+  19 h 55 à 19 h 57, de #236 à 23 h 42, de #237 et #238 le 30 octobre à 11 h 04,
+  de #245, #242 et #249 de 19 h 57 à 20 h 07, de #263 à #274 de 20 h 24 à 20 h
+  40, de #275 à 21 h 10, de #262, #250, #239 et #248 de 21 h 13 à 21 h 32, de
+  #276 à 21 h 37 et de #279 le 31 octobre à 9 h 32 ; l'import de CORE-MATH
+  `0b2ae6d1` est du 27 octobre, voir 7.6 à 7.10). Les pull requests des
+  corrections vont vers `configure-clean`, qui reste la branche de développement
+  après v5.0.0 ; `MATH-CORE` et `master` (GAOL 4.3.2, plus deux commits de
+  `.claude/CLAUDE.md`) ne bougent qu'à la version (point Y).
 - **Pull requests ouvertes** : aucune. Le mainteneur a fusionné #165 à #167,
   #169 à #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194, #196 et
   #197 le 25 octobre, #199, #200 et #201 le 26 octobre, #202 à #205 le 27, #206
@@ -69,20 +72,31 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   lignes longues sur ARM 64 bits, à la fin de `performance.md`), #217 le 28 à 23
   h 19 UTC, #218, #219, #222, #223 et #225 le 29 au matin, #220, #224 et #227 à
   #231 le 29 de 18 h 04 à 18 h 19, #232, #234 et #235 le 29 de 19 h 55 à 19 h
-  57, #236 le 29 à 23 h 42 ; #168, #195, #211, #214, #221, #226 et #233 sont
-  fermées sans fusion. Les tâches PA, PB, PC, PD, PE et PF sont faites (PE :
-  #200 et #204 pour le 95, #201 pour le 92, #205 pour le 3, #202 pour le 4, #204
-  pour le 5, #203 pour le 6 ; PF : #206 pour le reste du 108, #209 pour le 109,
-  #210 et #215 pour écrire seulement si ça change, #208 pour l'alignement de la
-  pile 32 bits, #207 pour le contrôle de l'assembleur de x86-64) ; PG est
-  presque faite (la division du chemin AVX-512, le 106 a : #191 à #194 ; puis
-  #217 pour le seuil de la liste, #218 pour `set_rounding()`, #219 pour le noyau
-  de `pown` de NEON, #222 et #224 pour `nth_root(x, -2)` et `sqrt()`, #223, #227
-  et #228 pour le contrôle de l'assembleur avec GCC, #225 pour le quotient NEON,
-  #220 pour la ligne `x / d`, #229 pour la grille de `diffarith`, #230, #232,
-  #234 et #235 pour les écarts de GCC avec Clang, #231 pour les masques
-  d'exceptions de `pow_rel()` ; #236 pour `max(x, y)` et `min(x, y)` ; il reste
-  les autres noyaux NEON et le tableau de Clang 21 : voir `TODO.md`).
+  57, #236 le 29 à 23 h 42, #237 et #238 le 30 à 11 h 04, #245, #242 et #249 le
+  30 de 19 h 57 à 20 h 07, #263 à #274 (les textes de la version) le 30 de 20 h
+  24 à 20 h 40, #275 à 21 h 10, #262, #250, #239 et #248 de 21 h 13 à 21 h 32 et
+  #276 (macOS 27 à la place de macOS 14) à 21 h 37 ; #279 a été fusionnée le 31
+  à 9 h 32 par la session, sur la demande explicite du mainteneur. #168, #195,
+  #211, #214, #221, #226 et #233 sont fermées sans fusion, et, du 30 et du 31
+  octobre, #240, #241, #243, #244, #246, #247, #251 à #261, #277 et #278 (2.4).
+  Les tâches PA, PB, PC, PD, PE, PF, PG et PI sont faites (PE : #200 et #204
+  pour le 95, #201 pour le 92, #205 pour le 3, #202 pour le 4, #204 pour le 5,
+  #203 pour le 6 ; PF : #206 pour le reste du 108, #209 pour le 109, #210 et
+  #215 pour écrire seulement si ça change, #208 pour l'alignement de la pile 32
+  bits, #207 pour le contrôle de l'assembleur de x86-64 ; PG : la division du
+  chemin AVX-512, le 106 a : #191 à #194 ; puis #217 pour le seuil de la liste,
+  #218 pour `set_rounding()`, #219 pour le noyau de `pown` de NEON, #222 et #224
+  pour `nth_root(x, -2)` et `sqrt()`, #223, #227 et #228 pour le contrôle de
+  l'assembleur avec GCC, #225 pour le quotient NEON, #220 pour la ligne `x / d`,
+  #229 pour la grille de `diffarith`, #230, #232, #234 et #235 pour les écarts
+  de GCC avec Clang, #231 pour les masques d'exceptions de `pow_rel()`, #236
+  pour `max(x, y)` et `min(x, y)`, #237 et #238 pour le banc, #242 et #245 pour
+  `inverse()` de NEON et son test, #248, #249 et #250 pour `interval(l, r)`, `x
+  * y` et `x op= d` de NEON, #239 pour `max` et `min` de NEON raccourcis, #262
+  pour le bruit de placement de Visual C++ arm64, #279 pour `x <= y` ; PI : #263
+  à #274 pour la synthèse de `doc/differences.md` et du `ChangeLog`, #275 pour
+  les phrases fausses hors de ces deux documents) ; il reste les restes de PI,
+  le tableau de Clang 21 et la CI de macOS 27 : voir `TODO.md`.
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
   sur tout processeur ARM 64 bits avec tous les compilateurs (GCC, Clang,
   AppleClang, clang-cl, Visual C++, MinGW-w64, MSYS2), SSE2 sur tout processeur
@@ -103,8 +117,8 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   débogage sont décidés par des tests de la configuration, les anciennes
   options restant des réglages des développeurs (`doc/building.md`).
 - **Branches** : GitHub a `configure-clean`, `MATH-CORE` et `master`, avec les
-  branches des pull requests ouvertes ; les branches fusionnées sont supprimées
-  en local.
+  branches des pull requests ouvertes et celles des pull requests jetables
+  fermées, gardées (8.1) ; les branches fusionnées sont supprimées en local.
 - **Aucune borne fausse n'est connue** : sur environ 1,3 million de puissances
   entières, 550 000 `pow` réels, 600 000 autres opérations et 760 lectures de
   nombres (relecture du 14 octobre, revérifiée le 18 octobre à `4eaf69a`), tout
@@ -1760,6 +1774,253 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   cache de MSYS2), corrigés dans `de64d94` ; 224 jobs verts ; fusionnée le 29
   octobre à 23 h 42 UTC)
 
+- #238 (`x | y` coupée en deux cellules dans les résumés de la CI, signalé par
+  le mainteneur : le tableau de `gaol_performance` est du Markdown que les jobs
+  recopient dans `$GITHUB_STEP_SUMMARY`, et le `|` du nom d'une ligne y était lu
+  comme une séparation de colonnes ; le tableau écrit `x \| y`,
+  `compare-performance.py` lit `\|` comme `|` pour qu'une base écrite avant la
+  correction et une tête corrigée soient la même ligne, et
+  `test-performance-tools.py` passe à 21 tests, dont le nouveau échoue si cette
+  lecture est retirée ; sans relecteur indépendant ; fusionnée le 30 octobre à
+  11 h 04 UTC)
+
+- #237 (la tâche PG, « les autres noyaux NEON » : deux lignes de
+  `gaol_performance`, `x % y` et `x.inverse()`, pour que `operator%=` et
+  `inverse()` des intervalles NEON aient une mesure, aucune ligne ne les
+  exécutait (`x / y` passe par `div_bounds()`) ; la bibliothèque ne change pas ;
+  i7-1185G7, GCC 15.2 : `x / y` 2,79 ns, `x % y` 4,32, `x.inverse()` 3,81 ; sans
+  relecteur indépendant ; fusionnée à 11 h 04)
+
+- #245 (un test NEON de plus, `quotient_on_nan_lanes()` de
+  `tests/other_functions.cpp`, trouvé en étudiant `x / y`, `x %= y` et
+  `inverse()` : un NaN de sept motifs (calme et signalant, des deux signes, plus
+  petite et plus grande charge utile) dans n'importe quelle voie stockée de `x`
+  ou de `y`, les autres voies prises parmi 14 doubles spéciaux ; les trois
+  opérations doivent rendre les bits de `interval::emptyset()` dans tous les
+  modes de vidage de `flush_settings()` ; un mutant de la variante jetable #243
+  dont le seuil était décalé de un survivait à toute la suite, à la grille de
+  `diffarith` et à la comparaison rapide, et le test le tue (107 640 échecs) ; 2
+  999 984 vérifications, 0 échec sur la base et sur neuf constructions de noyaux
+  réécrits (GCC 12.2, Clang 21 et 18, sous qemu aarch64) ; un premier essai qui
+  vérifiait aussi `pow(y, -1)` échouait sur la base pour la voie `[-0, NaN]` :
+  défaut de `pow` sur un état brut, déjà là, non testé ici ; fusionnée à 19 h
+  57)
+
+- #242 (NEON `1 / y` et `y.inverse()` par **une seule division** de `-1` par les
+  bornes échangées, le test du zéro dit sur les bits des deux bornes dans des
+  registres généraux, au lieu de `divide_upward()` et d'une seconde réduction de
+  NaN ; empilée sur #237 pour le banc A/B ; M2 de MACarm4 sur secteur (21
+  passes, deux séries concordantes) : `x.inverse()` de 2,33 à 1,48 ns (0,635),
+  `nth_root(x, -2)` 0,694, `x % y` et `x / y` 1,000, les 32 autres lignes et les
+  dix lignes longues de 0,991 à 1,007 ; Neoverse N2 : `x.inverse()` ×1,40
+  (Clang), ×2,34 (GCC), ×1,55 (clang-cl) et ×1,91 (Visual C++ arm64) ; 46 à 25
+  instructions avec Clang, 52 à 24 avec GCC 12.2 ; mêmes bornes, drapeaux et
+  `FPCR` que la base sur 33 millions d'appels d'états bruts de voies et 5 831
+  649 lignes de `diffarith` ; relue par un agent indépendant, qui n'a pas pu
+  prouver l'équivalence fausse mais a trouvé un trou de test (un NaN dans une
+  seule voie, que seul #245 tue : **#245 d'abord**) et des commentaires faux ;
+  deux variantes jetables, qui mettent le test de NaN et de zéro sur les bits
+  dans `x / y` et `x %= y`, perdent sur le M2 (`x / y` +3 à +4 %, `x % y` +3 à
+  +5 %, la ligne de 13 opérations +10 %) : #243 et #244 (2.4) ; fusionnée à 19 h
+  59)
+
+- #249 (NEON `x * y` : le test « une borne est un NaN ou une infinité » dit sur
+  les bits de l'exposant (`vshrn_n_u64`, puis une réduction), `yc`, `yd` et `xo`
+  calculés dans la seule branche rare, et les huit produits du chemin fini par
+  `vmulq_laneq_f64` ; contrairement à #235, GCC gagne aussi (45 à 34
+  instructions avec GCC 12.2, 44 à 36 avec Clang 18) ; Neoverse N2 : `x * y`
+  ×1,42 (Clang), ×1,43 (GCC), ×1,38 (clang-cl), ×1,53 (Visual C++ arm64), les
+  lignes de produits ×1,07 à ×1,60 ; M2 : `x * y` 1,82 à 1,52 ns (0,836), `line
+  of 7 *` 0,759, 21 passes sur 21, aucune ligne plus lente ; mêmes bits que la
+  base sur environ 1,25 milliard d'appels et contre les produits exacts en
+  binaire128 (81,6 millions de cas, 0 écart) pour le relecteur ; 26 mutants,
+  tous tués sauf deux équivalents ; le relecteur a vu qu'avec `FPCR.AH` mis (non
+  pris en charge) le signe d'une borne nulle peut différer, ce que le
+  commentaire dit ; fusionnée à 20 h 07)
+
+- #263 à #274 (la **pull request de synthèse** du point Y, en douze pull
+  requests empilées, une par thème, *décidé le 30 octobre* : chacune met à jour
+  `doc/differences.md` et le premier article du `ChangeLog` (2026-09-27) avec un
+  thème, sans toucher au code, et a eu sa relecture indépendante, soit 136
+  défauts en tout, tous corrigés (9, 16, 13, 12, 14, 11, 15, 10, 8, 11, 10 et 7)
+  ; 118 entrées vérifiées contre `configure-clean` : 1/12 (#263) les trois
+  builds, leurs options, la version et l'archive des sources (17 entrées) ; 2/12
+  (#264) les compilateurs et les plates-formes (11) ; 3/12 (#265) l'interface
+  installée : en-têtes, espaces de noms, macros (19) ; 4/12 (#266) les sortes
+  d'intervalles (11) ; 5/12 (#267) le sens d'arrondi, les registres de contrôle
+  et les modes flush-to-zero (10) ; 6/12 (#268) les exceptions flottantes (4) ;
+  7/12 (#269) CORE-MATH et les fonctions élémentaires (9) ; 8/12 (#270)
+  puissances et racines (8) ; 9/12 (#271) fonctions d'intervalles, outils et
+  résultats corrigés (5) ; 10/12 (#272) la lecture des nombres, des intervalles
+  et des chaînes (13) ; 11/12 (#273) l'écriture des intervalles et les messages
+  des exceptions (5) ; 12/12 (#274) tests, exemples, documentation et CI (6) ;
+  décisions du mainteneur appliquées : Visual C++ et SSE2 dits à l'état présent
+  seulement (GAOL 4.2.2 avait déjà SSE2 pour Visual C++), les défauts nés et
+  corrigés pendant le développement de v5 gardés, tous les chiffres gardés (PJ
+  en remesure certains), le texte complet, `tests.sh` et `make distclean` dans
+  le `ChangeLog` seulement ; ce que les relecteurs ont vu sans le corriger est
+  dans `TODO.md`, tâche PI ; ouvertes puis leurs workflows annulés à la main
+  (*décidé le 30 octobre*) ; fusionnées le 30 octobre de 20 h 24 à 20 h 40 UTC)
+
+- #275 (treizième pull request du point Y, *décidé le 30 octobre* : les phrases
+  fausses ou périmées **hors de `doc/differences.md` et du `ChangeLog`** que les
+  relecteurs de #263 à #274 ont trouvées, aucune ligne de code ;
+  `manual/v5/gaol.tex` (les racines n-ièmes « jusqu'à 2 doubles au-delà, 4 pour
+  q < 0 », bison 3.8.2, le blanc requis après le signe d'un nombre incertain,
+  `rnd_keep()` et la famille `rounding_state` ajoutés par v5 et absents de la
+  4.2.2, `GAOL_PREFER_AVX512` qui n'est plus une option de l'utilisateur, et
+  `get_fpu_cw()`, `reset_fpu_cw()`, `f_negate()` et `f_negate_simple()` citées
+  comme existantes alors qu'un programme écrit depuis le manuel ne compilait pas
+  ; la section « Saving the rounding direction » supprimée), `doc/using.md`,
+  `doc/building.md`, `3rd/README.md`, `gaol/core_math_port.h`, des commentaires
+  de code, un commentaire de `linux.yml` et `examples/examples.md` (les n° 2, 3,
+  5, 7, 8, 10, 12, 15, 17, 19, 21 et 22 marqués Fixed, le 4 et le 20 en partie,
+  le 16 comme ambiguïté seulement, chacun reprouvé par un programme sur
+  `configure-clean`) ; le préprocesseur donne le même code octet pour octet
+  (SSE2 et `GAOL_SIMD=OFF`, avec et sans `NDEBUG`), le manuel se construit (154
+  pages, 0 erreur) ; relue (D1 à D9 corrigés) ; fusionnée à 21 h 10)
+
+- #262 (Visual C++ arm64 : `add_bounds()` et `sub_bounds()` chacune dans une
+  section de code à elle, `#pragma code_seg(push, ".gadd")` et `".gsub"` pour
+  `_MSC_VER && !__clang__ && _M_ARM64` seulement, *décidé le 30 octobre* :
+  étudier un correctif du placement ; sur le Neoverse N2 les lignes `x + y`, `x
+  - y`, `line of 15 +`, `sum16` et `diff16` bougeaient de 8 à 17 % pour toute
+  pull request qui touche la bibliothèque (deux états : `x + y` 1,54 ou 1,43 ns,
+  `line of 15 +` 15,3 ou 13,0) ; les cartes du lien (`/MAP`) de huit pull
+  requests jetables, #254 à #261, montrent que le lien met les fonctions d'un
+  fichier objet l'une après l'autre dans `.text$mn`, alignées sur 4 octets, si
+  bien que leur adresse suit la taille de tout ce qui les précède ; avec le
+  correctif les deux adresses sont des multiples de 0x1000 avant et après dans
+  les quatre pull requests essayées, et les six lignes restent entre 0,98 et
+  1,02 ; environ 8 Ko de plus par exécutable ; sans relecteur indépendant ;
+  fusionnée à 21 h 13)
+
+- #250 (NEON `interval(d)` et `x op= d` : `finite_double(d)` est
+  `quiet_less(fabs(d), +oo)`, **une** comparaison silencieuse au lieu de deux,
+  avec `keep_branch()` (un `asm` vide, comme `reread_bounds()`) qui empêche
+  Clang 18 à 21 d'en faire un masque ; la variante jetable #251, qui teste `d`
+  sur ses bits, va un peu plus vite mais change deux drapeaux (l'invalidité d'un
+  NaN signalant, l'opérande dénormalisé sous `FZ`) : **refusée** par le
+  mainteneur, #250 garde ceux de la base ; N2 : `x / d` ×1,06 (Clang), ×1,07
+  (GCC), ×1,05 (clang-cl), ×1,09 (Visual C++ arm64) ; M2 : 2,27 à 1,92 ns
+  (0,846) ; bornes, `FPSR` et `FPCR` final identiques à la base sur environ 303
+  millions de cas par version pour le relecteur ; celui-ci a trouvé un trou de
+  test, le mutant qui échange l'ordre des deux tests (`IOC` levé pour un `x`
+  vide et un `d` NaN signalant) passait toute la suite : `rounding_direction`
+  vérifie maintenant, pour NEON, que `x += d`, `-=`, `*=`, `/=` et `%=` d'un `x`
+  vide et d'un `d` NaN signalant ne lèvent pas `FE_INVALID` ; fusionnée à 21 h
+  21)
+
+- #239 (NEON `max(x, y)` et `min(x, y)` par des instructions entières sur les
+  quatre mots stockés, en plus court que le noyau de #236 (41 à 43 instructions
+  dont 28 à 29 sur les registres vectoriels, 33 à 36 dont 0 à 2 avec celui-ci) ;
+  l'opérande vide, le premier comme le second, est dit en premier sur les mots :
+  15 instructions et aucune branche prise ; les autres cas (bornes à l'envers,
+  `-oo` stocké, zéros de signes différents) sont hors ligne et à froid, l'ancien
+  code ; **trois variantes** essayées d'abord sur le M2, dont deux perdaient sur
+  un opérande vide (F4, 0,78 mais +33 à +65 % ; F3, 0,81 ; F6, 0,94 et neutre ;
+  F4b, +6 à +11 %), et le mainteneur a gardé **F4b2** (le critère est *aucune
+  perte nulle part*), ajoutée à la branche par un second commit : M2 0,869 à
+  0,870 (21 passes sur 21), opérande vide 1,000 à 1,009 ; N2 : `max` et `min`
+  ×1,93 (Clang), ×1,30 (GCC), ×1,61 et ×1,62 (Visual C++ arm64), ×1,70 et ×1,73
+  (clang-cl) ; mêmes bornes que la formule de référence sur 19,36 millions de
+  cas sur le M2 et 51 387 136 cas par version pour le relecteur, qui a aussi
+  prouvé l'équivalence par un modèle exhaustif de petits flottants (4 × 2^33
+  états) ; 38 mutants, 31 tués et 7 équivalents (la vitesse seule change) ; les
+  variantes jetables sont #240, #241, #252 et #253 (2.4) ; fusionnée à 21 h 29)
+
+- #248 (NEON `interval(l, r)` par `valid_bounds()`, une comparaison de doubles
+  au lieu de trois ; la revue des noyaux NEON (`add`, `sub`, `sqr`, `sqrt`, `x
+  &= y`, `x |= y`, `hull`, `x <= y`, `contains`, `midpoint` et les opérations
+  avec un double) n'a trouvé un motif réel que pour trois, chacun dans une pull
+  request à part : celle-ci, #249 et #250 ; N2 : `interval(a, b)` ×1,80 (Clang),
+  ×1,70 (clang-cl), ×1,26 (Visual C++ arm64), `floor(x)` ×1,64 (Clang), `max` et
+  `min` ×1,24 ; M2 (troisième version) : `interval(a, b)` 0,551, `floor(x)`
+  0,879, `max` et `min` 0,734 ; les trois versions mesurées sur le M2 : la
+  première perdait 11,7 à 15,5 % sur les quatre chemins qui rendent l'ensemble
+  vide (12 instructions), la deuxième 43 à 48 % sur un NaN (trois `fcmp` en
+  série), la troisième 1,000 sur le vide, le NaN et `+oo` ; relue par un agent
+  indépendant (71,6 millions de cas, aucune borne fausse, aucun changement de
+  `FPCR`) : avec la même variable deux fois GCC ne levait plus les drapeaux de
+  la base (corrigé), et un trou de test, le mutant qui accepte `interval(1, -1)`
+  (voies `<-1, -1>`, `is_empty()` vrai mais `interval(1, -1) * [2, 3]` donne
+  `[-3, 3]`) passait les 26 programmes de test : le test `constructor` le tue ;
+  fusionnée à 21 h 32)
+
+- #276 (CI macOS : GitHub retire macOS 14, les deux jobs `macOS 14 arm64` et
+  `macOS 14 x86_64 (Rosetta)` passent sur l'exécuteur `macos-27`, *demandé par
+  le mainteneur le 30 octobre* ; la pull request dit que si l'étiquette n'existe
+  pas encore pour les dépôts publics les deux jobs resteront en attente, et
+  c'est ce qui arrive : **aucun exécuteur ne sert `macos-27` le 31 octobre**, ni
+  pour #276 ni pour les pull requests suivantes ni pour `configure-clean`, si
+  bien que le workflow macOS ne se termine pas (`TODO.md`, PJ) ; fusionnée à 21
+  h 37)
+
+- #279 (**`x <= y`** : `certainly_le()`, `certainly_leq()`, `certainly_ge()` et
+  `certainly_geq()`, *décidé le 30 octobre* : chercher un ordre sans branche
+  pour toutes les plates-formes ; avec GCC 13 sur un Intel, `x <= y` tombait
+  dans un état de placement lent (4 à 6 ns contre 1,2 à 1,6, deux sauts à 8
+  octets l'un de l'autre), et les deux premières variantes, #246 (les ensembles
+  vides d'abord) et #247 (la comparaison des bornes avant les deux tests
+  d'ensemble vide), gagnaient sur x86 mais rendaient `x <= y` deux fois plus
+  lent avec Clang sur AArch64 (N2 Clang 1,56 à 3,10 et 3,43 ns), et #246
+  échouait au job riscv64 ; **F2** : la relation est le OU de quatre tests,
+  `GAOL_LIKELY(quiet_less(r, l))`, `GAOL_UNLIKELY(is_empty())`,
+  `GAOL_UNLIKELY(I.is_empty())`, puis `GAOL_UNLIKELY(quiet_less_equal(r, l))` et
+  l'égalité des bornes tranchée par `bound_tied_less()` ou
+  `bound_tied_less_equal()` (`gaol/gaol_port.h`), dans cet ordre quand
+  `GAOL_RELATION_BOUNDS_FIRST` vaut 1 (le défaut, 0 sur RISC-V où les ensembles
+  vides passent d'abord) ; `GAOL_LIKELY` est nouveau dans `gaol/gaol_config.h` ;
+  la disposition des sauts est celle de la base (1 saut pris pour « vrai » et 3
+  pour « faux » avec Clang 18 et 21 sur AArch64 ; avec GCC sur x86-64, « vrai »
+  ne prend presque aucun saut), contre 2 et 2 pour #246 et #247, que le
+  prédicteur du N2 perd ; **un défaut de GCC 14** trouvé en route par la CI de
+  l'essai #277 (F1) : quand l'une des bornes comparées est une constante non
+  nulle, d'un côté de `<=` ou de `>=`, GCC 14 transforme `quiet_less(r, l) || r
+  == l` en la comparaison signalante `r <= l` (`vcomisd`, `fcmpe`, un
+  `flt.d`...), qu'il exécute avant les tests d'ensemble vide et donc sur les NaN
+  d'un opérande vide : `FE_INVALID`, et `SIGFPE` quand les pièges sont armés ;
+  reproduit avec GCC 14.2 sur x86-64, AArch64 et RISC-V (sous qemu), la base n'a
+  pas le défaut ; l'égalité est donc tranchée par `quiet_less_equal()`, qui ne
+  se transforme pas ; un test de plus dans `tests/rounding_direction.cpp` (`<=`
+  et `>=` avec une constante de chaque côté : 30 boucles au lieu de 29,
+  `doc/tests.md`) et un job de CI, « Debian 13 Trixie amd64, the relations test
+  the empty sets first » (`-DGAOL_RELATION_BOUNDS_FIRST=0`), parce que l'ordre
+  livré ne laisse voir un retour à `==` que sur RISC-V (vérifié avec GCC 14.2 :
+  le code livré avec la macro à 0, 0 échec ; la variante `==`, 4 échecs) ; relue
+  par un agent indépendant, qui n'a pas trouvé de point bloquant : même
+  sémantique que l'ancien code sur 40^4 combinaisons de voies (NaN, bornes à
+  l'envers, ±0, sous-normaux, ±oo) × 4 modes DAZ/FTZ, 28 configurations, environ
+  2,3 milliards d'évaluations, et ses remarques corrigées (la constante peut
+  être des deux côtés, les compteurs de compilateurs, la documentation de la
+  macro, le job de CI) ; `FE_INVALID` : 0 sur 48 boucles de relations avec GCC
+  12 à 15 et Clang 18 et 21 ; **mesures**, `x <= y` de `gaol_performance`, base
+  à pull request (ns) : Neoverse N2 Clang 1,56 à 1,04, GCC 1,58 à 1,10, GCC avec
+  les intervalles FPU 1,54 à 0,82, armhf 2,84 à 1,67, i386 1,49 à 1,04, Visual
+  Studio x64 3,41 à 1,78 et x86 3,73 à 1,98, clang-cl arm64 1,40 à 1,02, Ubuntu
+  x86-64 GCC 1,31 à 1,04 et Clang 1,00 à 0,68, MSYS2 1,69 à 1,16 et 1,62 à 1,33,
+  macOS 15 x86-64 1,88 à 1,14, macOS 26 arm64 1,51 à 1,11 ; M2 de MACarm4 (sur
+  secteur) 1,06 à 0,93 (21 passes sur 21), la réponse « vrai » de 0,90 à 0,38
+  (×2,35) ; Xeon de cloud1 (GCC 13.3 et Clang 18, SSE2) : GCC 4,71 à 1,29 ns sur
+  `gaol_performance`, mais 0,95 à 1,09 sur un mélange de 1024 intervalles (la
+  base de `gaol_performance` quitte l'état de placement lent, ce que l'autre
+  banc ne peut pas montrer, binaires non désassemblés), Clang 1,19 à 1,25 sur ce
+  mélange et ×2,25 sur les réponses vraies ; **les pertes**, dites dans la pull
+  request : un opérande vide prend le chemin long (×1,35 à ×1,57 en temps avec
+  GCC 15.2 et Clang 21 sur l'i7-1185G7, ×1,5 sur le M2, jusqu'à ×2,4 sur le M2
+  pour `x` vide avec `x < y` ou `x > y`, rapports 0,77 à 0,86 avec GCC et 0,63 à
+  0,75 avec Clang sur le Xeon), les bornes égales de `x <= y` (M2 : 1,50 à 2,69
+  ns, ×1,8), 65 536 intervalles sur le M2 (`x < y` et `x > y` −10 et −13 %, `x
+  <= y` et `x >= y` +4 et +5 %), GCC sur les réponses fausses du Xeon (0,97 à
+  0,98) et deux jobs x86 de la CI qui reculent de façon reproductible (Clang
+  x86-64 avec les intervalles FPU, 1,11 à 1,31 ; clang-cl x64, 1,33 à 1,52 ;
+  sans cause démontrée, la base d'un même job variant de 1,03 à 1,55 ns d'un
+  passage à l'autre) ; le mainteneur avait accepté F2 en connaissant le prix de
+  l'opérande vide (*décidé le 31 octobre*), puis, les mesures du M2 et du Xeon
+  lues avec les autres prix, a demandé de la **fusionner telle quelle** ; les
+  essais #246, #247, #277 et #278 sont fermés (2.4) ; fusionnée le 31 octobre à
+  9 h 32 UTC, par la session sur cette demande)
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -1814,6 +2075,37 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   lent avec GCC et 8 à 23 % avec Visual C++ (un appel force un cadre de pile) ;
   remplacée par #235 et fermée sans fusion (*décidé le 29 octobre*), sa branche
   `experiment-pg-neon-mul` est supprimée.
+- **#240, #241, #252 et #253** (30 octobre) : les variantes jetables du noyau
+  NEON de `max` et `min` de #239, F3 (mots entiers, résultat par un registre
+  vectoriel : M2 0,81, +33 à +38 % sur un opérande vide), F6 (voies
+  vectorielles, validation entière du résultat : 0,94, neutre), F4b (+6 à +11 %)
+  et F4b2 seule (#253, celle que #239 a reçue par un commit) ; fermées sans
+  fusion, leurs branches `experiment-pg-neon-maxmin-f3`, `-f6`, `-f4b` et
+  `-f4b2` sont gardées.
+- **#243 et #244** (30 octobre) : les variantes jetables de `x / y` et `x %= y`
+  de NEON qui mettent les tests de NaN et de zéro sur les bits (`inv-divtests`,
+  puis avec l'échange des voies par tables) : plus lentes sur le M2 (+3 à +5 %,
+  la ligne de 13 opérations +10 %), le diviseur borne le N2 (llvm-mca) ; fermées
+  sans fusion, leurs branches `experiment-pg-neon-divtests` et `-divtests-tbl`
+  sont gardées (`TODO_AFTER.md`, 3.7).
+- **#251** (30 octobre) : la variante jetable de #250 qui teste `d` sur ses bits
+  (N2 `x / d` ×1,14 avec Clang et ×1,05 avec GCC, M2 0,736 contre 0,846), qui
+  change deux drapeaux ; **refusée** par le mainteneur (`TODO_AFTER.md`, 3.8) ;
+  sa branche `experiment-pg-neon-double-ops-bits` est gardée.
+- **#254 à #261** (30 octobre) : les huit pull requests jetables de l'étude du
+  placement de Visual C++ arm64 (les cartes du lien sur deux bases,
+  `experiment-pg-vcarm-map` et `experiment-pg-vcarm-seg`, et les quatre pull
+  requests de la tâche PG empilées sur chacune) ; fermées avec #262, leurs
+  branches (`experiment-pg-vcarm-map`, `experiment-pg-vcarm-seg` et les
+  `experiment-pg-vcseg-*`) sont gardées.
+- **#246, #247, #277 et #278** (31 octobre) : les essais de l'étude de `x <= y`
+  : #246 (`todo-pg-xle-exfirst`, les ensembles vides d'abord, qui échouait au
+  job riscv64) et #247 (`experiment-pg-xle-ltfirst`, la comparaison des bornes
+  avant les deux tests d'ensemble vide), tous deux deux fois plus lents que la
+  base avec Clang sur AArch64 (N2 Clang 1,56 à 3,10 et 3,43 ns), puis F1 (#277)
+  et F2 (#278), deux candidates de la nouvelle étude, dont la CI a trouvé le
+  défaut de GCC 14 (12 `FE_INVALID`) ; remplacées par #279 (F2 corrigée) et
+  fermées sans fusion, leurs branches sont gardées.
 
 ### 2.5 Les pull requests du 23 octobre au soir et les décisions qu'elles exécutent
 
@@ -3345,10 +3637,54 @@ exécutent (2.3).
   5 % dans l'autre sens, cause non examinée) ; 707 symboles de code de GAOL sur
   818 alignés sur 64 octets, contre 41 ; `libgaol.a` +26 760 octets (+2,3 %).
 
+### 3.11 Les 30 et 31 octobre : la fin de la tâche PG et la tâche PI
+
+Les décisions du mainteneur pendant la fin de la tâche PG et la tâche PI, aux
+questions posées en cours de route, avec les pull requests qui les exécutent
+(2.3).
+
+- **Les noyaux NEON** (30 octobre) : pour `max` et `min`, la variante **F4b2**
+  (l'opérande vide testé avant les clés d'ordre, juste après le premier test),
+  parce que F4 perdait 33 à 65 % sur un opérande vide et F4b 6 à 11 % (*aucune
+  perte nulle part*), en second commit de #239 sans réécrire la branche ; la
+  variante « bits » de `interval(d)` et de `x op= d` (#251) est **refusée** : on
+  garde #250, dont les drapeaux sont ceux de la base ; il supprime lui-même sur
+  GitHub les branches `todo-pg-max-base` et `todo-pg-max-control`.
+- **Le bruit de placement de Visual C++ arm64** (30 octobre) : « étudier un
+  correctif » : #262 (les huit pull requests de l'étude, #254 à #261, sont
+  fermées avec elle).
+- **`x <= y`** (30 octobre) : « chercher un ordre sans branche pour toutes les
+  plates-formes » ; #246 et #247 restent ouvertes jusqu'à la fin de l'étude.
+  Pour riscv64, **aucun objectif de vitesse** (le mainteneur : la prochaine
+  étape sera un noyau spécial pour ce type de processeur, comme pour SSE et
+  NEON), seulement des bornes exactes, pas de `FE_INVALID` et les tests. Le 31
+  octobre : **F2**, après que la session a dit que F1 et F2 gardent la
+  disposition des sauts de la base et laissent le prix d'un opérande vide ;
+  puis, les mesures du M2 et du Xeon lues avec les pertes (2.3, #279), «
+  **fusionne telle quelle** » : #279 est fusionnée par la session sans étude de
+  plus, et #246, #247, #277 et #278 fermées.
+- **Le tableau de Clang 21** (tâche PG, point 1, 30 octobre) : seulement dans
+  PJ, avec la mesure de la version.
+- **La tâche PI** (30 octobre) : une pull request par thème, **empilées**, la
+  tâche PG d'abord, puis PI ; les valeurs par défaut du plan sauf : Visual C++
+  et SSE2 dits à l'état présent seulement, les défauts nés et corrigés pendant
+  v5 gardés partout, tous les chiffres gardés (PJ en remesure certains), le
+  texte complet ; les pull requests sont **ouvertes, mais leurs workflows
+  annulés à la main** pour chacune, et ceux des pull requests fusionnées aussi ;
+  une treizième pull request (#275) corrige les phrases fausses trouvées hors
+  des deux documents.
+- **La CI de macOS** (30 octobre) : macOS 14 n'est plus pris en charge par
+  GitHub, les deux jobs passent sur `macos-27` (#276) ; le 31 octobre, aucun
+  exécuteur ne sert l'étiquette (`TODO.md`, PJ, 6).
+- **Le 31 octobre, le ménage** (« met à jour les registres et nettoie ») : les
+  registres une fois pour #237 à #279, les branches locales fusionnées ou
+  gardées sur GitHub, les worktrees, le conteneur Docker et ses images de
+  l'étude, le dossier de travail de la session (8.1).
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
-`TODO.md` (tâches PF à PJ) ou dans `TODO_AFTER.md` ; leur partie faite est dite
+`TODO.md` (tâches PH à PJ) ou dans `TODO_AFTER.md` ; leur partie faite est dite
 ici ou dans la section 5.
 
 ### Même changement, ou même code
@@ -3526,8 +3862,11 @@ leur partie faite.
   par #160 et #166 ; le 112, le défaut de CMake et les descriptions d'options
   par #161, le test des bits du signe de `x * d` par #171. Restent les 105 (AH),
   106 (b, c, d), 112 et 116.
-- **AJ, AK, W, X, Y.** Rien n'est fait ; voir `TODO_AFTER.md` (AJ, AK, W, X) et
-  `TODO.md` (Y, tâches PI et PJ).
+- **AJ, AK, W, X.** Rien n'est fait ; voir `TODO_AFTER.md`.
+- **Y.** La synthèse des textes de la version (la tâche PI) est faite par #263 à
+  #274, avec #275 pour les phrases hors de `doc/differences.md` et du
+  `ChangeLog` ; il reste ses restes (`TODO.md`, PI) et la publication (tâche
+  PJ).
 
 ## 5. Les anciens numéros faits
 
@@ -3871,6 +4210,20 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
   l'assembleur avec GCC : #223, puis son garde `DENORMAL` #227 et son job de CI
   #228 ; la grille de `diffarith` : #229 ; les masques d'exceptions de
   `pow_rel()` : #231.
+- **Les autres noyaux NEON** (PG, point 2, *décidé le 29 octobre*). Fait après
+  `max` et `min` (#236) : `inverse()` par #242 (avec le test #245), `interval(l,
+  r)` par #248, `x * y` par #249, `x op= d` par #250, et le noyau de `max` et
+  `min` lui-même raccourci par #239 (F4b2). `x / y` et `x %= y` : les tests de
+  NaN et de zéro sur les bits perdent sur le M2 (#243, #244, fermées), le
+  diviseur borne le N2. `add`, `sub`, `sqr`, `sqrt`, `x &= y`, `x |= y`, `hull`,
+  `x <= y`, `contains` et `midpoint` n'ont aucun motif (la revue de #248).
+- **`x <= y`** (GCC 13 sur Intel, 4 à 6 ns dans un état de placement lent) :
+  #279, après les essais #246, #247, #277 et #278 ; le prix et les pertes sont
+  dans 2.3, #279 (`TODO_AFTER.md`, 5).
+- **Le bruit de placement de Visual C++ arm64** (`x + y`, `x - y`, `line of 15
+  +` bougeaient de 8 à 17 % pour toute pull request) : #262.
+- **Le tableau de Clang 21** (PG, point 1) : dans PJ (*décidé le 30 octobre*),
+  avec la mesure de la version.
 
 ### Décisions du mainteneur attendues (reportées)
 
@@ -4481,6 +4834,44 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
   variante d'essai) ; il n'y en a plus quand ce chemin rend les bornes dans un
   registre (`__m128d`) ; la cause exacte n'est pas établie.
 
+### 7.10 Le 30 et le 31 octobre (après #237 à #279)
+
+- Le mainteneur a fusionné #237 et #238 le 30 octobre à 11 h 04 UTC, #245 à 19 h
+  57, #242 à 19 h 59, #249 à 20 h 07, les douze pull requests des textes de la
+  version de #274 à #263 de 20 h 24 à 20 h 40, #275 à 21 h 10, #262 à 21 h 13,
+  #250 à 21 h 21, #239 à 21 h 29, #248 à 21 h 32 et #276 à 21 h 37 ; #279 l'a
+  été le 31 octobre à 9 h 32 par la session, à sa demande (« fusionne telle
+  quelle »), avec l'API REST de `gh` (la tête `7b54dbe` vérifiée, un commit de
+  fusion comme les autres) : `configure-clean` est au commit `5aef739`. Les
+  workflows lancés par ces fusions sont annulés à la main, comme il l'a demandé.
+  Les registres sont mis à jour pour ces vingt-quatre pull requests (2.3), pour
+  les dix-neuf fermées sans fusion (2.4) et pour les décisions de 3.11.
+- Une seule session a traité la fin de la tâche PG et la tâche PI, avec la
+  session MACarm4 (un Apple M2, Remote Control) pour NEON et `x <= y` et la
+  session cloud1 (un Xeon dans le nuage, GCC 13.3 et Clang 18) pour `x <= y` :
+  elle a ouvert quarante-trois pull requests, #237 à #279 (24 fusionnées, 19
+  fermées sans fusion, toutes des brouillons jetables).
+- Les échecs de CI de la période : #246 échoue au job riscv64
+  (`rounding_direction`, « relations with empty operands raises no
+  invalid-operation flag ») ; le job Coverage de #247 dépasse son délai dans
+  `numbers` (infrastructure) ; #277 échoue à `rounding_direction` sur le job «
+  Debian 13 Trixie amd64 » (le défaut de GCC 14, 12 `FE_INVALID`) ; les jobs
+  `macOS 27` restent en file d'attente, y compris sur `configure-clean`, faute
+  d'exécuteur ; le 29 octobre la file de GitHub avait des heures de retard.
+- Les pièges : `gh pr create` échoue par l'API GraphQL (« Projects (classic) »)
+  : `gh api repos/Jordan08/GAOL/pulls -X POST -F body=@fichier`, et `-X PATCH`
+  pour le texte ; `git fetch origin <sha abrégé>` est refusé (« couldn't find
+  remote ref ») : récupérer les branches par leur nom ; une variable locale `c`
+  cachait un vecteur `c` (C4456 de Visual C++ en `/W4 /WX` : compiler avec
+  `-Wshadow` avant de pousser) ; un test de la suite peut ne pas mordre dans
+  l'ordre livré (le contrôle de `rounding_direction` ne voit un retour à `==`
+  que quand les tests d'ensemble vide passent d'abord, donc sur RISC-V : d'où le
+  job à l'ordre inversé) ; une mesure d'un Mac sur secteur attend que le capot
+  soit ouvert et que le mode économie d'énergie soit coupé ; la base d'un même
+  job de CI varie de 1,03 à 1,55 ns pour `x <= y` d'un passage à l'autre (les
+  coureurs n'ont pas tous le même processeur) : un gain sur GCC et x86 peut
+  n'être que la sortie d'un état de placement lent.
+
 ## 8. Le ménage fait
 
 ### 8.1 Branches, lignes de crédit, outillage
@@ -4570,6 +4961,34 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
   cette mise à jour poussée. Les branches des pull requests jetables fermées
   (`experiment-pg8-neon-div`, `experiment-pg2-row`, `experiment-pg2-n2`) sont
   gardées.
+- [x] Les branches de #237 (`todo-pg-rows`), #238 (`todo-ci-pipe-in-row`), #239
+  (`todo-pg-neon-maxmin`), #242 (`todo-pg-neon-inverse`), #245
+  (`todo-pg-nan-lanes-test`), #248 (`todo-pg-neon-ctor2`), #249
+  (`todo-pg-neon-mul-corners`), #250 (`todo-pg-neon-double-ops`), #262
+  (`todo-pg-vcarm-code-seg`), #263 à #275 (`todo-pi-1-build-system` à
+  `todo-pi-12-tests-docs-ci` et `todo-pi-outside-docs`) et #276
+  (`todo-ci-macos-27`), supprimées sur GitHub par le mainteneur à la fusion, et
+  en local le 31 octobre ; sur GitHub restent, à supprimer par lui,
+  `todo-pg-relations-order` (#279) et `todo-pg-xle-exfirst` (#246), et gardées :
+  les branches des pull requests jetables fermées (`experiment-pg8-neon-div`,
+  `experiment-pg2-row`, `experiment-pg2-n2`, `experiment-pg-neon-maxmin-f3`,
+  `-f4b`, `-f4b2` et `-f6`, `experiment-pg-neon-divtests`, `-divtests-tbl` et
+  `experiment-pg-neon-double-ops-bits`, `experiment-pg-vcarm-map`,
+  `experiment-pg-vcarm-seg` et les quatre `experiment-pg-vcseg-*`,
+  `experiment-pg-xle-F1`, `-F2` et `-ltfirst`).
+- [x] Le 31 octobre, à la demande du mainteneur (« nettoie ») : les copies
+  locales des branches fusionnées (vingt-six) et celles des branches jetables
+  qui restent sur GitHub à l'identique (vingt) ; les branches locales de la
+  session pour la tâche PI, qui n'ont jamais été poussées (`orig-pi-*`, les
+  originaux des douze thèmes, et `fix-pi-*`, leurs corrections : le texte
+  fusionné est celui de leur rejeu, `todo-pi-*`) ; les vingt-cinq worktrees du
+  dossier de travail de la session ; le conteneur Docker de l'étude de GCC 14
+  (`xle14`) et ses images (`gaol-trixie-cross`, `xle-ubuntu24`, `debian:trixie`,
+  `ubuntu:24.04`), les images `gaol-bookworm-cross`, `gaol-i386-build`,
+  `debian:bookworm`, `i386/debian:trixie` et `rhysd/actionlint` étant gardées ;
+  `todo-pg-max-base` et `todo-pg-max-control`, les branches de mesure du témoin
+  de placement de `max`, locales et jamais poussées, supprimées une fois cette
+  mise à jour poussée.
 - [x] Lignes de crédit retirées des descriptions de #50, #51, #53 à #57 et #59,
   d'un commentaire de #59 et de cette issue. Il en reste dans les messages des
   commits a0d3871, 790ca12 et f1f4239 de #99, fusionnée sans squash. Retirées
