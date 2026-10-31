@@ -46,6 +46,11 @@ only (see [The speed of a pull request](#the-speed-of-a-pull-request)). The badg
     where GCC calls the intersection rather than inlining it, and
     `tests/rounding_direction.cpp` checks the choices a program makes on
     `is_empty()` of an empty interval there too.
+  - Debian 13 on amd64 with the relations between intervals testing the empty
+    sets before the bounds (`-DGAOL_RELATION_BOUNDS_FIRST=0`, the order of
+    RISC-V), where GCC 14 raised the invalid-operation flag for an empty
+    operand when the equal bounds were found by `==`
+    (`tests/rounding_direction.cpp`).
 - **macOS:** 14, 15 and 26, on arm64 and x86_64 (natively or under Rosetta), a
   universal build (arm64 and x86_64, GAOL v5: the macros of each part, the tests
   of the arm64 part natively and the test programs of the x86_64 part under

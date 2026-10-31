@@ -327,8 +327,9 @@ namespace gaol_detail {
     v5), for two bounds that the quiet comparison x < y found false and
     quiet_less_equal(x, y) true: the processor finds them equal, which the
     relations between intervals (gaol/core/gaol_interval_core.h) know before
-    they call these, and which these do not test again. Both bounds are then no
-    NaN, so that their integers order them.
+    they call bound_tied_less() or bound_tied_less_equal(), and which these
+    two do not test again. Both bounds are then no NaN, so that their integers
+    order them.
     Two equal doubles of the same bits, the bounds of a point interval as
     floor() makes them, are the same bound: tested first, they spare the
     integers of bound_key(), which cost floor() 0.6 to 1 ns on an Intel i7-1185G7

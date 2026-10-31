@@ -351,10 +351,11 @@ point Q), which `numbers` checks there too.
   (with the FPU intervals, GCC 9.4 and 13 at `-O3` with `-mfma`, GCC 13 to 15
   for 32-bit x86, GCC 14 for POWER8 and GCC 11 to 15 for 64-bit ARM made some
   of them raise the exception, and with the SSE2 intervals the construction of
-  an interval; and for `x >= 1.5` or `1.5 <= x`, where GCC 14 folds the
-  comparison of the bounds and the test of the equal ones into a signaling
-  comparison unless the equality is tested by `quiet_less_equal()`), compared
-  with each relation computed on its own. The midpoints
+  an interval; and GCC 14 for x86-64, 64-bit ARM and RISC-V for `x <= c`,
+  `c <= x`, `x >= c` and `c >= x` with a constant c other than zero, when the
+  equal bounds were found by `==`, which it folded with the comparison of the
+  bounds into a signaling one), compared with each relation computed on its
+  own. The midpoints
   of five intervals with a bound of 2^1023 or more in magnitude, `[DBL_MAX]`
   among them, (`midpoint()`, `mid()`, `rad()`, `mid_rad()`, `split()`...)
   have to be right, `mid()` the tightest enclosure of the exact midpoint, and

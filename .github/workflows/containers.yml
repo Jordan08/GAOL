@@ -65,6 +65,12 @@ jobs:
           - { os: ubuntu-24.04,     platform: linux/riscv64, image: 'debian:trixie',   tools: apt, qemu: true, desc: 'Debian 13 Trixie riscv64 (qemu)' }
           - { os: ubuntu-24.04,     platform: linux/386,     image: 'debian:bookworm', tools: apt, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Debian 12 Bookworm i386, rounding direction preserved' }
           - { os: ubuntu-24.04-arm, platform: linux/arm/v7,  image: 'debian:trixie',   tools: apt, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Debian 13 Trixie armhf, rounding direction preserved' }
+          # The relations between intervals testing the empty sets before the
+          # bounds, the order of RISC-V (GAOL_RELATION_BOUNDS_FIRST=0): GCC 14
+          # folds the quiet comparison of the bounds and an equality test into
+          # a signaling comparison there, which tests/rounding_direction.cpp
+          # catches on amd64 only in this order
+          - { os: ubuntu-24.04,     platform: linux/amd64,   image: 'debian:trixie',   tools: apt, opts: '-DCMAKE_CXX_FLAGS=-DGAOL_RELATION_BOUNDS_FIRST=0', desc: 'Debian 13 Trixie amd64, the relations test the empty sets first' }
           # POWER9, where GCC 13 reversed the quiet comparison of is_empty()
           # into a signaling one (#60), and builds for size (MinSizeRel, -Os),
           # where GCC 14 for 32-bit ARM and GCC 13 for POWER9 call operator&

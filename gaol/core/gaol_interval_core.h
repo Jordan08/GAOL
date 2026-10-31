@@ -1243,33 +1243,36 @@ namespace gaol_core {
     which is true when either interval is empty (Table 10.4), as for
     certainly_ge() and certainly_geq(). GAOL gave false when only I was empty,
     respectively only *this (GAOL v5).
-    The relations are tests ORed: the bounds are in order, *this is empty, I
-    is empty and, for bounds the processor finds equal, their integers
-    (gaol_detail::bound_tied_less()). Each is marked with the answer the
-    compiler is told is the usual one (bounds in order likely, an empty operand
-    and equal bounds rarely), which changes the layout of the code and nothing
-    it computes. With GCC 13.3, x <= y of gaol_performance took 3.9 to 4.6 ns
+    Each relation is the OR of four tests: the bounds are in order, *this is
+    empty, I is empty and, for bounds the processor finds equal, the integers
+    of their bits are in order (gaol_detail::bound_tied_less() and
+    bound_tied_less_equal()). Each is marked with the answer the compiler is
+    told is the usual one (bounds in order likely, an empty operand and equal
+    bounds rarely), which changes the layout of the code and nothing it
+    computes. With GCC 13.3, x <= y of gaol_performance took 3.9 to 4.6 ns
     instead of 1.2 to 1.5 ns on an Intel i7-1185G7 for some addresses of the
     code, the answers "true" and "false" taking the same number of jumps. With
     the hints "true" is the code that falls through and "false" takes more
-    jumps, with GCC 12 to 15 and Clang 18 and 21 for x86-64 and 64-bit ARM, in
-    the four relations, which the former order of the tests did not give.
+    jumps, in the four relations (GCC 13 and 15 and Clang 18 and 21 for x86-64,
+    GCC 12 and 14 and Clang 18 and 21 for 64-bit ARM).
     The comparison of the bounds comes first, so that "true" costs it alone,
     where the tests of the empty set made two comparisons more: x <= y took
     1.55 ns instead of 1.03 ns with Clang on a Neoverse N2. The price is an
-    empty operand, which takes the longer path: up to 1.5 times the time of the
-    former order, with GCC 15 and Clang 21, where every first operand is empty.
-    The comparison is then made on the NaN bounds of an empty operand, which
-    GCC 14 for RISC-V compiles into a signaling comparison in some loops
-    (FE_INVALID raised for an empty operand of x <= y,
-    tests/rounding_direction.cpp): there the tests of the empty set stay first
-    (GAOL_RELATION_BOUNDS_FIRST, gaol_port.h).
-    The equal bounds are found by quiet_less_equal(r, l), not by r == l: after
-    quiet_less(r, l), and with a constant r other than zero (x >= 1.5,
-    1.5 <= x), GCC 14 for x86-64, 64-bit ARM and RISC-V knows the bounds to be
-    tied and folds the two comparisons into the signaling r <= l, which raises
-    FE_INVALID for the NaN bounds of an empty operand wherever the compiler
-    makes it before the tests of the empty set, in a loop for instance.
+    empty operand, which takes the longer path: up to 1.6 times the time of the
+    former order, with GCC 15 and Clang 21, in a loop over empty operands only.
+    On RISC-V the tests of the empty set stay first (GAOL_RELATION_BOUNDS_FIRST,
+    gaol_port.h): the comparison of the bounds is then made on the NaN bounds of
+    an empty operand, which GCC 14 for RISC-V compiles into a signaling
+    comparison in some loops (FE_INVALID raised for an empty operand of x <= y,
+    tests/rounding_direction.cpp).
+    The equal bounds are found by quiet_less_equal(r, l), not by r == l. With a
+    constant bound other than zero on either side of <= or >= (x >= 1.5,
+    x <= 2.5...), GCC 14 for x86-64, 64-bit ARM and RISC-V folds
+    quiet_less(r, l) || r == l into the signaling comparison r <= l, which
+    raises FE_INVALID for the NaN bounds of an empty operand wherever the
+    compiler makes it before the tests of the empty set, in a loop for
+    instance: where these come first, as with -DGAOL_RELATION_BOUNDS_FIRST=0,
+    which a job of the continuous integration builds on Debian 13 amd64.
   */
   GAOL_INLINE bool interval::certainly_ge(const interval &I) const
   {
