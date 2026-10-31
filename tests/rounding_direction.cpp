@@ -2955,6 +2955,9 @@ namespace
   GAOL_TESTS_RELATION_LOOP(loop_set_le, x[i].set_le(y[i]))
   GAOL_TESTS_RELATION_LOOP(loop_set_leq, x[i].set_leq(y[i]))
   GAOL_TESTS_RELATION_LOOP(loop_operators, (x[i] <= y[i]) + 2*(x[i] < y[i]) + 4*(x[i] >= 1.5) + 8*(x[i] > 1.5))
+  // a constant bound other than zero, on either side: GCC 14 folds the quiet comparison of the bounds and the test of
+  // the equal ones into one signaling comparison, which it then makes for the empty operands too
+  GAOL_TESTS_RELATION_LOOP(loop_operators_constants, (x[i] <= 2.5) + 2*(2.5 <= x[i]) + 4*(x[i] >= -2.5) + 8*(-2.5 >= x[i]))
   GAOL_TESTS_RELATION_LOOP(loop_constructor, interval(x[i].left(), y[i].right()).is_empty())
   GAOL_TESTS_RELATION_LOOP(loop_intersection, (x[i] & y[i]).is_empty())
   GAOL_TESTS_RELATION_LOOP(loop_floor, floor(x[i]).is_empty())
@@ -2993,6 +2996,7 @@ namespace
     { "set_le()", loop_set_le, loop_set_le_at },
     { "set_leq()", loop_set_leq, loop_set_leq_at },
     { "<=, < and >=, > with a double", loop_operators, loop_operators_at },
+    { "<= and >= with a constant on either side", loop_operators_constants, loop_operators_constants_at },
     { "interval(l, r)", loop_constructor, loop_constructor_at },
     { "&", loop_intersection, loop_intersection_at },
     { "floor()", loop_floor, loop_floor_at },

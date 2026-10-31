@@ -308,19 +308,51 @@ namespace gaol_detail {
   }
 
   /*
+    1 where the relations between intervals (gaol/core/gaol_interval_core.h)
+    compare the bounds before they test for the empty set, 0 where they test
+    first; -DGAOL_RELATION_BOUNDS_FIRST=0 or 1 asks for either. 0 for RISC-V,
+    where GCC 14 made that comparison on the NaN bounds of an empty operand a
+    signaling one (FE_INVALID)
+  */
+#ifndef GAOL_RELATION_BOUNDS_FIRST
+#  if defined(__riscv)
+#    define GAOL_RELATION_BOUNDS_FIRST 0
+#  else
+#    define GAOL_RELATION_BOUNDS_FIRST 1
+#  endif
+#endif
+
+  /*
+    What bound_less() and bound_less_equal() add to the quiet comparison (GAOL
+    v5), for two bounds that the quiet comparison x < y found false and
+    quiet_less_equal(x, y) true: the processor finds them equal, which the
+    relations between intervals (gaol/core/gaol_interval_core.h) know before
+    they call bound_tied_less() or bound_tied_less_equal(), and which these
+    two do not test again. Both bounds are then no NaN, so that their integers
+    order them.
     Two equal doubles of the same bits, the bounds of a point interval as
     floor() makes them, are the same bound: tested first, they spare the
     integers of bound_key(), which cost floor() 0.6 to 1 ns on an Intel i7-1185G7
     (Clang 18)
   */
+  GAOL_INLINE bool bound_tied_less(double x, double y)
+  {
+    return bound_bits(x) != bound_bits(y) && bound_key(x) < bound_key(y);
+  }
+
+  GAOL_INLINE bool bound_tied_less_equal(double x, double y)
+  {
+    return bound_bits(x) == bound_bits(y) || bound_key(x) <= bound_key(y);
+  }
+
   GAOL_INLINE bool bound_less(double x, double y)
   {
-    return quiet_less(x, y) || (x == y && bound_bits(x) != bound_bits(y) && bound_key(x) < bound_key(y));
+    return quiet_less(x, y) || (x == y && bound_tied_less(x, y));
   }
 
   GAOL_INLINE bool bound_less_equal(double x, double y)
   {
-    return quiet_less(x, y) || (x == y && (bound_bits(x) == bound_bits(y) || bound_key(x) <= bound_key(y)));
+    return quiet_less(x, y) || (x == y && bound_tied_less_equal(x, y));
   }
 
   GAOL_INLINE bool bound_greater(double x, double y)
