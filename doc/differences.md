@@ -536,7 +536,7 @@ where it comes from.
   the direction changes, and `GAOL_PRESERVE_ROUNDING` reads it once at the
   start of an operation and writes back what it found at the end, only if that
   differs from what the operation left, where it called `fegetround()` and
-  `fesetround()`: `x + y` takes 22.5 ns rather than 48 (the Debian armhf jobs of
+  `fesetround()`: `x + y` takes 22.5 ns rather than 49 (the Debian armhf jobs of
   the continuous integration, which run on the arm64 runners of GitHub). FPSCR
   holds the flags of the exceptions too, so every write but the one at the
   start of an operation, which comes before any computation, reads the register

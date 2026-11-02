@@ -588,7 +588,7 @@
 	ARM with GCC and a floating-point unit of doubles, FPSCR is read with
 	vmrs and written with vmsr, only when it changes, rather than through
 	fegetround() and fesetround(): with GAOL_PRESERVE_ROUNDING x + y takes
-	22.5 ns, where it took 48 (GAOL_RND_FPSCR_DIRECT,
+	22.5 ns, where it took 49 (GAOL_RND_FPSCR_DIRECT,
 	-DGAOL_RND_FPSCR_DIRECT=0 gives the C library back).  Without
 	GAOL_PRESERVE_ROUNDING nothing changes.
 
