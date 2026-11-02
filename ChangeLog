@@ -885,9 +885,9 @@
 	the flag of an infinite bound): it is compared with the largest
 	double (with 2^-1022) first, and the search for the doubles
 	around it starts from there (from 0).  Reading a subnormal
-	takes 2 to 12 times longer.  The exponent and the counts of
-	digits are long long, where a long of 32 bits wrapped for a
-	text of more than 536870411 characters.
+	takes longer than reading a normal number.  The exponent and the
+	counts of digits are long long, where a long of 32 bits wrapped for
+	a text of more than 536870411 characters.
 	* gaol/parser/gaol_interval_parser.ypp (gaol_literal): <a, b>
 	refuses a bound whose value is not a point: <[0.1],
 	0x1.9999999999999p-4> was read as the point of the second.
@@ -927,6 +927,14 @@
 	* gaol/parser/gaol_interval_lexer.lpp: numbers in base 16, 8 and 2
 	(0x10, 0xff.8, 0o17, 0b101, 0b1.1p3) are read, the exponent after the
 	p being optional; a number that begins with 0 is decimal.
+	* gaol/parser/gaol_interval_lexer.lpp, gaol_interval_parser.ypp: the
+	interval literals of IEEE 1788-2015 are read (9.7, 12.11), whatever
+	the case of their letters ([Empty], [1, Inf]): [ ], [entire], the
+	bounds left out ([1,], [,]), infinity, the hexadecimal numbers
+	([0x1.3p-1, 2/3]) and the uncertain form (3.56?1, -10??u), as the
+	tightest intervals of doubles enclosing them; [inf] and [inf, inf] are
+	the empty set.  A sign next to an uncertain number needs a blank after
+	it: 10-3.56?1 throws input_format_error, 10 - 3.56?1 is read.
 
 	Writing intervals and the messages of the exceptions:
 
@@ -940,6 +948,13 @@
 	writes the radius without a sign under showpos and a center 0
 	as 0; the agreeing format writes the digits two bounds share
 	only for finite bounds, not 0, of the same sign and aligned.
+	* gaol/core/gaol_interval_core.cpp (operator<<, exact_string): the
+	format hexa writes the bounds in the hexadecimal-significand form
+	([0x1.999999999999ap-4, ...]), an interval literal of IEEE 1788-2015
+	that reads back the same bounds bit for bit (a point interval of zero
+	apart), where GAOL 4 wrote the sixteen hexadecimal digits of each
+	double ([3fb999999999999a, ...]), which the parser refused;
+	exact_string() gives that text whatever the global format.
 	* gaol/core/gaol_interval_core.cpp (display_bounds): a point
 	interval whose double the digits write exactly is written [a],
 	the literal of IEEE 1788-2015, and a zero of either sign [0]
@@ -986,9 +1001,10 @@
 	* tests/, examples/15_text_and_ieee1788.cpp: the checks of an
 	exception, and of a text the reader refuses, are under
 	GAOL_EXCEPTIONS_ENABLED, so that the tests and the examples build and
-	run without exceptions (--disable-exceptions,
-	-Denable-exception=false).  .github/workflows/build-systems.yml: an
-	autotools job and a meson job without exceptions.
+	run without exceptions (-DGAOL_EXCEPTIONS_ENABLED=OFF,
+	--disable-exceptions, -Denable-exception=false).
+	.github/workflows/build-systems.yml: an autotools job and a meson job
+	without exceptions.
 	* manual/check_examples.py: new; the examples of the manual that show
 	their output in their listing (@outputs in gaol.tex) are compiled with
 	an installed GAOL and run, and have to print it.

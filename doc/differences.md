@@ -8,10 +8,20 @@ What GAOL v5, written by Jordan Ninin, changes from the GAOL 4.2.2 of
 Frédéric Goualard it continues. Each change is a commit of its own, and says
 where it comes from.
 
+"GAOL 4" below is the 4.2.2, which GAOL v5 continues (the benchmarks use the
+4.2.3, the last version of Frédéric Goualard, which came after it). The 4.3
+releases of this repository, 4.3.0 to 4.3.2, came next and are not GAOL 4: they
+already had `rnd_keep()`, `get_rounding()` and `MEMFREE()` (`GAOL_MEMFREE()`
+now), which neither the 4.2.2 nor the 4.2.3 has, so that where a text below
+says that GAOL v5 adds one of them, it adds it to GAOL 4, not to the 4.3
+releases.
+
 - **Every elementary function is bounded with
   [CORE-MATH](https://core-math.gitlabpages.inria.fr/)**, on every architecture
-  and with every compiler, and it is the only mathematical library GAOL uses
-  (`3rd/math-core`, see [3rd/README.md](../3rd/README.md)):
+  and with every compiler, and it is the only library GAOL takes its elementary
+  functions from (`3rd/math-core`, see [3rd/README.md](../3rd/README.md); the C
+  library still gives it a few other functions, see "No build names `-lm`"
+  below):
   - The other mathematical libraries GAOL could be built with are gone, with
     their sources, their headers and the scripts that installed them, and so
     are the options of the builds that chose one: there is nothing to choose,
@@ -944,8 +954,8 @@ where it comes from.
   compared exactly with the largest double, or with 2^-1022, first, and one that
   is beyond is not given to `strtod()`: the steps doubling and the bisection
   start from the largest double, or from 0, in at most about a hundred
-  comparisons. The bounds are the same, bit for bit. Reading a subnormal takes 2
-  to 12 times longer than before, the more the nearer the number is to 2^-1022
+  comparisons. The bounds are the same, bit for bit. Reading a subnormal takes
+  longer than reading a normal number, the more so the nearer it is to 2^-1022
   (`1e-320`, `1e-310`).
 - **Numbers are read whatever the flush-to-zero and denormals-are-zero modes**
   of the processor (`gaol/parser/gaol_interval_lexer.lpp`). With
@@ -1721,8 +1731,9 @@ where it comes from.
   2<sup>29</sup> characters at most, flex keeping the size of its buffer in an
   `int`: a longer one throws `std::bad_alloc`.
 - **Without exceptions, a wrong call in a string fails the reading.** Built with
-  `--disable-exceptions` or `-Denable-exception=false`, GAOL ended the program
-  (`gaol_ERROR`, then `abort()`) inside the reader on
+  `-DGAOL_EXCEPTIONS_ENABLED=OFF`, `--disable-exceptions` or
+  `-Denable-exception=false`, GAOL ended the program (`gaol_ERROR`, then
+  `abort()`) inside the reader on
   `gaol_ieee1788::textToInterval("pown([2,5],2.5)")`, `"sin(1,2)"` or
   `"fma(1,2)"`, where IEEE 1788-2015 (12.12.7) has the empty set. The reading
   now fails as it does for a syntax error: `gaol_ieee1788::textToInterval()`
