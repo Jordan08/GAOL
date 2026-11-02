@@ -58,6 +58,9 @@ set(GAOL_TESTS
   # flushing the subnormals to zero that it sets, unless gaol::gaol keeps it
   # out with -mno-daz-ftz (GAOL v5): see below
   fast_math_link
+  # The unit tests that IBEX and Codac run on their intervals, which are GAOL's,
+  # as they are (GAOL v5)
+  codac_ibex
   # The unit tests of GAOL 4 (check/), with the checks of unit_tests.h rather
   # than CppUnit (GAOL v5); arithmetic is arithmetic_operators, the name
   # arithmetic being taken

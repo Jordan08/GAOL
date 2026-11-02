@@ -577,6 +577,32 @@ point Q), which `numbers` checks there too.
   MinGW-w64, which initializes GAOL's files first, the test passes with or
   without the fix. The bounds of π and π/2 of `gaol/gaol_port.h`, now written
   in decimal, have to be the doubles next to π and π/2.
+- **`codac_ibex`:** the unit tests that IBEX and Codac run on their intervals,
+  which are GAOL's, run against GAOL v5 itself: 4538 checks (GAOL v5). The
+  bodies of the tests are those of the projects, copied from their sources by a
+  script, with their expected values and their tolerances (IBEX compares to
+  1e-10, Codac with its `Approx`): `tests/TestInterval.cpp` and
+  `tests/TestArith.cpp` of IBEX (commit 65ed587; 93 of 139 and 283 of 343
+  tests, 3687 checks), and `codac2_tests_Interval.cpp`,
+  `codac2_tests_Interval_operations.cpp` and the rounding test
+  `codac2_tests_Interval_rounding.cpp` of Codac (commit 6419940 and the branch
+  `GAOL` of the fork of Jordan Ninin, commit f0d06ff0; 851 of 945 checks), with
+  Codac's own random doubles. The environment the tests need, CppUnit's
+  assertions, Catch2's `TEST_CASE` and `CHECK` and the class `Interval` of each
+  project, is a thin layer that calls the function of GAOL the wrapper of the
+  project calls. What is not ported is what only IBEX or Codac have, and the
+  header of the file lists each test left out with its reason: the set
+  difference `diff()`, the distances, the vectors and the matrices, the
+  algorithms of backward contraction GAOL has no equivalent of (`bwd_div`,
+  `bwd_sqrt`, `bwd_atan`, `bwd_add`, `bwd_sub`, `bwd_ceil`, `bwd_imod`),
+  `rand()`, `smag()`, the initializer lists, the Python bindings, and the tests
+  that IBEX defines and never registers. These tests are looser than the other
+  ones of GAOL, which compare the bounds with the tightest ones; they check that
+  GAOL gives its two main users the results they expect, among them the powers
+  with a real exponent, the empty set and the infinite bounds of the arithmetic,
+  `next_float(0)`, `exp` and `log` on half-lines, the reverse functions
+  `max_rel`, `min_rel`, `floor_rel`, `atan2_rel_x`, `atan2_rel_y` and
+  `mulRevToPair`, and the rounding direction after about 45 operations.
 - **`numbers`:** `textToInterval("0.1")` has to be the tightest interval
   enclosing the number read, and the number itself when it is a double. The
   constants have to be the tightest enclosures of π, 2π and π/2. No

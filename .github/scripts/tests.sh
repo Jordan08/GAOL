@@ -52,7 +52,7 @@ grep -H -E "GAOL_PRESERVE_ROUNDING|GAOL_USING_SSE2_INSTRUCTIONS|GAOL_USING_SSE3_
 status=0
 # expressions: the classes and functions of gaol/parser/gaol_expression.h, which
 # a shared libgaol did not export (GAOL v5)
-for test in arithmetic elementary numbers other_functions reverse rounding_direction expressions; do
+for test in arithmetic elementary numbers other_functions reverse rounding_direction expressions codac_ibex; do
   ${CXX:-c++} $flags $psabi -I"$prefix/include" -Itests tests/$test.cpp $libs -o $test
   # The checks that failed, which the last lines do not show
   if ./$test > $test.log 2>&1; then
