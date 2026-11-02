@@ -17,8 +17,12 @@
  * They follow the tests Codac (https://github.com/codac-team/codac) makes of
  * the rounding of its intervals, which are GAOL's
  * (tests/core/domains/interval/codac2_tests_Interval_rounding.cpp, Jordan
- * Ninin): the same random doubles, the same checks, and the same list of
- * operations after which the rounding direction has to be upward still.
+ * Ninin): the same generator of random doubles (xorshift64, the same seed, but
+ * drawing the exponent, the sign and then the mantissa where Codac draws the
+ * mantissa, the exponent and the sign), tighter checks, and almost the same
+ * list of operations after which the rounding direction has to be upward
+ * still. tests/codac_ibex.cpp runs that test of Codac as it is, with its
+ * random doubles.
  *
  * Copyright (c) 2026 ENSTA, France
  *
