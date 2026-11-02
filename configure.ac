@@ -703,16 +703,16 @@ fi
 
 
 # The 128-bit integer of the accurate phases of CORE-MATH and of GAOL's exact
-# products (gaol/gaol_u128.h): the type of the compiler where it has one, else
-# two 64-bit halves, which gaol_u128.h takes by itself (Visual C++ and the
-# 32-bit targets of GCC). The check asks that header, as CMakeLists.txt does, and
-# says which; CPPFLAGS=-DGAOL_U128_FORCE_EMULATION=1 has the halves where the
-# compiler has a type, a setting of the developers (GAOL v5).
+# products (gaol/math/gaol_u128.h): the type of the compiler where it has one,
+# else two 64-bit halves, which gaol_u128.h takes by itself (Visual C++ and the
+# 32-bit targets of GCC). The check asks that header, as CMakeLists.txt does,
+# and says which; CPPFLAGS=-DGAOL_U128_FORCE_EMULATION=1 has the halves where
+# the compiler has a type, a setting of the developers (GAOL v5).
 AC_LANG_PUSH([C++])
 gaol_save_CPPFLAGS=$CPPFLAGS
 CPPFLAGS="$CPPFLAGS -I$srcdir"
 AC_MSG_CHECKING([whether the compiler has a 128-bit integer type])
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include "gaol/gaol_u128.h"
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include "gaol/math/gaol_u128.h"
 #if !GAOL_U128_NATIVE
 #error the compiler has no 128-bit integer type
 #endif]], [[]])],[gaol_has_u128=yes],[gaol_has_u128=no])
@@ -720,7 +720,7 @@ AC_MSG_RESULT([${gaol_has_u128}])
 CPPFLAGS=$gaol_save_CPPFLAGS
 AC_LANG_POP([C++])
 if test "${gaol_has_u128}" = no; then
-    AC_MSG_NOTICE([128-bit integer: the two halves of gaol/gaol_u128.h, as with Visual C++ and on a 32-bit target])
+    AC_MSG_NOTICE([128-bit integer: the two halves of gaol/math/gaol_u128.h, as with Visual C++ and on a 32-bit target])
 fi
 
 
@@ -733,7 +733,7 @@ fi
 #
 # CORE-MATH is correctly rounded in the rounding direction in effect, so GAOL
 # takes its values as bounds without moving them outward and without switching
-# the rounding direction (gaol/gaol_double_op.h).
+# the rounding direction (gaol/math/gaol_double_op.h).
 # -fno-lto for the sources of CORE-MATH, where the user compiles GAOL with
 # -flto: the interprocedural optimization is worth having on GAOL's own
 # operations and costs on the elementary functions (see doc/three-builds.md)

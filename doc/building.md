@@ -167,7 +167,7 @@ GAOL.
   no program can be run, the path is left out, with a message.
 - **The 128-bit integer** (was `GAOL_U128_EMULATION`): the type of the compiler
   where it has one, else two 64-bit halves (Visual C++, and GCC for a 32-bit
-  target), which `gaol/gaol_u128.h` takes by itself and the configuration says.
+  target), which `gaol/math/gaol_u128.h` takes by itself and the configuration says.
 - **Clang with the target of Visual C++** (`clang++` for
   `x86_64-pc-windows-msvc` or `i686-pc-windows-msvc`, with the driver of GCC,
   not clang-cl; GAOL v5): it defines `_MSC_VER`, which the three builds read

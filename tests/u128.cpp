@@ -1,13 +1,13 @@
 /*-*-C++-*------------------------------------------------------------------
  * gaol -- NOT Just Another Interval Library
  *--------------------------------------------------------------------------
- * Tests of GAOL v5: the 128-bit unsigned integer of gaol/gaol_u128.h.
+ * Tests of GAOL v5: the 128-bit unsigned integer of gaol/math/gaol_u128.h.
  *
  * The accurate phases of CORE-MATH's log, sin, cos, tan, atan2 and pow, and of
  * log2p1, log10p1, atan2pi, hypot, rsqrt and asinpi, compute with a 128-bit
  * integer (unsigned, and signed in asinpi), which Visual C++ has on no architecture and
  * GCC has on no 32-bit target: there GAOL computes with the two 64-bit halves
- * of gaol/gaol_u128.h. This test compiles those halves (GAOL_U128_FORCE_EMULATION)
+ * of gaol/math/gaol_u128.h. This test compiles those halves (GAOL_U128_FORCE_EMULATION)
  * and compares every operation with the same operation on the native type of
  * the compiler, over the values at the ends of the ranges, over the powers of
  * two and their neighbours, over random values, and over every shift count
@@ -29,7 +29,7 @@
  *--------------------------------------------------------------------------*/
 
 #define GAOL_U128_FORCE_EMULATION 1
-#include "gaol/gaol_u128.h"
+#include "gaol/math/gaol_u128.h"
 
 #include <cstdint>
 #include <cstdio>

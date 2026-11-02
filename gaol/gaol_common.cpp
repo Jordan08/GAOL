@@ -35,7 +35,7 @@
 #include "gaol/parser/gaol_expression.h"
 #include "gaol/gaol_init_cleanup.h"
 
-#include "gaol/gaol_double_op.h"
+#include "gaol/math/gaol_double_op.h"
 
 #if GAOL_USING_SSE2_INSTRUCTIONS && GAOL_AVX512_ARITHMETIC
 /* Whether the processor runs the AVX-512 instructions (AVX512F), and the

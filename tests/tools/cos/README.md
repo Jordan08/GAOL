@@ -12,7 +12,7 @@ path computes with the 128-bit integer throughout and is ported to `gaol_u128`
 CORE-MATH with itself, and cannot see a fault of that port.
 
 These tools are not part of the build nor of `make test`: they are read and run
-by whoever changes `cos.c`, `gaol/gaol_u128.h` or the table.
+by whoever changes `cos.c`, `gaol/math/gaol_u128.h` or the table.
 
 | File | What it does |
 |---|---|

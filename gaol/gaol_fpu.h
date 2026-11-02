@@ -296,7 +296,7 @@ point Q of TODO.md, doc/using.md).
 
 Each operation checks the direction once, at its entry. What it calls after
 its GAOL_RND_ENTER() takes the direction to be upward and does not check it
-again: the functions of namespace upward (gaol/gaol_double_op.h) and the
+again: the functions of namespace upward (gaol/math/gaol_double_op.h) and the
 bodies of the operations of intervals that other operations use, such as
 pown_upward() and interval::inverse_upward(), which the operations
 checking the direction call too (GAOL v5). A check within another gives the

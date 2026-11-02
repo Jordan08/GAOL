@@ -49,9 +49,9 @@ the source** (`-include` with GCC and Clang, `/FI` with Visual C++): the sources
 never name that header, so that importing a newer CORE-MATH stays a copy. That
 header gives them the names `gaol_cr_<f>()`, so that GAOL does not clash with a
 program or a C library holding CORE-MATH's functions too, the 128-bit integer
-of `gaol/gaol_u128.h`, what Visual C++ has not of GCC (`__builtin_clzll`,
+of `gaol/math/gaol_u128.h`, what Visual C++ has not of GCC (`__builtin_clzll`,
 `__builtin_roundeven`, `__attribute__`...), the `roundeven()` the math library
-of Windows has not (`gaol/gaol_roundeven.h`, which GAOL's own sources use too),
+of Windows has not (`gaol/math/gaol_roundeven.h`, which GAOL's own sources use too),
 given as well for `__builtin_roundeven()` to the compilers that have no such
 builtin, GCC before 10 among them: `sin.c` called it without the guard of the
 other sources from its rewrite (upstream commit `6b84457`) to commit
@@ -78,7 +78,7 @@ UCRT writes for C as products of `1e+300` that
 effect (`-0` and `FLT_MAX` downward and toward zero: `pow` rounded downward was
 `-0` from 2<sup>−1075</sup> to about 2<sup>−947</sup>). With every
 compiler, it gives them for `__builtin_ldexp()` the `gaol_ldexp()` of
-`gaol/gaol_ldexp.h`, x·2<sup>n</sup> rounded once in the direction in effect,
+`gaol/math/gaol_ldexp.h`, x·2<sup>n</sup> rounded once in the direction in effect,
 rather than the `ldexp()` of the C library, which `erfc` rounds its
 subnormal values with: the one of the UCRT of Windows does not round so
 where the result is subnormal, and `erfc` was the double below `erfc(x)`
@@ -126,7 +126,7 @@ end or before the comment that ends it, or is part of a comment beginning with
    `cos/cos.c`, `tan/tan.c`, `hypot/hypot.c`, `rsqrt/rsqrt.c` and
    `asinpi/asinpi.c`, the lines that choose the type name `gaol_u128` instead,
    which is the type of the compiler where it has one and a structure of two
-   64-bit halves where it has none (`gaol/gaol_u128.h`), and the
+   64-bit halves where it has none (`gaol/math/gaol_u128.h`), and the
    extended-arithmetic functions of those files call `gaol_u128_*()` rather
    than the operators of the language. `asinpi.c` computes with a signed
    128-bit integer too, `i128`, which is then a `gaol_u128` read in two's

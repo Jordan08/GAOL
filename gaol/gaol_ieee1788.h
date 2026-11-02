@@ -178,7 +178,7 @@ namespace gaol_ieee1788 {
   pow([0.5, 0.9], [1e10]) is [0, 2^-1074], and pow([1], [-1e12]) is [1].
   Calls pow_standard() (GAOL v5), which takes the bounds at doubles for an
   integer exponent beyond the ints in the library: they are not part of
-  GAOL's interface (gaol/gaol_double_op.h).
+  GAOL's interface (gaol/math/gaol_double_op.h).
   */
   GAOL_NODISCARD inline interval pow(const interval& x, const interval& y) { return ::gaol_core::pow_standard(x, y); }
   /*!

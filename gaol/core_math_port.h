@@ -12,7 +12,7 @@
 * It gives them:
 *
 * - the 128-bit integer their accurate phases compute with
-*   (gaol/gaol_u128.h), so that log, sin, cos, tan, atan2, pow, log2p1,
+*   (gaol/math/gaol_u128.h), so that log, sin, cos, tan, atan2, pow, log2p1,
 *   log10p1, atan2pi, hypot, rsqrt and asinpi are built with Visual C++ and on
 *   the 32-bit targets where the compiler has no 128-bit type of its own;
 * - the names gaol_cr_<f>() rather than cr_<f>(), so that GAOL does not clash
@@ -26,7 +26,7 @@
 *   rounded, rather than the x87 unit, which the C library may read;
 * - what Visual C++ has not of GCC: the builtins the sources call,
 *   __attribute__, and NAN and INFINITY as constants;
-* - the ldexp() of gaol/gaol_ldexp.h, rounded in the direction in effect,
+* - the ldexp() of gaol/math/gaol_ldexp.h, rounded in the direction in effect,
 *   rather than the one of the C library;
 * - silence for the warnings on conversions GAOL's library is compiled with.
 *
@@ -100,7 +100,7 @@ The names of the functions
 #define cr_erf gaol_cr_erf
 #define cr_erfc gaol_cr_erfc
 
-#include "gaol/gaol_core_math.h"
+#include "gaol/math/gaol_core_math.h"
 
 /*---------------------------------------------------------------------------
 The 128-bit unsigned integer
@@ -114,7 +114,7 @@ where the ABI of the target defines it, as for x86, which
 __BITINT_MAXWIDTH__ tells. Visual C++ has none, on no architecture, and
 neither has GCC for the 32-bit targets whose ABI defines no _BitInt(128).
 There the sources take the structure of two 64-bit halves of
-gaol/gaol_u128.h, which tests/u128.cpp checks against the native type.
+gaol/math/gaol_u128.h, which tests/u128.cpp checks against the native type.
 
 Each of these sources keeps its own definitions of uint128_t, addu_128,
 subu_128, cmp and cmpu, whose signatures are not the same in all of them.
@@ -124,7 +124,7 @@ the operators of the language: changes made in the sources themselves,
 marked GAOL (3rd/README.md, "What differs from upstream", item 1).
 --------------------------------------------------------------------------*/
 
-#include "gaol/gaol_u128.h"
+#include "gaol/math/gaol_u128.h"
 
 /*---------------------------------------------------------------------------
 roundeven(), which the math library of Windows has not
@@ -138,7 +138,7 @@ program linking GAOL there stopped on "undefined reference to roundeven"
 compiled without the AVX instructions).
 
 So on Windows the builtin is replaced by the function of
-gaol/gaol_roundeven.h, which reads the bits: it is neither round() (halfway
+gaol/math/gaol_roundeven.h, which reads the bits: it is neither round() (halfway
 values away from zero) nor nearbyint() (the rounding direction in effect,
 upward in GAOL), and it does not depend on that direction.
 
@@ -150,7 +150,7 @@ round by themselves before, but sin.c called it unguarded from its rewrite
 took for an undeclared function and did not link.
 --------------------------------------------------------------------------*/
 
-#include "gaol/gaol_roundeven.h"
+#include "gaol/math/gaol_roundeven.h"
 
 #if defined(_WIN32) || defined(__MINGW32__) || defined(__CYGWIN__)
 #define __builtin_roundeven(x) gaol_roundeven(x)
@@ -451,12 +451,12 @@ of Windows, which Visual C++ and clang-cl call, rounds subnormal results
 otherwise, and erfc(x) was the double below its value rounding upward from
 x = 26.54 on; the C library of macOS gave 0 for 2^-1127 rounded upward, and
 missed 5 (macOS 14 and 15) to 22 (macOS 26) of the checks of
-tests/core_math.cpp (GAOL v5). The function of gaol/gaol_ldexp.h is given
+tests/core_math.cpp (GAOL v5). The function of gaol/math/gaol_ldexp.h is given
 instead, everywhere, so that erfc() depends on no C library; the other
 sources call __builtin_ldexp() with exact results only (powers of two).
 --------------------------------------------------------------------------*/
 
-#include "gaol/gaol_ldexp.h"
+#include "gaol/math/gaol_ldexp.h"
 #undef __builtin_ldexp
 #define __builtin_ldexp(x, n) gaol_ldexp(x, n)
 

@@ -121,7 +121,6 @@ gaol_HEADERS = [
   'gaol_ieee1788.h',
   'gaol_interval.h',
   'gaol_port.h',
-  'gaol_roundeven.h',
   'gaol_version.h',
 ]
 
@@ -132,6 +131,13 @@ gaol_CORE_HEADERS = [
   'core/gaol_interval_fpu.h',
   'core/gaol_interval_neon.h',
   'core/gaol_interval_sse.h',
+]
+
+# The header of the rounding to nearest, ties to even, which
+# core/gaol_interval_core.h includes: installed in gaol/math/ as in the
+# sources (GAOL v5)
+gaol_MATH_HEADERS = [
+  'math/gaol_roundeven.h',
 ]
 
 # The headers of the parser of the strings and of the expressions, which a
@@ -149,11 +155,11 @@ EXTRA_DIST = [
   # Headers of the sources of GAOL, not installed (GAOL v5):
   # parser/gaol_interval_parser.h, which did not compile when included, and
   # the parts of the library
-  'gaol_core_math.h',
+  'math/gaol_core_math.h',
   'gaol_init_cleanup.h',
   'parser/gaol_interval_parser.h',
-  'gaol_u128.h',
-  'gaol_ldexp.h',
+  'math/gaol_u128.h',
+  'math/gaol_ldexp.h',
   'parser/gaol_interval_lexer.lpp',
   'parser/gaol_interval_parser.ypp',
   'core/gaol_interval_sse.cpp',
@@ -164,7 +170,7 @@ EXTRA_DIST = [
   # and *_up(), which are not part of its interface, and the intervals of
   # floats, which gaol_interval_core.cpp includes where a developer of GAOL
   # defines GAOL_FLOAT_INTERVALS (see gaol_config.h) (GAOL v5)
-  'gaol_double_op.h',
+  'math/gaol_double_op.h',
   'float/gaol_intervalf.h',
   'float/gaol_intervalf.cpp',
   'float/gaol_interval2f.h',
@@ -266,4 +272,5 @@ gaol_dep = declare_dependency(
 
 install_headers(gaol_HEADERS, subdir: 'gaol')
 install_headers(gaol_CORE_HEADERS, subdir: 'gaol/core')
+install_headers(gaol_MATH_HEADERS, subdir: 'gaol/math')
 install_headers(gaol_PARSER_HEADERS, subdir: 'gaol/parser')

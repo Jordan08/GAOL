@@ -23,7 +23,7 @@
 \brief  The elementary functions rounded downward and upward, with CORE-MATH.
 
 Every elementary function of GAOL is bounded with CORE-MATH
-(3rd/math-core, see gaol/gaol_core_math.h), on every architecture and with
+(3rd/math-core, see gaol/math/gaol_core_math.h), on every architecture and with
 every compiler (GAOL v5). CORE-MATH's functions are correctly rounded
 in the rounding direction in effect, so in the upward rounding GAOL computes
 in:
@@ -50,7 +50,7 @@ not part of GAOL's interface, whose operations are on intervals (GAOL v5).
 #include "gaol/gaol_port.h"
 #include "gaol/gaol_fpu.h"
 #include "gaol/gaol_common.h"
-#include "gaol/gaol_core_math.h"
+#include "gaol/math/gaol_core_math.h"
 
 namespace gaol_core {
   

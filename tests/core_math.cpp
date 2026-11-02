@@ -4,7 +4,7 @@
  * Tests of GAOL v5: the bounds of the elementary functions against
  * CORE-MATH itself.
  *
- * GAOL bounds every elementary function with CORE-MATH (gaol/gaol_core_math.h),
+ * GAOL bounds every elementary function with CORE-MATH (gaol/math/gaol_core_math.h),
  * which is correctly rounded in the rounding direction in effect. The tightest
  * bounds of f at a double x are therefore the values CORE-MATH gives in the
  * downward and the upward rounding, which this test computes by setting the
@@ -36,8 +36,8 @@
  *--------------------------------------------------------------------------*/
 
 #include "gaol_tests.h"
-#include "gaol/gaol_core_math.h"
-#include "gaol/gaol_ldexp.h"
+#include "gaol/math/gaol_core_math.h"
+#include "gaol/math/gaol_ldexp.h"
 
 #include <climits>
 #include <cstring>
@@ -310,7 +310,7 @@ namespace
 
   /*
     The ldexp() CORE-MATH rounds the subnormal values of erfc with (GAOL v5):
-    gaol_ldexp() of gaol/gaol_ldexp.h, which gaol/core_math_port.h gives it
+    gaol_ldexp() of gaol/math/gaol_ldexp.h, which gaol/core_math_port.h gives it
     with every compiler, the ldexp() of the C library not rounding in the
     direction in effect everywhere (with the UCRT of Windows,
     erfc(0x1.a8b12fc6e4892p+4) was the double below its value, rounding

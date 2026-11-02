@@ -70,14 +70,14 @@
 #include "gaol/gaol_fpu.h"
 // The bounds at doubles, *_dn() and *_up(): a header of the sources, not
 // installed (GAOL v5)
-#include "gaol/gaol_double_op.h"
+#include "gaol/math/gaol_double_op.h"
 #include "gaol/gaol_common.h"
 #include "gaol/parser/gaol_parser.h"
 #include "gaol/gaol_port.h"
 #include "gaol/core/gaol_interval_core.h"
 #include "gaol/gaol_exceptions.h"
 // x * 2^n rounded once, for the integer powers beyond the doubles (GAOL v5)
-#include "gaol/gaol_ldexp.h"
+#include "gaol/math/gaol_ldexp.h"
 
 // The FMA instructions on two doubles at once, for the integer powers, where
 // the build has them (GAOL v5, see pown_products()): SSE2 with FMA on x86

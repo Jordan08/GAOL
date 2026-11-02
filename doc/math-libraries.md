@@ -153,7 +153,7 @@ as much a strategy of adoption as a technique.
   This is what GAOL v5 rests on: correctly rounded in the upward rounding GAOL
   computes in, CORE-MATH gives the tightest bounds without switching the
   rounding direction, `log` 2.2 times as fast as mathlib's moved outward (see
-  `gaol/gaol_core_math.h` and [Performance](compare/performance.md)).
+  `gaol/math/gaol_core_math.h` and [Performance](compare/performance.md)).
 
 A proposal to add `cr_*` functions to the C standard comes from the same team,
 so that correct rounding can be asked for by the program rather than imposed
@@ -205,7 +205,7 @@ This is also why GAOL v5 takes every one of its elementary functions from
 CORE-MATH, the hyperbolic ones first (neither mathlib nor CRlibm has them all,
 and the libm of the system is not accurate enough everywhere for its values
 moved outward to be bounds), and on every architecture and with every compiler,
-`gaol/gaol_u128.h` giving the accurate phases the 128-bit integer where the
+`gaol/math/gaol_u128.h` giving the accurate phases the 128-bit integer where the
 compiler has none.
 
 ## Further reading

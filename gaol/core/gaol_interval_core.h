@@ -37,7 +37,7 @@
 #include <type_traits>
 #include <utility>
 #include "gaol/gaol_config.h"
-#include "gaol/gaol_roundeven.h"
+#include "gaol/math/gaol_roundeven.h"
 #include "gaol/gaol_port.h"
 #include "gaol/gaol_common.h"
 #include "gaol/gaol_fpu.h"
@@ -2086,7 +2086,7 @@ GAOL_NODISCARD GAOL_INLINE interval integer(const interval &I)
   rounding toward zero and to the nearest with halfway values away from zero,
   "regardless of the current rounding direction". std::nearbyint and std::rint
   are the ones that do read it, and are not used; roundTiesToEven, which no
-  function of C++ gives, is gaol/gaol_roundeven.h, which reads the bits.
+  function of C++ gives, is gaol/math/gaol_roundeven.h, which reads the bits.
   tests/elementary.cpp checks the four in the four rounding directions.
   std::trunc and std::round are called through gaol_detail::bound_trunc() and
   bound_round() (gaol_port.h), which round a subnormal from its bits, as
