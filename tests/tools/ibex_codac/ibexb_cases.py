@@ -86,7 +86,7 @@
 # absolute, for check() and almost_eq(); none for ==), and every disagreement
 # is reported (--originals).
 #
-# The rows of the tables of ibexb.inc, the section of the backward tests of IBEX,
+# The rows of the tables of tests/test_ibex_codac.cpp, the section ibexb_ (the backward tests of IBEX),
 # are written by this script between the lines
 #
 #     // BEGIN <table>
@@ -95,8 +95,8 @@
 # (the text between them, those lines included, is what the script writes).
 #
 #     python3 -I ibexb_cases.py                     the tables, on the standard output
-#     python3 -I ibexb_cases.py --write ibexb.inc   replaces the tables of the file
-#     python3 -I ibexb_cases.py --check ibexb.inc   every table of the file is what is generated
+#     python3 -I ibexb_cases.py --write ../../test_ibex_codac.cpp   replaces the tables of the file
+#     python3 -I ibexb_cases.py --check ../../test_ibex_codac.cpp   every table of the file is what is generated
 #     python3 -I ibexb_cases.py --originals [-v]    the disagreements with IBEX's expectations
 #     python3 -I ibexb_cases.py --selftest          checks the oracles against sampling
 #

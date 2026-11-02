@@ -21,8 +21,8 @@
  * drawing the exponent, the sign and then the mantissa where Codac draws the
  * mantissa, the exponent and the sign), tighter checks, and almost the same
  * list of operations after which the rounding direction has to be upward
- * still. tests/codac_ibex.cpp runs that test of Codac as it is, with its
- * random doubles.
+ * still. tests/test_ibex_codac.cpp has the operations and the points of that
+ * test of Codac that these tests lack.
  *
  * Copyright (c) 2026 ENSTA, France
  *

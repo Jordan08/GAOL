@@ -39,7 +39,7 @@
 # absolute, for check(); none for ==), or taken as the double on either side of
 # the exact result, and every disagreement is reported (--originals).
 #
-# The rows of the tables of ibex.inc, the section of the forward tests of IBEX,
+# The rows of the tables of tests/test_ibex_codac.cpp, the section ibex_ (the forward tests of IBEX),
 # are written by this script between the lines
 #
 #     // BEGIN <table>
@@ -48,8 +48,8 @@
 # (the text between them, those lines included, is what the script writes).
 #
 #     python3 -I ibex_forward_cases.py                     the tables, on the standard output
-#     python3 -I ibex_forward_cases.py --write ibex.inc    replaces the tables of the file
-#     python3 -I ibex_forward_cases.py --check ibex.inc    every table of the file is what is generated
+#     python3 -I ibex_forward_cases.py --write ../../test_ibex_codac.cpp    replaces the tables of the file
+#     python3 -I ibex_forward_cases.py --check ../../test_ibex_codac.cpp    every table of the file is what is generated
 #     python3 -I ibex_forward_cases.py --originals [-v]    the disagreements with IBEX's expectations
 #     python3 -I ibex_forward_cases.py --selftest          checks the oracle against sampling
 #
@@ -1246,7 +1246,7 @@ def group_constants():
 
 
 def group_issue_463():
-    """[3, 8] + ([1, 3] & [6, 7]): written by hand in ibex.inc (the chain of two operations); IBEX's one check"""
+    """[3, 8] + ([1, 3] & [6, 7]): written by hand in tests/test_ibex_codac.cpp (the chain of two operations); IBEX's one check"""
     a, b = iv(3, 8), iv(1, 3).inter(iv(6, 7))
     compare_predicate('IBEX TestInterval::issue_463', 'the sum is empty', b.empty and a.add(b).empty)
 

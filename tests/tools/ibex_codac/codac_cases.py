@@ -3,8 +3,8 @@
 # gaol -- NOT Just Another Interval Library
 #---------------------------------------------------------------------------
 # Tests of GAOL v5: the cases of the interval tests of Codac, with their
-# exact results, and the rows of the tables of the C++ section `codac.inc`
-# of tests/codac_ibex.cpp.
+# exact results, and the rows of the tables of the section `codac_`
+# of tests/test_ibex_codac.cpp.
 #
 # The unit tests of Codac 2 on its scalar Interval (commit 6419940 of the
 # master, and the branch GAOL of the fork of Jordan Ninin, commit f0d06ff0):
@@ -21,7 +21,7 @@
 # reference of a result is the pair (lo, hi): lo the greatest double not above
 # the exact lower bound, hi the least double not below the exact upper bound
 # (-inf and +inf beyond the doubles), or `none` for the empty set. The C++ rows
-# hold these pairs, which codac.inc compares GAOL's bounds with.
+# hold these pairs, which the test compares GAOL's bounds with.
 #
 # The original expected values are a cross-check, not the reference: each is
 # compared with the exact result, with the tolerance the original test uses
@@ -37,8 +37,8 @@
 # argument. The exact hull over the real argument is computed too, to check
 # the original's expectation and that the reference encloses it.
 #
-#     python3 -I codac_cases.py --check codac.inc     # the rows of codac.inc are those the cases give
-#     python3 -I codac_cases.py --write codac.inc     # rewrites the rows between the BEGIN and END marks
+#     python3 -I codac_cases.py --check ../../test_ibex_codac.cpp     # the rows of the test are those the cases give
+#     python3 -I codac_cases.py --write ../../test_ibex_codac.cpp     # rewrites the rows between the BEGIN and END marks
 #     python3 -I codac_cases.py --list                # the cases and their references, one per line
 #     python3 -I codac_cases.py --selftest            # the exact oracle against brute force
 #     python3 -I codac_cases.py --elementary-values tests/elementary_values.h
