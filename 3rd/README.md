@@ -22,7 +22,7 @@ library it uses: the other libraries GAOL could be built with are gone (see
 | --- | --- |
 | Upstream | <https://gitlab.inria.fr/core-math/core-math> |
 | Commit | `0b2ae6d114d2f34051235d97f72c041b8e0ff66c` (27 October 2026) |
-| Taken | the whole tree, without the `.wc` files |
+| Taken | the tree without the `.wc` files, and without the directories of `math-core/src` other than `binary64` |
 | Built | `math-core/src/binary64/<f>/<f>.c` for the thirty-eight functions below, compiled into libgaol itself |
 
 The `.wc` files, which hold the hardest-to-round arguments CORE-MATH checks
@@ -37,9 +37,18 @@ elementary functions (Table 9.1), the fifteen of its recommended ones
 (Table 10.5) CORE-MATH has: `expm1`, `exp2m1`, `exp10m1`, `log1p`, `log2p1`,
 `log10p1`, `hypot`, `rsqrt`, `sinpi`, `cospi`, `tanpi`, `asinpi`, `acospi`,
 `atanpi` and `atan2pi`, and `erf` and `erfc`, the error function and its
-complement, which the standard does not name. The other formats and functions
-of the tree are kept as they are, so that importing a newer CORE-MATH is a
-plain copy, but nothing compiles them.
+complement, which the standard does not name. The other functions of
+`math-core/src/binary64` are kept as they are, so that importing a newer
+CORE-MATH is a plain copy, but nothing compiles them.
+
+The other formats are not in the tree: `binary16`, `binary32`, `binary80`,
+`binary128` and `binaryb16` of `math-core/src`, with `generic`, which holds the
+tests and the measures of speed they share, are left out, GAOL using doubles
+only and no build reading them. The scripts `check.sh`, `ci.sh`, `perf.sh` and
+`perf-all.sh` at the root of `math-core/` and the Makefiles of `binary64`
+include or copy `generic`, and do not work here: clone the upstream commit
+above to run them. The patches below that name a file of `binary80` or
+`binary128` are written against upstream's tree.
 
 ### How GAOL builds them
 
@@ -413,7 +422,8 @@ comparison rather than by reading:
 
 ### To update CORE-MATH
 
-Copy the upstream tree again without the `.wc` files, then make the changes
+Copy the upstream tree again without the `.wc` files and the directories of
+`math-core/src` other than `binary64`, then make the changes
 above (seven of the nine items now: 3 and 5 are upstream's). `git diff`
 against the previous version shows them: each changed line carries
 `/* GAOL */`, at its end or before the comment that ends it, or is part of a
