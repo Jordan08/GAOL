@@ -8,9 +8,9 @@ The programs of `tests/` compare the bounds GAOL computes with the exact results
 of the operations, independently of GAOL and of the floating-point environment.
 The exact results are computed with integers, or were computed with 2000 bits of
 precision by [mpmath](https://mpmath.org). They follow the rounding tests of
-Codac. `codac_ibex` is another kind of test: it runs the unit tests that IBEX
-and Codac run on their own intervals, which are GAOL's, with their expected
-values.
+Codac. `test_ibex_codac` is another kind of test: it checks GAOL against the
+cases of the unit tests that IBEX and Codac run on their own intervals, which
+are GAOL's.
 
 Under the Debug C runtime of Visual C++, a failed assertion of the runtime or of
 the checked iterators of its library, and an invalid parameter, are written to
@@ -579,39 +579,39 @@ point Q), which `numbers` checks there too.
   MinGW-w64, which initializes GAOL's files first, the test passes with or
   without the fix. The bounds of π and π/2 of `gaol/gaol_port.h`, now written
   in decimal, have to be the doubles next to π and π/2.
-- **`codac_ibex`:** the unit tests that IBEX and Codac run on their intervals,
-  which are GAOL's, run against GAOL v5 itself: 4547 checks, of IBEX (3687), of
-  Codac (857) and 3 that no test was dropped (GAOL v5). The bodies of the tests
-  are those of the projects, copied from their sources by a script, with their
-  expected values and their tolerances (IBEX compares to 1e-10, Codac with its
-  `Approx`): `tests/TestInterval.cpp` and `tests/TestArith.cpp` of IBEX (commit
-  65ed587; 93 of 139 and 283 of 343 tests, 3687 checks), and
-  `codac2_tests_Interval.cpp`, `codac2_tests_Interval_operations.cpp` and the
-  rounding test `codac2_tests_Interval_rounding.cpp` of Codac (commit 6419940
-  and the branch `GAOL` of the fork of Jordan Ninin, commit f0d06ff0; 857 of 945
-  checks), with Codac's own random doubles. The environment the tests need,
-  CppUnit's assertions, Catch2's `TEST_CASE` and `CHECK` and the class
-  `Interval` of each project, is a thin layer that calls GAOL: the function the
-  wrapper of the project calls or, where the project writes a function itself
-  over those of GAOL and GAOL has the same, the function of GAOL (`set_leq`,
-  `set_le`, `mulRevToPair`, `floor_rel`, `atan2_rel_x`...), as the comments of
-  the layer say for each function. What is not ported is listed in the header of
-  the file for IBEX, and in markers at the place of the lines left out for
-  Codac: what only IBEX or Codac have (the set difference `diff()`, the vectors
-  and the matrices, `rand()`, `smag()`, the initializer lists, the Python
-  bindings), the algorithms and notions of IBEX written over the operations of
-  GAOL (the backward contractions of the addition, the subtraction, the
-  division, the square root, the arc tangent and the ceiling, the modulo, the
-  relative distance), which test IBEX rather than GAOL, and the tests that IBEX
-  defines and never registers. These tests are looser than the other ones of
-  GAOL, which compare the bounds with the tightest ones; they check that GAOL
-  gives its two main users the results they expect, among them the powers with a
-  real exponent, the empty set and the infinite bounds of the arithmetic,
-  `next_float(0)`, `exp` and `log` on half-lines, the reverse functions
-  `max_rel`, `min_rel`, `floor_rel`, `atan2_rel_x`, `atan2_rel_y` and
-  `mulRevToPair`, and the rounding direction after 44 operations. The test fails
-  if a table of tests lost a test (93 and 283 tests of IBEX, 7 TEST_CASEs of
-  Codac).
+- **`test_ibex_codac`:** the cases of the unit tests that IBEX and Codac run on
+  their intervals, which are GAOL's, checked against the exact results: 3896
+  checks (GAOL v5). A case is a row of a table, written with `gaol::interval`
+  and the functions of GAOL, not with the classes of the projects, and named by
+  its origin (`IBEX TestArith::add05`, `Codac Interval_operations:176`). The
+  result to find is the exact one, computed apart from GAOL and from the
+  projects by the scripts of
+  [tests/tools/ibex_codac](../tests/tools/ibex_codac/README.md) (exact
+  rationals, and mpmath with 2000 bits for the elementary functions): the bounds
+  of GAOL have to enclose it, with no double between them and the tightest
+  bounds for the operations that are exact in GAOL, and no more than one for the
+  elementary functions (two for `atan2_rel_x` and `atan2_rel_y`, as
+  `doc/accuracy.md` says). Three sections: the forward tests of IBEX
+  (`TestInterval.cpp` and `TestArith.cpp` of ibex-lib, commit 65ed587: 71 of 139
+  and 182 of 343 tests, 1385 checks; the constants, the constructors, the sets,
+  the accessors and relations, the arithmetic, the elementary functions, the
+  powers, the roots, `atan2`), its backward contractors, its generalized
+  division and its distances (`bwd_*`, `div2`, `distance`, `rel_distance`,
+  written with the operations and the reverse functions of GAOL: 197 cases, 1306
+  checks), and the tests of Codac (Codac 2 commit 6419940 and the branch `GAOL`
+  of the fork of Jordan Ninin, commit f0d06ff0: 659 of the 945 checks of its
+  three files, 195 being already in the tests of GAOL; 1205 checks). What is
+  left out is what only IBEX or Codac have (`diff()`, `delta()`, `set_empty()`,
+  the vectors and matrices, `rand()`, `smag()`, the initializer lists, the
+  Python bindings), the tests IBEX defines and never registers, and the distance
+  to the empty set, whose convention is not the same in IBEX (the radius of the
+  other interval) and in `gaol::hausdorff()` (NaN); each section says so in its
+  header. What the projects expect, with their tolerances (1e-10 absolute for
+  IBEX, `Approx` for Codac), is compared with the exact results by the scripts,
+  not by the test: 1936 comparisons, no disagreement beyond the tolerance, and
+  21 expectations of IBEX that are not enclosures of the exact result (`tan02`
+  expects [-1, 1] where it is ±(1 + 2^-52)). The test prints nothing but the
+  failed names and the total.
 - **`numbers`:** `textToInterval("0.1")` has to be the tightest interval
   enclosing the number read, and the number itself when it is a double. The
   constants have to be the tightest enclosures of π, 2π and π/2. No
