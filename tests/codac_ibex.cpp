@@ -5,9 +5,10 @@
  *
  * IBEX (https://github.com/ibex-team/ibex-lib) and Codac
  * (https://github.com/codac-team/codac) compute with intervals that are GAOL's
- * (ibex::Interval and codac2::Interval hold a gaol::interval). The unit tests
- * they run on a scalar interval and on interval arithmetic are run here against
- * GAOL v5 itself, in two sections, each with the list of what it leaves out:
+ * (ibex::Interval holds a gaol::interval, codac2::Interval derives from it).
+ * The unit tests they run on a scalar interval and on interval arithmetic are
+ * run here against GAOL v5 itself, in two sections, each with the list of what
+ * it leaves out:
  *   - IBEX (ibex-lib commit 65ed587): tests/TestInterval.cpp and
  *     tests/TestArith.cpp, with the helpers of tests/utils.cpp;
  *   - Codac (Codac 2 commit 6419940, and the branch GAOL of the fork of Jordan
@@ -20,15 +21,21 @@
  * with its Approx), which is looser than the tests of GAOL, that compare the
  * bounds with the tightest ones: these tests check that GAOL gives the results
  * its two main users expect from it. Each section writes the environment the
- * tests need (CppUnit's assertions, Catch2's TEST_CASE and CHECK, the classes
- * Interval of IBEX and of Codac) once, as a thin layer that calls the function
- * of GAOL the wrapper of the project calls. What exists only in IBEX or in
- * Codac (their set difference, their distances, their vectors, their
- * algorithms of backward contraction that GAOL has no equivalent of, their
- * Python bindings...) is not ported.
+ * tests need (CppUnit's assertions, Catch2's TEST_CASE and CHECK, the class
+ * Interval of each project) once, as a thin layer that calls GAOL: the function
+ * the wrapper of the project calls or, where the project writes a function
+ * itself over those of GAOL and GAOL has the same, the function of GAOL; the
+ * comments of the layers say which. What is not ported is what only IBEX or
+ * Codac have (their set difference, their vectors and matrices, their Python
+ * bindings...) and the algorithms of IBEX written over the operations of GAOL
+ * (the backward contractions of the addition, the subtraction, the division,
+ * the square root, the arc tangent and the ceiling, the modulo, the relative
+ * distance), which test IBEX rather than GAOL.
  *
- * The code of IBEX and of Codac is under the GNU Lesser General Public License,
- * as GAOL is; the copyrights of the sections are kept.
+ * IBEX and Codac are distributed under the GNU Lesser General Public License
+ * (the COPYING.LESSER of each project is its version 3), GAOL under its
+ * version 2 (COPYING.LIB): the sections keep the notices of the files they
+ * come from.
  *
  * Copyright (c) 2026 ENSTA, France
  *
@@ -40,11 +47,9 @@
 
 #include "gaol_tests.h"
 
-/*-*-C++-*------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
- *--------------------------------------------------------------------------
+/*--------------------------------------------------------------------------
  * The tests IBEX runs on its scalar intervals (ibex-lib, commit 65ed587,
- * tests/TestInterval.cpp and tests/TestArith.cpp, with the helpers check(),
+ * tests/TestInterval.cpp and tests/TestArith.cpp, with the helpers check() and
  * almost_eq() of tests/utils.cpp), run against GAOL.
  *
  * The bodies of the tests and of their helpers are those of IBEX, extracted
@@ -64,63 +69,60 @@
  * own text is the environment the tests run in, written once below:
  * CppUnit's assertions, that report through gaol_tests::check(), and
  * ibex::Interval, a class that holds a gaol::interval and calls GAOL for each
- * operation as the wrapper of IBEX for GAOL does (interval_lib_wrapper/gaol),
- * with the functions that IBEX writes itself and GAOL has an equivalent of
- * mapped on it: the set relations (set_eq, set_leq, set_le...), is_bisectable,
- * hausdorff, atan2, the reverse functions max_rel, min_rel, atan2_rel_y,
- * atan2_rel_x, floor_rel, nth_root_rel (for a positive exponent), and the
- * generalized division, mulRevToPair. Tests of IBEX not ported, and why:
- *   TestInterval consCppArray: IBEX only: Interval{1.0, 2.0}, the construction
- *       from a C++ brace list (std::array), no GAOL counterpart
- *   TestInterval set_empty01-02: IBEX only: Interval::set_empty(), which is
- *       *this = EMPTY_SET; GAOL has no mutator
- *   TestInterval delta01-03: IBEX only: Interval::delta(), a measure of IBEX
- *       (volume lost by a contraction), no GAOL counterpart
- *   TestInterval diff01-17: IBEX only: Interval::diff(), the set difference
- *       into two intervals with its own algorithm; GAOL has no counterpart
- *   TestInterval rel_distance01-21: IBEX only: Interval::rel_distance() =
- *       distance/diam with its own conventions for the infinite and empty
- *       cases
- *   TestInterval distance20-21: IBEX only: the distance to the empty set is
- *       the radius of the other interval (convention of IBEX);
- *       gaol::hausdorff() with the empty set is a NaN
- *   TestArith bwd_div01-09: IBEX algorithm: bwd_div() is two steps of its own
- *       on top of * and bwd_mul(); GAOL has no reverse of the division
- *   TestArith bwd_sqrt01-07: IBEX algorithm: bwd_sqrt() clips y to [0,+oo] by
- *       cases, then x &= sqr(y); GAOL has no reverse of sqrt
- *   TestArith bwd_atan01-08: IBEX algorithm: bwd_atan() treats the poles of
- *       tan by cases (hand-made tan of the bounds); GAOL has no reverse of
- *       atan (atan_rel() is the reverse of tan)
- *   TestArith bwd_add01-05: IBEX algorithm: bwd_add() is x1 &= y-x2 then x2 &=
- *       y-x1 with early exits; GAOL has no reverse of the addition
- *       (cancel_plus() is another operation)
- *   TestArith bwd_sub01-05: IBEX algorithm: bwd_sub(), as bwd_add()
- *   TestArith bwd_imod_01-08: IBEX only: bwd_imod(), the modulo by a period,
- *       with its own algorithm; GAOL has no counterpart
- *   TestArith bwd_ceil_01-13: IBEX algorithm: bwd_ceil(), by cases on
- *       std::ceil/std::floor of the bounds; GAOL has floor_rel() but no
- *       ceil_rel()
+ * operation: the function the wrapper of IBEX for GAOL calls
+ * (interval_lib_wrapper/gaol) or, for the functions that IBEX writes itself
+ * over those of GAOL and GAOL has the same, the function of GAOL: the set
+ * relations (set_eq, set_leq, set_le...), is_bisectable, rad, hausdorff, atan2,
+ * the reverse functions max_rel, min_rel, atan2_rel_y, atan2_rel_x and
+ * floor_rel, nth_root_rel (for a positive exponent, where the wrapper goes
+ * through root()), and the generalized division, mulRevToPair. The comments of
+ * the layer say, for each function, which it is.
+ *
+ * Tests of IBEX not ported. Some are about what only IBEX has:
+ *   TestInterval consCppArray: Interval{1.0, 2.0}, the construction from a C++
+ *       brace list (std::array), no GAOL counterpart
+ *   TestInterval set_empty01-02: Interval::set_empty(), which is *this =
+ *       EMPTY_SET; GAOL has no mutator
+ *   TestInterval delta01-03: Interval::delta(), a measure of IBEX (volume lost
+ *       by a contraction), no GAOL counterpart
+ *   TestInterval diff01-17: Interval::diff(), the set difference into two
+ *       intervals; GAOL has no counterpart
  *   TestArith mulMM01: matrix test (Matrix of IBEX), no scalar interval
  *   TestArith bwd_mulVV01: vector test (IntervalVector of IBEX)
  *   TestArith bwd_mulMV01: matrix/vector test (IntervalMatrix, IntervalVector,
  *       Matrix and Vector of IBEX)
+ * Others test an algorithm or a notion of IBEX written over the operations of
+ * GAOL, not GAOL: they pass against GAOL when the text of the function of IBEX
+ * (ibex_Interval.h) is added to the layer, which was checked in a copy, and
+ * were left out:
+ *   TestInterval rel_distance01-21: Interval::rel_distance() = distance/diam,
+ *       with the conventions of IBEX for the infinite and empty cases
+ *   TestInterval distance20-21: the distance to the empty set is the radius of
+ *       the other interval (convention of IBEX); gaol::hausdorff() with the
+ *       empty set is a NaN
+ *   TestArith bwd_div01-09: bwd_div() is two steps of IBEX on top of * and
+ *       bwd_mul()
+ *   TestArith bwd_sqrt01-07: bwd_sqrt() clips y to [0,+oo] by cases, then x &=
+ *       sqr(y)
+ *   TestArith bwd_atan01-08: bwd_atan() treats the poles of tan by cases (tan
+ *       of the bounds made by hand); atan_rel() of GAOL is the reverse of tan
+ *   TestArith bwd_add01-05: bwd_add() is x1 &= y-x2 then x2 &= y-x1 with early
+ *       exits
+ *   TestArith bwd_sub01-05: bwd_sub(), as bwd_add()
+ *   TestArith bwd_imod_01-08: bwd_imod(), the modulo by a period
+ *   TestArith bwd_ceil_01-13: bwd_ceil(), by cases on std::ceil/std::floor of
+ *       the bounds (GAOL has floor_rel() and no ceil_rel())
+ * And some never run in IBEX:
  *   TestArith bwd_floor_12-13: empty body: the only statement is a comment
  *   TestArith float10: registered in a comment of TestArith.h ("disabled
- *       temporarily due to bug between Gaol and elibc"): never runs in IBEX
- *   TestArith sqrt06: defined in TestArith.cpp, not registered in TestArith.h:
- *       never runs in IBEX
- *   TestArith tan06: defined in TestArith.cpp, not registered: never runs in
- *       IBEX (its expectation is wrong)
- *   TestArith tan07: defined in TestArith.cpp, not registered: never runs in
- *       IBEX
+ *       temporarily due to bug between Gaol and elibc")
+ *   TestArith sqrt06, tan06, tan07: defined in TestArith.cpp, not registered
+ *       in TestArith.h (the expectation of tan06 is wrong)
  *
  * Tests ported: TestInterval 93 of 139; TestArith 283 of 343.
  *
- * IBEX: Copyright Ecole des Mines de Nantes / IMT Atlantique (FRANCE),
- * Author Gilles Chabert, distributed under the GNU LGPL (COPYING.LESSER).
- *
- * Needs gaol_tests.h (gaol_tests::check(), hex(), RoundingToNearest), which
- * the file including this section includes first.
+ * IBEX: Copyright Ecole des Mines de Nantes (FRANCE), Author Gilles Chabert,
+ * distributed under the GNU LGPL (COPYING.LESSER of ibex-lib).
  *--------------------------------------------------------------------------*/
 
 #include <cfloat>
@@ -2542,13 +2544,10 @@ void tan_issue248() {
 // Left out, because Codac adds them to GAOL or tests Codac itself and not GAOL
 // (the comments "[not ported, ...]" in the blocks say where): in
 // codac2_tests_Interval.cpp the constructors from an initializer list, the
-// literal _i, init_from_list() and set_empty(), smag(), rand(), is_strict_
-// interior_subset(), is_strict_superset(), diff(), and the #if 0 block; in
-// codac2_tests_Interval_rounding.cpp rand() and the ternary chi(x,y,z) of
-// Codac; the tests of the Python bindings.
-//
-// Requires gaol_tests.h, and a main() that calls gaol::init() before
-// codac_port::run(), and sets the rounding direction upward after it.
+// literal _i, init_from_list() and set_empty(), smag(), rand(), diff(), and the
+// #if 0 block; in codac2_tests_Interval_rounding.cpp rand() and the ternary
+// chi(x,y,z) of Codac; the tests of the Python bindings. 857 of the 945 checks
+// the three files run are ported.
 
 #include <cfenv>
 #include <cmath>
@@ -2841,6 +2840,19 @@ namespace codac_port
         bool is_superset(const Interval& x) const
         {
           return v_.set_contains(x.v_);
+        }
+
+        // The strict notions of Codac, given by the set relations of GAOL (the
+        // same as those of ibex_port::ibex::Interval): the interior of the
+        // other interval (set_le), and the inequality of the two
+        bool is_strict_interior_subset(const Interval& x) const
+        {
+          return v_.set_le(x.v_) && v_.set_neq(x.v_);
+        }
+
+        bool is_strict_superset(const Interval& x) const
+        {
+          return v_.set_geq(x.v_) && v_.set_neq(x.v_);
         }
 
         bool is_bisectable() const
@@ -3433,10 +3445,14 @@ TEST_CASE("Interval - tests from IBEX")
 
   CHECK(Interval(0,1).is_subset(Interval(0,2)));
   CHECK(!Interval(0,1).is_subset(Interval(1,2)));
-// [not ported, lines 202-204 of codac2_tests_Interval.cpp: is_strict_interior_subset() (notion of Codac, no GAOL counterpart)]
+  CHECK(!Interval(0,1).is_strict_interior_subset(Interval(0,2)));
+  CHECK(Interval(-oo,0).is_strict_interior_subset(Interval(-oo,oo)));
+  CHECK(Interval::empty().is_strict_interior_subset(Interval(0,1)));
   CHECK(Interval(0,2).is_superset(Interval(0,1)));
   CHECK(!Interval(1,2).is_superset(Interval(0,1)));
-// [not ported, lines 207-209 of codac2_tests_Interval.cpp: is_strict_superset() (notion of Codac, no GAOL counterpart)]
+  CHECK(!Interval(0,2).is_strict_superset(Interval(0,2)));
+  CHECK(Interval(-oo,oo).is_strict_superset(Interval(-oo,0)));
+  CHECK(!Interval::empty().is_strict_superset(Interval::empty()));
   CHECK(Interval(0,2).contains(0));
   CHECK(Interval(-oo,oo).contains(oo));
   CHECK(!Interval(0,2).interior_contains(0));
@@ -4364,6 +4380,25 @@ int main()
   ibex_port::run();
   codac_port::run();
   std::fesetround(FE_UPWARD);
+  // Nothing was dropped from the tables of tests: each test of IBEX and each
+  // TEST_CASE of Codac has made at least one check
+  long interval_tests = 0, arith_tests = 0, test_cases = 0;
+  for (const auto& tally : gaol_tests::tallies()) {
+    const std::string& name = tally.first;
+    if (name.compare(0, 19, "IBEX TestInterval::") == 0) {
+      ++interval_tests;
+    } else if (name.compare(0, 16, "IBEX TestArith::") == 0) {
+      ++arith_tests;
+    } else if (name.compare(0, 6, "Codac ") == 0) {
+      ++test_cases;
+    }
+  }
+  gaol_tests::check("the 93 tests of IBEX TestInterval ran", interval_tests == 93,
+                    [&] { return std::to_string(interval_tests) + " tests"; });
+  gaol_tests::check("the 283 tests of IBEX TestArith ran", arith_tests == 283,
+                    [&] { return std::to_string(arith_tests) + " tests"; });
+  gaol_tests::check("the 7 TEST_CASEs of Codac ran", test_cases == 7,
+                    [&] { return std::to_string(test_cases) + " TEST_CASEs"; });
   const int status = gaol_tests::summary();
   gaol::cleanup();
   return status;
