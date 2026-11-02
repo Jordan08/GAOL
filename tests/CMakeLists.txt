@@ -5,7 +5,9 @@
 # Each test program of GAOL v5 compares the bounds GAOL computes with the
 # exact results (see gaol_tests.h); the unit tests of GAOL 4, which were in
 # check/ and ran with CppUnit, check the results of the operations on chosen
-# intervals (see unit_tests.h). They are compiled as any code using GAOL, with
+# intervals (see unit_tests.h); codac_ibex runs the unit tests of IBEX and of
+# Codac on their intervals, with their expected values. They are compiled as
+# any code using GAOL, with
 # the flags gaol::gaol carries, and in C++17 for the hexadecimal floating
 # literals of the tests, such as 0x1p-1060: those of gaol_tests.h, which all
 # but u128.cpp include, of the *_values.h, and of several of the programs.
