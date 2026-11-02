@@ -1748,7 +1748,7 @@ and after their kernels of `*`, `/`, `%` and `sqr` (the tool records the
 invalid-operation and division-by-zero exceptions only).
 
 `manual/check_examples.py` compiles each example of the manual of GAOL v5
-(`manual/v5/gaol.tex`) that shows what it prints, 88 of them, with an installed
+(`manual/v5/gaol.tex`) that shows what it prints, 113 of them, with an installed
 GAOL and the flags of `pkg-config gaol`, runs it, and compares what it prints
 with the manual, line by line (GAOL v5): until #55, the examples printed 1 and
 0 where the manual showed `true` and `false`. It is no test of the builds; the
