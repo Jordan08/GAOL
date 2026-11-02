@@ -580,7 +580,7 @@ point Q), which `numbers` checks there too.
   without the fix. The bounds of π and π/2 of `gaol/gaol_port.h`, now written
   in decimal, have to be the doubles next to π and π/2.
 - **`test_ibex_codac`:** the cases of the unit tests that IBEX and Codac run on
-  their intervals, which are GAOL's, checked against the exact results: 3896
+  their intervals, which are GAOL's, checked against the exact results: 3905
   checks (GAOL v5). A case is a row of a table, written with `gaol::interval`
   and the functions of GAOL, not with the classes of the projects, and named by
   its origin (`IBEX TestArith::add05`, `Codac Interval_operations:176`). The
@@ -589,27 +589,29 @@ point Q), which `numbers` checks there too.
   [tests/tools/ibex_codac](../tests/tools/ibex_codac/README.md) (exact
   rationals, and mpmath with 2000 bits for the elementary functions): the bounds
   of GAOL have to enclose it, with no double between them and the tightest
-  bounds for the operations that are exact in GAOL, and no more than one for the
-  elementary functions (two for `atan2_rel_x` and `atan2_rel_y`, as
-  `doc/accuracy.md` says). Three sections: the forward tests of IBEX
-  (`TestInterval.cpp` and `TestArith.cpp` of ibex-lib, commit 65ed587: 71 of 139
-  and 182 of 343 tests, 1385 checks; the constants, the constructors, the sets,
-  the accessors and relations, the arithmetic, the elementary functions, the
-  powers, the roots, `atan2`), its backward contractors, its generalized
-  division and its distances (`bwd_*`, `div2`, `distance`, `rel_distance`,
-  written with the operations and the reverse functions of GAOL: 197 cases, 1306
-  checks), and the tests of Codac (Codac 2 commit 6419940 and the branch `GAOL`
-  of the fork of Jordan Ninin, commit f0d06ff0: 659 of the 945 checks of its
-  three files, 195 being already in the tests of GAOL; 1205 checks). What is
-  left out is what only IBEX or Codac have (`diff()`, `delta()`, `set_empty()`,
-  the vectors and matrices, `rand()`, `smag()`, the initializer lists, the
-  Python bindings), the tests IBEX defines and never registers, and the distance
-  to the empty set, whose convention is not the same in IBEX (the radius of the
-  other interval) and in `gaol::hausdorff()` (NaN); each section says so in its
-  header. What the projects expect, with their tolerances (1e-10 absolute for
-  IBEX, `Approx` for Codac), is compared with the exact results by the scripts,
-  not by the test: 1936 comparisons, no disagreement beyond the tolerance, and
-  21 expectations of IBEX that are not enclosures of the exact result (`tan02`
+  bounds, as `doc/accuracy.md` says of these operations (two doubles for
+  `atan2_rel_x` and `atan2_rel_y`, as it says). Three sections: the forward
+  tests of IBEX (`TestInterval.cpp` and `TestArith.cpp` of ibex-lib, commit
+  65ed587: 71 of the 139 tests of `TestInterval` and 182 of the 343 registered
+  tests of `TestArith`, and 3 that `TestArith.h` does not register and IBEX
+  never runs, `float10`, `sqrt06` and `tan07`; 1393 checks; the constants, the
+  constructors, the sets, the accessors and relations, the arithmetic, the
+  elementary functions, the powers, the roots, `atan2`), its backward
+  contractors, its generalized division and its distances (`bwd_*`, `div2`,
+  `distance`, `rel_distance`, written with the operations and the reverse
+  functions of GAOL: 197 cases, 1306 checks), and the tests of Codac (Codac 2
+  commit 6419940 and the branch `GAOL` of the fork of Jordan Ninin, commit
+  f0d06ff0; 1206 checks; of the 945 checks of its three files, 195 are already
+  in the tests of GAOL and are not repeated). What is left out is what only IBEX
+  or Codac have (`diff()`, `delta()`, `set_empty()`, the vectors and matrices,
+  `rand()`, `smag()`, the initializer lists, the Python bindings), `tan06` of
+  IBEX, whose expectation is wrong, and the distance to the empty set, whose
+  convention is not the same in IBEX (the radius of the other interval) and in
+  `gaol::hausdorff()` (NaN); each section says so in its header. What the
+  projects expect, with their tolerances (1e-10 absolute for IBEX, `Approx` for
+  Codac), is compared with the exact results by the scripts, not by the test:
+  1940 comparisons, no disagreement beyond the tolerance, and 23 expectations of
+  IBEX with an integer bound that is not a bound of the exact result (`tan02`
   expects [-1, 1] where it is ±(1 + 2^-52)). The test prints nothing but the
   failed names and the total.
 - **`numbers`:** `textToInterval("0.1")` has to be the tightest interval

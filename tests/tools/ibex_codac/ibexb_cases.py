@@ -71,9 +71,11 @@
 #     the sine of GAOL (a bound of x near pi/2 moves by several doubles for one
 #     double of y);
 #   - the doubles that IBEX computes before the contraction (5*piU/2.0, M_PI/6.,
-#     -sqrt(3.)/2...) are rounded upward, as GAOL leaves the direction (the
-#     operations of the original are not folded: IBEX is compiled with
-#     -frounding-math); they are in the tables, as the other inputs;
+#     -sqrt(3.)/2...) are rounded upward, as GAOL leaves the direction: a choice,
+#     not what a build of IBEX does (it is compiled with -frounding-math only with
+#     its other interval libraries, so that a compiler folds these constants to
+#     the nearest double, one double away in 37 of them); they are in the tables,
+#     as the other inputs;
 #   - the distance of IBEX to the empty set is the radius of the other interval,
 #     the distance of GAOL a NaN: no such case is ported (distance20 and 21);
 #   - rel_distance is the distance over the width; IBEX settles the infinite

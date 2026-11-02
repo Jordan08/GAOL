@@ -36,9 +36,12 @@
  *     branch GAOL of the fork of Jordan Ninin, commit f0d06ff0): the intervals,
  *     their operations, and the rounding direction.
  *
+ * The cases come from the tests of IBEX (Copyright Ecole des Mines de Nantes
+ * (FRANCE), author Gilles Chabert) and of Codac (Copyright Codac Team; authors
+ * Gilles Chabert and Simon Rohou, and, for the rounding test, Jordan Ninin).
  * IBEX and Codac are distributed under the GNU Lesser General Public License
  * (the COPYING.LESSER of each project is its version 3), GAOL under its
- * version 2 (COPYING.LIB): the sections keep the notices of the projects.
+ * version 2 (COPYING.LIB).
  *
  * Copyright (c) 2026 ENSTA, France
  *
@@ -66,11 +69,11 @@ using namespace gaol_tests;
 namespace
 {
   // The largest distance from the tightest bounds allowed to a function, in
-  // doubles: one, GAOL taking the value of CORE-MATH in the upward rounding as
-  // the upper bound and the double below it as the lower one (see
-  // tests/core_math.cpp). The operations that are exact (+ - * / sqr sqrt, the
-  // sets, the accessors...) are checked with 0
-  const int limit = 1;
+  // doubles: none, the elementary functions of GAOL giving the tightest bounds
+  // (doc/accuracy.md), as the operations that are exact (+ - * / sqr sqrt, the
+  // sets, the accessors...). The rows that need more say it (atan2_rel_x and
+  // atan2_rel_y: two doubles, doc/accuracy.md)
+  const int limit = 0;
 
   // The tightest enclosure of an exact result: lo is the greatest double not
   // above the exact lower bound, hi the least double not below the exact upper
@@ -176,6 +179,11 @@ namespace
 // of the opposites for the addition; sin(pi-x), cos(x+pi/2)... for the sines,
 // whose references are the exact images of the arguments GAOL computes (the
 // sums and differences with pi are exact in GAOL, the script replays them).
+// Three tests that TestArith.h does not register, so that IBEX never runs
+// them, are here, and GAOL passes them: float10 (previous_float(-DBL_MAX) is
+// -oo; commented out in TestArith.h for a bug between Gaol and eglibc), sqrt06
+// and tan07. tan06 is not: its expectation, all the reals for tan(-pi), is
+// wrong, tan(-pi) containing 0 and no pole.
 // Not in this section: the tests of IBEX on its own types and algorithms
 // (consCppArray, set_empty, delta, diff, the distances, the generalized
 // division div2, the matrices), and the reverse functions (bwd_*).
@@ -713,6 +721,7 @@ namespace
     { "IBEX TestArith::float07", 'p', ibex_oo, { 0x1.fffffffffffffp+1023, 0x1.fffffffffffffp+1023 } },
     { "IBEX TestArith::float08", 'p', -ibex_oo, { -ibex_oo, -ibex_oo } },
     { "IBEX TestArith::float09", 'n', 0x1.fffffffffffffp+1023, { ibex_oo, ibex_oo } },
+    { "IBEX TestArith::float10", 'p', -0x1.fffffffffffffp+1023, { -ibex_oo, -ibex_oo } },
   };
   // END ibex_float_cases
 
@@ -905,6 +914,7 @@ namespace
     { "IBEX TestArith::sqrt03", "sqrt", { -0x1.2p+3, 0x1p+2 }, { 0x0p+0, 0x1p+1 } },
     { "IBEX TestArith::sqrt04", "sqrt", { 0x1p+2, 0x1.2p+3 }, { 0x1p+1, 0x1.8p+1 } },
     { "IBEX TestArith::sqrt05", "sqrt", { -0x1.2p+3, -0x1p+2 }, ibex_empty },
+    { "IBEX TestArith::sqrt06", "sqrt", { -0x1.2p+3, ibex_oo }, { 0x0p+0, ibex_oo } },
     { "IBEX TestArith::log01", "log", ibex_empty, ibex_empty },
     { "IBEX TestArith::log02", "log", { -ibex_oo, ibex_oo }, { -ibex_oo, ibex_oo } },
     { "IBEX TestArith::log03", "log", { 0x0p+0, ibex_oo }, { -ibex_oo, ibex_oo } },
@@ -1003,6 +1013,7 @@ namespace
   static const ibex_expression_case ibex_expression_cases[] = {
     { "IBEX TestArith::tan02", "tan((-pi/4)|(pi/4))", { -0x1.0000000000001p+0, 0x1.0000000000001p+0 } },
     { "IBEX TestArith::tan05", "tan(pi/2)", { -ibex_oo, ibex_oo } },
+    { "IBEX TestArith::tan07", "tan(3*pi/4|5*pi/4)", { -0x1.0000000000001p+0, 0x1.0000000000007p+0 } },
   };
   // END ibex_expression_cases
 
@@ -1012,6 +1023,7 @@ namespace
     static const std::map<std::string, Expression> expressions = {
       { "tan((-pi/4)|(pi/4))", [] { return tan((-interval::pi()/4.0) | (interval::pi()/4.0)); } },
       { "tan(pi/2)", [] { return tan(interval::pi()/2.0); } },
+      { "tan(3*pi/4|5*pi/4)", [] { return tan(3.0*interval::pi()/4.0 | 5.0*interval::pi()/4.0); } },
     };
     for (const ibex_expression_case& c : ibex_expression_cases) {
       const auto describe = [&] { return std::string(c.expression); };
@@ -2341,6 +2353,10 @@ namespace
     const interval k = integer((x - y) / period);
     interval x_hull = interval::emptyset(), y_hull = interval::emptyset();
     if (!k.is_empty()) {
+      // IBEX gives up beyond two multiples of the period: x and y are left as they are
+      if (!k.is_finite() || k.right() - k.left() > 2.0) {
+        return;
+      }
       for (double n = k.left(); n <= k.right(); n += 1.0) {
         const interval multiple = interval(n) * period;
         x_hull |= x & (y + multiple);
@@ -2425,9 +2441,10 @@ namespace
   What is not here, because it is Codac's own: the constructors from an
   initializer list, the literal _i, init_from_list(), set_empty(), smag(),
   rand(), diff(), the ternary chi(x,y,z), the block under #if 0 and the Python
-  tests; is_degenerated() of the empty set (true for Codac, which writes
-  is_empty() || is_a_double(), where GAOL's is_a_double() is false for it, as
-  tests/relations.cpp checks); and the two comparisons of doubles (oo > MAX).
+  tests; and the two comparisons of doubles (oo > MAX). is_degenerated() of the
+  empty set (true for Codac) is is_empty() || is_a_double() here, as in the
+  IBEX section: GAOL's is_a_double() alone is false for the empty set, as
+  tests/relations.cpp checks.
   pow == sqrt of the same empty set is the checks that both are empty.
 */
 
@@ -2835,7 +2852,8 @@ namespace
     // END point_relations
   };
 
-  // One interval: is_empty(), is_a_double() (is_degenerated() of Codac), is_finite()
+  // One interval: is_empty(), is_a_double() (is_degenerated() of Codac, with is_empty()
+  // || is_a_double() for the empty set), is_finite()
   // (the opposite of is_unbounded(), true for the empty set) and is_bisectable():
   // a double lies strictly between the bounds
   struct codac_Predicate
@@ -2850,6 +2868,7 @@ namespace
     // BEGIN predicates
     { "Codac Interval:217", "is_empty", { 0x0.0p+0, 0x1.0000000000000p+0 }, false },
     { "Codac Interval:218", "is_a_double", { 0x0.0p+0, 0x0.0p+0 }, true },
+    { "Codac Interval:219", "is_empty_or_a_double", codac_none, true },
     { "Codac Interval:220", "is_finite", codac_none, true },
     { "Codac Interval:221", "is_finite", { 0x0.0p+0, 0x1.0000000000000p+0 }, true },
     { "Codac Interval:222", "is_finite", { -codac_oo, 0x0.0p+0 }, false },
@@ -2925,6 +2944,7 @@ namespace
       const std::string predicate = c.predicate;
       const bool actual = (predicate == "is_empty") ? x.is_empty()
                         : (predicate == "is_a_double") ? x.is_a_double()
+                        : (predicate == "is_empty_or_a_double") ? (x.is_empty() || x.is_a_double())
                         : (predicate == "is_finite") ? x.is_finite()
                         : (predicate == "is_bisectable") ? x.is_bisectable()
                         : codac_unknown(c.name, predicate);
@@ -3088,7 +3108,7 @@ namespace
     // END integer_functions
     // BEGIN tangents
     { "Codac Interval_operations:249", "tan", { -codac_oo, codac_oo }, { -codac_oo, codac_oo } },
-    { "Codac Interval_operations:254", "tan", { 0x1.921fb54442d18p-1, 0x1.921fb543961b8p+0 }, { 0x1.fffffffffffffp-1, 0x1.7b7466430c12ap+32 } },
+    { "Codac Interval_operations:254", "tan", { 0x1.921fb54442d18p-1, 0x1.921fb543961b9p+0 }, { 0x1.fffffffffffffp-1, 0x1.7b74896a2d0fcp+32 } },
     { "Codac Interval_operations:261", "tan", { -0x1.921fb543961b8p+0, 0x1.921fb54442d18p-1 }, { -0x1.7b7466430c12ap+32, 0x1.0000000000000p+0 } },
     // END tangents
     // BEGIN rounded_values
@@ -3145,7 +3165,7 @@ namespace
     { "Codac Interval_operations:209", { 0x1.8000000000000p+1, 0x1.4000000000000p+2 }, { { -0x1.0000000000000p+0, 0x1.210386db6d55cp-3 }, { -0x1.0000000000000p+0, 0x1.210386db6d567p-3 }, { -0x1.0000000000000p+0, 0x1.210386db6d565p-3 }, { -0x1.210386db6d55cp-3, 0x1.0000000000000p+0 }, { -0x1.0000000000000p+0, 0x1.210386db6d562p-3 }, { -0x1.0000000000000p+0, 0x1.210386db6d562p-3 }, { -0x1.210386db6d55ep-3, 0x1.0000000000000p+0 }, { -0x1.0000000000000p+0, 0x1.210386db6d582p-3 } } },
     { "Codac Interval_operations:210", { 0x1.8000000000000p+1, 0x1.f21fb54442d19p+2 }, { { -0x1.0000000000000p+0, 0x1.feb7a9b2c6d8cp-1 }, { -0x1.0000000000000p+0, 0x1.feb7a9b2c6d8cp-1 }, { -0x1.0000000000000p+0, 0x1.feb7a9b2c6d8cp-1 }, { -0x1.feb7a9b2c6d8cp-1, 0x1.0000000000000p+0 }, { -0x1.0000000000000p+0, 0x1.feb7a9b2c6d8cp-1 }, { -0x1.0000000000000p+0, 0x1.feb7a9b2c6d8cp-1 }, { -0x1.feb7a9b2c6d8cp-1, 0x1.0000000000000p+0 }, { -0x1.0000000000000p+0, 0x1.feb7a9b2c6d8cp-1 } } },
     { "Codac Interval_operations:211", { 0x1.4000000000000p+2, 0x1.f21fb54442d19p+2 }, { { -0x1.eaf81f5e09934p-1, 0x1.feb7a9b2c6d8cp-1 }, { -0x1.eaf81f5e09934p-1, 0x1.feb7a9b2c6d8cp-1 }, { -0x1.eaf81f5e09934p-1, 0x1.feb7a9b2c6d8cp-1 }, { -0x1.feb7a9b2c6d8cp-1, 0x1.eaf81f5e09934p-1 }, { -0x1.eaf81f5e09935p-1, 0x1.feb7a9b2c6d8cp-1 }, { -0x1.eaf81f5e09935p-1, 0x1.feb7a9b2c6d8cp-1 }, { -0x1.feb7a9b2c6d8cp-1, 0x1.eaf81f5e09934p-1 }, { -0x1.eaf81f5e09939p-1, 0x1.feb7a9b2c6d8cp-1 } } },
-    { "Codac Interval_operations:212", { 0x1.4000000000000p+2, 0x1.290fdaa22168cp+3 }, { { -0x1.eaf81f5e09934p-1, 0x1.0000000000000p+0 }, { -0x1.eaf81f5e09934p-1, 0x1.0000000000000p+0 }, { -0x1.eaf81f5e09934p-1, 0x1.0000000000000p+0 }, { -0x1.0000000000000p+0, 0x1.eaf81f5e09934p-1 }, { -0x1.eaf81f5e09935p-1, 0x1.0000000000000p+0 }, { -0x1.eaf81f5e09935p-1, 0x1.0000000000000p+0 }, { -0x1.0000000000000p+0, 0x1.eaf81f5e09934p-1 }, { -0x1.eaf81f5e09939p-1, 0x1.0000000000000p+0 } } },
+    { "Codac Interval_operations:212", { 0x1.4000000000000p+2, 0x1.290fdaa22168dp+3 }, { { -0x1.eaf81f5e09934p-1, 0x1.0000000000000p+0 }, { -0x1.eaf81f5e09934p-1, 0x1.0000000000000p+0 }, { -0x1.eaf81f5e09934p-1, 0x1.0000000000000p+0 }, { -0x1.0000000000000p+0, 0x1.eaf81f5e09934p-1 }, { -0x1.eaf81f5e09935p-1, 0x1.0000000000000p+0 }, { -0x1.eaf81f5e09935p-1, 0x1.0000000000000p+0 }, { -0x1.0000000000000p+0, 0x1.eaf81f5e09934p-1 }, { -0x1.eaf81f5e09939p-1, 0x1.0000000000000p+0 } } },
     // END trigonometric
   };
 
@@ -3372,7 +3392,8 @@ namespace
 
   // bisect(ratio): the two parts share the cut, a double of [l, r] that is within the doubles
   // around l + ratio (r - l); the parts of a half-line are cut at the largest double or its
-  // opposite, those of the whole line at 0
+  // opposite, those of the whole line at 0. Codac's bisect() takes a float: the ratio of
+  // Codac:292 is 0.2f, 0x1.99999ap-3, not the double 0.2
   struct codac_Bisection
   {
     const char* name;

@@ -984,7 +984,9 @@ def group_floats():
              ('float03', 'n', 1.0, lambda v: 1 < v), ('float04', 'p', 1.0, lambda v: 1 > v),
              ('float05', 'n', INF, lambda v: INF == v), ('float06', 'n', -INF, lambda v: -DBL_MAX == v),
              ('float07', 'p', INF, lambda v: DBL_MAX == v), ('float08', 'p', -INF, lambda v: -INF == v),
-             ('float09', 'n', DBL_MAX, lambda v: INF == v)]
+             ('float09', 'n', DBL_MAX, lambda v: INF == v),
+             # float10 is in a comment of TestArith.h ("disabled temporarily due to bug between Gaol and elibc"): not run in IBEX
+             ('float10', 'p', -DBL_MAX, lambda v: -INF == v)]
     for name, direction, x, predicate in cases:
         v = next_float(x) if direction == 'n' else previous_float(x)
         compare_predicate('IBEX TestArith::' + name, 'the relation to next_float or previous_float', predicate(v))
@@ -1044,6 +1046,8 @@ def group_unary():
              ('minus04', 'neg', iv(-INF, 1), iv(-1, INF)),
              ('sqrt01', 'sqrt', ALL, POS), ('sqrt02', 'sqrt', NEG, ZERO), ('sqrt03', 'sqrt', iv(-9, 4), iv(0, 2)),
              ('sqrt04', 'sqrt', iv(4, 9), iv(2, 3)), ('sqrt05', 'sqrt', iv(-9, -4), EMPTY),
+             # sqrt06 is defined in TestArith.cpp and not registered in TestArith.h: not run in IBEX
+             ('sqrt06', 'sqrt', iv(-9, INF), POS),
              ('log01', 'log', EMPTY, EMPTY), ('log02', 'log', ALL, ALL), ('log03', 'log', POS, ALL),
              ('log04', 'log', NEG, EMPTY), ('log05', 'log', iv(1, 2), iv(0, math.log(2))),
              ('log06', 'log', iv(-1, 1), iv(-INF, 0)),
@@ -1095,8 +1099,11 @@ def group_expressions():
     quarter = PI.div(pt(4.0)).out()
     arg02 = PI.neg().div(pt(4.0)).out().hull(quarter)
     arg05 = PI.div(pt(2.0)).out()
+    # tan07 is defined in TestArith.cpp and not registered in TestArith.h: not run in IBEX
+    arg07 = pt(3.0).mul(PI).out().div(pt(4.0)).out().hull(pt(5.0).mul(PI).out().div(pt(4.0)).out())
     for name, expression, arg, orig in (('tan02', 'tan((-pi/4)|(pi/4))', arg02, iv(-1, 1)),
-                                        ('tan05', 'tan(pi/2)', arg05, ALL)):
+                                        ('tan05', 'tan(pi/2)', arg05, ALL),
+                                        ('tan07', 'tan(3*pi/4|5*pi/4)', arg07, iv(-1, 1))):
         case = 'IBEX TestArith::' + name
         exact = f_tan(arg)
         compare_interval(case, expression, orig, exact)

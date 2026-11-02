@@ -16,7 +16,8 @@ whoever changes a case, or finds the exact result wrong, runs them.
 
 Each script is the source of the tables of one section of the test, and
 `--check` ignores the tables of the other sections, so that the three can check
-the same file. Python 3.8 or later, and mpmath 1.1 or later, run as `python3 -I`.
+the same file. Python 3.9 or later (3.8 for the two scripts of IBEX), and
+mpmath 1.1 or later, run as `python3 -I`.
 
 | File | Section of the test | What it holds |
 |---|---|---|
@@ -44,8 +45,9 @@ explained in the script, or `--selftest` a failure.
 
 The expectations of IBEX and Codac, with their tolerances (1e-10 absolute for
 IBEX, `Approx` for Codac), are in the scripts and are only compared with the
-exact results: 655 comparisons for the forward tests of IBEX, 702 for the
-backward ones, 579 for the tests of Codac, with no disagreement beyond the
+exact results: 658 comparisons for the forward tests of IBEX, 702 for the
+backward ones, 580 for the tests of Codac, with no disagreement beyond the
 tolerance of the project. Where an expectation is not an enclosure of the exact
-result, the script says so (21 for the forward tests of IBEX, for example
-`tan02`, which expects [-1, 1] where the exact result is ±(1 + 2^-52)).
+result at an integer bound, the script says so (23 for the forward tests of
+IBEX, for example `tan02`, which expects [-1, 1] where the exact result is ±(1 +
+2^-52)).

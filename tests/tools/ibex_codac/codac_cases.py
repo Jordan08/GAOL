@@ -144,6 +144,24 @@ def ru(v):
     return -rd(-v) + 0.0
 
 
+# The operations on doubles that the tests of Codac compute at run time, rounding
+# upward as Codac does (it sets the direction once for all, and GAOL leaves it)
+def mul_up(a, b):
+    return ru(Fraction(a) * Fraction(b))
+
+
+def add_up(a, b):
+    return ru(Fraction(a) + Fraction(b))
+
+
+def sub_up(a, b):
+    return ru(Fraction(a) - Fraction(b))
+
+
+def div_up(a, b):
+    return ru(Fraction(a) / Fraction(b))
+
+
 def ex(x):
     """A double (or None for the empty set), as an exact bound"""
     return x if is_inf(x) else Fraction(x)
@@ -1045,6 +1063,7 @@ def group_predicates():
     cases = [
         (217, 'is_empty', (0.0, 1.0), False),
         (218, 'is_a_double', (0.0, 0.0), True),
+        (219, 'is_empty_or_a_double', E, True),
         (220, 'is_finite', E, True),
         (221, 'is_finite', (0.0, 1.0), True),
         (222, 'is_finite', (-oo, 0.0), False),
@@ -1067,6 +1086,8 @@ def group_predicates():
             truth = X is None
         elif op == 'is_a_double':
             truth = X is not None and X[0] == X[1] and not is_inf(X[0])
+        elif op == 'is_empty_or_a_double':
+            truth = X is None or (X[0] == X[1] and not is_inf(X[0]))
         elif op == 'is_finite':
             truth = X is None or not (is_inf(X[0]) or is_inf(X[1]))
         else:
@@ -1286,8 +1307,9 @@ def group_integer_functions():
 
 @group
 def group_tangents():
-    x1 = (PI_LB / 4.0, (1 - 1e-10) * PI_LB / 2.0)
-    x2 = (-(1 - 1e-10) * PI_LB / 2.0, PI_LB / 4.0)
+    below = mul_up(sub_up(1.0, 1e-10), PI_LB)
+    x1 = (div_up(PI_LB, 4.0), div_up(below, 2.0))
+    x2 = (div_up(mul_up(-sub_up(1.0, 1e-10), PI_LB), 2.0), div_up(PI_LB, 4.0))
     cases = [
         (249, 'tan', (-oo, oo), (-oo, oo), 0),
         (254, 'tan', x1, lambda A: abs(A[0] - 1) < DEFAULT_EPS and A[1] > 1000, 0),
@@ -1449,20 +1471,21 @@ TRIG_VARIANTS = [
 def group_trigonometric():
     up = PI_UB
     lo = PI_LB
+    three_half = div_up(mul_up(3.0, up), 2.0)
     cases = [
         (200, (-oo, oo), (-1.0, 1.0)),
         (201, E, E),
-        (202, (0.0, up / 2.0), (0.0, 1.0)),
+        (202, (0.0, div_up(up, 2.0)), (0.0, 1.0)),
         (203, (0.0, up), (0.0, 1.0)),
-        (204, (0.0, 3 * up / 2.0), (-1.0, 1.0)),
-        (205, (lo, 3 * up / 2.0), (-1.0, 0.0)),
+        (204, (0.0, three_half), (-1.0, 1.0)),
+        (205, (lo, three_half), (-1.0, 0.0)),
         (206, (0.5, 1.5), (math.sin(0.5), math.sin(1.5))),
         (207, (1.5, 3.0), (math.sin(3.0), 1.0)),
         (208, (3.0, 4.0), (math.sin(4.0), math.sin(3.0))),
         (209, (3.0, 5.0), (-1.0, math.sin(3.0))),
-        (210, (3.0, 2 * up + 1.5), (-1.0, math.sin(1.5))),
-        (211, (5.0, 2 * up + 1.5), (math.sin(5.0), math.sin(1.5))),
-        (212, (5.0, 2 * up + 3.0), (math.sin(5.0), 1.0)),
+        (210, (3.0, add_up(mul_up(2.0, up), 1.5)), (-1.0, math.sin(1.5))),
+        (211, (5.0, add_up(mul_up(2.0, up), 1.5)), (math.sin(5.0), math.sin(1.5))),
+        (212, (5.0, add_up(mul_up(2.0, up), 3.0)), (math.sin(5.0), 1.0)),
     ]
     rows = []
     for line, x, expected in cases:
