@@ -2290,9 +2290,9 @@ where it comes from.
   (CPack, see [Building GAOL](building.md#the-archive-of-the-sources-and-the-packages)):
   `cmake --build <build> --target package_source` gives `gaol-<version>.tar.gz`,
   the files of the repository less the notes of the work on GAOL v5 (`TODO.md`,
-  `process.md` and `todo-notes/`) and the files of the maintainers' tools, and
-  `--target package` an archive of what `cmake --install` installs and, on
-  Linux, `libgaol-dev_<version>_<arch>.deb`.
+  `TODO_AFTER.md`, `TODO_DONE.md`, `process.md` and `todo-notes/`) and the files
+  of the maintainers' tools, and `--target package` an archive of what
+  `cmake --install` installs and, on Linux, `libgaol-dev_<version>_<arch>.deb`.
   `make dist` and `make distcheck` of the autotools build are gone
   (`no-dist` in `configure.ac`), with the lists of files they put in the
   archive and `make rpm`, which built an RPM from it: `make dist` stopped on
