@@ -1433,9 +1433,10 @@ install(TARGETS gaol EXPORT gaolTargets
 # compile when included, the parts of the library (gaol_init_cleanup.h,
 # math/gaol_core_math.h, math/gaol_u128.h), what CORE-MATH's sources need to
 # compile within GAOL (math/gaol_core_math_port.h, core_math_log_dint.h,
-# math/gaol_ldexp.h), the bounds at doubles, *_dn() and *_up(), which are not
-# part of GAOL's interface (math/gaol_double_op.h), and the intervals of
-# floats, which only a developer of GAOL compiles (see gaol/gaol_config.h)
+# math/gaol_ldexp.h, math/gaol_roundeven.h), the bounds at doubles, *_dn() and
+# *_up(), which are not part of GAOL's interface (math/gaol_double_op.h), and
+# the intervals of floats, which only a developer of GAOL compiles (see
+# gaol/gaol_config.h)
 set(GAOL_HEADERS
   gaol/gaol.h gaol/gaol_common.h
   gaol/gaol_config.h gaol/gaol_exceptions.h
@@ -1443,11 +1444,6 @@ set(GAOL_HEADERS
   gaol/gaol_ieee1788.h gaol/gaol_interval.h
   gaol/gaol_port.h
   gaol/gaol_version.h)
-# The header of the rounding to nearest, ties to even, which
-# gaol/core/gaol_interval_core.h includes: installed in gaol/math/ as in the
-# sources (GAOL v5)
-set(GAOL_MATH_HEADERS
-  gaol/math/gaol_roundeven.h)
 # The headers of the intervals, which gaol/gaol_interval.h includes: installed
 # in gaol/core/ as in the sources (GAOL v5)
 set(GAOL_CORE_HEADERS
@@ -1469,10 +1465,6 @@ install(FILES
 install(FILES
   ${GAOL_CORE_HEADERS}
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gaol/core
-)
-install(FILES
-  ${GAOL_MATH_HEADERS}
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gaol/math
 )
 install(FILES
   ${GAOL_PARSER_HEADERS}

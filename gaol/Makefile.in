@@ -123,8 +123,8 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(library_core_include_HEADERS) \
-	$(library_include_HEADERS) $(library_math_include_HEADERS) \
-	$(library_parser_include_HEADERS) $(noinst_HEADERS)
+	$(library_include_HEADERS) $(library_parser_include_HEADERS) \
+	$(noinst_HEADERS)
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = gaol_configuration.h
 CONFIG_CLEAN_FILES =
@@ -158,7 +158,6 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(libdir)" \
 	"$(DESTDIR)$(library_core_includedir)" \
 	"$(DESTDIR)$(library_includedir)" \
-	"$(DESTDIR)$(library_math_includedir)" \
 	"$(DESTDIR)$(library_parser_includedir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
 libgaol_la_DEPENDENCIES = $(top_builddir)/3rd/libgaolcoremath.la
@@ -226,7 +225,6 @@ am__can_run_installinfo = \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
 HEADERS = $(library_core_include_HEADERS) $(library_include_HEADERS) \
-	$(library_math_include_HEADERS) \
 	$(library_parser_include_HEADERS) $(noinst_HEADERS)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP) \
 	gaol_configuration.h.in
@@ -455,12 +453,6 @@ library_core_include_HEADERS = core/gaol_interval_core.h \
 	core/gaol_interval_sse.h
 
 
-# The header of the rounding to nearest, ties to even, which
-# core/gaol_interval_core.h includes: installed in gaol/math/ as in the
-# sources (GAOL v5)
-library_math_includedir = $(includedir)/gaol/math
-library_math_include_HEADERS = math/gaol_roundeven.h
-
 # The headers of the parser of the strings and of the expressions, which a
 # program includes as gaol/parser/gaol_expression.h and
 # gaol/parser/gaol_parser.h: installed in gaol/parser/ as in the sources
@@ -480,7 +472,7 @@ noinst_HEADERS = math/gaol_core_math.h \
 	gaol_init_cleanup.h parser/gaol_interval_parser.h \
 	math/gaol_u128.h \
 	math/gaol_double_op.h float/gaol_intervalf.h float/gaol_interval2f.h \
-	math/gaol_ldexp.h
+	math/gaol_ldexp.h math/gaol_roundeven.h
 
 all: gaol_configuration.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
@@ -691,27 +683,6 @@ uninstall-library_includeHEADERS:
 	@list='$(library_include_HEADERS)'; test -n "$(library_includedir)" || list=; \
 	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
 	dir='$(DESTDIR)$(library_includedir)'; $(am__uninstall_files_from_dir)
-install-library_math_includeHEADERS: $(library_math_include_HEADERS)
-	@$(NORMAL_INSTALL)
-	@list='$(library_math_include_HEADERS)'; test -n "$(library_math_includedir)" || list=; \
-	if test -n "$$list"; then \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(library_math_includedir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(library_math_includedir)" || exit 1; \
-	fi; \
-	for p in $$list; do \
-	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
-	  echo "$$d$$p"; \
-	done | $(am__base_list) | \
-	while read files; do \
-	  echo " $(INSTALL_HEADER) $$files '$(DESTDIR)$(library_math_includedir)'"; \
-	  $(INSTALL_HEADER) $$files "$(DESTDIR)$(library_math_includedir)" || exit $$?; \
-	done
-
-uninstall-library_math_includeHEADERS:
-	@$(NORMAL_UNINSTALL)
-	@list='$(library_math_include_HEADERS)'; test -n "$(library_math_includedir)" || list=; \
-	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
-	dir='$(DESTDIR)$(library_math_includedir)'; $(am__uninstall_files_from_dir)
 install-library_parser_includeHEADERS: $(library_parser_include_HEADERS)
 	@$(NORMAL_INSTALL)
 	@list='$(library_parser_include_HEADERS)'; test -n "$(library_parser_includedir)" || list=; \
@@ -787,7 +758,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(LTLIBRARIES) $(HEADERS) gaol_configuration.h
 installdirs:
-	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(library_core_includedir)" "$(DESTDIR)$(library_includedir)" "$(DESTDIR)$(library_math_includedir)" "$(DESTDIR)$(library_parser_includedir)"; do \
+	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(library_core_includedir)" "$(DESTDIR)$(library_includedir)" "$(DESTDIR)$(library_parser_includedir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -861,7 +832,6 @@ info-am:
 install-data-am: install-data-local \
 	install-library_core_includeHEADERS \
 	install-library_includeHEADERS \
-	install-library_math_includeHEADERS \
 	install-library_parser_includeHEADERS
 
 install-dvi: install-dvi-am
@@ -921,7 +891,6 @@ ps-am:
 uninstall-am: uninstall-libLTLIBRARIES \
 	uninstall-library_core_includeHEADERS \
 	uninstall-library_includeHEADERS \
-	uninstall-library_math_includeHEADERS \
 	uninstall-library_parser_includeHEADERS
 
 .MAKE: all install-am install-strip
@@ -936,7 +905,6 @@ uninstall-am: uninstall-libLTLIBRARIES \
 	install-html-am install-info install-info-am \
 	install-libLTLIBRARIES install-library_core_includeHEADERS \
 	install-library_includeHEADERS \
-	install-library_math_includeHEADERS \
 	install-library_parser_includeHEADERS install-man install-pdf \
 	install-pdf-am install-ps install-ps-am install-strip \
 	installcheck installcheck-am installdirs maintainer-clean \
@@ -945,7 +913,6 @@ uninstall-am: uninstall-libLTLIBRARIES \
 	tags tags-am uninstall uninstall-am uninstall-libLTLIBRARIES \
 	uninstall-library_core_includeHEADERS \
 	uninstall-library_includeHEADERS \
-	uninstall-library_math_includeHEADERS \
 	uninstall-library_parser_includeHEADERS
 
 .PRECIOUS: Makefile

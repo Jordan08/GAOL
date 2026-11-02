@@ -78,6 +78,8 @@
 #include "gaol/gaol_exceptions.h"
 // x * 2^n rounded once, for the integer powers beyond the doubles (GAOL v5)
 #include "gaol/math/gaol_ldexp.h"
+// The nearest integer, halfway values to the even one, from the bits (GAOL v5)
+#include "gaol/math/gaol_roundeven.h"
 
 // The FMA instructions on two doubles at once, for the integer powers, where
 // the build has them (GAOL v5, see pown_products()): SSE2 with FMA on x86
@@ -6460,6 +6462,21 @@ interval nth_root(const interval& I, int q)
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
     return res;
+  }
+
+  /*
+    gaol_roundeven() reads the bits of its argument: it is exact whatever the
+    rounding direction, and this function changes none, as the inline
+    round_ties_to_away() beside it in gaol_interval_core.h. The rounding to
+    the nearest integer being non-decreasing, the bounds of the result are
+    those of I rounded.
+  */
+  interval round_ties_to_even(const interval& I)
+  {
+    if (I.is_empty()) {
+      return interval::emptyset();
+    }
+    return interval(gaol_roundeven(I.left()), gaol_roundeven(I.right()));
   }
 
   /*

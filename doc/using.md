@@ -105,8 +105,8 @@ headers include in the middle of their code (`gaol/core/gaol_interval_fpu.h`,
 `gaol/core/gaol_interval_neon.h`, `gaol/core/gaol_interval_sse.h`) or for Visual C++ only (`gaol_fpu_msvc.h`), and not the
 headers of GAOL's sources (GAOL v5): `gaol/parser/gaol_interval_parser.h`,
 which did not compile when included, `gaol_init_cleanup.h`,
-`gaol/math/gaol_core_math.h` and `gaol/math/gaol_u128.h`; `gaol_parameters.h`,
-which declared nothing,
+`gaol/math/gaol_core_math.h`, `gaol/math/gaol_u128.h` and
+`gaol/math/gaol_roundeven.h`; `gaol_parameters.h`, which declared nothing,
 `gaol_exact.h` with `sysdeps/`, which `dtoa.c` needed, and `gaol_assert.h`,
 whose `GAOL_ASSERT` is `assert()` now, are gone. GAOL's headers compile without a warning under
 `-Wall -Wextra -Wold-style-cast -Wundef`, and put nothing into the global

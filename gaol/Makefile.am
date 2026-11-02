@@ -83,12 +83,6 @@ library_core_include_HEADERS = core/gaol_interval_core.h \
 	core/gaol_interval_fpu.h core/gaol_interval_neon.h \
 	core/gaol_interval_sse.h
 
-# The header of the rounding to nearest, ties to even, which
-# core/gaol_interval_core.h includes: installed in gaol/math/ as in the
-# sources (GAOL v5)
-library_math_includedir = $(includedir)/gaol/math
-library_math_include_HEADERS = math/gaol_roundeven.h
-
 # The headers of the parser of the strings and of the expressions, which a
 # program includes as gaol/parser/gaol_expression.h and
 # gaol/parser/gaol_parser.h: installed in gaol/parser/ as in the sources
@@ -107,7 +101,7 @@ noinst_HEADERS = math/gaol_core_math.h \
 	gaol_init_cleanup.h parser/gaol_interval_parser.h \
 	math/gaol_u128.h \
 	math/gaol_double_op.h float/gaol_intervalf.h float/gaol_interval2f.h \
-	math/gaol_ldexp.h
+	math/gaol_ldexp.h math/gaol_roundeven.h
 
 tags: TAGS
 	etags --language=c++ *.cpp *.h *.c core/*.cpp core/*.h math/*.h

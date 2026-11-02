@@ -37,7 +37,6 @@
 #include <type_traits>
 #include <utility>
 #include "gaol/gaol_config.h"
-#include "gaol/math/gaol_roundeven.h"
 #include "gaol/gaol_port.h"
 #include "gaol/gaol_common.h"
 #include "gaol/gaol_fpu.h"
@@ -2087,6 +2086,8 @@ GAOL_NODISCARD GAOL_INLINE interval integer(const interval &I)
   "regardless of the current rounding direction". std::nearbyint and std::rint
   are the ones that do read it, and are not used; roundTiesToEven, which no
   function of C++ gives, is gaol/math/gaol_roundeven.h, which reads the bits.
+  That header is not installed: round_ties_to_even() is defined in
+  gaol/core/gaol_interval_core.cpp.
   tests/elementary.cpp checks the four in the four rounding directions.
   std::trunc and std::round are called through gaol_detail::bound_trunc() and
   bound_round() (gaol_port.h), which round a subnormal from its bits, as
@@ -2152,14 +2153,12 @@ GAOL_NODISCARD GAOL_INLINE interval trunc(const interval &I)
   /*!
     \brief Returns an enclosure of the elements of I rounded to the nearest
            integer, halfway values to the even one
+
+    Not inline, unlike the other three (GAOL v5): the function that reads the
+    bits (gaol/math/gaol_roundeven.h) is a header of the sources, which is not
+    installed.
   */
-GAOL_NODISCARD GAOL_INLINE interval round_ties_to_even(const interval &I)
-  {
-    if (I.is_empty()) {
-      return interval::emptyset();
-    }
-    return interval(gaol_roundeven(I.left()),gaol_roundeven(I.right()));
-  }
+  GAOL_NODISCARD extern GAOL_PUBLIC interval round_ties_to_even(const interval &I);
 
   /*!
     \brief Returns an enclosure of the elements of I rounded to the nearest

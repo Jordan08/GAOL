@@ -133,13 +133,6 @@ gaol_CORE_HEADERS = [
   'core/gaol_interval_sse.h',
 ]
 
-# The header of the rounding to nearest, ties to even, which
-# core/gaol_interval_core.h includes: installed in gaol/math/ as in the
-# sources (GAOL v5)
-gaol_MATH_HEADERS = [
-  'math/gaol_roundeven.h',
-]
-
 # The headers of the parser of the strings and of the expressions, which a
 # program includes as gaol/parser/gaol_expression.h and
 # gaol/parser/gaol_parser.h: installed in gaol/parser/ as in the sources
@@ -160,6 +153,7 @@ EXTRA_DIST = [
   'parser/gaol_interval_parser.h',
   'math/gaol_u128.h',
   'math/gaol_ldexp.h',
+  'math/gaol_roundeven.h',
   'parser/gaol_interval_lexer.lpp',
   'parser/gaol_interval_parser.ypp',
   'core/gaol_interval_sse.cpp',
@@ -272,5 +266,4 @@ gaol_dep = declare_dependency(
 
 install_headers(gaol_HEADERS, subdir: 'gaol')
 install_headers(gaol_CORE_HEADERS, subdir: 'gaol/core')
-install_headers(gaol_MATH_HEADERS, subdir: 'gaol/math')
 install_headers(gaol_PARSER_HEADERS, subdir: 'gaol/parser')

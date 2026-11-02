@@ -53,7 +53,7 @@ work=$(mktemp -d "${TMPDIR:-/tmp}/gaol-headers.XXXXXX")
 trap 'rm -rf "$work"' EXIT INT TERM
 status=0
 
-for f in "$prefix"/include/gaol/* "$prefix"/include/gaol/core/* "$prefix"/include/gaol/math/* "$prefix"/include/gaol/parser/*; do
+for f in "$prefix"/include/gaol/* "$prefix"/include/gaol/core/* "$prefix"/include/gaol/parser/*; do
   [ -f "$f" ] || continue
   h=${f#"$prefix"/include/gaol/}
   case "$h" in
@@ -72,7 +72,7 @@ done
 
 # The headers of the system the headers of GAOL include
 printf '#include <gaol/gaol>\n#include <gaol/parser/gaol_expression.h>\n#include <gaol/parser/gaol_expr_eval.h>\n' > "$work/gaol.cpp"
-sed -n 's/^[[:space:]]*#[[:space:]]*include[[:space:]]*<\([^>]*\)>.*/\1/p' "$prefix"/include/gaol/*.h "$prefix"/include/gaol/gaol "$prefix"/include/gaol/core/*.h "$prefix"/include/gaol/math/*.h "$prefix"/include/gaol/parser/*.h |
+sed -n 's/^[[:space:]]*#[[:space:]]*include[[:space:]]*<\([^>]*\)>.*/\1/p' "$prefix"/include/gaol/*.h "$prefix"/include/gaol/gaol "$prefix"/include/gaol/core/*.h "$prefix"/include/gaol/parser/*.h |
   grep -v '^gaol/' | sort -u |
   while read -r s; do
     case "$s" in
