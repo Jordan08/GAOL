@@ -33,7 +33,7 @@ Sorted by coverage, least covered first.
 | `gaol/parser/gaol_expression.h` | 168 | 158 | 94.0 | -- |
 | `gaol/core/gaol_interval_core.h` | 179 | 178 | 99.4 | 84.6 % |
 | `gaol/gaol_common.h` | 4 | 4 | 100.0 | -- |
-| `gaol/gaol_double_op.h` | 30 | 30 | 100.0 | -- |
+| `gaol/math/gaol_double_op.h` | 30 | 30 | 100.0 | -- |
 | `gaol/gaol_exceptions.h` | 5 | 5 | 100.0 | 50.0 % |
 | `gaol/gaol_fpu.h` | 15 | 15 | 100.0 | 75.0 % |
 | `gaol/gaol_fpu_fenv.h` | 21 | 21 | 100.0 | 50.0 % |
@@ -43,8 +43,8 @@ Sorted by coverage, least covered first.
 | `gaol/parser/gaol_parser.cpp` | 2 | 2 | 100.0 | -- |
 | `gaol/gaol_port.cpp` | 3 | 3 | 100.0 | -- |
 | `gaol/gaol_port.h` | 2 | 2 | 100.0 | -- |
-| `gaol/gaol_roundeven.h` | 18 | 18 | 100.0 | 100.0 % |
-| `gaol/gaol_u128.h` | 68 | 68 | 100.0 | 100.0 % |
+| `gaol/math/gaol_roundeven.h` | 18 | 18 | 100.0 | 100.0 % |
+| `gaol/math/gaol_u128.h` | 68 | 68 | 100.0 | 100.0 % |
 
 ## The lines the tests never run
 
