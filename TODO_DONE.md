@@ -1,7 +1,7 @@
 # Fait et décidé sur GAOL v5
 
-Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 31 octobre 2026
-(commit `5aef739` de `configure-clean`, aucune pull request ouverte : voir la
+Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 2 novembre 2026
+(commit `1fbde53` de `configure-clean`, la pull request #281 ouverte : voir la
 section 1). Ce fichier fait foi : l'issue #177, qui avait le même
 contenu, n'est plus mise à jour depuis le 28 octobre (voir 7.8).
 
@@ -11,7 +11,7 @@ l'ancien `TODO.md` et dans `TODO_mistral.md`, avec les réponses du mainteneur
 des 22 et 23 octobre. #49 et #142 sont fermées le 24 octobre, `TODO_mistral.md`
 est supprimé. Le reste du travail est dans deux autres registres :
 
-- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PH à PJ ;
+- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PH, PJ et PK ;
 - `TODO_AFTER.md` (issue #178) : ce qui est reporté, après la version, jusqu'à
   une décision ou jusqu'à du matériel.
 
@@ -41,52 +41,56 @@ est supprimé. Le reste du travail est dans deux autres registres :
   : elle s'applique telle quelle.
 - Le classement par rang et par tiers (A à I) de l'ancien #142 n'existe plus :
   un « rang N » cité dans un texte d'avant le 24 octobre désigne cet ancien
-  classement. Ce qui reste à faire est classé en tâches PH à PJ dans `TODO.md`.
+  classement. Ce qui reste à faire est classé en tâches PH, PJ et PK dans
+  `TODO.md`.
 - Ce qui sert encore des rapports des agents est dans
   [todo-notes/synthese.md](todo-notes/synthese.md), leurs originaux au commit
   `16a2f60` (`todo-notes/`, ceux du 30 septembre dans `todo-notes/2026-09-30/`)
   ; la procédure suivie pour chaque point est dans `process.md`.
 
-Sommaire : 1. L'état au 31 octobre ; 2. Les pull requests ; 3. Les décisions,
+Sommaire : 1. L'état au 2 novembre ; 2. Les pull requests ; 3. Les décisions,
 par date ; 4. Les points faits, par lettre ; 5. Les anciens numéros faits ; 6.
 Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 `configure-clean` ; 8. Le ménage fait.
 
-## 1. L'état au 31 octobre 2026
+## 1. L'état au 2 novembre 2026
 
-- **`configure-clean`** est au commit `5aef739` (la fusion de #279, après celles
+- **`configure-clean`** est au commit `1fbde53` (la fusion de #280, après celles
   de #217 le 28 octobre, de #218, #219, #222, #223 et #225 le matin du 29, de
   #220, #224 et #227 à #231 de 18 h 04 à 18 h 19 UTC, de #232, #234 et #235 de
   19 h 55 à 19 h 57, de #236 à 23 h 42, de #237 et #238 le 30 octobre à 11 h 04,
   de #245, #242 et #249 de 19 h 57 à 20 h 07, de #263 à #274 de 20 h 24 à 20 h
   40, de #275 à 21 h 10, de #262, #250, #239 et #248 de 21 h 13 à 21 h 32, de
-  #276 à 21 h 37 et de #279 le 31 octobre à 9 h 32 ; l'import de CORE-MATH
-  `0b2ae6d1` est du 27 octobre, voir 7.6 à 7.10). Les pull requests des
-  corrections vont vers `configure-clean`, qui reste la branche de développement
-  après v5.0.0 ; `MATH-CORE` et `master` (GAOL 4.3.2, plus deux commits de
-  `.claude/CLAUDE.md`) ne bougent qu'à la version (point Y).
-- **Pull requests ouvertes** : aucune. Le mainteneur a fusionné #165 à #167,
-  #169 à #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194, #196 et
-  #197 le 25 octobre, #199, #200 et #201 le 26 octobre, #202 à #205 le 27, #206
-  à #210, #212, #213, #215 et #216 le 28 (#216, hors des points : le tableau des
-  lignes longues sur ARM 64 bits, à la fin de `performance.md`), #217 le 28 à 23
-  h 19 UTC, #218, #219, #222, #223 et #225 le 29 au matin, #220, #224 et #227 à
-  #231 le 29 de 18 h 04 à 18 h 19, #232, #234 et #235 le 29 de 19 h 55 à 19 h
-  57, #236 le 29 à 23 h 42, #237 et #238 le 30 à 11 h 04, #245, #242 et #249 le
-  30 de 19 h 57 à 20 h 07, #263 à #274 (les textes de la version) le 30 de 20 h
-  24 à 20 h 40, #275 à 21 h 10, #262, #250, #239 et #248 de 21 h 13 à 21 h 32 et
-  #276 (macOS 27 à la place de macOS 14) à 21 h 37 ; #279 a été fusionnée le 31
-  à 9 h 32 par la session, sur la demande explicite du mainteneur. #168, #195,
-  #211, #214, #221, #226 et #233 sont fermées sans fusion, et, du 30 et du 31
-  octobre, #240, #241, #243, #244, #246, #247, #251 à #261, #277 et #278 (2.4).
-  Les tâches PA, PB, PC, PD, PE, PF, PG et PI sont faites (PE : #200 et #204
-  pour le 95, #201 pour le 92, #205 pour le 3, #202 pour le 4, #204 pour le 5,
-  #203 pour le 6 ; PF : #206 pour le reste du 108, #209 pour le 109, #210 et
-  #215 pour écrire seulement si ça change, #208 pour l'alignement de la pile 32
-  bits, #207 pour le contrôle de l'assembleur de x86-64 ; PG : la division du
-  chemin AVX-512, le 106 a : #191 à #194 ; puis #217 pour le seuil de la liste,
-  #218 pour `set_rounding()`, #219 pour le noyau de `pown` de NEON, #222 et #224
-  pour `nth_root(x, -2)` et `sqrt()`, #223, #227 et #228 pour le contrôle de
+  #276 à 21 h 37, de #279 le 31 octobre à 9 h 32 et de #280 le 2 novembre à 19 h
+  36 ; l'import de CORE-MATH `0b2ae6d1` est du 27 octobre, voir 7.6 à 7.10). Les
+  pull requests des corrections vont vers `configure-clean`, qui reste la
+  branche de développement après v5.0.0 ; `MATH-CORE` et `master` (GAOL 4.3.2,
+  plus deux commits de `.claude/CLAUDE.md`) ne bougent qu'à la version (point
+  Y).
+- **Pull requests ouvertes** : #281 (les cas des tests d'IBEX et de Codac, hors
+  des points). Le mainteneur a fusionné #165 à #167, #169 à #174, #176 et #180 à
+  #184 les 23 et 24 octobre, et #186 à #194, #196 et #197 le 25 octobre, #199,
+  #200 et #201 le 26 octobre, #202 à #205 le 27, #206 à #210, #212, #213, #215
+  et #216 le 28 (#216, hors des points : le tableau des lignes longues sur ARM
+  64 bits, à la fin de `performance.md`), #217 le 28 à 23 h 19 UTC, #218, #219,
+  #222, #223 et #225 le 29 au matin, #220, #224 et #227 à #231 le 29 de 18 h 04
+  à 18 h 19, #232, #234 et #235 le 29 de 19 h 55 à 19 h 57, #236 le 29 à 23 h
+  42, #237 et #238 le 30 à 11 h 04, #245, #242 et #249 le 30 de 19 h 57 à 20 h
+  07, #263 à #274 (les textes de la version) le 30 de 20 h 24 à 20 h 40, #275 à
+  21 h 10, #262, #250, #239 et #248 de 21 h 13 à 21 h 32 et #276 (macOS 27 à la
+  place de macOS 14) à 21 h 37 ; #279 a été fusionnée le 31 à 9 h 32 par la
+  session, sur la demande explicite du mainteneur ; #280 (les restes de la tâche
+  PI) l'a été le 2 novembre à 19 h 36 par le mainteneur. #168, #195, #211, #214,
+  #221, #226 et #233 sont fermées sans fusion, et, du 30 et du 31 octobre, #240,
+  #241, #243, #244, #246, #247, #251 à #261, #277 et #278 (2.4). Les tâches PA,
+  PB, PC, PD, PE, PF, PG et PI sont faites (PE : #200 et #204 pour le 95, #201
+  pour le 92, #205 pour le 3, #202 pour le 4, #204 pour le 5, #203 pour le 6 ;
+  PF : #206 pour le reste du 108, #209 pour le 109, #210 et #215 pour écrire
+  seulement si ça change, #208 pour l'alignement de la pile 32 bits, #207 pour
+  le contrôle de l'assembleur de x86-64 ; PG : la division du chemin AVX-512, le
+  106 a : #191 à #194 ; puis #217 pour le seuil de la liste, #218 pour
+  `set_rounding()`, #219 pour le noyau de `pown` de NEON, #222 et #224 pour
+  `nth_root(x, -2)` et `sqrt()`, #223, #227 et #228 pour le contrôle de
   l'assembleur avec GCC, #225 pour le quotient NEON, #220 pour la ligne `x / d`,
   #229 pour la grille de `diffarith`, #230, #232, #234 et #235 pour les écarts
   de GCC avec Clang, #231 pour les masques d'exceptions de `pow_rel()`, #236
@@ -95,8 +99,9 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   * y` et `x op= d` de NEON, #239 pour `max` et `min` de NEON raccourcis, #262
   pour le bruit de placement de Visual C++ arm64, #279 pour `x <= y` ; PI : #263
   à #274 pour la synthèse de `doc/differences.md` et du `ChangeLog`, #275 pour
-  les phrases fausses hors de ces deux documents) ; il reste les restes de PI,
-  le tableau de Clang 21 et la CI de macOS 27 : voir `TODO.md`.
+  les phrases fausses hors de ces deux documents, #280 pour leurs restes) ; il
+  reste les signalements à d'autres projets (PH), le tableau de Clang 21 et la
+  publication (PJ) et un `FE_INVALID` à décider (PK) : voir `TODO.md`.
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
   sur tout processeur ARM 64 bits avec tous les compilateurs (GCC, Clang,
   AppleClang, clang-cl, Visual C++, MinGW-w64, MSYS2), SSE2 sur tout processeur
@@ -2021,6 +2026,34 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   essais #246, #247, #277 et #278 sont fermés (2.4) ; fusionnée le 31 octobre à
   9 h 32 UTC, par la session sur cette demande)
 
+- #280 (les restes de la tâche PI, point Y : les « À savoir » de #275 et les « À
+  décider » de #263 à #274, tranchés par le mainteneur le 2 novembre ; aucune
+  ligne de code de la bibliothèque, un seul fichier de build, la liste
+  d'exclusion de CPack) : `HOUSE_RULES.md` (bison 3.8.2), `three-builds.md` et
+  `performance.md` (`GAOL_PREFER_AVX512` est un réglage des développeurs),
+  `using.md`, `differences.md` et le `ChangeLog` (les chiffres armhf viennent du
+  job « Rounding direction preserved, armhf: FPSCR or the C library » de
+  `containers.yml`, médianes de trois exécutions qui concordent à 0,1 ns les 30
+  octobre et 1er novembre : `x + y` 22,5 ns contre 49 et non 48, une ligne de 15
+  additions 318 contre 721 et non 317 contre 706, `midpoint()` 38 contre 63 et
+  non 37 contre 60), la puce des traps de `examples.md` (un programme lancé sous
+  `feenableexcept()` : `log([0,1])` et `[1e308]*10` meurent, `1/[0,1]` et
+  `is_empty()` d'un vide calculé non), l'introduction de `differences.md` (la
+  tête de la première puce, et « GAOL 4 » est la 4.2.2 : les 4.3.0 à 4.3.2
+  avaient déjà `rnd_keep()`, `get_rounding()` et `MEMFREE()`, vérifié par `git
+  grep` sur `5469afd`, `v4.2.3` et `v4.3.0`), trois entrées du `ChangeLog` (les
+  littéraux IEEE 1788-2015, `hexa`, `-DGAOL_EXCEPTIONS_ENABLED=OFF`), le chiffre
+  « 2 à 12 fois plus long » supprimé, `TODO_AFTER.md` et `TODO_DONE.md` (349 Ko)
+  hors de l'archive des sources, deux sorties du manuel en `@outputs` (113
+  exemples lus par `check_examples.py` au lieu de 111, les dents montrées en les
+  rendant fausses) ; relecture indépendante, 8 points dont 4 de fond, corrigés
+  (l'explication fausse de `1/[0,1]`, « Reading a subnormal takes longer » sans
+  point de comparaison, l'exception du zéro de `hexa`, la puce de
+  `three-builds.md`) ; sa CI : Linux, Windows, Linux containers, Manual,
+  Performance et Autotools et meson verts, quatre jobs macOS annulés faute
+  d'exécuteur et relancés ; fusionnée le 2 novembre à 19 h 36 UTC par le
+  mainteneur)
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -3681,6 +3714,35 @@ questions posées en cours de route, avec les pull requests qui les exécutent
   gardées sur GitHub, les worktrees, le conteneur Docker et ses images de
   l'étude, le dossier de travail de la session (8.1).
 
+### 3.12 Le 2 novembre : les restes de la tâche PI
+
+Les décisions du mainteneur aux questions de la tâche PI et de #280, avec la
+pull request qui les exécute (2.3).
+
+- **Les « À décider » de `doc/differences.md` et du `ChangeLog`** (#280) :
+  faits, l'introduction de `differences.md` (la tête de la première puce, et le
+  sens de « GAOL 4 ») et trois lignes du `ChangeLog` (le littéral IEEE
+  1788-2015, `-DGAOL_EXCEPTIONS_ENABLED=OFF` cité dans les deux documents, la
+  mantisse hexadécimale de `hexa`) ; **pas faits**, par choix : une puce de
+  `differences.md` pour le paragraphe du `ChangeLog` sur `width()` et `bisect()`
+  avec `GAOL_PRESERVE_ROUNDING`, et la note facultative sur un x sous 2^-1020
+  (1,3 à 2,2 fois plus long).
+- **« 2 à 12 fois plus long »** (la lecture d'un sous-normal) : le chiffre est
+  supprimé des deux documents ; il comparait à l'état d'avant #182, non à GAOL
+  4, qu'aucune machine n'a construit pour le mesurer.
+- **L'archive des sources** : `TODO_AFTER.md` et `TODO_DONE.md` hors de
+  l'archive de CPack, comme `TODO.md`.
+- **Le manuel** : les sorties des deux programmes complets (`z` et les formats)
+  passent en lignes `@outputs`, que `check_examples.py` lit ; les deux blocs
+  `onscreen` qui restent (la sortie hexadécimale de `0.1` et le message `#error`
+  de `-ffast-math`) restent, vérifiés à la main le 2 novembre.
+- **`HOUSE_RULES.md`**, la ligne « Tools installed » (machine de fin septembre,
+  seul bison à jour) : la remplacer par un renvoi à `process.md` §6.1 ; à faire
+  dans une petite pull request.
+- **La CI de macOS 27** : le mainteneur a mis le job arm64 sur l'étiquette
+  `xcode-27` (`57650a4`, le 1er novembre) et retiré celui de x86_64 sous
+  Rosetta (« not available now ») ; le job passe le 2 novembre.
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -3865,8 +3927,7 @@ leur partie faite.
 - **AJ, AK, W, X.** Rien n'est fait ; voir `TODO_AFTER.md`.
 - **Y.** La synthèse des textes de la version (la tâche PI) est faite par #263 à
   #274, avec #275 pour les phrases hors de `doc/differences.md` et du
-  `ChangeLog` ; il reste ses restes (`TODO.md`, PI) et la publication (tâche
-  PJ).
+  `ChangeLog` et #280 pour leurs restes ; il reste la publication (tâche PJ).
 
 ## 5. Les anciens numéros faits
 
@@ -4872,6 +4933,28 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
   coureurs n'ont pas tous le même processeur) : un gain sur GCC et x86 peut
   n'être que la sortie d'un état de placement lent.
 
+### 7.11 Le 2 novembre (après #280)
+
+- Le mainteneur a fusionné #280 le 2 novembre à 19 h 36 UTC : `configure-clean`
+  est au commit `1fbde53`. La pull request #281 (les cas des tests d'IBEX et de
+  Codac, hors des points) est ouverte.
+- Les échecs de CI de la période : des jobs macOS (`macOS 26 universal`, `macOS
+  26 arm64 AppleClang`, `macOS 15 universal`, `macOS 26 Xcode generator`, `macOS
+  26 arm64 LLVM Clang Debug ASan+UBSan`, `Meson, macOS 15 arm64` et d'autres)
+  sont annulés avec « The job was not acquired by Runner of type hosted even
+  after multiple attempts » (GitHub : « capacity constraints »), sans exécuter
+  d'étape, sur #280, #281 et le commit de fusion ; `gh api -X POST
+  repos/Jordan08/GAOL/actions/runs/<id>/rerun-failed-jobs` les relance.
+- Les pièges : `gh` prend par défaut le dépôt `goualard-f/GAOL` (le remote
+  `upstream`) : toujours `--repo Jordan08/GAOL` ou `gh api
+  repos/Jordan08/GAOL/...` (sans lui, `gh run list` répond 404) ; sur une
+  machine sans automake (Ubuntu 24.04), le classifieur de permissions refuse de
+  lancer le `configure` d'un tarball téléchargé, même avec son sha256 et sa
+  signature GPG vérifiés ; les journaux d'un job de CI donnent les mesures d'un
+  processeur qu'on n'a pas (armhf) ; `git archive HEAD` d'une branche et un
+  `cmake --build --target package_source` montrent ce que l'archive des sources
+  contient.
+
 ## 8. Le ménage fait
 
 ### 8.1 Branches, lignes de crédit, outillage
@@ -5003,6 +5086,8 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
   supprimée ; puis les rapports relus, leurs dernières questions posées
   (décisions en commentaire), et les rapports retirés de l'arbre, ce qui en sert
   encore étant dans `todo-notes/synthese.md` (dcd3b11, 065191e), le 4 octobre.
+- [x] Celle de #280 (`todo-y-restes-textes`), sur GitHub (supprimée par le
+  mainteneur à la fusion) et en local, le 2 novembre.
 
 ### 8.2 Les branches inachevées
 
