@@ -53,19 +53,19 @@ above to run them. The patches below that name a file of `binary80` or
 ### How GAOL builds them
 
 The three builds compile the thirty-eight sources into `libgaol` and include
-`gaol/core_math_port.h` first in each of them, **by the compiler rather than by
-the source** (`-include` with GCC and Clang, `/FI` with Visual C++): the sources
-never name that header, so that importing a newer CORE-MATH stays a copy. That
-header gives them the names `gaol_cr_<f>()`, so that GAOL does not clash with a
-program or a C library holding CORE-MATH's functions too, the 128-bit integer
-of `gaol/math/gaol_u128.h`, what Visual C++ has not of GCC (`__builtin_clzll`,
-`__builtin_roundeven`, `__attribute__`...), the `roundeven()` the math library
-of Windows has not (`gaol/math/gaol_roundeven.h`, which GAOL's own sources use too),
-given as well for `__builtin_roundeven()` to the compilers that have no such
-builtin, GCC before 10 among them: `sin.c` called it without the guard of the
-other sources from its rewrite (upstream commit `6b84457`) to commit
-`19e85418` (5 October 2026), and GCC 9.4 did not link it; `sin.c` and `cos.c`
-have their own `roundeven_finite()` now,
+`gaol/math/gaol_core_math_port.h` first in each of them, **by the compiler
+rather than by the source** (`-include` with GCC and Clang, `/FI` with Visual
+C++): the sources never name that header, so that importing a newer CORE-MATH
+stays a copy. That header gives them the names `gaol_cr_<f>()`, so that GAOL
+does not clash with a program or a C library holding CORE-MATH's functions too,
+the 128-bit integer of `gaol/math/gaol_u128.h`, what Visual C++ has not of GCC
+(`__builtin_clzll`, `__builtin_roundeven`, `__attribute__`...), the
+`roundeven()` the math library of Windows has not (`gaol/math/gaol_roundeven.h`,
+which GAOL's own sources use too), given as well for `__builtin_roundeven()` to
+the compilers that have no such builtin, GCC before 10 among them: `sin.c`
+called it without the guard of the other sources from its rewrite (upstream
+commit `6b84457`) to commit `19e85418` (5 October 2026), and GCC 9.4 did not
+link it; `sin.c` and `cos.c` have their own `roundeven_finite()` now,
 and, on a 32-bit x86 Windows, `fegetexceptflag()` and `fesetexceptflag()`
 written on MXCSR: `cbrt`, `pow`, `atan2` and `hypot` keep the exception flags
 around their work with them, and the ones of mingw-w64 clear the mask bits of
@@ -437,14 +437,14 @@ of `rsqrt.c` from commit `0d8b885a` on, and those of the [patches
 below](#changes-to-propose-upstream) once upstream takes them. Patch 4 is made
 from commit `19e85418` (5 October 2026) on: `sin.c` then guards its
 `__builtin_roundeven()` as the other sources do, and no longer needs the
-definition `gaol/core_math_port.h` gives the builtin for GCC before 10, which
-can stay; the one of Windows is still needed.
+definition `gaol/math/gaol_core_math_port.h` gives the builtin for GCC before
+10, which can stay; the one of Windows is still needed.
 
 ## Changes to propose upstream
 
 Seven of the [changes above](#what-differs-from-upstream) are fixes rather than
 adaptations to GAOL (2 to 7 and 9; upstream has made the ones of items 3 and 5
-since), and `gaol/core_math_port.h` makes up for an eighth defect, the
+since), and `gaol/math/gaol_core_math_port.h` makes up for an eighth defect, the
 `__builtin_roundeven()` of `sin.c`, which upstream has fixed since too (see
 [How GAOL builds them](#how-gaol-builds-them)). They are written below as
 patches against
@@ -1107,8 +1107,8 @@ builtin was at hand.
 
 **Status.** Fixed in master since, by commit `19e85418` (5 October 2026), with
 this very guard: not to send. GAOL's copy has it since the import of 27 October
-2026 (the new `cos.c` has it too), and `gaol/core_math_port.h` still gives the
-other sources a `__builtin_roundeven()` where the compiler has none.
+2026 (the new `cos.c` has it too), and `gaol/math/gaol_core_math_port.h` still
+gives the other sources a `__builtin_roundeven()` where the compiler has none.
 
 #### 5. The rounding direction of `pow`
 

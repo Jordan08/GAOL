@@ -158,10 +158,10 @@ Windows: with the two differing, pow() rounded as if to nearest while GAOL
 computed upward, and gave bounds one double apart from the ones it gives
 when the two agree (GAOL v5, found by tests/rounding_direction.cpp in
 the continuous integration, with Visual C++ for 32-bit x86). They read MXCSR
-now, the register of their doubles (gaol/core_math_port.h), but the other
-things the x87 unit computes (the square root and the fma() of a C library,
-a long double) still follow its direction, so that the direction of both
-units is read directly (GAOL_RND_X86_DIRECT below), which fegetround() did
+now, the register of their doubles (gaol/math/gaol_core_math_port.h), but the
+other things the x87 unit computes (the square root and the fma() of a C
+library, a long double) still follow its direction, so that the direction of
+both units is read directly (GAOL_RND_X86_DIRECT below), which fegetround() did
 through a call that cost about 80 ns with Visual C++, and the one that is not
 upward is set. */
 #if defined(__i386__) || defined(_M_IX86)
@@ -374,14 +374,14 @@ defines __AVX2__, and which GAOL_FMA gives it: GAOL v5, point 109 (AI) of
 TODO.md), GAOL_RND_ENTER() and GAOL_RND_LEAVE() are GAOL_RND_ENTER_SSE()
 and GAOL_RND_LEAVE_SSE() with GAOL_PRESERVE_ROUNDING (GAOL v5, point ZZ of
 TODO.md): every double GAOL computes is an SSE one there, the elementary
-functions of CORE-MATH read the direction from MXCSR (gaol/core_math_port.h),
-and no code of GAOL uses the x87 unit, a long double or a function of the C
-library that the x87 unit would round (the fma() of mingw-w64 is an
-instruction with __FMA__, ldexp() is gaol_ldexp(), and the square root is a
-bound whatever its rounding; Visual C++ for x64 has no x87 code at all, its
-long double is a double): the direction of the x87 unit changes no bound, and
-is left as the program had it. The operations then read MXCSR once at their
-start, write it only if it is not upward with the modes that flush the
+functions of CORE-MATH read the direction from MXCSR
+(gaol/math/gaol_core_math_port.h), and no code of GAOL uses the x87 unit, a long
+double or a function of the C library that the x87 unit would round (the fma()
+of mingw-w64 is an instruction with __FMA__, ldexp() is gaol_ldexp(), and the
+square root is a bound whatever its rounding; Visual C++ for x64 has no x87 code
+at all, its long double is a double): the direction of the x87 unit changes no
+bound, and is left as the program had it. The operations then read MXCSR once at
+their start, write it only if it is not upward with the modes that flush the
 subnormals clear, and write back at their end what they found only if it was
 not (see gaol_core::sse_enter_upward() and sse_leave(); GAOL v5, point 108
 (AI) of TODO.md), where the macros
@@ -896,7 +896,7 @@ namespace gaol_core {
   sets the direction of both units before the C library reads or writes a
   number (round_nearest()), and the sources of CORE-MATH, which round some of
   their results in the direction fegetround() gives, read it from MXCSR there
-  (gaol/core_math_port.h).
+  (gaol/math/gaol_core_math_port.h).
   
   Where GAOL can clear the modes that flush the subnormals to zero
   (GAOL_RND_FLUSH_BITS: x86, and ARM with GCC and Clang), the probe is
@@ -980,8 +980,8 @@ namespace gaol_core {
     have their own rounding direction, and both have to be upward: GAOL
     computes its bounds with SSE, and what the x87 unit computes, the square
     root and the fma() of a C library, follows its direction (the elementary
-    functions of CORE-MATH read MXCSR, gaol/core_math_port.h; they read the
-    x87 unit with the fegetround() of a C library before GAOL v5, point
+    functions of CORE-MATH read MXCSR, gaol/math/gaol_core_math_port.h; they
+    read the x87 unit with the fegetround() of a C library before GAOL v5, point
     AI.108). Either being elsewhere, it is set upward (GAOL v5, found by
     tests/rounding_direction.cpp in the continuous integration, which leaves
     the two differing on purpose). Not the probe above, which shows the

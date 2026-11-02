@@ -707,11 +707,11 @@ message(STATUS "Link flags of the code using GAOL: ${GAOL_LINK_FLAGS_STRING}")
 # the rounding direction (see gaol/math/gaol_double_op.h), and the bounds are
 # the same on every architecture and with every compiler.
 #
-# Each source is compiled with gaol/core_math_port.h included first, by the
-# compiler rather than by the source (-include, /FI), so that importing a newer
-# CORE-MATH stays a plain copy: that header gives them the names GAOL uses, the
-# 128-bit integer of gaol/math/gaol_u128.h where the compiler has none (Visual
-# C++, and GCC for a 32-bit target), and what Visual C++ has not of GCC.
+# Each source is compiled with gaol/math/gaol_core_math_port.h included first,
+# by the compiler rather than by the source (-include, /FI), so that importing a
+# newer CORE-MATH stays a plain copy: that header gives them the names GAOL
+# uses, the 128-bit integer of gaol/math/gaol_u128.h where the compiler has none
+# (Visual C++, and GCC for a 32-bit target), and what Visual C++ has not of GCC.
 
 set(GAOL_CORE_MATH_FUNCTIONS
   exp log pow sin cos tan asin acos atan atan2
@@ -738,9 +738,9 @@ foreach(_f IN LISTS GAOL_CORE_MATH_FUNCTIONS)
 endforeach()
 
 if(MSVC)
-  set(GAOL_CORE_MATH_FLAGS "/FI${CMAKE_CURRENT_SOURCE_DIR}/gaol/core_math_port.h")
+  set(GAOL_CORE_MATH_FLAGS "/FI${CMAKE_CURRENT_SOURCE_DIR}/gaol/math/gaol_core_math_port.h")
 else()
-  set(GAOL_CORE_MATH_FLAGS "-include;${CMAKE_CURRENT_SOURCE_DIR}/gaol/core_math_port.h")
+  set(GAOL_CORE_MATH_FLAGS "-include;${CMAKE_CURRENT_SOURCE_DIR}/gaol/math/gaol_core_math_port.h")
   # CORE-MATH asks for its computations to be rounded to double precision
   # (FLT_EVAL_METHOD = 0, see 3rd/math-core/README.md). GAOL gets that on x86
   # by computing with SSE2, which gaol/gaol_config.h refuses to do without, and
@@ -1258,7 +1258,8 @@ add_library(gaol_core_math OBJECT ${GAOL_CORE_MATH_SOURCES})
 set_target_properties(gaol_core_math PROPERTIES
   INTERPROCEDURAL_OPTIMIZATION OFF
   POSITION_INDEPENDENT_CODE ON)
-# gaol/core_math_port.h included first in each of them, by the compiler
+# gaol/math/gaol_core_math_port.h included first in each of them, by the
+# compiler
 target_compile_options(gaol_core_math PRIVATE ${GAOL_CORE_MATH_FLAGS} ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS} ${GAOL_LIBRARY_FLAGS})
 target_include_directories(gaol_core_math PRIVATE
   "${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -1430,12 +1431,11 @@ install(TARGETS gaol EXPORT gaolTargets
 # gaol/meson.build install the same ones. Not the headers of the sources of
 # GAOL only (GAOL v5): gaol/parser/gaol_interval_parser.h, which did not
 # compile when included, the parts of the library (gaol_init_cleanup.h,
-# math/gaol_core_math.h, math/gaol_u128.h),
-# what CORE-MATH's sources need to compile within GAOL (core_math_port.h,
-# core_math_log_dint.h, math/gaol_ldexp.h), the bounds at doubles, *_dn() and
-# *_up(), which are not part of GAOL's interface (math/gaol_double_op.h), and
-# the intervals of floats, which only a developer of GAOL compiles (see
-# gaol/gaol_config.h)
+# math/gaol_core_math.h, math/gaol_u128.h), what CORE-MATH's sources need to
+# compile within GAOL (math/gaol_core_math_port.h, core_math_log_dint.h,
+# math/gaol_ldexp.h), the bounds at doubles, *_dn() and *_up(), which are not
+# part of GAOL's interface (math/gaol_double_op.h), and the intervals of
+# floats, which only a developer of GAOL compiles (see gaol/gaol_config.h)
 set(GAOL_HEADERS
   gaol/gaol.h gaol/gaol_common.h
   gaol/gaol_config.h gaol/gaol_exceptions.h

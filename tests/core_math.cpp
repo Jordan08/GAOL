@@ -310,13 +310,13 @@ namespace
 
   /*
     The ldexp() CORE-MATH rounds the subnormal values of erfc with (GAOL v5):
-    gaol_ldexp() of gaol/math/gaol_ldexp.h, which gaol/core_math_port.h gives it
-    with every compiler, the ldexp() of the C library not rounding in the
-    direction in effect everywhere (with the UCRT of Windows,
-    erfc(0x1.a8b12fc6e4892p+4) was the double below its value, rounding
-    upward, and the one of macOS missed up to 22 of these checks). It has to
-    give x * 2^n rounded once in the four directions, computed apart from the
-    bits of x: at the halfway points between two subnormals,
+    gaol_ldexp() of gaol/math/gaol_ldexp.h, which
+    gaol/math/gaol_core_math_port.h gives it with every compiler, the ldexp() of
+    the C library not rounding in the direction in effect everywhere (with the
+    UCRT of Windows, erfc(0x1.a8b12fc6e4892p+4) was the double below its value,
+    rounding upward, and the one of macOS missed up to 22 of these checks). It
+    has to give x * 2^n rounded once in the four directions, computed apart from
+    the bits of x: at the halfway points between two subnormals,
     next to the least subnormal and to the least normal double, where a
     result first rounded and then scaled is rounded twice, across the whole
     range of the exponents, beyond the largest double, and at random pairs.
@@ -390,17 +390,17 @@ namespace
   /*
     Exact results of CORE-MATH's hypot and pow raise no exception flag, in the
     four rounding directions (GAOL v5). Both keep the flags around their work
-    with fegetexceptflag() and fesetexceptflag(), which gaol/core_math_port.h
-    writes on MXCSR on a 32-bit x86 Windows: taking the FE_* values of the
-    UCRT and of mingw-w64 from 13 on for the bits of MXCSR, it restored other
-    flags than these, and left inexact raised after hypot(3, 4) (simulated on
-    Linux with the values of the UCRT). On x86 the flags read are those of
-    MXCSR, where the doubles are computed, not those of the x87 unit, which a
-    C library may use. CORE-MATH restores the flags only where its own test
-    finds the result exact, which it does not everywhere: cbrt(27) left
-    inexact raised with MinGW-w64 for 32-bit x86, and pow(2, -1074) on 32-bit
-    ARM: CORE-MATH rounds them right, but does not promise to raise no flag
-    for them, and they are not among the cases.
+    with fegetexceptflag() and fesetexceptflag(), which
+    gaol/math/gaol_core_math_port.h writes on MXCSR on a 32-bit x86 Windows:
+    taking the FE_* values of the UCRT and of mingw-w64 from 13 on for the bits
+    of MXCSR, it restored other flags than these, and left inexact raised after
+    hypot(3, 4) (simulated on Linux with the values of the UCRT). On x86 the
+    flags read are those of MXCSR, where the doubles are computed, not those of
+    the x87 unit, which a C library may use. CORE-MATH restores the flags only
+    where its own test finds the result exact, which it does not everywhere:
+    cbrt(27) left inexact raised with MinGW-w64 for 32-bit x86, and pow(2,
+    -1074) on 32-bit ARM: CORE-MATH rounds them right, but does not promise to
+    raise no flag for them, and they are not among the cases.
   */
   void exact_results_raise_no_flag()
   {
@@ -968,8 +968,8 @@ namespace
      on a 32-bit x86 Windows, with Visual C++ and with MinGW-w64 at -O0, the
      square root it takes for y = 0.5 was rounded to nearest in every
      direction, and GAOL's upper bound of pow([x], [0.5]) was below the root
-     at subnormal x (see gaol/core_math_port.h). A reference taken from
-     CORE-MATH alone took the first and the last for faults of the lower
+     at subnormal x (see gaol/math/gaol_core_math_port.h). A reference taken
+     from CORE-MATH alone took the first and the last for faults of the lower
      bound, or checked no bound.
 
      The box [x] x [y] is degenerate, and pow takes pown for an integer y: the
@@ -1642,14 +1642,14 @@ namespace
      rounded by the SSE instructions, and what it rounds by itself follows the
      direction of MXCSR too, whatever fegetround() of the C library reads, which
      is the control word of the x87 unit with glibc and gives -1 with Visual C++
-     for x86 when the two differ (gaol/core_math_port.h). The operations of GAOL
-     set both units before they call CORE-MATH, which hides the difference, so
-     the functions are called here. The powers have a fractional part below one
-     half (the roundings to nearest and downward are lo), the three rows of
-     subnormal_powers[] of tests/rounding_direction.cpp, in multiples of
-     2^-1074 computed with mpmath; the cube root of 0x1.3a9ccd7f022dbp+0 is less
-     than 10^-15 ulp above a double (see cbrt_hard_cases()), below or above
-     being the double on each side of it. */
+     for x86 when the two differ (gaol/math/gaol_core_math_port.h). The
+     operations of GAOL set both units before they call CORE-MATH, which hides
+     the difference, so the functions are called here. The powers have a
+     fractional part below one half (the roundings to nearest and downward are
+     lo), the three rows of subnormal_powers[] of tests/rounding_direction.cpp,
+     in multiples of 2^-1074 computed with mpmath; the cube root of
+     0x1.3a9ccd7f022dbp+0 is less than 10^-15 ulp above a double (see
+     cbrt_hard_cases()), below or above being the double on each side of it. */
   void core_math_follows_mxcsr()
   {
     struct Direction { const char *name; int fenv; unsigned sse; };

@@ -917,8 +917,8 @@ point Q), which `numbers` checks there too.
   2<sup>−1075</sup> to about 2<sup>−947</sup>, and on a 32-bit x86 Windows,
   with Visual C++ and with MinGW-w64 at -O0, it rounded its square roots to
   nearest, which put GAOL's upper bound of `pow([x], [0.5])` below the root at
-  subnormal x (see `3rd/README.md` and `gaol/core_math_port.h`). Among the
-  pairs is 8 to the double nearest 1/3, whose product 3y rounds to 1 without
+  subnormal x (see `3rd/README.md` and `gaol/math/gaol_core_math_port.h`). Among
+  the pairs is 8 to the double nearest 1/3, whose product 3y rounds to 1 without
   being 1. With flush-to-zero set (x86), the lower bound of
   `pow([0.5], [2^-1074])` has to stay below 1, the product 1024y
   being flushed to 0. The functions of Table 10.5 GAOL provides
@@ -975,11 +975,11 @@ point Q), which `numbers` checks there too.
   (GAOL v5). Seven exact results of `hypot` and `pow` (`hypot(3, 4)`,
   `pow(9, 0.5)`, `pow(1.125, 5)`...) have to raise no exception flag in the
   four directions, read in MXCSR on x86: on a 32-bit x86 Windows the
-  `fesetexceptflag()` of `gaol/core_math_port.h` took the `FE_*` values of
-  the UCRT for bits of MXCSR, and left inexact raised (GAOL v5); `cbrt(27)`
-  with MinGW-w64 for 32-bit x86, and `pow(2, -1074)` on 32-bit ARM, leave it
-  raised whatever the port, CORE-MATH not finding them exact there. `cbrt`
-  is checked in the four rounding directions, and
+  `fesetexceptflag()` of `gaol/math/gaol_core_math_port.h` took the `FE_*`
+  values of the UCRT for bits of MXCSR, and left inexact raised (GAOL v5);
+  `cbrt(27)` with MinGW-w64 for 32-bit x86, and `pow(2, -1074)` on 32-bit ARM,
+  leave it raised whatever the port, CORE-MATH not finding them exact there.
+  `cbrt` is checked in the four rounding directions, and
   `nth_root(x, 3)` and `rootn` have to be the tightest enclosures, at the
   seven arguments `cbrt.c` rounds apart (its `wlist`), scaled by powers of 8
   and on both signs, against mpmath: with mingw-w64 on x86-64, its

@@ -13,7 +13,8 @@
  *
  * Their sources are those of CORE-MATH, in 3rd/math-core/src/binary64,
  * compiled into GAOL's library under the names below, the three builds
- * including gaol/core_math_port.h in each of them (`-include`, `/FI`).
+ * including gaol/math/gaol_core_math_port.h in each of them (`-include`,
+ * `/FI`).
  *
  * Copyright (c) 2026 ENSTA, France
  * Modified by Jordan NININ (GAOL v5)

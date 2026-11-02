@@ -17,8 +17,8 @@ configure_file(
 
 # The elementary functions of CORE-MATH (3rd/math-core), compiled into libgaol
 # itself: nothing is linked along with GAOL. Each source is compiled with
-# gaol/core_math_port.h included first, by the compiler rather than by the
-# source, so that importing a newer CORE-MATH stays a plain copy.
+# gaol/math/gaol_core_math_port.h included first, by the compiler rather than
+# by the source, so that importing a newer CORE-MATH stays a plain copy.
 core_math_functions = [
   'exp', 'log', 'pow', 'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'atan2',
   'sinh', 'cosh', 'tanh', 'asinh', 'acosh', 'atanh',
@@ -41,7 +41,7 @@ core_math_sources = []
 foreach f : core_math_functions
   core_math_sources += [core_math_root + f + '/' + f + '.c']
 endforeach
-core_math_port = meson.current_source_dir() + '/core_math_port.h'
+core_math_port = meson.current_source_dir() + '/math/gaol_core_math_port.h'
 if msvc
   core_math_args = ['/FI' + core_math_port]
   # What CORE-MATH writes on purpose, which /W4 of Visual C++ reports and

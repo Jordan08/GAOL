@@ -400,7 +400,8 @@ jobs:
       - name: Tools
         run: |
           # GCC 9 has no __builtin_roundeven(), which CORE-MATH's sin.c calls
-          # unguarded: gaol/core_math_port.h gives it gaol_roundeven()
+          # unguarded: gaol/math/gaol_core_math_port.h gives it
+          # gaol_roundeven()
           sudo apt-get update -q
           sudo apt-get install -y -q gcc-9 g++-9 cmake make
           g++-9 --version

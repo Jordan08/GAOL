@@ -21,15 +21,15 @@
  *   arguments (exp, exp2, expm1, log1p, sin, erfc, pow...: the integer nearest
  *   to x/ln 2, to x/pi...). GCC and Clang turn it into an instruction where
  *   the processor has one, and into a call to roundeven() of the math library
- *   otherwise, which that of Windows has not: gaol/core_math_port.h, which the
- *   three builds give to those C sources, replaces the builtin with this
- *   function there, and for the old compilers that have no such builtin.
+ *   otherwise, which that of Windows has not: gaol/math/gaol_core_math_port.h,
+ *   which the three builds give to those C sources, replaces the builtin with
+ *   this function there, and for the old compilers that have no such builtin.
  *
  * This header is C, and is included both by GAOL's C++ sources and by
- * gaol/core_math_port.h, which is why it has C comments only, and the macros
- * below for what C and C++ do not write the same way. tests/elementary.cpp
- * checks round_ties_to_even() in the four rounding directions, on halfway
- * values, whole numbers and the doubles next to them.
+ * gaol/math/gaol_core_math_port.h, which is why it has C comments only, and
+ * the macros below for what C and C++ do not write the same way.
+ * tests/elementary.cpp checks round_ties_to_even() in the four rounding
+ * directions, on halfway values, whole numbers and the doubles next to them.
  *
  * Copyright (c) 2026 ENSTA, France
  * Modified by Jordan NININ (GAOL v5)
