@@ -5,12 +5,12 @@
 # Each test program of GAOL v5 compares the bounds GAOL computes with the
 # exact results (see gaol_tests.h); the unit tests of GAOL 4, which were in
 # check/ and ran with CppUnit, check the results of the operations on chosen
-# intervals (see unit_tests.h); codac_ibex runs the unit tests of IBEX and of
-# Codac on their intervals, with their expected values. They are compiled as
-# any code using GAOL, with
-# the flags gaol::gaol carries, and in C++17 for the hexadecimal floating
-# literals of the tests, such as 0x1p-1060: those of gaol_tests.h, which all
-# but u128.cpp include, of the *_values.h, and of several of the programs.
+# intervals (see unit_tests.h); test_ibex_codac runs the cases of the unit tests
+# of IBEX and of Codac on their intervals, against the exact results. They are
+# compiled as any code using GAOL, with the flags gaol::gaol carries, and in
+# C++17 for the hexadecimal floating literals of the tests, such as 0x1p-1060:
+# those of gaol_tests.h, which all but u128.cpp include, of the *_values.h, and
+# of several of the programs.
 # WITH_TESTS builds them (CMakeLists.txt); make test and make check run them,
 # with the label unit.
 #
@@ -60,9 +60,9 @@ set(GAOL_TESTS
   # flushing the subnormals to zero that it sets, unless gaol::gaol keeps it
   # out with -mno-daz-ftz (GAOL v5): see below
   fast_math_link
-  # The unit tests that IBEX and Codac run on their intervals, which are GAOL's,
-  # as they are (GAOL v5)
-  codac_ibex
+  # The cases of the unit tests that IBEX and Codac run on their intervals,
+  # checked against the exact results (GAOL v5)
+  test_ibex_codac
   # The unit tests of GAOL 4 (check/), with the checks of unit_tests.h rather
   # than CppUnit (GAOL v5); arithmetic is arithmetic_operators, the name
   # arithmetic being taken
