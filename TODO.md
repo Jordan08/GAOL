@@ -1,31 +1,30 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `5aef739` de `configure-clean` (la
-fusion de #279), le 31 octobre 2026, en tâches PH à PK (PA à PG sont faites, PI
-n'a plus que ses restes : voir `TODO_DONE.md`). Ce fichier et l'issue #179 ont
-le même contenu. Ce qui est fait et décidé est dans `TODO_DONE.md` (l'issue #177
-n'est plus mise à jour), ce qui est reporté dans `TODO_AFTER.md` (issue #178).
-Les anciennes issues #49 et #142 sont fermées, et `TODO_mistral.md` est
-supprimé.
+Ce qui reste à faire sur GAOL v5 au commit `1fbde53` de `configure-clean` (la
+fusion de #280), le 2 novembre 2026, en tâches PH, PJ et PK (PA à PG et PI sont
+faites : voir `TODO_DONE.md`). Ce fichier et l'issue #179 ont le même contenu.
+Ce qui est fait et décidé est dans `TODO_DONE.md` (l'issue #177 n'est plus mise
+à jour), ce qui est reporté dans `TODO_AFTER.md` (issue #178). Les anciennes
+issues #49 et #142 sont fermées, et `TODO_mistral.md` est supprimé.
 
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à envoyer à un autre projet ni à publier sans l'accord
-du mainteneur. Aucune pull request n'est ouverte.
+du mainteneur. La pull request #281 est ouverte (les cas des tests d'IBEX et
+de Codac, hors des points).
 
 ## Comment lire ce fichier
 
-- Une tâche (PH à PK) regroupe des points qui touchent le même code, les mêmes
-  fichiers ou les mêmes builds de validation, pour les traiter dans la même
-  session ; chaque point reste une pull request à part (process.md : un point,
-  une branche), sauf quand la tâche dit qu'une seule suffit. Les tâches sont
-  dans l'ordre conseillé. Critères : la sûreté des bornes d'abord ; ce qui coûte
-  plus cher en attendant (une décision qui bloque) ; ce qui tue un programme ou
-  rompt une promesse écrite avant ce qui ne fait que ralentir ; le petit et sans
-  dépendance avant le gros ; la version (PI, PJ) en dernier.
-- PH et PK ne dépendent d'aucune autre tâche, sauf quand le texte le dit (PI
-  a décrit le travail de PA à PG, PJ suit PI et les études de PG, qui sont
-  faites).
+- Une tâche (PH, PJ, PK) regroupe des points qui touchent le même code, les
+  mêmes fichiers ou les mêmes builds de validation, pour les traiter dans la
+  même session ; chaque point reste une pull request à part (process.md : un
+  point, une branche), sauf quand la tâche dit qu'une seule suffit. Les tâches
+  sont dans l'ordre conseillé. Critères : la sûreté des bornes d'abord ; ce qui
+  coûte plus cher en attendant (une décision qui bloque) ; ce qui tue un
+  programme ou rompt une promesse écrite avant ce qui ne fait que ralentir ; le
+  petit et sans dépendance avant le gros ; la version (PJ) en dernier.
+- PH et PK ne dépendent d'aucune autre tâche, sauf quand le texte le dit (PJ
+  suit PI et les études de PG, qui sont faites).
 - Chaque point garde sa lettre et son ancien numéro, par exemple « 79 (AB) » :
   ce sont ceux des pull requests, des issues, des commentaires du code et de
   `TODO_DONE.md` (section 4 pour les lettres, section 5 pour les numéros faits).
@@ -43,7 +42,6 @@ du mainteneur. Aucune pull request n'est ouverte.
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
 | PH | Les signalements à d'autres projets | #125 à #138, #175 | accord |
-| PI | Les restes des textes de la version | Y | S |
 | PJ | Les mesures et la publication de v5.0.0 | 32 à 34, 71, manuel, CI | M |
 | PK | Des `FE_INVALID` avec Clang et le FPU | un point | à décider |
 
@@ -126,42 +124,6 @@ probablement rien.
 5. **#128 Frédéric Goualard** : l'annonce de v5.0.0, après l'étiquette (tâche
    PJ, point 71) ; l'issue est fermée depuis le 18 octobre et le brouillon est
    dans Gmail.
-
-## PI. Les restes des textes de la version (Y) [S]
-
-La pull request de synthèse est faite (*décidé le 30 octobre* : douze pull
-requests empilées, une par thème, #263 à #274, qui mettent à jour
-`doc/differences.md` et le premier article du `ChangeLog`, puis #275 pour les
-phrases fausses hors de ces deux documents : `TODO_DONE.md`, 2.3). Il reste ce
-que les relecteurs ont vu sans le corriger ; rien de tout cela ne change le
-code.
-
-1. **Des phrases fausses ou périmées hors des deux documents** (« À savoir » de
-   #275) : `todo-notes/orchestration/HOUSE_RULES.md` ligne 117 (bison 3.5.1),
-   `doc/three-builds.md` lignes 88 et 89 et `doc/compare/performance.md` ligne
-   20 (`GAOL_PREFER_AVX512` y est encore « l'option de l'utilisateur »),
-   `doc/using.md` ligne 1354 (« 317 ns rather than 706 », non vérifié) et
-   `examples/examples.md` (la colonne « Where » de la section 5 donne des
-   numéros de ligne du code relu, et sa puce « With floating-point traps enabled
-   » est périmée).
-
-2. **À décider pour `doc/differences.md` et le `ChangeLog`**, d'après les « À
-   décider » de #263 à #274 : la tête de la première puce des builds («
-   CORE-MATH est la seule bibliothèque mathématique que GAOL utilise » peut se
-   lire « libm n'est pas utilisée », #263) ; ce que « GAOL 4 » désigne (la 4.2.2
-   : `rnd_keep()`, `MEMFREE` et `get_rounding()` viennent de la 4.3.x du fork,
-   #265) ; le paragraphe du `ChangeLog` sur `width()` et `bisect()` avec
-   `GAOL_PRESERVE_ROUNDING`, qui n'a pas de puce dans `doc/differences.md`
-   (#267) ; le littéral IEEE 1788-2015, qui n'a pas de ligne propre dans le
-   `ChangeLog`, `-DGAOL_EXCEPTIONS_ENABLED=OFF`, qu'aucun des deux ne cite (#272
-   et #274), et la mantisse hexadécimale que `hexa` écrit, que le premier
-   paragraphe ne dit pas (#273) ; « 2 à 12 fois plus long qu'avant », qui
-   compare à l'état d'avant #182 et non à GAOL 4 (#272) ; la note facultative
-   sur un x sous 2^-1020, 1,3 à 2,2 fois plus long (#270) ; les deux sorties du
-   manuel en blocs `onscreen`, que `manual/check_examples.py` ne vérifie pas, à
-   vérifier ou à réécrire en `@outputs` (question ouverte de #97, #274) ;
-   `TODO_AFTER.md` et `TODO_DONE.md` (environ 350 Ko) qui restent dans l'archive
-   des sources (#263).
 
 ## PJ. Les mesures et la publication de v5.0.0 (Y) [M, dans cet ordre]
 
@@ -252,14 +214,12 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    un seul `\newinvfive` dans l'entrée `hausdorff` du manuel, et aucun sur la
    phrase du domaine de `atanh`. Le manuel se compile avec `pdflatex`
    (`manual/build-pdf.sh` : 154 pages, 0 erreur le 30 octobre).
-6. **La CI de macOS 27** (#276, fusionnée le 30 octobre) : *À décider*. Les deux
-   jobs `macOS 27 arm64` et `macOS 27 x86_64 (Rosetta)` remplacent `macOS 14`
-   mais restent en file d'attente sans fin le 31 octobre : aucun exécuteur ne
-   sert l'étiquette `macos-27`, ni pour #276, ni pour les pull requests
-   suivantes, ni pour `configure-clean`, si bien que le workflow macOS ne se
-   termine jamais (les autres jobs macOS réussissent). Attendre que GitHub
-   l'offre, ou mettre une étiquette qui existe. Les textes qui citent macOS 14
-   comme testé (`manual/v5/gaol.tex` ligne 277, `doc/three-builds.md` ligne 76,
+6. **La CI de macOS 27** (#276, fusionnée le 30 octobre) : le job `macOS 27
+   arm64` remplace `macOS 14` sur l'étiquette `xcode-27` (le mainteneur,
+   `57650a4` du 1er novembre) et passe le 2 novembre ; celui de x86_64 sous
+   Rosetta est retiré (« not available now », l'étiquette `macos-27` n'a pas
+   d'exécuteur). Les textes qui citent macOS 14 comme testé
+   (`manual/v5/gaol.tex` ligne 277, `doc/three-builds.md` ligne 76,
    `CMakeLists.txt` ligne 506, `gaol/core_math_port.h` ligne 453, `configure.ac`
    et `meson.build`) sont à revoir avec la version si macOS 14 ne doit plus y
    figurer.
