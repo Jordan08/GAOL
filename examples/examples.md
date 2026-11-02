@@ -690,12 +690,19 @@ reviewer and every example writer:
   barrier (`rnd_keep()` existed but was not presented as interface;
   `restore_rounding()` can be called any number of times since, and
   `rnd_keep()` is in `doc/using.md` and the manual).
-- With floating-point traps enabled (`feenableexcept`), `1/[0,1]`,
-  `log([0,1])`, `[1e308]*10` and every `is_empty()` of a computed empty set
-  die with SIGFPE: the unbounded results are computed as overflows or
-  divisions by zero, and `is_empty()` compares NaN bounds with a signaling
-  comparison. Every operation raises the inexact flag. IEEE 1788 leaves the
-  flags unspecified; the docs say nothing.
+- With floating-point traps enabled (`feenableexcept`), `log([0,1])` and
+  `[1e308]*10` die with SIGFPE, and so does almost every operation once the
+  inexact exception is enabled: the unbounded results are computed as
+  divisions by zero and overflows, and the bounds are rounded. IEEE 1788
+  leaves the flags unspecified. GAOL computes with the exceptions masked, and
+  a program disables them while it computes, as [The floating-point
+  exceptions](../doc/using.md#the-floating-point-exceptions) says (the docs
+  said nothing when this was written). `1/[0,1]` and every `is_empty()` of a
+  computed empty set, which died too, raise nothing now: a divisor with a
+  zero bound no longer raises the division-by-zero exception, and no
+  operation raises the invalid-operation exception for an empty operand
+  (checked with `FE_INVALID`, `FE_DIVBYZERO` and `FE_OVERFLOW` enabled, SSE2
+  build).
 - A zero bound may be written `-0`, and its sign differs between the SSE2
   and FPU builds (`sqr([-1, 2])` is [−0, 4] with SSE2 and [0, 4] with the FPU
   code; `interval::zero()` is [−0, 0] with SSE2).

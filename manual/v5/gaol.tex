@@ -871,6 +871,7 @@ including the headers of GAOL has to be compiled with (\pxref{sec:compiling}).
    gaol::cleanup(); @rem^// Always, after the last use of GAOL~
    return 0;
  }
+ @outputs^z = [-87881320, 147125080]~
  \end{example}
 
  First, note that we have to include the \file{gaol/gaol.h} header file in order to
@@ -920,11 +921,7 @@ including the headers of GAOL has to be compiled with (\pxref{sec:compiling}).
  functions, is compiled into it, and the C++ compiler links the mathematical
  library of the system itself.
 
- Executing \file{f}, we obtain:
-
- \begin{onscreen}
-  z = [-87881320, 147125080]
- \end{onscreen}
+ Executing \file{f}, we obtain the output shown under the program.
 
  We then know that $f(x,y)$ lies in \itv{-87881320}{147125080} for
  every $x$ and $y$ in \itv{-2}{2}: \code{z} \emph{encloses} the range of $f$.
@@ -5409,15 +5406,12 @@ int main(void)
   gaol::cleanup();
   return 0;
 }
+@outputs^[3.141, 3.142]~
+@outputs^3.141592653589793 (+/- 4.440892098500627e-16)~
 \end{example}
 
 \noindent
-The previous program has the following output:
-
-\begin{onscreen}
-[3.141, 3.142]
-3.141592653589793 (+/- 4.440892098500627e-16)
-\end{onscreen}
+The previous program has the output shown under it.
 
 The first call to \code{interval::format()} is unnecessary
 since the default format is \code{interval\_format::bounds}.

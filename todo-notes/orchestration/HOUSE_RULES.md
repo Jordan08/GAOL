@@ -114,7 +114,7 @@ CC=clang-18 CXX=clang++-18 gcore cmake -S $WT -B $SCR/build/<slug>-clang -DWITH_
 run its binary directly. Other useful settings: `-DCMAKE_BUILD_TYPE=Debug`,
 sanitizers with `-DCMAKE_CXX_FLAGS="-fsanitize=address,undefined
 -fno-omit-frame-pointer"`. Tools installed: cmake 4.4, GNU make, ninja, meson
-0.53.2, autoconf 2.72, automake 1.18.1, libtool 2.5.4, bison 3.5.1, flex 2.6.4
+0.53.2, autoconf 2.72, automake 1.18.1, libtool 2.5.4, bison 3.8.2, flex 2.6.4
 (the versions that generated the committed lexer and parser), gcovr, pdflatex,
 mpmath 1.1 (python3.8), gcc 9.4, clang-18. The machine's CPU (i7-1185G7) has
 AVX-512 and FMA. The locale `fr_FR.utf8` is installed (a comma locale).

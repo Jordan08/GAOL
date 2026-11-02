@@ -1352,9 +1352,9 @@ just before, and no flag raised since is lost. With `GAOL_PRESERVE_ROUNDING`,
 each operation reads FPSCR once at its start, writes it only if the direction
 is not upward or a flush mode is set, and writes back what it found at its end
 only if it differs. On the Debian armhf jobs of the continuous integration,
-which run on the arm64 runners of GitHub, `x + y` took 22.5 ns rather than 48
-with `GAOL_PRESERVE_ROUNDING`, a line of 15 additions 317 ns rather than 706,
-and `midpoint()` 37 ns rather than 60 (GAOL v5). The check of every operation
+which run on the arm64 runners of GitHub, `x + y` took 22.5 ns rather than 49
+with `GAOL_PRESERVE_ROUNDING`, a line of 15 additions 318 ns rather than 721,
+and `midpoint()` 38 ns rather than 63 (GAOL v5). The check of every operation
 without it stays the addition: `vmrs` took longer than the two additions
 there, `x + y` 6.1 ns rather than 4.1 and a line of 15 additions 87 ns rather
 than 57, and the 32-bit ARM intervals keep their time.
