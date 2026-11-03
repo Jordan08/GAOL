@@ -112,7 +112,9 @@ whose `GAOL_ASSERT` is `assert()` now, are gone. GAOL's headers compile without 
 `-Wall -Wextra -Wold-style-cast -Wundef`, and put nothing into the global
 namespace:
 `gaol/gaol_exceptions.h` declared `string` and `exception` there, which a
-program now names `std::string` and `std::exception` (GAOL v5). The macros they
+program now names `std::string` and `std::exception` (GAOL v5; the header is
+gone, GAOL throws the exceptions of the standard library: see
+[Errors](#errors)). The macros they
 define start with `GAOL_` (or `gaol_`), so as not to meet those of the program
 or of another library (GAOL v5): `USING_SSE2_INSTRUCTIONS`, `HAVE_FENV_H`,
 `WORDS_BIGENDIAN`, `INLINE`, `MEMALIGN`, `__HI`... are now
@@ -337,14 +339,12 @@ the doubles around π and π/2, `gaol_pi_dn`, `gaol_pi_up`, `gaol_half_pi_dn` an
 `gaol_half_pi_up`...), the functions on intervals GAOL v5 adds
 (`exp2`, `log2`, `hypot`, `trunc`, `sinpi`, `erf`, `fma`, `cancel_minus`,
 `round_ties_to_even`... and the nodes of their expressions),
-`restore_rounding()` and `exact_string()`. The exceptions (`gaol_exception`,
-`input_format_error`, `invalid_action_error` and `unavailable_feature_error`),
-`rnd_keep()` (GAOL v5 adds it, and had it in `gaol` in its 4.3 releases;
-GAOL 4 has none), `NaN_val`, `eval_stack`, and the reader of strings,
-`parse_interval()` and `parsing_names`, are in `gaol_core`
-only, as `catch (const gaol_core::input_format_error&)` or
-`gaol_core::rnd_keep(x)`. `gaol_ieee1788` names the version as `gaol` does.
-What GAOL's code uses for itself is
+`restore_rounding()` and `exact_string()`. `rnd_keep()` (GAOL v5 adds it, and
+had it in `gaol` in its 4.3 releases; GAOL 4 has none), `NaN_val`,
+`eval_stack`, and the reader of strings, `parse_interval()` and
+`parsing_names`, are in `gaol_core` only, as `gaol_core::rnd_keep(x)`.
+`gaol_ieee1788` names the version as `gaol` does. What GAOL's code uses for
+itself is
 in `gaol_core` only too, out of the way of the names of a program that opens
 `gaol`: the functions saving and setting the rounding direction and the
 flush-to-zero modes (`rounding_state`, `get_rounding()`, `set_rounding()`,
@@ -506,7 +506,7 @@ standard:
   of a variable that is not set, or `exactToInterval(nullptr)`) is no string,
   and the standard says nothing about it: `gaol::textToInterval` and
   `gaol_ieee1788::textToInterval` and `exactToInterval` all throw
-  `input_format_error` for it (GAOL v5; without exceptions, they print a
+  `std::invalid_argument` for it (GAOL v5; without exceptions, they print a
   message and abort). They took only a `const std::string&`, which the call
   builds from the pointer first, and the standard leaves that undefined:
   libstdc++ throws `std::logic_error`. They have overloads of a C string now,
@@ -687,7 +687,7 @@ themselves:
   at the given ratio of its width, 0 < ratio < 1, which share the cut point and
   cover x; `bisect(0.5)` cuts where `split()` does, at `midpoint()`, and so does
   every ratio for a half-line or the whole line. A ratio outside (0, 1), or
-  NaN, throws `invalid_action_error`. `x.is_bisectable()` tells whether a
+  NaN, throws `std::domain_error`. `x.is_bisectable()` tells whether a
   double lies strictly between the bounds, both parts being then smaller than
   x: not for two consecutive doubles, nor for [MAX, +∞].
 - `hull(x, y)` and `intersect(x, y)`: `x | y` and `x & y` as functions, in
@@ -888,52 +888,55 @@ do not carry it.
 
 ## Errors
 
-GAOL reports an error by throwing an exception, of one of the three classes of
-`gaol/gaol_exceptions.h`, which are in `gaol_core` (`gaol` does not name them,
-so that a handler writes `catch (const gaol_core::input_format_error& e)`):
+GAOL reports an error by throwing an exception of the standard library
+(`<stdexcept>`), where GAOL 4 had classes of its own (GAOL v5):
 
-- `input_format_error`: a string that is no interval, given to
+- `std::invalid_argument`: a string that is no interval, given to
   `gaol::textToInterval()` or read by `operator>>`;
-- `invalid_action_error`: a function called with an argument it does not take,
-  `nb_fp_numbers()` with a NaN, or `nth_root(8, 1.5)` in a string;
-- `unavailable_feature_error`: a feature that is not available; no operation
-  of GAOL v5 throws it.
+- `std::domain_error`: a function called with an argument it does not take,
+  `nb_fp_numbers()` with a NaN, `bisect()` with a ratio outside (0, 1),
+  `gaol_ieee1788::pownRev()` with p ≤ 0, or `nth_root(8, 1.5)` in a string.
 
-They all derive from `gaol_exception`, which derives from `std::exception`, and
-their `what()` is the explanation of the error, so that a handler that knows
-nothing of GAOL says what went wrong:
+Both derive from `std::logic_error`, which derives from `std::exception`, so
+that a handler that knows nothing of GAOL says what went wrong:
 
 ```cpp
 try {
   interval x = gaol::textToInterval("[1, 2");
 } catch (const std::exception& e) {
-  std::cerr << e.what() << '\n';   // Syntax error in interval initialization: [1, 2
+  std::cerr << e.what() << '\n';   // gaol_interval.cpp:48: Syntax error in interval initialization: [1, 2
 }
 ```
 
-An exception that nothing catches ends the program with the same text (with
-libstdc++: `terminate called after throwing an instance of
-'gaol_core::input_format_error'`, then `what():  Syntax error in interval
-initialization: [1, 2`). GAOL 4 wrote `std::exception` in both places, whatever
-the error, `gaol_exception` not overriding `what()`. Where an exception has no
-explanation, `what()` is the name of its class (`gaol_exception`,
-`input_format_error`, `unavailable_feature_error` or `invalid_action_error`),
-never an empty text. A handler of
-`gaol_exception` also has `explanation()`, the same text in a `std::string`,
-and `file()` and `line()`, where GAOL threw the exception; `std::cerr << e`
-writes the three, as `file.cpp, line 12: exception thrown: <explanation>`. The
-macros of GAOL give `__FILE__`; a null file name, which only a direct call of
-the constructor can give, is the file `(unknown file)` (GAOL v5): `file()` of
-the exceptions of GAOL is never a null pointer, and `operator<<` no longer
-sends one to the stream, which the standard leaves undefined (libstdc++ puts
-it in the state bad, losing what followed). `gaol_warning()` and `gaol_error()`
-do the same for `std::cerr`, and write nothing for a null message, as a null
-explanation is none.
+The `what()` is `file:line: explanation`: the name of the source file of GAOL,
+without its directories, and the line that threw the exception (`__FILE__`,
+cut after its last `/` or `\`, and `__LINE__` of `gaol_ERROR`, in
+`gaol/gaol_common.h`: the path of the machine that built GAOL is not in the
+message), then what went wrong. The errors that the reader of strings finds
+in a call (`nth_root(8, 1.5)`, `sin(1, 2)`) name the grammar,
+`gaol_interval_parser.ypp`, and a line of it, which the `#line` directives of
+the generated parser give. An exception that nothing catches ends the
+program with the same text (with libstdc++: `terminate called after throwing
+an instance of 'std::invalid_argument'`, then `what():  gaol_interval.cpp:48:
+Syntax error in interval initialization: [1, 2`). GAOL 4 wrote `std::exception`
+in both places, whatever the error. A handler that wants one kind of error
+catches its class: a handler of `std::invalid_argument` does not catch a
+`std::domain_error`, nor the other way round, and a handler of
+`std::logic_error` catches both, and no `std::bad_alloc`. GAOL 4 had a base
+class, `gaol_exception`, with `explanation()`, `file()` and `line()` and an
+`operator<<`, and the classes `input_format_error`, `invalid_action_error` and
+`unavailable_feature_error`, in `gaol/gaol_exceptions.h`, which are gone: a
+program that caught `gaol_core::input_format_error` now catches
+`std::invalid_argument`, `gaol_core::invalid_action_error` becomes
+`std::domain_error`, and what `explanation()` gave is in `what()`, after the
+file and the line. `unavailable_feature_error` was thrown by no operation of
+GAOL v5. `gaol_warning()` and `gaol_error()`, which write on `std::cerr`,
+write a null file name as `(unknown file)` and a null message as nothing.
 
 Where memory runs out, GAOL throws the `std::bad_alloc` of C++: the reader of
 strings too, where flex ended the program with `exit(2)` when it could not
-allocate its buffer, and the parser turned a stack it could not grow into an
-`input_format_error` (GAOL v5).
+allocate its buffer, and the parser turned a stack it could not grow into a
+`std::invalid_argument` (GAOL v5).
 
 A build without `GAOL_EXCEPTIONS_ENABLED` (`--disable-exceptions` of
 `configure`, `-Denable-exception=false` of meson; see
@@ -995,13 +998,13 @@ example; they are listed here for the reader who looks in this page first.
   `interval(0.0) / interval(-1.1, 0.9)` is [0], which "proves" a unique root.
   `%`, or `div_rel()`, the reverse of the product, is [−∞, +∞] there, rightly.
 - **Reading text.** `nth_root(8, 1.5)` in a text throws
-  `invalid_action_error`, which is no `input_format_error`. The
+  `std::domain_error`, which is no `std::invalid_argument`. The
   `textToInterval` of `gaol_ieee1788` throws neither: it gives the empty set for
   any text that is no interval, an answer that cannot be told from the one
   for `"[empty]"`. A null pointer is no text, and
-  throws `input_format_error` with both.
+  throws `std::invalid_argument` with both.
 - **A sign next to an uncertain number.** `10-3.56?1` and `10+3.56?1` throw
-  `input_format_error`: the lexer reads `-3.56?1` (`+3.56?1` too) as one token,
+  `std::invalid_argument`: the lexer reads `-3.56?1` (`+3.56?1` too) as one token,
   and `10 -3.56?1` throws too. A blank is needed after the sign: `10 - 3.56?1`,
   or `10- 3.56?1`.
 - **A long number.** Reading a long number takes a time quadratic in its
