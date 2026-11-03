@@ -138,8 +138,8 @@ am__EXEEXT_2 = arithmetic$(EXEEXT) elementary$(EXEEXT) \
 	u128$(EXEEXT) core_math$(EXEEXT) expressions$(EXEEXT) \
 	extended_precision$(EXEEXT) static_initialization$(EXEEXT) \
 	debugging$(EXEEXT) fast_math_link$(EXEEXT) \
-	arithmetic_operators$(EXEEXT) assignment$(EXEEXT) \
-	constants$(EXEEXT) constructor$(EXEEXT) \
+	test_ibex_codac$(EXEEXT) arithmetic_operators$(EXEEXT) \
+	assignment$(EXEEXT) constants$(EXEEXT) constructor$(EXEEXT) \
 	float_functions$(EXEEXT) generic_functions$(EXEEXT) \
 	input_output$(EXEEXT) interval_functions$(EXEEXT) \
 	misc$(EXEEXT) non_arithmetic$(EXEEXT) relations$(EXEEXT) \
@@ -304,6 +304,11 @@ static_initialization_OBJECTS = static_initialization.$(OBJEXT)
 static_initialization_LDADD = $(LDADD)
 static_initialization_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
 	$(am__DEPENDENCIES_1)
+test_ibex_codac_SOURCES = test_ibex_codac.cpp
+test_ibex_codac_OBJECTS = test_ibex_codac.$(OBJEXT)
+test_ibex_codac_LDADD = $(LDADD)
+test_ibex_codac_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 trigonometric_SOURCES = trigonometric.cpp
 trigonometric_OBJECTS = trigonometric.$(OBJEXT)
 trigonometric_LDADD = $(LDADD)
@@ -347,7 +352,8 @@ am__depfiles_remade = ./$(DEPDIR)/arithmetic.Po \
 	./$(DEPDIR)/reverse_mappings.Po \
 	./$(DEPDIR)/rounding_direction.Po \
 	./$(DEPDIR)/static_initialization.Po \
-	./$(DEPDIR)/trigonometric.Po ./$(DEPDIR)/u128.Po
+	./$(DEPDIR)/test_ibex_codac.Po ./$(DEPDIR)/trigonometric.Po \
+	./$(DEPDIR)/u128.Po
 am__mv = mv -f
 CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
@@ -376,7 +382,8 @@ SOURCES = arithmetic.cpp arithmetic_operators.cpp assignment.cpp \
 	intervalf.cpp misc.cpp non_arithmetic.cpp numbers.cpp \
 	other_functions.cpp relations.cpp reverse.cpp \
 	reverse_mappings.cpp rounding_direction.cpp \
-	static_initialization.cpp trigonometric.cpp u128.cpp
+	static_initialization.cpp test_ibex_codac.cpp \
+	trigonometric.cpp u128.cpp
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -766,9 +773,9 @@ AM_DEFAULT_SOURCE_EXT = .cpp
 GAOL_TESTS = arithmetic elementary rounding_direction numbers \
 	other_functions ieee1788 reverse u128 core_math expressions \
 	extended_precision static_initialization debugging \
-	fast_math_link arithmetic_operators assignment constants \
-	constructor float_functions generic_functions input_output \
-	interval_functions misc non_arithmetic relations \
+	fast_math_link test_ibex_codac arithmetic_operators assignment \
+	constants constructor float_functions generic_functions \
+	input_output interval_functions misc non_arithmetic relations \
 	reverse_mappings trigonometric intervalf interval2f \
 	$(am__append_1)
 
@@ -946,6 +953,10 @@ static_initialization$(EXEEXT): $(static_initialization_OBJECTS) $(static_initia
 	@rm -f static_initialization$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(static_initialization_OBJECTS) $(static_initialization_LDADD) $(LIBS)
 
+test_ibex_codac$(EXEEXT): $(test_ibex_codac_OBJECTS) $(test_ibex_codac_DEPENDENCIES) $(EXTRA_test_ibex_codac_DEPENDENCIES) 
+	@rm -f test_ibex_codac$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(test_ibex_codac_OBJECTS) $(test_ibex_codac_LDADD) $(LIBS)
+
 trigonometric$(EXEEXT): $(trigonometric_OBJECTS) $(trigonometric_DEPENDENCIES) $(EXTRA_trigonometric_DEPENDENCIES) 
 	@rm -f trigonometric$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(trigonometric_OBJECTS) $(trigonometric_LDADD) $(LIBS)
@@ -989,6 +1000,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/reverse_mappings.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rounding_direction.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/static_initialization.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_ibex_codac.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/trigonometric.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/u128.Po@am__quote@ # am--include-marker
 
@@ -1372,6 +1384,13 @@ fast_math_link.log: fast_math_link$(EXEEXT)
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
 	"$$tst" $(AM_TESTS_FD_REDIRECT)
+test_ibex_codac.log: test_ibex_codac$(EXEEXT)
+	@p='test_ibex_codac$(EXEEXT)'; \
+	b='test_ibex_codac'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
 arithmetic_operators.log: arithmetic_operators$(EXEEXT)
 	@p='arithmetic_operators$(EXEEXT)'; \
 	b='arithmetic_operators'; \
@@ -1573,6 +1592,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/reverse_mappings.Po
 	-rm -f ./$(DEPDIR)/rounding_direction.Po
 	-rm -f ./$(DEPDIR)/static_initialization.Po
+	-rm -f ./$(DEPDIR)/test_ibex_codac.Po
 	-rm -f ./$(DEPDIR)/trigonometric.Po
 	-rm -f ./$(DEPDIR)/u128.Po
 	-rm -f Makefile
@@ -1649,6 +1669,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/reverse_mappings.Po
 	-rm -f ./$(DEPDIR)/rounding_direction.Po
 	-rm -f ./$(DEPDIR)/static_initialization.Po
+	-rm -f ./$(DEPDIR)/test_ibex_codac.Po
 	-rm -f ./$(DEPDIR)/trigonometric.Po
 	-rm -f ./$(DEPDIR)/u128.Po
 	-rm -f Makefile
