@@ -1,7 +1,7 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `1fbde53` de `configure-clean` (la
-fusion de #280), le 2 novembre 2026, en tâches PH, PJ et PK (PA à PG et PI sont
+Ce qui reste à faire sur GAOL v5 au commit `60aa5b3` de `configure-clean` (la
+fusion de #281), le 3 novembre 2026, en tâches PH, PJ et PK (PA à PG et PI sont
 faites : voir `TODO_DONE.md`). Ce fichier et l'issue #179 ont le même contenu.
 Ce qui est fait et décidé est dans `TODO_DONE.md` (l'issue #177 n'est plus mise
 à jour), ce qui est reporté dans `TODO_AFTER.md` (issue #178). Les anciennes
@@ -10,8 +10,7 @@ issues #49 et #142 sont fermées, et `TODO_mistral.md` est supprimé.
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à envoyer à un autre projet ni à publier sans l'accord
-du mainteneur. La pull request #281 est ouverte (les cas des tests d'IBEX et
-de Codac, hors des points).
+du mainteneur. Aucune pull request n'est ouverte.
 
 ## Comment lire ce fichier
 
@@ -142,8 +141,10 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    `coverage`, gcovr) et à enregistrer ; *décidé le 15 octobre* : pas avant.
    Lancer aussi une fois, sous ASan + UBSan, le test `numbers` en entier (trop
    long pour la relecture du 14 octobre : 158 s pour `arithmetic` seul) ;
-   `GAOL_NUMBERS_TIMEOUT` n'est pas relevé pour les builds avec sanitizers
-   (*décidé le 14 octobre*).
+   `GAOL_NUMBERS_TIMEOUT` n'était pas relevé pour les builds avec sanitizers
+   (*décidé le 14 octobre*) ; il vaut 400 s dans les quatre jobs de `linux.yml`
+   qui en ont, depuis #281 (*décidé le 3 novembre* : `numbers` a dépassé 300 s
+   une fois, dans le job Clang x86_64).
 2. **33** : les temps de
    [doc/compare/performance.md](doc/compare/performance.md), remesurés le 17
    octobre (`febd2b1`, `a055160`), sa colonne « rounding direction preserved »
@@ -193,7 +194,12 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    `master` ne reçoit que les versions. Les commits à ligne de crédit (123)
    restent (*décidé le 19 octobre*). La licence est dite (LGPL pour GAOL, MIT
    pour CORE-MATH) dans la section « Licences » de `README.md` et dans le manuel
-   : fait.
+   : fait. *À décider* (#281) : les cas de `tests/test_ibex_codac.cpp` viennent
+   de tests d'IBEX et de Codac sous LGPL v3 (leur `COPYING.LESSER`), alors que
+   le `README.md` dit GAOL sous LGPL v2 (`COPYING.LIB`) ; l'en-tête du fichier
+   donne les copyrights et les deux licences sans conclure (*décidé le 2
+   novembre* : l'en-tête seul). Est-ce compatible, faut-il une ligne dans la
+   section « Licences » du `README.md`, voire un `COPYING.LESSER` ?
 4. **71 et #128** : annoncer GAOL v5.0.0 à Frédéric Goualard, l'auteur de GAOL,
    une fois l'étiquette posée : pas d'annonce publique, et pas de GitHub
    Release, l'étiquette suffisant (*décidé le 3 octobre*). Le message est écrit,

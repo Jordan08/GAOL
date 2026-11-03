@@ -1,9 +1,9 @@
 # Fait et décidé sur GAOL v5
 
-Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 2 novembre 2026
-(commit `1fbde53` de `configure-clean`, la pull request #281 ouverte : voir la
-section 1). Ce fichier fait foi : l'issue #177, qui avait le même
-contenu, n'est plus mise à jour depuis le 28 octobre (voir 7.8).
+Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 3 novembre 2026
+(commit `60aa5b3` de `configure-clean`, aucune pull request ouverte : voir la
+section 1). Ce fichier fait foi : l'issue #177, qui avait le même contenu, n'est
+plus mise à jour depuis le 28 octobre (voir 7.8).
 
 Il réunit l'historique de l'ancienne issue #49 (« Suivi du TODO de GAOL v5 »),
 ce qui est fait dans l'ancienne issue #142 (« Reste à faire sur GAOL v5 »), dans
@@ -48,60 +48,67 @@ est supprimé. Le reste du travail est dans deux autres registres :
   `16a2f60` (`todo-notes/`, ceux du 30 septembre dans `todo-notes/2026-09-30/`)
   ; la procédure suivie pour chaque point est dans `process.md`.
 
-Sommaire : 1. L'état au 2 novembre ; 2. Les pull requests ; 3. Les décisions,
+Sommaire : 1. L'état au 3 novembre ; 2. Les pull requests ; 3. Les décisions,
 par date ; 4. Les points faits, par lettre ; 5. Les anciens numéros faits ; 6.
 Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 `configure-clean` ; 8. Le ménage fait.
 
-## 1. L'état au 2 novembre 2026
+## 1. L'état au 3 novembre 2026
 
-- **`configure-clean`** est au commit `1fbde53` (la fusion de #280, après celles
+- **`configure-clean`** est au commit `60aa5b3` (la fusion de #281, après celles
   de #217 le 28 octobre, de #218, #219, #222, #223 et #225 le matin du 29, de
   #220, #224 et #227 à #231 de 18 h 04 à 18 h 19 UTC, de #232, #234 et #235 de
   19 h 55 à 19 h 57, de #236 à 23 h 42, de #237 et #238 le 30 octobre à 11 h 04,
   de #245, #242 et #249 de 19 h 57 à 20 h 07, de #263 à #274 de 20 h 24 à 20 h
   40, de #275 à 21 h 10, de #262, #250, #239 et #248 de 21 h 13 à 21 h 32, de
-  #276 à 21 h 37, de #279 le 31 octobre à 9 h 32 et de #280 le 2 novembre à 19 h
-  36 ; l'import de CORE-MATH `0b2ae6d1` est du 27 octobre, voir 7.6 à 7.10). Les
-  pull requests des corrections vont vers `configure-clean`, qui reste la
-  branche de développement après v5.0.0 ; `MATH-CORE` et `master` (GAOL 4.3.2,
-  plus deux commits de `.claude/CLAUDE.md`) ne bougent qu'à la version (point
-  Y).
-- **Pull requests ouvertes** : #281 (les cas des tests d'IBEX et de Codac, hors
-  des points). Le mainteneur a fusionné #165 à #167, #169 à #174, #176 et #180 à
-  #184 les 23 et 24 octobre, et #186 à #194, #196 et #197 le 25 octobre, #199,
-  #200 et #201 le 26 octobre, #202 à #205 le 27, #206 à #210, #212, #213, #215
-  et #216 le 28 (#216, hors des points : le tableau des lignes longues sur ARM
-  64 bits, à la fin de `performance.md`), #217 le 28 à 23 h 19 UTC, #218, #219,
-  #222, #223 et #225 le 29 au matin, #220, #224 et #227 à #231 le 29 de 18 h 04
-  à 18 h 19, #232, #234 et #235 le 29 de 19 h 55 à 19 h 57, #236 le 29 à 23 h
-  42, #237 et #238 le 30 à 11 h 04, #245, #242 et #249 le 30 de 19 h 57 à 20 h
-  07, #263 à #274 (les textes de la version) le 30 de 20 h 24 à 20 h 40, #275 à
-  21 h 10, #262, #250, #239 et #248 de 21 h 13 à 21 h 32 et #276 (macOS 27 à la
-  place de macOS 14) à 21 h 37 ; #279 a été fusionnée le 31 à 9 h 32 par la
-  session, sur la demande explicite du mainteneur ; #280 (les restes de la tâche
-  PI) l'a été le 2 novembre à 19 h 36 par le mainteneur. #168, #195, #211, #214,
-  #221, #226 et #233 sont fermées sans fusion, et, du 30 et du 31 octobre, #240,
-  #241, #243, #244, #246, #247, #251 à #261, #277 et #278 (2.4). Les tâches PA,
-  PB, PC, PD, PE, PF, PG et PI sont faites (PE : #200 et #204 pour le 95, #201
-  pour le 92, #205 pour le 3, #202 pour le 4, #204 pour le 5, #203 pour le 6 ;
-  PF : #206 pour le reste du 108, #209 pour le 109, #210 et #215 pour écrire
-  seulement si ça change, #208 pour l'alignement de la pile 32 bits, #207 pour
-  le contrôle de l'assembleur de x86-64 ; PG : la division du chemin AVX-512, le
-  106 a : #191 à #194 ; puis #217 pour le seuil de la liste, #218 pour
-  `set_rounding()`, #219 pour le noyau de `pown` de NEON, #222 et #224 pour
-  `nth_root(x, -2)` et `sqrt()`, #223, #227 et #228 pour le contrôle de
-  l'assembleur avec GCC, #225 pour le quotient NEON, #220 pour la ligne `x / d`,
-  #229 pour la grille de `diffarith`, #230, #232, #234 et #235 pour les écarts
-  de GCC avec Clang, #231 pour les masques d'exceptions de `pow_rel()`, #236
-  pour `max(x, y)` et `min(x, y)`, #237 et #238 pour le banc, #242 et #245 pour
-  `inverse()` de NEON et son test, #248, #249 et #250 pour `interval(l, r)`, `x
-  * y` et `x op= d` de NEON, #239 pour `max` et `min` de NEON raccourcis, #262
-  pour le bruit de placement de Visual C++ arm64, #279 pour `x <= y` ; PI : #263
-  à #274 pour la synthèse de `doc/differences.md` et du `ChangeLog`, #275 pour
-  les phrases fausses hors de ces deux documents, #280 pour leurs restes) ; il
-  reste les signalements à d'autres projets (PH), le tableau de Clang 21 et la
-  publication (PJ) et un `FE_INVALID` à décider (PK) : voir `TODO.md`.
+  #276 à 21 h 37, de #279 le 31 octobre à 9 h 32, de #280 le 2 novembre à 19 h
+  36, de #282 le 3 novembre à 11 h 38, de #283 et de #284 à 11 h 40 et 11 h 41
+  et de #281 à 16 h 51 ; l'import de CORE-MATH `0b2ae6d1` est du 27 octobre,
+  voir 7.6 à 7.10). Les pull requests des corrections vont vers
+  `configure-clean`, qui reste la branche de développement après v5.0.0 ;
+  `MATH-CORE` et `master` (GAOL 4.3.2, plus deux commits de `.claude/CLAUDE.md`)
+  ne bougent qu'à la version (point Y).
+- **Pull requests ouvertes** : aucune. Le mainteneur a fusionné #165 à #167,
+  #169 à #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194, #196
+  et #197 le 25 octobre, #199, #200 et #201 le 26 octobre, #202 à #205 le 27,
+  #206 à #210, #212, #213, #215 et #216 le 28 (#216, hors des points : le
+  tableau des lignes longues sur ARM 64 bits, à la fin de `performance.md`),
+  #217 le 28 à 23 h 19 UTC, #218, #219, #222, #223 et #225 le 29 au matin,
+  #220, #224 et #227 à #231 le 29 de 18 h 04 à 18 h 19, #232, #234 et #235 le
+  29 de 19 h 55 à 19 h 57, #236 le 29 à 23 h 42, #237 et #238 le 30 à 11 h 04,
+  #245, #242 et #249 le 30 de 19 h 57 à 20 h 07, #263 à #274 (les textes de la
+  version) le 30 de 20 h 24 à 20 h 40, #275 à 21 h 10, #262, #250, #239 et #248
+  de 21 h 13 à 21 h 32 et #276 (macOS 27 à la place de macOS 14) à 21 h 37 ;
+  #279 a été fusionnée le 31 à 9 h 32 par la session, sur la demande explicite
+  du mainteneur ; #280 (les restes de la tâche PI) l'a été le 2 novembre à 19 h
+  36 par le mainteneur, puis, le 3 novembre, #282 (`HOUSE_RULES.md` : les
+  outils de la machine sont dans `process.md` §6.1, hors des points) à 11 h 38,
+  #283 (les en-têtes de CORE-MATH dans `gaol/math/`, `3rd/math-core` réduit à
+  binary64) et #284 (les opérateurs de `gaol_ieee1788`) à 11 h 40 et 11 h 41,
+  que cette mise à jour ne décrit pas en 2.3, et #281 (les cas des tests d'IBEX
+  et de Codac, hors des points) à 16 h 51, toutes par le mainteneur. #168,
+  #195, #211, #214, #221, #226 et #233 sont fermées sans fusion, et, du 30 et
+  du 31 octobre, #240, #241, #243, #244, #246, #247, #251 à #261, #277 et #278
+  (2.4). Les tâches PA, PB, PC, PD, PE, PF, PG et PI sont faites (PE : #200 et
+  #204 pour le 95, #201 pour le 92, #205 pour le 3, #202 pour le 4, #204 pour
+  le 5, #203 pour le 6 ; PF : #206 pour le reste du 108, #209 pour le 109, #210
+  et #215 pour écrire seulement si ça change, #208 pour l'alignement de la pile
+  32 bits, #207 pour le contrôle de l'assembleur de x86-64 ; PG : la division
+  du chemin AVX-512, le 106 a : #191 à #194 ; puis #217 pour le seuil de la
+  liste, #218 pour `set_rounding()`, #219 pour le noyau de `pown` de NEON, #222
+  et #224 pour `nth_root(x, -2)` et `sqrt()`, #223, #227 et #228 pour le
+  contrôle de l'assembleur avec GCC, #225 pour le quotient NEON, #220 pour la
+  ligne `x / d`, #229 pour la grille de `diffarith`, #230, #232, #234 et #235
+  pour les écarts de GCC avec Clang, #231 pour les masques d'exceptions de
+  `pow_rel()`, #236 pour `max(x, y)` et `min(x, y)`, #237 et #238 pour le banc,
+  #242 et #245 pour `inverse()` de NEON et son test, #248, #249 et #250 pour
+  `interval(l, r)`, `x * y` et `x op= d` de NEON, #239 pour `max` et `min` de
+  NEON raccourcis, #262 pour le bruit de placement de Visual C++ arm64, #279
+  pour `x <= y` ; PI : #263 à #274 pour la synthèse de `doc/differences.md` et
+  du `ChangeLog`, #275 pour les phrases fausses hors de ces deux documents,
+  #280 pour leurs restes) ; il reste les signalements à d'autres projets (PH),
+  le tableau de Clang 21 et la publication (PJ) et un `FE_INVALID` à décider
+  (PK) : voir `TODO.md`.
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
   sur tout processeur ARM 64 bits avec tous les compilateurs (GCC, Clang,
   AppleClang, clang-cl, Visual C++, MinGW-w64, MSYS2), SSE2 sur tout processeur
@@ -2054,6 +2061,74 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   d'exécuteur et relancés ; fusionnée le 2 novembre à 19 h 36 UTC par le
   mainteneur)
 
+- #281 (hors des points : les tests de vérification qu'IBEX et Codac exécutent
+  sur leurs intervalles, qui sont ceux de GAOL, repris dans la structure de GAOL
+  v5, à la demande du mainteneur ; 16 commits) : `tests/test_ibex_codac.cpp`, 3
+  905 vérifications en 0,01 s, silencieux sauf les noms en échec et le total
+  (`gaol_tests::summary(true)`), en trois sections : `ibex_` (71 des 139 tests
+  de `TestInterval`, 182 des 343 enregistrés de `TestArith`, et trois que
+  `TestArith.h` n'enregistre pas, `float10`, `sqrt06` et `tan07` ; `tan06` reste
+  dehors, son attente, tout ℝ pour tan(−π), est fausse ; 1 393 vérifications),
+  `ibexb_` (les contracteurs `bwd_*`, la division `div2` et les distances
+  d'IBEX, écrits avec les opérations et les fonctions inverses de GAOL : 197
+  cas, 1 306 vérifications) et `codac_` (les tests de Codac 2 `6419940` et de la
+  branche `GAOL` du fork `f0d06ff0`, sans les 195 vérifications que les tests de
+  GAOL ont déjà : 1 206 vérifications). Chaque résultat de GAOL est comparé à
+  l'**encadrement exact** du résultat mathématique, calculé hors de GAOL et des
+  projets (fractions exactes, mpmath à 2000 bits), à 0 double près, 2 pour
+  `atan2_rel_x` et `atan2_rel_y` comme le dit `doc/accuracy.md` (*décidé*,
+  3.13). Les trois scripts de `tests/tools/ibex_codac/` (les cas, l'oracle, le
+  générateur des tableaux, `--check`, `--originals` et `--selftest` ; ni dans le
+  build ni dans `make test`) recoupent aussi les attentes d'IBEX et de Codac
+  avec le résultat exact : 1 940 comparaisons, aucun désaccord au-delà de leur
+  tolérance, et 23 attentes d'IBEX à borne entière qui n'est pas celle du
+  résultat exact (`tan02` attend [−1, 1], le résultat est ±(1 + 2^-52)). Inscrit
+  dans `tests/CMakeLists.txt`, `tests/meson.build`, `tests/Makefile.am` (et
+  `Makefile.in`) et `.github/scripts/tests.sh`, avec `doc/tests.md`,
+  `doc/tools.md`, `summary(bool only_failed)` de `gaol_tests.h` et la correction
+  de son commentaire sur les doubles aléatoires de Codac (qui tire la mantisse,
+  l'exposant puis le signe, GAOL l'exposant, le signe puis la mantisse). Une
+  première version, une copie littérale des corps de test derrière une couche
+  qui imitait IBEX et Codac (`tests/codac_ibex.cpp`), a été refusée le 2
+  novembre et réécrite en natif. Deux relectures indépendantes (sous-agents sans
+  contexte), la seconde de la version native : une phrase fausse de l'en-tête
+  sur les notices des projets, deux entrées de Codac dont une borne d'entrée
+  était arrondie au plus proche et non vers le haut, une marge d'un double
+  (`limit = 1`) que plus aucune ligne n'utilisait et qui laissait passer une
+  borne un ulp trop large (quatre mutants de plus détectés avec `limit = 0`),
+  trois tests valides d'IBEX non enregistrés repris, une boucle de `bwd_imod`
+  qui ne finissait pas pour un k infini, 526 références recalculées sans écart ;
+  sur 36 altérations de GAOL, 26 sont vues par ce test, les autres par
+  `arithmetic`, `elementary`, `trigonometric`, `rounding_direction` ou
+  `reverse`, sauf le signe du zéro de `midpoint([-1, 1])`, que nul test ne voit
+  (`TODO_AFTER.md` 5.4). Vérifié en local, GCC 13.3 et Clang 18 (SSE2, FPU,
+  `GAOL_PRESERVE_ROUNDING`, sans FMA, Clang en Debug : 0 avertissement avec
+  `-Wall -Wextra -Werror`), autotools (`make check` : 32 tests, 30 PASS, 2 SKIP)
+  et meson 1.3.2 et 1.12.1 (30 OK, 2 SKIP). `tests/Makefile.in` : automake
+  1.18.1 manquait sur la machine (Ubuntu 24.04, automake 1.16.5 après
+  l'installation du mainteneur) ; la différence entre les sorties de la 1.16.5
+  pour l'ancien et le nouveau `Makefile.am`, appliquée au fichier de la 1.18.1,
+  l'a mis à jour (les 100 lignes qui séparent les deux versions sont les mêmes
+  avant et après : 7.12). Les doubles des tableaux, d'abord en hexadécimal, sont
+  en décimal, le plus court que le compilateur relit à l'identique, comme dans
+  IBEX (*décidé le 3 novembre*) : les mêmes 3 830 nombres, les mêmes 3 905
+  vérifications, et les messages d'échec restent en hexadécimal. Hors du sujet,
+  `numbers` a 400 s dans les quatre jobs des sanitizers de `linux.yml` (*décidé
+  le 3 novembre*), après un dépassement de 300 s dans le job Clang x86_64
+  d'Ubuntu 26.04 (109 à 287 s dans les exécutions vertes). Sa CI au commit
+  fusionné `6fe4857` : Linux, Windows, Linux containers, Performance, Autotools
+  et meson verts, 19 jobs de macOS verts et un annulé faute d'exécuteur (`macOS
+  26 Xcode generator`) ; le job armhf de Performance, échoué une fois sur `exec
+  format error` (l'émulation du runner), est vert aux commits suivants ;
+  fusionnée le 3 novembre à 16 h 51 UTC par le mainteneur)
+
+- #282 (hors des points : la ligne « Tools installed » de `HOUSE_RULES.md`,
+  décidée en 3.12) : un commit, 5 lignes ajoutées et 6 retirées de
+  `todo-notes/orchestration/HOUSE_RULES.md`, qui renvoie à `process.md` §6.1 au
+  lieu de la machine de fin septembre ; sa CI : Linux, Windows, Linux
+  containers, Autotools et meson et macOS verts ; fusionnée le 3 novembre à 11 h
+  38 UTC par le mainteneur)
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -3737,11 +3812,51 @@ pull request qui les exécute (2.3).
   `onscreen` qui restent (la sortie hexadécimale de `0.1` et le message `#error`
   de `-ffast-math`) restent, vérifiés à la main le 2 novembre.
 - **`HOUSE_RULES.md`**, la ligne « Tools installed » (machine de fin septembre,
-  seul bison à jour) : la remplacer par un renvoi à `process.md` §6.1 ; à faire
-  dans une petite pull request.
+  seul bison à jour) : la remplacer par un renvoi à `process.md` §6.1 ; fait par
+  #282 (3 novembre).
 - **La CI de macOS 27** : le mainteneur a mis le job arm64 sur l'étiquette
   `xcode-27` (`57650a4`, le 1er novembre) et retiré celui de x86_64 sous
   Rosetta (« not available now ») ; le job passe le 2 novembre.
+
+### 3.13 Les 2 et 3 novembre : les cas des tests d'IBEX et de Codac
+
+Les décisions du mainteneur sur #281 (hors des points), avec la pull request qui
+les exécute (2.3).
+
+- **La forme** (*décidé le 2 novembre*, en refusant `tests/codac_ibex.cpp`, qui
+  copiait les corps de test d'IBEX et de Codac derrière une couche imitant leurs
+  classes) : aucune structure d'IBEX ni de Codac, des cas écrits avec
+  `gaol::interval` et `gaol_tests.h` pour vérifier que GAOL fait les bons
+  calculs par intervalles, dans le fichier `tests/test_ibex_codac.cpp`, inscrit
+  dans `make test`, `make check`, `meson test` et la CI.
+- **La comparaison** : « encadrement exact », le résultat de GAOL doit contenir
+  le résultat mathématique exact, calculé hors de GAOL et des projets, dans les
+  doubles dits.
+- **Les cas** : ceux que GAOL calcule, plus les `bwd_*` d'IBEX et ses distances
+  ; ni `diff()`, ni `delta()`, ni `set_empty()`, ni les vecteurs. De nouveaux
+  commits dans #281, non une nouvelle pull request.
+- **La licence** : garder l'en-tête seul, qui donne les copyrights et les
+  licences (LGPL v3 d'IBEX et de Codac, LGPL v2 de GAOL) sans conclure ; la
+  compatibilité reste à décider (`TODO.md`, PJ point 3).
+- **Les angles morts** : les ajouter dans #281 (les tests existants en voient
+  quatre sur cinq ; un `midpoint([-1, 1])` à −0 n'est vu par aucun,
+  `TODO_AFTER.md` 5.4).
+- **La sortie** : silencieuse, sauf une ligne par test en échec et le total.
+- **`HOUSE_RULES.md`**, « Tools installed » : un renvoi à `process.md` §6.1
+  (#282) ; les deux blocs `onscreen` du manuel qui restent : laissés.
+- **GCC 12.2 sur aarch64** (un tableau local de structures, le motif de
+  `process.md` §11) : attendre la CI ; le job Debian 12 arm64 de Linux
+  containers passe.
+- **`tests/Makefile.in`** : laissé au mainteneur, automake 1.18.1 manquant ;
+  fait le 3 novembre, une fois automake 1.16.5 installé, par la différence de
+  ses sorties (2.3, 7.12).
+- **Les doubles en décimal** (*décidé le 3 novembre*, « remplace tout les hexa
+  par des doubles comme dans ibex », avec la liste des tests qui cessent de
+  passer) : aucun ne cesse de passer avec GCC 13.3 et Clang 18 ; les messages
+  d'échec gardent l'hexadécimal de `gaol_tests::hex`.
+- **`numbers` à 400 s** (*décidé le 3 novembre*) dans les quatre jobs des
+  sanitizers de `linux.yml`, qui avaient 300 s (*décidé le 14 octobre*) : le job
+  Clang x86_64 les a dépassés une fois.
 
 ## 4. Les points faits, par lettre
 
@@ -4955,6 +5070,39 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
   `cmake --build --target package_source` montrent ce que l'archive des sources
   contient.
 
+### 7.12 Le 3 novembre (après #281)
+
+- Le mainteneur a fusionné #282 le 3 novembre à 11 h 38 UTC, #283 et #284 à 11 h
+  40 et 11 h 41 puis #281 à 16 h 51 : `configure-clean` est au commit `60aa5b3`,
+  aucune pull request n'est ouverte. #283 (les en-têtes de CORE-MATH dans
+  `gaol/math/`, `3rd/math-core` réduit à binary64) et #284 (les opérateurs de
+  `gaol_ieee1788`) ne sont pas de la session qui met ces registres à jour :
+  leurs entrées de 2.3 et leurs décisions ne sont pas écrites ici.
+- La machine (Ubuntu 24.04) : le mainteneur a installé `ninja-build` et
+  `autotools-dev` (les seuls `config.guess` et `config.sub`, ni automake ni
+  autoconf), puis `automake` (1.16.5, avec autoconf 2.71) et `meson` (1.3.2). La
+  1.16.5 n'est pas la 1.18.1 des `Makefile.in` du dépôt : pour ajouter
+  `test_ibex_codac` à `tests/Makefile.in`, `aclocal -I m4` et `automake` de la
+  1.16.5 ont écrit le `Makefile.in` de l'ancien et du nouveau `Makefile.am` dans
+  deux copies de l'arbre, leur `diff -u` a été appliqué avec `patch` au fichier
+  de la 1.18.1, et les 100 lignes qui séparent la sortie de la 1.16.5 du fichier
+  de la 1.18.1 sont les mêmes avant et après (`process.md` §6.3). meson se met
+  aussi dans un environnement virtuel (`pip install meson`, 1.12.1) ;
+  `-Dwarning_level=3` ajoute `-pedantic`, que les sources de CORE-MATH
+  n'acceptent pas.
+- Les échecs de CI de #281 : le job « Ubuntu 26.04 x86_64 Clang Debug ASan+UBSan
+  » de `linux.yml` a dépassé les 300 s de `numbers` sur `a32321f`
+  (`test_ibex_codac` y passait en 0,13 s ; `numbers` y a pris 109 à 287 s dans
+  les exécutions vertes), d'où les 400 s de `6fe4857` ; le job armhf de
+  Performance a échoué sur `exec /usr/bin/sh: exec format error` (l'émulation du
+  runner) et passe aux commits suivants ; un job macOS, `macOS 26 Xcode
+  generator`, a été annulé faute d'exécuteur sur le commit fusionné et n'a pas
+  été relancé.
+- Les pièges : `apt install autotools-dev` n'installe pas automake ; une
+  installation annoncée se vérifie par `command -v automake meson` et
+  `/var/log/apt/history.log` ; `git archive HEAD` donne deux copies propres de
+  l'arbre pour comparer deux sorties d'automake.
+
 ## 8. Le ménage fait
 
 ### 8.1 Branches, lignes de crédit, outillage
@@ -5088,6 +5236,8 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
   encore étant dans `todo-notes/synthese.md` (dcd3b11, 065191e), le 4 octobre.
 - [x] Celle de #280 (`todo-y-restes-textes`), sur GitHub (supprimée par le
   mainteneur à la fusion) et en local, le 2 novembre.
+- [x] Celles de #281 (`tests-ibex-codac`) et de #282 (`houserules-tools`), sur
+  GitHub (supprimées par le mainteneur à la fusion) et en local, le 3 novembre.
 
 ### 8.2 Les branches inachevées
 

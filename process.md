@@ -7,10 +7,10 @@ propose une pull request, et comment on tient les registres à jour une fois la
 pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
-en cours, ce qui reste) est au §12. Dernière mise à jour : 2 novembre 2026, au
-commit `1fbde53` de `configure-clean` (la fusion de #280, après celles de #217 à
+en cours, ce qui reste) est au §12. Dernière mise à jour : 3 novembre 2026, au
+commit `60aa5b3` de `configure-clean` (la fusion de #281, après celles de #217 à
 #220, #222 à #225, #227 à #232, #234 à #239, #242, #245, #248 à #250, #262 à
-#276 et #279).
+#276, #279, #280, #282, #283 et #284).
 
 ## 1. Le contexte
 
@@ -253,8 +253,9 @@ un est refusée, quel que soit son gain.
   `tests/meson.build`. `doc/tests.md` décrit ce que vérifie chaque programme :
   mets-le à jour.
 - `numbers` est le test le plus long. Son délai est de 300 s
-  (`GAOL_NUMBERS_TIMEOUT`), et 600 s dans le job macOS 15 x86_64 GCC avec les
-  sanitizers.
+  (`GAOL_NUMBERS_TIMEOUT`), 400 s dans les jobs avec sanitizers de `linux.yml`
+  (109 à 287 s, et plus de 300 s une fois) et 600 s dans le job macOS 15 x86_64
+  GCC avec les sanitizers.
 
 ## 6. Valider en local
 
@@ -277,9 +278,14 @@ que couvre le job `gcc-9` de `linux.yml`, ni meson 0.53.2, la plus ancienne
 version que le build meson prend en charge, que couvre le job `meson-oldest` de
 `build-systems.yml` (#110). Sur une machine sous Ubuntu 24.04 (GCC 13.3, CMake
 3.28, python 3.12), qui n'a ni autoconf, ni automake, ni libtool, ni meson, ni
-ninja, construis autoconf 2.72 (celui qui a généré le `configure` du dépôt)
-depuis le tarball de ftp.gnu.org (sha256 vérifié), et installe meson et ninja
-dans un environnement virtuel.
+ninja, demande au mainteneur de les installer (`apt install automake meson
+ninja-build` : automake 1.16.5, autoconf 2.71 et meson 1.3.2 le 3 novembre ;
+`autotools-dev` n'est pas automake ; vérifie par `command -v automake meson`) :
+le classifieur de permissions a refusé de construire autoconf 2.72, le tarball
+de ftp.gnu.org (sha256 et signature GPG vérifiés) que cette procédure indiquait.
+meson peut aussi aller dans un environnement virtuel (`pip install meson`).
+L'automake d'Ubuntu 24.04 n'est pas la 1.18.1 des `Makefile.in` du dépôt : voir
+6.3.
 
 Le processeur (i7-1185G7) a AVX-512 et FMA. Il ne voit donc jamais les chemins
 sans FMA : la CI les couvre.
@@ -351,7 +357,15 @@ Ce que tu ne peux pas tester ici (Windows, macOS, ARM, gros-boutiste, sans FMA),
 ### 6.3 Les fichiers générés
 
 - **Un `Makefile.in`** : `automake <dir>/Makefile` avec automake 1.18.1. Le diff
-  de `Makefile.in` ne doit contenir que l'effet de ton changement.
+  de `Makefile.in` ne doit contenir que l'effet de ton changement. Avec une
+  autre version d'automake (la 1.16.5 d'Ubuntu 24.04), ne régénère pas le
+  fichier : écris le `Makefile.in` de l'ancien et du nouveau `Makefile.am` dans
+  deux copies de l'arbre (`git archive`, puis `aclocal -I m4` et `automake
+  --add-missing --copy <dir>/Makefile` ; les macros de libtool sont dans `m4/`),
+  garde le `diff -u` des deux, applique-le avec `patch` au fichier du dépôt, et
+  vérifie que les lignes qui séparent la sortie de la 1.16.5 du fichier de la
+  1.18.1 sont les mêmes avant et après (`diff` des deux, lignes `<` et `>`
+  seulement). Dis-le dans la pull request (#281).
 - **`configure`** : quand seul `configure.ac` change, `autoconf`, qui prend
   l'`aclocal.m4` du dépôt, puis `rm -f configure~`. Sous Ubuntu 26.04,
   `autoreconf --force --install` réécrirait aussi `INSTALL`, `config.guess`,
@@ -728,7 +742,7 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   `bash -e`, un `! grep ...` au milieu d'une étape ne la fait pas échouer (seule
   la dernière commande donne son statut) : écris un `if` explicite.
 
-## 12. Où en est le travail (2 novembre 2026)
+## 12. Où en est le travail (3 novembre 2026)
 
 Le reste à faire est dans `TODO.md` (tâches PH, PJ et PK) et l'issue #179 ; ce
 qui est fait et décidé (pull requests fusionnées, décisions, mesures) est dans
@@ -780,26 +794,31 @@ git ls-remote --heads origin
   <= y`, l'ordre des tests ; la tâche PG est faite) et, de la tâche PI, #263 à
   #274 (la synthèse de `doc/differences.md` et du `ChangeLog` en douze thèmes)
   et #275 (les phrases fausses hors de ces deux documents), avec #276 (macOS 27
-  à la place de macOS 14) et #280 (leurs restes : la tâche PI est faite) ;
-  l'audit du 13 octobre a vérifié dans `configure-clean` ce qu'annonçaient alors
-  les points A, C à H et J à V.
-- **En cours** : au 2 novembre, la pull request #281 (les cas des tests d'IBEX
-  et de Codac, hors des points) est ouverte ; `configure-clean` est au commit de
-  la fusion de #280. Ses branches sur GitHub sont `configure-clean`, `MATH-CORE`
-  et `master`, avec la branche de #281 (`tests-ibex-codac`) et les branches des
-  pull requests jetables fermées, gardées (`experiment-pg*`, voir `TODO_DONE.md`
-  8.1), et deux branches fusionnées ou fermées que le mainteneur supprime
-  (`todo-pg-relations-order`, `todo-pg-xle-exfirst`). L'issue #198 (`x / y` des
-  intervalles NEON avec `FPCR.AH`) est ouverte, sans tâche dans `TODO.md` ; #185
-  est fermée, le masquage des exceptions de `pow` est gardé. L'issue #177
-  (`TODO_DONE.md`) n'est plus mise à jour (*décidé le 28 octobre*) : GitHub
-  borne le corps d'une issue à 262 144 octets et le texte joint en fait plus de
-  270 000 (voir `TODO_DONE.md` 7.8).
+  à la place de macOS 14) et #280 (leurs restes : la tâche PI est faite), puis,
+  le 3 novembre, #281 (hors des points : les cas des tests d'IBEX et de Codac
+  contre les résultats exacts, `tests/test_ibex_codac.cpp`, 3 905 vérifications)
+  et #282 (`HOUSE_RULES.md` renvoie à `process.md` §6.1), avec #283 (les
+  en-têtes de CORE-MATH dans `gaol/math/`) et #284 (les opérateurs de
+  `gaol_ieee1788`), que `TODO_DONE.md` ne décrit pas encore ; l'audit du 13
+  octobre a vérifié dans `configure-clean` ce qu'annonçaient alors les points A,
+  C à H et J à V.
+- **En cours** : au 3 novembre, aucune pull request n'est ouverte ;
+  `configure-clean` est au commit de la fusion de #281 (`60aa5b3`). Ses branches
+  sur GitHub sont `configure-clean`, `MATH-CORE` et `master`, avec les branches
+  des pull requests jetables fermées, gardées (`experiment-pg*`, voir
+  `TODO_DONE.md` 8.1), et deux branches fusionnées ou fermées que le mainteneur
+  supprime (`todo-pg-relations-order`, `todo-pg-xle-exfirst`). L'issue #198 (`x
+  / y` des intervalles NEON avec `FPCR.AH`) est ouverte, sans tâche dans
+  `TODO.md` ; #185 est fermée, le masquage des exceptions de `pow` est gardé.
+  L'issue #177 (`TODO_DONE.md`) n'est plus mise à jour (*décidé le 28 octobre*)
+  : GitHub borne le corps d'une issue à 262 144 octets et le texte joint en fait
+  plus de 270 000 (voir `TODO_DONE.md` 7.8).
 - **À faire**, dans l'ordre de `TODO.md` : un `FE_INVALID` à décider (PK, avec
   Clang et les intervalles FPU), les signalements à d'autres projets (PH, avec
   l'accord du mainteneur), puis la version (PJ, qui reprend le tableau de Clang
-  21, le manuel et les textes qui citent macOS 14). Ce qui est reporté (le 113,
-  le site, les traits pour YalAA et VNODE-LP, les décorations, ce qui attend du
+  21, le manuel, les textes qui citent macOS 14 et la compatibilité de licence
+  des cas d'IBEX et de Codac, à décider : #281). Ce qui est reporté (le 113, le
+  site, les traits pour YalAA et VNODE-LP, les décorations, ce qui attend du
   matériel) est dans `TODO_AFTER.md`. Les dépendances entre points sont écrites
   dans chaque tâche. Le mainteneur donne les tâches ou les points un par un («
   traite la tâche PF », « traite le point 129 ») : ne commence pas le suivant
