@@ -26,7 +26,7 @@
  *   cosh(MAX) +inf, and GAOL bounds that did not enclose the exact values.
  *   Found on x86-64 with -mfpmath=387.
  *
- * CORE-MATH (gaol/gaol_core_math.h) is checked in the four rounding
+ * CORE-MATH (gaol/math/gaol_core_math.h) is checked in the four rounding
  * directions, and GAOL's bounds of [x, x] in the upward direction it keeps.
  * The values are computed with mpmath (tests/extended_precision_values.py).
  *
@@ -39,7 +39,7 @@
  *--------------------------------------------------------------------------*/
 
 #include "gaol_tests.h"
-#include "gaol/gaol_core_math.h"
+#include "gaol/math/gaol_core_math.h"
 #include "extended_precision_values.h"
 
 #include <cfenv>

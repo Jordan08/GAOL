@@ -27,9 +27,9 @@
 # CMake and meson compile them apart too, which keeps the interprocedural
 # optimization of GAOL's own sources away from them (see doc/three-builds.md).
 #
-# gaol/core_math_port.h is included first in each of them, by the compiler
-# rather than by the source, so that importing a newer CORE-MATH stays a plain
-# copy. See README.md.
+# gaol/math/gaol_core_math_port.h is included first in each of them, by the
+# compiler rather than by the source, so that importing a newer CORE-MATH stays
+# a plain copy. See README.md.
 #------------------------------------------------------------------------------
 #
 # Copyright (c) 2026 ENSTA, France
@@ -451,7 +451,7 @@ libgaolcoremath_la_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
 # it makes GAOL's own operations twice as fast (see doc/three-builds.md). The
 # flag is given where the compiler takes it, which configure tested
 # (CORE_MATH_NO_LTO).
-libgaolcoremath_la_CFLAGS = $(AM_CFLAGS) @GAOL_C_STD@ @CORE_MATH_NO_LTO@ @CORE_MATH_EXCESS_PRECISION@ @GAOL_ALIGN_CFLAGS@ -include $(top_srcdir)/gaol/core_math_port.h
+libgaolcoremath_la_CFLAGS = $(AM_CFLAGS) @GAOL_C_STD@ @CORE_MATH_NO_LTO@ @CORE_MATH_EXCESS_PRECISION@ @GAOL_ALIGN_CFLAGS@ -include $(top_srcdir)/gaol/math/gaol_core_math_port.h
 all: all-am
 
 .SUFFIXES:

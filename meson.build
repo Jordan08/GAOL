@@ -794,20 +794,21 @@ endif
 message('Link flags of the code using GAOL: ' + ' '.join(gaol_link_args))
 
 # The 128-bit integer of the accurate phases of CORE-MATH and of GAOL's exact
-# products (gaol/gaol_u128.h): the type of the compiler where it has one, else
-# two 64-bit halves, which gaol_u128.h takes by itself (Visual C++ and the
-# 32-bit targets of GCC). The check asks that header, as CMakeLists.txt does, and
-# says which; -Dc_args=-DGAOL_U128_FORCE_EMULATION=1 and -Dcpp_args=... have the
-# halves where the compiler has a type, a setting of the developers (GAOL v5).
+# products (gaol/math/gaol_u128.h): the type of the compiler where it has one,
+# else two 64-bit halves, which gaol_u128.h takes by itself (Visual C++ and the
+# 32-bit targets of GCC). The check asks that header, as CMakeLists.txt does,
+# and says which; -Dc_args=-DGAOL_U128_FORCE_EMULATION=1 and -Dcpp_args=...
+# have the halves where the compiler has a type, a setting of the developers
+# (GAOL v5).
 has_u128 = cpp_comp.compiles('''
-#include "gaol/gaol_u128.h"
+#include "gaol/math/gaol_u128.h"
 #if !GAOL_U128_NATIVE
 #error the compiler has no 128-bit integer type
 #endif
 int main() { return 0; }
 ''', include_directories: include_directories('.'), name: 'the compiler has a 128-bit integer type')
 if not has_u128
-  message('128-bit integer: the two halves of gaol/gaol_u128.h, as with Visual C++ and on a 32-bit target')
+  message('128-bit integer: the two halves of gaol/math/gaol_u128.h, as with Visual C++ and on a 32-bit target')
 endif
 
 # enable-coverage: GAOL and its tests compiled with the counters of gcov

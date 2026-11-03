@@ -810,7 +810,7 @@ static const flex_int16_t yy_chk[441] =
 #include "gaol/gaol_interval.h"
 #include "gaol/parser/gaol_expression.h"
 #include "gaol/gaol_exceptions.h"
-#include "gaol/gaol_double_op.h"
+#include "gaol/math/gaol_double_op.h"
 #include "gaol/parser/gaol_parser.h"
 
 

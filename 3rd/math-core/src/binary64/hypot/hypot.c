@@ -64,7 +64,7 @@ static inline void set_flags (fexcept_t flag)
 typedef uint64_t u64;
 typedef int64_t i64;
 
-/* GAOL: u128 is the 128-bit unsigned integer of gaol/gaol_u128.h: the type of
+/* GAOL: u128 is the 128-bit unsigned integer of gaol/math/gaol_u128.h: the type of
    the compiler where it has one (unsigned __int128, or _BitInt(128) of C23),
    and the structure of two 64-bit halves with Visual C++, which has none on
    any architecture, and on the 32-bit targets of GCC. Where it is that

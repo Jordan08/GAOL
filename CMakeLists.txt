@@ -327,7 +327,8 @@ endif()
 #   mingw-w64 13), and GAOL changed the rounding direction four times for each
 #   exp(), log(), sin() or cos() of an interval. It changes it no more: the
 #   functions of CORE-MATH are correctly rounded in the direction in effect, so
-#   GAOL calls them in the upward rounding it keeps (gaol/gaol_double_op.h).
+#   GAOL calls them in the upward rounding it keeps
+#   (gaol/math/gaol_double_op.h).
 #
 # The continuous integration builds GAOL with the MinGW-w64 GCC 14.2.0 and
 # 15.2.0 of Chocolatey on x86-64, and 12.2.0 to 15.2.0 on 32-bit x86, and with
@@ -703,14 +704,14 @@ message(STATUS "Link flags of the code using GAOL: ${GAOL_LINK_FLAGS_STRING}")
 #
 # CORE-MATH is correctly rounded in the rounding direction in effect, so GAOL
 # takes its values as bounds without moving them outward and without switching
-# the rounding direction (see gaol/gaol_double_op.h), and the bounds are the
-# same on every architecture and with every compiler.
+# the rounding direction (see gaol/math/gaol_double_op.h), and the bounds are
+# the same on every architecture and with every compiler.
 #
-# Each source is compiled with gaol/core_math_port.h included first, by the
-# compiler rather than by the source (-include, /FI), so that importing a newer
-# CORE-MATH stays a plain copy: that header gives them the names GAOL uses, the
-# 128-bit integer of gaol/gaol_u128.h where the compiler has none (Visual C++,
-# and GCC for a 32-bit target), and what Visual C++ has not of GCC.
+# Each source is compiled with gaol/math/gaol_core_math_port.h included first,
+# by the compiler rather than by the source (-include, /FI), so that importing a
+# newer CORE-MATH stays a plain copy: that header gives them the names GAOL
+# uses, the 128-bit integer of gaol/math/gaol_u128.h where the compiler has none
+# (Visual C++, and GCC for a 32-bit target), and what Visual C++ has not of GCC.
 
 set(GAOL_CORE_MATH_FUNCTIONS
   exp log pow sin cos tan asin acos atan atan2
@@ -737,9 +738,9 @@ foreach(_f IN LISTS GAOL_CORE_MATH_FUNCTIONS)
 endforeach()
 
 if(MSVC)
-  set(GAOL_CORE_MATH_FLAGS "/FI${CMAKE_CURRENT_SOURCE_DIR}/gaol/core_math_port.h")
+  set(GAOL_CORE_MATH_FLAGS "/FI${CMAKE_CURRENT_SOURCE_DIR}/gaol/math/gaol_core_math_port.h")
 else()
-  set(GAOL_CORE_MATH_FLAGS "-include;${CMAKE_CURRENT_SOURCE_DIR}/gaol/core_math_port.h")
+  set(GAOL_CORE_MATH_FLAGS "-include;${CMAKE_CURRENT_SOURCE_DIR}/gaol/math/gaol_core_math_port.h")
   # CORE-MATH asks for its computations to be rounded to double precision
   # (FLT_EVAL_METHOD = 0, see 3rd/math-core/README.md). GAOL gets that on x86
   # by computing with SSE2, which gaol/gaol_config.h refuses to do without, and
@@ -1257,7 +1258,8 @@ add_library(gaol_core_math OBJECT ${GAOL_CORE_MATH_SOURCES})
 set_target_properties(gaol_core_math PROPERTIES
   INTERPROCEDURAL_OPTIMIZATION OFF
   POSITION_INDEPENDENT_CODE ON)
-# gaol/core_math_port.h included first in each of them, by the compiler
+# gaol/math/gaol_core_math_port.h included first in each of them, by the
+# compiler
 target_compile_options(gaol_core_math PRIVATE ${GAOL_CORE_MATH_FLAGS} ${GAOL_INTERVAL_FLAGS} ${GAOL_FMA_FLAGS} ${GAOL_LIBRARY_FLAGS})
 target_include_directories(gaol_core_math PRIVATE
   "${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -1291,7 +1293,7 @@ endif()
 
 
 # The 128-bit integer of the accurate phases of CORE-MATH and of GAOL's exact
-# products (gaol/gaol_u128.h): the type of the compiler where it has one
+# products (gaol/math/gaol_u128.h): the type of the compiler where it has one
 # (`unsigned __int128` of GCC and Clang on the 64-bit targets, `_BitInt(128)` of
 # Clang 14 and later and of GCC 14 and later where the ABI defines it), else two
 # 64-bit halves, which is what Visual C++ and the 32-bit targets of GCC take.
@@ -1303,7 +1305,7 @@ endif()
 # one).
 set(CMAKE_REQUIRED_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}")
 check_cxx_source_compiles("
-  #include \"gaol/gaol_u128.h\"
+  #include \"gaol/math/gaol_u128.h\"
   #if !GAOL_U128_NATIVE
   #error the compiler has no 128-bit integer type
   #endif
@@ -1320,12 +1322,12 @@ else()
   set(GAOL_U128_EMULATION OFF)
 endif()
 if(GAOL_U128_EMULATION)
-  message(STATUS "128-bit integer: the two halves of gaol/gaol_u128.h, as with Visual C++ and on a 32-bit target")
+  message(STATUS "128-bit integer: the two halves of gaol/math/gaol_u128.h, as with Visual C++ and on a 32-bit target")
 endif()
 # Where the compiler has the type, the halves are asked for with the macro
-# GAOL_U128_FORCE_EMULATION; where it has none, gaol_u128.h takes the halves by
-# itself, as configure and meson leave it to, and no definition reaches the code
-# using GAOL (GAOL v5)
+# GAOL_U128_FORCE_EMULATION; where it has none, math/gaol_u128.h takes the
+# halves by itself, as configure and meson leave it to, and no definition
+# reaches the code using GAOL (GAOL v5)
 if(_gaol_u128_asked AND GAOL_COMPILER_HAS_U128)
   target_compile_definitions(gaol PUBLIC GAOL_U128_FORCE_EMULATION=1)
   # The sources of CORE-MATH, which are the ones computing with the 128-bit
@@ -1429,18 +1431,18 @@ install(TARGETS gaol EXPORT gaolTargets
 # gaol/meson.build install the same ones. Not the headers of the sources of
 # GAOL only (GAOL v5): gaol/parser/gaol_interval_parser.h, which did not
 # compile when included, the parts of the library (gaol_init_cleanup.h,
-# gaol_core_math.h, gaol_u128.h),
-# what CORE-MATH's sources need to compile within GAOL (core_math_port.h,
-# core_math_log_dint.h, gaol_ldexp.h), the bounds at doubles, *_dn() and
-# *_up(), which are not part of GAOL's interface (gaol_double_op.h), and the
-# intervals of floats, which only a developer of GAOL compiles (see
+# math/gaol_core_math.h, math/gaol_u128.h), what CORE-MATH's sources need to
+# compile within GAOL (math/gaol_core_math_port.h, core_math_log_dint.h,
+# math/gaol_ldexp.h, math/gaol_roundeven.h), the bounds at doubles, *_dn() and
+# *_up(), which are not part of GAOL's interface (math/gaol_double_op.h), and
+# the intervals of floats, which only a developer of GAOL compiles (see
 # gaol/gaol_config.h)
 set(GAOL_HEADERS
   gaol/gaol.h gaol/gaol_common.h
   gaol/gaol_config.h gaol/gaol_exceptions.h
   gaol/gaol_fpu.h gaol/gaol_fpu_fenv.h gaol/gaol_fpu_msvc.h
   gaol/gaol_ieee1788.h gaol/gaol_interval.h
-  gaol/gaol_port.h gaol/gaol_roundeven.h
+  gaol/gaol_port.h
   gaol/gaol_version.h)
 # The headers of the intervals, which gaol/gaol_interval.h includes: installed
 # in gaol/core/ as in the sources (GAOL v5)

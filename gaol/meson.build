@@ -17,8 +17,8 @@ configure_file(
 
 # The elementary functions of CORE-MATH (3rd/math-core), compiled into libgaol
 # itself: nothing is linked along with GAOL. Each source is compiled with
-# gaol/core_math_port.h included first, by the compiler rather than by the
-# source, so that importing a newer CORE-MATH stays a plain copy.
+# gaol/math/gaol_core_math_port.h included first, by the compiler rather than
+# by the source, so that importing a newer CORE-MATH stays a plain copy.
 core_math_functions = [
   'exp', 'log', 'pow', 'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'atan2',
   'sinh', 'cosh', 'tanh', 'asinh', 'acosh', 'atanh',
@@ -41,7 +41,7 @@ core_math_sources = []
 foreach f : core_math_functions
   core_math_sources += [core_math_root + f + '/' + f + '.c']
 endforeach
-core_math_port = meson.current_source_dir() + '/core_math_port.h'
+core_math_port = meson.current_source_dir() + '/math/gaol_core_math_port.h'
 if msvc
   core_math_args = ['/FI' + core_math_port]
   # What CORE-MATH writes on purpose, which /W4 of Visual C++ reports and
@@ -121,7 +121,6 @@ gaol_HEADERS = [
   'gaol_ieee1788.h',
   'gaol_interval.h',
   'gaol_port.h',
-  'gaol_roundeven.h',
   'gaol_version.h',
 ]
 
@@ -149,11 +148,12 @@ EXTRA_DIST = [
   # Headers of the sources of GAOL, not installed (GAOL v5):
   # parser/gaol_interval_parser.h, which did not compile when included, and
   # the parts of the library
-  'gaol_core_math.h',
+  'math/gaol_core_math.h',
   'gaol_init_cleanup.h',
   'parser/gaol_interval_parser.h',
-  'gaol_u128.h',
-  'gaol_ldexp.h',
+  'math/gaol_u128.h',
+  'math/gaol_ldexp.h',
+  'math/gaol_roundeven.h',
   'parser/gaol_interval_lexer.lpp',
   'parser/gaol_interval_parser.ypp',
   'core/gaol_interval_sse.cpp',
@@ -164,7 +164,7 @@ EXTRA_DIST = [
   # and *_up(), which are not part of its interface, and the intervals of
   # floats, which gaol_interval_core.cpp includes where a developer of GAOL
   # defines GAOL_FLOAT_INTERVALS (see gaol_config.h) (GAOL v5)
-  'gaol_double_op.h',
+  'math/gaol_double_op.h',
   'float/gaol_intervalf.h',
   'float/gaol_intervalf.cpp',
   'float/gaol_interval2f.h',

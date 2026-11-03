@@ -400,7 +400,8 @@ jobs:
       - name: Tools
         run: |
           # GCC 9 has no __builtin_roundeven(), which CORE-MATH's sin.c calls
-          # unguarded: gaol/core_math_port.h gives it gaol_roundeven()
+          # unguarded: gaol/math/gaol_core_math_port.h gives it
+          # gaol_roundeven()
           sudo apt-get update -q
           sudo apt-get install -y -q gcc-9 g++-9 cmake make
           g++-9 --version
@@ -479,7 +480,7 @@ jobs:
           done
           # Not the headers of the sources of GAOL only, nor the parser's at
           # their old place (GAOL v5)
-          for file in include/gaol/gaol_u128.h include/gaol/parser/gaol_interval_parser.h include/gaol/gaol_expression.h; do
+          for file in include/gaol/math/gaol_u128.h include/gaol/math/gaol_roundeven.h include/gaol/parser/gaol_interval_parser.h include/gaol/gaol_expression.h; do
             test ! -e "gaol-install/$file" || { echo "$file is installed"; exit 1; }
           done
       - name: Tests built with the installed GAOL
