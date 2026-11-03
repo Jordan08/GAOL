@@ -799,7 +799,7 @@ git ls-remote --heads origin
   contre les résultats exacts, `tests/test_ibex_codac.cpp`, 3 905 vérifications)
   et #282 (`HOUSE_RULES.md` renvoie à `process.md` §6.1), avec #283 (les
   en-têtes de CORE-MATH dans `gaol/math/`) et #284 (les opérateurs de
-  `gaol_ieee1788`), que `TODO_DONE.md` ne décrit pas encore ; l'audit du 13
+  `gaol_ieee1788`), décrits dans `TODO_DONE.md` (2.3 et 3.14) ; l'audit du 13
   octobre a vérifié dans `configure-clean` ce qu'annonçaient alors les points A,
   C à H et J à V.
 - **En cours** : au 3 novembre, aucune pull request n'est ouverte ;
@@ -816,10 +816,11 @@ git ls-remote --heads origin
 - **À faire**, dans l'ordre de `TODO.md` : un `FE_INVALID` à décider (PK, avec
   Clang et les intervalles FPU), les signalements à d'autres projets (PH, avec
   l'accord du mainteneur), puis la version (PJ, qui reprend le tableau de Clang
-  21, le manuel, les textes qui citent macOS 14 et la compatibilité de licence
-  des cas d'IBEX et de Codac, à décider : #281). Ce qui est reporté (le 113, le
-  site, les traits pour YalAA et VNODE-LP, les décorations, ce qui attend du
-  matériel) est dans `TODO_AFTER.md`. Les dépendances entre points sont écrites
-  dans chaque tâche. Le mainteneur donne les tâches ou les points un par un («
-  traite la tâche PF », « traite le point 129 ») : ne commence pas le suivant
-  sans lui.
+  21, le manuel, les textes qui citent macOS 14, la compatibilité de licence des
+  cas d'IBEX et de Codac, à décider : #281, et les restes de #283 et de #284 :
+  les registres `doc/differences.md` et `ChangeLog`). Ce qui est reporté (le
+  113, le site, les traits pour YalAA et VNODE-LP, les décorations, ce qui
+  attend du matériel) est dans `TODO_AFTER.md`. Les dépendances entre points
+  sont écrites dans chaque tâche. Le mainteneur donne les tâches ou les points
+  un par un (« traite la tâche PF », « traite le point 129 ») : ne commence pas
+  le suivant sans lui.

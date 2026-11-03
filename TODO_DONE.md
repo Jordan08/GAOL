@@ -84,9 +84,9 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   36 par le mainteneur, puis, le 3 novembre, #282 (`HOUSE_RULES.md` : les
   outils de la machine sont dans `process.md` §6.1, hors des points) à 11 h 38,
   #283 (les en-têtes de CORE-MATH dans `gaol/math/`, `3rd/math-core` réduit à
-  binary64) et #284 (les opérateurs de `gaol_ieee1788`) à 11 h 40 et 11 h 41,
-  que cette mise à jour ne décrit pas en 2.3, et #281 (les cas des tests d'IBEX
-  et de Codac, hors des points) à 16 h 51, toutes par le mainteneur. #168,
+  binary64) et #284 (les opérateurs de `gaol_ieee1788`) à 11 h 40 et 11 h 41
+  (2.3 et 3.14), et #281 (les cas des tests d'IBEX et de Codac, hors des
+  points) à 16 h 51, toutes par le mainteneur. #168,
   #195, #211, #214, #221, #226 et #233 sont fermées sans fusion, et, du 30 et
   du 31 octobre, #240, #241, #243, #244, #246, #247, #251 à #261, #277 et #278
   (2.4). Les tâches PA, PB, PC, PD, PE, PF, PG et PI sont faites (PE : #200 et
@@ -2129,6 +2129,54 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   containers, Autotools et meson et macOS verts ; fusionnée le 3 novembre à 11 h
   38 UTC par le mainteneur)
 
+- #283 (hors des points : les en-têtes que GAOL a écrits pour compiler CORE-MATH
+  réunis dans `gaol/math/`, et `3rd/math-core/src` réduit à `binary64`) : cinq
+  commits, 880 fichiers, 262 lignes ajoutées et 115 997 retirées.
+  `gaol_double_op.h`, `gaol_u128.h`, `gaol_ldexp.h`, `gaol_roundeven.h` et
+  `gaol_core_math.h` vont dans `gaol/math/` par `git mv` (`16d3cef`), puis
+  `core_math_port.h` devient `gaol/math/gaol_core_math_port.h` (`63d9052`, avec
+  le préfixe `gaol_` des autres ; sa garde d'inclusion, déjà `GAOL_`, ne change
+  pas) : les `#include`, les chemins des commentaires et de la documentation
+  (dont les 14 commentaires `/* GAOL: u128 is ... */` des sources de CORE-MATH,
+  que GAOL y a ajoutés), le `-include` et le `/FI` des trois builds, leurs
+  listes d'en-têtes (`CMakeLists.txt`, `gaol/Makefile.am`, `gaol/meson.build`),
+  `headers.sh` et `linux.yml` suivent ; `gaol/Makefile.in`, `3rd/Makefile.in`,
+  `configure` et le lexer sont refaits avec automake 1.18.1, autoconf 2.72 et
+  flex 2.6.4 (l'analyseur de bison 3.8.2 sort identique), leurs diffs ne
+  contenant que l'effet du changement. `binary16`, `binary32`, `binary80`,
+  `binary128`, `binaryb16` et `generic` sont retirés de `3rd/math-core/src`
+  (`7451096` : 830 fichiers, environ 12 Mo ; aucune source de `binary64` n'en
+  inclut un fichier et aucune ligne `/* GAOL */` n'y était), avec les phrases de
+  `3rd/README.md` et de `doc/tools.md` qui les citaient. Les trois chemins de
+  `coverage/README.md` sont corrigés à la main (`99872e2`). Enfin
+  `round_ties_to_even()` est définie dans `gaol_interval_core.cpp`, déclarée
+  `extern GAOL_PUBLIC` comme `sign_rel()`, et `gaol_roundeven.h` n'est plus
+  installé (`777240c` : les trois builds installent 22 en-têtes, au lieu de 23)
+  ; la fonction n'est plus en ligne, ce qu'aucun banc ne mesure. Vérifié en
+  local après chaque commit : CMake GCC SSE2 et Clang 18 en `-Wall -Wextra
+  -Werror` (61 tests sur 61), GCC FPU (58 sur 58), autotools (29 PASS, 2 SKIP)
+  puis `make distclean`, qui rend l'arbre, meson (29 OK, 2 SKIP), et
+  `headers.sh` et `tests.sh static` sur l'installation (1 269 891 vérifications
+  avec `pkg-config`, aucune en échec) ; `headers.sh` échoue quand l'`#include`
+  de `gaol_roundeven.h` revient dans le `gaol_interval_core.h` installé. Pas de
+  relecteur indépendant. Sa CI au dernier commit `777240c` : Linux, Windows,
+  Linux containers, macOS, Autotools et meson et Performance verts ; fusionnée
+  le 3 novembre à 11 h 40 UTC par le mainteneur ; décisions : 3.14)
+
+- #284 (hors des points : `gaol_ieee1788` nomme les opérateurs des intervalles)
+  : un commit, 2 fichiers, 40 lignes ajoutées et 2 retirées.
+  `gaol/gaol_ieee1788.h` reçoit `using ::gaol_core::operator+;` et les six
+  autres (`-`, `*`, `/`, `%`, `&` et `|`), avec toutes leurs surcharges ;
+  `operator<<` y était déjà. `tests/ieee1788.cpp` appelle chacun par son nom
+  qualifié, sur des résultats exacts en doubles (`[1, 2] % [4, 8]` est `[0.125,
+  0.5]`) : avec le `gaol_ieee1788.h` de `configure-clean`, `gaol_test_ieee1788`
+  ne compile pas (14 erreurs, « `operator+` is not a member of `gaol_ieee1788` »
+  et ses six pareilles), avec le changement il passe. Vérifié en local : CMake
+  GCC SSE2 et Clang 18 en `-Wall -Wextra -Werror` (61 sur 61) et `headers.sh`.
+  Pas de relecteur indépendant. Sa CI : Linux, Windows, Linux containers, macOS,
+  Autotools et meson et Performance verts ; fusionnée le 3 novembre à 11 h 41
+  UTC par le mainteneur ; décisions : 3.14)
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -3858,6 +3906,40 @@ les exécute (2.3).
   sanitizers de `linux.yml`, qui avaient 300 s (*décidé le 14 octobre*) : le job
   Clang x86_64 les a dépassés une fois.
 
+### 3.14 Le 3 novembre : `gaol/math/` et les opérateurs de `gaol_ieee1788`
+
+Les décisions du mainteneur sur #283 et #284 (hors des points), avec la pull
+request qui les exécute (2.3).
+
+- **Les en-têtes** : « déplace dans le dossier gaol/math/ les fichiers suivant »
+  (`gaol_double_op.h`, `gaol_u128.h`, `gaol_ldexp.h`, `gaol_roundeven.h`,
+  `gaol_core_math.h`), puis « déplace gaol/core_math_port.h en
+  gaol/math/gaol_core_math_port.h » : #283.
+- **Les dossiers de CORE-MATH** : « supprime également les dossiers suivant
+  s'ils sont inutile » (`binary16`, `binary32`, `binary80`, `binary128`,
+  `binaryb16`, `generic`) : inutiles aux trois builds, supprimés (#283). Les
+  outils amont qui les utilisent (`check.sh`, `ci.sh`, `perf.sh`, `perf-all.sh`
+  de `3rd/math-core` et les 42 `Makefile` de `binary64`) ne marchent plus ici :
+  *décidé le 3 novembre*, les garder, `3rd/README.md` disant de cloner l'amont
+  pour les lancer. Les correctifs de PH qui visent `binary80` ou `binary128`
+  s'écrivent contre l'amont.
+- **`gaol_roundeven.h`** : installé parce que `gaol_interval_core.h`, installé
+  lui aussi, l'incluait pour la fonction en ligne `round_ties_to_even(I)`
+  (réponse à « pourquoi est-il installé ? ») ; *décidé le 3 novembre* : « ne
+  plus installer gaol_roundeven.h », le corps de la fonction dans
+  `gaol_interval_core.cpp`, l'en-tête installé n'incluant plus
+  `gaol_roundeven.h` : #283. Le coût de l'appel n'est mesuré par aucun banc.
+- **`coverage/`** (*décidé le 3 novembre*) : corriger à la main les chemins de
+  `coverage/README.md` ; `coverage/coverage.html`, généré, attend le relevé de
+  la version (`TODO.md`, PJ point 1) : #283.
+- **`gaol_ieee1788`** : les opérateurs `+`, `-`, `*`, `/`, `%`, `&` et `|` de
+  `gaol_core`, qui n'y étaient pas (`operator<<` y était) : #284. *Décidé le 3
+  novembre* : rien de plus, ni `<`, `<=`, `>`, `>=` ni `operator>>`, que la
+  recherche dépendante des arguments trouve sur un intervalle.
+- **Les restes** : les textes « Pour `doc/differences.md` et `ChangeLog` » des
+  deux pull requests, et le commentaire de `CMakeLists.txt` qui cite
+  `core_math_log_dint.h`, qui n'existe pas, sont dans `TODO.md` (PJ, point 7).
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -5076,8 +5158,8 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
   40 et 11 h 41 puis #281 à 16 h 51 : `configure-clean` est au commit `60aa5b3`,
   aucune pull request n'est ouverte. #283 (les en-têtes de CORE-MATH dans
   `gaol/math/`, `3rd/math-core` réduit à binary64) et #284 (les opérateurs de
-  `gaol_ieee1788`) ne sont pas de la session qui met ces registres à jour :
-  leurs entrées de 2.3 et leurs décisions ne sont pas écrites ici.
+  `gaol_ieee1788`) ne sont pas de la session qui a fait ces registres : leurs
+  entrées de 2.3 et leurs décisions de 3.14 sont écrites en 7.13.
 - La machine (Ubuntu 24.04) : le mainteneur a installé `ninja-build` et
   `autotools-dev` (les seuls `config.guess` et `config.sub`, ni automake ni
   autoconf), puis `automake` (1.16.5, avec autoconf 2.71) et `meson` (1.3.2). La
@@ -5102,6 +5184,23 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
   installation annoncée se vérifie par `command -v automake meson` et
   `/var/log/apt/history.log` ; `git archive HEAD` donne deux copies propres de
   l'arbre pour comparer deux sorties d'automake.
+
+### 7.13 Le 3 novembre (après #283 et #284)
+
+- Le mainteneur a fusionné #283 et #284 à 11 h 40 et 11 h 41 UTC, avant #281
+  (7.12) : leurs entrées (2.3) et leurs décisions (3.14) sont écrites par la
+  session qui les a faites. Leurs branches `gaol-math-dir` et
+  `ieee1788-operators` n'existent plus sur GitHub (supprimées à la fusion) ;
+  celles de la machine sont supprimées par `git branch -d`.
+- Les outils : automake 1.18.1, autoconf 2.72, flex 2.6.4 et bison 3.8.2
+  (`process.md` §6.3), GCC, Clang 18, CMake 4.2 et meson 1.10 ; `gh pr create`
+  échoue (« GraphQL: Head sha can't be blank... »), les pull requests et leurs
+  textes passent par `gh api` (`repos/Jordan08/GAOL/pulls`).
+- Les pièges : `cmake --install` sans `--prefix` ni `CMAKE_INSTALL_PREFIX`
+  installerait dans `/usr/local` ; `.github/scripts/tests.sh` écrit ses
+  programmes de test dans le répertoire courant, d'où le lancer dans une copie
+  de l'arbre ; les builds CMake et meson lisent l'arbre en cours : on ne le
+  modifie pas pendant qu'ils tournent.
 
 ## 8. Le ménage fait
 
@@ -5238,6 +5337,8 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
   mainteneur à la fusion) et en local, le 2 novembre.
 - [x] Celles de #281 (`tests-ibex-codac`) et de #282 (`houserules-tools`), sur
   GitHub (supprimées par le mainteneur à la fusion) et en local, le 3 novembre.
+- [x] Celles de #283 (`gaol-math-dir`) et de #284 (`ieee1788-operators`), sur
+  GitHub (supprimées à la fusion) et en local, le 3 novembre.
 
 ### 8.2 Les branches inachevées
 

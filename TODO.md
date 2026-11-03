@@ -89,7 +89,9 @@ probablement rien.
    absent de l'arbre) : *décidé le 28 octobre*, non, les 45 arguments de
    `cos_accurate_path()` suffisent ; elle ne voit pas les fautes de moins de
    2^-70 environ en relatif, et les deux mutants qui survivent ne changent aucun
-   résultat observable.
+   résultat observable. Depuis #283, `3rd/math-core/src` ne garde que
+   `binary64` : ce qui vise `atan2l.c` et `powl.c` de `binary80` ou `expm1q.c`
+   de `binary128` se refait contre un clone de l'amont.
 2. **#126 GCC** (la comparaison silencieuse rendue signalante par
    l'if-conversion sur ARM 32 bits et POWER9 et par la vectorisation, et le
    miscompilage de GCC 12.2 sur aarch64 dans `tests/numbers.cpp` ; le bogue
@@ -144,7 +146,9 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    `GAOL_NUMBERS_TIMEOUT` n'était pas relevé pour les builds avec sanitizers
    (*décidé le 14 octobre*) ; il vaut 400 s dans les quatre jobs de `linux.yml`
    qui en ont, depuis #281 (*décidé le 3 novembre* : `numbers` a dépassé 300 s
-   une fois, dans le job Clang x86_64).
+   une fois, dans le job Clang x86_64). #283 a corrigé à la main les trois
+   chemins de `gaol/math/` de `coverage/README.md` ; `coverage.html` reste à
+   refaire.
 2. **33** : les temps de
    [doc/compare/performance.md](doc/compare/performance.md), remesurés le 17
    octobre (`febd2b1`, `a055160`), sa colonne « rounding direction preserved »
@@ -226,9 +230,22 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    Rosetta est retiré (« not available now », l'étiquette `macos-27` n'a pas
    d'exécuteur). Les textes qui citent macOS 14 comme testé
    (`manual/v5/gaol.tex` ligne 277, `doc/three-builds.md` ligne 76,
-   `CMakeLists.txt` ligne 506, `gaol/core_math_port.h` ligne 453, `configure.ac`
-   et `meson.build`) sont à revoir avec la version si macOS 14 ne doit plus y
-   figurer.
+   `CMakeLists.txt` ligne 506, `gaol/math/gaol_core_math_port.h` ligne 453,
+   `configure.ac` et `meson.build`) sont à revoir avec la version si macOS 14
+   ne doit plus y figurer.
+7. **Les restes de #283 et de #284** (hors des points) : les textes « Pour
+   `doc/differences.md` et `ChangeLog` » de ces pull requests ne sont pas
+   reportés. Dans `doc/differences.md` : les anciens chemins de
+   `gaol_double_op.h`, `gaol_u128.h`, `gaol_ldexp.h`, `gaol_roundeven.h` et
+   `gaol_core_math.h` (13 lignes : 49, 84, 93, 242, 251, 309, 361, 1128, 1825,
+   1858, 1859, 2400, 2424) et de `core_math_port.h` (122, 166, 1130), qui sont
+   dans `gaol/math/` ; « The whole tree of CORE-MATH is vendored » (ligne 1126),
+   l'arbre ne gardant que `binary64` ; `gaol_roundeven.h`, qui n'est plus
+   installé (ligne 242), et `round_ties_to_even()`, qui n'est plus en ligne ;
+   les sept opérateurs de `gaol_ieee1788`. Dans `ChangeLog` : une entrée pour
+   ces déplacements (les lignes 100, 649, 794 et 1569 nomment les fichiers à
+   leur place d'alors). Reste aussi le commentaire de `CMakeLists.txt` (ligne
+   1435) qui cite `core_math_log_dint.h`, qui n'existe pas. [S]
 
 ## PK. Des `FE_INVALID` avec Clang et les intervalles FPU [S, à décider]
 
