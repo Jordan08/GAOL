@@ -541,24 +541,20 @@ def f_root(x, n):
 #---------------------------------------------------------------------------
 # C++ text
 #---------------------------------------------------------------------------
-def hexa(d):
-    """A double as a hexadecimal floating literal, '0x1.8p+1'"""
+def dec(d):
+    """A double as a decimal literal, the shortest the compiler reads back as d: '0.1', '1e-10', '5e-324'"""
     if math.isinf(d):
         return 'ibex_oo' if d > 0 else '-ibex_oo'
     if d == 0.0:
-        return '0x0p+0'
-    s = d.hex()
-    mant, exp = s.split('p')
-    if '.' in mant:
-        mant = mant.rstrip('0').rstrip('.')
-    return mant + 'p' + exp
+        return '0.0'
+    return repr(d)
 
 
 def ref_text(refs):
     """{ lo, hi } for the bounds of a reference, ibex_empty for the empty set"""
     if refs is None:
         return 'ibex_empty'
-    return '{ %s, %s }' % (hexa(refs[0]), hexa(refs[1]))
+    return '{ %s, %s }' % (dec(refs[0]), dec(refs[1]))
 
 
 def itv_ref(i):
@@ -767,7 +763,7 @@ def group_constructors():
             exact = Itv() if (a == INF or b == -INF or a > b) else iv(a, b)
         compare_interval('IBEX TestInterval::' + name, 'constructor', orig, exact)
         compare_interval('IBEX TestInterval::' + name, 'assignment', orig, exact)
-        t.add(row(quoted('IBEX TestInterval::' + name), "'%s'" % form, hexa(a), hexa(b), ref_cell(exact)))
+        t.add(row(quoted('IBEX TestInterval::' + name), "'%s'" % form, dec(a), dec(b), ref_cell(exact)))
 
 
 def group_equality():
@@ -843,8 +839,8 @@ def group_getters():
         lb, ub = D(x.lo) if not is_inf(x.lo) else x.lo, D(x.hi) if not is_inf(x.hi) else x.hi
         mig, mag = real_ref(exact[5]), real_ref(exact[6])
         assert mig[0] == mig[1] and mag[0] == mag[1]
-        t.add(row(quoted(case), itv_cell(x), hexa(lb), hexa(ub), ref_text(real_ref(exact[2])),
-                  ref_text(real_ref(exact[3])), ref_text(real_ref(exact[4])), hexa(mig[0]), hexa(mag[0])))
+        t.add(row(quoted(case), itv_cell(x), dec(lb), dec(ub), ref_text(real_ref(exact[2])),
+                  ref_text(real_ref(exact[3])), ref_text(real_ref(exact[4])), dec(mig[0]), dec(mag[0])))
 
 
 def group_midpoints():
@@ -955,7 +951,7 @@ def group_relations():
     for name, rel, x, d, orig in cases3:
         exact = box_relation(rel, x, d=d)
         compare_bool('IBEX TestInterval::' + name, rel, orig, exact)
-        t2.add(row(quoted('IBEX TestInterval::' + name), quoted(pts[rel]), itv_cell(x), hexa(d), 'true' if exact else 'false'))
+        t2.add(row(quoted('IBEX TestInterval::' + name), quoted(pts[rel]), itv_cell(x), dec(d), 'true' if exact else 'false'))
     preds = {'empty': 'is_empty', 'degenerated': 'is_empty_or_a_double', 'unbounded': 'is_not_finite',
              'bisectable': 'is_bisectable'}
     cases1 = [('is_empty01', 'empty', EMPTY, True), ('is_empty02', 'empty', iv(0, 1), False),
@@ -990,7 +986,7 @@ def group_floats():
     for name, direction, x, predicate in cases:
         v = next_float(x) if direction == 'n' else previous_float(x)
         compare_predicate('IBEX TestArith::' + name, 'the relation to next_float or previous_float', predicate(v))
-        t.add(row(quoted('IBEX TestArith::' + name), "'%s'" % direction, hexa(x), ref_text((v, v))))
+        t.add(row(quoted('IBEX TestArith::' + name), "'%s'" % direction, dec(x), ref_text((v, v))))
 
 
 def group_binary():

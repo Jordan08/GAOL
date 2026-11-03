@@ -178,16 +178,16 @@ def ref_of(A):
 
 
 def lit(x):
-    """A double as a C++ literal of the section"""
+    """A double as a C++ literal of the section: the shortest decimal the compiler reads back as x"""
     if x == INF:
         return 'codac_oo'
     if x == -INF:
         return '-codac_oo'
-    return (x + 0.0).hex()
+    return repr(x + 0.0)
 
 
 def num(x):
-    """A double in an expression of the cases: a short integer, or hexadecimal"""
+    """A double in an expression of the cases: a short integer, or the decimal literal"""
     if x == int(x) and abs(x) < 1e15:
         return '%d.0' % int(x)
     return lit(x)

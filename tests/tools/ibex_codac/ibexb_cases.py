@@ -577,15 +577,15 @@ def pi_times(num, den):
 #---------------------------------------------------------------------------
 # C++ text
 #---------------------------------------------------------------------------
-def hexa(d):
-    return fc.hexa(d).replace('ibex_oo', 'ibexb_oo')
+def dec(d):
+    return fc.dec(d).replace('ibex_oo', 'ibexb_oo')
 
 
 def ref_text(refs):
     """{ lo, hi } for the bounds of a reference, ibexb_empty for the empty set"""
     if refs is None:
         return 'ibexb_empty'
-    return '{ %s, %s }' % (hexa(refs[0]), hexa(refs[1]))
+    return '{ %s, %s }' % (dec(refs[0]), dec(refs[1]))
 
 
 def ref_cell(i):
@@ -1145,7 +1145,7 @@ def group_imod():
         rx, ry = rel_imod(x, y, p)
         fc.compare_interval(case, 'bwd_imod x', ax, rx)
         fc.compare_interval(case, 'bwd_imod y', ay, ry)
-        t.add(row(quoted(case), hexa(p), itv_cell(x), itv_cell(y), ref_cell(rx), ref_cell(ry)))
+        t.add(row(quoted(case), dec(p), itv_cell(x), itv_cell(y), ref_cell(rx), ref_cell(ry)))
 
 
 GROUPS = [group_distance, group_relative_distance, group_div2, group_mul, group_div, group_maxmin, group_projections,
