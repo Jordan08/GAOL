@@ -17,8 +17,12 @@
  * They follow the tests Codac (https://github.com/codac-team/codac) makes of
  * the rounding of its intervals, which are GAOL's
  * (tests/core/domains/interval/codac2_tests_Interval_rounding.cpp, Jordan
- * Ninin): the same random doubles, the same checks, and the same list of
- * operations after which the rounding direction has to be upward still.
+ * Ninin): the same generator of random doubles (xorshift64, the same seed, but
+ * drawing the exponent, the sign and then the mantissa where Codac draws the
+ * mantissa, the exponent and the sign), tighter checks, and almost the same
+ * list of operations after which the rounding direction has to be upward
+ * still. tests/test_ibex_codac.cpp has the operations and the points of that
+ * test of Codac that these tests lack.
  *
  * Copyright (c) 2026 ENSTA, France
  *
@@ -221,20 +225,25 @@ namespace gaol_tests
   const DebugRuntimeReports debug_runtime_reports_to_stderr;
 #endif
 
-  // Prints the number of checks and failures of each name, and returns the
-  // exit status of the test
-  inline int summary()
+  // Prints the number of checks and failures of each name, and the largest
+  // distances from the tightest bounds, or, with only_failed, only the names
+  // that failed, then the total, and returns the exit status of the test
+  inline int summary(bool only_failed = false)
   {
 #if defined(_MSC_VER) && defined(_DEBUG)
     check("the Debug C runtime of Visual C++ reports no assertion and no error", debug_runtime_reports() == 0,
           [] { return std::to_string(debug_runtime_reports()) + " reports, written to stderr"; });
 #endif
     for (const auto& d : largest_distances()) {
-      std::printf("%-60s at most %d doubles from the tightest bounds\n", d.first.c_str(), d.second);
+      if (!only_failed) {
+        std::printf("%-60s at most %d doubles from the tightest bounds\n", d.first.c_str(), d.second);
+      }
     }
     long checks = 0, failures = 0;
     for (const auto& t : tallies()) {
-      std::printf("%-60s %8ld checks, %ld failed\n", t.first.c_str(), t.second.checks, t.second.failures);
+      if (!only_failed || t.second.failures != 0) {
+        std::printf("%-60s %8ld checks, %ld failed\n", t.first.c_str(), t.second.checks, t.second.failures);
+      }
       checks += t.second.checks;
       failures += t.second.failures;
     }

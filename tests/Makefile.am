@@ -28,7 +28,7 @@ AM_DEFAULT_SOURCE_EXT = .cpp
 # The same list as tests/CMakeLists.txt
 GAOL_TESTS = arithmetic elementary rounding_direction numbers other_functions \
 	ieee1788 reverse u128 core_math expressions extended_precision \
-	static_initialization debugging fast_math_link \
+	static_initialization debugging fast_math_link test_ibex_codac \
 	arithmetic_operators assignment constants constructor float_functions \
 	generic_functions input_output interval_functions misc non_arithmetic \
 	relations reverse_mappings trigonometric intervalf interval2f
