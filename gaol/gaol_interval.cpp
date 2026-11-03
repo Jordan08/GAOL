@@ -29,7 +29,6 @@
 
 #include "gaol/gaol_config.h"
 #include "gaol/gaol_common.h"
-#include "gaol/gaol_exceptions.h"
 #include "gaol/parser/gaol_parser.h"
 #include "gaol/gaol_interval.h"
 
@@ -46,7 +45,7 @@ namespace gaol {
       std::string err_msg("Syntax error in interval initialization: ");
       err_msg += gaol_detail::text_in_message(s);
       GAOL_ERRNO = -1;
-      gaol_ERROR(input_format_error,err_msg.c_str());
+      gaol_ERROR(std::invalid_argument,err_msg.c_str());
     }
     return tmp;
   }
@@ -58,7 +57,7 @@ namespace gaol {
       standard leaves undefined (libstdc++ throws std::logic_error, and libc++
       and Visual C++ probably read it with strlen()). what names the argument
       in the message, as a syntax error does. The throw is the error of GAOL for
-      a reading that fails, input_format_error; without exceptions, a message
+      a reading that fails, std::invalid_argument; without exceptions, a message
       and abort() then.
     */
     void refuse_null_pointer(const char* s, const char* what)
@@ -68,7 +67,7 @@ namespace gaol {
         err_msg += what;
         err_msg += " initialization: a null pointer is no string";
         GAOL_ERRNO = -1;
-        gaol_ERROR(input_format_error,err_msg.c_str());
+        gaol_ERROR(std::invalid_argument,err_msg.c_str());
       }
     }
   }
@@ -90,13 +89,13 @@ namespace gaol {
       std::string err_msg("Syntax error in left bound initialization: ");
       err_msg += gaol_detail::text_in_message(sl);
       GAOL_ERRNO = -1;
-      gaol_ERROR(input_format_error,err_msg.c_str());
+      gaol_ERROR(std::invalid_argument,err_msg.c_str());
     }
     if (!gaol_core::gaol_parse_string(sr.data(), sr.size(), tmpr, gaol_core::parsing_names::gaol)) {
       std::string err_msg("Syntax error in right bound initialization: ");
       err_msg += gaol_detail::text_in_message(sr);
       GAOL_ERRNO = -1;
-      gaol_ERROR(input_format_error,err_msg.c_str());
+      gaol_ERROR(std::invalid_argument,err_msg.c_str());
     }
     // An empty one gives the empty set, from its NaN bounds, which the
     // constructor tells with a quiet comparison (GAOL v5: it was told first,

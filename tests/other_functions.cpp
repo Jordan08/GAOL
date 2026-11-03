@@ -288,16 +288,16 @@ namespace
     }
 
 #if GAOL_EXCEPTIONS_ENABLED
-    // A ratio outside (0, 1), or NaN: invalid_action_error
+    // A ratio outside (0, 1), or NaN: std::domain_error
     const double wrong[] = { 0.0, 1.0, -0.5, 1.5, nan, inf };
     for (double ratio : wrong) {
       bool thrown = false;
       try {
         (void)one_two.bisect(ratio);
-      } catch (const gaol_core::invalid_action_error&) {
+      } catch (const std::domain_error&) {
         thrown = true;
       }
-      check("bisect(ratio) for a ratio outside (0, 1): invalid_action_error", thrown, [&] { return hex(ratio); });
+      check("bisect(ratio) for a ratio outside (0, 1): std::domain_error", thrown, [&] { return hex(ratio); });
     }
 #endif
 
@@ -1204,9 +1204,12 @@ namespace
           [] { return std::string(); });
     check("gaol_ieee1788::pownRev([8], [0, +oo], 3) = [2]",
           std1788::pownRev(interval(8.0), interval(0.0, inf), 3).set_eq(interval(2.0)), [] { return std::string(); });
+#if GAOL_EXCEPTIONS_ENABLED
+    // A std::domain_error, through gaol_ERROR: without exceptions, it ends the program
     bool threw = false;
-    try { (void)std1788::pownRev(interval(8.0), 0); } catch (const std::invalid_argument&) { threw = true; }
-    check("gaol_ieee1788::pownRev with p <= 0 throws, GAOL not providing it", threw, [] { return std::string(); });
+    try { (void)std1788::pownRev(interval(8.0), 0); } catch (const std::domain_error&) { threw = true; }
+    check("gaol_ieee1788::pownRev with p <= 0 throws std::domain_error, GAOL not providing it", threw, [] { return std::string(); });
+#endif
 
     // the forward names reach the functions they name
     const interval x(0.3, 0.7);

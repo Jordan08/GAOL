@@ -11,7 +11,7 @@
   try {                           \
        interval I = textToInterval(Istr); \
        TEST_EQ(I,Ires);           \
-  } catch (const gaol_core::input_format_error&) {  \
+  } catch (const std::invalid_argument&) {  \
     CPPUNIT_FAIL(std::string("Wrong format: ")+std::string(Istr)); \
   }
 
@@ -19,12 +19,12 @@
   try {                           \
        interval I = textToInterval(Istr); \
        TEST_SEQ(I,Ires);          \
-  } catch (const gaol_core::input_format_error&) {  \
+  } catch (const std::invalid_argument&) {  \
     CPPUNIT_FAIL(std::string("Wrong format: ")+std::string(Istr)); \
   }
 #else
 // Without exceptions (configure --disable-exceptions, meson
-// -Denable-exception=false), input_format_error does not exist, and a string
+// -Denable-exception=false), std::invalid_argument does not exist, and a string
 // the reader refused would end the program (GAOL v5)
 #define TEST_INOUT_EQ(Istr,Ires)  \
   do { interval I = textToInterval(Istr); TEST_EQ(I,Ires); } while (0)

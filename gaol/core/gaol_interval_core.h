@@ -841,7 +841,7 @@ namespace gaol_core {
       the largest double, [-oo, r] at its opposite) and for the whole line
       (at 0). The empty set gives two empty sets, and a point interval itself
       twice. A ratio outside (0, 1), or NaN, is no ratio: it throws
-      invalid_action_error.
+      std::domain_error.
     */
     GAOL_NODISCARD std::pair<interval, interval> bisect(double ratio) const;
 
@@ -1617,7 +1617,7 @@ namespace gaol_core {
     input, failbit is set, I is left as it was and nothing is thrown, so that
     while (is >> I) ends there; a stream that is not good is not read, and
     loses none of its text. A line that is no interval sets failbit, empties
-    I and throws input_format_error (invalid_action_error for a function
+    I and throws std::invalid_argument (std::domain_error for a function
     called with an argument it does not take); where GAOL is built without
     exceptions, it writes an error message on std::cerr and aborts the
     program instead.
@@ -1846,7 +1846,7 @@ GAOL_NODISCARD extern GAOL_PUBLIC   interval nth_root(const interval& I, unsigne
     The result is an unsigned long long (GAOL v5), where GAOL 4 named its
     type with the macro ULONGLONGINT, which GAOL v5 no longer defines.
 
-    \warning Raises an invalid_action_error exception if either a or b is a
+    \warning Throws std::domain_error if either a or b is a
     NaN or +/-oo, or if a > b, or calls gaol_error and aborts where the
     exceptions are disabled: it returns no number then (GAOL v5, where the
     documentation said numeric_limits<unsigned long long>::max()).

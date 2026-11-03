@@ -75,7 +75,6 @@
 #include "gaol/parser/gaol_parser.h"
 #include "gaol/gaol_port.h"
 #include "gaol/core/gaol_interval_core.h"
-#include "gaol/gaol_exceptions.h"
 // x * 2^n rounded once, for the integer powers beyond the doubles (GAOL v5)
 #include "gaol/math/gaol_ldexp.h"
 // The nearest integer, halfway values to the even one, from the bits (GAOL v5)
@@ -1602,17 +1601,17 @@ namespace gaol_core {
     std::noskipws too, which keeps a double from skipping them (GAOL v5).
     GAOL read the line where the previous value stopped: over
     "1.5\n[1, 2]\n", "in >> d >> x" read the empty rest of the first line,
-    and threw input_format_error, as while (in >> x) did over a file ending
+    and threw an exception, as while (in >> x) did over a file ending
     with an empty line. A blank line is now no line to read, and the intervals
     around it are read, as two numbers with a blank line between them are.
 
     Where no line is left, std::getline() fails, which sets failbit: I is left
     as it was and nothing is thrown, as for a double, so that while (is >> x)
     ends at the end of the input (GAOL v5). GAOL read the empty text then,
-    threw input_format_error and emptied I, so that such a loop always ended
+    threw an exception and emptied I, so that such a loop always ended
     with an exception. A line that is no interval sets failbit too, I becomes
     the empty set, and the exception of the reader is thrown:
-    input_format_error, or invalid_action_error for a function called with an
+    std::invalid_argument, or std::domain_error for a function called with an
     argument it does not take. A program reading on calls is.clear() first.
 
     The std::ws of libstdc++ before GCC 12 constructs no sentry (libc++, the
@@ -1649,7 +1648,7 @@ namespace gaol_core {
       err_msg += gaol_detail::text_in_message(buffer);
       I = interval::emptyset();
       set_failbit(is);
-      gaol_ERROR(input_format_error,err_msg.c_str());
+      gaol_ERROR(std::invalid_argument,err_msg.c_str());
     }
     return is;
   }
@@ -4105,7 +4104,7 @@ interval nth_root(const interval& I, int q)
       // Either a or b is a NaN or +/-oo, or [a,b] is empty? gaol_ERROR
       // throws, or aborts where the exceptions are disabled: there is no
       // value to return, whose line Visual C++ found unreachable (C4702)
-      gaol_ERROR(invalid_action_error,"invalid argument(s) in call to nb_fp_numbers()");
+      gaol_ERROR(std::domain_error,"invalid argument(s) in call to nb_fp_numbers()");
     }
 
     if (gaol_detail::bound_equal(a, b)) {
@@ -5291,7 +5290,7 @@ interval nth_root(const interval& I, int q)
 
   /*
     atan2 of IEEE 1788-2015 (Table 9.1), defined on the plane but (0, 0), with
-    values in (-pi, pi] (GAOL v5; GAOL raised unavailable_feature_error).
+    values in (-pi, pi] (GAOL v5; GAOL 4 threw its unavailable_feature_error).
     The angle of a point of the box Y x X is monotonic in y and in x in each
     quadrant, and its extrema are at corners of the box, which the signs of the
     bounds give. It jumps from pi to -pi across the half-line y = 0, x < 0: a
@@ -6696,7 +6695,7 @@ interval nth_root(const interval& I, int q)
   std::pair<interval, interval> interval::bisect(double ratio) const
   {
     if (!(gaol_detail::bound_greater(ratio, 0.0) && gaol_detail::bound_less(ratio, 1.0))) {
-      gaol_ERROR(invalid_action_error, "bisect(): the ratio is not in (0, 1)");
+      gaol_ERROR(std::domain_error, "bisect(): the ratio is not in (0, 1)");
     }
     if (is_empty()) {
       return std::make_pair(*this, *this);

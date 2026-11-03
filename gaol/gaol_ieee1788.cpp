@@ -24,11 +24,11 @@
   \date   2026-10-16
 */
 
+#include <stdexcept>
 #include <string>
 
 #include "gaol/gaol_config.h"
 #include "gaol/gaol_common.h"
-#include "gaol/gaol_exceptions.h"
 #include "gaol/gaol_ieee1788.h"
 #include "gaol/parser/gaol_parser.h"
 
@@ -39,10 +39,14 @@ namespace gaol_ieee1788 {
     the library rather than inline in its header, for the reading of the
     whole of s, NUL characters included (GAOL v5): the empty set for a string
     that is no literal, as for one that the reader refuses with an exception of
-    GAOL, input_format_error or invalid_action_error. The other exceptions go
-    through, std::bad_alloc among them: the reader threw it where memory ran
-    out, and textToInterval() turned it into the empty set, the interval of no
-    literal, catching every std::exception.
+    GAOL, std::invalid_argument or std::domain_error (the exceptions of the
+    standard library that gaol_ERROR throws, gaol/gaol_common.h). The other
+    exceptions go through, std::bad_alloc among them: the reader threw it where
+    memory ran out, and textToInterval() turned it into the empty set, the
+    interval of no literal, catching every std::exception. The handlers name
+    the two classes, then, not std::exception, nor std::logic_error, which
+    std::length_error and the other logic errors of the library derive from:
+    the reader of GAOL throws these two only.
   */
   interval textToInterval(const std::string& s)
   {
@@ -50,7 +54,9 @@ namespace gaol_ieee1788 {
     try {
       interval x;
       return ::gaol_core::gaol_parse_string(s.data(), s.size(), x, ::gaol_core::parsing_names::ieee1788) ? x : interval::emptyset();
-    } catch (const ::gaol_core::gaol_exception&) {
+    } catch (const std::invalid_argument&) {
+      return interval::emptyset();
+    } catch (const std::domain_error&) {
       return interval::emptyset();
     }
 #else
@@ -63,7 +69,7 @@ namespace gaol_ieee1788 {
   /*
     textToInterval(s) of a C string (GAOL v5, point 128 of TODO.md): a null
     pointer is no string, so no literal, and the standard gives no answer for
-    it. It is an error of GAOL, as for gaol::textToInterval(): input_format_error
+    it. It is an error of GAOL, as for gaol::textToInterval(): std::invalid_argument
     is thrown, or, without exceptions, a message is printed and abort() called.
     It is not the empty set that a string which is no literal gives: the
     overload of std::string would build a std::string from the null pointer,
@@ -73,7 +79,7 @@ namespace gaol_ieee1788 {
   {
     if (s == nullptr) {
       GAOL_ERRNO = -1;
-      gaol_ERROR(input_format_error, "Null pointer in interval initialization: a null pointer is no string");
+      gaol_ERROR(std::invalid_argument, "Null pointer in interval initialization: a null pointer is no string");
     }
     return textToInterval(std::string(s));
   }
