@@ -266,10 +266,11 @@ jobs:
       - name: Configure
         run: |
           # halt_on_error (UBSAN_OPTIONS) stops a test on its first undefined
-          # behaviour; none is suppressed
+          # behaviour; none is suppressed. numbers has 400 s rather than 300:
+          # it took 109 to 287 s here, and more than 300 once (Clang x86_64)
           flags="-fsanitize=address,undefined -fno-omit-frame-pointer"
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DWITH_TESTS=ON -DCMAKE_C_COMPILER=${{ matrix.cfg.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }} \
-            "-DCMAKE_C_FLAGS=$flags" "-DCMAKE_CXX_FLAGS=$flags" "-DCMAKE_EXE_LINKER_FLAGS=$flags"
+            "-DCMAKE_C_FLAGS=$flags" "-DCMAKE_CXX_FLAGS=$flags" "-DCMAKE_EXE_LINKER_FLAGS=$flags" -DGAOL_NUMBERS_TIMEOUT=400
       - name: Build
         run: cmake --build build -j 4
       - name: Tests (make test)
