@@ -24,8 +24,9 @@
 * it finds neither gaol's functions nor these. The functions of GAOL that
 * have the name and the meaning the standard gives them (sin, exp, sqrt,
 * min...) are brought in by using-declarations of those of gaol_core, which
-* name the functions argument-dependent lookup finds too, and so is the
-* operator<< writing an interval. This file does not
+* name the functions argument-dependent lookup finds too, and so are the
+* operators of intervals (+, -, *, /, %, & and |) and the operator<< writing
+* an interval. This file does not
 * include gaol/parser/gaol_expression.h (GAOL v5): a program using the expressions
 * includes it, as with GAOL 4, and it declares them again for its overloads,
 * whatever the order of the includes, and defines pown(e, n) and pow(e1, e2)
@@ -134,6 +135,21 @@ namespace gaol_ieee1788 {
   // Forward elementary functions (Table 9.1)
   // ----------------------------------------------------------------------
   
+  /*!
+  The operators of GAOL on intervals, +, -, *, / and % (relational division),
+  & (intersection) and | (hull) (GAOL v5): those of gaol_core, which
+  argument-dependent lookup finds on an interval too. They are named here as
+  well so that gaol_ieee1788::operator+ and the others exist, the unary - being
+  a member of interval. operator<< is below.
+  */
+  using ::gaol_core::operator+;
+  using ::gaol_core::operator-;
+  using ::gaol_core::operator*;
+  using ::gaol_core::operator/;
+  using ::gaol_core::operator%;
+  using ::gaol_core::operator&;
+  using ::gaol_core::operator|;
+
   //! neg(x): -x
   GAOL_NODISCARD inline interval neg(const interval& x) { return -x; }
   //! add(x, y): x + y

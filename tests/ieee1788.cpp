@@ -21,6 +21,10 @@
  * it by a second thread writing intervals meanwhile is commented out: the
  * tests run no thread.
  * mulRevToPair() has to give the two parts of 10.5.5 in the standard's order.
+ * The operators of intervals (+, -, *, /, %, & and |) have to be in
+ * gaol_ieee1788 too, as the functions of gaol_core are: called by their
+ * qualified names, which argument-dependent lookup does not help, they compile
+ * only if the namespace holds them (see gaol_functions()).
  *
  * Copyright (c) 2026 ENSTA, France
  *
@@ -536,6 +540,24 @@ namespace
     check("the qualified names take intervals",
           gaol_ieee1788::sin(x).set_eq(gaol::sin(x)) && gaol_ieee1788::min(x, y).set_eq(gaol::min(x, y)),
           [&] { return hex(gaol_ieee1788::sin(x)); });
+    // The operators of intervals, brought in by using-declarations of those of
+    // gaol_core (GAOL v5): the qualified names compile only if the namespace
+    // holds them, and the results are exact in doubles
+    const interval a = numsToInterval(1.0, 2.0), b = numsToInterval(4.0, 8.0), c = numsToInterval(1.5, 6.0);
+    check("the operators of intervals are in gaol_ieee1788",
+          gaol_ieee1788::operator+(a, b).set_eq(numsToInterval(5.0, 10.0))
+          && gaol_ieee1788::operator-(a, b).set_eq(numsToInterval(-7.0, -2.0))
+          && gaol_ieee1788::operator*(a, b).set_eq(numsToInterval(4.0, 16.0))
+          && gaol_ieee1788::operator/(b, a).set_eq(numsToInterval(2.0, 8.0))
+          && gaol_ieee1788::operator%(a, b).set_eq(numsToInterval(0.125, 0.5))
+          && gaol_ieee1788::operator&(a, c).set_eq(numsToInterval(1.5, 2.0))
+          && gaol_ieee1788::operator|(a, b).set_eq(numsToInterval(1.0, 8.0)),
+          [&] {
+            return hex(gaol_ieee1788::operator+(a, b)) + " " + hex(gaol_ieee1788::operator-(a, b)) + " "
+              + hex(gaol_ieee1788::operator*(a, b)) + " " + hex(gaol_ieee1788::operator/(b, a)) + " "
+              + hex(gaol_ieee1788::operator%(a, b)) + " " + hex(gaol_ieee1788::operator&(a, c)) + " "
+              + hex(gaol_ieee1788::operator|(a, b));
+          });
     check("the functions of C on numbers are C's", sqrt(4.0) == 2.0 && floor(2.5) == 2.0 && abs(-3) == 3,
           [] { return std::string(); });
     // erf and erfc, which IEEE 1788-2015 does not name and gaol_ieee1788
