@@ -1132,7 +1132,12 @@ point Q), which `numbers` checks there too.
   file, and the explanation is the one expected; the text that `gaol_ERROR`
   builds is checked with its line, that of the macro, for a null file name
   and a null message too, and with the directories of a path cut after `/`
-  and after `\` (GAOL v5, which replaced the classes of GAOL 4,
+  and after `\`, and the check that `gaol_ERROR` makes of its first argument, a class
+derived from `std::exception`, is tested on its predicate (`gaol_detail::is_error_class`,
+true for `std::invalid_argument`, `std::domain_error`, `std::bad_alloc` and a class
+of a program, false for an `int`, a `std::string`, a class that is no exception and
+a private derived class), since a `static_assert` that refuses a type cannot be
+compiled in a test (GAOL v5, which replaced the classes of GAOL 4,
   `gaol_exception`, `input_format_error`, `invalid_action_error` and
   `unavailable_feature_error`, by them). `what()` was `std::exception`, which a handler of `std::exception`
   printed and an exception that nothing catches ended the program with, in
