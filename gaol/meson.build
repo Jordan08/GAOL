@@ -152,6 +152,7 @@ EXTRA_DIST = [
   'math/gaol_u128.h',
   'math/gaol_ldexp.h',
   'math/gaol_roundeven.h',
+  'math/gaol_compoundm1.h',
   'parser/gaol_interval_lexer.lpp',
   'parser/gaol_interval_parser.ypp',
   'core/gaol_interval_sse.cpp',

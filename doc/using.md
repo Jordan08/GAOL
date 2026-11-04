@@ -105,8 +105,8 @@ headers include in the middle of their code (`gaol/core/gaol_interval_fpu.h`,
 `gaol/core/gaol_interval_neon.h`, `gaol/core/gaol_interval_sse.h`) or for Visual C++ only (`gaol_fpu_msvc.h`), and not the
 headers of GAOL's sources (GAOL v5): `gaol/parser/gaol_interval_parser.h`,
 which did not compile when included, `gaol_init_cleanup.h`,
-`gaol/math/gaol_core_math.h`, `gaol/math/gaol_u128.h` and
-`gaol/math/gaol_roundeven.h`; `gaol_parameters.h`, which declared nothing,
+`gaol/math/gaol_core_math.h`, `gaol/math/gaol_u128.h`,
+`gaol/math/gaol_compoundm1.h` and `gaol/math/gaol_roundeven.h`; `gaol_parameters.h`, which declared nothing,
 `gaol_exact.h` with `sysdeps/`, which `dtoa.c` needed, and `gaol_assert.h`,
 whose `GAOL_ASSERT` is `assert()` now, are gone. GAOL's headers compile without a warning under
 `-Wall -Wextra -Wold-style-cast -Wundef`, and put nothing into the global
@@ -337,7 +337,7 @@ direction, `round_downward()`, `round_upward()`, `round_nearest()`,
 library, `version_major`, `version_minor`, `version_micro` and `version`, and
 the doubles around π and π/2, `gaol_pi_dn`, `gaol_pi_up`, `gaol_half_pi_dn` and
 `gaol_half_pi_up`...), the functions on intervals GAOL v5 adds
-(`exp2`, `log2`, `hypot`, `trunc`, `sinpi`, `erf`, `fma`, `cancel_minus`,
+(`exp2`, `log2`, `hypot`, `compoundm1`, `trunc`, `sinpi`, `erf`, `fma`, `cancel_minus`,
 `round_ties_to_even`... and the nodes of their expressions),
 `restore_rounding()` and `exact_string()`. `rnd_keep()` (GAOL v5 adds it, and
 had it in `gaol` in its 4.3 releases; GAOL 4 has none), `NaN_val`,
