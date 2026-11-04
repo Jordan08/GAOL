@@ -569,14 +569,14 @@ namespace
       // T = |v| 2^120 < 2^123, from 2^100 on
       cm1::U128 T = cm1::shr(cm1::mk(rnd.bits(), rnd.bits()), 5 + rnd.integer(0, 25));
       if (i % 7 == 0) {
-        // next to (2 k + 1) log(2) / 2: the nearest multiple changes there
-        const int k = rnd.integer(0, 10);
+        // next to (2 n + 1) log(2) / 2, n = 0 to 11: the nearest multiple changes there
+        const int n = rnd.integer(0, 11);
         u64 carry;
-        T = cm1::add(cm1::shl(M, 0), cm1::mk(0, 0), carry);
-        for (int j = 0; j < k; ++j) { T = cm1::add(T, M, carry); }
-        T = cm1::add(T, cm1::shr(M, 1), carry);
-        T = (i % 2 == 0) ? T : cm1::sub(T, cm1::mk(0, 1 + rnd.integer(0, 3)), carry);
-        T = (i % 3 == 0) ? cm1::add(T, cm1::mk(0, 1 + rnd.integer(0, 3)), carry) : T;
+        T = cm1::shr(M, 1);
+        for (int j = 0; j < n; ++j) { T = cm1::add(T, M, carry); }
+        const cm1::U128 one_or_few = cm1::mk(0, static_cast<u64>(1 + rnd.integer(0, 3)));
+        T = (i % 2 == 0) ? T : cm1::sub(T, one_or_few, carry);
+        T = (i % 3 == 0) ? cm1::add(T, one_or_few, carry) : T;
       }
       int k;
       bool sneg;
@@ -664,6 +664,39 @@ namespace
     }
   }
 
+  // The bounds of the error of the fast phase, as the analysis of the header gives them (27 to 200 units of 2^-63)
+  void bounds_of_the_fast_phase()
+  {
+    struct Case { int k; int tube; cm1::u64 base; cm1::u64 rho; };
+    const Case cases[] = {
+      { 0, 0, 14, 27 }, { 0, 0, 20, 35 }, { 1, 0, 14, 48 }, { 1, 0, 20, 60 }, { 1, 1, 14, 62 }, { 2, 1, 20, 80 },
+      { 3, 2, 14, 90 }, { 4, 2, 20, 120 }, { 5, 3, 14, 146 }, { 12, 3, 20, 200 },
+    };
+    for (const Case& c : cases) {
+      check("fast_rho(): the bound of the analysis", cm1::fast_rho(c.k, c.tube, c.base) == c.rho,
+            [&] { return "k = " + std::to_string(c.k) + ", |t| < 2^" + std::to_string(c.tube) + ", base " + std::to_string(c.base) + ": " + std::to_string(cm1::fast_rho(c.k, c.tube, c.base)); });
+    }
+    // The classes of the pairs: log1p(x) below 1/2 or above (base 14 or 20), t below log(2)/2 or past it, the sign of t
+    const struct { const char* what; double x, y; cm1::u64 rho; } pairs[] = {
+      { "log1p(x) = 0.095, t = 0.14", 0.1, 1.5, 27 },
+      { "log1p(x) = 1.1, t = 0.11", 2.0, 0.1, 35 },
+      { "log1p(x) = 0.095, t = 0.57: k = 1, |t| < 1", 0.1, 6.0, 48 },
+      { "log1p(x) = 1.1, t = 0.77: k = 1, |t| < 1", 2.0, 0.7, 60 },
+      { "log1p(x) = 0.095, t = -0.57: k = -1", 0.1, -6.0, 48 },
+      { "log1p(x) = 0.095, t = 1.9: k = 3, |t| < 2", 0.1, 20.0, 62 },
+      { "log1p(x) = 1.1, t = 3.3: k = 5, |t| < 4", 2.0, 3.0, 120 },
+      { "log1p(x) = 1.1, t = 6.6: k = 10, |t| < 8", 2.0, 6.0, 200 },
+    };
+    for (const auto& p : pairs) {
+      bool fneg;
+      cm1::u64 fm, rho;
+      int fe;
+      const bool got = cm1::fast_centre(p.x, p.y, fneg, fm, fe, rho);
+      check("fast_centre(): the class of the pair gives its bound", got && rho == p.rho,
+            [&] { return std::string(p.what) + ": " + (got ? std::to_string(rho) : std::string("no centre")); });
+    }
+  }
+
   // The relative error of the centre of the fast phase against the balls, in units of rho: 0 to 1, or -1 where it does not answer
   double fast_error(double x, double y)
   {
@@ -689,12 +722,15 @@ namespace
     Random rnd;
     struct Domain { const char* what; double xlo, xhi, ylo, yhi; double rate; };
     const Domain domains[] = {
-      { "x in [-0.3, 0.5], y in [-3, 3]", -0.3, 0.5, -3.0, 3.0, 0.90 },
-      { "x in [-0.05, 0.05], y in [-20, 20]", -0.05, 0.05, -20.0, 20.0, 0.88 },
-      { "x in [0, 0.1], y in [1, 30]", 0.0, 0.1, 1.0, 30.0, 0.88 },
-      { "x in [-0.9, 5], y in [0.1, 3] (log1p past 1/2)", -0.9, 5.0, 0.1, 3.0, 0.80 },
-      { "x in [-0.7, -0.4], y in [-1, 1] (the log of 0.3 to 0.6)", -0.7, -0.4, -1.0, 1.0, 0.80 },
-      { "x in [5, 2900], y in [-0.5, 0.5] (log1p up to 8)", 5.0, 2900.0, -0.5, 0.5, 0.60 },
+      { "x in [-0.3, 0.5], y in [-3, 3]", -0.3, 0.5, -3.0, 3.0, 0.92 },
+      { "x in [-0.05, 0.05], y in [-20, 20]", -0.05, 0.05, -20.0, 20.0, 0.92 },
+      { "x in [0, 0.1], y in [1, 30]", 0.0, 0.1, 1.0, 30.0, 0.90 },
+      { "x in [-0.9, 5], y in [0.1, 3] (log1p past 1/2)", -0.9, 5.0, 0.1, 3.0, 0.84 },
+      { "x in [-0.7, -0.4], y in [-1, 1] (the log of 0.3 to 0.6)", -0.7, -0.4, -1.0, 1.0, 0.89 },
+      { "x in [5, 2900], y in [-0.5, 0.5] (log1p up to 8)", 5.0, 2900.0, -0.5, 0.5, 0.84 },
+      { "x in [-0.9996, -0.92], y in [-1, 1] (log1p from -2.5 to -7.8: 4 to 11 multiples of log(2))", -0.9996, -0.92, -1.0, 1.0, 0.83 },
+      { "x in [2000, 2900], y in [-1, 1] (log1p near 8: 11 multiples of log(2))", 2000.0, 2900.0, -1.0, 1.0, 0.73 },
+      { "x in [2890, 2979], y in [-1, 1] (log1p up to 8: 12 multiples of log(2))", 2890.0, 2979.0, -1.0, 1.0, 0.74 },
     };
     for (const Domain& d : domains) {
       int answered = 0, total = 0;
@@ -761,7 +797,7 @@ namespace
               [&] { return show(p.x) + ": [" + show(lo) + ", " + show(hi) + "] rather than [" + show(p.below) + ", " + show(p.above) + "]"; });
       }
     }
-    check("the points of y = -1 are divided, most of them", divided > 500, [&] { return std::to_string(divided); });
+    check("the points of y = -1 are divided, most of them", divided > 600, [&] { return std::to_string(divided); });
   }
 
   //-------------------------------------------------------------------------
@@ -1001,6 +1037,7 @@ int main()
   reduction_of_the_fast_phase();
   helpers_of_the_fast_phase();
   doubles_of_the_fast_phase();
+  bounds_of_the_fast_phase();
   preconditions();
   rounding_of_balls();
   exact_equalities();

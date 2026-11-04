@@ -794,7 +794,7 @@
 	gaol/math/gaol_compoundm1.h (not installed) computes the value at a
 	corner with integers only: a fast phase of 64-bit fixed point,
 	which settles 95 % of the pairs in 0.1 microsecond when |y
-	log1p(x)| is below 0.35 (71 % below 8), the error bound being
+	log1p(x)| is below 0.35 (71 % from 4 to 8), the error bound being
 	proved, then a 128-bit significand in balls that add the error of
 	each operation to a bound, which prove the values that are doubles
 	(2.375 = 1.5^3 - 1, 2^m - 1), and y = -1 divided exactly.  The

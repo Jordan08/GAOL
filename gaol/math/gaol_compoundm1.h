@@ -11,7 +11,7 @@
  *  - a fast one with 64-bit fixed point, whose error bound is proved below
  *    (compoundm1_fast()): where the bounds it gives of the value hold no
  *    double, the doubles next to them are the tightest bounds (95 % of the
- *    pairs for |y log(1 + x)| below 0.35, 71 % below 8, in about a seventh of
+ *    pairs for |y log(1 + x)| below 0.35, 71 % from 4 to 8, in about a seventh of
  *    the time of the other phase);
  *  - the other one, with a 128-bit significand, in the balls below (a
  *    significand, an exponent and a bound of the absolute error), whose every
@@ -1131,10 +1131,10 @@ namespace gaol_cm1
     (1 + x)^-1 - 1 = -x / (1 + x) for a finite x > -1 other than 0, whose
     bounds are the tightest ones without any ball: with 1 + x = S 2^s for an
     odd integer S of at most 127 bits (one_plus()), |f| = mx 2^ex / (S 2^s) is
-    the quotient of two integers, which the schoolbook division gives with 56
-    or 57 bits and a remainder; the doubles around the quotient follow from
-    them, a remainder that is not 0 being a sticky bit under the 56 bits (the
-    doubles are multiples of 8 units at least there, and none is between the
+    the quotient of two integers, which the schoolbook division gives with 57
+    or 58 bits and a remainder; the doubles around the quotient follow from
+    them, a remainder that is not 0 being a sticky bit under the 57 bits (the
+    doubles are multiples of 16 units at least there, and none is between the
     quotient and the quotient plus the sticky bit). The balls cannot tell the
     doubles apart where 1/(1 + x) = 1 - x + x^2 - x^3 ... is within 2^-155 of a
     double without being one, as it is for the x = 2^e + 2^(2e-1) of
@@ -1188,10 +1188,12 @@ namespace gaol_cm1
     integers and the bound of its relative error that the analysis below
     proves, and returns the doubles around f if none is between its bounds. The
     other cases go on to the balls, which prove the values that are doubles
-    and tell the doubles apart that are closer than 2^-58: 5 % of the pairs
-    for |y log(1 + x)| below 0.35, 8 % below 1, 10 % below 2, 17 % below 4
-    and 29 % below 8 (measured on random pairs). It returns false for the ones
-    out of its domain too, |log(1 + x)| > 8 (x < -0.99966 or x > 2980),
+    and tell the doubles apart that are closer than rho 2^-63 relatively
+    (2^-58 to 2^-55): 5 % of the pairs for |y log(1 + x)| below 0.35, 8 % from
+    0.35 to 1, 10 % from 1 to 2, 17 % from 2 to 4 and 29 % from 4 to 8
+    (measured on random pairs, 2 to 10 points less in other distributions).
+    It returns false for the ones
+    out of its domain too, |log(1 + x)| > 8 (x < -0.99966 or x > 2979.9),
     |y log(1 + x)| >= 8 and the values below 2^-1022. It takes 80 to 120
     nanoseconds, against 600 to 900 for the balls (i7-1185G7, GCC 15).
 

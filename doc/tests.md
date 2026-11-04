@@ -1120,20 +1120,23 @@ point Q), which `numbers` checks there too.
   |t| up to 8 and for those next to the odd halves of log(2), has to be the
   nearest multiple and what is left of it, with log(2) 2<sup>120</sup> of mpmath
   and R = |s| 2<sup>−56</sup>; the significands of 64 bits and their shifts, and
-  the doubles around the enclosure of the result (its 13 cases: the ends that
+  the doubles around the enclosure of the result (its 14 cases: the ends that
   are doubles, the enclosure that goes over a power of two, the negative
   values, the smallest normal double and the subnormals, the largest double).
-  Over 15 000 pairs from six domains (x from −0.9 to 2 900, y from −20 to 30,
-  log1p(x) below and above 1/2, results above and below 0), the centre of the
+  Over 20 000 pairs from eight domains (x from −0.9996 to 2 979, y from −20 to 30,
+  log1p(x) below and above 1/2 and up to 12 multiples of log(2), results above
+  and below 0), the centre of the
   fast phase has to be within 3/10 of the bound of its error of the value of
   the balls (the worst error found is 0.22 of it, in 27 million pairs and a
   search for the worst), and its bounds the ones of the balls where it answers,
-  most of the pairs (60 to 90 % according to the domain); and 15 edges of its
+  most of the pairs (74 to 96 % according to the domain); the bound of the
+  error for ten classes (the multiple of log(2), the size of t, the size of
+  log1p(x)) and for eight pairs, which pins the constants of the analysis; and 15 edges of its
   domain (|log1p(x)| = 8, |y log1p(x)| = 8 to 16, a subnormal value, the values
   that are doubles such as 2.375, which it leaves to the balls) have to be
   answered, or not, as they are. The exact division of y = −1, which is
-  `reciprocal_m1()`, has to give the tightest bounds of the 2 000
-  points of y = −1 where 1 + x takes 127 bits or less, and nothing for the
+  `reciprocal_m1()`, has to give the tightest bounds of the 633
+  points of y = −1 (of 719) where 1 + x takes 127 bits or less, and nothing for the
   others. Then the bounds at 5 854 pairs
   (x, y) have to be the greatest double at most the value and the least double
   at least it, for `compoundm1` and for the function of points, from tiny to
