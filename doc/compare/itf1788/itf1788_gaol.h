@@ -61,6 +61,16 @@ namespace itf {
   inline std::string text(double d) { return hex(d); }
   inline std::string text(bool b) { return b ? "true" : "false"; }
 
+  // A state of overlap (10.6.4, Table 10.7), by its name in the table
+  inline std::string text(gaol_ieee1788::overlapping_state s)
+  {
+    static const char* const names[16] = {
+      "bothEmpty", "firstEmpty", "secondEmpty", "before", "meets", "overlaps", "starts", "containedBy",
+      "finishes", "equals", "finishedBy", "contains", "startedBy", "overlappedBy", "metBy", "after" };
+    const unsigned k = static_cast<unsigned>(s);
+    return k < 16 ? names[k] : "an unknown state";
+  }
+
   inline bool same(const gaol_ieee1788::interval& a, const gaol_ieee1788::interval& b)
   {
     if (a.is_empty() || b.is_empty()) {
@@ -78,6 +88,8 @@ namespace itf {
   }
 
   inline bool same(bool a, bool b) { return a == b; }
+
+  inline bool same(gaol_ieee1788::overlapping_state a, gaol_ieee1788::overlapping_state b) { return a == b; }
 
   // The tabs and the line ends of a field (an exception's message) as spaces
   inline std::string field(std::string s)
