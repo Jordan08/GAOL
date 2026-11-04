@@ -3950,12 +3950,14 @@ cout << hypot(interval(3), interval(4)) << ' '
   where it is $-1$; the part of the box outside is left out, and $-1$ and
   $+\infty$, the limits at $x=-1$, at $x=+\infty$ and for an infinite $y$, are
   bounds. CORE-MATH having no function for it, the value at a corner of the
-  box is computed with a 128-bit significand and a bound of its error, in 2 to
-  3 microseconds for each of the one or two corners where the bounds are. The
-  bounds are the tightest ones, the double itself where the value is one
-  (2.375 for $x=1.5-1$ and $y=3$, but also $2^m-1$ for $|m|\le53$), but in a
-  case out of $10^{17}$ or so, and for a few contrived values, where a bound
-  is a double beyond.\newinvfive
+  box is computed with integers: 64 bits in a fast phase that settles 95\,\%
+  of the pairs, 128 bits and a bound of the error in the others. It takes 0.1
+  microsecond for each of the one or two corners where the bounds are, where
+  the fast phase settles it, and 0.6 to 0.9 elsewhere. The bounds are the
+  tightest ones, the double itself where the value is one (2.375 for
+  $x=1.5-1$ and $y=3$, but also $2^m-1$ for $|m|\le53$, and the quotient
+  $-x/(1+x)$ of $y=-1$, divided exactly), but in a case out of $10^{17}$ or
+  so, where a bound is a double beyond.\newinvfive
 \begin{example}
 cout << compoundm1(interval(0.5), interval(2)) << ' '
      << compoundm1(interval(1,3), interval(1,2)) << endl

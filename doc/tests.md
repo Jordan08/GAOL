@@ -1083,9 +1083,12 @@ point Q), which `numbers` checks there too.
   GAOL the tightest (GAOL v5).
 - **`compoundm1`:** `compoundm1(x, y)`, (1 + x)<sup>y</sup> − 1 of IEEE 1788-2015
   (Table 10.5), which CORE-MATH has not: its bounds are computed in
-  `gaol/math/gaol_compoundm1.h` with a 128-bit significand and a bound of the
+  `gaol/math/gaol_compoundm1.h` with 64-bit fixed point in a fast phase, and
+  where that does not settle them with a 128-bit significand and a bound of the
   error that every operation adds to (GAOL v5). The test goes from the bottom up.
-  The 256-bit product against the schoolbook one, the shifts of 256 and 128 bits
+  The count of leading zeros, by the instruction of the compiler and by
+  bisection, against a loop; the 256-bit product against the schoolbook one,
+  the shifts of 256 and 128 bits
   by every count against the bits, the integer square root at r<sup>2</sup> − 1,
   r<sup>2</sup> and r<sup>2</sup> + 2r, and the doubles around an integer (down
   and up, the subnormal ones, the carry into the next binade, the overflows, a
@@ -1110,7 +1113,28 @@ point Q), which `numbers` checks there too.
   made of the values that are doubles, their neighbours, the right odd part
   with a wrong power of two, the right power of two with a wrong sign, and
   random doubles: none that does not hold, and every one that holds with 128
-  bits to spare. Then the bounds at 3 845 pairs
+  bits to spare. The fast phase is checked by itself: its series
+  (e<sup>r</sup> − 1)/r in 64 bits, for the 458 values of r of mpmath and for
+  4 000 sizes of r up to 1/2 against the series of the balls, has to be within
+  5 units of 2<sup>−63</sup>; the reduction by log(2), for 6 000 values of
+  |t| up to 8 and for those next to the odd halves of log(2), has to be the
+  nearest multiple and what is left of it, with log(2) 2<sup>120</sup> of mpmath
+  and R = |s| 2<sup>−56</sup>; the significands of 64 bits and their shifts, and
+  the doubles around the enclosure of the result (its 13 cases: the ends that
+  are doubles, the enclosure that goes over a power of two, the negative
+  values, the smallest normal double and the subnormals, the largest double).
+  Over 15 000 pairs from six domains (x from −0.9 to 2 900, y from −20 to 30,
+  log1p(x) below and above 1/2, results above and below 0), the centre of the
+  fast phase has to be within 3/10 of the bound of its error of the value of
+  the balls (the worst error found is 0.22 of it, in 27 million pairs and a
+  search for the worst), and its bounds the ones of the balls where it answers,
+  most of the pairs (60 to 90 % according to the domain); and 15 edges of its
+  domain (|log1p(x)| = 8, |y log1p(x)| = 8 to 16, a subnormal value, the values
+  that are doubles such as 2.375, which it leaves to the balls) have to be
+  answered, or not, as they are. The exact division of y = −1, which is
+  `reciprocal_m1()`, has to give the tightest bounds of the 2 000
+  points of y = −1 where 1 + x takes 127 bits or less, and nothing for the
+  others. Then the bounds at 5 854 pairs
   (x, y) have to be the greatest double at most the value and the least double
   at least it, for `compoundm1` and for the function of points, from tiny to
   past the doubles and in the thresholds: the reduction by log(2) (0.3466 and
@@ -1127,8 +1151,9 @@ point Q), which `numbers` checks there too.
   x = 0 or y = 0, with the limits −1 and +∞ at x = −1, at +∞ and for an
   infinite y, and the empty set below −1 and at x = −1 for y ≤ 0 (the
   definition, read in the script and not in GAOL). 31 boxes are chosen by hand,
-  among them the contrived value the bounds are one double wider for
-  (y = −1, x = 2<sup>−51</sup> + 2<sup>−103</sup>), and 400 random boxes are compared with the hull of the points at their
+  and the contrived values (y = −1, x = ±(2<sup>e</sup> + 2<sup>2e−1</sup>)
+  for e from −51 to −30) have the tightest bounds, where the balls alone are
+  one double wider for some; 400 random boxes are compared with the hull of the points at their
   corners, which contains the points inside them. The three names, `gaol`,
   `gaol_core` and `gaol_ieee1788`, have to be one function, the text
   `compoundm1(...)` read in any case, the flags of invalid operation, division

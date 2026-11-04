@@ -786,6 +786,23 @@
 	(0, 1) or a NaN.  Named in gaol.
 	* gaol/core/gaol_interval_core.h (erf, erfc): new, the tightest
 	bounds, with the erf and erfc of CORE-MATH (3rd/math-core).
+	* gaol/core/gaol_interval_core.h (compoundm1), gaol/gaol_interval.h,
+	gaol/gaol_ieee1788.h, gaol/parser/gaol_interval_parser.ypp: new,
+	(1 + x)^y - 1 of IEEE 1788-2015 (Table 10.5), the one function of
+	the table GAOL had not: CORE-MATH has no binary64 version of it, and
+	exp(y log1p(x)) - 1 with doubles is up to 1100 doubles off.
+	gaol/math/gaol_compoundm1.h (not installed) computes the value at a
+	corner with integers only: a fast phase of 64-bit fixed point,
+	which settles 95 % of the pairs in 0.1 microsecond when |y
+	log1p(x)| is below 0.35 (71 % below 8), the error bound being
+	proved, then a 128-bit significand in balls that add the error of
+	each operation to a bound, which prove the values that are doubles
+	(2.375 = 1.5^3 - 1, 2^m - 1), and y = -1 divided exactly.  The
+	bounds are the tightest ones but in a case out of 10^17 or so; the
+	box is analysed as pow() with the bases moved by 1.
+	* tests/compoundm1.cpp, compoundm1_values.py, compoundm1_values.h:
+	new, from the integers to the boxes: 5854 pairs and 850 boxes
+	against mpmath and fractions, the fast phase against the balls.
 	* gaol/core/gaol_interval_core.h (pow_rel, pow_exponent_rel,
 	atan2_rel_y, atan2_rel_x, max_rel, min_rel, sign_rel, floor_rel),
 	gaol/gaol_ieee1788.h (powRev1, powRev2, atan2Rev1, atan2Rev2,

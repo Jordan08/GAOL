@@ -1897,9 +1897,11 @@ GAOL_NODISCARD extern GAOL_PUBLIC   interval log10(const interval& I);
     CORE-MATH is correctly rounded, the value at a bound is taken as the bound
     where it is a double, and the functions of pi*x find their extrema and
     poles exactly, at the multiples of 1/2. CORE-MATH has no compoundm1:
-    its bounds are computed with a 128-bit significand and are the tightest
-    ones but in a case out of 10^17 or so (gaol/math/gaol_compoundm1.h), in
-    2 to 3 microseconds for each of the one or two corners of the box.
+    its bounds are computed with integers (gaol/math/gaol_compoundm1.h), with
+    64 bits in a fast phase that settles 95 % of the pairs and 128 bits in
+    the others, and are the tightest ones but in a case out of 10^17 or so,
+    in 0.1 microsecond for each of the one or two corners of the box where the
+    fast phase settles it, and 0.6 to 0.9 elsewhere.
   */
 GAOL_NODISCARD extern GAOL_PUBLIC   interval expm1(const interval& I);
 GAOL_NODISCARD extern GAOL_PUBLIC   interval exp2m1(const interval& I);
