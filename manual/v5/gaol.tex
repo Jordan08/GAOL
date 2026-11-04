@@ -2671,8 +2671,8 @@ x &= interval(-6,23); @rem^// Now, @code^x~ is @itv^-6~^12~~
 
 \end{defmethod}
 
-\defmethodx{interval}{interval\&}{operator|=}{(const interval\& \var{I})}
-\begin{defmethod}{interval}{interval\&}{operator|=}{(double \var{d})}
+\defmethodx{interval}{interval\&}{operator\textbar=}{(const interval\& \var{I})}
+\begin{defmethod}{interval}{interval\&}{operator\textbar=}{(double \var{d})}
   \begin{operation}
     \op{$\code{self}\gets\hull{(\code{self} \cup I)}$}
     \op{$\code{self}\gets\hull{(\code{self} \cup \code{interval}(d))}$}
@@ -4825,7 +4825,7 @@ cout << (interval(4,6) & interval(5,9)) << ' '
   \end{example}
 \end{deffun}
 
-\begin{deffun}{interval}{operator|}{(const interval\& I1, const interval\& I2)}
+\begin{deffun}{interval}{operator\textbar}{(const interval\& I1, const interval\& I2)}
   \begin{operation}
     \op{$\hull{(\var{I1}\cup\var{I2})}$}
   \end{operation}
