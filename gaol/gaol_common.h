@@ -29,6 +29,8 @@
 
 #include <cmath>
 
+// The classes of <stdexcept> that gaol_ERROR (below) takes are declared with
+// exceptions or without: its static_assert needs the type in both (GAOL v5)
 #include <cstdlib>
 #include <exception>
 #include <stdexcept>
@@ -36,9 +38,7 @@
 #include "gaol/gaol_config.h"
 #include "gaol/gaol_port.h"
 
-// What gaol_ERROR (below) throws, and the text of the exception (GAOL v5):
-// the classes of <stdexcept> it is given are declared with exceptions or
-// without, as its static_assert needs the type in both
+// The text of the exceptions, error_text() below
 #if GAOL_EXCEPTIONS_ENABLED
 #  include <string>
 #endif
