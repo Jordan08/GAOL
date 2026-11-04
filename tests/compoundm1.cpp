@@ -845,7 +845,7 @@ namespace
   void chosen_boxes()
   {
     struct Case { const char* what; interval got; double lo, hi; bool empty; };
-    const double inf = gaol_tests::inf;
+    const double infinity = gaol_tests::inf;
     const Case cases[] = {
       { "an empty x", compoundm1(interval::emptyset(), interval(1.0)), 0.0, 0.0, true },
       { "an empty y", compoundm1(interval(1.0), interval::emptyset()), 0.0, 0.0, true },
@@ -855,18 +855,18 @@ namespace
       { "x = -1 and y < 0", compoundm1(interval(-1.0), interval(-2.0, -0.5)), 0.0, 0.0, true },
       { "x = -1 and y holding 0 and 1: only y > 0 counts", compoundm1(interval(-1.0), interval(-1.0, 1.0)), -1.0, -1.0, false },
       { "x = [-1, 0] and y = 1: -1 is the least value", compoundm1(interval(-1.0, 0.0), interval(1.0)), -1.0, 0.0, false },
-      { "x = [-1, 0] and y = -1: the limit +oo at x = -1", compoundm1(interval(-1.0, 0.0), interval(-1.0)), 0.0, inf, false },
-      { "x = [-1, 3] and y = [-2, 2]: [-1, +oo]", compoundm1(interval(-1.0, 3.0), interval(-2.0, 2.0)), -1.0, inf, false },
+      { "x = [-1, 0] and y = -1: the limit +oo at x = -1", compoundm1(interval(-1.0, 0.0), interval(-1.0)), 0.0, infinity, false },
+      { "x = [-1, 3] and y = [-2, 2]: [-1, +oo]", compoundm1(interval(-1.0, 3.0), interval(-2.0, 2.0)), -1.0, infinity, false },
       { "x = [-3, 3] and y = 2: x < -1 left out", compoundm1(interval(-3.0, 3.0), interval(2.0)), -1.0, 15.0, false },
       { "x = 0, whatever y", compoundm1(interval(0.0), interval(-1e300, 1e300)), 0.0, 0.0, false },
       { "y = 0, whatever x", compoundm1(interval(-0.5, 1e300), interval(0.0)), 0.0, 0.0, false },
-      { "the whole line: [-1, +oo]", compoundm1(interval::universe(), interval::universe()), -1.0, inf, false },
-      { "x = [0, +oo] and y = 1: x - 0", compoundm1(interval(0.0, inf), interval(1.0)), 0.0, inf, false },
-      { "x = [1, +oo] and y = [-oo, 0]: the limit -1 at +oo, and 0", compoundm1(interval(1.0, inf), interval(-inf, -1.0)), -1.0, -0.5, false },
-      { "x = 1 and y = [1, +oo]: the limit +oo", compoundm1(interval(1.0), interval(1.0, inf)), 1.0, inf, false },
-      { "x = 1 and y = [-oo, -1]: the limit -1", compoundm1(interval(1.0), interval(-inf, -1.0)), -1.0, -0.5, false },
-      { "x = -0.5 and y = [1, +oo]: the limit -1", compoundm1(interval(-0.5), interval(1.0, inf)), -1.0, -0.5, false },
-      { "x = -0.5 and y = [-oo, -1]: the limit +oo", compoundm1(interval(-0.5), interval(-inf, -1.0)), 1.0, inf, false },
+      { "the whole line: [-1, +oo]", compoundm1(interval::universe(), interval::universe()), -1.0, infinity, false },
+      { "x = [0, +oo] and y = 1: x - 0", compoundm1(interval(0.0, infinity), interval(1.0)), 0.0, infinity, false },
+      { "x = [1, +oo] and y = [-oo, 0]: the limit -1 at +oo, and 0", compoundm1(interval(1.0, infinity), interval(-infinity, -1.0)), -1.0, -0.5, false },
+      { "x = 1 and y = [1, +oo]: the limit +oo", compoundm1(interval(1.0), interval(1.0, infinity)), 1.0, infinity, false },
+      { "x = 1 and y = [-oo, -1]: the limit -1", compoundm1(interval(1.0), interval(-infinity, -1.0)), -1.0, -0.5, false },
+      { "x = -0.5 and y = [1, +oo]: the limit -1", compoundm1(interval(-0.5), interval(1.0, infinity)), -1.0, -0.5, false },
+      { "x = -0.5 and y = [-oo, -1]: the limit +oo", compoundm1(interval(-0.5), interval(-infinity, -1.0)), 1.0, infinity, false },
       { "x = 1 and y = 3: 7", compoundm1(interval(1.0), interval(3.0)), 7.0, 7.0, false },
       { "x = 0.5 and y = 2: 1.25", compoundm1(interval(0.5), interval(2.0)), 1.25, 1.25, false },
       { "x = 8 and y = 0.5: 2", compoundm1(interval(8.0), interval(0.5)), 2.0, 2.0, false },
@@ -876,7 +876,7 @@ namespace
       { "x = 2^-1074 and y = 1: the same", compoundm1(interval(0x1p-1074), interval(1.0)), 0x1p-1074, 0x1p-1074, false },
       { "x = 15 and y = 25: 2^100 - 1 is between two doubles", compoundm1(interval(15.0), interval(25.0)), 0x1.fffffffffffffp+99, 0x1p+100, false },
       { "x = [3, 7] and y = [1, 2]: [3, 63]", compoundm1(interval(3.0, 7.0), interval(1.0, 2.0)), 3.0, 63.0, false },
-      { "x = 1 and y = 2000: 2^2000 - 1 is past the doubles", compoundm1(interval(1.0), interval(2000.0)), std::numeric_limits<double>::max(), inf, false },
+      { "x = 1 and y = 2000: 2^2000 - 1 is past the doubles", compoundm1(interval(1.0), interval(2000.0)), std::numeric_limits<double>::max(), infinity, false },
       { "x = 1 and y = -2000: -1 + 2^-2000", compoundm1(interval(1.0), interval(-2000.0)), -1.0, -0x1.fffffffffffffp-1, false },
     };
     for (const Case& c : cases) {
@@ -976,10 +976,10 @@ namespace
 
   void exception_flags()
   {
-    const double inf = gaol_tests::inf;
+    const double infinity = gaol_tests::inf;
     const interval boxes[][2] = {
       { interval(1.0), interval(3.0) }, { interval(-0.5, 2.0), interval(-2.0, 5.0) }, { interval(-1.0, 1.0), interval(0.0, 1.0) },
-      { interval(1.0, inf), interval(-inf, 2.0) }, { interval::universe(), interval::universe() },
+      { interval(1.0, infinity), interval(-infinity, 2.0) }, { interval::universe(), interval::universe() },
       { interval(0.5), interval(1e300) }, { interval(1e300), interval(-1e300) }, { interval::emptyset(), interval(1.0) },
       { interval(2.0), interval::emptyset() }, { interval(-1.0), interval(1.0) }, { interval(-3.0), interval(1.0) },
       { interval(-0.999999), interval(1e10) }, { interval(1e-300), interval(1e-300) }, { interval(1.0), interval(2000.0) },
