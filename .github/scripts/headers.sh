@@ -21,7 +21,11 @@
 #   of Clang including the one of the system, and only on x86 those of SSE,
 #   which stop on an #error elsewhere, as on macOS arm64, and only on 64-bit ARM
 #   those of NEON, which Clang has for every target and which stop on an #error
-#   on x86, as on macOS x86_64: GAOL v5).
+#   on x86, as on macOS x86_64: GAOL v5);
+# - gaol_ERROR(std::domain_error, ...) compiles and gaol_ERROR(int, ...) is
+#   refused by its static_assert, with the exceptions of the installed GAOL
+#   or without (the check of the macro cannot be compiled in the tests of
+#   tests/, which test its predicate only: GAOL v5).
 #
 # The flags are those of pkg-config --cflags gaol, where the prefix has
 # gaol.pc, as the code using GAOL is compiled; TEST_FLAGS (see tests.sh)
@@ -102,5 +106,29 @@ if [ -n "$leaked" ]; then
   status=1
 else
   echo "The macros of GAOL's headers start with GAOL_ or gaol_: $(comm -13 "$work/system.txt" "$work/both.txt" | wc -l) macros"
+fi
+
+# gaol_ERROR takes a class derived from std::exception, and refuses any other
+# type when it is compiled, in a build that throws as in one that aborts
+printf '#include <gaol/gaol_common.h>\ninline void raise() { gaol_ERROR(std::domain_error, "refused"); }\n' > "$work/error_ok.cpp"
+printf '#include <gaol/gaol_common.h>\ninline void raise() { gaol_ERROR(int, "refused"); }\n' > "$work/error_bad.cpp"
+# shellcheck disable=SC2086
+if $cxx $flags -fsyntax-only "$work/error_ok.cpp" > "$work/error.log" 2>&1; then
+  echo "gaol_ERROR(std::domain_error, ...): ok"
+else
+  echo "gaol_ERROR(std::domain_error, ...): FAILED"
+  cat "$work/error.log"
+  status=1
+fi
+# shellcheck disable=SC2086
+if $cxx $flags -fsyntax-only "$work/error_bad.cpp" > "$work/error.log" 2>&1; then
+  echo "gaol_ERROR(int, ...): FAILED, it compiles"
+  status=1
+elif grep -q "excep must be derived from std::exception" "$work/error.log"; then
+  echo "gaol_ERROR(int, ...): refused by its static_assert, as it has to be"
+else
+  echo "gaol_ERROR(int, ...): refused, but not by its static_assert:"
+  cat "$work/error.log"
+  status=1
 fi
 exit $status
