@@ -178,7 +178,10 @@ namespace gaol_names
   static_assert(same<decltype(gaol::fma(x(), x(), x())), interval>(), "gaol::fma(x, y, z)");
   static_assert(same<decltype(gaol::nth_root(x(), 3u)), interval>() && same<decltype(gaol::nth_root(x(), 3)), interval>(),
                 "gaol::nth_root(x, n)");
-  static_assert(same<decltype(gaol::nth_root_rel(x(), 3u, x())), interval>(), "gaol::nth_root_rel(y, n, x)");
+  // The reverse of the integer power for every integer p (GAOL v5): the int, the unsigned int and the template
+  static_assert(same<decltype(gaol::nth_root_rel(x(), 3u, x())), interval>() && same<decltype(gaol::nth_root_rel(x(), -3, x())), interval>()
+                && same<decltype(gaol::nth_root_rel(x(), 3L, x())), interval>()
+                && same<decltype(gaol::nth_root_rel(x(), -3LL, x())), interval>(), "gaol::nth_root_rel(y, p, x)");
   static_assert(same<decltype(gaol::pow_rel(x(), x(), x())), interval>()
                 && same<decltype(gaol::pow_exponent_rel(x(), x(), x())), interval>(),
                 "gaol::pow_rel(z, y, x), gaol::pow_exponent_rel(z, x, y)");
