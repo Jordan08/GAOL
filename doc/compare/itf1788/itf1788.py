@@ -526,8 +526,8 @@ CLASSES = [
      "encloses the exact result (checked with mpmath, whose tightest result the last column gives)",
      "defect of the test case"),
     ("itf-literal", "ITF1788 expects an interval for a literal [l, u] whose lower bound is above its upper "
-     "bound (compared exactly), which is the empty set (12.12.7, as [2, 1]) and what GAOL v5 gives",
-     "defect of the test case"),
+     "bound (compared exactly), where an implementation that decides l <= u, as GAOL v5 does, gives the empty "
+     "set (12.12.7)", "defect of the test case"),
     ("unverified", "GAOL v5's result misses part of the expected one, and no reference was computed",
      "to be examined"),
 ]
@@ -603,10 +603,14 @@ def interval_of(lit):
 
 
 def exact_number(text):
-    """The exact value, a Fraction, of the decimal, hexadecimal or rational number a literal writes: not the
-    double nearest to it, which would make [1.0000000000000002, 1.0000000000000001] a case of l below u; None
-    for anything else (an infinity, a name)"""
+    """The exact value, a Fraction, of the decimal, hexadecimal or rational number a literal writes, not the
+    double nearest to it: the two doubles nearest to the bounds of [0x1.00000000000002p0, 0x1.00000000000001p0]
+    are both 1, where the bounds are not equal (12.12.7: "the comparison l <= u requires the exact values to
+    be used"); None for anything else (an infinity, a name) or for a number too long to be a literal of a case"""
     t = text.strip()
+    # Fraction() reads 1_0, and 1e999999999 would exhaust the memory
+    if "_" in t or len(t) > 200 or re.search(r"[eE][+-]?[0-9]{5,}|[pP][+-]?[0-9]{5,}", t):
+        return None
     m = re.fullmatch(r"([+-]?)0[xX]([0-9a-fA-F]*)(?:\.([0-9a-fA-F]*))?(?:[pP]([+-]?[0-9]+))?", t)
     if m:
         fraction = m.group(3) or ""
@@ -623,8 +627,9 @@ def exact_number(text):
 
 def crossed_literal(case):
     """Whether the string of a textToInterval case is an inf-sup literal [l, u] whose bounds are numbers with l
-    above u, which is no interval: IEEE 1788-2015 gives it the empty set, as for [2, 1] (12.12.7), where the
-    cases of libieeep1788 expect the interval from the double below l to the double above u"""
+    above u, exactly: an implementation that decides l <= u gives the empty set (12.12.7), and one that
+    cannot may give an interval containing l and u, which the cases of libieeep1788 expect, signalling
+    PossiblyUndefinedOperation; a non-empty result for l above u is permitted by the standard, not required"""
     if case.op != "b-textToInterval" or case.inputs[0].kind != "string":
         return False
     m = re.fullmatch(r'"\s*\[([^,\[\]]+),([^,\[\]]+)\]\s*"', case.inputs[0].value)
