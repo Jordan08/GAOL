@@ -72,7 +72,8 @@ using examples::Box;
  * gaol_ieee1788 names it after coshRev. Mind the order of the arguments for
  * the product: div_rel(c, y, x) divides c by y within x, while mulRev(y, c, x)
  * gives the factor y first. nth_root_rel and pownRev take an exponent n of any
- * sign (GAOL v5: n >= 1 only).
+ * sign (they took n >= 1 only); for n < 0, bwd_pow is not the same function
+ * (see examples.md).
  */
 
 namespace {

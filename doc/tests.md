@@ -371,7 +371,7 @@ point Q), which `numbers` checks there too.
   DBL_MAX + 1, and raised the flag for `floor_rel([DBL_MAX], [0, 1])`, which
   is empty, and for `floor_rel([0, DBL_MAX], [0, 1])`, [0, 1] (GAOL v5);
   Clang for 64-bit ARM still did, computing the sum before the test that
-  leaves it out and choosing afterwards. Then 29 calls of functions that
+  leaves it out and choosing afterwards. Then 36 calls of functions that
   computed beyond the largest double on the way, `sqrt()`, `nth_root()` with
   orders of every kind, `atan()`, `sin()`, `cos()`, `tan()`, `sqrt_rel()`,
   `nth_root_rel()` for an exponent of either sign, `acos_rel()`, `asin_rel()`, `atan_rel()`, `atanh_rel()`,
@@ -1302,9 +1302,11 @@ point Q), which `numbers` checks there too.
   `acos_rel` and `atan_rel` are allowed one double further, their reduction
   modulo π rounding twice, and the bound of x beyond 2^52, which they keep;
   those of `nth_root_rel` for a negative p, the root of each part of c and
-  then its inverse, two doubles further (of 20 000 random cases, 507 of the
-  9 769 nonempty results were one double beyond, 21 two, none more; see
-  [Accuracy of the operations](accuracy.md)). The cases of `pownRev` for p ≤ 0
+  then its inverse, two doubles further (of the 18 052 random cases with p < 0
+  of `nonpositive_pown_rev_cases(20000)` in `reverse_values.py`, 12 495 have a
+  nonempty result with nonempty accurate bounds: 521 were one double beyond
+  them, 25 two, none more; see [Accuracy of the operations](accuracy.md)).
+  The cases of `pownRev` for p ≤ 0
   are those of libieeep1788 (94), cases written out (the gap of c, the point
   0 and p = 0, whose results have to be empty where the hull is, which the
   accurate bounds, computed from arguments widened by a double, cannot tell

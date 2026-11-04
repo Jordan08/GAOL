@@ -4101,7 +4101,7 @@ cout << sqrt_rel(interval(1,4), interval::universe()) << ' '
 \end{example}
 \end{deffun}
 
-\deffunx{interval}{nth\_root\_rel}{(const interval\& J, unsigned int n, \\\hbox{}\hfill const interval\& I)}
+\deffunx{interval}{nth\_root\_rel}{(const interval\& \var{J}, unsigned int \var{n}, \\\hbox{}\hfill const interval\& \var{I})}
 \begin{deffun}{interval}{nth\_root\_rel}{(const interval\& \var{J}, int \var{p}, \\\hbox{}\hfill const interval\& \var{I})}
   \begin{operation}
     \op{$\code{nth\_root\_rel}(J,n,I)=\hull{\{x\in I\mid\exists y\in J\colon y=x^n\}}$}

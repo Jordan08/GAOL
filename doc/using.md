@@ -729,7 +729,7 @@ degenerate integer exponent [n], which has negative bases too: it is not one
 function of x and y, its result for [n] not being within its result for an
 exponent around n, and the reverse of x^n is `nth_root_rel(K, n, I)`.
 
-`nth_root_rel(K, n, I)` and `pownRev(c, x, n)` take every integer n (GAOL v5:
+`nth_root_rel(K, n, I)` and `pownRev(c, x, n)` take every integer n (they took
 n ≥ 1 only, and `pownRev` threw `std::domain_error` for the others). x^0 is 1
 for every x, 0 included, so that `nth_root_rel([-1, 5], 0, I)` is I and
 `nth_root_rel([2, 3], 0, I)` is empty. For n < 0, x^n is 1/x^|n|, which 0 has
