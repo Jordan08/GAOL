@@ -11,7 +11,7 @@ l'ancien `TODO.md` et dans `TODO_mistral.md`, avec les réponses du mainteneur
 des 22 et 23 octobre. #49 et #142 sont fermées le 24 octobre, `TODO_mistral.md`
 est supprimé. Le reste du travail est dans deux autres registres :
 
-- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PH, PJ et PK ;
+- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PH, PJ, PK et PM ;
 - `TODO_AFTER.md` (issue #178) : ce qui est reporté, après la version, jusqu'à
   une décision ou jusqu'à du matériel.
 
@@ -41,7 +41,7 @@ est supprimé. Le reste du travail est dans deux autres registres :
   : elle s'applique telle quelle.
 - Le classement par rang et par tiers (A à I) de l'ancien #142 n'existe plus :
   un « rang N » cité dans un texte d'avant le 24 octobre désigne cet ancien
-  classement. Ce qui reste à faire est classé en tâches PH, PJ et PK dans
+  classement. Ce qui reste à faire est classé en tâches PH, PJ, PK et PM dans
   `TODO.md`.
 - Ce qui sert encore des rapports des agents est dans
   [todo-notes/synthese.md](todo-notes/synthese.md), leurs originaux au commit
@@ -114,7 +114,8 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   hors des points de `TODO.md` : #285 pour les exceptions de la bibliothèque
   standard, puis la fusion `221c8d4` pour ses suites) ; il reste les
   signalements à d'autres projets (PH), le tableau de Clang 21 et la publication
-  (PJ) et un `FE_INVALID` à décider (PK) : voir `TODO.md`.
+  (PJ), un `FE_INVALID` à décider (PK) et un cas de 12.12.7 à décider (PM) :
+  voir `TODO.md`.
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
   sur tout processeur ARM 64 bits avec tous les compilateurs (GCC, Clang,
   AppleClang, clang-cl, Visual C++, MinGW-w64, MSYS2), SSE2 sur tout processeur
@@ -2355,8 +2356,8 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   défaut de GCC 14 (12 `FE_INVALID`) ; remplacées par #279 (F2 corrigée) et
   fermées sans fusion, leurs branches sont gardées.
 - **#286** (4 novembre) : le « Revert » de #285 (`revert-285-std-exceptions`),
-  ouvert à 8 h 35 UTC et fermé 11 secondes plus tard, sans fusion ; sa branche
-  reste sur GitHub, à supprimer.
+  ouvert à 8 h 35 UTC et fermé 11 secondes plus tard, sans fusion ; sa branche a
+  été supprimée le même jour (3.15).
 
 ### 2.5 Les pull requests du 23 octobre au soir et les décisions qu'elles exécutent
 
@@ -4074,13 +4075,26 @@ pull request qui les exécute (2.3).
   citant les numéros 16, 20 et 22 de cette revue.
 - **`doc/differences.md` et `ChangeLog`** (*décidé le 4 novembre*) : le texte de
   la synthèse se prépare après la fusion, avec les registres : dans `TODO.md`,
-  PJ point 7.
+  PJ point 7. Après les registres (*décidé le 4 novembre*, « Attendre #287 ») :
+  une seule pull request de synthèse pour #283 à #287, après la fusion de #287 ;
+  rien n'est écrit dans ces deux fichiers d'ici là.
 - **La fusion** (*décidé le 4 novembre*, « fusionne la branche dans
   configure-clean et push (pas besoin de PR pour cette fois) ») : fusion sans
   avance rapide `221c8d4`, poussée sans forcer.
-- **Les restes** : le cas des bornes qui sont des résultats d'opérations
-  (12.12.7) et `todo-notes/synthese.md`, qui parle encore des anciennes classes,
-  sont dans `TODO.md` (PJ, point 7).
+- **Les restes** : `todo-notes/synthese.md`, qui parle encore des anciennes
+  classes, est dans `TODO.md` (PJ, point 7), pour la synthèse ; le cas des
+  bornes qui sont des résultats d'opérations (12.12.7) est un point PM de
+  `TODO.md` (*décidé le 4 novembre*, « Nouveau point PM » : documenter, comparer
+  exactement ou reporter, à décider).
+- **Les branches distantes** (*décidé le 4 novembre*, « Je supprime les
+  deux ») : `std-exceptions` (`c746b8d`, ancêtre de `HEAD`) et
+  `revert-285-std-exceptions` (`0c96b0b`, le « Revert » de #286, non fusionné)
+  sont supprimées sur GitHub par `gh api -X DELETE` ; le commit de la seconde
+  reste dans `refs/pull/286/head`.
+- **ITF1788, #129** (*décidé le 4 novembre*, « Oui, les ajouter ») : les deux
+  cas de `textToInterval` sont ajoutés au brouillon de #129 (un second brouillon
+  en anglais, pour une issue à part, et un titre qui les cite) ; rien n'est
+  envoyé.
 
 ## 4. Les points faits, par lettre
 
@@ -5354,12 +5368,12 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
 - Le mainteneur a fusionné #285 le 4 novembre à 8 h 22 UTC (`7c12c50`), puis le
   « Revert » #286 a été ouvert et fermé 11 secondes plus tard, sans fusion
   (2.4). Les neuf commits qui suivent (2.3) sont sur la branche `std-exceptions`
-  de la machine, jamais poussée (sur GitHub elle reste à `c746b8d`, la tête de
-  #285) ; à la demande du mainteneur (« fusionne la branche dans configure-clean
-  et push (pas besoin de PR pour cette fois) »), la branche est fusionnée sans
-  avance rapide dans `configure-clean` : `221c8d4`, poussé sans forcer. #287
-  (`pown-rel`, `pownRev` pour p ≤ 0) est ouverte depuis le même jour, et
-  contient déjà `221c8d4`.
+  de la machine, jamais poussée (sur GitHub elle est restée à `c746b8d`, la tête
+  de #285, jusqu'à sa suppression) ; à la demande du mainteneur (« fusionne la
+  branche dans configure-clean et push (pas besoin de PR pour cette fois) »), la
+  branche est fusionnée sans avance rapide dans `configure-clean` : `221c8d4`,
+  poussé sans forcer. #287 (`pown-rel`, `pownRev` pour p ≤ 0) est ouverte depuis
+  le même jour, et contient déjà `221c8d4`.
 - La CI du commit de fusion : Linux (47 jobs), Windows (64), Autotools et meson
   (48), Linux containers (23), macOS (20) et Manual (1), 203 jobs, tous
   `success`, aucun échoué, annulé ni sauté ; Performance ne tourne pas sur un
@@ -5514,9 +5528,10 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
   GitHub (supprimées par le mainteneur à la fusion) et en local, le 3 novembre.
 - [x] Celles de #283 (`gaol-math-dir`) et de #284 (`ieee1788-operators`), sur
   GitHub (supprimées à la fusion) et en local, le 3 novembre.
-- [x] Celles de #285 (`std-exceptions`), en local, le 4 novembre ; sur GitHub
-  restent, à supprimer par le mainteneur, `std-exceptions` et
-  `revert-285-std-exceptions` (#286).
+- [x] Celles de #285 (`std-exceptions`) et de #286
+  (`revert-285-std-exceptions`), en local pour la première le 4 novembre, et sur
+  GitHub pour les deux, à la demande du mainteneur (3.15) ; le commit de la
+  seconde reste dans `refs/pull/286/head`.
 - [x] Le 4 novembre, à la demande du mainteneur (« nettoie /tmp ») : le dossier
   de travail de la session des exceptions (les builds, les clones de contrôle,
   les relevés : 1,9 Go libérés, la tmpfs de 16 Go passe de 6,7 à 4,8 Go) et

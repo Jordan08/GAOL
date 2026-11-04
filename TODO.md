@@ -2,11 +2,11 @@
 
 Ce qui reste à faire sur GAOL v5 au commit `221c8d4` de `configure-clean` (la
 fusion de la branche `std-exceptions`, après #285), le 4 novembre 2026, en
-tâches PH, PJ et PK (PA à PG, PI et PL sont faites : voir `TODO_DONE.md`). Ce
-fichier et l'issue #179 ont le même contenu. Ce qui est fait et décidé est dans
-`TODO_DONE.md` (l'issue #177 n'est plus mise à jour), ce qui est reporté dans
-`TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142 sont fermées, et
-`TODO_mistral.md` est supprimé.
+tâches PH, PJ, PK et PM (PA à PG, PI et PL sont faites : voir `TODO_DONE.md`).
+Ce fichier et l'issue #179 ont le même contenu. Ce qui est fait et décidé est
+dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour), ce qui est reporté
+dans `TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142 sont
+fermées, et `TODO_mistral.md` est supprimé.
 
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
@@ -16,7 +16,7 @@ pour p ≤ 0 par `nth_root_rel`) est ouverte.
 
 ## Comment lire ce fichier
 
-- Une tâche (PH, PJ, PK) regroupe des points qui touchent le même code, les
+- Une tâche (PH, PJ, PK, PM) regroupe des points qui touchent le même code, les
   mêmes fichiers ou les mêmes builds de validation, pour les traiter dans la
   même session ; chaque point reste une pull request à part (process.md : un
   point, une branche), sauf quand la tâche dit qu'une seule suffit. Les tâches
@@ -24,7 +24,7 @@ pour p ≤ 0 par `nth_root_rel`) est ouverte.
   coûte plus cher en attendant (une décision qui bloque) ; ce qui tue un
   programme ou rompt une promesse écrite avant ce qui ne fait que ralentir ; le
   petit et sans dépendance avant le gros ; la version (PJ) en dernier.
-- PH et PK ne dépendent d'aucune autre tâche, sauf quand le texte le dit (PJ
+- PH, PK et PM ne dépendent d'aucune autre tâche, sauf quand le texte le dit (PJ
   suit PI et les études de PG, qui sont faites).
 - Chaque point garde sa lettre et son ancien numéro, par exemple « 79 (AB) » :
   ce sont ceux des pull requests, des issues, des commentaires du code et de
@@ -45,6 +45,7 @@ pour p ≤ 0 par `nth_root_rel`) est ouverte.
 | PH | Les signalements à d'autres projets | #125 à #138, #175 | accord |
 | PJ | Les mesures et la publication de v5.0.0 | 32 à 34, 71, manuel, CI | M |
 | PK | Des `FE_INVALID` avec Clang et le FPU | un point | à décider |
+| PM | Le cas (b) de 12.12.7 : les littéraux aux bornes calculées | un point | à décider |
 
 ## PH. Les signalements à d'autres projets [attend l'accord du mainteneur]
 
@@ -102,14 +103,14 @@ probablement rien.
    **#129 ITF1788** (huit cas dont le résultat attendu n'est pas le plus serré,
    et, depuis le rapport du 4 novembre, deux cas de `textToInterval` où ITF1788
    attend un intervalle pour un littéral `[l, u]` dont l est au-dessus de u, que
-   GAOL rend vide selon IEEE 1788-2015, 12.12.7 : *à décider*, les ajouter au
-   brouillon de #129 ?), **#130 Boost.Interval** (`rounded_transc_opp` donne la
-   borne supérieure pour l'inférieure ; issue seule ou avec une pull request,
-   selon la politique de Boost) et **#175 Cygwin** (le `fma()` mal arrondi dans
-   les quatre sens, le `nextafter()` qui calcule le débordement dans le sens
-   d'arrondi du programme, CPack qui ne met pas le lien `README` dans l'archive,
-   cause non trouvée ; mesures de CI et brouillon anglais dans l'issue, à
-   rejouer avant l'envoi).
+   GAOL rend vide selon IEEE 1788-2015, 12.12.7 ; *décidé le 4 novembre* :
+   ajoutés au brouillon de #129, en anglais, pour une issue à part), **#130
+   Boost.Interval** (`rounded_transc_opp` donne la borne supérieure pour
+   l'inférieure ; issue seule ou avec une pull request, selon la politique de
+   Boost) et **#175 Cygwin** (le `fma()` mal arrondi dans les quatre sens, le
+   `nextafter()` qui calcule le débordement dans le sens d'arrondi du programme,
+   CPack qui ne met pas le lien `README` dans l'archive, cause non trouvée ;
+   mesures de CI et brouillon anglais dans l'issue, à rejouer avant l'envoi).
 3. **#131 Microsoft** (`ldexp()` de l'UCRT, `NAN` et `INFINITY` sous
    `/fp:strict`, `sqrt()` en 32 bits, runtime de Debug, `nextafter()`, le
    `fma()` d'`ucrtbase.dll` jamais vérifié), **#132 Apple** (`ldexp()` et
@@ -125,9 +126,10 @@ probablement rien.
    réplique d'un fichier, vérifiée sur la plateforme, et un tri entre défaut,
    limite connue et comportement voulu.
 4. **#134 gmpy2** (2.2.1 ; probablement rien à envoyer si 2.3.2 les a corrigés),
-   **#137 libieeep1788** (probablement rien : les six cas sont dans #129) et
-   **#138 la glibc** (probablement rien : relancer avec la glibc 2.44) :
-   vérifier, puis fermer.
+   **#137 libieeep1788** (probablement rien : les six cas des réciproques sont
+   dans #129, comme les deux littéraux de `textToInterval`, qui viennent aussi
+   de ses tests) et **#138 la glibc** (probablement rien : relancer avec la
+   glibc 2.44) : vérifier, puis fermer.
 5. **#128 Frédéric Goualard** : l'annonce de v5.0.0, après l'étiquette (tâche
    PJ, point 71) ; l'issue est fermée depuis le 18 octobre et le brouillon est
    dans Gmail.
@@ -241,7 +243,11 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    ne doit plus y figurer.
 7. **Les restes de #283, de #284 et de #285** (hors des points) : les textes
    « Pour `doc/differences.md` et `ChangeLog` » de ces pull requests ne sont pas
-   reportés. Dans `doc/differences.md` : les anciens chemins de
+   reportés. *Décidé le 4 novembre* (« Attendre #287 ») : une seule pull request
+   de synthèse pour #283 à #287, après la fusion de #287, dont le texte
+   (`pownRev` pour p ≤ 0 par `nth_root_rel`) s'ajoute alors à celui-ci ; rien
+   n'est écrit d'ici là dans `doc/differences.md`, `ChangeLog` ni
+   `todo-notes/synthese.md`. Dans `doc/differences.md` : les anciens chemins de
    `gaol_double_op.h`, `gaol_u128.h`, `gaol_ldexp.h`, `gaol_roundeven.h` et
    `gaol_core_math.h` (13 lignes : 49, 84, 93, 242, 251, 309, 361, 1128, 1825,
    1858, 1859, 2400, 2424) et de `core_math_port.h` (122, 166, 1130), qui sont
@@ -280,15 +286,9 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    une entrée pour le changement. Restent aussi le commentaire de
    `CMakeLists.txt` (ligne 1435) qui cite `core_math_log_dint.h`, qui n'existe
    pas, et `todo-notes/synthese.md`, qui garde 11 lignes sur les anciennes
-   classes (un registre, non touché par #285). *À décider* (#285) : un littéral
-   `[l, u]` dont les bornes sont des résultats d'opérations (des quotients, la
-   ligne 137 de `libieeep1788_class.itl`) passe où ITF1788 l'attend, parce que
-   GAOL ne compare pas exactement ces bornes (commentaire de `gaol_literal()`) ;
-   or, selon IEEE 1788-2015, 12.12.7, une implémentation qui ne peut pas décider
-   doit rendre un intervalle qui contient l et u et signaler
-   `PossiblyUndefinedOperation`, et GAOL ne signale aucune des exceptions du
-   standard : le dire dans `doc/differences.md`, ou comparer exactement ?
-   `doc/compare/itf1788.md` le dit pour l'instant. [S]
+   classes (un registre, non touché par #285). Le cas des bornes qui sont des
+   résultats d'opérations (12.12.7), que `doc/compare/itf1788.md` dit déjà, est
+   la tâche PM. [S]
 
 ## PK. Des `FE_INVALID` avec Clang et les intervalles FPU [S, à décider]
 
@@ -304,3 +304,41 @@ silencieuse que l'optimiseur rend signalante). *À décider* : en faire un point
 (48 boucles de relations comme pour #279, Clang 18, 20 et 21, `-O3` avec et sans
 `-march=native`, les intervalles FPU), ou le reporter dans `TODO_AFTER.md`, le
 FPU n'étant le défaut ni de x86-64 ni d'arm64.
+
+## PM. Le cas (b) de IEEE 1788-2015, 12.12.7 [S ou M, à décider]
+
+Demandé par le mainteneur le 4 novembre (« Nouveau point PM »), à la suite du
+rapport d'ITF1788 de #285, **déjà dans la base** : un littéral `[l, u]` dont l
+est au-dessus de u donne l'ensemble vide quand GAOL v5 peut comparer les nombres
+exactement (les nombres écrits en chiffres : le cas de 12.12.7 où
+l'implémentation décide, comme pour `[2, 1]`). Il ne le peut pas quand une borne
+est le résultat d'une opération (1/3, `sqrt(2)`...), un nombre très au-delà des
+doubles, ou pi quand l'autre borne ne l'est pas : le littéral est alors
+l'intervalle de la borne inférieure de l à la borne supérieure de u (commentaire
+de `gaol_literal()`, `gaol/parser/gaol_interval_parser.ypp`). C'est le cas (b)
+de 12.12.7, un intervalle qui contient l et u avec `PossiblyUndefinedOperation`,
+mais GAOL v5 ne signale aucune des exceptions du standard (les décorations sont
+dans `TODO_AFTER.md`). Le cas de la ligne 137 de `libieeep1788_class.itl`,
+`[10000000000000001/10000000000000000, 10000000000000002/10000000000000001]`, où
+l est au-dessus de u d'environ 10^-32, passe pour cette raison ;
+`doc/compare/itf1788.md` le dit. *À décider* :
+
+1. **Documenter seulement** (recommandé) : le dire dans `doc/differences.md`,
+   dans la synthèse de PJ (point 7) : GAOL v5 rend l'intervalle sans signaler
+   `PossiblyUndefinedOperation`, comme il ne signale aucune exception du
+   standard. Aucun changement de code, et le cas de la ligne 137 passe encore.
+   [S]
+2. **Comparer exactement ce que le lecteur sait calculer** : les bornes qui sont
+   des opérations rationnelles (+, −, ×, ÷) sur des nombres écrits en chiffres,
+   comme celles de la ligne 137, se comparent en fractions d'entiers de taille
+   arbitraire, comme `gaol_compare_inside()` compare déjà les chiffres seuls ;
+   le littéral de la ligne 137 deviendrait vide, ce qu'ITF1788 n'attend pas : un
+   cas de plus dans la classe « itf-literal » du rapport. Restent `sqrt(2)`,
+   pi... Il faut une arithmétique d'entiers de taille arbitraire dans
+   `gaol/parser/` ; les tests : des quotients de littéraux dont l est au-dessus
+   de u de 10^-32, comparés à `fractions.Fraction` de Python, en échec avant.
+   [M]
+3. **Reporter** : signaler `PossiblyUndefinedOperation` demande des décorations,
+   qui sont dans `TODO_AFTER.md` ; l'écrire dans `TODO_AFTER.md` avec les
+   décorations et ne rien faire d'ici là, sauf le dire dans `doc/differences.md`
+   comme en 1.
