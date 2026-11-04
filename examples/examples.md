@@ -425,7 +425,7 @@ backward operators of IBEX and Codac, which call them:
 |---|---|---|---|
 | `sqrt_rel(y, x)` | `sqrRev(y, x)` | `bwd_sqr` | x² |
 | `div_rel(z, y, x)` | `mulRev(y, z, x)` | `bwd_mul` | x·y (the argument order differs) |
-| `nth_root_rel(y, n, x)` | `pownRev(y, x, n)`, n ≥ 1 | `bwd_pow` | xⁿ |
+| `nth_root_rel(y, n, x)` | `pownRev(y, x, n)` | `bwd_pow` | xⁿ |
 | `asin_rel`, `acos_rel`, `atan_rel` | `sinRev`, `cosRev`, `tanRev` | `bwd_sin`, `bwd_cos`, `bwd_tan` | sin, cos, tan |
 | `acosh_rel`, `asinh_rel`, `atanh_rel` | `coshRev`… | `bwd_cosh`… | cosh, sinh, tanh |
 | `invabs_rel` | `absRev` | `bwd_abs` | \|x\| |
