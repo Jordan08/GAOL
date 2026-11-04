@@ -26,9 +26,10 @@
  * further, their reduction modulo pi rounding twice, and the bound of x
  * beyond 2^52, which they keep, as doc/accuracy.md documents. Those of
  * nth_root_rel for a negative p (pownRev, GAOL v5), the root of each part of c
- * and then its inverse, are allowed two doubles further: of the 9 769 nonempty
- * results of 20 000 random cases measured, 507 were one double beyond the
- * accurate bounds, 21 two, none more.
+ * and then its inverse, are allowed two doubles further: of the 18 052 random
+ * cases with p < 0 of nonpositive_pown_rev_cases(20000) in reverse_values.py,
+ * 12 495 have a nonempty result with nonempty accurate bounds, of which 521
+ * were one double beyond them, 25 two, none more.
  * The summary also gives how far from the tightest bounds the results were,
  * where both are nonempty.
  *
@@ -178,6 +179,13 @@ namespace
             call("c %= d", hex(c) + " %= " + hex(d), [&] { interval r(c); r %= d; return r; });
           }
         }
+      }
+      if (f == "pownRev" && k.p >= 1) {
+        const interval& u = calls[0].r;
+        const interval& n = calls[1].r;
+        check("nth_root_rel(c, int p, x) is nth_root_rel(c, unsigned p, x) for p >= 1",
+              (u.is_empty() && n.is_empty()) || (!u.is_empty() && !n.is_empty() && u.left() == n.left() && u.right() == n.right()),
+              [&] { return hex(u) + " " + hex(n); });
       }
       const bool periodic = (f == "sinRev" || f == "cosRev" || f == "tanRev");
       const int slack = periodic ? 1 : (f == "pownRev" && k.p < 0 ? 2 : 0);

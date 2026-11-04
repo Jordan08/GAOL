@@ -23,7 +23,7 @@ namespace reverse_values
   // b is W for the functions other than mulRev, and x when the case does not
   // give it (x_given false); tightest, the tightest interval enclosing the hull;
   // accurate, nextOut(tightest(nextOut(c), nextOut(b), nextOut(x))), which the
-  // accurate results are within (12.10.1); from, libieeep1788 or random
+  // accurate results are within (12.10.1); from, libieeep1788, written or random
   struct Case { const char* f; I c, b, x; int p; bool x_given; I tightest, accurate; const char* from; };
   constexpr Case cases[] = {
     { "sqrRev", E, W, W, 0, false, E, E, "libieeep1788" },

@@ -700,7 +700,7 @@ def main():
     print("  // b is W for the functions other than mulRev, and x when the case does not")
     print("  // give it (x_given false); tightest, the tightest interval enclosing the hull;")
     print("  // accurate, nextOut(tightest(nextOut(c), nextOut(b), nextOut(x))), which the")
-    print("  // accurate results are within (12.10.1); from, libieeep1788 or random")
+    print("  // accurate results are within (12.10.1); from, libieeep1788, written or random")
     print("  struct Case { const char* f; I c, b, x; int p; bool x_given; I tightest, accurate; const char* from; };")
     print("  constexpr Case cases[] = {")
     for f, c, b, x, p, x_given, t, a, source in table:
