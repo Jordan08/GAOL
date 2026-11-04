@@ -655,7 +655,7 @@ parser:
 @COVERAGE_TRUE@	find . -name '*.gcda' -delete
 @COVERAGE_TRUE@	$(MAKE) $(AM_MAKEFLAGS) check
 @COVERAGE_TRUE@	$(MKDIR_P) $(abs_srcdir)/coverage
-@COVERAGE_TRUE@	$(GCOVR) --root $(abs_srcdir) --gcov-ignore-errors=no_working_dir_found \
+@COVERAGE_TRUE@	$(GCOVR) --root $(abs_srcdir) --gcov-ignore-errors=no_working_dir_found --merge-mode-functions=merge-use-line-min \
 @COVERAGE_TRUE@	  --filter $(abs_srcdir)/gaol/ --filter $(abs_srcdir)/3rd/math-core/ \
 @COVERAGE_TRUE@	  --html --html-self-contained --html-title "Coverage of GAOL" \
 @COVERAGE_TRUE@	  --output $(abs_srcdir)/coverage/coverage.html \

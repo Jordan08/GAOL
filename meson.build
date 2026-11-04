@@ -874,7 +874,7 @@ if coverage and not meson.is_subproject()
   run_target('gaol-coverage',
     command: [find_program('sh'), '-c',
       'cd "$2" && find . -name "*.gcda" -delete && "$1" test -C "$2" --no-rebuild --print-errorlogs ' + ' '.join(coverage_setup)
-      + ' && mkdir -p "$3/coverage" && "$4" --root "$3" --gcov-ignore-errors=no_working_dir_found'
+      + ' && mkdir -p "$3/coverage" && "$4" --root "$3" --gcov-ignore-errors=no_working_dir_found --merge-mode-functions=merge-use-line-min'
       + ' --filter "$3/gaol/" --filter "$3/3rd/math-core/" --html --html-self-contained'
       + ' --html-title "Coverage of GAOL" --output "$3/coverage/coverage.html" --json coverage.json --print-summary .'
       + ' && "$5" "$3/coverage/coverage_summary.py" coverage.json "$3/coverage/README.md"',
