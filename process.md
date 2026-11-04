@@ -744,7 +744,7 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
 
 ## 12. Où en est le travail (4 novembre 2026)
 
-Le reste à faire est dans `TODO.md` (tâches PH, PJ, PK et PM) et l'issue #179 ;
+Le reste à faire est dans `TODO.md` (tâches PH, PJ et PM) et l'issue #179 ;
 ce qui est fait et décidé (pull requests fusionnées, décisions, mesures) est
 dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour) ; ce qui est reporté
 est dans `TODO_AFTER.md` et l'issue #178. L'état qui suit est daté : les
@@ -809,14 +809,19 @@ git ls-remote --heads origin
   `pownRev` pour p ≤ 0 par `nth_root_rel(J, p, I)` de `gaol_core`), fusionnée le
   même jour à 19 h 12 UTC, décrite dans `TODO_DONE.md` (2.3 et 3.16), puis #288
   (hors des points : `compoundm1` de la norme IEEE 1788-2015), fusionnée à
-  19 h 19 UTC, que `TODO_DONE.md` ne décrit pas encore ; l'audit du 13 octobre a
+  19 h 19 UTC, que `TODO_DONE.md` ne décrit pas encore ; puis la tâche PK, close
+  sans code (un `FE_INVALID` de Clang avec les intervalles FPU, que les
+  drapeaux de GAOL suppriment : `TODO_DONE.md` 3.17) ; l'audit du 13 octobre a
   vérifié dans `configure-clean` ce qu'annonçaient alors les points A, C à H et
   J à V.
-- **En cours** : au 4 novembre, aucune pull request n'est ouverte ;
-  `configure-clean` est au commit `61a432b`, la fusion de #288 (`compoundm1`),
+- **En cours** : au 4 novembre, deux pull requests sont ouvertes : #289 (la
+  synthèse de #283 à #288, le point 7 de PJ) et #290 (`overlapping_state`,
+  10.6.4 d'IEEE 1788-2015) ; `configure-clean` est au commit `7b30dba` (les
+  registres après la fusion de #288, `61a432b`, la fusion de `compoundm1`),
   après celle de #287 (`368446d`) et celle de la branche `std-exceptions`
   (`221c8d4`). Ses branches sur GitHub sont `configure-clean`, `MATH-CORE` et
-  `master`, avec les branches des pull requests jetables fermées, gardées
+  `master`, avec les branches des pull requests ouvertes (`synthese-283-288`,
+  `ieee1788-overlap`) et des pull requests jetables fermées, gardées
   (`experiment-pg*`, voir `TODO_DONE.md` 8.1), et deux branches, fusionnée ou
   fermée, que le mainteneur supprime (`todo-pg-relations-order` et
   `todo-pg-xle-exfirst`) ; `std-exceptions` et `revert-285-std-exceptions` sont
@@ -827,14 +832,14 @@ git ls-remote --heads origin
   n'est plus mise à jour (*décidé le 28 octobre*) : GitHub borne le corps d'une
   issue à 262 144 octets et le texte joint en fait plus de 270 000 (voir
   `TODO_DONE.md` 7.8).
-- **À faire**, dans l'ordre de `TODO.md` : un `FE_INVALID` à décider (PK, avec
-  Clang et les intervalles FPU), un cas de 12.12.7 à décider (PM : les littéraux
-  aux bornes calculées), les signalements à d'autres projets (PH, avec l'accord
-  du mainteneur), puis la version (PJ, qui reprend le tableau de Clang 21, le
-  manuel, les textes qui citent macOS 14, la compatibilité de licence des cas
-  d'IBEX et de Codac, à décider : #281, et les restes de #283, de #284, de #285
-  et de #287 : les registres `doc/differences.md` et `ChangeLog`, en une seule
-  pull request, #287 étant fusionnée : *décidé le 4 novembre*). Ce qui est
+- **À faire**, dans l'ordre de `TODO.md` : un cas de 12.12.7 à décider (PM : les
+  littéraux aux bornes calculées), les signalements à d'autres projets (PH, avec
+  l'accord du mainteneur), puis la version (PJ, qui reprend le tableau de Clang
+  21, le manuel, les textes qui citent macOS 14, la compatibilité de licence des
+  cas d'IBEX et de Codac, à décider : #281, et les restes de #283, de #284, de
+  #285 et de #287 : les registres `doc/differences.md` et `ChangeLog`, en une
+  seule pull request, #287 étant fusionnée : *décidé le 4 novembre*, la pull
+  request #289 est ouverte pour #283 à #288). Ce qui est
   reporté (le 113, le site, les traits pour YalAA et VNODE-LP, les décorations,
   ce qui attend du matériel) est dans `TODO_AFTER.md`. Les dépendances entre
   points sont écrites dans chaque tâche. Le mainteneur donne les tâches ou les

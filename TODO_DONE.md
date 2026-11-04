@@ -11,7 +11,7 @@ l'ancien `TODO.md` et dans `TODO_mistral.md`, avec les réponses du mainteneur
 des 22 et 23 octobre. #49 et #142 sont fermées le 24 octobre, `TODO_mistral.md`
 est supprimé. Le reste du travail est dans deux autres registres :
 
-- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PH, PJ, PK et PM ;
+- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PH, PJ et PM ;
 - `TODO_AFTER.md` (issue #178) : ce qui est reporté, après la version, jusqu'à
   une décision ou jusqu'à du matériel.
 
@@ -41,7 +41,7 @@ est supprimé. Le reste du travail est dans deux autres registres :
   : elle s'applique telle quelle.
 - Le classement par rang et par tiers (A à I) de l'ancien #142 n'existe plus :
   un « rang N » cité dans un texte d'avant le 24 octobre désigne cet ancien
-  classement. Ce qui reste à faire est classé en tâches PH, PJ, PK et PM dans
+  classement. Ce qui reste à faire est classé en tâches PH, PJ et PM dans
   `TODO.md`.
 - Ce qui sert encore des rapports des agents est dans
   [todo-notes/synthese.md](todo-notes/synthese.md), leurs originaux au commit
@@ -69,7 +69,9 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   des corrections vont vers `configure-clean`, qui reste la branche de
   développement après v5.0.0 ; `MATH-CORE` et `master` (GAOL 4.3.2, plus deux
   commits de `.claude/CLAUDE.md`) ne bougent qu'à la version (point Y).
-- **Pull requests ouvertes** : aucune. Le mainteneur a fusionné #165 à #167,
+- **Pull requests ouvertes** : #289 (la synthèse de #283 à #288, le point 7 de
+  PJ) et #290 (`overlapping_state`, 10.6.4 d'IEEE 1788-2015), ouvertes le 4
+  novembre à 21 h 00 et 21 h 09 UTC. Le mainteneur a fusionné #165 à #167,
   #169 à #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194, #196 et
   #197 le 25 octobre, #199, #200 et #201 le 26 octobre, #202 à #205 le 27, #206
   à #210, #212, #213, #215 et #216 le 28 (#216, hors des points : le tableau des
@@ -116,9 +118,11 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   les phrases fausses hors de ces deux documents, #280 pour leurs restes ; PL,
   hors des points de `TODO.md` : #285 pour les exceptions de la bibliothèque
   standard, puis la fusion `221c8d4` pour ses suites ; hors des points aussi,
-  #287 pour `pownRev` avec p ≤ 0) ; il reste les signalements à d'autres projets
-  (PH), le tableau de Clang 21 et la publication (PJ), un `FE_INVALID` à décider
-  (PK) et un cas de 12.12.7 à décider (PM) : voir `TODO.md`.
+  #287 pour `pownRev` avec p ≤ 0) ; PK, un `FE_INVALID` de Clang avec les
+  intervalles FPU, est close sans code, non reproduite avec les drapeaux de
+  GAOL (3.17) ; il reste les signalements à d'autres projets (PH), le tableau
+  de Clang 21 et la publication (PJ) et un cas de 12.12.7 à décider (PM) : voir
+  `TODO.md`.
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
   sur tout processeur ARM 64 bits avec tous les compilateurs (GCC, Clang,
   AppleClang, clang-cl, Visual C++, MinGW-w64, MSYS2), SSE2 sur tout processeur
@@ -4211,6 +4215,58 @@ les exécute (2.3).
   seule pull request. Le texte de #288 est déjà dans ces deux fichiers, écrit
   dans sa pull request.
 
+### 3.17 Le 4 novembre : la tâche PK, close sans code
+
+La tâche PK (« Des `FE_INVALID` avec Clang et les intervalles FPU », trouvée
+par la relecture de #279 : en faire un point ou la reporter, à décider) a été
+étudiée à la demande du mainteneur (« traite la tâche PK »).
+
+- **Elle ne se reproduit pas avec les drapeaux de GAOL** (mesuré le 4 novembre
+  sur un Xeon E3-1220 v6, AVX2 sans AVX-512, Ubuntu 24.04, `configure-clean` à
+  `7b30dba`) : intervalles FPU (`-DGAOL_SIMD=OFF`), `-O3 -march=native`, avec
+  `-frounding-math -fno-fast-math -ffp-contract=off -mfma`, ceux de
+  `gaol::gaol`. `rounding_direction` en entier avec Clang 18 : 1 417 200
+  vérifications, 0 échec, dont ses 30 boucles de relations (sans le drapeau,
+  puis avec `FE_INVALID` armé). Deux bancs écrits pour l'étude (hors du dépôt)
+  ont lancé 184 et 192 boucles de `certainly_le()`, `certainly_leq()`,
+  `certainly_ge()`, `certainly_geq()` et des opérateurs `<`, `<=`, `>`, `>=` :
+  entre `x[i]` et `y[i]`, avec `interval(-7.5, c)` de chaque côté, avec des
+  constantes (1,5, 0, -2,5, 1e300) de chaque côté, avec un point et avec
+  l'ensemble vide, sur des opérandes vides un sur trois, tous ou à moitié. Avec
+  Clang 18, Clang 20 et GCC 13.3, à `-O2`, `-O3`, `-O3 -march=native`, avec
+  `-funroll-loops`, `-mavx2` avec et sans FMA (21 configurations par banc) :
+  0 `FE_INVALID` et 0 résultat faux.
+- **Le mécanisme, sans `-frounding-math`** : Clang vectorise alors les boucles
+  de relations des intervalles FPU en `vcmplepd`, `vcmpnlepd` et `vcmpnltpd`,
+  des comparaisons signalantes (prédicats LE_OS, NLE_US et NLT_US de SSE) :
+  120 boucles sur 184 et 192 sur 192 lèvent `FE_INVALID` avec Clang 18 et 20
+  à `-O3 -march=native` (105 sur 184 à `-O2 -march=native`).
+  `-frounding-math` seul suffit à ramener ce nombre à 0 ;
+  `-ffp-contract=off` ou `-fno-fast-math` seuls n'y changent rien. GCC 13.3
+  n'en lève aucun, sauf avec `-fno-trapping-math`. Avec les intervalles SSE2 :
+  0, avec ou sans les drapeaux. C'est ce que disait la relecture de #279
+  (« FPU seulement », « Clang », « `-O3 -march=native` ») ; elle ne donnait pas
+  ses drapeaux, et l'explication retenue n'est pas vérifiée sur sa machine.
+- **Le cas est déjà documenté** : le code qui utilise GAOL se compile avec les
+  drapeaux de l'arithmétique d'intervalles, que `gaol.pc` et `gaol::gaol`
+  donnent (`doc/using.md`, `doc/three-builds.md`), et `doc/three-builds.md`
+  dit des programmes qui les perdent (`-ffast-math` puis `-fno-fast-math` avec
+  Clang) que les opérations sur un opérande vide y lèvent le drapeau
+  d'opération invalide (54 vérifications de `rounding_direction` en échec) et
+  que le compilateur y prend l'arrondi au plus proche.
+- **Décidé le 4 novembre** (« Clore PK, sans code », parmi quatre réponses :
+  vérifier d'abord sur l'i7 avec Clang 21, rendre les relations FPU
+  insensibles à ce repli du compilateur, le reporter dans `TODO_AFTER.md`) : PK
+  est retirée de `TODO.md` ; ni la bibliothèque, ni les tests, ni la
+  documentation ne changent ; rien n'est écrit dans `TODO_AFTER.md`.
+- **Non vérifié** : Clang 21 (la machine a Clang 18 et 20), et l'exécution du
+  AVX-512, que le processeur n'a pas. `tests/rounding_direction.cpp` compilé
+  par Clang 18 pour `-march=tigerlake` avec les drapeaux de GAOL, lu en
+  assembleur, n'a aucune comparaison signalante dans ses boucles de relations
+  (deux dans `loop_constructor` et deux dans `loop_floor`, comme avec
+  `-march=native`, où le test passe). Si un `FE_INVALID` revient avec les
+  drapeaux de GAOL, la tâche se rouvre.
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -5536,6 +5592,22 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
   et une comparaison à 0 hors de la fenêtre d'arrondi doit passer par
   `gaol_detail::bound_equal()` : le test de DAZ n'a de dents qu'avec
   `-DGAOL_PRESERVE_ROUNDING=ON`.
+
+### 7.16 Le 4 novembre (la tâche PK)
+
+- Le mainteneur a demandé la tâche PK, puis répondu à la question posée après
+  l'étude : la clore sans code (3.17). Les registres sont mis à jour
+  directement sur `configure-clean` (`process.md` §9) : `TODO.md`, ce fichier
+  et `process.md` ; `TODO_AFTER.md` ne change pas. #289 et #290, ouvertes
+  depuis 21 h UTC par d'autres sessions, y sont citées (section 1), sans plus.
+- Les pièges : la machine de cette session n'est pas l'i7-1185G7 de `process.md`
+  §6.1 (Xeon E3-1220 v6 sans AVX-512, Ubuntu 24.04, GCC 13.3, Clang 18 et 20,
+  CMake 3.28, automake 1.16.5) ; un banc compilé à la main sans les drapeaux de
+  `gaol.pc` lève des `FE_INVALID` que le même banc avec eux ne lève pas
+  (3.17) : toujours compiler un banc avec `-frounding-math -fno-fast-math
+  -ffp-contract=off -mfma`, ou par CMake ; sur un banc, un témoin (une boucle
+  `l[i] <= 1.5` sur des NaN, qui doit lever) prouve que `fetestexcept()` voit
+  bien le drapeau.
 
 ## 8. Le ménage fait
 

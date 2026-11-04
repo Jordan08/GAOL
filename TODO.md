@@ -2,7 +2,7 @@
 
 Ce qui reste à faire sur GAOL v5 au commit `61a432b` de `configure-clean` (la
 fusion de #288, après #287, #285 et la branche `std-exceptions`), le 4 novembre
-2026, en tâches PH, PJ, PK et PM (PA à PG, PI et PL sont faites : voir
+2026, en tâches PH, PJ et PM (PA à PG, PI et PL sont faites, PK est close : voir
 `TODO_DONE.md`). Ce fichier et l'issue #179 ont le même contenu. Ce qui est fait
 et décidé est dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour), ce qui
 est reporté dans `TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142
@@ -11,14 +11,17 @@ sont fermées, et `TODO_mistral.md` est supprimé.
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à envoyer à un autre projet ni à publier sans l'accord
-du mainteneur. Aucune pull request n'est ouverte. La pull request #288
-(`compoundm1`, la fonction `compoundm1` de la norme IEEE 1788-2015), fusionnée
-le 4 novembre à 19 h 19 UTC, n'est pas encore décrite dans `TODO_DONE.md` ni
-dans `process.md` (§12).
+du mainteneur. Deux pull requests sont ouvertes : #289 (la synthèse de #283
+à #288 dans `doc/differences.md`, le `ChangeLog` et `synthese.md`, avec le PDF
+du manuel : le point 7 de PJ) et #290 (`overlapping_state`, les 16 états de la
+Table 10.7 d'IEEE 1788-2015, 10.6.4). La pull request #288 (`compoundm1`, la
+fonction `compoundm1` de la norme IEEE 1788-2015), fusionnée le 4 novembre à
+19 h 19 UTC, n'est pas encore décrite dans `TODO_DONE.md` ni dans `process.md`
+(§12).
 
 ## Comment lire ce fichier
 
-- Une tâche (PH, PJ, PK, PM) regroupe des points qui touchent le même code, les
+- Une tâche (PH, PJ, PM) regroupe des points qui touchent le même code, les
   mêmes fichiers ou les mêmes builds de validation, pour les traiter dans la
   même session ; chaque point reste une pull request à part (process.md : un
   point, une branche), sauf quand la tâche dit qu'une seule suffit. Les tâches
@@ -26,7 +29,7 @@ dans `process.md` (§12).
   coûte plus cher en attendant (une décision qui bloque) ; ce qui tue un
   programme ou rompt une promesse écrite avant ce qui ne fait que ralentir ; le
   petit et sans dépendance avant le gros ; la version (PJ) en dernier.
-- PH, PK et PM ne dépendent d'aucune autre tâche, sauf quand le texte le dit (PJ
+- PH et PM ne dépendent d'aucune autre tâche, sauf quand le texte le dit (PJ
   suit PI et les études de PG, qui sont faites).
 - Chaque point garde sa lettre et son ancien numéro, par exemple « 79 (AB) » :
   ce sont ceux des pull requests, des issues, des commentaires du code et de
@@ -46,7 +49,6 @@ dans `process.md` (§12).
 | --- | --- | --- | --- |
 | PH | Les signalements à d'autres projets | #125 à #138, #175 | accord |
 | PJ | Les mesures et la publication de v5.0.0 | 32 à 34, 71, manuel, CI | M |
-| PK | Des `FE_INVALID` avec Clang et le FPU | un point | à décider |
 | PM | Le cas (b) de 12.12.7 : les littéraux aux bornes calculées | un point | à décider |
 
 ## PH. Les signalements à d'autres projets [attend l'accord du mainteneur]
@@ -303,21 +305,6 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    garde 11 lignes sur les anciennes classes (un registre, non touché par #285).
    Le cas des bornes qui sont des résultats d'opérations (12.12.7), que
    `doc/compare/itf1788.md` dit déjà, est la tâche PM. [S]
-
-## PK. Des `FE_INVALID` avec Clang et les intervalles FPU [S, à décider]
-
-Trouvé par la relecture de #279 (31 octobre), **déjà dans la base** : avec les
-intervalles FPU (`GAOL_SIMD=OFF`, ou les cibles sans SSE2 ni NEON), Clang 18 et
-21 à `-O3 -march=native` lèvent encore `FE_INVALID` dans des boucles de
-relations (`certainly_le()`, `certainly_leq()`, `certainly_ge()`,
-`certainly_geq()`), avant comme après #279 ; avec les intervalles SSE2, la base
-en levait avec Clang sur des boucles à bornes constantes
-(`x[i].certainly_le(interval(-7.5, c))`), ce que #279 ne fait plus. Le mécanisme
-n'est pas étudié (peut-être le même repli qu'avec GCC 14 : une comparaison
-silencieuse que l'optimiseur rend signalante). *À décider* : en faire un point
-(48 boucles de relations comme pour #279, Clang 18, 20 et 21, `-O3` avec et sans
-`-march=native`, les intervalles FPU), ou le reporter dans `TODO_AFTER.md`, le
-FPU n'étant le défaut ni de x86-64 ni d'arm64.
 
 ## PM. Le cas (b) de IEEE 1788-2015, 12.12.7 [S ou M, à décider]
 
