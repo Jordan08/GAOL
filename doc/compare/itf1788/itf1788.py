@@ -75,7 +75,7 @@ op("pown rootn", "@({0}, {1})")
 # Recommended forward functions (Table 10.5); cbrt, which ITF1788 takes from
 # MPFI, is rootn(x, 3)
 op("expm1 exp2m1 exp10m1 logp1 log2p1 log10p1 rSqrt sinPi cosPi tanPi asinPi acosPi atanPi", "@({0})")
-op("hypot atan2Pi", "@({0}, {1})")
+op("hypot atan2Pi compoundm1", "@({0}, {1})")
 op("cbrt", "rootn({0}, 3)")
 # Reverse functions (Table 10.1), which ITF1788 calls absRevBin... with their
 # optional argument x
@@ -108,7 +108,6 @@ op("equal subset less strictLess precedes strictPrecedes interior disjoint isMem
 # "Not provided")
 NOT_IN_STANDARD = "not an operation of IEEE 1788-2015, which GAOL v5 does not provide"
 NOT_PROVIDED = {
-    "compoundm1": "compoundm1 (Table 10.5): CORE-MATH has none",
     "overlap": "overlap (10.6.4): GAOL v5 has no interval overlapping",
 }
 for _name in "sum dot sum_abs sum_sqr".split():

@@ -78,6 +78,7 @@ what the programs check.
 |---|---|
 | [elementary_values.py](../tests/elementary_values.py) | Writes `elementary_values.h`: for each f(x), the greatest double below and the least double above, computed with mpmath, for `elementary.cpp`. |
 | [extended_precision_values.py](../tests/extended_precision_values.py) | Writes `extended_precision_values.h`: the bounding values and the nearest double, to compare CORE-MATH and GAOL. |
+| [compoundm1_values.py](../tests/compoundm1_values.py) | Writes `compoundm1_values.h`: the greatest double below and the least double above (1 + x)<sup>y</sup> − 1 at pairs (x, y), the hull over boxes, and the values of log(1 + x) and exp(t) − 1 to 256 bits, computed with mpmath and fractions, for `compoundm1.cpp`. |
 | [reverse_values.py](../tests/reverse_values.py) | Writes `reverse_values.h`: the cases of the reverse functions of IEEE 1788-2015 (10.5.4) for `reverse.cpp`. |
 | [atan2_rel_values.py](../tests/atan2_rel_values.py) | Writes `atan2_rel_values.h`: the cases of `atan2Rev1` and `atan2Rev2`, for `reverse.cpp`. |
 | [pow_rel_values.py](../tests/pow_rel_values.py) | Writes `pow_rel_values.h`: the cases of `powRev1` and `powRev2`, for `reverse.cpp`. |

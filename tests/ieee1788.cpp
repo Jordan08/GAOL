@@ -574,6 +574,7 @@ namespace
           && abs(y).set_eq(gaol::abs(y)) && sqr(y).set_eq(gaol::sqr(y)) && sign(y).set_eq(gaol::sign(y))
           && fma(x, y, x).set_eq(gaol::fma(x, y, x)) && expm1(x).set_eq(gaol::expm1(x))
           && min(x, y).set_eq(gaol::min(x, y)) && hypot(x, y).set_eq(gaol::hypot(x, y))
+          && compoundm1(x, y).set_eq(gaol::compoundm1(x, y))
           && sinPi(x).set_eq(gaol::sinpi(x)),
           [&] { return hex(sin(x)); });
     check("the qualified names take intervals",
@@ -617,7 +618,7 @@ namespace
       log10(x), sin(x), cos(x), tan(x), asin(x), acos(x), atan(x), atan2(y, x), sinh(x), cosh(x),
       tanh(x), asinh(x), acosh(y), atanh(x), sign(y), ceil(y), floor(y), trunc(y),
       roundTiesToEven(y), roundTiesToAway(y), abs(y), min(x, y), max(x, y), rootn(x, -3), expm1(x),
-      exp2m1(x), exp10m1(x), logp1(x), log2p1(x), log10p1(x), hypot(x, y), rSqrt(x), sinPi(x),
+      exp2m1(x), exp10m1(x), logp1(x), log2p1(x), log10p1(x), hypot(x, y), compoundm1(x, y), rSqrt(x), sinPi(x),
       cosPi(x), tanPi(x), asinPi(x), acosPi(x), atanPi(x), atan2Pi(y, x),
     };
     const interval reverse[] = {
@@ -776,7 +777,8 @@ namespace
       {"expm1([0.25,0.5])", expm1(x)}, {"exp2m1([0.25,0.5])", exp2m1(x)},
       {"exp10m1([0.25,0.5])", exp10m1(x)}, {"logp1([0.25,0.5])", logp1(x)},
       {"log2p1([0.25,0.5])", log2p1(x)}, {"log10p1([0.25,0.5])", log10p1(x)},
-      {"hypot([0.25,0.5],[-1,2])", hypot(x, y)}, {"rSqrt([0.25,0.5])", rSqrt(x)},
+      {"hypot([0.25,0.5],[-1,2])", hypot(x, y)}, {"compoundm1([0.25,0.5],[-1,2])", compoundm1(x, y)},
+      {"rSqrt([0.25,0.5])", rSqrt(x)},
       {"sinPi([0.25,0.5])", sinPi(x)}, {"cosPi([0.25,0.5])", cosPi(x)}, {"tanPi([0.25,0.5])", tanPi(x)},
       {"asinPi([0.25,0.5])", asinPi(x)}, {"acosPi([0.25,0.5])", acosPi(x)},
       {"atanPi([0.25,0.5])", atanPi(x)}, {"atan2Pi([-1,2],[0.25,0.5])", atan2Pi(y, x)},

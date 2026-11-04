@@ -177,6 +177,7 @@ namespace gaol {
   using gaol_core::atanpi;
   using gaol_core::cancel_minus;
   using gaol_core::cancel_plus;
+  using gaol_core::compoundm1;
   using gaol_core::cospi;
   using gaol_core::erf;
   using gaol_core::erfc;

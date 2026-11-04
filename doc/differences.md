@@ -83,16 +83,25 @@ releases.
     10<sup>22</sup>, log<sub>2</sub>(1/4) = −2 and log<sub>10</sub>(100) = 2
     are exact. Only `log10` needed the 128-bit integer of `gaol/gaol_u128.h`,
     its `dint.h` being that of `log` but for a constant.
-  - **Fifteen functions of Table 10.5**, which IEEE 1788-2015 recommends:
+  - **Sixteen functions of Table 10.5**, which IEEE 1788-2015 recommends:
     `expm1`, `exp2m1`, `exp10m1`, `log1p` (logp1), `log2p1`, `log10p1`,
     `hypot`, `rsqrt` (rSqrt), `sinpi`, `cospi`, `tanpi`, `asinpi`, `acospi`,
-    `atanpi` and `atan2pi`, the tightest bounds. `sinpi`, `cospi` and `tanpi`
+    `atanpi`, `atan2pi` and `compoundm1`, the tightest bounds. `sinpi`, `cospi` and `tanpi`
     find their extrema and poles exactly, at the multiples of 1/2, which are
     doubles: `sinpi([1e17])` is 0, where `sin(pi*x)` gave [-1, 1], the width
     of pi times 10^17 being more than a period. Seven of them compute with
     CORE-MATH's 128-bit integer, which was ported to `gaol/gaol_u128.h` first
-    (see [3rd/README.md](../3rd/README.md)). Only `compoundm1` is missing,
-    CORE-MATH having no binary64 version of it.
+    (see [3rd/README.md](../3rd/README.md)). `compoundm1(x, y)` =
+    (1 + x)<sup>y</sup> − 1 is the one CORE-MATH has no binary64 version of,
+    and `exp(y log1p(x)) − 1` computed with doubles is up to 1 100 doubles from
+    the value, `y log1p(x)` multiplying the error of `log1p`: it is computed in
+    `gaol/math/gaol_compoundm1.h` with integers only, in 64-bit fixed point
+    where that proves the bounds (95 % of the pairs for |y log1p(x)| below
+    0.35, in 0.1 µs a corner) and with a 128-bit significand in balls that add
+    the error of each operation to a bound otherwise (0.6 to 0.9 µs). The
+    bounds are the tightest ones but in a case out of 10<sup>17</sup> or so,
+    the value that is a double being proved exact (2.375 = 1.5<sup>3</sup> − 1,
+    2<sup>m</sup> − 1) and y = −1 divided exactly.
   - **`fma`, `cancelMinus` and `cancelPlus`**, which IEEE 1788-2015 requires the
     tightest, and **`less`, `strictLess`, `isEntire` and `isCommonInterval`**.
     Rounding the lower bound of `fma` as -fma(-a, b, -c) came one double above

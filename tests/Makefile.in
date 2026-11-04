@@ -135,11 +135,12 @@ CONFIG_CLEAN_VPATH_FILES =
 am__EXEEXT_2 = arithmetic$(EXEEXT) elementary$(EXEEXT) \
 	rounding_direction$(EXEEXT) numbers$(EXEEXT) \
 	other_functions$(EXEEXT) ieee1788$(EXEEXT) reverse$(EXEEXT) \
-	u128$(EXEEXT) core_math$(EXEEXT) expressions$(EXEEXT) \
-	extended_precision$(EXEEXT) static_initialization$(EXEEXT) \
-	debugging$(EXEEXT) fast_math_link$(EXEEXT) \
-	test_ibex_codac$(EXEEXT) arithmetic_operators$(EXEEXT) \
-	assignment$(EXEEXT) constants$(EXEEXT) constructor$(EXEEXT) \
+	u128$(EXEEXT) core_math$(EXEEXT) compoundm1$(EXEEXT) \
+	expressions$(EXEEXT) extended_precision$(EXEEXT) \
+	static_initialization$(EXEEXT) debugging$(EXEEXT) \
+	fast_math_link$(EXEEXT) test_ibex_codac$(EXEEXT) \
+	arithmetic_operators$(EXEEXT) assignment$(EXEEXT) \
+	constants$(EXEEXT) constructor$(EXEEXT) \
 	float_functions$(EXEEXT) generic_functions$(EXEEXT) \
 	input_output$(EXEEXT) interval_functions$(EXEEXT) \
 	misc$(EXEEXT) non_arithmetic$(EXEEXT) relations$(EXEEXT) \
@@ -170,6 +171,11 @@ automatic_cleanup_SOURCES = automatic_cleanup.cpp
 automatic_cleanup_OBJECTS = automatic_cleanup.$(OBJEXT)
 automatic_cleanup_LDADD = $(LDADD)
 automatic_cleanup_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
+compoundm1_SOURCES = compoundm1.cpp
+compoundm1_OBJECTS = compoundm1.$(OBJEXT)
+compoundm1_LDADD = $(LDADD)
+compoundm1_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
 	$(am__DEPENDENCIES_1)
 constants_SOURCES = constants.cpp
 constants_OBJECTS = constants.$(OBJEXT)
@@ -336,10 +342,11 @@ depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/arithmetic.Po \
 	./$(DEPDIR)/arithmetic_operators.Po ./$(DEPDIR)/assignment.Po \
-	./$(DEPDIR)/automatic_cleanup.Po ./$(DEPDIR)/constants.Po \
-	./$(DEPDIR)/constructor.Po ./$(DEPDIR)/core_math.Po \
-	./$(DEPDIR)/debugging.Po ./$(DEPDIR)/elementary.Po \
-	./$(DEPDIR)/expressions.Po ./$(DEPDIR)/extended_precision.Po \
+	./$(DEPDIR)/automatic_cleanup.Po ./$(DEPDIR)/compoundm1.Po \
+	./$(DEPDIR)/constants.Po ./$(DEPDIR)/constructor.Po \
+	./$(DEPDIR)/core_math.Po ./$(DEPDIR)/debugging.Po \
+	./$(DEPDIR)/elementary.Po ./$(DEPDIR)/expressions.Po \
+	./$(DEPDIR)/extended_precision.Po \
 	./$(DEPDIR)/fast_math_link-fast_math_link.Po \
 	./$(DEPDIR)/float_functions.Po \
 	./$(DEPDIR)/gaol_performance-performance.Po \
@@ -374,16 +381,16 @@ am__v_CXXLD_ = $(am__v_CXXLD_@AM_DEFAULT_V@)
 am__v_CXXLD_0 = @echo "  CXXLD   " $@;
 am__v_CXXLD_1 = 
 SOURCES = arithmetic.cpp arithmetic_operators.cpp assignment.cpp \
-	automatic_cleanup.cpp constants.cpp constructor.cpp \
-	core_math.cpp debugging.cpp elementary.cpp expressions.cpp \
-	extended_precision.cpp fast_math_link.cpp float_functions.cpp \
-	$(gaol_performance_SOURCES) generic_functions.cpp ieee1788.cpp \
-	input_output.cpp interval2f.cpp interval_functions.cpp \
-	intervalf.cpp misc.cpp non_arithmetic.cpp numbers.cpp \
-	other_functions.cpp relations.cpp reverse.cpp \
-	reverse_mappings.cpp rounding_direction.cpp \
-	static_initialization.cpp test_ibex_codac.cpp \
-	trigonometric.cpp u128.cpp
+	automatic_cleanup.cpp compoundm1.cpp constants.cpp \
+	constructor.cpp core_math.cpp debugging.cpp elementary.cpp \
+	expressions.cpp extended_precision.cpp fast_math_link.cpp \
+	float_functions.cpp $(gaol_performance_SOURCES) \
+	generic_functions.cpp ieee1788.cpp input_output.cpp \
+	interval2f.cpp interval_functions.cpp intervalf.cpp misc.cpp \
+	non_arithmetic.cpp numbers.cpp other_functions.cpp \
+	relations.cpp reverse.cpp reverse_mappings.cpp \
+	rounding_direction.cpp static_initialization.cpp \
+	test_ibex_codac.cpp trigonometric.cpp u128.cpp
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -771,8 +778,8 @@ AM_DEFAULT_SOURCE_EXT = .cpp
 
 # The same list as tests/CMakeLists.txt
 GAOL_TESTS = arithmetic elementary rounding_direction numbers \
-	other_functions ieee1788 reverse u128 core_math expressions \
-	extended_precision static_initialization debugging \
+	other_functions ieee1788 reverse u128 core_math compoundm1 \
+	expressions extended_precision static_initialization debugging \
 	fast_math_link test_ibex_codac arithmetic_operators assignment \
 	constants constructor float_functions generic_functions \
 	input_output interval_functions misc non_arithmetic relations \
@@ -852,6 +859,10 @@ assignment$(EXEEXT): $(assignment_OBJECTS) $(assignment_DEPENDENCIES) $(EXTRA_as
 automatic_cleanup$(EXEEXT): $(automatic_cleanup_OBJECTS) $(automatic_cleanup_DEPENDENCIES) $(EXTRA_automatic_cleanup_DEPENDENCIES) 
 	@rm -f automatic_cleanup$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(automatic_cleanup_OBJECTS) $(automatic_cleanup_LDADD) $(LIBS)
+
+compoundm1$(EXEEXT): $(compoundm1_OBJECTS) $(compoundm1_DEPENDENCIES) $(EXTRA_compoundm1_DEPENDENCIES) 
+	@rm -f compoundm1$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(compoundm1_OBJECTS) $(compoundm1_LDADD) $(LIBS)
 
 constants$(EXEEXT): $(constants_OBJECTS) $(constants_DEPENDENCIES) $(EXTRA_constants_DEPENDENCIES) 
 	@rm -f constants$(EXEEXT)
@@ -975,6 +986,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/arithmetic_operators.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/assignment.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/automatic_cleanup.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/compoundm1.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/constants.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/constructor.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/core_math.Po@am__quote@ # am--include-marker
@@ -1349,6 +1361,13 @@ core_math.log: core_math$(EXEEXT)
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
 	"$$tst" $(AM_TESTS_FD_REDIRECT)
+compoundm1.log: compoundm1$(EXEEXT)
+	@p='compoundm1$(EXEEXT)'; \
+	b='compoundm1'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
 expressions.log: expressions$(EXEEXT)
 	@p='expressions$(EXEEXT)'; \
 	b='expressions'; \
@@ -1567,6 +1586,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/arithmetic_operators.Po
 	-rm -f ./$(DEPDIR)/assignment.Po
 	-rm -f ./$(DEPDIR)/automatic_cleanup.Po
+	-rm -f ./$(DEPDIR)/compoundm1.Po
 	-rm -f ./$(DEPDIR)/constants.Po
 	-rm -f ./$(DEPDIR)/constructor.Po
 	-rm -f ./$(DEPDIR)/core_math.Po
@@ -1644,6 +1664,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/arithmetic_operators.Po
 	-rm -f ./$(DEPDIR)/assignment.Po
 	-rm -f ./$(DEPDIR)/automatic_cleanup.Po
+	-rm -f ./$(DEPDIR)/compoundm1.Po
 	-rm -f ./$(DEPDIR)/constants.Po
 	-rm -f ./$(DEPDIR)/constructor.Po
 	-rm -f ./$(DEPDIR)/core_math.Po

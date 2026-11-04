@@ -79,6 +79,8 @@
 #include "gaol/math/gaol_ldexp.h"
 // The nearest integer, halfway values to the even one, from the bits (GAOL v5)
 #include "gaol/math/gaol_roundeven.h"
+// (1 + x)^y - 1 at a point, with the tightest bounds (GAOL v5)
+#include "gaol/math/gaol_compoundm1.h"
 
 // The FMA instructions on two doubles at once, for the integer powers, where
 // the build has them (GAOL v5, see pown_products()): SSE2 with FMA on x86
@@ -4930,6 +4932,136 @@ interval nth_root(const interval& I, int q)
   {
     GAOL_RND_ENTER();
     interval res = atan2pi_upward(Y, X);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
+
+  /*
+    The signs of the bounds, and whether two are equal, by their bits: a mode
+    that flushes the subnormals to zero, which the program may have set, makes
+    a subnormal bound compare as 0 (see gaol/gaol_fpu.h), and no comparison
+    here depends on it (GAOL v5)
+  */
+  static inline bool cm1_positive(double d) { return !gaol_cm1::dbl_is_zero(d) && !gaol_cm1::dbl_is_negative(d); }
+  static inline bool cm1_negative(double d) { return !gaol_cm1::dbl_is_zero(d) && gaol_cm1::dbl_is_negative(d); }
+  static inline bool cm1_same(double a, double b)
+  {
+    return gaol_cm1::dbl_bits(a) == gaol_cm1::dbl_bits(b) || (gaol_cm1::dbl_is_zero(a) && gaol_cm1::dbl_is_zero(b));
+  }
+
+  /*
+    compoundm1 of IEEE 1788-2015 (Table 10.5): (1 + x)^y - 1 for x > -1, and
+    for x = -1 when y > 0, where it is -1 (GAOL v5).
+
+    With u = 1 + x it is u^y - 1, whose analysis is that of pow above: it
+    increases with y for x > 0 and decreases for x < 0, increases with x for
+    y > 0 and decreases for y < 0, and is 0 on x = 0 and on y = 0, so that its
+    extrema over a box are at corners, which the places of the bounds about 0
+    give. The corners are those of pow_standard_upward() with the bases moved
+    by 1 (the base 0 of pow being x = -1, its base 1 x = 0, and its limit 0 the
+    limit -1), and the point function is gaol_cm1::compoundm1_point() of
+    gaol/math/gaol_compoundm1.h, which has the tightest bounds: CORE-MATH has
+    no compoundm1, and exp(y log1p(x)) - 1 would move the relative width of
+    log1p(x) by |y log1p(x)|. At x = -1 and at +oo, and for an infinite y,
+    the bound is the limit of the function, -1 or +oo, which bounds it both
+    ways; at x = 0 or y = 0 it is 0.
+  */
+  static inline bool cm1_is_limit(double x, double y)
+  {
+    return !(x > -1.0 && x < GAOL_INFINITY && std::fabs(y) < GAOL_INFINITY);
+  }
+
+  // The bounds of (1 + x)^y - 1 at a corner of a box, x in [-1, +oo] and y in
+  // [-oo, +oo]
+  static inline void cm1_corner(double x, double y, double& lo, double& hi)
+  {
+    if (gaol_cm1::dbl_is_zero(x) || gaol_cm1::dbl_is_zero(y)) {
+      lo = hi = 0.0;
+    } else if (cm1_is_limit(x, y)) {
+      // +oo where 1 + x > 1 and y > 0 or 1 + x < 1 and y < 0, -1 otherwise
+      lo = hi = (cm1_positive(x) == cm1_positive(y)) ? GAOL_INFINITY : -1.0;
+    } else {
+      gaol_cm1::compoundm1_point(x, y, lo, hi);
+    }
+  }
+
+  static inline double cm1_lo(double x, double y)
+  {
+    double lo, hi;
+    cm1_corner(x, y, lo, hi);
+    return lo;
+  }
+
+  static inline double cm1_hi(double x, double y)
+  {
+    double lo, hi;
+    cm1_corner(x, y, lo, hi);
+    return hi;
+  }
+
+  static interval compoundm1_upward(const interval& x, const interval& y)
+  {
+    // [+oo] and [-oo] contain no real number, as for pow (holds_no_real())
+    if (x.is_empty() || y.is_empty() || holds_no_real(x) || holds_no_real(y)) {
+      return interval::emptyset();
+    }
+    // x^y - 1 is only real for 1 + x > 0, and for 1 + x = 0 when y > 0
+    const interval base = x & interval(-1.0, GAOL_INFINITY);
+    if (base.is_empty()) {
+      return interval::emptyset();
+    }
+    if (base.right() == -1.0) {
+      return cm1_positive(y.right()) ? interval(-1.0) : interval::emptyset();
+    }
+    const double xl = base.left(), xu = base.right(), yl = y.left(), yu = y.right();
+    double l, r;
+    if (cm1_same(xl, xu) && cm1_same(yl, yu)) {
+      // A point: one corner gives both bounds
+      cm1_corner(xl, yl, l, r);
+    } else if (cm1_same(yl, yu)) {
+      // A degenerate exponent: increasing with x for y > 0, decreasing for
+      // y < 0, one corner for each bound
+      l = cm1_lo(cm1_positive(yl) ? xl : xu, yl);
+      r = cm1_hi(cm1_positive(yl) ? xu : xl, yl);
+    } else if (xl == -1.0 && cm1_positive(yl)) {
+      // A base from -1 and exponents above 0: -1 is the least value, and the
+      // greatest is at xu, with yu for xu >= 0 and yl below
+      l = -1.0;
+      r = cm1_hi(xu, !cm1_negative(xu) ? yu : yl);
+    } else if (!cm1_negative(xl)) {
+      l = cm1_lo(!cm1_negative(yl) ? xl : xu, yl);
+      r = cm1_hi(!cm1_negative(yu) ? xu : xl, yu);
+    } else if (!cm1_positive(xu)) {
+      l = cm1_lo(!cm1_negative(yu) ? xl : xu, yu);
+      r = cm1_hi(!cm1_negative(yl) ? xu : xl, yl);
+    } else {
+      // x holds 0 inside, where the function is 0: it is at most 0 at
+      // (xl, y >= 0) and (xu, y <= 0), the least at (xl, yu) or (xu, yl), and
+      // at least 0 at (xl, y <= 0) and (xu, y >= 0), the greatest at
+      // (xl, yl) or (xu, yu). An exponent of the other sign is taken as 0,
+      // for which the corner is 0 with no call of compoundm1_point(). Where y
+      // holds 0 inside and one of the two corners is a limit, the other is
+      // not computed: the limit is -1 at (xl, yu) and (xu, yl), which bounds
+      // the box below, and +oo at (xl, yl) and (xu, yu), which bounds it above
+      const double yu_or_0 = cm1_positive(yu) ? yu : 0.0, yl_or_0 = cm1_negative(yl) ? yl : 0.0;
+      const bool around_0 = cm1_negative(yl) && cm1_positive(yu);
+      l = (around_0 && (cm1_is_limit(xl, yu) || cm1_is_limit(xu, yl)))
+          ? -1.0 : minimum(cm1_lo(xl, yu_or_0), cm1_lo(xu, yl_or_0));
+      r = (around_0 && (cm1_is_limit(xl, yl) || cm1_is_limit(xu, yu)))
+          ? GAOL_INFINITY : maximum(cm1_hi(xl, yl_or_0), cm1_hi(xu, yu_or_0));
+    }
+    return interval(l, r);
+  }
+
+  interval compoundm1(const interval& X, const interval& Y)
+  {
+    // An empty operand returns before the check, as pow() does (GAOL v5)
+    if (X.is_empty() || Y.is_empty()) {
+      return interval::emptyset();
+    }
+    GAOL_RND_ENTER();
+    interval res = compoundm1_upward(X, Y);
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
     return res;

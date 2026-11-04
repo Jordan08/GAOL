@@ -68,7 +68,7 @@ coverage:
 	find . -name '*.gcda' -delete
 	$(MAKE) $(AM_MAKEFLAGS) check
 	$(MKDIR_P) $(abs_srcdir)/coverage
-	$(GCOVR) --root $(abs_srcdir) --gcov-ignore-errors=no_working_dir_found \
+	$(GCOVR) --root $(abs_srcdir) --gcov-ignore-errors=no_working_dir_found --merge-mode-functions=merge-use-line-min \
 	  --filter $(abs_srcdir)/gaol/ --filter $(abs_srcdir)/3rd/math-core/ \
 	  --html --html-self-contained --html-title "Coverage of GAOL" \
 	  --output $(abs_srcdir)/coverage/coverage.html \

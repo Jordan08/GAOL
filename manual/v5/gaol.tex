@@ -194,8 +194,8 @@ manual describes:
 \item \textbf{New operations}, which the standard requires or recommends:
   \code{exp2}, \code{exp10}, \code{log2}, \code{log10}, \code{fma}, the integer
   functions \code{sign}, \code{trunc}, \code{round\_ties\_to\_even} and
-  \code{round\_ties\_to\_away}, fifteen recommended functions (\code{expm1},
-  \code{log1p}, \code{hypot}, \code{rsqrt}, \code{sinpi}\ldots), the
+  \code{round\_ties\_to\_away}, sixteen recommended functions (\code{expm1},
+  \code{log1p}, \code{hypot}, \code{compoundm1}, \code{sinpi}\ldots), the
   cancellative subtraction and addition, the radius, and the comparisons
   \code{less}, \code{strictly\_less}, \code{is\_entire} and
   \code{is\_common\_interval}; \code{atan2}, which GAOL declared, is
@@ -3942,9 +3942,33 @@ cout << hypot(interval(3), interval(4)) << ' '
 \end{example}
 \end{deffun}
 
-\noindent
-Among the functions IEEE 1788-2015 recommends (Table~10.5), \ieee{compoundm1}
-alone is not provided, CORE-MATH having no version of it for doubles.
+\begin{deffun}{interval}{compoundm1}{(const interval\& \var{X}, const interval\& \var{Y})}
+  $(1+x)^y-1$ for $x$ in \var{X} and $y$ in \var{Y}: \ieee{compoundm1} of
+  IEEE 1788-2015 (Table~10.5). It keeps the digits of a small $x$ that
+  \code{pow(1+x, y) - 1} loses, $1+x$ being rounded and the difference
+  cancelling what is left. It is defined for $x>-1$, and for $x=-1$ when $y>0$,
+  where it is $-1$; the part of the box outside is left out, and $-1$ and
+  $+\infty$, the limits at $x=-1$, at $x=+\infty$ and for an infinite $y$, are
+  bounds. CORE-MATH having no function for it, the value at a corner of the
+  box is computed with integers: 64 bits in a fast phase that settles 71 to 95\,\%
+  of the pairs, 128 bits and a bound of the error in the others. It takes 0.1
+  microsecond for each of the one or two corners where the bounds are, where
+  the fast phase settles it, and 0.6 to 0.9 elsewhere. The bounds are the
+  tightest ones, the double itself where the value is one (2.375 for
+  $x=1.5-1$ and $y=3$, but also $2^m-1$ for $|m|\le53$, and the quotient
+  $-x/(1+x)$ of $y=-1$, divided exactly), but in a case out of $10^{17}$ or
+  so, where a bound is a double beyond.\newinvfive
+\begin{example}
+cout << compoundm1(interval(0.5), interval(2)) << ' '
+     << compoundm1(interval(1,3), interval(1,2)) << endl
+     << compoundm1(interval(-1), interval(0,1)) << ' '
+     << compoundm1(interval(-1,0), interval(-1)) << endl
+     << compoundm1(interval(1e-20), interval(3)) << endl;
+@outputs^[1.25] [1, 15]~
+@outputs^[-1] [0, inf]~
+@outputs^[2.999999999999999e-20, 3.000000000000001e-20]~
+\end{example}
+\end{deffun}
 
 \deffunx{interval}{erf}{(const interval\& \var{I})}
 \begin{deffun}{interval}{erfc}{(const interval\& \var{I})}
@@ -4989,7 +5013,7 @@ its arguments, whatever the case of its letters:
 \code{cos}, \code{tan}, \code{asin}, \code{acos}, \code{atan}, \code{atan2},
 \code{sinh}, \code{cosh}, \code{tanh}, \code{asinh}, \code{acosh}, \code{atanh},
 \code{sinpi}, \code{cospi}, \code{tanpi}, \code{asinpi}, \code{acospi},
-\code{atanpi}, \code{atan2pi}, \code{hypot}, \code{rsqrt}, \code{sign}, \code{ceil},
+\code{atanpi}, \code{atan2pi}, \code{hypot}, \code{compoundm1}, \code{rsqrt}, \code{sign}, \code{ceil},
 \code{floor}, \code{trunc}, \code{integer}, \code{round\_ties\_to\_even},
 \code{round\_ties\_to\_away}, \code{abs}, \code{min}, \code{max}, \code{inverse},
 \code{fma}\\
@@ -5591,6 +5615,7 @@ The last argument $x$ of the reverse functions is optional, and
   \code{expm1}, \code{exp2m1}, \code{exp10m1} & the same\\
   \code{logp1}, \code{log2p1}, \code{log10p1} & \code{log1p}, \code{log2p1}, \code{log10p1}\\
   \code{hypot}, \code{rSqrt} & \code{hypot}, \code{rsqrt}\\
+  \code{compoundm1} & the same\\
   \code{sinPi}, \code{cosPi}, \code{tanPi} & \code{sinpi}, \code{cospi}, \code{tanpi}\\
   \code{asinPi}, \code{acosPi}, \code{atanPi}, \code{atan2Pi} & \code{asinpi}, \code{acospi}, \code{atanpi}, \code{atan2pi}\\
   \hline
@@ -5670,7 +5695,7 @@ of their letters.\newinvfive
 \code{sign}, \code{ceil}, \code{floor}, \code{trunc}, \code{roundTiesToEven},
 \code{roundTiesToAway}, \code{abs}, \code{min}, \code{max}, \code{rootn},
 \code{expm1}, \code{exp2m1}, \code{exp10m1}, \code{logp1}, \code{log2p1},
-\code{log10p1}, \code{hypot}, \code{rSqrt}, \code{sinPi}, \code{cosPi},
+\code{log10p1}, \code{hypot}, \code{compoundm1}, \code{rSqrt}, \code{sinPi}, \code{cosPi},
 \code{tanPi}, \code{asinPi}, \code{acosPi}, \code{atanPi}, \code{atan2Pi}\\
 \end{tabular}
 \end{center}
@@ -5705,8 +5730,7 @@ With \code{using namespace gaol;}, \code{textToInterval("pow([-4,-1],2)")} is
 %%----------------------------
 
 GAOL has no decorations: only bare intervals are provided (Clause 11). Nor does
-it provide \ieee{compoundm1} (Table
-10.5), the slope functions (Table 10.6),
+it provide the slope functions (Table 10.6),
 \ieee{overlap} (10.6.4), the reduction operations \ieee{sum}, \ieee{dot},
 \ieee{sumSquare} and \ieee{sumAbs} (12.12.12), and the exact operations of
 12.13.5. The end of \file{gaol/gaol\_ieee1788.h} keeps this list.
@@ -5888,6 +5912,7 @@ covered.
   \code{nth\_root(x, n)}, $n>0$ & $n=1$, 2, 3: tightest. Otherwise accurate: the tightest bounds or up to 2 doubles beyond, proved with integer powers; beyond the \code{unsigned int}s, CORE-MATH's \code{pow} at the corners, within one double\\
   \code{nth\_root(x, q)}, $q<0$ & accurate: the root above, then the tightest division, up to 4 doubles beyond the tightest bounds\\
   \code{expm1}, \code{exp2m1}, \code{exp10m1}, \code{log1p}, \code{log2p1}, \code{log10p1}, \code{hypot}, \code{rsqrt} & tightest\\
+  \code{compoundm1} & tightest but in a case out of $10^{17}$ or so, where a bound is a double beyond\newinvfive\\
   \code{sinpi}, \code{cospi}, \code{tanpi}, \code{asinpi}, \code{acospi}, \code{atanpi}, \code{atan2pi} & tightest, at every magnitude\\
   \hline
   \multicolumn{2}{l}{\textit{The error functions, which IEEE 1788-2015 does not name}}\\

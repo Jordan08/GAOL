@@ -46,6 +46,9 @@ set(GAOL_TESTS
   # where the compiler has none, and the bounds CORE-MATH gives (GAOL v5)
   u128
   core_math
+  # compoundm1, which CORE-MATH has not: its 128-bit balls, its bounds against
+  # mpmath and its boxes (GAOL v5)
+  compoundm1
   expressions
   # The results that doubles computed in extended precision, on the x87 unit,
   # round wrongly (GAOL v5)
