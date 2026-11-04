@@ -3795,7 +3795,8 @@ jour de leur fusion.
   lignes de plus dans `tests/performance.cpp`, `nth_root(x, 3)` et `asinpi(x)`,
   les deux fonctions de CORE-MATH qui lisent la direction à chaque appel.
 - **#207** : le `--selftest` tourne dans la CI (job `asm-order-selftest`), pas
-  le contrôle des compilations (reporté : `TODO_AFTER.md`, 2.2) ; le calcul de K
+  le contrôle des compilations (reporté dans `TODO_AFTER.md`, puis fait par #228
+  le 29 octobre : 3.10, 3.18) ; le calcul de K
   de `pown_bound_inverse()` est laissé tel quel ; pas de relecture de plus des
   corrections faites après la relecture ; l'essai sur du `-m32` est fait une
   fois, à part, en commentaire (l'outil n'y vérifie rien).
@@ -3856,7 +3857,7 @@ exécutent (2.3).
   ligne `x / d` et (c) rapprocher les deux noyaux (`div_bounds()` appelle
   `er_div2()`), (b) inchangé (#220) ; PG.10 : l'étendre (#218) ; PG.5 (112) :
   rien ; PG.2 (116) : chercher encore ici (#222, #224) ; PG.3 (106) : les
-  parties (b), (c) et (d) vont dans `TODO_AFTER.md` (2.3 et 4.10) ; l'outil
+  parties (b), (c) et (d) vont dans `TODO_AFTER.md` (2.2 et 4.10) ; l'outil
   d'assembleur avec GCC : trier les constats maintenant (#223).
 - **PG.1, le 105 (AH)** : mesuré avec la session cloud1, un Xeon : l'option
   `-Wa,-mbranches-within-32B-boundaries` **n'est pas adoptée**. Sur le Cascade
@@ -4267,6 +4268,71 @@ par la relecture de #279 : en faire un point ou la reporter, à décider) a ét�
   `-march=native`, où le test passe). Si un `FE_INVALID` revient avec les
   drapeaux de GAOL, la tâche se rouvre.
 
+### 3.18 Le 4 novembre : le tri de la fin (tâche PN)
+
+Demandé par le mainteneur le 4 novembre (« relire toutes les PR, les textes des
+commits et les TODO*.md », « vérifie que l'on a bien tout traité ou décidé ») :
+la relecture, au commit `1e0f368`, de toutes les pull requests de #1 à #290
+(leur corps, leurs commentaires et leurs revues), des messages des 1963 commits
+de `configure-clean`, des marques du code (`TODO`, `FIXME`, les renvois « point
+X of TODO.md »), des issues, de `todo-notes/synthese.md` et des trois
+registres, par neuf relecteurs indépendants (des sous-agents sans le contexte de
+la session), dont les constats ont été revérifiés par échantillon dans le code.
+Deux fichiers en sortent, sans issue :
+
+- `TODO_fin.md` : ce qui n'est ni fait, ni décidé, ni dans `TODO.md`, ni dans
+  `TODO_AFTER.md` : des questions restées sans réponse, des textes faux ou
+  périmés, des textes à reporter dans `doc/differences.md` et le `ChangeLog`,
+  des mesures jamais faites, des limites que rien n'inscrit, des faits et des
+  décisions que ce fichier ne note pas, les incohérences des registres et des
+  issues. Aucun de ces oublis ne donne une borne fausse.
+- `STEP.md` : tout ce qui est fait, classé en 27 étapes (205 pull requests
+  fusionnées, 32 fermées sans fusion, et le travail direct par groupes de
+  commits).
+
+Ce qui sort de `TODO_AFTER.md`, ou ce qui s'y réduit :
+
+- [x] **Le contrôle de l'assembleur de x86-64 dans la CI** (l'ancien article
+  2.2, reporté par #207 le 28 octobre ; *décidé le 29 octobre* : un seul job de
+  quatre étapes, GCC 13.3 et Clang 18, avec et sans `GAOL_PRESERVE_ROUNDING`,
+  avec tous les constats `BEFORE`, `AFTER` et `DENORMAL`) : fait par #228 (le
+  job `asm-order-library` de `.github/workflows/linux.yml`, fusionnée le 29
+  octobre ; 2.3 et 3.10). L'article, qui disait lui-même « cet article sort de
+  ce fichier », est retiré, et l'ancien 2.3 (le reste (c) et (d) du 106)
+  devient 2.2.
+- [x] **Les pistes de `doc/simd.md`, en partie** (article 4.1, #154) : la
+  division du chemin AVX-512 par l'arrondi embarqué scalaire (#191) et les
+  puissances entières de NEON (#188, puis #219, qui a trouvé la cause du gain
+  faible) sont faites ; l'article garde `sqrt` en SSE2, `mid()`, la réduction
+  d'argument de `sin` et `cos`, RISC-V, POWER et s390x.
+- [x] **Ce qui n'avait pas été exécuté, en partie** (article 4.4, #157 et
+  #162) : le vrai noyau SSE2 et le test de #162 (`power_two_is_sqr()`) tournent
+  dans chaque job x86 de la CI (GCC, Visual C++, clang-cl, MinGW-w64, le chemin
+  AVX-512 sous Intel SDE), et le commentaire du 22 octobre de #157 a exécuté
+  les builds FPU et SSE2 sur l'i7-1185G7 avec GCC 15.2 et lu les signes des
+  zéros ; l'article garde le vrai matériel, l'égalité bit à bit des deux
+  produits et les temps de #162.
+- [x] **Le signe du zéro de `midpoint([-1, 1])`, en partie** (article 5.4,
+  #281) : la norme fixe +0 (12.12.8 : −0 pour `inf`, +0 pour les autres
+  fonctions numériques quand la valeur exacte est 0), comme le dit
+  `doc/compare/itf1788.md`, et le banc ITF1788 le vérifie, signe compris (23
+  cas de `mid` réussis, aucun échec) ; l'article garde la question d'une
+  vérification dans `ctest`.
+- **Des textes périmés corrigés** : l'en-tête ; 1.4 (`debian:trixie` et
+  `ubuntu:24.04` supprimées le 31 octobre, 8.1) ; 3.3 (#225 a corrigé la perte
+  de clang-cl) ; 3.4 (la ligne `GAOL_FMA` de `doc/building.md`, qui n'est plus
+  une option depuis #200 ; macOS 14 est sorti de la CI par #276) ; 4.7 (sept
+  jobs universels exécutent la tranche x86_64 depuis #205) ; 4.8 (le job
+  « macOS 14 x86_64 (Rosetta) » n'existe plus ; deux échecs plus anciens y sont
+  ajoutés, le run 39487538926 du 20 octobre et `cancel_minus` sur #162 le 22
+  octobre) ; 5.1 (le lien avec la tâche PM).
+
+Ce fichier ne change pas autrement : les incohérences relevées (`TODO_fin.md`,
+section 7) restent à corriger, sauf les renvois aux anciens 2.2 et 2.3 de
+`TODO_AFTER.md` (3.9, 3.10, section 5) et le point AN (section 4), corrigés
+avec ce déplacement. L'issue #178 se met à jour à la fusion (`process.md` §9) :
+elle n'avait pas suivi le `TODO_AFTER.md` du 3 novembre.
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -4388,8 +4454,9 @@ ici ou dans la section 5.
 - [x] **AN.** Les pistes SIMD et FMA (126, issue #101) : fait par #154
   (`doc/simd.md`, qui répond aux quatre étapes de l'issue ; une voie AVX2, SVE,
   VSX ou RISC-V seulement après des mesures, NEON étant fait par #146), et
-  `pow(x, 2)` par `sqr` par #162 ; ce qui reste est dans `TODO.md` (« Remarqué
-  par #154, à trier »)
+  `pow(x, 2)` par `sqr` par #162 ; des gains que la page liste, la division du
+  chemin AVX-512 par #191 et les puissances entières de NEON par #188, puis
+  #219 (3.18) ; ce qui reste est dans `TODO_AFTER.md` (4.1 et 4.6)
 - [x] **AO.** Des macros de configuration que rien ne lit (127) :
   `GAOL_IX86_LINUX`, `GAOL_AARCH64_LINUX` et `GAOL_HAVE_AVX512_TARGET`, comme
   #141 l'a fait pour `GAOL_USING_ASM` et `GAOL_HAVE_ROUNDING_MATH_OPTION` :
@@ -4792,7 +4859,7 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
 - **PG.10 (#210).** `set_rounding()` et `set_rounding_and_flush_modes()` sans
   écrire pour rien : fait par #218.
 - **PG.3, le 106 (AI), le reste (b), (c) et (d)** : reportés (`TODO_AFTER.md`,
-  2.3 et 4.10) ; **PG.9** : (a) et (c) faits par #220, (b) inchangé.
+  2.2 et 4.10) ; **PG.9** : (a) et (c) faits par #220, (b) inchangé.
 - **Les écarts de GCC avec Clang** (tâche PG, *décidé le 29 octobre*). `x + y`,
   `x - y` et les lignes d'additions avec GCC : fait par #230 ; le placement de
   Clang 21 : #232 ; `x | y` et `x &= y` de SSE2 : #234 ; `x * y` de NEON : #235.
