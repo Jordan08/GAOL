@@ -975,10 +975,9 @@ To take:
    a `std::less` specialization), and warn against `std::sort`, `std::set`,
    `std::max` with the certainly relations (done: `gaol::lexicographic_less`,
    and the warning in `doc/using.md` and the manual).
-9. Finish the streams (numbers 12 and 15; 13 and 14 are applied): write point
-   intervals as `[a, b]` when their two texts differ, make `what()` the
-   explanation, and consider reading one interval token rather than a line
-   (numbers 12 and 15 are done since).
+9. Finish the streams (number 12; 13 and 14 are applied): write point
+   intervals as `[a, b]` when their two texts differ, and consider reading one
+   interval token rather than a line (number 12 is done since).
 10. Add the helpers every algorithm writes: `mulRevToPair`/`div_rel_pair`,
     `inflate`, `bisect(ratio)` and `is_bisectable()`, a mid-radius
     constructor, `hull()` and `intersect()` as functions, an enclosure of the
