@@ -3453,12 +3453,16 @@ namespace gaol_core {
   */
   static interval reciprocal_sat_upward(const interval& root)
   {
+    // bound_equal(): where GAOL cannot clear the modes that flush the
+    // subnormals to zero (ARM, the FPU intervals of Visual C++), a subnormal
+    // bound is no 0
     const double l = root.left(), r = root.right();
-    if (l == 0.0 && r == 0.0) {
+    const bool l_is_0 = gaol_detail::bound_equal(l, 0.0), r_is_0 = gaol_detail::bound_equal(r, 0.0);
+    if (l_is_0 && r_is_0) {
       return interval::emptyset();
     }
-    const double upper = (l == 0.0) ? GAOL_INFINITY : quotient_sat(1.0, l);
-    const double lower = (r == 0.0) ? -GAOL_INFINITY : -quotient_sat(-1.0, r);
+    const double upper = l_is_0 ? GAOL_INFINITY : quotient_sat(1.0, l);
+    const double lower = r_is_0 ? -GAOL_INFINITY : -quotient_sat(-1.0, r);
     return interval(lower, upper);
   }
 

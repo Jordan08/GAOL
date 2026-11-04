@@ -1766,7 +1766,7 @@ namespace gaol_core {
     e^(y log x) for x > 0, 0 for x = 0 and y > 0, and no value elsewhere, so
     that no x < 0 is a solution. gaol::pow takes the integer power for a
     degenerate integer exponent [n], whose negative bases these functions
-    leave out: the reverse of x^n, n >= 1, is nth_root_rel(K, n, I).
+    leave out: the reverse of x^n is nth_root_rel(K, n, I).
     pow_rel([4, 9], [2], interval::universe()) is [2, 3],
     pow_rel([2, 3], [1, +oo], [0, 1]) is empty (x^y >= 2 asks x > 1), and
     pow_exponent_rel([8], [2], interval::universe()) is [3].
@@ -1811,7 +1811,7 @@ GAOL_NODISCARD extern GAOL_PUBLIC   interval nth_root_rel(const interval& J, uns
 
     nth_root_rel(J, p, I) = hull{x in I | x^p is defined and in J}, x^p being
     the pown of the standard (Table 9.1):
-    - p >= 1: x^p = the root of order p of J, which nth_root_rel(J, unsigned
+    - p >= 1: x is a root of order p of J, which nth_root_rel(J, unsigned
       p, I) gives;
     - p = 0: x^0 is 1 for every x, 0 included, so that the hull is I where 1 is
       in J, and the empty set elsewhere: nth_root_rel([-1, 5], 0, I) is I and
@@ -1827,9 +1827,13 @@ GAOL_NODISCARD extern GAOL_PUBLIC   interval nth_root_rel(const interval& J, uns
       [0, 3]) is [0, 1].
 
     The bounds of the roots are those of nth_root(J, p), the root then its
-    inverse: up to 4 doubles beyond the tightest for p < 0 (3 found), the
-    tightest for p >= 1 where the bound of J is a power of a double. The empty
-    set for an empty argument. An integer p of another type than int and
+    inverse: up to 4 doubles beyond the tightest for p < 0 (4 found, for
+    nth_root_rel([2.25], -127, I)), the tightest for p >= 1 where the bound of
+    J is a power of a double. For p = -1, where 1/J reaches beyond the largest
+    double (J next to 2^-1074), a bound saturates at the largest double, as
+    div_rel() does: nth_root_rel([2^-1074], -1, [0, DBL_MAX]) is [DBL_MAX]
+    where the hull is empty, the bounds being sound but not within 4 doubles
+    of the tightest. The empty set for an empty argument. An integer p of another type than int and
     unsigned int (long, long long...) takes the template below, which gives
     the same result: a long is as far from an int as from an unsigned int,
     and nth_root_rel(J, 3L, I) would be ambiguous without it.
@@ -2464,12 +2468,16 @@ namespace gaol_detail {
     intersection that is {0} holds no solution, where [0, m] has the same hull
     with or without it. The test of a NaN bound comes after is_empty(): a
     comparison of a NaN is signaling on some processors (32-bit ARM, POWER9).
+    The bounds are compared by bound_equal(), which the modes that flush the
+    subnormals to zero do not change: nth_root_rel(J, T, I) calls this after
+    nth_root() restored the modes of the program, where [0, 2^-1074] would be
+    read as {0} under denormals-are-zero (process.md, section 11)
   */
   GAOL_NODISCARD GAOL_INLINE gaol_core::interval nonzero_part(const gaol_core::interval& roots,
                                                               const gaol_core::interval& I)
   {
     const gaol_core::interval part = roots & I;
-    if (!part.is_empty() && part.left() == 0.0 && part.right() == 0.0) {
+    if (!part.is_empty() && bound_equal(part.left(), 0.0) && bound_equal(part.right(), 0.0)) {
       return gaol_core::interval::emptyset();
     }
     return part;
