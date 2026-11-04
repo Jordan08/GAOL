@@ -121,9 +121,9 @@ namespace gaol_core {
 
     \note A call with a wrong number of arguments, an uncertain number as a
     bound and two different bounds, or a bound that is no double (or whose
-    value is not a point), in <a, b> throw input_format_error, and a
+    value is not a point), in <a, b> throw std::invalid_argument, and a
     second argument of nth_root, pown or rootn that is no integer
-    invalid_action_error. That argument is an integer of any size that a
+    std::domain_error. That argument is an integer of any size that a
     double holds, beyond the ints too (GAOL v5): nth_root(8,3000000000) is
     nth_root(8, 3000000000LL). One of 2^63 or more in magnitude is taken as
     +-(2^63 - 2). Without exceptions, parse_interval() returns false

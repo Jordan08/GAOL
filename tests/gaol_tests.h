@@ -42,10 +42,12 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <exception>
 #include <limits>
 #include <locale>
 #include <map>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -163,6 +165,47 @@ namespace gaol_tests
     }
     return check(name + ": no more than " + std::to_string(limit) + " doubles from the tightest bounds",
                  distance <= limit, describe);
+  }
+
+  /*
+    What an exception of GAOL says. GAOL throws the exceptions of the
+    standard library, std::invalid_argument and std::domain_error, whose
+    what() is "file:line: explanation" (gaol_ERROR of gaol/gaol_common.h; GAOL
+    v5), the file being a name without directories. The first colon followed
+    by digits and by a colon and a blank ends the file name. A text of another
+    form has no file, and 0 for its line: it is the explanation whole.
+  */
+  struct exception_text {
+    std::string file;
+    long line = 0;
+    std::string explanation;
+  };
+
+  inline exception_text split_what(const std::exception& e)
+  {
+    const std::string text = e.what();
+    for (std::size_t p = text.find(':'); p != std::string::npos; p = text.find(':', p + 1)) {
+      std::size_t q = p + 1;
+      while (q < text.size() && text[q] >= '0' && text[q] <= '9') {
+        ++q;
+      }
+      if (q > p + 1 && text.compare(q, 2, ": ") == 0) {
+        exception_text t;
+        t.file = text.substr(0, p);
+        t.line = std::stol(text.substr(p + 1, q - p - 1));
+        t.explanation = text.substr(q + 2);
+        return t;
+      }
+    }
+    exception_text t;
+    t.explanation = text;
+    return t;
+  }
+
+  // The explanation of an exception of GAOL, without its file and its line
+  inline std::string explanation(const std::exception& e)
+  {
+    return split_what(e).explanation;
   }
 
   // f(), or the empty set, with a failure of the check named name, when it

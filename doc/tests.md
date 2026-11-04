@@ -696,7 +696,7 @@ point Q), which `numbers` checks there too.
   `while (in >> x)` has to stop at the end of the input with `failbit` set,
   nothing thrown and the interval unchanged, and a line that is no interval,
   refused at its end (`[1, 2`) or as the reader reads it (`<3, 4>`), has to set
-  `failbit` and throw `input_format_error`, on a stream throwing on `failbit`
+  `failbit` and throw `std::invalid_argument`, on a stream throwing on `failbit`
   too (GAOL v5). Blank lines have to be skipped, as the blanks before a number
   are, and under `std::noskipws` too, which keeps a number from skipping them:
   a file ending with an empty line, an empty line or a line of blanks between
@@ -750,7 +750,7 @@ point Q), which `numbers` checks there too.
   different subnormals, or of 0 and a subnormal (`<1e-310, 1e-309>`,
   `<0x1p-1074, 0x1p-1073>`), has to be
   refused, the empty set of `gaol_ieee1788::textToInterval` and the
-  `input_format_error` of `gaol::textToInterval`, and `<a, a>` of a subnormal
+  `std::invalid_argument` of `gaol::textToInterval`, and `<a, a>` of a subnormal
   and `<-0, 0>` read: the reader compared the two bounds as doubles, equal
   under the mode (GAOL v5, point Q). Intervals of
   subnormals (`[0, 5e-324]`, `[5e-324]`, `[-5e-324, 0]`...) written with 16
@@ -796,7 +796,7 @@ point Q), which `numbers` checks there too.
   intervals did not contain them); `bisect(ratio)` has to give two parts that
   cover the interval exactly, cut strictly inside where `is_bisectable()`, for
   ratios from 10^-9 to 1 − 10^-9, `bisect(0.5)` being `split()`, and to throw
-  `invalid_action_error` for a ratio outside (0, 1) or NaN; `is_bisectable()`
+  `std::domain_error` for a ratio outside (0, 1) or NaN; `is_bisectable()`
   to be true exactly when a double lies strictly between the bounds; `hull()`
   and `intersect()` to be `|` and `&`; with infinite, NaN and largest bounds,
   and the empty set. The comparisons of IEEE 1788-2015
@@ -860,7 +860,8 @@ point Q), which `numbers` checks there too.
   order, and beyond
   the unsigned ints the tightest enclosures of the roots, compared with
   doubles computed by mpmath, `rootn(x, 3000000000u)`, which was wrong, and
-  `pownRev(c, 0L)`, which throws; `pown(e, 3000000000u)` of an expression,
+  `pownRev(c, 0L)` and `pownRev(c, -3)`, which throw `std::domain_error`;
+  `pown(e, 3000000000u)` of an expression,
   its power, and beyond 2^53 x^n, not the power of a double near n ([-1]
   for [-1]^(2^53 + 1)), within three doubles of the tightest bounds;
   `numsToInterval()` and `isMember()` take ±(2^53 + 1)
@@ -1115,22 +1116,31 @@ point Q), which `numbers` checks there too.
   where the system has one: the reader compared them by `std::tolower()`, and
   refused `SIN([0,1])` there (GAOL v5, point F). The check is skipped where
   the system has no such locale, as on the Ubuntu runners of the continuous
-  integration. What the exceptions of GAOL say has to be their explanation, or
-  the name of their class where there is none:
-  the `what()` of a `gaol_exception`, an `input_format_error`, an
-  `unavailable_feature_error` and an `invalid_action_error` built with a known
-  explanation, without one, with a null pointer (no explanation) and with an
-  explanation that starts with a NUL, and of what the reader, `operator>>` and
-  `nb_fp_numbers()` throw, read through a `std::exception`; and `operator<<` has
-  to write the explanation once. `what()` was `std::exception`, which a handler
-  of `std::exception` printed and an exception that nothing catches ended the
-  program with, and `operator<<` wrote it next to the explanation (GAOL v5).
-  A null file name given to the same exceptions has to be `(unknown file)`,
-  from `file()` and from `operator<<`, which has to leave the stream good for
-  what follows, as have `gaol_warning()` and `gaol_error()` for `std::cerr`,
-  which also have to write no text for a null message:
-  the null pointer was sent to the stream, which the standard leaves undefined
-  and libstdc++ puts in the state bad (GAOL v5, decided on 2026-10-24).
+  integration. What GAOL throws has to be the exceptions of the standard
+  library, exactly `std::invalid_argument` for what the reader refuses
+  (`textToInterval()` with a string that is no interval or a null pointer, and
+  `operator>>`) and `std::domain_error` for a function called with an argument
+  it does not take (`nb_fp_numbers()` with a NaN, `bisect(0)`,
+  `gaol_ieee1788::pownRev(c, 0)`, `nth_root(8, 1.5)` in a string), told apart
+  by `typeid` since both derive from `std::logic_error`, caught as a
+  `std::exception`, and with a `what()` that is `file:line: explanation`: the
+  file is the name of the source that threw, with no directory whatever the
+  path the build gave the compiler (that of the grammar,
+  `gaol_interval_parser.ypp`, for what the parser refuses in a call, whose
+  `#line` directives give the file; that of the header, `gaol_ieee1788.h`, for
+  `pownRev()`), the line is positive and differs between two throws of one
+  file, and the explanation is the one expected; the text that `gaol_ERROR`
+  builds is checked with its line, that of the macro, for a null file name
+  and a null message too, and with the directories of a path cut after `/`
+  and after `\` (GAOL v5, which replaced the classes of GAOL 4,
+  `gaol_exception`, `input_format_error`, `invalid_action_error` and
+  `unavailable_feature_error`, by them). `what()` was `std::exception`, which a handler of `std::exception`
+  printed and an exception that nothing catches ended the program with, in
+  GAOL 4. `gaol_warning()` and `gaol_error()`, which write on `std::cerr`, have
+  to write a null file name as `(unknown file)` and no text for a null message,
+  and leave the stream good for what follows: the null pointer was sent to the
+  stream, which the standard leaves undefined and libstdc++ puts in the state
+  bad (GAOL v5, decided on 2026-10-24).
   The reading of strings by four threads at once, where the reader,
   whose state was global, crashed before its lexer became reentrant
   and its parser pure, is commented out: the tests run no thread
@@ -1167,7 +1177,7 @@ point Q), which `numbers` checks there too.
   nested 9000 levels by parentheses, brackets or signs, or thousands of levels
   by calls, has to be read, and one nested 100000 levels, which overflows the
   10000 entries of the stack of the parser, to be refused with
-  `input_format_error`. A sum of 10000 terms has to be read with no more than
+  `std::invalid_argument`. A sum of 10000 terms has to be read with no more than
   64 allocations live at once: the parser built a node for each operation,
   20000 of them live before the evaluation (GAOL v5). A `std::string` holding
   a NUL character (`"1\0junk"`, `"[1,2]\0"`) has to be no expression for
@@ -1182,7 +1192,7 @@ point Q), which `numbers` checks there too.
   no exception and the interval unchanged: `parse_interval()` took its length
   with `std::strlen()` and died of a segmentation fault (GAOL v5). A null
   pointer given to `textToInterval()` (one string or two, in either place) and
-  to `exactToInterval()` has to throw `input_format_error`, with the names of
+  to `exactToInterval()` has to throw `std::invalid_argument`, with the names of
   GAOL and with those of the standard, `std::string` being built from it
   otherwise, which the standard leaves undefined (libstdc++ throws
   `std::logic_error`; GAOL v5, point 128 of TODO.md). `[l, u]` with l above u has to be the empty set, with the names of GAOL and with those
@@ -1234,7 +1244,7 @@ point Q), which `numbers` checks there too.
   chain of 300 sums. flex ended the program with `exit(2)` where it could not
   allocate its buffer, the `std::bad_alloc` of
   the lexer or of an action went through the parser and left the nodes on its
-  stack, a stack of the parser that could not grow gave `input_format_error`,
+  stack, a stack of the parser that could not grow gave `std::invalid_argument`,
   and `gaol_ieee1788::textToInterval` gave the empty set (GAOL v5). The test
   counts the allocations with a replacement of the global `operator new`, which
   makes one fail; it says it skips these checks where that replacement does not
@@ -1552,7 +1562,7 @@ point Q), which `numbers` checks there too.
   functions on intervals GAOL v5 adds and the nodes of their expressions,
   `restore_rounding()`, `exact_string()` and `is_finite()`, and
   the overloads of every function and operator of the expressions; that the
-  exceptions, `rnd_keep()`, `NaN_val`,
+  `rnd_keep()`, `NaN_val`,
   `eval_stack`, `parse_interval()` and `parsing_names` are not found through
   `using namespace gaol`, nor what
   GAOL uses for itself: the
@@ -1560,7 +1570,7 @@ point Q), which `numbers` checks there too.
   name between parentheses so that argument-dependent lookup does not find
   them in `gaol_core`, lose to fallbacks that any function of GAOL
   beats, and the types and the variables (`rounding_state`, `uintdouble`,
-  `the_null_expr`, the internals GAOL 4 had in `gaol` too, the exceptions,
+  `the_null_expr`, the internals GAOL 4 had in `gaol` too,
   `NaN_val`, the version...) to fallbacks of the same name, with which they
   would be ambiguous. `misc` checks as well that `gaol_ieee1788::operator<<`
   names the output of the intervals and of the expressions, and that `gaol`

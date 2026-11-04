@@ -218,15 +218,28 @@ namespace
           bounds_are(odd_u, -r8, r8) && bounds_are(even_u, 0.0, r8) && bounds_are(odd_t, -r8, r8)
           && bounds_are(inverse_t, 0x1.fffffffc6d73bp-1, 0x1.fffffffecf26ap-1),
           [&] { return hex(odd_u) + " " + hex(even_u) + " " + hex(odd_t) + " " + hex(inverse_t); });
-    bool threw = false;
+    /* pownRev() for p <= 0 throws std::domain_error, through gaol_ERROR, with
+       the int of the function and with the integer of the template; without
+       exceptions, gaol_ERROR ends the program, and the call is not made */
+    bool threw = true;
+#if GAOL_EXCEPTIONS_ENABLED
+    threw = false;
     try {
       static_cast<void>(pownRev(c8, 0L));
-    } catch (const std::invalid_argument&) {
+    } catch (const std::domain_error&) {
       threw = true;
     }
+    bool threw_int = false;
+    try {
+      static_cast<void>(pownRev(c8, -3));
+    } catch (const std::domain_error&) {
+      threw_int = true;
+    }
+    threw = threw && threw_int;
+#endif
     const interval rev = pownRev(c8, 5000000001LL), rev_even = pownRev(c8, 5000000000LL);
     const interval rev_positive = pownRev(c8, numsToInterval(0.0, oo), 5000000000LL);
-    check("pownRev(c, 3000000000u) is nth_root_rel(), pownRev(c, 0L) throws, and beyond the unsigned ints the roots",
+    check("pownRev(c, 3000000000u) is nth_root_rel(), pownRev(c, 0L) and pownRev(c, -3) throw std::domain_error, and beyond the unsigned ints the roots",
           pownRev(c8, 3000000000u).set_eq(gaol_core::nth_root_rel(c8, 3000000000u, interval::universe())) && threw
           && bounds_are(rev, r2, r8) && bounds_are(rev_even, -r8, r8) && bounds_are(rev_positive, r2, r8),
           [&] { return hex(rev) + " " + hex(rev_even) + " " + hex(rev_positive); });
@@ -1042,7 +1055,7 @@ namespace
 #if GAOL_EXCEPTIONS_ENABLED
           try {
             back = gaol::textToInterval(text);
-          } catch (const gaol_core::input_format_error&) {
+          } catch (const std::invalid_argument&) {
             refused = true;
           }
 #else

@@ -32,7 +32,6 @@
 #include "gaol/gaol_interval.h"
 #include "gaol/parser/gaol_expression.h"
 #include "gaol/parser/gaol_expr_eval.h"
-#include "gaol/gaol_exceptions.h"
 #include "gaol/gaol_ieee1788.h"
 #include "gaol/parser/gaol_parser.h"
 #include "gaol/gaol_port.h"
@@ -43,7 +42,7 @@
   a sign, keep an entry until the expression they open is reduced, the name
   and the parenthesis of a call two, and an operand and the operator or the
   comma after it two, until the operand that follows them is read: a string
-  nested deeper is refused, as a syntax error (input_format_error).
+  nested deeper is refused, as a syntax error (std::invalid_argument).
   The stack is in the heap beyond its first 200 entries (see
   gaol_parser_alloc()).
   The reading of a string uses no more of the stack of the program, whatever
@@ -235,7 +234,7 @@ void gaol_lexer_failed(void *context)
   heap (YYMALLOC, YYFREE), from the nothrow operator new as the blocks of
   flex: a block that cannot be allocated makes the parser stop, as a string
   nested deeper than YYMAXDEPTH does, and gaol_parse_string() throws
-  std::bad_alloc rather than input_format_error (GAOL v5)
+  std::bad_alloc rather than std::invalid_argument (GAOL v5)
 */
 static void *gaol_parser_alloc(void *context, std::size_t size)
 {
@@ -500,7 +499,7 @@ static bool gaol_uncertain_bound(expr_node *e, void *context)
   if (e == 0 || !gaol_uncertain(e)) {
     return false;
   }
-  GAOL_PARSING_ERROR(context, input_format_error,
+  GAOL_PARSING_ERROR(context, std::invalid_argument,
     "an uncertain number is no bound of an interval literal (IEEE 1788-2015, 12.11)");
   return true;
 }
@@ -712,8 +711,8 @@ static bool gaol_integer_exponent(const interval& q, long long& n)
 /*
   The call of the function fn on the n expressions given, which it releases:
   the leaf of its value, or 0 for an error, which the parsing aborts with.
-  A wrong number of arguments is an input_format_error, and a second argument
-  that is no integer, where it has to be one, an invalid_action_error.
+  A wrong number of arguments is a std::invalid_argument, and a second
+  argument that is no integer, where it has to be one, a std::domain_error.
 */
 static expr_node *gaol_call(void *context, const void *fn, unsigned int n,
                             expr_node *a, expr_node *b, expr_node *c)
@@ -723,12 +722,12 @@ static expr_node *gaol_call(void *context, const void *fn, unsigned int n,
   try {
     if (f->arity != n) {
       const std::string msg = std::string(f->name) + " called with a wrong number of arguments";
-      GAOL_PARSING_ERROR(context, input_format_error, msg.c_str());
+      GAOL_PARSING_ERROR(context, std::invalid_argument, msg.c_str());
     } else if (f->fn != 0) {
       long long q;
       if (!gaol_integer_exponent(gaol_value(b), q)) {
         const std::string msg = std::string(f->name) + " used with non integral 2nd arg.";
-        GAOL_PARSING_ERROR(context, invalid_action_error, msg.c_str());
+        GAOL_PARSING_ERROR(context, std::domain_error, msg.c_str());
       } else {
         result = gaol_leaf(f->fn(gaol_value(a), q));
       }
@@ -883,16 +882,16 @@ static expr_node *gaol_literal(void *context, gaol_literal_form form, expr_node 
                                      && gaol_compare_inside(context, l, r) == 1));
         result = gaol_leaf((infinite || crossed) ? interval::emptyset() : interval(lv.left(), rv.right()));
       } else if (gaol_inside(l) || gaol_inside(r)) {
-        GAOL_PARSING_ERROR(context, input_format_error,
+        GAOL_PARSING_ERROR(context, std::invalid_argument,
           "a bound of a degenerate interval is a number that is not a double");
       } else if (!::gaol_detail::bound_equal(lv.left(), lv.right())
                  || !::gaol_detail::bound_equal(rv.left(), rv.right())) {
-        GAOL_PARSING_ERROR(context, input_format_error,
+        GAOL_PARSING_ERROR(context, std::invalid_argument,
           "a bound of a degenerate interval is not a double: its value is not a point");
       } else if (::gaol_detail::bound_equal(lv.left(), rv.right())) {
         result = gaol_leaf(interval(lv.left(), rv.right()));
       } else {
-        GAOL_PARSING_ERROR(context, input_format_error,
+        GAOL_PARSING_ERROR(context, std::invalid_argument,
           "bounds of degenerate interval do not evaluate to the same value");
       }
     }
