@@ -371,10 +371,10 @@ point Q), which `numbers` checks there too.
   DBL_MAX + 1, and raised the flag for `floor_rel([DBL_MAX], [0, 1])`, which
   is empty, and for `floor_rel([0, DBL_MAX], [0, 1])`, [0, 1] (GAOL v5);
   Clang for 64-bit ARM still did, computing the sum before the test that
-  leaves it out and choosing afterwards. Then 29 calls of functions that
+  leaves it out and choosing afterwards. Then 36 calls of functions that
   computed beyond the largest double on the way, `sqrt()`, `nth_root()` with
   orders of every kind, `atan()`, `sin()`, `cos()`, `tan()`, `sqrt_rel()`,
-  `nth_root_rel()`, `acos_rel()`, `asin_rel()`, `atan_rel()`, `atanh_rel()`,
+  `nth_root_rel()` for an exponent of either sign, `acos_rel()`, `asin_rel()`, `atan_rel()`, `atanh_rel()`,
   `div_rel()`, `atan2_rel_x()`, `atan2_rel_y()`, `pow()`, `pow_rel()` and
   `pow_exponent_rel()`, are run on 20 000 draws of operands each, from the
   doubles next to the largest and the smallest ones, powers of 2 and their
@@ -860,7 +860,13 @@ point Q), which `numbers` checks there too.
   order, and beyond
   the unsigned ints the tightest enclosures of the roots, compared with
   doubles computed by mpmath, `rootn(x, 3000000000u)`, which was wrong, and
-  `pownRev(c, 0L)` and `pownRev(c, -3)`, which throw `std::domain_error`;
+  `pownRev(c, x, p)` for p = 0 and for a negative p (GAOL v5, where it threw
+  `std::domain_error`): x where 1 is in c for p = 0, and for p < 0 the exact
+  roots of the reciprocals of c where they are doubles (`pownRev([1, 8], -3)`
+  is [0.5, 1]), the tightest ones beyond the ints (`-5000000001LL`, `-5000000000LL`),
+  `INT_MIN`, whose opposite no int holds, and no solution for the part of x
+  in the gap of c (`pownRev([-1, 2], [-0.5, 0.5], -3)`) nor for the point 0
+  (`pownRev([1, +oo], [0], -2)`);
   `pown(e, 3000000000u)` of an expression,
   its power, and beyond 2^53 x^n, not the power of a double near n ([-1]
   for [-1]^(2^53 + 1)), within three doubles of the tightest bounds;
@@ -1121,14 +1127,13 @@ point Q), which `numbers` checks there too.
   (`textToInterval()` with a string that is no interval or a null pointer, and
   `operator>>`) and `std::domain_error` for a function called with an argument
   it does not take (`nb_fp_numbers()` with a NaN, `bisect(0)`,
-  `gaol_ieee1788::pownRev(c, 0)`, `nth_root(8, 1.5)` in a string), told apart
+  `nth_root(8, 1.5)` in a string), told apart
   by `typeid` since both derive from `std::logic_error`, caught as a
   `std::exception`, and with a `what()` that is `file:line: explanation`: the
   file is the name of the source that threw, with no directory whatever the
   path the build gave the compiler (that of the grammar,
   `gaol_interval_parser.ypp`, for what the parser refuses in a call, whose
-  `#line` directives give the file; that of the header, `gaol_ieee1788.h`, for
-  `pownRev()`), the line is positive and differs between two throws of one
+  `#line` directives give the file), the line is positive and differs between two throws of one
   file, and the explanation is the one expected; the text that `gaol_ERROR`
   builds is checked with its line, that of the macro, for a null file name
   and a null message too, and with the directories of a path cut after `/`
@@ -1292,7 +1297,8 @@ point Q), which `numbers` checks there too.
   `-mfpmath=387` and GCC 9 (76 of its 300 checks).
 - **`reverse`:** the relational functions against the reverse functions of
   IEEE 1788-2015 (10.5.4, Table 10.1): `sqrt_rel` (`sqrRev`), `invabs_rel`
-  (`absRev`), `nth_root_rel` (`pownRev`), `asin_rel`, `acos_rel`, `atan_rel`
+  (`absRev`), `nth_root_rel` (`pownRev`, for every integer p, GAOL v5),
+  `asin_rel`, `acos_rel`, `atan_rel`
   (`sinRev`, `cosRev`, `tanRev`), `acosh_rel` (`coshRev`), and `div_rel`,
   `%` and `%=` (`mulRev`). Over the cases of the minimal tests of
   libieeep1788 and random ones, each result has to be, as 12.10.2 asks:
@@ -1301,8 +1307,17 @@ point Q), which `numbers` checks there too.
   **accurate**, which the standard recommends for inf-sup types, within
   `nextOut(tightest(nextOut(arguments)))` (12.10.1). The bounds of `asin_rel`,
   `acos_rel` and `atan_rel` are allowed one double further, their reduction
-  modulo π rounding twice, and the bound of x beyond 2^52, which they keep
-  (see [Accuracy of the operations](accuracy.md)). The values are in
+  modulo π rounding twice, and the bound of x beyond 2^52, which they keep;
+  those of `nth_root_rel` for a negative p, the root of each part of c and
+  then its inverse, two doubles further (of the 18 052 random cases with p < 0
+  of `nonpositive_pown_rev_cases(20000)` in `reverse_values.py`, 12 495 have a
+  nonempty result with nonempty accurate bounds: 521 were one double beyond
+  them, 25 two, none more; see [Accuracy of the operations](accuracy.md)).
+  The cases of `pownRev` for p ≤ 0
+  are those of libieeep1788 (94), cases written out (the gap of c, the point
+  0 and p = 0, whose results have to be empty where the hull is, which the
+  accurate bounds, computed from arguments widened by a double, cannot tell
+  from [0] or from the part of x in the gap) and random ones. The values are in
   `reverse_values.h`, which `reverse_values.py` generates: the hulls are
   computed from the definition of each function with exact rational
   arithmetic, and with mpmath for the periodic ones, not from GAOL nor from

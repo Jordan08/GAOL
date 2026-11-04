@@ -290,37 +290,29 @@ namespace gaol_ieee1788 {
   GAOL_NODISCARD inline interval absRev(const interval& c) { return ::gaol_core::invabs_rel(c, interval::universe()); }
   
   /*!
-  pownRev(c, x, p): nth_root_rel(c, p, x), for p >= 1. GAOL has no reverse
-  of pown for p <= 0, which throws std::domain_error (gaol_ERROR, as every
-  error of GAOL) rather than give an interval it has not computed. Without
-  exceptions, a message is printed and abort() called.
+  pownRev(c, x, p): nth_root_rel(c, p, x), for every integer p (GAOL v5: p <= 0
+  was not provided, and threw std::domain_error). For p = 0 it is x where 1 is
+  in c and the empty set elsewhere, and for p < 0 the hull of the x != 0 with
+  x^p in c, c being cut at 0 (see nth_root_rel(const interval&, int, const
+  interval&)).
   */
   GAOL_NODISCARD inline interval pownRev(const interval& c, const interval& x, int p)
   {
-    if (p < 1) {
-      gaol_ERROR(std::domain_error, "gaol_ieee1788::pownRev: p <= 0 is not provided by GAOL v5");
-    }
-    return ::gaol_core::nth_root_rel(c, static_cast<unsigned int>(p), x);
+    return ::gaol_core::nth_root_rel(c, p, x);
   }
   GAOL_NODISCARD inline interval pownRev(const interval& c, int p) { return pownRev(c, interval::universe(), p); }
   /*!
   pownRev(c, x, p) for an integer p of another type (GAOL v5): an unsigned
   p beyond the ints was converted to a negative int, and threw. For a p
-  within the unsigned ints, nth_root_rel(c, p, x); beyond them, the hull of
-  the parts of x in the roots of order p of c and, for an even p, in their
-  opposites (nth_root(c, p)), which every x with x^p in c is in
+  within the ints or the unsigned ints, nth_root_rel(c, p, x); beyond them,
+  the hull of the parts of x in the roots of order p of c and, for an even p,
+  in their opposites (nth_root(c, p)), which every x with x^p in c is in
+  (nth_root_rel(const interval&, T, const interval&))
   */
   template <class T, ::gaol_detail::if_integer<T> = 0>
   GAOL_NODISCARD inline interval pownRev(const interval& c, const interval& x, T p)
   {
-    if (::gaol_detail::integer_is_negative(p) || p == 0) {
-      gaol_ERROR(std::domain_error, "gaol_ieee1788::pownRev: p <= 0 is not provided by GAOL v5");
-    }
-    if (::gaol_detail::integer_fits<unsigned int>(p)) {
-      return ::gaol_core::nth_root_rel(c, static_cast<unsigned int>(p), x);
-    }
-    const interval roots = ::gaol_core::nth_root(c, p);
-    return p % 2 == 0 ? (x & roots) | (x & -roots) : x & roots;
+    return ::gaol_core::nth_root_rel(c, p, x);
   }
   template <class T, ::gaol_detail::if_integer<T> = 0>
   GAOL_NODISCARD inline interval pownRev(const interval& c, T p) { return pownRev(c, interval::universe(), p); }
@@ -553,7 +545,6 @@ namespace gaol_ieee1788 {
   /*
     Not provided, GAOL having no such operation:
       - the decorations and every decorated operation (Clause 11, 12.12.11);
-      - pownRev for p <= 0 (Table 10.1);
       - compoundm1 of Table 10.5, which CORE-MATH has not;
       - the slope functions (Table 10.6) and overlap (10.6.4);
       - the reduction operations sum, dot, sumSquare and sumAbs (12.12.12),

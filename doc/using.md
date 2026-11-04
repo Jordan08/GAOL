@@ -440,7 +440,8 @@ The rest of GAOL follows the same split:
   read;
 - the reverse functions, which are those of the standard in both namespaces:
   `pow_rel` and `pow_exponent_rel` (`powRev1` and `powRev2`) reverse the real
-  power, and `nth_root_rel` (`pownRev`) the integer power.
+  power, and `nth_root_rel` (`pownRev`) the integer power, for every integer
+  exponent (GAOL v5: it took n ≥ 1 only).
 
 A program written for GAOL 4, or for IBEX and Codac, whose intervals take
 GAOL's `pow`, opens `gaol`; a program that wants the results of the standard,
@@ -726,7 +727,23 @@ value elsewhere, so that no x < 0 is a solution, and `pow_rel([1, 4], [2],
 [-3, 3])` is [1, 2]. The `pow` of `gaol` takes the integer power for a
 degenerate integer exponent [n], which has negative bases too: it is not one
 function of x and y, its result for [n] not being within its result for an
-exponent around n, and the reverse of x^n, n ≥ 1, is `nth_root_rel(K, n, I)`.
+exponent around n, and the reverse of x^n is `nth_root_rel(K, n, I)`.
+
+`nth_root_rel(K, n, I)` and `pownRev(c, x, n)` take every integer n (they took
+n ≥ 1 only, and `pownRev` threw `std::domain_error` for the others). x^0 is 1
+for every x, 0 included, so that `nth_root_rel([-1, 5], 0, I)` is I and
+`nth_root_rel([2, 3], 0, I)` is empty. For n < 0, x^n is 1/x^|n|, which 0 has
+not: `nth_root_rel([1, 8], -3, interval::universe())` is [0.5, 1]. K is cut at 0
+and each part gives its roots, as the hull of the roots of the whole of K joins
+them across the gap: `nth_root_rel([-1, 2], -3, [-0.5, 0.5])` is empty, where
+the roots of [-1, 2], the whole line, would keep all of [-0.5, 0.5]. The roots
+reach 0 where K is unbounded, 0 being a limit there and no solution:
+`nth_root_rel([1, +oo], -2, [0])` is empty, and `nth_root_rel([1, +oo], -2,
+[0, 3])` is [0, 1]. The bounds are those of `nth_root(K, n)`, the root and then
+its inverse: up to 4 doubles beyond the tightest ones for n < 0 (see
+[Accuracy of the operations](accuracy.md)). An exponent of type `double` or
+`float` is refused at compile time, as the ambiguous `nth_root(x, 2.0)` is: it
+was converted to an `unsigned int`, which cut 2.5 to 2.
 
 ```cpp
 #include <iostream>
@@ -840,12 +857,12 @@ doubles there. So do `nth_root(x, q)` and `rootn(x, q)`, whose order beyond the 
 unsigned ints gives an enclosure of the roots, computed by `pow` with the
 exponent 1/q (x^(1/q) is within 2^−21 of 1 for every double x > 0 there),
 `pownRev(c, x, p)`, which gives the hull of the parts of x in these roots and,
-for an even p, in their opposites, and `pow(e, n)`, `pown(e, n)` and
+for an even p, in their opposites (for a negative p, c is cut at 0 first), and `pow(e, n)`, `pown(e, n)` and
 `nth_root(e, n)` of the expressions. `nth_root(x, 3L)` was ambiguous;
 `rootn(x, 3000000000u)` and `pownRev(c, 3000000000u)` converted the order to a
 negative `int`, the first giving a wrong interval ([0.99999999839,
 0.99999999946] for [2, 8], rather than [1.00000000023, 1.00000000069]) and the
-second throwing; `rootn(x, 5000000001LL)` and the powers of expressions cut a
+second the reverse of a negative power; `rootn(x, 5000000001LL)` and the powers of expressions cut a
 `long` to an `int`; and `nth_root(e, -2)` took the order 4294967294. Beyond
 the ints, `pow(e, n)` and `pown(e, n)` of the expressions are GAOL's `pow`
 with the exponent [n], the powers of the intervals where n is a double, and
@@ -894,8 +911,8 @@ GAOL reports an error by throwing an exception of the standard library
 - `std::invalid_argument`: a string that is no interval, given to
   `gaol::textToInterval()` or read by `operator>>`;
 - `std::domain_error`: a function called with an argument it does not take,
-  `nb_fp_numbers()` with a NaN, `bisect()` with a ratio outside (0, 1),
-  `gaol_ieee1788::pownRev()` with p ≤ 0, or `nth_root(8, 1.5)` in a string.
+  `nb_fp_numbers()` with a NaN, `bisect()` with a ratio outside (0, 1), or
+  `nth_root(8, 1.5)` in a string.
 
 Both derive from `std::logic_error`, which derives from `std::exception`, so
 that a handler that knows nothing of GAOL says what went wrong:

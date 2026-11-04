@@ -1532,6 +1532,10 @@ namespace
           && acosh_rel(E(), X()).is_empty() && acosh_rel(X(), E()).is_empty() && asinh_rel(E(), X()).is_empty()
           && atanh_rel(E(), X()).is_empty() && invabs_rel(E(), X()).is_empty() && sqrt_rel(X(), E()).is_empty()
           && nth_root_rel(E(), 3u, X()).is_empty() && nth_root_rel(X(), 3u, E()).is_empty()
+          && nth_root_rel(E(), 0, X()).is_empty() && nth_root_rel(X(), 0, E()).is_empty()
+          && nth_root_rel(E(), -3, X()).is_empty() && nth_root_rel(X(), -3, E()).is_empty()
+          && nth_root_rel(E(), -2, X()).is_empty() && nth_root_rel(X(), -2, E()).is_empty()
+          && nth_root_rel(E(), -5000000001LL, X()).is_empty() && nth_root_rel(X(), -5000000001LL, E()).is_empty()
           && div_rel(E(), X(), X()).is_empty() && div_rel(X(), E(), X()).is_empty()
           && div_rel(X(), X(), E()).is_empty() && max_rel(E(), X(), X()).is_empty()
           && max_rel(X(), E(), X()).is_empty() && max_rel(X(), X(), E()).is_empty()
@@ -2705,6 +2709,14 @@ namespace
       { "nth_root_rel(c, 3, x)", 2, [](const interval& c, const interval& x, const interval&) { return nth_root_rel(c, 3u, x); } },
       { "nth_root_rel(c, 4, x)", 2, [](const interval& c, const interval& x, const interval&) { return nth_root_rel(c, 4u, x); } },
       { "nth_root_rel(c, 5, x)", 2, [](const interval& c, const interval& x, const interval&) { return nth_root_rel(c, 5u, x); } },
+      // The reverse of the powers of exponent 0 and of a negative exponent, which take the inverse of a root (GAOL v5)
+      { "nth_root_rel(c, 0, x)", 2, [](const interval& c, const interval& x, const interval&) { return nth_root_rel(c, 0, x); } },
+      { "nth_root_rel(c, -1, x)", 2, [](const interval& c, const interval& x, const interval&) { return nth_root_rel(c, -1, x); } },
+      { "nth_root_rel(c, -2, x)", 2, [](const interval& c, const interval& x, const interval&) { return nth_root_rel(c, -2, x); } },
+      { "nth_root_rel(c, -3, x)", 2, [](const interval& c, const interval& x, const interval&) { return nth_root_rel(c, -3, x); } },
+      { "nth_root_rel(c, -4, x)", 2, [](const interval& c, const interval& x, const interval&) { return nth_root_rel(c, -4, x); } },
+      { "nth_root_rel(c, -5, x)", 2, [](const interval& c, const interval& x, const interval&) { return nth_root_rel(c, -5, x); } },
+      { "nth_root_rel(c, -2147483648, x)", 2, [](const interval& c, const interval& x, const interval&) { return nth_root_rel(c, -2147483647LL - 1, x); } },
       { "acos_rel(c, x)", 2, [](const interval& c, const interval& x, const interval&) { return acos_rel(c, x); } },
       { "asin_rel(c, x)", 2, [](const interval& c, const interval& x, const interval&) { return asin_rel(c, x); } },
       { "atan_rel(c, x)", 2, [](const interval& c, const interval& x, const interval&) { return atan_rel(c, x); } },
@@ -3143,6 +3155,32 @@ namespace
     return fegetexcept() == FE_INVALID;
   }
 #endif // GAOL_TESTS_TRAPS
+
+#if defined(GAOL_TESTS_SSE)
+  /*
+    nth_root_rel(J, p, I) for a p beyond the ints and the unsigned ints (GAOL
+    v5): the template of gaol/core/gaol_interval_core.h takes the roots of the
+    parts of J by the library, which gives the modes of the program back, and
+    then the part of I in them, where a part [0, 2^-1060] is no {0} even
+    under denormals-are-zero, which reads 2^-1060 as 0: its bounds are compared
+    by gaol_detail::bound_equal(), which no mode changes. With GAOL_PRESERVE_ROUNDING
+    the modes of the program are the ones the comparison runs in (rounding_direction_pc);
+    without it, the library has cleared them for good at its first call, and the
+    check holds either way
+  */
+  void nth_root_rel_beyond_the_ints_under_denormals_are_zero()
+  {
+    const interval c(1.0, GAOL_INFINITY), x(0.0, 0x1p-1060);
+    const std::string expected = hex(x);
+    const unsigned int saved = _mm_getcsr();
+    _mm_setcsr(saved | 0x0040u); // denormals are zero
+    const interval odd = nth_root_rel(c, -(1LL << 33) - 1, x), even = nth_root_rel(c, -(1LL << 33), x);
+    _mm_setcsr(saved);
+    check("nth_root_rel(c, p, x) for a p beyond the ints with x of subnormal bounds, under denormals-are-zero: the part of x in the roots",
+          !odd.is_empty() && hex(odd) == expected && !even.is_empty() && even.left() <= 0.0 && even.right() == 0x1p-1060,
+          [&] { return hex(odd) + " " + hex(even); });
+  }
+#endif
 }
 
 int main()
@@ -3159,6 +3197,9 @@ int main()
   sse_register_simulated();
 #if GAOL_RND_X86_REGISTERS
   round_functions_change_the_direction_only();
+#endif
+#if defined(GAOL_TESTS_SSE)
+  nth_root_rel_beyond_the_ints_under_denormals_are_zero();
 #endif
 #if GAOL_TESTS_X86_64 && GAOL_RND_X86_64_DIRECT
   rounding_state_on_the_processor();
@@ -3313,6 +3354,11 @@ int main()
         return S(atan2_rel_y(x + 2.0, -y, y)) + " " + S(atan2_rel_x(-x - 2.0, -y, -y)) + " " + S(atan2_rel_y(-x, y, -y))
           + " " + S(atan2_rel_x(x - 4.0, -y, -y)) + " " + S(atan2_rel_y(x*0x1p-1070, y, y)); } },
     { "nth_root(x,n) for n >= 4", [](const interval&, const interval& y) { return S(nth_root(y, 4)) + " " + S(nth_root(-y, 5)); } },
+    // The reverse of the powers of exponent 0 and of a negative exponent (GAOL v5): the roots of the parts of c, their inverses and the intersections with x, after one check
+    { "nth_root_rel(y,p,x) for p <= 0", [](const interval& x, const interval& y) {
+        return S(nth_root_rel(y, 0, x)) + " " + S(nth_root_rel(y, -1, x)) + " " + S(nth_root_rel(-y, -2, x)) + " "
+          + S(nth_root_rel(y - 1.0, -3, x)) + " " + S(nth_root_rel(x, -4, y)) + " " + S(nth_root_rel(-y, -5, -x)) + " "
+          + S(nth_root_rel(y, INT_MIN, x)) + " " + S(nth_root_rel(y, -(1LL << 33) - 1, x)); } },
     // The roots of negative order, the integer powers of pow(x, y),
     // pow(x, double) and gaol_ieee1788::pow, and modulo_k_pi(), which compute
     // their bounds after one check of the rounding direction (GAOL v5)

@@ -4101,18 +4101,38 @@ cout << sqrt_rel(interval(1,4), interval::universe()) << ' '
 \end{example}
 \end{deffun}
 
-\begin{deffun}{interval}{nth\_root\_rel}{(const interval\& \var{J}, unsigned int \var{n}, \\\hbox{}\hfill const interval\& \var{I})}
+\deffunx{interval}{nth\_root\_rel}{(const interval\& \var{J}, unsigned int \var{n}, \\\hbox{}\hfill const interval\& \var{I})}
+\begin{deffun}{interval}{nth\_root\_rel}{(const interval\& \var{J}, int \var{p}, \\\hbox{}\hfill const interval\& \var{I})}
   \begin{operation}
     \op{$\code{nth\_root\_rel}(J,n,I)=\hull{\{x\in I\mid\exists y\in J\colon y=x^n\}}$}
+    \op{$\code{nth\_root\_rel}(J,p,I)=\hull{\{x\in I\mid x^p\text{ is defined and in }J\}}$}
   \end{operation}
   Returns the \emph{relational inverse \var{n}-th power} of
   \var{J} w.r.t. \var{I}, for $n\geq1$. It takes the roots of
-  \code{nth\_root()}.
+  \code{nth\_root()}.\newinvfive{} For an \code{int} \var{p}, or an integer of
+  another type, it is the reverse of $x^p$ for every integer $p$, the
+  \ieee{pownRev} of the standard. $x^0$ is $1$ for every $x$, $0$ included, so
+  that the result is \var{I} where $1\in J$, and the empty set elsewhere. For
+  $p<0$, $x^p$ is $1/x^{|p|}$, which $0$ has not: \var{J} is cut at $0$, each
+  part giving its roots (the hull of the roots of \var{J} would keep the part of
+  \var{I} between them), and $0$, which the roots reach where \var{J} is
+  unbounded, is no solution. The bounds are those of \code{nth\_root(J, p)}, the
+  root and then its inverse: up to four doubles beyond the tightest ones for
+  $p<0$. An exponent of type \code{double} or \code{float} is refused at
+  compile time: it was converted to an \code{unsigned int}, which cut $2.5$ to
+  $2$.
 \begin{example}
 interval J(1,16);
 cout << nth_root_rel(J, 4, interval::universe()) << ' '
      << nth_root_rel(J, 4, interval(-10,0.0));
 @outputs^[-2, 2] [-2, -1]~
+\end{example}
+\begin{example}
+cout << nth_root_rel(interval(1,8), -3, interval::universe()) << ' '
+     << nth_root_rel(interval(-1,2), -3, interval(-0.5,0.5)) << ' '
+     << nth_root_rel(interval(1,GAOL_INFINITY), -2, interval(0,3)) << ' '
+     << nth_root_rel(interval(1,2), 0, interval(-5,5));
+@outputs^[0.5, 1] [empty] [0, 1] [-5, 5]~
 \end{example}
 \end{deffun}
 
@@ -4157,7 +4177,7 @@ cout << div_rel(interval(1,2), interval(-1,1),
   for $x>0$, $0$ for $x=0$ and $y>0$, and no value elsewhere, so that no
   $x<0$ is a solution, in either namespace. The \code{pow} of \code{gaol}
   takes the integer power for a degenerate integer exponent $[n]$, which
-  has negative bases too: the reverse of $x^n$, $n\geq1$, is
+  has negative bases too: the reverse of $x^n$ is
   \code{nth\_root\_rel(K, n, I)}.
 \begin{example}
 cout << pow_rel(interval(4,9), interval(2), interval::universe()) << ' '
@@ -4299,7 +4319,7 @@ last argument $x$ is \itv{-\infty}{+\infty} when it is left out:
     \hline\hline
     \ieee{sqrRev}$(c,x)$ & \code{sqrt\_rel(c, x)}\\
     \ieee{absRev}$(c,x)$ & \code{invabs\_rel(c, x)}\\
-    \ieee{pownRev}$(c,x,p)$, $p\geq1$ & \code{nth\_root\_rel(c, p, x)}\\
+    \ieee{pownRev}$(c,x,p)$ & \code{nth\_root\_rel(c, p, x)}\\
     \ieee{sinRev}, \ieee{cosRev}, \ieee{tanRev}$(c,x)$ & \code{asin\_rel}, \code{acos\_rel}, \code{atan\_rel(c, x)}\\
     \ieee{coshRev}$(c,x)$ & \code{acosh\_rel(c, x)}\\
     \ieee{mulRev}$(b,c,x)$ & \code{div\_rel(c, b, x)}\\
@@ -4314,8 +4334,8 @@ last argument $x$ is \itv{-\infty}{+\infty} when it is left out:
 \noindent
 \ieee{mulRevToPair}$(b,c)$, the two parts of \code{div\_rel(c, b)}, is in the
 namespace \code{gaol\_ieee1788} under its name
-(Chapter~\ref{chap:ieee1788}).\newinvfive{} \ieee{pownRev} for $p\leq0$ is not
-provided.
+(Chapter~\ref{chap:ieee1788}).\newinvfive{} \ieee{pownRev} takes every integer
+$p$, $p\leq0$ included.
 \code{max\_rel}, \code{min\_rel}, \code{sign\_rel} and \code{floor\_rel} are
 the reverse functions of $\max$, $\min$, $\operatorname{sign}$ and
 $\operatorname{floor}$ as the standard defines them (10.5.4), which it
@@ -5513,13 +5533,14 @@ The functions of GAOL that have the name and the meaning the standard gives them
   interval (12.1.3), where \code{gaol::textToInterval} reads the names of
   GAOL and throws (\pxref{sec:ieee1788-text}); a null pointer is no string,
   and they throw \code{std::invalid\_argument} for it too;\newinvfive
-\item \code{pownRev(c, x, p)} throws \code{std::domain\_error} for
-  $p\leq0$, which GAOL does not provide, rather than give an interval it has
-  not computed. Its $p$, and the $q$ of \code{rootn(x, q)}, may be of any
-  integer type: \code{pownRev(c, 3000000000u)} converted $p$ to a negative
-  \code{int} and threw; beyond the \code{unsigned int}s, \code{pownRev}
-  gives the hull of the parts of $x$ in the roots of order $p$ of $c$ and, for
-  an even $p$, in their opposites.\newinvfive
+\item \code{pownRev(c, x, p)} takes every integer $p$, $p\leq0$ included: $x$
+  where $1\in c$ for $p=0$, and for $p<0$ the hull of the $x\neq0$ with $x^p$
+  in $c$, $c$ being cut at $0$. Its $p$, and the $q$ of \code{rootn(x, q)},
+  may be of any integer type: \code{pownRev(c, 3000000000u)} converted $p$ to
+  a negative \code{int} and gave the reverse of that power; beyond the
+  \code{unsigned int}s, \code{pownRev} gives the hull of the parts of $x$ in
+  the roots of order $p$ of $c$ and, for an even $p$, in their
+  opposites.\newinvfive
 \end{itemize}
 
 \begin{example}
@@ -5575,7 +5596,7 @@ The last argument $x$ of the reverse functions is optional, and
   \hline
   \multicolumn{2}{l}{\textit{Reverse functions (Table 10.1)}}\\
   \code{sqrRev(c, x)}, \code{absRev(c, x)} & \code{sqrt\_rel(c, x)}, \code{invabs\_rel(c, x)}\\
-  \code{pownRev(c, x, p)}, $p\geq1$ & \code{nth\_root\_rel(c, p, x)}\\
+  \code{pownRev(c, x, p)} & \code{nth\_root\_rel(c, p, x)}\\
   \code{sinRev}, \code{cosRev}, \code{tanRev(c, x)} & \code{asin\_rel}, \code{acos\_rel}, \code{atan\_rel(c, x)}\\
   \code{coshRev(c, x)} & \code{acosh\_rel(c, x)}\\
   \code{sinhRev}, \code{tanhRev(c, x)} (not in the standard, named after \ieee{coshRev}) & \code{asinh\_rel}, \code{atanh\_rel(c, x)}\\
@@ -5684,7 +5705,7 @@ With \code{using namespace gaol;}, \code{textToInterval("pow([-4,-1],2)")} is
 %%----------------------------
 
 GAOL has no decorations: only bare intervals are provided (Clause 11). Nor does
-it provide \ieee{pownRev} for $p\leq0$ (Table 10.1), \ieee{compoundm1} (Table
+it provide \ieee{compoundm1} (Table
 10.5), the slope functions (Table 10.6),
 \ieee{overlap} (10.6.4), the reduction operations \ieee{sum}, \ieee{dot},
 \ieee{sumSquare} and \ieee{sumAbs} (12.12.12), and the exact operations of
@@ -5874,6 +5895,7 @@ covered.
   \hline
   \multicolumn{2}{l}{\textit{Reverse functions (Table 10.1): valid required, accurate recommended}}\\
   \code{sqrt\_rel}, \code{nth\_root\_rel}, \code{acosh\_rel}, \code{asinh\_rel}, \code{atanh\_rel} & accurate\\
+  \code{nth\_root\_rel(c, p, x)}, $p<0$ & accurate: the root of each part of $c$ and then its inverse, up to four doubles beyond the tightest\newinvfive\\
   \code{invabs\_rel} & tightest\\
   \code{max\_rel}, \code{min\_rel}, \code{sign\_rel}, \code{floor\_rel} (not in Table~10.1) & tightest\\
   \code{asin\_rel}, \code{acos\_rel}, \code{atan\_rel} & accurate, or one double beyond; a bound of $x$ beyond $2^{52}$ is kept\\
@@ -6171,8 +6193,8 @@ It throws two of them to report an error:
 \item \code{std::invalid\_argument}, when a string is no interval
   (\pxref{sec:invalid_argument});
 \item \code{std::domain\_error}, when a function is called with an argument it
-  does not take (\pxref{sec:domain_error}), as \code{pownRev()} of
-  \code{gaol\_ieee1788} is for $p\leq0$.
+  does not take (\pxref{sec:domain_error}), as \code{bisect()} is for a ratio
+  outside $(0, 1)$.
 \end{itemize}
 Both derive from \code{std::logic\_error}, which derives from
 \code{std::exception}. A single handler of \code{std::logic\_error} catches both,
@@ -6241,9 +6263,8 @@ try {
 
 This exception is thrown whenever a function is called with invalid arguments
 (e.g. calling \code{nb\_fp\_numbers()} with NaNs as parameters,
-\code{bisect()} with a ratio outside $(0, 1)$, or \code{pownRev()} of
-\code{gaol\_ieee1788} with $p\leq0$), or a string calls a function with an
-argument it does not take (\code{"nth\_root(8, 1.5)"}).
+or \code{bisect()} with a ratio outside $(0, 1)$), or a string calls a function
+with an argument it does not take (\code{"nth\_root(8, 1.5)"}).
 
 
 \section{Warnings}

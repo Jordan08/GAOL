@@ -3441,6 +3441,87 @@ namespace gaol_core {
   }
 
   /*
+    The tightest enclosure of the 1/x for the x != 0 of root, an interval of
+    one sign (0 may be an end of it), the rounding direction being upward: what
+    inverse() gives, but for the overflow. 1/x is beyond the largest double for
+    an x next to 2^-1074, and inverse() raised the overflow exception for it,
+    where nth_root_rel() intersects the result with an interval that may make
+    it finite. The quotients are those of quotient_sat(): the infinity, or the
+    largest double for a lower bound, without the exception (GAOL v5, point 79
+    of TODO.md). The inverse of 0, an end of root, is +oo or -oo by the sign of
+    the other end, without a division by zero, and [0] has no inverse.
+  */
+  static interval reciprocal_sat_upward(const interval& root)
+  {
+    // bound_equal(): where GAOL cannot clear the modes that flush the
+    // subnormals to zero (ARM, the FPU intervals of Visual C++), a subnormal
+    // bound is no 0
+    const double l = root.left(), r = root.right();
+    const bool l_is_0 = gaol_detail::bound_equal(l, 0.0), r_is_0 = gaol_detail::bound_equal(r, 0.0);
+    if (l_is_0 && r_is_0) {
+      return interval::emptyset();
+    }
+    const double upper = l_is_0 ? GAOL_INFINITY : quotient_sat(1.0, l);
+    const double lower = r_is_0 ? -GAOL_INFINITY : -quotient_sat(-1.0, r);
+    return interval(lower, upper);
+  }
+
+  /*
+    The roots of the part J of one sign for the power of exponent -n, n > 0,
+    that nth_root(J, -n) gives: 1/x^(1/n), the root then its inverse, the
+    rounding direction being upward (GAOL v5)
+  */
+  static interval negative_roots_upward(const interval& J, unsigned int n)
+  {
+    const interval root = nth_root_upward(J, n);
+    return root.is_empty() ? root : reciprocal_sat_upward(root);
+  }
+
+  /*
+    The reverse of x^(-n), n > 0, the rounding direction being upward
+    (GAOL v5). x^(-n) = 1/x^n has the sign of x for an odd n, and is positive
+    for an even one: for x^(-n) in J, only the part of J at least 0 matters
+    for an even n, and each part of J gives the roots of its sign, whose
+    parts in I give the hull. J is cut at 0 before the roots: the inverse of
+    an interval holding 0 is the hull of the inverses of its two parts, which
+    joins them across the gap (nth_root([-1, 2], -3) is [-oo, +oo]), and
+    intersecting the hull with I would keep the part of I in the gap, which
+    is no solution, hull and intersection not commuting. Every part of I is
+    taken without 0, which has no power of negative exponent
+    (gaol_detail::nonzero_part()).
+  */
+  static interval nth_root_rel_negative_upward(const interval& J, unsigned int n, const interval& I)
+  {
+    if (J.is_empty() || I.is_empty()) {
+      return interval::emptyset();
+    }
+    const interval roots = negative_roots_upward(J & interval::positive(), n);
+    if (odd(n)) {
+      return gaol_detail::nonzero_part(roots, I)
+             | gaol_detail::nonzero_part(negative_roots_upward(J & interval::negative(), n), I);
+    }
+    if (roots.is_empty()) {
+      return roots;
+    }
+    return gaol_detail::nonzero_part(roots, I) | gaol_detail::nonzero_part(-roots, I);
+  }
+
+  interval nth_root_rel(const interval& J, int p, const interval& I)
+  {
+    if (p > 0) {
+      return nth_root_rel(J, static_cast<unsigned int>(p), I);
+    }
+    // One check for the roots, their inverses and the intersections. |p|
+    // without a signed negation, as in nth_root(I, q): -p overflows for INT_MIN
+    GAOL_RND_ENTER();
+    interval res = p == 0 ? nth_root_rel_upward(J, 0u, I)
+                          : nth_root_rel_negative_upward(J, 0u - static_cast<unsigned int>(p), I);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
+
+  /*
     x^n rounded upward and downward, x >= 0 and n > 0, by binary exponentiation,
     the rounding direction being upward. x^n is a multiple of each square
     computed, so that ipow_hi() only overflows where x^n does; ipow_lo() is

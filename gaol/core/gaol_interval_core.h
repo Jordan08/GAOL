@@ -1766,7 +1766,7 @@ namespace gaol_core {
     e^(y log x) for x > 0, 0 for x = 0 and y > 0, and no value elsewhere, so
     that no x < 0 is a solution. gaol::pow takes the integer power for a
     degenerate integer exponent [n], whose negative bases these functions
-    leave out: the reverse of x^n, n >= 1, is nth_root_rel(K, n, I).
+    leave out: the reverse of x^n is nth_root_rel(K, n, I).
     pow_rel([4, 9], [2], interval::universe()) is [2, 3],
     pow_rel([2, 3], [1, +oo], [0, 1]) is empty (x^y >= 2 asks x > 1), and
     pow_exponent_rel([8], [2], interval::universe()) is [3].
@@ -1804,6 +1804,51 @@ GAOL_NODISCARD extern GAOL_PUBLIC   interval sqrt(const interval& I);
     \f$nthroot_rel(J,I) = Hull{x\in I\mid \exists y\in J\colon y=x^n}\f$
   */
 GAOL_NODISCARD extern GAOL_PUBLIC   interval nth_root_rel(const interval& J, unsigned int n, const interval& I);
+  /*!
+    \brief The reverse of the integer power x^p, for any integer p: pownRev of
+    IEEE 1788-2015 (10.5.4, Table 10.1) (GAOL v5, where nth_root_rel() took a
+    positive n only)
+
+    nth_root_rel(J, p, I) = hull{x in I | x^p is defined and in J}, x^p being
+    the pown of the standard (Table 9.1):
+    - p >= 1: x is a root of order p of J, which nth_root_rel(J, unsigned
+      p, I) gives;
+    - p = 0: x^0 is 1 for every x, 0 included, so that the hull is I where 1 is
+      in J, and the empty set elsewhere: nth_root_rel([-1, 5], 0, I) is I and
+      nth_root_rel([-1, 0], 0, I) is empty;
+    - p < 0: x^p is 1/x^|p|, which 0 has not, so that x is not 0; x^p has the
+      sign of x for an odd p, and is positive for an even one. J is cut at 0 and
+      each part gives the roots rootn(part, p) of nth_root(part, p), whose
+      parts in I give the hull: the hull of the inverse of J, which spans the
+      gap between its parts, would not do, nth_root_rel([-1, 2], -3, [-0.5, 0.5])
+      being empty where the hull of the roots of [-1, 2] holds all of I. The
+      point 0, which the roots reach where J is unbounded, is no solution:
+      nth_root_rel([1, +oo], -2, [0]) is empty, and nth_root_rel([1, +oo], -2,
+      [0, 3]) is [0, 1].
+
+    The bounds of the roots are those of nth_root(J, p), the root then its
+    inverse: up to 4 doubles beyond the tightest for p < 0 (4 found, for
+    nth_root_rel([2.25], -127, I)), the tightest for p >= 1 where the bound of
+    J is a power of a double. For p = -1, where 1/J reaches beyond the largest
+    double (J next to 2^-1074), a bound saturates at the largest double, as
+    div_rel() does: nth_root_rel([2^-1074], -1, [0, DBL_MAX]) is [DBL_MAX]
+    where the hull is empty, the bounds being sound but not within 4 doubles
+    of the tightest. The empty set for an empty argument. An integer p of another type than int and
+    unsigned int (long, long long...) takes the template below, which gives
+    the same result: a long is as far from an int as from an unsigned int,
+    and nth_root_rel(J, 3L, I) would be ambiguous without it.
+  */
+GAOL_NODISCARD extern GAOL_PUBLIC   interval nth_root_rel(const interval& J, int p, const interval& I);
+  /*!
+    \brief nth_root_rel(J, p, I) with a floating-point p is refused (GAOL v5)
+
+    A double was converted to an unsigned int, cutting 2.5 to 2 and giving a
+    negative p a root of an order beyond 2^31. With the overload of an int
+    next to that of an unsigned int, the call is ambiguous, as nth_root(I,
+    2.0) is: deleted, the error says that the exponent is no integer. A float
+    is promoted to a double.
+  */
+  interval nth_root_rel(const interval& J, double p, const interval& I) = delete;
   /*!
     \brief nth root of I for a positive n
 
@@ -2414,6 +2459,29 @@ namespace gaol_detail {
     }
     return roots | -gaol_core::gaol_pow_hybrid(-(I & gaol_core::interval::negative()), exponent);
   }
+
+  /*
+    The part of I in roots, the roots of one sign of J for an integer power of
+    a negative exponent, which 0 has not: nth_root_rel(J, p, I) for p < 0
+    (GAOL v5). roots hold 0 where J is unbounded (the inverse of the roots of
+    [a, +oo] is [0, 1/a^(1/|p|)], 0 being a limit and no value), so that an
+    intersection that is {0} holds no solution, where [0, m] has the same hull
+    with or without it. The test of a NaN bound comes after is_empty(): a
+    comparison of a NaN is signaling on some processors (32-bit ARM, POWER9).
+    The bounds are compared by bound_equal(), which the modes that flush the
+    subnormals to zero do not change: nth_root_rel(J, T, I) calls this after
+    nth_root() restored the modes of the program, where [0, 2^-1074] would be
+    read as {0} under denormals-are-zero (process.md, section 11)
+  */
+  GAOL_NODISCARD GAOL_INLINE gaol_core::interval nonzero_part(const gaol_core::interval& roots,
+                                                              const gaol_core::interval& I)
+  {
+    const gaol_core::interval part = roots & I;
+    if (!part.is_empty() && bound_equal(part.left(), 0.0) && bound_equal(part.right(), 0.0)) {
+      return gaol_core::interval::emptyset();
+    }
+    return part;
+  }
 } // namespace gaol_detail
 
 namespace gaol_core {
@@ -2446,6 +2514,39 @@ namespace gaol_core {
       return nth_root(I, static_cast<unsigned long long>(q));
     }
     return gaol_detail::huge_root(I, q);
+  }
+
+  /*!
+    \brief nth_root_rel(J, p, I) for an integer p of another type than int and
+    unsigned int (GAOL v5)
+
+    nth_root_rel(J, int, I) for a p within the ints, nth_root_rel(J, unsigned
+    int, I) for one within the unsigned ints. Beyond them, the roots of
+    nth_root(J, p), as the roots of J of the integers nth_root(I, q) takes: for
+    p > 0 the roots, and for an even p their opposites, which every x with x^p
+    in J is in; for p < 0 those of the part of J at least 0, with their
+    opposites for an even p, and for an odd p those of the part at most 0, J
+    being cut at 0 as nth_root_rel(J, int, I) does.
+  */
+  template <class T, gaol_detail::if_integer<T> = 0>
+  GAOL_NODISCARD GAOL_INLINE interval nth_root_rel(const interval& J, T p, const interval& I)
+  {
+    if (gaol_detail::integer_fits<int>(p)) {
+      return nth_root_rel(J, static_cast<int>(p), I);
+    }
+    if (gaol_detail::integer_fits<unsigned int>(p)) {
+      return nth_root_rel(J, static_cast<unsigned int>(p), I);
+    }
+    if (!gaol_detail::integer_is_negative(p)) {
+      const interval roots = nth_root(J, p);
+      return p % 2 == 0 ? (I & roots) | (I & -roots) : I & roots;
+    }
+    const interval roots = nth_root(J & interval::positive(), p);
+    if (p % 2 == 0) {
+      return gaol_detail::nonzero_part(roots, I) | gaol_detail::nonzero_part(-roots, I);
+    }
+    return gaol_detail::nonzero_part(roots, I)
+           | gaol_detail::nonzero_part(nth_root(J & interval::negative(), p), I);
   }
 
  /*!
