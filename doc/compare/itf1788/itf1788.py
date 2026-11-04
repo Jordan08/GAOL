@@ -121,10 +121,6 @@ for _name in "cot coth acot acoth sec sech csc csch".split():
 # none, and no NaI
 DECORATION_OPS = {"intervalPart", "decorationPart", "newDec", "setDec", "isNaI"}
 
-# The message gaol_ieee1788::pownRev throws for p <= 0, which GAOL v5 does not
-# provide
-POWNREV_NOT_PROVIDED = "not provided by GAOL v5"
-
 
 # ---------------------------------------------------------------------------
 # Reading the .itl files
@@ -777,9 +773,6 @@ def classify_row(row):
         row.category = "passed"
     elif row.status in ("notprovided", "notapplicable"):
         row.category, row.why = row.status, row.got
-    elif row.status == "threw" and POWNREV_NOT_PROVIDED in row.got:
-        row.category = "notprovided"
-        row.why = "pownRev for p ≤ 0 (Table 10.1): gaol_ieee1788::pownRev throws std::domain_error"
     elif row.status == "threw":
         row.category, row.why = "failed", "threw"
     else:
