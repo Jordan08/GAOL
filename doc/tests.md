@@ -347,8 +347,8 @@ point Q), which `numbers` checks there too.
   in `gaol_ieee1788`), which have to be the tightest enclosures, and the
   `pow_rel` and `pow_exponent_rel` that have to contain the base and the
   exponent they were made from: CORE-MATH's `pow` computed ∞ − ∞ there
-  (GAOL v5); and 30 loops
-  of 64 relations, constructions, intersections or `floor()`, with every
+  (GAOL v5); and 31 loops of 64 relations (`overlap()` among them, GAOL v5),
+  constructions, intersections or `floor()`, with every
   third x and every fifth y empty, which a compiler vectorizes or if-converts
   (with the FPU intervals, GCC 9.4 and 13 at `-O3` with `-mfma`, GCC 13 to 15
   for 32-bit x86, GCC 14 for POWER8 and GCC 11 to 15 for 64-bit ARM made some
@@ -445,9 +445,10 @@ point Q), which `numbers` checks there too.
   was empty, its minimum taken once the modes were restored (GAOL v5, review
   of point 4); `acos_rel()` and `asin_rel()` of a J outside [-1, 1], or
   containing it, returned before their check, the modes left set. Then each
-  of the 50 functions that make no check (the constructor from two bounds,
-  the relations, `&`, `|`, `max`, `abs`, `sign`, `floor`, `trunc`, `mig`,
-  `feven`, `nb_fp_numbers`, `inf` and `sup` of `gaol_ieee1788`...), called on
+  of the 51 functions that make no check (the constructor from two bounds,
+  the relations, `overlap()` (GAOL v5), `&`, `|`, `max`, `abs`, `sign`,
+  `floor`, `trunc`, `mig`, `feven`, `nb_fp_numbers`, `inf` and `sup` of
+  `gaol_ieee1788`...), called on
   the same intervals and on [22·2^-1074], each mode set just before it, has
   to give what it gives with the modes cleared, its doubles compared by their
   bits, and leave the modes as it found them: it compares the bounds as
@@ -872,6 +873,20 @@ point Q), which `numbers` checks there too.
   for [-1]^(2^53 + 1)), within three doubles of the tightest bounds;
   `numsToInterval()` and `isMember()` take ±(2^53 + 1)
   as the integer it is, and bounds in the wrong order give the empty set;
+  `overlap(a, b)` (GAOL v5) has to be the state that the set specification of
+  Table 10.7 gives, whose quantifiers are read over a finite model of the real
+  line (the finite bounds of the two intervals, and three points in each gap
+  between them and beyond them), on 31 449 pairs: the empty set, 104
+  intervals with bounds that are infinite, zeros of both signs, subnormal,
+  1 + 2^-52 or the largest double, and 20 000 random pairs whose bounds meet
+  or nearly meet. Exactly one specification holds for two nonempty
+  intervals, but for `meets` and `metBy` with a point interval on a bound of
+  the other one, which the standard gives to `starts`, `finishes`,
+  `finishedBy` or `startedBy`; `overlap(b, a)` has to be the converse state,
+  the states are numbered as in the table, and `disjoint`, `equal` and
+  `subset` have to be masks of states: `disjointMask`, 0xF001, of the note of
+  10.6.4, and the masks of `equal` and `subset`, 0x8040 and 0xC3C0, which the
+  table gives;
   the bounds of `gaol_ieee1788::pow` and of `gaol::pow` on 117 boxes, each
   reaching a branch of the pow of Table 9.1, which the two share, or of what
   `gaol::pow` adds to it (the integer power, beyond the ints too), the
@@ -1651,6 +1666,12 @@ point Q), which `numbers` checks there too.
   `set_strictly_contains()` at 2^53 + 1 and 2^64 − 1, which the conversion to a
   double made wrong; and that an integer that is a double gives what the double
   gives.
+  `relations` also checks `overlap()` (GAOL v5): each of the 16 states of
+  Table 10.7 with a pair of intervals and the state of the pair the other way
+  round, among them intervals with an infinite bound, point intervals on a
+  bound of the other one (never `meets` nor `metBy`), zeros of both signs and
+  subnormals; `ieee1788` checks the states against the set specification of
+  the table.
   `relations` also checks `gaol::lexicographic_less` (GAOL v5, point V):
   a strict total order that puts the empty set first and the intervals by their
   bounds, which `<` is not, being the `strictPrecedes` of IEEE 1788-2015, true
