@@ -256,7 +256,8 @@ namespace gaol_ieee1788 {
   //! rootn(x, q) for an integer q of another type: nth_root(x, q) (GAOL v5)
   template <class T, ::gaol_detail::if_integer<T> = 0>
   GAOL_NODISCARD inline interval rootn(const interval& x, T q) { return ::gaol_core::nth_root(x, q); }
-  //! expm1, exp2m1, exp10m1, log2p1, log10p1 and hypot: the functions of GAOL
+  //! expm1, exp2m1, exp10m1, log2p1, log10p1, hypot and compoundm1: the functions of GAOL
+  using ::gaol_core::compoundm1;
   using ::gaol_core::expm1;
   using ::gaol_core::exp2m1;
   using ::gaol_core::exp10m1;
@@ -554,7 +555,6 @@ namespace gaol_ieee1788 {
     Not provided, GAOL having no such operation:
       - the decorations and every decorated operation (Clause 11, 12.12.11);
       - pownRev for p <= 0 (Table 10.1);
-      - compoundm1 of Table 10.5, which CORE-MATH has not;
       - the slope functions (Table 10.6) and overlap (10.6.4);
       - the reduction operations sum, dot, sumSquare and sumAbs (12.12.12),
         and the exact ones of 12.13.5.
