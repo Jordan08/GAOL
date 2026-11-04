@@ -959,8 +959,9 @@ point Q), which `numbers` checks there too.
   the pairs is 8 to the double nearest 1/3, whose product 3y rounds to 1 without
   being 1. With flush-to-zero set (x86), the lower bound of
   `pow([0.5], [2^-1074])` has to stay below 1, the product 1024y
-  being flushed to 0. The functions of Table 10.5 GAOL provides
-  have to be the tightest enclosures over intervals too: the hull
+  being flushed to 0. The functions of Table 10.5 GAOL provides, but
+  `compoundm1`, which CORE-MATH has not and which the test `compoundm1` (below)
+  checks, have to be the tightest enclosures over intervals too: the hull
   of their image, computed from the values at the bounds of the
   part of the interval in the domain (`expm1`, `exp2m1`, `exp10m1`, `log1p`,
   `log2p1`, `log10p1`, `rsqrt`, `atanpi`, `asinpi`, `acospi`), at the points of
@@ -1080,6 +1081,60 @@ point Q), which `numbers` checks there too.
   hard-to-round arguments of the `erfc.c` of CORE-MATH, its values in the four
   rounding directions have to be consistent with each other, and the bounds of
   GAOL the tightest (GAOL v5).
+- **`compoundm1`:** `compoundm1(x, y)`, (1 + x)<sup>y</sup> − 1 of IEEE 1788-2015
+  (Table 10.5), which CORE-MATH has not: its bounds are computed in
+  `gaol/math/gaol_compoundm1.h` with a 128-bit significand and a bound of the
+  error that every operation adds to (GAOL v5). The test goes from the bottom up.
+  The 256-bit product against the schoolbook one, the shifts of 256 and 128 bits
+  by every count against the bits, the integer square root at r<sup>2</sup> − 1,
+  r<sup>2</sup> and r<sup>2</sup> + 2r, and the doubles around an integer (down
+  and up, the subnormal ones, the carry into the next binade, the overflows, a
+  number of 129 bits, a zero); the sums and products of 20 000 triples of
+  doubles of every magnitude, whose balls have to hold the exact value
+  (`gaol_tests.h`), and to give the tightest doubles where the ball is exact;
+  the balls of log(1 + x), for 493 arguments, and of exp(t) − 1, for 322, which
+  have to hold the value to 256 bits computed by mpmath
+  (`compoundm1_values.py`) and to be no wider than 2<sup>−118</sup> relatively,
+  and the ball of exp(t) − 1 for a ball of t, whose radius has to cover the
+  value at both ends of an interval of two consecutive doubles (the derivative
+  e<sup>t</sup>, which the series does not carry). The series of
+  (e<sup>r</sup> − 1)/r, for 458 values of r, has to be within 4 units of
+  2<sup>−127</sup> of mpmath's, the fourth of the radius it is given; a ball
+  that its precondition does not allow (|r| ≥ 1/2, a radius of 2<sup>−10</sup> or
+  more, |t| ≥ 2<sup>11</sup>, a y0 that is not next to log(1 + x)) has to be
+  unknown, an infinite radius; and the doubles around a ball have to be those
+  at its ends, whose halves are doubles, subnormals, past the largest double,
+  across 0, with the whole line for a ball wider than half its center. The
+  equalities `power_equals()` and `product_equals()` prove, which give the
+  bounds [d, d], are checked against fractions at 2 400 and 1 200 triples
+  made of the values that are doubles, their neighbours, the right odd part
+  with a wrong power of two, the right power of two with a wrong sign, and
+  random doubles: none that does not hold, and every one that holds with 128
+  bits to spare. Then the bounds at 3 845 pairs
+  (x, y) have to be the greatest double at most the value and the least double
+  at least it, for `compoundm1` and for the function of points, from tiny to
+  past the doubles and in the thresholds: the reduction by log(2) (0.3466 and
+  1.04), the cuts at −64 and 2048 and the largest double (709.78...), and the
+  doubles next to them; the values that are doubles, (c<sup>q</sup>)<sup>p/q</sup> − 1
+  for a dyadic c (2.375, 1.25, 7, 0.5...) and 2<sup>m</sup> − 1 for m past 53,
+  between two doubles from m = 54 on, the ball holding the double
+  2<sup>m</sup> from m = 118 on; and the tiny x, whose value is next to the double y x on the
+  side y (y − 1) tells, down to the subnormals. The values are computed by
+  mpmath with 1 500 to 7 000 bits, and by fractions where the interval around
+  the value holds a double. On 850 boxes (the bounds drawn among 0, ±1, the
+  infinities, −1 and its neighbours, and random ones) the result has to be the
+  hull of the values at the four corners and of 0 where the box crosses
+  x = 0 or y = 0, with the limits −1 and +∞ at x = −1, at +∞ and for an
+  infinite y, and the empty set below −1 and at x = −1 for y ≤ 0 (the
+  definition, read in the script and not in GAOL). 31 boxes are chosen by hand,
+  among them the contrived value the bounds are one double wider for
+  (y = −1, x = 2<sup>−51</sup> + 2<sup>−103</sup>), and 400 random boxes are compared with the hull of the points at their
+  corners, which contains the points inside them. The three names, `gaol`,
+  `gaol_core` and `gaol_ieee1788`, have to be one function, the text
+  `compoundm1(...)` read in any case, the flags of invalid operation, division
+  by zero and overflow not raised (the empty set, x = −1, the infinities, the
+  results past the doubles), and the flush-to-zero and denormals-are-zero modes
+  set by the program change no bound (GAOL v5).
 - **`expressions`:** `textToInterval("...")` lexes the string, parses it into
   the tree of `gaol/parser/gaol_expression.h` and evaluates that tree, so this test
   goes through every node of the tree and every way the string can be wrong:
@@ -1106,7 +1161,7 @@ point Q), which `numbers` checks there too.
   mixed-sign expressions (GAOL v5), and have to be printed as written,
   `x/(y*z)` with its `/` and `(-2)^2` with its parentheses (GAOL v5).
   Every function of GAOL has to be read under its name, those the reader did
-  not know included (`exp10`, `hypot`, `sinpi`, `fma`...), the names of IEEE
+  not know included (`exp10`, `hypot`, `compoundm1`, `sinpi`, `fma`...), the names of IEEE
   1788-2015 alone (`pown`, `rootn`, `recip`...) and the calls with a wrong
   number of arguments have to be refused, and `gaol::textToInterval` has to
   read the names of GAOL, and with two strings to take the left bound of the
