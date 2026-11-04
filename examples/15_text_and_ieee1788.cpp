@@ -8,7 +8,7 @@
  * [a,] and [,], [entire], [empty], the uncertain form 3.56?1 of Table 12.1)
  * and whole expressions (1/3, sqrt(2), 2*pi), and encloses the real number a
  * text writes: this is how a program brings in a constant or a measurement
- * that no double holds. A malformed text throws std::invalid_argument,
+ * that no double holds. A malformed text throws gaol_core::input_format_error,
  * where gaol_ieee1788::textToInterval() returns the empty set. A file of
  * intervals is read line by line, each line in a try block, so that one bad
  * line is reported and skipped. Where GAOL is built without exceptions
@@ -48,7 +48,6 @@
 #include <iostream>
 #include <limits>
 #include <sstream>
-#include <stdexcept>
 #include <string>
 
 #include <gaol/gaol.h>
@@ -164,8 +163,8 @@ namespace {
     // Hexadecimal: 0x1.8 is 1.5, times 2^1: a double, read exactly
     read_text("0x1.8p1", "exactly 3", [](const interval& x) { return x.set_eq(interval(3.0)); });
 
-    /* A text that is no interval throws std::invalid_argument; its what()
-       says where GAOL threw it and what was wrong. The
+    /* A text that is no interval throws input_format_error, which derives
+       from std::exception; its explanation() says what was wrong. The
        reader of gaol_ieee1788 returns the empty set instead, as a constructor
        of the standard does for an invalid input (12.1.3). The standard also
        signals UndefinedOperation then, and GAOL has neither this signal nor
@@ -176,11 +175,11 @@ namespace {
     try {
       const interval x = gaol::textToInterval("[1, 2");
       std::cout << "  \"[1, 2\" read as " << x << '\n';
-    } catch (const std::invalid_argument& e) {
+    } catch (const gaol_core::input_format_error& e) {
       thrown = true;
-      std::cout << "  \"[1, 2\": std::invalid_argument: " << e.what() << '\n';
+      std::cout << "  \"[1, 2\": input_format_error: " << e.explanation() << '\n';
     }
-    check(thrown, "\"[1, 2\" throws std::invalid_argument");
+    check(thrown, "\"[1, 2\" throws input_format_error");
 #else
     // Without exceptions, gaol::textToInterval("[1, 2") ends the program
     std::cout << "  GAOL built without exceptions: gaol::textToInterval would end the program\n";
@@ -198,11 +197,9 @@ namespace {
        The robust way to read them: std::getline, then
        gaol::textToInterval(line) in a try block of its own, so that a bad
        line is reported with its number and skipped. The handler takes
-       std::logic_error, the base of the two exceptions of GAOL: a text that
-       is no interval throws std::invalid_argument, and a text refused for the
-       argument of a function, "nth_root(8, 1.5)" for one, std::domain_error.
-       Not std::exception, which would also report a std::bad_alloc as a bad
-       line. A std::ifstream is read the same way as this stream. */
+       gaol_exception, the base of GAOL's exceptions: a text can also be
+       refused with an invalid_action_error, "nth_root(8, 1.5)" for one. A
+       std::ifstream is read the same way as this stream. */
     std::istringstream file("# R in ohms, measured four times\n"
                             "[99.5, 100.5]\n"
                             "100.2?5\n"
@@ -226,9 +223,9 @@ namespace {
         r &= m;
         ++measurements;
         show(where, m, "read: a bounded interval", m.is_common_interval());
-      } catch (const std::logic_error& e) {
+      } catch (const gaol_core::gaol_exception& e) {
         ++errors;
-        std::cout << "  " << std::left << std::setw(29) << where << "skipped: " << e.what() << '\n';
+        std::cout << "  " << std::left << std::setw(29) << where << "skipped: " << e.explanation() << '\n';
       }
 #else
       /* Without exceptions, gaol::textToInterval would end the program on

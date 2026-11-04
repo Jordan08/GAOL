@@ -14,8 +14,8 @@
  *   hexadecimal, the bounds given apart);
  * - the operators and the functions, alone and nested;
  * - the strings the parser refuses, which have to raise an exception rather
- *   than give an interval, and what the exceptions of GAOL say (what(), file,
- *   line and explanation);
+ *   than give an interval, and what the exceptions of GAOL say (what() and
+ *   operator<<);
  * - the long and the deeply nested expressions: sums, and products and
  *   quotients, of 200000 terms read from a string, sums and products of 200000
  *   terms and differences and quotients of 20000 built in C++, and chains of
@@ -54,7 +54,6 @@
 #include <iostream>
 #include <random>
 #include <type_traits>
-#include <typeinfo>
 #include <utility>
 #include <vector>
 
@@ -433,10 +432,10 @@ namespace
     try {
       const interval z = textToInterval("pown([2,5],5)");
       (void)z;
-    } catch (const std::invalid_argument&) {
+    } catch (const gaol_core::input_format_error&) {
       threw = true;
     }
-    check("gaol::textToInterval throws std::invalid_argument for a name of IEEE 1788-2015 alone", threw);
+    check("gaol::textToInterval throws input_format_error for a name of IEEE 1788-2015 alone", threw);
 #endif
   }
 
@@ -567,7 +566,7 @@ namespace
      from the pointer before GAOL is reached, and the standard leaves that
      undefined (libstdc++ throws std::logic_error, libc++ and Visual C++
      probably read the pointer with strlen()). The overloads of a C string
-     throw std::invalid_argument, with the names of GAOL and with those of the
+     throw input_format_error, with the names of GAOL and with those of the
      standard, whose textToInterval() gives the empty set for a text that is
      no interval. The literal nullptr and a null pointer variable are both
      read, as is a null pointer in either place of the two bounds. Without
@@ -595,12 +594,12 @@ namespace
       bool format_error = false, other = false;
       try {
         r.read();
-      } catch (const std::invalid_argument&) {
+      } catch (const gaol_core::input_format_error&) {
         format_error = true;
       } catch (...) {
         other = true;
       }
-      check("a null pointer given to textToInterval() or exactToInterval() throws std::invalid_argument",
+      check("a null pointer given to textToInterval() or exactToInterval() throws input_format_error",
             format_error && !other,
             [&] { return std::string(r.label) + (other ? ": threw another exception" : ": no exception"); });
     }
@@ -828,11 +827,11 @@ namespace
       try {
         const interval x = textToInterval(text);
         (void)x;
-      } catch (const std::invalid_argument&) {
+      } catch (const gaol_core::input_format_error&) {
         format_error = true;
       } catch (...) {
       }
-      check("textToInterval: <a, b> with a bound that is not a double throws std::invalid_argument", format_error,
+      check("textToInterval: <a, b> with a bound that is not a double throws input_format_error", format_error,
             [&] { return text; });
 #endif
       check("gaol_ieee1788::textToInterval: <a, b> with a bound that is not a double is the empty set",
@@ -851,7 +850,7 @@ namespace
 
   /* The integer second argument of nth_root(), pown() and rootn() beyond the
      ints (GAOL v5, point 83 of TODO.md): nth_root(8,3000000000) threw
-     std::domain_error and rootn(8,3000000000) and pown([2,3],3000000000)
+     invalid_action_error and rootn(8,3000000000) and pown([2,3],3000000000)
      were the empty set, where nth_root(8, 3000000000LL) and
      pown([2,3], 3000000000LL) are computed. The bounds are the tightest ones,
      from mpmath at 3000 bits, apart from the reader: the powers are, and the
@@ -953,11 +952,11 @@ namespace
     try {
       const interval got = textToInterval("nth_root(8,3000000000.5)");
       (void)got;
-    } catch (const std::domain_error&) {
+    } catch (const gaol_core::invalid_action_error&) {
       threw_invalid_action = true;
     } catch (...) {
     }
-    check("textToInterval: nth_root(8,3000000000.5) throws std::domain_error", threw_invalid_action);
+    check("textToInterval: nth_root(8,3000000000.5) throws invalid_action_error", threw_invalid_action);
 #endif
   }
 
@@ -999,117 +998,123 @@ namespace
   }
 
 #if GAOL_EXCEPTIONS_ENABLED
-  /* What GAOL throws (GAOL v5): the exceptions of the standard library, where
-     GAOL 4 had classes of its own, gaol_exception, input_format_error,
-     unavailable_feature_error and invalid_action_error, with the accessors
-     file(), line() and explanation() and an operator<<. A string the reader
-     refuses, as it reads it or at its end, throws std::invalid_argument, and a
-     function called with an argument it does not take throws
-     std::domain_error: exactly these two types, which the tests tell apart
-     with typeid, as a handler of the one has to leave the other alone (both
-     derive from std::logic_error). A handler of std::exception, the one of a
-     program that knows nothing of GAOL, catches them, and what() says where
-     GAOL threw the exception and why, "file:line: explanation", which is all
-     an exception of the standard library holds. */
-  template<class Exception, class F>
-  exception_text thrown_says(const std::string& done, const char* type, const char* file,
-                             const std::string& expected, const F& f)
+  /* What an exception of GAOL says as a std::exception (GAOL v5). Its what()
+     was the one of the standard class, "std::exception" with libstdc++ and
+     libc++ whatever went wrong: the text that a handler of std::exception
+     printed, and the one that a program ends with when nothing catches the
+     exception ("what():  std::exception"), where explanation() had the
+     explanation. what() is now the explanation, or the name of the class
+     where there is none, and operator<< writes the explanation once, where
+     it wrote what() and the explanation. A null pointer is no explanation,
+     where GAOL 4 built a std::string from it (undefined behavior), and an
+     explanation whose C string is empty (a NUL first) gives the name of the
+     class too, so that what() is never an empty text. The exceptions are
+     built here with a known explanation, so that what they say does not
+     depend on the text of the reader. */
+  template<class Exception>
+  void says(const char* name)
   {
-    bool caught = false, right_type = false, other = false;
-    exception_text what;
+    const unsigned line = __LINE__;
+    const char* const no_text = nullptr;
+    const Exception with_text(__FILE__, line, "boom");
+    const Exception with_string(__FILE__, line, std::string("boom"));
+    const Exception without(__FILE__, line);
+    const Exception with_null(__FILE__, line, no_text);
+    const Exception with_nul_first(__FILE__, line, std::string("\0boom", 5));
+    // A null pointer is no file name either (GAOL v5, decided on 2026-10-24):
+    // operator<< sent it to the stream, which went bad and lost what followed
+    const char* const no_file = nullptr;
+    const Exception without_file_text(no_file, line, "boom");
+    const Exception without_file_string(no_file, line, std::string("boom"));
+    const Exception without_file(no_file, line);
+
+    // Through the base class, as a handler of std::exception reads them
+    const std::exception& a = with_text;
+    const std::exception& b = with_string;
+    const std::exception& c = without;
+    const std::exception& d = with_null;
+    const std::exception& z = with_nul_first;
+    check("exception: what() is the explanation, given as a text",
+          std::string(a.what()) == "boom", [&] { return std::string(name) + ": \"" + a.what() + "\""; });
+    check("exception: what() is the explanation, given as a string",
+          std::string(b.what()) == "boom", [&] { return std::string(name) + ": \"" + b.what() + "\""; });
+    check("exception: what() is the name of the class where there is no explanation",
+          std::string(c.what()) == name, [&] { return std::string(name) + ": \"" + c.what() + "\""; });
+    check("exception: a null pointer is no explanation",
+          with_null.explanation().empty() && std::string(d.what()) == name,
+          [&] { return std::string(name) + ": \"" + with_null.explanation() + "\", what() \"" + d.what() + "\""; });
+    check("exception: what() is the name of the class where the explanation starts with a NUL",
+          std::string(z.what()) == name, [&] { return std::string(name) + ": \"" + z.what() + "\""; });
+
+    const std::string where = std::string(__FILE__) + ", line " + std::to_string(line) + ": exception thrown";
+    std::ostringstream shown, shown_without, shown_null;
+    shown << with_text;
+    shown_without << without;
+    shown_null << with_null;
+    check("exception: operator<< writes the file, the line and the explanation, once",
+          shown.str() == where + ": boom", [&] { return std::string(name) + ": " + shown.str(); });
+    check("exception: operator<< writes no explanation where there is none",
+          shown_without.str() == where && shown_null.str() == where,
+          [&] { return std::string(name) + ": " + shown_without.str() + " | " + shown_null.str(); });
+
+    const std::string unknown = "(unknown file), line " + std::to_string(line) + ": exception thrown";
+    std::ostringstream shown_no_file, shown_no_file_string, shown_no_file_without;
+    shown_no_file << without_file_text << " and then " << with_text;
+    shown_no_file_string << without_file_string;
+    shown_no_file_without << without_file;
+    check("exception: a null file name is \"(unknown file)\", never a null pointer",
+          without_file_text.file() != nullptr && without_file_string.file() != nullptr && without_file.file() != nullptr
+          && std::string(without_file_text.file()) == "(unknown file)"
+          && std::string(without_file_string.file()) == "(unknown file)"
+          && std::string(without_file.file()) == "(unknown file)",
+          [&] { return std::string(name); });
+    check("exception: operator<< writes an unknown file for a null file name, and the stream stays good for what follows",
+          shown_no_file.good() && shown_no_file.str() == unknown + ": boom and then " + where + ": boom"
+          && shown_no_file_string.str() == unknown + ": boom" && shown_no_file_without.str() == unknown,
+          [&] { return std::string(name) + ": " + shown_no_file.str() + " | " + shown_no_file_string.str()
+                       + " | " + shown_no_file_without.str(); });
+  }
+
+  /* f, which has to throw an exception of GAOL, caught as a std::exception
+     as a program that knows nothing of GAOL does: its what() has to be the
+     explanation that the exception gives */
+  template<class F>
+  void thrown_says(const std::string& done, const F& f)
+  {
+    bool caught = false, from_gaol = false;
+    std::string what, explanation;
     try {
       f();
     } catch (const std::exception& e) {
       caught = true;
-      right_type = (typeid(e) == typeid(Exception));
-      what = split_what(e);
-    } catch (...) {
-      other = true;
+      what = e.what();
+      if (const gaol_core::gaol_exception* g = dynamic_cast<const gaol_core::gaol_exception*>(&e)) {
+        from_gaol = true;
+        explanation = g->explanation();
+      }
     }
-    check(std::string("exception: GAOL throws ") + type + ", which a handler of std::exception catches",
-          caught && right_type,
-          [&] { return done + (other ? " threw an exception that is no std::exception"
-                                     : caught ? " threw another type than " + std::string(type)
-                                              : " threw nothing"); });
-    /* The file is the name of the source that threw, without a directory,
-       whatever the path the build gave the compiler (an absolute one with
-       CMake, a relative one with meson) */
-    const std::string name = file;
-    const bool in_file = (what.file == name);
-    check("exception: what() is the file, the line and the explanation, \"file:line: explanation\"",
-          caught && in_file && what.line > 0 && what.explanation == expected,
-          [&] { return done + ": file \"" + what.file + "\", line " + std::to_string(what.line)
-                       + ", explanation \"" + what.explanation + "\" rather than \"" + expected + "\" in " + name; });
-    return what;
+    check("exception: GAOL throws a gaol_exception, which a handler of std::exception catches",
+          caught && from_gaol,
+          [&] { return done + (caught ? " threw an exception that is no gaol_exception" : " threw nothing"); });
+    check("exception: what() is the explanation of what GAOL threw",
+          from_gaol && !explanation.empty() && what == explanation,
+          [&] { return done + ": what() is \"" + what + "\", explanation() \"" + explanation + "\""; });
   }
 
   void exception_messages()
   {
-    // A string the reader refuses, as it reads it or at its end, and operator>>
-    const exception_text syntax = thrown_says<std::invalid_argument>(
-      "textToInterval(\"sin(1)+\")", "std::invalid_argument", "gaol_interval.cpp",
-      "Syntax error in interval initialization: sin(1)+",
-      [] { const interval x = textToInterval("sin(1)+"); (void)x; });
-    thrown_says<std::invalid_argument>("textToInterval(\"[1, 2\")", "std::invalid_argument", "gaol_interval.cpp",
-                                       "Syntax error in interval initialization: [1, 2",
-                                       [] { const interval x = textToInterval("[1, 2"); (void)x; });
-    const exception_text null_pointer = thrown_says<std::invalid_argument>(
-      "textToInterval(nullptr)", "std::invalid_argument", "gaol_interval.cpp",
-      "Null pointer in interval initialization: a null pointer is no string",
-      [] { const interval x = textToInterval(static_cast<const char*>(nullptr)); (void)x; });
-    // The line is that of the throw: two throws of one file are on two lines
-    check("exception: the line of what() is the one of the throw",
-          syntax.line > 0 && null_pointer.line > 0 && syntax.line != null_pointer.line,
-          [&] { return "lines " + std::to_string(syntax.line) + " and " + std::to_string(null_pointer.line); });
-    thrown_says<std::invalid_argument>("operator>> of \"[1, 2\"", "std::invalid_argument", "gaol_interval_core.cpp",
-                                       "Syntax error in expression of interval: [1, 2",
-                                       [] { std::istringstream in("[1, 2"); interval x; in >> x; });
-    // A function called with an argument it does not take
-    thrown_says<std::domain_error>("nb_fp_numbers(NaN, 1)", "std::domain_error", "gaol_interval_core.cpp",
-                                   "invalid argument(s) in call to nb_fp_numbers()",
-                                   [] { (void)nb_fp_numbers(std::numeric_limits<double>::quiet_NaN(), 1.0); });
-    thrown_says<std::domain_error>("bisect(0)", "std::domain_error", "gaol_interval_core.cpp",
-                                   "bisect(): the ratio is not in (0, 1)",
-                                   [] { (void)interval(1.0, 2.0).bisect(0.0); });
-    // A function of a header, which is the file of the exception
-    thrown_says<std::domain_error>("pownRev(c, 0)", "std::domain_error", "gaol_ieee1788.h",
-                                   "gaol_ieee1788::pownRev: p <= 0 is not provided by GAOL v5",
-                                   [] { (void)gaol_ieee1788::pownRev(interval(8.0), 0); });
-    // From the parser, whose file is that of the grammar it was generated from,
-    // as the #line directives of bison give it (gaol_interval_parser.ypp)
-    thrown_says<std::domain_error>("textToInterval(\"nth_root(8,1.5)\")", "std::domain_error", "gaol_interval_parser.ypp",
-                                   "nth_root used with non integral 2nd arg.",
-                                   [] { const interval x = textToInterval("nth_root(8,1.5)"); (void)x; });
-    thrown_says<std::invalid_argument>("textToInterval(\"sin(1, 2)\")", "std::invalid_argument", "gaol_interval_parser.ypp",
-                                       "sin called with a wrong number of arguments",
-                                       [] { const interval x = textToInterval("sin(1, 2)"); (void)x; });
+    says<gaol_core::gaol_exception>("gaol_exception");
+    says<gaol_core::input_format_error>("input_format_error");
+    says<gaol_core::unavailable_feature_error>("unavailable_feature_error");
+    says<gaol_core::invalid_action_error>("invalid_action_error");
 
-    /* gaol_ERROR itself: the text is "file:line: message" with the file and the
-       line of the macro, "(unknown file)" for a null file name and nothing for a
-       null message, as gaol_warning() and gaol_error() write them (error_text()
-       of gaol/gaol_common.h) */
-    check("exception: error_text() writes an unknown file for a null file name, and no text for a null message",
-          ::gaol_detail::error_text(nullptr, 7, "boom") == "(unknown file):7: boom"
-          && ::gaol_detail::error_text("a.cpp", 12, nullptr) == "a.cpp:12: "
-          && ::gaol_detail::error_text("a.cpp", 12, "boom") == "a.cpp:12: boom",
-          [&] { return ::gaol_detail::error_text(nullptr, 7, "boom") + " | " + ::gaol_detail::error_text("a.cpp", 12, nullptr); });
-    // The file has no directory: the path of the build is not in the messages
-    check("exception: error_text() keeps the name of the file, not its directories, with / and with \\",
-          ::gaol_detail::error_text("/home/me/gaol/gaol/f.cpp", 3, "m") == "f.cpp:3: m"
-          && ::gaol_detail::error_text("../gaol/f.cpp", 3, "m") == "f.cpp:3: m"
-          && ::gaol_detail::error_text("C:\\src\\gaol\\f.cpp", 3, "m") == "f.cpp:3: m"
-          && ::gaol_detail::error_text("f.cpp", 3, "m") == "f.cpp:3: m",
-          [&] { return ::gaol_detail::error_text("/home/me/gaol/gaol/f.cpp", 3, "m") + " | " + ::gaol_detail::error_text("C:\\src\\gaol\\f.cpp", 3, "m"); });
-    const long here = __LINE__ + 2;
-    try {
-      gaol_ERROR(std::logic_error, static_cast<const char*>(nullptr));
-    } catch (const std::logic_error& e) {
-      const exception_text t = split_what(e);
-      check("exception: gaol_ERROR throws the class it is given, with the file and the line of the macro, and no text for a null message",
-            typeid(e) == typeid(std::logic_error) && t.line == here && t.explanation.empty()
-            && t.file == "expressions.cpp",
-            [&] { return std::string(e.what()) + " rather than line " + std::to_string(here); });
-    }
+    // What GAOL throws: a string the reader refuses, as it reads it or at its
+    // end, a function called with an argument it does not take, and operator>>
+    thrown_says("textToInterval(\"sin(1)+\")", [] { const interval x = textToInterval("sin(1)+"); (void)x; });
+    thrown_says("textToInterval(\"[1, 2\")", [] { const interval x = textToInterval("[1, 2"); (void)x; });
+    thrown_says("textToInterval(\"nth_root(8,1.5)\")", [] { const interval x = textToInterval("nth_root(8,1.5)"); (void)x; });
+    thrown_says("nb_fp_numbers(NaN, 1)", [] { (void)nb_fp_numbers(std::numeric_limits<double>::quiet_NaN(), 1.0); });
+    thrown_says("operator>> of \"[1, 2\"", [] { std::istringstream in("[1, 2"); interval x; in >> x; });
   }
 #endif
 
@@ -1561,7 +1566,7 @@ namespace
     refused("[" + nested(9000, "-", "3.56?1", "") + ", 5]");
     refused("[1, " + nested(9001, "-", "3.56?1", "") + "]");
 
-    // Refused as a syntax error, a std::invalid_argument, whatever the depth
+    // Refused as a syntax error, an input_format_error, whatever the depth
     const struct { const char* name; std::string text; } refusals[] = {
       {"parentheses", nested(100000, "(", "1", ")")},
       {"brackets", nested(100000, "[", "1", "]")},
@@ -1575,7 +1580,7 @@ namespace
       try {
         const interval x = textToInterval(r.text);
         (void)x;
-      } catch (const std::invalid_argument&) {
+      } catch (const gaol_core::input_format_error&) {
         syntax_error = true;
       } catch (...) {
         other = true;
@@ -1586,7 +1591,7 @@ namespace
       interval x;
       syntax_error = !gaol_core::parse_interval(r.text.c_str(), x);
 #endif
-      check("deep string: 100000 levels are refused with a std::invalid_argument", syntax_error && !other,
+      check("deep string: 100000 levels are refused with an input_format_error", syntax_error && !other,
             [&] { return std::string(r.name) + (other ? ": another exception" : ": read"); });
     }
   }
@@ -1844,10 +1849,10 @@ namespace
         try {
           const interval y = read();
           (void)y;
-        } catch (const std::invalid_argument&) {
+        } catch (const gaol_core::input_format_error&) {
           threw = true;
         }
-        check(std::string("NUL character: ") + name + " throws std::invalid_argument", threw,
+        check(std::string("NUL character: ") + name + " throws input_format_error", threw,
               [&] { return shown(t); });
       };
       refused_by("textToInterval(s)", [&] { return textToInterval(t); });
@@ -1856,8 +1861,8 @@ namespace
       try {
         const interval y = textToInterval(t);
         (void)y;
-      } catch (const std::invalid_argument& e) {
-        message = gaol_tests::explanation(e);
+      } catch (const gaol_core::input_format_error& e) {
+        message = e.what();
       }
       check("NUL character: the message of textToInterval(s) writes the string, the NUL as \\0",
             message == "Syntax error in interval initialization: " + shown(t),
@@ -1871,10 +1876,10 @@ namespace
       bool threw = false;
       try {
         in >> y;
-      } catch (const std::invalid_argument&) {
+      } catch (const gaol_core::input_format_error&) {
         threw = true;
       }
-      check("NUL character: operator>> fails, gives the empty set and throws std::invalid_argument",
+      check("NUL character: operator>> fails, gives the empty set and throws input_format_error",
             threw && in.fail() && y.is_empty(), [&] { return shown(t) + ": " + hex(y); });
 #endif
     }
@@ -1888,7 +1893,7 @@ namespace
      - std::bad_alloc thrown by the lexer, or by an action of the parser,
        went through the parser and left the nodes on its stack;
      - the parser read a stack that could not grow as a string nested too
-       deep, and threw std::invalid_argument;
+       deep, and threw input_format_error;
      - gaol_ieee1788::textToInterval() turned std::bad_alloc into the empty
        set.
      The count of the allocations live is the same before and after, and the

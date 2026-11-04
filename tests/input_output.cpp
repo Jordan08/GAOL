@@ -21,6 +21,7 @@
 #include <sstream>
 #include <string>
 #include "gaol/gaol_config.h"
+#include "gaol/gaol_exceptions.h"
 #include "unit_tests.h"
 
 
@@ -41,8 +42,8 @@ public:
       	try {
 	  		instr >> I;
 	  		CPPUNIT_FAIL("no exception for [4.5,");
-      	} catch (const std::invalid_argument& e) {
-	  		CPPUNIT_ASSERT(gaol_tests::explanation(e).substr(0,26) == "Syntax error in expression");
+      	} catch (const gaol_core::input_format_error& e) {
+	  		CPPUNIT_ASSERT(e.explanation().substr(0,26) == "Syntax error in expression");
 		}
 #endif
 
@@ -55,10 +56,10 @@ public:
       	try {
 	  		instr >> I;
 	  		CPPUNIT_FAIL("no exception for <3, 4>");
-      	} catch (const std::invalid_argument& e) {
+      	} catch (const gaol_core::input_format_error& e) {
 	  		// Two different numbers in a degenerate interval, which the reader
 	  		// refuses as it reads them (GAOL v5)
-	  		CPPUNIT_ASSERT(gaol_tests::explanation(e).find("degenerate") != std::string::npos);
+	  		CPPUNIT_ASSERT(e.explanation().find("degenerate") != std::string::npos);
 		}
 #endif
 
@@ -125,8 +126,8 @@ public:
       try {
         instr >> I;
         CPPUNIT_FAIL("no exception for <-inf,-inf>");
-      } catch (const std::invalid_argument& e) {
-        CPPUNIT_ASSERT(gaol_tests::explanation(e).find("degenerate") != std::string::npos);
+      } catch (const gaol_core::input_format_error& e) {
+        CPPUNIT_ASSERT(e.explanation().find("degenerate") != std::string::npos);
       }
 #endif
       instr.clear();
@@ -157,8 +158,8 @@ public:
       try {
         instr >> I;
         CPPUNIT_FAIL("no exception for <inf,inf>");
-      } catch (const std::invalid_argument& e) {
-        CPPUNIT_ASSERT(gaol_tests::explanation(e).find("degenerate") != std::string::npos);
+      } catch (const gaol_core::input_format_error& e) {
+        CPPUNIT_ASSERT(e.explanation().find("degenerate") != std::string::npos);
       }
 #endif
 	}

@@ -304,8 +304,8 @@ explicit comparator.
 **15 — Text and IEEE 1788.** `gaol::textToInterval("...")` reads decimals, `[1, 2]`,
 `1/3`, `sqrt(2)`, `2*pi`, the uncertain form `3.56?1`, `[1,]`, `[entire]`,
 `[empty]` and hexadecimal floating-point numbers, always enclosing the number
-written; a malformed text throws `std::invalid_argument`, whose `what()`
-says where and why. A file is read line by line with `std::getline` and
+written; a malformed text throws `input_format_error`, whose `explanation()`
+says why. A file is read line by line with `std::getline` and
 `gaol::textToInterval(line)` in a `try` of its own. `exact_string()` reads back bit
 for bit. The second part writes one contractor step with the names of the
 standard (`numsToInterval`, `pown`, `mulRev`, `sqrRev`, `precedes`…) in a
@@ -467,7 +467,7 @@ stream's own precision as it was; `std::setw` pads the whole interval.
 `operator>>` reads one interval per line, the blank lines before it skipped:
 at the end of the input it sets `failbit`, so that `while (in >> x)` ends
 there, and a line that is no interval sets `failbit` and throws
-`std::invalid_argument`. Numbers are read with a point whatever the locale, and
+`input_format_error`. Numbers are read with a point whatever the locale, and
 `exact_string()` writes one, as the bounds format of `operator<<`, the
 default, does whatever the locale of the stream: under a French locale,
 `[1.5, 2.5]` is written, and read back. The width and center formats write the

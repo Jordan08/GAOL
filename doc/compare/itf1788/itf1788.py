@@ -779,7 +779,7 @@ def classify_row(row):
         row.category, row.why = row.status, row.got
     elif row.status == "threw" and POWNREV_NOT_PROVIDED in row.got:
         row.category = "notprovided"
-        row.why = "pownRev for p ≤ 0 (Table 10.1): gaol_ieee1788::pownRev throws std::domain_error"
+        row.why = "pownRev for p ≤ 0 (Table 10.1): gaol_ieee1788::pownRev throws std::invalid_argument"
     elif row.status == "threw":
         row.category, row.why = "failed", "threw"
     else:

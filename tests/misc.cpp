@@ -251,10 +251,10 @@ namespace gaol_names
 }
 
 /*
-  What gaol no longer names: what GAOL's code uses for itself, and
-  rnd_keep(), NaN_val, eval_stack and the reader of strings, which stay in
-  gaol_core (GAOL v5). gaol took gaol_core whole before, and these names were
-  found through it. Each is looked for in the namespaces that using namespace
+  What gaol no longer names: what GAOL's code uses for itself, and the
+  exceptions, rnd_keep(), NaN_val, eval_stack and the reader of
+  strings, which stay in gaol_core (GAOL v5). gaol took gaol_core
+  whole before, and these names were found through it. Each is looked for in the namespaces that using namespace
   gaol (unit_tests.h) opens, along with gaol_names_absent below:
   - a function, without argument-dependent lookup (the name between
     parentheses), which would find the functions of an interval in gaol_core
@@ -303,8 +303,12 @@ namespace gaol_names_absent
   using rounding_guard = absent;
   using gaol_initializer = absent;
   constexpr absent _gaol_initializer{};
-  // The reader of strings, the stack of evaluation and NaN_val, which GAOL 4
-  // declared in gaol and which are in gaol_core only
+  // The exceptions, the reader of strings, the stack of evaluation and NaN_val,
+  // which GAOL 4 declared in gaol and which are in gaol_core only
+  using gaol_exception = absent;
+  using input_format_error = absent;
+  using unavailable_feature_error = absent;
+  using invalid_action_error = absent;
   using parsing_names = absent;
   template <class... T> using eval_stack = absent;
   constexpr absent NaN_val{};
@@ -349,6 +353,9 @@ namespace gaol_names
                 "uintdouble, ullidouble, Interval_struct, prec_t, the_null_expr: not in gaol");
   static_assert(same<rounding_state, absent>() && same<rounding_guard, absent>() && same<gaol_initializer, absent>(),
                 "rounding_state, rounding_guard, gaol_initializer: not in gaol");
+  static_assert(same<gaol_exception, absent>() && same<input_format_error, absent>()
+                && same<unavailable_feature_error, absent>() && same<invalid_action_error, absent>(),
+                "gaol_exception, input_format_error, unavailable_feature_error, invalid_action_error: not in gaol");
   static_assert(same<parsing_names, absent>() && same<eval_stack<int>, absent>(),
                 "parsing_names, eval_stack: not in gaol");
   static_assert(same<decltype(NaN_val), const absent>(), "NaN_val: not in gaol");

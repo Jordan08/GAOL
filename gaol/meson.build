@@ -100,6 +100,7 @@ gaol_SOURCES += [
   'parser/gaol_interval_parser.cpp',
   'parser/gaol_expression.cpp',
   'gaol_port.cpp',
+  'gaol_exceptions.cpp',
   'gaol_init_cleanup.cpp',
   # CORE-MATH's log, where there is a 128-bit integer type (GAOL_CORE_MATH_LOG)
 ]
@@ -113,6 +114,7 @@ gaol_HEADERS = [
   'gaol.h',
   'gaol_common.h',
   'gaol_config.h',
+  'gaol_exceptions.h',
   'gaol_fpu.h',
   'gaol_fpu_fenv.h',
   'gaol_fpu_msvc.h',

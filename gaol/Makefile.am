@@ -42,7 +42,7 @@ libgaol_la_SOURCES = \
 	parser/gaol_parser.cpp parser/gaol_expression.cpp \
 	parser/gaol_interval_parser.cpp parser/gaol_interval_lexer.cpp \
 	gaol_port.cpp \
-	gaol_init_cleanup.cpp
+	gaol_exceptions.cpp gaol_init_cleanup.cpp
 
 
 # The lexer and the parser, parser/gaol_interval_lexer.cpp,
@@ -70,7 +70,7 @@ library_includedir=$(includedir)/gaol
 # gaol_fpu_msvc.h for Visual C++ among them: CMake and meson install the same
 # ones (GAOL v5)
 library_include_HEADERS = gaol gaol.h \
-	gaol_common.h gaol_config.h \
+	gaol_common.h gaol_config.h gaol_exceptions.h \
 	gaol_fpu.h gaol_fpu_fenv.h gaol_fpu_msvc.h gaol_ieee1788.h \
 	gaol_interval.h \
 	gaol_port.h \

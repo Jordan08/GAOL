@@ -78,17 +78,17 @@ public:
       CPPUNIT_ASSERT(nb_fp_numbers(4,4)==1);
       
 #if GAOL_EXCEPTIONS_ENABLED
-      // GAOL throws std::domain_error where it throws exceptions; without
+      // GAOL raises invalid_action_error where it raises exceptions; without
       // them (configure --disable-exceptions, meson -Denable-exception=false),
       // the error ends the program (GAOL v5)
       { 
 	  bool ok = false;
 	  try {	
 	      (void) nb_fp_numbers(GAOL_NAN,5);
-	  } catch (std::domain_error &) {
+	  } catch (gaol_core::invalid_action_error &) {
 	      ok = true;
-	  } catch (std::exception &) {
-	      // Should have been a std::domain_error.
+	  } catch (gaol_core::gaol_exception &) {
+	      // Should have been an invalid_action_error.
 	      // There is a problem here.
 	  }
 	  CPPUNIT_ASSERT(ok);
@@ -98,10 +98,10 @@ public:
 	  bool ok = false;
 	  try {	
 	      (void) nb_fp_numbers(5,GAOL_NAN);
-	  } catch (std::domain_error &) {
+	  } catch (gaol_core::invalid_action_error &) {
 	      ok = true;
-	  } catch (std::exception &) {
-	      // Should have been a std::domain_error.
+	  } catch (gaol_core::gaol_exception &) {
+	      // Should have been an invalid_action_error.
 	      // There is a problem here.
 	  }
 	  CPPUNIT_ASSERT(ok);
@@ -110,10 +110,10 @@ public:
 	  bool ok = false;
 	  try {	
 	      (void) nb_fp_numbers(GAOL_NAN,-5);
-	  } catch (std::domain_error &) {
+	  } catch (gaol_core::invalid_action_error &) {
 	      ok = true;
-	  } catch (std::exception &) {
-	      // Should have been a std::domain_error.
+	  } catch (gaol_core::gaol_exception &) {
+	      // Should have been an invalid_action_error.
 	      // There is a problem here.
 	  }
 	  CPPUNIT_ASSERT(ok);
@@ -122,10 +122,10 @@ public:
 	  bool ok = false;
 	  try {	
 	      (void) nb_fp_numbers(-5,GAOL_NAN);
-	  } catch (std::domain_error &) {
+	  } catch (gaol_core::invalid_action_error &) {
 	      ok = true;
-	  } catch (std::exception &) {
-	      // Should have been a std::domain_error.
+	  } catch (gaol_core::gaol_exception &) {
+	      // Should have been an invalid_action_error.
 	      // There is a problem here.
 	  }
 	  CPPUNIT_ASSERT(ok);
@@ -136,10 +136,10 @@ public:
 	  bool ok = false;
 	  try {	
 	      (void) nb_fp_numbers(GAOL_INFINITY,5);
-	  } catch (std::domain_error &) {
+	  } catch (gaol_core::invalid_action_error &) {
 	      ok = true;
-	  } catch (std::exception &) {
-	      // Should have been a std::domain_error.
+	  } catch (gaol_core::gaol_exception &) {
+	      // Should have been an invalid_action_error.
 	      // There is a problem here.
 	  }
 	  CPPUNIT_ASSERT(ok);
@@ -149,10 +149,10 @@ public:
 	  bool ok = false;
 	  try {	
 	      (void) nb_fp_numbers(5,GAOL_INFINITY);
-	  } catch (std::domain_error &) {
+	  } catch (gaol_core::invalid_action_error &) {
 	      ok = true;
-	  } catch (std::exception &) {
-	      // Should have been a std::domain_error.
+	  } catch (gaol_core::gaol_exception &) {
+	      // Should have been an invalid_action_error.
 	      // There is a problem here.
 	  }
 	  CPPUNIT_ASSERT(ok);
@@ -161,10 +161,10 @@ public:
 	  bool ok = false;
 	  try {	
 	      (void) nb_fp_numbers(GAOL_INFINITY,-5);
-	  } catch (std::domain_error &) {
+	  } catch (gaol_core::invalid_action_error &) {
 	      ok = true;
-	  } catch (std::exception &) {
-	      // Should have been a std::domain_error.
+	  } catch (gaol_core::gaol_exception &) {
+	      // Should have been an invalid_action_error.
 	      // There is a problem here.
 	  }
 	  CPPUNIT_ASSERT(ok);
@@ -173,10 +173,10 @@ public:
 	  bool ok = false;
 	  try {	
 	      (void) nb_fp_numbers(-5,GAOL_INFINITY);
-	  } catch (std::domain_error &) {
+	  } catch (gaol_core::invalid_action_error &) {
 	      ok = true;
-	  } catch (std::exception &) {
-	      // Should have been a std::domain_error.
+	  } catch (gaol_core::gaol_exception &) {
+	      // Should have been an invalid_action_error.
 	      // There is a problem here.
 	  }
 	  CPPUNIT_ASSERT(ok);

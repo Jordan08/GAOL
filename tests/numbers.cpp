@@ -395,7 +395,7 @@ namespace
     <0x1p-1074, 0x1p-1073> as [2^-1074, 2^-1073], which it refuses without
     the mode. A refused string is the empty set of
     gaol_ieee1788::textToInterval(), with or without exceptions, and the
-    std::invalid_argument of gaol::textToInterval(). With each mode the processor
+    input_format_error of gaol::textToInterval(). With each mode the processor
     honours that reads a subnormal as 0: denormals-are-zero on x86, FZ and FIZ
     on ARM, FZ with the FPU intervals of Visual C++ for 64-bit ARM too (GAOL v5, point F of
     TODO.md: denormals-are-zero alone, on x86).
@@ -432,7 +432,7 @@ namespace
           try {
             const interval x = textToInterval(std::string(t));
             (void)x;
-          } catch (const std::invalid_argument&) {
+          } catch (const gaol_core::input_format_error&) {
             threw = true;
           }
 #endif
@@ -440,7 +440,7 @@ namespace
         check("<a, b> of two subnormals with " + mode.name + ": refused, as without it", read.is_empty(),
               [&] { return std::string(t) + ": " + hex(read); });
 #if GAOL_EXCEPTIONS_ENABLED
-        check("<a, b> of two subnormals with " + mode.name + ": std::invalid_argument", threw,
+        check("<a, b> of two subnormals with " + mode.name + ": input_format_error", threw,
               [&] { return std::string(t); });
 #endif
       }
@@ -751,7 +751,7 @@ namespace
             [&] { return std::string("\"") + c.s + "\": " + hex(r); });
     }
 
-    // Not literals of IEEE 1788 (12.11.3): std::invalid_argument
+    // Not literals of IEEE 1788 (12.11.3): input_format_error
     /* An uncertain number is an interval literal of its own, not a bound:
        [5?1], and the uncertain numbers as bounds in the other forms, which
        the grammar reading every string as an expression accepted (GAOL v5) */
@@ -765,11 +765,11 @@ namespace
       try {
         const interval x = textToInterval(std::string(s));
         (void)x;
-      } catch (std::invalid_argument&) {
+      } catch (gaol_core::input_format_error&) {
         threw = true;
       } catch (...) {
       }
-      check("IEEE 1788 literals: std::invalid_argument for what is not one", threw, [&] { return std::string(s); });
+      check("IEEE 1788 literals: input_format_error for what is not one", threw, [&] { return std::string(s); });
     }
 #endif
 
@@ -888,11 +888,11 @@ namespace
       try {
         const interval x = textToInterval(std::string(s));
         (void)x;
-      } catch (std::invalid_argument&) {
+      } catch (gaol_core::input_format_error&) {
         threw = true;
       } catch (...) {
       }
-      check("textToInterval(number in base 16, 8 or 2): std::invalid_argument for what is not one", threw, [&] { return std::string(s); });
+      check("textToInterval(number in base 16, 8 or 2): input_format_error for what is not one", threw, [&] { return std::string(s); });
     }
 #endif
 
@@ -1556,8 +1556,8 @@ namespace
     try {
       std::rethrow_exception(e);
 #if GAOL_EXCEPTIONS_ENABLED
-    } catch (const std::invalid_argument&) {
-      return "std::invalid_argument";
+    } catch (const gaol_core::input_format_error&) {
+      return "input_format_error";
 #endif
     } catch (const std::ios_base::failure&) {
       return "std::ios_base::failure";
@@ -1950,13 +1950,13 @@ namespace
   /*
     operator>> reads an interval from a line. At the end of the input it sets
     failbit, leaves the interval as it was and throws nothing, as for a double,
-    so that while (in >> x) ends there (GAOL v5): it threw std::invalid_argument
+    so that while (in >> x) ends there (GAOL v5): it threw input_format_error
     and emptied the interval, and such a loop always ended with an exception.
-    A line that is no interval sets failbit, then throws std::invalid_argument.
+    A line that is no interval sets failbit, then throws input_format_error.
     The blanks before the line, the end of the previous line included, are
     skipped, as before a number: a blank line was read as the empty text, which
     is no interval, so that a file ending with an empty line, or "in >> d >> x"
-    over "1.5\n[1, 2]\n", threw std::invalid_argument (GAOL v5).
+    over "1.5\n[1, 2]\n", threw input_format_error (GAOL v5).
     Before that, the sentry of any extraction is constructed: a stream that is
     not good is not read, nothing is consumed from it, and the stream tied to
     the input is flushed before the first character is read.
@@ -1993,7 +1993,7 @@ namespace
             [&] { return std::string(threw ? "threw, " : "") + (in.fail() ? "failbit, " : "no failbit, ") + hex(x); });
     }
 #if GAOL_EXCEPTIONS_ENABLED
-    // A line the reader refuses: std::invalid_argument where GAOL raises
+    // A line the reader refuses: input_format_error where GAOL raises
     // exceptions; without them, the error ends the program
     {
       std::istringstream in("[1, 2\n");
@@ -2001,10 +2001,10 @@ namespace
       bool threw = false;
       try {
         in >> x;
-      } catch (const std::invalid_argument&) {
+      } catch (const gaol_core::input_format_error&) {
         threw = true;
       }
-      check("operator>> of a line that is no interval: failbit, then std::invalid_argument",
+      check("operator>> of a line that is no interval: failbit, then input_format_error",
             threw && in.fail() && x.is_empty(),
             [&] { return std::string(threw ? "threw, " : "nothing thrown, ") + (in.fail() ? "failbit, " : "no failbit, ") + hex(x); });
     }
@@ -2016,14 +2016,14 @@ namespace
       bool threw = false;
       try {
         in >> x;
-      } catch (const std::invalid_argument&) {
+      } catch (const gaol_core::input_format_error&) {
         threw = true;
       }
-      check("operator>> of a line the reader refuses as it reads it: failbit, then std::invalid_argument",
+      check("operator>> of a line the reader refuses as it reads it: failbit, then input_format_error",
             threw && in.fail() && x.is_empty(),
             [&] { return std::string(threw ? "threw, " : "nothing thrown, ") + (in.fail() ? "failbit, " : "no failbit, ") + hex(x); });
     }
-    // A stream whose exceptions include failbit gets std::invalid_argument, the
+    // A stream whose exceptions include failbit gets input_format_error, the
     // error of the line, rather than std::ios_base::failure
     {
       std::istringstream in("[1, 2\n");
@@ -2032,12 +2032,12 @@ namespace
       bool format_error = false;
       try {
         in >> x;
-      } catch (const std::invalid_argument&) {
+      } catch (const gaol_core::input_format_error&) {
         format_error = true;
       } catch (...) {
       }
-      check("operator>> of a line that is no interval, on a stream throwing on failbit: std::invalid_argument",
-            format_error && in.fail(), [&] { return std::string(format_error ? "std::invalid_argument" : "another exception"); });
+      check("operator>> of a line that is no interval, on a stream throwing on failbit: input_format_error",
+            format_error && in.fail(), [&] { return std::string(format_error ? "input_format_error" : "another exception"); });
     }
 #endif
 
@@ -2080,20 +2080,20 @@ namespace
             [&] { return std::string(threw ? "threw, " : "") + (in.fail() ? "failbit, " : "no failbit, ") + hex(x); });
     }
 #if GAOL_EXCEPTIONS_ENABLED
-    // Lines that are no interval: std::invalid_argument where GAOL raises
+    // Lines that are no interval: input_format_error where GAOL raises
     // exceptions; without them, the error ends the program
     // An interval written on two lines is two lines, of which the first is no interval
     {
       const loop_result r = read_intervals("\n[1,\n2]\n");
-      check("operator>> of an interval spread over two lines: failbit, then std::invalid_argument",
-            r.read.empty() && r.ended == "std::invalid_argument" && r.fail, [&] { return describe(r); });
+      check("operator>> of an interval spread over two lines: failbit, then input_format_error",
+            r.read.empty() && r.ended == "input_format_error" && r.fail, [&] { return describe(r); });
     }
     // A line that is no interval is refused after the blank lines that precede it
     {
       const loop_result r = read_intervals("[1, 2]\n\n\n[3, 4\n[5, 6]\n");
-      check("operator>> of a line that is no interval after blank lines: the intervals before, then std::invalid_argument",
+      check("operator>> of a line that is no interval after blank lines: the intervals before, then input_format_error",
             r.read.size() == 1 && r.read[0].left() == 1.0 && r.read[0].right() == 2.0 &&
-            r.ended == "std::invalid_argument" && r.fail,
+            r.ended == "input_format_error" && r.fail,
             [&] { return describe(r); });
     }
 #endif

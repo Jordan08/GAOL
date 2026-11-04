@@ -71,7 +71,6 @@
 #include <string>
 #include <utility>
 
-#include "gaol/gaol_common.h"
 #include "gaol/gaol_interval.h"
 #include "gaol/gaol_version.h"
 #include "gaol/parser/gaol_parser.h"
@@ -124,7 +123,7 @@ namespace gaol_ieee1788 {
   
   /*!
   textToInterval(s) for a C string (GAOL v5): the same, except for a null
-  pointer, which is no string and throws std::invalid_argument as
+  pointer, which is no string and throws input_format_error as
   gaol::textToInterval() does, where a string that is no interval gives the
   empty set. A null pointer given to the overload of std::string builds a
   std::string from it, which the standard leaves undefined. Without
@@ -291,14 +290,13 @@ namespace gaol_ieee1788 {
   
   /*!
   pownRev(c, x, p): nth_root_rel(c, p, x), for p >= 1. GAOL has no reverse
-  of pown for p <= 0, which throws std::domain_error (gaol_ERROR, as every
-  error of GAOL) rather than give an interval it has not computed. Without
-  exceptions, a message is printed and abort() called.
+  of pown for p <= 0, which throws std::invalid_argument rather than give an
+  interval it has not computed.
   */
   GAOL_NODISCARD inline interval pownRev(const interval& c, const interval& x, int p)
   {
     if (p < 1) {
-      gaol_ERROR(std::domain_error, "gaol_ieee1788::pownRev: p <= 0 is not provided by GAOL v5");
+      throw std::invalid_argument("gaol_ieee1788::pownRev: p <= 0 is not provided by GAOL v5");
     }
     return ::gaol_core::nth_root_rel(c, static_cast<unsigned int>(p), x);
   }
@@ -314,7 +312,7 @@ namespace gaol_ieee1788 {
   GAOL_NODISCARD inline interval pownRev(const interval& c, const interval& x, T p)
   {
     if (::gaol_detail::integer_is_negative(p) || p == 0) {
-      gaol_ERROR(std::domain_error, "gaol_ieee1788::pownRev: p <= 0 is not provided by GAOL v5");
+      throw std::invalid_argument("gaol_ieee1788::pownRev: p <= 0 is not provided by GAOL v5");
     }
     if (::gaol_detail::integer_fits<unsigned int>(p)) {
       return ::gaol_core::nth_root_rel(c, static_cast<unsigned int>(p), x);
@@ -513,7 +511,7 @@ namespace gaol_ieee1788 {
   
   //! exactToInterval(s): textToInterval(s)
   GAOL_NODISCARD inline interval exactToInterval(const std::string& s) { return textToInterval(s); }
-  //! exactToInterval(s) for a C string: textToInterval(s), which throws std::invalid_argument for a null pointer (GAOL v5)
+  //! exactToInterval(s) for a C string: textToInterval(s), which throws input_format_error for a null pointer (GAOL v5)
   GAOL_NODISCARD inline interval exactToInterval(const char* s) { return textToInterval(s); }
   
   /*!

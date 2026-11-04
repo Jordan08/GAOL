@@ -1791,7 +1791,9 @@ intervals GAOL v5 adds (\code{exp2}, \code{log2}, \code{hypot}, \code{trunc},
 
 \noindent
 Some names are in \code{gaol\_core} only, and a program names them there:
-\code{gaol\_core::rnd\_keep}, for instance.\newinvfive{} They are
+\code{gaol\_core::rnd\_keep}, for instance.\newinvfive{} They are the exceptions
+(\code{gaol\_exception}, \code{input\_format\_error},
+\code{invalid\_action\_error} and \code{unavailable\_feature\_error}),
 \code{rnd\_keep()} (GAOL v5 adds it, and had it in \code{gaol} in its 4.3
 releases; GAOL~4 has none), \code{NaN\_val}, \code{eval\_stack},
 \code{parse\_interval()} and \code{parsing\_names}.
@@ -2215,22 +2217,22 @@ The functional division is the right one where $F'(X)$ holds no 0.
 %%.........................
 \cindex{textToInterval@\code{textToInterval}!errors}%
 
-\code{gaol::textToInterval()} throws \code{std::invalid\_argument} for a text that
-is no interval, and \code{std::domain\_error} for a text that is one but
+\code{gaol::textToInterval()} throws \code{input\_format\_error} for a text that
+is no interval, and \code{invalid\_action\_error} for a text that is one but
 calls a function with an argument it does not take, such as
 \code{nth\_root(8, 1.5)}, whose order is not an integer: a loop that catches the
-first lets the second escape. Both derive from \code{std::logic\_error}
+first lets the second escape. Both derive from \code{gaol\_exception}
 (Chapter~\ref{chap:errors}).\newinvfive
 
 \begin{example}
 try {
   cout << textToInterval("nth_root(8, 1.5)");
-} catch (const std::invalid_argument&) {
-  cout << "std::invalid_argument";
-} catch (const std::domain_error&) {
-  cout << "std::domain_error";
+} catch (const gaol_core::input_format_error&) {
+  cout << "input_format_error";
+} catch (const gaol_core::invalid_action_error&) {
+  cout << "invalid_action_error";
 }
-@outputs^std::domain_error~
+@outputs^invalid_action_error~
 \end{example}
 
 \noindent
@@ -2246,7 +2248,7 @@ cout << gaol_ieee1788::textToInterval("[1, 2") << ' '
 
 \noindent
 A null pointer is no text, and the \code{textToInterval()} of both namespaces
-and \code{exactToInterval()} throw \code{std::invalid\_argument} for it:
+and \code{exactToInterval()} throw \code{input\_format\_error} for it:
 \code{textToInterval(nullptr)}, \code{textToInterval(std::getenv("UNSET"))}
 and \code{gaol\_ieee1788::exactToInterval(nullptr)} do not reach the reader.
 Their argument is a \code{const std::string\&}, which the call builds from the
@@ -2493,7 +2495,7 @@ interval x = textToInterval("[-23, inf]"),
          y = textToInterval("[5*0.1+dmin, 89*sinh(2.1)]");
   \end{example}
   If the input string does not comply with the expected format, the exception
-  \code{std::invalid\_argument} is thrown if the library was compiled with
+  \code{gaol::input\_format\_error} is thrown if the library was compiled with
   exception support, which the CMake build always is; in the absence of exception
   support, the \code{errno} variable is set to \code{-1}, and the
   \code{gaol\_error()} function prints an error message before the program
@@ -2501,7 +2503,7 @@ interval x = textToInterval("[-23, inf]"),
   \code{gaol\_ieee1788} reads the names of the functions of the standard, and
   returns the empty set instead (Chapter~\ref{chap:ieee1788}). A null pointer
   is no string: the overload for a \code{const char*}, which
-  \code{textToInterval(nullptr)} reaches, throws \code{std::invalid\_argument} in
+  \code{textToInterval(nullptr)} reaches, throws \code{input\_format\_error} in
   both namespaces, and the same error without exception support (a message,
   then \code{abort()}).\newinvfive
 
@@ -2523,7 +2525,7 @@ interval x = textToInterval("[-23, inf]"),
  @rem^// x=[-4,4]~
  interval x = textToInterval("[-5,4]+1","[4,6]-[2,3]");
   \end{example}
-  It is in the namespace \code{gaol}, and throws \code{std::invalid\_argument}
+  It is in the namespace \code{gaol}, and throws \code{input\_format\_error}
   as \code{textToInterval(\var{s})} does, for a null pointer in either place
   too. It takes the place of the
   constructor from two strings of GAOL~4, which kept the bounds
@@ -2598,7 +2600,7 @@ cout << textToInterval("inf") << ' ' << textToInterval("[inf]") << ' '
      << textToInterval("[-inf, -inf]") << endl;
 @outputs^[1.797693134862315e+308, inf] [empty] [empty]~
 \end{example}
-The string \element{"<-inf, -inf>"} throws \code{std::invalid\_argument}, its two
+The string \element{"<-inf, -inf>"} throws \code{input\_format\_error}, its two
 bounds being different values (\pxref{sec:input-format}).
 
 \section{Straight assignment}\label{sec:assignment}
@@ -4740,7 +4742,7 @@ cout << interval(4,5).split_right();
   unbounded interval: a half-line is cut at the largest double or at its
   opposite, the whole line at 0. The empty set gives two empty sets, and a
   point interval itself twice. A ratio outside $(0,1)$, or NaN, throws
-  \code{std::domain\_error}.\newinvfive
+  \code{invalid\_action\_error}.\newinvfive
   \begin{example}
 std::pair<interval, interval> p = interval(0,4).bisect(0.25);
 cout << p.first << ' ' << p.second;
@@ -4819,14 +4821,14 @@ cout << hull(interval(1,2), interval(4,5)) << ' '
   which keeps a number from skipping them: an empty line, or one holding only
   blanks, is never a line to read. An interval cannot be written on several
   lines. If the line is syntactically ill-formed, \var{I} is set
-  to the empty set, and a \code{std::invalid\_argument} exception is thrown
+  to the empty set, and an \code{input\_format\_error} exception is thrown
   (\pxref{sec:exceptions}) if the library was compiled with exceptions
   enabled (\pxref{sec:configuration}); alternatively, it prints an
   error message to \code{cerr} and aborts if exceptions were disabled.
   An ill-formed line also sets the \code{failbit} of
   \var{in}, which \code{in.clear()} resets before reading on; a function
   called with an argument it does not take throws
-  \code{std::domain\_error} instead. Where no line is left, \var{in} gets
+  \code{invalid\_action\_error} instead. Where no line is left, \var{in} gets
   its \code{failbit}, \var{I} is left as it was, and nothing is thrown, as
   for a number: \code{while (in >{}> x)} reads the lines one after the other,
   the blank ones skipped, and ends with the input, a file ending with an empty
@@ -4946,11 +4948,11 @@ second \code{?}), an optional direction, \code{u} or \code{d}, which keeps only
 the radius above or below, and an optional exponent: \code{3.56?1} is
 \itv{3.55}{3.57}, \code{3.56?1e2} is \itv{355}{357}, and \code{-10??u} is
 \itv{-10}{+\infty}.\newinvfive{} It is an interval literal of its own, not a
-bound: \code{"[5?1]"} and \code{"[1, 3.56?1]"} throw \code{std::invalid\_argument},
+bound: \code{"[5?1]"} and \code{"[1, 3.56?1]"} throw \code{input\_format\_error},
 as IEEE 1788-2015 has it (12.11.4), while \code{"3.56?1*2"} is
 \itv{7.1}{7.14}. A sign written next to an uncertain number, as
 \code{10-3.56?1} or \code{10+3.56?1}, is read as a part of the number, and
-the text throws \code{std::invalid\_argument}, as does \code{10 -3.56?1}: a
+the text throws \code{input\_format\_error}, as does \code{10 -3.56?1}: a
 blank is needed after the sign, \code{10 - 3.56?1}.\newinvfive
 
 \paragraph{Functions.} A \NT{name} is the name of a function of GAOL, with
@@ -4981,9 +4983,9 @@ Each is the function of GAOL of that name (Chapters~\ref{chap:arithmetic}
 and~\ref{chap:functions}); \code{pow} is the \code{pow} of the namespace \code{gaol}
 (\pxref{sec:powers}), and \code{cbrt(x)} is \code{nth\_root(x,3)}. A name that
 is not in the list, or a call with a wrong number of arguments, throws
-\element{std::invalid\_argument}. The second argument of \code{nth\_root} shall
+\element{input\_format\_error}. The second argument of \code{nth\_root} shall
 be a point interval that can be evaluated as an integer, negative ones
-included; otherwise, a \element{std::domain\_error} exception is thrown
+included; otherwise, an \element{invalid\_action\_error} exception is thrown
 (or an error is reported, depending on whether exceptions were enabled or not
 at configuration time---\pxref{sec:configuration}).\newinvfive{} The integer
 may be of any size a double holds: \code{"nth\_root(8,3000000000)"} is
@@ -5018,7 +5020,7 @@ less, in the other bases), and bounds that are computed, as
 lower bound of the first to the upper bound of the second.
 The two bounds in the string ``\element{<a, b>}'' must be expressions
 that evaluate to the same double even for different rounding directions: an
-\element{std::invalid\_argument} exception is raised otherwise, as for
+\element{input\_format\_error} exception is raised otherwise, as for
 \code{"<0.1, 0.1>"}, a number that is not a double being no bound of
 \code{<a, b>}.\newinvfive{} \code{"<0.1, 0x1.9999999999999p-4>"}, the double
 just below $0.1$, was read as the point $[$\code{0x1.9999999999999p-4}$]$.
@@ -5026,7 +5028,7 @@ A bound that is computed is a double when its value is a point, as
 \code{0.5}, \code{(0.25+0.25)} and \code{[0.5]} are; \code{"<[0.1],
 0x1.9999999999999p-4>"} and \code{"<0x1.5555555555556p-2, 1/3>"}, whose first
 or second bound has the two doubles around the number for its value, throw
-\code{std::invalid\_argument} too, where they were read as the point of the
+\code{input\_format\_error} too, where they were read as the point of the
 other bound.\newinvfive{}
 The two doubles are compared by their bits, $-0$ and $+0$
 being the same bound, so that the mode of the processor that reads the
@@ -5069,7 +5071,7 @@ that follows them is read.
 About 10000 nested parentheses, brackets or signs, 5000 nested calls of one
 argument and 3300 levels of \code{1+(1+(\ldots))} are read; a string nested
 deeper is refused as any string that is not an expression, and throws
-\element{std::invalid\_argument}.
+\element{input\_format\_error}.
 
 A \code{std::string}, given to \code{textToInterval()} or read by
 \code{operator>{}>}, is read whole: a NUL character is no character of any
@@ -5080,7 +5082,7 @@ was \itv{1}{2}, and a string of $2^{32}+3$ characters was read as its first
 length of a string in an \code{int}.
 
 \paragraph{Errors.} A string that is not an expression throws
-\element{std::invalid\_argument}. An error found anywhere in the string stops the
+\element{input\_format\_error}. An error found anywhere in the string stops the
 reading, and no interval is given: \code{"[nth\_root(8,1.5)]+[1,2]"} throws,
 where the two grammars of GAOL~4 gave \itv{-\infty}{+\infty}.\newinvfive{}
 Where memory runs out, the reading throws \code{std::bad\_alloc}, and frees
@@ -5234,7 +5236,7 @@ refuses \code{[0,5, 2,5]}.\newinvfive{} GAOL~4 printed every
 degenerate interval between angles, the text of its value rounded downward and
 upward: \code{interval(4)} was \code{<4, 4>}, a form of GAOL that is no literal
 of the standard, and \code{interval(0.1)} \code{<0.1, 0.1000000000000001>}, which its
-reader refused (\code{std::invalid\_argument}), the angles standing for one
+reader refused (\code{input\_format\_error}), the angles standing for one
 double only. The reader still takes the angles (\pxref{sec:input-format}): a
 text such as \code{<4, 4>}, written by GAOL~4, is read back.
 
@@ -5512,8 +5514,8 @@ The functions of GAOL that have the name and the meaning the standard gives them
   functions of the standard, and return the empty set for a string that is no
   interval (12.1.3), where \code{gaol::textToInterval} reads the names of
   GAOL and throws (\pxref{sec:ieee1788-text}); a null pointer is no string,
-  and they throw \code{std::invalid\_argument} for it too;\newinvfive
-\item \code{pownRev(c, x, p)} throws \code{std::domain\_error} for
+  and they throw \code{input\_format\_error} for it too;\newinvfive
+\item \code{pownRev(c, x, p)} throws \code{std::invalid\_argument} for
   $p\leq0$, which GAOL does not provide, rather than give an interval it has
   not computed. Its $p$, and the $q$ of \code{rootn(x, q)}, may be of any
   integer type: \code{pownRev(c, 3000000000u)} converted $p$ to a negative
@@ -5666,7 +5668,7 @@ not.\newinvfive{} Without them, a wrong call ended the program. Where memory
 runs out, \code{textToInterval} throws \code{std::bad\_alloc}, which it
 turned into the empty set. As \code{pow}, the function
 \code{textToInterval} is in the namespace \code{gaol} too, where it reads the
-names of GAOL and throws \code{std::invalid\_argument} for a wrong string: a
+names of GAOL and throws \code{input\_format\_error} for a wrong string: a
 program calls the one of the namespace it opens.
 
 \begin{example}
@@ -6011,7 +6013,7 @@ The result is an \code{unsigned long long}, where GAOL~4 named its type with the
 macro \code{ULONGLONGINT}, which GAOL v5 no longer defines, as it prefixes
 with \code{GAOL\_} the macros of its headers.\newinvfive
 
-Throws a \code{std::domain\_error} exception (\pxref{sec:exceptions}) if
+Raises an \code{invalid\_action\_error} exception (\pxref{sec:exceptions}) if
 either \var{a} or \var{b} is a NaN or an infinity, or if \var{a} is greater than
 \var{b}, or calls \code{gaol\_error} and aborts where the exceptions are
 disabled: it returns no number then, where this manual gave
@@ -6111,11 +6113,9 @@ A program that uses GAOL may report errors in two different ways:
 \item or by printing a message and aborting.
 \end{itemize}
 
-The exceptions are those of the standard library, declared in
-\code{<stdexcept>}. GAOL~4 had classes of its own (\code{gaol\_exception},
-\code{input\_format\_error}, \code{invalid\_action\_error} and
-\code{unavailable\_feature\_error}), which GAOL v5 no longer has
-(\pxref{sec:exceptions}).\newinvfive
+The exception classes below are in the namespace \code{gaol\_core}, which
+\code{gaol} does not name: a handler writes
+\code{gaol\_core::input\_format\_error}, for instance.\newinvfive
 
 The mechanism in use depends on the way the library is configured. If
 you use the option \option{-{}-enable-exceptions=yes}, the default, all errors are
@@ -6130,11 +6130,9 @@ whenever one wants to report an error.
 
 \begin{defmacroA}{gaol\_ERROR}{(\var{excep},\var{msg})}
   The behavior of the macro depends on the value chosen for the option
-  \option{-{}-enable-exceptions}: if exceptions are enabled, an exception of
-  the class \var{excep}, one of \code{<stdexcept>}, is thrown with the text
-  ``\code{file:line: }\var{msg}'', \code{file} and \code{line} being those of
-  the macro (\code{\_\_FILE\_\_} and \code{\_\_LINE\_\_}); otherwise, the
-  program aborts with message \var{msg}.\newinvfive
+  \option{-{}-enable-exceptions}: if exceptions are enabled, exception
+  \code{gaol\_core::\var{excep}} is raised with the message \var{msg}; otherwise, the
+  program aborts with message \var{msg}.
 
 \begin{example}
 interval x;
@@ -6142,7 +6140,7 @@ interval x;
 @emph^[Code manipulating x]~
 
 if (x.is_empty()) {
-   gaol_ERROR(std::domain_error,"Emptiness of one interval");
+   gaol_ERROR(invalid_action_error,"Emptiness of one interval");
 }
 \end{example}
 \end{defmacroA}
@@ -6163,85 +6161,151 @@ The \code{GAOL\_FILE\_POS} macro is described in the next section.
 \section{Exceptions}\label{sec:exceptions}
 %%------------------
 
-GAOL throws the exceptions of the standard library, and none of its own.\newinvfive{}
-It throws two of them to report an error:
-\begin{itemize}
-\item \code{std::invalid\_argument}, when a string is no interval
-  (\pxref{sec:invalid_argument});
-\item \code{std::domain\_error}, when a function is called with an argument it
-  does not take (\pxref{sec:domain_error}), as \code{pownRev()} of
-  \code{gaol\_ieee1788} is for $p\leq0$.
-\end{itemize}
-Both derive from \code{std::logic\_error}, which derives from
-\code{std::exception}. A single handler of \code{std::logic\_error} catches both,
-but the handler of one leaves the other alone, and none of them catches the
-\code{std::bad\_alloc} that GAOL throws where memory runs out.
-
-The \code{what()} of these exceptions is ``\code{file:line: }\var{explanation}'':
-the name of the source file of GAOL, without its directories, and the line that
-threw the exception, then what went wrong, as in
-\code{gaol\_interval.cpp:48: Syntax error in interval initialization:
-[1, 2}. For the errors that the reader of strings finds in a call, the file is
-that of the grammar, \code{gaol\_interval\_parser.ypp}, and the line one of that
-file, which the directives \code{\#line} of the generated parser give. A
-handler of \code{std::exception}, and the message of an exception that nothing
-catches, say what went wrong, where GAOL~4 gave \code{std::exception} whatever
-the error. The text is valid as long as the exception is.
+The library defines \code{gaol\_exception} as a class to be used as a base
+class for all GAOL exceptions.
+All of them provide at least the name of the file and the line number from
+where the exception has been thrown. As a facility, GAOL defines the following
+macro:
 
 \begin{defmacro}{GAOL\_FILE\_POS}
-Expands itself into the first two arguments of \code{gaol\_error()} and
-\code{gaol\_warning()}, the name of the file and the line:
+Expands itself into the first two arguments of any constructor for
+\code{gaol\_exception} or one of its derived classes:
 
 \begin{example}
 if (@emph^[some condition]~) {
-  gaol_error(GAOL_FILE_POS, "No additional information");
+  throw gaol_core::gaol_exception(GAOL_FILE_POS,
+                                  "No additional information");
 }
 \end{example}
 \end{defmacro}
 
-\noindent
-What GAOL~4 had is gone: the base class \code{gaol\_exception}, its accessors
-\code{file()}, \code{line()} and \code{explanation()}, and the ``\code{<{}<}''
-operator that wrote them. The classes become those of the standard library:
-\begin{itemize}
-\item \code{gaol\_core::input\_format\_error} becomes
-  \code{std::invalid\_argument};
-\item \code{gaol\_core::invalid\_action\_error} becomes
-  \code{std::domain\_error}.
-\end{itemize}
-\noindent
-What \code{explanation()} gave follows the file and the line in \code{what()}.
-\code{unavailable\_feature\_error} was thrown by no operation of GAOL v5:
-\code{atan2()}, which did, is implemented.\newinvfive
+All GAOL exceptions can be sent to an output stream through the ``\code{<{}<}''
+operator, which writes the name of the file, the line and the explanation, as
+in \code{file.cpp, line 12:\ exception thrown:\ some explanation}, and nothing
+after \code{thrown} if there is no explanation.\newinvfive
 
-\subsection{The \code{std::invalid\_argument} exception}\label{sec:invalid_argument}
-%%.........................................................
-The \code{std::invalid\_argument} exception is thrown whenever one attempts to
+\subsection{The \code{gaol\_exception} exception}\label{sec:gaol_exception}
+%%...............................................
+The \code{gaol\_exception} class is the base class from which derive all
+GAOL exceptions. It inherits from the C++ standard class \code{exception},
+and overrides its \code{what()} method.\newinvfive
+
+Every exception class deriving from it must at least provide the name of
+the file and the line where the corresponding exception was thrown. As a
+consequence, the constructors for \code{gaol\_exception} are as follows:
+
+\defmethodx{gaol\_exception}{}{gaol\_exception}{(const char* \var{f}, unsigned \var{l})}
+\defmethodx{gaol\_exception}{}{gaol\_exception}{(const char* \var{f}, unsigned \var{l}, \\\hbox{}\hfill const char* \var{e})}
+\begin{defmethod}{gaol\_exception}{}{gaol\_exception}{(const char* \var{f}, unsigned \var{l}, \\\hbox{}\hfill const std::string\& \var{e})}
+Constructs a \code{gaol\_exception} being thrown from file \var{f} at
+line \var{l}. The second and third forms permit adding some explanatory
+string \var{e}. A null pointer \var{e} is no explanation.\newinvfive{} A null
+pointer \var{f} is no file name: the exception reports the file
+\code{(unknown file)}, so that \code{file()} is not a null pointer and the
+``\code{<{}<}'' operator does not send one to a stream, which the C++
+standard leaves undefined (libstdc++ puts it in the state bad).\newinvfive
+\end{defmethod}
+
+\noindent
+The class offers the following accessors:
+
+\begin{defmethod}{gaol\_exception}{const char*}{file}{(void) const}
+  Return the name of the file from where the exception was thrown,
+  \code{(unknown file)} for a null pointer given to the constructor, never a
+  null pointer.\newinvfive
+\end{defmethod}
+
+\begin{defmethod}{gaol\_exception}{unsigned int}{line}{(void) const}
+  Returns the line number in the file from where the exception was thrown.
+\end{defmethod}
+
+\begin{defmethod}{gaol\_exception}{std::string}{explanation}{(void) const}
+  Returns a string explaining why the exception was thrown. Returns an empty
+  string if no additional information was provided.
+\end{defmethod}
+
+\begin{defmethod}{gaol\_exception}{const char*}{what}{(void) const noexcept}
+  Returns the explanation, as a C string, or the name of the class of the
+  exception (\code{gaol\_exception}, \code{input\_format\_error}\ldots) if no
+  additional information was provided or if the explanation starts with a
+  NUL character, so that it is never empty. It
+  overrides the \code{what()} of \code{std::exception}: a handler of
+  \code{std::exception}, and the message of an exception that nothing catches,
+  now say what went wrong, where GAOL~4 gave \code{std::exception} whatever the
+  error.\newinvfive{} The text is valid as long as the exception is.
+\end{defmethod}
+
+\subsection{The \code{input\_format\_error} exception}
+%%....................................................
+The \code{input\_format\_error} exception is thrown whenever one attempts to
 create an interval from an invalid string. This situation may occur when
 reading an interval from a stream with the \code{>{}>} operator, or when
 reading a string with \code{gaol::textToInterval()}, from one string or from
-two, a null pointer being no string. The example prints what follows the
-first colon and the blank of \code{what()}, the explanation, which the file
-and the line precede.
+two.
+
+This class, as all GAOL exceptions, derives from \code{gaol\_exception}
+(\pxref{sec:gaol_exception}). Its constructors have the same format
+than the ones for \code{gaol\_exception}, namely:
+
+\defmethodx{input\_format\_error}{}{input\_format\_error}{(const char* \var{f}, unsigned \var{l})}
+\defmethodx{input\_format\_error}{}{input\_format\_error}{(const char* \var{f}, unsigned \var{l}, const char* \var{e})}
+\begin{defmethod}{input\_format\_error}{}{input\_format\_error}{(const char* \var{f}, unsigned \var{l}, \\\hbox{}\hfill const std::string\& \var{e})}
+Constructs an \code{input\_format\_error} being thrown from file \var{f} at
+line \var{l}. The second and third forms permit adding some explanatory
+string \var{e}.
+\end{defmethod}
+The methods of the class are inherited from \code{gaol\_exception}
+(\pxref{sec:gaol_exception}).
 
 \begin{example}
 try {
   interval x = textToInterval("sin(1)+");
-} catch (const std::invalid_argument& e) {
-  string text = e.what();
-  cout << text.substr(text.find(": ") + 2);
+} catch (const gaol_core::input_format_error& e) {
+  cout << e.explanation();
 }
 @outputs^Syntax error in interval initialization: sin(1)+~
 \end{example}
 
-\subsection{The \code{std::domain\_error} exception}\label{sec:domain_error}
-%%-----------------------------------------------------
+\subsection{The \code{unavailable\_feature\_error} exception}
+%%---------------------------------------------------------
+
+This exception is thrown whenever an unavailable feature is requested. No
+operation of GAOL v5 throws it: \code{atan2()}, which did, is
+implemented.\newinvfive
+
+This class, as all GAOL exceptions, derives from \code{gaol\_exception}.
+(\pxref{sec:gaol_exception}). Its constructors have the same format
+than the ones for \code{gaol\_exception}, namely:
+
+\defmethodx{unavailable\_feature\_error}{}{unavailable\_feature\_error}{\\\hbox{}\hfill (const char* \var{f}, unsigned \var{l})}
+\defmethodx{unavailable\_feature\_error}{}{unavailable\_feature\_error}{\\\hbox{}\hfill (const char* \var{f}, unsigned \var{l}, const char* \var{e})}
+\begin{defmethod}{unavailable\_feature\_error}{}{unavailable\_feature\_error}{\\\hbox{}\hfill (const char* \var{f}, unsigned \var{l}, const std::string\& \var{e})}
+Constructs an \code{unavailable\_feature\_error} being thrown from file \var{f} at
+line \var{l}. The second and third forms permit adding some explanatory
+string \var{e}.
+\end{defmethod}
+
+The methods of the class are inherited from \code{gaol\_exception} (\pxref{sec:gaol_exception}).
+
+\subsection{The \code{invalid\_action\_error} exception}
+%%------------------------------------------------------
 
 This exception is thrown whenever a function is called with invalid arguments
-(e.g. calling \code{nb\_fp\_numbers()} with NaNs as parameters,
-\code{bisect()} with a ratio outside $(0, 1)$, or \code{pownRev()} of
-\code{gaol\_ieee1788} with $p\leq0$), or a string calls a function with an
-argument it does not take (\code{"nth\_root(8, 1.5)"}).
+(e.g. calling \code{nb\_fp\_numbers()} with NaNs as parameters).
+
+This class, as all GAOL exceptions, derives from \code{gaol\_exception}
+(\pxref{sec:gaol_exception}). Its constructors have the same format
+than the ones for \code{gaol\_exception}, namely:
+
+\defmethodx{invalid\_action\_error}{}{invalid\_action\_error}{(const char* \var{f},\\\hbox{}\hfill  unsigned \var{l})}
+\defmethodx{invalid\_action\_error}{}{invalid\_action\_error}{(const char* \var{f},\\\hbox{}\hfill  unsigned \var{l}, const char* \var{e})}
+\begin{defmethod}{invalid\_action\_error}{}{invalid\_action\_error}{(const char* \var{f},\\\hbox{}\hfill  unsigned \var{l}, const std::string\& \var{e})}
+Constructs an \code{invalid\_action\_error} being thrown from file \var{f} at
+line \var{l}. The second and third forms permit adding some explanatory
+string \var{e}.
+\end{defmethod}
+
+The methods of the class are inherited from \code{gaol\_exception} (\pxref{sec:gaol_exception}).
 
 
 \section{Warnings}
@@ -6482,8 +6546,8 @@ change with its reasons and its measures.
   the certainly relations (\pxref{sec:interval-relations}).
 \item The constructor from one string, \code{interval(const char*)}, is gone,
   and with it the conversion of a string wherever an interval is expected:
-  \code{textToInterval("0.1")} reads a string in its place, and throws as it
-  did; \code{x~=~"[1,~2]"} becomes
+  \code{textToInterval("0.1")} reads a string in its place, and throws
+  \code{input\_format\_error} as it did; \code{x~=~"[1,~2]"} becomes
   \code{x~=~textToInterval("[1,~2]")}, and \code{x~+~"0.1"} becomes
   \code{x~+~textToInterval("0.1")} (\pxref{sec:constructors}). The constructor
   from two strings is gone too: \code{interval("0.1",~"0.3")} becomes

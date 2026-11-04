@@ -1244,7 +1244,7 @@ configure_file(cmake/gaol_configuration.h.in "${CMAKE_CURRENT_BINARY_DIR}/gaol/g
 
 set(GAOL_SOURCES
   gaol_interval.cpp core/gaol_interval_core.cpp gaol_ieee1788.cpp gaol_common.cpp
-  parser/gaol_parser.cpp parser/gaol_expression.cpp gaol_port.cpp gaol_init_cleanup.cpp
+  parser/gaol_parser.cpp parser/gaol_expression.cpp gaol_port.cpp gaol_exceptions.cpp gaol_init_cleanup.cpp
   parser/gaol_interval_lexer.cpp
   parser/gaol_interval_parser.cpp
 )
@@ -1439,7 +1439,7 @@ install(TARGETS gaol EXPORT gaolTargets
 # gaol/gaol_config.h)
 set(GAOL_HEADERS
   gaol/gaol.h gaol/gaol_common.h
-  gaol/gaol_config.h
+  gaol/gaol_config.h gaol/gaol_exceptions.h
   gaol/gaol_fpu.h gaol/gaol_fpu_fenv.h gaol/gaol_fpu_msvc.h
   gaol/gaol_ieee1788.h gaol/gaol_interval.h
   gaol/gaol_port.h

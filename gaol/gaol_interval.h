@@ -65,8 +65,9 @@
     round_downward_sse(), round_to_nearest_sse() and round_upward_sse(), which
     its manual did not document) and rnd_reread(), gaol_sign_of(),
     rounding_guard and gaol_initializer;
-  - rnd_keep() (GAOL v5 adds it, and declared it in gaol in its 4.3
-    releases; GAOL 4 has none),
+  - the exceptions (gaol_exception, input_format_error,
+    unavailable_feature_error and invalid_action_error), rnd_keep() (GAOL v5
+    adds it, and declared it in gaol in its 4.3 releases; GAOL 4 has none),
     NaN_val of GAOL 4, which the macro GAOL_NAN names,
     eval_stack, and the reader of strings, parse_interval() and
     parsing_names.
@@ -224,14 +225,14 @@ namespace gaol {
     functions of GAOL (GAOL v5), where GAOL 4 had the constructor
     interval(const char*). The syntax of s is given in the section "Input
     format" of the manual of GAOL v5 (manual/v5/gaol.tex). A string that is
-    no interval throws std::invalid_argument. gaol_ieee1788 has its own, which
+    no interval throws input_format_error. gaol_ieee1788 has its own, which
     reads the names of IEEE 1788-2015 and gives the empty set for such a
     string: as for pow, a program opens one of the two namespaces.
   */
   GAOL_NODISCARD extern GAOL_PUBLIC interval textToInterval(const std::string& s);
   /*!
     textToInterval(s) for a C string (GAOL v5): the same, and a null pointer,
-    which is no string, throws std::invalid_argument. A null pointer given to the
+    which is no string, throws input_format_error. A null pointer given to the
     overload of std::string builds a std::string from it, which the standard
     leaves undefined (libstdc++ throws std::logic_error): this overload takes
     it before. textToInterval(std::getenv("UNSET")) and textToInterval(nullptr)
@@ -241,15 +242,15 @@ namespace gaol {
   /*!
     textToInterval(sl, sr): the left bound of the interval sl writes and the
     right bound of the one sr writes, which the constructor from two strings
-    of GAOL 4 gave; a string that is no interval throws std::invalid_argument, and
+    of GAOL 4 gave; a string that is no interval throws input_format_error, and
     so does a null pointer (GAOL v5), given as C string in either place
   */
   GAOL_NODISCARD extern GAOL_PUBLIC interval textToInterval(const std::string& sl, const std::string& sr);
-  //! \overload textToInterval(sl, sr) with C strings: a null pointer throws std::invalid_argument (GAOL v5)
+  //! \overload textToInterval(sl, sr) with C strings: a null pointer throws input_format_error (GAOL v5)
   GAOL_NODISCARD extern GAOL_PUBLIC interval textToInterval(const char* sl, const char* sr);
-  //! \overload textToInterval(sl, sr) with a C string and a std::string: a null pointer throws std::invalid_argument (GAOL v5)
+  //! \overload textToInterval(sl, sr) with a C string and a std::string: a null pointer throws input_format_error (GAOL v5)
   GAOL_NODISCARD extern GAOL_PUBLIC interval textToInterval(const char* sl, const std::string& sr);
-  //! \overload textToInterval(sl, sr) with a std::string and a C string: a null pointer throws std::invalid_argument (GAOL v5)
+  //! \overload textToInterval(sl, sr) with a std::string and a C string: a null pointer throws input_format_error (GAOL v5)
   GAOL_NODISCARD extern GAOL_PUBLIC interval textToInterval(const std::string& sl, const char* sr);
 
 } // namespace gaol
