@@ -1513,7 +1513,8 @@ namespace
     { "the exponentials and the logarithms", [] {
         return log(E()).is_empty() && exp2(E()).is_empty() && exp10(E()).is_empty() && log2(E()).is_empty()
           && log10(E()).is_empty() && expm1(E()).is_empty() && exp2m1(E()).is_empty() && exp10m1(E()).is_empty()
-          && log1p(E()).is_empty() && log2p1(E()).is_empty() && log10p1(E()).is_empty() && rsqrt(E()).is_empty(); } },
+          && log1p(E()).is_empty() && log2p1(E()).is_empty() && log10p1(E()).is_empty() && rsqrt(E()).is_empty()
+          && compoundm1(E(), X()).is_empty() && compoundm1(X(), E()).is_empty(); } },
     { "the trigonometric and hyperbolic functions", [] {
         return cos(E()).is_empty() && sin(E()).is_empty() && tan(E()).is_empty() && acos(E()).is_empty()
           && asin(E()).is_empty() && atan(E()).is_empty() && atan2(E(), X()).is_empty() && atan2(X(), E()).is_empty()
@@ -4174,6 +4175,7 @@ int main()
       { "x / y", 2, [](const interval& x, const interval& y, const interval&) { return x / y; } },
       { "x % y", 2, [](const interval& x, const interval& y, const interval&) { return x % y; } },
       { "hypot(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return hypot(x, y); } },
+      { "compoundm1(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return compoundm1(x, y); } },
       { "atan2(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return atan2(x, y); } },
       { "atan2pi(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return atan2pi(x, y); } },
       { "pow(x, y)", 2, [](const interval& x, const interval& y, const interval&) { return gaol::pow(x, y); } },

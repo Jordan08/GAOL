@@ -154,6 +154,7 @@ namespace gaol_names
   GAOL_NAMES_BINARY(atan2);
   GAOL_NAMES_BINARY(atan2pi);
   GAOL_NAMES_BINARY(hypot);
+  GAOL_NAMES_BINARY(compoundm1);
   GAOL_NAMES_BINARY(hull);
   GAOL_NAMES_BINARY(intersect);
   GAOL_NAMES_BINARY(cancel_minus);
@@ -584,6 +585,7 @@ public:
     TEST_SEQ(gaol::trunc(interval(-1.5, 2.5)), interval(-1.0, 2.0));
     TEST_SEQ(gaol::sign(interval(-2.0, 3.0)), interval(-1.0, 1.0));
     TEST_SEQ(gaol::hypot(interval(3.0), interval(4.0)), interval(5.0));
+    TEST_SEQ(gaol::compoundm1(interval(1.0), interval(3.0)), interval(7.0));
     TEST_SEQ(gaol::pow(interval(-2.0), 3), interval(-8.0));
     TEST_SEQ(gaol::nth_root(interval(8.0), 3u), interval(2.0));
     TEST_SEQ(gaol::operator|(interval(1.0), interval(3.0)), interval(1.0, 3.0));

@@ -16,7 +16,7 @@
 # gone: they are among these (GAOL v5).
 gaol_tests = [
   'arithmetic', 'elementary', 'rounding_direction', 'numbers', 'other_functions',
-  'ieee1788', 'reverse', 'u128', 'core_math', 'expressions', 'extended_precision',
+  'ieee1788', 'reverse', 'u128', 'core_math', 'compoundm1', 'expressions', 'extended_precision',
   'static_initialization', 'debugging', 'fast_math_link',
   # The cases of the unit tests of IBEX and Codac on their intervals (GAOL v5)
   'test_ibex_codac',

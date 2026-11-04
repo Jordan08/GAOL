@@ -395,6 +395,7 @@ namespace
     same("log2p1([0,1])", log2p1(u));
     same("log10p1([0,1])", log10p1(u));
     same("hypot([1,2],[3,4])", hypot(v, w));
+    same("compoundm1([1,2],[3,4])", compoundm1(v, w));
     same("rsqrt([1,2])", rsqrt(v));
     same("sinpi([0,1])", sinpi(u));
     same("cospi([0,1])", cospi(u));

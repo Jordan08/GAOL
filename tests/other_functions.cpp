@@ -1223,6 +1223,7 @@ namespace
           std1788::logp1(x).set_eq(log1p(x)) && std1788::log2p1(x).set_eq(log2p1(x))
           && std1788::log10p1(x).set_eq(log10p1(x)) && std1788::rSqrt(x).set_eq(rsqrt(x))
           && std1788::asinPi(x).set_eq(asinpi(x)) && std1788::hypot(x, y).set_eq(hypot(x, y))
+          && std1788::compoundm1(x, y).set_eq(compoundm1(x, y))
           && std1788::atan2Pi(y, x).set_eq(atan2pi(y, x)) && std1788::atan2Pi(interval(1.0), interval(-1.0)).set_eq(interval(0.75)),
           [] { return std::string(); });
 
