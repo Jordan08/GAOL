@@ -4118,7 +4118,9 @@ cout << sqrt_rel(interval(1,4), interval::universe()) << ' '
   \var{I} between them), and $0$, which the roots reach where \var{J} is
   unbounded, is no solution. The bounds are those of \code{nth\_root(J, p)}, the
   root and then its inverse: up to four doubles beyond the tightest ones for
-  $p<0$.
+  $p<0$. An exponent of type \code{double} or \code{float} is refused at
+  compile time: it was converted to an \code{unsigned int}, which cut $2.5$ to
+  $2$.
 \begin{example}
 interval J(1,16);
 cout << nth_root_rel(J, 4, interval::universe()) << ' '

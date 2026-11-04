@@ -1836,6 +1836,16 @@ GAOL_NODISCARD extern GAOL_PUBLIC   interval nth_root_rel(const interval& J, uns
   */
 GAOL_NODISCARD extern GAOL_PUBLIC   interval nth_root_rel(const interval& J, int p, const interval& I);
   /*!
+    \brief nth_root_rel(J, p, I) with a floating-point p is refused (GAOL v5)
+
+    A double was converted to an unsigned int, cutting 2.5 to 2 and giving a
+    negative p a root of an order beyond 2^31. With the overload of an int
+    next to that of an unsigned int, the call is ambiguous, as nth_root(I,
+    2.0) is: deleted, the error says that the exponent is no integer. A float
+    is promoted to a double.
+  */
+  interval nth_root_rel(const interval& J, double p, const interval& I) = delete;
+  /*!
     \brief nth root of I for a positive n
 
     rootn of IEEE 1788-2015: for an odd n, the root of a negative x is

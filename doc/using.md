@@ -741,7 +741,9 @@ reach 0 where K is unbounded, 0 being a limit there and no solution:
 `nth_root_rel([1, +oo], -2, [0])` is empty, and `nth_root_rel([1, +oo], -2,
 [0, 3])` is [0, 1]. The bounds are those of `nth_root(K, n)`, the root and then
 its inverse: up to 4 doubles beyond the tightest ones for n < 0 (see
-[Accuracy of the operations](accuracy.md)).
+[Accuracy of the operations](accuracy.md)). An exponent of type `double` or
+`float` is refused at compile time, as the ambiguous `nth_root(x, 2.0)` is: it
+was converted to an `unsigned int`, which cut 2.5 to 2.
 
 ```cpp
 #include <iostream>
