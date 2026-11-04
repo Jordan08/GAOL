@@ -7,10 +7,10 @@ propose une pull request, et comment on tient les registres à jour une fois la
 pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
-en cours, ce qui reste) est au §12. Dernière mise à jour : 3 novembre 2026, au
-commit `60aa5b3` de `configure-clean` (la fusion de #281, après celles de #217 à
-#220, #222 à #225, #227 à #232, #234 à #239, #242, #245, #248 à #250, #262 à
-#276, #279, #280, #282, #283 et #284).
+en cours, ce qui reste) est au §12. Dernière mise à jour : 4 novembre 2026, au
+commit `221c8d4` de `configure-clean` (la fusion de la branche `std-exceptions`,
+après celles de #217 à #220, #222 à #225, #227 à #232, #234 à #239, #242, #245,
+#248 à #250, #262 à #276 et #279 à #285).
 
 ## 1. Le contexte
 
@@ -742,7 +742,7 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   `bash -e`, un `! grep ...` au milieu d'une étape ne la fait pas échouer (seule
   la dernière commande donne son statut) : écris un `if` explicite.
 
-## 12. Où en est le travail (3 novembre 2026)
+## 12. Où en est le travail (4 novembre 2026)
 
 Le reste à faire est dans `TODO.md` (tâches PH, PJ et PK) et l'issue #179 ; ce
 qui est fait et décidé (pull requests fusionnées, décisions, mesures) est dans
@@ -799,28 +799,36 @@ git ls-remote --heads origin
   contre les résultats exacts, `tests/test_ibex_codac.cpp`, 3 905 vérifications)
   et #282 (`HOUSE_RULES.md` renvoie à `process.md` §6.1), avec #283 (les
   en-têtes de CORE-MATH dans `gaol/math/`) et #284 (les opérateurs de
-  `gaol_ieee1788`), décrits dans `TODO_DONE.md` (2.3 et 3.14) ; l'audit du 13
-  octobre a vérifié dans `configure-clean` ce qu'annonçaient alors les points A,
-  C à H et J à V.
-- **En cours** : au 3 novembre, aucune pull request n'est ouverte ;
-  `configure-clean` est au commit de la fusion de #281 (`60aa5b3`). Ses branches
-  sur GitHub sont `configure-clean`, `MATH-CORE` et `master`, avec les branches
-  des pull requests jetables fermées, gardées (`experiment-pg*`, voir
-  `TODO_DONE.md` 8.1), et deux branches fusionnées ou fermées que le mainteneur
-  supprime (`todo-pg-relations-order`, `todo-pg-xle-exfirst`). L'issue #198 (`x
-  / y` des intervalles NEON avec `FPCR.AH`) est ouverte, sans tâche dans
-  `TODO.md` ; #185 est fermée, le masquage des exceptions de `pow` est gardé.
-  L'issue #177 (`TODO_DONE.md`) n'est plus mise à jour (*décidé le 28 octobre*)
-  : GitHub borne le corps d'une issue à 262 144 octets et le texte joint en fait
-  plus de 270 000 (voir `TODO_DONE.md` 7.8).
+  `gaol_ieee1788`), décrits dans `TODO_DONE.md` (2.3 et 3.14), puis, le 4
+  novembre, #285 (hors des points, la tâche PL : GAOL lance
+  `std::invalid_argument` et `std::domain_error` à la place de `gaol_exception`
+  et de ses trois classes) et ses suites, fusionnées sans pull request
+  (`gaol_ERROR` refuse à la compilation ce qui ne dérive pas de
+  `std::exception`, `examples/examples.md`, `doc/compare`, `coverage/`),
+  décrites dans `TODO_DONE.md` (2.3 et 3.15) ; l'audit du 13 octobre a vérifié
+  dans `configure-clean` ce qu'annonçaient alors les points A, C à H et J à V.
+- **En cours** : au 4 novembre, la pull request #287 (`pown-rel`, hors des
+  points : `pownRev` pour p ≤ 0 par `nth_root_rel`) est ouverte ;
+  `configure-clean` est au commit `221c8d4`, la fusion de la branche
+  `std-exceptions` (après #285). Ses branches sur GitHub sont `configure-clean`,
+  `MATH-CORE` et `master`, avec celle de #287, les branches des pull requests
+  jetables fermées, gardées (`experiment-pg*`, voir `TODO_DONE.md` 8.1), et
+  quatre branches fusionnées ou fermées que le mainteneur supprime
+  (`todo-pg-relations-order`, `todo-pg-xle-exfirst`, `std-exceptions` et
+  `revert-285-std-exceptions`). L'issue #198 (`x / y` des intervalles NEON avec
+  `FPCR.AH`) est ouverte, sans tâche dans `TODO.md` ; #185 est fermée, le
+  masquage des exceptions de `pow` est gardé. L'issue #177 (`TODO_DONE.md`)
+  n'est plus mise à jour (*décidé le 28 octobre*) : GitHub borne le corps d'une
+  issue à 262 144 octets et le texte joint en fait plus de 270 000 (voir
+  `TODO_DONE.md` 7.8).
 - **À faire**, dans l'ordre de `TODO.md` : un `FE_INVALID` à décider (PK, avec
   Clang et les intervalles FPU), les signalements à d'autres projets (PH, avec
   l'accord du mainteneur), puis la version (PJ, qui reprend le tableau de Clang
   21, le manuel, les textes qui citent macOS 14, la compatibilité de licence des
-  cas d'IBEX et de Codac, à décider : #281, et les restes de #283 et de #284 :
-  les registres `doc/differences.md` et `ChangeLog`). Ce qui est reporté (le
-  113, le site, les traits pour YalAA et VNODE-LP, les décorations, ce qui
-  attend du matériel) est dans `TODO_AFTER.md`. Les dépendances entre points
-  sont écrites dans chaque tâche. Le mainteneur donne les tâches ou les points
-  un par un (« traite la tâche PF », « traite le point 129 ») : ne commence pas
-  le suivant sans lui.
+  cas d'IBEX et de Codac, à décider : #281, et les restes de #283, de #284 et de
+  #285 : les registres `doc/differences.md` et `ChangeLog`, et un cas de 12.12.7
+  à décider). Ce qui est reporté (le 113, le site, les traits pour YalAA et
+  VNODE-LP, les décorations, ce qui attend du matériel) est dans
+  `TODO_AFTER.md`. Les dépendances entre points sont écrites dans chaque tâche.
+  Le mainteneur donne les tâches ou les points un par un (« traite la tâche
+  PF », « traite le point 129 ») : ne commence pas le suivant sans lui.

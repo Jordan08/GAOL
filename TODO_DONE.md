@@ -1,7 +1,7 @@
 # Fait et décidé sur GAOL v5
 
-Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 3 novembre 2026
-(commit `60aa5b3` de `configure-clean`, aucune pull request ouverte : voir la
+Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 4 novembre 2026
+(commit `221c8d4` de `configure-clean`, la pull request #287 ouverte : voir la
 section 1). Ce fichier fait foi : l'issue #177, qui avait le même contenu, n'est
 plus mise à jour depuis le 28 octobre (voir 7.8).
 
@@ -48,67 +48,73 @@ est supprimé. Le reste du travail est dans deux autres registres :
   `16a2f60` (`todo-notes/`, ceux du 30 septembre dans `todo-notes/2026-09-30/`)
   ; la procédure suivie pour chaque point est dans `process.md`.
 
-Sommaire : 1. L'état au 3 novembre ; 2. Les pull requests ; 3. Les décisions,
+Sommaire : 1. L'état au 4 novembre ; 2. Les pull requests ; 3. Les décisions,
 par date ; 4. Les points faits, par lettre ; 5. Les anciens numéros faits ; 6.
 Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 `configure-clean` ; 8. Le ménage fait.
 
-## 1. L'état au 3 novembre 2026
+## 1. L'état au 4 novembre 2026
 
-- **`configure-clean`** est au commit `60aa5b3` (la fusion de #281, après celles
-  de #217 le 28 octobre, de #218, #219, #222, #223 et #225 le matin du 29, de
-  #220, #224 et #227 à #231 de 18 h 04 à 18 h 19 UTC, de #232, #234 et #235 de
-  19 h 55 à 19 h 57, de #236 à 23 h 42, de #237 et #238 le 30 octobre à 11 h 04,
-  de #245, #242 et #249 de 19 h 57 à 20 h 07, de #263 à #274 de 20 h 24 à 20 h
-  40, de #275 à 21 h 10, de #262, #250, #239 et #248 de 21 h 13 à 21 h 32, de
-  #276 à 21 h 37, de #279 le 31 octobre à 9 h 32, de #280 le 2 novembre à 19 h
-  36, de #282 le 3 novembre à 11 h 38, de #283 et de #284 à 11 h 40 et 11 h 41
-  et de #281 à 16 h 51 ; l'import de CORE-MATH `0b2ae6d1` est du 27 octobre,
-  voir 7.6 à 7.10). Les pull requests des corrections vont vers
-  `configure-clean`, qui reste la branche de développement après v5.0.0 ;
-  `MATH-CORE` et `master` (GAOL 4.3.2, plus deux commits de `.claude/CLAUDE.md`)
-  ne bougent qu'à la version (point Y).
-- **Pull requests ouvertes** : aucune. Le mainteneur a fusionné #165 à #167,
-  #169 à #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194, #196
-  et #197 le 25 octobre, #199, #200 et #201 le 26 octobre, #202 à #205 le 27,
-  #206 à #210, #212, #213, #215 et #216 le 28 (#216, hors des points : le
-  tableau des lignes longues sur ARM 64 bits, à la fin de `performance.md`),
-  #217 le 28 à 23 h 19 UTC, #218, #219, #222, #223 et #225 le 29 au matin,
-  #220, #224 et #227 à #231 le 29 de 18 h 04 à 18 h 19, #232, #234 et #235 le
-  29 de 19 h 55 à 19 h 57, #236 le 29 à 23 h 42, #237 et #238 le 30 à 11 h 04,
-  #245, #242 et #249 le 30 de 19 h 57 à 20 h 07, #263 à #274 (les textes de la
-  version) le 30 de 20 h 24 à 20 h 40, #275 à 21 h 10, #262, #250, #239 et #248
-  de 21 h 13 à 21 h 32 et #276 (macOS 27 à la place de macOS 14) à 21 h 37 ;
-  #279 a été fusionnée le 31 à 9 h 32 par la session, sur la demande explicite
-  du mainteneur ; #280 (les restes de la tâche PI) l'a été le 2 novembre à 19 h
-  36 par le mainteneur, puis, le 3 novembre, #282 (`HOUSE_RULES.md` : les
-  outils de la machine sont dans `process.md` §6.1, hors des points) à 11 h 38,
-  #283 (les en-têtes de CORE-MATH dans `gaol/math/`, `3rd/math-core` réduit à
-  binary64) et #284 (les opérateurs de `gaol_ieee1788`) à 11 h 40 et 11 h 41
-  (2.3 et 3.14), et #281 (les cas des tests d'IBEX et de Codac, hors des
-  points) à 16 h 51, toutes par le mainteneur. #168,
-  #195, #211, #214, #221, #226 et #233 sont fermées sans fusion, et, du 30 et
-  du 31 octobre, #240, #241, #243, #244, #246, #247, #251 à #261, #277 et #278
-  (2.4). Les tâches PA, PB, PC, PD, PE, PF, PG et PI sont faites (PE : #200 et
-  #204 pour le 95, #201 pour le 92, #205 pour le 3, #202 pour le 4, #204 pour
+- **`configure-clean`** est au commit `221c8d4` (la fusion de la branche
+  `std-exceptions`, après celles de #217 le 28 octobre, de #218, #219, #222,
+  #223 et #225 le matin du 29, de #220, #224 et #227 à #231 de 18 h 04 à 18 h 19
+  UTC, de #232, #234 et #235 de 19 h 55 à 19 h 57, de #236 à 23 h 42, de #237 et
+  #238 le 30 octobre à 11 h 04, de #245, #242 et #249 de 19 h 57 à 20 h 07, de
+  #263 à #274 de 20 h 24 à 20 h 40, de #275 à 21 h 10, de #262, #250, #239 et
+  #248 de 21 h 13 à 21 h 32, de #276 à 21 h 37, de #279 le 31 octobre à 9 h 32,
+  de #280 le 2 novembre à 19 h 36, de #282 le 3 novembre à 11 h 38, de #283 et
+  de #284 à 11 h 40 et 11 h 41 et de #281 à 16 h 51, et de #285 le 4 novembre à
+  8 h 22 ; l'import de CORE-MATH `0b2ae6d1` est du 27 octobre, voir 7.6 à 7.10).
+  Les pull requests des corrections vont vers `configure-clean`, qui reste la
+  branche de développement après v5.0.0 ; `MATH-CORE` et `master` (GAOL 4.3.2,
+  plus deux commits de `.claude/CLAUDE.md`) ne bougent qu'à la version (point
+  Y).
+- **Pull requests ouvertes** : #287 (`pown-rel`, hors des points : `pownRev`
+  pour p ≤ 0 par `nth_root_rel`). Le mainteneur a fusionné #165 à #167, #169 à
+  #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194, #196 et #197
+  le 25 octobre, #199, #200 et #201 le 26 octobre, #202 à #205 le 27, #206 à
+  #210, #212, #213, #215 et #216 le 28 (#216, hors des points : le tableau des
+  lignes longues sur ARM 64 bits, à la fin de `performance.md`), #217 le 28 à 23
+  h 19 UTC, #218, #219, #222, #223 et #225 le 29 au matin, #220, #224 et #227 à
+  #231 le 29 de 18 h 04 à 18 h 19, #232, #234 et #235 le 29 de 19 h 55 à 19 h
+  57, #236 le 29 à 23 h 42, #237 et #238 le 30 à 11 h 04, #245, #242 et #249 le
+  30 de 19 h 57 à 20 h 07, #263 à #274 (les textes de la version) le 30 de 20 h
+  24 à 20 h 40, #275 à 21 h 10, #262, #250, #239 et #248 de 21 h 13 à 21 h 32 et
+  #276 (macOS 27 à la place de macOS 14) à 21 h 37 ; #279 a été fusionnée le 31
+  à 9 h 32 par la session, sur la demande explicite du mainteneur ; #280 (les
+  restes de la tâche PI) l'a été le 2 novembre à 19 h 36 par le mainteneur,
+  puis, le 3 novembre, #282 (`HOUSE_RULES.md` : les outils de la machine sont
+  dans `process.md` §6.1, hors des points) à 11 h 38, #283 (les en-têtes de
+  CORE-MATH dans `gaol/math/`, `3rd/math-core` réduit à binary64) et #284 (les
+  opérateurs de `gaol_ieee1788`) à 11 h 40 et 11 h 41 (2.3 et 3.14), et #281
+  (les cas des tests d'IBEX et de Codac, hors des points) à 16 h 51, toutes par
+  le mainteneur, puis, le 4 novembre, #285 (hors des points : les exceptions de
+  la bibliothèque standard, la tâche PL) à 8 h 22, par le mainteneur ; ses
+  suites sont fusionnées sans pull request (`221c8d4`, 3.15 et 7.14). #168,
+  #195, #211, #214, #221, #226 et #233 sont fermées sans fusion, et, du 30 et du
+  31 octobre, #240, #241, #243, #244, #246, #247, #251 à #261, #277 et #278,
+  puis #286, le « Revert » de #285 fermé onze secondes après son ouverture
+  (2.4). Les tâches PA, PB, PC, PD, PE, PF, PG, PI et PL sont faites (PE : #200
+  et #204 pour le 95, #201 pour le 92, #205 pour le 3, #202 pour le 4, #204 pour
   le 5, #203 pour le 6 ; PF : #206 pour le reste du 108, #209 pour le 109, #210
   et #215 pour écrire seulement si ça change, #208 pour l'alignement de la pile
-  32 bits, #207 pour le contrôle de l'assembleur de x86-64 ; PG : la division
-  du chemin AVX-512, le 106 a : #191 à #194 ; puis #217 pour le seuil de la
-  liste, #218 pour `set_rounding()`, #219 pour le noyau de `pown` de NEON, #222
-  et #224 pour `nth_root(x, -2)` et `sqrt()`, #223, #227 et #228 pour le
-  contrôle de l'assembleur avec GCC, #225 pour le quotient NEON, #220 pour la
-  ligne `x / d`, #229 pour la grille de `diffarith`, #230, #232, #234 et #235
-  pour les écarts de GCC avec Clang, #231 pour les masques d'exceptions de
-  `pow_rel()`, #236 pour `max(x, y)` et `min(x, y)`, #237 et #238 pour le banc,
-  #242 et #245 pour `inverse()` de NEON et son test, #248, #249 et #250 pour
-  `interval(l, r)`, `x * y` et `x op= d` de NEON, #239 pour `max` et `min` de
-  NEON raccourcis, #262 pour le bruit de placement de Visual C++ arm64, #279
-  pour `x <= y` ; PI : #263 à #274 pour la synthèse de `doc/differences.md` et
-  du `ChangeLog`, #275 pour les phrases fausses hors de ces deux documents,
-  #280 pour leurs restes) ; il reste les signalements à d'autres projets (PH),
-  le tableau de Clang 21 et la publication (PJ) et un `FE_INVALID` à décider
-  (PK) : voir `TODO.md`.
+  32 bits, #207 pour le contrôle de l'assembleur de x86-64 ; PG : la division du
+  chemin AVX-512, le 106 a : #191 à #194 ; puis #217 pour le seuil de la liste,
+  #218 pour `set_rounding()`, #219 pour le noyau de `pown` de NEON, #222 et #224
+  pour `nth_root(x, -2)` et `sqrt()`, #223, #227 et #228 pour le contrôle de
+  l'assembleur avec GCC, #225 pour le quotient NEON, #220 pour la ligne `x / d`,
+  #229 pour la grille de `diffarith`, #230, #232, #234 et #235 pour les écarts
+  de GCC avec Clang, #231 pour les masques d'exceptions de `pow_rel()`, #236
+  pour `max(x, y)` et `min(x, y)`, #237 et #238 pour le banc, #242 et #245 pour
+  `inverse()` de NEON et son test, #248, #249 et #250 pour `interval(l, r)`, `x
+  * y` et `x op= d` de NEON, #239 pour `max` et `min` de NEON raccourcis, #262
+  pour le bruit de placement de Visual C++ arm64, #279 pour `x <= y` ; PI : #263
+  à #274 pour la synthèse de `doc/differences.md` et du `ChangeLog`, #275 pour
+  les phrases fausses hors de ces deux documents, #280 pour leurs restes ; PL,
+  hors des points de `TODO.md` : #285 pour les exceptions de la bibliothèque
+  standard, puis la fusion `221c8d4` pour ses suites) ; il reste les
+  signalements à d'autres projets (PH), le tableau de Clang 21 et la publication
+  (PJ) et un `FE_INVALID` à décider (PK) : voir `TODO.md`.
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
   sur tout processeur ARM 64 bits avec tous les compilateurs (GCC, Clang,
   AppleClang, clang-cl, Visual C++, MinGW-w64, MSYS2), SSE2 sur tout processeur
@@ -2177,6 +2183,92 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   Autotools et meson et Performance verts ; fusionnée le 3 novembre à 11 h 41
   UTC par le mainteneur ; décisions : 3.14)
 
+- #285 (hors des points, la tâche PL : GAOL lance les exceptions de la
+  bibliothèque standard à la place de ses classes, sur demande du mainteneur ; 5
+  commits, 40 fichiers, 1 767 lignes ajoutées et 1 276 retirées) :
+  `gaol_exception`, `input_format_error`, `invalid_action_error`,
+  `unavailable_feature_error` et `gaol/gaol_exceptions.{h,cpp}` sont supprimés
+  (de `CMakeLists.txt`, de `gaol/Makefile.am` et de son `Makefile.in`, refait
+  avec automake 1.18.1, de `gaol/meson.build` et de l'en-tête `gaol/gaol`).
+  `gaol_ERROR(excep, msg)` lance `excep("fichier:ligne: msg")`, construit par
+  `gaol_detail::error_text()`, le fichier sans ses répertoires ;
+  `std::invalid_argument` pour une chaîne qui n'est pas un intervalle
+  (`textToInterval()`, `operator>>`) et un pointeur nul, `std::domain_error`
+  pour `nb_fp_numbers()` avec un NaN, `bisect()` avec un rapport hors de (0, 1),
+  un appel refusé dans une chaîne (`nth_root(8, 1.5)`) et `pownRev()` avec p ≤ 0
+  (par `gaol_ERROR`, donc avec le fichier et la ligne, et un abandon sans
+  exceptions activées, où il lançait un `std::invalid_argument` à lui).
+  `gaol_ieee1788::textToInterval()` n'attrape que ces deux classes (un
+  `std::bad_alloc` doit passer). Le lexer et le parser sont régénérés (bison
+  3.8.2, flex 2.6.4 : seuls changent les numéros des directives `#line` et
+  l'inclusion retirée). Les tests : le bloc `exception_messages` de
+  `tests/expressions.cpp` (le type exact par `typeid`, qu'un gestionnaire de
+  `std::exception` l'attrape, le fichier, la ligne, l'explication), `gaol_ERROR`
+  et `error_text()` directement, `pownRev(c, 0L)` et `pownRev(c, -3)`, et les
+  `catch` des autres tests renommés ; la documentation (`doc/using.md`,
+  `doc/tests.md`, le chapitre « Error handling » du manuel, `examples/`,
+  `doc/compare/code/cases.py`). Avec les sources de `configure-clean`,
+  `expressions`, `other_functions` et `numbers` abandonnent sur une exception
+  non attrapée, `float_functions` échoue (8 vérifications) et `input_output`
+  aussi (1). Une relecture indépendante (sous-agent sans contexte) : six points,
+  tous corrigés (`manual/check_examples.py` qui échouait faute d'un `what()`
+  sans chemin absolu, quatorze mentions des anciennes classes dans le manuel,
+  `cases.py` qui ne compilait plus, `tests/misc.cpp` et `doc/tests.md`, le
+  format de `what()` pour le parser et `pownRev`, le traitement des pointeurs
+  nuls de `error_text()` non testé). Vérifié en local : CMake SSE2 (62 tests sur
+  62), FPU (59 sur 59), Clang 18 (62 sur 62) et sans exceptions (62 sur 62),
+  `-Wall -Wextra -Werror` sans avertissement, ASan + UBSan (9 sur 9), autotools
+  (30 réussis sur 32, 2 sautés) et meson (30 réussis, 2 sautés), `headers.sh`
+  avec GCC et Clang 18 (98 macros), `tests.sh` (1 269 891 vérifications), le
+  manuel (0 erreur) et `check_examples.py` (113 exemples sur 113). Sa CI au
+  commit `c746b8d` : 225 jobs verts ; fusionnée le 4 novembre à 8 h 22 UTC par
+  le mainteneur ; décisions : 3.15.
+
+- Les suites de #285, sans pull request (hors des points ; neuf commits, 12
+  fichiers, 219 lignes ajoutées et 52 retirées, sur `std-exceptions`, fusionnée
+  dans `configure-clean` par `221c8d4` à la demande du mainteneur) : (1)
+  `gaol_ERROR` refuse à la compilation une classe qui ne dérive pas de
+  `std::exception` : un `static_assert` sur `gaol_detail::is_error_class`, avec
+  exceptions comme sans (`<exception>`, `<stdexcept>` et `<type_traits>` sont
+  inclus dans les deux cas) ; huit `static_assert` de `tests/expressions.cpp`
+  testent le prédicat (vrai pour `std::invalid_argument`, `std::domain_error`,
+  `std::bad_alloc` et une classe d'un programme ; faux pour un `int`, un
+  `std::string`, une classe qui n'est pas une exception et une classe dérivée en
+  privé), et `.github/scripts/headers.sh` compile `gaol_ERROR(std::domain_error,
+  ...)` et exige que `gaol_ERROR(int, ...)` soit refusé (le `static_assert`
+  retiré d'une installation de contrôle, `headers.sh` échoue) ; (2)
+  `examples/examples.md` : les classes de GAOL 4 quittent la section 5 et
+  l'annexe B, le numéro 15 devient « withdrawn » et garde sa place ; (3)
+  `doc/compare/itf1788.md` refait (Clang 21, GAOL à `1ad5ccb`, ITF1788
+  `b6ee1e2`) : 7 283 cas réussis et 12 échecs, au lieu de 7 285 et 10 ; les deux
+  de plus sont des cas de `textToInterval` (`libieeep1788_class.itl`, lignes 136
+  et 138, `[1.0000000000000002,1.0000000000000001]` et sa forme hexadécimale),
+  où GAOL rend `[empty]` et ITF1788 attend `[1.0, 1.0000000000000002]` :
+  `itf1788.py` les classe « itf-literal » (défaut du cas de test), par une
+  comparaison exacte des bornes (`exact_number()`, `crossed_literal()`), et le
+  texte de la section 12.12.7 de la norme est cité ; `special_cases.md` : une
+  cellule, le zéro signé de `pow([−2, 3], [2])` en `gaol_ieee1788` (`[0, 9]` au
+  lieu de `[−0, 9]`) ; ces écarts ne viennent pas de #285 (les sources de
+  `configure-clean`, à `2a2c416`, donnent les mêmes résultats, mesuré) ; (4)
+  `coverage/` refait : 94,3 % des 5 466 lignes de `gaol/` (45 tests de CTest,
+  `numbers` lancé à la main) ; (5) une relecture indépendante des suites
+  (sous-agent sans contexte), dont les remarques sont corrigées : une phrase
+  fausse de `doc/tests.md`, une référence de `examples/examples.md` à une
+  section 8 qui n'existait plus, le commentaire de `exact_number()`, le
+  commentaire des inclusions de `gaol_common.h`, la marque « (GAOL v5) » de
+  `doc/using.md`, des gardes de `exact_number()` (plus de 200 caractères,
+  exposants de 5 chiffres), un nom de code coupé par `<sup>` et le manque de
+  dents du câblage de la macro (`headers.sh`). Vérifié en local avant la
+  fusion : CMake SSE2 (62 sur 62), FPU (59 sur 59), Clang 18 (62 sur 62) et sans
+  exceptions (62 sur 62), sans avertissement, ASan + UBSan (9 sur 9),
+  `headers.sh` (GCC, Clang 18, sans exceptions), `check_examples.py` (113 sur
+  113), le manuel (0 erreur, un seul Overfull, celui d'avant) et `tests.sh` (1
+  269 891 vérifications) ; autotools et meson ne sont pas relancés en local
+  après ces commits (la CI). Sa CI au commit de fusion `221c8d4` : Linux (47
+  jobs), Windows (64), Autotools et meson (48), Linux containers (23), macOS
+  (20) et Manual (1), 203 jobs verts ; Performance ne tourne pas sur un push.
+  Décisions : 3.15, 7.14.
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -2262,6 +2354,9 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   et F2 (#278), deux candidates de la nouvelle étude, dont la CI a trouvé le
   défaut de GCC 14 (12 `FE_INVALID`) ; remplacées par #279 (F2 corrigée) et
   fermées sans fusion, leurs branches sont gardées.
+- **#286** (4 novembre) : le « Revert » de #285 (`revert-285-std-exceptions`),
+  ouvert à 8 h 35 UTC et fermé 11 secondes plus tard, sans fusion ; sa branche
+  reste sur GitHub, à supprimer.
 
 ### 2.5 Les pull requests du 23 octobre au soir et les décisions qu'elles exécutent
 
@@ -3940,6 +4035,53 @@ request qui les exécute (2.3).
   deux pull requests, et le commentaire de `CMakeLists.txt` qui cite
   `core_math_log_dint.h`, qui n'existe pas, sont dans `TODO.md` (PJ, point 7).
 
+### 3.15 Le 4 novembre : la tâche PL, les exceptions de la bibliothèque standard
+
+Les décisions du mainteneur sur #285 et ses suites (hors des points), avec la
+pull request qui les exécute (2.3).
+
+- **Le plan** (*donné le 3 novembre*, « remplace gaol_exception comme suit ») :
+  `input_format_error` devient `std::invalid_argument`, `invalid_action_error`
+  devient `std::domain_error`, `unavailable_feature_error` (qu'aucune opération
+  ne lançait) et `gaol_exception` disparaissent, la macro `gaol_ERROR` lance la
+  classe standard avec le fichier et la ligne dans le texte, et le `catch` de
+  `gaol_ieee1788.cpp`, les tests, les exemples, la documentation et les trois
+  builds suivent : #285. Le conseil du plan de garder les anciens noms en alias
+  n'est pas appliqué (*décidé le 3 novembre*) : un programme qui attrapait
+  `gaol_core::input_format_error` ne compile plus.
+- **`pownRev()` pour p ≤ 0** (*décidé le 3 novembre*) : par
+  `gaol_ERROR(std::domain_error, ...)`, comme les autres arguments refusés ;
+  sans exceptions activées, il écrit l'erreur et abandonne. **Le texte**
+  (*décidé le 3 novembre*) : `fichier:ligne: explication`, le fichier sans ses
+  répertoires (un chemin absolu de CMake ne doit pas être dans les messages) ;
+  `file()`, `line()`, `explanation()` et `operator<<` disparaissent avec les
+  classes.
+- **La relecture de #285** (*décidé le 4 novembre*) : pas de nouvelle relecture
+  des commits qui appliquent les réponses du 3 novembre (la CI de 225 jobs
+  verte) ; **`doc/compare`** et **`coverage/`** refaits dans la pull request ;
+  la tâche est consignée comme un point PL, fait.
+- **ITF1788** (*décidé le 4 novembre*) :
+  `textToInterval("[1.0000000000000002,1.0000000000000001]")` et sa forme
+  hexadécimale rendent `[empty]` : « c'est ce qui est normal » ; ce qu'ITF1788
+  attend d'autre est un défaut d'ITF1788, que le rapport indique (la classe
+  « itf-literal » de `itf1788.py`). La norme, 12.12.7 : l ≤ u s'évalue sur les
+  valeurs exactes, et une implémentation qui décide rend l'ensemble vide.
+- **`gaol_ERROR`** (*décidé le 4 novembre*) : un `static_assert` que le premier
+  argument dérive de `std::exception`, avec exceptions comme sans.
+- **`examples/examples.md`** (*décidé le 4 novembre*) : retirer les passages sur
+  les anciennes classes (section 5 et annexe B) ; le numéro 15 devient
+  « withdrawn » et garde sa place, des tests, des commentaires et `TODO_DONE.md`
+  citant les numéros 16, 20 et 22 de cette revue.
+- **`doc/differences.md` et `ChangeLog`** (*décidé le 4 novembre*) : le texte de
+  la synthèse se prépare après la fusion, avec les registres : dans `TODO.md`,
+  PJ point 7.
+- **La fusion** (*décidé le 4 novembre*, « fusionne la branche dans
+  configure-clean et push (pas besoin de PR pour cette fois) ») : fusion sans
+  avance rapide `221c8d4`, poussée sans forcer.
+- **Les restes** : le cas des bornes qui sont des résultats d'opérations
+  (12.12.7) et `todo-notes/synthese.md`, qui parle encore des anciennes classes,
+  sont dans `TODO.md` (PJ, point 7).
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -4072,6 +4214,11 @@ ici ou dans la section 5.
 
 - [x] **Hors des points (26 octobre).** Les options des trois builds : fait par
   #200 ; décidé pendant le travail : voir 3.4.
+
+- [x] **Hors des points (4 novembre), la tâche PL.** Les exceptions de la
+  bibliothèque standard à la place de celles de GAOL : fait par #285 et la
+  fusion `221c8d4` ; décidé pendant le travail : voir 3.15. Les restes sont dans
+  `TODO.md` (PJ, point 7).
 
 ### Trouvé par la relecture de `configure-clean` du 14 octobre (62dad3a) : ce qui est fait
 
@@ -5202,6 +5349,33 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
   de l'arbre ; les builds CMake et meson lisent l'arbre en cours : on ne le
   modifie pas pendant qu'ils tournent.
 
+### 7.14 Le 4 novembre (après #285)
+
+- Le mainteneur a fusionné #285 le 4 novembre à 8 h 22 UTC (`7c12c50`), puis le
+  « Revert » #286 a été ouvert et fermé 11 secondes plus tard, sans fusion
+  (2.4). Les neuf commits qui suivent (2.3) sont sur `std-exceptions` ; à la
+  demande du mainteneur (« fusionne la branche dans configure-clean et push (pas
+  besoin de PR pour cette fois) »), la branche est fusionnée sans avance rapide
+  dans `configure-clean` : `221c8d4`, poussé sans forcer. #287 (`pown-rel`,
+  `pownRev` pour p ≤ 0) est ouverte depuis le même jour, et contient déjà
+  `221c8d4`.
+- La CI du commit de fusion : Linux (47 jobs), Windows (64), Autotools et meson
+  (48), Linux containers (23), macOS (20) et Manual (1), 203 jobs, tous
+  `success`, aucun échoué, annulé ni sauté ; Performance ne tourne pas sur un
+  push. Lue par `gh api repos/Jordan08/GAOL/actions/runs` et
+  `.../runs/<id>/jobs` (GraphQL échoue).
+- Les pièges : `pkill -f ci_wait3.sh` a tué le shell qui avait le nom du script
+  dans sa ligne de commande (code 144) ; `ctest --timeout` ne change pas la
+  propriété `TIMEOUT` d'un test, et `numbers` (300 s) a échoué deux fois pendant
+  le relevé de couverture parce qu'une autre session occupait des cœurs : `ctest
+  -j2 -E '^numbers$'`, puis `gaol_test_numbers` à la main ;
+  `.github/scripts/tests.sh` laisse ses programmes et ses journaux dans le
+  répertoire courant (18 fichiers à la racine, supprimés par leur nom) ; sans
+  exceptions activées, `<stdexcept>` doit quand même être inclus, le
+  `static_assert` de `gaol_ERROR` nommant la classe ; dans le rapport d'ITF1788,
+  la révision de GAOL citée est `1ad5ccb`, la mesure venant du run de `75e1440`
+  (la différence est un commentaire).
+
 ## 8. Le ménage fait
 
 ### 8.1 Branches, lignes de crédit, outillage
@@ -5339,6 +5513,14 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
   GitHub (supprimées par le mainteneur à la fusion) et en local, le 3 novembre.
 - [x] Celles de #283 (`gaol-math-dir`) et de #284 (`ieee1788-operators`), sur
   GitHub (supprimées à la fusion) et en local, le 3 novembre.
+- [x] Celles de #285 (`std-exceptions`), en local, le 4 novembre ; sur GitHub
+  restent, à supprimer par le mainteneur, `std-exceptions` et
+  `revert-285-std-exceptions` (#286).
+- [x] Le 4 novembre, à la demande du mainteneur (« nettoie /tmp ») : le dossier
+  de travail de la session des exceptions (les builds, les clones de contrôle,
+  les relevés : 1,9 Go libérés, la tmpfs de 16 Go passe de 6,7 à 4,8 Go) et
+  dix-huit dossiers de sessions finies ; le dossier d'une autre session en cours
+  (4,8 Go) est laissé.
 
 ### 8.2 Les branches inachevées
 

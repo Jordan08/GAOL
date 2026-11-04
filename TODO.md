@@ -1,16 +1,18 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `60aa5b3` de `configure-clean` (la
-fusion de #281), le 3 novembre 2026, en tâches PH, PJ et PK (PA à PG et PI sont
-faites : voir `TODO_DONE.md`). Ce fichier et l'issue #179 ont le même contenu.
-Ce qui est fait et décidé est dans `TODO_DONE.md` (l'issue #177 n'est plus mise
-à jour), ce qui est reporté dans `TODO_AFTER.md` (issue #178). Les anciennes
-issues #49 et #142 sont fermées, et `TODO_mistral.md` est supprimé.
+Ce qui reste à faire sur GAOL v5 au commit `221c8d4` de `configure-clean` (la
+fusion de la branche `std-exceptions`, après #285), le 4 novembre 2026, en
+tâches PH, PJ et PK (PA à PG, PI et PL sont faites : voir `TODO_DONE.md`). Ce
+fichier et l'issue #179 ont le même contenu. Ce qui est fait et décidé est dans
+`TODO_DONE.md` (l'issue #177 n'est plus mise à jour), ce qui est reporté dans
+`TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142 sont fermées, et
+`TODO_mistral.md` est supprimé.
 
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à envoyer à un autre projet ni à publier sans l'accord
-du mainteneur. Aucune pull request n'est ouverte.
+du mainteneur. La pull request #287 (`pown-rel`, hors des points : `pownRev`
+pour p ≤ 0 par `nth_root_rel`) est ouverte.
 
 ## Comment lire ce fichier
 
@@ -97,13 +99,17 @@ probablement rien.
    miscompilage de GCC 12.2 sur aarch64 dans `tests/numbers.cpp` ; le bogue
    52258 est de la même famille), **#127 mingw-w64** (`fma()` et `round()` de
    msvcrt, `fesetexceptflag()` en 32 bits, le `fma()` x87 de mingw-w64 11),
-   **#129 ITF1788** (huit cas dont le résultat attendu n'est pas le plus serré),
-   **#130 Boost.Interval** (`rounded_transc_opp` donne la borne supérieure pour
-   l'inférieure ; issue seule ou avec une pull request, selon la politique de
-   Boost) et **#175 Cygwin** (le `fma()` mal arrondi dans les quatre sens, le
-   `nextafter()` qui calcule le débordement dans le sens d'arrondi du programme,
-   CPack qui ne met pas le lien `README` dans l'archive, cause non trouvée ;
-   mesures de CI et brouillon anglais dans l'issue, à rejouer avant l'envoi).
+   **#129 ITF1788** (huit cas dont le résultat attendu n'est pas le plus serré,
+   et, depuis le rapport du 4 novembre, deux cas de `textToInterval` où ITF1788
+   attend un intervalle pour un littéral `[l, u]` dont l est au-dessus de u, que
+   GAOL rend vide selon IEEE 1788-2015, 12.12.7 : *à décider*, les ajouter au
+   brouillon de #129 ?), **#130 Boost.Interval** (`rounded_transc_opp` donne la
+   borne supérieure pour l'inférieure ; issue seule ou avec une pull request,
+   selon la politique de Boost) et **#175 Cygwin** (le `fma()` mal arrondi dans
+   les quatre sens, le `nextafter()` qui calcule le débordement dans le sens
+   d'arrondi du programme, CPack qui ne met pas le lien `README` dans l'archive,
+   cause non trouvée ; mesures de CI et brouillon anglais dans l'issue, à
+   rejouer avant l'envoi).
 3. **#131 Microsoft** (`ldexp()` de l'UCRT, `NAN` et `INFINITY` sous
    `/fp:strict`, `sqrt()` en 32 bits, runtime de Debug, `nextafter()`, le
    `fma()` d'`ucrtbase.dll` jamais vérifié), **#132 Apple** (`ldexp()` et
@@ -132,23 +138,23 @@ En dernier : elle suppose les corrections faites et les études de PG faites
 (*décidé le 19 octobre*).
 
 1. **32** : le rapport de couverture ([coverage/README.md](coverage/README.md)
-   et `coverage/coverage.html`), refait le 2026-09-27 à `605728e` (87,2 % des
-   lignes de `gaol/`), ne correspond plus aux sources : le parser est dans
-   `gaol/parser/`, `gaol_interval.cpp` est scindé en `gaol_interval_core.cpp` et
-   `gaol_interval.cpp`, et `gaol_exact.c`, `s_nextafter.c`, `gaol_profile.cpp`
-   sont supprimés ; `coverage.html` cite encore `sysdeps/gaol_exact_c99.h` et
-   `s_nextafter.c`, et `coverage/README.md` a été corrigé à la main (88,0 %). Le
-   job « Coverage » de `linux.yml` le refait à chaque push, mais pas la copie du
-   dépôt. À refaire au commit de la version (`-DGAOL_COVERAGE=ON`, cible
-   `coverage`, gcovr) et à enregistrer ; *décidé le 15 octobre* : pas avant.
-   Lancer aussi une fois, sous ASan + UBSan, le test `numbers` en entier (trop
-   long pour la relecture du 14 octobre : 158 s pour `arithmetic` seul) ;
+   et `coverage/coverage.html`) a été refait le 4 novembre à `2313e07` (94,3 %
+   des 5 466 lignes de `gaol/`, contre 87,2 % le 2026-09-27 à `605728e`), à la
+   demande du mainteneur, avec la tâche PL (*décidé le 4 novembre*) : l'ancien
+   citait `gaol_exceptions.*` et des fichiers disparus. Le job « Coverage » de
+   `linux.yml` le refait à chaque push, mais pas la copie du dépôt. À refaire
+   une dernière fois au commit de la version (`-DGAOL_COVERAGE=ON`, cible
+   `coverage`, gcovr) et à enregistrer ; *décidé le 15 octobre* : pas avant,
+   sauf ce relevé du 4 novembre. Le test `numbers` y dépasse les 300 s de CTest
+   quand la machine est chargée (`ctest --timeout` ne les change pas) : le
+   relevé du 4 novembre a lancé `ctest -E '^numbers$'`, puis `gaol_test_numbers`
+   à la main. Lancer aussi une fois, sous ASan + UBSan, le test `numbers` en
+   entier (trop long pour la relecture du 14 octobre : 158 s pour `arithmetic`
+   seul ; il a passé en local le 4 novembre, en Debug, 9 tests sur 9) ;
    `GAOL_NUMBERS_TIMEOUT` n'était pas relevé pour les builds avec sanitizers
    (*décidé le 14 octobre*) ; il vaut 400 s dans les quatre jobs de `linux.yml`
    qui en ont, depuis #281 (*décidé le 3 novembre* : `numbers` a dépassé 300 s
-   une fois, dans le job Clang x86_64). #283 a corrigé à la main les trois
-   chemins de `gaol/math/` de `coverage/README.md` ; `coverage.html` reste à
-   refaire.
+   une fois, dans le job Clang x86_64).
 2. **33** : les temps de
    [doc/compare/performance.md](doc/compare/performance.md), remesurés le 17
    octobre (`febd2b1`, `a055160`), sa colonne « rounding direction preserved »
@@ -233,8 +239,8 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    `CMakeLists.txt` ligne 506, `gaol/math/gaol_core_math_port.h` ligne 453,
    `configure.ac` et `meson.build`) sont à revoir avec la version si macOS 14
    ne doit plus y figurer.
-7. **Les restes de #283 et de #284** (hors des points) : les textes « Pour
-   `doc/differences.md` et `ChangeLog` » de ces pull requests ne sont pas
+7. **Les restes de #283, de #284 et de #285** (hors des points) : les textes
+   « Pour `doc/differences.md` et `ChangeLog` » de ces pull requests ne sont pas
    reportés. Dans `doc/differences.md` : les anciens chemins de
    `gaol_double_op.h`, `gaol_u128.h`, `gaol_ldexp.h`, `gaol_roundeven.h` et
    `gaol_core_math.h` (13 lignes : 49, 84, 93, 242, 251, 309, 361, 1128, 1825,
@@ -242,10 +248,47 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    dans `gaol/math/` ; « The whole tree of CORE-MATH is vendored » (ligne 1126),
    l'arbre ne gardant que `binary64` ; `gaol_roundeven.h`, qui n'est plus
    installé (ligne 242), et `round_ties_to_even()`, qui n'est plus en ligne ;
-   les sept opérateurs de `gaol_ieee1788`. Dans `ChangeLog` : une entrée pour
-   ces déplacements (les lignes 100, 649, 794 et 1569 nomment les fichiers à
-   leur place d'alors). Reste aussi le commentaire de `CMakeLists.txt` (ligne
-   1435) qui cite `core_math_log_dint.h`, qui n'existe pas. [S]
+   les sept opérateurs de `gaol_ieee1788`. Pour #285 (*décidé le 4 novembre* :
+   le texte se prépare après la fusion, avec les registres), les exceptions de
+   la bibliothèque standard : les 23 lignes qui nomment `gaol_exception`,
+   `input_format_error`, `invalid_action_error` ou `unavailable_feature_error`
+   (225, 1002, 1064, 1068, 1071, 1072, 1076, 1078, 1079, 1088, 1390, 1484, 1562,
+   1587, 1613, 1632, 1664, 1710, 1727, 1728, 1950, 1980, 1988), dont la 1950
+   (`gaol_exceptions.h` ne déclare plus `string` ni `exception`, et n'est plus
+   un en-tête), le `what()` par nom de classe (1076 à 1079), le fichier nul
+   (1088) et `operator<<`, et la ligne 1735 (`gaol_ERROR` sans exceptions) ; les
+   lignes 77 et 78 disent « 87 % » de couverture (94,3 % le 4 novembre). Le
+   texte : les classes d'exceptions de GAOL 4 disparaissent ; GAOL lance
+   `std::invalid_argument` (une chaîne qui n'est pas un intervalle, un pointeur
+   nul) et `std::domain_error` (un argument qu'une fonction ne prend pas :
+   `nb_fp_numbers()`, `bisect()`, `pownRev()` pour p ≤ 0, `nth_root(8, 1.5)`
+   dans une chaîne) ; un gestionnaire de `gaol_core::input_format_error` attrape
+   `std::invalid_argument`, un de `gaol_core::invalid_action_error` attrape
+   `std::domain_error`, et il n'y a plus de base commune à GAOL
+   (`std::logic_error` attrape les deux), sans alias ; `what()` est
+   `fichier:ligne: explication`, le fichier sans ses répertoires, où GAOL 4
+   donnait `std::exception`, et `file()`, `line()`, `explanation()` et
+   `operator<<` n'existent plus ; `gaol_ERROR(excep, msg)` prend une classe
+   dérivée de `std::exception`, ce que le compilateur vérifie avec exceptions
+   comme sans ; `gaol_ieee1788::pownRev()` pour p ≤ 0 lance `std::domain_error`,
+   et sans exceptions activées écrit l'erreur et abandonne, où il lançait un
+   `std::invalid_argument` même alors. Dans `ChangeLog` : une entrée pour ces
+   déplacements (les lignes 100, 649, 794 et 1569 nomment les fichiers à leur
+   place d'alors) ; pour #285, les 12 lignes qui nomment les anciennes classes
+   (322, 785, 841, 868, 911, 937, 974 à 976, 980, 981, 999), dont les entrées
+   sur `gaol_exceptions.{h,cpp}` (322, 974 et 980), deviennent historiques, et
+   une entrée pour le changement. Restent aussi le commentaire de
+   `CMakeLists.txt` (ligne 1435) qui cite `core_math_log_dint.h`, qui n'existe
+   pas, et `todo-notes/synthese.md`, qui garde 11 lignes sur les anciennes
+   classes (un registre, non touché par #285). *À décider* (#285) : un littéral
+   `[l, u]` dont les bornes sont des résultats d'opérations (des quotients, la
+   ligne 137 de `libieeep1788_class.itl`) passe où ITF1788 l'attend, parce que
+   GAOL ne compare pas exactement ces bornes (commentaire de `gaol_literal()`) ;
+   or, selon IEEE 1788-2015, 12.12.7, une implémentation qui ne peut pas décider
+   doit rendre un intervalle qui contient l et u et signaler
+   `PossiblyUndefinedOperation`, et GAOL ne signale aucune des exceptions du
+   standard : le dire dans `doc/differences.md`, ou comparer exactement ?
+   `doc/compare/itf1788.md` le dit pour l'instant. [S]
 
 ## PK. Des `FE_INVALID` avec Clang et les intervalles FPU [S, à décider]
 
