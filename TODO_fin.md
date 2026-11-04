@@ -1,14 +1,15 @@
 # Ce que l'on a pu oublier
 
 Le résultat de la relecture du 4 novembre 2026, au commit `1e0f368` de
-`configure-clean` (la tâche PK close sans code) : toutes les pull requests de #1
-à #290 avec leurs commentaires et leurs revues, les messages des 1963 commits de
-`configure-clean`, les marques du code (`TODO`, `FIXME`, les renvois « point X
-of TODO.md »), les issues ouvertes et fermées, `todo-notes/synthese.md` et les
-trois registres. Ce fichier donne ce qui n'est ni fait, ni décidé, ni dans
-`TODO.md`, ni dans `TODO_AFTER.md`. Ce que `TODO_AFTER.md` donnait encore à
-faire et qui est fait est passé dans `TODO_DONE.md` (3.18) ; le classement de
-tout ce qui est fait est dans `STEP.md`.
+`configure-clean` (la tâche PK close sans code) : toutes les pull requests (de
+#15 à #290 ; les autres numéros sont des issues) avec leurs commentaires et
+leurs revues, les messages des 1964 commits de `configure-clean`, les marques du
+code (`TODO`, `FIXME`, les renvois « point X of TODO.md »), les issues ouvertes
+et fermées, `todo-notes/synthese.md` et les trois registres. Ce fichier donne ce
+qui n'est ni fait, ni décidé, ni dans `TODO.md`, ni dans `TODO_AFTER.md`. Ce que
+`TODO_AFTER.md` donnait encore à faire et qui est fait est passé dans
+`TODO_DONE.md` (3.18) ; le classement de tout ce qui est fait est dans
+`STEP.md`.
 
 **Aucun de ces oublis ne donne une borne fausse.** Ce sont des questions restées
 sans réponse, des textes faux ou périmés, des mesures jamais faites, des limites
@@ -42,27 +43,13 @@ un autre projet sans l'accord du mainteneur.
    d < 0, son relecteur dit le contraire : à vérifier d'abord. Destination : la
    réponse dans `TODO_DONE.md`, puis une phrase de `doc/using.md`, ou une limite
    dans `TODO_AFTER.md` §5.
-2. **Le coût de la comparaison exacte des littéraux (#149, 20 octobre).** Le
-   lecteur garde le texte de chaque nombre qui n'est pas un double (4,9 à 6,0 Mo
-   pour une somme de 200 000 termes) : « acceptable, ou ne garder les textes que
-   pour les bornes d'un littéral ? ». `TODO_DONE.md` §6 (#149) recopie la
-   question sans sa réponse. Code : `gaol/parser/gaol_interval_parser.ypp:81` et
-   `:200-218`. Destination : une décision dans `TODO_DONE.md` §6, ou une limite
-   dans `TODO_AFTER.md` §5.
-3. **`GAOL_PRESERVE_ROUNDING` avec autotools et meson sous MSYS2 (#163).** « Pas
-   d'entrée `GAOL_PRESERVE_ROUNDING` pour autotools et meson sous MSYS2 »
-   (`TODO_DONE.md` §6, #163) : la réponse du 23 octobre (3.6) ne tranche pas ce
-   point. Les jobs MSYS2 de `.github/workflows/build-systems.yml` (à partir de
-   la ligne 589) n'ont pas l'option, qu'ont ceux d'Ubuntu et de macOS (lignes
-   64-65 et 177-178). Destination : un job de plus (PJ), ou « laissé » dans
-   `TODO_DONE.md`.
-4. **GCC pour Windows 32 bits sans FMA (#172, 24 octobre).** « Un processeur
+2. **GCC pour Windows 32 bits sans FMA (#172, 24 octobre).** « Un processeur
    sans FMA ne fait plus tourner la bibliothèque de GCC pour Windows 32 bits :
    le laisser ainsi ? », sans réponse écrite. Le comportement est documenté
    (`doc/building.md:140`, `doc/differences.md:2260`). Destination : une ligne
    dans `TODO_DONE.md` 3.4, comme la question de #205 sur mingw-w64 11 l'a été
    dans `TODO_AFTER.md` 3.5.
-5. **Les tests à plusieurs threads (`0048c79`, 23 septembre).** Ils sont en
+3. **Les tests à plusieurs threads (`0048c79`, 23 septembre).** Ils sont en
    commentaire : `tests/ieee1788.cpp:52-57` et `:1113`,
    `tests/expressions.cpp:132-139`, `:2048` et `:2126`,
    `tests/CMakeLists.txt:300-306` ; `doc/tests.md:892` et `:1239-1241` le
@@ -71,7 +58,7 @@ un autre projet sans l'accord du mainteneur.
    ThreadSanitizer »), ce qu'aucun test ne vérifie plus. Aucun registre n'en
    parle. À décider : rétablir un test sous ThreadSanitizer (`TODO_AFTER.md`
    §1), inscrire la limite (§5), ou retirer le code en commentaire et la phrase.
-6. **Le nom décoré de `float64x2_t` (#146).** #146 dit que GCC et Clang décorent
+4. **Le nom décoré de `float64x2_t` (#146).** #146 dit que GCC et Clang décorent
    ce nom autrement, si bien qu'une bibliothèque construite par l'un ne se
    lierait pas avec un programme compilé par l'autre (`TODO_DONE.md` §6, #146) :
    ni décision, ni ligne dans `doc/`. Les noyaux exportés
@@ -81,34 +68,18 @@ un autre projet sans l'accord du mainteneur.
    rien n'a été compilé pour cette relecture). Destination : selon le résultat,
    une limite dans `doc/using.md` et `TODO_AFTER.md` §5, ou « sans objet » dans
    `TODO_DONE.md` §6.
-7. **Le défaut de GCC 14 trouvé par #279.** GCC 14 (x86-64, AArch64, RISC-V)
+5. **Le défaut de GCC 14 trouvé par #279.** GCC 14 (x86-64, AArch64, RISC-V)
    fusionne `quiet_less(r, l) || r == l` en un seul `r <= l` qui signale. GAOL
    le contourne (`gaol/core/gaol_interval_core.h:1264-1272`,
    `gaol/gaol_port.h:313-321`), mais il n'est ni dans l'issue #126 (GCC), ni
    dans la tâche PH. Destination : PH.2, un défaut de plus dans le brouillon de
    #126 (rien n'est envoyé sans accord).
-8. **Les règles de protection de `master` (#276).** « À changer dans les règles
+6. **Les règles de protection de `master` (#276).** « À changer dans les règles
    de protection de branche s'il y en a » : `master` est protégée sur GitHub, et
    aucun registre n'en parle. Destination : PJ.3, vérifier avant la fusion de
    `MATH-CORE` dans `master` que ces règles n'exigent pas un contrôle qui
    n'existe plus (les jobs de macOS 14) ; non vérifiable ici, les règles ne se
    lisent pas avec l'accès de cette session.
-9. **Deux branches restées sur GitHub.** `todo-pg-relations-order` (#279,
-   fusionnée, `7b54dbe`) et `todo-pg-xle-exfirst` (#246, fermée, `f08a53b`) :
-   `TODO_DONE.md` 8.1 les dit « à supprimer par lui », et aucune tâche ne le
-   porte. Destination : le ménage de la version (PJ), ou leur suppression par le
-   mainteneur.
-10. **Le test `numbers` sous ASan et UBSan (`TODO.md` PJ.1).** PJ.1 demande
-    encore de le lancer une fois en entier, et la même phrase dit qu'il a passé
-    en local le 4 novembre (Debug, 9 tests sur 9) : fait, ou à refaire au commit
-    de la version ? Destination : la phrase de PJ.1.
-11. **La vérification de `\defmethod` (`TODO.md` PJ.5).** PJ.5 demande de
-    vérifier que l'entrée de `what()` ne laisse pas son en-tête seul en bas de
-    page : depuis #285 (`fb8c54e8`), le manuel n'a plus d'entrée `\defmethod`
-    pour `what()` (`manual/v5/gaol.tex:6229` est de la prose). La clause est
-    sans objet ; l'autre clause de PJ.5 tient (l'entrée `hausdorff` a encore
-    deux `\newinvfive`, lignes 4529 et 4534, pour un seul décidé le 3 octobre).
-    Destination : retirer la clause de PJ.5.
 
 ## 2. Des textes faux ou périmés dans le code et la documentation
 
@@ -139,8 +110,9 @@ compilé.
    x86 processors » couvre aussi x86-64 (ligne 1613) : une remarque de la
    relecture de #210, non reprise.
 6. **`doc/tests.md:199-204` (#117, question 6).** La puce d'`elementary` décrit
-   des tests de `exp2` et `exp10` qui sont dans `tests/core_math.cpp` (lignes
-   647 et 1216), pas dans `tests/elementary.cpp`.
+   des tests de `exp2`, `exp10`, `log2`, `log10` et de `nth_root(I, q)` pour q <
+   0, qui sont dans `tests/core_math.cpp` (lignes 647-659, 1178-1185 et
+   1216-1225), pas dans `tests/elementary.cpp`.
 7. **Deux renvois faux.** `CMakeLists.txt:1212` cite « point PG.105 of
    TODO.md », qui n'a jamais existé (c'est PG.1, le 105, `TODO_AFTER.md` 3.6) ;
    `tests/ieee1788.cpp:1119` cite « (TODO.md, point 7) », un numéro d'avant le 3
@@ -148,7 +120,7 @@ compilé.
 8. **Le délai de `numbers` sous macOS (`dc036c6`, 4 octobre).**
    `tests/CMakeLists.txt:136-137` dit que le job macOS x86_64 avec ASan et UBSan
    donne 400 s à `numbers` ; `.github/workflows/macos.yml:424-425` lui en donne
-   600 depuis ce commit direct, que seul `todo-notes/synthese.md` décrit.
+   600 depuis ce commit direct (`process.md` §5 le dit, `TODO_DONE.md` non).
 9. **Deux marques de GAOL 4 dans le code compilé.**
    `gaol/core/gaol_interval_sse.cpp:25` (« TODO: check existence of stdint.h in
    configure.in ») et `:191` (« FIXME: replace with SSE code », dans
@@ -161,6 +133,13 @@ compilé.
 11. **Le job MSYS2 garde `ls | grep` (#202).** `TODO_DONE.md` (2.3, #202) dit
     que la boucle remplace `ls | grep` ;
     `.github/workflows/build-systems.yml:628` en garde un. Mineur.
+12. **`TODO_fin.md` et `STEP.md` dans l'archive des sources** (cette branche).
+    `CPACK_SOURCE_IGNORE_FILES` (`CMakeLists.txt:1574-1575`) n'exclut que
+    `TODO.md`, `TODO_AFTER.md`, `TODO_DONE.md`, `process.md` et `todo-notes/`
+    (#79) : les deux nouveaux fichiers iraient dans `gaol-<version>.tar.gz`.
+    Destination : PJ, les ajouter à la liste, à son commentaire
+    (`CMakeLists.txt:1554`), à `doc/building.md:264` et à
+    `doc/differences.md:2313`, ou ranger les deux fichiers dans `todo-notes/`.
 
 ## 3. Des textes à reporter dans `doc/differences.md` et le `ChangeLog`
 
@@ -267,8 +246,8 @@ décision de la lever), ou pour « sans objet » dans `TODO_DONE.md`.
 7. **Une clause d'`atanh()` sans test (#92)** : retirer `J.right() == -1.0`
    (`gaol/core/gaol_interval_core.cpp:5797`) ne fait échouer aucun test ;
    `todo-notes/synthese.md:1191-1196` propose de la joindre à R.7, qui est fait.
-8. **Les marques de GAOL 4 dans `gaol/float/`** : 13 `TODO` et `FIXME`
-   (`gaol_interval2f.cpp:2815` et `:3014-3093`, `gaol_intervalf.cpp:67`, `:257`,
+8. **Les marques de GAOL 4 dans `gaol/float/`** : 12 `TODO` et `FIXME`
+   (`gaol_interval2f.cpp:2815` et `:3014-3093`, `gaol_intervalf.cpp:257`,
    `:336-337` et `:436`) et `tests/interval2f.cpp:184` ; les intervalles de
    floats sont désactivés (`GAOL_FLOAT_INTERVALS`) et dits inachevés
    (`doc/differences.md:2290-2308`).
@@ -282,10 +261,11 @@ décision de la lever), ou pour « sans objet » dans `TODO_DONE.md`.
     clang-cl, par exemple) si le temps pèse »
     (`.github/workflows/performance.yml:105-107`) ; une condition pour
     `TODO_AFTER.md` §3.
-12. **LTO** : `-fno-lto` n'est que dans le build autotools de CORE-MATH
-    (`configure.ac:737-743`, `3rd/Makefile.am:50`), et l'audit des trois builds
-    ne compare pas ce réglage (#201) ; aucun job ne construit avec `-flto`
-    (#157, `TODO_DONE.md` §6).
+12. **LTO** : CORE-MATH est construit sans LTO par autotools (`-fno-lto`,
+    `configure.ac:737-743`, `3rd/Makefile.am:50`) et par CMake
+    (`INTERPROCEDURAL_OPTIMIZATION OFF`, `CMakeLists.txt:1259`), et
+    `meson.build` n'en dit rien ; l'audit des trois builds ne compare pas ce
+    réglage (#201). Aucun job avec `-flto` : *décidé le 23 octobre* (3.6).
 13. **Les macros qui appellent les gabarits (#210)** : aucun test ne voit si
     elles le font, c'est une propriété de vitesse.
 14. **`cos(x)` 6 ns plus lent (#100)**, de 55,6 à 61,6 ns, sans enquête ; sans
@@ -360,19 +340,20 @@ registres.
 4. **`TODO_DONE.md` §4 AE** est rangé parmi « Les points partiellement faits »
    alors que son texte dit « AE est faite en entier ».
 5. **Les tâches citées** : « tâches PH à PJ » (§4, en tête), « tâches PF à PJ »
-   (§6, en tête), « tâches PA à PJ » (`process.md` §2, §7, §9 et 3.7 de
-   `TODO_DONE.md`) ; il reste PH, PJ et PM. §4 renvoie aussi à « `TODO.md`,
-   anciens 77 à 103 », qui sont dans l'ancien `TODO.md` du commit `62dad3a`.
+   (§6, en tête), « tâches PA à PJ » (`process.md` §2, §7 et §9) ; il reste PH,
+   PJ et PM. §4 renvoie aussi à « `TODO.md`, anciens 77 à 103 », qui sont dans
+   l'ancien `TODO.md` du commit `62dad3a`.
 6. **`TODO_DONE.md` §5 (133)** : « Restent le Debug complet de Cygwin et
    autotools et meson sous Cygwin, non vérifiés » ; c'est fait par #205
    (`windows.yml:498` et `:549`, `build-systems.yml:651-652`). De même, §6
    (#163) dit Cygwin « sans job de CI », que #173 a ajouté.
 7. **`TODO_DONE.md` §5, le titre « Décisions du mainteneur attendues
    (reportées) »** : les trois sont prises.
-8. **`TODO_DONE.md` 3.2** : « 7 : atanh([1]) et atanh([-1]) ajoutés à
-   special_cases.md avec le point 33 » est fait
-   (`doc/compare/code/cases.py:703-704`, par #139) ; « 8 : l'ancien code SSE2
-   reste sous `#if 0` » est dépassé (#122, `0f45a95`, l'a retiré).
+8. **`TODO_DONE.md` 3.2** (les décisions du 3 octobre, un compte rendu daté) :
+   « 7 : atanh([1]) et atanh([-1]) ajoutés à special_cases.md avec le point 33 »
+   est fait par #139 (`doc/compare/code/cases.py:703-704`), et « 8 : l'ancien
+   code SSE2 reste sous `#if 0` » est dépassé (#122, `0f45a95`, l'a retiré) : au
+   plus, un renvoi à ajouter.
 9. **`TODO_DONE.md` 3.4** : les renvois à PG.6, PG.7 et PG.8 de `TODO.md` sont
    faits (#191 et #182, #219, #225), et PG.6 désigne deux points différents (la
    division du chemin AVX-512, #191, et la lecture d'un sous-normal, #182) ;
@@ -385,13 +366,16 @@ registres.
 11. **`TODO_DONE.md` 3.14** : `coverage.html` « attend le relevé de la
     version » ; il est refait le 4 novembre (`2313e07`, 3.15).
 12. **`TODO_DONE.md` §6** se dit « tranchées », mais #146 (le nom de
-    `float64x2_t`) et #149 (le coût de la comparaison exacte) n'ont pas de sort
-    (voir 1.2 et 1.6), #160 n'a pas sa question 2 (le seuil de 1,5, fait par
-    #217), et la décision de #149 sur sa question principale est en 3.5 (Q12)
-    sans renvoi.
-13. **`TODO_DONE.md` §1** : « Pull requests ouvertes : aucune » (#289 et #290 le
-    sont depuis le 4 novembre au soir) ; la liste des branches sur GitHub omet
-    les deux de 1.9.
+    `float64x2_t`) n'a pas de sort (voir 1.4) ; #149 n'y renvoie pas à sa
+    décision (3.5, Q12 : garder le texte de tous les nombres, le coût étant
+    connu et documenté) ; #160 n'a pas sa question 2 (le seuil de 1,5, fait par
+    #217) ; et #163 range parmi ses décisions « pas d'entrée
+    `GAOL_PRESERVE_ROUNDING` pour autotools et meson sous MSYS2 », qui se lit
+    mieux comme un constat à confirmer.
+13. **`TODO_DONE.md` §1** : la liste des branches sur GitHub omet
+    `todo-pg-relations-order` (#279, fusionnée, `7b54dbe`) et
+    `todo-pg-xle-exfirst` (#246, fermée, `f08a53b`), encore là, que `process.md`
+    §12 et 8.1 disent « à supprimer » par le mainteneur.
 14. **`TODO_DONE.md` 2.3** : l'entrée de #263 à #274 renvoie à « `TODO.md`,
     tâche PI », qui n'existe plus ; celle de #276 dit encore « le workflow macOS
     ne se termine pas », périmé depuis `57650a4` (1er novembre) ; celle de #288
@@ -404,8 +388,8 @@ registres.
     commentaires de fermeture de #254 à #261 disent leurs branches « gardées
     jusqu'à la fusion de #262 », 2.4 et 8.1 « gardées », sans terme ; #52 ne dit
     pas que son document est entré par `d6c8ac1`.
-16. **`TODO_DONE.md` 7.2** : « (#169, ouverte) » ; #169 est fusionnée depuis le
-    23 octobre.
+16. **`TODO_DONE.md` §6 (#162)** : « (#169, ouverte) » ; #169 est fusionnée
+    depuis le 23 octobre.
 17. **`TODO_DONE.md` 7.15** : « `TODO_AFTER.md` et l'issue #178 ne changent
     pas » ; #178 n'a pas suivi le `TODO_AFTER.md` du 3 novembre (`47c5c01`, voir
     8.1 ci-dessous).
@@ -415,7 +399,18 @@ registres.
     après `todo-notes/synthese.md`, que #288 n'a pas touché ; le commentaire de
     `CMakeLists.txt:1436` (`core_math_log_dint.h`) restera dans PJ.7 après #289,
     qui ne touche pas `CMakeLists.txt`.
-19. **`todo-notes/synthese.md`** : son introduction (lignes 19 à 23) et ses
+19. **`TODO.md` PJ.1, le test `numbers` sous ASan et UBSan** : PJ.1 demande
+    encore de le lancer une fois en entier, et la même phrase dit qu'il a passé
+    en local le 4 novembre (Debug, 9 tests sur 9) : fait, ou à refaire au commit
+    de la version ? Destination : la phrase de PJ.1.
+20. **`TODO.md` PJ.5, la vérification de `\defmethod`** : PJ.5 demande de
+    vérifier que l'entrée de `what()` ne laisse pas son en-tête seul en bas de
+    page : depuis #285 (`fb8c54e8`), le manuel n'a plus d'entrée `\defmethod`
+    pour `what()` (`manual/v5/gaol.tex:6229` est de la prose). La clause est
+    sans objet ; l'autre clause de PJ.5 tient (l'entrée `hausdorff` a encore
+    deux `\newinvfive`, lignes 4529 et 4534, pour un seul décidé le 3 octobre).
+    Destination : retirer la clause de PJ.5.
+21. **`todo-notes/synthese.md`** : son introduction (lignes 19 à 23) et ses
     notes « Présence : absents » sont périmées depuis #263 à #274 et #280 (#289
     corrige l'introduction) ; les lignes 447 et 1073 disent « change 6 » et
     « change 7 » de `3rd/README.md`, signalés périmés par #111 ; des points y
@@ -443,11 +438,11 @@ registres.
 ## 9. En cours, pour mémoire
 
 1. **#288 (fusionnée le 4 novembre)** n'est pas encore décrite dans
-   `TODO_DONE.md` (2.3, ses décisions, la branche `compoundm1` en 8.1) ni dans
-   `process.md` §12 : `TODO.md` le dit. Sa fusion est arrivée avant la fin de la
-   CI de son dernier commit (partie à 19 h 18, finie à 20 h 54 UTC : verte, sauf
-   un job macOS annulé faute d'exécuteur, « macOS 15 universal (arm64 and
-   x86_64), meson »).
+   `TODO_DONE.md` (2.3, ses décisions, la branche `compoundm1` en 8.1) :
+   `TODO.md` et `process.md` §12 le disent. Sa fusion est arrivée avant la fin
+   de la CI de son dernier commit (partie à 19 h 18, finie à 20 h 54 UTC :
+   verte, sauf un job macOS annulé faute d'exécuteur, « macOS 15 universal
+   (arm64 and x86_64), meson »).
 2. **#289 (ouverte)** : après sa fusion, son entrée et ses décisions (« Dans
    #289 ») ; le job `Manual` de la CI reste à voir ; si #290 est fusionnée après
    elle, le PDF du manuel sera de nouveau plus vieux que `gaol.tex`.
