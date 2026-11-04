@@ -80,6 +80,8 @@ namespace gaol_ieee1788 {
   
   //! The interval of GAOL, the type of the operations below
   using ::gaol_core::interval;
+  //! The 16 states of overlap(), under the names of Table 10.7 (GAOL v5)
+  using ::gaol_core::overlapping_state;
   
   //! The version of the library (gaol/gaol_version.h)
   using ::gaol_core::version_major;
@@ -474,6 +476,24 @@ namespace gaol_ieee1788 {
   }
   
   // ----------------------------------------------------------------------
+  // Extended interval comparisons (10.6.4)
+  // ----------------------------------------------------------------------
+
+  /*!
+  overlap(a, b): a.overlap(b), the state of Table 10.7 that a and b are in,
+  one of the 16 values of overlapping_state, in the order of the table
+  (bothEmpty is 0 and after is 15, GAOL v5). With the three states of an empty
+  interval, it tells which of the 13 states of Allen the nonempty intervals
+  are in, from their bounds: a point interval on a bound of the other is
+  starts, finishes, finishedBy, startedBy or equals, never meets or metBy.
+  The note of 10.6.4 makes the state s the 16-bit pattern 0x8000 >> s
+  (bothEmpty is the leftmost bit), and disjoint(a, b) the pattern of
+  overlap(a, b) meeting disjointMask = 0xF001: bothEmpty, firstEmpty,
+  secondEmpty, before or after.
+  */
+  GAOL_NODISCARD inline overlapping_state overlap(const interval& a, const interval& b) { return a.overlap(b); }
+
+  // ----------------------------------------------------------------------
   // Input and output (Clause 13)
   // ----------------------------------------------------------------------
   
@@ -546,7 +566,7 @@ namespace gaol_ieee1788 {
   /*
     Not provided, GAOL having no such operation:
       - the decorations and every decorated operation (Clause 11, 12.12.11);
-      - the slope functions (Table 10.6) and overlap (10.6.4);
+      - the slope functions (Table 10.6);
       - the reduction operations sum, dot, sumSquare and sumAbs (12.12.12),
         and the exact ones of 12.13.5.
   */

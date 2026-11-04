@@ -1571,7 +1571,11 @@ namespace
           && (E() <= X()) && (X() < E()) && (E() >= X()) && (X() > E()) && X().set_contains(E())
           && E().set_contains(E()) && !E().set_strictly_contains(X()) && X().set_strictly_contains(E())
           && !E().set_eq(X()) && E().set_neq(X()) && E().set_leq(X()) && E().set_le(X()) && !X().set_le(E())
-          && !E().less(X()) && !X().strictly_less(E()); } },
+          && !E().less(X()) && !X().strictly_less(E())
+          && E().overlap(E()) == gaol::overlapping_state::bothEmpty
+          && E().overlap(X()) == gaol::overlapping_state::firstEmpty
+          && X().overlap(E()) == gaol::overlapping_state::secondEmpty
+          && gaol_ieee1788::overlap(E(), X()) == gaol::overlapping_state::firstEmpty; } },
     { "the other outputs", [] {
         return write(E(), interval_format::width) == "[empty]" && write(E(), interval_format::center) == "[empty]"
           && write(E(), interval_format::hexa) == "[empty]" && write(E(), interval_format::agreeing) == "[empty]"
@@ -2944,6 +2948,7 @@ namespace
 
   GAOL_TESTS_RELATION_LOOP(loop_less, x[i].less(y[i]))
   GAOL_TESTS_RELATION_LOOP(loop_strictly_less, x[i].strictly_less(y[i]))
+  GAOL_TESTS_RELATION_LOOP(loop_overlap, x[i].overlap(y[i]))
   GAOL_TESTS_RELATION_LOOP(loop_is_symmetric, x[i].is_symmetric())
   GAOL_TESTS_RELATION_LOOP(loop_certainly_positive, x[i].certainly_positive())
   GAOL_TESTS_RELATION_LOOP(loop_certainly_negative, x[i].certainly_negative())
@@ -2985,6 +2990,7 @@ namespace
   const RelationLoop relation_loops[] = {
     { "less()", loop_less, loop_less_at },
     { "strictly_less()", loop_strictly_less, loop_strictly_less_at },
+    { "overlap()", loop_overlap, loop_overlap_at },
     { "is_symmetric()", loop_is_symmetric, loop_is_symmetric_at },
     { "certainly_positive()", loop_certainly_positive, loop_certainly_positive_at },
     { "certainly_negative()", loop_certainly_negative, loop_certainly_negative_at },
@@ -4404,6 +4410,8 @@ int main()
         { "x.set_le(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.set_le(y)); } },
         { "x.less(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.less(y)); } },
         { "x.strictly_less(y)", 2, false, [](const interval& x, const interval& y) { return kept(x.strictly_less(y)); } },
+        { "x.overlap(y)", 2, false, [](const interval& x, const interval& y) {
+            return kept(static_cast<unsigned long long>(x.overlap(y))); } },
         { "lexicographic_less()(x, y)", 2, false, [](const interval& x, const interval& y) { return kept(lexicographic_less()(x, y)); } },
         { "x.is_zero()", 1, false, [](const interval& x, const interval&) { return kept(x.is_zero()); } },
         { "x.is_symmetric()", 1, false, [](const interval& x, const interval&) { return kept(x.is_symmetric()); } },

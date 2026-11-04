@@ -21,6 +21,9 @@
  * it by a second thread writing intervals meanwhile is commented out: the
  * tests run no thread.
  * mulRevToPair() has to give the two parts of 10.5.5 in the standard's order.
+ * overlap() has to give the state that the set specification of Table 10.7
+ * gives, on a grid of intervals and on random ones (see
+ * overlap_of_the_standard()).
  * The operators of intervals (+, -, *, /, %, & and |) have to be in
  * gaol_ieee1788 too, as the functions of gaol_core are: called by their
  * qualified names, which argument-dependent lookup does not help, they compile
@@ -37,6 +40,7 @@
 #include "gaol_tests.h"
 #include "gaol/parser/gaol_expr_eval.h"
 
+#include <algorithm>
 #include <cctype>
 #include <clocale>
 #include <cstdlib>
@@ -661,6 +665,297 @@ namespace
           [&] { return hex(atan2Rev1(positive, zero)) + " " + hex(atan2Rev2(zero, zero, y)); });
   }
 
+  /*
+    overlap(a, b) of 10.6.4, the 16 states of Table 10.7 (GAOL v5), against
+    the set specification of the table, which is read as it is written: the
+    quantifiers of each of the 13 nonempty states, over the points of a and
+    of b, and the rule of the standard for a point interval on a bound of the
+    other one (never meets or metBy, whose specifications hold for it too).
+    overlap() tells the states from the order of the bounds; the oracle
+    tells them from the quantifiers, and uses the bounds only to place the
+    intervals in the model. A statement of the table is made of <, <= and =
+    on at most two points, in intervals whose ends are given numbers, so that
+    a finite model of the real line holds it exactly: the given numbers (the
+    finite bounds of the two intervals), and, in each of the gaps between them
+    and beyond the first and the last, three points, a gap having more points
+    than a statement can tell apart. An infinite bound is no point: the
+    interval goes to the end of the model. The pairs are those of a grid of
+    bounds next to the difficult ones (the infinities, the zeros of both signs,
+    the subnormals, the largest double, and the doubles on either side of
+    the numbers where two bounds meet), and random ones whose bounds are drawn
+    from a few doubles so that they meet often.
+  */
+  namespace overlap_model
+  {
+    typedef std::vector<int> points;
+
+    template <class F> bool for_all(const points& s, F f)
+    {
+      for (int p : s) {
+        if (!f(p)) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    template <class F> bool there_is(const points& s, F f)
+    {
+      for (int p : s) {
+        if (f(p)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+#define GAOL_ALL(s, v, e) for_all(s, [&](int v) { return (e); })
+#define GAOL_SOME(s, v, e) there_is(s, [&](int v) { return (e); })
+
+    // The set specification of Table 10.7 of the state k of the 13 nonempty
+    // ones, in the order of the table: before, meets, overlaps, starts,
+    // containedBy, finishes, equals, finishedBy, contains, startedBy,
+    // overlappedBy, metBy, after. a and b are the points of the first and of
+    // the second interval, A and B the points of each
+    bool specification_holds(int k, const points& A, const points& B)
+    {
+      switch (k) {
+      case 0:
+        return GAOL_ALL(A, a, GAOL_ALL(B, b, a < b));
+      case 1:
+        return GAOL_ALL(A, a, GAOL_ALL(B, b, a <= b)) && GAOL_SOME(A, a, GAOL_ALL(B, b, a < b))
+          && GAOL_SOME(A, a, GAOL_SOME(B, b, a == b));
+      case 2:
+        return GAOL_SOME(A, a, GAOL_ALL(B, b, a < b)) && GAOL_SOME(B, b, GAOL_ALL(A, a, a < b))
+          && GAOL_SOME(A, a, GAOL_SOME(B, b, b < a));
+      case 3:
+        return GAOL_ALL(B, b, GAOL_SOME(A, a, a <= b)) && GAOL_ALL(A, a, GAOL_SOME(B, b, b <= a))
+          && GAOL_SOME(B, b, GAOL_ALL(A, a, a < b));
+      case 4:
+        return GAOL_SOME(B, b, GAOL_ALL(A, a, b < a)) && GAOL_SOME(B, b, GAOL_ALL(A, a, a < b));
+      case 5:
+        return GAOL_SOME(B, b, GAOL_ALL(A, a, b < a)) && GAOL_ALL(B, b, GAOL_SOME(A, a, b <= a))
+          && GAOL_ALL(A, a, GAOL_SOME(B, b, a <= b));
+      case 6:
+        return GAOL_ALL(A, a, GAOL_SOME(B, b, a == b)) && GAOL_ALL(B, b, GAOL_SOME(A, a, b == a));
+      case 7:
+        return GAOL_SOME(A, a, GAOL_ALL(B, b, a < b)) && GAOL_ALL(A, a, GAOL_SOME(B, b, a <= b))
+          && GAOL_ALL(B, b, GAOL_SOME(A, a, b <= a));
+      case 8:
+        return GAOL_SOME(A, a, GAOL_ALL(B, b, a < b)) && GAOL_SOME(A, a, GAOL_ALL(B, b, b < a));
+      case 9:
+        return GAOL_ALL(A, a, GAOL_SOME(B, b, b <= a)) && GAOL_ALL(B, b, GAOL_SOME(A, a, a <= b))
+          && GAOL_SOME(A, a, GAOL_ALL(B, b, b < a));
+      case 10:
+        return GAOL_SOME(B, b, GAOL_ALL(A, a, b < a)) && GAOL_SOME(A, a, GAOL_ALL(B, b, b < a))
+          && GAOL_SOME(B, b, GAOL_SOME(A, a, a < b));
+      case 11:
+        return GAOL_ALL(B, b, GAOL_ALL(A, a, b <= a)) && GAOL_SOME(B, b, GAOL_SOME(A, a, b == a))
+          && GAOL_SOME(B, b, GAOL_ALL(A, a, b < a));
+      default:
+        return GAOL_ALL(B, b, GAOL_ALL(A, a, b < a));
+      }
+    }
+
+#undef GAOL_ALL
+#undef GAOL_SOME
+
+    const overlapping_state nonempty_states[13] = {
+      overlapping_state::before, overlapping_state::meets, overlapping_state::overlaps,
+      overlapping_state::starts, overlapping_state::containedBy, overlapping_state::finishes,
+      overlapping_state::equals, overlapping_state::finishedBy, overlapping_state::contains,
+      overlapping_state::startedBy, overlapping_state::overlappedBy, overlapping_state::metBy,
+      overlapping_state::after };
+
+    const char *const state_names[16] = {
+      "bothEmpty", "firstEmpty", "secondEmpty", "before", "meets", "overlaps", "starts",
+      "containedBy", "finishes", "equals", "finishedBy", "contains", "startedBy",
+      "overlappedBy", "metBy", "after" };
+
+    const char *name_of(overlapping_state s)
+    {
+      return state_names[static_cast<unsigned>(s)];
+    }
+
+    // The points of the model that x holds: the numbers c[0] < ... < c[n-1]
+    // are the points 4i + 3, the gap below c[i] the points 4i to 4i + 2, and
+    // the gap above the last one 4n to 4n + 2
+    points model_points(const interval& x, const std::vector<double>& c)
+    {
+      const int n = static_cast<int>(c.size());
+      int first = 0, last = 4 * n + 2;
+      if (std::isfinite(x.left())) {
+        first = 4 * static_cast<int>(std::find(c.begin(), c.end(), x.left()) - c.begin()) + 3;
+      }
+      if (std::isfinite(x.right())) {
+        last = 4 * static_cast<int>(std::find(c.begin(), c.end(), x.right()) - c.begin()) + 3;
+      }
+      points p;
+      for (int q = first; q <= last; ++q) {
+        p.push_back(q);
+      }
+      return p;
+    }
+
+    // The state of x and y by the set specification, and the number of the 13
+    // specifications that hold (1 for two nonempty intervals, 0 for an empty
+    // one). The set specifications of meets and metBy hold for a point
+    // interval on a bound of the other one too, with those of starts,
+    // finishes, finishedBy or startedBy: the standard allocates that case to
+    // the latter, "never to meets or metBy" (10.6.4), which this does, and
+    // point_case tells that no other pair of specifications holds together
+    overlapping_state by_sets(const interval& x, const interval& y, int& holding, bool& point_case)
+    {
+      holding = 0;
+      point_case = true;
+      if (x.is_empty() || y.is_empty()) {
+        return x.is_empty() ? (y.is_empty() ? overlapping_state::bothEmpty : overlapping_state::firstEmpty)
+                            : overlapping_state::secondEmpty;
+      }
+      std::vector<double> c;
+      const double ends[4] = { x.left(), x.right(), y.left(), y.right() };
+      for (double v : ends) {
+        if (std::isfinite(v)) {
+          c.push_back(v);
+        }
+      }
+      std::sort(c.begin(), c.end());
+      c.erase(std::unique(c.begin(), c.end()), c.end());
+      const points A = model_points(x, c), B = model_points(y, c);
+      int found[13], count = 0;
+      for (int k = 0; k < 13; ++k) {
+        if (specification_holds(k, A, B)) {
+          found[count++] = k;
+        }
+      }
+      if (count > 1) {
+        const bool meets_or_met_by = (found[0] == 1 || found[0] == 11 || found[1] == 1 || found[1] == 11);
+        point_case = count == 2 && meets_or_met_by && (x.is_a_double() || y.is_a_double());
+        int kept = 0;
+        for (int i = 0; i < count; ++i) {
+          if (found[i] != 1 && found[i] != 11) {
+            found[kept++] = found[i];
+          }
+        }
+        count = kept;
+      }
+      holding = count;
+      return count > 0 ? nonempty_states[found[0]] : overlapping_state::bothEmpty;
+    }
+
+    // The state of the pair (y, x): before and after, meets and metBy...
+    // are the converse of each other, firstEmpty and secondEmpty too
+    overlapping_state converse(overlapping_state s)
+    {
+      const unsigned k = static_cast<unsigned>(s);
+      return static_cast<overlapping_state>(k < 3 ? (k == 0 ? 0u : 3u - k) : 18u - k);
+    }
+
+    // The 16-bit patterns of the note of 10.6.4: the state of index k is the
+    // bit k from the left, so that disjointMask = 1111000000000001
+    unsigned pattern(overlapping_state s)
+    {
+      return 0x8000u >> static_cast<unsigned>(s);
+    }
+  }
+
+  void overlap_of_the_standard()
+  {
+    using namespace overlap_model;
+    static_assert(std::is_same<decltype(overlap(std::declval<interval>(), std::declval<interval>())), overlapping_state>::value,
+                  "overlap(a, b) is an overlapping_state");
+    static_assert(std::is_same<gaol::overlapping_state, gaol_ieee1788::overlapping_state>::value,
+                  "gaol and gaol_ieee1788 have the same overlapping_state");
+    // The order of Table 10.7, from 0 to 15, which the masks of the note use
+    check("the states of overlap have the order of Table 10.7",
+          static_cast<int>(overlapping_state::bothEmpty) == 0 && static_cast<int>(overlapping_state::firstEmpty) == 1
+          && static_cast<int>(overlapping_state::secondEmpty) == 2 && static_cast<int>(overlapping_state::before) == 3
+          && static_cast<int>(overlapping_state::meets) == 4 && static_cast<int>(overlapping_state::overlaps) == 5
+          && static_cast<int>(overlapping_state::starts) == 6 && static_cast<int>(overlapping_state::containedBy) == 7
+          && static_cast<int>(overlapping_state::finishes) == 8 && static_cast<int>(overlapping_state::equals) == 9
+          && static_cast<int>(overlapping_state::finishedBy) == 10 && static_cast<int>(overlapping_state::contains) == 11
+          && static_cast<int>(overlapping_state::startedBy) == 12 && static_cast<int>(overlapping_state::overlappedBy) == 13
+          && static_cast<int>(overlapping_state::metBy) == 14 && static_cast<int>(overlapping_state::after) == 15);
+
+    // A pair, against the set specification, its converse, and the
+    // comparisons of the standard as masks of states (10.6.4: disjoint is
+    // true for bothEmpty, firstEmpty, secondEmpty, before and after)
+    const unsigned disjoint_mask = 0xF001u, equal_mask = 0x8040u, subset_mask = 0xC3C0u;
+    long pairs = 0;
+    const auto check_pair = [&](const interval& x, const interval& y) {
+      ++pairs;
+      int holding = 0;
+      bool point_case = true;
+      const overlapping_state expected = by_sets(x, y, holding, point_case);
+      const overlapping_state state = overlap(x, y);
+      const bool nonempty = !x.is_empty() && !y.is_empty();
+      check("overlap is the state of the set specification of Table 10.7", state == expected,
+            [&] { return "overlap(" + hex(x) + ", " + hex(y) + ") is " + name_of(state) + ", the specification says " + name_of(expected); });
+      check("exactly one specification of Table 10.7 holds for two nonempty intervals, but for meets and metBy with a point",
+            holding == (nonempty ? 1 : 0) && point_case,
+            [&] { return hex(x) + " " + hex(y) + ": " + std::to_string(holding) + (point_case ? "" : ", two specifications hold"); });
+      check("overlap(y, x) is the converse of overlap(x, y)", overlap(y, x) == converse(state),
+            [&] { return "overlap(" + hex(y) + ", " + hex(x) + ") is " + name_of(overlap(y, x)) + ", after " + name_of(state); });
+      check("disjoint, equal and subset are masks of the states of overlap",
+            disjoint(x, y) == ((pattern(state) & disjoint_mask) != 0) && equal(x, y) == ((pattern(state) & equal_mask) != 0)
+            && subset(x, y) == ((pattern(state) & subset_mask) != 0),
+            [&] { return name_of(state) + std::string(" ") + hex(x) + " " + hex(y); });
+    };
+
+    // The grid: every pair of intervals whose bounds are in it, and the empty set
+    const double grid[] = { -oo, -std::numeric_limits<double>::max(), -1.0, -0x1p-1022, -0x1p-1074, -0.0, 0.0,
+                            0x1p-1074, 0x1p-1073, 0x1p-1022, 1.0, 0x1.0000000000001p+0, 0x1.fffffffffffffp+1023, oo };
+    const int n = static_cast<int>(sizeof grid / sizeof grid[0]);
+    std::vector<interval> intervals;
+    intervals.push_back(empty());
+    intervals.push_back(numsToInterval(2.0, 1.0));
+    intervals.push_back(intersection(numsToInterval(0.0, 1.0), numsToInterval(2.0, 3.0)));
+    for (int i = 0; i < n; ++i) {
+      for (int j = 0; j < n; ++j) {
+        if (grid[i] <= grid[j] && grid[i] != oo && grid[j] != -oo) {
+          intervals.push_back(numsToInterval(grid[i], grid[j]));
+        }
+      }
+    }
+    for (const interval& x : intervals) {
+      for (const interval& y : intervals) {
+        check_pair(x, y);
+      }
+    }
+
+    // Random pairs, whose bounds are drawn from a few doubles and their
+    // neighbours so that the bounds of the two intervals meet or nearly meet
+    gaol_tests::Random random;
+    for (int trial = 0; trial < 20000; ++trial) {
+      double pool[5];
+      for (double& p : pool) {
+        p = random.any();
+      }
+      interval drawn[2];
+      for (interval& x : drawn) {
+        const auto pick = [&]() -> double {
+          const double p = pool[random.integer(0, 4)];
+          switch (random.integer(0, 11)) {
+          case 0: return -oo;
+          case 1: return oo;
+          case 2: return 0.0;
+          case 3: return -0.0;
+          case 4: return gaol_tests::next_double(p);
+          case 5: return gaol_tests::previous_double(p);
+          default: return p;
+          }
+        };
+        double l = pick(), u = pick();
+        if (l > u) {
+          std::swap(l, u);
+        }
+        x = (l == oo || u == -oo) ? empty() : numsToInterval(l, u);
+      }
+      check_pair(drawn[0], drawn[1]);
+    }
+    std::printf("overlap: %ld pairs checked against the set specification of Table 10.7\n", pairs);
+  }
+
   /* mulRevToPair(b, c), the two-output division of 10.5.5 (GAOL v5): the
      closures of the parts of {x : b'x = c', b' in b, c' in c} in the order of
      the standard, u before v, against exact quotients on structured cases;
@@ -1160,6 +1455,7 @@ int main()
   pow_on_boxes();
   gaol_functions();
   names_of_the_standard();
+  overlap_of_the_standard();
   mul_rev_to_pair();
   text_with_the_names_of_the_standard();
   exact_text();
