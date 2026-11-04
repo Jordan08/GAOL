@@ -6131,7 +6131,9 @@ whenever one wants to report an error.
 \begin{defmacroA}{gaol\_ERROR}{(\var{excep},\var{msg})}
   The behavior of the macro depends on the value chosen for the option
   \option{-{}-enable-exceptions}: if exceptions are enabled, an exception of
-  the class \var{excep}, one of \code{<stdexcept>}, is thrown with the text
+  the class \var{excep}, derived from \code{std::exception} (the compiler
+  refuses any other type, with exceptions or without) and in practice one of
+  \code{<stdexcept>}, is thrown with the text
   ``\code{file:line: }\var{msg}'', \code{file} and \code{line} being those of
   the macro (\code{\_\_FILE\_\_} and \code{\_\_LINE\_\_}); otherwise, the
   program aborts with message \var{msg}.\newinvfive

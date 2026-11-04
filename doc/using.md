@@ -932,6 +932,10 @@ program that caught `gaol_core::input_format_error` now catches
 file and the line. `unavailable_feature_error` was thrown by no operation of
 GAOL v5. `gaol_warning()` and `gaol_error()`, which write on `std::cerr`,
 write a null file name as `(unknown file)` and a null message as nothing.
+`gaol_ERROR(excep, msg)`, which GAOL and a program that adds its own errors
+call, takes a class derived from `std::exception` and refuses any other type
+when it is compiled (a `static_assert`, in a build that aborts as in one that
+throws; GAOL v5).
 
 Where memory runs out, GAOL throws the `std::bad_alloc` of C++: the reader of
 strings too, where flex ended the program with `exit(2)` when it could not

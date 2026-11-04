@@ -525,6 +525,9 @@ CLASSES = [
     ("itf-not-tightest", "ITF1788 expects a result that is not the tightest: GAOL v5's is narrower, and "
      "encloses the exact result (checked with mpmath, whose tightest result the last column gives)",
      "defect of the test case"),
+    ("itf-literal", "ITF1788 expects an interval for a literal [l, u] whose lower bound is above its upper "
+     "bound (compared exactly), where an implementation that decides l <= u, as GAOL v5 does, gives the empty "
+     "set (12.12.7)", "defect of the test case"),
     ("unverified", "GAOL v5's result misses part of the expected one, and no reference was computed",
      "to be examined"),
 ]
@@ -597,6 +600,43 @@ def interval_of(lit):
     if lit.kind == "entire":
         return (-math.inf, math.inf)
     return lit.value
+
+
+def exact_number(text):
+    """The exact value, a Fraction, of the decimal, hexadecimal or rational number a literal writes, not the
+    double nearest to it: the two doubles nearest to the bounds of [0x1.00000000000002p0, 0x1.00000000000001p0]
+    are both 1, where the bounds are not equal (12.12.7: "the comparison l <= u requires the exact values to
+    be used"); None for anything else (an infinity, a name) or for a number too long to be a literal of a case"""
+    t = text.strip()
+    # Fraction() reads 1_0, and 1e999999999 would exhaust the memory
+    if "_" in t or len(t) > 200 or re.search(r"[eE][+-]?[0-9]{5,}|[pP][+-]?[0-9]{5,}", t):
+        return None
+    m = re.fullmatch(r"([+-]?)0[xX]([0-9a-fA-F]*)(?:\.([0-9a-fA-F]*))?(?:[pP]([+-]?[0-9]+))?", t)
+    if m:
+        fraction = m.group(3) or ""
+        digits = m.group(2) + fraction
+        if not digits:
+            return None
+        value = Fraction(int(digits, 16)) * Fraction(2) ** (int(m.group(4) or 0) - 4 * len(fraction))
+        return -value if m.group(1) == "-" else value
+    try:
+        return Fraction(t)
+    except (ValueError, ZeroDivisionError):
+        return None
+
+
+def crossed_literal(case):
+    """Whether the string of a textToInterval case is an inf-sup literal [l, u] whose bounds are numbers with l
+    above u, exactly: an implementation that decides l <= u gives the empty set (12.12.7), and one that
+    cannot may give an interval containing l and u, which the cases of libieeep1788 expect, signalling
+    PossiblyUndefinedOperation; a non-empty result for l above u is permitted by the standard, not required"""
+    if case.op != "b-textToInterval" or case.inputs[0].kind != "string":
+        return False
+    m = re.fullmatch(r'"\s*\[([^,\[\]]+),([^,\[\]]+)\]\s*"', case.inputs[0].value)
+    if not m:
+        return False
+    l, u = exact_number(m.group(1)), exact_number(m.group(2))
+    return l is not None and u is not None and l > u
 
 
 def reverse_trig(fn, c, x):
@@ -805,7 +845,11 @@ def failure_class(row):
         if len(got) == 1 and accurate(parse_case(row.source, row.file), got[0], exp[0]):
             row.note += ", accurate"
         return "valid"
-    ref, known = reference(parse_case(row.source, row.file))
+    case = parse_case(row.source, row.file)
+    if got == [None] and crossed_literal(case):
+        row.note = "l is above u"
+        return "itf-literal"
+    ref, known = reference(case)
     if not known:
         return "unverified"
     row.note = "tightest: " + ("[empty]" if ref is None else "[%s, %s]" % (ref[0].hex(), ref[1].hex()))
