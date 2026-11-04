@@ -661,12 +661,12 @@ The column Where gives the lines of the code reviewed, not of the code now.
 | # | What | Where | Severity |
 |---|---|---|---|
 | 9 | The reader hung under a locale writing a decimal comma (`setlocale(LC_ALL, "")` with `LANG=fr_FR.UTF-8`, what Qt and GTK programs do): `textToInterval("0.1")` never returned, nor `operator>>`. `strtod` stopped at the `.`, and the lexer then walked from its value one double at a time (4.6·10¹⁸ steps for 0.1). Under the same locale, `exact_string()` wrote `0x1,999999999999ap-4`, which did not read back. **Fixed**, as the exponents of 7 digits or more, which the reader cut at 100000. | `gaol/parser/gaol_interval_lexer.lpp:226` (and the committed `.cpp:960`), `gaol/core/gaol_interval_core.cpp:756` | high |
-| 10 | `interval(nullptr, nullptr)` and `interval(std::getenv("UNSET"), "1")` compiled and crashed (`strlen` of a null pointer), and so did `interval((const char*)nullptr)` and `interval(1, 2) + nullptr`; none of them compiles now, GAOL v5 having no constructor from strings; `textToInterval(std::getenv("UNSET"))` throws the `std::logic_error` of `std::string` (libstdc++). **Fixed**: `parse_interval(nullptr)` returns false, and `textToInterval(nullptr)` and `textToInterval(std::getenv("UNSET"))` throw `input_format_error`. | `gaol/parser/gaol_parser.cpp:58`, `gaol/core/gaol_interval_core.h:120` | medium |
+| 10 | `interval(nullptr, nullptr)` and `interval(std::getenv("UNSET"), "1")` compiled and crashed (`strlen` of a null pointer), and so did `interval((const char*)nullptr)` and `interval(1, 2) + nullptr`; none of them compiles now, GAOL v5 having no constructor from strings; `textToInterval(std::getenv("UNSET"))` throws the `std::logic_error` of `std::string` (libstdc++). **Fixed**: `parse_interval(nullptr)` returns false, and `textToInterval(nullptr)` and `textToInterval(std::getenv("UNSET"))` throw an exception. | `gaol/parser/gaol_parser.cpp:58`, `gaol/core/gaol_interval_core.h:120` | medium |
 | 11 | `gaol_core::expression` objects created with no argument in two threads crashed within a million iterations: they shared one global node whose reference count was a plain `unsigned`. **Fixed**. | `gaol/parser/gaol_expression.cpp:76` | medium |
 | 12 | A point interval is written `<0.1, 0.1000000000000001>` in the default format, which the reader refuses ("bounds of degenerate interval do not evaluate to the same value"), although the manual says the bounds format reads back; `textToInterval(intervalToText(interval(0.1)))` is the empty set. **Fixed**: a point interval whose double the digits write exactly is written `[a]`, which the reader reads back as that point, and any other point as the bounds `[0.1, 0.1000000000000001]`, which it reads back as an interval containing it. | `gaol/core/gaol_interval_core.cpp:728` | medium |
 | 13 | `operator<<` set the stream's precision to `interval::precision()` and never restored it: after printing an interval, `std::cout << 1.0/3` printed 16 digits, and `std::setw` padded the `[` only. IBEX and Codac both work around it. **Fixed** (`std::setprecision` still does not apply to intervals, by design). | `gaol/core/gaol_interval_core.cpp:780` | medium |
-| 14 | `operator>>` read a whole line and threw `input_format_error` at the end of the input and on a blank line, without setting `failbit`: `while (in >> x)` always ended with an exception, and left x empty. **Fixed** at the end of the input, where `failbit` is now set and nothing thrown, and on a blank line, now skipped as the blanks before a number are. | `gaol/core/gaol_interval_core.cpp:556` | medium |
-| 15 | `gaol_exception` does not override `what()`: `catch (const std::exception& e)` prints `std::exception`, and an uncaught error ends with `what(): std::exception`. **Fixed**: `what()` is the explanation, or the name of the class where there is none. | `gaol/gaol_exceptions.h:56` | medium |
+| 14 | `operator>>` read a whole line and threw an exception at the end of the input and on a blank line, without setting `failbit`: `while (in >> x)` always ended with an exception, and left x empty. **Fixed** at the end of the input, where `failbit` is now set and nothing thrown, and on a blank line, now skipped as the blanks before a number are. | `gaol/core/gaol_interval_core.cpp:556` | medium |
+| 15 | Withdrawn: this number was about the exception classes of GAOL 4, which GAOL v5 no longer has (see "Errors" in [Using GAOL](../doc/using.md)). The numbers of the other rows stay. | | |
 | 16 | `gaol::sin(0.5)` (and every function of namespace `gaol` on a double) is ambiguous between the interval and the expression overloads. It compiled with GAOL 4, whose `<gaol/gaol>` did not include `gaol_expression.h`; GAOL v5's includes it through `gaol_ieee1788.h`. **Fixed** as an ambiguity, not as a regression: the constructors from a double are explicit, so that nothing is ambiguous, but `gaol::sin(0.5)`, which compiled with GAOL 4, still does not compile, with or without `gaol_expression.h` (by design), and is written `gaol::sin(interval(0.5))`. | `gaol/gaol_ieee1788.h:70` | low (regression) |
 | 17 | Parsing a sum of 100 000 terms overflows the stack (one frame per term, in the evaluation and the destruction of the tree), and so do expressions built through the public API. **Fixed**: a sum of 1 000 000 terms is read from a string, evaluated and deleted, and so is one built through the public API: the stack of the program does not depend on the depth of the tree. | `gaol/parser/gaol_interval_parser.ypp:422` | low |
 | 18 | `expression::operator/=` was declared but not defined: a program using it did not link. **Fixed**. | `gaol/parser/gaol_expression.h:72` | low |
@@ -713,9 +713,6 @@ reviewer and every example writer:
   code; `interval::zero()` is [−0, 0] with SSE2).
 - With both namespaces open, `pow(x, 2)` compiles and silently takes GAOL's
   `pow` (only `pow(x, 2.0)` and `pow(x, y)` are ambiguous, as the docs say).
-- A text refused because `nth_root` has a non-integer order throws
-  `invalid_action_error`, not `input_format_error`; a reading loop catching
-  the latter lets it escape.
 - `gaol_ieee1788::textToInterval` returns the empty set for a malformed text,
   which cannot be told from `"[empty]"` without decorations.
 - `interval(DBL_MAX*10)`, `x + INFINITY` and `x * NAN` are silently empty: a
@@ -983,10 +980,9 @@ To take:
    a `std::less` specialization), and warn against `std::sort`, `std::set`,
    `std::max` with the certainly relations (done: `gaol::lexicographic_less`,
    and the warning in `doc/using.md` and the manual).
-9. Finish the streams (numbers 12 and 15; 13 and 14 are applied): write point
-   intervals as `[a, b]` when their two texts differ, make `what()` the
-   explanation, and consider reading one interval token rather than a line
-   (numbers 12 and 15 are done since).
+9. Finish the streams (number 12; 13 and 14 are applied): write point
+   intervals as `[a, b]` when their two texts differ, and consider reading one
+   interval token rather than a line (number 12 is done since).
 10. Add the helpers every algorithm writes: `mulRevToPair`/`div_rel_pair`,
     `inflate`, `bisect(ratio)` and `is_bisectable()`, a mid-radius
     constructor, `hull()` and `intersect()` as functions, an enclosure of the
@@ -1182,8 +1178,7 @@ that number, in decimal, in hexadecimal and in the uncertain form.
 `parse_interval()` returns false for a null pointer,
 and the error messages write `(null pointer)` instead of the string
 (`x + nullptr` no longer compiles). Test (`tests/numbers.cpp`):
-`interval(std::getenv(...), "1")` of an unset variable throws
-`input_format_error`, and
+`interval(std::getenv(...), "1")` of an unset variable throws, and
 `static_assert(!std::is_convertible<std::nullptr_t, interval>::value)`.
 
 **11. Expressions in threads (applied).** Make the shared null node immortal:
@@ -1212,15 +1207,11 @@ set, the interval unchanged, as for a double at the end of the input), and set
 `failbit` before throwing on a syntax error, whether the reader refuses the
 line at its end or throws as it reads it, without letting `setstate()` throw
 `std::ios_base::failure` on a stream whose `exceptions()` include `failbit`:
-the exception stays `input_format_error`. Test: `while (in >> x)` over
+the exception is the one the reader throws. Test: `while (in >> x)` over
 `"[1, 2]\n[3, 4]\n"` reads 2 intervals and throws nothing; `"[1, 2"` and
-`"<3, 4>"` set `failbit` and throw `input_format_error`.
+`"<3, 4>"` set `failbit` and throw.
 
-**15. `what()` (fixed since).** In `gaol_exception`:
-`const char* what() const noexcept override { return explanation_.empty() ? "gaol_exception" : explanation_.c_str(); }`,
-and in `operator<<` of the exceptions no longer print `what()` next to the
-explanation. Test (`tests/expressions.cpp`): the `what()` of a refused string
-is its explanation.
+**15. (withdrawn).** The exception classes of GAOL 4 are gone; the number stays.
 
 **16. `gaol::sin(0.5)` (fixed since).** Stop including `gaol_expression.h` from
 `gaol_ieee1788.h`, and move `gaol_ieee1788`'s two expression overloads

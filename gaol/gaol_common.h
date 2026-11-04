@@ -29,13 +29,17 @@
 
 #include <cmath>
 
+// The classes of <stdexcept> that gaol_ERROR (below) takes are declared with
+// exceptions or without: its static_assert needs the type in both (GAOL v5)
 #include <cstdlib>
+#include <exception>
+#include <stdexcept>
+#include <type_traits>
 #include "gaol/gaol_config.h"
 #include "gaol/gaol_port.h"
 
-// What gaol_ERROR (below) throws, and the text of the exception (GAOL v5)
+// The text of the exceptions, error_text() below
 #if GAOL_EXCEPTIONS_ENABLED
-#  include <stdexcept>
 #  include <string>
 #endif
 
@@ -180,7 +184,9 @@ namespace gaol_core {
   /*!
   \brief Reports an error of GAOL (GAOL v5)
 
-  \param excep the exception to throw, a class of <stdexcept>: GAOL throws
+  \param excep the exception to throw, a class derived from std::exception,
+  which the compiler checks (static_assert, with or without exceptions), in
+  practice a class of <stdexcept>: GAOL throws
   std::invalid_argument for a string that is no interval and
   std::domain_error for a function called with an argument it does not take.
   GAOL 4 had classes of its own, in gaol_core (gaol_exception,
@@ -197,9 +203,13 @@ namespace gaol_core {
   stream, with gaol_error(), and calls abort().
   */
   #if GAOL_EXCEPTIONS_ENABLED
-  #   define gaol_ERROR(excep,msg) do { throw excep(::gaol_detail::error_text(GAOL_FILE_POS,msg)); } while (0)
+  #   define gaol_ERROR(excep,msg) do { \
+        static_assert(::gaol_detail::is_error_class<excep>::value, "gaol_ERROR: excep must be derived from std::exception"); \
+        throw excep(::gaol_detail::error_text(GAOL_FILE_POS,msg)); } while (0)
   #else
-  #   define gaol_ERROR(excep,msg) do { gaol_core::gaol_error(GAOL_FILE_POS,msg); std::abort(); } while (0)
+  #   define gaol_ERROR(excep,msg) do { \
+        static_assert(::gaol_detail::is_error_class<excep>::value, "gaol_ERROR: excep must be derived from std::exception"); \
+        gaol_core::gaol_error(GAOL_FILE_POS,msg); std::abort(); } while (0)
   #endif
   
   #if GAOL_VERBOSE_MODE
@@ -257,6 +267,16 @@ namespace gaol_detail {
   {
     return (text != nullptr) ? text : "";
   }
+
+  /*
+    What gaol_ERROR takes for its first argument (GAOL v5): a class that
+    std::exception is a public and unambiguous base of, so that a handler of
+    std::exception catches it. The macro checks it with a static_assert in the
+    two builds, with exceptions or without, where a type that is no exception
+    (an int, a std::string) would otherwise compile in the build that aborts.
+  */
+  template <class E>
+  struct is_error_class : std::integral_constant<bool, std::is_convertible<E*, std::exception*>::value> {};
 
 #if GAOL_EXCEPTIONS_ENABLED
   /*

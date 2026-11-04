@@ -1139,9 +1139,16 @@ point Q), which `numbers` checks there too.
   and a null message too, and with the directories of a path cut after `/`
   and after `\` (GAOL v5, which replaced the classes of GAOL 4,
   `gaol_exception`, `input_format_error`, `invalid_action_error` and
-  `unavailable_feature_error`, by them). `what()` was `std::exception`, which a handler of `std::exception`
-  printed and an exception that nothing catches ended the program with, in
-  GAOL 4. `gaol_warning()` and `gaol_error()`, which write on `std::cerr`, have
+  `unavailable_feature_error`, by them). `what()` was `std::exception`, which
+  a handler of `std::exception` printed and an exception that nothing catches
+  ended the program with, in GAOL 4. The check that `gaol_ERROR` makes of its
+  first argument, a class derived from `std::exception`, is tested on its
+  predicate (`gaol_detail::is_error_class`: true for `std::invalid_argument`,
+  `std::domain_error`, `std::bad_alloc` and a class of a program, false for an
+  `int`, a `std::string`, a class that is no exception and a private derived
+  class), since a `static_assert` that refuses a type cannot be compiled in a
+  test; that the macro makes the check is tested by `.github/scripts/headers.sh`,
+  which compiles `gaol_ERROR(int, ...)` and expects it to be refused (GAOL v5). `gaol_warning()` and `gaol_error()`, which write on `std::cerr`, have
   to write a null file name as `(unknown file)` and no text for a null message,
   and leave the stream good for what follows: the null pointer was sent to the
   stream, which the standard leaves undefined and libstdc++ puts in the state

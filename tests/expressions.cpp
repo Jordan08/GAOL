@@ -998,6 +998,25 @@ namespace
           [&] { return captured.str(); });
   }
 
+  /* The first argument of gaol_ERROR (GAOL v5) is a class derived from
+     std::exception: the macro checks it with a static_assert on this
+     predicate, in the build with exceptions and in the one that aborts, which
+     takes any type otherwise. A static_assert that refuses a type cannot be
+     compiled in a test, so it is the predicate that is tested, on the classes
+     GAOL throws, another of the standard library, a class of a program and
+     types that are no exception. */
+  struct program_error : std::runtime_error { using std::runtime_error::runtime_error; };
+  struct not_an_exception { explicit not_an_exception(const std::string&) {} };
+  struct private_exception : private std::exception {};
+  static_assert(::gaol_detail::is_error_class<std::invalid_argument>::value, "std::invalid_argument is a valid error class");
+  static_assert(::gaol_detail::is_error_class<std::domain_error>::value, "std::domain_error is a valid error class");
+  static_assert(::gaol_detail::is_error_class<std::bad_alloc>::value, "std::bad_alloc is a valid error class");
+  static_assert(::gaol_detail::is_error_class<program_error>::value, "a class derived from std::runtime_error is a valid error class");
+  static_assert(!::gaol_detail::is_error_class<int>::value, "an int is no error class");
+  static_assert(!::gaol_detail::is_error_class<std::string>::value, "std::string is no error class");
+  static_assert(!::gaol_detail::is_error_class<not_an_exception>::value, "a class that is no exception is no error class");
+  static_assert(!::gaol_detail::is_error_class<private_exception>::value, "a handler of std::exception does not catch a private derived class");
+
 #if GAOL_EXCEPTIONS_ENABLED
   /* What GAOL throws (GAOL v5): the exceptions of the standard library, where
      GAOL 4 had classes of its own, gaol_exception, input_format_error,
