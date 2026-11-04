@@ -5,9 +5,9 @@ Tout ce qui est reporté sur GAOL v5 au 4 novembre 2026 (commit `1e0f368` de
 reporté indéfiniment, ce qu'il a écarté en laissant une porte ouverte, et ce qui
 attend du matériel. Ce fichier et l'issue #178 ont le même contenu. Ce qui reste
 à faire avant la version est dans `TODO.md` (issue #179), ce qui est fait et
-décidé dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour), et ce que la
-relecture du 4 novembre a trouvé sans suite dans aucun registre dans
-`TODO_fin.md` ; ce qui sortait d'ici, fait, est dans `TODO_DONE.md` (3.18).
+décidé dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour). Ce que la
+relecture du 4 novembre a relevé sans suite dans aucun registre est dans
+`TODO_fin.md`, et ce qui sortait d'ici, fait, dans `TODO_DONE.md` (3.18).
 
 Rien de ce fichier n'est à faire avant v5.0.0, ni sans l'accord du mainteneur.
 Après v5.0.0, le développement continue dans `configure-clean` et `master` ne
@@ -84,9 +84,9 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    octobre* : un site généré depuis `doc/*.md`, avec le PDF du manuel, publié
    par un workflow, sans la référence HTML de Doxygen (supprimée par le commit
    `29f280b`). Sorti du point I le 18 octobre, à la demande du mainteneur : le
-   site vient après
-   les textes de I, qu'il publie et qui sont fusionnés (#140). Sans dépendance,
-   mais l'annonce étant privée, rien ne l'exige pour la version.
+   site vient après les textes de I, qu'il publie et qui sont fusionnés (#140).
+   Sans dépendance, mais l'annonce étant privée, rien ne l'exige pour la
+   version.
 3. **28 (X)** [L] : des en-têtes optionnels au-dessus du cœur scalaire pour
    YalAA et VNODE-LP. *Décidé le 3 octobre* : des traits GAOL pour YalAA et un
    backend intervalle pour VNODE-LP, et non la promotion en `gaol/box.h`,
@@ -98,9 +98,9 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    : la décision l'emporte). Après la version.
 4. **Le ménage de la fin** : l'image Docker `i386/debian:trixie` de #111 reste
    sur la machine (`debian:trixie` et `ubuntu:24.04` ont été supprimées le 31
-   octobre : `TODO_DONE.md`, 8.1) ; `todo-notes/`
-   (ramené de la branche `todo-status`, supprimée ; ses rapports sont retirés de
-   l'arbre, ils restent au commit `16a2f60`, et ce qui en sert encore est dans
+   octobre : `TODO_DONE.md`, 8.1) ; `todo-notes/` (ramené de la branche
+   `todo-status`, supprimée ; ses rapports sont retirés de l'arbre, ils restent
+   au commit `16a2f60`, et ce qui en sert encore est dans
    `todo-notes/synthese.md`) est à vider après la version, avec ce qu'il reste
    des registres `TODO.md`, `TODO_DONE.md` et `TODO_AFTER.md` et de leurs issues
    #177 à #179, qu'il faudra alors fermer ou garder.
@@ -125,12 +125,11 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    cible (#124) : `x *= d`, `x /= d` et `x %= d` branchent encore sur le signe
    de `d` avec les intervalles FPU, SSE2 et NEON (#250 n'a changé que le test de
    `d` des intervalles NEON, et #191 et #220 que le `x / d` du chemin AVX-512) ;
-   (d) l'effet de `__vectorcall` (les noyaux `add_bounds()` et
-   les autres de Visual C++ et de clang-cl x64, #148) n'est pas séparé dans les
-   temps de la CI ; #193 l'a étendu à x86 32 bits, où le banc A/B ne montre
-   aucune différence au-delà de 5 % sur ses rapports FPU / SSE2, et le
-   mainteneur l'y a gardé. À rapprocher de `doc/simd.md` (#154). Reporté, sans
-   condition.
+   (d) l'effet de `__vectorcall` (les noyaux `add_bounds()` et les autres de
+   Visual C++ et de clang-cl x64, #148) n'est pas séparé dans les temps de la
+   CI ; #193 l'a étendu à x86 32 bits, où le banc A/B ne montre aucune
+   différence au-delà de 5 % sur ses rapports FPU / SSE2, et le mainteneur l'y a
+   gardé. À rapprocher de `doc/simd.md` (#154). Reporté, sans condition.
 
 ## 3. Écarté, à rouvrir si une condition change
 
@@ -158,15 +157,15 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    seulement si cette règle change, ou avec l'étude 113 (en 1).
 3. **Le quotient NEON par deux divisions scalaires** (#195, fermée sans fusion
    le 25 octobre). Un essai du `div_bounds()` de NEON avec deux divisions
-   scalaires à la place de la division vectorielle, pour chercher pourquoi `x /
-   y` de clang-cl est plus lent en NEON qu'avec le FPU (#192) : plus lent
+   scalaires à la place de la division vectorielle, pour chercher pourquoi
+   `x / y` de clang-cl est plus lent en NEON qu'avec le FPU (#192) : plus lent
    partout, de 5,36 à 6,17 ns avec clang-cl et de 5,40 à 6,30 avec Visual C++
    sur le Neoverse N2 des runners arm64 de GitHub, de 2,38 à 2,76 ns sur l'Apple
    M2 (chiffres dans `doc/simd.md`). La branche est supprimée. Depuis, #225
    (fusionnée le 29 octobre) a raccourci le reste du noyau : la perte de
-   clang-cl est corrigée (`TODO_DONE.md`, 2.3), ce que `doc/simd.md` ne dit pas
-   encore (`TODO_fin.md`, 2.2). *À rouvrir* seulement si un processeur ARM 64
-   bits divise nettement plus vite en scalaire.
+   clang-cl est corrigée (`TODO_DONE.md`, section 5, PG.8), ce que `doc/simd.md`
+   ne dit pas encore (`TODO_fin.md`, 2.2). *À rouvrir* seulement si un
+   processeur ARM 64 bits divise nettement plus vite en scalaire.
 4. **Des drapeaux propres à la tranche x86_64 d'un build universel de macOS**
    (#194). Cette tranche n'a pas le fusionné multiplie-addition (`-mfma` échoue
    pour la tranche arm64) : CORE-MATH y appelle le `fma()` de la bibliothèque de
@@ -304,16 +303,13 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    0x1.aa365774f4ea3p+409] et le calcul de référence, `sqr(x & [0, +oo])`, le
    vide) et est passé à la relance, sans lien visible avec le diff de #189. Non
    reproduit en local ni dans les autres jobs de #186 à #190. Deux échecs plus
-   anciens du même job, passés à la relance, n'étaient pas notés ici : un job
-   Rosetta de `configure-clean` le 20 octobre (run 39487538926, sans message de
-   test dans son journal) et, le 22 octobre sur #162, `cancel_minus` dans
-   `arithmetic`, dont les bornes affichées des deux côtés étaient identiques
-   (commentaire de #162). Le job « macOS 14 x86_64 (Rosetta) » n'existe plus
-   (#276 l'a passé sur `macos-27`, sans exécuteur, et il est en commentaire dans
-   `macos.yml`) ; Rosetta reste dans la CI (« macOS 26 x86_64 (Rosetta) » et la
-   tranche x86_64 des jobs universels). Il est revenu le
-   28 octobre sur #208 (`007c1f3`, run 40668659623, job 122750002962, « macOS 26
-   universal (arm64 and x86_64), meson », tranche x86_64 sous Rosetta) :
+   anciens du même job n'étaient pas notés ici : celui d'un job Rosetta de
+   `configure-clean` le 20 octobre (run 39487538926, sans message de test dans
+   son journal), et celui du 22 octobre sur #162, `cancel_minus` dans
+   `arithmetic`, dont les bornes affichées des deux côtés étaient identiques,
+   passé à la relance (commentaire de #162). Un échec du même genre est revenu
+   le 28 octobre sur #208 (`007c1f3`, run 40668659623, job 122750002962, « macOS
+   26 universal (arm64 and x86_64), meson », tranche x86_64 sous Rosetta) :
    `ieee1788` a écrit « FAILED pown(x, n) beyond the long longs: x^(2^64 - 1) as
    x^(2^63 - 1), x^(2^64 - 2) as x^(2^63 - 2) ». Ce contrôle de
    `tests/ieee1788.cpp` relie quatre sous-vérifications par `&&` et n'affiche
@@ -330,7 +326,10 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    dans `tests/ieee1788.cpp` (calculer les quatre intervalles avant le `check`
    et les afficher tous les quatre dans son détail), pour que le journal dise
    laquelle des quatre sous-vérifications diffère, puis voir si Rosetta lit le
-   sens d'arrondi ou les modes de MXCSR comme un processeur.
+   sens d'arrondi ou les modes de MXCSR comme un processeur. Le job « macOS 14
+   x86_64 (Rosetta) » n'existe plus (#276 l'a passé sur `macos-27`, sans
+   exécuteur, et il est en commentaire dans `macos.yml`) ; Rosetta reste dans la
+   CI (« macOS 26 x86_64 (Rosetta) » et la tranche x86_64 des jobs universels).
 9. **Un délai de test juste pour un exécuteur lent** (#215) :
    `automatic_configuration` (600 s) a dépassé son délai le 28 octobre dans le
    job « macOS 26 Xcode generator, universal (arm64 and x86_64) » de #215, sur

@@ -4270,11 +4270,13 @@ par la relecture de #279 : en faire un point ou la reporter, à décider) a ét�
 
 ### 3.18 Le 4 novembre : le tri de la fin (tâche PN)
 
-Demandé par le mainteneur le 4 novembre (« relire toutes les PR, les textes des
+Demandé par le mainteneur le 4 novembre, hors des tâches de `TODO.md` (la tâche
+PN, de la branche `todo-pn-trie-fin` : « relire toutes les PR, les textes des
 commits et les TODO*.md », « vérifie que l'on a bien tout traité ou décidé ») :
-la relecture, au commit `1e0f368`, de toutes les pull requests de #1 à #290
-(leur corps, leurs commentaires et leurs revues), des messages des 1963 commits
-de `configure-clean`, des marques du code (`TODO`, `FIXME`, les renvois « point
+la relecture, au commit `1e0f368`, de toutes les pull requests (de #15 à #290 ;
+les autres numéros sont des issues), avec leur corps, leurs commentaires et
+leurs revues, des messages des 1964 commits de `configure-clean`, des marques
+du code (`TODO`, `FIXME`, les renvois « point
 X of TODO.md »), des issues, de `todo-notes/synthese.md` et des trois
 registres, par neuf relecteurs indépendants (des sous-agents sans le contexte de
 la session), dont les constats ont été revérifiés par échantillon dans le code.
@@ -4318,8 +4320,11 @@ Ce qui sort de `TODO_AFTER.md`, ou ce qui s'y réduit :
   `doc/compare/itf1788.md`, et le banc ITF1788 le vérifie, signe compris (23
   cas de `mid` réussis, aucun échec) ; l'article garde la question d'une
   vérification dans `ctest`.
-- **Des textes périmés corrigés** : l'en-tête ; 1.4 (`debian:trixie` et
-  `ubuntu:24.04` supprimées le 31 octobre, 8.1) ; 3.3 (#225 a corrigé la perte
+- **Des textes périmés corrigés** : l'en-tête ; 1.2 (la référence de Doxygen
+  supprimée par le commit `29f280b`, non par #29, fermée sans fusion) ; 1.4
+  (`debian:trixie` et `ubuntu:24.04` supprimées le 31 octobre, 8.1) ; 2.2, le
+  reste (c) (ce qui branche encore sur le signe de `d`, et ce que #191, #220
+  et #250 ont changé) ; 3.3 (#225 a corrigé la perte
   de clang-cl) ; 3.4 (la ligne `GAOL_FMA` de `doc/building.md`, qui n'est plus
   une option depuis #200 ; macOS 14 est sorti de la CI par #276) ; 4.7 (sept
   jobs universels exécutent la tranche x86_64 depuis #205) ; 4.8 (le job
