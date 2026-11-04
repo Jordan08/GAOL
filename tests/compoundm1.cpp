@@ -4,7 +4,8 @@
  * Tests of GAOL v5: compoundm1, (1 + x)^y - 1 of IEEE 1788-2015 (Table 10.5).
  *
  * CORE-MATH has no compoundm1: its bounds are computed in
- * gaol/math/gaol_compoundm1.h with a 128-bit significand and a bound of the
+ * gaol/math/gaol_compoundm1.h with 64-bit fixed point in a fast phase, then
+ * where that does not settle them a 128-bit significand and a bound of the
  * error that every operation adds to, and have to be the tightest ones. This
  * test checks, from the bottom up:
  *
@@ -22,7 +23,11 @@
  *  - the balls of log(1 + x) and of exp(t) - 1, which have to hold the value
  *    to 256 bits computed by mpmath (compoundm1_values.py), within a width
  *    that is checked too;
- *  - the bounds at a point: for 3845 pairs (x, y) of every magnitude, the
+ *  - the fast phase: the bound of its error, which the balls' value has to
+ *    stay far inside of, its answers, which have to be those of the balls, and
+ *    its domain; the series, the reduction by log(2) and the doubles around
+ *    an enclosure by themselves; and the exact division of y = -1;
+ *  - the bounds at a point: for 5854 pairs (x, y) of every magnitude, the
  *    values that are doubles ((1.5)^3 - 1 = 2.375, 2^m - 1...), the tiny x
  *    whose value is next to the double y x, the thresholds of the reduction
  *    by log(2) and of the cuts at -64 and 2048, the doubles that mpmath gives
@@ -505,6 +510,261 @@ namespace
   }
 
   //-------------------------------------------------------------------------
+  // The reciprocal and the fast phase
+  //-------------------------------------------------------------------------
+
+  // clz64() is the instruction of the compiler where there is one, clz64_soft() the bisection: the same count
+  void leading_zeros()
+  {
+    Random rnd;
+    std::vector<u64> values = { 1, 2, 3, 0x7fffffffffffffffull, 0x8000000000000000ull, ~static_cast<u64>(0), 0x100000000ull, 0xffffffffull };
+    for (int i = 0; i < 2000; ++i) {
+      values.push_back((rnd.bits() | 1u) >> rnd.integer(0, 63));
+    }
+    for (u64 v : values) {
+      if (v == 0) { continue; }
+      int n = 0;
+      while (((v << n) >> 63) == 0) { ++n; }
+      check("clz64() counts the leading zeros", cm1::clz64(v) == n && cm1::clz64_soft(v) == n,
+            [&] { return std::to_string(v) + ": " + std::to_string(cm1::clz64(v)) + ", " + std::to_string(cm1::clz64_soft(v)) + " rather than " + std::to_string(n); });
+    }
+  }
+
+  // g64(R) is (exp(r) - 1) / r 2^63 within 5 units, against the values of mpmath (to 127 bits, rounded down: one unit more)
+  void series_of_the_fast_phase()
+  {
+    for (const GValue& v : g_values) {
+      const u64 R = v.r1; // r = +-R / 2^64, within 2^-64 of the r of the table
+      const u64 got = cm1::g64(R, v.negative != 0);
+      const u64 distance = got > v.g1 ? got - v.g1 : v.g1 - got;
+      check("g64() is within 5 units of 2^-63 of (exp(r) - 1) / r, 6 for the reference rounded down and R cut",
+            distance <= 6, [&] { return "R = " + std::to_string(R) + ": " + std::to_string(got) + " rather than " + std::to_string(v.g1); });
+    }
+    // And against the series of the balls, to 127 bits, for every size of R up to 2^63 (r = 1/2), 5 units exactly
+    Random rnd;
+    std::vector<u64> rs = { 0, 1, 2, 3, static_cast<u64>(1) << 62, (static_cast<u64>(1) << 63) - 1, static_cast<u64>(1) << 63 };
+    for (int i = 0; i < 4000; ++i) {
+      rs.push_back((rnd.bits() >> 1) >> rnd.integer(0, 62));
+    }
+    for (u64 R : rs) {
+      for (int neg = 0; neg < 2; ++neg) {
+        const cm1::U128 ref = cm1::g_fixed(cm1::mk(R, 0), neg != 0); // G 2^127, within 2^-123
+        const u64 got = cm1::g64(R, neg != 0);
+        // |got 2^64 - ref| <= 5 2^64, with the 2^-123 of the reference (2^-60 of a unit of 2^-63) as a margin
+        u64 borrow;
+        const cm1::U128 g128 = cm1::mk(got, 0);
+        const cm1::U128 diff = cm1::lt(g128, ref) ? cm1::sub(ref, g128, borrow) : cm1::sub(g128, ref, borrow);
+        check("g64() is within 5 units of 2^-63 of the series of the balls", diff.h < 5 || (diff.h == 5 && diff.l <= 16),
+              [&] { return "R = " + std::to_string(R) + (neg != 0 ? " (negative): " : ": ") + text(diff); });
+      }
+    }
+  }
+
+  // fast_reduce(): the multiple of log(2) that is nearest, and what is left of it
+  void reduction_of_the_fast_phase()
+  {
+    Random rnd;
+    const cm1::U128 M = cm1::ln2_120();
+    for (int i = 0; i < 6000; ++i) {
+      // T = |v| 2^120 < 2^123, from 2^100 on
+      cm1::U128 T = cm1::shr(cm1::mk(rnd.bits(), rnd.bits()), 5 + rnd.integer(0, 25));
+      if (i % 7 == 0) {
+        // next to (2 k + 1) log(2) / 2: the nearest multiple changes there
+        const int k = rnd.integer(0, 10);
+        u64 carry;
+        T = cm1::add(cm1::shl(M, 0), cm1::mk(0, 0), carry);
+        for (int j = 0; j < k; ++j) { T = cm1::add(T, M, carry); }
+        T = cm1::add(T, cm1::shr(M, 1), carry);
+        T = (i % 2 == 0) ? T : cm1::sub(T, cm1::mk(0, 1 + rnd.integer(0, 3)), carry);
+        T = (i % 3 == 0) ? cm1::add(T, cm1::mk(0, 1 + rnd.integer(0, 3)), carry) : T;
+      }
+      int k;
+      bool sneg;
+      u64 R;
+      cm1::fast_reduce(T, k, sneg, R);
+      // |T - k M| <= M / 2 and the nearest: T = k M +- |s|
+      u64 c;
+      cm1::U128 kM = cm1::mk(0, 0);
+      for (int j = 0; j < k; ++j) { kM = cm1::add(kM, M, c); }
+      cm1::U128 s;
+      u64 borrow;
+      if (sneg) {
+        s = cm1::sub(kM, T, borrow);
+        check("fast_reduce: T below k log(2) when s is negative", borrow == 0);
+      } else {
+        s = cm1::sub(T, kM, borrow);
+        check("fast_reduce: T at least k log(2) when s is not negative", borrow == 0);
+      }
+      const cm1::U128 twice = cm1::shl(s, 1);
+      check("fast_reduce: |s| is at most log(2) / 2", !cm1::lt(M, twice), [&] { return text(T); });
+      check("fast_reduce: R is |s| 2^-56", R == cm1::shr(s, 56).l && cm1::shr(s, 56).h == 0, [&] { return text(T); });
+      check("fast_reduce: k is at most 12", k >= 0 && k <= 12, [&] { return text(T) + ": " + std::to_string(k); });
+    }
+  }
+
+  // norm64() and top64(), and the constant log(2) 2^120 of mpmath
+  void helpers_of_the_fast_phase()
+  {
+    Random rnd;
+    check("log(2) 2^120 is the one of mpmath", cm1::ln2_120().h == ln2_120_high && cm1::ln2_120().l == ln2_120_low,
+          [&] { return text(cm1::ln2_120()); });
+    std::vector<double> values = { 1.0, 0.5, 3.0, 0x1p-1074, 0x1.fffffffffffffp-1023, 0x1p-1022, 1e300, 0x1.8p-1070, 7.0e-310, 0.1 };
+    for (int i = 0; i < 400; ++i) {
+      values.push_back(rnd(-1074, 1023) * (rnd.integer(0, 1) != 0 ? 1.0 : -1.0));
+    }
+    for (double v : values) {
+      if (v == 0.0 || !std::isfinite(v)) { continue; }
+      bool neg;
+      u64 m;
+      int e;
+      cm1::norm64(v, neg, m, e);
+      const double back = std::ldexp(static_cast<double>(m >> 11) * 2048.0 + static_cast<double>(m & 2047u), e) * (neg ? -1.0 : 1.0);
+      check("norm64(): a 64-bit significand with its top bit set, and the number", (m >> 63) == 1 && neg == (v < 0.0) && (m & 2047u) == 0 && back == v,
+            [&] { return show(v) + ": " + text(cm1::mk(m, 0)) + " 2^" + std::to_string(e); });
+    }
+    for (int i = 0; i < 2000; ++i) {
+      const u64 hi = (i % 5 == 0) ? 0 : (rnd.bits() >> rnd.integer(0, 63)), lo = rnd.bits() | 1u;
+      u64 m;
+      int z;
+      cm1::top64(hi, lo, m, z);
+      // The 128 bits shifted left by z have m for their 64 high bits, the top bit set
+      cm1::U128 shifted = cm1::shl(cm1::mk(hi, lo), z);
+      check("top64(): the 64 high bits of a number of 128 bits, shifted to the top", (m >> 63) == 1 && shifted.h == m && z >= 0 && z < 128,
+            [&] { return text(cm1::mk(hi, lo)) + ": " + std::to_string(z); });
+    }
+  }
+
+  // fast_doubles(): the enclosure [m - err, m + err] 2^fe holds no double (m has 11 more bits than a double)
+  void doubles_of_the_fast_phase()
+  {
+    const u64 top = static_cast<u64>(1) << 63;
+    struct Case { const char* what; bool neg; u64 m; int fe; u64 rho; bool answers; double lo, hi; };
+    // err = floor(rho m / 2^63) + 2 units, 2^11 units to a double: for rho = 1 and m = 1.5 2^63, err = 3 units
+    const Case cases[] = {
+      { "inside of the doubles around 1.5", false, top + (top >> 1) + 0x400, -63, 1, true, 1.5, 1.5 + 0x1p-52 },
+      { "negative: the bounds are opposite and swapped", true, top + (top >> 1) + 0x400, -63, 1, true, -(1.5 + 0x1p-52), -1.5 },
+      { "the lower end of the enclosure is a double", false, top + (top >> 1) + 3, -63, 1, false, 0.0, 0.0 },
+      { "the lower end is just above a double", false, top + (top >> 1) + 4, -63, 1, true, 1.5, 1.5 + 0x1p-52 },
+      { "the upper end is the next double", false, top + (top >> 1) + 0x800 - 3, -63, 1, false, 0.0, 0.0 },
+      { "the upper end is just below the next double", false, top + (top >> 1) + 0x800 - 4, -63, 1, true, 1.5, 1.5 + 0x1p-52 },
+      { "the enclosure goes below 2^63 (a power of two)", false, top + 2, -63, 1, false, 0.0, 0.0 },
+      { "the enclosure goes past 2^64 (a power of two)", false, ~static_cast<u64>(0) - 2, -63, 1, false, 0.0, 0.0 },
+      { "a larger rho widens it: the enclosure goes over a double", false, top + (top >> 1) + 0x400, -63, 800, false, 0.0, 0.0 },
+      { "a larger rho that still fits", false, top + (top >> 1) + 0x400, -63, 300, true, 1.5, 1.5 + 0x1p-52 },
+      { "the smallest normal double", false, top + 0x400, -1085, 1, true, 0x1p-1022, 0x1p-1022 + 0x1p-1074 },
+      { "a subnormal double is not told", false, top + 0x400, -1086, 1, false, 0.0, 0.0 },
+      { "the largest doubles: the least double above is the infinity", false, ~static_cast<u64>(0) - 0x400, 960, 1, true, 0x1.fffffffffffffp+1023, gaol_tests::inf },
+      { "past the largest double", false, top + 0x400, 961, 1, false, 0.0, 0.0 },
+    };
+    for (const Case& c : cases) {
+      double lo = 0.0, hi = 0.0;
+      const bool got = cm1::fast_doubles(c.neg, c.m, c.fe, c.rho, lo, hi);
+      check("fast_doubles(): the doubles around the enclosure, or no answer where it holds one", got == c.answers && (!got || (lo == c.lo && hi == c.hi)),
+            [&] { return std::string(c.what) + ": " + (got ? "[" + show(lo) + ", " + show(hi) + "]" : std::string("no answer")); });
+    }
+  }
+
+  // The relative error of the centre of the fast phase against the balls, in units of rho: 0 to 1, or -1 where it does not answer
+  double fast_error(double x, double y)
+  {
+    bool fneg;
+    cm1::u64 fm, rho;
+    int fe;
+    if (!cm1::fast_centre(x, y, fneg, fm, fe, rho)) { return -1.0; }
+    const double y0 = gaol_cr_log1p(x);
+    const cm1::Num T = cm1::num_mul(cm1::num_of_double(y), cm1::log1p_ball(x, y0));
+    const cm1::Num F = cm1::expm1_ball(T);
+    const cm1::Num centre = cm1::num_of_u128(fneg, cm1::mk(0, fm), fe);
+    const cm1::Num D = cm1::num_sub(F, centre);
+    if (cm1::num_is_zero(D)) { return 0.0; }
+    if (cm1::num_is_zero(F) || cm1::mag_is_inf(F.r) || cm1::mag_is_inf(D.r)) { return 1e9; }
+    const double dd = std::ldexp(static_cast<double>(D.m.h), D.e - 64), ff = std::ldexp(static_cast<double>(F.m.h), F.e - 64);
+    return dd / ff * 9223372036854775808.0 / static_cast<double>(rho);
+  }
+
+  // The fast phase: the bound of its error holds with a margin of three (the worst error found is 0.22 of it), its answers are those of the balls, it settles
+  // most of the pairs of its domain and none outside of it
+  void fast_phase()
+  {
+    Random rnd;
+    struct Domain { const char* what; double xlo, xhi, ylo, yhi; double rate; };
+    const Domain domains[] = {
+      { "x in [-0.3, 0.5], y in [-3, 3]", -0.3, 0.5, -3.0, 3.0, 0.90 },
+      { "x in [-0.05, 0.05], y in [-20, 20]", -0.05, 0.05, -20.0, 20.0, 0.88 },
+      { "x in [0, 0.1], y in [1, 30]", 0.0, 0.1, 1.0, 30.0, 0.88 },
+      { "x in [-0.9, 5], y in [0.1, 3] (log1p past 1/2)", -0.9, 5.0, 0.1, 3.0, 0.80 },
+      { "x in [-0.7, -0.4], y in [-1, 1] (the log of 0.3 to 0.6)", -0.7, -0.4, -1.0, 1.0, 0.80 },
+      { "x in [5, 2900], y in [-0.5, 0.5] (log1p up to 8)", 5.0, 2900.0, -0.5, 0.5, 0.60 },
+    };
+    for (const Domain& d : domains) {
+      int answered = 0, total = 0;
+      for (int i = 0; i < 2500; ++i) {
+        const double x = rnd.uniform(d.xlo, d.xhi), y = rnd.uniform(d.ylo, d.yhi);
+        if (x == 0.0 || y == 0.0 || y == 1.0 || y == -1.0) { continue; }
+        ++total;
+        const double error = fast_error(x, y);
+        check("the error of the fast phase is at most 3/10 of its bound", error <= 0.3,
+              [&] { return std::string(d.what) + ": (" + show(x) + ", " + show(y) + "): " + std::to_string(error) + " of the bound"; });
+        double lo, hi, blo, bhi;
+        if (cm1::compoundm1_fast(x, y, lo, hi)) {
+          ++answered;
+          cm1::compoundm1_balls(x, y, blo, bhi);
+          check("the bounds of the fast phase are those of the balls", lo == blo && hi == bhi,
+                [&] { return std::string(d.what) + ": (" + show(x) + ", " + show(y) + "): [" + show(lo) + ", " + show(hi) + "] and the balls' [" + show(blo) + ", " + show(bhi) + "]"; });
+        }
+      }
+      check("the fast phase settles most of the pairs of its domain", answered >= d.rate * total,
+            [&] { return std::string(d.what) + ": " + std::to_string(answered) + " of " + std::to_string(total); });
+    }
+    // The domain: |log1p(x)| <= 8, |y log1p(x)| < 8, a result of the normal doubles; and no answer where the value is a double
+    const struct { const char* what; double x, y; bool answers; } edges[] = {
+      { "log1p(x) = 8.007", 3000.0, 0.001, false },
+      { "log1p(x) = -8.11", -0.9997, 0.5, false },
+      { "y log1p(x) = 16", 0.5, 40.0, false },
+      { "y log1p(x) = -16", 0.5, -40.0, false },
+      { "a subnormal value", 0x1p-1060, 0.5, false },
+      { "x subnormal and y 1.5", 0x1p-1070, 1.5, false },
+      { "(0.5)^3 - 1 = 2.375 is a double", 0.5, 3.0, false },
+      { "(2)^0.5 - 1 is not", 2.0, 0.5, true },
+      { "log1p(x) = 0.405, y = 2.5", 0.5, 2.5, true },
+      { "log1p(x) = -0.693, y = 3", -0.5, 3.0, false }, // (0.5)^3 - 1 = -0.875 is a double
+      { "x = 0.7 and y = 11 (the value is 1.4 10^2, not a double)", 0.7, 11.0, true },
+      { "x = -0.7 and y = 2.5 (|t| = 3)", -0.7, 2.5, true },
+      { "y log1p(x) = 12.2", 0.5, 30.0, false },
+      { "y log1p(x) = -12.2", 0.5, -30.0, false },
+      { "y log1p(x) = 9.7", -0.7, -8.1, false },
+    };
+    for (const auto& e : edges) {
+      double lo, hi;
+      const bool got = cm1::compoundm1_fast(e.x, e.y, lo, hi);
+      check("the fast phase answers inside of its domain, and nowhere else", got == e.answers,
+            [&] { return std::string(e.what) + ": " + (got ? "answers [" + show(lo) + ", " + show(hi) + "]" : std::string("does not answer")); });
+    }
+  }
+
+  // reciprocal_m1() is the exact division: the tightest bounds of the points of y = -1 (the contrived values among them),
+  // wherever 1 + x takes 127 bits or less
+  void reciprocals()
+  {
+    int divided = 0;
+    for (const CompoundPoint& p : compound_points) {
+      if (p.y != -1.0) { continue; }
+      cm1::Dyadic s;
+      const bool representable = cm1::one_plus(p.x, s);
+      double lo, hi;
+      const bool done = cm1::reciprocal_m1(p.x, lo, hi);
+      check("reciprocal_m1() divides where 1 + x takes 127 bits or less, and nowhere else", done == representable,
+            [&] { return show(p.x) + (done ? " is divided" : " is not divided"); });
+      if (done) {
+        ++divided;
+        check("reciprocal_m1(): the tightest bounds of 1/(1 + x) - 1", lo == p.below && hi == p.above,
+              [&] { return show(p.x) + ": [" + show(lo) + ", " + show(hi) + "] rather than [" + show(p.below) + ", " + show(p.above) + "]"; });
+      }
+    }
+    check("the points of y = -1 are divided, most of them", divided > 500, [&] { return std::to_string(divided); });
+  }
+
+  //-------------------------------------------------------------------------
   // Points
   //-------------------------------------------------------------------------
 
@@ -593,16 +853,31 @@ namespace
     }
   }
 
-  // The contrived value the bounds are not told apart for: y = -1 and x = 2^-51 + 2^-103, whose 1/(1 + x) has no cubic
-  // term and is within 2^-155 of the double 1 - 2^-51 + 2^-103: the tightest bounds are [-0x1.fffffffffffffp-52,
-  // -0x1.ffffffffffffep-52], and the ball holds the double, so that the upper bound is one double above (documented in
-  // doc/accuracy.md): the result has to enclose the tightest bounds, and be no wider than that
+  // The contrived values the balls cannot tell apart, y = -1 and x = 2^e + 2^(2e-1), whose 1/(1 + x) has no cubic term and is
+  // within 2^-155 of a double (the tightest bounds of x = 2^-51 + 2^-103 are [-0x1.fffffffffffffp-52, -0x1.ffffffffffffep-52],
+  // and the ball holds the double -0x1.ffffffffffffep-52, which it cannot tell from the value): reciprocal_m1() divides the
+  // integers and gives the tightest bounds, which is checked against the balls' enclosure too (compoundm1_balls() is one
+  // double wider on one side, no more, and holds them) for every e where x is a double
   void contrived_value()
   {
     const interval r = compoundm1(interval(0x1.0000000000001p-51), interval(-1.0));
-    check("compoundm1(2^-51 + 2^-103, -1) encloses the tightest bounds, within a double",
-          r.left() == -0x1.fffffffffffffp-52 && r.right() >= -0x1.ffffffffffffep-52 && r.right() <= -0x1.ffffffffffffdp-52,
-          [&] { return hex(r); });
+    check("compoundm1(2^-51 + 2^-103, -1) gives the tightest bounds",
+          r.left() == -0x1.fffffffffffffp-52 && r.right() == -0x1.ffffffffffffep-52, [&] { return hex(r); });
+    int wider = 0;
+    for (int e = -51; e <= -30; ++e) {
+      for (int sign = -1; sign <= 1; sign += 2) {
+        const double x = sign * (std::ldexp(1.0, e) + std::ldexp(1.0, 2*e - 1));
+        double lo, hi, blo, bhi;
+        cm1::compoundm1_point(x, -1.0, lo, hi);
+        cm1::compoundm1_balls(x, -1.0, blo, bhi);
+        check("the contrived x = 2^e + 2^(2e-1), y = -1: the balls hold the tightest bounds, within a double of them",
+              blo <= lo && hi <= bhi && std::nextafter(lo, -gaol_tests::inf) <= blo && bhi <= std::nextafter(hi, gaol_tests::inf),
+              [&] { return show(x) + ": [" + show(lo) + ", " + show(hi) + "] and the balls' [" + show(blo) + ", " + show(bhi) + "]"; });
+        if (blo != lo || bhi != hi) { ++wider; }
+      }
+    }
+    // The balls are wider for some of them (that is why there is a division), and the division is tight for all
+    check("the balls alone are one double wider for the contrived values of y = -1", wider > 0);
   }
 
   // Random boxes with finite bounds, whose result is the hull of the values at the corners and at 0 where
@@ -720,13 +995,20 @@ int main()
 {
   gaol::init();
   integers();
+  leading_zeros();
   series_of_the_balls();
+  series_of_the_fast_phase();
+  reduction_of_the_fast_phase();
+  helpers_of_the_fast_phase();
+  doubles_of_the_fast_phase();
   preconditions();
   rounding_of_balls();
   exact_equalities();
   rounding_of_integers();
   balls_against_exact_results();
   balls_of_log1p_and_expm1();
+  reciprocals();
+  fast_phase();
   points();
   boxes();
   chosen_boxes();

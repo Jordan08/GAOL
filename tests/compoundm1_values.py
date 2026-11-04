@@ -257,6 +257,64 @@ for _ in range(120):
 for _ in range(80):
     points.append((math.ldexp(rng.uniform(1, 2), rng.randint(-1074, -900)), 10.0 ** rng.uniform(-300, -1)))
 
+# y = -1, whose value -x / (1 + x) is the quotient of two integers
+# (reciprocal_m1() of the header), and the domain of the fast phase: the
+# pairs below come from a generator of their own, so as not to move the
+# ones that were drawn before
+rng2 = random.Random(20261105)
+
+
+def reciprocal_x():
+    kind = rng2.random()
+    if kind < 0.25:
+        return rng2.choice([-1, 1]) * math.ldexp(1.0 + rng2.getrandbits(52) / 2.0 ** 52, -rng2.randint(1, 130))
+    if kind < 0.40:
+        return math.ldexp(1.0 + rng2.getrandbits(52) / 2.0 ** 52, rng2.randint(0, 130))
+    if kind < 0.55:
+        return -1 + math.ldexp(1.0 + rng2.getrandbits(52) / 2.0 ** 52, -rng2.randint(1, 53))
+    if kind < 0.70:
+        return float(rng2.randint(1, 60)) * rng2.choice([1, 0.5, 0.25, 0.125])
+    if kind < 0.80:
+        return -float(rng2.randint(1, 31)) / rng2.choice([32, 64, 128, 1024])
+    return rng2.uniform(-1, 2)
+
+
+# The contrived values x = 2^e + 2^(2e-1) and their opposites, whose 1/(1 + x) is within 2^-155 of a double, and
+# the doubles next to them
+for e in range(-60, -29):
+    x = math.ldexp(1.0, e) + math.ldexp(1.0, 2 * e - 1)
+    for v in (x, -x, math.nextafter(x, INF), math.nextafter(x, 0.0), math.nextafter(-x, -INF)):
+        if v > -1 and v != 0:
+            points.append((v, -1.0))
+for _ in range(500):
+    v = reciprocal_x()
+    if v > -1 and v != 0 and not math.isinf(v):
+        points.append((v, -1.0))
+# The edges of the fast phase: |log1p(x)| = 1/2 and 8, and the (x, y) with y log(1 + x) next to 8 and to log(2) / 2
+for lx in (0.5, -0.5, 8.0, -8.0, 0.25, -0.25, 2.0, -2.0, 7.9, -7.9):
+    center = math.expm1(lx)
+    x = center
+    for _ in range(3):
+        x = math.nextafter(x, -INF)
+    for _ in range(7):
+        log = log1p_double(x)
+        for t in (0.001, 0.3, 0.3466, 0.35, 1.0, 5.0, 7.9, 8.0, 8.1, -0.3466, -0.35, -2.0, -7.9, -8.0):
+            y = t / log
+            if y != 0 and not math.isinf(y) and y != 1.0 and y != -1.0:
+                points.append((x, y))
+        x = math.nextafter(x, INF)
+# Random pairs inside the domain of the fast phase, where the value is far from a double nearly always
+for _ in range(400):
+    x = rng2.choice([rng2.uniform(-0.39, 0.65), rng2.uniform(-0.9, 5.0), 10.0 ** rng2.uniform(-12, 0)])
+    if not x > -1 or x == 0:
+        continue
+    log = log1p_double(x)
+    if log == 0:
+        continue
+    y = rng2.uniform(-8, 8) / log * rng2.choice([1, 1, 0.1, 0.01])
+    if y != 0 and not math.isinf(y) and y != 1.0 and y != -1.0:
+        points.append((x, y))
+
 # --- The boxes
 
 box_x = [-INF, -3.0, -1.0, -0.999, -0.75, -0.5, -0.1, -2.0 ** -40, 0.0, 2.0 ** -40, 0.1, 0.5, 1.0, 2.0, 7.0,
@@ -537,6 +595,11 @@ print("const ProductTriple product_triples[] = {")
 for x, y, d, expected in product_triples:
     print("  { %s, %d }," % (", ".join(literal(v) for v in (x, y, d)), expected))
 print("};")
+print()
+print("// floor(log(2) 2^120), the multiple of log(2) of the fast phase reduces by: 56 high bits, 64 low bits")
+mpmath.mp.prec = 400
+ln2_120 = int(mpmath.floor(mpmath.log(2) * 2 ** 120))
+print("const unsigned long long ln2_120_high = 0x%016xULL, ln2_120_low = 0x%016xULL;" % (ln2_120 >> 64, ln2_120 & (2 ** 64 - 1)))
 print()
 print("// G = floor((exp(r) - 1) / r 2^127) for r = +-R / 2^128, R = r1 2^64 + r0, G = g1 2^64 + g0")
 print("struct GValue { unsigned long long r1, r0; int negative; unsigned long long g1, g0; };")

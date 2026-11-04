@@ -7,10 +7,17 @@
  *
  * CORE-MATH has no function for it, and exp(y log1p(x)) - 1, computed with
  * doubles, magnifies the relative error of the logarithm by |y log1p(x)|. The
- * value is therefore computed here with a 128-bit significand, in the balls
- * below (a significand, an exponent and a bound of the absolute error), whose
- * every operation adds the error it makes to the bound: the double the bound
- * rounds to cannot be wrong, and the width of the ball shows how tight it is.
+ * value is therefore computed here with integers only, in two phases:
+ *  - a fast one with 64-bit fixed point, whose error bound is proved below
+ *    (compoundm1_fast()): where the bounds it gives of the value hold no
+ *    double, the doubles next to them are the tightest bounds (95 % of the
+ *    pairs for |y log(1 + x)| below 0.35, 71 % below 8, in about a seventh of
+ *    the time of the other phase);
+ *  - the other one, with a 128-bit significand, in the balls below (a
+ *    significand, an exponent and a bound of the absolute error), whose every
+ *    operation adds the error it makes to the bound: the double the bound
+ *    rounds to cannot be wrong, and the width of the ball shows how tight it
+ *    is (compoundm1_balls()). It proves the values that are doubles too.
  * Only integers are used, but for the two approximations that cannot make a
  * bound wrong, the log1p() of CORE-MATH and the multiple of log(2) that is
  * nearest (a double, below 2^-9 of an error): the rounding direction in
@@ -18,7 +25,7 @@
  * part, and the code is the same on every platform. gaol_u128_mul64() is the
  * one function of gaol_u128.h it needs, which is native or emulated.
  *
- * The algorithm, for finite x > -1 and y, both nonzero:
+ * The algorithm of the balls, for finite x > -1 and y, both nonzero:
  *   1. y0 = log1p(x) from CORE-MATH, a double next to the logarithm L.
  *   2. d = (1 + x) exp(-y0) - 1, which is about L - y0, below 2^-42: a series
  *      of 27 terms for exp(r) - 1 with |r| < 1/2 after the reduction by a
@@ -39,10 +46,13 @@
  * about 2^57 for an f nobody chose. Two families of f that are close to a
  * double without being it are told apart: a tiny x, f = y x (1 + (y - 1) x / 2
  * + ...), and the powers 2^m that (1 + x)^y is, f = 2^m - 1 being below the
- * double 2^m. Others are not, a few contrived ones: y = -1 and x = 2^e + 2^(2e-1)
- * (-51 <= e <= -40) make 1/(1 + x) = 1 - x + x^2 - x^3 + ... lose its cubic term, and
- * f is within 2^-155 of a double: one double wider on a side, as the ball
- * of f holds that double.
+ * double 2^m. Others are not (the bound is one double wider on a side, as the
+ * ball of f holds that double), but y = -1, where f = -x / (1 + x) is the quotient
+ * of two integers that reciprocal_m1() divides, with the exact bounds: it was
+ * a contrived family there, x = 2^e + 2^(2e-1) (-51 <= e <= -40), for which
+ * 1/(1 + x) = 1 - x + x^2 - x^3 + ... loses its cubic term and f is within
+ * 2^-155 of a double. Only the cases that the fast phase does not settle come
+ * to the balls (5 % of the pairs).
  *
  * Copyright (c) 2026 ENSTA, France
  *
@@ -71,8 +81,8 @@ namespace gaol_cm1
   /* 64-bit words                                                           */
   /* ---------------------------------------------------------------------- */
 
-  // The number of leading zeros of x != 0
-  inline int clz64(u64 x)
+  // The number of leading zeros of x != 0, by bisection (every compiler)
+  inline int clz64_soft(u64 x)
   {
     int n = 0;
     if ((x >> 32) == 0) { n += 32; x <<= 32; }
@@ -82,6 +92,16 @@ namespace gaol_cm1
     if ((x >> 62) == 0) { n += 2; x <<= 2; }
     if ((x >> 63) == 0) { n += 1; }
     return n;
+  }
+
+  // The number of leading zeros of x != 0: the instruction where GCC or Clang have a builtin
+  inline int clz64(u64 x)
+  {
+#if (defined(__GNUC__) || defined(__clang__)) && !defined(GAOL_CM1_SOFT_CLZ)
+    return __builtin_clzll(x);
+#else
+    return clz64_soft(x);
+#endif
   }
 
   // The number of trailing zeros of x != 0
@@ -554,7 +574,8 @@ namespace gaol_cm1
   */
   static const int nb_terms = 26;
 
-  inline U128 g_fixed(const U128& R, bool neg)
+  // The constant 1 / (j + 1)! on 127 fractional bits, rounded down, for 0 <= j <= nb_terms
+  inline U128 inv_fact(int j)
   {
     static const u64 C[nb_terms + 1][2] = {
       { 0x8000000000000000ULL, 0x0000000000000000ULL },
@@ -585,10 +606,15 @@ namespace gaol_cm1
       { 0x0000000000000000ULL, 0x000000623a17f1a9ULL },
       { 0x0000000000000000ULL, 0x00000003a356385bULL }
     };
-    U128 P = mk(C[nb_terms][0], C[nb_terms][1]);
+    return mk(C[j][0], C[j][1]);
+  }
+
+  inline U128 g_fixed(const U128& R, bool neg)
+  {
+    U128 P = inv_fact(nb_terms);
     for (int j = nb_terms - 1; j >= 0; --j) {
       const U128 T = mul_hi(R, P);
-      const U128 Cj = mk(C[j][0], C[j][1]);
+      const U128 Cj = inv_fact(j);
       u64 c;
       P = neg ? sub(Cj, T, c) : add(Cj, T, c);
     }
@@ -1098,22 +1124,452 @@ namespace gaol_cm1
   }
 
   /* ---------------------------------------------------------------------- */
+  /* The reciprocal: y = -1                                                 */
+  /* ---------------------------------------------------------------------- */
+
+  /*
+    (1 + x)^-1 - 1 = -x / (1 + x) for a finite x > -1 other than 0, whose
+    bounds are the tightest ones without any ball: with 1 + x = S 2^s for an
+    odd integer S of at most 127 bits (one_plus()), |f| = mx 2^ex / (S 2^s) is
+    the quotient of two integers, which the schoolbook division gives with 56
+    or 57 bits and a remainder; the doubles around the quotient follow from
+    them, a remainder that is not 0 being a sticky bit under the 56 bits (the
+    doubles are multiples of 8 units at least there, and none is between the
+    quotient and the quotient plus the sticky bit). The balls cannot tell the
+    doubles apart where 1/(1 + x) = 1 - x + x^2 - x^3 ... is within 2^-155 of a
+    double without being one, as it is for the x = 2^e + 2^(2e-1) of
+    -51 <= e <= -40. False where 1 + x takes more than 127 bits (a tiny x, or
+    a huge one), which the ball handles.
+  */
+  inline bool reciprocal_m1(double x, double& lo, double& hi)
+  {
+    Dyadic S;
+    if (!one_plus(x, S)) { return false; }
+    bool xneg;
+    u64 mx;
+    int ex;
+    split_double(x, xneg, mx, ex);
+    // N = mx 2^k has bitlen(S.odd) + 57 bits, so that N / S.odd is in [2^56, 2^58)
+    const int k = 57 + bitlen(S.odd) - bitlen(mk(0, mx));
+    const U256 N = shl(u256_of(mk(0, mx)), k);
+    bool lost = false;
+    const U256 Nh = shr(N, 58, lost); // N / 2^58 < S.odd: the remainder to start with
+    U128 R = mk(Nh.w[1], Nh.w[0]);
+    u64 quo = 0;
+    for (int i = 57; i >= 0; --i) {
+      const u64 bit = (N.w[0] >> i) & 1u;
+      R = mk((R.h << 1) | (R.l >> 63), (R.l << 1) | bit); // below 2 S.odd < 2^128
+      quo <<= 1;
+      if (!lt(R, S.odd)) {
+        u64 borrow;
+        R = sub(R, S.odd, borrow);
+        quo |= 1u;
+      }
+    }
+    // |f| is between quo and quo + 1 units of 2^(ex - S.sh - k): 2 quo + sticky stands for it, in half units
+    U256 mag;
+    mag.w[0] = (quo << 1) | (is_zero(R) ? 0u : 1u);
+    mag.w[1] = mag.w[2] = mag.w[3] = 0;
+    const int q = ex - S.sh - k - 1;
+    const bool fneg = !xneg; // -x / (1 + x) has the sign of -x
+    bool e1, e2;
+    lo = dbl_round(fneg, mag, q, fneg, e1);
+    hi = dbl_round(fneg, mag, q, !fneg, e2);
+    return true;
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* The fast phase: 64-bit fixed point                                     */
+  /* ---------------------------------------------------------------------- */
+
+  /*
+    Most of the time f = (1 + x)^y - 1 is far from a double, and 60 bits of it
+    show which ones are next to it. The fast phase computes f with 64-bit
+    integers and the bound of its relative error that the analysis below
+    proves, and returns the doubles around f if none is between its bounds. The
+    other cases go on to the balls, which prove the values that are doubles
+    and tell the doubles apart that are closer than 2^-58: 5 % of the pairs
+    for |y log(1 + x)| below 0.35, 8 % below 1, 10 % below 2, 17 % below 4
+    and 29 % below 8 (measured on random pairs). It returns false for the ones
+    out of its domain too, |log(1 + x)| > 8 (x < -0.99966 or x > 2980),
+    |y log(1 + x)| >= 8 and the values below 2^-1022. It takes 80 to 120
+    nanoseconds, against 600 to 900 for the balls (i7-1185G7, GCC 15).
+
+    The unit is u = 2^-63. G(r) = (exp(r) - 1) / r = sum of r^j / (j+1)!, in
+    Q1.63 (the integer G 2^63), for |r| <= 1/2 and R = floor(|r| 2^64):
+    g64(R, neg) is within 5 u of G(R / 2^64) (with the sign neg for r). It is
+    Horner's scheme with the 17 constants c_j = floor(2^63 / (j+1)!), the
+    products rounded down: with e_j the error of the step j, |e_j| <= 2 + |r|
+    |e_(j+1)| for the two roundings, e_16 is below 1 + 2^63 / 18! (the tail of
+    the series from j = 17 on) = 1443, which |r|^16 weighs in e_0: |e_0| <= 4
+    + 2^-16 1443 < 4.03. Then R moves G by G'(r) 2^-64 <= 0.35 u (G' <= 0.7).
+    5 u holds them. exp(r) - 1 = r G(r) is computed as the product, rounded
+    down, of R by G: V = 1 + r G(r) is off by 5 |r| + 1 + 0.7 <= 3.5 u for
+    |r| <= log(2) / 2 = 0.3466.
+
+    L = log(1 + x) is computed from y0 = log1p(x), a double within one unit in
+    the last place of L (|d| <= 2^-51 |y0| for d below), as L = y0 + log(1 + d)
+    = y0 + d - d^2/2 ... for d = (1 + x) exp(-y0) - 1, whose terms of d^2 on
+    weigh 2^-102 |y0|^2 at most. Two ways to d, for |y0| <= 1/2 (L is within
+    base = 14 u of the value relatively) and 1/2 < |y0| <= 8 (base = 20 u):
+      A. exp(-y0) - 1 = -y0 G(-y0) gives d = x - y0 (G(-y0) (1 + x) - 1), so
+         that L = x - y0 P / 2^63 for P = floor(G W / 2^63) - 2^63, G =
+         g64(R of -y0), W = floor((1 + x) 2^63) (0.6065 to 1.65 2^63). P is
+         off by 5 u 1.65 (G times W, at most when G is 0.79) or 1 u 1.3 (W
+         times G) and 1 u for the product cut: 10.1 u at most, so L, which the
+         integers compute exactly from x, y0 and P, is within 10.1 u |y0| +
+         2^-104 |y0|^2 of the value: 11 u relatively to |L|, 13 with the 64
+         high bits of L used below (1 u) and the product t = y L cut (1 u),
+         14 with a margin.
+      B. |y0| = kk log(2) + s with |s| <= log(2) / 2 (log(2) to 2^-120, an
+         error below 2^-116), exp(-y0) = 2^(-+kk) V for V = exp(r), r = -+s,
+         off by 3.5 u: d = (1 + x) 2^(-+kk) V - 1, with 1 + x cut to the 64 bits
+         of wm 2^we (1 u relatively, exact if it has 64 bits or less) and the
+         product cut to 2^-63 (1 u): d is off by 1 + 1.414 3.5 + 1 + 1 (the
+         log(2) and the terms of d^2) <= 8 u at most, |L| >= 1/2: 16 u
+         relatively, 18 with the cut and the product (2 u) and 20 with a
+         margin.
+    Then, with t = y L of |t| < 2^(te+64) <= 8, and phi(t) = t / (1 - exp(-t))
+    <= 1 + max(t, 0), which multiplies the relative error of t in that of f
+    (the derivative of exp(t) - 1 is exp(t)):
+      - |t| < log(2) / 2: f = t G(t) with G(t) within 5 u, 5 / 0.845 = 6 u,
+        and the product cut: 1.35 base + 7 u, with 1 more for a margin;
+      - else k = round(t / log(2)), r = t - k log(2) and exp(t) - 1 = 2^k V -
+        1 for V = exp(r) off by 3.5 u. For k >= 1, 2^k V - 1 >= 2^k 0.707 - 1
+        (0.414, 1.83, ...) so the error is 2^k 3.5 / (2^k 0.707 - 1) <= 17 u
+        (k = 1), then 7.6, 6...; for k <= -1 it is (3.5 u 2^k + 1 u) / (1 -
+        1.414 2^k) <= 9.6 u (the shift of V cut). base (1 + |t|) + 20 holds
+        them, and 2 u for the cut of the result.
+    The enclosure is m +- (rho m / 2^63 + 2) units of the last place for the
+    64-bit significand m of the result: the doubles around f are those next to
+    it if none is in the enclosure (m has 11 more bits than a double).
+  */
+  static const int fast_terms = 16;
+
+  // G(r) 2^63 for r = +- R / 2^64, R <= 2^63, within 5
+  inline u64 g64(u64 R, bool neg)
+  {
+    u64 P = inv_fact(fast_terms).h;
+    for (int j = fast_terms - 1; j >= 0; --j) {
+      u64 hi, lo;
+      mul64(R, P, hi, lo);
+      const u64 c = inv_fact(j).h;
+      P = neg ? c - hi : c + hi;
+    }
+    return P;
+  }
+
+  // A finite d != 0 as (-1)^neg m 2^e, with m of 64 bits, the top one set
+  inline void norm64(double d, bool& neg, u64& m, int& e)
+  {
+    u64 bits;
+    std::memcpy(&bits, &d, sizeof bits);
+    neg = (bits >> 63) != 0;
+    const int field = static_cast<int>((bits >> 52) & 0x7ff);
+    m = bits & ((static_cast<u64>(1) << 52) - 1);
+    e = -1074;
+    if (field != 0) {
+      m |= static_cast<u64>(1) << 52;
+      e = field - 1075;
+    }
+    const int z = clz64(m);
+    m <<= z;
+    e -= z;
+  }
+
+  // The 64 high bits of the 128-bit hi 2^64 + lo != 0 in m, and the left shift z that took them
+  inline void top64(u64 hi, u64 lo, u64& m, int& z)
+  {
+    if (hi == 0) {
+      z = 64 + clz64(lo);
+      m = lo << (z - 64);
+    } else {
+      z = clz64(hi);
+      m = (z == 0) ? hi : ((hi << z) | (lo >> (64 - z)));
+    }
+  }
+
+  // log(2) 2^120, rounded down
+  inline U128 ln2_120() { return mk(0xb17217f7d1cf79ULL, 0xabc9e3b39803f2f6ULL); }
+
+  /*
+    For T = |v| 2^120 < 2^123: the integer k nearest to |v| / log(2) (at most
+    12), and s = |v| - k log(2), of the sign sneg, with R = floor(|s| 2^64),
+    below 2^63.
+  */
+  inline void fast_reduce(const U128& T, int& k, bool& sneg, u64& R)
+  {
+    const U128 M = ln2_120();
+    const U128 T2 = shl(T, 1), M2 = shl(M, 1);
+    U128 thr = M; // (2 k + 1) M, compared with 2 T
+    k = 0;
+    u64 c;
+    while (!lt(T2, thr)) {
+      ++k;
+      thr = add(thr, M2, c);
+    }
+    u64 kh, kl;
+    mul64(M.l, static_cast<u64>(k), kh, kl);
+    const U128 kM = mk(M.h * static_cast<u64>(k) + kh, kl);
+    U128 sabs;
+    u64 bw;
+    if (lt(T, kM)) {
+      sabs = sub(kM, T, bw);
+      sneg = true;
+    } else {
+      sabs = sub(T, kM, bw);
+      sneg = false;
+    }
+    R = shr(sabs, 56).l; // |s| < M / 2 < 2^119
+  }
+
+  /*
+    L = log(1 + x) as LM 2^g with the sign Lneg, within base units (14 or 20)
+    relatively, for the double y0 = log1p(x) (norm64() of x and y0 are given).
+  */
+  inline bool fast_log_small(bool xneg, u64 xm, int xe, bool y0neg, u64 y0m, int y0e,
+                             U128& LM, bool& Lneg, int& g)
+  {
+    const u64 one63 = static_cast<u64>(1) << 63;
+    // R = floor(|y0| 2^64) = y0m 2^(y0e + 64), y0e + 64 <= 0 for |y0| <= 1/2
+    const int sr = -(y0e + 64);
+    if (sr < 0) { return false; }
+    const u64 R = (sr >= 64) ? 0 : (y0m >> sr);
+    if (R > one63) { return false; }
+    const u64 G = g64(R, !y0neg); // r = -y0
+    // W = floor((1 + x) 2^63), |x| 2^63 = xm 2^(xe + 63) with xe + 63 < 0 for |x| < 1
+    const int sw = -(xe + 63);
+    if (sw < 1) { return false; }
+    u64 fl = 0, ce = 1;
+    if (sw < 64) {
+      fl = xm >> sw;
+      ce = fl + (((xm & ((static_cast<u64>(1) << sw) - 1)) != 0) ? 1u : 0u);
+    }
+    const u64 W = xneg ? one63 - ce : one63 + fl;
+    // Q = floor(G W / 2^63), P = Q - 2^63
+    u64 qh, ql;
+    mul64(G, W, qh, ql);
+    if ((qh >> 63) != 0) { return false; }
+    const u64 Q = (qh << 1) | (ql >> 63);
+    const bool Pneg = Q < one63;
+    const u64 Pmag = Pneg ? one63 - Q : Q - one63;
+    // L = x - y0 P / 2^63 exactly, in units of 2^g, g = y0e - 63: y0 P / 2^63 = y0m Pmag 2^g
+    g = y0e - 63;
+    const int sx = xe - g;
+    if (sx < 0 || sx > 64) { return false; }
+    const U128 A = shl(mk(0, xm), sx);
+    u64 bh, bl;
+    mul64(y0m, Pmag, bh, bl);
+    const U128 B = mk(bh, bl);
+    const bool Bneg = (y0neg == Pneg); // -y0 P is negative for y0 P > 0
+    u64 c;
+    if (is_zero(B)) {
+      LM = A;
+      Lneg = xneg;
+    } else if (xneg == Bneg) {
+      LM = add(A, B, c);
+      if (c != 0) { return false; }
+      Lneg = xneg;
+    } else if (!lt(A, B)) {
+      LM = sub(A, B, c);
+      Lneg = xneg;
+    } else {
+      LM = sub(B, A, c);
+      Lneg = Bneg;
+    }
+    return true;
+  }
+
+  inline bool fast_log_large(bool xneg, u64 xm, int xe, bool y0neg, u64 y0m, int y0e,
+                             U128& LM, bool& Lneg, int& g)
+  {
+    const u64 one63 = static_cast<u64>(1) << 63;
+    // |y0| 2^120 = y0m 2^(y0e + 120), below 2^123 for |y0| <= 8
+    if (y0e + 64 < 0 || y0e + 64 > 3) { return false; }
+    int kk;
+    bool sneg;
+    u64 Rs;
+    fast_reduce(shl(mk(0, y0m), y0e + 120), kk, sneg, Rs);
+    if (kk < 1) { return false; }
+    // exp(-y0) = 2^(-+kk) exp(r) with r = -+s: V = exp(r) 2^63
+    const bool rneg = y0neg ? sneg : !sneg;
+    const u64 Gs = g64(Rs, rneg);
+    u64 eh, el;
+    mul64(Rs, Gs, eh, el);
+    const u64 Vn = rneg ? one63 - eh : one63 + eh;
+    // 1 + x = U 2^xe exactly, U = 2^-xe +- xm, cut to its 64 high bits
+    if (xe > -1 || xe < -126) { return false; }
+    const U128 one = shl(mk(0, 1), -xe);
+    u64 c;
+    const U128 U = xneg ? sub(one, mk(0, xm), c) : add(one, mk(0, xm), c);
+    if (c != 0 || is_zero(U)) { return false; }
+    const int wb = bitlen(U);
+    const u64 wm = (wb >= 64) ? shr(U, wb - 64).l : shl(U, 64 - wb).l;
+    const int we = xe + wb - 64;
+    // (1 + x) exp(-y0) = wm 2^we 2^(-+kk) Vn 2^-63, about 1: Zn = its integer part times 2^63
+    const int sh = (y0neg ? -kk : kk) - we;
+    if (sh < 60 || sh > 68) { return false; }
+    u64 ph, pl;
+    mul64(wm, Vn, ph, pl);
+    const U128 Zs = shr(mk(ph, pl), sh);
+    if (Zs.h != 0) { return false; }
+    const bool dneg = Zs.l < one63;
+    const u64 dmag = dneg ? one63 - Zs.l : Zs.l - one63;
+    if (dmag >= (static_cast<u64>(1) << 20)) { return false; }
+    // L = y0 + d, d = +-dmag 2^-63, exactly
+    g = (y0e < -63) ? y0e : -63;
+    const U128 A = shl(mk(0, y0m), y0e - g);
+    const U128 D = shl(mk(0, dmag), -63 - g);
+    if (y0neg == dneg) {
+      LM = add(A, D, c);
+      if (c != 0) { return false; }
+      Lneg = y0neg;
+    } else if (!lt(A, D)) {
+      LM = sub(A, D, c);
+      Lneg = y0neg;
+    } else {
+      LM = sub(D, A, c);
+      Lneg = dneg;
+    }
+    return true;
+  }
+
+  // The bound rho of the relative error of f, in units of 2^-63, for |t| < 2^tube and base units for t
+  inline u64 fast_rho(int k, int tube, u64 base)
+  {
+    if (k == 0) { return (base * 27 + 19) / 20 + 8; }
+    return base * (1 + (tube > 0 ? (static_cast<u64>(1) << tube) : 1)) + 20;
+  }
+
+  /*
+    The enclosure [m - err, m + err] 2^fe of |f|, with the sign fneg: the
+    doubles around f, or false where a double is in it, or it goes over a power
+    of two or past the normal doubles.
+  */
+  inline bool fast_doubles(bool fneg, u64 m, int fe, u64 rho, double& lo, double& hi)
+  {
+    u64 eh, el;
+    mul64(rho, m, eh, el);
+    const u64 err = ((eh << 1) | (el >> 63)) + 2;
+    const u64 a = m - err, b = m + err;
+    if (a < (static_cast<u64>(1) << 63) || b < m) { return false; }
+    if ((a & 0x7ffu) == 0 || (a >> 11) != (b >> 11)) { return false; }
+    const int field = fe + 11 + 52 + 1023; // |f| = A 2^(fe + 11), A of 53 bits
+    if (field < 1 || field > 2046) { return false; }
+    const u64 bits = (static_cast<u64>(field) << 52) | ((a >> 11) - (static_cast<u64>(1) << 52));
+    if (fneg) {
+      lo = dbl_of_bits(true, bits + 1);
+      hi = dbl_of_bits(true, bits);
+    } else {
+      lo = dbl_of_bits(false, bits);
+      hi = dbl_of_bits(false, bits + 1);
+    }
+    return true;
+  }
+
+  /*
+    The centre of the enclosure of f: |f| = fm 2^fe with the sign fneg, off by
+    rho units of 2^-63 relatively at most, or false for a x, y out of its
+    domain.
+  */
+  inline bool fast_centre(double x, double y, bool& fneg, u64& fm, int& fe, u64& rho)
+  {
+    const u64 one63 = static_cast<u64>(1) << 63;
+    const double y0 = gaol_cr_log1p(x);
+    if (!(std::fabs(y0) <= 8.0) || y0 == 0.0) { return false; }
+    bool xneg, y0neg, yneg;
+    u64 xm, y0m, ym;
+    int xe, y0e, ye;
+    norm64(x, xneg, xm, xe); // x = xm 2^xe, 2^63 <= xm < 2^64
+    norm64(y0, y0neg, y0m, y0e);
+    norm64(y, yneg, ym, ye);
+    U128 LM;
+    bool Lneg;
+    int g;
+    u64 base;
+    if (std::fabs(y0) <= 0.5) {
+      if (!fast_log_small(xneg, xm, xe, y0neg, y0m, y0e, LM, Lneg, g)) { return false; }
+      base = 14;
+    } else {
+      if (!fast_log_large(xneg, xm, xe, y0neg, y0m, y0e, LM, Lneg, g)) { return false; }
+      base = 20;
+    }
+    const int lbits = bitlen(LM);
+    if (lbits < 64) { return false; }
+    const u64 Lt = shr(LM, lbits - 64).l; // the 64 high bits of L, at 2^(g + lbits - 64)
+    // t = y L
+    u64 th, tl;
+    mul64(ym, Lt, th, tl);
+    u64 tm;
+    int tz;
+    top64(th, tl, tm, tz);
+    const int te = ye + (g + lbits - 64) + 64 - tz; // |t| = tm 2^te
+    const bool tneg = yneg != Lneg;
+    if (te + 64 > 3) { return false; } // |t| < 2^(te + 64) <= 8
+    int k = 0;
+    bool sneg = false;
+    u64 Rr = 0;
+    if (te + 64 >= -1) { // |t| >= 0.25: the multiple of log(2) nearest to it
+      fast_reduce(shl(mk(0, tm), te + 120), k, sneg, Rr);
+    }
+    if (k == 0) {
+      // |t| < log(2) / 2: f = t G(t)
+      const int sh = -(te + 64);
+      if (sh < 1) { return false; }
+      const u64 Rt = (sh >= 64) ? 0 : (tm >> sh);
+      const u64 Gt = g64(Rt, tneg);
+      u64 fh, fl;
+      mul64(tm, Gt, fh, fl);
+      u64 fm0;
+      int fz;
+      top64(fh, fl, fm0, fz);
+      fneg = tneg;
+      fm = fm0;
+      fe = te + 1 - fz;
+      rho = fast_rho(0, 0, base);
+      return true;
+    }
+    // |t| = k log(2) + s, |s| <= log(2) / 2: f = 2^k (1 + r G(r)) - 1 for r = s (t > 0) or -s (t < 0)
+    const bool rneg = tneg ? !sneg : sneg;
+    const u64 Gr = g64(Rr, rneg);
+    u64 eh, el;
+    mul64(Rr, Gr, eh, el);
+    const u64 Vn = rneg ? one63 - eh : one63 + eh;
+    U128 F;
+    if (!tneg) {
+      u64 cb;
+      F = sub(shl(mk(0, Vn), k), mk(0, one63), cb); // 2^k V - 1
+    } else {
+      F = mk(0, one63 - (Vn >> k)); // 1 - 2^-k V
+    }
+    const int fbits = bitlen(F);
+    fneg = tneg;
+    fm = (fbits >= 64) ? shr(F, fbits - 64).l : shl(F, 64 - fbits).l;
+    fe = fbits - 64 - 63;
+    rho = fast_rho(k, te + 64, base);
+    return true;
+  }
+
+  // The doubles around f if the fast phase settles them, or false
+  inline bool compoundm1_fast(double x, double y, double& lo, double& hi)
+  {
+    bool fneg;
+    u64 fm, rho;
+    int fe;
+    return fast_centre(x, y, fneg, fm, fe, rho) && fast_doubles(fneg, fm, fe, rho, lo, hi);
+  }
+
+  /* ---------------------------------------------------------------------- */
   /* The bounds of compoundm1 at a point                                    */
   /* ---------------------------------------------------------------------- */
 
   /*
-    lo <= (1 + x)^y - 1 <= hi for a finite x > -1 other than 0 and a finite y
-    other than 0: the doubles next to the value, or the value twice where it
-    is a double. lo and hi are the greatest double at most the value and the
-    least double at least it, whatever the rounding direction. A bound that
-    is 0 is +0, never -0.
+    The bounds with the 128-bit balls, for a finite x > -1 other than 0 and a
+    finite y other than 0 or 1: the part of compoundm1_point() that every
+    value can come to.
   */
-  inline void compoundm1_point(double x, double y, double& lo, double& hi)
+  inline void compoundm1_balls(double x, double y, double& lo, double& hi)
   {
-    if (y == 1.0) {
-      lo = hi = x; // (1 + x) - 1 = x, whatever the rounding of 1 + x
-      return;
-    }
     const double y0 = gaol_cr_log1p(x);
     const Num L = log1p_ball(x, y0);
     const Num T = num_mul(num_of_double(y), L);
@@ -1181,6 +1637,24 @@ namespace gaol_cm1
         hi = d;
       }
     }
+  }
+
+  /*
+    lo <= (1 + x)^y - 1 <= hi for a finite x > -1 other than 0 and a finite y
+    other than 0: the doubles next to the value, or the value twice where it
+    is a double. lo and hi are the greatest double at most the value and the
+    least double at least it, whatever the rounding direction. A bound that
+    is 0 is +0, never -0.
+  */
+  inline void compoundm1_point(double x, double y, double& lo, double& hi)
+  {
+    if (y == 1.0) {
+      lo = hi = x; // (1 + x) - 1 = x, whatever the rounding of 1 + x
+      return;
+    }
+    if (y == -1.0 && reciprocal_m1(x, lo, hi)) { return; }
+    if (compoundm1_fast(x, y, lo, hi)) { return; }
+    compoundm1_balls(x, y, lo, hi);
   }
 
 } // namespace gaol_cm1

@@ -4922,7 +4922,10 @@ interval nth_root(const interval& I, int q)
     }
     const double xl = base.left(), xu = base.right(), yl = y.left(), yu = y.right();
     double l, r;
-    if (yl == yu) {
+    if (xl == xu && yl == yu) {
+      // A point: one corner gives both bounds
+      cm1_corner(xl, yl, l, r);
+    } else if (yl == yu) {
       // A degenerate exponent: increasing with x for y > 0, decreasing for
       // y < 0, one corner for each bound
       l = cm1_lo((yl > 0.0) ? xl : xu, yl);
