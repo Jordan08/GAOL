@@ -109,12 +109,13 @@ compiled by Clang 21.1 (see [performance](performance.md)).
 [ITF1788 on GAOL v5](itf1788.md) runs the 9542 cases of
 [ITF1788](https://github.com/oheim/ITF1788), the test suite of the operations
 of IEEE 1788-2015, on GAOL v5 under the names of the standard
-(`gaol_ieee1788`), with the default and the FPU builds: 7285 cases pass, every
-case of `pow` and `pown` among them, and the 10 that fail show no bug of GAOL
+(`gaol_ieee1788`), with the default and the FPU builds: 7283 cases pass, every
+case of `pow` and `pown` among them, and the 12 that fail show no bug of GAOL
 v5 (results valid and accurate but not the tightest, which the standard does
-not require of these operations, and cases that expect a result that is not
-the tightest); the others are of operations GAOL v5 does not provide, or of
-the decorated intervals.
+not require of these operations, cases that expect a result that is not the
+tightest, and two that expect an interval for a literal `[l, u]` with l above
+u, which is the empty set); the others are of operations GAOL v5 does not
+provide, or of the decorated intervals.
 [itf1788/](itf1788/) holds the generator and the runner, which fetches
 ITF1788.
 
