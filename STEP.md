@@ -17,12 +17,13 @@ dans `TODO.md`, `TODO_AFTER.md` et `TODO_fin.md`.
 - La date d'une pull request est celle de sa fusion (de sa fermeture pour une
   pull request fermée sans fusion), en UTC. #15 à #24 ont été fusionnées dans
   `master` (GAOL 4.3.1), #25 à #30 vers `MATH-CORE`, les autres vers
-  `configure-clean`. Les numéros de #1 à #290 qui n'apparaissent pas sont des
-  issues.
+  `configure-clean`, sauf #38 et #52, ouvertes vers `master`, et #116, une pull
+  request jetable vers une branche de travail. Les numéros de #1 à #290 qui
+  n'apparaissent pas sont des issues.
 - Le travail direct est donné par groupes de commits d'un même sujet, du premier
-  au dernier (ils ne sont pas toujours consécutifs). Les 162 commits qui ne
-  touchent que les registres (`TODO.md`, `TODO_DONE.md`, `TODO_AFTER.md`,
-  `process.md`) ne sont pas listés : ils sont à l'étape 27.
+  au dernier (ils ne sont pas toujours consécutifs). Les commits qui ne touchent
+  que les registres (`TODO*.md`, `process.md`, `todo-notes/`) ne sont pas
+  listés : ils sont à l'étape 27.
 - La colonne « Points » donne les lettres et les anciens numéros de
   `TODO_DONE.md` (sections 4 et 5) que l'étape contient, et les tâches (PA à
   PL) qui y ont travaillé.
@@ -31,8 +32,8 @@ dans `TODO.md`, `TODO_AFTER.md` et `TODO_fin.md`.
 
 | N° | Étape | Période | Fusionnées | Fermées | Points |
 | --- | --- | --- | --- | --- | --- |
-| 1 | La fondation (septembre) | 13 septembre au 28 septembre | 10 | 0 | revue d'origine (4 à 40) |
-| 2 | Les exceptions flottantes | 29 septembre au 4 novembre | 7 | 0 | 24, 24b, D (24, 62), AB (77 à 80), PK |
+| 1 | La fondation (septembre) | 10 février 2019 au 28 septembre | 10 | 0 | revue d'origine (4 à 40) |
+| 2 | Les exceptions flottantes | 29 septembre au 24 octobre | 7 | 0 | 24, 24b, D (24, 62), AB (77 à 80), PK |
 | 3 | Le sens d'arrondi | 27 septembre au 29 octobre | 9 | 0 | 4, H (23, 36, 48), Q (4, 45), 107 à 109, PF, PG.10 |
 | 4 | Les configurations refusées | 29 septembre au 19 octobre | 4 | 0 | 5, 6, G (5, 40, 53 à 55), 90 |
 | 5 | CORE-MATH | 30 septembre au 3 novembre | 7 | 0 | A (31, 6, 56, 3, 47) |
@@ -61,22 +62,22 @@ dans `TODO.md`, `TODO_AFTER.md` et `TODO_fin.md`.
 
 En tout : 205 pull requests fusionnées et 32 fermées sans fusion, plus
 deux ouvertes le 4 novembre (#289 et #290, à la fin des étapes 25 et 8).
-`configure-clean` a 1963 commits, dont 704 en premier parent : 198 fusions et
-506 commits directs, dont 162 de registres.
+`configure-clean` a 1964 commits, dont 705 en premier parent : 198 fusions et
+507 commits directs, dont 168 qui ne touchent que les registres (`TODO*.md`,
+`process.md`, `todo-notes/`).
 
 ## 1. La fondation de GAOL v5 (13 au 28 septembre)
 
 Avant la procédure du 30 septembre. GAOL 4.3.1 d'abord (#15 à #24, dans
 `master`) : CORE-MATH pour les fonctions hyperboliques, les puissances entières
 par produits exacts, les racines prouvées, les réciproques trigonométriques.
-Puis, directement sur `configure-clean`, la base de GAOL v5 : CORE-MATH à la
-place de mathlib pour toutes les fonctions élémentaires, les trois builds à
-configuration identique et leur audit, la CI de GitHub Actions, le refus des
-configurations qui ne respectent pas le sens d'arrondi, les fonctions de la
-norme IEEE 1788-2015 et l'espace de noms `gaol_ieee1788`, le manuel de v5, et la
-revue d'origine du 27 septembre (`examples/examples.md`), d'où viennent les
-anciens numéros 4 à 40. Les pull requests #25 à #30 de la même période sont
-rangées dans leurs étapes.
+Puis, directement sur `configure-clean`, la base de GAOL v5 : CORE-MATH pour
+toutes les fonctions élémentaires, les trois builds à configuration identique et
+leur audit, la CI de GitHub Actions, le refus des configurations qui ne
+respectent pas le sens d'arrondi, les fonctions de la norme IEEE 1788-2015 et
+l'espace de noms `gaol_ieee1788`, le manuel de v5, et la revue d'origine du 27
+septembre (`examples/examples.md`), d'où viennent les anciens numéros 4 à 40.
+Les pull requests #25 à #30 de la même période sont rangées dans leurs étapes.
 
 Pull requests :
 
@@ -109,7 +110,7 @@ Pull requests :
 Travail direct sur `configure-clean` :
 
 - 10 février 2019 au 15 décembre 2020, `5469afd` à `343fcc0` : commits de GAOL 4
-  avant le fork : README, licence LGPL, gdtoa retiré, spécifications
+  avant GAOL v5 : README, licence LGPL, gdtoa retiré, spécifications
   d'exceptions retirées pour C++11/17.
 - 13 septembre, `5894c48` à `d30ef8c` : FPU initialisé sans écrire le mot de
   contrôle x87, arrondi vers le haut rétabli après `midpoint()` et <<,
@@ -117,7 +118,7 @@ Travail direct sur `configure-clean` :
 - 13 septembre, `9043b0f` à `abf357a` : compilation avec Visual C++, MinGW-w64
   13 et ARM 32 bits ; Clang refusé sur ARM 32 bits.
 - 13 septembre, `6453e65` à `eef36ee` : build CMake exportant `gaol::gaol` ;
-  meson aligné sur configure (`GETRUSAGE_IN_HEADER, USING_SSE3_INSTRUCTIONS`).
+  meson aligné sur configure (`GETRUSAGE_IN_HEADER`, `USING_SSE3_INSTRUCTIONS`).
 - 13 septembre, `3257c31` à `fdabc12` : bornes sûres quelle que soit la
   bibliothèque C : sqrt, lecture exacte des nombres, valeurs de la libm des
   fonctions hyperboliques écartées de trois flottants.
@@ -125,17 +126,19 @@ Travail direct sur `configure-clean` :
   exacts (ctest), tolérances au double des plus grands écarts observés.
 - 13 septembre, `527b86f` à `dde06ad` : workflows GitHub Actions (Linux,
   conteneurs, macOS, Windows, autotools, meson) ; le README montre la
-  documentation du fork.
+  documentation de GAOL v5.
 - 14 septembre, `60ae203` à `bc91b2c` : refus des compilateurs qui n'honorent
   pas le sens d'arrondi (Clang 14 arm64) et de MinGW-w64 avant 12 ou 12,
   vérifiés par la CI.
 - 14 septembre, `a4825db` à `af423cc` : `pow(interval, e)` d'un exposant
   flottant sans troncature, partie négative de la base gardée ; tests repris de
   Codac.
-- 14 septembre, `a847332` à `3b51fbe` : corrections de mathlib : `mpcos()`,
-  `fastiroot()`, `ulog()` aux sous-normaux, `utan()`.
-- 14 septembre, `0973713` à `41f60fb` : option `GAOL_FIND_MATHLIB` et sa
-  vérification en CI ; mathlib liée à la bibliothèque partagée d'autotools.
+- 14 septembre, `a847332` à `3b51fbe` : corrections de l'ancienne bibliothèque
+  de fonctions élémentaires d'alors (`mpcos()`, `fastiroot()`, `ulog()` aux
+  sous-normaux, `utan()`), remplacée depuis par CORE-MATH.
+- 14 septembre, `0973713` à `41f60fb` : une option pour trouver l'ancienne
+  bibliothèque de fonctions élémentaires d'alors et sa vérification en CI ;
+  cette bibliothèque liée à la bibliothèque partagée d'autotools.
 - 14 septembre, `ee9791a` à `083f0ca` : avertissements supprimés :
   `s_nextafter()` par memcpy, stdint.h avant flex, const `char*` de bison,
   `NaN_val` const, CVSid, -Wconversion.
@@ -154,17 +157,19 @@ Travail direct sur `configure-clean` :
 - 14 septembre, `2de1f05` à `e0f5234` : Windows : intervalles SSE2 écartés en 32
   bits avec configure, DLL dans le PATH sous MSYS2.
 - 14 septembre, `69fefef` : gaol.pc installé par les trois builds, avec les
-  drapeaux de l'arithmétique d'intervalles et mathlib.
+  drapeaux de l'arithmétique d'intervalles et l'ancienne bibliothèque de
+  fonctions élémentaires d'alors.
 - 14 septembre, `3db6278` à `6fcbe88` : README réécrit : les trois builds et
-  leurs options, install-mathlib.sh, la configuration commune ; Frédéric
-  Goualard nommé auteur.
+  leurs options, le script d'installation de l'ancienne bibliothèque de
+  fonctions élémentaires d'alors, la configuration commune ; Frédéric Goualard
+  nommé auteur.
 - 15 septembre, `a826521` à `beed8dc` : Visual C++ refusé sans /fp:strict, son
   test `fp_strict` corrigé ; 2^-60 écrit en littéral, masque de MXCSR non signé.
 - 15 septembre, `5577a8e` à `a6eec4f` : README et commentaires corrigés : ce que
   `gaol_config.h` refuse, gaol.pc, `GAOL_USING_ASM`, bornes hyperboliques.
-- 15 septembre, `302e7b5` à `c6de123` : build avec la libm du système
-  (--with-mathlib=m) avec avertissement ; mathlib installée refusée si son
-  `cos(2^52 - 1)` est faux.
+- 15 septembre, `302e7b5` à `c6de123` : build avec la libm du système, avec un
+  avertissement ; l'ancienne bibliothèque de fonctions élémentaires d'alors
+  refusée, une fois installée, si son `cos(2^52 - 1)` est faux.
 - 15 septembre, `4c16b77` à `6efb439` : `pow(interval, double)` dans libgaol,
   cas particuliers de pow d'IEEE 1788-2015, FIXME de pow retiré.
 - 15 septembre, `a9b65db` à `e00aaeb` : FIXME de GAOL 4 traités : `fesetenv()`
@@ -196,13 +201,13 @@ Travail direct sur `configure-clean` :
   (12.10.3), le README dit suivre IEEE 1788-2015.
 - 16 septembre, `28ffb61` : `uipow()` déclarée et exportée aussi avec les
   intervalles SSE2 (issue #10).
-- 17 septembre, `8902a9c` à `6b4ab82` : sources de mathlib 2.1.1 dans
-  3rd/mathlib, construites par les trois builds, corrigées
-  (`FENV_ACCESS, halfulp() de l'issue #5`).
+- 17 septembre, `8902a9c` à `6b4ab82` : les sources de l'ancienne bibliothèque
+  de fonctions élémentaires d'alors dans 3rd/, construites par les trois builds,
+  corrigées (`FENV_ACCESS`, `halfulp()` de l'issue #5).
 - 17 septembre, `142d77d` à `42a8114` : documentation recalée : nœuds libérés,
   configurations refusées listées, `atan2()` dans le manuel.
 - 17 septembre, `f98fd33` à `0db08b6` : banc de doc/compare relancé avec la
-  mathlib de 3rd/ et après pow aux coins.
+  bibliothèque de fonctions élémentaires de 3rd/ et après pow aux coins.
 - 17 septembre, `a37994a` à `b818570` : écriture décimale arrondie vers
   l'extérieur quelle que soit la bibliothèque C (issue #3) ; format agreeing qui
   garde les chiffres.
@@ -215,15 +220,14 @@ Travail direct sur `configure-clean` :
 - 19 septembre, `6a5af04` à `e723a14` : -mfma seulement où la machine l'exécute
   (Rosetta), intersection disjointe vide, GAOL 4.3.2.
 - 20 septembre, `2a437a7` à `fc47222` : fonctions relationnelles corrigées
-  (`div_rel, invabs_rel, asin, acos, atan`) et testées contre les réciproques
+  (`div_rel`, `invabs_rel`, asin, acos, atan) et testées contre les réciproques
   d'IEEE 1788.
-- 20 septembre, `d6c8ac1` à `fffb862` : CORE-MATH remplace mathlib pour toutes
-  les fonctions élémentaires, bornes au plus serré, cbrt ; `GAOL_LTO` ajouté
-  puis retiré.
+- 20 septembre, `d6c8ac1` à `fffb862` : CORE-MATH pour toutes les fonctions
+  élémentaires, bornes au plus serré, cbrt ; `GAOL_LTO` ajouté puis retiré.
 - 20 septembre, `53672a6` à `fe8f3e1` : option de couverture et page de
   conclusions dans coverage/ (87 %).
 - 20 septembre, `1ad8ee9` à `c45ee95` : CI : anciens MinGW-w64 avec entier de
-  128 bits émulé, défauts trouvés corrigés (`fuite, _umul128, roundeven`).
+  128 bits émulé, défauts trouvés corrigés (fuite, `_umul128`, roundeven).
 - 20 septembre, `0525841` à `cd6c469` : banc de doc/compare : GAOL V5.0.0 et
   4.3.1 côte à côte, arbres de travail ignorés.
 - 20 septembre, `8af2aef` à `397f722` : mingw-w64 dont fenv.h garde un état
@@ -247,8 +251,9 @@ Travail direct sur `configure-clean` :
 - 21 septembre, `1ef8596` à `73d7088` : `gaol_roundeven.h` installé par
   autotools et meson, `gaol_version_mingw.h` lit la configuration, Makefile.in
   régénéré.
-- 21 septembre, `38b205a` à `79cde72` : mathlib retirée des builds, de la CI et
-  des textes ; configurations refusées revues avec CORE-MATH.
+- 21 septembre, `38b205a` à `79cde72` : l'ancienne bibliothèque de fonctions
+  élémentaires d'alors retirée des builds, de la CI et des textes ;
+  configurations refusées revues avec CORE-MATH.
 - 21 septembre, `ee026fe` à `89f6ea6` : le lecteur prend exp2, log2, cbrt, sign,
   trunc ; l'écriture hexadécimale relue bit pour bit.
 - 21 septembre, `cd99bfc` : fins de ligne CR de `gaol_interval_fpu.h` rétablies.
@@ -266,7 +271,8 @@ Travail direct sur `configure-clean` :
   fonction ; `tan()` et `exp_dn()` le rétablissent avec
   `GAOL_PRESERVE_ROUNDING`.
 - 22 septembre, `ad45633` à `e686982` : la documentation ne parle plus de
-  mathlib ni de ce qui ne vaut plus pour GAOL v5.
+  l'ancienne bibliothèque de fonctions élémentaires d'alors ni de ce qui ne vaut
+  plus pour GAOL v5.
 - 22 septembre, `636daf7` à `d5a76d2` : `exact_string(I)` ; tests/ieee1788.cpp
   construit, avec les vérifications du test de using.
 - 22 septembre, `77f9fc5` : TODO.md réduit au reste à faire ; INSTALL et TODO de
@@ -291,14 +297,15 @@ Travail direct sur `configure-clean` :
   remesurées à 605728e ; .gitignore du banc.
 - 27 septembre, `5b3d09c` à `424829d` : examples/ : 15 exemples autovérifiés,
   Goldstein-Price renommé ; templates/ de KDevelop retiré.
-- 27 septembre, `fba22db` à `9cf6574` : FPU : x -= x, x /= x et x %= x lisent
-  l'opérande avant d'écrire ; test de x op= x.
+- 27 septembre, `fba22db` à `9cf6574` : FPU : `x -= x`, `x /= x` et `x %= x`
+  lisent l'opérande avant d'écrire ; test de `x op= x`.
 - 27 septembre, `841cdbd` à `0420e18` : operator<< et operator>> corrigés,
   expressions vides sans compte de références ; tests et documentation.
 - 27 septembre, `f6a057f` à `fcaf72f` : `minimum()` et `maximum()` de deux zéros
   avec Visual C++ ; CI meson avec /MD.
 - 27 septembre au 28 septembre, `29f280b` à `3ac9868` : trois builds rendus
-  semblables (`gaol_configuration.h, WITH_TESTS, cibles`) ; autotools régénéré.
+  semblables (`gaol_configuration.h`, `WITH_TESTS`, cibles) ; autotools
+  régénéré.
 - 28 septembre, `46ff4ff` à `b2eb8d0` : constructeurs d'interval explicites ;
   tests passés de textToInterval à `interval(a, b)`.
 - 28 septembre, `566c09f` à `5335039` : version lue de VERSION puis VERSION.txt
@@ -312,7 +319,7 @@ vide, un NaN ou un résultat fini : des comparaisons silencieuses (#47, #50,
 `cancel_minus` et `cancel_plus`, la lecture de `1e400`, les fonctions qui
 saturent). La tâche PK (un `FE_INVALID` de Clang avec les intervalles FPU) est
 close sans code le 4 novembre : il ne se reproduit pas avec les drapeaux de GAOL
-(`TODO_DONE.md` 3.17).
+(`1e0f368`, `TODO_DONE.md` 3.17).
 
 Pull requests :
 
@@ -322,8 +329,8 @@ Pull requests :
   silencieuses, NaN tenus hors du constructeur (ancien 24b).
 - #60 (3 octobre) : armhf : operator&= reconnaît l'opérande vide avant de
   comparer, contre le vcmpe de GCC 12 à 14 (suite du 24b).
-- #83 (5 octobre) : point D (24, 62) : plus d'exception flottante parasite
-  (`NaN, 0×oo, pow extrême, div_rel, midpoint`), ucomisd sous Visual C++,
+- #83 (5 octobre) : point D (24, 62) : plus d'exception flottante parasite (NaN,
+  0×oo, pow extrême, `div_rel`, midpoint), ucomisd sous Visual C++,
   documentation.
 - #144 (19 octobre) : point AB.77 : pow près du plus grand double ne lève plus
   `FE_INVALID` ; RHO2 de `exp_1()` de CORE-MATH abaissé (correctif 8).
@@ -332,12 +339,6 @@ Pull requests :
 - #184 (24 octobre) : AB.79 (fonctions) : plus de `FE_OVERFLOW` ni
   `FE_DIVBYZERO` pour un résultat fini (quotients saturants, racines à
   l'échelle, sin, cos, tan, `pow_rel`).
-
-Travail direct sur `configure-clean` :
-
-- 4 novembre, `1e0f368` : la tâche PK close sans code : le `FE_INVALID` de Clang
-  avec les intervalles FPU ne se reproduit pas avec `-frounding-math`
-  (`TODO_DONE.md` 3.17).
 
 ## 3. Le sens d'arrondi et les registres de contrôle
 
@@ -367,7 +368,7 @@ Pull requests :
 - #209 (28 octobre) : point 109 (PF.2) : Visual C++ x64 avec /arch:AVX2 n'écrit
   que MXCSR avec la préservation ; `GAOL_FMA_AS_INSTRUCTION`.
 - #210 (28 octobre) : PF.3 : MXCSR et le mot de contrôle x87 ne sont écrits que
-  s'ils changent (`sse_enter_upward, sse_leave, x86_set_modes`).
+  s'ils changent (`sse_enter_upward`, `sse_leave`, `x86_set_modes`).
 - #218 (29 octobre) : PG.10 : `get_rounding()`, `set_rounding()` sur x86-64
   lisent les registres et n'écrivent que celui qui diffère ; `midpoint()`
   préservé 27,9 à 17,5 ns.
@@ -387,10 +388,10 @@ la liste.
 
 Pull requests :
 
-- #39 (29 septembre) : -ffinite-math-only et -ffast-math refusés, tests
+- #39 (29 septembre) : -ffinite-math-only refusé comme -ffast-math, et les tests
   `refused_*` ; pull request sans description (ancien 5).
 - #51 (30 septembre) : MinGW-w64 x86-64 lié à msvcrt.dll refusé, avec la vraie
-  raison (`fma(), round()`) ; test à l'exécution (ancien 6).
+  raison (`fma()`, `round()`) ; test à l'exécution (ancien 6).
 - #91 (6 octobre) : point G (5, 40, 53, 54, 55) : refus de -ffinite-math-only,
   témoin `refused_positive`, textes et audit.
 - #145 (19 octobre) : point AE.90 : Clang pour ARM 32 bits et -frounding-math
@@ -424,15 +425,15 @@ Pull requests :
   de cos.c contre mpmath, et outils tests/tools/cos/ (suite de l'import
   0b2ae6d1).
 - #213 (28 octobre) : PH.1 : contournements de `cr_pow` retirés après c01f08c5 ;
-  seule reste la puissance minuscule |y| ≥ 2^1013
-  (`défaut is_exact() de l'amont`).
+  seule reste la puissance minuscule |y| ≥ 2^1013 (défaut `is_exact()` de
+  l'amont).
 - #283 (3 novembre) : en-têtes de CORE-MATH dans gaol/math/, 3rd/math-core
   réduit à binary64, `gaol_roundeven.h` non installé.
 
 Travail direct sur `configure-clean` :
 
-- 23 octobre, `79746c2` : commentaire de `gaol_roundeven()` corrigé
-  («` doublegaol_cr_ `»).
+- 23 octobre, `79746c2` : commentaire de `gaol_roundeven()` corrigé (le mot
+  `doublegaol_cr_`).
 - 27 octobre, `cb731c0` à `2927cfe` : CORE-MATH importé à 0b2ae6d1, cos.c et
   sin.c portés sur `gaol_u128` ; correctifs 3 et 4 faits en amont.
 
@@ -592,9 +593,9 @@ Pull requests :
   du vide NaN, commentaires et sorties du manuel (ancien 40).
 - #76 (4 octobre) : point J (19, 20, 68) : `gaol::sin(0.5)` compile, en-têtes
   internes non installés, macros préfixées `GAOL_`, job -Wall -Wextra -Werror.
-- #77 (4 octobre) : les constantes double de `gaol_port.h`
-  (`pi, pi_dn, ln2_dn…`) sortent de l'interface publique ; `interval::pi()` et
-  ses sœurs restent.
+- #77 (4 octobre) : les constantes double de `gaol_port.h` (pi, `pi_dn`,
+  `ln2_dn…`) sortent de l'interface publique ; `interval::pi()` et ses sœurs
+  restent.
 - #84 (5 octobre) : point D.21 : entiers de tout type pris tels quels au-delà de
   2^53, `pow(x, n)` pour tout entier, internes dans `gaol_detail`.
 - #87 (5 octobre) : point D, les en-têtes : `GAOL_PUBLIC`, gaol nomme les noms
@@ -646,7 +647,8 @@ Pull requests :
 - #90 (5 octobre) : point S (14) : `what()` donne le nom de la classe sans
   explication ; un pointeur nul n'est pas une explication.
 - #181 (24 octobre) : AP (question de #147) : un fichier nul vaut « (unknown
-  file) », un message nul est vide (`gaol_exception, gaol_warning, gaol_error`).
+  file) », un message nul est vide (`gaol_exception`, `gaol_warning`,
+  `gaol_error`).
 - #285 (4 novembre) : tâche PL : `std::invalid_argument` et `std::domain_error`
   remplacent `gaol_exception` et ses trois classes ; `what()` « fichier:ligne:
   explication ».
@@ -674,9 +676,9 @@ Pull requests :
   supprimés), documenté et vérifié par la CI autotools.
 - #95 (6 octobre) : point O (41, 42, 52, 65) : GAOL sous-projet meson, Release
   par défaut, `GAOL_DEBUG/enable-debug`, `GAOL_DEBUG_VERBOSE`, pipefail.
-- #141 (18 octobre) : supprime `GAOL_USING_ASM`, ses options
-  (`GAOL_ASM, --enable-asm, enable-asm`) et `GAOL_HAVE_ROUNDING_MATH_OPTION`,
-  que rien ne lisait ; objets inchangés.
+- #141 (18 octobre) : supprime `GAOL_USING_ASM`, ses options (`GAOL_ASM`,
+  --enable-asm, enable-asm) et `GAOL_HAVE_ROUNDING_MATH_OPTION`, que rien ne
+  lisait ; objets inchangés.
 - #143 (19 octobre) : point AO.127 : la phrase « les macros que lisent les
   sources » corrigée ; `GAOL_IX86_LINUX`, `GAOL_AARCH64_LINUX`,
   `GAOL_HAVE_AVX512_TARGET` gardées.
@@ -817,7 +819,7 @@ Pull requests :
   `interval(float64x2_t)` rendent le vide pour [±oo] ; `unchecked_bounds` pour
   le code interne.
 - #191 (25 octobre) : PG.6 : divisions du chemin AVX-512 en vdivsd scalaires à
-  arrondi intégré (x / d de 3,62 à 2,76 ns).
+  arrondi intégré (`x / d` de 3,62 à 2,76 ns).
 - #193 (25 octobre) : SSE2 sur Windows 32 bits avec Visual C++ et clang-cl :
   bornes en deux double d'alignement 8 ; `__vectorcall` ; x87 réglé avec
   préservation.
@@ -855,7 +857,7 @@ Pull requests :
   `GAOL_PRESERVE_ROUNDING` (`GAOL_RND_FPSCR_DIRECT`) ; `width()` et `bisect()`
   corrigés.
 - #157 (22 octobre) : point AI.106 (reste) : produit, quotient, reste et carré
-  des intervalles FPU sans branche sur les signes ; x - y corrigé.
+  des intervalles FPU sans branche sur les signes ; `x - y` corrigé.
 
 ## 19. La tâche PG : les écarts de GCC et de Clang, le placement du code
 
@@ -878,19 +880,19 @@ Pull requests :
 - #226 (29 octobre, fermée sans fusion) : jetable : code de #222 sur une base
   qui a la ligne `nth_root(x, -2)` ; N2 1,57 (GCC) à 1,09 (Clang).
 - #230 (29 octobre) : `round_upward_with_flush_cleared()` hors ligne
-  (`GAOL_RND_OUT_OF_LINE`) : plus de canari GCC sur le chemin rapide ; x + y
+  (`GAOL_RND_OUT_OF_LINE`) : plus de canari GCC sur le chemin rapide ; `x + y`
   1,29 fois.
 - #232 (29 octobre) : -falign-functions=64 en Release pour la bibliothèque seule
-  dans les trois builds ; corrige le placement de Clang sur line of 15 +.
-- #234 (29 octobre) : SSE2 x &= y et x | y gardent les bornes dans le registre
-  (`_mm_move_sd, _mm_shuffle_pd`) ; x | y 1,62 fois avec GCC.
+  dans les trois builds ; corrige le placement de Clang sur `line of 15 +`.
+- #234 (29 octobre) : SSE2 `x &= y` et `x | y` gardent les bornes dans le
+  registre (`_mm_move_sd`, `_mm_shuffle_pd`) ; `x | y` 1,62 fois avec GCC.
 - #236 (29 octobre) : `max(x, y)` et `min(x, y)` SSE2 et NEON par noyaux dédiés,
   les deux bornes d'un coup ; 2,9 à 3,7 fois plus rapides ; deux tests.
 - #254 (30 octobre, fermée sans fusion) : étude du placement de Visual C++
   arm64, base sans correctif (e0), avec la modification de max et min : cartes
   du lien pour #262.
 - #255 (30 octobre, fermée sans fusion) : étude du placement de Visual C++ arm64
-  (e0), avec la modification de x `*` y : cartes du lien pour #262.
+  (e0), avec la modification de `x * y` : cartes du lien pour #262.
 - #256 (30 octobre, fermée sans fusion) : étude du placement de Visual C++ arm64
   (e0), avec les opérations avec un double : cartes du lien pour #262.
 - #257 (30 octobre, fermée sans fusion) : étude du placement de Visual C++ arm64
@@ -899,7 +901,7 @@ Pull requests :
   avec #pragma `code_seg` (e1), max et min : adresses multiples de 0x1000,
   lignes stables.
 - #259 (30 octobre, fermée sans fusion) : étude du placement de Visual C++ arm64
-  avec #pragma `code_seg` (e1), x `*` y : le correctif de #262 essayé.
+  avec #pragma `code_seg` (e1), `x * y` : le correctif de #262 essayé.
 - #260 (30 octobre, fermée sans fusion) : étude du placement de Visual C++ arm64
   avec #pragma `code_seg` (e1), opérations avec un double : le correctif de #262
   essayé.
@@ -907,18 +909,19 @@ Pull requests :
   avec #pragma `code_seg` (e1), constructeur de deux bornes : le correctif de
   #262 essayé.
 - #262 (30 octobre) : Visual C++ arm64 : `add_bounds()` et `sub_bounds()` dans
-  des sections à elles (.gadd, .gsub) ; fin du bruit de 8 à 17 % de x + y (PG).
+  des sections à elles (.gadd, .gsub) ; fin du bruit de 8 à 17 % de `x + y`
+  (PG).
 - #246 (31 octobre, fermée sans fusion) : `certainly_le()` et sœurs : bornes
-  comparées avant le test du second intervalle (x <= y, GCC 13 sur Intel) ;
+  comparées avant le test du second intervalle (`x <= y`, GCC 13 sur Intel) ;
   remplacée par #279.
 - #247 (31 octobre, fermée sans fusion) : jetable ltfirst : comparaison des
-  bornes avant les deux tests d'ensemble vide (x <= y) ; remplacée par #279.
-- #277 (31 octobre, fermée sans fusion) : candidate jetable F1 de l'étude de x
-  <= y ; sa CI trouve le repli de GCC 14 en comparaison signalante
+  bornes avant les deux tests d'ensemble vide (`x <= y`) ; remplacée par #279.
+- #277 (31 octobre, fermée sans fusion) : candidate jetable F1 de l'étude de
+  `x <= y` ; sa CI trouve le repli de GCC 14 en comparaison signalante
   (`FE_INVALID`).
-- #278 (31 octobre, fermée sans fusion) : candidate jetable F2 de l'étude de x
-  <= y (les bornes d'abord, sauf RISC-V) ; corrigée, elle devient #279.
-- #279 (31 octobre) : x <= y (PG) : bornes d'abord, `GAOL_LIKELY`, égalité par
+- #278 (31 octobre, fermée sans fusion) : candidate jetable F2 de l'étude de
+  `x <= y` (les bornes d'abord, sauf RISC-V) ; corrigée, elle devient #279.
+- #279 (31 octobre) : `x <= y` (PG) : bornes d'abord, `GAOL_LIKELY`, égalité par
   `quiet_less_equal` contre GCC 14, `GAOL_RELATION_BOUNDS_FIRST`, un job de CI.
 
 ## 20. La tâche PG : les noyaux NEON
@@ -939,12 +942,12 @@ Pull requests :
 - #221 (29 octobre, fermée sans fusion) : jetable PG.8 : quotient NEON, signes
   de y lus dans des registres généraux ; gagne 1,35 sur le N2 avec Clang, repris
   par #225.
-- #225 (29 octobre) : PG.8 : x / y NEON lit les signes de y dans des registres
+- #225 (29 octobre) : PG.8 : `x / y` NEON lit les signes de y dans des registres
   généraux, 1,35 fois plus rapide sur Neoverse N2 (Clang).
-- #233 (29 octobre, fermée sans fusion) : jetable : x `*` y NEON, test de NaN
+- #233 (29 octobre, fermée sans fusion) : jetable : `x * y` NEON, test de NaN
   hors ligne puis derrière `reread_bounds()` ; première variante perd avec GCC
   et Visual C++ ; remplacée par #235.
-- #235 (29 octobre) : NEON x `*` y : test de NaN derrière les asm de
+- #235 (29 octobre) : NEON `x * y` : test de NaN derrière les asm de
   `reread_bounds()` ; Clang 1,29 fois plus rapide sur le N2, GCC et Visual C++
   inchangés.
 - #239 (30 octobre) : NEON max et min par instructions entières sur les quatre
@@ -957,21 +960,21 @@ Pull requests :
 - #242 (30 octobre) : NEON 1 / y et `y.inverse()` par une seule division de -1
   par les bornes échangées ; `x.inverse()` 0,635 sur M2.
 - #243 (30 octobre, fermée sans fusion) : jetable inv-divtests : tests de NaN et
-  de zéro sur les bits dans x / y et x %= y NEON ; perd 3 à 10 % sur M2.
+  de zéro sur les bits dans `x / y` et `x %= y` NEON ; perd 3 à 10 % sur M2.
 - #244 (30 octobre, fermée sans fusion) : jetable inv-divtests-tbl : idem avec
   échange des voies par `vqtbl1q_u8` ; ligne de 13 opérations 2,49 fois plus
   lente sur M2.
 - #248 (30 octobre) : NEON `interval(l, r)` par `valid_bounds()`, une
   comparaison au lieu de trois ; `interval(a, b)` 1,80 sur N2 ; test constructor
   renforcé.
-- #249 (30 octobre) : NEON x `*` y : test NaN/infini sur les bits d'exposant
-  (vshrn), produits par `vmulq_laneq_f64` ; x `*` y 1,42 à 1,53 sur N2.
-- #250 (30 octobre) : NEON `interval(d)` et x op= d : `quiet_less(fabs(d), +oo)`
-  et `keep_branch()`, drapeaux de la base gardés ; test sNaN dans
-  `rounding_direction`.
+- #249 (30 octobre) : NEON `x * y` : test NaN/infini sur les bits d'exposant
+  (vshrn), produits par `vmulq_laneq_f64` ; `x * y` 1,42 à 1,53 sur N2.
+- #250 (30 octobre) : NEON `interval(d)` et `x op= d` :
+  `quiet_less(fabs(d), +oo)` et `keep_branch()`, drapeaux de la base gardés ;
+  test sNaN dans `rounding_direction`.
 - #251 (30 octobre, fermée sans fusion) : variante jetable de #250 : d testé sur
-  ses bits dans `interval(d)` et x op= d ; deux drapeaux changent, refusée
-  (`TODO_AFTER 3.8`).
+  ses bits dans `interval(d)` et `x op= d` ; deux drapeaux changent, refusée
+  (`TODO_AFTER` 3.8).
 - #252 (30 octobre, fermée sans fusion) : variante jetable F4b du noyau NEON de
   max et min (#239) : le vide avant les clés ; +6 à +11 % sur un opérande vide.
 - #253 (30 octobre, fermée sans fusion) : variante jetable F4b2 (F4b avec une
@@ -994,20 +997,20 @@ Pull requests :
 - #166 (23 octobre) : suites de #160 : dix jobs de plus au banc A/B, cache des
   programmes de la base, `run_perf.sh` dans le filtre, `LINE_LIST` vide.
 - #211 (27 octobre, fermée sans fusion) : jetable : contrôle A/B de #209 (base
-  plus une fonction inutilisée) ; ne reproduit pas les inversions x / y, sqr,
-  x - y : effet de disposition.
+  plus une fonction inutilisée) ; ne reproduit pas les inversions `x / y`, sqr,
+  `x - y` : effet de disposition.
 - #214 (27 octobre, fermée sans fusion) : jetable : mesure A/B de #206 (a) avec
   Visual C++ x86 ; `nth_root(x, 3)` 355 à 179 ns, asinpi 1005 à 794 ns.
 - #216 (28 octobre) : tableau des lignes longues sur ARM 64 bits (Apple M2) dans
   doc/compare/performance.md, `run_lines_arm64.sh` et la commande arm64-report.
 - #217 (28 octobre) : PG.4 : compare-performance.py liste les lignes à partir
   d'un rapport de 1,5 au lieu de 2.
-- #220 (29 octobre) : PG.9 : ligne x / d dans `gaol_performance`
+- #220 (29 octobre) : PG.9 : ligne `x / d` dans `gaol_performance`
   (`REGISTER_ROWS`) ; `div_bounds()` SSE2 du chemin AVX-512 appelle `er_div2()`,
   code identique.
-- #237 (30 octobre) : lignes x % y et `x.inverse()` dans `gaol_performance`,
+- #237 (30 octobre) : lignes `x % y` et `x.inverse()` dans `gaol_performance`,
   pour mesurer operator%= et `inverse()` (PG, autres noyaux NEON).
-- #238 (30 octobre) : le | du nom x | y échappé dans le tableau Markdown de
+- #238 (30 octobre) : le | du nom `x | y` échappé dans le tableau Markdown de
   `gaol_performance` ; compare-performance.py lit \| comme | (21 tests).
 
 Travail direct sur `configure-clean` :
@@ -1054,8 +1057,8 @@ Pull requests :
 - #170 (23 octobre) : suite de #157 : jobs FPU GCC et Clang avec le sens
   préservé tiennent la protection des stores de `*=`, /=, %= (mutants) ; pas de
   `GAOL_RND_KEEP()`.
-- #171 (24 octobre) : suite de #161 (112) : test des bits du signe de zéro de x
-  `*` d, chemins AVX-512 et SSE2, sauté ailleurs.
+- #171 (24 octobre) : suite de #161 (112) : test des bits du signe de zéro de
+  `x * d`, chemins AVX-512 et SSE2, sauté ailleurs.
 - #197 (25 octobre) : tâche PD (2/2), PD.7 : mutate.py à jour, mutants de
   `er_div`, `neon-*` lancés sur M2, tests de pow renforcés.
 - #203 (27 octobre) : PE.6 : relecture des corrections de #163 ; trous de
@@ -1067,7 +1070,7 @@ Pull requests :
 - #231 (29 octobre) : réponse à #223 : `rounding_direction` vérifie que
   `pow_rel` et `pow_exponent_rel` près de `DBL_MAX` rendent les masques
   d'exceptions du programme.
-- #245 (30 octobre) : test `quotient_on_nan_lanes()` (NEON) : x / y, x %= y,
+- #245 (30 octobre) : test `quotient_on_nan_lanes()` (NEON) : `x / y`, `x %= y`,
   `inverse()` avec un NaN dans une voie stockée rendent `emptyset()`.
 - #281 (3 novembre) : `tests/test_ibex_codac.cpp` : 3 905 vérifications des cas
   d'IBEX et de Codac contre l'encadrement exact ; numbers à 400 s sous
@@ -1121,7 +1124,7 @@ Pull requests :
 - #264 (30 octobre) : synthèse 2/12 du point Y : les compilateurs et les
   plates-formes refusés ou construits, dans differences.md et ChangeLog.
 - #265 (30 octobre) : synthèse 3/12 du point Y : l'interface installée
-  (`en-têtes, espaces de noms, macros GAOL_`) dans differences.md et ChangeLog.
+  (en-têtes, espaces de noms, macros `GAOL_`) dans differences.md et ChangeLog.
 - #266 (30 octobre) : synthèse 4/12 du point Y : les sortes d'intervalles (NEON,
   SSE2, FPU, chemin AVX-512) dans differences.md et ChangeLog.
 - #267 (30 octobre) : synthèse 5/12 du point Y : le sens d'arrondi, les
@@ -1168,7 +1171,7 @@ Travail direct sur `configure-clean` :
 ## 27. Les registres, la procédure et le ménage
 
 `process.md`, `HOUSE_RULES.md`, `todo-notes/` et `check_branch`, les registres
-`TODO.md`, `TODO_DONE.md` et `TODO_AFTER.md` et leurs issues #177 à #179 (162
+`TODO.md`, `TODO_DONE.md` et `TODO_AFTER.md` et leurs issues #177 à #179 (168
 commits directs, non listés), les commits remis au nom de Jordan08 le 30
 septembre, les lignes de crédit laissées (123, décidé le 19 octobre), les
 branches supprimées (`TODO_DONE.md` 8).
