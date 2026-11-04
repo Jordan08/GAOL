@@ -775,11 +775,39 @@ namespace gaol_cm1
   inline double dbl_max() { return std::numeric_limits<double>::max(); }
   inline double dbl_inf() { return std::numeric_limits<double>::infinity(); }
 
-  // The least double above d, for a finite d
-  inline double next_up(double d)
+  /*
+    Tests of the value of a double by its bits: a mode that flushes the
+    subnormals to zero (FTZ and DAZ, FZ), which the program may have set, makes
+    a comparison with 0 of a subnormal number true, and the double above 0 is
+    one: no comparison of a double that may be subnormal is made but by these.
+  */
+  inline u64 dbl_bits(double d)
   {
     u64 bits;
     std::memcpy(&bits, &d, sizeof bits);
+    return bits;
+  }
+  inline bool dbl_is_zero(double d) { return (dbl_bits(d) << 1) == 0; } // +0 or -0
+  inline bool dbl_is_negative(double d) { return (dbl_bits(d) >> 63) != 0; } // the sign bit
+  inline double dbl_of(u64 bits)
+  {
+    double d;
+    std::memcpy(&d, &bits, sizeof d);
+    return d;
+  }
+  // The opposite of d, by its sign bit
+  inline double dbl_neg(double d) { return dbl_of(dbl_bits(d) ^ (static_cast<u64>(1) << 63)); }
+  // d < e for the doubles that are not NaN, -0 below +0: the order of the bits read as numbers
+  inline bool dbl_less(double d, double e)
+  {
+    const u64 a = dbl_bits(d), b = dbl_bits(e), top = static_cast<u64>(1) << 63;
+    return ((a & top) != 0 ? ~a : (a | top)) < ((b & top) != 0 ? ~b : (b | top));
+  }
+
+  // The least double above d, for a finite d; +0 for the -0 that the double below 2^-1074 is
+  inline double next_up(double d)
+  {
+    u64 bits = dbl_bits(d);
     if ((bits >> 63) == 0) {
       bits += 1;
     } else if ((bits << 1) == 0) { // -0
@@ -787,14 +815,13 @@ namespace gaol_cm1
     } else {
       bits -= 1;
     }
-    std::memcpy(&d, &bits, sizeof d);
-    return (d == 0.0) ? 0.0 : d; // +0 for the -0 that the double below 2^-1074 is
+    return dbl_of((bits << 1) == 0 ? 0 : bits);
   }
 
   inline double next_down(double d)
   {
-    const double below = -next_up(-d);
-    return (below == 0.0) ? 0.0 : below;
+    const u64 bits = dbl_bits(dbl_neg(next_up(dbl_neg(d))));
+    return dbl_of((bits << 1) == 0 ? 0 : bits); // +0 for the -0 that the opposite of +0 is
   }
 
   /*
@@ -956,7 +983,7 @@ namespace gaol_cm1
   // 1 + v exactly as a dyadic number, for a finite v > -1, if it takes 127 bits
   inline bool one_plus(double v, Dyadic& out)
   {
-    if (v == 0.0) {
+    if (dbl_is_zero(v)) {
       out.odd = mk(0, 1);
       out.sh = 0;
       return true;
@@ -1478,7 +1505,7 @@ namespace gaol_cm1
   {
     const u64 one63 = static_cast<u64>(1) << 63;
     const double y0 = gaol_cr_log1p(x);
-    if (!(std::fabs(y0) <= 8.0) || y0 == 0.0) { return false; }
+    if (!(std::fabs(y0) <= 8.0) || dbl_is_zero(y0)) { return false; }
     bool xneg, y0neg, yneg;
     u64 xm, y0m, ym;
     int xe, y0e, ye;
@@ -1598,7 +1625,7 @@ namespace gaol_cm1
     bool candidate = false;
     if (lo_exact) { d = lo; candidate = true; }
     else if (hi_exact) { d = hi; candidate = true; }
-    else if (lo < dbl_inf() && next_up(lo) < hi) { d = next_up(lo); candidate = true; }
+    else if (lo < dbl_inf() && dbl_less(next_up(lo), hi)) { d = next_up(lo); candidate = true; }
     if (!candidate) {
       return;
     }
@@ -1614,7 +1641,7 @@ namespace gaol_cm1
       118 on for 2^m - 1 = (1/2)^-m - 1 (its width is 2^-118 relatively near
       m = 113), and the rule applies from 2^54 on, where d - 1 is no double.
     */
-    if (d > 0.0 && d < dbl_inf() && expo(d) >= 54 && power_equals(x, y, dyadic_of(d))) {
+    if (!dbl_is_negative(d) && !dbl_is_zero(d) && d < dbl_inf() && expo(d) >= 54 && power_equals(x, y, dyadic_of(d))) {
       lo = next_down(d);
       hi = d;
       return;
@@ -1629,9 +1656,9 @@ namespace gaol_cm1
       most 1/2, and the first of them 1/6 of the second term at most, so that
       the terms from the third on weigh less than a third of the second.
     */
-    if (d != 0.0 && expo(x) + ((expo(y) + 1 > 2) ? expo(y) + 1 : 2) + 2 <= -1
+    if (!dbl_is_zero(d) && expo(x) + ((expo(y) + 1 > 2) ? expo(y) + 1 : 2) + 2 <= -1
         && product_equals(x, y, d)) {
-      if (y > 1.0 || y < 0.0) { // f - d = d (y - 1) x / 2 has the sign of y (y - 1) x^2
+      if (y > 1.0 || dbl_is_negative(y)) { // f - d = d (y - 1) x / 2 has the sign of y (y - 1) x^2
         lo = d;
         hi = next_up(d);
       } else {

@@ -1005,8 +1005,12 @@ namespace
       }
     }
     std::vector<interval> reference;
+    std::vector<std::pair<double, double>> point_reference;
     for (const auto& p : pairs) {
       reference.push_back(compoundm1(interval(p.first), interval(p.second)));
+      double lo, hi;
+      cm1::compoundm1_point(p.first, p.second, lo, hi);
+      point_reference.push_back(std::make_pair(lo, hi));
     }
     for (const FlushMode& m : flush_modes()) {
       const unsigned int saved = flush_bits();
@@ -1018,6 +1022,34 @@ namespace
       const unsigned int kept = flush_bits(); // GAOL's own work does not matter, the results do
       set_flush_bits(saved);
       (void)kept;
+      // The function of points, which no GAOL_RND_ENTER() clears the modes before: with the mode set again, since
+      // the operations above left it cleared, the same bits (the header compares no subnormal double with 0 and
+      // reads the bits of the others)
+      std::vector<std::pair<double, double>> point_got;
+      double up_zero = 0.0, down_zero = 0.0, up_minus = 1.0;
+      bool one_plus_tiny = true;
+      set_flush_bits(m.bits);
+      for (const auto& p : pairs) {
+        double lo, hi;
+        cm1::compoundm1_point(p.first, p.second, lo, hi);
+        point_got.push_back(std::make_pair(lo, hi));
+      }
+      up_zero = cm1::next_up(0.0);
+      down_zero = cm1::next_down(0.0);
+      up_minus = cm1::next_up(-0x1p-1074);
+      cm1::Dyadic w;
+      one_plus_tiny = cm1::one_plus(0x1p-1074, w);
+      set_flush_bits(saved);
+      for (std::size_t i = 0; i < pairs.size(); ++i) {
+        check("compoundm1_point() with " + m.name + ": the same bits",
+              cm1::dbl_bits(point_got[i].first) == cm1::dbl_bits(point_reference[i].first)
+              && cm1::dbl_bits(point_got[i].second) == cm1::dbl_bits(point_reference[i].second),
+              [&] { return "(" + show(pairs[i].first) + ", " + show(pairs[i].second) + "): [" + show(point_got[i].first) + ", "
+                           + show(point_got[i].second) + "] rather than [" + show(point_reference[i].first) + ", " + show(point_reference[i].second) + "]"; });
+      }
+      check("next_up(0), next_down(0) and next_up(-2^-1074) with " + m.name + ": 2^-1074, -2^-1074 and +0",
+            cm1::dbl_bits(up_zero) == 1u && cm1::dbl_bits(down_zero) == (static_cast<u64>(1) << 63 | 1u) && cm1::dbl_bits(up_minus) == 0u);
+      check("one_plus(2^-1074) with " + m.name + ": 1 + 2^-1074 takes more than 127 bits", !one_plus_tiny);
       for (std::size_t i = 0; i < pairs.size(); ++i) {
         check("compoundm1 with " + m.name + ": the same bounds", got[i].left() == reference[i].left() && got[i].right() == reference[i].right(),
               [&] { return "(" + show(pairs[i].first) + ", " + show(pairs[i].second) + "): " + hex(got[i]) + " rather than " + hex(reference[i]); });

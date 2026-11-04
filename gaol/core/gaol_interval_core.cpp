@@ -4857,6 +4857,19 @@ interval nth_root(const interval& I, int q)
   }
 
   /*
+    The signs of the bounds, and whether two are equal, by their bits: a mode
+    that flushes the subnormals to zero, which the program may have set, makes
+    a subnormal bound compare as 0 (see gaol/gaol_fpu.h), and no comparison
+    here depends on it (GAOL v5)
+  */
+  static inline bool cm1_positive(double d) { return !gaol_cm1::dbl_is_zero(d) && !gaol_cm1::dbl_is_negative(d); }
+  static inline bool cm1_negative(double d) { return !gaol_cm1::dbl_is_zero(d) && gaol_cm1::dbl_is_negative(d); }
+  static inline bool cm1_same(double a, double b)
+  {
+    return gaol_cm1::dbl_bits(a) == gaol_cm1::dbl_bits(b) || (gaol_cm1::dbl_is_zero(a) && gaol_cm1::dbl_is_zero(b));
+  }
+
+  /*
     compoundm1 of IEEE 1788-2015 (Table 10.5): (1 + x)^y - 1 for x > -1, and
     for x = -1 when y > 0, where it is -1 (GAOL v5).
 
@@ -4882,11 +4895,11 @@ interval nth_root(const interval& I, int q)
   // [-oo, +oo]
   static inline void cm1_corner(double x, double y, double& lo, double& hi)
   {
-    if (x == 0.0 || y == 0.0) {
+    if (gaol_cm1::dbl_is_zero(x) || gaol_cm1::dbl_is_zero(y)) {
       lo = hi = 0.0;
     } else if (cm1_is_limit(x, y)) {
       // +oo where 1 + x > 1 and y > 0 or 1 + x < 1 and y < 0, -1 otherwise
-      lo = hi = ((x > 0.0) == (y > 0.0)) ? GAOL_INFINITY : -1.0;
+      lo = hi = (cm1_positive(x) == cm1_positive(y)) ? GAOL_INFINITY : -1.0;
     } else {
       gaol_cm1::compoundm1_point(x, y, lo, hi);
     }
@@ -4918,29 +4931,29 @@ interval nth_root(const interval& I, int q)
       return interval::emptyset();
     }
     if (base.right() == -1.0) {
-      return y.right() > 0.0 ? interval(-1.0) : interval::emptyset();
+      return cm1_positive(y.right()) ? interval(-1.0) : interval::emptyset();
     }
     const double xl = base.left(), xu = base.right(), yl = y.left(), yu = y.right();
     double l, r;
-    if (xl == xu && yl == yu) {
+    if (cm1_same(xl, xu) && cm1_same(yl, yu)) {
       // A point: one corner gives both bounds
       cm1_corner(xl, yl, l, r);
-    } else if (yl == yu) {
+    } else if (cm1_same(yl, yu)) {
       // A degenerate exponent: increasing with x for y > 0, decreasing for
       // y < 0, one corner for each bound
-      l = cm1_lo((yl > 0.0) ? xl : xu, yl);
-      r = cm1_hi((yl > 0.0) ? xu : xl, yl);
-    } else if (xl == -1.0 && yl > 0.0) {
+      l = cm1_lo(cm1_positive(yl) ? xl : xu, yl);
+      r = cm1_hi(cm1_positive(yl) ? xu : xl, yl);
+    } else if (xl == -1.0 && cm1_positive(yl)) {
       // A base from -1 and exponents above 0: -1 is the least value, and the
       // greatest is at xu, with yu for xu >= 0 and yl below
       l = -1.0;
-      r = cm1_hi(xu, (xu >= 0.0) ? yu : yl);
-    } else if (xl >= 0.0) {
-      l = cm1_lo((yl >= 0.0) ? xl : xu, yl);
-      r = cm1_hi((yu >= 0.0) ? xu : xl, yu);
-    } else if (xu <= 0.0) {
-      l = cm1_lo((yu >= 0.0) ? xl : xu, yu);
-      r = cm1_hi((yl >= 0.0) ? xu : xl, yl);
+      r = cm1_hi(xu, !cm1_negative(xu) ? yu : yl);
+    } else if (!cm1_negative(xl)) {
+      l = cm1_lo(!cm1_negative(yl) ? xl : xu, yl);
+      r = cm1_hi(!cm1_negative(yu) ? xu : xl, yu);
+    } else if (!cm1_positive(xu)) {
+      l = cm1_lo(!cm1_negative(yu) ? xl : xu, yu);
+      r = cm1_hi(!cm1_negative(yl) ? xu : xl, yl);
     } else {
       // x holds 0 inside, where the function is 0: it is at most 0 at
       // (xl, y >= 0) and (xu, y <= 0), the least at (xl, yu) or (xu, yl), and
@@ -4950,8 +4963,8 @@ interval nth_root(const interval& I, int q)
       // holds 0 inside and one of the two corners is a limit, the other is
       // not computed: the limit is -1 at (xl, yu) and (xu, yl), which bounds
       // the box below, and +oo at (xl, yl) and (xu, yu), which bounds it above
-      const double yu_or_0 = (yu > 0.0) ? yu : 0.0, yl_or_0 = (yl < 0.0) ? yl : 0.0;
-      const bool around_0 = yl < 0.0 && yu > 0.0;
+      const double yu_or_0 = cm1_positive(yu) ? yu : 0.0, yl_or_0 = cm1_negative(yl) ? yl : 0.0;
+      const bool around_0 = cm1_negative(yl) && cm1_positive(yu);
       l = (around_0 && (cm1_is_limit(xl, yu) || cm1_is_limit(xu, yl)))
           ? -1.0 : minimum(cm1_lo(xl, yu_or_0), cm1_lo(xu, yl_or_0));
       r = (around_0 && (cm1_is_limit(xl, yl) || cm1_is_limit(xu, yu)))
