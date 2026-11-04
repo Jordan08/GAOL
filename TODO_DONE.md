@@ -1,9 +1,9 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 4 novembre 2026
-(commit `221c8d4` de `configure-clean`, la pull request #287 ouverte : voir la
-section 1). Ce fichier fait foi : l'issue #177, qui avait le même contenu, n'est
-plus mise à jour depuis le 28 octobre (voir 7.8).
+(commit `61a432b` de `configure-clean`, la fusion de #288 après celle de #287 :
+voir la section 1). Ce fichier fait foi : l'issue #177, qui avait le même
+contenu, n'est plus mise à jour depuis le 28 octobre (voir 7.8).
 
 Il réunit l'historique de l'ancienne issue #49 (« Suivi du TODO de GAOL v5 »),
 ce qui est fait dans l'ancienne issue #142 (« Reste à faire sur GAOL v5 »), dans
@@ -55,53 +55,56 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 
 ## 1. L'état au 4 novembre 2026
 
-- **`configure-clean`** est au commit `221c8d4` (la fusion de la branche
-  `std-exceptions`, après celles de #217 le 28 octobre, de #218, #219, #222,
-  #223 et #225 le matin du 29, de #220, #224 et #227 à #231 de 18 h 04 à 18 h 19
-  UTC, de #232, #234 et #235 de 19 h 55 à 19 h 57, de #236 à 23 h 42, de #237 et
-  #238 le 30 octobre à 11 h 04, de #245, #242 et #249 de 19 h 57 à 20 h 07, de
-  #263 à #274 de 20 h 24 à 20 h 40, de #275 à 21 h 10, de #262, #250, #239 et
-  #248 de 21 h 13 à 21 h 32, de #276 à 21 h 37, de #279 le 31 octobre à 9 h 32,
-  de #280 le 2 novembre à 19 h 36, de #282 le 3 novembre à 11 h 38, de #283 et
-  de #284 à 11 h 40 et 11 h 41 et de #281 à 16 h 51, et de #285 le 4 novembre à
-  8 h 22 ; l'import de CORE-MATH `0b2ae6d1` est du 27 octobre, voir 7.6 à 7.10).
-  Les pull requests des corrections vont vers `configure-clean`, qui reste la
-  branche de développement après v5.0.0 ; `MATH-CORE` et `master` (GAOL 4.3.2,
-  plus deux commits de `.claude/CLAUDE.md`) ne bougent qu'à la version (point
-  Y).
-- **Pull requests ouvertes** : #287 (`pown-rel`, hors des points : `pownRev`
-  pour p ≤ 0 par `nth_root_rel`). Le mainteneur a fusionné #165 à #167, #169 à
-  #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194, #196 et #197
-  le 25 octobre, #199, #200 et #201 le 26 octobre, #202 à #205 le 27, #206 à
-  #210, #212, #213, #215 et #216 le 28 (#216, hors des points : le tableau des
-  lignes longues sur ARM 64 bits, à la fin de `performance.md`), #217 le 28 à 23
-  h 19 UTC, #218, #219, #222, #223 et #225 le 29 au matin, #220, #224 et #227 à
-  #231 le 29 de 18 h 04 à 18 h 19, #232, #234 et #235 le 29 de 19 h 55 à 19 h
-  57, #236 le 29 à 23 h 42, #237 et #238 le 30 à 11 h 04, #245, #242 et #249 le
-  30 de 19 h 57 à 20 h 07, #263 à #274 (les textes de la version) le 30 de 20 h
-  24 à 20 h 40, #275 à 21 h 10, #262, #250, #239 et #248 de 21 h 13 à 21 h 32 et
-  #276 (macOS 27 à la place de macOS 14) à 21 h 37 ; #279 a été fusionnée le 31
-  à 9 h 32 par la session, sur la demande explicite du mainteneur ; #280 (les
-  restes de la tâche PI) l'a été le 2 novembre à 19 h 36 par le mainteneur,
-  puis, le 3 novembre, #282 (`HOUSE_RULES.md` : les outils de la machine sont
-  dans `process.md` §6.1, hors des points) à 11 h 38, #283 (les en-têtes de
-  CORE-MATH dans `gaol/math/`, `3rd/math-core` réduit à binary64) et #284 (les
-  opérateurs de `gaol_ieee1788`) à 11 h 40 et 11 h 41 (2.3 et 3.14), et #281
-  (les cas des tests d'IBEX et de Codac, hors des points) à 16 h 51, toutes par
-  le mainteneur, puis, le 4 novembre, #285 (hors des points : les exceptions de
-  la bibliothèque standard, la tâche PL) à 8 h 22, par le mainteneur ; ses
-  suites sont fusionnées sans pull request (`221c8d4`, 3.15 et 7.14). #168,
-  #195, #211, #214, #221, #226 et #233 sont fermées sans fusion, et, du 30 et du
-  31 octobre, #240, #241, #243, #244, #246, #247, #251 à #261, #277 et #278,
-  puis #286, le « Revert » de #285 fermé onze secondes après son ouverture
-  (2.4). Les tâches PA, PB, PC, PD, PE, PF, PG, PI et PL sont faites (PE : #200
-  et #204 pour le 95, #201 pour le 92, #205 pour le 3, #202 pour le 4, #204 pour
-  le 5, #203 pour le 6 ; PF : #206 pour le reste du 108, #209 pour le 109, #210
-  et #215 pour écrire seulement si ça change, #208 pour l'alignement de la pile
-  32 bits, #207 pour le contrôle de l'assembleur de x86-64 ; PG : la division du
-  chemin AVX-512, le 106 a : #191 à #194 ; puis #217 pour le seuil de la liste,
-  #218 pour `set_rounding()`, #219 pour le noyau de `pown` de NEON, #222 et #224
-  pour `nth_root(x, -2)` et `sqrt()`, #223, #227 et #228 pour le contrôle de
+- **`configure-clean`** est au commit `61a432b` (la fusion de #288 le 4 novembre
+  à 19 h 19 UTC, après celles de #217 le 28 octobre, de #218, #219, #222, #223
+  et #225 le matin du 29, de #220, #224 et #227 à #231 de 18 h 04 à 18 h 19 UTC,
+  de #232, #234 et #235 de 19 h 55 à 19 h 57, de #236 à 23 h 42, de #237 et #238
+  le 30 octobre à 11 h 04, de #245, #242 et #249 de 19 h 57 à 20 h 07, de #263 à
+  #274 de 20 h 24 à 20 h 40, de #275 à 21 h 10, de #262, #250, #239 et #248 de
+  21 h 13 à 21 h 32, de #276 à 21 h 37, de #279 le 31 octobre à 9 h 32, de #280
+  le 2 novembre à 19 h 36, de #282 le 3 novembre à 11 h 38, de #283 et de #284 à
+  11 h 40 et 11 h 41 et de #281 à 16 h 51, de #285 le 4 novembre à 8 h 22, de la
+  branche `std-exceptions` (`221c8d4`) et de #287 à 19 h 12 ; l'import de
+  CORE-MATH `0b2ae6d1` est du 27 octobre, voir 7.6 à 7.10). Les pull requests
+  des corrections vont vers `configure-clean`, qui reste la branche de
+  développement après v5.0.0 ; `MATH-CORE` et `master` (GAOL 4.3.2, plus deux
+  commits de `.claude/CLAUDE.md`) ne bougent qu'à la version (point Y).
+- **Pull requests ouvertes** : aucune. Le mainteneur a fusionné #165 à #167,
+  #169 à #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194, #196 et
+  #197 le 25 octobre, #199, #200 et #201 le 26 octobre, #202 à #205 le 27, #206
+  à #210, #212, #213, #215 et #216 le 28 (#216, hors des points : le tableau des
+  lignes longues sur ARM 64 bits, à la fin de `performance.md`), #217 le 28 à
+  23 h 19 UTC, #218, #219, #222, #223 et #225 le 29 au matin, #220, #224 et #227
+  à #231 le 29 de 18 h 04 à 18 h 19, #232, #234 et #235 le 29 de 19 h 55 à
+  19 h 57, #236 le 29 à 23 h 42, #237 et #238 le 30 à 11 h 04, #245, #242 et
+  #249 le 30 de 19 h 57 à 20 h 07, #263 à #274 (les textes de la version) le 30
+  de 20 h 24 à 20 h 40, #275 à 21 h 10, #262, #250, #239 et #248 de 21 h 13 à
+  21 h 32 et #276 (macOS 27 à la place de macOS 14) à 21 h 37 ; #279 a été
+  fusionnée le 31 à 9 h 32 par la session, sur la demande explicite du
+  mainteneur ; #280 (les restes de la tâche PI) l'a été le 2 novembre à 19 h 36
+  par le mainteneur, puis, le 3 novembre, #282 (`HOUSE_RULES.md` : les outils de
+  la machine sont dans `process.md` §6.1, hors des points) à 11 h 38, #283 (les
+  en-têtes de CORE-MATH dans `gaol/math/`, `3rd/math-core` réduit à binary64) et
+  #284 (les opérateurs de `gaol_ieee1788`) à 11 h 40 et 11 h 41 (2.3 et 3.14),
+  et #281 (les cas des tests d'IBEX et de Codac, hors des points) à 16 h 51,
+  toutes par le mainteneur, puis, le 4 novembre, #285 (hors des points : les
+  exceptions de la bibliothèque standard, la tâche PL) à 8 h 22, par le
+  mainteneur ; ses suites sont fusionnées sans pull request (`221c8d4`, 3.15 et
+  7.14), puis #287 (hors des points : `pownRev` pour p ≤ 0 par `nth_root_rel`) à
+  19 h 12 (2.3 et 3.16), puis #288 (hors des points : `compoundm1` de la norme
+  IEEE 1788-2015, Table 10.5, les bornes les plus serrées, en entiers) à
+  19 h 19, que ce fichier ne décrit pas encore (2.3). #168, #195, #211, #214,
+  #221, #226 et #233 sont fermées sans fusion, et, du 30 et du 31 octobre, #240,
+  #241, #243, #244, #246, #247, #251 à #261, #277 et #278, puis #286, le
+  « Revert » de #285 fermé onze secondes après son ouverture (2.4). Les tâches
+  PA, PB, PC, PD, PE, PF, PG, PI et PL sont faites (PE : #200 et #204 pour le
+  95, #201 pour le 92, #205 pour le 3, #202 pour le 4, #204 pour le 5, #203 pour
+  le 6 ; PF : #206 pour le reste du 108, #209 pour le 109, #210 et #215 pour
+  écrire seulement si ça change, #208 pour l'alignement de la pile 32 bits, #207
+  pour le contrôle de l'assembleur de x86-64 ; PG : la division du chemin
+  AVX-512, le 106 a : #191 à #194 ; puis #217 pour le seuil de la liste, #218
+  pour `set_rounding()`, #219 pour le noyau de `pown` de NEON, #222 et #224 pour
+  `nth_root(x, -2)` et `sqrt()`, #223, #227 et #228 pour le contrôle de
   l'assembleur avec GCC, #225 pour le quotient NEON, #220 pour la ligne `x / d`,
   #229 pour la grille de `diffarith`, #230, #232, #234 et #235 pour les écarts
   de GCC avec Clang, #231 pour les masques d'exceptions de `pow_rel()`, #236
@@ -112,10 +115,10 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   à #274 pour la synthèse de `doc/differences.md` et du `ChangeLog`, #275 pour
   les phrases fausses hors de ces deux documents, #280 pour leurs restes ; PL,
   hors des points de `TODO.md` : #285 pour les exceptions de la bibliothèque
-  standard, puis la fusion `221c8d4` pour ses suites) ; il reste les
-  signalements à d'autres projets (PH), le tableau de Clang 21 et la publication
-  (PJ), un `FE_INVALID` à décider (PK) et un cas de 12.12.7 à décider (PM) :
-  voir `TODO.md`.
+  standard, puis la fusion `221c8d4` pour ses suites ; hors des points aussi,
+  #287 pour `pownRev` avec p ≤ 0) ; il reste les signalements à d'autres projets
+  (PH), le tableau de Clang 21 et la publication (PJ), un `FE_INVALID` à décider
+  (PK) et un cas de 12.12.7 à décider (PM) : voir `TODO.md`.
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
   sur tout processeur ARM 64 bits avec tous les compilateurs (GCC, Clang,
   AppleClang, clang-cl, Visual C++, MinGW-w64, MSYS2), SSE2 sur tout processeur
@@ -2270,6 +2273,76 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   (48), Linux containers (23), macOS (20) et Manual (1), 203 jobs verts ;
   Performance ne tourne pas sur un push. Décisions : 3.15, 7.14.
 
+- #287 (hors des points : `pownRev` pour p ≤ 0, par `nth_root_rel(J, p, I)` pour
+  tout entier p, sur demande du mainteneur ; ouverte le 4 novembre à 10 h 10
+  UTC, 10 commits, 19 fichiers, 871 lignes ajoutées et 151 retirées) :
+  `gaol_ieee1788::pownRev(c, x, p)` prend tout entier p, avec et sans x, et ne
+  lève plus `std::domain_error` pour p ≤ 0 : il appelle
+  `gaol_core::nth_root_rel(c, p, x)`. Le noyau est dans `gaol_core`
+  (`gaol/core/gaol_interval_core.{h,cpp}`), pour que `gaol_ieee1788` et `gaol`
+  l'offrent (`gaol` par son `using gaol_core::nth_root_rel`) : une surcharge
+  `nth_root_rel(J, int p, I)`, un gabarit pour les autres entiers (`long`, `long
+  long`...) et une surcharge `double` supprimée (`= delete` ; un `float` est
+  promu en `double`), car un exposant `double` était converti en `unsigned int`.
+  Pour p = 0 : I si 1 est dans J, vide sinon. Pour p < 0 : J est coupé en 0,
+  chaque partie donne sa racine puis l'inverse (`reciprocal_sat_upward()`, qui
+  passe par `quotient_sat()` pour ne pas lever `FE_OVERFLOW` sur un résultat
+  fini), l'ordre pair prend les racines et leurs opposés, l'ordre impair les
+  parties positive et négative, le tout coupé par I ; deux pièges, le trou de J,
+  et le point 0 (une partie dont l'intersection est exactement {0} est écartée,
+  avec `gaol_detail::bound_equal()` pour ne pas dépendre de DAZ). Précision,
+  assouplie pour p < 0 comme pour les fonctions trigonométriques (3.16) : racine
+  puis inverse, jusqu'à 4 doubles du plus serré (4 trouvés pour `[2.25]`,
+  p = -127), et les tests tolèrent 2 doubles pour p < 0 ; sur les 18 052 cas
+  aléatoires de p < 0 de `nonpositive_pown_rev_cases(20000)`
+  (`tests/reverse_values.py`), 12 495 résultats ne sont pas vides, 521 sont à un
+  double au-delà des bornes exactes, 25 à deux, aucun au-delà ; p = -1 près de
+  2^-1074 sature à ±`DBL_MAX` (valide, pas le plus serré). Les tests :
+  `tests/reverse_values.py` écrit 26 cas à la main et n cas aléatoires de p ≤ 0
+  (`tests/reverse_values.h` refait) et ne saute plus les cas de p ≤ 0 de
+  libieeep1788 (387 cas à 481) ; `tests/reverse.cpp` les compare aux bornes
+  exactes (marge 2 pour p < 0), exige que les versions `unsigned` et `int`
+  s'accordent pour p ≥ 1 et que le résultat soit vide où l'enveloppe l'est dans
+  les cas écrits (le piège de {0}, que la marge cache) ; `tests/ieee1788.cpp` et
+  `tests/other_functions.cpp` remplacent les tests de `std::domain_error`
+  (p = 0, `pownRev([1, 8], -3)` exact `[0.5, 1]`, les pièges, -5000000001LL,
+  `INT_MIN`) ; `tests/misc.cpp` : des `static_assert` pour `int`, `unsigned`,
+  `long` et `long long`, et le refus de `double` et de `float` ;
+  `tests/rounding_direction.cpp` : 36 appels dans `flag_functions()` (sept de
+  plus : p = 0, -1 à -5, `INT_MIN`), et, sous `GAOL_TESTS_SSE`, `nth_root_rel`
+  hors des `int` avec les sous-normaux mis à zéro ; le test de
+  `tests/expressions.cpp` qui exigeait que `what()` nomme un en-tête est
+  supprimé (`pownRev` était le seul `gaol_ERROR` d'un en-tête). Les tests ont
+  des dents (mesuré) : sans la coupure de J, 40 échecs ; sans l'écart du point
+  0, 10 ; avec un `pownRev` trivial pour p < 0 (tout x), 302 ; avec l'inverse
+  simple, 3 579 échecs de drapeaux sur 20 000 cas (`FE_OVERFLOW` pour un
+  résultat fini) ; avec `==` à la place de `bound_equal()`, 1 échec, sous DAZ et
+  `-DGAOL_PRESERVE_ROUNDING=ON`. La documentation : `doc/accuracy.md` (une ligne
+  pour p ≤ 0, les chiffres, la saturation), `doc/using.md`, `doc/tests.md`, le
+  manuel (`manual/v5/gaol.tex` : l'entrée de `nth_root_rel`, un exemple),
+  `examples/07_contractors.cpp` et `examples/examples.md`.
+  `doc/compare/itf1788.md` refait (Clang 21.1.8, ITF1788 `b6ee1e2`) : 9 542 cas,
+  7 367 réussis et 22 en échec (7 283 et 12 avant), 466 non fournis ; les 94 cas
+  de `pownRev` pour p ≤ 0 s'exécutent : 84 réussissent et 10 sont valides sans
+  être les plus serrés. Vérifié en local : CMake GCC SSE2 en `-Wall -Wextra
+  -Werror` (62 sur 62) puis les 114 exemples du manuel sur l'installation et
+  `headers.sh`, GCC FPU (59 sur 59), Clang 18 (62 sur 62), ASan + UBSan (46 sur
+  46), autotools (30 PASS, aucun échec) et meson (30 sur 30), le manuel (un seul
+  `Overfull`, celui d'avant) ; relecture indépendante (sous-agent sans
+  contexte), dont les remarques sont corrigées : un `==` sensible à DAZ, des
+  chiffres de la documentation qu'on ne pouvait pas reproduire, des comptes
+  faux. Sa CI au dernier commit `63d4a1c` : Linux (47 jobs), Windows (64),
+  Autotools et meson (48), Linux containers (23), macOS (20), Performance (22)
+  et Manual (1), 225 jobs verts ; fusionnée le 4 novembre à 19 h 12 UTC par le
+  mainteneur (`368446d`) ; décisions : 3.16, 7.15.
+
+- #288 (hors des points : `compoundm1` de la norme IEEE 1788-2015, Table 10.5,
+  les bornes les plus serrées, en entiers ; ouverte le 4 novembre à 16 h 10 UTC,
+  10 commits, 36 fichiers) : fusionnée le 4 novembre à 19 h 19 UTC par le
+  mainteneur (`61a432b`), avec `doc/differences.md` et `ChangeLog` écrits dans
+  la pull request. Sa description, ses décisions et ses chiffres ne sont pas
+  encore dans ce fichier.
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -4056,7 +4129,8 @@ pull request qui les exécute (2.3).
   (*décidé le 3 novembre*) : `fichier:ligne: explication`, le fichier sans ses
   répertoires (un chemin absolu de CMake ne doit pas être dans les messages) ;
   `file()`, `line()`, `explanation()` et `operator<<` disparaissent avec les
-  classes.
+  classes. Pour `pownRev()`, la décision est remplacée le jour même : #287 le
+  fournit pour p ≤ 0 (3.16).
 - **La relecture de #285** (*décidé le 4 novembre*) : pas de nouvelle relecture
   des commits qui appliquent les réponses du 3 novembre (la CI de 225 jobs
   verte) ; **`doc/compare`** et **`coverage/`** refaits dans la pull request ;
@@ -4095,6 +4169,47 @@ pull request qui les exécute (2.3).
   cas de `textToInterval` sont ajoutés au brouillon de #129 (un second brouillon
   en anglais, pour une issue à part, et un titre qui les cite) ; rien n'est
   envoyé.
+
+### 3.16 Le 4 novembre : `pownRev()` pour p ≤ 0, #287
+
+Les décisions du mainteneur sur #287 (hors des points), avec la pull request qui
+les exécute (2.3).
+
+- **Le sujet** (*demandé le 4 novembre*) : décrire comment ajouter `pownRev()`
+  pour p ≤ 0 ; puis le mettre dans `gaol_core`, pour pouvoir le proposer à
+  `gaol_ieee1788` et à `gaol` ; et assouplir le critère d'accuracy pour p < 0,
+  comme pour les fonctions trigonométriques : racine puis inverse, au lieu d'un
+  noyau à bornes prouvées.
+- **Le nom** (*décidé le 4 novembre*, quatre réponses proposées) : une surcharge
+  `nth_root_rel(J, int p, I)` de `gaol_core`, pas un nouveau nom ; un gabarit
+  pour les autres entiers ; `gaol` l'exporte par son `using` existant et
+  `gaol_ieee1788::pownRev()` l'appelle. Un exposant `double` ou `float` est
+  refusé à la compilation (la surcharge `double` supprimée).
+- **La marge** (*décidé le 4 novembre*) : 2 doubles pour p < 0 dans
+  `tests/reverse.cpp` (1 pour sin, cos et tan, 0 ailleurs).
+- **La branche** (*décidé le 4 novembre*) : partir de `origin/std-exceptions`
+  (#285 n'était pas encore fusionnée), puis de `configure-clean` ; le test de
+  `tests/expressions.cpp` qui exigeait que `what()` nomme un en-tête est
+  supprimé ; la pull request est poussée et ouverte après la validation et la
+  relecture, avec le rapport d'ITF1788 refait dedans.
+- **Les commits tombés sur `compoundm1`** (*décidé le 4 novembre*) : trois
+  commits de cette session sont arrivés sur la branche `compoundm1` de GAOL_V8,
+  qu'une autre session avait prise entre-temps ; la session de `compoundm1` les
+  a retirés (remise à `7c12c50`), à la demande du mainteneur.
+- **Après la fusion** (*décidé le 4 novembre*) : les registres se préparent à la
+  fusion ; la référence locale `pown-rel` de GAOL_V8 (`cb06c88`) est gardée
+  jusqu'à la fusion, puis supprimée ; le clone de travail du scratchpad est
+  supprimé tout de suite ; la saturation de p = -1 près de 2^-1074 (traiter la
+  borne saturée en borne ouverte) et un noyau à bornes prouvées, qui donnerait
+  le plus serré de libieeep1788, ne sont pas traités : la pull request reste
+  telle quelle, ces deux points restent écrits dans sa description et dans
+  `doc/accuracy.md`, pas dans `TODO_AFTER.md`.
+- **La synthèse** (*décidé le 4 novembre*, « Attendre #287 ») : le texte de
+  `doc/differences.md` (la ligne 1509 de `61a432b`, « only `pownRev` for p ≤ 0
+  is missing ») et du `ChangeLog` (la ligne 810, « pownRev for p <= 0 is
+  missing ») est dans `TODO.md`, PJ point 7, avec celui de #283 à #285 : une
+  seule pull request. Le texte de #288 est déjà dans ces deux fichiers, écrit
+  dans sa pull request.
 
 ## 4. Les points faits, par lettre
 
@@ -5373,7 +5488,7 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
   branche dans configure-clean et push (pas besoin de PR pour cette fois) »), la
   branche est fusionnée sans avance rapide dans `configure-clean` : `221c8d4`,
   poussé sans forcer. #287 (`pown-rel`, `pownRev` pour p ≤ 0) est ouverte depuis
-  le même jour, et contient déjà `221c8d4`.
+  le même jour, et contient déjà `221c8d4` (fusionnée le soir : 7.15).
 - La CI du commit de fusion : Linux (47 jobs), Windows (64), Autotools et meson
   (48), Linux containers (23), macOS (20) et Manual (1), 203 jobs, tous
   `success`, aucun échoué, annulé ni sauté ; Performance ne tourne pas sur un
@@ -5390,6 +5505,37 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
   `static_assert` de `gaol_ERROR` nommant la classe ; dans le rapport d'ITF1788,
   la révision de GAOL citée est `1ad5ccb`, la mesure venant du run de `75e1440`
   (la différence est un commentaire).
+
+### 7.15 Le 4 novembre (après #287)
+
+- Le mainteneur a fusionné #287 le 4 novembre à 19 h 12 UTC (`368446d`) ; sa
+  branche `pown-rel` n'existe plus sur GitHub depuis. La CI de ce commit a été
+  annulée sept minutes plus tard par le push de la fusion de #288 à 19 h 19
+  (`61a432b`, dont la branche `compoundm1` avait déjà reçu #287 par `68fd774`).
+  La CI de `61a432b` n'est pas attendue : le mainteneur demande de pousser les
+  registres tout de suite (« commit et push directement sur configure-clean »),
+  ce qui l'annule ; celle de #287 est verte sur `63d4a1c` (2.3).
+- Les registres ont été mis à jour après la fusion (`process.md` §9) :
+  `TODO.md` et l'issue #179, ce fichier et `process.md` ; `TODO_AFTER.md` et
+  l'issue #178 ne changent pas, et #177 reste gelée (7.8). #288 (`compoundm1`),
+  ouverte à 16 h 10 UTC, n'était pas dans les registres ; fusionnée à 19 h 19,
+  elle n'y est que citée (2.3).
+- Les pièges : `git switch -c compoundm1` d'une autre session, entre la création
+  de `pown-rel` et ses commits dans GAOL_V8, a emporté les modifications et les
+  trois commits (3.16) : `git branch --show-current` juste avant chaque `git
+  add`, et un clone dans le scratchpad quand les deux arbres servent ; deux `git
+  clone --no-hardlinks` de V8 (4,6 Go chacun) ont rempli les 80 % du tmpfs de 16
+  Go (« Disk quota exceeded »), `git clone --shared` n'en copie rien ; le push
+  par SSH a répondu « Permission denied (publickey) » et celui par HTTPS avec
+  `gh auth git-credential` a réussi après un « remote: fatal error in
+  commit_refs » ; `gh pr create` échoue (GraphQL), `gh api -X POST
+  repos/Jordan08/GAOL/pulls` marche ; la fusion de `configure-clean` dans la
+  branche donne un message de trois lignes avec `# Conflicts:`, que
+  `check_branch` refuse (réécrit avec `git commit-tree`, même arbre) ; un
+  inverse simple levait `FE_OVERFLOW` pour un résultat fini (`quotient_sat()`),
+  et une comparaison à 0 hors de la fenêtre d'arrondi doit passer par
+  `gaol_detail::bound_equal()` : le test de DAZ n'a de dents qu'avec
+  `-DGAOL_PRESERVE_ROUNDING=ON`.
 
 ## 8. Le ménage fait
 
@@ -5537,6 +5683,10 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
   les relevés : 1,9 Go libérés, la tmpfs de 16 Go passe de 6,7 à 4,8 Go) et
   dix-huit dossiers de sessions finies ; le dossier d'une autre session en cours
   (4,8 Go) est laissé.
+- [x] Celle de #287 (`pown-rel`), sur GitHub (supprimée à la fusion) ; en local,
+  la référence `pown-rel` de GAOL_V8 (`cb06c88`, d'avant le retrait des commits
+  de `compoundm1`), et le clone de travail du scratchpad (4,6 Go), le 4
+  novembre.
 
 ### 8.2 Les branches inachevées
 

@@ -1,18 +1,20 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `221c8d4` de `configure-clean` (la
-fusion de la branche `std-exceptions`, après #285), le 4 novembre 2026, en
-tâches PH, PJ, PK et PM (PA à PG, PI et PL sont faites : voir `TODO_DONE.md`).
-Ce fichier et l'issue #179 ont le même contenu. Ce qui est fait et décidé est
-dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour), ce qui est reporté
-dans `TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142 sont
-fermées, et `TODO_mistral.md` est supprimé.
+Ce qui reste à faire sur GAOL v5 au commit `61a432b` de `configure-clean` (la
+fusion de #288, après #287, #285 et la branche `std-exceptions`), le 4 novembre
+2026, en tâches PH, PJ, PK et PM (PA à PG, PI et PL sont faites : voir
+`TODO_DONE.md`). Ce fichier et l'issue #179 ont le même contenu. Ce qui est fait
+et décidé est dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour), ce qui
+est reporté dans `TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142
+sont fermées, et `TODO_mistral.md` est supprimé.
 
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à envoyer à un autre projet ni à publier sans l'accord
-du mainteneur. La pull request #287 (`pown-rel`, hors des points : `pownRev`
-pour p ≤ 0 par `nth_root_rel`) est ouverte.
+du mainteneur. Aucune pull request n'est ouverte. La pull request #288
+(`compoundm1`, la fonction `compoundm1` de la norme IEEE 1788-2015), fusionnée
+le 4 novembre à 19 h 19 UTC, n'est pas encore décrite dans `TODO_DONE.md` ni
+dans `process.md` (§12).
 
 ## Comment lire ce fichier
 
@@ -241,34 +243,37 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    `CMakeLists.txt` ligne 506, `gaol/math/gaol_core_math_port.h` ligne 453,
    `configure.ac` et `meson.build`) sont à revoir avec la version si macOS 14
    ne doit plus y figurer.
-7. **Les restes de #283, de #284 et de #285** (hors des points) : les textes
-   « Pour `doc/differences.md` et `ChangeLog` » de ces pull requests ne sont pas
-   reportés. *Décidé le 4 novembre* (« Attendre #287 ») : une seule pull request
-   de synthèse pour #283 à #287, après la fusion de #287, dont le texte
-   (`pownRev` pour p ≤ 0 par `nth_root_rel`) s'ajoute alors à celui-ci ; rien
-   n'est écrit d'ici là dans `doc/differences.md`, `ChangeLog` ni
-   `todo-notes/synthese.md`. Dans `doc/differences.md` : les anciens chemins de
-   `gaol_double_op.h`, `gaol_u128.h`, `gaol_ldexp.h`, `gaol_roundeven.h` et
-   `gaol_core_math.h` (13 lignes : 49, 84, 93, 242, 251, 309, 361, 1128, 1825,
-   1858, 1859, 2400, 2424) et de `core_math_port.h` (122, 166, 1130), qui sont
-   dans `gaol/math/` ; « The whole tree of CORE-MATH is vendored » (ligne 1126),
-   l'arbre ne gardant que `binary64` ; `gaol_roundeven.h`, qui n'est plus
-   installé (ligne 242), et `round_ties_to_even()`, qui n'est plus en ligne ;
-   les sept opérateurs de `gaol_ieee1788`. Pour #285 (*décidé le 4 novembre* :
-   le texte se prépare après la fusion, avec les registres), les exceptions de
-   la bibliothèque standard : les 23 lignes qui nomment `gaol_exception`,
-   `input_format_error`, `invalid_action_error` ou `unavailable_feature_error`
-   (225, 1002, 1064, 1068, 1071, 1072, 1076, 1078, 1079, 1088, 1390, 1484, 1562,
-   1587, 1613, 1632, 1664, 1710, 1727, 1728, 1950, 1980, 1988), dont la 1950
-   (`gaol_exceptions.h` ne déclare plus `string` ni `exception`, et n'est plus
-   un en-tête), le `what()` par nom de classe (1076 à 1079), le fichier nul
-   (1088) et `operator<<`, et la ligne 1735 (`gaol_ERROR` sans exceptions) ; les
-   lignes 77 et 78 disent « 87 % » de couverture (94,3 % le 4 novembre). Le
-   texte : les classes d'exceptions de GAOL 4 disparaissent ; GAOL lance
-   `std::invalid_argument` (une chaîne qui n'est pas un intervalle, un pointeur
-   nul) et `std::domain_error` (un argument qu'une fonction ne prend pas :
-   `nb_fp_numbers()`, `bisect()`, `pownRev()` pour p ≤ 0, `nth_root(8, 1.5)`
-   dans une chaîne) ; un gestionnaire de `gaol_core::input_format_error` attrape
+7. **Les restes de #283, de #284, de #285 et de #287** (hors des points) : les
+   textes « Pour `doc/differences.md` et `ChangeLog` » de ces pull requests ne
+   sont pas reportés. *Décidé le 4 novembre* (« Attendre #287 ») : une seule
+   pull request de synthèse pour #283 à #287, après la fusion de #287 (faite le
+   4 novembre à 19 h 12 UTC), dont le texte de #287 est plus bas ; rien n'est
+   encore écrit pour #283 à #287 dans `doc/differences.md`, `ChangeLog` ni
+   `todo-notes/synthese.md` (#288 y a écrit son texte, ce qui a décalé de 9
+   lignes `doc/differences.md` et de 17 le `ChangeLog` : les numéros qui suivent
+   sont ceux du commit `61a432b`). Dans `doc/differences.md` : les anciens
+   chemins de `gaol_double_op.h`, `gaol_u128.h`, `gaol_ldexp.h`,
+   `gaol_roundeven.h` et `gaol_core_math.h` (13 lignes : 49, 84, 93, 251, 260,
+   318, 370, 1137, 1834, 1867, 1868, 2409, 2433) et de `core_math_port.h` (131,
+   175, 1139), qui sont dans `gaol/math/` ; « The whole tree of CORE-MATH is
+   vendored » (ligne 1135), l'arbre ne gardant que `binary64` ;
+   `gaol_roundeven.h`, qui n'est plus installé (ligne 251), et
+   `round_ties_to_even()`, qui n'est plus en ligne ; les sept opérateurs de
+   `gaol_ieee1788`. Pour #285 (*décidé le 4 novembre* : le texte se prépare
+   après la fusion, avec les registres), les exceptions de la bibliothèque
+   standard : les 23 lignes qui nomment `gaol_exception`, `input_format_error`,
+   `invalid_action_error` ou `unavailable_feature_error` (234, 1011, 1073, 1077,
+   1080, 1081, 1085, 1087, 1088, 1097, 1399, 1493, 1571, 1596, 1622, 1641, 1673,
+   1719, 1736, 1737, 1959, 1989, 1997), dont la 1959 (`gaol_exceptions.h` ne
+   déclare plus `string` ni `exception`, et n'est plus un en-tête), le `what()`
+   par nom de classe (1085 à 1088), le fichier nul (1097) et `operator<<`, et la
+   ligne 1744 (`gaol_ERROR` sans exceptions) ; les lignes 77 et 78 disent
+   « 87 % » de couverture (94,3 % le 4 novembre). Le texte : les classes
+   d'exceptions de GAOL 4 disparaissent ; GAOL lance `std::invalid_argument`
+   (une chaîne qui n'est pas un intervalle, un pointeur nul) et
+   `std::domain_error` (un argument qu'une fonction ne prend pas :
+   `nb_fp_numbers()`, `bisect()`, `nth_root(8, 1.5)` dans une chaîne) ; un
+   gestionnaire de `gaol_core::input_format_error` attrape
    `std::invalid_argument`, un de `gaol_core::invalid_action_error` attrape
    `std::domain_error`, et il n'y a plus de base commune à GAOL
    (`std::logic_error` attrape les deux), sans alias ; `what()` est
@@ -276,19 +281,28 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    donnait `std::exception`, et `file()`, `line()`, `explanation()` et
    `operator<<` n'existent plus ; `gaol_ERROR(excep, msg)` prend une classe
    dérivée de `std::exception`, ce que le compilateur vérifie avec exceptions
-   comme sans ; `gaol_ieee1788::pownRev()` pour p ≤ 0 lance `std::domain_error`,
-   et sans exceptions activées écrit l'erreur et abandonne, où il lançait un
-   `std::invalid_argument` même alors. Dans `ChangeLog` : une entrée pour ces
-   déplacements (les lignes 100, 649, 794 et 1569 nomment les fichiers à leur
-   place d'alors) ; pour #285, les 12 lignes qui nomment les anciennes classes
-   (322, 785, 841, 868, 911, 937, 974 à 976, 980, 981, 999), dont les entrées
-   sur `gaol_exceptions.{h,cpp}` (322, 974 et 980), deviennent historiques, et
-   une entrée pour le changement. Restent aussi le commentaire de
-   `CMakeLists.txt` (ligne 1435) qui cite `core_math_log_dint.h`, qui n'existe
-   pas, et `todo-notes/synthese.md`, qui garde 11 lignes sur les anciennes
-   classes (un registre, non touché par #285). Le cas des bornes qui sont des
-   résultats d'opérations (12.12.7), que `doc/compare/itf1788.md` dit déjà, est
-   la tâche PM. [S]
+   comme sans. Pour #287 (fusionnée le 4 novembre, le texte de sa description) :
+   `pownRev(c, x, p)` de `gaol_ieee1788` est fourni pour p ≤ 0 (`x` si 1 est
+   dans `c` et vide sinon pour p = 0, l'enveloppe des `x ≠ 0` avec `x^p` dans
+   `c` pour p < 0, `c` coupé en 0) et ne lève plus `std::domain_error` : dans
+   `doc/differences.md`, la ligne 1509 (« only `pownRev` for p ≤ 0 is missing »)
+   tombe, et dans `ChangeLog` la ligne 810 (« pownRev for p <= 0 is missing »).
+   `nth_root_rel(J, p, I)` prend tout entier p : **changement silencieux**, un
+   `int` négatif était converti en un grand `unsigned int` (une racine d'ordre
+   voisin de 4·10^9) et donne maintenant la puissance négative ; un exposant
+   `double` ou `float`, converti avant en `unsigned int`, est refusé à la
+   compilation. Précision pour p < 0 : jusqu'à 4 doubles du plus serré, et
+   `p = -1` près de 2^-1074 sature à ±`DBL_MAX` (`doc/accuracy.md`). Dans
+   `ChangeLog` : une entrée pour ces déplacements (les lignes 100, 649, 811 et
+   1586 nomment les fichiers à leur place d'alors) ; pour #285, les 12 lignes
+   qui nomment les anciennes classes (322, 785, 858, 885, 928, 954, 991 à 993,
+   997, 998, 1016), dont les entrées sur `gaol_exceptions.{h,cpp}` (322, 991 et
+   997), deviennent historiques, et une entrée pour le changement. Restent aussi
+   le commentaire de `CMakeLists.txt` (ligne 1436) qui cite
+   `core_math_log_dint.h`, qui n'existe pas, et `todo-notes/synthese.md`, qui
+   garde 11 lignes sur les anciennes classes (un registre, non touché par #285).
+   Le cas des bornes qui sont des résultats d'opérations (12.12.7), que
+   `doc/compare/itf1788.md` dit déjà, est la tâche PM. [S]
 
 ## PK. Des `FE_INVALID` avec Clang et les intervalles FPU [S, à décider]
 
