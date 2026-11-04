@@ -218,31 +218,57 @@ namespace
           bounds_are(odd_u, -r8, r8) && bounds_are(even_u, 0.0, r8) && bounds_are(odd_t, -r8, r8)
           && bounds_are(inverse_t, 0x1.fffffffc6d73bp-1, 0x1.fffffffecf26ap-1),
           [&] { return hex(odd_u) + " " + hex(even_u) + " " + hex(odd_t) + " " + hex(inverse_t); });
-    /* pownRev() for p <= 0 throws std::domain_error, through gaol_ERROR, with
-       the int of the function and with the integer of the template; without
-       exceptions, gaol_ERROR ends the program, and the call is not made */
-    bool threw = true;
-#if GAOL_EXCEPTIONS_ENABLED
-    threw = false;
-    try {
-      static_cast<void>(pownRev(c8, 0L));
-    } catch (const std::domain_error&) {
-      threw = true;
-    }
-    bool threw_int = false;
-    try {
-      static_cast<void>(pownRev(c8, -3));
-    } catch (const std::domain_error&) {
-      threw_int = true;
-    }
-    threw = threw && threw_int;
-#endif
     const interval rev = pownRev(c8, 5000000001LL), rev_even = pownRev(c8, 5000000000LL);
     const interval rev_positive = pownRev(c8, numsToInterval(0.0, oo), 5000000000LL);
-    check("pownRev(c, 3000000000u) is nth_root_rel(), pownRev(c, 0L) and pownRev(c, -3) throw std::domain_error, and beyond the unsigned ints the roots",
-          pownRev(c8, 3000000000u).set_eq(gaol_core::nth_root_rel(c8, 3000000000u, interval::universe())) && threw
+    check("pownRev(c, 3000000000u) is nth_root_rel(), and beyond the unsigned ints the roots",
+          pownRev(c8, 3000000000u).set_eq(gaol_core::nth_root_rel(c8, 3000000000u, interval::universe()))
           && bounds_are(rev, r2, r8) && bounds_are(rev_even, -r8, r8) && bounds_are(rev_positive, r2, r8),
           [&] { return hex(rev) + " " + hex(rev_even) + " " + hex(rev_positive); });
+    /* pownRev() for p <= 0 (GAOL v5), which threw std::domain_error: for p = 0
+       x where 1 is in c, and for p < 0 the hull of the x != 0 with x^p in c,
+       nth_root_rel(c, p, x), with the int of the function, with the integer
+       of the template, and beyond the ints. The bounds are the exact roots of
+       the reciprocals where they are doubles, and the tightest ones around
+       8^(-1/q) and 2^(-1/q) for q = 5 10^9 and 5 10^9 + 1 alike (mpmath, 600
+       bits) */
+    const interval c18(1.0, 8.0), x23 = numsToInterval(-2.0, 3.0);
+    check("pownRev(c, x, 0) is x where 1 is in c, the empty set elsewhere, with and without x",
+          pownRev(c18, 0L).set_eq(interval::universe()) && pownRev(c8, 0L).is_empty()
+          && pownRev(c18, x23, 0LL).set_eq(x23) && pownRev(c8, x23, 0).is_empty()
+          && pownRev(interval::emptyset(), 0).is_empty() && pownRev(c18, interval::emptyset(), 0).is_empty(),
+          [&] { return hex(pownRev(c18, 0L)) + " " + hex(pownRev(c8, 0L)) + " " + hex(pownRev(c18, x23, 0LL)); });
+    const interval minus3 = pownRev(c18, -3), minus4 = pownRev(interval(1.0, 16.0), numsToInterval(0.0, oo), -4L);
+    const interval minus1 = pownRev(interval(2.0, 4.0), -1LL), below = pownRev(numsToInterval(-8.0, -1.0), -3);
+    check("pownRev(c, p) for a negative p: the roots of the reciprocals of c, of either sign for an even p",
+          bounds_are(minus3, 0.5, 1.0) && bounds_are(minus4, 0.5, 1.0) && bounds_are(minus1, 0.25, 0.5)
+          && bounds_are(below, -1.0, -0.5) && bounds_are(pownRev(interval(1.0, 16.0), -4), -1.0, 1.0),
+          [&] { return hex(minus3) + " " + hex(minus4) + " " + hex(minus1) + " " + hex(below); });
+    // c is cut at 0, and 0 is no solution: the hull of the roots of [-1, 2], the
+    // whole line, would keep the part of x in the gap, and the roots of
+    // [1, +oo] reach 0
+    const interval part = pownRev(numsToInterval(1.0, oo), numsToInterval(0.0, 3.0), -2);
+    check("pownRev(c, x, p) for a negative p: the gap of c holds no solution, and neither does 0",
+          pownRev(interval(-1.0, 2.0), numsToInterval(-0.5, 0.5), -3).is_empty()
+          && pownRev(interval(-1.0, 2.0), numsToInterval(-0.5, 0.5), -2).is_empty()
+          && pownRev(numsToInterval(1.0, oo), interval(0.0), -2).is_empty()
+          && pownRev(numsToInterval(-oo, -1.0), interval(0.0), -3).is_empty()
+          && pownRev(interval::universe(), interval(0.0), -5).is_empty()
+          && pownRev(interval(0.0), interval::universe(), -3).is_empty() && bounds_are(part, 0.0, 1.0),
+          [&] { return hex(part); });
+    // Beyond the ints, and INT_MIN, whose opposite no int holds
+    const double q_lo = 0x1.fffffffc6d73bp-1, q_hi = 0x1.fffffffecf26ap-1;
+    const interval huge_odd = pownRev(c8, -5000000001LL), huge_even = pownRev(c8, -5000000000LL);
+    const interval huge_below = pownRev(numsToInterval(-8.0, -2.0), -5000000001LL), huge_long = pownRev(c8, -5000000001L);
+    const interval smallest = pownRev(c8, std::numeric_limits<int>::min());
+    check("pownRev(c, p) for a negative p beyond the ints: the tightest roots of the reciprocals, cut at 0",
+          bounds_are(huge_odd, q_lo, q_hi) && bounds_are(huge_even, -q_hi, q_hi) && bounds_are(huge_below, -q_hi, -q_lo)
+          && bounds_are(huge_long, q_lo, q_hi)
+          && pownRev(numsToInterval(-8.0, 8.0), numsToInterval(-0.5, 0.5), -5000000001LL).is_empty(),
+          [&] { return hex(huge_odd) + " " + hex(huge_even) + " " + hex(huge_below) + " " + hex(huge_long); });
+    check("pownRev(c, INT_MIN): the order is 2^31, which an int cannot negate",
+          !smallest.is_empty() && smallest.right() > 0.9999999 && smallest.right() < 1.0
+          && smallest.left() == -smallest.right(),
+          [&] { return hex(smallest); });
     // pown(e, n) of the expressions for an unsigned beyond the ints, which
     // made [1, 2]^3000000000u [0, 1], converting n to a negative int: pown,
     // as for an interval (GAOL v5: [-oo, +oo])

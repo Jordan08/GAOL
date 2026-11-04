@@ -744,14 +744,14 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
 
 ## 12. Où en est le travail (4 novembre 2026)
 
-Le reste à faire est dans `TODO.md` (tâches PH, PJ et PK) et l'issue #179 ; ce
-qui est fait et décidé (pull requests fusionnées, décisions, mesures) est dans
-`TODO_DONE.md` (l'issue #177 n'est plus mise à jour) ; ce qui est reporté est
-dans `TODO_AFTER.md` et l'issue #178. L'état qui suit est daté : les commandes
-ci-dessous, les trois fichiers et les issues font foi. Avant de commencer un
-point, regarde les pull requests ouvertes et les branches distantes : une autre
-session peut déjà le traiter (le 19 octobre, la même mise à jour de `TODO.md` a
-été faite deux fois).
+Le reste à faire est dans `TODO.md` (tâches PH, PJ, PK et PM) et l'issue #179 ;
+ce qui est fait et décidé (pull requests fusionnées, décisions, mesures) est
+dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour) ; ce qui est reporté
+est dans `TODO_AFTER.md` et l'issue #178. L'état qui suit est daté : les
+commandes ci-dessous, les trois fichiers et les issues font foi. Avant de
+commencer un point, regarde les pull requests ouvertes et les branches
+distantes : une autre session peut déjà le traiter (le 19 octobre, la même mise
+à jour de `TODO.md` a été faite deux fois).
 
 ```sh
 gh api 'repos/Jordan08/GAOL/pulls?state=open' --jq '.[] | "#\(.number) \(.head.ref) \(.title)"'
@@ -812,23 +812,25 @@ git ls-remote --heads origin
   `configure-clean` est au commit `221c8d4`, la fusion de la branche
   `std-exceptions` (après #285). Ses branches sur GitHub sont `configure-clean`,
   `MATH-CORE` et `master`, avec celle de #287, les branches des pull requests
-  jetables fermées, gardées (`experiment-pg*`, voir `TODO_DONE.md` 8.1), et
-  quatre branches fusionnées ou fermées que le mainteneur supprime
-  (`todo-pg-relations-order`, `todo-pg-xle-exfirst`, `std-exceptions` et
-  `revert-285-std-exceptions`). L'issue #198 (`x / y` des intervalles NEON avec
-  `FPCR.AH`) est ouverte, sans tâche dans `TODO.md` ; #185 est fermée, le
-  masquage des exceptions de `pow` est gardé. L'issue #177 (`TODO_DONE.md`)
-  n'est plus mise à jour (*décidé le 28 octobre*) : GitHub borne le corps d'une
-  issue à 262 144 octets et le texte joint en fait plus de 270 000 (voir
-  `TODO_DONE.md` 7.8).
+  jetables fermées, gardées (`experiment-pg*`, voir `TODO_DONE.md` 8.1), et deux
+  branches, fusionnée ou fermée, que le mainteneur supprime
+  (`todo-pg-relations-order` et `todo-pg-xle-exfirst`) ; `std-exceptions` et
+  `revert-285-std-exceptions` sont supprimées depuis le 4 novembre. L'issue #198
+  (`x / y` des intervalles NEON avec `FPCR.AH`) est ouverte, sans tâche dans
+  `TODO.md` ; #185 est fermée, le masquage des exceptions de `pow` est gardé.
+  L'issue #177 (`TODO_DONE.md`) n'est plus mise à jour (*décidé le 28
+  octobre*) : GitHub borne le corps d'une issue à 262 144 octets et le texte
+  joint en fait plus de 270 000 (voir `TODO_DONE.md` 7.8).
 - **À faire**, dans l'ordre de `TODO.md` : un `FE_INVALID` à décider (PK, avec
-  Clang et les intervalles FPU), les signalements à d'autres projets (PH, avec
-  l'accord du mainteneur), puis la version (PJ, qui reprend le tableau de Clang
-  21, le manuel, les textes qui citent macOS 14, la compatibilité de licence des
-  cas d'IBEX et de Codac, à décider : #281, et les restes de #283, de #284 et de
-  #285 : les registres `doc/differences.md` et `ChangeLog`, et un cas de 12.12.7
-  à décider). Ce qui est reporté (le 113, le site, les traits pour YalAA et
-  VNODE-LP, les décorations, ce qui attend du matériel) est dans
-  `TODO_AFTER.md`. Les dépendances entre points sont écrites dans chaque tâche.
-  Le mainteneur donne les tâches ou les points un par un (« traite la tâche
-  PF », « traite le point 129 ») : ne commence pas le suivant sans lui.
+  Clang et les intervalles FPU), un cas de 12.12.7 à décider (PM : les littéraux
+  aux bornes calculées), les signalements à d'autres projets (PH, avec l'accord
+  du mainteneur), puis la version (PJ, qui reprend le tableau de Clang 21, le
+  manuel, les textes qui citent macOS 14, la compatibilité de licence des cas
+  d'IBEX et de Codac, à décider : #281, et les restes de #283, de #284 et de
+  #285 : les registres `doc/differences.md` et `ChangeLog`, en une seule pull
+  request avec #287, après sa fusion : *décidé le 4 novembre*). Ce qui est
+  reporté (le 113, le site, les traits pour YalAA et VNODE-LP, les décorations,
+  ce qui attend du matériel) est dans `TODO_AFTER.md`. Les dépendances entre
+  points sont écrites dans chaque tâche. Le mainteneur donne les tâches ou les
+  points un par un (« traite la tâche PF », « traite le point 129 ») : ne
+  commence pas le suivant sans lui.

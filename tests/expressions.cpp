@@ -1091,10 +1091,6 @@ namespace
     thrown_says<std::domain_error>("bisect(0)", "std::domain_error", "gaol_interval_core.cpp",
                                    "bisect(): the ratio is not in (0, 1)",
                                    [] { (void)interval(1.0, 2.0).bisect(0.0); });
-    // A function of a header, which is the file of the exception
-    thrown_says<std::domain_error>("pownRev(c, 0)", "std::domain_error", "gaol_ieee1788.h",
-                                   "gaol_ieee1788::pownRev: p <= 0 is not provided by GAOL v5",
-                                   [] { (void)gaol_ieee1788::pownRev(interval(8.0), 0); });
     // From the parser, whose file is that of the grammar it was generated from,
     // as the #line directives of bison give it (gaol_interval_parser.ypp)
     thrown_says<std::domain_error>("textToInterval(\"nth_root(8,1.5)\")", "std::domain_error", "gaol_interval_parser.ypp",

@@ -1204,12 +1204,14 @@ namespace
           [] { return std::string(); });
     check("gaol_ieee1788::pownRev([8], [0, +oo], 3) = [2]",
           std1788::pownRev(interval(8.0), interval(0.0, inf), 3).set_eq(interval(2.0)), [] { return std::string(); });
-#if GAOL_EXCEPTIONS_ENABLED
-    // A std::domain_error, through gaol_ERROR: without exceptions, it ends the program
-    bool threw = false;
-    try { (void)std1788::pownRev(interval(8.0), 0); } catch (const std::domain_error&) { threw = true; }
-    check("gaol_ieee1788::pownRev with p <= 0 throws std::domain_error, GAOL not providing it", threw, [] { return std::string(); });
-#endif
+    // p <= 0 (GAOL v5), which threw std::domain_error
+    check("gaol_ieee1788::pownRev([1, 8], 0) = [-oo, +oo], pownRev([1, 8], -3) = [0.5, 1], pownRev([2, 3], 0) = empty",
+          std1788::pownRev(interval(1.0, 8.0), 0).set_eq(interval::universe())
+          && std1788::pownRev(interval(1.0, 8.0), -3).set_eq(interval(0.5, 1.0))
+          && std1788::pownRev(interval(2.0, 3.0), 0).is_empty(), [] { return std::string(); });
+    check("gaol_ieee1788::pownRev([-1, 2], [-0.5, 0.5], -3) is empty, the gap of c holding no solution, and pownRev([1, +oo], [0], -2) too, 0 having no power",
+          std1788::pownRev(interval(-1.0, 2.0), interval(-0.5, 0.5), -3).is_empty()
+          && std1788::pownRev(interval(1.0, inf), interval(0.0), -2).is_empty(), [] { return std::string(); });
 
     // the forward names reach the functions they name
     const interval x(0.3, 0.7);

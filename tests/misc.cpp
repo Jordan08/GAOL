@@ -47,6 +47,12 @@ namespace gaol_names
   template <class A, class B>
   constexpr bool same() { return std::is_same<A, B>::value; }
 
+  // Whether gaol::nth_root_rel(y, p, x) compiles for a p of type P (GAOL v5)
+  template <class P, class = decltype(gaol::nth_root_rel(std::declval<interval>(), std::declval<P>(), std::declval<interval>()))>
+  constexpr bool nth_root_rel_takes(int) { return true; }
+  template <class P>
+  constexpr bool nth_root_rel_takes(...) { return false; }
+
   const interval& x();
   const expression& e();
   std::ostream& out();
@@ -179,7 +185,15 @@ namespace gaol_names
   static_assert(same<decltype(gaol::fma(x(), x(), x())), interval>(), "gaol::fma(x, y, z)");
   static_assert(same<decltype(gaol::nth_root(x(), 3u)), interval>() && same<decltype(gaol::nth_root(x(), 3)), interval>(),
                 "gaol::nth_root(x, n)");
-  static_assert(same<decltype(gaol::nth_root_rel(x(), 3u, x())), interval>(), "gaol::nth_root_rel(y, n, x)");
+  // The reverse of the integer power for every integer p (GAOL v5): the int, the unsigned int and the template
+  static_assert(same<decltype(gaol::nth_root_rel(x(), 3u, x())), interval>() && same<decltype(gaol::nth_root_rel(x(), -3, x())), interval>()
+                && same<decltype(gaol::nth_root_rel(x(), 3L, x())), interval>()
+                && same<decltype(gaol::nth_root_rel(x(), -3LL, x())), interval>(), "gaol::nth_root_rel(y, p, x)");
+  // A floating-point p was converted to an unsigned int, cutting 2.5 to 2: refused, the integers of every type taken
+  static_assert(nth_root_rel_takes<int>(0) && nth_root_rel_takes<unsigned>(0) && nth_root_rel_takes<char>(0)
+                && nth_root_rel_takes<long>(0) && nth_root_rel_takes<unsigned long long>(0)
+                && !nth_root_rel_takes<double>(0) && !nth_root_rel_takes<float>(0),
+                "gaol::nth_root_rel(y, p, x) refuses a double or a float p");
   static_assert(same<decltype(gaol::pow_rel(x(), x(), x())), interval>()
                 && same<decltype(gaol::pow_exponent_rel(x(), x(), x())), interval>(),
                 "gaol::pow_rel(z, y, x), gaol::pow_exponent_rel(z, x, y)");

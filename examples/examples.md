@@ -425,12 +425,17 @@ backward operators of IBEX and Codac, which call them:
 |---|---|---|---|
 | `sqrt_rel(y, x)` | `sqrRev(y, x)` | `bwd_sqr` | x² |
 | `div_rel(z, y, x)` | `mulRev(y, z, x)` | `bwd_mul` | x·y (the argument order differs) |
-| `nth_root_rel(y, n, x)` | `pownRev(y, x, n)`, n ≥ 1 | `bwd_pow` | xⁿ |
+| `nth_root_rel(y, n, x)` | `pownRev(y, x, n)` | `bwd_pow` (for n < 0, see below) | xⁿ |
 | `asin_rel`, `acos_rel`, `atan_rel` | `sinRev`, `cosRev`, `tanRev` | `bwd_sin`, `bwd_cos`, `bwd_tan` | sin, cos, tan |
 | `acosh_rel`, `asinh_rel`, `atanh_rel` | `coshRev`… | `bwd_cosh`… | cosh, sinh, tanh |
 | `invabs_rel` | `absRev` | `bwd_abs` | \|x\| |
 | `atan2_rel_y(θ, x, y)`, `atan2_rel_x(θ, y, x)` (GAOL v5) | `atan2Rev1(x, θ, y)`, `atan2Rev2(y, θ, x)` | `bwd_atan2` | atan2(y, x) |
 | `x &= z - y` | — | `bwd_add` | x + y |
+
+For n < 0 the two are not the same function: `tests/test_ibex_codac.cpp`
+documents that `bwd_pow` takes the roots of the whole of y, where
+`nth_root_rel` cuts y at 0, and gives the empty set for the part of x between
+the two parts of y (`nth_root_rel([-1, 2], -3, [-0.5, 0.5])`).
 
 With them, a forward-backward contractor is a dozen lines (07, 08, 09), and
 IBEX's documented results are reproduced. What is missing for Newton-type

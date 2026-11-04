@@ -7,7 +7,9 @@
  * IEEE 1788 defines fRev(c, x) = hull{ x in x | f(x) is defined and in c } and
  * mulRev(b, c, x) = hull{ x in x | x*b is in c for some b in b }, x being the
  * whole line when absent. GAOL computes them as sqrt_rel(c, x) (sqrRev),
- * invabs_rel(c, x) (absRev), nth_root_rel(c, p, x) (pownRev, for p > 0),
+ * invabs_rel(c, x) (absRev), nth_root_rel(c, p, x) (pownRev, for every integer
+ * p: for p > 0 with an unsigned and with an int p, which have to agree, and
+ * for p <= 0, GAOL v5), gaol_ieee1788::pownRev(c, x, p),
  * asin_rel, acos_rel and atan_rel (sinRev, cosRev, tanRev), acosh_rel
  * (coshRev), and div_rel(c, b, x), c % b and c %= b (mulRev), c % d and
  * c %= d for b = [d].
@@ -22,7 +24,12 @@
  *    for arguments widened by one double, widened by one double.
  * The bounds of asin_rel, acos_rel and atan_rel are allowed one double
  * further, their reduction modulo pi rounding twice, and the bound of x
- * beyond 2^52, which they keep, as doc/accuracy.md documents.
+ * beyond 2^52, which they keep, as doc/accuracy.md documents. Those of
+ * nth_root_rel for a negative p (pownRev, GAOL v5), the root of each part of c
+ * and then its inverse, are allowed two doubles further: of the 18 052 random
+ * cases with p < 0 of nonpositive_pown_rev_cases(20000) in reverse_values.py,
+ * 12 495 have a nonempty result with nonempty accurate bounds, of which 521
+ * were one double beyond them, 25 two, none more.
  * The summary also gives how far from the tightest bounds the results were,
  * where both are nonempty.
  *
@@ -79,10 +86,12 @@ namespace
   // 2^52, beyond which asin_rel, acos_rel and atan_rel keep the bound of x
   const double two_power_52 = 4503599627370496.0;
 
-  // Checks the result r of the function named name in the case k, periodic
-  // telling asin_rel, acos_rel and atan_rel from the others
+  // Checks the result r of the function named name in the case k. The accurate
+  // bounds are allowed slack doubles further: 1 for asin_rel, acos_rel and
+  // atan_rel, periodic telling them from the others, and 2 for nth_root_rel of
+  // a negative p, the root then its inverse, each of which rounds
   template<class Describe>
-  void expect(const std::string& name, const interval& r, const reverse_values::Case& k, bool periodic,
+  void expect(const std::string& name, const interval& r, const reverse_values::Case& k, int slack, bool periodic,
               const Describe& describe)
   {
     if (k.c.empty || k.b.empty || k.x.empty) {
@@ -93,12 +102,26 @@ namespace
     const reverse_values::I& a = k.accurate;
     check(name + ": valid, encloses the hull",
           t.empty || (!r.is_empty() && r.left() <= t.l && t.u <= r.right()), describe);
-    // The accurate bounds, one double further for the periodic functions, or
-    // the bound of x where they keep it (see the head of this file)
+    // The cases written out (pownRev for p <= 0, GAOL v5) with an empty hull:
+    // nextOut widens the arguments to a solution (the point 0 is no solution,
+    // and the gap between the parts of c holds none), which the accurate bounds
+    // then hold, so that they cannot tell [0] or the part of x in the gap from
+    // the empty set: the result has to be empty
+    if (std::string(k.from) == "written" && t.empty) {
+      check(name + ": empty where the hull is, in the cases written out", r.is_empty(), describe);
+    }
+    // The accurate bounds, slack doubles further, or the bound of x where the
+    // periodic functions keep it (see the head of this file)
     double low = a.l, high = a.u;
-    if (periodic && !a.empty) {
-      low = std::fabs(k.x.l) > two_power_52 ? std::min(low, k.x.l) : previous_double(low);
-      high = std::fabs(k.x.u) > two_power_52 ? std::max(high, k.x.u) : next_double(high);
+    if (!a.empty) {
+      for (int i = 0; i < slack; ++i) {
+        low = previous_double(low);
+        high = next_double(high);
+      }
+      if (periodic) {
+        low = std::fabs(k.x.l) > two_power_52 ? std::min(a.l, k.x.l) : low;
+        high = std::fabs(k.x.u) > two_power_52 ? std::max(a.u, k.x.u) : high;
+      }
     }
     check(name + ": no more than the accurate bounds, nextOut(tightest(nextOut(arguments)))",
           r.is_empty() || (!a.empty && low <= r.left() && r.right() <= high), describe);
@@ -125,9 +148,15 @@ namespace
       } else if (f == "absRev") {
         call("invabs_rel(c, x)", "invabs_rel(" + cx + ")", [&] { return invabs_rel(c, x); });
       } else if (f == "pownRev") {
-        const unsigned int p = static_cast<unsigned int>(k.p);
-        call("nth_root_rel(c, p, x)", "nth_root_rel(" + hex(c) + ", " + std::to_string(p) + ", " + hex(x) + ")",
-             [&] { return nth_root_rel(c, p, x); });
+        const std::string cp = "(" + hex(c) + ", " + std::to_string(k.p) + ", " + hex(x) + ")";
+        if (k.p >= 1) {
+          const unsigned int p = static_cast<unsigned int>(k.p);
+          call("nth_root_rel(c, unsigned p, x)", "nth_root_rel" + cp, [&] { return nth_root_rel(c, p, x); });
+        }
+        // The int p, for every p (GAOL v5), and the standard's name, with and without x
+        call("nth_root_rel(c, int p, x)", "nth_root_rel" + cp, [&] { return nth_root_rel(c, k.p, x); });
+        call("pownRev(c, x, p)", "pownRev" + cp,
+             [&] { return k.x_given ? gaol_ieee1788::pownRev(c, x, k.p) : gaol_ieee1788::pownRev(c, k.p); });
       } else if (f == "sinRev") {
         call("asin_rel(c, x)", "asin_rel(" + cx + ")", [&] { return asin_rel(c, x); });
       } else if (f == "cosRev") {
@@ -151,9 +180,17 @@ namespace
           }
         }
       }
+      if (f == "pownRev" && k.p >= 1) {
+        const interval& u = calls[0].r;
+        const interval& n = calls[1].r;
+        check("nth_root_rel(c, int p, x) is nth_root_rel(c, unsigned p, x) for p >= 1",
+              (u.is_empty() && n.is_empty()) || (!u.is_empty() && !n.is_empty() && u.left() == n.left() && u.right() == n.right()),
+              [&] { return hex(u) + " " + hex(n); });
+      }
       const bool periodic = (f == "sinRev" || f == "cosRev" || f == "tanRev");
+      const int slack = periodic ? 1 : (f == "pownRev" && k.p < 0 ? 2 : 0);
       for (const Call& g : calls) {
-        expect(g.name, g.r, k, periodic, [&] {
+        expect(g.name, g.r, k, slack, periodic, [&] {
           return g.text + " (" + f + " of IEEE 1788, case of " + k.from + "): " + hex(g.r) + ", tightest "
             + hex(make(k.tightest)) + ", accurate within " + hex(make(k.accurate));
         });
