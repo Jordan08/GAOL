@@ -1722,6 +1722,16 @@ namespace gaol_core {
 
   extern GAOL_PUBLIC std::ostream& operator<<(std::ostream& os, const interval& I);
   /*!
+    \brief Writes the name of a state of overlap() (GAOL v5)
+
+    The name Table 10.7 of IEEE 1788-2015 gives the state, as a string:
+    bothEmpty, firstEmpty, secondEmpty, before, meets, overlaps, starts,
+    containedBy, finishes, equals, finishedBy, contains, startedBy,
+    overlappedBy, metBy or after; overlapping_state(k) for a value k that is
+    none of them. The width of os applies to the name as a whole.
+  */
+  extern GAOL_PUBLIC std::ostream& operator<<(std::ostream& os, overlapping_state s);
+  /*!
     \brief Reads an interval, written on a line, from is
 
     The blanks before the line, line ends included, are skipped as before a

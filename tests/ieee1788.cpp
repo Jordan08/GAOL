@@ -44,6 +44,7 @@
 #include <cctype>
 #include <clocale>
 #include <cstdlib>
+#include <iomanip>
 #include <locale>
 #include <map>
 #include <sstream>
@@ -876,6 +877,22 @@ namespace
           && static_cast<int>(overlapping_state::finishedBy) == 10 && static_cast<int>(overlapping_state::contains) == 11
           && static_cast<int>(overlapping_state::startedBy) == 12 && static_cast<int>(overlapping_state::overlappedBy) == 13
           && static_cast<int>(overlapping_state::metBy) == 14 && static_cast<int>(overlapping_state::after) == 15);
+
+    // operator<< writes the name of Table 10.7, in the states' order, whatever
+    // the locale, and the width of the stream applies to the whole name; a
+    // value that is no state is written as such (GAOL v5)
+    for (unsigned k = 0; k < 16; ++k) {
+      std::ostringstream plain, padded;
+      plain << static_cast<overlapping_state>(k);
+      padded << std::setw(14) << static_cast<overlapping_state>(k);
+      check("operator<< writes the name of an overlapping_state",
+            plain.str() == state_names[k] && padded.str() == std::string(14 - plain.str().size(), ' ') + state_names[k],
+            [&] { return "state " + std::to_string(k) + ": '" + plain.str() + "', '" + padded.str() + "'"; });
+    }
+    std::ostringstream beyond;
+    beyond << static_cast<overlapping_state>(200) << ' ' << overlap(numsToInterval(1.0, 2.0), numsToInterval(2.0, 3.0));
+    check("operator<< of a value that is no overlapping_state, and of a state", beyond.str() == "overlapping_state(200) meets",
+          [&] { return beyond.str(); });
 
     // A pair, against the set specification, its converse, and the
     // comparisons of the standard as masks of states (10.6.4: disjoint is

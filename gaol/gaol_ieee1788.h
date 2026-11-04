@@ -497,7 +497,7 @@ namespace gaol_ieee1788 {
   // Input and output (Clause 13)
   // ----------------------------------------------------------------------
   
-  //! operator<<(out, x): the output of an interval in the current output format of GAOL, which is not intervalToText()
+  //! operator<<(out, x): the output of an interval in the current output format of GAOL, which is not intervalToText(), and the name of an overlapping_state (GAOL v5)
   using ::gaol_core::operator<<;
   
   /*!

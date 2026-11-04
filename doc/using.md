@@ -529,11 +529,13 @@ note of the standard, where `bothEmpty` is the leftmost one: the state `s` is
 the pattern `0x8000u >> s`, and `disjoint(a, b)` is true when the pattern of
 `overlap(a, b)` meets `disjointMask`, `0xF001`. The type,
 `gaol::overlapping_state`, and the member `a.overlap(b)` are in `gaol` too,
-which has no other name for it. The state is told from the order of the
-bounds, compared as the integers of their bits, so that `-0` and `+0` are the
-same bound and `overlap()` raises no exception for an empty operand. A point
-interval on a bound of the other one is `starts`, `finishes`, `finishedBy` or
-`startedBy` (`equals` for the same point), never `meets` nor `metBy`:
+which has no other name for it. `operator<<` writes a state by its name in the
+table (`meets`, `containedBy`...), as a string, whatever the locale. The state
+is told from the order of the bounds, compared as the integers of their bits,
+so that `-0` and `+0` are the same bound and `overlap()` raises no exception
+for an empty operand. A point interval on a bound of the other one is
+`starts`, `finishes`, `finishedBy` or `startedBy` (`equals` for the same
+point), never `meets` nor `metBy`:
 `overlap(numsToInterval(2.0, 2.0), numsToInterval(1.0, 2.0))` is `finishes`.
 
 A name of the program's own that one of the standard shadows, a constant `inf`

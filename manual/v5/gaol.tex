@@ -3167,7 +3167,8 @@ cout << boolalpha << interval(1,2).strictly_less(interval(1,3)) << ' '
   from \code{bothEmpty}, 0, to \code{after}, 15: the state number $s$ is the
   bit $s$ of a 16-bit word counted from the left, \code{bothEmpty} being the
   leftmost bit, as in the note of the standard, where \code{disjoint} is the
-  mask \code{0xF001}. \code{bothEmpty}, \code{firstEmpty} and
+  mask \code{0xF001}. A state is written to a stream by its name in the
+  table, as \code{meets}. \code{bothEmpty}, \code{firstEmpty} and
   \code{secondEmpty} are for an empty $a$ and $b$, an empty $a$ alone and an
   empty $b$ alone. The 13 other states are Allen's, for two nonempty
   intervals, told by their bounds, an infinite bound being equal to the same
@@ -3197,14 +3198,11 @@ cout << boolalpha << interval(1,2).strictly_less(interval(1,3)) << ' '
   interval, and the modes that flush the subnormal numbers to zero do not
   change it.
   \begin{example}
-typedef overlapping_state S;
 interval a(1,3), b(2,4), c(1,2), e = interval::emptyset();
-cout << static_cast<int>(a.overlap(b)) << ' '
-     << static_cast<int>(c.overlap(interval(2,3))) << ' '
-     << static_cast<int>(interval(2).overlap(c)) << ' '
-     << static_cast<int>(e.overlap(c)) << ' '
-     << boolalpha << (c.overlap(a) == S::starts);
-@outputs^5 4 8 1 true~
+cout << a.overlap(b) << ' ' << c.overlap(interval(2,3)) << ' '
+     << interval(2).overlap(c) << ' ' << e.overlap(c) << ' '
+     << static_cast<int>(c.overlap(a));
+@outputs^overlaps meets finishes firstEmpty 6~
   \end{example}
 \end{defmethod}
 

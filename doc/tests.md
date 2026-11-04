@@ -886,7 +886,9 @@ point Q), which `numbers` checks there too.
   the states are numbered as in the table, and `disjoint`, `equal` and
   `subset` have to be masks of states: `disjointMask`, 0xF001, of the note of
   10.6.4, and the masks of `equal` and `subset`, 0x8040 and 0xC3C0, which the
-  table gives;
+  table gives; `operator<<` has to write the name of each state, as Table 10.7
+  spells it, padded to the width of the stream as a whole, and
+  `overlapping_state(200)` for a value that is no state;
   the bounds of `gaol_ieee1788::pow` and of `gaol::pow` on 117 boxes, each
   reaching a branch of the pow of Table 9.1, which the two share, or of what
   `gaol::pow` adds to it (the integer power, beyond the ints too), the
