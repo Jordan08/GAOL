@@ -4042,7 +4042,7 @@ printf "%s\n" "#define GAOL_VERSION \"$GAOL_VERSION\"" >>confdefs.h
 GAOL_EDITION="4.6"
 GAOL_UPDATED="18 September 2026"
 GAOL_V5_EDITION="5.0"
-GAOL_V5_UPDATED="22 September 2026"
+GAOL_V5_UPDATED="4 November 2026"
 
 
 
