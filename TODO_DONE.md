@@ -2225,49 +2225,49 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   le mainteneur ; décisions : 3.15.
 
 - Les suites de #285, sans pull request (hors des points ; neuf commits, 12
-  fichiers, 219 lignes ajoutées et 52 retirées, sur `std-exceptions`, fusionnée
-  dans `configure-clean` par `221c8d4` à la demande du mainteneur) : (1)
-  `gaol_ERROR` refuse à la compilation une classe qui ne dérive pas de
-  `std::exception` : un `static_assert` sur `gaol_detail::is_error_class`, avec
-  exceptions comme sans (`<exception>`, `<stdexcept>` et `<type_traits>` sont
-  inclus dans les deux cas) ; huit `static_assert` de `tests/expressions.cpp`
-  testent le prédicat (vrai pour `std::invalid_argument`, `std::domain_error`,
-  `std::bad_alloc` et une classe d'un programme ; faux pour un `int`, un
-  `std::string`, une classe qui n'est pas une exception et une classe dérivée en
-  privé), et `.github/scripts/headers.sh` compile `gaol_ERROR(std::domain_error,
-  ...)` et exige que `gaol_ERROR(int, ...)` soit refusé (le `static_assert`
-  retiré d'une installation de contrôle, `headers.sh` échoue) ; (2)
-  `examples/examples.md` : les classes de GAOL 4 quittent la section 5 et
-  l'annexe B, le numéro 15 devient « withdrawn » et garde sa place ; (3)
-  `doc/compare/itf1788.md` refait (Clang 21, GAOL à `1ad5ccb`, ITF1788
-  `b6ee1e2`) : 7 283 cas réussis et 12 échecs, au lieu de 7 285 et 10 ; les deux
-  de plus sont des cas de `textToInterval` (`libieeep1788_class.itl`, lignes 136
-  et 138, `[1.0000000000000002,1.0000000000000001]` et sa forme hexadécimale),
-  où GAOL rend `[empty]` et ITF1788 attend `[1.0, 1.0000000000000002]` :
-  `itf1788.py` les classe « itf-literal » (défaut du cas de test), par une
-  comparaison exacte des bornes (`exact_number()`, `crossed_literal()`), et le
-  texte de la section 12.12.7 de la norme est cité ; `special_cases.md` : une
-  cellule, le zéro signé de `pow([−2, 3], [2])` en `gaol_ieee1788` (`[0, 9]` au
-  lieu de `[−0, 9]`) ; ces écarts ne viennent pas de #285 (les sources de
-  `configure-clean`, à `2a2c416`, donnent les mêmes résultats, mesuré) ; (4)
-  `coverage/` refait : 94,3 % des 5 466 lignes de `gaol/` (45 tests de CTest,
-  `numbers` lancé à la main) ; (5) une relecture indépendante des suites
-  (sous-agent sans contexte), dont les remarques sont corrigées : une phrase
-  fausse de `doc/tests.md`, une référence de `examples/examples.md` à une
-  section 8 qui n'existait plus, le commentaire de `exact_number()`, le
-  commentaire des inclusions de `gaol_common.h`, la marque « (GAOL v5) » de
-  `doc/using.md`, des gardes de `exact_number()` (plus de 200 caractères,
-  exposants de 5 chiffres), un nom de code coupé par `<sup>` et le manque de
-  dents du câblage de la macro (`headers.sh`). Vérifié en local avant la
-  fusion : CMake SSE2 (62 sur 62), FPU (59 sur 59), Clang 18 (62 sur 62) et sans
-  exceptions (62 sur 62), sans avertissement, ASan + UBSan (9 sur 9),
-  `headers.sh` (GCC, Clang 18, sans exceptions), `check_examples.py` (113 sur
-  113), le manuel (0 erreur, un seul Overfull, celui d'avant) et `tests.sh` (1
-  269 891 vérifications) ; autotools et meson ne sont pas relancés en local
-  après ces commits (la CI). Sa CI au commit de fusion `221c8d4` : Linux (47
-  jobs), Windows (64), Autotools et meson (48), Linux containers (23), macOS
-  (20) et Manual (1), 203 jobs verts ; Performance ne tourne pas sur un push.
-  Décisions : 3.15, 7.14.
+  fichiers, 219 lignes ajoutées et 52 retirées, sur la branche `std-exceptions`
+  de la machine, jamais poussée, fusionnée dans `configure-clean` par `221c8d4`
+  à la demande du mainteneur) : (1) `gaol_ERROR` refuse à la compilation une
+  classe qui ne dérive pas de `std::exception` : un `static_assert` sur
+  `gaol_detail::is_error_class`, avec exceptions comme sans (`<exception>`,
+  `<stdexcept>` et `<type_traits>` sont inclus dans les deux cas) ; huit
+  `static_assert` de `tests/expressions.cpp` testent le prédicat (vrai pour
+  `std::invalid_argument`, `std::domain_error`, `std::bad_alloc` et une classe
+  d'un programme ; faux pour un `int`, un `std::string`, une classe qui n'est
+  pas une exception et une classe dérivée en privé), et
+  `.github/scripts/headers.sh` compile `gaol_ERROR(std::domain_error, ...)` et
+  exige que `gaol_ERROR(int, ...)` soit refusé (le `static_assert` retiré d'une
+  installation de contrôle, `headers.sh` échoue) ; (2) `examples/examples.md` :
+  les classes de GAOL 4 quittent la section 5 et l'annexe B, le numéro 15
+  devient « withdrawn » et garde sa place ; (3) `doc/compare/itf1788.md` refait
+  (Clang 21, GAOL à `1ad5ccb`, ITF1788 `b6ee1e2`) : 7 283 cas réussis et 12
+  échecs, au lieu de 7 285 et 10 ; les deux de plus sont des cas de
+  `textToInterval` (`libieeep1788_class.itl`, lignes 136 et 138,
+  `[1.0000000000000002,1.0000000000000001]` et sa forme hexadécimale), où GAOL
+  rend `[empty]` et ITF1788 attend `[1.0, 1.0000000000000002]` : `itf1788.py`
+  les classe « itf-literal » (défaut du cas de test), par une comparaison exacte
+  des bornes (`exact_number()`, `crossed_literal()`), et le texte de la section
+  12.12.7 de la norme est cité ; `special_cases.md` : une cellule, le zéro signé
+  de `pow([−2, 3], [2])` en `gaol_ieee1788` (`[0, 9]` au lieu de `[−0, 9]`) ;
+  ces écarts ne viennent pas de #285 (les sources de `configure-clean`, à
+  `2a2c416`, donnent les mêmes résultats, mesuré) ; (4) `coverage/` refait :
+  94,3 % des 5 466 lignes de `gaol/` (45 tests de CTest, `numbers` lancé à la
+  main) ; (5) une relecture indépendante des suites (sous-agent sans contexte),
+  dont les remarques sont corrigées : une phrase fausse de `doc/tests.md`, une
+  référence de `examples/examples.md` à une section 8 qui n'existait plus, le
+  commentaire de `exact_number()`, le commentaire des inclusions de
+  `gaol_common.h`, la marque « (GAOL v5) » de `doc/using.md`, des gardes de
+  `exact_number()` (plus de 200 caractères, exposants de 5 chiffres), un nom de
+  code coupé par `<sup>` et le manque de dents du câblage de la macro
+  (`headers.sh`). Vérifié en local avant la fusion : CMake SSE2 (62 sur 62), FPU
+  (59 sur 59), Clang 18 (62 sur 62) et sans exceptions (62 sur 62), sans
+  avertissement, ASan + UBSan (9 sur 9), `headers.sh` (GCC, Clang 18, sans
+  exceptions), `check_examples.py` (113 sur 113), le manuel (0 erreur, un seul
+  Overfull, celui d'avant) et `tests.sh` (1 269 891 vérifications) ; autotools
+  et meson ne sont pas relancés en local après ces commits (la CI). Sa CI au
+  commit de fusion `221c8d4` : Linux (47 jobs), Windows (64), Autotools et meson
+  (48), Linux containers (23), macOS (20) et Manual (1), 203 jobs verts ;
+  Performance ne tourne pas sur un push. Décisions : 3.15, 7.14.
 
 ### 2.4 Fermées sans fusion
 
@@ -5353,12 +5353,13 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
 
 - Le mainteneur a fusionné #285 le 4 novembre à 8 h 22 UTC (`7c12c50`), puis le
   « Revert » #286 a été ouvert et fermé 11 secondes plus tard, sans fusion
-  (2.4). Les neuf commits qui suivent (2.3) sont sur `std-exceptions` ; à la
-  demande du mainteneur (« fusionne la branche dans configure-clean et push (pas
-  besoin de PR pour cette fois) »), la branche est fusionnée sans avance rapide
-  dans `configure-clean` : `221c8d4`, poussé sans forcer. #287 (`pown-rel`,
-  `pownRev` pour p ≤ 0) est ouverte depuis le même jour, et contient déjà
-  `221c8d4`.
+  (2.4). Les neuf commits qui suivent (2.3) sont sur la branche `std-exceptions`
+  de la machine, jamais poussée (sur GitHub elle reste à `c746b8d`, la tête de
+  #285) ; à la demande du mainteneur (« fusionne la branche dans configure-clean
+  et push (pas besoin de PR pour cette fois) »), la branche est fusionnée sans
+  avance rapide dans `configure-clean` : `221c8d4`, poussé sans forcer. #287
+  (`pown-rel`, `pownRev` pour p ≤ 0) est ouverte depuis le même jour, et
+  contient déjà `221c8d4`.
 - La CI du commit de fusion : Linux (47 jobs), Windows (64), Autotools et meson
   (48), Linux containers (23), macOS (20) et Manual (1), 203 jobs, tous
   `success`, aucun échoué, annulé ni sauté ; Performance ne tourne pas sur un
