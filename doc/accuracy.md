@@ -258,8 +258,9 @@ may have the sign of that code: `div_rel([0, 0x1.e2ab041732196p-5], [2^-1074,
 0x1.182p+9], [-DBL_MAX, 0x1.70ef9db22d0e5p+2])` is [0, 5.764625] where the
 vector code gives [−0, 5.764625] for a J from 1. The two
 paths of the SSE2 intervals, with and without `GAOL_PREFER_AVX512`, give the
-same bits, but for the sign of a zero bound of `x * d` and `x *= d` where the
-zero bounds of x have different signs, `[+0, -0]` (+0 and −0 are the same
+same bits, but for the sign of a zero bound of `x * d`, `x *= d` and `d * x`
+(computed as `x * d`) where the zero bounds of x have different signs,
+`[+0, -0]` (+0 and −0 are the same
 number): `[+0, -0]` with SSE2 and `[-0, +0]` with AVX-512. The NEON intervals
 (GAOL v5) take the larger of four products too, with the maximum of 64-bit
 ARM, which ranks +0 above −0, where the `maxpd` of the SSE2 intervals returns

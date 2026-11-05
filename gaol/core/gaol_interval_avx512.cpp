@@ -14,10 +14,11 @@
  * flags, the architecture requiring the exception suppression with the
  * embedded rounding. Their bounds are those of the SSE2 path, bit for
  * bit, the rounding rule being the same, but for the sign of a zero bound
- * in one case: x * d and x *= d of an interval x whose zero bounds have
- * different signs, [+0, -0], which are [-0, +0] here and [+0, -0] with the
- * SSE2 path, +0 and -0 being the same number. Checked against the SSE2
- * path on 500 000 intervals of random bounds plus the empty set, on the
+ * in one case: x * d, x *= d and d * x (computed as x * d, GAOL v5) of an
+ * interval x whose zero bounds have different signs, [+0, -0], which are
+ * [-0, +0] here and [+0, -0] with the SSE2 path, +0 and -0 being the same
+ * number. Checked against the SSE2 path on 500 000 intervals of random
+ * bounds plus the empty set, on the
  * zero corners of the products and of the quotients, the signs of their
  * bounds included, and on every value the tests of tests/ take, and on
  * every result of the operations of intervals and with a double on the

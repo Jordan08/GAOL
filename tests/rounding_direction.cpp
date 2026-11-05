@@ -2221,6 +2221,37 @@ namespace
     return operands;
   }
 
+  // Two intervals with the same bits, or both empty
+  bool same_bits(const interval& a, const interval& b)
+  {
+    return a.is_empty() ? b.is_empty() : (!b.is_empty() && hex(a) == hex(b));
+  }
+
+  // n * x of an integer n has the bits of x * n, as which it is computed, and
+  // those of double(n) * x where n is a double (GAOL v5, 2026-11-05)
+  template <class T>
+  void check_integer_product(const interval& x0, T n0, const Direction& dir)
+  {
+    volatile T kept = n0; // a value the compiler does not know
+    const T n = kept;
+    set(dir);
+    const interval x = opaque(x0);
+    const interval a = n * x;
+    set(dir);
+    const interval b = x * n;
+    bool same = same_bits(a, b);
+    std::string with_double;
+    if (gaol_detail::integer_is_double(n)) {
+      set(dir);
+      const interval c = static_cast<double>(n) * x;
+      same = same && same_bits(a, c);
+      with_double = ", double(n) * x = " + hex(c);
+    }
+    check("n * x of an integer n has the bits of x * n, and of double(n) * x where n is a double", same,
+          [&] { return "x = " + hex(x0) + ", n = " + std::to_string(n0) + ", " + dir.name + ": n * x = " + hex(a)
+                       + ", x * n = " + hex(b) + with_double; });
+  }
+
   // The doubles of the operations with a double: finite ones, then the ones for which interval(d) is empty
   std::vector<double> finite_doubles() { return std::vector<double>{ -8.0, -0.5, 0.0, 2.0 }; }
   std::vector<double> empty_doubles()
@@ -4998,11 +5029,11 @@ int main()
     with the second, for a nonzero d (doc/using.md, The AVX-512 path; decided
     on 2026-10-18 as an acceptable exception to "bit for bit", point AF, and
     its bits checked here from 2026-10-23, the checks of the interval with == not
-    seeing the sign of a zero). Whatever the direction of the program. d * x
-    has bits of its own (SSE2: [-0, +0] for a positive d, [+0, -0] for a
-    negative one), which nothing documents and the test leaves alone. Only the
-    SSE2 intervals document the sign; the others (the FPU and NEON intervals)
-    are not checked, and the test says so.
+    seeing the sign of a zero). Whatever the direction of the program. d * x,
+    computed as x * d since 2026-11-05 (it had bits of its own before: SSE2
+    [-0, +0] for a positive d, [+0, -0] for a negative one), has them too.
+    Only the SSE2 intervals document the sign; the others (the FPU and NEON
+    intervals) are not checked, and the test says so.
   */
 #if defined(GAOL_USING_SSE2_INSTRUCTIONS) && GAOL_USING_SSE2_INSTRUCTIONS
   {
@@ -5017,6 +5048,7 @@ int main()
         set(dir);
         const interval x = opaque(interval(gaol_core::rnd_keep(0.0), gaol_core::rnd_keep(-0.0)));
         const interval p = x * gaol_core::rnd_keep(d);
+        const interval q = gaol_core::rnd_keep(d) * x;
         interval r = x;
         r *= gaol_core::rnd_keep(d);
         const bool left_negative = avx512_path, right_negative = !avx512_path;
@@ -5024,12 +5056,13 @@ int main()
           return z.left() == 0.0 && z.right() == 0.0
             && std::signbit(z.left()) == left_negative && std::signbit(z.right()) == right_negative;
         };
-        check("x * d and x *= d of [+0, -0] have the zero bounds of their path (AVX-512: [-0, +0], SSE2: [+0, -0])",
-              has_the_signs(p) && has_the_signs(r),
+        check("x * d, d * x and x *= d of [+0, -0] have the zero bounds of their path (AVX-512: [-0, +0], SSE2: [+0, -0])",
+              has_the_signs(p) && has_the_signs(q) && has_the_signs(r),
               [&] {
                 return "d = " + S(d) + ", " + (avx512_path ? "AVX-512 path" : "SSE2 path") + ", "
                   + dir.name + ": x * d = [" + (std::signbit(p.left()) ? "-" : "+") + "0, "
-                  + (std::signbit(p.right()) ? "-" : "+") + "0], x *= d = ["
+                  + (std::signbit(p.right()) ? "-" : "+") + "0], d * x = ["
+                  + (std::signbit(q.left()) ? "-" : "+") + "0, " + (std::signbit(q.right()) ? "-" : "+") + "0], x *= d = ["
                   + (std::signbit(r.left()) ? "-" : "+") + "0, " + (std::signbit(r.right()) ? "-" : "+") + "0]";
               });
       }
@@ -5039,6 +5072,51 @@ int main()
 #else
   std::printf("The sign of the zero bounds of x * d is documented for the SSE2 intervals only: not checked here\n");
 #endif
+
+  /*
+    d * x is computed as x * d (GAOL v5, decided on 2026-11-05): the same
+    bounds, bit for bit, the sign of a zero bound included, with every kind of
+    intervals and from each direction of the program. It was the product of
+    the intervals interval(d) and x, the same set with other signs of zero:
+    [-0, +0] for x = [+0, -0] and a positive d with the SSE2 intervals, where
+    x * d gives [+0, -0] (#171). The intervals have bounds among infinite
+    ones, ±4 and the zeros of either sign, or subnormal ones, with the empty
+    set; the doubles are nonzero, subnormal, the largest, the zeros of either
+    sign, the infinities and a NaN (the infinities and the NaN give the empty
+    set). n * x of an integer n is computed as x * n, and has its bits too, and
+    those of double(n) * x where n is a double: eight integers of five types,
+    one beyond 2^53 of either sign, which is not a double
+  */
+  {
+    std::vector<interval> xs = infinite_operands();
+    xs.push_back(interval(1e-310, 2.5));
+    xs.push_back(interval(-3.0, -1e-310));
+    const double doubles[] = { 2.5, -2.5, 1.0, -1.0, 1e300, -1e300, 1e-310, -1e-310, largest, -largest,
+                               0.0, -0.0, GAOL_INFINITY, -GAOL_INFINITY, std::numeric_limits<double>::quiet_NaN() };
+    for (const Direction& dir : directions) {
+      for (const interval& x0 : xs) {
+        for (const double d0 : doubles) {
+          set(dir);
+          const interval x = opaque(x0);
+          const interval a = gaol_core::rnd_keep(d0) * x;
+          set(dir);
+          const interval b = x * gaol_core::rnd_keep(d0);
+          check("d * x has the bits of x * d, the sign of a zero bound included", same_bits(a, b),
+                [&] { return "x = " + hex(x0) + ", d = " + S(d0) + ", " + dir.name + ": d * x = " + hex(a)
+                             + ", x * d = " + hex(b); });
+        }
+        check_integer_product(x0, 2, dir);
+        check_integer_product(x0, -3, dir);
+        check_integer_product(x0, 0, dir);
+        check_integer_product(x0, 7u, dir);
+        check_integer_product(x0, static_cast<short>(-1), dir);
+        check_integer_product(x0, 1000000L, dir);
+        check_integer_product(x0, 9007199254740993LL, dir);
+        check_integer_product(x0, -9007199254740993LL, dir);
+      }
+    }
+    set(directions[0]);
+  }
 
   /*
     The square of an empty interval and the powers that return as it does,
