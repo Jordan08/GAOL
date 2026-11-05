@@ -242,6 +242,76 @@ public:
     }
   }
 
+  /* overlap() (GAOL v5): the 16 states of Table 10.7 of IEEE 1788-2015, each
+     with a pair and the state of the pair the other way round. The
+     intervals with an infinite bound, the point intervals on a bound of the
+     other one (starts, finishes, finishedBy and startedBy, never meets or
+     metBy), the zeros of both signs and the subnormals (-0 and +0 are the
+     same bound, and two subnormals are two bounds under denormals-are-zero
+     too) are in it. tests/ieee1788.cpp checks the states against the set
+     specification of the table over every pair of a grid and random ones. */
+  void test_overlap() {
+    typedef overlapping_state S;
+    const double oo = GAOL_INFINITY, eps = 0x1p-52, tiny = 0x1p-1074;
+    const interval none = interval::emptyset();
+    struct Case { interval a, b; S state, reversed; };
+    const Case cases[] = {
+      // States with either interval empty
+      { none, none, S::bothEmpty, S::bothEmpty },
+      { interval(2, 1), interval::emptyset(), S::bothEmpty, S::bothEmpty },
+      { none, interval(1, 2), S::firstEmpty, S::secondEmpty },
+      { none, interval::universe(), S::firstEmpty, S::secondEmpty },
+      { none, interval(3.0), S::firstEmpty, S::secondEmpty },
+      // before and after
+      { interval(1, 2), interval(3, 4), S::before, S::after },
+      { interval(-oo, 2), interval(3, oo), S::before, S::after },
+      { interval(-oo, 2), interval(3, 4), S::before, S::after },
+      { interval(1.0), interval(2.0), S::before, S::after },
+      { interval(1.0), interval(1.0 + eps), S::before, S::after },
+      { interval(-0.0, tiny), interval(2 * tiny), S::before, S::after },
+      // meets and metBy
+      { interval(1, 2), interval(2, 3), S::meets, S::metBy },
+      { interval(-oo, 1), interval(1, oo), S::meets, S::metBy },
+      { interval(-1, -0.0), interval(0.0, 1), S::meets, S::metBy },
+      { interval(-1, 0.0), interval(-0.0, 1), S::meets, S::metBy },
+      { interval(1.0, 1.0 + eps), interval(1.0 + eps, 2.0), S::meets, S::metBy },
+      { interval(tiny, 2 * tiny), interval(2 * tiny, 3 * tiny), S::meets, S::metBy },
+      // overlaps and overlappedBy
+      { interval(1, 3), interval(2, 4), S::overlaps, S::overlappedBy },
+      { interval(-oo, 3), interval(2, oo), S::overlaps, S::overlappedBy },
+      { interval(1.0, 1.0 + 2 * eps), interval(1.0 + eps, 2.0), S::overlaps, S::overlappedBy },
+      { interval(tiny, 3 * tiny), interval(2 * tiny, 4 * tiny), S::overlaps, S::overlappedBy },
+      // starts and startedBy, a point interval on the lower bound included
+      { interval(1, 2), interval(1, 3), S::starts, S::startedBy },
+      { interval(1.0), interval(1, 2), S::starts, S::startedBy },
+      { interval(-oo, 1), interval(-oo, 2), S::starts, S::startedBy },
+      { interval(-oo, 1), interval::universe(), S::starts, S::startedBy },
+      { interval(-0.0, 1), interval(0.0, 2), S::starts, S::startedBy },
+      { interval(0.0), interval(-0.0, 1), S::starts, S::startedBy },
+      // containedBy and contains
+      { interval(2, 3), interval(1, 4), S::containedBy, S::contains },
+      { interval(2.0), interval(1, 3), S::containedBy, S::contains },
+      { interval(1, 2), interval::universe(), S::containedBy, S::contains },
+      { interval(2 * tiny), interval(tiny, 3 * tiny), S::containedBy, S::contains },
+      // finishes and finishedBy, a point interval on the upper bound included
+      { interval(2, 3), interval(1, 3), S::finishes, S::finishedBy },
+      { interval(2.0), interval(1, 2), S::finishes, S::finishedBy },
+      { interval(2, oo), interval(1, oo), S::finishes, S::finishedBy },
+      { interval(0.0), interval(-1, -0.0), S::finishes, S::finishedBy },
+      // equals, in both orders
+      { interval(1, 2), interval(1, 2), S::equals, S::equals },
+      { interval(1.0), interval(1.0), S::equals, S::equals },
+      { interval::universe(), interval::universe(), S::equals, S::equals },
+      { interval(-0.0), interval(0.0), S::equals, S::equals },
+      { interval(-oo, 5), interval(-oo, 5), S::equals, S::equals },
+    };
+    for (const Case& c : cases) {
+      const std::string where = "overlap(" + gaol_unit::show(c.a) + ", " + gaol_unit::show(c.b) + ")";
+      gaol_unit::check(c.a.overlap(c.b) == c.state, __LINE__, where);
+      gaol_unit::check(c.b.overlap(c.a) == c.reversed, __LINE__, "the other way round, " + where);
+    }
+  }
+
   /* lexicographic_less (GAOL v5, point V): a total order for the containers
      of the standard library. < is strictPrecedes of IEEE 1788-2015, true as
      soon as either interval is empty: a std::set<interval> built on < loses
@@ -311,5 +381,6 @@ GAOL_UNIT_MAIN(relations_test, "relations",
                GAOL_UNIT_TEST(test_certainly),
                GAOL_UNIT_TEST(test_symbols_with_double),
                GAOL_UNIT_TEST(test_symbols_with_integers),
+               GAOL_UNIT_TEST(test_overlap),
                GAOL_UNIT_TEST(test_lexicographic_less),
                GAOL_UNIT_TEST(test_misc))

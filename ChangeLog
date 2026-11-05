@@ -813,6 +813,22 @@
 	* tests/compoundm1.cpp, compoundm1_values.py, compoundm1_values.h:
 	new, from the integers to the boxes: 5854 pairs and 850 boxes
 	against mpmath and fractions, the fast phase against the balls.
+	* gaol/core/gaol_interval_core.h (overlapping_state, overlap),
+	gaol/core/gaol_interval_core.cpp (operator<<), gaol/gaol_interval.h,
+	gaol/gaol_ieee1788.h: new, overlap of IEEE 1788-2015 (10.6.4), which
+	returns one of the 16 states of Table 10.7 under the names of the
+	table and in its order (bothEmpty is 0, after is 15).  The state
+	comes from the bounds as integers in the order of the doubles
+	(gaol_detail::bound_key), -0 and +0 being the same bound: no
+	floating-point exception, and the flush-to-zero modes change
+	nothing.  A point interval on a bound of the other one is never
+	meets nor metBy, as the standard says.  operator<< writes the name
+	of a state.
+	* tests/ieee1788.cpp, relations.cpp, rounding_direction.cpp,
+	misc.cpp: 31449 pairs against the quantifiers of the table on a
+	finite model of the line, the 40 cases of the table by hand, the
+	empty operands and the flush-to-zero modes, the names of the states.
+	* doc/compare/itf1788/: the 48 cases of overlap run, 7415 pass.
 	* gaol/core/gaol_interval_core.h (pow_rel, pow_exponent_rel,
 	atan2_rel_y, atan2_rel_x, max_rel, min_rel, sign_rel, floor_rel),
 	gaol/gaol_ieee1788.h (powRev1, powRev2, atan2Rev1, atan2Rev2,
