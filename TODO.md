@@ -14,10 +14,7 @@ non trouvée). Rien n'est à envoyer à un autre projet ni à publier sans l'acc
 du mainteneur. Deux pull requests sont ouvertes : #289 (la synthèse de #283
 à #288 dans `doc/differences.md`, le `ChangeLog` et `synthese.md`, avec le PDF
 du manuel : le point 7 de PJ) et #290 (`overlapping_state`, les 16 états de la
-Table 10.7 d'IEEE 1788-2015, 10.6.4). La pull request #288 (`compoundm1`, la
-fonction `compoundm1` de la norme IEEE 1788-2015), fusionnée le 4 novembre à
-19 h 19 UTC, n'est pas encore décrite dans `TODO_DONE.md` ni dans `process.md`
-(§12).
+Table 10.7 d'IEEE 1788-2015, 10.6.4).
 
 ## Comment lire ce fichier
 

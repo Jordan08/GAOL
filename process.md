@@ -809,8 +809,8 @@ git ls-remote --heads origin
   `pownRev` pour p ≤ 0 par `nth_root_rel(J, p, I)` de `gaol_core`), fusionnée le
   même jour à 19 h 12 UTC, décrite dans `TODO_DONE.md` (2.3 et 3.16), puis #288
   (hors des points : `compoundm1` de la norme IEEE 1788-2015), fusionnée à
-  19 h 19 UTC, que `TODO_DONE.md` ne décrit pas encore ; puis la tâche PK, close
-  sans code (un `FE_INVALID` de Clang avec les intervalles FPU, que les
+  19 h 19 UTC, décrite dans `TODO_DONE.md` (2.3 et 3.18) ; puis la tâche PK,
+  close sans code (un `FE_INVALID` de Clang avec les intervalles FPU, que les
   drapeaux de GAOL suppriment : `TODO_DONE.md` 3.17) ; l'audit du 13 octobre a
   vérifié dans `configure-clean` ce qu'annonçaient alors les points A, C à H et
   J à V.
