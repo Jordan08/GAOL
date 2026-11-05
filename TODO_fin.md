@@ -8,7 +8,7 @@ code (`TODO`, `FIXME`, les renvois « point X of TODO.md »), les issues ouverte
 et fermées, `todo-notes/synthese.md` et les trois registres. Ce fichier donne ce
 qui n'est ni fait, ni décidé, ni dans `TODO.md`, ni dans `TODO_AFTER.md`. Ce que
 `TODO_AFTER.md` donnait encore à faire et qui est fait est passé dans
-`TODO_DONE.md` (3.18) ; le classement de tout ce qui est fait est dans
+`TODO_DONE.md` (3.19) ; le classement de tout ce qui est fait est dans
 `STEP.md`.
 
 **Aucun de ces oublis ne donne une borne fausse.** Ce sont des questions restées
@@ -61,7 +61,7 @@ un autre projet sans l'accord du mainteneur.
    ThreadSanitizer »), ce qu'aucun test ne vérifie plus. Aucun registre n'en
    parle. À décider : rétablir un test sous ThreadSanitizer (`TODO_AFTER.md`
    §1), inscrire la limite (§5), ou retirer le code en commentaire et la phrase.
-   *Décidé le 5 novembre* : inscrire la limite ; fait (`TODO_AFTER.md` 5.5).
+   *Décidé le 5 novembre* : inscrire la limite ; fait (`TODO_AFTER.md` 5.4).
 4. **Le nom décoré de `float64x2_t` (#146).** #146 dit que GCC et Clang décorent
    ce nom autrement, si bien qu'une bibliothèque construite par l'un ne se
    lierait pas avec un programme compilé par l'autre (`TODO_DONE.md` §6, #146) :
@@ -437,9 +437,9 @@ change. La liste reste, comme mémoire.
 ## 8. Les issues GitHub
 
 1. **#178** n'a pas suivi `TODO_AFTER.md` depuis le 3 novembre : son en-tête dit
-   « au 31 octobre 2026 (commit `5aef739`) » et il lui manque l'article 5.4. À
-   mettre à jour avec le `TODO_AFTER.md` de cette branche, après sa fusion
-   (`process.md` §9).
+   « au 31 octobre 2026 (commit `5aef739`) », et il n'a aucun des changements
+   faits depuis. À mettre à jour avec le `TODO_AFTER.md` de cette branche, après
+   sa fusion (`process.md` §9).
 2. **#179** est à mettre à jour après `1e0f368` (la tâche PK) ; les titres de
    #178 (« au 31 octobre ») et de #179 (« PH à PK (au 31 octobre) ») sont
    périmés.
@@ -458,8 +458,8 @@ change. La liste reste, comme mémoire.
    `TODO.md` et `process.md` §12 le disent. Sa fusion est arrivée avant la fin
    de la CI de son dernier commit (partie à 19 h 18, finie à 20 h 54 UTC :
    verte, sauf un job macOS annulé faute d'exécuteur, « macOS 15 universal
-   (arm64 and x86_64), meson »). Fait : décrite le 5 novembre, dans #291
-   (`TODO_DONE.md` 2.3 et 3.19).
+   (arm64 and x86_64), meson »). Fait : décrite le 5 novembre sur
+   `configure-clean` (`6ed4441`, `TODO_DONE.md` 2.3 et 3.18).
 2. **#289 (ouverte)** : après sa fusion, son entrée et ses décisions (« Dans
    #289 ») ; le job `Manual` de la CI reste à voir ; si #290 est fusionnée après
    elle, le PDF du manuel sera de nouveau plus vieux que `gaol.tex`.

@@ -7,7 +7,7 @@ attend du matériel. Ce fichier et l'issue #178 ont le même contenu. Ce qui res
 à faire avant la version est dans `TODO.md` (issue #179), ce qui est fait et
 décidé dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour). Ce que la
 relecture du 4 novembre a relevé sans suite dans aucun registre est dans
-`TODO_fin.md`, et ce qui sortait d'ici, fait, dans `TODO_DONE.md` (3.18).
+`TODO_fin.md`, et ce qui sortait d'ici, fait, dans `TODO_DONE.md` (3.19).
 
 Rien de ce fichier n'est à faire avant v5.0.0, ni sans l'accord du mainteneur.
 Après v5.0.0, le développement continue dans `configure-clean` et `master` ne
@@ -234,7 +234,7 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    de `sin`, a été mesurée avant l'import du 27 octobre, qui a réécrit `sin` et
    `cos`, et se remesure avec la tâche PJ). La division du chemin AVX-512 (#191)
    et les puissances entières de NEON (#188, puis #219) sont faites
-   (`TODO_DONE.md`, 3.18) ; `x / d` sur d'autres processeurs est en 4.6. Une
+   (`TODO_DONE.md`, 3.19) ; `x / d` sur d'autres processeurs est en 4.6. Une
    voie AVX2, SVE, VSX ou RISC-V seulement après des mesures.
 2. **ARM 32 bits sur du vrai matériel** (#150) : les mesures de #150 ne valent
    que pour les runners arm64 de GitHub, qui exécutent l'armhf en natif
@@ -259,7 +259,7 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    avec `GAOL_PRESERVE_ROUNDING`. Le vrai noyau SSE2 et le test de #162
    (`power_two_is_sqr()`) tournent dans chaque job x86 de la CI (GCC, Visual
    C++, clang-cl, MinGW-w64, le chemin AVX-512 sous Intel SDE) : ce qui en est
-   fait est dans `TODO_DONE.md` (3.18).
+   fait est dans `TODO_DONE.md` (3.19).
 5. **`FPCR.AH` (FEAT_AFP, Armv8.7) sur un vrai processeur** (#187, issue #198) :
    le bloc de `tests/rounding_direction.cpp` qui met `AH` et compare les
    opérations avec `AH` mis et effacé n'avait été exécuté que sous QEMU 10.0
@@ -387,17 +387,7 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    (#279). *À rouvrir* si un programme réel a surtout des opérandes vides ou des
    bornes égales sur ARM : le chemin des bornes égales de `x <= y` serait à
    raccourcir (non étudié).
-4. **Le signe du zéro de `midpoint([-1, 1])`** (#281). Aucun test de `ctest` ne
-   verrait un `midpoint()` de [−1, 1] qui rendrait −0 au lieu de +0 :
-   `tests/test_ibex_codac.cpp` compare les zéros avec `<` et `<=`, et les autres
-   tests ne regardent pas le signe. La norme fixe +0 : 12.12.8 donne −0 pour
-   `inf` et +0 pour les autres fonctions numériques quand la valeur exacte est
-   0, comme le dit `doc/compare/itf1788.md` (« Comparison »), et le banc
-   ITF1788 (`doc/compare/itf1788`, hors de `ctest` et de la CI) le vérifie,
-   signe compris, sur `mid [-2.0,2.0] = 0.0` sans échec (`TODO_DONE.md`, 3.18).
-   *À décider* : ajouter la vérification à `tests/ieee1788.cpp`, ou s'en tenir
-   au banc ITF1788.
-5. **Les tests à plusieurs threads** (le commit `0048c79` du 23 septembre) : les
+4. **Les tests à plusieurs threads** (le commit `0048c79` du 23 septembre) : les
    tests de GAOL ne lancent aucun thread, et ceux qui le faisaient sont en
    commentaire (la lecture de chaînes par quatre threads à la fois,
    `tests/expressions.cpp` ; l'écriture d'intervalles par un second thread

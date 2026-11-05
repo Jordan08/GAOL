@@ -95,7 +95,7 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   7.14), puis #287 (hors des points : `pownRev` pour p ≤ 0 par `nth_root_rel`) à
   19 h 12 (2.3 et 3.16), puis #288 (hors des points : `compoundm1` de la norme
   IEEE 1788-2015, Table 10.5, les bornes les plus serrées, en entiers) à
-  19 h 19 (2.3 et 3.19, décrite le 5 novembre). #168, #195, #211, #214,
+  19 h 19 (2.3 et 3.18). #168, #195, #211, #214,
   #221, #226 et #233 sont fermées sans fusion, et, du 30 et du 31 octobre, #240,
   #241, #243, #244, #246, #247, #251 à #261, #277 et #278, puis #286, le
   « Revert » de #285 fermé onze secondes après son ouverture (2.4). Les tâches
@@ -118,11 +118,11 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   les phrases fausses hors de ces deux documents, #280 pour leurs restes ; PL,
   hors des points de `TODO.md` : #285 pour les exceptions de la bibliothèque
   standard, puis la fusion `221c8d4` pour ses suites ; hors des points aussi,
-  #287 pour `pownRev` avec p ≤ 0) ; PK, un `FE_INVALID` de Clang avec les
-  intervalles FPU, est close sans code, non reproduite avec les drapeaux de
-  GAOL (3.17) ; il reste les signalements à d'autres projets (PH), le tableau
-  de Clang 21 et la publication (PJ) et un cas de 12.12.7 à décider (PM) : voir
-  `TODO.md`.
+  #287 pour `pownRev` avec p ≤ 0, puis #288 pour `compoundm1` (3.18)) ; PK, un
+  `FE_INVALID` de Clang avec les intervalles FPU, est close sans code, non
+  reproduite avec les drapeaux de GAOL (3.17) ; il reste les signalements à
+  d'autres projets (PH), le tableau de Clang 21 et la publication (PJ) et un cas
+  de 12.12.7 à décider (PM) : voir `TODO.md`.
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
   sur tout processeur ARM 64 bits avec tous les compilateurs (GCC, Clang,
   AppleClang, clang-cl, Visual C++, MinGW-w64, MSYS2), SSE2 sur tout processeur
@@ -2118,7 +2118,8 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   sur 36 altérations de GAOL, 26 sont vues par ce test, les autres par
   `arithmetic`, `elementary`, `trigonometric`, `rounding_direction` ou
   `reverse`, sauf le signe du zéro de `midpoint([-1, 1])`, que nul test ne voit
-  (`TODO_AFTER.md` 5.4). Vérifié en local, GCC 13.3 et Clang 18 (SSE2, FPU,
+  (*décidé le 5 novembre* : rien à faire, 3.13). Vérifié en local, GCC 13.3 et
+  Clang 18 (SSE2, FPU,
   `GAOL_PRESERVE_ROUNDING`, sans FMA, Clang en Debug : 0 avertissement avec
   `-Wall -Wextra -Werror`), autotools (`make check` : 32 tests, 30 PASS, 2 SKIP)
   et meson 1.3.2 et 1.12.1 (30 OK, 2 SKIP). `tests/Makefile.in` : automake
@@ -2343,71 +2344,123 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   et Manual (1), 225 jobs verts ; fusionnée le 4 novembre à 19 h 12 UTC par le
   mainteneur (`368446d`) ; décisions : 3.16, 7.15.
 
-- #288 (hors des points : `compoundm1(x, y)` = (1 + x)^y − 1 de la norme IEEE
-  1788-2015, Table 10.5, la seule fonction recommandée de la table que GAOL v5
-  ne fournissait pas ; ouverte le 4 novembre à 16 h 10 UTC, 11 commits dont la
-  fusion de `configure-clean` `68fd774`, 36 fichiers, 15 484 lignes ajoutées et
-  140 retirées) : le mainteneur a demandé la voie « les bornes les plus
-  serrées » (la solution B), puis une phase rapide, la division exacte pour y =
-  −1 et les registres dans la pull request (3.19). CORE-MATH n'a pas de
-  `compoundm1` en binary64, et `exp(y log1p(x)) − 1` en doubles multiplie
-  l'erreur relative de `log1p` par |y log1p(x)| (jusqu'à 1 100 doubles près du
-  débordement, sur 300 tirages). `gaol/math/gaol_compoundm1.h` (nouveau, non
-  installé, dans les trois builds) calcule la valeur en un point avec des
-  entiers seulement (`gaol_u128_mul64`, natif ou émulé, et `log1p` de CORE-MATH,
-  dont l'erreur d'un ulp est corrigée) : ni le sens d'arrondi, ni les
-  exceptions, ni les modes qui ramènent les sous-normaux à zéro n'y jouent.
-  Trois étapes : pour y = −1, −x/(1 + x) divisé exactement (`reciprocal_m1()`),
-  qui rend les plus serrées les valeurs construites x = ±(2^e + 2^(2e−1)), e de
-  −51 à −40, que les boules ne distinguaient pas ; la phase rapide
-  (`compoundm1_fast()`, en virgule fixe sur 64 bits, `g64()` à 17 constantes,
-  une erreur relative bornée par une constante ρ démontrée en commentaire, de 27
-  à 200 unités de 2^-63), qui règle 95 % des couples pour |y log1p(x)| < 0,35,
-  92 % de 0,35 à 1, 90 % de 1 à 2, 83 % de 2 à 4 et 71 % de 4 à 8 ; puis les
-  boules (`compoundm1_balls()`, une mantisse de 128 bits et une borne de
-  l'erreur), qui prouvent les valeurs qui sont des doubles (`power_equals()`) et
-  départagent les doubles à moins de 2^-58. `compoundm1(X, Y)` est dans
-  `gaol_core`, `gaol` et `gaol_ieee1788`, et dans les deux tables du lecteur de
-  texte (parser régénéré avec bison 3.8.2 et flex 2.6.4) ; la boîte est analysée
-  comme par `pow_standard_upward()`, les bases décalées de 1. Pas toujours le
-  plus serré : une borne a un double de plus quand la valeur est à moins de
-  2^-111 d'un double sans en être un et que ni un cas prouvé ni la phase rapide
-  ne la règle, environ une paire sur 10^17 pour les boules seules, aucune des 5
-  854 des tests (`doc/accuracy.md`). Coût (i7-1185G7, GCC 15) : un point de 1
-  974 à 124 ns, une boîte de 1 932 à 226 ns (x de −0,3 à 0,5, y de 0,1 à 3), une
-  boîte large de 2 200 à 1 365 ns. Les tests : `tests/compoundm1.cpp`, ses
-  valeurs `tests/compoundm1_values.h` écrites par `tests/compoundm1_values.py`
-  (mpmath et fractions), dans les trois builds : 248 951 vérifications, des
-  entiers aux boîtes (5 854 couples contre mpmath à 1 500 à 7 000 bits et les
-  fractions, 719 valeurs de y = −1 dont 633 divisées, 850 boîtes, 20 000 couples
-  de la phase rapide contre les boules, les drapeaux, les modes qui ramènent les
-  sous-normaux à zéro), et `compoundm1` dans `rounding_direction`, `ieee1788`,
-  `misc`, `expressions` et `other_functions` ; ils ont des dents (chaque
-  mutation listée échoue, de 1 à 25 347 échecs ; survivent une mutation
-  équivalente de la division et trois réductions de ρ, toujours sûres ; l'appel
-  de la phase rapide ne change que le temps, ce qu'aucun test ne voit) ; 27
-  millions de couples comparés entre la phase rapide et les boules, sans écart.
-  `doc/differences.md` (« Sixteen functions of Table 10.5 ») et le `ChangeLog`
-  sont écrits dans la pull request, à la demande du mainteneur ; `coverage/`
-  n'est pas régénéré. Relecture indépendante (sous-agent sans contexte) des deux
-  derniers commits : aucune borne fausse ni erreur dans l'analyse (90 millions
-  de couples contre les boules, 900 000 couples tirés et 597 000 couples de
-  bords contre mpmath, la pire erreur trouvée à 0,216 de ρ, 58 mutants) ;
-  corrigés : des chiffres de la documentation et des mutants survivants qui ne
-  faisaient que refuser des réponses. Ce que la CI a trouvé, corrigé dans les
-  trois derniers commits : deux variables `inf` qui masquaient `gaol_tests::inf`
-  (Visual C++ `/W4 /WX`, C4459) ; sur Windows arm64 avec les intervalles FPU et
-  `FZ`, 207 couples sous-normaux donnaient [0, 0] au lieu de [0, 2^-1074] : les
-  doubles qui peuvent être sous-normaux sont comparés par leurs bits, et le test
-  appelle `compoundm1_point()` sous chaque mode (82 à 90 échecs sous
-  denormals-are-zero avec l'ancien code) ; gcovr 8 refusait les deux définitions
-  de `gaol_u128_mul64` : `--merge-mode-functions=merge-use-line-min` dans les
-  trois builds (94,9 % de 6 329 lignes). Vérifié en local : CMake SSE2 (63
-  tests), FPU (60) et Clang 18 (63), `-Wall -Wextra -Werror`, autotools avec
-  `make distclean`, `headers.sh` et `tests.sh`, meson, ASan + UBSan,
-  `-DGAOL_U128_EMULATION=ON`, Debian i386 dans Docker (GCC 14.2), le manuel ;
-  fusionnée le 4 novembre à 19 h 19 UTC par le mainteneur (`61a432b`), avant la
-  fin de la CI de son dernier commit (3.19) ; décisions : 3.19.
+- #288 (hors des points : `compoundm1(x, y) = (1 + x)^y - 1` de la norme IEEE
+  1788-2015, Table 10.5, la seule fonction recommandée que GAOL v5 ne
+  fournissait pas ; ouverte le 4 novembre à 16 h 10 UTC, 11 commits dont la
+  fusion de `configure-clean` (`68fd774`), 36 fichiers, 15 484 lignes ajoutées
+  et 140 retirées) : fusionnée le 4 novembre à 19 h 19 UTC par le mainteneur
+  (`61a432b`), avec `doc/differences.md` et `ChangeLog` écrits dans la pull
+  request (décisions : 3.18). Le problème : CORE-MATH n'a pas de `compoundm1` en
+  binary64, et `exp(y log1p(x)) - 1` avec les fonctions de doubles multiplie
+  l'erreur relative de `log1p` par |y log1p(x)| : sur 300 tirages avec
+  `math.expm1` et `math.log1p`, l'écart va jusqu'à 1 100 doubles près du
+  débordement (11 pour |y log1p(x)| = 10, 94 pour 100). La fonction :
+  `gaol/math/gaol_compoundm1.h` (nouveau, non installé, dans les trois builds)
+  calcule la valeur en un point avec des entiers seulement (`gaol_u128_mul64` de
+  `gaol_u128.h`, native ou émulée, et le `log1p` de CORE-MATH) : le mode
+  d'arrondi, les exceptions et le mode flush-to-zero du programme n'y jouent
+  aucun rôle. Trois étapes, de la moins chère à la plus générale. Pour y = -1,
+  `reciprocal_m1()` divise les deux entiers de -x/(1 + x) (division scolaire) :
+  les bornes sont exactes, la valeur qui est un double comprise, et les valeurs
+  construites que les boules ne distinguaient pas (x = ±(2^e + 2^(2e-1)), e de
+  -51 à -40) sont les plus serrées. La phase rapide, `compoundm1_fast()`, est en
+  virgule fixe sur 64 bits (série de Horner à 17 constantes, `g64()`, à 5 unités
+  de 2^-63 ; réduction par un multiple de log 2) avec une erreur relative bornée
+  par une constante ρ démontrée en commentaire (de 27 à 200 unités de 2^-63
+  selon |t|) : si les bornes autour de la valeur ne contiennent aucun double,
+  les doubles voisins sont les plus serrés ; elle règle 95 % des couples pour |y
+  log1p(x)| < 0,35, 92 % de 0,35 à 1, 90 % de 1 à 2, 83 % de 2 à 4 et 71 % de 4
+  à 8, et répond « faux » hors de son domaine. Les boules, `compoundm1_balls()`,
+  ont une mantisse de 128 bits, un exposant et une borne de l'erreur absolue que
+  chaque opération augmente : une borne ne peut pas être fausse ; elles prouvent
+  les valeurs qui sont des doubles (`power_equals()`) et départagent les doubles
+  à moins de 2^-58 l'un de l'autre. `compoundm1(X, Y)` est dans `gaol_core`,
+  `gaol` et `gaol_ieee1788`, et dans les deux tables du lecteur de texte
+  (`gaol_interval_parser.ypp`, régénéré avec bison 3.8.2 et flex 2.6.4) ;
+  l'analyse de la boîte est celle de `pow_standard_upward()` avec les bases
+  décalées de 1 (x = -1 est la base 0, x = 0 la base 1), et un point (x et y
+  dégénérés) ne calcule qu'un coin. Le coût, mesuré dans la pull request
+  (i7-1185G7, GCC 15), des boules seules puis avec la phase rapide : un point de
+  x dans (-0,3 ; 0,5) et y dans (0,1 ; 3), 1 974 puis 124 ns ; une boîte des
+  mêmes domaines, 1 932 puis 226 ns ; une boîte de x dans (-0,9 ; 10^5) et y
+  dans (-30 ; 30), 2 200 puis 1 365 ns. Pourquoi des entiers et pas des doubles
+  pour la phase rapide : les transformations sans erreur d'un double-double
+  (TwoSum, Dekker) supposent l'arrondi au plus proche, sans précision étendue du
+  x87 ni contraction en FMA, alors que GAOL calcule en arrondi vers le haut, sur
+  x87 en 32 bits, et avec des compilateurs qui contractent `a*b + c` ;
+  `gaol_u128_mul64` donne le produit exact de deux entiers de 64 bits en une
+  instruction. Ce qui n'est pas le plus serré : une borne a un double de plus
+  quand la valeur est à moins de 2^-111 (relatif) d'un double sans en être un,
+  que ni les cas ci-dessus ni la phase rapide (elle règle les couples à plus de
+  2^-58 d'un double) ne l'ont réglée : environ une paire sur 10^17 tirée au
+  hasard pour les boules seules, moins d'une sur 10^18 avec la phase rapide
+  devant, aucune des 5 854 des tests. Les tests : le programme `compoundm1`
+  (`tests/compoundm1.cpp`, ses valeurs dans `tests/compoundm1_values.h`, que
+  `tests/compoundm1_values.py` génère avec mpmath et des fractions ;
+  `doc/tests.md`) fait 248 951 vérifications, des entiers aux boîtes (les boules
+  de log(1 + x) et de e^t - 1 contre mpmath à 256 bits, la phase rapide contre
+  les boules sur 20 000 couples de 8 domaines avec une erreur du centre sous
+  3/10 de ρ, 719 valeurs de x pour y = -1, 5 854 couples contre mpmath à 1 500 à
+  7 000 bits et des fractions, 850 boîtes) ; `compoundm1` est aussi dans
+  `rounding_direction`, `ieee1788`, `misc`, `expressions` et `other_functions`.
+  Les tests ont des dents (mesuré) : chaque mutation de la phase rapide, de la
+  division et de la couche des boîtes que la pull request liste les fait échouer
+  (de 1 échec pour un chiffre de log 2 à 25 347 pour le signe de `g64`) ;
+  survivent une mutation équivalente (k = 57 à 56 dans la division : 55 bits
+  suffisent) et trois réductions de ρ qui laissent une marge d'au moins 3 (plus
+  sûres). Hors des tests, 27 millions de couples comparés entre la phase rapide
+  et les boules (9 distributions, les quatre modes d'arrondi) : aucune
+  différence, et sous AddressSanitizer et UBSan sur 3,6 millions. La relecture :
+  un sous-agent sans le contexte a relu les deux derniers commits de la phase
+  rapide et de la division, refait l'analyse pas à pas et essayé de la casser
+  (90 millions de couples entre la phase rapide et les boules, 1,5 million de
+  couples contre mpmath à 700 bits, une recherche de la pire erreur : 0,216 de
+  ρ, soit une marge de 4,6 ; `reciprocal_m1` contre les fractions sur 38 000
+  valeurs) : aucune borne fausse, aucune erreur dans l'analyse. Ses remarques
+  sont corrigées dans le dernier commit : des chiffres faux de la documentation
+  (719 valeurs de y = -1 et non 2 000, 14 cas de bord et non 13, un quotient de
+  57 ou 58 bits, les taux de la phase rapide lus comme cumulés) et des mutants
+  survivants qui ne font que refuser des réponses (une régression de vitesse que
+  rien ne voyait : la grande branche pour x < -0,92, k = 12, les seuils de
+  réponse). Ce que la CI a trouvé, corrigé dans les trois derniers commits (le
+  test n'avait jamais tourné sous Visual C++ ni sur arm64) : sous Visual C++
+  `/W4 /WX` (4 jobs), deux variables locales `inf` masquaient `gaol_tests::inf`
+  (C4459, renommées `infinity`) ; sous Windows arm64 avec les intervalles FPU et
+  le mode flush-to-zero, le test « mêmes bornes avec FZ » échouait pour 207
+  couples dont x ou y est sous-normal ([0, 0] au lieu de [0, 2^-1074]), un
+  sous-normal se comparant à 0 quand FZ est actif : non reproduit (qemu 7.2 ne
+  flushe pas les entrées), mais le calcul et la couche des intervalles ne
+  comparent plus un double qui peut être sous-normal que par ses bits
+  (`dbl_is_zero`, `dbl_is_negative`, `dbl_less`), et le test appelle aussi
+  `compoundm1_point()` sous chaque mode, sans le `GAOL_RND_ENTER()` qui efface
+  FZ (il échouait de 82 à 90 fois sous denormals-are-zero, sur x86, avec
+  l'ancien code : le défaut était réel) ; avec gcovr 8, `gaol_u128_mul64` est
+  définie deux fois sur deux lignes (libgaol avec le type 128 bits,
+  `tests/u128.cpp` avec les deux moitiés) et gcovr refuse de les fusionner :
+  `--merge-mode-functions=merge-use-line-min` dans les trois builds (CMake,
+  autotools, meson), la couverture restant de 94,9 % de 6 329 lignes. Vérifié en
+  local, avant le rebasage sur `origin/configure-clean` (`7e5a6f1`, sans
+  conflit) : CMake SSE2 (63 tests), intervalles FPU (60) et Clang 18 (63),
+  `-Wall -Wextra -Werror` avec GCC et Clang 18, autotools (`make check`, `make
+  distclean`, `headers.sh` et `tests.sh` sur le GAOL installé), meson, ASan +
+  UBSan sur les sept programmes concernés, l'entier 128 bits émulé
+  (`-DGAOL_U128_EMULATION=ON`), un vrai x86 32 bits dans Docker (Debian i386,
+  GCC 14.2), le manuel (`pdflatex` deux fois, zéro erreur, le seul `Overfull`
+  d'avant) et `check_branch` (seuls `ChangeLog` et `doc/differences.md`,
+  voulus). Non vérifiable en local : Windows, macOS, arm64, armhf, s390x,
+  ppc64le, riscv64, musl, GCC 9, meson 0.53 (la CI les a faits). Sa CI : au
+  commit `3f3d14f`, Linux, Windows, Autotools et meson, Linux containers, macOS,
+  Performance et Manual verts (225 jobs ; les trois jobs de macOS 26 avaient été
+  annulés faute de runners et ont passé après `gh run rerun --failed`) ; au
+  dernier commit `68fd774`, fusion de `configure-clean` (#287) dans la branche
+  (deux conflits de texte : les listes « non fournies » de `gaol_ieee1788.h` et
+  de `gaol.tex`, les deux entrées retirées ; poussée sans réécriture), six
+  workflows verts et macOS marqué en échec seulement parce qu'un job, macOS 15
+  universal avec meson, n'a eu aucun runner pendant 1 h 12 (commencé à 19 h 18,
+  annulé à 20 h 30, sans qu'une étape ait tourné) : le mainteneur a fusionné à
+  19 h 19, avant la fin. Dans `ChangeLog` et `doc/differences.md`, la phrase «
+  only pownRev for p <= 0 is missing » restait à changer (c'était le travail de
+  #287) : #289 le fait.
 
 ### 2.4 Fermées sans fusion
 
@@ -3861,7 +3914,7 @@ jour de leur fusion.
   les deux fonctions de CORE-MATH qui lisent la direction à chaque appel.
 - **#207** : le `--selftest` tourne dans la CI (job `asm-order-selftest`), pas
   le contrôle des compilations (reporté dans `TODO_AFTER.md`, puis fait par #228
-  le 29 octobre : 3.10, 3.18) ; le calcul de K
+  le 29 octobre : 3.10, 3.19) ; le calcul de K
   de `pown_bound_inverse()` est laissé tel quel ; pas de relecture de plus des
   corrections faites après la relecture ; l'essai sur du `-m32` est fait une
   fois, à part, en commentaire (l'outil n'y vérifie rien).
@@ -4106,7 +4159,7 @@ pull request qui les exécute (2.3).
   `xcode-27` (`57650a4`, le 1er novembre) et retiré celui de x86_64 sous
   Rosetta (« not available now ») ; le job passe le 2 novembre.
 
-### 3.13 Les 2 et 3 novembre : les cas des tests d'IBEX et de Codac
+### 3.13 Du 2 au 5 novembre : les cas des tests d'IBEX et de Codac
 
 Les décisions du mainteneur sur #281 (hors des points), avec la pull request qui
 les exécute (2.3).
@@ -4124,11 +4177,14 @@ les exécute (2.3).
   ; ni `diff()`, ni `delta()`, ni `set_empty()`, ni les vecteurs. De nouveaux
   commits dans #281, non une nouvelle pull request.
 - **La licence** : garder l'en-tête seul, qui donne les copyrights et les
-  licences (LGPL v3 d'IBEX et de Codac, LGPL v2 de GAOL) sans conclure ; la
-  compatibilité reste à décider (`TODO.md`, PJ point 3).
+  licences (LGPL v3 d'IBEX et de Codac, LGPL v2 de GAOL) sans conclure.
+  *Décidé le 5 novembre* : le mainteneur écrit aux auteurs d'IBEX et de Codac
+  (Gilles Chabert, Simon Rohou) pour leur accord, et l'en-tête seul reste en
+  attendant ; la suite dépend de leur réponse (`TODO.md`, PJ point 3).
 - **Les angles morts** : les ajouter dans #281 (les tests existants en voient
-  quatre sur cinq ; un `midpoint([-1, 1])` à −0 n'est vu par aucun,
-  `TODO_AFTER.md` 5.4).
+  quatre sur cinq ; un `midpoint([-1, 1])` à −0 n'est vu par aucun). *Décidé le
+  5 novembre* pour ce dernier : rien à faire, le signe du zéro n'a pas
+  d'importance ici ; le point 4 de la section 5 de `TODO_AFTER.md` est supprimé.
 - **La sortie** : silencieuse, sauf une ligne par test en échec et le total.
 - **`HOUSE_RULES.md`**, « Tools installed » : un renvoi à `process.md` §6.1
   (#282) ; les deux blocs `onscreen` du manuel qui restent : laissés.
@@ -4295,15 +4351,15 @@ par la relecture de #279 : en faire un point ou la reporter, à décider) a ét�
   `-frounding-math -fno-fast-math -ffp-contract=off -mfma`, ceux de
   `gaol::gaol`. `rounding_direction` en entier avec Clang 18 : 1 417 200
   vérifications, 0 échec, dont ses 30 boucles de relations (sans le drapeau,
-  puis avec `FE_INVALID` armé). Deux bancs écrits pour l'étude (hors du dépôt)
-  ont lancé 184 et 192 boucles de `certainly_le()`, `certainly_leq()`,
-  `certainly_ge()`, `certainly_geq()` et des opérateurs `<`, `<=`, `>`, `>=` :
-  entre `x[i]` et `y[i]`, avec `interval(-7.5, c)` de chaque côté, avec des
-  constantes (1,5, 0, -2,5, 1e300) de chaque côté, avec un point et avec
-  l'ensemble vide, sur des opérandes vides un sur trois, tous ou à moitié. Avec
-  Clang 18, Clang 20 et GCC 13.3, à `-O2`, `-O3`, `-O3 -march=native`, avec
-  `-funroll-loops`, `-mavx2` avec et sans FMA (21 configurations par banc) :
-  0 `FE_INVALID` et 0 résultat faux.
+  puis avec `FE_INVALID` armé). Deux bancs écrits pour l'étude (gardés dans
+  `todo-notes/pk/`) ont lancé 184 et 192 boucles de `certainly_le()`,
+  `certainly_leq()`, `certainly_ge()`, `certainly_geq()` et des opérateurs `<`,
+  `<=`, `>`, `>=` : entre `x[i]` et `y[i]`, avec `interval(-7.5, c)` de chaque
+  côté, avec des constantes (1,5, 0, -2,5, 1e300) de chaque côté, avec un point
+  et avec l'ensemble vide, sur des opérandes vides un sur trois, tous ou à
+  moitié. Avec Clang 18, Clang 20 et GCC 13.3, à `-O2`, `-O3`,
+  `-O3 -march=native`, avec `-funroll-loops`, `-mavx2` avec et sans FMA (21
+  configurations par banc) : 0 `FE_INVALID` et 0 résultat faux.
 - **Le mécanisme, sans `-frounding-math`** : Clang vectorise alors les boucles
   de relations des intervalles FPU en `vcmplepd`, `vcmpnlepd` et `vcmpnltpd`,
   des comparaisons signalantes (prédicats LE_OS, NLE_US et NLT_US de SSE) :
@@ -4335,7 +4391,39 @@ par la relecture de #279 : en faire un point ou la reporter, à décider) a ét�
   `-march=native`, où le test passe). Si un `FE_INVALID` revient avec les
   drapeaux de GAOL, la tâche se rouvre.
 
-### 3.18 Le 4 novembre : le tri de la fin (tâche PN)
+### 3.18 Le 4 novembre : `compoundm1`, #288
+
+Les décisions du mainteneur sur #288 (hors des points), avec la pull request qui
+les exécute (2.3). Elles viennent de la session de `compoundm1` (GAOL_V8,
+branche `compoundm1`), qui les a notées le jour même.
+
+- **Le sujet et la voie** (*demandé et décidé le 4 novembre*) : fournir
+  `compoundm1`, la seule fonction recommandée de la Table 10.5 qui manquait ; la
+  voie « les bornes les plus serrées » (solution B), sous le nom `compoundm1`,
+  dans `gaol_core`, `gaol` et `gaol_ieee1788`.
+- **La suite** (*décidé le 4 novembre*) : pousser la branche et ouvrir la pull
+  request ; une phase rapide « en doubles » ; la division exacte pour y = -1 ;
+  `ChangeLog` et `doc/differences.md` dans la même pull request. La phase rapide
+  est en entiers de 64 bits et non en doubles, pour la raison que la pull
+  request donne (« Pourquoi des entiers et pas des doubles », 2.3), que le
+  mainteneur a lue et fusionnée telle quelle.
+- **Ce qui n'est pas fait, exprès** (*décidé le 4 novembre*) : la pull request
+  reste ouverte pour la relecture du mainteneur (la session ne la fusionne pas)
+  ; `TODO.md`, `TODO_DONE.md`, `TODO_AFTER.md` et `coverage/` ne sont pas
+  touchés (la couverture est refaite par le job « Coverage » de `linux.yml`, pas
+  dans le dépôt) ; les boules ne sont pas accélérées (`num_add` prend 40 % de
+  leur temps ; la phase rapide règle déjà 71 à 95 % des couples).
+- **Après #287** (*fait le 4 novembre*) : #287 a été fusionnée la première
+  (19 h 12) ; `configure-clean` a été fusionnée dans `compoundm1` (`68fd774`,
+  poussée sans réécriture), deux conflits de texte, les listes « non fournies »
+  de `gaol_ieee1788.h` et de `gaol.tex`, où les deux entrées de `pownRev` pour
+  p <= 0 ont été retirées ; puis le mainteneur a fusionné #288 (`61a432b`).
+- **La synthèse** (*décidé le 4 novembre*, « Attendre #287 ») : le texte de #288
+  est dans `doc/differences.md` et `ChangeLog` depuis sa pull request ; la
+  synthèse #289 n'en ajoute pas, et corrige une ligne de ce texte de plus de 80
+  colonnes (3.16).
+
+### 3.19 Le 4 novembre : le tri de la fin (tâche PN)
 
 Demandé par le mainteneur le 4 novembre, hors des tâches de `TODO.md` (la tâche
 PN, de la branche `todo-pn-trie-fin` : « relire toutes les PR, les textes des
@@ -4381,12 +4469,12 @@ Ce qui sort de `TODO_AFTER.md`, ou ce qui s'y réduit :
   les builds FPU et SSE2 sur l'i7-1185G7 avec GCC 15.2 et lu les signes des
   zéros ; l'article garde le vrai matériel, l'égalité bit à bit des deux
   produits et les temps de #162.
-- [x] **Le signe du zéro de `midpoint([-1, 1])`, en partie** (article 5.4,
-  #281) : la norme fixe +0 (12.12.8 : −0 pour `inf`, +0 pour les autres
-  fonctions numériques quand la valeur exacte est 0), comme le dit
-  `doc/compare/itf1788.md`, et le banc ITF1788 le vérifie, signe compris (23
-  cas de `mid` réussis, aucun échec) ; l'article garde la question d'une
-  vérification dans `ctest`.
+- [x] **Le signe du zéro de `midpoint([-1, 1])`** (l'ancien article 5.4, #281) :
+  la norme fixe +0 (12.12.8 : −0 pour `inf`, +0 pour les autres fonctions
+  numériques quand la valeur exacte est 0), comme le dit
+  `doc/compare/itf1788.md`, et le banc ITF1788 le vérifie, signe compris (23 cas
+  de `mid` réussis, aucun échec) ; *décidé le 5 novembre* (3.13) : rien à faire,
+  et l'article sort de `TODO_AFTER.md`.
 - **Des textes périmés corrigés** : l'en-tête ; 1.2 (la référence de Doxygen
   supprimée par le commit `29f280b`, non par #29, fermée sans fusion) ; 1.4
   (`debian:trixie` et `ubuntu:24.04` supprimées le 31 octobre, 8.1) ; 2.2, le
@@ -4405,33 +4493,6 @@ incohérences relevées (`TODO_fin.md`, section 7) le sont le 5 novembre (3.20).
 L'issue #178 se met à jour à la fusion (`process.md` §9) : elle n'avait pas
 suivi le `TODO_AFTER.md` du 3 novembre.
 
-### 3.19 Le 4 novembre : `compoundm1`, #288
-
-Décrit le 5 novembre, avec la tâche PN (2.3) : la description de #288 et sa CI,
-relues sur GitHub.
-
-- **La voie** (*demandé par le mainteneur le 4 novembre*) : « les bornes les
-  plus serrées » (la solution B), en entiers, puis une phase rapide, la division
-  exacte pour y = −1, et `doc/differences.md` et le `ChangeLog` écrits dans la
-  pull request elle-même, et non par une pull request de synthèse (`process.md`
-  §7.5).
-- **La phase rapide en entiers, non en double-double** (le choix de la pull
-  request) : les transformations sans erreur (TwoSum, Dekker) supposent
-  l'arrondi au plus proche, sans précision étendue du x87 ni contraction en FMA,
-  alors que GAOL calcule vers le haut, sur x87 en 32 bits, et là où le
-  compilateur contracte `a*b + c` ; `mul64` (64 × 64 → 128 bits) donne le
-  produit exact.
-- **`coverage/`** n'est pas régénéré : 94,9 % de 6 329 lignes dans la CI de
-  #288, quand `coverage/` donne 94,3 % de 5 466 lignes, relevé le 4 novembre
-  avant #288 (`TODO.md`, PJ.1).
-- **La fusion avant la fin de la CI** : fusionnée à 19 h 19 UTC, alors que la CI
-  de son dernier commit (`68fd774`, la fusion de `configure-clean` pour #287)
-  était partie à 19 h 18 ; elle a fini à 20 h 54 : Linux, Windows, Linux
-  containers, Autotools et meson, Performance et Manual verts, macOS en échec
-  (un job annulé faute d'exécuteur, « macOS 15 universal (arm64 and x86_64),
-  meson »).
-- **La branche** `compoundm1` est supprimée sur GitHub à la fusion (8.1).
-
 ### 3.20 Le 5 novembre : les réponses aux questions de la tâche PN (#291)
 
 Le mainteneur a répondu aux questions de #291 (« as-tu des questions ? propose 4
@@ -4446,15 +4507,16 @@ réponses par question »). Ce qui est fait le même jour est dans #291.
 - **`TODO_fin.md` et `STEP.md` ne sont cités** ni dans `process.md` ni dans
   `TODO.md`.
 - **Les registres, dans #291** : les incohérences de `TODO_fin.md` (section 7)
-  sont corrigées dans ce fichier, `TODO_AFTER.md` et `process.md`, et #288 est
-  décrite (2.3, 3.19). Restent pour la mise à jour qui suit la fusion : celles
-  de `TODO.md` (PJ.1, PJ.5, PJ.7), que `check_branch` refuse dans une branche,
-  celle de `todo-notes/synthese.md`, que #289 change, et les issues #178 et
-  #179.
+  sont corrigées dans ce fichier, `TODO_AFTER.md` et `process.md` ; #288 est
+  décrite le même jour sur `configure-clean` (`6ed4441`, 2.3 et 3.18), qui a
+  remplacé celle de #291. Restent pour la mise à jour qui suit la fusion :
+  celles de `TODO.md` (PJ.1, PJ.5, PJ.7), que `check_branch` refuse dans une
+  branche, celle de `todo-notes/synthese.md`, que #289 change, et les issues
+  #178 et #179.
 - **`TODO_fin.md` est gardé comme mémoire** de la relecture : ses articles ne
   deviennent pas des tâches ; ceux qui sont traités le disent.
 - **Les tests à plusieurs threads** (commentés depuis `0048c79`) : inscrire la
-  limite (`TODO_AFTER.md`, 5.5) ; ni le code ni `doc/using.md` ne changent.
+  limite (`TODO_AFTER.md`, 5.4) ; ni le code ni `doc/using.md` ne changent.
 - **`d * x` (#171)** : l'aligner sur `x * d`, les mêmes bits sur tous les
   chemins, avec un test de ces bits ; un point à part, qui change le code, à
   mettre dans `TODO.md` avec la mise à jour qui suit la fusion de #291.
@@ -4598,7 +4660,7 @@ dite ici ou dans la section 5.
   VSX ou RISC-V seulement après des mesures, NEON étant fait par #146), et
   `pow(x, 2)` par `sqr` par #162 ; des gains que la page liste, la division du
   chemin AVX-512 par #191 et les puissances entières de NEON par #188, puis
-  #219 (3.18) ; ce qui reste est dans `TODO_AFTER.md` (4.1 et 4.6)
+  #219 (3.19) ; ce qui reste est dans `TODO_AFTER.md` (4.1 et 4.6)
 - [x] **AO.** Des macros de configuration que rien ne lit (127) :
   `GAOL_IX86_LINUX`, `GAOL_AARCH64_LINUX` et `GAOL_HAVE_AVX512_TARGET`, comme
   #141 l'a fait pour `GAOL_USING_ASM` et `GAOL_HAVE_ROUNDING_MATH_OPTION` :
@@ -5795,9 +5857,9 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PH, PJ et PM) e
 - Les registres ont été mis à jour après la fusion (`process.md` §9) :
   `TODO.md` et l'issue #179, ce fichier et `process.md` ; `TODO_AFTER.md` ne
   change pas (l'issue #178, elle, n'avait pas suivi le `TODO_AFTER.md` du 3
-  novembre : 3.18), et #177 reste gelée (7.8). #288 (`compoundm1`), ouverte à
+  novembre : 3.19), et #177 reste gelée (7.8). #288 (`compoundm1`), ouverte à
   16 h 10 UTC, n'était pas dans les registres ; fusionnée à 19 h 19, elle n'y
-  était que citée, et est décrite le 5 novembre (2.3, 3.19).
+  était que citée, et est décrite le 5 novembre (2.3, 3.18).
 - Les pièges : `git switch -c compoundm1` d'une autre session, entre la création
   de `pown-rel` et ses commits dans GAOL_V8, a emporté les modifications et les
   trois commits (3.16) : `git branch --show-current` juste avant chaque `git
@@ -5829,7 +5891,31 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PH, PJ et PM) e
   (3.17) : toujours compiler un banc avec `-frounding-math -fno-fast-math
   -ffp-contract=off -mfma`, ou par CMake ; sur un banc, un témoin (une boucle
   `l[i] <= 1.5` sur des NaN, qui doit lever) prouve que `fetestexcept()` voit
-  bien le drapeau.
+  bien le drapeau. Les bancs, leurs scripts et ce témoin sont dans
+  `todo-notes/pk/`, pour les rejouer avec Clang 21 ou sur un AVX-512.
+
+### 7.17 Le 5 novembre (la description de #288)
+
+- Le mainteneur a répondu « Maintenant, à part » à la question de savoir quand
+  décrire #288 (avec #289, tout de suite et à part, par la session de
+  `compoundm1`, ou pas du tout) : `TODO_DONE.md` (1, 2.3, 3.18, cette section et
+  8.1), `TODO.md` et `process.md` §12 sont mis à jour directement sur
+  `configure-clean` (`process.md` §9), sans attendre la fusion de #289, dont la
+  CI est verte au commit `857704a` (Linux, Linux containers, Autotools et meson,
+  Windows, macOS, Manual, Performance). `TODO_AFTER.md` ne change pas, l'issue
+  #178 non plus ; #177 reste gelée (7.8) ; l'issue #179 prend le texte de
+  `TODO.md`.
+- Les faits de 2.3 viennent du texte de la pull request, de l'API de GitHub (les
+  commits, les fichiers, les runs de la CI de `3f3d14f` et de `68fd774`) et des
+  notes de la session de `compoundm1` ; le code n'a pas été relu pour cette mise
+  à jour, sauf pour les fichiers et les noms cités
+  (`gaol/math/gaol_compoundm1.h`, `tests/compoundm1.cpp`,
+  `tests/compoundm1_values.{h,py}` existent).
+- Les pièges : le résumé de la CI d'un workflow (« failure ») ne dit pas si un
+  test a échoué : le macOS de `68fd774` est en échec pour un job annulé après
+  1 h 12 sans runner, aucune étape n'ayant tourné (`gh api
+  repos/Jordan08/GAOL/actions/runs/<id>/jobs`, les étapes de chaque job) ; la CI
+  du commit de fusion de #288 (`61a432b`) n'a pas été attendue (7.15).
 
 ## 8. Le ménage fait
 
@@ -5977,11 +6063,13 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PH, PJ et PM) e
   les relevés : 1,9 Go libérés, la tmpfs de 16 Go passe de 6,7 à 4,8 Go) et
   dix-huit dossiers de sessions finies ; le dossier d'une autre session en cours
   (4,8 Go) est laissé.
-- [x] Celle de #288 (`compoundm1`), sur GitHub (supprimée à la fusion).
 - [x] Celle de #287 (`pown-rel`), sur GitHub (supprimée à la fusion) ; en local,
   la référence `pown-rel` de GAOL_V8 (`cb06c88`, d'avant le retrait des commits
   de `compoundm1`), et le clone de travail du scratchpad (4,6 Go), le 4
   novembre.
+- [x] Celle de #288 (`compoundm1`), sur GitHub (supprimée à la fusion) ; en
+  local, la branche de GAOL_V8, supprimée par la session de `compoundm1` le 4
+  novembre (GAOL_V8 n'en a plus : vérifié le 5 novembre, `git branch --list`).
 
 ### 8.2 Les branches inachevées
 

@@ -809,11 +809,11 @@ git ls-remote --heads origin
   `pownRev` pour p ≤ 0 par `nth_root_rel(J, p, I)` de `gaol_core`), fusionnée le
   même jour à 19 h 12 UTC, décrite dans `TODO_DONE.md` (2.3 et 3.16), puis #288
   (hors des points : `compoundm1` de la norme IEEE 1788-2015), fusionnée à
-  19 h 19 UTC, décrite dans `TODO_DONE.md` (2.3 et 3.19) le 5 novembre ; puis
-  la tâche PK, close sans code (un `FE_INVALID` de Clang avec les intervalles
-  FPU, que les drapeaux de GAOL suppriment : `TODO_DONE.md` 3.17) ; l'audit du
-  13 octobre a vérifié dans `configure-clean` ce qu'annonçaient alors les
-  points A, C à H et J à V.
+  19 h 19 UTC, décrite dans `TODO_DONE.md` (2.3 et 3.18) ; puis la tâche PK,
+  close sans code (un `FE_INVALID` de Clang avec les intervalles FPU, que les
+  drapeaux de GAOL suppriment : `TODO_DONE.md` 3.17) ; l'audit du 13 octobre a
+  vérifié dans `configure-clean` ce qu'annonçaient alors les points A, C à H et
+  J à V.
 - **En cours** : au 4 novembre, deux pull requests sont ouvertes : #289 (la
   synthèse de #283 à #288, le point 7 de PJ) et #290 (`overlapping_state`,
   10.6.4 d'IEEE 1788-2015) ; `configure-clean` est au commit `7b30dba` (les
@@ -835,8 +835,9 @@ git ls-remote --heads origin
 - **À faire**, dans l'ordre de `TODO.md` : un cas de 12.12.7 à décider (PM : les
   littéraux aux bornes calculées), les signalements à d'autres projets (PH, avec
   l'accord du mainteneur), puis la version (PJ, qui reprend le tableau de Clang
-  21, le manuel, les textes qui citent macOS 14, la compatibilité de licence des
-  cas d'IBEX et de Codac, à décider : #281, et les restes de #283, de #284, de
+  21, le manuel, les textes qui citent macOS 14, la licence des cas d'IBEX et de
+  Codac, sur laquelle le mainteneur écrit aux auteurs (*décidé le 5 novembre* :
+  #281), et les restes de #283, de #284, de
   #285 et de #287 : les registres `doc/differences.md` et `ChangeLog`, en une
   seule pull request, #287 étant fusionnée : *décidé le 4 novembre*, la pull
   request #289 est ouverte pour #283 à #288). Ce qui est

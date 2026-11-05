@@ -18,6 +18,7 @@ l'agent pousse et ouvre lui-même la pull request.
 | `orchestration/HOUSE_RULES.md` | Les consignes que lisait chaque agent le 29 et le 30 septembre, quand plusieurs travaillaient en parallèle |
 | `orchestration/points_w4.py` | Les plans détaillés des gros points 25, 26, 27, 28 et 30 (points P, W, H et X), découpés en sous-fonctions, et pas encore faits |
 | `orchestration/bin/` | `check_branch` et `gcore`, deux outils qui servent encore (voir `orchestration/README.md`) |
+| `pk/` | Les bancs de la tâche PK (des `FE_INVALID` avec Clang et les intervalles FPU, close sans code le 4 novembre), à rejouer avec Clang 21 ou sur un processeur AVX-512 (voir `pk/README.md`) |
 
 Les rapports des agents, leurs relectures, les brouillons de pull requests,
 l'ancien `TODO.md` de `todo-status` (`TODO-todo-status.md`), le détail du reste
