@@ -6406,8 +6406,9 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PH, PJ et PM) e
 - [x] En local, pour #290 : la branche `ieee1788-overlap` de GAOL_V8, supprimée
   le 5 novembre (`git branch -d`, fusionnée), GAOL_V8 revenu sur
   `configure-clean` (`f4b2064`) sans autre agent dans l'arbre, et le scratchpad
-  de la session vidé (103 Mo : les copies de travail, les journaux, ITF1788, le
-  manuel).
+  de la session vidé (il ne contenait plus que le clone de travail des
+  registres, 21 Mo ; les 103 Mo mesurés plus tôt, copies de travail, journaux,
+  ITF1788 et manuel, n'y étaient plus).
 
 ### 8.2 Les branches inachevées
 
