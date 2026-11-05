@@ -5083,7 +5083,6 @@ int main()
     std::vector<interval> xs = infinite_operands();
     xs.push_back(interval(1e-310, 2.5));
     xs.push_back(interval(-3.0, -1e-310));
-    const double largest = std::numeric_limits<double>::max();
     const double doubles[] = { 2.5, -2.5, 1.0, -1.0, 1e300, -1e300, 1e-310, -1e-310, largest, -largest,
                                0.0, -0.0, GAOL_INFINITY, -GAOL_INFINITY, std::numeric_limits<double>::quiet_NaN() };
     for (const Direction& dir : directions) {
