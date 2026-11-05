@@ -2911,8 +2911,21 @@ namespace
     invalid-operation exception on their NaN bounds, as GCC 9.4 at -O3 made
     for the FPU intervals the constructor raise it (and with -mavx2,
     certainly_positive(), less() and others). Every third x and every fifth y
-    is empty; each result is compared with the relation computed on its own,
-    outside the loop.
+    is empty, then all the x, all the y, and all of both, and last none, the
+    bounds being in every order and equal; each result is compared with the
+    relation computed on its own, outside the loop.
+
+    Clang 18 and 20 do the same for the relations of the FPU intervals as soon
+    as -frounding-math is off (the flags of interval arithmetic give it, but
+    -ffast-math followed by -fno-fast-math loses it, doc/three-builds.md):
+    certainly_le(), certainly_leq(), certainly_ge(), certainly_geq() and the
+    operators, in loops, then become the signaling comparisons vcmplepd,
+    vcmpnlepd and vcmpnltpd, made for the empty operands too. The loops below
+    of certainly_le(), certainly_leq(), certainly_ge() and certainly_geq()
+    compare x or y with an interval of constants, a point, the empty set, or
+    an interval built from a double the compiler does not know (c), on either
+    side of the relation, and four more count the pairs, a reduction that the
+    compiler vectorizes in ways of its own.
   */
 #if defined(__GNUC__) || defined(__clang__)
 #  define GAOL_TESTS_NOINLINE __attribute__((noinline))
@@ -2923,24 +2936,50 @@ namespace
 #endif
 
   const int loop_size = 64;
+  static_assert(loop_size <= 255, "the results of the loops are unsigned char");
 
-  // name() computes expression of the arrays x and y for each index i, and
-  // name_at() for one pair, outside any loop
-#define GAOL_TESTS_RELATION_LOOP(name, expression)                                                    \
-  GAOL_TESTS_NOINLINE void name(const interval *x, const interval *y, unsigned char *result)          \
+  // name_at() computes expression of x_at and y_at, and of the double c, outside any loop; name() computes it for
+  // each index i of the arrays x and y, and gives it in result[i], or the number of the indices for which it is true
+  // in result[0], the other results being 0 (GAOL_TESTS_RELATION_COUNT)
+#define GAOL_TESTS_RELATION_AT(name, expression)                                                      \
+  unsigned char name##_at(const interval& x_at, const interval& y_at, double c)                        \
   {                                                                                                    \
+    const interval *x = &x_at, *y = &y_at;                                                             \
+    static_cast<void>(x);                                                                              \
     static_cast<void>(y);                                                                              \
+    static_cast<void>(c);                                                                              \
+    const int i = 0;                                                                                   \
+    return static_cast<unsigned char>(expression);                                                     \
+  }
+
+#define GAOL_TESTS_RELATION_LOOP(name, expression)                                                    \
+  GAOL_TESTS_NOINLINE void name(const interval *x, const interval *y, unsigned char *result, double c) \
+  {                                                                                                    \
+    static_cast<void>(x);                                                                              \
+    static_cast<void>(y);                                                                              \
+    static_cast<void>(c);                                                                              \
     for (int i = 0; i < loop_size; ++i) {                                                              \
       result[i] = static_cast<unsigned char>(expression);                                              \
     }                                                                                                  \
   }                                                                                                    \
-  unsigned char name##_at(const interval& x_at, const interval& y_at)                                  \
+  GAOL_TESTS_RELATION_AT(name, expression)
+
+#define GAOL_TESTS_RELATION_COUNT(name, expression)                                                   \
+  GAOL_TESTS_NOINLINE void name(const interval *x, const interval *y, unsigned char *result, double c) \
   {                                                                                                    \
-    const interval *x = &x_at, *y = &y_at;                                                             \
+    static_cast<void>(x);                                                                              \
     static_cast<void>(y);                                                                              \
-    const int i = 0;                                                                                   \
-    return static_cast<unsigned char>(expression);                                                     \
-  }
+    static_cast<void>(c);                                                                              \
+    unsigned count = 0;                                                                                \
+    for (int i = 0; i < loop_size; ++i) {                                                              \
+      count += static_cast<unsigned>(expression);                                                      \
+    }                                                                                                  \
+    for (int i = 0; i < loop_size; ++i) {                                                              \
+      result[i] = 0;                                                                                   \
+    }                                                                                                  \
+    result[0] = static_cast<unsigned char>(count);                                                     \
+  }                                                                                                    \
+  GAOL_TESTS_RELATION_AT(name, expression)
 
   GAOL_TESTS_RELATION_LOOP(loop_less, x[i].less(y[i]))
   GAOL_TESTS_RELATION_LOOP(loop_strictly_less, x[i].strictly_less(y[i]))
@@ -2974,12 +3013,55 @@ namespace
   GAOL_TESTS_RELATION_LOOP(loop_constructor, interval(x[i].left(), y[i].right()).is_empty())
   GAOL_TESTS_RELATION_LOOP(loop_intersection, (x[i] & y[i]).is_empty())
   GAOL_TESTS_RELATION_LOOP(loop_floor, floor(x[i]).is_empty())
+  // x or y and an interval of constants (x_range, range_x, x_const, range_y), a point (x_point, x_point_c, point) or
+  // an empty set (empty: interval::emptyset() is a constant the compiler folds, so this one is built from c), the
+  // intervals of c being built from a double the compiler does not know
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_le_x_range, x[i].certainly_le(interval(-7.5, c)))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_leq_x_range, x[i].certainly_leq(interval(-7.5, c)))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_ge_x_range, x[i].certainly_ge(interval(-7.5, c)))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_geq_x_range, x[i].certainly_geq(interval(-7.5, c)))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_le_range_x, interval(c, 7.5).certainly_le(x[i]))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_leq_range_x, interval(c, 7.5).certainly_leq(x[i]))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_ge_range_x, interval(c, 7.5).certainly_ge(x[i]))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_geq_range_x, interval(c, 7.5).certainly_geq(x[i]))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_le_x_const, x[i].certainly_le(interval(-7.5, 3.5)))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_leq_x_const, x[i].certainly_leq(interval(-7.5, 3.5)))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_ge_x_const, x[i].certainly_ge(interval(-7.5, 3.5)))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_geq_x_const, x[i].certainly_geq(interval(-7.5, 3.5)))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_le_x_point, x[i].certainly_le(interval(2.5)))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_leq_x_point, x[i].certainly_leq(interval(2.5)))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_ge_x_point, x[i].certainly_ge(interval(2.5)))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_geq_x_point, x[i].certainly_geq(interval(2.5)))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_le_range_y, interval(-7.5, c).certainly_le(y[i]))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_leq_range_y, interval(-7.5, c).certainly_leq(y[i]))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_ge_range_y, interval(-7.5, c).certainly_ge(y[i]))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_geq_range_y, interval(-7.5, c).certainly_geq(y[i]))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_le_empty, x[i].certainly_le(interval(c + 1.0, c)) + 2*interval(c + 1.0, c).certainly_le(x[i]))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_leq_empty, x[i].certainly_leq(interval(c + 1.0, c)) + 2*interval(c + 1.0, c).certainly_leq(x[i]))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_ge_empty, x[i].certainly_ge(interval(c + 1.0, c)) + 2*interval(c + 1.0, c).certainly_ge(x[i]))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_geq_empty, x[i].certainly_geq(interval(c + 1.0, c)) + 2*interval(c + 1.0, c).certainly_geq(x[i]))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_le_x_point_c, x[i].certainly_le(interval(c)))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_leq_x_point_c, x[i].certainly_leq(interval(c)))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_ge_x_point_c, x[i].certainly_ge(interval(c)))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_geq_x_point_c, x[i].certainly_geq(interval(c)))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_le_point, x[i].certainly_le(interval(1.5, 1.5)) + 2*interval(1.5, 1.5).certainly_le(x[i]))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_leq_point, x[i].certainly_leq(interval(1.5, 1.5)) + 2*interval(1.5, 1.5).certainly_leq(x[i]))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_ge_point, x[i].certainly_ge(interval(1.5, 1.5)) + 2*interval(1.5, 1.5).certainly_ge(x[i]))
+  GAOL_TESTS_RELATION_LOOP(loop_certainly_geq_point, x[i].certainly_geq(interval(1.5, 1.5)) + 2*interval(1.5, 1.5).certainly_geq(x[i]))
+  GAOL_TESTS_RELATION_LOOP(loop_operators_intervals, (x[i] <= y[i]) + 2*(x[i] < y[i]) + 4*(x[i] >= y[i]) + 8*(x[i] > y[i]))
+  GAOL_TESTS_RELATION_LOOP(loop_operators_interval_constant, (x[i] <= interval(-7.5, 3.5)) + 2*(x[i] < interval(-7.5, 3.5))
+                                                            + 4*(x[i] >= interval(-7.5, 3.5)) + 8*(x[i] > interval(-7.5, 3.5)))
+  // the number of the pairs
+  GAOL_TESTS_RELATION_COUNT(count_certainly_le, x[i].certainly_le(y[i]))
+  GAOL_TESTS_RELATION_COUNT(count_certainly_leq, x[i].certainly_leq(y[i]))
+  GAOL_TESTS_RELATION_COUNT(count_certainly_ge, x[i].certainly_ge(y[i]))
+  GAOL_TESTS_RELATION_COUNT(count_certainly_geq, x[i].certainly_geq(y[i]))
 
   struct RelationLoop
   {
     const char *name;
-    void (*loop)(const interval *x, const interval *y, unsigned char *result);
-    unsigned char (*at)(const interval& x, const interval& y);
+    void (*loop)(const interval *x, const interval *y, unsigned char *result, double c);
+    unsigned char (*at)(const interval& x, const interval& y, double c);
   };
 
   const RelationLoop relation_loops[] = {
@@ -3013,30 +3095,111 @@ namespace
     { "interval(l, r)", loop_constructor, loop_constructor_at },
     { "&", loop_intersection, loop_intersection_at },
     { "floor()", loop_floor, loop_floor_at },
+    { "x.certainly_le([-7.5, c])", loop_certainly_le_x_range, loop_certainly_le_x_range_at },
+    { "x.certainly_leq([-7.5, c])", loop_certainly_leq_x_range, loop_certainly_leq_x_range_at },
+    { "x.certainly_ge([-7.5, c])", loop_certainly_ge_x_range, loop_certainly_ge_x_range_at },
+    { "x.certainly_geq([-7.5, c])", loop_certainly_geq_x_range, loop_certainly_geq_x_range_at },
+    { "[c, 7.5].certainly_le(x)", loop_certainly_le_range_x, loop_certainly_le_range_x_at },
+    { "[c, 7.5].certainly_leq(x)", loop_certainly_leq_range_x, loop_certainly_leq_range_x_at },
+    { "[c, 7.5].certainly_ge(x)", loop_certainly_ge_range_x, loop_certainly_ge_range_x_at },
+    { "[c, 7.5].certainly_geq(x)", loop_certainly_geq_range_x, loop_certainly_geq_range_x_at },
+    { "x.certainly_le([-7.5, 3.5])", loop_certainly_le_x_const, loop_certainly_le_x_const_at },
+    { "x.certainly_leq([-7.5, 3.5])", loop_certainly_leq_x_const, loop_certainly_leq_x_const_at },
+    { "x.certainly_ge([-7.5, 3.5])", loop_certainly_ge_x_const, loop_certainly_ge_x_const_at },
+    { "x.certainly_geq([-7.5, 3.5])", loop_certainly_geq_x_const, loop_certainly_geq_x_const_at },
+    { "x.certainly_le([2.5])", loop_certainly_le_x_point, loop_certainly_le_x_point_at },
+    { "x.certainly_leq([2.5])", loop_certainly_leq_x_point, loop_certainly_leq_x_point_at },
+    { "x.certainly_ge([2.5])", loop_certainly_ge_x_point, loop_certainly_ge_x_point_at },
+    { "x.certainly_geq([2.5])", loop_certainly_geq_x_point, loop_certainly_geq_x_point_at },
+    { "[-7.5, c].certainly_le(y)", loop_certainly_le_range_y, loop_certainly_le_range_y_at },
+    { "[-7.5, c].certainly_leq(y)", loop_certainly_leq_range_y, loop_certainly_leq_range_y_at },
+    { "[-7.5, c].certainly_ge(y)", loop_certainly_ge_range_y, loop_certainly_ge_range_y_at },
+    { "[-7.5, c].certainly_geq(y)", loop_certainly_geq_range_y, loop_certainly_geq_range_y_at },
+    { "x.certainly_le([c + 1, c]) and [c + 1, c].certainly_le(x)", loop_certainly_le_empty, loop_certainly_le_empty_at },
+    { "x.certainly_leq([c + 1, c]) and [c + 1, c].certainly_leq(x)", loop_certainly_leq_empty, loop_certainly_leq_empty_at },
+    { "x.certainly_ge([c + 1, c]) and [c + 1, c].certainly_ge(x)", loop_certainly_ge_empty, loop_certainly_ge_empty_at },
+    { "x.certainly_geq([c + 1, c]) and [c + 1, c].certainly_geq(x)", loop_certainly_geq_empty, loop_certainly_geq_empty_at },
+    { "x.certainly_le([c])", loop_certainly_le_x_point_c, loop_certainly_le_x_point_c_at },
+    { "x.certainly_leq([c])", loop_certainly_leq_x_point_c, loop_certainly_leq_x_point_c_at },
+    { "x.certainly_ge([c])", loop_certainly_ge_x_point_c, loop_certainly_ge_x_point_c_at },
+    { "x.certainly_geq([c])", loop_certainly_geq_x_point_c, loop_certainly_geq_x_point_c_at },
+    { "x.certainly_le([1.5]) and [1.5].certainly_le(x)", loop_certainly_le_point, loop_certainly_le_point_at },
+    { "x.certainly_leq([1.5]) and [1.5].certainly_leq(x)", loop_certainly_leq_point, loop_certainly_leq_point_at },
+    { "x.certainly_ge([1.5]) and [1.5].certainly_ge(x)", loop_certainly_ge_point, loop_certainly_ge_point_at },
+    { "x.certainly_geq([1.5]) and [1.5].certainly_geq(x)", loop_certainly_geq_point, loop_certainly_geq_point_at },
+    { "<=, <, >= and > between intervals", loop_operators_intervals, loop_operators_intervals_at },
+    { "<=, <, >= and > with an interval of a constant", loop_operators_interval_constant, loop_operators_interval_constant_at },
   };
 
-  // The operands of the loops, from operands the compiler does not know
-  void loop_operands(std::vector<interval>& x, std::vector<interval>& y)
+  // The loops that count the pairs: result[0] is the number of the pairs for which at() is 1, the other results 0
+  const RelationLoop relation_counts[] = {
+    { "the number of pairs for which certainly_le() is true", count_certainly_le, count_certainly_le_at },
+    { "the number of pairs for which certainly_leq() is true", count_certainly_leq, count_certainly_leq_at },
+    { "the number of pairs for which certainly_ge() is true", count_certainly_ge, count_certainly_ge_at },
+    { "the number of pairs for which certainly_geq() is true", count_certainly_geq, count_certainly_geq_at },
+  };
+
+  // The operands of the loops, from operands the compiler does not know: with family 0, every third x and every fifth y
+  // is empty; with 1, every x; with 2, every y; with 3, both; with 4, none, the bounds being multiples of 1/2 from -10
+  // to 12.5, so that x is before y, after it, or has a bound equal to one of y or to the constants of the loops
+  void loop_operands(std::vector<interval>& x, std::vector<interval>& y, int family)
   {
     x.resize(loop_size);
     y.resize(loop_size);
     for (std::size_t i = 0; i < x.size(); ++i) {
       const double d = static_cast<double>(i);
-      x[i] = (i % 3 == 0) ? E() : make(d - 10.0, d + 0.5);
-      y[i] = (i % 5 == 0) ? E() : make(0.5*d, d + 1.0);
+      switch (family) {
+        case 0:
+          x[i] = (i % 3 == 0) ? E() : make(d - 10.0, d + 0.5);
+          y[i] = (i % 5 == 0) ? E() : make(0.5*d, d + 1.0);
+          break;
+        case 1:
+          x[i] = E();
+          y[i] = make(0.5*d - 20.0, d - 5.0);
+          break;
+        case 2:
+          x[i] = make(d - 40.0, d - 30.0);
+          y[i] = E();
+          break;
+        case 3:
+          x[i] = E();
+          y[i] = E();
+          break;
+        default:
+          {
+            const double lx = 0.5*static_cast<double>(i % 40) - 10.0, ly = 0.5*static_cast<double>((7*i) % 40) - 10.0;
+            x[i] = make(lx, lx + 0.5*static_cast<double>(i % 7));
+            y[i] = make(ly, ly + 0.5*static_cast<double>((i + 3) % 5));
+          }
+          break;
+      }
     }
   }
 
-  // Runs loop on the operands, and compares its results with at()
-  bool relation_loop_is_right(const RelationLoop& r)
+  // Runs loop on the operands of each family, and compares its results with at(): result[i] with at() of the pair i,
+  // or, for a loop that counts, result[0] with the sum of them and the other results with 0
+  bool relation_loop_is_right(const RelationLoop& r, bool counts = false)
   {
-    std::vector<interval> x, y;
-    loop_operands(x, y);
-    unsigned char result[loop_size];
-    r.loop(x.data(), y.data(), result);
     bool right = true;
-    for (std::size_t i = 0; i < x.size(); ++i) {
-      right = right && result[i] == r.at(opaque(x[i]), opaque(y[i]));
+    for (int family = 0; family < 5; ++family) {
+      std::vector<interval> x, y;
+      loop_operands(x, y, family);
+      const double c = gaol_core::rnd_keep(3.5);
+      unsigned char result[loop_size];
+      r.loop(x.data(), y.data(), result, c);
+      unsigned sum = 0;
+      for (std::size_t i = 0; i < x.size(); ++i) {
+        const unsigned char expected = r.at(opaque(x[i]), opaque(y[i]), c);
+        if (counts) {
+          sum += expected;
+          right = right && (i == 0 || result[i] == 0);
+        } else {
+          right = right && result[i] == expected;
+        }
+      }
+      if (counts) {
+        right = right && result[0] == sum;
+      }
     }
     return right;
   }
@@ -4784,6 +4947,14 @@ int main()
     check("a loop of relations with empty operands raises no invalid-operation flag", raised == 0, [&] { return std::string(r.name); });
     check("a loop of relations with empty operands gives the relations", right, [&] { return std::string(r.name); });
   }
+  for (const RelationLoop& r : relation_counts) {
+    std::feclearexcept(FE_ALL_EXCEPT);
+    const volatile bool right = relation_loop_is_right(r, true);
+    const int raised = std::fetestexcept(FE_INVALID);
+    check("a loop that counts relations with empty operands raises no invalid-operation flag", raised == 0,
+          [&] { return std::string(r.name); });
+    check("a loop that counts relations with empty operands gives the count", right, [&] { return std::string(r.name); });
+  }
 #if GAOL_USING_NEON_INSTRUCTIONS
   // x op= d with an empty x and a signaling NaN d (GAOL v5): the empty x is told first and d is not compared, so
   // that nothing is raised (an order of the two tests swapped raises the invalid-operation flag for d)
@@ -4920,6 +5091,11 @@ int main()
     for (const RelationLoop& r : relation_loops) {
       const Outcome ol = run_with_exceptions_enabled(FE_INVALID, [&r] { return relation_loop_is_right(r); });
       check("a loop of relations with empty operands, FE_INVALID enabled", ol == returned_true,
+            [&] { return std::string(r.name) + ": " + outcome_text(ol); });
+    }
+    for (const RelationLoop& r : relation_counts) {
+      const Outcome ol = run_with_exceptions_enabled(FE_INVALID, [&r] { return relation_loop_is_right(r, true); });
+      check("a loop that counts relations with empty operands, FE_INVALID enabled", ol == returned_true,
             [&] { return std::string(r.name) + ": " + outcome_text(ol); });
     }
     // The exception the program enabled stays enabled after each operation
