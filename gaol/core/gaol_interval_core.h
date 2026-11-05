@@ -2261,9 +2261,17 @@ GAOL_NODISCARD GAOL_INLINE interval operator-(double d, const interval& I)
     return interval(d)-=I;
   }
 
+/*
+  d * I is computed as I * d, by the kernel of the operations with a double:
+  the same bounds, bit for bit, the sign of a zero bound included, with every
+  kind of intervals (GAOL v5, decided on 2026-11-05). interval(d) *= I, the
+  product of two intervals, gave the same set with other signs of zero: for
+  I = [+0, -0] and a positive d, [-0, +0] where I * d is [+0, -0] with the
+  SSE2 intervals (#171)
+*/
 GAOL_NODISCARD GAOL_INLINE interval operator*(double d, const interval& I)
   {
-    return interval(d)*=I;
+    return interval(I)*=d;
   }
 
 GAOL_NODISCARD GAOL_INLINE interval operator/(double d, const interval& I)
