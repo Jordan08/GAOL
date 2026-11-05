@@ -16,6 +16,13 @@ now), which neither the 4.2.2 nor the 4.2.3 has, so that where a text below
 says that GAOL v5 adds one of them, it adds it to GAOL 4, not to the 4.3
 releases.
 
+GAOL 4 had classes of exceptions of its own, `input_format_error`,
+`invalid_action_error` and `unavailable_feature_error`, which derived from
+`gaol_exception`. GAOL v5 throws the `std::invalid_argument` and the
+`std::domain_error` of the standard library where GAOL 4 threw the first two,
+and has none of these classes (see [Errors](using.md#errors)): where a text
+below says what GAOL 4 threw, it gives the class of GAOL 4.
+
 - **Every elementary function is bounded with
   [CORE-MATH](https://core-math.gitlabpages.inria.fr/)**, on every architecture
   and with every compiler, and it is the only library GAOL takes its elementary
@@ -46,10 +53,10 @@ releases.
     30 ns rather than 62 (see [Accuracy of the operations](accuracy.md)).
   - The accurate phases of `log`, `sin`, `cos`, `tan`, `atan2` and `pow`
     compute with a 128-bit integer, which Visual C++ has on no architecture and
-    GCC has on no 32-bit target: `gaol/gaol_u128.h` gives them the type of the
-    compiler where it has one and a structure of two 64-bit halves where it has
-    none, and the sources of CORE-MATH call its functions there. The two paths
-    were compared with the pristine upstream sources over about 40 million
+    GCC has on no 32-bit target: `gaol/math/gaol_u128.h` gives them the type of
+    the compiler where it has one and a structure of two 64-bit halves where it
+    has none, and the sources of CORE-MATH call its functions there. The two
+    paths were compared with the pristine upstream sources over about 40 million
     arguments in the four rounding directions, and give the same bits;
     `tests/u128.cpp` compares the halves with `unsigned __int128`, and a job of
     the continuous integration builds the whole of GAOL with the halves forced.
@@ -75,23 +82,24 @@ releases.
     bounds against CORE-MATH called in the downward and the upward rounding,
     `tests/expressions.cpp` the intervals read from a string, and
     `-DGAOL_COVERAGE=ON` writes the coverage of the tests in
-    [coverage/README.md](../coverage/README.md) (87 % of the lines of GAOL).
+    [coverage/README.md](../coverage/README.md) (94 % of the lines of GAOL).
   - **`exp2`, `exp10`, `log2` and `log10`**, which IEEE 1788-2015 requires
     among the forward elementary functions (Table 9.1) and which GAOL did not
     provide, are bounded with CORE-MATH's, the tightest bounds. The value that
     is a double is kept as a bound rather than moved: 2<sup>3</sup> = 8,
     10<sup>22</sup>, log<sub>2</sub>(1/4) = −2 and log<sub>10</sub>(100) = 2
-    are exact. Only `log10` needed the 128-bit integer of `gaol/gaol_u128.h`,
-    its `dint.h` being that of `log` but for a constant.
+    are exact. Only `log10` needed the 128-bit integer of
+    `gaol/math/gaol_u128.h`, its `dint.h` being that of `log` but for a
+    constant.
   - **Sixteen functions of Table 10.5**, which IEEE 1788-2015 recommends:
     `expm1`, `exp2m1`, `exp10m1`, `log1p` (logp1), `log2p1`, `log10p1`,
     `hypot`, `rsqrt` (rSqrt), `sinpi`, `cospi`, `tanpi`, `asinpi`, `acospi`,
-    `atanpi`, `atan2pi` and `compoundm1`, the tightest bounds. `sinpi`, `cospi` and `tanpi`
-    find their extrema and poles exactly, at the multiples of 1/2, which are
-    doubles: `sinpi([1e17])` is 0, where `sin(pi*x)` gave [-1, 1], the width
-    of pi times 10^17 being more than a period. Seven of them compute with
-    CORE-MATH's 128-bit integer, which was ported to `gaol/gaol_u128.h` first
-    (see [3rd/README.md](../3rd/README.md)). `compoundm1(x, y)` =
+    `atanpi`, `atan2pi` and `compoundm1`, the tightest bounds. `sinpi`, `cospi`
+    and `tanpi` find their extrema and poles exactly, at the multiples of 1/2,
+    which are doubles: `sinpi([1e17])` is 0, where `sin(pi*x)` gave [-1, 1], the
+    width of pi times 10^17 being more than a period. Seven of them compute with
+    CORE-MATH's 128-bit integer, which was ported to `gaol/math/gaol_u128.h`
+    first (see [3rd/README.md](../3rd/README.md)). `compoundm1(x, y)` =
     (1 + x)<sup>y</sup> − 1 is the one CORE-MATH has no binary64 version of,
     and `exp(y log1p(x)) − 1` computed with doubles is up to 1 100 doubles from
     the value, `y log1p(x)` multiplying the error of `log1p`: it is computed in
@@ -115,6 +123,11 @@ releases.
     `pown(x, 2)`, and a degenerate integer exponent beyond the ints gives the
     pow of CORE-MATH at the bounds of x in [0, +oo], where the `pow` of `gaol`
     takes the integer power on the whole of x, a negative part included.
+    `gaol_ieee1788` names the operators `+`, `-` (binary), `*`, `/`, `%`, `&`
+    and `|` of the intervals too, as it names the functions of `gaol_core`:
+    `gaol_ieee1788::operator+`, `using gaol_ieee1788::operator+;` and the
+    address of an operator exist, where `x + y` was found through its arguments
+    already.
   - **`cospi.c` of CORE-MATH shifted a signed integer** out of its range,
     undefined behaviour that the tests run with UBSan reported; it shifts it
     unsigned now, as `sinpi.c` and `tanpi.c` do (see
@@ -128,10 +141,10 @@ releases.
       nearest and MXCSR upward, the state the `exactinit()` of the predicates of
       Shewchuk and of Triangle leaves, the upper bound of `pow` was below the
       exact value for about half of the arguments with a subnormal result.
-      `gaol/core_math_port.h` gives the sources a `fegetround()` that reads
-      MXCSR on x86, 32-bit and 64-bit, and the sources are unchanged there;
-      `tests/rounding_direction.cpp` checks `pow` in the six states of the two
-      units. On 32-bit x86 that spares `cbrt` and `asinpi` a call of the
+      `gaol/math/gaol_core_math_port.h` gives the sources a `fegetround()` that
+      reads MXCSR on x86, 32-bit and 64-bit, and the sources are unchanged
+      there; `tests/rounding_direction.cpp` checks `pow` in the six states of
+      the two units. On 32-bit x86 that spares `cbrt` and `asinpi` a call of the
       `fegetround()` of the C library at each bound, and a few other functions
       on their slow paths, about 80 ns a call with Visual C++ for x86: on the
       runners of the continuous integration, `nth_root(x, 3)` takes 179 ns
@@ -172,13 +185,13 @@ releases.
     `pow([0x0.0000100020002p-1022], [0.5])` did not enclose the root, and
     `pow(x, 0.5)` was below the root rounding upward at a subnormal x. CORE-MATH
     takes its square root from the SSE2 instructions, in the direction of MXCSR,
-    on every 32-bit x86 (`gaol/core_math_port.h`); the `sqrt()` of glibc and
-    musl is the `fsqrt` of the x87 unit, right as long as that unit rounds as
-    MXCSR does, which GAOL sees to, so that there the change drops a dependency
-    and changes no result. On 32-bit ARM, `exact_pow()` converted its 54-bit
-    integer with `__aeabi_l2d`, which rounds to nearest, so that the upper bound
-    fell below x^y at a midpoint (`pow([3·2^-30], [34, 35])`; changed in
-    `pow/pow.c`, change 7 of [3rd/README.md](../3rd/README.md)).
+    on every 32-bit x86 (`gaol/math/gaol_core_math_port.h`); the `sqrt()` of
+    glibc and musl is the `fsqrt` of the x87 unit, right as long as that unit
+    rounds as MXCSR does, which GAOL sees to, so that there the change drops a
+    dependency and changes no result. On 32-bit ARM, `exact_pow()` converted its
+    54-bit integer with `__aeabi_l2d`, which rounds to nearest, so that the
+    upper bound fell below x^y at a midpoint (`pow([3·2^-30], [34, 35])`;
+    changed in `pow/pow.c`, change 7 of [3rd/README.md](../3rd/README.md)).
   - **`pow` of a result next to the largest double raises no invalid-operation
     exception.** For y*log(x) from 709.78263 to 709.78267, a power between
     1.7975e308 and 1.7976e308, the first phase of CORE-MATH's `pow` scaled its
@@ -248,8 +261,10 @@ releases.
     results are integers, with no rounding to get right. What they do need is
     to ignore the rounding direction, which `std::nearbyint` and `std::rint`
     read: `round_ties_to_even` therefore reads the bits
-    (`gaol/gaol_roundeven.h`, which also gives CORE-MATH the `roundeven()` the
-    math library of Windows has not).
+    (`gaol/math/gaol_roundeven.h`, which also gives CORE-MATH the `roundeven()`
+    the math library of Windows has not). That header is not installed:
+    `round_ties_to_even(I)` of intervals is defined in
+    `gaol/core/gaol_interval_core.cpp`, which includes it.
   - **`erf` and `erfc`**, the error function and its complement, which GAOL did
     not provide, are bounded with CORE-MATH's, the tightest bounds, exact at 0
     and at the infinities: `erf([0])` is `[0]` and `erfc([-oo, +oo])` is
@@ -257,7 +272,7 @@ releases.
     `erfc` of CORE-MATH rounds its subnormal results with `ldexp()`, which the C
     libraries of Windows (the UCRT) and of macOS do not round in the direction
     in effect: with every compiler, CORE-MATH calls `gaol_ldexp()`
-    (`gaol/gaol_ldexp.h`) instead, x·2<sup>n</sup> rounded once in the
+    (`gaol/math/gaol_ldexp.h`) instead, x·2<sup>n</sup> rounded once in the
     direction in effect, so that its subnormal results depend on no `ldexp()`
     of the C library (see [3rd/README.md](../3rd/README.md)).
 
@@ -315,9 +330,9 @@ releases.
   18 read MXCSR once for a whole loop that changed the rounding direction.
   - **Once per function of intervals.** The bounds of the elementary
     functions at doubles are computed by the functions of namespace `upward`
-    (`gaol/gaol_double_op.h`), which take the direction to be upward already,
-    as it is after the check of the function of intervals calling them (the
-    functions of the same names outside it, which checked it again for the
+    (`gaol/math/gaol_double_op.h`), which take the direction to be upward
+    already, as it is after the check of the function of intervals calling them
+    (the functions of the same names outside it, which checked it again for the
     code calling them directly, are gone since: see below). `exp()` of an
     interval checked the direction three times,
     `sin()` and `cos()` up to four, the other elementary functions and
@@ -367,7 +382,7 @@ releases.
     too late.
   - **The bounds at doubles set the direction back**, with
     `GAOL_PRESERVE_ROUNDING`: `exp_dn()`, `sin_up()` and the thirty others
-    of `gaol/gaol_double_op.h` saved the direction they found, but left it
+    of `gaol/math/gaol_double_op.h` saved the direction they found, but left it
     upward, which the compilers only showed by warning that `_save_state` was
     set but not used. They are gone since, with the header no longer
     installed (see below).
@@ -1077,32 +1092,40 @@ releases.
   ends there. GAOL read the empty text left, threw `input_format_error` and
   emptied the interval: such a loop always ended with an exception. A line that
   is no interval sets the `failbit` too, and empties the interval; then
-  `input_format_error` is thrown as before, a stream whose `exceptions()`
-  include `failbit` included (`invalid_action_error` for a function called with
-  an argument it does not take); an interval written on several lines is still
-  no interval. A program that reads on after it calls `in.clear()` first: GAOL
-  read the next line.
-- **`what()` of GAOL's exceptions is their explanation.** `gaol_exception`
-  overrides `what()`: it returns the explanation, or the name of the class of
-  the exception (`gaol_exception`, `input_format_error`,
-  `unavailable_feature_error` or `invalid_action_error`) where there is none
-  or where it starts with a NUL, so that `catch (const std::exception& e)` and
-  the message of an exception that nothing catches say what went wrong. GAOL 4
-  left the `what()` of `std::exception`, which is `std::exception` with
-  libstdc++ and libc++, whatever the error. A null pointer given as the
-  explanation is no explanation: GAOL 4 built a `std::string` from it, which is
-  undefined behaviour. `operator<<` of an exception writes the explanation
-  once, `file, line n: exception thrown: explanation`; it wrote `what()` next
-  to it, `file, line n: exception std::exception thrown: explanation`.
-- **A null file name is "(unknown file)"** in a `gaol_exception`, in
-  `gaol_warning()` and in `gaol_error()`, and a null message of the two
-  functions is an empty text. GAOL 4 kept the null pointer: `file()` of an
-  exception could be one, and the pointer was written to a stream as it was, by
-  `operator<<` of the exception and by the two functions to `std::cerr`. That is
-  undefined, and libstdc++ puts the stream in the state `bad`, so that the
-  diagnostics written after it were lost. `file()` of GAOL's exceptions is never
-  a null pointer now. The macros of GAOL (`gaol_ERROR`, `GAOL_FILE_POS`) always
-  give `__FILE__`: only a direct call can give a null pointer.
+  `std::invalid_argument` is thrown (`input_format_error` before), a stream
+  whose `exceptions()` include `failbit` included (`std::domain_error` for a
+  function called with an argument it does not take); an interval written on
+  several lines is still no interval. A program that reads on after it calls
+  `in.clear()` first: GAOL read the next line.
+- **GAOL throws `std::invalid_argument` and `std::domain_error`, and `what()`
+  says what went wrong.** GAOL 4 had a class of exceptions of its own,
+  `gaol_exception`, and `input_format_error`, `invalid_action_error` and
+  `unavailable_feature_error` derived from it, in `gaol/gaol_exceptions.h`. They
+  are gone, without aliases. A string that is no interval, or a null pointer,
+  throws `std::invalid_argument`; an argument that a function does not take
+  (`nb_fp_numbers()` with a NaN, `bisect()` with a ratio outside (0, 1),
+  `nth_root(8, 1.5)` in a string) throws `std::domain_error`; no operation of
+  GAOL v5 throws `unavailable_feature_error`, which only the `atan2` of GAOL 4
+  did. A handler of `gaol::input_format_error` becomes a handler of
+  `std::invalid_argument`, one of `gaol::invalid_action_error` a handler of
+  `std::domain_error`, and no base class is left to GAOL (`std::logic_error`
+  catches both, and no `std::bad_alloc`). GAOL 4 left the `what()` of
+  `std::exception`, the text `std::exception` with libstdc++ and libc++ whatever
+  the error, in a handler and in the message of an exception that nothing
+  catches; it is `file:line: explanation` now, the file without its directories,
+  so that the path of the machine that built GAOL is not in the message.
+  `file()`, `line()`, `explanation()` and `operator<<` of the exceptions are
+  gone with the classes. `gaol_ERROR(excep, msg)` takes a class derived from
+  `std::exception`, which the compiler checks with exceptions as without
+  ([Errors](using.md#errors)).
+- **A null file name is "(unknown file)"** in the message of an exception, in
+  `gaol_warning()` and in `gaol_error()`, and a null message is an empty text.
+  GAOL 4 kept the null pointer: `file()` of an exception could be one, and the
+  pointer was written to a stream as it was, by `operator<<` of the exception
+  and by the two functions to `std::cerr`. That is undefined, and libstdc++ puts
+  the stream in the state `bad`, so that the diagnostics written after it were
+  lost. The macros of GAOL (`gaol_ERROR`, `GAOL_FILE_POS`) always give
+  `__FILE__`: only a direct call can give a null pointer.
 - **The format of the agreeing digits** (`interval_format::agreeing`) keeps
   the digits of each bound. GAOL dropped from both bounds what followed the
   last character of the left one that is not a zero: `[1.25, 1.2567]` was
@@ -1132,13 +1155,16 @@ releases.
     sometimes a float further, which gave bounds not enclosing the exact
     values; the `acosh` of MinGW-w64 11 to 13 is millions of doubles away next
     to 1, and its `asinh` NaN for large negative numbers.
-  - **The sources.** The whole tree of CORE-MATH is vendored in
-    `3rd/math-core` (MIT licence), compiled into GAOL's library under the
-    names `gaol_cr_sinh()`... (`gaol/gaol_core_math.h`). The sources are kept as
-    CORE-MATH wrote them but for a few changes, marked `/* GAOL */`,
-    `gaol/core_math_port.h` being force-included into each of them by the
-    compiler: [3rd/README.md](../3rd/README.md) lists what that header gives and
-    the changes the vendored sources carry.
+  - **The sources.** The tree of CORE-MATH is vendored in `3rd/math-core` (MIT
+    licence), without the `.wc` files and without the formats other than
+    `binary64`, the only one GAOL compiles, and compiled into GAOL's library
+    under the names `gaol_cr_sinh()`... (`gaol/math/gaol_core_math.h`). The
+    sources are kept as CORE-MATH wrote them but for a few changes, marked
+    `/* GAOL */`, `gaol/math/gaol_core_math_port.h` being force-included into
+    each of them by the compiler: [3rd/README.md](../3rd/README.md) lists what
+    that header gives and the changes the vendored sources carry. The headers of
+    GAOL for these sources and for the bounds at doubles (`gaol_double_op.h`,
+    `gaol_compoundm1.h`) are together in `gaol/math/`, and none is installed.
   - **Tests.** `tests/elementary.cpp` requires one double of every function,
     rather than 8.
   - At the overflow, the bounds were two floats wider than the
@@ -1490,7 +1516,7 @@ releases.
   width is no real number. `bisect(ratio)` cuts at l(1 − ratio) + r·ratio, which
   does not overflow and lies strictly between the bounds when `is_bisectable()`;
   it cuts at `midpoint()`, as `split()` does, for 0.5, for a half-line and for
-  the whole line, and throws `invalid_action_error` for a ratio outside (0, 1)
+  the whole line, and throws `std::domain_error` for a ratio outside (0, 1)
   or a NaN.
   `is_bisectable()` is true when a double lies strictly between the bounds: not
   for the empty set, a point, two consecutive doubles, nor [MAX, +oo] and [-oo,
@@ -1505,13 +1531,13 @@ releases.
   `floor_rel(Z, X)`. `gaol_ieee1788` names the first four `powRev1`, `powRev2`,
   `atan2Rev1` and `atan2Rev2` (Table 10.1), and adds `mulRevToPair`, the
   division of 10.5.5 with two outputs: the pair (u, v) of the parts of the
-  solution on either side of 0, u before v, whose hull is `mulRev(b, c)`. Of the
-  reverse operations of the standard, only `pownRev` for p ≤ 0 is missing. The
-  bounds of `max_rel`, `min_rel`, `sign_rel` and `floor_rel` are the tightest
-  ones, those of `pow_rel` and `pow_exponent_rel` are proved with powers of
-  CORE-MATH, and those of `atan2_rel_y` and `atan2_rel_x` are within 2 doubles
-  of the tightest ones where these are not empty (see
-  [Accuracy of the operations](accuracy.md)).
+  solution on either side of 0, u before v, whose hull is `mulRev(b, c)`. All
+  the reverse operations of the standard are provided, `pownRev` for p ≤ 0
+  included (see the roots, below). The bounds of `max_rel`, `min_rel`,
+  `sign_rel` and `floor_rel` are the tightest ones, those of `pow_rel` and
+  `pow_exponent_rel` are proved with powers of CORE-MATH, and those of
+  `atan2_rel_y` and `atan2_rel_x` are within 2 doubles of the tightest ones
+  where these are not empty (see [Accuracy of the operations](accuracy.md)).
 - **The comparisons with the empty set and the infinities** follow IEEE
   1788-2015 (Tables 10.3 and 10.4). `certainly_leq()` and `certainly_le()`,
   `precedes` and `strictPrecedes`, and `certainly_geq()` and
@@ -1553,6 +1579,21 @@ releases.
   bounds are not less than each other. `std::less` is not specialized for
   `interval`, so a program gives the comparator itself (see
   [Using GAOL](using.md#relations-sorting-and-containers)).
+- **`overlap(x, y)`** of IEEE 1788-2015 (10.6.4) is new, with the type
+  `overlapping_state`: `x.overlap(y)` and `gaol_ieee1788::overlap(x, y)` return
+  one of the 16 states of Table 10.7 (`bothEmpty`, `firstEmpty`, `secondEmpty`,
+  `before`, `meets`, `overlaps`, `starts`, `containedBy`, `finishes`, `equals`,
+  `finishedBy`, `contains`, `startedBy`, `overlappedBy`, `metBy` and `after`,
+  numbered 0 to 15 in that order), which GAOL 4 had no function for. The state
+  is read from the bounds as integers in the order of the doubles
+  (`gaol_detail::bound_key`), so that -0 and +0 are the same bound and no
+  floating-point exception is raised, whatever the flush-to-zero modes. A point
+  interval on a bound of the other one is never `meets` nor `metBy`, as the
+  sentence of 10.6.4 has it, although the set specifications of the table hold
+  for it too. `operator<<` writes the name of a state. The tests check 31 449
+  pairs against the quantifiers of the table, evaluated on a finite model of
+  the real line, and the 48 cases of ITF1788 pass (see
+  [Using GAOL](using.md#the-names-of-ieee-1788-2015)).
 - **Numbers in base 16, 8 and 2** are read, `0x10` (16), `0xff.8` (255.5),
   `0o17` (15), `0b101` (5) and `0b1.1p3` (12), the exponent after the `p` being
   optional: the hexadecimal number of the standard needs it (9.7.2), which
@@ -1568,9 +1609,9 @@ releases.
   has it: `[inf]` and `[inf, inf]` are the empty set, where GAOL gave
   `[MAX, +oo]`, which `check/input_output.cpp` wanted; `inf` alone, an
   expression, is still `[MAX, +oo]`. A sign next to an uncertain number needs
-  a blank after it: `10-3.56?1` and `10+3.56?1` throw `input_format_error`, the
-  lexer reading the sign as part of the number, and `10 - 3.56?1` is read. The
-  lexer and the parser are regenerated with flex 2.6.4 and bison 3.8.2.
+  a blank after it: `10-3.56?1` and `10+3.56?1` throw `std::invalid_argument`,
+  the lexer reading the sign as part of the number, and `10 - 3.56?1` is read.
+  The lexer and the parser are regenerated with flex 2.6.4 and bison 3.8.2.
 - **`[l, u]` with l above u is the empty set,** as IEEE 1788-2015 has it (9.7.4
   a, 12.12.7), also where the bounds are numbers that are not doubles. The
   literal was the interval from the lower bound of the doubles around l to the
@@ -1593,7 +1634,7 @@ releases.
   written, where the manual says that the bounds are the same double, while
   `<0.1, 0.1>` was refused, the intervals of 0.1 not being equal. A number that
   is not a double, `pi` included, is now refused, `<0.1, 0.1>` as before:
-  `input_format_error`, or a failed reading without exceptions
+  `std::invalid_argument`, or a failed reading without exceptions
   (`parse_interval()` returns false, `gaol_ieee1788::textToInterval()` gives
   the empty set). `<0.5, 0.5>` and `<0.25+0.25, 0.5>` are read as before.
   A bound that is computed is refused too when its value is not a point:
@@ -1619,7 +1660,7 @@ releases.
   - **A crash.** The parser deleted the null node it gives `nth_root()` and
     `pow()` for an exponent it cannot use, which later expressions still
     used: reading `nth_root(8, 1.5)`, then `nth_root(8, 1.5)+1`, crashed.
-    Both now throw `invalid_action_error`.
+    Both now throw `std::domain_error`.
 - **One grammar reads every string as an expression**
   (`gaol/parser/gaol_interval_parser.ypp`).
   - **Before.** GAOL read a string with two grammars: the numbers, the
@@ -1638,8 +1679,8 @@ releases.
     expression; only the unary minus stays a node. The grammar has
     no conflict, and an error found in an action stops the reading at once. An
     uncertain number is still no bound of a literal: `[5?1]` and `[1, 3.56?1]`
-    throw `input_format_error`, IEEE 1788-2015 giving `[5?1]` as a string that
-    is not an interval literal (12.11.4).
+    throw `std::invalid_argument`, IEEE 1788-2015 giving `[5?1]` as a string
+    that is not an interval literal (12.11.4).
   - **`pow(x, n)`** is the `pow` of `gaol` for an integer exponent too: the
     parser took 1/x<sup>|n|</sup> for n < 0, whose x<sup>|n|</sup>
     overflowed (`pow(2,-1050)` was `[0, 5.6e-309]` rather than
@@ -1670,7 +1711,7 @@ releases.
     `sinPi` gave the empty set. As for `pow`, a program calls the
     `textToInterval` of the namespace it opens.
   - **Calls.** A call is computed when it is read and gives a leaf of the
-    tree; a wrong number of arguments throws `input_format_error`.
+    tree; a wrong number of arguments throws `std::invalid_argument`.
   - **Tests.** `tests/expressions.cpp` reads each name of GAOL and refuses
     those of the standard alone, and `tests/ieee1788.cpp` reads each name of
     the standard and gives the empty set for those of GAOL alone.
@@ -1716,11 +1757,11 @@ releases.
   100000 terms is read in a time proportional to its length and takes no more
   of the stack of the program than a sum of two. The stack of the parser, 10000
   entries, bounds the nesting: a string nested deeper (about 10000 parentheses
-  or signs, 5000 nested calls) is refused with `input_format_error`, as any text
-  that is no expression. `operator<<` of an expression is still a recursion per
-  level, which the stack of the program does not hold for a tree 100000 levels
-  deep. `eval_stack` and `expr_eval` are no longer copyable, the stack of an
-  evaluation growing in the heap.
+  or signs, 5000 nested calls) is refused with `std::invalid_argument`, as any
+  text that is no expression. `operator<<` of an expression is still a recursion
+  per level, which the stack of the program does not hold for a tree 100000
+  levels deep. `eval_stack` and `expr_eval` are no longer copyable, the stack of
+  an evaluation growing in the heap.
 - **A `std::string` is read whole.** `gaol::textToInterval()`,
   `gaol_ieee1788::textToInterval()` and `operator>>` give the parser the length
   of the string, where the lexer stopped at the first NUL character: `"1\0junk"`
@@ -1733,12 +1774,13 @@ releases.
   it allocated.** flex wrote "out of dynamic memory" and ended the program with
   `exit(2)`, the nodes on the stack of the parser were lost when the lexer or an
   action threw, a stack of the parser that could not grow was taken for a string
-  nested too deep (`input_format_error`), and `gaol_ieee1788::textToInterval()`
-  turned a `std::bad_alloc` into the empty set: it catches `gaol_exception`
-  alone now, and is compiled in the library, no longer inline in
-  `gaol/gaol_ieee1788.h`. A token (a number, a name or a run of blanks) holds
-  2<sup>29</sup> characters at most, flex keeping the size of its buffer in an
-  `int`: a longer one throws `std::bad_alloc`.
+  nested too deep (`std::invalid_argument`), and
+  `gaol_ieee1788::textToInterval()` turned a `std::bad_alloc` into the empty
+  set: it catches `std::invalid_argument` and `std::domain_error` alone now, and
+  is compiled in the library, no longer inline in `gaol/gaol_ieee1788.h`. A
+  token (a number, a name or a run of blanks) holds 2<sup>29</sup> characters at
+  most, flex keeping the size of its buffer in an `int`: a longer one throws
+  `std::bad_alloc`.
 - **Without exceptions, a wrong call in a string fails the reading.** Built with
   `-DGAOL_EXCEPTIONS_ENABLED=OFF`, `--disable-exceptions` or
   `-Denable-exception=false`, GAOL ended the program (`gaol_ERROR`, then
@@ -1781,8 +1823,8 @@ releases.
   `gaol_pow_exp()`, and the node of a power of expressions keeps the function
   that computes it. The reader of strings, `parse_interval()` and
   `parsing_names`, is in `gaol_core`, and its code takes GAOL's `pow`.
-  `gaol` does not name the exceptions, `NaN_val`, `eval_stack` nor
-  `parse_interval()`, which GAOL 4 had in `gaol`, nor `rnd_keep()` and
+  `gaol` does not name the exceptions (gone, see above), `NaN_val`, `eval_stack`
+  nor `parse_interval()`, which GAOL 4 had in `gaol`, nor `rnd_keep()` and
   `parsing_names`, which GAOL v5 adds, nor what GAOL uses for itself: the
   functions that get and set the `rounding_state`, the rounding direction and
   the flush-to-zero modes (`get_rounding()`, `set_rounding()`,
@@ -1835,15 +1877,16 @@ releases.
   `sin_up()` and the thirty others of the elementary functions, `ipow_up()`,
   `ipow_dn()`, `pow_up()`, `pow_dn()`, and those of the namespaces `upward`
   and `nearest`; `gaol/gaol` and `gaol/gaol_interval.h` included it, and the
-  three builds installed it. It is now a header of the sources, which no
-  installed header includes, and `gaol_ieee1788::pow()`, which called two of
-  its functions, calls `gaol_core::pow_standard()`, which the library compiles
-  and exports, rather than compute inline in `gaol/gaol_ieee1788.h`. The
-  thirty-two functions that checked the rounding direction for the code calling
-  them from outside GAOL are gone, and `tests/rounding_direction.cpp` no longer
-  calls them; `gaol_core::upward`, which the operations of intervals call,
-  stays. `ipow_up()`, `ipow_dn()`, `pow_up()` and `pow_dn()`, which no operation
-  of GAOL called, are removed from the header.
+  three builds installed it. It is now a header of the sources,
+  `gaol/math/gaol_double_op.h`, which no installed header includes, and
+  `gaol_ieee1788::pow()`, which called two of its functions, calls
+  `gaol_core::pow_standard()`, which the library compiles and exports, rather
+  than compute inline in `gaol/gaol_ieee1788.h`. The thirty-two functions that
+  checked the rounding direction for the code calling them from outside GAOL are
+  gone, and `tests/rounding_direction.cpp` no longer calls them;
+  `gaol_core::upward`, which the operations of intervals call, stays.
+  `ipow_up()`, `ipow_dn()`, `pow_up()` and `pow_dn()`, which no operation of
+  GAOL called, are removed from the header.
 - **The `double` constants of `gaol/gaol_port.h` are no longer declared for the
   code using GAOL.** GAOL 4 declared `two_pi`, `pi`, `half_pi`, `pi_dn`,
   `pi_up`, `half_pi_dn`, `half_pi_up`, `ln2_dn`, `ln2_up`, `two_power_51` and
@@ -1864,13 +1907,13 @@ releases.
   GAOL's sources: neither `gaol/parser/gaol_interval_parser.h`
   (`gaol/gaol_interval_parser.h` in GAOL 4), which did not compile when
   included, nor `gaol/gaol_init_cleanup.h`, both of which GAOL 4 installed, nor
-  `gaol/gaol_core_math.h` and `gaol/gaol_u128.h`, which no installed header
-  includes (nor `gaol/gaol_double_op.h`, see above). Each installed header
-  compiles alone with `-std=c++11` and the flags of `gaol.pc`
-  (`.github/scripts/headers.sh` checks it on the installed GAOL), but four:
-  `gaol/core/gaol_interval_fpu.h`, `gaol/core/gaol_interval_neon.h` and
-  `gaol/core/gaol_interval_sse.h`, which other headers include in the middle of
-  their code, and `gaol/gaol_fpu_msvc.h`, for Visual C++ only.
+  the headers of `gaol/math/`, which no installed header includes
+  (`gaol_double_op.h`, see above). Each installed header compiles alone with
+  `-std=c++11` and the flags of `gaol.pc` (`.github/scripts/headers.sh` checks
+  it on the installed GAOL), but four: `gaol/core/gaol_interval_fpu.h`,
+  `gaol/core/gaol_interval_neon.h` and `gaol/core/gaol_interval_sse.h`, which
+  other headers include in the middle of their code, and `gaol/gaol_fpu_msvc.h`,
+  for Visual C++ only.
 - **The expressions and the reader of strings are in `gaol/parser/`.** GAOL 4
   installed the headers of the expressions (`gaol_expression.h`,
   `gaol_expr_eval.h`, `gaol_expr_visitor.h`, `gaol_eval_stack.h`) and of the
@@ -1956,12 +1999,12 @@ releases.
   `GAOL_PUBLIC` is the default visibility where the library is compiled with
   `-fvisibility=hidden`, so that the shared library exports the declarations,
   and nothing otherwise.
-- **`gaol/gaol_exceptions.h` no longer declares `string` and `exception` in the
-  global namespace, and the macros of GAOL's headers start with `GAOL_`**, so as
-  not to meet the names of the program or of another library.
+- **No header of GAOL declares `string` and `exception` in the global namespace,
+  and the macros of GAOL's headers start with `GAOL_`**, so as not to meet the
+  names of the program or of another library.
   - **Names.** `string` and `exception` were there by `using std::string;` and
-    `using std::exception;`: a program that counted on them writes `std::string`
-    and `std::exception`.
+    `using std::exception;` in `gaol/gaol_exceptions.h`: a program that counted
+    on them writes `std::string` and `std::exception`.
   - **Macros.** `INLINE`, `MEMALIGN`, `__HI`, `__LO`, `HAVE_FENV_H`,
     `USING_SSE2_INSTRUCTIONS`, `IX86_LINUX`, `WORDS_BIGENDIAN`,
     `ULONGLONGINT`... are now `GAOL_INLINE`, `GAOL_MEMALIGN`, `GAOL_HI`,
@@ -1986,7 +2029,7 @@ releases.
   its examples with `-Wall -Wextra -Werror`, with GCC and Clang.
 - **The constructor from one string, `interval(const char*)`, is gone.**
   `gaol::textToInterval()` reads the string instead, with the same names of
-  functions, and throws the same `input_format_error` for a string that is no
+  functions, and throws `std::invalid_argument` for a string that is no
   interval: `interval x("0.1")` becomes `interval x = textToInterval("0.1")`.
   The constructor took any `const char*`, and converted it implicitly:
   `interval(0)` was ambiguous, 0 being a null pointer as well as a number, and
@@ -1994,9 +2037,9 @@ releases.
   neither a `const char*` nor `nullptr` converts to an interval, and that
   `interval(0)` is [0].
   A null pointer is no string: `textToInterval(nullptr)` and
-  `textToInterval(std::getenv("UNSET"))` throw `input_format_error`, through an
-  overload for `const char*`, where the overload for `std::string` would build a
-  `std::string` from the pointer, which the standard leaves undefined
+  `textToInterval(std::getenv("UNSET"))` throw `std::invalid_argument`, through
+  an overload for `const char*`, where the overload for `std::string` would
+  build a `std::string` from the pointer, which the standard leaves undefined
   (`std::logic_error` with libstdc++). `textToInterval(sl, sr)` does the same
   for a null pointer in either place or in both, and so do
   `gaol_ieee1788::textToInterval()` and `exactToInterval()`, which give the
@@ -2086,6 +2129,20 @@ releases.
     enclosed through `pow` with the exponent 1/q, x<sup>1/q</sup> being within
     2<sup>−21</sup> of 1 for every double x > 0 there; a negative order of an
     expression within the ints is 1/`nth_root(e, |n|)`.
+  - **`pownRev(c, x, p)` for p ≤ 0**, the last reverse operation of the standard
+    GAOL lacked (Table 10.1), is `nth_root_rel(J, p, I)` of `gaol_core`, which
+    takes any integer p now. For p = 0 it is `x` where 1 is in `c` and the empty
+    set elsewhere; for p < 0, the hull of the numbers of `x`, 0 apart, whose
+    p-th power lies in `c`, `c` being cut at 0 and each part giving its roots,
+    which are met with `x` before the hull is taken, so that the hole of `c` is
+    not filled. **A negative `int` was converted to a large `unsigned int`** by
+    `nth_root_rel(J, -2, I)`, a root of order about 4·10<sup>9</sup>: it gives
+    the negative power now. An exponent of type `double` or `float`, converted
+    to an `unsigned int` before, no longer compiles. For p < 0 the bounds are up
+    to 4 doubles beyond the tightest ones (4 found, for `[2.25]` and p = −127),
+    and for p = −1 near 2<sup>−1074</sup> a bound saturates at ±`DBL_MAX`, which
+    is valid but farther, the result being not empty where the hull is
+    ([Accuracy of the operations](accuracy.md)).
 - **`width()`** of the empty set is NaN, as `wid` of IEEE 1788-2015 (12.12.8),
   rather than -1, which the manual and `check/interval_functions.cpp` gave.
 - **`chi()` of the empty set** is the positive NaN that `width()` returns,
@@ -2406,8 +2463,8 @@ releases.
     times faster at the median on an Intel i7-1185G7, and left out without it,
     where it costs 17 %; see [SIMD, FMA and the rounding
     direction](simd.md#when-the-build-takes-the-avx-512-path)), by
-    `gaol/gaol_u128.h`, which a check compiles, for the 128-bit integer, and by
-    the build type for the debugging.
+    `gaol/math/gaol_u128.h`, which a check compiles, for the 128-bit integer,
+    and by the build type for the debugging.
     `GAOL_FMA`, `GAOL_PREFER_AVX512`, `GAOL_U128_EMULATION`, `GAOL_DEBUG`,
     `GAOL_EXCEPTIONS_ENABLED` and `GAOL_VERBOSE_MODE`, and the options of
     configure and meson that matched them (`--enable-fma`,
@@ -2430,7 +2487,7 @@ releases.
     GCC 15) and meson took `gnu11`, and the audit of the three builds compared
     the flags of the C++ sources only (see [The three builds](three-builds.md)).
     A shared `libgaol` exports from these C sources only the 38 functions
-    `gaol_cr_*` of `gaol/gaol_core_math.h`, the same with the three builds.
+    `gaol_cr_*` of `gaol/math/gaol_core_math.h`, the same with the three builds.
   - **The Debug build** of each (`CMAKE_BUILD_TYPE=Debug`,
     `configure --enable-debug`, `meson setup --buildtype=debug`) compiles
     GAOL with `-g`, without optimization nor `NDEBUG`, so that `assert()`

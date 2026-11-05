@@ -619,8 +619,8 @@ CPack makes them from the CMake build, in the directory of the build:
   configures the build directory again first, whatever the generator;
 \item \code{package} gives \file{gaol-\var{version}-\var{system}.tar.gz},
   what \cmd{cmake --install} installs, to extract anywhere, and on Linux
-  \file{libgaol-dev\_\var{version}\_\var{arch}.deb}, the same files in
-  \file{/usr}.
+  \file{libgaol-dev\_\allowbreak\var{version}\_\allowbreak\var{arch}.deb},
+  the same files in \file{/usr}.
 \end{itemize}
 
 \noindent
@@ -1986,7 +1986,6 @@ int main(void)
 Now, \code{one\_tenth} will be the smallest floating-point interval
 enclosing \code{0.1}. An interval like this one, containing at most two
 consecutive floating-point numbers, is called a \dfn{canonical interval}.
-\cindex{canonical interval}%
 Written in hexadecimal (\pxref{sec:output-format}), which shows the bounds
 exactly, the two intervals are:
 
@@ -2672,8 +2671,8 @@ x &= interval(-6,23); @rem^// Now, @code^x~ is @itv^-6~^12~~
 
 \end{defmethod}
 
-\defmethodx{interval}{interval\&}{operator|=}{(const interval\& \var{I})}
-\begin{defmethod}{interval}{interval\&}{operator|=}{(double \var{d})}
+\defmethodx{interval}{interval\&}{operator\textbar=}{(const interval\& \var{I})}
+\begin{defmethod}{interval}{interval\&}{operator\textbar=}{(double \var{d})}
   \begin{operation}
     \op{$\code{self}\gets\hull{(\code{self} \cup I)}$}
     \op{$\code{self}\gets\hull{(\code{self} \cup \code{interval}(d))}$}
@@ -3155,6 +3154,55 @@ cout << boolalpha << interval(1,2).strictly_less(interval(1,3)) << ' '
      << interval(0,1).strictly_less(interval(2,3));
 @outputs^false true true~
 \end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{overlapping\_state}{overlap}{(const interval\& \var{I}) const}
+  Returns the state of Table~10.7 of IEEE 1788-2015 that \code{self}, $a =
+  [\leftBound{a}, \rightBound{a}]$, and \var{I}, $b = [\leftBound{b},
+  \rightBound{b}]$, are in: \ieee{overlap} (10.6.4), a primitive from which the
+  comparisons can be derived.\newinvfive\ The result is one of the 16
+  values of the type \code{overlapping\_state} (in \code{gaol} and in
+  \code{gaol\_ieee1788}), which has the names of the table, in its order,
+  from \code{bothEmpty}, 0, to \code{after}, 15: the state number $s$ is the
+  bit $s$ of a 16-bit word counted from the left, \code{bothEmpty} being the
+  leftmost bit, as in the note of the standard, where \code{disjoint} is the
+  mask \code{0xF001}. A state is written to a stream by its name in the
+  table, as \code{meets}. \code{bothEmpty}, \code{firstEmpty} and
+  \code{secondEmpty} are for an empty $a$ and $b$, an empty $a$ alone and an
+  empty $b$ alone. The 13 other states are Allen's, for two nonempty
+  intervals, told by their bounds, an infinite bound being equal to the same
+  infinite bound and $-0$ to $+0$:
+  \begin{center}
+  \begin{tabular}{ll@{\qquad\qquad}ll}
+    \code{before} & $\rightBound{a}<\leftBound{b}$ &
+    \code{after} & $\rightBound{b}<\leftBound{a}$\\
+    \code{meets} & $\leftBound{a}<\rightBound{a}=\leftBound{b}<\rightBound{b}$ &
+    \code{metBy} & $\leftBound{b}<\rightBound{b}=\leftBound{a}<\rightBound{a}$\\
+    \code{overlaps} & $\leftBound{a}<\leftBound{b}<\rightBound{a}<\rightBound{b}$ &
+    \code{overlappedBy} & $\leftBound{b}<\leftBound{a}<\rightBound{b}<\rightBound{a}$\\
+    \code{starts} & $\leftBound{a}=\leftBound{b},\ \rightBound{a}<\rightBound{b}$ &
+    \code{startedBy} & $\leftBound{a}=\leftBound{b},\ \rightBound{b}<\rightBound{a}$\\
+    \code{finishes} & $\leftBound{b}<\leftBound{a},\ \rightBound{a}=\rightBound{b}$ &
+    \code{finishedBy} & $\leftBound{a}<\leftBound{b},\ \rightBound{a}=\rightBound{b}$\\
+    \code{containedBy} & $\leftBound{b}<\leftBound{a},\ \rightBound{a}<\rightBound{b}$ &
+    \code{contains} & $\leftBound{a}<\leftBound{b},\ \rightBound{b}<\rightBound{a}$\\
+    \code{equals} & \multicolumn{3}{l}{$\leftBound{a}=\leftBound{b},\ \rightBound{a}=\rightBound{b}$}
+  \end{tabular}
+  \end{center}
+  A point interval on a bound of the other one is \code{starts},
+  \code{finishes}, \code{finishedBy} or \code{startedBy}, or \code{equals} for
+  the same point, never \code{meets} nor \code{metBy}, as the standard asks.
+  The function compares the bounds as the integers of their bits: it raises no
+  floating-point exception, even for the \code{NaN} bounds of an empty
+  interval, and the modes that flush the subnormal numbers to zero do not
+  change it.
+  \begin{example}
+interval a(1,3), b(2,4), c(1,2), e = interval::emptyset();
+cout << a.overlap(b) << ' ' << c.overlap(interval(2,3)) << ' '
+     << interval(2).overlap(c) << ' ' << e.overlap(c) << ' '
+     << static_cast<int>(c.overlap(a));
+@outputs^overlaps meets finishes firstEmpty 6~
+  \end{example}
 \end{defmethod}
 
 \section{Relational Symbols}\label{sec:relational-symbols}
@@ -4826,7 +4874,7 @@ cout << (interval(4,6) & interval(5,9)) << ' '
   \end{example}
 \end{deffun}
 
-\begin{deffun}{interval}{operator|}{(const interval\& I1, const interval\& I2)}
+\begin{deffun}{interval}{operator\textbar}{(const interval\& I1, const interval\& I2)}
   \begin{operation}
     \op{$\hull{(\var{I1}\cup\var{I2})}$}
   \end{operation}
@@ -5647,6 +5695,7 @@ The last argument $x$ of the reverse functions is optional, and
   \code{precedes(a, b)}, \code{strictPrecedes(a, b)} & \code{a.certainly\_leq(b)}, \code{a.certainly\_le(b)}\\
   \code{isCommonInterval(x)}, \code{isSingleton(x)} & \code{x.is\_common\_interval()}, \code{x.is\_a\_double()}\\
   \code{isMember(m, x)} & \code{x.set\_contains(m)}, false for an infinite $m$\\
+  \code{overlap(a, b)} (10.6.4) & \code{a.overlap(b)}, an \code{overlapping\_state}\\
   \hline
   \multicolumn{2}{l}{\textit{Input and output (Clause 13)}}\\
   \code{intervalToText(x)} & the bounds \code{[l, r]}, \code{[a]} or \code{[empty]}, with the current precision, whatever the format and locale\\
@@ -5730,10 +5779,9 @@ With \code{using namespace gaol;}, \code{textToInterval("pow([-4,-1],2)")} is
 %%----------------------------
 
 GAOL has no decorations: only bare intervals are provided (Clause 11). Nor does
-it provide the slope functions (Table 10.6),
-\ieee{overlap} (10.6.4), the reduction operations \ieee{sum}, \ieee{dot},
-\ieee{sumSquare} and \ieee{sumAbs} (12.12.12), and the exact operations of
-12.13.5. The end of \file{gaol/gaol\_ieee1788.h} keeps this list.
+it provide the slope functions (Table 10.6), the reduction operations
+\ieee{sum}, \ieee{dot}, \ieee{sumSquare} and \ieee{sumAbs} (12.12.12), and the
+exact operations of 12.13.5. The end of \file{gaol/gaol\_ieee1788.h} keeps this list.
 
 \section{Coming from another library}\label{sec:other-libraries}
 %%--------------------------------------

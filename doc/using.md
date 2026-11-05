@@ -519,6 +519,25 @@ does not name, are not in `gaol_ieee1788` (GAOL v5): a call `erf(x)` on an
 interval finds them all the same in `gaol_core`, by argument-dependent lookup,
 and `erf(0.5)` remains the `erf` of C.
 
+`overlap(a, b)` (10.6.4) is the interval overlapping function of the standard
+(GAOL v5): it returns an `overlapping_state`, one of the 16 states of Table
+10.7 under the names of the table, `bothEmpty`, `firstEmpty`, `secondEmpty`,
+`before`, `meets`, `overlaps`, `starts`, `containedBy`, `finishes`, `equals`,
+`finishedBy`, `contains`, `startedBy`, `overlappedBy`, `metBy` and `after`,
+numbered from 0 to 15 in that order, which is the order of the 16 bits of the
+note of the standard, where `bothEmpty` is the leftmost one: the state `s` is
+the pattern `0x8000u >> s`, and `disjoint(a, b)` is true when the pattern of
+`overlap(a, b)` meets `disjointMask`, `0xF001`. The type,
+`gaol::overlapping_state`, and the member `a.overlap(b)` are in `gaol` too,
+which has no other name for it. `operator<<` writes a state by its name in the
+table (`meets`, `containedBy`...), as a string, whatever the locale. The state
+is told from the order of the bounds, compared as the integers of their bits,
+so that `-0` and `+0` are the same bound and `overlap()` raises no exception
+for an empty operand. A point interval on a bound of the other one is
+`starts`, `finishes`, `finishedBy` or `startedBy` (`equals` for the same
+point), never `meets` nor `metBy`:
+`overlap(numsToInterval(2.0, 2.0), numsToInterval(1.0, 2.0))` is `finishes`.
+
 A name of the program's own that one of the standard shadows, a constant `inf`
 for instance, is to be qualified: `gaol_ieee1788::inf(x)`. So is `less(x, y)`
 next to `using namespace std;`, where it is ambiguous with the class template
@@ -577,6 +596,12 @@ kind, not that the algorithm cannot be written.
 | Inflate by r | `x.inflate(r)` | — | `x.inflate(r)` | `Blow(x, eps)`, relative to the width | `widen(x, r)` |
 | Bisect | `x.bisect(ratio)` | — | `x.bisect(ratio)`, ratio 0.5 (IBEX) or 0.49 (Codac) | — | `bisect(x)`, at the median only |
 | Two-piece division | two `div_rel`; `mulRevToPair(b, c)` | `mulRevToPair(b, c)` | `div2` (IBEX only) | — | — |
+
+`overlap(x, y)` of Boost.Interval is a boolean, true when x and y have a
+point in common: `!x.set_disjoint(y)` in GAOL v5. The `overlap` of GAOL v5
+(`x.overlap(y)`, `gaol_ieee1788::overlap(x, y)`) is the function of IEEE
+1788-2015 and returns an `overlapping_state`, which does not convert to
+`bool`: a Boost program that tests `overlap(x, y)` does not compile with it.
 
 What the symbols `<`, `<=` and `==` mean is where code ported from another
 library compiles and changes meaning:

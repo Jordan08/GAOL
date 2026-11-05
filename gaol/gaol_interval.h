@@ -198,6 +198,7 @@ namespace gaol {
   using gaol_core::log2p1;
   using gaol_core::max_rel;
   using gaol_core::min_rel;
+  using gaol_core::overlapping_state;
   using gaol_core::pow_exponent_rel;
   using gaol_core::pow_rel;
   using gaol_core::round_ties_to_away;

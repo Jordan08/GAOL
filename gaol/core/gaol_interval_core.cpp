@@ -2357,6 +2357,25 @@ namespace gaol_core {
     return os;
   }
 
+  /*
+    The name of a state of overlap() as Table 10.7 spells it, written as a
+    string is: the width of os applies to it, and no format of interval does
+    (GAOL v5). A value that is no state, which a cast makes, is written
+    overlapping_state(k), k in decimal whatever the locale of os, which
+    std::to_string does not have.
+  */
+  ostream& operator<<(ostream& os, overlapping_state s)
+  {
+    static const char* const names[16] = {
+      "bothEmpty", "firstEmpty", "secondEmpty", "before", "meets", "overlaps", "starts", "containedBy",
+      "finishes", "equals", "finishedBy", "contains", "startedBy", "overlappedBy", "metBy", "after" };
+    const unsigned k = static_cast<unsigned>(s);
+    if (k < 16) {
+      return os << names[k];
+    }
+    return os << "overlapping_state(" + std::to_string(k) + ")";
+  }
+
 
 
 

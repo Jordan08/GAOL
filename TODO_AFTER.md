@@ -1,11 +1,13 @@
 # Reporté
 
-Tout ce qui est reporté sur GAOL v5 au 3 novembre 2026 (commit `60aa5b3` de
+Tout ce qui est reporté sur GAOL v5 au 4 novembre 2026 (commit `1e0f368` de
 `configure-clean`) : ce qui attend la version v5.0.0, ce que le mainteneur a
 reporté indéfiniment, ce qu'il a écarté en laissant une porte ouverte, et ce qui
 attend du matériel. Ce fichier et l'issue #178 ont le même contenu. Ce qui reste
 à faire avant la version est dans `TODO.md` (issue #179), ce qui est fait et
-décidé dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour).
+décidé dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour). Ce que la
+relecture du 4 novembre a relevé sans suite dans aucun registre est dans
+`TODO_fin.md`, et ce qui sortait d'ici, fait, dans `TODO_DONE.md` (3.19).
 
 Rien de ce fichier n'est à faire avant v5.0.0, ni sans l'accord du mainteneur.
 Après v5.0.0, le développement continue dans `configure-clean` et `master` ne
@@ -32,8 +34,8 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
      `gaol/core/gaol_interval_sse.cpp`), et `sup` pourrait alors passer sous la
      valeur exacte ; CORE-MATH lit le sens dans MXCSR, `f_up(x)` y est la borne
      supérieure et `previous_float(f_up(x))` l'inférieure
-     (`gaol/gaol_double_op.h`). Ce qu'il faut, c'est un arrondi dirigé, non un
-     changement de sens :
+     (`gaol/math/gaol_double_op.h`). Ce qu'il faut, c'est un arrondi dirigé,
+     non un changement de sens :
      - sur le chemin AVX-512 (`GAOL_PREFER_AVX512`), `+ - * / sqrt sqr` et les
        puissances entières n'en changent pas, l'arrondi étant dans l'instruction
        (`er_mul2`, `_mm_div_round_sd`, `pown_large_er`) ;
@@ -54,7 +56,7 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
        côté est le résultat arrondi ;
      - les fonctions élémentaires : seules des bornes valables mais plus larges,
        `[previous_float(r), next_float(r)]`, 2 ulp au lieu de 1 (c'est le
-       `namespace nearest` de `gaol/gaol_double_op.h`, qu'aucune opération
+       `namespace nearest` de `gaol/math/gaol_double_op.h`, qu'aucune opération
        n'emploie) ; le signe de l'erreur de CORE-MATH n'est pas exposé, et le
        modifier irait contre la règle de garder `3rd/math-core` proche de
        l'amont ;
@@ -80,10 +82,11 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
      étudier avant de s'y engager, les bornes étant en jeu.
 2. **70 (AK)** [M] : un site de documentation sur GitHub Pages, *décidé le 3
    octobre* : un site généré depuis `doc/*.md`, avec le PDF du manuel, publié
-   par un workflow, sans la référence HTML de Doxygen (supprimée par #29). Sorti
-   du point I le 18 octobre, à la demande du mainteneur : le site vient après
-   les textes de I, qu'il publie et qui sont fusionnés (#140). Sans dépendance,
-   mais l'annonce étant privée, rien ne l'exige pour la version.
+   par un workflow, sans la référence HTML de Doxygen (supprimée par le commit
+   `29f280b`). Sorti du point I le 18 octobre, à la demande du mainteneur : le
+   site vient après les textes de I, qu'il publie et qui sont fusionnés (#140).
+   Sans dépendance, mais l'annonce étant privée, rien ne l'exige pour la
+   version.
 3. **28 (X)** [L] : des en-têtes optionnels au-dessus du cœur scalaire pour
    YalAA et VNODE-LP. *Décidé le 3 octobre* : des traits GAOL pour YalAA et un
    backend intervalle pour VNODE-LP, et non la promotion en `gaol/box.h`,
@@ -93,10 +96,11 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    Le plan détaillé est dans `todo-notes/orchestration/points_w4.py` (son plan
    du 28 reprend la promotion des en-têtes, que la décision du 3 octobre écarte
    : la décision l'emporte). Après la version.
-4. **Le ménage de la fin** : les images Docker de #111 (`i386/debian:trixie`,
-   `debian:trixie`, `ubuntu:24.04`) restent sur la machine ; `todo-notes/`
-   (ramené de la branche `todo-status`, supprimée ; ses rapports sont retirés de
-   l'arbre, ils restent au commit `16a2f60`, et ce qui en sert encore est dans
+4. **Le ménage de la fin** : l'image Docker `i386/debian:trixie` de #111 reste
+   sur la machine (`debian:trixie` et `ubuntu:24.04` ont été supprimées le 31
+   octobre : `TODO_DONE.md`, 8.1) ; `todo-notes/` (ramené de la branche
+   `todo-status`, supprimée ; ses rapports sont retirés de l'arbre, ils restent
+   au commit `16a2f60`, et ce qui en sert encore est dans
    `todo-notes/synthese.md`) est à vider après la version, avec ce qu'il reste
    des registres `TODO.md`, `TODO_DONE.md` et `TODO_AFTER.md` et de leurs issues
    #177 à #179, qu'il faudra alors fermer ou garder.
@@ -116,23 +120,16 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    version. *Décidé le 22 octobre (Q5)* : rien pour l'instant, GAOL reste un
    intervalle nu et les pièges sont documentés (#140) ; reporté indéfiniment.
    L'issue #67 reste ouverte.
-2. **Le contrôle de l'assembleur de x86-64 dans la CI** (#207) : le `--selftest`
-   de `tests/tools/asm-order/check_order.py` tourne dans la CI (job
-   `asm-order-selftest` de `linux.yml`), pas le contrôle des compilations. Un
-   job de plus qui compile les sources avec `-S` en GCC 15 à `-O3` avec
-   `GAOL_PRESERVE_ROUNDING` (une quinzaine de secondes) le ferait ; reporté, à
-   faire si le mainteneur le veut. *Décidé le 29 octobre* : le faire, avec tous
-   les constats (`BEFORE`, `AFTER` et `DENORMAL`), GCC 13.3 et Clang 18, avec et
-   sans la préservation, dans un seul job de quatre étapes : fait par #228
-   (fusionnée le 29 octobre) ; cet article sort de ce fichier.
-3. **106 (AI), le reste (c) et (d)** (*décidé le 28 octobre* : rien) : (c) les
+2. **106 (AI), le reste (c) et (d)** (*décidé le 28 octobre* : rien) : (c) les
    opérations avec un double (`x * 2.0`) n'ont pas les noyaux de #157 sur aucune
-   cible (#124) ; (d) l'effet de `__vectorcall` (les noyaux `add_bounds()` et
-   les autres de Visual C++ et de clang-cl x64, #148) n'est pas séparé dans les
-   temps de la CI ; #193 l'a étendu à x86 32 bits, où le banc A/B ne montre
-   aucune différence au-delà de 5 % sur ses rapports FPU / SSE2, et le
-   mainteneur l'y a gardé. À rapprocher de `doc/simd.md` (#154). Reporté, sans
-   condition.
+   cible (#124) : `x *= d`, `x /= d` et `x %= d` branchent encore sur le signe
+   de `d` avec les intervalles FPU, SSE2 et NEON (#250 n'a changé que le test de
+   `d` des intervalles NEON, et #191 et #220 que le `x / d` du chemin AVX-512) ;
+   (d) l'effet de `__vectorcall` (les noyaux `add_bounds()` et les autres de
+   Visual C++ et de clang-cl x64, #148) n'est pas séparé dans les temps de la
+   CI ; #193 l'a étendu à x86 32 bits, où le banc A/B ne montre aucune
+   différence au-delà de 5 % sur ses rapports FPU / SSE2, et le mainteneur l'y a
+   gardé. À rapprocher de `doc/simd.md` (#154). Reporté, sans condition.
 
 ## 3. Écarté, à rouvrir si une condition change
 
@@ -160,23 +157,29 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    seulement si cette règle change, ou avec l'étude 113 (en 1).
 3. **Le quotient NEON par deux divisions scalaires** (#195, fermée sans fusion
    le 25 octobre). Un essai du `div_bounds()` de NEON avec deux divisions
-   scalaires à la place de la division vectorielle, pour chercher pourquoi `x /
-   y` de clang-cl est plus lent en NEON qu'avec le FPU (#192) : plus lent
+   scalaires à la place de la division vectorielle, pour chercher pourquoi
+   `x / y` de clang-cl est plus lent en NEON qu'avec le FPU (#192) : plus lent
    partout, de 5,36 à 6,17 ns avec clang-cl et de 5,40 à 6,30 avec Visual C++
    sur le Neoverse N2 des runners arm64 de GitHub, de 2,38 à 2,76 ns sur l'Apple
-   M2 (chiffres dans `doc/simd.md`). La branche est supprimée. *À rouvrir*
-   seulement si un processeur ARM 64 bits divise nettement plus vite en
-   scalaire.
+   M2 (chiffres dans `doc/simd.md`). La branche est supprimée. Depuis, #225
+   (fusionnée le 29 octobre) a raccourci le reste du noyau : la perte de
+   clang-cl est corrigée (`TODO_DONE.md`, section 5, PG.8), ce que `doc/simd.md`
+   ne dit pas encore (`TODO_fin.md`, 2.2). *À rouvrir* seulement si un
+   processeur ARM 64 bits divise nettement plus vite en scalaire.
 4. **Des drapeaux propres à la tranche x86_64 d'un build universel de macOS**
    (#194). Cette tranche n'a pas le fusionné multiplie-addition (`-mfma` échoue
    pour la tranche arm64) : CORE-MATH y appelle le `fma()` de la bibliothèque de
    macOS et les puissances entières n'ont pas le noyau empaqueté. *Décidé le 25
-   octobre* : le documenter seulement (`doc/building.md`, ligne `GAOL_FMA`),
-   sans mesurer ce que cela coûte ni donner `-mfma` à cette seule tranche
-   (drapeaux par architecture de Xcode, ou `-Xarch_x86_64`). *À rouvrir* si les
-   builds universels deviennent courants ou si la perte, mesurée sur un Mac
-   Intel, est grande. Le Rosetta de macOS 14 n'a pas AVX : une tranche compilée
-   avec `-mfma` s'y arrêterait sur une instruction illégale.
+   octobre* : le documenter seulement (`doc/building.md`, la ligne
+   `CMAKE_OSX_ARCHITECTURES` et l'article des instructions de
+   multiplication-addition fusionnées, l'ancienne option `GAOL_FMA`, qui n'en
+   est plus une depuis #200), sans mesurer ce que cela coûte ni donner `-mfma` à
+   cette seule tranche (drapeaux par architecture de Xcode, ou
+   `-Xarch_x86_64`). *À rouvrir* si les builds universels deviennent courants
+   ou si la perte, mesurée sur un Mac Intel, est grande. Le Rosetta de macOS 14
+   n'avait pas AVX : une tranche compilée avec `-mfma` s'y arrêtait sur une
+   instruction illégale. macOS 14 a quitté la CI (#276) ; le Rosetta de macOS
+   15 et 26, où tournent les jobs universels, n'est pas vérifié sur ce point.
 5. **mingw-w64 11 lié à `msvcrt.dll`, sans FMA, sur x86 32 bits** (#205). Son
    `fma()` est le même code (`math/fma.c`, inchangé de la version 9 à la 13) que
    celui que `gaol_config.h` refuse depuis #205 pour la version 12 ou plus ; la
@@ -224,13 +227,15 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
 
 1. **Les pistes de `doc/simd.md`** (#154, qui répond aux quatre étapes de
    l'issue #101, fermée) : le RISC-V scalaire à `rm` statique (il faut une
-   carte), POWER et s390x (du matériel) ; l'arrondi embarqué scalaire pour `/`
-   sur les processeurs Intel qui divisent les registres de 512 bits est fait par
-   #191 (voir 4.6 pour d'autres processeurs). Et les gains sans nouveau jeu
-   d'instructions que la page liste : `sqrt` en SSE2, les puissances entières en
-   NEON (fait par #188 : 1,03 à 1,07 sur un M2, puis par #219, la cause du gain
-   faible), `mid()`, la réduction d'argument de `sin` et `cos`. Une voie AVX2,
-   SVE, VSX ou RISC-V seulement après des mesures.
+   carte), POWER et s390x (du matériel) ; et, des gains sans nouveau jeu
+   d'instructions que la page liste, `sqrt` en SSE2 (scalaire hors du chemin
+   AVX-512 : `sqrt_upward()`), `mid()`, et la réduction d'argument de `sin` et
+   `cos` (le code de GAOL autour de CORE-MATH ; sa part, de 42 à 66 % du temps
+   de `sin`, a été mesurée avant l'import du 27 octobre, qui a réécrit `sin` et
+   `cos`, et se remesure avec la tâche PJ). La division du chemin AVX-512 (#191)
+   et les puissances entières de NEON (#188, puis #219) sont faites
+   (`TODO_DONE.md`, 3.19) ; `x / d` sur d'autres processeurs est en 4.6. Une
+   voie AVX2, SVE, VSX ou RISC-V seulement après des mesures.
 2. **ARM 32 bits sur du vrai matériel** (#150) : les mesures de #150 ne valent
    que pour les runners arm64 de GitHub, qui exécutent l'armhf en natif
    (Neoverse N2, « 32-bit EL0 Support » au démarrage, aucune entrée `qemu-arm`,
@@ -245,13 +250,16 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    (`VSX_MAX_MINC`) et dans un commentaire de GCC, ni dans l'ISA ni sur un
    processeur ; la phrase de `doc/using.md` (« premier opérande ») est celle de
    QEMU.
-4. **Ce qui n'a pas été exécuté** (#157, #162) : l'exécution des noyaux FPU sur
-   ARM 32 bits, POWER, s390x et RISC-V (la CI les lance sous qemu pour POWER9,
-   s390x, ppc64le et riscv64, dont les temps ne sont pas ceux d'un processeur)
-   et leur vitesse ; le noyau SSE2 (comparé à un modèle, jamais exécuté) ; pour
-   #162, toute exécution sur x86 (le signe d'un zéro de l'ancien `pow` avec
-   SSE2, le chemin AVX-512), avec GCC et sous Windows ; les temps de #162
-   viennent d'un seul M2 partagé, et pas avec `GAOL_PRESERVE_ROUNDING`.
+4. **Ce qui n'a pas été exécuté** (#157, #162) : les noyaux FPU sur de vrais
+   processeurs ARM 32 bits, POWER, s390x et RISC-V (la CI les lance sous qemu
+   pour POWER9, s390x, ppc64le et riscv64, dont les temps ne sont pas ceux d'un
+   processeur) et leur vitesse ; pour #157, l'égalité bit à bit du produit des
+   intervalles FPU et de celui des SSE2, qui n'a été comparée qu'à un modèle du
+   noyau SSE2 ; les temps de #162, qui viennent d'un seul M2 partagé, et pas
+   avec `GAOL_PRESERVE_ROUNDING`. Le vrai noyau SSE2 et le test de #162
+   (`power_two_is_sqr()`) tournent dans chaque job x86 de la CI (GCC, Visual
+   C++, clang-cl, MinGW-w64, le chemin AVX-512 sous Intel SDE) : ce qui en est
+   fait est dans `TODO_DONE.md` (3.19).
 5. **`FPCR.AH` (FEAT_AFP, Armv8.7) sur un vrai processeur** (#187, issue #198) :
    le bloc de `tests/rounding_direction.cpp` qui met `AH` et compare les
    opérations avec `AH` mis et effacé n'avait été exécuté que sous QEMU 10.0
@@ -284,8 +292,9 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    que la CI n'a pas (avant 19.44) ; l'exécution de Visual C++ pour x86 hors de
    la CI (Compiler Explorer échoue avec 0xC000007B) ; la tranche x86_64 d'un
    build universel de macOS, que la session MACarm2 (Apple M2, sans Rosetta)
-   compile et lie sans l'exécuter, et que seul le job `macOS 26 universal`
-   exécute.
+   compile et lie sans l'exécuter, et que la CI exécute sous Rosetta sans la
+   mesurer (depuis #205, sept jobs universels : CMake, autotools et meson sur
+   macOS 15 et 26, et le générateur d'Xcode sur macOS 26).
 8. **Un échec de CI sous Rosetta, non reproduit** (#189, #208) : le job « macOS
    14 x86_64 (Rosetta) » a échoué une fois sur `arithmetic`
    (`gaol_ieee1788::pow(x, [2]) is sqr(x & [0, +oo]), [0] for [0], the same
@@ -293,9 +302,14 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    caller's direction downward, flush modes 0 » : GAOL a rendu [0,
    0x1.aa365774f4ea3p+409] et le calcul de référence, `sqr(x & [0, +oo])`, le
    vide) et est passé à la relance, sans lien visible avec le diff de #189. Non
-   reproduit en local ni dans les autres jobs de #186 à #190. Il est revenu le
-   28 octobre sur #208 (`007c1f3`, run 40668659623, job 122750002962, « macOS 26
-   universal (arm64 and x86_64), meson », tranche x86_64 sous Rosetta) :
+   reproduit en local ni dans les autres jobs de #186 à #190. Deux échecs plus
+   anciens du même job n'étaient pas notés ici : celui d'un job Rosetta de
+   `configure-clean` le 20 octobre (run 39487538926, sans message de test dans
+   son journal), et celui du 22 octobre sur #162, `cancel_minus` dans
+   `arithmetic`, dont les bornes affichées des deux côtés étaient identiques,
+   passé à la relance (commentaire de #162). Un échec du même genre est revenu
+   le 28 octobre sur #208 (`007c1f3`, run 40668659623, job 122750002962, « macOS
+   26 universal (arm64 and x86_64), meson », tranche x86_64 sous Rosetta) :
    `ieee1788` a écrit « FAILED pown(x, n) beyond the long longs: x^(2^64 - 1) as
    x^(2^63 - 1), x^(2^64 - 2) as x^(2^63 - 2) ». Ce contrôle de
    `tests/ieee1788.cpp` relie quatre sous-vérifications par `&&` et n'affiche
@@ -312,7 +326,10 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    dans `tests/ieee1788.cpp` (calculer les quatre intervalles avant le `check`
    et les afficher tous les quatre dans son détail), pour que le journal dise
    laquelle des quatre sous-vérifications diffère, puis voir si Rosetta lit le
-   sens d'arrondi ou les modes de MXCSR comme un processeur.
+   sens d'arrondi ou les modes de MXCSR comme un processeur. Le job « macOS 14
+   x86_64 (Rosetta) » n'existe plus (#276 l'a passé sur `macos-27`, sans
+   exécuteur, et il est en commentaire dans `macos.yml`) ; Rosetta reste dans la
+   CI (« macOS 26 x86_64 (Rosetta) » et la tranche x86_64 des jobs universels).
 9. **Un délai de test juste pour un exécuteur lent** (#215) :
    `automatic_configuration` (600 s) a dépassé son délai le 28 octobre dans le
    job « macOS 26 Xcode generator, universal (arm64 and x86_64) » de #215, sur
@@ -339,7 +356,9 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    `doc/accuracy.md` et `doc/tests.md`). Pi demanderait un encadrement intégré à
    plus de chiffres ; les nombres loin au-delà, la comparaison de leurs
    exposants et de leurs premiers chiffres. Les autres cas (deux nombres entre
-   les mêmes deux doubles) sont départagés exactement depuis #149.
+   les mêmes deux doubles) sont départagés exactement depuis #149. La tâche PM
+   de `TODO.md` (à décider) traite les bornes calculées : cet article suit sa
+   décision.
 2. **Trois inversions du banc A/B de `cl`** (#209) : `x / y` et `sqr(x)` sont
    plus lents avec #209 (+54 et +48 ns) et `x - y` plus rapide (−41 ns) dans les
    deux jobs de Visual C++ x64 à direction préservée, sans mécanisme : leurs
@@ -368,3 +387,14 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    (#279). *À rouvrir* si un programme réel a surtout des opérandes vides ou des
    bornes égales sur ARM : le chemin des bornes égales de `x <= y` serait à
    raccourcir (non étudié).
+4. **Les tests à plusieurs threads** (le commit `0048c79` du 23 septembre) : les
+   tests de GAOL ne lancent aucun thread, et ceux qui le faisaient sont en
+   commentaire (la lecture de chaînes par quatre threads à la fois,
+   `tests/expressions.cpp` ; l'écriture d'intervalles par un second thread
+   pendant `intervalToExact()`, `tests/ieee1788.cpp` ;
+   `tests/CMakeLists.txt:300-306`), ce que dit `doc/tests.md`. `doc/using.md`
+   (« The output formats ») dit que plusieurs threads écrivent des intervalles
+   et lisent des chaînes sans risque (« checked with ThreadSanitizer ») :
+   vérifié une fois, aucun test de `ctest` ni job de la CI ne le revérifie.
+   *Décidé le 5 novembre* : inscrire la limite ici, sans changer le code, les
+   tests ni `doc/using.md`.

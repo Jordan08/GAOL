@@ -20,13 +20,24 @@ textes ont été écrits en anglais ou en français, selon le relecteur.
 1. **Les textes proposés pour `ChangeLog` et `doc/differences.md`.** La pull
    request de synthèse les reprendra (point Y de `TODO.md`). Ils sont recopiés
    tels que les rapports les proposaient, avec une note quand des changements
-   plus récents les ont rendus inexacts. Aucun n'est encore dans `ChangeLog`
-   ni dans `doc/differences.md`, que rien n'a touchés depuis le 28 septembre.
+   plus récents les ont rendus inexacts. Aucun n'était encore dans `ChangeLog`
+   ni dans `doc/differences.md`, que rien n'avait touchés depuis le 28
+   septembre ; la synthèse du point Y (#263 à #274, le 30 octobre) les a écrits
+   depuis, et les mentions « In `configure-clean` » ci-dessous datent du 4
+   octobre.
 2. **Le contenu encore utile** aux points qui restent : mesures, cas de test,
    mises en garde, et ce qu'aucun autre document ne dit (les pull requests #37
    et #39 n'ont pas de description).
 
 ## 1. Les textes pour `ChangeLog` et `doc/differences.md`
+
+Depuis #285 (4 novembre), les classes d'exceptions que plusieurs de ces textes
+nomment n'existent plus : `input_format_error` est devenue
+`std::invalid_argument`, `invalid_action_error` est devenue `std::domain_error`,
+et `gaol_exception` et `unavailable_feature_error` n'ont pas de successeur (voir
+`doc/differences.md` et la section « Errors » de `doc/using.md`). Les textes qui
+suivent les citent comme les rapports les proposaient, et ceux de `14.md` (le
+`what()` de `gaol_exception`) ne sont plus à reprendre.
 
 ### `01.md` (#37) — point 1, the pow of the standard written once
 

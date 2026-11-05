@@ -156,6 +156,50 @@ namespace gaol_core {
     };
   };
 
+  /*!
+    \brief The 16 states of two overlapping intervals (GAOL v5)
+
+    The values of overlap(a, b) of IEEE 1788-2015 (10.6.4, Table 10.7), under
+    the names of the standard and in its order: bothEmpty is 0 and after is
+    15. The note of 10.6.4 makes the state s the 16-bit pattern 0x8000 >> s,
+    bothEmpty being the leftmost bit, and the comparisons masks of such
+    patterns: disjointMask = 0xF001 is bothEmpty, firstEmpty, secondEmpty,
+    before and after.
+
+    The first three are for an empty interval. The other 13 are the states of
+    J. F. Allen's temporal logic, for a = [al, au] and b = [bl, bu], both
+    nonempty (the bounds are told as the extended reals, an infinite bound
+    being equal to the same infinite bound):
+    - before: au < bl;                 after: bu < al;
+    - meets: al < au = bl < bu;        metBy: bl < bu = al < au;
+    - overlaps: al < bl < au < bu;     overlappedBy: bl < al < bu < au;
+    - starts: al = bl, au < bu;        startedBy: al = bl, bu < au;
+    - finishes: bl < al, au = bu;      finishedBy: al < bl, au = bu;
+    - containedBy: bl < al, au < bu;   contains: al < bl, bu < au;
+    - equals: al = bl, au = bu.
+    A point interval on a bound of the other one is starts, finishes,
+    finishedBy or startedBy (equals if the other is the same point), never
+    meets or metBy, which need a nonzero width on both sides.
+  */
+  enum class overlapping_state : unsigned char {
+    bothEmpty,
+    firstEmpty,
+    secondEmpty,
+    before,
+    meets,
+    overlaps,
+    starts,
+    containedBy,
+    finishes,
+    equals,
+    finishedBy,
+    contains,
+    startedBy,
+    overlappedBy,
+    metBy,
+    after
+  };
+
 } // namespace gaol_core
 
 namespace gaol_detail {
@@ -663,6 +707,19 @@ namespace gaol_core {
     */
     GAOL_NODISCARD bool less(const interval& I) const;
     GAOL_NODISCARD bool strictly_less(const interval& I) const;
+    /*!
+      \brief The interval overlapping function of IEEE 1788-2015 (10.6.4,
+      GAOL v5)
+
+      overlap(*this, I): the state of overlapping_state that *this (a) and
+      I (b) are in. Told by the bounds as the integers of their bits
+      (gaol_detail::bound_key(), gaol/gaol_port.h), -0 and +0 being the same
+      bound: the bounds of two nonempty intervals are not compared as
+      doubles, so that it raises no floating-point exception, even for an
+      empty operand, and the modes that flush the subnormals to zero do not
+      change it.
+    */
+    GAOL_NODISCARD overlapping_state overlap(const interval& I) const;
 
     /*!
       isEmpty of IEEE 1788-2015: *this is the empty set, whose bounds are NaN.
@@ -1205,6 +1262,62 @@ namespace gaol_core {
     return lower && upper;
   }
 
+  /*
+    overlap() of IEEE 1788-2015 (10.6.4), from the bounds of the two nonempty
+    intervals told apart by the integers of their bits (bound_key()), which
+    are in the order of the doubles that are no NaN: a bound of a nonempty
+    interval is none. The tests of the empty set are those of is_empty()
+    (quiet comparisons), and the bounds are then compared as these integers
+    only: no comparison of doubles, which a compiler that vectorizes a loop of
+    overlap() could turn into a signaling one for the NaN bounds of an empty
+    operand, and which the modes flushing the subnormals to zero change (see
+    the relations above).
+    The lower bounds al and bl tell the side of the common part of a and b, and
+    the upper bounds au and bu the other side:
+    - al = bl: starts, equals or startedBy by au and bu;
+    - al < bl: finishedBy (au = bu), contains (bu < au), else au < bu and the
+      end of a against the start of b tells before, meets or overlaps;
+    - bl < al: the same, with the roles of a and b exchanged.
+    A point interval on a bound of the other one has al = bl or au = bu, so
+    that it is never meets or metBy, as the standard asks.
+  */
+  GAOL_INLINE
+  overlapping_state interval::overlap(const interval& I) const
+  {
+    const bool a_empty = is_empty();
+    const bool b_empty = I.is_empty();
+    if (a_empty || b_empty) {
+      return a_empty ? (b_empty ? overlapping_state::bothEmpty : overlapping_state::firstEmpty)
+                     : overlapping_state::secondEmpty;
+    }
+    const std::int64_t al = gaol_detail::bound_key(left());
+    const std::int64_t au = gaol_detail::bound_key(right());
+    const std::int64_t bl = gaol_detail::bound_key(I.left());
+    const std::int64_t bu = gaol_detail::bound_key(I.right());
+    if (al == bl) {
+      return au == bu ? overlapping_state::equals
+                      : (au < bu ? overlapping_state::starts : overlapping_state::startedBy);
+    }
+    if (al < bl) {
+      if (au == bu) {
+        return overlapping_state::finishedBy;
+      }
+      if (bu < au) {
+        return overlapping_state::contains;
+      }
+      return au < bl ? overlapping_state::before
+                     : (au == bl ? overlapping_state::meets : overlapping_state::overlaps);
+    }
+    if (au == bu) {
+      return overlapping_state::finishes;
+    }
+    if (au < bu) {
+      return overlapping_state::containedBy;
+    }
+    return bu < al ? overlapping_state::after
+                   : (bu == al ? overlapping_state::metBy : overlapping_state::overlappedBy);
+  }
+
   GAOL_INLINE
   bool interval::is_symmetric(void) const
   {
@@ -1608,6 +1721,16 @@ namespace gaol_core {
                                                      const interval &X);
 
   extern GAOL_PUBLIC std::ostream& operator<<(std::ostream& os, const interval& I);
+  /*!
+    \brief Writes the name of a state of overlap() (GAOL v5)
+
+    The name Table 10.7 of IEEE 1788-2015 gives the state, as a string:
+    bothEmpty, firstEmpty, secondEmpty, before, meets, overlaps, starts,
+    containedBy, finishes, equals, finishedBy, contains, startedBy,
+    overlappedBy, metBy or after; overlapping_state(k) for a value k that is
+    none of them. The width of os applies to the name as a whole.
+  */
+  extern GAOL_PUBLIC std::ostream& operator<<(std::ostream& os, overlapping_state s);
   /*!
     \brief Reads an interval, written on a line, from is
 

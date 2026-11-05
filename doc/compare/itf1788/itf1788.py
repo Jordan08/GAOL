@@ -53,7 +53,7 @@ from fractions import Fraction
 
 # The operations GAOL v5 provides, by their name in the .itl files: the C++
 # expression of the call, {0}, {1}... being the inputs, and the kind of each
-# output: I an interval, D a number, B a boolean
+# output: I an interval, D a number, B a boolean, O a state of overlap
 OPS = {}
 
 
@@ -103,13 +103,14 @@ op("midRad", "midRad({0})", "DD")
 # Boolean functions (Table 10.3, 10.6.3)
 op("isEmpty isEntire isCommonInterval isSingleton", "@({0})", "B")
 op("equal subset less strictLess precedes strictPrecedes interior disjoint isMember", "@({0}, {1})", "B")
+# Extended interval comparisons (10.6.4): overlap(a, b) is a state of Table
+# 10.7, an overlapping_state
+op("overlap", "@({0}, {1})", "O")
 
 # The operations GAOL v5 does not provide, and why (gaol/gaol_ieee1788.h,
 # "Not provided")
 NOT_IN_STANDARD = "not an operation of IEEE 1788-2015, which GAOL v5 does not provide"
-NOT_PROVIDED = {
-    "overlap": "overlap (10.6.4): GAOL v5 has no interval overlapping",
-}
+NOT_PROVIDED = {}
 for _name in "sum dot sum_abs sum_sqr".split():
     for _mode in "nearest up down zero".split():
         NOT_PROVIDED[_name + "_" + _mode] = "the reduction operations (12.12.12): GAOL v5 has none"
@@ -360,6 +361,9 @@ def cpp_literal(lit, kind=None):
         return str(lit.value) + "LL"
     if lit.kind == "bool":
         return "true" if lit.value else "false"
+    if lit.kind == "overlap":
+        # a state of Table 10.7, which has the name of the file's
+        return "overlapping_state::" + lit.value
     if lit.kind == "string":
         # the .itl string, a C string literal already
         return "std::string(%s)" % lit.value
@@ -411,7 +415,8 @@ def cpp_case(case, not_provided):
     if len(outs) != len(kinds):
         raise ItlError("%s:%d: %d outputs, %d expected for %s" % (case.file, case.line, len(outs), len(kinds), case.op))
     for lit, k in zip(outs, kinds):
-        ok = {"I": lit.is_interval(), "D": lit.kind in ("number", "nan", "int"), "B": lit.kind == "bool"}[k]
+        ok = {"I": lit.is_interval(), "D": lit.kind in ("number", "nan", "int"), "B": lit.kind == "bool",
+              "O": lit.kind == "overlap"}[k]
         if not ok:
             raise ItlError("%s:%d: output %s where %s is expected" % (case.file, case.line, lit.kind, k))
     exp = [cpp_literal(l, k) for l, k in zip(outs, kinds)]
@@ -424,6 +429,8 @@ def cpp_case(case, not_provided):
         body = "%s(double(%s), %s);" % (eq_mid, expr, exp[0])
     elif kinds == "B":
         body = "r.eq(bool(%s), %s);" % (expr, exp[0])
+    elif kinds == "O":
+        body = "r.eq(%s, %s);" % (expr, exp[0])
     elif kinds == "II":
         body = ("const std::pair<interval, interval> p = %s; r.eq(p.first, interval(%s)); "
                 "r.eq(p.second, interval(%s));" % (expr, exp[0], exp[1]))
@@ -514,6 +521,7 @@ CLASSES = [
     ("zero-sign", "The sign of a zero result (12.12.8: −0 for inf, +0 for the other numeric functions)",
      "bug of GAOL v5"),
     ("boolean", "The other boolean", "bug of GAOL v5"),
+    ("overlap-state", "Another state of overlap (Table 10.7)", "bug of GAOL v5"),
     ("threw", "An exception", "bug of GAOL v5"),
     ("valid", "Valid, not the tightest: IEEE 1788-2015 requires of this operation a valid result, and "
      "recommends an accurate one (12.10.2)", "conforming"),
@@ -820,8 +828,11 @@ def classify_row(row):
 
 
 def failure_class(row):
-    got, exp = outputs(row.got), outputs(row.expected)
     row.note = ""
+    if row.op == "overlap":
+        # the outputs are names of states, which outputs() does not read
+        return "overlap-state"
+    got, exp = outputs(row.got), outputs(row.expected)
     if any(isinstance(e, bool) for e in exp):
         return "boolean"
     if any(isinstance(e, float) for e in exp):
