@@ -1,8 +1,8 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `61a432b` de `configure-clean` (la
-fusion de #288, après #287, #285 et la branche `std-exceptions`), le 4 novembre
-2026, en tâches PH, PJ et PM (PA à PG, PI et PL sont faites, PK est close : voir
+Ce qui reste à faire sur GAOL v5 au commit `130acea` de `configure-clean` (la
+fusion de #292, après #293, #291, #290, #289 et #288), le 5 novembre 2026, en
+tâches PH, PJ et PM (PA à PG, PI et PL sont faites, PK est close : voir
 `TODO_DONE.md`). Ce fichier et l'issue #179 ont le même contenu. Ce qui est fait
 et décidé est dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour), ce qui
 est reporté dans `TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142
@@ -11,10 +11,7 @@ sont fermées, et `TODO_mistral.md` est supprimé.
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à envoyer à un autre projet ni à publier sans l'accord
-du mainteneur. Deux pull requests sont ouvertes : #289 (la synthèse de #283
-à #288 dans `doc/differences.md`, le `ChangeLog` et `synthese.md`, avec le PDF
-du manuel : le point 7 de PJ) et #290 (`overlapping_state`, les 16 états de la
-Table 10.7 d'IEEE 1788-2015, 10.6.4).
+du mainteneur. Aucune pull request n'est ouverte.
 
 ## Comment lire ce fichier
 
@@ -145,15 +142,17 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    des 5 466 lignes de `gaol/`, contre 87,2 % le 2026-09-27 à `605728e`), à la
    demande du mainteneur, avec la tâche PL (*décidé le 4 novembre*) : l'ancien
    citait `gaol_exceptions.*` et des fichiers disparus. Le job « Coverage » de
-   `linux.yml` le refait à chaque push, mais pas la copie du dépôt. À refaire
-   une dernière fois au commit de la version (`-DGAOL_COVERAGE=ON`, cible
+   `linux.yml` le refait à chaque push, mais pas la copie du dépôt (94,9 % de
+   6 329 lignes dans celui de #288, où `compoundm1` est entrée). À refaire une
+   dernière fois au commit de la version (`-DGAOL_COVERAGE=ON`, cible
    `coverage`, gcovr) et à enregistrer ; *décidé le 15 octobre* : pas avant,
    sauf ce relevé du 4 novembre. Le test `numbers` y dépasse les 300 s de CTest
    quand la machine est chargée (`ctest --timeout` ne les change pas) : le
    relevé du 4 novembre a lancé `ctest -E '^numbers$'`, puis `gaol_test_numbers`
    à la main. Lancer aussi une fois, sous ASan + UBSan, le test `numbers` en
    entier (trop long pour la relecture du 14 octobre : 158 s pour `arithmetic`
-   seul ; il a passé en local le 4 novembre, en Debug, 9 tests sur 9) ;
+   seul) : fait en local le 4 novembre, en Debug, 9 tests sur 9 ; à relancer au
+   commit de la version si `numbers` ou la bibliothèque ont changé depuis ;
    `GAOL_NUMBERS_TIMEOUT` n'était pas relevé pour les builds avec sanitizers
    (*décidé le 14 octobre*) ; il vaut 400 s dans les quatre jobs de `linux.yml`
    qui en ont, depuis #281 (*décidé le 3 novembre* : `numbers` a dépassé 300 s
@@ -224,17 +223,22 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    second paragraphe (les défauts de GAOL 4) dépasse l'annonce décidée le 3
    octobre, mais *décidé le 24 octobre* : le garder tel quel.
 5. **Le manuel** (l'ancien point 4 de PI) : une seule régénération de
-   `manual/v5/gaol.pdf`, qu'on ne commite jamais dans une branche de point. Le
-   PDF versionné est plus vieux que `gaol.tex` (son dernier commit est c02e15d)
-   : il montre encore « GAOL 4.3.2 », « bison 3.5.1 », « one double beyond » et
-   l'ancienne section 14.2 (#275). À faire après avoir corrigé dans `gaol.tex`
-   les entrées d'index en conflit de « canonical interval » et l'`Overfull
-   \hbox` connu (les lignes 511 à 515 de `gaol.tex` le 14 octobre), et en
-   vérifiant que l'entrée de `what()` ne laisse pas son en-tête seul en bas de
-   page (macro `\defmethod`). *Décidé le 3 octobre*, pour les points 7 et 10 :
-   un seul `\newinvfive` dans l'entrée `hausdorff` du manuel, et aucun sur la
-   phrase du domaine de `atanh`. Le manuel se compile avec `pdflatex`
-   (`manual/build-pdf.sh` : 154 pages, 0 erreur le 30 octobre).
+   `manual/v5/gaol.pdf`, qu'on ne commite jamais dans une branche de point.
+   *Faite une première fois par #289* (fusionnée le 5 novembre, à la demande du
+   mainteneur, avec la synthèse) : `sh manual/build-pdf.sh` avec `pdflatex` de
+   TeX Live 2025, 154 pages, 0 erreur, aucun `Overfull \hbox`, aucun
+   avertissement de `makeindex`, après la correction dans `gaol.tex` de l'entrée
+   d'index en conflit de « canonical interval », de l'`Overfull \hbox` connu et
+   des entrées de `operator|` que `makeindex` rejetait ; la date d'édition du
+   manuel (`GAOL_V5_UPDATED` de `configure.ac`, de `configure` et de
+   `manual/meson.build`) est le 4 novembre 2026. Depuis, #290 (`overlap`) et
+   #293 (`d * x`) ont changé `gaol.tex` : le PDF versionné (`857704a`) est de
+   nouveau plus vieux que sa source. *À décider* (le mainteneur, le 5 novembre :
+   « Je décide plus tard ») : le refaire maintenant, ou une dernière fois au
+   commit de la version avec les mesures de ce point, la date d'édition étant
+   alors à remettre à jour. *Décidé le 3 octobre*, pour les points 7 et 10 : un
+   seul `\newinvfive` dans l'entrée `hausdorff` du manuel, et aucun sur la
+   phrase du domaine de `atanh`.
 6. **La CI de macOS 27** (#276, fusionnée le 30 octobre) : le job `macOS 27
    arm64` remplace `macOS 14` sur l'étiquette `xcode-27` (le mainteneur,
    `57650a4` du 1er novembre) et passe le 2 novembre ; celui de x86_64 sous
@@ -244,66 +248,18 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    `CMakeLists.txt` ligne 506, `gaol/math/gaol_core_math_port.h` ligne 453,
    `configure.ac` et `meson.build`) sont à revoir avec la version si macOS 14
    ne doit plus y figurer.
-7. **Les restes de #283, de #284, de #285 et de #287** (hors des points) : les
-   textes « Pour `doc/differences.md` et `ChangeLog` » de ces pull requests ne
-   sont pas reportés. *Décidé le 4 novembre* (« Attendre #287 ») : une seule
-   pull request de synthèse pour #283 à #287, après la fusion de #287 (faite le
-   4 novembre à 19 h 12 UTC), dont le texte de #287 est plus bas ; rien n'est
-   encore écrit pour #283 à #287 dans `doc/differences.md`, `ChangeLog` ni
-   `todo-notes/synthese.md` (#288 y a écrit son texte, ce qui a décalé de 9
-   lignes `doc/differences.md` et de 17 le `ChangeLog` : les numéros qui suivent
-   sont ceux du commit `61a432b`). Dans `doc/differences.md` : les anciens
-   chemins de `gaol_double_op.h`, `gaol_u128.h`, `gaol_ldexp.h`,
-   `gaol_roundeven.h` et `gaol_core_math.h` (13 lignes : 49, 84, 93, 251, 260,
-   318, 370, 1137, 1834, 1867, 1868, 2409, 2433) et de `core_math_port.h` (131,
-   175, 1139), qui sont dans `gaol/math/` ; « The whole tree of CORE-MATH is
-   vendored » (ligne 1135), l'arbre ne gardant que `binary64` ;
-   `gaol_roundeven.h`, qui n'est plus installé (ligne 251), et
-   `round_ties_to_even()`, qui n'est plus en ligne ; les sept opérateurs de
-   `gaol_ieee1788`. Pour #285 (*décidé le 4 novembre* : le texte se prépare
-   après la fusion, avec les registres), les exceptions de la bibliothèque
-   standard : les 23 lignes qui nomment `gaol_exception`, `input_format_error`,
-   `invalid_action_error` ou `unavailable_feature_error` (234, 1011, 1073, 1077,
-   1080, 1081, 1085, 1087, 1088, 1097, 1399, 1493, 1571, 1596, 1622, 1641, 1673,
-   1719, 1736, 1737, 1959, 1989, 1997), dont la 1959 (`gaol_exceptions.h` ne
-   déclare plus `string` ni `exception`, et n'est plus un en-tête), le `what()`
-   par nom de classe (1085 à 1088), le fichier nul (1097) et `operator<<`, et la
-   ligne 1744 (`gaol_ERROR` sans exceptions) ; les lignes 77 et 78 disent
-   « 87 % » de couverture (94,3 % le 4 novembre). Le texte : les classes
-   d'exceptions de GAOL 4 disparaissent ; GAOL lance `std::invalid_argument`
-   (une chaîne qui n'est pas un intervalle, un pointeur nul) et
-   `std::domain_error` (un argument qu'une fonction ne prend pas :
-   `nb_fp_numbers()`, `bisect()`, `nth_root(8, 1.5)` dans une chaîne) ; un
-   gestionnaire de `gaol_core::input_format_error` attrape
-   `std::invalid_argument`, un de `gaol_core::invalid_action_error` attrape
-   `std::domain_error`, et il n'y a plus de base commune à GAOL
-   (`std::logic_error` attrape les deux), sans alias ; `what()` est
-   `fichier:ligne: explication`, le fichier sans ses répertoires, où GAOL 4
-   donnait `std::exception`, et `file()`, `line()`, `explanation()` et
-   `operator<<` n'existent plus ; `gaol_ERROR(excep, msg)` prend une classe
-   dérivée de `std::exception`, ce que le compilateur vérifie avec exceptions
-   comme sans. Pour #287 (fusionnée le 4 novembre, le texte de sa description) :
-   `pownRev(c, x, p)` de `gaol_ieee1788` est fourni pour p ≤ 0 (`x` si 1 est
-   dans `c` et vide sinon pour p = 0, l'enveloppe des `x ≠ 0` avec `x^p` dans
-   `c` pour p < 0, `c` coupé en 0) et ne lève plus `std::domain_error` : dans
-   `doc/differences.md`, la ligne 1509 (« only `pownRev` for p ≤ 0 is missing »)
-   tombe, et dans `ChangeLog` la ligne 810 (« pownRev for p <= 0 is missing »).
-   `nth_root_rel(J, p, I)` prend tout entier p : **changement silencieux**, un
-   `int` négatif était converti en un grand `unsigned int` (une racine d'ordre
-   voisin de 4·10^9) et donne maintenant la puissance négative ; un exposant
-   `double` ou `float`, converti avant en `unsigned int`, est refusé à la
-   compilation. Précision pour p < 0 : jusqu'à 4 doubles du plus serré, et
-   `p = -1` près de 2^-1074 sature à ±`DBL_MAX` (`doc/accuracy.md`). Dans
-   `ChangeLog` : une entrée pour ces déplacements (les lignes 100, 649, 811 et
-   1586 nomment les fichiers à leur place d'alors) ; pour #285, les 12 lignes
-   qui nomment les anciennes classes (322, 785, 858, 885, 928, 954, 991 à 993,
-   997, 998, 1016), dont les entrées sur `gaol_exceptions.{h,cpp}` (322, 991 et
-   997), deviennent historiques, et une entrée pour le changement. Restent aussi
-   le commentaire de `CMakeLists.txt` (ligne 1436) qui cite
-   `core_math_log_dint.h`, qui n'existe pas, et `todo-notes/synthese.md`, qui
-   garde 11 lignes sur les anciennes classes (un registre, non touché par #285).
-   Le cas des bornes qui sont des résultats d'opérations (12.12.7), que
-   `doc/compare/itf1788.md` dit déjà, est la tâche PM. [S]
+7. **Les restes de la synthèse de #283 à #288** : la pull request #289 l'a faite
+   (`doc/differences.md`, `ChangeLog`, `todo-notes/synthese.md`, fusionnée le 5
+   novembre) ; #290 a écrit son texte dans sa propre pull request. Restent trois
+   détails : le commentaire de `CMakeLists.txt` (ligne 1436) cite
+   `core_math_log_dint.h`, qui n'existe pas ; la liste de `doc/differences.md`
+   (ligne 2370) des fichiers que l'archive des sources laisse de côté ne nomme
+   pas `TODO_fin.md` ni `STEP.md`, que `CMakeLists.txt` exclut depuis #291 ;
+   dans `todo-notes/synthese.md`, les notes « Présence : absents » et les
+   renvois « change 6 » et « change 7 » de `3rd/README.md` sont périmés
+   (`TODO_fin.md`, section 7, article 21). Le cas des bornes qui sont des
+   résultats d'opérations (12.12.7), que `doc/compare/itf1788.md` dit déjà, est
+   la tâche PM. [S]
 
 ## PM. Le cas (b) de IEEE 1788-2015, 12.12.7 [S ou M, à décider]
 

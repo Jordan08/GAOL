@@ -1,9 +1,9 @@
 # Fait et décidé sur GAOL v5
 
-Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 4 novembre 2026
-(commit `61a432b` de `configure-clean`, la fusion de #288 après celle de #287 :
-voir la section 1). Ce fichier fait foi : l'issue #177, qui avait le même
-contenu, n'est plus mise à jour depuis le 28 octobre (voir 7.8).
+Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 5 novembre 2026
+(commit `130acea` de `configure-clean`, la fusion de #292 : voir la section 1).
+Ce fichier fait foi : l'issue #177, qui avait le même contenu, n'est plus mise à
+jour depuis le 28 octobre (voir 7.8).
 
 Il réunit l'historique de l'ancienne issue #49 (« Suivi du TODO de GAOL v5 »),
 ce qui est fait dans l'ancienne issue #142 (« Reste à faire sur GAOL v5 »), dans
@@ -48,81 +48,88 @@ est supprimé. Le reste du travail est dans deux autres registres :
   `16a2f60` (`todo-notes/`, ceux du 30 septembre dans `todo-notes/2026-09-30/`)
   ; la procédure suivie pour chaque point est dans `process.md`.
 
-Sommaire : 1. L'état au 4 novembre ; 2. Les pull requests ; 3. Les décisions,
+Sommaire : 1. L'état au 5 novembre ; 2. Les pull requests ; 3. Les décisions,
 par date ; 4. Les points faits, par lettre ; 5. Les anciens numéros faits ; 6.
 Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 `configure-clean` ; 8. Le ménage fait.
 
-## 1. L'état au 4 novembre 2026
+## 1. L'état au 5 novembre 2026
 
-- **`configure-clean`** est au commit `61a432b` (la fusion de #288 le 4 novembre
-  à 19 h 19 UTC, après celles de #217 le 28 octobre, de #218, #219, #222, #223
+- **`configure-clean`** est au commit `130acea` (la fusion de #292 le 5 novembre
+  à 10 h 08 UTC, après celles de #217 le 28 octobre, de #218, #219, #222, #223
   et #225 le matin du 29, de #220, #224 et #227 à #231 de 18 h 04 à 18 h 19 UTC,
   de #232, #234 et #235 de 19 h 55 à 19 h 57, de #236 à 23 h 42, de #237 et #238
-  le 30 octobre à 11 h 04, de #245, #242 et #249 de 19 h 57 à 20 h 07, de #263 à
-  #274 de 20 h 24 à 20 h 40, de #275 à 21 h 10, de #262, #250, #239 et #248 de
-  21 h 13 à 21 h 32, de #276 à 21 h 37, de #279 le 31 octobre à 9 h 32, de #280
-  le 2 novembre à 19 h 36, de #282 le 3 novembre à 11 h 38, de #283 et de #284 à
-  11 h 40 et 11 h 41 et de #281 à 16 h 51, de #285 le 4 novembre à 8 h 22, de la
-  branche `std-exceptions` (`221c8d4`) et de #287 à 19 h 12 ; l'import de
-  CORE-MATH `0b2ae6d1` est du 27 octobre, voir 7.6 à 7.10). Les pull requests
-  des corrections vont vers `configure-clean`, qui reste la branche de
-  développement après v5.0.0 ; `MATH-CORE` et `master` (GAOL 4.3.2, plus deux
-  commits de `.claude/CLAUDE.md`) ne bougent qu'à la version (point Y).
-- **Pull requests ouvertes** : #289 (la synthèse de #283 à #288, le point 7 de
-  PJ) et #290 (`overlapping_state`, 10.6.4 d'IEEE 1788-2015), ouvertes le 4
-  novembre à 21 h 00 et 21 h 09 UTC, et #292 (les boucles de relations de PK
-  dans `rounding_direction`, 3.17), ouverte le 5 novembre à 8 h 12 UTC. Le
-  mainteneur a fusionné #165 à #167,
+  le 30 octobre à 11 h 04, de #245, #242 et #249 de 19 h 57 à 20 h 07, de
+  #263 à #274 de 20 h 24 à 20 h 40, de #275 à 21 h 10, de #262, #250, #239 et
+  #248 de 21 h 13 à 21 h 32, de #276 à 21 h 37, de #279 le 31 octobre à 9 h 32,
+  de #280 le 2 novembre à 19 h 36, de #282 le 3 novembre à 11 h 38, de #283 et
+  de #284 à 11 h 40 et 11 h 41 et de #281 à 16 h 51, de #285 le 4 novembre à
+  8 h 22, de la branche `std-exceptions` (`221c8d4`), de #287 à 19 h 12, de #288
+  à 19 h 19, puis, le 5 novembre, de #289 à 9 h 02, de #290 à 9 h 32, de #291 à
+  9 h 56 et de #293 à 10 h 02 ; l'import de CORE-MATH `0b2ae6d1` est du 27
+  octobre, voir 7.6 à 7.10). Les pull requests des corrections vont vers
+  `configure-clean`, qui reste la branche de développement après v5.0.0 ;
+  `MATH-CORE` et `master` (GAOL 4.3.2, plus deux commits de `.claude/CLAUDE.md`)
+  ne bougent qu'à la version (point Y).
+- **Aucune pull request n'est ouverte.** Le mainteneur a fusionné #165 à #167,
   #169 à #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194, #196 et
-  #197 le 25 octobre, #199, #200 et #201 le 26 octobre, #202 à #205 le 27, #206
-  à #210, #212, #213, #215 et #216 le 28 (#216, hors des points : le tableau des
-  lignes longues sur ARM 64 bits, à la fin de `performance.md`), #217 le 28 à
-  23 h 19 UTC, #218, #219, #222, #223 et #225 le 29 au matin, #220, #224 et #227
-  à #231 le 29 de 18 h 04 à 18 h 19, #232, #234 et #235 le 29 de 19 h 55 à
-  19 h 57, #236 le 29 à 23 h 42, #237 et #238 le 30 à 11 h 04, #245, #242 et
-  #249 le 30 de 19 h 57 à 20 h 07, #263 à #274 (les textes de la version) le 30
-  de 20 h 24 à 20 h 40, #275 à 21 h 10, #262, #250, #239 et #248 de 21 h 13 à
-  21 h 32 et #276 (macOS 27 à la place de macOS 14) à 21 h 37 ; #279 a été
-  fusionnée le 31 à 9 h 32 par la session, sur la demande explicite du
-  mainteneur ; #280 (les restes de la tâche PI) l'a été le 2 novembre à 19 h 36
-  par le mainteneur, puis, le 3 novembre, #282 (`HOUSE_RULES.md` : les outils de
-  la machine sont dans `process.md` §6.1, hors des points) à 11 h 38, #283 (les
-  en-têtes de CORE-MATH dans `gaol/math/`, `3rd/math-core` réduit à binary64) et
-  #284 (les opérateurs de `gaol_ieee1788`) à 11 h 40 et 11 h 41 (2.3 et 3.14),
-  et #281 (les cas des tests d'IBEX et de Codac, hors des points) à 16 h 51,
-  toutes par le mainteneur, puis, le 4 novembre, #285 (hors des points : les
-  exceptions de la bibliothèque standard, la tâche PL) à 8 h 22, par le
-  mainteneur ; ses suites sont fusionnées sans pull request (`221c8d4`, 3.15 et
-  7.14), puis #287 (hors des points : `pownRev` pour p ≤ 0 par `nth_root_rel`) à
-  19 h 12 (2.3 et 3.16), puis #288 (hors des points : `compoundm1` de la norme
-  IEEE 1788-2015, Table 10.5, les bornes les plus serrées, en entiers) à
-  19 h 19 (2.3 et 3.18). #168, #195, #211, #214,
-  #221, #226 et #233 sont fermées sans fusion, et, du 30 et du 31 octobre, #240,
-  #241, #243, #244, #246, #247, #251 à #261, #277 et #278, puis #286, le
-  « Revert » de #285 fermé onze secondes après son ouverture (2.4). Les tâches
-  PA, PB, PC, PD, PE, PF, PG, PI et PL sont faites (PE : #200 et #204 pour le
-  95, #201 pour le 92, #205 pour le 3, #202 pour le 4, #204 pour le 5, #203 pour
-  le 6 ; PF : #206 pour le reste du 108, #209 pour le 109, #210 et #215 pour
-  écrire seulement si ça change, #208 pour l'alignement de la pile 32 bits, #207
-  pour le contrôle de l'assembleur de x86-64 ; PG : la division du chemin
-  AVX-512, le 106 a : #191 à #194 ; puis #217 pour le seuil de la liste, #218
-  pour `set_rounding()`, #219 pour le noyau de `pown` de NEON, #222 et #224 pour
-  `nth_root(x, -2)` et `sqrt()`, #223, #227 et #228 pour le contrôle de
-  l'assembleur avec GCC, #225 pour le quotient NEON, #220 pour la ligne `x / d`,
-  #229 pour la grille de `diffarith`, #230, #232, #234 et #235 pour les écarts
-  de GCC avec Clang, #231 pour les masques d'exceptions de `pow_rel()`, #236
-  pour `max(x, y)` et `min(x, y)`, #237 et #238 pour le banc, #242 et #245 pour
-  `inverse()` de NEON et son test, #248, #249 et #250 pour `interval(l, r)`, `x
-  * y` et `x op= d` de NEON, #239 pour `max` et `min` de NEON raccourcis, #262
-  pour le bruit de placement de Visual C++ arm64, #279 pour `x <= y` ; PI : #263
-  à #274 pour la synthèse de `doc/differences.md` et du `ChangeLog`, #275 pour
-  les phrases fausses hors de ces deux documents, #280 pour leurs restes ; PL,
-  hors des points de `TODO.md` : #285 pour les exceptions de la bibliothèque
-  standard, puis la fusion `221c8d4` pour ses suites ; hors des points aussi,
-  #287 pour `pownRev` avec p ≤ 0, puis #288 pour `compoundm1` (3.18)) ; PK, un
+  #197 le 25 octobre, #199, #200 et #201 le 26 octobre, #202 à #205 le 27,
+  #206 à #210, #212, #213, #215 et #216 le 28 (#216, hors des points : le
+  tableau des lignes longues sur ARM 64 bits, à la fin de `performance.md`),
+  #217 le 28 à 23 h 19 UTC, #218, #219, #222, #223 et #225 le 29 au matin, #220,
+  #224 et #227 à #231 le 29 de 18 h 04 à 18 h 19, #232, #234 et #235 le 29 de
+  19 h 55 à 19 h 57, #236 le 29 à 23 h 42, #237 et #238 le 30 à 11 h 04, #245,
+  #242 et #249 le 30 de 19 h 57 à 20 h 07, #263 à #274 (les textes de la
+  version) le 30 de 20 h 24 à 20 h 40, #275 à 21 h 10, #262, #250, #239 et #248
+  de 21 h 13 à 21 h 32 et #276 (macOS 27 à la place de macOS 14) à 21 h 37 ;
+  #279 a été fusionnée le 31 à 9 h 32 par la session, sur la demande explicite
+  du mainteneur ; #280 (les restes de la tâche PI) l'a été le 2 novembre à
+  19 h 36 par le mainteneur, puis, le 3 novembre, #282 (`HOUSE_RULES.md` : les
+  outils de la machine sont dans `process.md` §6.1, hors des points) à 11 h 38,
+  #283 (les en-têtes de CORE-MATH dans `gaol/math/`, `3rd/math-core` réduit à
+  binary64) et #284 (les opérateurs de `gaol_ieee1788`) à 11 h 40 et 11 h 41
+  (2.3 et 3.14), et #281 (les cas des tests d'IBEX et de Codac, hors des points)
+  à 16 h 51, toutes par le mainteneur, puis, le 4 novembre, #285 (hors des
+  points : les exceptions de la bibliothèque standard, la tâche PL) à 8 h 22,
+  par le mainteneur ; ses suites sont fusionnées sans pull request (`221c8d4`,
+  3.15 et 7.14), puis #287 (hors des points : `pownRev` pour p ≤ 0 par
+  `nth_root_rel`) à 19 h 12 (2.3 et 3.16), puis #288 (hors des points :
+  `compoundm1` de la norme IEEE 1788-2015, Table 10.5, les bornes les plus
+  serrées, en entiers) à 19 h 19 (2.3 et 3.18), puis, le 5 novembre, #289 (hors
+  des points : la synthèse de #283 à #288, avec le PDF du manuel) à 9 h 02, #290
+  (hors des points : `overlap` d'IEEE 1788-2015) à 9 h 32, #291 (hors des points
+  : la tâche PN, `TODO_fin.md` et `STEP.md`) à 9 h 56 et #293 (hors des points :
+  `d * x` calculé comme `x * d`) à 10 h 02 UTC, et #292 (hors des points : les
+  boucles de relations de la tâche PK dans `rounding_direction`) à 10 h 08 UTC
+  (2.3, 3.17 et 3.21). #168, #195, #211, #214, #221, #226 et #233 sont fermées
+  sans fusion, et, du 30 et du 31 octobre, #240, #241, #243, #244, #246, #247,
+  #251 à #261, #277 et #278, puis #286, le « Revert » de #285 fermé onze
+  secondes après son ouverture (2.4). Les tâches PA, PB, PC, PD, PE, PF, PG, PI
+  et PL sont faites (PE : #200 et #204 pour le 95, #201 pour le 92, #205 pour le
+  3, #202 pour le 4, #204 pour le 5, #203 pour le 6 ; PF : #206 pour le reste du
+  108, #209 pour le 109, #210 et #215 pour écrire seulement si ça change, #208
+  pour l'alignement de la pile 32 bits, #207 pour le contrôle de l'assembleur de
+  x86-64 ; PG : la division du chemin AVX-512, le 106 a : #191 à #194 ; puis
+  #217 pour le seuil de la liste, #218 pour `set_rounding()`, #219 pour le noyau
+  de `pown` de NEON, #222 et #224 pour `nth_root(x, -2)` et `sqrt()`, #223, #227
+  et #228 pour le contrôle de l'assembleur avec GCC, #225 pour le quotient NEON,
+  #220 pour la ligne `x / d`, #229 pour la grille de `diffarith`, #230, #232,
+  #234 et #235 pour les écarts de GCC avec Clang, #231 pour les masques
+  d'exceptions de `pow_rel()`, #236 pour `max(x, y)` et `min(x, y)`, #237 et
+  #238 pour le banc, #242 et #245 pour `inverse()` de NEON et son test, #248,
+  #249 et #250 pour `interval(l, r)`, `x * y` et `x op= d` de NEON, #239 pour
+  `max` et `min` de NEON raccourcis, #262 pour le bruit de placement de Visual
+  C++ arm64, #279 pour `x <= y` ; PI : #263 à #274 pour la synthèse de
+  `doc/differences.md` et du `ChangeLog`, #275 pour les phrases fausses hors de
+  ces deux documents, #280 pour leurs restes ; PL, hors des points de `TODO.md`
+  : #285 pour les exceptions de la bibliothèque standard, puis la fusion
+  `221c8d4` pour ses suites ; hors des points aussi, #287 pour `pownRev` avec
+  p ≤ 0, #288 pour `compoundm1` (3.18), #289 pour la synthèse de #283 à #288,
+  #290 pour `overlap`, #291 pour la tâche PN (3.19 et 3.20), #293 pour `d * x`
+  (3.21) et #292 pour les boucles de relations de PK (3.17)) ; PK, un
   `FE_INVALID` de Clang avec les intervalles FPU, est close sans code, non
-  reproduite avec les drapeaux de GAOL (3.17) ; il reste les signalements à
+  reproduite avec les drapeaux de GAOL (3.17), ses boucles de relations étant
+  entrées dans `rounding_direction` par #292 ; il reste les signalements à
   d'autres projets (PH), le tableau de Clang 21 et la publication (PJ) et un cas
   de 12.12.7 à décider (PM) : voir `TODO.md`.
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
@@ -2464,6 +2471,110 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   only pownRev for p <= 0 is missing » restait à changer (c'était le travail de
   #287) : #289 le fait.
 
+- #289 (hors des points : la synthèse de #283 à #288, le point 7 de PJ, et la
+  régénération du PDF du manuel, le point 5 ; ouverte le 4 novembre à
+  21 h 00 UTC, 9 commits, 10 fichiers, 263 lignes ajoutées et 176 retirées, sans
+  code) : fusionnée le 5 novembre à 9 h 02 UTC par le mainteneur (`4f01fd4`).
+  `doc/differences.md` : les chemins de `gaol/math/` (#283), les opérateurs de
+  `gaol_ieee1788` (#284), les classes d'exceptions de GAOL 4 qui disparaissent
+  au profit de `std::invalid_argument` et de `std::domain_error`, sans alias,
+  avec `what()` de la forme `fichier:ligne: explication` (#285), la couverture
+  de 87 % à 94 %, `pownRev` pour p ≤ 0 et le changement silencieux de
+  `nth_root_rel(J, p, I)` (#287), et « all the reverse operations of the
+  standard are provided » ; `ChangeLog` : les mêmes sujets dans le premier
+  article (2026-09-27) ; `todo-notes/synthese.md` : une note disant que les
+  classes des anciens rapports n'existent plus. Les paragraphes dont un mot
+  change sont refaits à partir de la première ligne touchée, si bien que le diff
+  déplace des lignes qui ne changent pas de mots (`git diff --word-diff` ne
+  montre que les mots changés). Le manuel : `manual/v5/gaol.pdf` régénéré par
+  `manual/build-pdf.sh` avec `pdflatex` de TeX Live 2025 (154 pages, contre 124
+  pour le PDF du 28 septembre), 0 erreur, aucun `Overfull \hbox`, `makeindex`
+  avec 342 entrées acceptées et aucune rejetée ; dans `gaol.tex`,
+  `\cindex{canonical interval}` retiré (l'entrée en conflit), un `\allowbreak`
+  pour le seul `Overfull` (22 pt) et les entrées de `operator|` et de
+  `operator|=` écrites `\textbar` (le `|` brut commençait un séparateur de
+  `makeindex`). La date d'édition du manuel est le 4 novembre 2026
+  (`GAOL_V5_UPDATED` de `configure.ac`, `configure` refait par `autoconf` seul,
+  `manual/meson.build`) ; le commentaire de `gaol/gaol_common.h` (les classes de
+  GAOL 4 étaient dans `gaol`, non dans `gaol_core`) et deux chemins de
+  `TODO_AFTER.md` (`gaol/math/gaol_double_op.h`) sont corrigés. Décisions :
+  3.21. Relecture : un sous-agent sans le contexte a vérifié chaque affirmation
+  du nouveau texte contre le code et contre GAOL 4 (`v4.2.3`) : aucun défaut
+  bloquant, sept remarques mineures corrigées (dont l'espace de noms de GAOL 4,
+  et « jusqu'à 4 doubles », une mesure et non une garantie). Vérifié en local :
+  la différence mot à mot, la largeur des lignes, le manuel, et `meson setup
+  -Dwith-doc=true` comme `./configure` écrivent la date du 4 novembre ;
+  `check_branch` ne signale que `ChangeLog`, `doc/differences.md` et le PDF,
+  voulus ici. Sa CI au dernier commit `857704a` : Linux, Linux containers,
+  Autotools et meson, Windows, macOS (20 jobs), Manual et Performance, tous
+  verts (les CI des commits d'avant avaient été annulées par les pushes
+  suivants). Depuis, #290 et #293 ont changé `gaol.tex` : le PDF est plus vieux
+  que sa source (`TODO.md` PJ.5).
+
+- #290 (hors des points : `overlap` d'IEEE 1788-2015, 10.6.4, et les 16 états de
+  la Table 10.7, `overlapping_state`, demandés par le mainteneur le 4 novembre ;
+  ouverte le 4 novembre à 21 h 09 UTC, 6 commits, 17 fichiers, 740 lignes
+  ajoutées et 32 retirées) : fusionnée le 5 novembre à 9 h 32 UTC par le
+  mainteneur (`d0b7712`). L'interface est celle que le mainteneur a choisie («
+  membre et noms de la norme ») : `enum class gaol_core::overlapping_state` (de
+  `bothEmpty`, 0, à `after`, 15, dans l'ordre de la table), exposé dans `gaol`
+  et `gaol_ieee1788`, `interval::overlap(I)`, `gaol_ieee1788::overlap(a, b)` et
+  un `operator<<` qui écrit le nom de la table. Le calcul compare les entiers
+  des bornes (`gaol_detail::bound_key()`), jamais des doubles : aucune exception
+  flottante, aucune dépendance au sens d'arrondi. Un point d'intervalle sur une
+  borne de l'autre n'est jamais `meets` ni `metBy` (la phrase de 10.6.4). Les
+  tests : un oracle de la spécification d'ensembles de la table sur 31 449
+  paires (`tests/ieee1788.cpp`), 40 cas de `tests/relations.cpp`,
+  `rounding_direction` et le banc ITF1788, où les 48 cas de `overlap` passent
+  (7 415 réussis, 418 non fournis). Son dernier commit (`6690ea7`) met `overlap`
+  dans `ChangeLog` et dans `doc/differences.md`, par exception à `process.md` §9
+  point 5, demandée par le mainteneur le 5 novembre : `check_branch` échoue
+  exprès, et la synthèse n'a rien à reprendre. Sa CI au dernier commit : Manual,
+  Performance, Linux, Linux containers, Windows, Autotools et meson et macOS
+  verts, le dernier job de macOS ayant fini après la fusion. Ses décisions :
+  3.22.
+
+- #291 (hors des points : la tâche PN, 3.19 et 3.20 ; ouverte le 4 novembre à
+  23 h 52 UTC, 11 commits, 7 fichiers, 1 993 lignes ajoutées et 142 retirées,
+  aucun code de la bibliothèque ni des tests) : fusionnée le 5 novembre à
+  9 h 56 UTC par le mainteneur (`b438217`). `TODO_fin.md` (ce qui n'est ni fait,
+  ni décidé, ni dans `TODO.md`, ni dans `TODO_AFTER.md`, en neuf sections),
+  `STEP.md` (tout ce qui est fait, en 27 étapes), le déplacement dans
+  `TODO_DONE.md` de ce que `TODO_AFTER.md` donnait encore à faire et qui est
+  fait, la correction des incohérences des registres (`TODO_DONE.md`,
+  `TODO_AFTER.md`, `process.md`) et, sur les réponses du mainteneur,
+  `CPACK_SOURCE_IGNORE_FILES` (`TODO_fin.md` et `STEP.md` hors de l'archive des
+  sources : `CMakeLists.txt` et `doc/building.md`). Relue par un sous-agent sans
+  le contexte. Sa CI au dernier commit `a6a3ece` : Linux, Linux containers,
+  Autotools et meson, Windows et Performance verts ; macOS en échec pour un seul
+  job, « macOS 15 x86_64 GCC Debug ASan+UBSan », où `numbers` a dépassé son
+  délai de 600 s (« Timeout 600.54 sec », les 45 autres tests passent) : la pull
+  request ne change aucun code compilé, et `numbers` est long sous les
+  sanitizers (`TODO.md` PJ.1). Décisions : 3.19 et 3.20.
+
+- #293 (hors des points : la question ouverte de #171, `d * x`, 3.20 ; ouverte
+  le 5 novembre à 8 h 24 UTC, 7 commits, 7 fichiers, 132 lignes ajoutées et 32
+  retirées) : fusionnée le 5 novembre à 10 h 02 UTC par le mainteneur
+  (`f4b2064`). `d * x` et `x * d` donnaient le même ensemble mais pas toujours
+  les mêmes bits, le signe d'une borne nulle (avec les intervalles SSE2, x =
+  `[+0, -0]` et d = 2,5 : `x * d` = `[+0, -0]`, `d * x` = `[-0, +0]`) ; aucune
+  borne n'était fausse, puisque +0 et -0 sont le même nombre. La cause :
+  `operator*(double, const interval&)` calculait `interval(d) *= I`, le produit
+  de deux intervalles, comme GAOL 4, quand `x * d` prend le noyau des opérations
+  avec un double ; il rend maintenant `interval(I) *= d`, et `n * x` d'un entier
+  `interval(I) *= n`, avec les bits de `x * d` et de `x * n` pour toutes les
+  sortes d'intervalles. L'ensemble ne change pas ; `d + x` avait déjà les bits
+  de `x + d` (120 couples), et `d - x`, `d / x` et `d % x` ne sont pas
+  commutatives. Les tests : un bloc de `tests/rounding_direction.cpp`, 2 070
+  vérifications pour `d * x` et 1 104 pour `n * x` ; sans la correction, 258
+  échecs avec SSE2, 216 avec les intervalles FPU et 258 avec le chemin AVX-512,
+  aucun avec elle. La documentation : `doc/using.md`, `doc/accuracy.md`,
+  `doc/tests.md`, le commentaire de `gaol/core/gaol_interval_avx512.cpp` et le
+  manuel (l'entrée `operator*`). Sa CI au dernier commit `7267816` : Linux,
+  Linux containers, Windows, Manual et Performance verts ; macOS, Autotools et
+  meson étaient encore en attente d'un exécuteur à 10 h 07 UTC, après la fusion.
+  Décision : 3.20.
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -4554,7 +4665,44 @@ réponses par question »). Ce qui est fait le même jour est dans #291.
   novembre* : laisser ainsi (`doc/building.md` le dit déjà).
 - **`d * x` aligné sur `x * d`** : commencé le 5 novembre, à la demande du
   mainteneur (« commence maintenant »), dans une branche et une pull request à
-  part.
+  part, #293, fusionnée le 5 novembre (2.3).
+
+### 3.21 Le 4 et le 5 novembre : la synthèse de #283 à #288, #289
+
+Les décisions du mainteneur sur #289 (hors des points), avec la pull request qui
+les exécute (2.3).
+
+- **Le sujet** (*demandé le 4 novembre* : « ouvre la pull request de synthèse
+  pour #283 à #288 avec la génération du PDF : doc/differences.md, ChangeLog et
+  todo-notes/synthese.md, avec le texte de PJ point 7 ») : une seule pull
+  request, après la fusion de #287 (*décidé le 4 novembre*, « Attendre #287 »,
+  3.16) ; le texte de #288 y est déjà.
+- **Ce que #289 prend en plus** (*décidé le 4 novembre*, « Dans #289 » pour
+  chacun des trois) : les trois entrées d'index que `makeindex` rejetait
+  (`operator|` et `operator|=`, écrites `\textbar`) ; la date d'édition du
+  manuel, le 4 novembre 2026 (`GAOL_V5_UPDATED` de `configure.ac`, `configure`
+  et `manual/meson.build`) ; les petits restes, le commentaire de
+  `gaol/gaol_common.h` (les classes de GAOL 4 étaient dans `gaol`) et le chemin
+  de `gaol/math/gaol_double_op.h` dans `TODO_AFTER.md`.
+- **La tâche PM** (*décidé le 4 novembre*, « Pas maintenant ») : le cas (b) de
+  12.12.7 n'est pas décidé, et #289 n'en parle pas.
+- **L'ordre de #289 et de #290** (*décidé le 5 novembre*, « Je décide plus tard
+  ») : le mainteneur a fusionné #289 à 9 h 02 puis #290 à 9 h 32 UTC ; le PDF
+  que #289 a régénéré est donc plus vieux que `gaol.tex` depuis #290 (et #293) :
+  le refaire maintenant ou au commit de la version reste à décider (`TODO.md`
+  PJ.5).
+- **Les branches** (*décidé le 5 novembre*, « Je les laisse ») :
+  `todo-pg-relations-order` et `todo-pg-xle-exfirst` restent au mainteneur, qui
+  les supprime (`process.md` §12) ; la session ne supprime aucune branche
+  distante qui n'est pas la sienne.
+- **Les registres** (*décidé le 5 novembre*) : #288 est décrite tout de suite et
+  à part (« Maintenant, à part », 7.17) ; le reste attend les fusions (7.18).
+- **Les clauses de `TODO.md` que #291 laissait** (la section 7 de `TODO_fin.md`,
+  articles 18 à 20, que `check_branch` refuse dans une branche ; formulation de
+  la session) : PJ.1 donne aussi la couverture de #288 (94,9 % de 6 329 lignes)
+  ; le test `numbers` sous ASan et UBSan est fait (le 4 novembre) et se relance
+  au commit de la version si le code a changé ; PJ.5 n'a plus la clause sur
+  l'entrée de `what()` du manuel, qui n'a plus de `\defmethod` depuis #285.
 
 ## 4. Les points faits, par lettre
 
@@ -5937,6 +6085,36 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PH, PJ et PM) e
   repos/Jordan08/GAOL/actions/runs/<id>/jobs`, les étapes de chaque job) ; la CI
   du commit de fusion de #288 (`61a432b`) n'a pas été attendue (7.15).
 
+### 7.18 Le 5 novembre (après #289 à #293)
+
+- Le mainteneur a fusionné #289 à 9 h 02, #290 à 9 h 32, #291 à 9 h 56 et #293 à
+  10 h 02 UTC, puis a dit « j'ai fusionné » à la session de #289 ; il a fusionné
+  #292 à 10 h 08, pendant la mise à jour. Les registres communs sont mis à jour
+  directement sur `configure-clean` (`process.md` §9), après `git fetch origin`
+  : `TODO.md` (l'en-tête, PJ.1, PJ.5 et PJ.7), ce fichier (1, 2.3, 3.21, cette
+  section et 8.1) et `process.md` (l'en-tête et §12) ; les issues #178 (le corps
+  de `TODO_AFTER.md`, qui n'avait pas suivi depuis le 31 octobre) et #179 (celui
+  de `TODO.md`) ; #177 reste gelée (7.8).
+- Les trois sessions qui travaillaient encore (celle de #290, la tâche PK et
+  `boulot1`) ont été prévenues avant, et ont promis de ne pas toucher aux
+  registres jusqu'au message « poussé » de la session ; celle de #290 écrit ses
+  décisions en 3.22 et sa ligne en 7.19, la tâche PK décrit #292 (2.3) après ce
+  push ; la session de #291 (la tâche PN) était à l'arrêt et n'a pas été
+  prévenue. Les entrées 2.3 de #290, #291 et #293 sont tirées de leur pull
+  request et de l'API de GitHub, non du code ; les chiffres de #290 viennent de
+  sa session.
+- Les pièges : `boulot1` n'a pas pu mettre à jour les corps de #178 et #179 (le
+  classificateur de permissions de sa session a refusé le PATCH) et y a laissé
+  un commentaire chacune ; les corps de cette mise à jour contiennent ses
+  changements (la phrase de licence de PJ.3, `TODO_AFTER.md` sans l'article
+  5.4). Un job de macOS en échec ne dit pas que du code est faux : « macOS 15
+  x86_64 GCC Debug ASan+UBSan » du dernier commit de #291 (`a6a3ece`, sans code
+  compilé) a échoué parce que `numbers` a dépassé les 600 s (les 45 autres tests
+  passent) ; le macOS et Autotools et meson du dernier commit de #293 étaient
+  encore en attente d'un exécuteur à 10 h 07 UTC, plus d'une heure après la
+  fusion, et toute la CI de #292 aussi à sa fusion ; la CI de `130acea` n'est
+  pas attendue, ce push l'annule.
+
 ## 8. Le ménage fait
 
 ### 8.1 Branches, lignes de crédit, outillage
@@ -6090,6 +6268,11 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PH, PJ et PM) e
 - [x] Celle de #288 (`compoundm1`), sur GitHub (supprimée à la fusion) ; en
   local, la branche de GAOL_V8, supprimée par la session de `compoundm1` le 4
   novembre (GAOL_V8 n'en a plus : vérifié le 5 novembre, `git branch --list`).
+- [x] Celles de #289 (`synthese-283-288`), de #290 (`ieee1788-overlap`), de #291
+  (`todo-pn-trie-fin`), de #293 (`todo-pn-d-times-x`) et de #292
+  (`relation-loops`), sur GitHub (supprimées à la fusion, vérifié le 5 novembre
+  par `git ls-remote --heads origin`) ; en local, le clone de travail de #289
+  dans le scratchpad, supprimé le 5 novembre.
 
 ### 8.2 Les branches inachevées
 
