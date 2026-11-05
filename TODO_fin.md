@@ -29,8 +29,9 @@ un autre projet sans l'accord du mainteneur.
   réponse. Les sections 2 à 6 peuvent se faire sans décision nouvelle, sauf
   quand l'article dit « à décider ». La section 9 n'est qu'un rappel du travail
   en cours.
-- Un article traité sort de ce fichier, comme dans les autres registres. Ce
-  fichier n'a pas d'issue.
+- *Décidé le 5 novembre* : ce fichier est gardé comme la mémoire de la
+  relecture. Ses articles ne deviennent pas des tâches ; un article traité le
+  dit (« fait » ou « décidé »), sans sortir du fichier. Il n'a pas d'issue.
 
 ## 1. Les questions restées sans réponse
 
@@ -42,7 +43,9 @@ un autre projet sans l'accord du mainteneur.
    description de #171 dit que `d * x` diffère aussi entre SSE2 et AVX-512 pour
    d < 0, son relecteur dit le contraire : à vérifier d'abord. Destination : la
    réponse dans `TODO_DONE.md`, puis une phrase de `doc/using.md`, ou une limite
-   dans `TODO_AFTER.md` §5.
+   dans `TODO_AFTER.md` §5. *Décidé le 5 novembre* : aligner `d * x` sur
+   `x * d`, les mêmes bits sur tous les chemins, avec un test de ces bits : un
+   point à part, qui change le code (`TODO_DONE.md` 3.20).
 2. **GCC pour Windows 32 bits sans FMA (#172, 24 octobre).** « Un processeur
    sans FMA ne fait plus tourner la bibliothèque de GCC pour Windows 32 bits :
    le laisser ainsi ? », sans réponse écrite. Le comportement est documenté
@@ -58,6 +61,7 @@ un autre projet sans l'accord du mainteneur.
    ThreadSanitizer »), ce qu'aucun test ne vérifie plus. Aucun registre n'en
    parle. À décider : rétablir un test sous ThreadSanitizer (`TODO_AFTER.md`
    §1), inscrire la limite (§5), ou retirer le code en commentaire et la phrase.
+   *Décidé le 5 novembre* : inscrire la limite ; fait (`TODO_AFTER.md` 5.5).
 4. **Le nom décoré de `float64x2_t` (#146).** #146 dit que GCC et Clang décorent
    ce nom autrement, si bien qu'une bibliothèque construite par l'un ne se
    lierait pas avec un programme compilé par l'autre (`TODO_DONE.md` §6, #146) :
@@ -67,13 +71,19 @@ un autre projet sans l'accord du mainteneur.
    ligne. Le constat est à vérifier (les deux compilateurs suivent l'AAPCS64 ;
    rien n'a été compilé pour cette relecture). Destination : selon le résultat,
    une limite dans `doc/using.md` et `TODO_AFTER.md` §5, ou « sans objet » dans
-   `TODO_DONE.md` §6.
+   `TODO_DONE.md` §6. *Décidé le 5 novembre* : le vérifier par `nm` ; fait le
+   même jour, avec GCC 13.3 pour aarch64 et Clang 18 : les noyaux exportés
+   prennent leurs vecteurs par valeur, et leurs noms sont les mêmes
+   (`13__Float64x2_t`) ; une référence `const float64x2_t&` est décorée
+   autrement par les deux, mais n'apparaît que dans des fonctions en ligne :
+   sans objet (`TODO_DONE.md` 3.20).
 5. **Le défaut de GCC 14 trouvé par #279.** GCC 14 (x86-64, AArch64, RISC-V)
    fusionne `quiet_less(r, l) || r == l` en un seul `r <= l` qui signale. GAOL
-   le contourne (`gaol/core/gaol_interval_core.h:1264-1272`,
-   `gaol/gaol_port.h:313-321`), mais il n'est ni dans l'issue #126 (GCC), ni
-   dans la tâche PH. Destination : PH.2, un défaut de plus dans le brouillon de
-   #126 (rien n'est envoyé sans accord).
+   le contourne (`gaol/core/gaol_interval_core.h:1264-1272`), mais il n'est ni
+   dans l'issue #126 (GCC), ni dans la tâche PH. Destination : PH.2, un défaut
+   de plus dans le brouillon de #126 (rien n'est envoyé sans accord). *Décidé le
+   5 novembre* : l'ajouter au brouillon de #126 ; fait le même jour, sans rien
+   envoyer.
 6. **Les règles de protection de `master` (#276).** « À changer dans les règles
    de protection de branche s'il y en a » : `master` est protégée sur GitHub, et
    aucun registre n'en parle. Destination : PJ.3, vérifier avant la fusion de
@@ -140,6 +150,8 @@ compilé.
     Destination : PJ, les ajouter à la liste, à son commentaire
     (`CMakeLists.txt:1554`), à `doc/building.md:264` et à
     `doc/differences.md:2313`, ou ranger les deux fichiers dans `todo-notes/`.
+    *Décidé le 5 novembre* : les exclure ; fait par #291 (`CMakeLists.txt`,
+    `doc/building.md`), la ligne de `doc/differences.md` attendant la synthèse.
 
 ## 3. Des textes à reporter dans `doc/differences.md` et le `ChangeLog`
 
@@ -326,8 +338,12 @@ décision de la lever), ou pour « sans objet » dans `TODO_DONE.md`.
 
 ## 7. Les incohérences des registres
 
-Rien ici ne change le code ; à corriger avec la prochaine mise à jour des
-registres.
+Corrigées par #291 le 5 novembre (*décidé le 5 novembre* : dans #291 ;
+`TODO_DONE.md` 3.20) dans `TODO_DONE.md`, `TODO_AFTER.md` et `process.md`,
+sauf : en 9, les renvois de 3.4 à PG.6, PG.7 et PG.8 ; en 14, l'entrée de #63 ;
+18 à 20, dans `TODO.md`, que `check_branch` refuse dans une branche (avec la
+mise à jour qui suit la fusion) ; 21, dans `todo-notes/synthese.md`, que #289
+change. La liste reste, comme mémoire.
 
 1. **`TODO_DONE.md` §4, point AI** : « Restent les 105 (AH), 106 (b, c, d), 112
    et 116 » ; le 116 est fait par #222 et #224, le 105 n'est pas adopté (3.10),
@@ -442,7 +458,8 @@ registres.
    `TODO.md` et `process.md` §12 le disent. Sa fusion est arrivée avant la fin
    de la CI de son dernier commit (partie à 19 h 18, finie à 20 h 54 UTC :
    verte, sauf un job macOS annulé faute d'exécuteur, « macOS 15 universal
-   (arm64 and x86_64), meson »).
+   (arm64 and x86_64), meson »). Fait : décrite le 5 novembre, dans #291
+   (`TODO_DONE.md` 2.3 et 3.19).
 2. **#289 (ouverte)** : après sa fusion, son entrée et ses décisions (« Dans
    #289 ») ; le job `Manual` de la CI reste à voir ; si #290 est fusionnée après
    elle, le PDF du manuel sera de nouveau plus vieux que `gaol.tex`.
