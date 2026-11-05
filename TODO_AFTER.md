@@ -368,9 +368,3 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    (#279). *À rouvrir* si un programme réel a surtout des opérandes vides ou des
    bornes égales sur ARM : le chemin des bornes égales de `x <= y` serait à
    raccourcir (non étudié).
-4. **Le signe du zéro de `midpoint([-1, 1])`** (#281). Aucun test de GAOL ne
-   verrait un `midpoint()` de [−1, 1] qui rendrait −0 au lieu de +0 :
-   `tests/test_ibex_codac.cpp` compare les zéros avec `<` et `<=`, et les autres
-   tests ne regardent pas le signe. La norme IEEE 1788-2015 ne le précise sans
-   doute pas (non vérifié). *À décider* : la lire, et ajouter la vérification si
-   elle fixe le signe ; sinon laisser.

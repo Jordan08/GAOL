@@ -207,12 +207,14 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    `master` ne reçoit que les versions. Les commits à ligne de crédit (123)
    restent (*décidé le 19 octobre*). La licence est dite (LGPL pour GAOL, MIT
    pour CORE-MATH) dans la section « Licences » de `README.md` et dans le manuel
-   : fait. *À décider* (#281) : les cas de `tests/test_ibex_codac.cpp` viennent
-   de tests d'IBEX et de Codac sous LGPL v3 (leur `COPYING.LESSER`), alors que
-   le `README.md` dit GAOL sous LGPL v2 (`COPYING.LIB`) ; l'en-tête du fichier
+   : fait. Pour #281, les cas de `tests/test_ibex_codac.cpp` viennent de tests
+   d'IBEX et de Codac sous LGPL v3 (leur `COPYING.LESSER`), alors que le
+   `README.md` dit GAOL sous LGPL v2 (`COPYING.LIB`) ; l'en-tête du fichier
    donne les copyrights et les deux licences sans conclure (*décidé le 2
-   novembre* : l'en-tête seul). Est-ce compatible, faut-il une ligne dans la
-   section « Licences » du `README.md`, voire un `COPYING.LESSER` ?
+   novembre* : l'en-tête seul). *Décidé le 5 novembre* : le mainteneur écrit aux
+   auteurs d'IBEX et de Codac (Gilles Chabert, Simon Rohou) pour leur accord, et
+   l'en-tête seul reste en attendant. *À décider* à leur réponse : une ligne
+   dans la section « Licences » du `README.md`, voire un `COPYING.LESSER`.
 4. **71 et #128** : annoncer GAOL v5.0.0 à Frédéric Goualard, l'auteur de GAOL,
    une fois l'étiquette posée : pas d'annonce publique, et pas de GitHub
    Release, l'étiquette suffisant (*décidé le 3 octobre*). Le message est écrit,

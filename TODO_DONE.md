@@ -2115,7 +2115,8 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   sur 36 altérations de GAOL, 26 sont vues par ce test, les autres par
   `arithmetic`, `elementary`, `trigonometric`, `rounding_direction` ou
   `reverse`, sauf le signe du zéro de `midpoint([-1, 1])`, que nul test ne voit
-  (`TODO_AFTER.md` 5.4). Vérifié en local, GCC 13.3 et Clang 18 (SSE2, FPU,
+  (*décidé le 5 novembre* : rien à faire, 3.13). Vérifié en local, GCC 13.3 et
+  Clang 18 (SSE2, FPU,
   `GAOL_PRESERVE_ROUNDING`, sans FMA, Clang en Debug : 0 avertissement avec
   `-Wall -Wextra -Werror`), autotools (`make check` : 32 tests, 30 PASS, 2 SKIP)
   et meson 1.3.2 et 1.12.1 (30 OK, 2 SKIP). `tests/Makefile.in` : automake
@@ -4150,7 +4151,7 @@ pull request qui les exécute (2.3).
   `xcode-27` (`57650a4`, le 1er novembre) et retiré celui de x86_64 sous
   Rosetta (« not available now ») ; le job passe le 2 novembre.
 
-### 3.13 Les 2 et 3 novembre : les cas des tests d'IBEX et de Codac
+### 3.13 Du 2 au 5 novembre : les cas des tests d'IBEX et de Codac
 
 Les décisions du mainteneur sur #281 (hors des points), avec la pull request qui
 les exécute (2.3).
@@ -4168,11 +4169,14 @@ les exécute (2.3).
   ; ni `diff()`, ni `delta()`, ni `set_empty()`, ni les vecteurs. De nouveaux
   commits dans #281, non une nouvelle pull request.
 - **La licence** : garder l'en-tête seul, qui donne les copyrights et les
-  licences (LGPL v3 d'IBEX et de Codac, LGPL v2 de GAOL) sans conclure ; la
-  compatibilité reste à décider (`TODO.md`, PJ point 3).
+  licences (LGPL v3 d'IBEX et de Codac, LGPL v2 de GAOL) sans conclure.
+  *Décidé le 5 novembre* : le mainteneur écrit aux auteurs d'IBEX et de Codac
+  (Gilles Chabert, Simon Rohou) pour leur accord, et l'en-tête seul reste en
+  attendant ; la suite dépend de leur réponse (`TODO.md`, PJ point 3).
 - **Les angles morts** : les ajouter dans #281 (les tests existants en voient
-  quatre sur cinq ; un `midpoint([-1, 1])` à −0 n'est vu par aucun,
-  `TODO_AFTER.md` 5.4).
+  quatre sur cinq ; un `midpoint([-1, 1])` à −0 n'est vu par aucun). *Décidé le
+  5 novembre* pour ce dernier : rien à faire, le signe du zéro n'a pas
+  d'importance ici ; le point 4 de la section 5 de `TODO_AFTER.md` est supprimé.
 - **La sortie** : silencieuse, sauf une ligne par test en échec et le total.
 - **`HOUSE_RULES.md`**, « Tools installed » : un renvoi à `process.md` §6.1
   (#282) ; les deux blocs `onscreen` du manuel qui restent : laissés.

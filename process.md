@@ -835,8 +835,9 @@ git ls-remote --heads origin
 - **À faire**, dans l'ordre de `TODO.md` : un cas de 12.12.7 à décider (PM : les
   littéraux aux bornes calculées), les signalements à d'autres projets (PH, avec
   l'accord du mainteneur), puis la version (PJ, qui reprend le tableau de Clang
-  21, le manuel, les textes qui citent macOS 14, la compatibilité de licence des
-  cas d'IBEX et de Codac, à décider : #281, et les restes de #283, de #284, de
+  21, le manuel, les textes qui citent macOS 14, la licence des cas d'IBEX et de
+  Codac, sur laquelle le mainteneur écrit aux auteurs (*décidé le 5 novembre* :
+  #281), et les restes de #283, de #284, de
   #285 et de #287 : les registres `doc/differences.md` et `ChangeLog`, en une
   seule pull request, #287 étant fusionnée : *décidé le 4 novembre*, la pull
   request #289 est ouverte pour #283 à #288). Ce qui est
