@@ -32,8 +32,8 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
      `gaol/core/gaol_interval_sse.cpp`), et `sup` pourrait alors passer sous la
      valeur exacte ; CORE-MATH lit le sens dans MXCSR, `f_up(x)` y est la borne
      supérieure et `previous_float(f_up(x))` l'inférieure
-     (`gaol/gaol_double_op.h`). Ce qu'il faut, c'est un arrondi dirigé, non un
-     changement de sens :
+     (`gaol/math/gaol_double_op.h`). Ce qu'il faut, c'est un arrondi dirigé,
+     non un changement de sens :
      - sur le chemin AVX-512 (`GAOL_PREFER_AVX512`), `+ - * / sqrt sqr` et les
        puissances entières n'en changent pas, l'arrondi étant dans l'instruction
        (`er_mul2`, `_mm_div_round_sd`, `pown_large_er`) ;
@@ -54,7 +54,7 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
        côté est le résultat arrondi ;
      - les fonctions élémentaires : seules des bornes valables mais plus larges,
        `[previous_float(r), next_float(r)]`, 2 ulp au lieu de 1 (c'est le
-       `namespace nearest` de `gaol/gaol_double_op.h`, qu'aucune opération
+       `namespace nearest` de `gaol/math/gaol_double_op.h`, qu'aucune opération
        n'emploie) ; le signe de l'erreur de CORE-MATH n'est pas exposé, et le
        modifier irait contre la règle de garder `3rd/math-core` proche de
        l'amont ;

@@ -189,7 +189,7 @@ namespace gaol_core {
   practice a class of <stdexcept>: GAOL throws
   std::invalid_argument for a string that is no interval and
   std::domain_error for a function called with an argument it does not take.
-  GAOL 4 had classes of its own, in gaol_core (gaol_exception,
+  GAOL 4 had classes of its own, in gaol (gaol_exception,
   input_format_error, invalid_action_error and unavailable_feature_error),
   which GAOL v5 replaces by those of the standard library.
   \param msg the explanation of the error, a null pointer being no
