@@ -2552,6 +2552,35 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   request ne change aucun code compilé, et `numbers` est long sous les
   sanitizers (`TODO.md` PJ.1). Décisions : 3.19 et 3.20.
 
+- #292 (hors des points : la tâche PK, 3.17 ; ouverte le 5 novembre à 8 h 12
+  UTC, 4 commits dont deux fusions de `configure-clean`, 3 fichiers, 224
+  lignes ajoutées et 30 retirées) : fusionnée le 5 novembre à 10 h 08 UTC par
+  le mainteneur (`130acea`). Les boucles du banc de PK entrent dans
+  `tests/rounding_direction.cpp`, non dans un programme nouveau (`process.md`
+  §5) : 34 boucles de relations de plus (`certainly_le()`, `certainly_leq()`,
+  `certainly_ge()` et `certainly_geq()` contre un intervalle de constantes, un
+  point ou un vide, de chaque côté, et les opérateurs `<=`, `<`, `>=`, `>`
+  entre intervalles), 4 boucles qui comptent les paires
+  (`GAOL_TESTS_RELATION_COUNT`) et cinq jeux d'opérandes pour chaque boucle,
+  dont un sans opérande vide, avec les bornes dans tous les ordres et égales.
+  `doc/three-builds.md` dit la cause (sans `-frounding-math`, Clang 18 et 20
+  vectorisent ces relations en `vcmplepd`, `vcmpnlepd` et `vcmpnltpd`),
+  `doc/tests.md` les boucles. Dents : avec `std::isless()` et
+  `std::islessequal()` remplacés par `<` et `<=` dans `gaol_port.h`, 276
+  vérifications en échec avant, 352 après (Clang 18 et GCC 13.3, avec et sans
+  `-march=native`) ; sans `-frounding-math`, 58 des 64 boucles échouent avec
+  Clang 18 à `-O3 -march=native`, mais 7 à `-O3 -mfma` et 1 à `-O3` : la
+  seconde épreuve dépend d'AVX, et aucun job de la CI n'est compilé avec
+  `-march=native`. Relue par un sous-agent sans le contexte : les boucles du
+  vide ne comparaient rien (`interval::emptyset()` est replié à la
+  compilation, remplacé par `[c + 1, c]`) et aucune boucle ne voyait deux
+  intervalles non vides ordonnés (le cinquième jeu), corrigés. Deux fusions de
+  `configure-clean` : la première pour #289 à #291, avec un conflit de
+  `doc/tests.md` (la boucle `overlap()` de #290, 31 boucles d'avant, 65
+  maintenant), la seconde pour #293. Sa CI au dernier commit `0d05a34` n'était
+  pas finie à la fusion : aucun échec, 52 jobs verts, 31 en cours et 119 en
+  attente à 10 h 15 UTC. Décision : 3.17.
+
 - #293 (hors des points : la question ouverte de #171, `d * x`, 3.20 ; ouverte
   le 5 novembre à 8 h 24 UTC, 7 commits, 7 fichiers, 132 lignes ajoutées et 32
   retirées) : fusionnée le 5 novembre à 10 h 02 UTC par le mainteneur
@@ -4505,16 +4534,16 @@ par la relecture de #279 : en faire un point ou la reporter, à décider) a ét�
   drapeaux de GAOL, la tâche se rouvre.
 - **Suite** (*demandé le 5 novembre*, après les bancs gardés dans
   `todo-notes/pk/`) : leurs boucles entrent dans les tests, et la cause dans
-  la documentation. Elles sont ajoutées à `rounding_direction` (64 boucles de
-  relations sur cinq jeux d'opérandes et 4 qui comptent), non dans un
-  programme nouveau (`process.md` §5), et `doc/three-builds.md` et
-  `doc/tests.md` disent la cause : pull request #292 (`relation-loops`). Leurs
-  dents : avec `std::isless()` et `std::islessequal()` remplacés par `<` et
-  `<=` dans `gaol_port.h`, 276 vérifications en échec avant, 352 après, avec
-  Clang 18 et GCC 13.3 ; sans `-frounding-math`, avec Clang 18, 58 des 64
-  boucles à `-O3 -march=native`, mais 7 à `-O3 -mfma` et 1 à `-O3` : les
-  `vcmp*pd` sont des instructions AVX, et aucun job de la CI n'est compilé
-  avec `-march=native`.
+  la documentation. Elles sont ajoutées à `rounding_direction` (65 boucles de
+  relations, dont 34 de plus, sur cinq jeux d'opérandes, et 4 qui comptent),
+  non dans un programme nouveau (`process.md` §5), et `doc/three-builds.md` et
+  `doc/tests.md` disent la cause : pull request #292 (`relation-loops`,
+  fusionnée le 5 novembre, 2.3). Leurs dents : avec `std::isless()` et
+  `std::islessequal()` remplacés par `<` et `<=` dans `gaol_port.h`, 276
+  vérifications en échec avant, 352 après, avec Clang 18 et GCC 13.3 ; sans
+  `-frounding-math`, avec Clang 18, 58 des 64 boucles à `-O3 -march=native`,
+  mais 7 à `-O3 -mfma` et 1 à `-O3` : les `vcmp*pd` sont des instructions AVX,
+  et aucun job de la CI n'est compilé avec `-march=native`.
 
 ### 3.18 Le 4 novembre : `compoundm1`, #288
 
