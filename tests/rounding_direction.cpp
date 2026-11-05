@@ -2217,6 +2217,37 @@ namespace
     return operands;
   }
 
+  // Two intervals with the same bits, or both empty
+  bool same_bits(const interval& a, const interval& b)
+  {
+    return a.is_empty() ? b.is_empty() : (!b.is_empty() && hex(a) == hex(b));
+  }
+
+  // n * x of an integer n has the bits of x * n, as which it is computed, and
+  // those of double(n) * x where n is a double (GAOL v5, 2026-11-05)
+  template <class T>
+  void check_integer_product(const interval& x0, T n0, const Direction& dir)
+  {
+    volatile T kept = n0; // a value the compiler does not know
+    const T n = kept;
+    set(dir);
+    const interval x = opaque(x0);
+    const interval a = n * x;
+    set(dir);
+    const interval b = x * n;
+    bool same = same_bits(a, b);
+    std::string with_double;
+    if (gaol_detail::integer_is_double(n)) {
+      set(dir);
+      const interval c = static_cast<double>(n) * x;
+      same = same && same_bits(a, c);
+      with_double = ", double(n) * x = " + hex(c);
+    }
+    check("n * x of an integer n has the bits of x * n, and of double(n) * x where n is a double", same,
+          [&] { return "x = " + hex(x0) + ", n = " + std::to_string(n0) + ", " + dir.name + ": n * x = " + hex(a)
+                       + ", x * n = " + hex(b) + with_double; });
+  }
+
   // The doubles of the operations with a double: finite ones, then the ones for which interval(d) is empty
   std::vector<double> finite_doubles() { return std::vector<double>{ -8.0, -0.5, 0.0, 2.0 }; }
   std::vector<double> empty_doubles()
@@ -5043,7 +5074,10 @@ int main()
     x * d gives [+0, -0] (#171). The intervals have bounds among infinite
     ones, ±4 and the zeros of either sign, or subnormal ones, with the empty
     set; the doubles are nonzero, subnormal, the largest, the zeros of either
-    sign, the infinities and a NaN (the last three give the empty set)
+    sign, the infinities and a NaN (the infinities and the NaN give the empty
+    set). n * x of an integer n is computed as x * n, and has its bits too, and
+    those of double(n) * x where n is a double: eight integers of five types,
+    one beyond 2^53 of either sign, which is not a double
   */
   {
     std::vector<interval> xs = infinite_operands();
@@ -5058,12 +5092,20 @@ int main()
           set(dir);
           const interval x = opaque(x0);
           const interval a = gaol_core::rnd_keep(d0) * x;
+          set(dir);
           const interval b = x * gaol_core::rnd_keep(d0);
-          const bool same = a.is_empty() ? b.is_empty() : (!b.is_empty() && hex(a) == hex(b));
-          check("d * x has the bits of x * d, the sign of a zero bound included", same,
+          check("d * x has the bits of x * d, the sign of a zero bound included", same_bits(a, b),
                 [&] { return "x = " + hex(x0) + ", d = " + S(d0) + ", " + dir.name + ": d * x = " + hex(a)
                              + ", x * d = " + hex(b); });
         }
+        check_integer_product(x0, 2, dir);
+        check_integer_product(x0, -3, dir);
+        check_integer_product(x0, 0, dir);
+        check_integer_product(x0, 7u, dir);
+        check_integer_product(x0, static_cast<short>(-1), dir);
+        check_integer_product(x0, 1000000L, dir);
+        check_integer_product(x0, 9007199254740993LL, dir);
+        check_integer_product(x0, -9007199254740993LL, dir);
       }
     }
     set(directions[0]);
