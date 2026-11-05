@@ -2264,10 +2264,10 @@ GAOL_NODISCARD GAOL_INLINE interval operator-(double d, const interval& I)
 /*
   d * I is computed as I * d, by the kernel of the operations with a double:
   the same bounds, bit for bit, the sign of a zero bound included, with every
-  kind of intervals (GAOL v5, decided on 2026-11-05). interval(d) *= I, the
-  product of two intervals, gave the same set with other signs of zero: for
-  I = [+0, -0] and a positive d, [-0, +0] where I * d is [+0, -0] with the
-  SSE2 intervals (#171)
+  kind of intervals (GAOL v5, decided on 2026-11-05), and n * I of an integer n
+  as I * n (below). interval(d) *= I, the product of two intervals, gave the
+  same set with other signs of zero: for I = [+0, -0] and a positive d,
+  [-0, +0] where I * d is [+0, -0] with the SSE2 intervals (#171)
 */
 GAOL_NODISCARD GAOL_INLINE interval operator*(double d, const interval& I)
   {
@@ -2331,10 +2331,11 @@ GAOL_NODISCARD GAOL_INLINE interval operator-(T n, const interval& I)
     return interval(n)-=I;
   }
 
+// n * I as I * n, the same bits, as d * I is I * d (GAOL v5, 2026-11-05)
 template <class T, gaol_detail::if_integer<T> = 0>
 GAOL_NODISCARD GAOL_INLINE interval operator*(T n, const interval& I)
   {
-    return interval(n)*=I;
+    return interval(I)*=n;
   }
 
 template <class T, gaol_detail::if_integer<T> = 0>
