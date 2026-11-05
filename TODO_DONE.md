@@ -4227,15 +4227,15 @@ par la relecture de #279 : en faire un point ou la reporter, à décider) a ét�
   `-frounding-math -fno-fast-math -ffp-contract=off -mfma`, ceux de
   `gaol::gaol`. `rounding_direction` en entier avec Clang 18 : 1 417 200
   vérifications, 0 échec, dont ses 30 boucles de relations (sans le drapeau,
-  puis avec `FE_INVALID` armé). Deux bancs écrits pour l'étude (hors du dépôt)
-  ont lancé 184 et 192 boucles de `certainly_le()`, `certainly_leq()`,
-  `certainly_ge()`, `certainly_geq()` et des opérateurs `<`, `<=`, `>`, `>=` :
-  entre `x[i]` et `y[i]`, avec `interval(-7.5, c)` de chaque côté, avec des
-  constantes (1,5, 0, -2,5, 1e300) de chaque côté, avec un point et avec
-  l'ensemble vide, sur des opérandes vides un sur trois, tous ou à moitié. Avec
-  Clang 18, Clang 20 et GCC 13.3, à `-O2`, `-O3`, `-O3 -march=native`, avec
-  `-funroll-loops`, `-mavx2` avec et sans FMA (21 configurations par banc) :
-  0 `FE_INVALID` et 0 résultat faux.
+  puis avec `FE_INVALID` armé). Deux bancs écrits pour l'étude (gardés dans
+  `todo-notes/pk/`) ont lancé 184 et 192 boucles de `certainly_le()`,
+  `certainly_leq()`, `certainly_ge()`, `certainly_geq()` et des opérateurs `<`,
+  `<=`, `>`, `>=` : entre `x[i]` et `y[i]`, avec `interval(-7.5, c)` de chaque
+  côté, avec des constantes (1,5, 0, -2,5, 1e300) de chaque côté, avec un point
+  et avec l'ensemble vide, sur des opérandes vides un sur trois, tous ou à
+  moitié. Avec Clang 18, Clang 20 et GCC 13.3, à `-O2`, `-O3`,
+  `-O3 -march=native`, avec `-funroll-loops`, `-mavx2` avec et sans FMA (21
+  configurations par banc) : 0 `FE_INVALID` et 0 résultat faux.
 - **Le mécanisme, sans `-frounding-math`** : Clang vectorise alors les boucles
   de relations des intervalles FPU en `vcmplepd`, `vcmpnlepd` et `vcmpnltpd`,
   des comparaisons signalantes (prédicats LE_OS, NLE_US et NLT_US de SSE) :
@@ -5607,7 +5607,8 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PF à PJ) et
   (3.17) : toujours compiler un banc avec `-frounding-math -fno-fast-math
   -ffp-contract=off -mfma`, ou par CMake ; sur un banc, un témoin (une boucle
   `l[i] <= 1.5` sur des NaN, qui doit lever) prouve que `fetestexcept()` voit
-  bien le drapeau.
+  bien le drapeau. Les bancs, leurs scripts et ce témoin sont dans
+  `todo-notes/pk/`, pour les rejouer avec Clang 21 ou sur un AVX-512.
 
 ## 8. Le ménage fait
 
