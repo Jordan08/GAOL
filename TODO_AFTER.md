@@ -130,6 +130,24 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    CI ; #193 l'a étendu à x86 32 bits, où le banc A/B ne montre aucune
    différence au-delà de 5 % sur ses rapports FPU / SSE2, et le mainteneur l'y a
    gardé. À rapprocher de `doc/simd.md` (#154). Reporté, sans condition.
+3. **Les opérations d'IEEE 1788-2015 que GAOL ne fournit pas** (*décidé le 4
+   novembre*, #290 : « Aucune pour l'instant ») : les fonctions de pente de la
+   Table 10.6 (`expSlope1`, `expSlope2`, `logSlope1`, `logSlope2`, `cosSlope2`,
+   `sinSlope3`, `asinSlope3`, `atanSlope3`, `coshSlope2` et `sinhSlope3`), les
+   opérations de réduction `sum`, `dot`, `sumSquare` et `sumAbs` (12.12.12) et
+   les opérations exactes de 12.13.5, avec les décorations (l'article 1, le
+   point 26). La liste est à la fin de `gaol/gaol_ieee1788.h` et dans la
+   section « What is not provided » du manuel. Le banc ITF1788 compte 15 cas de
+   réductions non fournis (`doc/compare/itf1788.md`) ; les 403 autres cas non
+   fournis sont ceux de huit fonctions qui ne sont pas dans la norme (`cot`,
+   `acot`, `coth`, `acoth`, `csc`, `csch`, `sec` et `sech`). `overlap` (10.6.4)
+   est fournie depuis #290. Reporté, sans condition : le mainteneur donne ces
+   opérations une à une.
+4. **`overlap` dans l'analyseur** (#290) : le lecteur de texte et les
+   expressions (`textToInterval`, `gaol/parser/gaol_interval_parser.ypp`) ne
+   connaissent pas `overlap`, qui rend un état et non un intervalle : le type de
+   retour des expressions changerait. Pas fait, à traiter à part si cela sert
+   (les questions ouvertes de #290). Reporté, sans condition.
 
 ## 3. Écarté, à rouvrir si une condition change
 

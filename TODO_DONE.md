@@ -4733,6 +4733,59 @@ les exécute (2.3).
   au commit de la version si le code a changé ; PJ.5 n'a plus la clause sur
   l'entrée de `what()` du manuel, qui n'a plus de `\defmethod` depuis #285.
 
+### 3.22 Le 5 novembre : `overlap` d'IEEE 1788-2015, #290
+
+Les décisions du mainteneur sur #290 (hors des points), avec la pull request qui
+les exécute (2.3). Elles viennent de la session d'`overlap` (GAOL_V8, branche
+`ieee1788-overlap`), qui les a notées au fur et à mesure.
+
+- **Le sujet et la méthode** (*demandé et décidé le 4 novembre* : « mets-la dans
+  GAOLv5 en utilisant la méthodologie de `process.md` », dans GAOL_V8 si aucun
+  agent n'y est) : fournir `overlap` (10.6.4, Table 10.7), que
+  `gaol/gaol_ieee1788.h` et le manuel rangeaient parmi les opérations non
+  fournies. Les bornes se comparent avec les comparateurs bit à bit que GAOL a
+  déjà (`gaol_detail::bound_key()`), non avec des doubles.
+- **L'interface** (*décidé le 4 novembre*, « membre et noms de la norme ») :
+  `enum class gaol_core::overlapping_state : unsigned char` aux 16 noms de la
+  table et dans son ordre (de `bothEmpty`, 0, à `after`, 15), exposé dans `gaol`
+  et `gaol_ieee1788` ; le membre `interval::overlap(I)` ; `overlap(a, b)` dans
+  `gaol_ieee1788`.
+- **Un point d'intervalle sur une borne de l'autre** (*décidé le 4 novembre*,
+  « phrase de 10.6.4 ») : il n'est jamais `meets` ni `metBy`, comme le dit la
+  phrase de 10.6.4 et la colonne des bornes de la table, bien que les
+  spécifications d'ensembles de ces deux états soient vraies aussi pour lui,
+  avec celles de `finishedBy` et de `finishes` (par exemple [2] et [1, 2]).
+  L'oracle des tests applique la règle de la norme et vérifie que l'ambiguïté
+  n'arrive que là. Non signalé à ITF1788 ni au groupe de la norme : le
+  mainteneur n'a pas demandé de signalement (`TODO.md`, PH).
+- **`operator<<`** (*décidé le 4 novembre*) : un `overlapping_state` s'écrit
+  sous le nom de la table (`overlapping_state(200)` hors de 0 à 15). Ajouté
+  (`d5a345e`) après la relecture du sous-agent : couvert par son test et par une
+  mutation, non relu.
+- **Les autres opérations de la norme** (*décidé le 4 novembre*, « aucune pour
+  l'instant ») : les fonctions de pente (Table 10.6), les réductions (12.12.12
+  et 12.13.5) et les décorations restent non fournies, et la session n'en
+  commence aucune sans demande. Les deux premières n'étaient écrites dans aucun
+  registre : elles sont dans `TODO_AFTER.md` (2.3), avec `overlap` dans
+  l'analyseur de texte, que rien ne demande (2.4).
+- **`ChangeLog` et `doc/differences.md` dans la pull request** (*décidé le 5
+  novembre*, « commit quand même ») : leur texte est dans #290 (`6690ea7`), par
+  exception à `process.md` §9 point 5, qui les réserve à la synthèse. La session
+  avait d'abord proposé cette option comme recommandée, en citant le précédent
+  de `compoundm1` (`26c145e`) sans citer la règle ; elle a reconnu l'erreur
+  avant de commiter, et le mainteneur a gardé son choix. `check_branch` échoue
+  exprès sur ces deux fichiers, et la synthèse n'a rien à reprendre pour
+  `overlap`.
+- **Les registres** (*décidé le 4 novembre*, « moi, sur demande ») : la session
+  n'y touche que sur la parole du mainteneur (« j'ai fusionné », le 5 novembre).
+  Les registres communs sont ceux de 7.18 ; la session d'`overlap` a écrit cette
+  section, 7.19, `TODO_AFTER.md` (2.3 et 2.4), une phrase de `TODO.md` (PH) et
+  la ligne de 8.1.
+- **Après la fusion** (*décidé le 5 novembre*) : le mainteneur fusionne lui-même
+  (« vous, j'attends », 9 h 32 UTC) ; GAOL_V8 revient sur `configure-clean` et
+  sa branche locale est supprimée (la distante l'a été à la fusion) ; le
+  scratchpad de la session est vidé.
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -6144,6 +6197,54 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PH, PJ et PM) e
   fusion, et toute la CI de #292 aussi à sa fusion ; la CI de `130acea` n'est
   pas attendue, ce push l'annule.
 
+### 7.19 Le 5 novembre (la fusion de #290)
+
+- Le mainteneur a dit « j'ai fusionné » à la session d'`overlap` (#290 : 9 h 32
+  UTC, `d0b7712`). Elle a laissé la mise à jour des registres communs à la
+  session de #289 (7.18, après un message de celle-ci), et a écrit 3.22, cette
+  section, `TODO_AFTER.md` (2.3 et 2.4), une phrase de `TODO.md` (PH, la Table
+  10.7) et la ligne de 8.1 sur `configure-clean` après le push de l'autre, puis
+  a mis à jour les issues #178 et #179 avec ces changements.
+- Les faits de 2.3 viennent de la session. Validés en local au commit `d5a345e`
+  (Ubuntu 26.04, GCC 15.2, Clang 18, 4 cœurs au plus) ; les commits suivants ne
+  changent que `doc/compare/itf1788.md`, `ChangeLog` et `doc/differences.md` :
+  CMake SSE2 avec `-Wall -Wextra -Werror` (63 tests sur 63), FPU (60 sur 60),
+  Clang 18 (63 sur 63), ASan + UBSan sur `ieee1788`, `relations`,
+  `rounding_direction` et `misc`, autotools (31 réussis, 2 ignorés) et meson (31
+  et 2), `headers.sh` (98 macros préfixées), le manuel (116 exemples sur 116) ;
+  ITF1788, SSE2 et FPU : les 48 cas de `overlap` passent (7 415 réussis, 22 en
+  échec, 418 non fournis, 1 687 sans objet).
+- Les tests ont des dents, par mutation dans une copie : `meets` et `overlaps`
+  échangés fait échouer `ieee1788` et `relations` ; des comparaisons de doubles
+  à la place des entiers des bornes ne font échouer que `rounding_direction`,
+  avec denormals-are-zero (sur des points sous-normaux comme [100·2^-1074]) ;
+  deux noms échangés dans `operator<<` font échouer le nouveau contrôle. Le
+  relecteur (un sous-agent sans le contexte, en lecture seule) a rejoué le
+  modèle en Python avec 3, 4 et 7 points par trou (mêmes résultats) et attrapé
+  trois mutants (`au <= bl`, `starts` et `startedBy` échangés, `meets` testé en
+  premier) ; sans bogue bloquant, avec des erreurs de texte toutes corrigées :
+  `1 << s` donné pour le masque de la note de 10.6.4, qui est `0x8000 >> s`
+  (`bothEmpty` à gauche, `disjointMask` = 0xF001), et « aucune comparaison de
+  doubles », trop fort (`is_empty()` compare les bornes).
+- La CI : les sept workflows de `cf7f78f` verts (Windows à la deuxième
+  tentative : le job « MinGW-w64 15.2.0 x86 Release, rounding direction
+  preserved » avait échoué sur un `504 Gateway Timeout` de Chocolatey, avant
+  toute compilation, et `gh api -X POST .../actions/runs/<id>/rerun-failed-jobs`
+  l'a relancé seul) ; ceux de `6690ea7` aussi, le dernier job de macOS ayant
+  fini à 10 h 04 UTC, après la fusion. La CI de `d0b7712` (Autotools et meson,
+  Linux containers, Windows et macOS) a été annulée par les pushes suivants ;
+  Linux et Manual y sont verts.
+- Les pièges : le texte de la pull request avait un exemple de mutation
+  inventé ; il a été remplacé par ce qu'on observe,
+  `overlap([-oo, -DBL_MAX], [-DBL_MAX, -1])` rend `overlaps` au lieu de `meets`
+  quand les bornes se comparent comme des doubles : ne citer que ce qu'on a fait
+  tourner. Les commits non poussés ont été refaits par `git reset --soft
+  origin/configure-clean` pour que l'étiquette d'ITF1788 (le dernier commit de
+  `gaol/` et de `3rd/`) soit juste. Un sous-agent doit avoir son propre dossier
+  de travail : le relecteur a écrasé celui d'ITF1788. Une option « recommandée »
+  se vérifie contre `process.md` avant d'être proposée (3.22 : `ChangeLog` et
+  `doc/differences.md`).
+
 ## 8. Le ménage fait
 
 ### 8.1 Branches, lignes de crédit, outillage
@@ -6302,6 +6403,11 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PH, PJ et PM) e
   (`relation-loops`), sur GitHub (supprimées à la fusion, vérifié le 5 novembre
   par `git ls-remote --heads origin`) ; en local, le clone de travail de #289
   dans le scratchpad, supprimé le 5 novembre.
+- [x] En local, pour #290 : la branche `ieee1788-overlap` de GAOL_V8, supprimée
+  le 5 novembre (`git branch -d`, fusionnée), GAOL_V8 revenu sur
+  `configure-clean` (`f4b2064`) sans autre agent dans l'arbre, et le scratchpad
+  de la session vidé (103 Mo : les copies de travail, les journaux, ITF1788, le
+  manuel).
 
 ### 8.2 Les branches inachevées
 

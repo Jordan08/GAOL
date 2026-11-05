@@ -102,13 +102,19 @@ probablement rien.
    et, depuis le rapport du 4 novembre, deux cas de `textToInterval` où ITF1788
    attend un intervalle pour un littéral `[l, u]` dont l est au-dessus de u, que
    GAOL rend vide selon IEEE 1788-2015, 12.12.7 ; *décidé le 4 novembre* :
-   ajoutés au brouillon de #129, en anglais, pour une issue à part), **#130
-   Boost.Interval** (`rounded_transc_opp` donne la borne supérieure pour
-   l'inférieure ; issue seule ou avec une pull request, selon la politique de
-   Boost) et **#175 Cygwin** (le `fma()` mal arrondi dans les quatre sens, le
-   `nextafter()` qui calcule le débordement dans le sens d'arrondi du programme,
-   CPack qui ne met pas le lien `README` dans l'archive, cause non trouvée ;
-   mesures de CI et brouillon anglais dans l'issue, à rejouer avant l'envoi).
+   ajoutés au brouillon de #129, en anglais, pour une issue à part ; *à
+   décider* depuis #290 : l'ambiguïté de la Table 10.7 que `overlap` relève, les
+   spécifications d'ensembles de `meets` et de `metBy` étant vraies aussi pour
+   un point d'intervalle sur une borne de l'autre, avec celles de `finishedBy`
+   et de `finishes`, par exemple [2] et [1, 2], à ajouter au brouillon de #129
+   ou à envoyer au groupe de la norme, si le mainteneur le veut : il n'a pas
+   demandé de signalement), **#130 Boost.Interval** (`rounded_transc_opp` donne
+   la borne supérieure pour l'inférieure ; issue seule ou avec une pull request,
+   selon la politique de Boost) et **#175 Cygwin** (le `fma()` mal arrondi dans
+   les quatre sens, le `nextafter()` qui calcule le débordement dans le sens
+   d'arrondi du programme, CPack qui ne met pas le lien `README` dans l'archive,
+   cause non trouvée ; mesures de CI et brouillon anglais dans l'issue, à
+   rejouer avant l'envoi).
 3. **#131 Microsoft** (`ldexp()` de l'UCRT, `NAN` et `INFINITY` sous
    `/fp:strict`, `sqrt()` en 32 bits, runtime de Debug, `nextafter()`, le
    `fma()` d'`ucrtbase.dll` jamais vérifié), **#132 Apple** (`ldexp()` et
