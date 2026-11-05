@@ -4533,8 +4533,14 @@ réponses par question »). Ce qui est fait le même jour est dans #291.
   lie donc avec un programme compilé par l'autre : sans objet (section 6, #146).
 - **Le défaut de GCC 14 trouvé par #279** : l'ajouter au brouillon de l'issue
   #126, sans rien envoyer ; fait le même jour.
-- **Les règles de protection de `master` (#276)** : pas de réponse ;
-  `TODO_fin.md` 1.6.
+- **Les règles de protection de `master` (#276)** : le mainteneur s'en occupe
+  (réponse du 5 novembre, après la première série) ; `TODO_fin.md` 1.6.
+- **GCC pour Windows 32 bits sans FMA (#172)** : un processeur sans FMA ne fait
+  plus tourner la bibliothèque de GCC pour Windows 32 bits ; *décidé le 5
+  novembre* : laisser ainsi (`doc/building.md` le dit déjà).
+- **`d * x` aligné sur `x * d`** : commencé le 5 novembre, à la demande du
+  mainteneur (« commence maintenant »), dans une branche et une pull request à
+  part.
 
 ## 4. Les points faits, par lettre
 

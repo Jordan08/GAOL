@@ -45,13 +45,14 @@ un autre projet sans l'accord du mainteneur.
    réponse dans `TODO_DONE.md`, puis une phrase de `doc/using.md`, ou une limite
    dans `TODO_AFTER.md` §5. *Décidé le 5 novembre* : aligner `d * x` sur
    `x * d`, les mêmes bits sur tous les chemins, avec un test de ces bits : un
-   point à part, qui change le code (`TODO_DONE.md` 3.20).
+   point à part, qui change le code (`TODO_DONE.md` 3.20). Commencé le 5
+   novembre, à sa demande, dans une pull request à part.
 2. **GCC pour Windows 32 bits sans FMA (#172, 24 octobre).** « Un processeur
    sans FMA ne fait plus tourner la bibliothèque de GCC pour Windows 32 bits :
    le laisser ainsi ? », sans réponse écrite. Le comportement est documenté
    (`doc/building.md:140`, `doc/differences.md:2260`). Destination : une ligne
    dans `TODO_DONE.md` 3.4, comme la question de #205 sur mingw-w64 11 l'a été
-   dans `TODO_AFTER.md` 3.5.
+   dans `TODO_AFTER.md` 3.5. *Décidé le 5 novembre* : laisser ainsi.
 3. **Les tests à plusieurs threads (`0048c79`, 23 septembre).** Ils sont en
    commentaire : `tests/ieee1788.cpp:52-57` et `:1113`,
    `tests/expressions.cpp:132-139`, `:2048` et `:2126`,
@@ -89,7 +90,8 @@ un autre projet sans l'accord du mainteneur.
    aucun registre n'en parle. Destination : PJ.3, vérifier avant la fusion de
    `MATH-CORE` dans `master` que ces règles n'exigent pas un contrôle qui
    n'existe plus (les jobs de macOS 14) ; non vérifiable ici, les règles ne se
-   lisent pas avec l'accès de cette session.
+   lisent pas avec l'accès de cette session. Le mainteneur s'en occupe (réponse
+   du 5 novembre).
 
 ## 2. Des textes faux ou périmés dans le code et la documentation
 
