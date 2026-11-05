@@ -3524,7 +3524,8 @@ in Chapter~\ref{chap:accuracy}.
   Multiplication of two intervals, or of one interval and a double: \ieee{mul}
   of IEEE 1788-2015. A zero bound times an infinite bound counts as $0$, as the
   product of a real number of the interval by 0.\newinvfive{} \code{d * I} is
-  computed as \code{I * d}: the same bounds, with the same signs of a zero bound
+  computed as \code{I * d}, and \code{n * I} of an integer \code{n} as
+  \code{I * n}: the same bounds, with the same signs of a zero bound
   (\pxref{sec:zero-sign}).\newinvfive
 \end{deffun}
 

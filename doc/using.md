@@ -1271,10 +1271,10 @@ The bounds are those of the other path, bit for bit, but for the sign of a
 zero bound in one case: `x * d`, `x *= d` and `d * x`, which is computed as
 `x * d` (GAOL v5), of an interval whose zero bounds have different signs,
 `[+0, -0]`, are `[-0, +0]` with the AVX-512 path and `[+0, -0]` with the SSE2
-one, +0 and −0 being the same number (the rounding
-rule is the same, and the tests of `tests/`, which a job of the continuous
-integration runs with the option on, check it, with `==`, which does not see
-the sign of a zero; `rounding_direction` checks the bits of that one case, in
+one, +0 and −0 being the same number (the rounding rule is the same, and the
+tests of `tests/`, which a job of the continuous integration runs with the
+option on, check it, with `==`, which does not see the sign of a zero;
+`rounding_direction` checks the bits of that one case, in
 each path, GAOL v5; every result of the operations of intervals and with a
 double on the intervals of two bounds among 0 of either sign, ±1, ±2.5, ±3,
 ±1e-310, ±1e300 and ±∞ was compared bit for bit). The path is decided when GAOL
