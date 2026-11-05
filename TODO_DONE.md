@@ -71,7 +71,9 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   commits de `.claude/CLAUDE.md`) ne bougent qu'à la version (point Y).
 - **Pull requests ouvertes** : #289 (la synthèse de #283 à #288, le point 7 de
   PJ) et #290 (`overlapping_state`, 10.6.4 d'IEEE 1788-2015), ouvertes le 4
-  novembre à 21 h 00 et 21 h 09 UTC. Le mainteneur a fusionné #165 à #167,
+  novembre à 21 h 00 et 21 h 09 UTC, et #292 (les boucles de relations de PK
+  dans `rounding_direction`, 3.17), ouverte le 5 novembre à 8 h 12 UTC. Le
+  mainteneur a fusionné #165 à #167,
   #169 à #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194, #196 et
   #197 le 25 octobre, #199, #200 et #201 le 26 octobre, #202 à #205 le 27, #206
   à #210, #212, #213, #215 et #216 le 28 (#216, hors des points : le tableau des
@@ -4381,6 +4383,18 @@ par la relecture de #279 : en faire un point ou la reporter, à décider) a ét�
   (deux dans `loop_constructor` et deux dans `loop_floor`, comme avec
   `-march=native`, où le test passe). Si un `FE_INVALID` revient avec les
   drapeaux de GAOL, la tâche se rouvre.
+- **Suite** (*demandé le 5 novembre*, après les bancs gardés dans
+  `todo-notes/pk/`) : leurs boucles entrent dans les tests, et la cause dans
+  la documentation. Elles sont ajoutées à `rounding_direction` (64 boucles de
+  relations sur cinq jeux d'opérandes et 4 qui comptent), non dans un
+  programme nouveau (`process.md` §5), et `doc/three-builds.md` et
+  `doc/tests.md` disent la cause : pull request #292 (`relation-loops`). Leurs
+  dents : avec `std::isless()` et `std::islessequal()` remplacés par `<` et
+  `<=` dans `gaol_port.h`, 276 vérifications en échec avant, 352 après, avec
+  Clang 18 et GCC 13.3 ; sans `-frounding-math`, avec Clang 18, 58 des 64
+  boucles à `-O3 -march=native`, mais 7 à `-O3 -mfma` et 1 à `-O3` : les
+  `vcmp*pd` sont des instructions AVX, et aucun job de la CI n'est compilé
+  avec `-march=native`.
 
 ### 3.18 Le 4 novembre : `compoundm1`, #288
 

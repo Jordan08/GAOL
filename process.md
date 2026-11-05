@@ -814,16 +814,18 @@ git ls-remote --heads origin
   drapeaux de GAOL suppriment : `TODO_DONE.md` 3.17) ; l'audit du 13 octobre a
   vérifié dans `configure-clean` ce qu'annonçaient alors les points A, C à H et
   J à V.
-- **En cours** : au 4 novembre, deux pull requests sont ouvertes : #289 (la
-  synthèse de #283 à #288, le point 7 de PJ) et #290 (`overlapping_state`,
-  10.6.4 d'IEEE 1788-2015) ; `configure-clean` est au commit `7b30dba` (les
-  registres après la fusion de #288, `61a432b`, la fusion de `compoundm1`),
+- **En cours** : au 5 novembre, des pull requests sont ouvertes : #289 (la
+  synthèse de #283 à #288, le point 7 de PJ), #290 (`overlapping_state`,
+  10.6.4 d'IEEE 1788-2015) et #292 (les boucles de relations de PK dans
+  `rounding_direction`, `TODO_DONE.md` 3.17) ; `configure-clean` est au commit
+  `7b30dba` (les registres après la fusion de #288, `61a432b`, la fusion de
+  `compoundm1`),
   après celle de #287 (`368446d`) et celle de la branche `std-exceptions`
   (`221c8d4`). Ses branches sur GitHub sont `configure-clean`, `MATH-CORE` et
   `master`, avec les branches des pull requests ouvertes (`synthese-283-288`,
-  `ieee1788-overlap`) et des pull requests jetables fermées, gardées
-  (`experiment-pg*`, voir `TODO_DONE.md` 8.1), et deux branches, fusionnée ou
-  fermée, que le mainteneur supprime (`todo-pg-relations-order` et
+  `ieee1788-overlap`, `relation-loops`) et des pull requests jetables fermées,
+  gardées (`experiment-pg*`, voir `TODO_DONE.md` 8.1), et deux branches,
+  fusionnée ou fermée, que le mainteneur supprime (`todo-pg-relations-order` et
   `todo-pg-xle-exfirst`) ; `std-exceptions` et `revert-285-std-exceptions` sont
   supprimées depuis le 4 novembre, comme celles de #287 (`pown-rel`) et de #288
   (`compoundm1`) à leur fusion. L'issue #198 (`x / y` des intervalles NEON avec
