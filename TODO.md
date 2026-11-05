@@ -289,8 +289,9 @@ doubles, ou pi quand l'autre borne ne l'est pas : le littéral est alors
 l'intervalle de la borne inférieure de l à la borne supérieure de u (commentaire
 de `gaol_literal()`, `gaol/parser/gaol_interval_parser.ypp`). C'est le cas (b)
 de 12.12.7, un intervalle qui contient l et u avec `PossiblyUndefinedOperation`,
-mais GAOL v5 ne signale aucune des exceptions du standard (les décorations sont
-dans `TODO_AFTER.md`). Le cas de la ligne 137 de `libieeep1788_class.itl`,
+mais GAOL v5 ne signale aucune des exceptions du standard (leur signal est
+reporté : `TODO_AFTER.md`, 1.4). Le cas de la ligne 137 de
+`libieeep1788_class.itl`,
 `[10000000000000001/10000000000000000, 10000000000000002/10000000000000001]`, où
 l est au-dessus de u d'environ 10^-32, passe pour cette raison ;
 `doc/compare/itf1788.md` le dit. *À décider* :
@@ -310,7 +311,7 @@ l est au-dessus de u d'environ 10^-32, passe pour cette raison ;
    `gaol/parser/` ; les tests : des quotients de littéraux dont l est au-dessus
    de u de 10^-32, comparés à `fractions.Fraction` de Python, en échec avant.
    [M]
-3. **Reporter** : signaler `PossiblyUndefinedOperation` demande des décorations,
-   qui sont dans `TODO_AFTER.md` ; l'écrire dans `TODO_AFTER.md` avec les
-   décorations et ne rien faire d'ici là, sauf le dire dans `doc/differences.md`
-   comme en 1.
+3. **Reporter** : signaler `PossiblyUndefinedOperation` demande le mécanisme
+   d'exceptions reporté dans `TODO_AFTER.md` (1.4, sans les décorations, que
+   12.1.3 en sépare) ; l'y rattacher et ne rien faire d'ici là, sauf le dire
+   dans `doc/differences.md` comme en 1.

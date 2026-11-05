@@ -15,13 +15,12 @@ GAOL is a C++ [Interval Arithmetic](https://en.wikipedia.org/wiki/Interval_arith
 
 ## Authors
 
-GAOL v5 was written by Jordan Ninin, Associate Professor in Computer Science at
+GAOL v5 was written by [Jordan Ninin](https://webperso.ensta.fr/ninin/), Associate Professor in Computer Science at
 ENSTA (Lab-STICC, UMR CNRS 6285), who has been its main developer since 2026.
-Its page is the repository [Jordan08/GAOL](https://github.com/Jordan08/GAOL),
-and Jordan Ninin's page, [webperso.ensta.fr/ninin](https://webperso.ensta.fr/ninin/),
-lists his publications.
+Its page is the repository [Jordan08/GAOL](https://github.com/Jordan08/GAOL), and 
+lists his publications on [webperso.ensta.fr/ninin](https://webperso.ensta.fr/ninin/).
 
-GAOL v5 continues GAOL as
+GAOL v5 continues GAOL v4 as
 [Frédéric Goualard](https://frederic.goualard.net/) developed it, from its
 version 4.2.2 (see [What differs from GAOL](doc/differences.md)).
 
@@ -203,7 +202,8 @@ gaol::interval c = gaol_ieee1788::pown(x, 2); // [1, 16]
 
 ## Licences
 
-GAOL, by [Frédéric Goualard](https://frederic.goualard.net/), is distributed
+GAOL, by [Frédéric Goualard](https://frederic.goualard.net/) and 
+[Jordan Ninin](https://webperso.ensta.fr/ninin/), is distributed
 under the GNU LGPL v2 (`COPYING.LIB`).
 [CORE-MATH](https://core-math.gitlabpages.inria.fr/), whose sources are in
 `3rd/math-core` and provide every elementary function of GAOL, is distributed

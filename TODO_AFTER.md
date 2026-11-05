@@ -1,6 +1,6 @@
 # Reporté
 
-Tout ce qui est reporté sur GAOL v5 au 4 novembre 2026 (commit `1e0f368` de
+Tout ce qui est reporté sur GAOL v5 au 5 novembre 2026 (commit `130acea` de
 `configure-clean`) : ce qui attend la version v5.0.0, ce que le mainteneur a
 reporté indéfiniment, ce qu'il a écarté en laissant une porte ouverte, et ce qui
 attend du matériel. Ce fichier et l'issue #178 ont le même contenu. Ce qui reste
@@ -96,7 +96,128 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    Le plan détaillé est dans `todo-notes/orchestration/points_w4.py` (son plan
    du 28 reprend la promotion des en-têtes, que la décision du 3 octobre écarte
    : la décision l'emporte). Après la version.
-4. **Le ménage de la fin** : l'image Docker `i386/debian:trixie` de #111 reste
+4. **Les exceptions d'IEEE 1788-2015** [M] (*demandé par le mainteneur le 5
+   novembre* : « Cette modif doit être dans gaol_core et exportée dans gaol et
+   gaol_ieee1788 »). Une opération de la norme rend toujours une valeur, et
+   signale en plus une exception quand le cas l'exige, par un mécanisme que le
+   langage ou l'implémentation définit et qui appelle un gestionnaire (12.1.3) ;
+   ces exceptions sont distinctes des décorations (2.1), qu'elles ne supposent
+   pas. GAOL v5 n'en signale aucune : 33 cas d'ITF1788 attendent
+   `UndefinedOperation` ou `PossiblyUndefinedOperation`, dont seul le résultat
+   est vérifié (`doc/compare/itf1788.md`). Celles des intervalles nus :
+   - `UndefinedOperation`, quand un constructeur échoue (12.12.7, 13.4) :
+     `numsToInterval(l, u)` pour l > u, un NaN, l = +∞ ou u = −∞ ;
+     `textToInterval` d'un texte qui n'est pas un littéral, ou de `[l, u]` dont
+     l est au-dessus de u ; `exactToInterval` d'une entrée invalide.
+     `gaol_ieee1788` rend alors l'ensemble vide sans rien dire, et `gaol` lève
+     `std::invalid_argument` pour un texte mal formé (#285) ;
+   - `PossiblyUndefinedOperation`, quand le constructeur ne sait pas décider si
+     l ≤ u (12.12.7, cas (b)) : les bornes calculées, pi, les nombres loin
+     au-delà des doubles (5.1, et la tâche PM de `TODO.md`) ;
+   - `InvalidOperand` (14.3) : l'implémentation doit (« shall ») donner un moyen
+     de demander ce signal quand un objet ne représente aucun intervalle, ce
+     que sont les états bruts que l'interface ne produit pas (`[-0, NaN]`,
+     `TODO_fin.md`, 5.2 et 5.3) ;
+   - sans objet : `IntvlPartOfNaI` (12.12.11) et les signaux facultatifs de 8.1
+     et de 11.3 supposent les décorations, et `IntvlOverflow` (7.5.2) n'arrive
+     pas, tout type de cette version de la norme contenant la droite entière
+     (12.5.1).
+
+   Le mécanisme est dans `gaol_core` (`gaol/core/gaol_interval_core.h`),
+   exporté par `using` dans `gaol` (`gaol/gaol_interval.h`) et dans
+   `gaol_ieee1788` (`gaol/gaol_ieee1788.h`), comme les autres fonctions ; les
+   constructeurs de `gaol_core` et le lecteur (`gaol_literal()`,
+   `gaol/parser/gaol_interval_parser.ypp`) le déclenchent. *À décider* avant le
+   code :
+   - la forme : un indicateur collant, local au thread, qu'on lit et efface
+     comme `fetestexcept()` et `feclearexcept()`, un gestionnaire que le
+     programme installe, ou les deux ; pas un `throw` dans `gaol_ieee1788`, qui
+     doit rendre l'ensemble vide (12.1.3) ; un indicateur marche aussi sans les
+     exceptions C++ ; la forme est à documenter (questionnaire de 4.4, c.5) ;
+   - `gaol` : garder `std::invalid_argument` (#285) en levant l'indicateur en
+     plus, ou non ;
+   - ce qui lève `UndefinedOperation` : les seuls constructeurs de la norme, ou
+     aussi `interval(l, u)` de `gaol_core`, dont GAOL se sert lui-même (aucun
+     appel interne ne doit lever l'indicateur) ;
+   - `InvalidOperand` : un test de chaque opérande à l'entrée de chaque
+     opération coûte sur le chemin rapide : une option de compilation,
+     désactivée par défaut, ou un mode à l'exécution ;
+   - le coût : `interval(l, r)` est dans `gaol_performance` ; `thread_local`
+     sert déjà (`gaol/parser/gaol_expression.cpp`), mais son coût dépend de la
+     plateforme (le TLS émulé de GCC pour MinGW-w64, à vérifier).
+
+   Les tests : les 33 cas d'ITF1788 (`EXCEPTIONS` de
+   `doc/compare/itf1788/itf1788.py`, qui vérifierait alors le signal) ; pour
+   chaque constructeur, dans les deux espaces de noms, le signal levé quand il
+   le faut et seulement alors, sur deux threads ; aucune autre opération ne lève
+   `UndefinedOperation` ni `PossiblyUndefinedOperation`. À mettre à jour avec :
+   `doc/compare/itf1788.md`, l'en-tête de `gaol/gaol_ieee1788.h`, l'exemple 15
+   (`examples/15_text_and_ieee1788.cpp`), le manuel et la tâche PM.
+5. **PO, les réductions d'IEEE 1788-2015 (12.12.12)** [L] (*demandé par le
+   mainteneur le 5 novembre* comme tâche PO de `TODO.md`, « ajoute sum, dot,
+   sumSquare et sumAbs dans une tâche PO », puis reporté ici le même jour, « met
+   la tâche PO dans TODO_AFTER.md »). 12.12.12 est dans les opérations requises
+   (« shall », 12.12, p. 60, et 12.12.12, p. 65 : pour le format parent de
+   chaque type d'intervalles conforme à IEEE 754, ce qu'est `interval`), au
+   contraire des fonctions de pente (10.6.2) et des opérations exactes
+   (12.13.5), seulement recommandées, qui restent en 2.3. GAOL v5 n'en a aucune
+   (la liste « Not provided » à la fin de `gaol/gaol_ieee1788.h`, la section
+   « What is not provided » du manuel), et les 15 cas de
+   `libieeep1788_reduction.itl` du banc ITF1788 sont comptés non fournis
+   (`doc/compare/itf1788.md`, `NOT_PROVIDED` de
+   `doc/compare/itf1788/itf1788.py`) : v5.0.0 sort sans elles.
+
+   Ce ne sont pas des opérations d'intervalles, mais celles de 9.4 d'IEEE
+   754-2008 sur des vecteurs de nombres du format parent (des `double`),
+   correctement arrondies :
+   - le résultat exact, arrondi une seule fois dans le sens d'arrondi courant,
+     sans débordement ni sous-dépassement intermédiaire ; un zéro exact est +0
+     dans tous les sens, sauf vers −∞, où il est −0 ;
+   - `sum` et `dot` rendent NaN si elles rencontrent un NaN (∞ × 0 compris pour
+     `dot`) ou des infinis des deux signes ; `sumSquare` et `sumAbs` rendent +∞
+     si elles rencontrent un infini, sinon NaN si elles rencontrent un NaN ;
+   - le reste (débordement et sous-dépassement du résultat, indicateurs d'IEEE
+     754, longueur nulle) suit 9.4 d'IEEE 754-2008, qui n'est pas dans l'arbre
+     et reste à lire ; `Inexact` est levé sauf si le résultat est exact ;
+   - la norme recommande de les fonder sur un accumulateur exact (12.13.5).
+
+   *À décider* avant le code :
+   - **l'interface** : les noms de la norme dans `gaol_ieee1788`, et les noms et
+     la présence dans `gaol` ; les arguments (un pointeur et une longueur, comme
+     9.4, ou des itérateurs ; GAOL est en C++11, sans `std::span`) ; le code
+     dans `gaol_core`, exporté par les deux espaces de noms comme le reste (et
+     comme les exceptions, en 1.4) ;
+   - **le sens d'arrondi** : le sens courant est vers le haut entre
+     `gaol::init()` et `gaol::cleanup()` dans le build par défaut, et celui du
+     programme avec `GAOL_PRESERVE_ROUNDING` (`doc/using.md`) : lire le sens à
+     l'appel, comme la norme le dit, et fournir ou non aussi les quatre sens
+     fixes que le banc ITF1788 nomme (`sum_nearest`, `sum_up`, `sum_down`,
+     `sum_zero`, et de même pour `dot`, `sum_abs` et `sum_sqr` ; ses 15 cas
+     sont tous au plus proche) ;
+   - **l'algorithme** : un accumulateur exact en entiers (environ 2 100 bits
+     pour `sum` et `sumAbs`, 4 200 pour `dot` et `sumSquare`, plus les
+     retenues), qui ne dépend ni du sens d'arrondi ni du `fma()` de la
+     plateforme (ceux de msvcrt et de Cygwin sont mal arrondis, #127, #175), et
+     que `gaol/math/gaol_u128.h` aide (`gaol_u128_mul64()`) ; ou des
+     transformations exactes (le `two_sum()` de
+     `gaol/core/gaol_interval_core.cpp`, des produits exacts par `fma`) avec un
+     arrondi final correct dans les quatre sens, plus rapides mais plus
+     difficiles à prouver près du débordement et des sous-normaux ;
+   - **les indicateurs** : `Inexact` (12.12.12) et ce que 9.4 d'IEEE 754-2008
+     dit d'`Overflow`, d'`Underflow` et d'`Invalid` (∞ − ∞, ∞ × 0) ; la règle
+     de process.md §4.4 (aucun `FE_INVALID` sur un opérande vide) vise les
+     intervalles, pas ces opérations sur des nombres.
+
+   Les tests (process.md §5) : les 15 cas d'ITF1788, qui sortent alors de
+   `NOT_PROVIDED`, et des vecteurs comparés à la somme exacte de
+   `fractions.Fraction` de Python, arrondie dans les quatre sens : de fortes
+   annulations, `[DBL_MAX, DBL_MAX, -DBL_MAX]` (qui ne doit pas déborder), des
+   sous-normaux, des infinis des deux signes, des NaN, ∞ × 0, la longueur
+   nulle, le signe des zéros dans chaque sens, et le sens d'arrondi du
+   programme rendu tel quel. À mettre à jour avec : la liste « Not provided »
+   de `gaol/gaol_ieee1788.h`, la section « What is not provided » du manuel,
+   `doc/compare/itf1788.md` et l'article 2.3.
+6. **Le ménage de la fin** : l'image Docker `i386/debian:trixie` de #111 reste
    sur la machine (`debian:trixie` et `ubuntu:24.04` ont été supprimées le 31
    octobre : `TODO_DONE.md`, 8.1) ; `todo-notes/` (ramené de la branche
    `todo-status`, supprimée ; ses rapports sont retirés de l'arbre, ils restent
@@ -119,7 +240,8 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    pièges de « Common errors », fait par #140). Reporté le 3 octobre, après la
    version. *Décidé le 22 octobre (Q5)* : rien pour l'instant, GAOL reste un
    intervalle nu et les pièges sont documentés (#140) ; reporté indéfiniment.
-   L'issue #67 reste ouverte.
+   L'issue #67 reste ouverte. Les exceptions de la norme, qui sont distinctes
+   des décorations (12.1.3), sont en 1.4.
 2. **106 (AI), le reste (c) et (d)** (*décidé le 28 octobre* : rien) : (c) les
    opérations avec un double (`x * 2.0`) n'ont pas les noyaux de #157 sur aucune
    cible (#124) : `x *= d`, `x /= d` et `x %= d` branchent encore sur le signe
@@ -133,16 +255,18 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
 3. **Les opérations d'IEEE 1788-2015 que GAOL ne fournit pas** (*décidé le 4
    novembre*, #290 : « Aucune pour l'instant ») : les fonctions de pente de la
    Table 10.6 (`expSlope1`, `expSlope2`, `logSlope1`, `logSlope2`, `cosSlope2`,
-   `sinSlope3`, `asinSlope3`, `atanSlope3`, `coshSlope2` et `sinhSlope3`), les
-   opérations de réduction `sum`, `dot`, `sumSquare` et `sumAbs` (12.12.12) et
+   `sinSlope3`, `asinSlope3`, `atanSlope3`, `coshSlope2` et `sinhSlope3`) et
    les opérations exactes de 12.13.5, avec les décorations (l'article 1, le
-   point 26). La liste est à la fin de `gaol/gaol_ieee1788.h` et dans la
-   section « What is not provided » du manuel. Le banc ITF1788 compte 15 cas de
-   réductions non fournis (`doc/compare/itf1788.md`) ; les 403 autres cas non
-   fournis sont ceux de huit fonctions qui ne sont pas dans la norme (`cot`,
-   `acot`, `coth`, `acoth`, `csc`, `csch`, `sec` et `sech`). `overlap` (10.6.4)
-   est fournie depuis #290. Reporté, sans condition : le mainteneur donne ces
-   opérations une à une.
+   point 26). Les opérations de réduction `sum`, `dot`, `sumSquare` et `sumAbs`
+   (12.12.12), que la norme requiert, en sortent le 5 novembre : c'est la tâche
+   PO, demandée par le mainteneur et reportée après la version (1.5). La liste
+   est à la fin de `gaol/gaol_ieee1788.h` et dans la section « What is not
+   provided » du manuel, qui citent les réductions jusqu'à PO. Des 418 cas non
+   fournis du banc ITF1788 (`doc/compare/itf1788.md`), 15 sont ceux des
+   réductions (PO) et 403 ceux de huit fonctions qui ne sont pas dans la norme
+   (`cot`, `acot`, `coth`, `acoth`, `csc`, `csch`, `sec` et `sech`). `overlap`
+   (10.6.4) est fournie depuis #290. Reporté, sans condition : le mainteneur
+   donne ces opérations une à une.
 4. **`overlap` dans l'analyseur** (#290) : le lecteur de texte et les
    expressions (`textToInterval`, `gaol/parser/gaol_interval_parser.ypp`) ne
    connaissent pas `overlap`, qui rend un état et non un intervalle : le type de
