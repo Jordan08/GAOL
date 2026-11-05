@@ -2599,10 +2599,14 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   échecs avec SSE2, 216 avec les intervalles FPU et 258 avec le chemin AVX-512,
   aucun avec elle. La documentation : `doc/using.md`, `doc/accuracy.md`,
   `doc/tests.md`, le commentaire de `gaol/core/gaol_interval_avx512.cpp` et le
-  manuel (l'entrée `operator*`). Sa CI au dernier commit `7267816` : Linux,
-  Linux containers, Windows, Manual et Performance verts ; macOS, Autotools et
-  meson étaient encore en attente d'un exécuteur à 10 h 07 UTC, après la fusion.
-  Décision : 3.20.
+  manuel (l'entrée `operator*`). Son texte « Pour `doc/differences.md` et
+  `ChangeLog` » n'est pas reporté (`TODO.md` PJ.7). Sa CI : au commit de
+  l'ouverture (`b99d549`), « Visual Studio 2026 x64 Release, /W4 /WX, AVX-512
+  arithmetic » a échoué sur l'avertissement C4459 de Visual C++ (la variable
+  locale `largest` du test masquait la globale du même nom), corrigé par
+  `7267816` ; à ce dernier commit, Linux, Linux containers, Windows, Manual et
+  Performance verts ; macOS, Autotools et meson étaient encore en attente d'un
+  exécuteur à 10 h 07 UTC, après la fusion. Décision : 3.20.
 
 ### 2.4 Fermées sans fusion
 
@@ -4673,7 +4677,8 @@ réponses par question »). Ce qui est fait le même jour est dans #291.
   limite (`TODO_AFTER.md`, 5.4) ; ni le code ni `doc/using.md` ne changent.
 - **`d * x` (#171)** : l'aligner sur `x * d`, les mêmes bits sur tous les
   chemins, avec un test de ces bits ; un point à part, qui change le code, à
-  mettre dans `TODO.md` avec la mise à jour qui suit la fusion de #291.
+  mettre dans `TODO.md` avec la mise à jour qui suit la fusion de #291 ; fait
+  avant par #293 (plus bas et 2.3), sans passer par `TODO.md`.
 - **Le nom décoré de `float64x2_t` (#146)** : le vérifier par `nm`. Fait le même
   jour, avec GCC 13.3 pour aarch64 (`g++-aarch64-linux-gnu` d'Ubuntu 24.04) et
   Clang 18.1.3 (`--target=aarch64-linux-gnu`) : un `float64x2_t` pris par
@@ -6196,6 +6201,14 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PH, PJ et PM) e
   encore en attente d'un exécuteur à 10 h 07 UTC, plus d'une heure après la
   fusion, et toute la CI de #292 aussi à sa fusion ; la CI de `130acea` n'est
   pas attendue, ce push l'annule.
+- Complété le même jour par la session de #291 et de #293 (la tâche PN), après
+  ce push et celui de #292 (`717edb4`) : le texte de #293 « Pour
+  `doc/differences.md` et `ChangeLog` », que ni #289 ni ce push ne reportaient,
+  entre dans `TODO.md` PJ.7 ; 2.3 (#293 : ce texte, et l'échec C4459 de Visual
+  C++ au commit de l'ouverture) et 3.20 (`d * x`, fait par #293) le disent ;
+  `TODO_fin.md` dit faits son article 1.1 (`d * x`) et les articles 18 à 20 de
+  sa section 7 (les clauses de PJ.1 et de PJ.5) ; l'issue #179 reprend
+  `TODO.md`.
 
 ### 7.19 Le 5 novembre (la fusion de #290)
 
@@ -6402,7 +6415,8 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PH, PJ et PM) e
   (`todo-pn-trie-fin`), de #293 (`todo-pn-d-times-x`) et de #292
   (`relation-loops`), sur GitHub (supprimées à la fusion, vérifié le 5 novembre
   par `git ls-remote --heads origin`) ; en local, le clone de travail de #289
-  dans le scratchpad, supprimé le 5 novembre.
+  dans le scratchpad, supprimé le 5 novembre, et les branches `todo-pn-trie-fin`
+  et `todo-pn-d-times-x` du clone de la session de la tâche PN, le même jour.
 - [x] En local, pour #290 : la branche `ieee1788-overlap` de GAOL_V8, supprimée
   le 5 novembre (`git branch -d`, fusionnée), GAOL_V8 revenu sur
   `configure-clean` (`f4b2064`) sans autre agent dans l'arbre, et le scratchpad

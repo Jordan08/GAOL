@@ -254,9 +254,19 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    `CMakeLists.txt` ligne 506, `gaol/math/gaol_core_math_port.h` ligne 453,
    `configure.ac` et `meson.build`) sont à revoir avec la version si macOS 14
    ne doit plus y figurer.
-7. **Les restes de la synthèse de #283 à #288** : la pull request #289 l'a faite
-   (`doc/differences.md`, `ChangeLog`, `todo-notes/synthese.md`, fusionnée le 5
-   novembre) ; #290 a écrit son texte dans sa propre pull request. Restent trois
+7. **Les restes de la synthèse de #283 à #288, et le texte de #293** : la pull
+   request #289 a fait la synthèse (`doc/differences.md`, `ChangeLog`,
+   `todo-notes/synthese.md`, fusionnée le 5 novembre) ; #290 a écrit son texte
+   dans sa propre pull request. Le texte « Pour `doc/differences.md` et
+   `ChangeLog` » de #293 (`d * x`, fusionnée le 5 novembre) n'est pas reporté :
+   `d * x` (un double fois un intervalle) est calculé comme `x * d`, et `n * x`
+   d'un entier comme `x * n`, les mêmes bornes, bit pour bit, le signe d'une
+   borne nulle compris, avec toutes les sortes d'intervalles ; GAOL 4 calculait
+   le produit des intervalles `interval(d)` et `x`, le même ensemble avec
+   d'autres signes de zéro (`[-0, +0]` au lieu de `[+0, -0]` pour x = `[+0, -0]`
+   et un d positif, avec les intervalles SSE2) ; dans `doc/differences.md`, la
+   phrase de l'exception du chemin AVX-512 au « bit pour bit » (ligne
+   821, « `x * d` and `x *= d` ») y ajoute `d * x`. Restent aussi trois
    détails : le commentaire de `CMakeLists.txt` (ligne 1436) cite
    `core_math_log_dint.h`, qui n'existe pas ; la liste de `doc/differences.md`
    (ligne 2370) des fichiers que l'archive des sources laisse de côté ne nomme

@@ -46,7 +46,8 @@ un autre projet sans l'accord du mainteneur.
    dans `TODO_AFTER.md` §5. *Décidé le 5 novembre* : aligner `d * x` sur
    `x * d`, les mêmes bits sur tous les chemins, avec un test de ces bits : un
    point à part, qui change le code (`TODO_DONE.md` 3.20). Commencé le 5
-   novembre, à sa demande, dans une pull request à part.
+   novembre, à sa demande, dans une pull request à part ; fait par #293,
+   fusionnée le 5 novembre (`TODO_DONE.md` 2.3).
 2. **GCC pour Windows 32 bits sans FMA (#172, 24 octobre).** « Un processeur
    sans FMA ne fait plus tourner la bibliothèque de GCC pour Windows 32 bits :
    le laisser ainsi ? », sans réponse écrite. Le comportement est documenté
@@ -416,18 +417,23 @@ change. La liste reste, comme mémoire.
     régénérer `coverage/`) ; PJ.7 dit que « #288 y a écrit son texte » juste
     après `todo-notes/synthese.md`, que #288 n'a pas touché ; le commentaire de
     `CMakeLists.txt:1436` (`core_math_log_dint.h`) restera dans PJ.7 après #289,
-    qui ne touche pas `CMakeLists.txt`.
+    qui ne touche pas `CMakeLists.txt`. Fait le 5 novembre (`TODO_DONE.md` 3.21
+    et 7.18) : PJ.1 donne aussi la couverture de #288 ; PJ.7, réécrit après
+    #289, garde le commentaire de `CMakeLists.txt`.
 19. **`TODO.md` PJ.1, le test `numbers` sous ASan et UBSan** : PJ.1 demande
     encore de le lancer une fois en entier, et la même phrase dit qu'il a passé
     en local le 4 novembre (Debug, 9 tests sur 9) : fait, ou à refaire au commit
-    de la version ? Destination : la phrase de PJ.1.
+    de la version ? Destination : la phrase de PJ.1. Fait le 5 novembre
+    (`TODO_DONE.md` 3.21) : PJ.1 le dit fait le 4 novembre, à relancer au commit
+    de la version si `numbers` ou la bibliothèque ont changé.
 20. **`TODO.md` PJ.5, la vérification de `\defmethod`** : PJ.5 demande de
     vérifier que l'entrée de `what()` ne laisse pas son en-tête seul en bas de
     page : depuis #285 (`fb8c54e8`), le manuel n'a plus d'entrée `\defmethod`
     pour `what()` (`manual/v5/gaol.tex:6229` est de la prose). La clause est
     sans objet ; l'autre clause de PJ.5 tient (l'entrée `hausdorff` a encore
     deux `\newinvfive`, lignes 4529 et 4534, pour un seul décidé le 3 octobre).
-    Destination : retirer la clause de PJ.5.
+    Destination : retirer la clause de PJ.5. Fait le 5 novembre (`TODO_DONE.md`
+    3.21) : la clause est retirée de PJ.5.
 21. **`todo-notes/synthese.md`** : son introduction (lignes 19 à 23) et ses
     notes « Présence : absents » sont périmées depuis #263 à #274 et #280 (#289
     corrige l'introduction) ; les lignes 447 et 1073 disent « change 6 » et
