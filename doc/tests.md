@@ -414,12 +414,17 @@ point Q), which `numbers` checks there too.
   which, with `GAOL_PRESERVE_ROUNDING`, `midpoint()`, `rad()`, `split()`,
   `chi()`, the reading and the writing of an interval called, and `cleanup()`
   and `restore_rounding()` called with it or without it.
-  With the SSE2 intervals, `x * d` and `x *= d` of `[+0, -0]` for eight
-  nonzero doubles, from each direction, have the zero bounds of their path,
-  `[-0, +0]` with the AVX-512 path of `GAOL_PREFER_AVX512` and `[+0, -0]`
-  without it (the exception to "bit for bit" of the AVX-512 path, which `==`
-  does not see; GAOL v5); where the intervals are not SSE2 the test says it
-  checks nothing, and `d * x` is left alone, its bits being undocumented.
+  With the SSE2 intervals, `x * d`, `d * x` and `x *= d` of `[+0, -0]` for
+  eight nonzero doubles, from each direction, have the zero bounds of their
+  path, `[-0, +0]` with the AVX-512 path of `GAOL_PREFER_AVX512` and
+  `[+0, -0]` without it (the exception to "bit for bit" of the AVX-512 path,
+  which `==` does not see; GAOL v5); where the intervals are not SSE2 the test
+  says it checks nothing. With every kind of intervals, `d * x`, which is
+  computed as `x * d`, has its bits, the sign of a zero bound included, for
+  the intervals with bounds among ±∞, ±4 and the zeros of either sign, two
+  with a subnormal bound and the empty set, and fifteen doubles (nonzero,
+  subnormal, the largest, the zeros of either sign, the infinities and a
+  NaN), from each direction (GAOL v5).
   With a mode that flushes the subnormal numbers to zero set (on x86,
   flush-to-zero, denormals-are-zero or both; on ARM with GCC and Clang and with
   the NEON intervals of Visual C++, FZ, and FIZ where the processor has it), and the rounding direction upward or

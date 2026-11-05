@@ -1268,9 +1268,10 @@ computed once flush-to-zero was set back, and `[3e-308] - [2.9e-308]` was
 [0, 0] (GAOL v5).
 
 The bounds are those of the other path, bit for bit, but for the sign of a
-zero bound in one case: `x * d` and `x *= d` of an interval whose zero bounds
-have different signs, `[+0, -0]`, are `[-0, +0]` with the AVX-512 path and
-`[+0, -0]` with the SSE2 one, +0 and −0 being the same number (the rounding
+zero bound in one case: `x * d`, `x *= d` and `d * x`, which is computed as
+`x * d` (GAOL v5), of an interval whose zero bounds have different signs,
+`[+0, -0]`, are `[-0, +0]` with the AVX-512 path and `[+0, -0]` with the SSE2
+one, +0 and −0 being the same number (the rounding
 rule is the same, and the tests of `tests/`, which a job of the continuous
 integration runs with the option on, check it, with `==`, which does not see
 the sign of a zero; `rounding_direction` checks the bits of that one case, in

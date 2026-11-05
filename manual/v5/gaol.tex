@@ -3523,7 +3523,9 @@ in Chapter~\ref{chap:accuracy}.
 \begin{deffun}{interval}{operator*}{(const interval\& \var{I1}, const interval\& \var{I2})}
   Multiplication of two intervals, or of one interval and a double: \ieee{mul}
   of IEEE 1788-2015. A zero bound times an infinite bound counts as $0$, as the
-  product of a real number of the interval by 0.\newinvfive
+  product of a real number of the interval by 0.\newinvfive{} \code{d * I} is
+  computed as \code{I * d}: the same bounds, with the same signs of a zero bound
+  (\pxref{sec:zero-sign}).\newinvfive
 \end{deffun}
 
 \deffunx{interval}{operator/}{(const interval\& \var{I}, double \var{d})}
