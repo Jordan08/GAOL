@@ -1553,6 +1553,21 @@ releases.
   bounds are not less than each other. `std::less` is not specialized for
   `interval`, so a program gives the comparator itself (see
   [Using GAOL](using.md#relations-sorting-and-containers)).
+- **`overlap(x, y)`** of IEEE 1788-2015 (10.6.4) is new, with the type
+  `overlapping_state`: `x.overlap(y)` and `gaol_ieee1788::overlap(x, y)` return
+  one of the 16 states of Table 10.7 (`bothEmpty`, `firstEmpty`, `secondEmpty`,
+  `before`, `meets`, `overlaps`, `starts`, `containedBy`, `finishes`, `equals`,
+  `finishedBy`, `contains`, `startedBy`, `overlappedBy`, `metBy` and `after`,
+  numbered 0 to 15 in that order), which GAOL 4 had no function for. The state
+  is read from the bounds as integers in the order of the doubles
+  (`gaol_detail::bound_key`), so that -0 and +0 are the same bound and no
+  floating-point exception is raised, whatever the flush-to-zero modes. A point
+  interval on a bound of the other one is never `meets` nor `metBy`, as the
+  sentence of 10.6.4 has it, although the set specifications of the table hold
+  for it too. `operator<<` writes the name of a state. The tests check 31 449
+  pairs against the quantifiers of the table, evaluated on a finite model of
+  the real line, and the 48 cases of ITF1788 pass (see
+  [Using GAOL](using.md#the-names-of-ieee-1788-2015)).
 - **Numbers in base 16, 8 and 2** are read, `0x10` (16), `0xff.8` (255.5),
   `0o17` (15), `0b101` (5) and `0b1.1p3` (12), the exponent after the `p` being
   optional: the hexadecimal number of the standard needs it (9.7.2), which
