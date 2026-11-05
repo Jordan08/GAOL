@@ -44,7 +44,7 @@ commit `61a432b` de `configure-clean` (la fusion de #288, après celles de #217 
 
 | Quoi | Où |
 | --- | --- |
-| Le reste à faire, en tâches PA à PJ qui regroupent des points (lettre et ancien numéro), avec leurs décisions | `TODO.md` de `configure-clean`, et l'issue #179 (même texte) |
+| Le reste à faire, en tâches (PA, PB...) qui regroupent des points (lettre et ancien numéro), avec leurs décisions | `TODO.md` de `configure-clean`, et l'issue #179 (même texte) |
 | Ce qui est fait et décidé : pull requests fusionnées, décisions par date, points faits, mesures | `TODO_DONE.md` de `configure-clean` (l'issue #177 n'est plus mise à jour depuis le 28 octobre) |
 | Ce qui est reporté : après la version, indéfiniment, en attente de matériel | `TODO_AFTER.md` de `configure-clean`, et l'issue #178 (même texte) |
 | Les signalements à d'autres projets, et les questions reportées | issues « À communiquer… » (#125 à #138 sauf #128, et #175), #67 (décorations), et celles qui suivront |
@@ -59,8 +59,8 @@ commit `61a432b` de `configure-clean` (la fusion de #288, après celles de #217 
 Chaque point a une lettre et garde en sous-points les anciens numéros (4 à
 133), que citent les pull requests, les issues, les rapports et les commentaires
 du code (« point Q of TODO.md » renvoie à `TODO_DONE.md`, section 4).
-`TODO.md` regroupe les points qui restent en tâches PA à PJ, qui se traitent en
-une session ; `TODO_DONE.md` (sections 4 et 5) donne ce qui est fait, et
+`TODO.md` regroupe les points qui restent en tâches (PA, PB...), qui se traitent
+en une session ; `TODO_DONE.md` (sections 4 et 5) donne ce qui est fait, et
 `TODO_AFTER.md` ce qui est reporté. « Décidé le 3 octobre » (ou une autre date)
 marque une décision du mainteneur : applique-la telle quelle et ne la remets pas
 en question. Si elle te paraît fausse, dis-le et demande.
@@ -380,7 +380,7 @@ Ce que tu ne peux pas tester ici (Windows, macOS, ARM, gros-boutiste, sans FMA),
 
 ## 7. La procédure, pas à pas
 
-1. **Comprendre le point.** Lis-le dans `TODO.md` (sa tâche PA à PJ) avec ses
+1. **Comprendre le point.** Lis-le dans `TODO.md` (sa tâche) avec ses
    sous-points, ses décisions (celles de `TODO_DONE.md` aussi) et les issues
    qu'il cite. Lis aussi ce qui le concerne dans
    `todo-notes/synthese.md` (et au besoin le rapport d'origine, au commit
@@ -518,7 +518,7 @@ texte :
 
 | Registre | Fichier | Issue |
 | --- | --- | --- |
-| Le reste à faire, en tâches PA à PJ | `TODO.md` | #179 |
+| Le reste à faire, en tâches | `TODO.md` | #179 |
 | Le fait et le décidé | `TODO_DONE.md` | #177 (gelée le 28 octobre) |
 | Le reporté | `TODO_AFTER.md` | #178 |
 
@@ -809,11 +809,11 @@ git ls-remote --heads origin
   `pownRev` pour p ≤ 0 par `nth_root_rel(J, p, I)` de `gaol_core`), fusionnée le
   même jour à 19 h 12 UTC, décrite dans `TODO_DONE.md` (2.3 et 3.16), puis #288
   (hors des points : `compoundm1` de la norme IEEE 1788-2015), fusionnée à
-  19 h 19 UTC, que `TODO_DONE.md` ne décrit pas encore ; puis la tâche PK, close
-  sans code (un `FE_INVALID` de Clang avec les intervalles FPU, que les
-  drapeaux de GAOL suppriment : `TODO_DONE.md` 3.17) ; l'audit du 13 octobre a
-  vérifié dans `configure-clean` ce qu'annonçaient alors les points A, C à H et
-  J à V.
+  19 h 19 UTC, décrite dans `TODO_DONE.md` (2.3 et 3.19) le 5 novembre ; puis
+  la tâche PK, close sans code (un `FE_INVALID` de Clang avec les intervalles
+  FPU, que les drapeaux de GAOL suppriment : `TODO_DONE.md` 3.17) ; l'audit du
+  13 octobre a vérifié dans `configure-clean` ce qu'annonçaient alors les
+  points A, C à H et J à V.
 - **En cours** : au 4 novembre, deux pull requests sont ouvertes : #289 (la
   synthèse de #283 à #288, le point 7 de PJ) et #290 (`overlapping_state`,
   10.6.4 d'IEEE 1788-2015) ; `configure-clean` est au commit `7b30dba` (les

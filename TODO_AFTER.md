@@ -397,3 +397,14 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    signe compris, sur `mid [-2.0,2.0] = 0.0` sans échec (`TODO_DONE.md`, 3.18).
    *À décider* : ajouter la vérification à `tests/ieee1788.cpp`, ou s'en tenir
    au banc ITF1788.
+5. **Les tests à plusieurs threads** (le commit `0048c79` du 23 septembre) : les
+   tests de GAOL ne lancent aucun thread, et ceux qui le faisaient sont en
+   commentaire (la lecture de chaînes par quatre threads à la fois,
+   `tests/expressions.cpp` ; l'écriture d'intervalles par un second thread
+   pendant `intervalToExact()`, `tests/ieee1788.cpp` ;
+   `tests/CMakeLists.txt:300-306`), ce que dit `doc/tests.md`. `doc/using.md`
+   (« The output formats ») dit que plusieurs threads écrivent des intervalles
+   et lisent des chaînes sans risque (« checked with ThreadSanitizer ») :
+   vérifié une fois, aucun test de `ctest` ni job de la CI ne le revérifie.
+   *Décidé le 5 novembre* : inscrire la limite ici, sans changer le code, les
+   tests ni `doc/using.md`.
