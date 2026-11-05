@@ -443,7 +443,16 @@ is not to be compiled with them.
   empty operand raised the invalid-operation flag), and 126 after
   `-Ofast -fno-fast-math` (bounds with subnormal results under flush-to-zero
   too); with the flags of interval arithmetic given again after the option,
-  none.
+  none. With the FPU intervals, the relations in loops are among what fails
+  (`certainly_le()`, `certainly_leq()`, `certainly_ge()`, `certainly_geq()`
+  and the operators `<`, `<=`, `>`, `>=`): at `-O3 -march=native`, Clang 18
+  and 20 vectorize them into the signaling comparisons `vcmplepd`, `vcmpnlepd`
+  and `vcmpnltpd`, which they make for the empty operands too, whose bounds
+  are NaNs (120 of the 184 runs of loops of `todo-notes/pk/pk_loops.cpp`
+  raised the flag, none with `-frounding-math`; `-fno-fast-math` or
+  `-ffp-contract=off` alone change nothing). `tests/rounding_direction.cpp`
+  runs such loops on empty operands, and fails when one raises the flag or
+  gives a wrong result.
 
 The probe of the modes is `!(1.0 + (subnormal + 0.0) > 1.0)` since point ZZ of
 `TODO.md`, no longer `== 1.0`: with `-funsafe-math-optimizations`, GCC 15 does

@@ -347,17 +347,26 @@ point Q), which `numbers` checks there too.
   in `gaol_ieee1788`), which have to be the tightest enclosures, and the
   `pow_rel` and `pow_exponent_rel` that have to contain the base and the
   exponent they were made from: CORE-MATH's `pow` computed ∞ − ∞ there
-  (GAOL v5); and 30 loops
-  of 64 relations, constructions, intersections or `floor()`, with every
-  third x and every fifth y empty, which a compiler vectorizes or if-converts
-  (with the FPU intervals, GCC 9.4 and 13 at `-O3` with `-mfma`, GCC 13 to 15
-  for 32-bit x86, GCC 14 for POWER8 and GCC 11 to 15 for 64-bit ARM made some
-  of them raise the exception, and with the SSE2 intervals the construction of
-  an interval; and GCC 14 for x86-64, 64-bit ARM and RISC-V for `x <= c`,
-  `c <= x`, `x >= c` and `c >= x` with a constant c other than zero, when the
-  equal bounds were found by `==`, which it folded with the comparison of the
-  bounds into a signaling one), compared with each relation computed on its
-  own. The midpoints
+  (GAOL v5); and 64 loops of 64 relations, constructions, intersections or
+  `floor()`, each run on five sets of operands (every third x and every fifth
+  y empty, then every x, every y, both, and none, with the bounds in every
+  order and equal), and 4 loops that count the pairs for which a relation
+  holds, which a compiler vectorizes or if-converts (with the FPU intervals,
+  GCC 9.4 and 13 at `-O3` with `-mfma`, GCC 13 to 15 for 32-bit x86, GCC 14
+  for POWER8 and GCC 11 to 15 for 64-bit ARM made some of them raise the
+  exception, and with the SSE2 intervals the construction of an interval; and
+  GCC 14 for x86-64, 64-bit ARM and RISC-V for `x <= c`, `c <= x`, `x >= c`
+  and `c >= x` with a constant c other than zero, when the equal bounds were
+  found by `==`, which it folded with the comparison of the bounds into a
+  signaling one; and Clang 18 and 20, with the FPU intervals, at
+  `-O3 -march=native`, for `certainly_le()`, `certainly_leq()`,
+  `certainly_ge()`, `certainly_geq()` and the operators, against an interval
+  of a constant, a point, an empty set or a bound the compiler does not know,
+  on either side, when `-frounding-math` was off: they made them signaling
+  comparisons, as `doc/three-builds.md` says; with fewer instructions
+  (`-mavx2` alone, or SSE2) fewer of these loops fail, so that their teeth
+  depend on the processor the code is compiled for), compared with each
+  relation computed on its own. The midpoints
   of five intervals with a bound of 2^1023 or more in magnitude, `[DBL_MAX]`
   among them, (`midpoint()`, `mid()`, `rad()`, `mid_rad()`, `split()`...)
   have to be right, `mid()` the tightest enclosure of the exact midpoint, and
