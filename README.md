@@ -189,10 +189,12 @@ gaol::interval c = gaol_ieee1788::pown(x, 2); // [1, 16]
   [performance](doc/compare/performance.md), with the scripts to run the
   comparison again.
 - The manual of GAOL v5: `manual/v5/gaol.pdf`, with its LaTeX sources in
-  `manual/v5/`. It follows the manual of GAOL 4 by Frédéric Goualard, and
-  describes GAOL v5: its installation, each operation with examples, the names
-  of IEEE 1788-2015, the accuracy of the operations, and what a program written
-  for GAOL 4 has to change.
+  `manual/v5/`. It keeps the text of the manual of GAOL 4 by Frédéric Goualard
+  where GAOL v5 behaves as GAOL 4, takes up the content of the pages of `doc/`,
+  and describes GAOL v5: the notions it relies on, its installation and use,
+  each operation with examples, the names of IEEE 1788-2015, the accuracy of
+  the operations, how the intervals are computed, the tests, and what a
+  program written for GAOL 4 has to change.
 - The manual of GAOL 4, by Frédéric Goualard: `manual/v4/gaol.pdf`, with its
   LaTeX sources in `manual/v4/`, kept as it was. It still describes the
   mathematical libraries and the options of GAOL 4.

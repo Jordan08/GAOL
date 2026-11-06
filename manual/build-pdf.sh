@@ -10,7 +10,8 @@
 # receives gaol.pdf. The make pdf of the autotools build and the target pdf of
 # the meson build (-Dwith-doc=true) run it on both manuals, and so does the
 # continuous integration. Needs pdflatex, bibtex and makeindex, with the
-# packages the class manual.cls loads (on Debian and Ubuntu:
+# packages that v5/gaol_def.tex (the manual of GAOL v5) and the class
+# v4/manual.cls (the manual of GAOL 4) load (on Debian and Ubuntu:
 # texlive-latex-recommended, texlive-latex-extra, texlive-fonts-recommended and
 # lmodern).
 #
@@ -41,6 +42,12 @@ while [ $# -ge 2 ]; do
     ${MAKEINDEX:-makeindex} gaol.idx -o gaol.ind
     $latex gaol.tex > pdflatex-2.log || { tail -40 pdflatex-2.log; exit 1; }
     $latex gaol.tex > pdflatex-3.log || { tail -40 pdflatex-3.log; exit 1; }
+    # The page numbers of a long manual may need more than three passes
+    for pass in 4 5; do
+      grep -q "Rerun to get cross-references right" pdflatex-$((pass - 1)).log || break
+      $latex gaol.tex > pdflatex-$pass.log || { tail -40 pdflatex-$pass.log; exit 1; }
+      cp pdflatex-$pass.log pdflatex-3.log
+    done
     # A reference or a citation left undefined is an error
     if grep -E "LaTeX Warning: (Reference|Citation) .* undefined" pdflatex-3.log; then
       exit 1
