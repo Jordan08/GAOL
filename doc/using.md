@@ -1088,7 +1088,7 @@ its own rounding direction after GAOL's operations builds GAOL with
 `GAOL_PRESERVE_ROUNDING` (`--enable-preserve-rounding`,
 `-Denable-preserve-rounding=true`): each operation then also restores the
 rounding direction it found, and the modes flushing the subnormals to zero it
-cleared, which makes the arithmetic operations slower, 1.3 to 1.7 times with
+cleared, which makes the arithmetic operations slower, 1.2 to 1.6 times with
 the AVX-512 path and several times without it (see
 [What the upward rounding does to the program](#what-the-upward-rounding-does-to-the-program)).
 
@@ -1237,18 +1237,19 @@ What to do:
   changes: the bounds are the same, and the program still calls
   `gaol::cleanup()`. It costs time, less with the AVX-512 path, which this
   option turns on by default where the machine has the instructions. On an
-  Intel i7-1185G7 with Clang 21.1 (`tests/performance.cpp`, the best of 9
-  interleaved runs, three times), with that path `x + y` and `x - y` take 1.3
-  times longer, `x * y` and `x / y` 1.7 times, `sqr(x)` 1.2 times,
-  `pow(x, 3)` 1.3 times, `exp(x)` 1.3 times, `log(x)` 1.1 times, `sin` and
-  `cos` 1.1 to 1.2 times, and `sqrt(x)` 0.7 times (it is faster); without it
-  (a build for a machine without the instructions, or one that refuses the
-  path with `GAOL_PREFER_AVX512=OFF`, a setting of the developers)
-  `x + y` and `x - y` take about 8 times longer, `x * y` 4 times, `x / y`
-  3.7 times, `sqr(x)` 4.6 times, `pow(x, 3)` and `sqrt(x)` 1.7 times,
-  `exp(x)` 1.3 times, `log(x)` 1.1 times, and `sin` and `cos` 1.2 times. A
-  line of 15 additions of intervals takes 9.6 times longer without the path,
-  and 2.1 times with it.
+  Intel i7-1185G7 with Clang 21.1.8 (`tests/performance.cpp` and the long
+  lines of `doc/compare/code/run_lines.sh`, the median of 9 interleaved runs of
+  6 November 2026), with that path `x + y` and `x - y` take 1.2 times longer,
+  `x * y` and `x / y` 1.6 times, `sqr(x)` 1.0 times, `pow(x, 3)` 1.2 times,
+  `exp(x)` 1.2 times, `log(x)` 1.1 times, `sin` and `cos` 1.2 times, and
+  `sqrt(x)` 0.6 times (it is faster); without it (a build for a machine
+  without the instructions, or one that refuses the path with
+  `GAOL_PREFER_AVX512=OFF`, a setting of the developers) `x + y` and `x - y`
+  take 7.2 times longer, `x * y` 4.3 times, `x / y` 3.4 times, `sqr(x)` 4.4
+  times, `pow(x, 3)` 1.6 times, `sqrt(x)` 1.5 times, `exp(x)` 1.2 times,
+  `log(x)` 1.0 times, and `sin` and `cos` 1.1 to 1.2 times. A line of 15
+  additions of intervals takes 8.5 times longer without the path, and 2.1 times
+  with it.
 
 ### The AVX-512 path
 

@@ -365,35 +365,36 @@ and the control word of the x87 unit and MXCSR on x86
 The option costs time, less with the AVX-512 path, which it turns on where
 the machine has the instructions. Table~\ref{tab:preserve-cost} gives the
 factor by which each operation gets longer on an Intel i7-1185G7 with
-Clang~21.1 (\file{tests/performance.cpp}, the best of 9 interleaved runs,
-three times), with the path, and without it (a build for a machine without
+Clang~21.1.8 (\file{tests/performance.cpp} and the long lines of
+\file{doc/compare/code/run\_lines.sh}, the median of 9 interleaved runs of
+6 November 2026), with the path, and without it (a build for a machine without
 the instructions, or one that refuses the path with
 \option{-DGAOL\_PREFER\_AVX512=OFF}, a setting of the developers). The
-arithmetic operations take 1.3 to 1.7 times longer with the path, and several
+arithmetic operations take 1.2 to 1.6 times longer with the path, and several
 times longer without it; a line of 15 additions of intervals takes 2.1 times
-longer with the path and 9.6 times without.
+longer with the path and 8.5 times without.
 
 \begin{table}[htbp]\centering\footnotesize
   \begin{tabular}{lcc}
     \hline
     Operation & With the AVX-512 path & Without it\\
     \hline\hline
-    \code{x + y}, \code{x - y} & 1.3 & about 8\\
-    \code{x * y} & 1.7 & 4\\
-    \code{x / y} & 1.7 & 3.7\\
-    \code{sqr(x)} & 1.2 & 4.6\\
-    \code{sqrt(x)} & 0.7 (it is faster) & 1.7\\
-    \code{pow(x, 3)} & 1.3 & 1.7\\
-    \code{exp(x)} & 1.3 & 1.3\\
-    \code{log(x)} & 1.1 & 1.1\\
-    \code{sin(x)}, \code{cos(x)} & 1.1 to 1.2 & 1.2\\
-    a line of 15 additions & 2.1 & 9.6\\
+    \code{x + y}, \code{x - y} & 1.2 & 7.2\\
+    \code{x * y} & 1.6 & 4.3\\
+    \code{x / y} & 1.6 & 3.4\\
+    \code{sqr(x)} & 1.0 & 4.4\\
+    \code{sqrt(x)} & 0.6 (it is faster) & 1.5\\
+    \code{pow(x, 3)} & 1.2 & 1.6\\
+    \code{exp(x)} & 1.2 & 1.2\\
+    \code{log(x)} & 1.1 & 1.0\\
+    \code{sin(x)}, \code{cos(x)} & 1.2 & 1.1 to 1.2\\
+    a line of 15 additions & 2.1 & 8.5\\
     \hline
   \end{tabular}
   \caption[The cost of \option{GAOL\_PRESERVE\_ROUNDING}, with and without the AVX-512 path]{How many times longer each operation takes with
     \option{GAOL\_PRESERVE\_ROUNDING} than without it, with and without the
-    AVX-512 path (Intel i7-1185G7, Clang~21.1, \file{tests/performance.cpp},
-    the best of 9 interleaved runs, three times).}
+    AVX-512 path (Intel i7-1185G7, Clang~21.1.8, \file{tests/performance.cpp},
+    the median of 9 interleaved runs, 6 November 2026).}
   \label{tab:preserve-cost}
 \end{table}
 
@@ -1534,7 +1535,7 @@ change, and the program answers by calling \code{cleanup()} right after its
 last use of GAOL, by reading and writing its numbers through GAOL, and by
 computing to nearest in a guarded block what needs it. The build with
 \option{GAOL\_PRESERVE\_ROUNDING} removes the price from the program and puts
-it on the operations, 1.3 to 1.7 times slower with the AVX-512 path and
+it on the operations, 1.2 to 1.6 times slower with the AVX-512 path and
 several times without it; the control registers are then written only where
 they have to be, and the AVX-512 instructions, whose rounding direction is in
 the instruction, are taken where the machine has them.
