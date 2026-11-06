@@ -241,10 +241,11 @@ four jobs of `linux.yml` with the sanitizers, where it took 109 to 287 s and
 once more than 300, 600 in the job of macOS 15 x86_64 GCC with the sanitizers,
 where it took 146 to 367 s on the same code, and once more than 400.
 
-The manuals, that of GAOL v5 (`manual/v5/manual_gaolv5.tex`) and that of GAOL 4
-(`manual/v4/gaol.tex`), are built with the LaTeX of Ubuntu 24.04, by the
-autotools and the meson builds, when `manual/` changes (`manual.yml`); the
-PDFs are artifacts of the run. The examples of the manual of GAOL v5 that show
+The manual of GAOL v5 (`manual/v5/manual_gaolv5.tex`) is built with the LaTeX of
+Ubuntu 24.04, by the autotools, the CMake and the meson builds, when `manual/`
+changes (`manual.yml`), each build writing `manual/Manual_GAOLv5.pdf` of the
+sources; the PDF is an artifact of the run. The manual of GAOL 4 is not built:
+its PDF, `manual/v4/Manual_GAOLv4.pdf`, was built once. The examples of the manual of GAOL v5 that show
 what they print are compiled in C++11 with the GAOL that the job Ubuntu 24.04
 x86_64 GCC of `linux.yml` installs, at each run, so that a change of the
 library that changes one of their outputs shows, and have to print what the

@@ -1461,10 +1461,11 @@ Alpine and manylinux have no such locale to generate, and check nothing of
 the kind. \code{numbers} has 300~s (\option{GAOL\_NUMBERS\_TIMEOUT}), 400 in
 the four jobs with the sanitizers, where it took 109 to 287~s and once more
 than 300, and 600 in the job of macOS 15 x86\_64 GCC with the sanitizers,
-where it took 146 to 367~s on the same code, and once more than 400. The manuals of GAOL v5 and of
-GAOL~4 are built with the LaTeX of Ubuntu 24.04, by the autotools and the
-meson builds, when \file{manual/} changes (\file{manual.yml}), and the PDFs
-are artifacts of the run; the examples of this manual that show what they
+where it took 146 to 367~s on the same code, and once more than 400. The manual of GAOL v5 is
+built with the LaTeX of Ubuntu 24.04, by the autotools, the CMake and the
+meson builds, when \file{manual/} changes (\file{manual.yml}), and its PDF,
+\file{manual/Manual\_GAOLv5.pdf}, is an artifact of the run; the manual of
+GAOL~4 is not built; the examples of this manual that show what they
 print are compiled by \file{manual/check\_examples.py} in the job Ubuntu
 24.04 x86\_64 GCC at each run (\pxref{sec:examples}).
 
@@ -1774,9 +1775,9 @@ and the tools and the CI of CORE-MATH under \file{3rd/math-core/}.
   \file{gaol/parser/regenerate\_parser.sh} & Regenerates the lexer and the
     parser from the \file{.lpp} and \file{.ypp} sources (flex 2.6.4, bison
     3.8.2), after any change of them (\cmd{make parser})\\
-  \file{manual/build-pdf.sh} & Builds \file{gaol.pdf} of the manuals v5 and
-    v4 with \cmd{pdflatex}; \cmd{make pdf} and the target \code{pdf} of
-    meson call it\\
+  \file{manual/build-pdf.sh} & Builds the manual v5 with \cmd{pdflatex}, in
+    \file{manual/Manual\_GAOLv5.pdf}; \cmd{make pdf} and the target
+    \code{pdf} of CMake and meson call it\\
   \file{manual/check\_examples.py} & Compiles and runs each example of the
     manual v5 with an installed GAOL, and compares what it prints with what
     the manual shows\\

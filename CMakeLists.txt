@@ -138,10 +138,10 @@ option(GAOL_PRESERVE_ROUNDING "Restore the rounding direction found after each o
 # FetchContent) may have options of the same names, for its own tests.
 option(WITH_TESTS "Build the unit tests of tests/, which make test (ctest) and make check run" OFF)
 option(WITH_EXAMPLES "Build the examples of examples/, which make check runs" OFF)
-# The target pdf, which builds the manuals with pdflatex, bibtex and makeindex
-# (see The manuals below), as the target pdf of configure (make -C manual pdf)
+# The target pdf, which builds the manual of GAOL v5 with pdflatex, bibtex and
+# makeindex (see The manuals below), as the target pdf of configure (make -C manual pdf)
 # and of meson (with-doc) (GAOL v5)
-option(WITH_DOC "Add the target pdf, which builds the manuals of GAOL v5 and of GAOL 4 (pdflatex, bibtex and makeindex)" OFF)
+option(WITH_DOC "Add the target pdf, which builds the manual of GAOL v5 in manual/Manual_GAOLv5.pdf (pdflatex, bibtex and makeindex)" OFF)
 # libgaol is a static library, or with BUILD_SHARED_LIBS=ON, the variable of
 # CMake, a shared one, libgaol.so.5.0.0 as with configure and meson (GAOL v5).
 # Always static with Visual C++, whose declarations of GAOL carry no
@@ -1657,22 +1657,21 @@ endif()
 # The manuals
 ################################################################################
 #
-# WITH_DOC adds the target pdf, which builds the manual of GAOL v5 and the one
-# of GAOL 4 with pdflatex, bibtex and makeindex (manual/build-pdf.sh, which
-# make -C manual pdf of configure and the target pdf of meson, with
-# -Dwith-doc=true, run too) (GAOL v5). The files are manual/v5/gaol.pdf and
-# manual/v4/gaol.pdf of the build directory, not of the source tree, whose
-# gaol.pdf git tracks:
+# WITH_DOC adds the target pdf, which builds the manual of GAOL v5 with pdflatex,
+# bibtex and makeindex (manual/build-pdf.sh, which make -C manual pdf of
+# configure and the target pdf of meson, with -Dwith-doc=true, run too) (GAOL
+# v5). The PDF is written in manual/ of the source tree, Manual_GAOLv5.pdf, and
+# not in the build directory, which keeps the files of LaTeX only:
 #
 #   cmake -S . -B build -DWITH_DOC=ON
 #   cmake --build build --target pdf
 #
-# The edition and the date of each manual are its own, those of configure.ac
-# (GAOL_V5_EDITION, GAOL_V5_UPDATED for GAOL v5, GAOL_EDITION and GAOL_UPDATED
-# for GAOL 4) and of manual/meson.build: change the three together. The
-# gaol_version.tex of each manual is made from its gaol_version.tex.in, and the
-# version is the one of the project. The target is not part of all: no build
-# runs LaTeX unless asked to.
+# The manual of GAOL 4 is not built: its PDF, manual/v4/Manual_GAOLv4.pdf, was
+# built once (see manual/build-pdf.sh). The edition and the date of the manual of
+# GAOL v5 are its own, those of configure.ac (GAOL_V5_EDITION, GAOL_V5_UPDATED)
+# and of manual/meson.build: change the three together. Its gaol_version.tex is
+# made from manual/v5/gaol_version.tex.in, and the version is the one of the
+# project. The target is not part of all: no build runs LaTeX unless asked to.
 
 if(GAOL_IS_TOP_LEVEL AND WITH_DOC)
   find_program(GAOL_PDFLATEX pdflatex)
@@ -1683,20 +1682,17 @@ if(GAOL_IS_TOP_LEVEL AND WITH_DOC)
   if(GAOL_PDFLATEX AND GAOL_BIBTEX AND GAOL_MAKEINDEX AND GAOL_SH)
     set(GAOL_V5_EDITION "5.0")
     set(GAOL_V5_UPDATED "6 November 2026")
-    set(GAOL_EDITION "4.6")
-    set(GAOL_UPDATED "18 September 2026")
     set(GAOL_VERSION "${PROJECT_VERSION}")
     set(_manual_src "${CMAKE_CURRENT_SOURCE_DIR}/manual")
     set(_manual_bin "${CMAKE_CURRENT_BINARY_DIR}/manual")
     configure_file("${_manual_src}/v5/gaol_version.tex.in" "${_manual_bin}/v5/gaol_version.tex" @ONLY)
-    configure_file("${_manual_src}/v4/gaol_version.tex.in" "${_manual_bin}/v4/gaol_version.tex" @ONLY)
     add_custom_target(pdf
       COMMAND "${CMAKE_COMMAND}" -E env "PDFLATEX=${GAOL_PDFLATEX}" "BIBTEX=${GAOL_BIBTEX}"
               "MAKEINDEX=${GAOL_MAKEINDEX}"
               "${GAOL_SH}" "${_manual_src}/build-pdf.sh"
-              "${_manual_src}/v5" "${_manual_bin}/v5" "${_manual_src}/v4" "${_manual_bin}/v4"
+              "${_manual_src}/v5" "${_manual_bin}/v5" "${_manual_src}/Manual_GAOLv5.pdf"
       WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-      COMMENT "Building the manuals of GAOL v5 and of GAOL 4: manual/v5/gaol.pdf and manual/v4/gaol.pdf"
+      COMMENT "Building the manual of GAOL v5: manual/Manual_GAOLv5.pdf"
       USES_TERMINAL
       VERBATIM)
   else()

@@ -17,7 +17,7 @@ that are sourced, not run, say so.
 |---|---|
 | [gaol/parser/regenerate_parser.sh](../gaol/parser/regenerate_parser.sh) | Regenerates the lexer and the parser from `.lpp` and `.ypp` (flex 2.6.4, bison 3.8.2). Run it after any change of these sources. |
 | [gaol/float/gaol_generator_mul_i2f.py](../gaol/float/gaol_generator_mul_i2f.py) | Writes the 256 cases of the multiplication of `interval2f` by the signs of the operands. A tool of the author (Python 3 and `ply`), which no build runs. |
-| [manual/build-pdf.sh](../manual/build-pdf.sh) | Builds `gaol.pdf` of the manuals v5 and v4 with `pdflatex`. `make pdf` and the target `pdf` of meson call it. |
+| [manual/build-pdf.sh](../manual/build-pdf.sh) | Builds the manual v5 with `pdflatex`, in `manual/Manual_GAOLv5.pdf`. `make pdf` and the target `pdf` of CMake and meson call it. |
 | [manual/check_examples.py](../manual/check_examples.py) | Compiles and runs each example of the manual v5 with an installed GAOL, and compares what it prints with what the manual shows. |
 | [coverage/coverage_summary.py](../coverage/coverage_summary.py) | Reads the JSON of gcovr and writes `coverage/README.md`: lines and branches by file, GAOL apart from CORE-MATH, and the lines never run. |
 | [cmake/gaol_version.cmake](../cmake/gaol_version.cmake) | CMake module: `gaol_read_version()` reads `VERSION.txt` before `project()`, as `configure.ac` and `meson.build` do. |

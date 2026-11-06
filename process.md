@@ -350,7 +350,8 @@ git ls-files -co --exclude-standard | tar -c -T - | tar -x -C $N/src
    valeurs de `configure.ac` (`GAOL_V5_EDITION`, `GAOL_V5_UPDATED`) et la
    version. Lance ensuite deux fois `pdflatex -interaction=nonstopmode
    -halt-on-error manual_gaolv5.tex`. Il faut zéro erreur, et pas de nouvel « Overfull ».
-   Ne commite jamais `manual/v5/gaol.pdf`.
+   Ne commite jamais `manual/Manual_GAOLv5.pdf`, que la cible `pdf` écrit dans
+   `manual/` (ni l'ancien `manual/v5/gaol.pdf`).
 
 Ce que tu ne peux pas tester ici (Windows, macOS, ARM, gros-boutiste, sans FMA),
 écris-le dans la pull request sous « Non vérifiable ici ».
@@ -416,8 +417,9 @@ Ce que tu ne peux pas tester ici (Windows, macOS, ARM, gros-boutiste, sans FMA),
    reformatage du code que tu ne changes pas. Un bug remarqué en chemin qui
    n'est pas ton point va dans les questions ouvertes, pas dans ta branche.
 5. **Ne touche pas aux registres dans la branche** : `TODO.md`, `TODO_DONE.md`,
-   `TODO_AFTER.md`, `ChangeLog`, `doc/differences.md`, `manual/v5/gaol.pdf`, et
-   jamais `manual/v4`. Le texte que tu y aurais mis va dans la section « Pour
+   `TODO_AFTER.md`, `ChangeLog`, `doc/differences.md`, `manual/Manual_GAOLv5.pdf`, et
+   jamais `manual/v4` (son PDF, `manual/v4/Manual_GAOLv4.pdf`, a été construit une
+   fois et aucun build ne le refait). Le texte que tu y aurais mis va dans la section « Pour
    `doc/differences.md` et `ChangeLog` » de la pull request, que reprendra la
    pull request de synthèse (tâche PI).
 6. **Tester avec des dents** (section 5), puis **valider** (section 6).
