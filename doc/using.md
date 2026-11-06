@@ -984,10 +984,10 @@ strings too, where flex ended the program with `exit(2)` when it could not
 allocate its buffer, and the parser turned a stack it could not grow into a
 `std::invalid_argument` (GAOL v5).
 
-A build without `GAOL_EXCEPTIONS_ENABLED` (`--disable-exceptions` of
-`configure`, `-Denable-exception=false` of meson; see
-[Building GAOL](building.md)) prints a message and aborts instead of throwing.
-The CMake build always throws. The reader of strings is the exception: an
+A build without `GAOL_EXCEPTIONS_ENABLED` (`-DGAOL_EXCEPTIONS_ENABLED=OFF` of
+CMake, `--disable-exceptions` of `configure`, `-Denable-exception=false` of
+meson; see [Building GAOL](building.md)) prints a message and aborts instead of
+throwing. The reader of strings is the exception: an
 error it finds as it computes, a wrong call (`nth_root(8, 1.5)`, `sin(1, 2)`),
 an uncertain number as a bound, two different bounds in `<a, b>` or a bound of
 it that is no double, makes it fail as a syntax error does, so that `parse_interval()` returns false and
