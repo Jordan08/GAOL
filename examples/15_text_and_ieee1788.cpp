@@ -31,7 +31,7 @@
  * checked: the texts read contain the values mpmath computed, the round
  * trips are exact, and the results of the two parts are those stated. It
  * follows Clauses 9 to 13 of IEEE 1788-2015, the chapter "Input/output" of
- * GAOL's manual (manual/v5/gaol.tex) and "The names of IEEE 1788-2015" in
+ * GAOL's manual (manual/v5) and "The names of IEEE 1788-2015" in
  * doc/using.md.
  *
  * Copyright (c) 2026 ENSTA, France

@@ -1,10 +1,13 @@
-# Builds the manuals, the manual of GAOL v5 (manual/v5/gaol.tex) and the manual
-# of GAOL 4 (manual/v4/gaol.tex), with the LaTeX of Ubuntu, with the autotools
-# build (make -C manual pdf) and with the meson build (-Dwith-doc=true, target
-# pdf), so that a change of a manual that no longer compiles shows: gaol.tex had
+# Builds the manual of GAOL v5 (manual/v5/manual_gaolv5.tex) with the LaTeX of
+# Ubuntu, with the autotools build (make -C manual pdf), the CMake build
+# (-DWITH_DOC=ON, target pdf) and the meson build (-Dwith-doc=true, target pdf),
+# so that a change of the manual that no longer compiles shows: gaol.tex had
 # stopped compiling with the package marginbib, which no job built (issue #13).
-# The PDFs are kept as artifacts of the run. Only runs when the manuals or this
-# workflow change.
+# Each build writes manual/Manual_GAOLv5.pdf of the sources, the file committed,
+# which the job removes first and moves away after each build. The manual of
+# GAOL 4 (manual/v4) is not built: its PDF, manual/v4/Manual_GAOLv4.pdf, was
+# built once. The PDF is kept as an artifact of the run. Only runs when the
+# manual or this workflow change.
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -41,43 +44,50 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
-      - name: LaTeX, and the tools of the two builds
+      - name: LaTeX, and the tools of the three builds
         run: |
           sudo apt-get update -q
           sudo apt-get install -y -q --no-install-recommends texlive-latex-recommended texlive-latex-extra \
-            texlive-fonts-recommended lmodern g++ make meson ninja-build
+            texlive-fonts-recommended lmodern g++ make cmake meson ninja-build poppler-utils
       - name: With the autotools build
         run: |
           # The same date on every file, as in a release archive: make then
           # does not regenerate configure nor the Makefile.in
           find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
+          # manual/Manual_GAOLv5.pdf is committed: removed, so that a build that
+          # writes nothing fails at the mv below instead of moving the old one
+          rm -f manual/Manual_GAOLv5.pdf
           mkdir build-autotools && cd build-autotools
           ../configure > configure.log
           make -C manual pdf
-          pdfinfo manual/v5/gaol.pdf || true
-          pdfinfo manual/v4/gaol.pdf || true
+          cd ..
+          mv manual/Manual_GAOLv5.pdf Manual_GAOLv5-autotools.pdf
+      - name: With the CMake build
+        run: |
+          cmake -S . -B build-cmake -DWITH_DOC=ON
+          cmake --build build-cmake --target pdf
+          mv manual/Manual_GAOLv5.pdf Manual_GAOLv5-cmake.pdf
       - name: With the meson build
         run: |
           meson setup build-meson -Dwith-doc=true
           meson compile -C build-meson pdf
-      - name: The same number of pages with both builds, and the fonts embedded as outlines
+          mv manual/Manual_GAOLv5.pdf Manual_GAOLv5-meson.pdf
+      - name: The same number of pages with the three builds, and the fonts embedded as outlines
         run: |
-          sudo apt-get install -y -q --no-install-recommends poppler-utils
-          # The manual of GAOL v5 had 122 pages when written, that of GAOL 4 94
-          for manual in v5:110 v4:90; do
-            dir=${manual%:*}
-            pages_autotools=$(pdfinfo "build-autotools/manual/$dir/gaol.pdf" | awk '/^Pages:/ { print $2 }')
-            pages_meson=$(pdfinfo "build-meson/manual/$dir/gaol.pdf" | awk '/^Pages:/ { print $2 }')
-            echo "$dir: autotools: $pages_autotools pages, meson: $pages_meson pages"
-            test "$pages_autotools" = "$pages_meson"
-            test "$pages_autotools" -ge "${manual#*:}"
-            pdffonts "build-autotools/manual/$dir/gaol.pdf"
-          done
+          # The manual of GAOL v5 had 373 pages when written
+          pages_autotools=$(pdfinfo Manual_GAOLv5-autotools.pdf | awk '/^Pages:/ { print $2 }')
+          pages_cmake=$(pdfinfo Manual_GAOLv5-cmake.pdf | awk '/^Pages:/ { print $2 }')
+          pages_meson=$(pdfinfo Manual_GAOLv5-meson.pdf | awk '/^Pages:/ { print $2 }')
+          echo "autotools: $pages_autotools pages, CMake: $pages_cmake pages, meson: $pages_meson pages"
+          test "$pages_autotools" = "$pages_cmake"
+          test "$pages_autotools" = "$pages_meson"
+          test "$pages_autotools" -ge 300
+          pdffonts Manual_GAOLv5-autotools.pdf
+          # Every font embedded (column emb), none a bitmap font (Type 3)
+          pdffonts Manual_GAOLv5-autotools.pdf | awk '
+            NR > 2 && ($(NF - 4) != "yes" || /Type 3/) { print "not embedded or bitmap: " $0; bad = 1 }
+            END { exit bad + 0 }'
       - uses: actions/upload-artifact@v7
         with:
           name: gaol-manual-v5
-          path: build-autotools/manual/v5/gaol.pdf
-      - uses: actions/upload-artifact@v7
-        with:
-          name: gaol-manual-v4
-          path: build-autotools/manual/v4/gaol.pdf
+          path: Manual_GAOLv5-autotools.pdf

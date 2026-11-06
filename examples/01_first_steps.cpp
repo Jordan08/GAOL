@@ -23,7 +23,7 @@
  * and constants of Interval), the page on the Interval class of Codac's
  * manual (doc/manual/manual/intervals/src.cpp, whose example of sin, exp and
  * intersection it repeats) and the chapter "An overview of GAOL" of GAOL's
- * manual (manual/v5/gaol.tex).
+ * manual (manual/v5).
  *
  * Copyright (c) 2026 ENSTA, France
  *

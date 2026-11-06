@@ -1,0 +1,93 @@
+%% !TEX root = ../manual_gaolv5.tex
+% Appendix A.
+\chapter{Documentation and references}\label{chap:documentation}
+
+\section{Documentation on GAOL}
+
+The primary reference is this manual. The directory \file{doc} of the sources
+holds the pages that give the details of GAOL v5, with the measures behind
+its choices, whose content the chapters of this manual take up:
+
+\begin{itemize}
+\item \file{doc/building.md}: the CMake, autotools and meson builds, and
+  their options (Chapter~\ref{chap:installation});
+\item \file{doc/using.md}: the flags of interval arithmetic, GAOL from CMake
+  and from pkg-config, the namespaces, the rounding direction and the
+  floating-point environment (Chapters~\ref{chap:overview}
+  and~\ref{chap:rounding});
+\item \file{doc/three-builds.md}: what the three builds agree on, what the
+  options are worth, and the compilers and options they refuse
+  (Chapter~\ref{chap:installation});
+\item \file{doc/tests.md}: what the programs of \file{tests} check
+  (Chapter~\ref{chap:tests});
+\item \file{doc/accuracy.md}: the tightness of each operation, with its
+  algorithm and what the tests found (Chapter~\ref{chap:accuracy});
+\item \file{doc/differences.md}: each change GAOL v5 brings to GAOL 4.2.2,
+  and where it comes from (Chapter~\ref{chap:changes});
+\item \file{doc/continuous-integration.md}: the systems, processors and
+  compilers GAOL is built and tested on (Chapter~\ref{chap:tests});
+\item \file{doc/simd.md}: what GAOL computes with vector instructions and
+  with the fused multiply-add, where the time of a program goes, and the
+  rounding direction by processor (Chapter~\ref{chap:computing});
+\item \file{doc/math-libraries.md}: the mathematical libraries libm,
+  mathlib, CRlibm and CORE-MATH, and what separates them
+  (Chapter~\ref{chap:concepts});
+\item \file{doc/tools.md}: the scripts of the repository and what each is
+  for (Chapter~\ref{chap:tests});
+\item \file{doc/compare/README.md}: GAOL compared with libieeep1788,
+  filib++, PROFIL/BIAS, Solaris Studio and Boost.Interval, their special
+  cases against IEEE 1788-2015, the enclosure of the elementary functions of
+  GAOL and Boost.Interval, their performance, and the test suites ITF1788 and
+  of Tang et al. (Chapter~\ref{chap:computing});
+\item \file{examples/examples.md} and \file{examples/tutorial.md}: the
+  example programs, a review of GAOL v5 and a comparison with other interval
+  libraries, and a short tutorial (Chapter~\ref{chap:tests});
+\item \file{3rd/README.md}: the version of CORE-MATH GAOL takes, what differs
+  from it, and the fixes to propose upstream.
+\end{itemize}
+
+\noindent
+The manual of GAOL~4, by Fr\'ed\'eric Goualard, is kept in \file{manual/v4}; its
+PDF, \file{manual/v4/Manual\_GAOLv4.pdf}, was built once, and no build makes it
+again.
+
+\section{References}
+
+The following articles, books and standards have inspired in some way or
+another the devising of the GAOL library and the writing of this manual.
+
+\begin{itemize}
+\item \emph{IEEE Standard for Interval Arithmetic}. IEEE Std
+  1788-2015~\cite{IEEE1788:2015}.
+\item \emph{The CORE-MATH Project}. Alexei Sibidanov, Paul Zimmermann and
+  St\'ephane Glondu~\cite{CoreMath:2022}, and
+  \url{https://core-math.gitlabpages.inria.fr/}.
+\item \emph{How do you compute the midpoint of an interval?} Fr\'ed\'eric
+  Goualard~\cite{Goualard:TOMS2014}.
+\item \emph{Fast and Correct SIMD Algorithms for Interval Arithmetic}.
+  Fr\'ed\'eric Goualard~\cite{Goualard:PARA08}.
+\item \emph{Interval Extensions of Multivalued Inverse Functions}.
+  Fr\'ed\'eric Goualard~\cite{Goualard:2008}.
+\item \emph{Interval Arithmetic Specification}. Dmitri Chiriaev and G.\:
+  William Walster. Draft revised May 1998.
+\item \emph{The Extended Real Interval System}. G.\: William Walster. April
+  1998.
+\item \emph{C++ Interval Arithmetic Programming Reference}. Sun Microsystems,
+  Inc. October 2000, revision A.
+\item \emph{Interval Arithmetic: From Principles to Implementation}. T.\:
+  Hickey, Q.\: Ju, and M.\: H.\: van Emden~\cite{Hickey-Ju-vanEmden:2001}.
+\end{itemize}
+
+\section{Reporting bugs}
+
+Bugs and suggestions for improvement of GAOL v5 shall be submitted as issues
+of its repository:
+
+\begin{center}
+  \url{https://github.com/Jordan08/GAOL/issues}
+\end{center}
+
+\noindent
+A report is most useful with the program that shows the problem, the
+interval it gives and the one expected, the system, the processor, the
+compiler and the options GAOL was built with.

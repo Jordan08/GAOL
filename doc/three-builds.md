@@ -172,36 +172,34 @@ turn with the others (GAOL v5):
   processors. The elementary functions do not go through them.
 
 On a 64-bit ARM processor, measured the same way on an Apple M2 with AppleClang
-21.0, the median of three runs of each program (GAOL v5):
+21.0, the median of nine runs of each program, 6 November 2026 (GAOL v5): the first two builds in turn in one session, the last two in another:
 
 | | x + y | x − y | x × y | x ÷ y | sqr(x) | sqrt(x) | 13 operations in a line |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| `-DGAOL_SIMD=OFF` (FPU intervals) | 1.18 | 1.18 | 3.33 | 3.30 | 1.82 | 4.60 | 51.7 |
-| Default (NEON intervals) | 0.91 | 0.89 | 2.14 | 2.39 | 1.48 | 1.70 | 19.2 |
-| `-DGAOL_SIMD=OFF -DGAOL_PRESERVE_ROUNDING=ON` | 38.8 | 38.7 | 44.4 | 45.2 | 43.7 | 48.5 | 537 |
-| `-DGAOL_PRESERVE_ROUNDING=ON` (NEON intervals) | 26.9 | 27.3 | 29.3 | 34.0 | 27.3 | 34.3 | 377 |
+| `-DGAOL_SIMD=OFF` (FPU intervals) | 1.15 | 1.15 | 3.26 | 3.22 | 1.78 | 5.17 | 50.6 |
+| Default (NEON intervals) | 0.90 | 0.90 | 1.52 | 2.08 | 1.27 | 2.04 | 16.6 |
+| `-DGAOL_SIMD=OFF -DGAOL_PRESERVE_ROUNDING=ON` | 37.4 | 37.7 | 43.2 | 43.9 | 42.6 | 46.6 | 519 |
+| `-DGAOL_PRESERVE_ROUNDING=ON` (NEON intervals) | 26.6 | 27.1 | 27.8 | 35.1 | 27.2 | 35.7 | 370 |
 
 - **The NEON intervals (`GAOL_SIMD`) pay on every operation of the table**:
-  x − y takes 0.89 ns rather than 1.18, x × y 2.14 rather than 3.33 (of operands
-  of random signs 2.18 rather than 3.38), x ÷ y 2.39 rather than 3.30, sqrt
-  1.70 rather than 4.60, and a line of 13 operations 19.2 ns rather than 51.7
-  (the FPU row is measured in a session of its own, and the NEON rows are those
-  of #146).
+  x − y takes 0.90 ns rather than 1.15, x × y 1.52 rather than 3.26 (of operands
+  of random signs 1.60 rather than 3.32), x ÷ y 2.08 rather than 3.22, sqrt
+  2.04 rather than 5.17, and a line of 13 operations 16.6 ns rather than 50.6.
   The two bounds are one vector, and the operations take them from one to the
   next in a register. The elementary functions, which CORE-MATH computes,
   go through them only for their arguments: no faster, no slower. They are on by
   default on 64-bit ARM processors with GCC, Clang or AppleClang.
 - **The product, the quotient and the square of the FPU intervals take no
   branch on the signs of the bounds** (GAOL v5), and x − y reads its bounds
-  after the check of the rounding direction. The row read before 3.56 for
-  x − y, 3.37 for x × y (6.39 of operands of random signs), 4.00 for x ÷ y,
-  2.08 for sqr(x) and 49.8 for the line of 13 operations. The product of a line
+  after the check of the rounding direction. The row read before 3.54 for
+  x − y, 3.25 for x × y (6.39 of operands of random signs), 3.98 for x ÷ y,
+  2.07 for sqr(x) and 49.6 for the line of 13 operations. The product of a line
   of operands of one sign, which a processor predicts, takes more time than it
-  did (a line of 7 products, 35.8 ns rather than 23.8), the largest of four
+  did (a line of 7 products, 35.0 ns rather than 23.3), the largest of four
   products waiting for two comparisons. With `GAOL_PRESERVE_ROUNDING` the write
   of FPCR waits for the result as well, and the FPU row of that option gains
-  nothing (x × y 44.4 ns rather than 42.2 for the former code, measured in the
-  same session, and 44.3 rather than 49.1 for operands of random signs). These
+  little (x × y 42.4 ns rather than 39.7 for the former code, measured in the
+  same session, and 42.4 rather than 47.5 for operands of random signs). These
   are the figures of this processor, with AppleClang. The processors of the
   continuous integration that run the FPU intervals (32-bit ARM, Ubuntu with
   GCC and Clang, macOS; and, when they were measured, Visual C++ and clang-cl
@@ -216,7 +214,7 @@ On a 64-bit ARM processor, measured the same way on an Apple M2 with AppleClang
   processor) and written with `msr` only when the program's is not upward:
   `msr` takes 4 ns for the value FPCR holds and 11 ns when it changes the
   direction. With `GAOL_PRESERVE_ROUNDING` an operation of a program that
-  computes to nearest writes it twice, which is the 27 ns above (39 ns with the
+  computes to nearest writes it twice, which is the 27 ns above (37 ns with the
   FPU intervals, which called `fegetround()` and `fesetround()`); a program that
   already computes upward writes nothing.
 

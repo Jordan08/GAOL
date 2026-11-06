@@ -1,0 +1,1006 @@
+%% !TEX root = ../manual_gaolv5.tex
+% Chapter 1.
+%% Chapter 1: Interval arithmetic and floating-point numbers. Sources:
+%% gaol.tex of f5bf180 141-257, 840-938, 1109-1150, 1913-1996, 2840-2846, 3493-3546,
+%% 4070-4099, 5532-5546, 5574-5620, 5781-5788, 5881-5931;
+%% doc/math-libraries.md (whole); doc/accuracy.md 1-47.
+\chapter{Interval arithmetic and floating-point numbers}\label{chap:concepts}
+\cindex{interval arithmetic}\cindex{floating-point numbers}%
+
+A computer holds a real number as a floating-point number, a \code{double},
+and a computation on doubles rounds each of its results: the quotient $1/3$,
+the constant $0.1$ and most values of the elementary functions have no exact
+representation, and a program that computes with them accumulates errors it
+does not see. Interval arithmetic replaces each real number by two doubles
+that enclose it, and each operation by an operation on intervals whose
+result encloses every value the exact operation can take. The errors are
+then not avoided but bounded: the result of an interval computation is a set
+that contains the exact result, whatever the roundings along the way. GAOL
+is a C++ library to perform arithmetic with floating-point intervals, and
+this chapter gathers the notions on which the rest of the manual relies.
+
+\medskip
+In this chapter, we define the floating-point numbers and their roundings,
+the floating-point intervals and the operations on them, and the vocabulary
+of IEEE 1788-2015, the standard for interval arithmetic that GAOL v5
+follows. The first section describes the doubles and the roundings
+downward, upward and to nearest. The second defines the intervals, the
+empty set, the unbounded intervals and the canonical intervals. The third
+states the containment property and the outward rounding that enforces it,
+with the property on which GAOL computes both bounds in a single rounding
+direction. The fourth presents the dependency problem, which makes an
+enclosure wider than the range. The fifth gives an overview of IEEE
+1788-2015 as GAOL v5 follows it, and the sixth the idea of the relational
+functions, which the standard calls reverse functions. The seventh explains
+why the bounds of an elementary function depend on the mathematical library
+that computes it, from the libm of the systems to CORE-MATH; the eighth
+defines the three accuracy modes of the standard, tightest, accurate and
+valid. The chapter ends with a discussion.
+
+\section{Floating-point numbers and rounding}\label{sec:rounding-definitions}
+%%------------------------------------------
+\cindex{F@\FSet}\cindex{R@\RSet}\cindex{double}%
+
+The numbers GAOL computes with are the \code{double}s of C++: the
+floating-point numbers of the double format of IEEE
+754~\cite{IEEE754:90,Goldberg:01}, called binary64 since the 2008 revision
+of the standard. A double is written on 64 bits: a sign, a significand of
+53 bits, 52 of them stored, and an exponent of 11 bits; its value is
+$\pm m\cdot2^{e}$ with $m$ an integer below $2^{53}$. We write \FSet{} for
+the set of the doubles, the two infinities included, and \RSet{} for the set
+of the real numbers. \FSet{} is finite and symmetric: $y\in\FSet$ if and
+only if $-y\in\FSet$.
+
+\medskip
+The doubles are not spread evenly on the real line. Between two consecutive
+powers of two, $2^{e}$ and $2^{e+1}$, they are $2^{52}$ in number, spaced by
+$2^{e-52}$: this spacing is the \dfn{unit in the last place} (ulp) of the
+doubles between these powers. The \dfn{normal numbers} are those of
+magnitude between $2^{-1022}$, the smallest normal double, and
+$\mathrm{MAX}=(2-2^{-52})\cdot2^{1023}\approx1.797693\cdot10^{308}$, the
+largest double, which C names \code{DBL\_MAX}. Below $2^{-1022}$ lie the
+\dfn{subnormal numbers}, the multiples of $2^{-1074}$, which fill the gap
+between the smallest normal double and zero with the same spacing. The
+bounds GAOL computes may be subnormal, and the modes of the processors that
+flush the subnormal numbers to zero break them (\pxref{sec:ftz}).
+\cindex{subnormal numbers}\cindex{unit in the last place}%
+
+\medskip
+Three kinds of values are special. The two zeros, $-0$ and $+0$, are equal in the
+comparisons and stand for the same number; IEEE 1788-2015 and GAOL take them
+for the same bound, and the sign a zero bound gets differs between the
+builds of GAOL (\pxref{sec:zero-sign}). The two infinities, $-\infty$ and
+$+\infty$, which an overflow or a division by zero produces, are the bounds
+of the unbounded intervals. NaN (\emph{not a number}) is the result of an
+invalid operation, as $0/0$ or $\sqrt{-1}$; it compares unequal to
+everything, itself included, and GAOL holds the empty set as an interval
+whose two bounds are NaN (\exref{sec:intervals}).
+\cindex{NaN}\cindex{zero!sign of a bound}\cindex{infinity}%
+
+\medskip
+A real number that is no double has to be rounded. IEEE 754 defines four
+rounding directions for the binary formats of the processors: to nearest, toward $-\infty$, toward $+\infty$ and
+toward zero. The processor holds the direction in effect in a control
+register, and every operation of its floating-point unit rounds its result
+in that direction; a program starts in the rounding to nearest. Interval
+arithmetic uses the first three, which we define now.
+\cindex{rounding!direction}%
+
+\begin{Def}[Round down, round up]\label{def:round-down-up}
+\cindex{rounding!downward|hyperpagebf}\cindex{rounding!upward|hyperpagebf}%
+\cindex{downward rounding ($\roundDn{\:}$)}%
+\cindex{upward rounding ($\roundUp{\:}$)}%
+\index[idx]{aaa@$\roundDn{\:}$|see{downward rounding}}%
+\index[idx]{aab@$\roundUp{\:}$|see{upward rounding}}%
+Given \RSet{} the set of real numbers and \FSet{} the set of floating-point
+numbers (\code{double}), we have, for all $x\in\RSet$:
+\begin{align*}
+  \roundDn{x} &= \max\{y\in\FSet\mid y\leq x\},\\
+  \roundUp{x} &= \min\{y\in\FSet\mid y\geq x\}.
+\end{align*}
+$\roundDn{x}$ is the rounding of $x$ \dfn{downward}, toward $-\infty$, and
+$\roundUp{x}$ its rounding \dfn{upward}, toward $+\infty$.
+\end{Def}
+
+\begin{Def}[Round to nearest]\label{def:round-nearest}
+\cindex{rounding!to nearest|hyperpagebf}%
+Given \RSet{} the set of real numbers and \FSet{} the set of floating-point
+numbers (\code{double}), $\roundNearest{x}$ is, for $x\in\RSet$, the
+$y\in\FSet$ that minimizes $|x-y|$:
+\begin{equation*}
+  |x-\roundNearest{x}| = \min\{|x-y|\mid y\in\FSet\},
+\end{equation*}
+the one whose significand is even when two are equally near.
+\end{Def}
+
+For a double $d$, the three roundings return $d$ itself: a double is never
+moved. For a real $x$ that is no double, $\roundDn{x}$ and $\roundUp{x}$
+are two consecutive doubles, and $\roundNearest{x}$ is one of them. Beyond
+the largest double, the definitions give $\roundUp{x}=+\infty$ and
+$\roundDn{x}=\mathrm{MAX}$ for $x>\mathrm{MAX}$.
+
+\begin{Def}[Neighbours of a double]\label{def:neighbours}
+\cindex{double!neighbours}%
+For a double $d$, $\nextdouble{d}=\min\{y\in\FSet\mid y>d\}$ is the double
+that follows $d$, and $\prevdouble{d}=\max\{y\in\FSet\mid y<d\}$ the double
+that precedes it. For a real $x$ that is no double,
+$\roundUp{x}=\nextdouble{(\roundDn{x})}$. The function \code{next\_float()}
+of GAOL computes the successor of a double (Chapter~\ref{chap:errors}).
+\end{Def}
+
+\begin{Ex}\label{ex:one-tenth}
+Programming with floating-point numbers is one of the few activities where
+the compiler has to be considered with distrust. Let us consider the
+following piece of code:
+\begin{example}
+#include <gaol/gaol>  @rem^// We do not import the gaol namespace~
+
+using gaol::interval;
+
+int main(void) {
+  interval one_tenth(0.1); @rem^BEWARE: wrong !~
+
+  @emph^[some code using one_tenth]~
+  gaol::cleanup();
+}
+\end{example}
+Though a rational perfectly representable in decimal, \code{0.1} is not
+representable in binary, at least not with a finite number of bits, and
+thus requires rounding. The purpose of the programmer was to define an
+interval containing this value. However, \code{0.1} is rounded \emph{at
+compile time}, most certainly to the nearest representable floating-point
+number $\roundNearest{0.1}$. As a consequence, \code{one\_tenth} is a
+degenerate interval containing only $\roundNearest{0.1}$, and the
+containment property (\exref{sec:containment}) is violated. The right way
+to write such a constant is given in Example~\ref{ex:one-tenth-right}.
+\end{Ex}
+
+\section{Intervals}\label{sec:intervals}
+%%-------------------
+\cindex{interval!floating-point}\cindex{I@\ISet}%
+
+\begin{Def}[Floating-point interval]\label{def:interval}
+A \dfn{floating-point interval} $I=\itv{a}{b}$, with $a$ and $b$ in \FSet,
+$a\leq b$, $a<+\infty$ and $b>-\infty$, is the set of the real numbers
+between its bounds:
+\begin{equation*}
+  \itv{a}{b}=\{x\in\RSet\mid a\leq x\leq b\}.
+\end{equation*}
+$a=\leftBound{I}$ is its \dfn{lower bound}, or left bound, and
+$b=\rightBound{I}$ its \dfn{upper bound}, or right bound. The empty set
+$\emptyset$ is an interval as well. We write \ISet{} for the set of the
+floating-point intervals.
+\end{Def}
+
+An interval is a set of real numbers: an infinite bound marks that the
+interval is unbounded on that side, and is no member of it. The intervals
+with an infinite bound, as \itv{1}{+\infty}, are the \dfn{unbounded}
+intervals, intervals as any other; \itv{-\infty}{+\infty} is the whole real
+line, which IEEE 1788-2015 calls \ieee{entire} and GAOL
+\code{interval::universe()}. The point intervals $\itv{+\infty}{+\infty}$
+and $\itv{-\infty}{-\infty}$ do not exist: the standard has no such
+interval, and the constructors of GAOL v5 give the empty set for them
+(\pxref{par:inf_inf_note}).\newinvfive{} An interval $\itv{a}{a}$ reduced to
+one double is a \dfn{degenerate} interval, or point interval, which the
+literals of the standard write $[a]$. The empty set is the result of an
+operation whose argument has no point in the domain of the function
+(\exref{sec:ieee1788-overview}); GAOL holds it as an interval whose two
+bounds are NaN, and the method \code{is\_empty()} tells it.
+\cindex{interval!unbounded}\cindex{interval!degenerate}\cindex{empty set}%
+
+\begin{Def}[Hull]\label{def:hull}
+\cindex{hull}%
+The \dfn{hull} of a set $S$ of real numbers, written $\hull{S}$, is the
+smallest floating-point interval containing $S$: $\hull{\emptyset}=
+\emptyset$, and for a non-empty $S$
+\begin{equation*}
+  \hull{S}=\itv{\roundDn{\inf S}}{\roundUp{\sup S}},
+\end{equation*}
+where $\inf S=-\infty$ when $S$ has no lower bound and $\sup S=+\infty$ when
+it has no upper bound.
+\end{Def}
+
+\begin{Def}[Canonical interval]\label{def:canonical}
+\cindex{interval!canonical|see{canonical interval}}%
+\cindex{canonical interval|hyperpagebf}%
+A non-empty interval $I=\itv{a}{b}$ is \dfn{canonical} if and only if
+$a\geq\prevdouble{b}$: it contains at most two consecutive floating-point
+numbers.
+\end{Def}
+
+The hull of a real number $x$ that is no double,
+$\hull{\{x\}}=\itv{\roundDn{x}}{\roundUp{x}}$, is canonical: it is the
+tightest interval of doubles that encloses $x$, and no element of \ISet{}
+does better.
+
+\begin{Ex}\label{ex:one-tenth-right}
+The right way to deal with rational constants that might not be perfectly
+representable as floating-point numbers is to write them as strings, and to
+read them with \code{gaol::textToInterval()} (\pxref{sec:constructors}), so
+that they are correctly rounded downward and upward at \emph{run time}:
+\begin{example}
+#include <gaol/gaol>
+
+using gaol::interval;
+
+int main(void)
+{
+  @rem^// OK: this is the right way~
+  interval one_tenth = gaol::textToInterval("0.1");
+  @rem^// Another possible way~
+  interval one_tenth2 = gaol::textToInterval("1/10");
+
+  @emph^[some code using one_tenth]~
+  gaol::cleanup();
+  return 0;
+}
+\end{example}
+Now, \code{one\_tenth} is the smallest floating-point interval enclosing
+$0.1$: a canonical interval. Written in hexadecimal
+(\pxref{sec:output-format}), which shows the bounds exactly, the interval of
+Example~\ref{ex:one-tenth} and this one are:
+\begin{onscreen}
+interval(0.1) = [0x1.999999999999ap-4]
+one_tenth     = [0x1.9999999999999p-4, 0x1.999999999999ap-4]
+\end{onscreen}
+\end{Ex}
+
+\paragraph{Width, midpoint and radius.}
+Three numbers describe an interval $\itv{a}{b}$: its \dfn{width} $b-a$
+(\ieee{wid} of IEEE 1788-2015), its \dfn{midpoint} $(a+b)/2$ (\ieee{mid})
+and its \dfn{radius} $(b-a)/2$ (\ieee{rad}), so that $\itv{a}{b}$ is the
+set of the reals at a distance at most the radius from the midpoint.
+Computed on doubles, none of the three is exact in general: the width GAOL
+computes is rounded upward, and the midpoint is a double that the
+computation has to keep inside the interval, for an unbounded interval
+too~\cite{Goualard:TOMS2014}. Chapter~\ref{chap:functions} gives the
+methods \code{width()}, \code{midpoint()} and \code{rad()}, and their
+values on the empty set and on the unbounded intervals.
+\cindex{interval!width}\cindex{interval!midpoint and radius}%
+
+\section{Interval arithmetic and the containment property}
+\label{sec:containment}
+%%--------------------------------------------------------
+\cindex{containment property}\cindex{outward rounding}%
+\cindex{rounding!outward|see{outward rounding}}%
+
+An operation on intervals stands for the operation on every pair of points
+of its arguments. Its result has to contain all the values the real
+operation can take and, to be of use, should contain as little else as
+possible: the smallest floating-point interval that does is the hull.
+
+\begin{Def}[Containment property]\label{def:containment}
+The \dfn{containment property} of floating-point interval arithmetic
+requires that, for any operation ``$\circ$'' and any intervals $I$ and $J$,
+$I\circ J$ contains $\{i\circ j\mid i\in I,\ j\in J\}$, the pairs on which
+$\circ$ is not defined being left out, and, for any function $f$ of one
+variable and any interval $I$, that $f(I)$ contains $\{f(i)\mid i\in I\}$,
+the points of $I$ outside the domain of $f$ being left out. The
+\dfn{containment principle} asks for the smallest interval that does so, the
+hull:
+\begin{equation*}
+  I\circ J=\hull{\{i\circ j\mid i\in I,\ j\in J\}},\qquad
+  f(I)=\hull{\{f(i)\mid i\in I\}}.
+\end{equation*}
+\end{Def}
+
+\begin{Ex}\label{ex:sqrt-functional}
+For the square root, the principle gives
+$\sqrt{I}=\hull{\{\sqrt{i}\mid i\in I\}}$. From monotonicity
+considerations, the square root of \itv{1}{2} is then
+$\sqrt{\itv{1}{2}}=\itv{1}{\sqrt{2}}$ on the real numbers; as $\sqrt2$ is
+no double, the interval computed is $\itv{1}{\roundUp{\sqrt{2}}}$, whose
+upper bound is the double above $\sqrt2$.
+\end{Ex}
+
+Fulfilling the containment property with doubles requires \dfn{outward
+rounding}: the lower bound of a result is rounded downward and its upper
+bound upward. For example, to add the intervals \itv{a}{b} and \itv{c}{d},
+we compute $\itv{\roundDn{a+c}}{\roundUp{b+d}}$, where $\roundDn{r}$ and
+$\roundUp{r}$ return the greatest double at most $r$ and the smallest double
+at least $r$ (Definition~\ref{def:round-down-up}). These two operations are
+performed by switching the rounding direction of the floating-point unit
+towards, respectively, $-\infty$ and $+\infty$. With
+$P=\{ac,\,ad,\,bc,\,bd\}$ and $Q=\{a/c,\,a/d,\,b/c,\,b/d\}$, the four basic
+operations on bounded intervals become
+\begin{align*}
+  \itv{a}{b}+\itv{c}{d} &= \itv{\roundDn{a+c}}{\roundUp{b+d}},\\
+  \itv{a}{b}-\itv{c}{d} &= \itv{\roundDn{a-d}}{\roundUp{b-c}},\\
+  \itv{a}{b}\times\itv{c}{d} &= \itv{\roundDn{\min P}}{\roundUp{\max P}},\\
+  \itv{a}{b}\div\itv{c}{d} &= \itv{\roundDn{\min Q}}{\roundUp{\max Q}}
+    \quad\text{if } 0\notin\itv{c}{d}.
+\end{align*}
+A divisor that contains zero gives the hull of the quotients by its
+non-zero points, which IEEE 1788-2015 defines case by case: an unbounded
+interval, as $\itv{1}{2}\div\itv{-1}{1}=\itv{-\infty}{+\infty}$, and the empty
+set when the divisor is $\itv{0}{0}$, as $\itv{1}{2}\div\itv{0}{0}=\emptyset$. The infinite bounds and the zeros of
+each operation follow the standard as well; Chapter~\ref{chap:arithmetic}
+states every case.
+
+\begin{Prop}\label{prop:round-neg}
+For every real number $r$, $\roundDn{-r}=-\roundUp{r}$.
+\end{Prop}
+\demo The set \FSet{} is symmetric: $y\in\FSet$ if and only if
+$-y\in\FSet$. Hence $\{y\in\FSet\mid y\leq-r\}=\{-z\mid z\in\FSet,\ z\geq
+r\}$, and the greatest element of the first set is the opposite of the
+smallest element of the second:
+$\max\{y\in\FSet\mid y\leq-r\}=-\min\{z\in\FSet\mid z\geq r\}$, that is,
+$\roundDn{-r}=-\roundUp{r}$.\boite
+
+\medskip
+On most platforms, switching the rounding direction is costly.
+Proposition~\ref{prop:round-neg} cuts down the number of switches: nearly
+all downward rounding operations can be replaced by upward rounding ones by
+negating appropriately twice the operations performed. The lower bound of a
+sum, $\roundDn{a+c}$, is $-\roundUp{(-a)+(-c)}$: the sum of the negated
+lower bounds, rounded upward, then negated. GAOL stores the lower bound of
+an interval negated, as the pair $\langle -a, b\rangle$, and computes both
+bounds rounding upward: the rounding direction can then be set towards
+$+\infty$ once and for all. The sum of $\langle -a, b\rangle$ and
+$\langle -c, d\rangle$ is the pair $\langle\roundUp{-a-c},
+\roundUp{b+d}\rangle$, two upward additions, which the kernels of GAOL
+compute on the two halves of one register (\pxref{sec:kernels}). How GAOL
+sets the rounding direction, and what the upward rounding does to the rest
+of the program, is the subject of Chapter~\ref{chap:rounding}
+(\pxref{sec:rounding-direction}).
+\cindex{rounding!direction}\cindex{lower bound!stored negated}%
+
+\paragraph{Exact operations.} Not every operation needs a rounding. The
+negation maps \itv{a}{b} to \itv{-b}{-a}, whose bounds are doubles since
+\FSet{} is symmetric; the absolute value, the minimum and the maximum return
+a bound of an argument or its opposite; and the integer functions, floor,
+ceiling, truncation, the roundings to the nearest integer and the sign,
+return integers that are doubles, the integer part of a double being a
+double. These operations are exact: their result is the hull of the exact
+result with no rounding at all, whatever the rounding direction in effect.
+The four basic operations, the square root and the elementary functions
+round: their bounds depend on the rounding direction, and, for the
+elementary functions, on the mathematical library that computes them
+(\exref{sec:math-libraries}).
+\cindex{exact operations}%
+
+\section{The dependency problem}\label{sec:dependency}
+%%--------------------------------
+\cindex{dependency problem}%
+
+The containment principle makes each operation as tight as doubles allow,
+but a sequence of operations is not: an expression evaluated on intervals
+gives an interval that encloses the range of the expression, and is in
+general wider than it. The reason is that each occurrence of a variable
+ranges over its interval on its own, as if the other occurrences did not
+exist. This is the \dfn{dependency problem} of interval
+arithmetic~\cite{Moore:Book1966,Neumaier:Book1990}.
+
+\begin{Ex}\label{ex:dependency}
+Let $x=\itv{0}{1}$. The expression $x-x$ is zero for every value of $x$,
+but the subtraction of intervals takes its two operands as independent:
+$\itv{0}{1}-\itv{0}{1}=\itv{-1}{1}$. In the same way, with $x=\itv{-1}{1}$,
+the product $x\times x=\itv{-1}{1}$ combines the value $-1$ of the first
+factor with the value $1$ of the second, which one number cannot take at
+once, whereas the square, which knows that its two factors are equal, gives
+$x^2=\itv{0}{1}$, the range; GAOL provides it as \code{sqr()}
+(Chapter~\ref{chap:arithmetic}). The distributivity is weakened in the same
+way: for any intervals $x$, $y$ and $z$,
+$z\times(x+y)\subseteq z\times x+z\times y$, with equality not in general,
+as $\itv{1}{2}\times(\itv{-1}{1}+\itv{3}{4})=\itv{2}{10}$ where
+$\itv{1}{2}\times\itv{-1}{1}+\itv{1}{2}\times\itv{3}{4}=\itv{1}{10}$.
+\end{Ex}
+
+The effect grows with the expression. The first program of
+Chapter~\ref{chap:overview} (\pxref{sec:first-program}) encloses the range
+of the Goldstein-Price function
+\begin{align*}
+f(x,y)=&\bigl(1+(x+y+1)^2(19-14x+3x^2-14y+6xy+3y^2)\bigr)\\
+&\bigl(30+(2x-3y)^2(18-32x+12x^2+48y-36xy+27y^2)\bigr)
+\end{align*}
+for $x\in\itv{-2}{2}$ and $y\in\itv{-2}{2}$, by evaluating the formula on
+the two intervals. It obtains \itv{-87881320}{147125080}: we then know that
+$f(x,y)$ lies in this interval for every $x$ and $y$ in \itv{-2}{2}, and
+the result \emph{encloses} the range of $f$. It is not the range, which is
+\itv{3}{1015690.27\ldots}: the minimum is $f(0,-1)=3$, and the maximum is
+reached on the edge $y=2$. The enclosure is 231 times wider. Each
+occurrence of $x$ and of $y$ in the formula ranges over \itv{-2}{2} on its
+own, as if the others did not exist.
+\cindex{enclosure}%
+
+\medskip
+Cutting $x$ and $y$ into smaller intervals, and taking the hull of the
+values of $f$ over the pieces, narrows the enclosure, at the price of more
+evaluations: the program \file{examples/03\_dependency\_problem.cpp} of the
+sources does it. Writing the expression with fewer occurrences of each
+variable, the square in place of a product of a variable by itself for
+instance, is the other remedy: the width of an enclosure is a property of
+the expression evaluated, not of the function alone.
+
+\section{IEEE 1788-2015}\label{sec:ieee1788-overview}
+%%-----------------------
+\cindex{IEEE 1788-2015}%
+
+IEEE 1788-2015~\cite{IEEE1788:2015} is the standard for interval
+arithmetic. It fixes what the libraries had each decided their own way:
+what an interval is, what the operations return at the bounds of their
+domains, how the empty set, the infinite bounds and the comparisons behave,
+how an interval is written and read, and how tight each operation has to
+be. GAOL v5 follows the standard in the operations GAOL provides: the empty
+set, the infinite bounds, the domains of the functions, the comparisons and
+the interval literals. The few cases where it differs, mostly the
+\code{pow} of the namespace \code{gaol}, are stated where the operations
+are described (\pxref{sec:pow-namespaces}, Chapter~\ref{chap:ieee1788}),
+and the tightness of each operation is documented, as the standard requires
+(Chapter~\ref{chap:accuracy}).
+
+\paragraph{The set-based flavor and the bare intervals.} The standard is
+organized in \emph{flavors}, and defines one, the \dfn{set-based flavor}:
+an interval is a closed connected subset of \RSet, that is, the empty set,
+a bounded interval \itv{a}{b} or an unbounded one, and the exact result of
+an operation is the set of its values on the points of its arguments that
+lie in the domain of the function, which the interval returned encloses
+(\exref{sec:accuracy-modes}). The intervals of GAOL are those of the
+set-based flavor (\exref{sec:intervals}). The standard also attaches to
+its intervals a \emph{decoration}, which records whether the function was
+defined and continuous on the whole of its argument along the computation
+(Clause 11). GAOL has no decorations: only bare intervals are provided, and
+the other parts of the standard it does not provide are listed in
+Chapter~\ref{chap:ieee1788} (\pxref{sec:ieee1788-missing}).
+\cindex{decorations}\cindex{bare interval}\cindex{set-based flavor}%
+
+\paragraph{The operations.} The standard lists its operations in tables.
+Table~9.1 holds the forward elementary functions every implementation
+provides, with the domain of each: the arithmetic operations, the powers,
+the exponentials and logarithms, the trigonometric and hyperbolic functions
+and their inverses, the integer functions, \ieee{abs}, \ieee{min} and
+\ieee{max}. Table~10.1 holds the reverse functions
+(\exref{sec:relational-idea}), Table~10.2 the numeric functions of an
+interval, Tables~10.3 and 10.4 the comparisons, and Table~10.5 the
+recommended functions, which an implementation may provide. GAOL v5 adds
+the operations of these tables that GAOL~4 lacked, which the standard
+requires or recommends: \code{exp2}, \code{exp10}, \code{log2},
+\code{log10}, \code{fma}, the integer functions \code{sign}, \code{trunc},
+\code{round\_ties\_to\_even} and \code{round\_ties\_to\_away}, sixteen
+recommended functions (\code{expm1}, \code{log1p}, \code{hypot},
+\code{compoundm1}, \code{sinpi}\ldots), the cancellative subtraction and
+addition, the radius, and the comparisons \code{less},
+\code{strictly\_less}, \code{is\_entire} and \code{is\_common\_interval};
+\code{atan2}, which GAOL declared, is implemented.\newinvfive{} The
+relations of Tables~10.3 and 10.4, \ieee{equal}, \ieee{subset},
+\ieee{interior}, \ieee{disjoint}, \ieee{precedes}, \ieee{strictPrecedes},
+\ieee{less} and \ieee{strictLess}, follow the definitions of the standard
+for the empty set and for the infinite bounds too
+(Chapter~\ref{chap:relations}).\newinvfive{} The table of
+Chapter~\ref{chap:ieee1788} says which operation of the standard each
+function of GAOL is.
+\cindex{IEEE 1788-2015!relations}%
+
+\paragraph{The conventions.} A few conventions of the standard run through
+the whole manual.
+\begin{itemize}
+\item[$\bullet$] \textbf{The domains.} A function is computed on the part
+  of its argument within its domain, which is that of IEEE 1788-2015
+  (Tables~9.1 and 10.5): the part outside is left out, and an argument with
+  no point of the domain gives the empty set, as $\code{log}(\itv{-4}{0})$
+  does.\newinvfive{} Every function gives the empty set for an empty
+  argument. GAOL, which has no decorations, says nothing of the part left
+  out: $\code{sqrt}(\itv{-1}{4})$ is \itv{0}{2}.
+  \cindex{domain of a function}%
+\item[$\bullet$] \textbf{The empty set.} The empty set is an interval, the
+  result of an operation on an argument outside the domain of the function,
+  and an interval whose bounds are in the wrong order, as
+  \code{interval(1, 0)}, is empty too. Its numeric functions are those of
+  Table~10.2: \ieee{inf} and \ieee{sup} of the empty set are $+\infty$ and
+  $-\infty$, where \code{left()} and \code{right()} of GAOL are NaN, and
+  \ieee{inf} returns $-0$ for a left bound zero (12.12.8).
+\item[$\bullet$] \textbf{The infinite bounds.} An interval is a set of
+  real numbers: an infinite bound is no member of it, so that
+  \ieee{isMember}$(m, x)$ is \code{false} for an infinite $m$ (10.6.3), and
+  the point intervals at $\pm\infty$ do not exist. The relations follow
+  these definitions for the infinite bounds too.
+\item[$\bullet$] \textbf{The literals.} An interval is written as a
+  \dfn{literal} of the standard (12.11): \code{[l, r]}, \code{[a]} for a
+  degenerate interval, \code{[empty]} for the empty set and \code{[entire]}
+  for the whole line, the case of the letters being ignored; a literal is
+  read back as an interval containing the one written (13.3). GAOL writes
+  and reads them (Chapter~\ref{chap:io}, \pxref{sec:input-format});
+  \code{textToInterval} of the namespace \code{gaol\_ieee1788} reads the
+  names of the functions of the standard and returns the empty set for a
+  string that is no interval (12.1.3), where that of \code{gaol} reads the
+  names of GAOL and throws (\pxref{sec:ieee1788-text}).\newinvfive
+  \cindex{interval literal}%
+\item[$\bullet$] \textbf{The powers.} The \ieee{pow} of Table~9.1 is
+  defined for $x>0$, and for $x=0$ when $y>0$; the power with an integer
+  exponent is \ieee{pown}$(x, n)$, whose $n$ is an integer rather than an
+  interval. The \code{pow} of the namespace \code{gaol} takes the integer
+  power for an integer exponent, a negative base included, which is the
+  main point where GAOL and the standard differ (\pxref{sec:pow-namespaces},
+  Section~\ref{sec:powers}).
+\end{itemize}
+
+\medskip
+\noindent GAOL names its operations its own way, and the names of the
+standard differ: the reverse function \ieee{coshRev}$(c, x)$ is
+\code{acosh\_rel(c, x)}, and \ieee{roundTiesToEven}$(x)$ is
+\code{round\_ties\_to\_even(x)}. The type \code{interval} and the functions
+of GAOL live in the namespace \code{gaol}, and the namespace
+\code{gaol\_ieee1788}, which \file{gaol/gaol.h} brings along, gives each
+operation of the standard that GAOL provides the name and the argument
+order the standard gives it, so that a reader of the standard finds it
+without looking for its translation (\pxref{sec:namespaces},
+Chapter~\ref{chap:ieee1788}).\newinvfive
+\cindex{namespace!gaol\_ieee1788}\cindex{IEEE 1788-2015!names}%
+
+\section{Relational (reverse) functions}\label{sec:relational-idea}
+%%--------------------------------------
+\cindex{operator!relational}\cindex{relational operator}%
+\cindex{relational function}\cindex{reverse function}%
+
+A function on intervals, as the containment principle defines it, maps an
+interval of arguments to the hull of its values: this is its
+\dfn{functional} version. A second reading of the same function is of use
+when the function appears in a relation between variables.
+
+\begin{Ex}\label{ex:sqrt-relational}
+The functional square root of \itv{1}{2} is
+$\sqrt{\itv{1}{2}}=\itv{1}{\sqrt{2}}$ (Example~\ref{ex:sqrt-functional}).
+Another interpretation of the square root is
+\begin{equation*}
+  \sqrt{_r\,I}=\hull{\{j\in\RSet\mid\exists i\in I\colon j^2=i\}},
+\end{equation*}
+the \dfn{relational square root}, which permits obtaining both negative and
+positive values: $\sqrt{_r\,\itv{1}{2}}=\itv{-\sqrt{2}}{\sqrt{2}}$. This
+operator arises when we consider the relation $x^2=y$, which can
+alternatively be written $x=\sqrt{_r\,y}$. Here, the \dfn{functional square
+root} is not suitable, since it would confine $x$ to $\itv{0}{+\infty}$ and
+lose the negative solutions of the relation.
+\end{Ex}
+
+Some applications, mainly in the area of constraint programming, require
+such operators: a contractor narrows the domains of the variables of a
+relation, and needs, for the relation $y=f(x)$, the part of the domain of
+$x$ whose image meets the domain of $y$. As a consequence, GAOL offers both
+functional and relational versions of the main arithmetic operators, which
+IEEE 1788-2015 has since required, as its \dfn{reverse functions}
+(Table~10.1).
+
+\medskip
+A relational function of one argument, as the relational square root, is
+enough when the preimage of an interval has finitely many pieces. For a
+periodic function the preimage has infinitely many, and the domain of the
+variable has to be taken into account.
+
+\begin{Ex}\label{ex:acos-relational}
+Consider the relation $y=\cos x$, where $x$ and $y$ are interval variables.
+One would like to express this relation in the equivalent way
+$x=\operatorname{acos} y$. However, the function $\operatorname{acos}$
+cannot be used, because its result is always included in the interval
+\itv{0}{\pi}. What is needed is a relational version of
+$\operatorname{acos}$; but since, for any value $y$, there are infinitely
+many values $x$ verifying $y=\cos x$, the domain of $x$ has to be taken
+into account. GAOL therefore defines a binary operator \code{acos\_rel} as
+\begin{equation*}
+  \code{acos\_rel}(Y, X)=\hull{\{x\in X\mid\exists y\in Y\colon y=\cos x\}},
+\end{equation*}
+to be contrasted with the functional arccosine,
+\begin{equation*}
+  \code{acos}(Y)=\hull{\{x\in\RSet\mid\exists y\in Y\colon
+    x=\operatorname{acos} y\}}.
+\end{equation*}
+Figure~\ref{fig:relational-cos}, in Chapter~\ref{chap:arithmetic}, presents
+the different results obtained when computing $\code{acos}(J)$ or
+$\code{acos\_rel}(J, I)$, where $J$ and $I$ play the parts of $Y$ and $X$.
+An interval $X$ that meets no piece of the
+preimage gives the empty set.\newinvfive
+\end{Ex}
+
+\begin{Def}[Relational function]\label{def:relational}
+Let $f$ be a function of one real variable, $Y$ an interval of values and
+$X$ an interval of arguments. The \dfn{relational function} of $f$ with
+respect to $X$, its \dfn{reverse function} in the words of IEEE 1788-2015,
+is
+\begin{equation*}
+  f_{\mathrm{rel}}(Y, X)=\hull{\{x\in X\mid\exists y\in Y\colon y=f(x)\}},
+\end{equation*}
+the hull of the part of $X$ whose image by $f$ meets $Y$. The relational
+function of one argument is the case $X=\RSet$.
+\end{Def}
+
+GAOL names a relational function after the inverse of the function it
+reverses, as \code{acos\_rel} for the cosine, \code{asin\_rel} for the sine
+and \code{sqrt\_rel} for the square; the standard names it after the
+function itself, \ieee{cosRev}, \ieee{sinRev}, \ieee{sqrRev}, and the
+namespace \code{gaol\_ieee1788} gives these names
+(Chapter~\ref{chap:ieee1788}). The relational version of a binary
+operation, as the relational division \code{div\_rel}, which reverses the
+product, takes one more argument. The reference of the relational
+arithmetic, with the figure of the relational cosine, is in
+Chapter~\ref{chap:arithmetic} (\pxref{sec:relational-arithmetic}).
+
+\section{The elementary functions and the mathematical libraries}
+\label{sec:math-libraries}
+%%--------------------------------------------------------------
+\cindex{elementary functions}\cindex{mathematical library}%
+\cindex{CORE-MATH}\cindex{libm}\cindex{mathlib}\cindex{CRlibm}%
+
+The bounds of the four basic operations and of the square root are the
+business of the processor: IEEE 754 requires them correctly rounded in the
+direction in effect, and the roundings of Definition~\ref{def:round-down-up}
+are what the floating-point unit computes. The elementary functions,
+$\exp$, $\log$, $\sin$, $\cos$, $\tan$, their inverses and the hyperbolic
+functions, are computed by software, by a mathematical library, and the
+tightness of their bounds depends on it. GAOL v5 bounds every one of its
+elementary functions with CORE-MATH~\cite{CoreMath:2022}, the only
+mathematical library it uses, compiled into it from \file{3rd/math-core}.
+Before that, GAOL was built with one of three: mathlib by default, CRlibm,
+or the mathematical library of the system, whose options the three builds of GAOL
+v5 no longer have (Chapter~\ref{chap:changes}).\newinvfive{} The
+four come from four moments of the same history and were written with
+different goals, which is why they give bounds of different tightness. This
+section says where each of them comes from and what separates them, and why
+GAOL v5 ended up with the last.
+
+\subsection{The table maker's dilemma}
+\cindex{table maker's dilemma}\cindex{correct rounding}%
+\cindex{faithful rounding}%
+
+A mathematical library evaluates $\exp$, $\log$, $\sin$\ldots{} in a
+format, binary64 here, in which the exact result is not representable: it
+has to round a value it only knows approximately. For some arguments the
+exact result falls extraordinarily close to the middle of two consecutive
+doubles, or to a double for the directed roundings, and deciding which way to round then asks for far more than 53
+bits of intermediate precision. No bound on that distance follows from the
+definition of the functions: this is the \dfn{table maker's dilemma}, named
+by W. Kahan. Two ambitions follow from it, and they are the axis along
+which the four libraries differ.
+
+\begin{Def}[Faithful rounding]\label{def:faithful}
+A library is \dfn{faithfully rounded}, or ``nearly correct'', when its
+error is below one unit in the last place, about half of one in practice.
+This is enough for most numerical computation.
+\end{Def}
+
+\begin{Def}[Correct rounding]\label{def:correct-rounding}
+A library is \dfn{correctly rounded} when it returns exactly the double the
+rounding direction in effect gives of the exact result:
+$\roundNearest{f(x)}$, $\roundDn{f(x)}$ or $\roundUp{f(x)}$. It makes a
+program reproducible from one machine and one library to another, and, for
+interval arithmetic, it gives the tightest bound a format can hold: a value
+correctly rounded upward \emph{is} the upper bound, with nothing to add.
+\end{Def}
+
+\noindent IEEE 754-2008 lists the correctly rounded elementary functions
+among its recommended operations, which is what the last two libraries
+below set out to provide.
+
+\subsection{libm, the mathematical library of the system}
+
+libm is not a library but an interface: the mathematical part of the C
+standard library, with one implementation per system. The line starts with
+the libm of Unix V7 in the 1970s, then the libm of 4.3BSD in the middle of
+the 1980s, written around W. Kahan at Berkeley (Coonen, K. C. Ng, Thomas,
+Tang), where the culture of testing the accuracy of elementary functions
+was formed. In 1993 Sun published fdlibm, the Freely Distributable libm of
+K. C. Ng: portable C, no assembly, aiming at less than one unit in the last
+place. fdlibm is the common ancestor of nearly everything that followed:
+\file{msun} of FreeBSD, the libm of musl, openlibm of Julia, and part of
+that of the glibc.
+
+\medskip
+Its design puts speed first and accuracy second. There is one evaluation
+phase, an argument reduction and a polynomial or rational approximation
+chosen by hand for each function; the error bound announced is empirical,
+established by tests rather than proved; the mathematical properties
+(monotonicity, symmetry, $\sin^2x+\cos^2x\leq1$) are not guaranteed.
+Rounding to nearest is assumed throughout: nothing is promised in the
+directed rounding directions, which is precisely what interval arithmetic
+needs. Beside these portable implementations live the fast and
+non-portable ones: Intel SVML, AMD libm, the \file{optimized-routines} of
+ARM, and the vector variants.
+
+\medskip
+This is why GAOL could not keep the libm of the system as an option: the
+bounds would not be certified, holding only where that libm stays within
+about one double of the exact value.
+
+\subsection{mathlib, the IBM Accurate Portable Mathematical Library}
+
+mathlib, also called libultim, was written at IBM Haifa at the end of the
+1990s (Abraham Ziv, Moshe Olshansky, Ealan Henis, Anna Reitman). It is the
+industrial form of the idea Ziv published in 1991 in \emph{ACM TOMS}: the
+\dfn{onion peeling} strategy. The function is evaluated with increasing
+precision, a fast phase accurate to about half a unit in the last place
+plus a little, then a second one, then a software multiprecision
+arithmetic, and the computation stops as soon as a rounding test proves
+that the rounding can be decided. Since the hard cases are rare, the
+average cost stays close to that of an ordinary libm, while the result is
+correctly rounded in practice.
+
+\medskip
+Its two limits are the ones that decided its fate. Nothing bounds the
+number of iterations: the strategy has no proof and no bound on the worst
+case, which can cost thousands of cycles. And it rounds to nearest only, so
+a bound drawn from it has to be moved one double outward, which costs one
+unit in the last place of tightness: this is what GAOL~4 did for
+\code{exp}, \code{pow}, the trigonometric and the inverse trigonometric
+functions (\exref{sec:accuracy-modes}).
+
+\medskip
+mathlib was contributed to the glibc around 2001 and provided its
+\code{exp}, \code{log}, \code{sin}, \code{cos}, \code{atan} and \code{pow}
+for some fifteen years. In 2018 the glibc 2.28 removed these
+multiprecision slow paths: the pathological execution times were judged
+worse than the accuracy was worth. The glibc thereby gave up correct
+rounding and went back to about half to one unit in the last place with a
+bounded worst case. The version GAOL built was mathlib 2.1.1, under the GNU
+LGPL, as Fr\'ed\'eric Goualard distributed it; GAOL v5 carries it no
+longer.\newinvfive
+
+\subsection{CRlibm, the proofs}
+
+CRlibm is a project of the LIP at the ENS de Lyon and then of the INRIA
+Ar\'enaire team (later AriC), from 2000 to about 2011: Jean-Michel Muller,
+Florent de Dinechin, Catherine Daramy-Loirat, David Defour, Christoph
+Lauter, with Guillaume Melquiond for the proof tools. Its last release,
+1.0beta4, dates from 2010; it is no longer maintained. CRlibm keeps Ziv's
+two phases but changes what is guaranteed.
+\begin{itemize}
+\item[$\bullet$] \textbf{The second phase is bounded.} Lef\`evre and Muller
+  had computed, by an exhaustive search made tractable by their algorithms,
+  the hardest-to-round cases in double precision: about 120 bits are known
+  to be enough. No unbounded multiprecision is needed any more, a
+  double-double or triple-double arithmetic suffices, and the worst-case
+  execution time is bounded, typically a few times the average.
+\item[$\bullet$] \textbf{The error bounds are proved}, and in part checked
+  by machine with Gappa. The documentation of CRlibm is as much a proof
+  document as a manual, and this is its main scientific contribution.
+\item[$\bullet$] \textbf{The four rounding directions are provided
+  explicitly}: \code{cos\_rn}, \code{cos\_rd}, \code{cos\_ru},
+  \code{cos\_rz}. This is what makes it natural for interval arithmetic,
+  and why GAOL took its functions rounded downward and upward directly,
+  without moving them outward: built with CRlibm, the \code{exp},
+  \code{log}, \code{sin}, \code{cos}, \code{tan}, \code{asin}, \code{acos},
+  \code{atan}, \code{sinh} and \code{cosh} of GAOL were the tightest bounds
+  of the value at the bound. CORE-MATH gives the same, in the direction in
+  effect, for every function and on every system
+  (\exref{sec:accuracy-modes}).
+\end{itemize}
+Its price was the work of a specialist for each function, a narrow coverage
+(a dozen functions, binary64 only: neither \code{tanh} nor \code{asinh},
+\code{acosh}, \code{atanh}), and an LGPL licence that kept it out of the
+libm of the systems. Its direct descendant is Metalibm (de Dinechin,
+Kupriianova, Lauter): generating the code and its proof rather than writing
+them.
+
+\subsection{CORE-MATH, correct rounding made adoptable}
+
+CORE-MATH~\cite{CoreMath:2022} started in 2021 at INRIA (Caramba team,
+Nancy), by Paul Zimmermann, also behind MPFR, with Alexei Sibidanov, Tom
+Hubrecht, S\'el\`ene Corbineau and others. It draws the lessons of the
+three libraries above, and its design is as much a strategy of adoption as
+a technique.
+\begin{itemize}
+\item[$\bullet$] \textbf{The stated goal is correct rounding at least as
+  fast as the current libms.} It answers the reason mathlib was removed
+  from the glibc: if correct rounding costs nothing, the argument from
+  latency falls.
+\item[$\bullet$] \textbf{The licence is MIT}, deliberately permissive, so
+  that the code can be taken up by the glibc, the libm of LLVM or musl. It
+  answers the reason CRlibm was not adopted, and it works: routines of
+  CORE-MATH have been integrated upstream. It is also what lets GAOL v5
+  copy the sources it needs into \file{gaol/core\_math\_*.c}.
+\item[$\bullet$] \textbf{The coverage is wide}: the functions of C23, in
+  binary32, binary64 and binary128, the recent functions included.
+\item[$\bullet$] \textbf{The validation is graded}: in binary32 it is
+  exhaustive, the $2^{32}$ arguments being enumerated and compared with
+  MPFR; in binary64 and beyond, a proved fast phase and an accurate phase,
+  with a search for the hard cases.
+\item[$\bullet$] \textbf{The four rounding directions are honoured}, the
+  one in effect included. This is what GAOL v5 rests on: correctly rounded
+  in the upward rounding GAOL computes in, CORE-MATH gives the tightest
+  bounds without switching the rounding direction, and its \code{log} is
+  2.2 times as fast as that of mathlib moved outward
+  (\pxref{sec:comparison}).
+\end{itemize}
+A proposal to add \code{cr\_*} functions to the C standard comes from the
+same team, so that correct rounding can be asked for by the program rather
+than imposed on everyone. Beside it, and of an orthogonal design, is RLIBM
+(Rutgers, Jay Lim and Santosh Nagarakatte, about 2019--2022): instead of
+approximating the real function and then rounding, it looks by linear
+programming for a polynomial that directly yields the correct rounding for
+every input. Elegant, but practicable mainly for the short formats
+(binary32, bfloat16, posits).
+
+\subsection{What separates them}
+
+Table~\ref{tab:math-libraries} sets the four libraries side by side. The
+line of the story is plain: libm established that a mathematical library
+had to be portable and fast; mathlib showed that correct rounding was
+reachable on average, and was rejected on its worst case; CRlibm showed
+that it could be proved and bounded, and was not adopted for want of a
+licence, of coverage and of maintenance; CORE-MATH takes all of it up and
+treats industrial adoption, that is, performance, MIT licence, C23 coverage
+and standardisation, as a design constraint of the same rank as accuracy.
+
+\begin{table}[htbp]
+  \centering\footnotesize\renewcommand{\arraystretch}{1.15}
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{L{1.6cm}L{2.8cm}L{2.5cm}L{2.9cm}L{2.9cm}}
+    \hline
+    & libm (fdlibm, glibc) & mathlib (IBM) & CRlibm & CORE-MATH\\
+    \hline\hline
+    Time & 1980s, 1993-- & about 1997--2001 & 2000--2011 & 2021--\\
+    \hline
+    Where from & Berkeley, Sun & IBM Haifa & ENS de Lyon, INRIA
+      & INRIA, CERN\\
+    \hline
+    Goal & speed, below 1 ulp & correct rounding in practice
+      & correct rounding proved & correct rounding and speed\\
+    \hline
+    Method & one phase & unbounded onion peeling
+      & two phases, the second bounded by the hard cases
+      & proved phases, exhaustive in binary32\\
+    \hline
+    Evidence & tests & tests & Gappa, published proofs
+      & proofs and exhaustive checks\\
+    \hline
+    Worst case & bounded & unbounded & bounded & bounded\\
+    \hline
+    Rounding & to nearest & to nearest & the four, explicit
+      & the four, the one in effect\\
+    \hline
+    Formats & all & binary64 & binary64 & binary32, 64, 128\\
+    \hline
+    Licence & permissive & LGPL & LGPL & MIT\\
+    \hline
+    State & alive & frozen & abandoned & active, being adopted\\
+    \hline
+  \end{tabular}
+  \caption{The four mathematical libraries GAOL has been built with}
+  \label{tab:math-libraries}
+\end{table}
+
+\subsection{What it means for the bounds of GAOL}
+
+The hierarchy is read directly in the tightness of the bounds, which
+Chapter~\ref{chap:accuracy} states function by function.
+\begin{itemize}
+\item[$\bullet$] \textbf{The mathematical library of the system} gives
+  bounds that are not certified: the value rounded to nearest moved outward
+  by $2\cdot2^{-52}$ relatively and by the smallest normal double, several
+  doubles beyond the tightest one.
+\item[$\bullet$] \textbf{mathlib} is correctly rounded to nearest, hence
+  one double outward: the bounds are accurate within one double.
+\item[$\bullet$] \textbf{CRlibm and CORE-MATH} are correctly rounded in the
+  direction wanted, hence give the tightest bound of the value at the
+  bound, with nothing to add.
+\end{itemize}
+\noindent This is also why GAOL v5 takes every one of its elementary
+functions from CORE-MATH, the hyperbolic ones first (neither mathlib nor
+CRlibm has them all, and the libm of the system is not accurate enough
+everywhere for its values moved outward to be bounds), and on every
+architecture and with every compiler, \file{gaol/math/gaol\_u128.h} giving
+the accurate phases the 128-bit integer where the compiler has none. The
+bounds are the same on every architecture and with every compiler, and
+there is no mathematical library to install, to find or to link along with
+GAOL: CORE-MATH is compiled into it.\newinvfive
+
+\paragraph{Further reading.} The onion peeling strategy is in A. Ziv,
+\emph{Fast evaluation of elementary mathematical functions with correctly
+rounded last bit}, ACM TOMS 17(3), 1991. The table maker's dilemma, the
+hard cases and the two-phase evaluation are in J.-M. Muller,
+\emph{Elementary Functions: Algorithms and Implementation}, and in the
+\emph{Handbook of Floating-Point Arithmetic}; the floating-point arithmetic
+itself is presented by Goldberg~\cite{Goldberg:01} and in the
+standard~\cite{IEEE754:90}. The documentation distributed with the sources
+of CRlibm holds the proofs of its error bounds. CORE-MATH is presented
+in~\cite{CoreMath:2022} and at \url{https://core-math.gitlabpages.inria.fr/};
+the file \file{3rd/README.md} of the sources says what GAOL v5 takes from
+it. The NEWS of the glibc 2.28 records the removal of the multiprecision
+slow paths inherited from mathlib.
+
+\section{The accuracy modes}\label{sec:accuracy-modes}
+%%-----------------------------
+\cindex{accuracy!modes}\cindex{tightest}\cindex{accurate}\cindex{valid}%
+\cindex{tightness}%
+
+The containment principle asks for the hull of the exact result, which the
+basic operations reach but which the elementary functions, computed by a
+library, may not. IEEE 1788-2015 therefore defines three accuracy modes
+(12.10.1), for an operation $f$, its exact value $f^*$ and an input box
+$x$, and requires an implementation to document the tightness of each of
+its interval operations (12.10.3).
+
+\begin{Def}[Tightest]\label{def:tightest}
+$f$ is \dfn{tightest} when $f(x)$ is the hull, in doubles, of $f^*(x)$:
+each bound is the nearest double on its side of the exact bound.
+\end{Def}
+
+\begin{Def}[Accurate]\label{def:accurate}
+$f$ is \dfn{accurate} when $f(x)$ encloses $f^*(x)$ and is within
+\begin{equation*}
+  \mathrm{nextOut}\bigl(f_{\mathrm{tightest}}(\mathrm{nextOut}(x))\bigr),
+\end{equation*}
+$\mathrm{nextOut}$ moving each bound one double outward: roughly, $f(x)$
+is no wider than the tightest result for an input one double wider, plus
+one double on each side.
+\end{Def}
+
+\begin{Def}[Valid]\label{def:valid}
+$f$ is \dfn{valid} when $f(x)$ encloses $f^*(x)$.
+\end{Def}
+
+The standard requires the basic operations (\ieee{add}, \ieee{sub},
+\ieee{mul}, \ieee{div}, \ieee{recip}, \ieee{sqr}, \ieee{sqrt}, \ieee{fma}),
+the integer functions and \ieee{abs}, \ieee{min} and \ieee{max} to be
+tightest; the other elementary functions, the reverse functions and the
+recommended functions to be valid, and recommends them to be accurate
+(12.10.2). In this manual, ``within $k$ doubles'' means that each bound is
+at most $k$ doubles beyond the tightest one.
+
+\medskip
+GAOL bounds its elementary functions with CORE-MATH, which is correctly
+rounded in the rounding direction in effect. Computing in the upward
+rounding it keeps, GAOL takes the value at a bound as the upper bound, with
+nothing to add, and the double below it as the lower one. The upper bound is
+the tightest one; so is the lower bound, unless the exact value is a double
+(Remark~\ref{rem:exact-value}), in which case the operations return that
+value exactly, as for $\log(1)=0$ and $\sin(0)=0$. Where an algorithm
+evaluates the function at the bounds of the interval, the bounds of the
+interval are therefore the tightest ones. Before GAOL v5, the value was
+correctly rounded to nearest and moved one double outward, which is at
+most one double beyond the tightest bound, hence accurate and not
+tightest.\newinvfive
+
+\begin{Rem}\label{rem:exact-value}
+The double below the correctly rounded upper value is the tightest lower
+bound only when the exact value is no double. When it is, as for
+$\log(1)=0$, the value correctly rounded upward is the exact value itself,
+and an operation that moved it one double down would be accurate, not
+tightest. The operations of GAOL return the exact value where it happens,
+and Chapter~\ref{chap:accuracy} says where.
+\end{Rem}
+
+\medskip
+Chapter~\ref{chap:accuracy} documents the tightness of every operation of
+\code{interval}, from the algorithm of each operation, as the standard
+requires; the tests of \file{tests} check each statement on random and
+special arguments (Chapter~\ref{chap:tests}), and the page \file{doc/accuracy.md}
+gives, for each, the algorithm and the largest distance the tests
+found.\newinvfive{} The statements hold for GAOL as the three builds make
+it, for the SSE2, the NEON and the FPU intervals alike, and for the AVX-512
+path, whose bounds are those of the SSE2 intervals bit for bit, whatever the rounding
+direction the calling code left, on every architecture and with every
+compiler alike, under the conditions that chapter states: the code
+including the headers of GAOL compiled with the flags of interval
+arithmetic (\pxref{sec:compiling}), and the floating-point exceptions
+masked as a program starts (\pxref{sec:fp-exceptions}). The intervals of
+floats are not covered.
+
+\section{Discussion}\label{sec:concepts-discussion}
+
+This chapter has set the vocabulary of the manual. A floating-point
+interval is a set of real numbers between two doubles, the empty set and
+the unbounded intervals included; the containment property requires every
+operation to return an interval that encloses the exact result, and
+outward rounding is what enforces it on doubles. The property
+$\roundDn{-r}=-\roundUp{r}$ lets GAOL compute both bounds in the upward
+rounding, with the lower bound stored negated: a choice that spares the
+switches of the rounding direction, at the price of leaving the direction
+upward for the rest of the program, which Chapter~\ref{chap:rounding}
+examines. The dependency problem is the limit of the method: an enclosure
+is as tight as the expression allows, not as the function does.
+
+\medskip
+Two choices of GAOL v5 follow from the notions of this chapter. The
+standard IEEE 1788-2015 fixes the special cases, the empty set, the
+infinite bounds, the domains and the literals, and GAOL v5 follows it in
+the operations it provides, under two sets of names; it provides bare
+intervals only, without the decorations of the standard. The elementary
+functions are bounded with CORE-MATH, whose correct rounding in the
+direction in effect gives the tightest bounds without a switch of the
+rounding direction, where the libm of the system gave uncertified bounds
+and mathlib bounds one double too wide; the three accuracy modes of the
+standard, tightest, accurate and valid, are the words in which
+Chapter~\ref{chap:accuracy} states what each operation achieves.
+
+\medskip
+The next chapter leaves the concepts for the software: how GAOL v5 is
+obtained, configured, built and installed on each platform
+(Chapter~\ref{chap:installation}).

@@ -188,17 +188,22 @@ gaol::interval c = gaol_ieee1788::pown(x, 2); // [1, 16]
   elementary functions of GAOL and Boost.Interval, and their
   [performance](doc/compare/performance.md), with the scripts to run the
   comparison again.
-- The manual of GAOL v5: `manual/v5/gaol.pdf`, with its LaTeX sources in
-  `manual/v5/`. It follows the manual of GAOL 4 by Frédéric Goualard, and
-  describes GAOL v5: its installation, each operation with examples, the names
-  of IEEE 1788-2015, the accuracy of the operations, and what a program written
-  for GAOL 4 has to change.
-- The manual of GAOL 4, by Frédéric Goualard: `manual/v4/gaol.pdf`, with its
-  LaTeX sources in `manual/v4/`, kept as it was. It still describes the
+- The manual of GAOL v5: `manual/Manual_GAOLv5.pdf`, with its LaTeX sources in
+  `manual/v5/`: the layout in `manual_gaolv5.tex`, one file per chapter in
+  `manual/v5/chapters/`. It keeps the text of the manual of GAOL 4 by
+  Frédéric Goualard where GAOL v5 behaves as GAOL 4, takes up the content of
+  the pages of `doc/`, and describes GAOL v5: the notions it relies on, its
+  installation and use, each operation with examples, the names of IEEE
+  1788-2015, the accuracy of the operations, how the intervals are computed,
+  the tests, and what a program written for GAOL 4 has to change.
+- The manual of GAOL 4, by Frédéric Goualard: `manual/v4/Manual_GAOLv4.pdf`,
+  with its LaTeX sources in `manual/v4/`, kept as it was. It still describes the
   mathematical libraries and the options of GAOL 4.
-- `make -C manual pdf` after `./configure`, or `meson compile -C <build> pdf`
-  after `meson setup <build> -Dwith-doc=true`, builds both manuals again
-  (`manual/build-pdf.sh`).
+- `make -C manual pdf` after `./configure`, `cmake --build <build> --target pdf`
+  after `cmake -S . -B <build> -DWITH_DOC=ON`, or `meson compile -C <build> pdf`
+  after `meson setup <build> -Dwith-doc=true`, builds the manual of GAOL v5
+  again (`manual/build-pdf.sh`) and writes it in `manual/Manual_GAOLv5.pdf`. The
+  manual of GAOL 4 is built by none of them.
 
 ## Licences
 

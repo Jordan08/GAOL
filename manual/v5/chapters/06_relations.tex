@@ -1,0 +1,889 @@
+%% !TEX root = ../manual_gaolv5.tex
+% Chapter 6.
+%% Chapter 6: Interval relations. Sources: gaol.tex of f5bf180 lines 2803-3492
+%% (the chapter "Interval relations" of the current manual) and doc/using.md
+%% lines 631-694 (relations, sorting and containers).
+\chapter{Interval relations}\label{chap:relations}\label{sec:interval-relations}
+
+Comparing two intervals is not comparing two numbers. An interval stands for
+a set of reals, and a relation between two such sets can be read in two ways:
+as a relation between the sets themselves, the equality or the inclusion, or
+as a relation that every point of the first set bears to every point of the
+second. A program of interval analysis needs both readings. It asks whether a
+box is included in another one, whether the enclosure of a function lies
+certainly below a bound before it prunes a branch, or whether an interval
+contains zero before it divides by it. GAOL v5 provides each reading as a
+named method of the class \code{interval}, and gives the relation symbols of
+C++ one fixed meaning.
+
+\medskip
+The relations of GAOL v5 follow IEEE 1788-2015 \cite{IEEE1788:2015}, which
+defines the comparisons of intervals, their value for the empty set and for
+the infinite bounds, and a primitive, \ieee{overlap}, from which the
+comparisons can be derived. GAOL~4 had a larger family of relations and a
+build option that chose the meaning of the symbols. GAOL v5 keeps two groups
+of relations and no option.
+
+\medskip
+In this chapter, we first define the two groups, the set relations and the
+certainly relations, and we name the relations of the standard
+(Section~\ref{sec:relations-groups}). Sections~\ref{sec:relations-set}
+and~\ref{sec:relations-certainly} are the reference of the set relations and
+of the certainly relations. Section~\ref{sec:relations-order} covers the
+order of IEEE 1788-2015 and the overlap state.
+Section~\ref{sec:relational-symbols} gives the meaning of the relation
+symbols, Section~\ref{sec:lexicographic-less} explains why they are no
+ordering for the containers of the standard library and which comparator to
+give them, and Section~\ref{sec:relations-specific} lists the relations that
+test one interval: whether it contains zero, is a point, is empty or is
+bounded.
+
+\section{Two groups of relations}\label{sec:relations-groups}
+\cindex{relation!set}\cindex{relation!certainly}%
+
+Let $I$ and $J$ be two intervals. The relations of GAOL v5 fall into two
+groups, according to what they compare.
+
+\begin{Def}\label{def:relations-set}
+A \dfn{set relation} compares the intervals $I$ and $J$ as sets of reals.
+The equality, for instance, is
+\begin{equation*}
+I=J \Leftrightarrow(\forall x\in I, \exists y\in J\colon x=y)\wedge
+                   (\forall y\in J, \exists x\in I\colon x=y),
+\end{equation*}
+so that two intervals are equal when they have the same bounds.
+\end{Def}
+
+\begin{Def}\label{def:relations-certainly}
+A \dfn{certainly relation} holds between $I$ and $J$ when the relation on
+the reals holds for every pair of values taken in the intervals. For
+instance,
+\begin{equation*}
+I\leq J \Leftrightarrow(\forall x\in I, \forall y\in J\colon x\leq y),
+\end{equation*}
+so that $I$ is less than or equal to $J$ when its right bound is at most the
+left bound of $J$.
+\end{Def}
+
+\begin{Rem}\label{rem:relations-possibly}
+GAOL~4 had a third group, the \dfn{possibly relations}, true when at least
+one pair of values satisfies the relation on the reals, and a certain
+equality, \code{certainly\_eq()} and \code{certainly\_neq()}. They are gone
+from GAOL v5, and so are the operators \code{==} and \code{!=} on
+intervals.\newinvfive{} \code{certainly\_neq()} was the negation of
+\code{certainly\_eq()}, which is ``possibly not equal'', so that \itv{3}{4}
+was certainly not equal to \itv{3}{4}. IEEE 1788-2015 has neither. Its
+equality is \ieee{equal}, \code{set\_eq()}; that no value of $I$ equals a
+value of $J$ is \ieee{disjoint}, \code{set\_disjoint()}; and ``possibly
+equal'' is written \code{!set\_disjoint()}.
+\end{Rem}
+\cindex{relation!possibly (removed)}%
+
+\medskip
+The relation symbols $<$, $\leq$, $>$ and $\geq$ are the certainly relations
+in every build (\pxref{sec:relational-symbols}).
+
+\medskip
+The relations that IEEE 1788-2015 defines (Tables~10.3 and 10.4) follow its
+definitions, for the empty set and for the infinite bounds
+too:\newinvfive{} \ieee{equal}, \ieee{subset}, \ieee{interior},
+\ieee{disjoint}, \ieee{precedes}, \ieee{strictPrecedes}, \ieee{less} and
+\ieee{strictLess}. Table~\ref{tab:relations-ieee} gives the method of GAOL
+v5 that each one is, with the predicates of the standard on one interval
+that this chapter covers; each entry of the reference says which name it
+bears. The namespace \code{gaol\_ieee1788} gives the methods the names of
+the standard (Chapter~\ref{chap:ieee1788}).
+\cindex{IEEE 1788-2015!relations}%
+
+\begin{table}[htbp]
+  \centering\small\renewcommand{\arraystretch}{1.1}
+  \begin{tabular}{lL{7.2cm}l}
+    \hline
+    \multicolumn{1}{c}{IEEE 1788-2015} & \multicolumn{1}{c}{GAOL v5} &
+    \multicolumn{1}{c}{Symbol}\\
+    \hline\hline
+    \ieee{equal}$(I, J)$ & \code{I.set\_eq(J)} & \\
+    \ieee{subset}$(I, J)$ & \code{I.set\_leq(J)}, \code{J.set\_contains(I)},
+      \code{J.set\_geq(I)} & \\
+    \ieee{interior}$(I, J)$ & \code{I.set\_le(J)},
+      \code{J.set\_strictly\_contains(I)}, \code{J.set\_ge(I)} & \\
+    \ieee{disjoint}$(I, J)$ & \code{I.set\_disjoint(J)} & \\
+    \ieee{precedes}$(I, J)$ & \code{I.certainly\_leq(J)} & \code{I <= J}\\
+    \ieee{strictPrecedes}$(I, J)$ & \code{I.certainly\_le(J)} & \code{I < J}\\
+    \ieee{less}$(I, J)$ & \code{I.less(J)} & \\
+    \ieee{strictLess}$(I, J)$ & \code{I.strictly\_less(J)} & \\
+    \ieee{overlap}$(I, J)$ & \code{I.overlap(J)} & \\
+    \hline
+    \ieee{isMember}$(d, I)$ & \code{I.set\_contains(d)}, for a finite
+      \code{double} \var{d} & \\
+    \ieee{isSingleton}$(I)$ & \code{I.is\_a\_double()} & \\
+    \ieee{isEmpty}$(I)$ & \code{I.is\_empty()} & \\
+    \ieee{isEntire}$(I)$ & \code{I.is\_entire()} & \\
+    \ieee{isCommonInterval}$(I)$ & \code{I.is\_common\_interval()} & \\
+    \hline
+  \end{tabular}
+  \caption[The relations of IEEE 1788-2015 and the methods of GAOL v5]{The relations of IEEE 1788-2015 and the methods of GAOL v5 that
+    compute them, for two intervals $I$ and $J$ and a double $d$}
+  \label{tab:relations-ieee}
+\end{table}
+
+\section{Set relations}\label{sec:relations-set}
+
+The set relations compare the intervals as sets of reals: the inclusion, the
+inclusion in the interior, the disjointness and the equality. They are
+\ieee{subset}, \ieee{interior}, \ieee{disjoint} and \ieee{equal} of
+IEEE 1788-2015. Each inclusion has two methods: one where \code{self}, the
+interval on which the method is called, is the larger set,
+\code{set\_contains()} and \code{set\_strictly\_contains()}, and one where it
+is the smaller, \code{set\_leq()} and \code{set\_le()}. \code{set\_geq()} and
+\code{set\_ge()} are \code{set\_contains()} and
+\code{set\_strictly\_contains()} under the names of an order.
+
+\defmethodx{interval}{bool}{set\_contains}{(const interval\& \var{I}) const}
+\begin{defmethod}{interval}{bool}{set\_contains}{(double \var{d}) const}
+  \begin{operation}
+    \op{$I\subseteq\code{self}$}
+    \op{$d\in\code{self}$}
+  \end{operation}
+  Returns \code{true} if \var{I} (resp.\ $\{\var{d}\}$) is included in
+  \code{self}: \ieee{subset}(\var{I}, \code{self}) of IEEE 1788-2015, and
+  \ieee{isMember}(\var{d}, \code{self}) for a finite \var{d}. \var{d} shall
+  not be a NaN. An integer of any integer type but \code{bool} is compared as
+  the integer it is, here and in \code{set\_strictly\_contains()}
+  (\pxref{sec:integers}): \itv{2^{53}}{2^{53}} does not contain $2^{53}+1$,
+  which its conversion to a double made $2^{53}$ in the rounding to nearest,
+  and \itv{2^{53}}{2^{53}+2} contains it strictly.\newinvfive
+
+\begin{example}
+interval x(-12,34), y(-12,5);
+
+cout << boolalpha << x.set_contains(y) << ' '
+     << x.set_contains(interval::emptyset()) << ' '
+     << y.set_contains(x) << ' '
+     << interval::emptyset().set_contains(x) << ' '
+     << interval::emptyset().set_contains(interval::emptyset())
+     << endl;
+@outputs^true true false false true~
+\end{example}
+\end{defmethod}
+
+\defmethodx{interval}{bool}{set\_strictly\_contains}{(const interval\& \var{I}) const}
+\begin{defmethod}{interval}{bool}{set\_strictly\_contains}{(double \var{d}) const}
+  \begin{operation}
+    \op{$I$ interior to \code{self}}
+    \op{$d$ in the interior of \code{self}}
+  \end{operation}
+  Returns \code{true} if \var{I} is interior to \code{self}:
+  \ieee{interior}(\var{I}, \code{self}) of IEEE 1788-2015. Each bound of
+  \code{self} is then beyond that of \var{I}, an infinite bound being beyond
+  the same infinite bound, and the empty set is interior to any interval,
+  itself included.\newinvfive{} The second form returns \code{true} if
+  \var{d} is strictly between the bounds of \code{self}.
+
+\begin{example}
+interval x(-10,12), y(-10, 11), z, t, u(10.5);
+
+cout << boolalpha
+     << x.set_strictly_contains(y) << ' '
+     << z.set_strictly_contains(t) << ' '
+     << x.set_strictly_contains(u) << ' '
+     << interval::emptyset().set_strictly_contains(
+                                 interval::emptyset()) << ' '
+     << u.set_strictly_contains(interval::emptyset())
+     << endl;
+@outputs^false true true true true~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{set\_disjoint}{(const interval\& \var{I}) const}
+  \begin{operation}
+    \op{$\code{self}\cap I=\emptyset$}
+  \end{operation}
+  Returns \code{true} if the intersection of \code{self} and \var{I} is
+  empty: \ieee{disjoint} of IEEE 1788-2015.
+
+\begin{example}
+interval a(2,4), b(6,8);
+cout << boolalpha << a.set_disjoint(b) << ' '
+     << interval::emptyset().set_disjoint(interval::emptyset());
+@outputs^true true~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{set\_eq }{(const interval\& \var{I}) const}
+  \begin{operation}
+    \op{$\forall x\in \code{self} \exists y\in I\colon x=y \wedge
+         \forall y\in I, \exists x\in \code{self}\colon y=x$}
+  \end{operation}
+  Returns \code{true} if the intervals \code{self} and \var{I} are equal
+  when considered as sets of reals: \ieee{equal} of IEEE 1788-2015.
+\begin{example}
+cout << boolalpha << interval(4,8).set_eq(interval(4,8)) << ' '
+     << interval::emptyset().set_eq(interval::emptyset()) << endl;
+@outputs^true true~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{set\_neq}{(const interval\& \var{I}) const}
+    \begin{operation}
+      \op{$\neg(\code{self}=I)$}
+    \end{operation}
+    Returns \code{true} if \code{self} and \var{I} are not equal when
+    considered as sets of reals.
+    \begin{example}
+cout << boolalpha << interval::universe().set_neq(interval::emptyset());
+@outputs^true~
+    \end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{set\_le}{(const interval\& \var{I}) const}
+  \begin{operation}
+    \op{\code{self} interior to $I$}
+  \end{operation}
+  Returns \code{true} if \code{self} is interior to \var{I}:
+  \code{\var{I}.set\_strictly\_contains(self)}, \ieee{interior}(\code{self},
+  \var{I}) of IEEE 1788-2015.\newinvfive
+\begin{example}
+interval a(2,GAOL_INFINITY), b(1,GAOL_INFINITY);
+cout << boolalpha << interval(-4.5,3).set_le(interval(-10,10)) << ' '
+     << interval::emptyset().set_le(interval(5,6)) << ' '
+     << interval::emptyset().set_le(interval::emptyset()) << ' '
+     << interval::universe().set_le(interval::universe()) << ' '
+     << a.set_le(b);
+@outputs^true true true true true~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{set\_leq}{(const interval\& \var{I}) const}
+  \begin{operation}
+    \op{$\code{self}\subseteq I$}
+  \end{operation}
+  Returns \code{true} if the real set defined by \code{self} is included in
+  \var{I}: \ieee{subset}(\code{self}, \var{I}) of IEEE 1788-2015.
+\begin{example}
+cout << boolalpha << interval(4.5,6).set_leq(interval(4.5,6)) << ' '
+     << interval(3.5,9).set_leq(interval(2,6)) << ' '
+     << interval::emptyset().set_leq(interval::emptyset());
+@outputs^true false true~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{set\_ge}{(const interval\& \var{I}) const}
+  \begin{operation}
+    \op{$I$ interior to \code{self}}
+  \end{operation}
+  Returns \code{true} if \var{I} is interior to \code{self}:
+  \code{set\_strictly\_contains(\var{I})}.
+\begin{example}
+cout << boolalpha << interval(-10,10).set_ge(interval(-4.5,3)) << ' '
+     << interval(1,2).set_ge(interval(1,2));
+@outputs^true false~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{set\_geq}{(const interval\& \var{I}) const}
+  \begin{operation}
+    \op{$I\subseteq\code{self}$}
+  \end{operation}
+  Returns \code{true} if the real set defined by \code{self} contains
+  \var{I}: \code{set\_contains(\var{I})}.
+\end{defmethod}
+
+\section{Certainly relations}\label{sec:relations-certainly}
+
+A certainly relation holds when every pair of points, one in each interval,
+satisfies the relation on the reals. The empty set has no point to
+contradict it: the four relations of this section are true when either
+interval is empty, as \ieee{precedes} and \ieee{strictPrecedes} of
+IEEE 1788-2015 are.\newinvfive{} The four tests of sign that follow them,
+\code{certainly\_positive()} and its companions, are the certainly relations
+with zero, written as the inclusion of \code{self} in a half line; they are
+true of the empty set too.
+
+\begin{defmethod}{interval}{bool}{certainly\_le}{(const interval\& \var{I}) const}
+  \begin{operation}
+    \op{$\forall x\in \code{self}, \forall y \in \var{I}\colon x<y$}
+  \end{operation}
+  Returns \code{true} if \code{self} is certainly strictly less than
+  \var{I}: \ieee{strictPrecedes} of IEEE 1788-2015, true when either
+  interval is empty.\newinvfive
+  \begin{example}
+cout << boolalpha << interval(4,5).certainly_le(interval(6,9)) << ' '
+     << interval(4,5).certainly_le(interval(5,9)) << ' '
+     << interval::emptyset().certainly_le(interval(4,6)) << ' '
+     << interval(4,6).certainly_le(interval::emptyset());
+@outputs^true false true true~
+  \end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{certainly\_leq}{(const interval\& \var{I}) const}
+  \begin{operation}
+    \op{$\forall x\in \code{self}, \forall y \in \var{I}\colon x\leq y$}
+  \end{operation}
+  Returns \code{true} if \code{self} is certainly less than or equal to
+  \var{I}: \ieee{precedes} of IEEE 1788-2015, true when either interval is
+  empty.\newinvfive
+  \begin{example}
+cout << boolalpha << interval(4,5).certainly_leq(interval(6,9)) << ' '
+     << interval(4,5).certainly_leq(interval(5,9)) << ' '
+     << interval(5,9).certainly_leq(interval(4,5)) << ' '
+     << interval(4,8).certainly_leq(interval(5,9)) << ' '
+     << interval::emptyset().certainly_leq(interval(4,6)) << ' '
+     << interval(4,6).certainly_leq(interval::emptyset());
+@outputs^true true false false true true~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{certainly\_ge}{(const interval\& \var{I}) const}
+  \begin{operation}
+    \op{$\forall x\in \code{self}, \forall y \in \var{I}\colon x>y$}
+  \end{operation}
+  Returns \code{true} if \code{self} is certainly strictly greater than
+  \var{I}, or if either interval is empty.
+  \begin{example}
+cout << boolalpha << interval(8,10).certainly_ge(interval(4,8)) << ' '
+     << interval(8,10).certainly_ge(interval(4,7)) << ' '
+     << interval::emptyset().certainly_ge(interval::emptyset());
+@outputs^false true true~
+  \end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{certainly\_geq}{(const interval\& \var{I}) const}
+  \begin{operation}
+    \op{$\forall x\in \code{self}, \forall y \in \var{I}\colon x\geq y$}
+  \end{operation}
+  Returns \code{true} if \code{self} is certainly greater than or equal to
+  \var{I}, or if either interval is empty.
+  \begin{example}
+cout << boolalpha << interval(8,10).certainly_geq(interval(4,8)) << ' '
+     << interval::emptyset().certainly_geq(interval::emptyset());
+@outputs^true true~
+  \end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{certainly\_positive}{(void) const}
+  \begin{operation}
+    \op{$\code{self}\subseteq\itv{0}{+\infty}$}
+  \end{operation}
+  Returns \code{true} if the left bound of \code{self} is greater than or
+  equal to zero, or if \code{self} is empty.
+\begin{example}
+cout << boolalpha << interval::emptyset().certainly_positive() << ' '
+     << interval(4,5).certainly_positive() << ' '
+     << interval(-0.0,6).certainly_positive() << ' '
+     << interval(-6,0).certainly_positive();
+@outputs^true true true false~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{certainly\_strictly\_positive}{(void) const}
+  \begin{operation}
+    \op{$\code{self}\subseteq\left]0,+\infty\right]$}
+  \end{operation}
+  Returns \code{true} if the left bound of \code{self} is strictly greater
+  than zero, or if \code{self} is empty.
+\begin{example}
+cout << boolalpha << interval::emptyset().certainly_strictly_positive() << ' '
+     << interval(4,5).certainly_strictly_positive() << ' '
+     << interval(-0.0,6).certainly_strictly_positive() << ' '
+     << interval(-6,0).certainly_strictly_positive();
+@outputs^true true false false~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{certainly\_negative}{(void) const}
+  \begin{operation}
+    \op{$\code{self}\subseteq\itv{-\infty}{0}$}
+  \end{operation}
+  Returns \code{true} if the right bound of \code{self} is less than or
+  equal to zero, or if \code{self} is empty.
+\begin{example}
+cout << boolalpha << interval::emptyset().certainly_negative() << ' '
+     << interval(4,5).certainly_negative() << ' '
+     << interval(-6,0).certainly_negative() << ' '
+     << interval(-6,-5).certainly_negative();
+@outputs^true false true true~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{certainly\_strictly\_negative}{(void) const}
+  \begin{operation}
+    \op{$\code{self}\subseteq\left[-\infty,0\right[$}
+  \end{operation}
+  Returns \code{true} if the right bound of \code{self} is strictly less
+  than zero, or if \code{self} is empty.
+\begin{example}
+cout << boolalpha << interval::emptyset().certainly_strictly_negative() << ' '
+     << interval(4,5).certainly_strictly_negative() << ' '
+     << interval(-6,0).certainly_strictly_negative() << ' '
+     << interval(-6,-5).certainly_strictly_negative();
+@outputs^true false false true~
+\end{example}
+\end{defmethod}
+
+\section{The order of IEEE 1788-2015 and the overlap state}
+\label{sec:relations-order}
+\cindex{IEEE 1788-2015!order}\cindex{overlap}\cindex{Allen's relations}%
+
+Besides the set relations and the certainly relations, IEEE 1788-2015
+defines an order on the intervals, \ieee{less} and \ieee{strictLess}
+(Table~10.3), which compares the bounds on the same side: $I$ is less than
+$J$ when the left bound of $I$ is at most the left bound of $J$ and the right
+bound of $I$ is at most the right bound of $J$. The standard also defines a
+primitive, \ieee{overlap} (10.6.4), which tells in which of sixteen states
+two intervals are, and from which the comparisons can be derived. Three of
+the states are for the empty set. The thirteen others are the relations of
+Allen between two nonempty intervals $a = [\leftBound{a}, \rightBound{a}]$
+and $b = [\leftBound{b}, \rightBound{b}]$, told by their bounds, an infinite
+bound being equal to the same infinite bound and $-0$ to $+0$
+(Table~\ref{tab:relations-overlap}). Of the three methods of this section,
+      \code{less()} and \code{strictly\_less()} compare the bounds on the same side,
+      and \code{overlap()} tells the state.
+
+\begin{table}[htbp]
+  \centering\renewcommand{\arraystretch}{1.1}
+  \begin{tabular}{ll@{\qquad}ll}
+    \hline
+    \multicolumn{1}{c}{State} & \multicolumn{1}{c}{Bounds} &
+    \multicolumn{1}{c}{State} & \multicolumn{1}{c}{Bounds}\\
+    \hline\hline
+    \code{before} & $\rightBound{a}<\leftBound{b}$ &
+    \code{after} & $\rightBound{b}<\leftBound{a}$\\
+    \code{meets} &
+      $\leftBound{a}<\rightBound{a}=\leftBound{b}<\rightBound{b}$ &
+    \code{metBy} &
+      $\leftBound{b}<\rightBound{b}=\leftBound{a}<\rightBound{a}$\\
+    \code{overlaps} &
+      $\leftBound{a}<\leftBound{b}<\rightBound{a}<\rightBound{b}$ &
+    \code{overlappedBy} &
+      $\leftBound{b}<\leftBound{a}<\rightBound{b}<\rightBound{a}$\\
+    \code{starts} &
+      $\leftBound{a}=\leftBound{b},\ \rightBound{a}<\rightBound{b}$ &
+    \code{startedBy} &
+      $\leftBound{a}=\leftBound{b},\ \rightBound{b}<\rightBound{a}$\\
+    \code{finishes} &
+      $\leftBound{b}<\leftBound{a},\ \rightBound{a}=\rightBound{b}$ &
+    \code{finishedBy} &
+      $\leftBound{a}<\leftBound{b},\ \rightBound{a}=\rightBound{b}$\\
+    \code{containedBy} &
+      $\leftBound{b}<\leftBound{a},\ \rightBound{a}<\rightBound{b}$ &
+    \code{contains} &
+      $\leftBound{a}<\leftBound{b},\ \rightBound{b}<\rightBound{a}$\\
+    \code{equals} &
+      \multicolumn{3}{l}{$\leftBound{a}=\leftBound{b},\
+                          \rightBound{a}=\rightBound{b}$}\\
+    \hline
+  \end{tabular}
+  \caption[The 13 states of Allen returned by \code{overlap()}]{The 13 states of Allen for two nonempty intervals $a$ and $b$,
+    as \code{a.overlap(b)} returns them (Table~10.7 of IEEE 1788-2015); each
+    state of the left column is the inverse of the one on its right}
+  \label{tab:relations-overlap}
+\end{table}
+
+\begin{defmethod}{interval}{bool}{less}{(const interval\& \var{I}) const}
+  \begin{operation}
+    \op{$\leftBound{\code{self}}\leq\leftBound{I}\wedge
+         \rightBound{\code{self}}\leq\rightBound{I}$}
+  \end{operation}
+  Returns \code{true} if each bound of \code{self} is at most the bound of
+  \var{I} on the same side: \ieee{less} of IEEE 1788-2015 (Table~10.3). Two
+  empty sets are in the relation, and an empty set and a nonempty interval
+  are not (Table~10.4).\newinvfive
+\begin{example}
+interval e = interval::emptyset();
+cout << boolalpha << interval(1,2).less(interval(1,3)) << ' '
+     << interval(1,4).less(interval(2,3)) << ' '
+     << e.less(e) << ' ' << e.less(interval(1,2));
+@outputs^true false true false~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{strictly\_less}{(const interval\& \var{I}) const}
+  \begin{operation}
+    \op{$\leftBound{\code{self}}<\leftBound{I}\wedge
+         \rightBound{\code{self}}<\rightBound{I}$}
+  \end{operation}
+  Returns \code{true} if each bound of \code{self} is below the bound of
+  \var{I} on the same side, an infinite bound counting as below itself:
+  \ieee{strictLess} of IEEE 1788-2015. The empty sets are as for
+  \code{less()}.\newinvfive
+\begin{example}
+interval a(-GAOL_INFINITY,1), b(-GAOL_INFINITY,2);
+cout << boolalpha << interval(1,2).strictly_less(interval(1,3)) << ' '
+     << a.strictly_less(b) << ' '
+     << interval(0,1).strictly_less(interval(2,3));
+@outputs^false true true~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{overlapping\_state}{overlap}{(const interval\& \var{I}) const}
+  Returns the state of Table~10.7 of IEEE 1788-2015 that \code{self}, $a =
+  [\leftBound{a}, \rightBound{a}]$, and \var{I}, $b = [\leftBound{b},
+  \rightBound{b}]$, are in: \ieee{overlap} (10.6.4), a primitive from which
+  the comparisons can be derived.\newinvfive\ The result is one of the 16
+  values of the type \code{overlapping\_state} (in \code{gaol} and in
+  \code{gaol\_ieee1788}), which has the names of Table~10.7, in its order,
+  from \code{bothEmpty}, 0, to \code{after}, 15. The state number $s$ is the
+  bit $s$ of a 16-bit word counted from the left, \code{bothEmpty} being the
+  leftmost bit, as in the note of the standard, where \code{disjoint} is the
+  mask \code{0xF001}. A state is written to a stream by its name in the
+  table, as \code{meets}. \code{bothEmpty}, \code{firstEmpty} and
+  \code{secondEmpty} are for an empty $a$ and $b$, an empty $a$ alone and an
+  empty $b$ alone. The 13 other states are Allen's, for two nonempty
+  intervals, told by their bounds as Table~\ref{tab:relations-overlap} says,
+  an infinite bound being equal to the same infinite bound and $-0$ to $+0$.
+  A point interval on a bound of the other one is \code{starts},
+  \code{finishes}, \code{finishedBy} or \code{startedBy}, or \code{equals}
+  for the same point, never \code{meets} nor \code{metBy}, as the standard
+  asks. The function compares the bounds as the integers of their bits: it
+  raises no floating-point exception, even for the \code{NaN} bounds of an
+  empty interval, and the modes that flush the subnormal numbers to zero do
+  not change it.
+  \begin{example}
+interval a(1,3), b(2,4), c(1,2), e = interval::emptyset();
+cout << a.overlap(b) << ' ' << c.overlap(interval(2,3)) << ' '
+     << interval(2).overlap(c) << ' ' << e.overlap(c) << ' '
+     << static_cast<int>(c.overlap(a));
+@outputs^overlaps meets finishes firstEmpty 6~
+  \end{example}
+\end{defmethod}
+
+\section{Relational symbols}\label{sec:relational-symbols}
+\cindex{relation!symbols}%
+
+The relation symbols \code{<}, \code{<=}, \code{>} and \code{>=} are the
+certainly relations, whichever build configured GAOL. The option of GAOL~4
+that chose between the set, certainly and possibly relations is gone, and
+\cmd{configure} and meson refuse it (\pxref{sec:refused}).\newinvfive{}
+The operators \code{==} and \code{!=} are not defined on intervals: a program
+compares intervals with \code{set\_eq()}, \code{set\_disjoint()} or
+\code{less()}.
+
+\medskip
+An interval and a \code{double} \var{d} compare as the interval and
+\code{interval(\var{d})}, which is empty for an infinite or NaN \var{d}:
+\code{x < 0.0} is \code{x < interval(0.0)}, and there is still no \code{==}
+nor \code{!=}. These overloads are what the implicit conversion of a
+\code{double} to an interval gave before the constructor from one
+\code{double} became explicit (\pxref{sec:constructors}).\newinvfive
+
+\medskip
+An interval and an integer \var{n} of any integer type but \code{bool}
+compare as the interval and the integer it is, where it is no double
+(\pxref{sec:integers}). A double is below $n$ if and only if it is at most
+the largest double below $n$, so that
+\code{interval(9007199254740992.0) < 9007199254740993LL}, that is
+$\itv{2^{53}}{2^{53}} < 2^{53}+1$, is \code{true}, where the conversion of
+$2^{53}+1$ to the double $2^{53}$, in the rounding to nearest, made it
+\code{false}. An integer that is a double compares as that
+double.\newinvfive
+
+\deffunx{bool}{operator<}{(const interval\& \var{I}, double \var{d})}
+\deffunx{bool}{operator<}{(double \var{d}, const interval\& \var{I})}
+\begin{deffun}{bool}{operator<}{(const interval\& \var{I1}, const interval\& \var{I2})}
+  Returns \code{\var{I1}.certainly\_le(\var{I2})}: \ieee{strictPrecedes} of
+  IEEE 1788-2015.
+\end{deffun}
+
+\deffunx{bool}{operator<=}{(const interval\& \var{I}, double \var{d})}
+\deffunx{bool}{operator<=}{(double \var{d}, const interval\& \var{I})}
+\begin{deffun}{bool}{operator<=}{(const interval\& \var{I1}, const interval\& \var{I2})}
+  Returns \code{\var{I1}.certainly\_leq(\var{I2})}: \ieee{precedes} of
+  IEEE 1788-2015.
+\end{deffun}
+
+\deffunx{bool}{operator>}{(const interval\& \var{I}, double \var{d})}
+\deffunx{bool}{operator>}{(double \var{d}, const interval\& \var{I})}
+\begin{deffun}{bool}{operator>}{(const interval\& \var{I1}, const interval\& \var{I2})}
+  Returns \code{\var{I1}.certainly\_ge(\var{I2})}.
+\end{deffun}
+
+\deffunx{bool}{operator>=}{(const interval\& \var{I}, double \var{d})}
+\deffunx{bool}{operator>=}{(double \var{d}, const interval\& \var{I})}
+\begin{deffun}{bool}{operator>=}{(const interval\& \var{I1}, const interval\& \var{I2})}
+  Returns \code{\var{I1}.certainly\_geq(\var{I2})}.
+\begin{example}
+cout << boolalpha << (interval(1,2) < interval(3,4)) << ' '
+     << (interval(1,2) <= interval(2,4)) << ' '
+     << (interval(1,3) <= interval(2,4)) << ' '
+     << (interval(3,4) > interval(1,2));
+@outputs^true true false true~
+\end{example}
+\end{deffun}
+
+\section{Intervals in containers and algorithms}\label{sec:lexicographic-less}
+\cindex{lexicographic\_less@\code{lexicographic\_less}}%
+\cindex{sorting intervals}%
+\cindex{std::set@\code{std::set}}%
+
+The relation symbols do not tell which of two intervals is the greater:
+\code{interval(1,3) < interval(2,4)} and \code{interval(1,3) >= interval(2,4)}
+are both \code{false}: \code{x >= y} is not the negation of \code{x < y}. The empty set,
+which has no point to contradict a certainly relation, is less than every
+interval, and greater, itself included: \code{e < e} is \code{true}. A
+program ported from a library where \code{x <= y} is the inclusion compiles
+and changes its meaning (\pxref{sec:other-libraries}).
+
+\begin{Rem}\label{rem:relations-ordering}
+None of the relation symbols is a strict weak ordering, so intervals are not
+given to the algorithms and the containers of the standard library that
+compare with \code{<} (\code{std::sort}, \code{std::set}, \code{std::map},
+\code{std::priority\_queue}, \code{std::max}, \code{std::min},
+\code{std::clamp}\ldots). Two overlapping intervals are equivalent for
+\code{<}, a relation that is not transitive, and the empty set is less than
+itself. The behaviour of these algorithms is then undefined, and differs with
+the implementation of the library. A \code{std::set<interval>} that holds
+\itv{1}{2} drops \itv{1}{3}: two of the three intervals \itv{1}{2},
+\itv{1}{3} and \itv{5}{6} stay. \code{std::sort} of a vector that holds an
+empty interval can read past the end of the vector: AddressSanitizer stops
+the program with libstdc++ for 17 intervals or more, at some positions of
+the empty one. \code{std::max(\itv{1}{3}, \itv{2}{4})} is \itv{1}{3}, its
+first argument, where \code{gaol::max} gives \itv{2}{4}.
+\end{Rem}
+
+\medskip
+\code{gaol::max(x, y)} and \code{gaol::min(x, y)} are the maximum and the
+minimum of the standard: the set of the greater (or the lesser) of a point of
+\code{x} and a point of \code{y}, and not the greater (or the lesser) of the
+two arguments.
+
+\medskip
+\code{gaol::lexicographic\_less} is the comparator to give the containers
+and the algorithms of the standard library: a strict weak ordering that puts
+the empty set first and the other intervals by their left bound, then by
+their right bound, $-0$ and $+0$ being the same bound.\newinvfive{} Two
+intervals with the same bounds, or two empty sets, are not less than each
+other, as a container needs. The comparator is also in \code{gaol\_core}; a
+program that opens \code{gaol\_ieee1788} writes its name in full.
+Specializing \code{std::less} for intervals is left to the program, so the
+comparator is given explicitly.
+
+\begin{Ex}\label{ex:relations-containers}
+The program below puts four intervals, the empty set among them, in a
+\code{std::set} and in a sorted \code{std::vector} with the comparator
+\code{lexicographic\_less}.
+\begin{example}
+#include <algorithm>
+#include <iostream>
+#include <set>
+#include <vector>
+#include <gaol/gaol.h>
+using namespace gaol;
+
+int main(void)
+{
+  const interval boxes[] = { interval(1,2), interval(0,5),
+                             interval::emptyset(), interval(1,3) };
+  std::set<interval, lexicographic_less> s(boxes, boxes + 4);
+  std::vector<interval> v(boxes, boxes + 4);
+  std::sort(v.begin(), v.end(), lexicographic_less());
+  for (const interval& x : v) std::cout << x << ' ';
+  std::cout << s.size() << std::endl;
+  gaol::cleanup();
+  return 0;
+}
+@outputs^[empty] [0, 5] [1, 2] [1, 3] 4~
+\end{example}
+The vector comes out with the empty set first, then \itv{0}{5}, \itv{1}{2}
+and \itv{1}{3}, and the set holds the four intervals: none is dropped.
+\end{Ex}
+
+\medskip
+An algorithm that needs to know which of two boxes to process first, as a
+best-first search, orders them by a number of its own, the lower bound of an
+enclosure for instance, as \file{examples/06\_global\_optimization.cpp} does.
+
+\section{Interval-specific relations}\label{sec:relations-specific}
+\cindex{relation!interval-specific}%
+
+The relations of this section test one interval: its position with respect
+to zero, its shape (a point, an integer, a canonical interval, a symmetric
+one) and its place among the sets (the empty set, the whole real line, a
+bounded interval). Four of them are predicates of IEEE 1788-2015:
+\ieee{isSingleton}, \ieee{isEmpty}, \ieee{isEntire} and
+\ieee{isCommonInterval}.
+
+\begin{defmethod}{interval}{bool}{straddles\_zero}{(void) const}
+  \begin{operation}
+    \op{$0 \in \code{self}$}
+  \end{operation}
+  Returns \code{true} if \code{self} contains zero. The call
+  \code{I.straddles\_zero()} is equivalent to \code{I.set\_contains(0.0)}.
+\begin{example}
+interval x(0,4), y, z(-12,-5);
+
+cout << boolalpha << x.straddles_zero() << ' '
+     << y.straddles_zero() << ' '
+     << z.straddles_zero() << endl;
+@outputs^true true false~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{strictly\_straddles\_zero}{(void) const}
+  \begin{operation}
+  \op{$\{0\}$ interior to \code{self}}
+  \end{operation}
+  Returns \code{true} if zero is included in the interior of \code{self}.
+  The call \code{I.strictly\_straddles\_zero()} is equivalent to
+  \code{I.set\_strictly\_contains(0.0)}.
+\begin{example}
+interval x(0,4), y, z(-12,-5);
+
+cout << boolalpha << x.strictly_straddles_zero() << ' '
+     << y.strictly_straddles_zero() << ' '
+     << z.strictly_straddles_zero() << endl;
+@outputs^false true false~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{is\_a\_double}{(void) const}
+  Returns \code{true} whenever the left and right bounds of the interval
+  are equal: \ieee{isSingleton} of IEEE 1788-2015.
+\begin{example}
+interval x(-12.5), y;
+
+cout << boolalpha << x.is_a_double() << ' '
+     << y.is_a_double() << ' '
+     << interval::emptyset().is_a_double() << endl;
+@outputs^true false false~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{is\_an\_int}{(void) const}
+  Returns \code{true} whenever the left and right bounds of the interval
+  are equal and castable into an integer (type \code{int}).
+\begin{example}
+interval x(-12.0), y;
+
+cout << boolalpha << x.is_an_int() << ' ' << y.is_an_int() << ' '
+     << interval::emptyset().is_an_int() << ' '
+     << interval(3e10).is_an_int() << endl;
+@outputs^true false false false~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{is\_canonical}{(void) const}
+  Returns \code{true} if \code{self} is nonempty and contains at most two
+  floating-point numbers.
+\begin{example}
+interval x(0.0), y(-14,9);
+
+cout << boolalpha << x.is_canonical() << ' '
+     << y.is_canonical() << ' '
+     << interval::emptyset().is_canonical() << ' '
+     << interval::pi().is_canonical();
+@outputs^true false false true~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{is\_empty}{(void) const}
+  \begin{operation}
+    \op{$\code{self} = \emptyset$}
+  \end{operation}
+  Returns \code{true} if \code{self} is an empty interval: \ieee{isEmpty} of
+  IEEE 1788-2015. It raises no floating-point exception, the
+  invalid-operation one included, though the bounds of the empty set are NaN
+  (\pxref{sec:fp-exceptions}).\newinvfive
+  \begin{example}
+cout << boolalpha << interval(4,5).is_empty() << ' '
+     << interval(5,4).is_empty() << ' '
+     << interval::emptyset().is_empty();
+@outputs^false true true~
+  \end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{is\_entire}{(void) const}
+  \begin{operation}
+    \op{$\code{self} = \itv{-\infty}{+\infty}$}
+  \end{operation}
+  Returns \code{true} if \code{self} is the whole real line: \ieee{isEntire}
+  of IEEE 1788-2015.\newinvfive
+  \begin{example}
+cout << boolalpha << interval::universe().is_entire() << ' '
+     << interval::positive().is_entire() << ' '
+     << interval::emptyset().is_entire();
+@outputs^true false false~
+  \end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{is\_common\_interval}{(void) const}
+  Returns \code{true} if \code{self} is nonempty and bounded:
+  \ieee{isCommonInterval} of IEEE 1788-2015.\newinvfive
+  \begin{example}
+cout << boolalpha << interval(1,2).is_common_interval() << ' '
+     << interval::positive().is_common_interval() << ' '
+     << interval::emptyset().is_common_interval();
+@outputs^true false false~
+  \end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{is\_zero}{(void) const}
+  \begin{operation}
+    \op{$\code{self} = \itv{0}{0}$}
+  \end{operation}
+  Returns \code{true} if \code{self} is equal to the interval containing
+  only $0$.
+  \begin{example}
+cout << boolalpha << interval::zero().is_zero() << ' '
+     << interval(0.0,0.0).is_zero() << ' '
+     << interval(-0.0,+0.0).is_zero() << ' '
+     << interval(0,5).is_zero() << ' '
+     << interval::emptyset().is_zero();
+@outputs^true true true false false~
+  \end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{is\_symmetric}{(void) const}
+  Returns \code{true} if the left bound of \code{self} is the opposite of
+  the right bound. An empty interval is not symmetric.
+
+\begin{example}
+cout << boolalpha << interval(-5,5).is_symmetric() << ' '
+     << interval::emptyset().is_symmetric() << endl;
+@outputs^true false~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{is\_finite}{(void) const}
+  Returns \code{true} if neither bound is infinite. The empty set, whose
+  bounds are NaN, is finite; \code{is\_common\_interval()} is not true of
+  it.
+
+\begin{example}
+cout << boolalpha << interval(4,GAOL_INFINITY).is_finite() << ' '
+     << interval::emptyset().is_finite() << ' '
+     << interval(5,80).is_finite();
+@outputs^false true true~
+\end{example}
+\end{defmethod}
+
+\section{Discussion}
+
+This chapter has fixed the vocabulary of the comparisons of GAOL v5. Two
+groups remain of the three of GAOL~4: the set relations, which compare the
+intervals as sets of reals, and the certainly relations, which hold when
+every pair of points is in the relation. The possibly relations,
+\code{certainly\_eq()}, \code{certainly\_neq()} and the operators \code{==}
+and \code{!=} are gone, since a certain inequality that was the negation of
+a certain equality made \itv{3}{4} certainly not equal to itself. Every
+relation that IEEE 1788-2015 defines follows the standard, for the empty set
+and for the infinite bounds too, and the overlap state tells in which of the
+sixteen states of the standard two intervals are, from which the comparisons
+can be derived.
+
+\medskip
+The relation symbols have one meaning in every build, the certainly
+relations, and compare an interval with a \code{double} or an integer as
+with the interval of that number, an integer that is no double being compared
+as the integer it is. The price of a fixed meaning that follows the
+standard is that the symbols order nothing: a program that sorts intervals
+or keeps them in a \code{std::set} gives the comparator
+\code{gaol::lexicographic\_less}, and an algorithm that chooses the next box
+to process orders the boxes by a number of its own. Specializing
+\code{std::less} for intervals is left to the program.
+
+\medskip
+The relations tell what two intervals are to each other. The next chapter
+turns to the operations that build new intervals from intervals: the functional
+arithmetic, the relational arithmetic and the cancellative operations
+(Chapter~\ref{chap:arithmetic}).

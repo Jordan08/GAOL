@@ -368,4 +368,4 @@ interval printed contains.
 - [Using GAOL](../doc/using.md): the tools of interval algorithms (`inflate`,
   `bisect`, `midrad`, `mulRevToPair`), the namespaces, the names of IBEX, Codac,
   C-XSC and Boost.Interval next to GAOL's, and the pitfalls.
-- The manual of GAOL v5, `manual/v5/gaol.pdf`: each operation, with examples.
+- The manual of GAOL v5, `manual/Manual_GAOLv5.pdf`: each operation, with examples.

@@ -146,7 +146,7 @@ to 3 points, and the table gives the second.
   cost 3 to 13 ns on the M2.
 - The relations, `hull`, `intersect`, `min` and `max` are 3.6 % or less in
   every program; `mid()` is 6 % of the global optimization, and `midpoint()`
-  11 to 12 % of the Krawczyk iteration (21 to 28 ns on the M2: two writes of
+  11 to 12 % of the Krawczyk iteration (29 ns on the M2: two writes of
   FPCR).
 - The check of the direction (one `mrs` of FPCR here), removed in a copy,
   saves 0.8 % (03), 1.4 % (09), 4.7 % (06) and 8.3 % (16).
@@ -166,10 +166,10 @@ for `sqr`, 6.30 for `sqrt` and 5.12 for `pow(x, 3)`, the same operation on
 doubles taking 0.96 ns for `+`. With `GAOL_PRESERVE_ROUNDING` and the AVX-512
 path: 2.19, 2.16, 3.42, 3.60, 2.04, 3.75 and 6.18. On the M2
 ([three builds](three-builds.md#what-the-options-are-worth)) the NEON
-intervals take 0.91 ns for `+`, 2.14 for `*`, 2.39 for `/`, 1.48 for `sqr`
-and 1.70 for `sqrt`, against 1.18, 3.33, 3.30, 1.82 and 4.60 with the FPU
+intervals take 0.90 ns for `+`, 1.52 for `*`, 2.08 for `/`, 1.27 for `sqr`
+and 2.04 for `sqrt`, against 1.15, 3.26, 3.22, 1.78 and 5.17 with the FPU
 intervals, whose `*`, `/` and `sqr` take no branch on the signs
-([the FPU intervals](using.md#the-fpu-intervals); 1.16, 3.37, 4.00, 2.08 and 4.51
+([the FPU intervals](using.md#the-fpu-intervals); 1.15, 3.25, 3.98, 2.07 and 4.49
 before).
 
 ## The rounding direction, by processor
@@ -322,7 +322,7 @@ which is done, and none needs a new path.
   first check thought it did (the program of the checks is not in the
   repository).
 - **`sqrt` on SSE2** is scalar (6.3 ns on the i7-1185G7, 3.75 with the AVX-512
-  path and the direction preserved, 1.7 on the M2 with NEON); the NEON kernel
+  path and the direction preserved, 2.0 on the M2 with NEON); the NEON kernel
   ports to `_mm_sqrt_pd`. `sqrt_rel` follows.
 - **The integer powers on NEON** (done, GAOL v5, a small gain): the kernel of
   `pown` on two lanes with `vfmaq_f64` (`pown_neon_ops` and `pown_large_inline()`
@@ -350,7 +350,7 @@ which is done, and none needs a new path.
   says how much of that is the reduction.
 - **`div_rel` and `%=`** are trees of branches; NEON has the cases of
   `divide_by_zero_containing()` as a table for `/`.
-- Not for SIMD: `midpoint()` (21 to 28 ns on the M2), `bisect()`, `chi()` and
+- Not for SIMD: `midpoint()` (29 ns on the M2), `bisect()`, `chi()` and
   `hausdorff()` spend their time in changes of the rounding direction, which is
   the question of computing without changing it; the elementary functions are
   limited by CORE-MATH, and a vector version would be another algorithm.

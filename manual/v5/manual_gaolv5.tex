@@ -1,0 +1,128 @@
+%% The manual of GAOL v5: NOT Just Another Interval Arithmetic Library.
+%%
+%% It describes GAOL v5, by Jordan Ninin, which continues the GAOL of Frederic
+%% Goualard: its installation, its use, each of its operations with examples,
+%% the names of IEEE 1788-2015, the accuracy of the operations, how the
+%% intervals are computed, the tests, and what a program written for GAOL 4
+%% has to change. The pages of doc/ of the sources give each change with its
+%% measures, and the manual takes their content up. The text of the manual of
+%% GAOL 4 (manual/v4/gaol.tex) is kept where GAOL v5 behaves as GAOL 4.
+%%
+%% The layout and the writing follow the PhD thesis of Jordan Ninin (2010).
+%% This file holds the layout and nothing else: the packages, the page layout
+%% and the macros are in gaol_def.tex, the page styles, the front matter, the
+%% bibliography, the appendices and the index are set here, and the text of
+%% each part is in its own file of chapters/, which this file \input's:
+%% one file per chapter. Every output shown in an example was obtained from
+%% GAOL v5, and manual/check_examples.py checks them against the library: the
+%% examples are kept as `example' environments with their lines of outputs.
+%%
+%% Copyright (c) 2026 ENSTA, France
+%%
+%% Created 2026-09-22 by Jordan NININ
+%% Rewritten 2026-11-05 in the layout of the thesis
+\documentclass[12pt,a4paper,twoside,openright]{book}
+
+\input{gaol_def}
+
+%% The version, the edition and the date of the manual are in gaol_version.tex,
+%% which build-pdf.sh finds in the build directory (configure, CMake and meson
+%% write it from gaol_version.tex.in). Compiled by hand in this directory
+%% (pdflatex manual_gaolv5.tex) there is none: the version is then the one of
+%% VERSION.txt, the edition 5.0 and the date today's.
+\makeatletter
+\IfFileExists{gaol_version.tex}{\input{gaol_version}}{%
+  \def\updated{\today}%
+  \def\edition{5.0}%
+  \IfFileExists{../../VERSION.txt}{%
+    \newread\gaol@versionfile
+    \openin\gaol@versionfile=../../VERSION.txt
+    \begingroup\endlinechar=-1 \global\read\gaol@versionfile to \gaol@version\endgroup
+    \closein\gaol@versionfile
+    \let\version\gaol@version}{\def\version{5.0.0}}}
+\makeatother
+
+\begin{document}
+
+%%==========================================================================
+%% Front matter
+%%==========================================================================
+\frontmatter
+\pagestyle{plain}
+
+\input{chapters/titlepage}
+\input{chapters/copyright}
+\input{chapters/contributors}
+\input{chapters/abstract}
+
+\tableofcontents
+\listoftables
+
+%%==========================================================================
+%% Introduction
+%%==========================================================================
+\mainmatter
+\pagestyle{INTRO}
+\input{chapters/introduction}
+\clearpage
+\pagestyle{YO}
+
+%%==========================================================================
+%% The chapters
+%%==========================================================================
+\input{chapters/01_interval_arithmetic}
+\input{chapters/02_installation}
+\input{chapters/03_using}
+\input{chapters/04_rounding}
+\input{chapters/05_creation}
+\input{chapters/06_relations}
+\input{chapters/07_arithmetic}
+\input{chapters/08_functions}
+\input{chapters/09_io}
+\input{chapters/10_ieee1788}
+\input{chapters/11_accuracy}
+\input{chapters/12_computing}
+\input{chapters/13_numbers_errors}
+\input{chapters/14_tests_ci}
+\input{chapters/15_migration}
+
+%%==========================================================================
+%% Conclusion
+%%==========================================================================
+\cleardoublepage
+\pagestyle{CONCLU}
+\input{chapters/conclusion}
+
+%%==========================================================================
+%% Bibliography
+%%==========================================================================
+\cleardoublepage
+\pagestyle{BIBLIO}
+\addcontentsline{toc}{chapter}{\bibname}
+\bibliographystyle{plain}
+\bibliography{gaol}
+
+%%==========================================================================
+%% Appendices
+%%==========================================================================
+\appendix
+\pagestyle{YO}
+\renewcommand{\chaptermark}[1]{\markboth{\appendixname\ \thechapter\ - \ #1}{}}
+
+\input{chapters/appendix_documentation}
+\input{chapters/appendix_copying}
+
+%%==========================================================================
+%% Index
+%%==========================================================================
+\cleardoublepage
+\pagestyle{INDEX}
+\addcontentsline{toc}{chapter}{Index}
+\printindex[idx]
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
