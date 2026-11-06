@@ -1,0 +1,45 @@
+%% !TEX root = ../manual_gaolv5.tex
+% The contributors and the acknowledgements (unnumbered).
+\chapter*{Contributors and acknowledgements}
+\thispagestyle{plain}
+
+GAOL was designed and written by Fr\'ed\'eric Goualard
+(\url{https://frederic.goualard.net}), who is its main implementor from its
+first version, named \code{cell} (2001), to GAOL~4.
+
+GAOL v5 is written by Jordan Ninin, at ENSTA, for Codac, whose intervals are
+built upon GAOL. It continues GAOL from its version 4.2.2, and brings the
+changes GAOL needs to compile and compute right on every system it can.
+
+\medskip
+The function \code{interval pow(const interval\&, const interval\&)} was
+designed by Marc Christie. The code for the multiplication and the division
+is largely inspired from the one presented by Tim Hickey, Qun Ju and Maarten
+Van Emden in \emph{Interval Arithmetic: from Principles to
+Implementation}~\cite{Hickey-Ju-vanEmden:2001}.
+
+\medskip
+GAOL v5 takes up:
+\begin{itemize}
+\item[$\bullet$] the patch IBEX applies to GAOL, by Gilles Chabert
+  (initialization of the floating-point unit, rounding direction of
+  \code{midpoint()} and \code{operator<{}<});
+\item[$\bullet$] the fork of GAOL by Fabrice Le Bars, for Visual C++, MinGW
+  and the systems the \cmd{configure} of GAOL does not know;
+\item[$\bullet$] the CMake build of GAOL in IBEX, by Cyril Bouvier and Gilles
+  Chabert, with the compilation flags of the IBEX fork of Fabrice Le Bars;
+\item[$\bullet$] the rounding tests of Codac, which its tests follow.
+\end{itemize}
+
+\medskip
+\noindent
+Its elementary functions are those of CORE-MATH~\cite{CoreMath:2022}, by
+Alexei Sibidanov, Paul Zimmermann and the other authors of the project
+(Inria), whose sources are distributed with GAOL and compiled into its
+library.
+
+\medskip
+\noindent
+The layout and the writing of this manual follow the PhD thesis of Jordan
+Ninin (Universit\'e de Toulouse, 2010). The text of the manual of GAOL~4 by
+Fr\'ed\'eric Goualard is kept wherever GAOL v5 behaves as GAOL~4.

@@ -1,0 +1,1108 @@
+%% !TEX root = ../manual_gaolv5.tex
+% Chapter 7.
+%% Chapter 7: Interval arithmetic: the operations. Sources: gaol.tex of f5bf180
+%% lines 3493-4445 (chapter "Interval Arithmetic": the introduction and the
+%% domains, functional arithmetic, relational arithmetic, cancellative addition
+%% and subtraction), doc/using.md lines 695-842 (tools of interval algorithms,
+%% the reverse functions of pow, max, min, sign and floor).
+\chapter{Interval arithmetic: the operations}\label{chap:arithmetic}
+
+An interval program is written with the operators and the functions of C++,
+which GAOL overloads for the type \code{interval}: a sum, a product, a square
+root or a cosine of intervals is an interval that contains every value the
+operation takes on the real numbers of its arguments. This chapter is the
+reference of these operations. The containment property they satisfy, the
+roundings that give their bounds and the mathematical libraries that compute
+the elementary functions are the subject of Chapter~\ref{chap:concepts}. Here
+we state, for each operation, what it computes, on which domain, which
+operation of IEEE 1788-2015 \cite{IEEE1788:2015} it is, and what differs from
+GAOL~4.
+
+\medskip
+The operations are of two kinds. A \emph{functional} operation extends a
+function of real numbers to intervals: the square root of an interval is the
+hull of the square roots of its points. A \emph{relational} operation inverts
+a relation: the relational square root of $J$ with respect to $I$ is the hull
+of the $x$ of $I$ whose square is in $J$, the negative ones included. The
+relational operations are the reverse functions of IEEE 1788-2015, and the
+tools with which the algorithms of constraint programming contract their
+domains.
+
+\medskip
+The first section recalls the containment principle, the two kinds of
+operations and the rule of the domains. The second section is the reference
+of the functional arithmetic: the basic operations, the powers and roots, the
+exponentials and logarithms, the trigonometric functions, the hyperbolic
+functions and the other functions of the standard. The third section is the
+reference of the relational arithmetic, and gives its correspondence with the
+reverse functions of the standard. The fourth section describes the
+cancellative addition and subtraction. The tightness of each result is
+stated in Chapter~\ref{chap:accuracy} (\pxref{sec:accuracy-table}), and the
+names of the standard are the subject of Chapter~\ref{chap:ieee1788}.
+
+\section{Functional and relational operations}\label{sec:arithmetic-kinds}
+\cindex{functional arithmetic}\cindex{relational arithmetic}%
+
+The \dfn{containment principle} of floating-point interval arithmetic
+(\pxref{sec:containment}) requires that, for any operation $\circ$ and any
+intervals $I$ and $J$,
+\begin{equation*}
+I\circ J=\hull{\{i\circ j\mid i\in I, j\in J\}}
+\end{equation*}
+where \hull{} maps any set of real numbers to the smallest floating-point
+interval that contains it. The interval square root, for instance, is
+\begin{equation*}
+\sqrt{I}=\hull{\{\sqrt{i}\mid i\in I\}}
+\end{equation*}
+and, the square root being increasing, $\sqrt{\itv{1}{2}}=\itv{1}{\sqrt{2}}$.
+This is the \dfn{functional square root}: it extends the function
+$x\mapsto\sqrt{x}$ to intervals. Another reading of the square root gives
+both the negative and the positive values.
+
+\begin{Def}\label{def:arithmetic-relational-sqrt}
+The \emph{relational square root} of an interval $I$ is the hull of the real
+numbers whose square is in $I$:
+\begin{equation*}
+\sqrt{_rI}=\hull{\{j\in\RSet\mid\exists i\in I\colon j^2=i\}}.
+\end{equation*}
+\end{Def}
+
+\noindent Hence $\sqrt{_r\itv{1}{2}}=\itv{-\sqrt{2}}{\sqrt{2}}$.
+
+\begin{Ex}
+The relational square root arises from the relation $x^2=y$ between two
+variables, which a program may want to write $x=\sqrt{_ry}$ to compute $x$
+from $y$. The functional square root is not suitable there: its result lies
+in \itv{0}{+\infty}, and the negative values of $x$ would be lost.
+\end{Ex}
+
+Some applications, mainly in constraint programming, need such operators.
+GAOL therefore offers both the functional and the relational versions of the
+main arithmetic operators (\pxref{sec:relational-idea}); a relational
+operator contracts one operand of a relation from the others, which is how
+the interval algorithms of Chapter~\ref{chap:overview} use it
+(\pxref{sec:tools}).
+
+\paragraph{Domains.}
+A function is computed on the part of its argument that lies within its
+domain, which is the domain of IEEE 1788-2015 (Tables 9.1 and 10.5): the
+part outside is left out, and an argument with no point of the domain gives
+the empty set, as \code{log(\itv{-4}{0})} does.\newinvfive{} Every function
+gives the empty set for an empty argument. How tight each result is, for each
+operation, is stated in Chapter~\ref{chap:accuracy}
+(\pxref{sec:accuracy-table}).
+\cindex{domain of a function}%
+
+\section{Functional arithmetic}\label{sec:arithmetic-functional}
+
+Each operation of this section is the hull of the image, by the function of
+the same name, of the part of its arguments within its domain. The entries
+give, for each one, the operation of IEEE 1788-2015 it implements, the
+domain where it is not the whole real line, and what GAOL~v5 changed.
+
+\subsection{Basic operations}\label{sec:arithmetic-basic}
+
+\defmethodx{interval}{interval}{operator+}{(void) const}
+\deffunx{interval}{operator+}{(const interval\& \var{I}, double \var{d})}
+\deffunx{interval}{operator+}{(double \var{d}, const interval\& \var{I})}
+\begin{deffun}{interval}{operator+}{(const interval\& \var{I1}, const interval\& \var{I2})}
+  Addition of two intervals, or of an interval and a double: \ieee{add} of
+  IEEE 1788-2015.
+\end{deffun}
+
+\defmethodx{interval}{interval}{operator-}{(void) const}
+\deffunx{interval}{operator-}{(const interval\& \var{I}, double \var{d})}
+\deffunx{interval}{operator-}{(double \var{d}, const interval\& \var{I})}
+\begin{deffun}{interval}{operator-}{(const interval\& \var{I1}, const interval\& \var{I2})}
+  Negation (\ieee{neg}), or subtraction (\ieee{sub}) of two intervals, or of
+  an interval and a double.
+\end{deffun}
+
+\deffunx{interval}{operator*}{(const interval\& \var{I}, double \var{d})}
+\deffunx{interval}{operator*}{(double \var{d}, const interval\& \var{I})}
+\begin{deffun}{interval}{operator*}{(const interval\& \var{I1}, const interval\& \var{I2})}
+  Multiplication of two intervals, or of an interval and a double: \ieee{mul}
+  of IEEE 1788-2015. A zero bound times an infinite bound counts as $0$, as
+  the product of a real number of the interval by 0.\newinvfive{} \code{d * I}
+  is computed as \code{I * d}, and \code{n * I} of an integer \code{n} as
+  \code{I * n}: the bounds are the same, with the same signs of a zero bound
+  (\pxref{sec:zero-sign}).\newinvfive
+\end{deffun}
+
+\deffunx{interval}{operator/}{(const interval\& \var{I}, double \var{d})}
+\deffunx{interval}{operator/}{(double \var{d}, const interval\& \var{I})}
+\begin{deffun}{interval}{operator/}{(const interval\& \var{I1}, const interval\& \var{I2})}
+  Functional division of two intervals, or of an interval and a double:
+  \ieee{div} of IEEE 1788-2015. The quotient by an interval containing 0 is
+  the hull of the quotients by its nonzero part, and the quotient by
+  \itv{0}{0} is the empty set.
+\begin{example}
+cout << interval(1,2) * interval(-3,4) << ' '
+     << interval(0,1) * interval(1,GAOL_INFINITY) << ' '
+     << interval(1,2) / interval(0,1) << ' '
+     << interval(1,2) / interval(-1,1) << ' '
+     << interval(1,2) / interval::zero();
+@outputs^[-6, 8] [0, inf] [1, inf] [-inf, inf] [empty]~
+\end{example}
+\end{deffun}
+
+\deffunx{interval}{operator\%}{(const interval\& \var{I}, double \var{d})}
+\deffunx{interval}{operator\%}{(double \var{d}, const interval\& \var{I})}
+\begin{deffun}{interval}{operator\%}{(const interval\& \var{I1}, const interval\& \var{I2})}
+  Relational division of two intervals, or of an interval and a double
+  (\pxref{sec:relational-arithmetic}).
+\end{deffun}
+
+\defmethodx{interval}{interval}{inverse}{(void) const}
+\begin{deffun}{interval}{inverse}{(const interval\& \var{I})}
+  \begin{operation}
+    \op{$1/I$}
+  \end{operation}
+  Inverse of \var{I} (of \code{self} for the method): \ieee{recip} of
+  IEEE 1788-2015. The inverse of an interval containing 0 is the hull of the
+  inverses of its nonzero part.
+\begin{example}
+cout << inverse(interval(2,4)) << ' ' << inverse(interval(-1,2));
+@outputs^[0.25, 0.5] [-inf, inf]~
+\end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{sqr}{(const interval\& \var{I})}
+  \begin{operation}
+    \op{$\var{I}^2$}
+  \end{operation}
+  Square of \var{I}: \ieee{sqr} of IEEE 1788-2015.
+\end{deffun}
+
+\begin{deffun}{interval}{sqrt}{(const interval\& \var{I})}
+  \begin{operation}
+    \op{$\sqrt{I}$}
+  \end{operation}
+  Functional square root of \var{I}, on the part of \var{I} in
+  \itv{0}{+\infty}: \ieee{sqrt} of IEEE 1788-2015. The bounds are the
+  tightest ones, whatever the rounding of the square root of the C
+  library.\newinvfive
+\begin{example}
+cout << sqrt(interval(-4,9)) << ' ' << sqrt(interval(-4,-1));
+@outputs^[0, 3] [empty]~
+\end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{fma}{(const interval\& \var{X}, const interval\& \var{Y}, const interval\& \var{Z})}
+  \begin{operation}
+    \op{$\hull{\{xy+z\mid x\in X, y\in Y, z\in Z\}}$}
+  \end{operation}
+  Fused multiply-add: \ieee{fma} of IEEE 1788-2015. Each bound is rounded
+  once, and the result is the tightest enclosure.\newinvfive
+\begin{example}
+cout << fma(interval(1,2), interval(3,4), interval(-1,1));
+@outputs^[2, 9]~
+\end{example}
+\end{deffun}
+
+\subsection{Powers and roots}\label{sec:powers}
+\cindex{power}\cindex{root}%
+
+The functions of this subsection are those of the namespace \code{gaol}. The
+namespace \code{gaol\_ieee1788} has its own \code{pow}, the \ieee{pow} of
+the standard: the two powers are compared in Chapter~\ref{chap:overview}
+(\pxref{sec:pow-namespaces}).
+
+\deffunx{interval}{pow}{(const interval\& \var{I}, int \var{n})}
+\deffunx{interval}{pow}{(const interval\& \var{I}, unsigned int \var{n})}
+\deffunx{interval}{pow}{(const interval\& \var{I}, double \var{p})}
+\deffunx{interval}{pow}{(const interval\& \var{I}, long \var{n})}
+\deffunx{interval}{pow}{(const interval\& \var{I}, long long \var{n})}
+\begin{deffun}{interval}{pow}{(const interval\& \var{I}, const interval\& \var{J})}
+  \begin{operation}
+    \op{$I^n$}
+    \op{$I^p$}
+    \op{$I^J$}
+  \end{operation}
+  Power function. \code{pow} is hybrid in GAOL v5.\newinvfive
+  \begin{itemize}
+  \item[$\bullet$] \textbf{An integer exponent} takes the \emph{integer
+    power}, \ieee{pown} of IEEE 1788-2015: \var{I} to the power \var{n},
+    the negative part of \var{I} included, where $x^0=1$ for every $x$, 0
+    included, and $x^n$ has no value at 0 for $n<0$. A double \var{p} and a
+    degenerate interval $\var{J}=\itv{n}{n}$ whose value is an integer take
+    the integer power as well, beyond the \code{int}s too.\newinvfive{} An
+    exponent \var{n} of another integer type (\code{long}, \code{long long},
+    \code{short}\dots), with which \code{pow} was ambiguous, gives the same
+    integer power; beyond 64 bits, it gives the power of $\pm(2^{63}-1)$ or
+    $\pm(2^{63}-2)$, with the sign and the parity of \var{n}, every power of
+    a double but $0$, $\pm1$ and $\pm\infty$ being beyond the doubles
+    there.\newinvfive
+  \item[$\bullet$] \textbf{Any other exponent} takes the \emph{real power},
+    \ieee{pow} of IEEE 1788-2015, on the part of \var{I} in \itv{0}{+\infty},
+    where $0^y$ is $0$ for $y>0$ and has no value for $y\leq0$. An exponent
+    \itv{+\infty}{+\infty} or \itv{-\infty}{-\infty}, or an infinite or NaN
+    \var{p}, gives the empty set.
+  \end{itemize}
+  The integer powers are computed from exact products within the
+  \code{int}s, $x^{-n}$ included. They are the tightest enclosures, or one
+  double beyond where the power is closer to a double than twice a bound of
+  their error proved beforehand: $2^{-98}$ for $n=3$, $2^{-88}$ for
+  $n=1000$, $2^{-62}$ at most, relatively. They are exact where the power is
+  a double. Beyond the \code{int}s, the integer powers come from the power of
+  CORE-MATH at the bounds of \var{I}: they are the tightest enclosures where
+  $n$ is a double, and within three doubles of them
+  otherwise.\newinvfive{} The real power takes the power of CORE-MATH at the
+  corners of the box $I\times J$ where it is the least and the greatest. The
+  upper bound is the tightest one, and so is the lower bound: it is the power
+  itself where that power is a double, as $4^{0.5}$, $9^{1.5}$ or $2^{-3}$,
+  and the double below the value of CORE-MATH otherwise. At a corner where
+  the base is $0$ or $+\infty$ or the exponent is infinite, the bound is the
+  limit of $x^y$ there, $0$ or $+\infty$ ($1$ for a base $1$ or an exponent
+  $0$): \code{pow(\itv{4}{+\infty}, 0.5)} is $[2, +\infty]$.\newinvfive
+\begin{example}
+cout << pow(interval(-4,-1), 2) << ' '
+     << pow(interval(-4,-1), interval(2.0)) << ' '
+     << pow(interval(-4,9), interval(0.5)) << ' '
+     << pow(interval(-4,-1), interval(1.5, 2.5)) << endl;
+@outputs^[1, 16] [1, 16] [0, 3] [empty]~
+cout << pow(interval(0.0), interval(0.0)) << ' '
+     << pow(interval(-2,2), -2) << ' '
+     << pow(interval(4), 0.5) << endl;
+@outputs^[1] [0.25, inf] [2]~
+\end{example}
+\end{deffun}
+
+\begin{Rem}\label{rem:arithmetic-pow-monotone}
+The result of \code{pow} is not monotone for the inclusion of \var{J}:
+\code{pow(\itv{-4}{-1}, \itv{2}{2})} is \itv{1}{16}, and
+\code{pow(\itv{-4}{-1}, \itv{1.5}{2.5})} the empty set. The result for a
+degenerate integer exponent $[n]$ is not within the result for an exponent
+around $n$, and \code{pow} is not one function of $x$ and $y$. GAOL~4
+truncated a double exponent \var{p}, and computed the powers of a negative
+base on its magnitude.
+\end{Rem}
+
+\deffunx{interval}{nth\_root}{(const interval\& \var{I}, unsigned int \var{n})}
+\deffunx{interval}{nth\_root}{(const interval\& \var{I}, long long \var{q})}
+\deffunx{interval}{nth\_root}{(const interval\& \var{I}, unsigned long long \var{q})}
+\begin{deffun}{interval}{nth\_root}{(const interval\& \var{I}, int \var{q})}
+  \begin{operation}
+    \op{$^{n}\sqrt{I}$}
+  \end{operation}
+  Computes the \var{n}th functional root of \var{I}: \ieee{rootn} of
+  IEEE 1788-2015. For an odd \var{n}, the root of a negative number is the
+  opposite of the root of its magnitude, and the root is defined on the whole
+  real line; for an even \var{n}, only the part of \var{I} in
+  \itv{0}{+\infty} is considered.\newinvfive{} A negative \var{q} gives
+  $1/x^{1/|q|}$, defined on $\RSet\setminus\{0\}$ for an odd \var{q} and on
+  $\left]0,+\infty\right]$ for an even one. The function returns the empty
+  set for $n=0$.
+
+  The bounds are the tightest ones, or up to 2 doubles beyond (4 for a
+  negative \var{q}): each is proved with integer powers. The cube root is
+  that of CORE-MATH, the tightest one, and the root of a double that is the
+  \var{n}th power of a double is that double. An order of another integer
+  type (\code{long}, \code{long long}\dots), with which \code{nth\_root} was
+  ambiguous, is taken as an \code{int} or an \code{unsigned int} where it is
+  one. Beyond them, the roots are enclosed by \code{pow} with the exponent
+  $1/q$ taken as an interval, $x^{1/q}$ being within $2^{-21}$ of 1 for every
+  double $x>0$ there, after one check of the rounding direction for a
+  \code{long long} or an \code{unsigned long long} order.\newinvfive
+\begin{example}
+cout << nth_root(interval(-8,27), 3) << ' '
+     << nth_root(interval(-4,16), 2) << ' '
+     << nth_root(interval(4,16), -2) << ' '
+     << nth_root(interval(-8,-1), -3);
+@outputs^[-2, 3] [0, 4] [0.25, 0.5] [-1, -0.5]~
+\end{example}
+\end{deffun}
+
+\subsection{Exponentials and logarithms}\label{sec:arithmetic-exp-log}
+\cindex{exponential}\cindex{logarithm}%
+
+The functions of this subsection, and of the next two, are bounded with
+CORE-MATH at the bounds of the interval, or at the points within it where
+the function reaches its extrema. CORE-MATH being correctly rounded, the
+value at a bound, computed rounding upward, is the upper bound, and the
+double below it is the lower bound. These are the tightest bounds, unless the
+exact value is a double; the functions give that double where they know that
+it happens ($\exp(0)=1$, $\log(1)=0$, $\sin(0)=0$, $2^3=8$\ldots).\newinvfive
+\cindex{CORE-MATH}%
+
+\begin{deffun}{interval}{exp}{(const interval\& \var{I})}
+  Exponential of \var{I}.
+\end{deffun}
+
+\deffunx{interval}{exp2}{(const interval\& \var{I})}
+\begin{deffun}{interval}{exp10}{(const interval\& \var{I})}
+  $2^x$ and $10^x$ for $x$ in \var{I}: \ieee{exp2} and \ieee{exp10} of IEEE
+  1788-2015.\newinvfive
+\end{deffun}
+
+\deffunx{interval}{expm1}{(const interval\& \var{I})}
+\deffunx{interval}{exp2m1}{(const interval\& \var{I})}
+\begin{deffun}{interval}{exp10m1}{(const interval\& \var{I})}
+  $e^x-1$, $2^x-1$ and $10^x-1$ for $x$ in \var{I}, within
+  \itv{-1}{+\infty}: \ieee{expm1}, \ieee{exp2m1} and \ieee{exp10m1} of IEEE
+  1788-2015 (Table~10.5).\newinvfive
+\end{deffun}
+
+\begin{deffun}{interval}{log}{(const interval\& \var{I})}
+  Natural logarithm of \var{I}, defined on $\left]0,+\infty\right]$. An
+  interval holding no positive number gives the empty set, where GAOL~4 kept
+  its part in \itv{0}{+\infty} and gave \itv{-\infty}{-\text{MAX}} for
+  \code{log(\itv{-4}{0})}.\newinvfive
+\end{deffun}
+
+\deffunx{interval}{log2}{(const interval\& \var{I})}
+\begin{deffun}{interval}{log10}{(const interval\& \var{I})}
+  Logarithms in base 2 and 10 of \var{I}: \ieee{log2} and \ieee{log10} of
+  IEEE 1788-2015.\newinvfive
+\end{deffun}
+
+\deffunx{interval}{log1p}{(const interval\& \var{I})}
+\deffunx{interval}{log2p1}{(const interval\& \var{I})}
+\begin{deffun}{interval}{log10p1}{(const interval\& \var{I})}
+  $\log(1+x)$, $\log_2(1+x)$ and $\log_{10}(1+x)$ for $x$ in \var{I}, defined
+  on $\left]-1,+\infty\right]$, $-\infty$ being their limit at $-1$:
+  \ieee{logp1}, \ieee{log2p1} and \ieee{log10p1} of IEEE 1788-2015
+  (Table~10.5).\newinvfive
+\begin{example}
+cout << exp(interval(0.0)) << ' ' << log(interval(1)) << ' '
+     << log(interval(-4,0.0)) << ' '
+     << log(interval(-4,1)) << endl;
+@outputs^[1] [0] [empty] [-inf, 0]~
+cout << exp2(interval(3)) << ' ' << log2(interval(0.25)) << ' '
+     << log10(interval(0.0,1000)) << ' '
+     << expm1(interval(-1e300,0.0)) << ' '
+     << log1p(interval(-2,0.0)) << endl;
+@outputs^[8] [-2] [-inf, 3] [-1, 0] [-inf, 0]~
+\end{example}
+\end{deffun}
+
+\subsection{Trigonometric functions}\label{sec:arithmetic-trigonometric}
+\cindex{trigonometric functions}%
+
+\begin{deffun}{interval}{cos}{(const interval\& \var{I})}
+  Returns the cosine of \var{I}, within \itv{-1}{1}.
+\end{deffun}
+
+\begin{deffun}{interval}{sin}{(const interval\& \var{I})}
+  Returns the sine of \var{I}, within \itv{-1}{1}.
+\end{deffun}
+
+\begin{deffun}{interval}{tan}{(const interval\& \var{I})}
+  Returns the tangent of \var{I}: \itv{-\infty}{+\infty} when \var{I} holds a
+  pole. No double is a pole: \code{M\_PI\_2}, the double below $\pi/2$, is
+  $6.1\cdot10^{-17}$ short of it. The interval
+  \itv{-\code{M\_PI\_2}}{\code{M\_PI\_2}} holds no pole and has a finite
+  tangent (the fourth result of the example); its width is the double below
+  $\pi$, and the intervals of width between that double and $\pi$ are a
+  theoretical case.
+
+  The three functions find the pieces of \var{I} on which they are monotonic
+  by dividing its bounds by an enclosure of $\pi$. Where the quotients cannot
+  tell, next to an extremum or a pole and at the large magnitudes, they use
+  the signs of the derivative at the bounds, which CORE-MATH gives exactly.
+  Their bounds are within one double of the tightest ones at every
+  magnitude.\newinvfive{} GAOL~4 gave \itv{-1}{1} for
+  \code{cos(\itv{2^{60}}{2^{60}})}, and computed the sine as a shifted
+  cosine, which widened narrow intervals.
+\begin{example}
+cout << cos(interval(1,4)) << endl
+     << sin(interval(1,2)) << endl
+     << tan(interval(1,2)) << endl
+     @rem^// 1.5707963267948966 is M_PI_2, the double below pi/2~
+     << tan(interval(-1.5707963267948966, 1.5707963267948966)) << endl
+     @rem^// 1152921504606846976 is 2 to the 60~
+     << cos(interval(1152921504606846976.0)) << endl;
+@outputs^[-1, 0.5403023058681398]~
+@outputs^[0.8414709848078965, 1]~
+@outputs^[-inf, inf]~
+@outputs^[-1.633123935319537e+16, 1.633123935319537e+16]~
+@outputs^[-0.5567960822766418, -0.5567960822766416]~
+\end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{acos}{(const interval\& \var{I})}
+  Returns the arccosine of \var{I}, on the part of \var{I} in \itv{-1}{1}.
+\end{deffun}
+
+\begin{deffun}{interval}{asin}{(const interval\& \var{I})}
+  Returns the arcsine of \var{I}, on the part of \var{I} in \itv{-1}{1}.
+\end{deffun}
+
+\begin{deffun}{interval}{atan}{(const interval\& \var{I})}
+  Returns the arctangent of \var{I}.
+\begin{example}
+cout << acos(interval(1,3)) << ' ' << asin(interval(1)) << ' '
+     << atan(interval(1));
+@outputs^[0] [1.570796326794896, 1.570796326794897]~
+@outputs^[0.7853981633974482, 0.7853981633974484]~
+\end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{atan2}{(const interval\& \var{Y}, const interval\& \var{X})}
+  Returns the hull of the angles in $(-\pi,\pi]$ of the points of ordinate
+  in \var{Y} and abscissa in \var{X}, the point $(0,0)$ left out, as the
+  \ieee{atan2} of IEEE~1788-2015 does: \code{atan2([0],[0])} is empty. The
+  result is $[-\pi,\pi]$ whenever the box holds points of the half-line
+  $y=0$, $x<0$, where the angle is $\pi$, and points below it, where the
+  angle is next to $-\pi$. GAOL~4 declared the function, but it raised
+  \code{unavailable\_feature\_error}.\newinvfive
+\begin{example}
+interval x(1,GAOL_INFINITY);
+cout << atan2(interval(0.0), interval(0.0)) << endl
+     << atan2(interval(-1,1), interval(-1)) << endl
+     << atan2(x, x) << endl;
+@outputs^[empty]~
+@outputs^[-3.141592653589794, 3.141592653589794]~
+@outputs^[0, 1.570796326794897]~
+\end{example}
+\end{deffun}
+
+\deffunx{interval}{sinpi}{(const interval\& \var{I})}
+\deffunx{interval}{cospi}{(const interval\& \var{I})}
+\begin{deffun}{interval}{tanpi}{(const interval\& \var{I})}
+  $\sin(\pi x)$, $\cos(\pi x)$ and $\tan(\pi x)$ for $x$ in \var{I}:
+  \ieee{sinPi}, \ieee{cosPi} and \ieee{tanPi} of IEEE 1788-2015
+  (Table~10.5).\newinvfive{} Their extrema and poles are at the multiples of
+  $1/2$, which are doubles, and are found exactly, at every magnitude.
+  \code{tanpi} has no value at the half-integers, which are left out: a
+  half-integer alone gives the empty set.
+\end{deffun}
+
+\deffunx{interval}{asinpi}{(const interval\& \var{I})}
+\deffunx{interval}{acospi}{(const interval\& \var{I})}
+\deffunx{interval}{atanpi}{(const interval\& \var{I})}
+\begin{deffun}{interval}{atan2pi}{(const interval\& \var{Y}, const interval\& \var{X})}
+  $\operatorname{asin}(x)/\pi$, $\operatorname{acos}(x)/\pi$,
+  $\operatorname{atan}(x)/\pi$ and $\operatorname{atan2}(y,x)/\pi$:
+  \ieee{asinPi}, \ieee{acosPi}, \ieee{atanPi} and \ieee{atan2Pi} of IEEE
+  1788-2015 (Table~10.5), within \itv{-1/2}{1/2}, \itv{0}{1},
+  \itv{-1/2}{1/2} and \itv{-1}{1}.\newinvfive
+\begin{example}
+cout << sinpi(interval(1e17)) << ' '
+     << sin(interval::pi() * 1e17) << endl;
+@outputs^[0] [-1, 1]~
+cout << tanpi(interval(0.5)) << ' '
+     << tanpi(interval(0.25,0.75)) << ' '
+     << asinpi(interval(1)) << ' '
+     << atan2pi(interval(1), interval(-1)) << endl;
+@outputs^[empty] [-inf, inf] [0.5] [0.75]~
+\end{example}
+\end{deffun}
+
+\subsection{Hyperbolic functions}\label{sec:arithmetic-hyperbolic}
+\cindex{hyperbolic functions}%
+
+\begin{deffun}{interval}{cosh}{(const interval\& \var{I})}
+  Returns the hyperbolic cosine of \var{I}.
+\end{deffun}
+
+\begin{deffun}{interval}{acosh}{(const interval\& \var{I})}
+  Returns the hyperbolic arccosine of \var{I}, on the part of \var{I} in
+  \itv{1}{+\infty}.
+\end{deffun}
+
+\begin{deffun}{interval}{sinh}{(const interval\& \var{I})}
+  Returns the hyperbolic sine of \var{I}.
+\end{deffun}
+
+\begin{deffun}{interval}{asinh}{(const interval\& \var{I})}
+  Returns the hyperbolic arcsine of \var{I}.
+\end{deffun}
+
+\begin{deffun}{interval}{tanh}{(const interval\& \var{I})}
+  Returns the hyperbolic tangent of \var{I}, within \itv{-1}{1}.
+\end{deffun}
+
+\begin{deffun}{interval}{atanh}{(const interval\& \var{I})}
+  Returns the hyperbolic arctangent of \var{I}, defined on
+  $\left]-1,1\right[$, $-\infty$ and $+\infty$ being its limits at $-1$ and
+  $1$. The part of \var{I} outside is left out, and an interval with no point
+  of it gives the empty set, as \code{atanh(\itv{1}{5})} and
+  \code{atanh(\itv{-1}{-1})} do.
+\begin{example}
+cout << cosh(interval(-1,2)) << ' '
+     << tanh(interval(20,30)) << endl
+     << acosh(interval(0,1)) << ' '
+     << atanh(interval(-2,2)) << ' '
+     << atanh(interval(1,5)) << endl;
+@outputs^[1, 3.762195691083632] [0.9999999999999998, 1]~
+@outputs^[0] [-inf, inf] [empty]~
+\end{example}
+\end{deffun}
+
+\begin{Rem}\label{rem:arithmetic-hyperbolic-coremath}
+The six hyperbolic functions are those of CORE-MATH. GAOL~4 took them from
+the mathematical library of the system, which is sometimes further than one
+double from the exact value.\newinvfive
+\end{Rem}
+
+\subsection{Other functions}\label{sec:arithmetic-other}
+
+\begin{deffun}{interval}{hypot}{(const interval\& \var{X}, const interval\& \var{Y})}
+  $\sqrt{x^2+y^2}$ for $x$ in \var{X} and $y$ in \var{Y}: \ieee{hypot} of
+  IEEE 1788-2015 (Table~10.5), computed at the points of the box nearest to
+  the origin and farthest from it.\newinvfive
+\end{deffun}
+
+\begin{deffun}{interval}{rsqrt}{(const interval\& \var{I})}
+  $1/\sqrt{x}$ for $x$ in \var{I}, defined on $\left]0,+\infty\right]$,
+  $+\infty$ being its limit at 0: \ieee{rSqrt} of IEEE 1788-2015
+  (Table~10.5).\newinvfive
+\begin{example}
+cout << hypot(interval(3), interval(4)) << ' '
+     << hypot(interval(-3,1), interval(4,5)) << endl
+     << rsqrt(interval(4,16)) << ' '
+     << rsqrt(interval(0.0,4)) << endl;
+@outputs^[5] [4, 5.830951894845301]~
+@outputs^[0.25, 0.5] [0.5, inf]~
+\end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{compoundm1}{(const interval\& \var{X}, const interval\& \var{Y})}
+  $(1+x)^y-1$ for $x$ in \var{X} and $y$ in \var{Y}: \ieee{compoundm1} of
+  IEEE 1788-2015 (Table~10.5). It keeps the digits of a small $x$ that
+  \code{pow(1+x, y) - 1} loses, $1+x$ being rounded and the difference
+  cancelling what is left. It is defined for $x>-1$, and for $x=-1$ when
+  $y>0$, where it is $-1$. The part of the box outside is left out, and $-1$
+  and $+\infty$, the limits at $x=-1$, at $x=+\infty$ and for an infinite
+  $y$, are bounds. CORE-MATH has no function for it: the value at a corner
+  of the box is computed with integers, 64 bits in a fast phase that settles
+  71 to 95\,\% of the pairs, 128 bits and a bound of the error in the others.
+  It takes 0.1 microsecond for each of the one or two corners where the
+  bounds are, where the fast phase settles it, and 0.6 to 0.9 elsewhere. The
+  bounds are the tightest ones, the double itself where the value is one
+  (2.375 for $x=1.5-1$ and $y=3$, but also $2^m-1$ for $|m|\le53$, and the
+  quotient $-x/(1+x)$ of $y=-1$, divided exactly), but in a case out of
+  $10^{17}$ or so, where a bound is a double beyond.\newinvfive
+\begin{example}
+cout << compoundm1(interval(0.5), interval(2)) << ' '
+     << compoundm1(interval(1,3), interval(1,2)) << endl
+     << compoundm1(interval(-1), interval(0,1)) << ' '
+     << compoundm1(interval(-1,0), interval(-1)) << endl
+     << compoundm1(interval(1e-20), interval(3)) << endl;
+@outputs^[1.25] [1, 15]~
+@outputs^[-1] [0, inf]~
+@outputs^[2.999999999999999e-20, 3.000000000000001e-20]~
+\end{example}
+\end{deffun}
+
+\deffunx{interval}{erf}{(const interval\& \var{I})}
+\begin{deffun}{interval}{erfc}{(const interval\& \var{I})}
+  The error function $\operatorname{erf}(x)=\frac{2}{\sqrt{\pi}}\int_0^x
+  e^{-t^2}\,dt$, increasing from $-1$ to 1, and its complement
+  $\operatorname{erfc}(x)=1-\operatorname{erf}(x)$, decreasing from 2 to 0,
+  for $x$ in \var{I}: the \code{erf} and \code{erfc} of C, which CORE-MATH
+  computes, with the tightest bounds, exact at 0 and at the infinities.
+  $\operatorname{erfc}(x)$ is subnormal from $x=26.55$ on, and below the
+  least subnormal from $x=27.22$ on, where the lower bound is 0. IEEE
+  1788-2015 does not name them, and \code{gaol\_ieee1788} does not hold
+  them: a call \code{erf(\var{x})} on an interval finds them all the same,
+  by argument-dependent lookup.\newinvfive
+\begin{example}
+cout << erf(interval(0.0)) << ' ' << erf(interval(-1,1)) << ' '
+     << erf(interval(6,7)) << endl
+     << erfc(interval(0.0,1)) << ' ' << erfc(interval(28,30)) << endl;
+@outputs^[0] [-0.8427007929497149, 0.8427007929497149] [0.9999999999999998, 1]~
+@outputs^[0.1572992070502851, 1] [0, 4.940656458412466e-324]~
+\end{example}
+\end{deffun}
+
+\section{Relational arithmetic}\label{sec:relational-arithmetic}
+\cindex{reverse functions|see{relational arithmetic}}%
+\cindex{relational arithmetic}%
+
+The relational functions of GAOL are the \dfn{reverse functions} of
+IEEE 1788-2015 (10.5.4, Table 10.1), with their arguments in another order:
+each computes the hull of the $x$ of an interval \var{I} whose image by the
+function is in \var{J}. Their correspondence is given at the end of this
+section (Table~\ref{tab:arithmetic-reverse}), and the namespace
+\code{gaol\_ieee1788} provides them under their names
+(Chapter~\ref{chap:ieee1788}).
+
+\defmethodx{interval}{interval}{operator\% }{(double \var{d}) const}
+\defmethodx{interval}{interval}{operator\% }{(const interval\& \var{I}) const}
+\begin{deffun}{interval}{operator\%}{(double \var{d}, const interval\& \var{I})}
+  \begin{operation}
+    \op{$\code{self}\,\%\,\var{I}=\hull{\{z\in \RSet\mid
+      \exists x\in \code{self}, \exists y\in I\colon x=yz\}}$}
+  \end{operation}
+  Relational division: \code{div\_rel(self, \var{I}, \itv{-\infty}{+\infty})}.
+\begin{example}
+cout << interval(1,2) % interval(0,1) << ' '
+     << interval(1,2) % interval(-1,1);
+@outputs^[1, inf] [-inf, inf]~
+\end{example}
+\end{deffun}
+
+\subsection{$(n+1)$-ary relational functions}\label{sec:arithmetic-nary}
+
+Consider the relation $y=\cos x$ between two interval variables $x$ and $y$.
+The equivalent form $x=\operatorname{acos}y$ cannot be computed with the
+function $\operatorname{acos}$, whose result always lies in \itv{0}{\pi}: a
+relational version of $\operatorname{acos}$ is needed. For any value of $y$
+in \itv{-1}{1} there are infinitely many $x$ such that $y=\cos x$, so the
+domain of $x$ has to be taken into account, and the relational arccosine is
+a binary operator.
+
+\begin{Def}\label{def:arithmetic-acos-rel}
+The \emph{relational arccosine} of $Y$ with respect to $X$ is
+\begin{equation*}
+\code{acos\_rel}(Y,X)=\hull{\{x\in X\mid\exists y\in Y\colon y=\cos x\}}.
+\end{equation*}
+\end{Def}
+
+\noindent It is to be contrasted with the functional arccosine,
+\begin{equation*}
+\code{acos}(Y)=\hull{\{x\in\RSet\mid\exists y\in Y\colon
+  x=\operatorname{acos} y\}}.
+\end{equation*}
+Figure~\ref{fig:relational-cos} shows the results of $\code{acos}(J)$ and of
+$\code{acos\_rel}(J,I)$ on the same arguments.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=.85\textwidth,bb=11 262 553 470]{relation-cos}
+  \caption{The functional arccosine $\code{acos}(J)$ and the relational
+    arccosine $\code{acos\_rel}(J, I)$}
+  \label{fig:relational-cos}
+\end{figure}
+
+\begin{Rem}\label{rem:arithmetic-empty-preimage}
+An interval \var{I} that meets no piece of the preimage gives the empty
+set.\newinvfive{} The same holds for every relational function of this
+section: the result is empty when no $x$ of the interval contracted is in
+the relation.
+\end{Rem}
+
+\begin{deffun}{interval}{acos\_rel}{(const interval\& J, const interval\& I)}
+  \begin{operation}
+    \op{$\code{acos\_rel}(J,I)=
+      \hull{\{x\in I\mid\exists y\in J\colon y=\cos x\}}$}
+  \end{operation}
+  Returns the \emph{relational arccosine} of \var{J} with respect to \var{I}.
+\end{deffun}
+
+\begin{deffun}{interval}{asin\_rel}{(const interval\& J, const interval\& I)}
+  \begin{operation}
+    \op{$\code{asin\_rel}(J,I)=
+      \hull{\{x\in I\mid\exists y\in J\colon y=\sin x\}}$}
+  \end{operation}
+  Returns the \emph{relational arcsine} of \var{J} with respect to \var{I}.
+\end{deffun}
+
+\begin{deffun}{interval}{atan\_rel}{(const interval\& J, const interval\& I)}
+  \begin{operation}
+    \op{$\code{atan\_rel}(J,I)=
+      \hull{\{x\in I\mid\exists y\in J\colon y=\tan x\}}$}
+  \end{operation}
+  Returns the \emph{relational arctangent} of \var{J} with respect to
+  \var{I}.
+
+  The three functions enclose the multiples of $\pi$ of the pieces of the
+  preimage in double-double arithmetic, and add the inverse function of
+  \var{J} before rounding the sum: their bounds are within one double of the
+  accurate ones.\newinvfive
+\begin{example}
+cout << asin_rel(interval(0.0), interval(1,7)) << endl
+     << atan_rel(interval(1), interval(0,5)) << endl;
+@outputs^[3.141592653589793, 6.283185307179588]~
+@outputs^[0.7853981633974482, 3.926990816987242]~
+\end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{acosh\_rel}{(const interval\& J, const interval\& I)}
+  \begin{operation}
+    \op{$\code{acosh\_rel}(J,I)=
+      \hull{\{x\in I\mid\exists y\in J\colon y=\cosh x\}}$}
+  \end{operation}
+  Returns the \emph{relational hyperbolic arccosine} of \var{J} with respect
+  to \var{I}.
+\end{deffun}
+
+\deffunx{interval}{asinh\_rel}{(const interval\& J, const interval\& I)}
+\begin{deffun}{interval}{atanh\_rel}{(const interval\& J, const interval\& I)}
+  \begin{operation}
+    \op{$\code{asinh\_rel}(J,I)=
+      \hull{\{x\in I\mid\exists y\in J\colon y=\sinh x\}}$}
+    \op{$\code{atanh\_rel}(J,I)=
+      \hull{\{x\in I\mid\exists y\in J\colon y=\tanh x\}}$}
+  \end{operation}
+  Return the \emph{relational hyperbolic arcsine} and \emph{arctangent} of
+  \var{J} with respect to \var{I}, that is, $\operatorname{asinh}(J)\cap I$
+  and $\operatorname{atanh}(J)\cap I$, $\sinh$ and $\tanh$ being one-to-one.
+  As $\tanh$ takes its values in $\left]-1,1\right[$, \code{atanh\_rel}
+  gives the empty set for a \var{J} with no point of it, as \itv{1}{1}.
+\begin{example}
+cout << acosh_rel(interval(1,2), interval::universe()) << endl
+     << asinh_rel(interval(0,1), interval::universe()) << endl
+     << atanh_rel(interval(1), interval::universe()) << endl;
+@outputs^[-1.316957896924817, 1.316957896924817]~
+@outputs^[0, 0.8813735870195431]~
+@outputs^[empty]~
+\end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{sqrt\_rel}{(const interval\& J, const interval\& I)}
+  \begin{operation}
+    \op{$\code{sqrt\_rel}(J,I)=\hull{\{x\in I\mid\exists y\in J\colon y=x^2\}}$}
+  \end{operation}
+  Returns the \emph{relational square root} of \var{J} with respect to
+  \var{I} (Definition~\ref{def:arithmetic-relational-sqrt}).
+\begin{example}
+cout << sqrt_rel(interval(1,4), interval::universe()) << ' '
+     << sqrt_rel(interval(1,4), interval(0,10));
+@outputs^[-2, 2] [1, 2]~
+\end{example}
+\end{deffun}
+
+\deffunx{interval}{nth\_root\_rel}{(const interval\& \var{J}, unsigned int \var{n}, \\\hbox{}\hfill const interval\& \var{I})}
+\begin{deffun}{interval}{nth\_root\_rel}{(const interval\& \var{J}, int \var{p}, \\\hbox{}\hfill const interval\& \var{I})}
+  \begin{operation}
+    \op{$\code{nth\_root\_rel}(J,n,I)=
+      \hull{\{x\in I\mid\exists y\in J\colon y=x^n\}}$}
+    \op{$\code{nth\_root\_rel}(J,p,I)=\hull{\{x\in I\mid x^p\text{ is defined
+      and in }J\}}$}
+  \end{operation}
+  Returns the \emph{relational inverse \var{n}-th power} of \var{J} with
+  respect to \var{I}, for $n\geq1$. It takes the roots of
+  \code{nth\_root()}.\newinvfive{} For an \code{int} \var{p}, or an integer
+  of another type, it is the reverse of $x^p$ for every integer $p$, the
+  \ieee{pownRev} of the standard. $x^0$ is $1$ for every $x$, $0$ included,
+  so that the result is \var{I} where $1\in J$, and the empty set elsewhere:
+  \code{nth\_root\_rel(\itv{-1}{5}, 0, I)} is \var{I}, and
+  \code{nth\_root\_rel(\itv{2}{3}, 0, I)} is empty. For $p<0$, $x^p$ is
+  $1/x^{|p|}$, which $0$ has not. \var{J} is then cut at $0$, and each part
+  gives its roots: the hull of the roots of the whole of \var{J} would keep
+  the part of \var{I} between them. The roots reach $0$ where \var{J} is
+  unbounded, $0$ being a limit there and no solution:
+  \code{nth\_root\_rel(\itv{1}{+\infty}, -2, \itv{0}{0})} is empty. The
+  bounds are those of \code{nth\_root(J, p)}, the root and then its inverse:
+  up to four doubles beyond the tightest ones for $p<0$. An exponent of type
+  \code{double} or \code{float} is refused at compile time, as the ambiguous
+  \code{nth\_root(x, 2.0)} is: it was converted to an \code{unsigned int},
+  which cut $2.5$ to $2$.
+\begin{example}
+interval J(1,16);
+cout << nth_root_rel(J, 4, interval::universe()) << ' '
+     << nth_root_rel(J, 4, interval(-10,0.0));
+@outputs^[-2, 2] [-2, -1]~
+\end{example}
+\begin{example}
+cout << nth_root_rel(interval(1,8), -3, interval::universe()) << ' '
+     << nth_root_rel(interval(-1,2), -3, interval(-0.5,0.5)) << ' '
+     << nth_root_rel(interval(1,GAOL_INFINITY), -2, interval(0,3)) << ' '
+     << nth_root_rel(interval(1,2), 0, interval(-5,5));
+@outputs^[0.5, 1] [empty] [0, 1] [-5, 5]~
+\end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{invabs\_rel}{(const interval\& J, const interval\& I)}
+  \begin{operation}
+    \op{$\code{invabs\_rel}(J,I)=\hull{\{x\in I\mid |x|\in J\}}$}
+  \end{operation}
+  Returns the \emph{relational inverse absolute value} of \var{J} with
+  respect to \var{I}. The negative part of \var{J} holds no magnitude:
+  GAOL~4 took it as magnitudes, and gave \itv{-2}{2} where the result is
+  empty.\newinvfive
+\begin{example}
+cout << invabs_rel(interval(1,2), interval::universe()) << ' '
+     << invabs_rel(interval(-2,-1), interval(-10,10));
+@outputs^[-2, 2] [empty]~
+\end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{div\_rel}{(const interval\& K, const interval\& J, const interval\& I)}
+  \begin{operation}
+    \op{$\code{div\_rel}(K,J,I)=
+      \hull{\{x\in I\mid\exists z\in K,\exists y\in J\colon z=xy\}}$}
+  \end{operation}
+  Returns the \emph{ternary relational division} of \var{K} by \var{J} with
+  respect to \var{I}, which is empty when no $x$ of \var{I} is in the
+  relation.\newinvfive
+\begin{example}
+cout << div_rel(interval(1,2), interval(-1,1),
+                interval(0,10)) << ' '
+     << div_rel(interval(5,6), interval(1,2),
+                interval(10,20));
+@outputs^[1, 10] [empty]~
+\end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{pow\_rel}{(const interval\& K, const interval\& J, const interval\& I)}
+  \begin{operation}
+    \op{$\code{pow\_rel}(K,J,I)=
+      \hull{\{x\in I\mid\exists z\in K,\exists y\in J\colon z=x^y\}}$}
+  \end{operation}
+  Returns the \emph{relational base} of the power $z=x^y$: the hull of the
+  $x$ of \var{I} with an $x^y$ in \var{K} for a $y$ of \var{J}. It contracts
+  the base of $z=x^y$ as \code{div\_rel(K, J, I)} contracts a factor of
+  $z=xy$, with the arguments in the same order.\newinvfive{} $x^y$ is the
+  \code{pow} of IEEE 1788-2015 (Table 9.1), that of
+  \code{gaol\_ieee1788::pow}: $e^{y\log x}$ for $x>0$, $0$ for $x=0$ and
+  $y>0$, and no value elsewhere, so that no $x<0$ is a solution, in either
+  namespace. The \code{pow} of \code{gaol} takes the integer power for a
+  degenerate integer exponent $[n]$, which has negative bases too
+  (Remark~\ref{rem:arithmetic-pow-monotone}): the reverse of $x^n$ is
+  \code{nth\_root\_rel(K, n, I)}.
+\begin{example}
+cout << pow_rel(interval(4,9), interval(2), interval::universe()) << ' '
+     << pow_rel(interval(2,3), interval(1,GAOL_INFINITY), interval(0,1)) << ' '
+     << pow_rel(interval(1,4), interval(2), interval(-3,3));
+@outputs^[2, 3] [empty] [1, 2]~
+\end{example}
+  $x^y\geq2$ for a $y\geq1$ asks $x>1$: the second result is empty.
+\end{deffun}
+
+\begin{deffun}{interval}{pow\_exponent\_rel}{(const interval\& K, const interval\& H, \\\hbox{}\hfill const interval\& I)}
+  \begin{operation}
+    \op{$\code{pow\_exponent\_rel}(K,H,I)=\hull{\{y\in I\mid\exists z\in K,
+      \exists x\in H\colon z=x^y\}}$}
+  \end{operation}
+  Returns the \emph{relational exponent} of the power $z=x^y$, the same
+  \code{pow} as \code{pow\_rel()}: the hull of the $y$ of \var{I} with an
+  $x^y$ in \var{K} for an $x$ of \var{H}.\newinvfive
+\begin{example}
+cout << pow_exponent_rel(interval(8), interval(2), interval::universe()) << ' '
+     << pow_exponent_rel(interval(3), interval(2,4), interval::universe());
+@outputs^[3] [0.792481250360578, 1.584962500721157]~
+\end{example}
+  The bounds of both functions are the tightest ones. The ends of the
+  solutions, $c^{1/y}$ and $\log c/\log x$ for bounds $c$, $x$ and $y$ of
+  the arguments, are bounded by the largest and the smallest doubles $d$
+  whose powers $d^y$, or $x^d$, the \code{pow} of CORE-MATH, correctly
+  rounded, proves to be on either side of $c$. A bound of \var{I} where the
+  solutions start between it and the next double is kept when its power is
+  within one double of $c$, which only knowing whether that power is a
+  double would settle:
+  \code{pow\_rel(\itv{1+2^{-52}}{1+2^{-52}}, \itv{0.5}{0.5},
+  \itv{0}{1+2^{-51}})} is \itv{1+2^{-51}}{1+2^{-51}}, where
+  $(1+2^{-52})^2=1+2^{-51}+2^{-104}$ and no $x$ of \itv{0}{1+2^{-51}} is a
+  solution: the tightest result for \var{I} one double wider.
+\end{deffun}
+
+\begin{Ex}\label{ex:arithmetic-pow-rel}
+The two reverse functions of the power contract in turn the base and the
+exponent of the relation $z=x^y$, each from the current domains of the two
+others.
+\begin{example}
+interval x(0, 10), y(2, 3), z(4, 9);
+x = pow_rel(z, y, x);            @rem^// the x of x with pow(x, y) in z for a y of y~
+y = pow_exponent_rel(z, x, y);   @rem^// the y of y with pow(x, y) in z for an x of x~
+cout << x << ' ' << y << endl;   @rem^// [1.587401051968199, 3] [2, 3]~
+gaol::cleanup();
+\end{example}
+The base is contracted to \itv{1.587401051968199}{3}, the cube root of 4
+being its least value with a power in \itv{4}{9}; the exponent \itv{2}{3} is
+not contracted, every $y$ of it having a base in \itv{1.587401051968199}{3}.
+\end{Ex}
+
+\deffunx{interval}{max\_rel}{(const interval\& Z, const interval\& Y, const interval\& X)}
+\begin{deffun}{interval}{min\_rel}{(const interval\& Z, const interval\& Y, const interval\& X)}
+  \begin{operation}
+    \op{$\code{max\_rel}(Z,Y,X)=\hull{\{x\in X\mid\exists y\in Y\colon
+      \max(x,y)\in Z\}}$}
+    \op{$\code{min\_rel}(Z,Y,X)=\hull{\{x\in X\mid\exists y\in Y\colon
+      \min(x,y)\in Z\}}$}
+  \end{operation}
+  Return the \emph{relational maximum} and \emph{minimum} of \var{Z} given
+  \var{Y} with respect to \var{X}, the arguments in the order of
+  \code{div\_rel}: the result, the other operand, then the operand
+  contracted. $\max$ and $\min$ being symmetric, \code{max\_rel(Z,~X,~Y)}
+  contracts \var{Y}, and \code{max(X,~Y)~\&~Z} contracts \var{Z}.
+  $\max(x,y)$ is in \var{Z} when $x$ and $y$ are at most $\rightBound{Z}$
+  and one of them at least $\leftBound{Z}$: the set is empty when \var{Y}
+  lies above \var{Z}, $X\cap\itv{-\infty}{\rightBound{Z}}$ when \var{Y}
+  meets \var{Z}, and $X\cap Z$ when \var{Y} lies below \var{Z}, the maximum
+  being $x$; \code{min\_rel} is its mirror image. The bounds are those of
+  \var{X} and \var{Z}: each result is the tightest enclosure.\newinvfive
+\begin{example}
+cout << max_rel(interval(1,2), interval(3,4), interval(-5,5)) << ' '
+     << max_rel(interval(1,2), interval(0,1), interval(-5,5)) << ' '
+     << max_rel(interval(1,2), interval(-1,0), interval(-5,5)) << endl
+     << min_rel(interval(1,2), interval(2,3), interval(-5,5)) << endl;
+@outputs^[empty] [-5, 2] [1, 2]~
+@outputs^[1, 5]~
+\end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{sign\_rel}{(const interval\& Z, const interval\& X)}
+  \begin{operation}
+    \op{$\code{sign\_rel}(Z,X)=
+      \hull{\{x\in X\mid \operatorname{sign}(x)\in Z\}}$}
+  \end{operation}
+  Returns the \emph{relational inverse sign} of \var{Z} with respect to
+  \var{X}: the negative $x$ of \var{X} where \var{Z} holds $-1$, 0 where
+  \var{Z} and \var{X} hold it, and the positive $x$ of \var{X} where \var{Z}
+  holds 1; the empty set where \var{Z} holds none of them, as
+  \itv{0.5}{0.7}. The negative $x$ go up to 0, which their tightest
+  enclosure takes although $\operatorname{sign}(0)=0$, the negative doubles
+  next to 0 being in the set.\newinvfive
+\begin{example}
+cout << sign_rel(interval(-1), interval(-2,3)) << ' '
+     << sign_rel(interval(-1), interval(0,3)) << ' '
+     << sign_rel(interval(0,1), interval(-2,3)) << endl;
+@outputs^[-2, 0] [empty] [0, 3]~
+\end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{floor\_rel}{(const interval\& Z, const interval\& X)}
+  \begin{operation}
+    \op{$\code{floor\_rel}(Z,X)=\hull{\{x\in X\mid \lfloor x\rfloor\in Z\}}$}
+  \end{operation}
+  Returns the \emph{relational inverse floor} of \var{Z} with respect to
+  \var{X}: the part of \var{X} in
+  $\left[\lceil\leftBound{Z}\rceil,\lfloor\rightBound{Z}\rfloor+1\right[$,
+  the $x$ whose floor is an integer of \var{Z}, and the empty set when
+  \var{Z} holds no integer. That interval is open at its upper end, which
+  its tightest closed enclosure takes all the same, the reals just below it
+  being in the set: \code{floor\_rel(interval(0), interval(0.5,~2))} is
+  \itv{0.5}{1}, and \code{floor\_rel(interval(0), interval(1,~2))} is empty,
+  \var{X} starting at that end. Beyond $2^{53}$, where every double is an
+  integer, $\lfloor\rightBound{Z}\rfloor+1$ is no double, and the bound is
+  the double above it: \code{floor\_rel} of \itv{2^{53}}{2^{53}} ends at
+  $2^{53}+2$, and at $+\infty$ for \itv{\text{DBL\_MAX}}{\text{DBL\_MAX}},
+  where \var{X} goes on to it. Each result is the tightest
+  enclosure.\newinvfive
+\begin{example}
+cout << floor_rel(interval(0,2), interval(-5,5)) << ' '
+     << floor_rel(interval(0), interval(1,2)) << ' '
+     << floor_rel(interval(0.5,0.7), interval(-5,5)) << endl;
+@outputs^[0, 3] [empty] [empty]~
+\end{example}
+\end{deffun}
+
+\deffunx{interval}{atan2\_rel\_y}{(const interval\& \var{C}, const interval\& \var{X}, \\\hbox{}\hfill const interval\& \var{Y})}
+\begin{deffun}{interval}{atan2\_rel\_x}{(const interval\& \var{C}, const interval\& \var{Y}, \\\hbox{}\hfill const interval\& \var{X})}
+  \begin{operation}
+    \op{$\code{atan2\_rel\_y}(C,X,Y)=\hull{\{y\in Y\mid\exists x\in X\colon
+      \operatorname{atan2}(y,x)\in C\}}$}
+    \op{$\code{atan2\_rel\_x}(C,Y,X)=\hull{\{x\in X\mid\exists y\in Y\colon
+      \operatorname{atan2}(y,x)\in C\}}$}
+  \end{operation}
+  Return the \emph{relational} \code{atan2} with respect to its first and to
+  its second argument: the hulls of the ordinates and of the abscissas of
+  the points of the box $\var{X}\times\var{Y}$ whose angle is in \var{C},
+  the point $(0,0)$, which has no angle, left out.\newinvfive{} As in
+  \code{div\_rel}, the interval contracted comes last, and the other
+  argument of \code{atan2} before it. The angles are those of \code{atan2},
+  in $\left]-\pi,\pi\right]$: the half-line $y=0$, $x<0$ has the angle
+  $\pi$, and a \var{C} holding $-\pi$ but not $\pi$ leaves it out; the
+  angles of \var{C} beyond $\pi$ are no angle of any point. The bounds are
+  within two doubles of the tightest ones.
+\begin{example}
+interval c(1,2), x(-1,1), y(0,1);
+cout << atan2_rel_y(c, x, y) << ' '
+     << atan2_rel_x(c, y, x) << endl
+     << atan2_rel_x(interval(-4,-3), interval(0.0), x)
+     << endl;
+@outputs^[0, 1] [-0.4576575543602859, 0.6420926159343309]~
+@outputs^[empty]~
+\end{example}
+\end{deffun}
+
+\subsection{The reverse functions of the standard}
+\label{sec:arithmetic-reverse-names}
+
+Table~\ref{tab:arithmetic-reverse} gives the correspondence between the
+reverse functions of IEEE 1788-2015 and the relational functions of GAOL.
+The last argument $x$ of a function of the standard is
+\itv{-\infty}{+\infty} when it is left out.
+
+\begin{table}[htbp]
+  \centering\renewcommand{\arraystretch}{1.1}
+  \begin{tabular}{ll}
+    \hline
+    \multicolumn{1}{c}{IEEE 1788-2015} & \multicolumn{1}{c}{GAOL}\\
+    \hline\hline
+    \ieee{sqrRev}$(c,x)$ & \code{sqrt\_rel(c, x)}\\
+    \ieee{absRev}$(c,x)$ & \code{invabs\_rel(c, x)}\\
+    \ieee{pownRev}$(c,x,p)$ & \code{nth\_root\_rel(c, p, x)}\\
+    \ieee{sinRev}, \ieee{cosRev}, \ieee{tanRev}$(c,x)$ &
+      \code{asin\_rel}, \code{acos\_rel}, \code{atan\_rel(c, x)}\\
+    \ieee{coshRev}$(c,x)$ & \code{acosh\_rel(c, x)}\\
+    \ieee{mulRev}$(b,c,x)$ & \code{div\_rel(c, b, x)}\\
+    \ieee{powRev1}$(b,c,x)$ & \code{pow\_rel(c, b, x)}\newinvfive\\
+    \ieee{powRev2}$(a,c,x)$ & \code{pow\_exponent\_rel(c, a, x)}\newinvfive\\
+    \ieee{atan2Rev1}$(b,c,x)$ & \code{atan2\_rel\_y(c, b, x)}\newinvfive\\
+    \ieee{atan2Rev2}$(a,c,x)$ & \code{atan2\_rel\_x(c, a, x)}\newinvfive\\
+    \hline
+  \end{tabular}
+  \caption{The reverse functions of IEEE 1788-2015 and the relational
+    functions of GAOL}
+  \label{tab:arithmetic-reverse}
+\end{table}
+
+\begin{Rem}\label{rem:arithmetic-reverse-names}
+\ieee{mulRevToPair}$(b,c)$, the two parts of \code{div\_rel(c, b)}, is in
+the namespace \code{gaol\_ieee1788} under its name
+(Chapter~\ref{chap:ieee1788}).\newinvfive{} \ieee{pownRev} takes every
+integer $p$, $p\leq0$ included. \code{max\_rel}, \code{min\_rel},
+\code{sign\_rel} and \code{floor\_rel} are the reverse functions of $\max$,
+$\min$, $\operatorname{sign}$ and $\operatorname{floor}$ as the standard
+defines them (10.5.4), which it neither names nor requires, Table~10.1 not
+listing them: the namespace \code{gaol\_ieee1788} has no name for them. A
+program that opens that namespace calls them as \code{max\_rel(z, y, x)}
+all the same, argument-dependent lookup finding them in
+\code{gaol\_core}.\newinvfive
+\end{Rem}
+
+\section{Cancellative addition and subtraction}
+\label{sec:arithmetic-cancellative}
+\cindex{cancellative operations}%
+
+The two functions of this section are the \ieee{cancelMinus} and
+\ieee{cancelPlus} of IEEE 1788-2015 (10.5.6): \code{cancel\_minus(X, Y)} is
+the tightest interval that, added to \var{Y}, gives an interval containing
+\var{X}, when such an interval exists.
+
+\begin{deffun}{interval}{cancel\_minus}{(const interval\& \var{X}, const interval\& \var{Y})}
+  The tightest interval $Z$ such that $Y+Z$ contains $X$,
+  \itv{\leftBound{X}-\leftBound{Y}}{\rightBound{X}-\rightBound{Y}}, which
+  exists when \var{X} and \var{Y} are bounded and \var{X} is at least as wide
+  as \var{Y}; \itv{-\infty}{+\infty} otherwise, and the empty set for an
+  empty \var{X} and a bounded \var{Y}: \ieee{cancelMinus} of IEEE 1788-2015
+  (10.5.6). Whether \var{X} is at least as wide as \var{Y} is decided
+  exactly, which rounding the differences of the bounds cannot
+  do.\newinvfive
+\end{deffun}
+
+\begin{deffun}{interval}{cancel\_plus}{(const interval\& \var{X}, const interval\& \var{Y})}
+  \code{cancel\_minus(\var{X}, -\var{Y})}: \ieee{cancelPlus} of IEEE
+  1788-2015.\newinvfive
+\begin{example}
+cout << cancel_minus(interval(1,5), interval(0,2)) << ' '
+     << cancel_minus(interval(1,2), interval(0,3)) << ' '
+     << cancel_plus(interval(1,5), interval(0,2));
+@outputs^[1, 3] [-inf, inf] [3, 5]~
+\end{example}
+\end{deffun}
+
+\section{Discussion}\label{sec:arithmetic-discussion}
+
+This chapter has given the reference of the operations on intervals. Every
+functional operation computes the hull of the image of the part of its
+argument within the domain of IEEE 1788-2015, and gives the empty set for an
+argument with no point of that domain. The elementary functions take their
+values from CORE-MATH, which is correctly rounded: their bounds are the
+tightest ones, or within a double or two of them, where GAOL~4 depended on
+the mathematical library of the system. The power is hybrid: an integer
+exponent, whatever its type, takes the integer power \ieee{pown}, with the
+negative bases, and any other exponent the real power \ieee{pow}, at the
+price of a result that is not monotone for the inclusion of the exponent;
+the powers of the two namespaces are compared in Chapter~\ref{chap:overview}.
+
+\medskip
+The relational functions are the reverse functions of the standard with the
+arguments in the order of GAOL, the result first and the operand contracted
+last. GAOL v5 adds the reverse functions of the power, of \code{atan2}, of
+the maximum, the minimum, the sign and the floor, which the standard defines
+but does not name, and gives the empty set wherever no point of the operand
+is in the relation.\newinvfive{} How tight each operation is, and the
+conditions under which the bounds are the same on every machine, are the
+subject of Chapter~\ref{chap:accuracy}; how the bounds are computed, of
+Chapter~\ref{chap:computing}.
+
+\medskip
+Chapter~\ref{chap:functions} describes the functions on intervals that are
+not arithmetic operations: the numeric and the integer functions of an
+interval, its splitting, and the union and the intersection of intervals.

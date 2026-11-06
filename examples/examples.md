@@ -558,7 +558,7 @@ newcomer does not need. `doc/accuracy.md`, the tightness of each operation as
 IEEE 1788 (12.10.3) asks, is rare among interval libraries.
 
 **The manual's examples print almost exactly what it shows.** The 86 example
-blocks of `manual/v5/gaol.tex` with an expected output (102 outputs) were
+blocks of `manual/v5/chapters/` with an expected output (102 outputs) were
 extracted, compiled with GCC and Clang in C++11 and C++17, and run: all match,
 apart from 29 formatting slips, since fixed (`true`/`false` printed without
 `std::boolalpha`, `nan` printed `-nan`...). But the function of the overview

@@ -241,7 +241,7 @@ four jobs of `linux.yml` with the sanitizers, where it took 109 to 287 s and
 once more than 300, 600 in the job of macOS 15 x86_64 GCC with the sanitizers,
 where it took 146 to 367 s on the same code, and once more than 400.
 
-The manuals, that of GAOL v5 (`manual/v5/gaol.tex`) and that of GAOL 4
+The manuals, that of GAOL v5 (`manual/v5/manual_gaolv5.tex`) and that of GAOL 4
 (`manual/v4/gaol.tex`), are built with the LaTeX of Ubuntu 24.04, by the
 autotools and the meson builds, when `manual/` changes (`manual.yml`); the
 PDFs are artifacts of the run. The examples of the manual of GAOL v5 that show

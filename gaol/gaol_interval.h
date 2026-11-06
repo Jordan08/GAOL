@@ -225,7 +225,7 @@ namespace gaol {
     textToInterval(s): the interval s writes, read with the names of the
     functions of GAOL (GAOL v5), where GAOL 4 had the constructor
     interval(const char*). The syntax of s is given in the section "Input
-    format" of the manual of GAOL v5 (manual/v5/gaol.tex). A string that is
+    format" of the manual of GAOL v5 (manual/v5). A string that is
     no interval throws std::invalid_argument. gaol_ieee1788 has its own, which
     reads the names of IEEE 1788-2015 and gives the empty set for such a
     string: as for pow, a program opens one of the two namespaces.

@@ -53,7 +53,7 @@ commit `130acea` de `configure-clean` (la fusion de #292, après celles de
 | La revue d'origine (« revue n° n » dans `TODO_DONE.md`) | `examples/examples.md`, section 5 ; corrections proposées en annexe B |
 | La documentation : construire, utiliser, précision, tests, CI, écarts avec GAOL 4 | `doc/*.md`, `README.md` |
 | Les scripts du dépôt (génération, CI, tests, comparaisons) et à quoi sert chacun | `doc/tools.md` |
-| Le manuel de GAOL v5 | `manual/v5/gaol.tex` (`manual/v4` est celui de GAOL 4 : n'y touche jamais) |
+| Le manuel de GAOL v5 | `manual/v5/manual_gaolv5.tex` (la mise en page) et `manual/v5/chapters/` (un fichier par chapitre) (`manual/v4` est celui de GAOL 4 : n'y touche jamais) |
 | La norme IEEE 1788-2015 | `/home/jninin/Documents/WORK/REDAC/ARTICLE/1788-2015.pdf` (table 9.1 p. 28-29, table 10.5 p. 40, 12.12.8 p. 63, littéraux 12.11) |
 | Les consignes permanentes | `.claude/CLAUDE.md`, et `~/.claude/CLAUDE.md` |
 
@@ -349,7 +349,7 @@ git ls-files -co --exclude-standard | tar -c -T - | tar -x -C $N/src
    remplis `gaol_version.tex` à partir de `gaol_version.tex.in`, avec les
    valeurs de `configure.ac` (`GAOL_V5_EDITION`, `GAOL_V5_UPDATED`) et la
    version. Lance ensuite deux fois `pdflatex -interaction=nonstopmode
-   -halt-on-error gaol.tex`. Il faut zéro erreur, et pas de nouvel « Overfull ».
+   -halt-on-error manual_gaolv5.tex`. Il faut zéro erreur, et pas de nouvel « Overfull ».
    Ne commite jamais `manual/v5/gaol.pdf`.
 
 Ce que tu ne peux pas tester ici (Windows, macOS, ARM, gros-boutiste, sans FMA),
@@ -412,7 +412,7 @@ Ce que tu ne peux pas tester ici (Windows, macOS, ARM, gros-boutiste, sans FMA),
 
 4. **Corriger, au plus juste.** Fais ce que le point demande, avec son test et
    la documentation de ce qui change : `doc/*.md`, les commentaires Doxygen des
-   en-têtes, `manual/v5/gaol.tex`. Pas de nettoyage hors sujet, ni de
+   en-têtes, `manual/v5/chapters/`. Pas de nettoyage hors sujet, ni de
    reformatage du code que tu ne changes pas. Un bug remarqué en chemin qui
    n'est pas ton point va dans les questions ouvertes, pas dans ta branche.
 5. **Ne touche pas aux registres dans la branche** : `TODO.md`, `TODO_DONE.md`,

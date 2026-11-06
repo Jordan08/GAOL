@@ -1,0 +1,609 @@
+%% !TEX root = ../manual_gaolv5.tex
+% Chapter 8.
+%% Chapter 8: Interval functions. Sources: gaol.tex of f5bf180 lines 4446-4903
+%% (the numeric functions, the integer functions, the splitting methods, the
+%% union and the intersection). No doc/ page is attached to this chapter.
+\chapter{Interval functions}\label{chap:functions}
+%%==========================
+
+An interval algorithm does more than evaluate expressions on intervals. A
+branch-and-bound method measures the boxes it holds, cuts the widest one in
+two parts and keeps the parts that its tests do not reject; an interval
+Newton step starts from the midpoint of the current interval and intersects
+its result with it; a stopping test compares a width with a threshold. The
+operations these steps call do not compute the image of a real function:
+they read the bounds of an interval and return a number, they round its
+elements to integers, they cut it, or they combine two intervals as sets.
+This chapter describes them.
+
+\medskip
+The numeric functions of IEEE 1788-2015 (Table 10.2, 12.12.8) are those of
+this chapter. The namespace \code{gaol\_ieee1788} names them as the standard
+does, and returns $+\infty$ and $-\infty$ for the bounds of the empty set,
+where \code{left()} and \code{right()} return NaN
+(Chapter~\ref{chap:ieee1788}).
+
+\medskip
+The first section covers the numeric functions, which return a double read
+or computed from the bounds of an interval, or the interval enclosing such a
+double: the radius, the width, the midpoint, the magnitude and the
+mignitude, the Hausdorff distance and the function \code{chi}, with the
+absolute value, the minimum and the maximum of intervals. The second section
+covers the integer functions, which round the elements of an interval to
+integers. The third section describes the splitting methods, which cut an
+interval in two parts, and the fourth the intersection of two intervals and
+the hull of their union. A discussion closes the chapter.
+
+\section{Numeric functions}\label{sec:functions-numeric}
+%%-------------------------
+\cindex{numeric functions}\cindex{width!of an interval}%
+\cindex{midpoint}\cindex{radius}\cindex{magnitude}\cindex{mignitude}%
+\cindex{Hausdorff distance}%
+
+The quantities of this section describe an interval by a real number. GAOL
+computes each of them on the doubles of the bounds, with the rounding stated
+in its entry, and gives two of them, the width and the midpoint, in a second
+form that returns the interval enclosing the exact value.
+
+\begin{Def}\label{def:functions-numeric}
+Let $I=\itv{a}{b}$ be a non-empty interval. The \dfn{width} of $I$ is $b-a$
+and its \dfn{midpoint} is $(a+b)/2$. The \dfn{magnitude} of $I$ is the
+greatest absolute value of its elements, and its \dfn{mignitude} the
+smallest one \cite[chap.~3]{Hansen:book92}: the mignitude is $0$ when
+$0\in I$, $a$ when $I$ is strictly positive, and $-b$ otherwise. The
+\dfn{signed mignitude} of $I$ \cite[def.~1.3.28]{Stahl:PhD} is its element
+of smallest absolute value: $0$ when $0\in I$, $a$ when $I$ is strictly
+positive, and $b$ otherwise.
+\end{Def}
+
+\begin{Rem}\label{rem:functions-empty}
+The empty set has no width, no midpoint and no element. \code{rad()},
+\code{width()}, \code{mig()}, \code{smig()}, \code{mag()},
+\code{midpoint()} and \code{chi()} return NaN for it, as \code{left()} and
+\code{right()} do, its bounds being NaN; \code{hausdorff()} returns NaN
+when one of its arguments is empty; \code{width\_enclosure()},
+\code{mid()} and \code{inflate()} return the empty set. GAOL~4 returned
+$-1$ for the width of the empty set.\newinvfive
+\end{Rem}
+
+\begin{Rem}\label{rem:functions-unbounded}
+An unbounded interval has an infinite width and no midpoint in \RSet.
+\code{width()} and \code{rad()} return $+\infty$ for it, and
+\code{width\_enclosure()} the interval \itv{\text{MAX}}{+\infty}, MAX being
+the largest double. \code{midpoint()} returns $0$ for the whole line,
+$-\text{MAX}$ for \itv{-\infty}{b} and MAX for \itv{a}{+\infty}: the double
+at which the splitting methods cut these intervals (\pxref{sec:splitting}).
+\end{Rem}
+
+\begin{defmethod}{interval}{double}{rad}{(void) const}
+  \begin{operation}
+    \op{$\code{rad}(\itv{a}{b})=\min\{r\mid [m-r,m+r]\supseteq\itv{a}{b}\}$}
+  \end{operation}
+  Returns the radius of \code{self}: the smallest double $r$ such that
+  $[m-r,m+r]$ contains \code{self}, $m$ being \code{self.midpoint()}
+  (\ieee{rad} of IEEE 1788-2015). The radius of an unbounded interval is
+  $+\infty$, and the radius of the empty set is NaN.\newinvfive
+\end{defmethod}
+
+\begin{defmethod}{interval}{void}{mid\_rad}{(double\& \var{m}, double\& \var{r}) const}
+  Sets \var{m} to \code{self.midpoint()} and \var{r} to \code{self.rad()}
+  (\ieee{midRad} of IEEE 1788-2015).\newinvfive
+\begin{example}
+double m, r;
+interval(1,4).mid_rad(m, r);
+cout << m << ' ' << r << ' ' << interval(1,GAOL_INFINITY).rad();
+@outputs^2.5 1.5 inf~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{double}{width}{(void) const}
+  \begin{operation}
+    \op{$\code{width}(\itv{a}{b})=\roundUp{b-a}$}
+  \end{operation}
+  Returns the width of \code{self}, rounded upward: \ieee{wid} of IEEE
+  1788-2015. The width of the empty set is NaN, as the standard has it,
+  where GAOL~4 returned $-1$.\newinvfive
+\begin{example}
+cout << boolalpha << interval(4,6).width() << ' '
+     << (interval(1,next_float(1)).width()
+         == std::numeric_limits<double>::epsilon()) << ' '
+     << interval::emptyset().width();
+@outputs^2 true nan~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{interval}{width\_enclosure}{(void) const}
+  \begin{operation}
+    \op{$\code{width\_enclosure}(\itv{a}{b})
+      =\itv{\roundDn{b-a}}{\roundUp{b-a}}$}
+  \end{operation}
+  Returns an interval enclosing the exact width of \code{self}, of which
+  \code{width()} is the upper bound only. It is
+  \code{interval(b) - interval(a)}: the point \itv{0}{0} for a point
+  interval, and the empty set for the empty set. The width of an unbounded
+  interval, $+\infty$, is no real number; the result is then
+  \itv{\text{MAX}}{+\infty}, MAX being the largest double, as
+  \code{textToInterval("inf")} is.\newinvfive
+\begin{example}
+cout << interval(1,3).width_enclosure() << ' '
+     << interval(-1,1e16).width_enclosure() << endl
+     << interval(1,GAOL_INFINITY).width_enclosure();
+@outputs^[2] [1e+16, 1.000000000000001e+16]~
+@outputs^[1.797693134862315e+308, inf]~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{interval}{inflate}{(double \var{r}) const}
+  \begin{operation}
+    \op{$\code{inflate}(\itv{a}{b},r)=\itv{\roundDn{a-r}}{\roundUp{b+r}}$}
+  \end{operation}
+  Returns \code{self} widened by the absolute radius \var{r}, that is
+  \code{self + interval(-\var{r}, \var{r})}. The result encloses every
+  $x+e$ with $x$ in \code{self} and $|e|\leq r$, however small $r$ is next
+  to the bounds. $r=0$ gives \code{self}, and $r=+\infty$ the whole line.
+  The empty set stays empty, and a negative or NaN \var{r} gives the empty
+  set.\newinvfive
+\begin{example}
+cout << boolalpha << interval(1,2).inflate(0.5) << ' '
+     << interval(1,2).inflate(1e-20).set_eq(interval(1,2));
+@outputs^[0.5, 2.5] false~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{double}{mig}{(void) const}
+  Returns the mignitude of \code{self}
+  (Definition~\ref{def:functions-numeric}): \ieee{mig} of IEEE 1788-2015.
+  The mignitude of \itv{a}{b} is the smallest absolute value of its
+  elements \cite[chap.~3]{Hansen:book92}: $0$ when the interval contains
+  $0$, $a$ when it is strictly positive, and $-b$ otherwise. The mignitude
+  of the empty set is NaN.
+\begin{example}
+cout << interval(4,5).mig() << ' '
+     << interval(-6,-3).mig() << ' '
+     << interval(-3,8).mig();
+@outputs^4 3 0~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{double}{smig}{(void) const}
+  Returns the signed mignitude of \code{self}
+  (Definition~\ref{def:functions-numeric}), after Stahl
+  \cite[def.~1.3.28]{Stahl:PhD}. The signed mignitude of \itv{a}{b} is $0$
+  when the interval contains $0$, $a$ when it is strictly positive, and $b$
+  otherwise. The signed mignitude of the empty set is NaN.
+\begin{example}
+cout << interval(4,5).smig() << ' '
+     << interval(-6,-3).smig() << ' '
+     << interval(-3,8).smig();
+@outputs^4 -3 0~
+\end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{double}{mag}{(void) const}
+  Returns the magnitude of \code{self}: \ieee{mag} of IEEE 1788-2015. The
+  magnitude of \itv{a}{b} is the greatest absolute value of its elements.
+  The magnitude of the empty set is NaN.
+\begin{example}
+cout << interval(4,5).mag() << ' '
+     << interval(-6,-3).mag() << ' '
+     << interval(-10,5).mag();
+@outputs^5 6 10~
+\end{example}
+\end{defmethod}
+
+\begin{deffun}{double}{hausdorff}{(const interval\& \var{I1}, const interval\& \var{I2})}
+  Returns the Hausdorff distance between the sets \var{I1} and \var{I2},
+\begin{equation*}
+\code{hausdorff}(I_1,I_2)=\max(|\leftBound{I_1}-\leftBound{I_2}|,
+                          |\rightBound{I_1}-\rightBound{I_2}|),
+\end{equation*}
+  rounded upward: the result is the tightest upper bound of the
+  distance.\newinvfive
+
+  Two equal bounds are at distance $0$, infinite ones included: the
+  distance of \itv{1}{+\infty} to itself is $0$, and to \itv{2}{+\infty} it
+  is $1$, where GAOL~4 returned $+\infty$ for both. The distance is
+  $+\infty$ when a bound is infinite in one of the two intervals only, and
+  NaN when one of them is empty.\newinvfive
+\begin{example}
+cout << hausdorff(interval(4,8),interval(5,10)) << ' '
+     << hausdorff(interval(1,GAOL_INFINITY),interval(2,GAOL_INFINITY)) << ' '
+     << hausdorff(interval(1,GAOL_INFINITY),interval(1,2));
+@outputs^2 1 inf~
+\end{example}
+\end{deffun}
+
+\begin{defmethod}{interval}{double}{midpoint}{(void) const}
+  Returns the midpoint of \code{self}: \ieee{mid} of IEEE 1788-2015. For
+  $a$ and $b$ two finite doubles, and MAX the largest positive double,
+  \code{std::numeric\_limits<double>::max()}, the cases are:
+\begin{equation*}
+\left\{\begin{array}{ll}
+\code{midpoint}(\emptyset{})&=\text{NaN}\\
+\code{midpoint}(\itv{-\infty}{+\infty})&=0\\
+\code{midpoint}(\itv{-\infty}{b})&=-\text{MAX}\\
+\code{midpoint}(\itv{a}{+\infty})&=\text{MAX}\\
+\code{midpoint}(\itv{a}{b})&=\roundNearest{(a+b)/2} \\
+\end{array}\right.
+\end{equation*}
+  The midpoint of \itv{a}{b} is rounded to nearest, ties to even. It is the
+  half of $a+b$, or the sum of the halves of $a$ and $b$ where $a+b$ may
+  overflow \cite{Goualard:TOMS2014}, that is where $|a|$ or $|b|$ is
+  $2^{1023}$ or more. This case is tested first, so that \code{midpoint()}
+  of \itv{\text{MAX}}{\text{MAX}} raises no overflow
+  exception.\newinvfive
+\end{defmethod}
+
+\begin{defmethod}{interval}{interval}{mid}{(void) const}
+  Returns the tightest interval enclosing the midpoint of \code{self},
+  which is included in \code{self}. With the notations of
+  \code{midpoint()}, the cases are:
+\begin{equation*}
+\left\{\begin{array}{ll}
+\code{mid}(\emptyset{})&=\emptyset{}\\
+\code{mid}(\itv{-\infty}{+\infty})&=\itv{0}{0}\\
+\code{mid}(\itv{-\infty}{b})&=\itv{-\text{MAX}}{-\text{MAX}}\\
+\code{mid}(\itv{a}{+\infty})&=\itv{\text{MAX}}{\text{MAX}}\\
+\code{mid}(\itv{a}{b})&=\itv{\roundDn{(a+b)/2}}{\roundUp{(a+b)/2}}
+\end{array}\right.
+\end{equation*}
+  The midpoint is computed as \code{midpoint()} computes it, with the
+  rounding outward. GAOL~4 did not enclose the midpoint of some intervals
+  whose bounds are subnormal numbers.\newinvfive
+\end{defmethod}
+
+\begin{defmethod}{interval}{double}{left}{(void) const}
+  \begin{operation}
+    \op{$\code{left}(\itv{x}{y})=x$}
+  \end{operation}
+  Returns the left bound of \code{self}: NaN for the empty set, whose
+  bounds are NaN. \code{gaol\_ieee1788::inf()} returns $+\infty$ there, as
+  IEEE 1788-2015 has it.
+\end{defmethod}
+
+\begin{defmethod}{interval}{double}{right}{(void) const}
+  \begin{operation}
+    \op{$\code{right}(\itv{x}{y})=y$}
+  \end{operation}
+  Returns the right bound of \code{self}: NaN for the empty set.
+  \code{gaol\_ieee1788::sup()} returns $-\infty$ there.
+\end{defmethod}
+
+\begin{deffun}{interval}{abs}{(const interval\& \var{I})}
+  \begin{operation}
+    \op{$\text{abs}(I)=\{|x|\in\RSet^+\mid x\in I\}$}
+  \end{operation}
+  Returns the absolute value of \var{I}.
+  \begin{example}
+cout << abs(interval(-5,6)) << ' '
+     << abs(interval(-4,-2));
+@outputs^[0, 6] [2, 4]~
+  \end{example}
+\end{deffun}
+
+\begin{deffun}{double}{chi}{(const interval \&\var{I})}
+  Returns the function \code{chi} of Ratschek and Rokne
+  \cite{Ratschek-Rokne:1995}, which characterizes the degree of symmetry
+  of an interval:
+\begin{equation*}
+\text{for } I=\itv{a}{b},\quad\text{chi}(I)=\left\{\begin{array}{ll}
+    -1  & \text{if } I = \itv{0}{0}\\
+    a/b & \text{if } |a|\leq |b|\\
+    b/a & \text{otherwise.}
+  \end{array}\right.
+\end{equation*}
+  It is NaN for the empty set, $1$ for \itv{-\infty}{+\infty}, and $0$ for
+  the other intervals with an infinite bound.
+\begin{example}
+cout << chi(interval(3,6)) << ' '
+     << chi(interval(-6,3)) << ' '
+     << chi(interval::emptyset()) << ' '
+     << chi(interval::universe()) << ' '
+     << chi(interval(-5,GAOL_INFINITY));
+@outputs^0.5 -0.5 nan 1 0~
+\end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{min}{(const interval \&I, const interval \&J)}
+  \begin{operation}
+    \op{$\min(\itv{a}{b}, \itv{c}{d}) = \itv{\min(a,c)}{\min(b,d)}$}
+  \end{operation}
+  Returns the minimum of two intervals.
+  \begin{example}
+cout << min(interval(5,6),interval(3,9)) << ' '
+     << min(interval::emptyset(),interval(3,8));
+@outputs^[3, 6] [empty]~
+  \end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{max}{(const interval \&\var{I}, const interval \&\var{J})}
+  \begin{operation}
+    \op{$\max(\itv{a}{b}, \itv{c}{d}) = \itv{\max(a,c)}{\max(b,d)}$}
+  \end{operation}
+  Returns the maximum of two intervals.
+\begin{example}
+cout << max(interval(5,6),interval(3,9)) << ' '
+     << max(interval::emptyset(),interval(3,8));
+@outputs^[5, 9] [empty]~
+\end{example}
+\end{deffun}
+
+\section{Integer functions}\label{sec:functions-integer}
+%%-------------------------
+\cindex{integer functions}\cindex{rounding!to an integer}%
+
+The functions of this section round the elements of an interval to
+integers. They are those of IEEE 1788-2015 (Table 9.1); their names in the
+standard are given with the operations of Chapter~\ref{chap:ieee1788}.
+
+\begin{Prop}\label{prop:functions-integer}
+Each function of this section is non-decreasing, so that the bounds of its
+result are its values at the bounds of the interval, and each is exact.
+None of them depends on the rounding direction.
+\end{Prop}
+
+\begin{deffun}{interval}{floor}{(const interval \&\var{I})}
+  \begin{operation}
+    \op{$\itv{\code{floor}(I.\code{left}())}{\code{floor}(I.\code{right}())}$}
+  \end{operation}
+  The elements of \var{I} rounded down to an integer.
+  \begin{example}
+cout << floor(interval(4.5,6.5)) << ' '
+     << floor(textToInterval("[-10.4,3.5]"));
+@outputs^[4, 6] [-11, 3]~
+  \end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{ceil}{(const interval \&\var{I})}
+  \begin{operation}
+    \op{\itv{\code{ceil}(I.\code{left}())}{\code{ceil}(I.\code{right}())}}
+  \end{operation}
+  The elements of \var{I} rounded up to an integer.
+  \begin{example}
+cout << ceil(interval(4.5,6.5)) << ' '
+     << ceil(textToInterval("[-10.4,3.5]"));
+@outputs^[5, 7] [-10, 4]~
+  \end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{integer}{(const interval \&\var{I})}
+  \begin{operation}
+    \op{\itv{\code{ceil}(I.\code{left}())}{\code{floor}(I.\code{right}())}}
+  \end{operation}
+  Narrows the bounds down to the closest integers: the empty set when
+  \var{I} holds no integer. The bounds of the result are still
+  \code{double} numbers, which an integral type may not represent.
+  \begin{example}
+cout << integer(interval(4.5,6.5)) << ' '
+     << integer(interval(4.2,4.8));
+@outputs^[5, 6] [empty]~
+  \end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{sign}{(const interval \&\var{I})}
+  The signs of the elements of \var{I}: $-1$ below $0$, $0$ at $0$, $1$
+  above (\ieee{sign}).\newinvfive
+\end{deffun}
+
+\begin{deffun}{interval}{trunc}{(const interval \&\var{I})}
+  The elements of \var{I} rounded toward zero (\ieee{trunc}).\newinvfive
+\end{deffun}
+
+\deffunx{interval}{round\_ties\_to\_even}{(const interval \&\var{I})}
+\begin{deffun}{interval}{round\_ties\_to\_away}{(const interval \&\var{I})}
+  The elements of \var{I} rounded to the nearest integer, halfway values to
+  the even one, respectively away from zero (\ieee{roundTiesToEven},
+  \ieee{roundTiesToAway}).\newinvfive
+  \begin{example}
+cout << sign(interval(-2,3)) << ' '
+     << trunc(interval(-2.5,3.7)) << ' '
+     << round_ties_to_even(interval(0.5,2.5)) << ' '
+     << round_ties_to_away(interval(0.5,2.5));
+@outputs^[-1, 1] [-2, 3] [0, 2] [1, 3]~
+  \end{example}
+\end{deffun}
+
+\section{Splitting methods}\label{sec:splitting}
+%%-------------------------
+\cindex{splitting}\cindex{bisection}\cindex{midpoint!cut at the}%
+
+A branch-and-bound algorithm cuts the intervals it cannot discard. GAOL cuts
+an interval \itv{a}{b} at a double $c$ of the interval that both parts
+share: the parts \itv{a}{c} and \itv{c}{b} cover the interval exactly.
+\code{split()}, \code{split\_left()} and \code{split\_right()} cut at
+\code{midpoint()}; \code{bisect()} cuts at a ratio of the width chosen by
+the caller; \code{is\_bisectable()} tells whether a cut gives two parts
+smaller than the interval.
+
+\begin{Def}\label{def:functions-bisectable}
+An interval is \dfn{bisectable} when a double lies strictly between its
+bounds; the two parts of a cut at such a double are then both smaller than
+the interval. The empty set, a point interval and an interval of two
+consecutive doubles are not bisectable, nor are the half-lines
+\itv{\text{MAX}}{+\infty} and \itv{-\infty}{-\text{MAX}}, MAX being the
+largest double.
+\end{Def}
+
+\begin{Rem}\label{rem:functions-unbounded-cut}
+A cut point is a double of the interval. An unbounded interval is therefore
+cut at the largest double or at its opposite, whatever the ratio, and the
+whole line at $0$; the half \itv{\text{MAX}}{+\infty} keeps an infinite
+width, so that a loop which cuts an interval until its width falls under a
+threshold never ends on it. Such a loop stops on \code{is\_bisectable()},
+which is \code{false} for this half (\pxref{sec:common-errors}).\newinvfive
+\end{Rem}
+
+\begin{defmethod}{interval}{void}{split}{(interval\& \var{I1}, interval\& \var{I2}) const}
+  Splits \code{self} into two parts at \code{midpoint()}, and returns the
+  left part in \var{I1} and the right part in \var{I2}. \var{I1} or
+  \var{I2} may be \code{self} itself.
+  \begin{example}
+interval I1a, I2a,
+         I3(1.0,next_float(1.0)),
+         I1b, I2b;
+interval(4,5).split(I1a,I2a);
+I3.split(I1b,I2b);
+cout << boolalpha << I1a << ' ' << I2a << ' '
+     << I1b.set_eq(interval(1.0)) << ' ' << I2b.set_eq(I3) << endl;
+@outputs^[4, 4.5] [4.5, 5] true true~
+  \end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{interval}{split\_left}{(void) const}
+  \begin{operation}
+    \op{$\code{split\_left}(\itv{a}{b})=\itv{a}{m}$}
+  \end{operation}
+  Splits \code{self} into two parts at $m=\code{midpoint()}$, and returns
+  the left part.
+  \begin{example}
+cout << interval(4,5).split_left();
+@outputs^[4, 4.5]~
+  \end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{interval}{split\_right}{(void) const}
+  \begin{operation}
+    \op{$\code{split\_right}(\itv{a}{b})=\itv{m}{b}$}
+  \end{operation}
+  Splits \code{self} into two parts at $m=\code{midpoint()}$, and returns
+  the right part.
+  \begin{example}
+cout << interval(4,5).split_right();
+@outputs^[4.5, 5]~
+  \end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{std::pair<interval, interval>}{bisect}{(double \var{ratio}) const}
+  \begin{operation}
+    \op{$\code{bisect}(\itv{a}{b},\rho)=(\itv{a}{c},\itv{c}{b})$}
+  \end{operation}
+  Returns the two parts of \code{self} on either side of the cut point $c$,
+  a double of \itv{a}{b} that both parts share, so that they cover
+  \code{self} exactly. For $0<\rho<1$, $c$ is $a+\rho(b-a)$, computed as
+  $a(1-\rho)+b\rho$, which cannot overflow, and kept within \itv{a}{b};
+  when \code{is\_bisectable()} is true, $c$ is moreover strictly between
+  $a$ and $b$, so that both parts are smaller than \code{self}. $\rho=0.5$
+  cuts at \code{midpoint()}, as \code{split()} does, and so does every
+  ratio for an unbounded interval: a half-line is cut at the largest double
+  or at its opposite, the whole line at $0$. The empty set gives two empty
+  sets, and a point interval itself twice. A ratio outside $(0,1)$, or NaN,
+  throws \code{std::domain\_error} (\pxref{sec:domain_error}).\newinvfive
+  \begin{example}
+std::pair<interval, interval> p = interval(0,4).bisect(0.25);
+cout << p.first << ' ' << p.second;
+@outputs^[0, 1] [1, 4]~
+  \end{example}
+\end{defmethod}
+
+\begin{defmethod}{interval}{bool}{is\_bisectable}{(void) const}
+  Returns \code{true} when a double lies strictly between the bounds of
+  \code{self} (Definition~\ref{def:functions-bisectable}), so that
+  \code{bisect()} gives two parts, each smaller than \code{self}. Returns
+  \code{false} for the empty set, a point interval, two consecutive
+  doubles, and the half-lines \itv{\text{MAX}}{+\infty} and
+  \itv{-\infty}{-\text{MAX}}, which \code{split()} cuts at their finite
+  bound.\newinvfive
+  \begin{example}
+cout << boolalpha << interval(1,2).is_bisectable() << ' '
+     << interval(1,next_float(1)).is_bisectable();
+@outputs^true false~
+  \end{example}
+\end{defmethod}
+
+\section{Union and intersection}\label{sec:functions-union}
+%%------------------------------
+\cindex{intersection}\cindex{hull!of a union}\cindex{union of intervals}%
+
+Intervals are sets, and two of them can be intersected or joined. The
+intersection of two intervals is an interval, possibly empty; their union
+is not always one, and GAOL returns its hull, the smallest interval that
+contains both. The operators \code{\&} and \code{|} compute them, and the
+functions \code{intersect()} and \code{hull()} give them a name.
+
+\begin{Def}\label{def:functions-hull}
+Let $I_1=\itv{a}{b}$ and $I_2=\itv{c}{d}$ be two non-empty intervals. Their
+\dfn{intersection} $I_1\cap I_2$ is the empty set when $b<c$ or $d<a$, and
+\itv{\max(a,c)}{\min(b,d)} otherwise. The \dfn{hull} of their union,
+$\hull{(I_1\cup I_2)}$, is \itv{\min(a,c)}{\max(b,d)}.
+\end{Def}
+
+\begin{Rem}\label{rem:functions-intersection}
+GAOL~4 kept the greatest left bound and the smallest right bound of two
+disjoint intervals: $\itv{1}{2}\cap\itv{3}{4}$ was \itv{3}{2}, which the
+operations computing on the bounds did not take for empty. GAOL v5 returns
+the empty set, \code{interval::emptyset()}, whose bounds are
+NaN.\newinvfive
+\end{Rem}
+
+\begin{deffun}{interval}{operator\&}{(const interval\& I1, const interval\& I2)}
+  \begin{operation}
+    \op{$\var{I1}\cap\var{I2}$}
+  \end{operation}
+  Returns the intersection of \var{I1} and \var{I2}: \ieee{intersection} of
+  IEEE 1788-2015. The intersection of disjoint intervals is the empty set
+  \code{interval::emptyset()} (Remark~\ref{rem:functions-intersection}).
+  \begin{example}
+cout << (interval(4,6) & interval(5,9)) << ' '
+     << (interval(1,2) & interval(3,4));
+@outputs^[5, 6] [empty]~
+  \end{example}
+\end{deffun}
+
+\begin{deffun}{interval}{operator\textbar}{(const interval\& I1, const interval\& I2)}
+  \begin{operation}
+    \op{$\hull{(\var{I1}\cup\var{I2})}$}
+  \end{operation}
+  Returns the hull of the union of \var{I1} and \var{I2}: \ieee{convexHull}
+  of IEEE 1788-2015.
+  \begin{example}
+cout << (interval(3,6) | interval(9,12));
+@outputs^[3, 12]~
+  \end{example}
+\end{deffun}
+
+\deffunx{interval}{hull}{(const interval\& I1, const interval\& I2)}
+\begin{deffun}{interval}{intersect}{(const interval\& I1, const interval\& I2)}
+  \code{I1 | I2} and \code{I1 \& I2} under a name, for an algorithm written
+  with names rather than operators, and for \code{std::accumulate} or a
+  pointer to a function. They are in the namespace \code{gaol}
+  too.\newinvfive
+  \begin{example}
+cout << hull(interval(1,2), interval(4,5)) << ' '
+     << intersect(interval(1,3), interval(2,5));
+@outputs^[1, 5] [2, 3]~
+  \end{example}
+\end{deffun}
+
+\section{Discussion}
+%%-----------------
+
+This chapter has described the functions that read an interval rather than
+map it: the measures of an interval, the roundings of its elements to
+integers, its cuts, and the set operations on two intervals. Two
+conventions run through them. The empty set, whose bounds are NaN, gives
+NaN to every function that returns a double and itself to every function
+that returns an interval, where GAOL~4 returned $-1$ for its width and
+\itv{3}{2} for the intersection of \itv{1}{2} and \itv{3}{4}, values that
+the operations on the bounds did not take for empty. An unbounded interval
+gives $+\infty$ to its width and its radius, and the largest double, or its
+opposite, to its midpoint and to its cut points, which have to be doubles
+of the interval.
+
+\medskip
+The roundings follow the containment property (\pxref{sec:containment}).
+The width is rounded upward, so that it bounds the exact width from above,
+and \code{width\_enclosure()} encloses the exact width when its lower bound
+matters; the midpoint is rounded to nearest, with the sum of the halves
+where the sum of the bounds would overflow, and \code{mid()} encloses it;
+\code{inflate()} rounds outward; the cut point of \code{bisect()} is
+computed so that it cannot overflow and stays within the interval. The
+integer functions are exact in every rounding direction. The union of two
+intervals is given by its hull, the standard's \ieee{convexHull}, which
+adds the reals between two disjoint intervals to the result: the
+intersection is exact, the union is enclosed.
+
+\medskip
+The examples of this chapter print their intervals with the operator
+\code{<{}<}, as \code{[4, 4.5]} or \code{[empty]}. The next chapter
+describes how GAOL reads and writes intervals, with the formats it accepts
+and the number of digits it writes.

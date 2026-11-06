@@ -1,0 +1,1179 @@
+%% !TEX root = ../manual_gaolv5.tex
+% Chapter 11.
+%% Chapter 11: Accuracy of the operations. Sources: gaol.tex of f5bf180 5881-6006
+%% (chapter "Accuracy of the operations"); doc/accuracy.md (whole).
+\chapter{Accuracy of the operations}\label{chap:accuracy}
+%%=================================
+\cindex{accuracy!of the operations}\cindex{tightness}%
+
+The containment property (\pxref{sec:containment}) says that the result of
+an operation encloses its exact value; it says nothing of how closely.
+IEEE 1788-2015 \cite{IEEE1788:2015} requires an implementation to document
+the \dfn{tightness} of each of its interval operations, dividing the
+possible inputs into ranges and stating the tightness achieved in each
+(12.10.3). This chapter does so for \code{interval}, the inf-sup type of
+GAOL on doubles, from the algorithm of each operation. The tests of
+\file{tests} check each statement on random and special arguments
+(\pxref{sec:test-programs}), and we give, with each operation, the largest
+distance they found.\newinvfive
+
+\medskip
+IEEE 1788-2015 defines three accuracy modes (12.10.1), which
+Chapter~\ref{chap:concepts} presents (\pxref{sec:accuracy-modes}). For an
+operation $f$, its exact value $f^*$ and an input box $x$:
+\begin{itemize}
+\item the result is \emph{tightest} when $f(x)$ is the hull, in doubles, of
+  $f^*(x)$: each bound is the nearest double on its side of the exact bound;
+\item it is \emph{accurate} when $f(x)$ encloses $f^*(x)$ and is within
+  \[\text{nextOut}(f_{\text{tightest}}(\text{nextOut}(x))),\]
+  nextOut moving each bound one double outward: roughly, $f(x)$ is no wider
+  than the tightest result for an input one double wider, plus one double on
+  each side;
+\item it is \emph{valid} when $f(x)$ encloses $f^*(x)$.
+\end{itemize}
+
+\noindent
+The standard requires the basic operations (\ieee{add}, \ieee{sub},
+\ieee{mul}, \ieee{div}, \ieee{recip}, \ieee{sqr}, \ieee{sqrt}, \ieee{fma}),
+the integer functions and \code{abs}, \code{min} and \code{max} to be
+tightest; it requires the other elementary functions, the reverse functions
+and the recommended functions to be valid, and recommends them to be
+accurate (12.10.2). Below, ``within $k$ doubles'' means that each bound is
+at most $k$ doubles beyond the tightest one.
+
+\medskip
+GAOL bounds its elementary functions with CORE-MATH \cite{CoreMath:2022},
+which is correctly rounded in the rounding direction in effect
+(\pxref{sec:math-libraries}).\cindex{CORE-MATH!accuracy}
+Computing in the upward rounding it keeps, GAOL takes the value at a bound
+as the upper bound, with nothing to add, and the double below it as the
+lower one. Those are the tightest bounds, the second one unless the exact
+value is a double, which the operations give exactly where it happens:
+$\log(1)=0$ and $\sin(0)=0$ are exact, and $\arcsin(1)$ is the tightest
+enclosure of $\pi/2$. Where an algorithm evaluates the function at the
+bounds of the interval, the bounds of the result are therefore the tightest
+ones.
+
+\medskip
+The first section of this chapter states the conditions under which these
+statements hold. The second gives the tightness of each operation in a
+table, then, family by family, the algorithm of each operation and the
+largest distance from the tightest bounds that the tests found. The third
+section explains why the bounds are the same on every machine, and where
+the sign of a zero bound differs between the kernels.
+
+\section{The conditions}\label{sec:accuracy-conditions}
+%%----------------------------------------------------
+\cindex{accuracy!conditions}%
+
+The statements of this chapter hold for GAOL as the three builds of
+Chapter~\ref{chap:installation} make it: with the CORE-MATH of
+\file{3rd/math-core}, compiled as the builds compile it, and with the code
+that includes the headers of GAOL compiled with the flags of interval
+arithmetic (\pxref{sec:compiling}). They hold for the SSE2 intervals, the
+NEON intervals\newinvfive{} and the FPU intervals alike
+(\pxref{sec:kernels}), and for the AVX-512 path of
+\code{GAOL\_PREFER\_AVX512}, whose bounds are those of the SSE2 path, bit
+for bit (\pxref{sec:avx512}).
+
+\medskip
+They hold whatever the rounding direction the calling code left
+(\file{tests/\allowbreak rounding\_direction.cpp}), and with the floating-point
+exceptions masked, as a program starts: an operation that raises an enabled
+exception stops the program rather than give its bounds
+(\pxref{sec:fp-exceptions}). They hold on every architecture and with every
+compiler alike, CORE-MATH giving the same bits everywhere: there is no other
+mathematical library to build GAOL with (\pxref{sec:math-libraries}, and
+Chapter~\ref{chap:changes} for what differs from GAOL~4). The intervals of
+floats, \code{gaol::intervalf} and \code{gaol::interval2f}, unfinished,
+which only a developer of GAOL compiles (\file{gaol/gaol\_config.h}), are
+not covered.
+
+\section{The tightness of each operation}\label{sec:accuracy-table}
+%%-----------------------------------------------------------------
+\cindex{accuracy!table of the operations}%
+
+Table~\ref{tab:accuracy-tightness} gives the tightness of each operation of
+\code{interval}, in the families of IEEE 1788-2015, from its algorithm; the
+subsections that follow give the algorithm of each operation and what the
+tests found. The tables numbered 9.1, 10.1, 10.3, 10.4, 10.5 and 10.7 that this
+chapter names are those of IEEE 1788-2015.
+
+\begingroup\renewcommand{\arraystretch}{1.1}\small
+\begin{longtable}{L{4.8cm}L{9.2cm}}
+  \caption{The tightness of each operation of \code{interval}}%
+  \label{tab:accuracy-tightness}\\
+  \hline
+  \multicolumn{1}{c}{Operations} & \multicolumn{1}{c}{Tightness}\\
+  \hline\hline
+  \endfirsthead
+  \multicolumn{2}{l}{\textit{Table~\thetable, continued}}\\*
+  \hline
+  \multicolumn{1}{c}{Operations} & \multicolumn{1}{c}{Tightness}\\
+  \hline\hline
+  \endhead
+  \hline
+  \endfoot
+  \multicolumn{2}{l}{\textit{Basic operations (Table 9.1): tightest
+    required}}\\*
+  \code{-x}, \code{+}, \code{-}, \code{*}, \code{/}, \code{inverse},
+  \code{sqr} & tightest\\
+  \code{sqrt} & tightest, whatever the rounding of the square root of the C
+  library\\
+  \code{fma} & tightest\\
+  \hline
+  \multicolumn{2}{l}{\textit{Integer and absmax functions: tightest
+    required}}\\*
+  \code{floor}, \code{ceil}, \code{integer}, \code{sign}, \code{trunc},
+  \code{round\_ties\_to\_even}, \code{round\_ties\_to\_away}, \code{abs},
+  \code{min}, \code{max} & tightest, and exact, in every rounding
+  direction\\
+  \hline
+  \multicolumn{2}{l}{\textit{Powers, exponentials and logarithms: valid
+    required, accurate recommended}}\\*
+  \code{pow(x, n)}, integer \var{n} (\ieee{pown}) & the tightest bounds, of
+  either sign, or one double beyond where the power is within $2K$ of a
+  double, relatively, $K$ being the bound of the relative error of the power
+  ($K=2^{-98}$ for $n=3$, $2^{-62}$ at most; no such case for $n=2$, which is
+  \code{sqr(x)}); this holds below $2^{-968}$ and beyond the largest double
+  too; the bounds are exact where the power is a double; the same bounds
+  with the SSE2, the NEON and the FPU intervals. Beyond the \code{int}s:
+  tightest where $n$ is a double, within three doubles otherwise\\
+  \code{pow(x, y)} (\ieee{pow}) & tightest, at the corners of the box and
+  at their limits where the base is $0$ or $+\infty$ or the exponent
+  infinite; for a degenerate integer exponent within the \code{int}s, the
+  integer power of the row above, one double beyond the tightest where it
+  is within twice the error of its products
+  (\code{pow([0x1.fffffffffffffp+1], [7])} has its lower bound one double
+  below the tightest)\\
+  \code{exp}, \code{exp2}, \code{exp10}, \code{log}, \code{log2},
+  \code{log10} & tightest; exact where the value is a double ($\exp(0)$,
+  $\log(1)$, $2^n$, $10^n$ for $0\leq n\leq22$\ldots)\\
+  \hline
+  \multicolumn{2}{l}{\textit{Trigonometric and hyperbolic functions: valid
+    required, accurate recommended}}\\*
+  \code{cos}, \code{sin} & tightest where the function is evaluated at the
+  bounds, at every magnitude; $-1$ and $1$ exactly at the extrema;
+  \itv{-1}{1} from the width $2\underline{\pi}$ on, $\underline{\pi}$ being
+  the double below $\pi$\\
+  \code{tan} & tightest between two poles, at every magnitude;
+  \itv{-\infty}{+\infty} exactly when a pole is within $x$, but for the
+  widths above $\underline{\pi}$ and below $\pi$\\
+  \code{asin}, \code{acos}, \code{atan}, \code{atan2} & tightest; exactly
+  0, or the tightest enclosures of $\pm\pi/4$, $\pm\pi/2$ and $\pi$, where
+  the value is one of them\\
+  \code{sinh}, \code{cosh}, \code{tanh}, \code{asinh}, \code{acosh},
+  \code{atanh} & tightest\\
+  \hline
+  \multicolumn{2}{l}{\textit{Recommended functions (Table 10.5)}}\\*
+  \code{nth\_root(x, n)}, $n>0$ & $n=1$, 2, 3: tightest. Otherwise
+  accurate: the tightest bounds or up to 2 doubles beyond, proved with
+  integer powers; beyond the \code{unsigned int}s, CORE-MATH's \code{pow}
+  at the corners, within one double\\
+  \code{nth\_root(x, q)}, $q<0$ & accurate: the root above, then the
+  tightest division, up to 4 doubles beyond the tightest bounds\\
+  \code{expm1}, \code{exp2m1}, \code{exp10m1}, \code{log1p},
+  \code{log2p1}, \code{log10p1}, \code{hypot}, \code{rsqrt} & tightest\\
+  \code{compoundm1} & tightest but in a case out of $10^{17}$ or so, where
+  a bound is a double beyond\newinvfive\\
+  \code{sinpi}, \code{cospi}, \code{tanpi}, \code{asinpi}, \code{acospi},
+  \code{atanpi}, \code{atan2pi} & tightest, at every magnitude\\
+  \hline
+  \multicolumn{2}{l}{\textit{The error functions, which IEEE 1788-2015 does
+    not name}}\\*
+  \code{erf}, \code{erfc} & tightest; exact at 0 and at the
+  infinities\newinvfive\\
+  \hline
+  \multicolumn{2}{l}{\textit{Reverse functions (Table 10.1): valid
+    required, accurate recommended}}\\*
+  \code{sqrt\_rel}, \code{nth\_root\_rel}, \code{acosh\_rel},
+  \code{asinh\_rel}, \code{atanh\_rel} & accurate\\
+  \code{nth\_root\_rel(c, p, x)}, $p<0$ & accurate: the root of each part
+  of $c$ and then its inverse, up to four doubles beyond the
+  tightest\newinvfive\\
+  \code{invabs\_rel} & tightest\\
+  \code{max\_rel}, \code{min\_rel}, \code{sign\_rel}, \code{floor\_rel}
+  (not in Table~10.1) & tightest\\
+  \code{asin\_rel}, \code{acos\_rel}, \code{atan\_rel} & accurate, or one
+  double beyond; a bound of $x$ beyond $2^{52}$ is kept\\
+  \code{div\_rel}, \code{\%} & accurate; tightest where the bounds of the
+  quotients are doubles\\
+  \code{pow\_rel}, \code{pow\_exponent\_rel} & tightest, but for a bound of
+  $x$ next to the solutions whose power is within one double of $c$, which
+  is kept: the tightest result for $x$ one double wider\newinvfive\\
+  \code{atan2\_rel\_y}, \code{atan2\_rel\_x} & accurate; within two doubles
+  of the tightest bounds where these are not empty\\
+  \code{cancel\_minus}, \code{cancel\_plus} & tightest\\
+  \hline
+  \multicolumn{2}{l}{\textit{Set operations, constructors, numeric and
+    boolean functions}}\\*
+  \code{\&}, \code{|}, \code{interval(l, u)} & tightest (exact)\\
+  \code{textToInterval(s)}, \code{operator>{}>} & tightest for the literals
+  of IEEE 1788-2015; valid for expressions, computed with the operations
+  above\\
+  \code{midpoint()}, \code{width()}, \code{rad()} & as 12.12.8 requires\\
+  \code{mag()}, \code{mig()}, \code{smig()} & exact\\
+  \code{mid()}, \code{hausdorff()} & tightest\\
+  relations, \code{overlap()} & exact, as Tables 10.3, 10.4 and 10.7\\
+  \code{operator<{}<} & \code{hexa}: exact, read back as the same interval.
+  Decimal formats: valid, and the tightest with the digits asked for where
+  the C library rounds to nearest as it should. \element{width} and
+  \element{center}: $\itv{c-w}{c+w}$ contains $x$, $w$ being the smallest radius
+  that does so. \code{exact\_string()}: exact, read back bit for bit\\
+\end{longtable}
+\endgroup
+
+\begin{Rem}\label{rem:accuracy-before}
+Before GAOL v5, the elementary functions but the hyperbolic ones were
+correctly rounded to nearest and moved one double outward, which is at most one double beyond the
+tightest bound: accurate, and not tightest. The hyperbolic functions were
+taken from the mathematical library of the system, whose values are
+sometimes further than one double from the exact ones, and millions of
+doubles away for the \code{acosh} of some of them.\newinvfive
+\end{Rem}
+
+\subsection{Basic operations}\label{sec:accuracy-basic}
+
+The basic operations of Table 9.1 of the standard must be tightest. Each is
+computed from the bounds, rounded upward once (\pxref{sec:kernels}), and
+each is tightest; the tests find them so.
+
+\begin{itemize}
+\item[$\bullet$] \textbf{Negation.} \code{-x} exchanges the bounds: exact.
+\item[$\bullet$] \textbf{Addition and subtraction.} \code{x + y},
+  \code{x - y}, \code{+=}, \code{-=}, and their forms with a double, are the
+  sums of the bounds rounded upward, the lower bound being stored negated:
+  tightest.
+\item[$\bullet$] \textbf{Multiplication.} \code{x * y}, \code{*=}, and the
+  forms with a double, are the products of the bounds chosen by their signs,
+  rounded upward; a zero bound times an infinite one counts as $0$:
+  tightest.
+\item[$\bullet$] \textbf{Division.} \code{x / y}, \code{/=}, and the forms
+  with a double, are the quotients of the bounds chosen by their signs,
+  rounded upward; the hull of the quotients when $y$ contains $0$, and the
+  empty set when $y$ is $\itv{0}{0}$: tightest.
+\item[$\bullet$] \textbf{Inverse.} \code{inverse(x)} and \code{x.inverse()}
+  divide $1$ by the bounds, rounded upward: tightest.
+\item[$\bullet$] \textbf{Square.} \code{sqr(x)} squares the bounds, rounded
+  upward, with $0$ as lower bound when $x$ contains $0$: tightest.
+\item[$\bullet$] \textbf{Square root.} \code{sqrt(x)} works on
+  $x\cap\itv{0}{+\infty}$. The upper bound $u$ is the square root rounded
+  upward, from the square root of the C library checked with a product
+  rounded the other way and moved one double when needed; the lower bound
+  is $u$ when $u\cdot u$ is exactly the bound of $x$, and the double below
+  $u$ otherwise: tightest, whatever the rounding of the square root of the
+  C library.
+\item[$\bullet$] \textbf{Fused multiply-add.} In \code{fma(x, y, z)}, the
+  product $x\cdot y$ is bilinear, so it ranges over the hull of the
+  products of the bounds, and $x\cdot y+z$ ranges from the least product
+  plus $\leftBound{z}$ to the greatest plus $\rightBound{z}$. Each corner
+  is rounded once by \code{std::fma}, upward for the upper bound and
+  downward for the lower one, computed as $-\mathrm{fma}(-a, b, -c)$. A
+  bound $0$ times an infinite one counts as $0$.\newinvfive{} Tightest,
+  over 200\,000 boxes against exact rational arithmetic.
+\end{itemize}
+
+\begin{Rem}
+The result of \code{std::fma} goes through \code{rnd\_keep()} before it is
+negated. Without it, GCC folded $-\mathrm{fma}(-a, b, -c)$ into
+$\mathrm{fma}(a, b, c)$, a single instruction rounded upward, and the lower
+bound came one double above the exact one.
+\end{Rem}
+
+\subsection{Integer and absmax functions}\label{sec:accuracy-integer}
+
+The integer functions, \code{abs}, \code{min} and \code{max} must be
+tightest. None of them rounds: each returns a double that is an integer, or
+a bound of its argument, in every rounding direction.
+
+\begin{itemize}
+\item[$\bullet$] \textbf{Floor and ceiling.} \code{floor(x)} and
+  \code{ceil(x)} apply to each bound: exact.
+\item[$\bullet$] \textbf{Integers of an interval.} \code{integer(x)}, which
+  the standard does not name, is the hull of the integers in $x$,
+  $\itv{\lceil\leftBound{x}\rceil}{\lfloor\rightBound{x}\rfloor}$: exact.
+\item[$\bullet$] \textbf{Sign, truncation and roundings.} \code{sign(x)},
+  \code{trunc(x)}, \code{round\_ties\_to\_even(x)} and
+  \code{round\_ties\_to\_away(x)} take the value at each bound, each
+  function being non-decreasing, as \code{ceil} and \code{floor} above, and
+  $\emptyset$ for $\emptyset$, which the four test: GAOL holds the empty
+  interval as two NaN bounds, which \code{trunc} and the two roundings send
+  to themselves, where \code{sign} would give $\itv{0}{0}$, a NaN comparing
+  false both to $0$ and above it. \code{trunc} and
+  \code{round\_ties\_to\_away} are \code{std::trunc} and \code{std::round},
+  which the C++ standard defines without reading the rounding direction,
+  and \code{round\_ties\_to\_even} reads the bits
+  (\file{gaol/math/gaol\_roundeven.h}), where \code{std::nearbyint} and
+  \code{std::rint} would round in the direction in effect, upward in
+  GAOL.\newinvfive{} Tightest and exact; the tests find the same result in
+  the four rounding directions over 22\,407 doubles: the halfway values,
+  the whole numbers and the doubles on either side of them.
+\item[$\bullet$] \textbf{Absolute value.} \code{abs(x)} takes the magnitudes
+  of the bounds, and $0$ as lower bound when $x$ contains $0$: exact.
+\item[$\bullet$] \textbf{Minimum and maximum.} \code{min(x, y)} and
+  \code{max(x, y)} apply to the bounds: exact.
+\end{itemize}
+
+\subsection{Powers, exponentials and logarithms}\label{sec:accuracy-powers}
+
+These functions must be valid, and the standard recommends them to be
+accurate. The exponentials and the logarithms are tightest, being
+CORE-MATH's functions at the bounds; the integer power is tightest but one
+double beyond in rare cases, and the real power is tightest at the corners
+of its box.
+
+\paragraph{The integer power.}\findex{pow}%
+\code{pow(x, n)} for an integer $n$ of any type, and \code{pow(x, y)} and
+\code{pow(x, d)} for a degenerate integer $y$ or an integer double $d$,
+compute \ieee{pown} (\code{gaol\_pown()}, \code{gaol\_uipow()},
+\code{gaol\_pown\_ll()}), as does \code{gaol\_ieee1788::pown(x, n)}
+(\pxref{sec:powers}). Within the \code{int}s, $n=2$ is \code{sqr(x)}, the
+squares of the bounds rounded outward.\newinvfive{} For any other $n$, the
+powers of the two corners of $x$ where $x^n$ is the least and the greatest
+are computed at once, in the two lanes of an SSE2 register with the FMA
+instructions or of a NEON register, or of a pair of doubles otherwise (the
+FPU intervals, and SSE2 without FMA), with the same operations in the same
+order.\newinvfive{} The power is a binary exponentiation from exact
+products: each product is rounded, and its rest, which \code{fma} gives
+exactly, is carried along, so that the power is $h+l$ within $K\,|h|$ of
+it, with $K=(8nL+16)\cdot2^{-104}$ for an $n$ of $L$ bits, a bound proved
+beforehand (\file{gaol/core/gaol\_interval\_core.cpp}). Each bound is then
+rounded once, $h+l+K|h|$ upward and $h+l-K|h|$ downward, and $K$ is left
+out where every rest is $0$, $x^n$ being a double. The power $x^{-n}$ is
+$1/(h+l)$: the inverse of $h$ rounded, corrected with the rest of
+$1-q(h+l)$ to the second order and rounded once the same way; $x^{-1}$ is
+the inverse. A corner whose powers leave $\itv{2^{-968}}{2^{960}}$ is
+computed alone, scaled to $[1, 2)$, its power kept below $2^{501}$ by
+powers of two, then scaled back with one rounding in the direction of the
+bound, beyond the largest double and among the subnormals too. The bounds
+$0$ and $\pm\infty$ give the limits of $x^n$:
+$\itv{\mathrm{mag}(x)^n}{+\infty}$ where $x$ holds $0$ for an even $n<0$,
+$\itv{-\infty}{+\infty}$ where it holds $0$ inside for an odd one, and
+$\emptyset$ for $\itv{0}{0}$.
+
+Beyond the \code{int}s, CORE-MATH's \code{pow} is called at the corners,
+as for the real power below, the sign coming from the parity of $n$; for an
+$n$ of more than 53 bits that is no double, $x^h\cdot x^l$ is rounded
+outward, with $n=h+l$, $h$ a double and $|l|<2^{11}$; beyond 64 bits, $n$
+is taken as $\pm(2^{63}-1)$ or $\pm(2^{63}-2)$, of its sign and its parity,
+every power of a double but $0$, $\pm1$ and $\pm\infty$ being beyond the
+doubles there. GAOL~4 gave $\itv{-\infty}{+\infty}$ beyond the
+\code{unsigned int}s, and beyond the \code{int}s for \code{pow(x, y)};
+within them, it rounded $1/x^n$ twice, and rounded the products outward, as
+it computed every power, where a bound was $0$ or infinite or its power
+beyond the doubles.\newinvfive
+
+The result is tightest, or one double beyond where $x^n$ is within $2K$ of
+a double, relatively: never for $n=2$, which is \code{sqr(x)}; $K$ is
+$2^{-98}$ at $n=3$, $2^{-88}$ at $n=1000$, $2^{-65}$ at $n=2^{31}-1$ and
+about $2^{-62}$ at $n=-2^{31}$, where one bound in about 400 is one double
+beyond. It is exact where $x^n$ is a double. Beyond the \code{int}s it is
+tightest where $n$ is a double, and within three doubles otherwise.
+
+The tests find the tightest bounds at 5\,000 doubles drawn at random, with
+exponents from $-30$ to $30$ and over all the doubles, subnormal results and
+overflows included, for $n$ from 2 to 9, 16, 31 to 33 and $-1$ to $-4$,
+$-7$, $-16$ and $-33$, and over 5\,000 intervals drawn so, for $n$ from 2
+to 5, 12, 31 and $-1$ to $-3$, $-6$, $-17$, $x$ holding $0$ included,
+against the exact powers; the tightest over 4\,000 intervals near the ends
+of the doubles (a bound $0$ or infinite, powers below $2^{-1000}$ or above
+$2^{1100}$); the exact value at the 8\,679 powers that are doubles; the
+tightest at 13 powers for $n$ from $2^{24}+1$ to $2^{32}-1$, and at 6
+corners computed alone, against mpmath. Beyond the \code{int}s, they find
+the tightest at the powers of the tests \file{elementary} and
+\file{ieee1788} there (odd and even exponents, negative bases, exponents of
+64 and 128 bits), the tightest at 5 powers beyond $2^{53}$ where $n$ is a
+double, and within three doubles at 4 where it is none, of intervals and of
+expressions, against mpmath. They check that $x^2$ is \code{sqr(x)} over
+400 intervals near $1$, $3$, $0.75$ and $2^{-500}$, and bit for bit, the
+sign of a zero included, in each of its forms (\code{pow(x, 2)},
+\code{2u}, \code{2.0}, \code{[2]}, \code{gaol\_ieee1788::pown(x, 2)} and
+\code{pow(x, [2])}), over the special bounds and 90\,000 random intervals,
+in each direction of the calling code and with each flush mode; that
+$(-c)^n$ is $\pm c^n$, and that the bound from a corner is the same whether
+the other corner is computed with it or alone, at 1\,088 points near $1$,
+$1.5$ and $3$ and at 12\,736 more within 16 doubles of $1$. ITF1788, the
+test suite of Chapter~\ref{chap:computing}, gets the tightest in its 163
+cases of \ieee{pown}.
+
+\paragraph{The real power.}
+\code{pow(x, y)} and \code{pow(x, d)} for a non-integer $y$
+(\code{gaol\_pow\_hybrid()}, \code{gaol\_pow\_real()}), and
+\code{gaol\_ieee1788::pow(x, y)} for any $y$, compute \ieee{pow} on
+$x\cap\itv{0}{+\infty}$: CORE-MATH's \code{pow} at the corners of the box
+$x\times y$ where $x^y$ is the least and the greatest, which the places of
+the bounds about $1$ and $0$ give, correctly rounded upward. The upper bound
+is the value at the upper corner, and the lower bound is the double below
+the value at the lower corner, unless $x^y$ is a double there. It is one
+for $x=2^p$ and an integer $p\,y$ of $[-1074, 1023]$, and for
+$x=c^{2^k}\cdot2^{f\cdot2^k}$ ($c\geq3$ odd) and $y=a/2^k$ ($a>0$, odd if
+$k>0$) where $c^a<2^{53}$ and $c^a\cdot2^{f\cdot a}$ is within the doubles,
+$y$ being then a multiple of $1/32$ in $(0, 33]$; the lower bound is then
+$x^y$ itself, which a test on $x$ and $y$ proves with integers and exact
+operations, leaving at once for nearly every $y$, where calling CORE-MATH
+downward too would double the cost of the power.\newinvfive{} The result
+is $1$ where a corner has the base $1$ or the exponent $0$. At a corner
+where the base is $0$ or $+\infty$ or the exponent infinite, it is the
+limit of $x^y$ there, $0$ or $+\infty$, which is the bound itself; GAOL~4
+computed $\exp(y\log x)$ there, which gave bounds one to hundreds of
+doubles beyond.\newinvfive{} $0^y$ is $0$ for $y>0$, and $\emptyset$ for
+$y\leq0$. An integer $y$ beyond the \code{int}s, in
+\code{gaol\_ieee1788::pow}, takes the corners at the bounds of $x$, $x^y$
+being monotone in $x$, where the \code{pow} of \code{gaol} takes
+\ieee{pown}; GAOL~4 gave $\itv{-\infty}{+\infty}$.\newinvfive
+
+The result is tightest, at the corners and at their limits, those at the
+bounds of $x$ for an integer $y$ beyond the \code{int}s included. For a
+degenerate integer $y$ within the \code{int}s, it is the integer power
+above, one double beyond the tightest where $x^y$ is within $2K$ of a
+double.
+
+\begin{Ex}
+\code{pow([4], 0.5)} is $\itv{2}{2}$ and \code{pow([4, +oo], 0.5)} is
+$\itv{2}{+\infty}$. \code{gaol\_ieee1788::pow([0x1.fffffffffffffp+1], [7])}
+has its lower bound, \code{0x1.ffffffffffff8p+13}, one double below the
+tightest, \code{0x1.ffffffffffff9p+13}: the integer power is within $2K$ of
+a double there.
+\end{Ex}
+
+The tests find the bounds within 1 double at points and over 385 boxes; the
+tightest, or one double beyond for one integer power, on the 117 boxes of
+the test \file{ieee1788}, the limits at $0$ and $+\infty$ included, against
+mpmath; the tightest on the 1\,347 cases of \ieee{pow} of ITF1788; the
+tightest at 5 integer exponents beyond the \code{int}s; and the tightest,
+both bounds, at the corners of 84\,070 boxes of a base and an exponent
+(powers of two, perfect powers, midpoints, at the edges of the doubles too,
+and their neighbours), against $x^y$ computed exactly at the 8\,981 where
+it is rational, 3\,211 of them with a power that is a double, and compared
+exactly at the 12\,540 where it is the $2^k$-th root of a rational,
+$k\leq6$.
+
+\paragraph{Exponentials and logarithms.}
+\code{exp}, \code{exp2}, \code{exp10}, \code{log}, \code{log2} and
+\code{log10} are CORE-MATH's functions at the bounds, correctly rounded
+upward: the value at the right bound, and the double below the value at the
+left bound, unless that value is a double. The logarithms work on
+$x\cap\itv{0}{+\infty}$, give $\emptyset$ when $x$ holds no positive
+number, and $\log(0)=-\infty$; the exponentials have a lower bound at least
+$0$. The values that are doubles are given exactly: $\exp(0)=1$ and
+$\log(1)=0$; for \code{exp2}, \code{exp10}, \code{log2} and
+\code{log10},\newinvfive{} $2^x$ for an integer $x$ of $[-1074, 1023]$ and
+$10^x$ for an integer $x$ of $[0, 22]$ ($10^{23}$ is no double, and no
+negative power of ten is), $\log_2 x$ for a power of two and $\log_{10}x$
+for a power of ten of $[10^0, 10^{22}]$. All six are tightest. The tests
+find \code{exp} tightest for all doubles, \code{log} tightest at the 75
+doubles of the tests and the million intervals of the comparison with the
+other libraries (\pxref{sec:comparison}), and the other four tightest over
+6\,483 doubles each, and at the values that are doubles.
+
+\subsection{Trigonometric and hyperbolic functions}\label{sec:accuracy-trig}
+
+These functions must be valid, and the standard recommends them to be
+accurate. Every one of them is CORE-MATH's function at the bounds of the
+pieces where it is monotonic, so each is tightest where the function is
+evaluated at the bounds; the periodic functions ask first on which piece
+the interval lies. Every elementary function of this section and of the
+one before is that of CORE-MATH, whose sources are in \file{3rd/math-core}
+(\pxref{sec:math-libraries}).
+
+\paragraph{Cosine and sine.}
+For \code{cos(x)}, the bounds divided by an enclosure of $\pi$, rounded
+outward, tell whether $x$ lies on one piece where the cosine is monotonic;
+rounded inward, they tell whether an extremum is within $x$ for sure. Where
+they cannot tell, a bound being within about $|x|\cdot2^{-52}$ of a
+multiple of $\pi$, or beyond $2^{52}$, the signs of CORE-MATH's \code{sin}
+at the bounds do, exactly, $x$ being narrower than $2\pi$ (and the sign at
+the middle of $x$ from $\pi$ on): signs that differ show one extremum, $-1$
+or $1$ according to their order. Then CORE-MATH's \code{cos} is taken at
+the bounds, correctly rounded upward (the double below the value at the
+left bound), within $\itv{-1}{1}$, and $\cos(0)=1$ exactly. \code{sin(x)}
+proceeds as \code{cos}, the bounds divided by an enclosure of $\pi$ minus
+$1/2$, the signs of CORE-MATH's \code{cos} where the quotients cannot tell,
+and $\sin(0)=0$ exactly.
+
+Both are tightest where the function is evaluated at the bounds, at every
+magnitude, and give $-1$ and $1$ exactly at the extrema. They give
+$\itv{-1}{1}$ from the width $2\underline{\pi}$ on, $\underline{\pi}$ being
+the double below $\pi$: tightest but for the widths between
+$2\underline{\pi}$ and $2\pi$. That the test of a width below
+$\underline{\pi}$ gives the tightest bounds is measured, not proved: the
+tests find the tightest bounds of \code{sin} and \code{cos} over 29\,400
+intervals of width about $\pi$ whose bounds are next to extrema of the
+sine. They find them tightest for all doubles, and over intervals next to
+the extrema and of width about $\pi$ and $2\pi$.
+
+\paragraph{Tangent.}
+\code{tan(x)} is $\itv{-\infty}{+\infty}$ when $x$ is wider than
+$\underline{\pi}$ or holds a pole: $(x+[\pi/2])/[\pi]$ at the bounds,
+rounded outward, tells that no pole is within $x$ when the integer parts
+agree, and rounded inward that one is for sure; where they cannot tell, the
+signs of CORE-MATH's \code{cos} at the bounds do, exactly, a pole being
+within $x$ when they differ. Otherwise the result is CORE-MATH's \code{tan}
+at the bounds, correctly rounded upward, and $\tan(0)=0$ exactly. It is
+tightest between two poles, at every magnitude, and
+$\itv{-\infty}{+\infty}$ exactly when a pole is within $x$, but for the
+widths above $\underline{\pi}$ and below $\pi$, a theoretical case. The
+tests find it tightest for all doubles, and over intervals next to the
+poles, the interval from \code{-M\_PI\_2} to \code{M\_PI\_2} and the
+intervals of width $\underline{\pi}$ or next to it between two poles
+included.
+
+\paragraph{Inverse trigonometric functions.}
+\code{asin(x)} and \code{acos(x)} are CORE-MATH's functions at the bounds
+of $x\cap\itv{-1}{1}$, correctly rounded upward; at $-1$, $0$ and $1$ they
+give $0$ exactly or the tightest bounds of $\pm\pi/2$ and $\pi$.
+\code{atan(x)} is CORE-MATH's \code{atan} at the bounds; at $0$, $\pm1$
+and $\pm\infty$ it gives $0$ exactly or the tightest bounds of $\pm\pi/4$
+and $\pm\pi/2$. \code{atan2(y, x)} is CORE-MATH's \code{atan2} at the
+corners of the box $y\times x$ where the angle is the least and the
+greatest, which the signs of the bounds give, correctly rounded upward; it
+gives $0$, $\pm\pi/4$, $\pm\pi/2$ and $\pi$ where a corner is on an axis,
+on a diagonal of the right half-plane or at an infinity, $\itv{-\pi}{\pi}$
+when the box has points on the half-line $y=0$, $x<0$, where the angle is
+$\pi$, and points below it, and $\emptyset$ for the box $\{(0, 0)\}$. The
+four are tightest, and exactly $0$ or the tightest enclosures of the
+multiples of $\pi/4$ named where a bound is one of them. The tests check
+them within 1 double, and tightest at the special points.
+
+\paragraph{Hyperbolic functions.}
+\code{sinh(x)}, \code{tanh(x)} and \code{asinh(x)} are CORE-MATH's
+functions at the bounds, correctly rounded upward, \code{tanh} within
+$\itv{-1}{1}$; they give $0$ at $0$ exactly, $\sinh(x)$ beyond the largest
+double for $|x|\geq711$, and $\tanh(x)$ beyond $\pm(1-2^{-53})$ for
+$|x|\geq20$, where $1-|\tanh(x)|<2^{-54}$. \code{cosh(x)} proceeds as
+\code{sinh}, at the bound of largest magnitude; it gives $1$ when $x$
+contains $0$, and at $0$, and a value beyond the largest double for
+$|x|\geq711$. \code{acosh(x)} and \code{atanh(x)} proceed as \code{sinh},
+on $x\cap\itv{1}{+\infty}$ and $x\cap\itv{-1}{1}$ respectively, with
+$\mathrm{acosh}(1)=0$ and $\mathrm{atanh}(0)=0$ exactly. The hyperbolic arc
+tangent is defined on $(-1, 1)$, $-\infty$ and $+\infty$ being its limits
+at $-1$ and $1$, which are bounds but no values: the result is $\emptyset$
+when $x$ holds no point of $(-1, 1)$, as for $\itv{1}{1}$, $\itv{1}{5}$,
+$\itv{-1}{-1}$ and $\itv{-5}{-1}$.\newinvfive{} The six are tightest, and
+exact at the points given. The tests check them within 1 double, tightest
+at $0$, at $1$, and beyond $711$ and $20$, and $\emptyset$ for those four
+intervals.
+
+\subsection{Recommended functions}\label{sec:accuracy-recommended}
+
+The recommended functions of Table 10.5 of the standard must be valid, and
+the standard recommends them to be accurate. All of them are tightest but
+the roots of an order other than 1, 2 and 3, which are accurate, and
+\code{compoundm1}, which is tightest but in a case out of $10^{17}$ or so.
+
+\paragraph{Roots.}\findex{nth\_root}%
+\code{nth\_root(x, n)}, for $n>0$, computes \ieee{rootn}. For $n=1$ it is
+$x$, and for $n=2$ it is \code{sqrt}. For $n=3$ it is CORE-MATH's
+\code{cbrt} at the bounds, correctly rounded upward on their magnitudes,
+the root of a negative number being the opposite of the root of its
+magnitude: the tightest bounds, and exact where the cube root is a double,
+which cubing the value tells; it takes 50~ns rather than 189 with the
+search below, on an Intel i7-1185G7 with Clang 18.1.\newinvfive{} For the
+other orders, on $x$ (odd $n$, the root of a negative number being again
+the opposite of the root of its magnitude) or on $x\cap\itv{0}{+\infty}$
+(even $n$), the lower bound is the largest double $l$ with $l^n$ rounded
+upward at most the bound of $x$, and the upper bound the smallest double
+$u$ with $u^n$ rounded downward at least it, which proves them. They are
+looked for from CORE-MATH's \code{pow} with the exponent $1/n$ rounded,
+after a step of Newton's method, by steps that double then by bisection,
+two powers where the start is next to the root; the roots of $0$ and $1$
+are $0$ and $1$. The orders 1, 2 and 3 are tightest, and so is any order
+where the bound of $x$ is an $n$-th power of a double. Otherwise the root
+is accurate: the $n-1$ rounded products of $l^n$ move the root by less than
+$2^{-52}$ relatively, and the bounds are the tightest or up to 2 doubles
+beyond, whatever the magnitude of $x$. An order beyond the \code{int}s and
+the \code{unsigned int}s takes CORE-MATH's \code{pow} at the corners, with
+the exponent $1/n$ as an interval, within 1 double of the
+tightest.\newinvfive{} The tests find the roots within 2 doubles for all
+doubles, 1 double being the largest distance found, among them the $x$
+below $2^{-1020}$, subnormal ones included, with $n$ up to $2^{32}-1$,
+against exact arithmetic and mpmath, and the tightest on the values of the
+test \file{ieee1788} beyond the \code{unsigned int}s.
+
+\code{nth\_root(x, q)}, for $q<0$, is $1/x^{1/|q|}$, the inverse of the
+root above: the domain is then $\RSet\setminus\{0\}$ for an odd $q$ and
+$(0, +\infty)$ for an even one, which taking the inverse gives, an interval
+holding $0$ having for inverse the hull of the values away from it;
+\code{nth\_root(x, 0)} is $\emptyset$.\newinvfive{} It is accurate: the
+root above, then the tightest division, up to 4 doubles beyond the
+tightest bounds. The tests find that it encloses the root over 1.5 million
+values against a reference in \code{long double}, and that it is the
+inverse of the positive root over 8\,000 values.
+
+\paragraph{Exponentials minus one and logarithms of one plus.}
+\code{expm1(x)}, \code{exp2m1(x)} and \code{exp10m1(x)} are CORE-MATH's
+functions at the bounds, correctly rounded upward, the double below the
+value at the left bound unless that value is a double, which $b^x-1$ is at
+$0$, and at the integers of $[-53, 53]$ for $b=2$ and of $[0, 15]$ for
+$b=10$; the result is within $\itv{-1}{+\infty}$.\newinvfive{}
+\code{log1p(x)}, \code{log2p1(x)} and \code{log10p1(x)} are CORE-MATH's
+functions at the bounds of $x\cap\itv{-1}{+\infty}$, the value at $-1$
+being the limit $-\infty$, and $x$ holding no number above $-1$ giving
+$\emptyset$; the double below the value at the left bound unless it is a
+double, which $\log_b(1+x)$ is at $0$, at $2^k-1$ for $b=2$ ($k$ in
+$[-53, 53]$) and at $10^k-1$ for $b=10$ ($k$ in $[0, 15]$)
+only.\newinvfive{} The six are tightest. The tests find the three
+exponentials tightest over 400\,000 points and intervals each, and the
+three logarithms tightest over 40\,000 intervals each, their bounds drawn
+among those points and their neighbours.
+
+\paragraph{The functions of $\pi x$.}
+For \code{sinpi(x)} and \code{cospi(x)}, the extrema are at the multiples
+of $1/2$, which are doubles: doubling the bounds, which is exact, and
+taking their ceiling and floor give exactly the integers $t=2x$ within $x$,
+and $\sin(\pi x)$ has its maximum $1$ at the $t$ congruent to $1$ modulo
+$4$ and its minimum $-1$ at those congruent to $3$ (the cosine at $0$ and
+$2$); otherwise the result is CORE-MATH's function at the bounds, exact at
+the multiples of $1/2$. Beyond $2^{61}$ two distinct doubles are whole
+periods apart, and the result is $\itv{-1}{1}$.\newinvfive{} Both are
+tightest, at every magnitude: $\mathrm{sinpi}(10^{17})$ is $0$, where
+\code{sin} of $\pi\cdot x$ gave $\itv{-1}{1}$. \code{tanpi(x)} proceeds as
+\code{sinpi}, its poles being at the odd $t$: $\itv{-\infty}{+\infty}$
+with a pole within $x$, $-\infty$ or $+\infty$ for a pole at a bound, and
+$\emptyset$ for a pole alone, where the function has no
+value.\newinvfive{} It is tightest. The tests find the three tightest over
+400\,000 points and intervals each.
+
+\code{atanpi(x)}, \code{asinpi(x)} and \code{acospi(x)} are CORE-MATH's
+functions at the bounds, \code{asinpi} and \code{acospi} on
+$x\cap\itv{-1}{1}$, \code{acospi} decreasing; they are exact at $0$ and
+$\pm1$ (and at $\pm\infty$ for \code{atanpi}), the only doubles where the
+values are rational.\newinvfive{} \code{atan2pi(y, x)} is the analysis of
+the box of \code{atan2}, the angles divided by $\pi$: $\itv{-1}{1}$ for a
+box crossing the half-line $y=0$, $x<0$, and the corners elsewhere. The
+values at the multiples of $1/4$ ($0$, $\pm1/4$, $\pm1/2$, $\pm3/4$, $1$,
+and $-1$ as a limit) are exact, and CORE-MATH's \code{atan2pi} gives the
+others, which are irrational.\newinvfive{} The four are tightest. The
+tests find them so over 400\,000 points and intervals each (40\,000
+intervals for \code{asinpi}, and the arguments next to $\pm1$ where
+CORE-MATH's \code{asinpi} shifted by 65 bits, \pxref{sec:math-libraries}),
+and \code{atan2pi} over 200\,000 boxes.
+
+\paragraph{Hypotenuse and inverse square root.}
+\code{hypot(x, y)} is CORE-MATH's \code{hypot} at the point of the box
+nearest to the origin, $(\mathrm{mig}\,x, \mathrm{mig}\,y)$, and at the
+farthest, $(\mathrm{mag}\,x, \mathrm{mag}\,y)$. The lower bound is the
+value itself where it is a double: writing $a$, $b$ and $h=\sqrt{a^2+b^2}$
+as odd integers times powers of two, $a^2+b^2=h^2$ can only hold where $h$
+and the smaller of $a$, $b$ have the same power, and $h^2-b^2=a^2\cdot4^d$
+is then compared exactly on 107 bits.\newinvfive{} \code{rsqrt(x)} is
+CORE-MATH's \code{rsqrt} at the bounds of $x\cap\itv{0}{+\infty}$,
+decreasing, the value at $0$ being the limit $+\infty$, and $x$ holding no
+positive number giving $\emptyset$; it is exact at the powers of
+$4$.\newinvfive{} Both are tightest. The tests find \code{hypot} tightest
+over 200\,000 boxes, among them Pythagorean triples scaled by powers of two
+and the doubles next to them, and \code{rsqrt} over 40\,000 intervals.
+
+\paragraph{Compound minus one.}\findex{compoundm1}%
+\code{compoundm1(x, y)} computes $(1+x)^y-1$ with the analysis of the box
+of \code{pow} for the base $1+x$: the value at the corner each bound is
+at, since $(1+x)^y-1$ increases with $y$ for $x>0$ and decreases for
+$x<0$, increases with $x$ for $y>0$ and decreases for $y<0$, and is $0$ on
+$x=0$ and on $y=0$. The limits $-1$ and $+\infty$ are the bounds at
+$x=-1$, at $x=+\infty$ and for an infinite $y$, and the empty set is the
+result for $x<-1$ and for $x=-1$ with $y\leq0$, where the function has no
+value. CORE-MATH has no \code{compoundm1}, and
+$\exp(y\,\mathrm{log1p}(x))-1$ computed with doubles multiplies the
+relative error of $\mathrm{log1p}$ by $|y\,\mathrm{log1p}(x)|$: up to
+1\,100 doubles from the value near the overflow, over 300 draws with the
+\code{expm1} and \code{log1p} of Python. The value at a corner is
+therefore computed in \file{gaol/math/gaol\_compoundm1.h} with integers
+only. A fast phase in 64-bit fixed point comes first, whose error bound is
+proved (27 to 200 units of $2^{-63}$ relatively, 4.6 to 10 times the worst
+error found); it settles 95\,\% of the pairs for $|y\,\mathrm{log1p}(x)|$
+below $0.35$, 92\,\% from $0.35$ to $1$, 90\,\% from $1$ to $2$, 83\,\%
+from $2$ to $4$ and 71\,\% from $4$ to $8$, and none past, nor for
+$|\mathrm{log1p}(x)|$ above $8$, $x<-0.99966$ or $x>2\,980$. The other
+pairs go on to a 128-bit significand in balls, which add the error of each
+operation to a bound of the error. Both phases start from the
+$\mathrm{log1p}(x)$ of CORE-MATH, corrected by one step of Newton's method
+($d=(1+x)\exp(-y_0)-1$, then $y_0+d-d^2/2+d^3/3$), multiply it by $y$,
+then take $\exp-1$ by a series of 27 terms after the reduction by a
+multiple of $\log2$. The ball is no wider than $2^{-111}$ relatively for
+$|y\,\mathrm{log1p}(x)|$ below $746$ ($2^{-118}$ below $10$, $2^{-120}$
+below $1$), and the bounds are the doubles around it. A corner takes
+$0.1\,\mu$s where the fast phase settles it and $0.6$ to $0.9\,\mu$s in
+the balls, on an Intel i7-1185G7 with GCC 15: $0.12\,\mu$s for a point and
+$0.23\,\mu$s for a box of $x$ between $-0.3$ and $0.5$ and $y$ between
+$0.1$ and $3$, instead of $2\,\mu$s with the balls alone.
+
+The cases where the value is a double are told apart. For $y=-1$ the value
+is the quotient $-x/(1+x)$ of two integers, which is divided exactly, and
+the value is the double where the division is exact. The value is the
+double $d$ where $(1+x)^y=1+d$, which integers prove for $y=P/2^k$:
+$s=1+x$ a power of two with $y\log_2 s$ an integer, or $s$ the $2^k$-th
+power of an integer $R$ times a power of two with $R^P=1+d$
+($2.375=1.5^3-1$, $1.25$, $0.5=\sqrt{2.25}-1$, $2^m-1$ for $|m|\leq53$);
+it is $y\,x$ on the side $y(y-1)$ tells where $y\,x$ is a double and
+$x(|y|+2)\leq1/2$, the ball not telling the side where $x\,|y-1|$ is below
+$2^{-119}$; and $2^m-1$ is between the double below $2^m$ and $2^m$ for
+$m$ past 53, which the ball cannot tell from $m=118$ on.\newinvfive
+
+The function is tightest, but where the value is within $2^{-111}$
+relatively of a double that is not the value, none of the cases above
+tells it and the fast phase, which tells apart the doubles that are
+$2^{-55}$ to $2^{-58}$ apart relatively or more, has not settled the pair:
+about one pair $(x, y)$ in $10^{17}$ drawn at random for the balls, 5\,\%
+of the pairs going to them, and none among the 5\,854 pairs of the tests;
+the result is then one double wider on that side. The contrived values
+$y=-1$ and $x=\pm(2^e+2^{2e-1})$ for $e$ from $-51$ to $-40$, where
+$1/(1+x)=1-x+x^2-x^3\ldots$ has its cubic term cancelled and is within
+$2^{-155}$ of a double, are the tightest ones now, with the division. The
+tests find the function tightest over 5\,854 pairs $(x, y)$ of every
+magnitude, among them the values that are doubles, the tiny $x$ down to
+the subnormals, $y=-1$ (719 values of $x$, the contrived ones among them,
+633 of them divided), the edges of the fast phase
+($|\mathrm{log1p}(x)|=1/2$ and $8$, $y\,\mathrm{log1p}(x)=8$ and
+$\log(2)/2$), the thresholds of the reduction and of the cuts, and 850
+boxes (the definition read from the hull of the corners), against mpmath at
+1\,500 to 7\,000 bits and fractions; the balls of $\mathrm{log1p}$ and
+$\exp-1$ are checked against mpmath to 256 bits.
+
+\subsection{The error functions}\label{sec:accuracy-erf}
+
+IEEE 1788-2015 does not name \code{erf} and \code{erfc}. GAOL computes them
+with CORE-MATH's \code{erf} and \code{erfc} at the bounds, correctly
+rounded upward, \code{erf} being increasing and \code{erfc} decreasing: the
+value at one bound, and the double below the value at the other one unless
+that value is a double, which it is at $0$ ($\mathrm{erf}(0)=0$,
+$\mathrm{erfc}(0)=1$) and at $\pm\infty$ (the limits $\pm1$ of
+$\mathrm{erf}$, $2$ and $0$ of $\mathrm{erfc}$); the results are within
+$\itv{-1}{1}$ and $\itv{0}{2}$. $\mathrm{erf}(x)$ is within $2^{-53}$ of
+$\pm1$ from $|x|=5.87$ on, where its bounds are $1-2^{-53}$ and $1$, or
+$-1$ and $-(1-2^{-53})$; $\mathrm{erfc}(x)$ is subnormal from $x=26.55$
+on, and below $2^{-1074}$ from $x=27.22$ on, where its lower bound is $0$.
+Neither function is known to take a value that is a double at any other
+double, and the sources of CORE-MATH treat no such case.\newinvfive{} Both
+are tightest. The tests find them so at the 409 doubles of
+\file{elementary\_values.h} (tiny arguments, changes of binade, the
+arguments where the values round to $\pm1$, $2$ or $0$ or become subnormal,
+and the hard cases of CORE-MATH's \file{erfc.c}) and over the intervals
+between them, against mpmath, and over 9\,225 doubles and 80\,000 intervals
+against CORE-MATH called in both directed roundings.
+
+\subsection{Reverse functions}\label{sec:accuracy-reverse}
+\cindex{relational functions!accuracy}%
+
+The relational functions of GAOL compute \code{f\_rel(J, I)}, the hull of
+the $x$ of $I$ whose image is in $J$: they are the reverse functions of
+Table 10.1 of the standard with the arguments in another order
+(\pxref{sec:relational-arithmetic}). Each computes the preimage of $J$
+with the functions above, rounded outward, and intersects it with $I$: it
+is valid, which the standard requires. The test \file{tests/reverse.cpp}
+checks, on the cases of the minimal tests of libieeep1788 and on random
+ones, that they are also accurate, which the standard recommends for
+inf-sup types, the hulls being computed from the definition of each
+function, apart from GAOL (\pxref{sec:test-programs}); the test
+\file{tests/other\_functions.cpp} checks that they keep the values they
+are given, within the numbers of doubles below.
+
+\begin{itemize}
+\item[$\bullet$] \textbf{Square root.} \code{sqrt\_rel(c, x)}
+  (\ieee{sqrRev}) is accurate; the tests find it accurate, and within 1
+  double of the value it keeps.
+\item[$\bullet$] \textbf{Absolute value.} \code{invabs\_rel(c, x)}
+  (\ieee{absRev}) is tightest: its bounds are those of $J$, of $-J$ and of
+  $I$.
+\item[$\bullet$] \textbf{Integer power, $p>0$.}
+  \code{nth\_root\_rel(c, p, x)} (\ieee{pownRev}) is accurate, its bounds
+  being the roots of \code{nth\_root()}; beyond the \code{unsigned int}s it
+  is the hull of the parts of $x$ in those roots and, for an even $p$, in
+  their opposites.\newinvfive{} The tests find it accurate, within 1 double
+  of the tightest, and within 2 doubles of the value it keeps.
+\item[$\bullet$] \textbf{Integer power, $p\leq0$.}\newinvfive{} For $p=0$,
+  \code{nth\_root\_rel(c, 0, x)} is $x$ where $1$ is in $c$, and
+  $\emptyset$ elsewhere: exact. For $p<0$, $c$ is cut at $0$, and the part
+  at least $0$ and, for an odd $p$, the part at most $0$ each give the
+  roots \code{nth\_root(part, p)}, the root then the tightest division, up
+  to 4 doubles beyond the tightest bounds; the result is the hull of their
+  parts in $x$, $0$ left out. The hull of the roots of $c$, which joins its
+  parts, would keep the part of $x$ between them, and the roots reach $0$
+  where $c$ is unbounded, $0$ having no power of negative exponent. The
+  result is accurate. The tests find it valid, $\emptyset$ where the hull
+  is $\emptyset$ in the cases written out, and within 2 doubles of the
+  accurate bounds of 12.10.1, one more than the trigonometric functions:
+  of the 18\,052 random cases with $p<0$ of
+  \file{tests/reverse\_values.py}, 12\,495 have a nonempty result with
+  nonempty accurate bounds, 521 of them one double beyond, 25 two, none
+  more. It is at most 2 doubles from the tightest bounds on the table of
+  \file{tests/reverse.cpp}, 3 on those random cases (60 of them), and 4 at
+  most, found for $c=\itv{2.25}{2.25}$ and $p=-127$. Where $p=-1$ and
+  $1/c$ reaches beyond the largest double, $c$ being next to $2^{-1074}$, a
+  bound saturates at $\pm$\code{DBL\_MAX}, as \code{div\_rel} does: valid,
+  but beyond 4 doubles of the tightest, and not empty where the hull is:
+  the result for $c=\itv{2^{-1074}}{2^{-1074}}$, $p=-1$ and
+  $x=\itv{0}{\code{DBL\_MAX}}$ is $\itv{\code{DBL\_MAX}}{\code{DBL\_MAX}}$.
+\item[$\bullet$] \textbf{Trigonometric functions.} \code{asin\_rel},
+  \code{acos\_rel} and \code{atan\_rel} (\ieee{sinRev}, \ieee{cosRev},
+  \ieee{tanRev}) are accurate, or one double beyond: the pieces of the
+  preimage are $k\pi$, enclosed within about one double from $\pi$ in
+  double-double, plus or minus the inverse function of $J$, which is added
+  before the sum is rounded; beyond $2^{52}$ a bound of $x$ is kept, and an
+  $x$ of a single double is decided by the image of the function. The tests
+  find them accurate but for one double, with the bounds of $x$ beyond
+  $2^{52}$, and within 6 doubles (4, 5 and 3 found) of the value they keep
+  from $1$ to $2^{50}$, away from the points where the inverse function
+  magnifies the width of the image.
+\item[$\bullet$] \textbf{Hyperbolic functions.} \code{acosh\_rel(c, x)}
+  (\ieee{coshRev}) is accurate; the tests find it within 16 doubles of the
+  value it keeps. \code{asinh\_rel} and \code{atanh\_rel}, named after
+  \ieee{coshRev} (\ieee{sinhRev} and \ieee{tanhRev} are not in Table 10.1),
+  are accurate; \code{atanh\_rel(J, x)} is $\emptyset$ where $J$ holds no
+  point of $(-1, 1)$, the values of the hyperbolic tangent.\newinvfive{}
+  The tests find them within 10 and 26 doubles of the value they keep, and
+  $\emptyset$ for $J=\itv{1}{1}$ and $\itv{-1}{-1}$.
+\item[$\bullet$] \textbf{Division.} \code{div\_rel(c, b, x)}, and
+  \code{c \% b} for $x=\itv{-\infty}{+\infty}$ (\ieee{mulRev}), are
+  accurate, and tightest where the bounds of the quotients are doubles. The
+  tests find them accurate, the tightest over the cases of \code{\%}, and
+  \code{div\_rel} within 2 doubles of the value it keeps.
+\item[$\bullet$] \textbf{Powers.}\newinvfive{} \code{pow\_rel(c, b, x)} and
+  \code{pow\_exponent\_rel(c, a, x)} (\ieee{powRev1}, \ieee{powRev2}) are
+  tightest. The pieces of the solutions over the signs of the other
+  argument ($y>0$, $y<0$; $x>1$, $x<1$), with $0^y=0$ for $y>0$, $x^0=1$
+  and $1^y=1$, end at $c^{1/y}$ or $\log(c)/\log(x)$, $c$, $x$ and $y$
+  being bounds of the arguments; their bounds are the largest double $d$
+  with $d^y$ (or $x^d$) proved by CORE-MATH's \code{pow}, correctly
+  rounded, to be on one side of $c$, and the smallest one on the other
+  side. A bound of $x$ where the solutions start between it and the next
+  double, and whose power is within one double of $c$, is kept, which only
+  knowing whether that power is a double would settle: the result is then
+  the tightest one for $x$ one double wider. The tests find them tightest
+  on the 804 cases of ITF1788 and on 1\,244 others, random or whose
+  solutions are doubles, within the tightest result for $x$ one double
+  wider on 966 cases where a bound of $x$ is next to an end of the
+  solutions, and keeping the 54\,305 points of 6\,000 random boxes whose
+  power is within $c$.
+\item[$\bullet$] \textbf{Maximum, minimum, sign and floor.}\newinvfive{}
+  \code{max\_rel(z, y, x)}, \code{min\_rel(z, y, x)},
+  \code{sign\_rel(z, x)} and \code{floor\_rel(z, x)}, whose reverse
+  functions Table 10.1 does not name, are tightest: their bounds are those
+  of $x$ and $z$, $0$, $\lceil\leftBound{z}\rceil$ and
+  $\lfloor\rightBound{z}\rfloor+1$, the open ends of the sets of
+  \code{sign\_rel} ($0$) and \code{floor\_rel}
+  ($\lfloor\rightBound{z}\rfloor+1$) included, the last rounded upward
+  beyond $2^{53}$. The tests check them against the definitions on every
+  interval of half-integer bounds, on cases written out and by sampling,
+  and \code{floor\_rel} at every magnitude, against
+  $\lfloor\rightBound{z}\rfloor+1$ computed exactly.
+\item[$\bullet$] \textbf{Two-argument arc tangent.}\newinvfive{}
+  \code{atan2\_rel\_y(c, b, x)} and \code{atan2\_rel\_x(c, a, x)}
+  (\ieee{atan2Rev1}, \ieee{atan2Rev2}) are accurate. The angles of $c$ in
+  $(-\pi, \pi]$ are cut at the axes into four cones, whose sides have the
+  slopes $\tan\theta$ at the bounds $\theta$ of $c$ (CORE-MATH, correctly
+  rounded, the slope of a subnormal $\theta$ being $\theta$ itself), and
+  $0$ or $+\infty$ at the axes; the bounds of the box, and their products
+  and quotients with the slopes, are rounded outward. The result is within
+  2 doubles of the tightest where both are nonempty; a box within one
+  rounding of the cone may give a point that the tightest enclosure, the
+  empty set, does not hold. The tests find them within 2 doubles of the
+  tightest over 1\,969 cases (1\,263 nonempty) against mpmath at 3\,000
+  bits, around the multiples of $\pi/4$, the axes, the half-line $y=0$,
+  $x<0$, and with zero, subnormal and infinite bounds, and keeping every
+  point whose angle is in $c$, over about 600\,000 such points of the
+  boxes, among them points of their sides next to the sides of the cones.
+\end{itemize}
+
+\begin{Rem}\label{rem:accuracy-reverse-point}
+Where a bound of \var{J} is one double from the image of a bound of the
+preimage, the reverse functions keep a point of \var{I} whose image is
+just outside \var{J}:
+\code{sqrt\_rel(\itv{1+2^{-52}}{+\infty}, \itv{-1}{1+2^{-52}})} is
+\itv{-1}{1+2^{-52}}, whose tightest enclosure is \itv{1}{1+2^{-52}}. They
+are accurate all the same, the widened \var{J} of nextOut holding that
+image.
+\end{Rem}
+
+\medskip
+\ieee{mulRevToPair(b, c)} (10.5.5) is the pair of the two parts, each a
+\code{div\_rel} of $c$ by a part of $b$ over $\itv{-\infty}{+\infty}$, the
+part of $b$ at most $0$ and the part at least $0$:\newinvfive{} as tight as
+\ieee{mulRev}, so the tightest where the bounds of the quotients are
+doubles. The test \file{tests/ieee1788.cpp} checks it against exact
+quotients, and the 172 cases of ITF1788 pass.
+
+\ieee{cancelMinus(x, y)} and \ieee{cancelPlus(x, y)} (10.5.6) are
+\code{cancel\_minus(x, y)} and \code{cancel\_plus(x, y)}, the tightest,
+which 12.12.5 requires. Whether the result exists depends on $x$ being at
+least as wide as $y$, which rounding the differences of the bounds cannot
+decide when they are within a double of each other; each difference is
+computed exactly, as the sum of its value rounded to nearest and of its
+error, by the TwoSum of Knuth. The result is $\itv{-\infty}{+\infty}$
+where there is no value, and $\emptyset$ for an empty $x$ and a bounded
+$y$. They are checked over 200\,000 pairs against exact rational
+arithmetic, 11\,524 of them of exactly equal widths.\newinvfive
+
+\subsection{Set operations and numeric functions}\label{sec:accuracy-set}
+
+The set operations, the constructors, the numeric functions and the
+boolean functions are computed from the bounds, and most of them are
+exact. The relations are described in Chapter~\ref{chap:relations}, the
+reading and the writing of intervals in Chapter~\ref{chap:io}; here are
+their accuracies.
+
+\begin{itemize}
+\item[$\bullet$] \textbf{Intersection and hull.} \code{x \& y} and
+  \code{x | y} (\ieee{intersection}, \ieee{convexHull}) are taken on the
+  bounds: exact.
+\item[$\bullet$] \textbf{Constructors.} \code{interval(l, u)} and
+  \code{interval(d)} (\ieee{numsToInterval}) store the bounds, and the
+  empty set where $l>u$, $l=+\infty$, $u=-\infty$ or a bound is NaN:
+  exact.
+\item[$\bullet$] \textbf{Reading.} \code{gaol::textToInterval(s)} and
+  \code{operator>{}>} (\ieee{textToInterval}) read the numbers, decimal,
+  hexadecimal, octal or binary, compared exactly with the doubles around
+  them; the rational numbers $p/q$ are divided as intervals; the uncertain
+  form is read as its exact decimal bounds; the literals \code{[ ]},
+  \code{[empty]}, \code{[entire]}, the infinite and the missing bounds, in
+  any case of letters, are read (\pxref{sec:reading-intervals}). GAOL also
+  reads expressions, such as \code{"sin(1)+0.1"}, computed with the
+  operations above. The reading is tightest for the literals of IEEE
+  1788-2015, $p$ and $q$ being doubles. The literal \code{[l, u]} is empty
+  where $l$ is above $u$, numbers that are not doubles being compared
+  exactly, but for \code{pi} and another number between the same two
+  doubles, a number far beyond the doubles, or bounds that are computed,
+  which give the interval from the lower bound of $l$ to the upper bound of
+  $u$.\newinvfive{} It is valid for expressions. The tests find it
+  tightest.
+\item[$\bullet$] \textbf{Bounds.} \code{left()} and \code{right()}
+  (\ieee{inf}, \ieee{sup}) return the stored bounds, and NaN for the empty
+  set, where IEEE 1788-2015 has $+\infty$ and $-\infty$: exact.
+\item[$\bullet$] \textbf{Midpoint.} \code{midpoint()} (\ieee{mid}) is
+  $(l+u)/2$ rounded to nearest, ties to even, or $l/2+u/2$ where $l+u$ may
+  overflow, a bound being $2^{1023}$ or more in magnitude, which is tested
+  first, so that $\itv{\code{DBL\_MAX}}{\code{DBL\_MAX}}$ raises no
+  overflow exception;\newinvfive{} it is $0$, $-$\code{DBL\_MAX} and
+  \code{DBL\_MAX} for the unbounded intervals, and NaN for the empty set:
+  as 12.12.8 requires. \code{mid()} is the same midpoint rounded outward:
+  tightest.
+\item[$\bullet$] \textbf{Width and radius.} \code{width()} (\ieee{wid}) is
+  $u-l$ rounded upward, NaN for the empty set; \code{rad()} and
+  \code{mid\_rad(m, r)} (\ieee{rad}, \ieee{midRad}) give the greater of
+  $m-l$ and $u-m$ rounded upward, $m$ being \code{midpoint()}, $+\infty$
+  for the unbounded intervals and NaN for the empty set: as 12.12.8
+  requires. \code{mag()}, \code{mig()} and \code{smig()} are taken on the
+  bounds: exact. \code{hausdorff(x, y)} is the distance rounded upward:
+  tightest.
+\item[$\bullet$] \textbf{Relations.} \code{is\_empty()},
+  \code{is\_a\_double()} and \code{set\_contains(d)} (\ieee{isEmpty},
+  \ieee{isSingleton}, \ieee{isMember}), the set relations \code{set\_eq},
+  \code{set\_contains} and \code{set\_leq}, \code{set\_strictly\_contains}
+  and \code{set\_le}, \code{set\_disjoint} (\ieee{equal}, \ieee{subset},
+  \ieee{interior}, \ieee{disjoint}, as Tables 10.3 and 10.4), the certainly
+  relations \code{certainly\_leq}, \code{certainly\_le},
+  \code{certainly\_geq} and \code{certainly\_ge} (\ieee{precedes},
+  \ieee{strictPrecedes}, true when an interval is empty),
+  \code{is\_entire()} and \code{is\_common\_interval()} (\ieee{isEntire},
+  \ieee{isCommonInterval}, a common interval being nonempty and bounded,
+  the NaN bounds of the empty set being no infinities\newinvfive) and
+  \code{less(y)} and \code{strictly\_less(y)} (\ieee{less},
+  \ieee{strictLess}, as Table 10.3, \ieee{strictLess} counting an infinite
+  bound as below itself, with the empty cases of Table 10.4\newinvfive) are
+  decided on the bounds: exact (\pxref{sec:interval-relations}). The tests
+  find them exact, and \code{less} and \code{strictly\_less} as Tables 10.3
+  and 10.4 over 20\,000 pairs.
+\item[$\bullet$] \textbf{Overlap.} \code{x.overlap(y)} and
+  \code{gaol\_ieee1788::overlap(x, y)} (\ieee{overlap}) give the state of
+  Table 10.7 among the 16 of \code{overlapping\_state}:
+  \element{bothEmpty}, \element{firstEmpty} or \element{secondEmpty} for an
+  empty operand, else the order of the four bounds, told as the integers of
+  their bits (\code{gaol\_detail::bound\_key()}: $-0$ and $+0$ are the same
+  bound, and an infinite bound is the same as itself); a point interval on
+  a bound of the other one is \element{starts}, \element{finishes},
+  \element{finishedBy}, \element{startedBy} or \element{equals}, never
+  \element{meets} nor \element{metBy}.\newinvfive{} Exact. The tests read
+  the set specification of Table 10.7 with quantifiers over a finite model
+  of the real line, on 31\,449 pairs (the empty set, the 104 intervals of
+  a grid of bounds, infinities, zeros of both signs, subnormals and
+  neighbours of a double among them, and 20\,000 random pairs whose bounds
+  meet); they check \ieee{disjoint}, \ieee{equal} and \ieee{subset} as
+  masks of the states, the converse state when the operands are exchanged,
+  the 48 cases of ITF1788 without decorations, and the same state with a
+  mode that flushes the subnormals to zero.
+\item[$\bullet$] \textbf{Writing.} \code{gaol\_ieee1788::intervalToText(x)}
+  writes the bounds \code{[l, r]}, \code{[a]} for a point interval whose
+  digits are exact (\code{[4]}, and \code{[0]} for a zero of either sign),
+  or \code{[empty]}, in decimal with the digits of
+  \code{interval::precision()} and a decimal point, whatever the global
+  format and the locale.\newinvfive{} \code{operator<{}<} in the format
+  \element{bounds}, and in \element{agreeing} for the intervals it writes
+  with their bounds (those whose bounds share no digit that is not $0$, or
+  are not finite, not $0$ and of the same sign), writes the same, with the
+  digits and the flags of the stream, and a decimal point whatever its
+  locale, so that the reader reads the text back; \element{agreeing}
+  writes the other intervals with the digits their bounds share
+  (\pxref{sec:output-format}). Each bound is written to nearest by the C
+  library, compared exactly with the bound, and its last digit moved
+  outward when it is on the wrong side. The format \element{hexa} writes
+  the bounds in the hexadecimal-significand form of 13.4.1, \code{[a]} for
+  a point interval and \code{[0x0p+0]} for a zero. The decimal formats are
+  valid, and the tightest with the digits asked for where the C library
+  rounds to nearest as it should; the hexadecimal format is exact. The
+  tests find less than one unit of the last digit in decimal and the exact
+  bits in hexadecimal, read the text of \ieee{intervalToText} back as a
+  literal, over every format, precision and a comma locale, and read the
+  text that \code{operator<{}<} writes for a point under that locale back
+  as the point, or as an interval containing it.
+\item[$\bullet$] \textbf{The formats for the eye.} \code{operator<{}<} in
+  the formats \element{width} and \element{center} writes the
+  \code{midpoint()} to nearest and the \code{rad()} rounded
+  upward,\newinvfive{} as \code{c (+/- w)}, or \code{c} for a point
+  interval, and \code{[empty]} for the empty set; the digits of $c$ are
+  those of the precision, so that the text need not contain the interval.
+  As doubles, $\itv{c-w}{c+w}$ contains $x$, $w$ being the smallest radius
+  that does so, and a nonzero radius is never written $0$. The tests find
+  the radius written at least the exact half-width and \code{rad()} rounded
+  upward with less than one unit of its last digit, $\itv{c-w}{c+w}$
+  containing $x$, and the midpoint written to nearest with at most half a
+  unit of its last digit, over the special values, the subnormals, the
+  largest doubles and random intervals, every precision and flag.
+\item[$\bullet$] \textbf{Recovery.} \code{exact\_string(x)}, which
+  \code{operator<{}<} writes with \element{hexa}, and
+  \code{gaol::textToInterval(s)} (\ieee{intervalToExact},
+  \ieee{exactToInterval}) meet the recovery requirement of 13.4: an
+  interval written in hexadecimal and read again gives the same bounds, bit
+  for bit, the empty set, the infinite bounds, a bound $-0$ and the
+  subnormals included, but for a point interval of zero, written
+  \code{[0x0p+0]} whatever the signs of its bounds and read back as
+  $\itv{+0}{+0}$, the same set.\newinvfive{} Exact, over 2\,000 random
+  intervals and the values written apart.
+\end{itemize}
+
+\section{The same bounds on every machine}\label{sec:accuracy-same-bounds}
+%%------------------------------------------------------------------------
+\cindex{accuracy!the same bounds on every machine}%
+\cindex{zero!sign of a zero bound}%
+
+GAOL is built with CORE-MATH only, whose sources are compiled into the
+library (\pxref{sec:math-libraries}): the bounds of this chapter are the
+bounds on every machine. They are therefore those of every build of GAOL,
+and the test \file{tests/core\_math.cpp} checks them against CORE-MATH
+called in the downward and the upward rounding, which are the tightest
+bounds there are.
+
+\medskip
+The SSE2, the NEON and the FPU intervals (\pxref{sec:kernels}) compute the
+integer powers with the same code, from exact products
+(\code{pown\_products()} of \file{gaol/core/gaol\_interval\_core.cpp}), and
+the square from one product per bound, and give the same bounds. The SSE2
+intervals of GAOL~4 multiplied rounded products from the highest bit of
+$n$, and the bounds of the two differed for about half of the intervals
+with a bound $0$ or infinite or whose power is beyond the exact
+products.\newinvfive{} \code{pow(x, 2)} is \code{sqr(x)} in every form of
+the integer power with the exponent 2 (\code{pow(x, 2)}, \code{2u},
+\code{2.0} and \code{[2]}, \code{gaol\_ieee1788::pown(x, 2)}, and
+\code{gaol\_ieee1788::pow(x, [2])} on the part of $x$ in
+$\itv{0}{+\infty}$, which is $\itv{0}{0}$ for the part
+$\itv{0}{0}$):\newinvfive{} the same function, so the same bits, the sign
+of a zero bound being that of \code{sqr} in each build. The integer power
+made its square from exact products, which has the same bounds and gave a
+zero bound of the other sign for part of the intervals holding $0$:
+\code{pow(interval(0, 2), 2)} was $\itv{-0}{4}$ with the NEON intervals and
+\code{pow(interval(-1, 2), 2)} was $\itv{-0}{4}$ with the FPU ones, where
+\code{sqr} gives $\itv{0}{4}$; with the NEON intervals
+\code{pow(interval::universe(), 2)} was $\itv{0}{+\infty}$ and is
+$\itv{-0}{+\infty}$, as \code{sqr} has it. The exception flags are those
+of \code{sqr} as well (\pxref{sec:fp-exceptions}): the corner products
+that are not a bound of the result raise the inexact and the underflow
+flags too (\code{pow([-1e-310, 1e154], 2)} raises underflow for the square
+of its lower bound, which its lower bound $0$ leaves out), and the
+overflow flag is raised when the upper bound is $+\infty$ only, the
+smaller of two squares overflowing only with the larger: none of 14
+million cases of each build had a finite upper bound with it.
+
+\medskip
+The bounds are the same, but the sign of a zero bound may differ between
+the kernels, $+0$ and $-0$ being the same number.
+
+\begin{Ex}
+\code{sqr(interval(-2.0, 3.0))} is $\itv{-0}{9}$ with the SSE2 and the
+NEON intervals, and $\itv{0}{9}$ with the FPU intervals.
+\end{Ex}
+
+So may the sign of a zero bound of a product or of a quotient. The SSE2
+intervals take the larger of four products, and the quotient of the
+corners their signs choose, with no branch, where GAOL~4 chose one product
+by the signs of the bounds: \code{[-1, 0] * [-1, 0]} has the lower bound
+$+0$ where it had $-0$.\newinvfive{} The FPU intervals take the larger of
+four products too (for each bound, the lower one made of products with a
+factor negated),\newinvfive{} but with a comparison and a selection that
+the compiler compiles as it chooses, not an instruction: where two
+products are zeros of opposite signs, the sign of the zero bound of a
+product is the compiler's and the target's, $+0$ or $-0$. The lower bound
+of \code{[-1, 0] * [-1, 0]} is $+0$ with GCC for 32-bit ARM and for arm64,
+with Clang and with Visual C++ for x86, and $-0$ with GCC 13 for POWER9,
+which compiles the selection into an \code{xsmaxcdp} that returns its
+first operand for a $+0$ and a $-0$. The FPU intervals give the bits of
+the SSE2 intervals, checked against a model of their kernels and not by
+running them, for the products of finite bounds but for that sign, and for
+the quotients by a divisor without zero: \code{[0, 1] / [-2, -1]} has the
+upper bound $-0$, where the FPU intervals gave $+0$ before, the zero bound
+of the dividend being divided. \code{div\_rel(K, J, I)} of the SSE2
+intervals takes the code of the FPU and the NEON intervals where a bound of
+$K$ is $2^{500}$ or more in magnitude, or a bound of $J$ that is not $0$
+is below $2^{-500}$, the quotients of the vectors being liable to
+overflow,\newinvfive{} so that a zero lower bound may have the sign of
+that code: \code{div\_rel([0, 0x1.e2ab041732196p-5],
+[2\textasciicircum-1074, 0x1.182p+9], [-DBL\_MAX, 0x1.70ef9db22d0e5p+2])}
+is $\itv{0}{5.764625}$ where the vector code gives $\itv{-0}{5.764625}$
+for a $J$ from $1$.
+
+\medskip
+The two paths of the SSE2 intervals, with and without
+\code{GAOL\_PREFER\_AVX512} (\pxref{sec:avx512}), give the same bits, but
+for the sign of a zero bound of \code{x * d}, \code{x *= d} and
+\code{d * x} (computed as \code{x * d}) where the zero bounds of $x$ have
+different signs, $\itv{+0}{-0}$: it is $\itv{+0}{-0}$ with SSE2 and
+$\itv{-0}{+0}$ with AVX-512. The NEON intervals take the larger of four
+products too,\newinvfive{} with the maximum of 64-bit ARM, which ranks
+$+0$ above $-0$, where the \code{maxpd} of the SSE2 intervals returns its
+second operand when the two compare equal: the lower bound of
+\code{[-1, 0] * [-1, 0]} is $-0$ with the NEON intervals, where the SSE2
+ones give $+0$ and the FPU ones the compiler's, and so may another zero
+bound of a product. \code{interval::zero()} is stored
+$\langle+0, +0\rangle$ as with SSE2, so that its lower bound is $-0$
+(\pxref{sec:kernels}). The tool \file{tests/tools/arith} compares the NEON
+and the FPU intervals on a grid of operands, with the calling code in each
+of the four rounding directions: it found no other difference.
+
+\section{Discussion}
+%%-----------------
+
+This chapter documents the tightness of each operation of \code{interval},
+as 12.10.3 of IEEE 1788-2015 requires, from its algorithm, and gives the
+largest distance the tests found. The basic operations, the integer
+functions and the absmax functions are tightest, as the standard requires.
+The elementary functions, the recommended functions and the error
+functions are tightest too, where the standard requires validity and
+recommends accuracy, because CORE-MATH is correctly rounded in the
+direction in effect: the value at a bound and the double below it are the
+tightest bounds, and the cases where the exact value is a double are told
+apart with integers. The exceptions are stated with their size: the roots
+of an order other than 1, 2 and 3 are within 2 doubles, their inverses
+within 4, the integer power is one double beyond in rare cases whose
+frequency is given, and \code{compoundm1} in about one pair in $10^{17}$.
+The reverse functions are accurate, which the standard recommends, and the
+tests measure how far they are from the values they keep.
+
+\medskip
+Several choices trade a little tightness or time for a proof. The real
+power proves that its lower bound is a double with integers rather than
+call CORE-MATH downward, which would double its cost; \code{compoundm1}
+settles most pairs in a fast phase of 64-bit fixed point whose error bound
+is proved, and sends the others to balls on 128 bits; the roots of an
+order above 3 are proved by the power of the double on each side, at the
+price of up to 2 doubles. The bounds are the same on every machine and in
+every build, CORE-MATH being compiled into the library and the kernels
+computing the integer powers with the same code; only the sign of a zero
+bound differs between the SSE2, the NEON and the FPU intervals, and
+between the compilers for the FPU ones, which changes no set.
+
+\medskip
+What remains is stated as such: the widths of \code{cos}, \code{sin} and
+\code{tan} between $\underline{\pi}$ and $\pi$, or $2\underline{\pi}$ and
+$2\pi$, are theoretical cases where the result is wider than the tightest
+one, and the intervals of floats are not covered. The next chapter
+describes how GAOL computes these bounds: the register that holds the
+negated lower bound, the SSE2, AVX-512, NEON and FPU kernels, the check of
+the rounding direction and its cost, and the comparison with the other
+libraries.
