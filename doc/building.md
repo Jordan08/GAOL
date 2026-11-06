@@ -487,7 +487,12 @@ The three builds have the same targets:
   before). The files are `manual/v5/gaol.pdf` and `manual/v4/gaol.pdf` of the
   build directory, not those git tracks in the source tree. The target is not
   part of `all`. It needs `sh` and the LaTeX packages that
-  `manual/build-pdf.sh` names.
+  `manual/build-pdf.sh` names. The manual of GAOL v5 can also be compiled by
+  hand in `manual/v5`: `pdflatex --file-line-error --synctex=1
+  manual_gaolv5.tex`, then `bibtex manual_gaolv5`, `makeindex manual_gaolv5.idx
+  -o manual_gaolv5.ind` and `pdflatex` twice. Without `gaol_version.tex`, which
+  the builds write, the title page takes the version of `VERSION.txt`, the
+  edition 5.0 and today's date; git ignores the files LaTeX writes there.
 
 ## The configuration of GAOL
 

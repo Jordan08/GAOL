@@ -1668,7 +1668,13 @@ builds have the same targets (Table~\ref{tab:install-targets}).
   -DWITH\_DOC=ON}, by \cmd{cmake --build build --target pdf}, which CMake
   had not before.\newinvfive{} The files are \file{manual/v5/gaol.pdf} and
   \file{manual/v4/gaol.pdf} of the build directory, not those that git tracks
-  in the source tree, and the target is not part of \code{all}.
+  in the source tree, and the target is not part of \code{all}. This manual
+  can also be compiled by hand in \file{manual/v5}:
+  \cmd{pdflatex manual\_gaolv5.tex}, then \cmd{bibtex manual\_gaolv5},
+  \cmd{makeindex manual\_gaolv5.idx -o manual\_gaolv5.ind} and \cmd{pdflatex}
+  twice; without \file{gaol\_version.tex}, which the builds write, the title
+  page takes the version of \file{VERSION.txt}, the edition 5.0 and today's
+  date.
 \end{itemize}
 
 \noindent

@@ -35,6 +35,17 @@
 \usepackage{multirow}
 \usepackage{array}
 \usepackage{longtable}
+%% longtable ends a table that runs over pages with a \vss, whose infinite
+%% shrinkage the page code of LaTeX 2025 meets when it splits the box: one
+%% "ignored error: Infinite glue shrinkage found in box being split" for each
+%% such table, with no effect on the page. A glue that stretches without limit
+%% and shrinks by 20 pt at most does the same without it (nothing happens if the
+%% package is not made so)
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\LT@output{\vss}{\vskip\z@\@plus1fil\@minus20\p@}{}{}
+\patchcmd\LT@output{\vss}{\vskip\z@\@plus1fil\@minus20\p@}{}{}
+\makeatother
 \usepackage{multicol}
 \usepackage{fancyvrb}
 \usepackage{pifont}

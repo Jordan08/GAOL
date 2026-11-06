@@ -24,7 +24,23 @@
 \documentclass[12pt,a4paper,twoside,openright]{book}
 
 \input{gaol_def}
-\input{gaol_version}
+
+%% The version, the edition and the date of the manual are in gaol_version.tex,
+%% which build-pdf.sh finds in the build directory (configure, CMake and meson
+%% write it from gaol_version.tex.in). Compiled by hand in this directory
+%% (pdflatex manual_gaolv5.tex) there is none: the version is then the one of
+%% VERSION.txt, the edition 5.0 and the date today's.
+\makeatletter
+\IfFileExists{gaol_version.tex}{\input{gaol_version}}{%
+  \def\updated{\today}%
+  \def\edition{5.0}%
+  \IfFileExists{../../VERSION.txt}{%
+    \newread\gaol@versionfile
+    \openin\gaol@versionfile=../../VERSION.txt
+    \begingroup\endlinechar=-1 \global\read\gaol@versionfile to \gaol@version\endgroup
+    \closein\gaol@versionfile
+    \let\version\gaol@version}{\def\version{5.0.0}}}
+\makeatother
 
 \begin{document}
 

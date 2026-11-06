@@ -13,8 +13,11 @@
 # and receives gaol.pdf. The make pdf of the autotools build, the target pdf of
 # the CMake build (-DWITH_DOC=ON) and the one of the meson build
 # (-Dwith-doc=true) run it on both manuals, and so does the continuous
-# integration. Needs pdflatex, bibtex and makeindex, with the
-# packages that v5/gaol_def.tex (the manual of GAOL v5) and the class
+# integration. The manual of GAOL v5 can also be compiled by hand in its
+# directory (pdflatex manual_gaolv5.tex: without gaol_version.tex, the title
+# page takes the version of VERSION.txt and today's date). Needs pdflatex,
+# bibtex and makeindex, with the packages that v5/gaol_def.tex (the manual of
+# GAOL v5) and the class
 # v4/manual.cls (the manual of GAOL 4) load (on Debian and Ubuntu:
 # texlive-latex-recommended, texlive-latex-extra, texlive-fonts-recommended and
 # lmodern).
