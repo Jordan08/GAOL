@@ -1321,8 +1321,9 @@ turn with the others.
 
 \medskip
 On a 64-bit ARM processor, Table~\ref{tab:install-worth-arm} measures the
-same way on an Apple M2 with AppleClang 21.0, the median of three runs of
-each program; the FPU row is measured in a session of its own.
+same way on an Apple M2 with AppleClang 21.0, the median of nine runs of
+each program, 6 November 2026: the first two builds in turn in one session,
+the last two in another.
 
 \begin{table}[htbp]
   \centering\renewcommand{\arraystretch}{1.1}\footnotesize
@@ -1331,28 +1332,28 @@ each program; the FPU row is measured in a session of its own.
     Build & $x + y$ & $x - y$ & $x \times y$ & $x / y$ & \code{sqr} &
     \code{sqrt} & 13 operations\\
     \hline\hline
-    \option{-DGAOL\_SIMD=OFF} (FPU intervals) & 1.18 & 1.18 & 3.33 & 3.30 &
-    1.82 & 4.60 & 51.7\\
-    Default (NEON intervals) & 0.91 & 0.89 & 2.14 & 2.39 & 1.48 & 1.70 &
-    19.2\\
-    \option{-DGAOL\_SIMD=OFF} \option{-DGAOL\_PRESERVE\_ROUNDING=ON} & 38.8 &
-    38.7 & 44.4 & 45.2 & 43.7 & 48.5 & 537\\
-    \option{-DGAOL\_PRESERVE\_ROUNDING=ON} (NEON intervals) & 26.9 & 27.3 &
-    29.3 & 34.0 & 27.3 & 34.3 & 377\\
+    \option{-DGAOL\_SIMD=OFF} (FPU intervals) & 1.15 & 1.15 & 3.26 & 3.22 &
+    1.78 & 5.17 & 50.6\\
+    Default (NEON intervals) & 0.90 & 0.90 & 1.52 & 2.08 & 1.27 & 2.04 &
+    16.6\\
+    \option{-DGAOL\_SIMD=OFF} \option{-DGAOL\_PRESERVE\_ROUNDING=ON} & 37.4 &
+    37.7 & 43.2 & 43.9 & 42.6 & 46.6 & 519\\
+    \option{-DGAOL\_PRESERVE\_ROUNDING=ON} (NEON intervals) & 26.6 & 27.1 &
+    27.8 & 35.1 & 27.2 & 35.7 & 370\\
     \hline
   \end{tabular}
   \caption[The options on 64-bit ARM (Apple M2, AppleClang 21.0)]{The options on 64-bit ARM: nanoseconds per operation, Apple M2,
-    AppleClang 21.0, the median of three runs; the last column is a line of
+    AppleClang 21.0, the median of nine runs; the last column is a line of
     13 operations}
   \label{tab:install-worth-arm}
 \end{table}
 
 \begin{itemize}
 \item[$\bullet$] \textbf{The NEON intervals pay on every operation of the
-  table.} $x - y$ takes 0.89~ns rather than 1.18, $x \times y$ 2.14 rather
-  than 3.33 (of operands of random signs 2.18 rather than 3.38), $x / y$
-  2.39 rather than 3.30, \code{sqrt} 1.70 rather than 4.60, and a line of 13
-  operations 19.2~ns rather than 51.7. The two bounds are one vector, and the
+  table.} $x - y$ takes 0.90~ns rather than 1.15, $x \times y$ 1.52 rather
+  than 3.26 (of operands of random signs 1.60 rather than 3.32), $x / y$
+  2.08 rather than 3.22, \code{sqrt} 2.04 rather than 5.17, and a line of 13
+  operations 16.6~ns rather than 50.6. The two bounds are one vector, and the
   operations take them from one to the next in a register. The elementary
   functions, which CORE-MATH computes, go through them only for their
   arguments: no faster, no slower. They are on by default on 64-bit ARM
@@ -1360,15 +1361,15 @@ each program; the FPU row is measured in a session of its own.
 \item[$\bullet$] \textbf{The product, the quotient and the square of the FPU
   intervals take no branch on the signs of the bounds}, and $x - y$ reads its
   bounds after the check of the rounding direction.\newinvfive{} The row read
-  before 3.56 for $x - y$, 3.37 for $x \times y$ (6.39 of operands of random
-  signs), 4.00 for $x / y$, 2.08 for \code{sqr} and 49.8 for the line of 13
+  before 3.54 for $x - y$, 3.25 for $x \times y$ (6.39 of operands of random
+  signs), 3.98 for $x / y$, 2.07 for \code{sqr} and 49.6 for the line of 13
   operations. The product of a line of operands of one sign, which a processor
-  predicts, takes more time than it did (a line of 7 products, 35.8~ns rather
-  than 23.8), the largest of four products waiting for two comparisons. With
+  predicts, takes more time than it did (a line of 7 products, 35.0~ns rather
+  than 23.3), the largest of four products waiting for two comparisons. With
   \option{GAOL\_PRESERVE\_ROUNDING} the write of FPCR waits for the result as
-  well, and the FPU row of that option gains nothing ($x \times y$ 44.4~ns
-  rather than 42.2 for the former code, measured in the same session, and
-  44.3 rather than 49.1 for operands of random signs). These are the figures
+  well, and the FPU row of that option gains little ($x \times y$ 42.4~ns
+  rather than 39.7 for the former code, measured in the same session, and
+  42.4 rather than 47.5 for operands of random signs). These are the figures
   of this processor, with AppleClang. The processors of the continuous
   integration that run the FPU intervals (32-bit ARM, Ubuntu with GCC and
   Clang, macOS; and, when they were measured, Visual C++ and clang-cl for x86
@@ -1381,7 +1382,7 @@ each program; the FPU row is measured in a session of its own.
   the direction of the program is not upward: \code{msr} takes 4~ns for the
   value FPCR holds and 11~ns when it changes the direction. With
   \option{GAOL\_PRESERVE\_ROUNDING} an operation of a program that computes
-  to nearest writes it twice, which is the 27~ns above (39~ns with the FPU
+  to nearest writes it twice, which is the 27~ns above (37~ns with the FPU
   intervals, which called \code{fegetround()} and \code{fesetround()}); a
   program that already computes upward writes nothing.
 \end{itemize}

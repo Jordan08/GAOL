@@ -329,7 +329,7 @@ instruction that waits for it. The CORE-MATH calls themselves cost 3 to
 \item[$\bullet$] \textbf{The other operations.} The relations, \code{hull},
 \code{intersect}, \code{min} and \code{max} are 3.6\,\% or less in every
 program; \code{mid()} is 6\,\% of the global optimization, and
-\code{midpoint()} 11 to 12\,\% of the Krawczyk iteration (21 to 28 ns on the
+\code{midpoint()} 11 to 12\,\% of the Krawczyk iteration (29 ns on the
 M2: two writes of FPCR).
 \item[$\bullet$] \textbf{The check of the direction.} The check (one
 \code{mrs} of FPCR here), removed in a copy, saves 0.8\,\% (03), 1.4\,\%
@@ -351,11 +351,11 @@ for \code{+} and \code{-}, 2.30 for \code{*}, 2.52 for \code{/}, 1.87 for
 \code{sqr}, 6.30 for \code{sqrt} and 5.12 for \code{pow(x, 3)}, the same
 operation on doubles taking 0.96 ns for \code{+}. With
 \option{GAOL\_PRESERVE\_ROUNDING} and the AVX-512 path: 2.19, 2.16, 3.42,
-3.60, 2.04, 3.75 and 6.18. On the M2 the NEON intervals take 0.91 ns for
-\code{+}, 2.14 for \code{*}, 2.39 for \code{/}, 1.48 for \code{sqr} and 1.70
-for \code{sqrt}, against 1.18, 3.33, 3.30, 1.82 and 4.60 with the FPU
+3.60, 2.04, 3.75 and 6.18. On the M2 the NEON intervals take 0.90 ns for
+\code{+}, 1.52 for \code{*}, 2.08 for \code{/}, 1.27 for \code{sqr} and 2.04
+for \code{sqrt}, against 1.15, 3.26, 3.22, 1.78 and 5.17 with the FPU
 intervals, whose \code{*}, \code{/} and \code{sqr} take no branch on the
-signs (1.16, 3.37, 4.00, 2.08 and 4.51 before).
+signs (1.15, 3.25, 3.98, 2.07 and 4.49 before).
 
 %%--------------------------------------------------------------------------
 \section{The rounding direction, by processor}
@@ -1200,42 +1200,44 @@ lines of quotients.
 \textbf{Line} & \textbf{Ops} & v5 & v5 pres. & v4 & v5 pres. / v5
 & v4 / v5 \\
 \hline
-\code{sum16} & 15 & 9.05 & 384 & 42.0 & 42.4 & 4.6 \\
-\code{diff16} & 15 & 9.13 & 389 & 77.4 & 42.6 & 8.5 \\
-\code{mul8} & 7 & 16.0 & 202 & 28.1 & 12.6 & 1.8 \\
-\code{mul8\_tree} & 7 & 14.4 & 202 & 24.5 & 14.0 & 1.7 \\
-\code{quot8} & 7 & 17.7 & 221 & 37.2 & 12.5 & 2.1 \\
-\code{mix13} & 13 & 17.0 & 360 & 61.4 & 21.1 & 3.6 \\
-\code{mix\_tree} & 19 & 20.7 & 525 & 82.6 & 25.4 & 4.0 \\
-\code{pos\_sum16} & 15 & 8.85 & 387 & 39.6 & 43.7 & 4.5 \\
-\code{pos\_mul8} & 7 & 15.1 & 205 & 16.1 & 13.6 & 1.1 \\
-\code{pos\_quot8} & 7 & 17.7 & 221 & 46.3 & 12.5 & 2.6 \\
+\code{sum16} & 15 & 9.11 & 385 & 41.9 & 42.3 & 4.6 \\
+\code{diff16} & 15 & 9.30 & 390 & 77.6 & 42.0 & 8.3 \\
+\code{mul8} & 7 & 10.5 & 187 & 28.3 & 17.8 & 2.7 \\
+\code{mul8\_tree} & 7 & 9.95 & 190 & 25.0 & 19.1 & 2.5 \\
+\code{quot8} & 7 & 17.6 & 229 & 37.3 & 13.0 & 2.1 \\
+\code{mix13} & 13 & 14.3 & 353 & 61.6 & 24.7 & 4.3 \\
+\code{mix\_tree} & 19 & 18.5 & 516 & 82.2 & 27.9 & 4.4 \\
+\code{pos\_sum16} & 15 & 8.85 & 385 & 39.7 & 43.5 & 4.5 \\
+\code{pos\_mul8} & 7 & 9.58 & 187 & 16.1 & 19.6 & 1.7 \\
+\code{pos\_quot8} & 7 & 17.6 & 232 & 46.5 & 13.2 & 2.6 \\
 \hline
 \end{tabular}
 \caption[The same lines on a 64-bit ARM processor (Apple M2)]{The same lines on a 64-bit ARM processor, in nanoseconds per
 evaluation: GAOL v5 with the NEON intervals (v5), the same with the rounding
 direction preserved (v5 pres.) and GAOL 4.2.3 with the FPU intervals (v4).
-Apple M2, Apple clang 21.0.0, macOS 27.0.1, 28 October 2026, the best of 3
+Apple M2, Apple clang 21.0.0, macOS 27.0.1, 6 November 2026, the best of 3
 rounds, the processor not pinned.}
 \label{tab:computing-lines-m2}
 \end{table}
 
-On the Apple M2, GAOL v5 takes 8.85 to 20.7 ns for a line of 7 to 19
+On the Apple M2, GAOL v5 takes 8.85 to 18.5 ns for a line of 7 to 19
 operations, 0.6 to 2.5 ns an operation, where GAOL 4.2.3, which has no
-instructions of 64-bit ARM to compute its FPU intervals with, takes 1.1 to
-8.5 times as long (its \cmd{configure} was generated again by
+instructions of 64-bit ARM to compute its FPU intervals with, takes 1.7 to
+8.3 times as long (its \cmd{configure} was generated again by
 \cmd{autoreconf} and told \option{--build=arm-apple-darwin}, and mathlib
 2.1.1 configured with \option{--host=aarch64-unknown-linux-gnu}; no line
-calls it). With the rounding direction preserved the same lines take 202 to
-525 ns, 25.6 to 31.6 ns an operation, 12.5 to 43.7 times as long as without:
+calls it). With the rounding direction preserved the same lines take 187 to
+516 ns, 25.7 to 33.1 ns an operation, 13.0 to 43.5 times as long as without:
 the program computes to nearest, so each operation sets the direction upward
 and puts nearest back, two \code{msr} of FPCR of 11 ns each that change it,
 with the \code{mrs} of 0.8 ns that reads it. The sums of the midpoints and
 of the widths of the three agree to $1.1\cdot10^{-16}$ relatively. The
 machine was on mains power, the low power mode off, with a load average of
-1.5 at the start and 1.8 at the end and no other process above 10\,\% of a
-core; the three rounds of a line differ by 2.4\,\% at the median and by
-8.8\,\% at most, and the best of the three is kept.
+1.7 at the start and 3.0 at the end (the run took 65 s, the build of the
+three programs included), and no process above 10\,\% of a core but the interface of
+the machine in the readings taken just before and just after the run; the
+three rounds of a line differ by 1.4\,\% at the median and by 6.4\,\% at
+most, and the best of the three is kept.
 
 \subsection{The special cases}
 \label{sec:computing-special-cases}
@@ -1599,7 +1601,7 @@ and the universe, in the four directions of the calling code and with
 flush-to-zero set) the bounds of \code{pow(x, 2)} are the same as before,
 the sign of a zero lower bound aside, which is that of \code{sqr(x)} now.
 \item[$\bullet$] \textbf{\code{sqrt} on SSE2} is scalar (6.3 ns on the
-i7-1185G7, 3.75 with the AVX-512 path and the direction preserved, 1.7 on
+i7-1185G7, 3.75 with the AVX-512 path and the direction preserved, 2.0 on
 the M2 with NEON); the NEON kernel ports to \code{\_mm\_sqrt\_pd}.
 \code{sqrt\_rel} follows.
 \item[$\bullet$] \textbf{The integer powers on NEON} (done, a small gain).
@@ -1628,7 +1630,7 @@ profile says how much of that is the reduction.
 \item[$\bullet$] \textbf{\code{div\_rel} and \code{\%=}} are trees of
 branches; the NEON intervals have the cases of the function
 \code{divide\_by\_zero\_containing()} as a table for the quotient.
-\item[$\bullet$] \textbf{Not for SIMD.} \code{midpoint()} (21 to 28 ns on
+\item[$\bullet$] \textbf{Not for SIMD.} \code{midpoint()} (29 ns on
 the M2), \code{bisect()}, \code{chi()} and \code{hausdorff()} spend their
 time in changes of the rounding direction, which is the question of
 computing without changing it; the elementary functions are limited by
@@ -1748,7 +1750,7 @@ of GAOL v5 is to check the direction with one comparison and to write the
 register only when the direction is not upward already. The measurements
 bear the choice out. GAOL v5 is faster than GAOL 4.2.3 on every line measured and on every
 operation but the square root, which takes the same time, 1.06 to 4.4 times
-on x86 and 1.1 to 8.5 times on
+on x86 and 1.7 to 8.3 times on
 the M2, and it is the fastest of the six libraries compared on the
 arithmetic, the integer power and most formulas, with the bounds of
 libieeep1788, which computes every bound with MPFR, 17 to 135 times faster.
@@ -1764,7 +1766,7 @@ and that is why a build takes that path with \option{GAOL\_PRESERVE\_ROUNDING}
 only: without the preservation the path loses 17\,\% at the median, and the
 rule relies on one processor, with halved AVX-512 units. On 64-bit ARM, no
 instruction carries its direction, and preserving it for a program that
-computes to nearest makes a line of operations 12.5 to 43.7 times slower on
+computes to nearest makes a line of operations 13.0 to 43.5 times slower on
 the M2. The paths that remain to try are few: the RISC-V scalar
 instructions are the only other ones with a rounding direction by
 instruction, and they need a board; POWER and s390x need hardware to

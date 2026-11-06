@@ -1857,7 +1857,7 @@ random signs, the other rows having positive operands only, which a processor
 predicts: the product, the quotient and the square chose a branch by the signs
 of the bounds in GAOL 4 and in the FPU intervals before GAOL v5 gave them
 kernels with none (the operands are 1 024 intervals that the predictor of a
-processor learns by heart: the former product of random signs took 5.7 ns on
+processor learns by heart: the former product of random signs took 6.4 ns on
 them and 12.4 on 16 384, Apple M2). The table is Markdown, which
 the jobs of the continuous integration copy into their summary: the pipe of the
 name `x | y` is written `\|`, and `compare-performance.py` reads it back. After

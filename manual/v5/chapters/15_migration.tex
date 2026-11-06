@@ -675,16 +675,16 @@ whose NEON has no vector of doubles, still does. The two bounds are the two
 lanes of a \code{float64x2\_t}, as the SSE2 intervals keep them in a
 \code{\_\_m128d}, and \code{+}, \code{-}, \code{*}, \code{/}, \code{sqr()}
 and \code{sqrt()} are kernels that take and return them in registers. On an
-Apple M2 (AppleClang 21.0), \code{x + y} takes 0.91 ns rather than 1.18,
-\code{x * y} 2.14 ns rather than 3.33, \code{x / y} 2.39 ns rather than 3.30,
-\code{sqrt(x)} 1.70 ns rather than 4.60 and a line of 13 operations 19.2 ns
-rather than 51.7, the second figures being those of the FPU intervals. The
+Apple M2 (AppleClang 21.0), \code{x + y} takes 0.90 ns rather than 1.15,
+\code{x * y} 1.52 ns rather than 3.26, \code{x / y} 2.08 ns rather than 3.22,
+\code{sqrt(x)} 2.04 ns rather than 5.17 and a line of 13 operations 16.6 ns
+rather than 50.6, the second figures being those of the FPU intervals. The
 bounds are the same, but for the sign of a zero bound, which the maximum of
 64-bit ARM, ranking $+0$ above $-0$, can set otherwise: the lower bound of
 $[-1, 0] \cdot [-1, 0]$ is $-0$ with NEON. Each operation checks the rounding
 direction with one \code{mrs} (0.8 ns on the M2), which raises no exception
 flag; with \code{GAOL\_PRESERVE\_ROUNDING}, an operation takes 27 ns rather
-than 39 (\pxref{sec:neon}).
+than 37 (\pxref{sec:neon}).
 
 \medskip
 The AVX-512 path carries the rounding direction in the
@@ -731,9 +731,10 @@ random intervals of the benchmark, \code{x * y} takes 3.5 ns rather than
 13.9, \code{x / y} 3.2 rather than 8.5, \code{sqr(x)} 1.8 rather than 6.9,
 and Shekel 5 138 ns rather than 298. A line of products of operands of one
 sign, which a processor predicts, takes more time (seven \code{*} in a row:
-35.8 ns rather than 23.8, and 1.7 times longer with GCC 13 on x86-64 in the
+35.0 ns rather than 23.3, and 1.7 times longer with GCC 13 on x86-64 in the
 continuous integration), and with \code{GAOL\_PRESERVE\_ROUNDING} the kernels
-gain nothing (\code{x * y} 44.4 ns rather than 42.2). The sign of a zero
+gain little (\code{x * y} 42.4 ns rather than 39.7, and 42.4 rather than 47.5 of
+random signs). The sign of a zero
 bound of such a product is not specified: GCC 13 for POWER9 compiles the
 maximum as an \code{xsmaxcdp}, which returns its first operand. \code{x * y}
 forms every corner product, so that a subnormal corner that is no bound of
@@ -989,7 +990,7 @@ $[0, 5.6 \cdot 10^{-309}]$ rather than $[0, 2^{-1074}]$. \code{pow(x, 3)}
 takes 5.1 ns against 9.1 with GAOL 4.2.3 (Intel i7-1185G7, Clang 21). The
 exponent 2 is \code{sqr(x)} in every form, the squares of the bounds rounded
 outward: with the exact products \code{pow(x, 2)} took 5.3 ns with the NEON
-intervals and 5.2 with the FPU intervals, and it takes 1.7 and 2.2 now (Apple
+intervals and 5.2 with the FPU intervals, and it takes 1.6 and 1.9 now (Apple
 M2, AppleClang 21); the 6 million calls of \code{pow(x, 2)} of the
 Goldstein-Price example take 50 ms rather than 77 with the NEON intervals.
 The integer powers beyond the ints are computed from the pow of CORE-MATH at

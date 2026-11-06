@@ -1465,19 +1465,20 @@ check.
 
 Measured with `gaol_performance` on an Apple M2 with AppleClang 21
 (`-DGAOL_SIMD=OFF`), the median of nine runs of each program, in turn with the
-others, in nanoseconds:
+others, on 6 November 2026, in nanoseconds (GAOL 4 code: the tree of 22 October
+2026, before the kernels):
 
 | | GAOL 4 code | v5 kernels |
 |---|---:|---:|
-| `x - y` | 3.62 | 1.18 |
-| `x * y` | 3.33 | 3.33 |
-| `x * y`, random signs | 6.01 | 3.38 |
-| `x / y` | 4.08 | 3.30 |
-| `x / y`, random signs | 3.54 | 3.30 |
-| `sqr(x)`, random signs | 2.79 | 1.82 |
-| line of 7 `*` | 23.8 | 35.8 |
-| line of 7 `/` | 35.8 | 33.7 |
-| line of 13 `+ - * /` | 50.9 | 51.7 |
+| `x - y` | 3.54 | 1.15 |
+| `x * y` | 3.25 | 3.25 |
+| `x * y`, random signs | 6.39 | 3.31 |
+| `x / y` | 3.98 | 3.23 |
+| `x / y`, random signs | 3.17 | 3.21 |
+| `sqr(x)`, random signs | 2.64 | 1.78 |
+| line of 7 `*` | 23.3 | 35.0 |
+| line of 7 `/` | 35.1 | 32.9 |
+| line of 13 `+ - * /` | 49.6 | 50.4 |
 
 The operands of `gaol_performance` are 1 024 intervals that the processor
 learns by heart, so that a branch on their signs costs less than it does on
@@ -1486,7 +1487,7 @@ other operands. On 100 000 intervals centred at random (the benchmark of
 `sqr(x)` 6.9 and 1.8, `x - y` 3.7 and 2.0, and Shekel 5 298 ns and 138.
 
 A line of products of operands of one sign, which a processor predicts, takes
-**more** time: 7 products in a line took 23.8 ns and take 35.8 (23.7 and 35.2
+**more** time: 7 products in a line took 23.3 ns and take 35.0 (23.7 and 35.2
 in the benchmark of `doc/compare`, `pos_mul8`; Apple M2). Each product waits for the one
 before it, and the largest of four products waits for its products and for two
 comparisons, where one product on a predicted branch waits for one. The
@@ -1494,11 +1495,11 @@ maximum of 64-bit ARM (`fmax`, one instruction, which ranks +0 above −0) would
 shorten the wait: it is not used, being a call with GCC for 32-bit ARM and x86.
 With `GAOL_PRESERVE_ROUNDING` the write of the control register waits for the
 result, so that the longer wait of the product shows there as well: `x * y`
-takes 44.4 ns rather than 42.2 and the line of 7 `*` 307 rather than 279
-(`x * y` of random signs 44.3 rather than 49.1, `x / y` 45.2 as before, `sqr(x)`
-43.7 rather than 41.3; a second measurement, by another hand, gave `x * y`
-46.7 rather than 42.2, `sqr(x)` 46.3 rather than 41.9 and the line of 7 `*` 326
-rather than 296, +10 to +11 %). The operators write their result into the
+takes 42.4 ns rather than 39.7 and the line of 7 `*` 297 rather than 279, 6 to
+7 % more (`sqr(x)` 42.4 rather than 39.5; `x / y` 43.6 rather than 43.1; `x * y`
+of random signs 42.4 rather than 47.5, where the branches of the former code
+were mispredicted; the median of nine runs of each code, in turn, on 6 November
+2026). The operators write their result into the
 bounds of `*this`, memory of the caller that is also given by address to the
 functions of the rare cases, which a call or an asm with a "memory" clobber
 that restores the direction finds written: the products they hold are computed
@@ -1541,7 +1542,7 @@ doubles, and their columns here are no longer those of the default build:
 The product wins where the signs are random (1.23 to 3.47 times) and, alone, of
 positive operands on 32-bit ARM, Visual C++ and Ubuntu. It loses on the lines of
 products of positive operands with GCC on Linux (0.58 for the line of 7 `*`,
-that is 1.7 times slower, where the Apple M2 above gives 23.8 and 35.8 ns, 1.5
+that is 1.7 times slower, where the Apple M2 above gives 23.3 and 35.0 ns, 1.5
 times) and with clang-cl for arm64 (0.57), and alone with clang-cl for arm64
 (0.77): there, the branch of the former code is well predicted and the kernel
 of eight products adds latency. The macOS runner is too noisy to say (spreads of
@@ -1550,7 +1551,7 @@ configurations, is within the noise on two (the direction preserved, 1.02, and
 macOS, 1.13) and loses with Visual C++ for arm64 (0.82, spread 1.04). `sqr(x)` is mixed:
 0.84 with clang-cl for arm64 and 0.85 with Clang on Ubuntu, 2.36 with Visual C++
 for arm64. `x - y` does not change where the rows are stable (0.86 to 1.06;
-the 3.62 to 1.18 ns of the M2 does not show), 0.86 on 32-bit ARM where `x + y`,
+the 3.54 to 1.15 ns of the M2 does not show), 0.86 on 32-bit ARM where `x + y`,
 whose code did not change, gives 0.92 in the same job. With the direction
 preserved on Visual C++ for x86, the line of 13 operations is 1.9 times slower
 (0.53, spread 1.08), where each operation wins or stays: the cause was not
