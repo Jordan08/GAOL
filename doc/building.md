@@ -94,7 +94,7 @@ continuous integration runs on a copy of the sources, those of configure,
 meson and autoconf.
 
 The editions of the manuals (`GAOL_V5_EDITION`, `GAOL_EDITION`) are their own,
-set in `configure.ac` and `manual/meson.build`.
+set in `configure.ac`, `manual/meson.build` and `CMakeLists.txt`.
 
 ## The options
 
@@ -111,6 +111,7 @@ The standard options of each tool do the rest:
 | `GAOL_COVERAGE` | `--enable-coverage` | `-Denable-coverage=true` | off | Compile GAOL and its tests with the counters of gcov, and add the target that runs the tests and writes `coverage/coverage.html` and the page of conclusions [coverage/README.md](../coverage/README.md): `cmake --build <build> --target coverage`, `make coverage`, `ninja -C <build> gaol-coverage` (meson keeps `coverage` for its own report). GCC and Clang, with the Debug build, `gcovr` and Python 3; the tests have to be built (`WITH_TESTS`, `--with-tests`, `with-tests`) |
 | `WITH_TESTS` | `--with-tests` | `-Dwith-tests=true` | off | Build the unit tests of `tests/`, which `make test` and `make check` run (see [below](#tests-examples-performance-and-the-parser)) |
 | `WITH_EXAMPLES` | `--with-examples` | `-Dwith-examples=true` | off | Build the examples of `examples/`, which `make check` runs |
+| `WITH_DOC` | `make -C manual pdf` (no option) | `-Dwith-doc=true` | off | Add the target `pdf`, which builds the manuals of GAOL v5 and of GAOL 4 with pdflatex, bibtex and makeindex (see [below](#tests-examples-performance-and-the-parser)) |
 | `BUILD_SHARED_LIBS` | `--enable-shared` | `-Ddefault_library=shared` | off | A static library `libgaol.a`; on, the shared library `libgaol.so.5.0.0` (soname `libgaol.so.5`). With configure the static library is built too unless `--disable-static` (as with `-Ddefault_library=both` of meson); always static with Visual C++ (GAOL v5: configure and meson built both by default) |
 | `CMAKE_BUILD_TYPE` | `--enable-debug` | `--buildtype=debug` | `Release` | `Debug` builds GAOL without optimization, with debugging information, and without `NDEBUG`, so that `assert()` stays active; the Release build is `-O3`, `NDEBUG` and `-funroll-loops -fomit-frame-pointer -fexpensive-optimizations`, and `-falign-functions=64` for the library alone (not for the tests, the examples and the benchmarks). With configure, `--enable-debug` brought into another project with `AC_CONFIG_SUBDIRS` is the `--enable-debug` of its configure, which passes on its options (and which that configure may read too), for the tests of GAOL as well. Brought in as a subproject by a project that leaves the build type to its default, GAOL is built in release (see [Using GAOL](using.md#from-pkg-config)) |
 | `CMAKE_POSITION_INDEPENDENT_CODE` | `--enable-pic` (`--disable-pic`; `--with-pic` too) | `-Db_staticpic=true` | on | Compile GAOL as position-independent code (`-fPIC`), which linking it into a shared library needs; a project building GAOL with FetchContent that sets it is followed (GAOL v5: configure compiled the static library without it) |
@@ -394,7 +395,7 @@ Ubuntu 20.04, `ninja -C build` builds GAOL as well. The options
 | `b_staticpic` | `true` | Position-independent code, as `CMAKE_POSITION_INDEPENDENT_CODE` |
 | `with-tests` | `false` | Build the unit tests of `tests/`, which `meson test` and `ninja check` run, as `WITH_TESTS` (it was `with-test`) |
 | `with-examples` | `false` | Build the examples of `examples/`, which `ninja check` runs, as `WITH_EXAMPLES` |
-| `with-doc` | `false` | The target `pdf`, which builds the manuals, `manual/v5/gaol.pdf` for GAOL v5 and `manual/v4/gaol.pdf` for GAOL 4, with pdflatex, bibtex and makeindex (`make -C manual pdf` with autotools) |
+| `with-doc` | `false` | The target `pdf`, which builds the manuals, `manual/v5/gaol.pdf` for GAOL v5 and `manual/v4/gaol.pdf` for GAOL 4, with pdflatex, bibtex and makeindex (`make -C manual pdf` with autotools, the target `pdf` of `WITH_DOC` with CMake) |
 
 These are [the options](#the-options) of the three builds. `enable-fma`,
 `enable-prefer-avx512`, `enable-debug`, `enable-exception`,
@@ -447,6 +448,7 @@ The three builds have the same targets:
 | The unit tests and the examples of `examples/` | `make check` (`--target check`), with `WITH_TESTS` and `WITH_EXAMPLES` | `make check`, with `--with-tests` and `--with-examples` | `ninja check` (`meson test --setup check`), with `with-tests` and `with-examples` |
 | GAOL v5 measured on the benchmark of [performance.md](compare/performance.md) | `make perf` | `make perf` | `ninja perf` |
 | The lexer and the parser regenerated with flex and bison | `make parser` | `make parser` | `ninja parser` |
+| The manuals of GAOL v5 and of GAOL 4 | `make pdf` (`--target pdf`), with `WITH_DOC` | `make -C manual pdf` | `ninja pdf`, with `with-doc` |
 
 - **The tests** are the unit tests of GAOL v5, which compare its bounds with the
   exact results, and those of GAOL 4, which were in `check/` and needed
@@ -478,6 +480,14 @@ The three builds have the same targets:
   flex 2.6.4 and bison 3.8.2 give them again byte for byte.
   `sh gaol/parser/regenerate_parser.sh` runs the same commands without a
   build (`FLEX` and `BISON` give other programs).
+- **`make pdf`** builds the manual of GAOL v5 and the one of GAOL 4 with
+  pdflatex, bibtex and makeindex, by `manual/build-pdf.sh`, which the three
+  builds run: with CMake, after `cmake -S . -B build -DWITH_DOC=ON`, by
+  `cmake --build build --target pdf` (GAOL v5; CMake had no such target
+  before). The files are `manual/v5/gaol.pdf` and `manual/v4/gaol.pdf` of the
+  build directory, not those git tracks in the source tree. The target is not
+  part of `all`. It needs `sh` and the LaTeX packages that
+  `manual/build-pdf.sh` names.
 
 ## The configuration of GAOL
 

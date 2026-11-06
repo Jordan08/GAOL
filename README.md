@@ -199,9 +199,10 @@ gaol::interval c = gaol_ieee1788::pown(x, 2); // [1, 16]
 - The manual of GAOL 4, by Frédéric Goualard: `manual/v4/gaol.pdf`, with its
   LaTeX sources in `manual/v4/`, kept as it was. It still describes the
   mathematical libraries and the options of GAOL 4.
-- `make -C manual pdf` after `./configure`, or `meson compile -C <build> pdf`
+- `make -C manual pdf` after `./configure`, `cmake --build <build> --target pdf`
+  after `cmake -S . -B <build> -DWITH_DOC=ON`, or `meson compile -C <build> pdf`
   after `meson setup <build> -Dwith-doc=true`, builds both manuals again
-  (`manual/build-pdf.sh`).
+  (`manual/build-pdf.sh`), in the build directory.
 
 ## Licences
 

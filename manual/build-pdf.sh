@@ -9,10 +9,11 @@
 # main file is gaol.tex. Each manual gives gaol.pdf (pdflatex -jobname=gaol), so
 # that the auxiliary files are named gaol.* for both. Each output directory holds
 # gaol_version.tex, the version, edition and date of its manual, which
-# configure and meson generate from the gaol_version.tex.in of the manual, and
-# receives gaol.pdf. The make pdf of the autotools build and the target pdf of
-# the meson build (-Dwith-doc=true) run it on both manuals, and so does the
-# continuous integration. Needs pdflatex, bibtex and makeindex, with the
+# configure, CMake and meson generate from the gaol_version.tex.in of the manual,
+# and receives gaol.pdf. The make pdf of the autotools build, the target pdf of
+# the CMake build (-DWITH_DOC=ON) and the one of the meson build
+# (-Dwith-doc=true) run it on both manuals, and so does the continuous
+# integration. Needs pdflatex, bibtex and makeindex, with the
 # packages that v5/gaol_def.tex (the manual of GAOL v5) and the class
 # v4/manual.cls (the manual of GAOL 4) load (on Debian and Ubuntu:
 # texlive-latex-recommended, texlive-latex-extra, texlive-fonts-recommended and

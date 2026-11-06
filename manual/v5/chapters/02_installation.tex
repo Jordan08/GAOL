@@ -648,7 +648,7 @@ save it as UTF-8 or ASCII}. The test \code{version\_file}
 (\cmd{ctest -R version\_file}) checks the reading of CMake, and a script of
 the continuous integration those of \cmd{configure}, meson and autoconf
 (\pxref{sec:scripts}). The editions of the manuals are their own, set in
-\file{configure.ac} and \file{manual/meson.build}.
+\file{configure.ac}, \file{manual/meson.build} and \file{CMakeLists.txt}.
 
 \subsection{Options}\label{sec:cmake-options}
 
@@ -686,6 +686,8 @@ options under their three names, with their defaults.
     off\\
     \code{WITH\_EXAMPLES} & \loption{with-examples} &
     \option{-Dwith-examples=true} & off\\
+    \code{WITH\_DOC} & \cmd{make -C manual pdf} (no option) &
+    \option{-Dwith-doc=true} & off\\
     \code{GAOL\_SIMD} & \loption{enable-simd} & \option{-Denable-simd=true} &
     on\\
     \code{GAOL\_PRESERVE\_ROUNDING} & \loption{enable-preserve-\allowbreak rounding} &
@@ -740,6 +742,9 @@ options under their three names, with their defaults.
   run (\pxref{sec:tests}).
 \item[$\bullet$] \textbf{\option{WITH\_EXAMPLES}.} \code{OFF} by default:
   builds the examples of \file{examples}, which \cmd{make check} runs.
+\item[$\bullet$] \textbf{\option{WITH\_DOC}.} \code{OFF} by default: adds the
+  target \code{pdf}, which builds this manual and the manual of GAOL~4 with
+  pdflatex, bibtex and makeindex (Table~\ref{tab:install-targets}).\newinvfive
 \item[$\bullet$] \textbf{\option{GAOL\_SIMD}.} \code{ON} by default: the
   intervals are computed with the vector instructions of the processor as
   soon as it has them, their two bounds in one register: SSE2 instructions on
@@ -1219,7 +1224,8 @@ the \code{Debug} build), and the others are those of \cmd{configure}
     \cmd{ninja check} runs\\
     \code{with-doc} & \code{false}; the target \code{pdf} then builds this
     manual, \file{manual/v5/gaol.pdf}, and the manual of GAOL~4,
-    \file{manual/v4/gaol.pdf}, with pdflatex, bibtex and makeindex\\
+    \file{manual/v4/gaol.pdf}, with pdflatex, bibtex and makeindex, as
+    \option{WITH\_DOC}\\
     \hline
   \end{tabular}
   \caption{The options of the meson build}
@@ -1622,6 +1628,9 @@ builds have the same targets (Table~\ref{tab:install-targets}).
     \cmd{make perf} & \cmd{make perf} & \cmd{ninja perf}\\
     The lexer and the parser regenerated with flex and bison &
     \cmd{make parser} & \cmd{make parser} & \cmd{ninja parser}\\
+    The manuals of GAOL v5 and of GAOL~4 & \cmd{make pdf}
+    (\loption{target pdf}), with \option{WITH\_DOC} & \cmd{make -C manual pdf}
+    & \cmd{ninja pdf}, with \code{with-doc}\\
     \hline
   \end{tabular}
   \caption{The targets of the three builds}
@@ -1653,6 +1662,13 @@ builds have the same targets (Table~\ref{tab:install-targets}).
   parser of the strings with the flex and the bison of the system, where the
   CMake build finds them (\code{find\_program}, not required;
   \pxref{sec:install-maintainers}).
+\item[$\bullet$] \textbf{\cmd{make pdf}} builds this manual and the manual of
+  GAOL~4 with pdflatex, bibtex and makeindex, by \file{manual/build-pdf.sh},
+  which the three builds run: with CMake, after \cmd{cmake -S . -B build
+  -DWITH\_DOC=ON}, by \cmd{cmake --build build --target pdf}, which CMake
+  had not before.\newinvfive{} The files are \file{manual/v5/gaol.pdf} and
+  \file{manual/v4/gaol.pdf} of the build directory, not those that git tracks
+  in the source tree, and the target is not part of \code{all}.
 \end{itemize}
 
 \noindent
