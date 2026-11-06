@@ -261,11 +261,11 @@ on x86-64), and CORE-MATH computes with it wherever the compiler has no
 \medskip
 The functions of IEEE 1788-2015 that GAOL~4 did not provide are
 added.\newinvfive{} \code{exp2}, \code{exp10}, \code{log2} and \code{log10},
-required among the forward elementary functions (Table 9.1 of the standard),
+required among the forward elementary functions (Table~9.1 of the standard),
 are bounded with CORE-MATH's, the tightest bounds, and the value that is a
 double is kept as a bound rather than moved: $2^3 = 8$, $10^{22}$,
 $\log_2(1/4) = -2$ and $\log_{10}(100) = 2$ are exact. Sixteen functions of
-Table 10.5, which the standard recommends, follow: \code{expm1},
+Table~10.5, which the standard recommends, follow: \code{expm1},
 \code{exp2m1}, \code{exp10m1}, \code{log1p}, \code{log2p1}, \code{log10p1},
 \code{hypot}, \code{rsqrt}, \code{sinpi}, \code{cospi}, \code{tanpi},
 \code{asinpi}, \code{acospi}, \code{atanpi}, \code{atan2pi} and
@@ -1138,7 +1138,7 @@ provided (Chapter~\ref{chap:arithmetic}).
 \cindex{relations!differences with GAOL~4}%
 
 The comparisons with the empty set and the infinities follow IEEE 1788-2015
-(Tables 10.3 and 10.4).\newinvfive{} \code{certainly\_leq()} and
+(Tables~10.3 and 10.4).\newinvfive{} \code{certainly\_leq()} and
 \code{certainly\_le()}, \ieee{precedes} and \ieee{strictPrecedes}, and
 \code{certainly\_geq()} and \code{certainly\_ge()}, are true when either
 interval is empty: GAOL~4 gave false when the second one only was.
@@ -1176,7 +1176,7 @@ end. With the comparator, the empty set comes first, then the intervals by
 their left bound and by their right bound, $-0$ and $+0$ being the same bound
 (\pxref{sec:lexicographic-less}). \code{overlap(x, y)} of IEEE 1788-2015
 (10.6.4) is new, with the type \code{overlapping\_state}: it returns one of
-the 16 states of Table 10.7, which GAOL~4 had no function for. The state is
+the 16 states of Table~10.7, which GAOL~4 had no function for. The state is
 read from the bounds as integers in the order of the doubles, so that no
 floating-point exception is raised, whatever the flush-to-zero modes. A point
 interval on a bound of the other one is never \element{meets} nor

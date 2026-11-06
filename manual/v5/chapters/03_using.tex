@@ -526,7 +526,7 @@ and \code{gaol\_pow\_exp()}, which are not in \code{gaol}.
 \cindex{pow!in the two namespaces}%
 
 The power is where \code{gaol} and \code{gaol\_ieee1788} differ.\newinvfive{}
-IEEE 1788-2015 has two powers (Table 9.1): \ieee{pown}$(x,n)$, the integer
+IEEE 1788-2015 has two powers (Table~9.1): \ieee{pown}$(x,n)$, the integer
 power, for an integer $n$, defined for every $x$, $x^0$ being $1$ and $0^n$
 having no value for $n<0$; and \ieee{pow}$(x,y)$, the real power
 $e^{y\log x}$, for an interval $y$, defined for $x>0$, and for $x=0$ when
@@ -854,7 +854,7 @@ functions IEEE 1788-2015 defines for every function (10.5.4), with the
 arguments in the order of the relational functions of GAOL. \code{max} and
 \code{min} being symmetric, \code{max\_rel(z, x, y)} contracts $y$, and
 \code{max(x, y) \& z} contracts $z$. IEEE 1788-2015 names and requires only
-the reverse functions of its Table 10.1, which these four are not in:
+the reverse functions of its Table~10.1, which these four are not in:
 \code{gaol\_ieee1788} has no name for them, and a program that opens it calls
 them as \code{max\_rel(z, y, x)} all the same, argument-dependent lookup
 finding them in \code{gaol\_core} (\pxref{sec:namespaces}).

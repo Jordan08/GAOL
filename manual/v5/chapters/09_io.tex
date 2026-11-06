@@ -52,7 +52,7 @@ Section~\ref{sec:input-format}.
   enabled (\pxref{sec:configuration}); if they were disabled, an error
   message is printed to \code{cerr} and the program aborts. An ill-formed
   line also sets the \code{failbit} of \var{in}, which \code{in.clear()}
-  resets before reading on. A function called with an argument it does not
+  resets before reading on. A call of a function of the string with an argument it does not
   take throws \code{std::domain\_error} instead.
 
   Where no line is left, \var{in} gets its \code{failbit}, \var{I} is left
@@ -354,7 +354,7 @@ The program below reads intervals from strings of the language: a literal
 with a computed bound, the constants, the form of \code{textToInterval()}
 with two strings, a literal divided by a literal, the bounds left out, a
 hexadecimal number, the uncertain form, and a literal in a sum and in a
-bound. What each statement prints follows it.
+bound. What the printing statements write follows them.
 \begin{example}
 interval x = textToInterval("[4, 6*7]");
 interval y = textToInterval("[-inf, dmax]");
@@ -704,8 +704,8 @@ the same interval back.
 
 The format \element{width} is useful whenever the number of digits
 displayed is insufficient to tell whether the result is a single
-floating-point number or an interval too narrow for these digits to show
-(the first result above, for example): if an interval is not a single
+floating-point number or an interval too narrow for these digits to show:
+      if an interval is not a single
 number, the radius displayed is different from zero, whatever its size and
 the number of digits, since the radius is rounded upward. A degenerate
 interval is displayed without a radius.

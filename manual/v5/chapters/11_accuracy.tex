@@ -114,7 +114,7 @@ chapter names are those of IEEE 1788-2015.
   \endhead
   \hline
   \endfoot
-  \multicolumn{2}{l}{\textit{Basic operations (Table 9.1): tightest
+  \multicolumn{2}{l}{\textit{Basic operations (Table~9.1): tightest
     required}}\\*
   \code{-x}, \code{+}, \code{-}, \code{*}, \code{/}, \code{inverse},
   \code{sqr} & tightest\\
@@ -165,7 +165,7 @@ chapter names are those of IEEE 1788-2015.
   \code{sinh}, \code{cosh}, \code{tanh}, \code{asinh}, \code{acosh},
   \code{atanh} & tightest\\
   \hline
-  \multicolumn{2}{l}{\textit{Recommended functions (Table 10.5)}}\\*
+  \multicolumn{2}{l}{\textit{Recommended functions (Table~10.5)}}\\*
   \code{nth\_root(x, n)}, $n>0$ & $n=1$, 2, 3: tightest. Otherwise
   accurate: the tightest bounds or up to 2 doubles beyond, proved with
   integer powers; beyond the \code{unsigned int}s, CORE-MATH's \code{pow}
@@ -184,7 +184,7 @@ chapter names are those of IEEE 1788-2015.
   \code{erf}, \code{erfc} & tightest; exact at 0 and at the
   infinities\newinvfive\\
   \hline
-  \multicolumn{2}{l}{\textit{Reverse functions (Table 10.1): valid
+  \multicolumn{2}{l}{\textit{Reverse functions (Table~10.1): valid
     required, accurate recommended}}\\*
   \code{sqrt\_rel}, \code{nth\_root\_rel}, \code{acosh\_rel},
   \code{asinh\_rel}, \code{atanh\_rel} & accurate\\
@@ -214,7 +214,7 @@ chapter names are those of IEEE 1788-2015.
   \code{midpoint()}, \code{width()}, \code{rad()} & as 12.12.8 requires\\
   \code{mag()}, \code{mig()}, \code{smig()} & exact\\
   \code{mid()}, \code{hausdorff()} & tightest\\
-  relations, \code{overlap()} & exact, as Tables 10.3, 10.4 and 10.7\\
+  relations, \code{overlap()} & exact, as Tables~10.3, 10.4 and 10.7\\
   \code{operator<{}<} & \code{hexa}: exact, read back as the same interval.
   Decimal formats: valid, and the tightest with the digits asked for where
   the C library rounds to nearest as it should. \element{width} and
@@ -234,7 +234,7 @@ doubles away for the \code{acosh} of some of them.\newinvfive
 
 \subsection{Basic operations}\label{sec:accuracy-basic}
 
-The basic operations of Table 9.1 of the standard must be tightest. Each is
+The basic operations of Table~9.1 of the standard must be tightest. Each is
 computed from the bounds, rounded upward once (\pxref{sec:kernels}), and
 each is tightest; the tests find them so.
 
@@ -556,7 +556,7 @@ intervals.
 
 \subsection{Recommended functions}\label{sec:accuracy-recommended}
 
-The recommended functions of Table 10.5 of the standard must be valid, and
+The recommended functions of Table~10.5 of the standard must be valid, and
 the standard recommends them to be accurate. All of them are tightest but
 the roots of an order other than 1, 2 and 3, which are accurate, and
 \code{compoundm1}, which is tightest but in a case out of $10^{17}$ or so.
@@ -756,7 +756,7 @@ against CORE-MATH called in both directed roundings.
 
 The relational functions of GAOL compute \code{f\_rel(J, I)}, the hull of
 the $x$ of $I$ whose image is in $J$: they are the reverse functions of
-Table 10.1 of the standard with the arguments in another order
+Table~10.1 of the standard with the arguments in another order
 (\pxref{sec:relational-arithmetic}). Each computes the preimage of $J$
 with the functions above, rounded outward, and intersects it with $I$: it
 is valid, which the standard requires. The test \file{tests/reverse.cpp}
@@ -817,7 +817,7 @@ are given, within the numbers of doubles below.
 \item[$\bullet$] \textbf{Hyperbolic functions.} \code{acosh\_rel(c, x)}
   (\ieee{coshRev}) is accurate; the tests find it within 16 doubles of the
   value it keeps. \code{asinh\_rel} and \code{atanh\_rel}, named after
-  \ieee{coshRev} (\ieee{sinhRev} and \ieee{tanhRev} are not in Table 10.1),
+  \ieee{coshRev} (\ieee{sinhRev} and \ieee{tanhRev} are not in Table~10.1),
   are accurate; \code{atanh\_rel(J, x)} is $\emptyset$ where $J$ holds no
   point of $(-1, 1)$, the values of the hyperbolic tangent.\newinvfive{}
   The tests find them within 10 and 26 doubles of the value they keep, and
@@ -847,7 +847,7 @@ are given, within the numbers of doubles below.
 \item[$\bullet$] \textbf{Maximum, minimum, sign and floor.}\newinvfive{}
   \code{max\_rel(z, y, x)}, \code{min\_rel(z, y, x)},
   \code{sign\_rel(z, x)} and \code{floor\_rel(z, x)}, whose reverse
-  functions Table 10.1 does not name, are tightest: their bounds are those
+  functions Table~10.1 does not name, are tightest: their bounds are those
   of $x$ and $z$, $0$, $\lceil\leftBound{z}\rceil$ and
   $\lfloor\rightBound{z}\rfloor+1$, the open ends of the sets of
   \code{sign\_rel} ($0$) and \code{floor\_rel}
@@ -959,7 +959,7 @@ their accuracies.
   \ieee{isSingleton}, \ieee{isMember}), the set relations \code{set\_eq},
   \code{set\_contains} and \code{set\_leq}, \code{set\_strictly\_contains}
   and \code{set\_le}, \code{set\_disjoint} (\ieee{equal}, \ieee{subset},
-  \ieee{interior}, \ieee{disjoint}, as Tables 10.3 and 10.4), the certainly
+  \ieee{interior}, \ieee{disjoint}, as Tables~10.3 and 10.4), the certainly
   relations \code{certainly\_leq}, \code{certainly\_le},
   \code{certainly\_geq} and \code{certainly\_ge} (\ieee{precedes},
   \ieee{strictPrecedes}, true when an interval is empty),
@@ -967,14 +967,14 @@ their accuracies.
   \ieee{isCommonInterval}, a common interval being nonempty and bounded,
   the NaN bounds of the empty set being no infinities\newinvfive) and
   \code{less(y)} and \code{strictly\_less(y)} (\ieee{less},
-  \ieee{strictLess}, as Table 10.3, \ieee{strictLess} counting an infinite
-  bound as below itself, with the empty cases of Table 10.4\newinvfive) are
+  \ieee{strictLess}, as Table~10.3, \ieee{strictLess} counting an infinite
+  bound as below itself, with the empty cases of Table~10.4\newinvfive) are
   decided on the bounds: exact (\pxref{sec:interval-relations}). The tests
-  find them exact, and \code{less} and \code{strictly\_less} as Tables 10.3
+  find them exact, and \code{less} and \code{strictly\_less} as Tables~10.3
   and 10.4 over 20\,000 pairs.
 \item[$\bullet$] \textbf{Overlap.} \code{x.overlap(y)} and
   \code{gaol\_ieee1788::overlap(x, y)} (\ieee{overlap}) give the state of
-  Table 10.7 among the 16 of \code{overlapping\_state}:
+  Table~10.7 among the 16 of \code{overlapping\_state}:
   \element{bothEmpty}, \element{firstEmpty} or \element{secondEmpty} for an
   empty operand, else the order of the four bounds, told as the integers of
   their bits (\code{gaol\_detail::bound\_key()}: $-0$ and $+0$ are the same
@@ -982,7 +982,7 @@ their accuracies.
   a bound of the other one is \element{starts}, \element{finishes},
   \element{finishedBy}, \element{startedBy} or \element{equals}, never
   \element{meets} nor \element{metBy}.\newinvfive{} Exact. The tests read
-  the set specification of Table 10.7 with quantifiers over a finite model
+  the set specification of Table~10.7 with quantifiers over a finite model
   of the real line, on 31\,449 pairs (the empty set, the 104 intervals of
   a grid of bounds, infinities, zeros of both signs, subnormals and
   neighbours of a double among them, and 20\,000 random pairs whose bounds

@@ -43,7 +43,7 @@ names of the standard are the subject of Chapter~\ref{chap:ieee1788}.
 \section{Functional and relational operations}\label{sec:arithmetic-kinds}
 \cindex{functional arithmetic}\cindex{relational arithmetic}%
 
-The \dfn{containment principle} of floating-point interval arithmetic
+The containment principle of floating-point interval arithmetic
 (\pxref{sec:containment}) requires that, for any operation $\circ$ and any
 intervals $I$ and $J$,
 \begin{equation*}
@@ -60,7 +60,7 @@ $x\mapsto\sqrt{x}$ to intervals. Another reading of the square root gives
 both the negative and the positive values.
 
 \begin{Def}\label{def:arithmetic-relational-sqrt}
-The \emph{relational square root} of an interval $I$ is the hull of the real
+The \dfn{relational square root} of an interval $I$ is the hull of the real
 numbers whose square is in $I$:
 \begin{equation*}
 \sqrt{_rI}=\hull{\{j\in\RSet\mid\exists i\in I\colon j^2=i\}}.
@@ -85,7 +85,7 @@ the interval algorithms of Chapter~\ref{chap:overview} use it
 
 \paragraph{Domains.}
 A function is computed on the part of its argument that lies within its
-domain, which is the domain of IEEE 1788-2015 (Tables 9.1 and 10.5): the
+domain, which is the domain of IEEE 1788-2015 (Tables~9.1 and 10.5): the
 part outside is left out, and an argument with no point of the domain gives
 the empty set, as \code{log(\itv{-4}{0})} does.\newinvfive{} Every function
 gives the empty set for an empty argument. How tight each result is, for each
@@ -229,7 +229,7 @@ the standard: the two powers are compared in Chapter~\ref{chap:overview}
     the integer power as well, beyond the \code{int}s too.\newinvfive{} An
     exponent \var{n} of another integer type (\code{long}, \code{long long},
     \code{short}\dots), with which \code{pow} was ambiguous, gives the same
-    integer power; beyond 64 bits, it gives the power of $\pm(2^{63}-1)$ or
+    integer power; beyond 64 bits (an \code{\_\_int128}), it gives the power of $\pm(2^{63}-1)$ or
     $\pm(2^{63}-2)$, with the sign and the parity of \var{n}, every power of
     a double but $0$, $\pm1$ and $\pm\infty$ being beyond the doubles
     there.\newinvfive
@@ -612,7 +612,7 @@ cout << erf(interval(0.0)) << ' ' << erf(interval(-1,1)) << ' '
 \cindex{relational arithmetic}%
 
 The relational functions of GAOL are the \dfn{reverse functions} of
-IEEE 1788-2015 (10.5.4, Table 10.1), with their arguments in another order:
+IEEE 1788-2015 (10.5.4, Table~10.1), with their arguments in another order:
 each computes the hull of the $x$ of an interval \var{I} whose image by the
 function is in \var{J}. Their correspondence is given at the end of this
 section (Table~\ref{tab:arithmetic-reverse}), and the namespace
@@ -645,7 +645,7 @@ domain of $x$ has to be taken into account, and the relational arccosine is
 a binary operator.
 
 \begin{Def}\label{def:arithmetic-acos-rel}
-The \emph{relational arccosine} of $Y$ with respect to $X$ is
+The \dfn{relational arccosine} of $Y$ with respect to $X$ is
 \begin{equation*}
 \code{acos\_rel}(Y,X)=\hull{\{x\in X\mid\exists y\in Y\colon y=\cos x\}}.
 \end{equation*}
@@ -837,7 +837,7 @@ cout << div_rel(interval(1,2), interval(-1,1),
   $x$ of \var{I} with an $x^y$ in \var{K} for a $y$ of \var{J}. It contracts
   the base of $z=x^y$ as \code{div\_rel(K, J, I)} contracts a factor of
   $z=xy$, with the arguments in the same order.\newinvfive{} $x^y$ is the
-  \code{pow} of IEEE 1788-2015 (Table 9.1), that of
+  \code{pow} of IEEE 1788-2015 (Table~9.1), that of
   \code{gaol\_ieee1788::pow}: $e^{y\log x}$ for $x>0$, $0$ for $x=0$ and
   $y>0$, and no value elsewhere, so that no $x<0$ is a solution, in either
   namespace. The \code{pow} of \code{gaol} takes the integer power for a
@@ -866,7 +866,7 @@ cout << pow_exponent_rel(interval(8), interval(2), interval::universe()) << ' '
      << pow_exponent_rel(interval(3), interval(2,4), interval::universe());
 @outputs^[3] [0.792481250360578, 1.584962500721157]~
 \end{example}
-  The bounds of both functions are the tightest ones. The ends of the
+  The bounds of both functions are the tightest ones, but in one case, given below. The ends of the
   solutions, $c^{1/y}$ and $\log c/\log x$ for bounds $c$, $x$ and $y$ of
   the arguments, are bounded by the largest and the smallest doubles $d$
   whose powers $d^y$, or $x^d$, the \code{pow} of CORE-MATH, correctly
@@ -1094,9 +1094,9 @@ the powers of the two namespaces are compared in Chapter~\ref{chap:overview}.
 \medskip
 The relational functions are the reverse functions of the standard with the
 arguments in the order of GAOL, the result first and the operand contracted
-last. GAOL v5 adds the reverse functions of the power, of \code{atan2}, of
-the maximum, the minimum, the sign and the floor, which the standard defines
-but does not name, and gives the empty set wherever no point of the operand
+last. GAOL v5 adds the reverse functions of the power and of \code{atan2},
+      which the standard names, and those of the maximum, the minimum, the sign and
+      the floor, which it defines but does not name, and gives the empty set wherever no point of the operand
 is in the relation.\newinvfive{} How tight each operation is, and the
 conditions under which the bounds are the same on every machine, are the
 subject of Chapter~\ref{chap:accuracy}; how the bounds are computed, of

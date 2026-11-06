@@ -17,7 +17,7 @@ elements to integers, they cut it, or they combine two intervals as sets.
 This chapter describes them.
 
 \medskip
-The numeric functions of IEEE 1788-2015 (Table 10.2, 12.12.8) are those of
+The numeric functions of IEEE 1788-2015 (Table~10.2, 12.12.8) are those of
 this chapter. The namespace \code{gaol\_ieee1788} names them as the standard
 does, and returns $+\infty$ and $-\infty$ for the bounds of the empty set,
 where \code{left()} and \code{right()} return NaN
@@ -333,12 +333,14 @@ cout << max(interval(5,6),interval(3,9)) << ' '
 \cindex{integer functions}\cindex{rounding!to an integer}%
 
 The functions of this section round the elements of an interval to
-integers. They are those of IEEE 1788-2015 (Table 9.1); their names in the
+integers. They are those of IEEE 1788-2015 (Table~9.1); their names in the
 standard are given with the operations of Chapter~\ref{chap:ieee1788}.
 
 \begin{Prop}\label{prop:functions-integer}
-Each function of this section is non-decreasing, so that the bounds of its
-result are its values at the bounds of the interval, and each is exact.
+Each function of this section but \code{integer()} is non-decreasing, so that
+      the bounds of its result are its values at the bounds of the interval; those
+      of \code{integer()} are the \code{ceil} of the left bound and the \code{floor}
+      of the right one. Each is exact.
 None of them depends on the rounding direction.
 \end{Prop}
 

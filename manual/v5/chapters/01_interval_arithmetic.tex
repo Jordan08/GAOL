@@ -445,13 +445,13 @@ Chapter~\ref{chap:ieee1788} (\pxref{sec:ieee1788-missing}).
 \cindex{decorations}\cindex{bare interval}\cindex{set-based flavor}%
 
 \paragraph{The operations.} The standard lists its operations in tables.
-Table 9.1 holds the forward elementary functions every implementation
+Table~9.1 holds the forward elementary functions every implementation
 provides, with the domain of each: the arithmetic operations, the powers,
 the exponentials and logarithms, the trigonometric and hyperbolic functions
 and their inverses, the integer functions, \ieee{abs}, \ieee{min} and
-\ieee{max}. Table 10.1 holds the reverse functions
-(\exref{sec:relational-idea}), Table 10.2 the numeric functions of an
-interval, Tables 10.3 and 10.4 the comparisons, and Table 10.5 the
+\ieee{max}. Table~10.1 holds the reverse functions
+(\exref{sec:relational-idea}), Table~10.2 the numeric functions of an
+interval, Tables~10.3 and 10.4 the comparisons, and Table~10.5 the
 recommended functions, which an implementation may provide. GAOL v5 adds
 the operations of these tables that GAOL~4 lacked, which the standard
 requires or recommends: \code{exp2}, \code{exp10}, \code{log2},
@@ -462,7 +462,7 @@ recommended functions (\code{expm1}, \code{log1p}, \code{hypot},
 addition, the radius, and the comparisons \code{less},
 \code{strictly\_less}, \code{is\_entire} and \code{is\_common\_interval};
 \code{atan2}, which GAOL declared, is implemented.\newinvfive{} The
-relations of Tables 10.3 and 10.4, \ieee{equal}, \ieee{subset},
+relations of Tables~10.3 and 10.4, \ieee{equal}, \ieee{subset},
 \ieee{interior}, \ieee{disjoint}, \ieee{precedes}, \ieee{strictPrecedes},
 \ieee{less} and \ieee{strictLess}, follow the definitions of the standard
 for the empty set and for the infinite bounds too
@@ -476,7 +476,7 @@ the whole manual.
 \begin{itemize}
 \item[$\bullet$] \textbf{The domains.} A function is computed on the part
   of its argument within its domain, which is that of IEEE 1788-2015
-  (Tables 9.1 and 10.5): the part outside is left out, and an argument with
+  (Tables~9.1 and 10.5): the part outside is left out, and an argument with
   no point of the domain gives the empty set, as $\code{log}(\itv{-4}{0})$
   does.\newinvfive{} Every function gives the empty set for an empty
   argument. GAOL, which has no decorations, says nothing of the part left
@@ -486,7 +486,7 @@ the whole manual.
   result of an operation on an argument outside the domain of the function,
   and an interval whose bounds are in the wrong order, as
   \code{interval(1, 0)}, is empty too. Its numeric functions are those of
-  Table 10.2: \ieee{inf} and \ieee{sup} of the empty set are $+\infty$ and
+  Table~10.2: \ieee{inf} and \ieee{sup} of the empty set are $+\infty$ and
   $-\infty$, where \code{left()} and \code{right()} of GAOL are NaN, and
   \ieee{inf} returns $-0$ for a left bound zero (12.12.8).
 \item[$\bullet$] \textbf{The infinite bounds.} An interval is a set of
@@ -505,7 +505,7 @@ the whole manual.
   string that is no interval (12.1.3), where that of \code{gaol} reads the
   names of GAOL and throws (\pxref{sec:ieee1788-text}).\newinvfive
   \cindex{interval literal}%
-\item[$\bullet$] \textbf{The powers.} The \ieee{pow} of Table 9.1 is
+\item[$\bullet$] \textbf{The powers.} The \ieee{pow} of Table~9.1 is
   defined for $x>0$, and for $x=0$ when $y>0$; the power with an integer
   exponent is \ieee{pown}$(x, n)$, whose $n$ is an integer rather than an
   interval. The \code{pow} of the namespace \code{gaol} takes the integer
@@ -558,7 +558,7 @@ relation, and needs, for the relation $y=f(x)$, the part of the domain of
 $x$ whose image meets the domain of $y$. As a consequence, GAOL offers both
 functional and relational versions of the main arithmetic operators, which
 IEEE 1788-2015 has since required, as its \dfn{reverse functions}
-(Table 10.1).
+(Table~10.1).
 
 \medskip
 A relational function of one argument, as the relational square root, is

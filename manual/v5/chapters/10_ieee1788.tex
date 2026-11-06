@@ -49,9 +49,9 @@ the names of the standard.\newinvfive
 The program below opens \code{gaol\_ieee1788} and computes with the names of
 the standard: \code{numsToInterval} builds an interval from its two bounds,
 \code{mulRev} is the reverse multiplication, which divides \code{x} by
-\itv{2}{2}, \code{sinPi} and \code{rootn} are two functions of Table 10.5 of
+\itv{2}{2}, \code{sinPi} and \code{rootn} are two functions of Table~10.5 of
 the standard, \code{entire} is the interval \itv{-\infty}{+\infty} and
-\code{strictLess} the strict order of its Table 10.3. What it prints
+\code{strictLess} the strict order of its Table~10.3. What it prints
 follows it.
 \begin{example}
 #include <iostream>
@@ -100,7 +100,7 @@ following ones.
 
 \begin{itemize}
 \item[$\bullet$] \textbf{The power.} \code{pow(x, y)} is the \ieee{pow} of
-  Table 9.1, defined for $x>0$, and for $x=0$ when $y>0$. The \code{pow} of
+  Table~9.1, defined for $x>0$, and for $x=0$ when $y>0$. The \code{pow} of
   \code{gaol} takes the integer power for an integer exponent, a negative
   base included (\pxref{sec:powers}). \code{pow(x, p)} with a number $p$ is
   \code{pow(x, [p])}, an integer $p$ included, \code{pow(x, 2)} as well, as
@@ -111,7 +111,7 @@ following ones.
   \code{gaol} does on the whole of $x$. The results of the two powers are
   compared in Chapter~\ref{chap:overview} (\pxref{sec:pow-namespaces}).
 \item[$\bullet$] \textbf{The bounds of the empty set.} \code{inf(x)} and
-  \code{sup(x)} are $+\infty$ and $-\infty$ for the empty set (Table 10.2),
+  \code{sup(x)} are $+\infty$ and $-\infty$ for the empty set (Table~10.2),
   where \code{left()} and \code{right()} are NaN. \code{inf} returns $-0$
   for a left bound 0 (12.12.8).
 \item[$\bullet$] \textbf{Membership.} \code{isMember(m, x)} is \code{false}
@@ -195,7 +195,7 @@ is optional, and \itv{-\infty}{+\infty} when it is left out (10.5.4).
     \code{gaol::textToInterval(s)} with the names of the standard, the
     empty set for a wrong string\\
   \hline
-  \multicolumn{2}{l}{\textit{Forward elementary functions (Table 9.1)}}\\*
+  \multicolumn{2}{l}{\textit{Forward elementary functions (Table~9.1)}}\\*
   \code{neg}, \code{add}, \code{sub}, \code{mul}, \code{div} &
     \code{-x}, \code{x + y}, \code{x - y}, \code{x * y}, \code{x / y}\\
   \code{recip(x)} & \code{inverse(x)}\\
@@ -214,7 +214,7 @@ is optional, and \itv{-\infty}{+\infty} when it is left out (10.5.4).
     \code{round\_ties\_to\_even}, \code{round\_ties\_to\_away}\\
   \code{abs}, \code{min}, \code{max} & the same\\
   \hline
-  \multicolumn{2}{l}{\textit{Recommended functions (Table 10.5)}}\\*
+  \multicolumn{2}{l}{\textit{Recommended functions (Table~10.5)}}\\*
   \code{rootn(x, q)} & \code{nth\_root(x, q)}\\
   \code{expm1}, \code{exp2m1}, \code{exp10m1} & the same\\
   \code{logp1}, \code{log2p1}, \code{log10p1} &
@@ -226,7 +226,7 @@ is optional, and \itv{-\infty}{+\infty} when it is left out (10.5.4).
   \code{asinPi}, \code{acosPi}, \code{atanPi}, \code{atan2Pi} &
     \code{asinpi}, \code{acospi}, \code{atanpi}, \code{atan2pi}\\
   \hline
-  \multicolumn{2}{l}{\textit{Reverse functions (Table 10.1)}}\\*
+  \multicolumn{2}{l}{\textit{Reverse functions (Table~10.1)}}\\*
   \code{sqrRev(c, x)}, \code{absRev(c, x)} &
     \code{sqrt\_rel(c, x)}, \code{invabs\_rel(c, x)}\\
   \code{pownRev(c, x, p)} & \code{nth\_root\_rel(c, p, x)}\\
@@ -252,7 +252,7 @@ is optional, and \itv{-\infty}{+\infty} when it is left out (10.5.4).
   \code{intersection(x, y)}, \code{convexHull(x, y)} &
     \code{x \& y}, \code{x | y}\\
   \hline
-  \multicolumn{2}{l}{\textit{Numeric functions (Table 10.2)}}\\*
+  \multicolumn{2}{l}{\textit{Numeric functions (Table~10.2)}}\\*
   \code{inf(x)}, \code{sup(x)} &
     \code{x.left()}, \code{x.right()}, but for the empty set\\
   \code{mid}, \code{wid}, \code{rad}, \code{mag}, \code{mig(x)} &
@@ -260,7 +260,7 @@ is optional, and \itv{-\infty}{+\infty} when it is left out (10.5.4).
     \code{mig()}\\
   \code{midRad(x, m, r)} & \code{x.mid\_rad(m, r)}\\
   \hline
-  \multicolumn{2}{l}{\textit{Boolean functions (10.5.10, Tables 10.3 and
+  \multicolumn{2}{l}{\textit{Boolean functions (10.5.10, Tables~10.3 and
     10.4)}}\\*
   \code{isEmpty(x)}, \code{isEntire(x)} &
     \code{x.is\_empty()}, \code{x.is\_entire()}\\
@@ -296,7 +296,7 @@ is optional, and \itv{-\infty}{+\infty} when it is left out (10.5.4).
 \noindent
 Two rows of the table call for a word. \code{overlap(a, b)} is the interval
 overlapping function of the standard: it returns an
-\code{overlapping\_state}, one of the sixteen states of Table 10.7 under the
+\code{overlapping\_state}, one of the sixteen states of Table~10.7 under the
 names of the table, and the type and the member \code{a.overlap(b)} are in
 \code{gaol} too, which has no other name for it
 (Chapter~\ref{chap:relations}).\newinvfive{} The expressions \code{pown(e, n)}
@@ -365,7 +365,7 @@ the two results.
 
 \code{textToInterval(\var{s})} reads a string as \code{gaol::textToInterval()}
 does (\pxref{sec:input-format}), with the names of the functions of IEEE
-1788-2015: those of Tables 9.1 and 10.5 that GAOL provides, whatever the case
+1788-2015: those of Tables~9.1 and 10.5 that GAOL provides, whatever the case
 of their letters.\newinvfive{} These names are the following ones.
 
 \begin{center}\small
@@ -385,7 +385,7 @@ of their letters.\newinvfive{} These names are the following ones.
 \end{center}
 
 \noindent
-\code{pow} is the \ieee{pow} of Table 9.1, and the second argument of
+\code{pow} is the \ieee{pow} of Table~9.1, and the second argument of
 \code{pown} and \code{rootn} is an integer. The names of GAOL alone
 (\code{nth\_root}, \code{cbrt}, \code{inverse}, \code{integer},
 \code{log1p}, \code{round\_ties\_to\_even}\ldots) are no functions there.
@@ -422,7 +422,7 @@ is \itv{1}{16}, and \code{textToInterval("pown([2,5],5)")} throws.
 \cindex{IEEE 1788-2015!operations not provided}\cindex{decorations}%
 
 GAOL has no decorations: only bare intervals are provided (Clause 11). Nor
-does it provide the slope functions (Table 10.6), the reduction operations
+does it provide the slope functions (Table~10.6), the reduction operations
 \ieee{sum}, \ieee{dot}, \ieee{sumSquare} and \ieee{sumAbs} (12.12.12), and
 the exact reduction operations of 12.13.5. The end of \file{gaol/gaol\_ieee1788.h}
 keeps this list.

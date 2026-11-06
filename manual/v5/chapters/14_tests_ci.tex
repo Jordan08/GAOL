@@ -602,14 +602,14 @@ interval exactly, cut strictly inside where \code{is\_bisectable()}, for
 ratios from $10^{-9}$ to $1-10^{-9}$, \code{bisect(0.5)} being
 \code{split()}, and to throw \code{std::domain\_error} for a ratio outside
 $(0, 1)$ or NaN.\newinvfive{} The comparisons of IEEE 1788-2015 have to
-give the values of its Tables 10.3 and 10.4, \code{==} and \code{!=} must
+give the values of its Tables~10.3 and 10.4, \code{==} and \code{!=} must
 not compile on intervals, and each name of \code{gaol\_ieee1788} has to be
 the operation of the standard it names, which a wrong translation would not
 show at compilation: the eight comparisons over 20\,000 pairs, \code{inf},
-\code{sup} and the numeric functions against Table 10.2, the reverse
+\code{sup} and the numeric functions against Table~10.2, the reverse
 functions with the arguments in the order of the standard,
 \code{mulRev(b, c, x)} being \code{div\_rel(c, b, x)}, and \code{pow}
-against the \ieee{pow} of Table 9.1, which GAOL's own \code{pow} is not for
+against the \ieee{pow} of Table~9.1, which GAOL's own \code{pow} is not for
 a negative base (\pxref{sec:pow-namespaces}). The reverse functions of
 \code{max}, \code{min}, \code{sign} and \code{floor}\newinvfive{} have to be
 the hulls of their sets, read from the definitions of the functions apart
@@ -635,7 +635,7 @@ take an order of any integer type, and \code{pownRev(c, x, p)} for $p=0$ and
 $p<0$ has to give the exact roots of the reciprocals of $c$ where they are
 doubles, with no solution for the part of $x$ in the gap of $c$.
 \code{overlap(a, b)}\newinvfive{} has to be the state the set specification
-of Table 10.7 gives, whose quantifiers the test reads over a finite model of
+of Table~10.7 gives, whose quantifiers the test reads over a finite model of
 the real line, on 31\,449 pairs: exactly one specification holds for two
 nonempty intervals, but for \ieee{meets} and \ieee{metBy} with a point
 interval on a bound of the other one, which the standard gives to
@@ -643,12 +643,12 @@ interval on a bound of the other one, which the standard gives to
 \code{disjoint}, \code{equal} and \code{subset} have to be the masks of
 states 0xF001, 0x8040 and 0xC3C0 of the standard. The bounds of
 \code{gaol\_ieee1788::pow} and \code{gaol::pow} on 117 boxes, each reaching
-a branch of the \ieee{pow} of Table 9.1, have to be the bounds the table
+a branch of the \ieee{pow} of Table~9.1, have to be the bounds the table
 gives, checked against the exact power computed with 500 bits by mpmath
 (\file{tests/tools/pow/checkrows.py}). \code{intervalToText(x)} has to be a
 literal of the standard with the digits of the precision of the intervals,
 whatever the global format and the locale, which a grammar of the literals
-of Tables 9.5 and 12.2 checks, and \code{textToInterval} has to read it back
+of Tables~9.5 and 12.2 checks, and \code{textToInterval} has to read it back
 as an interval containing $x$: under a comma locale the literal
 \code{[a]} wrote \code{[-2,5]}, read as $\itv{-2}{5}$.\newinvfive{}
 \code{mulRevToPair(b, c)} has to be the pair of 10.5.5, the part below
@@ -658,7 +658,7 @@ one of the two parts.\newinvfive
 
 \medskip
 \code{reverse} checks the relational functions against the reverse functions
-of IEEE 1788-2015 (10.5.4, Table 10.1): \code{sqrt\_rel} (\ieee{sqrRev}),
+of IEEE 1788-2015 (10.5.4, Table~10.1): \code{sqrt\_rel} (\ieee{sqrRev}),
 \code{invabs\_rel} (\ieee{absRev}), \code{nth\_root\_rel} (\ieee{pownRev},
 for every integer $p$),\newinvfive{} \code{asin\_rel}, \code{acos\_rel},
 \code{atan\_rel}, \code{acosh\_rel}, and \code{div\_rel}, \code{\%} and
@@ -732,7 +732,7 @@ itself, computed with integers apart from GAOL and from CORE-MATH, whose
 values downward and upward have to be its roundings too, which tells a
 fault of CORE-MATH from one of GAOL: CORE-MATH's \code{pow} rounded to
 nearest the midpoints of its exact phase on 32-bit ARM, and its square roots
-on a 32-bit x86 Windows. The functions of Table 10.5 but \code{compoundm1}
+on a 32-bit x86 Windows. The functions of Table~10.5 but \code{compoundm1}
 have to be the tightest over intervals too, the hull of their image computed
 from the values at the bounds of the part of the interval in the domain, at
 the points nearest to and farthest from the origin (\code{hypot}), and at
@@ -768,7 +768,7 @@ and \code{erfc} have to be the tightest over 80\,000 intervals, and at 22
 hard-to-round arguments of the \file{erfc.c} of CORE-MATH.
 
 \medskip
-\code{compoundm1} checks $(1+x)^y-1$ of IEEE 1788-2015 (Table 10.5), which
+\code{compoundm1} checks $(1+x)^y-1$ of IEEE 1788-2015 (Table~10.5), which
 CORE-MATH has not and whose bounds GAOL computes with 64-bit fixed point in
 a fast phase, and where that does not settle them with a 128-bit
 significand and a bound of the error.\newinvfive{} The test goes from the
@@ -922,7 +922,7 @@ and \code{relations} also check the integers: \code{interval(n)} and
 every width and in the four rounding directions, each operator in both
 orders, and \code{set\_contains()} at $2^{53}+1$ and $2^{64}-1$, which the
 conversion to a double made wrong.\newinvfive{} \code{relations} checks
-\code{overlap()} on each of the 16 states of Table 10.7 and
+\code{overlap()} on each of the 16 states of Table~10.7 and
 \code{gaol::lexicographic\_less}, a strict total order that sorts a
 \code{std::vector} holding an empty interval, which \code{<} reads past the
 end of (\pxref{sec:lexicographic-less}).\newinvfive{} \code{misc} checks the
