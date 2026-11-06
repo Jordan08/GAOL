@@ -1480,8 +1480,8 @@ what each platform showed are described in Chapter~\ref{chap:tests}
   32-bit ARM (armhf), and Debian 12 on 32-bit x86; manylinux\_2\_28 on x86-64
   and 64-bit ARM; Alpine (musl) on x86-64 and 64-bit ARM; Debian 13 on s390x,
   ppc64le and riscv64.
-\item[$\bullet$] \textbf{macOS.} macOS 14, 15 and 26, on arm64 and x86-64,
-  with AppleClang, the Clang of LLVM and GCC.
+\item[$\bullet$] \textbf{macOS.} macOS 15 and 26, on arm64 and x86-64, and
+  macOS 27, on arm64, with AppleClang, the Clang of LLVM and GCC.
 \item[$\bullet$] \textbf{Windows.} Visual Studio 2022 and 2026 on x86, x64 and
   arm64; MinGW-w64 GCC 14 and 15 on x64, 12 to 15 on x86; MSYS2 (UCRT64 with
   GCC, CLANG64 and CLANGARM64 with Clang); Cygwin (GCC, x64).
@@ -5315,15 +5315,16 @@ $\pm10^{-310}$, $\pm10^{300}$ and $\pm\infty$ was compared bit for bit.
 \noindent
 \textbf{The cost.} The operations of the path cost more time on a processor
 that halves its AVX-512 instructions, where they cost less on one that does
-not. On an Intel i7-1185G7 (halved), with Clang~21.1
-(\cmd{gaol\_performance}, the best of 9 interleaved runs), \code{x * y} takes
-3.3~ns rather than 2.1 in the default build, \code{x / y} 3.8~ns rather than
-2.3 and \code{x + y} 1.4 rather than 1.1, but \code{sqrt(x)} 4.6 rather than
-6.4, the instruction rounding each root where the SSE2 path checks the root
+not. On an Intel i7-1185G7 (halved), with Clang~21.1.8
+(\cmd{gaol\_performance}, the median of 9 runs of 26 October 2026, from
+Table~\ref{tab:computing-avx512}), \code{x * y} takes
+3.7~ns rather than 2.3 in the default build, \code{x / y} 4.1~ns rather than
+2.6 and \code{x + y} 1.5 rather than 1.1, but \code{sqrt(x)} 4.4 rather than
+8.8, the instruction rounding each root where the SSE2 path checks the root
 of the C library with a product. With \option{GAOL\_PRESERVE\_ROUNDING}, where
-the SSE2 path saves and restores the direction, \code{x + y} takes 1.4~ns
-rather than 8.3, \code{sqr(x)} 2.2 rather than 8.3 and \code{pown(x, 3)} 7.0
-rather than 9.2; the comparison of the libraries (\pxref{sec:comparison}) has
+the SSE2 path saves and restores the direction, \code{x + y} takes 1.9~ns
+rather than 8.4, \code{sqr(x)} 2.0 rather than 8.3 and \code{pown(x, 3)} 7.5
+rather than 9.9; the comparison of the libraries (\pxref{sec:comparison}) has
 the preserved column of the other operations. The processors that do not
 halve them, as the Xeon of the continuous integration, are expected to take
 less. Which of the paths a GAOL took,
@@ -15465,7 +15466,7 @@ the platforms GAOL supports is in the chapter on the installation
     Debian 13 under qemu & s390x, ppc64le, riscv64 & CMake; Ubuntu 24.04
       under qemu for POWER9 (GCC 13, \option{-mcpu=power9}), also built
       for size\\
-    macOS 14, 15, 26 & arm64, x86\_64 (natively or under Rosetta), a
+    macOS 15, 26, 27 & arm64, x86\_64 (natively or under Rosetta), a
       universal build & AppleClang, the Clang of LLVM, GCC; CMake,
       autotools, meson, the generator of Xcode; the sanitizers\\
     Windows & x86, x64, arm64 & Visual Studio 2022 and 2026 (Release and
@@ -15507,8 +15508,10 @@ amd64 tests the empty sets before the bounds in the relations
 (\option{-DGAOL\_RELATION\_BOUNDS\_FIRST=0}, the order of RISC-V), where GCC
 14 raised the invalid-operation flag for an empty operand.
 
-\paragraph{macOS.} The jobs build macOS 14, 15 and 26 on arm64 and x86\_64,
-natively or under Rosetta, and a universal build (arm64 and x86\_64: the
+\paragraph{macOS.} The jobs build macOS 15 and 26 on arm64 and x86\_64,
+natively or under Rosetta, macOS 27 on arm64 (on the runner labelled
+\code{xcode-27}; the job of macOS 27 on x86\_64 under Rosetta is left out until
+GitHub provides its runner), and a universal build (arm64 and x86\_64: the
 macros of each part, the tests of the arm64 part natively and the test
 programs of the x86\_64 part under Rosetta, and the intervals each part says
 it has)\newinvfive{} with CMake, with autotools (\option{-arch} twice in
