@@ -20,7 +20,7 @@ Linux, macOS and Windows, on x86, x86-64, 32-bit and 64-bit ARM, POWER
   with it, which is correctly rounded in the rounding direction in effect: the
   value computed at a bound, rounding upward, is the upper bound, and the
   double below it the lower one, the tightest bounds. The integer powers, the
-  roots and \code{compoundm1}, which GAOL computes itself, are the tightest
+  roots of an order other than 2 and 3 and \code{compoundm1}, which GAOL computes itself, are the tightest
   bounds or within a few doubles of them (Chapter~\ref{chap:accuracy}). The
   bounds are the same on every architecture and with every compiler, and no
   mathematical library is to be installed or linked: CORE-MATH is compiled
@@ -33,9 +33,10 @@ Linux, macOS and Windows, on x86, x86-64, 32-bit and 64-bit ARM, POWER
   is documented, as the standard requires.
 \item[$\bullet$] The rounding direction is the business of GAOL: each
   operation that computes a bound sets the direction upward when it is not,
-  whichever direction the calling code left, but the operations of the AVX-512
-  path, whose instructions carry the direction, and GAOL can be built to
-  restore the direction of the program after each operation.
+  whichever direction the calling code left, and GAOL can be built to restore
+  the direction of the program after each operation; the operations of the
+  AVX-512 path, which that build takes where the processor has the
+  instructions, set no direction, their instructions carrying it.
 \item[$\bullet$] Numbers are read exactly, and intervals written in decimal
   are rounded outward, whatever the C library; written in hexadecimal, an
   interval is read back as the same doubles.

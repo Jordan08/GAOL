@@ -55,7 +55,7 @@ What it brings, and this manual describes, is the following.
   with it, which is correctly rounded in the rounding direction in effect: the
   value GAOL computes at a bound, rounding upward, \emph{is} the upper bound,
   and the double below it the lower one, the tightest bounds. The integer
-  powers, the roots and \code{compoundm1}, which GAOL computes itself, are the
+  powers, the roots of an order other than 2 and 3 and \code{compoundm1}, which GAOL computes itself, are the
   tightest bounds or within a few doubles of them
   (Chapter~\ref{chap:accuracy}). The bounds are the same on every architecture
   and with every compiler, and there is no mathematical library to install, to
@@ -85,9 +85,10 @@ What it brings, and this manual describes, is the following.
   (Chapter~\ref{chap:ieee1788}).
 \item[$\bullet$] \textbf{The rounding direction is the business of GAOL.}
   Each operation that computes a bound sets the rounding direction upward
-  when it is not, whichever direction the calling code left, but the
-  operations of the AVX-512 path, whose instructions carry the direction: the
-  user no longer has to keep it upward (Chapter~\ref{chap:rounding}).
+  when it is not, whichever direction the calling code left; the
+  operations of the AVX-512 path set none, their instructions carrying the
+  direction. The user no longer has to keep it upward
+  (Chapter~\ref{chap:rounding}).
 \item[$\bullet$] \textbf{Exact input and output.} Numbers are read exactly,
   and intervals written in decimal are rounded outward, whatever the C
   library; written in hexadecimal, an interval is read back as the same
@@ -192,7 +193,8 @@ Chapter~\ref{chap:computing} explains how GAOL computes its intervals: the
 representation of an interval in a register, the SSE2, AVX-512, NEON and FPU
 kernels, where the time of a program goes, the cost of the rounding direction
 on each processor, what the compilers give, how GAOL compares with the other
-interval libraries and with the test suites of the standard, and the verdicts
+interval libraries, with ITF1788, the test suite of the standard, and with the
+benchmark of Tang et al., and the verdicts
 on new paths. Chapter~\ref{chap:errors} describes the floating-point constants
 and functions, the version information, the errors and the debugging
 facilities. Chapter~\ref{chap:tests} presents the tests, the examples, the

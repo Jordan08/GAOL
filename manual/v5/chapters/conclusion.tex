@@ -29,9 +29,10 @@ the 288 special cases of the comparison with the other libraries where the stand
 defines one (Chapter~\ref{chap:computing}), and under its
 own names in all but those of its hybrid \code{pow}, kept for the programs of
 GAOL~4. Third, the rounding direction is no longer left to the user: each
-operation checks it and sets it upward when it is not, but the operations of
-the AVX-512 path, whose instructions carry the direction, and GAOL can be built
-to restore the direction of the program after each operation, at a cost that
+operation checks it and sets it upward when it is not, and GAOL can be built
+to restore the direction of the program after each operation; the operations of
+the AVX-512 path, which that build takes where the machine has the instructions,
+set no direction, their instructions carrying it, at a cost that
 the AVX-512 path, where the machine has the instructions, brings back to a
 few tens of percent.
 

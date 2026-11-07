@@ -44,7 +44,7 @@ what each platform showed are described in Chapter~\ref{chap:tests}
 \begin{itemize}
 \item[$\bullet$] \textbf{Linux.} Ubuntu 24.04 and 26.04 on x86-64 and
   64-bit ARM, with GCC and Clang, and the compilers of Ubuntu 22.04 (GCC~11, Clang~14, the latter on x86-64
-  only: 64-bit ARM refuses it) on Ubuntu 24.04; Debian 12 and 13 on x86-64,
+  only: the three builds refuse it on 64-bit ARM) on Ubuntu 24.04; Debian 12 and 13 on x86-64,
   64-bit ARM and 32-bit ARM (armhf), and Debian 12 on 32-bit x86;
   manylinux\_2\_28 on x86-64 and 64-bit ARM; Alpine (musl) on x86-64 and 64-bit
   ARM; Debian 13 on s390x, ppc64le and riscv64, and Ubuntu 24.04 on POWER9,
@@ -92,7 +92,7 @@ Two tools are needed to build GAOL:
   later), or GCC and Clang for Windows (MinGW-w64, MSYS2, Cygwin);
 \cindex{C++!standard}%
 \item CMake 3.14 or later, with the build tool of its generator (\cmd{make},
-  ninja, Visual Studio); or, for the autotools build, a shell and
+  \cmd{ninja}, Visual Studio); or, for the autotools build, a shell and
   \cmd{make}; or, for the meson build, meson and ninja.
 \end{itemize}
 
@@ -114,7 +114,9 @@ The header \file{gaol/gaol\_config.h} refuses them again when compiling, for
 the code including the headers of GAOL too, all but the second one, which no
 macro of the compiler shows; it alone refuses the other compilers of the list,
 MinGW-w64, Cygwin without the fused multiply-add instructions, Visual C++ and
-clang-cl without \option{/fp:strict}, and the x87 unit.
+clang-cl without \option{/fp:strict}, and the x87 unit, and the SSE2 intervals
+on 32-bit Windows compiled without \option{-faligned-new=8}, whose programs
+crashed rather than give wrong bounds.
 
 \begin{itemize}
 \item[$\bullet$] \textbf{Clang for 32-bit ARM processors.} It does not honour
@@ -568,9 +570,10 @@ In the root directory of the sources:
 \end{cmdshell}
 
 \noindent
-With Visual Studio and Xcode the target is \code{RUN\_TESTS}: \cmd{cmake --build
-build --config Release --target RUN\_TESTS}. On Linux, the test step runs 47
-tests, of which \code{intervalf} and \code{interval2f} are skipped, the
+With Visual Studio and Xcode the target is \cmd{RUN\_TESTS}: \cmd{cmake --build
+build --config Release --target RUN\_TESTS}. On Linux with the static library
+and the SSE2 intervals, the test step runs 47 tests (the other intervals give
+three fewer, the shared library one fewer), of which \code{intervalf} and \code{interval2f} are skipped, the
 intervals of floats being compiled only by a developer of GAOL. CMake 3.14 or
 later is needed. The build compiles the thirty-eight sources of
 CORE-MATH that GAOL uses into \file{libgaol}, which is a static library unless
@@ -675,7 +678,7 @@ the continuous integration those of \cmd{configure}, meson and autoconf
 
 The options are given to the first command, as
 \option{-D\var{option}=\var{value}}. The three builds have the same
-options.\newinvfive{} Each had options of its own, and those of
+options.\newinvfive{} Each had options of its own before, and those of
 the fused multiply-add instructions, of the AVX-512 path, of the 128-bit
 integer, of the debugging and of the NEON intervals are gone as options: the
 configuration decides them (Section~\ref{sec:install-decides}). The standard
@@ -740,8 +743,10 @@ options under their three names, with their defaults.
   \file{libgaol.so.5.0.0}, whose soname is \file{libgaol.so.5}, as
   \cmd{configure} and meson do (always a static library with Visual C++).
   Installed in a \var{prefix} that the dynamic loader does not search, the
-  shared library is found by a program run with \env{LD\_LIBRARY\_PATH} naming
-  \file{\var{prefix}/lib}, or linked with \option{-Wl,-rpath,\var{prefix}/lib}.
+  shared library is found on Linux by a program run with \env{LD\_LIBRARY\_PATH}
+  naming the library directory, \file{\var{prefix}/lib} (or \file{lib64} or
+  \file{lib/\var{multiarch}} on the systems whose libraries go there), or linked
+  with \option{-Wl,-rpath,} and that directory.
   With \cmd{configure} the static library is built too unless
   \loption{disable-static}, as with \option{-Ddefault\_library=both} of
   meson; \cmd{configure} and meson built both by default in
@@ -825,7 +830,7 @@ carry the flags of the code using GAOL.\newinvfive
   C++ for x64, \option{-mfpu=neon-vfpv4 -mfloat-abi=hard} on 32-bit ARM;
   64-bit ARM, POWER, s390x and RISC-V have the instructions without a flag.
   The library then needs a processor with them (on x86, Intel Haswell and AMD
-  Piledriver, 2012--2013, and later; with Visual C++, whose \option{/arch:AVX2}
+  Piledriver, 2012--2013, and later; with Visual C++ and clang-cl, whose \option{/arch:AVX2}
   also needs AVX2, Intel Haswell and AMD Excavator, 2013--2015, and later), and the code using GAOL is given the
   flag too, in \code{gaol::gaol} and \file{gaol.pc}; \option{-ffp-contract=off}
   stays. The elementary functions are much faster with them: \code{cos} 2.5
@@ -1120,7 +1125,8 @@ builds (Table~\ref{tab:install-options}):
 \begin{itemize}
 \item[$\bullet$] \textbf{\loption{help}.} Displays a list of all options; only
   those described below are options of the user, with the options of libtool and
-  automake; the settings of the developers are not listed.
+  automake; the settings of the developers are not listed, but
+  \loption{enable-debug}, which is also the \code{Debug} build.
 \cindex{help!on configuration}%
 \item[$\bullet$] \textbf{\loption{prefix=\var{prefix-dir}}.} The root directory
   where the library is installed. It defaults to \file{/usr/local}.
@@ -1204,7 +1210,7 @@ which builds \file{libgaol.a} (and the shared library \file{libgaol.so.5.0.0}
 with \loption{enable-shared}), \code{test}, \code{check}, \code{perf} and
 \code{parser}, those of the three builds (\pxref{sec:tests}),
 \code{install}, \code{clean}, \code{distclean} and, with
-\loption{enable-coverage}, \code{coverage}. \code{clean} erases what
+\loption{enable-coverage}, \cmd{coverage}. \code{clean} erases what
 \cmd{make} built, and keeps what \cmd{configure} made, so that \cmd{make}
 builds again without it: the \file{Makefile}, \file{config.status},
 \file{config.log}, \file{libtool}, \file{gaol.pc},
@@ -1449,7 +1455,7 @@ the last two in another.
 With GCC for Windows (MinGW-w64, MSYS2, Cygwin) on x86-64 and on 32-bit x86,
 the fused multiply-add instructions give
 \option{-mfma -mprefer-vector-width=128}; for 32-bit x86 the choice follows
-the measurements below.\newinvfive{} GAOL~4 gave nothing, because of GCC bug
+the measurements below.\newinvfive{} The earlier versions of GAOL v5 gave nothing, because of GCC bug
 54412: \option{-mfma} turns AVX on, the vectorizer of GCC then writes 256-bit
 registers (\code{\%ymm}), and GCC takes the stack to be aligned on 32 bytes
 for those it spills there, where the ABI of Windows x64 aligns it on 16, so
@@ -1594,7 +1600,7 @@ refuses Cygwin without \option{-mfma} (\pxref{sec:refused}). Its
 direction upward, which \code{previous\_float()} and \code{next\_float()} now
 tell apart (the lower bound of \code{sinh(-711)} did not enclose the value).
 \code{is\_bisectable()} and \code{bisect()} call no \code{nextafter()}: they
-tell the bounds by their bits. The Debug build of Cygwin is built and tested too;
+tell the bounds by their bits.
 \file{tests/core\_math.cpp} and \file{tests/arithmetic.cpp} call
 \code{\_\_builtin\_fma} as GAOL does.
 \end{Rem}
@@ -1612,9 +1618,8 @@ elementary functions are no faster, and a little slower: \code{cos} took
 rather than 21.7. With Clang 18.1, before the operators took their bounds in
 a register, the basic operations took two to three times less time with it
 and the elementary functions two to three times more. The sources of
-CORE-MATH are compiled apart, without it. There is no option of GAOL for this,
-and \file{gaol.pc} and \code{gaol::gaol} carry no such flag; the standard options
-of the tools still reach the sources of GAOL, \option{CMAKE\_INTERPROCEDURAL\_OPTIMIZATION},
+CORE-MATH are compiled apart, without it. The standard options
+of the tools reach the sources of GAOL, \option{CMAKE\_INTERPROCEDURAL\_OPTIMIZATION},
 \option{-Db\_lto=true} of meson and \option{-flto} in \env{CXXFLAGS}, which the
 three builds keep away from CORE-MATH alone: they are not to be given with
 GCC.
@@ -1642,7 +1647,7 @@ Built with \option{WITH\_TESTS} (CMake), \loption{with-tests}
 (\cmd{configure}) or \code{with-tests} (meson), the programs of \file{tests}
 compare the bounds GAOL computes with the exact results of the operations,
 independently of GAOL and of the floating-point environment: the exact
-results are computed with integers, or were computed with \code{mpmath}, with 2000 bits of
+results are computed with integers, or were computed with \code{mpmath}, with 1500 to 7000 bits of
 precision. They check, among others, that the basic operations are the
 tightest enclosures, that the elementary functions are the tightest or within
 one double of them, that every operation gives the same result whatever the
@@ -1786,7 +1791,7 @@ intervals of floats, which a developer of GAOL compiles.
 Each macro of Table~\ref{tab:install-configuration} but the version,
 \code{GAOL\_UNIVERSAL\_SSE2} and \code{GAOL\_UNIVERSAL\_NEON} is 1 where the
 table says, and 0 otherwise; those two are defined only in a universal build of
-macOS.\newinvfive{} It was left undefined in
+macOS.\newinvfive{} A macro that is 0 now was left undefined in
 GAOL~4, so that a header reading it with \code{\#if} warned under
 \option{-Wundef}, and a program could not include GAOL under
 \option{-Wundef -Werror}. A program tests these macros with \code{\#if} as
@@ -1826,10 +1831,10 @@ well: \code{\#ifdef} is now true of each of the others.
   \code{GAOL\_PREFER\_AVX512} & The four arithmetic operations, the square,
   the square root and, with FMA, the integer powers beyond 1 and $-1$ are to
   take the AVX-512 instructions: with \option{GAOL\_PRESERVE\_ROUNDING},
-  where the compiler takes the path (\code{GAOL\_HAVE\_AVX512\_TARGET})
-  (\option{GAOL\_PREFER\_AVX512=ON} or \code{OFF},
-  \loption{enable-prefer-avx512}, \loption{disable-prefer-avx512},
-  \code{enable-prefer-avx512} decide otherwise)\\
+  where the compiler takes the path (\code{GAOL\_HAVE\_AVX512\_TARGET});
+  \option{GAOL\_PREFER\_AVX512=ON} or \code{OFF},
+  \loption{enable-prefer-avx512}, \loption{disable-prefer-avx512} and
+  \code{enable-prefer-avx512} decide otherwise\\
   \code{GAOL\_AVX512\_ARITHMETIC} & The same operations take the AVX-512
   instructions: \code{GAOL\_PREFER\_AVX512}, \code{GAOL\_HAVE\_AVX512\_TARGET},
   and a machine building that runs them, not when cross-compiling; the
@@ -1912,7 +1917,7 @@ the same macros and the same flags, and whose few options are the same under
 three names. The choices it explained are those of a library whose bounds
 must be the same everywhere. The compilers and the options that gave bounds
 not enclosing the exact results, or that nothing certifies, are refused when
-GAOL is configured or compiled, and again when the code using it is compiled,
+GAOL is configured or compiled, and, but for Clang 14 for 64-bit ARM, again when the code using it is compiled,
 and the link with \option{-Ofast} is countered by the clearing of
 the flush-to-zero modes and by \option{-mno-daz-ftz}. The fused multiply-add
 instructions and the AVX-512 path are decided by what the machine building
