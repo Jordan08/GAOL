@@ -70,7 +70,8 @@ own worktree and branch, and you never push.**
    orchestrator does that once for all the points, and doing it in each branch
    would make the pull requests conflict (a PDF cannot be merged); only the
    pull request of the manual (a branch `manual*`) commits it, in its last
-   commit. Instead, put
+   commit, and also corrects `doc/differences.md`, which describes the same
+   changes as the manual. Instead, put
    the text you would have written there in your final report (`ledger_*`
    fields). You do edit the chapter of `manual/v5/chapters/` where the manual describes what
    you change, and check that it compiles (`pdflatex` into a directory of

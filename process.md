@@ -422,7 +422,9 @@ Ce que tu ne peux pas tester ici (Windows, macOS, ARM, gros-boutiste, sans FMA),
    jamais `manual/v4` (son PDF, `manual/v4/Manual_GAOLv4.pdf`, a été construit une
    fois et aucun build ne le refait). Le texte que tu y aurais mis va dans la section « Pour
    `doc/differences.md` et `ChangeLog` » de la pull request, que reprendra la
-   pull request de synthèse (tâche PI).
+   pull request de synthèse (tâche PI). Seule la pull request du manuel (une
+   branche `manual*`) corrige `doc/differences.md`, qui décrit les mêmes
+   changements que le manuel.
 6. **Tester avec des dents** (section 5), puis **valider** (section 6).
 7. **Faire relire.** Un relecteur indépendant relit la branche : un sous-agent
    sans ton contexte, à qui tu donnes ce fichier, le point, la base et le nom
