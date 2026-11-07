@@ -12,16 +12,19 @@ algorithms rest to prove what they compute. GAOL also provides the
 1788-2015, which interval constraint programming needs. GAOL v5, which this
 manual describes, continues GAOL as Fr\'ed\'eric Goualard developed it, and
 is written so that it compiles and computes right on every system it can:
-Linux, macOS and Windows, on x86, x86-64, 32-bit and 64-bit ARM and the other
-processors of Debian.
+Linux, macOS and Windows, on x86, x86-64, 32-bit and 64-bit ARM, POWER
+(ppc64le), s390x and RISC-V (riscv64).
 
 \begin{itemize}
-\item[$\bullet$] Every elementary function is bounded with CORE-MATH, which
-  is correctly rounded in the rounding direction in effect: the value
-  computed at a bound, rounding upward, is the upper bound, and the double
-  below it the lower one. The bounds are the tightest ones, the same on every
-  architecture and with every compiler, and no mathematical library is to be
-  installed or linked: CORE-MATH is compiled into GAOL.
+\item[$\bullet$] Every elementary function that CORE-MATH provides is bounded
+  with it, which is correctly rounded in the rounding direction in effect: the
+  value computed at a bound, rounding upward, is the upper bound, and the
+  double below it the lower one, the tightest bounds. The integer powers, the
+  roots and \code{compoundm1}, which GAOL computes itself, are the tightest
+  bounds or within a few doubles of them (Chapter~\ref{chap:accuracy}). The
+  bounds are the same on every architecture and with every compiler, and no
+  mathematical library is to be installed or linked: CORE-MATH is compiled
+  into GAOL.
 \item[$\bullet$] GAOL v5 follows IEEE 1788-2015 in the operations GAOL
   provides: the empty set, the infinite bounds, the domains of the functions,
   the comparisons and the interval literals. The namespace
@@ -30,8 +33,9 @@ processors of Debian.
   is documented, as the standard requires.
 \item[$\bullet$] The rounding direction is the business of GAOL: each
   operation that computes a bound sets the direction upward when it is not,
-  whichever direction the calling code left, and GAOL can be built to restore
-  the direction of the program after each operation.
+  whichever direction the calling code left, but the operations of the AVX-512
+  path, whose instructions carry the direction, and GAOL can be built to
+  restore the direction of the program after each operation.
 \item[$\bullet$] Numbers are read exactly, and intervals written in decimal
   are rounded outward, whatever the C library; written in hexadecimal, an
   interval is read back as the same doubles.

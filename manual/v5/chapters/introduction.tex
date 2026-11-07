@@ -25,7 +25,7 @@ which it is a, chiefly British, variant.}
 is a C++ library to perform arithmetic with floating-point intervals. Its
 development was initiated at the \emph{Swiss Federal Institute of
 Technology}, Lausanne, Switzerland, while Fr\'ed\'eric Goualard was a
-post-doctorate fellow supported by the \emph{Swiss National Science
+postdoctoral fellow supported by the \emph{Swiss National Science
 Foundation}. It started as a limited version of \emph{Jail} (now
 \emph{halloween}), a templated C++ interval library developed during
 Goualard's PhD. To our knowledge, a unique feature of GAOL among the C++
@@ -33,7 +33,7 @@ interval arithmetic libraries available when it was written is the
 implementation of \emph{relational arithmetic operators}, which interval
 constraint programming requires (Chapter~\ref{chap:arithmetic}).
 \cindex{operator!relational}\cindex{relational operator}%
-Hence the game of the name: GAOL is \emph{not} JAIL (\emph{Just Another
+Hence the pun of the name: GAOL is \emph{not} JAIL (\emph{Just Another
 Interval Library}). The standard for interval arithmetic, IEEE
 1788-2015~\cite{IEEE1788:2015}, has since required such operators, as its
 \emph{reverse functions}.
@@ -41,22 +41,25 @@ Interval Library}). The standard for interval arithmetic, IEEE
 
 \medskip
 GAOL v5, written by Jordan Ninin at ENSTA, continues GAOL as Fr\'ed\'eric
-Goualard developed it, from its version 4.2.2. It was written for Codac,
-whose intervals are built upon GAOL, and brings the changes GAOL needs to
+Goualard developed it, from its version 4.2.2. It was written for Codac and
+IBEX, whose intervals are built upon GAOL, and brings the changes GAOL needs to
 compile and compute right on every system it can: Linux, macOS and Windows,
-on x86, x86-64, 32-bit and 64-bit ARM and the other processors of Debian.
+on x86, x86-64, 32-bit and 64-bit ARM, POWER (ppc64le), s390x and RISC-V
+(riscv64).
 \cindex{GAOL v5}%
 What it brings, and this manual describes, is the following.
 
 \begin{itemize}
-\item[$\bullet$] \textbf{The tightest bounds for the elementary functions.}
-  Every elementary function is bounded with CORE-MATH~\cite{CoreMath:2022},
-  which is correctly rounded in the rounding direction in effect: the value
-  GAOL computes at a bound, rounding upward, \emph{is} the upper bound, and
-  the double below it the lower one. The bounds are the same on every
-  architecture and with every compiler, and there is no mathematical library
-  to install, to find or to link along with GAOL: CORE-MATH is compiled into
-  it.
+\item[$\bullet$] \textbf{Correctly rounded elementary functions.} Every
+  elementary function that CORE-MATH~\cite{CoreMath:2022} provides is bounded
+  with it, which is correctly rounded in the rounding direction in effect: the
+  value GAOL computes at a bound, rounding upward, \emph{is} the upper bound,
+  and the double below it the lower one, the tightest bounds. The integer
+  powers, the roots and \code{compoundm1}, which GAOL computes itself, are the
+  tightest bounds or within a few doubles of them
+  (Chapter~\ref{chap:accuracy}). The bounds are the same on every architecture
+  and with every compiler, and there is no mathematical library to install, to
+  find or to link along with GAOL: CORE-MATH is compiled into it.
 \item[$\bullet$] \textbf{IEEE 1788-2015.} GAOL v5 follows the standard for
   interval arithmetic in the operations GAOL provides: the empty set, the
   infinite bounds, the domains of the functions, the comparisons and the
@@ -70,26 +73,31 @@ What it brings, and this manual describes, is the following.
   \code{round\_ties\_to\_even} and \code{round\_ties\_to\_away}, sixteen
   recommended functions (\code{expm1}, \code{log1p}, \code{hypot},
   \code{compoundm1}, \code{sinpi}\ldots), the cancellative subtraction and
-  addition, the radius, and the comparisons \code{less},
-  \code{strictly\_less}, \code{is\_entire} and \code{is\_common\_interval};
-  \code{atan2}, which GAOL declared, is implemented.
+  addition, the radius, the comparisons \code{less} and
+  \code{strictly\_less}, the boolean functions \code{is\_entire} and
+  \code{is\_common\_interval}, \code{overlap()}, the reverse functions of the
+  power and of \code{atan2} (\ieee{powRev1}, \ieee{powRev2}, \ieee{atan2Rev1},
+  \ieee{atan2Rev2}), \ieee{pownRev} for a non-positive exponent and
+  \ieee{mulRevToPair}; \code{atan2}, which GAOL declared, is implemented.
 \item[$\bullet$] \textbf{The names of the standard.} The namespace
   \code{gaol\_ieee1788} gives each operation of the standard that GAOL
   provides the name and the argument order the standard gives it
   (Chapter~\ref{chap:ieee1788}).
 \item[$\bullet$] \textbf{The rounding direction is the business of GAOL.}
   Each operation that computes a bound sets the rounding direction upward
-  when it is not, whichever direction the calling code left: the user no
-  longer has to keep it upward (Chapter~\ref{chap:rounding}).
+  when it is not, whichever direction the calling code left, but the
+  operations of the AVX-512 path, whose instructions carry the direction: the
+  user no longer has to keep it upward (Chapter~\ref{chap:rounding}).
 \item[$\bullet$] \textbf{Exact input and output.} Numbers are read exactly,
   and intervals written in decimal are rounded outward, whatever the C
   library; written in hexadecimal, an interval is read back as the same
   doubles (Chapter~\ref{chap:io}).
-\item[$\bullet$] \textbf{Three builds that agree.} A CMake build, which is
-  the one to use, and the autotools and meson builds of GAOL, which configure
-  GAOL the same way; tests of the bounds GAOL computes against their exact
-  values; a continuous integration on Linux, macOS and Windows, with the
-  compilers and on the processors listed in Chapter~\ref{chap:installation}.
+\item[$\bullet$] \textbf{Three builds that agree.} GAOL has a CMake build,
+  which is the one to use, and the autotools and meson builds, and the three
+  configure GAOL the same way. Tests compare the bounds GAOL computes with
+  their exact values, and a continuous integration builds and tests GAOL on
+  Linux, macOS and Windows, with the compilers and on the processors listed in
+  Chapter~\ref{chap:installation}.
 \end{itemize}
 
 \noindent
@@ -103,7 +111,7 @@ This document is both a manual and a reference to use GAOL. It assumes a
 prior knowledge of interval arithmetic, whose notions the first chapter
 recalls in the form GAOL uses them; the books and papers by Goldberg,
 Neumaier, Moore, Alefeld and Herzberger, and
-others~\cite{Goldberg:01,IEEE754:90,Moore:Book1966,Alefeld-Herzberger:83,Neumaier:Book1990}
+others~\cite{Goldberg:01,IEEE754:2008,Moore:Book1966,Alefeld-Herzberger:83,Neumaier:Book1990}
 give a full presentation of floating-point arithmetic, interval arithmetic
 and the use thereof.
 \cindex{references!on interval arithmetic}%
@@ -117,12 +125,16 @@ The pages of the directory \file{doc} of the sources give the details of each
 change GAOL v5 brings, with its measures, and this manual takes their content
 up; Appendix~\ref{chap:documentation} lists them. The mark
 \textcolor{blue}{\textsf{\scriptsize[GAOL~v5]}} follows, throughout the
-text, what behaves otherwise than in GAOL~4.
+text, what behaves otherwise than in GAOL~4. A clause number in parentheses,
+as (12.10.3), and a table cited as Table~9.1 or Table~10.7 are those of
+IEEE 1788-2015 (the tables of this manual are numbered by chapter and linked).
 
 \medskip
 The examples of the reference show what they print, and every output shown
-was produced by GAOL v5: a script of the sources compiles each example and
-compares what it prints with the manual (Chapter~\ref{chap:tests}). An
+was produced by GAOL v5. A script of the sources compiles each example that
+shows its output under its code, runs it and compares what it prints with the
+manual (Chapter~\ref{chap:tests}); the outputs shown apart, in a frame
+Output, are not compared by it. An
 example that writes a \code{bool} sets \code{boolalpha} first: without it,
 \code{cout} writes 1 and 0. The examples assume \code{using namespace gaol;}
 and \code{using namespace std;}, except those of
@@ -137,7 +149,7 @@ them are the intervals of floats, \code{gaol::intervalf} and
 \code{gaol::interval2f}, which are unfinished and which none of the builds
 compiles: only a developer of GAOL does, defining
 \code{GAOL\_FLOAT\_INTERVALS} in \file{gaol/gaol\_config.h}.
-\cindex{undocumented!use of \idxself{} functions}%
+\cindex{undocumented functions}%
 \cindex{function!undocumented}%
 
 \section*{Outline}
@@ -160,7 +172,7 @@ errors, and the correspondence with the names of other interval libraries.
 
 \medskip
 Chapter~\ref{chap:rounding} is devoted to the rounding direction and to the
-floating-point environment, which GAOL v5 takes in charge: what the upward
+floating-point environment, which GAOL v5 takes charge of: what the upward
 rounding does to the rest of the program, how the direction can be
 preserved, the AVX-512 path, the NEON intervals of 64-bit ARM processors, the
 FPU intervals, the modes that flush the subnormal numbers to zero, the
@@ -178,16 +190,17 @@ states the tightness of each operation, as the standard requires.
 \medskip
 Chapter~\ref{chap:computing} explains how GAOL computes its intervals: the
 representation of an interval in a register, the SSE2, AVX-512, NEON and FPU
-kernels, the cost of the rounding direction on each processor, where the
-time of a program goes, and how GAOL compares with the other interval
-libraries. Chapter~\ref{chap:errors} describes the floating-point constants
+kernels, where the time of a program goes, the cost of the rounding direction
+on each processor, what the compilers give, how GAOL compares with the other
+interval libraries and with the test suites of the standard, and the verdicts
+on new paths. Chapter~\ref{chap:errors} describes the floating-point constants
 and functions, the version information, the errors and the debugging
 facilities. Chapter~\ref{chap:tests} presents the tests, the examples, the
 continuous integration and the scripts of the repository.
 
 \medskip
-The last chapter, Chapter~\ref{chap:changes}, is written for the programs of
-GAOL~4: what they have to change to compile with GAOL v5, and what they will
+The last chapter, Chapter~\ref{chap:changes}, is written for the programs
+written for GAOL~4: what they have to change to compile with GAOL v5, and what they will
 see differently. The conclusion sums up what GAOL v5 established and what is
 left open. The bibliography comes before two appendices, which list the
 documentation and the references of GAOL, with the way to report a bug, and

@@ -9,7 +9,7 @@ rests on, from the roundings of floating-point numbers to the accuracy modes
 of IEEE 1788-2015; we described its installation with the three builds, the
 flags the code using it is compiled with, the two namespaces under which its
 operations are named, and the rounding direction and the floating-point
-environment that GAOL v5 takes in charge; we gave each operation of the class
+environment that GAOL v5 takes charge of; we gave each operation of the class
 \code{interval} with its examples, the names of the standard, and the
 tightness of every operation; we explained how the intervals are computed
 and measured, how GAOL is tested, and what a program of GAOL~4 has to change.
@@ -17,8 +17,10 @@ and measured, how GAOL is tested, and what a program of GAOL~4 has to change.
 \medskip
 Three facts sum up what GAOL v5 established. First, the bounds it computes
 are the same on every architecture and with every compiler it supports:
-every elementary function is bounded with CORE-MATH, correctly rounded in the
-direction in effect, and the tests compare the bounds with their exact
+every elementary function that CORE-MATH provides is bounded with it, correctly
+rounded in the direction in effect, and the integer powers, the roots and
+\code{compoundm1} are the tightest bounds or within a few doubles of them; the
+tests compare the bounds with their exact
 values, computed apart, on every platform of the continuous integration.
 Second, the operations follow IEEE 1788-2015 for the empty set, the infinite
 bounds, the domains of the functions, the comparisons and the literals; under
@@ -27,7 +29,8 @@ the 288 special cases of the comparison with the other libraries where the stand
 defines one (Chapter~\ref{chap:computing}), and under its
 own names in all but those of its hybrid \code{pow}, kept for the programs of
 GAOL~4. Third, the rounding direction is no longer left to the user: each
-operation checks it and sets it upward when it is not, and GAOL can be built
+operation checks it and sets it upward when it is not, but the operations of
+the AVX-512 path, whose instructions carry the direction, and GAOL can be built
 to restore the direction of the program after each operation, at a cost that
 the AVX-512 path, where the machine has the instructions, brings back to a
 few tens of percent.
@@ -37,8 +40,8 @@ What GAOL v5 does not provide is stated where it would be expected. GAOL has
 no decorations: only bare intervals are provided, and a program that needs
 to know that a box lies outside the domain of a function tests the empty
 set itself, as Chapter~\ref{chap:overview} explains. The slope
-functions, the reduction operations and the exact operations of the standard
-are not provided either. The intervals of floats are unfinished, and no build
+functions, the reduction operations and the exact reduction operations of the
+standard are not provided either. The intervals of floats are unfinished, and no build
 compiles them. The \code{pow} of the namespace \code{gaol} is a hybrid of the
 two powers of the standard, which keeps the results of GAOL~4 for the
 programs written for it and for IBEX and Codac; a program that wants the

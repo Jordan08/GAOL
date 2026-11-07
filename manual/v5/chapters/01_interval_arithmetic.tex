@@ -43,7 +43,7 @@ valid. The chapter ends with a discussion.
 
 The numbers GAOL computes with are the \code{double}s of C++: the
 floating-point numbers of the double format of IEEE
-754~\cite{IEEE754:90,Goldberg:01}, called binary64 since the 2008 revision
+754~\cite{IEEE754:2008,Goldberg:01}, called binary64 since the 2008 revision
 of the standard. A double is written on 64 bits: a sign, a significand of
 53 bits, 52 of them stored, and an exponent of 11 bits; its value is
 $\pm m\cdot2^{e}$ with $m$ an integer below $2^{53}$. We write \FSet{} for
@@ -53,7 +53,7 @@ only if $-y\in\FSet$.
 
 \medskip
 The doubles are not spread evenly on the real line. Between two consecutive
-powers of two, $2^{e}$ and $2^{e+1}$, they are $2^{52}$ in number, spaced by
+powers of two, $2^{e}$ and $2^{e+1}$ with $-1022\leq e\leq1023$, they are $2^{52}$ in number, spaced by
 $2^{e-52}$: this spacing is the \dfn{unit in the last place} (ulp) of the
 doubles between these powers. The \dfn{normal numbers} are those of
 magnitude between $2^{-1022}$, the smallest normal double, and
@@ -110,7 +110,9 @@ $y\in\FSet$ that minimizes $|x-y|$:
 \begin{equation*}
   |x-\roundNearest{x}| = \min\{|x-y|\mid y\in\FSet\},
 \end{equation*}
-the one whose significand is even when two are equally near.
+the one whose significand is even when two are equally near; a real of magnitude
+at least $2^{1024}-2^{970}$ is rounded to the infinity of its sign, as IEEE 754
+does.
 \end{Def}
 
 For a double $d$, the three roundings return $d$ itself: a double is never
@@ -138,7 +140,7 @@ following piece of code:
 using gaol::interval;
 
 int main(void) {
-  interval one_tenth(0.1); @rem^BEWARE: wrong !~
+  interval one_tenth(0.1); @rem^// BEWARE: wrong!~
 
   @emph^[some code using one_tenth]~
   gaol::cleanup();
@@ -312,10 +314,12 @@ operations on bounded intervals become
 \end{align*}
 A divisor that contains zero gives the hull of the quotients by its
 non-zero points, which IEEE 1788-2015 defines case by case: an unbounded
-interval, as $\itv{1}{2}\div\itv{-1}{1}=\itv{-\infty}{+\infty}$, and the empty
-set when the divisor is $\itv{0}{0}$, as $\itv{1}{2}\div\itv{0}{0}=\emptyset$. The infinite bounds and the zeros of
+interval when the dividend is not \itv{0}{0}, as
+$\itv{1}{2}\div\itv{-1}{1}=\itv{-\infty}{+\infty}$, the interval \itv{0}{0} when
+it is, and the empty set when the divisor is $\itv{0}{0}$, as
+$\itv{1}{2}\div\itv{0}{0}=\emptyset$. The infinite bounds and the zeros of
 each operation follow the standard as well; Chapter~\ref{chap:arithmetic}
-states every case.
+states the rules.
 
 \begin{Prop}\label{prop:round-neg}
 For every real number $r$, $\roundDn{-r}=-\roundUp{r}$.
@@ -347,15 +351,16 @@ of the program, is the subject of Chapter~\ref{chap:rounding}
 
 \paragraph{Exact operations.} Not every operation needs a rounding. The
 negation maps \itv{a}{b} to \itv{-b}{-a}, whose bounds are doubles since
-\FSet{} is symmetric; the absolute value, the minimum and the maximum return
-a bound of an argument or its opposite; and the integer functions, floor,
+\FSet{} is symmetric; the minimum and the maximum return a bound of an argument,
+and the absolute value a bound of its argument, its opposite or $0$; and the
+integer functions, floor,
 ceiling, truncation, the roundings to the nearest integer and the sign,
 return integers that are doubles, the integer part of a double being a
 double. These operations are exact: their result is the hull of the exact
 result with no rounding at all, whatever the rounding direction in effect.
 The four basic operations, the square root and the elementary functions
-round: their bounds depend on the rounding direction, and, for the
-elementary functions, on the mathematical library that computes them
+round: their bounds need a rounding in a chosen direction, and, for the
+elementary functions, depend on the mathematical library that computes them
 (\exref{sec:math-libraries}).
 \cindex{exact operations}%
 
@@ -380,27 +385,20 @@ factor with the value $1$ of the second, which one number cannot take at
 once, whereas the square, which knows that its two factors are equal, gives
 $x^2=\itv{0}{1}$, the range; GAOL provides it as \code{sqr()}
 (Chapter~\ref{chap:arithmetic}). The distributivity is weakened in the same
-way: for any intervals $x$, $y$ and $z$,
+way: for any intervals $x$, $y$ and $z$, the operations being computed
+exactly on the reals,
 $z\times(x+y)\subseteq z\times x+z\times y$, with equality not in general,
 as $\itv{1}{2}\times(\itv{-1}{1}+\itv{3}{4})=\itv{2}{10}$ where
-$\itv{1}{2}\times\itv{-1}{1}+\itv{1}{2}\times\itv{3}{4}=\itv{1}{10}$.
+$\itv{1}{2}\times\itv{-1}{1}+\itv{1}{2}\times\itv{3}{4}=\itv{1}{10}$. Computed
+with doubles and rounded outward, even the inclusion may fail by one double.
 \end{Ex}
 
 The effect grows with the expression. The first program of
-Chapter~\ref{chap:overview} (\pxref{sec:first-program}) encloses the range
-of the Goldstein-Price function
-\begin{align*}
-f(x,y)=&\bigl(1+(x+y+1)^2(19-14x+3x^2-14y+6xy+3y^2)\bigr)\\
-&\bigl(30+(2x-3y)^2(18-32x+12x^2+48y-36xy+27y^2)\bigr)
-\end{align*}
-for $x\in\itv{-2}{2}$ and $y\in\itv{-2}{2}$, by evaluating the formula on
-the two intervals. It obtains \itv{-87881320}{147125080}: we then know that
-$f(x,y)$ lies in this interval for every $x$ and $y$ in \itv{-2}{2}, and
-the result \emph{encloses} the range of $f$. It is not the range, which is
-\itv{3}{1015690.27\ldots}: the minimum is $f(0,-1)=3$, and the maximum is
-reached on the edge $y=2$. The enclosure is 231 times wider. Each
-occurrence of $x$ and of $y$ in the formula ranges over \itv{-2}{2} on its
-own, as if the others did not exist.
+Chapter~\ref{chap:overview} (\pxref{sec:first-program}) evaluates the
+Goldstein-Price function on the two intervals \itv{-2}{2} of its variables,
+and obtains an enclosure of its range that is 231 times as wide as the range:
+each occurrence of $x$ and of $y$ in the formula ranges over \itv{-2}{2} on
+its own, as if the others did not exist.
 \cindex{enclosure}%
 
 \medskip
@@ -449,19 +447,12 @@ Table~9.1 holds the forward elementary functions every implementation
 provides, with the domain of each: the arithmetic operations, the powers,
 the exponentials and logarithms, the trigonometric and hyperbolic functions
 and their inverses, the integer functions, \ieee{abs}, \ieee{min} and
-\ieee{max}. Table~10.1 holds the reverse functions
+\ieee{max}. Table~10.1 of the standard holds the reverse functions
 (\exref{sec:relational-idea}), Table~10.2 the numeric functions of an
 interval, Tables~10.3 and 10.4 the comparisons, and Table~10.5 the
-recommended functions, which an implementation may provide. GAOL v5 adds
-the operations of these tables that GAOL~4 lacked, which the standard
-requires or recommends: \code{exp2}, \code{exp10}, \code{log2},
-\code{log10}, \code{fma}, the integer functions \code{sign}, \code{trunc},
-\code{round\_ties\_to\_even} and \code{round\_ties\_to\_away}, sixteen
-recommended functions (\code{expm1}, \code{log1p}, \code{hypot},
-\code{compoundm1}, \code{sinpi}\ldots), the cancellative subtraction and
-addition, the radius, and the comparisons \code{less},
-\code{strictly\_less}, \code{is\_entire} and \code{is\_common\_interval};
-\code{atan2}, which GAOL declared, is implemented.\newinvfive{} The
+recommended functions, which an implementation should provide (10.6). GAOL v5
+adds the operations of these tables that GAOL~4 lacked, which the standard
+requires or recommends, and the introduction lists them.\newinvfive{} The
 relations of Tables~10.3 and 10.4, \ieee{equal}, \ieee{subset},
 \ieee{interior}, \ieee{disjoint}, \ieee{precedes}, \ieee{strictPrecedes},
 \ieee{less} and \ieee{strictLess}, follow the definitions of the standard
@@ -498,7 +489,7 @@ the whole manual.
   \dfn{literal} of the standard (12.11): \code{[l, r]}, \code{[a]} for a
   degenerate interval, \code{[empty]} for the empty set and \code{[entire]}
   for the whole line, the case of the letters being ignored; a literal is
-  read back as an interval containing the one written (13.3). GAOL writes
+  read back as an interval containing the one written (13.2, 13.3). GAOL writes
   and reads them (Chapter~\ref{chap:io}, \pxref{sec:input-format});
   \code{textToInterval} of the namespace \code{gaol\_ieee1788} reads the
   names of the functions of the standard and returns the empty set for a
@@ -625,11 +616,14 @@ direction in effect, and the roundings of Definition~\ref{def:round-down-up}
 are what the floating-point unit computes. The elementary functions,
 $\exp$, $\log$, $\sin$, $\cos$, $\tan$, their inverses and the hyperbolic
 functions, are computed by software, by a mathematical library, and the
-tightness of their bounds depends on it. GAOL v5 bounds every one of its
-elementary functions with CORE-MATH~\cite{CoreMath:2022}, the only
-mathematical library it uses, compiled into it from \file{3rd/math-core}.
-Before that, GAOL was built with one of three: mathlib by default, CRlibm,
-or the mathematical library of the system, whose options the three builds of GAOL
+tightness of their bounds depends on it. GAOL v5 bounds its
+elementary functions with CORE-MATH~\cite{CoreMath:2022}, compiled into it
+from \file{3rd/math-core}, and takes no elementary function from any other
+library: the C library gives it only \code{sqrt}, \code{floor}, \code{fma} and
+the functions of \file{fenv.h}, and the integer powers, the roots and
+\code{compoundm1} are computed by GAOL itself. Before that, GAOL was built with
+one of three: mathlib by default with its \cmd{configure}, CRlibm, which its
+meson build took by default, or the mathematical library of the system, whose options the three builds of GAOL
 v5 no longer have (Chapter~\ref{chap:changes}).\newinvfive{} The
 four come from four moments of the same history and were written with
 different goals, which is why they give bounds of different tightness. This
@@ -652,8 +646,9 @@ which the four libraries differ.
 
 \begin{Def}[Faithful rounding]\label{def:faithful}
 A library is \dfn{faithfully rounded}, or ``nearly correct'', when its
-error is below one unit in the last place, about half of one in practice.
-This is enough for most numerical computation.
+error is below one unit in the last place: it returns one of the two doubles
+next to the exact value. The libraries of this kind are within about half a
+unit in practice. This is enough for most numerical computation.
 \end{Def}
 
 \begin{Def}[Correct rounding]\label{def:correct-rounding}
@@ -717,9 +712,9 @@ Its two limits are the ones that decided its fate. Nothing bounds the
 number of iterations: the strategy has no proof and no bound on the worst
 case, which can cost thousands of cycles. And it rounds to nearest only, so
 a bound drawn from it has to be moved one double outward, which costs one
-unit in the last place of tightness: this is what GAOL~4 did for
-\code{exp}, \code{pow}, the trigonometric and the inverse trigonometric
-functions (\exref{sec:accuracy-modes}).
+unit in the last place of tightness: this is what GAOL~4 did, built with
+mathlib, for every elementary function but the hyperbolic ones
+(\exref{sec:accuracy-modes}).
 
 \medskip
 mathlib was contributed to the glibc around 2001 and provided its
@@ -770,7 +765,7 @@ them.
 
 \subsection{CORE-MATH, correct rounding made adoptable}
 
-CORE-MATH~\cite{CoreMath:2022} started in 2021 at INRIA (Caramba team,
+CORE-MATH~\cite{CoreMath:2022} started in 2021 at Inria (Caramba team,
 Nancy), by Paul Zimmermann, also behind MPFR, with Alexei Sibidanov, Tom
 Hubrecht, S\'el\`ene Corbineau and others. It draws the lessons of the
 three libraries above, and its design is as much a strategy of adoption as
@@ -784,7 +779,8 @@ a technique.
   that the code can be taken up by the glibc, the libm of LLVM or musl. It
   answers the reason CRlibm was not adopted, and it works: routines of
   CORE-MATH have been integrated upstream. It is also what lets GAOL v5
-  copy the sources it needs into \file{gaol/core\_math\_*.c}.
+  take the sources it needs as they are, in \file{3rd/math-core}, and compile
+  them into its library.
 \item[$\bullet$] \textbf{The coverage is wide}: the functions of C23, in
   binary32, binary64 and binary128, the recent functions included.
 \item[$\bullet$] \textbf{The validation is graded}: in binary32 it is
@@ -794,9 +790,10 @@ a technique.
 \item[$\bullet$] \textbf{The four rounding directions are honoured}, the
   one in effect included. This is what GAOL v5 rests on: correctly rounded
   in the upward rounding GAOL computes in, CORE-MATH gives the tightest
-  bounds without switching the rounding direction, and its \code{log} is
-  2.2 times as fast as that of mathlib moved outward
-  (\pxref{sec:comparison}).
+  bounds without switching the rounding direction: the interval \code{log} of
+  GAOL v5 takes 20.9\,ns where that of GAOL~4.2.3, which calls mathlib, moves
+  its value outward and switches the rounding direction twice, takes 46.8\,ns
+  (Intel i7-1185G7, Clang 21.1, 17 October 2026, \pxref{sec:comparison}).
 \end{itemize}
 A proposal to add \code{cr\_*} functions to the C standard comes from the
 same team, so that correct rounding can be asked for by the program rather
@@ -861,18 +858,18 @@ and standardisation, as a design constraint of the same rank as accuracy.
 The hierarchy is read directly in the tightness of the bounds, which
 Chapter~\ref{chap:accuracy} states function by function.
 \begin{itemize}
-\item[$\bullet$] \textbf{The mathematical library of the system} gives
-  bounds that are not certified: the value rounded to nearest moved outward
+\item[$\bullet$] \textbf{The mathematical library of the system} gave
+  bounds that were not certified: the value rounded to nearest moved outward
   by $2\cdot2^{-52}$ relatively and by the smallest normal double, several
   doubles beyond the tightest one.
-\item[$\bullet$] \textbf{mathlib} is correctly rounded to nearest, hence
-  one double outward: the bounds are accurate within one double.
+\item[$\bullet$] \textbf{mathlib} was correctly rounded to nearest, hence
+  one double outward: the bounds were accurate within one double.
 \item[$\bullet$] \textbf{CRlibm and CORE-MATH} are correctly rounded in the
   direction wanted, hence give the tightest bound of the value at the
   bound, with nothing to add.
 \end{itemize}
 \noindent This is also why GAOL v5 takes every one of its elementary
-functions from CORE-MATH, the hyperbolic ones first (neither mathlib nor
+functions from CORE-MATH, above all the hyperbolic ones (neither mathlib nor
 CRlibm has them all, and the libm of the system is not accurate enough
 everywhere for its values moved outward to be bounds), and on every
 architecture and with every compiler, \file{gaol/math/gaol\_u128.h} giving
@@ -888,7 +885,7 @@ hard cases and the two-phase evaluation are in J.-M. Muller,
 \emph{Elementary Functions: Algorithms and Implementation}, and in the
 \emph{Handbook of Floating-Point Arithmetic}; the floating-point arithmetic
 itself is presented by Goldberg~\cite{Goldberg:01} and in the
-standard~\cite{IEEE754:90}. The documentation distributed with the sources
+standard~\cite{IEEE754:2008}. The documentation distributed with the sources
 of CRlibm holds the proofs of its error bounds. CORE-MATH is presented
 in~\cite{CoreMath:2022} and at \url{https://core-math.gitlabpages.inria.fr/};
 the file \file{3rd/README.md} of the sources says what GAOL v5 takes from
@@ -926,7 +923,7 @@ one double on each side.
 $f$ is \dfn{valid} when $f(x)$ encloses $f^*(x)$.
 \end{Def}
 
-The standard requires the basic operations (\ieee{add}, \ieee{sub},
+The standard requires the basic operations (\ieee{neg}, \ieee{add}, \ieee{sub},
 \ieee{mul}, \ieee{div}, \ieee{recip}, \ieee{sqr}, \ieee{sqrt}, \ieee{fma}),
 the integer functions and \ieee{abs}, \ieee{min} and \ieee{max} to be
 tightest; the other elementary functions, the reverse functions and the
@@ -939,14 +936,19 @@ GAOL bounds its elementary functions with CORE-MATH, which is correctly
 rounded in the rounding direction in effect. Computing in the upward
 rounding it keeps, GAOL takes the value at a bound as the upper bound, with
 nothing to add, and the double below it as the lower one. The upper bound is
-the tightest one; so is the lower bound, unless the exact value is a double
-(Remark~\ref{rem:exact-value}), in which case the operations return that
-value exactly, as for $\log(1)=0$ and $\sin(0)=0$. Where an algorithm
+the tightest one, and so is the lower bound: the double below the upper bound
+is the tightest lower bound when the exact value is no double, and where the
+exact value is a double, as for $\log(1)=0$ and $\sin(0)=0$, the operations
+return that value itself rather than the double below it
+(Remark~\ref{rem:exact-value}). Where an algorithm
 evaluates the function at the bounds of the interval, the bounds of the
-interval are therefore the tightest ones. Before GAOL v5, the value was
-correctly rounded to nearest and moved one double outward, which is at
-most one double beyond the tightest bound, hence accurate and not
-tightest.\newinvfive
+interval are therefore the tightest ones. Before GAOL v5, built with mathlib,
+the default of its \cmd{configure}, the elementary functions but the hyperbolic
+ones were correctly rounded to nearest and moved one double outward, which is
+at most one double beyond the tightest bound: accurate, and not tightest. The
+hyperbolic functions came from the mathematical library of the system, whose
+values are sometimes further than one double from the exact ones
+(Remark~\ref{rem:accuracy-before}).\newinvfive
 
 \begin{Rem}\label{rem:exact-value}
 The double below the correctly rounded upper value is the tightest lower
@@ -964,11 +966,11 @@ requires; the tests of \file{tests} check each statement on random and
 special arguments (Chapter~\ref{chap:tests}), and the page \file{doc/accuracy.md}
 gives, for each, the algorithm and the largest distance the tests
 found.\newinvfive{} The statements hold for GAOL as the three builds make
-it, for the SSE2, the NEON and the FPU intervals alike, and for the AVX-512
-path, whose bounds are those of the SSE2 intervals bit for bit, whatever the rounding
-direction the calling code left, on every architecture and with every
-compiler alike, under the conditions that chapter states: the code
-including the headers of GAOL compiled with the flags of interval
+it, whatever the rounding direction the calling code left, on every
+architecture and with every compiler: for the SSE2, the NEON and the FPU
+intervals, and for the AVX-512 path, whose bounds are those of the SSE2
+intervals bit for bit. They hold under the conditions that chapter states: the
+code including the headers of GAOL compiled with the flags of interval
 arithmetic (\pxref{sec:compiling}), and the floating-point exceptions
 masked as a program starts (\pxref{sec:fp-exceptions}). The intervals of
 floats are not covered.
