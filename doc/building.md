@@ -159,7 +159,7 @@ GAOL.
   rule comes from the measures of [SIMD, FMA and the rounding
   direction](simd.md#when-the-build-takes-the-avx-512-path): the path spares the
   store of the rounding direction that every operation pays with
-  `GAOL_PRESERVE_ROUNDING`, where it gains 1.3 to 4.4 times at the median of 2.8
+  `GAOL_PRESERVE_ROUNDING`, where it gains 1.3 to 6.1 times at the median of 2.9
   on an Intel i7-1185G7, and takes 20 % longer at the median without it (the processor
   halves the AVX-512 units, and no other was measured). The library then needs a
   processor with the instructions, as with the fused multiply-add instructions,

@@ -206,46 +206,47 @@ it, measured by the script \cmd{performance-ab.sh} of \file{.github/scripts/}
 with \option{--runs 9 --lines}: \cmd{gaol\_performance} and the long lines of
 \file{doc/compare/code/run\_lines.sh}, the two builds run in turn, the median
 of 9 runs, in nanoseconds, on an Intel i7-1185G7, whose AVX-512 units are
-halved, with Clang 21.1.8, \option{-O3 -mfma}, on 26 October 2026, the
+halved, with Clang 21.1.8, \option{-O3 -mfma}, on 7 November 2026, the
 machine doing nothing else. Table~\ref{tab:computing-avx512} gives the
 times; the ratio is the time with SSE2 over the time with the path, so that
 above 1 the path is faster.
 
 \begin{table}[htbp]
 \centering\footnotesize
-\caption[The SSE2 intervals against the AVX-512 path]{The SSE2 intervals against the AVX-512 path, with and without \option{GAOL\_PRESERVE\_ROUNDING}, in nanoseconds per operation or per line (median of 9 runs, Intel i7-1185G7, Clang 21.1.8, 26 October 2026).} \label{tab:computing-avx512}
+\caption[The SSE2 intervals against the AVX-512 path]{The SSE2 intervals against the AVX-512 path, with and without \option{GAOL\_PRESERVE\_ROUNDING}, in nanoseconds per operation or per line (median of 9 runs, Intel i7-1185G7, Clang 21.1.8, 7 November 2026).} \label{tab:computing-avx512}
 \begin{tabular}{|l|r|r|r|r|r|r|}
 \hline
 & \multicolumn{3}{c|}{\textbf{Not preserved}}
 & \multicolumn{3}{c|}{\textbf{Preserved}} \\
 \textbf{Operation} & SSE2 & AVX-512 & Ratio & SSE2 & AVX-512 & Ratio \\
 \hline
-\code{x + y} & 1.13 & 1.46 & 0.77 & 8.39 & 1.92 & 4.37 \\
-\code{x - y} & 1.27 & 1.37 & 0.93 & 8.32 & 1.92 & 4.33 \\
-\code{x * y} & 2.27 & 3.69 & 0.62 & 8.41 & 3.60 & 2.34 \\
-\code{x / y} & 2.62 & 4.10 & 0.64 & 8.66 & 3.97 & 2.18 \\
-\code{sqr(x)} & 1.73 & 2.02 & 0.86 & 8.26 & 2.01 & 4.11 \\
-\code{sqrt(x)} & 8.80 & 4.39 & 2.00 & 12.00 & 4.29 & 2.80 \\
-\code{pow(x, 3)} & 6.49 & 7.78 & 0.83 & 9.90 & 7.49 & 1.32 \\
+\code{x + y} & 1.22 & 1.51 & 0.81 & 8.82 & 1.49 & 5.92 \\
+\code{x - y} & 1.33 & 1.56 & 0.85 & 9.38 & 1.53 & 6.13 \\
+\code{x * y} & 2.75 & 4.45 & 0.62 & 12.14 & 4.46 & 2.72 \\
+\code{x / y} & 3.21 & 5.00 & 0.64 & 11.05 & 5.07 & 2.18 \\
+\code{sqr(x)} & 1.97 & 2.03 & 0.97 & 8.42 & 2.04 & 4.13 \\
+\code{sqrt(x)} & 8.52 & 4.71 & 1.81 & 13.54 & 4.72 & 2.87 \\
+\code{pow(x, 3)} & 6.61 & 7.93 & 0.83 & 10.42 & 7.83 & 1.33 \\
 \hline
-line of 15 \code{+} (\code{sum16}) & 24.41 & 32.15 & 0.76 & 133.5 & 27.74
-& 4.81 \\
-line of 7 \code{*} (\code{mul8}) & 19.00 & 29.48 & 0.64 & 61.04 & 26.50
-& 2.30 \\
-line of 7 \code{/} (\code{quot8}) & 21.09 & 36.60 & 0.58 & 62.41 & 33.49
-& 1.86 \\
-line of 13 \code{+ - * /} (\code{mix13}) & 23.87 & 35.10 & 0.68 & 110.7
-& 32.61 & 3.39 \\
+line of 15 \code{+} (\code{sum16}) & 19.67 & 40.66 & 0.48 & 176.0 & 37.92
+& 4.64 \\
+line of 7 \code{*} (\code{mul8}) & 23.80 & 37.42 & 0.64 & 86.56 & 35.14
+& 2.46 \\
+line of 7 \code{/} (\code{quot8}) & 26.50 & 46.56 & 0.57 & 86.73 & 43.59
+& 1.99 \\
+line of 13 \code{+ - * /} (\code{mix13}) & 27.75 & 43.23 & 0.64 & 152.8
+& 41.49 & 3.68 \\
 \hline
 \end{tabular}
 
 \end{table}
 
 The median of the seven operations is 0.83 without
-\option{GAOL\_PRESERVE\_ROUNDING}: the path loses 17\,\%, and 32\,\% on the
-ten long lines (the table gives four of them; the others are in the output of the script), whose median is 0.68; only \code{sqrt} gains. It is 2.80
-with it: every operation gains, the ten lines by 1.75 to 4.81, with a median
-of 3.39. The path pays where each operation would otherwise write the
+\option{GAOL\_PRESERVE\_ROUNDING}: the operations take 20\,\% longer with
+the path, and the ten long lines 72\,\% longer (the table gives four of them;
+the others are in the output of the script), whose median ratio is 0.58; only
+\code{sqrt} gains. It is 2.87 with it: every operation gains, the ten lines by
+1.91 to 4.64, with a median of 3.19. The path pays where each operation would otherwise write the
 control register twice, and costs where the register is written only if the
 direction is not upward already, as it is by default: the rule is therefore
 that of \option{GAOL\_PRESERVE\_ROUNDING}. The threshold was a median gain of

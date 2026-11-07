@@ -1102,10 +1102,10 @@ endif()
 # (GAOL v5): the build decides, and the rule is that of the measures of
 # doc/simd.md, four builds of one source: the path spares the store of the
 # rounding direction every operation pays with GAOL_PRESERVE_ROUNDING, where
-# every operation gains (2.8 times at the median of + - * / sqr sqrt and pown,
-# 1.75 to 4.8 times on the long lines), and costs where the direction is left
-# upward and written only when it is not, as by default (17 % at the median, 32
-# % on the long lines, `sqrt` alone gaining). So it follows
+# every operation gains (2.9 times at the median of + - * / sqr sqrt and pown,
+# 1.9 to 4.6 times on the long lines), and costs where the direction is left
+# upward and written only when it is not, as by default (20 % longer at the
+# median, 72 % longer on the long lines, `sqrt` alone gaining). So it follows
 # GAOL_PRESERVE_ROUNDING. -DGAOL_PREFER_AVX512=ON asks for it without, and
 # =OFF refuses it with: settings of the developers, and of the users who build a
 # package for any processor (-DGAOL_PREFER_AVX512=OFF where the rounding

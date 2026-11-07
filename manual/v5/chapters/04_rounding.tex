@@ -371,29 +371,29 @@ the machine has the instructions. Table~\ref{tab:preserve-cost} gives the
 factor by which each operation gets longer on an Intel i7-1185G7 with
 Clang~21.1.8 (\file{tests/performance.cpp} and the long lines of
 \file{doc/compare/code/run\_lines.sh}, the median of 9 interleaved runs of
-6 November 2026), with the path, and without it (a build for a machine without
+7 November 2026), with the path, and without it (a build for a machine without
 the instructions, or one that refuses the path with
 \option{-DGAOL\_PREFER\_AVX512=OFF}, a setting of the developers). The
 arithmetic operations take 1.2 to 1.6 times longer with the path, and several
-times longer without it; a line of 15 additions of intervals takes 2.1 times
-longer with the path and 8.5 times without.
+times longer without it; a line of 15 additions of intervals takes 1.9 times
+longer with the path and 9.0 times without.
 
 \begin{table}[htbp]\centering\footnotesize
-  \caption[The cost of \option{GAOL\_PRESERVE\_ROUNDING}, with and without the AVX-512 path]{How many times longer each operation takes with \option{GAOL\_PRESERVE\_ROUNDING} than without it, with and without the AVX-512 path (Intel i7-1185G7, Clang~21.1.8, \file{tests/performance.cpp}, the median of 9 interleaved runs, 6 November 2026).} \label{tab:preserve-cost}
+  \caption[The cost of \option{GAOL\_PRESERVE\_ROUNDING}, with and without the AVX-512 path]{How many times longer each operation takes with \option{GAOL\_PRESERVE\_ROUNDING} than without it, with and without the AVX-512 path (Intel i7-1185G7, Clang~21.1.8, \file{tests/performance.cpp}, the median of 9 interleaved runs, 7 November 2026, the run of Table~\ref{tab:computing-avx512}: the time of the preserved build over that of the default one).} \label{tab:preserve-cost}
   \begin{tabular}{lcc}
     \hline
     Operation & With the AVX-512 path & Without it\\
     \hline\hline
-    \code{x + y}, \code{x - y} & 1.2 & 7.2\\
-    \code{x * y} & 1.6 & 4.3\\
+    \code{x + y}, \code{x - y} & 1.2 & 7.1\\
+    \code{x * y} & 1.6 & 4.4\\
     \code{x / y} & 1.6 & 3.4\\
-    \code{sqr(x)} & 1.0 & 4.4\\
-    \code{sqrt(x)} & 0.6 (it is faster) & 1.5\\
+    \code{sqr(x)} & 1.0 & 4.3\\
+    \code{sqrt(x)} & 0.6 (it is faster) & 1.6\\
     \code{pow(x, 3)} & 1.2 & 1.6\\
     \code{exp(x)} & 1.2 & 1.2\\
-    \code{log(x)} & 1.1 & 1.0\\
-    \code{sin(x)}, \code{cos(x)} & 1.2 & 1.1 to 1.2\\
-    a line of 15 additions & 2.1 & 8.5\\
+    \code{log(x)} & 1.1 & 1.1\\
+    \code{sin(x)}, \code{cos(x)} & 1.2 & 1.2\\
+    a line of 15 additions & 1.9 & 9.0\\
     \hline
   \end{tabular}
 
@@ -423,8 +423,8 @@ is 1 in \file{gaol/gaol\_configuration.h}; a cross-compilation leaves the path
 out unless the machine running GAOL is said to run the instructions
 (\option{-DGAOL\_MACHINE\_RUNS\_AVX512=1}, \option{-Dmachine-runs-avx512=true}),
 and the operations test nothing as they run. With that option
-every operation gains, 2.8 times at the median of seven operations, from 1.3
-to 4.4 times, on an Intel i7-1185G7, whose AVX-512 units are halved; without
+every operation gains, 2.9 times at the median of seven operations, from 1.3
+to 6.1 times, on an Intel i7-1185G7, whose AVX-512 units are halved; without
 it they take 20\,\% longer at the median, the direction being written only
 when it is not upward already, so the path is left out. \option{GAOL\_PREFER\_AVX512},
 \loption{enable-prefer-avx512} and \option{-Denable-prefer-avx512} were
@@ -494,15 +494,15 @@ $\pm10^{-310}$, $\pm10^{300}$ and $\pm\infty$ was compared bit for bit.
 \paragraph{The cost.} The operations of the path cost more time on a processor
 that halves its AVX-512 instructions, where they cost less on one that does
 not. On an Intel i7-1185G7 (halved), with Clang~21.1.8
-(\cmd{gaol\_performance}, the median of 9 runs of 26 October 2026, from
+(\cmd{gaol\_performance}, the median of 9 runs of 7 November 2026, from
 Table~\ref{tab:computing-avx512}), \code{x * y} takes
-3.7~ns rather than 2.3 in the default build, \code{x / y} 4.1~ns rather than
-2.6 and \code{x + y} 1.5 rather than 1.1, but \code{sqrt(x)} 4.4 rather than
-8.8, the instruction rounding each root where the SSE2 path checks the root
+4.5~ns rather than 2.8 in the default build, \code{x / y} 5.0~ns rather than
+3.2 and \code{x + y} 1.5 rather than 1.2, but \code{sqrt(x)} 4.7 rather than
+8.5, the instruction rounding each root where the SSE2 path checks the root
 of the C library with a product. With \option{GAOL\_PRESERVE\_ROUNDING}, where
-the SSE2 path saves and restores the direction, \code{x + y} takes 1.9~ns
-rather than 8.4, \code{sqr(x)} 2.0 rather than 8.3 and \code{pown(x, 3)} 7.5
-rather than 9.9; the comparison of the libraries (\pxref{sec:comparison}) has
+the SSE2 path saves and restores the direction, \code{x + y} takes 1.5~ns
+rather than 8.8, \code{sqr(x)} 2.0 rather than 8.4 and \code{pown(x, 3)} 7.8
+rather than 10.4; the comparison of the libraries (\pxref{sec:comparison}) has
 the preserved column of the other operations. The processors that do not
 halve them, as the Xeon of the continuous integration, are expected to take
 less. Which of the paths a GAOL took,

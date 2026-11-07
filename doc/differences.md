@@ -2472,7 +2472,7 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
     an option of their own and are gone), the FPU if it is off. The rest is
     decided by the configuration, the same with the three builds: by checks that
     compile, link and run a program for the fused multiply-add instructions and
-    the AVX-512 path (taken with `GAOL_PRESERVE_ROUNDING`, where it computes 2.8
+    the AVX-512 path (taken with `GAOL_PRESERVE_ROUNDING`, where it computes 2.9
     times faster at the median on an Intel i7-1185G7, and left out without it,
     where the operations take 20 % longer; see [SIMD, FMA and the rounding
     direction](simd.md#when-the-build-takes-the-avx-512-path)), by

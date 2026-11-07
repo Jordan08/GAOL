@@ -857,7 +857,7 @@ carry the flags of the code using GAOL.\newinvfive
   runs them; otherwise the SSE2 intervals compute them. The rule comes from
   measurements (\pxref{sec:avx512}): the path spares the store of the
   rounding direction that every operation pays with
-  \option{GAOL\_PRESERVE\_ROUNDING}, where it gains 2.8 times at the median
+  \option{GAOL\_PRESERVE\_ROUNDING}, where it gains 2.9 times at the median
   of seven operations, on an Intel i7-1185G7 (no other processor was
   measured); without that option the operations take 20~\% longer at the
   median, the direction being written only when it is not upward already, so
@@ -1918,7 +1918,7 @@ the flush-to-zero modes and by \option{-mno-daz-ftz}. The fused multiply-add
 instructions and the AVX-512 path are decided by what the machine building
 runs. The elementary functions gain up to 2.5 times with the fused
 multiply-add instructions (4.7 times with GCC for Windows), and the arithmetic
-operations 2.8 times with the AVX-512 path where the rounding direction is
+operations 2.9 times with the AVX-512 path where the rounding direction is
 preserved; the price is a library bound to the processors that have them, and
 a package for any processor turns them off. Interprocedural
 optimization, which would gain 1.1 to 1.5 times on the basic operations, is

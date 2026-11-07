@@ -757,8 +757,9 @@ direction and raise no exception flag. The bounds are those of the SSE2
 intervals bit for bit, but for the sign of a zero bound of \code{x * d}
 where the zero bounds of the interval differ in sign. The three builds take
 the path where \code{GAOL\_PRESERVE\_ROUNDING} is on and the machine building
-runs the instructions, where it computes 2.8 times faster at the median on an
-Intel i7-1185G7, and leave it out without the option, where it costs 17\,\%;
+runs the instructions, where it computes 2.9 times faster at the median on an
+Intel i7-1185G7, and leave it out without the option, where the operations take
+20\,\% longer;
 the library then needs a processor with them, and the initialization stops a
 program run on another one with a message (\pxref{sec:avx512}). Visual C++
 and clang-cl for x64 take the SSE2 intervals and the AVX-512 path, as GCC and
