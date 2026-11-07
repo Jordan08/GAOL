@@ -312,7 +312,7 @@ atomic value: it is created, assigned and replaced as a whole.
 \section{Assignment combined with an operation}\label{sec:combined-assignment}
 
 In this manual, we write \code{self} for the object to which \code{this} is
-a pointer in C++.\cindex{this@\code{this}}\cindex{self@\code{self}} The
+a pointer in C++.\cindex{this@\texttt{this}}\cindex{self@\texttt{self}} The
 assignment operators below combine the value of \code{self} with the value
 of their right-hand side, an interval or a \code{double}, and store the
 result in \code{self}.
@@ -346,8 +346,8 @@ x &= interval(-6,23); @rem^// Now, @code^x~ is @itv^-6~^12~~
   for an infinite or NaN \var{d}).\newinvfive
 
 \begin{example}
-  interval x(-12,12);
-  x |= interval(-6,23); @rem^// Now, @code^x~ is @itv^-12~^23~~
+interval x(-12,12);
+x |= interval(-6,23); @rem^// Now, @code^x~ is @itv^-12~^23~~
 \end{example}
 
 \end{defmethod}

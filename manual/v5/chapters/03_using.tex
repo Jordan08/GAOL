@@ -25,8 +25,9 @@ and the fifth sections present the namespaces \code{gaol} and
 tells how an integer is taken, and the seventh what the compiler says of a
 result thrown away. The eighth section gathers the tools of interval
 algorithms, the ninth summarizes how GAOL reports an error, the tenth reviews
-the common errors, and the last one gives the names of IBEX, Codac, C-XSC,
-PROFIL/BIAS and Boost.Interval next to those of GAOL.
+the common errors, and the last one gives the names of IBEX, Codac, C-XSC and
+Boost.Interval next to those of GAOL, and the meaning of the relation symbols
+in these libraries and in PROFIL/BIAS.
 
 \section{A first program}\label{sec:first-program}
 %%-----------------------
@@ -34,8 +35,8 @@ PROFIL/BIAS and Boost.Interval next to those of GAOL.
 
 Let us consider the Goldstein-Price function
 \begin{align*}
-f(x,y)=&\bigl(1+(x+y+1)^2(19-14x+3x^2-14y+6xy+3y^2)\bigr)\\
-&\bigl(30+(2x-3y)^2(18-32x+12x^2+48y-36xy+27y^2)\bigr)
+f(x,y)={}&\bigl(1+(x+y+1)^2(19-14x+3x^2-14y+6xy+3y^2)\bigr)\\
+&\times\bigl(30+(2x-3y)^2(18-32x+12x^2+48y-36xy+27y^2)\bigr)
 \end{align*}
 and let us enclose its range for $x\in\itv{-2}{2}$ and $y\in\itv{-2}{2}$.
 
@@ -66,7 +67,8 @@ numbers. The line under it is what it prints.
 \end{Ex}
 
 The program includes the header \file{gaol/gaol.h}, which gives access to
-every facility of GAOL. The type \code{interval} and the functions of GAOL are
+the intervals and their functions in both namespaces; the expressions have
+headers of their own (Section~\ref{sec:headers}). The type \code{interval} and the functions of GAOL are
 in the namespace \code{gaol\_core}, which a program names through the
 namespace \code{gaol}: the \code{using} directive of Line~3 imports it. The
 \file{gaol/gaol.h} header of GAOL~4 imported the namespace itself; that of
@@ -99,11 +101,14 @@ calls, with the same bounds, the sign of a zero bound
 included.\newinvfive
 
 \medskip
-Let \file{f.cpp} be the name of the file containing the program above. It is
-compiled with the flags that pkg-config gives (\pxref{sec:compiling}):
+Let \file{f.cpp} be the name of the file containing the program above. With
+GAOL installed in \var{prefix} (Chapter~\ref{chap:installation}), pkg-config is
+told where \file{gaol.pc} is, and the program is compiled with the flags it
+gives (\pxref{sec:compiling}):
 \cindex{compiling!a file using gaol}%
 
 \begin{cmdshell}
+% export PKG_CONFIG_PATH=@var^prefix~/lib/pkgconfig
 % c++ -std=c++11 -O2 $(pkg-config --cflags gaol) -o f f.cpp \
       $(pkg-config --libs gaol)
 \end{cmdshell}
@@ -143,11 +148,19 @@ of their code (\file{gaol/core/gaol\_interval\_fpu.h},
 installed:\newinvfive{} \file{gaol/parser/gaol\_interval\_parser.h}, which did
 not compile when included, \file{gaol\_init\_cleanup.h},
 \file{gaol/math/gaol\_core\_math.h}, \file{gaol/math/gaol\_u128.h},
-\file{gaol/math/gaol\_compoundm1.h} and \file{gaol/math/gaol\_roundeven.h}.
-Three headers of GAOL~4 are gone: \file{gaol\_parameters.h}, which declared
-nothing, \file{gaol\_exact.h} with \file{sysdeps/}, which \file{dtoa.c}
-needed, and \file{gaol\_assert.h}, whose \code{GAOL\_ASSERT} is
-\code{assert()} now.
+\file{gaol/math/gaol\_compoundm1.h}, \file{gaol/math/gaol\_roundeven.h},
+\file{gaol/math/gaol\_ldexp.h}, \file{gaol/math/gaol\_core\_math\_port.h},
+\file{gaol/math/gaol\_double\_op.h} (the bounds at doubles, \code{exp\_dn()}\ldots,
+which leave the interface), and the intervals of floats,
+\file{gaol/float/gaol\_intervalf.h} and \file{gaol/float/gaol\_interval2f.h}.
+Headers of GAOL~4 are gone: \file{gaol\_parameters.h}, which declared nothing,
+\file{gaol\_limits.h}, \file{gaol\_flags.h}, \file{gaol\_profile.h},
+\file{gaol\_allocator.h}, \file{gaol\_exceptions.h}, \file{gaol\_exact.h} with
+\file{sysdeps/}, which \file{dtoa.c} needed, and \file{gaol\_assert.h}, whose
+\code{GAOL\_ASSERT} is \code{assert()} now. The headers of the expressions and
+of the parser moved to \file{gaol/parser/}: a program that included
+\file{gaol/gaol\_expression.h} includes \file{gaol/parser/gaol\_expression.h}
+(Chapter~\ref{chap:changes}).
 
 \medskip
 The headers of GAOL compile without a warning under \option{-Wall -Wextra
@@ -183,8 +196,8 @@ $\pi$ and $\pi/2$ are \code{gaol\_pi\_dn}, \code{gaol\_pi\_up},
 \cindex{flags of interval arithmetic}%
 \cindex{compiling!a file using gaol}%
 
-The operations of GAOL on intervals are inline: the code that includes the
-headers of GAOL has to be compiled with the \dfn{flags of interval
+Part of the operations of GAOL on intervals is inline, in the headers: the
+code that includes the headers of GAOL has to be compiled with the \dfn{flags of interval
 arithmetic}, not only GAOL itself.\newinvfive{} With GCC and Clang, each where
 the compiler takes it, the flags are the following.
 
@@ -206,10 +219,9 @@ the compiler takes it, the flags are the following.
   C file compiled with it (``valid for C++/ObjC++ but not for C''), and with
   \option{-Werror} the warning is an error. This happens where the flags of
   \file{gaol.pc}, or \code{gaol\_dep} of meson, are given to every file of a
-  target, whereas \code{gaol::gaol} of CMake gives them to the C++ files only:
-  a project that compiles C files gives the option to its C++ files only,
-pkg-config having no flag for one
-  language. Visual C++ and clang-cl have no such flag, and need none: their
+  target, whereas \code{gaol::gaol} of CMake gives \option{-faligned-new=8} to the C++
+  files only: a project that compiles C files gives the option to its C++ files
+  only, pkg-config having no flag for one language. Visual C++ and clang-cl have no such flag, and need none: their
   SSE2 intervals on 32-bit Windows keep their two bounds as two doubles, whose
   alignment is 8 (\code{GAOL\_SSE2\_UNALIGNED\_STORAGE} of
   \file{gaol/gaol\_config.h}).
@@ -222,16 +234,19 @@ pkg-config having no flag for one
   (\code{test\_stack\_entered\_aligned\_on\_4\_bytes} of
   \file{tests/misc.cpp}, \pxref{sec:test-programs}).\newinvfive{} The
   programs for 32-bit Windows need neither: the system enters its threads and
-  its callbacks with the stack aligned on 4 bytes, and that test passes
+  its callbacks with the stack aligned on 4 bytes, but the compilers for
+  Windows realign the stack of a function that needs it, and that test passes
   without them with GCC for MinGW-w64, with Clang and with clang-cl, in the
   continuous integration.
 \item Nothing more on 64-bit ARM processors with the NEON intervals
   (\option{GAOL\_SIMD}, \pxref{sec:neon}): the first item is all they ask
   for.\newinvfive
-\item \option{-ffloat-store} where doubles are still computed on the x87 unit.
+\item \option{-ffloat-store} where doubles are still computed in extended
+  precision (\code{FLT\_EVAL\_METHOD} not 0); on x86 this is the x87 unit,
+  which \file{gaol/gaol\_config.h} refuses (\pxref{sec:refused}).
 \item \option{-mfma} on x86, and \option{-mfpu=neon-vfpv4 -mfloat-abi=hard} on
   32-bit ARM, where GAOL is compiled with the fused multiply-add instructions
-  of the processor (\option{GAOL\_FMA}, \pxref{sec:cmake-options}): the code
+  of the processor (\option{GAOL\_FMA}, \pxref{sec:install-decides}): the code
   using GAOL then runs only on a processor with them, as GAOL itself. With GCC
   for Windows on x86-64 and on 32-bit x86 the flags are \option{-mfma
   -mprefer-vector-width=128}, the second keeping the vectorizer of GCC to the
@@ -250,11 +265,13 @@ pkg-config having no flag for one
 With Visual C++ and clang-cl, the flags are \option{/fp:strict},
 \option{/arch:AVX2} for x64 with \option{GAOL\_FMA}, and \option{-msse2} with
 clang-cl for 32-bit x86, which computes doubles on the x87 unit with
-\option{/arch:SSE2}. Each build installs these flags with GAOL, in
-\code{gaol::gaol} and \file{gaol.pc}. \file{gaol/gaol\_config.h} refuses code
+\option{/arch:SSE2}. CMake installs these flags with GAOL in \code{gaol::gaol},
+and meson in \file{gaol.pc} and \code{gaol\_dep}. \file{gaol/gaol\_config.h} refuses code
 compiled by Visual C++, or by clang-cl from Clang 16, without
-\option{/fp:strict}. GCC and Clang do not tell the code whether
-\option{-frounding-math} and \option{-ffp-contract=off} were given: there, it
+\option{/fp:strict}. Clang does not tell the code whether
+\option{-frounding-math} was given, nor GCC before 15 (GCC~15 defines
+\code{\_\_ROUNDING\_MATH\_\_}, which \file{gaol/gaol\_config.h} does not read),
+and neither tells whether \option{-ffp-contract=off} was given: there, it
 only refuses what contradicts them, \option{-ffast-math},
 \option{-ffinite-math-only} and doubles computed on the x87 unit
 (\pxref{sec:refused}). The order of the options matters.
@@ -281,7 +298,8 @@ as \file{tests/rounding\_direction.cpp} does.\newinvfive
 \end{Rem}
 
 The link of the program takes one option too, where the compiler accepts it
-(GCC 13 and later on x86, and from 11.4 and 12.4 in the series 11 and 12):
+(GCC 13 and later on x86, from 11.4 and 12.4 in the series 11 and 12, and Clang 20
+and 21, not Clang 18):
 \option{-mno-daz-ftz}, which keeps out of the link the file that sets the
 flush-to-zero and denormals-are-zero modes when a program is linked with
 \option{-Ofast} (\pxref{sec:ftz}). \code{gaol::gaol} and \file{gaol.pc} carry
@@ -301,13 +319,15 @@ target_link_libraries(my_target PRIVATE gaol::gaol)
 \end{example}
 
 \noindent
-\code{gaol::gaol} carries the include directory, the flags above, and the
+A GAOL installed in a \var{prefix} of its own is found by giving
+\option{-DCMAKE\_PREFIX\_PATH=\var{prefix}} to the first \cmd{cmake} of the
+project. \code{gaol::gaol} carries the include directory, the flags above, and the
 link option above for the code built by GCC~13 or a later one, or by the
 compiler that built GAOL, of its major version and not older: another
 compiler, as Clang~18, would stop on it, and so would GCC 12.0 to 12.3 with a
 GAOL built by GCC 11.4, GCC having the option from 11.4 and 12.4 only in the
 series 11 and 12. It no longer carries, for Visual C++, the definition
-\code{\_\_GAOL\_PUBLIC\_\_=} of GAOL~4: GAOL being a static library there, its
+\code{\_\_GAOL\_PUBLIC\_\_=} of the earlier versions of GAOL v5: GAOL being a static library there, its
 declarations carry no \code{\_\_declspec(dllimport)}, and a definition left in
 a project changes nothing.\newinvfive{} There is no other library to link:
 CORE-MATH is compiled into \file{libgaol} itself. A library whose headers
@@ -361,18 +381,20 @@ directory to pkg-config:
 \end{cmdshell}
 
 \noindent
-Built by CMake with its default options on x86-64 Linux, GAOL gives, on one
-line:
+Built by CMake with its default options on x86-64 Linux, with GCC~15, GAOL
+gives, on one line:
 
 \begin{cmdshell}
 % pkg-config --cflags --libs gaol
--frounding-math -fno-fast-math -ffp-contract=off
--msse2 -msse3 -mfma -I@var^prefix~/include -L@var^prefix~/lib -lgaol
+-I@var^prefix~/lib/pkgconfig/../../include -frounding-math -fno-fast-math
+-ffp-contract=off -msse2 -msse3 -mfma -L@var^prefix~/lib/pkgconfig/../../lib -lgaol -mno-daz-ftz
 \end{cmdshell}
 
 \noindent
-The option \option{-mno-daz-ftz} comes after \option{-lgaol} where the
-compiler that built GAOL takes it: \file{gaol.pc} is written for that
+The paths are written from the directory of \file{gaol.pc}, so that the
+installed files can be moved. The option \option{-mno-daz-ftz} comes after
+\option{-lgaol} where the compiler that built GAOL takes it, as GCC from 13 and
+Clang from 20 do: \file{gaol.pc} is written for that
 compiler, and a program linked by one that refuses the option, as Clang~18, a
 GCC before 11.4 or GCC 12.0 to 12.3, stops on it, and is to be linked without
 it. There is no \option{-lm}: GAOL still calls functions of the math library of
@@ -384,8 +406,9 @@ C++ compiler links itself.\newinvfive
 %%.....................
 \cindex{meson!using gaol from}%
 
-In a meson project, \code{dependency('gaol')} finds an installed GAOL. A
-meson project can also build GAOL for itself, as a subproject, the sources of
+In a meson project, \code{dependency('gaol')} finds an installed GAOL through
+pkg-config, in a \var{prefix} of its own with \env{PKG\_CONFIG\_PATH} set as
+above. A meson project can also build GAOL for itself, as a subproject, the sources of
 GAOL being in its \file{subprojects/gaol}:\newinvfive
 
 \begin{example}
@@ -434,8 +457,8 @@ The type \code{interval} of GAOL and its functions are in the namespace
 \begin{itemize}
 \item[$\bullet$] \textbf{\code{gaol}}, GAOL under its own names, which this
   manual uses, to stay compatible with GAOL~4: a program written for GAOL~4
-  keeps its names there and, but for the results that change
-  (Chapter~\ref{chap:changes}), its results;
+  keeps most of its names there (Chapter~\ref{chap:changes} lists those that
+  are gone) and, but for the results that change, its results;
 \item[$\bullet$] \textbf{\code{gaol\_ieee1788}}, GAOL under the names of IEEE
   1788-2015 (Chapter~\ref{chap:ieee1788}), to follow the standard: its
   operations have the names, the arguments and the results the standard gives
@@ -493,17 +516,17 @@ names the version as \code{gaol} does.
 \noindent
 Some names are in \code{gaol\_core} only, and a program names them there:
 \code{gaol\_core::rnd\_keep}, for instance.\newinvfive{} They are
-\code{rnd\_keep()} (GAOL v5 adds it, and had it in \code{gaol} in its 4.3
-releases; GAOL~4 has none), \code{NaN\_val}, \code{eval\_stack}, and the
+\code{rnd\_keep()} (GAOL v5 adds it; the releases 4.3.0 to 4.3.2 had it in
+\code{gaol}, Chapter~\ref{chap:changes}; GAOL~4 has none), \code{NaN\_val}, \code{eval\_stack}, and the
 reader of strings, \code{parse\_interval()} and \code{parsing\_names}.
 
-\noindent
 What the code of GAOL uses for itself is in \code{gaol\_core} only too, out of
 the way of the names of a program that opens \code{gaol}: the functions saving
 and setting the rounding direction and the flush-to-zero modes
 (\code{rounding\_state}, \code{get\_rounding()}, \code{set\_rounding()}, and
 \code{round\_upward\_if\_needed()}, with \code{gaol\_set\_rounding\_x86()},
-which GAOL v5 had in \code{gaol} in its 4.3 releases and GAOL~4 had not, and
+which the releases 4.3.0 to 4.3.2 had in \code{gaol} and GAOL~4 had not
+(Chapter~\ref{chap:changes}), and
 \code{get\_flush\_modes()}\ldots), the functions computing the \code{pow} of
 \code{gaol} (below), and the internals GAOL~4 had in \code{gaol} without its
 manual documenting them: the functions \code{gaol\_signbit()},
@@ -527,8 +550,8 @@ and \code{gaol\_pow\_exp()}, which are not in \code{gaol}.
 
 The power is where \code{gaol} and \code{gaol\_ieee1788} differ.\newinvfive{}
 IEEE 1788-2015 has two powers (Table~9.1): \ieee{pown}$(x,n)$, the integer
-power, for an integer $n$, defined for every $x$, $x^0$ being $1$ and $0^n$
-having no value for $n<0$; and \ieee{pow}$(x,y)$, the real power
+power, for an integer $n$, defined for every $x$ but $0$ when $n<0$, $x^0$
+being $1$; and \ieee{pow}$(x,y)$, the real power
 $e^{y\log x}$, for an interval $y$, defined for $x>0$, and for $x=0$ when
 $y>0$. GAOL~4 had a single \code{pow}, which took the power of a negative
 base, and \code{gaol} keeps it: its \code{pow} is a hybrid of the two.
@@ -573,9 +596,9 @@ base, and \code{gaol} keeps it: its \code{pow} is a hybrid of the two.
 \end{table}
 
 Table~\ref{tab:pow-namespaces} shows the two on some arguments. They agree on
-$x\subseteq\itv{0}{+\infty}$ and on every exponent that holds no integer
-alone; they differ where $x$ has a negative part and the exponent is an
-integer, and at $0^0$. The \code{pow} of \code{gaol} is thus not monotone for
+every exponent that holds no integer alone, and on
+$x\subseteq\itv{0}{+\infty}$ but for $0^0$; they differ where $x$ has a
+negative part and the exponent is an integer, and at $0^0$. The \code{pow} of \code{gaol} is thus not monotone for
 the inclusion of its exponent: \code{pow(\itv{-4}{-1}, \itv{2}{2})} is
 \itv{1}{16}, and \code{pow(\itv{-4}{-1}, \itv{1.5}{2.5})}, whose exponent
 holds $2$, is empty; the \code{pow} of the standard is. Both give the tightest
@@ -594,7 +617,7 @@ The exponent 2 is the square of the intervals: \code{pow(x, 2)},
 \code{pow(x, [2])}, \code{gaol\_ieee1788::pown(x, 2)} and, on the part of $x$
 in \itv{0}{+\infty}, \code{gaol\_ieee1788::pow(x, [2])} are \code{sqr(x)}
 itself, with its bounds and the sign of its zero bounds, where the integer
-power made its square from exact products, the same bounds in a longer time
+power of the earlier versions of GAOL v5 made its square from exact products, the same bounds in a longer time
 and, for some intervals holding 0, a zero bound of the other
 sign.\newinvfive{} The exception flags it raises are those of \code{sqr(x)}
 too. For the empty set, \code{pow(x, 2)}, \code{pow(x, 2u)},
@@ -686,7 +709,7 @@ where $n$ is a double.
 
 \medskip
 \code{pow(x, n)} of \code{gaol} and \code{pown(x, n)} of \code{gaol\_ieee1788}
-take an exponent of any integer type: \code{pow(x, 5L)} did not compile, a
+take an exponent of any integer type: In the earlier versions of GAOL v5, \code{pow(x, 5L)} did not compile, a
 \code{long} being as far from an \code{int} as from an \code{unsigned} and a
 \code{double}, and \code{pown(x, 3000000000u)} converted the exponent to a
 negative \code{int}. An exponent within the ints is taken as an \code{int},
@@ -694,9 +717,9 @@ one within the unsigned ints as an \code{unsigned}, and one beyond them as a
 \code{long long} (\code{gaol\_pown\_ll()}), whose power comes from the
 \code{pow} of CORE-MATH at the bounds of $x$, as for \code{gaol::pow(x, [n])}
 (\itv{-\infty}{+\infty} for a nonempty $x$ before GAOL v5):
-\code{pow(interval(1 + 0x1p-30), 1LL << 33)}, about $e^8$, is
+\code{pow(interval(1 + std::ldexp(1.0, -30)), 1LL << 33)}, about $e^8$, is
 \itv{2980.9579759367944}{2980.9579759367948}. Beyond 64 bits (an
-\code{\_\_int128}), the exponent is taken as $\pm(2^{63}-1)$ or
+\code{\_\_int128}, in the GNU modes of GCC and Clang), the exponent is taken as $\pm(2^{63}-1)$ or
 $\pm(2^{63}-2)$, of its sign and parity, the power of every double but $0$,
 $\pm 1$ and $\pm\infty$ being beyond the doubles there. The same holds for
 \code{nth\_root(x, q)} and \code{rootn(x, q)}, whose order beyond the ints and
@@ -705,19 +728,19 @@ the exponent $1/q$ ($x^{1/q}$ is within $2^{-21}$ of $1$ for every double
 $x>0$ there), for \code{pownRev(c, x, p)}, which gives the hull of the parts
 of $x$ in these roots and, for an even $p$, in their opposites (for a negative
 $p$, $c$ is cut at 0 first), and for \code{pow(e, n)}, \code{pown(e, n)} and
-\code{nth\_root(e, n)} of the expressions. \code{nth\_root(x, 3L)} was
-ambiguous; \code{rootn(x, 3000000000u)} and \code{pownRev(c, 3000000000u)}
+\code{nth\_root(e, n)} of the expressions. In the earlier versions of GAOL v5,
+\code{nth\_root(x, 3L)} was ambiguous; \code{rootn(x, 3000000000u)} and \code{pownRev(c, 3000000000u)}
 converted the order to a negative \code{int}, the first giving a wrong
 interval (\itv{0.99999999839}{0.99999999946} for \itv{2}{8}, rather than
 \itv{1.00000000023}{1.00000000069}) and the second the reverse of a negative
 power; \code{rootn(x, 5000000001LL)} and the powers of expressions cut a
 \code{long} to an \code{int}; and \code{nth\_root(e, -2)} took the order
 4294967294. Beyond the ints, \code{pow(e, n)} and \code{pown(e, n)} of the
-expressions are the \code{pow} of GAOL with the exponent \itv{n}{n}, the
-powers of the intervals where $n$ is a double, and beyond $2^{53}$ the
-product of $x^h$ and $x^l$, $n=h+l$, $h$ a double and $|l|<2^{11}$, no node
-holding a wider integer: wider than the power of the interval where $e$
-contains 0; beyond the unsigned ints, \code{nth\_root(e, n)} is the root of
+expressions compute the \code{pow} of GAOL with the exponent \itv{n}{n}: up to
+$2^{53}$, where $n$ is a double, they give the power of the interval; beyond,
+since no node holds a wider integer, they compute the product of $x^h$ and
+$x^l$, $n=h+l$, $h$ a double and $|l|<2^{11}$, which is wider than the power
+of the interval where $e$ contains 0; beyond the unsigned ints, \code{nth\_root(e, n)} is the root of
 the interval but where $e$ contains 0, where it is wider.
 
 \section{A result thrown away}\label{sec:nodiscard}
@@ -874,9 +897,11 @@ relational division, which solves $(x-m)\,d=-f(m)$ for $d$ in the enclosure of
 $f'(X)$ where the division \code{/} does not (\exref{sec:common-errors}, and
 \file{examples/05\_interval\_newton.cpp}); dividing by the negative and by the
 positive part of $f'(X)$ apart, two \code{div\_rel}, or
-\code{mulRevToPair(b, c)}, keeps the gap around $m$. The examples 06 and 07
-of \file{examples/} write a branch and bound and a contractor this way, with
-\code{bisect()}, \code{is\_bisectable()} and the hull.
+\code{gaol\_ieee1788::mulRevToPair(b, c)}, keeps the gap around $m$. The examples 06 and 07
+of \file{examples/} write a branch and bound and a contractor; they cut their
+boxes with the \code{bisect()} of \file{examples/box.h}, at 0.45 of the width,
+and 07 contracts with \code{div\_rel()}, \code{sqrt\_rel()} and
+\code{asin\_rel()}.
 
 \section{Errors, in short}\label{sec:errors-overview}
 %%-----------------------
@@ -910,63 +935,19 @@ double is not an interval, and that an interval is not a number.
 
 \subsection{Floating-point arithmetic and rounding}
 %%.................................................
-\cindex{Rounding!to nearest}%
+\cindex{rounding!to nearest}%
 
-Programming with floating-point numbers is one of the few activities where
-the compiler is to be watched. Let us consider the following piece of code:
-
-\begin{example}
-#include <gaol/gaol>  @rem^// We do not import the gaol namespace~
-
-using gaol::interval;
-
-int main(void) {
-  interval one_tenth(0.1); @rem^BEWARE: wrong !~
-
-  @emph^[some code using one_tenth]~
-  gaol::cleanup();
-}
-\end{example}
-
-\noindent
-Though a rational perfectly representable in decimal, \code{0.1} is not
-representable in binary with a finite number of bits, and thus requires
-rounding. The purpose of the user was to define an interval containing this
-value. However, \code{0.1} is rounded \emph{at compile time}, most certainly
-to the nearest representable floating-point number \roundNearest{0.1}
-(\pxref{sec:rounding-definitions}). As a consequence, \code{one\_tenth} is a
-degenerate interval containing only \roundNearest{0.1}, and the containment
-property (\pxref{sec:containment}) is violated.
-
-The right way to deal with rational constants that might not be perfectly
-representable as floating-point numbers is to write them as text, and to read
-them with \code{gaol::textToInterval()} (\pxref{sec:constructors}), so that
-they are correctly rounded downward and upward at \emph{run time}:
-
-\begin{example}
-#include <gaol/gaol>
-
-using gaol::interval;
-
-int main(void)
-{
-  @rem^// OK: this is the right way~
-  interval one_tenth = gaol::textToInterval("0.1");
-  @rem^// Another possible way~
-  interval one_tenth2 = gaol::textToInterval("1/10");
-
-  @emph^[some code using one_tenth]~
-  gaol::cleanup();
-  return 0;
-}
-\end{example}
-
-\noindent
-Now, \code{one\_tenth} is the smallest floating-point interval enclosing
-$0.1$. An interval like this one, containing at most two consecutive
-floating-point numbers, is a canonical interval
+The constant \code{0.1} written in a program is rounded when compiling, to the
+nearest double \roundNearest{0.1}, so that \code{interval one\_tenth(0.1)}
+is a degenerate interval that does not contain $0.1$, and the containment
+property (\pxref{sec:containment}) is violated
+(Example~\ref{ex:one-tenth}). The right way to deal with a constant that might
+not be a double is to write it as text and to read it with
+\code{gaol::textToInterval()} (\pxref{sec:constructors}), so that it is
+correctly rounded downward and upward at run time, as in
+Example~\ref{ex:one-tenth-right}: \code{one\_tenth} is then the smallest
+floating-point interval enclosing $0.1$, a canonical interval
 (\pxref{sec:intervals}).
-\cindex{interval!canonical|see{canonical interval}}%
 \cindex{canonical interval}%
 Written in hexadecimal (\pxref{sec:output-format}), which shows the bounds
 exactly, the two intervals are:
@@ -978,7 +959,7 @@ one_tenth     = [0x1.9999999999999p-4, 0x1.999999999999ap-4]
 
 \subsection{Functions of numbers}
 %%...............................
-\cindex{sqrt@\code{sqrt} of a number}%
+\cindex{sqrt@\texttt{sqrt} of a number}%
 
 A function called with a number is the function of the C library, even where
 the namespace \code{gaol} is open: \code{sqrt(2.0)} is a \code{double},
@@ -1001,8 +982,9 @@ For the same reason, \code{gaol::sin(0.5)} does not compile: it is written
 \code{gaol::sin(interval(0.5))}, and \code{sin(0.5)} alone is the \code{sin}
 of C. Writing code inside \code{namespace gaol \{\}} has the same effect: the
 using-declarations of \code{gaol} are visible there, a call \code{sqrt(2.0)}
-finds \code{gaol::sqrt}, which hides \code{::sqrt}, and does not compile. This
-was already the case with GAOL~4.
+finds \code{gaol::sqrt}, which hides \code{::sqrt}, and does not compile. With
+GAOL~4, whose \code{interval(double)} was implicit, the call compiled and
+computed \code{gaol::sqrt(interval(2.0))}.
 
 \subsection{Midpoint and radius}
 %%..............................
@@ -1058,7 +1040,7 @@ the same sign.\newinvfive{} The NEON and the SSE2 intervals can differ too:
 the maximum of 64-bit ARM, which the product takes of its four products, ranks
 $+0$ above $-0$, where the one of x86 returns its second operand, so that the
 lower bound of \code{interval(-1, 0) * interval(-1, 0)} is $-0$ with the NEON
-intervals and $+0$ with the others (\pxref{sec:neon}); the sign of a zero
+intervals and $+0$ with the SSE2 ones (\pxref{sec:neon}); the sign of a zero
 bound of a product of the FPU intervals is the one the compiler gives
 (\pxref{sec:fpu-intervals}). IEEE 1788-2015 and GAOL take the two zeros for
 the same number: \code{x.left() == 0.0} is \code{true} whichever it is, and a
@@ -1198,7 +1180,7 @@ The functional division is the right one where $F'(X)$ holds no 0.
 
 \subsection{Reading text}
 %%.......................
-\cindex{textToInterval@\code{textToInterval}!errors}%
+\cindex{textToInterval@\texttt{textToInterval}!errors}%
 
 \code{gaol::textToInterval()} throws \code{std::invalid\_argument} for a text
 that is no interval, and \code{std::domain\_error} for a text that is one but
@@ -1235,16 +1217,16 @@ and \code{exactToInterval()} throw \code{std::invalid\_argument} for it: none
 of the three calls below reaches the reader.
 
 \begin{example}
-textToInterval(nullptr);
-textToInterval(std::getenv("UNSET"));
-gaol_ieee1788::exactToInterval(nullptr);
+interval a = textToInterval(nullptr);
+interval b = textToInterval(std::getenv("UNSET"));
+interval c = gaol_ieee1788::exactToInterval(nullptr);
 \end{example}
 
 \noindent
-Their argument is a \code{const std::string\&}, which the call builds from the
-pointer first, and the C++ standard leaves that undefined (libstdc++ throws
-\code{std::logic\_error}); the overloads of a C string take the null pointer
-before.\newinvfive
+Without the overloads of a C string, which take the null pointer first, their
+argument would be a \code{const std::string\&} built from the pointer, which the
+C++ standard leaves undefined (libstdc++ throws
+\code{std::logic\_error}).\newinvfive
 
 \medskip
 Two more texts deserve a word. A sign next to an uncertain number,
@@ -1252,15 +1234,13 @@ Two more texts deserve a word. A sign next to an uncertain number,
 lexer reads \code{-3.56?1} (and \code{+3.56?1}) as one token, and
 \code{10 -3.56?1} throws too. A blank is needed after the sign:
 \code{10 - 3.56?1}, or \code{10- 3.56?1}. Reading a long number takes a time
-quadratic in its number of digits: \code{"0."} followed by 20\,000 digits
-\code{3} takes 0.017 s, 80\,000 digits 0.28 s, 320\,000 digits 4.4 s (about
-45 s expected for a million), and the uncertain form 2.3 times as long. A text
+quadratic in its number of digits (\pxref{sec:reading-intervals}): a text
 coming from elsewhere can thus block a program.
 
 \subsection{Threads and the global settings}
 %%..........................................
 \cindex{threads!output of intervals}%
-\cindex{interval::format@\code{interval::format}!threads}%
+\cindex{interval::format@\texttt{interval::format}!threads}%
 
 The output format of intervals and their number of digits, set by
 \code{interval::\allowbreak format()} and \code{interval::\allowbreak precision()}, are variables of
@@ -1271,8 +1251,8 @@ the precision only), is a data race, with the undefined behaviour of C++
 (ThreadSanitizer reports it). The program that sets them synchronizes with
 the threads that write: it sets them before starting its threads, or takes a
 lock of its own around the setting and around each output. Without a setting
-in between, several threads write intervals at once safely, and so they read
-strings (\pxref{sec:reading-intervals}); \code{exact\_string()} reads neither
+in between, several threads may write intervals at once, and read strings at
+once (\pxref{sec:reading-intervals}); \code{exact\_string()} reads neither
 setting.\newinvfive
 
 \subsection{The flags of interval arithmetic}
@@ -1367,13 +1347,14 @@ function of the kind, not that the algorithm cannot be written.\newinvfive
     \code{disjoint(x, y)} &
     \code{x.is\_disjoint(y)}\\
     Equal & \code{x.set\_eq(y)} & \code{equal(x, y)} & \code{x == y}\\
-    Inflate by \code{r} & \code{x.inflate(r)} & --- & \code{x.inflate(r)}\\
+    Inflate by \code{r} & \code{x.inflate(r)}, a new interval & --- &
+    \code{x.inflate(r)}, which changes \code{x}\\*
     Bisect &
     \code{x.bisect(ratio)} &
     --- &
-    \code{x.bisect(ratio)}, ratio 0.5 (IBEX) or 0.49 (Codac)\\
+    \code{x.bisect(ratio)}, ratio 0.5 (IBEX) or 0.49 (Codac)\\*
     Two-piece division &
-    two \code{div\_rel}, or \code{mulRevToPair(b, c)} &
+    two \code{div\_rel}, or \code{gaol\_ieee1788::mulRevToPair(b, c)} &
     \code{mulRevToPair(b, c)} &
     \code{div2} (IBEX only)\\
     \hline
@@ -1504,7 +1485,7 @@ set, which Boost refuses, passes every certainly relation
 (\pxref{sec:lexicographic-less}). The names are those of IBEX~2.9.1
 (\file{ibex\_Interval.h}), Codac~2 (\file{codac2\_Interval.h}), C-XSC~2.5.4
 (\file{interval.hpp} and \file{interval.inl}), PROFIL/BIAS~2.0.8
-(\file{Interval.h}) and Boost~1.86 (\file{boost/numeric/interval/}), read in
+(\file{Interval.h}) and Boost~1.92.0 (\file{boost/numeric/interval/}), read in
 their sources.
 
 \section{Discussion}
@@ -1520,10 +1501,11 @@ to fuse a product and a sum would break the enclosure, and
 those it cannot. The two namespaces are the answer to two audiences, the
 programs written for GAOL~4, IBEX and Codac, and those written to IEEE
 1788-2015: the same type and the same functions, under two sets of names,
-with the power as their one real difference.
+with the power as their main difference, and \code{textToInterval}, which
+throws in \code{gaol} and gives the empty set in \code{gaol\_ieee1788}.
 
 \medskip
-The common errors reviewed here all come from the same source: a double is
+Most of the common errors reviewed here come from the same source: a double is
 not an interval, and an interval is not a number. A decimal constant, a
 function of a number, a midpoint and a radius, the sign of a zero bound, the
 empty set that passes every test, the relations that order nothing, are
@@ -1533,5 +1515,5 @@ same purpose for a program ported to GAOL.
 
 \medskip
 The next chapter looks at what this one took for granted: the rounding
-direction that each operation sets, what it does to the rest of the program,
+direction that each operation sets, its effect on the rest of the program,
 and the initialization and the cleanup of GAOL.

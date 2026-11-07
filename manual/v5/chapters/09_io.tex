@@ -171,8 +171,10 @@ linked with \option{-Ofast} has (\pxref{sec:ftz}), do not change what a
 number is read as: \code{1e-310} is read as the tightest interval of doubles
 containing it, and \code{0} as 0.\newinvfive{} Reading a long number takes a
 time quadratic in its number of digits: \code{"0."} followed by $n$ digits
-\code{3} takes 0.017~s for $n = 20\,000$, 0.28~s for 80\,000 and 4.4~s for
-320\,000, and the uncertain form 2.3 times as long.\newinvfive
+\code{3} takes 0.011~s for $n = 20\,000$, 0.18~s for 80\,000 and 2.8~s for
+320\,000 (about 28~s expected for a million), and the uncertain form 2.2 to 2.4
+times as long (Intel i7-1185G7, GCC~15.2, the best of five runs,
+7 November 2026).\newinvfive
 
 \paragraph{The uncertain form.} An \NT{uncertain\_number} is written as
 IEEE 1788-2015 defines it (12.11.3).
@@ -425,9 +427,9 @@ type \code{std::string}, which writes the interval in the active format.
 \index[idx]{string@\code{string}!converting interval to|see{interval}}
 
 \begin{example}
-  interval I(3,4);
-  string s = "test line embedding " + string(I) + " as a string";
-  @rem^// Now, s is "test line embedding [3, 4] as a string"~
+interval I(3,4);
+string s = "test line embedding " + string(I) + " as a string";
+@rem^// Now, s is "test line embedding [3, 4] as a string"~
 \end{example}
 
 \subsection{The output format}\label{sec:output-format}
@@ -467,10 +469,10 @@ interval is printed as any interval is, \code{interval(0.1)} being
 and \element{center} print it \code{0}, and \element{hexa}
 \code{[0x0p+0]}).
 \begin{example}
- interval::format(interval_format::agreeing);
- std::cout << interval(4,6) << ' ' << interval(1.25,1.2567) << ' '
-           << interval(-1.2567,-1.25) << std::endl;
- @outputs^[4, 6] 1.25@textasciitilde[0, 67] -1.25@textasciitilde[67, 0]~
+interval::format(interval_format::agreeing);
+std::cout << interval(4,6) << ' ' << interval(1.25,1.2567) << ' '
+          << interval(-1.2567,-1.25) << std::endl;
+@outputs^[4, 6] 1.25@textasciitilde[0, 67] -1.25@textasciitilde[67, 0]~
 \end{example}
 
 \item[$\bullet$] \element{bounds}. The bounds are printed between square
@@ -479,9 +481,9 @@ digits displayed is printed as that value alone between square brackets,
 the literal of IEEE 1788-2015 for a point (12.11), which
 \code{textToInterval()} reads back as the same point:
 \begin{example}
- interval::format(interval_format::bounds);
- std::cout << interval(3,5) << ' ' << interval(4) << std::endl;
- @outputs^[3, 5] [4]~
+interval::format(interval_format::bounds);
+std::cout << interval(3,5) << ' ' << interval(4) << std::endl;
+@outputs^[3, 5] [4]~
 \end{example}
 A zero is printed \code{[0]} whatever the signs of its bounds:
 \itv{-0}{+0}, which \code{interval::zero()} is with the SSE2 and the NEON
@@ -510,9 +512,9 @@ the \code{midpoint()} and the \code{rad()} of IEEE 1788-2015 (12.12.8): the
 interval is contained in the midpoint plus or minus the radius, which is
 the smallest number that makes it so:
 \begin{example}
- interval::format(interval_format::width);
- std::cout << interval(4,5) << std::endl;
- @outputs^4.5 (+/- 0.5)~
+interval::format(interval_format::width);
+std::cout << interval(4,5) << std::endl;
+@outputs^4.5 (+/- 0.5)~
 \end{example}
 The midpoint is written rounded to nearest and the radius rounded upward,
 so that a radius that is not zero is never written 0. Rounded upward, a
@@ -548,9 +550,9 @@ brackets, \code{[0x1.8p+0]} for \code{interval(1.5)}, and a zero
 of each double, which its parser did not read.\newinvfive
 \cindex{hexadecimal!form}%
 \begin{example}
- interval::format(interval_format::hexa);
- std::cout << textToInterval("0.1") << std::endl;
- @outputs^[0x1.9999999999999p-4, 0x1.999999999999ap-4]~
+interval::format(interval_format::hexa);
+std::cout << textToInterval("0.1") << std::endl;
+@outputs^[0x1.9999999999999p-4, 0x1.999999999999ap-4]~
 \end{example}
 \end{itemize}
 
@@ -598,28 +600,28 @@ The format is chosen through the following static methods.
 The program below prints the same interval, \code{interval::pi()}, in the
 five formats. What each statement prints is given in the comment under it.
 \begin{example}
-  interval I(interval::pi());
+interval I(interval::pi());
 
-  interval::format(interval_format::agreeing);
-  cout << I << "\n";
-  @rem^// Prints 3.14159265358979@textasciitilde[3, 4]~
-  @rem^// The @textasciitilde[] part is dropped if the bounds agree on all digits~
-  @smallskip
-  interval::format(interval_format::bounds);
-  cout << I << "\n";
-  @rem^// Prints [3.141592653589793, 3.141592653589794]~
-  @smallskip
-  interval::format(interval_format::width);
-  cout << I << "\n";
-  @rem^// Prints 3.141592653589793 (+/- 4.440892098500627e-16)~
-  @smallskip
-  interval::format(interval_format::center);
-  cout << I << "\n";
-  @rem^// Prints 3.141592653589793~
-  @smallskip
-  interval::format(interval_format::hexa);
-  cout << I << "\n";
-  @rem^// Prints [0x1.921fb54442d18p+1, 0x1.921fb54442d19p+1]~
+interval::format(interval_format::agreeing);
+cout << I << "\n";
+@rem^// Prints 3.14159265358979@textasciitilde[3, 4]~
+@rem^// The @textasciitilde[] part is dropped if the bounds agree on all digits~
+@smallskip
+interval::format(interval_format::bounds);
+cout << I << "\n";
+@rem^// Prints [3.141592653589793, 3.141592653589794]~
+@smallskip
+interval::format(interval_format::width);
+cout << I << "\n";
+@rem^// Prints 3.141592653589793 (+/- 4.440892098500627e-16)~
+@smallskip
+interval::format(interval_format::center);
+cout << I << "\n";
+@rem^// Prints 3.141592653589793~
+@smallskip
+interval::format(interval_format::hexa);
+cout << I << "\n";
+@rem^// Prints [0x1.921fb54442d18p+1, 0x1.921fb54442d19p+1]~
 \end{example}
 \end{Ex}
 

@@ -1199,9 +1199,9 @@ number of digits of its significand and of its exponent; the doubles around
 the number are bracketed by steps doubling from the double \code{strtod()}
 gives, then found by bisection on their bits, two comparisons when
 \code{strtod()} gives the nearest double, and at most about 125 whatever it
-gives. The time to read a number is quadratic in the number of its digits:
-\code{"0."} followed by 20000 digits 3 takes 0.017 s, 80000 digits 0.28 s
-and 320000 digits 4.4 s, so that a text from elsewhere can block a program.
+gives. The time to read a number is quadratic in the number of its digits
+(\pxref{sec:reading-intervals}), so that a text from elsewhere can block a
+program.
 \code{strtod()} reads the decimal point of the C locale: under a locale
 writing a decimal comma, it stopped at the \code{.} of \code{0.1}, and
 \code{interval("0.1")} was $[0, 0]$; the text is taken apart once, and a
