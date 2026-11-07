@@ -278,7 +278,7 @@ cout << abs(interval(-5,6)) << ' '
   \end{example}
 \end{deffun}
 
-\begin{deffun}{double}{chi}{(const interval \&\var{I})}
+\begin{deffun}{double}{chi}{(const interval\& \var{I})}
   Returns the function \code{chi} of Ratschek and Rokne
   \cite{Ratschek-Rokne:1995}, which characterizes the degree of symmetry
   of an interval:
@@ -301,7 +301,7 @@ cout << chi(interval(3,6)) << ' '
 \end{example}
 \end{deffun}
 
-\begin{deffun}{interval}{min}{(const interval \&I, const interval \&J)}
+\begin{deffun}{interval}{min}{(const interval\& \var{I}, const interval\& \var{J})}
   \begin{operation}
     \op{$\min(\itv{a}{b}, \itv{c}{d}) = \itv{\min(a,c)}{\min(b,d)}$}
   \end{operation}
@@ -313,7 +313,7 @@ cout << min(interval(5,6),interval(3,9)) << ' '
   \end{example}
 \end{deffun}
 
-\begin{deffun}{interval}{max}{(const interval \&\var{I}, const interval \&\var{J})}
+\begin{deffun}{interval}{max}{(const interval\& \var{I}, const interval\& \var{J})}
   \begin{operation}
     \op{$\max(\itv{a}{b}, \itv{c}{d}) = \itv{\max(a,c)}{\max(b,d)}$}
   \end{operation}
@@ -342,7 +342,7 @@ Each function of this section but \code{integer()} is non-decreasing, so that
 None of them depends on the rounding direction.
 \end{Prop}
 
-\begin{deffun}{interval}{floor}{(const interval \&\var{I})}
+\begin{deffun}{interval}{floor}{(const interval\& \var{I})}
   \begin{operation}
     \op{$\itv{\code{floor}(I.\code{left}())}{\code{floor}(I.\code{right}())}$}
   \end{operation}
@@ -354,7 +354,7 @@ cout << floor(interval(4.5,6.5)) << ' '
   \end{example}
 \end{deffun}
 
-\begin{deffun}{interval}{ceil}{(const interval \&\var{I})}
+\begin{deffun}{interval}{ceil}{(const interval\& \var{I})}
   \begin{operation}
     \op{\itv{\code{ceil}(I.\code{left}())}{\code{ceil}(I.\code{right}())}}
   \end{operation}
@@ -366,7 +366,7 @@ cout << ceil(interval(4.5,6.5)) << ' '
   \end{example}
 \end{deffun}
 
-\begin{deffun}{interval}{integer}{(const interval \&\var{I})}
+\begin{deffun}{interval}{integer}{(const interval\& \var{I})}
   \begin{operation}
     \op{\itv{\code{ceil}(I.\code{left}())}{\code{floor}(I.\code{right}())}}
   \end{operation}
@@ -380,17 +380,17 @@ cout << integer(interval(4.5,6.5)) << ' '
   \end{example}
 \end{deffun}
 
-\begin{deffun}{interval}{sign}{(const interval \&\var{I})}
+\begin{deffun}{interval}{sign}{(const interval\& \var{I})}
   The signs of the elements of \var{I}: $-1$ below $0$, $0$ at $0$, $1$
   above (\ieee{sign}).\newinvfive
 \end{deffun}
 
-\begin{deffun}{interval}{trunc}{(const interval \&\var{I})}
+\begin{deffun}{interval}{trunc}{(const interval\& \var{I})}
   The elements of \var{I} rounded toward zero (\ieee{trunc}).\newinvfive
 \end{deffun}
 
-\deffunx{interval}{round\_ties\_to\_even}{(const interval \&\var{I})}
-\begin{deffun}{interval}{round\_ties\_to\_away}{(const interval \&\var{I})}
+\deffunx{interval}{round\_ties\_to\_even}{(const interval\& \var{I})}
+\begin{deffun}{interval}{round\_ties\_to\_away}{(const interval\& \var{I})}
   The elements of \var{I} rounded to the nearest integer, halfway values to
   the even one, respectively away from zero (\ieee{roundTiesToEven},
   \ieee{roundTiesToAway}).\newinvfive

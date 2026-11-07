@@ -686,7 +686,7 @@ section: the result is empty when no $x$ of the interval contracted is in
 the relation.
 \end{Rem}
 
-\begin{deffun}{interval}{acos\_rel}{(const interval\& J, const interval\& I)}
+\begin{deffun}{interval}{acos\_rel}{(const interval\& \var{J}, const interval\& \var{I})}
   \begin{operation}
     \op{$\code{acos\_rel}(J,I)=
       \hull{\{x\in I\mid\exists y\in J\colon y=\cos x\}}$}
@@ -694,7 +694,7 @@ the relation.
   Returns the \emph{relational arccosine} of \var{J} with respect to \var{I}.
 \end{deffun}
 
-\begin{deffun}{interval}{asin\_rel}{(const interval\& J, const interval\& I)}
+\begin{deffun}{interval}{asin\_rel}{(const interval\& \var{J}, const interval\& \var{I})}
   \begin{operation}
     \op{$\code{asin\_rel}(J,I)=
       \hull{\{x\in I\mid\exists y\in J\colon y=\sin x\}}$}
@@ -702,7 +702,7 @@ the relation.
   Returns the \emph{relational arcsine} of \var{J} with respect to \var{I}.
 \end{deffun}
 
-\begin{deffun}{interval}{atan\_rel}{(const interval\& J, const interval\& I)}
+\begin{deffun}{interval}{atan\_rel}{(const interval\& \var{J}, const interval\& \var{I})}
   \begin{operation}
     \op{$\code{atan\_rel}(J,I)=
       \hull{\{x\in I\mid\exists y\in J\colon y=\tan x\}}$}
@@ -722,7 +722,7 @@ cout << asin_rel(interval(0.0), interval(1,7)) << endl
 \end{example}
 \end{deffun}
 
-\begin{deffun}{interval}{acosh\_rel}{(const interval\& J, const interval\& I)}
+\begin{deffun}{interval}{acosh\_rel}{(const interval\& \var{J}, const interval\& \var{I})}
   \begin{operation}
     \op{$\code{acosh\_rel}(J,I)=
       \hull{\{x\in I\mid\exists y\in J\colon y=\cosh x\}}$}
@@ -731,8 +731,8 @@ cout << asin_rel(interval(0.0), interval(1,7)) << endl
   to \var{I}.
 \end{deffun}
 
-\deffunx{interval}{asinh\_rel}{(const interval\& J, const interval\& I)}
-\begin{deffun}{interval}{atanh\_rel}{(const interval\& J, const interval\& I)}
+\deffunx{interval}{asinh\_rel}{(const interval\& \var{J}, const interval\& \var{I})}
+\begin{deffun}{interval}{atanh\_rel}{(const interval\& \var{J}, const interval\& \var{I})}
   \begin{operation}
     \op{$\code{asinh\_rel}(J,I)=
       \hull{\{x\in I\mid\exists y\in J\colon y=\sinh x\}}$}
@@ -754,7 +754,7 @@ cout << acosh_rel(interval(1,2), interval::universe()) << endl
 \end{example}
 \end{deffun}
 
-\begin{deffun}{interval}{sqrt\_rel}{(const interval\& J, const interval\& I)}
+\begin{deffun}{interval}{sqrt\_rel}{(const interval\& \var{J}, const interval\& \var{I})}
   \begin{operation}
     \op{$\code{sqrt\_rel}(J,I)=\hull{\{x\in I\mid\exists y\in J\colon y=x^2\}}$}
   \end{operation}
@@ -813,7 +813,7 @@ cout << nth_root_rel(interval(1,8), -3, interval::universe()) << ' '
 \end{example}
 \end{deffun}
 
-\begin{deffun}{interval}{invabs\_rel}{(const interval\& J, const interval\& I)}
+\begin{deffun}{interval}{invabs\_rel}{(const interval\& \var{J}, const interval\& \var{I})}
   \begin{operation}
     \op{$\code{invabs\_rel}(J,I)=\hull{\{x\in I\mid |x|\in J\}}$}
   \end{operation}
@@ -828,7 +828,7 @@ cout << invabs_rel(interval(1,2), interval::universe()) << ' '
 \end{example}
 \end{deffun}
 
-\begin{deffun}{interval}{div\_rel}{(const interval\& K, const interval\& J, const interval\& I)}
+\begin{deffun}{interval}{div\_rel}{(const interval\& \var{K}, const interval\& \var{J}, const interval\& \var{I})}
   \begin{operation}
     \op{$\code{div\_rel}(K,J,I)=
       \hull{\{x\in I\mid\exists z\in K,\exists y\in J\colon z=xy\}}$}
@@ -845,7 +845,7 @@ cout << div_rel(interval(1,2), interval(-1,1),
 \end{example}
 \end{deffun}
 
-\begin{deffun}{interval}{pow\_rel}{(const interval\& K, const interval\& J, const interval\& I)}
+\begin{deffun}{interval}{pow\_rel}{(const interval\& \var{K}, const interval\& \var{J}, const interval\& \var{I})}
   \begin{operation}
     \op{$\code{pow\_rel}(K,J,I)=
       \hull{\{x\in I\mid\exists z\in K,\exists y\in J\colon z=x^y\}}$}
@@ -870,7 +870,7 @@ cout << pow_rel(interval(4,9), interval(2), interval::universe()) << ' '
   $x^y\geq2$ for a $y\geq1$ asks $x>1$: the second result is empty.
 \end{deffun}
 
-\begin{deffun}{interval}{pow\_exponent\_rel}{(const interval\& K, const interval\& H, const interval\& I)}
+\begin{deffun}{interval}{pow\_exponent\_rel}{(const interval\& \var{K}, const interval\& \var{H}, const interval\& \var{I})}
   \begin{operation}
     \op{$\code{pow\_exponent\_rel}(K,H,I)=\hull{\{y\in I\mid\exists z\in K,
       \exists x\in H\colon z=x^y\}}$}
@@ -915,8 +915,8 @@ being its least value with a power in \itv{4}{9}; the exponent \itv{2}{3} is
 not contracted, every $y$ of it having a base in \itv{1.587401051968199}{3}.
 \end{Ex}
 
-\deffunx{interval}{max\_rel}{(const interval\& Z, const interval\& Y, const interval\& X)}
-\begin{deffun}{interval}{min\_rel}{(const interval\& Z, const interval\& Y, const interval\& X)}
+\deffunx{interval}{max\_rel}{(const interval\& \var{Z}, const interval\& \var{Y}, const interval\& \var{X})}
+\begin{deffun}{interval}{min\_rel}{(const interval\& \var{Z}, const interval\& \var{Y}, const interval\& \var{X})}
   \begin{operation}
     \op{$\code{max\_rel}(Z,Y,X)=\hull{\{x\in X\mid\exists y\in Y\colon
       \max(x,y)\in Z\}}$}
@@ -944,7 +944,7 @@ cout << max_rel(interval(1,2), interval(3,4), interval(-5,5)) << ' '
 \end{example}
 \end{deffun}
 
-\begin{deffun}{interval}{sign\_rel}{(const interval\& Z, const interval\& X)}
+\begin{deffun}{interval}{sign\_rel}{(const interval\& \var{Z}, const interval\& \var{X})}
   \begin{operation}
     \op{$\code{sign\_rel}(Z,X)=
       \hull{\{x\in X\mid \operatorname{sign}(x)\in Z\}}$}
@@ -964,7 +964,7 @@ cout << sign_rel(interval(-1), interval(-2,3)) << ' '
 \end{example}
 \end{deffun}
 
-\begin{deffun}{interval}{floor\_rel}{(const interval\& Z, const interval\& X)}
+\begin{deffun}{interval}{floor\_rel}{(const interval\& \var{Z}, const interval\& \var{X})}
   \begin{operation}
     \op{$\code{floor\_rel}(Z,X)=\hull{\{x\in X\mid \lfloor x\rfloor\in Z\}}$}
   \end{operation}
