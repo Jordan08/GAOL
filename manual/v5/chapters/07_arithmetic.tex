@@ -89,9 +89,9 @@ A function is computed on the part of its argument that lies within its
 domain, which is the domain of IEEE 1788-2015 (Tables~9.1 and 10.5): the
 part outside is left out, and an argument with no point of the domain gives
 the empty set, as \code{log(\itv{-4}{0})} does.\newinvfive{} Every function
-gives the empty set for an empty argument, but \code{cancel\_minus} and
-\code{cancel\_plus}, which give \itv{-\infty}{+\infty} for a nonempty \var{X}
-and an empty \var{Y}, or an empty \var{X} and an unbounded \var{Y}, as IEEE
+but \code{cancel\_minus} and \code{cancel\_plus} gives the empty set for an empty
+argument: these two give \itv{-\infty}{+\infty} for a nonempty \var{X} and an
+empty \var{Y}, or an empty \var{X} and an unbounded \var{Y}, as IEEE
 1788-2015 requires (12.12.5).
 \cindex{domain of a function}%
 
@@ -213,7 +213,7 @@ the standard: the two powers are compared in Chapter~\ref{chap:overview}
 \deffunx{interval}{pow}{(const interval\& \var{I}, int \var{n})}
 \deffunx{interval}{pow}{(const interval\& \var{I}, unsigned int \var{n})}
 \deffunx{interval}{pow}{(const interval\& \var{I}, double \var{p})}
-\defTfunx{template <class T>}{interval}{pow}{(const interval\& \var{I}, T \var{n})}
+\defTfunx{template <class T>}{interval}{pow}{(const interval\& \var{I}, \var{T} \var{n})}
 \begin{deffun}{interval}{pow}{(const interval\& \var{I}, const interval\& \var{J})}
   \begin{operation}
     \op{$I^n$}
@@ -231,17 +231,17 @@ the standard: the two powers are compared in Chapter~\ref{chap:overview}
     exponent \var{n} of another integer type \var{T} (\code{long}, \code{long
     long}, \code{short}\dots; \code{pow(x, 5L)} was ambiguous in the earlier
     versions of GAOL v5) gives the same integer power; beyond 64 bits (an
-    \code{\_\_int128}, which GAOL takes as an integer in the GNU modes of GCC and
-    Clang only: in an ISO mode such as \option{-std=c++11}, \code{pow(x, n)}
-    does not compile), it gives the power of $\pm(2^{63}-1)$ or
+    \code{\_\_int128}, which GAOL takes as an integer where
+    \code{std::is\_integral} does: with libstdc++, in the GNU modes of GCC and
+    Clang only, and in an ISO mode such as \option{-std=c++11},
+    \code{pow(x, n)} does not compile), it gives the power of $\pm(2^{63}-1)$ or
     $\pm(2^{63}-2)$, with the sign and the parity of \var{n}, every power of
     a double but $0$, $\pm1$ and $\pm\infty$ being beyond the doubles
     there.\newinvfive
   \item[$\bullet$] \textbf{Any other exponent} takes the \emph{real power},
     \ieee{pow} of IEEE 1788-2015, on the part of \var{I} in \itv{0}{+\infty},
-    where $0^y$ is $0$ for $y>0$ and has no value for $y\leq0$. An exponent
-    an infinite or NaN
-    \var{p}, gives the empty set.
+    where $0^y$ is $0$ for $y>0$ and has no value for $y\leq0$. An infinite
+    or NaN exponent \var{p} gives the empty set.
   \end{itemize}
 \end{deffun}
 
@@ -283,6 +283,7 @@ truncated a double exponent \var{p}, and computed the powers of a negative
 base on its magnitude.
 \end{Rem}
 
+\Needspace{42\baselineskip}
 \deffunx{interval}{nth\_root}{(const interval\& \var{I}, unsigned int \var{n})}
 \deffunx{interval}{nth\_root}{(const interval\& \var{I}, long long \var{q})}
 \deffunx{interval}{nth\_root}{(const interval\& \var{I}, unsigned long long \var{q})}
@@ -577,9 +578,9 @@ cout << hypot(interval(3), interval(4)) << ' '
   $y$, are bounds. CORE-MATH has no function for it: the value at a corner
   of the box is computed with integers, 64 bits in a fast phase that settles
   71 to 95\,\% of the pairs with $|y\log(1+x)|$ below 8, and none beyond, 128
-  bits and a bound of the error in the others. It takes 0.1\,\textmu s for each
+  bits and a bound of the error in the others. It takes 0.1\,$\mu$s for each
   of the one or two corners where the bounds are, where the fast phase settles
-  it, and 0.6 to 0.9\,\textmu s elsewhere (Intel i7-1185G7, GCC~15). The
+  it, and 0.6 to 0.9\,$\mu$s elsewhere (Intel i7-1185G7, GCC~15). The
   bounds are the tightest ones, the double itself where the value is one
   (2.375 for $x=0.5$ and $y=3$, but also $2^m-1$ for $x=1$ and an integer
   $y=m$ with $|m|\le53$, and the
@@ -790,7 +791,8 @@ cout << sqrt_rel(interval(1,4), interval::universe()) << ' '
   \code{nth\_root\_rel(\itv{1}{+\infty}, -2, \itv{0}{0})} is empty. The
   bounds are those of \code{nth\_root(J, p)}, the root and then its inverse:
   up to four doubles beyond the tightest ones for $p<0$, but for $p=-1$ and a
-  \var{J} next to $2^{-1074}$, whose inverse lies beyond the largest double: a
+  \var{J} below $1/\text{DBL\_MAX}$, about $2^{-1024}$, a subnormal number
+  whose inverse lies beyond the largest double: a
   bound is then the largest double, as \code{div\_rel} gives it, and
   \code{nth\_root\_rel(\itv{2^{-1074}}{2^{-1074}}, -1, \itv{0}{\text{DBL\_MAX}})}
   is \itv{\text{DBL\_MAX}}{\text{DBL\_MAX}}, where the tightest result is
@@ -883,7 +885,7 @@ cout << pow_exponent_rel(interval(8), interval(2), interval::universe()) << ' '
      << pow_exponent_rel(interval(3), interval(2,4), interval::universe());
 @outputs^[3] [0.792481250360578, 1.584962500721157]~
 \end{example}
-  The bounds of both functions are the tightest ones, but in one case, given below. The ends of the
+  The bounds of both functions are the tightest ones, but in one case, given below. Each end of the
   solutions, $c^{1/y}$ or $\log c/\log x$ for bounds $c$, $x$ and $y$ of
   the arguments, is enclosed by two doubles: the largest $d$ whose power $d^y$
   (or $x^d$), computed by the correctly rounded \code{pow} of CORE-MATH, is
@@ -1061,13 +1063,12 @@ integer $p$, $p\leq0$ included. \code{max\_rel}, \code{min\_rel},
 \code{sign\_rel} and \code{floor\_rel} are the reverse functions of $\max$,
 $\min$, $\operatorname{sign}$ and $\operatorname{floor}$ as the standard
 defines them (10.5.4), which it neither names nor requires, Table~10.1 not
-listing them: the namespace \code{gaol\_ieee1788} has no name for them.
+listing them: the namespace \code{gaol\_ieee1788} has no name for them. A
+program that opens that namespace calls them as \code{max\_rel(z, y, x)}
+all the same, argument-dependent lookup finding them in \code{gaol\_core}.
 \code{asinh\_rel} and \code{atanh\_rel}, which Table~10.1 does not list either,
 $\sinh$ and $\tanh$ being one-to-one, are named \code{sinhRev} and \code{tanhRev} in
-\code{gaol\_ieee1788}, after \ieee{coshRev}. A
-program that opens that namespace calls them as \code{max\_rel(z, y, x)}
-all the same, argument-dependent lookup finding them in
-\code{gaol\_core}.\newinvfive
+\code{gaol\_ieee1788}, after \ieee{coshRev}.\newinvfive
 \end{Rem}
 
 \section{Cancellative addition and subtraction}

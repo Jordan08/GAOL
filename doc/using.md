@@ -860,7 +860,7 @@ relations and `set_strictly_contains(n)` compare n as the integer it is:
 `interval(9007199254740992.0) < 9007199254740993LL`, [2^53] < 2^53 + 1, is
 true, though no double lies between them. Every integer type is taken so,
 `bool` aside, whatever the rounding direction (an unscoped enumeration, and
-`__int128` outside the GNU modes of GCC and Clang, still convert to a
+`__int128` outside the GNU modes of GCC and Clang with libstdc++, still convert to a
 double, and a `long double` bound next to an integer takes
 `interval(double, double)`). An integer that is a double gives the result the
 double gives, and for the types of 53 bits or less (`int`, `short`, `char`...)

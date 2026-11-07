@@ -199,7 +199,7 @@ chapter names are those of IEEE 1788-2015.
   quotients are doubles\\
   \code{pow\_rel}, \code{pow\_exponent\_rel} & tightest, but for a bound of
   $x$ next to the solutions whose power is within one double of $c$, which
-  is kept: the tightest result for $x$ one double wider\newinvfive\\
+  is kept: within the tightest result for $x$ one double wider\newinvfive\\
   \code{atan2\_rel\_y}, \code{atan2\_rel\_x} & accurate; within two doubles
   of the tightest bounds where these are not empty\\
   \code{cancel\_minus}, \code{cancel\_plus} & tightest\\
@@ -790,7 +790,7 @@ are given, within the numbers of doubles below.
   more. It is at most 2 doubles from the tightest bounds on the table of
   \file{tests/reverse.cpp}, 3 on those random cases (60 of them), and 4 at
   most, found for $c=\itv{2.25}{2.25}$ and $p=-127$. Where $p=-1$ and
-  $1/c$ reaches beyond the largest double, $c$ being next to $2^{-1074}$, a
+  $1/c$ reaches beyond the largest double, $c$ being below $1/\code{DBL\_MAX}$, a
   bound saturates at $\pm$\code{DBL\_MAX}, as \code{div\_rel} does: valid,
   but beyond 4 doubles of the tightest, and not empty where the hull is:
   the result for $c=\itv{2^{-1074}}{2^{-1074}}$, $p=-1$ and
@@ -830,7 +830,7 @@ are given, within the numbers of doubles below.
   side. A bound of $x$ where the solutions start between it and the next
   double, and whose power is within one double of $c$, is kept, which only
   knowing whether that power is a double would settle: the result is then
-  the tightest one for $x$ one double wider. The tests find them tightest
+  within the tightest one for $x$ one double wider. The tests find them tightest
   on the 804 cases of ITF1788 and on 1\,244 others, random or whose
   solutions are doubles, within the tightest result for $x$ one double
   wider on 966 cases where a bound of $x$ is next to an end of the

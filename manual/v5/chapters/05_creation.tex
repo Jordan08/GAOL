@@ -126,7 +126,7 @@ then the two functions, and we end with the intervals of one infinite point.
 The integers are taken as the integers they are whatever the rounding
 direction, and for every integer type but \code{bool}.\newinvfive{} Three
 cases still convert to a \code{double}: an unscoped enumeration, an
-\code{\_\_int128} outside the GNU modes of GCC and Clang, and a \code{long
+\code{\_\_int128} outside the GNU modes of GCC and Clang with libstdc++, and a \code{long
 double} bound next to an integer, which takes \code{interval(double, double)}.
 An integer that is a double gives the result the double gives, and, for the
 types of 53 bits or less (\code{int}, \code{short}, \code{char}\ldots),

@@ -2153,7 +2153,7 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
     the negative power now. An exponent of type `double` or `float`, converted
     to an `unsigned int` before, no longer compiles. For p < 0 the bounds are up
     to 4 doubles beyond the tightest ones (4 found, for `[2.25]` and p = −127),
-    and for p = −1 near 2<sup>−1074</sup> a bound saturates at ±`DBL_MAX`, which
+    and for p = −1 and a J below 1/`DBL_MAX` (about 2<sup>−1024</sup>) a bound saturates at ±`DBL_MAX`, which
     is valid but farther, the result being not empty where the hull is
     ([Accuracy of the operations](accuracy.md)).
 - **`width()`** of the empty set is NaN, as `wid` of IEEE 1788-2015 (12.12.8),

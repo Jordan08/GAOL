@@ -240,7 +240,7 @@ argument of \code{nth\_root} shall be a point interval that can be evaluated
 as an integer, negative ones included; otherwise, a \code{std::domain\_error}
 exception is thrown, or an error is reported, depending on whether the
 exceptions were enabled at configuration time
-(\pxref{sec:configuration}).\newinvfive{} The integer may be of any size a
+(\pxref{sec:install-developers}).\newinvfive{} The integer may be of any size a
 double holds: \code{"nth\_root(8,3000000000)"} is
 \code{nth\_root(8, 3000000000LL)}, where it was refused beyond the
 \code{int}s. One of $2^{63}$ or more in magnitude is taken as
@@ -358,7 +358,7 @@ reading fail, as a syntax error does: \code{gaol\_core::parse\_interval()}, of
 \code{false}, and \code{gaol::textToInterval()} and \code{operator>{}>}
 report the error and abort, as for any string that is not an
 expression.\newinvfive{} GAOL~4 reported the error, and aborted, inside the
-reader (\pxref{sec:ieee1788-text}).
+reader.
 
 \begin{Ex}
 The program below reads intervals from strings of the language: a literal
@@ -391,7 +391,7 @@ primitive type of C++ is. The text depends on the active format
 every format.
 \cindex{interval!writing}%
 
-\begin{deffun}{ostream\&}{operator<{}<}{(ostream\& \var{out}, const interval\& I)}
+\begin{deffun}{ostream\&}{operator<{}<}{(ostream\& \var{out}, const interval\& \var{I})}
   Prints the interval \var{I} to the output stream \var{out}. The way the
   intervals are displayed depends on the active format
   (Section~\ref{sec:output-format}). Whatever the format, an empty interval

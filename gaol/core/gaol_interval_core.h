@@ -1900,7 +1900,7 @@ namespace gaol_core {
     one double of the bound of K, where proving that it is no solution
     would take knowing whether that power is a double:
     pow_rel([1 + 2^-52], [0.5], [0, 1 + 2^-51]) is [1 + 2^-51] rather than
-    empty, the tightest result for I one double wider.
+    empty, within the tightest result for I one double wider.
   */
   GAOL_NODISCARD extern GAOL_PUBLIC interval pow_rel(const interval& K, const interval& J, const interval& I);
   GAOL_NODISCARD extern GAOL_PUBLIC interval pow_exponent_rel(const interval& K, const interval& H, const interval& I);
@@ -1953,7 +1953,7 @@ GAOL_NODISCARD extern GAOL_PUBLIC   interval nth_root_rel(const interval& J, uns
     inverse: up to 4 doubles beyond the tightest for p < 0 (4 found, for
     nth_root_rel([2.25], -127, I)), the tightest for p >= 1 where the bound of
     J is a power of a double. For p = -1, where 1/J reaches beyond the largest
-    double (J next to 2^-1074), a bound saturates at the largest double, as
+    double (J below 1/DBL_MAX, about 2^-1024), a bound saturates at the largest double, as
     div_rel() does: nth_root_rel([2^-1074], -1, [0, DBL_MAX]) is [DBL_MAX]
     where the hull is empty, the bounds being sound but not within 4 doubles
     of the tightest. The empty set for an empty argument. An integer p of another type than int and

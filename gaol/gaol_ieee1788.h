@@ -568,7 +568,11 @@ namespace gaol_ieee1788 {
       - the decorations and every decorated operation (Clause 11, 12.12.11);
       - the slope functions (Table 10.6);
       - the reduction operations sum, dot, sumSquare and sumAbs (12.12.12),
-        and the exact ones of 12.13.5.
+        and the exact ones of 12.13.5;
+      - the conversion specifier cs of intervalToText (13.3);
+      - the exceptions UndefinedOperation and PossiblyUndefinedOperation that
+        textToInterval and exactToInterval signal (12.12.7, 13.4): for a text
+        that is no interval they return the empty set silently.
   */
   
 } // namespace gaol_ieee1788

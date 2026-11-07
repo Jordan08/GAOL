@@ -699,7 +699,7 @@ relations in \exref{sec:relational-symbols}.
 \medskip
 Every integer type is taken so, \code{bool} aside, whatever the rounding
 direction; an unscoped enumeration, and \code{\_\_int128} outside the GNU
-modes of GCC and Clang, still convert to a double, and a \code{long double}
+modes of GCC and Clang with libstdc++, still convert to a double, and a \code{long double}
 bound next to an integer takes \code{interval(double, double)}. An integer
 that is a double gives the result the double gives, and for the types of 53
 bits or less (\code{int}, \code{short}, \code{char}\ldots) the same code.
@@ -719,7 +719,7 @@ one within the unsigned ints as an \code{unsigned}, and one beyond them as a
 (\itv{-\infty}{+\infty} for a nonempty $x$ before GAOL v5):
 \code{pow(interval(1 + std::ldexp(1.0, -30)), 1LL << 33)}, about $e^8$, is
 \itv{2980.9579759367944}{2980.9579759367948}. Beyond 64 bits (an
-\code{\_\_int128}, in the GNU modes of GCC and Clang), the exponent is taken as $\pm(2^{63}-1)$ or
+\code{\_\_int128}, in the GNU modes of GCC and Clang with libstdc++), the exponent is taken as $\pm(2^{63}-1)$ or
 $\pm(2^{63}-2)$, of its sign and parity, the power of every double but $0$,
 $\pm 1$ and $\pm\infty$ being beyond the doubles there. The same holds for
 \code{nth\_root(x, q)} and \code{rootn(x, q)}, whose order beyond the ints and

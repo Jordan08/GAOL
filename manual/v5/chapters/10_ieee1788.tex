@@ -87,7 +87,7 @@ that opened both would find each call ambiguous.
 A name of the program's own that is also a name of the standard, a constant
 \code{inf} for instance, makes every unqualified use of it ambiguous: the
 program qualifies both, \code{::inf} and \code{gaol\_ieee1788::inf(x)}.
-So is \code{less(x, y)} next to \code{using namespace std;}, where it is
+The same holds for \code{less(x, y)} next to \code{using namespace std;}, where it is
 ambiguous with the class template \code{std::less}.
 \end{Rem}
 
@@ -110,9 +110,9 @@ following ones.
   the standard gives no other meaning to it: the power with an integer
   exponent is \code{pown(x, n)} in the standard, whose $n$ is an integer
   rather than an interval. An integer exponent beyond the \code{int}s gives
-  the power of CORE-MATH at the bounds of $x$, as the \code{pow} of
-  \code{gaol} does on that part, which takes the integer power on the negative
-  part of $x$ too. The results of the two powers are
+  the power of CORE-MATH at the bounds of the part of $x$ in
+  \itv{0}{+\infty}, as the \code{pow} of \code{gaol} does there; the \code{pow}
+  of \code{gaol} takes the integer power on the negative part of $x$ too. The results of the two powers are
   compared in Chapter~\ref{chap:overview} (\pxref{sec:pow-namespaces}).
 \item[$\bullet$] \textbf{The bounds of the empty set.} \code{inf(x)} and
   \code{sup(x)} are $+\infty$ and $-\infty$ for the empty set (Table~10.2),
@@ -129,8 +129,8 @@ following ones.
   \code{x} (13.3), whatever the output format that
   \code{interval::format()} sets and the locale of the program.
   \code{operator<{}<} writes the current format instead, which is no
-  literal in the formats \element{width}, \element{center} and
-  \element{agreeing}.\newinvfive
+  literal in the formats \element{width} and \element{center}, nor in the
+  format \element{agreeing} where the bounds share digits.\newinvfive
 \item[$\bullet$] \textbf{Reading.} \code{textToInterval} and
   \code{exactToInterval} read the names of the functions of the standard,
   and return the empty set for a string that is no interval (12.1.3), where
@@ -255,7 +255,7 @@ is optional, and \itv{-\infty}{+\infty} when it is left out (10.5.4).
   \multicolumn{2}{l}{\textit{Numeric functions (Table~10.2 of the standard)}}\\*
   \code{inf(x)}, \code{sup(x)} &
     \code{x.left()}, \code{x.right()}, but for the empty set and a zero bound
-    ($-0$ for \code{inf})\\
+    ($-0$ for \code{inf}, $+0$ for \code{sup})\\
   \code{mid}, \code{wid}, \code{rad}, \code{mag}, \code{mig(x)} &
     \code{x.midpoint()}, \code{width()}, \code{rad()}, \code{mag()},
     \code{mig()}\\
@@ -424,12 +424,12 @@ is \itv{1}{16}, and \code{textToInterval("pown([2,5],5)")} throws.
 
 GAOL has no decorations: only bare intervals are provided (Clause 11). Nor
 does it provide the slope functions (Table~10.6), the reduction operations
-\ieee{sum}, \ieee{dot}, \ieee{sumSquare} and \ieee{sumAbs} (12.12.12), or the
+\ieee{sum}, \ieee{dot}, \ieee{sumSquare} and \ieee{sumAbs} (12.12.12), the
 exact reduction operations of 12.13.5, the conversion specifier \var{cs} of
-\ieee{intervalToText} (13.3), nor the exceptions \ieee{UndefinedOperation} and
+\ieee{intervalToText} (13.3), or the exceptions \ieee{UndefinedOperation} and
 \ieee{PossiblyUndefinedOperation} that \ieee{textToInterval} and
-\ieee{exactToInterval} signal for an invalid string (12.12.7, 13.4): they
-return the empty set silently. The end of \file{gaol/gaol\_ieee1788.h}
+\ieee{exactToInterval} signal (12.12.7, 13.4): for a string that is no
+interval they return the empty set silently. The end of \file{gaol/gaol\_ieee1788.h}
 keeps this list.
 
 \begin{Rem}\label{rem:ieee1788-erf}
@@ -439,7 +439,8 @@ is not in \code{gaol\_ieee1788} either, but for \code{sinhRev} and
 (Table~\ref{tab:ieee1788-operations}), and for the operators of intervals, the
 relational division \code{\%} among them, which the namespace names as
 \code{gaol\_core} does. \code{erf} and \code{erfc}, the
-error function and its complement, are two such functions.\newinvfive{} A call
+error function and its complement, are two functions of GAOL that the
+standard does not name.\newinvfive{} A call
 \code{erf(x)} on an interval finds them all the same in \code{gaol\_core},
 by argument-dependent lookup, and \code{erf(0.5)} remains the \code{erf}
 of C.
@@ -467,8 +468,9 @@ another library of the standard, opens \code{gaol\_ieee1788}. Its price is
 stated in \exref{sec:ieee1788-namespace}: a program opens one of the two
 namespaces, never both, and qualifies the names of its own that are also names
 of the standard. What GAOL does not provide of the standard, the decorations, the
-slope functions and the reductions, exact or not, is listed rather
-than approximated, and the header keeps the list.
+slope functions, the reductions, exact or not, the conversion specifier of
+\ieee{intervalToText} and the exceptions of the reading, is listed rather
+than approximated (\pxref{sec:ieee1788-missing}), and the header keeps the list.
 
 \medskip
 Whatever the name a program calls an operation by, the bounds it gets are
