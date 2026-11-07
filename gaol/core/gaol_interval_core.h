@@ -2708,6 +2708,9 @@ GAOL_INLINE double interval::width(void) const
         const double r = rnd_reread(right());
         const double l = rnd_reread(left());
         double res = r - l;
+        // The width of the point zero is +0 (IEEE 1788-2015, 12.12.8: +0 by
+        // every function but inf): r - l is -0 for [+0, -0] (GAOL v5)
+        res = std::fabs(res);
         GAOL_RND_KEEP(res);
         GAOL_RND_LEAVE();
         return res;

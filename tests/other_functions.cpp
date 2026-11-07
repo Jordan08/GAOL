@@ -189,11 +189,13 @@ namespace
                                           && interval(1., inf).rad() == inf);
     {
       // IEEE 1788-2015, 12.12.8: a zero is +0 for every function but inf, so
-      // the radius of the point zero is +0 whichever sign its bounds have
-      const interval zeros[] = { interval(0.0), -interval(0.0), interval(-0.0, 0.0) };
-      for (int i = 0; i < 3; ++i) {
+      // the radius and the width of the point zero are +0 whichever sign its bounds have
+      const interval zeros[] = { interval(0.0), -interval(0.0), interval(-0.0, 0.0), interval(0.0, -0.0) };
+      for (int i = 0; i < 4; ++i) {
         double m, r;
         zeros[i].mid_rad(m, r);
+        check("width() of a point zero is +0", zeros[i].width() == 0.0 && !std::signbit(zeros[i].width()),
+              [&] { return hex(zeros[i]) + ": " + hex(zeros[i].width()); });
         check("rad() of a point zero is +0", zeros[i].rad() == 0.0 && !std::signbit(zeros[i].rad()),
               [&] { return hex(zeros[i]) + ": " + hex(zeros[i].rad()); });
         check("mid_rad() of a point zero: m and r are +0", m == 0.0 && r == 0.0 && !std::signbit(m) && !std::signbit(r),
