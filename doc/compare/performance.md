@@ -70,8 +70,7 @@ Two things go at once with mathlib: the outward move of each bound, and the
 two changes of rounding direction each function made, to nearest before
 mathlib and back upward after. The integer power is computed from exact
 products, both bounds at once in an SSE2 register, with an error bound proved
-beforehand (point B of `TODO.md`): it took 13.8 ns before, with an exact
-product and a rest carried apart for each bound. **And the bounds are tighter,
+beforehand (point B of `TODO.md`). **And the bounds are tighter,
 not looser**: in the last table below, GAOL V5.0.0's results are no wider than
 libieeep1788's, which computes every bound with MPFR, for **every one of the
 seventeen operations** (excess 0.0e+00), where GAOL 4.2.3 is wider on the

@@ -143,7 +143,8 @@ as much a strategy of adoption as a technique.
   taken up by the glibc, the libm of LLVM or musl. It answers the reason
   CRlibm was not adopted, and it works: routines of CORE-MATH have been
   integrated upstream. It is also what lets GAOL v5 take the
-  sources it needs as they are, in `3rd/math-core`, and compile them into its library.
+  sources it needs into `3rd/math-core`, with a few changes marked in the code (see
+  [3rd/README.md](../3rd/README.md)), and compile them into its library.
 - **The coverage is wide**: the functions of C23, in binary32, binary64 and
   binary128, the recent functions included.
 - **The validation is graded**: in binary32 it is exhaustive — the 2³²
@@ -152,7 +153,7 @@ as much a strategy of adoption as a technique.
 - **The four rounding directions** are honoured, the one in effect included.
   This is what GAOL v5 rests on: correctly rounded in the upward rounding GAOL
   computes in, CORE-MATH gives the tightest bounds without switching the
-  rounding direction, `log` 2.2 times as fast as mathlib's moved outward (see
+  rounding direction, the interval `log` 2.2 times as fast as that of GAOL 4.2.3, which calls mathlib, moves its value outward and switches the rounding direction twice (see
   `gaol/math/gaol_core_math.h` and [Performance](compare/performance.md)).
 
 A proposal to add `cr_*` functions to the C standard comes from the same team,

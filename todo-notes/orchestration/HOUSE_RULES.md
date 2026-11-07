@@ -38,7 +38,7 @@ own worktree and branch, and you never push.**
     it unless your task is about the CI).
 - Documentation of the project: `doc/*.md` (building.md, three-builds.md,
   using.md, accuracy.md, tests.md, continuous-integration.md, differences.md),
-  `README.md`, `manual/v5/gaol.tex` (the manual of GAOL v5), `examples/`, and
+  `README.md`, `manual/v5/` (the manual of GAOL v5), `examples/`, and
   `examples/examples.md`, a review of GAOL v5 whose section 5 numbers the bugs
   ("Revue n° n" in TODO.md) and whose Appendix B gives corrections and tests
   validated on working builds but not applied to the tree.
@@ -72,7 +72,7 @@ own worktree and branch, and you never push.**
    pull request of the manual (a branch `manual*`) commits it, in its last
    commit. Instead, put
    the text you would have written there in your final report (`ledger_*`
-   fields). You do edit `manual/v5/gaol.tex` where the manual describes what
+   fields). You do edit the chapter of `manual/v5/chapters/` where the manual describes what
    you change, and check that it compiles (`pdflatex` into a directory of
    `$SCR/tmp/<slug>/`, not into the tree).
 
@@ -189,7 +189,7 @@ time, and the test says it skipped.
 
 Minimal and focused: the correction the TODO point asks for, its regression
 test, the documentation of what changed (`doc/*.md`, the Doxygen comments of the
-header, `manual/v5/gaol.tex`). No unrelated cleanup, no reformatting of code you
+header, `manual/v5/chapters/`). No unrelated cleanup, no reformatting of code you
 do not change. Match the comment density, naming and idiom of the surrounding
 code. Explain **why** in a comment where the reason is not obvious (this is where
 the explanations that a commit message may not carry go). Before you finish, run

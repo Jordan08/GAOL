@@ -988,9 +988,9 @@ when it is compiled (a `static_assert`, in a build that aborts as in one that
 throws; GAOL v5).
 
 Where memory runs out, GAOL throws the `std::bad_alloc` of C++: the reader of
-strings too, where flex ended the program with `exit(2)` when it could not
-allocate its buffer, and the parser turned a stack it could not grow into a
-`std::invalid_argument` (GAOL v5).
+strings too, where, in GAOL 4, flex ended the program with `exit(2)` when it could not
+allocate its buffer, and the parser read a stack it could not grow as a string
+nested too deep (GAOL v5).
 
 A build without `GAOL_EXCEPTIONS_ENABLED` (`-DGAOL_EXCEPTIONS_ENABLED=OFF` of
 CMake, `--disable-exceptions` of `configure`, `-Denable-exception=false` of
@@ -1475,10 +1475,10 @@ check.
 
 Measured with `gaol_performance` on an Apple M2 with AppleClang 21
 (`-DGAOL_SIMD=OFF`), the median of nine runs of each program, in turn with the
-others, on 6 November 2026, in nanoseconds (GAOL 4 code: the tree of 22 October
-2026, before the kernels):
+others, on 6 November 2026, in nanoseconds (the code before the kernels: the tree
+of 22 October 2026):
 
-| | GAOL 4 code | v5 kernels |
+| | Before the kernels | Kernels |
 |---|---:|---:|
 | `x - y` | 3.54 | 1.15 |
 | `x * y` | 3.25 | 3.25 |
@@ -1961,7 +1961,8 @@ check no rounding direction, nor after `+`, `-`, `/` and `sqrt()` with the
 NEON intervals when their bounds are exact), and `FE_OVERFLOW` or `FE_DIVBYZERO` stands for
 an infinite bound of the interval, or for the infinite width of a finite one
 (`interval(-DBL_MAX, DBL_MAX).width()`), not for an infinite number the program
-computed: `midpoint()` and
+computed, and an infinite bound does not always raise them (`interval(1, 2) /
+interval(0, 2)`, which is [0.5, +∞], raises none): `midpoint()` and
 `mid()` of `[DBL_MAX]`, which overflowed the sum of the bounds, raise none
 (GAOL v5). IEEE 1788-2015 leaves the flags of its operations unspecified. A
 program that reads them for its own computations clears them

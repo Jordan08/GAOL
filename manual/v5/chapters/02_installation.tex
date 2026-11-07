@@ -967,8 +967,9 @@ exceptions (\pxref{sec:exceptions}); one setting of the table makes GAOL abort i
     clang-cl: that layout on another system. CMake alone writes the macro into the
     installed \file{gaol/gaol\_configuration.h}: given to \cmd{configure} or
     meson by the flags, it reaches what the build compiles, not a program
-    compiled later with the installed GAOL, whose layout then differs (a
-    program must not define that macro otherwise)\\
+    compiled later with the installed GAOL, which then has to be compiled with
+    the same flag, or its layout differs from the library's; with CMake, a
+    program must not define the macro\\
     \code{-DCMAKE\_CXX\_FLAGS=\allowbreak -DGAOL\_RELATION\_\allowbreak
     BOUNDS\_FIRST=0} & \code{CXXFLAGS=-DGAOL\_RELATION\_\allowbreak
     BOUNDS\_FIRST=0} & \code{-Dcpp\_args=\ldots} with the same macro & The

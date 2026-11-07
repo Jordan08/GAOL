@@ -226,8 +226,10 @@ chapter names are those of IEEE 1788-2015.
 
 \begin{Rem}\label{rem:accuracy-before}
 Before GAOL v5, the elementary functions but the hyperbolic ones were
-correctly rounded to nearest and moved one double outward, which is at most one double beyond the
-tightest bound: accurate, and not tightest. The hyperbolic functions were
+correctly rounded to nearest and moved one double outward, which is at most one
+double beyond the tightest bound but for the sine, computed as
+$\cos(x-\pi/2)$, and the real power, computed as $\exp(y\log x)$, which were
+wider: accurate or not, and not tightest. The hyperbolic functions were
 taken from the mathematical library of the system, whose values are
 sometimes further than one double from the exact ones, and millions of
 doubles away for the \code{acosh} of some of them.\newinvfive
@@ -495,7 +497,7 @@ and $\sin(0)=0$ exactly.
 Both are tightest where the function is evaluated at the bounds, at every
 magnitude, and give $-1$ and $1$ exactly at the extrema. They give
 $\itv{-1}{1}$ from the width $2\underline{\pi}$ on, $\underline{\pi}$ being
-the double below $\pi$, which is then the tightest result: an interval that wide misses an arc shorter than $2.5\cdot10^{-16}$, where the sine and the cosine stay within $10^{-31}$ of $\pm1$. That the test of a width below
+the double below $\pi$, and $\itv{-1}{1}$ is then the tightest result: an interval that wide misses an arc shorter than $2.5\cdot10^{-16}$, around an extremum, where the sine and the cosine stay within $10^{-31}$ of $\pm1$. That the test of a width below
 $\underline{\pi}$ gives the tightest bounds is measured, not proved: the
 tests find the tightest bounds of \code{sin} and \code{cos} over 29\,400
 intervals of width about $\pi$ whose bounds are next to extrema of the

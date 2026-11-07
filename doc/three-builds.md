@@ -159,8 +159,8 @@ turn with the others (GAOL v5):
 | `-DGAOL_FMA=OFF` | 1.14 | 2.06 | 1.81 | 17.4 | 21.6 | 34.5 | 41.4 | 90.3 |
 | `-DGAOL_SIMD=OFF` | 2.30 | 4.32 | 2.46 | 7.65 | 19.9 | 23.6 | 32.8 | 39.0 |
 
-- **The fused multiply-add instructions (`GAOL_FMA`) are worth much more than
-  they were**: cos is **2.5 times faster** with them, pow(x, 3) 3.2 times, log
+- **The fused multiply-add instructions (`GAOL_FMA`) pay on the elementary
+  functions**: cos is **2.5 times faster** with them, pow(x, 3) 3.2 times, log
   1.6 times, sin 1.3 times and exp 1.2 times. CORE-MATH computes with
   `__builtin_fma` throughout, which is one instruction where the processor has
   it and a call to the math library where it has not. They are on by default wherever the compiler has a flag for them and the
@@ -197,9 +197,10 @@ On a 64-bit ARM processor, measured the same way on an Apple M2 with AppleClang
   of operands of one sign, which a processor predicts, takes more time than it
   did (a line of 7 products, 35.0 ns rather than 23.3), the largest of four
   products waiting for two comparisons. With `GAOL_PRESERVE_ROUNDING` the write
-  of FPCR waits for the result as well, and the FPU row of that option gains
-  little (x × y 42.4 ns rather than 39.7 for the former code, measured in the
-  same session, and 42.4 rather than 47.5 for operands of random signs). These
+  of FPCR waits for the result as well, and the FPU row of that option loses 6 to 7 %
+  on operands of one sign (x × y 42.4 ns rather than 39.7 for the former code,
+  measured in the same session) and gains on operands of random signs (42.4
+  rather than 47.5). These
   are the figures of this processor, with AppleClang. The processors of the
   continuous integration that run the FPU intervals (32-bit ARM, Ubuntu with
   GCC and Clang, macOS; and, when they were measured, Visual C++ and clang-cl
@@ -303,7 +304,7 @@ user's (`CMAKE_CXX_FLAGS`, `CXXFLAGS`), meson puts them before `cpp_args`. The
 last of two such options is the one that counts (as tried with Clang).
 
 Cygwin x86-64 is built and tested by a job of the continuous integration
-(`windows.yml`, GCC 14.4, CMake 4.4, Release, GAOL v5; not measured), whose
+(`windows.yml`, GCC 14.4, CMake 4.4, Release and Debug, GAOL v5; not measured), whose
 first runs found what Cygwin needed. Its `<stdlib.h>` does not declare
 `posix_memalign()` under `-std=c++11` (the aligned memory is `_mm_malloc()`
 there). Its `fma()` is not correctly rounded (`fma(1 + 2^-30, 1 - 2^-30, -1)`

@@ -89,7 +89,7 @@ point Q), which `numbers` checks there too.
   9.8·10^303, and its inverse, against mpmath), and the roots of 0, 1 and -1
   have to be the tightest enclosures; so do x^n over 4 000 intervals near the
   ends of the doubles, with a bound 0, subnormal or infinite, or a power above
-  2^1100 or below 2^-1000, where the products were once rounded outward, and
+  2^1100 or below 2^-1000, where the products were formerly rounded outward, and
   the SSE2 and FPU intervals gave other bounds for half of them; the
   powers that are doubles, 8 679 powers of integers times 2^-4, 1 and 2^4
   and of intervals between them, and powers of two to negative exponents,
@@ -794,15 +794,16 @@ point Q), which `numbers` checks there too.
   zeros), splitting, integer parts, `max(x, y)` and `min(x, y)` of every pair of
   intervals made of special bounds (the infinities, the largest and smallest
   normal numbers, subnormals, the zeros of both signs, the empty set),
-  `bisect(ratio)` of finite bounds next to the largest double (two parts that
-  cover the interval and no overflow exception), with the
+  with the
   bits of the zeros and the subnormals told by their values, with the modes that
   flush the subnormals to zero set or not (the SSE2 and NEON intervals choose
   the bounds themselves, and the SSE2 ones give the other cases to the code of
   the other kinds), and, for those two kinds, of every pair of stored lanes made
   of special doubles (a NaN in one lane, bounds in the wrong order, an infinite
   bound...), whose bits have to be those of the formula of the other kinds, the
-  constructor of the maxima of the bounds; `x / y`, `x %= y` and `y.inverse()`
+  constructor of the maxima of the bounds; `bisect(ratio)` of finite bounds next
+  to the largest double (two parts that cover the interval and no overflow
+  exception); `x / y`, `x %= y` and `y.inverse()`
   of the NEON intervals when a stored lane of an operand holds a NaN (quiet or
   signaling, of either sign, of the least and the greatest payloads), whatever
   the other lanes hold, which have to give the bits of `interval::emptyset()`

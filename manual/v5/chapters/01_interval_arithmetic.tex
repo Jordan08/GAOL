@@ -782,8 +782,8 @@ a technique.
   that the code can be taken up by the glibc, the libm of LLVM or musl. It
   answers the reason CRlibm was not adopted, and it works: routines of
   CORE-MATH have been integrated upstream. It is also what lets GAOL v5
-  take the sources it needs as they are, in \file{3rd/math-core}, and compile
-  them into its library.
+  take the sources it needs into \file{3rd/math-core}, with a few changes marked
+  in the code, and compile them into its library.
 \item[$\bullet$] \textbf{The coverage is wide}: the functions of C23, in
   binary32, binary64 and binary128, the recent functions included.
 \item[$\bullet$] \textbf{The validation is graded}: in binary32 it is
@@ -948,7 +948,9 @@ evaluates the function at the bounds of the interval, the bounds of the
 interval are therefore the tightest ones. Before GAOL v5, built with mathlib,
 the default of its \cmd{configure}, the elementary functions but the hyperbolic
 ones were correctly rounded to nearest and moved one double outward, which is
-at most one double beyond the tightest bound: accurate, and not tightest. The
+at most one double beyond the tightest bound but for the sine, computed as
+$\cos(x-\pi/2)$, and the real power, computed as $\exp(y\log x)$, which were
+wider: accurate or not, and not tightest. The
 hyperbolic functions came from the mathematical library of the system, whose
 values are sometimes further than one double from the exact ones
 (Remark~\ref{rem:accuracy-before}).\newinvfive

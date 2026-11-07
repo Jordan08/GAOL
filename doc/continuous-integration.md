@@ -210,8 +210,9 @@ Four jobs of `linux.yml`, with the GCC and the Clang of Ubuntu 26.04 on x86_64
 and on arm64, and one of `macos.yml`, with the AppleClang of macOS 26 arm64,
 build the library, the sources of CORE-MATH included, the tests and the
 examples with `-Wall -Wextra -Werror`, and four of `windows.yml` with `/W4 /WX`,
-with the Visual C++ of Visual Studio 2026: x64 in Release, with and without the
-AVX-512 path, x64 in Debug, and x86 in Release. On arm64, the check of the
+with the Visual C++ of Visual Studio 2026: x64 in Release, and again asking for the
+AVX-512 path (compiled where the runner has the instructions), x64 in Debug,
+and x86 in Release. On arm64, the check of the
 installed headers below compiles the header of the NEON intervals, which
 `gaol/core/gaol_interval_core.h` includes, with the warnings of the headers
 (`-Wold-style-cast`, `-Wundef`) that the intrinsics of `<arm_neon.h>` have to

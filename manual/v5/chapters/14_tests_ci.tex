@@ -1450,7 +1450,8 @@ of CORE-MATH included, the tests and the examples with
 \option{-Wall -Wextra -Werror}: four with the GCC and the Clang of Ubuntu 26.04
 on x86\_64 and on arm64, and one with the AppleClang of macOS 26 arm64. Four
 jobs do so with \option{/W4 /WX}, with the Visual C++ of Visual Studio 2026: x64
-in Release, with and without the AVX-512 path, x64 in Debug, and x86 in
+in Release, and again asking for the AVX-512 path (compiled where the runner has
+the instructions), x64 in Debug, and x86 in
 Release. On arm64, the check of the installed headers below compiles the header
 of the NEON intervals, which \file{gaol/core/gaol\_interval\_core.h} includes,
 with the warnings of the headers (\option{-Wold-style-cast},

@@ -304,7 +304,8 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   downward or toward zero, 30 operations gave other bounds, and sums and
   products did not enclose their exact values (3199 of the 13825 checks of
   `rounding_direction` failed with GCC 9.4 on x86-64). Built with autotools or
-  meson, whose option `--enable-preserve-rounding` is on by default in GAOL 4
+  meson, whose option `--enable-preserve-rounding` (`enable-preserve-rounding` of
+  meson) is on by default in GAOL 4
   although its manual says the contrary, GAOL 4 restored the rounding direction
   after each operation, but only
   the x87 control word on x86-64, where GAOL computes with SSE (43 operations
@@ -688,8 +689,8 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   a bound of a bisectable one. Both now compare the bounds by their bits, the
   cut point of `bisect(ratio)` included, before the modes are restored
   (`tests/rounding_direction.cpp`). **`bisect(ratio)` raises no overflow
-  exception for two finite bounds**: for a bound of 2^1023 or more, as in
-  `[prev(MAX), MAX]`, the sum of the two products `l (1 - ratio) + r ratio`,
+  exception for two finite bounds**: for a bound of magnitude 2^1023 or more, as in
+  `[prev(MAX), MAX]` or `[-MAX, -prev(MAX)]`, the sum of the two products `l (1 - ratio) + r ratio`,
   rounded upward, could be one ulp beyond the largest double, and the cut point
   was then put back at `r` after the exception (and moved to the double below `r`
   for a bisectable interval); the cut point is now that of
@@ -1163,8 +1164,8 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   ([issue #1](https://github.com/Jordan08/GAOL/issues/1)): the bounds are
   the tightest, on every system.
   - **Before.** GAOL took them from the libm of the system, and moved their
-    values one float outward. The libms of glibc 2.31, musl and MinGW-w64 are
-    sometimes a float further, which gave bounds not enclosing the exact
+    values one double outward. The libms of glibc 2.31, musl and MinGW-w64 are
+    sometimes a double further, which gave bounds not enclosing the exact
     values; the `acosh` of the MinGW-w64 older than version 12 is millions of doubles away next
     to 1, and its `asinh` NaN for large negative numbers.
   - **The sources.** The tree of CORE-MATH is vendored in `3rd/math-core` (MIT
@@ -1515,8 +1516,8 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
 - **`rad()` and `mid_rad()`**, `rad` and `midRad` of IEEE 1788-2015 (12.12.8):
   the radius, the smallest double r such that the interval is in
   `[m - r, m + r]`, m being `midpoint()`, and both at once. The radius of the
-  point zero is +0 (12.12.8: +0 by every function but `inf`), whichever the
-  sign of its bounds, `[-0, -0]` included, and so is its `width()`, `[+0, -0]`
+  point zero is +0 (12.12.8: +0 by every function but `inf`), whatever the
+  signs of its bounds, `[-0, -0]` included, and so is its `width()`, `[+0, -0]`
   included (`tests/other_functions.cpp`).
 - **The tools that algorithms of intervals write for themselves** are new:
   `width_enclosure()`, `inflate(r)`, `interval::midrad(m, r)`, `bisect(ratio)`,
@@ -2662,13 +2663,15 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   `multicol.sty` of 2006 kept with the manual is removed for the one of LaTeX,
   and the fonts are Latin Modern, the PDF embedding bitmaps otherwise where
   the cm-super fonts are not installed. `manual/build-pdf.sh` builds it (`sh
-  manual/build-pdf.sh manual/v4 <build directory> manual/v4/Manual_GAOLv4.pdf`);
-  no build runs it any more.
+  manual/build-pdf.sh manual/v4 <build>/manual/v4 manual/v4/Manual_GAOLv4.pdf`,
+  `<build>` being a build directory of configure, the only build that writes
+  `manual/v4/gaol_version.tex`); no build makes that PDF any more.
 - **The Goldstein-Price function of the manual and of
   `examples/16_Goldstein_Price.cpp`** had the factor `(x + y)^2` where the
   function has `(x + y + 1)^2`, as in GAOL 4 (`examples/Goldstein_Price.cpp`);
   the manual said its output `[-56254330, 94177270]` was the range of the
-  function, which is `[3, 1015690.27...]` (148 times narrower). Both now
+  function it computed, about `[3, 635255]` (237 times narrower; the range of the
+  true function is `[3, 1015690.27...]`). Both now
   compute the true function, whose natural extension over `[-2, 2]^2` is
   `[-87881320, 147125080]` (231 times as wide as the range); the manual says
   that its result, `z`, encloses the range, and why it is wider. The example

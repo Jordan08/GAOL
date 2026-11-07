@@ -180,7 +180,7 @@ GAOL.
   built for debugging, without optimization nor `NDEBUG`, with debugging
   information and `GAOL_DEBUGGING`, for the Debug build type (`CMAKE_BUILD_TYPE`,
   `--enable-debug`, `--buildtype=debug`); there is no target `perf` in the Debug
-  build of CMake, nor with `-Denable-debug=true` of meson (`--enable-debug` of
+  build of CMake nor with `-DGAOL_DEBUG=ON`, nor with `-Denable-debug=true` of meson (`--enable-debug` of
   configure and `--buildtype=debug` of meson keep it). Each
   configuration keeps its other flags (the C runtime of Visual C++,
   sanitizers...); the tests and the examples, and the code of a project bringing
@@ -207,7 +207,7 @@ cache unless they were given.
 | `-DGAOL_DEBUG=ON` | `--enable-debug` | `-Denable-debug=true` | GAOL and CORE-MATH built for debugging whatever the build type, a project bringing GAOL in included (`-Dgaol:enable-debug=true` for a subproject of meson); the tests and the examples keep the build type |
 | `-DGAOL_EXCEPTIONS_ENABLED=OFF` | `--disable-exceptions` | `-Denable-exception=false` | GAOL aborts to signal an error instead of raising an exception |
 | `-DGAOL_VERBOSE_MODE=ON` | `--enable-verbose-mode` | `-Denable-verbose-mode=true` | A line on the standard error when GAOL initializes and cleans up; GAOL is silent by default |
-| `-DGAOL_SSE2_UNALIGNED_STORAGE=ON` | `CXXFLAGS=-DGAOL_SSE2_UNALIGNED_STORAGE=1` | `-Dcpp_args=-DGAOL_SSE2_UNALIGNED_STORAGE=1` | The SSE2 intervals with their two bounds as two doubles, as on 32-bit Windows with Visual C++ and clang-cl: that layout on another system. CMake alone writes the macro into the installed `gaol/gaol_configuration.h`: given to configure or meson by the flags, it reaches what the build compiles, not a program compiled later with the installed GAOL, whose layout then differs (a program must not define that macro otherwise) |
+| `-DGAOL_SSE2_UNALIGNED_STORAGE=ON` | `CXXFLAGS=-DGAOL_SSE2_UNALIGNED_STORAGE=1` | `-Dcpp_args=-DGAOL_SSE2_UNALIGNED_STORAGE=1` | The SSE2 intervals with their two bounds as two doubles, as on 32-bit Windows with Visual C++ and clang-cl: that layout on another system. CMake alone writes the macro into the installed `gaol/gaol_configuration.h`: given to configure or meson by the flags, it reaches what the build compiles, not a program compiled later with the installed GAOL, which then has to be compiled with the same flag, or its layout differs from the library's; with CMake, a program must not define the macro |
 | `-DCMAKE_CXX_FLAGS=-DGAOL_RELATION_BOUNDS_FIRST=0` | `CXXFLAGS=-DGAOL_RELATION_BOUNDS_FIRST=0` | `-Dcpp_args=-DGAOL_RELATION_BOUNDS_FIRST=0` | The relations between intervals (`<`, `<=`, `>`, `>=`) test the empty sets before they compare the bounds, as they do on RISC-V; `=1`, the default elsewhere, compares the bounds first. The answers are the same; the order of the tests changes, which a processor may run faster or slower, and which decided whether GCC 14 raised the invalid-operation flag for an empty operand on RISC-V (the reason for its default there). It is to be defined the same in every file that includes GAOL (`gaol/gaol_port.h`) |
 | `-DGAOL_MACHINE_RUNS_FMA=1`, `-DGAOL_MACHINE_RUNS_AVX512=1` | `gaol_cv_machine_runs_fma=yes`, `gaol_cv_machine_runs_avx512=yes` | `-Dmachine-runs-fma=true`, `-Dmachine-runs-avx512=true` | In a cross-compilation, or under an emulator, where no program can be run: the machine running GAOL has the fused multiply-add instructions or runs the AVX-512 ones |
 
@@ -353,10 +353,13 @@ These are [the options](#the-options) of the three builds, and
 `configure --help` lists them (with the options of libtool and automake).
 `--enable-optimize` (the Release build, which is the default, and `-O` with
 `--disable-optimize`) and `--enable-arm64` (GAOL v5: the NEON intervals follow
-`--enable-simd`) are no longer options; the other options of GAOL 4 and of GAOL v5's earlier days
-(`--enable-fma`, `--enable-prefer-avx512`, `--enable-verbose-mode`,
-`--enable-exceptions`) are [settings of the
-developers](#the-settings-of-the-developers), which `--help` does not list. A
+`--enable-simd`) are no longer options; `--enable-verbose-mode` and `--enable-exceptions` of GAOL 4 are [settings of the
+developers](#the-settings-of-the-developers), as `--enable-fma` and
+`--enable-prefer-avx512` of its earlier days, which `--help` does not list; the
+other options of GAOL 4 (`--with-mathlib`, `--with-mathlib-include`,
+`--with-mathlib-lib`, `--with-cppunit-include`, `--with-cppunit-lib`,
+`--enable-fast-math`, `--enable-asm`, `--enable-relations`) are gone, and
+configure warns that it does not know them. A
 universal build of macOS is configured with `-arch` several times in the flags
 of the compilers (GAOL v5): `./configure CFLAGS="-arch arm64 -arch x86_64"
 CXXFLAGS="-arch arm64 -arch x86_64" LDFLAGS="-arch arm64 -arch x86_64"`; the
