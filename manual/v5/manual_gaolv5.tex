@@ -98,6 +98,9 @@
 %%==========================================================================
 \cleardoublepage
 \pagestyle{BIBLIO}
+%% An anchor first: without it the link and the bookmark of the entry go to the
+%% anchor that precedes it
+\phantomsection
 \addcontentsline{toc}{chapter}{\bibname}
 \bibliographystyle{plain}
 \bibliography{gaol}
@@ -117,6 +120,7 @@
 %%==========================================================================
 \cleardoublepage
 \pagestyle{INDEX}
+\phantomsection
 \addcontentsline{toc}{chapter}{Index}
 \printindex[idx]
 

@@ -91,6 +91,7 @@ processor (\pxref{sec:fpu-intervals}).
 
 \begin{table}[htbp]
 \centering\footnotesize
+\caption[What each build of GAOL computes with vector instructions]{What each build of GAOL computes with vector instructions, and what stays scalar (from \file{doc/simd.md}).} \label{tab:computing-kernels}
 \begin{tabular}{|L{3.6cm}|L{4.8cm}|L{4.5cm}|}
 \hline
 \textbf{Build} & \textbf{Vector kernels} & \textbf{Scalar} \\
@@ -119,9 +120,7 @@ lanes with \code{vfmaq\_f64}) &
 FPU (the rest) & none & everything \\
 \hline
 \end{tabular}
-\caption[What each build of GAOL computes with vector instructions]{What each build of GAOL computes with vector instructions, and what
-stays scalar (from \file{doc/simd.md}).}
-\label{tab:computing-kernels}
+
 \end{table}
 
 \begin{Rem}
@@ -215,6 +214,7 @@ above 1 the path is faster.
 
 \begin{table}[htbp]
 \centering\footnotesize
+\caption[The SSE2 intervals against the AVX-512 path]{The SSE2 intervals against the AVX-512 path, with and without \option{GAOL\_PRESERVE\_ROUNDING}, in nanoseconds per operation or per line (median of 9 runs, Intel i7-1185G7, Clang 21.1.8, 26 October 2026).} \label{tab:computing-avx512}
 \begin{tabular}{|l|r|r|r|r|r|r|}
 \hline
 & \multicolumn{3}{c|}{\textbf{Not preserved}}
@@ -239,10 +239,7 @@ line of 13 \code{+ - * /} (\code{mix13}) & 23.87 & 35.10 & 0.68 & 110.7
 & 32.61 & 3.39 \\
 \hline
 \end{tabular}
-\caption[The SSE2 intervals against the AVX-512 path]{The SSE2 intervals against the AVX-512 path, with and without
-\option{GAOL\_PRESERVE\_ROUNDING}, in nanoseconds per operation or per line
-(median of 9 runs, Intel i7-1185G7, Clang 21.1.8, 26 October 2026).}
-\label{tab:computing-avx512}
+
 \end{table}
 
 The median of the seven operations is 0.83 without
@@ -286,6 +283,7 @@ profile differ by up to 3 points, and the table gives the second.
 
 \begin{table}[htbp]
 \centering\footnotesize
+\caption[Where the time of the demonstration programs goes]{Where the time of the demonstration programs goes: the calls of GAOL and the shares of the time in the arithmetic, in the elementary functions and outside GAOL (Apple M2, NEON intervals, the profiler \cmd{sample} of macOS; from \file{doc/simd.md}).} \label{tab:computing-profile}
 \begin{tabular}{|L{2.9cm}|L{2.6cm}|L{2.6cm}|r|r|r|}
 \hline
 \textbf{Program} & \textbf{Calls} (\code{+ - * /}, \code{sqr}, powers)
@@ -302,11 +300,7 @@ profile differ by up to 3 points, and the table gives the second.
 16 Goldstein-Price & 32 M, 6 M powers & none & 98\,\% & 0 & 2\,\% \\
 \hline
 \end{tabular}
-\caption[Where the time of the demonstration programs goes]{Where the time of the demonstration programs goes: the calls of GAOL
-and the shares of the time in the arithmetic, in the elementary functions and
-outside GAOL (Apple M2, NEON intervals, the profiler \cmd{sample} of macOS;
-from \file{doc/simd.md}).}
-\label{tab:computing-profile}
+
 \end{table}
 
 \begin{itemize}
@@ -679,6 +673,7 @@ Section~\ref{sec:computing-performance}.
 \begin{table}[htbp]
 \centering\footnotesize
 \setlength{\tabcolsep}{3pt}
+\caption[The comparison in short]{The comparison in short: the special cases, the enclosure of the elementary functions and the time of six operations (17 October 2026, every library in the same run, Clang 21.1, Intel i7-1185G7).} \label{tab:computing-inshort}
 \begin{tabular}{|L{2.15cm}|L{1.5cm}|L{2.2cm}|L{1.3cm}|L{1.6cm}|L{1.7cm}|
   L{2.0cm}|}
 \hline
@@ -706,10 +701,7 @@ Shekel 5 & 9.0 $\mu$s & 108 ns & 397 ns & 1.7 $\mu$s & 1.1 $\mu$s
 & 920 ns \\
 \hline
 \end{tabular}
-\caption[The comparison in short]{The comparison in short: the special cases, the enclosure of the
-elementary functions and the time of six operations (17 October 2026, every
-library in the same run, Clang 21.1, Intel i7-1185G7).}
-\label{tab:computing-inshort}
+
 \end{table}
 
 \begin{itemize}
@@ -783,6 +775,7 @@ $\itv{0}{10}$; their widths are $10^u$, $u$ uniform in $\itv{-6}{0}$
 
 \begin{table}[htbp]
 \centering\footnotesize
+\caption{The operations of the benchmark of \file{doc/compare/performance.md}.} \label{tab:computing-bench-ops}
 \begin{tabular}{|l|L{10.5cm}|}
 \hline
 \textbf{Operation} & \textbf{Computes} \\
@@ -811,8 +804,7 @@ with Boost.Interval, which has no real power) \\
 $t_3 = a^2 + t_2/p$; $t_4 = \exp(t_2) - b^3$; $t_3 t_4 + \sqrt{p}$ \\
 \hline
 \end{tabular}
-\caption{The operations of the benchmark of \file{doc/compare/performance.md}.}
-\label{tab:computing-bench-ops}
+
 \end{table}
 
 Everything was built and run again with Clang 21.1, \option{-O3 -mfma} and
@@ -863,6 +855,7 @@ powers and the lines that use them.
 
 \begin{table}[htbp]
 \centering\footnotesize
+\caption[GAOL v5 against GAOL 4.2.3, in nanoseconds per operation]{GAOL v5 against GAOL 4.2.3, in nanoseconds per operation (Intel i7-1185G7, Clang 21.1, 17 October 2026).} \label{tab:computing-v5-v4}
 \begin{tabular}{|l|r|r|l|}
 \hline
 \textbf{Operation} & \textbf{GAOL v5} & \textbf{GAOL 4.2.3} & \\
@@ -888,9 +881,7 @@ line of sin and cos & 102 & 148 & 1.5 \\
 \code{shekel5} & 108 & 189 & 1.7 \\
 \hline
 \end{tabular}
-\caption[GAOL v5 against GAOL 4.2.3, in nanoseconds per operation]{GAOL v5 against GAOL 4.2.3, in nanoseconds per operation (Intel
-i7-1185G7, Clang 21.1, 17 October 2026).}
-\label{tab:computing-v5-v4}
+
 \end{table}
 
 The arithmetic is faster than GAOL 4.2.3's, which is what the operators of
@@ -940,6 +931,7 @@ $2\cdot10^{-16}$ relatively.
 \begin{table}[htbp]
 \centering\footnotesize
 \setlength{\tabcolsep}{3pt}
+\caption[Time per operation of the six libraries, in nanoseconds]{Time per operation, in nanoseconds: the same operations on doubles (double), libieeep1788 (p1788), GAOL v5 (v5), GAOL v5 with the rounding direction preserved and the AVX-512 path (v5 pres.), GAOL 4.2.3 (v4), filib++, Solaris Studio (Sun), PROFIL/BIAS (BIAS) and Boost.Interval (Boost). One million operations of each kind on the same intervals, the best of 3 rounds; Intel i7-1185G7, Clang 21.1.8, Ubuntu 26.04.1, 17 October 2026 (the preserved column on 18 October).} \label{tab:computing-times}
 \begin{tabular}{|l|r|r|r|r|r|r|r|r|r|}
 \hline
 \textbf{Operation} & double & p1788 & v5 & v5 pres. & v4 & filib++
@@ -976,14 +968,7 @@ $2\cdot10^{-16}$ relatively.
 \code{block5} & 44.5 & 13\,823 & 155 & 171 & 229 & 197 & 464 & 427 & 343 \\
 \hline
 \end{tabular}
-\caption[Time per operation of the six libraries, in nanoseconds]{Time per operation, in nanoseconds: the same operations on doubles
-(double), libieeep1788 (p1788), GAOL v5 (v5), GAOL v5 with the rounding
-direction preserved and the AVX-512 path (v5 pres.), GAOL 4.2.3 (v4),
-filib++, Solaris Studio (Sun), PROFIL/BIAS (BIAS) and Boost.Interval
-(Boost). One million operations of each kind on the same intervals, the
-best of 3 rounds; Intel i7-1185G7, Clang 21.1.8, Ubuntu 26.04.1, 17 October
-2026 (the preserved column on 18 October).}
-\label{tab:computing-times}
+
 \end{table}
 
 \paragraph{What the timings show.}
@@ -1112,6 +1097,7 @@ the benchmark, Table~\ref{tab:computing-lines-m2} on an Apple M2.
 
 \begin{table}[htbp]
 \centering\footnotesize
+\caption[The long lines of arithmetic operators between 8 intervals]{The long lines of arithmetic operators between 8 intervals ($a$, $b$, $p$, $e$ as in Table~\ref{tab:computing-bench-ops}, $s_1$ to $s_4$ in $\itv{0}{10}$).} \label{tab:computing-lines}
 \begin{tabular}{|l|L{9.0cm}|r|}
 \hline
 \textbf{Line} & \textbf{Computes} & \textbf{Operations} \\
@@ -1136,15 +1122,13 @@ e$ & 7 \\
 \code{pos\_quot8} & $p / e / p / e / p / e / p / e$ & 7 \\
 \hline
 \end{tabular}
-\caption[The long lines of arithmetic operators between 8 intervals]{The long lines of arithmetic operators between 8 intervals ($a$,
-$b$, $p$, $e$ as in Table~\ref{tab:computing-bench-ops}, $s_1$ to $s_4$ in
-$\itv{0}{10}$).}
-\label{tab:computing-lines}
+
 \end{table}
 
 \begin{table}[htbp]
 \centering\footnotesize
 \setlength{\tabcolsep}{3pt}
+\caption[Time per evaluation of a line, in nanoseconds]{Time per evaluation of a line, in nanoseconds, with the columns of Table~\ref{tab:computing-times} (one million evaluations of each line, the best of 3 rounds; Intel i7-1185G7, Clang 21.1.8, 17 October 2026).} \label{tab:computing-lines-x86}
 \begin{tabular}{|l|r|r|r|r|r|r|r|}
 \hline
 \textbf{Line} & double & p1788 & v5 & v4 & filib++ & BIAS & Boost \\
@@ -1161,10 +1145,7 @@ $\itv{0}{10}$).}
 \code{pos\_quot8} & 3.27 & 1\,160 & 20.2 & 37.6 & 44.3 & 101 & 109 \\
 \hline
 \end{tabular}
-\caption[Time per evaluation of a line, in nanoseconds]{Time per evaluation of a line, in nanoseconds, with the columns of
-Table~\ref{tab:computing-times} (one million evaluations of each line, the
-best of 3 rounds; Intel i7-1185G7, Clang 21.1.8, 17 October 2026).}
-\label{tab:computing-lines-x86}
+
 \end{table}
 
 GAOL v5 is the fastest of the libraries on every line, and faster than GAOL
@@ -1195,6 +1176,7 @@ lines of quotients.
 
 \begin{table}[htbp]
 \centering\footnotesize
+\caption[The same lines on a 64-bit ARM processor (Apple M2)]{The same lines on a 64-bit ARM processor, in nanoseconds per evaluation: GAOL v5 with the NEON intervals (v5), the same with the rounding direction preserved (v5 pres.) and GAOL 4.2.3 with the FPU intervals (v4). Apple M2, Apple clang 21.0.0, macOS 27.0.1, 6 November 2026, the best of 3 rounds, the processor not pinned.} \label{tab:computing-lines-m2}
 \begin{tabular}{|l|r|r|r|r|r|r|}
 \hline
 \textbf{Line} & \textbf{Ops} & v5 & v5 pres. & v4 & v5 pres. / v5
@@ -1212,12 +1194,7 @@ lines of quotients.
 \code{pos\_quot8} & 7 & 17.6 & 232 & 46.5 & 13.2 & 2.6 \\
 \hline
 \end{tabular}
-\caption[The same lines on a 64-bit ARM processor (Apple M2)]{The same lines on a 64-bit ARM processor, in nanoseconds per
-evaluation: GAOL v5 with the NEON intervals (v5), the same with the rounding
-direction preserved (v5 pres.) and GAOL 4.2.3 with the FPU intervals (v4).
-Apple M2, Apple clang 21.0.0, macOS 27.0.1, 6 November 2026, the best of 3
-rounds, the processor not pinned.}
-\label{tab:computing-lines-m2}
+
 \end{table}
 
 On the Apple M2, GAOL v5 takes 8.85 to 18.5 ns for a line of 7 to 19

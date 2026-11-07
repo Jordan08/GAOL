@@ -27,7 +27,16 @@
 %% them pdfTeX embeds bitmaps
 \usepackage{lmodern}
 \usepackage{textcomp}
+%% A straight apostrophe in the typewriter font (the code of the listings): the
+%% default is a curly one, and the code copied from the PDF does not compile
+\usepackage{upquote}
 \usepackage[english]{babel}
+%% No ligature in the typewriter font: in the T1 encoding, -- is an en dash and
+%% << and >> are the guillemets, so that \cmd{cmake --install} printed
+%% "cmake -install" with a dash and operator<< printed operator with a guillemet.
+%% Every other feature of microtype stays off: the pagination is unchanged.
+\usepackage[protrusion=false,expansion=false,tracking=false,kerning=false,spacing=false]{microtype}
+\DisableLigatures[-,<,>]{encoding=T1,family=tt*}
 \usepackage{amssymb,amsmath}
 \usepackage{graphicx}
 \usepackage{xcolor}
@@ -50,6 +59,10 @@
 \usepackage{fancyvrb}
 \usepackage{pifont}
 \usepackage[labelsep=endash,labelfont=sc]{caption}
+%% As in the thesis, and as the longtables of the manual, the caption of a table
+%% is above it (the \caption comes before the tabular); that of a figure stays
+%% under it
+\captionsetup[table]{position=top}
 %% The index: \index[idx]{...}, printed by \printindex[idx]
 \usepackage{index}
 \newindex{idx}{idx}{ind}{Index}
@@ -58,6 +71,15 @@
 %% The page
 %%--------------------------------------------------------------------------
 \raggedbottom
+%% A line of a paragraph never stays alone at the foot or at the head of a page
+\widowpenalty=10000
+\clubpenalty=10000
+%% A page of floats starts at the top, as the pages of text do, instead of being
+%% centred (a table alone on a page left a third of it white above)
+\makeatletter
+\setlength{\@fptop}{0pt}
+\setlength{\@fpsep}{12pt plus 1fil}
+\makeatother
 \usepackage[a4paper,top=2.5cm,bottom=2.5cm,left=3.5cm,right=2.5cm,includefoot,includehead,headheight=15pt]{geometry}
 
 \usepackage{fancyhdr}
@@ -142,9 +164,9 @@
 \newcommand{\FSet}{\ensuremath{\mathbb{F}}}
 \newcommand{\ISet}{\ensuremath{\mathbb{I}}}
 \newcommand{\itv}[2]{\ensuremath{[#1,\,#2]}}
-\newcommand{\roundDn}[1]{\ensuremath{\downarrow#1\downarrow}}
-\newcommand{\roundUp}[1]{\ensuremath{\uparrow#1\uparrow}}
-\newcommand{\roundNearest}[1]{\ensuremath{\updownarrow#1\updownarrow}}
+\newcommand{\roundDn}[1]{\ensuremath{\mathopen{\downarrow}#1\mathclose{\downarrow}}}
+\newcommand{\roundUp}[1]{\ensuremath{\mathopen{\uparrow}#1\mathclose{\uparrow}}}
+\newcommand{\roundNearest}[1]{\ensuremath{\mathopen{\updownarrow}#1\mathclose{\updownarrow}}}
 \newcommand{\hull}[1]{\ensuremath{\mathop{\Box} #1}}
 \newcommand{\leftBound}[1]{\ensuremath{\underline{#1}}}
 \newcommand{\rightBound}[1]{\ensuremath{\overline{#1}}}
@@ -159,7 +181,9 @@
 %% Names in the text
 %%--------------------------------------------------------------------------
 %% Code, a name of the program
-\newcommand*{\code}[1]{\textup{\texttt{#1}}}
+%% Robust, and plain text in the strings of the PDF (the bookmarks): hyperref cannot
+%% expand \frenchspacing
+\DeclareRobustCommand*{\code}[1]{\texorpdfstring{\textup{\texttt{\frenchspacing #1}}}{#1}}
 %% A name to stand out: a value of an enumeration, a format
 \newcommand*{\element}[1]{\textup{\textbf{\texttt{#1}}}}
 %% A definition, in the text
@@ -176,12 +200,12 @@
 %% The name of an environment variable
 \newcommand{\env}[1]{\textup{\texttt{#1}}\index[idx]{#1@\texttt{#1}}}
 %% A name of IEEE 1788-2015
-\newcommand*{\ieee}[1]{\textsf{#1}}
+\newcommand*{\ieee}[1]{\mbox{\textsf{#1}}}
 %% A non terminal and a terminal of a grammar
 \newcommand*{\NT}[1]{\uppercase{\textit{#1}}}
 \newcommand*{\TM}[1]{\textsf{#1}}
 %% What GAOL v5 changes: a mark in the text (process.md, section 4)
-\newcommand*{\newinvfive}{\unskip\nobreak\ \textcolor{blue}{\textsf{\scriptsize[GAOL~v5]}}}
+\newcommand*{\newinvfive}{\unskip\nobreak\ \textcolor{blue}{\textsf{\upshape\scriptsize[GAOL~v5]}}}
 %% A comment in a program, and what a program prints
 \definecolor{remark}{gray}{0.40}
 \newcommand{\rem}[1]{\textcolor{remark}{\textsl{#1}}}
@@ -241,6 +265,19 @@
 \let\@firsttime=\@undefined
 \newlength{\defwidth}
 \setlength{\defwidth}{.94\textwidth}
+%% The description of an entry, indented under its signature. Its box cannot be
+%% split, and a page may not break between the signature and it: without that
+%% the signature stayed alone at the foot of a page and its description began on
+%% the next one.
+\newcount\defsavedpenalty
+\newcommand*{\defbodybegin}{%
+  \nopagebreak
+  \defsavedpenalty=\@beginparpenalty
+  \@beginparpenalty=\@M
+  \begin{flushright}%
+  \@beginparpenalty=\defsavedpenalty
+  \begin{minipage}{\defwidth}%
+}
 %% A signature: the type, the name in bold, the parameters
 \newcommand*{\signature}[3]{%
   \noindent{\ttfamily\raggedright\frenchspacing\hangindent=2em\hangafter=1\relax #1 \textbf{#2}#3\par}}
@@ -253,8 +290,7 @@
   \signature{#1}{#2}{#3}}
 \newenvironment{deffun}[3]{%
   \deffunx{#1}{#2}{#3}%
-  \begin{flushright}%
-  \begin{minipage}{\defwidth}%
+  \defbodybegin
 }{%
   \end{minipage}%
   \end{flushright}%
@@ -272,8 +308,7 @@
   \signature{#2}{#3}{#4}}
 \newenvironment{defTfun}[4]{%
   \defTfunx{#1}{#2}{#3}{#4}%
-  \begin{flushright}%
-  \begin{minipage}{\defwidth}%
+  \defbodybegin
 }{%
   \end{minipage}%
   \end{flushright}%
@@ -289,8 +324,7 @@
   \noindent{\ttfamily\raggedright\frenchspacing\hangindent=2em\hangafter=1\relax\if#2\@empty\else #2 \fi#1::\textbf{#3}#4\par}}
 \newenvironment{defmethod}[4]{%
   \defmethodx{#1}{#2}{#3}{#4}%
-  \begin{flushright}%
-  \begin{minipage}{\defwidth}%
+  \defbodybegin
 }{%
   \end{minipage}%
   \end{flushright}%
@@ -306,8 +340,7 @@
   \noindent{\ttfamily\frenchspacing #2 #1::\textbf{#3}#4\hfill\textrm{\textit{static}}}\par}
 \newenvironment{defstaticmethod}[4]{%
   \defstaticmethodx{#1}{#2}{#3}{#4}%
-  \begin{flushright}%
-  \begin{minipage}{\defwidth}%
+  \defbodybegin
 }{%
   \end{minipage}%
   \end{flushright}%
@@ -320,8 +353,7 @@
   \defindex{#2}%
   \medskip
   \noindent{\ttfamily\textbf{#2}\hfill\textrm{\textit{#1}}}\par
-  \begin{flushright}%
-  \begin{minipage}{\defwidth}%
+  \defbodybegin
 }{%
   \end{minipage}%
   \end{flushright}%
@@ -333,8 +365,7 @@
   \defindex{#2}%
   \medskip
   \noindent{\ttfamily\frenchspacing #1 \textbf{#2}\hfill\textrm{\textit{const}}}\par
-  \begin{flushright}%
-  \begin{minipage}{\defwidth}%
+  \defbodybegin
 }{%
   \end{minipage}%
   \end{flushright}%
@@ -346,8 +377,7 @@
   \defindex{#1}%
   \medskip
   \noindent{\ttfamily\textbf{#1}\hfill\textrm{\textit{macro}}}\par
-  \begin{flushright}%
-  \begin{minipage}{\defwidth}%
+  \defbodybegin
 }{%
   \end{minipage}%
   \end{flushright}%
@@ -359,8 +389,7 @@
   \defindex{#1}%
   \medskip
   \noindent{\ttfamily\textbf{#1}#2\hfill\textrm{\textit{macro}}}\par
-  \begin{flushright}%
-  \begin{minipage}{\defwidth}%
+  \defbodybegin
 }{%
   \end{minipage}%
   \end{flushright}%

@@ -97,6 +97,7 @@ the standard (Chapter~\ref{chap:ieee1788}).
 
 \begin{table}[htbp]
   \centering\small\renewcommand{\arraystretch}{1.1}
+  \caption[The relations of IEEE 1788-2015 and the methods of GAOL v5]{The relations of IEEE 1788-2015 and the methods of GAOL v5 that compute them, for two intervals $I$ and $J$ and a double $d$} \label{tab:relations-ieee}
   \begin{tabular}{lL{7.2cm}l}
     \hline
     \multicolumn{1}{c}{IEEE 1788-2015} & \multicolumn{1}{c}{GAOL v5} &
@@ -122,9 +123,7 @@ the standard (Chapter~\ref{chap:ieee1788}).
     \ieee{isCommonInterval}$(I)$ & \code{I.is\_common\_interval()} & \\
     \hline
   \end{tabular}
-  \caption[The relations of IEEE 1788-2015 and the methods of GAOL v5]{The relations of IEEE 1788-2015 and the methods of GAOL v5 that
-    compute them, for two intervals $I$ and $J$ and a double $d$}
-  \label{tab:relations-ieee}
+
 \end{table}
 
 \section{Set relations}\label{sec:relations-set}
@@ -442,6 +441,7 @@ bound being equal to the same infinite bound and $-0$ to $+0$
 
 \begin{table}[htbp]
   \centering\renewcommand{\arraystretch}{1.1}
+  \caption[The 13 states of Allen returned by \code{overlap()}]{The 13 states of Allen for two nonempty intervals $a$ and $b$, as \code{a.overlap(b)} returns them (Table~10.7 of IEEE 1788-2015); each state of the left column is the inverse of the one on its right} \label{tab:relations-overlap}
   \begin{tabular}{ll@{\qquad}ll}
     \hline
     \multicolumn{1}{c}{State} & \multicolumn{1}{c}{Bounds} &
@@ -474,10 +474,7 @@ bound being equal to the same infinite bound and $-0$ to $+0$
                           \rightBound{a}=\rightBound{b}$}\\
     \hline
   \end{tabular}
-  \caption[The 13 states of Allen returned by \code{overlap()}]{The 13 states of Allen for two nonempty intervals $a$ and $b$,
-    as \code{a.overlap(b)} returns them (Table~10.7 of IEEE 1788-2015); each
-    state of the left column is the inverse of the one on its right}
-  \label{tab:relations-overlap}
+
 \end{table}
 
 \begin{defmethod}{interval}{bool}{less}{(const interval\& \var{I}) const}

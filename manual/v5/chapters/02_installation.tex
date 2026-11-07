@@ -664,6 +664,7 @@ options under their three names, with their defaults.
 \begin{table}[htbp]
   \centering\renewcommand{\arraystretch}{1.1}\footnotesize
   \setlength{\tabcolsep}{4pt}
+  \caption{The options of the three builds} \label{tab:install-options}
   \begin{tabular}{L{3.7cm}L{3.3cm}L{4.3cm}L{1.9cm}}
     \hline
     \multicolumn{1}{c}{CMake} & \multicolumn{1}{c}{\cmd{configure}} &
@@ -696,8 +697,7 @@ options under their three names, with their defaults.
     \option{-Denable-coverage=true} & off\\
     \hline
   \end{tabular}
-  \caption{The options of the three builds}
-  \label{tab:install-options}
+
 \end{table}
 
 \begin{itemize}
@@ -1197,6 +1197,7 @@ the \code{Debug} build), and the others are those of \cmd{configure}
 
 \begin{table}[htbp]
   \centering\renewcommand{\arraystretch}{1.1}\small
+  \caption{The options of the meson build} \label{tab:install-meson}
   \begin{tabular}{lL{8.6cm}}
     \hline
     \multicolumn{1}{c}{Option} & \multicolumn{1}{c}{Default}\\
@@ -1228,8 +1229,7 @@ the \code{Debug} build), and the others are those of \cmd{configure}
     makeindex, as \option{WITH\_DOC}\\
     \hline
   \end{tabular}
-  \caption{The options of the meson build}
-  \label{tab:install-meson}
+
 \end{table}
 
 \noindent
@@ -1290,6 +1290,7 @@ turn with the others.
 \begin{table}[htbp]
   \centering\renewcommand{\arraystretch}{1.1}\footnotesize
   \setlength{\tabcolsep}{4pt}
+  \caption{The options on x86: nanoseconds per operation, Intel i7-1185G7, Clang 21.1, the best of nine runs} \label{tab:install-worth-x86}
   \begin{tabular}{L{3.3cm}rrrrrrrr}
     \hline
     Build & $x + y$ & $x \times y$ & \code{sqr} & \code{pow(x, 3)} &
@@ -1303,9 +1304,7 @@ turn with the others.
     32.8 & 39.0\\
     \hline
   \end{tabular}
-  \caption{The options on x86: nanoseconds per operation, Intel i7-1185G7,
-    Clang 21.1, the best of nine runs}
-  \label{tab:install-worth-x86}
+
 \end{table}
 
 \begin{itemize}
@@ -1333,6 +1332,7 @@ the last two in another.
 
 \begin{table}[htbp]
   \centering\renewcommand{\arraystretch}{1.1}\footnotesize
+  \caption[The options on 64-bit ARM (Apple M2, AppleClang 21.0)]{The options on 64-bit ARM: nanoseconds per operation, Apple M2, AppleClang 21.0, the median of nine runs; the last column is a line of 13 operations} \label{tab:install-worth-arm}
   \begin{tabular}{L{4.6cm}rrrrrrr}
     \hline
     Build & $x + y$ & $x - y$ & $x \times y$ & $x / y$ & \code{sqr} &
@@ -1348,10 +1348,7 @@ the last two in another.
     27.8 & 35.1 & 27.2 & 35.7 & 370\\
     \hline
   \end{tabular}
-  \caption[The options on 64-bit ARM (Apple M2, AppleClang 21.0)]{The options on 64-bit ARM: nanoseconds per operation, Apple M2,
-    AppleClang 21.0, the median of nine runs; the last column is a line of
-    13 operations}
-  \label{tab:install-worth-arm}
+
 \end{table}
 
 \begin{itemize}
@@ -1420,6 +1417,7 @@ to the defect, as with \option{-mavx}.
 \begin{table}[htbp]
   \centering\renewcommand{\arraystretch}{1.1}\footnotesize
   \setlength{\tabcolsep}{3pt}
+  \caption[GCC for Windows on x86-64: nanoseconds per operation (MSYS2 UCRT64, GCC 16.2)]{GCC for Windows on x86-64: nanoseconds per operation, Windows Server 2022 runner of GitHub, MSYS2 UCRT64 with GCC 16.2, the median of three runs of each variant} \label{tab:install-gcc-windows-x64}
   \begin{tabular}{L{3.5cm}rrrrrrrr}
     \hline
     Flags & $x \times y$ & $x / y$ & \code{pow(x, 3)} & \code{exp} &
@@ -1431,10 +1429,7 @@ to the defect, as with \option{-mavx}.
     32.58 & 33.63 & 46.61 & 55.44 & 2.19\\
     \hline
   \end{tabular}
-  \caption[GCC for Windows on x86-64: nanoseconds per operation (MSYS2 UCRT64, GCC 16.2)]{GCC for Windows on x86-64: nanoseconds per operation, Windows
-    Server 2022 runner of GitHub, MSYS2 UCRT64 with GCC 16.2, the median of
-    three runs of each variant}
-  \label{tab:install-gcc-windows-x64}
+
 \end{table}
 
 \medskip
@@ -1449,6 +1444,7 @@ and \code{pow(x, 3)} gain the most, as with Clang above.
 
 \begin{table}[htbp]
   \centering\renewcommand{\arraystretch}{1.1}\footnotesize
+  \caption[GCC for Windows on 32-bit x86: nanoseconds per operation and instructions of the objects]{GCC for Windows on 32-bit x86: nanoseconds per operation and lines of the objects with \code{\%ymm} and \code{vfmadd}, MinGW-w64 for i686 (MinGW-Builds GCC 15.2), Windows Server 2022 runner of GitHub} \label{tab:install-gcc-windows-x86}
   \begin{tabular}{L{4.7cm}rrrrrr}
     \hline
     Flags & $x \times y$ & \code{pow(x, 3)} & \code{log} & \code{cos} &
@@ -1463,10 +1459,7 @@ and \code{pow(x, 3)} gain the most, as with Clang above.
     82.12 & 139.20 & 0 & 850\\
     \hline
   \end{tabular}
-  \caption[GCC for Windows on 32-bit x86: nanoseconds per operation and instructions of the objects]{GCC for Windows on 32-bit x86: nanoseconds per operation and lines
-    of the objects with \code{\%ymm} and \code{vfmadd}, MinGW-w64 for i686
-    (MinGW-Builds GCC 15.2), Windows Server 2022 runner of GitHub}
-  \label{tab:install-gcc-windows-x86}
+
 \end{table}
 
 \medskip
@@ -1608,6 +1601,7 @@ builds have the same targets (Table~\ref{tab:install-targets}).
 
 \begin{table}[htbp]
   \centering\renewcommand{\arraystretch}{1.1}\footnotesize
+  \caption{The targets of the three builds} \label{tab:install-targets}
   \begin{tabular}{L{3.0cm}L{4.2cm}L{2.8cm}L{3.2cm}}
     \hline
     & \multicolumn{1}{c}{CMake} & \multicolumn{1}{c}{\cmd{configure}} &
@@ -1633,8 +1627,7 @@ builds have the same targets (Table~\ref{tab:install-targets}).
     & \cmd{ninja pdf}, with \code{with-doc}\\
     \hline
   \end{tabular}
-  \caption{The targets of the three builds}
-  \label{tab:install-targets}
+
 \end{table}
 
 \begin{itemize}
