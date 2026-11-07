@@ -12,7 +12,7 @@ interval, or from the text that writes it; it can also build it from a
 midpoint and a radius. Once created, an interval receives new values by
 assignment, alone or combined with an operation, and a few intervals of
 constant use, the empty set, the whole real line, the enclosures of $\pi$,
-are provided ready made by the class.
+are provided ready-made by the class.
 
 \medskip
 The way a value enters an interval is not a detail. A \code{double} is taken
@@ -39,7 +39,12 @@ subject of Chapter~\ref{chap:io}.
 \section{Constructors}\label{sec:constructors}
 \cindex{interval!constructors}%
 
-The class \code{interval} has four constructors. A fifth way to create an
+The class \code{interval} has four constructors. The SSE2 and NEON intervals
+also have an explicit constructor from the register that holds the stored
+bounds, \code{interval(const \_\_m128d\&)} or
+\code{interval(const float64x2\_t\&)}, the lower bound negated in the first
+lane, which gives the empty set for a lane of $-\infty$; it serves the code of
+GAOL (\pxref{sec:kernels}). A fifth way to create an
 interval, from the text that writes it, is the function
 \code{textToInterval()}, and a sixth, from a midpoint and a radius, is the
 static method \code{interval::midrad()}. We describe the constructors first,
@@ -128,7 +133,7 @@ types of 53 bits or less (\code{int}, \code{short}, \code{char}\ldots),
 through the same code. The constructor \code{interval(\var{n})} is
 \code{explicit}, as the constructor from a \code{double}. The other
 operations of GAOL that take an integer are described in
-Chapter~\ref{chap:overview}.
+\exref{sec:integers}.
 \end{Rem}
 
 \subsection{Intervals read from a string}
@@ -146,8 +151,10 @@ interval x = textToInterval("[-23, inf]"),
          y = textToInterval("[5*0.1+dmin, 89*sinh(2.1)]");
   \end{example}
   If the string does not comply with the expected format, the exception
-  \code{std::invalid\_argument} is thrown when the library was compiled with
-  exception support, which is the default of the three builds. Without exception
+  \code{std::invalid\_argument} is thrown, and \code{std::domain\_error} if it
+  calls a function with an argument the function does not take, as
+  \code{"nth\_root(8, 1.5)"}, when the library was compiled with exception
+  support, which is the default of the three builds. Without exception
   support, the variable \code{errno} is set to \code{-1}, and the function
   \code{gaol\_error()} prints an error message before the program aborts
   (Chapter~\ref{chap:errors}). The \code{textToInterval()} of
@@ -195,7 +202,8 @@ midpoint and its radius, both given as \code{double}s.
   Returns the interval of midpoint \var{m} and radius \var{r}, computed as
   \code{interval(\var{m}) + interval(-\var{r}, \var{r})}. It encloses every
   real of \itv{m-r}{m+r}, where \code{interval(\var{m} - \var{r}, \var{m} +
-  \var{r})} rounds both bounds upward. A radius $r=0$ gives the point \var{m},
+  \var{r})} rounds both bounds in the same direction, upward unless GAOL is built
+  with \option{GAOL\_PRESERVE\_ROUNDING}. A radius $r=0$ gives the point \var{m},
   and $r=+\infty$ the whole line. A negative or NaN \var{r} gives the empty
   set, and so does an infinite or NaN \var{m}, as \code{interval(\var{m})}
   does.\newinvfive
@@ -208,10 +216,8 @@ cout << interval::midrad(1, 0.25) << ' '
 
 \subsection{Decimal constants}
 
-A bound reaches the constructors in one of three forms. A \code{double} is
-taken as it is, an integer as the integer it is, and a string, through
-\code{textToInterval()}, as the interval it writes, rounded outward. The
-first form is the usual one, and the one that calls for care.
+Of the three forms in which a number reaches an interval, the \code{double} is
+the usual one, and the one that calls for care.
 
 \begin{Rem}
 A rational number with a finite expansion in the decimal base may need a
@@ -261,13 +267,16 @@ cout << textToInterval("inf") << ' ' << textToInterval("[inf]") << ' '
      << textToInterval("[-inf, -inf]") << endl;
 @outputs^[1.797693134862315e+308, inf] [empty] [empty]~
 \end{example}
-The string \element{"<-inf, -inf>"} throws \code{std::invalid\_argument}, its
-two bounds being different values (\pxref{sec:input-format}).
+The string \element{"<-inf, -inf>"}, which GAOL~4 read as
+\itv{-\infty}{-\text{MAX}}, throws \code{std::invalid\_argument}: a bound of
+\code{<a, b>} must have a double for its value, and the value of \element{-inf}
+is \itv{-\infty}{-\text{MAX}}, no point (\pxref{sec:input-format}).\newinvfive
 
 \section{Straight assignment}\label{sec:assignment}
 \cindex{assignment}%
 
-An existing interval receives a new value in three ways.
+An existing interval receives a new value from another interval, from a string,
+from a \code{double}, or from an integer (below).
 
 \begin{itemize}
 \item[$\bullet$] \textbf{From another interval.} The assignment copies it:
@@ -305,8 +314,11 @@ integer \var{n} is assigned as \code{interval(\var{n})}, the tightest interval
 containing it.\newinvfive
 
 \begin{Rem}
-There is no method for modifying one bound of an interval. An interval is an
-atomic value: it is created, assigned and replaced as a whole.
+The interface has no method for modifying one bound of an interval: an interval
+is created, assigned and replaced as a whole. (The non-const accessors
+\code{get\_xmminterval()} and \code{get\_neoninterval()} of the SSE2 and NEON
+intervals hand the register of the stored bounds to the code of GAOL; a program
+does not write it.)
 \end{Rem}
 
 \section{Assignment combined with an operation}\label{sec:combined-assignment}
@@ -314,7 +326,7 @@ atomic value: it is created, assigned and replaced as a whole.
 In this manual, we write \code{self} for the object to which \code{this} is
 a pointer in C++.\cindex{this@\texttt{this}}\cindex{self@\texttt{self}} The
 assignment operators below combine the value of \code{self} with the value
-of their right-hand side, an interval or a \code{double}, and store the
+of their right-hand side, an interval, a \code{double} or an integer, and store the
 result in \code{self}.
 
 \defmethodx{interval}{interval\&}{operator\&=}{(const interval\& \var{I})}
@@ -412,7 +424,7 @@ x /= interval::zero();  @rem^// Now, @code^x~ is @ensuremath^@emptyset~~
 \end{defmethod}
 
 \defmethodx{interval}{interval\&}{operator\%=}{(const interval\& \var{I})}
-\begin{defmethod}{interval}{interval\&}{operator\%= }{(double \var{d})}
+\begin{defmethod}{interval}{interval\&}{operator\%=}{(double \var{d})}
 Assigns to \code{self} the interval resulting from dividing \code{self} by
 \var{I} (resp. \var{d}), using a \emph{relational division}
 (\pxref{sec:relational-arithmetic}).
@@ -424,9 +436,10 @@ x %= interval::zero();  @rem^// Now, @code^x~ is @itv^-@infty~^+@infty~~
 \end{defmethod}
 
 \noindent
-The operators with a \code{double} compute as those with an interval, by the
-sign of the double. An infinite double gives the empty set, as
-\code{interval(\var{d})} is empty.\newinvfive
+The arithmetic assignments with a \code{double} (\code{+=}, \code{-=},
+\code{*=}, \code{/=}, \code{\%=}) give the result of the same operation with
+\code{interval(\var{d})}, choosing the case by the sign of \var{d}; an infinite
+or NaN \var{d} gives the empty set, as \code{interval(\var{d})} is empty.\newinvfive
 
 \section{Interval constants}\label{sec:interval-constants}
 \cindex{interval!constants}%
@@ -437,7 +450,7 @@ Table~\ref{tab:interval-constants} lists them.
 
 \begin{table}[htbp]
   \centering\renewcommand{\arraystretch}{1.1}
-  \caption{The interval constants, static methods of the class \protect\code{interval}.} \label{tab:interval-constants}
+  \caption{The interval constants, static methods of the class \protect\code{interval}} \label{tab:interval-constants}
   \begin{tabular}{lc}
     \hline
     \multicolumn{1}{c}{Function} & \multicolumn{1}{c}{Value}\\
@@ -476,19 +489,21 @@ This chapter described the ways an interval of GAOL comes to exist and to
 change: four constructors, the function \code{textToInterval()} for the text
 of an interval, the static method \code{midrad()} for a midpoint and a
 radius, the straight assignment, the assignments combined with an operation,
-and the constants of the class. One rule runs through them all: an input that
-makes no interval, bounds in the wrong order, a NaN bound or an infinite
-point, gives the empty set rather than an object the operators do not
-support. GAOL v5 follows IEEE 1788-2015 and IBEX there, where GAOL~4 built
-intervals of one infinite point.\newinvfive
+and the constants of the class. One rule runs through the constructors,
+\code{midrad()} and the assignments: an input that makes no interval, bounds in
+the wrong order, a NaN bound or an infinite point, gives the empty set rather
+than an object the operators do not support; \code{textToInterval()} gives it
+too for a literal such as \code{"[2, 1]"} or \code{"[inf]"}, but throws for a
+string that is no expression, \code{"<-inf, -inf>"} among them. GAOL v5 follows IEEE 1788-2015 and IBEX there, where GAOL~4 built
+intervals of one infinite point.
 
 \medskip
 Two choices of GAOL v5 cost the programmer a few characters and remove
 ambiguities. The constructors from one \code{double} and from one integer are
 explicit, so that a number no longer becomes an interval without being asked
-to.\newinvfive{} The constructors from strings of GAOL~4 are replaced by
+to. The constructors from strings of GAOL~4 are replaced by
 \code{textToInterval()}, so that \code{interval(0)} is no longer ambiguous
-and a null pointer no longer compiles into a crash.\newinvfive{} An integer
+and a null pointer no longer compiles into a crash. An integer
 bound is taken as the integer it is, whatever the rounding direction, which
 keeps $2^{53}+1$ inside the interval that encloses it. The decimal constants
 remain the responsibility of the programmer: the way to an interval

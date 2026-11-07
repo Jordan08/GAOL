@@ -112,7 +112,7 @@ described in the chapter the cross reference names.
   \loption{enable-relations} of \cmd{configure} and meson: a program compares
   intervals with \code{set\_eq()}, \code{set\_disjoint()} and
   \code{!set\_disjoint()}, and \code{<}, \code{<=}, \code{>} and \code{>=}
-  are the certainly relations (\pxref{sec:interval-relations}).
+  are the certainly relations (Chapter~\ref{chap:relations}).
 \item[$\bullet$] \textbf{The constructors from strings.} The constructor from
   one string, \code{interval(const char*)}, is gone, and with it the
   conversion of a string wherever an interval is expected:
@@ -179,7 +179,7 @@ change of its text. The third section gives their reasons.
 \item[$\bullet$] \textbf{The comparisons} follow IEEE 1788-2015 for the empty
   set and the infinite bounds: \code{certainly\_leq()} and its companions are
   true when either interval is empty, and \code{set\_strictly\_contains()}
-  takes an infinite bound as beyond itself (\pxref{sec:interval-relations}).
+  takes an infinite bound as beyond itself (Chapter~\ref{chap:relations}).
 \item[$\bullet$] \textbf{Input and output.} Numbers are read exactly, and the
   literals of IEEE 1788-2015 are read, in any case of letters;
   \code{"[inf]"} is the empty set. Every string is an expression, where an

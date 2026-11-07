@@ -3,7 +3,7 @@
 %% Chapter 6: Interval relations. Sources: gaol.tex of f5bf180 lines 2803-3492
 %% (the chapter "Interval relations" of the current manual) and doc/using.md
 %% lines 631-694 (relations, sorting and containers).
-\chapter{Interval relations}\label{chap:relations}\label{sec:interval-relations}
+\chapter{Interval relations}\label{chap:relations}
 
 Comparing two intervals is not comparing two numbers. An interval stands for
 a set of reals, and a relation between two such sets can be read in two ways:
@@ -19,8 +19,9 @@ C++ one fixed meaning.
 \medskip
 The relations of GAOL v5 follow IEEE 1788-2015 \cite{IEEE1788:2015}, which
 defines the comparisons of intervals, their value for the empty set and for
-the infinite bounds, and a primitive, \ieee{overlap}, from which the
-comparisons can be derived. GAOL~4 had a larger family of relations and a
+the infinite bounds, and a primitive, \ieee{overlap}, which tells in which of
+sixteen states two intervals are and from which most of the comparisons can be
+derived. GAOL~4 had a larger family of relations and a
 build option that chose the meaning of the symbols. GAOL v5 keeps two groups
 of relations and no option.
 
@@ -51,7 +52,8 @@ The equality, for instance, is
 I=J \Leftrightarrow(\forall x\in I, \exists y\in J\colon x=y)\wedge
                    (\forall y\in J, \exists x\in I\colon x=y),
 \end{equation*}
-so that two intervals are equal when they have the same bounds.
+so that two nonempty intervals are equal when they have the same bounds, and
+the empty set is equal to itself alone.
 \end{Def}
 
 \begin{Def}\label{def:relations-certainly}
@@ -67,8 +69,9 @@ left bound of $J$.
 
 \begin{Rem}\label{rem:relations-possibly}
 GAOL~4 had a third group, the \dfn{possibly relations}, true when at least
-one pair of values satisfies the relation on the reals, and a certain
-equality, \code{certainly\_eq()} and \code{certainly\_neq()}. They are gone
+one pair of values satisfies the relation on the reals, and, among the certainly
+relations, an equality and an inequality, \code{certainly\_eq()} and
+\code{certainly\_neq()}. They are gone
 from GAOL v5, and so are the operators \code{==} and \code{!=} on
 intervals.\newinvfive{} \code{certainly\_neq()} was the negation of
 \code{certainly\_eq()}, which is ``possibly not equal'', so that \itv{3}{4}
@@ -80,8 +83,8 @@ equal'' is written \code{!set\_disjoint()}.
 \cindex{relation!possibly (removed)}%
 
 \medskip
-The relation symbols $<$, $\leq$, $>$ and $\geq$ are the certainly relations
-in every build (\pxref{sec:relational-symbols}).
+The relation symbols \code{<}, \code{<=}, \code{>} and \code{>=} are the
+certainly relations in every build (\pxref{sec:relational-symbols}).
 
 \medskip
 The relations that IEEE 1788-2015 defines (Tables~10.3 and 10.4) follow its
@@ -209,9 +212,9 @@ cout << boolalpha << a.set_disjoint(b) << ' '
 \end{example}
 \end{defmethod}
 
-\begin{defmethod}{interval}{bool}{set\_eq }{(const interval\& \var{I}) const}
+\begin{defmethod}{interval}{bool}{set\_eq}{(const interval\& \var{I}) const}
   \begin{operation}
-    \op{$\forall x\in \code{self} \exists y\in I\colon x=y \wedge
+    \op{$\forall x\in \code{self}, \exists y\in I\colon x=y \wedge
          \forall y\in I, \exists x\in \code{self}\colon y=x$}
   \end{operation}
   Returns \code{true} if the intervals \code{self} and \var{I} are equal
@@ -382,7 +385,8 @@ cout << boolalpha << interval::emptyset().certainly_positive() << ' '
   Returns \code{true} if the left bound of \code{self} is strictly greater
   than zero, or if \code{self} is empty.
 \begin{example}
-cout << boolalpha << interval::emptyset().certainly_strictly_positive() << ' '
+cout << boolalpha
+     << interval::emptyset().certainly_strictly_positive() << ' '
      << interval(4,5).certainly_strictly_positive() << ' '
      << interval(-0.0,6).certainly_strictly_positive() << ' '
      << interval(-6,0).certainly_strictly_positive();
@@ -412,7 +416,8 @@ cout << boolalpha << interval::emptyset().certainly_negative() << ' '
   Returns \code{true} if the right bound of \code{self} is strictly less
   than zero, or if \code{self} is empty.
 \begin{example}
-cout << boolalpha << interval::emptyset().certainly_strictly_negative() << ' '
+cout << boolalpha
+     << interval::emptyset().certainly_strictly_negative() << ' '
      << interval(4,5).certainly_strictly_negative() << ' '
      << interval(-6,0).certainly_strictly_negative() << ' '
      << interval(-6,-5).certainly_strictly_negative();
@@ -430,7 +435,11 @@ defines an order on the intervals, \ieee{less} and \ieee{strictLess}
 $J$ when the left bound of $I$ is at most the left bound of $J$ and the right
 bound of $I$ is at most the right bound of $J$. The standard also defines a
 primitive, \ieee{overlap} (10.6.4), which tells in which of sixteen states
-two intervals are, and from which the comparisons can be derived. Three of
+two intervals are. The standard derives its comparisons from it, but three of
+them also need the bounds: \itv{1}{1} and \itv{1}{2} are in the state
+\element{starts}, as \itv{1}{1.5} and \itv{1}{2}, and only the first pair is in
+\ieee{precedes}; \itv{-\infty}{1} and \itv{-\infty}{2} are in \element{starts}
+too, and are in \ieee{interior} and \ieee{strictLess} only in part. Three of
 the states are for the empty set. The thirteen others are the relations of
 Allen between two nonempty intervals $a = [\leftBound{a}, \rightBound{a}]$
 and $b = [\leftBound{b}, \rightBound{b}]$, told by their bounds, an infinite
@@ -447,29 +456,29 @@ bound being equal to the same infinite bound and $-0$ to $+0$
     \multicolumn{1}{c}{State} & \multicolumn{1}{c}{Bounds} &
     \multicolumn{1}{c}{State} & \multicolumn{1}{c}{Bounds}\\
     \hline\hline
-    \code{before} & $\rightBound{a}<\leftBound{b}$ &
-    \code{after} & $\rightBound{b}<\leftBound{a}$\\
-    \code{meets} &
+    \element{before} & $\rightBound{a}<\leftBound{b}$ &
+    \element{after} & $\rightBound{b}<\leftBound{a}$\\
+    \element{meets} &
       $\leftBound{a}<\rightBound{a}=\leftBound{b}<\rightBound{b}$ &
-    \code{metBy} &
+    \element{metBy} &
       $\leftBound{b}<\rightBound{b}=\leftBound{a}<\rightBound{a}$\\
-    \code{overlaps} &
+    \element{overlaps} &
       $\leftBound{a}<\leftBound{b}<\rightBound{a}<\rightBound{b}$ &
-    \code{overlappedBy} &
+    \element{overlappedBy} &
       $\leftBound{b}<\leftBound{a}<\rightBound{b}<\rightBound{a}$\\
-    \code{starts} &
+    \element{starts} &
       $\leftBound{a}=\leftBound{b},\ \rightBound{a}<\rightBound{b}$ &
-    \code{startedBy} &
+    \element{startedBy} &
       $\leftBound{a}=\leftBound{b},\ \rightBound{b}<\rightBound{a}$\\
-    \code{finishes} &
+    \element{finishes} &
       $\leftBound{b}<\leftBound{a},\ \rightBound{a}=\rightBound{b}$ &
-    \code{finishedBy} &
+    \element{finishedBy} &
       $\leftBound{a}<\leftBound{b},\ \rightBound{a}=\rightBound{b}$\\
-    \code{containedBy} &
+    \element{containedBy} &
       $\leftBound{b}<\leftBound{a},\ \rightBound{a}<\rightBound{b}$ &
-    \code{contains} &
+    \element{contains} &
       $\leftBound{a}<\leftBound{b},\ \rightBound{b}<\rightBound{a}$\\
-    \code{equals} &
+    \element{equals} &
       \multicolumn{3}{l}{$\leftBound{a}=\leftBound{b},\
                           \rightBound{a}=\rightBound{b}$}\\
     \hline
@@ -517,7 +526,7 @@ cout << boolalpha << interval(1,2).strictly_less(interval(1,3)) << ' '
   Returns the state of Table~10.7 of IEEE 1788-2015 that \code{self}, $a =
   [\leftBound{a}, \rightBound{a}]$, and \var{I}, $b = [\leftBound{b},
   \rightBound{b}]$, are in: \ieee{overlap} (10.6.4), a primitive from which
-  the comparisons can be derived.\newinvfive\ The result is one of the 16
+  most of the comparisons can be derived.\newinvfive\ The result is one of the 16
   values of the type \code{overlapping\_state} (in \code{gaol} and in
   \code{gaol\_ieee1788}), which has the names of Table~10.7, in its order,
   from \code{bothEmpty}, 0, to \code{after}, 15. The state number $s$ is the
@@ -545,13 +554,13 @@ cout << a.overlap(b) << ' ' << c.overlap(interval(2,3)) << ' '
   \end{example}
 \end{defmethod}
 
-\section{Relational symbols}\label{sec:relational-symbols}
+\section{Relation symbols}\label{sec:relational-symbols}
 \cindex{relation!symbols}%
 
 The relation symbols \code{<}, \code{<=}, \code{>} and \code{>=} are the
 certainly relations, whichever build configured GAOL. The option of GAOL~4
-that chose between the set, certainly and possibly relations is gone, and
-\cmd{configure} and meson refuse it (\pxref{sec:refused}).\newinvfive{}
+that chose between the set, certainly and possibly relations is gone, and meson refuses it, and \cmd{configure} warns that it is unrecognized
+(\pxref{sec:install-meson}).\newinvfive{}
 The operators \code{==} and \code{!=} are not defined on intervals: a program
 compares intervals with \code{set\_eq()}, \code{set\_disjoint()} or
 \code{less()}.
@@ -560,9 +569,11 @@ compares intervals with \code{set\_eq()}, \code{set\_disjoint()} or
 An interval and a \code{double} \var{d} compare as the interval and
 \code{interval(\var{d})}, which is empty for an infinite or NaN \var{d}:
 \code{x < 0.0} is \code{x < interval(0.0)}, and there is still no \code{==}
-nor \code{!=}. These overloads are what the implicit conversion of a
-\code{double} to an interval gave before the constructor from one
-\code{double} became explicit (\pxref{sec:constructors}).\newinvfive
+nor \code{!=}. For a finite \var{d}, these overloads give what the implicit
+conversion of a \code{double} to an interval gave in GAOL~4, before the
+constructor from one \code{double} became explicit
+(\pxref{sec:constructors}); for an infinite or NaN \var{d}, \code{x < d} and
+\code{x > d} are both \code{true}, whatever \code{x}.\newinvfive
 
 \medskip
 An interval and an integer \var{n} of any integer type but \code{bool}
@@ -748,7 +759,7 @@ cout << boolalpha << x.is_a_double() << ' '
 
 \begin{defmethod}{interval}{bool}{is\_an\_int}{(void) const}
   Returns \code{true} whenever the left and right bounds of the interval
-  are equal and castable into an integer (type \code{int}).
+  are equal to the same integer, within the range of the type \code{int}.
 \begin{example}
 interval x(-12.0), y;
 
@@ -861,12 +872,13 @@ groups remain of the three of GAOL~4: the set relations, which compare the
 intervals as sets of reals, and the certainly relations, which hold when
 every pair of points is in the relation. The possibly relations,
 \code{certainly\_eq()}, \code{certainly\_neq()} and the operators \code{==}
-and \code{!=} are gone, since a certain inequality that was the negation of
-a certain equality made \itv{3}{4} certainly not equal to itself. Every
+and \code{!=} are gone: IEEE 1788-2015 defines none of them, and a certain
+inequality that was the negation of a certain equality made \itv{3}{4}
+certainly not equal to itself. Every
 relation that IEEE 1788-2015 defines follows the standard, for the empty set
 and for the infinite bounds too, and the overlap state tells in which of the
-sixteen states of the standard two intervals are, from which the comparisons
-can be derived.
+sixteen states of the standard two intervals are, from which most of the
+comparisons can be derived.
 
 \medskip
 The relation symbols have one meaning in every build, the certainly
