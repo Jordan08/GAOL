@@ -1,6 +1,6 @@
 # Reporté
 
-Tout ce qui est reporté sur GAOL v5 au 5 novembre 2026 (commit `130acea` de
+Tout ce qui est reporté sur GAOL v5 au 7 novembre 2026 (commit `1e23540` de
 `configure-clean`) : ce qui attend la version v5.0.0, ce que le mainteneur a
 reporté indéfiniment, ce qu'il a écarté en laissant une porte ouverte, et ce qui
 attend du matériel. Ce fichier et l'issue #178 ont le même contenu. Ce qui reste
@@ -303,11 +303,13 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    `x / y` de clang-cl est plus lent en NEON qu'avec le FPU (#192) : plus lent
    partout, de 5,36 à 6,17 ns avec clang-cl et de 5,40 à 6,30 avec Visual C++
    sur le Neoverse N2 des runners arm64 de GitHub, de 2,38 à 2,76 ns sur l'Apple
-   M2 (chiffres dans `doc/simd.md`). La branche est supprimée. Depuis, #225
-   (fusionnée le 29 octobre) a raccourci le reste du noyau : la perte de
-   clang-cl est corrigée (`TODO_DONE.md`, section 5, PG.8), ce que `doc/simd.md`
-   ne dit pas encore (`TODO_fin.md`, 2.2). *À rouvrir* seulement si un
-   processeur ARM 64 bits divise nettement plus vite en scalaire.
+   M2 (les chiffres du N2 sont dans `doc/simd.md` et au chapitre 12 du manuel ;
+   ceux du M2, que #294 n'a pas gardés, dans `TODO_DONE.md` 2.4). La branche est
+   supprimée. Depuis, #225 (fusionnée le 29 octobre) a raccourci le reste du
+   noyau : la perte de clang-cl est corrigée (`TODO_DONE.md`, section 5, PG.8),
+   ce que `doc/simd.md` et le manuel disent depuis #294 (7 novembre : `x / y`
+   3,96 ns avec Clang sur le N2). *À rouvrir* seulement si un processeur ARM 64
+   bits divise nettement plus vite en scalaire.
 4. **Des drapeaux propres à la tranche x86_64 d'un build universel de macOS**
    (#194). Cette tranche n'a pas le fusionné multiplie-addition (`-mfma` échoue
    pour la tranche arm64) : CORE-MATH y appelle le `fma()` de la bibliothèque de

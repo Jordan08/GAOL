@@ -112,13 +112,20 @@ compilé.
    n'a pas changé depuis le 26 octobre (`d9b179f`). Le commentaire de tête de
    `gaol/core/gaol_interval_core.cpp` (ligne 34) cite encore les puissances
    entières de NEON parmi ce qui pourrait gagner. Destination : PJ.2, qui touche
-   déjà `doc/simd.md`.
+   déjà `doc/simd.md`. *Fait en partie par #294* (7 novembre) : le paragraphe du
+   quotient NEON sur le Neoverse N2 (les lignes 413 à 426) est réécrit, dans
+   `doc/simd.md` et au chapitre 12 du manuel, avec les chiffres de la CI du jour
+   (`x / y` 3,96 ns avec Clang) ; restent l'hypothèse de `doc/simd.md:343` (la
+   même phrase est au chapitre 12 du manuel) et la ligne 34 du commentaire de
+   tête de `gaol_interval_core.cpp`.
 3. **`doc/continuous-integration.md:54` (#276).** « macOS: 14, 15 and 26 » ;
    `.github/workflows/macos.yml:48-53` a 15, 26 et 27. Ce fichier manque à la
-   liste des textes qui citent macOS 14 de PJ.6.
+   liste des textes qui citent macOS 14 de PJ.6. *Fait le 7 novembre* : ajouté
+   à la liste de PJ.6.
 4. **`doc/three-builds.md:319-320` (#173, #205).** « A Debug build of Cygwin is
    not in the job » : faux depuis #205 (le job « Cygwin GCC x64 Release and
-   Debug » de `windows.yml`).
+   Debug » de `windows.yml`). *Fait par #294* : la page dit maintenant que le
+   build de Cygwin est construit et testé aussi.
 5. **`doc/using.md:1574` (#210).** Le titre « The control registers of 32-bit
    x86 processors » couvre aussi x86-64 (ligne 1613) : une remarque de la
    relecture de #210, non reprise.
@@ -470,11 +477,16 @@ change. La liste reste, comme mémoire.
    `configure-clean` (`6ed4441`, `TODO_DONE.md` 2.3 et 3.18).
 2. **#289 (ouverte)** : après sa fusion, son entrée et ses décisions (« Dans
    #289 ») ; le job `Manual` de la CI reste à voir ; si #290 est fusionnée après
-   elle, le PDF du manuel sera de nouveau plus vieux que `gaol.tex`.
+   elle, le PDF du manuel sera de nouveau plus vieux que `gaol.tex`. Fait :
+   fusionnée le 5 novembre à 9 h 02 UTC (`TODO_DONE.md` 2.3, 3.21 et 7.18) ; le
+   PDF a en effet été plus vieux que sa source après #290 et #293, jusqu'à #294
+   (7 novembre : 385 pages, `manual/Manual_GAOLv5.pdf`, `TODO.md` PJ.5).
 3. **#290 (ouverte)** : son texte « Pour `doc/differences.md` et `ChangeLog` »
    demandera une synthèse de plus ; l'ambiguïté de la Table 10.7 qu'elle relève
    (les spécifications de `meets` et de `metBy` vraies aussi pour un point sur
    une borne) n'est à signaler à ITF1788 ou au groupe de la norme que si le
    mainteneur le veut (PH) ; le lecteur de texte ne connaît pas `overlap` (« à
    traiter à part si cela sert » : `TODO_AFTER.md`) ; son `operator<<` n'a pas
-   été relu par un sous-agent.
+   été relu par un sous-agent. Fait : fusionnée le 5 novembre à 9 h 32 UTC
+   (`d0b7712`), son texte dans sa propre pull request (`TODO_DONE.md` 2.3, 3.22
+   et 7.19).

@@ -256,9 +256,10 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    d'exécuteur). Les textes qui citent macOS 14 comme testé
    (`manual/v5/chapters/02_installation.tex` ligne 473, `doc/three-builds.md`
    ligne 76, `CMakeLists.txt` ligne 512, `gaol/math/gaol_core_math_port.h`
-   ligne 453,
-   `configure.ac` et `meson.build`) sont à revoir avec la version si macOS 14
-   ne doit plus y figurer.
+   ligne 453, `configure.ac` et `meson.build`) sont à revoir avec la version si
+   macOS 14 ne doit plus y figurer ; `doc/continuous-integration.md` ligne 54
+   (« macOS: 14, 15 and 26 », alors que `macos.yml` a 15, 26 et 27) est à
+   corriger de même (`TODO_fin.md`, 2.3).
 7. **Les restes de la synthèse de #283 à #288, et le texte de #293** : la pull
    request #289 a fait la synthèse (`doc/differences.md`, `ChangeLog`,
    `todo-notes/synthese.md`, fusionnée le 5 novembre) ; #290 a écrit son texte

@@ -6418,8 +6418,12 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PH, PJ et PM) e
   ce qu'elle avait déduit.
 - Les pièges. Un paragraphe écrit d'après une mesure ancienne se périme : celui
   du quotient NEON d'un Neoverse N2 décrivait l'état d'avant c42f95e (5,36 ns au
-  lieu de 3,96), et ses chiffres du M2 contredisaient le début du même chapitre
-  : relire les chiffres cités quand le code qu'ils décrivent a changé. Trois
+  lieu de 3,96), et ses chiffres du M2 (2,38 à 2,76 ns : la division vectorielle
+  et l'essai de deux divisions scalaires de #195 ; 2,15 ns pour `x * y`) étaient
+  ceux d'avant #225 (le quotient) et #249 (le produit), que le début du même
+  chapitre (2,08 et 1,52 ns) ne reprenait pas : ils n'étaient pas faux, ils
+  étaient périmés, et #294 ne garde pas ceux de l'essai de #195 (2.4) : relire
+  les chiffres cités quand le code qu'ils décrivent a changé. Trois
   jeux de chiffres pour la même racine cubique (50 et 189, 67 et 179, 58 et 179
   ns) ne se retrouvaient ni sur l'i7 ni sur le M2 : refaire la mesure avec un
   programme dont on donne la source, sur les deux commits.
