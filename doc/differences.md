@@ -641,8 +641,8 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
     results they give with the modes cleared ([Using
     GAOL](using.md#flush-to-zero-and-denormals-are-zero)).
   - **At the link.** `gaol.pc` and `gaol::gaol` give `-mno-daz-ftz` to the code
-    using GAOL where the compiler accepts it (GCC 13 and later on x86, and
-    11.4 and 12.4 in the series 11 and 12; the builds test it by linking),
+    using GAOL where the compiler accepts it (GCC 13 and later on x86, from
+    11.4 and 12.4 in the series 11 and 12, and Clang 20 and 21; the builds test it by linking),
     which keeps `crtfastmath.o` out of the program. The check of the operations
     is the only defence against a plug-in, and on the other compilers; on POWER,
     s390x, RISC-V and MIPS neither defence exists.
@@ -691,7 +691,8 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   exception for two finite bounds**: for a bound of 2^1023 or more, as in
   `[prev(MAX), MAX]`, the sum of the two products `l (1 - ratio) + r ratio`,
   rounded upward, could be one ulp beyond the largest double, and the cut point
-  was then put back at `r` after the exception; the cut point is now that of
+  was then put back at `r` after the exception (and moved to the double below `r`
+  for a bisectable interval); the cut point is now that of
   the halves of the bounds, put between them and doubled
   (`tests/other_functions.cpp`).
 - **The AVX-512 path reads its operands once the modes that flush the
@@ -1515,7 +1516,8 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   the radius, the smallest double r such that the interval is in
   `[m - r, m + r]`, m being `midpoint()`, and both at once. The radius of the
   point zero is +0 (12.12.8: +0 by every function but `inf`), whichever the
-  sign of its bounds, `[-0, -0]` included (`tests/other_functions.cpp`).
+  sign of its bounds, `[-0, -0]` included, and so is its `width()`, `[+0, -0]`
+  included (`tests/other_functions.cpp`).
 - **The tools that algorithms of intervals write for themselves** are new:
   `width_enclosure()`, `inflate(r)`, `interval::midrad(m, r)`, `bisect(ratio)`,
   `is_bisectable()`, and `hull(a, b)` and `intersect(a, b)`, the functions of

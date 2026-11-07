@@ -92,7 +92,8 @@ cout << boolalpha << feven(3.0) << ' ' << feven(4.0) << ' ' << feven(3.5);
 
 \begin{deffun}{double}{next\_float}{(double \var{x})}
   Returns the smallest \code{double} greater than \var{x}, the neighbour
-  \nextdouble{x} of \var{x}; \code{next\_float(+oo)} is $+\infty$, and \code{next\_float(DBL\_MAX)} is $+\infty$ with every C library.
+  \nextdouble{x} of \var{x}; \code{next\_float(GAOL\_INFINITY)} and \code{next\_float(DBL\_MAX)} are
+  $+\infty$ with every C library.
 \end{deffun}
 
 \begin{deffun}{double}{previous\_float}{(double \var{x})}
@@ -165,7 +166,9 @@ cout << nb_fp_numbers(1.0, next_float(1.0)) << ' '
 \cindex{version of the library}%
 
 The headers of the library define four constants that give the version of
-GAOL a program was compiled with, from the macros \code{GAOL\_MAJOR\_VERSION}, \code{GAOL\_MINOR\_VERSION}, \code{GAOL\_MICRO\_VERSION} and \code{GAOL\_VERSION} of \file{gaol/gaol\_configuration.h}, which a program tests with \code{\#if} (\pxref{sec:install-configuration-header}). The
+GAOL a program was compiled with, from the macros \code{GAOL\_MAJOR\_VERSION}, \code{GAOL\_MINOR\_VERSION}, \code{GAOL\_MICRO\_VERSION} and \code{GAOL\_VERSION} of \file{gaol/gaol\_configuration.h}, the first three of which a program tests with \code{\#if},
+\code{GAOL\_VERSION} being the string \code{"5.0.0"}
+(\pxref{sec:install-configuration-header}). The
 versioning scheme is the one of the Apache Software Foundation, described at
 \url{http://apr.apache.org/versioning.html}. The constants are declared in the namespace \code{gaol\_core} and named in
 \code{gaol} and \code{gaol\_ieee1788}.\newinvfive
@@ -400,7 +403,8 @@ try {
 \subsection{The \code{std::domain\_error} exception}\label{sec:domain_error}
 
 The exception \code{std::domain\_error} is thrown in three cases only:
-\code{nb\_fp\_numbers()} with NaNs as parameters (\pxref{sec:fp-functions}),
+\code{nb\_fp\_numbers()} with a NaN or an infinity as a parameter, or with \var{a}
+greater than \var{b} (\pxref{sec:fp-functions}),
 \code{bisect()} with a ratio outside $(0, 1)$ (\pxref{sec:splitting}), and a
 string that gives a function an argument it does not take, as
 \code{"nth\_root(8, 1.5)"} does.
@@ -430,9 +434,13 @@ has been configured with them. The Debug build of each build enables them:
 \loption{buildtype=debug} with meson; \option{-DGAOL\_DEBUG=ON} with CMake
 and \option{-Denable-debug=true} with meson enable them whatever the build
 type.\newinvfive{} These builds define \code{GAOL\_DEBUGGING} to 1 in
-\file{gaol/gaol\_configuration.h} (with a generator of several configurations, Visual Studio or Xcode, only for the sources of GAOL in the configuration Debug: the header keeps 0, and \code{GAOL\_DEBUG\_VERBOSE} expands to nothing in the program), where it is 0 otherwise, as every option
+\file{gaol/gaol\_configuration.h}, where it is 0 otherwise, as every option
 of that file, so that it is read with \code{\#if} (\code{\#ifdef} is true of
-it in every build). The Debug builds compile without \code{NDEBUG} too, so
+it in every build). With a generator of several configurations (Visual Studio,
+Xcode or Ninja Multi-Config) and without \option{-DGAOL\_DEBUG=ON}, the header
+keeps 0 and \code{GAOL\_DEBUGGING} is 1 only for the sources of GAOL in the
+configuration Debug: \code{GAOL\_DEBUG\_VERBOSE} expands to nothing in the
+program. The Debug builds compile without \code{NDEBUG} too, so
 that \code{assert()} stays active.\newinvfive
 
 \begin{deffun}{int}{debug\_level}{}

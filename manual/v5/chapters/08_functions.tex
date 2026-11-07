@@ -82,7 +82,10 @@ at which the splitting methods cut these intervals (\pxref{sec:splitting}).
   Returns the radius of \code{self}: the smallest double $r$ such that
   $[m-r,m+r]$ contains \code{self}, $m$ being \code{self.midpoint()}
   (\ieee{rad} of IEEE 1788-2015). The radius of an unbounded interval is
-  $+\infty$, and the radius of the empty set is NaN.\newinvfive
+  $+\infty$, and the radius of the empty set is NaN. The radius of a point
+  interval of zero is $+0$, whatever the signs of its bounds, \itv{-0}{-0}
+  included, as 12.12.8 requires of every numeric function but
+  \ieee{inf}.\newinvfive
 \end{defmethod}
 
 \begin{defmethod}{interval}{void}{mid\_rad}{(double\& \var{m}, double\& \var{r}) const}
@@ -102,7 +105,8 @@ cout << m << ' ' << r << ' ' << interval(1,GAOL_INFINITY).rad();
   \end{operation}
   Returns the width of \code{self}, rounded upward: \ieee{wid} of IEEE
   1788-2015. The width of the empty set is NaN, as the standard has it,
-  where GAOL~4 returned $-1$.\newinvfive
+  where GAOL~4 returned $-1$, and that of a point zero is $+0$, whatever the
+  signs of its bounds.\newinvfive
 \begin{example}
 cout << boolalpha << interval(4,6).width() << ' '
      << (interval(1,next_float(1)).width()
@@ -480,7 +484,10 @@ cout << interval(4,5).split_right();
   Returns the two parts of \code{self} on either side of the cut point $c$,
   a double of \itv{a}{b} that both parts share, so that they cover
   \code{self} exactly. For $0<\rho<1$, $c$ is $a+\rho(b-a)$, computed as
-  $a(1-\rho)+b\rho$, which cannot overflow, and kept within \itv{a}{b};
+  $a(1-\rho)+b\rho$ or, where a bound is $2^{1023}$ or more in magnitude, as
+  twice $\frac{a}{2}(1-\rho)+\frac{b}{2}\rho$ kept between $\frac{a}{2}$ and
+  $\frac{b}{2}$, so that no overflow exception is raised for finite bounds, and
+  kept within \itv{a}{b};
   when \code{is\_bisectable()} is true, $c$ is moreover strictly between
   $a$ and $b$, so that both parts are smaller than \code{self}. $\rho=0.5$
   cuts at \code{midpoint()}, as \code{split()} does, and so does every
@@ -583,7 +590,7 @@ integers, its cuts, and the set operations on two intervals. Two
 conventions run through them. The empty set, whose bounds are NaN, gives
 NaN to every function that returns a double and itself to every function
 that returns an interval, but the hull of a union, \code{hull(interval::emptyset(), x)}
-being \code{x}, where GAOL~4 returned $-1$ for its width and
+being \code{x}; GAOL~4 returned $-1$ for the width of the empty set and
 \itv{3}{2} for the intersection of \itv{1}{2} and \itv{3}{4}, values that
 the operations on the bounds did not take for empty. An unbounded interval
 gives $+\infty$ to its width and its radius, and the largest double, or its

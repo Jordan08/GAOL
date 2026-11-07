@@ -45,18 +45,10 @@ show. The chapter closes with a discussion.
 \cindex{register of an interval}%
 
 On most platforms, switching the rounding direction is costly. The number of
-switches can however be cut down by relying on a property of the roundings
-defined in Chapter~\ref{chap:concepts} (\pxref{sec:rounding-definitions}).
-
-\begin{Prop}\label{prop:computing-negation}
-For every real $r$, $\roundDn{-r} = -\roundUp{r}$.
-\end{Prop}
-
-Nearly all the operations rounded downward can therefore be replaced by
-operations rounded upward, by negating appropriately twice the operations
-performed. GAOL stores the lower bound of an interval negated, and computes
-both bounds rounding upward: the rounding direction can then be set toward
-$+\infty$ once and for all.
+switches is cut down by Proposition~\ref{prop:round-neg}
+(\pxref{sec:containment}): GAOL stores the lower bound of an interval negated,
+and computes both bounds rounding upward, so that the rounding direction can be
+set toward $+\infty$ once and for all.
 
 \begin{Def}\label{def:computing-register}
 An interval $\itv{a}{b}$ is kept as the pair \code{<-a, b>}, its lower
@@ -75,7 +67,7 @@ Let $x = \itv{a}{b}$ and $y = \itv{c}{d}$ be kept as \code{<-a, b>} and
 \code{<-c, d>}. One vector addition rounded upward gives
 $\langle \roundUp{-a-c}, \roundUp{b+d} \rangle$, which is
 $\langle -\roundDn{a+c}, \roundUp{b+d} \rangle$ by
-Proposition~\ref{prop:computing-negation}: the register of $x+y$. The lower
+Proposition~\ref{prop:round-neg}: the register of $x+y$. The lower
 bound is minus the upper bound of the opposite, so that one addition rounded
 upward gives both bounds (the accuracy of each operation is the subject of
 Chapter~\ref{chap:accuracy}).
@@ -159,7 +151,7 @@ operation, which returns the two doubles of its result in one, where the
 operators of GAOL 4.2.3 read their operand and wrote their result through
 memory, the result going back to memory for the operation that followed.
 Each operation still checks that the rounding direction is upward, with one
-comparison, and sets it when it is not, where GAOL 4.2.3 takes it upward on
+comparison, and sets it when it is not, where GAOL 4.2.3, in its trust mode, takes it upward on
 trust (\pxref{sec:rounding-direction}).
 
 \medskip

@@ -812,7 +812,8 @@ otherwise write for themselves. GAOL v5 provides them.\newinvfive
   width, $0<\mathit{ratio}<1$, which share the cut point and cover $x$;
   \code{bisect(0.5)} cuts where \code{split()} does, at \code{midpoint()}, and
   so does every ratio for a half-line or the whole line. A ratio outside
-  $(0,1)$, or NaN, throws \code{std::domain\_error}. \code{x.is\_bisectable()}
+  $(0,1)$, or NaN, throws \code{std::domain\_error}; the cut of finite bounds
+  raises no overflow exception, whatever their magnitude. \code{x.is\_bisectable()}
   tells whether a double lies strictly between the bounds, both parts being
   then smaller than $x$: not for two consecutive doubles, nor for
   \itv{\mathrm{MAX}}{+\infty} (\pxref{sec:splitting}).
@@ -912,7 +913,7 @@ GAOL reports an error by throwing an exception of the standard library
 \code{std::invalid\_argument} for a string that is no interval, given to
 \code{gaol::textToInterval()} or read by \code{operator>{}>}, and
 \code{std::domain\_error} for a function called with an argument it does not
-take, \code{nb\_fp\_numbers()} with a NaN, \code{bisect()} with a ratio
+take, \code{nb\_fp\_numbers()} with a NaN, an infinity or $a>b$, \code{bisect()} with a ratio
 outside $(0,1)$, or \code{nth\_root(8, 1.5)} in a string. Both derive from
 \code{std::logic\_error}, which derives from \code{std::exception}, so that a
 handler that knows nothing of GAOL says what went wrong: its \code{what()} is

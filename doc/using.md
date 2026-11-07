@@ -1494,7 +1494,7 @@ The operands of `gaol_performance` are 1 024 intervals that the processor
 learns by heart, so that a branch on their signs costs less than it does on
 other operands. On 100 000 intervals centred at random (the benchmark of
 `doc/compare`), `x * y` took 13.9 ns and takes 3.5, `x / y` 8.5 and 3.2,
-`sqr(x)` 6.9 and 1.8, `x - y` 3.7 and 2.0, and the function Shekel 5 298 ns and 138.
+`sqr(x)` 6.9 and 1.8, `x - y` 3.7 and 2.0, and Shekel 5 took 298 ns and takes 138.
 
 A line of products of operands of one sign, which a processor predicts, takes
 **more** time: 7 products in a line took 23.3 ns and take 35.0 (23.7 and 35.2
@@ -1664,9 +1664,9 @@ reasons: from version 13, `fegetround()` joins the fields RC of the two units
 by OR, which is the direction of both only where they agree (to nearest and
 upward give upward, `FE_DOWNWARD | FE_UPWARD` is `FE_TOWARDZERO`), and
 `fesetround()` clears the six exception flags of MXCSR when it changes its
-value, so that the program's flags were lost, in the operations with
-`GAOL_PRESERVE_ROUNDING`, and in `gaol::cleanup()` and `gaol::restore_rounding()`
-with it or without it.
+value, so that the program's flags were lost in `midpoint()`, `chi()`, and the writing
+and the reading of an interval with `GAOL_PRESERVE_ROUNDING`, and in
+`gaol::cleanup()` and `gaol::restore_rounding()` with it or without it.
 
 ## Flush-to-zero and denormals-are-zero
 
@@ -1959,8 +1959,9 @@ The flags tell nothing of the results: after most operations of GAOL,
 `abs()`, `&`, `|`, `floor()`, `max()` or `min()`, which round nothing and
 check no rounding direction, nor after `+`, `-`, `/` and `sqrt()` with the
 NEON intervals when their bounds are exact), and `FE_OVERFLOW` or `FE_DIVBYZERO` stands for
-an infinite bound of the interval, or an infinite result of `width()` or
-`rad()`, not for an infinite number the program computed: `midpoint()` and
+an infinite bound of the interval, or for the infinite width of a finite one
+(`interval(-DBL_MAX, DBL_MAX).width()`), not for an infinite number the program
+computed: `midpoint()` and
 `mid()` of `[DBL_MAX]`, which overflowed the sum of the bounds, raise none
 (GAOL v5). IEEE 1788-2015 leaves the flags of its operations unspecified. A
 program that reads them for its own computations clears them

@@ -984,7 +984,8 @@ encloses $[m - r, m + r]$, which \code{interval(m - r, m + r)} does not, both
 of its bounds being computed upward; \code{width\_enclosure()} is the
 enclosure of the exact width that \code{width()} bounds from above.
 \code{bisect(ratio)} cuts at $l(1 - \mathit{ratio}) + r \cdot \mathit{ratio}$,
-which does not overflow and lies strictly between the bounds when
+which does not overflow (for a bound of $2^{1023}$ or more in magnitude it is
+computed from the halves of the bounds) and lies strictly between the bounds when
 \code{is\_bisectable()}, and throws \code{std::domain\_error} for a ratio
 outside $(0, 1)$ or a NaN; \code{is\_bisectable()} is true when a double
 lies strictly between the bounds (\pxref{sec:tools}).
@@ -1302,7 +1303,8 @@ that are the same double, so that reading back the text of a point interval
 failed for about 61\,\% of 11\,788 point intervals tried; the reader still reads \code{<a, b>}, with the numbers
 compared by their bits. The format \element{width} writes the midpoint and
 the radius of the standard, \code{midpoint()} rounded to nearest and
-\code{rad()} rounded upward, and \element{center} the midpoint: GAOL~4 wrote
+\code{rad()} rounded upward, which is $+0$ for a point zero of either sign, and
+\element{center} the midpoint: GAOL~4 wrote
 $(l + r)/2$ and $(r - l)/2$, both rounded to nearest, so that $[1, 1 +
 2^{-52}]$ was written \code{1 (+/- 1.110223024625157e-16)}, which stops short
 of the upper bound, and $[0, 5 \cdot 10^{-324}]$ had a radius 0. The empty

@@ -939,11 +939,11 @@ their accuracies.
   as 12.12.8 requires. \code{mid()} is the same midpoint rounded outward:
   tightest.
 \item[$\bullet$] \textbf{Width and radius.} \code{width()} (\ieee{wid}) is
-  $u-l$ rounded upward, NaN for the empty set; \code{rad()} and
+  $u-l$ rounded upward, NaN for the empty set, $+0$ for a point zero; \code{rad()} and
   \code{mid\_rad(m, r)} (\ieee{rad}, \ieee{midRad}) give the greater of
   $m-l$ and $u-m$ rounded upward, $m$ being \code{midpoint()}, $+\infty$
-  for the unbounded intervals and NaN for the empty set: as 12.12.8
-  requires. \code{mag()}, \code{mig()} and \code{smig()} are taken on the
+  for the unbounded intervals, NaN for the empty set and $+0$ for a point zero
+  of either sign: as 12.12.8 requires. \code{mag()}, \code{mig()} and \code{smig()} are taken on the
   bounds: exact. \code{hausdorff(x, y)} is the distance rounded upward:
   tightest.
 \item[$\bullet$] \textbf{Relations.} \code{is\_empty()},

@@ -787,7 +787,7 @@ point Q), which `numbers` checks there too.
   `[0, 5e-324]` was below it (GAOL v5, point Q).
 - **`other_functions`:** midpoints (of subnormal bounds, and of `intervalf`
   where a developer of GAOL compiles the float intervals, `gaol/gaol_config.h`),
-  widths, radii (`rad()`, `mid_rad()`, +0 for the point zero of either sign),
+  widths, radii (`width()`, `rad()`, `mid_rad()`, +0 for the point zero of either sign),
   magnitudes, mignitudes,
   Hausdorff distances (of intervals with infinite bounds too, equal
   bounds being at distance 0), `nb_fp_numbers()` (across the two

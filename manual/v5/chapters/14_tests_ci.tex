@@ -589,7 +589,8 @@ clearing it before it writes.\newinvfive
 \subsection{The functions, the standard and the reverse functions}
 
 \code{other\_functions} checks the midpoints (of subnormal bounds too), the
-widths, the radii, the magnitudes and mignitudes, the Hausdorff distances
+widths, the radii (that of the point zero, like its width, being $+0$ whatever
+the signs of its bounds), the magnitudes and mignitudes, the Hausdorff distances
 (of intervals with infinite bounds too), \code{nb\_fp\_numbers()} across
 the two zeros, the splitting, the integer parts, and \code{max(x, y)} and
 \code{min(x, y)} of every pair of intervals made of special bounds, with the
@@ -603,7 +604,8 @@ of \code{interval::emptyset()}. The tools of interval algorithms,
 exact width, of $\itv{a-r}{b+r}$ and of $\itv{m-r}{m+r}$, computed with exact
 rationals; \code{bisect(ratio)} has to give two parts that cover the
 interval exactly, cut strictly inside where \code{is\_bisectable()}, for
-ratios from $10^{-9}$ to $1-10^{-9}$, \code{bisect(0.5)} being
+ratios from $10^{-9}$ to $1-10^{-9}$, and to raise no overflow exception for
+finite bounds next to the largest double, \code{bisect(0.5)} being
 \code{split()}, and to throw \code{std::domain\_error} for a ratio outside
 $(0, 1)$ or NaN.\newinvfive{} The comparisons of IEEE 1788-2015 have to
 give the values of its Tables~10.3 and 10.4, \code{==} and \code{!=} must
