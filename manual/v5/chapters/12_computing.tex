@@ -32,8 +32,8 @@ do not give, to a program that needs a rounding direction.
 Section~\ref{sec:comparison} compares GAOL v5 with GAOL 4.2.3 and with five
 other libraries of interval arithmetic, on the special cases of the standard,
 on the enclosure of the elementary functions and on the time of the
-operations. Section~\ref{sec:test-suites} reports the two test suites of the
-standard that were run on GAOL v5, and Section~\ref{sec:new-paths} draws the
+operations. Section~\ref{sec:test-suites} reports the run on GAOL v5 of ITF1788,
+the test suite of IEEE 1788-2015, and of the benchmark of Tang et al., and Section~\ref{sec:new-paths} draws the
 verdicts on the paths that were considered and says what a new one has to
 show. The chapter closes with a discussion.
 
@@ -67,7 +67,7 @@ intervals. The FPU intervals keep the same two numbers in two doubles. The
 the two doubles of its result from the two doubles of each operand, which it
 takes and gives in registers, after checking that the rounding direction is
 upward and setting it when it is not (the kernels of the AVX-512 path carry
-the direction in the instruction and check nothing, \pxref{sec:avx512}).
+the direction in the instruction, set none, and check only the modes that flush the subnormals to zero, \pxref{sec:avx512}).
 \end{Def}
 
 \begin{Ex}
@@ -108,14 +108,13 @@ AVX-512 (\code{GAOL\_PREFER\_AVX512}) &
 (with \code{\_\_FMA\_\_}), with the rounding direction in the instruction;
 \code{sqrt} as two scalar square roots and \code{/} as two scalar divisions,
 with embedded rounding &
-as SSE2, and \code{inverse}, \code{\%=} and the leaves of \code{div\_rel},
-which stay SSE2 kernels that set the direction \\
+as SSE2 but \code{sqrt}; \code{inverse}, \code{\%=} and the leaves of \code{div\_rel} stay the vector kernels of SSE2, which set the direction \\
 \hline
 NEON (arm64, \code{GAOL\_SIMD}; every compiler) &
 \code{+ - * / sqr sqrt}, the operations with a double, \code{\%=},
 \code{inverse}, \code{\&=}, \code{|=}, \code{-x}, the integer powers (two
 lanes with \code{vfmaq\_f64}) &
-\code{mid}, \code{midpoint}, \code{div\_rel}, the elementary functions \\
+\code{mid}, \code{midpoint}, \code{div\_rel}, the relations, the elementary functions, the reverse functions, and \code{sqrt} of an upper bound above $2^{1000}$ \\
 \hline
 FPU (the rest) & none & everything \\
 \hline
@@ -137,7 +136,7 @@ The NEON intervals compute as the SSE2 intervals do on
 x86.\newinvfive{} The sum and the difference are one vector addition rounded
 upward. The product is the maximum of the four products of the bounds, with
 no branch on their signs. The quotient is one vector division when the
-divisor has no zero, and single divisions otherwise. The square roots of
+divisor has no zero, and single divisions otherwise. With NEON, the square roots of
 both bounds are one vector square root rounded upward, the lower bound being
 that root where it is exact, and the double below it otherwise. They are the
 intervals of GAOL on 64-bit ARM with every compiler (GCC, Clang, AppleClang,
@@ -148,8 +147,7 @@ its x86\_64 part. The options that select them, and what the user sees of
 them, are described in Chapter~\ref{chap:rounding} (\pxref{sec:neon}).
 
 \medskip
-The products, the quotients and the squares were nine cases of the signs of
-the bounds, told apart by a \code{switch} in GAOL 4.2.3 and in GAOL v5 at
+The products and the quotients were nine cases of the signs of the bounds, and the squares three, told apart by a \code{switch} in GAOL 4.2.3 and in GAOL v5 at
 first. When the signs of the operands are random, as those of the benchmark
 of Section~\ref{sec:comparison} are, a mispredicted branch costs more than
 the operation it chooses. The kernels now compute with no branch on the
@@ -187,12 +185,13 @@ each of the four rounding directions: it found no other difference.
 \label{sec:computing-avx512-rule}
 \findex{GAOL\_PREFER\_AVX512}\findex{GAOL\_PRESERVE\_ROUNDING}%
 
-The AVX-512 path is off by default. The build takes it only where the
-option \option{GAOL\_PRESERVE\_ROUNDING} is on, where the compiler has the
+The AVX-512 path is off by default. By default the build takes it only where
+the option \option{GAOL\_PRESERVE\_ROUNDING} is on, where the compiler has the
 instructions and where the machine building runs them, and leaves it out
-otherwise. A library built with the path needs a processor with the instructions;
-taking the path was once the default of the option \option{GAOL\_PREFER\_AVX512}
-(\pxref{sec:avx512}). The
+otherwise; the setting of the developers \option{-DGAOL\_PREFER\_AVX512=ON}
+asks for it without that option, and \code{=OFF} refuses it
+(\pxref{sec:avx512}). A library built with the path needs a processor with the
+instructions. The
 build decides it the same way with the three build
 systems.\newinvfive{} For \code{+}, \code{-}, \code{*} and \code{sqr} the
 path puts the two bounds in two of the eight lanes of a 512-bit register,
@@ -330,7 +329,7 @@ M2: two writes of FPCR).
 (09), 4.7\,\% (06) and 8.3\,\% (16). \option{GAOL\_PRESERVE\_ROUNDING} on the
 M2, for a program that computes to nearest, makes 03 and 16 about 16 times
 slower, 06 eight times, 09 five times. On x86 with the AVX-512 path the
-ratio is 1.0 to 1.5 (Section~\ref{sec:computing-performance}).
+ratio is not measured for these programs; the operations of the benchmark of Section~\ref{sec:computing-performance} take 0.6 to 1.5 times as long (Table~\ref{tab:computing-times}).
 \item[$\bullet$] \textbf{The text.} The text is 41 to 69\,\% of the five
 demonstration programs that print (01, 02, 05, 12, 15; 28 to 31\,\% of 14 and
 11\,\% of 03), at 0.2 to 0.45 $\mu$s per bound written. Among the solvers it
@@ -345,7 +344,7 @@ for \code{+} and \code{-}, 2.30 for \code{*}, 2.52 for \code{/}, 1.87 for
 \code{sqr}, 6.30 for \code{sqrt} and 5.12 for \code{pow(x, 3)}, the same
 operation on doubles taking 0.96 ns for \code{+}. With
 \option{GAOL\_PRESERVE\_ROUNDING} and the AVX-512 path: 2.19, 2.16, 3.42,
-3.60, 2.04, 3.75 and 6.18. On the M2 the NEON intervals take 0.90 ns for
+3.60, 2.04, 3.75 and 6.18. On the M2, measured with \file{tests/performance.cpp} (the median of nine runs, Table~\ref{tab:install-worth-arm}), in which the i7-1185G7 takes 1.07~ns for \code{x + y}, the NEON intervals take 0.90 ns for
 \code{+}, 1.52 for \code{*}, 2.08 for \code{/}, 1.27 for \code{sqr} and 2.04
 for \code{sqrt}, against 1.15, 3.26, 3.22, 1.78 and 5.17 with the FPU
 intervals, whose \code{*}, \code{/} and \code{sqr} take no branch on the
@@ -370,8 +369,8 @@ the wait for the operations in flight. \code{STMXCSR}, the read, takes 1
 cycle on most Intel cores but 14 to 16 on Zen 2 to Zen 5: one more reason,
 with those given in \file{gaol/gaol\_fpu.h} (800 ns under Rosetta 2, 80 ns
 with 32-bit Visual C++, a single read reused by Clang 18), why the check of
-GAOL on x86 is an addition and not a read. Two writes took 6 ns a
-\code{sqr} (8.3 ns, 4.4 times) before the AVX-512 path.
+GAOL on x86-64, in the default build, is an addition and not a read. Two writes took 6 ns a
+\code{sqr} (8.3 ns, 4.4 times) on the SSE2 path with \option{GAOL\_PRESERVE\_ROUNDING}, which the AVX-512 path spares.
 \item[$\bullet$] \textbf{64-bit ARM.} \code{mrs} of FPCR takes 0.8 ns,
 \code{msr} 4 ns for the value FPCR holds and 11 ns when it changes the
 direction (Apple M2). The reference manuals of the Neoverse N1, N2, N3 and
@@ -677,7 +676,7 @@ Section~\ref{sec:computing-performance}.
 \begin{tabular}{|L{2.15cm}|L{1.5cm}|L{2.2cm}|L{1.3cm}|L{1.6cm}|L{1.7cm}|
   L{2.0cm}|}
 \hline
-& \textbf{libieee\-p1788} & \textbf{GAOL} & \textbf{filib++}
+& \textbf{p1788} & \textbf{GAOL} & \textbf{filib++}
 & \textbf{Solaris Studio} & \textbf{PROFIL/\allowbreak BIAS}
 & \textbf{Boost.\allowbreak Interval} \\
 \hline
@@ -827,8 +826,7 @@ PROFIL/BIAS 2.0.8 in its \code{x86-64-Linux-compat-gcc} configuration;
 Boost.Interval of Boost 1.92.0 with its default policies and
 \code{rounded\_transc\_opp} for the elementary functions, glibc 2.43. Only
 Solaris Studio keeps its own compiler, Sun Fortran 95 8.7 with
-\option{-O3 -xia}, by nature. Every library was measured in the same run, on
-17 October 2026, on a laptop with an Intel i7-1185G7 at 3.00 GHz (pinned by
+\option{-O3 -xia}, by nature. Every library was measured in the same run, on 17 October 2026, and GAOL v5 with the rounding direction preserved again on 18 October, on a laptop with an Intel i7-1185G7 at 3.00 GHz (pinned by
 \cmd{taskset -c 2}), Linux 7.0.0-38-generic, Ubuntu 26.04.1; each time is
 the best of the runs of three rounds, each program being run in turn with
 the others. libieeep1788's times, from a single run of each operation in
@@ -845,9 +843,8 @@ most. The elementary functions are faster:\newinvfive{} two things go at
 once with mathlib, the outward move of each bound, and the two changes of
 rounding direction each function made, to nearest before mathlib and back
 upward after. The integer power is computed from exact products, both
-bounds at once in an SSE2 register, with an error bound proved beforehand:
-it took 13.8 ns before, with an exact product and a rest carried apart for
-each bound. The bounds are tighter, not looser: GAOL v5's results are no
+bounds at once in an SSE2 register, with an error bound proved beforehand.
+The bounds are tighter, not looser: GAOL v5's results are no
 wider than libieeep1788's, which computes every bound with MPFR, for every
 one of the seventeen operations (excess $0.0$), where GAOL 4.2.3 is wider
 on the square root, \code{exp}, \code{log}, \code{sin}, \code{cos}, both
@@ -858,7 +855,7 @@ powers and the lines that use them.
 \caption[GAOL v5 against GAOL 4.2.3, in nanoseconds per operation]{GAOL v5 against GAOL 4.2.3, in nanoseconds per operation (Intel i7-1185G7, Clang 21.1, 17 October 2026).} \label{tab:computing-v5-v4}
 \begin{tabular}{|l|r|r|l|}
 \hline
-\textbf{Operation} & \textbf{GAOL v5} & \textbf{GAOL 4.2.3} & \\
+\textbf{Operation} & \textbf{GAOL v5} & \textbf{GAOL 4.2.3} & \textbf{Ratio} \\
 \hline
 \multicolumn{4}{|l|}{\emph{The elementary functions and the powers}} \\
 \hline
@@ -904,7 +901,7 @@ the other sign (\pxref{sec:zero-sign}).
 The column of Table~\ref{tab:computing-times} where the direction is
 preserved (\option{GAOL\_PRESERVE\_ROUNDING} on, with the AVX-512 path)
 leaves the sums and the differences as they are, 2.2 ns, and costs 1.5
-times on the products and the quotients (3.4 and 3.6 ns), 1.1 times on
+times on the products and 1.4 times on the quotients (3.4 and 3.6 ns), 1.1 times on
 \code{sqr} (2.0 ns against 1.9) and 1.2 times on \code{pow(x, 3)} (6.2 ns
 against 5.1): these operations take the AVX-512 instructions, whose rounding
 direction is in the instruction, and set none, so that nothing is saved and
@@ -979,7 +976,7 @@ Studio (17.6 ns); $\times$ and $\div$ take GAOL v5 2.3 and 2.5 ns (10.0 and
 7.5 for GAOL 4.2.3), against 12.1 and 8.7 ns for filib++, 14.7 and 14.4 ns
 for PROFIL/BIAS, 21 and 20 ns for Solaris Studio and 21 and 19 ns for
 Boost.Interval. An addition of intervals costs GAOL v5 2.3 times an
-addition of doubles: two additions, and the check that the rounding
+addition of doubles: one vector addition for both bounds, and the check that the rounding
 direction is upward, where filib++ sets the rounding direction and restores
 it, and PROFIL/BIAS calls a function of BIAS that sets it downward, then
 upward, then back to nearest, which is why its four arithmetic operations
@@ -1055,10 +1052,7 @@ library, and so do the square roots, except those of GAOL 4.2.3, filib++ and
 PROFIL/BIAS. Of the elementary functions, only GAOL v5's are the tightest on
 every operation: on average the others are wider than libieeep1788's by up
 to $5.9\cdot10^{-14}$ relatively with GAOL 4.2.3 (the real power, computed
-as $\exp(y \log x)$), $3.4\cdot10^{-15}$ to $2.4\cdot10^{-13}$ with filib++
-($1.4\cdot10^{-13}$ for \code{log}, $2.4\cdot10^{-13}$ for the real power),
-$6.4\cdot10^{-15}$ to $1.2\cdot10^{-13}$ with PROFIL/BIAS, and at most
-$4.6\cdot10^{-15}$ with Solaris Studio; with Boost.Interval, by
+as $\exp(y \log x)$), $2.1\cdot10^{-14}$ to $2.4\cdot10^{-13}$ with filib++ ($1.4\cdot10^{-13}$ for \code{log}, $2.4\cdot10^{-13}$ for the real power), $9.0\cdot10^{-15}$ to $1.2\cdot10^{-13}$ with PROFIL/BIAS, and at most $4.1\cdot10^{-15}$ with Solaris Studio; with Boost.Interval, by
 $1.4\cdot10^{-14}$ and $2.5\cdot10^{-14}$ on \code{cos} and \code{sin} and
 $3.7\cdot10^{-14}$ on the real power, its \code{exp} and \code{log} being as
 tight as libieeep1788's on average. PROFIL/BIAS's integer power is far
@@ -1128,7 +1122,7 @@ e$ & 7 \\
 \begin{table}[htbp]
 \centering\footnotesize
 \setlength{\tabcolsep}{3pt}
-\caption[Time per evaluation of a line, in nanoseconds]{Time per evaluation of a line, in nanoseconds, with the columns of Table~\ref{tab:computing-times} (one million evaluations of each line, the best of 3 rounds; Intel i7-1185G7, Clang 21.1.8, 17 October 2026).} \label{tab:computing-lines-x86}
+\caption[Time per evaluation of a line, in nanoseconds]{Time per evaluation of a line, in nanoseconds, with the abbreviations of Table~\ref{tab:computing-times} (one million evaluations of each line, the best of 3 rounds; Intel i7-1185G7, Clang 21.1.8, 17 October 2026).} \label{tab:computing-lines-x86}
 \begin{tabular}{|l|r|r|r|r|r|r|r|}
 \hline
 \textbf{Line} & double & p1788 & v5 & v4 & filib++ & BIAS & Boost \\
@@ -1151,8 +1145,7 @@ e$ & 7 \\
 GAOL v5 is the fastest of the libraries on every line, and faster than GAOL
 4.2.3 on all ten, 1.06 to 2.1 times as fast: a line of 15 additions takes
 22.8 ns, 1.5 ns an addition, against 27.4 ns (1.8 ns), and a line of 7
-products 17.9 ns (2.6 ns a product) against 30.9 ns (4.4 ns); the quotients,
-20.6 ns for 7 (2.9 ns each) against 34.0 ns (4.9 ns), 1.7 times as fast, and
+products 17.9 ns (2.6 ns a product) against 30.9 ns (4.4 ns); the quotients, 20.6 ns for 7 (2.9 ns each) against 34.0 ns (4.9 ns), 1.7 times as fast, and
 the lines that mix the four operations, \code{mix13} and \code{mix\_tree},
 23.0 and 34.7 ns against 47.6 and 64.7 ns, 2.1 and 1.9 times. The three
 lines of intervals of one sign are where GAOL 4.2.3 comes nearest, on the
@@ -1198,8 +1191,7 @@ lines of quotients.
 \end{table}
 
 On the Apple M2, GAOL v5 takes 8.85 to 18.5 ns for a line of 7 to 19
-operations, 0.6 to 2.5 ns an operation, where GAOL 4.2.3, which has no
-instructions of 64-bit ARM to compute its FPU intervals with, takes 1.7 to
+operations, 0.6 to 2.5 ns an operation, where GAOL 4.2.3, which has no instructions of 64-bit ARM to compute its FPU intervals with, takes 1.7 to
 8.3 times as long (its \cmd{configure} was generated again by
 \cmd{autoreconf} and told \option{--build=arm-apple-darwin}, and mathlib
 2.1.1 configured with \option{--host=aarch64-unknown-linux-gnu}; no line
@@ -1220,8 +1212,7 @@ most, and the best of the three is kept.
 \label{sec:computing-special-cases}
 \cindex{special cases!comparison}%
 
-The special cases of GAOL's tests (\file{tests/*.cpp}, and
-\file{check/*.cpp} for the integer powers) are computed by the six
+The special cases of GAOL's tests (\file{tests/*.cpp}) are computed by the six
 libraries, GAOL v5 twice, under its own names and under those of IEEE
 1788-2015: zeros, infinities and NaN as bounds or operands, empty sets,
 divisions by intervals containing zero, arguments at the edges of the
@@ -1235,7 +1226,7 @@ enclosing it, wider, as another result (a set not enclosing it, a set where
 IEEE 1788 has the empty set, another boolean, or an exception), or as not
 applicable when the library has no such operation; IEEE 1788 defines no
 result in two cases (a bare number read as an interval, and an n-th root of order 0). Signed zeros are not told apart. Each case is written
-once, in \file{code/cases.py}, and translated for each library; the errors
+once, in \file{doc/compare/code/cases.py}, and translated for each library; the errors
 of PROFIL/BIAS, which abort the program, and the exceptions of
 Boost.Interval are caught. The counts are those of
 Table~\ref{tab:computing-inshort}.
@@ -1251,17 +1242,16 @@ hybrid \code{pow(x, y)} of \code{gaol}, which takes the integer power for an
 integer exponent, where IEEE 1788's \code{pow} only takes the part of $x$ in
 $\itv{0}{+\infty}$ (\pxref{sec:pow-namespaces}): \code{pow([-2], 2.0)} is
 $\itv{4}{4}$, \code{pow([0], [0])} is $\itv{1}{1}$,
-\code{pow([-1], [2\^{}31-1])} is $\itv{-1}{-1}$,
+\code{pow([-1], [2\textasciicircum{}31-1])} is $\itv{-1}{-1}$,
 \code{pow([-2, -1], [1e10])}, an integer beyond the ints, is
 $\itv{1}{+\infty}$, and \code{pow([-2, 0], [-1])} is $\itv{-\infty}{-0.5}$,
 where IEEE 1788 has $\emptyset$; \code{pow([-2, 3], 3)} is $\itv{-8}{27}$,
-wider than $\itv{0}{27}$. The integer powers beyond the ints were
-$\itv{-\infty}{+\infty}$ in \code{gaol} before, three cases wider
-more.\newinvfive{} GAOL reads a bare number, \code{textToInterval("0.1")},
+wider than $\itv{0}{27}$. In GAOL~4, the integer powers beyond the ints were
+$\itv{-\infty}{+\infty}$, which made three more cases wider.\newinvfive{} GAOL reads a bare number, \code{textToInterval("0.1")},
 as the interval enclosing it, an extension of the literals IEEE 1788 allows
 (\pxref{sec:reading-intervals}). Its \code{sin}, \code{cos}, \code{tan},
 \code{acos}, \code{acosh}, \code{atan2}, integer powers and n-th roots are
-the tightest in every case, the powers being computed from exact products,
+the tightest in every one of these cases, the powers being computed from exact products,
 $x^{-n}$ included, and the roots proved with integer powers; across the
 half-line $y = 0$, $x < 0$, where the angle jumps from $\pi$ to $-\pi$,
 \code{atan2} is $\itv{-\pi}{\pi}$, as in libieeep1788.
@@ -1331,7 +1321,7 @@ GAOL v5 encloses $f(x)$ in every one of the 1\,600\,000 results, under both
 namespaces, and gives the tightest interval of doubles around it in all of
 them (1\,232 results of $x^3$, where the cube is below $2^{-968}$, came from
 products rounded outward and were one or two doubles wider, until these
-corners were computed apart, scaled; \pxref{sec:powers}). Boost.Interval
+corners were computed apart, scaled; \pxref{sec:accuracy-powers}). Boost.Interval
 misses $f(x)$ in 34\,\% of the results with \code{rounded\_transc\_opp} and
 in 20\,\% with \code{rounded\_transc\_std}. Its square root and its $x^3$,
 which it computes itself with the rounding of the processor, never miss,
@@ -1372,14 +1362,14 @@ results, \code{asinh}, \code{atanh} and \code{acosh} included.
 \end{Rem}
 
 %%--------------------------------------------------------------------------
-\section{The test suites of the standard}
+\section{ITF1788 and the benchmark of Tang et al.}
 \label{sec:test-suites}
 %%--------------------------------------------------------------------------
 \cindex{ITF1788}\cindex{benchmark of Tang et al.}%
 
 Two test suites written outside GAOL were run on GAOL v5 under the names of
 the standard, \code{gaol\_ieee1788}, with the default build (SSE2 intervals
-on x86, NEON ones on 64-bit ARM) and the FPU build. The tests of GAOL
+on x86, the only machine they ran on) and the FPU build. The tests of GAOL
 itself are the subject of Chapter~\ref{chap:tests}.
 
 \paragraph{ITF1788.}
@@ -1407,9 +1397,7 @@ of \ieee{overlap} without decorations, 802 of the 804 cases of
 with an exponent $p \leq 0$ included. No bug of GAOL v5 was found. The 22
 failures are of three kinds: 12 results that are valid but not the
 tightest, from \ieee{pownRev}, 2 at the largest double and 10 with an
-exponent $p < 0$, 1 double beyond the tightest bound in 11 of them and 2 in
-one, accurate in the sense of IEEE 1788-2015, which requires of this
-operation a valid result and recommends an accurate one; 8 cases where
+exponent $p < 0$: 11 of them 1 double beyond the tightest bound and accurate in the sense of IEEE 1788-2015, and one 2 doubles beyond, which IEEE 1788-2015 requires to be valid and recommends to be accurate; 8 cases where
 ITF1788 expects a result that is not the tightest, from the reverse
 functions \ieee{sinRev}, \ieee{cosRev} and \ieee{tanRev} of libieeep1788's
 tests and \ieee{powRev2} of Oliver Heimlich's, where GAOL v5's result is
@@ -1422,8 +1410,8 @@ that decides $l \leq u$. 418 cases are not provided: eight trigonometric
 functions of FI\_LIB and MPFI that are not in the standard (\code{cot},
 \code{sec}, \code{csc}, their hyperbolic versions, \code{acot} and
 \code{acoth}: 403) and the reduction operations (15). 1687 cases are not
-applicable: they check the decorated intervals and NaI, which GAOL v5 does
-not have (see Chapter~\ref{chap:ieee1788}). The default and the FPU builds give the
+applicable: they check the decorated intervals and NaI, the ill-formed interval of the
+standard (11.3), which GAOL v5 does not have (see Chapter~\ref{chap:ieee1788}). The default and the FPU builds give the
 same result in every case. The deliberate differences of GAOL v5 from the
 standard do not show here: the hybrid \code{pow} is \code{gaol::pow}, while
 \code{gaol\_ieee1788::pow} is the \code{pow} of the standard, and the
@@ -1458,7 +1446,7 @@ encloses the exact value of the expression the program computes, the eight
 single operations give the tightest interval every time (800\,000 of
 800\,000), and GAOL's intervals are narrower than those of filib's C
 version, the paper's reference, at all but 1\,488 inputs, where they are as
-wide.\newinvfive{} The paper's own criterion fails at 9\,884 inputs, in six
+wide. The paper's own criterion fails at 9\,884 inputs, in six
 FPBench expressions: each has a decimal constant that is not a double, which
 the benchmark's query writes as the decimal while the program computes with
 the double. These are a defect of the benchmark, not of GAOL; no bug of GAOL
@@ -1522,7 +1510,7 @@ the path takes two scalar embedded roots (3.75 ns against 6.30 with SSE2),
 \code{x / y} two scalar divisions, and so do \code{x / d} of a double
 (2.8 ns against 3.7 for $d > 0$, 3.0 to 3.3 for $d < 0$, on an Intel
 i7-1185G7 with Clang 21), the divisors with a zero (5.5 ns) and the negative
-integer powers (\code{pow(x, -3)} 9.1 ns), which the change left within the
+integer powers (\code{pow(x, -3)} 9.1 ns), which the two scalar divisions, in place of the 512-bit one, left within the
 noise & A processor where the two scalar divisions lose to the 512-bit one
 (not seen on the i7-1185G7; no other processor was measured, Zen 5
 included) \\
@@ -1531,7 +1519,7 @@ AVX-512VL, AVX10.2 at 128 and 256 bits & nothing to build & No embedded
 rounding at these widths & A new revision of the Intel manual restoring it
 (revision 3.0 of AVX10.2 had it) \\
 \hline
-NEON (arm64) & keep & Done: 1.3 to 4 times faster on an M2 & Hardware with
+NEON (arm64) & keep & Done: 1.3 to 2.5 times faster than the FPU intervals on an M2, 3.0 times on a line of 13 operations & Hardware with
 FPCR.AH set (below) \\
 \hline
 SVE, SVE2, SME & no path & The same FPCR, and 128-bit vectors on most of the
@@ -1697,12 +1685,12 @@ measured: \cmd{perf} is not allowed on the runners and the machine).
 
 \subsection{What was not measured}
 
-Nothing ran on x86 (the SSE2 and AVX-512 paths) but an Intel i7-1185G7, for
+No measurement of this chapter on x86 (the SSE2 and AVX-512 paths) was made on another processor than an Intel i7-1185G7, for
 the times of Section~\ref{sec:computing-performance} and the divisions of
 Table~\ref{tab:computing-verdicts}; no path was timed on RISC-V, POWER, s390x,
 LoongArch, MIPS or WebAssembly (the tests of GAOL run on POWER, s390x and
 RISC-V under QEMU in the continuous integration, \pxref{sec:ci}), whose
-figures come from the pages of the documentation, uops.info or the references,
+figures come from the measurements of this chapter, uops.info or the references,
 and the compilations made to study their instruction sets were made on
 Compiler Explorer, without running the code. The calls
 were counted on the NEON build only. GCC never ran a program of this study: the behaviour of the
@@ -1731,8 +1719,7 @@ on x86 and 1.7 to 8.3 times on
 the M2, and it is the fastest of the six libraries compared on the
 arithmetic, the integer power and most formulas, with the bounds of
 libieeep1788, which computes every bound with MPFR, 17 to 135 times faster.
-Where it is slower, on \code{sin} and \code{cos} against filib++ and Solaris
-Studio, it pays for a correct rounding over the whole range that the others
+Where it is slower, on \code{sin} and \code{cos} against filib++ and Solaris Studio, and on the square root, \code{exp}, \code{log} and the real power against PROFIL/BIAS, whose bounds are among the widest, it pays for a correct rounding over the whole range that the others
 do not give: the test of enclosure found no result of GAOL v5 that misses
 the value of the function, where 20 to 34\,\% of Boost.Interval's do.
 
@@ -1751,8 +1738,7 @@ measure; the 128 and 256-bit forms of AVX-512 and the vectors of SVE offer
 no embedded rounding. The cheap gains left open are a vector square root on
 SSE2, a two-lane \code{mid()} and the argument reduction of the
 trigonometric functions. Whether FPCR.AH changes the NEON kernels could not
-be run, the M2 having no FEAT\_AFP; the kernels were made independent of it
-in software.
+be measured on hardware, the M2 having no FEAT\_AFP; the square root was made independent of it in software, and the other kernels differ under it only in the sign of a zero bound.
 
 \medskip
 These measurements rest on the tests, which check that every path gives the

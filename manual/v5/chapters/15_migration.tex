@@ -588,7 +588,7 @@ processors read the control registers instead, which hold both. With
 \code{GAOL\_PRESERVE\_ROUNDING} they are set back as they were, and the
 result, maxima and minima of bounds included, is made before. The check comes
 before the operation reads, compares or copies a bound, and the compiler is
-kept from moving a comparison before it: \code{asinpi([100*2\^{}-1074])} was
+kept from moving a comparison before it: \code{asinpi([100*2\textasciicircum{}-1074])} was
 above the exact value with GCC 13 at \option{-O3}, and \code{sqrt([-1e-310,
 4])} and \code{atan2} gave the empty set. At the link, \file{gaol.pc} and
 \code{gaol::gaol} give \option{-mno-daz-ftz} to the code using GAOL where the
@@ -608,7 +608,7 @@ s390x, RISC-V, MIPS, and the FPU intervals of Visual C++ for ARM)
 The functions that only read, compare or copy bounds give right results under
 these modes. With denormals-are-zero a comparison reads a subnormal as a
 zero, and the functions that make no check gave wrong results:
-\code{interval(2\^{}-1073, 2\^{}-1074)} kept its bounds in the wrong order,
+\code{interval(2\textasciicircum{}-1073, 2\textasciicircum{}-1074)} kept its bounds in the wrong order,
 \code{abs([-1e-309, -1e-310])} stayed negative, \code{floor([-1e-310])} was
 \code{[-0]}, the midpoint of $[2, 4] \cdot 2^{-1074}$ was 0 and
 \code{split()} made an empty half of it. The constructor from two bounds, the
@@ -905,7 +905,7 @@ doubles from 0 to 1. \code{mid()} returns the tightest interval enclosing the
 midpoint, computed as \code{midpoint()} computes it with the rounding
 outward: it computed $a/2 + b/2$ rounded upward and subtracted the half of
 $b$ for its lower bound, which is not exact when $|b| < 2^{-1021}$, so that
-\code{mid([0, 2\^{}-1074])} was $[2^{-1074}, 2^{-1074}]$ and 45150 of the
+\code{mid([0, 2\textasciicircum{}-1074])} was $[2^{-1074}, 2^{-1074}]$ and 45150 of the
 180901 intervals whose bounds are multiples of $2^{-1074}$ from $-300$ to
 $300$ times it did not enclose their midpoints. \code{rad()} and
 \code{mid\_rad()}, \ieee{rad} and \ieee{midRad} of the standard, are new
@@ -959,7 +959,7 @@ $+\infty$, or $y$ infinite, the bound is the limit of $x^y$, and CORE-MATH
 is not called: \code{pow([4, +oo], 0.5)} is $[2, +\infty]$. GAOL~4 computed
 $\exp(J \log I)$, which multiplied the relative width of $\log I$, a few
 $2^{-52}$, by $|y \log x|$: \code{pow([2], [1023.5])} was 1425 doubles below
-the exact value and 748 above, and \code{pow([0, 2\^{}-1000], [-oo, -1])}
+the exact value and 748 above, and \code{pow([0, 2\textasciicircum{}-1000], [-oo, -1])}
 had a lower bound 617 doubles below $2^{1000}$. Over the million powers of
 the benchmark of \file{doc/compare}, its intervals are no wider than those of
 libieeep1788, which computes each bound with MPFR, where $\exp(J \log I)$
@@ -1020,7 +1020,7 @@ most $x$, and $u$ above it when $u^n$, rounded downward, is at least $x$; the
 search starts from the pow of CORE-MATH brought next to the root by a step of
 Newton's method, and goes by steps that double, then by bisection. For an
 $x$ below $2^{-1020}$ the proofs take scaled powers, the plain proof losing
-bits where a power is subnormal: \code{nth\_root([2\^{}-1074], 33)} was 1983
+bits where a power is subnormal: \code{nth\_root([2\textasciicircum{}-1074], 33)} was 1983
 doubles below the tightest lower bound and 28785 above the tightest upper
 bound. \code{nth\_root\_rel()} takes the roots of \code{nth\_root()}: it kept
 a value within 23 doubles, now 2. A point interval takes 152 ns rather than
@@ -1051,7 +1051,7 @@ accurate in the sense of IEEE 1788-2015. On an Intel i7-1185G7 (GCC 9.4),
 magnitude. The bounds divided by an enclosure of $\pi$ only tell on which
 pieces the interval lies while the quotients are not within their rounding
 errors of an integer: a bound within about $|x| \cdot 2^{-52}$ of an extremum
-was taken as reaching it, \code{cos([2\^{}60])} was $[-1, 1]$, and
+was taken as reaching it, \code{cos([2\textasciicircum{}60])} was $[-1, 1]$, and
 \code{tan()} gave $[-\infty, +\infty]$ next to a pole and beyond $2^{52}$.
 CORE-MATH being correctly rounded, and no double but 0 being a multiple of
 $\pi/2$, the signs of its sine and cosine at the bounds are the exact ones,
@@ -1244,9 +1244,9 @@ written in the C locale whatever the locale of the stream, so that the reader
 reads the text again: GAOL~4 wrote \code{[0,25, 0,5]} under a comma locale.
 The format \element{agreeing} keeps the digits of each bound: GAOL~4 dropped
 from both bounds what followed the last character of the left one that is
-not a zero, and $[1.25, 1.2567]$ was written \code{1.25\~{}[, ]}, which says
-nothing of the right bound; it is \code{1.25\~{}[0, 67]} now, and $[1, 10]$
-is written with its bounds, where it was \code{1\~{}[., 0]}. The hexadecimal
+not a zero, and $[1.25, 1.2567]$ was written \code{1.25\textasciitilde{}[, ]}, which says
+nothing of the right bound; it is \code{1.25\textasciitilde{}[0, 67]} now, and $[1, 10]$
+is written with its bounds, where it was \code{1\textasciitilde{}[., 0]}. The hexadecimal
 format writes an interval literal, \code{[0x1.999999999999ap-4, ...]}, read
 back bit for bit, where GAOL~4 wrote the sixteen hexadecimal digits of each
 double, which no parser read; \code{exact\_string(I)} gives that text

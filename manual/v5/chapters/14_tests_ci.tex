@@ -316,12 +316,12 @@ fail without one call of \code{sqr()}, 5 without another. $(-c)^n$ has to be
 $c^n$ or $-c^n$ at 1\,088 points near 1, 1.5 and 3 and 12\,736 more. The
 powers for $n$ from $2^{24}+1$ to $2^{32}-1$ have to be the tightest against
 mpmath: the lower bound was 1962 doubles below the tightest for
-\code{pow([1.0000001], 2\^{}32 - 1)}; the same for 46 negative $n$ from
+\code{pow([1.0000001], 2\textasciicircum{}32 - 1)}; the same for 46 negative $n$ from
 $-2^{31}$ to $-2^{24}$, 44 of which fail without the second-order term of
 the correction. The $n$-th roots of $x$ below $2^{-1020}$, subnormal
 included, have to be within 2 doubles of the tightest bounds (4 for an
 inverse root) for $n$ = 4, 5, 33, 65, 129 and 1025 against exact arithmetic
-and up to $2^{32}-1$ against mpmath: \code{nth\_root([2\^{}-1074], 33)}
+and up to $2^{32}-1$ against mpmath: \code{nth\_root([2\textasciicircum{}-1074], 33)}
 was 1983 doubles below. \code{fma(x, y, z)} has to be the tightest over
 random boxes, against \code{std::fma} called downward and upward directly:
 GCC had folded the negations GAOL rounds its lower bound with.
@@ -350,7 +350,7 @@ the power itself as lower bound where it is a double: \code{pow([4], 0.5)} is
 the axes, the tightest over the boxes with infinite bounds or on an axis,
 $\itv{-\pi}{\pi}$ across the half-line $y=0$, $x<0$, and empty at $(0, 0)$.
 \code{sin}, \code{cos} and \code{tan} have to be within one double at every
-magnitude, \code{sin([1e-10])} and \code{cos([2\^{}60])} included, and over
+magnitude, \code{sin([1e-10])} and \code{cos([2\textasciicircum{}60])} included, and over
 649 intervals next to their extrema and poles; \code{tan([-M\_PI\_2, M\_PI\_2])}
 has to be the tightest, $\pm1.63\cdot10^{16}$, its width being the double
 below $\pi$ and holding no pole, and \code{tan} within one double over 158
@@ -453,7 +453,7 @@ right and raise no overflow flag, the sum of the bounds having overflowed;
 each, and a result without an infinite bound has to come with neither the
 overflow nor the division-by-zero flag;\newinvfive{} 27 cases such as
 \code{sqrt([1, DBL\_MAX])}, \code{tan([DBL\_MAX])} and
-\code{pow([2\^{}-1074], [1.5 2\^{}1014])} have to give their tightest
+\code{pow([2\textasciicircum{}-1074], [1.5 2\textasciicircum{}1014])} have to give their tightest
 bounds, computed apart, with neither flag, and the same bounds in a child
 process that enabled both exceptions.
 
@@ -468,7 +468,7 @@ them from \file{crtfastmath.o}, and \code{[1e-300] * [1e-20]} was
 \code{[0, 0]}.\newinvfive{} Then each of the 96 operations that check the
 direction, called with each mode set just before it and each direction, has
 to give what it gives with the modes cleared and leave them cleared (with
-GCC 13 at \option{-O3}, \code{asinpi([100 2\^{}-1074])} was above the exact
+GCC 13 at \option{-O3}, \code{asinpi([100 2\textasciicircum{}-1074])} was above the exact
 value and \code{sqrt([-1e-310, 4])} the empty set), and each of the 51
 functions that make no check has to leave the modes as it found them, its
 doubles compared by their bits; \code{midpoint()}, \code{split()},
@@ -1654,7 +1654,7 @@ September 2026, building it past its refusal.
   Cygwin without the fused multiply-add instructions
     (\option{GAOL\_FMA=OFF}, or a processor without them) & Bounds not
     certified: the \code{fma()} of the C library of Cygwin is not correctly
-    rounded, \code{fma(1 + 2\^{}-30, 1 - 2\^{}-30, -1)} giving 0 instead of
+    rounded, \code{fma(1 + 2\textasciicircum{}-30, 1 - 2\textasciicircum{}-30, -1)} giving 0 instead of
     $-2^{-60}$, and CORE-MATH computes with \code{fma()}. & Refused by
     \file{gaol/gaol\_config.h}; the Cygwin job checks the refusal, and
     builds and tests Cygwin with \option{-mfma} (GCC 14.4, Release, three
@@ -1704,7 +1704,7 @@ change with its measures (Chapter~\ref{chap:changes}).
   numbers are now read exactly, and intervals written in decimal are
   rounded outward by GAOL rather than by the C library.\newinvfive{}
   \code{mid()} with Visual C++ (\option{/O2 /fp:strict}), which rewrote
-  $(-0.5)x+y$ into $y-0.5x$: \code{mid([2\^{}-1074, MAX])} was wrong in the
+  $(-0.5)x+y$ into $y-0.5x$: \code{mid([2\textasciicircum{}-1074, MAX])} was wrong in the
   seven Release jobs of Visual Studio. \code{mid()} on 64-bit ARM with
   autotools and meson, which did not give \option{-ffp-contract=off}: the
   compilers fused its multiplications and additions, and it returned a
