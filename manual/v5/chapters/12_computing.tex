@@ -131,13 +131,9 @@ upward. The product is the maximum of the four products of the bounds, with
 no branch on their signs. The quotient is one vector division when the
 divisor has no zero, and single divisions otherwise. With NEON, the square roots of
 both bounds are one vector square root rounded upward, the lower bound being
-that root where it is exact, and the double below it otherwise. They are the
-intervals of GAOL on 64-bit ARM with every compiler (GCC, Clang, AppleClang,
-clang-cl, Visual C++ and the Clang of MinGW-w64); 32-bit ARM, whose NEON has
-no vector of doubles, keeps the FPU intervals, and a universal build of
-macOS takes the NEON intervals for its arm64 part and the SSE2 intervals for
-its x86\_64 part. The options that select them, and what the user sees of
-them, are described in Chapter~\ref{chap:rounding} (\pxref{sec:neon}).
+that root where it is exact, and the double below it otherwise. The compilers
+that take the NEON intervals, the options that select them and what the user
+sees of them are described in Chapter~\ref{chap:rounding} (\pxref{sec:neon}).
 
 \medskip
 The products and the quotients were nine cases of the signs of the bounds, and the squares three, told apart by a \code{switch} in GAOL 4.2.3 and in GAOL v5 at

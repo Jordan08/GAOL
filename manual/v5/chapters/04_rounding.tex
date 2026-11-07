@@ -168,7 +168,7 @@ after one of them sets it itself.\newinvfive
 \end{itemize}
 
 %%------------------------------------------------------------------------
-\section{What the upward rounding does to the program}
+\section{What the upward rounding does to the \texorpdfstring{\mbox{program}}{program}}
 \label{sec:upward-effects}
 %%------------------------------------------------------------------------
 \cindex{rounding!effects on the program}%
@@ -386,7 +386,7 @@ times longer without it; a line of 15 additions of intervals takes 1.9 times
 longer with the path and 8.9 times without.
 
 \begin{table}[htbp]\centering\footnotesize
-  \caption[The cost of \option{GAOL\_PRESERVE\_ROUNDING}, with and without the AVX-512 path]{How many times longer each operation takes with \option{GAOL\_PRESERVE\_ROUNDING} than without it, with and without the AVX-512 path (Intel i7-1185G7, Clang~21.1.8, \file{tests/performance.cpp}, the median of 9 interleaved runs, 7 November 2026, the run of Table~\ref{tab:computing-avx512}: the time of the preserved build over that of the default one).} \label{tab:preserve-cost}
+  \caption[The cost of \option{GAOL\_PRESERVE\_ROUNDING}, with and without the \mbox{AVX-512} path]{How many times longer each operation takes with \option{GAOL\_PRESERVE\_ROUNDING} than without it, with and without the AVX-512 path (Intel i7-1185G7, Clang~21.1.8, \file{tests/performance.cpp}, the median of 9 interleaved runs, 7 November 2026, the run of Table~\ref{tab:computing-avx512}: the time of the preserved build over that of the default one).} \label{tab:preserve-cost}
   \begin{tabular}{lcc}
     \hline
     Operation & With the AVX-512 path & Without it\\
@@ -526,13 +526,8 @@ instructions, as it does with SSE2 instructions on x86.\newinvfive{} The two
 bounds of an interval are the two lanes of one \code{float64x2\_t}, the lower
 bound negated as in the \code{\_\_m128d} of the SSE2 intervals, and \code{+},
 \code{-}, \code{*}, \code{/}, \code{sqr()} and \code{sqrt()} are kernels that
-take and give their bounds in registers. The sum and the difference are one
-vector addition rounded upward; the product is the maximum of the four
-products of the bounds, with no branch on their signs; the quotient is one
-vector division when the divisor has no zero, and single divisions otherwise;
-the square roots of both bounds are one vector square root rounded upward,
-the lower bound being that root where it is exact, and the double below it
-otherwise (\pxref{sec:kernels}).
+take and give their bounds in registers (\pxref{sec:kernels} describes what
+each does).
 
 \medskip
 They are the intervals of GAOL on 64-bit ARM with every compiler (GCC, Clang

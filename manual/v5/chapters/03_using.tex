@@ -86,13 +86,11 @@ it needs (\pxref{sec:rounding-direction}).\newinvfive
 
 \begin{Rem}\label{rem:cleanup}
 The program calls \code{gaol::cleanup()} right after its last use of GAOL, at
-the latest at the end of \code{main()}, whatever the compiler. Unless GAOL is
-built to preserve the rounding direction, its initialization sets the rounding
-direction upward for the whole program, not only for the operations of GAOL,
-and \code{gaol::cleanup()} sets back the one the program started with. GAOL
-also calls it itself, but only when the program ends: without the call, the
-code after the last use of GAOL would compute its doubles rounded
-upward.\newinvfive
+the latest at the end of \code{main()}, whatever the compiler. GAOL also calls
+it itself, but only when the program ends: without the call, and unless GAOL is
+built to preserve the rounding direction, the code after the last use of GAOL
+would compute its doubles rounded upward (Remark~\ref{rem:cleanup-rounding}
+gives the reason).\newinvfive
 \end{Rem}
 
 The function \code{sqr(\var{x})} is the square of \var{x}, and is equivalent

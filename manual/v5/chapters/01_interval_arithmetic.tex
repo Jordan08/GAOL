@@ -604,7 +604,7 @@ product, takes one more argument. The reference of the relational
 arithmetic, with the figure of the relational cosine, is in
 Chapter~\ref{chap:arithmetic} (\pxref{sec:relational-arithmetic}).
 
-\section{The elementary functions and the mathematical libraries}
+\section[The elementary functions and the mathematical libraries]{The elementary functions and the\\ mathematical libraries}
 \label{sec:math-libraries}
 %%--------------------------------------------------------------
 \cindex{elementary functions}\cindex{mathematical library}%
@@ -761,8 +761,10 @@ two phases but changes what is guaranteed.
 \end{itemize}
 Its price was the work of a specialist for each function, a narrow coverage
 (a dozen functions, binary64 only: neither \code{tanh} nor \code{asinh},
-\code{acosh}, \code{atanh}), and an LGPL licence that kept it out of the
-libm of the systems. Its direct descendant is Metalibm (de Dinechin,
+\code{acosh}, \code{atanh}), and an LGPL licence, which a libm that asks for a
+permissive one, as musl's does, cannot take; the glibc, itself under the LGPL,
+was asked in 2007 by one of the authors of CRlibm whether it wanted it, and has
+not taken it. Its direct descendant is Metalibm (de Dinechin,
 Kupriianova, Lauter): generating the code and its proof rather than writing
 them.
 
@@ -780,7 +782,8 @@ a technique.
   latency falls.
 \item[$\bullet$] \textbf{The licence is MIT}, deliberately permissive, so
   that the code can be taken up by the glibc, the libm of LLVM or musl. It
-  answers the reason CRlibm was not adopted, and it works: routines of
+  gives what a libm that asks for a permissive licence, musl's for one, wants
+  and the LGPL of CRlibm did not give, and it works: routines of
   CORE-MATH have been integrated upstream. It is also what lets GAOL v5
   take the sources it needs into \file{3rd/math-core}, with a few changes marked
   in the code, and compile them into its library.
@@ -813,8 +816,9 @@ Table~\ref{tab:math-libraries} sets the four libraries side by side. The
 line of the story is plain: libm established that a mathematical library
 had to be portable and fast; mathlib showed that correct rounding was
 reachable on average, and was rejected on its worst case; CRlibm showed
-that it could be proved and bounded, and was not adopted for want of a
-licence, of coverage and of maintenance; CORE-MATH takes all of it up and
+that it could be proved and bounded, and was not adopted, for want of
+coverage, of maintenance and, for the libms that ask for a permissive licence,
+of one; CORE-MATH takes all of it up and
 treats industrial adoption, that is, performance, MIT licence, C23 coverage
 and standardization, as a design constraint of the same rank as accuracy.
 
@@ -848,7 +852,7 @@ and standardization, as a design constraint of the same rank as accuracy.
     \hline
     Formats & all & binary64 & binary64 & binary32, 64, 128\\
     \hline
-    Licence & permissive & LGPL & LGPL & MIT\\
+    Licence & permissive (fdlibm), LGPL (glibc) & LGPL & LGPL & MIT\\
     \hline
     State & alive & frozen & abandoned & active, being adopted\\
     \hline
