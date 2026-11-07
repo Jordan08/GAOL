@@ -17,8 +17,8 @@ An interval library computes its bounds with the rounding direction of the
 processor set outward, and that direction is a state of the processor which
 the whole program shares. How the library takes charge of this state, and
 what it leaves to the program, decides both the correctness of the bounds and
-the behaviour of every double the program computes beside its intervals. GAOL
-4 left the direction to the user. GAOL v5 sets it itself, in each operation,
+the behaviour of every double the program computes beside its intervals. By
+default, GAOL~4 left the direction to the user. GAOL v5 sets it itself, in each operation,
 and the choice has consequences the user needs to know: the doubles of the
 program are rounded upward while GAOL is initialized, the C library converts
 its numbers in that direction, and the compiler restores nothing.
@@ -45,8 +45,8 @@ control registers of the 32-bit x86 processors. The following two sections
 treat the flush-to-zero modes and the
 floating-point exceptions. The chapter ends with the reference of the
 initialization and the cleanup of GAOL, and of its rounding functions. The
-design of the kernels, which instructions compute the bounds and what the
-check of the direction costs on each processor, is the subject of
+design of the kernels, which instructions compute the bounds and what a write
+of the control register costs on each processor, is the subject of
 Chapter~\ref{chap:computing} (\pxref{sec:kernels}); the options of the builds
 are those of Chapter~\ref{chap:installation} (\pxref{sec:cmake-options}).
 
@@ -57,7 +57,6 @@ are those of Chapter~\ref{chap:installation} (\pxref{sec:cmake-options}).
 \cindex{rounding!downward}\cindex{rounding!upward}%
 \cindex{F@\FSet}\cindex{R@\RSet}%
 \cindex{containment property}%
-\cindex{rounding!outward|see{outward rounding}}%
 \cindex{downward rounding ($\roundDn{\:}$)}%
 \cindex{upward rounding ($\roundUp{\:}$)}%
 \cindex{outward rounding}%
@@ -65,30 +64,26 @@ are those of Chapter~\ref{chap:installation} (\pxref{sec:cmake-options}).
 Floating-point interval arithmetic requires \dfn{outward rounding} to fulfil
 the containment property (\pxref{sec:containment}): the sum of \itv{a}{b} and
 \itv{c}{d} is computed as \itv{\roundDn{a+c}}{\roundUp{b+d}}, where
-\roundDn{r} is the greatest double of \FSet{} below the real $r$ and
-\roundUp{r} the smallest one above it (\pxref{sec:rounding-definitions}). The
+\roundDn{r} is the greatest double of \FSet{} not above the real $r$ and
+\roundUp{r} the smallest one not below it (\pxref{sec:rounding-definitions}). The
 processor performs these two roundings when its rounding direction is set
 towards $-\infty$ and towards $+\infty$ respectively.
 
 \medskip
-On most platforms, switching the rounding direction is costly. The number of
-switches is cut down with the following property.
-
-\begin{Prop}\label{prop:rounding-negation}
-For every real $r$, $\roundDn{-r}=-\roundUp{r}$.
-\end{Prop}
-
-\noindent
-Nearly every downward rounding is therefore replaced by an upward one, by
+On most platforms, switching the rounding direction is costly.
+Proposition~\ref{prop:round-neg} (\pxref{sec:containment}) cuts down the number
+of switches: nearly every downward rounding is replaced by an upward one, by
 negating twice the operation performed. GAOL stores the lower bound of an
 interval negated, and computes both bounds rounding upward: the rounding
-direction is set towards $+\infty$ once, and no other direction is needed
-(\pxref{sec:kernels}).
+direction is set towards $+\infty$ once, and the other directions are needed
+only where a computation asks for them, as \code{midpoint()}, \code{chi()}, and
+the writing and the reading of an interval do, to nearest (\pxref{sec:kernels}).
 
 \medskip
-GAOL~4 left the rounding direction to the user, who had to set it towards
-$+\infty$ before any computation on intervals: this was its \dfn{trust
-rounding mode}. GAOL v5 takes the direction in charge.\newinvfive{} Each
+By default, GAOL~4 left the rounding direction to the user, who had to set it
+towards $+\infty$ before any computation on intervals: this was its
+\dfn{trust rounding mode}; built with \loption{enable-preserve-rounding}, it
+assumed nothing of the direction. GAOL v5 takes charge of the direction.\newinvfive{} Each
 operation that computes a bound checks the direction, and sets it upward when
 it is not, whatever the build; the operations of the AVX-512 path, which carry
 their direction in the instruction, are the exception (\pxref{sec:avx512}).
@@ -101,8 +96,8 @@ rounding direction the calling code left.
 The check is an addition, $1+2^{-60}$ or one of its variants below, which is above 1 only when rounded
 upward, rather than a reading of the rounding direction, which costs far more
 on some platforms: under Rosetta~2, reading it made an addition of intervals
-take 800~ns rather than 2.8~ns, and it cost far more with 32-bit Visual C++
-as well. The check takes three forms, by processor:
+take 800~ns rather than 2.8~ns, and a call of \code{fegetround()} cost about
+80~ns with 32-bit Visual C++. The check takes four forms, by processor:
 \begin{itemize}
 \item on x86-64 processors, and on ARM processors with the FPU intervals and
   GCC or Clang, it is
@@ -111,6 +106,9 @@ as well. The check takes three forms, by processor:
 \item with the NEON intervals of 64-bit ARM processors (\pxref{sec:neon}), it
   is a read of the control register FPCR, which holds both the direction and
   these modes;
+\item on the other processors (POWER, s390x, RISC-V), and with the FPU
+  intervals of Visual C++ for 64-bit ARM, it is $1+2^{-60}$, which does not
+  see the modes that flush the subnormal numbers to zero (\pxref{sec:ftz});
 \item on 32-bit x86 processors, whose two units that round, the x87 unit and
   the SSE instructions, each have a direction, it is a read of the control
   word of the first and of MXCSR, with \code{fnstcw} and \code{stmxcsr}
@@ -118,8 +116,9 @@ as well. The check takes three forms, by processor:
 \end{itemize}
 \noindent
 Each function of intervals checks the direction once, and the functions it
-calls on doubles take it to be upward already. The cost of the check on each
-processor is measured in Chapter~\ref{chap:computing}
+calls on doubles take it to be upward already. The cost of the check is
+measured in Section~\ref{sec:ftz}, and the cost of a write of the control
+register on each processor in Chapter~\ref{chap:computing}
 (\pxref{sec:rounding-by-processor}).
 
 \medskip
@@ -240,15 +239,16 @@ $10^{20}+16384$ and \code{e} is $-16383.999999999998$, whose sum is not
 $10^{20}+10^{-20}$. TwoProd, which recovers the error of a product from
 Dekker's splitting of the operands, breaks the same way: 1\,888 of the
 50\,000 pairs of the table, drawn in $[1,2)$, lose their exactness upward,
-where pairs of widely different magnitudes keep it, the error of the product of
-the split parts they drop staying below the error of the rounded product. It
+where pairs of widely different magnitudes keep it: there, the product of the
+low parts that the splitting drops is smaller than the error of the rounded
+product. It
 is exact in every direction when it is computed with \code{std::fma} instead:
 the error of a rounded product is a double, which \code{std::fma} computes
 however it rounds, provided it is correctly rounded, by the instruction or by
 a call of a C library whose \code{fma()} is (with GCC, \code{std::fma} without
 optimization is a call of the C library, whose \code{fma()} is wrong on
-Cygwin, where \code{\_\_builtin\_fma} is the instruction with
-\option{-mfma}, which GAOL calls itself). Compensated sums, and the
+Cygwin; \code{\_\_builtin\_fma}, which GAOL calls itself, is the instruction
+with \option{-mfma}). Compensated sums, and the
 double-double arithmetic built on such algorithms, lose their accuracy the
 same way. Built with \option{GAOL\_PRESERVE\_ROUNDING}, the program computes
 the right-hand column of the table all the time.
@@ -258,8 +258,9 @@ the right-hand column of the table all the time.
 The upward direction has other consequences:
 \begin{itemize}
 \item a thread created after the initialization of GAOL starts upward too
-  (\code{std::thread} gives a new thread the floating-point environment of the
-  thread constructing it), and \code{cleanup()} sets back the direction of the
+  (with the GNU C library and POSIX threads, a new thread gets the
+  floating-point environment of the thread creating it; on Windows it starts
+  with the default one, to nearest), and \code{cleanup()} sets back the direction of the
   calling thread only;
 \item the libraries the program calls run upward as well: the \code{exp},
   \code{log} and \code{pow} of the GNU C library~2.31 go from 0.51 ulp to 1.01
@@ -314,7 +315,7 @@ What a program does about it:
 \section{Preserving the rounding direction}\label{sec:preserve-rounding}
 %%------------------------------------------------------------------------
 \cindex{rounding!preserving}%
-\cindex{GAOL PRESERVE ROUNDING@\option{GAOL\_PRESERVE\_ROUNDING}}%
+\findex{GAOL\_PRESERVE\_ROUNDING}%
 
 Code that needs its own rounding direction after the operations of GAOL
 builds GAOL with the option \option{GAOL\_PRESERVE\_ROUNDING} of CMake, which
@@ -330,7 +331,7 @@ changes: the bounds are the same, and the program still calls
 
 \medskip
 \noindent
-The option changes three other things.
+The option changes four other things.
 \begin{itemize}
 \item[$\bullet$] \textbf{The AVX-512 path.} With it, the build takes the
   AVX-512 path (it was the default of an option,
@@ -345,6 +346,8 @@ The option changes three other things.
   enabled (\pxref{sec:fp-exceptions}).
 \item[$\bullet$] \textbf{\code{restore\_rounding()}.} It does nothing, GAOL
   leaving the direction of the program alone (\pxref{chap:init}).
+\item[$\bullet$] \textbf{\code{cleanup()}.} It sets nothing back either, the
+  direction of the program being its own.
 \end{itemize}
 
 \medskip
@@ -355,7 +358,7 @@ flush modes once at its start, writes the register only if the direction is
 not upward or a flush mode is set, and writes back what it found at its end
 only if it differs from what the operation left: a program that computes
 upward already, with the flush modes clear, pays no write. These registers
-are FPCR on 64-bit ARM and FPSCR on 32-bit ARM with GCC (\pxref{sec:neon}),
+are FPCR on 64-bit ARM with the NEON intervals and FPSCR on 32-bit ARM with GCC (\pxref{sec:neon}),
 and the control word of the x87 unit and MXCSR on x86
 (\pxref{sec:x86-control-registers}).
 
@@ -409,17 +412,18 @@ store.\newinvfive{} The instructions of the kernel are described in
 Chapter~\ref{chap:computing} (\pxref{sec:kernels}).
 
 \medskip
-\noindent
-\textbf{When the build takes it.} The path is decided when GAOL is configured,
+\paragraph{When the build takes it.} The path is decided when GAOL is configured,
 as the fused multiply-add instructions are (\pxref{sec:cmake-options}): where
 \option{GAOL\_PRESERVE\_ROUNDING} is on, the compiler takes the instructions
 and the machine building runs them, the macro \code{GAOL\_AVX512\_ARITHMETIC}
-is defined in \file{gaol/gaol\_configuration.h}; a cross-compilation leaves
-the path out, and the operations test nothing as they run. With that option
+is 1 in \file{gaol/gaol\_configuration.h}; a cross-compilation leaves the path
+out unless the machine running GAOL is said to run the instructions
+(\option{-DGAOL\_MACHINE\_RUNS\_AVX512=1}, \option{-Dmachine-runs-avx512=true}),
+and the operations test nothing as they run. With that option
 every operation gains, 2.8 times at the median of seven operations, from 1.3
 to 4.4 times, on an Intel i7-1185G7, whose AVX-512 units are halved; without
-it they cost, 17\,\% at the median, the direction being written only when it
-is not upward already, so the path is left out. \option{GAOL\_PREFER\_AVX512},
+it they take 20\,\% longer at the median, the direction being written only
+when it is not upward already, so the path is left out. \option{GAOL\_PREFER\_AVX512},
 \loption{enable-prefer-avx512} and \option{-Denable-prefer-avx512} were
 options of the user, and are now settings of the developers:\newinvfive{}
 \code{=ON} asks for the path without the preserved direction, and
@@ -435,11 +439,10 @@ program runs, in \code{init()}, with every operation testing the flag it set,
 in the default build too.\newinvfive
 
 \medskip
-\noindent
-\textbf{The operations.} On such a build, \code{x + y}, \code{x - y},
+\paragraph{The operations.} On such a build, \code{x + y}, \code{x - y},
 \code{x * y}, \code{x / y}, \code{sqrt(x)} and \code{sqr(x)}, and the
 operations \code{+}, \code{-}, \code{*} and \code{/} with a double, are
-computed by the rounding direction the instructions carry. So are
+computed by the rounding direction the instructions carry. So are, with the fused multiply-add instructions,
 \code{pown(x, n)} and \code{pow(x, n)} for an integer $n$ of 2 or more
 ($n=2$ is \code{sqr(x)}), or of $-2$ or less where \code{x} has no zero,
 whose two corners are within the range of the exact products of their kernel;
@@ -448,11 +451,12 @@ near 0 or a large exponent makes, take the path of the direction. These
 operations set no rounding direction: the program keeps its own, in the
 default build as with \option{GAOL\_PRESERVE\_ROUNDING}, and the other
 operations (\code{\%}, the elementary functions, the reading of a number, the
-integer powers beyond the range) leave it upward, as they always do.
+integer powers beyond the range) set it upward, and leave it so in the default
+build, or set back the direction of the program with
+\option{GAOL\_PRESERVE\_ROUNDING}, as they always do.
 
 \medskip
-\noindent
-\textbf{The flags and the flush modes.} The instructions of the path raise no
+\paragraph{The flags and the flush modes.} The instructions of the path raise no
 floating-point exception flag, the architecture requiring the suppression of
 the exceptions with the embedded rounding; the check of the other operations
 raises the flags described in \exref{sec:fp-exceptions}. The modes that flush
@@ -466,8 +470,7 @@ of \code{x - y} was once computed after flush-to-zero had been set back, and
 \code{[3e-308] - [2.9e-308]} was \itv{0}{0}.\newinvfive
 
 \medskip
-\noindent
-\textbf{The bounds.} They are those of the other path, bit for bit, but for
+\paragraph{The bounds.} They are those of the other path, bit for bit, but for
 the sign of a zero bound in one case.
 
 \begin{Rem}\label{rem:avx512-zero}
@@ -485,8 +488,7 @@ $\pm10^{-310}$, $\pm10^{300}$ and $\pm\infty$ was compared bit for bit.
 \end{Rem}
 
 \medskip
-\noindent
-\textbf{The cost.} The operations of the path cost more time on a processor
+\paragraph{The cost.} The operations of the path cost more time on a processor
 that halves its AVX-512 instructions, where they cost less on one that does
 not. On an Intel i7-1185G7 (halved), with Clang~21.1.8
 (\cmd{gaol\_performance}, the median of 9 runs of 26 October 2026, from
@@ -552,8 +554,7 @@ the continuous integration compiles with \option{/W4 /WX} for
 arm64.\newinvfive
 
 \medskip
-\noindent
-\textbf{The control register FPCR.} 64-bit ARM has no instruction that
+\paragraph{The control register FPCR.} 64-bit ARM has no instruction that
 carries its own rounding direction, as the AVX-512 path has: the direction is
 the field RMode of the control register FPCR (bits 23 and 22, upward being
 \code{0x400000}), which the scalar and the vector instructions share, and
@@ -576,8 +577,7 @@ libraries of 64-bit ARM are these bits, which a static assertion checks), so
 that a program may use either.
 
 \medskip
-\noindent
-\textbf{The register FPSCR of 32-bit ARM.} The FPU intervals of 32-bit ARM
+\paragraph{The register FPSCR of 32-bit ARM.} The FPU intervals of 32-bit ARM
 processors with GCC and a floating-point unit of doubles do the same for
 \code{round\_upward()}, \code{round\_nearest()} and \code{round\_downward()},
 and for the direction that \option{GAOL\_PRESERVE\_ROUNDING} restores
@@ -602,8 +602,7 @@ a line of 15 additions 87~ns rather than 57, and the 32-bit ARM intervals
 keep their time.
 
 \medskip
-\noindent
-\textbf{The bounds.} They are those of the FPU intervals but for the sign of
+\paragraph{The bounds.} They are those of the FPU intervals but for the sign of
 a zero bound, which the maximum of 64-bit ARM, ranking $+0$ above $-0$, can
 set otherwise than the SSE2 and the FPU intervals do, where the \code{maxpd}
 of x86 returns its second operand (\pxref{sec:zero-sign}).
@@ -666,19 +665,17 @@ took three times as long as the sum, the bounds being kept across the calls
 of the rare path of the check.
 
 \medskip
-\noindent
-\textbf{The time of the kernels.} Table~\ref{tab:fpu-m2} gives the times
+\paragraph{The time of the kernels.} Table~\ref{tab:fpu-m2} gives the times
 measured with \cmd{gaol\_performance} on an Apple M2 with AppleClang~21
 (\option{-DGAOL\_SIMD=OFF}), the median of nine runs of each program, in turn
-with the others, on 6 November 2026, in nanoseconds, with the code of GAOL~4
-(the tree of 22 October 2026, before the kernels) and with the kernels of GAOL
-v5.
+with the others, on 6 November 2026, in nanoseconds, with the code before the kernels
+(the tree of 22 October 2026) and with the kernels of GAOL v5.
 
 \begin{table}[htbp]\centering\footnotesize
-  \caption[The FPU intervals on an Apple M2 (\option{GAOL\_SIMD=OFF})]{The FPU intervals on an Apple M2 with AppleClang~21 (\option{-DGAOL\_SIMD=OFF}): the code of GAOL~4 and the kernels of GAOL v5, in nanoseconds (\cmd{gaol\_performance}, the median of nine runs).} \label{tab:fpu-m2}
+  \caption[The FPU intervals on an Apple M2 (\option{GAOL\_SIMD=OFF})]{The FPU intervals on an Apple M2 with AppleClang~21 (\option{-DGAOL\_SIMD=OFF}): the code before the kernels (the tree of 22 October 2026) and the kernels of GAOL v5, in nanoseconds (\cmd{gaol\_performance}, the median of nine runs).} \label{tab:fpu-m2}
   \begin{tabular}{lrr}
     \hline
-    & GAOL~4 code & GAOL v5 kernels\\
+    & Before the kernels & Kernels\\
     \hline\hline
     \code{x - y} & 3.54 & 1.15\\
     \code{x * y} & 3.25 & 3.25\\
@@ -697,10 +694,10 @@ v5.
 \noindent
 The operands of \cmd{gaol\_performance} are 1\,024 intervals that the
 processor learns by heart, so that a branch on their signs costs less than it
-does on other operands. On 100\,000 intervals centered at random (the
+does on other operands. On 100\,000 intervals centred at random (the
 benchmark of \file{doc/compare}, \pxref{sec:comparison}), \code{x * y} took
 13.9~ns and takes 3.5, \code{x / y} 8.5 and 3.2, \code{sqr(x)} 6.9 and 1.8,
-\code{x - y} 3.7 and 2.0, and Shekel 5\,298~ns and 138.
+\code{x - y} 3.7 and 2.0, and Shekel~5 298~ns and 138.
 
 \medskip
 A line of products of operands of one sign, which a processor predicts, takes
@@ -722,18 +719,18 @@ the bounds of \code{*this}, memory of the caller that is also given by address
 to the functions of the rare cases, which a call or an asm statement with a
 ``memory'' clobber that restores the direction finds written: the products
 they hold are computed before it, with the direction upward. That is how the
-compilers treat it (GCC~15 for 32-bit ARM: the stores precede
-\code{bl fesetround}), not a rule of the language, and no test holds it:
+compilers treat it (GCC~15 for 32-bit ARM with
+\option{-DGAOL\_RND\_FPSCR\_DIRECT=0}, where the end of an operation is a call
+of \code{fesetround()}: the stores precede \code{bl fesetround}), not a rule of the language, and no test holds it:
 \code{GAOL\_RND\_KEEP()} would make it one, for 2.6~ns more with
 \option{GAOL\_PRESERVE\_ROUNDING}, and the former product and \code{x + y}
 did without.
 
 \medskip
-\noindent
-\textbf{The processors of the continuous integration.} The processors and
+\paragraph{The processors of the continuous integration.} The processors and
 compilers of the continuous integration that took the FPU intervals were
 measured in turn (Visual C++ and clang-cl for arm64 take the NEON intervals
-since),\newinvfive{} in one run of GitHub Actions, on an experiment branch:
+since),\newinvfive{} in one run of GitHub Actions:
 each job builds the code before the kernels and after them, and runs
 \cmd{gaol\_performance} five times with each, alternately, with the tools of
 \file{.github/scripts/performance-ab.sh} and \file{compare-performance.py}
@@ -746,10 +743,11 @@ median before the kernels to the median after them, so that a ratio above 1
 means that the kernels are faster. These are figures of shared runners, of
 one run, of the FPU intervals as they were: Visual C++ and clang-cl for x86
 have the SSE2 intervals since,\newinvfive{} with their two bounds as two
-doubles, and their rows are no longer those of the default build.
+doubles, and Visual C++ and clang-cl for arm64 the NEON intervals: the rows of
+these four configurations are no longer those of the default build.
 
 \begin{table}[htbp]\centering\scriptsize\setlength{\tabcolsep}{2.5pt}
-  \caption[The FPU intervals on the processors of the continuous integration]{The FPU intervals on the processors of the continuous integration: the ratio of the median time of the code of GAOL~4 to the one of the kernels of GAOL v5 (five runs of \cmd{gaol\_performance} each, alternately; a ratio above 1 means that the kernels are faster). The columns are \code{x * y}, \code{x * y} of random signs, \code{x / y}, \code{sqr(x)}, \code{x - y}, a line of 7 \code{*}, a line of 7 \code{/} and a line of 13 \code{+ - * /}; ``preserved'' is the build with \option{GAOL\_PRESERVE\_ROUNDING}. $\dagger$: the spread of the five runs exceeds 1.15, and the ratio is noise; in bold, the ratios below 0.9 of a stable row.} \label{tab:fpu-ci}
+  \caption[The FPU intervals on the processors of the continuous integration]{The FPU intervals on the processors of the continuous integration: the ratio of the median time of the code before the kernels to the one of the kernels of GAOL v5 (five runs of \cmd{gaol\_performance} each, alternately; a ratio above 1 means that the kernels are faster). The columns are \code{x * y}, \code{x * y} of random signs, \code{x / y}, \code{sqr(x)}, \code{x - y}, a line of 7 \code{*}, a line of 7 \code{/} and a line of 13 \code{+ - * /}; ``preserved'' is the build with \option{GAOL\_PRESERVE\_ROUNDING}. $\dagger$: the spread of the five runs exceeds 1.15, and the ratio is noise; in bold, the ratios below 0.9 of a stable row.} \label{tab:fpu-ci}
   \begin{tabular}{l*{8}{r}}
     \hline
     & \code{x*y} & \code{x*y} rnd & \code{x/y} & \code{sqr} & \code{x-y}
@@ -772,7 +770,7 @@ doubles, and their rows are no longer those of the default build.
 \noindent
 The product wins where the signs are random (1.23 to 3.47 times) and, alone,
 of positive operands on 32-bit ARM, Visual C++ and Ubuntu. It loses on the
-lines of products of positive operands with GCC on Linux (0.58 for the line
+lines of products of positive operands with GCC~13 on Ubuntu for x86-64 (0.58 for the line
 of 7 \code{*}, that is 1.7 times slower, where the Apple M2 above gives 23.3
 and 35.0~ns, 1.5 times) and with clang-cl for arm64 (0.57), and alone with
 clang-cl for arm64 (0.77): there, the branch of the former code is well
@@ -818,7 +816,8 @@ QEMU, and the assembly of Compiler Explorer shows six \code{xsmaxcdp} in the
 product and no other maximum; not run on a processor). The lower bound of
 \code{[-1, 0] * [-1, 0]} is therefore $+0$ with the SSE2 intervals, $-0$ with
 the NEON ones, and $+0$ or $-0$ with the FPU ones, by the compiler and the
-target; so is the upper bound of \code{[-1, 0] * [0, 1]}. $+0$ and $-0$ are
+target. The upper bound of \code{[-1, 0] * [0, 1]} is such a tie too, but with
+other signs: it is $-0$ with the SSE2 intervals. $+0$ and $-0$ are
 the same number: \code{==} and \code{<} do not see it, and a program does not
 read it (\pxref{sec:zero-sign}). The sign of the zero bound of a quotient and
 of a square does not depend on a tie, and is fixed: \code{[0, 1] / [-2, -1]}
@@ -874,10 +873,13 @@ start, and writes back at its end what it found, in the register that differs
 from what the operation left: a program that computes upward already, with
 the flush modes clear, pays no write. The SSE2 operations (\code{+},
 \code{-}, \code{*}, \code{/}, \code{sqr()}\ldots), which use no x87
-instruction, keep MXCSR alone with \option{GAOL\_PRESERVE\_ROUNDING} and leave
-the x87 unit as it is: they write it only if it is not upward with the flush
+instruction, keep MXCSR alone with \option{GAOL\_PRESERVE\_ROUNDING}, with GCC and Clang,
+and leave the x87 unit as it is: they write it only if it is not upward with the flush
 modes clear, and give back what they found only if it was
-not.\newinvfive{} A program that computes upward already pays no write there
+not. With Visual C++ and clang-cl they set and give back both units, as the
+other operations do: Visual C++ computes on the x87 unit a double that a
+function returns (\code{quotient\_sat()}, which \code{div\_rel()} calls,
+divides with \code{fdiv}).\newinvfive{} A program that computes upward already pays no write there
 either, \code{x + y} taking 1.7~ns rather than 8.2 and \code{x * y} 2.5
 rather than 8.3 (GCC~15.2, an Intel i7-1185G7, the best of 15 runs of a
 loop; a program to nearest pays 0.2~ns more, 8.4 for \code{x + y}).
@@ -898,19 +900,20 @@ registers itself there, as above, where it restores a direction
 \code{restore\_rounding()}, and the operations that set the direction to
 nearest and back: \code{midpoint()}, \code{chi()}, the writing and the
 reading of an interval), rather than call \code{fegetround()} and
-\code{fesetround()},\newinvfive{} which write both registers whatever they
-hold, and then MXCSR once more for the direction of the SSE instructions:
+\code{fesetround()},\newinvfive{} the latter writing both registers whatever
+they hold, and then MXCSR once more for the direction of the SSE instructions:
 three writes and a call, where a program that computes to nearest needs one
 write and a program that computes upward none. The register that differs is
 written only, with \code{fldcw} or \code{ldmxcsr}, which keep the flags;
 Visual C++ for x64, which has no inline assembly and uses no x87 unit, reads
-and writes MXCSR alone. mingw-w64, the only one that still called them, gave
-reasons of its own to stop: from version 13, its \code{fegetround()} joins the
+and writes MXCSR alone. GAOL wrote them itself first for mingw-w64 alone,
+which gave reasons of its own: from version 13, its \code{fegetround()} joins the
 fields RC of the two units by OR, which is the direction of both only where
 they agree (to nearest and upward give upward,
 \code{FE\_DOWNWARD | FE\_UPWARD} is \code{FE\_TOWARDZERO}), and its
 \code{fesetround()} clears the six exception flags of MXCSR when it changes
-its value, so that the flags of the program were lost, in the operations with
+its value, so that the flags of the program were lost in \code{midpoint()}, in
+\code{chi()}, in the writing and the reading of an interval, with
 \option{GAOL\_PRESERVE\_ROUNDING}, and in \code{cleanup()} and
 \code{restore\_rounding()} with it or without it.
 
@@ -934,15 +937,14 @@ subnormal result a zero (FTZ) and read every subnormal operand as a zero
 \end{Def}
 
 \noindent
-With one of them set, the bounds of every operation with a subnormal result
+With one of them set, the bounds of an operation with a subnormal result
 or operand miss the exact result, whatever the rounding direction:
 the product \code{interval(1e-300) * interval(1e-20)}, the square
 \code{sqr(interval(1e-160))} and the difference
 \code{interval(3e-308) - interval(2.9e-308)} are all \itv{0}{0}.\newinvfive
 
 \medskip
-\noindent
-\textbf{How a program gets them.} A program linked with one of the options
+\paragraph{How a program gets them.} A program linked with one of the options
 \option{-Ofast}, \option{-ffast-math} and \option{-funsafe-math-optimizations}
 gets them: GCC and Clang then link \file{crtfastmath.o}, on x86 and on ARM
 Linux, whose constructor sets them for the whole program. GCC links it last,
@@ -977,7 +979,8 @@ GAOL defends itself in two ways.
   x86 processors, and on ARM processors with GCC and Clang and with the NEON
   intervals of Visual C++, each operation that computes bounds clears the
   modes when it starts, in the check that sets the rounding direction upward:
-  the check is one comparison with a subnormal number, which shows the modes
+  the check is an addition of a subnormal number and a comparison, which shows
+  the modes
   as well as the direction (\pxref{sec:rounding-direction}), or, with the
   NEON intervals, a read of FPCR, which holds both; the modes stay cleared
   for the rest of the program, as the rounding direction stays upward. The
@@ -991,8 +994,7 @@ GAOL defends itself in two ways.
   operation sets the modes back as it found them, once it has made its
   result, its maxima and minima of bounds included. The bounds of every
   operation that makes the check are then the ones it gives with the modes
-  cleared, the tightest ones, and the modes are cleared, or set back, after
-  it;\newinvfive{} \file{tests/rounding\_direction.cpp} checks it for each of
+  cleared, and the modes are cleared, or set back, after it;\newinvfive{} \file{tests/rounding\_direction.cpp} checks it for each of
   them. It is the only defence against a plug-in, which sets the modes at any
   time, and against the compilers and processors without
   \option{-mno-daz-ftz}.
@@ -1021,9 +1023,9 @@ GAOL defends itself in two ways.
   83~ns.
 \item[$\bullet$] \textbf{The link option \option{-mno-daz-ftz}.}
   \file{gaol.pc} and \code{gaol::gaol} give \option{-mno-daz-ftz} to the
-  link, where the compiler accepts it: GCC~13 and later on x86, and from 11.4
-  and 12.4 in the series 11 and 12 (GCC~9.4, 12.3, GCC for ARM and Clang~18
-  refuse it, and the builds test the compiler with a link, not with its
+  link, where the compiler accepts it: GCC~13 and later on x86, from 11.4
+  and 12.4 in the series 11 and 12, and Clang 20 and 21 (GCC~9.4, 12.3, GCC for
+  ARM and Clang~18 refuse it, and the builds test the compiler with a link, not with its
   version). It keeps \file{crtfastmath.o} out of the link, so that a program
   linked with \option{-Ofast} does not get the modes at all, its own code
   included.
@@ -1044,8 +1046,7 @@ linked with \option{-Ofast} was not checked, and nothing of GAOL was tested
 with them set.
 
 \medskip
-\noindent
-\textbf{The functions that make no check.} The functions that only read,
+\paragraph{The functions that make no check.} The functions that only read,
 compare or copy the bounds of an interval make no check, which made each of
 them 3 to 4.5~ns slower in a micro-benchmark on an Intel i7-1185G7, two to
 three times the constructor or \code{certainly\_le()}: they compare the
@@ -1090,8 +1091,7 @@ where the C library writes a subnormal 0 under denormals-are-zero with gdtoa
 (\file{tests/rounding\_direction.cpp} checks all of them).
 
 \medskip
-\noindent
-\textbf{What remains.} The reader, which makes no check of the modes, takes
+\paragraph{What remains.} The reader, which makes no check of the modes, takes
 the numbers apart by their bits, and compares the two numbers of
 \code{<a, b>}, which have to be the same double, by theirs too,\newinvfive{}
 so that under denormals-are-zero \code{<1e-310, 1e-309>} is refused, as
@@ -1134,6 +1134,11 @@ What the operations raise:
 \item \code{log(interval(0,~1))}, which is \itv{-\infty}{0}, raises the
   divide-by-zero exception; \code{interval(1e308)*10}, which is
   \itv{\text{DBL\_MAX}}{+\infty}, raises the overflow exception.
+\item With the AVX-512 path (\pxref{sec:avx512}), \code{+}, \code{-}, \code{*},
+  \code{/}, \code{sqr()}, \code{sqrt()} and the integer powers it takes raise no
+  flag of IEEE~754: \code{interval(1e308)*10} raises no overflow exception there,
+  and \code{x + y} no inexact one. Their check of the flush modes,
+  $2^{-1060}+0$, is exact.
 \item Reading a number above the largest double (\code{1e400}, \code{1.8e308},
   \code{0x1p1024}) raises no overflow exception. The reader used to give it to
   \code{strtod()}, which computes $+\infty$ and raises it, so that
@@ -1145,16 +1150,20 @@ What the operations raise:
   below the least normal double (\code{1e-310}, \code{1e-400},
   \code{0x1p-1075}) raise the underflow exception, which \code{strtod()}
   raises when it rounds such a number to a subnormal or to $0$.\newinvfive
-\item Almost every operation raises the inexact exception: most bounds are
+\item Almost every operation, but those of the AVX-512 path, raises the inexact
+  exception: most bounds are
   rounded results, and where GAOL checks the rounding direction with an
   addition, $1+2^{-60}$ or $1+(2^{-1060}+0)$, whose result is inexact
   (\pxref{sec:rounding-direction}), even an operation whose bounds are exact
-  raises it. On x86, the addition of the subnormal $2^{-1060}$ also raises
+  raises it. On x86-64, the addition of the subnormal $2^{-1060}$ also raises
   the denormal-operand flag of the SSE instructions, which is none of the five
   flags of IEEE~754 (not in \code{FE\_ALL\_EXCEPT}), and its exception stops
   the program where the program enabled it; and with flush-to-zero set, the
   sum $2^{-1060}+0$, flushed to zero, raises the underflow exception
-  (\code{FE\_UNDERFLOW}) too, before the check clears the mode. With the NEON
+  (\code{FE\_UNDERFLOW}) too, before the check clears the mode; with
+  denormals-are-zero set, as \file{crtfastmath.o} sets it with flush-to-zero,
+  the check is exact and raises no flag at all, the inexact one included. With
+  the NEON
   intervals the check is a read of FPCR (\pxref{sec:neon}), which raises no
   flag: \code{+}, \code{-}, \code{/} and \code{sqrt()} raise the inexact one
   only when a bound they compute is rounded, \code{*}, \code{sqr()} and
@@ -1286,12 +1295,13 @@ The flags tell nothing of the results: after most operations of GAOL,
 \code{-x}, \code{abs()}, \code{\&}, \code{|}, \code{floor()}, \code{max()} or
 \code{min()}, which round nothing and check no rounding direction, nor after
 \code{+}, \code{-}, \code{/} and \code{sqrt()} with the NEON intervals when
-their bounds are exact), and \code{FE\_OVERFLOW} or \code{FE\_DIVBYZERO}
-stands for an infinite bound of the interval, or an infinite result of
-\code{width()} or \code{rad()}, not for an infinite number the program
-computed: \code{midpoint()} and \code{mid()} of
+their bounds are exact), and \code{FE\_OVERFLOW} or \code{FE\_DIVBYZERO},
+where they are raised, stand for an infinite bound of the interval, not for an
+infinite number the program computed, and an infinite bound does not always
+raise them (\code{interval(1, 2) / interval(0, 2)}, which is
+\itv{0.5}{+\infty}, raises none): \code{midpoint()} and \code{mid()} of
 \itv{\text{DBL\_MAX}}{\text{DBL\_MAX}}, which overflowed the sum of the
-bounds, raise none. IEEE 1788-2015 \cite{IEEE1788:2015} leaves the flags of
+bounds, raise none. IEEE 1788-2015 \cite{IEEE1788:2015} (1.4) leaves the flags of
 its operations unspecified. A program that reads them for its own
 computations clears them (\code{std::feclearexcept(FE\_ALL\_EXCEPT)}) just
 before, and reads them before its next operation of GAOL.\newinvfive
@@ -1323,15 +1333,15 @@ it).\newinvfive
 
 GAOL initializes itself when the program starts, before \code{main()}:
 \code{init()} need not be called. Since Release 1.0 of GAOL, there is an
-automatic initialization and cleanup, so that GAOL works even when the program
+automatic initialization and cleanup, so that the operations of GAOL give their bounds even when the program
 calls neither function. Since GAOL v5, the initialization is made with every
 compiler, Visual C++ included: each file including the headers of GAOL holds
 a static object whose constructor initializes GAOL the first time, as
 \file{<iostream>} initializes the standard streams, so that GAOL is
 initialized before the static objects that such a file defines after its
 \code{\#include}. Each operation also sets the rounding direction upward
-itself (\pxref{sec:rounding-direction}), so that \code{init()} no longer has
-to be called again after the calling code changed it.\newinvfive
+itself (\pxref{sec:rounding-direction}), so that the program does not need to set
+it again after changing it.\newinvfive
 
 \begin{Rem}\label{rem:cleanup-rounding}
 \code{cleanup()}, on the other hand, is to be called by the program right
@@ -1347,7 +1357,7 @@ static objects, the functions registered with \code{std::atexit()}) computes
 its doubles rounded upward.
 \end{Rem}
 
-\begin{Ex}\label{ex:cleanup}
+\begin{Ex}\label{ex:cleanup}\Needspace{18\baselineskip}
 The program below computes an interval, calls \code{cleanup()} right after
 its last use of GAOL, and then prints a double of its own, which is computed
 to nearest. It calls no \code{init()}.
@@ -1467,7 +1477,7 @@ calls it.\newinvfive{} A program that goes back to GAOL after
 after each use. Like \code{cleanup()}, it sets back the direction of the
 calling thread only, and leaves the rest of the floating-point environment as
 it is. With \option{GAOL\_PRESERVE\_ROUNDING} it does nothing, GAOL leaving
-the direction of the program alone (\pxref{sec:upward-effects}).
+the direction of the program alone (\pxref{sec:preserve-rounding}).
 \end{deffun}
 
 %%------------------------------------------------------------------------
@@ -1497,7 +1507,7 @@ Sets the rounding direction mode towards $-\infty$.
 \end{deffun}
 
 \begin{deffun}{void}{round\_nearest}{(void)}
-  Sets the rounding direction mode to the nearest/even.
+  Sets the rounding direction to nearest, ties to even.
 \end{deffun}
 
 \begin{deffun}{void}{round\_upward}{(void)}
@@ -1509,8 +1519,8 @@ Sets the rounding direction mode towards $-\infty$.
 %%------------------------------------------------------------------------
 
 This chapter has established how GAOL v5 handles the rounding direction: each
-operation that computes a bound checks it with an addition and sets it upward
-when it is not, so that the bounds are right whatever direction the calling
+operation that computes a bound checks it, with an addition or a read of the
+control register, and sets it upward when it is not, so that the bounds are right whatever direction the calling
 code left, where GAOL~4 trusted the user to set it. The price of this choice
 falls on the doubles of the program, which are rounded upward from the
 initialization of GAOL until \code{cleanup()}: the quotients, the decimal
@@ -1527,18 +1537,19 @@ the instruction, are taken where the machine has them.
 \medskip
 The same check defends the bounds against the modes that flush the subnormal
 numbers to zero, which a program linked with \option{-Ofast} gets without
-asking, and which GAOL clears on x86 and on ARM, while \option{-mno-daz-ftz}
+asking, and which GAOL clears on x86 and on ARM but for the FPU intervals of
+Visual C++, while \option{-mno-daz-ftz}
 keeps them out of the link where the compiler accepts it. The floating-point
 exceptions, on the other hand, are left to the program, which disables them
 while GAOL computes: the operations raise the inexact flag almost always, the
-overflow and division-by-zero flags for an infinite bound, and no longer the
+overflow and division-by-zero flags for some infinite bounds, and no longer the
 invalid-operation one for an empty operand in the cases found, but nothing
 keeps a compiler from compiling a quiet comparison into a signaling one.
 Several points stay open in the sources: the other processors (POWER, s390x,
 RISC-V, MIPS) have no defence against their flush modes, and nothing was
 tested with them set; the FPU intervals of POWER, s390x, RISC-V and
 MinGW-w64 for arm64 are not measured; the slower line of 13 operations with
-the direction preserved on Visual C++ for x86 has no explanation yet; and the
+the direction preserved on Visual C++ for x86 has no explanation; and the
 processors that do not halve their AVX-512 instructions are expected, not
 measured, to take less time on that path.
 
