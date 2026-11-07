@@ -9,8 +9,9 @@ The sources of CORE-MATH, which compute the elementary functions, are part of
 it and are compiled into the library \file{libgaol} itself: there is no
 mathematical library to install, to find or to link along with GAOL, and no
 choice to make. The bounds GAOL computes are the same on every architecture
-and with every compiler, and they are the tightest ones
-(Chapter~\ref{chap:accuracy}).
+and with every compiler, and they are the tightest ones for the elementary
+functions of CORE-MATH, and within a few doubles of them for a few other
+operations (Chapter~\ref{chap:accuracy}).
 
 \medskip
 GAOL is built with CMake, which is the build to use. The autotools and meson
@@ -25,7 +26,7 @@ In this chapter, we describe how GAOL v5 is obtained, built, tested and
 installed. The first sections give the platforms of the continuous
 integration, where to get the sources, the tools needed, and the compilers and
 the options that GAOL refuses because they gave bounds that did not enclose
-the exact results. Section~\ref{sec:three-builds} states what the three builds
+the exact results, or cannot be shown to enclose them. Section~\ref{sec:three-builds} states what the three builds
 agree on. Sections~\ref{sec:cmake} to~\ref{sec:install-meson} describe each
 build, its options and the settings of the developers.
 Section~\ref{sec:install-options-worth} measures what the options are worth.
@@ -42,15 +43,18 @@ what each platform showed are described in Chapter~\ref{chap:tests}
 
 \begin{itemize}
 \item[$\bullet$] \textbf{Linux.} Ubuntu 24.04 and 26.04 on x86-64 and
-  64-bit ARM, with GCC and Clang, and the compilers of Ubuntu 22.04 (GCC~11, Clang~14) on Ubuntu 24.04; Debian 12 and 13 on x86-64, 64-bit ARM and
-  32-bit ARM (armhf), and Debian 12 on 32-bit x86; manylinux\_2\_28 on x86-64
-  and 64-bit ARM; Alpine (musl) on x86-64 and 64-bit ARM; Debian 13 on s390x,
-  ppc64le and riscv64.
+  64-bit ARM, with GCC and Clang, and the compilers of Ubuntu 22.04 (GCC~11, Clang~14, the latter on x86-64
+  only: 64-bit ARM refuses it) on Ubuntu 24.04; Debian 12 and 13 on x86-64,
+  64-bit ARM and 32-bit ARM (armhf), and Debian 12 on 32-bit x86;
+  manylinux\_2\_28 on x86-64 and 64-bit ARM; Alpine (musl) on x86-64 and 64-bit
+  ARM; Debian 13 on s390x, ppc64le and riscv64, and Ubuntu 24.04 on POWER9,
+  these four under qemu.
 \item[$\bullet$] \textbf{macOS.} macOS 15 and 26, on arm64 and x86-64, and
   macOS 27, on arm64, with AppleClang, the Clang of LLVM and GCC.
 \item[$\bullet$] \textbf{Windows.} Visual Studio 2022 and 2026 on x86, x64 and
-  arm64; MinGW-w64 GCC 14 and 15 on x64, 12 to 15 on x86; MSYS2 (UCRT64 with
-  GCC, CLANG64 and CLANGARM64 with Clang); Cygwin (GCC, x64).
+  arm64, with Visual C++ and with clang-cl, and Clang with the target of
+  Visual C++; MinGW-w64 GCC 14 and 15 on x64, 12 to 15 on x86; MSYS2 (UCRT64 and
+  MINGW32 with GCC, CLANG64 and CLANGARM64 with Clang); Cygwin (GCC, x64).
 \end{itemize}
 
 \noindent
@@ -62,7 +66,10 @@ MinGW-w64 (\pxref{sec:neon}).\newinvfive
 \section{Getting the software}
 \cindex{gaol!web page}%
 
-GAOL v5 is available at \url{https://github.com/Jordan08/GAOL}. The GAOL of
+GAOL v5 is available at \url{https://github.com/Jordan08/GAOL}:
+\cmd{git clone https://github.com/Jordan08/GAOL.git} gives the sources in the
+directory \file{GAOL}, the root directory where the commands of this chapter are
+run. The GAOL of
 Fr\'ed\'eric Goualard, which GAOL v5 continues, is available at
 \url{https://github.com/goualard-f/GAOL}, and presented in the GAOL section of
 \url{https://frederic.goualard.net}.
@@ -70,21 +77,22 @@ Fr\'ed\'eric Goualard, which GAOL v5 continues, is available at
 GAOL comes as source code, to be compiled for the computer it is used on. The
 sources of CORE-MATH are part of it (\file{3rd/math-core}): there is nothing
 else to download. The archive of the sources that CPack makes from a checkout,
-\file{gaol-\var{version}.tar.gz}, holds the same files
+\file{gaol-\var{version}.tar.gz}, holds the same sources
 (\pxref{sec:packages}).
 
 \section{Prerequisites}
 
 \subsection{Mandatory tools}
-\cindex{tool!mandatory \idxself{} to compile gaol}%
+\cindex{tool!mandatory to compile GAOL}%
 
 Two tools are needed to build GAOL:
 \begin{itemize}
 \item a C++11 and C99 compiler: GCC, Clang, AppleClang, Visual C++ (Visual
   Studio 2022 or later), clang-cl (the Clang of Visual Studio, Clang 16 or
   later), or GCC and Clang for Windows (MinGW-w64, MSYS2, Cygwin);
-\index[idx]{c++!standard}%
-\item CMake 3.14 or later; or, for the autotools build, a shell and
+\cindex{C++!standard}%
+\item CMake 3.14 or later, with the build tool of its generator (\cmd{make},
+  ninja, Visual Studio); or, for the autotools build, a shell and
   \cmd{make}; or, for the meson build, meson and ninja.
 \end{itemize}
 
@@ -97,13 +105,16 @@ with the sources (Section~\ref{sec:install-maintainers}).
 \cindex{compiler!refused}%
 
 Each of the compilers and options below gave bounds not enclosing the exact
-results, or cannot be shown to enclose them. The three builds refuse the compilers when
-configuring, the C compiler, which builds CORE-MATH, as well as the C++
-compiler, with a message naming what to use instead. They keep the options
+results, or cannot be shown to enclose them. The three builds refuse Clang for
+32-bit ARM processors and the compilers of the second item when configuring,
+the C compiler, which builds CORE-MATH, as well as the C++ compiler, with a
+message naming what to use instead. They keep the options
 away by giving GAOL the flags of interval arithmetic (\pxref{sec:compiling}).
 The header \file{gaol/gaol\_config.h} refuses them again when compiling, for
 the code including the headers of GAOL too, all but the second one, which no
-macro of the compiler shows; the Cygwin case is refused by the header alone.
+macro of the compiler shows; it alone refuses the other compilers of the list,
+MinGW-w64, Cygwin without the fused multiply-add instructions, Visual C++ and
+clang-cl without \option{/fp:strict}, and the x87 unit.
 
 \begin{itemize}
 \item[$\bullet$] \textbf{Clang for 32-bit ARM processors.} It does not honour
@@ -114,9 +125,9 @@ macro of the compiler shows; the Cygwin case is refused by the header alone.
   Clang 14 for 64-bit ARM. Bounds of \code{pow()} and \code{nth\_root()} did
   not enclose the exact values. Clang 18 honours the rounding direction there.
 \item[$\bullet$] \textbf{A MinGW-w64 whose \code{fma()} or \code{round()} is
-  wrong.} On x64, before mingw-w64 12 (GCC 11 to 13 of Chocolatey) and linked
-  with \file{msvcrt.dll} rather than the UCRT (MSYS2 MINGW64, the cross
-  compilers of Debian and Ubuntu), the two functions are those of the math
+  wrong.} On x64, the mingw-w64 before version 12 (GCC 11 to 13 of Chocolatey),
+  and those of any version linked with \file{msvcrt.dll} rather than the UCRT
+  (MSYS2 MINGW64, the cross compilers of Debian and Ubuntu): the two functions are those of the math
   library of mingw-w64, computed in doubles. That \code{fma()} is not
   correctly rounded (10.7~\% of the error-free products \code{fma(a, b, -a*b)}
   are wrong), and CORE-MATH computes with it wherever the compiler has no
@@ -169,10 +180,15 @@ macro of the compiler shows; the Cygwin case is refused by the header alone.
   constants CORE-MATH rounds in the direction in effect, the bounds of
   \code{exp2(-1075)}, \code{expm1(-800)} or \code{atan2()} of a tiny and a
   huge number did not enclose the exact values.
+\item[$\bullet$] \textbf{The SSE2 intervals on 32-bit Windows, compiled without
+  \option{-faligned-new=8}} (GCC and Clang). The C runtime aligns the memory of
+  \code{new} on 8 bytes, and a \code{std::vector} of intervals crashed on its
+  first \code{movaps} (\pxref{sec:three-builds}); \file{gaol.pc} and
+  \code{gaol::gaol} give the flag.
 \end{itemize}
 
 \begin{Rem}
-Two reasons that had GAOL~4 refuse MinGW-w64 are gone with
+Two reasons for refusing MinGW-w64 are gone with
 CORE-MATH.\newinvfive{} The math library of mingw-w64 older than version 12
 gave \code{acosh()} near 1 up to 25 million doubles away from the exact
 value, and the \code{fesetround()} of mingw-w64 12 runs the instruction
@@ -222,9 +238,9 @@ same. The code using GAOL is not to be compiled with them.
 \item[$\bullet$] \textbf{\option{-funsafe-math-\allowbreak optimizations}, and
   \option{-ffast-math -fno-finite-\allowbreak math-only}, with GCC.} The compiler
   rewrites the addition \code{1.0 + tiny == 1.0}, by which GAOL sees the
-  rounding direction, as \code{tiny == 0.0} (GCC 9.4), and
-  \code{1.0 + (subnormal + 0.0) == 1.0}, which sees the modes flushing the
-  subnormals to zero too, as \code{subnormal == 0.0} (GCC 9.4 from
+  rounding direction, as \code{tiny == 0.0} (GCC 9.4), and the former probe of
+  the modes, \code{1.0 + (subnormal + 0.0) == 1.0}, which sees the modes
+  flushing the subnormals to zero too, as \code{subnormal == 0.0} (GCC 9.4 from
   \option{-O0}, and GCC 13), so that an operation does not set the direction
   upward again after the code using GAOL left it to nearest, and
   \code{width()} is below the exact width. Clang 18 does not rewrite the first
@@ -232,7 +248,8 @@ same. The code using GAOL is not to be compiled with them.
   \option{-fno-signed-zeros}: at \option{-O2} and \option{-O3}, the second
   addition loses its \code{+ 0.0} there too. The probe of the modes is now
   \code{!(1.0 + (subnormal + 0.0) > 1.0)}, which GCC 15 does not rewrite
-  under \option{-funsafe-math-optimizations}; GCC 15 and Clang 21 drop its
+  under \option{-funsafe-math-optimizations} (GCC 9 to 14 were not tried with
+  it); GCC 15 and Clang 21 drop its
   \code{+ 0.0} under \option{-fno-signed-zeros} as they did for the earlier
   form.
 \item[$\bullet$] \textbf{\option{-fno-signed-zeros}}, with which GCC (9.4 from
@@ -342,7 +359,7 @@ of \file{gaol/parser}, generated by flex 2.6.4 and bison 3.8.2 from
 \end{itemize}
 \noindent
 No build generates them again by itself, and none needs flex nor bison. After
-a change of one of the two files, the target \code{parser} of the three builds
+a change of one of the two files, the target \cmd{parser} of the three builds
 (\cmd{make parser}, \cmd{ninja parser}) generates the lexer and the parser
 again in \file{gaol/parser}, with the flex and the bison of the system, and
 they are committed; flex 2.6.4 and bison 3.8.2 give them again byte for byte.
@@ -395,8 +412,8 @@ meson build, and the CMake build follows them, apart from the errors corrected
 \item[$\bullet$] \textbf{With the flags of interval arithmetic}
   (\pxref{sec:compiling}). The code using GAOL, the tests included, is linked
   with \option{-mno-daz-ftz} where the compiler accepts it (GCC 13 and later
-  on x86, and from 11.4 and 12.4 in the series 11 and 12), in
-  \code{gaol::gaol} and in \file{gaol.pc}: each build tests the compiler with
+  on x86, from 11.4 and 12.4 in the series 11 and 12, and Clang 20 and 21, not
+  Clang 18), in \code{gaol::gaol} and in \file{gaol.pc}: each build tests the compiler with
   a link.\newinvfive
 \item[$\bullet$] \textbf{SSE2 intervals on x86 processors}
   (\option{-msse2 -msse3}; no flag with Visual C++ and clang-cl for x64, where
@@ -421,8 +438,8 @@ meson build, and the CMake build follows them, apart from the errors corrected
   (\option{GAOL\_SIMD}, \loption{enable-simd}, \option{-Denable-simd}; no
   flag), with every compiler of them: GCC, Clang and AppleClang under Linux
   and macOS, clang-cl and the Clang of MinGW-w64 and MSYS2, and Visual C++
-  (\cmd{cl}, whose registers are those of \code{\_ReadStatusReg()} and
-  \code{\_WriteStatusReg()}). Each build tests the compiler with the same
+  (\cmd{cl}, whose registers are those of \code{\mbox{\_ReadStatusReg}()} and
+  \code{\mbox{\_WriteStatusReg}()}). Each build tests the compiler with the same
   program (CMake and meson for Visual C++, which \cmd{configure} does not
   build with): the intrinsics of \file{<arm\_neon.h>} and the registers of
   the rounding mode. Not with 32-bit ARM, whose NEON has no vector of
@@ -466,7 +483,7 @@ meson build, and the CMake build follows them, apart from the errors corrected
 \item[$\bullet$] \textbf{The AVX-512 path} of $x + y$, $x - y$,
   $x \times y$, $x / y$, \code{sqrt(x)}, \code{sqr(x)} and, with FMA, the
   integer powers beyond 1 and $-1$, taken where the rounding direction is
-  preserved, whose every operation the path relieves of the store of that
+  preserved: the path spares each of these operations the store of that
   direction (\option{GAOL\_PREFER\_AVX512}, a setting of the developers, asks
   for the path without \option{GAOL\_PRESERVE\_ROUNDING} and refuses it with it), and where the
   machine building runs the instructions (\code{GAOL\_AVX512\_ARITHMETIC}),
@@ -489,9 +506,9 @@ meson build, and the CMake build follows them, apart from the errors corrected
   defining \code{GAOL\_FLOAT\_INTERVALS} in \file{gaol/gaol\_config.h}.
 \item[$\bullet$] \textbf{With exceptions, the rounding direction left upward,
   and silent}: no line on the standard error when GAOL initializes and cleans
-  up, unless \code{GAOL\_VERBOSE\_MODE} (\loption{enable-verbose-mode},
-  \option{-Denable-verbose-mode=true}) is asked for, where \cmd{configure}
-  wrote it by default.\newinvfive
+  up, unless \code{GAOL\_VERBOSE\_MODE} (\option{-DGAOL\_VERBOSE\_MODE=ON},
+  \loption{enable-verbose-mode}, \option{-Denable-verbose-mode=true}) is asked
+  for; the \cmd{configure} of GAOL~4 wrote it by default.\newinvfive
 \item[$\bullet$] \textbf{The processor and the system read from the
   compiler.} \code{GAOL\_IX86\_MACOSX}, \code{GAOL\_ARM\_MACOSX}\ldots, the
   sizes of the integer types and the byte order are read from the macros of
@@ -507,7 +524,8 @@ meson build, and the CMake build follows them, apart from the errors corrected
   \file{libgaol.so.5.0.0}, whose soname is \file{libgaol.so.5}, where the
   build makes one (\cmd{configure}, meson, CMake with
   \option{BUILD\_SHARED\_LIBS}); it was \file{libgaol-5.0.so.0} with
-  \cmd{configure}, and meson gave no version.\newinvfive
+  \cmd{configure} in the earlier versions of GAOL v5, and meson gave no
+  version.\newinvfive
 \cindex{soname}%
 \end{itemize}
 
@@ -518,9 +536,9 @@ compiled with \option{-g}, without optimization nor \code{NDEBUG}, so that
 \code{assert()} stays active. In GAOL~4, \cmd{configure --enable-debug} alone
 defined \code{GAOL\_DEBUGGING}, which checked the assertions of GAOL
 (\code{GAOL\_ASSERT}), adding \option{-g -ansi -Weffc++ -pedantic} for
-\cmd{g++} alone to the optimizations of \loption{enable-optimize}; the Debug
-build of CMake did not define it, and meson defined it with its option
-\code{enable-debug}.\newinvfive{} \option{GAOL\_DEBUG} of CMake and
+\cmd{g++} alone to the optimizations of \loption{enable-optimize}; in the
+earlier versions of GAOL v5, the Debug build of CMake did not define it, and
+meson defined it with its option \code{enable-debug}.\newinvfive{} \option{GAOL\_DEBUG} of CMake and
 \code{enable-debug} of meson build the libraries of GAOL and CORE-MATH so
 whatever the build type or the configuration, a project bringing GAOL in
 included, as \cmd{configure --enable-debug} does for a \cmd{configure} calling
@@ -532,11 +550,9 @@ The directory \file{.github/audit} configures the three builds and compares
 the macros GAOL sees, the macros each writes into
 \file{gaol/gaol\_configuration.h}, and the flags GAOL is compiled with, those
 of its C++ sources and those of a C source of CORE-MATH; the continuous
-integration runs it on each kind of machine (\pxref{sec:ci}). Before this
-audit, only the C++ flags were compared, and the C sources had
-\option{-msse2 -msse3 -fvisibility=hidden} with CMake alone, and the standard
-of the compiler with \cmd{configure}, \option{gnu11} with meson and
-\option{gnu99} with CMake.\newinvfive
+integration runs it on Ubuntu 24.04 (x86-64 and arm64, with GCC and Clang),
+macOS 15 (arm64 and x86-64), Debian 12 on 32-bit x86, Debian 13 on 32-bit ARM
+(armhf), and MSYS2 UCRT64 and MINGW32 (\pxref{sec:ci}).\newinvfive
 
 \section{Building and installing with CMake}\label{sec:cmake}
 \cindex{CMake}%
@@ -547,20 +563,25 @@ In the root directory of the sources:
 % cmake -S . -B build -DCMAKE_INSTALL_PREFIX=@var^prefix~ \
         -DWITH_TESTS=ON
 % cmake --build build --config Release
-% cmake --build build --target test
+% cmake --build build --config Release --target test
 % cmake --install build --config Release
 \end{cmdshell}
 
 \noindent
-CMake 3.14 or later is needed. The build compiles the thirty-eight sources of
+With Visual Studio and Xcode the target is \code{RUN\_TESTS}: \cmd{cmake --build
+build --config Release --target RUN\_TESTS}. On Linux, the test step runs 47
+tests, of which \code{intervalf} and \code{interval2f} are skipped, the
+intervals of floats being compiled only by a developer of GAOL. CMake 3.14 or
+later is needed. The build compiles the thirty-eight sources of
 CORE-MATH that GAOL uses into \file{libgaol}, which is a static library unless
 \option{BUILD\_SHARED\_LIBS} is \code{ON}: there is nothing else to build and
 nothing else to install. The build type is \code{Release} unless another is
 given. Brought in by a project that gives none (\code{add\_subdirectory},
 \code{FetchContent}), GAOL and CORE-MATH are compiled as in \code{Release} all
 the same: \option{-O3} (\option{/O2} with Visual C++), \code{NDEBUG} and the
-optimizations of \cmd{configure}; GAOL~4 had \option{-O3} alone, and its
-mathematical library no optimization. With a generator of several
+optimizations of \cmd{configure}; the earlier versions of GAOL v5 had
+\option{-O3} alone, and CORE-MATH, compiled apart, no optimization. With a
+generator of several
 configurations (Visual Studio, Xcode, Ninja Multi-Config), GAOL built alone
 puts \code{Release} first among them, which Ninja Multi-Config builds by
 default, unless \option{CMAKE\_CONFIGURATION\_TYPES} is given; \cmd{cmake
@@ -619,13 +640,13 @@ From \file{VERSION.txt} come the macros \code{GAOL\_MAJOR\_VERSION},
 \code{GAOL\_MINOR\_VERSION}, \code{GAOL\_MICRO\_VERSION} and
 \code{GAOL\_VERSION} of \file{gaol/gaol\_configuration.h}
 (\code{gaol\_core::version\_major}\ldots{} of \file{gaol/gaol\_version.h},
-\pxref{sec:floating-point-constants}), the shared library
+\pxref{sec:version}), the shared library
 \file{libgaol.so.\var{major}.\var{minor}.\var{micro}} and its soname
 \file{libgaol.so.\var{major}}, the \code{Version} of \file{gaol.pc},
 \file{gaolConfigVersion.cmake} (\code{find\_package(gaol \var{version})}
 takes a version of the same major number, not older than the one asked for),
 the names of the archive and of the packages of CPack, and the version printed
-by the manuals (\cmd{configure}, meson). Each build refuses a
+by the manual (\cmd{configure}, meson, and CMake with \option{WITH\_DOC}). Each build refuses a
 \file{VERSION.txt} that does not hold three numbers without leading zeros,
 which the macros write as C integers, and the three read it by the same
 rules, as autoconf does for \cmd{configure --version}. The blanks and empty
@@ -654,7 +675,7 @@ the continuous integration those of \cmd{configure}, meson and autoconf
 
 The options are given to the first command, as
 \option{-D\var{option}=\var{value}}. The three builds have the same
-options.\newinvfive{} Each had options of its own in GAOL~4, and those of
+options.\newinvfive{} Each had options of its own, and those of
 the fused multiply-add instructions, of the AVX-512 path, of the 128-bit
 integer, of the debugging and of the NEON intervals are gone as options: the
 configuration decides them (Section~\ref{sec:install-decides}). The standard
@@ -718,6 +739,9 @@ options under their three names, with their defaults.
   a static library \file{libgaol.a}; \code{ON} builds the shared library
   \file{libgaol.so.5.0.0}, whose soname is \file{libgaol.so.5}, as
   \cmd{configure} and meson do (always a static library with Visual C++).
+  Installed in a \var{prefix} that the dynamic loader does not search, the
+  shared library is found by a program run with \env{LD\_LIBRARY\_PATH} naming
+  \file{\var{prefix}/lib}, or linked with \option{-Wl,-rpath,\var{prefix}/lib}.
   With \cmd{configure} the static library is built too unless
   \loption{disable-static}, as with \option{-Ddefault\_library=both} of
   meson; \cmd{configure} and meson built both by default in
@@ -743,7 +767,7 @@ options under their three names, with their defaults.
 \item[$\bullet$] \textbf{\option{WITH\_EXAMPLES}.} \code{OFF} by default:
   builds the examples of \file{examples}, which \cmd{make check} runs.
 \item[$\bullet$] \textbf{\option{WITH\_DOC}.} \code{OFF} by default: adds the
-  target \code{pdf}, which builds this manual in
+  target \cmd{pdf}, which builds this manual in
   \file{manual/Manual\_GAOLv5.pdf} with pdflatex, bibtex and makeindex
   (Table~\ref{tab:install-targets}).\newinvfive
 \item[$\bullet$] \textbf{\option{GAOL\_SIMD}.} \code{ON} by default: the
@@ -765,7 +789,7 @@ options under their three names, with their defaults.
 \cindex{NEON}%
 \item[$\bullet$] \textbf{\option{GAOL\_PRESERVE\_ROUNDING}.} \code{OFF} by
   default: each operation restores the rounding direction it found, rather
-  than leaving it upward (\pxref{sec:rounding-direction}).
+  than leaving it upward (\pxref{sec:preserve-rounding}).%
 \cindex{rounding!preserving}%
 \item[$\bullet$] \textbf{\option{GAOL\_COVERAGE}.} \code{OFF} by default:
   compiles GAOL and its tests with the counters of gcov, and adds the target
@@ -801,7 +825,8 @@ carry the flags of the code using GAOL.\newinvfive
   C++ for x64, \option{-mfpu=neon-vfpv4 -mfloat-abi=hard} on 32-bit ARM;
   64-bit ARM, POWER, s390x and RISC-V have the instructions without a flag.
   The library then needs a processor with them (on x86, Intel Haswell and AMD
-  Piledriver, 2012--2013, and later), and the code using GAOL is given the
+  Piledriver, 2012--2013, and later; with Visual C++, whose \option{/arch:AVX2}
+  also needs AVX2, Intel Haswell and AMD Excavator, 2013--2015, and later), and the code using GAOL is given the
   flag too, in \code{gaol::gaol} and \file{gaol.pc}; \option{-ffp-contract=off}
   stays. The elementary functions are much faster with them: \code{cos} 2.5
   times, \code{log} 1.6 times, \code{sin} 1.3 times (Intel i7-1185G7,
@@ -830,13 +855,13 @@ carry the flags of the code using GAOL.\newinvfive
   none, where \option{GAOL\_PRESERVE\_ROUNDING} is on, the compiler takes the
   instructions (a program that uses them, linked) and the machine building
   runs them; otherwise the SSE2 intervals compute them. The rule comes from
-  measurements (\pxref{sec:kernels}): the path spares the store of the
+  measurements (\pxref{sec:avx512}): the path spares the store of the
   rounding direction that every operation pays with
   \option{GAOL\_PRESERVE\_ROUNDING}, where it gains 2.8 times at the median
-  of seven operations, from 1.3 to 4.4 times, on an Intel i7-1185G7, whose
-  AVX-512 units are halved (no other processor was measured); without that
-  option the operations cost 17~\% at the median, the direction being written
-  only when it is not upward already, so the path is left out. The library
+  of seven operations, on an Intel i7-1185G7 (no other processor was
+  measured); without that option the operations take 20~\% longer at the
+  median, the direction being written only when it is not upward already, so
+  the path is left out. The library
   then needs a processor with the instructions, as with the fused
   multiply-add instructions, and \code{gaol::init()} stops a program run on
   another one with a message (\pxref{sec:avx512}). In a cross-compilation,
@@ -854,15 +879,18 @@ carry the flags of the code using GAOL.\newinvfive
   (\code{CMAKE\_CXX\_SIMULATE\_ID} of CMake) to compile GAOL in C++14, the
   standard library of Visual C++ needing it, with the \file{unistd.h} of
   \file{cmake/msvc} for the lexer and without the warnings of the C runtime,
-  and to build the static library alone, as with Visual C++ (a DLL would
-  export nothing).\newinvfive
+  and, with CMake and meson, to build the static library alone, as with Visual
+  C++ (a DLL would export nothing); \cmd{configure} builds the static library
+  by default.\newinvfive
 \item[$\bullet$] \textbf{The debugging} (was \option{GAOL\_DEBUG},
   \code{GAOL\_DEBUGGING}). GAOL and CORE-MATH are built for debugging,
   without optimization nor \code{NDEBUG}, with debugging information and
   \code{GAOL\_DEBUGGING} (\pxref{sec:debugging-facilities}), for the
   \code{Debug} build type (\option{CMAKE\_BUILD\_TYPE},
   \loption{enable-debug}, \loption{buildtype=debug}); there is no target
-  \code{perf} then. Each configuration keeps its other flags (the C runtime
+  \cmd{perf} in the \code{Debug} build of CMake, nor with
+  \option{-Denable-debug=true} of meson (\cmd{configure --enable-debug} and
+  \loption{buildtype=debug} of meson keep it). Each configuration keeps its other flags (the C runtime
   of Visual C++, sanitizers\ldots); the tests and the examples, and the code
   of a project bringing GAOL in, keep their build type.
 \item[$\bullet$] \textbf{The memory and the flags of the intervals}: the
@@ -877,7 +905,8 @@ carry the flags of the code using GAOL.\newinvfive
 The checks above decide by themselves. A developer who wants to run a path
 the machine would not take, or a user who builds a package for any processor,
 gives one of the settings of Table~\ref{tab:install-developers}. They are not
-options of the user: \cmd{configure --help} does not list them, and
+options of the user: \cmd{configure --help} lists none of them but
+\loption{enable-debug}, which is also the \code{Debug} build of \cmd{configure}, and
 \cmd{meson configure} lists them with the mark \emph{developers}, since meson
 cannot leave them out. CMake reads them where they apply, without having them
 in the cache unless they were given. By default, the three builds report errors by
@@ -970,7 +999,8 @@ CPack makes them from the CMake build, in the directory of the build, where
 \cmd{make dist} of the autotools build made the archive of the sources:
 
 \begin{cmdshell}
-% cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/usr -DGAOL_FMA=OFF -DGAOL_PREFER_AVX512=OFF
+% cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/usr \
+        -DGAOL_FMA=OFF -DGAOL_PREFER_AVX512=OFF
 % cmake --build build --config Release
 % cmake --build build --target package_source
 % cmake --build build --target package
@@ -1014,7 +1044,8 @@ The packages hold \file{libgaol} as the build compiled it: where the machine
 building has the fused multiply-add instructions, only the processors that
 have them run it, and the code using it is compiled with \option{-mfma};
 \option{-DGAOL\_FMA=OFF} makes packages for any processor of the
-architecture. So does \option{-DGAOL\_PREFER\_AVX512=OFF} where
+architecture that has SSE3 on x86 (\option{-msse3} is given wherever the
+compiler takes it). So does \option{-DGAOL\_PREFER\_AVX512=OFF} where
 \option{GAOL\_PRESERVE\_ROUNDING} is \code{ON}, whose AVX-512 path makes a
 library that only the processors with the AVX-512 instructions run, when the
 machine building has them (Visual C++ and clang-cl for x64 too).\newinvfive
@@ -1024,7 +1055,7 @@ On Cygwin, \code{package\_source} did not work in the job of the continuous
 integration of 23 October 2026 (CMake 4.4.4, libarchive 3.8): CPack, with
 TGZ, TBZ2 and ZIP alike, failed to add \file{README}, a symbolic link to
 \file{README.md} in the repository, with ``Couldn't list extended
-attributes'', so that the target is not available there and the test
+attributes'', so that the target fails there and the test
 \code{cpack\_stale\_configure} says it is skipped. The cause was not found:
 \cmd{cmake -E tar}, GNU \cmd{tar} and \cmd{git archive} make an archive of
 the checked-out tree, and \code{listxattr()}, \code{llistxattr()} and
@@ -1035,8 +1066,8 @@ the archive from the repository.
 \section{Building and installing with autotools}\label{sec:configuration}
 \findex{configure}%
 
-In the root directory of the sources, or in another directory for a build
-outside the sources:
+In the root directory of the sources (for a build outside the sources,
+\cmd{configure} is called by its path from another directory):
 
 \begin{cmdshell}
 % ./configure --prefix=@var^prefix~ --with-tests
@@ -1047,7 +1078,8 @@ outside the sources:
 
 \noindent
 \cmd{configure} compiles the thirty-eight sources of CORE-MATH into
-\file{libgaol} (\file{gaol/Makefile.am}), with the flags it gives to the C
+\file{libgaol} (\file{3rd/Makefile.am}, whose convenience library
+\file{gaol/Makefile.am} puts into \file{libgaol}), with the flags it gives to the C
 code of GAOL: there is nothing else to build, nothing else to install and
 nothing else to link. There is no \cmd{make dist} nor \cmd{make distcheck}:
 the archive of the sources is made with CMake (\pxref{sec:packages}).
@@ -1070,8 +1102,9 @@ libtool installs. The versions matter: the files of GAOL 4.2.2 came from
 libtool 2.4.2, which linked \file{libgaol} with \option{-flat\_namespace
 -undefined suppress} on macOS 11 and later, taking them for Mac OS X 10.0,
 and from a \file{config.sub} of 2016, which refused
-\code{loongarch64}.\newinvfive{} The file \file{INSTALL} gives the generic
-instructions of the autotools.
+\code{loongarch64}.\newinvfive{} The file \file{INSTALL} gives the four
+commands of each of the three builds, and points to \file{doc/building.md} and
+\file{doc/using.md} for the options and the flags.
 
 \medskip
 \cmd{configure} accepts the following options, which are those of the three
@@ -1079,8 +1112,8 @@ builds (Table~\ref{tab:install-options}):
 
 \begin{itemize}
 \item[$\bullet$] \textbf{\loption{help}.} Displays a list of all options; only
-  those described hereunder are supported, with the options of libtool and
-  automake.
+  those described below are options of the user, with the options of libtool and
+  automake; the settings of the developers are not listed.
 \cindex{help!on configuration}%
 \item[$\bullet$] \textbf{\loption{prefix=\var{prefix-dir}}.} The root directory
   where the library is installed. It defaults to \file{/usr/local}.
@@ -1095,8 +1128,9 @@ builds (Table~\ref{tab:install-options}):
   (\pxref{sec:debugging-facilities}); the \code{Release} build of CMake
   otherwise, with \option{-O3} and \code{NDEBUG}, and the flags
   \option{-funroll-loops}, \option{-fomit-frame-pointer} and
-  \option{-fexpensive-optimizations} where the compiler takes them. This
-  option defaults to \code{no}.
+  \option{-fexpensive-optimizations} where the compiler takes them, and
+  \option{-falign-functions=64} for the library alone. This option defaults to
+  \code{no}.
 \cindex{debugging!option}%
 \cindex{optimization!configuration option}%
 \item[$\bullet$] \textbf{\loption{enable-simd[=\var{yes/no}]}.} The vector
@@ -1117,8 +1151,9 @@ builds (Table~\ref{tab:install-options}):
   \loption{enable-shared} builds the shared library \file{libgaol.so.5.0.0}
   too, whose soname is \file{libgaol.so.5}, as CMake
   (\option{BUILD\_SHARED\_LIBS}) and meson name it (it was
-  \file{libgaol-5.0.so.0}, and it was built by default before GAOL v5);
-  \loption{enable-pic} (the default) compiles the code as
+  \file{libgaol-5.0.so.0} in the earlier versions of GAOL v5, and it was built
+  by default before them); \loption{enable-pic} (the default, though
+  \cmd{configure --help} says \emph{use both}) compiles the code as
   position-independent code.\newinvfive
 \item[$\bullet$] \textbf{\loption{with-tests[=\var{yes/no}]}.} Builds the unit
   tests of \file{tests}, which \cmd{make test} and \cmd{make check} run, as
@@ -1129,6 +1164,7 @@ builds (Table~\ref{tab:install-options}):
 \end{itemize}
 
 \noindent
+{\raggedright % the names of the options, in typewriter, do not stretch
 As usual, \loption{disable-\var{xxx}} is equivalent to
 \loption{enable-\var{xxx}=no}, and \loption{enable-\var{xxx}} to
 \loption{enable-\var{xxx}=yes}. The fused multiply-add instructions, the
@@ -1137,11 +1173,18 @@ of the compiler and of the machine (Section~\ref{sec:install-decides}).
 \loption{enable-optimize} (the \code{Release} build, which is the default,
 and \option{-O} with \loption{disable-optimize}) and \loption{enable-arm64}
 (the NEON intervals follow \loption{enable-simd}) are no longer options; the
-other options of GAOL~4 and of the earlier days of GAOL v5
-(\loption{enable-fma}, \loption{enable-prefer-avx512},
-\loption{enable-verbose-mode}, \loption{enable-exceptions}) are settings of
-the developers, which \cmd{configure --help} does not list
-(Section~\ref{sec:install-developers}).\newinvfive{} A universal build of
+\loption{enable-verbose-mode} and \loption{enable-exceptions} of GAOL~4 are
+settings of the developers, as \loption{enable-fma} and
+\loption{enable-prefer-avx512}, which \cmd{configure --help} does not list
+(Section~\ref{sec:install-developers}); the other options of GAOL~4,
+\loption{with-mathlib}, \loption{with-mathlib-include},
+\loption{with-mathlib-lib}, \loption{with-cppunit-include},
+\loption{with-cppunit-lib}, \loption{enable-fast-math}, \loption{enable-asm}
+and \loption{enable-relations}, are gone, and \cmd{configure} warns that it
+does not know them.\newinvfive{}\par}
+
+\medskip
+A universal build of
 macOS is configured with \option{-arch} several times in the flags of the
 compilers: \code{./configure CFLAGS="-arch arm64 -arch x86\_64"
 CXXFLAGS="-arch arm64 -arch x86\_64" LDFLAGS="-arch arm64 -arch x86\_64"};
@@ -1153,7 +1196,8 @@ The targets of the \file{Makefile} in the root directory are \code{all},
 which builds \file{libgaol.a} (and the shared library \file{libgaol.so.5.0.0}
 with \loption{enable-shared}), \code{test}, \code{check}, \code{perf} and
 \code{parser}, those of the three builds (\pxref{sec:tests}),
-\code{install}, \code{clean} and \code{distclean}. \code{clean} erases what
+\code{install}, \code{clean}, \code{distclean} and, with
+\loption{enable-coverage}, \code{coverage}. \code{clean} erases what
 \cmd{make} built, and keeps what \cmd{configure} made, so that \cmd{make}
 builds again without it: the \file{Makefile}, \file{config.status},
 \file{config.log}, \file{libtool}, \file{gaol.pc},
@@ -1163,7 +1207,8 @@ the directories of CORE-MATH. \code{distclean} erases them too, the
 \file{.deps} directories included, which it left empty in GAOL~4, and gives
 the source tree back as git has it, \cmd{configure} to be run again; the
 continuous integration checks it.\newinvfive{} \cmd{make -C manual pdf}
-builds this manual and the manual of GAOL~4. \cmd{configure --help} ends with
+builds this manual; no build makes the manual of GAOL~4 again.
+\cmd{configure --help} ends with
 the address for the bug reports, \code{jordan.ninin@ensta.fr}, and the page of
 GAOL v5, \code{https://github.com/Jordan08/GAOL}.
 
@@ -1224,7 +1269,7 @@ the \code{Debug} build), and the others are those of \cmd{configure}
     \cmd{meson test} and \cmd{ninja check} run (it was \code{with-test})\\
     \code{with-examples} & \code{false}; builds the examples, which
     \cmd{ninja check} runs\\
-    \code{with-doc} & \code{false}; the target \code{pdf} then builds this
+    \code{with-doc} & \code{false}; the target \cmd{pdf} then builds this
     manual, \file{manual/Manual\_GAOLv5.pdf}, with pdflatex, bibtex and
     makeindex, as \option{WITH\_DOC}\\
     \hline
@@ -1282,7 +1327,8 @@ The options of Table~\ref{tab:install-options} that change the code of the
 operations are the vector intervals (\option{GAOL\_SIMD}) and the preserved
 rounding direction (\option{GAOL\_PRESERVE\_ROUNDING}); the fused
 multiply-add instructions, which the configuration decides, change it too.
-Table~\ref{tab:install-worth-x86} measures them with
+Table~\ref{tab:install-worth-x86} measures the vector intervals and the fused
+multiply-add instructions with
 \file{tests/performance.cpp} on an Intel i7-1185G7 with Clang 21.1, in
 nanoseconds per operation, the best of nine runs, each program being run in
 turn with the others.
@@ -1308,8 +1354,8 @@ turn with the others.
 \end{table}
 
 \begin{itemize}
-\item[$\bullet$] \textbf{The fused multiply-add instructions are worth much
-  more than they were in GAOL~4.} \code{cos} is 2.5 times faster with them,
+\item[$\bullet$] \textbf{The fused multiply-add instructions pay on the elementary
+  functions.} \code{cos} is 2.5 times faster with them,
   \code{pow(x, 3)} 3.2 times, \code{log} 1.6 times, \code{sin} 1.3 times and
   \code{exp} 1.2 times. CORE-MATH computes with \code{\_\_builtin\_fma}
   throughout, which is one instruction where the processor has it and a call
@@ -1325,8 +1371,8 @@ turn with the others.
 \end{itemize}
 
 \medskip
-On a 64-bit ARM processor, Table~\ref{tab:install-worth-arm} measures the
-same way on an Apple M2 with AppleClang 21.0, the median of nine runs of
+On a 64-bit ARM processor, Table~\ref{tab:install-worth-arm} measures them
+with \file{tests/\allowbreak performance.cpp} on an Apple M2 with AppleClang 21.0, the median of nine runs of
 each program, 6 November 2026: the first two builds in turn in one session,
 the last two in another.
 
@@ -1363,16 +1409,17 @@ the last two in another.
   processors, with every compiler of them.
 \item[$\bullet$] \textbf{The product, the quotient and the square of the FPU
   intervals take no branch on the signs of the bounds}, and $x - y$ reads its
-  bounds after the check of the rounding direction.\newinvfive{} The row read
-  before 3.54 for $x - y$, 3.25 for $x \times y$ (6.39 of operands of random
+  bounds after the check of the rounding direction.\newinvfive{} In the earlier
+  versions of GAOL v5 the row read 3.54 for $x - y$, 3.25 for $x \times y$ (6.39 of operands of random
   signs), 3.98 for $x / y$, 2.07 for \code{sqr} and 49.6 for the line of 13
   operations. The product of a line of operands of one sign, which a processor
   predicts, takes more time than it did (a line of 7 products, 35.0~ns rather
   than 23.3), the largest of four products waiting for two comparisons. With
   \option{GAOL\_PRESERVE\_ROUNDING} the write of FPCR waits for the result as
-  well, and the FPU row of that option gains little ($x \times y$ 42.4~ns
-  rather than 39.7 for the former code, measured in the same session, and
-  42.4 rather than 47.5 for operands of random signs). These are the figures
+  well, and the FPU row of that option loses 6 to 7~\% on operands of one sign
+  ($x \times y$ 42.4~ns rather than 39.7 for the former code, measured in
+  another session than Table~\ref{tab:install-worth-arm}, where it is 43.2)
+  and gains on operands of random signs (42.4 rather than 47.5). These are the figures
   of this processor, with AppleClang. The processors of the continuous
   integration that run the FPU intervals (32-bit ARM, Ubuntu with GCC and
   Clang, macOS; and, when they were measured, Visual C++ and clang-cl for x86
@@ -1502,8 +1549,7 @@ itself for the 256-bit spills it makes).
 These flags are for GCC for Windows on x86-64 and on 32-bit x86: MinGW-w64,
 MSYS2 and, since the tests of the three builds name it (\code{CYGWIN} of
 CMake, \code{\_\_CYGWIN\_\_} of \cmd{configure} and meson; the AVX-512 path
-names \code{\_\_CYGWIN\_\_} too), Cygwin, which got \option{-mfma} alone
-before.\newinvfive{} The MSYS environment of MSYS2 (not its MinGW ones) is a
+names \code{\_\_CYGWIN\_\_} too), Cygwin.\newinvfive{} The MSYS environment of MSYS2 (not its MinGW ones) is a
 Cygwin as far as these tests go, and gets the same flags. If the user gives a
 \option{-mprefer-vector-width=} of their own, the builds order it differently
 from GAOL's: CMake and \cmd{configure} put the flags of GAOL after the user's
@@ -1529,7 +1575,7 @@ given, so that \option{-mprefer-vector-width=128} should win over a
 
 \begin{Rem}
 Cygwin x86-64 is built and tested by a job of the continuous integration (GCC
-14.4, CMake 4.4, Release; not measured), whose first runs found what Cygwin
+14.4, CMake 4.4, Release and Debug; not measured), whose first runs found what Cygwin
 needed.\newinvfive{} Its \file{<stdlib.h>} does not declare
 \code{posix\_memalign()} under \option{-std=c++11} (the aligned memory is
 \code{\_mm\_malloc()} there). Its \code{fma()} is not correctly rounded, and
@@ -1541,7 +1587,7 @@ refuses Cygwin without \option{-mfma} (\pxref{sec:refused}). Its
 direction upward, which \code{previous\_float()} and \code{next\_float()} now
 tell apart (the lower bound of \code{sinh(-711)} did not enclose the value).
 \code{is\_bisectable()} and \code{bisect()} call no \code{nextafter()}: they
-tell the bounds by their bits. A Debug build of Cygwin is not in the job;
+tell the bounds by their bits. The Debug build of Cygwin is built and tested too;
 \file{tests/core\_math.cpp} and \file{tests/arithmetic.cpp} call
 \code{\_\_builtin\_fma} as GAOL does.
 \end{Rem}
@@ -1559,8 +1605,12 @@ elementary functions are no faster, and a little slower: \code{cos} took
 rather than 21.7. With Clang 18.1, before the operators took their bounds in
 a register, the basic operations took two to three times less time with it
 and the elementary functions two to three times more. The sources of
-CORE-MATH are compiled apart, without it, and it reaches them through the
-link all the same.
+CORE-MATH are compiled apart, without it. There is no option of GAOL for this,
+and \file{gaol.pc} and \code{gaol::gaol} carry no such flag; the standard options
+of the tools still reach the sources of GAOL, \option{CMAKE\_INTERPROCEDURAL\_OPTIMIZATION},
+\option{-Db\_lto=true} of meson and \option{-flto} in \env{CXXFLAGS}, which the
+three builds keep away from CORE-MATH alone: they are not to be given with
+GCC.
 
 \medskip
 With GCC, moreover, it breaks the bounds: GAOL then fails
@@ -1585,7 +1635,7 @@ Built with \option{WITH\_TESTS} (CMake), \loption{with-tests}
 (\cmd{configure}) or \code{with-tests} (meson), the programs of \file{tests}
 compare the bounds GAOL computes with the exact results of the operations,
 independently of GAOL and of the floating-point environment: the exact
-results are computed with integers, or were computed with 2000 bits of
+results are computed with integers, or were computed with \code{mpmath}, with 2000 bits of
 precision. They check, among others, that the basic operations are the
 tightest enclosures, that the elementary functions are the tightest or within
 one double of them, that every operation gives the same result whatever the
@@ -1649,8 +1699,8 @@ builds have the same targets (Table~\ref{tab:install-targets}).
   (\pxref{sec:comparison}); it runs the ten long lines of
   \file{doc/compare/code/run\_lines.sh} too. It needs bash, and Python~3 with
   numpy; with CMake and meson, Linux and macOS (Linux only before), and with
-  \cmd{configure} wherever bash is. There is no target \code{perf} in a Debug
-  build.\newinvfive
+  \cmd{configure} wherever bash is. There is no target \cmd{perf} in the Debug
+  build of CMake, nor with \option{-Denable-debug=true} of meson.\newinvfive
 \item[$\bullet$] \textbf{\cmd{make parser}} regenerates the lexer and the
   parser of the strings with the flex and the bison of the system, where the
   CMake build finds them (\code{find\_program}, not required;
@@ -1686,7 +1736,8 @@ Each build installs:
 \begin{itemize}
 \item[$\bullet$] \textbf{the headers}, in \file{\var{prefix}/include/gaol};
 \item[$\bullet$] \textbf{the library}, \file{libgaol}, which holds CORE-MATH:
-  static with CMake, or shared with \option{BUILD\_SHARED\_LIBS},
+  static by default with the three builds, or shared with
+  \option{BUILD\_SHARED\_LIBS},
   \loption{enable-shared} of \cmd{configure} and
   \option{-Ddefault\_library=shared} of meson (static only with Visual C++).
   The shared library is \file{libgaol.so.5.0.0}, whose soname is
@@ -1724,12 +1775,14 @@ define the macros of the architecture being compiled;
 intervals of floats, which a developer of GAOL compiles.
 
 \begin{Rem}
-Each macro of Table~\ref{tab:install-configuration} but the version is 1
-where the table says, and 0 otherwise.\newinvfive{} It was left undefined in
+Each macro of Table~\ref{tab:install-configuration} but the version,
+\code{GAOL\_UNIVERSAL\_SSE2} and \code{GAOL\_UNIVERSAL\_NEON} is 1 where the
+table says, and 0 otherwise; those two are defined only in a universal build of
+macOS.\newinvfive{} It was left undefined in
 GAOL~4, so that a header reading it with \code{\#if} warned under
 \option{-Wundef}, and a program could not include GAOL under
 \option{-Wundef -Werror}. A program tests these macros with \code{\#if} as
-well: \code{\#ifdef} is now true of each of them.
+well: \code{\#ifdef} is now true of each of the others.
 \end{Rem}
 
 \begin{longtable}{L{4.6cm}L{9.4cm}}
@@ -1763,7 +1816,8 @@ well: \code{\#ifdef} is now true of each of them.
   \loption{enable-preserve-rounding}, \code{enable-preserve-rounding})\\
   \code{GAOL\_PREFER\_AVX512} & The four arithmetic operations, the square,
   the square root and, with FMA, the integer powers beyond 1 and $-1$ are to
-  take the AVX-512 instructions: with \option{GAOL\_PRESERVE\_ROUNDING}
+  take the AVX-512 instructions: with \option{GAOL\_PRESERVE\_ROUNDING},
+  where the compiler takes the path (\code{GAOL\_HAVE\_AVX512\_TARGET})
   (\option{GAOL\_PREFER\_AVX512=ON} or \code{OFF},
   \loption{enable-prefer-avx512}, \loption{disable-prefer-avx512},
   \code{enable-prefer-avx512} decide otherwise)\\
@@ -1848,24 +1902,26 @@ CORE-MATH compiled into \file{libgaol}, by one of three builds that give it
 the same macros and the same flags, and whose few options are the same under
 three names. The choices it explained are those of a library whose bounds
 must be the same everywhere. The compilers and the options that gave bounds
-not enclosing the exact results are refused when configuring and again when
-compiling, and the link with \option{-Ofast} is countered by the clearing of
+not enclosing the exact results, or that nothing certifies, are refused when
+GAOL is configured or compiled, and again when the code using it is compiled,
+and the link with \option{-Ofast} is countered by the clearing of
 the flush-to-zero modes and by \option{-mno-daz-ftz}. The fused multiply-add
 instructions and the AVX-512 path are decided by what the machine building
-runs, since the elementary functions gain up to 2.5 times with the first
-(4.7 times with GCC for Windows) and the arithmetic operations 2.8 times,
-where the rounding direction is preserved, with the second, at the price of a library bound to the processors that
-have them; a package for any processor turns them off. Interprocedural
+runs. The elementary functions gain up to 2.5 times with the fused
+multiply-add instructions (4.7 times with GCC for Windows), and the arithmetic
+operations 2.8 times with the AVX-512 path where the rounding direction is
+preserved; the price is a library bound to the processors that have them, and
+a package for any processor turns them off. Interprocedural
 optimization, which would gain 1.1 to 1.5 times on the basic operations, is
 not offered, because GCC then moves operations across the changes of the
 rounding direction.
 
 \medskip
-Some points are left open by the sources. The refusal of the older MinGW-w64
+Some points are left open. The refusal of the older MinGW-w64
 is not tested on ARM; the processors POWER, s390x and RISC-V are not measured;
 the flush-to-zero modes of these processors are neither checked nor cleared;
 the Python aliases of Windows were read in the sources of meson, not checked;
-and the failure of \code{package\_source} on Cygwin has no explanation yet.
+and the cause of the failure of \code{package\_source} on Cygwin is not known.
 The code using GAOL still has to be compiled with the flags of interval
 arithmetic and without the options that no macro shows: the next chapter
 shows how a program includes the headers, compiles with these flags, from

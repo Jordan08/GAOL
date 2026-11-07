@@ -71,6 +71,10 @@
 %% The page
 %%--------------------------------------------------------------------------
 \raggedbottom
+%% A paragraph that cannot be set with the interword space it is allowed gets a
+%% little more of it (the typewriter names of the options do not break), where it
+%% would otherwise run into the margin
+\emergencystretch=2em
 %% A line of a paragraph never stays alone at the foot or at the head of a page
 \widowpenalty=10000
 \clubpenalty=10000
