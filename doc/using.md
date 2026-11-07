@@ -87,8 +87,8 @@ releases computes such a value at run time, as `tests/rounding_direction.cpp`
 does (GAOL v5).
 
 The link of the program takes one option too, where the compiler accepts it
-(GCC 13 and later on x86, and from 11.4 and 12.4 in the series 11 and 12):
-`-mno-daz-ftz`,
+(GCC 13 and later on x86, from 11.4 and 12.4 in the series 11 and 12, and Clang 20
+and 21, not Clang 18): `-mno-daz-ftz`,
 which keeps out of the link the file that sets the flush-to-zero and
 denormals-are-zero modes when a program is linked with `-Ofast` (see
 [Flush-to-zero and denormals-are-zero](#flush-to-zero-and-denormals-are-zero)).
@@ -106,9 +106,16 @@ headers include in the middle of their code (`gaol/core/gaol_interval_fpu.h`,
 headers of GAOL's sources (GAOL v5): `gaol/parser/gaol_interval_parser.h`,
 which did not compile when included, `gaol_init_cleanup.h`,
 `gaol/math/gaol_core_math.h`, `gaol/math/gaol_u128.h`,
-`gaol/math/gaol_compoundm1.h` and `gaol/math/gaol_roundeven.h`; `gaol_parameters.h`, which declared nothing,
-`gaol_exact.h` with `sysdeps/`, which `dtoa.c` needed, and `gaol_assert.h`,
-whose `GAOL_ASSERT` is `assert()` now, are gone. GAOL's headers compile without a warning under
+`gaol/math/gaol_compoundm1.h`, `gaol/math/gaol_roundeven.h`,
+`gaol/math/gaol_ldexp.h`, `gaol/math/gaol_core_math_port.h`,
+`gaol/math/gaol_double_op.h`, `gaol/float/gaol_intervalf.h` and
+`gaol/float/gaol_interval2f.h`. Headers of GAOL 4 are gone: `gaol_parameters.h`,
+which declared nothing, `gaol_double_op_apmathlib.h` and
+`gaol_double_op_crlibm.h`, of the mathematical libraries GAOL 4 was built with,
+`gaol_limits.h`, `gaol_flags.h`, `gaol_profile.h`, `gaol_allocator.h`,
+`gaol_exceptions.h`, `gaol_exact.h` with `sysdeps/`, which `dtoa.c` needed, and
+`gaol_assert.h`, whose `GAOL_ASSERT` is `assert()` now; a program that included
+`gaol/gaol_expression.h` includes `gaol/parser/gaol_expression.h`. GAOL's headers compile without a warning under
 `-Wall -Wextra -Wold-style-cast -Wundef`, and put nothing into the global
 namespace:
 `gaol/gaol_exceptions.h` declared `string` and `exception` there, which a
@@ -1008,7 +1015,8 @@ example; they are listed here for the reader who looks in this page first.
   √2: `sqrt(interval(2.0))` encloses it. `gaol::sin(0.5)` does not compile.
 - **Code inside `namespace gaol { }`.** The using-declarations of `gaol` are
   visible there: a call `sqrt(2.0)` finds `gaol::sqrt`, which hides `::sqrt`,
-  and does not compile. This was already the case with GAOL 4.
+  and does not compile. With GAOL 4, whose `interval(double)` was implicit, the
+  call compiled and computed `gaol::sqrt(interval(2.0))`.
 - **A midpoint and a radius.** `interval(m - r, m + r)` does not enclose
   [m − r, m + r], the program computing both bounds in the direction it is in:
   `interval::midrad(m, r)` does (GAOL v5).
@@ -1735,8 +1743,8 @@ bounds wrong**, and GAOL defends itself in two ways:
   to another: none of these processors took such an assist (GAOL v5, point
   Q). Under qemu (ppc64le, riscv64, s390x), both took 25 to 83 ns.
 - `gaol.pc` and `gaol::gaol` give `-mno-daz-ftz` to the link, where the
-  compiler accepts it: GCC 13 and later on x86, and from 11.4 and 12.4 in the
-  series 11 and 12 (GCC 9.4, 12.3, GCC for ARM and Clang 18 refuse it, and the
+  compiler accepts it: GCC 13 and later on x86, from 11.4 and 12.4 in the
+  series 11 and 12, and Clang 20 and 21 (GCC 9.4, 12.3, GCC for ARM and Clang 18 refuse it, and the
   builds test the compiler with a link, not with its version). It keeps
   `crtfastmath.o` out of the link, so that a program linked with `-Ofast` does
   not get the modes at all, its own code included.

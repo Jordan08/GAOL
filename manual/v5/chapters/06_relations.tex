@@ -100,7 +100,7 @@ the standard (Chapter~\ref{chap:ieee1788}).
 
 \begin{table}[htbp]
   \centering\small\renewcommand{\arraystretch}{1.1}
-  \caption[The relations of IEEE 1788-2015 and the methods of GAOL v5]{The relations of IEEE 1788-2015 and the methods of GAOL v5 that compute them, for two intervals $I$ and $J$ and a double $d$.} \label{tab:relations-ieee}
+  \caption[The relations of IEEE 1788-2015 and the methods of GAOL v5]{The relations of IEEE 1788-2015 and the methods of GAOL v5 that compute them, for two intervals $I$ and $J$ and a double $d$} \label{tab:relations-ieee}
   \begin{tabular}{lL{7.2cm}l}
     \hline
     \multicolumn{1}{c}{IEEE 1788-2015} & \multicolumn{1}{c}{GAOL v5} &
@@ -275,7 +275,7 @@ cout << boolalpha << interval(4.5,6).set_leq(interval(4.5,6)) << ' '
     \op{$I$ interior to \code{self}}
   \end{operation}
   Returns \code{true} if \var{I} is interior to \code{self}:
-  \code{set\_strictly\_contains(\var{I})}, the \ieee{interior}(\var{I},
+  \code{set\_strictly\_contains(\var{I})}, \ieee{interior}(\var{I},
   \code{self}) of IEEE 1788-2015.\newinvfive
 \begin{example}
 cout << boolalpha << interval(-10,10).set_ge(interval(-4.5,3)) << ' '
@@ -289,7 +289,7 @@ cout << boolalpha << interval(-10,10).set_ge(interval(-4.5,3)) << ' '
     \op{$I\subseteq\code{self}$}
   \end{operation}
   Returns \code{true} if the real set defined by \code{self} contains
-  \var{I}: \code{set\_contains(\var{I})}, the \ieee{subset}(\var{I},
+  \var{I}: \code{set\_contains(\var{I})}, \ieee{subset}(\var{I},
   \code{self}) of IEEE 1788-2015.
 \end{defmethod}
 
@@ -437,11 +437,13 @@ defines an order on the intervals, \ieee{less} and \ieee{strictLess}
 $J$ when the left bound of $I$ is at most the left bound of $J$ and the right
 bound of $I$ is at most the right bound of $J$. The standard also defines a
 primitive, \ieee{overlap} (10.6.4), which tells in which of sixteen states
-two intervals are. The standard derives its comparisons from it, but three of
-them also need the bounds: \itv{1}{1} and \itv{1}{2} are in the state
-\element{starts}, as \itv{1}{1.5} and \itv{1}{2}, and only the first pair is in
-\ieee{precedes}; \itv{-\infty}{1} and \itv{-\infty}{2} are in \element{starts}
-too, and are in \ieee{interior} and \ieee{strictLess} only in part. Three of
+two intervals are. A note of the standard says that every comparison it requires can be
+implemented from it with bit masks, but three of them also need the bounds.
+\itv{1}{1} and \itv{1}{2} are in the state \element{starts}, as \itv{1}{1.5}
+and \itv{1}{2}, and only the first pair is in \ieee{precedes}.
+\itv{-\infty}{1} and \itv{-\infty}{2} are in \element{starts} too, and are in
+\ieee{interior} and in \ieee{strictLess}, where \itv{1}{1.5} and \itv{1}{2}
+are in neither. Three of
 the states are for the empty set. The thirteen others are the relations of
 Allen between two nonempty intervals $a = [\leftBound{a}, \rightBound{a}]$
 and $b = [\leftBound{b}, \rightBound{b}]$, told by their bounds, an infinite
@@ -531,18 +533,19 @@ cout << boolalpha << interval(1,2).strictly_less(interval(1,3)) << ' '
   most of the comparisons can be derived.\newinvfive\ The result is one of the 16
   values of the type \code{overlapping\_state} (in \code{gaol} and in
   \code{gaol\_ieee1788}), which has the names of Table~10.7, in its order,
-  from \code{bothEmpty}, 0, to \code{after}, 15. The state number $s$ is the
-  bit $s$ of a 16-bit word counted from the left, \code{bothEmpty} being the
+  from \element{bothEmpty}, 0, to \element{after}, 15. The state number $s$ is the
+  bit $s$ of a 16-bit word counted from the left, \element{bothEmpty} being the
   leftmost bit, as in the note of the standard, where \code{disjoint} is the
   mask \code{0xF001}. A state is written to a stream by its name in the
-  table, as \code{meets}. \code{bothEmpty}, \code{firstEmpty} and
-  \code{secondEmpty} are for an empty $a$ and $b$, an empty $a$ alone and an
+  table, as \element{meets}. \element{bothEmpty}, \element{firstEmpty} and
+  \element{secondEmpty} are for an empty $a$ and $b$, an empty $a$ alone and an
   empty $b$ alone. The 13 other states are Allen's, for two nonempty
   intervals, told by their bounds as Table~\ref{tab:relations-overlap} says,
   an infinite bound being equal to the same infinite bound and $-0$ to $+0$.
-  A point interval on a bound of the other one is \code{starts},
-  \code{finishes}, \code{finishedBy} or \code{startedBy}, or \code{equals}
-  for the same point, never \code{meets} nor \code{metBy}, as the standard
+  A point interval on a bound of the other one is \element{starts},
+  \element{finishes}, \element{finishedBy} or \element{startedBy}, or
+  \element{equals} for the same point, never \element{meets} nor
+  \element{metBy}, as the standard
   asks. The function compares the bounds as the integers of their bits: it
   raises no floating-point exception, even for the \code{NaN} bounds of an
   empty interval, and the modes that flush the subnormal numbers to zero do
@@ -561,7 +564,8 @@ cout << a.overlap(b) << ' ' << c.overlap(interval(2,3)) << ' '
 
 The relation symbols \code{<}, \code{<=}, \code{>} and \code{>=} are the
 certainly relations, whichever build configured GAOL. The option of GAOL~4
-that chose between the set, certainly and possibly relations is gone, and meson refuses it, and \cmd{configure} warns that it is unrecognized
+that chose between the set, certainly and possibly relations is gone: \cmd{configure} warns that it does not know it
+(\pxref{sec:configuration}), and meson refuses it
 (\pxref{sec:install-meson}).\newinvfive{}
 The operators \code{==} and \code{!=} are not defined on intervals: a program
 compares intervals with \code{set\_eq()}, \code{set\_disjoint()} or
@@ -572,8 +576,8 @@ An interval and a \code{double} \var{d} compare as the interval and
 \code{interval(\var{d})}, which is empty for an infinite or NaN \var{d}:
 \code{x < 0.0} is \code{x < interval(0.0)}, and there is still no \code{==}
 nor \code{!=}. For a finite \var{d}, these overloads give what the implicit
-conversion of a \code{double} to an interval gave in GAOL~4, before the
-constructor from one \code{double} became explicit
+conversion of a \code{double} to an interval gave in GAOL~4 configured with
+the certainly relations, its default, before the constructor from one \code{double} became explicit
 (\pxref{sec:constructors}); for an infinite or NaN \var{d}, \code{x < d} and
 \code{x > d} are both \code{true}, whatever \code{x}.\newinvfive
 

@@ -651,8 +651,8 @@ kept from moving a comparison before it: with GCC 13 at \option{-O3},
 earlier versions of GAOL v5, \code{asinpi([100*2\textasciicircum{}-1074])} was
 above the exact value. At the link, \file{gaol.pc} and
 \code{gaol::gaol} give \option{-mno-daz-ftz} to the code using GAOL where the
-compiler accepts it (GCC 13 and later on x86, and 11.4 and 12.4 in the series
-11 and 12), which keeps \file{crtfastmath.o} out of the program; the check
+compiler accepts it (GCC 13 and later on x86, from 11.4 and 12.4 in the series
+11 and 12, and Clang 20 and 21, not Clang 18), which keeps \file{crtfastmath.o} out of the program; the check
 of the operations is the only defence against a plug-in, and the only one on
 the other compilers; on POWER, s390x, RISC-V and MIPS neither defence exists. The cost
 is that of the second addition of the check: \code{x * y}, \code{sqrt} and

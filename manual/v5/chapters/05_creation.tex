@@ -39,15 +39,14 @@ subject of Chapter~\ref{chap:io}.
 \section{Constructors}\label{sec:constructors}
 \cindex{interval!constructors}%
 
-The class \code{interval} has four constructors. The SSE2 and NEON intervals
-also have an explicit constructor from the register that holds the stored
-bounds, \code{interval(const \_\_m128d\&)} or
-\code{interval(const float64x2\_t\&)}, the lower bound negated in the first
-lane, which gives the empty set for a lane of $-\infty$; it serves the code of
-GAOL (\pxref{sec:kernels}). A fifth way to create an
-interval, from the text that writes it, is the function
-\code{textToInterval()}, and a sixth, from a midpoint and a radius, is the
-static method \code{interval::midrad()}. We describe the constructors first,
+The class \code{interval} has four constructors for a program. The SSE2 and
+NEON intervals have one more, for the code of GAOL (\pxref{sec:kernels}):
+\code{interval(const \_\_m128d\&)} or \code{interval(const float64x2\_t\&)},
+explicit, which takes the register that holds the stored bounds, the lower
+bound negated in the first lane, and gives the empty set where a lane holds
+$-\infty$. Besides the constructors, a program creates an interval from the
+text that writes it with the function \code{textToInterval()}, and from a
+midpoint and a radius with the static method \code{interval::midrad()}. We describe the constructors first,
 then the two functions, and we end with the intervals of one infinite point.
 
 \subsection{The four constructors}
@@ -155,9 +154,8 @@ interval x = textToInterval("[-23, inf]"),
   calls a function with an argument the function does not take, as
   \code{"nth\_root(8, 1.5)"}, when the library was compiled with exception
   support, which is the default of the three builds. Without exception
-  support, the variable \code{errno} is set to \code{-1}, and the function
-  \code{gaol\_error()} prints an error message before the program aborts
-  (Chapter~\ref{chap:errors}). The \code{textToInterval()} of
+  support, the function \code{gaol\_error()} prints an error message on the
+  standard error stream, and the program aborts (Chapter~\ref{chap:errors}). The \code{textToInterval()} of
   \code{gaol\_ieee1788} reads the names of the functions of the standard, and
   returns the empty set instead (Chapter~\ref{chap:ieee1788}). A null pointer
   is no string: the overload for a \code{const char*}, which
@@ -216,7 +214,7 @@ cout << interval::midrad(1, 0.25) << ' '
 
 \subsection{Decimal constants}
 
-Of the three forms in which a number reaches an interval, the \code{double} is
+Of the three forms in which a number reaches an interval, a \code{double}, an integer and a string, the \code{double} is
 the usual one, and the one that calls for care.
 
 \begin{Rem}
@@ -492,10 +490,11 @@ radius, the straight assignment, the assignments combined with an operation,
 and the constants of the class. One rule runs through the constructors,
 \code{midrad()} and the assignments: an input that makes no interval, bounds in
 the wrong order, a NaN bound or an infinite point, gives the empty set rather
-than an object the operators do not support; \code{textToInterval()} gives it
-too for a literal such as \code{"[2, 1]"} or \code{"[inf]"}, but throws for a
-string that is no expression, \code{"<-inf, -inf>"} among them. GAOL v5 follows IEEE 1788-2015 and IBEX there, where GAOL~4 built
-intervals of one infinite point.
+than an object the operators do not support. GAOL v5 follows IEEE 1788-2015
+and IBEX there, where GAOL~4 built intervals of one infinite point.
+\code{textToInterval()} gives the empty set too for a literal such as
+\code{"[2, 1]"} or \code{"[inf]"}, and throws for a string that writes no
+interval, as \code{"<-inf, -inf>"}, whose bound \element{-inf} is no double.
 
 \medskip
 Two choices of GAOL v5 cost the programmer a few characters and remove

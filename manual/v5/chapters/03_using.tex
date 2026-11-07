@@ -68,7 +68,7 @@ numbers. The line under it is what it prints.
 
 The program includes the header \file{gaol/gaol.h}, which gives access to
 the intervals and their functions in both namespaces; the expressions have
-headers of their own (Section~\ref{sec:headers}). The type \code{interval} and the functions of GAOL are
+headers of their own (\pxref{sec:headers}). The type \code{interval} and the functions of GAOL are
 in the namespace \code{gaol\_core}, which a program names through the
 namespace \code{gaol}: the \code{using} directive of Line~3 imports it. The
 \file{gaol/gaol.h} header of GAOL~4 imported the namespace itself; that of
@@ -151,10 +151,11 @@ not compile when included, \file{gaol\_init\_cleanup.h},
 \file{gaol/math/gaol\_compoundm1.h}, \file{gaol/math/gaol\_roundeven.h},
 \file{gaol/math/gaol\_ldexp.h}, \file{gaol/math/gaol\_core\_math\_port.h},
 \file{gaol/math/gaol\_double\_op.h} (the bounds at doubles, \code{exp\_dn()}\ldots,
-which leave the interface), and the intervals of floats,
+which are no longer part of the interface), and the intervals of floats,
 \file{gaol/float/gaol\_intervalf.h} and \file{gaol/float/gaol\_interval2f.h}.
 Headers of GAOL~4 are gone: \file{gaol\_parameters.h}, which declared nothing,
-\file{gaol\_limits.h}, \file{gaol\_flags.h}, \file{gaol\_profile.h},
+\file{gaol\_double\_op\_apmathlib.h} and \file{gaol\_double\_op\_crlibm.h}, of the
+mathematical libraries GAOL~4 was built with, \file{gaol\_limits.h}, \file{gaol\_flags.h}, \file{gaol\_profile.h},
 \file{gaol\_allocator.h}, \file{gaol\_exceptions.h}, \file{gaol\_exact.h} with
 \file{sysdeps/}, which \file{dtoa.c} needed, and \file{gaol\_assert.h}, whose
 \code{GAOL\_ASSERT} is \code{assert()} now. The headers of the expressions and
@@ -524,10 +525,9 @@ What the code of GAOL uses for itself is in \code{gaol\_core} only too, out of
 the way of the names of a program that opens \code{gaol}: the functions saving
 and setting the rounding direction and the flush-to-zero modes
 (\code{rounding\_state}, \code{get\_rounding()}, \code{set\_rounding()}, and
-\code{round\_upward\_if\_needed()}, with \code{gaol\_set\_rounding\_x86()},
-which the releases 4.3.0 to 4.3.2 had in \code{gaol} and GAOL~4 had not
-(Chapter~\ref{chap:changes}), and
-\code{get\_flush\_modes()}\ldots), the functions computing the \code{pow} of
+\code{round\_upward\_if\_needed()} and \code{gaol\_set\_rounding\_x86()},
+which the releases 4.3.0 to 4.3.2 had in \code{gaol} and GAOL~4 had not, see
+Chapter~\ref{chap:changes}; and \code{get\_flush\_modes()}\ldots), the functions computing the \code{pow} of
 \code{gaol} (below), and the internals GAOL~4 had in \code{gaol} without its
 manual documenting them: the functions \code{gaol\_signbit()},
 \code{modulo\_k\_pi()} and the \code{round\_*\_sse()}, the types
@@ -709,14 +709,14 @@ where $n$ is a double.
 
 \medskip
 \code{pow(x, n)} of \code{gaol} and \code{pown(x, n)} of \code{gaol\_ieee1788}
-take an exponent of any integer type: In the earlier versions of GAOL v5, \code{pow(x, 5L)} did not compile, a
+take an exponent of any integer type. In the earlier versions of GAOL v5, \code{pow(x, 5L)} did not compile, a
 \code{long} being as far from an \code{int} as from an \code{unsigned} and a
 \code{double}, and \code{pown(x, 3000000000u)} converted the exponent to a
 negative \code{int}. An exponent within the ints is taken as an \code{int},
 one within the unsigned ints as an \code{unsigned}, and one beyond them as a
 \code{long long} (\code{gaol\_pown\_ll()}), whose power comes from the
 \code{pow} of CORE-MATH at the bounds of $x$, as for \code{gaol::pow(x, [n])}
-(\itv{-\infty}{+\infty} for a nonempty $x$ before GAOL v5):
+(\itv{-\infty}{+\infty} for a nonempty $x$ in the earlier versions of GAOL v5):
 \code{pow(interval(1 + std::ldexp(1.0, -30)), 1LL << 33)}, about $e^8$, is
 \itv{2980.9579759367944}{2980.9579759367948}. Beyond 64 bits (an
 \code{\_\_int128}, in the GNU modes of GCC and Clang with libstdc++), the exponent is taken as $\pm(2^{63}-1)$ or
@@ -736,11 +736,11 @@ interval (\itv{0.99999999839}{0.99999999946} for \itv{2}{8}, rather than
 power; \code{rootn(x, 5000000001LL)} and the powers of expressions cut a
 \code{long} to an \code{int}; and \code{nth\_root(e, -2)} took the order
 4294967294. Beyond the ints, \code{pow(e, n)} and \code{pown(e, n)} of the
-expressions compute the \code{pow} of GAOL with the exponent \itv{n}{n}: up to
-$2^{53}$, where $n$ is a double, they give the power of the interval; beyond,
-since no node holds a wider integer, they compute the product of $x^h$ and
-$x^l$, $n=h+l$, $h$ a double and $|l|<2^{11}$, which is wider than the power
-of the interval where $e$ contains 0; beyond the unsigned ints, \code{nth\_root(e, n)} is the root of
+expressions compute the \code{pow} of GAOL with the exponent \itv{n}{n} where $n$ is a
+double, as every $n$ up to $2^{53}$ is, and give the power of the interval; for
+an $n$ that is no double, no node holding a wider integer, they compute the
+product of $x^h$ and $x^l$, $n=h+l$, $h$ a double and $|l|<2^{11}$, which is
+wider than the power of the interval where $e$ holds 0 inside; beyond the unsigned ints, \code{nth\_root(e, n)} is the root of
 the interval but where $e$ contains 0, where it is wider.
 
 \section{A result thrown away}\label{sec:nodiscard}
@@ -1355,12 +1355,13 @@ function of the kind, not that the algorithm cannot be written.\newinvfive
     --- &
     \code{x.bisect(ratio)}, ratio 0.5 (IBEX) or 0.49 (Codac)\\*
     Two-piece division &
-    two \code{div\_rel}, or \code{gaol\_ieee1788::\allowbreak mulRevToPair(b, c)} &
+    two \code{div\_rel}, or \code{mulRevToPair(b, c)} of \code{gaol\_ieee1788} &
     \code{mulRevToPair(b, c)} &
     \code{div2} (IBEX only)\\
     \hline
   \end{longtable}}
 
+\Needspace{12\baselineskip}
 {\renewcommand{\arraystretch}{1.1}\footnotesize\setlength{\tabcolsep}{3pt}
 \begin{longtable}{L{.19\textwidth}L{.25\textwidth}%
     L{.25\textwidth}L{.22\textwidth}}
