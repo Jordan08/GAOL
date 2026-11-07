@@ -21,10 +21,11 @@ done
 files=$(git diff --name-only "$base...$branch")
 echo "files changed: $(printf '%s\n' "$files" | grep -c .)"
 # manual/Manual_GAOLv5.pdf is committed by the branches of the manual (manual*), which
-# regenerate it in their last commit; no other branch commits it (a PDF cannot be merged).
+# regenerate it in their last commit and remove the old manual/v5/gaol.pdf; no other branch
+# touches either (a PDF cannot be merged).
 # Those branches also correct doc/differences.md, which describes the same changes as the
 # manual: any other branch leaves it to the pull request of the synthesis
-case "$branch" in manual*) pdf_ok='manual/Manual_GAOLv5\.pdf|doc/differences\.md' ;; *) pdf_ok='^$' ;; esac
+case "$branch" in manual*) pdf_ok='manual/Manual_GAOLv5\.pdf|manual/v5/gaol\.pdf|doc/differences\.md' ;; *) pdf_ok='^$' ;; esac
 if printf '%s\n' "$files" | grep -Ex 'TODO\.md|ChangeLog|doc/differences\.md|manual/v5/gaol\.pdf|manual/Manual_GAOLv5\.pdf|manual/v4/.*' | grep -vx 'manual/v4/Manual_GAOLv4\.pdf' | grep -vEx "$pdf_ok"; then
   echo "FAIL: ledger files, the manual PDF or manual/v4 changed (see the house rules)"; fail=1; fi
 if printf '%s\n' "$files" | grep -E '(^|/)(build([-_.][^/]*)?|CMakeFiles|\.deps|\.libs|autom4te\.cache)/|\.(o|lo|a|so|log)$|CMakeCache\.txt|^(nohup|core)$'; then
