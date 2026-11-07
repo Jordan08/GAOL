@@ -12,7 +12,8 @@ the screen. A decimal number is seldom a double, and a double is seldom
 written exactly with a few decimal digits. Reading and writing must therefore
 preserve the containment property (\pxref{sec:containment}): the text read
 gives an interval that contains the number or the set it writes, and the text
-written for an interval, read back, gives an interval that contains it. GAOL
+written for an interval in the formats \element{bounds} and \element{hexa}, or
+by \ieee{intervalToText}, read back, gives an interval that contains it. GAOL
 v5 does both, whatever the C library and the locale of the
 program.\newinvfive
 
@@ -26,7 +27,7 @@ section covers the writing: the operator \code{<{}<}, the exact text of
 \code{exact\_string()}, the conversion to \code{std::string}, the five output
 formats, the number of digits, and a complete program. The functions that
 read and write with the names of the standard, \ieee{textToInterval},
-\ieee{intervalToText} and \ieee{exactToInterval}, belong to the namespace
+\ieee{intervalToText}, \ieee{intervalToExact} and \ieee{exactToInterval}, belong to the namespace
 \code{gaol\_ieee1788} and are described in Chapter~\ref{chap:ieee1788}
 (\pxref{sec:ieee1788-text}).
 
@@ -38,7 +39,7 @@ is, and built from a string with \code{textToInterval()}
 Section~\ref{sec:input-format}.
 \cindex{interval!reading}%
 
-\begin{deffun}{istream\&}{operator>{}>}{(istream\& \var{in}, interval\& I)}
+\begin{deffun}{istream\&}{operator>{}>}{(istream\& \var{in}, interval\& \var{I})}
   Reads a line from the input stream \var{in}, and assigns to \var{I} the
   interval it writes. The blanks before the line, the ends of lines
   included, are skipped first, as before a number, even under
@@ -49,11 +50,14 @@ Section~\ref{sec:input-format}.
   If the line is syntactically ill-formed, \var{I} is set to the empty set.
   A \code{std::invalid\_argument} exception is then thrown
   (\pxref{sec:exceptions}) if the library was compiled with exceptions
-  enabled (\pxref{sec:configuration}); if they were disabled, an error
+  enabled (\pxref{sec:install-developers}); if they were disabled, an error
   message is printed to \code{cerr} and the program aborts. An ill-formed
   line also sets the \code{failbit} of \var{in}, which \code{in.clear()}
-  resets before reading on. A call of a function of the string with an argument it does not
-  take throws \code{std::domain\_error} instead.
+  resets before reading on. A second argument of \code{nth\_root} that is not an integer, as in
+  \code{nth\_root(8,1.5)}, throws \code{std::domain\_error} instead; a call with
+  a wrong number of arguments throws \code{std::invalid\_argument}, and an
+  argument outside the domain of a function gives the empty set, as
+  \code{sqrt(-1)} does.
 
   Where no line is left, \var{in} gets its \code{failbit}, \var{I} is left
   as it was, and nothing is thrown, as for a number: \code{while (in >{}> x)}
@@ -83,18 +87,18 @@ cout << (in >> x ? "more" : "end");
 \subsection{The input format}\label{sec:input-format}
 
 A string to be translated into an interval has the syntax below, with the
-terminals in lower case and the non-terminals in slanted upper case.
+terminals in lower case and the non-terminals in italic upper case.
 \cindex{input format}%
 
 \begin{Verbatim}[commandchars=\@\^\~,fontsize=\small]
 @NT^expr~
 	: @NT^number~
-	| @NT^uncertain_number~ @rem^@hfill// An interval literal, never a bound~
+	| @NT^uncertain_number~ @rem^@hfill// An interval literal, never a bound by itself~
 	| @NT^literal~
 	| @TM^dmin~  @rem^@hfill// Smallest positive normal floating-point number~
 	| @TM^dmax~ @rem^@hfill// Largest positive floating-point number~
 	| @TM^pi~
-	| @TM^inf~ @rem^@hfill// Floating-point positive ``infinity''~
+	| @TM^inf~ @rem^@hfill// [MAX, +infinity] as an expression, +infinity as a bound~
 	| @TM^infinity~ @rem^@hfill// The same~
 	| @TM^empty~ @rem^@hfill// Empty interval~
 	| @NT^expr~ @TM^+~ @NT^expr~
@@ -127,6 +131,9 @@ terminals in lower case and the non-terminals in slanted upper case.
 
 \noindent
 Every string is an expression, computed with interval arithmetic. The
+operators \TM{*} and \TM{/} bind tighter than \TM{+} and \TM{-}, the four
+associate to the left, and a sign binds tighter than all of them:
+\code{"1-2-3"} is $-4$ and \code{"2+3*4"} is 14. The
 literals of intervals, the numbers, the constants and the functions combine
 with the operators in any order, and a literal stands wherever a number may,
 in a bound too.\newinvfive{} \code{1+[1,2]}, \code{2*cos([0,1])} and
@@ -177,7 +184,7 @@ times as long (Intel i7-1185G7, GCC~15.2, the best of five runs,
 7 November 2026).\newinvfive
 
 \paragraph{The uncertain form.} An \NT{uncertain\_number} is written as
-IEEE 1788-2015 defines it (12.11.3).
+IEEE 1788-2015 defines it (9.7.4 and 12.11.3).
 \cindex{uncertain form}%
 
 \begin{Def}
@@ -190,13 +197,14 @@ which keeps only the radius above or below, and an optional exponent.
 \noindent
 \code{3.56?1} is \itv{3.55}{3.57}, \code{3.56?1e2} is \itv{355}{357}, and
 \code{-10??u} is \itv{-10}{+\infty}.\newinvfive{} An uncertain number is an
-interval literal of its own, not a bound: \code{"[5?1]"} and
+interval literal of its own, not a bound by itself: \code{"[5?1]"} and
 \code{"[1, 3.56?1]"} throw \code{std::invalid\_argument}, as IEEE 1788-2015
-has it (12.11.4), while \code{"3.56?1*2"} is \itv{7.1}{7.14}. A sign written
+has it (12.11.4), while \code{"3.56?1*2"} is \itv{7.1}{7.14}, and a bound
+computed from one is read, \code{"[2*5?1]"} being \itv{8}{12}. A sign written
 next to an uncertain number, as \code{10-3.56?1} or \code{10+3.56?1}, is
 read as a part of the number, and the text throws
 \code{std::invalid\_argument}, as does \code{10 -3.56?1}: a blank is needed
-after the sign, \code{10 - 3.56?1}.\newinvfive
+after the sign, \mbox{\code{10 - 3.56?1}}.\newinvfive
 
 \paragraph{Functions.} A \NT{name} is the name of a function of GAOL, with
 its arguments, whatever the case of its letters. The names of GAOL are read
@@ -242,7 +250,9 @@ roots of that order holds those of the larger orders. The second argument of
 same way. GAOL~4 read the trigonometric and hyperbolic functions,
 \code{exp}, \code{log}, \code{pow}, \code{sqrt} and \code{nth\_root} only.
 
-\paragraph{Bounds.} The notations ``$n$'' and ``[$n$]'' are equivalent. The
+\paragraph{Bounds.} The notations ``$n$'' and ``[$n$]'' are equivalent, but for
+\code{inf} and \code{-inf}, whose literals \code{[inf]} and \code{[-inf]} are
+empty (see Infinities below), and for an uncertain number, which is no bound. The
 expressions in the bounds are evaluated with interval arithmetic, intervals
 included; the left (respectively the right) bound of the result is then
 used, depending on the side it appears in: \code{"[cos([0,1]), 2]"} is
@@ -280,10 +290,9 @@ doubles around the number for its value, throw \code{std::invalid\_argument}
 too, where GAOL~4 read them as the point of the other bound.\newinvfive{}
 The two doubles are compared by their bits, $-0$ and $+0$ being the same
 bound, so that the mode of the processor that reads the subnormal numbers
-as zero (denormals-are-zero) changes nothing: \code{"<1e-310, 1e-309>"}
-throws under it too.\newinvfive{} Compared as doubles, which two subnormal
-numbers are equal as under that mode, they were read
-\itv{10^{-310}}{10^{-309}}.
+as zero (denormals-are-zero) changes nothing: \code{"<0x1p-1074, 0x1p-1073>"},
+two subnormal doubles, throws under it too, where a comparison of the bounds as
+doubles would take them for one.\newinvfive
 
 \begin{Rem}
 GAOL~4 wrote the degenerate intervals in the form \code{<a, b>}, and the
@@ -303,7 +312,7 @@ empty.\newinvfive{} The expression \code{"inf"} alone is still
 \paragraph{Threads.} Several threads may read strings at once, in parallel:
 the lexer is reentrant and the parser pure, and each reading of a string has
 a state of its own.\newinvfive{} GAOL~4 kept that state in global variables,
-and crashed there.
+and two threads reading a string each crashed.
 
 \paragraph{Long and nested strings.} A string may be as long as memory
 allows: a sum of 100000 terms is read in a time proportional to its length,
@@ -344,12 +353,12 @@ parser, which read a stack it could not grow as a string nested too deep,
 threw no such exception. Without exceptions, an error that the reader finds
 as it computes (a wrong call, an uncertain number as a bound, two different
 bounds in \code{<a, b>}, or a bound of it that is no double) makes the
-reading fail, as a syntax error does: \code{parse\_interval()} returns
+reading fail, as a syntax error does: \code{gaol\_core::parse\_interval()}, of
+\file{gaol/parser/gaol\_parser.h}, returns
 \code{false}, and \code{gaol::textToInterval()} and \code{operator>{}>}
 report the error and abort, as for any string that is not an
 expression.\newinvfive{} GAOL~4 reported the error, and aborted, inside the
-reader, so that \code{gaol\_ieee1788::textToInterval()} could not give the
-empty set (\pxref{sec:ieee1788-text}).
+reader (\pxref{sec:ieee1788-text}).
 
 \begin{Ex}
 The program below reads intervals from strings of the language: a literal
@@ -453,7 +462,8 @@ shared only by two bounds that are finite, not zero and of the same sign,
 written with as many digits before the point and the same exponent, and
 that share their first digit that is not 0: the other intervals are printed
 as in the format \element{bounds}. The digits of each bound are
-kept.\newinvfive{} GAOL~4 dropped from both bounds what followed the last
+kept, but for the zeros that end them, \itv{1.25}{1.2567} being
+\code{1.25\textasciitilde[0, 67]}.\newinvfive{} GAOL~4 dropped from both bounds what followed the last
 character of the left one that is not a zero, and wrote \itv{1.25}{1.2567}
 \code{1.25\textasciitilde[, ]}. It shared the digits of every interval
 whose right bound is at most ten times the left one, \itv{1}{10} being
@@ -508,7 +518,8 @@ standing for one double only. The reader still takes the angles
 GAOL~4, is read back.
 
 \item[$\bullet$] \element{width}. The midpoint and the radius are printed,
-the \code{midpoint()} and the \code{rad()} of IEEE 1788-2015 (12.12.8): the
+\code{midpoint()} and \code{rad()}, the \ieee{mid} and \ieee{rad} of IEEE
+1788-2015 (12.12.8): the
 interval is contained in the midpoint plus or minus the radius, which is
 the smallest number that makes it so:
 \begin{example}
@@ -578,9 +589,10 @@ The format is chosen through the following static methods.
   intervals. The second form returns the format in use, a value of type
   \code{interval\_format::format\_t} (see below, and
   Section~\ref{sec:output-example} for an example of use). The format is
-  global to the program, not a property of a stream: a change made by one
-  thread is seen by all of them, which is one of the common errors listed
-  in Chapter~\ref{chap:overview} (\pxref{sec:common-errors}).
+  global to the program, not a property of a stream: it is shared by all the
+  threads, and setting it while another thread writes an interval is a data
+  race, one of the common errors listed in Chapter~\ref{chap:overview}
+  (\pxref{sec:common-errors}).
   \code{exact\_string()} gives the hexadecimal text without changing it.
 \end{defstaticmethod}
 

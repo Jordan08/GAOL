@@ -43,7 +43,9 @@ Chapter~\ref{chap:overview} (\pxref{sec:other-libraries}).
 The namespace \code{gaol\_ieee1788} comes with \file{gaol/gaol.h}. It is not in
 \code{gaol}, and it holds
 the type \code{interval} as well: one directive lets a program use GAOL under
-the names of the standard.\newinvfive
+the names of the standard. The output format is not in it: a program that opens
+only \code{gaol\_ieee1788} sets it with
+\code{interval::format(gaol::interval\_format::hexa)}.\newinvfive
 
 \begin{Ex}\label{ex:ieee1788-program}
 The program below opens \code{gaol\_ieee1788} and computes with the names of
@@ -82,8 +84,9 @@ meaning in both are the same functions; the ones whose meaning differs,
 that opened both would find each call ambiguous.
 
 \begin{Rem}\label{rem:ieee1788-shadow}
-A name of the program's own that one of the standard shadows, a constant
-\code{inf} for instance, is to be qualified: \code{gaol\_ieee1788::inf(x)}.
+A name of the program's own that is also a name of the standard, a constant
+\code{inf} for instance, makes every unqualified use of it ambiguous: the
+program qualifies both, \code{::inf} and \code{gaol\_ieee1788::inf(x)}.
 So is \code{less(x, y)} next to \code{using namespace std;}, where it is
 ambiguous with the class template \code{std::less}.
 \end{Rem}
@@ -108,7 +111,8 @@ following ones.
   exponent is \code{pown(x, n)} in the standard, whose $n$ is an integer
   rather than an interval. An integer exponent beyond the \code{int}s gives
   the power of CORE-MATH at the bounds of $x$, as the \code{pow} of
-  \code{gaol} does on the whole of $x$. The results of the two powers are
+  \code{gaol} does on that part, which takes the integer power on the negative
+  part of $x$ too. The results of the two powers are
   compared in Chapter~\ref{chap:overview} (\pxref{sec:pow-namespaces}).
 \item[$\bullet$] \textbf{The bounds of the empty set.} \code{inf(x)} and
   \code{sup(x)} are $+\infty$ and $-\infty$ for the empty set (Table~10.2),
@@ -125,7 +129,8 @@ following ones.
   \code{x} (13.3), whatever the output format that
   \code{interval::format()} sets and the locale of the program.
   \code{operator<{}<} writes the current format instead, which is no
-  literal in the format \element{width}.\newinvfive
+  literal in the formats \element{width}, \element{center} and
+  \element{agreeing}.\newinvfive
 \item[$\bullet$] \textbf{Reading.} \code{textToInterval} and
   \code{exactToInterval} read the names of the functions of the standard,
   and return the empty set for a string that is no interval (12.1.3), where
@@ -133,15 +138,6 @@ following ones.
   (\pxref{sec:ieee1788-text}). A null pointer is no string, and they throw
   \code{std::invalid\_argument} for it too (\pxref{sec:constructors}).%
   \newinvfive
-\item[$\bullet$] \textbf{The reverse of the integer power.}
-  \code{pownRev(c, x, p)} takes every integer $p$, $p\leq0$ included: it
-  returns $x$ where $1\in c$ for $p=0$, and for $p<0$ the hull of the
-  $x\neq0$ with $x^p$ in $c$, $c$ being cut at $0$. Its $p$, and the $q$ of
-  \code{rootn(x, q)}, may be of any integer type:
-  \code{pownRev(c, 3000000000u)} converted $p$ to a negative \code{int}
-  and gave the reverse of that power. Beyond the \code{unsigned int}s,
-  \code{pownRev} gives the hull of the parts of $x$ in the roots of order
-  $p$ of $c$ and, for an even $p$, in their opposites.\newinvfive
 \end{itemize}
 
 \begin{Ex}\label{ex:ieee1788-differences}
@@ -170,7 +166,7 @@ cout << boolalpha << inf(empty()) << ' ' << sup(empty()) << ' '
 Table~\ref{tab:ieee1788-operations} gives, for each operation of the standard
 that GAOL provides, its name in \code{gaol\_ieee1788} and the name GAOL gives
 it, grouped as the standard groups them, with the clause or the table of the
-standard that defines them. The last argument $x$ of the reverse functions
+standard that defines them. The last argument of the reverse functions
 is optional, and \itv{-\infty}{+\infty} when it is left out (10.5.4).
 
 \begingroup\renewcommand{\arraystretch}{1.1}\small
@@ -195,7 +191,7 @@ is optional, and \itv{-\infty}{+\infty} when it is left out (10.5.4).
     \code{gaol::textToInterval(s)} with the names of the standard, the
     empty set for a wrong string\\
   \hline
-  \multicolumn{2}{l}{\textit{Forward elementary functions (Table~9.1)}}\\*
+  \multicolumn{2}{l}{\textit{Forward elementary functions (Table~9.1 of the standard)}}\\*
   \code{neg}, \code{add}, \code{sub}, \code{mul}, \code{div} &
     \code{-x}, \code{x + y}, \code{x - y}, \code{x * y}, \code{x / y}\\
   \code{recip(x)} & \code{inverse(x)}\\
@@ -214,7 +210,7 @@ is optional, and \itv{-\infty}{+\infty} when it is left out (10.5.4).
     \code{round\_ties\_to\_even}, \code{round\_ties\_to\_away}\\
   \code{abs}, \code{min}, \code{max} & the same\\
   \hline
-  \multicolumn{2}{l}{\textit{Recommended functions (Table~10.5)}}\\*
+  \multicolumn{2}{l}{\textit{Recommended functions (Table~10.5 of the standard)}}\\*
   \code{rootn(x, q)} & \code{nth\_root(x, q)}\\
   \code{expm1}, \code{exp2m1}, \code{exp10m1} & the same\\
   \code{logp1}, \code{log2p1}, \code{log10p1} &
@@ -226,10 +222,11 @@ is optional, and \itv{-\infty}{+\infty} when it is left out (10.5.4).
   \code{asinPi}, \code{acosPi}, \code{atanPi}, \code{atan2Pi} &
     \code{asinpi}, \code{acospi}, \code{atanpi}, \code{atan2pi}\\
   \hline
-  \multicolumn{2}{l}{\textit{Reverse functions (Table~10.1)}}\\*
+  \multicolumn{2}{l}{\textit{Reverse functions (Table~10.1 of the standard)}}\\*
   \code{sqrRev(c, x)}, \code{absRev(c, x)} &
     \code{sqrt\_rel(c, x)}, \code{invabs\_rel(c, x)}\\
-  \code{pownRev(c, x, p)} & \code{nth\_root\_rel(c, p, x)}\\
+  \code{pownRev(c, x, p)} & \code{nth\_root\_rel(c, p, x)}, for every integer $p$,
+    $p\leq0$ included\\
   \code{sinRev}, \code{cosRev}, \code{tanRev(c, x)} &
     \code{asin\_rel}, \code{acos\_rel}, \code{atan\_rel(c, x)}\\
   \code{coshRev(c, x)} & \code{acosh\_rel(c, x)}\\
@@ -243,7 +240,9 @@ is optional, and \itv{-\infty}{+\infty} when it is left out (10.5.4).
     \code{atan2\_rel\_y(c, x, y)},
     \code{atan2\_rel\_x(c, y, x)}\newinvfive\\
   \code{mulRevToPair(b, c)} (10.5.5) &
-    the two parts of \code{div\_rel(c, b, interval::universe())}, in a \code{std::pair}\\
+    the parts of $c/b$ on either side of 0, each a
+    \code{div\_rel} with \code{interval::universe()} for its last argument, in a
+    \code{std::pair}\\
   \hline
   \multicolumn{2}{l}{\textit{Cancellative operations and set operations
     (10.5.6, 10.5.7)}}\\*
@@ -252,16 +251,17 @@ is optional, and \itv{-\infty}{+\infty} when it is left out (10.5.4).
   \code{intersection(x, y)}, \code{convexHull(x, y)} &
     \code{x \& y}, \code{x | y}\\
   \hline
-  \multicolumn{2}{l}{\textit{Numeric functions (Table~10.2)}}\\*
+  \multicolumn{2}{l}{\textit{Numeric functions (Table~10.2 of the standard)}}\\*
   \code{inf(x)}, \code{sup(x)} &
-    \code{x.left()}, \code{x.right()}, but for the empty set\\
+    \code{x.left()}, \code{x.right()}, but for the empty set and a zero bound
+    ($-0$ for \code{inf})\\
   \code{mid}, \code{wid}, \code{rad}, \code{mag}, \code{mig(x)} &
     \code{x.midpoint()}, \code{width()}, \code{rad()}, \code{mag()},
     \code{mig()}\\
   \code{midRad(x, m, r)} & \code{x.mid\_rad(m, r)}\\
   \hline
   \multicolumn{2}{l}{\textit{Boolean functions (10.5.10, Tables~10.3 and
-    10.4)}}\\*
+    10.4 of the standard; 10.6.3)}}\\*
   \code{isEmpty(x)}, \code{isEntire(x)} &
     \code{x.is\_empty()}, \code{x.is\_entire()}\\
   \code{equal(a, b)}, \code{subset(a, b)} &
@@ -284,7 +284,7 @@ is optional, and \itv{-\infty}{+\infty} when it is left out (10.5.4).
     the bounds \code{[l, r]}, \code{[a]} or \code{[empty]}, with the
     current precision, whatever the format and locale\\
   \code{intervalToExact(x)} & \code{exact\_string(x)}\\
-  \code{exactToInterval(s)} & \code{textToInterval(s)}\\
+  \code{exactToInterval(s)} & \code{textToInterval(s)} of \code{gaol\_ieee1788}\\
   \hline
   \multicolumn{2}{l}{\textit{Expressions}}\\*
   \code{pown(e, n)}, \code{pow(e1, e2)} &
@@ -392,14 +392,14 @@ of their letters.\newinvfive{} These names are the following ones.
 They give the empty set, as any string that is no interval: a wrong call
 (\code{"pown([2,5],2.5)"}, \code{"sin(1,2)"}) and a string holding a NUL
 character included, whether GAOL was configured with exceptions or
-not.\newinvfive{} Without them, a wrong call ended the program. Where memory
-runs out, \code{textToInterval} throws \code{std::bad\_alloc}, which it
-turned into the empty set.
+not.\newinvfive{} Where memory runs out, \code{textToInterval} throws
+\code{std::bad\_alloc}.
 
 \medskip
 As \code{pow}, the function \code{textToInterval} is in the namespace
 \code{gaol} too, where it reads the names of GAOL and throws
-\code{std::invalid\_argument} for a wrong string: a program calls the one of
+\code{std::invalid\_argument} for a wrong string, and \code{std::domain\_error}
+for an order of \code{nth\_root} that is no integer: a program calls the one of
 the namespace it opens.
 
 \begin{Ex}\label{ex:ieee1788-text}
@@ -423,15 +423,21 @@ is \itv{1}{16}, and \code{textToInterval("pown([2,5],5)")} throws.
 
 GAOL has no decorations: only bare intervals are provided (Clause 11). Nor
 does it provide the slope functions (Table~10.6), the reduction operations
-\ieee{sum}, \ieee{dot}, \ieee{sumSquare} and \ieee{sumAbs} (12.12.12), and
-the exact reduction operations of 12.13.5. The end of \file{gaol/gaol\_ieee1788.h}
+\ieee{sum}, \ieee{dot}, \ieee{sumSquare} and \ieee{sumAbs} (12.12.12), or the
+exact reduction operations of 12.13.5, the conversion specifier \var{cs} of
+\ieee{intervalToText} (13.3), nor the exceptions \ieee{UndefinedOperation} and
+\ieee{PossiblyUndefinedOperation} that \ieee{textToInterval} and
+\ieee{exactToInterval} signal for an invalid string (12.12.7, 13.4): they
+return the empty set silently. The end of \file{gaol/gaol\_ieee1788.h}
 keeps this list.
 
 \begin{Rem}\label{rem:ieee1788-erf}
 In the other direction, a function of GAOL that the standard does not name
 is not in \code{gaol\_ieee1788} either, but for \code{sinhRev} and
 \code{tanhRev}, which are named after \ieee{coshRev}
-(Table~\ref{tab:ieee1788-operations}). \code{erf} and \code{erfc}, the
+(Table~\ref{tab:ieee1788-operations}), and for the operators of intervals, the
+relational division \code{\%} among them, which the namespace names as
+\code{gaol\_core} does. \code{erf} and \code{erfc}, the
 error function and its complement, are two such functions.\newinvfive{} A call
 \code{erf(x)} on an interval finds them all the same in \code{gaol\_core},
 by argument-dependent lookup, and \code{erf(0.5)} remains the \code{erf}
@@ -446,8 +452,7 @@ program use GAOL under the names and the argument orders of IEEE 1788-2015
 with a single directive. The functions that the standard and GAOL name and
 define alike are shared between the two namespaces. Where they differ, the
 power, the bounds of the empty set, the membership of an infinity, the
-writing and the reading of intervals and the reverse of the integer power,
-the namespace follows the standard, and Table~\ref{tab:ieee1788-operations}
+writing and the reading of intervals, the namespace follows the standard, and Table~\ref{tab:ieee1788-operations}
 gives the translation of every other name. Two operations have their
 details here: \code{mulRevToPair}, which \code{gaol} does not name, and the
 reverse functions of \code{atan2}, whose arguments \code{gaol\_ieee1788}
@@ -459,8 +464,8 @@ GAOL~4 and, but for the results that change (Chapter~\ref{chap:changes}),
 their results, while a program written for the standard, or compared with
 another library of the standard, opens \code{gaol\_ieee1788}. Its price is
 stated in \exref{sec:ieee1788-namespace}: a program opens one of the two
-namespaces, never both, and qualifies the names of its own that the standard
-shadows. What GAOL does not provide of the standard, the decorations, the
+namespaces, never both, and qualifies the names of its own that are also names
+of the standard. What GAOL does not provide of the standard, the decorations, the
 slope functions and the reductions, exact or not, is listed rather
 than approximated, and the header keeps the list.
 
