@@ -74,7 +74,7 @@ arithmetic (\pxref{sec:compiling}). They hold for the SSE2 intervals, the
 NEON intervals\newinvfive{} and the FPU intervals alike
 (\pxref{sec:kernels}), and for the AVX-512 path (\pxref{sec:avx512}), whose
 bounds are those of the SSE2 path, but for the sign of a zero bound of
-\code{x * d} (\pxref{sec:accuracy-same-bounds})
+\code{x * d} (\pxref{sec:accuracy-same-bounds}).
 
 \medskip
 They hold whatever the rounding direction the calling code left
@@ -185,8 +185,10 @@ chapter names are those of IEEE 1788-2015.
   \hline
   \multicolumn{2}{l}{\textit{Reverse functions (Table~10.1): valid
     required, accurate recommended}}\\*
-  \code{sqrt\_rel}, \code{nth\_root\_rel}, \code{acosh\_rel},
-  \code{asinh\_rel}, \code{atanh\_rel} & accurate\\
+  \code{sqrt\_rel}, \code{acosh\_rel}, \code{asinh\_rel},
+  \code{atanh\_rel} & accurate\\
+  \code{nth\_root\_rel(c, p, x)}, $p>0$ & the bounds of \code{nth\_root()}: up to
+  2 doubles beyond the tightest\\
   \code{nth\_root\_rel(c, p, x)}, $p<0$ & valid: the root of each part
   of $c$ and then its inverse, up to four doubles beyond the
   tightest\newinvfive\\
@@ -497,7 +499,7 @@ the double below $\pi$, which is then the tightest result: an interval that wide
 $\underline{\pi}$ gives the tightest bounds is measured, not proved: the
 tests find the tightest bounds of \code{sin} and \code{cos} over 29\,400
 intervals of width about $\pi$ whose bounds are next to extrema of the
-sine. They find them tightest for all doubles, and over intervals next to
+sine. They find them tightest at about 9\,000 doubles of every magnitude, and over intervals next to
 the extrema and of width about $\pi$ and $2\pi$.
 
 \paragraph{Tangent.}
@@ -511,7 +513,7 @@ at the bounds, correctly rounded upward, and $\tan(0)=0$ exactly. It is
 tightest between two poles, at every magnitude, and
 $\itv{-\infty}{+\infty}$ exactly when a pole is within $x$, but for the
 widths above $\underline{\pi}$ and below $\pi$, a theoretical case. The
-tests find it tightest for all doubles, and over intervals next to the
+tests find it tightest at about 9\,000 doubles of every magnitude, and over intervals next to the
 poles, the interval from \code{-M\_PI\_2} to \code{M\_PI\_2} and the
 intervals of width $\underline{\pi}$ or next to it between two poles
 included.
@@ -538,8 +540,8 @@ them within 1 double, and tightest at the special points.
 functions at the bounds, correctly rounded upward, \code{tanh} within
 $\itv{-1}{1}$; they give $0$ at $0$ exactly, $\sinh(x)$ beyond the largest
 double for $|x|\geq711$, and $\tanh(x)$ beyond $\pm(1-2^{-53})$ for
-$|x|\geq20$, where $1-|\tanh(x)|<2^{-54}$. \code{cosh(x)} takes CORE-MATH's \code{cosh} at the bound of largest magnitude for the upper bound, and at the bound of smallest magnitude for the lower one, which is $1$ when $x$ contains $0$, and a value beyond the largest double for
-$|x|\geq711$. \code{acosh(x)} and \code{atanh(x)} proceed as \code{sinh},
+$|x|\geq20$, where $1-|\tanh(x)|<2^{-54}$. \code{cosh(x)} takes CORE-MATH's \code{cosh} at the bound of largest magnitude for the upper bound, and, for the lower one, at the bound of smallest magnitude, or $1$ when $x$
+contains $0$, and a value beyond the largest double for $|x|\geq711$. \code{acosh(x)} and \code{atanh(x)} proceed as \code{sinh},
 on $x\cap\itv{1}{+\infty}$ and $x\cap\itv{-1}{1}$ respectively, with
 $\mathrm{acosh}(1)=0$ and $\mathrm{atanh}(0)=0$ exactly. The hyperbolic arc
 tangent is defined on $(-1, 1)$, $-\infty$ and $+\infty$ being its limits
@@ -555,7 +557,7 @@ intervals.
 The recommended functions of Table~10.5 of the standard must be valid, and
 the standard recommends them to be accurate. All of them are tightest but
 the roots of an order other than 1, 2 and 3, which are within 2 doubles of
-the tightest, and
+the tightest for a positive order and within 4 for a negative one, and
 \code{compoundm1}, which is tightest but in a case out of $10^{17}$ or so.
 
 \paragraph{Roots.}\findex{nth\_root}%
@@ -575,11 +577,11 @@ looked for from CORE-MATH's \code{pow} with the exponent $1/n$ rounded,
 after a step of Newton's method, by steps that double then by bisection,
 two powers where the start is next to the root; the roots of $0$ and $1$
 are $0$ and $1$. The orders 1, 2 and 3 are tightest, and so is any order
-where the bound of $x$ is an $n$-th power of a double. Otherwise the bounds are the tightest or up to 2 doubles beyond, whatever the magnitude of $x$: the $n-1$ rounded products of $l^n$ move the root by less than $2^{-52}$ relatively. Two doubles beyond is not accurate where the order is large: $\code{nth\_root([0x1.16ef146ba87dap-473], 1000)}$ has its upper bound two doubles above the tightest one, one above the accurate one. An order beyond the \code{int}s and
+where the bound of $x$ is an $n$-th power of a double. Otherwise the bounds are the tightest or up to 2 doubles beyond, whatever the magnitude of $x$: the $n-1$ rounded products of $l^n$ move the root by less than $2^{-52}$ relatively. Two doubles beyond is not accurate where the order is large: \code{nth\_root([0x1.16ef146ba87dap-473], 1000)} has its upper bound two doubles above the tightest one, one above the accurate one. An order beyond the \code{int}s and
 the \code{unsigned int}s takes CORE-MATH's \code{pow} at the corners, with
 the exponent $1/n$ as an interval, within 1 double of the
-tightest.\newinvfive{} The tests find the roots within 2 doubles for all
-doubles, 1 double being the largest distance found, among them the $x$
+tightest.\newinvfive{} The tests find the roots within 2 doubles at the
+doubles they draw, 1 double being the largest distance found, among them the $x$
 below $2^{-1020}$, subnormal ones included, with $n$ up to $2^{32}-1$,
 against exact arithmetic and mpmath, and the tightest on the values of the
 test \file{ieee1788} beyond the \code{unsigned int}s.
@@ -767,11 +769,12 @@ are given, within the numbers of doubles below.
   (\ieee{absRev}) is tightest: its bounds are those of $J$, of $-J$ and of
   $I$.
 \item[$\bullet$] \textbf{Integer power, $p>0$.}
-  \code{nth\_root\_rel(c, p, x)} (\ieee{pownRev}) is accurate, its bounds
-  being the roots of \code{nth\_root()}; beyond the \code{unsigned int}s it
+  \code{nth\_root\_rel(c, p, x)} (\ieee{pownRev}) has the bounds of the roots of
+  \code{nth\_root()}, tightest for $p\leq3$ and up to 2 doubles beyond the
+  tightest otherwise, which is not accurate where the order is large; beyond the \code{unsigned int}s it
   is the hull of the parts of $x$ in those roots and, for an even $p$, in
-  their opposites.\newinvfive{} The tests find it accurate, within 1 double
-  of the tightest, and within 2 doubles of the value it keeps.
+  their opposites.\newinvfive{} The tests find it within 1 double of
+  the tightest on their cases, and within 2 doubles of the value it keeps.
 \item[$\bullet$] \textbf{Integer power, $p\leq0$.}\newinvfive{} For $p=0$,
   \code{nth\_root\_rel(c, 0, x)} is $x$ where $1$ is in $c$, and
   $\emptyset$ elsewhere: exact. For $p<0$, $c$ is cut at $0$, and the part
@@ -781,8 +784,9 @@ are given, within the numbers of doubles below.
   parts in $x$, $0$ left out. The hull of the roots of $c$, which joins its
   parts, would keep the part of $x$ between them, and the roots reach $0$
   where $c$ is unbounded, $0$ having no power of negative exponent. The
-  result is valid, and within 2 doubles of the accurate bounds of 12.10.1, one
-  more than the trigonometric functions: the tests find it $\emptyset$ where
+  result is valid, and the tests find it within 2 doubles of the accurate
+  bounds of 12.10.1, but for $c=\itv{2.25}{2.25}$ and $p=-127$, where it is 3
+  beyond: it is $\emptyset$ where
   the hull is $\emptyset$ in the cases written out, and of the 18\,052 random
   cases with $p<0$ of
   \file{tests/reverse\_values.py}, 12\,495 have a nonempty result with
@@ -929,7 +933,9 @@ their accuracies.
   tightest.
 \item[$\bullet$] \textbf{Bounds.} \code{left()} and \code{right()}
   (\ieee{inf}, \ieee{sup}) return the stored bounds, and NaN for the empty
-  set, where IEEE 1788-2015 has $+\infty$ and $-\infty$, and a zero lower bound of either sign, where \ieee{inf} gives $-0$ (12.12.8), as \code{gaol\_ieee1788::inf()} does: exact.
+  set, where IEEE 1788-2015 has $+\infty$ and $-\infty$, a zero lower bound of either sign, where \ieee{inf} gives $-0$, and a zero
+  upper bound of either sign, where \ieee{sup} gives $+0$ (12.12.8), as
+  \code{gaol\_ieee1788::inf()} and \code{sup()} do: exact.
 \item[$\bullet$] \textbf{Midpoint.} \code{midpoint()} (\ieee{mid}) is
   $(l+u)/2$ rounded to nearest, ties to even, or $l/2+u/2$ where $l+u$ may
   overflow, a bound being $2^{1023}$ or more in magnitude, which is tested
@@ -989,7 +995,9 @@ their accuracies.
   \code{interval::precision()} and a decimal point, whatever the global
   format and the locale.\newinvfive{} \code{operator<{}<} in the format
   \element{bounds}, and in \element{agreeing} for the intervals it writes
-  with their bounds (those whose bounds share no nonzero leading digit, and those whose bounds are not both finite, nonzero and of the same sign), writes the same, with the
+  with their bounds (those whose bounds are not both finite, nonzero and of the same sign, or are
+  written with different numbers of digits before the point or different
+  exponents, or share no first digit that is not $0$), writes the same, with the
   digits and the flags of the stream, and a decimal point whatever its
   locale, so that the reader reads the text back; \element{agreeing}
   writes the other intervals with the digits their bounds share
@@ -1047,7 +1055,7 @@ The SSE2, the NEON and the FPU intervals (\pxref{sec:kernels}) compute the
 integer powers with the same code, from exact products
 (\code{pown\_products()} of \file{gaol/core/gaol\_interval\_core.cpp}), and
 the square from one product per bound, and give the same bounds. The SSE2
-intervals of GAOL~4 multiplied rounded products from the highest bit of
+intervals of the earlier versions of GAOL v5 multiplied rounded products from the highest bit of
 $n$, and their bounds and those of the FPU intervals differed for about half
 of the intervals with a bound $0$ or infinite or whose power leaves the range
 of the exact products.\newinvfive{} \code{pow(x, 2)} is \code{sqr(x)} in every form of
@@ -1106,7 +1114,7 @@ is below $2^{-500}$, the quotients of the vectors being liable to
 overflow,\newinvfive{} so that a zero lower bound may have the sign of
 that code: \code{div\_rel([0, 0x1.e2ab041732196p-5],
 [2\textasciicircum-1074, 0x1.182p+9], [-DBL\_MAX, 0x1.70ef9db22d0e5p+2])}
-is $\itv{0}{5.764625}$, a zero lower bound of the other sign than the vector code gives: with a $J$ from $1$, which the vector code takes, the result is $\itv{-0}{\code{0x1.e2ab041732196p-5}}$.
+is $\itv{0}{5.764625}$, a zero lower bound of the other sign than the vector code gives: with $J=\itv{1}{\code{0x1.182p+9}}$, which the vector code takes, the result is $\itv{-0}{\code{0x1.e2ab041732196p-5}}$.
 
 \medskip
 The two paths of the SSE2 intervals, with and without the AVX-512 path
@@ -1140,10 +1148,11 @@ direction in effect: the value at a bound and the double below it are the
 tightest bounds, and the cases where the exact value is a double are told
 apart with integers. The exceptions are stated with their size: the roots
 of an order other than 1, 2 and 3 are within 2 doubles, their inverses
-within 4, the integer power is one double beyond where $x^n$ is within $2K$ of a double, which is rare but not near $1$, and \code{compoundm1} in about one pair in $10^{17}$.
-The reverse functions are valid, and accurate or within a few doubles of the
-accurate bounds, as the chapter says of each, which the standard recommends,
-and the tests measure how far they are from the values they keep.
+within 4, the integer power is one double beyond where $x^n$ is within $2K$ of a double, which is rare at random but frequent for a base next to $1$, and \code{compoundm1} in about one pair in $10^{17}$.
+The reverse functions are valid, which the standard requires, and accurate,
+which it recommends, or within a few doubles of the accurate bounds, as the
+chapter says of each; the tests measure how far they are from the values they
+keep.
 
 \medskip
 Several choices trade a little tightness or time for a proof. The real

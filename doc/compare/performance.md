@@ -147,8 +147,8 @@ V5.0.0 2.2 ns (2.4 for GAOL 4.2.3), 2.3 times as fast as filib++ (5.1 ns) and
 × and ÷ take GAOL V5.0.0 2.3 and 2.5 ns (10.0 and 7.5 for GAOL 4.2.3), against
 12.1 and 8.7 ns for filib++, 14.7 and 14.4 ns for PROFIL/BIAS, 21 and 20 ns
 for Solaris Studio and 21 and 19 ns for Boost.Interval. An addition of
-intervals costs GAOL V5.0.0 2.3 times an addition of doubles: two additions,
-and the check that the rounding direction is upward, where filib++ sets the
+intervals costs GAOL V5.0.0 2.3 times an addition of doubles: one vector addition for
+both bounds, and the check that the rounding direction is upward, where filib++ sets the
 rounding direction and restores it, and PROFIL/BIAS calls a function of BIAS
 that sets it downward, then upward, then back to nearest — which is why its
 four arithmetic operations all take about the same time. The integer power

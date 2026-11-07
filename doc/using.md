@@ -1255,10 +1255,10 @@ What to do:
   `sqrt(x)` 0.6 times (it is faster); without it (a build for a machine
   without the instructions, or one that refuses the path with
   `GAOL_PREFER_AVX512=OFF`, a setting of the developers) `x + y` and `x - y`
-  take 7.1 times longer, `x * y` 4.4 times, `x / y` 3.4 times, `sqr(x)` 4.3
+  take 7.2 and 7.1 times longer, `x * y` 4.4 times, `x / y` 3.4 times, `sqr(x)` 4.3
   times, `pow(x, 3)` 1.6 times, `sqrt(x)` 1.6 times, `exp(x)` 1.2 times,
   `log(x)` 1.1 times, and `sin` and `cos` 1.2 times. A line of 15
-  additions of intervals takes 9.0 times longer without the path, and 1.9 times
+  additions of intervals takes 8.9 times longer without the path, and 1.9 times
   with it.
 
 ### The AVX-512 path

@@ -33,7 +33,8 @@ Section~\ref{sec:comparison} compares GAOL v5 with GAOL 4.2.3 and with five
 other libraries of interval arithmetic, on the special cases of the standard,
 on the enclosure of the elementary functions and on the time of the
 operations. Section~\ref{sec:test-suites} reports the run on GAOL v5 of ITF1788,
-the test suite of IEEE 1788-2015, and of the benchmark of Tang et al., and Section~\ref{sec:new-paths} draws the
+a suite of test cases for IEEE 1788-2015 written outside the standard, and of
+the benchmark of Tang et al., and Section~\ref{sec:new-paths} draws the
 verdicts on the paths that were considered and says what a new one has to
 show. The chapter closes with a discussion.
 
@@ -177,11 +178,11 @@ each of the four rounding directions: it found no other difference.
 \label{sec:computing-avx512-rule}
 \findex{GAOL\_PREFER\_AVX512}\findex{GAOL\_PRESERVE\_ROUNDING}%
 
-The AVX-512 path is off by default. By default the build takes it only where
+The AVX-512 path is off in the default build. The build takes it only where
 the option \option{GAOL\_PRESERVE\_ROUNDING} is on, where the compiler has the
 instructions and where the machine building runs them, and leaves it out
 otherwise; the setting of the developers \option{-DGAOL\_PREFER\_AVX512=ON}
-asks for it without that option, and \code{=OFF} refuses it
+asks for it without that option, and \option{=OFF} refuses it
 (\pxref{sec:avx512}). A library built with the path needs a processor with the
 instructions. The
 build decides it the same way with the three build
@@ -236,7 +237,7 @@ line of 13 \code{+ - * /} (\code{mix13}) & 27.75 & 43.23 & 0.64 & 152.8
 The median of the seven operations is 0.83 without
 \option{GAOL\_PRESERVE\_ROUNDING}: the operations take 20\,\% longer with
 the path, and the ten long lines 72\,\% longer (the table gives four of them;
-the others are in the output of the script), whose median ratio is 0.58; only
+the others are in the output of the script); their median ratio is 0.58; only
 \code{sqrt} gains. It is 2.87 with it: every operation gains, the ten lines by
 1.91 to 4.64, with a median of 3.19. The path pays where each operation would otherwise write the
 control register twice, and costs where the register is written only if the
@@ -337,7 +338,9 @@ for \code{+} and \code{-}, 2.30 for \code{*}, 2.52 for \code{/}, 1.87 for
 \code{sqr}, 6.30 for \code{sqrt} and 5.12 for \code{pow(x, 3)}, the same
 operation on doubles taking 0.96 ns for \code{+}. With
 \option{GAOL\_PRESERVE\_ROUNDING} and the AVX-512 path: 2.19, 2.16, 3.42,
-3.60, 2.04, 3.75 and 6.18. On the M2, measured with \file{tests/performance.cpp} (the median of nine runs, Table~\ref{tab:install-worth-arm}), in which the i7-1185G7 takes 1.07~ns for \code{x + y}, the NEON intervals take 0.90 ns for
+3.60, 2.04, 3.75 and 6.18. On the M2, measured with \file{tests/performance.cpp} (the median of nine runs, Table~\ref{tab:install-worth-arm}), in which the i7-1185G7 takes 1.07~ns for \code{x + y} (the best of nine runs,
+Table~\ref{tab:install-worth-x86}; 1.22~ns, the median of nine runs, in
+Table~\ref{tab:computing-avx512}), the NEON intervals take 0.90 ns for
 \code{+}, 1.52 for \code{*}, 2.08 for \code{/}, 1.27 for \code{sqr} and 2.04
 for \code{sqrt}, against 1.15, 3.26, 3.22, 1.78 and 5.17 with the FPU
 intervals, whose \code{*}, \code{/} and \code{sqr} take no branch on the
@@ -363,7 +366,8 @@ cycle on most Intel cores but 14 to 16 on Zen 2 to Zen 5: one more reason,
 with those given in \file{gaol/gaol\_fpu.h} (800 ns under Rosetta 2, 80 ns
 with 32-bit Visual C++, a single read reused by Clang 18), why the check of
 GAOL on x86-64, in the default build, is an addition and not a read. Two writes took 6 ns a
-\code{sqr} (8.3 ns, 4.4 times) on the SSE2 path with \option{GAOL\_PRESERVE\_ROUNDING}, which the AVX-512 path spares.
+\code{sqr} (8.3 ns, 4.4 times, in the benchmark of
+Section~\ref{sec:computing-performance}) on the SSE2 path with \option{GAOL\_PRESERVE\_ROUNDING}, which the AVX-512 path spares.
 \item[$\bullet$] \textbf{64-bit ARM.} \code{mrs} of FPCR takes 0.8 ns,
 \code{msr} 4 ns for the value FPCR holds and 11 ns when it changes the
 direction (Apple M2). The reference manuals of the Neoverse N1, N2, N3 and
@@ -671,7 +675,7 @@ Section~\ref{sec:computing-performance}.
 \begin{tabular}{|L{2.15cm}|L{1.5cm}|L{2.2cm}|L{1.3cm}|L{1.6cm}|L{1.7cm}|
   L{2.0cm}|}
 \hline
-& \textbf{p1788} & \textbf{GAOL} & \textbf{filib++}
+& \textbf{libieee\allowbreak p1788} & \textbf{GAOL} & \textbf{filib++}
 & \textbf{Solaris Studio} & \textbf{PROFIL/\allowbreak BIAS}
 & \textbf{Boost.\allowbreak Interval} \\
 \hline
@@ -1364,7 +1368,7 @@ results, \code{asinh}, \code{atanh} and \code{acosh} included.
 
 Two test suites written outside GAOL were run on GAOL v5 under the names of
 the standard, \code{gaol\_ieee1788}, with the default build (SSE2 intervals
-on x86, the only machine they ran on) and the FPU build. The tests of GAOL
+on x86, the machine of the tables being an Intel i7-1185G7) and the FPU build. The tests of GAOL
 itself are the subject of Chapter~\ref{chap:tests}.
 
 \paragraph{ITF1788.}
@@ -1392,7 +1396,8 @@ of \ieee{overlap} without decorations, 802 of the 804 cases of
 with an exponent $p \leq 0$ included. No bug of GAOL v5 was found. The 22
 failures are of three kinds: 12 results that are valid but not the
 tightest, from \ieee{pownRev}, 2 at the largest double and 10 with an
-exponent $p < 0$: 11 of them 1 double beyond the tightest bound and accurate in the sense of IEEE 1788-2015, and one 2 doubles beyond, which IEEE 1788-2015 requires to be valid and recommends to be accurate; 8 cases where
+exponent $p < 0$: 11 of them 1 double beyond the tightest bound and accurate in the sense of IEEE 1788-2015, and one 2 doubles beyond, valid but not accurate, the standard requiring of
+this operation a valid result and recommending an accurate one; 8 cases where
 ITF1788 expects a result that is not the tightest, from the reverse
 functions \ieee{sinRev}, \ieee{cosRev} and \ieee{tanRev} of libieeep1788's
 tests and \ieee{powRev2} of Oliver Heimlich's, where GAOL v5's result is
@@ -1685,16 +1690,16 @@ No measurement of this chapter on x86 (the SSE2 and AVX-512 paths) was made on a
 the times of Section~\ref{sec:computing-performance} and the divisions of
 Table~\ref{tab:computing-verdicts}; no path was timed on RISC-V, POWER, s390x,
 LoongArch, MIPS or WebAssembly (the tests of GAOL run on POWER, s390x and
-RISC-V under QEMU in the continuous integration, \pxref{sec:ci}), whose
-figures come from the measurements of this chapter, uops.info or the references,
-and the compilations made to study their instruction sets were made on
+RISC-V under QEMU in the continuous integration, \pxref{sec:ci}): the figures
+given for these come from uops.info or the references, and the compilations made to study their instruction sets were made on
 Compiler Explorer, without running the code. The calls
 were counted on the NEON build only. GCC never ran a program of this study: the behaviour of the
 intrinsics and of the pragma under it is read from the assembly. The profile
 has one machine and one compiler, and \cmd{sample} is the macOS profiler.
 The cost of writing FPSCR (32-bit ARM, POWER), FPC (s390x), FCSR and frm is
 not in the references read, nor is the manual of MIPS. Whether FPCR.AH
-changes the kernels was not run: the M2 has no FEAT\_AFP.
+changes the kernels was not measured on hardware: the M2 has no FEAT\_AFP (the
+test runs with AH set under QEMU 10.0).
 
 %%--------------------------------------------------------------------------
 \section{Discussion}
@@ -1723,7 +1728,7 @@ the value of the function, where 20 to 34\,\% of Boost.Interval's do.
 The trade-offs are those of the rounding direction. Preserving it costs
 no write of the control register on the AVX-512 path, whose instructions carry their own direction,
 and that is why a build takes that path with \option{GAOL\_PRESERVE\_ROUNDING}
-only: without the preservation the path loses 17\,\% at the median, and the
+only: without the preservation the operations take 20\,\% longer with the path at the median, and the
 rule relies on one processor, with halved AVX-512 units. On 64-bit ARM, no
 instruction carries its direction, and preserving it for a program that
 computes to nearest makes a line of operations 13.0 to 43.5 times slower on

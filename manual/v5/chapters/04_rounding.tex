@@ -383,7 +383,7 @@ the instructions, or one that refuses the path with
 \option{-DGAOL\_PREFER\_AVX512=OFF}, a setting of the developers). The
 arithmetic operations take 1.2 to 1.6 times longer with the path, and several
 times longer without it; a line of 15 additions of intervals takes 1.9 times
-longer with the path and 9.0 times without.
+longer with the path and 8.9 times without.
 
 \begin{table}[htbp]\centering\footnotesize
   \caption[The cost of \option{GAOL\_PRESERVE\_ROUNDING}, with and without the AVX-512 path]{How many times longer each operation takes with \option{GAOL\_PRESERVE\_ROUNDING} than without it, with and without the AVX-512 path (Intel i7-1185G7, Clang~21.1.8, \file{tests/performance.cpp}, the median of 9 interleaved runs, 7 November 2026, the run of Table~\ref{tab:computing-avx512}: the time of the preserved build over that of the default one).} \label{tab:preserve-cost}
@@ -391,7 +391,7 @@ longer with the path and 9.0 times without.
     \hline
     Operation & With the AVX-512 path & Without it\\
     \hline\hline
-    \code{x + y}, \code{x - y} & 1.2 & 7.1 to 7.2\\
+    \code{x + y}, \code{x - y} & 1.2 & 7.2 and 7.1\\
     \code{x * y} & 1.6 & 4.4\\
     \code{x / y} & 1.6 & 3.4\\
     \code{sqr(x)} & 1.0 & 4.3\\
@@ -400,7 +400,7 @@ longer with the path and 9.0 times without.
     \code{exp(x)} & 1.2 & 1.2\\
     \code{log(x)} & 1.1 & 1.1\\
     \code{sin(x)}, \code{cos(x)} & 1.2 & 1.2\\
-    a line of 15 additions & 1.9 & 9.0\\
+    a line of 15 additions & 1.9 & 8.9\\
     \hline
   \end{tabular}
 
