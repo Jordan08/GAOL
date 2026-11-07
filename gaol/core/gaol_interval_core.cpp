@@ -3964,8 +3964,9 @@ namespace gaol_core {
   of its magnitude, as the general nth_root() takes it.
 
   The general nth_root() looked for the bounds from pow(x, 1/n) by Newton's
-  method then by bisection, which took 179 ns for a cube root against 67 ns
-  here, and gave bounds up to 2 doubles from the tightest ones.
+  method then by bisection, which took 89 ns for a cube root against 41 ns
+  here (the medians of three runs, i7-1185G7, Clang 18; 77 against 24 ns on an
+  Apple M2), and gave bounds up to 2 doubles from the tightest ones.
 */
 /*
   u*u*u rounded upward == x, for u the cube root of x rounded upward. The

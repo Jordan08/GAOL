@@ -234,8 +234,10 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   - **`nth_root(x, 3)` is CORE-MATH's `cbrt`**, at the magnitudes of the bounds,
     the root of a negative number being the opposite of the root of its
     magnitude: the tightest bounds, and the exact value where the cube root is
-    a double, which cubing the value tells. It took 50 ns rather than 189 with
-    the search by bisection the other roots use (Intel i7-1185G7, Clang 18.1).
+    a double, which cubing the value tells. It takes 41 ns rather than 89 with
+    the search by bisection the other roots use (the medians of three runs,
+    Intel i7-1185G7, Clang 18.1; 24 ns rather than 77 on an Apple M2, Apple
+    clang 21).
   - **`nth_root(x, q)` takes a negative q**, which IEEE 1788-2015 recommends
     (rootn over ℤ∖{0}, Table 10.5): x<sup>1/q</sup> is 1/x<sup>1/|q|</sup>,
     whose domain is ℝ∖{0} for an odd q and (0, +∞) for an even one. The

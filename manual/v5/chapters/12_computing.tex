@@ -1516,7 +1516,7 @@ AVX-512VL, AVX10.2 at 128 and 256 bits & nothing to build & No embedded
 rounding at these widths & A new revision of the Intel manual restoring it
 (revision 3.0 of AVX10.2 had it) \\
 \hline
-NEON (arm64) & keep & Done: 1.3 to 2.5 times faster than the FPU intervals on an M2, 3.0 times on a line of 13 operations & Hardware with
+NEON (arm64) & keep & Done: 1.3 to 2.5 times faster than the FPU intervals on an M2, 3.2 times on a line of 13 operations & Hardware with
 FPCR.AH set (below) \\
 \hline
 SVE, SVE2, SME & no path & The same FPCR, and 128-bit vectors on most of the
@@ -1664,19 +1664,26 @@ to.
 \code{\{ru-sae\}} assembly} compile and are wrong
 (Section~\ref{sec:compilers-give}).
 \item[$\bullet$] \textbf{The NEON quotient on a Neoverse N2} (the arm64
-runners of GitHub, Azure Cobalt 100; five runs of each build, one
-execution): \code{x / y} takes 5.36 ns with clang-cl and 5.40 with Visual
-C++, where the FPU intervals take 4.35 with clang-cl, so that the one
-operation the NEON intervals lose there is the quotient (\code{x * y} 5.71
-to 5.19, \code{x + y} 2.98 to 1.19). It is not the vector division: two
-scalar divisions in its place (\code{vdiv\_f64} on each lane, the same
-bounds) take 6.17 and 6.30 ns there, and 2.76 ns against 2.38 on the Apple
-M2 (\code{x / y}, and the line of 7 quotients 18.80 to 22.54 ns; a local
-A/B, the machine not idle). The time is in the rest of the kernel, about 150
-instructions in \code{div\_bounds()} of which some 55 are vector ones
-(counted in the object of GCC 12.2, the common path being a part of them):
-\code{x * y} takes 5.2 ns there where the Apple M2 takes 2.15, a ratio that
-the two vector pipes of the N2 against the four of the M2 would explain (not
+runners of GitHub, Azure Cobalt 100; the A/B of \file{performance.yml} of
+7 November 2026, the medians of three runs, the base and the head giving the
+same figures): \code{x / y} takes
+3.96 ns with Clang, 4.04 with clang-cl, 4.49 with GCC and 4.92 with Visual
+C++, where the FPU intervals take 4.29 with GCC, so that the one operation
+the NEON intervals do not gain there is the quotient (with GCC \code{x * y}
+takes 2.95 ns against 6.37 and \code{x + y} 1.26 against 1.87). It took 5.36
+ns with clang-cl and 5.40 with Visual C++ before \code{divide\_upward()}
+told the signs of the divisor on general registers (commit c42f95e, 5.35 to
+3.96 ns with Clang 18), where the FPU intervals took 4.35 with clang-cl. It
+was not the vector division: two scalar divisions in its place
+(\code{vdiv\_f64} on each lane, the same bounds) took 6.17 and 6.30 ns, and
+the time was in the rest of the kernel, about 150 instructions in
+\code{div\_bounds()} of which some 55 were vector ones (counted in the
+object of GCC 12.2, the common path being a part of them). On the Apple M2
+(7 November 2026, mains power, three runs of each build alternated)
+\code{x / y} takes 2.07 ns with the NEON intervals against 3.20 with the FPU
+ones, the line of 7 quotients 18.4 ns against 32.4, and \code{x * y}
+1.52 ns: the N2 takes 1.9 times as long for the product, a ratio that the
+two vector pipes of the N2 against the four of the M2 would explain (not
 measured: \cmd{perf} is not allowed on the runners and the machine).
 \end{itemize}
 

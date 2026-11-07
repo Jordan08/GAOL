@@ -392,8 +392,9 @@ that the tests run with UBSan reported; it shifts it unsigned now.
 \medskip
 The cube root \code{nth\_root(x, 3)} is CORE-MATH's \code{cbrt}, the
 tightest bounds, exact where the cube root is a double, which cubing the
-value tells: it takes 50 ns, where the search by bisection the other roots
-use takes 189 (Intel i7-1185G7, Clang 18.1).\newinvfive{} \code{nth\_root(x, q)} takes
+value tells: it takes 41 ns, where the search by bisection the other roots
+use takes 89 (the medians of three runs, Intel i7-1185G7, Clang 18.1; 24 ns
+against 77 on an Apple M2, Apple clang 21).\newinvfive{} \code{nth\_root(x, q)} takes
 a negative $q$, which the standard recommends (\ieee{rootn} over
 $\mathbb{Z}\setminus\{0\}$): the reader of strings converted the exponent to
 an unsigned int, and \code{nth\_root(16, -2)} read from a string was the

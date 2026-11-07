@@ -290,7 +290,7 @@ the T-Head C910 the draft 0.7.1.
 | FMA3 | in use (`GAOL_FMA`) | It pays in the elementary functions and the integer powers, none in the basic operations | The exact transformations that would replace the directed rounding are another study (the rounding direction left to nearest) |
 | AVX-512 path | keep; the division and the square root are scalar instructions with the embedded rounding, two for the two bounds | On Intel the 512-bit division takes 16 cycles of throughput against 4 for the 128-bit one (uops.info), and Zen 5 has full-width units; the square root of the path takes two scalar embedded roots (3.75 ns against 6.30 with SSE2), `x / y` two scalar divisions, and so do `x / d` of a double (2.8 ns against 3.7 for d > 0, 3.0 to 3.3 for d < 0, on an Intel i7-1185G7 with Clang 21), the divisors with a zero (5.5 ns) and the negative integer powers (`pow(x, -3)` 9.1 ns), which the change left within the noise | A processor where the two scalar divisions lose to the 512-bit one (not seen on the i7-1185G7; no other processor was measured, Zen 5 included) |
 | AVX-512VL, AVX10.2 at 128 and 256 bits | nothing to build | No embedded rounding at these widths | A new revision of the Intel manual restoring it (revision 3.0 of AVX10.2 had it) |
-| NEON (arm64) | keep | Done: 1.3 to 2.5 times faster than the FPU intervals on an M2, 3.0 times on a line of 13 operations | Hardware with FPCR.AH set (see below) |
+| NEON (arm64) | keep | Done: 1.3 to 2.5 times faster than the FPU intervals on an M2, 3.2 times on a line of 13 operations | Hardware with FPCR.AH set (see below) |
 | SVE, SVE2, SME | no path | The same FPCR, and 128-bit vectors on most of the processors | An interface of arrays, on a 256 or 512-bit implementation; a static rounding in the instruction set |
 | ARMv7 | no vector path | NEON has no double | none |
 | POWER (VSX), s390x (vector facility) | measure first | Two doubles per register and a write of the control register, as NEON, but no hardware here and no figure for the write | A machine to run the tests and the benchmark on |
@@ -413,19 +413,26 @@ Before a path is added (the steps the issue lists, with the rules of GAOL):
 - **The pragma `FENV_ROUND`, the `_mm256_add_round_pd` of Clang 20 and the
   256-bit `{ru-sae}` assembly** compile and are wrong (above).
 - **The NEON quotient on a Neoverse N2** (the arm64 runners of GitHub, Azure
-  Cobalt 100; the A/B of `performance.yml`, five runs of each build, one
-  execution): `x / y` takes 5.36 ns with clang-cl and 5.40 with Visual C++,
-  where the FPU intervals take 4.35 with clang-cl, so that the one operation the
-  NEON intervals lose there is the quotient (`x * y` 5.71 to 5.19, `x + y` 2.98
-  to 1.19). It is not the vector division: two scalar divisions in its place
-  (`vdiv_f64` on each lane, the same bounds) take 6.17 and 6.30 ns there, and
-  2.76 ns against 2.38 on the Apple M2 (`x / y`, and the line of 7 quotients
-  18.80 to 22.54 ns; a local A/B, the machine not idle). The time is in the rest
-  of the kernel, about 150 instructions in `div_bounds()` of which some 55 are
-  vector ones (counted in the object of GCC 12.2, the common path being a part
-  of them): `x * y` takes 5.2 ns there where the Apple M2 takes 2.15, a ratio
-  that the two vector pipes of the N2 against the four of the M2 would explain
-  (not measured: `perf` is not allowed on the runners and the machine).
+  Cobalt 100; the A/B of `performance.yml` of 7 November 2026, the medians of
+  three runs, the base and the head giving the same figures): `x / y` takes
+  3.96 ns with Clang, 4.04 with clang-cl, 4.49 with GCC and 4.92 with Visual
+  C++, where the FPU intervals take 4.29 with GCC, so that the one operation
+  the NEON intervals do not gain there is the
+  quotient (with GCC `x * y` takes 2.95 ns against 6.37 and `x + y` 1.26
+  against 1.87). It took 5.36 ns with clang-cl and 5.40 with Visual C++ before
+  `divide_upward()` told the signs of the divisor on general registers (commit
+  c42f95e, 5.35 to 3.96 ns with Clang 18), where the FPU intervals took 4.35
+  with clang-cl. It was not the vector division: two scalar divisions in its
+  place (`vdiv_f64` on each lane, the same bounds) took 6.17 and 6.30 ns, and
+  the time was in the rest of the kernel, about 150 instructions in
+  `div_bounds()` of which some 55 were vector ones (counted in the object of
+  GCC 12.2, the common path being a part of them). On the Apple M2 (7 November
+  2026, mains power, three runs of each build alternated) `x / y` takes 2.07 ns
+  with the NEON intervals against 3.20 with the FPU ones, the line of 7
+  quotients 18.4 ns against 32.4, and `x * y` 1.52 ns: the N2 takes 1.9 times
+  as long for the product, a ratio that the two vector pipes of the N2 against
+  the four of the M2 would explain (not measured: `perf` is not allowed on the
+  runners and the machine).
 
 ## What was not measured
 
