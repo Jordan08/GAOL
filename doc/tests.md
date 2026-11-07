@@ -787,12 +787,15 @@ point Q), which `numbers` checks there too.
   `[0, 5e-324]` was below it (GAOL v5, point Q).
 - **`other_functions`:** midpoints (of subnormal bounds, and of `intervalf`
   where a developer of GAOL compiles the float intervals, `gaol/gaol_config.h`),
-  widths, radii (`rad()`, `mid_rad()`), magnitudes, mignitudes,
+  widths, radii (`rad()`, `mid_rad()`, +0 for the point zero of either sign),
+  magnitudes, mignitudes,
   Hausdorff distances (of intervals with infinite bounds too, equal
   bounds being at distance 0), `nb_fp_numbers()` (across the two
   zeros), splitting, integer parts, `max(x, y)` and `min(x, y)` of every pair of
   intervals made of special bounds (the infinities, the largest and smallest
-  normal numbers, subnormals, the zeros of both signs, the empty set), with the
+  normal numbers, subnormals, the zeros of both signs, the empty set),
+  `bisect(ratio)` of finite bounds next to the largest double (two parts that
+  cover the interval and no overflow exception), with the
   bits of the zeros and the subnormals told by their values, with the modes that
   flush the subnormals to zero set or not (the SSE2 and NEON intervals choose
   the bounds themselves, and the SSE2 ones give the other cases to the code of

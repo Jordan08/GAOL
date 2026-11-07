@@ -684,7 +684,13 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   a 0 and, with `GAOL_PRESERVE_ROUNDING`, could cut outside the interval or on
   a bound of a bisectable one. Both now compare the bounds by their bits, the
   cut point of `bisect(ratio)` included, before the modes are restored
-  (`tests/rounding_direction.cpp`).
+  (`tests/rounding_direction.cpp`). **`bisect(ratio)` raises no overflow
+  exception for two finite bounds**: for a bound of 2^1023 or more, as in
+  `[prev(MAX), MAX]`, the sum of the two products `l (1 - ratio) + r ratio`,
+  rounded upward, could be one ulp beyond the largest double, and the cut point
+  was then put back at `r` after the exception; the cut point is now that of
+  the halves of the bounds, put between them and doubled
+  (`tests/other_functions.cpp`).
 - **The AVX-512 path reads its operands once the modes that flush the
   subnormals to zero are cleared, and makes its results before they are set
   back** with `GAOL_PRESERVE_ROUNDING`: Clang 18 computed `x - y` after, and
@@ -1502,7 +1508,9 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   is otherwise the same: the bounds of J, of −J and of I, hence tightest.
 - **`rad()` and `mid_rad()`**, `rad` and `midRad` of IEEE 1788-2015 (12.12.8):
   the radius, the smallest double r such that the interval is in
-  `[m - r, m + r]`, m being `midpoint()`, and both at once.
+  `[m - r, m + r]`, m being `midpoint()`, and both at once. The radius of the
+  point zero is +0 (12.12.8: +0 by every function but `inf`), whichever the
+  sign of its bounds, `[-0, -0]` included (`tests/other_functions.cpp`).
 - **The tools that algorithms of intervals write for themselves** are new:
   `width_enclosure()`, `inflate(r)`, `interval::midrad(m, r)`, `bisect(ratio)`,
   `is_bisectable()`, and `hull(a, b)` and `intersect(a, b)`, the functions of

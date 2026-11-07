@@ -715,7 +715,8 @@ themselves:
   every ratio for a half-line or the whole line. A ratio outside (0, 1), or
   NaN, throws `std::domain_error`. `x.is_bisectable()` tells whether a
   double lies strictly between the bounds, both parts being then smaller than
-  x: not for two consecutive doubles, nor for [MAX, +∞].
+  x: not for two consecutive doubles, nor for [MAX, +∞]. `bisect(ratio)` of
+  finite bounds raises no overflow exception, whatever their magnitude.
 - `hull(x, y)` and `intersect(x, y)`: `x | y` and `x & y` as functions, in
   `gaol` as in `gaol_core`.
 

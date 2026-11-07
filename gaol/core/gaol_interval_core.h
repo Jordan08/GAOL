@@ -2771,6 +2771,9 @@ GAOL_INLINE void interval::mid_rad(double& m, double& r) const
     double below = m - left();
     double above = right() - m;
     double res = (below > above) ? below : above;
+    // The radius of the point -0 is +0 (IEEE 1788-2015, 12.12.8: +0 by every
+    // function but inf): right() - m is -0 there, m being +0 (GAOL v5)
+    res = std::fabs(res);
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
     r = res;
