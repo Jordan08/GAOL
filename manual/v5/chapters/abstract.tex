@@ -1,0 +1,61 @@
+%% !TEX root = ../manual_gaolv5.tex
+% The abstract and the keywords (unnumbered).
+\chapter*{Abstract}
+\thispagestyle{plain}
+
+GAOL is a C++ library for arithmetic on floating-point intervals. Its
+intervals enclose real numbers between two doubles, and every operation
+returns an interval that contains the exact result, whatever the rounding
+errors of the computer: this is the containment property, on which interval
+algorithms rest to prove what they compute. GAOL also provides the
+\emph{relational} versions of its operations, the reverse functions of IEEE
+1788-2015, which interval constraint programming needs. GAOL v5, which this
+manual describes, continues GAOL as Fr\'ed\'eric Goualard developed it, and
+is written so that it compiles and computes right on every system it can:
+Linux, macOS and Windows, on x86, x86-64, 32-bit and 64-bit ARM, POWER
+(ppc64le), s390x and RISC-V (riscv64).
+
+\begin{itemize}
+\item[$\bullet$] Every elementary function that CORE-MATH provides is bounded
+  with it, which is correctly rounded in the rounding direction in effect: the
+  value computed at a bound, rounding upward, is the upper bound, and the
+  double below it the lower one, the tightest bounds. The integer powers, the
+  roots of an order other than 2 and 3 and \code{compoundm1}, which GAOL computes itself, are the tightest
+  bounds or within a few doubles of them (Chapter~\ref{chap:accuracy}). The
+  bounds are the same on every architecture and with every compiler, and no
+  mathematical library is to be installed or linked: CORE-MATH is compiled
+  into GAOL.
+\item[$\bullet$] GAOL v5 follows IEEE 1788-2015 in the operations GAOL
+  provides: the empty set, the infinite bounds, the domains of the functions,
+  the comparisons and the interval literals. The namespace
+  \code{gaol\_ieee1788} gives each operation of the standard the name and the
+  argument order the standard gives it, and the tightness of every operation
+  is documented, as the standard requires.
+\item[$\bullet$] The rounding direction is the business of GAOL: each
+  operation that computes a bound sets the direction upward when it is not,
+  whichever direction the calling code left, and GAOL can be built to restore
+  the direction of the program after each operation; the operations of the
+  AVX-512 path, which that build takes where the processor has the
+  instructions, set no direction, their instructions carrying it.
+\item[$\bullet$] Numbers are read exactly, and intervals written in decimal
+  are rounded outward, whatever the C library; written in hexadecimal, an
+  interval is read back as the same doubles.
+\item[$\bullet$] Three builds, CMake, autotools and meson, configure GAOL the
+  same way; the tests compare the bounds GAOL computes with their exact
+  values, and a continuous integration builds and tests GAOL on Linux, macOS
+  and Windows, with the compilers and on the processors it supports.
+\end{itemize}
+
+\medskip
+\noindent
+This manual is both a user's guide and a reference. It presents the notions
+of interval arithmetic GAOL relies on, the installation and the use of the
+library, each of its operations with examples whose outputs were produced by
+GAOL v5, the names of the standard, the accuracy of the operations, the way
+the intervals are computed and measured, the tests and the continuous
+integration, and what a program written for GAOL~4 has to change.
+
+\bigskip
+\noindent\textbf{Keywords:} interval arithmetic, floating-point arithmetic,
+IEEE 1788-2015, correctly rounded elementary functions, CORE-MATH, reverse
+functions, constraint programming, C++.

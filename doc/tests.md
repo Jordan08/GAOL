@@ -43,7 +43,7 @@ point Q), which `numbers` checks there too.
   intervals of either sign, have to enclose the same line of rational numbers
   taken at a bound of each operand, and `+=`, `-=`, `*=` and `/=` have to give
   the bounds of the operators, line by line. Every interval [a, b] with
-  a <= b made of 15 special bounds (-oo, the largest double, -2.5, -1, the
+  a <= b made of 15 special bounds (-oo, the opposite of the largest double, -2.5, -1, the
   opposite of the smallest normal number, of the smallest subnormal number,
   -0, +0, the smallest subnormal number, the smallest normal number, 0.1, 1, 3,
   the largest double, +oo), the empty set and the universe, taken two by two,
@@ -89,8 +89,8 @@ point Q), which `numbers` checks there too.
   9.8·10^303, and its inverse, against mpmath), and the roots of 0, 1 and -1
   have to be the tightest enclosures; so do x^n over 4 000 intervals near the
   ends of the doubles, with a bound 0, subnormal or infinite, or a power above
-  2^1100 or below 2^-1000, where GAOL v5 took the products rounded outward,
-  and its SSE2 and FPU intervals gave other bounds for half of them; the
+  2^1100 or below 2^-1000, where the products were formerly rounded outward, and
+  the SSE2 and FPU intervals gave other bounds for half of them; the
   powers that are doubles, 8 679 powers of integers times 2^-4, 1 and 2^4
   and of intervals between them, and powers of two to negative exponents,
   have to be exact, both bounds (GAOL v5: an error bound computed beforehand,
@@ -787,19 +787,23 @@ point Q), which `numbers` checks there too.
   `[0, 5e-324]` was below it (GAOL v5, point Q).
 - **`other_functions`:** midpoints (of subnormal bounds, and of `intervalf`
   where a developer of GAOL compiles the float intervals, `gaol/gaol_config.h`),
-  widths, radii (`rad()`, `mid_rad()`), magnitudes, mignitudes,
+  widths, radii (`width()`, `rad()`, `mid_rad()`, +0 for the point zero of either sign),
+  magnitudes, mignitudes,
   Hausdorff distances (of intervals with infinite bounds too, equal
   bounds being at distance 0), `nb_fp_numbers()` (across the two
   zeros), splitting, integer parts, `max(x, y)` and `min(x, y)` of every pair of
   intervals made of special bounds (the infinities, the largest and smallest
-  normal numbers, subnormals, the zeros of both signs, the empty set), with the
+  normal numbers, subnormals, the zeros of both signs, the empty set),
+  with the
   bits of the zeros and the subnormals told by their values, with the modes that
   flush the subnormals to zero set or not (the SSE2 and NEON intervals choose
   the bounds themselves, and the SSE2 ones give the other cases to the code of
   the other kinds), and, for those two kinds, of every pair of stored lanes made
   of special doubles (a NaN in one lane, bounds in the wrong order, an infinite
   bound...), whose bits have to be those of the formula of the other kinds, the
-  constructor of the maxima of the bounds; `x / y`, `x %= y` and `y.inverse()`
+  constructor of the maxima of the bounds; `bisect(ratio)` of finite bounds next
+  to the largest double (two parts that cover the interval and no overflow
+  exception); `x / y`, `x %= y` and `y.inverse()`
   of the NEON intervals when a stored lane of an operand holds a NaN (quiet or
   signaling, of either sign, of the least and the greatest payloads), whatever
   the other lanes hold, which have to give the bits of `interval::emptyset()`
@@ -1857,7 +1861,7 @@ random signs, the other rows having positive operands only, which a processor
 predicts: the product, the quotient and the square chose a branch by the signs
 of the bounds in GAOL 4 and in the FPU intervals before GAOL v5 gave them
 kernels with none (the operands are 1 024 intervals that the predictor of a
-processor learns by heart: the former product of random signs took 5.7 ns on
+processor learns by heart: the former product of random signs took 6.4 ns on
 them and 12.4 on 16 384, Apple M2). The table is Markdown, which
 the jobs of the continuous integration copy into their summary: the pipe of the
 name `x | y` is written `\|`, and `compare-performance.py` reads it back. After
@@ -1904,7 +1908,7 @@ and after their kernels of `*`, `/`, `%` and `sqr` (the tool records the
 invalid-operation and division-by-zero exceptions only).
 
 `manual/check_examples.py` compiles each example of the manual of GAOL v5
-(`manual/v5/gaol.tex`) that shows what it prints, 113 of them, with an installed
+(`manual/v5/chapters/`) that shows what it prints, 113 of them, with an installed
 GAOL and the flags of `pkg-config gaol`, runs it, and compares what it prints
 with the manual, line by line (GAOL v5): until #55, the examples printed 1 and
 0 where the manual showed `true` and `false`. It is no test of the builds; the

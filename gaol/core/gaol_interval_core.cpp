@@ -3964,8 +3964,9 @@ namespace gaol_core {
   of its magnitude, as the general nth_root() takes it.
 
   The general nth_root() looked for the bounds from pow(x, 1/n) by Newton's
-  method then by bisection, which took 179 ns for a cube root against 67 ns
-  here, and gave bounds up to 2 doubles from the tightest ones.
+  method then by bisection, which took 89 ns for a cube root against 41 ns
+  here (the medians of three runs, i7-1185G7, Clang 18; 77 against 24 ns on an
+  Apple M2), and gave bounds up to 2 doubles from the tightest ones.
 */
 /*
   u*u*u rounded upward == x, for u the cube root of x rounded upward. The
@@ -6888,7 +6889,9 @@ interval nth_root(const interval& I, int q)
     parts that cover [l, r] exactly, sharing c: c is computed in GAOL's
     rounding direction and put back within [l, r], where the two rounded
     products may have taken it; l (1 - ratio) + r ratio cannot overflow where
-    l + ratio (r - l) does, as for [-MAX, MAX]. GAOL_RND_ENTER() clears the
+    l + ratio (r - l) does, as for [-MAX, MAX], and for a bound of 2^1023 or
+    more the cut point is that of the halves of the bounds, doubled, so that
+    no overflow exception is raised for two finite bounds either. GAOL_RND_ENTER() clears the
     flush-to-zero and denormals-are-zero modes, so that the cut between two
     subnormal bounds is not read as 0. When a double lies strictly between l
     and r, c is moved to the nearest one where it fell on a bound, so that
@@ -6941,7 +6944,24 @@ interval nth_root(const interval& I, int q)
       // l, r and ratio are registers: they go through rnd_reread() after the check,
       // or GCC computes c before it writes the control register, in the
       // program's direction (GAOL v5)
-      c = rnd_reread(l)*(1.0 - rnd_reread(ratio)) + rnd_reread(r)*rnd_reread(ratio);
+      const double big = 8.9884656743115795e+307; // 2^1023 (C++11 has no hexadecimal floating literal)
+      if (std::fabs(l) < big && std::fabs(r) < big) {
+        c = rnd_reread(l)*(1.0 - rnd_reread(ratio)) + rnd_reread(r)*rnd_reread(ratio);
+      } else {
+        // For a bound of 2^1023 or more, the sum of the two products, rounded upward,
+        // can exceed the largest double by an ulp, as for [prev(MAX), MAX]: the
+        // overflow exception would be raised for two finite bounds. The cut point is
+        // that of the halves of the bounds, put between them and doubled, which is
+        // exact there (GAOL v5)
+        const double lh = 0.5*rnd_reread(l), rh = 0.5*rnd_reread(r);
+        double h = lh*(1.0 - rnd_reread(ratio)) + rh*rnd_reread(ratio);
+        if (gaol_detail::bound_less(h, lh)) {
+          h = lh;
+        } else if (gaol_detail::bound_greater(h, rh)) {
+          h = rh;
+        }
+        c = h + h;
+      }
       GAOL_RND_KEEP(c);
       // Within [l, r], and strictly inside when the interval is bisectable, before the
       // direction is restored: with GAOL_PRESERVE_ROUNDING the modes that flush the

@@ -424,8 +424,9 @@
     floating-point operation in itself: no rounding direction to set, and
     no exception flag raised by the instructions; the modes that flush the
     subnormals to zero, which the embedded rounding honours, are cleared
-    where they are set (flush_guard above), whose check raises the flags of
-    the check of the other operations (doc/using.md). Their results
+    where they are set (flush_guard above), whose check, 2^-1060 + 0, is
+    exact but where flush-to-zero alone is set: the sum, flushed to zero, then
+    raises the underflow and inexact flags (doc/using.md). Their results
     are those of the SSE2 path, bit for bit (see the head of this file).
   */
 

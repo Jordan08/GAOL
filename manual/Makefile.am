@@ -23,12 +23,10 @@ PDFLATEX = @PDFLATEX@
 BIBTEX = @BIBTEX@
 MAKEINDEX = @MAKEINDEX@
 
-# The manual of GAOL v5 is in v5, the manual of GAOL 4 in v4: each is built in
-# the directory of the same name of the build tree, which holds its
-# gaol_version.tex
-LATEX_BUILT = v4/*.fux v4/*.idx v4/*.ind v4/*.fnd v4/*.aux v4/*.log v4/*.bbl \
-	v4/*.blg v4/*.out v4/*.toc v4/*.ilg \
-	v5/*.fux v5/*.idx v5/*.ind v5/*.fnd v5/*.aux v5/*.log v5/*.bbl \
+# The manual of GAOL v5 is built in v5 of the build tree, which holds its
+# gaol_version.tex; its PDF, Manual_GAOLv5.pdf, is written in manual/ of the
+# sources, and make clean leaves it. The manual of GAOL 4 is not built
+LATEX_BUILT = v5/*.fux v5/*.idx v5/*.ind v5/*.fnd v5/*.aux v5/*.log v5/*.bbl \
 	v5/*.blg v5/*.out v5/*.toc v5/*.ilg
 
 CLEANFILES = $(LATEX_BUILT)
@@ -39,10 +37,10 @@ DISTCLEANFILES = $(LATEX_BUILT)
 all: pdf
 
 
-# v5/gaol.pdf and v4/gaol.pdf
+# The manual of GAOL v5: manual/Manual_GAOLv5.pdf of the sources (build-pdf.sh)
 pdf:
 if PDF_TO_LATEX
-	PDFLATEX="$(PDFLATEX)" BIBTEX="$(BIBTEX)" MAKEINDEX="$(MAKEINDEX)" sh $(srcdir)/build-pdf.sh $(srcdir)/v5 v5 $(srcdir)/v4 v4
+	PDFLATEX="$(PDFLATEX)" BIBTEX="$(BIBTEX)" MAKEINDEX="$(MAKEINDEX)" sh $(srcdir)/build-pdf.sh $(srcdir)/v5 v5 $(srcdir)/Manual_GAOLv5.pdf
 else
 	@echo Sorry, no tool to compile a LaTeX file into a pdf file found
 endif

@@ -6,8 +6,9 @@
 # (https://github.com/goualard-f/GAOL, GNU LGPL v2), comes with an autotools
 # and a meson build, which GAOL v5 keeps. GAOL v5, written by Jordan Ninin,
 # continues GAOL from its version 4.2.2. This CMake build is an addition of
-# GAOL v5, written for Codac (https://github.com/codac-team/codac). See the
-# section of README.md about GAOL v5.
+# GAOL v5, written for Codac (https://github.com/codac-team/codac) and IBEX
+# (https://github.com/ibex-team/ibex-lib). See the section of README.md about
+# GAOL v5.
 #
 # Origin
 # ------
@@ -138,6 +139,10 @@ option(GAOL_PRESERVE_ROUNDING "Restore the rounding direction found after each o
 # FetchContent) may have options of the same names, for its own tests.
 option(WITH_TESTS "Build the unit tests of tests/, which make test (ctest) and make check run" OFF)
 option(WITH_EXAMPLES "Build the examples of examples/, which make check runs" OFF)
+# The target pdf, which builds the manual of GAOL v5 with pdflatex, bibtex and
+# makeindex (see The manuals below), as the target pdf of configure (make -C manual pdf)
+# and of meson (with-doc) (GAOL v5)
+option(WITH_DOC "Add the target pdf, which builds the manual of GAOL v5 in manual/Manual_GAOLv5.pdf (pdflatex, bibtex and makeindex)" OFF)
 # libgaol is a static library, or with BUILD_SHARED_LIBS=ON, the variable of
 # CMake, a shared one, libgaol.so.5.0.0 as with configure and meson (GAOL v5).
 # Always static with Visual C++, whose declarations of GAOL carry no
@@ -1098,10 +1103,10 @@ endif()
 # (GAOL v5): the build decides, and the rule is that of the measures of
 # doc/simd.md, four builds of one source: the path spares the store of the
 # rounding direction every operation pays with GAOL_PRESERVE_ROUNDING, where
-# every operation gains (2.8 times at the median of + - * / sqr sqrt and pown,
-# 1.75 to 4.8 times on the long lines), and costs where the direction is left
-# upward and written only when it is not, as by default (17 % at the median, 32
-# % on the long lines, `sqrt` alone gaining). So it follows
+# every operation gains (2.9 times at the median of + - * / sqr sqrt and pown,
+# 1.9 to 4.6 times on the long lines), and costs where the direction is left
+# upward and written only when it is not, as by default (20 % longer at the
+# median, 72 % longer on the long lines, `sqrt` alone gaining). So it follows
 # GAOL_PRESERVE_ROUNDING. -DGAOL_PREFER_AVX512=ON asks for it without, and
 # =OFF refuses it with: settings of the developers, and of the users who build a
 # package for any processor (-DGAOL_PREFER_AVX512=OFF where the rounding
@@ -1646,6 +1651,54 @@ if(GAOL_IS_TOP_LEVEL AND (WITH_TESTS OR WITH_EXAMPLES))
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
     COMMENT "Running the unit tests and the examples"
     USES_TERMINAL)
+endif()
+
+
+################################################################################
+# The manuals
+################################################################################
+#
+# WITH_DOC adds the target pdf, which builds the manual of GAOL v5 with pdflatex,
+# bibtex and makeindex (manual/build-pdf.sh, which make -C manual pdf of
+# configure and the target pdf of meson, with -Dwith-doc=true, run too) (GAOL
+# v5). The PDF is written in manual/ of the source tree, Manual_GAOLv5.pdf, and
+# not in the build directory, which keeps the files of LaTeX only:
+#
+#   cmake -S . -B build -DWITH_DOC=ON
+#   cmake --build build --target pdf
+#
+# The manual of GAOL 4 is not built: its PDF, manual/v4/Manual_GAOLv4.pdf, was
+# built once (see manual/build-pdf.sh). The edition and the date of the manual of
+# GAOL v5 are its own, those of configure.ac (GAOL_V5_EDITION, GAOL_V5_UPDATED)
+# and of manual/meson.build: change the three together. Its gaol_version.tex is
+# made from manual/v5/gaol_version.tex.in, and the version is the one of the
+# project. The target is not part of all: no build runs LaTeX unless asked to.
+
+if(GAOL_IS_TOP_LEVEL AND WITH_DOC)
+  find_program(GAOL_PDFLATEX pdflatex)
+  find_program(GAOL_BIBTEX bibtex)
+  find_program(GAOL_MAKEINDEX makeindex)
+  find_program(GAOL_SH sh)
+  mark_as_advanced(GAOL_PDFLATEX GAOL_BIBTEX GAOL_MAKEINDEX GAOL_SH)
+  if(GAOL_PDFLATEX AND GAOL_BIBTEX AND GAOL_MAKEINDEX AND GAOL_SH)
+    set(GAOL_V5_EDITION "5.0")
+    set(GAOL_V5_UPDATED "6 November 2026")
+    set(GAOL_VERSION "${PROJECT_VERSION}")
+    set(_manual_src "${CMAKE_CURRENT_SOURCE_DIR}/manual")
+    set(_manual_bin "${CMAKE_CURRENT_BINARY_DIR}/manual")
+    configure_file("${_manual_src}/v5/gaol_version.tex.in" "${_manual_bin}/v5/gaol_version.tex" @ONLY)
+    add_custom_target(pdf
+      COMMAND "${CMAKE_COMMAND}" -E env "PDFLATEX=${GAOL_PDFLATEX}" "BIBTEX=${GAOL_BIBTEX}"
+              "MAKEINDEX=${GAOL_MAKEINDEX}"
+              "${GAOL_SH}" "${_manual_src}/build-pdf.sh"
+              "${_manual_src}/v5" "${_manual_bin}/v5" "${_manual_src}/Manual_GAOLv5.pdf"
+      WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+      COMMENT "Building the manual of GAOL v5: manual/Manual_GAOLv5.pdf"
+      USES_TERMINAL
+      VERBATIM)
+  else()
+    message(WARNING "WITH_DOC: pdflatex, bibtex, makeindex or sh was not found, the target pdf is not made")
+  endif()
 endif()
 
 

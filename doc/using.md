@@ -87,8 +87,8 @@ releases computes such a value at run time, as `tests/rounding_direction.cpp`
 does (GAOL v5).
 
 The link of the program takes one option too, where the compiler accepts it
-(GCC 13 and later on x86, and from 11.4 and 12.4 in the series 11 and 12):
-`-mno-daz-ftz`,
+(GCC 13 and later on x86, from 11.4 and 12.4 in the series 11 and 12, and Clang 20
+and 21, not Clang 18): `-mno-daz-ftz`,
 which keeps out of the link the file that sets the flush-to-zero and
 denormals-are-zero modes when a program is linked with `-Ofast` (see
 [Flush-to-zero and denormals-are-zero](#flush-to-zero-and-denormals-are-zero)).
@@ -106,9 +106,16 @@ headers include in the middle of their code (`gaol/core/gaol_interval_fpu.h`,
 headers of GAOL's sources (GAOL v5): `gaol/parser/gaol_interval_parser.h`,
 which did not compile when included, `gaol_init_cleanup.h`,
 `gaol/math/gaol_core_math.h`, `gaol/math/gaol_u128.h`,
-`gaol/math/gaol_compoundm1.h` and `gaol/math/gaol_roundeven.h`; `gaol_parameters.h`, which declared nothing,
-`gaol_exact.h` with `sysdeps/`, which `dtoa.c` needed, and `gaol_assert.h`,
-whose `GAOL_ASSERT` is `assert()` now, are gone. GAOL's headers compile without a warning under
+`gaol/math/gaol_compoundm1.h`, `gaol/math/gaol_roundeven.h`,
+`gaol/math/gaol_ldexp.h`, `gaol/math/gaol_core_math_port.h`,
+`gaol/math/gaol_double_op.h`, `gaol/float/gaol_intervalf.h` and
+`gaol/float/gaol_interval2f.h`. Headers of GAOL 4 are gone: `gaol_parameters.h`,
+which declared nothing, `gaol_double_op_apmathlib.h` and
+`gaol_double_op_crlibm.h`, of the mathematical libraries GAOL 4 was built with,
+`gaol_limits.h`, `gaol_flags.h`, `gaol_profile.h`, `gaol_allocator.h`,
+`gaol_exceptions.h`, `gaol_exact.h` with `sysdeps/`, which `dtoa.c` needed, and
+`gaol_assert.h`, whose `GAOL_ASSERT` is `assert()` now; a program that included
+`gaol/gaol_expression.h` includes `gaol/parser/gaol_expression.h`. GAOL's headers compile without a warning under
 `-Wall -Wextra -Wold-style-cast -Wundef`, and put nothing into the global
 namespace:
 `gaol/gaol_exceptions.h` declared `string` and `exception` there, which a
@@ -625,7 +632,7 @@ relation (see
 [Relations, sorting and containers](#relations-sorting-and-containers)).
 The names are those of IBEX 2.9.1 (`ibex_Interval.h`), Codac 2
 (`codac2_Interval.h`), C-XSC 2.5.4 (`interval.hpp`, `interval.inl`),
-PROFIL/BIAS 2.0.8 (`Interval.h`) and Boost 1.86 (`boost/numeric/interval/`),
+PROFIL/BIAS 2.0.8 (`Interval.h`) and Boost 1.92.0 (`boost/numeric/interval/`),
 read in their sources.
 
 ## Relations, sorting and containers
@@ -715,7 +722,8 @@ themselves:
   every ratio for a half-line or the whole line. A ratio outside (0, 1), or
   NaN, throws `std::domain_error`. `x.is_bisectable()` tells whether a
   double lies strictly between the bounds, both parts being then smaller than
-  x: not for two consecutive doubles, nor for [MAX, +∞].
+  x: not for two consecutive doubles, nor for [MAX, +∞]. `bisect(ratio)` of
+  finite bounds raises no overflow exception, whatever their magnitude.
 - `hull(x, y)` and `intersect(x, y)`: `x | y` and `x & y` as functions, in
   `gaol` as in `gaol_core`.
 
@@ -859,7 +867,7 @@ relations and `set_strictly_contains(n)` compare n as the integer it is:
 `interval(9007199254740992.0) < 9007199254740993LL`, [2^53] < 2^53 + 1, is
 true, though no double lies between them. Every integer type is taken so,
 `bool` aside, whatever the rounding direction (an unscoped enumeration, and
-`__int128` outside the GNU modes of GCC and Clang, still convert to a
+`__int128` outside the GNU modes of GCC and Clang with libstdc++, still convert to a
 double, and a `long double` bound next to an integer takes
 `interval(double, double)`). An integer that is a double gives the result the
 double gives, and for the types of 53 bits or less (`int`, `short`, `char`...)
@@ -980,14 +988,14 @@ when it is compiled (a `static_assert`, in a build that aborts as in one that
 throws; GAOL v5).
 
 Where memory runs out, GAOL throws the `std::bad_alloc` of C++: the reader of
-strings too, where flex ended the program with `exit(2)` when it could not
-allocate its buffer, and the parser turned a stack it could not grow into a
-`std::invalid_argument` (GAOL v5).
+strings too, where, in GAOL 4, flex ended the program with `exit(2)` when it could not
+allocate its buffer, and the parser read a stack it could not grow as a string
+nested too deep (GAOL v5).
 
-A build without `GAOL_EXCEPTIONS_ENABLED` (`--disable-exceptions` of
-`configure`, `-Denable-exception=false` of meson; see
-[Building GAOL](building.md)) prints a message and aborts instead of throwing.
-The CMake build always throws. The reader of strings is the exception: an
+A build without `GAOL_EXCEPTIONS_ENABLED` (`-DGAOL_EXCEPTIONS_ENABLED=OFF` of
+CMake, `--disable-exceptions` of `configure`, `-Denable-exception=false` of
+meson; see [Building GAOL](building.md)) prints a message and aborts instead of
+throwing. The reader of strings is the exception: an
 error it finds as it computes, a wrong call (`nth_root(8, 1.5)`, `sin(1, 2)`),
 an uncertain number as a bound, two different bounds in `<a, b>` or a bound of
 it that is no double, makes it fail as a syntax error does, so that `parse_interval()` returns false and
@@ -1007,7 +1015,8 @@ example; they are listed here for the reader who looks in this page first.
   √2: `sqrt(interval(2.0))` encloses it. `gaol::sin(0.5)` does not compile.
 - **Code inside `namespace gaol { }`.** The using-declarations of `gaol` are
   visible there: a call `sqrt(2.0)` finds `gaol::sqrt`, which hides `::sqrt`,
-  and does not compile. This was already the case with GAOL 4.
+  and does not compile. With GAOL 4, whose `interval(double)` was implicit, the
+  call compiled and computed `gaol::sqrt(interval(2.0))`.
 - **A midpoint and a radius.** `interval(m - r, m + r)` does not enclose
   [m − r, m + r], the program computing both bounds in the direction it is in:
   `interval::midrad(m, r)` does (GAOL v5).
@@ -1054,9 +1063,10 @@ example; they are listed here for the reader who looks in this page first.
   and `10 -3.56?1` throws too. A blank is needed after the sign: `10 - 3.56?1`,
   or `10- 3.56?1`.
 - **A long number.** Reading a long number takes a time quadratic in its
-  number of digits: `"0."` followed by 20 000 digits `3` takes 0.017 s,
-  80 000 digits 0.28 s, 320 000 digits 4.4 s (about 45 s expected for a
-  million), and the uncertain form 2.3 times as long. A text from elsewhere
+  number of digits: `"0."` followed by 20 000 digits `3` takes 0.011 s,
+  80 000 digits 0.18 s, 320 000 digits 2.8 s (about 28 s expected for a
+  million), and the uncertain form 2.2 to 2.4 times as long (Intel i7-1185G7,
+  GCC 15.2, the best of five runs, 7 November 2026). A text from elsewhere
   can thus block a program.
 - **Threads and the global settings.** `interval::format()` and
   `interval::precision()` are plain variables of the program, shared by its
@@ -1088,7 +1098,7 @@ its own rounding direction after GAOL's operations builds GAOL with
 `GAOL_PRESERVE_ROUNDING` (`--enable-preserve-rounding`,
 `-Denable-preserve-rounding=true`): each operation then also restores the
 rounding direction it found, and the modes flushing the subnormals to zero it
-cleared, which makes the arithmetic operations slower, 1.3 to 1.7 times with
+cleared, which makes the arithmetic operations slower, 1.2 to 1.6 times with
 the AVX-512 path and several times without it (see
 [What the upward rounding does to the program](#what-the-upward-rounding-does-to-the-program)).
 
@@ -1237,18 +1247,19 @@ What to do:
   changes: the bounds are the same, and the program still calls
   `gaol::cleanup()`. It costs time, less with the AVX-512 path, which this
   option turns on by default where the machine has the instructions. On an
-  Intel i7-1185G7 with Clang 21.1 (`tests/performance.cpp`, the best of 9
-  interleaved runs, three times), with that path `x + y` and `x - y` take 1.3
-  times longer, `x * y` and `x / y` 1.7 times, `sqr(x)` 1.2 times,
-  `pow(x, 3)` 1.3 times, `exp(x)` 1.3 times, `log(x)` 1.1 times, `sin` and
-  `cos` 1.1 to 1.2 times, and `sqrt(x)` 0.7 times (it is faster); without it
-  (a build for a machine without the instructions, or one that refuses the
-  path with `GAOL_PREFER_AVX512=OFF`, a setting of the developers)
-  `x + y` and `x - y` take about 8 times longer, `x * y` 4 times, `x / y`
-  3.7 times, `sqr(x)` 4.6 times, `pow(x, 3)` and `sqrt(x)` 1.7 times,
-  `exp(x)` 1.3 times, `log(x)` 1.1 times, and `sin` and `cos` 1.2 times. A
-  line of 15 additions of intervals takes 9.6 times longer without the path,
-  and 2.1 times with it.
+  Intel i7-1185G7 with Clang 21.1.8 (`tests/performance.cpp` and the long
+  lines of `doc/compare/code/run_lines.sh`, the median of 9 interleaved runs of
+  7 November 2026), with that path `x + y` and `x - y` take 1.2 times longer,
+  `x * y` and `x / y` 1.6 times, `sqr(x)` 1.0 times, `pow(x, 3)` 1.2 times,
+  `exp(x)` 1.2 times, `log(x)` 1.1 times, `sin` and `cos` 1.2 times, and
+  `sqrt(x)` 0.6 times (it is faster); without it (a build for a machine
+  without the instructions, or one that refuses the path with
+  `GAOL_PREFER_AVX512=OFF`, a setting of the developers) `x + y` and `x - y`
+  take 7.2 and 7.1 times longer, `x * y` 4.4 times, `x / y` 3.4 times, `sqr(x)` 4.3
+  times, `pow(x, 3)` 1.6 times, `sqrt(x)` 1.6 times, `exp(x)` 1.2 times,
+  `log(x)` 1.1 times, and `sin` and `cos` 1.2 times. A line of 15
+  additions of intervals takes 8.9 times longer without the path, and 1.9 times
+  with it.
 
 ### The AVX-512 path
 
@@ -1464,28 +1475,29 @@ check.
 
 Measured with `gaol_performance` on an Apple M2 with AppleClang 21
 (`-DGAOL_SIMD=OFF`), the median of nine runs of each program, in turn with the
-others, in nanoseconds:
+others, on 6 November 2026, in nanoseconds (the code before the kernels: the tree
+of 22 October 2026):
 
-| | GAOL 4 code | v5 kernels |
+| | Before the kernels | Kernels |
 |---|---:|---:|
-| `x - y` | 3.62 | 1.18 |
-| `x * y` | 3.33 | 3.33 |
-| `x * y`, random signs | 6.01 | 3.38 |
-| `x / y` | 4.08 | 3.30 |
-| `x / y`, random signs | 3.54 | 3.30 |
-| `sqr(x)`, random signs | 2.79 | 1.82 |
-| line of 7 `*` | 23.8 | 35.8 |
-| line of 7 `/` | 35.8 | 33.7 |
-| line of 13 `+ - * /` | 50.9 | 51.7 |
+| `x - y` | 3.54 | 1.15 |
+| `x * y` | 3.25 | 3.25 |
+| `x * y`, random signs | 6.39 | 3.31 |
+| `x / y` | 3.98 | 3.23 |
+| `x / y`, random signs | 3.17 | 3.21 |
+| `sqr(x)`, random signs | 2.64 | 1.78 |
+| line of 7 `*` | 23.3 | 35.0 |
+| line of 7 `/` | 35.1 | 32.9 |
+| line of 13 `+ - * /` | 49.6 | 50.4 |
 
 The operands of `gaol_performance` are 1 024 intervals that the processor
 learns by heart, so that a branch on their signs costs less than it does on
 other operands. On 100 000 intervals centred at random (the benchmark of
 `doc/compare`), `x * y` took 13.9 ns and takes 3.5, `x / y` 8.5 and 3.2,
-`sqr(x)` 6.9 and 1.8, `x - y` 3.7 and 2.0, and Shekel 5 298 ns and 138.
+`sqr(x)` 6.9 and 1.8, `x - y` 3.7 and 2.0, and Shekel 5 took 298 ns and takes 138.
 
 A line of products of operands of one sign, which a processor predicts, takes
-**more** time: 7 products in a line took 23.8 ns and take 35.8 (23.7 and 35.2
+**more** time: 7 products in a line took 23.3 ns and take 35.0 (23.7 and 35.2
 in the benchmark of `doc/compare`, `pos_mul8`; Apple M2). Each product waits for the one
 before it, and the largest of four products waits for its products and for two
 comparisons, where one product on a predicted branch waits for one. The
@@ -1493,11 +1505,11 @@ maximum of 64-bit ARM (`fmax`, one instruction, which ranks +0 above −0) would
 shorten the wait: it is not used, being a call with GCC for 32-bit ARM and x86.
 With `GAOL_PRESERVE_ROUNDING` the write of the control register waits for the
 result, so that the longer wait of the product shows there as well: `x * y`
-takes 44.4 ns rather than 42.2 and the line of 7 `*` 307 rather than 279
-(`x * y` of random signs 44.3 rather than 49.1, `x / y` 45.2 as before, `sqr(x)`
-43.7 rather than 41.3; a second measurement, by another hand, gave `x * y`
-46.7 rather than 42.2, `sqr(x)` 46.3 rather than 41.9 and the line of 7 `*` 326
-rather than 296, +10 to +11 %). The operators write their result into the
+takes 42.4 ns rather than 39.7 and the line of 7 `*` 297 rather than 279, 6 to
+7 % more (`sqr(x)` 42.4 rather than 39.5; `x / y` 43.6 rather than 43.1; `x * y`
+of random signs 42.4 rather than 47.5, where the branches of the former code
+were mispredicted; the median of nine runs of each code, in turn, on 6 November
+2026). The operators write their result into the
 bounds of `*this`, memory of the caller that is also given by address to the
 functions of the rare cases, which a call or an asm with a "memory" clobber
 that restores the direction finds written: the products they hold are computed
@@ -1539,8 +1551,8 @@ doubles, and their columns here are no longer those of the default build:
 
 The product wins where the signs are random (1.23 to 3.47 times) and, alone, of
 positive operands on 32-bit ARM, Visual C++ and Ubuntu. It loses on the lines of
-products of positive operands with GCC on Linux (0.58 for the line of 7 `*`,
-that is 1.7 times slower, where the Apple M2 above gives 23.8 and 35.8 ns, 1.5
+products of positive operands with GCC 13 on Ubuntu for x86-64 (0.58 for the line of 7 `*`,
+that is 1.7 times slower, where the Apple M2 above gives 23.3 and 35.0 ns, 1.5
 times) and with clang-cl for arm64 (0.57), and alone with clang-cl for arm64
 (0.77): there, the branch of the former code is well predicted and the kernel
 of eight products adds latency. The macOS runner is too noisy to say (spreads of
@@ -1549,7 +1561,7 @@ configurations, is within the noise on two (the direction preserved, 1.02, and
 macOS, 1.13) and loses with Visual C++ for arm64 (0.82, spread 1.04). `sqr(x)` is mixed:
 0.84 with clang-cl for arm64 and 0.85 with Clang on Ubuntu, 2.36 with Visual C++
 for arm64. `x - y` does not change where the rows are stable (0.86 to 1.06;
-the 3.62 to 1.18 ns of the M2 does not show), 0.86 on 32-bit ARM where `x + y`,
+the 3.54 to 1.15 ns of the M2 does not show), 0.86 on 32-bit ARM where `x + y`,
 whose code did not change, gives 0.92 in the same job. With the direction
 preserved on Visual C++ for x86, the line of 13 operations is 1.9 times slower
 (0.53, spread 1.08), where each operation wins or stays: the cause was not
@@ -1652,9 +1664,9 @@ reasons: from version 13, `fegetround()` joins the fields RC of the two units
 by OR, which is the direction of both only where they agree (to nearest and
 upward give upward, `FE_DOWNWARD | FE_UPWARD` is `FE_TOWARDZERO`), and
 `fesetround()` clears the six exception flags of MXCSR when it changes its
-value, so that the program's flags were lost, in the operations with
-`GAOL_PRESERVE_ROUNDING`, and in `gaol::cleanup()` and `gaol::restore_rounding()`
-with it or without it.
+value, so that the program's flags were lost in `midpoint()`, `chi()`, and the writing
+and the reading of an interval with `GAOL_PRESERVE_ROUNDING`, and in
+`gaol::cleanup()` and `gaol::restore_rounding()` with it or without it.
 
 ## Flush-to-zero and denormals-are-zero
 
@@ -1731,8 +1743,8 @@ bounds wrong**, and GAOL defends itself in two ways:
   to another: none of these processors took such an assist (GAOL v5, point
   Q). Under qemu (ppc64le, riscv64, s390x), both took 25 to 83 ns.
 - `gaol.pc` and `gaol::gaol` give `-mno-daz-ftz` to the link, where the
-  compiler accepts it: GCC 13 and later on x86, and from 11.4 and 12.4 in the
-  series 11 and 12 (GCC 9.4, 12.3, GCC for ARM and Clang 18 refuse it, and the
+  compiler accepts it: GCC 13 and later on x86, from 11.4 and 12.4 in the
+  series 11 and 12, and Clang 20 and 21 (GCC 9.4, 12.3, GCC for ARM and Clang 18 refuse it, and the
   builds test the compiler with a link, not with its version). It keeps
   `crtfastmath.o` out of the link, so that a program linked with `-Ofast` does
   not get the modes at all, its own code included.
@@ -1947,8 +1959,10 @@ The flags tell nothing of the results: after most operations of GAOL,
 `abs()`, `&`, `|`, `floor()`, `max()` or `min()`, which round nothing and
 check no rounding direction, nor after `+`, `-`, `/` and `sqrt()` with the
 NEON intervals when their bounds are exact), and `FE_OVERFLOW` or `FE_DIVBYZERO` stands for
-an infinite bound of the interval, or an infinite result of `width()` or
-`rad()`, not for an infinite number the program computed: `midpoint()` and
+an infinite bound of the interval, or for the infinite width of a finite one
+(`interval(-DBL_MAX, DBL_MAX).width()`), not for an infinite number the program
+computed, and an infinite bound does not always raise them (`interval(1, 2) /
+interval(0, 2)`, which is [0.5, +∞], raises none): `midpoint()` and
 `mid()` of `[DBL_MAX]`, which overflowed the sum of the bounds, raise none
 (GAOL v5). IEEE 1788-2015 leaves the flags of its operations unspecified. A
 program that reads them for its own computations clears them

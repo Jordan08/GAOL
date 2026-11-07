@@ -70,8 +70,7 @@ Two things go at once with mathlib: the outward move of each bound, and the
 two changes of rounding direction each function made, to nearest before
 mathlib and back upward after. The integer power is computed from exact
 products, both bounds at once in an SSE2 register, with an error bound proved
-beforehand (point B of `TODO.md`): it took 13.8 ns before, with an exact
-product and a rest carried apart for each bound. **And the bounds are tighter,
+beforehand (point B of `TODO.md`). **And the bounds are tighter,
 not looser**: in the last table below, GAOL V5.0.0's results are no wider than
 libieeep1788's, which computes every bound with MPFR, for **every one of the
 seventeen operations** (excess 0.0e+00), where GAOL 4.2.3 is wider on the
@@ -147,8 +146,8 @@ V5.0.0 2.2 ns (2.4 for GAOL 4.2.3), 2.3 times as fast as filib++ (5.1 ns) and
 × and ÷ take GAOL V5.0.0 2.3 and 2.5 ns (10.0 and 7.5 for GAOL 4.2.3), against
 12.1 and 8.7 ns for filib++, 14.7 and 14.4 ns for PROFIL/BIAS, 21 and 20 ns
 for Solaris Studio and 21 and 19 ns for Boost.Interval. An addition of
-intervals costs GAOL V5.0.0 2.3 times an addition of doubles: two additions,
-and the check that the rounding direction is upward, where filib++ sets the
+intervals costs GAOL V5.0.0 2.3 times an addition of doubles: one vector addition for
+both bounds, and the check that the rounding direction is upward, where filib++ sets the
 rounding direction and restores it, and PROFIL/BIAS calls a function of BIAS
 that sets it downward, then upward, then back to nearest — which is why its
 four arithmetic operations all take about the same time. The integer power
@@ -217,9 +216,9 @@ operations give the tightest intervals in every library, and so do the square
 roots, except those of GAOL 4.2.3, filib++ and PROFIL/BIAS. Of the elementary
 functions, **only GAOL V5.0.0's are the tightest on every operation**: on
 average the others are wider than libieeep1788's by up to 5.9e-14 relatively
-with GAOL 4.2.3 (the real power, computed as exp(y·log(x))), 3.4e-15 to
-2.4e-13 with filib++ (1.4e-13 for log, 2.4e-13 for the real power), 6.4e-15 to
-1.2e-13 with PROFIL/BIAS, and at most 4.6e-15 with Solaris Studio; with
+with GAOL 4.2.3 (the real power, computed as exp(y·log(x))), 2.1e-14 to
+2.4e-13 with filib++ (1.4e-13 for log, 2.4e-13 for the real power), 9.0e-15 to
+1.2e-13 with PROFIL/BIAS, and at most 4.1e-15 with Solaris Studio; with
 Boost.Interval, by 1.4e-14 and 2.5e-14 on cos and sin and 3.7e-14 on the real
 power, its exp and log being as tight as libieeep1788's on average: the sums
 cannot show that its upper bound of exp is one double too low in 2 to 3 % of
@@ -498,12 +497,12 @@ small as 10^-12 for a million values.
 Measured on:
 
 ```
-Date:            2026-10-28
+Date:            2026-11-06
 Processor:       Apple M2 (not pinned to a processor: no taskset on macOS), power: AC Power
 System:          Darwin 27.0.0, macOS 27.0.1
 C++ compiler:    Apple clang version 21.0.0 (clang-2100.3.34.2)
 C++ flags:       -std=c++11 -O3 -DNDEBUG (GAOL: -frounding-math -fno-fast-math -ffp-contract=off; GAOL 4.2.3: -frounding-math -fno-fast-math -ffp-contract=off)
-GAOL V5.0.0:     the branch of this checkout (2a69f89), CMake Release, NEON intervals, CORE-MATH of 3rd/math-core compiled into the library, the rounding direction not preserved
+GAOL V5.0.0:     the branch of this checkout (v4.3.2-1806-g95db0f06), CMake Release, NEON intervals, CORE-MATH of 3rd/math-core compiled into the library, the rounding direction not preserved
 GAOL V5.0.0 preserved: the same, built with GAOL_PRESERVE_ROUNDING=ON, the rounding direction restored after each operation (the FPCR register, read and written by each operation)
 GAOL 4.2.3:      the last version of Frédéric Goualard (cd0ee1a of https://github.com/goualard-f/GAOL), its configure generated again by autoreconf and told --build=arm-apple-darwin (the one it commits does not know macOS on ARM), the rounding direction not preserved, the FPU intervals (it has no instructions of 64-bit ARM to compute them with), mathlib 2.1.1 configured with --host=aarch64-unknown-linux-gnu (its configure knows no macOS on ARM; no line here calls it)
 ```
@@ -514,16 +513,16 @@ GAOL 4.2.3:      the last version of Frédéric Goualard (cd0ee1a of https://git
 
 | Line | Operations | GAOL V5.0.0 | GAOL V5.0.0, rounding direction preserved | GAOL 4.2.3 | GAOL V5.0.0, rounding direction preserved / GAOL V5.0.0 | GAOL 4.2.3 / GAOL V5.0.0 |
 |---|---:|---|---|---|---|---|
-| `sum16` | 15 | 9.05 | 384 | 42.0 | 42.4 | 4.6 |
-| `diff16` | 15 | 9.13 | 389 | 77.4 | 42.6 | 8.5 |
-| `mul8` | 7 | 16.0 | 202 | 28.1 | 12.6 | 1.8 |
-| `mul8_tree` | 7 | 14.4 | 202 | 24.5 | 14.0 | 1.7 |
-| `quot8` | 7 | 17.7 | 221 | 37.2 | 12.5 | 2.1 |
-| `mix13` | 13 | 17.0 | 360 | 61.4 | 21.1 | 3.6 |
-| `mix_tree` | 19 | 20.7 | 525 | 82.6 | 25.4 | 4.0 |
-| `pos_sum16` | 15 | 8.85 | 387 | 39.6 | 43.7 | 4.5 |
-| `pos_mul8` | 7 | 15.1 | 205 | 16.1 | 13.6 | 1.1 |
-| `pos_quot8` | 7 | 17.7 | 221 | 46.3 | 12.5 | 2.6 |
+| `sum16` | 15 | 9.11 | 385 | 41.9 | 42.3 | 4.6 |
+| `diff16` | 15 | 9.30 | 390 | 77.6 | 42.0 | 8.3 |
+| `mul8` | 7 | 10.5 | 187 | 28.3 | 17.8 | 2.7 |
+| `mul8_tree` | 7 | 9.95 | 190 | 25.0 | 19.1 | 2.5 |
+| `quot8` | 7 | 17.6 | 229 | 37.3 | 13.0 | 2.1 |
+| `mix13` | 13 | 14.3 | 353 | 61.6 | 24.7 | 4.3 |
+| `mix_tree` | 19 | 18.5 | 516 | 82.2 | 27.9 | 4.4 |
+| `pos_sum16` | 15 | 8.85 | 385 | 39.7 | 43.5 | 4.5 |
+| `pos_mul8` | 7 | 9.58 | 187 | 16.1 | 19.6 | 1.7 |
+| `pos_quot8` | 7 | 17.6 | 232 | 46.5 | 13.2 | 2.6 |
 
 #### Same results?
 
@@ -544,11 +543,11 @@ The sum of the midpoints of the results and their mean width, with the relative 
 
 <!-- END GENERATED ARM64 -->
 
-GAOL V5.0.0 takes 8.85 to 20.7 ns for a line of 7 to 19 operations on this
+GAOL V5.0.0 takes 8.85 to 18.5 ns for a line of 7 to 19 operations on this
 processor, 0.6 to 2.5 ns an operation, where GAOL 4.2.3, which has no
-instructions of 64-bit ARM to compute its FPU intervals with, takes 1.1 to 8.5
-times as long. With the rounding direction preserved the same lines take 202 to
-525 ns, 25.6 to 31.6 ns an operation, 12.5 to 43.7 times as long as without:
+instructions of 64-bit ARM to compute its FPU intervals with, takes 1.7 to 8.3
+times as long. With the rounding direction preserved the same lines take 187 to
+516 ns, 25.7 to 33.1 ns an operation, 13.0 to 43.5 times as long as without:
 the program computes to nearest, so each operation sets the direction upward and
 puts nearest back, two `msr` of FPCR of 11 ns each that change it, with the
 `mrs` of 0.8 ns that reads it, the 27 ns an operation of
@@ -556,7 +555,9 @@ puts nearest back, two `msr` of FPCR of 11 ns each that change it, with the
 widths of the three agree to 1.1e-16 relatively.
 
 The processor is not pinned and the machine was on mains power, the low power
-mode off, with a load average of 1.5 at the start and 1.8 at the end and no
-other process above 10 % of a core (`top`). The three rounds of a line differ by
-2.4 % at the median and by 8.8 % at most (`diff16` of GAOL V5.0.0, whose third
-round is the slowest); the best of the three is kept.
+mode off, with a load average of 1.7 at the start and 3.0 at the end (the run took 65 s, the build of
+the three programs included) and, in the readings of `top` taken just
+before and just after the run, no process above 10 % of a core but the interface
+of the machine. The three rounds of a line differ by 1.4 % at the median and by
+6.4 % at most (`pos_mul8` of GAOL 4.2.3, whose third round is the slowest); the
+best of the three is kept.

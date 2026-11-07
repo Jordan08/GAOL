@@ -26,7 +26,7 @@
  * (exact_string()) in every direction and in the thread, and the directions
  * are the ones stated. It follows the sections "Initialization and cleanup"
  * and "The rounding direction" of doc/using.md and the section "The
- * rounding direction" of GAOL's manual (manual/v5/gaol.tex). The guard is
+ * rounding direction" of GAOL's manual (manual/v5). The guard is
  * the scoped rounding object of Boost.Interval
  * (boost/numeric/interval/rounding.hpp, save_state); IBEX switches the
  * direction for its own double code with fpu_round_up(), fpu_round_down()

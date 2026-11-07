@@ -93,8 +93,8 @@ and `.github/scripts/version-file.sh configure|meson|autoconf`, which the
 continuous integration runs on a copy of the sources, those of configure,
 meson and autoconf.
 
-The editions of the manuals (`GAOL_V5_EDITION`, `GAOL_EDITION`) are their own,
-set in `configure.ac` and `manual/meson.build`.
+The edition of the manual of GAOL v5 (`GAOL_V5_EDITION`) is its own, set in
+`configure.ac`, `manual/meson.build` and `CMakeLists.txt`.
 
 ## The options
 
@@ -111,6 +111,7 @@ The standard options of each tool do the rest:
 | `GAOL_COVERAGE` | `--enable-coverage` | `-Denable-coverage=true` | off | Compile GAOL and its tests with the counters of gcov, and add the target that runs the tests and writes `coverage/coverage.html` and the page of conclusions [coverage/README.md](../coverage/README.md): `cmake --build <build> --target coverage`, `make coverage`, `ninja -C <build> gaol-coverage` (meson keeps `coverage` for its own report). GCC and Clang, with the Debug build, `gcovr` and Python 3; the tests have to be built (`WITH_TESTS`, `--with-tests`, `with-tests`) |
 | `WITH_TESTS` | `--with-tests` | `-Dwith-tests=true` | off | Build the unit tests of `tests/`, which `make test` and `make check` run (see [below](#tests-examples-performance-and-the-parser)) |
 | `WITH_EXAMPLES` | `--with-examples` | `-Dwith-examples=true` | off | Build the examples of `examples/`, which `make check` runs |
+| `WITH_DOC` | `make -C manual pdf` (no option) | `-Dwith-doc=true` | off | Add the target `pdf`, which builds the manual of GAOL v5 with pdflatex, bibtex and makeindex, in `manual/Manual_GAOLv5.pdf` (see [below](#tests-examples-performance-and-the-parser)) |
 | `BUILD_SHARED_LIBS` | `--enable-shared` | `-Ddefault_library=shared` | off | A static library `libgaol.a`; on, the shared library `libgaol.so.5.0.0` (soname `libgaol.so.5`). With configure the static library is built too unless `--disable-static` (as with `-Ddefault_library=both` of meson); always static with Visual C++ (GAOL v5: configure and meson built both by default) |
 | `CMAKE_BUILD_TYPE` | `--enable-debug` | `--buildtype=debug` | `Release` | `Debug` builds GAOL without optimization, with debugging information, and without `NDEBUG`, so that `assert()` stays active; the Release build is `-O3`, `NDEBUG` and `-funroll-loops -fomit-frame-pointer -fexpensive-optimizations`, and `-falign-functions=64` for the library alone (not for the tests, the examples and the benchmarks). With configure, `--enable-debug` brought into another project with `AC_CONFIG_SUBDIRS` is the `--enable-debug` of its configure, which passes on its options (and which that configure may read too), for the tests of GAOL as well. Brought in as a subproject by a project that leaves the build type to its default, GAOL is built in release (see [Using GAOL](using.md#from-pkg-config)) |
 | `CMAKE_POSITION_INDEPENDENT_CODE` | `--enable-pic` (`--disable-pic`; `--with-pic` too) | `-Db_staticpic=true` | on | Compile GAOL as position-independent code (`-fPIC`), which linking it into a shared library needs; a project building GAOL with FetchContent that sets it is followed (GAOL v5: configure compiled the static library without it) |
@@ -158,8 +159,8 @@ GAOL.
   rule comes from the measures of [SIMD, FMA and the rounding
   direction](simd.md#when-the-build-takes-the-avx-512-path): the path spares the
   store of the rounding direction that every operation pays with
-  `GAOL_PRESERVE_ROUNDING`, where it gains 1.3 to 4.4 times at the median of 2.8
-  on an Intel i7-1185G7, and costs 17 % at the median without it (the processor
+  `GAOL_PRESERVE_ROUNDING`, where it gains 1.3 to 6.1 times at the median of 2.9
+  on an Intel i7-1185G7, and takes 20 % longer at the median without it (the processor
   halves the AVX-512 units, and no other was measured). The library then needs a
   processor with the instructions, as with the fused multiply-add instructions,
   and `gaol::init()` stops a program run on another one with a message (see
@@ -178,7 +179,9 @@ GAOL.
 - **The debugging** (was `GAOL_DEBUG`, `GAOL_DEBUGGING`): GAOL and CORE-MATH are
   built for debugging, without optimization nor `NDEBUG`, with debugging
   information and `GAOL_DEBUGGING`, for the Debug build type (`CMAKE_BUILD_TYPE`,
-  `--enable-debug`, `--buildtype=debug`); there is no target `perf` then. Each
+  `--enable-debug`, `--buildtype=debug`); there is no target `perf` in the Debug
+  build of CMake nor with `-DGAOL_DEBUG=ON`, nor with `-Denable-debug=true` of meson (`--enable-debug` of
+  configure and `--buildtype=debug` of meson keep it). Each
   configuration keeps its other flags (the C runtime of Visual C++,
   sanitizers...); the tests and the examples, and the code of a project bringing
   GAOL in, keep their build type.
@@ -204,8 +207,8 @@ cache unless they were given.
 | `-DGAOL_DEBUG=ON` | `--enable-debug` | `-Denable-debug=true` | GAOL and CORE-MATH built for debugging whatever the build type, a project bringing GAOL in included (`-Dgaol:enable-debug=true` for a subproject of meson); the tests and the examples keep the build type |
 | `-DGAOL_EXCEPTIONS_ENABLED=OFF` | `--disable-exceptions` | `-Denable-exception=false` | GAOL aborts to signal an error instead of raising an exception |
 | `-DGAOL_VERBOSE_MODE=ON` | `--enable-verbose-mode` | `-Denable-verbose-mode=true` | A line on the standard error when GAOL initializes and cleans up; GAOL is silent by default |
-| `-DGAOL_SSE2_UNALIGNED_STORAGE=ON` | `CXXFLAGS=-DGAOL_SSE2_UNALIGNED_STORAGE=1` | `-Dcpp_args=-DGAOL_SSE2_UNALIGNED_STORAGE=1` | The SSE2 intervals with their two bounds as two doubles, as on 32-bit Windows with Visual C++ and clang-cl: that layout on another system (a program must not define that macro, a mismatch with the library being a mismatch of the layout) |
-| `-DCMAKE_CXX_FLAGS=-DGAOL_RELATION_BOUNDS_FIRST=0` | `CXXFLAGS=-DGAOL_RELATION_BOUNDS_FIRST=0` | `-Dcpp_args=-DGAOL_RELATION_BOUNDS_FIRST=0` | The relations between intervals (`<`, `<=`, `>`, `>=`) test the empty sets before they compare the bounds, as they do on RISC-V; `=1`, the default elsewhere, compares the bounds first. The answers are the same, only the order of the tests changes, which a processor may run faster or slower; define it the same in every file that includes GAOL (`gaol/gaol_port.h`) |
+| `-DGAOL_SSE2_UNALIGNED_STORAGE=ON` | `CXXFLAGS=-DGAOL_SSE2_UNALIGNED_STORAGE=1` | `-Dcpp_args=-DGAOL_SSE2_UNALIGNED_STORAGE=1` | The SSE2 intervals with their two bounds as two doubles, as on 32-bit Windows with Visual C++ and clang-cl: that layout on another system. CMake alone writes the macro into the installed `gaol/gaol_configuration.h`: given to configure or meson by the flags, it reaches what the build compiles, not a program compiled later with the installed GAOL, which then has to be compiled with the same flag, or its layout differs from the library's; with CMake, a program must not define the macro |
+| `-DCMAKE_CXX_FLAGS=-DGAOL_RELATION_BOUNDS_FIRST=0` | `CXXFLAGS=-DGAOL_RELATION_BOUNDS_FIRST=0` | `-Dcpp_args=-DGAOL_RELATION_BOUNDS_FIRST=0` | The relations between intervals (`<`, `<=`, `>`, `>=`) test the empty sets before they compare the bounds, as they do on RISC-V; `=1`, the default elsewhere, compares the bounds first. The answers are the same; the order of the tests changes, which a processor may run faster or slower, and which decided whether GCC 14 raised the invalid-operation flag for an empty operand on RISC-V (the reason for its default there). It is to be defined the same in every file that includes GAOL (`gaol/gaol_port.h`) |
 | `-DGAOL_MACHINE_RUNS_FMA=1`, `-DGAOL_MACHINE_RUNS_AVX512=1` | `gaol_cv_machine_runs_fma=yes`, `gaol_cv_machine_runs_avx512=yes` | `-Dmachine-runs-fma=true`, `-Dmachine-runs-avx512=true` | In a cross-compilation, or under an emulator, where no program can be run: the machine running GAOL has the fused multiply-add instructions or runs the AVX-512 ones |
 
 An option that GAOL had and no longer has is refused or warned of: meson refuses
@@ -232,8 +235,8 @@ nothing else to build and nothing else to install. The build type is Release
 unless another is given; brought in by a project that gives none
 (`add_subdirectory`, FetchContent), GAOL and CORE-MATH are compiled as in
 Release all the same: `-O3` (`/O2` with Visual C++), `NDEBUG` and the
-optimizations of configure (GAOL v5: GAOL had `-O3` alone, and CORE-MATH no
-optimization). With a generator of several configurations (Visual Studio,
+optimizations of configure (the earlier versions of GAOL v5 had `-O3` alone,
+and CORE-MATH no optimization). With a generator of several configurations (Visual Studio,
 Xcode, Ninja Multi-Config), GAOL built alone puts Release first among them,
 which Ninja Multi-Config builds by default, unless `CMAKE_CONFIGURATION_TYPES`
 is given; `cmake --build` with Visual Studio builds Debug all the same without
@@ -271,8 +274,8 @@ On Cygwin `package_source` did not work in the job of the continuous
 integration (23 October 2026, CMake 4.4.4): CPack, with TGZ, TBZ2 and ZIP
 alike, failed to add `README` to the archive, a symbolic link to `README.md` in
 the repository, with "Couldn't list extended attributes" (libarchive). The
-cause was not found: `cmake -E tar`, `tar` and `git archive` make an archive of
-the checked-out tree, and `listxattr()` finds nothing wrong with its link. `git
+cause was not found: `cmake -E tar` and `tar` make an archive of the
+checked-out tree, and `listxattr()` finds nothing wrong with its link. `git
 archive` makes the archive from the repository (GAOL v5).
 
 After a change of `VERSION.txt`, `package_source` configures the build
@@ -350,10 +353,13 @@ These are [the options](#the-options) of the three builds, and
 `configure --help` lists them (with the options of libtool and automake).
 `--enable-optimize` (the Release build, which is the default, and `-O` with
 `--disable-optimize`) and `--enable-arm64` (GAOL v5: the NEON intervals follow
-`--enable-simd`) are no longer options; the other options of GAOL 4 and of GAOL v5's earlier days
-(`--enable-fma`, `--enable-prefer-avx512`, `--enable-verbose-mode`,
-`--enable-exceptions`) are [settings of the
-developers](#the-settings-of-the-developers), which `--help` does not list. A
+`--enable-simd`) are no longer options; `--enable-verbose-mode` and `--enable-exceptions` of GAOL 4 are [settings of the
+developers](#the-settings-of-the-developers), as `--enable-fma` and
+`--enable-prefer-avx512` of its earlier days, which `--help` does not list; the
+other options of GAOL 4 (`--with-mathlib`, `--with-mathlib-include`,
+`--with-mathlib-lib`, `--with-cppunit-include`, `--with-cppunit-lib`,
+`--enable-fast-math`, `--enable-asm`, `--enable-relations`) are gone, and
+configure warns that it does not know them. A
 universal build of macOS is configured with `-arch` several times in the flags
 of the compilers (GAOL v5): `./configure CFLAGS="-arch arm64 -arch x86_64"
 CXXFLAGS="-arch arm64 -arch x86_64" LDFLAGS="-arch arm64 -arch x86_64"`; the
@@ -394,7 +400,7 @@ Ubuntu 20.04, `ninja -C build` builds GAOL as well. The options
 | `b_staticpic` | `true` | Position-independent code, as `CMAKE_POSITION_INDEPENDENT_CODE` |
 | `with-tests` | `false` | Build the unit tests of `tests/`, which `meson test` and `ninja check` run, as `WITH_TESTS` (it was `with-test`) |
 | `with-examples` | `false` | Build the examples of `examples/`, which `ninja check` runs, as `WITH_EXAMPLES` |
-| `with-doc` | `false` | The target `pdf`, which builds the manuals, `manual/v5/gaol.pdf` for GAOL v5 and `manual/v4/gaol.pdf` for GAOL 4, with pdflatex, bibtex and makeindex (`make -C manual pdf` with autotools) |
+| `with-doc` | `false` | The target `pdf`, which builds the manual of GAOL v5, `manual/Manual_GAOLv5.pdf`, with pdflatex, bibtex and makeindex (`make -C manual pdf` with autotools, the target `pdf` of `WITH_DOC` with CMake) |
 
 These are [the options](#the-options) of the three builds. `enable-fma`,
 `enable-prefer-avx512`, `enable-debug`, `enable-exception`,
@@ -447,6 +453,7 @@ The three builds have the same targets:
 | The unit tests and the examples of `examples/` | `make check` (`--target check`), with `WITH_TESTS` and `WITH_EXAMPLES` | `make check`, with `--with-tests` and `--with-examples` | `ninja check` (`meson test --setup check`), with `with-tests` and `with-examples` |
 | GAOL v5 measured on the benchmark of [performance.md](compare/performance.md) | `make perf` | `make perf` | `ninja perf` |
 | The lexer and the parser regenerated with flex and bison | `make parser` | `make parser` | `ninja parser` |
+| The manual of GAOL v5 | `make pdf` (`--target pdf`), with `WITH_DOC` | `make -C manual pdf` | `ninja pdf`, with `with-doc` |
 
 - **The tests** are the unit tests of GAOL v5, which compare its bounds with the
   exact results, and those of GAOL 4, which were in `check/` and needed
@@ -478,6 +485,20 @@ The three builds have the same targets:
   flex 2.6.4 and bison 3.8.2 give them again byte for byte.
   `sh gaol/parser/regenerate_parser.sh` runs the same commands without a
   build (`FLEX` and `BISON` give other programs).
+- **`make pdf`** builds the manual of GAOL v5 with pdflatex, bibtex and
+  makeindex, by `manual/build-pdf.sh`, which the three builds run: with CMake,
+  after `cmake -S . -B build -DWITH_DOC=ON`, by `cmake --build build --target
+  pdf` (GAOL v5; CMake had no such target before). The PDF is written in
+  `manual/` of the sources, `manual/Manual_GAOLv5.pdf`, and not in the build
+  directory, which keeps the files of LaTeX. The manual of GAOL 4 is not built:
+  its PDF, `manual/v4/Manual_GAOLv4.pdf`, was built once. The target is not
+  part of `all`. It needs `sh` and the LaTeX packages that
+  `manual/build-pdf.sh` names. The manual of GAOL v5 can also be compiled by
+  hand in `manual/v5`: `pdflatex --file-line-error --synctex=1
+  manual_gaolv5.tex`, then `bibtex manual_gaolv5`, `makeindex manual_gaolv5.idx
+  -o manual_gaolv5.ind` and `pdflatex` twice. Without `gaol_version.tex`, which
+  the builds write, the title page takes the version of `VERSION.txt`, the
+  edition 5.0 and today's date; git ignores the files LaTeX writes there.
 
 ## The configuration of GAOL
 

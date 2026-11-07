@@ -34,3 +34,12 @@ build/*
 
 # The local files of the Continue extension of the editor
 .continue/
+
+# The manual of GAOL v5 compiled by hand in manual/v5 (pdflatex manual_gaolv5.tex,
+# bibtex, makeindex): the files of LaTeX carry the name of the main file
+/manual/v5/manual_gaolv5.*
+!/manual/v5/manual_gaolv5.tex
+# and the files of LaTeX of a build in the source tree (the PDF goes to manual/)
+/manual/v5/Manual_GAOLv5.*
+/manual/v5/pdflatex-*.log
+/manual/v5/gaol_version.tex

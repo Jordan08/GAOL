@@ -4,12 +4,12 @@
 # GAOL
 <em>Not Just Another Interval Library</em>
 
-[![Linux](https://github.com/Jordan08/GAOL/actions/workflows/linux.yml/badge.svg?branch=configure-clean)](https://github.com/Jordan08/GAOL/actions/workflows/linux.yml?query=branch%3Aconfigure-clean)
-[![macOS](https://github.com/Jordan08/GAOL/actions/workflows/macos.yml/badge.svg?branch=configure-clean)](https://github.com/Jordan08/GAOL/actions/workflows/macos.yml?query=branch%3Aconfigure-clean)
-[![Windows](https://github.com/Jordan08/GAOL/actions/workflows/windows.yml/badge.svg?branch=configure-clean)](https://github.com/Jordan08/GAOL/actions/workflows/windows.yml?query=branch%3Aconfigure-clean)
-[![Linux containers](https://github.com/Jordan08/GAOL/actions/workflows/containers.yml/badge.svg?branch=configure-clean)](https://github.com/Jordan08/GAOL/actions/workflows/containers.yml?query=branch%3Aconfigure-clean)
-[![Autotools and meson](https://github.com/Jordan08/GAOL/actions/workflows/build-systems.yml/badge.svg?branch=configure-clean)](https://github.com/Jordan08/GAOL/actions/workflows/build-systems.yml?query=branch%3Aconfigure-clean)
-[![Manual](https://github.com/Jordan08/GAOL/actions/workflows/manual.yml/badge.svg?branch=configure-clean)](https://github.com/Jordan08/GAOL/actions/workflows/manual.yml?query=branch%3Aconfigure-clean)
+[![Linux](https://github.com/Jordan08/GAOL/actions/workflows/linux.yml/badge.svg?branch=master)](https://github.com/Jordan08/GAOL/actions/workflows/linux.yml?query=branch%3Amaster)
+[![macOS](https://github.com/Jordan08/GAOL/actions/workflows/macos.yml/badge.svg?branch=master)](https://github.com/Jordan08/GAOL/actions/workflows/macos.yml?query=branch%3Amaster)
+[![Windows](https://github.com/Jordan08/GAOL/actions/workflows/windows.yml/badge.svg?branch=master)](https://github.com/Jordan08/GAOL/actions/workflows/windows.yml?query=branch%3Amaster)
+[![Linux containers](https://github.com/Jordan08/GAOL/actions/workflows/containers.yml/badge.svg?branch=master)](https://github.com/Jordan08/GAOL/actions/workflows/containers.yml?query=branch%3Amaster)
+[![Autotools and meson](https://github.com/Jordan08/GAOL/actions/workflows/build-systems.yml/badge.svg?branch=master)](https://github.com/Jordan08/GAOL/actions/workflows/build-systems.yml?query=branch%3Amaster)
+[![Manual](https://github.com/Jordan08/GAOL/actions/workflows/manual.yml/badge.svg?branch=master)](https://github.com/Jordan08/GAOL/actions/workflows/manual.yml?query=branch%3Amaster)
 
 GAOL is a C++ [Interval Arithmetic](https://en.wikipedia.org/wiki/Interval_arithmetic) library that strives to offer fast and reliable operators for constraint solvers. 
 
@@ -39,7 +39,8 @@ GAOL v5, this version of [GAOL](https://github.com/goualard-f/GAOL), adds a CMak
 tests of the bounds GAOL computes, and the changes GAOL needs to compile and
 compute right on every system it can: Linux, macOS and Windows, on x86, x86_64,
 ARM, arm64 and the other processors of Debian. It was written for
-[Codac](https://github.com/codac-team/codac), whose intervals are built upon
+[Codac](https://github.com/codac-team/codac) and
+[IBEX](https://github.com/ibex-team/ibex-lib), whose intervals are built upon
 GAOL. The autotools and meson builds of GAOL are kept, and the three builds
 configure GAOL the same way (see [The three builds](doc/three-builds.md)).
 
@@ -53,6 +54,8 @@ the interval literals, and the accuracy of each operation, which
 ## Quick start
 
 ```bash
+git clone https://github.com/Jordan08/GAOL.git
+cd GAOL
 cmake -S . -B build -DCMAKE_INSTALL_PREFIX=<prefix> -DWITH_TESTS=ON
 cmake --build build --config Release
 cmake --build build --target test
@@ -188,17 +191,22 @@ gaol::interval c = gaol_ieee1788::pown(x, 2); // [1, 16]
   elementary functions of GAOL and Boost.Interval, and their
   [performance](doc/compare/performance.md), with the scripts to run the
   comparison again.
-- The manual of GAOL v5: `manual/v5/gaol.pdf`, with its LaTeX sources in
-  `manual/v5/`. It follows the manual of GAOL 4 by Frédéric Goualard, and
-  describes GAOL v5: its installation, each operation with examples, the names
-  of IEEE 1788-2015, the accuracy of the operations, and what a program written
-  for GAOL 4 has to change.
-- The manual of GAOL 4, by Frédéric Goualard: `manual/v4/gaol.pdf`, with its
-  LaTeX sources in `manual/v4/`, kept as it was. It still describes the
+- The manual of GAOL v5: `manual/Manual_GAOLv5.pdf`, with its LaTeX sources in
+  `manual/v5/`: the layout in `manual_gaolv5.tex`, one file per chapter in
+  `manual/v5/chapters/`. It keeps the text of the manual of GAOL 4 by
+  Frédéric Goualard where GAOL v5 behaves as GAOL 4, takes up the content of
+  the pages of `doc/`, and describes GAOL v5: the notions it relies on, its
+  installation and use, each operation with examples, the names of IEEE
+  1788-2015, the accuracy of the operations, how the intervals are computed,
+  the tests, and what a program written for GAOL 4 has to change.
+- The manual of GAOL 4, by Frédéric Goualard: `manual/v4/Manual_GAOLv4.pdf`,
+  with its LaTeX sources in `manual/v4/`, kept as it was. It still describes the
   mathematical libraries and the options of GAOL 4.
-- `make -C manual pdf` after `./configure`, or `meson compile -C <build> pdf`
-  after `meson setup <build> -Dwith-doc=true`, builds both manuals again
-  (`manual/build-pdf.sh`).
+- `make -C manual pdf` after `./configure`, `cmake --build <build> --target pdf`
+  after `cmake -S . -B <build> -DWITH_DOC=ON`, or `meson compile -C <build> pdf`
+  after `meson setup <build> -Dwith-doc=true`, builds the manual of GAOL v5
+  again (`manual/build-pdf.sh`) and writes it in `manual/Manual_GAOLv5.pdf`. The
+  manual of GAOL 4 is built by none of them.
 
 ## Licences
 

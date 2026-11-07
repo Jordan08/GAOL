@@ -187,6 +187,21 @@ namespace
     check("rad() of the empty set", std::isnan(interval::emptyset().rad()));
     check("rad() of unbounded intervals", interval::universe().rad() == inf && interval(-inf, 1.).rad() == inf
                                           && interval(1., inf).rad() == inf);
+    {
+      // IEEE 1788-2015, 12.12.8: a zero is +0 for every function but inf, so
+      // the radius and the width of the point zero are +0 whichever sign its bounds have
+      const interval zeros[] = { interval(0.0), -interval(0.0), interval(-0.0, 0.0), interval(0.0, -0.0) };
+      for (int i = 0; i < 4; ++i) {
+        double m, r;
+        zeros[i].mid_rad(m, r);
+        check("width() of a point zero is +0", zeros[i].width() == 0.0 && !std::signbit(zeros[i].width()),
+              [&] { return hex(zeros[i]) + ": " + hex(zeros[i].width()); });
+        check("rad() of a point zero is +0", zeros[i].rad() == 0.0 && !std::signbit(zeros[i].rad()),
+              [&] { return hex(zeros[i]) + ": " + hex(zeros[i].rad()); });
+        check("mid_rad() of a point zero: m and r are +0", m == 0.0 && r == 0.0 && !std::signbit(m) && !std::signbit(r),
+              [&] { return hex(zeros[i]) + ": m " + hex(m) + ", r " + hex(r); });
+      }
+    }
     check("rad() of [-MAX, MAX]", interval(-std::numeric_limits<double>::max(), std::numeric_limits<double>::max()).rad()
                                   == std::numeric_limits<double>::max());
     {
@@ -271,6 +286,27 @@ namespace
     }
     const std::pair<interval, interval> none = empty.bisect(0.5);
     check("bisect() of the empty set: two empty sets", none.first.is_empty() && none.second.is_empty());
+    {
+      // No overflow exception for two finite bounds (the sum of the two products, rounded
+      // upward, was one ulp beyond the largest double for bounds next to it)
+      const interval nearmax[] = { interval(previous_double(max), max), interval(1e308, max), interval(max / 2, max),
+                                   interval(-max, -previous_double(max)), interval(-max, max), interval(0.0, max) };
+      const double ratios[] = { 0.1, 0.3, 0.6, 0.75, 0.9, 0.99, 0.999999, 1.0 - 1.1102230246251565e-16 };
+      for (int i = 0; i < 6; ++i) {
+        for (int j = 0; j < 8; ++j) {
+          std::feclearexcept(FE_ALL_EXCEPT);
+          const std::pair<interval, interval> parts = nearmax[i].bisect(ratios[j]);
+          const bool overflow = std::fetestexcept(FE_OVERFLOW) != 0;
+          const bool cover = parts.first.left() == nearmax[i].left() && parts.second.right() == nearmax[i].right()
+                             && parts.first.right() == parts.second.left() && parts.first.right() >= nearmax[i].left()
+                             && parts.first.right() <= nearmax[i].right();
+          check("bisect(ratio) of finite bounds next to the largest double: no overflow exception", !overflow,
+                [&] { return hex(nearmax[i]) + " ratio " + hex(ratios[j]); });
+          check("bisect(ratio) of finite bounds next to the largest double: two parts that cover the interval", cover,
+                [&] { return hex(nearmax[i]) + " ratio " + hex(ratios[j]) + ": " + hex(parts.first) + " " + hex(parts.second); });
+        }
+      }
+    }
     const double c = interval(-max, max).bisect(0.25).first.right();
     check("bisect(0.25) of [-MAX, MAX]: a finite cut, where l + ratio (r - l) overflowed", c > -max && c < 0.0,
           [&] { return hex(c); });

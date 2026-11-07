@@ -130,7 +130,7 @@ only (see [The speed of a pull request](#the-speed-of-a-pull-request)). The badg
 They also build GAOL with autotools and meson on Ubuntu (x86_64, arm64),
 Debian (i386, armhf), macOS (arm64, x86_64), MSYS2 (UCRT64 for x64, MINGW32
 for x86, GAOL v5) and Cygwin, and with meson and
-Visual Studio 2022 and 2026 (x64, x86), and with meson 0.53.2, the oldest the
+Visual Studio 2022 (x64, x86) and 2026 (x64, arm64), and with meson 0.53.2, the oldest the
 meson build takes (Ubuntu x86_64, GAOL v5), run the tests (`make test`,
 `ninja test`), and build them again with the
 GAOL they install, which is the only library installed, CORE-MATH being
@@ -209,11 +209,14 @@ armhf, s390x, ppc64le and riscv64.
 Four jobs of `linux.yml`, with the GCC and the Clang of Ubuntu 26.04 on x86_64
 and on arm64, and one of `macos.yml`, with the AppleClang of macOS 26 arm64,
 build the library, the sources of CORE-MATH included, the tests and the
-examples with `-Wall -Wextra -Werror`, and two of `windows.yml` with `/W4 /WX`,
-with the Visual C++ of Visual Studio 2026 x64 and x86. Those of arm64 compile
-the header and the sources of the NEON intervals, with the warnings of the
-headers (`-Wold-style-cast`, `-Wundef`) that the intrinsics of `<arm_neon.h>`
-have to stay clear of (GAOL v5). The first five check the headers
+examples with `-Wall -Wextra -Werror`, and four of `windows.yml` with `/W4 /WX`,
+with the Visual C++ of Visual Studio 2026: x64 in Release, and again asking for the
+AVX-512 path (compiled where the runner has the instructions), x64 in Debug,
+and x86 in Release. On arm64, the check of the
+installed headers below compiles the header of the NEON intervals, which
+`gaol/core/gaol_interval_core.h` includes, with the warnings of the headers
+(`-Wold-style-cast`, `-Wundef`) that the intrinsics of `<arm_neon.h>` have to
+stay clear of (GAOL v5). The first five check the headers
 GAOL installs with `.github/scripts/headers.sh` (GAOL v5): each compiles alone
 with `-std=c++11`, the oldest standard GAOL takes, and
 `-Wall -Wextra -Wold-style-cast -Wundef -Werror` (they have no cast of C,
@@ -241,10 +244,11 @@ four jobs of `linux.yml` with the sanitizers, where it took 109 to 287 s and
 once more than 300, 600 in the job of macOS 15 x86_64 GCC with the sanitizers,
 where it took 146 to 367 s on the same code, and once more than 400.
 
-The manuals, that of GAOL v5 (`manual/v5/gaol.tex`) and that of GAOL 4
-(`manual/v4/gaol.tex`), are built with the LaTeX of Ubuntu 24.04, by the
-autotools and the meson builds, when `manual/` changes (`manual.yml`); the
-PDFs are artifacts of the run. The examples of the manual of GAOL v5 that show
+The manual of GAOL v5 (`manual/v5/manual_gaolv5.tex`) is built with the LaTeX of
+Ubuntu 24.04, by the autotools, the CMake and the meson builds, when `manual/`
+changes (`manual.yml`), each build writing `manual/Manual_GAOLv5.pdf` of the
+sources; the PDF is an artifact of the run. The manual of GAOL 4 is not built:
+its PDF, `manual/v4/Manual_GAOLv4.pdf`, was built once. The examples of the manual of GAOL v5 that show
 what they print are compiled in C++11 with the GAOL that the job Ubuntu 24.04
 x86_64 GCC of `linux.yml` installs, at each run, so that a change of the
 library that changes one of their outputs shows, and have to print what the
@@ -305,7 +309,7 @@ NEON intervals) and with GCC and the FPU intervals (the kernels of #157); macOS
 26 arm64 (the NEON intervals) and macOS 15 x86_64; Visual Studio 2026 x64, x86,
 arm64, and x64 with the rounding direction preserved (with the AVX-512 path
 left out too, which measures the macros that write MXCSR alone), and with
-clang-cl for x64, x86 and arm64; MSYS2 UCRT64 (GCC), CLANG64 (Clang) and CLANGARM64 (Clang);
+clang-cl for x64, x86 and arm64; MSYS2 UCRT64 (GCC) and CLANG64 (Clang);
 and Debian 13
 containers for i386 and armhf, `gaol_performance` alone and no cache there (the
 image of Debian changes under the job). The other platforms (POWER, s390x,
@@ -389,7 +393,7 @@ refusal.
 ## What these platforms showed
 
 What building and testing GAOL on these platforms showed, while the workflows
-were written and since their first run on 13 September 2026, and what was
+were written and since their first run in September 2026, and what was
 changed in GAOL for it; [What differs from GAOL](differences.md) gives each
 change with its measures.
 

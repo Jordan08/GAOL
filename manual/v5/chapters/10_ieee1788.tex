@@ -1,0 +1,478 @@
+%% !TEX root = ../manual_gaolv5.tex
+% Chapter 10.
+%% Chapter 10: The names of IEEE 1788-2015. Sources: gaol.tex of f5bf180 lines
+%% 5532-5788 (the chapter "The names of IEEE 1788-2015" of the current
+%% manual), doc/using.md lines 451-571 (the names of IEEE 1788-2015, the
+%% reverse functions of atan2).
+\chapter{The names of IEEE 1788-2015}\label{chap:ieee1788}
+%%===================================
+\cindex{namespace!gaol\_ieee1788}\cindex{IEEE 1788-2015!names}%
+
+IEEE 1788-2015 \cite{IEEE1788:2015} names the operations of interval
+arithmetic, and GAOL names its operations its own way. The reverse function
+\ieee{coshRev}$(c,x)$ of the standard is \code{acosh\_rel(c, x)} in GAOL,
+\ieee{mulRev}$(b,c,x)$ is \code{div\_rel(c, b, x)}, with its arguments in
+another order, and \ieee{roundTiesToEven}$(x)$ is
+\code{round\_ties\_to\_even(x)}. A reader of the standard who comes to GAOL
+has to look for the translation of each name.
+
+\medskip
+The namespace \code{gaol\_ieee1788} spares this search. It gives each
+operation of the standard that GAOL provides the name and the argument order
+the standard gives it, so that a reader of the standard finds it without
+looking for its translation. It is the second of the two namespaces of GAOL
+v5 (\pxref{sec:namespaces}); the standard itself is presented in
+Chapter~\ref{chap:concepts} (\pxref{sec:ieee1788-overview}).
+
+\medskip
+In this chapter, we describe this namespace. The first section presents it
+and the way a program opens it. The second lists the operations whose
+meaning differs between the standard and GAOL, and which follow the standard
+in \code{gaol\_ieee1788}. The third gives the table of the correspondence
+between the names of the standard and those of GAOL, then details
+\ieee{mulRevToPair}, which has no name in \code{gaol}, and the reverse
+functions of \ieee{atan2}. The fourth describes the reading of intervals
+with the names of the standard, and the fifth lists what GAOL does not
+provide of the standard. The names of the other interval libraries, next to
+those of GAOL and of the standard, are compared in
+Chapter~\ref{chap:overview} (\pxref{sec:other-libraries}).
+
+\section{The namespace of the standard}\label{sec:ieee1788-namespace}
+%%------------------------------------
+
+The namespace \code{gaol\_ieee1788} comes with \file{gaol/gaol.h}. It is not in
+\code{gaol}, and it holds
+the type \code{interval} as well: one directive lets a program use GAOL under
+the names of the standard. The output format is not in it: a program that opens
+only \code{gaol\_ieee1788} sets it with
+\code{interval::format(gaol::interval\_format::hexa)}.\newinvfive
+
+\begin{Ex}\label{ex:ieee1788-program}
+The program below opens \code{gaol\_ieee1788} and computes with the names of
+the standard: \code{numsToInterval} builds an interval from its two bounds,
+\code{mulRev} is the reverse multiplication, which divides \code{x} by
+\itv{2}{2}, \code{sinPi} and \code{rootn} are two functions of Table~10.5 of
+the standard, \code{entire} is the interval \itv{-\infty}{+\infty} and
+\code{strictLess} the strict order of its Table~10.3. What it prints
+follows it.
+\begin{example}
+#include <iostream>
+#include <gaol/gaol.h>
+using namespace gaol_ieee1788;
+
+int main(void)
+{
+  interval x = numsToInterval(1, 2);
+  interval y = mulRev(numsToInterval(2, 2), x);   @rem^// x / 2~
+  interval z = sinPi(x) + rootn(y, 3);
+  bool b = strictLess(x, entire());
+  std::cout << std::boolalpha
+            << x << ' ' << y << ' ' << z << ' ' << b << std::endl;
+  gaol::cleanup();
+  return 0;
+}
+@outputs^[1, 2] [0.5, 1] [-0.2062994740159004, 1] false~
+\end{example}
+\end{Ex}
+
+\medskip
+\noindent
+A program opens \code{gaol} or \code{gaol\_ieee1788}, not both
+(\pxref{sec:namespaces}). The functions that have the same name and the same
+meaning in both are the same functions; the ones whose meaning differs,
+\code{pow} and \code{textToInterval}, exist in each namespace, and a program
+that opened both would find each call ambiguous.
+
+\begin{Rem}\label{rem:ieee1788-shadow}
+A name of the program's own that is also a name of the standard, a constant
+\code{inf} for instance, makes every unqualified use of it ambiguous: the
+program qualifies both, \code{::inf} and \code{gaol\_ieee1788::inf(x)}.
+The same holds for \code{less(x, y)} next to \code{using namespace std;}, where it is
+ambiguous with the class template \code{std::less}.
+\end{Rem}
+
+\section{Where the standard and GAOL differ}\label{sec:ieee1788-differences}
+%%-----------------------------------------
+\cindex{IEEE 1788-2015!differences with GAOL}%
+
+The functions of GAOL that have the name and the meaning the standard gives
+them (\code{sin}, \code{exp}, \code{sqrt}, \code{min}\ldots) are the same
+functions in \code{gaol\_ieee1788}. Where the standard and GAOL differ, the
+names of \code{gaol\_ieee1788} follow the standard. The differences are the
+following ones.
+
+\begin{itemize}
+\item[$\bullet$] \textbf{The power.} \code{pow(x, y)} is the \ieee{pow} of
+  Table~9.1, defined for $x>0$, and for $x=0$ when $y>0$. The \code{pow} of
+  \code{gaol} takes the integer power for an integer exponent, a negative
+  base included (\pxref{sec:powers}). \code{pow(x, p)} with a number $p$ is
+  \code{pow(x, [p])}, an integer $p$ included, \code{pow(x, 2)} as well, as
+  the standard gives no other meaning to it: the power with an integer
+  exponent is \code{pown(x, n)} in the standard, whose $n$ is an integer
+  rather than an interval. An integer exponent beyond the \code{int}s gives
+  the power of CORE-MATH at the bounds of the part of $x$ in
+  \itv{0}{+\infty}, as the \code{pow} of \code{gaol} does there; the \code{pow}
+  of \code{gaol} takes the integer power on the negative part of $x$ too. The results of the two powers are
+  compared in Chapter~\ref{chap:overview} (\pxref{sec:pow-namespaces}).
+\item[$\bullet$] \textbf{The bounds of the empty set.} \code{inf(x)} and
+  \code{sup(x)} are $+\infty$ and $-\infty$ for the empty set (Table~10.2),
+  where \code{left()} and \code{right()} are NaN. \code{inf} returns $-0$
+  for a left bound 0 (12.12.8).
+\item[$\bullet$] \textbf{Membership.} \code{isMember(m, x)} is \code{false}
+  for an infinite $m$ (10.6.3).
+\item[$\bullet$] \textbf{Writing.} \code{intervalToText(x)} writes the
+  bounds of \code{x} rounded outward, \code{[l, r]}, or \code{[a]} for a
+  degenerate interval whose value the digits write exactly, as \code{[4]},
+  or \code{[empty]}, with the digits of \code{interval::precision()} and a
+  decimal point. This string is an interval literal of the standard (12.11),
+  which \code{textToInterval} reads back as an interval containing
+  \code{x} (13.3), whatever the output format that
+  \code{interval::format()} sets and the locale of the program.
+  \code{operator<{}<} writes the current format instead, which is no
+  literal in the formats \element{width} and \element{center}, nor in the
+  format \element{agreeing} where the bounds share digits.\newinvfive
+\item[$\bullet$] \textbf{Reading.} \code{textToInterval} and
+  \code{exactToInterval} read the names of the functions of the standard,
+  and return the empty set for a string that is no interval (12.1.3), where
+  \code{gaol::textToInterval} reads the names of GAOL and throws
+  (\pxref{sec:ieee1788-text}). A null pointer is no string, and they throw
+  \code{std::invalid\_argument} for it too (\pxref{sec:constructors}).%
+  \newinvfive
+\end{itemize}
+
+\begin{Ex}\label{ex:ieee1788-differences}
+The program below shows these differences. The \code{pow} of the standard is
+empty on a negative base, where \code{pown} gives the integer power; an
+integer exponent beyond the \code{int}s gives the power of CORE-MATH at the
+bounds; the bounds of the empty set are the infinities; an infinity is a
+member of no interval; and a string that is no interval reads as the empty
+set.
+\begin{example}
+cout << pow(interval(-4,-1), interval(2.0)) << ' '
+     << pown(interval(-4,-1), 2) << ' '
+     << pow(interval(2,3), interval(1e10)) << endl;
+@outputs^[empty] [1, 16] [1.797693134862315e+308, inf]~
+cout << boolalpha << inf(empty()) << ' ' << sup(empty()) << ' '
+     << isMember(GAOL_INFINITY, entire()) << ' '
+     << textToInterval("[1, 2") << endl;
+@outputs^inf -inf false [empty]~
+\end{example}
+\end{Ex}
+
+\section{The operations}\label{sec:ieee1788-operations}
+%%----------------------
+\cindex{IEEE 1788-2015!operations}%
+
+Table~\ref{tab:ieee1788-operations} gives, for each operation of the standard
+that GAOL provides, its name in \code{gaol\_ieee1788} and the name GAOL gives
+it, grouped as the standard groups them, with the clause or the table of the
+standard that defines them. The last argument of the reverse functions
+is optional, and \itv{-\infty}{+\infty} when it is left out (10.5.4).
+
+\begingroup\renewcommand{\arraystretch}{1.1}\small
+\begin{longtable}{L{6.2cm}L{7.8cm}}
+  \caption{The operations of IEEE 1788-2015 in \code{gaol\_ieee1788}, and
+    their names in GAOL}\label{tab:ieee1788-operations}\\
+  \hline
+  \multicolumn{1}{c}{\code{gaol\_ieee1788}} & \multicolumn{1}{c}{GAOL}\\
+  \hline\hline
+  \endfirsthead
+  \multicolumn{2}{l}{\textit{Table~\thetable, continued}}\\*
+  \hline
+  \multicolumn{1}{c}{\code{gaol\_ieee1788}} & \multicolumn{1}{c}{GAOL}\\
+  \hline\hline
+  \endhead
+  \hline
+  \endfoot
+  \multicolumn{2}{l}{\textit{Constants and constructors (10.5.2, 10.5.8)}}\\*
+  \code{empty()}, \code{entire()} &
+    \code{interval::emptyset()}, \code{interval::universe()}\\
+  \code{numsToInterval(l, u)} & \code{interval(l, u)}\\
+  \code{textToInterval(s)} &
+    \code{gaol::textToInterval(s)} with the names of the standard, the
+    empty set for a wrong string\\
+  \hline
+  \multicolumn{2}{l}{\textit{Forward elementary functions (Table~9.1 of the standard)}}\\*
+  \code{neg}, \code{add}, \code{sub}, \code{mul}, \code{div} &
+    \code{-x}, \code{x + y}, \code{x - y}, \code{x * y}, \code{x / y}\\
+  \code{recip(x)} & \code{inverse(x)}\\
+  \code{sqr}, \code{sqrt}, \code{fma} & the same\\
+  \code{pown(x, p)} &
+    \code{gaol::pow(x, p)} for an integer $p$ of any type\\
+  \code{pow(x, y)}, \code{pow(x, p)} & the \ieee{pow} of the standard\\
+  \code{exp}, \code{exp2}, \code{exp10}, \code{log}, \code{log2},
+    \code{log10} & the same\\
+  \code{sin}, \code{cos}, \code{tan}, \code{asin}, \code{acos},
+    \code{atan}, \code{atan2} & the same\\
+  \code{sinh}, \code{cosh}, \code{tanh}, \code{asinh}, \code{acosh},
+    \code{atanh} & the same\\
+  \code{sign}, \code{ceil}, \code{floor}, \code{trunc} & the same\\
+  \code{roundTiesToEven}, \code{roundTiesToAway} &
+    \code{round\_ties\_to\_even}, \code{round\_ties\_to\_away}\\
+  \code{abs}, \code{min}, \code{max} & the same\\
+  \hline
+  \multicolumn{2}{l}{\textit{Recommended functions (Table~10.5 of the standard)}}\\*
+  \code{rootn(x, q)} & \code{nth\_root(x, q)}\\
+  \code{expm1}, \code{exp2m1}, \code{exp10m1} & the same\\
+  \code{logp1}, \code{log2p1}, \code{log10p1} &
+    \code{log1p}, \code{log2p1}, \code{log10p1}\\
+  \code{hypot}, \code{rSqrt} & \code{hypot}, \code{rsqrt}\\
+  \code{compoundm1} & the same\\
+  \code{sinPi}, \code{cosPi}, \code{tanPi} &
+    \code{sinpi}, \code{cospi}, \code{tanpi}\\
+  \code{asinPi}, \code{acosPi}, \code{atanPi}, \code{atan2Pi} &
+    \code{asinpi}, \code{acospi}, \code{atanpi}, \code{atan2pi}\\
+  \hline
+  \multicolumn{2}{l}{\textit{Reverse functions (Table~10.1 of the standard)}}\\*
+  \code{sqrRev(c, x)}, \code{absRev(c, x)} &
+    \code{sqrt\_rel(c, x)}, \code{invabs\_rel(c, x)}\\
+  \code{pownRev(c, x, p)} & \code{nth\_root\_rel(c, p, x)}, for every integer $p$,
+    $p\leq0$ included\\
+  \code{sinRev}, \code{cosRev}, \code{tanRev(c, x)} &
+    \code{asin\_rel}, \code{acos\_rel}, \code{atan\_rel(c, x)}\\
+  \code{coshRev(c, x)} & \code{acosh\_rel(c, x)}\\
+  \code{sinhRev}, \code{tanhRev(c, x)} (not in the standard, named after
+    \ieee{coshRev}) & \code{asinh\_rel}, \code{atanh\_rel(c, x)}\\
+  \code{mulRev(b, c, x)} & \code{div\_rel(c, b, x)}\\
+  \code{powRev1(b, c, x)}, \code{powRev2(a, c, x)} &
+    \code{pow\_rel(c, b, x)},
+    \code{pow\_exponent\_rel(c, a, x)}\newinvfive\\
+  \code{atan2Rev1(x, c, y)}, \code{atan2Rev2(y, c, x)} &
+    \code{atan2\_rel\_y(c, x, y)},
+    \code{atan2\_rel\_x(c, y, x)}\newinvfive\\
+  \code{mulRevToPair(b, c)} (10.5.5) &
+    the parts of $c/b$ on either side of 0, each a
+    \code{div\_rel} with \code{interval::universe()} for its last argument, in a
+    \code{std::pair}\\
+  \hline
+  \multicolumn{2}{l}{\textit{Cancellative operations and set operations
+    (10.5.6, 10.5.7)}}\\*
+  \code{cancelMinus}, \code{cancelPlus} &
+    \code{cancel\_minus}, \code{cancel\_plus}\\
+  \code{intersection(x, y)}, \code{convexHull(x, y)} &
+    \code{x \& y}, \code{x | y}\\
+  \hline
+  \multicolumn{2}{l}{\textit{Numeric functions (Table~10.2 of the standard)}}\\*
+  \code{inf(x)}, \code{sup(x)} &
+    \code{x.left()}, \code{x.right()}, but for the empty set and a zero bound
+    ($-0$ for \code{inf}, $+0$ for \code{sup})\\
+  \code{mid}, \code{wid}, \code{rad}, \code{mag}, \code{mig(x)} &
+    \code{x.midpoint()}, \code{width()}, \code{rad()}, \code{mag()},
+    \code{mig()}\\
+  \code{midRad(x, m, r)} & \code{x.mid\_rad(m, r)}\\
+  \hline
+  \multicolumn{2}{l}{\textit{Boolean functions (10.5.10, Tables~10.3 and
+    10.4 of the standard; 10.6.3)}}\\*
+  \code{isEmpty(x)}, \code{isEntire(x)} &
+    \code{x.is\_empty()}, \code{x.is\_entire()}\\
+  \code{equal(a, b)}, \code{subset(a, b)} &
+    \code{a.set\_eq(b)}, \code{a.set\_leq(b)}\\
+  \code{interior(a, b)}, \code{disjoint(a, b)} &
+    \code{a.set\_le(b)}, \code{a.set\_disjoint(b)}\\
+  \code{less(a, b)}, \code{strictLess(a, b)} &
+    \code{a.less(b)}, \code{a.strictly\_less(b)}\\
+  \code{precedes(a, b)}, \code{strictPrecedes(a, b)} &
+    \code{a.certainly\_leq(b)}, \code{a.certainly\_le(b)}\\
+  \code{isCommonInterval(x)}, \code{isSingleton(x)} &
+    \code{x.is\_common\_interval()}, \code{x.is\_a\_double()}\\
+  \code{isMember(m, x)} &
+    \code{x.set\_contains(m)}, false for an infinite $m$\\
+  \code{overlap(a, b)} (10.6.4) &
+    \code{a.overlap(b)}, an \code{overlapping\_state}\\
+  \hline
+  \multicolumn{2}{l}{\textit{Input and output (Clause 13)}}\\*
+  \code{intervalToText(x)} &
+    the bounds \code{[l, r]}, \code{[a]} or \code{[empty]}, with the
+    current precision, whatever the format and locale\\
+  \code{intervalToExact(x)} & \code{exact\_string(x)}\\
+  \code{exactToInterval(s)} & \code{textToInterval(s)} of \code{gaol\_ieee1788}\\
+  \hline
+  \multicolumn{2}{l}{\textit{Expressions}}\\*
+  \code{pown(e, n)}, \code{pow(e1, e2)} &
+    the expressions of \code{pown} and of the \ieee{pow} of the standard,
+    declared by \file{gaol/parser/\allowbreak gaol\_expression.h}\\
+\end{longtable}
+\endgroup
+
+\noindent
+Two rows of the table call for a word. \code{overlap(a, b)} is the interval
+overlapping function of the standard: it returns an
+\code{overlapping\_state}, one of the sixteen states of Table~10.7 under the
+names of the table, and the type and the member \code{a.overlap(b)} are in
+\code{gaol} too, which has no other name for it
+(Chapter~\ref{chap:relations}).\newinvfive{} The expressions \code{pown(e, n)}
+and \code{pow(e1, e2)} are computed with the \code{pown} and the \code{pow}
+of this namespace; \file{gaol/parser/gaol\_expression.h} declares them with
+the other expressions, and \file{gaol/gaol.h} does not include it, as in
+GAOL~4. The last two parts of this section detail \code{mulRevToPair} and
+the reverse functions of \code{atan2}.
+
+\paragraph{The two-output division.}
+\findex{mulRevToPair}%
+\code{mulRevToPair(b, c)} returns the set
+$\{x \mid \exists\beta\in b,\ \beta x\in c\}$ in two intervals, the pair
+$(u,v)$ of the standard: $u$ before $v$ when the set has two parts, which
+happens when $c$ does not contain 0 and 0 is strictly between the bounds of
+$b$, $(u,\emptyset)$ when it is one interval, and $(\emptyset,\emptyset)$ when
+it is empty. The convex hull of $u$ and $v$ is \code{mulRev(b, c)}. Where
+$b$ is unbounded on both sides, the two parts share 0.\newinvfive
+
+\begin{Ex}\label{ex:ieee1788-mulrevtopair}
+The program below divides \itv{1}{2} by \itv{-1}{1}, whose interior holds 0,
+and gets two parts; then by \itv{2}{4}, and gets one part and the empty set.
+\begin{example}
+std::pair<interval, interval> p = mulRevToPair(numsToInterval(-1, 1),
+                                               numsToInterval(1, 2));
+std::pair<interval, interval> q = mulRevToPair(numsToInterval(2, 4),
+                                               numsToInterval(1, 2));
+cout << p.first << ' ' << p.second << ' '
+     << q.first << ' ' << q.second << endl;
+@outputs^[-inf, -1] [1, inf] [0.25, 1] [empty]~
+\end{example}
+\end{Ex}
+
+\paragraph{The reverse functions of atan2.}
+\findex{atan2Rev1}\findex{atan2Rev2}%
+\code{atan2Rev1(x, c, y)} is the hull of the ordinates of the points of the
+box $x\times y$ whose angle $\operatorname{atan2}(y,x)$ is in $c$, and
+\code{atan2Rev2(y, c, x)} the hull of their abscissas; the point $(0,0)$,
+which has no angle, is left out. In \code{gaol}, they are
+\code{atan2\_rel\_y(c, x, y)} and \code{atan2\_rel\_x(c, y, x)}
+(\pxref{sec:relational-arithmetic}).\newinvfive{} As in \code{mulRev} and
+\code{div\_rel}, the interval contracted comes last, and the other argument
+of \code{atan2} before it, so that the constraint
+$\theta=\operatorname{atan2}(y,x)$ contracts its three variables with the
+three lines below.
+\begin{example}
+theta &= atan2(y, x);
+y = atan2Rev1(x, theta, y);
+x = atan2Rev2(y, theta, x);
+\end{example}
+
+\noindent
+The angles are those of \code{atan2}, in $\left]-\pi,\pi\right]$. The
+half-line $y=0$, $x<0$ has the angle $\pi$, not $-\pi$, and a $c$ holding
+$-\pi$ but not $\pi$ leaves it out: \code{atan2Rev2([0], [-4, -3], [-2, 2])}
+is empty. The angles of $c$ beyond $\pi$ are no angle of any point:
+\code{atan2Rev1([-1], [3, 4], [-1, 1])} is \itv{0}{-\tan 3}, about
+\itv{0}{0.1425}, the points of angles 3 to $\pi$ only. A program whose
+angles go around past $\pi$ gives the two sides of the jump apart,
+\itv{3}{\pi} and \itv{-\pi}{4-2\pi} for \itv{3}{4}, and takes the hull of
+the two results.
+
+\section{Reading with the names of the standard}\label{sec:ieee1788-text}
+%%-----------------------------------------------
+\findex{textToInterval}\cindex{IEEE 1788-2015!reading}%
+
+\code{textToInterval(\var{s})} reads a string as \code{gaol::textToInterval()}
+does (\pxref{sec:input-format}), with the names of the functions of IEEE
+1788-2015: those of Tables~9.1 and 10.5 that GAOL provides, whatever the case
+of their letters.\newinvfive{} These names are the following ones.
+
+\begin{center}\small
+\begin{tabular}{L{11cm}}
+\code{neg}, \code{add}, \code{sub}, \code{mul}, \code{div}, \code{recip},
+\code{sqr}, \code{sqrt}, \code{fma}, \code{pown}, \code{pow}, \code{exp},
+\code{exp2}, \code{exp10}, \code{log}, \code{log2}, \code{log10}, \code{sin},
+\code{cos}, \code{tan}, \code{asin}, \code{acos}, \code{atan}, \code{atan2},
+\code{sinh}, \code{cosh}, \code{tanh}, \code{asinh}, \code{acosh},
+\code{atanh}, \code{sign}, \code{ceil}, \code{floor}, \code{trunc},
+\code{roundTiesToEven}, \code{roundTiesToAway}, \code{abs}, \code{min},
+\code{max}, \code{rootn}, \code{expm1}, \code{exp2m1}, \code{exp10m1},
+\code{logp1}, \code{log2p1}, \code{log10p1}, \code{hypot},
+\code{compoundm1}, \code{rSqrt}, \code{sinPi}, \code{cosPi}, \code{tanPi},
+\code{asinPi}, \code{acosPi}, \code{atanPi}, \code{atan2Pi}\\
+\end{tabular}
+\end{center}
+
+\noindent
+\code{pow} is the \ieee{pow} of Table~9.1, and the second argument of
+\code{pown} and \code{rootn} is an integer. The names of GAOL alone
+(\code{nth\_root}, \code{cbrt}, \code{inverse}, \code{integer},
+\code{log1p}, \code{round\_ties\_to\_even}\ldots) are no functions there.
+They give the empty set, as any string that is no interval: a wrong call
+(\code{"pown([2,5],2.5)"}, \code{"sin(1,2)"}) and a string holding a NUL
+character included, whether GAOL was configured with exceptions or
+not.\newinvfive{} Where memory runs out, \code{textToInterval} throws
+\code{std::bad\_alloc}.
+
+\medskip
+As \code{pow}, the function \code{textToInterval} is in the namespace
+\code{gaol} too, where it reads the names of GAOL and throws
+\code{std::invalid\_argument} for a wrong string, and \code{std::domain\_error}
+for an order of \code{nth\_root} that is no integer: a program calls the one of
+the namespace it opens.
+
+\begin{Ex}\label{ex:ieee1788-text}
+The program below reads three strings with the names of the standard: a
+power of the standard, a power of a negative base, which the \ieee{pow} of
+the standard leaves empty, and a name of GAOL alone, which is no function
+there.
+\begin{example}
+cout << textToInterval("pown([2,5],5)") << ' '
+     << textToInterval("pow([-4,-1],2)") << ' '
+     << textToInterval("nth_root(8,3)") << endl;
+@outputs^[32, 3125] [empty] [empty]~
+\end{example}
+With \code{using namespace gaol;}, \code{textToInterval("pow([-4,-1],2)")}
+is \itv{1}{16}, and \code{textToInterval("pown([2,5],5)")} throws.
+\end{Ex}
+
+\section{What is not provided}\label{sec:ieee1788-missing}
+%%----------------------------
+\cindex{IEEE 1788-2015!operations not provided}\cindex{decorations}%
+
+GAOL has no decorations: only bare intervals are provided (Clause 11). Nor
+does it provide the slope functions (Table~10.6), the reduction operations
+\ieee{sum}, \ieee{dot}, \ieee{sumSquare} and \ieee{sumAbs} (12.12.12), the
+exact reduction operations of 12.13.5, the conversion specifier \var{cs} of
+\ieee{intervalToText} (13.3), or the exceptions \ieee{UndefinedOperation} and
+\ieee{PossiblyUndefinedOperation} that \ieee{textToInterval} and
+\ieee{exactToInterval} signal (12.12.7, 13.4): for a string that is no
+interval they return the empty set silently. The end of \file{gaol/gaol\_ieee1788.h}
+keeps this list.
+
+\begin{Rem}\label{rem:ieee1788-erf}
+In the other direction, a function of GAOL that the standard does not name
+is not in \code{gaol\_ieee1788} either, but for \code{sinhRev} and
+\code{tanhRev}, which are named after \ieee{coshRev}
+(Table~\ref{tab:ieee1788-operations}), and for the operators of intervals, the
+relational division \code{\%} among them, which the namespace names as
+\code{gaol\_core} does. \code{erf} and \code{erfc}, the
+error function and its complement, are two functions of GAOL that the
+standard does not name.\newinvfive{} A call
+\code{erf(x)} on an interval finds them all the same in \code{gaol\_core},
+by argument-dependent lookup, and \code{erf(0.5)} remains the \code{erf}
+of C.
+\end{Rem}
+
+\section{Discussion}
+%%------------------
+
+This chapter has presented the namespace \code{gaol\_ieee1788}, which lets a
+program use GAOL under the names and the argument orders of IEEE 1788-2015
+with a single directive. The functions that the standard and GAOL name and
+define alike are shared between the two namespaces. Where they differ, the
+power, the bounds of the empty set, the membership of an infinity, the
+writing and the reading of intervals, the namespace follows the standard, and Table~\ref{tab:ieee1788-operations}
+gives the translation of every other name. Two operations have their
+details here: \code{mulRevToPair}, which \code{gaol} does not name, and the
+reverse functions of \code{atan2}, whose arguments \code{gaol\_ieee1788}
+orders as \ieee{mulRev} does and \code{gaol} as \code{div\_rel} does.
+
+\medskip
+The choice of two namespaces rather than one keeps the programs written for
+GAOL~4 and, but for the results that change (Chapter~\ref{chap:changes}),
+their results, while a program written for the standard, or compared with
+another library of the standard, opens \code{gaol\_ieee1788}. Its price is
+stated in \exref{sec:ieee1788-namespace}: a program opens one of the two
+namespaces, never both, and qualifies the names of its own that are also names
+of the standard. What GAOL does not provide of the standard, the decorations, the
+slope functions, the reductions, exact or not, the conversion specifier of
+\ieee{intervalToText} and the exceptions of the reading, is listed rather
+than approximated (\pxref{sec:ieee1788-missing}), and the header keeps the list.
+
+\medskip
+Whatever the name a program calls an operation by, the bounds it gets are
+the same. The next chapter states how tight they are: the conditions GAOL
+guarantees on each bound, and the tightness of each family of functions.

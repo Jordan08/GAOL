@@ -5,8 +5,7 @@
 Part of the [comparison](README.md) of GAOL with libieeep1788, filib++,
 PROFIL/BIAS, Solaris Studio and Boost.Interval.
 
-The special cases of GAOL's tests (`tests/*.cpp`, and `check/*.cpp` for the
-integer powers) are computed by the six libraries, GAOL v5 twice, under its
+The special cases of GAOL's tests (`tests/*.cpp`) are computed by the six libraries, GAOL v5 twice, under its
 own names (the namespace `gaol`) and under those of IEEE 1788-2015
 (`gaol_ieee1788`, see
 [Using GAOL](../using.md#the-powers-in-the-two-namespaces)): zeros, infinities and NaN
@@ -36,7 +35,7 @@ pred(MAX) the one below it.
 | filib++ | 3.0.2.2, as IBEX distributes it | `interval<double, native_switched, i_mode_extended_flag>`, the intervals of IBEX built with filib++: the extended mode, where the infinities and the empty set are intervals |
 | PROFIL/BIAS | 2.0.8 (2009), configuration `x86-64-Linux-compat-gcc` | `INTERVAL` of PROFIL, on the BIAS routines, which set the rounding direction for each operation; no empty set |
 | Solaris Studio | Sun Fortran 95 8.7 (Solaris Studio 12.4), Linux x86-64 | `interval(8)` of `f90 -xia`, computed by `libsunimath` |
-| Boost.Interval | Boost 1.92.0 (2026), with the elementary functions of glibc 2.31 | `interval<double>` with its default policies, the rounding `save_state<rounded_arith_opp<double> >` and the checking `checking_strict<double>`, the first replaced by `save_state<rounded_transc_opp<double> >`, which adds the elementary functions of the C library to the same arithmetic (see [Enclosure](enclosure.md#the-policies-of-boostinterval)) |
+| Boost.Interval | Boost 1.92.0 (2026), with the elementary functions of glibc 2.43 | `interval<double>` with its default policies, the rounding `save_state<rounded_arith_opp<double> >` and the checking `checking_strict<double>`, the first replaced by `save_state<rounded_transc_opp<double> >`, which adds the elementary functions of the C library to the same arithmetic (see [Enclosure](enclosure.md#the-policies-of-boostinterval)) |
 
 Each case is written once, in [code/cases.py](code/cases.py), and translated
 for each library: libieeep1788 has no operators of an interval and a double
@@ -411,7 +410,7 @@ From tests/arithmetic.cpp (operations_with_special_doubles).
 
 ### 7. Elementary functions at the edges of their domains
 
-From tests/elementary.cpp (at_known_intervals), check/.
+From tests/elementary.cpp (at_known_intervals).
 
 | # | Operation | IEEE 1788 | libieeep1788 | GAOL, `gaol` | GAOL, `gaol_ieee1788` | filib++ | Solaris Studio | PROFIL/BIAS | Boost.Interval | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -464,7 +463,7 @@ From tests/elementary.cpp (at_known_intervals), check/.
 
 ### 8. Integer powers (GAOL's pow(x, n), pown of IEEE 1788, filib++'s power(x, n), x**n of Fortran)
 
-From check/non_arithmetic.cpp (test_pow_int), tests/arithmetic.cpp.
+From tests/non_arithmetic.cpp (test_pow_int), tests/arithmetic.cpp.
 
 | # | Operation | IEEE 1788 | libieeep1788 | GAOL, `gaol` | GAOL, `gaol_ieee1788` | filib++ | Solaris Studio | PROFIL/BIAS | Boost.Interval | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -548,7 +547,7 @@ From tests/elementary.cpp (powers).
 
 ### 10. n-th roots (GAOL's nth_root, rootn of IEEE 1788)
 
-From check/non_arithmetic.cpp, tests/arithmetic.cpp.
+From tests/non_arithmetic.cpp, tests/arithmetic.cpp.
 
 | # | Operation | IEEE 1788 | libieeep1788 | GAOL, `gaol` | GAOL, `gaol_ieee1788` | filib++ | Solaris Studio | PROFIL/BIAS | Boost.Interval | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|

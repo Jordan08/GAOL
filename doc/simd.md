@@ -50,8 +50,8 @@ opposite, so that one addition rounded upward gives both bounds
 | Build | Vector kernels | Scalar |
 |---|---|---|
 | SSE2 (x86, `GAOL_SIMD`) | `+ - * / sqr`, the operations with a double, `inverse`, `%=`, `-x`, the integer powers with `__FMA__`, the leaves of `div_rel` | `sqrt`, `&=`, `\|=`, `mid`, `midpoint`, the relations, the elementary functions, the reverse functions |
-| AVX-512 (`GAOL_PREFER_AVX512`) | `+ - * / sqr`, the operations with a double and the integer powers (with `__FMA__`), with the rounding direction in the instruction; `sqrt` as two scalar square roots and `/` as two scalar divisions, with embedded rounding | as SSE2, and `inverse`, `%=` and the leaves of `div_rel`, which stay SSE2 kernels that set the direction |
-| NEON (arm64, `GAOL_SIMD`; every compiler) | `+ - * / sqr sqrt`, the operations with a double, `%=`, `inverse`, `&=`, `\|=`, `-x`, the integer powers (two lanes with `vfmaq_f64`) | `mid`, `midpoint`, `div_rel`, the elementary functions |
+| AVX-512 (`GAOL_PREFER_AVX512`) | `+ - * / sqr`, the operations with a double and the integer powers (with `__FMA__`), with the rounding direction in the instruction; `sqrt` as two scalar square roots and `/` as two scalar divisions, with embedded rounding | as SSE2 but `sqrt`; `inverse`, `%=` and the leaves of `div_rel` stay the vector kernels of SSE2, which set the direction |
+| NEON (arm64, `GAOL_SIMD`; every compiler) | `+ - * / sqr sqrt`, the operations with a double, `%=`, `inverse`, `&=`, `\|=`, `-x`, the integer powers (two lanes with `vfmaq_f64`) | `mid`, `midpoint`, `div_rel`, the relations, the elementary functions, the reverse functions, and `sqrt` of an upper bound above 2^1000 |
 | FPU (the rest) | none | everything |
 
 The AVX-512 path is off by default: the build takes it only with
@@ -74,28 +74,28 @@ path (`GAOL_PREFER_AVX512` on) and without it, measured by
 `.github/scripts/performance-ab.sh --runs 9 --lines` (`gaol_performance` and
 the long lines of `doc/compare/code/run_lines.sh`, the two builds run in turn,
 median of 9 runs, in ns; Intel i7-1185G7, whose AVX-512 units are halved, Clang
-21.1.8, `-O3 -mfma`, 26 October 2026, the machine doing nothing else). The
+21.1.8, `-O3 -mfma`, 7 November 2026, the machine doing nothing else). The
 ratio is the time with SSE2 over the time with the path: above 1, the path is
 faster.
 
 | Operation | Not preserved: SSE2 | AVX-512 | Ratio | Preserved: SSE2 | AVX-512 | Ratio |
 |---|---:|---:|---:|---:|---:|---:|
-| `x + y` | 1.13 | 1.46 | 0.77 | 8.39 | 1.92 | 4.37 |
-| `x - y` | 1.27 | 1.37 | 0.93 | 8.32 | 1.92 | 4.33 |
-| `x * y` | 2.27 | 3.69 | 0.62 | 8.41 | 3.60 | 2.34 |
-| `x / y` | 2.62 | 4.10 | 0.64 | 8.66 | 3.97 | 2.18 |
-| `sqr(x)` | 1.73 | 2.02 | 0.86 | 8.26 | 2.01 | 4.11 |
-| `sqrt(x)` | 8.80 | 4.39 | 2.00 | 12.00 | 4.29 | 2.80 |
-| `pow(x, 3)` | 6.49 | 7.78 | 0.83 | 9.90 | 7.49 | 1.32 |
-| line of 15 `+` (`sum16`) | 24.41 | 32.15 | 0.76 | 133.5 | 27.74 | 4.81 |
-| line of 7 `*` (`mul8`) | 19.00 | 29.48 | 0.64 | 61.04 | 26.50 | 2.30 |
-| line of 7 `/` (`quot8`) | 21.09 | 36.60 | 0.58 | 62.41 | 33.49 | 1.86 |
-| line of 13 `+ - * /` (`mix13`) | 23.87 | 35.10 | 0.68 | 110.7 | 32.61 | 3.39 |
+| `x + y` | 1.22 | 1.51 | 0.81 | 8.82 | 1.49 | 5.92 |
+| `x - y` | 1.33 | 1.56 | 0.85 | 9.38 | 1.53 | 6.13 |
+| `x * y` | 2.75 | 4.45 | 0.62 | 12.14 | 4.46 | 2.72 |
+| `x / y` | 3.21 | 5.00 | 0.64 | 11.05 | 5.07 | 2.18 |
+| `sqr(x)` | 1.97 | 2.03 | 0.97 | 8.42 | 2.04 | 4.13 |
+| `sqrt(x)` | 8.52 | 4.71 | 1.81 | 13.54 | 4.72 | 2.87 |
+| `pow(x, 3)` | 6.61 | 7.93 | 0.83 | 10.42 | 7.83 | 1.33 |
+| line of 15 `+` (`sum16`) | 19.67 | 40.66 | 0.48 | 176.0 | 37.92 | 4.64 |
+| line of 7 `*` (`mul8`) | 23.80 | 37.42 | 0.64 | 86.56 | 35.14 | 2.46 |
+| line of 7 `/` (`quot8`) | 26.50 | 46.56 | 0.57 | 86.73 | 43.59 | 1.99 |
+| line of 13 `+ - * /` (`mix13`) | 27.75 | 43.23 | 0.64 | 152.8 | 41.49 | 3.68 |
 
 The median of the seven operations is 0.83 without `GAOL_PRESERVE_ROUNDING`
-(the path loses 17 %, and 32 % on the ten long lines, whose median is 0.68; only
-`sqrt` gains) and 2.80 with it (every operation gains, the ten lines by 1.75 to
-4.81, median 3.39). The path pays where each operation would otherwise write
+(at the median, the operations take 20 % longer with the path, and the ten long
+lines, whose median ratio is 0.58, 72 % longer; only `sqrt` gains) and 2.87 with it (every
+operation gains, the ten lines by 1.91 to 4.64, median 3.19). The path pays where each operation would otherwise write
 the control register twice, and costs where it writes it only if the direction
 is not upward already, as it is by default: so the rule is that of
 `GAOL_PRESERVE_ROUNDING`. The threshold was a median gain of 5 % over `+ - * /
@@ -146,13 +146,14 @@ to 3 points, and the table gives the second.
   cost 3 to 13 ns on the M2.
 - The relations, `hull`, `intersect`, `min` and `max` are 3.6 % or less in
   every program; `mid()` is 6 % of the global optimization, and `midpoint()`
-  11 to 12 % of the Krawczyk iteration (21 to 28 ns on the M2: two writes of
+  11 to 12 % of the Krawczyk iteration (29 ns on the M2: two writes of
   FPCR).
 - The check of the direction (one `mrs` of FPCR here), removed in a copy,
   saves 0.8 % (03), 1.4 % (09), 4.7 % (06) and 8.3 % (16).
   `GAOL_PRESERVE_ROUNDING` on the M2, for a program that computes to nearest,
   makes 03 and 16 about 16 times slower, 06 eight times, 09 five times. On x86
-  with the AVX-512 path the ratio is 1.0 to 1.5
+  with the AVX-512 path the ratio is not measured for these programs; the
+  operations of the benchmark take 0.6 to 1.5 times as long
   ([performance](compare/performance.md)).
 - The text is 41 to 69 % of the five demonstration programs that print (01,
   02, 05, 12, 15; 28 to 31 % of 14 and 11 % of 03), at 0.2 to 0.45 µs per bound
@@ -166,10 +167,10 @@ for `sqr`, 6.30 for `sqrt` and 5.12 for `pow(x, 3)`, the same operation on
 doubles taking 0.96 ns for `+`. With `GAOL_PRESERVE_ROUNDING` and the AVX-512
 path: 2.19, 2.16, 3.42, 3.60, 2.04, 3.75 and 6.18. On the M2
 ([three builds](three-builds.md#what-the-options-are-worth)) the NEON
-intervals take 0.91 ns for `+`, 2.14 for `*`, 2.39 for `/`, 1.48 for `sqr`
-and 1.70 for `sqrt`, against 1.18, 3.33, 3.30, 1.82 and 4.60 with the FPU
+intervals take 0.90 ns for `+`, 1.52 for `*`, 2.08 for `/`, 1.27 for `sqr`
+and 2.04 for `sqrt`, against 1.15, 3.26, 3.22, 1.78 and 5.17 with the FPU
 intervals, whose `*`, `/` and `sqr` take no branch on the signs
-([the FPU intervals](using.md#the-fpu-intervals); 1.16, 3.37, 4.00, 2.08 and 4.51
+([the FPU intervals](using.md#the-fpu-intervals); 1.15, 3.25, 3.98, 2.07 and 4.49
 before).
 
 ## The rounding direction, by processor
@@ -185,9 +186,10 @@ upward already. What a write costs:
   flight; `STMXCSR`, the read, takes 1 cycle on most Intel cores but **14 to 16
   on Zen 2 to Zen 5**, one more reason, with those given in `gaol/gaol_fpu.h`
   (800 ns under Rosetta 2, 80 ns with 32-bit Visual C++, a single read reused
-  by Clang 18), why the check of GAOL on x86 is an addition and not a read. Two
-  writes took 6 ns a `sqr` (8.3 ns, 4.4 times) before the AVX-512 path
-  ([performance](compare/performance.md)).
+  by Clang 18), why the check of GAOL on x86-64, in the default build, is an addition and not
+  a read. Two writes took 6 ns a `sqr` (8.3 ns, 4.4 times, in the benchmark of
+  [performance](compare/performance.md)) on the SSE2 path with
+  `GAOL_PRESERVE_ROUNDING`, which the AVX-512 path spares.
 - **64-bit ARM**: `mrs` of FPCR takes 0.8 ns, `msr` 4 ns for the value FPCR
   holds and 11 ns when it changes the direction (Apple M2). The reference
   manuals of the Neoverse N1, N2, N3 and of the Cortex-A78 say that a write
@@ -288,7 +290,7 @@ the T-Head C910 the draft 0.7.1.
 | FMA3 | in use (`GAOL_FMA`) | It pays in the elementary functions and the integer powers, none in the basic operations | The exact transformations that would replace the directed rounding are another study (the rounding direction left to nearest) |
 | AVX-512 path | keep; the division and the square root are scalar instructions with the embedded rounding, two for the two bounds | On Intel the 512-bit division takes 16 cycles of throughput against 4 for the 128-bit one (uops.info), and Zen 5 has full-width units; the square root of the path takes two scalar embedded roots (3.75 ns against 6.30 with SSE2), `x / y` two scalar divisions, and so do `x / d` of a double (2.8 ns against 3.7 for d > 0, 3.0 to 3.3 for d < 0, on an Intel i7-1185G7 with Clang 21), the divisors with a zero (5.5 ns) and the negative integer powers (`pow(x, -3)` 9.1 ns), which the change left within the noise | A processor where the two scalar divisions lose to the 512-bit one (not seen on the i7-1185G7; no other processor was measured, Zen 5 included) |
 | AVX-512VL, AVX10.2 at 128 and 256 bits | nothing to build | No embedded rounding at these widths | A new revision of the Intel manual restoring it (revision 3.0 of AVX10.2 had it) |
-| NEON (arm64) | keep | Done: 1.3 to 4 times faster on an M2 | Hardware with FPCR.AH set (see below) |
+| NEON (arm64) | keep | Done: 1.3 to 2.5 times faster than the FPU intervals on an M2, 3.2 times on a line of 13 operations | Hardware with FPCR.AH set (see below) |
 | SVE, SVE2, SME | no path | The same FPCR, and 128-bit vectors on most of the processors | An interface of arrays, on a 256 or 512-bit implementation; a static rounding in the instruction set |
 | ARMv7 | no vector path | NEON has no double | none |
 | POWER (VSX), s390x (vector facility) | measure first | Two doubles per register and a write of the control register, as NEON, but no hardware here and no figure for the write | A machine to run the tests and the benchmark on |
@@ -322,7 +324,7 @@ which is done, and none needs a new path.
   first check thought it did (the program of the checks is not in the
   repository).
 - **`sqrt` on SSE2** is scalar (6.3 ns on the i7-1185G7, 3.75 with the AVX-512
-  path and the direction preserved, 1.7 on the M2 with NEON); the NEON kernel
+  path and the direction preserved, 2.0 on the M2 with NEON); the NEON kernel
   ports to `_mm_sqrt_pd`. `sqrt_rel` follows.
 - **The integer powers on NEON** (done, GAOL v5, a small gain): the kernel of
   `pown` on two lanes with `vfmaq_f64` (`pown_neon_ops` and `pown_large_inline()`
@@ -350,7 +352,7 @@ which is done, and none needs a new path.
   says how much of that is the reduction.
 - **`div_rel` and `%=`** are trees of branches; NEON has the cases of
   `divide_by_zero_containing()` as a table for `/`.
-- Not for SIMD: `midpoint()` (21 to 28 ns on the M2), `bisect()`, `chi()` and
+- Not for SIMD: `midpoint()` (29 ns on the M2), `bisect()`, `chi()` and
   `hausdorff()` spend their time in changes of the rounding direction, which is
   the question of computing without changing it; the elementary functions are
   limited by CORE-MATH, and a vector version would be another algorithm.
@@ -411,27 +413,34 @@ Before a path is added (the steps the issue lists, with the rules of GAOL):
 - **The pragma `FENV_ROUND`, the `_mm256_add_round_pd` of Clang 20 and the
   256-bit `{ru-sae}` assembly** compile and are wrong (above).
 - **The NEON quotient on a Neoverse N2** (the arm64 runners of GitHub, Azure
-  Cobalt 100; the A/B of `performance.yml`, five runs of each build, one
-  execution): `x / y` takes 5.36 ns with clang-cl and 5.40 with Visual C++,
-  where the FPU intervals take 4.35 with clang-cl, so that the one operation the
-  NEON intervals lose there is the quotient (`x * y` 5.71 to 5.19, `x + y` 2.98
-  to 1.19). It is not the vector division: two scalar divisions in its place
-  (`vdiv_f64` on each lane, the same bounds) take 6.17 and 6.30 ns there, and
-  2.76 ns against 2.38 on the Apple M2 (`x / y`, and the line of 7 quotients
-  18.80 to 22.54 ns; a local A/B, the machine not idle). The time is in the rest
-  of the kernel, about 150 instructions in `div_bounds()` of which some 55 are
-  vector ones (counted in the object of GCC 12.2, the common path being a part
-  of them): `x * y` takes 5.2 ns there where the Apple M2 takes 2.15, a ratio
-  that the two vector pipes of the N2 against the four of the M2 would explain
-  (not measured: `perf` is not allowed on the runners and the machine).
+  Cobalt 100; the A/B of `performance.yml` of 7 November 2026, the medians of
+  three runs, the base and the head giving the same figures): `x / y` takes
+  3.96 ns with Clang, 4.04 with clang-cl, 4.49 with GCC and 4.92 with Visual
+  C++, where the FPU intervals take 4.29 with GCC, so that the one operation
+  the NEON intervals do not gain there is the
+  quotient (with GCC `x * y` takes 2.95 ns against 6.37 and `x + y` 1.26
+  against 1.87). It took 5.36 ns with clang-cl and 5.40 with Visual C++ before
+  `divide_upward()` told the signs of the divisor on general registers (commit
+  c42f95e, 5.35 to 3.96 ns with Clang 18), where the FPU intervals took 4.35
+  with clang-cl. It was not the vector division: two scalar divisions in its
+  place (`vdiv_f64` on each lane, the same bounds) took 6.17 and 6.30 ns, and
+  the time was in the rest of the kernel, about 150 instructions in
+  `div_bounds()` of which some 55 were vector ones (counted in the object of
+  GCC 12.2, the common path being a part of them). On the Apple M2 (7 November
+  2026, mains power, three runs of each build alternated) `x / y` takes 2.07 ns
+  with the NEON intervals against 3.20 with the FPU ones, the line of 7
+  quotients 18.4 ns against 32.4, and `x * y` 1.52 ns: the N2 takes 1.9 times
+  as long for the product, a ratio that the two vector pipes of the N2 against
+  the four of the M2 would explain (not measured: `perf` is not allowed on the
+  runners and the machine).
 
 ## What was not measured
 
 - Nothing ran on x86 (the SSE2 and AVX-512 paths) but an Intel i7-1185G7, for
   the times of [performance](compare/performance.md) and the divisions of the
-  [Verdicts](#verdicts), RISC-V, POWER, s390x,
-  LoongArch, MIPS or WebAssembly; their timings come from the pages of this
-  documentation, uops.info or the references, and every compilation of other
+  [Verdicts](#verdicts); no path was timed on RISC-V, POWER, s390x, LoongArch,
+  MIPS or WebAssembly: the figures given for these come from uops.info or the
+  references, and every compilation of other
   targets was made on Compiler Explorer, without running the code. The calls
   were counted on the NEON build only.
 - GCC never ran: the behaviour of the intrinsics and of the pragma under it is

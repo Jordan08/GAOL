@@ -1,0 +1,470 @@
+%% gaol_def.tex: the packages, the page layout and the macros of the manual
+%% of GAOL v5 (manual/v5/manual_gaolv5.tex), which \input{gaol_def} loads.
+%%
+%% The layout is the one of the PhD thesis of Jordan Ninin (Universite de
+%% Toulouse, 2010): the class book in 12 points on A4 paper, printed on both
+%% sides, the margins of 2.5 cm (top, bottom, outer) and 3.5 cm (inner), the
+%% running heads of fancyhdr (the chapter on the even pages, the section on the
+%% odd ones, a rule of 1 point under them, the page number between dashes at
+%% the foot), the links of hyperref in blue, and the numbered environments
+%% Definition, Example, Remark... of the thesis, numbered within the sections.
+%% The macros of the reference (\code, \file, \pxref, the environments deffun,
+%% defmethod, example, onscreen...) are those of the manual of GAOL 4 by
+%% Frederic Goualard (manual/v4/manual.cls), kept under their names so that the
+%% text of GAOL 4 the manual takes up, and manual/check_examples.py, which reads
+%% the examples, go on working.
+%%
+%% Copyright (c) 2026 ENSTA, France
+%%
+%% Created 2026-11-05 by Jordan NININ
+
+%%--------------------------------------------------------------------------
+%% Packages
+%%--------------------------------------------------------------------------
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+%% Latin Modern, the outlines of Computer Modern in the T1 encoding: without
+%% them pdfTeX embeds bitmaps
+\usepackage{lmodern}
+\usepackage{textcomp}
+%% A straight apostrophe in the typewriter font (the code of the listings): the
+%% default is a curly one, and the code copied from the PDF does not compile
+\usepackage{upquote}
+\usepackage[english]{babel}
+%% No ligature in the typewriter font: in the T1 encoding, -- is an en dash and
+%% << and >> are the guillemets, so that \cmd{cmake --install} printed
+%% "cmake -install" with a dash and operator<< printed operator with a guillemet.
+%% Every other feature of microtype stays off: the pagination is unchanged.
+\usepackage[protrusion=false,expansion=false,tracking=false,kerning=false,spacing=false]{microtype}
+\DisableLigatures[-,<,>]{encoding=T1,family=tt*}
+\usepackage{amssymb,amsmath}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{longtable}
+%% longtable ends a table that runs over pages with a \vss, whose infinite
+%% shrinkage the page code of LaTeX 2025 meets when it splits the box: one
+%% "ignored error: Infinite glue shrinkage found in box being split" for each
+%% such table, with no effect on the page. A glue that stretches without limit
+%% and shrinks by 20 pt at most does the same without it (nothing happens if the
+%% package is not made so)
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\LT@output{\vss}{\vskip\z@\@plus1fil\@minus20\p@}{}{}
+\patchcmd\LT@output{\vss}{\vskip\z@\@plus1fil\@minus20\p@}{}{}
+\makeatother
+\usepackage{multicol}
+\usepackage{needspace}
+\usepackage{fancyvrb}
+\usepackage{pifont}
+\usepackage[labelsep=endash,labelfont=sc]{caption}
+%% As in the thesis, and as the longtables of the manual, the caption of a table
+%% is above it (the \caption comes before the tabular); that of a figure stays
+%% under it
+\captionsetup[table]{position=top}
+%% The index: \index[idx]{...}, printed by \printindex[idx]
+\usepackage{index}
+\newindex{idx}{idx}{ind}{Index}
+
+%%--------------------------------------------------------------------------
+%% The page
+%%--------------------------------------------------------------------------
+\raggedbottom
+%% A paragraph that cannot be set with the interword space it is allowed gets a
+%% little more of it (the typewriter names of the options do not break), where it
+%% would otherwise run into the margin
+\emergencystretch=2em
+%% A line of a paragraph never stays alone at the foot or at the head of a page
+\widowpenalty=10000
+\clubpenalty=10000
+%% A page of floats starts at the top, as the pages of text do, instead of being
+%% centred (a table alone on a page left a third of it white above)
+\makeatletter
+\setlength{\@fptop}{0pt}
+\setlength{\@fpsep}{12pt plus 1fil}
+\makeatother
+\usepackage[a4paper,top=2.5cm,bottom=2.5cm,left=3.5cm,right=2.5cm,includefoot,includehead,headheight=15pt]{geometry}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhead{}
+\fancyfoot{}
+\renewcommand{\chaptermark}[1]{\markboth{\chaptername\ \thechapter\ - \ #1}{}}
+\renewcommand{\sectionmark}[1]{\markright{\thesection\ - \ #1}}
+\renewcommand{\headrulewidth}{1pt}
+\fancyhead[LE]{\bfseries\nouppercase{\leftmark}}
+\fancyhead[RO]{\bfseries\nouppercase{\rightmark}}
+\fancyfoot[CE,CO]{\bfseries--\ \thepage\ --}
+
+%% The first page of a chapter: no running head, the page number at the foot
+\fancypagestyle{plain}{%
+  \fancyhead{}%
+  \fancyfoot[CE,CO]{\bfseries--\ \thepage\ --}%
+}
+%% A page with nothing
+\fancypagestyle{vide}{%
+  \fancyhead{}%
+  \fancyfoot{}%
+  \renewcommand{\headrulewidth}{0pt}%
+}
+%% The page number alone, under the rule
+\fancypagestyle{rien}{%
+  \fancyhead{}%
+  \fancyfoot[CE,CO]{\bfseries--\ \thepage\ --}%
+  \renewcommand{\headrulewidth}{1pt}%
+}
+%% The running heads of the chapters
+\fancypagestyle{YO}{%
+  \fancyhead[LE]{\bfseries\nouppercase{\leftmark}}%
+  \fancyhead[RO]{\bfseries\nouppercase{\rightmark}}%
+  \fancyfoot[CE,CO]{\bfseries--\ \thepage\ --}%
+  \renewcommand{\headrulewidth}{1pt}%
+}
+%% The unnumbered chapters: the same text in both running heads
+\newcommand*{\fixedheads}[1]{%
+  \fancyhead[LE]{\bfseries\nouppercase{#1}}%
+  \fancyhead[RO]{\bfseries\nouppercase{#1}}%
+  \fancyfoot[CE,CO]{\bfseries--\ \thepage\ --}%
+  \renewcommand{\headrulewidth}{1pt}%
+}
+\fancypagestyle{INTRO}{\fixedheads{Introduction}}
+\fancypagestyle{CONCLU}{\fixedheads{Conclusion}}
+\fancypagestyle{BIBLIO}{\fixedheads{Bibliography}}
+\fancypagestyle{INDEX}{\fixedheads{Index}}
+
+%% The blank page before a chapter carries nothing
+\makeatletter
+\def\cleardoublepage{\clearpage
+  \if@twoside\ifodd\c@page\else
+    \hbox{}\thispagestyle{vide}\newpage\if@twocolumn\hbox{}\newpage\fi\fi\fi}
+\makeatother
+
+%% An unnumbered chapter listed in the table of contents
+\newcommand{\schapter}[1]{%
+  \chapter*{#1}%
+  \addcontentsline{toc}{chapter}{#1}%
+  \markboth{#1}{#1}%
+}
+
+%%--------------------------------------------------------------------------
+%% The numbered environments of the thesis: Definition 1.2.1, Example 1.2.2...
+%% numbered within the sections, with one counter for all of them
+%%--------------------------------------------------------------------------
+\newtheorem{Def}{Definition}[section]
+\newtheorem{Lem}[Def]{Lemma}
+\newtheorem{Prop}[Def]{Proposition}
+\newtheorem{Th}[Def]{Theorem}
+\newtheorem{Cor}[Def]{Corollary}
+\newtheorem{Ex}[Def]{Example}
+\newtheorem{Rem}[Def]{Remark}
+\def\demo{{\em Proof. }}
+\def\boite{\hfill{$\hbox{\vrule height4pt width4pt}$}}
+
+%%--------------------------------------------------------------------------
+%% Mathematics
+%%--------------------------------------------------------------------------
+\newcommand{\RSet}{\ensuremath{\mathbb{R}}}
+\newcommand{\FSet}{\ensuremath{\mathbb{F}}}
+\newcommand{\ISet}{\ensuremath{\mathbb{I}}}
+\newcommand{\itv}[2]{\ensuremath{[#1,\,#2]}}
+\newcommand{\roundDn}[1]{\ensuremath{\mathopen{\downarrow}#1\mathclose{\downarrow}}}
+\newcommand{\roundUp}[1]{\ensuremath{\mathopen{\uparrow}#1\mathclose{\uparrow}}}
+\newcommand{\roundNearest}[1]{\ensuremath{\mathopen{\updownarrow}#1\mathclose{\updownarrow}}}
+\newcommand{\hull}[1]{\ensuremath{\mathop{\Box} #1}}
+\newcommand{\leftBound}[1]{\ensuremath{\underline{#1}}}
+\newcommand{\rightBound}[1]{\ensuremath{\overline{#1}}}
+\newcommand*{\prevdouble}[1]{\ensuremath{{#1}^-}}
+\newcommand*{\nextdouble}[1]{\ensuremath{{#1}^+}}
+\newcommand{\returns}{\hbox{\ding{229}}}
+\let\leq=\leqslant
+\let\geq=\geqslant
+\let\emptyset=\varnothing
+
+%%--------------------------------------------------------------------------
+%% Names in the text
+%%--------------------------------------------------------------------------
+%% Code, a name of the program
+%% Robust, and plain text in the strings of the PDF (the bookmarks): hyperref cannot
+%% expand \frenchspacing
+\DeclareRobustCommand*{\code}[1]{\texorpdfstring{\textup{\texttt{\frenchspacing #1}}}{#1}}
+%% A name to stand out: a value of an enumeration, a format
+\newcommand*{\element}[1]{\textup{\textbf{\texttt{#1}}}}
+%% A definition, in the text
+\newcommand{\dfn}[1]{\textsl{#1}}
+%% The name of a command or a program
+\newcommand{\cmd}[1]{\textup{\texttt{#1}}}
+%% The name of an option, and of a long option (-{}-name)
+\newcommand{\option}[1]{\textup{\texttt{#1}}}
+\newcommand{\loption}[1]{\textup{\texttt{-{}-#1}}}
+%% The name of a variable or a parameter
+\newcommand{\var}[1]{\textsl{#1}}
+%% The name of a file
+\newcommand{\file}[1]{\textup{\texttt{#1}}}
+%% The name of an environment variable
+\newcommand{\env}[1]{\textup{\texttt{#1}}\index[idx]{#1@\texttt{#1}}}
+%% A name of IEEE 1788-2015
+\newcommand*{\ieee}[1]{\mbox{\textsf{#1}}}
+%% A non terminal and a terminal of a grammar
+\newcommand*{\NT}[1]{\uppercase{\textit{#1}}}
+\newcommand*{\TM}[1]{\textsf{#1}}
+%% What GAOL v5 changes: a mark in the text (process.md, section 4)
+\newcommand*{\newinvfive}{\unskip\nobreak\ \textcolor{blue}{\textsf{\upshape\scriptsize[GAOL~v5]}}}
+%% A comment in a program, and what a program prints
+\definecolor{remark}{gray}{0.40}
+\newcommand{\rem}[1]{\textcolor{remark}{\textsl{#1}}}
+\newcommand{\outputs}[1]{\textcolor{remark}{\textsl{\returns{} #1}}}
+%% A warning, in the text: the manual writes its warnings as Remarks, this
+%% command stays for the sentences that need a word
+\newcommand*{\important}{\textbf{Caution.}~}
+
+%%--------------------------------------------------------------------------
+%% Cross references and citations
+%%--------------------------------------------------------------------------
+\newcommand*{\pxref}[1]{see Section~\hyperref[#1]{\ref{#1}}, page~\pageref{#1}}
+\newcommand*{\spxref}[1]{see Section~\hyperref[#1]{[\nameref{#1}]}, page~\pageref{#1}}
+\newcommand*{\xref}[1]{See Section~\hyperref[#1]{\ref{#1}}, page~\pageref{#1}}
+\newcommand*{\sxref}[1]{See Section~\hyperref[#1]{[\nameref{#1}]}, page~\pageref{#1}}
+\newcommand*{\exref}[1]{Section~\hyperref[#1]{\ref{#1}}, page~\pageref{#1}}
+\newcommand*{\sexref}[1]{Section~\hyperref[#1]{[\nameref{#1}]}, page~\pageref{#1}}
+%% The citations of the manual of GAOL 4 were printed in the margin; the
+%% manual of GAOL v5 cites in the text, as the thesis does
+\makeatletter
+\newcommand*{\margincite}{\@ifstar{\margincite@}{\margincite@}}
+\newcommand*{\margincite@}[2][]{%
+  \def\@tempa{#1}%
+  \ifx\@tempa\@empty\cite{#2}\else\cite[#1]{#2}\fi}
+\newcommand*{\marginnocite}[1]{\nocite{#1}}
+\makeatother
+
+%%--------------------------------------------------------------------------
+%% The index
+%%--------------------------------------------------------------------------
+\newcommand*{\findex}[1]{\index[idx]{#1@\texttt{#1}}}
+\newcommand*{\cindex}[1]{\index[idx]{#1}}
+\newcommand*{\idxself}{\~{}}
+\newcommand*{\hyperpagebf}[1]{\textbf{\hyperpage{#1}}}
+%% The main entry of a name, whose page number is in bold
+\newcommand*{\defindex}[1]{\index[idx]{#1@\texttt{#1}|textbf}}
+
+%%--------------------------------------------------------------------------
+%% Programs, commands and outputs (fancyvrb): @name^argument~ is the command
+%% \name{argument}, and manual/check_examples.py reads the lines @outputs^...~
+%% of the examples
+%%--------------------------------------------------------------------------
+%% What a program prints
+\DefineVerbatimEnvironment{onscreen}{Verbatim}{commandchars=\@\^\~,frame=single,label={\textsf{Output}},fontsize=\footnotesize,formatcom=\upshape}
+%% An example program
+\def\example{\medskip\examplevb}
+\def\endexample{\endexamplevb}
+\DefineVerbatimEnvironment{examplevb}{Verbatim}{fontsize=\footnotesize,commandchars=\@\^\~,frame=single,label={\textsf{Example}},numbers=left,numbersep=2pt,formatcom=\upshape}
+%% A command of the shell
+\DefineVerbatimEnvironment{cmdshell}{Verbatim}{commandchars=\@\^\~,fontsize=\footnotesize,formatcom=\upshape}
+
+%%--------------------------------------------------------------------------
+%% The reference: the definition of a function, a method, a type, a constant
+%% or a macro, its signature on a line and its description indented under it
+%%--------------------------------------------------------------------------
+\makeatletter
+\let\@firsttime=\@undefined
+\newlength{\defwidth}
+\setlength{\defwidth}{.94\textwidth}
+%% The description of an entry, indented under its signature. Its box cannot be
+%% split, and a page may not break between the signature and it: without that
+%% the signature stayed alone at the foot of a page and its description began on
+%% the next one. A minipage has no indentation of its paragraphs: a space
+%% separates them.
+\newcount\defsavedpenalty
+\newcommand*{\defbodybegin}{%
+  \nopagebreak
+  \defsavedpenalty=\@beginparpenalty
+  \@beginparpenalty=\@M
+  \begin{flushright}%
+  \@beginparpenalty=\defsavedpenalty
+  \begin{minipage}{\defwidth}\setlength{\parskip}{.5\baselineskip}%
+}
+%% A signature: the type, the name in bold, the parameters
+\newcommand*{\signature}[3]{%
+  \noindent{\ttfamily\raggedright\frenchspacing\hangindent=2em\hangafter=1\relax #1 \textbf{#2}#3\par}}
+
+%% A function: #1 = return type, #2 = name, #3 = parameters
+\newcommand{\deffunx}[3]{%
+  \defindex{#2}%
+  \ifx\@firsttime\@undefined\medskip\fi
+  \gdef\@firsttime{}%
+  \signature{#1}{#2}{#3}}
+\newenvironment{deffun}[3]{%
+  \deffunx{#1}{#2}{#3}%
+  \defbodybegin
+}{%
+  \end{minipage}%
+  \end{flushright}%
+  \medskip
+  \global\let\@firsttime=\@undefined
+}
+
+%% A function template: #1 = template, #2 = return type, #3 = name,
+%% #4 = parameters
+\newcommand{\defTfunx}[4]{%
+  \defindex{#3}%
+  \ifx\@firsttime\@undefined\medskip\fi
+  \gdef\@firsttime{}%
+  \noindent{\ttfamily\raggedright\frenchspacing #1\par}
+  \signature{#2}{#3}{#4}}
+\newenvironment{defTfun}[4]{%
+  \defTfunx{#1}{#2}{#3}{#4}%
+  \defbodybegin
+}{%
+  \end{minipage}%
+  \end{flushright}%
+  \medskip
+  \global\let\@firsttime=\@undefined
+}
+
+%% A method: #1 = class, #2 = return type, #3 = name, #4 = parameters
+\newcommand{\defmethodx}[4]{%
+  \defindex{#3}%
+  \ifx\@firsttime\@undefined\medskip\fi
+  \gdef\@firsttime{}%
+  \noindent{\ttfamily\raggedright\frenchspacing\hangindent=2em\hangafter=1\relax\if#2\@empty\else #2 \fi#1::\textbf{#3}#4\par}}
+\newenvironment{defmethod}[4]{%
+  \defmethodx{#1}{#2}{#3}{#4}%
+  \defbodybegin
+}{%
+  \end{minipage}%
+  \end{flushright}%
+  \medskip
+  \global\let\@firsttime=\@undefined
+}
+
+%% A static method: #1 = class, #2 = return type, #3 = name, #4 = parameters
+\newcommand{\defstaticmethodx}[4]{%
+  \defindex{#3}%
+  \ifx\@firsttime\@undefined\medskip\fi
+  \gdef\@firsttime{}%
+  \noindent{\ttfamily\frenchspacing #2 #1::\textbf{#3}#4\hfill\textrm{\textit{static}}}\par}
+\newenvironment{defstaticmethod}[4]{%
+  \defstaticmethodx{#1}{#2}{#3}{#4}%
+  \defbodybegin
+}{%
+  \end{minipage}%
+  \end{flushright}%
+  \medskip
+  \global\let\@firsttime=\@undefined
+}
+
+%% A type: #1 = kind (struct, class, enum), #2 = name
+\newenvironment{deftype}[2]{%
+  \defindex{#2}%
+  \medskip
+  \noindent{\ttfamily\textbf{#2}\hfill\textrm{\textit{#1}}}\par
+  \defbodybegin
+}{%
+  \end{minipage}%
+  \end{flushright}%
+  \medskip
+}
+
+%% A constant: #1 = type, #2 = name
+\newenvironment{defconst}[2]{%
+  \defindex{#2}%
+  \medskip
+  \noindent{\ttfamily\frenchspacing #1 \textbf{#2}\hfill\textrm{\textit{const}}}\par
+  \defbodybegin
+}{%
+  \end{minipage}%
+  \end{flushright}%
+  \medskip
+}
+
+%% A macro without parameter: #1 = name
+\newenvironment{defmacro}[1]{%
+  \defindex{#1}%
+  \medskip
+  \noindent{\ttfamily\textbf{#1}\hfill\textrm{\textit{macro}}}\par
+  \defbodybegin
+}{%
+  \end{minipage}%
+  \end{flushright}%
+  \medskip
+}
+
+%% A macro with parameters: #1 = name, #2 = parameters
+\newenvironment{defmacroA}[2]{%
+  \defindex{#1}%
+  \medskip
+  \noindent{\ttfamily\textbf{#1}#2\hfill\textrm{\textit{macro}}}\par
+  \defbodybegin
+}{%
+  \end{minipage}%
+  \end{flushright}%
+  \medskip
+}
+
+%% The mathematical definition of an operation, one \op per line
+\newenvironment{operation}{%
+  \vspace*{-5pt}%
+  \def\op##1{\noindent{\small\ensuremath{\blacksquare}}\ ##1\par}%
+}{%
+  \par\smallskip
+}
+\makeatother
+
+%% The page of the copyright notice
+\newenvironment{copyrighttxt}{%
+  \parindent0pt%
+  \newpage
+  \thispagestyle{empty}%
+  \null\vfill
+}{%
+  \newpage
+}
+
+%% The numbers of the table of contents and of the lists are wider than in the
+%% thesis (3.10.10, 12.13)
+\makeatletter
+\renewcommand*{\l@section}{\@dottedtocline{1}{1.5em}{2.8em}}
+\renewcommand*{\l@subsection}{\@dottedtocline{2}{4.3em}{3.6em}}
+\renewcommand*{\l@table}{\@dottedtocline{1}{1.5em}{3.0em}}
+\renewcommand*{\l@figure}{\@dottedtocline{1}{1.5em}{3.0em}}
+\makeatother
+
+%% A column of a table whose text is set ragged right: L{width}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+%% The names of functions and options, in typewriter, are not hyphenated: let
+%% the lines holding them stretch rather than overflow into the margin
+\setlength{\emergencystretch}{3em}
+%% A box that overflows the margin by less than 5 pt, which is 2.5 cm wide, is
+%% not worth a warning
+\hfuzz=5pt
+
+%%--------------------------------------------------------------------------
+%% hyperref comes last
+%%--------------------------------------------------------------------------
+\usepackage{hyperref}
+%% The names of macros and functions, in typewriter, are long and are not
+%% hyphenated: a line may break after an underscore (GAOL_PRESERVE_ROUNDING),
+%% without a hyphen. In the strings of the PDF the underscore stays itself.
+\makeatletter
+\let\gaol@underscore\_
+\renewcommand*{\_}{\texorpdfstring{\gaol@underscore\hspace{0pt}}{\gaol@underscore}}
+\makeatother
+\hypersetup{
+    unicode      = false,
+    pdftoolbar   = true,
+    pdfmenubar   = true,
+    pdffitwindow = true,
+    pdftitle     = {GAOL v5: NOT Just Another Interval Library},
+    pdfauthor    = {Jordan Ninin, Frederic Goualard},
+    pdfsubject   = {The manual of GAOL v5},
+    pdfnewwindow = true,
+    pdfkeywords  = {interval arithmetic, IEEE 1788-2015, CORE-MATH,
+                    constraint programming, C++},
+    colorlinks   = true,
+    linkcolor    = blue,
+    citecolor    = blue,
+    filecolor    = blue,
+    urlcolor     = blue,
+    breaklinks   = true
+}
