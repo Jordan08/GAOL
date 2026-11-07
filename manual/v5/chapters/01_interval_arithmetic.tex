@@ -969,7 +969,7 @@ found.\newinvfive{} The statements hold for GAOL as the three builds make
 it, whatever the rounding direction the calling code left, on every
 architecture and with every compiler: for the SSE2, the NEON and the FPU
 intervals, and for the AVX-512 path, whose bounds are those of the SSE2
-intervals bit for bit. They hold under the conditions that chapter states: the
+intervals but for the sign of a zero bound of a product with a double. They hold under the conditions that chapter states: the
 code including the headers of GAOL compiled with the flags of interval
 arithmetic (\pxref{sec:compiling}), and the floating-point exceptions
 masked as a program starts (\pxref{sec:fp-exceptions}). The intervals of

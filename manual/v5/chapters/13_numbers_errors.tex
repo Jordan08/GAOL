@@ -13,8 +13,8 @@ computation, needs a few operations on these values: the neighbours of a
 double, the number of doubles between two of them, a minimum and a maximum
 that tell the two zeros apart. The first part of this chapter describes the
 constants and the functions on \code{double} that GAOL defines beside its
-intervals, the constants that tell a program the version of the library it
-is linked with, and two utility functions on integers.
+intervals, the constants that tell a program the version of the headers it
+was compiled with, and two utility functions on integers.
 
 \medskip
 The second part is about the errors. GAOL reports an error in one of two
@@ -41,8 +41,7 @@ facilities. Section~\ref{sec:errors-discussion} discusses the choices made.
 \findex{GAOL\_NAN}\findex{GAOL\_INFINITY}%
 
 In addition to the constants available through
-\code{numeric\_limits<double>}, GAOL defines the two \code{double} constants
-of the table below.
+\code{numeric\_limits<double>}, GAOL defines the two macros of the table below, which expand into \code{double} values.
 
 \begin{center}
   \renewcommand{\arraystretch}{1.1}
@@ -93,7 +92,7 @@ cout << boolalpha << feven(3.0) << ' ' << feven(4.0) << ' ' << feven(3.5);
 
 \begin{deffun}{double}{next\_float}{(double \var{x})}
   Returns the smallest \code{double} greater than \var{x}, the neighbour
-  \nextdouble{x} of \var{x}.
+  \nextdouble{x} of \var{x}; \code{next\_float(+oo)} is $+\infty$, and \code{next\_float(DBL\_MAX)} is $+\infty$ with every C library.
 \end{deffun}
 
 \begin{deffun}{double}{previous\_float}{(double \var{x})}
@@ -102,7 +101,7 @@ cout << boolalpha << feven(3.0) << ' ' << feven(4.0) << ' ' << feven(3.5);
 \end{deffun}
 
 \begin{deffun}{bool}{is\_signed}{(double \var{x})}
-  Returns \code{true} whenever \var{x} is signed. No provision is made for a
+  Returns \code{true} whenever the sign bit of \var{x} is set: for the negative numbers and $-0$. With \code{using namespace std;} and \code{using namespace gaol;}, as the examples of this manual assume, the name is ambiguous with the class template \code{std::is\_signed}: the call is written \code{gaol::is\_signed(x)}. No provision is made for a
   NaN: a program that wants to test for the negative numbers and $-0$ alone
   has to test also whether \var{x} is a NaN, with \code{std::isnan()}.
 \end{deffun}
@@ -166,7 +165,7 @@ cout << nb_fp_numbers(1.0, next_float(1.0)) << ' '
 \cindex{version of the library}%
 
 The headers of the library define four constants that give the version of
-GAOL a program was compiled with. The
+GAOL a program was compiled with, from the macros \code{GAOL\_MAJOR\_VERSION}, \code{GAOL\_MINOR\_VERSION}, \code{GAOL\_MICRO\_VERSION} and \code{GAOL\_VERSION} of \file{gaol/gaol\_configuration.h}, which a program tests with \code{\#if} (\pxref{sec:install-configuration-header}). The
 versioning scheme is the one of the Apache Software Foundation, described at
 \url{http://apr.apache.org/versioning.html}. The constants are declared in the namespace \code{gaol\_core} and named in
 \code{gaol} and \code{gaol\_ieee1788}.\newinvfive
@@ -229,9 +228,9 @@ The exceptions are those of the standard library, declared in
 \medskip
 The mechanism in use depends on the way the library is configured
 (Chapter~\ref{chap:installation}). With the option
-\loption{enable-exceptions=yes} of \cmd{configure}, the default, every error
-is reported by an exception. A build without
-\code{GAOL\_EXCEPTIONS\_ENABLED}, obtained with \loption{disable-exceptions}
+\loption{enable-exceptions=yes} of \cmd{configure}, the default, every error of an operation
+is reported by an exception; an AVX-512 build started on a processor without these instructions prints a message and aborts in every build. A build where
+\code{GAOL\_EXCEPTIONS\_ENABLED} is 0, obtained with \loption{disable-exceptions}
 of \cmd{configure}, \option{-Denable-exception=false} of meson or
 \option{-DGAOL\_EXCEPTIONS\_ENABLED=OFF} of CMake, prints a
 message on the standard error and aborts instead of throwing. This is a setting
@@ -245,16 +244,14 @@ finds as it computes, a wrong call (\code{nth\_root(8, 1.5)},
 \code{<a, b>} or a bound of it that is no double make it fail as a syntax
 error does: \code{parse\_interval()} returns \code{false}, and
 \code{gaol\_ieee1788::textToInterval()} the empty set, as IEEE 1788-2015 has
-it (12.12.7), where GAOL used to end the program.
+it (12.12.7).
 \code{gaol::textToInterval()} and the operator \code{>{}>} print a message
 and abort then, as for any string that is no interval.\newinvfive
 \end{Rem}
 
 \medskip
 Where memory runs out, GAOL throws the \code{std::bad\_alloc} of C++. The
-reader of strings does too, where flex ended the program with \code{exit(2)}
-when it could not allocate its buffer, and the parser turned a stack it could
-not grow into a \code{std::invalid\_argument}.\newinvfive
+reader of strings does too, and frees what it allocated; in GAOL~4, flex ended the program with \code{exit(2)} when it could not allocate its buffer, and the parser read a stack it could not grow as a string nested too deep.\newinvfive
 
 \medskip
 It is up to the user to comply with this mechanism when adding error
@@ -266,9 +263,9 @@ whenever one wants to report an error.
   \loption{enable-exceptions}. If the exceptions are enabled, an exception of
   the class \var{excep} is thrown with the text
   ``\code{file:line: }\var{msg}'', \code{file} and \code{line} being those of
-  the macro (\code{\_\_FILE\_\_}, cut after its last \code{/} or
-  \code{\textbackslash}, and \code{\_\_LINE\_\_}, in
-  \file{gaol/gaol\_common.h}): the path of the machine that built GAOL is not
+  the place where the macro is written (\code{\_\_FILE\_\_}, cut after its last
+  \code{/} or \code{\textbackslash}, and \code{\_\_LINE\_\_}; \code{error\_text()}
+  of \file{gaol/gaol\_common.h}): the path of the machine that built GAOL is not
   in the message. The class \var{excep} derives from \code{std::exception},
   in practice one of \code{<stdexcept>}; the compiler refuses any other type,
   by a \code{static\_assert}, in a build that aborts as in one that throws.
@@ -287,7 +284,7 @@ if (x.is_empty()) {
 
 The function \code{gaol\_error()} is defined as follows.
 
-\deffunx{void}{gaol\_error}{(const char *const \var{err})}
+\deffunx{void}{gaol\_error}{(const char *\var{err})}
 \begin{deffun}{void}{gaol\_error}{(const char *\var{file}, int \var{line},
 const char *\var{err})}
 Displays a message on the standard error output. The ternary version should
@@ -369,16 +366,14 @@ operator ``\code{<{}<}'' that wrote them, and the classes
 \code{unavailable\_feature\_error} of \file{gaol/gaol\_exceptions.h}. The
 classes become those of the standard library:
 \begin{itemize}
-\item \code{gaol\_core::input\_format\_error} becomes
+\item \code{gaol::input\_format\_error} becomes
   \code{std::invalid\_argument};
-\item \code{gaol\_core::invalid\_action\_error} becomes
+\item \code{gaol::invalid\_action\_error} becomes
   \code{std::domain\_error}.
 \end{itemize}
 \noindent
 What \code{explanation()} gave follows the file and the line in
-\code{what()}. No operation of GAOL v5 threw
-\code{unavailable\_feature\_error}: \code{atan2()}, which did, is
-implemented.\newinvfive
+\code{what()}. \code{unavailable\_feature\_error} has no replacement: \code{atan2()}, which threw it in GAOL~4, is implemented.\newinvfive
 \end{Rem}
 
 \subsection{The \code{std::invalid\_argument} exception}%
@@ -404,17 +399,18 @@ try {
 
 \subsection{The \code{std::domain\_error} exception}\label{sec:domain_error}
 
-The exception \code{std::domain\_error} is thrown whenever a function is
-called with invalid arguments, as \code{nb\_fp\_numbers()} with NaNs as
-parameters (\pxref{sec:fp-functions}) or \code{bisect()} with a ratio outside
-$(0, 1)$ (\pxref{sec:splitting}), or when a string calls a function with an
-argument it does not take, as \code{"nth\_root(8, 1.5)"} does.
+The exception \code{std::domain\_error} is thrown in three cases only:
+\code{nb\_fp\_numbers()} with NaNs as parameters (\pxref{sec:fp-functions}),
+\code{bisect()} with a ratio outside $(0, 1)$ (\pxref{sec:splitting}), and a
+string that gives a function an argument it does not take, as
+\code{"nth\_root(8, 1.5)"} does.
 
 \subsection{Warnings}\label{sec:warnings}
 \cindex{warnings}%
 
-GAOL writes its warnings, as its error messages, on the standard error
-output \code{std::cerr}, with the following function.
+GAOL writes no warning itself; the following function writes one, as
+\code{gaol\_error()} writes an error, on the standard error output
+\code{std::cerr}, for the code that uses GAOL.
 
 \deffunx{void}{gaol\_warning}{(const char *\var{warn})}
 \begin{deffun}{void}{gaol\_warning}{(const char *\var{file}, int \var{line}, const char *\var{warn})}
@@ -434,7 +430,7 @@ has been configured with them. The Debug build of each build enables them:
 \loption{buildtype=debug} with meson; \option{-DGAOL\_DEBUG=ON} with CMake
 and \option{-Denable-debug=true} with meson enable them whatever the build
 type.\newinvfive{} These builds define \code{GAOL\_DEBUGGING} to 1 in
-\file{gaol/gaol\_configuration.h}, where it is 0 otherwise, as every option
+\file{gaol/gaol\_configuration.h} (with a generator of several configurations, Visual Studio or Xcode, only for the sources of GAOL in the configuration Debug: the header keeps 0, and \code{GAOL\_DEBUG\_VERBOSE} expands to nothing in the program), where it is 0 otherwise, as every option
 of that file, so that it is read with \code{\#if} (\code{\#ifdef} is true of
 it in every build). The Debug builds compile without \code{NDEBUG} too, so
 that \code{assert()} stays active.\newinvfive
@@ -448,7 +444,7 @@ that \code{assert()} stays active.\newinvfive
 
 \begin{defmacroA}{GAOL\_DEBUG\_VERBOSE}{(\var{lvl},\var{cmd})}
   Executes \var{cmd} if \var{lvl} is lower than or equal to the current
-  debugging level, the variable \code{debug\_level} above. The macro was
+  debugging level, the variable \code{debug\_level} above, which the macro names unqualified: it is used where \code{gaol} or \code{gaol\_core} is open. The macro was
   named \code{GAOL\_DEBUG} before GAOL v5; this name is now the option of
   CMake that builds GAOL for debugging.\newinvfive
 
@@ -483,7 +479,7 @@ maximum that order $-0$ before $+0$ and propagate a NaN. The doubles of
 GAOL~4 that named $\pi$ and $\ln 2$ left the namespace, so that a program
 opening it keeps a \code{pi} of its own; the constants of the class
 \code{interval} replace them.\newinvfive{} Four constants give the version
-of the library a program is linked with.
+of the headers a program was compiled with.
 
 \medskip
 On the errors, GAOL v5 made one choice: it throws the exceptions of the
