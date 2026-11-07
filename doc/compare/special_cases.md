@@ -35,7 +35,7 @@ pred(MAX) the one below it.
 | filib++ | 3.0.2.2, as IBEX distributes it | `interval<double, native_switched, i_mode_extended_flag>`, the intervals of IBEX built with filib++: the extended mode, where the infinities and the empty set are intervals |
 | PROFIL/BIAS | 2.0.8 (2009), configuration `x86-64-Linux-compat-gcc` | `INTERVAL` of PROFIL, on the BIAS routines, which set the rounding direction for each operation; no empty set |
 | Solaris Studio | Sun Fortran 95 8.7 (Solaris Studio 12.4), Linux x86-64 | `interval(8)` of `f90 -xia`, computed by `libsunimath` |
-| Boost.Interval | Boost 1.92.0 (2026), with the elementary functions of glibc 2.31 | `interval<double>` with its default policies, the rounding `save_state<rounded_arith_opp<double> >` and the checking `checking_strict<double>`, the first replaced by `save_state<rounded_transc_opp<double> >`, which adds the elementary functions of the C library to the same arithmetic (see [Enclosure](enclosure.md#the-policies-of-boostinterval)) |
+| Boost.Interval | Boost 1.92.0 (2026), with the elementary functions of glibc 2.43 | `interval<double>` with its default policies, the rounding `save_state<rounded_arith_opp<double> >` and the checking `checking_strict<double>`, the first replaced by `save_state<rounded_transc_opp<double> >`, which adds the elementary functions of the C library to the same arithmetic (see [Enclosure](enclosure.md#the-policies-of-boostinterval)) |
 
 Each case is written once, in [code/cases.py](code/cases.py), and translated
 for each library: libieeep1788 has no operators of an interval and a double

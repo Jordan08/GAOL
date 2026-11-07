@@ -125,7 +125,9 @@ CRlibm keeps Ziv's two phases but changes what is guaranteed:
 
 Its price was the work of a specialist for each function, a narrow coverage (a
 dozen functions, binary64 only — neither tanh nor asinh, acosh, atanh), and a
-LGPL licence that kept it out of the libm of the systems. Its direct
+LGPL licence, which a libm that asks for a permissive one, as musl's does,
+cannot take; the glibc, itself under the LGPL, was asked in 2007 by one of the
+authors of CRlibm whether it wanted it, and has not taken it. Its direct
 descendant is Metalibm (de Dinechin, Kupriianova, Lauter): generating the code
 and its proof rather than writing them.
 
@@ -140,9 +142,9 @@ as much a strategy of adoption as a technique.
   libms.** It answers the reason mathlib was removed from the glibc: if
   correct rounding costs nothing, the argument from latency falls.
 - **The licence is MIT**, deliberately permissive, so that the code can be
-  taken up by the glibc, the libm of LLVM or musl. It answers the reason
-  CRlibm was not adopted, and it works: routines of CORE-MATH have been
-  integrated upstream. It is also what lets GAOL v5 take the
+  taken up by the glibc, the libm of LLVM or musl. It gives what a libm that asks
+  for a permissive licence, musl's for one, wants and the LGPL of CRlibm did
+  not give, and it works: routines of CORE-MATH have been integrated upstream. It is also what lets GAOL v5 take the
   sources it needs into `3rd/math-core`, with a few changes marked in the code (see
   [3rd/README.md](../3rd/README.md)), and compile them into its library.
 - **The coverage is wide**: the functions of C23, in binary32, binary64 and
@@ -178,14 +180,15 @@ for the short formats (binary32, bfloat16, posits).
 | Worst case | bounded | **unbounded** | bounded | bounded |
 | Rounding | to nearest | to nearest | the four, explicit | the four, the one in effect |
 | Formats | all | binary64 | binary64 | binary32, 64, 128 |
-| Licence | permissive | LGPL | LGPL | **MIT** |
+| Licence | permissive (fdlibm), LGPL (glibc) | LGPL | LGPL | **MIT** |
 | State | alive | frozen | abandoned | active, being adopted |
 
 The line of the story is plain: **libm** established that a math library had
 to be portable and fast; **mathlib** showed that correct rounding was
 reachable on average, and was rejected on its worst case; **CRlibm** showed
-that it could be proved and bounded, and was not adopted for want of a
-licence, of coverage and of maintenance; **CORE-MATH** takes all of it up and
+that it could be proved and bounded, and was not adopted, for want of
+coverage, of maintenance and, for the libms that ask for a permissive licence,
+of one; **CORE-MATH** takes all of it up and
 treats industrial adoption — performance, MIT licence, C23 coverage,
 standardisation — as a design constraint of the same rank as accuracy.
 

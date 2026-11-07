@@ -393,7 +393,7 @@ refusal.
 ## What these platforms showed
 
 What building and testing GAOL on these platforms showed, while the workflows
-were written and since their first run on 13 September 2026, and what was
+were written and since their first run in September 2026, and what was
 changed in GAOL for it; [What differs from GAOL](differences.md) gives each
 change with its measures.
 
