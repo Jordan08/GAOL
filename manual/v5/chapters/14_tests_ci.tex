@@ -1452,8 +1452,8 @@ macros that \file{gaol/gaol} and the two headers of the parser define, the
 include guards apart, start with \code{GAOL\_} or \code{gaol\_}.
 \option{-Werror} and \option{/WX} go to the targets only
 (\option{CMAKE\_COMPILE\_WARNING\_AS\_ERROR}), so that no check of CMake
-fails on a warning of its test program. Until then, the library was compiled
-with \option{-Wall -Wconversion}, and no job failed on a warning.
+fails on a warning of its test program. The library is also compiled with
+\option{-Wall -Wconversion} in every build, which fails no job.
 
 \paragraph{The locales and the manual.} The jobs on Ubuntu and in the Debian
 containers generate \code{fr\_FR.UTF-8} before the tests with
@@ -1971,8 +1971,10 @@ The tests run 94.3\,\% of the lines of GAOL, above the 80\,\% GAOL v5 aims
 at, and 66.5\,\% of its branches are taken both ways. The lines of CORE-MATH
 that are never run are its accurate phases, which a handful of arguments in
 a million reach, and the paths of the architectures the machine is not: they
-are covered by the comparison with the upstream sources compiled unchanged
-(\pxref{sec:test-programs}), not by counting lines. File by file, the least
+are not counted; the accurate path of \code{sin} is compared with the upstream
+sources compiled unchanged, and that of \code{cos} with its roundings computed
+by mpmath (\pxref{sec:test-programs}), and the other accurate phases are reached
+by the tests of their bounds only. File by file, the least
 covered are \file{gaol/parser/gaol\_expr\_visitor.h} (9 of 99 lines, 9.1\,\%),
 \file{gaol/parser/gaol\_expr\_eval.h} (87.3\,\%),
 \file{gaol/parser/gaol\_expression.cpp} (89.6\,\%) and
@@ -2007,8 +2009,8 @@ code: it is measured by building the base and the head in the same job and
 running them in turn, and only a ratio of 1.5 or more, beyond the spread of
 the runs, means something. The coverage report counts the lines of GAOL
 apart from those of CORE-MATH, whose accurate phases a handful of arguments
-in a million reach, and covers them by the comparison with the upstream
-sources instead.
+in a million reach, and compares the accurate path of \code{sin} with the
+upstream sources instead.
 
 \medskip
 Some checks are deferred or left out, for the reasons the documentation
