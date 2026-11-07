@@ -130,7 +130,7 @@ only (see [The speed of a pull request](#the-speed-of-a-pull-request)). The badg
 They also build GAOL with autotools and meson on Ubuntu (x86_64, arm64),
 Debian (i386, armhf), macOS (arm64, x86_64), MSYS2 (UCRT64 for x64, MINGW32
 for x86, GAOL v5) and Cygwin, and with meson and
-Visual Studio 2022 and 2026 (x64, x86), and with meson 0.53.2, the oldest the
+Visual Studio 2022 (x64, x86) and 2026 (x64, arm64), and with meson 0.53.2, the oldest the
 meson build takes (Ubuntu x86_64, GAOL v5), run the tests (`make test`,
 `ninja test`), and build them again with the
 GAOL they install, which is the only library installed, CORE-MATH being
@@ -209,11 +209,13 @@ armhf, s390x, ppc64le and riscv64.
 Four jobs of `linux.yml`, with the GCC and the Clang of Ubuntu 26.04 on x86_64
 and on arm64, and one of `macos.yml`, with the AppleClang of macOS 26 arm64,
 build the library, the sources of CORE-MATH included, the tests and the
-examples with `-Wall -Wextra -Werror`, and two of `windows.yml` with `/W4 /WX`,
-with the Visual C++ of Visual Studio 2026 x64 and x86. Those of arm64 compile
-the header and the sources of the NEON intervals, with the warnings of the
-headers (`-Wold-style-cast`, `-Wundef`) that the intrinsics of `<arm_neon.h>`
-have to stay clear of (GAOL v5). The first five check the headers
+examples with `-Wall -Wextra -Werror`, and four of `windows.yml` with `/W4 /WX`,
+with the Visual C++ of Visual Studio 2026: x64 in Release, with and without the
+AVX-512 path, x64 in Debug, and x86 in Release. On arm64, the check of the
+installed headers below compiles the header of the NEON intervals, which
+`gaol/core/gaol_interval_core.h` includes, with the warnings of the headers
+(`-Wold-style-cast`, `-Wundef`) that the intrinsics of `<arm_neon.h>` have to
+stay clear of (GAOL v5). The first five check the headers
 GAOL installs with `.github/scripts/headers.sh` (GAOL v5): each compiles alone
 with `-std=c++11`, the oldest standard GAOL takes, and
 `-Wall -Wextra -Wold-style-cast -Wundef -Werror` (they have no cast of C,
@@ -306,7 +308,7 @@ NEON intervals) and with GCC and the FPU intervals (the kernels of #157); macOS
 26 arm64 (the NEON intervals) and macOS 15 x86_64; Visual Studio 2026 x64, x86,
 arm64, and x64 with the rounding direction preserved (with the AVX-512 path
 left out too, which measures the macros that write MXCSR alone), and with
-clang-cl for x64, x86 and arm64; MSYS2 UCRT64 (GCC), CLANG64 (Clang) and CLANGARM64 (Clang);
+clang-cl for x64, x86 and arm64; MSYS2 UCRT64 (GCC) and CLANG64 (Clang);
 and Debian 13
 containers for i386 and armhf, `gaol_performance` alone and no cache there (the
 image of Debian changes under the job). The other platforms (POWER, s390x,

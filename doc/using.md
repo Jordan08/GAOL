@@ -625,7 +625,7 @@ relation (see
 [Relations, sorting and containers](#relations-sorting-and-containers)).
 The names are those of IBEX 2.9.1 (`ibex_Interval.h`), Codac 2
 (`codac2_Interval.h`), C-XSC 2.5.4 (`interval.hpp`, `interval.inl`),
-PROFIL/BIAS 2.0.8 (`Interval.h`) and Boost 1.86 (`boost/numeric/interval/`),
+PROFIL/BIAS 2.0.8 (`Interval.h`) and Boost 1.92.0 (`boost/numeric/interval/`),
 read in their sources.
 
 ## Relations, sorting and containers
@@ -1055,9 +1055,10 @@ example; they are listed here for the reader who looks in this page first.
   and `10 -3.56?1` throws too. A blank is needed after the sign: `10 - 3.56?1`,
   or `10- 3.56?1`.
 - **A long number.** Reading a long number takes a time quadratic in its
-  number of digits: `"0."` followed by 20 000 digits `3` takes 0.017 s,
-  80 000 digits 0.28 s, 320 000 digits 4.4 s (about 45 s expected for a
-  million), and the uncertain form 2.3 times as long. A text from elsewhere
+  number of digits: `"0."` followed by 20 000 digits `3` takes 0.011 s,
+  80 000 digits 0.18 s, 320 000 digits 2.8 s (about 28 s expected for a
+  million), and the uncertain form 2.2 to 2.4 times as long (Intel i7-1185G7,
+  GCC 15.2, the best of five runs, 7 November 2026). A text from elsewhere
   can thus block a program.
 - **Threads and the global settings.** `interval::format()` and
   `interval::precision()` are plain variables of the program, shared by its
@@ -1485,7 +1486,7 @@ The operands of `gaol_performance` are 1 024 intervals that the processor
 learns by heart, so that a branch on their signs costs less than it does on
 other operands. On 100 000 intervals centred at random (the benchmark of
 `doc/compare`), `x * y` took 13.9 ns and takes 3.5, `x / y` 8.5 and 3.2,
-`sqr(x)` 6.9 and 1.8, `x - y` 3.7 and 2.0, and Shekel 5 298 ns and 138.
+`sqr(x)` 6.9 and 1.8, `x - y` 3.7 and 2.0, and the function Shekel 5 298 ns and 138.
 
 A line of products of operands of one sign, which a processor predicts, takes
 **more** time: 7 products in a line took 23.3 ns and take 35.0 (23.7 and 35.2
@@ -1542,7 +1543,7 @@ doubles, and their columns here are no longer those of the default build:
 
 The product wins where the signs are random (1.23 to 3.47 times) and, alone, of
 positive operands on 32-bit ARM, Visual C++ and Ubuntu. It loses on the lines of
-products of positive operands with GCC on Linux (0.58 for the line of 7 `*`,
+products of positive operands with GCC 13 on Ubuntu for x86-64 (0.58 for the line of 7 `*`,
 that is 1.7 times slower, where the Apple M2 above gives 23.3 and 35.0 ns, 1.5
 times) and with clang-cl for arm64 (0.57), and alone with clang-cl for arm64
 (0.77): there, the branch of the former code is well predicted and the kernel

@@ -297,13 +297,16 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   (below) set none, their instructions carrying their rounding. An operation
   that rounds nothing (`-x`, `abs()`, `min()`, `floor()`, the predicates...) or
   returns before its check (`y * empty`, `exp(empty)`) leaves the direction as
-  it found it (see [Using GAOL](using.md#the-rounding-direction)). Built with
-  CMake, GAOL set it once, in `gaol::init()`, and computed in the direction the
-  calling code left: rounding to nearest,
+  it found it (see [Using GAOL](using.md#the-rounding-direction)). GAOL 4 has
+  no CMake build; the one of the 4.3 releases of GAOL v5, which derives from
+  that of IBEX, set it once, in `gaol::init()`, and computed in the direction
+  the calling code left: rounding to nearest,
   downward or toward zero, 30 operations gave other bounds, and sums and
   products did not enclose their exact values (3199 of the 13825 checks of
   `rounding_direction` failed with GCC 9.4 on x86-64). Built with autotools or
-  meson, GAOL restored the rounding direction after each operation, but only
+  meson, whose option `--enable-preserve-rounding` is on by default in GAOL 4
+  although its manual says the contrary, GAOL 4 restored the rounding direction
+  after each operation, but only
   the x87 control word on x86-64, where GAOL computes with SSE (43 operations
   left the SSE instructions rounding to nearest or upward, whatever direction
   they found), and without the rounding bits of the FPCR register on arm64.
@@ -799,10 +802,10 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   `+`, `-`, `*`, `/`, `sqr()` and `sqrt()` are kernels that take and return
   them in registers: the product is the maximum of four products, with no
   branch on the signs, and the quotient one vector division when the divisor
-  holds no zero. On an Apple M2 (AppleClang 21.0), `x + y` takes 0.91 ns rather
-  than 1.18, `x * y` 2.14 ns rather than 3.33, `x / y` 2.39 ns rather than
-  3.30, `sqrt(x)` 1.70 ns rather than 4.60 and a line of 13 operations 19.2 ns
-  rather than 51.7, the second figures being those of the FPU intervals
+  holds no zero. On an Apple M2 (AppleClang 21.0), `x + y` takes 0.90 ns rather
+  than 1.15, `x * y` 1.52 ns rather than 3.26, `x / y` 2.08 ns rather than
+  3.22, `sqrt(x)` 2.04 ns rather than 5.17 and a line of 13 operations 16.6 ns
+  rather than 50.6, the second figures being those of the FPU intervals
   (`GAOL_SIMD=OFF`). The bounds are the same, but for the sign of a zero bound,
   which the maximum of 64-bit ARM, ranking +0 above -0, can set otherwise than
   the SSE2 and the FPU intervals do: the lower bound of `[-1, 0] * [-1, 0]` is
@@ -810,7 +813,7 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   each operation checks it with one `mrs` (0.8 ns on the M2), which raises no
   exception flag, and writes it with `msr` only if it is not upward or a flush
   mode is set; with `GAOL_PRESERVE_ROUNDING`, an operation takes 27 ns rather
-  than 39. Visual C++ has no inline assembly for ARM64: GAOL reads and writes
+  than 37. Visual C++ has no inline assembly for ARM64: GAOL reads and writes
   FPCR there through `_ReadStatusReg(ARM64_FPCR)` and `_WriteStatusReg()`. The
   operations clear the bits FZ and FIZ of FPCR, which flush the subnormal
   numbers to zero, with Visual C++ as with the others; the FPU intervals of
@@ -894,11 +897,12 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   `doc/compare`, `x * y` takes 3.5 ns rather than 13.9, `x / y` 3.2 rather than
   8.5, `sqr(x)` 1.8 rather than 6.9, and Shekel 5 138 ns rather than 298. A line
   of products of operands of one sign, which a processor predicts, takes more
-  time (seven `*` in a row: 35.8 ns rather than 23.8, and 1.7 times longer with
+  time (seven `*` in a row: 35.0 ns rather than 23.3, and 1.7 times longer with
   GCC 13 on x86-64 in the continuous integration), and with
-  `GAOL_PRESERVE_ROUNDING` the kernels gain nothing: the write of the control
-  register waits for the result, which the kernel of the product delays (`x * y`
-  44.4 ns rather than 42.2).
+  `GAOL_PRESERVE_ROUNDING` the kernels lose 7 % on operands of one sign and gain
+  11 % on operands of random signs: the write of the control register waits for
+  the result, which the kernel of the product delays (`x * y` 42.4 ns rather
+  than 39.7 of one sign, and 42.4 rather than 47.5 of random signs).
   - **The sign of a zero bound of a product is not specified.** The bounds are
     those of the former code but for the sign of a zero bound. Where two
     products are a +0 and a -0 (the lower bound of `[-1, 0] * [-1, 0]`, the
@@ -947,9 +951,10 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   there. Each number is now compared exactly with the doubles around it,
   whatever the number of digits of its significand and of its exponent.
   The time to read a number is quadratic in the number of its digits: `"0."`
-  followed by 20000 digits `3` takes 0.017 s, 80000 digits 0.28 s and 320000
-  digits 4.4 s (about 45 s expected for a million), and the uncertain form 2.3
-  times as long, so that a text from elsewhere can block a program.
+  followed by 20000 digits `3` takes 0.011 s, 80000 digits 0.18 s and 320000
+  digits 2.8 s (about 28 s expected for a million), and the uncertain form 2.2
+  to 2.4 times as long (Intel i7-1185G7, GCC 15.2, the best of five runs,
+  7 November 2026), so that a text from elsewhere can block a program.
 - **Numbers are read, and exact texts written, whatever the locale** of the
   program. GAOL read numbers with `strtod()`, which reads the decimal point of
   the C locale: under a locale writing a decimal comma, as
@@ -1159,7 +1164,7 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   - **Before.** GAOL took them from the libm of the system, and moved their
     values one float outward. The libms of glibc 2.31, musl and MinGW-w64 are
     sometimes a float further, which gave bounds not enclosing the exact
-    values; the `acosh` of MinGW-w64 11 to 13 is millions of doubles away next
+    values; the `acosh` of the MinGW-w64 older than version 12 is millions of doubles away next
     to 1, and its `asinh` NaN for large negative numbers.
   - **The sources.** The tree of CORE-MATH is vendored in `3rd/math-core` (MIT
     licence), without the `.wc` files and without the formats other than
@@ -1263,7 +1268,7 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
     [0, +oo], `gaol_ieee1788::pow(x, [2])` call `sqr(x)`, the squares of the
     bounds rounded outward, and not the exact products of the integer power,
     which a square does not need: with them `pow(x, 2)` took 5.3 ns with the
-    NEON intervals and 5.2 with the FPU intervals, and it takes 1.7 and 2.2
+    NEON intervals and 5.2 with the FPU intervals, and it takes 1.6 and 1.9
     now (Apple M2, AppleClang 21); the 6 million calls of `pow(x, 2)` of
     `examples/16_Goldstein_Price.cpp` take 50 ms rather than 77 with the NEON
     intervals. The sign of a zero bound is that of `sqr(x)` in each build:
@@ -2469,7 +2474,7 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
     compile, link and run a program for the fused multiply-add instructions and
     the AVX-512 path (taken with `GAOL_PRESERVE_ROUNDING`, where it computes 2.8
     times faster at the median on an Intel i7-1185G7, and left out without it,
-    where it costs 17 %; see [SIMD, FMA and the rounding
+    where the operations take 20 % longer; see [SIMD, FMA and the rounding
     direction](simd.md#when-the-build-takes-the-avx-512-path)), by
     `gaol/math/gaol_u128.h`, which a check compiles, for the 128-bit integer,
     and by the build type for the debugging.
@@ -2524,7 +2529,7 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
     checks its flags.
   - **CMake without a build type**, with `add_subdirectory` or FetchContent and
     a generator of one configuration: `libgaol` had `-O3` alone and CORE-MATH no
-    optimization at all; both are compiled as in Release now, with `-O3` (`/O2`
+    optimization at all in the earlier versions of GAOL v5; both are compiled as in Release now, with `-O3` (`/O2`
     with Visual C++), `NDEBUG` and the optimizations of configure
     (`tests/release_flags.py` checks the commands). With a generator of several
     configurations (Visual Studio, Xcode, Ninja Multi-Config), GAOL built alone
@@ -2641,10 +2646,12 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   listing with an installed GAOL and runs it, in the continuous integration
   too), the names of IEEE 1788-2015, the accuracy of each operation, and what a
   program written for GAOL 4 has to change. The manual of GAOL 4 is kept in
-  `manual/v4`, and `make -C manual pdf` and the target `pdf` of the meson build
-  build both.
+  `manual/v4`, with its PDF `manual/v4/Manual_GAOLv4.pdf`, built once; `make -C
+  manual pdf` and the target `pdf` of the three builds build the manual of GAOL
+  v5 only.
 - **The manual of GAOL 4 compiles again** (issue #13): `manual/v4/gaol.pdf`
-  was the PDF of 2009, and `gaol.tex` no longer compiled. The manual still
+  was the PDF of 2009 (replaced by `manual/v4/Manual_GAOLv4.pdf`), and
+  `gaol.tex` no longer compiled. The manual still
   describes the mathematical libraries and the options of GAOL 4.
   `marginbib`, a package of 2000 kept with the manual, patches the output
   routine of LaTeX and stops with the LaTeX of today; the references in the
@@ -2652,9 +2659,9 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   `\marginnocite` in `manual.cls`), and listed at the end of the manual. The
   `multicol.sty` of 2006 kept with the manual is removed for the one of LaTeX,
   and the fonts are Latin Modern, the PDF embedding bitmaps otherwise where
-  the cm-super fonts are not installed. `manual/build-pdf.sh` builds it, for
-  `make -C manual pdf` and for the target `pdf` of the meson build, which had
-  none.
+  the cm-super fonts are not installed. `manual/build-pdf.sh` builds it (`sh
+  manual/build-pdf.sh manual/v4 <build directory> manual/v4/Manual_GAOLv4.pdf`);
+  no build runs it any more.
 - **The Goldstein-Price function of the manual and of
   `examples/16_Goldstein_Price.cpp`** had the factor `(x + y)^2` where the
   function has `(x + y + 1)^2`, as in GAOL 4 (`examples/Goldstein_Price.cpp`);

@@ -314,8 +314,8 @@ at -O3 (both checked), and refuses Cygwin without `-mfma`. Its
 `previous_float()` and `next_float()` now tell apart (the lower bound of
 `sinh(-711)` did not enclose the value; `elementary` failed on it).
 `is_bisectable()` and `bisect()` call no `nextafter()`: they tell the bounds
-by their bits. A Debug
-build of Cygwin is not in the job; `tests/core_math.cpp` and
+by their bits. The Debug
+build of Cygwin is built and tested too; `tests/core_math.cpp` and
 `tests/arithmetic.cpp` call `__builtin_fma` as GAOL does.
 
 CPack of Cygwin could not make the archive of the sources in the job of 23

@@ -15,7 +15,7 @@ The line-by-line report is [coverage.html](coverage.html), one page holding its 
 
 Branches: 66.5 % of those of GAOL are taken both ways.
 
-The lines of CORE-MATH that are never run are its accurate phases, which a handful of arguments in a million reach, and the paths of the architectures this machine is not: they are covered by the comparison with the upstream sources instead (see `doc/tests.md`), not by counting lines.
+The lines of CORE-MATH that are never run are its accurate phases, which a handful of arguments in a million reach, and the paths of the architectures this machine is not. They are not counted: the accurate path of `sin` is compared with the upstream sources compiled unchanged, and that of `cos` with its roundings computed by mpmath (see `doc/tests.md`); the other accurate phases are reached by the tests of their bounds only.
 
 ## GAOL, file by file
 

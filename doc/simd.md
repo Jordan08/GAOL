@@ -93,7 +93,7 @@ faster.
 | line of 13 `+ - * /` (`mix13`) | 23.87 | 35.10 | 0.68 | 110.7 | 32.61 | 3.39 |
 
 The median of the seven operations is 0.83 without `GAOL_PRESERVE_ROUNDING`
-(the path loses 17 %, and 32 % on the ten long lines, whose median is 0.68; only
+(the operations take 20 % longer with the path, and 47 % longer on the ten long lines, whose median is 0.68; only
 `sqrt` gains) and 2.80 with it (every operation gains, the ten lines by 1.75 to
 4.81, median 3.39). The path pays where each operation would otherwise write
 the control register twice, and costs where it writes it only if the direction

@@ -217,9 +217,9 @@ operations give the tightest intervals in every library, and so do the square
 roots, except those of GAOL 4.2.3, filib++ and PROFIL/BIAS. Of the elementary
 functions, **only GAOL V5.0.0's are the tightest on every operation**: on
 average the others are wider than libieeep1788's by up to 5.9e-14 relatively
-with GAOL 4.2.3 (the real power, computed as exp(y·log(x))), 3.4e-15 to
-2.4e-13 with filib++ (1.4e-13 for log, 2.4e-13 for the real power), 6.4e-15 to
-1.2e-13 with PROFIL/BIAS, and at most 4.6e-15 with Solaris Studio; with
+with GAOL 4.2.3 (the real power, computed as exp(y·log(x))), 2.1e-14 to
+2.4e-13 with filib++ (1.4e-13 for log, 2.4e-13 for the real power), 9.0e-15 to
+1.2e-13 with PROFIL/BIAS, and at most 4.1e-15 with Solaris Studio; with
 Boost.Interval, by 1.4e-14 and 2.5e-14 on cos and sin and 3.7e-14 on the real
 power, its exp and log being as tight as libieeep1788's on average: the sums
 cannot show that its upper bound of exp is one double too low in 2 to 3 % of

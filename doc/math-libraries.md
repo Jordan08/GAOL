@@ -142,8 +142,8 @@ as much a strategy of adoption as a technique.
 - **The licence is MIT**, deliberately permissive, so that the code can be
   taken up by the glibc, the libm of LLVM or musl. It answers the reason
   CRlibm was not adopted, and it works: routines of CORE-MATH have been
-  integrated upstream. It is also what lets GAOL v5 simply copy the
-  sources it needs into `gaol/core_math_*.c`.
+  integrated upstream. It is also what lets GAOL v5 take the
+  sources it needs as they are, in `3rd/math-core`, and compile them into its library.
 - **The coverage is wide**: the functions of C23, in binary32, binary64 and
   binary128, the recent functions included.
 - **The validation is graded**: in binary32 it is exhaustive — the 2³²

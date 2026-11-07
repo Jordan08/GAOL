@@ -53,6 +53,8 @@ the interval literals, and the accuracy of each operation, which
 ## Quick start
 
 ```bash
+git clone https://github.com/Jordan08/GAOL.git
+cd GAOL
 cmake -S . -B build -DCMAKE_INSTALL_PREFIX=<prefix> -DWITH_TESTS=ON
 cmake --build build --config Release
 cmake --build build --target test

@@ -43,7 +43,7 @@ point Q), which `numbers` checks there too.
   intervals of either sign, have to enclose the same line of rational numbers
   taken at a bound of each operand, and `+=`, `-=`, `*=` and `/=` have to give
   the bounds of the operators, line by line. Every interval [a, b] with
-  a <= b made of 15 special bounds (-oo, the largest double, -2.5, -1, the
+  a <= b made of 15 special bounds (-oo, the opposite of the largest double, -2.5, -1, the
   opposite of the smallest normal number, of the smallest subnormal number,
   -0, +0, the smallest subnormal number, the smallest normal number, 0.1, 1, 3,
   the largest double, +oo), the empty set and the universe, taken two by two,
@@ -89,8 +89,8 @@ point Q), which `numbers` checks there too.
   9.8·10^303, and its inverse, against mpmath), and the roots of 0, 1 and -1
   have to be the tightest enclosures; so do x^n over 4 000 intervals near the
   ends of the doubles, with a bound 0, subnormal or infinite, or a power above
-  2^1100 or below 2^-1000, where GAOL v5 took the products rounded outward,
-  and its SSE2 and FPU intervals gave other bounds for half of them; the
+  2^1100 or below 2^-1000, where the products were once rounded outward, and
+  the SSE2 and FPU intervals gave other bounds for half of them; the
   powers that are doubles, 8 679 powers of integers times 2^-4, 1 and 2^4
   and of intervals between them, and powers of two to negative exponents,
   have to be exact, both bounds (GAOL v5: an error bound computed beforehand,

@@ -2,8 +2,7 @@
 """Special cases of interval arithmetic in GAOL (under its names, gaol, and under those of IEEE 1788-2015,
 gaol_ieee1788), libieeep1788, filib++, PROFIL/BIAS, Solaris Studio and Boost.Interval.
 
-The cases come from the tests of GAOL (tests/*.cpp, and check/*.cpp for the
-integer powers). Each one is written once, below, as an expression, from which
+The cases come from the tests of GAOL (tests/*.cpp). Each one is written once, below, as an expression, from which
 this script generates a program for each library; the results the programs
 print are then compared with the results IEEE 1788-2015 defines, computed here
 with mpmath and rounded outward.
@@ -657,7 +656,7 @@ case(op("muld", iv(0, 1), INF), EMPTYSET)
 case(op("dmul", 0.0, iv(1, INF)), X(0))
 case(op("divd", iv(1, 2), 0.0), EMPTYSET)
 
-group("Elementary functions at the edges of their domains", "tests/elementary.cpp (at_known_intervals), check/")
+group("Elementary functions at the edges of their domains", "tests/elementary.cpp (at_known_intervals)")
 case(op("sin", iv(1, 2)), X("sin(1)", 1))
 case(op("sin", iv(4, 5)), X(-1, "sin(4)"))
 case(op("sin", iv(0, 7)), X(-1, 1))
@@ -706,7 +705,7 @@ case(op("abs", iv(-INF, -1)), X(1, "inf"))
 case(op("abs", iv(-INF, 1)), X(0, "inf"))
 
 group("Integer powers (GAOL's pow(x, n), pown of IEEE 1788, filib++'s power(x, n), x**n of Fortran)",
-      "check/non_arithmetic.cpp (test_pow_int), tests/arithmetic.cpp")
+      "tests/non_arithmetic.cpp (test_pow_int), tests/arithmetic.cpp")
 case(op("powi", iv(0), 0), X(1), "pown(x, 0) = 1 for every x (Table 9.1, b)")
 case(op("powi", EMPTY, 0), EMPTYSET)
 case(op("powi", ENTIRE, 0), X(1))
@@ -782,7 +781,7 @@ case(op("pow", iv(1), ENTIRE), X(1))
 case(op("pow", iv(0, 1), iv(1, INF)), X(0, 1))
 case(op("pow", iv(2, INF), iv(-1, 1)), X(0, "inf"))
 
-group("n-th roots (GAOL's nth_root, rootn of IEEE 1788)", "check/non_arithmetic.cpp, tests/arithmetic.cpp")
+group("n-th roots (GAOL's nth_root, rootn of IEEE 1788)", "tests/non_arithmetic.cpp, tests/arithmetic.cpp")
 NOTE_ROOT = "libieeep1788, filib++ and Solaris Studio have no rootn; pown_rev([−8, 27], 3) of libieeep1788 is [−2, 3]"
 case(op("nth_root", iv(-8, 27), 3), X(-2, 3), NOTE_ROOT)
 case(op("nth_root", iv(-4, 9), 2), X(0, 3))

@@ -316,8 +316,9 @@ Goldstein-Price function and prints `z = [-87881320, 147125080]`, the natural
 extension over [−2, 2]², and the time (`Elapsed time:`, in milliseconds).
 The example of GAOL 4 dropped the +1 of the function ((x + y)² instead of
 (x + y + 1)²), and so did GAOL's manual, which showed the same program and
-called the enclosure the range of f, whose true range is about 150 times
-narrower. Both now have the true function. The enclosure contains the range
+called the enclosure the range of f, whose true range, about [3, 635255], is
+about 237 times narrower than the enclosure [-56254330, 94177270]. Both now
+have the true function. The enclosure contains the range
 [3, 1015690.27…], and is 231 times wider than it, for lack of a link between
 the occurrences of x and y (the dependency problem, example 03). The example
 checks f(0, −1) = 3, the enclosure, computed by exact arithmetic (its bounds

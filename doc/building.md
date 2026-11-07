@@ -160,7 +160,7 @@ GAOL.
   direction](simd.md#when-the-build-takes-the-avx-512-path): the path spares the
   store of the rounding direction that every operation pays with
   `GAOL_PRESERVE_ROUNDING`, where it gains 1.3 to 4.4 times at the median of 2.8
-  on an Intel i7-1185G7, and costs 17 % at the median without it (the processor
+  on an Intel i7-1185G7, and takes 20 % longer at the median without it (the processor
   halves the AVX-512 units, and no other was measured). The library then needs a
   processor with the instructions, as with the fused multiply-add instructions,
   and `gaol::init()` stops a program run on another one with a message (see
@@ -179,7 +179,9 @@ GAOL.
 - **The debugging** (was `GAOL_DEBUG`, `GAOL_DEBUGGING`): GAOL and CORE-MATH are
   built for debugging, without optimization nor `NDEBUG`, with debugging
   information and `GAOL_DEBUGGING`, for the Debug build type (`CMAKE_BUILD_TYPE`,
-  `--enable-debug`, `--buildtype=debug`); there is no target `perf` then. Each
+  `--enable-debug`, `--buildtype=debug`); there is no target `perf` in the Debug
+  build of CMake, nor with `-Denable-debug=true` of meson (`--enable-debug` of
+  configure and `--buildtype=debug` of meson keep it). Each
   configuration keeps its other flags (the C runtime of Visual C++,
   sanitizers...); the tests and the examples, and the code of a project bringing
   GAOL in, keep their build type.
@@ -205,8 +207,8 @@ cache unless they were given.
 | `-DGAOL_DEBUG=ON` | `--enable-debug` | `-Denable-debug=true` | GAOL and CORE-MATH built for debugging whatever the build type, a project bringing GAOL in included (`-Dgaol:enable-debug=true` for a subproject of meson); the tests and the examples keep the build type |
 | `-DGAOL_EXCEPTIONS_ENABLED=OFF` | `--disable-exceptions` | `-Denable-exception=false` | GAOL aborts to signal an error instead of raising an exception |
 | `-DGAOL_VERBOSE_MODE=ON` | `--enable-verbose-mode` | `-Denable-verbose-mode=true` | A line on the standard error when GAOL initializes and cleans up; GAOL is silent by default |
-| `-DGAOL_SSE2_UNALIGNED_STORAGE=ON` | `CXXFLAGS=-DGAOL_SSE2_UNALIGNED_STORAGE=1` | `-Dcpp_args=-DGAOL_SSE2_UNALIGNED_STORAGE=1` | The SSE2 intervals with their two bounds as two doubles, as on 32-bit Windows with Visual C++ and clang-cl: that layout on another system (a program must not define that macro, a mismatch with the library being a mismatch of the layout) |
-| `-DCMAKE_CXX_FLAGS=-DGAOL_RELATION_BOUNDS_FIRST=0` | `CXXFLAGS=-DGAOL_RELATION_BOUNDS_FIRST=0` | `-Dcpp_args=-DGAOL_RELATION_BOUNDS_FIRST=0` | The relations between intervals (`<`, `<=`, `>`, `>=`) test the empty sets before they compare the bounds, as they do on RISC-V; `=1`, the default elsewhere, compares the bounds first. The answers are the same, only the order of the tests changes, which a processor may run faster or slower; define it the same in every file that includes GAOL (`gaol/gaol_port.h`) |
+| `-DGAOL_SSE2_UNALIGNED_STORAGE=ON` | `CXXFLAGS=-DGAOL_SSE2_UNALIGNED_STORAGE=1` | `-Dcpp_args=-DGAOL_SSE2_UNALIGNED_STORAGE=1` | The SSE2 intervals with their two bounds as two doubles, as on 32-bit Windows with Visual C++ and clang-cl: that layout on another system. CMake alone writes the macro into the installed `gaol/gaol_configuration.h`: given to configure or meson by the flags, it reaches what the build compiles, not a program compiled later with the installed GAOL, whose layout then differs (a program must not define that macro otherwise) |
+| `-DCMAKE_CXX_FLAGS=-DGAOL_RELATION_BOUNDS_FIRST=0` | `CXXFLAGS=-DGAOL_RELATION_BOUNDS_FIRST=0` | `-Dcpp_args=-DGAOL_RELATION_BOUNDS_FIRST=0` | The relations between intervals (`<`, `<=`, `>`, `>=`) test the empty sets before they compare the bounds, as they do on RISC-V; `=1`, the default elsewhere, compares the bounds first. The answers are the same; the order of the tests changes, which a processor may run faster or slower, and which decided whether GCC 14 raised the invalid-operation flag for an empty operand on RISC-V (the reason for its default there). It is to be defined the same in every file that includes GAOL (`gaol/gaol_port.h`) |
 | `-DGAOL_MACHINE_RUNS_FMA=1`, `-DGAOL_MACHINE_RUNS_AVX512=1` | `gaol_cv_machine_runs_fma=yes`, `gaol_cv_machine_runs_avx512=yes` | `-Dmachine-runs-fma=true`, `-Dmachine-runs-avx512=true` | In a cross-compilation, or under an emulator, where no program can be run: the machine running GAOL has the fused multiply-add instructions or runs the AVX-512 ones |
 
 An option that GAOL had and no longer has is refused or warned of: meson refuses
@@ -233,8 +235,8 @@ nothing else to build and nothing else to install. The build type is Release
 unless another is given; brought in by a project that gives none
 (`add_subdirectory`, FetchContent), GAOL and CORE-MATH are compiled as in
 Release all the same: `-O3` (`/O2` with Visual C++), `NDEBUG` and the
-optimizations of configure (GAOL v5: GAOL had `-O3` alone, and CORE-MATH no
-optimization). With a generator of several configurations (Visual Studio,
+optimizations of configure (the earlier versions of GAOL v5 had `-O3` alone,
+and CORE-MATH no optimization). With a generator of several configurations (Visual Studio,
 Xcode, Ninja Multi-Config), GAOL built alone puts Release first among them,
 which Ninja Multi-Config builds by default, unless `CMAKE_CONFIGURATION_TYPES`
 is given; `cmake --build` with Visual Studio builds Debug all the same without

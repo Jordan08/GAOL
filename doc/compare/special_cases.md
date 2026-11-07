@@ -5,8 +5,7 @@
 Part of the [comparison](README.md) of GAOL with libieeep1788, filib++,
 PROFIL/BIAS, Solaris Studio and Boost.Interval.
 
-The special cases of GAOL's tests (`tests/*.cpp`, and `check/*.cpp` for the
-integer powers) are computed by the six libraries, GAOL v5 twice, under its
+The special cases of GAOL's tests (`tests/*.cpp`) are computed by the six libraries, GAOL v5 twice, under its
 own names (the namespace `gaol`) and under those of IEEE 1788-2015
 (`gaol_ieee1788`, see
 [Using GAOL](../using.md#the-powers-in-the-two-namespaces)): zeros, infinities and NaN
@@ -411,7 +410,7 @@ From tests/arithmetic.cpp (operations_with_special_doubles).
 
 ### 7. Elementary functions at the edges of their domains
 
-From tests/elementary.cpp (at_known_intervals), check/.
+From tests/elementary.cpp (at_known_intervals).
 
 | # | Operation | IEEE 1788 | libieeep1788 | GAOL, `gaol` | GAOL, `gaol_ieee1788` | filib++ | Solaris Studio | PROFIL/BIAS | Boost.Interval | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -464,7 +463,7 @@ From tests/elementary.cpp (at_known_intervals), check/.
 
 ### 8. Integer powers (GAOL's pow(x, n), pown of IEEE 1788, filib++'s power(x, n), x**n of Fortran)
 
-From check/non_arithmetic.cpp (test_pow_int), tests/arithmetic.cpp.
+From tests/non_arithmetic.cpp (test_pow_int), tests/arithmetic.cpp.
 
 | # | Operation | IEEE 1788 | libieeep1788 | GAOL, `gaol` | GAOL, `gaol_ieee1788` | filib++ | Solaris Studio | PROFIL/BIAS | Boost.Interval | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -548,7 +547,7 @@ From tests/elementary.cpp (powers).
 
 ### 10. n-th roots (GAOL's nth_root, rootn of IEEE 1788)
 
-From check/non_arithmetic.cpp, tests/arithmetic.cpp.
+From tests/non_arithmetic.cpp, tests/arithmetic.cpp.
 
 | # | Operation | IEEE 1788 | libieeep1788 | GAOL, `gaol` | GAOL, `gaol_ieee1788` | filib++ | Solaris Studio | PROFIL/BIAS | Boost.Interval | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
