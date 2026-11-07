@@ -68,7 +68,9 @@ own worktree and branch, and you never push.**
 5. Do **not** edit `TODO.md`, `ChangeLog`, `doc/differences.md`, nor commit a
    regenerated `manual/Manual_GAOLv5.pdf`: a bookkeeping pull request of the
    orchestrator does that once for all the points, and doing it in each branch
-   would make the pull requests conflict (a PDF cannot be merged). Instead, put
+   would make the pull requests conflict (a PDF cannot be merged); only the
+   pull request of the manual (a branch `manual*`) commits it, in its last
+   commit. Instead, put
    the text you would have written there in your final report (`ledger_*`
    fields). You do edit `manual/v5/gaol.tex` where the manual describes what
    you change, and check that it compiles (`pdflatex` into a directory of

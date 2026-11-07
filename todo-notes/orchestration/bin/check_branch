@@ -20,7 +20,10 @@ for c in $(git rev-list "$base..$branch"); do
 done
 files=$(git diff --name-only "$base...$branch")
 echo "files changed: $(printf '%s\n' "$files" | grep -c .)"
-if printf '%s\n' "$files" | grep -Ex 'TODO\.md|ChangeLog|doc/differences\.md|manual/v5/gaol\.pdf|manual/Manual_GAOLv5\.pdf|manual/v4/.*' | grep -vx 'manual/v4/Manual_GAOLv4\.pdf'; then
+# manual/Manual_GAOLv5.pdf is committed by the branches of the manual (manual*), which
+# regenerate it in their last commit; no other branch commits it (a PDF cannot be merged)
+case "$branch" in manual*) pdf_ok='manual/Manual_GAOLv5\.pdf' ;; *) pdf_ok='^$' ;; esac
+if printf '%s\n' "$files" | grep -Ex 'TODO\.md|ChangeLog|doc/differences\.md|manual/v5/gaol\.pdf|manual/Manual_GAOLv5\.pdf|manual/v4/.*' | grep -vx 'manual/v4/Manual_GAOLv4\.pdf' | grep -vx "$pdf_ok"; then
   echo "FAIL: ledger files, the manual PDF or manual/v4 changed (see the house rules)"; fail=1; fi
 if printf '%s\n' "$files" | grep -E '(^|/)(build([-_.][^/]*)?|CMakeFiles|\.deps|\.libs|autom4te\.cache)/|\.(o|lo|a|so|log)$|CMakeCache\.txt|^(nohup|core)$'; then
   echo "FAIL: build products or logs are committed"; fail=1; fi

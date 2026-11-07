@@ -351,7 +351,8 @@ git ls-files -co --exclude-standard | tar -c -T - | tar -x -C $N/src
    version. Lance ensuite deux fois `pdflatex -interaction=nonstopmode
    -halt-on-error manual_gaolv5.tex`. Il faut zéro erreur, et pas de nouvel « Overfull ».
    Ne commite jamais `manual/Manual_GAOLv5.pdf`, que la cible `pdf` écrit dans
-   `manual/` (ni l'ancien `manual/v5/gaol.pdf`).
+   `manual/` (ni l'ancien `manual/v5/gaol.pdf`), sauf dans la pull request du
+   manuel (une branche `manual*`), qui le régénère dans son dernier commit.
 
 Ce que tu ne peux pas tester ici (Windows, macOS, ARM, gros-boutiste, sans FMA),
 écris-le dans la pull request sous « Non vérifiable ici ».
