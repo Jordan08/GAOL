@@ -386,8 +386,8 @@ programs):
 
 On a given machine with a given compiler, GAOL behaves the same whichever
 build configured it: CMake, \cmd{configure} and meson give it the same macros
-and the same flags. The reference is the autotools build of GAOL, then its
-meson build, and the CMake build follows them, apart from the errors corrected
+and the same flags. The flags and the macros come from the autotools build of GAOL~4, then from
+its meson build, and the CMake build gives the same, apart from the errors corrected
 (Chapter~\ref{chap:changes}). In every build, by default:
 
 \begin{itemize}
@@ -922,6 +922,7 @@ exceptions (\pxref{sec:exceptions}); one setting of the table makes GAOL abort i
   \multicolumn{1}{c}{meson} & \multicolumn{1}{c}{Meaning}\\
   \hline\hline
   \endfirsthead
+  \multicolumn{4}{l}{\textit{Table~\thetable, continued}}\\*
   \hline
   \multicolumn{1}{c}{CMake} & \multicolumn{1}{c}{\cmd{configure}} &
   \multicolumn{1}{c}{meson} & \multicolumn{1}{c}{Meaning}\\
@@ -958,17 +959,22 @@ exceptions (\pxref{sec:exceptions}); one setting of the table makes GAOL abort i
     \code{CXXFLAGS=-DGAOL\_SSE2\_\allowbreak UNALIGNED\_STORAGE=1} &
     \code{-Dcpp\_args=\ldots} with the same macro & The SSE2 intervals with
     their two bounds as two doubles, as on 32-bit Windows with Visual C++ and
-    clang-cl: that layout on another system (a program must not define that
-    macro, a mismatch with the library being a mismatch of the layout)\\
+    clang-cl: that layout on another system. CMake alone writes the macro into the
+    installed \file{gaol/gaol\_configuration.h}: given to \cmd{configure} or
+    meson by the flags, it reaches what the build compiles, not a program
+    compiled later with the installed GAOL, whose layout then differs (a
+    program must not define that macro otherwise)\\
     \code{-DCMAKE\_CXX\_FLAGS=\allowbreak -DGAOL\_RELATION\_\allowbreak
     BOUNDS\_FIRST=0} & \code{CXXFLAGS=-DGAOL\_RELATION\_\allowbreak
     BOUNDS\_FIRST=0} & \code{-Dcpp\_args=\ldots} with the same macro & The
     relations between intervals (\code{<}, \code{<=}, \code{>}, \code{>=})
     test the empty sets before they compare the bounds, as they do on
     RISC-V; \code{=1}, the default elsewhere, compares the bounds first. The
-    answers are the same, only the order of the tests changes, which a
-    processor may run faster or slower; it is defined the same in every file
-    that includes GAOL (\file{gaol/gaol\_port.h})\\
+    answers are the same; the order of the tests changes, which a
+    processor may run faster or slower, and which decided whether GCC~14 raised
+    the invalid-operation flag for an empty operand on RISC-V (the reason for
+    its default there). It is to be defined the same in every file that
+    includes GAOL (\file{gaol/gaol\_port.h})\\
     \option{-DGAOL\_MACHINE\_RUNS\_FMA=1},
     \option{-DGAOL\_MACHINE\_RUNS\_\allowbreak AVX512=1} &
     \code{gaol\_cv\_machine\_runs\_fma=yes},
@@ -1011,7 +1017,8 @@ CPack makes them from the CMake build, in the directory of the build, where
   \file{gaol-\var{version}\allowbreak .tar.gz}: the sources, in
   \file{gaol-\var{version}/}, with \file{configure} and the
   \file{Makefile.in}, which the three builds build. CPack takes the source
-  tree as it is, less what git ignores, the builds made within it and the
+  tree as it is, less the files of \code{CPACK\_SOURCE\_IGNORE\_FILES} (the
+  repository of git, the builds made within it, the objects) and the
   notes of the work on GAOL v5: made from a clean checkout, the archive holds
   the other files of the commit, \file{configure} as it was generated among
   them. If that was for another version than \file{VERSION.txt} holds,
@@ -1433,7 +1440,7 @@ the last two in another.
   value FPCR holds and 11~ns when it changes the direction. With
   \option{GAOL\_PRESERVE\_ROUNDING} an operation of a program that computes
   to nearest writes it twice, which is the 27~ns above (37~ns with the FPU
-  intervals, which called \code{fegetround()} and \code{fesetround()}); a
+  intervals, which call \code{fegetround()} and \code{fesetround()}); a
   program that already computes upward writes nothing.
 \end{itemize}
 
@@ -1764,8 +1771,9 @@ meson from \file{gaol/gaol\_configuration\_meson.h.in}. The three define the
 same macros, and nothing else, but for the switch of a developer that CMake
 alone writes, \code{GAOL\_SSE2\_UNALIGNED\_STORAGE}
 (Table~\ref{tab:install-developers}); the continuous integration checks that
-they write the same header on each kind of machine
-(Section~\ref{sec:three-builds}).\newinvfive{} The sources of GAOL read all
+they write the same header on Ubuntu 24.04 (x86-64 and arm64, GCC and
+Clang), macOS 15 (arm64 and x86-64), Debian 12 (i386), Debian 13 (armhf) and
+MSYS2 (UCRT64 and MINGW32) (Section~\ref{sec:three-builds}).\newinvfive{} The sources of GAOL read all
 of them but \code{GAOL\_HAVE\_AVX512\_TARGET} and \code{GAOL\_PREFER\_AVX512},
 which the three builds use to decide \code{GAOL\_AVX512\_ARITHMETIC} and the
 continuous integration prints, and \code{GAOL\_UNIVERSAL\_SSE2} and
@@ -1792,6 +1800,7 @@ well: \code{\#ifdef} is now true of each of the others.
   \multicolumn{1}{c}{Macro} & \multicolumn{1}{c}{1 when}\\
   \hline\hline
   \endfirsthead
+  \multicolumn{2}{l}{\textit{Table~\thetable, continued}}\\*
   \hline
   \multicolumn{1}{c}{Macro} & \multicolumn{1}{c}{1 when}\\
   \hline\hline

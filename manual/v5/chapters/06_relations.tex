@@ -100,7 +100,7 @@ the standard (Chapter~\ref{chap:ieee1788}).
 
 \begin{table}[htbp]
   \centering\small\renewcommand{\arraystretch}{1.1}
-  \caption[The relations of IEEE 1788-2015 and the methods of GAOL v5]{The relations of IEEE 1788-2015 and the methods of GAOL v5 that compute them, for two intervals $I$ and $J$ and a double $d$} \label{tab:relations-ieee}
+  \caption[The relations of IEEE 1788-2015 and the methods of GAOL v5]{The relations of IEEE 1788-2015 and the methods of GAOL v5 that compute them, for two intervals $I$ and $J$ and a double $d$.} \label{tab:relations-ieee}
   \begin{tabular}{lL{7.2cm}l}
     \hline
     \multicolumn{1}{c}{IEEE 1788-2015} & \multicolumn{1}{c}{GAOL v5} &
@@ -275,7 +275,8 @@ cout << boolalpha << interval(4.5,6).set_leq(interval(4.5,6)) << ' '
     \op{$I$ interior to \code{self}}
   \end{operation}
   Returns \code{true} if \var{I} is interior to \code{self}:
-  \code{set\_strictly\_contains(\var{I})}.
+  \code{set\_strictly\_contains(\var{I})}, the \ieee{interior}(\var{I},
+  \code{self}) of IEEE 1788-2015.\newinvfive
 \begin{example}
 cout << boolalpha << interval(-10,10).set_ge(interval(-4.5,3)) << ' '
      << interval(1,2).set_ge(interval(1,2));
@@ -288,7 +289,8 @@ cout << boolalpha << interval(-10,10).set_ge(interval(-4.5,3)) << ' '
     \op{$I\subseteq\code{self}$}
   \end{operation}
   Returns \code{true} if the real set defined by \code{self} contains
-  \var{I}: \code{set\_contains(\var{I})}.
+  \var{I}: \code{set\_contains(\var{I})}, the \ieee{subset}(\var{I},
+  \code{self}) of IEEE 1788-2015.
 \end{defmethod}
 
 \section{Certainly relations}\label{sec:relations-certainly}
@@ -341,7 +343,7 @@ cout << boolalpha << interval(4,5).certainly_leq(interval(6,9)) << ' '
     \op{$\forall x\in \code{self}, \forall y \in \var{I}\colon x>y$}
   \end{operation}
   Returns \code{true} if \code{self} is certainly strictly greater than
-  \var{I}, or if either interval is empty.
+  \var{I}, or if either interval is empty.\newinvfive
   \begin{example}
 cout << boolalpha << interval(8,10).certainly_ge(interval(4,8)) << ' '
      << interval(8,10).certainly_ge(interval(4,7)) << ' '
@@ -355,7 +357,7 @@ cout << boolalpha << interval(8,10).certainly_ge(interval(4,8)) << ' '
     \op{$\forall x\in \code{self}, \forall y \in \var{I}\colon x\geq y$}
   \end{operation}
   Returns \code{true} if \code{self} is certainly greater than or equal to
-  \var{I}, or if either interval is empty.
+  \var{I}, or if either interval is empty.\newinvfive
   \begin{example}
 cout << boolalpha << interval(8,10).certainly_geq(interval(4,8)) << ' '
      << interval::emptyset().certainly_geq(interval::emptyset());

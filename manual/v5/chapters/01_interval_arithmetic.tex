@@ -302,7 +302,7 @@ we compute $\itv{\roundDn{a+c}}{\roundUp{b+d}}$, where $\roundDn{r}$ and
 $\roundUp{r}$ return the greatest double at most $r$ and the smallest double
 at least $r$ (Definition~\ref{def:round-down-up}). These two operations are
 performed by switching the rounding direction of the floating-point unit
-towards, respectively, $-\infty$ and $+\infty$. With
+toward, respectively, $-\infty$ and $+\infty$. With
 $P=\{ac,\,ad,\,bc,\,bd\}$ and $Q=\{a/c,\,a/d,\,b/c,\,b/d\}$, the four basic
 operations on bounded intervals become
 \begin{align*}
@@ -339,7 +339,7 @@ negating appropriately twice the operations performed. The lower bound of a
 sum, $\roundDn{a+c}$, is $-\roundUp{(-a)+(-c)}$: the sum of the negated
 lower bounds, rounded upward, then negated. GAOL stores the lower bound of
 an interval negated, as the pair $\langle -a, b\rangle$, and computes both
-bounds rounding upward: the rounding direction can then be set towards
+bounds rounding upward: the rounding direction can then be set toward
 $+\infty$ once and for all. The sum of $\langle -a, b\rangle$ and
 $\langle -c, d\rangle$ is the pair $\langle\roundUp{-a-c},
 \roundUp{b+d}\rangle$, two upward additions, which the kernels of GAOL
@@ -521,7 +521,7 @@ Chapter~\ref{chap:ieee1788}).\newinvfive
 \section{Relational (reverse) functions}\label{sec:relational-idea}
 %%--------------------------------------
 \cindex{operator!relational}\cindex{relational operator}%
-\cindex{relational function}\cindex{reverse function}%
+\cindex{relational function|see{reverse functions}}\cindex{reverse functions}%
 
 A function on intervals, as the containment principle defines it, maps an
 interval of arguments to the hull of its values: this is its
@@ -813,7 +813,7 @@ reachable on average, and was rejected on its worst case; CRlibm showed
 that it could be proved and bounded, and was not adopted for want of a
 licence, of coverage and of maintenance; CORE-MATH takes all of it up and
 treats industrial adoption, that is, performance, MIT licence, C23 coverage
-and standardisation, as a design constraint of the same rank as accuracy.
+and standardization, as a design constraint of the same rank as accuracy.
 
 \begin{table}[htbp]
   \centering\footnotesize\renewcommand{\arraystretch}{1.15}

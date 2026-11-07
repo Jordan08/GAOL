@@ -74,9 +74,9 @@ The suite rests on the following principles.
   written with a change of GAOL v5 was run against the sources before the
   change, and the documentation of the tests records how many of its checks
   fail there: 10\,900 of the checks under the modes that flush the subnormal
-  numbers, 45 of the 48 operations given an empty operand that died in a
-  child process, 25 of the 45 checks of the operations computed before
-  \code{main()}. A check that passes with and without the change proves
+  numbers, 45 of the 48 calls with an empty operand that compared its NaN bounds,
+  which died in a child process, 25 of the 45 checks of the operations
+  computed before \code{main()} (with the SSE2 intervals). A check that passes with and without the change proves
   nothing, and the mutation tools of \file{tests/tools/} build GAOL with a
   deliberate error that the tests have to catch (\pxref{sec:scripts}).
 \item[$\bullet$] \textbf{The floating-point exceptions.} No operation of GAOL
@@ -108,7 +108,7 @@ The suite rests on the following principles.
   \code{French\_France.1252}) where one is installed, and the names of the
   functions have to be read in any case of letters under the Turkish
   locales of glibc, where \code{std::tolower('I')} is not \code{i}. The
-  reading never ended under a comma locale once, and the test, which ctest
+  reading once never ended under a comma locale, and the test, which ctest
   would otherwise let run with no limit, fails after 5 minutes should it
   hang again.
 \item[$\bullet$] \textbf{The unit tests of GAOL~4.} The tests of
@@ -134,7 +134,7 @@ writes 0: \code{operator<<} clears that mode before it writes, which
 
 \begin{Rem}
 Built without exceptions (\loption{disable-exceptions} of \cmd{configure},
-\code{-Denable-exception=false} of meson), where an error of GAOL ends the
+\option{-Denable-exception=false} of meson), where an error of GAOL ends the
 program, the tests leave out the checks of an exception and of a text the
 reader refuses.\newinvfive
 \end{Rem}
@@ -172,15 +172,17 @@ check applies.
   \multicolumn{1}{c}{Program} & \multicolumn{1}{c}{What it checks}\\
   \hline\hline
   \endfirsthead
+  \multicolumn{2}{l}{\textit{Table~\thetable, continued}}\\*
   \hline
   \multicolumn{1}{c}{Program} & \multicolumn{1}{c}{What it checks}\\
   \hline\hline
   \endhead
   \hline
   \endfoot
-  \code{arithmetic} & The basic operations, squares, roots, integer powers,
-    \code{fma} and the cancellative operations are the tightest enclosures
-    at every magnitude, from every rounding direction\\
+  \code{arithmetic} & The basic operations, squares, square roots, integer
+    powers, \code{fma} and the cancellative operations are the tightest
+    enclosures at every magnitude, from every rounding direction, and the
+    $n$-th roots are within 2 doubles of them (4 for an inverse root)\\
   \code{elementary} & The elementary functions at doubles, at intervals and
     at intervals whose images are known exactly; \code{pow}, \code{atan2},
     \code{erf}, \code{erfc}, the integer functions\\
@@ -449,7 +451,7 @@ exception with the FPU intervals, and Clang 18 and 20 at
 teeth of these loops depend on the processor the code is compiled for. The
 midpoints of five intervals with a bound of $2^{1023}$ or more have to be
 right and raise no overflow flag, the sum of the bounds having overflowed;
-36 functions that computed beyond the largest double on the way
+36 calls of functions that computed beyond the largest double on the way
 (\code{sqrt()}, \code{nth\_root()}, \code{atan()}, \code{sin()},
 \code{pow()}, the relational functions) are run on 20\,000 draws of operands
 each, and a result without an infinite bound has to come with neither the
@@ -470,8 +472,8 @@ them from \file{crtfastmath.o}, and \code{[1e-300] * [1e-20]} was
 \code{[0, 0]}.\newinvfive{} Then each of the 96 operations that check the
 direction, called with each mode set just before it and each direction, has
 to give what it gives with the modes cleared and leave them cleared (with
-GCC 13 at \option{-O3}, \code{asinpi([100 2\textasciicircum{}-1074])} was above the exact
-value and \code{sqrt([-1e-310, 4])} the empty set), and each of the 51
+GCC 13 at \option{-O3}, \code{asinpi} of $\itv{100\cdot2^{-1074}}{100\cdot2^{-1074}}$ was above the
+exact value and \code{sqrt([-1e-310, 4])} the empty set), and each of the 51
 functions that make no check has to leave the modes as it found them, its
 doubles compared by their bits; \code{midpoint()}, \code{split()},
 \code{chi()} and the writing of an interval, which make the check, have to
@@ -542,11 +544,11 @@ interval is written \code{[a]} when the number is the point itself, and
 doubles and the subnormals, written with all their digits (309 digits, 1074
 after the point), are read back as the point.\newinvfive{} In hexadecimal,
 the bounds have to be written in the form of IEEE 1788-2015 (13.4.1) and
-read back as the same doubles, which is the recovery requirement of 13.4.
+read back as the same set, which is the recovery requirement of 13.4.
 \code{operator<<} has to leave the precision of the stream as it was,
 \code{std::setw} to pad the whole interval, and the texts written under the
-flags of the stream and a locale of its own have to be those a stream of its
-own writes, but that the bounds format writes in the C locale and the width
+flags of the stream and a locale of its own have to be those \code{operator<<}
+wrote in a stream of its own before it made the text in a string, but that the bounds format writes in the C locale and the width
 format writes the radius without a sign under \code{showpos}: 33 cases of
 four formats. The width and center formats have to write the
 \code{midpoint()} and the \code{rad()} of the standard, the radius rounded
@@ -880,7 +882,7 @@ neither, it has to compile (\pxref{sec:refused}). With
 with Clang 18. The CMake build copies and touches the source before each
 compilation that has to fail (\file{tests/compile\_error.cmake}), since an
 object compiled once stayed up to date. \code{refused\_aligned\_new} and its
-two companions compile the header with \code{-D\_WIN32 -U\_WIN64}, which
+two companions compile \file{gaol/gaol\_config.h} alone with \code{-D\_WIN32 -U\_WIN64}, which
 stand for 32-bit Windows on any system, without the \option{-faligned-new=8}
 the flags carry there, in C++11 and in C++17: the C runtime of 32-bit
 Windows aligns the memory of \code{new} on 8 bytes, an SSE2 interval needs
@@ -975,8 +977,8 @@ intervals GAOL computes with, NEON, SSE2 or FPU, and four rows give the
 product, the quotient, the square and \code{pow(x, 2)} of operands of random
 signs, the other rows having positive operands only, which a processor
 predicts: the operands are 1\,024 intervals that the predictor learns by
-heart, and the former product of random signs took 6.4~ns on them and 12.4
-on 16\,384 (Apple M2). The table is Markdown, which the jobs of the
+heart, and the product of random signs of GAOL~4 and of the FPU intervals before
+their kernels took 6.4~ns on them and 12.4 on 16\,384 (Apple M2). The table is Markdown, which the jobs of the
 continuous integration copy into their summary. After the table, it prints
 the time of the check each operation makes, $1+(2^{-1060}+0)$ not above 1,
 and of the same check made of $2^{-60}$: a processor that takes a microcode
@@ -1046,6 +1048,7 @@ affine forms of example 12. Table~\ref{tab:examples} lists the programs.
   \multicolumn{1}{c}{Program} & \multicolumn{1}{c}{What it computes and shows}\\
   \hline\hline
   \endfirsthead
+  \multicolumn{2}{l}{\textit{Table~\thetable, continued}}\\*
   \hline
   \multicolumn{1}{c}{Program} & \multicolumn{1}{c}{What it computes and shows}\\
   \hline\hline
@@ -1080,7 +1083,7 @@ affine forms of example 12. Table~\ref{tab:examples} lists the programs.
     $\sqrt x+\sqrt y\in\itv{0}{1}$: set inversion, guaranteed area brackets,
     contractors in pavers, the domain trap of a library without
     decorations\\
-  \code{09\_parameter\_estimation} & IBEX lab5, range-only localisation from
+  \code{09\_parameter\_estimation} & IBEX lab5, range-only localization from
     three beacons: bounded-error estimation by set inversion, measurements
     read as text, a contractor with \code{sqrt\_rel}\\
   \code{10\_krawczyk} & Two circles of IBEX's solver, the roots of
@@ -1249,7 +1252,7 @@ changes one of the outputs shows.
 
 The workflows of \file{.github/workflows/} build GAOL with CMake and run the
 tests, with \cmd{make test} (\cmd{cmake -{}-build <build> -{}-target test},
-\code{RUN\_TESTS} with Visual Studio). They run for each pull request, and
+\cmd{RUN\_TESTS} with Visual Studio). They run for each pull request, and
 for each push to the branches \code{master}, \code{MATH-CORE} and
 \code{configure-clean} only: a push to another branch runs nothing until it
 is proposed, which halves the jobs of a pull request;\newinvfive{}
@@ -1305,7 +1308,7 @@ preserved,\newinvfive{} with the compilers of Ubuntu
 retires by April 2027, with GCC 9, which has no
 \code{\_\_builtin\_roundeven()}, and as a shared library
 (\option{BUILD\_SHARED\_LIBS}, \loption{enable-shared},
-\code{-Ddefault\_library=shared}: the static library is the default of the
+\option{-Ddefault\_library=shared}: the static library is the default of the
 three builds).\newinvfive{} The test \code{cpack\_stale\_configure} also
 runs with \code{CC="ccache gcc"} and a Ninja outside \env{PATH}, which it has
 to pass on to the copies of the tree it configures, and the tests run with
@@ -1324,8 +1327,8 @@ amd64 tests the empty sets before the bounds in the relations
 
 \paragraph{macOS.} The jobs build macOS 15 and 26 on arm64 and x86\_64,
 natively or under Rosetta, macOS 27 on arm64 (on the runner labelled
-\code{xcode-27}; the job of macOS 27 on x86\_64 under Rosetta is left out until
-GitHub provides its runner), and a universal build (arm64 and x86\_64: the
+\code{xcode-27}; there is no job of macOS 27 on x86\_64 under Rosetta, GitHub
+having no runner for it), and a universal build (arm64 and x86\_64: the
 macros of each part, the tests of the arm64 part natively and the test
 programs of the x86\_64 part under Rosetta, and the intervals each part says
 it has)\newinvfive{} with CMake, with autotools (\option{-arch} twice in
@@ -1344,7 +1347,8 @@ they keep through the x87 unit and MXCSR, stay covered. Three x64 jobs ask for
 the AVX-512 path (\option{GAOL\_PREFER\_AVX512}), two with Visual C++ and one with clang-cl, which they take where the
 runner has the instructions, with a warning where it has not; since the
 runners have them or not according to the machine GitHub gives, five more
-jobs run the unit tests under Intel SDE, which emulates a processor with them
+jobs run the unit tests that compute with intervals under Intel SDE, which
+emulates a processor with them
 (Visual Studio 2022 and 2026, Release and Debug, and clang-cl). clang-cl,
 the Clang of Visual Studio, builds x64 in Release and Debug with Visual
 Studio 2022, and x86, x64 and arm64 with Visual Studio 2026; on x64 it
@@ -1408,7 +1412,7 @@ operation in their summary, a table that no other run compares.
 
 \paragraph{Which intervals.} On 64-bit ARM processors the intervals are the
 NEON ones by default (\option{GAOL\_SIMD}; \option{GAOL\_ARM64},
-\loption{enable-arm64} and \code{-Denable-arm64} were an option of their
+\loption{enable-arm64} and \option{-Denable-arm64} were an option of their
 own),\newinvfive{} so that the jobs of Ubuntu arm64, macOS arm64, the
 aarch64 containers, and those of autotools and meson on arm64 test them
 (\pxref{sec:neon}). A few jobs build the FPU intervals instead, so that
@@ -1469,7 +1473,7 @@ than 300, and 600 in the job of macOS 15 x86\_64 GCC with the sanitizers,
 where it took 146 to 367~s on the same code, and once more than 400. The manual of GAOL v5 is
 built with the LaTeX of Ubuntu 24.04, by the autotools, the CMake and the
 meson builds, when \file{manual/} changes (\file{manual.yml}), and its PDF,
-\file{manual/Manual\_GAOLv5.pdf}, is an artifact of the run; the manual of
+\file{manual/Manual\_GAOLv5.pdf}, is an artefact of the run; the manual of
 GAOL~4 is not built; the examples of this manual that show what they
 print are compiled by \file{manual/check\_examples.py} in the job Ubuntu
 24.04 x86\_64 GCC at each run (\pxref{sec:examples}).
@@ -1522,9 +1526,9 @@ The jobs are Ubuntu 24.04 x86\_64 with GCC, with Clang, with GCC and the
 rounding direction preserved, and with GCC and with Clang and the FPU
 intervals; Ubuntu 24.04 arm64 with GCC and with Clang (the NEON intervals)
 and with GCC and the FPU intervals; macOS 26 arm64 and macOS 15 x86\_64;
-Visual Studio 2026 x64, x86, arm64, and x64 with the direction preserved
-(the AVX-512 path left out too, which measures the macros that write MXCSR
-alone), and clang-cl for x64, x86 and arm64; MSYS2 UCRT64 and CLANG64; and Debian 13 containers for i386 and armhf, with no cache. The
+Visual Studio 2026 x64, x86, arm64, x64 with the direction preserved, and x64
+with the direction preserved and the AVX-512 path left out, which measures the
+macros that write MXCSR alone, and clang-cl for x64, x86 and arm64; MSYS2 UCRT64 and CLANG64; and Debian 13 containers for i386 and armhf, with no cache. The
 other platforms (POWER, s390x, RISC-V, MinGW-w64 of Chocolatey, the 32-bit
 Windows of MSYS2) are not compared, nor are the autotools and meson builds:
 the three builds give the same flags, which the audit checks.
@@ -1581,6 +1585,7 @@ September 2026, building it past its refusal.
   \multicolumn{1}{c}{What GAOL v5 does}\\
   \hline\hline
   \endfirsthead
+  \multicolumn{3}{l}{\textit{Table~\thetable, continued}}\\*
   \hline
   \multicolumn{1}{c}{Configuration} & \multicolumn{1}{c}{Why} &
   \multicolumn{1}{c}{What GAOL v5 does}\\
@@ -1770,6 +1775,7 @@ and the tools and the CI of CORE-MATH under \file{3rd/math-core/}.
   \multicolumn{1}{c}{Script} & \multicolumn{1}{c}{What it is for}\\
   \hline\hline
   \endfirsthead
+  \multicolumn{2}{l}{\textit{Table~\thetable, continued}}\\*
   \hline
   \multicolumn{1}{c}{Script} & \multicolumn{1}{c}{What it is for}\\
   \hline\hline
@@ -1779,6 +1785,9 @@ and the tools and the CI of CORE-MATH under \file{3rd/math-core/}.
   \file{gaol/parser/regenerate\_parser.sh} & Regenerates the lexer and the
     parser from the \file{.lpp} and \file{.ypp} sources (flex 2.6.4, bison
     3.8.2), after any change of them (\cmd{make parser})\\
+  \file{gaol/float/gaol\_generator\_mul\_i2f.py} & Writes the 256 cases of the
+    multiplication of \code{interval2f} by the signs of the operands: a tool of
+    the author (Python~3 and \code{ply}), which no build runs\\
   \file{manual/build-pdf.sh} & Builds the manual v5 with \cmd{pdflatex}, in
     \file{manual/Manual\_GAOLv5.pdf}; \cmd{make pdf} and the target
     \code{pdf} of CMake and meson call it\\
@@ -1806,6 +1815,7 @@ and the tools and the CI of CORE-MATH under \file{3rd/math-core/}.
   \multicolumn{1}{c}{Script} & \multicolumn{1}{c}{What it is for}\\
   \hline\hline
   \endfirsthead
+  \multicolumn{2}{l}{\textit{Table~\thetable, continued}}\\*
   \hline
   \multicolumn{1}{c}{Script} & \multicolumn{1}{c}{What it is for}\\
   \hline\hline
@@ -1832,8 +1842,9 @@ and the tools and the CI of CORE-MATH under \file{3rd/math-core/}.
     the expected intervals (NEON, SSE2 or FPU)\\
   \file{scripts/\allowbreak check-gcc-windows-fma.sh} & Checks that the objects of \file{gaol\_interval\_core.cpp} and of the \code{cos} of CORE-MATH built by GCC for Windows hold fused multiply-add instructions, and that no object names a 256-bit or 512-bit register (an error on x64, GCC bug 54412; a notice on x86)\\
   \file{scripts/comma-locale.sh} & Generates \code{fr\_FR.UTF-8} with \cmd{localedef} before the tests (\code{generate}), and checks after them that \code{numbers} ran checks under it (\code{check}), so that \code{numbers} does not pass without having tried a locale writing a decimal comma\\
-  \file{scripts/sde-tests.sh} & Runs the tests under Intel SDE, which
-    emulates AVX-512: the runners of GitHub for Windows may have none\\
+  \file{scripts/sde-tests.sh} & Runs the tests that compute with intervals (all
+    but \code{numbers}, \code{core\_math} and \code{u128}) under Intel SDE,
+    which emulates AVX-512: the runners of GitHub for Windows may have none\\
   \file{scripts/version-file.sh} & Checks how \cmd{configure}, meson and
     autoconf read \file{VERSION.txt} written in several ways\\
   \file{scripts/performance-ab.sh} & Builds and measures two builds in turn
@@ -1856,6 +1867,7 @@ and the tools and the CI of CORE-MATH under \file{3rd/math-core/}.
   \multicolumn{1}{c}{Script} & \multicolumn{1}{c}{What it is for}\\
   \hline\hline
   \endfirsthead
+  \multicolumn{2}{l}{\textit{Table~\thetable, continued}}\\*
   \hline
   \multicolumn{1}{c}{Script} & \multicolumn{1}{c}{What it is for}\\
   \hline\hline
@@ -1876,8 +1888,9 @@ and the tools and the CI of CORE-MATH under \file{3rd/math-core/}.
     IEEE 1788-2015, of \ieee{atan2Rev1} and \ieee{atan2Rev2}, and of
     \ieee{powRev1} and \ieee{powRev2}, for \code{reverse}\\
   \file{refused\_options.sh} & Checks that autotools and meson refuse
-    \option{-ffast-math} and \option{-ffinite-math-only}, as the tests
-    \code{refused\_*} of CMake do\\
+    \option{-ffast-math} and \option{-ffinite-math-only}, and the SSE2
+    intervals of 32-bit Windows without \option{-faligned-new=8}, as the tests
+    \code{refused\_*} and \code{refused\_aligned\_new*} of CMake do\\
   \file{release\_flags.py} & Checks that a project which brings GAOL in
     without a build type compiles it in release (\option{-O3},
     \code{NDEBUG}, \code{GAOL\_DEBUGGING} at 0)\\
@@ -1897,6 +1910,12 @@ and the tools and the CI of CORE-MATH under \file{3rd/math-core/}.
   \file{tools/pow/diffpow.py} & Differential test of \code{pow}: the bounds
     of \code{gaol\_ieee1788::pow} and \code{gaol::pow} with two builds, on
     70\,500 boxes and under the four directions\\
+  \file{tools/pow/build.py} & Compiles a program of \file{tests/tools/pow}
+    against a build of GAOL, with the flags that build gives its own tests\\
+  \file{tools/pow/negative\_power\_rows.py} & Writes the rows of the table of
+    large negative powers of \file{tests/arithmetic.cpp}: the tightest bounds
+    of $x^n$ for $n$ from $-2^{31}+1$ to $-2^{27}$, computed with mpmath on
+    2000 bits\\
   \file{tools/pow/gen\_table.py}, \file{tools/pow/checkrows.py} & Read and
     rewrite the table of boxes of \code{ieee1788}, and check its bounds
     against the exact power (mpmath, 500 bits)\\
@@ -1979,7 +1998,7 @@ covered are \file{gaol/parser/gaol\_expr\_visitor.h} (9 of 99 lines, 9.1\,\%),
 \file{gaol/parser/gaol\_expr\_eval.h} (87.3\,\%),
 \file{gaol/parser/gaol\_expression.cpp} (89.6\,\%) and
 \file{gaol/core/gaol\_interval\_sse.cpp} (93.9\,\%);
-\file{gaol/core/gaol\_interval\_core.cpp}, the largest file with 2492 lines,
+\file{gaol/core/gaol\_interval\_core.cpp}, the largest file, with 2492 lines counted,
 is covered at 97.0\,\%, and 18 files of the 26 at 100\,\%. The page lists
 the lines the tests never run, file by file.
 
@@ -1999,14 +2018,14 @@ whose bounds it found wrong or uncertified, most of the refusals being checked b
 job of its own.
 
 \medskip
-Two choices of this chapter deserve a word. The teeth of some checks depend
+Two choices of the tests and of the continuous integration deserve a word. The teeth of some checks depend
 on the processor the code is compiled for: a loop that a compiler
 vectorizes raises the invalid-operation flag with one set of instructions
 and not with another, so that the jobs on many processors are the test, not
 one of them. The speed of a pull request cannot be read from the times of a
 shared runner, which change by several times between two runs of the same
 code: it is measured by building the base and the head in the same job and
-running them in turn, and only a ratio of 1.5 or more, beyond the spread of
+running them in turn, and only a ratio of 1.5 or more, or of 2/3 or less, beyond the spread of
 the runs, means something. The coverage report counts the lines of GAOL
 apart from those of CORE-MATH, whose accurate phases a handful of arguments
 in a million reach, and compares the accurate path of \code{sin} with the

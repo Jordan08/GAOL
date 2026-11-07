@@ -15,7 +15,7 @@ possible inputs into ranges and stating the tightness achieved in each
 GAOL on doubles, from the algorithm of each operation. The tests of
 \file{tests} check each statement on random and special arguments
 (\pxref{sec:test-programs}), and we give, with each operation, the largest
-distance they found.\newinvfive
+distance they found, or the distance they accept where the text says no more.\newinvfive
 
 \medskip
 IEEE 1788-2015 defines three accuracy modes (12.10.1), which
@@ -72,8 +72,9 @@ Chapter~\ref{chap:installation} make it: with the CORE-MATH of
 that includes the headers of GAOL compiled with the flags of interval
 arithmetic (\pxref{sec:compiling}). They hold for the SSE2 intervals, the
 NEON intervals\newinvfive{} and the FPU intervals alike
-(\pxref{sec:kernels}), and for the AVX-512 path of
-\code{GAOL\_PREFER\_AVX512}, whose bounds are those of the SSE2 path, but for the sign of a zero bound of \code{x * d} (\pxref{sec:accuracy-same-bounds})
+(\pxref{sec:kernels}), and for the AVX-512 path (\pxref{sec:avx512}), whose
+bounds are those of the SSE2 path, but for the sign of a zero bound of
+\code{x * d} (\pxref{sec:accuracy-same-bounds})
 
 \medskip
 They hold whatever the rounding direction the calling code left
@@ -743,7 +744,7 @@ between them, against mpmath, and over 9\,225 doubles and 80\,000 intervals
 against CORE-MATH called in both directed roundings.
 
 \subsection{Reverse functions}\label{sec:accuracy-reverse}
-\cindex{relational functions!accuracy}%
+\cindex{reverse functions!accuracy}%
 
 The relational functions of GAOL compute \code{f\_rel(J, I)}, the hull of
 the $x$ of $I$ whose image is in $J$: they are the reverse functions of
@@ -1108,8 +1109,8 @@ that code: \code{div\_rel([0, 0x1.e2ab041732196p-5],
 is $\itv{0}{5.764625}$, a zero lower bound of the other sign than the vector code gives: with a $J$ from $1$, which the vector code takes, the result is $\itv{-0}{\code{0x1.e2ab041732196p-5}}$.
 
 \medskip
-The two paths of the SSE2 intervals, with and without
-\code{GAOL\_PREFER\_AVX512} (\pxref{sec:avx512}), give the same bits, but
+The two paths of the SSE2 intervals, with and without the AVX-512 path
+(\pxref{sec:avx512}), give the same bits, but
 for the sign of a zero bound of \code{x * d}, \code{x *= d} and
 \code{d * x} (computed as \code{x * d}) where the zero bounds of $x$ have
 different signs, $\itv{+0}{-0}$: it is $\itv{+0}{-0}$ with SSE2 and

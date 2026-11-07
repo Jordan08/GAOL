@@ -55,7 +55,7 @@ For every real $r$, $\roundDn{-r} = -\roundUp{r}$.
 Nearly all the operations rounded downward can therefore be replaced by
 operations rounded upward, by negating appropriately twice the operations
 performed. GAOL stores the lower bound of an interval negated, and computes
-both bounds rounding upward: the rounding direction can then be set towards
+both bounds rounding upward: the rounding direction can then be set toward
 $+\infty$ once and for all.
 
 \begin{Def}\label{def:computing-register}
@@ -103,7 +103,7 @@ leaves of \code{div\_rel} &
 \code{sqrt}, \code{\&=}, \code{|=}, \code{mid}, \code{midpoint}, the
 relations, the elementary functions, the reverse functions \\
 \hline
-AVX-512 (\code{GAOL\_PREFER\_AVX512}) &
+AVX-512 path &
 \code{+ - * / sqr}, the operations with a double and the integer powers
 (with \code{\_\_FMA\_\_}), with the rounding direction in the instruction;
 \code{sqrt} as two scalar square roots and \code{/} as two scalar divisions,
@@ -397,6 +397,7 @@ instruction set offers, and what a path of GAOL could be (from
 & \textbf{FMA} & \textbf{Register} & \textbf{What a path could be} \\
 \hline
 \endfirsthead
+\multicolumn{5}{l}{\textit{Table~\thetable, continued}}\\*
 \hline
 \textbf{Processor} & \textbf{Direction carried by the instruction}
 & \textbf{FMA} & \textbf{Register} & \textbf{What a path could be} \\
@@ -586,6 +587,7 @@ how their bounds are computed and the arithmetic they follow (from
 & \textbf{Arithmetic} \\
 \hline
 \endfirsthead
+\multicolumn{4}{l}{\textit{Table~\thetable, continued}}\\*
 \hline
 \textbf{Library} & \textbf{Language} & \textbf{Bounds}
 & \textbf{Arithmetic} \\
@@ -767,7 +769,7 @@ whole array, its results being stored in another one; the time per
 operation is the best time divided by the million. The same operations on
 doubles, computed at the midpoints of the intervals without any rounding,
 give the cost of the arithmetic itself. Table~\ref{tab:computing-bench-ops}
-lists the operations: $a$ and $b$ are intervals centered in $\itv{-10}{10}$,
+lists the operations: $a$ and $b$ are intervals centred in $\itv{-10}{10}$,
 $p$ in $\itv{1}{10}$, $e$ in $\itv{0.5}{2.5}$, the arguments of Shekel 5 in
 $\itv{0}{10}$; their widths are $10^u$, $u$ uniform in $\itv{-6}{0}$
 ($\itv{-6}{-1}$ for $e$).
@@ -1421,8 +1423,8 @@ the cases expect it.
 \paragraph{The benchmark of Tang et al.}
 The benchmark of interval libraries of Xuan Tang, Zachary Ferguson, Teseo
 Schneider, Denis Zorin, Shoaib Kamil and Daniele Panozzo, \emph{A
-Cross-Platform Benchmark for Interval Computation Libraries} (PPAM 2022,
-Lecture Notes in Computer Science 13827, Springer, 2023), compares filib
+Cross-Platform Benchmark for Interval Computation Libraries}
+\cite{Tang:PPAM2022}, compares filib
 (its C version), filib++, Boost.Interval and BIAS on 132 expressions: 28 of
 the authors (the four operations, \code{sqrt}, \code{exp}, \code{sin} and
 \code{cos}, ten arithmetic expressions of 6 to 10 variables and ten random
@@ -1483,6 +1485,7 @@ measured. Table~\ref{tab:computing-verdicts} gives the verdicts.
 change it} \\
 \hline
 \endfirsthead
+\multicolumn{4}{l}{\textit{Table~\thetable, continued}}\\*
 \hline
 \textbf{Track} & \textbf{Verdict} & \textbf{Why} & \textbf{What would
 change it} \\
@@ -1659,7 +1662,7 @@ FZ and FIZ on 64-bit ARM (FZ alone on 32-bit ARM), FTZ and DAZ on x86 (the
 AVX-512 path does not read MXCSR, and clears them where a test shows them
 set; \pxref{sec:ftz}). \code{NI} of FPSCR on POWER (non-IEEE mode, where
 results ``may be approximate'') and \code{FS} of the FCSR on MIPS (flush
-denormalised results to zero) are states of the same kind that GAOL does not
+denormalized results to zero) are states of the same kind that GAOL does not
 clear on the FPU intervals of these processors; a path for them would have
 to.
 \item[$\bullet$] \textbf{The pragma \code{FENV\_ROUND}, the

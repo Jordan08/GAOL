@@ -67,7 +67,7 @@ the containment property (\pxref{sec:containment}): the sum of \itv{a}{b} and
 \roundDn{r} is the greatest double of \FSet{} not above the real $r$ and
 \roundUp{r} the smallest one not below it (\pxref{sec:rounding-definitions}). The
 processor performs these two roundings when its rounding direction is set
-towards $-\infty$ and towards $+\infty$ respectively.
+toward $-\infty$ and toward $+\infty$ respectively.
 
 \medskip
 On most platforms, switching the rounding direction is costly.
@@ -75,13 +75,13 @@ Proposition~\ref{prop:round-neg} (\pxref{sec:containment}) cuts down the number
 of switches: nearly every downward rounding is replaced by an upward one, by
 negating twice the operation performed. GAOL stores the lower bound of an
 interval negated, and computes both bounds rounding upward: the rounding
-direction is set towards $+\infty$ once, and the other directions are needed
+direction is set toward $+\infty$ once, and the other directions are needed
 only where a computation asks for them, as \code{midpoint()}, \code{chi()}, and
 the writing and the reading of an interval do, to nearest (\pxref{sec:kernels}).
 
 \medskip
 By default, GAOL~4 left the rounding direction to the user, who had to set it
-towards $+\infty$ before any computation on intervals: this was its
+toward $+\infty$ before any computation on intervals: this was its
 \dfn{trust rounding mode}; built with \loption{enable-preserve-rounding}, it
 assumed nothing of the direction. GAOL v5 takes charge of the direction.\newinvfive{} Each
 operation that computes a bound checks the direction, and sets it upward when
@@ -360,7 +360,10 @@ only if it differs from what the operation left: a program that computes
 upward already, with the flush modes clear, pays no write. These registers
 are FPCR on 64-bit ARM with the NEON intervals and FPSCR on 32-bit ARM with GCC (\pxref{sec:neon}),
 and the control word of the x87 unit and MXCSR on x86
-(\pxref{sec:x86-control-registers}).
+(\pxref{sec:x86-control-registers}). The FPU intervals of 64-bit ARM
+(\option{-DGAOL\_SIMD=OFF}) read the direction with \code{fegetround()} and set
+it back with \code{fesetround()}, and write FPCR at the end of every operation
+for the flush modes, whatever the direction of the program.
 
 \medskip
 The option costs time, less with the AVX-512 path, which it turns on where
@@ -573,8 +576,9 @@ flush modes clear, pays no write. \code{round\_upward()},
 not through \code{fesetround()}, and only if the direction changes
 (\pxref{chap:fpu}). \code{fegetround()} and \code{fesetround()} of the C
 library read and write the same bits (the \code{FE\_*} values of the C
-libraries of 64-bit ARM are these bits, which a static assertion checks), so
-that a program may use either.
+libraries of 64-bit ARM are these bits, but on Windows, whose
+\code{FE\_DOWNWARD} is \code{0x100}; a static assertion checks them
+elsewhere), so that a program may use either.
 
 \medskip
 \paragraph{The register FPSCR of 32-bit ARM.} The FPU intervals of 32-bit ARM
@@ -631,7 +635,8 @@ intervals of 32-bit ARM, POWER, s390x, RISC-V and the other processors; of
 Windows on 32-bit x86 with a compiler that takes no flag asking for the
 aligned memory the SSE2 intervals need (MinGW-w64 with GCC and Clang takes
 the SSE2 intervals there, with \option{-faligned-new=8}, and so do Visual C++
-and clang-cl, whose intervals need no aligned memory, and 64-bit Windows);
+and clang-cl, whose intervals need no aligned memory; 64-bit Windows takes
+the SSE2 intervals too);
 and of the builds that ask for them (\option{-DGAOL\_SIMD=OFF},
 \loption{disable-simd} or \option{-Denable-simd=false}), which leave
 \code{GAOL\_USING\_SSE2\_INSTRUCTIONS} and
@@ -823,8 +828,9 @@ read it (\pxref{sec:zero-sign}). The sign of the zero bound of a quotient and
 of a square does not depend on a tie, and is fixed: \code{[0, 1] / [-2, -1]}
 has the upper bound $-0$ (the zero bound of the dividend is divided by a
 number whose sign the bounds of the divisor choose), and
-\code{sqr(interval(-1, 2))} has the lower bound $+0$, which a selection of a
-constant sets.
+\code{sqr(interval(-1, 2))} has the lower bound $+0$ with the FPU intervals,
+which a selection of a constant sets, where the SSE2 and the NEON intervals
+give $-0$ (\pxref{sec:zero-sign}).
 \end{Rem}
 
 \medskip
@@ -937,8 +943,9 @@ subnormal result a zero (FTZ) and read every subnormal operand as a zero
 \end{Def}
 
 \noindent
-With one of them set, the bounds of an operation with a subnormal result
-or operand miss the exact result, whatever the rounding direction:
+With one of them set, the bounds of an operation with a subnormal result (FTZ
+or FZ) or a subnormal operand (DAZ or FZ) can miss the exact result, whatever
+the rounding direction:
 the product \code{interval(1e-300) * interval(1e-20)}, the square
 \code{sqr(interval(1e-160))} and the difference
 \code{interval(3e-308) - interval(2.9e-308)} are all \itv{0}{0}.\newinvfive
@@ -1082,7 +1089,7 @@ comparisons.
 \medskip
 \code{midpoint()}, \code{split()} and \code{chi()}, which compute, and the
 writing of an interval (\code{operator<{}<}, \code{intervalToText()}) make
-the check, which clears the modes, or sets them back after them with
+the check, which clears the modes, and set them back as they found them with
 \option{GAOL\_PRESERVE\_ROUNDING} (1.3~ns more for \code{midpoint()}): the
 midpoint of $\itv{2\cdot2^{-1074}}{4\cdot2^{-1074}}$ was 0, outside it, and
 a subnormal upper bound was written rounded to nearest, below the bound,
@@ -1224,7 +1231,10 @@ What the operations raise:
   (MinGW-w64) make the quiet comparisons signaling predicates
   (\code{vcmpnlepd}, \code{cmpnlepd}\dots), GCC~14 for POWER8 uses
   \code{xvcmpgedp}, and GCC 11 to 15 for 64-bit ARM compute the second and
-  third comparisons of the constructor for an empty element too. With GCC and
+  third comparisons of the constructor for an empty element too. GCC~14 for
+RISC-V made the comparison of the relations on the NaN bounds of an empty
+operand a signaling one, which is why the relations test the empty set first
+there (\code{GAOL\_RELATION\_BOUNDS\_FIRST} 0). With GCC and
   the FPU or the NEON intervals, on every processor, the bounds
   \code{is\_empty()} compares, those of the relations that do not call it
   (\code{straddles\_zero()}, \code{set\_contains(d)}\dots) and the doubles
@@ -1278,8 +1288,9 @@ What the operations raise:
   $2^{-1074}$), and \code{atanh\_rel()} (atanh at $-1$ and $1$). A quotient,
   a product or a power that would overflow is the infinity, or the largest
   double, that the operation gives, without being computed, where it is only
-  an intermediate value: the exceptions still tell an infinite bound of the
-  result, as above. This list is not exhaustive either, and the tests check
+  an intermediate value: where they are raised, the exceptions stand for an
+  infinite bound of the result, as above, which does not always raise them.
+  This list is not exhaustive either, and the tests check
   these functions and the others of the same kind on operands next to the
   limits of the doubles (\file{tests/rounding\_direction.cpp}).\newinvfive
 \end{itemize}
@@ -1418,7 +1429,7 @@ to the value of \var{dbg\_lvl}.
 Unless GAOL was built to preserve the rounding direction, the first call notes
 the rounding direction it finds, which \code{cleanup()} sets back, then sets
 the floating-point environment to its default one, then the rounding
-direction towards $+\infty$. In addition, it sets the number of digits to
+direction toward $+\infty$. In addition, it sets the number of digits to
 display for interval bounds to 16. In a build that takes the AVX-512 path,
 the first call stops the program, with a message on the standard error, when
 the processor or the system does not run the AVX-512 instructions, even in a
@@ -1503,7 +1514,7 @@ control register, FPCR or FPSCR, themselves, and only when the direction
 changes.\newinvfive
 
 \begin{deffun}{void}{round\_downward}{(void)}
-Sets the rounding direction mode towards $-\infty$.
+Sets the rounding direction toward $-\infty$.
 \end{deffun}
 
 \begin{deffun}{void}{round\_nearest}{(void)}
