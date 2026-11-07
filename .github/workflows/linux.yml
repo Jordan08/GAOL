@@ -296,9 +296,10 @@ jobs:
         cfg:
           - { os: ubuntu-26.04,     cc: gcc,   cxx: g++,     desc: 'Ubuntu 26.04 x86_64 GCC, -Wall -Wextra -Werror' }
           - { os: ubuntu-26.04,     cc: clang, cxx: clang++, desc: 'Ubuntu 26.04 x86_64 Clang, -Wall -Wextra -Werror' }
-          # The NEON header and the sources of the NEON intervals, with the
-          # warnings of the headers (-Wold-style-cast, -Wundef) that the
-          # intrinsics of <arm_neon.h> have to stay clear of (GAOL v5)
+          # The check of the installed headers compiles the header of the NEON
+          # intervals too, with the warnings of the headers (-Wold-style-cast,
+          # -Wundef) that the intrinsics of <arm_neon.h> have to stay clear of
+          # (GAOL v5)
           - { os: ubuntu-26.04-arm, cc: gcc,   cxx: g++,     desc: 'Ubuntu 26.04 arm64 GCC, -Wall -Wextra -Werror' }
           - { os: ubuntu-26.04-arm, cc: clang, cxx: clang++, desc: 'Ubuntu 26.04 arm64 Clang, -Wall -Wextra -Werror' }
     steps:
