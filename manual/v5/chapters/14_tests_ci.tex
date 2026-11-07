@@ -61,7 +61,7 @@ The suite rests on the following principles.
 \item[$\bullet$] \textbf{References computed apart.} A reference value is
   never a result of GAOL, nor of the C library running in the same rounding
   direction. It is an integer, an exact rational, or a value computed by
-  mpmath with 2000 bits (500 to 7000 for some tables) and written into a
+  mpmath with 2000 bits (400 to 7000 for some tables) and written into a
   header that the test includes: \file{elementary\_values.h},
   \file{reverse\_values.h}, \file{atan2\_rel\_values.h},
   \file{pow\_rel\_values.h}, \file{compoundm1\_values.h} and
@@ -145,7 +145,7 @@ GAOL, and \file{.github/scripts/tests.sh} with a GAOL installed by
 \cmd{configure} or meson. \file{tests/fetch\_content} builds them with a GAOL
 brought into a project by \code{FetchContent}, and
 \file{tests/meson\_subproject} with a GAOL brought in as a meson
-subproject,\newinvfive{} which meson refused. Its test \code{flags} checks
+subproject,\newinvfive{} which meson refused while \file{meson.build} called \code{add\_global\_arguments()}. Its test \code{flags} checks
 that \code{gaol\_dep} gives the compilation the flags of the \code{Cflags} of
 \file{gaol.pc}, without which the tests pass all the same, and the link the
 options of its \code{Libs} (\option{-mno-daz-ftz}, where the compiler takes
@@ -208,8 +208,8 @@ check applies.
     \code{pown}, \code{rootn}, \code{pownRev}, \code{overlap},
     \code{intervalToText}, \code{mulRevToPair}\\
   \code{core\_math} & The bounds against CORE-MATH called in the rounding
-    direction in effect; the \code{fma()}, \code{round()} and
-    \code{ldexp()} of the C library; the accurate paths of \code{sin} and
+    direction in effect; the \code{fma()} and \code{round()} of the C library, and
+    \code{gaol\_ldexp()}; the accurate paths of \code{sin} and
     \code{cos}\\
   \code{compoundm1} & $(1+x)^y-1$ from the bottom up: the 256-bit integers,
     the balls, the fast phase, 5\,854 pairs and 850 boxes\\
@@ -233,14 +233,14 @@ check applies.
     \code{refused\_options.sh} (autotools);\newline
     \code{refused\_options} (meson) & The compilation refused with
     \option{-ffinite-math-only} and \option{-ffast-math}, accepted
-    without\\
+    without; \file{refused\_options.sh} and \code{refused\_options} check as well
+    the three cases of the tests \code{refused\_aligned\_new*}\\
   \code{refused\_aligned\_new},\newline
     \code{refused\_aligned\_\allowbreak new\_cxx17},\newline
-    \code{refused\_aligned\_\allowbreak new\_positive} & The SSE2 intervals on
-32-bit
-    Windows refused without \option{-faligned-new=8}\\
-  \code{fp\_strict} & Visual C++ and clang-cl refused without
-    \option{/fp:strict}\\
+    \code{refused\_aligned\_\allowbreak new\_positive} (CMake) & The SSE2 intervals on
+    32-bit Windows refused without \option{-faligned-new=8}\\
+  \code{fp\_strict} & (a project of its own, which the Visual Studio jobs
+    configure) Visual C++ and clang-cl refused without \option{/fp:strict}\\
   \code{cpack\_stale\_configure} & (CMake) The warning of CPack when the
     committed \file{configure} was generated for another version\\
   \code{automatic\_configuration} & (CMake) The configuration GAOL decides
@@ -277,7 +277,7 @@ $-33$, of intervals for $n$ from 2 to 5, 12 and 31 and for $-1$ to $-3$,
 $-6$ and $-17$, $x^n$ beyond the largest double or subnormal included, and
 for $n<0$ the limits where $x$ holds 0. The suite once allowed up to $2n$
 doubles beyond the tightest bounds for $n>0$, and 8 for $n<0$. Every
-interval made of 15 special bounds ($-\infty$, the largest double, $-2.5$,
+interval made of 15 special bounds ($-\infty$, the opposite of the largest double, $-2.5$,
 $-1$, the opposites of the smallest normal and of the smallest subnormal
 number, $-0$, $+0$, the smallest subnormal and normal numbers, $0.1$, 1, 3,
 the largest double, $+\infty$), the empty set and the universe, taken two by
@@ -303,8 +303,8 @@ comparing with \code{==}, which does not see it.
 
 \medskip
 The powers are checked further. $x^n$ has to be the tightest over 4\,000
-intervals near the ends of the doubles, where GAOL v5 took the products
-rounded outward and its SSE2 and FPU intervals gave other bounds for half of
+intervals near the ends of the doubles, where the products were once rounded
+outward and the SSE2 and the FPU intervals gave other bounds for half of
 them; 8\,679 powers that are doubles have to be exact, both bounds (an error
 bound computed beforehand made \code{pow([2, 3], 3)}
 $\itv{8-2^{-50}}{27+2^{-48}}$). $x^2$ has to be \code{sqr(x)}, bit for bit,
@@ -382,7 +382,7 @@ them the roots of negative order, the integer powers of large exponents and
 check of the direction.\newinvfive{} Products and sums have to be the
 tightest in a loop that changes the direction before each of them. The 30
 forms of \code{+ - * / \%}, \code{sqr}, \code{sqrt} and \code{inverse}
-with intervals, with a double and as compound assignments are run $2^{16}$
+with intervals, with a double and as compound assignments have to be the tightest enclosures on random operands, in a loop that changes the rounding direction before each of them; on ARM they are run $2^{16}$ times each, in the four directions in turn, right after the program wrote the control register itself.
 times each, in the four directions in turn, and on ARM right after the
 program wrote the control register itself. \code{pow} with a subnormal
 result, which CORE-MATH rounds in the direction \code{fegetround()} gives,
@@ -392,11 +392,13 @@ unit, and the upper bound was below the exact value.\newinvfive
 
 \medskip
 The control registers of the processor are checked apart from the library
-(\pxref{sec:rounding-direction}). On a 32-bit x86 processor, what GAOL
-writes to the control word of the x87 unit and to MXCSR is checked in the 64
-states of the two rounding fields and the two flush modes, with other bits
-that must not change and exception flags raised meanwhile that must not be
-lost: only the registers that differ are written, and each is read once. The
+(\pxref{sec:rounding-direction}). What GAOL writes to the control word of the
+x87 unit and to MXCSR on a 32-bit x86 processor is checked on every platform,
+with two variables standing for the registers, in the 64 states of the two
+rounding fields and the two flush modes, with other bits that must not change
+and exception flags raised meanwhile that must not be lost: only the registers
+that differ are written, and each is read once; on such a processor, the
+registers themselves are checked in the states it can run. The
 SSE2 operations with \option{GAOL\_PRESERVE\_ROUNDING}, which keep MXCSR
 alone, are checked in its 16 states: MXCSR is written once when the
 direction is not upward or a mode is set, and never read or written
@@ -427,14 +429,14 @@ empty sets and false for three intervals, and to raise no flag; with glibc,
 each is also told empty in a child process that enabled the
 invalid-operation exception, which must not die: the comparison of the NaN
 bounds with \code{<=} did. The operations of the interface with an empty
-operand on either side, about 220 calls in 66 checks, and five choices a
-program makes with \code{is\_empty()} that GCC for 32-bit ARM and for POWER9
-made signaling, have to give the result of the empty set, raise no flag and
-not die in the child process: 45 of the 48 calls that compared the NaN
-bounds died with the SSE2 intervals, and all 48 with the FPU
-ones.\newinvfive{} So do 18 operations given a NaN double, the products and
-the relational divisions of intervals with bounds in
-$\{-\infty, -2, -0, 0, 3, +\infty\}$ (the SSE2 intervals divided $+\infty$
+operand on either side, about 220 calls in 66 checks, among them one for each
+of the 48 calls that compared the NaN bounds and five choices a program makes
+with \code{is\_empty()} that GCC for 32-bit ARM and for POWER9 made signaling,
+have to give the result of the empty set, raise no flag and not die in the
+child process: 45 of these 48 calls died with the SSE2 intervals, and all 48
+with the FPU ones.\newinvfive{} So do 18 operations given a NaN double, the products of
+intervals with bounds in $\{-\infty, -2, -0, 0, 3, +\infty\}$, and the relational
+divisions of intervals with bounds in $\{-\infty, -2, -0, 0, 4, +\infty\}$ (the SSE2 intervals divided $+\infty$
 by $+\infty$, or a bound by a zero one, in the half of a register they did
 not keep), 13 powers with an exponent of extreme magnitude, 10 powers next to
 the largest double, where CORE-MATH's \code{pow} computed $\infty-\infty$,
@@ -900,8 +902,8 @@ compile a program in each of the three standards with
 (\option{/we4834}, \option{/we5030} and \option{/we5051} with Visual C++):
 throwing away the result of \code{sqrt(x)} has to fail, and using it has to
 compile, since \code{GAOL\_NODISCARD} is \code{[[nodiscard]]} before C++17
-with GCC 7 and later and Visual C++ 2019 16.4 and later, where it was
-empty.\newinvfive
+with GCC 7 and later and Visual C++ 2019 16.4 and later, and the attribute of
+Clang with Clang.\newinvfive
 
 \subsection{The unit tests of GAOL~4}
 
@@ -987,9 +989,10 @@ errors, are not tests either (\pxref{sec:scripts}).
 \section{The examples}\label{sec:examples}
 \cindex{examples}%
 
-The directory \file{examples/} holds 16 programs that use GAOL v5 the way
+The directory \file{examples/} holds 15 programs that use GAOL v5 the way
 interval arithmetic is used in practice, as IBEX, Codac, C-XSC, INTLAB and
-the textbooks use it, and the example of GAOL~4. \file{examples/CMakeLists.txt}
+the textbooks use it, and the example of GAOL~4, 16 programs in all.
+\file{examples/CMakeLists.txt}
 is a project of its own, which uses an installed GAOL as any user's project
 would:
 
@@ -1112,8 +1115,8 @@ affine forms of example 12. Table~\ref{tab:examples} lists the programs.
 The example of GAOL~4 dropped the $+1$ of the Goldstein-Price function,
 $(x+y)^2$ instead of $(x+y+1)^2$, and so did the manual of GAOL~4, which
 showed the same program and called the enclosure the range of $f$, whose
-true range is about 150 times narrower. Both now have the true
-function.\newinvfive{} The enclosure, $\itv{-87881320}{147125080}$ over
+true range, about $\itv{3}{635255}$, is about 237 times narrower than the
+enclosure $\itv{-56254330}{94177270}$.\newinvfive{} The enclosure, $\itv{-87881320}{147125080}$ over
 $\itv{-2}{2}^2$, contains the range $[3, 1015690.27\ldots]$ and is 231 times
 wider than it, for lack of a link between the occurrences of $x$ and $y$: the
 dependency problem (\pxref{sec:dependency}).
@@ -1126,7 +1129,8 @@ examples 03, 05, 07 and 06: the range of a function by subdivision, the
 interval Newton method, a contractor, and a branch and bound. Each program
 is compiled with the flags GAOL gives (\pxref{sec:compiling}):
 \begin{cmdshell}
-% c++ -std=c++11 -O2 $(pkg-config --cflags gaol) prog.cpp -o prog $(pkg-config --libs gaol)
+% c++ -std=c++11 -O2 $(pkg-config --cflags gaol) prog.cpp -o prog \
+      $(pkg-config --libs gaol)
 \end{cmdshell}
 Its outputs are the same with the SSE2, the NEON and the FPU intervals.
 The first program evaluates $x(1-x)$ over
@@ -1224,8 +1228,8 @@ manual, line by line:\newinvfive{} the examples once printed 1 and 0 where
 the manual showed \code{true} and \code{false}, and \code{chi()} of the
 empty set printed \code{-nan} with GCC where it showed \code{nan}. An
 example holding a \code{main()} is compiled as it is; the others are put in
-a \code{main()} of their own, after the headers of GAOL and of the standard
-library they use, with \code{using namespace std} and
+a \code{main()} of their own, after \file{<gaol/gaol>}, \file{<gaol/parser/gaol\_expression.h>} and six headers of the standard library (\file{<cmath>}, \file{<iomanip>},
+\file{<iostream>}, \file{<limits>}, \file{<sstream>}, \file{<string>}), with \code{using namespace std} and
 \code{using namespace gaol}, or \code{gaol\_ieee1788} in the chapter of its
 names. A line printed that is too long for the page may be shown on several
 lines of output, each break standing for a blank. Each example is a program
@@ -1249,9 +1253,10 @@ tests, with \cmd{make test} (\cmd{cmake -{}-build <build> -{}-target test},
 for each push to the branches \code{master}, \code{MATH-CORE} and
 \code{configure-clean} only: a push to another branch runs nothing until it
 is proposed, which halves the jobs of a pull request;\newinvfive{}
-\code{workflow\_dispatch} runs them on any branch. \file{performance.yml}
-is the exception: it runs for the pull requests that change what it
-measures only (\pxref{sec:ci-speed}). The badges of \file{README.md} show
+\code{workflow\_dispatch} runs them on any branch. \file{performance.yml} and
+\file{manual.yml} are the exceptions: the first runs for the pull requests
+that change what it measures only (\pxref{sec:ci-speed}), the second for the
+pushes and pull requests that change \file{manual/} or itself. The badges of \file{README.md} show
 their state on \code{configure-clean}. Table~\ref{tab:ci-platforms} gives
 the systems, the processors and the compilers they build on; the list of
 the platforms GAOL supports is in the chapter on the installation
@@ -1335,8 +1340,8 @@ arm64, in Release and Debug. On x64 and x86 the intervals are the SSE2 ones
 arm64 the NEON ones, with Visual C++ and clang-cl, which a step of each job
 checks.\newinvfive{} A job on x86 and two on arm64 ask for the FPU intervals
 (\option{GAOL\_SIMD=OFF}), so that their code, and the rounding direction
-they keep through the x87 unit and MXCSR, stay covered. Two x64 jobs ask for
-the AVX-512 path (\option{GAOL\_PREFER\_AVX512}), which they take where the
+they keep through the x87 unit and MXCSR, stay covered. Three x64 jobs ask for
+the AVX-512 path (\option{GAOL\_PREFER\_AVX512}), two with Visual C++ and one with clang-cl, which they take where the
 runner has the instructions, with a warning where it has not; since the
 runners have them or not according to the machine GitHub gives, five more
 jobs run the unit tests under Intel SDE, which emulates a processor with them
@@ -1359,9 +1364,7 @@ Linux, clang-cl and Visual C++ x64 with \option{/arch:AVX2} run), CLANG64
 AVX-512 path where the runner has the instructions, GCC for Windows never
 taking it) and CLANGARM64 on the arm64 runners (the NEON intervals). Cygwin
 builds GCC for x86-64, Release and Debug, with
-\option{-mfma -mprefer-vector-width=128}, all the tests passing but
-\code{intervalf}, \code{interval2f} and \code{cpack\_stale\_configure}, the
-CPack of Cygwin making no archive, and a configuration with
+\option{-mfma -mprefer-vector-width=128}, all the tests passing but those that are skipped, \code{intervalf}, \code{interval2f} and \code{cpack\_stale\_configure}, the CPack of Cygwin making no archive, and a configuration with
 \option{GAOL\_FMA=OFF} that \file{gaol/gaol\_config.h} has to
 refuse.\newinvfive{} Clang with the target of Visual C++ and the driver of
 GCC (\cmd{clang++}, not clang-cl) builds in the environment of Visual Studio
@@ -1371,14 +1374,13 @@ GCC on x64 and x86 in Release, a step reads the objects with \cmd{objdump}
 (\file{.github/scripts/check-gcc-windows-fma.sh}):
 \file{gaol\_interval\_core.cpp} and the \code{cos} of CORE-MATH
 have to hold fused multiply-add
-instructions, and no object an instruction on a \code{\%ymm} or \code{\%zmm}
-register, which GCC would spill to a stack Windows x64 aligns on 16 bytes
-(GCC bug 54412).
+instructions, and no object an instruction on a \code{\%ymm} or \code{\%zmm} register on x64, which GCC would spill to a stack Windows x64 aligns on 16
+bytes (GCC bug 54412); on x86 such lines are listed and noticed, not an error.
 
 \paragraph{The three builds.} The workflows also build GAOL with autotools
 and meson on Ubuntu (x86\_64, arm64), Debian (i386, armhf), macOS (arm64,
 x86\_64), MSYS2 (UCRT64 for x64, MINGW32 for x86) and Cygwin, with meson and
-Visual Studio 2022 and 2026 (x64, x86), and with meson 0.53.2, the oldest
+Visual Studio 2022 (x64, x86) and 2026 (x64, arm64), and with meson 0.53.2, the oldest
 the meson build takes; run the tests, and build them again with the GAOL
 they install, which is the only library installed, CORE-MATH being compiled
 into it; build GAOL as a part of another project brought in by
@@ -1387,7 +1389,9 @@ compiled with \code{gaol\_dep} has to get the flags of \file{gaol.pc}, and
 check that GAOL and CORE-MATH are compiled as in Release where the project
 gives no build type, and that \option{GAOL\_DEBUG} and \code{enable-debug}
 build them for debugging;\newinvfive{} check that the three builds agree on
-each of these machines (the audit of \file{.github/audit}); check that
+Ubuntu (x86\_64 and arm64, GCC and Clang), macOS (arm64, x86\_64), Debian (i386,
+armhf) and MSYS2 (UCRT64, MINGW32) (the audit of \file{.github/audit},
+\exref{sec:scripts}); check that
 \cmd{configure}, meson and autoconf read a \file{VERSION.txt} that starts
 with a byte order mark or has the line ends of Windows, and that meson reads
 it with no Python on \env{PATH}; check that \cmd{make distclean} gives the
@@ -1396,7 +1400,7 @@ and tested GAOL in it; and check the refusals of \exref{sec:ci-refused}.
 Jobs of each build restore the rounding direction
 (\option{GAOL\_PRESERVE\_ROUNDING}): Ubuntu x86\_64 GCC and Clang (which
 take the AVX-512 path where the runner has it) and arm64 GCC and Clang,
-Debian i386 and armhf, macOS arm64, Visual Studio x86 and x64, autotools and
+Debian i386 and armhf, macOS arm64, Visual Studio x86, x64 and arm64, clang-cl x64, MinGW-w64 x86, MSYS2 UCRT64, CLANG64 and CLANGARM64, autotools and
 meson. Jobs of autotools and of meson on Ubuntu x86\_64 build GAOL without
 exceptions and run the examples and the tests, which leave out there the
 checks of an exception. The jobs built in Release print the time per
@@ -1423,7 +1427,7 @@ which intervals the configuration took, in a step ``The intervals''
 \code{GAOL\_USING\_\allowbreak SSE2\_INSTRUCTIONS} in
 \file{gaol\_configuration.h} and
 fails if they are not the expected ones): the NEON intervals on 64-bit ARM,
-the SSE2 intervals on x86-64 and on x86 with Visual C++ and clang-cl, and
+the SSE2 intervals on x86-64 and on 32-bit x86 (Visual C++, clang-cl, MinGW-w64, MSYS2 MINGW32, Clang for Visual C++ and Debian 12 i386), and
 the FPU intervals where the option is off and on armhf, s390x, ppc64le and
 riscv64; two jobs give the SSE2 intervals of Linux the form they have on
 x86 with Visual C++ (\option{-DGAOL\_SSE2\_UNALIGNED\_STORAGE=ON}).
@@ -1431,12 +1435,14 @@ x86 with Visual C++ (\option{-DGAOL\_SSE2\_UNALIGNED\_STORAGE=ON}).
 \paragraph{Warnings and headers.} Five jobs build the library, the sources
 of CORE-MATH included, the tests and the examples with
 \option{-Wall -Wextra -Werror}: four with the GCC and the Clang of Ubuntu 26.04
-on x86\_64 and on arm64, and one with the AppleClang of macOS 26 arm64. Two
-jobs do so with \option{/W4 /WX}, with the Visual C++ of Visual Studio 2026
-x64 and x86.
-Those of arm64 compile the sources of the NEON intervals with the warnings
-of the headers (\option{-Wold-style-cast}, \option{-Wundef}) that the
-intrinsics of \file{<arm\_neon.h>} have to stay clear of.\newinvfive{} The
+on x86\_64 and on arm64, and one with the AppleClang of macOS 26 arm64. Four
+jobs do so with \option{/W4 /WX}, with the Visual C++ of Visual Studio 2026: x64
+in Release, with and without the AVX-512 path, x64 in Debug, and x86 in
+Release. On arm64, the check of the installed headers below compiles the header
+of the NEON intervals, which \file{gaol/core/gaol\_interval\_core.h} includes,
+with the warnings of the headers (\option{-Wold-style-cast},
+\option{-Wundef}) that the intrinsics of \file{<arm\_neon.h>} have to stay clear
+of.\newinvfive{} The
 first five check the headers GAOL installs with
 \file{.github/scripts/headers.sh}: each header compiles alone with
 \option{-std=c++11}, the oldest standard GAOL takes, and
@@ -1453,13 +1459,12 @@ with \option{-Wall -Wconversion}, and no job failed on a warning.
 containers generate \code{fr\_FR.UTF-8} before the tests with
 \cmd{localedef} (\file{.github/scripts/comma-locale.sh}), their systems
 having no locale writing a decimal comma; macOS has \code{fr\_FR.UTF-8}, and
-Windows \code{French\_France.1252}. After the tests, each job that runs them
-fails if the output of \code{numbers} holds no check under such a locale,
+Windows \code{French\_France.1252}. After the tests, the jobs of Ubuntu, of the Debian containers, of macOS (but the universal builds and the generator of Xcode), of Visual Studio, of MinGW-w64 and of MSYS2 fail if the output of \code{numbers} holds no check under such a locale,
 read in \file{Testing/Temporary/LastTest.log}, \file{tests/numbers.log} with
 the autotools or \file{meson-logs/testlog.txt} with meson.\newinvfive{}
 Alpine and manylinux have no such locale to generate, and check nothing of
 the kind. \code{numbers} has 300~s (\option{GAOL\_NUMBERS\_TIMEOUT}), 400 in
-the four jobs with the sanitizers, where it took 109 to 287~s and once more
+the four Linux jobs with the sanitizers, where it took 109 to 287~s and once more
 than 300, and 600 in the job of macOS 15 x86\_64 GCC with the sanitizers,
 where it took 146 to 367~s on the same code, and once more than 400. The manual of GAOL v5 is
 built with the LaTeX of Ubuntu 24.04, by the autotools, the CMake and the
@@ -1519,8 +1524,7 @@ intervals; Ubuntu 24.04 arm64 with GCC and with Clang (the NEON intervals)
 and with GCC and the FPU intervals; macOS 26 arm64 and macOS 15 x86\_64;
 Visual Studio 2026 x64, x86, arm64, and x64 with the direction preserved
 (the AVX-512 path left out too, which measures the macros that write MXCSR
-alone), and clang-cl for x64, x86 and arm64; MSYS2 UCRT64, CLANG64 and
-CLANGARM64; and Debian 13 containers for i386 and armhf, with no cache. The
+alone), and clang-cl for x64, x86 and arm64; MSYS2 UCRT64 and CLANG64; and Debian 13 containers for i386 and armhf, with no cache. The
 other platforms (POWER, s390x, RISC-V, MinGW-w64 of Chocolatey, the 32-bit
 Windows of MSYS2) are not compared, nor are the autotools and meson builds:
 the three builds give the same flags, which the audit checks.
@@ -1826,11 +1830,8 @@ and the tools and the CI of CORE-MATH under \file{3rd/math-core/}.
     \option{-Wall -Wextra -Wold-style-cast -Wundef -Werror}\\
   \file{scripts/\allowbreak check-intervals.sh} & Fails unless the build computes with
     the expected intervals (NEON, SSE2 or FPU)\\
-  \file{scripts/\allowbreak check-gcc-windows-fma.sh} & Checks that no object of GCC for
-    Windows names a 256-bit or 512-bit register (GCC bug 54412)\\
-  \file{scripts/comma-locale.sh} & Generates or finds a locale that writes a
-    decimal comma, so that \code{numbers} does not pass without having tried
-    one\\
+  \file{scripts/\allowbreak check-gcc-windows-fma.sh} & Checks that the objects of \file{gaol\_interval\_core.cpp} and of the \code{cos} of CORE-MATH built by GCC for Windows hold fused multiply-add instructions, and that no object names a 256-bit or 512-bit register (an error on x64, GCC bug 54412; a notice on x86)\\
+  \file{scripts/comma-locale.sh} & Generates \code{fr\_FR.UTF-8} with \cmd{localedef} before the tests (\code{generate}), and checks after them that \code{numbers} ran checks under it (\code{check}), so that \code{numbers} does not pass without having tried a locale writing a decimal comma\\
   \file{scripts/sde-tests.sh} & Runs the tests under Intel SDE, which
     emulates AVX-512: the runners of GitHub for Windows may have none\\
   \file{scripts/version-file.sh} & Checks how \cmd{configure}, meson and
@@ -1945,9 +1946,7 @@ the tests and writes the report of their coverage,
 \file{coverage/README.md}: \cmd{cmake -{}-build <build> -{}-target coverage},
 \cmd{make coverage}, or \cmd{ninja gaol-coverage}, meson keeping
 \code{coverage} for its own report (\pxref{sec:cmake-options}).\newinvfive{}
-It needs GCC or Clang, the Debug build, gcovr and Python~3, and the tests
-have to be built: with the Release build, the optimizations move the code
-around, and the counts no longer follow the source. The sources of GAOL
+It needs GCC or Clang, gcovr and Python~3, and the tests (\option{WITH\_TESTS}); it should be the Debug build: with the Release build, the optimizations move the code around, the counts no longer follow the source, and the build warns. The sources of GAOL
 (\file{gaol/}) are counted apart from those of CORE-MATH
 (\file{3rd/math-core/}), whose accurate phases are reached by a handful of
 arguments in a million: counting them together would say nothing of either.
@@ -1990,9 +1989,8 @@ in every state a program may leave the processor in: the four rounding
 directions, the modes that flush the subnormal numbers, the exceptions
 enabled, a locale with a decimal comma, and the initialization of static
 objects before \code{main()}. The programs of \file{tests/} hold hundreds
-of thousands of such checks, each recorded with how many of them fail
-without the change it guards, and the example programs check what they
-print, as do the examples of this manual. The continuous integration runs
+of thousands of such checks, and the documentation records, for many of the changes, how many of the checks written with them fail without them, and the example
+programs check what they print, as do the examples of this manual. The continuous integration runs
 the suite on three operating systems, seven processor architectures and the
 compilers of each, with the three builds, and refuses the configurations
 whose bounds it found wrong or uncertified, most of the refusals being checked by a
