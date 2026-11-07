@@ -1,7 +1,7 @@
 # Fait et décidé sur GAOL v5
 
-Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 5 novembre 2026
-(commit `130acea` de `configure-clean`, la fusion de #292 : voir la section 1).
+Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 7 novembre 2026
+(commit `1e23540` de `configure-clean`, la fusion de #294 : voir la section 1).
 Ce fichier fait foi : l'issue #177, qui avait le même contenu, n'est plus mise à
 jour depuis le 28 octobre (voir 7.8).
 
@@ -53,10 +53,10 @@ par date ; 4. Les points faits, par lettre ; 5. Les anciens numéros faits ; 6.
 Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 `configure-clean` ; 8. Le ménage fait.
 
-## 1. L'état au 5 novembre 2026
+## 1. L'état au 7 novembre 2026
 
-- **`configure-clean`** est au commit `130acea` (la fusion de #292 le 5 novembre
-  à 10 h 08 UTC, après celles de #217 le 28 octobre, de #218, #219, #222, #223
+- **`configure-clean`** est au commit `1e23540` (la fusion de #294 le 7 novembre
+  à 21 h 17 UTC, après celles de #217 le 28 octobre, de #218, #219, #222, #223
   et #225 le matin du 29, de #220, #224 et #227 à #231 de 18 h 04 à 18 h 19 UTC,
   de #232, #234 et #235 de 19 h 55 à 19 h 57, de #236 à 23 h 42, de #237 et #238
   le 30 octobre à 11 h 04, de #245, #242 et #249 de 19 h 57 à 20 h 07, de
@@ -66,7 +66,8 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   de #284 à 11 h 40 et 11 h 41 et de #281 à 16 h 51, de #285 le 4 novembre à
   8 h 22, de la branche `std-exceptions` (`221c8d4`), de #287 à 19 h 12, de #288
   à 19 h 19, puis, le 5 novembre, de #289 à 9 h 02, de #290 à 9 h 32, de #291 à
-  9 h 56 et de #293 à 10 h 02 ; l'import de CORE-MATH `0b2ae6d1` est du 27
+  9 h 56, de #293 à 10 h 02 et de #292 à 10 h 08 (`130acea`) ; l'import de
+  CORE-MATH `0b2ae6d1` est du 27
   octobre, voir 7.6 à 7.10). Les pull requests des corrections vont vers
   `configure-clean`, qui reste la branche de développement après v5.0.0 ;
   `MATH-CORE` et `master` (GAOL 4.3.2, plus deux commits de `.claude/CLAUDE.md`)
@@ -101,7 +102,10 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   : la tâche PN, `TODO_fin.md` et `STEP.md`) à 9 h 56 et #293 (hors des points :
   `d * x` calculé comme `x * d`) à 10 h 02 UTC, et #292 (hors des points : les
   boucles de relations de la tâche PK dans `rounding_direction`) à 10 h 08 UTC
-  (2.3, 3.17 et 3.21). #168, #195, #211, #214, #221, #226 et #233 sont fermées
+  (2.3, 3.17 et 3.21), puis, le 7 novembre, #294 (hors des points : le manuel de
+  GAOL v5 dans le style de la thèse du mainteneur, avec son PDF et les
+  corrections de `doc/` qu'il a trouvées) à 21 h 17 UTC (2.3 et 3.23). #168,
+  #195, #211, #214, #221, #226 et #233 sont fermées
   sans fusion, et, du 30 et du 31 octobre, #240, #241, #243, #244, #246, #247,
   #251 à #261, #277 et #278, puis #286, le « Revert » de #285 fermé onze
   secondes après son ouverture (2.4). Les tâches PA, PB, PC, PD, PE, PF, PG, PI
@@ -126,7 +130,8 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   `221c8d4` pour ses suites ; hors des points aussi, #287 pour `pownRev` avec
   p ≤ 0, #288 pour `compoundm1` (3.18), #289 pour la synthèse de #283 à #288,
   #290 pour `overlap`, #291 pour la tâche PN (3.19 et 3.20), #293 pour `d * x`
-  (3.21) et #292 pour les boucles de relations de PK (3.17)) ; PK, un
+  (3.21), #292 pour les boucles de relations de PK (3.17) et #294 pour le
+  manuel, dont le PDF est le point PJ.5 : 3.23) ; PK, un
   `FE_INVALID` de Clang avec les intervalles FPU, est close sans code, non
   reproduite avec les drapeaux de GAOL (3.17), ses boucles de relations étant
   entrées dans `rounding_direction` par #292 ; il reste les signalements à
@@ -2608,6 +2613,75 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   Performance verts ; macOS, Autotools et meson étaient encore en attente d'un
   exécuteur à 10 h 07 UTC, après la fusion. Décision : 3.20.
 
+- #294 (hors des points : le manuel de GAOL v5 dans le style de la thèse du
+  mainteneur, et le PDF du point PJ.5 ; ouverte le 6 novembre à 18 h 28 UTC, 56
+  commits, 80 fichiers, 19 784 lignes ajoutées et 7 716 retirées contre
+  `configure-clean`) : fusionnée le 7 novembre à 21 h 17 UTC par le mainteneur
+  (`1e23540`, tête `f20ad4e`). Le manuel suit la mise en page et le style de la
+  thèse (`book` de 12 pt en A4 recto verso, en-têtes « Chapter N - Title »,
+  définitions, exemples et remarques numérotés, anglais, « we », un aperçu et
+  une Discussion par chapitre) : 15 chapitres, l'introduction, la conclusion et
+  deux annexes (la documentation, `COPYING.LIB`), `manual/v5/manual_gaolv5.tex`
+  pour la mise en page seule, `manual/v5/chapters/*.tex` et `gaol_def.tex` (le
+  préambule et les macros) à la place de `gaol.tex` et de `manual.cls` ; 385
+  pages contre 154, `\newinvfive` marquant toujours ce que v5 ajoute. La page de
+  titre porte « NOT Just Another Interval Library », « Edition 5.0, 6 November
+  2026 » et le copyright de 2002 de l'IRIN. La construction : `-DWITH_DOC=ON`
+  ajoute la cible `pdf` de CMake (comme `make -C manual pdf` et `meson compile
+  pdf`), qui écrit `manual/Manual_GAOLv5.pdf` dans `manual/` par
+  `manual/build-pdf.sh <sources> <build> <PDF>` ; `manual/v4/Manual_GAOLv4.pdf`
+  n'a été construit qu'une fois ; le mainteneur a supprimé les deux anciens
+  `gaol.pdf` et changé `manual.yml` (le job « Manual » compte les pages des
+  trois builds et contrôle les polices). Les relectures : huit sous-agents le 6
+  novembre (une centaine de correctifs), puis, le 7, quinze relecteurs
+  indépendants du manuel entier avec le code, les tests, les workflows, la norme
+  et `doc/` sous les yeux (620 constats : 101 erreurs, 277 corrections, 242
+  retouches ; vingt-deux des pires rejoués, tous exacts), appliquées chapitre
+  par chapitre, un commit chacun, puis sept relecteurs des seuls passages
+  modifiés (environ 210 constats, tous appliqués). Le code, trouvé par ces
+  relectures : `rad()` et `width()` du point zéro rendent +0 (IEEE 1788-2015,
+  12.12.8) et `bisect()` ne lève plus `FE_OVERFLOW` pour des bornes finies, avec
+  leurs tests dans `tests/other_functions.cpp` ; le reste de `gaol/` n'a que des
+  commentaires (sept fichiers, 78 lignes ajoutées). La documentation :
+  vingt-cinq fichiers de `doc/`, de `README.md`, de `coverage/` et d'`examples/`
+  corrigés des erreurs que le manuel avait reprises des pages,
+  `doc/differences.md` compris (3.23), parmi lesquelles la valeur par défaut de
+  `--enable-preserve-rounding` de GAOL 4 (activée), la phrase sur la licence
+  LGPL de CRlibm, que les sources ne soutiennent pas (CRlibm et la glibc sont
+  sous LGPL 2.1 ou plus, la glibc s'est vu proposer CRlibm en 2007, et seul musl
+  demande une licence permissive, en 2022, pour CORE-MATH). Les mesures refaites
+  : le coût de `GAOL_PRESERVE_ROUNDING` et le chemin AVX-512 (le 7 novembre,
+  i7-1185G7, Clang 21.1.8, `performance-ab.sh --runs 9 --lines`, médiane de 9
+  passes : 0,83 ns sans préservation, le chemin rendant les sept opérations 20 %
+  plus longues, et 2,87 avec ; les tableaux 4.2 et 12.2 viennent de la même
+  série) ; les temps NEON contre FPU de l'Apple M2 (le 7 novembre au soir, sur
+  secteur, par une session sur le Mac : `x + y` 1,15 contre 0,89 ns, `x * y`
+  3,25 contre 1,52, `x / y` 3,20 contre 2,07, la ligne de 7 quotients 32,4
+  contre 18,4, celle de 13 opérations 47,2 contre 14,7, soit 3,2 fois, au lieu
+  de 3,0 dans le tableau des verdicts) ; le quotient NEON d'un Neoverse N2 (le
+  paragraphe d'avant c42f95e, 5,36 ns, est remplacé par la CI du 7 novembre : `x
+  / y` 3,96 ns avec Clang, 4,04 avec clang-cl, 4,49 avec GCC et 4,92 avec Visual
+  C++, contre 4,29 pour les intervalles FPU avec GCC ; `x * y` 2,95 contre 6,37)
+  ; la racine cubique de CORE-MATH (`nth_root(x, 3)`, même programme, 1 024
+  intervalles tirés comme dans `tests/performance.cpp`) : 41 ns contre 89 avec
+  la recherche par bissection sur l'i7-1185G7 (Clang 18) et 24,4 contre 77,0 sur
+  l'Apple M2, au lieu des « 50 contre 189 » du manuel, des « 67 contre 179 »
+  d'un commentaire du code et des « 58 contre 179 » du message du commit
+  `fffb862`, que l'historique garde. `check_branch`, `HOUSE_RULES.md` et
+  `process.md` laissent maintenant une branche `manual*` commiter
+  `manual/Manual_GAOLv5.pdf` dans son dernier commit, corriger
+  `doc/differences.md` et supprimer l'ancien `manual/v5/gaol.pdf`. Le
+  commentaire de `.github/workflows/linux.yml` sur le contrôle de l'en-tête NEON
+  (`f20ad4e`) a été poussé par SSH : le jeton de `gh` n'a pas la portée
+  `workflow`. Les contrôles en local : `cmake --build <build> --target pdf`, 385
+  pages, 0 erreur de TeX, 0 référence indéfinie, 7 « Overfull \hbox » de moins
+  de 4,1 pt ; `manual/check_examples.py` avec le GAOL installé de la branche,
+  116 exemples sur 116 ; la suite de tests (Release, GCC 15), 47 réussis, 2
+  sautés ; le job « Manual » rejoué dans `ubuntu:24.04` (385 pages avec les
+  trois builds). Sa CI au dernier commit : Linux, Linux containers, Windows,
+  macOS, Autotools et meson, Manual et Performance verts (vérifié après la
+  fusion). Décisions : 3.23.
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -4791,6 +4865,74 @@ les exécute (2.3). Elles viennent de la session d'`overlap` (GAOL_V8, branche
   sa branche locale est supprimée (la distante l'a été à la fusion) ; le
   scratchpad de la session est vidé.
 
+### 3.23 Du 5 au 7 novembre : le manuel dans le style de la thèse, #294
+
+Les décisions du mainteneur sur #294 (hors des points), avec la pull request qui
+les exécute (2.3). Elles viennent de la session du manuel, qui les a posées en
+questions à quatre réponses.
+
+- **Le sujet** (*demandé le 5 novembre*) : unifier le manuel de `manual/v5` sur
+  la thèse du mainteneur (mise en page, style, anglais, « we », aperçu et
+  Discussion de chaque chapitre), un fichier par chapitre (*décidé le 6
+  novembre*). La mise en page de la compilation à la main est celle qu'il veut
+  (*dit le 6 novembre*, après avoir ouvert l'ancien `gaol.pdf` et ses notes en
+  marge).
+- **Le PDF** (*décidé le 6 novembre*) : écrit directement dans `manual/`
+  (`manual/Manual_GAOLv5.pdf`), construit pour v5 seulement par la cible `pdf`
+  (`-DWITH_DOC=ON`, `make -C manual pdf`, `meson compile pdf`) ; le mainteneur a
+  commité le PDF, supprimé les deux anciens `gaol.pdf` et changé `manual.yml`
+  (*décidé le 7 novembre*, réponse A) : la pull request du manuel le régénère
+  dans son dernier commit, `check_branch`, `process.md` et `HOUSE_RULES.md`
+  l'autorisent pour une branche `manual*` ; la date d'édition de la page de
+  titre reste le 6 novembre (*décidé le 7 novembre*, réponse A).
+- **Après la première relecture** (*décidé le 7 novembre*, huit réponses) : les
+  contrastes avec « GAOL 4 » qui décrivent un état de v5 jamais publié gardent
+  leur texte, « GAOL 4 » devenant « les versions antérieures de GAOL v5 » ; «
+  les plus serrées » ne vaut que pour les fonctions élémentaires de CORE-MATH,
+  ailleurs « serrées, ou à quelques doubles près » (chapitre 11) ; l'annexe B
+  reproduit `COPYING.LIB` fidèlement ; `rad(-0)` (+0, IEEE 1788-2015, 12.12.8)
+  et `bisect()` (pas de `FE_OVERFLOW`) se corrigent dans le code, puis le texte,
+  et les drapeaux du chemin AVX-512 dans le texte seulement ; les doublons
+  restent au chapitre où le sujet est le plus détaillé, les autres y renvoient ;
+  les pages de `doc/` se corrigent dans la même pull request,
+  `doc/differences.md` compris, **par exception à `process.md` §9 point 5, cette
+  fois seulement** ; la session travaille seule, un chapitre à la fois, un
+  commit par chapitre, puis une relecture indépendante des seuls passages
+  modifiés.
+- **Après la seconde** (*décidé le 7 novembre*, dix réponses) : le financeur du
+  postdoctorat de Frédéric Goualard reste comme dans le manuel de GAOL 4 (*Swiss
+  National Science Foundation* dans l'introduction, *ERCIM* sur la page de
+  copyright) ; sous-titre « NOT Just Another Interval Library » ; « Codac et
+  IBEX » partout, et « Copyright © 2002 IRIN » sur la page de copyright (le
+  libellé de `gaol/gaol_fpu.h`) ; la phrase du chapitre 1 sur la licence de
+  CRlibm est gardée si elle se vérifie, et elle ne se vérifie pas (2.3) : elle
+  est réécrite ; les badges de `README.md` suivent `master` et `GIT_TAG master`
+  reste dans l'exemple FetchContent (PJ.3) ; les dates disent « septembre 2026 »
+  sans jour (les en-têtes des workflows en portent un, que la session n'a pas
+  modifié) ; pour le quotient NEON et la racine cubique du chapitre 12, demander
+  à un pair puis dire au mainteneur avant de corriger ; seuls les titres qui se
+  coupent au milieu d'un mot sont refaits (quatre sections, trois entrées de la
+  liste des tables) ; `check_branch` laisse une branche `manual*` corriger
+  `doc/differences.md` et supprimer l'ancien `manual/v5/gaol.pdf` ; les
+  répétitions (les noyaux NEON, la Remarque sur `cleanup()`) sont dites une
+  fois.
+- **Les chiffres** (*décidé le 7 novembre au soir*, réponses A) : le paragraphe
+  sur le quotient NEON d'un Neoverse N2 est réécrit avec la CI du jour et le M2
+  (son explication par les pipes vectorielles, deux contre quatre, reste, dite
+  non mesurée) ; les chiffres de la racine cubique sont ceux des deux mesures
+  (41 contre 89 ns sur l'i7, 24,4 contre 77,0 sur le M2), partout, le
+  commentaire du code compris ; « 3,0 fois » devient « 3,2 fois » pour la ligne
+  de 13 opérations. L'explication des écarts entre les trois jeux de chiffres
+  d'avant (50 et 189, 67 et 179, 58 et 179 ns) n'est pas connue.
+- **Le commentaire de `linux.yml` et la pull request** (*décidé le 7 novembre*)
+  : le mainteneur demande de le modifier directement dans la branche, de
+  commiter et de pousser ; le jeton de `gh` n'a pas la portée `workflow`, donc
+  le push passe par SSH (`git push git@github.com:Jordan08/GAOL.git <branche>`).
+  Une seule pull request, #294.
+- **Après la fusion** (*décidé le 7 novembre*, « fait le ») : les branches
+  locales sont supprimées (celle de GAOL_V9 comprise) et les registres mis à
+  jour (7.20).
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -6258,6 +6400,41 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PH, PJ et PM) e
   se vérifie contre `process.md` avant d'être proposée (3.22 : `ChangeLog` et
   `doc/differences.md`).
 
+### 7.20 Le 7 novembre (la fusion de #294)
+
+- Le mainteneur a fusionné #294 à 21 h 17 UTC (`1e23540`), puis a dit « fait
+  le » à la session du manuel, qui a supprimé les branches locales et mis à jour
+  les registres communs directement sur `configure-clean` (`process.md` §9),
+  après `git fetch origin` : `TODO.md` (l'en-tête, PJ.5 et les numéros de ligne
+  de PJ.6 et de PJ.7, que #294 a déplacés), ce fichier (1, 2.3, 3.23, cette
+  section et 8.1) et `process.md` (l'en-tête et §12), puis l'issue #179.
+  `TODO_AFTER.md` et l'issue #178 ne changent pas : rien n'est reporté, ni
+  écarté ; #177 reste gelée (7.8). Aucune autre session ne touchait aux
+  registres (`ListAgents` : les autres sessions étaient à l'arrêt).
+- Les faits de 2.3 viennent de la session du manuel et de l'API de GitHub (le
+  nombre de commits, de fichiers et de lignes, l'heure de la fusion, les
+  workflows du dernier commit) ; les mesures de l'Apple M2 sont celles d'une
+  autre session, sur le Mac, qui a dit à chaque fois ce qu'elle avait mesuré et
+  ce qu'elle avait déduit.
+- Les pièges. Un paragraphe écrit d'après une mesure ancienne se périme : celui
+  du quotient NEON d'un Neoverse N2 décrivait l'état d'avant c42f95e (5,36 ns au
+  lieu de 3,96), et ses chiffres du M2 contredisaient le début du même chapitre
+  : relire les chiffres cités quand le code qu'ils décrivent a changé. Trois
+  jeux de chiffres pour la même racine cubique (50 et 189, 67 et 179, 58 et 179
+  ns) ne se retrouvaient ni sur l'i7 ni sur le M2 : refaire la mesure avec un
+  programme dont on donne la source, sur les deux commits.
+  `tests/performance.cpp` n'avait pas de ligne `nth_root(x, 3)` aux commits
+  `0e74c94` et `fffb862` : un petit programme à part, avec le même tirage des
+  opérandes. Les logs d'un job de la CI se lisent par `gh run view <run> --log
+  --job <id>`, non par `gh api .../jobs/<id>/logs`, qui rend zéro octet ici. Un
+  contrôle « zéro erreur » doit chercher aussi `ignored error` (les `longtable`
+  de TeX Live 2025). Une phrase de licence se vérifie dans les sources avant
+  d'être gardée (CRlibm et la glibc : 2.3). Le jeton de `gh` n'a pas la portée
+  `workflow` : un push qui touche `.github/workflows/` passe par SSH. Les
+  sous-agents de relecture ont pris 175 à 236 000 jetons chacun (la première
+  relecture : 1,6 million en tout), 300 à 500 000 chacun pour la troisième :
+  fixer le total avant de les lancer.
+
 ## 8. Le ménage fait
 
 ### 8.1 Branches, lignes de crédit, outillage
@@ -6423,6 +6600,12 @@ questions qui restent sans réponse sont dans `TODO.md` (tâches PH, PJ et PM) e
   de la session vidé (il ne contenait plus que le clone de travail des
   registres, 21 Mo ; les 103 Mo mesurés plus tôt, copies de travail, journaux,
   ITF1788 et manuel, n'y étaient plus).
+- [x] Celle de #294 (`manual-thesis-style`), sur GitHub (supprimée à la
+  fusion, vérifié le 7 novembre par `git ls-remote --heads origin`) ; en local,
+  la branche du clone de travail du manuel (`GAOL_manual/gaol`) et celle de
+  GAOL_V9, supprimées le 7 novembre (`git branch -d`, fusionnée), GAOL_V9 étant
+  déjà revenu sur `configure-clean` (`1e23540`) ; le clone de travail du manuel
+  (`GAOL_manual/`, avec ses rapports de relecture et ses mesures) reste.
 
 ### 8.2 Les branches inachevées
 

@@ -1,12 +1,13 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `130acea` de `configure-clean` (la
-fusion de #292, après #293, #291, #290, #289 et #288), le 5 novembre 2026, en
-tâches PH, PJ et PM (PA à PG, PI et PL sont faites, PK est close : voir
-`TODO_DONE.md`). Ce fichier et l'issue #179 ont le même contenu. Ce qui est fait
-et décidé est dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour), ce qui
-est reporté dans `TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142
-sont fermées, et `TODO_mistral.md` est supprimé.
+Ce qui reste à faire sur GAOL v5 au commit `1e23540` de `configure-clean` (la
+fusion de #294, le manuel dans le style de la thèse, après #292, #293, #291,
+#290 et #289), le 7 novembre 2026, en tâches PH, PJ et PM (PA à PG, PI et PL
+sont faites, PK est close : voir `TODO_DONE.md`). Ce fichier et l'issue #179 ont
+le même contenu. Ce qui est fait et décidé est dans `TODO_DONE.md` (l'issue #177
+n'est plus mise à jour), ce qui est reporté dans `TODO_AFTER.md` (issue #178).
+Les anciennes issues #49 et #142 sont fermées, et `TODO_mistral.md` est
+supprimé.
 
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
@@ -228,30 +229,34 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    d'un échange de 2014 et d'une liste de 2020 : elle peut avoir changé) ; le
    second paragraphe (les défauts de GAOL 4) dépasse l'annonce décidée le 3
    octobre, mais *décidé le 24 octobre* : le garder tel quel.
-5. **Le manuel** (l'ancien point 4 de PI) : une seule régénération de
-   `manual/v5/gaol.pdf`, qu'on ne commite jamais dans une branche de point.
-   *Faite une première fois par #289* (fusionnée le 5 novembre, à la demande du
-   mainteneur, avec la synthèse) : `sh manual/build-pdf.sh` avec `pdflatex` de
-   TeX Live 2025, 154 pages, 0 erreur, aucun `Overfull \hbox`, aucun
-   avertissement de `makeindex`, après la correction dans `gaol.tex` de l'entrée
-   d'index en conflit de « canonical interval », de l'`Overfull \hbox` connu et
-   des entrées de `operator|` que `makeindex` rejetait ; la date d'édition du
-   manuel (`GAOL_V5_UPDATED` de `configure.ac`, de `configure` et de
-   `manual/meson.build`) est le 4 novembre 2026. Depuis, #290 (`overlap`) et
-   #293 (`d * x`) ont changé `gaol.tex` : le PDF versionné (`857704a`) est de
-   nouveau plus vieux que sa source. *À décider* (le mainteneur, le 5 novembre :
-   « Je décide plus tard ») : le refaire maintenant, ou une dernière fois au
-   commit de la version avec les mesures de ce point, la date d'édition étant
-   alors à remettre à jour. *Décidé le 3 octobre*, pour les points 7 et 10 : un
-   seul `\newinvfive` dans l'entrée `hausdorff` du manuel, et aucun sur la
-   phrase du domaine de `atanh`.
+5. **Le manuel** (l'ancien point 4 de PI) : *fait par #294* (fusionnée le 7
+   novembre). Le manuel est réécrit dans la mise en page et le style de la
+   thèse du mainteneur (`manual/v5/manual_gaolv5.tex` et un fichier par chapitre
+   dans `manual/v5/chapters/`, à la place de `gaol.tex`), relu deux fois par des
+   relecteurs indépendants, et son PDF, `manual/Manual_GAOLv5.pdf` (385 pages, 0
+   erreur de TeX, les 7 « Overfull \hbox » de moins de 4,1 pt qui restent), est
+   commité : le mainteneur a supprimé l'ancien `manual/v5/gaol.pdf` (154
+   pages) et `manual/v4/gaol.pdf`, et la cible `pdf` (`-DWITH_DOC=ON`,
+   `make -C manual pdf` ou `meson compile pdf`) écrit le PDF dans `manual/`.
+   *Décidé le 7 novembre* : la pull request du manuel (une branche `manual*`) le
+   régénère dans son dernier commit, `check_branch` le lui permet et
+   `process.md` (§6.2 point 7, §7 point 5) le dit ; les autres branches ne le
+   commitent jamais. La date
+   d'édition (`GAOL_V5_UPDATED` de `configure.ac`, de `configure` et de
+   `manual/meson.build`) reste le 6 novembre 2026 (*décidé le 7 novembre*). Le
+   PDF est à jour avec sa source : à refaire seulement si les mesures de ce
+   point changent le manuel (dans la pull request qui les change, comme #294),
+   la date d'édition étant alors à remettre à jour. *Décidé le 3 octobre*, pour
+   les points 7 et 10 : un seul `\newinvfive` dans l'entrée `hausdorff` du
+   manuel, et aucun sur la phrase du domaine de `atanh`.
 6. **La CI de macOS 27** (#276, fusionnée le 30 octobre) : le job `macOS 27
    arm64` remplace `macOS 14` sur l'étiquette `xcode-27` (le mainteneur,
    `57650a4` du 1er novembre) et passe le 2 novembre ; celui de x86_64 sous
    Rosetta est retiré (« not available now », l'étiquette `macos-27` n'a pas
    d'exécuteur). Les textes qui citent macOS 14 comme testé
-   (`manual/v5/gaol.tex` ligne 277, `doc/three-builds.md` ligne 76,
-   `CMakeLists.txt` ligne 506, `gaol/math/gaol_core_math_port.h` ligne 453,
+   (`manual/v5/chapters/02_installation.tex` ligne 473, `doc/three-builds.md`
+   ligne 76, `CMakeLists.txt` ligne 512, `gaol/math/gaol_core_math_port.h`
+   ligne 453,
    `configure.ac` et `meson.build`) sont à revoir avec la version si macOS 14
    ne doit plus y figurer.
 7. **Les restes de la synthèse de #283 à #288, et le texte de #293** : la pull
@@ -266,11 +271,12 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    d'autres signes de zéro (`[-0, +0]` au lieu de `[+0, -0]` pour x = `[+0, -0]`
    et un d positif, avec les intervalles SSE2) ; dans `doc/differences.md`, la
    phrase de l'exception du chemin AVX-512 au « bit pour bit » (ligne
-   821, « `x * d` and `x *= d` ») y ajoute `d * x`. Restent aussi trois
-   détails : le commentaire de `CMakeLists.txt` (ligne 1436) cite
+   834, « `x * d` and `x *= d` ») y ajoute `d * x`. Restent aussi trois
+   détails : le commentaire de `CMakeLists.txt` (ligne 1441) cite
    `core_math_log_dint.h`, qui n'existe pas ; la liste de `doc/differences.md`
-   (ligne 2370) des fichiers que l'archive des sources laisse de côté ne nomme
-   pas `TODO_fin.md` ni `STEP.md`, que `CMakeLists.txt` exclut depuis #291 ;
+   (lignes 2387 et 2388) des fichiers que l'archive des sources laisse de côté
+   ne nomme pas `TODO_fin.md` ni `STEP.md`, que `CMakeLists.txt` exclut depuis
+   #291 ;
    dans `todo-notes/synthese.md`, les notes « Présence : absents » et les
    renvois « change 6 » et « change 7 » de `3rd/README.md` sont périmés
    (`TODO_fin.md`, section 7, article 21). Le cas des bornes qui sont des
