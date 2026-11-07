@@ -1152,7 +1152,9 @@ builds (Table~\ref{tab:install-options}):
   \code{yes}.\newinvfive
 \item[$\bullet$] \textbf{\loption{enable-preserve-rounding[=\var{yes/no}]}.}
   Each operation restores the rounding direction it found
-  (\pxref{sec:rounding-direction}). This option defaults to \code{no}.
+  (\pxref{sec:rounding-direction}). This option defaults to \code{no};\newinvfive{}
+  the \cmd{configure} of GAOL~4 had it on by default, although its manual says
+  the contrary.
 \cindex{rounding!preserving}%
 \item[$\bullet$] \textbf{\loption{enable-coverage[=\var{yes/no}]}.} Compiles
   GAOL and its tests with the counters of gcov, and adds the target

@@ -74,9 +74,10 @@ The suite rests on the following principles.
   written with a change of GAOL v5 was run against the sources before the
   change, and the documentation of the tests records how many of its checks
   fail there: 10\,900 of the checks under the modes that flush the subnormal
-  numbers, 45 of the 48 calls with an empty operand that compared its NaN bounds,
-  which died in a child process, 25 of the 45 checks of the operations
-  computed before \code{main()} (with the SSE2 intervals). A check that passes with and without the change proves
+  numbers, and, with the SSE2 intervals, 45 of the 48 calls that compared the NaN
+  bounds of an empty operand, which died in a child process that enabled the
+  exception, and 25 of the 45 checks of the operations computed before
+  \code{main()}. A check that passes with and without the change proves
   nothing, and the mutation tools of \file{tests/tools/} build GAOL with a
   deliberate error that the tests have to catch (\pxref{sec:scripts}).
 \item[$\bullet$] \textbf{The floating-point exceptions.} No operation of GAOL
@@ -385,8 +386,7 @@ check of the direction.\newinvfive{} Products and sums have to be the
 tightest in a loop that changes the direction before each of them. The 30
 forms of \code{+ - * / \%}, \code{sqr}, \code{sqrt} and \code{inverse}
 with intervals, with a double and as compound assignments have to be the tightest enclosures on random operands, in a loop that changes the rounding direction before each of them; on ARM they are run $2^{16}$ times each, in the four directions in turn, right after the program wrote the control register itself.
-times each, in the four directions in turn, and on ARM right after the
-program wrote the control register itself. \code{pow} with a subnormal
+\code{pow} with a subnormal
 result, which CORE-MATH rounds in the direction \code{fegetround()} gives,
 has to be the tightest in each state, the x87 unit to nearest and the SSE
 instructions upward included: the \code{fegetround()} of glibc reads the x87
@@ -547,8 +547,9 @@ the bounds have to be written in the form of IEEE 1788-2015 (13.4.1) and
 read back as the same set, which is the recovery requirement of 13.4.
 \code{operator<<} has to leave the precision of the stream as it was,
 \code{std::setw} to pad the whole interval, and the texts written under the
-flags of the stream and a locale of its own have to be those \code{operator<<}
-wrote in a stream of its own before it made the text in a string, but that the bounds format writes in the C locale and the width
+flags of the stream and a locale of its own have to be those that \code{operator<<} wrote when it still wrote into a
+stream of its own, before the text was made in a character string, except that
+the bounds format writes in the C locale and the width
 format writes the radius without a sign under \code{showpos}: 33 cases of
 four formats. The width and center formats have to write the
 \code{midpoint()} and the \code{rad()} of the standard, the radius rounded
@@ -883,10 +884,12 @@ neither, it has to compile (\pxref{sec:refused}). With
 \code{([1, 2] \& [3, 4]).is\_empty()} was false with GCC 9.4 and 13, and
 with Clang 18. The CMake build copies and touches the source before each
 compilation that has to fail (\file{tests/compile\_error.cmake}), since an
-object compiled once stayed up to date. \code{refused\_aligned\_new} and its
-two companions compile \file{gaol/gaol\_config.h} alone with \code{-D\_WIN32 -U\_WIN64}, which
-stand for 32-bit Windows on any system, without the \option{-faligned-new=8}
-the flags carry there, in C++11 and in C++17: the C runtime of 32-bit
+object compiled once stayed up to date. \code{refused\_aligned\_new} and \code{refused\_aligned\_new\_cxx17} compile
+\file{gaol/gaol\_config.h} alone with \option{-D\_WIN32 -U\_WIN64}, which stand for
+32-bit Windows on any system, without the \option{-faligned-new=8} the flags
+carry there, in C++11 and in C++17, and have to fail;
+\code{refused\_aligned\_new\_positive} compiles it with the option, and has to
+succeed: the C runtime of 32-bit
 Windows aligns the memory of \code{new} on 8 bytes, an SSE2 interval needs
 16, and a \code{std::vector} of SSE2 intervals stopped the program on its
 first \code{movaps}.\newinvfive{} \code{cpack\_stale\_configure} configures
@@ -979,8 +982,9 @@ intervals GAOL computes with, NEON, SSE2 or FPU, and four rows give the
 product, the quotient, the square and \code{pow(x, 2)} of operands of random
 signs, the other rows having positive operands only, which a processor
 predicts: the operands are 1\,024 intervals that the predictor learns by
-heart, and the product of random signs of GAOL~4 and of the FPU intervals before
-their kernels took 6.4~ns on them and 12.4 on 16\,384 (Apple M2). The table is Markdown, which the jobs of the
+heart, and the product of random signs of the FPU intervals before their
+kernels, which chose a branch by the signs as GAOL~4 did, took 6.4~ns on them
+and 12.4 on 16\,384 (Apple M2). The table is Markdown, which the jobs of the
 continuous integration copy into their summary. After the table, it prints
 the time of the check each operation makes, $1+(2^{-1060}+0)$ not above 1,
 and of the same check made of $2^{-60}$: a processor that takes a microcode
@@ -1121,7 +1125,8 @@ The example of GAOL~4 dropped the $+1$ of the Goldstein-Price function,
 $(x+y)^2$ instead of $(x+y+1)^2$, and so did the manual of GAOL~4, which
 showed the same program and called the enclosure the range of $f$, whose
 true range, about $\itv{3}{635255}$, is about 237 times narrower than the
-enclosure $\itv{-56254330}{94177270}$.\newinvfive{} The enclosure, $\itv{-87881320}{147125080}$ over
+enclosure $\itv{-56254330}{94177270}$. Both now compute the true
+function.\newinvfive{} Its enclosure, $\itv{-87881320}{147125080}$ over
 $\itv{-2}{2}^2$, contains the range $[3, 1015690.27\ldots]$ and is 231 times
 wider than it, for lack of a link between the occurrences of $x$ and $y$: the
 dependency problem (\pxref{sec:dependency}).
@@ -1370,7 +1375,9 @@ Linux, clang-cl and Visual C++ x64 with \option{/arch:AVX2} run), CLANG64
 AVX-512 path where the runner has the instructions, GCC for Windows never
 taking it) and CLANGARM64 on the arm64 runners (the NEON intervals). Cygwin
 builds GCC for x86-64, Release and Debug, with
-\option{-mfma -mprefer-vector-width=128}, all the tests passing but those that are skipped, \code{intervalf}, \code{interval2f} and \code{cpack\_stale\_configure}, the CPack of Cygwin making no archive, and a configuration with
+\option{-mfma -mprefer-vector-width=128}, all the tests passing but those skipped there (\code{intervalf} and
+\code{interval2f}, which no build compiles, and \code{cpack\_stale\_configure},
+the CPack of Cygwin making no archive), and a configuration with
 \option{GAOL\_FMA=OFF} that \file{gaol/gaol\_config.h} has to
 refuse.\newinvfive{} Clang with the target of Visual C++ and the driver of
 GCC (\cmd{clang++}, not clang-cl) builds in the environment of Visual Studio
@@ -1531,8 +1538,8 @@ and with GCC and the FPU intervals; macOS 26 arm64 and macOS 15 x86\_64;
 Visual Studio 2026 x64, x86, arm64, x64 with the direction preserved, and x64
 with the direction preserved and the AVX-512 path left out, which measures the
 macros that write MXCSR alone, and clang-cl for x64, x86 and arm64; MSYS2 UCRT64 and CLANG64; and Debian 13 containers for i386 and armhf, with no cache. The
-other platforms (POWER, s390x, RISC-V, MinGW-w64 of Chocolatey, the 32-bit
-Windows of MSYS2) are not compared, nor are the autotools and meson builds:
+other platforms (POWER, s390x, RISC-V, MinGW-w64 of Chocolatey, MSYS2 CLANGARM64
+and MINGW32) are not compared, nor are the autotools and meson builds:
 the three builds give the same flags, which the audit checks.
 
 \medskip
@@ -1788,8 +1795,8 @@ and the tools and the CI of CORE-MATH under \file{3rd/math-core/}.
     parser from the \file{.lpp} and \file{.ypp} sources (flex 2.6.4, bison
     3.8.2), after any change of them (\cmd{make parser})\\
   \file{gaol/float/gaol\_generator\_mul\_i2f.py} & Writes the 256 cases of the
-    multiplication of \code{interval2f} by the signs of the operands: a tool of
-    the author (Python~3 and \code{ply}), which no build runs\\
+    multiplication of \code{interval2f} by the signs of the operands: a tool for the
+    developers (Python~3 and \code{ply}), which no build runs\\
   \file{manual/build-pdf.sh} & Builds the manual v5 with \cmd{pdflatex}, in
     \file{manual/Manual\_GAOLv5.pdf}; \cmd{make pdf} and the target
     \code{pdf} of CMake and meson call it\\
@@ -1843,7 +1850,8 @@ and the tools and the CI of CORE-MATH under \file{3rd/math-core/}.
   \file{scripts/\allowbreak check-intervals.sh} & Fails unless the build computes with
     the expected intervals (NEON, SSE2 or FPU)\\
   \file{scripts/\allowbreak check-gcc-windows-fma.sh} & Checks that the objects of \file{gaol\_interval\_core.cpp} and of the \code{cos} of CORE-MATH built by GCC for Windows hold fused multiply-add instructions, and that no object names a 256-bit or 512-bit register (an error on x64, GCC bug 54412; a notice on x86)\\
-  \file{scripts/comma-locale.sh} & Generates \code{fr\_FR.UTF-8} with \cmd{localedef} before the tests (\code{generate}), and checks after them that \code{numbers} ran checks under it (\code{check}), so that \code{numbers} does not pass without having tried a locale writing a decimal comma\\
+  \file{scripts/comma-locale.sh} & Generates \code{fr\_FR.UTF-8} with \cmd{localedef} before the tests (\code{generate}), and checks after them that \code{numbers} ran checks under a locale writing a
+decimal comma (\code{check}), so that \code{numbers} does not pass without having tried a locale writing a decimal comma\\
   \file{scripts/sde-tests.sh} & Runs the tests that compute with intervals (all
     but \code{numbers}, \code{core\_math} and \code{u128}) under Intel SDE,
     which emulates AVX-512: the runners of GitHub for Windows may have none\\
@@ -1992,10 +2000,11 @@ The tests run 94.3\,\% of the lines of GAOL, above the 80\,\% GAOL v5 aims
 at, and 66.5\,\% of its branches are taken both ways. The lines of CORE-MATH
 that are never run are its accurate phases, which a handful of arguments in
 a million reach, and the paths of the architectures the machine is not: they
-are not counted; the accurate path of \code{sin} is compared with the upstream
-sources compiled unchanged, and that of \code{cos} with its roundings computed
-by mpmath (\pxref{sec:test-programs}), and the other accurate phases are reached
-by the tests of their bounds only. File by file, the least
+are counted among the lines not run, and are checked otherwise: the accurate
+path of \code{sin} is compared with the upstream sources compiled unchanged,
+and that of \code{cos} with its roundings computed by mpmath
+(\pxref{sec:test-programs}), and the other accurate phases are reached by the
+tests of their bounds only. File by file, the least
 covered are \file{gaol/parser/gaol\_expr\_visitor.h} (9 of 99 lines, 9.1\,\%),
 \file{gaol/parser/gaol\_expr\_eval.h} (87.3\,\%),
 \file{gaol/parser/gaol\_expression.cpp} (89.6\,\%) and
@@ -2020,7 +2029,7 @@ whose bounds it found wrong or uncertified, most of the refusals being checked b
 job of its own.
 
 \medskip
-Two choices of the tests and of the continuous integration deserve a word. The teeth of some checks depend
+Three choices of the tests and of the continuous integration deserve a word. The teeth of some checks depend
 on the processor the code is compiled for: a loop that a compiler
 vectorizes raises the invalid-operation flag with one set of instructions
 and not with another, so that the jobs on many processors are the test, not
@@ -2030,8 +2039,8 @@ code: it is measured by building the base and the head in the same job and
 running them in turn, and only a ratio of 1.5 or more, or of 2/3 or less, beyond the spread of
 the runs, means something. The coverage report counts the lines of GAOL
 apart from those of CORE-MATH, whose accurate phases a handful of arguments
-in a million reach, and compares the accurate path of \code{sin} with the
-upstream sources instead.
+in a million reach; \code{core\_math} checks the accurate paths of \code{sin}
+and \code{cos} against values computed apart instead.
 
 \medskip
 Some checks are deferred or left out, for the reasons the documentation

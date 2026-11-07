@@ -146,7 +146,7 @@ def main():
     out.append("")
     out.append("The lines of CORE-MATH that are never run are its accurate phases, "
                "which a handful of arguments in a million reach, and the paths of the "
-               "architectures this machine is not. They are not counted: the accurate "
+               "architectures this machine is not. They are counted among the lines not run, and are checked otherwise: the accurate "
                "path of `sin` is compared with the upstream sources compiled unchanged, "
                "and that of `cos` with its roundings computed by mpmath (see "
                "`doc/tests.md`); the other accurate phases are reached by the tests of "
