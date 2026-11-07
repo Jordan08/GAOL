@@ -4,12 +4,12 @@
 # GAOL
 <em>Not Just Another Interval Library</em>
 
-[![Linux](https://github.com/Jordan08/GAOL/actions/workflows/linux.yml/badge.svg?branch=configure-clean)](https://github.com/Jordan08/GAOL/actions/workflows/linux.yml?query=branch%3Aconfigure-clean)
-[![macOS](https://github.com/Jordan08/GAOL/actions/workflows/macos.yml/badge.svg?branch=configure-clean)](https://github.com/Jordan08/GAOL/actions/workflows/macos.yml?query=branch%3Aconfigure-clean)
-[![Windows](https://github.com/Jordan08/GAOL/actions/workflows/windows.yml/badge.svg?branch=configure-clean)](https://github.com/Jordan08/GAOL/actions/workflows/windows.yml?query=branch%3Aconfigure-clean)
-[![Linux containers](https://github.com/Jordan08/GAOL/actions/workflows/containers.yml/badge.svg?branch=configure-clean)](https://github.com/Jordan08/GAOL/actions/workflows/containers.yml?query=branch%3Aconfigure-clean)
-[![Autotools and meson](https://github.com/Jordan08/GAOL/actions/workflows/build-systems.yml/badge.svg?branch=configure-clean)](https://github.com/Jordan08/GAOL/actions/workflows/build-systems.yml?query=branch%3Aconfigure-clean)
-[![Manual](https://github.com/Jordan08/GAOL/actions/workflows/manual.yml/badge.svg?branch=configure-clean)](https://github.com/Jordan08/GAOL/actions/workflows/manual.yml?query=branch%3Aconfigure-clean)
+[![Linux](https://github.com/Jordan08/GAOL/actions/workflows/linux.yml/badge.svg?branch=master)](https://github.com/Jordan08/GAOL/actions/workflows/linux.yml?query=branch%3Amaster)
+[![macOS](https://github.com/Jordan08/GAOL/actions/workflows/macos.yml/badge.svg?branch=master)](https://github.com/Jordan08/GAOL/actions/workflows/macos.yml?query=branch%3Amaster)
+[![Windows](https://github.com/Jordan08/GAOL/actions/workflows/windows.yml/badge.svg?branch=master)](https://github.com/Jordan08/GAOL/actions/workflows/windows.yml?query=branch%3Amaster)
+[![Linux containers](https://github.com/Jordan08/GAOL/actions/workflows/containers.yml/badge.svg?branch=master)](https://github.com/Jordan08/GAOL/actions/workflows/containers.yml?query=branch%3Amaster)
+[![Autotools and meson](https://github.com/Jordan08/GAOL/actions/workflows/build-systems.yml/badge.svg?branch=master)](https://github.com/Jordan08/GAOL/actions/workflows/build-systems.yml?query=branch%3Amaster)
+[![Manual](https://github.com/Jordan08/GAOL/actions/workflows/manual.yml/badge.svg?branch=master)](https://github.com/Jordan08/GAOL/actions/workflows/manual.yml?query=branch%3Amaster)
 
 GAOL is a C++ [Interval Arithmetic](https://en.wikipedia.org/wiki/Interval_arithmetic) library that strives to offer fast and reliable operators for constraint solvers. 
 
@@ -39,7 +39,8 @@ GAOL v5, this version of [GAOL](https://github.com/goualard-f/GAOL), adds a CMak
 tests of the bounds GAOL computes, and the changes GAOL needs to compile and
 compute right on every system it can: Linux, macOS and Windows, on x86, x86_64,
 ARM, arm64 and the other processors of Debian. It was written for
-[Codac](https://github.com/codac-team/codac), whose intervals are built upon
+[Codac](https://github.com/codac-team/codac) and
+[IBEX](https://github.com/ibex-team/ibex-lib), whose intervals are built upon
 GAOL. The autotools and meson builds of GAOL are kept, and the three builds
 configure GAOL the same way (see [The three builds](doc/three-builds.md)).
 
