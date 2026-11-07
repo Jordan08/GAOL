@@ -273,7 +273,8 @@
 %% The description of an entry, indented under its signature. Its box cannot be
 %% split, and a page may not break between the signature and it: without that
 %% the signature stayed alone at the foot of a page and its description began on
-%% the next one.
+%% the next one. A minipage has no indentation of its paragraphs: a space
+%% separates them.
 \newcount\defsavedpenalty
 \newcommand*{\defbodybegin}{%
   \nopagebreak
@@ -281,7 +282,7 @@
   \@beginparpenalty=\@M
   \begin{flushright}%
   \@beginparpenalty=\defsavedpenalty
-  \begin{minipage}{\defwidth}%
+  \begin{minipage}{\defwidth}\setlength{\parskip}{.5\baselineskip}%
 }
 %% A signature: the type, the name in bold, the parameters
 \newcommand*{\signature}[3]{%

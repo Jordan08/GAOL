@@ -54,7 +54,8 @@ interval that contains it. The interval square root, for instance, is
 \begin{equation*}
 \sqrt{I}=\hull{\{\sqrt{i}\mid i\in I\}}
 \end{equation*}
-and, the square root being increasing, $\sqrt{\itv{1}{2}}=\itv{1}{\sqrt{2}}$.
+and, the square root being increasing, $\sqrt{\itv{1}{2}}$ encloses
+\itv{1}{\sqrt{2}}: it is \itv{1}{\roundUp{\sqrt{2}}}.
 This is the \dfn{functional square root}: it extends the function
 $x\mapsto\sqrt{x}$ to intervals. Another reading of the square root gives
 both the negative and the positive values.
@@ -67,7 +68,7 @@ numbers whose square is in $I$:
 \end{equation*}
 \end{Def}
 
-\noindent Hence $\sqrt{_r\itv{1}{2}}=\itv{-\sqrt{2}}{\sqrt{2}}$.
+\noindent Hence $\sqrt{_r\itv{1}{2}}$ encloses \itv{-\sqrt{2}}{\sqrt{2}}.
 
 \begin{Ex}
 The relational square root arises from the relation $x^2=y$ between two
@@ -88,9 +89,10 @@ A function is computed on the part of its argument that lies within its
 domain, which is the domain of IEEE 1788-2015 (Tables~9.1 and 10.5): the
 part outside is left out, and an argument with no point of the domain gives
 the empty set, as \code{log(\itv{-4}{0})} does.\newinvfive{} Every function
-gives the empty set for an empty argument. How tight each result is, for each
-operation, is stated in Chapter~\ref{chap:accuracy}
-(\pxref{sec:accuracy-table}).
+gives the empty set for an empty argument, but \code{cancel\_minus} and
+\code{cancel\_plus}, which give \itv{-\infty}{+\infty} for a nonempty \var{X}
+and an empty \var{Y}, or an empty \var{X} and an unbounded \var{Y}, as IEEE
+1788-2015 requires (12.12.5).
 \cindex{domain of a function}%
 
 \section{Functional arithmetic}\label{sec:arithmetic-functional}
@@ -211,8 +213,7 @@ the standard: the two powers are compared in Chapter~\ref{chap:overview}
 \deffunx{interval}{pow}{(const interval\& \var{I}, int \var{n})}
 \deffunx{interval}{pow}{(const interval\& \var{I}, unsigned int \var{n})}
 \deffunx{interval}{pow}{(const interval\& \var{I}, double \var{p})}
-\deffunx{interval}{pow}{(const interval\& \var{I}, long \var{n})}
-\deffunx{interval}{pow}{(const interval\& \var{I}, long long \var{n})}
+\defTfunx{template <class T>}{interval}{pow}{(const interval\& \var{I}, T \var{n})}
 \begin{deffun}{interval}{pow}{(const interval\& \var{I}, const interval\& \var{J})}
   \begin{operation}
     \op{$I^n$}
@@ -227,24 +228,29 @@ the standard: the two powers are compared in Chapter~\ref{chap:overview}
     included, and $x^n$ has no value at 0 for $n<0$. A double \var{p} and a
     degenerate interval $\var{J}=\itv{n}{n}$ whose value is an integer take
     the integer power as well, beyond the \code{int}s too.\newinvfive{} An
-    exponent \var{n} of another integer type (\code{long}, \code{long long},
-    \code{short}\dots), with which \code{pow} was ambiguous, gives the same
-    integer power; beyond 64 bits (an \code{\_\_int128}), it gives the power of $\pm(2^{63}-1)$ or
+    exponent \var{n} of another integer type \var{T} (\code{long}, \code{long
+    long}, \code{short}\dots; \code{pow(x, 5L)} was ambiguous in the earlier
+    versions of GAOL v5) gives the same integer power; beyond 64 bits (an
+    \code{\_\_int128}, which GAOL takes as an integer in the GNU modes of GCC and
+    Clang only: in an ISO mode such as \option{-std=c++11}, \code{pow(x, n)}
+    does not compile), it gives the power of $\pm(2^{63}-1)$ or
     $\pm(2^{63}-2)$, with the sign and the parity of \var{n}, every power of
     a double but $0$, $\pm1$ and $\pm\infty$ being beyond the doubles
     there.\newinvfive
   \item[$\bullet$] \textbf{Any other exponent} takes the \emph{real power},
     \ieee{pow} of IEEE 1788-2015, on the part of \var{I} in \itv{0}{+\infty},
     where $0^y$ is $0$ for $y>0$ and has no value for $y\leq0$. An exponent
-    \itv{+\infty}{+\infty} or \itv{-\infty}{-\infty}, or an infinite or NaN
+    an infinite or NaN
     \var{p}, gives the empty set.
   \end{itemize}
-  The integer powers are computed from exact products within the
-  \code{int}s, $x^{-n}$ included. They are the tightest enclosures, or one
-  double beyond where the power is closer to a double than twice a bound of
-  their error proved beforehand: $2^{-98}$ for $n=3$, $2^{-88}$ for
-  $n=1000$, $2^{-62}$ at most, relatively. They are exact where the power is
-  a double. Beyond the \code{int}s, the integer powers come from the power of
+\end{deffun}
+
+\noindent
+Within the \code{int}s, the integer powers are computed from exact products,
+  $x^{-n}$ included: they are the tightest enclosures, or one double beyond
+  where the power is closer to a double than twice a bound of their error
+  proved beforehand (Chapter~\ref{chap:accuracy}), and exact where the power
+  is a double. Beyond the \code{int}s, the integer powers come from the power of
   CORE-MATH at the bounds of \var{I}: they are the tightest enclosures where
   $n$ is a double, and within three doubles of them
   otherwise.\newinvfive{} The real power takes the power of CORE-MATH at the
@@ -266,7 +272,6 @@ cout << pow(interval(0.0), interval(0.0)) << ' '
      << pow(interval(4), 0.5) << endl;
 @outputs^[1] [0.25, inf] [2]~
 \end{example}
-\end{deffun}
 
 \begin{Rem}\label{rem:arithmetic-pow-monotone}
 The result of \code{pow} is not monotone for the inclusion of \var{J}:
@@ -283,7 +288,7 @@ base on its magnitude.
 \deffunx{interval}{nth\_root}{(const interval\& \var{I}, unsigned long long \var{q})}
 \begin{deffun}{interval}{nth\_root}{(const interval\& \var{I}, int \var{q})}
   \begin{operation}
-    \op{$^{n}\sqrt{I}$}
+    \op{$\sqrt[n]{I}$}
   \end{operation}
   Computes the \var{n}th functional root of \var{I}: \ieee{rootn} of
   IEEE 1788-2015. For an odd \var{n}, the root of a negative number is the
@@ -291,7 +296,7 @@ base on its magnitude.
   real line; for an even \var{n}, only the part of \var{I} in
   \itv{0}{+\infty} is considered.\newinvfive{} A negative \var{q} gives
   $1/x^{1/|q|}$, defined on $\RSet\setminus\{0\}$ for an odd \var{q} and on
-  $\left]0,+\infty\right]$ for an even one. The function returns the empty
+  $\left]0,+\infty\right[$ for an even one. The function returns the empty
   set for $n=0$.
 
   The bounds are the tightest ones, or up to 2 doubles beyond (4 for a
@@ -319,8 +324,9 @@ cout << nth_root(interval(-8,27), 3) << ' '
 The functions of this subsection, and of the next two, are bounded with
 CORE-MATH at the bounds of the interval, or at the points within it where
 the function reaches its extrema. CORE-MATH being correctly rounded, the
-value at a bound, computed rounding upward, is the upper bound, and the
-double below it is the lower bound. These are the tightest bounds, unless the
+value at the bound where the function is greatest, computed rounding upward, is
+the upper bound, and the double below the value at the bound where it is least,
+computed the same way, is the lower bound. These are the tightest bounds, unless the
 exact value is a double; the functions give that double where they know that
 it happens ($\exp(0)=1$, $\log(1)=0$, $\sin(0)=0$, $2^3=8$\ldots).\newinvfive
 \cindex{CORE-MATH}%
@@ -344,7 +350,7 @@ it happens ($\exp(0)=1$, $\log(1)=0$, $\sin(0)=0$, $2^3=8$\ldots).\newinvfive
 \end{deffun}
 
 \begin{deffun}{interval}{log}{(const interval\& \var{I})}
-  Natural logarithm of \var{I}, defined on $\left]0,+\infty\right]$. An
+  Natural logarithm of \var{I}, defined on $\left]0,+\infty\right[$. An
   interval holding no positive number gives the empty set, where GAOL~4 kept
   its part in \itv{0}{+\infty} and gave \itv{-\infty}{-\text{MAX}} for
   \code{log(\itv{-4}{0})}.\newinvfive
@@ -360,7 +366,7 @@ it happens ($\exp(0)=1$, $\log(1)=0$, $\sin(0)=0$, $2^3=8$\ldots).\newinvfive
 \deffunx{interval}{log2p1}{(const interval\& \var{I})}
 \begin{deffun}{interval}{log10p1}{(const interval\& \var{I})}
   $\log(1+x)$, $\log_2(1+x)$ and $\log_{10}(1+x)$ for $x$ in \var{I}, defined
-  on $\left]-1,+\infty\right]$, $-\infty$ being their limit at $-1$:
+  on $\left]-1,+\infty\right[$, $-\infty$ being their limit at $-1$:
   \ieee{logp1}, \ieee{log2p1} and \ieee{log10p1} of IEEE 1788-2015
   (Table~10.5).\newinvfive
 \begin{example}
@@ -389,19 +395,22 @@ cout << exp2(interval(3)) << ' ' << log2(interval(0.25)) << ' '
 
 \begin{deffun}{interval}{tan}{(const interval\& \var{I})}
   Returns the tangent of \var{I}: \itv{-\infty}{+\infty} when \var{I} holds a
-  pole. No double is a pole: \code{M\_PI\_2}, the double below $\pi/2$, is
+  pole or is wider than the double below $\pi$. No double is a pole: \code{M\_PI\_2}, the double below $\pi/2$, is
   $6.1\cdot10^{-17}$ short of it. The interval
   \itv{-\code{M\_PI\_2}}{\code{M\_PI\_2}} holds no pole and has a finite
   tangent (the fourth result of the example); its width is the double below
-  $\pi$, and the intervals of width between that double and $\pi$ are a
-  theoretical case.
+  $\pi$; an interval whose width lies between that double and $\pi$ and that
+  holds no pole, a theoretical case, gets \itv{-\infty}{+\infty} too, which is
+  not the tightest result.
 
   The three functions find the pieces of \var{I} on which they are monotonic
   by dividing its bounds by an enclosure of $\pi$. Where the quotients cannot
   tell, next to an extremum or a pole and at the large magnitudes, they use
-  the signs of the derivative at the bounds, which CORE-MATH gives exactly.
-  Their bounds are within one double of the tightest ones at every
-  magnitude.\newinvfive{} GAOL~4 gave \itv{-1}{1} for
+  the signs at the bounds of the derivative, for \code{cos} and \code{sin}, and of
+  the cosine, for \code{tan}, which CORE-MATH gives exactly.
+  Their bounds are the tightest ones at every magnitude where the function is
+  evaluated at the bounds, and $-1$ and $1$ exactly at the extrema
+  (Chapter~\ref{chap:accuracy}).\newinvfive{} GAOL~4 gave \itv{-1}{1} for
   \code{cos(\itv{2^{60}}{2^{60}})}, and computed the sine as a shifted
   cosine, which widened narrow intervals.
 \begin{example}
@@ -545,7 +554,7 @@ double from the exact value.\newinvfive
 \end{deffun}
 
 \begin{deffun}{interval}{rsqrt}{(const interval\& \var{I})}
-  $1/\sqrt{x}$ for $x$ in \var{I}, defined on $\left]0,+\infty\right]$,
+  $1/\sqrt{x}$ for $x$ in \var{I}, defined on $\left]0,+\infty\right[$,
   $+\infty$ being its limit at 0: \ieee{rSqrt} of IEEE 1788-2015
   (Table~10.5).\newinvfive
 \begin{example}
@@ -567,11 +576,13 @@ cout << hypot(interval(3), interval(4)) << ' '
   and $+\infty$, the limits at $x=-1$, at $x=+\infty$ and for an infinite
   $y$, are bounds. CORE-MATH has no function for it: the value at a corner
   of the box is computed with integers, 64 bits in a fast phase that settles
-  71 to 95\,\% of the pairs, 128 bits and a bound of the error in the others.
-  It takes 0.1 microsecond for each of the one or two corners where the
-  bounds are, where the fast phase settles it, and 0.6 to 0.9 elsewhere. The
+  71 to 95\,\% of the pairs with $|y\log(1+x)|$ below 8, and none beyond, 128
+  bits and a bound of the error in the others. It takes 0.1\,\textmu s for each
+  of the one or two corners where the bounds are, where the fast phase settles
+  it, and 0.6 to 0.9\,\textmu s elsewhere (Intel i7-1185G7, GCC~15). The
   bounds are the tightest ones, the double itself where the value is one
-  (2.375 for $x=1.5-1$ and $y=3$, but also $2^m-1$ for $|m|\le53$, and the
+  (2.375 for $x=0.5$ and $y=3$, but also $2^m-1$ for $x=1$ and an integer
+  $y=m$ with $|m|\le53$, and the
   quotient $-x/(1+x)$ of $y=-1$, divided exactly), but in a case out of
   $10^{17}$ or so, where a bound is a double beyond.\newinvfive
 \begin{example}
@@ -612,21 +623,22 @@ cout << erf(interval(0.0)) << ' ' << erf(interval(-1,1)) << ' '
 \cindex{relational arithmetic}%
 
 The relational functions of GAOL are the \dfn{reverse functions} of
-IEEE 1788-2015 (10.5.4, Table~10.1), with their arguments in another order:
-each computes the hull of the $x$ of an interval \var{I} whose image by the
+IEEE 1788-2015 (10.5.4, Table~10.1), the arguments of the binary ones and of \ieee{pownRev}
+in another order: each computes the hull of the $x$ of an interval \var{I} whose image by the
 function is in \var{J}. Their correspondence is given at the end of this
 section (Table~\ref{tab:arithmetic-reverse}), and the namespace
 \code{gaol\_ieee1788} provides them under their names
 (Chapter~\ref{chap:ieee1788}).
 
-\defmethodx{interval}{interval}{operator\% }{(double \var{d}) const}
-\defmethodx{interval}{interval}{operator\% }{(const interval\& \var{I}) const}
-\begin{deffun}{interval}{operator\%}{(double \var{d}, const interval\& \var{I})}
+\deffunx{interval}{operator\%}{(const interval\& \var{K}, double \var{d})}
+\deffunx{interval}{operator\%}{(double \var{d}, const interval\& \var{J})}
+\begin{deffun}{interval}{operator\%}{(const interval\& \var{K}, const interval\& \var{J})}
   \begin{operation}
-    \op{$\code{self}\,\%\,\var{I}=\hull{\{z\in \RSet\mid
-      \exists x\in \code{self}, \exists y\in I\colon x=yz\}}$}
+    \op{$K\,\%\,J=\hull{\{z\in \RSet\mid
+      \exists x\in K, \exists y\in J\colon x=yz\}}$}
   \end{operation}
-  Relational division: \code{div\_rel(self, \var{I}, \itv{-\infty}{+\infty})}.
+  Relational division: \code{div\_rel(\var{K}, \var{J},
+  \itv{-\infty}{+\infty})}.
 \begin{example}
 cout << interval(1,2) % interval(0,1) << ' '
      << interval(1,2) % interval(-1,1);
@@ -755,8 +767,8 @@ cout << sqrt_rel(interval(1,4), interval::universe()) << ' '
 \end{example}
 \end{deffun}
 
-\deffunx{interval}{nth\_root\_rel}{(const interval\& \var{J}, unsigned int \var{n}, \\\hbox{}\hfill const interval\& \var{I})}
-\begin{deffun}{interval}{nth\_root\_rel}{(const interval\& \var{J}, int \var{p}, \\\hbox{}\hfill const interval\& \var{I})}
+\deffunx{interval}{nth\_root\_rel}{(const interval\& \var{J}, unsigned int \var{n}, const interval\& \var{I})}
+\begin{deffun}{interval}{nth\_root\_rel}{(const interval\& \var{J}, int \var{p}, const interval\& \var{I})}
   \begin{operation}
     \op{$\code{nth\_root\_rel}(J,n,I)=
       \hull{\{x\in I\mid\exists y\in J\colon y=x^n\}}$}
@@ -777,7 +789,12 @@ cout << sqrt_rel(interval(1,4), interval::universe()) << ' '
   unbounded, $0$ being a limit there and no solution:
   \code{nth\_root\_rel(\itv{1}{+\infty}, -2, \itv{0}{0})} is empty. The
   bounds are those of \code{nth\_root(J, p)}, the root and then its inverse:
-  up to four doubles beyond the tightest ones for $p<0$. An exponent of type
+  up to four doubles beyond the tightest ones for $p<0$, but for $p=-1$ and a
+  \var{J} next to $2^{-1074}$, whose inverse lies beyond the largest double: a
+  bound is then the largest double, as \code{div\_rel} gives it, and
+  \code{nth\_root\_rel(\itv{2^{-1074}}{2^{-1074}}, -1, \itv{0}{\text{DBL\_MAX}})}
+  is \itv{\text{DBL\_MAX}}{\text{DBL\_MAX}}, where the tightest result is
+  empty. An exponent of type
   \code{double} or \code{float} is refused at compile time, as the ambiguous
   \code{nth\_root(x, 2.0)} is: it was converted to an \code{unsigned int},
   which cut $2.5$ to $2$.
@@ -853,7 +870,7 @@ cout << pow_rel(interval(4,9), interval(2), interval::universe()) << ' '
   $x^y\geq2$ for a $y\geq1$ asks $x>1$: the second result is empty.
 \end{deffun}
 
-\begin{deffun}{interval}{pow\_exponent\_rel}{(const interval\& K, const interval\& H, \\\hbox{}\hfill const interval\& I)}
+\begin{deffun}{interval}{pow\_exponent\_rel}{(const interval\& K, const interval\& H, const interval\& I)}
   \begin{operation}
     \op{$\code{pow\_exponent\_rel}(K,H,I)=\hull{\{y\in I\mid\exists z\in K,
       \exists x\in H\colon z=x^y\}}$}
@@ -867,17 +884,19 @@ cout << pow_exponent_rel(interval(8), interval(2), interval::universe()) << ' '
 @outputs^[3] [0.792481250360578, 1.584962500721157]~
 \end{example}
   The bounds of both functions are the tightest ones, but in one case, given below. The ends of the
-  solutions, $c^{1/y}$ and $\log c/\log x$ for bounds $c$, $x$ and $y$ of
-  the arguments, are bounded by the largest and the smallest doubles $d$
-  whose powers $d^y$, or $x^d$, the \code{pow} of CORE-MATH, correctly
-  rounded, proves to be on either side of $c$. A bound of \var{I} where the
+  solutions, $c^{1/y}$ or $\log c/\log x$ for bounds $c$, $x$ and $y$ of
+  the arguments, is enclosed by two doubles: the largest $d$ whose power $d^y$
+  (or $x^d$), computed by the correctly rounded \code{pow} of CORE-MATH, is
+  proved to lie on one side of $c$, and the smallest one whose power is proved
+  to lie on the other side. A bound of \var{I} where the
   solutions start between it and the next double is kept when its power is
   within one double of $c$, which only knowing whether that power is a
   double would settle:
   \code{pow\_rel(\itv{1+2^{-52}}{1+2^{-52}}, \itv{0.5}{0.5},
   \itv{0}{1+2^{-51}})} is \itv{1+2^{-51}}{1+2^{-51}}, where
   $(1+2^{-52})^2=1+2^{-51}+2^{-104}$ and no $x$ of \itv{0}{1+2^{-51}} is a
-  solution: the tightest result for \var{I} one double wider.
+  solution: a result within the tightest result for \var{I} one double wider,
+  \itv{1+2^{-51}}{1+3\cdot2^{-52}}.
 \end{deffun}
 
 \begin{Ex}\label{ex:arithmetic-pow-rel}
@@ -971,8 +990,8 @@ cout << floor_rel(interval(0,2), interval(-5,5)) << ' '
 \end{example}
 \end{deffun}
 
-\deffunx{interval}{atan2\_rel\_y}{(const interval\& \var{C}, const interval\& \var{X}, \\\hbox{}\hfill const interval\& \var{Y})}
-\begin{deffun}{interval}{atan2\_rel\_x}{(const interval\& \var{C}, const interval\& \var{Y}, \\\hbox{}\hfill const interval\& \var{X})}
+\deffunx{interval}{atan2\_rel\_y}{(const interval\& \var{C}, const interval\& \var{X}, const interval\& \var{Y})}
+\begin{deffun}{interval}{atan2\_rel\_x}{(const interval\& \var{C}, const interval\& \var{Y}, const interval\& \var{X})}
   \begin{operation}
     \op{$\code{atan2\_rel\_y}(C,X,Y)=\hull{\{y\in Y\mid\exists x\in X\colon
       \operatorname{atan2}(y,x)\in C\}}$}
@@ -988,7 +1007,10 @@ cout << floor_rel(interval(0,2), interval(-5,5)) << ' '
   in $\left]-\pi,\pi\right]$: the half-line $y=0$, $x<0$ has the angle
   $\pi$, and a \var{C} holding $-\pi$ but not $\pi$ leaves it out; the
   angles of \var{C} beyond $\pi$ are no angle of any point. The bounds are
-  within two doubles of the tightest ones.
+  within two doubles of the tightest ones where these are not empty; a box
+  within one rounding of the cone of \var{C} can keep a point where the
+  tightest result is empty: \code{atan2\_rel\_y(\itv{0.5}{0.5}, \itv{1}{1},
+  \itv{t}{t})}, $t$ being the double above $\tan 0.5$, is \itv{t}{t}.
 \begin{example}
 interval c(1,2), x(-1,1), y(0,1);
 cout << atan2_rel_y(c, x, y) << ' '
@@ -1032,14 +1054,17 @@ The last argument $x$ of a function of the standard is
 \end{table}
 
 \begin{Rem}\label{rem:arithmetic-reverse-names}
-\ieee{mulRevToPair}$(b,c)$, the two parts of \code{div\_rel(c, b)}, is in
-the namespace \code{gaol\_ieee1788} under its name
+\ieee{mulRevToPair}$(b,c)$, the two parts, on either side of 0, of the set that
+\code{div\_rel(c, b, interval::universe())} encloses, is in the namespace \code{gaol\_ieee1788} under its name
 (Chapter~\ref{chap:ieee1788}).\newinvfive{} \ieee{pownRev} takes every
 integer $p$, $p\leq0$ included. \code{max\_rel}, \code{min\_rel},
 \code{sign\_rel} and \code{floor\_rel} are the reverse functions of $\max$,
 $\min$, $\operatorname{sign}$ and $\operatorname{floor}$ as the standard
 defines them (10.5.4), which it neither names nor requires, Table~10.1 not
-listing them: the namespace \code{gaol\_ieee1788} has no name for them. A
+listing them: the namespace \code{gaol\_ieee1788} has no name for them.
+\code{asinh\_rel} and \code{atanh\_rel}, which Table~10.1 does not list either,
+$\sinh$ and $\tanh$ being one-to-one, are named \code{sinhRev} and \code{tanhRev} in
+\code{gaol\_ieee1788}, after \ieee{coshRev}. A
 program that opens that namespace calls them as \code{max\_rel(z, y, x)}
 all the same, argument-dependent lookup finding them in
 \code{gaol\_core}.\newinvfive
@@ -1083,7 +1108,7 @@ functional operation computes the hull of the image of the part of its
 argument within the domain of IEEE 1788-2015, and gives the empty set for an
 argument with no point of that domain. The elementary functions take their
 values from CORE-MATH, which is correctly rounded: their bounds are the
-tightest ones, or within a double or two of them, where GAOL~4 depended on
+tightest ones, where GAOL~4 depended on
 the mathematical library of the system. The power is hybrid: an integer
 exponent, whatever its type, takes the integer power \ieee{pown}, with the
 negative bases, and any other exponent the real power \ieee{pow}, at the
