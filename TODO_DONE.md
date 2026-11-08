@@ -5180,6 +5180,15 @@ traite la tâche PM en faisant le choix 1 (documenter seulement...) »).
   faux positif que 12.12.7 permet, mais le cas (b) demande un intervalle qui
   contient l et u : les textes disent la restriction, et le choix de rendre
   l'enveloppe des deux encadrements est à décider (`TODO.md` PJ.7).
+- **Les réponses du mainteneur aux quatre questions suivantes** (le 8 novembre,
+  quatre réponses chacune) : le cas (b), « documentation seulement
+  (Recommandé) » (pas d'enveloppe, #296 reste telle quelle) ; `centeredForm`,
+  « fonction libre (Recommandé) » (#298) ; si la CI fait échouer le test de
+  #299 sous une autre bibliothèque, « corriger l'écriture (Recommandé) » (GAOL
+  écrit lui-même le hexfloat arrondi vers l'extérieur, dans la même pull
+  request) ; la suite, « attendre les fusions » (aucune tâche commencée). #295
+  est fusionnée le jour même à 18 h 21 UTC (`5bd52a6`) : #296 a alors un
+  conflit sur le PDF, refait après le merge de la base (7.23).
 
 ## 4. Les points faits, par lettre
 
@@ -6844,6 +6853,14 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   `manual/check_examples.py` (116 exemples) et le manuel ; #296 (des textes) et
   #299 (un test) n'en demandaient pas autant, leurs descriptions disent ce qui
   a été lancé.
+- #295 est fusionnée par le mainteneur à 18 h 21 UTC (`5bd52a6`) : #296 a eu
+  un conflit sur le PDF (binaire). `origin/configure-clean` a été fusionné
+  dans `manual-case-b-text` (le PDF pris de la base, le message du merge en une
+  ligne), puis le PDF refait dans un dernier commit (385 pages, 0 erreur, les
+  mêmes 7 « Overfull » qu'une reconstruction de la base) ; #296 est de nouveau
+  fusionnable. Les descriptions de #296 et de #298 portent les réponses du
+  mainteneur (3.26). Les registres de #295 (PS.2) ne sont pas faits ici : ils
+  restent à faire (la session de la tâche PS, #297, peut s'en charger).
 - Les pièges. (1) `f1d4281` (la règle de `process.md` §3.4), commité en local
   sur `configure-clean` dans l'arbre partagé, était déjà sur GitHub quand la
   session voulait le pousser : la synchronisation de VS Code l'a fait, après
