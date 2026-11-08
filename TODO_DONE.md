@@ -139,7 +139,7 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   reproduite avec les drapeaux de GAOL (3.17), ses boucles de relations étant
   entrées dans `rounding_direction` par #292 ; PM, le cas (b) de 12.12.7 (les
   littéraux aux bornes calculées), est close sans code le 8 novembre : on la
-  documente seulement, par #296 (3.26) ; il reste les
+  documente seulement, par #296, fusionnée le même jour (3.26) ; il reste les
   signalements à d'autres projets (PH), le tableau de Clang 21 et la
   publication (PJ), le FIXME de `div_rel` en SSE2 (PP), deux petits changements
   décidés le 8 novembre (PQ), les textes faux ou périmés du code et de la
@@ -2743,6 +2743,25 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   macOS, Autotools et meson, Manual et Performance verts (vérifié après la
   fusion). Décisions : 3.23.
 
+- #296 (hors des points : la suite de la tâche PM, 3.26 ; ouverte le 8
+  novembre à 16 h 17 UTC, 4 commits, 6 fichiers, 33 lignes ajoutées et 8
+  retirées contre `configure-clean`) : fusionnée le même jour à 17 h 29 UTC par
+  le mainteneur (`7bc3d05`, tête `9905878`). Le cas (b) de 12.12.7 (les bornes
+  que le lecteur ne peut pas départager : `pi` et un autre nombre entre les
+  mêmes deux doubles, un nombre très au-delà des doubles, des bornes calculées)
+  est dit comme tel dans le §10.5 et le §9.1 du manuel, dans la liste « Not
+  provided » de `gaol/gaol_ieee1788.h`, dans `doc/differences.md` et dans
+  `doc/compare/itf1788.md` : le littéral rend l'intervalle de la borne
+  inférieure de l à la borne supérieure de u, sans `PossiblyUndefinedOperation`,
+  comme GAOL ne signale aucune exception de la norme. Le relecteur
+  indépendant a trouvé que « un intervalle qui contient l et u », écrit
+  d'abord, est faux pour l au-dessus de u et une borne calculée (les trois
+  mesures de 3.26) : les textes disent la restriction. Le PDF (385 pages) est
+  refait deux fois, la seconde après la fusion de #295, dont il avait un
+  conflit (7.23) ; 0 erreur, aucune référence indéfinie, les 7 « Overfull » de
+  la base. Sa CI : Manual et Performance verts, les autres jobs en file
+  d'attente quand le mainteneur a fusionné. Décisions : 3.26.
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -5187,8 +5206,9 @@ traite la tâche PM en faisant le choix 1 (documenter seulement...) »).
   #299 sous une autre bibliothèque, « corriger l'écriture (Recommandé) » (GAOL
   écrit lui-même le hexfloat arrondi vers l'extérieur, dans la même pull
   request) ; la suite, « attendre les fusions » (aucune tâche commencée). #295
-  est fusionnée le jour même à 18 h 21 UTC (`5bd52a6`) : #296 a alors un
-  conflit sur le PDF, refait après le merge de la base (7.23).
+  est fusionnée le jour même à 17 h 21 UTC (`5bd52a6`) : #296 a alors un
+  conflit sur le PDF, refait après le merge de la base (7.23). #296 est
+  fusionnée à 17 h 29 UTC (`7bc3d05`).
 
 ## 4. Les points faits, par lettre
 
@@ -6853,7 +6873,7 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   `manual/check_examples.py` (116 exemples) et le manuel ; #296 (des textes) et
   #299 (un test) n'en demandaient pas autant, leurs descriptions disent ce qui
   a été lancé.
-- #295 est fusionnée par le mainteneur à 18 h 21 UTC (`5bd52a6`) : #296 a eu
+- #295 est fusionnée par le mainteneur à 17 h 21 UTC (`5bd52a6`) : #296 a eu
   un conflit sur le PDF (binaire). `origin/configure-clean` a été fusionné
   dans `manual-case-b-text` (le PDF pris de la base, le message du merge en une
   ligne), puis le PDF refait dans un dernier commit (385 pages, 0 erreur, les
@@ -6861,6 +6881,12 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   fusionnable. Les descriptions de #296 et de #298 portent les réponses du
   mainteneur (3.26). Les registres de #295 (PS.2) ne sont pas faits ici : ils
   restent à faire (la session de la tâche PS, #297, peut s'en charger).
+- #296 est fusionnée par le mainteneur à 17 h 29 UTC (`7bc3d05`), avant la fin
+  de sa CI : les registres de sa partie (2.3, 1, `TODO.md` PJ.7, `process.md`
+  §12) sont faits ici, ceux de #295 restent à la session de la tâche PS. Les
+  heures de `git log --date=format` sont celles du fuseau local (UTC+1) : les
+  fusions de #295 et de #296 sont à 17 h 21 et 17 h 29 UTC, non à 18 h (une
+  première version de ce fichier disait 18 h 21).
 - Les pièges. (1) `f1d4281` (la règle de `process.md` §3.4), commité en local
   sur `configure-clean` dans l'arbre partagé, était déjà sur GitHub quand la
   session voulait le pousser : la synchronisation de VS Code l'a fait, après
