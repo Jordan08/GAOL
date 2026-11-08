@@ -5209,6 +5209,12 @@ traite la tâche PM en faisant le choix 1 (documenter seulement...) »).
   est fusionnée le jour même à 17 h 21 UTC (`5bd52a6`) : #296 a alors un
   conflit sur le PDF, refait après le merge de la base (7.23). #296 est
   fusionnée à 17 h 29 UTC (`7bc3d05`).
+- **Le PDF dans #298** (le 8 novembre, la session de la tâche PS a transmis la
+  demande du mainteneur, qui l'a confirmée à la question posée ensuite : « oui,
+  dans #298 (Recommandé) ») : après la fusion de #297, `configure-clean` est
+  fusionné dans #298 et le PDF refait dans son dernier commit ; `check_branch`
+  (`CHECK_BRANCH_PDF=1`), `HOUSE_RULES.md` et `process.md` §6.2 le disent
+  (`f67843e`, dans #298). Elle ne corrige pas `doc/differences.md`.
 - **Quatre réponses de plus** (le 8 novembre, quatre propositions chacune) :
   le relecteur indépendant de #299, « seulement si la CI échoue » ; l'écart de
   `doc/accuracy.md` (ni `inflate`, ni `width_enclosure`, ni `centered_form`),
@@ -6895,6 +6901,22 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   heures de `git log --date=format` sont celles du fuseau local (UTC+1) : les
   fusions de #295 et de #296 sont à 17 h 21 et 17 h 29 UTC, non à 18 h (une
   première version de ce fichier disait 18 h 21).
+- Le job « Debian 12 Bookworm arm64 » (GCC 12.2) de la CI de #299 a fait échouer
+  `numbers` (18 vérifications existantes, celles de la lecture des lignes
+  vides) : le défaut de `process.md` §11, que 29 lignes de plus dans
+  `stream_settings()` avaient fait passer d'un endroit du fichier à un autre.
+  Reproduit avec
+  l'image `gaol-bookworm-cross` (GCC 12.2 pour aarch64, Release, qemu) : la base
+  0 échec, #299 18. Essais : le bloc dans une fonction non inlinée, 18 échecs
+  encore ; un appel par cas pour les lignes vides, avec un `std::vector<double>`
+  ou un tableau de doubles, `numbers` ne se termine plus (il reste dans
+  `decimal_output()`, trouvé en affichant le nom de chaque fonction sur stderr).
+  Le bloc est donc dans `tests/ieee1788.cpp`, à côté de
+  `text_of_a_point_interval()`, et `numbers.cpp` est celui de la base ;
+  `ieee1788` sous GCC 12.2 : 131 730 vérifications, 0 échec. Le mainteneur
+  avait choisi de ne lancer le relecteur de #299 que si la CI échoue : il est
+  lancé, sur la correction. Il a aussi demandé le PDF dans #298 (3.26) :
+  `check_branch` admet le PDF avec `CHECK_BRANCH_PDF=1` (`f67843e`, dans #298).
 - Les pièges. (1) `f1d4281` (la règle de `process.md` §3.4), commité en local
   sur `configure-clean` dans l'arbre partagé, était déjà sur GitHub quand la
   session voulait le pousser : la synchronisation de VS Code l'a fait, après

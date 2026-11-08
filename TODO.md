@@ -393,9 +393,10 @@ novembre : `TODO_DONE.md` 3.24). Deux points indépendants, chacun sa branche et
 sa pull request : #298 (le point 1, ouverte le 8 novembre, avec `centeredForm`
 en fonction libre, *confirmé le 8 novembre*) et #299 (le point 2 : le test passe
 avec libstdc++, qui ignore la précision de `hexfloat`, donc rien à corriger
-ici ; *décidé le 8 novembre* : si la CI le fait échouer sous une autre
-bibliothèque, GAOL écrit lui-même le hexfloat arrondi vers l'extérieur, dans la
-même pull request).
+ici, et il est dans `tests/ieee1788.cpp`, `numbers.cpp` étant déplacé par GCC
+12.2 sur aarch64 à chaque changement : `TODO_DONE.md` 7.23 ; *décidé le 8
+novembre* : si la CI le fait échouer sous une autre bibliothèque, GAOL écrit
+lui-même le hexfloat arrondi vers l'extérieur, dans la même pull request).
 
 1. **`centered_form` à la place de `midrad`** (la remarque de #271), **avant
    l'étiquette de PJ.3** : après v5.0.0, un renommage casserait des programmes.
@@ -412,9 +413,11 @@ même pull request).
    (1), `doc/differences.md` (2, dont la puce qui suit celle de `mid_rad()`),
    `doc/tests.md` (1), `doc/using.md` (3), `examples/examples.md` (2),
    `examples/tutorial.md` (1) et les chapitres 3, 5, 14 et 15 du manuel (17).
-   Le test de `centeredForm` rend les mêmes bornes que `centered_form`. Le PDF
-   du manuel sera plus vieux que sa source : une pull request `manual*` le
-   refait avant la version (PJ.5).
+   Le test de `centeredForm` rend les mêmes bornes que `centered_form`.
+   *Décidé le 8 novembre* : le PDF du manuel est refait dans le dernier commit
+   de #298, après la fusion de #297 (qui change aussi le manuel) et d'un merge
+   de `configure-clean` dans la branche ; `check_branch` (`CHECK_BRANCH_PDF=1`),
+   `HOUSE_RULES.md` et `process.md` §6.2 admettent ce cas.
 
 2. **Le test de `<a, a>` avec `hexfloat`** (#43, question 8) : la règle qui
    écrit `[a]` pour un intervalle réduit à un point (`display_bounds()`,

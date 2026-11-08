@@ -697,7 +697,12 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   une boucle sur un tableau local de structures (`-O2` et `-O3` ; `-O0` et `-O1`
   donnent les bonnes) : écris un appel de fonction par cas. C'est le même défaut
   que celui de `tests/numbers.cpp`, qui dépasse son délai de 300 s quand le code
-  autour des appels change.
+  autour des appels change. Le 8 novembre (#299), 29 lignes de plus dans
+  `stream_settings()` ont fait échouer 18 vérifications de la lecture des lignes
+  vides, puis, une fois ce test réécrit (un appel par cas, avec ou sans
+  `std::vector`), le programme est resté dans `decimal_output()` : n'ajoute rien
+  à `numbers.cpp` sans l'essayer avec cette compilation croisée, et mets un
+  test nouveau dans un autre programme quand tu peux.
 - Sans matériel ARM : une compilation croisée avec GCC 12.2 dans une image
   Docker locale (`debian:bookworm`, `g++-aarch64-linux-gnu`, `qemu-user`, au
   plus 4 cœurs avec `--cpus`), les tests lancés par `qemu-aarch64 -L
