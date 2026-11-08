@@ -572,7 +572,15 @@ namespace gaol_ieee1788 {
       - the conversion specifier cs of intervalToText (13.3);
       - the exceptions UndefinedOperation and PossiblyUndefinedOperation that
         textToInterval and exactToInterval signal (12.12.7, 13.4): for a text
-        that is no interval they return the empty set silently.
+        that is no interval they return the empty set silently. Where they
+        cannot tell whether l <= u in a literal [l, u], which is case (b) of
+        12.12.7 (pi and another number between the same two doubles, a number
+        far beyond the doubles, bounds that are computed, as 1/3 or sqrt(2)),
+        they return the interval from the lower bound of l to the upper bound
+        of u, without PossiblyUndefinedOperation. It holds [l, u] where l <=
+        u; where l is above u it is a false positive that 12.12.7 permits, but
+        it may miss l or u when a bound is computed, where case (b) asks for
+        an interval that contains both.
   */
   
 } // namespace gaol_ieee1788
