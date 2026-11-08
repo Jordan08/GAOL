@@ -14,7 +14,8 @@ dans les trois registres, dont les tâches PS et PT (`TODO_DONE.md` 3.25).
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à envoyer à un autre projet ni à publier sans l'accord
-du mainteneur. Aucune pull request n'est ouverte.
+du mainteneur. La pull request #295 est ouverte : le texte de `doc/simd.md` et
+du manuel sur les puissances entières de NEON (PS.2), avec le PDF refait.
 
 ## Comment lire ce fichier
 
@@ -475,19 +476,14 @@ article contre l'arbre, car un autre travail a pu le régler.
    included by gaol_interval_core.cpp only » ; c'est
    `gaol/core/gaol_interval_core.h` qui les inclut (lignes 1134 à 1138). Le
    texte de NEON est juste. Remarqué par la relecture de #234, non repris.
-2. **`doc/simd.md` et le commentaire de tête de `gaol_interval_core.cpp`**
-   (#219, #225) : le paragraphe « The integer powers on NEON » (lignes 329 à
-   345) garde l'hypothèse « The two scalar lanes ran side by side already,
-   perhaps… (not checked) » (ligne 343), que #219 a réfutée : Clang rendait
-   scalaires `vcgeq_f64`, `vcleq_f64` et `vceqq_f64` avec `-frounding-math` ;
-   avec `vcageq_f64` et `vcaleq_f64`, `pow(x, 3)` passe de 6,00 à 4,40 ns sur
-   le M2 (`TODO_DONE.md` 2.3, #219) : à réécrire avec ces chiffres. Le
-   commentaire de tête de `gaol/core/gaol_interval_core.cpp` (ligne 34) cite
-   encore « the integer powers with NEON » parmi ce qui pourrait gagner. La
-   même phrase est au chapitre 12 du manuel : elle se corrige dans la pull
-   request `manual*` de PJ.5, ou reste (à décider avec PJ.5, le PDF étant à
-   jour avec sa source). Le paragraphe du quotient NEON (lignes 413 à 426) est
-   déjà réécrit par #294.
+2. **Le commentaire de tête de `gaol_interval_core.cpp`** (#219) : il cite
+   encore « the integer powers with NEON » parmi ce qui pourrait gagner (ligne
+   34), alors que `doc/simd.md` les dit faites, et #219 en a trouvé la cause. La
+   phrase périmée de `doc/simd.md` (« perhaps… (not checked) ») et celle du
+   chapitre 12 du manuel sont corrigées par #295 (*décidé le 8 novembre* :
+   maintenant, avec le PDF du manuel refait) ; le paragraphe du quotient NEON
+   est déjà réécrit par #294. Ce commentaire est du code, et le toucher lance
+   `performance.yml` : il reste dans la pull request de PS.
 3. **`doc/using.md`, ligne 1574** (#210) : le titre « The control registers of
    32-bit x86 processors » couvre aussi x86-64 (ligne 1651 : « An x86-64
    processor has the two units too ») : « of x86 processors » ; une remarque de
@@ -546,7 +542,9 @@ le code, sauf si la première trouve des avertissements à corriger.
    sont perdus, la mesure de PJ.2 les refaisant avec la version.
 3. **Le micro-banc de `x op= d` de #250** (x vide, d NaN) : demandé à la session
    MACarm4, son résultat n'est nulle part, et `tests/performance.cpp` n'a pas de
-   ligne `x op= d`. Demander le résultat à la session (ou le refaire sur un Mac
-   M2, par un petit programme à part, comme pour la racine cubique :
-   `TODO_DONE.md` 7.20), et l'écrire dans l'entrée de #250 de 2.3, fait ou non
-   fait.
+   ligne `x op= d`. *Décidé le 8 novembre* : demander le résultat à la session
+   MACarm4 (message du 8 novembre, accusé de réception reçu : elle cherche dans
+   son transcript et répond « RÉSULTATS » ou « non fait » ; elle ne refait la
+   mesure que sur secteur avec `lowpowermode 0`, ce que le mainteneur doit lui
+   donner) ; écrire sa réponse dans l'entrée de #250 de `TODO_DONE.md` 2.3, fait
+   ou non fait.

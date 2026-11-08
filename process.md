@@ -831,7 +831,9 @@ git ls-remote --heads origin
   directement sur `configure-clean` (`634e3e1`, 3.24) ; l'audit du 13 octobre a
   vérifié dans `configure-clean` ce qu'annonçaient alors les points A, C à H et
   J à V.
-- **En cours** : au 8 novembre, aucune pull request n'est ouverte ;
+- **En cours** : au 8 novembre, la pull request #295 est ouverte (le texte de
+  `doc/simd.md` et du manuel sur les puissances entières de NEON, PS.2, avec le
+  PDF du manuel refait ; branche `manual-neon-pown-text`) ;
   `configure-clean` est au commit `634e3e1` (un commit direct, après la fusion
   de #294, `1e23540`, après celle de #292, `130acea`, et celles de #293, #291,
   #290 et #289, les registres de #288, `6ed4441`, et la fusion de #288,

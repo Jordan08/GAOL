@@ -73,9 +73,11 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   27 octobre, voir 7.6 à 7.10). Les pull requests des corrections vont vers
   `configure-clean`, qui reste la branche de développement après v5.0.0 ;
   `MATH-CORE` et `master` (GAOL 4.3.2, plus deux commits de `.claude/CLAUDE.md`)
-  ne bougent qu'à la version (point Y). - **Aucune pull request n'est ouverte.**
-  Le mainteneur a fusionné #165 à #167, #169 à #174, #176 et #180 à #184 les 23
-  et 24 octobre, et #186 à #194, #196 et #197 le 25 octobre, #199, #200 et #201
+  ne bougent qu'à la version (point Y). - **La pull request #295 est ouverte**
+  (PS.2 : le texte de `doc/simd.md` et du manuel sur les puissances entières de
+  NEON, avec le PDF du manuel refait : 3.25). Le mainteneur a fusionné #165 à
+  #167, #169 à #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194,
+  #196 et #197 le 25 octobre, #199, #200 et #201
   le 26 octobre, #202 à #205 le 27, #206 à #210, #212, #213, #215 et #216 le 28
   (#216, hors des points : le tableau des lignes longues sur ARM 64 bits, à la
   fin de `performance.md`), #217 le 28 à 23 h 19 UTC, #218, #219, #222, #223 et
@@ -5080,6 +5082,21 @@ Où est allé chaque article, par section de `TODO_fin.md` :
 - **9, en cours pour mémoire** : tout est fait (#288 à #290 : 3.18, 3.21 et
   3.22).
 
+Le mainteneur a répondu le même jour à quatre questions de la session, avec
+quatre réponses chacune :
+
+- **Le push et les issues** : tout pousser, `configure-clean` puis les issues
+  #179 et #178.
+- **Le manuel (PS.2)** : corriger maintenant la phrase périmée de `doc/simd.md`
+  et du chapitre 12 du manuel, et refaire le PDF : #295 (branche
+  `manual-neon-pown-text`, deux commits, 385 pages comme avant, la date
+  d'édition gardée au 6 novembre) ; le commentaire de tête de
+  `gaol_interval_core.cpp` reste dans PS.
+- **Trois mesures mineures** (`round_ties_to_even()`, `/GS`, #200) : où elles
+  sont, dans `TODO_AFTER.md` (5.19, 4.11 et 4.12) : confirmé.
+- **`x op= d` de #250 (PT.3)** : demander le résultat à la session MACarm4
+  (message du 8 novembre, accusé de réception reçu).
+
 Les tâches nouvelles sont PS et PT ; la lettre PR est laissée de côté, car «
 PR » dit déjà pull request. `TODO.md`, `TODO_AFTER.md`, `process.md` et
 `STEP.md` ne citent plus `TODO_fin.md` que pour dire qu'il est supprimé ; ce
@@ -6698,6 +6715,14 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   faits de l'article 6 (#82, #118, #63, le commit `849384a`, les corps de #197,
   #201, #202 et #204, le commentaire de #241) ont été vérifiés par `gh api` et
   `git log`, non recopiés.
+- La pull request #295 (branche `manual-neon-pown-text`, deux commits, ouverte
+  le même jour par l'API REST) : le paragraphe « The integer powers on NEON »
+  de `doc/simd.md` et du chapitre 12 du manuel, puis le PDF refait avec
+  `manual/build-pdf.sh` (385 pages, 7 « Overfull » comme avant) ; travaillée
+  dans un clone du scratchpad (`git clone --shared`, `origin` remis sur GitHub),
+  l'arbre partagé restant sur `configure-clean`. Reconstruire les sources de la
+  base donne le PDF commité, à un numéro de page de l'index près (« accuracy,
+  205 » au lieu de 206). Pas de relecteur indépendant, dit dans la pull request.
 - Les pièges. Un `Edit` qui remplace le début d'une ligne en laisse la fin sur
   la même ligne (deux lignes de plus de 80 colonnes, trouvées par un contrôle de
   longueur en caractères). Un script qui retire des renvois en fin de ligne
