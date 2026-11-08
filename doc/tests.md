@@ -723,7 +723,7 @@ point Q), which `numbers` checks there too.
   prompt shows before the user types (the `std::ws` of libstdc++ before GCC 12
   alone does none of this).
   Numbers with a million zeros after their point and an exponent of 7 digits
-  (`0.00…01e1000001`, and in hexadecimal and in the uncertain form)
+  (`0.00…0001e1000001`, and in hexadecimal and in the uncertain form)
   have to be read exactly: the exponent was cut at 100000 (GAOL v5).
   Under a locale writing a decimal comma, where one is installed
   (`fr_FR.UTF-8`, `de_DE.UTF-8`, `French_France.1252`...), numbers have to be
@@ -821,7 +821,16 @@ point Q), which `numbers` checks there too.
   10.4, on intervals of zero, infinite and small bounds and the empty set), and
   the relational functions (`sqrt_rel`, `div_rel`...): `acos_rel`, `asin_rel`
   and `atan_rel` have to keep their value within 6 doubles from 1 to 2^50,
-  and decide an interval of a single double beyond 2^53. `less`,
+  and decide an interval of a single double beyond 2^53;
+  `div_rel(K, J, I)` for a negative K and a J with 0 inside (GAOL v5, the case
+  of the SSE2 intervals that was written with scalar operations; every kind of
+  intervals is checked) has to be the hull of `I & [-oo, U]` and
+  `I & [D, +oo]`, U being `K.right()/J.right()` rounded upward and D being
+  `K.right()/J.left()` rounded downward, taken from the exact quotients
+  (rational numbers) and not from a division, on 5 000 random cases of
+  exponents from the subnormal numbers to the largest, past 2^500 and 2^-500
+  and with infinite bounds, each with 16 intervals I whose bounds are next to
+  U and D, 0 and the infinities (80 000 checks, the empty I's included). `less`,
   `strictly_less`, `is_entire` and `is_common_interval` have to
   give the values of Tables 10.3 and 10.4, and `==` and `!=` must
   not compile on intervals, `certainly_neq()` and the possibly
