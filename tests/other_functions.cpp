@@ -1426,8 +1426,8 @@ namespace
        and +0, and the empty set (max_rel and min_rel: among -oo, -1, -0.5,
        -0, +0, 0.5, 1 and +oo, every Z, Y and X): the set is then a union of
        intervals whose ends are multiples of 1/2 within [-3, 3] (floor(2) + 1
-       is 3), so that its hull is read from the definition at the multiples
-       of 1/4 from -4 to 4, a y being looked for among them too;
+       is 3), so that its hull is read from the definition at the multiples of
+       1/4 from -4 to 4, a y being looked for among them too;
      - on cases written out: disjoint, touching and nested intervals,
        infinite bounds, -0 and +0, subnormal bounds, a Z holding no sign or no
        integer, and floor_rel beyond 2^53, where every double is an integer
