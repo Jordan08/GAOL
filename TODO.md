@@ -15,13 +15,11 @@ ses articles sont répartis dans les trois registres, dont les tâches PS et PT
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à envoyer à un autre projet ni à publier sans l'accord
-du mainteneur. Quatre pull requests sont ouvertes : #296 (le cas (b) de
-12.12.7, tâche PM : le manuel, `gaol_ieee1788.h`, `doc/differences.md` et
-`doc/compare/itf1788.md`, PDF refait), #297 (la tâche PS, ouverte par une autre
-session), #298 (PQ.1, `centered_form`) et #299 (PQ.2, le test de `hexfloat`).
-#295 (le texte de `doc/simd.md` et du manuel sur les puissances entières de
-NEON, PS.2) est fusionnée à 18 h 21 UTC (`5bd52a6`) : ses registres restent à
-faire.
+du mainteneur. Trois pull requests sont ouvertes : #297 (la tâche PS, ouverte
+par une autre session), #298 (PQ.1, `centered_form`) et #299 (PQ.2, le test de
+`hexfloat`). #295 (le texte de `doc/simd.md` et du manuel sur les puissances
+entières de NEON, PS.2) est fusionnée à 17 h 21 UTC (`5bd52a6`) : ses registres
+restent à faire.
 
 ## Comment lire ce fichier
 
@@ -355,17 +353,7 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    chaque pull request limitée à la CI, #34, #35, #48 et #74 (leurs textes sont
    dans `todo-notes/synthese.md`, l'article `29.md` pour #35) ; le `ChangeLog`
    décrit la bibliothèque, non les corrections des pages de `doc/` (la seconde
-   puce de #140 n'y entre donc pas : `TODO_DONE.md` 3.24). Le quatrième texte de
-   `doc/differences.md`, le cas (b) de 12.12.7 (*décidé le 8 novembre*, tâche
-   PM, « documenter seulement » : `TODO_DONE.md` 3.26), est fait par #296, avec
-   le manuel et l'en-tête de `gaol_ieee1788.h`, le PDF refait ; rien au
-   `ChangeLog`. *Décidé le 8 novembre* (#296) : en rester à la documentation.
-   Pour l au-dessus de u et une borne calculée, le littéral est l'intervalle de
-   la borne inférieure de l à la borne supérieure de u, qui peut manquer l ou u
-   (`[1/3, 0x1.5555555555555p-2]` est le point `0x1.5555555555555p-2`, qui ne
-   contient pas 1/3) : un faux positif que 12.12.7 permet, dit dans les textes
-   ; pas d'enveloppe des deux encadrements, que le cas (b) demanderait à la
-   lettre. [S]
+   puce de #140 n'y entre donc pas : `TODO_DONE.md` 3.24). [S]
 
 ## PP. Le FIXME de `div_rel` : le cas N1 M en SSE2 [M]
 
