@@ -7,7 +7,7 @@
 %% 6124-6155 (the rounding functions of the FPU) and 475-598 (the AVX-512
 %% path, in the options of CMake); doc/using.md lines 228-290 (initialization
 %% and cleanup) and 1070-1972 (the rounding direction, the AVX-512 path, the
-%% NEON and the FPU intervals, the control registers of 32-bit x86,
+%% NEON and the FPU intervals, the control registers of x86,
 %% flush-to-zero, the floating-point exceptions).
 
 \chapter{The rounding direction and the floating-point environment}
@@ -41,7 +41,7 @@ program, and what a program does about it; the third describes the build that
 preserves the direction of the program. The fourth, fifth and sixth sections
 describe the AVX-512 path, which carries its rounding direction in its
 instructions, and the NEON and the FPU intervals; the seventh describes the
-control registers of the 32-bit x86 processors. The following two sections
+control registers of the x86 processors. The following two sections
 treat the flush-to-zero modes and the
 floating-point exceptions. The chapter ends with the reference of the
 initialization and the cleanup of GAOL, and of its rounding functions. The
@@ -850,7 +850,7 @@ infinite bound all the same; no operation raises the invalid-operation or the
 division-by-zero exception it did not (\pxref{sec:fp-exceptions}).
 
 %%------------------------------------------------------------------------
-\section{The control registers of 32-bit x86 processors}
+\section{The control registers of x86 processors}
 \label{sec:x86-control-registers}
 %%------------------------------------------------------------------------
 \cindex{MXCSR}\cindex{x87 control word}%
