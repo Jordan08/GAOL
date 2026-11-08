@@ -29,7 +29,7 @@ in the text.
 \medskip
 In this chapter, we describe the creation of intervals and their assignment.
 The first section presents the four constructors, the function
-\code{textToInterval()}, the static method \code{midrad()} and the intervals
+\code{textToInterval()}, the static method \code{centered\_form()} and the intervals
 of one infinite point, which GAOL v5 does not have. The second section covers
 the straight assignment, the third the assignment combined with an operation
 (\code{+=}, \code{\&=}\ldots) and the fourth the interval constants of the
@@ -46,7 +46,7 @@ explicit, which takes the register that holds the stored bounds, the lower
 bound negated in the first lane, and gives the empty set where a lane holds
 $-\infty$. Besides the constructors, a program creates an interval from the
 text that writes it with the function \code{textToInterval()}, and from a
-midpoint and a radius with the static method \code{interval::midrad()}. We describe the constructors first,
+midpoint and a radius with the static method \code{interval::centered\_form()}. We describe the constructors first,
 then the two functions, and we end with the intervals of one infinite point.
 
 \subsection{The four constructors}
@@ -190,12 +190,12 @@ interval x = textToInterval("[-23, inf]"),
 
 \subsection{A midpoint and a radius}
 
-The static method \code{interval::midrad()} builds an interval from its
+The static method \code{interval::centered\_form()} builds an interval from its
 midpoint and its radius, both given as \code{double}s.
 
-\begin{defstaticmethod}{interval}{interval}{midrad}{(double \var{m}, double \var{r})}
+\begin{defstaticmethod}{interval}{interval}{centered\_form}{(double \var{m}, double \var{r})}
   \begin{operation}
-    \op{$\code{midrad}(m,r)=\itv{\roundDn{m-r}}{\roundUp{m+r}}$}
+    \op{$\code{centered\_form}(m,r)=\itv{\roundDn{m-r}}{\roundUp{m+r}}$}
   \end{operation}
   Returns the interval of midpoint \var{m} and radius \var{r}, computed as
   \code{interval(\var{m}) + interval(-\var{r}, \var{r})}. It encloses every
@@ -204,10 +204,11 @@ midpoint and its radius, both given as \code{double}s.
   with \option{GAOL\_PRESERVE\_ROUNDING}. A radius $r=0$ gives the point \var{m},
   and $r=+\infty$ the whole line. A negative or NaN \var{r} gives the empty
   set, and so does an infinite or NaN \var{m}, as \code{interval(\var{m})}
-  does.\newinvfive
+  does.\newinvfive{} \code{gaol\_ieee1788} has it as the function
+  \code{centeredForm(\var{m}, \var{r})}, which the standard does not name.
   \begin{example}
-cout << interval::midrad(1, 0.25) << ' '
-     << interval::midrad(1, -1);
+cout << interval::centered_form(1, 0.25) << ' '
+     << interval::centered_form(1, -1);
 @outputs^[0.75, 1.25] [empty]~
   \end{example}
 \end{defstaticmethod}
@@ -485,10 +486,10 @@ cout << interval::emptyset() << ' ' << interval::pi() << endl;
 
 This chapter described the ways an interval of GAOL comes to exist and to
 change: four constructors, the function \code{textToInterval()} for the text
-of an interval, the static method \code{midrad()} for a midpoint and a
+of an interval, the static method \code{centered\_form()} for a midpoint and a
 radius, the straight assignment, the assignments combined with an operation,
 and the constants of the class. One rule runs through the constructors,
-\code{midrad()} and the assignments: an input that makes no interval, bounds in
+\code{centered\_form()} and the assignments: an input that makes no interval, bounds in
 the wrong order, a NaN bound or an infinite point, gives the empty set rather
 than an object the operators do not support. GAOL v5 follows IEEE 1788-2015
 and IBEX there, where GAOL~4 built intervals of one infinite point.

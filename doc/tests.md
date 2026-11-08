@@ -810,9 +810,10 @@ point Q), which `numbers` checks there too.
   (the kernels tell an empty operand on the integer bits of the four lanes: a
   threshold off by one lets the signaling NaN of the least payload through);
   the tools of interval algorithms
-  (GAOL v5, point P): `width_enclosure()`, `inflate(r)` and `interval::midrad(m, r)`
-  have to be the tightest enclosures of the exact width, of [a − r, b + r] and
-  of [m − r, m + r], computed with exact rationals, on random intervals and
+  (GAOL v5, point P): `width_enclosure()`, `inflate(r)` and
+  `interval::centered_form(m, r)` have to be the tightest enclosures of the
+  exact width, of [a − r, b + r] and of [m − r, m + r], computed with exact
+  rationals, on random intervals and
   radii (the first version of the point rounded both bounds upward, and its
   intervals did not contain them); `bisect(ratio)` has to give two parts that
   cover the interval exactly, cut strictly inside where `is_bisectable()`, for
@@ -893,6 +894,9 @@ point Q), which `numbers` checks there too.
   for [-1]^(2^53 + 1)), within three doubles of the tightest bounds;
   `numsToInterval()` and `isMember()` take ±(2^53 + 1)
   as the integer it is, and bounds in the wrong order give the empty set;
+  `centeredForm(m, r)` (GAOL v5) has the bounds of
+  `interval::centered_form(m, r)`, bit for bit, [0.75, 1.25] for (1, 0.25), and
+  is empty for r < 0, a NaN or an infinite m;
   `overlap(a, b)` (GAOL v5) has to be the state that the set specification of
   Table 10.7 gives, whose quantifiers are read over a finite model of the real
   line (the finite bounds of the two intervals, and three points in each gap

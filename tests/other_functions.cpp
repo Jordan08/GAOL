@@ -9,7 +9,7 @@
  * widths, magnitudes and mignitudes, Hausdorff distances (of intervals with
  * infinite bounds too), nb_fp_numbers() across the two zeros, splitting, integer
  * parts, radii, max() and min() of special bounds; the tools of TODO point P: width_enclosure(), inflate(),
- * interval::midrad(), bisect(), is_bisectable(), hull() and intersect(); the
+ * interval::centered_form(), bisect(), is_bisectable(), hull() and intersect(); the
  * comparisons of IEEE 1788-2015 (Tables 10.3 and 10.4); and
  * the relational functions (sqrt_rel, div_rel...), which have to keep the
  * values they are given and bound them within a few doubles; and the reverse
@@ -143,8 +143,8 @@ namespace
       check("inflate(r) the tightest enclosure of [l - r, r + r]" + in,
             is_tightest_enclosure(wider, exact(dl - drad), exact(dr + drad)),
             [&] { return describe() + " r=" + hex(rad) + ": " + hex(wider); });
-      const interval around = interval::midrad(l, rad);
-      check("interval::midrad(m, r) the tightest enclosure of [m - r, m + r]" + in,
+      const interval around = interval::centered_form(l, rad);
+      check("interval::centered_form(m, r) the tightest enclosure of [m - r, m + r]" + in,
             is_tightest_enclosure(around, exact(dl - drad), exact(dl + drad)),
             [&] { return describe() + " r=" + hex(rad) + ": " + hex(around); });
       const double ratios[] = { 0.5, 0.25, 0.75, 1.0/3.0, 1e-9, 1.0 - 1e-9 };
@@ -254,19 +254,19 @@ namespace
     check("inflate() of the empty set", empty.inflate(1.0).is_empty() && empty.inflate(inf).is_empty());
     check("inflate() past the largest double", interval(max).inflate(max).set_eq(interval(0.0, inf))
                                                && interval(1.0, inf).inflate(1.0).set_eq(interval(0.0, inf)));
-    const interval around = interval::midrad(1.0, 1e-20);
-    check("interval::midrad(1, 1e-20): [1 - u/2, 1 + u]", around.left() == previous_double(1.0)
+    const interval around = interval::centered_form(1.0, 1e-20);
+    check("interval::centered_form(1, 1e-20): [1 - u/2, 1 + u]", around.left() == previous_double(1.0)
                                                           && around.right() == next_double(1.0),
           [&] { return hex(around); });
-    check("interval::midrad(m, 0): the point m", interval::midrad(0.1, 0.0).set_eq(interval(0.1)));
+    check("interval::centered_form(m, 0): the point m", interval::centered_form(0.1, 0.0).set_eq(interval(0.1)));
     const double nan = std::numeric_limits<double>::quiet_NaN();
-    check("interval::midrad() for r < 0, or a NaN r or m: the empty set",
-          interval::midrad(1.0, -1.0).is_empty() && interval::midrad(1.0, nan).is_empty()
-          && interval::midrad(nan, 1.0).is_empty());
-    check("interval::midrad() of an infinite m: the empty set, as interval(m)",
-          interval::midrad(inf, 1.0).is_empty() && interval::midrad(-inf, 1.0).is_empty());
-    check("interval::midrad(m, +oo): the whole line", interval::midrad(1.0, inf).is_entire());
-    check("interval::midrad(MAX, MAX): [0, +oo]", interval::midrad(max, max).set_eq(interval(0.0, inf)));
+    check("interval::centered_form() for r < 0, or a NaN r or m: the empty set",
+          interval::centered_form(1.0, -1.0).is_empty() && interval::centered_form(1.0, nan).is_empty()
+          && interval::centered_form(nan, 1.0).is_empty());
+    check("interval::centered_form() of an infinite m: the empty set, as interval(m)",
+          interval::centered_form(inf, 1.0).is_empty() && interval::centered_form(-inf, 1.0).is_empty());
+    check("interval::centered_form(m, +oo): the whole line", interval::centered_form(1.0, inf).is_entire());
+    check("interval::centered_form(MAX, MAX): [0, +oo]", interval::centered_form(max, max).set_eq(interval(0.0, inf)));
 
     // The parts of bisect(), unbounded intervals cut where split() cuts them
     struct { interval x; double ratio; interval first, second; } const cuts[] = {

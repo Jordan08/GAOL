@@ -611,6 +611,41 @@ namespace
     check("erf and erfc on an interval are GAOL's, on a number C's",
           erf(x).set_eq(gaol::erf(x)) && erfc(y).set_eq(gaol::erfc(y)) && erf(0.0) == 0.0 && erfc(0.0) == 1.0,
           [&] { return hex(erf(x)) + " " + hex(erfc(y)); });
+    // centeredForm(m, r), which IEEE 1788-2015 does not name either (GAOL
+    // v5): interval::centered_form(m, r) under a name of the standard's style,
+    // the interval of midpoint m and radius r, each bound rounded outward
+    {
+      const double big = std::numeric_limits<double>::infinity(), nan = std::numeric_limits<double>::quiet_NaN();
+      const interval quarter = centeredForm(1.0, 0.25), tiny = centeredForm(1.0, 1e-20),
+        point = centeredForm(0.1, 0.0);
+      check("centeredForm(m, r) is [m - r, m + r], each bound rounded outward",
+            quarter.left() == 0.75 && quarter.right() == 1.25
+            && tiny.left() == std::nextafter(1.0, 0.0) && tiny.right() == std::nextafter(1.0, 2.0)
+            && point.left() == 0.1 && point.right() == 0.1,
+            [&] { return hex(quarter) + " " + hex(tiny) + " " + hex(point); });
+      check("centeredForm(m, r) for r < 0, a NaN or an infinite m is empty, and for r = +oo it is the whole line",
+            centeredForm(1.0, -1.0).is_empty() && centeredForm(1.0, nan).is_empty()
+            && centeredForm(nan, 1.0).is_empty() && centeredForm(big, 1.0).is_empty()
+            && centeredForm(-big, 1.0).is_empty() && centeredForm(1.0, big).is_entire(),
+            [] { return std::string(); });
+      // The same bounds, bit for bit, as interval::centered_form(), the sign
+      // of a zero bound included
+      const double ms[] = { 0.0, -0.0, 0.1, -0.1, 1.0, 0x1p-1074, 0x1.fffffffffffffp1023, -0x1.fffffffffffffp1023 };
+      const double rs[] = { 0.0, -0.0, 0.1, 1e-20, 0x1p-1074, 0x1p53, 0x1.fffffffffffffp1023, big };
+      bool same = true;
+      std::string first;
+      for (const double m : ms)
+        for (const double r : rs) {
+          const interval u = centeredForm(m, r), v = interval::centered_form(m, r);
+          const double ub[] = { u.left(), u.right() }, vb[] = { v.left(), v.right() };
+          if (u.is_empty() != v.is_empty() || (!u.is_empty() && std::memcmp(ub, vb, sizeof ub) != 0)) {
+            if (same) first = hex(u) + " against " + hex(v);
+            same = false;
+          }
+        }
+      check("centeredForm(m, r) has the bounds of interval::centered_form(m, r), bit for bit", same,
+            [&] { return first; });
+    }
   }
 
   // Every name of the standard gaol_ieee1788 provides, called unqualified
