@@ -136,6 +136,9 @@ commits.
   - la mise à jour de `TODO.md`, `TODO_DONE.md` et `TODO_AFTER.md` après une
     fusion, avec celle de la date et du commit de l'en-tête de `process.md` et
     de son §12 (section 9) ;
+  - la même mise à jour des registres, et des issues #178 et #179, juste après
+    une décision du mainteneur qui ne donne pas de pull request (la réponse à
+    une question, une tâche close sans code), *décidé le 8 novembre* ;
   - les corrections que le mainteneur a explicitement autorisées là, comme les
     avertissements trouvés par les jobs `-Werror` et `/WX` ou un délai de la
     CI.
