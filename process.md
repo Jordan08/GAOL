@@ -355,7 +355,11 @@ git ls-files -co --exclude-standard | tar -c -T - | tar -x -C $N/src
    -halt-on-error manual_gaolv5.tex`. Il faut zéro erreur, et pas de nouvel « Overfull ».
    Ne commite jamais `manual/Manual_GAOLv5.pdf`, que la cible `pdf` écrit dans
    `manual/` (ni l'ancien `manual/v5/gaol.pdf`), sauf dans la pull request du
-   manuel (une branche `manual*`), qui le régénère dans son dernier commit.
+   manuel (une branche `manual*`), qui le régénère dans son dernier commit, et
+   dans une pull request dont le mainteneur l'a demandé (#298, *décidé le 8
+   novembre*), qui le régénère de même et se contrôle par
+   `CHECK_BRANCH_PDF=1 check_branch <branche>` ; elle ne corrige pas
+   `doc/differences.md`.
 
 Ce que tu ne peux pas tester ici (Windows, macOS, ARM, gros-boutiste, sans FMA),
 écris-le dans la pull request sous « Non vérifiable ici ».

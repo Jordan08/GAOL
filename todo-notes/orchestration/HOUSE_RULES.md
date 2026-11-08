@@ -71,7 +71,9 @@ own worktree and branch, and you never push.**
    would make the pull requests conflict (a PDF cannot be merged); only the
    pull request of the manual (a branch `manual*`) commits it, in its last
    commit, and also corrects `doc/differences.md`, which describes the same
-   changes as the manual. Instead, put
+   changes as the manual; so does a pull request for which the maintainer asked
+   for the PDF (#298, 8 November 2026), checked with `CHECK_BRANCH_PDF=1
+   check_branch`, but it leaves `doc/differences.md` alone. Instead, put
    the text you would have written there in your final report (`ledger_*`
    fields). You do edit the chapter of `manual/v5/chapters/` where the manual describes what
    you change, and check that it compiles (`pdflatex` into a directory of
