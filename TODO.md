@@ -417,7 +417,8 @@ lui-même le hexfloat arrondi vers l'extérieur, dans la même pull request).
    *Décidé le 8 novembre* : le PDF du manuel est refait dans le dernier commit
    de #298, après la fusion de #297 (qui change aussi le manuel) et d'un merge
    de `configure-clean` dans la branche ; `check_branch` (`CHECK_BRANCH_PDF=1`),
-   `HOUSE_RULES.md` et `process.md` §6.2 admettent ce cas.
+   `HOUSE_RULES.md` et `process.md` §6.2 admettent ce cas. Fait le 8 novembre
+   (`72ec3d4`, 385 pages), après la fusion de #297 (`5392bbc`).
 
 2. **Le test de `<a, a>` avec `hexfloat`** (#43, question 8) : la règle qui
    écrit `[a]` pour un intervalle réduit à un point (`display_bounds()`,

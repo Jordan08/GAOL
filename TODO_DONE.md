@@ -6921,7 +6921,11 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   ignore la précision (dit dans le commentaire et `doc/tests.md`), et les
   sous-normaux négatifs (19 doubles). Le mainteneur a aussi demandé le PDF dans
   #298 (3.26) : `check_branch` admet le PDF avec `CHECK_BRANCH_PDF=1`
-  (`f67843e`, dans #298).
+  (`f67843e`, dans #298). #297 est fusionnée à `5392bbc` : `configure-clean`
+  est fusionné dans #298 sans conflit (`24b97d9`) et le PDF refait dans son
+  dernier commit (`72ec3d4`, 385 pages, 0 erreur, les 7 « Overfull » de la
+  base ; la reconstruction de la base redonne le texte du PDF commité).
+  `CHECK_BRANCH_PDF=1 check_branch` répond OK, et FAILED sans la variable.
 - Les pièges. (1) `f1d4281` (la règle de `process.md` §3.4), commité en local
   sur `configure-clean` dans l'arbre partagé, était déjà sur GitHub quand la
   session voulait le pousser : la synchronisation de VS Code l'a fait, après
