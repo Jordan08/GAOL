@@ -11,8 +11,7 @@ l'ancien `TODO.md` et dans `TODO_mistral.md`, avec les réponses du mainteneur
 des 22 et 23 octobre. #49 et #142 sont fermées le 24 octobre, `TODO_mistral.md`
 est supprimé. Le reste du travail est dans deux autres registres :
 
-- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PH, PJ, PP, PQ et
-  PT ;
+- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PH, PJ, PP et PT ;
 - `TODO_AFTER.md` (issue #178) : ce qui est reporté, après la version, jusqu'à
   une décision ou jusqu'à du matériel.
 
@@ -43,7 +42,7 @@ est supprimé. Le reste du travail est dans deux autres registres :
   : elle s'applique telle quelle.
 - Le classement par rang et par tiers (A à I) de l'ancien #142 n'existe plus :
   un « rang N » cité dans un texte d'avant le 24 octobre désigne cet ancien
-  classement. Ce qui reste à faire est classé en tâches PH, PJ, PP, PQ et PT
+  classement. Ce qui reste à faire est classé en tâches PH, PJ, PP et PT
   dans `TODO.md`.
 - Ce qui sert encore des rapports des agents est dans
   [todo-notes/synthese.md](todo-notes/synthese.md), leurs originaux au commit
@@ -75,8 +74,7 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   27 octobre, voir 7.6 à 7.10). Les pull requests des corrections vont vers
   `configure-clean`, qui reste la branche de développement après v5.0.0 ;
   `MATH-CORE` et `master` (GAOL 4.3.2, plus deux commits de `.claude/CLAUDE.md`)
-  ne bougent qu'à la version (point Y). Deux pull requests sont ouvertes : #298
-  (PQ.1, `centered_form`) et #299 (PQ.2, le test de `hexfloat`) : 7.23. Le
+  ne bougent qu'à la version (point Y). Aucune pull request n'est ouverte. Le
   mainteneur a fusionné #165 à
   #167, #169 à #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194,
   #196 et #197 le 25 octobre, #199, #200 et #201
@@ -152,8 +150,9 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   documente seulement, par #296, fusionnée le même jour (3.26) ; il reste les
   signalements à d'autres projets (PH), le tableau de Clang 21 et la
   publication (PJ), le FIXME de `div_rel` en SSE2 (PP), deux petits changements
-  décidés le 8 novembre (PQ) et deux relevés jamais faits (PT) : voir
-  `TODO.md`.
+  et trois relevés ou vérifications jamais faits (PT) : voir `TODO.md` ; PQ,
+  les deux petits changements décidés le 8 novembre, est faite par #298 et #299
+  (2.3).
   Le 8 novembre, `TODO_fin.md` (la relecture du 4 novembre) est réparti dans les
   trois registres et supprimé (3.25).
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
@@ -2845,6 +2844,45 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   fichiers que l'archive laisse de côté ne nomme pas `STEP.md` (PJ.7). Décisions
   : 3.27.
 
+- #299 (le point 2 de la tâche PQ, le test de `<a, a>` avec `hexfloat` ; ouverte
+  le 8 novembre à 16 h 47 UTC, 3 commits, 2 fichiers, 57 lignes ajoutées et 1
+  retirée contre `configure-clean`) : fusionnée le même jour à 20 h 31 UTC par
+  le mainteneur (`36b4f93`, tête `2456f14`). Dans `tests/ieee1788.cpp`,
+  `text_of_a_point_interval_in_hexfloat()` : `interval(a)` écrit avec `fixed |
+  scientific` et 0, 1, 2, 3, 6, 12, 13 et 20 chiffres, pour 19 doubles (dont les
+  sous-normaux et les extrêmes des deux signes), doit être en hexadécimal (`0x`)
+  et, relu par `textToInterval`, contenir `a` : deux vérifications de 152 cas.
+  Elles réussissent avec GCC 15.2 et Clang 18 (libstdc++ ignore la précision de
+  `hexfloat`, donc rien n'est à corriger là) et échouent sur une bibliothèque
+  simulée qui limite les chiffres et arrondit au plus proche. Le bloc était
+  d'abord dans `tests/numbers.cpp` : la CI a fait échouer 18 vérifications
+  existantes du job Debian 12 arm64 (GCC 12.2, le défaut de `process.md` §11),
+  reproduites en local sous qemu, puis `numbers` ne se terminait plus quand le
+  test des lignes vides était réécrit ; il est donc ailleurs et `numbers.cpp`
+  est celui de la base (7.23). Relecteur indépendant seulement après l'échec
+  de la CI, comme le mainteneur l'a décidé (73 000 jetons, quatre remarques
+  reprises). Sa CI au dernier commit : les cinq workflows verts (vérifié après
+  la fusion). Décisions : 3.26.
+- #298 (le point 1 de la tâche PQ, `centered_form` ; ouverte le 8 novembre à
+  16 h 46 UTC, 4 commits, 17 fichiers, 108 lignes ajoutées et 50 retirées contre
+  `configure-clean`) : fusionnée le même jour à 20 h 44 UTC par le mainteneur
+  (`0f469e7`, tête `72ec3d4`). `interval::midrad(m, r)` devient
+  `interval::centered_form(m, r)` sans alias (38 lignes de 11 fichiers : le
+  code, `tests/other_functions.cpp`, `doc/`, `examples/` et les chapitres 3, 5,
+  14 et 15 du manuel), et `gaol_ieee1788` reçoit la fonction libre
+  `centeredForm(m, r)` (trois vérifications de `tests/ieee1788.cpp`, qui
+  échouent sur deux mutants). Le PDF du manuel (385 pages, 0 erreur, les 7
+  « Overfull » de la base) est refait dans le dernier commit, à la demande du
+  mainteneur, après la fusion de #297 ; `check_branch` admet ce cas avec
+  `CHECK_BRANCH_PDF=1`, `HOUSE_RULES.md` et `process.md` §6.2 aussi. Validations
+  : CMake SSE2, FPU et Clang 18, `-Werror` avec GCC et Clang 18, autotools,
+  meson, le GAOL installé, `manual/check_examples.py` (116 exemples sur 116).
+  Le relecteur indépendant (100 000 jetons) n'a trouvé aucune erreur de fond ;
+  trois détails (l'alignement d'un exemple, des variables qui en masquaient
+  d'autres, un `\hfill\break` gardé pour un « Overfull » de 21 pt). Sa CI au
+  dernier commit : les sept workflows verts (vérifié après la fusion).
+  Décisions : 3.26.
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -5359,7 +5397,7 @@ l'arbre (`origin/configure-clean` à `593ddf3`) avant d'être corrigé : les hui
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
-`TODO.md` (tâches PH, PJ, PP, PQ et PT) ou dans `TODO_AFTER.md` ; leur
+`TODO.md` (tâches PH, PJ, PP et PT) ou dans `TODO_AFTER.md` ; leur
 partie faite est dite ici ou dans la section 5.
 
 ### Même changement, ou même code
@@ -5938,8 +5976,8 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
 
 Les « Questions ouvertes » des descriptions de #146 à #163, que l'ancien
 `TODO.md` gardait sous « Remarqué par #NN, à trier », avec leur sort. Les
-questions qui restent sans réponse sont dans `TODO.md` (tâches PH, PJ, PP, PQ et
-PT) et `TODO_AFTER.md` ; elles ne sont pas répétées ici.
+questions qui restent sans réponse sont dans `TODO.md` (tâches PH, PJ, PP et PT)
+et `TODO_AFTER.md` ; elles ne sont pas répétées ici.
 
 ### #146
 
@@ -7103,6 +7141,12 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   vérifications échouent, puis ne pas commiter la cassure. (6) Le relecteur
   indépendant de #297 a consommé 131 000 jetons au lieu des 60 000 demandés, et
   un de ses points était faux (vérifié contre l'arbre avant d'y toucher).
+- Le mainteneur a fusionné #299 à 20 h 31 UTC (`36b4f93`) puis #298 à 20 h 44
+  UTC (`0f469e7`), leurs CI vertes (vérifié après la fusion). Les registres de
+  leur partie sont faits ici (2.3, 1, `TODO.md` : la tâche PQ sort du fichier et
+  du tableau, PT.3 devient faisable, `process.md` §12), ceux de #295 et de #297
+  l'avaient été par la session de la tâche PS (`7f93f68`). Aucune pull request
+  n'est ouverte.
 
 ## 8. Le ménage fait
 

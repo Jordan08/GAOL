@@ -1,10 +1,11 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `5392bbc` de `configure-clean` (la
-fusion de #297, la tâche PS, le 8 novembre 2026 à 19 h 38 UTC, après celles
-de #296 et de #295, de #294, le manuel dans le style de la thèse, et de #292,
-de #293, #291, #290 et #289), en tâches PH, PJ, PP, PQ et PT (PA à PG, PI, PL
-et PS sont faites, PK et PM sont closes sans code : voir `TODO_DONE.md`). Ce
+Ce qui reste à faire sur GAOL v5 au commit `0f469e7` de `configure-clean` (la
+fusion de #298, la tâche PQ, le 8 novembre 2026 à 20 h 44 UTC, après celles
+de #299, de #297, de #296 et de #295, de #294, le manuel dans le style de la
+thèse, et de #292, de #293, #291, #290 et #289), en tâches PH, PJ, PP et PT (PA
+à PG, PI, PL, PQ et PS sont faites, PK et PM sont closes sans code : voir
+`TODO_DONE.md`). Ce
 fichier et l'issue #179 ont le même contenu. Ce qui est fait et décidé est dans
 `TODO_DONE.md` (l'issue #177 n'est plus mise à jour), ce qui est reporté dans
 `TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142 sont fermées, et
@@ -15,14 +16,13 @@ dans les trois registres, dont les tâches PS (faite par #297) et PT
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à envoyer à un autre projet ni à publier sans l'accord
-du mainteneur. Deux pull requests sont ouvertes : #298 (PQ.1, `centered_form`)
-et #299 (PQ.2, le test de `hexfloat`). #295 (PS.2) et #297 (la tâche PS) sont
-fusionnées le 8 novembre, à 17 h 21 UTC (`5bd52a6`) et à 19 h 38 UTC
-(`5392bbc`) ; leurs registres sont faits.
+du mainteneur. Aucune pull request n'est ouverte. #295 (PS.2), #296 (PM),
+#297 (la tâche PS), #299 (PQ.2) et #298 (PQ.1) sont fusionnées le 8 novembre, à
+17 h 21, 17 h 29, 19 h 38, 20 h 31 et 20 h 44 UTC ; leurs registres sont faits.
 
 ## Comment lire ce fichier
 
-- Une tâche (PH, PJ, PP, PQ, PT) regroupe des points qui touchent le
+- Une tâche (PH, PJ, PP, PT) regroupe des points qui touchent le
   même code, les mêmes fichiers ou les mêmes builds de validation, pour les
   traiter dans la même session ; chaque point reste une pull request à part
   (process.md : un point, une branche), sauf quand la tâche dit qu'une seule
@@ -32,9 +32,9 @@ fusionnées le 8 novembre, à 17 h 21 UTC (`5bd52a6`) et à 19 h 38 UTC
   fait que ralentir ; le petit et sans dépendance avant le gros ; la version
   (PJ) en dernier. La lettre PR n'est pas une tâche : le sigle dit déjà « pull
   request ».
-- PH, PP, PQ et PT ne dépendent d'aucune autre tâche, sauf quand le texte le
-  dit (PJ suit PI, PS et les études de PG, qui sont faites ; le point 1 de PQ
-  et PT précèdent l'étiquette de PJ.3).
+- PH, PP et PT ne dépendent d'aucune autre tâche, sauf quand le texte le dit
+  (PJ suit PI, PS, PQ et les études de PG, qui sont faites ; PT précède
+  l'étiquette de PJ.3).
 - Chaque point garde sa lettre et son ancien numéro, par exemple « 79 (AB) » :
   ce sont ceux des pull requests, des issues, des commentaires du code et de
   `TODO_DONE.md` (section 4 pour les lettres, section 5 pour les numéros faits).
@@ -54,7 +54,6 @@ fusionnées le 8 novembre, à 17 h 21 UTC (`5bd52a6`) et à 19 h 38 UTC
 | PH | Les signalements à d'autres projets | #125 à #138, #175 | accord |
 | PJ | Les mesures et la publication de v5.0.0 | 32 à 34, 71, manuel, CI | M |
 | PP | Le FIXME de `div_rel` : le cas N1 M en SSE2 | un point | M |
-| PQ | `centered_form` pour `midrad`, et le test de `<a, a>` en `hexfloat` | deux points | S |
 | PT | Les relevés et les vérifications jamais faits | trois points | S |
 
 ## PH. Les signalements à d'autres projets [attend l'accord du mainteneur]
@@ -383,51 +382,6 @@ le code, par un petit programme à part, comme pour la racine cubique
 code ; l'autre (« TODO: check existence of stdint.h in configure.in », ligne 25)
 reste (`TODO_DONE.md` 3.24).
 
-## PQ. Deux petits changements décidés le 8 novembre [S]
-
-Demandée par le mainteneur le 8 novembre (réponses à la relecture du 4
-novembre : `TODO_DONE.md` 3.24). Deux points indépendants, chacun sa branche et
-sa pull request : #298 (le point 1, ouverte le 8 novembre, avec `centeredForm`
-en fonction libre, *confirmé le 8 novembre*) et #299 (le point 2 : le test passe
-avec libstdc++, qui ignore la précision de `hexfloat`, donc rien à corriger
-ici, et il est dans `tests/ieee1788.cpp`, `numbers.cpp` étant déplacé par GCC
-12.2 sur aarch64 à chaque changement : `TODO_DONE.md` 7.23 ; *décidé le 8
-novembre* : si la CI le fait échouer sous une autre bibliothèque, GAOL écrit
-lui-même le hexfloat arrondi vers l'extérieur, dans la même pull request).
-
-1. **`centered_form` à la place de `midrad`** (la remarque de #271), **avant
-   l'étiquette de PJ.3** : après v5.0.0, un renommage casserait des programmes.
-   Garder `midRad(x, m, r)` (`gaol_ieee1788`) et `mid_rad(m, r)` (`gaol`) ;
-   renommer le constructeur `interval::midrad(m, r)`
-   (`gaol/core/gaol_interval_core.h`, lignes 875 et 2752) en
-   `interval::centered_form(m, r)` dans `gaol`, et le donner à `gaol_ieee1788`
-   sous le nom `centeredForm(m, r)` : une fonction libre rendant un `interval`,
-   comme les autres de ce fichier, qui n'a aujourd'hui aucun constructeur de ce
-   genre (à confirmer au début de la tâche, la réponse du mainteneur disant «
-   interval::centeredForm(m,r) dans gaol_ieee1788 »). `midrad` n'existe pas dans
-   GAOL 4 (`master`) : aucun alias à garder. 42 lignes de 12 fichiers le citent
-   : `gaol_interval_core.h` (2), `tests/other_functions.cpp` (13), `ChangeLog`
-   (1), `doc/differences.md` (2, dont la puce qui suit celle de `mid_rad()`),
-   `doc/tests.md` (1), `doc/using.md` (3), `examples/examples.md` (2),
-   `examples/tutorial.md` (1) et les chapitres 3, 5, 14 et 15 du manuel (17).
-   Le test de `centeredForm` rend les mêmes bornes que `centered_form`.
-   *Décidé le 8 novembre* : le PDF du manuel est refait dans le dernier commit
-   de #298, après la fusion de #297 (qui change aussi le manuel) et d'un merge
-   de `configure-clean` dans la branche ; `check_branch` (`CHECK_BRANCH_PDF=1`),
-   `HOUSE_RULES.md` et `process.md` §6.2 admettent ce cas. Fait le 8 novembre
-   (`72ec3d4`, 385 pages), après la fusion de #297 (`5392bbc`).
-
-2. **Le test de `<a, a>` avec `hexfloat`** (#43, question 8) : la règle qui
-   écrit `[a]` pour un intervalle réduit à un point (`display_bounds()`,
-   `gaol/core/gaol_interval_core.cpp`, ligne 2033) suppose que `bound_to_text()`
-   (ligne 1990) arrondit exactement vers l'extérieur, ce que la bibliothèque C
-   ne promet pas avec l'option `hexfloat` ; le seul test (`tests/numbers.cpp`,
-   lignes 1521 à 1538) porte sur le format centre. Un test d'une ligne : écrire
-   `interval(a)` en `hexfloat` pour quelques `a` (dont des valeurs qui ne
-   tiennent pas en peu de chiffres hexadécimaux), relire le texte, et vérifier
-   qu'il contient `a`. S'il échoue, c'est un défaut à corriger dans la même pull
-   request, ou à décider avec le mainteneur.
-
 ## PT. Les relevés et les vérifications jamais faits [S]
 
 Deux mesures ou vérifications que des pull requests ont demandées sans que leur
@@ -465,4 +419,5 @@ avertissements à corriger.
    exacte, qu'ils rendent le plus petit encadrement de [a − r, b + r], de la
    largeur exacte et de [m − r, m + r]. Ajouter une ligne pour chacun (avec «
    GAOL v5 »), renvoyant aux tests que `doc/tests.md` décrit déjà. Aucun
-   changement de code ; à faire après la fusion de #298, qui renomme `midrad`.
+   changement de code ; à faire maintenant : #298, qui renomme `midrad`, est
+   fusionnée.
