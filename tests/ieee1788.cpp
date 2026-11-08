@@ -1177,11 +1177,13 @@ namespace
     outward there, where number_to_text() leaves the hexadecimal format to it.
     Read back, the text has to hold the double, whatever the number of digits
     asked for (a library that limits them and rounds to nearest would write the
-    same text twice). This test is here and not in numbers.cpp, where the
-    stream settings are tested: GCC 12.2 for aarch64 (the job Debian 12 arm64)
-    miscompiles that file, a different function of it after each change
-    (18 checks of the reading of blank lines failed, then a loop never ended in
-    decimal_output()), and process.md (section 11) knows the defect.
+    same text twice). The C++ library of GCC (libstdc++) ignores the precision
+    for this format, so that its text is exact and the test bites only with the
+    libraries that limit the digits (libc++, Visual C++...). This test is here
+    and not in numbers.cpp, where the stream settings are tested: GCC 12.2 for
+    aarch64 (the job Debian 12 arm64) miscompiles that file, a different
+    function of it after each change (process.md, section 11, and TODO_DONE.md,
+    7.23).
   */
   void text_of_a_point_interval_in_hexfloat()
   {
@@ -1190,7 +1192,8 @@ namespace
     interval::format(gaol::interval_format::bounds);
     const double points[] = { 0.1, -0.1, 1.0 / 3.0, -2.0 / 3.0, 1.0, 1.5, std::nextafter(1.0, 2.0),
                               std::nextafter(1.0, 0.0), 123456789.123456789, 3.0e-100, -2.5e300, 0.0, -0.0,
-                              std::numeric_limits<double>::denorm_min(), std::numeric_limits<double>::min(),
+                              std::numeric_limits<double>::denorm_min(), -std::numeric_limits<double>::denorm_min(),
+                              std::numeric_limits<double>::min(), -std::numeric_limits<double>::min(),
                               std::numeric_limits<double>::max(), -std::numeric_limits<double>::max() };
     for (const int digits : { 0, 1, 2, 3, 6, 12, 13, 20 }) {
       interval::precision(digits);
@@ -1200,6 +1203,9 @@ namespace
         os << interval(a);
         const std::string text = os.str();
         const interval back = textToInterval(text);
+        check("operator<< of interval(a) with fixed | scientific writes the hexadecimal floating-point format",
+              text.find("0x") != std::string::npos,
+              [&] { return hex(interval(a)) + " written " + text + " with " + std::to_string(digits) + " digits"; });
         check("operator<< of interval(a) in the hexadecimal floating-point format, read back: holds the double",
               back.set_contains(a),
               [&] { return hex(interval(a)) + " written " + text + " with " + std::to_string(digits) + " digits, read " + hex(back); });

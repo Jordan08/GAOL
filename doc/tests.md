@@ -932,10 +932,13 @@ point Q), which `numbers` checks there too.
   the empty set (GAOL v5); and to be x itself for a text `[a]`. The point
   interval of a double written by `operator<<` in the hexadecimal
   floating-point format of the stream (`fixed | scientific`), with 0 to 20
-  digits, has to read back holding the double, for 17 doubles: a C library that
-  limits the digits and rounds to nearest would write `[a]` with another number
-  (GAOL v5, #43 question 8; this check is here and not in `numbers`, which GCC
-  12.2 for aarch64 miscompiles after any change).
+  digits, has to be written in that format (`0x`) and to read back holding the
+  double, for 19 doubles with both signs of the subnormals and of the least
+  normal one: a C library that limits the digits and rounds to nearest would
+  write `[a]` with another number. libstdc++ ignores the precision there, so
+  that the check bites with the other libraries only (GAOL v5, #43 question 8;
+  it is here and not in `numbers`, which GCC 12.2 for aarch64 miscompiles after
+  any change).
   `intervalToText(x)` has to be an interval literal of the standard, `[l, r]`,
   `[a]` (`[4]`, `[0]`) or `[empty]`, with the digits of the precision of the
   intervals, whatever the global format and the locale: in each of the five
