@@ -74,7 +74,7 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   27 octobre, voir 7.6 à 7.10). Les pull requests des corrections vont vers
   `configure-clean`, qui reste la branche de développement après v5.0.0 ;
   `MATH-CORE` et `master` (GAOL 4.3.2, plus deux commits de `.claude/CLAUDE.md`)
-  ne bougent qu'à la version (point Y). Aucune pull request n'est ouverte. Le
+  ne bougent qu'à la version (point Y). La pull request #300 est ouverte (7.23). Le
   mainteneur a fusionné #165 à
   #167, #169 à #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194,
   #196 et #197 le 25 octobre, #199, #200 et #201
@@ -7147,6 +7147,15 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   du tableau, PT.3 devient faisable, `process.md` §12), ceux de #295 et de #297
   l'avaient été par la session de la tâche PS (`7f93f68`). Aucune pull request
   n'est ouverte.
+- Les réponses du mainteneur à la dernière série de questions (le 8 novembre,
+  quatre propositions chacune) : la tâche suivante, « rien pour l'instant » ;
+  `tests/numbers.cpp` sous GCC 12.2 aarch64, « ne rien faire » (la règle du
+  §11 suffit : rien de nouveau dans ce fichier) ; la compilation croisée dans la
+  matrice de `process.md` §6.2, « non » (la CI le dit, comme avant) ; le
+  scratchpad, « garder les bancs de reproduction » : la recette est dans #300
+  (`todo-notes/gcc12-aarch64/`, ouverte à 21 h 27 UTC, 2 commits, un
+  `Dockerfile` et `cross-test`, essayés sur `97c76c2` : 18 échecs, comme la CI,
+  et sur `ieee1788` : aucun) ; le reste du scratchpad est laissé.
 
 ## 8. Le ménage fait
 

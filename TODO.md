@@ -16,9 +16,11 @@ dans les trois registres, dont les tâches PS (faite par #297) et PT
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à envoyer à un autre projet ni à publier sans l'accord
-du mainteneur. Aucune pull request n'est ouverte. #295 (PS.2), #296 (PM),
-#297 (la tâche PS), #299 (PQ.2) et #298 (PQ.1) sont fusionnées le 8 novembre, à
-17 h 21, 17 h 29, 19 h 38, 20 h 31 et 20 h 44 UTC ; leurs registres sont faits.
+du mainteneur. La pull request #300 est ouverte (hors des points : la recette de
+compilation croisée GCC 12.2 pour aarch64 de `todo-notes/gcc12-aarch64/`).
+#295 (PS.2), #296 (PM), #297 (la tâche PS), #299 (PQ.2) et #298 (PQ.1) sont
+fusionnées le 8 novembre, à 17 h 21, 17 h 29, 19 h 38, 20 h 31 et 20 h 44 UTC ;
+leurs registres sont faits.
 
 ## Comment lire ce fichier
 

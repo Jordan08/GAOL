@@ -854,7 +854,9 @@ git ls-remote --heads origin
   et 3.26) ; l'audit du 13
   octobre a vérifié dans `configure-clean` ce qu'annonçaient alors les points A,
   C à H et J à V.
-- **En cours** : au 8 novembre, aucune pull request n'est ouverte : #295 (PS.2
+- **En cours** : au 8 novembre, la pull request #300 est ouverte (hors des
+  points : la recette de compilation croisée GCC 12.2 pour aarch64 de
+  `todo-notes/gcc12-aarch64/` ; `todo-notes-gcc12-aarch64`) ; #295 (PS.2
   ; `manual-neon-pown-text`), #296 (le cas (b) ; `manual-case-b-text`), #297 (la
   tâche PS ; `todo-ps-stale-texts`), #299 (PQ.2 ; `todo-pq-hexfloat-point`) et
   #298 (PQ.1 ; `todo-pq-centered-form`) sont fusionnées, leurs registres
