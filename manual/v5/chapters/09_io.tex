@@ -274,7 +274,8 @@ number lying between the same two doubles; a number far beyond the doubles
 (about $10^{311}$ or more, or $10^{-331}$ or less, in decimal, about
 $2^{1026}$ or more, or $2^{-1081}$ or less, in the other bases); and bounds
 that are computed, as \code{1/3}. The literal is then the interval from the
-lower bound of the first to the upper bound of the second.
+lower bound of the first to the upper bound of the second (case (b) of
+12.12.7, which GAOL signals by no exception: \pxref{sec:ieee1788-missing}).
 
 The two bounds in the string \code{<a, b>} must be expressions that
 evaluate to the same double whatever the rounding direction; a

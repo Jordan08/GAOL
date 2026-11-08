@@ -836,14 +836,14 @@ git ls-remote --heads origin
   on le documente seulement, dans la synthèse de PJ.7, 3.26) ; l'audit du 13
   octobre a vérifié dans `configure-clean` ce qu'annonçaient alors les points A,
   C à H et J à V.
-- **En cours** : au 8 novembre, cinq pull requests sont ouvertes : #295 (le
-  texte de `doc/simd.md` et du manuel sur les puissances entières de NEON,
-  PS.2, avec le PDF du manuel refait ; branche `manual-neon-pown-text`), #296
-  (le cas (b) de 12.12.7 de la tâche PM dans le manuel, `gaol_ieee1788.h` et
+- **En cours** : au 8 novembre, quatre pull requests sont ouvertes : #296 (le
+  cas (b) de 12.12.7 de la tâche PM dans le manuel, `gaol_ieee1788.h` et
   `doc/differences.md`, PDF refait ; `manual-case-b-text`), #297 (la tâche PS,
   ouverte par une autre session ; `todo-ps-stale-texts`), #298 (PQ.1,
   `centered_form` ; `todo-pq-centered-form`) et #299 (PQ.2, le test de
-  `hexfloat` ; `todo-pq-hexfloat-point`) ;
+  `hexfloat` ; `todo-pq-hexfloat-point`) ; #295 (le texte de `doc/simd.md` et du
+  manuel sur les puissances entières de NEON, PS.2 ; `manual-neon-pown-text`)
+  est fusionnée à 18 h 21 UTC (`5bd52a6`), ses registres restent à faire ;
   `configure-clean` est au commit `634e3e1` (un commit direct, après la fusion
   de #294, `1e23540`, après celle de #292, `130acea`, et celles de #293, #291,
   #290 et #289, les registres de #288, `6ed4441`, et la fusion de #288,
