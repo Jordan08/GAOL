@@ -686,7 +686,10 @@ point Q), which `numbers` checks there too.
   or inside (with `std::internal`, the fill follows the sign of the midpoint
   in the width and center formats, and that of the shared digits in the
   agreeing format), and after `0x` in the hexadecimal floating-point
-  format of the stream. The texts written under the flags of the
+  format of the stream. The point interval of a double written in that format,
+  with 0 to 20 digits, has to read back holding the double: a C library that
+  limits the digits and rounds to nearest would write `[a]` with another number
+  (GAOL v5, #43 question 8). The texts written under the flags of the
   stream (`showpoint`, `showpos`, `uppercase`, `fixed`, `scientific`), its
   fill and a locale of its own (a decimal colon, digits grouped by three, or
   a decimal comma) have to be those `operator<<` wrote in a stream of its
