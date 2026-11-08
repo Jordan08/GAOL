@@ -326,7 +326,7 @@ which is done, and none needs a new path.
 - **`sqrt` on SSE2** is scalar (6.3 ns on the i7-1185G7, 3.75 with the AVX-512
   path and the direction preserved, 2.0 on the M2 with NEON); the NEON kernel
   ports to `_mm_sqrt_pd`. `sqrt_rel` follows.
-- **The integer powers on NEON** (done, GAOL v5, a small gain): the kernel of
+- **The integer powers on NEON** (done, GAOL v5, 1.1 to 1.3 times): the kernel of
   `pown` on two lanes with `vfmaq_f64` (`pown_neon_ops` and `pown_large_inline()`
   in `gaol/core/gaol_interval_neon.cpp`, 80 lines), as the SSE2 one with `__FMA__`
   (`gaol_interval_sse.cpp`), where it was two scalar lanes with `std::fma`; the
@@ -334,16 +334,30 @@ which is done, and none needs a new path.
   `gaol_interval_core.cpp`, and each kind of intervals defines the operations
   of its lanes as a class and its `pown_large_inline()`.
   The bounds are the same bit for bit (4 million powers hashed, and
-  `tests/tools/pow/diffpow.py` on 70 500 lines). The gain is far below the 1.5
-  times that was hoped for: `pow(x, 3)` takes 5.7 ns where it took 6.1 (1.07
-  times; 5 passes alternated by `.github/scripts/performance-ab.sh`, an Apple
-  M2, AppleClang 21), `gaol::pow(x, 3)` alone 6.0 against 6.4 and
-  `gaol_ieee1788::pow(x, [3])` on a base about 0 11.3 against 14.7
-  (`tests/tools/pow/bench.cpp`, 6 passes alternated); the other rows move by
-  less than 3 %. The two scalar lanes ran side by side already, perhaps, the
-  chain of dependent products staying the same (not checked). Making the
-  corners from the stored register rather than from two stores and a load did
-  not change the ratio.
+  `tests/tools/pow/diffpow.py` on 70 500 lines). The first version gained only
+  1.03 to 1.07 times, far below the 1.5 times that was hoped for: `pow(x, 3)`
+  took 5.7 ns where it took 6.1 (5 passes alternated by
+  `.github/scripts/performance-ab.sh`, an Apple M2, AppleClang 21). The kernel
+  was not to blame: it is some 8 of the 125 instructions of a call, and its
+  chain of dependent products is no shorter than that of two scalar lanes (NEON
+  has no vector `fnmsub`: each fused multiply-subtract is a `vnegq` and a
+  `vfmaq`). The rest was the code before it, which Clang made longer: with
+  `-frounding-math` it turns the generic comparisons `vcgeq_f64`, `vcleq_f64`
+  and `vceqq_f64` of the check of the range into scalar ones, 38 instructions
+  where the same masks with `vcageq_f64` and `vcaleq_f64`, on the absolute
+  values, take 20, and it made the permutation of the corners for a negative
+  exponent (`vextq_f64`) a select through a general register. The check is now
+  written with `vcageq_f64` and `vcaleq_f64`, and the permutation keeps an
+  empty `asm` that leaves it as it is: a call of `pow(x, 3)` takes 102
+  instructions where it took 125. Without `GAOL_PRESERVE_ROUNDING`, it takes
+  4.42 ns where it took 5.84 (1.32 times), and the other exponents from -7 to
+  100 gain 1.11 to 1.33 times in independent calls (medians of 21 alternations
+  of the old and the new code, an Apple M2, AppleClang 21). With it, the 27
+  rows of the micro-benchmark take 0.95 to 0.99 of their time, a call of
+  `pow(x, 3)` taking 36.4 ns where it took 37.2: the preservation itself adds
+  some 31 ns to a call, whose cause was not looked for. Making the corners from
+  the stored register rather than from two stores and a load had not changed
+  the ratio of the first version.
 - **`mid()`** takes 8.5 to 12 ns on the M2 for an addition at 0.9; a two-lane
   kernel would keep the rare branches.
 - **The argument reduction of `sin`, `cos` and `tan`** (the quotients by pi and
