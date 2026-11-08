@@ -1,0 +1,80 @@
+#!/bin/sh
+# cross-test [-t seconds] [-w dir] [-W] <ref> <program>
+#
+# Builds the test program <program> (tests/<program>.cpp: numbers, ieee1788...)
+# of the git tree in the current directory, at <ref> (HEAD, a branch, a
+# commit), with GCC 12.2 for aarch64 in Release mode, and runs it under
+# qemu-aarch64, as the job "Debian 12 Bookworm arm64" of the CI does. It needs
+# Docker, and builds the image gaol-bookworm-cross from the Dockerfile next to
+# this script when it is missing. GCC 12.2 miscompiles tests/numbers.cpp in a
+# way that moves after every change of the file: a loop over a local array
+# reads wrong values, or the program never ends (process.md, section 11). The
+# CI shows it once the pull request is open; this shows it in two minutes.
+#
+#   -t seconds  the time the program may run (default 240; the exit status 124
+#               of timeout means that it never ended)
+#   -w dir      where the sources and the builds go (default $TMPDIR/gaol-cross,
+#               or /tmp/gaol-cross): keep it out of the tree
+#   -W          test the files of the working tree (git ls-files -co
+#               --exclude-standard) instead of <ref>
+#
+# Prints the failed checks and the last lines of the output of the program, and
+# exits with its status. Docker gets 4 cores (--cpus 4), the most process.md
+# allows. A directory is made per run and none is removed: clean <dir> by hand.
+set -e
+seconds=240
+work="${TMPDIR:-/tmp}/gaol-cross"
+tree=0
+while getopts t:w:W opt; do
+  case $opt in
+    t) seconds=$OPTARG ;;
+    w) work=$OPTARG ;;
+    W) tree=1 ;;
+    *) sed -n '2p' "$0" >&2; exit 2 ;;
+  esac
+done
+shift $((OPTIND - 1))
+if [ $# -ne 2 ]; then
+  sed -n '2p' "$0" >&2
+  exit 2
+fi
+ref=$1
+program=$2
+here=$(cd "$(dirname "$0")" && pwd)
+image=gaol-bookworm-cross
+if ! docker image inspect "$image" > /dev/null 2>&1; then
+  docker build -q -t "$image" "$here" > /dev/null
+fi
+run="$work/$(printf '%s' "$ref" | tr -c 'A-Za-z0-9._-' '_')-$program-$(date +%H%M%S)"
+mkdir -p "$run/src" "$run/out"
+if [ "$tree" = 1 ]; then
+  git ls-files -co --exclude-standard | tar -c -T - | tar -x -C "$run/src"
+else
+  git archive "$ref" | tar -x -C "$run/src"
+fi
+# Run in the container: /src is the tree (read only), /out receives the build
+cat > "$run/out/run.sh" <<'RUN'
+#!/bin/sh
+cd /out
+cmake -S /src -B /out/b -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON \
+  -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
+  -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ \
+  > /out/cmake.log 2>&1 || { echo "cmake failed, see cmake.log"; exit 1; }
+cmake --build /out/b -j4 --target "gaol_test_$1" > /out/build.log 2>&1 \
+  || { echo "build failed, see build.log"; tail -5 /out/build.log; exit 1; }
+timeout "$2" qemu-aarch64 -L /usr/aarch64-linux-gnu "/out/b/tests/gaol_test_$1" > /out/run.log 2>&1
+status=$?
+echo "exit status $status"
+exit $status
+RUN
+set +e
+docker run --rm --cpus 4 -v "$run/src:/src:ro" -v "$run/out:/out" "$image" \
+  sh /out/run.sh "$program" "$seconds" > "$run/docker.log" 2>&1
+status=$?
+cat "$run/docker.log"
+if [ -f "$run/out/run.log" ]; then
+  grep -a 'FAILED' "$run/out/run.log" | head -20
+  tail -n 3 "$run/out/run.log"
+fi
+echo "(the files of the run: $run)"
+exit $status

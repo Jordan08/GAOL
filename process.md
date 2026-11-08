@@ -714,7 +714,9 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   retiennent pas `FPCR.AH` ; QEMU 10.0 (Debian 13), avec `-cpu max`, le retient.
   Les binaires de Debian 12 tournent sous le QEMU de Debian 13. Les images
   créées pour un essai se suppriment ensuite (`docker rmi`), celles des sessions
-  précédentes (`gaol-bookworm-cross`, `gaol-i386-build`) restent.
+  précédentes (`gaol-bookworm-cross`, `gaol-i386-build`) restent. Le script
+  `todo-notes/gcc12-aarch64/cross-test` fait cette compilation et lance un
+  programme de `tests/` (8 novembre 2026, #299).
 - Pour montrer qu'un test échoue sans la correction, ne remets que les fichiers
   de la correction, par leur nom (`git checkout origin/configure-clean --
   gaol/f.cpp`), jamais `git checkout origin/configure-clean -- .`, qui efface
