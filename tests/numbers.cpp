@@ -1536,35 +1536,6 @@ namespace
       check("operator<< under std::internal: the fill after the 0x of the hexadecimal format of the stream",
             os.str() == expected, [&] { return "\"" + os.str() + "\" rather than \"" + expected + "\""; });
     }
-    // The point interval of a double in the hexadecimal floating-point format
-    // of the stream (GAOL v5, #43 question 8): display_bounds() writes [a] when
-    // the text of the lower bound, rounded downward, and that of the upper one,
-    // rounded upward, are the same, which supposes the C library to round
-    // exactly outward there, where number_to_text() leaves the hexadecimal
-    // format to it. Read back, the text has to hold the double, whatever the
-    // number of digits asked for (a library that limits them and rounds to
-    // nearest would write the same text twice)
-    interval::format(bounds);
-    {
-      const std::string name = "operator<< of interval(a) in the hexadecimal floating-point format";
-      const double doubles[] = { 0.1, -0.1, 1.0 / 3.0, -2.0 / 3.0, 1.0, 1.5, std::nextafter(1.0, 2.0),
-        std::nextafter(1.0, 0.0), 123456789.123456789, 3.0e-100, -2.5e300, 0.0, -0.0,
-        std::numeric_limits<double>::denorm_min(), std::numeric_limits<double>::min(),
-        std::numeric_limits<double>::max(), -std::numeric_limits<double>::max() };
-      for (const int digits : { 0, 1, 2, 3, 6, 12, 13, 20 }) {
-        interval::precision(digits);
-        for (const double a : doubles) {
-          std::ostringstream os;
-          os.flags(fixed | scientific);
-          os << interval(a);
-          const std::string s = os.str();
-          const auto describe = [&] { return hex(interval(a)) + " written " + s + " with " + std::to_string(digits) + " digits"; };
-          const interval back = evaluate(name, [&] { return textToInterval(s); }, describe);
-          check(name + ", read back: holds the double", back.set_contains(a),
-                [&] { return describe() + " read " + hex(back); });
-        }
-      }
-    }
     interval::precision(saved_precision);
     interval::format(saved_format);
   }

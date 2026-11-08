@@ -1170,6 +1170,46 @@ namespace
   }
 
   /*
+    The point interval of a double in the hexadecimal floating-point format of
+    the stream (GAOL v5, #43 question 8): display_bounds() writes [a] when the
+    text of the lower bound, rounded downward, and that of the upper one,
+    rounded upward, are the same, which supposes the C library to round exactly
+    outward there, where number_to_text() leaves the hexadecimal format to it.
+    Read back, the text has to hold the double, whatever the number of digits
+    asked for (a library that limits them and rounds to nearest would write the
+    same text twice). This test is here and not in numbers.cpp, where the
+    stream settings are tested: GCC 12.2 for aarch64 (the job Debian 12 arm64)
+    miscompiles that file, a different function of it after each change
+    (18 checks of the reading of blank lines failed, then a loop never ended in
+    decimal_output()), and process.md (section 11) knows the defect.
+  */
+  void text_of_a_point_interval_in_hexfloat()
+  {
+    const gaol::interval_format::format_t saved_format = interval::format();
+    const std::streamsize saved_precision = interval::precision();
+    interval::format(gaol::interval_format::bounds);
+    const double points[] = { 0.1, -0.1, 1.0 / 3.0, -2.0 / 3.0, 1.0, 1.5, std::nextafter(1.0, 2.0),
+                              std::nextafter(1.0, 0.0), 123456789.123456789, 3.0e-100, -2.5e300, 0.0, -0.0,
+                              std::numeric_limits<double>::denorm_min(), std::numeric_limits<double>::min(),
+                              std::numeric_limits<double>::max(), -std::numeric_limits<double>::max() };
+    for (const int digits : { 0, 1, 2, 3, 6, 12, 13, 20 }) {
+      interval::precision(digits);
+      for (const double a : points) {
+        std::ostringstream os;
+        os.flags(std::ios_base::fixed | std::ios_base::scientific);
+        os << interval(a);
+        const std::string text = os.str();
+        const interval back = textToInterval(text);
+        check("operator<< of interval(a) in the hexadecimal floating-point format, read back: holds the double",
+              back.set_contains(a),
+              [&] { return hex(interval(a)) + " written " + text + " with " + std::to_string(digits) + " digits, read " + hex(back); });
+      }
+    }
+    interval::precision(saved_precision);
+    interval::format(saved_format);
+  }
+
+  /*
     Whether s is an interval literal of the standard that intervalToText()
     writes: [ ], [empty], [m] or [l, u], m, l and u being decimal numbers, or
     inf, with a sign, as in Tables 9.5 and 12.2 (12.11.5), whose letters may be
@@ -1477,6 +1517,7 @@ int main()
   text_with_the_names_of_the_standard();
   exact_text();
   text_of_a_point_interval();
+  text_of_a_point_interval_in_hexfloat();
   text_independent_of_the_output_settings();
 // Commented out: the tests run no thread (GAOL v5)
 // #if GAOL_TESTS_THREADS

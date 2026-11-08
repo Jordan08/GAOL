@@ -686,10 +686,7 @@ point Q), which `numbers` checks there too.
   or inside (with `std::internal`, the fill follows the sign of the midpoint
   in the width and center formats, and that of the shared digits in the
   agreeing format), and after `0x` in the hexadecimal floating-point
-  format of the stream. The point interval of a double written in that format,
-  with 0 to 20 digits, has to read back holding the double: a C library that
-  limits the digits and rounds to nearest would write `[a]` with another number
-  (GAOL v5, #43 question 8). The texts written under the flags of the
+  format of the stream. The texts written under the flags of the
   stream (`showpoint`, `showpos`, `uppercase`, `fixed`, `scientific`), its
   fill and a locale of its own (a decimal colon, digits grouped by three, or
   a decimal comma) have to be those `operator<<` wrote in a stream of its
@@ -932,7 +929,13 @@ point Q), which `numbers` checks there too.
   thread writing intervals meanwhile is commented out, the tests
   running no thread. `textToInterval(intervalToText(x))` has to
   contain x for a point interval x, `interval(0.1)` first: it was
-  the empty set (GAOL v5); and to be x itself for a text `[a]`.
+  the empty set (GAOL v5); and to be x itself for a text `[a]`. The point
+  interval of a double written by `operator<<` in the hexadecimal
+  floating-point format of the stream (`fixed | scientific`), with 0 to 20
+  digits, has to read back holding the double, for 17 doubles: a C library that
+  limits the digits and rounds to nearest would write `[a]` with another number
+  (GAOL v5, #43 question 8; this check is here and not in `numbers`, which GCC
+  12.2 for aarch64 miscompiles after any change).
   `intervalToText(x)` has to be an interval literal of the standard, `[l, r]`,
   `[a]` (`[4]`, `[0]`) or `[empty]`, with the digits of the precision of the
   intervals, whatever the global format and the locale: in each of the five
