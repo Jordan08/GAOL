@@ -121,7 +121,8 @@ namespace {
   std::string cell(const interval& Y, int w)
   {
     std::string s = Y;
-    return s + std::string(s.size() < std::size_t(w) ? w - s.size() : 1, ' ');
+    const std::size_t width = std::size_t(w);
+    return s + std::string(s.size() < width ? width - s.size() : 1, ' ');
   }
 
   bool all_passed = true;
