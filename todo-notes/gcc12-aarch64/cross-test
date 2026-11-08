@@ -1,5 +1,6 @@
 #!/bin/sh
-# cross-test [-t seconds] [-w dir] [-W] <ref> <program>
+# cross-test [-t seconds] [-w dir] <ref> <program>
+# cross-test [-t seconds] [-w dir] -W <program>
 #
 # Builds the test program <program> (tests/<program>.cpp: numbers, ieee1788...)
 # of the git tree in the current directory, at <ref> (HEAD, a branch, a
@@ -16,7 +17,7 @@
 #   -w dir      where the sources and the builds go (default $TMPDIR/gaol-cross,
 #               or /tmp/gaol-cross): keep it out of the tree
 #   -W          test the files of the working tree (git ls-files -co
-#               --exclude-standard) instead of <ref>
+#               --exclude-standard) instead of a <ref>, which is then left out
 #
 # Prints the failed checks and the last lines of the output of the program, and
 # exits with its status. Docker gets 4 cores (--cpus 4), the most process.md
@@ -30,16 +31,20 @@ while getopts t:w:W opt; do
     t) seconds=$OPTARG ;;
     w) work=$OPTARG ;;
     W) tree=1 ;;
-    *) sed -n '2p' "$0" >&2; exit 2 ;;
+    *) sed -n '2,3p' "$0" >&2; exit 2 ;;
   esac
 done
 shift $((OPTIND - 1))
-if [ $# -ne 2 ]; then
-  sed -n '2p' "$0" >&2
+if [ "$tree" = 1 ] && [ $# -eq 1 ]; then
+  ref=working-tree
+  program=$1
+elif [ "$tree" = 0 ] && [ $# -eq 2 ]; then
+  ref=$1
+  program=$2
+else
+  sed -n '2,3p' "$0" >&2
   exit 2
 fi
-ref=$1
-program=$2
 here=$(cd "$(dirname "$0")" && pwd)
 image=gaol-bookworm-cross
 if ! docker image inspect "$image" > /dev/null 2>&1; then
