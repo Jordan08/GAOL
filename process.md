@@ -864,9 +864,9 @@ git ls-remote --heads origin
   le renommage de `midrad` en `centered_form` et le test de `<a, a>` en
   `hexfloat` (PQ : #298 et #299, ouvertes), les textes faux ou périmés du code
   et de la documentation (PS : #297, ouverte) et deux relevés jamais faits
-  (PT), nés de la relecture du 4 novembre (`TODO_DONE.md` 3.25), les
-  signalements à d'autres projets (PH, avec l'accord du mainteneur), puis la
-  version (PJ, qui reprend le
+  (PT, avec un écart de `doc/accuracy.md`), nés de la relecture du 4 novembre
+  (`TODO_DONE.md` 3.25), les signalements à d'autres projets (PH, avec l'accord
+  du mainteneur), puis la version (PJ, qui reprend le
   tableau de Clang 21, le manuel, les textes qui citent macOS 14, la licence des
   cas d'IBEX et de Codac, sur laquelle le mainteneur écrit aux auteurs (*décidé
   le 5 novembre* : #281), le PDF du manuel, que #294 a refait (385 pages) et qui

@@ -58,7 +58,7 @@ restent à faire.
 | PP | Le FIXME de `div_rel` : le cas N1 M en SSE2 | un point | M |
 | PQ | `centered_form` pour `midrad`, et le test de `<a, a>` en `hexfloat` | deux points | S |
 | PS | Les textes faux ou périmés du code et de la documentation | huit points | S |
-| PT | Les relevés et les vérifications jamais faits | deux points | S |
+| PT | Les relevés et les vérifications jamais faits | trois points | S |
 
 ## PH. Les signalements à d'autres projets [attend l'accord du mainteneur]
 
@@ -509,3 +509,13 @@ avertissements à corriger.
    journaux 90 jours par défaut, soit jusqu'à la fin de janvier 2027), noter les
    rapports du N2 dans l'entrée de #219 ; si la CI ne les a plus, écrire qu'ils
    sont perdus, la mesure de PJ.2 les refaisant avec la version.
+3. **Trois outils absents des tableaux d'exactitude** (remarqué en faisant
+   #298, *décidé le 8 novembre* : un point de PT). `inflate(r)`,
+   `width_enclosure()` et `interval::centered_form(m, r)`
+   (`gaol/core/gaol_interval_core.h`) ne figurent ni dans `doc/accuracy.md` ni
+   dans le chapitre 11 du manuel (`manual/v5/chapters/11_accuracy.tex`), alors
+   que `tests/other_functions.cpp` vérifie, avec de l'arithmétique rationnelle
+   exacte, qu'ils rendent le plus petit encadrement de [a − r, b + r], de la
+   largeur exacte et de [m − r, m + r]. Ajouter une ligne pour chacun (avec «
+   GAOL v5 »), renvoyant aux tests que `doc/tests.md` décrit déjà. Aucun
+   changement de code ; à faire après la fusion de #298, qui renomme `midrad`.

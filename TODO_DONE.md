@@ -5209,6 +5209,14 @@ traite la tâche PM en faisant le choix 1 (documenter seulement...) »).
   est fusionnée le jour même à 17 h 21 UTC (`5bd52a6`) : #296 a alors un
   conflit sur le PDF, refait après le merge de la base (7.23). #296 est
   fusionnée à 17 h 29 UTC (`7bc3d05`).
+- **Quatre réponses de plus** (le 8 novembre, quatre propositions chacune) :
+  le relecteur indépendant de #299, « seulement si la CI échoue » ; l'écart de
+  `doc/accuracy.md` (ni `inflate`, ni `width_enclosure`, ni `centered_form`),
+  « un point à PT » (PT.3) ; la confusion possible entre `centered_form` et la
+  forme centrée de l'exemple 4 (`examples/04_centered_form.cpp`, la forme
+  centrée de la littérature), « ne rien faire » ; la CI de #298 et de #299,
+  « surveiller et corriger #299 » (un moniteur interroge GitHub toutes les
+  deux minutes).
 
 ## 4. Les points faits, par lettre
 
