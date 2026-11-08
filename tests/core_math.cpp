@@ -1219,6 +1219,32 @@ namespace
                    + "] rather than [" + show(n) + "]";
             });
     }
+    /* Every power of two that is a double, 2^-1074 to 2^1023, the subnormal
+       ones too (the cases above hold five of them): exp2_is_exact() and
+       log2_is_exact() decide for each one. The double is made from its bits:
+       the exponent field k + 1023 for a normal one, the one bit k + 1074 of
+       the significand for a subnormal one. */
+    for (int k = -1074; k <= 1023; ++k) {
+      const std::uint64_t bits = (k >= -1022) ? static_cast<std::uint64_t>(k + 1023) << 52
+                                              : static_cast<std::uint64_t>(1) << (k + 1074);
+      double p;
+      std::memcpy(&p, &bits, sizeof p);
+      const double n = static_cast<double>(k);
+      const interval e = exp2(interval(n, n)), l = log2(interval(p, p));
+      check("exp2: 2^k is both bounds, for k from -1074 to 1023", !e.is_empty() && e.left() == p && e.right() == p,
+            [&] {
+              return "exp2(" + show(n) + ") = ["
+                   + (e.is_empty() ? std::string("empty") : show(e.left()) + ", " + show(e.right()))
+                   + "] rather than [" + show(p) + "]";
+            });
+      check("log2: k is both bounds of the logarithm of 2^k, for k from -1074 to 1023",
+            !l.is_empty() && l.left() == n && l.right() == n,
+            [&] {
+              return "log2(" + show(p) + ") = ["
+                   + (l.is_empty() ? std::string("empty") : show(l.left()) + ", " + show(l.right()))
+                   + "] rather than [" + show(n) + "]";
+            });
+    }
     // The domains of Table 9.1: the logarithms are defined on (0, +oo) only
     check("log2: empty where no number is positive", log2(interval(-4.0, 0.0)).is_empty(),
           [] { return std::string("log2([-4, 0])"); });
