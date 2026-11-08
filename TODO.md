@@ -15,8 +15,12 @@ ses articles sont répartis dans les trois registres, dont les tâches PS et PT
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à envoyer à un autre projet ni à publier sans l'accord
-du mainteneur. La pull request #295 est ouverte : le texte de `doc/simd.md` et
-du manuel sur les puissances entières de NEON (PS.2), avec le PDF refait.
+du mainteneur. Cinq pull requests sont ouvertes : #295 (le texte de
+`doc/simd.md` et du manuel sur les puissances entières de NEON, PS.2, avec le
+PDF refait), #296 (le cas (b) de 12.12.7, tâche PM : le manuel,
+`gaol_ieee1788.h`, `doc/differences.md` et `doc/compare/itf1788.md`, PDF
+refait), #297 (la tâche PS, ouverte par une autre session), #298 (PQ.1,
+`centered_form`) et #299 (PQ.2, le test de `hexfloat`).
 
 ## Comment lire ce fichier
 
@@ -350,19 +354,17 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    chaque pull request limitée à la CI, #34, #35, #48 et #74 (leurs textes sont
    dans `todo-notes/synthese.md`, l'article `29.md` pour #35) ; le `ChangeLog`
    décrit la bibliothèque, non les corrections des pages de `doc/` (la seconde
-   puce de #140 n'y entre donc pas : `TODO_DONE.md` 3.24). Un quatrième texte
-   manque à `doc/differences.md` (*décidé le 8 novembre*, tâche PM, « documenter
-   seulement » : `TODO_DONE.md` 3.26) : la puce « `[l, u]` with l above u is the
-   empty set » (ligne 1633) finit par « the literal is then the interval from
-   the lower bound of l to the upper bound of u » ; y ajouter que c'est le cas
-   (b) de 12.12.7, un intervalle qui contient l et u, que GAOL v5 rend sans
-   signaler `PossiblyUndefinedOperation`, comme il ne signale aucune exception
-   de la norme (`doc/compare/itf1788.md` le dit déjà). Rien au `ChangeLog`, et
-   aucun changement de code. *À décider* : le manuel (`10_ieee1788.tex`, ligne
-   430) et la fin de `gaol/gaol_ieee1788.h` disent seulement que
-   `textToInterval` rend l'ensemble vide sans rien dire, ce qui ne couvre pas ce
-   cas (b), non vide ; la même phrase dans le manuel demande une pull request
-   `manual*` avec le PDF refait (`TODO_DONE.md` 3.26). [S]
+   puce de #140 n'y entre donc pas : `TODO_DONE.md` 3.24). Le quatrième texte de
+   `doc/differences.md`, le cas (b) de 12.12.7 (*décidé le 8 novembre*, tâche
+   PM, « documenter seulement » : `TODO_DONE.md` 3.26), est fait par #296, avec
+   le manuel et l'en-tête de `gaol_ieee1788.h`, le PDF refait ; rien au
+   `ChangeLog`. *À décider* (#296) : le cas (b) demande un intervalle qui
+   contient l et u, ce que GAOL ne rend pas toujours quand l est au-dessus de u
+   et qu'une borne est calculée (`[1/3, 0x1.5555555555555p-2]` est le point
+   `0x1.5555555555555p-2`, qui ne contient pas 1/3) : en rester à la
+   documentation, ou rendre l'enveloppe des encadrements de l et de u (un
+   changement de `gaol_literal()`, de ses tests et de cinq textes, à étudier
+   pour les bornes qui sont des intervalles). [S]
 
 ## PP. Le FIXME de `div_rel` : le cas N1 M en SSE2 [M]
 
@@ -399,7 +401,10 @@ reste (`TODO_DONE.md` 3.24).
 
 Demandée par le mainteneur le 8 novembre (réponses à la relecture du 4
 novembre : `TODO_DONE.md` 3.24). Deux points indépendants, chacun sa branche et
-sa pull request.
+sa pull request : #298 (le point 1, ouverte le 8 novembre, avec `centeredForm`
+en fonction libre, dont la confirmation est demandée dans sa description) et
+#299 (le point 2 : le test passe avec libstdc++, qui ignore la précision de
+`hexfloat`, donc rien à corriger ici).
 
 1. **`centered_form` à la place de `midrad`** (la remarque de #271), **avant
    l'étiquette de PJ.3** : après v5.0.0, un renommage casserait des programmes.
