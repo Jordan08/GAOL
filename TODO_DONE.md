@@ -6881,8 +6881,8 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   PDF de 385 pages comme la base), #298 (`todo-pq-centered-form`, 1 commit : 38
   lignes de 11 fichiers, la déclaration, `centeredForm(m, r)` de
   `gaol_ieee1788`, ses trois vérifications dans `tests/ieee1788.cpp`) et #299
-  (`todo-pq-hexfloat-point`, un bloc de 136 vérifications dans
-  `tests/numbers.cpp`). Les validations de #298 : CMake SSE2, FPU, Clang 18,
+  (`todo-pq-hexfloat-point`, 2 vérifications de 152 cas chacune, dans
+  `tests/ieee1788.cpp` après le déplacement décrit plus bas). Les validations de #298 : CMake SSE2, FPU, Clang 18,
   `-Werror` avec GCC et Clang 18, autotools, meson, le GAOL installé,
   `manual/check_examples.py` (116 exemples) et le manuel ; #296 (des textes) et
   #299 (un test) n'en demandaient pas autant, leurs descriptions disent ce qui
@@ -6913,9 +6913,12 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   `decimal_output()`, trouvé en affichant le nom de chaque fonction sur stderr).
   Le bloc est donc dans `tests/ieee1788.cpp`, à côté de
   `text_of_a_point_interval()`, et `numbers.cpp` est celui de la base ;
-  `ieee1788` sous GCC 12.2 : 131 730 vérifications, 0 échec. Le mainteneur
-  avait choisi de ne lancer le relecteur de #299 que si la CI échoue : il est
-  lancé, sur la correction. Il a aussi demandé le PDF dans #298 (3.26) :
+  `ieee1788` sous GCC 12.2 : 131 898 vérifications, 0 échec. Le mainteneur
+  avait choisi de ne lancer le relecteur de #299 que si la CI échoue : il a lu
+  la correction (18 appels d'outils) et ses quatre remarques sont reprises : le
+  commentaire sans source, une vérification du texte `0x`, libstdc++ qui
+  ignore la précision (dit dans le commentaire et `doc/tests.md`), et les
+  sous-normaux négatifs (19 doubles). Il a aussi demandé le PDF dans #298 (3.26) :
   `check_branch` admet le PDF avec `CHECK_BRANCH_PDF=1` (`f67843e`, dans #298).
 - Les pièges. (1) `f1d4281` (la règle de `process.md` §3.4), commité en local
   sur `configure-clean` dans l'arbre partagé, était déjà sur GitHub quand la
