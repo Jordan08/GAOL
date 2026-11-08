@@ -3,13 +3,14 @@
 Ce qui reste à faire sur GAOL v5 au commit `634e3e1` de `configure-clean` (le
 dernier commit du code : l'amitié de `gaol_pown()` retirée le 8 novembre, après
 la fusion de #294, le manuel dans le style de la thèse, et après #292, #293,
-#291, #290 et #289), le 8 novembre 2026, en tâches PH, PJ, PM, PP, PQ, PS et PT
-(PA à PG, PI et PL sont faites, PK est close : voir `TODO_DONE.md`). Ce fichier
-et l'issue #179 ont le même contenu. Ce qui est fait et décidé est dans
-`TODO_DONE.md` (l'issue #177 n'est plus mise à jour), ce qui est reporté dans
-`TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142 sont fermées, et
-`TODO_mistral.md` est supprimé, comme `TODO_fin.md` : ses articles sont répartis
-dans les trois registres, dont les tâches PS et PT (`TODO_DONE.md` 3.25).
+#291, #290 et #289), le 8 novembre 2026, en tâches PH, PJ, PP, PQ, PS et PT
+(PA à PG, PI et PL sont faites, PK et PM sont closes sans code : voir
+`TODO_DONE.md`). Ce fichier et l'issue #179 ont le même contenu. Ce qui est
+fait et décidé est dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour),
+ce qui est reporté dans `TODO_AFTER.md` (issue #178). Les anciennes issues #49
+et #142 sont fermées, et `TODO_mistral.md` est supprimé, comme `TODO_fin.md` :
+ses articles sont répartis dans les trois registres, dont les tâches PS et PT
+(`TODO_DONE.md` 3.25).
 
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
@@ -19,7 +20,7 @@ du manuel sur les puissances entières de NEON (PS.2), avec le PDF refait.
 
 ## Comment lire ce fichier
 
-- Une tâche (PH, PJ, PM, PP, PQ, PS, PT) regroupe des points qui touchent le
+- Une tâche (PH, PJ, PP, PQ, PS, PT) regroupe des points qui touchent le
   même code, les mêmes fichiers ou les mêmes builds de validation, pour les
   traiter dans la même session ; chaque point reste une pull request à part
   (process.md : un point, une branche), sauf quand la tâche dit qu'une seule
@@ -29,7 +30,7 @@ du manuel sur les puissances entières de NEON (PS.2), avec le PDF refait.
   fait que ralentir ; le petit et sans dépendance avant le gros ; la version
   (PJ) en dernier. La lettre PR n'est pas une tâche : le sigle dit déjà « pull
   request ».
-- PH, PM, PP, PQ, PS et PT ne dépendent d'aucune autre tâche, sauf quand le
+- PH, PP, PQ, PS et PT ne dépendent d'aucune autre tâche, sauf quand le
   texte le dit (PJ suit PI et les études de PG, qui sont faites ; le point 1 de
   PQ, PS et PT précèdent l'étiquette de PJ.3, et PS précède les mesures de
   PJ.2, qui touchent aussi `doc/simd.md`).
@@ -51,7 +52,6 @@ du manuel sur les puissances entières de NEON (PS.2), avec le PDF refait.
 | --- | --- | --- | --- |
 | PH | Les signalements à d'autres projets | #125 à #138, #175 | accord |
 | PJ | Les mesures et la publication de v5.0.0 | 32 à 34, 71, manuel, CI | M |
-| PM | Le cas (b) de 12.12.7 : les littéraux aux bornes calculées | un point | à décider |
 | PP | Le FIXME de `div_rel` : le cas N1 M en SSE2 | un point | M |
 | PQ | `centered_form` pour `midrad`, et le test de `<a, a>` en `hexfloat` | deux points | S |
 | PS | Les textes faux ou périmés du code et de la documentation | huit points | S |
@@ -350,49 +350,19 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    chaque pull request limitée à la CI, #34, #35, #48 et #74 (leurs textes sont
    dans `todo-notes/synthese.md`, l'article `29.md` pour #35) ; le `ChangeLog`
    décrit la bibliothèque, non les corrections des pages de `doc/` (la seconde
-   puce de #140 n'y entre donc pas : `TODO_DONE.md` 3.24). Le cas des bornes
-   qui sont des résultats d'opérations (12.12.7), que `doc/compare/itf1788.md`
-   dit déjà, est la tâche PM. [S]
-
-## PM. Le cas (b) de IEEE 1788-2015, 12.12.7 [S ou M, à décider]
-
-Demandé par le mainteneur le 4 novembre (« Nouveau point PM »), à la suite du
-rapport d'ITF1788 de #285, **déjà dans la base** : un littéral `[l, u]` dont l
-est au-dessus de u donne l'ensemble vide quand GAOL v5 peut comparer les nombres
-exactement (les nombres écrits en chiffres : le cas de 12.12.7 où
-l'implémentation décide, comme pour `[2, 1]`). Il ne le peut pas quand une borne
-est le résultat d'une opération (1/3, `sqrt(2)`...), un nombre très au-delà des
-doubles, ou pi quand l'autre borne ne l'est pas : le littéral est alors
-l'intervalle de la borne inférieure de l à la borne supérieure de u (commentaire
-de `gaol_literal()`, `gaol/parser/gaol_interval_parser.ypp`). C'est le cas (b)
-de 12.12.7, un intervalle qui contient l et u avec `PossiblyUndefinedOperation`,
-mais GAOL v5 ne signale aucune des exceptions du standard (leur signal est
-reporté : `TODO_AFTER.md`, 1.4). Le cas de la ligne 137 de
-`libieeep1788_class.itl`,
-`[10000000000000001/10000000000000000, 10000000000000002/10000000000000001]`, où
-l est au-dessus de u d'environ 10^-32, passe pour cette raison ;
-`doc/compare/itf1788.md` le dit. *À décider* :
-
-1. **Documenter seulement** (recommandé) : le dire dans `doc/differences.md`,
-   dans la synthèse de PJ (point 7) : GAOL v5 rend l'intervalle sans signaler
-   `PossiblyUndefinedOperation`, comme il ne signale aucune exception du
-   standard. Aucun changement de code, et le cas de la ligne 137 passe encore.
-   [S]
-2. **Comparer exactement ce que le lecteur sait calculer** : les bornes qui sont
-   des opérations rationnelles (+, −, ×, ÷) sur des nombres écrits en chiffres,
-   comme celles de la ligne 137, se comparent en fractions d'entiers de taille
-   arbitraire, comme `gaol_compare_inside()` compare déjà les chiffres seuls ;
-   le littéral de la ligne 137 deviendrait vide, ce qu'ITF1788 n'attend pas : un
-   cas de plus dans la classe « itf-literal » du rapport. Restent `sqrt(2)`,
-   pi... Il faut une arithmétique d'entiers de taille arbitraire dans
-   `gaol/parser/` ; les tests : des quotients de littéraux dont l est au-dessus
-   de u de 10^-32, comparés à `fractions.Fraction` de Python, en échec avant.
-   [M]
-3. **Reporter** : signaler `PossiblyUndefinedOperation` demande le mécanisme
-   d'exceptions reporté dans `TODO_AFTER.md` (1.4, sans les décorations, que
-   12.1.3 en sépare) ; l'y rattacher et ne rien faire d'ici là, sauf le dire
-   dans `doc/differences.md` comme en 1.
-
+   puce de #140 n'y entre donc pas : `TODO_DONE.md` 3.24). Un quatrième texte
+   manque à `doc/differences.md` (*décidé le 8 novembre*, tâche PM, « documenter
+   seulement » : `TODO_DONE.md` 3.26) : la puce « `[l, u]` with l above u is the
+   empty set » (ligne 1633) finit par « the literal is then the interval from
+   the lower bound of l to the upper bound of u » ; y ajouter que c'est le cas
+   (b) de 12.12.7, un intervalle qui contient l et u, que GAOL v5 rend sans
+   signaler `PossiblyUndefinedOperation`, comme il ne signale aucune exception
+   de la norme (`doc/compare/itf1788.md` le dit déjà). Rien au `ChangeLog`, et
+   aucun changement de code. *À décider* : le manuel (`10_ieee1788.tex`, ligne
+   430) et la fin de `gaol/gaol_ieee1788.h` disent seulement que
+   `textToInterval` rend l'ensemble vide sans rien dire, ce qui ne couvre pas ce
+   cas (b), non vide ; la même phrase dans le manuel demande une pull request
+   `manual*` avec le PDF refait (`TODO_DONE.md` 3.26). [S]
 
 ## PP. Le FIXME de `div_rel` : le cas N1 M en SSE2 [M]
 

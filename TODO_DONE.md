@@ -11,8 +11,8 @@ l'ancien `TODO.md` et dans `TODO_mistral.md`, avec les réponses du mainteneur
 des 22 et 23 octobre. #49 et #142 sont fermées le 24 octobre, `TODO_mistral.md`
 est supprimé. Le reste du travail est dans deux autres registres :
 
-- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PH, PJ, PM, PP, PQ,
-  PS et PT ;
+- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PH, PJ, PP, PQ, PS
+  et PT ;
 - `TODO_AFTER.md` (issue #178) : ce qui est reporté, après la version, jusqu'à
   une décision ou jusqu'à du matériel.
 
@@ -43,8 +43,8 @@ est supprimé. Le reste du travail est dans deux autres registres :
   : elle s'applique telle quelle.
 - Le classement par rang et par tiers (A à I) de l'ancien #142 n'existe plus :
   un « rang N » cité dans un texte d'avant le 24 octobre désigne cet ancien
-  classement. Ce qui reste à faire est classé en tâches PH, PJ, PM, PP, PQ, PS
-  et PT dans `TODO.md`.
+  classement. Ce qui reste à faire est classé en tâches PH, PJ, PP, PQ, PS et PT
+  dans `TODO.md`.
 - Ce qui sert encore des rapports des agents est dans
   [todo-notes/synthese.md](todo-notes/synthese.md), leurs originaux au commit
   `16a2f60` (`todo-notes/`, ceux du 30 septembre dans `todo-notes/2026-09-30/`)
@@ -137,11 +137,13 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   (3.17) et #294 pour le manuel, dont le PDF est le point PJ.5 : 3.23) ; PK, un
   `FE_INVALID` de Clang avec les intervalles FPU, est close sans code, non
   reproduite avec les drapeaux de GAOL (3.17), ses boucles de relations étant
-  entrées dans `rounding_direction` par #292 ; il reste les signalements à
-  d'autres projets (PH), le tableau de Clang 21 et la publication (PJ), un cas
-  de 12.12.7 à décider (PM), le FIXME de `div_rel` en SSE2 (PP), deux petits
-  changements décidés le 8 novembre (PQ), les textes faux ou périmés du code et
-  de la documentation (PS) et deux relevés jamais faits (PT) : voir `TODO.md`.
+  entrées dans `rounding_direction` par #292 ; PM, le cas (b) de 12.12.7 (les
+  littéraux aux bornes calculées), est close sans code le 8 novembre : on la
+  documente seulement, dans la synthèse de PJ.7 (3.26) ; il reste les
+  signalements à d'autres projets (PH), le tableau de Clang 21 et la
+  publication (PJ), le FIXME de `div_rel` en SSE2 (PP), deux petits changements
+  décidés le 8 novembre (PQ), les textes faux ou périmés du code et de la
+  documentation (PS) et deux relevés jamais faits (PT) : voir `TODO.md`.
   Le 8 novembre, `TODO_fin.md` (la relecture du 4 novembre) est réparti dans les
   trois registres et supprimé (3.25).
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
@@ -5118,10 +5120,52 @@ PR » dit déjà pull request. `TODO.md`, `TODO_AFTER.md`, `process.md` et
 fichier le cite dans ses comptes rendus datés (3.19, 3.20, 3.24, 7.21) ;
 `CMakeLists.txt` et `doc/building.md` le nomment encore (PS.8).
 
+### 3.26 Le 8 novembre : la tâche PM, close sans code
+
+La tâche PM (« Le cas (b) de IEEE 1788-2015, 12.12.7 : les littéraux aux bornes
+calculées », née le 4 novembre du rapport d'ITF1788 de #285, 3.15 ; « Pas
+maintenant » le même jour, 3.21) a été traitée à la demande du mainteneur («
+traite la tâche PM en faisant le choix 1 (documenter seulement...) »).
+
+- **Décidé le 8 novembre** (le choix 1 des trois que proposait `TODO.md`) :
+  documenter seulement. Aucun changement de code ni de test. Le choix 2
+  (comparer en fractions d'entiers de taille arbitraire les bornes qui sont des
+  opérations rationnelles, ce qui aurait rendu vide le littéral de la ligne 137
+  que ITF1788 attend non vide) n'est pas fait, ni écrit dans `TODO_AFTER.md` ;
+  le choix 3 (signaler l'exception) est l'article 1.4 de `TODO_AFTER.md`, qui
+  garde `PossiblyUndefinedOperation`. Le texte de `doc/differences.md` est dans
+  `TODO.md` PJ.7, pour la synthèse (`process.md` §7.5 : pas de registre dans
+  une branche) ; rien au `ChangeLog`, qui décrit la bibliothèque.
+- **Mesuré** le 8 novembre (`configure-clean` à `eb56df7`, CMake Release, GCC
+  15.2, intervalles SSE2, `gaol_ieee1788::textToInterval()` sur le GAOL
+  installé) : `[10000000000000001/10000000000000000,10000000000000002/
+  10000000000000001]` (ligne 137 de `libieeep1788_class.itl`) rend `[1,
+  0x1.0000000000001p+0]`, comme ITF1788 l'attend ; `[1/3,
+  0.3333333333333333333333333333333]` rend `[0x1.5555555555555p-2,
+  0x1.5555555555556p-2]` et `[sqrt(2), 1.41421356237309504880168872420969807]`
+  rend `[0x1.6a09e667f3bccp+0, 0x1.6a09e667f3bcdp+0]`, deux littéraux dont l est
+  au-dessus de u (de 3,3·10^-32 et de 8,6·10^-36, calculés avec `Fraction` et
+  mpmath) et qui ne sont pas vides, comme celui de la ligne 137 (1,0·10^-32) ;
+  `[2,1]` et `[1.0000000000000002,1.0000000000000001]` rendent l'ensemble vide.
+  C'est la limite de `TODO_AFTER.md` 5.1, inchangée.
+- **La norme** (12.12.7, p. 62 et 63 du texte imprimé) : dans le cas (b) le
+  résultat est un intervalle qui contient l et u, et « the conditions under
+  which case (b) might occur shall be documented » ; le faux positif est «
+  undesirable, but permissible ». Ces conditions sont dites : le commentaire de
+  `gaol_literal()` (`gaol_interval_parser.ypp`), `gaol/parser/gaol_parser.h`, le
+  manuel (`09_io.tex` ligne 273, `11_accuracy.tex` ligne 932), `doc/accuracy.md`
+  (ligne 205) et `doc/differences.md` (ligne 1645) ; seul
+  `doc/compare/itf1788.md` (lignes 219 à 221) dit que c'est le cas (b) et que
+  l'exception n'est pas signalée, d'où la phrase de PJ.7. Le manuel
+  (`10_ieee1788.tex` ligne 430) et la fin de `gaol/gaol_ieee1788.h` disent
+  seulement que `textToInterval` rend « l'ensemble vide sans rien dire » pour
+  une chaîne qui n'est pas un intervalle, ce qui ne couvre pas le cas (b), non
+  vide : à décider (PJ.7).
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
-`TODO.md` (tâches PH, PJ, PM, PP, PQ, PS et PT) ou dans `TODO_AFTER.md` ; leur
+`TODO.md` (tâches PH, PJ, PP, PQ, PS et PT) ou dans `TODO_AFTER.md` ; leur
 partie faite est dite ici ou dans la section 5.
 
 ### Même changement, ou même code
@@ -5700,8 +5744,8 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
 
 Les « Questions ouvertes » des descriptions de #146 à #163, que l'ancien
 `TODO.md` gardait sous « Remarqué par #NN, à trier », avec leur sort. Les
-questions qui restent sans réponse sont dans `TODO.md` (tâches PH, PJ, PM, PP,
-PQ, PS et PT) et `TODO_AFTER.md` ; elles ne sont pas répétées ici.
+questions qui restent sans réponse sont dans `TODO.md` (tâches PH, PJ, PP, PQ,
+PS et PT) et `TODO_AFTER.md` ; elles ne sont pas répétées ici.
 
 ### #146
 
@@ -6749,6 +6793,21 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   laisse une ligne vide quand le renvoi était seul sur la sienne. Une ligne qui
   commence par `#NN` est lue comme un titre par le vérificateur Markdown : ne
   pas couper une phrase devant un numéro de pull request.
+
+### 7.23 Le 8 novembre (la tâche PM)
+
+- Le mainteneur a demandé la tâche PM avec le choix 1 : les registres sont mis à
+  jour directement sur `configure-clean`, sans branche ni pull request
+  (`process.md` §9) : `TODO.md` (la tâche PM sort du fichier et du tableau, son
+  texte entre dans PJ.7), `TODO_AFTER.md` (les renvois à la tâche PM de 1.4, de
+  l'article 4 de la section 1 et de 5.1), ce fichier (1, 3.26 et cette
+  section) et `process.md` (§12). Les issues #178 et #179 sont mises à jour le
+  même jour par `gh api -X PATCH`.
+- La mesure de 3.26 vient d'un petit programme du scratchpad (non gardé), lié au
+  GAOL installé par `pkg-config`, avec les drapeaux de `gaol.pc`.
+- Le dernier commit du code reste `634e3e1` : les en-têtes de `TODO.md` et de
+  `TODO_AFTER.md` ne changent pas de commit. Le push annule la CI de `eb56df7`,
+  un commit de registres sans effet sur le code, encore en file d'attente.
 
 ## 8. Le ménage fait
 

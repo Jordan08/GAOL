@@ -750,7 +750,7 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
 
 ## 12. Où en est le travail (8 novembre 2026)
 
-Le reste à faire est dans `TODO.md` (tâches PH, PJ, PM, PP, PQ, PS et PT) et
+Le reste à faire est dans `TODO.md` (tâches PH, PJ, PP, PQ, PS et PT) et
 l'issue #179 ; ce qui est fait et décidé (pull requests fusionnées, décisions,
 mesures)
 est dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour) ; ce qui est
@@ -828,9 +828,11 @@ git ls-remote --heads origin
   de la thèse du mainteneur, 385 pages, avec son PDF `manual/Manual_GAOLv5.pdf`,
   quelques corrections du code qu'il a trouvées et des pages de `doc/` ; 2.3 et
   3.23), puis, le 8 novembre, le retrait de l'amitié de `gaol_pown()`,
-  directement sur `configure-clean` (`634e3e1`, 3.24) ; l'audit du 13 octobre a
-  vérifié dans `configure-clean` ce qu'annonçaient alors les points A, C à H et
-  J à V.
+  directement sur `configure-clean` (`634e3e1`, 3.24) ; la tâche PM, close sans
+  code le même jour (le cas (b) de 12.12.7, les littéraux aux bornes calculées :
+  on le documente seulement, dans la synthèse de PJ.7, 3.26) ; l'audit du 13
+  octobre a vérifié dans `configure-clean` ce qu'annonçaient alors les points A,
+  C à H et J à V.
 - **En cours** : au 8 novembre, la pull request #295 est ouverte (le texte de
   `doc/simd.md` et du manuel sur les puissances entières de NEON, PS.2, avec le
   PDF du manuel refait ; branche `manual-neon-pown-text`) ;
@@ -851,20 +853,19 @@ git ls-remote --heads origin
   gardé. L'issue #177 (`TODO_DONE.md`) n'est plus mise à jour (*décidé le 28
   octobre*) : GitHub borne le corps d'une issue à 262 144 octets et le texte
   joint en fait plus de 270 000 (voir `TODO_DONE.md` 7.8).
-- **À faire**, dans l'ordre de `TODO.md` : un cas de 12.12.7 à décider (PM : les
-  littéraux aux bornes calculées), le FIXME de `div_rel` en SSE2 (PP), le
-  renommage de `midrad` en `centered_form` et le test de `<a, a>` en `hexfloat`
-  (PQ, le renommage avant l'étiquette), les textes faux ou périmés du code et
-  de la documentation (PS) et deux relevés jamais faits (PT), nés de la
-  relecture du 4 novembre (`TODO_DONE.md` 3.25), les signalements à d'autres
+- **À faire**, dans l'ordre de `TODO.md` : le FIXME de `div_rel` en SSE2 (PP),
+  le renommage de `midrad` en `centered_form` et le test de `<a, a>` en
+  `hexfloat` (PQ, le renommage avant l'étiquette), les textes faux ou périmés
+  du code et de la documentation (PS) et deux relevés jamais faits (PT), nés de
+  la relecture du 4 novembre (`TODO_DONE.md` 3.25), les signalements à d'autres
   projets (PH, avec l'accord du mainteneur), puis la version (PJ, qui reprend le
-  tableau de
-  Clang 21, le manuel, les textes qui citent macOS 14, la licence des cas d'IBEX
-  et de Codac, sur laquelle le mainteneur écrit aux auteurs (*décidé le 5
-  novembre* : #281), le PDF du manuel, que #294 a refait (385 pages) et qui
+  tableau de Clang 21, le manuel, les textes qui citent macOS 14, la licence des
+  cas d'IBEX et de Codac, sur laquelle le mainteneur écrit aux auteurs (*décidé
+  le 5 novembre* : #281), le PDF du manuel, que #294 a refait (385 pages) et qui
   n'est à refaire que si les mesures de PJ changent le manuel (PJ.5), et les
   trois détails qui restent de la synthèse de #283 à #288, faite par #289 le 5
-  novembre : PJ.7). Ce qui est reporté (le 113, le site, les traits pour YalAA
+  novembre, avec la phrase sur le cas (b) de 12.12.7 que PM a décidée : PJ.7).
+  Ce qui est reporté (le 113, le site, les traits pour YalAA
   et VNODE-LP, les décorations, ce qui attend du matériel) est dans
   `TODO_AFTER.md`. Les dépendances entre points sont écrites dans chaque tâche.
   Le mainteneur donne les tâches ou les points un par un (« traite la tâche PF

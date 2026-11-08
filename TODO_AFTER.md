@@ -115,7 +115,7 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
      `std::invalid_argument` pour un texte mal formé (#285) ;
    - `PossiblyUndefinedOperation`, quand le constructeur ne sait pas décider si
      l ≤ u (12.12.7, cas (b)) : les bornes calculées, pi, les nombres loin
-     au-delà des doubles (5.1, et la tâche PM de `TODO.md`) ;
+     au-delà des doubles (5.1, et `TODO_DONE.md` 3.26) ;
    - `InvalidOperand` (14.3) : l'implémentation doit (« shall ») donner un moyen
      de demander ce signal quand un objet ne représente aucun intervalle, ce
      que sont les états bruts que l'interface ne produit pas (`[-0, NaN]`,
@@ -154,7 +154,8 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    le faut et seulement alors, sur deux threads ; aucune autre opération ne lève
    `UndefinedOperation` ni `PossiblyUndefinedOperation`. À mettre à jour avec :
    `doc/compare/itf1788.md`, l'en-tête de `gaol/gaol_ieee1788.h`, l'exemple 15
-   (`examples/15_text_and_ieee1788.cpp`), le manuel et la tâche PM.
+   (`examples/15_text_and_ieee1788.cpp`), le manuel et le texte de
+   `doc/differences.md` sur le cas (b) (`TODO_DONE.md` 3.26).
 5. **PO, les réductions d'IEEE 1788-2015 (12.12.12)** [L] (*demandé par le
    mainteneur le 5 novembre* comme tâche PO de `TODO.md`, « ajoute sum, dot,
    sumSquare et sumAbs dans une tâche PO », puis reporté ici le même jour, « met
@@ -514,9 +515,10 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    `doc/accuracy.md` et `doc/tests.md`). Pi demanderait un encadrement intégré à
    plus de chiffres ; les nombres loin au-delà, la comparaison de leurs
    exposants et de leurs premiers chiffres. Les autres cas (deux nombres entre
-   les mêmes deux doubles) sont départagés exactement depuis #149. La tâche PM
-   de `TODO.md` (à décider) traite les bornes calculées : cet article suit sa
-   décision.
+   les mêmes deux doubles) sont départagés exactement depuis #149. *Décidé le 8
+   novembre* (la tâche PM, `TODO_DONE.md` 3.26) : les bornes calculées ne sont
+   pas comparées plus loin, le cas (b) de 12.12.7 est documenté seulement, et
+   `PossiblyUndefinedOperation` reste à l'article 1.4.
 2. **Trois inversions du banc A/B de `cl`** (#209) : `x / y` et `sqr(x)` sont
    plus lents avec #209 (+54 et +48 ns) et `x - y` plus rapide (−41 ns) dans les
    deux jobs de Visual C++ x64 à direction préservée, sans mécanisme : leurs
