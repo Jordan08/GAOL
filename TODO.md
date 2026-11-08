@@ -3,12 +3,13 @@
 Ce qui reste à faire sur GAOL v5 au commit `634e3e1` de `configure-clean` (le
 dernier commit du code : l'amitié de `gaol_pown()` retirée le 8 novembre, après
 la fusion de #294, le manuel dans le style de la thèse, et après #292, #293,
-#291, #290 et #289), le 8 novembre 2026, en tâches PH, PJ, PM, PP et PQ (PA à
-PG, PI et PL sont faites, PK est close : voir `TODO_DONE.md`). Ce fichier et
-l'issue #179 ont le même contenu. Ce qui est fait et décidé est dans
+#291, #290 et #289), le 8 novembre 2026, en tâches PH, PJ, PM, PP, PQ, PS et PT
+(PA à PG, PI et PL sont faites, PK est close : voir `TODO_DONE.md`). Ce fichier
+et l'issue #179 ont le même contenu. Ce qui est fait et décidé est dans
 `TODO_DONE.md` (l'issue #177 n'est plus mise à jour), ce qui est reporté dans
 `TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142 sont fermées, et
-`TODO_mistral.md` est supprimé.
+`TODO_mistral.md` est supprimé, comme `TODO_fin.md` : ses articles sont répartis
+dans les trois registres, dont les tâches PS et PT (`TODO_DONE.md` 3.25).
 
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
@@ -17,17 +18,20 @@ du mainteneur. Aucune pull request n'est ouverte.
 
 ## Comment lire ce fichier
 
-- Une tâche (PH, PJ, PM, PP, PQ) regroupe des points qui touchent le même code,
-  les mêmes fichiers ou les mêmes builds de validation, pour les traiter dans la
-  même session ; chaque point reste une pull request à part (process.md : un
-  point, une branche), sauf quand la tâche dit qu'une seule suffit. Les tâches
-  sont dans l'ordre conseillé. Critères : la sûreté des bornes d'abord ; ce qui
-  coûte plus cher en attendant (une décision qui bloque) ; ce qui tue un
-  programme ou rompt une promesse écrite avant ce qui ne fait que ralentir ; le
-  petit et sans dépendance avant le gros ; la version (PJ) en dernier.
-- PH, PM, PP et PQ ne dépendent d'aucune autre tâche, sauf quand le texte le
-  dit (PJ suit PI et les études de PG, qui sont faites ; le point 1 de PQ
-  précède l'étiquette de PJ.3).
+- Une tâche (PH, PJ, PM, PP, PQ, PS, PT) regroupe des points qui touchent le
+  même code, les mêmes fichiers ou les mêmes builds de validation, pour les
+  traiter dans la même session ; chaque point reste une pull request à part
+  (process.md : un point, une branche), sauf quand la tâche dit qu'une seule
+  suffit. Les tâches sont dans l'ordre conseillé. Critères : la sûreté des
+  bornes d'abord ; ce qui coûte plus cher en attendant (une décision qui
+  bloque) ; ce qui tue un programme ou rompt une promesse écrite avant ce qui ne
+  fait que ralentir ; le petit et sans dépendance avant le gros ; la version
+  (PJ) en dernier. La lettre PR n'est pas une tâche : le sigle dit déjà « pull
+  request ».
+- PH, PM, PP, PQ, PS et PT ne dépendent d'aucune autre tâche, sauf quand le
+  texte le dit (PJ suit PI et les études de PG, qui sont faites ; le point 1 de
+  PQ, PS et PT précèdent l'étiquette de PJ.3, et PS précède les mesures de
+  PJ.2, qui touchent aussi `doc/simd.md`).
 - Chaque point garde sa lettre et son ancien numéro, par exemple « 79 (AB) » :
   ce sont ceux des pull requests, des issues, des commentaires du code et de
   `TODO_DONE.md` (section 4 pour les lettres, section 5 pour les numéros faits).
@@ -49,6 +53,8 @@ du mainteneur. Aucune pull request n'est ouverte.
 | PM | Le cas (b) de 12.12.7 : les littéraux aux bornes calculées | un point | à décider |
 | PP | Le FIXME de `div_rel` : le cas N1 M en SSE2 | un point | M |
 | PQ | `centered_form` pour `midrad`, et le test de `<a, a>` en `hexfloat` | deux points | S |
+| PS | Les textes faux ou périmés du code et de la documentation | huit points | S |
+| PT | Les relevés et les vérifications jamais faits | trois points | S |
 
 ## PH. Les signalements à d'autres projets [attend l'accord du mainteneur]
 
@@ -58,6 +64,17 @@ pas touchées par ce ménage. **Rien n'est envoyé**, et rien ne l'est sans
 l'accord explicite du mainteneur. Ordre : ce qui est prêt et qui a une valeur
 pour GAOL, puis ce qui demande une réplique à écrire, puis ce qui ne demande
 probablement rien.
+
+Les brouillons sont à remettre à jour avant tout envoi (relecture du 4
+novembre, `TODO_DONE.md` 3.25) : des chemins des issues ouvertes ont changé
+avec #199 et #283 (`gaol/gaol_ldexp.h` est `gaol/math/gaol_ldexp.h`, dans les
+issues #125, #131 et #132 ; `gaol/core_math_port.h` est
+`gaol/math/gaol_core_math_port.h`, dans #127 et #131 ;
+`gaol/gaol_interval_core.cpp` est `gaol/core/gaol_interval_core.cpp`, dans #131,
+#132 et #133 ; `gaol/gaol_interval_neon.cpp` est
+`gaol/core/gaol_interval_neon.cpp`, dans l'issue #198), et l'issue #125 donne
+encore le correctif 3 « à envoyer » (l'amont l'a fait, `0d8b885a`) et le
+correctif 8 « à écrire » (#144 l'a écrit, `3rd/README.md`).
 
 1. **#125 CORE-MATH** : six correctifs de `3rd/README.md` à refaire ou à envoyer
    sur le master du jour, `0b2ae6d1` (importé le 27 octobre). L'amont a fait
@@ -101,8 +118,14 @@ probablement rien.
 2. **#126 GCC** (la comparaison silencieuse rendue signalante par
    l'if-conversion sur ARM 32 bits et POWER9 et par la vectorisation, et le
    miscompilage de GCC 12.2 sur aarch64 dans `tests/numbers.cpp` ; le bogue
-   52258 est de la même famille), **#127 mingw-w64** (`fma()` et `round()` de
-   msvcrt, `fesetexceptflag()` en 32 bits, le `fma()` x87 de mingw-w64 11),
+   52258 est de la même famille ; le brouillon a aussi, depuis le 5 novembre
+   (rien n'est envoyé), le défaut de GCC 14 que #279 a trouvé : `quiet_less(r,
+   l) || r == l` fusionné en un seul `r <= l`, qui signale, sur x86-64, AArch64
+   et RISC-V, avec sa réplique à écrire), **#127 mingw-w64** (`fma()` et
+   `round()` de msvcrt, `fesetexceptflag()` en 32 bits, le `fma()` x87 de
+   mingw-w64 11 ; deux triplets où il se trompe, qui ne sont ni dans le
+   brouillon ni ailleurs dans le dépôt que `todo-notes/synthese.md`, lignes 1346
+   et suivantes, sont à y ajouter),
    **#129 ITF1788** (huit cas dont le résultat attendu n'est pas le plus serré,
    et, depuis le rapport du 4 novembre, deux cas de `textToInterval` où ITF1788
    attend un intervalle pour un littéral `[l, u]` dont l est au-dessus de u, que
@@ -206,7 +229,18 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    `.github/scripts/performance-ab.sh --runs 9 --lines`, quatre builds de la
    même source ; corriger la règle et `doc/simd.md` si le résultat diffère (et
    le manuel, PJ.5). *Décidé le 26 octobre* : avec les mesures de PJ, pas
-   avant ; reste donc la machine à pleine largeur.
+   avant ; reste donc la machine à pleine largeur. Au même commit, les
+   chiffres que la synthèse de PI a gardés en les renvoyant à PJ (#264, #266,
+   #267 et #280) sont à remesurer ou à vérifier dans `doc/differences.md` et
+   le `ChangeLog` : ceux de #150, #218, #210, #209 et #62 (le bloc « The
+   rounding direction and the control registers »), ceux de NEON de #146, qui
+   viennent de trois sources à remesurer ensemble (#146, `doc/three-builds.md`
+   et `doc/compare/performance.md`), et ceux de l'armhf sans
+   `GAOL_PRESERVE_ROUNDING` (`doc/using.md`), que seul le job « Rounding
+   direction preserved, armhf » de `containers.yml` mesure. Lancer enfin
+   `doc/compare/code/run_lines.sh` en entier sur l'i7-1185G7 : sa colonne
+   `gaol5p` (#216) n'a jamais tourné sur x86 (`results_lines.csv` n'a aucune
+   ligne `gaol5p`, `results_lines_arm64.csv` en a 30).
 3. **34** : les recettes FetchContent récupèrent GAOL 4 : `doc/using.md`, le
    manuel et `tests/fetch_content` prennent la branche `master` de
    `Jordan08/GAOL`, et le `git clone` de `doc/building.md` la branche par
@@ -277,7 +311,7 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    ligne 453, `configure.ac` et `meson.build`) sont à revoir avec la version si
    macOS 14 ne doit plus y figurer ; `doc/continuous-integration.md` ligne 54
    (« macOS: 14, 15 and 26 », alors que `macos.yml` a 15, 26 et 27) est à
-   corriger de même (`TODO_fin.md`, 2.3).
+   corriger de même.
 7. **Les restes de la synthèse de #283 à #288, et le texte de #293** : la pull
    request #289 a fait la synthèse (`doc/differences.md`, `ChangeLog`,
    `todo-notes/synthese.md`, fusionnée le 5 novembre) ; #290 a écrit son texte
@@ -294,16 +328,30 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    détails : le commentaire de `CMakeLists.txt` (ligne 1441) cite
    `core_math_log_dint.h`, qui n'existe pas ; la liste de `doc/differences.md`
    (lignes 2387 et 2388) des fichiers que l'archive des sources laisse de côté
-   ne nomme pas `TODO_fin.md` ni `STEP.md`, que `CMakeLists.txt` exclut depuis
-   #291 ;
-   dans `todo-notes/synthese.md`, les notes « Présence : absents » et les
-   renvois « change 6 » et « change 7 » de `3rd/README.md` sont périmés
-   (`TODO_fin.md`, section 7, article 21). *Décidé le 8 novembre*
-   (`TODO_fin.md` 3.3) : quatre lignes de plus au `ChangeLog`, une pour chaque
-   pull request limitée à la CI, #34, #35, #48 et #74 (leurs textes sont dans
-   `todo-notes/synthese.md`). Le cas des bornes qui sont des résultats
-   d'opérations (12.12.7), que `doc/compare/itf1788.md` dit déjà, est
-   la tâche PM. [S]
+   ne nomme pas `STEP.md`, que `CMakeLists.txt` exclut depuis #291 ; dans
+   `todo-notes/synthese.md`, les notes « Présence : absents » et les renvois «
+   change 6 » et « change 7 » de `3rd/README.md` (lignes 447 et 1073, périmés
+   depuis #111) sont périmés, et des points y sont faits sans que le texte le
+   dise (`run_examples.py` devenu `manual/check_examples.py`, le commentaire
+   hexadécimal de la ligne 1233, le `#include <cmath>` de la ligne 1278, la
+   remarque de la ligne 1611). Trois textes manquent aussi à
+   `doc/differences.md` et au `ChangeLog` (relecture du 4 novembre) : celui de
+   #279, dont la pull request n'a pas de section « Pour `doc/differences.md` et
+   `ChangeLog` » (`GAOL_RELATION_BOUNDS_FIRST`, `doc/building.md` ligne 211, et
+   les relations qui testent les bornes avant les ensembles vides, alors que
+   les deux documents ont les réglages voisins) ; celui de #281, dont l'entrée
+   proposée pour le `ChangeLog` (`tests/test_ibex_codac.cpp`,
+   `tests/tools/ibex_codac/`, 3 905 vérifications) n'y est pas ; et celui de
+   #85 : `auto f = &gaol_ieee1788::rootn;` ne compile plus (les surcharges pour
+   tout type entier), `pown` non plus depuis #84, et `doc/differences.md`
+   (ligne 2065) ne le dit que pour `textToInterval` et `exactToInterval`.
+   *Décidé le 8 novembre* : quatre lignes de plus au `ChangeLog`, une pour
+   chaque pull request limitée à la CI, #34, #35, #48 et #74 (leurs textes sont
+   dans `todo-notes/synthese.md`, l'article `29.md` pour #35) ; le `ChangeLog`
+   décrit la bibliothèque, non les corrections des pages de `doc/` (la seconde
+   puce de #140 n'y entre donc pas : `TODO_DONE.md` 3.24). Le cas des bornes
+   qui sont des résultats d'opérations (12.12.7), que `doc/compare/itf1788.md`
+   dit déjà, est la tâche PM. [S]
 
 ## PM. Le cas (b) de IEEE 1788-2015, 12.12.7 [S ou M, à décider]
 
@@ -347,16 +395,17 @@ l est au-dessus de u d'environ 10^-32, passe pour cette raison ;
 
 ## PP. Le FIXME de `div_rel` : le cas N1 M en SSE2 [M]
 
-Demandée par le mainteneur le 8 novembre (réponse à `TODO_fin.md` 2.9 : « créer
-une tâche PP pour faire le FIXME: replace with SSE code », et laisser les deux
-marques pour le moment). Dans `div_rel()` de `gaol/core/gaol_interval_sse.cpp`
-(le `mulRev` d'IEEE 1788-2015 : le quotient de K par J, coupé par I), le cas de
-K strictement négatif (N1) et de J qui contient 0 dans son intérieur (M) est le
-seul du fichier en code scalaire, à la ligne 191 (« FIXME: replace with SSE code
-») : deux intervalles, `tmp(-oo, K.right() / J.right())` et `tmp2(-((-K.right())
-/ J.left()), +oo)`, puis `(I & tmp) | (I & tmp2)`. Les autres cas sont déjà en
-SSE2 (`_mm_div_sd()` et `_mm_div_pd()`) ; NEON et le FPU appellent
-`div_rel_upward()` de `gaol_interval_core.cpp` et n'ont pas ce cas.
+Demandée par le mainteneur le 8 novembre (réponse à la relecture du 4 novembre,
+`TODO_DONE.md` 3.24 : « créer une tâche PP pour faire le FIXME: replace with SSE
+code », et laisser les deux marques pour le moment). Dans `div_rel()` de
+`gaol/core/gaol_interval_sse.cpp` (le `mulRev` d'IEEE 1788-2015 : le quotient de
+K par J, coupé par I), le cas de K strictement négatif (N1) et de J qui contient
+0 dans son intérieur (M) est le seul du fichier en code scalaire, à la ligne 191
+(« FIXME: replace with SSE code ») : deux intervalles, `tmp(-oo, K.right() /
+J.right())` et `tmp2(-((-K.right()) / J.left()), +oo)`, puis `(I & tmp) | (I &
+tmp2)`. Les autres cas sont déjà en SSE2 (`_mm_div_sd()` et `_mm_div_pd()`) ;
+NEON et le FPU appellent `div_rel_upward()` de `gaol_interval_core.cpp` et
+n'ont pas ce cas.
 
 À tenir : les mêmes bornes, bit pour bit, que le code scalaire, la borne
 inférieure de `tmp2` étant arrondie vers le bas alors que le sens est vers le
@@ -373,14 +422,15 @@ du banc (`tests/performance.cpp`) n'a `div_rel` : mesurer d'abord si le cas vaut
 le code, par un petit programme à part, comme pour la racine cubique
 (`TODO_DONE.md` 7.20). La marque « FIXME » de la ligne 191 se retire avec le
 code ; l'autre (« TODO: check existence of stdint.h in configure.in », ligne 25)
-reste (`TODO_fin.md` 2.9).
+reste (`TODO_DONE.md` 3.24).
 
 ## PQ. Deux petits changements décidés le 8 novembre [S]
 
-Demandée par le mainteneur le 8 novembre (réponses à `TODO_fin.md` 3.5 et 4.8).
-Deux points indépendants, chacun sa branche et sa pull request.
+Demandée par le mainteneur le 8 novembre (réponses à la relecture du 4
+novembre : `TODO_DONE.md` 3.24). Deux points indépendants, chacun sa branche et
+sa pull request.
 
-1. **`centered_form` à la place de `midrad`** (`TODO_fin.md` 3.5), **avant
+1. **`centered_form` à la place de `midrad`** (la remarque de #271), **avant
    l'étiquette de PJ.3** : après v5.0.0, un renommage casserait des programmes.
    Garder `midRad(x, m, r)` (`gaol_ieee1788`) et `mid_rad(m, r)` (`gaol`) ;
    renommer le constructeur `interval::midrad(m, r)`
@@ -392,14 +442,14 @@ Deux points indépendants, chacun sa branche et sa pull request.
    interval::centeredForm(m,r) dans gaol_ieee1788 »). `midrad` n'existe pas dans
    GAOL 4 (`master`) : aucun alias à garder. 42 lignes de 12 fichiers le citent
    : `gaol_interval_core.h` (2), `tests/other_functions.cpp` (13), `ChangeLog`
-   (1), `doc/differences.md` (2, dont la puce qui suit celle de `mid_rad()` :
-   `TODO_fin.md` 3.5), `doc/tests.md` (1), `doc/using.md` (3),
-   `examples/examples.md` (2), `examples/tutorial.md` (1) et les chapitres 3, 5,
-   14 et 15 du manuel (17). Le test de `centeredForm` rend les mêmes bornes que
-   `centered_form`. Le PDF du manuel sera plus vieux que sa source : une pull
-   request `manual*` le refait avant la version (PJ.5).
+   (1), `doc/differences.md` (2, dont la puce qui suit celle de `mid_rad()`),
+   `doc/tests.md` (1), `doc/using.md` (3), `examples/examples.md` (2),
+   `examples/tutorial.md` (1) et les chapitres 3, 5, 14 et 15 du manuel (17).
+   Le test de `centeredForm` rend les mêmes bornes que `centered_form`. Le PDF
+   du manuel sera plus vieux que sa source : une pull request `manual*` le
+   refait avant la version (PJ.5).
 
-2. **Le test de `<a, a>` avec `hexfloat`** (`TODO_fin.md` 4.8) : la règle qui
+2. **Le test de `<a, a>` avec `hexfloat`** (#43, question 8) : la règle qui
    écrit `[a]` pour un intervalle réduit à un point (`display_bounds()`,
    `gaol/core/gaol_interval_core.cpp`, ligne 2033) suppose que `bound_to_text()`
    (ligne 1990) arrondit exactement vers l'extérieur, ce que la bibliothèque C
@@ -409,3 +459,94 @@ Deux points indépendants, chacun sa branche et sa pull request.
    tiennent pas en peu de chiffres hexadécimaux), relire le texte, et vérifier
    qu'il contient `a`. S'il échoue, c'est un défaut à corriger dans la même pull
    request, ou à décider avec le mainteneur.
+
+## PS. Les textes faux ou périmés du code et de la documentation [S]
+
+Relevés par la relecture du 4 novembre (`TODO_DONE.md` 3.19), revérifiés dans
+l'arbre le 8 novembre (les numéros de ligne sont ceux de ce jour) ; le
+mainteneur en a fait une tâche le 8 novembre (`TODO_DONE.md` 3.25). Aucun ne
+change le code compilé ni une borne. Une seule pull request suffit
+(`todo-ps-stale-texts`), avant l'étiquette de PJ.3 ; au début, relire chaque
+article contre l'arbre, car un autre travail a pu le régler.
+
+1. **Les en-têtes des intervalles SSE2 et FPU** (#234) :
+   `gaol/core/gaol_interval_sse.h` et `gaol/core/gaol_interval_fpu.h` disent
+   (ligne 21, et ligne 28 dans le message du `#error`) qu'ils « shall be
+   included by gaol_interval_core.cpp only » ; c'est
+   `gaol/core/gaol_interval_core.h` qui les inclut (lignes 1134 à 1138). Le
+   texte de NEON est juste. Remarqué par la relecture de #234, non repris.
+2. **`doc/simd.md` et le commentaire de tête de `gaol_interval_core.cpp`**
+   (#219, #225) : le paragraphe « The integer powers on NEON » (lignes 329 à
+   345) garde l'hypothèse « The two scalar lanes ran side by side already,
+   perhaps… (not checked) » (ligne 343), que #219 a réfutée : Clang rendait
+   scalaires `vcgeq_f64`, `vcleq_f64` et `vceqq_f64` avec `-frounding-math` ;
+   avec `vcageq_f64` et `vcaleq_f64`, `pow(x, 3)` passe de 6,00 à 4,40 ns sur
+   le M2 (`TODO_DONE.md` 2.3, #219) : à réécrire avec ces chiffres. Le
+   commentaire de tête de `gaol/core/gaol_interval_core.cpp` (ligne 34) cite
+   encore « the integer powers with NEON » parmi ce qui pourrait gagner. La
+   même phrase est au chapitre 12 du manuel : elle se corrige dans la pull
+   request `manual*` de PJ.5, ou reste (à décider avec PJ.5, le PDF étant à
+   jour avec sa source). Le paragraphe du quotient NEON (lignes 413 à 426) est
+   déjà réécrit par #294.
+3. **`doc/using.md`, ligne 1574** (#210) : le titre « The control registers of
+   32-bit x86 processors » couvre aussi x86-64 (ligne 1651 : « An x86-64
+   processor has the two units too ») : « of x86 processors » ; une remarque de
+   la relecture de #210, non reprise. Voir si le manuel a le même titre.
+4. **`doc/tests.md`, lignes 199 à 204** (#117, question 6) : la puce
+   d'`elementary` décrit des tests de `exp2`, `exp10`, `log2`, `log10` et de
+   `nth_root(I, q)` pour q < 0 qui sont dans `tests/core_math.cpp`, non dans
+   `tests/elementary.cpp` : la mettre sous `core_math` (ligne 964).
+5. **Deux renvois faux** : `CMakeLists.txt`, ligne 1217, cite « point PG.105 of
+   TODO.md », qui n'a jamais existé (c'est PG.1, le 105 (AH), non adopté :
+   `TODO_AFTER.md` 3.6) ; `tests/ieee1788.cpp`, ligne 1431, cite « (TODO.md,
+   point 7) », un numéro d'avant le 3 octobre (le 7 est aujourd'hui `atanh`),
+   dans le commentaire d'un test à plusieurs threads mis en commentaire
+   (`TODO_AFTER.md` 5.4) : retirer le renvoi, la phrase se suffit.
+6. **Le délai de `numbers` sous macOS** (`dc036c6`, 4 octobre) :
+   `tests/CMakeLists.txt` (lignes 134 à 138) dit que le job macOS x86_64 avec
+   ASan et UBSan donne 400 s à `numbers`, et `.github/workflows/macos.yml`
+   (lignes 424 et 425) lui en donne 600 depuis ce commit direct (`process.md`
+   §5 le dit) : corriger le commentaire.
+7. **L'exemple 15 construit sans exceptions** (#97, *décidé le 6 octobre*) : la
+   phrase d'`examples/examples.md` sur l'exemple 15 construit sans exceptions,
+   renvoyée « à la pull request de synthèse », manque (lignes 304 à 312) ; elle
+   n'est que dans l'en-tête de `examples/15_text_and_ieee1788.cpp` (lignes 12 à
+   18).
+8. **L'archive des sources** : `TODO_fin.md` étant supprimé, la liste
+   `CPACK_SOURCE_IGNORE_FILES` (`CMakeLists.txt`, ligne 1580), son commentaire
+   (ligne 1560) et la phrase de `doc/building.md` (ligne 267) ne le nomment
+   plus ; `STEP.md` reste exclu, comme `process.md` et `todo-notes/`. Vérifier
+   que `package_source` donne les mêmes fichiers (775 au dernier relevé, 3.20)
+   ; la liste de `doc/differences.md` est dans PJ.7.
+
+## PT. Les relevés et les vérifications jamais faits [S]
+
+Trois mesures ou vérifications que des pull requests ont demandées sans que leur
+résultat soit noté nulle part (relecture du 4 novembre, `TODO_DONE.md` 3.19 ;
+tâche demandée le 8 novembre, 3.25). Chacune est indépendante. Aucune ne change
+le code, sauf si la première trouve des avertissements à corriger.
+
+1. **Les avertissements de meson dans `tests/rounding_direction.cpp`.** Le
+   build meson y donnait 6 avertissements (`-Wconversion` et
+   `-Wunused-function`), antérieurs à la branche de la revue 40
+   (`todo-notes/synthese.md`, lignes 1493 à 1497) : `meson.build` (lignes 335 à
+   340) ajoute `-Wconversion` à tout le projet, tests compris, alors que
+   `CMakeLists.txt` (ligne 1203) ne le met qu'aux sources de la bibliothèque et
+   que les jobs `-Werror` passent par CMake avec `-Wall -Wextra`. Non revérifié
+   depuis, aucun job de meson ne compilant en `-Werror`. Construire avec meson
+   (GCC et Clang, tests et exemples) et lire les avertissements de la
+   bibliothèque, de CORE-MATH, des tests et des exemples : les corriger dans
+   une pull request, ou les décider avec le mainteneur ; s'il n'y en a aucun, le
+   dire dans `TODO_DONE.md`.
+2. **Le banc A/B de #219 sur le Neoverse N2 et avec GCC**, « à lire dans le
+   résumé de ses jobs » : `TODO_DONE.md` 2.3 (#219) ne donne que le M2. Relire
+   le résumé des jobs `performance.yml` de la pull request (GitHub garde les
+   journaux 90 jours par défaut, soit jusqu'à la fin de janvier 2027), noter les
+   rapports du N2 dans l'entrée de #219 ; si la CI ne les a plus, écrire qu'ils
+   sont perdus, la mesure de PJ.2 les refaisant avec la version.
+3. **Le micro-banc de `x op= d` de #250** (x vide, d NaN) : demandé à la session
+   MACarm4, son résultat n'est nulle part, et `tests/performance.cpp` n'a pas de
+   ligne `x op= d`. Demander le résultat à la session (ou le refaire sur un Mac
+   M2, par un petit programme à part, comme pour la racine cubique :
+   `TODO_DONE.md` 7.20), et l'écrire dans l'entrée de #250 de 2.3, fait ou non
+   fait.

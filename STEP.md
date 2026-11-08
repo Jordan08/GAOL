@@ -6,7 +6,9 @@ fusionnées, celles qui sont fermées sans fusion (des essais et des mesures
 jetables) et le travail direct sur `configure-clean`, regroupé par sujet. Ce
 fichier classe ; il ne décrit pas. Le détail de chaque pull request (chiffres,
 décisions, relectures, CI) est dans `TODO_DONE.md` (2.3 et 2.4), ce qui reste
-dans `TODO.md`, `TODO_AFTER.md` et `TODO_fin.md`.
+dans `TODO.md` et `TODO_AFTER.md` (`TODO_fin.md`, qui donnait ce que la
+relecture du 4 novembre avait relevé, est réparti dans les trois registres et
+supprimé depuis le 8 novembre : `TODO_DONE.md` 3.25).
 
 ## Comment lire ce fichier
 

@@ -6,8 +6,10 @@ reporté indéfiniment, ce qu'il a écarté en laissant une porte ouverte, et ce
 attend du matériel. Ce fichier et l'issue #178 ont le même contenu. Ce qui reste
 à faire avant la version est dans `TODO.md` (issue #179), ce qui est fait et
 décidé dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour). Ce que la
-relecture du 4 novembre a relevé sans suite dans aucun registre est dans
-`TODO_fin.md`, et ce qui sortait d'ici, fait, dans `TODO_DONE.md` (3.19).
+relecture du 4 novembre a relevé sans suite dans aucun registre est réparti,
+depuis le 8 novembre, entre les trois registres (`TODO_DONE.md` 3.25 ;
+`TODO_fin.md`, qui le contenait, est supprimé), et ce qui sortait d'ici, fait,
+est dans `TODO_DONE.md` (3.19).
 
 Rien de ce fichier n'est à faire avant v5.0.0, ni sans l'accord du mainteneur.
 Après v5.0.0, le développement continue dans `configure-clean` et `master` ne
@@ -117,7 +119,7 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    - `InvalidOperand` (14.3) : l'implémentation doit (« shall ») donner un moyen
      de demander ce signal quand un objet ne représente aucun intervalle, ce
      que sont les états bruts que l'interface ne produit pas (`[-0, NaN]`,
-     `TODO_fin.md`, 5.2 et 5.3) ;
+     5.6 et 5.7) ;
    - sans objet : `IntvlPartOfNaI` (12.12.11) et les signaux facultatifs de 8.1
      et de 11.3 supposent les décorations, et `IntvlOverflow` (7.5.2) n'arrive
      pas, tout type de cette version de la norme contenant la droite entière
@@ -487,6 +489,18 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
     met des branches sur les comparaisons de produits : le noyau y est plus long
     que l'ancien code et y perd peut-être sans rien gagner) : il faut du
     matériel, les temps sous qemu ne sont pas ceux d'un processeur.
+11. **`/GS` de Visual C++ sur le chemin rapide** (#230) : le cookie de sécurité
+    de `/GS` pourrait faire le même tort que le canari de GCC, que #230 a
+    écarté en mettant les écritures de registres hors ligne ;
+    `GAOL_RND_OUT_OF_LINE` est vide pour Visual C++ (`gaol/gaol_fpu.h`, lignes
+    138 à 144, « no measure showed this »), et #230 ne l'a pas étendu sans
+    mesure. À mesurer, avec un Visual C++ qu'on peut désassembler (`dumpbin
+    /disasm`) : `add_bounds()` de `cl` x64, avec et sans `/GS-`. *À reprendre*
+    si le cookie y est sur le chemin rapide.
+12. **Ce que #200 n'a pas vérifié** : les chemins que la configuration décide,
+    sur une machine sans FMA ni AVX-512 (l'i7-1185G7 a les deux : la CI couvre
+    le reste), et les cibles `make coverage` et `ninja gaol-coverage` sous macOS
+    et sous Windows.
 
 ## 5. Une limite connue, documentée, sans décision de la lever
 
@@ -543,60 +557,63 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    *Décidé le 5 novembre* : inscrire la limite ici, sans changer le code, les
    tests ni `doc/using.md`.
 
-Les articles 5 à 18 viennent de `TODO_fin.md` (section 5), *décidé le 8
-novembre* : toutes ses limites connues sont inscrites ici, en une fois, sans
-rien changer au code (sauf son article 6, fait tout de suite : `TODO_DONE.md`
-3.24). Le numéro de `TODO_fin.md` est donné à la fin de chaque article.
+Les articles 5 à 19 viennent de la relecture du 4 novembre (`TODO_DONE.md`
+3.19), *décidé le 8 novembre* (3.24 et 3.25) : toutes les limites connues
+qu'elle a relevées sont inscrites ici, en une fois, sans rien changer au code
+(sauf une, fait tout de suite : `gaol_pown()` n'est plus amie d'`interval`,
+3.24).
 
 5. **`move_to_side()` reste quadratique en la précision** (#71) :
    `move_to_side()` (`gaol/core/gaol_interval_core.cpp`, ligne 1666) fait
-   jusqu'à quatre appels à `compare_number_with_double()`. (`TODO_fin.md` 5.1)
+   jusqu'à quatre appels à `compare_number_with_double()`.
 6. **`pow(y, -1)` sur un état brut** (#245). Il échouait déjà sur la base pour
    la voie stockée `[-0, NaN]` ; noté en fait dans `TODO_DONE.md` 2.3 (#245),
    sans test (`tests/other_functions.cpp` ne teste pas `pow`, qui passe par
    `gaol_pown()`, `gaol/gaol_interval.h`). États bruts, hors de l'interface.
-   (`TODO_fin.md` 5.2)
 7. **766 drapeaux d'invalidité avec GCC 12** (#248), tous avec un NaN
    signalant, les mêmes dans la bibliothèque de base : non étudiés ; l'outil
-   `maxdiff_neon` n'est pas dans le dépôt. États bruts. (`TODO_fin.md` 5.3)
+   `maxdiff_neon` n'est pas dans le dépôt. États bruts.
 8. **Un code mort possible dans `get_rounding()`** (#218) : la branche
    générique, le repli SSE sans `<fenv.h>` (`gaol/gaol_fpu.h`, lignes 822 à 826,
    841 et 856), où ne passe qu'un compilateur x86 autre que GCC, Clang et Visual
-   C++ (lignes 180 à 186 et 231 à 236). (`TODO_fin.md` 5.4)
+   C++ (lignes 180 à 186 et 231 à 236).
 9. **meson ancien** (#95) : avant meson 0.63, GAOL en sous-projet prend la
    norme C++ du projet parent ; de meson 0.53 à 0.56 avec Visual C++,
    `enable-debug` ne donne pas `/Zi`. `doc/using.md` (lignes 205 à 225) et
-   `doc/building.md` (ligne 204) n'en disent rien. (`TODO_fin.md` 5.5)
+   `doc/building.md` (ligne 204) n'en disent rien.
 10. **Une clause d'`atanh()` sans test** (#92) : retirer `J.right() == -1.0`
     (`gaol/core/gaol_interval_core.cpp`, ligne 5817) ne fait échouer aucun
     test ; `todo-notes/synthese.md` (lignes 1191 à 1196) propose de la joindre à
-    R.7, qui est fait. (`TODO_fin.md` 5.7)
+    R.7, qui est fait.
 11. **Les marques de GAOL 4 dans `gaol/float/`** : 12 `TODO` et `FIXME`
     (`gaol_interval2f.cpp` 8, `gaol_intervalf.cpp` 4) et `tests/interval2f.cpp`
     1 ; les intervalles de floats sont désactivés (`GAOL_FLOAT_INTERVALS`) et
-    dits inachevés (`doc/differences.md`, lignes 2290 à 2308). (`TODO_fin.md`
-    5.8)
+    dits inachevés (`doc/differences.md`, lignes 2290 à 2308).
 12. **Le générateur Xcode avec GAOL inclus par `add_subdirectory`** dans un
-    projet parent universel (#205) : non vérifié. (`TODO_fin.md` 5.9)
+    projet parent universel (#205) : non vérifié.
 13. **Les sections à part de Visual C++ arm64** (#262) : « si l'un en montre, la
     même technique s'applique » aux autres noyaux
     (`gaol/core/gaol_interval_neon.cpp`, lignes 134 à 144). *À rouvrir* si un
-    autre noyau montre le même bruit de placement. (`TODO_fin.md` 5.10)
+    autre noyau montre le même bruit de placement.
 14. **Le temps du banc A/B** (#166) : « on peut retirer des entrées (les trois
     clang-cl, par exemple) si le temps pèse »
     (`.github/workflows/performance.yml`, lignes 105 à 107). *À rouvrir* si le
-    job devient trop long. (`TODO_fin.md` 5.11)
+    job devient trop long.
 15. **LTO** : CORE-MATH est construit sans LTO par autotools (`-fno-lto`,
     `configure.ac` ligne 737 et suivantes, `3rd/Makefile.am` ligne 50) et par
     CMake (`INTERPROCEDURAL_OPTIMIZATION OFF`, `CMakeLists.txt` ligne 1264), et
     `meson.build` n'en dit rien ; l'audit des trois builds ne compare pas ce
     réglage (#201). Aucun job avec `-flto` : *décidé le 23 octobre*
-    (`TODO_DONE.md` 3.6). (`TODO_fin.md` 5.12)
+    (`TODO_DONE.md` 3.6).
 16. **Les macros qui appellent les gabarits** (#210) : aucun test ne voit si
-    elles le font, c'est une propriété de vitesse. (`TODO_fin.md` 5.13)
+    elles le font, c'est une propriété de vitesse.
 17. **`cos(x)` 6 ns plus lent** (#100), de 55,6 à 61,6 ns, sans enquête ; sans
     doute le placement du code, traité depuis par #232. La remesure de PJ.2 dira
-    s'il en reste quelque chose. (`TODO_fin.md` 5.14)
+    s'il en reste quelque chose.
 18. **Des noms de MinGW qui couvrent Cygwin** (#167) : `mingw_gcc`
     (`meson.build`, ligne 681) et `gaol_mingw_gcc` (`configure.ac`, ligne 640).
-    Cosmétique. (`TODO_fin.md` 5.15)
+    Cosmétique.
+19. **Le coût de `round_ties_to_even()` hors ligne** (#283) : la fonction est
+    définie dans `gaol/core/gaol_interval_core.cpp` depuis #283, et le coût de
+    l'appel n'est mesuré par aucun banc de `tests/performance.cpp`. Mineur.
+    *À rouvrir* si un programme réel l'appelle dans une boucle chaude.

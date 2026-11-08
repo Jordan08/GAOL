@@ -750,8 +750,9 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
 
 ## 12. Où en est le travail (8 novembre 2026)
 
-Le reste à faire est dans `TODO.md` (tâches PH, PJ, PM, PP et PQ) et l'issue
-#179 ; ce qui est fait et décidé (pull requests fusionnées, décisions, mesures)
+Le reste à faire est dans `TODO.md` (tâches PH, PJ, PM, PP, PQ, PS et PT) et
+l'issue #179 ; ce qui est fait et décidé (pull requests fusionnées, décisions,
+mesures)
 est dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour) ; ce qui est
 reporté est dans `TODO_AFTER.md` et l'issue #178. L'état qui suit est daté : les
 commandes ci-dessous, les trois fichiers et les issues font foi. Avant de
@@ -819,8 +820,9 @@ git ls-remote --heads origin
   sans code (un `FE_INVALID` de Clang avec les intervalles FPU, que les drapeaux
   de GAOL suppriment : `TODO_DONE.md` 3.17) ; puis, le 5 novembre, #289 (la
   synthèse de #283 à #288, avec le PDF du manuel), #290 (`overlap` de la norme),
-  #291 (la tâche PN : `TODO_fin.md` et `STEP.md`) et #293 (`d * x` calculé comme
-  `x * d`), décrites dans `TODO_DONE.md` (2.3 et 3.21), puis #292 (les boucles
+  #291 (la tâche PN : `TODO_fin.md`, réparti et supprimé le 8 novembre, et
+  `STEP.md`) et #293 (`d * x` calculé comme `x * d`), décrites dans
+  `TODO_DONE.md` (2.3, 3.21 et 3.25), puis #292 (les boucles
   de relations de la tâche PK dans `rounding_direction`, 3.17), puis, le 7
   novembre, #294 (hors des points : le manuel de GAOL v5 réécrit dans le style
   de la thèse du mainteneur, 385 pages, avec son PDF `manual/Manual_GAOLv5.pdf`,
@@ -850,8 +852,11 @@ git ls-remote --heads origin
 - **À faire**, dans l'ordre de `TODO.md` : un cas de 12.12.7 à décider (PM : les
   littéraux aux bornes calculées), le FIXME de `div_rel` en SSE2 (PP), le
   renommage de `midrad` en `centered_form` et le test de `<a, a>` en `hexfloat`
-  (PQ, le renommage avant l'étiquette), les signalements à d'autres projets (PH,
-  avec l'accord du mainteneur), puis la version (PJ, qui reprend le tableau de
+  (PQ, le renommage avant l'étiquette), les textes faux ou périmés du code et
+  de la documentation (PS) et trois relevés jamais faits (PT), nés de la
+  relecture du 4 novembre (`TODO_DONE.md` 3.25), les signalements à d'autres
+  projets (PH, avec l'accord du mainteneur), puis la version (PJ, qui reprend le
+  tableau de
   Clang 21, le manuel, les textes qui citent macOS 14, la licence des cas d'IBEX
   et de Codac, sur laquelle le mainteneur écrit aux auteurs (*décidé le 5
   novembre* : #281), le PDF du manuel, que #294 a refait (385 pages) et qui
