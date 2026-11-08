@@ -7,10 +7,11 @@ propose une pull request, et comment on tient les registres à jour une fois la
 pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
-en cours, ce qui reste) est au §12. Dernière mise à jour : 7 novembre 2026, au
-commit `1e23540` de `configure-clean` (la fusion de #294, après celles de
-#217 à #220, #222 à #225, #227 à #232, #234 à #239, #242, #245, #248 à #250,
-#262 à #276 et #279 à #285, de la branche `std-exceptions`, de #287 à #293).
+en cours, ce qui reste) est au §12. Dernière mise à jour : 8 novembre 2026, au
+commit `634e3e1` de `configure-clean` (un commit direct après la fusion de #294,
+après celles de #217 à #220, #222 à #225, #227 à #232, #234 à #239, #242, #245,
+#248 à #250, #262 à #276 et #279 à #285, de la branche `std-exceptions`, de #287
+à #293).
 
 ## 1. Le contexte
 
@@ -747,16 +748,16 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   `bash -e`, un `! grep ...` au milieu d'une étape ne la fait pas échouer (seule
   la dernière commande donne son statut) : écris un `if` explicite.
 
-## 12. Où en est le travail (7 novembre 2026)
+## 12. Où en est le travail (8 novembre 2026)
 
-Le reste à faire est dans `TODO.md` (tâches PH, PJ et PM) et l'issue #179 ;
-ce qui est fait et décidé (pull requests fusionnées, décisions, mesures) est
-dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour) ; ce qui est reporté
-est dans `TODO_AFTER.md` et l'issue #178. L'état qui suit est daté : les
+Le reste à faire est dans `TODO.md` (tâches PH, PJ, PM, PP et PQ) et l'issue
+#179 ; ce qui est fait et décidé (pull requests fusionnées, décisions, mesures)
+est dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour) ; ce qui est
+reporté est dans `TODO_AFTER.md` et l'issue #178. L'état qui suit est daté : les
 commandes ci-dessous, les trois fichiers et les issues font foi. Avant de
-commencer un point, regarde les pull requests ouvertes et les branches
-distantes : une autre session peut déjà le traiter (le 19 octobre, la même mise
-à jour de `TODO.md` a été faite deux fois).
+commencer un point, regarde les pull requests ouvertes et les branches distantes
+: une autre session peut déjà le traiter (le 19 octobre, la même mise à jour de
+`TODO.md` a été faite deux fois).
 
 ```sh
 gh api 'repos/Jordan08/GAOL/pulls?state=open' --jq '.[] | "#\(.number) \(.head.ref) \(.title)"'
@@ -813,28 +814,30 @@ git ls-remote --heads origin
   décrites dans `TODO_DONE.md` (2.3 et 3.15), puis #287 (hors des points :
   `pownRev` pour p ≤ 0 par `nth_root_rel(J, p, I)` de `gaol_core`), fusionnée le
   même jour à 19 h 12 UTC, décrite dans `TODO_DONE.md` (2.3 et 3.16), puis #288
-  (hors des points : `compoundm1` de la norme IEEE 1788-2015), fusionnée à
-  19 h 19 UTC, décrite dans `TODO_DONE.md` (2.3 et 3.18) ; puis la tâche PK,
-  close sans code (un `FE_INVALID` de Clang avec les intervalles FPU, que les
-  drapeaux de GAOL suppriment : `TODO_DONE.md` 3.17) ; puis, le 5 novembre, #289
-  (la synthèse de #283 à #288, avec le PDF du manuel), #290 (`overlap` de la
-  norme), #291 (la tâche PN : `TODO_fin.md` et `STEP.md`) et #293 (`d * x`
-  calculé comme `x * d`), décrites dans `TODO_DONE.md` (2.3 et 3.21), puis #292
-  (les boucles de relations de la tâche PK dans `rounding_direction`, 3.17),
-  puis, le 7 novembre, #294 (hors des points : le manuel de GAOL v5 réécrit
-  dans le style de la thèse du mainteneur, 385 pages, avec son PDF
-  `manual/Manual_GAOLv5.pdf`, quelques corrections du code qu'il a trouvées et
-  des pages de `doc/` ; 2.3 et 3.23) ; l'audit du 13 octobre a vérifié dans
-  `configure-clean` ce qu'annonçaient alors les points A, C à H et J à V.
-- **En cours** : au 7 novembre, aucune pull request n'est ouverte ;
-  `configure-clean` est au commit `1e23540` (la fusion de #294, après celle de
-  #292, `130acea`, et celles de #293, #291, #290 et #289, les registres de #288,
-  `6ed4441`, et la fusion de #288, `61a432b`). Ses branches sur GitHub sont
-  `configure-clean`, `MATH-CORE` et `master`, avec des pull requests jetables
-  fermées, gardées (`experiment-pg*`, voir `TODO_DONE.md` 8.1), et deux
-  branches, fusionnée ou fermée, que le mainteneur supprime
-  (`todo-pg-relations-order` et `todo-pg-xle-exfirst`) ; celles de #289
-  (`synthese-283-288`), de #290 (`ieee1788-overlap`), de #291
+  (hors des points : `compoundm1` de la norme IEEE 1788-2015), fusionnée à 19 h
+  19 UTC, décrite dans `TODO_DONE.md` (2.3 et 3.18) ; puis la tâche PK, close
+  sans code (un `FE_INVALID` de Clang avec les intervalles FPU, que les drapeaux
+  de GAOL suppriment : `TODO_DONE.md` 3.17) ; puis, le 5 novembre, #289 (la
+  synthèse de #283 à #288, avec le PDF du manuel), #290 (`overlap` de la norme),
+  #291 (la tâche PN : `TODO_fin.md` et `STEP.md`) et #293 (`d * x` calculé comme
+  `x * d`), décrites dans `TODO_DONE.md` (2.3 et 3.21), puis #292 (les boucles
+  de relations de la tâche PK dans `rounding_direction`, 3.17), puis, le 7
+  novembre, #294 (hors des points : le manuel de GAOL v5 réécrit dans le style
+  de la thèse du mainteneur, 385 pages, avec son PDF `manual/Manual_GAOLv5.pdf`,
+  quelques corrections du code qu'il a trouvées et des pages de `doc/` ; 2.3 et
+  3.23), puis, le 8 novembre, le retrait de l'amitié de `gaol_pown()`,
+  directement sur `configure-clean` (`634e3e1`, 3.24) ; l'audit du 13 octobre a
+  vérifié dans `configure-clean` ce qu'annonçaient alors les points A, C à H et
+  J à V.
+- **En cours** : au 8 novembre, aucune pull request n'est ouverte ;
+  `configure-clean` est au commit `634e3e1` (un commit direct, après la fusion
+  de #294, `1e23540`, après celle de #292, `130acea`, et celles de #293, #291,
+  #290 et #289, les registres de #288, `6ed4441`, et la fusion de #288,
+  `61a432b`). Ses branches sur GitHub sont `configure-clean`, `MATH-CORE` et
+  `master`, avec des pull requests jetables fermées, gardées (`experiment-pg*`,
+  voir `TODO_DONE.md` 8.1), et deux branches, fusionnée ou fermée, que le
+  mainteneur supprime (`todo-pg-relations-order` et `todo-pg-xle-exfirst`) ;
+  celles de #289 (`synthese-283-288`), de #290 (`ieee1788-overlap`), de #291
   (`todo-pn-trie-fin`), de #293 (`todo-pn-d-times-x`), de #292
   (`relation-loops`) et de #294 (`manual-thesis-style`) sont supprimées à leur
   fusion, comme celles de #287 (`pown-rel`) et de #288 (`compoundm1`), et
@@ -845,15 +848,17 @@ git ls-remote --heads origin
   octobre*) : GitHub borne le corps d'une issue à 262 144 octets et le texte
   joint en fait plus de 270 000 (voir `TODO_DONE.md` 7.8).
 - **À faire**, dans l'ordre de `TODO.md` : un cas de 12.12.7 à décider (PM : les
-  littéraux aux bornes calculées), les signalements à d'autres projets (PH, avec
-  l'accord du mainteneur), puis la version (PJ, qui reprend le tableau de Clang
-  21, le manuel, les textes qui citent macOS 14, la licence des cas d'IBEX et de
-  Codac, sur laquelle le mainteneur écrit aux auteurs (*décidé le 5 novembre* :
-  #281), le PDF du manuel, que #294 a refait (385 pages) et qui n'est à refaire
-  que si les mesures de PJ changent le manuel (PJ.5), et les trois détails qui
-  restent de la synthèse de #283 à #288, faite par #289 le 5 novembre : PJ.7).
-  Ce qui est reporté (le 113, le site, les traits pour YalAA et VNODE-LP, les
-  décorations, ce qui attend du matériel) est dans `TODO_AFTER.md`. Les
-  dépendances entre points sont écrites dans chaque tâche. Le mainteneur donne
-  les tâches ou les points un par un (« traite la tâche PF », « traite le point
-  129 ») : ne commence pas le suivant sans lui.
+  littéraux aux bornes calculées), le FIXME de `div_rel` en SSE2 (PP), le
+  renommage de `midrad` en `centered_form` et le test de `<a, a>` en `hexfloat`
+  (PQ, le renommage avant l'étiquette), les signalements à d'autres projets (PH,
+  avec l'accord du mainteneur), puis la version (PJ, qui reprend le tableau de
+  Clang 21, le manuel, les textes qui citent macOS 14, la licence des cas d'IBEX
+  et de Codac, sur laquelle le mainteneur écrit aux auteurs (*décidé le 5
+  novembre* : #281), le PDF du manuel, que #294 a refait (385 pages) et qui
+  n'est à refaire que si les mesures de PJ changent le manuel (PJ.5), et les
+  trois détails qui restent de la synthèse de #283 à #288, faite par #289 le 5
+  novembre : PJ.7). Ce qui est reporté (le 113, le site, les traits pour YalAA
+  et VNODE-LP, les décorations, ce qui attend du matériel) est dans
+  `TODO_AFTER.md`. Les dépendances entre points sont écrites dans chaque tâche.
+  Le mainteneur donne les tâches ou les points un par un (« traite la tâche PF
+  », « traite le point 129 ») : ne commence pas le suivant sans lui.

@@ -1,6 +1,6 @@
 # Reporté
 
-Tout ce qui est reporté sur GAOL v5 au 7 novembre 2026 (commit `1e23540` de
+Tout ce qui est reporté sur GAOL v5 au 8 novembre 2026 (commit `634e3e1` de
 `configure-clean`) : ce qui attend la version v5.0.0, ce que le mainteneur a
 reporté indéfiniment, ce qu'il a écarté en laissant une porte ouverte, et ce qui
 attend du matériel. Ce fichier et l'issue #178 ont le même contenu. Ce qui reste
@@ -542,3 +542,61 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    vérifié une fois, aucun test de `ctest` ni job de la CI ne le revérifie.
    *Décidé le 5 novembre* : inscrire la limite ici, sans changer le code, les
    tests ni `doc/using.md`.
+
+Les articles 5 à 18 viennent de `TODO_fin.md` (section 5), *décidé le 8
+novembre* : toutes ses limites connues sont inscrites ici, en une fois, sans
+rien changer au code (sauf son article 6, fait tout de suite : `TODO_DONE.md`
+3.24). Le numéro de `TODO_fin.md` est donné à la fin de chaque article.
+
+5. **`move_to_side()` reste quadratique en la précision** (#71) :
+   `move_to_side()` (`gaol/core/gaol_interval_core.cpp`, ligne 1666) fait
+   jusqu'à quatre appels à `compare_number_with_double()`. (`TODO_fin.md` 5.1)
+6. **`pow(y, -1)` sur un état brut** (#245). Il échouait déjà sur la base pour
+   la voie stockée `[-0, NaN]` ; noté en fait dans `TODO_DONE.md` 2.3 (#245),
+   sans test (`tests/other_functions.cpp` ne teste pas `pow`, qui passe par
+   `gaol_pown()`, `gaol/gaol_interval.h`). États bruts, hors de l'interface.
+   (`TODO_fin.md` 5.2)
+7. **766 drapeaux d'invalidité avec GCC 12** (#248), tous avec un NaN
+   signalant, les mêmes dans la bibliothèque de base : non étudiés ; l'outil
+   `maxdiff_neon` n'est pas dans le dépôt. États bruts. (`TODO_fin.md` 5.3)
+8. **Un code mort possible dans `get_rounding()`** (#218) : la branche
+   générique, le repli SSE sans `<fenv.h>` (`gaol/gaol_fpu.h`, lignes 822 à 826,
+   841 et 856), où ne passe qu'un compilateur x86 autre que GCC, Clang et Visual
+   C++ (lignes 180 à 186 et 231 à 236). (`TODO_fin.md` 5.4)
+9. **meson ancien** (#95) : avant meson 0.63, GAOL en sous-projet prend la
+   norme C++ du projet parent ; de meson 0.53 à 0.56 avec Visual C++,
+   `enable-debug` ne donne pas `/Zi`. `doc/using.md` (lignes 205 à 225) et
+   `doc/building.md` (ligne 204) n'en disent rien. (`TODO_fin.md` 5.5)
+10. **Une clause d'`atanh()` sans test** (#92) : retirer `J.right() == -1.0`
+    (`gaol/core/gaol_interval_core.cpp`, ligne 5817) ne fait échouer aucun
+    test ; `todo-notes/synthese.md` (lignes 1191 à 1196) propose de la joindre à
+    R.7, qui est fait. (`TODO_fin.md` 5.7)
+11. **Les marques de GAOL 4 dans `gaol/float/`** : 12 `TODO` et `FIXME`
+    (`gaol_interval2f.cpp` 8, `gaol_intervalf.cpp` 4) et `tests/interval2f.cpp`
+    1 ; les intervalles de floats sont désactivés (`GAOL_FLOAT_INTERVALS`) et
+    dits inachevés (`doc/differences.md`, lignes 2290 à 2308). (`TODO_fin.md`
+    5.8)
+12. **Le générateur Xcode avec GAOL inclus par `add_subdirectory`** dans un
+    projet parent universel (#205) : non vérifié. (`TODO_fin.md` 5.9)
+13. **Les sections à part de Visual C++ arm64** (#262) : « si l'un en montre, la
+    même technique s'applique » aux autres noyaux
+    (`gaol/core/gaol_interval_neon.cpp`, lignes 134 à 144). *À rouvrir* si un
+    autre noyau montre le même bruit de placement. (`TODO_fin.md` 5.10)
+14. **Le temps du banc A/B** (#166) : « on peut retirer des entrées (les trois
+    clang-cl, par exemple) si le temps pèse »
+    (`.github/workflows/performance.yml`, lignes 105 à 107). *À rouvrir* si le
+    job devient trop long. (`TODO_fin.md` 5.11)
+15. **LTO** : CORE-MATH est construit sans LTO par autotools (`-fno-lto`,
+    `configure.ac` ligne 737 et suivantes, `3rd/Makefile.am` ligne 50) et par
+    CMake (`INTERPROCEDURAL_OPTIMIZATION OFF`, `CMakeLists.txt` ligne 1264), et
+    `meson.build` n'en dit rien ; l'audit des trois builds ne compare pas ce
+    réglage (#201). Aucun job avec `-flto` : *décidé le 23 octobre*
+    (`TODO_DONE.md` 3.6). (`TODO_fin.md` 5.12)
+16. **Les macros qui appellent les gabarits** (#210) : aucun test ne voit si
+    elles le font, c'est une propriété de vitesse. (`TODO_fin.md` 5.13)
+17. **`cos(x)` 6 ns plus lent** (#100), de 55,6 à 61,6 ns, sans enquête ; sans
+    doute le placement du code, traité depuis par #232. La remesure de PJ.2 dira
+    s'il en reste quelque chose. (`TODO_fin.md` 5.14)
+18. **Des noms de MinGW qui couvrent Cygwin** (#167) : `mingw_gcc`
+    (`meson.build`, ligne 681) et `gaol_mingw_gcc` (`configure.ac`, ligne 640).
+    Cosmétique. (`TODO_fin.md` 5.15)

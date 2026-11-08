@@ -1,13 +1,14 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `1e23540` de `configure-clean` (la
-fusion de #294, le manuel dans le style de la thèse, après #292, #293, #291,
-#290 et #289), le 7 novembre 2026, en tâches PH, PJ et PM (PA à PG, PI et PL
-sont faites, PK est close : voir `TODO_DONE.md`). Ce fichier et l'issue #179 ont
-le même contenu. Ce qui est fait et décidé est dans `TODO_DONE.md` (l'issue #177
-n'est plus mise à jour), ce qui est reporté dans `TODO_AFTER.md` (issue #178).
-Les anciennes issues #49 et #142 sont fermées, et `TODO_mistral.md` est
-supprimé.
+Ce qui reste à faire sur GAOL v5 au commit `634e3e1` de `configure-clean` (le
+dernier commit du code : l'amitié de `gaol_pown()` retirée le 8 novembre, après
+la fusion de #294, le manuel dans le style de la thèse, et après #292, #293,
+#291, #290 et #289), le 8 novembre 2026, en tâches PH, PJ, PM, PP et PQ (PA à
+PG, PI et PL sont faites, PK est close : voir `TODO_DONE.md`). Ce fichier et
+l'issue #179 ont le même contenu. Ce qui est fait et décidé est dans
+`TODO_DONE.md` (l'issue #177 n'est plus mise à jour), ce qui est reporté dans
+`TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142 sont fermées, et
+`TODO_mistral.md` est supprimé.
 
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
@@ -16,16 +17,17 @@ du mainteneur. Aucune pull request n'est ouverte.
 
 ## Comment lire ce fichier
 
-- Une tâche (PH, PJ, PM) regroupe des points qui touchent le même code, les
-  mêmes fichiers ou les mêmes builds de validation, pour les traiter dans la
+- Une tâche (PH, PJ, PM, PP, PQ) regroupe des points qui touchent le même code,
+  les mêmes fichiers ou les mêmes builds de validation, pour les traiter dans la
   même session ; chaque point reste une pull request à part (process.md : un
   point, une branche), sauf quand la tâche dit qu'une seule suffit. Les tâches
   sont dans l'ordre conseillé. Critères : la sûreté des bornes d'abord ; ce qui
   coûte plus cher en attendant (une décision qui bloque) ; ce qui tue un
   programme ou rompt une promesse écrite avant ce qui ne fait que ralentir ; le
   petit et sans dépendance avant le gros ; la version (PJ) en dernier.
-- PH et PM ne dépendent d'aucune autre tâche, sauf quand le texte le dit (PJ
-  suit PI et les études de PG, qui sont faites).
+- PH, PM, PP et PQ ne dépendent d'aucune autre tâche, sauf quand le texte le
+  dit (PJ suit PI et les études de PG, qui sont faites ; le point 1 de PQ
+  précède l'étiquette de PJ.3).
 - Chaque point garde sa lettre et son ancien numéro, par exemple « 79 (AB) » :
   ce sont ceux des pull requests, des issues, des commentaires du code et de
   `TODO_DONE.md` (section 4 pour les lettres, section 5 pour les numéros faits).
@@ -45,6 +47,8 @@ du mainteneur. Aucune pull request n'est ouverte.
 | PH | Les signalements à d'autres projets | #125 à #138, #175 | accord |
 | PJ | Les mesures et la publication de v5.0.0 | 32 à 34, 71, manuel, CI | M |
 | PM | Le cas (b) de 12.12.7 : les littéraux aux bornes calculées | un point | à décider |
+| PP | Le FIXME de `div_rel` : le cas N1 M en SSE2 | un point | M |
+| PQ | `centered_form` pour `midrad`, et le test de `<a, a>` en `hexfloat` | deux points | S |
 
 ## PH. Les signalements à d'autres projets [attend l'accord du mainteneur]
 
@@ -215,25 +219,26 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    et `195e4a2` : une vraie fusion, sans différence de contenu), puis étiqueter
    `v5.0.0` ; les recettes et le test gardent `master` jusqu'à l'étiquette, puis
    la citent. *Vérifié le 8 novembre* par l'API de GitHub (lecture seule) :
-   `master`, la branche par défaut, n'a pas de protection classique, mais le
-   jeu de règles « master verif » (18 octobre, actif, sans contournement, même
-   pour le mainteneur) interdit de la supprimer et d'y pousser autre chose
-   qu'une avance rapide, et exige une pull request (0 approbation, fusion,
-   squash et rebase permis) ; aucun contrôle d'état n'est exigé, donc aucun job
-   de macOS 14 ; rien ne vise `MATH-CORE`, `configure-clean` ni les étiquettes
-   (les quatre `v4.*` existent). La fusion de `MATH-CORE` dans `master` passe
-   donc par une pull request, non par un push direct. Après v5.0.0, le
-   développement continue dans `configure-clean`, et `master` ne reçoit que les
-   versions. Les commits à ligne de crédit (123) restent (*décidé le 19
-   octobre*). La licence est dite (LGPL pour GAOL, MIT pour CORE-MATH) dans la
-   section « Licences » de `README.md` et dans le manuel : fait. Pour #281, les cas de `tests/test_ibex_codac.cpp` viennent de tests
-   d'IBEX et de Codac sous LGPL v3 (leur `COPYING.LESSER`), alors que le
-   `README.md` dit GAOL sous LGPL v2 (`COPYING.LIB`) ; l'en-tête du fichier
-   donne les copyrights et les deux licences sans conclure (*décidé le 2
-   novembre* : l'en-tête seul). *Décidé le 5 novembre* : le mainteneur écrit aux
-   auteurs d'IBEX et de Codac (Gilles Chabert, Simon Rohou) pour leur accord, et
-   l'en-tête seul reste en attendant. *À décider* à leur réponse : une ligne
-   dans la section « Licences » du `README.md`, voire un `COPYING.LESSER`.
+   `master`, la branche par défaut, n'a pas de protection classique, mais le jeu
+   de règles « master verif » (18 octobre, actif, sans contournement, même pour
+   le mainteneur) interdit de la supprimer et d'y pousser autre chose qu'une
+   avance rapide, et exige une pull request (0 approbation, fusion, squash et
+   rebase permis) ; aucun contrôle d'état n'est exigé, donc aucun job de macOS
+   14 ; rien ne vise `MATH-CORE`, `configure-clean` ni les étiquettes (les
+   quatre `v4.*` existent). La fusion de `MATH-CORE` dans `master` passe donc
+   par une pull request, non par un push direct. Après v5.0.0, le développement
+   continue dans `configure-clean`, et `master` ne reçoit que les versions. Les
+   commits à ligne de crédit (123) restent (*décidé le 19 octobre*). La licence
+   est dite (LGPL pour GAOL, MIT pour CORE-MATH) dans la section « Licences » de
+   `README.md` et dans le manuel : fait. Pour #281, les cas de
+   `tests/test_ibex_codac.cpp` viennent de tests d'IBEX et de Codac sous LGPL v3
+   (leur `COPYING.LESSER`), alors que le `README.md` dit GAOL sous LGPL v2
+   (`COPYING.LIB`) ; l'en-tête du fichier donne les copyrights et les deux
+   licences sans conclure (*décidé le 2 novembre* : l'en-tête seul). *Décidé le
+   5 novembre* : le mainteneur écrit aux auteurs d'IBEX et de Codac (Gilles
+   Chabert, Simon Rohou) pour leur accord, et l'en-tête seul reste en attendant.
+   *À décider* à leur réponse : une ligne dans la section « Licences » du
+   `README.md`, voire un `COPYING.LESSER`.
 4. **71 et #128** : annoncer GAOL v5.0.0 à Frédéric Goualard, l'auteur de GAOL,
    une fois l'étiquette posée : pas d'annonce publique, et pas de GitHub
    Release, l'étiquette suffisant (*décidé le 3 octobre*). Le message est écrit,
@@ -293,8 +298,11 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    #291 ;
    dans `todo-notes/synthese.md`, les notes « Présence : absents » et les
    renvois « change 6 » et « change 7 » de `3rd/README.md` sont périmés
-   (`TODO_fin.md`, section 7, article 21). Le cas des bornes qui sont des
-   résultats d'opérations (12.12.7), que `doc/compare/itf1788.md` dit déjà, est
+   (`TODO_fin.md`, section 7, article 21). *Décidé le 8 novembre*
+   (`TODO_fin.md` 3.3) : quatre lignes de plus au `ChangeLog`, une pour chaque
+   pull request limitée à la CI, #34, #35, #48 et #74 (leurs textes sont dans
+   `todo-notes/synthese.md`). Le cas des bornes qui sont des résultats
+   d'opérations (12.12.7), que `doc/compare/itf1788.md` dit déjà, est
    la tâche PM. [S]
 
 ## PM. Le cas (b) de IEEE 1788-2015, 12.12.7 [S ou M, à décider]
@@ -335,3 +343,69 @@ l est au-dessus de u d'environ 10^-32, passe pour cette raison ;
    d'exceptions reporté dans `TODO_AFTER.md` (1.4, sans les décorations, que
    12.1.3 en sépare) ; l'y rattacher et ne rien faire d'ici là, sauf le dire
    dans `doc/differences.md` comme en 1.
+
+
+## PP. Le FIXME de `div_rel` : le cas N1 M en SSE2 [M]
+
+Demandée par le mainteneur le 8 novembre (réponse à `TODO_fin.md` 2.9 : « créer
+une tâche PP pour faire le FIXME: replace with SSE code », et laisser les deux
+marques pour le moment). Dans `div_rel()` de `gaol/core/gaol_interval_sse.cpp`
+(le `mulRev` d'IEEE 1788-2015 : le quotient de K par J, coupé par I), le cas de
+K strictement négatif (N1) et de J qui contient 0 dans son intérieur (M) est le
+seul du fichier en code scalaire, à la ligne 191 (« FIXME: replace with SSE code
+») : deux intervalles, `tmp(-oo, K.right() / J.right())` et `tmp2(-((-K.right())
+/ J.left()), +oo)`, puis `(I & tmp) | (I & tmp2)`. Les autres cas sont déjà en
+SSE2 (`_mm_div_sd()` et `_mm_div_pd()`) ; NEON et le FPU appellent
+`div_rel_upward()` de `gaol_interval_core.cpp` et n'ont pas ce cas.
+
+À tenir : les mêmes bornes, bit pour bit, que le code scalaire, la borne
+inférieure de `tmp2` étant arrondie vers le bas alors que le sens est vers le
+haut (le commentaire du code) ; aucune exception de plus (le commentaire du
+point D.24, plus haut : `_mm_div_sd()` divise la moitié basse seule, car la
+moitié jetée par `_mm_div_pd()` divisait une borne infinie par une infinie ou
+une finie par zéro) ; les sens d'arrondi et `GAOL_PRESERVE_ROUNDING`, les grands
+et les petits opérandes étant déjà pris par `div_rel_upward()` plus haut. Les
+tests qui appellent `div_rel` sont dans `tests/reverse.cpp`,
+`reverse_mappings.cpp`, `rounding_direction.cpp`, `other_functions.cpp`,
+`misc.cpp`, `elementary.cpp` et `test_ibex_codac.cpp` : le nouveau code a un
+test qui échoue sur un mutant de chaque opérande (`process.md` §5). Aucune ligne
+du banc (`tests/performance.cpp`) n'a `div_rel` : mesurer d'abord si le cas vaut
+le code, par un petit programme à part, comme pour la racine cubique
+(`TODO_DONE.md` 7.20). La marque « FIXME » de la ligne 191 se retire avec le
+code ; l'autre (« TODO: check existence of stdint.h in configure.in », ligne 25)
+reste (`TODO_fin.md` 2.9).
+
+## PQ. Deux petits changements décidés le 8 novembre [S]
+
+Demandée par le mainteneur le 8 novembre (réponses à `TODO_fin.md` 3.5 et 4.8).
+Deux points indépendants, chacun sa branche et sa pull request.
+
+1. **`centered_form` à la place de `midrad`** (`TODO_fin.md` 3.5), **avant
+   l'étiquette de PJ.3** : après v5.0.0, un renommage casserait des programmes.
+   Garder `midRad(x, m, r)` (`gaol_ieee1788`) et `mid_rad(m, r)` (`gaol`) ;
+   renommer le constructeur `interval::midrad(m, r)`
+   (`gaol/core/gaol_interval_core.h`, lignes 875 et 2752) en
+   `interval::centered_form(m, r)` dans `gaol`, et le donner à `gaol_ieee1788`
+   sous le nom `centeredForm(m, r)` : une fonction libre rendant un `interval`,
+   comme les autres de ce fichier, qui n'a aujourd'hui aucun constructeur de ce
+   genre (à confirmer au début de la tâche, la réponse du mainteneur disant «
+   interval::centeredForm(m,r) dans gaol_ieee1788 »). `midrad` n'existe pas dans
+   GAOL 4 (`master`) : aucun alias à garder. 42 lignes de 12 fichiers le citent
+   : `gaol_interval_core.h` (2), `tests/other_functions.cpp` (13), `ChangeLog`
+   (1), `doc/differences.md` (2, dont la puce qui suit celle de `mid_rad()` :
+   `TODO_fin.md` 3.5), `doc/tests.md` (1), `doc/using.md` (3),
+   `examples/examples.md` (2), `examples/tutorial.md` (1) et les chapitres 3, 5,
+   14 et 15 du manuel (17). Le test de `centeredForm` rend les mêmes bornes que
+   `centered_form`. Le PDF du manuel sera plus vieux que sa source : une pull
+   request `manual*` le refait avant la version (PJ.5).
+
+2. **Le test de `<a, a>` avec `hexfloat`** (`TODO_fin.md` 4.8) : la règle qui
+   écrit `[a]` pour un intervalle réduit à un point (`display_bounds()`,
+   `gaol/core/gaol_interval_core.cpp`, ligne 2033) suppose que `bound_to_text()`
+   (ligne 1990) arrondit exactement vers l'extérieur, ce que la bibliothèque C
+   ne promet pas avec l'option `hexfloat` ; le seul test (`tests/numbers.cpp`,
+   lignes 1521 à 1538) porte sur le format centre. Un test d'une ligne : écrire
+   `interval(a)` en `hexfloat` pour quelques `a` (dont des valeurs qui ne
+   tiennent pas en peu de chiffres hexadécimaux), relire le texte, et vérifier
+   qu'il contient `a`. S'il échoue, c'est un défaut à corriger dans la même pull
+   request, ou à décider avec le mainteneur.

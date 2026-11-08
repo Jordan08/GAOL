@@ -20,9 +20,9 @@ un autre projet sans l'accord du mainteneur.
 
 - Chaque article dit ce qui est resté, d'où il vient (la pull request, le commit
   ou le registre), ce qu'en dit le code au commit `1e0f368` (`fichier:ligne`),
-  et une destination proposée : une tâche de `TODO.md` (PH, PJ ou PM), une
-  section de `TODO_AFTER.md`, ou une ligne de `TODO_DONE.md` quand c'est fait ou
-  décidé sans être noté.
+  et une destination proposée : une tâche de `TODO.md` (PH, PJ, PM, PP ou PQ),
+  une section de `TODO_AFTER.md`, ou une ligne de `TODO_DONE.md` quand c'est
+  fait ou décidé sans être noté.
 - Les numéros de ligne des registres changent à chaque mise à jour : ils sont
   donnés par section et par citation.
 - La section 1 est faite de questions au mainteneur : rien ne s'y fait avant sa
@@ -149,7 +149,10 @@ compilé.
 9. **Deux marques de GAOL 4 dans le code compilé.**
    `gaol/core/gaol_interval_sse.cpp:25` (« TODO: check existence of stdint.h in
    configure.in ») et `:191` (« FIXME: replace with SSE code », dans
-   `div_rel`) : à retirer ou à expliquer.
+   `div_rel`) : à retirer ou à expliquer. *Décidé le 8 novembre* : laisser les
+   deux marques pour le moment ; le FIXME de la ligne 191 (le cas N1 M de
+   `div_rel`, en code scalaire) devient la tâche PP de `TODO.md` : l'écrire en
+   SSE2.
 10. **L'exemple 15 sans exceptions (#97, décidé le 6 octobre).** La phrase
     d'`examples/examples.md` sur l'exemple 15 construit sans exceptions,
     renvoyée « à la pull request de synthèse », manque
@@ -185,6 +188,10 @@ elle n'est pas encore fusionnée.
    (`todo-notes/synthese.md:332`) manque au `ChangeLog`, comme #34, #48 et #74,
    eux aussi limités à la CI. À décider : une ligne, ou une règle écrite dans
    `TODO_DONE.md` (les changements de la seule CI restent hors du `ChangeLog`).
+   *Décidé le 8 novembre* : une ligne du `ChangeLog` pour chaque pull request
+   limitée à la CI (#34, #35, #48 et #74), dans la synthèse de PJ.7 ; les
+   textes proposés sont dans `todo-notes/synthese.md` (articles `29.md` pour
+   #35, et ceux de #34, #48 et #74).
 4. **#85 : l'adresse de `rootn` et de `pown`.**
    `auto f = &gaol_ieee1788::rootn;` ne compile plus (les surcharges pour tout
    type entier), `pown` non plus depuis #84 ; `doc/differences.md:2004-2006` ne
@@ -192,10 +199,17 @@ elle n'est pas encore fusionnée.
 5. **#271 : `midrad` et `mid_rad`.** La puce de `interval::midrad(m, r)` suit
    celle de `mid_rad()` avec un nom presque identique
    (`doc/differences.md:1477-1485`) ; la remarque de #271 n'a pas de réponse.
+   *Décidé le 8 novembre* : garder `midRad` (`gaol_ieee1788`) et `mid_rad`
+   (`gaol`) ; renommer le constructeur `interval::midrad(m, r)` en
+   `interval::centered_form(m, r)` dans `gaol` et `centeredForm(m, r)` dans
+   `gaol_ieee1788` : le point 1 de la tâche PQ de `TODO.md` (`midrad` n'existe
+   pas dans GAOL 4, `master` : aucun alias à garder).
 6. **#140 : le `ChangeLog` abrégé.** `ChangeLog:1041-1046` reprend la première
    puce de #140 en abrégé, et la seconde (les textes que le code contredisait :
    `doc/accuracy.md`, `doc/tests.md`, `doc/building.md`...) n'y est pas ;
-   peut-être voulu par la synthèse (à confirmer).
+   peut-être voulu par la synthèse (à confirmer). *Décidé le 8 novembre* :
+   voulu, le `ChangeLog` décrit la bibliothèque, non les corrections des pages
+   de `doc/`.
 
 ## 4. Des mesures et des vérifications jamais faites
 
@@ -214,6 +228,7 @@ elle n'est pas encore fusionnée.
 4. **La phase rapide de `compoundm1` (#288)** ne change que le temps : aucun
    test ne la voit, et `tests/performance.cpp` n'a pas de ligne `compoundm1`.
    Destination : une ligne du banc (PJ.2), ou la limite dans l'entrée de #288.
+   *Décidé le 8 novembre* : sans objet.
 5. **`round_ties_to_even()` hors ligne depuis #283**
    (`gaol/core/gaol_interval_core.cpp:6686`) : le coût de l'appel n'est mesuré
    par aucun banc. Mineur.
@@ -232,7 +247,8 @@ elle n'est pas encore fusionnée.
    bibliothèque C ne promet pas avec l'option `hexfloat` ; jamais vérifié.
    Code : `gaol/core/gaol_interval_core.cpp:1894-1896` ; le seul test
    (`tests/numbers.cpp:1521-1538`) porte sur le format centre. Destination : un
-   test d'une ligne, ou une limite dans `TODO_AFTER.md` §5.
+   test d'une ligne, ou une limite dans `TODO_AFTER.md` §5. *Décidé le 8
+   novembre* : un test d'une ligne, le point 2 de la tâche PQ de `TODO.md`.
 9. **Les avertissements `-Wconversion` de meson** sur
    `tests/rounding_direction.cpp` (`todo-notes/synthese.md:1482-1486`,
    `meson.build:335-339`) ne sont pas revérifiés : aucun job meson ne compile en
@@ -248,6 +264,10 @@ elle n'est pas encore fusionnée.
 
 Des candidats pour `TODO_AFTER.md` §5 (une limite connue, documentée, sans
 décision de la lever), ou pour « sans objet » dans `TODO_DONE.md`.
+*Décidé le 8 novembre* : tous vont dans `TODO_AFTER.md` §5, en une fois, sauf le
+6, traité tout de suite. Fait : les articles 1 à 5 et 7 à 15 de cette section
+sont les articles 5 à 18 de `TODO_AFTER.md` §5, dans l'ordre (1 à 5 : 5 à 9 ; 7
+à 15 : 10 à 18).
 
 1. **`move_to_side()` reste quadratique en la précision (#71)** :
    `gaol/core/gaol_interval_core.cpp:1666` fait jusqu'à quatre appels à
@@ -269,7 +289,10 @@ décision de la lever), ou pour « sans objet » dans `TODO_DONE.md`.
    ne donne pas `/Zi`. `doc/using.md:205-225` et `doc/building.md:204` n'en
    disent rien.
 6. **`gaol_pown()` est encore amie d'`interval`** sans en avoir besoin (#117,
-   question 5 ; `gaol/core/gaol_interval_core.h:879`).
+   question 5 ; `gaol/core/gaol_interval_core.h:879`). *Décidé et fait le 8
+   novembre*, directement sur `configure-clean`, sans branche ni pull request
+   (`634e3e1`) : l'amitié est retirée, `gaol_pown()` n'appelant que `sqr()` et
+   `pown_checked()`.
 7. **Une clause d'`atanh()` sans test (#92)** : retirer `J.right() == -1.0`
    (`gaol/core/gaol_interval_core.cpp:5797`) ne fait échouer aucun test ;
    `todo-notes/synthese.md:1191-1196` propose de la joindre à R.7, qui est fait.
@@ -402,7 +425,8 @@ change. La liste reste, comme mémoire.
     connu et documenté) ; #160 n'a pas sa question 2 (le seuil de 1,5, fait par
     #217) ; et #163 range parmi ses décisions « pas d'entrée
     `GAOL_PRESERVE_ROUNDING` pour autotools et meson sous MSYS2 », qui se lit
-    mieux comme un constat à confirmer.
+    mieux comme un constat à confirmer. Confirmé le 8 novembre : voulu, la
+    phrase reste.
 13. **`TODO_DONE.md` §1** : la liste des branches sur GitHub omet
     `todo-pg-relations-order` (#279, fusionnée, `7b54dbe`) et
     `todo-pg-xle-exfirst` (#246, fermée, `f08a53b`), encore là, que `process.md`
