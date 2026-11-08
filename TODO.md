@@ -1,29 +1,28 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `634e3e1` de `configure-clean` (le
-dernier commit du code : l'amitié de `gaol_pown()` retirée le 8 novembre, après
-la fusion de #294, le manuel dans le style de la thèse, et après #292, #293,
-#291, #290 et #289), le 8 novembre 2026, en tâches PH, PJ, PP, PQ, PS et PT
-(PA à PG, PI et PL sont faites, PK et PM sont closes sans code : voir
-`TODO_DONE.md`). Ce fichier et l'issue #179 ont le même contenu. Ce qui est
-fait et décidé est dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour),
-ce qui est reporté dans `TODO_AFTER.md` (issue #178). Les anciennes issues #49
-et #142 sont fermées, et `TODO_mistral.md` est supprimé, comme `TODO_fin.md` :
-ses articles sont répartis dans les trois registres, dont les tâches PS et PT
+Ce qui reste à faire sur GAOL v5 au commit `5392bbc` de `configure-clean` (la
+fusion de #297, la tâche PS, le 8 novembre 2026 à 19 h 38 UTC, après celles
+de #296 et de #295, de #294, le manuel dans le style de la thèse, et de #292,
+de #293, #291, #290 et #289), en tâches PH, PJ, PP, PQ et PT (PA à PG, PI, PL
+et PS sont faites, PK et PM sont closes sans code : voir `TODO_DONE.md`). Ce
+fichier et l'issue #179 ont le même contenu. Ce qui est fait et décidé est dans
+`TODO_DONE.md` (l'issue #177 n'est plus mise à jour), ce qui est reporté dans
+`TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142 sont fermées, et
+`TODO_mistral.md` est supprimé, comme `TODO_fin.md` : ses articles sont répartis
+dans les trois registres, dont les tâches PS (faite par #297) et PT
 (`TODO_DONE.md` 3.25).
 
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à envoyer à un autre projet ni à publier sans l'accord
-du mainteneur. Trois pull requests sont ouvertes : #297 (la tâche PS, ouverte
-par une autre session), #298 (PQ.1, `centered_form`) et #299 (PQ.2, le test de
-`hexfloat`). #295 (le texte de `doc/simd.md` et du manuel sur les puissances
-entières de NEON, PS.2) est fusionnée à 17 h 21 UTC (`5bd52a6`) : ses registres
-restent à faire.
+du mainteneur. Deux pull requests sont ouvertes : #298 (PQ.1, `centered_form`)
+et #299 (PQ.2, le test de `hexfloat`). #295 (PS.2) et #297 (la tâche PS) sont
+fusionnées le 8 novembre, à 17 h 21 UTC (`5bd52a6`) et à 19 h 38 UTC
+(`5392bbc`) ; leurs registres sont faits.
 
 ## Comment lire ce fichier
 
-- Une tâche (PH, PJ, PP, PQ, PS, PT) regroupe des points qui touchent le
+- Une tâche (PH, PJ, PP, PQ, PT) regroupe des points qui touchent le
   même code, les mêmes fichiers ou les mêmes builds de validation, pour les
   traiter dans la même session ; chaque point reste une pull request à part
   (process.md : un point, une branche), sauf quand la tâche dit qu'une seule
@@ -33,10 +32,9 @@ restent à faire.
   fait que ralentir ; le petit et sans dépendance avant le gros ; la version
   (PJ) en dernier. La lettre PR n'est pas une tâche : le sigle dit déjà « pull
   request ».
-- PH, PP, PQ, PS et PT ne dépendent d'aucune autre tâche, sauf quand le
-  texte le dit (PJ suit PI et les études de PG, qui sont faites ; le point 1 de
-  PQ, PS et PT précèdent l'étiquette de PJ.3, et PS précède les mesures de
-  PJ.2, qui touchent aussi `doc/simd.md`).
+- PH, PP, PQ et PT ne dépendent d'aucune autre tâche, sauf quand le texte le
+  dit (PJ suit PI, PS et les études de PG, qui sont faites ; le point 1 de PQ
+  et PT précèdent l'étiquette de PJ.3).
 - Chaque point garde sa lettre et son ancien numéro, par exemple « 79 (AB) » :
   ce sont ceux des pull requests, des issues, des commentaires du code et de
   `TODO_DONE.md` (section 4 pour les lettres, section 5 pour les numéros faits).
@@ -57,7 +55,6 @@ restent à faire.
 | PJ | Les mesures et la publication de v5.0.0 | 32 à 34, 71, manuel, CI | M |
 | PP | Le FIXME de `div_rel` : le cas N1 M en SSE2 | un point | M |
 | PQ | `centered_form` pour `midrad`, et le test de `<a, a>` en `hexfloat` | deux points | S |
-| PS | Les textes faux ou périmés du code et de la documentation | huit points | S |
 | PT | Les relevés et les vérifications jamais faits | trois points | S |
 
 ## PH. Les signalements à d'autres projets [attend l'accord du mainteneur]
@@ -430,60 +427,6 @@ lui-même le hexfloat arrondi vers l'extérieur, dans la même pull request).
    tiennent pas en peu de chiffres hexadécimaux), relire le texte, et vérifier
    qu'il contient `a`. S'il échoue, c'est un défaut à corriger dans la même pull
    request, ou à décider avec le mainteneur.
-
-## PS. Les textes faux ou périmés du code et de la documentation [S]
-
-Relevés par la relecture du 4 novembre (`TODO_DONE.md` 3.19), revérifiés dans
-l'arbre le 8 novembre (les numéros de ligne sont ceux de ce jour) ; le
-mainteneur en a fait une tâche le 8 novembre (`TODO_DONE.md` 3.25). Aucun ne
-change le code compilé ni une borne. Une seule pull request suffit
-(`todo-ps-stale-texts`), avant l'étiquette de PJ.3 ; au début, relire chaque
-article contre l'arbre, car un autre travail a pu le régler.
-
-1. **Les en-têtes des intervalles SSE2 et FPU** (#234) :
-   `gaol/core/gaol_interval_sse.h` et `gaol/core/gaol_interval_fpu.h` disent
-   (ligne 21, et ligne 28 dans le message du `#error`) qu'ils « shall be
-   included by gaol_interval_core.cpp only » ; c'est
-   `gaol/core/gaol_interval_core.h` qui les inclut (lignes 1134 à 1138). Le
-   texte de NEON est juste. Remarqué par la relecture de #234, non repris.
-2. **Le commentaire de tête de `gaol_interval_core.cpp`** (#219) : il cite
-   encore « the integer powers with NEON » parmi ce qui pourrait gagner (ligne
-   34), alors que `doc/simd.md` les dit faites, et #219 en a trouvé la cause. La
-   phrase périmée de `doc/simd.md` (« perhaps… (not checked) ») et celle du
-   chapitre 12 du manuel sont corrigées par #295 (*décidé le 8 novembre* :
-   maintenant, avec le PDF du manuel refait) ; le paragraphe du quotient NEON
-   est déjà réécrit par #294. Ce commentaire est du code, et le toucher lance
-   `performance.yml` : il reste dans la pull request de PS.
-3. **`doc/using.md`, ligne 1574** (#210) : le titre « The control registers of
-   32-bit x86 processors » couvre aussi x86-64 (ligne 1651 : « An x86-64
-   processor has the two units too ») : « of x86 processors » ; une remarque de
-   la relecture de #210, non reprise. Voir si le manuel a le même titre.
-4. **`doc/tests.md`, lignes 199 à 204** (#117, question 6) : la puce
-   d'`elementary` décrit des tests de `exp2`, `exp10`, `log2`, `log10` et de
-   `nth_root(I, q)` pour q < 0 qui sont dans `tests/core_math.cpp`, non dans
-   `tests/elementary.cpp` : la mettre sous `core_math` (ligne 964).
-5. **Deux renvois faux** : `CMakeLists.txt`, ligne 1217, cite « point PG.105 of
-   TODO.md », qui n'a jamais existé (c'est PG.1, le 105 (AH), non adopté :
-   `TODO_AFTER.md` 3.6) ; `tests/ieee1788.cpp`, ligne 1431, cite « (TODO.md,
-   point 7) », un numéro d'avant le 3 octobre (le 7 est aujourd'hui `atanh`),
-   dans le commentaire d'un test à plusieurs threads mis en commentaire
-   (`TODO_AFTER.md` 5.4) : retirer le renvoi, la phrase se suffit.
-6. **Le délai de `numbers` sous macOS** (`dc036c6`, 4 octobre) :
-   `tests/CMakeLists.txt` (lignes 134 à 138) dit que le job macOS x86_64 avec
-   ASan et UBSan donne 400 s à `numbers`, et `.github/workflows/macos.yml`
-   (lignes 424 et 425) lui en donne 600 depuis ce commit direct (`process.md`
-   §5 le dit) : corriger le commentaire.
-7. **L'exemple 15 construit sans exceptions** (#97, *décidé le 6 octobre*) : la
-   phrase d'`examples/examples.md` sur l'exemple 15 construit sans exceptions,
-   renvoyée « à la pull request de synthèse », manque (lignes 304 à 312) ; elle
-   n'est que dans l'en-tête de `examples/15_text_and_ieee1788.cpp` (lignes 12 à
-   18).
-8. **L'archive des sources** : `TODO_fin.md` étant supprimé, la liste
-   `CPACK_SOURCE_IGNORE_FILES` (`CMakeLists.txt`, ligne 1580), son commentaire
-   (ligne 1560) et la phrase de `doc/building.md` (ligne 267) ne le nomment
-   plus ; `STEP.md` reste exclu, comme `process.md` et `todo-notes/`. Vérifier
-   que `package_source` donne les mêmes fichiers (775 au dernier relevé, 3.20)
-   ; la liste de `doc/differences.md` est dans PJ.7.
 
 ## PT. Les relevés et les vérifications jamais faits [S]
 

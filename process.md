@@ -8,10 +8,10 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12. Dernière mise à jour : 8 novembre 2026, au
-commit `634e3e1` de `configure-clean` (un commit direct après la fusion de #294,
-après celles de #217 à #220, #222 à #225, #227 à #232, #234 à #239, #242, #245,
-#248 à #250, #262 à #276 et #279 à #285, de la branche `std-exceptions`, de #287
-à #293).
+commit `5392bbc` de `configure-clean` (la fusion de #297, après celles de #296,
+de #295 et de #294, de #217 à #220, #222 à #225, #227 à #232, #234
+à #239, #242, #245, #248 à #250, #262 à #276 et #279 à #285, de la branche
+`std-exceptions`, de #287 à #293).
 
 ## 1. Le contexte
 
@@ -758,7 +758,7 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
 
 ## 12. Où en est le travail (8 novembre 2026)
 
-Le reste à faire est dans `TODO.md` (tâches PH, PJ, PP, PQ, PS et PT) et
+Le reste à faire est dans `TODO.md` (tâches PH, PJ, PP, PQ et PT) et
 l'issue #179 ; ce qui est fait et décidé (pull requests fusionnées, décisions,
 mesures)
 est dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour) ; ce qui est
@@ -839,37 +839,41 @@ git ls-remote --heads origin
   directement sur `configure-clean` (`634e3e1`, 3.24) ; la tâche PM, close sans
   code le même jour (le cas (b) de 12.12.7, les littéraux aux bornes calculées :
   on le documente seulement, par #296, fusionnée à 17 h 29 UTC, `7bc3d05`,
-  3.26) ; l'audit du 13
+  3.26) ; puis #295 (hors des points : le texte de `doc/simd.md` et du manuel
+  sur les puissances entières de NEON, PS.2) à 17 h 21 UTC (`5bd52a6`) et #297
+  (la tâche PS : huit textes faux ou périmés, et deux boucles de plus dans
+  `core_math`) à 19 h 38 UTC (`5392bbc`), décrites dans `TODO_DONE.md` (2.3 et
+  3.27) ; l'audit du 13
   octobre a vérifié dans `configure-clean` ce qu'annonçaient alors les points A,
   C à H et J à V.
-- **En cours** : au 8 novembre, trois pull requests sont ouvertes : #297 (la
-  tâche PS, ouverte par une autre session ; `todo-ps-stale-texts`), #298 (PQ.1,
+- **En cours** : au 8 novembre, deux pull requests sont ouvertes : #298 (PQ.1,
   `centered_form` ; `todo-pq-centered-form`) et #299 (PQ.2, le test de
-  `hexfloat` ; `todo-pq-hexfloat-point`) ; #295 (le texte de `doc/simd.md` et du
-  manuel sur les puissances entières de NEON, PS.2 ; `manual-neon-pown-text`)
-  est fusionnée à 17 h 21 UTC (`5bd52a6`), ses registres restent à faire ;
-  `configure-clean` est au commit `634e3e1` (un commit direct, après la fusion
-  de #294, `1e23540`, après celle de #292, `130acea`, et celles de #293, #291,
-  #290 et #289, les registres de #288, `6ed4441`, et la fusion de #288,
-  `61a432b`). Ses branches sur GitHub sont `configure-clean`, `MATH-CORE` et
-  `master`, avec des pull requests jetables fermées, gardées (`experiment-pg*`,
-  voir `TODO_DONE.md` 8.1), et deux branches, fusionnée ou fermée, que le
-  mainteneur supprime (`todo-pg-relations-order` et `todo-pg-xle-exfirst`) ;
-  celles de #289 (`synthese-283-288`), de #290 (`ieee1788-overlap`), de #291
-  (`todo-pn-trie-fin`), de #293 (`todo-pn-d-times-x`), de #292
-  (`relation-loops`) et de #294 (`manual-thesis-style`) sont supprimées à leur
-  fusion, comme celles de #287 (`pown-rel`) et de #288 (`compoundm1`), et
-  `std-exceptions` et `revert-285-std-exceptions` depuis le 4 novembre. L'issue
-  #198 (`x / y` des intervalles NEON avec `FPCR.AH`) est ouverte, sans tâche
-  dans `TODO.md` ; #185 est fermée, le masquage des exceptions de `pow` est
-  gardé. L'issue #177 (`TODO_DONE.md`) n'est plus mise à jour (*décidé le 28
+  `hexfloat` ; `todo-pq-hexfloat-point`) ; #295 (PS.2 ; `manual-neon-pown-text`)
+  et #297 (la tâche PS ; `todo-ps-stale-texts`) sont fusionnées, leurs registres
+  faits ; `configure-clean` est au commit `5392bbc` (la fusion de #297, après
+  celle de #296, `7bc3d05`, celle de #295, `5bd52a6`, et le commit direct
+  `634e3e1`, après la fusion de #294, `1e23540`, après celle de #292, `130acea`,
+  et celles de #293, #291, #290 et #289, les registres de #288, `6ed4441`, et la
+  fusion de #288, `61a432b`). Ses branches sur GitHub sont `configure-clean`,
+  `MATH-CORE` et `master`, avec des pull requests jetables fermées, gardées
+  (`experiment-pg*`, voir `TODO_DONE.md` 8.1), et deux branches, fusionnée ou
+  fermée, que le mainteneur supprime (`todo-pg-relations-order` et
+  `todo-pg-xle-exfirst`) ; celles de #289 (`synthese-283-288`), de #290
+  (`ieee1788-overlap`), de #291 (`todo-pn-trie-fin`), de #293
+  (`todo-pn-d-times-x`), de #292 (`relation-loops`), de #294
+  (`manual-thesis-style`), de #295 (`manual-neon-pown-text`), de #296
+  (`manual-case-b-text`) et de #297 (`todo-ps-stale-texts`) sont supprimées à
+  leur fusion, comme celles de #287 (`pown-rel`) et de #288 (`compoundm1`), et
+  `std-exceptions` et `revert-285-std-exceptions` depuis le 4 novembre.
+  L'issue #198 (`x / y` des intervalles NEON avec `FPCR.AH`) est ouverte, sans
+  tâche dans `TODO.md` ; #185 est fermée, le masquage des exceptions de `pow`
+  est gardé. L'issue #177 (`TODO_DONE.md`) n'est plus mise à jour (*décidé le 28
   octobre*) : GitHub borne le corps d'une issue à 262 144 octets et le texte
   joint en fait plus de 270 000 (voir `TODO_DONE.md` 7.8).
 - **À faire**, dans l'ordre de `TODO.md` : le FIXME de `div_rel` en SSE2 (PP),
   le renommage de `midrad` en `centered_form` et le test de `<a, a>` en
-  `hexfloat` (PQ : #298 et #299, ouvertes), les textes faux ou périmés du code
-  et de la documentation (PS : #297, ouverte) et deux relevés jamais faits
-  (PT, avec un écart de `doc/accuracy.md`), nés de la relecture du 4 novembre
+  `hexfloat` (PQ : #298 et #299, ouvertes) et deux relevés jamais faits (PT,
+  avec un écart de `doc/accuracy.md`), nés de la relecture du 4 novembre
   (`TODO_DONE.md` 3.25), les signalements à d'autres projets (PH, avec l'accord
   du mainteneur), puis la version (PJ, qui reprend le
   tableau de Clang 21, le manuel, les textes qui citent macOS 14, la licence des

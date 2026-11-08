@@ -1,8 +1,8 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 8 novembre 2026
-(commit `634e3e1` de `configure-clean`, après la fusion de #294 : voir la
-section 1). Ce fichier fait foi : l'issue #177, qui avait le même contenu, n'est
+(commit `5392bbc` de `configure-clean`, la fusion de #297 : voir la section
+1). Ce fichier fait foi : l'issue #177, qui avait le même contenu, n'est
 plus mise à jour depuis le 28 octobre (voir 7.8).
 
 Il réunit l'historique de l'ancienne issue #49 (« Suivi du TODO de GAOL v5 »),
@@ -11,8 +11,8 @@ l'ancien `TODO.md` et dans `TODO_mistral.md`, avec les réponses du mainteneur
 des 22 et 23 octobre. #49 et #142 sont fermées le 24 octobre, `TODO_mistral.md`
 est supprimé. Le reste du travail est dans deux autres registres :
 
-- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PH, PJ, PP, PQ, PS
-  et PT ;
+- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PH, PJ, PP, PQ et
+  PT ;
 - `TODO_AFTER.md` (issue #178) : ce qui est reporté, après la version, jusqu'à
   une décision ou jusqu'à du matériel.
 
@@ -43,7 +43,7 @@ est supprimé. Le reste du travail est dans deux autres registres :
   : elle s'applique telle quelle.
 - Le classement par rang et par tiers (A à I) de l'ancien #142 n'existe plus :
   un « rang N » cité dans un texte d'avant le 24 octobre désigne cet ancien
-  classement. Ce qui reste à faire est classé en tâches PH, PJ, PP, PQ, PS et PT
+  classement. Ce qui reste à faire est classé en tâches PH, PJ, PP, PQ et PT
   dans `TODO.md`.
 - Ce qui sert encore des rapports des agents est dans
   [todo-notes/synthese.md](todo-notes/synthese.md), leurs originaux au commit
@@ -57,8 +57,10 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 
 ## 1. L'état au 8 novembre 2026
 
-- **`configure-clean`** est au commit `634e3e1` (un commit direct du 8 novembre,
-  7.21, qui suit la fusion de #294 le 7 novembre à 21 h 17 UTC, elle-même après
+- **`configure-clean`** est au commit `5392bbc` (la fusion de #297 le 8 novembre
+  à 19 h 38 UTC, après celles de #295 et de #296 et le commit direct `634e3e1`
+  du 8 novembre, 7.21, qui suit la fusion de #294 le 7 novembre à 21 h 17 UTC,
+  elle-même après
   celles de #217 le 28 octobre, de #218, #219, #222, #223 et #225 le matin du
   29, de #220, #224 et #227 à #231 de 18 h 04 à 18 h 19 UTC, de #232, #234 et
   #235 de 19 h 55 à 19 h 57, de #236 à 23 h 42, de #237 et #238 le 30 octobre à
@@ -73,9 +75,9 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   27 octobre, voir 7.6 à 7.10). Les pull requests des corrections vont vers
   `configure-clean`, qui reste la branche de développement après v5.0.0 ;
   `MATH-CORE` et `master` (GAOL 4.3.2, plus deux commits de `.claude/CLAUDE.md`)
-  ne bougent qu'à la version (point Y). - **La pull request #295 est ouverte**
-  (PS.2 : le texte de `doc/simd.md` et du manuel sur les puissances entières de
-  NEON, avec le PDF du manuel refait : 3.25). Le mainteneur a fusionné #165 à
+  ne bougent qu'à la version (point Y). Deux pull requests sont ouvertes : #298
+  (PQ.1, `centered_form`) et #299 (PQ.2, le test de `hexfloat`) : 7.23. Le
+  mainteneur a fusionné #165 à
   #167, #169 à #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194,
   #196 et #197 le 25 octobre, #199, #200 et #201
   le 26 octobre, #202 à #205 le 27, #206 à #210, #212, #213, #215 et #216 le 28
@@ -108,13 +110,18 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   tâche PK dans `rounding_direction`) à 10 h 08 UTC (2.3, 3.17 et 3.21), puis,
   le 7 novembre, #294 (hors des points :
   le manuel de GAOL v5 dans le style de la thèse du mainteneur, avec son PDF et
-  les corrections de `doc/` qu'il a trouvées) à 21 h 17 UTC (2.3 et 3.23). #168,
+  les corrections de `doc/` qu'il a trouvées) à 21 h 17 UTC (2.3 et 3.23), puis,
+  le 8 novembre, #295 (PS.2 : le texte de `doc/simd.md` et du manuel sur les
+  puissances entières de NEON, avec le PDF) à 17 h 21 UTC, #296 (la suite de la
+  tâche PM : le cas (b) documenté) à 17 h 29 et #297 (la tâche PS) à 19 h 38 UTC
+  (2.3, 3.25, 3.26 et 3.27). #168,
   #195, #211, #214, #221, #226 et #233 sont fermées sans fusion, et, du 30 et du
   31 octobre, #240, #241, #243, #244, #246, #247, #251 à #261, #277 et #278,
   puis #286, le « Revert » de #285 fermé onze secondes après son ouverture
-  (2.4). Les tâches PA, PB, PC, PD, PE, PF, PG, PI et PL sont faites (PE : #200
-  et #204 pour le 95, #201 pour le 92, #205 pour le 3, #202 pour le 4, #204 pour
-  le 5, #203 pour le 6 ; PF : #206 pour le reste du 108, #209 pour le 109, #210
+  (2.4). Les tâches PA, PB, PC, PD, PE, PF, PG, PI, PL et PS sont faites (PE :
+  #200 et #204 pour le 95, #201 pour le 92, #205 pour le 3, #202 pour le 4, #204
+  pour le 5, #203 pour le 6 ;
+  PF : #206 pour le reste du 108, #209 pour le 109, #210
   et #215 pour écrire seulement si ça change, #208 pour l'alignement de la pile
   32 bits, #207 pour le contrôle de l'assembleur de x86-64 ; PG : la division du
   chemin AVX-512, le 106 a : #191 à #194 ; puis #217 pour le seuil de la liste,
@@ -134,7 +141,10 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   #287 pour `pownRev` avec p ≤ 0, #288 pour `compoundm1` (3.18), #289 pour la
   synthèse de #283 à #288, #290 pour `overlap`, #291 pour la tâche PN (3.19 et
   3.20), #293 pour `d * x` (3.21), #292 pour les boucles de relations de PK
-  (3.17) et #294 pour le manuel, dont le PDF est le point PJ.5 : 3.23) ; PK, un
+  (3.17) et #294 pour le manuel, dont le PDF est le point PJ.5 : 3.23) ; PS,
+  les huit textes faux ou périmés du code et de la documentation : #295 pour le
+  texte de NEON (PS.2) et #297 pour les huit articles, avec deux boucles de plus
+  dans `core_math` (3.27) ; PK, un
   `FE_INVALID` de Clang avec les intervalles FPU, est close sans code, non
   reproduite avec les drapeaux de GAOL (3.17), ses boucles de relations étant
   entrées dans `rounding_direction` par #292 ; PM, le cas (b) de 12.12.7 (les
@@ -142,8 +152,8 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   documente seulement, par #296, fusionnée le même jour (3.26) ; il reste les
   signalements à d'autres projets (PH), le tableau de Clang 21 et la
   publication (PJ), le FIXME de `div_rel` en SSE2 (PP), deux petits changements
-  décidés le 8 novembre (PQ), les textes faux ou périmés du code et de la
-  documentation (PS) et deux relevés jamais faits (PT) : voir `TODO.md`.
+  décidés le 8 novembre (PQ) et deux relevés jamais faits (PT) : voir
+  `TODO.md`.
   Le 8 novembre, `TODO_fin.md` (la relecture du 4 novembre) est réparti dans les
   trois registres et supprimé (3.25).
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
@@ -1785,10 +1795,17 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   et sur les 10 lignes longues, `sqr(x)` de 1,49 à 1,27 ns (21 passes sur 21),
   `log(x)` 2,8 % et `max(x, y)` 3 % plus lent (5,46 puis 5,64), sens inverse de
   la mesure sur l'ancienne base, cause non examinée ; `libgaol.a` +0,9 % avec
-  GCC, +1,4 % avec Clang sur x86, +2,3 % sur le M2 ; le premier passage de la CI
-  a échoué sur « The builds agree » (le `configure` versionné n'avait pas suivi
-  `configure.ac`) ; sans relecteur indépendant ; 225 jobs verts ; fusionnée le
-  29 octobre à 19 h 55 UTC)
+  GCC, +1,4 % avec Clang sur x86, +2,3 % sur le M2 ; les chiffres que le
+  commentaire de `CMakeLists.txt` tient du commit d'origine du drapeau
+  (`419650d`, le 29 octobre) et que #297 (PS.5) a gardés, sans renvoi à un point
+  qui n'a jamais existé : avec Clang 21, une ligne de 15 additions prend 23,3 ns
+  quand les premiers octets de `add_bounds()` (40 octets) tombent en fin de
+  ligne du cache des instructions, au lieu de 14,2 ns avec le même code à une
+  autre adresse (#230), et avec GCC 15.2 le drapeau « gagne 16,2 contre 17,0 ns
+  et 15,8 contre 19,9 » pour une ligne de 15 additions et soustractions ; le
+  premier passage de la CI a échoué sur « The builds agree » (le `configure`
+  versionné n'avait pas suivi `configure.ac`) ; sans relecteur indépendant ; 225
+  jobs verts ; fusionnée le 29 octobre à 19 h 55 UTC)
 - #234 (les écarts de GCC avec Clang, `x | y` et `x &= y` des intervalles SSE2,
   décidés le 29 octobre : les bornes de `I` qui remplacent celles de `*this`
   passaient par un tableau relu, que GCC 15.2 compile par `vpextrq`, `vmovdqa`
@@ -2743,6 +2760,24 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   macOS, Autotools et meson, Manual et Performance verts (vérifié après la
   fusion). Décisions : 3.23.
 
+- #295 (la tâche PS, point PS.2 : le texte de `doc/simd.md` et du chapitre 12 du
+  manuel sur les puissances entières de NEON ; ouverte le 8 novembre à 15 h 15
+  UTC, 4 commits, 3 fichiers, 63 lignes ajoutées et 21 retirées contre
+  `configure-clean`) : fusionnée le même jour à 17 h 21 UTC par le mainteneur
+  (`5bd52a6`, tête `02bc032`). Le paragraphe « The integer powers on NEON »
+  disait que le noyau de `pown` gagnait 1,07 fois sur `pow(x, 3)` et expliquait
+  ce gain faible par une hypothèse non vérifiée (« perhaps… (not checked) ») :
+  il dit maintenant la cause que #219 a trouvée (le noyau n'est que 8 des 125
+  instructions d'un appel, le reste est le code qui le précède, que Clang
+  allonge avec `-frounding-math`) et les mesures de #219 avec leur portée (le M2
+  et AppleClang 21, appels indépendants et dépendants ; ni GCC, ni le Neoverse
+  N2, ni Visual C++ et clang-cl pour arm64). « 80 lines » devient « 86 lines ».
+  Le PDF du manuel est refait dans le dernier commit (385 pages, 0 erreur, les 7
+  « Overfull » de la base). Le relecteur indépendant n'a rien trouvé de bloquant
+  ; ses neuf remarques de rédaction sont reprises dans deux commits de plus
+  (3.25, 7.22). Sa CI : Manual, Linux, Linux containers, Windows, macOS,
+  Autotools et meson verts. Décisions : 3.25.
+
 - #296 (hors des points : la suite de la tâche PM, 3.26 ; ouverte le 8
   novembre à 16 h 17 UTC, 4 commits, 6 fichiers, 33 lignes ajoutées et 8
   retirées contre `configure-clean`) : fusionnée le même jour à 17 h 29 UTC par
@@ -2761,6 +2796,54 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   conflit (7.23) ; 0 erreur, aucune référence indéfinie, les 7 « Overfull » de
   la base. Sa CI : Manual et Performance verts, les autres jobs en file
   d'attente quand le mainteneur a fusionné. Décisions : 3.26.
+
+- #297 (la tâche PS : les huit textes faux ou périmés du code, de la
+  documentation et du manuel ; ouverte le 8 novembre à 16 h 35 UTC, 15 commits
+  dont trois de fusion avec `configure-clean`, 14 fichiers, 111 lignes ajoutées
+  et 55 retirées) : fusionnée le même jour à 19 h 38 UTC par le mainteneur
+  (`5392bbc`, tête `75613f7`). Aucune borne ni aucun code compilé ne change :
+  les 98 fichiers `.o` et `.a` d'un build ont les mêmes empreintes md5 que ceux
+  de la base (mesuré avant le commentaire de tête et le test, qui ne changent
+  qu'un commentaire et `core_math`), et `package_source` donne les mêmes 799
+  entrées. PS.1 : les en-têtes `gaol_interval_sse.h` et `gaol_interval_fpu.h`
+  (le commentaire de tête et le message du `#error`) disent qu'ils sont inclus
+  par `gaol_interval_core.h` seul. PS.2 : le commentaire de tête de
+  `gaol_interval_core.cpp` cite le noyau FMA de `pown` de NEON avec ceux de SSE2
+  et d'AVX-512, le retire de ce qui pourrait gagner et nomme `tan` avec `sin()`
+  et `cos()`, comme `doc/simd.md` (même nombre de lignes). PS.3 : « The control
+  registers of x86 processors » à la place de « of 32-bit x86 processors » dans
+  `doc/using.md` (titre, lien et ancre) et dans la section 4.7 du manuel (le
+  label `sec:x86-control-registers` ne change pas). PS.4 : la phrase sur `exp2`,
+  `exp10`, `log2` et `log10` passe de la puce d'`elementary` à celle de
+  `core_math` dans `doc/tests.md` et au chapitre 14 du manuel, et
+  `base_two_and_ten_exact()` de `tests/core_math.cpp` la rend vraie : `exp10(k)
+  = 10^k` et `log10(10^k) = k` pour k de 0 à 22 (46 vérifications), `exp2(k) =
+  2^k` et `log2(2^k) = k` pour k de −1074 à 1023, les puissances de deux
+  subnormales comprises (4 196 vérifications), soit 2 180 702 vérifications dans
+  `core_math` au lieu de 2 176 460. Les dents : un point intérieur rendu inexact
+  dans les quatre prédicats de `gaol_interval_core.cpp` (`exp10_is_exact()` et
+  `log10_is_exact()` en 15, `exp2_is_exact()` en −500, `log2_is_exact()` en
+  2^299) fait échouer exactement deux vérifications par boucle, alors que les
+  cas qui existaient (six pour 10, neuf pour 2) passaient : ils ne voyaient
+  rien. PS.5 : deux renvois faux (« point PG.105 of TODO.md », qui n'a jamais
+  existé, devient « #230 and #232 » ; « (TODO.md, point 7) » de
+  `tests/ieee1788.cpp` est retiré). PS.6 : le commentaire de
+  `tests/CMakeLists.txt` dit 600 s pour `numbers` sous macOS, comme `macos.yml`.
+  PS.7 : `examples/examples.md` dit que l'exemple 15 se construit sans
+  exceptions, avec les trois options. PS.8 : `TODO_fin.md` est retiré de
+  `CPACK_SOURCE_IGNORE_FILES`, de son commentaire et de `doc/building.md`. Le
+  PDF du manuel (385 pages, 0 erreur, 7 « Overfull » comme avant) est refait
+  dans le dernier commit, comme le mainteneur l'a décidé après la fusion de #295
+  ; `check_branch` le signale, comme prévu. Le relecteur indépendant (131 000
+  jetons au lieu des 60 000 demandés) n'a rien trouvé de bloquant ; trois de ses
+  remarques sont reprises (la ligne 10 de `04_rounding.tex`, des lignes trop
+  longues, « `exp10` de 0 à 22 » que le test ne vérifiait qu'en trois points) et
+  la quatrième, sur `doc/differences.md` (lignes 1953 à 1955), était fausse
+  (vérifié : `gaol_interval_core.cpp` inclut bien les `.cpp` des trois noyaux).
+  Sa CI au dernier commit : les sept workflows verts (macOS finit à 19 h 46 UTC,
+  après la fusion). Ouvert : la liste de `doc/differences.md` (ligne 2387) des
+  fichiers que l'archive laisse de côté ne nomme pas `STEP.md` (PJ.7). Décisions
+  : 3.27.
 
 ### 2.4 Fermées sans fusion
 
@@ -5224,10 +5307,59 @@ traite la tâche PM en faisant le choix 1 (documenter seulement...) »).
   « surveiller et corriger #299 » (un moniteur interroge GitHub toutes les
   deux minutes).
 
+### 3.27 Le 8 novembre : la tâche PS, #295 et #297
+
+La tâche PS (« Les textes faux ou périmés du code et de la documentation », née
+de la relecture du 4 novembre, 3.19 et 3.25) a été traitée à la demande du
+mainteneur (« traite la tâche PS »), en une pull request, #297
+(`todo-ps-stale-texts`), avec #295 (PS.2, le texte de `doc/simd.md` et du
+manuel, décidé plus tôt le même jour : 3.25). Chaque article a été relu contre
+l'arbre (`origin/configure-clean` à `593ddf3`) avant d'être corrigé : les huit
+étaient encore vrais. Aucun ne change le code compilé ni une borne.
+
+- **Les réponses du mainteneur à quatre questions** (le 8 novembre, quatre
+  réponses proposées chacune) : le PDF du manuel (PS.2, PS.3 et PS.4 changent le
+  manuel) est refait dans #297, après la fusion de #295 ; la phrase de
+  `doc/tests.md` sur `exp10` « de 0 à 22 » et `log10` jusqu'à 10^22, que
+  `tests/core_math.cpp` ne vérifiait qu'en trois points chacun, est rendue vraie
+  en complétant le test ; `tan` est ajouté à « `sin()` and `cos()` » du
+  commentaire de tête de `gaol_interval_core.cpp`, comme `doc/simd.md` ; les
+  chiffres du commentaire de `-falign-functions=64` (14,2 ns ; 16,2 contre
+  17,0 ; 15,8 contre 19,9), qui ne sont dans aucune entrée de ce fichier, sont
+  notés dans l'entrée de #232 (2.3) à la mise à jour des registres : fait le
+  même jour.
+- **Les réponses à quatre autres questions** (le même jour, après la fusion de
+  #296 et le conflit de #297) : `exp2` et `log2` ont le même défaut que `exp10`
+  et `log10` (cinq et quatre points pour « un nombre entier » et « une puissance
+  de deux ») : le test est complété aussi ; les registres de #295, de #297 et
+  les chiffres de #232 sont mis à jour en une fois, après la fusion de #297 ; le
+  PDF de #298 est refait dans #298, par la session des tâches PM et PQ, après la
+  fusion de #297 (3.26) ; la tâche suivante, aucune : attendre les instructions
+  du mainteneur.
+- **Le conflit de #297** (signalé par le mainteneur) : #295 puis #296 ont été
+  fusionnées pendant le travail, et le PDF du manuel (binaire) était dans les
+  trois pull requests. Une fois la branche poussée, `origin/configure-clean` est
+  fusionné dans elle (pas de rebase) : le PDF est reconstruit des sources
+  fusionnées (385 pages, 0 erreur, les mêmes 7 « Overfull »), le message du
+  merge tient en une ligne pour que `check_branch` ne voie pas de bloc « #
+  Conflicts ».
+- **Ce que les tests complétés ont montré** : rien de faux dans le code. Les
+  quatre prédicats d'exactitude de `gaol_interval_core.cpp` (`exp2_is_exact()`
+  pour un entier de −1074 à 1023, `exp10_is_exact()` de 0 à 22,
+  `log2_is_exact()` pour `frexp` = 0,5, `log10_is_exact()` pour une puissance de
+  dix de 10^0 à 10^22) ne se trompent sur aucun point des quatre intervalles ;
+  les cas qui existaient ne voyaient pourtant pas un point intérieur rendu
+  inexact, d'où les boucles. Les littéraux `1e0` à `1e22` sont des doubles
+  exacts, et les puissances de deux, subnormales comprises, sont construites par
+  leurs bits (`memcpy`), non par `ldexp()`.
+- **Laissé à PJ.7** : la liste de `doc/differences.md` (ligne 2387) des fichiers
+  que l'archive des sources laisse de côté ne nomme pas `STEP.md` (PS.8 l'a
+  remarqué sans le corriger, `doc/differences.md` étant dans la synthèse).
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
-`TODO.md` (tâches PH, PJ, PP, PQ, PS et PT) ou dans `TODO_AFTER.md` ; leur
+`TODO.md` (tâches PH, PJ, PP, PQ et PT) ou dans `TODO_AFTER.md` ; leur
 partie faite est dite ici ou dans la section 5.
 
 ### Même changement, ou même code
@@ -5806,8 +5938,8 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
 
 Les « Questions ouvertes » des descriptions de #146 à #163, que l'ancien
 `TODO.md` gardait sous « Remarqué par #NN, à trier », avec leur sort. Les
-questions qui restent sans réponse sont dans `TODO.md` (tâches PH, PJ, PP, PQ,
-PS et PT) et `TODO_AFTER.md` ; elles ne sont pas répétées ici.
+questions qui restent sans réponse sont dans `TODO.md` (tâches PH, PJ, PP, PQ et
+PT) et `TODO_AFTER.md` ; elles ne sont pas répétées ici.
 
 ### #146
 
@@ -6939,6 +7071,39 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   scratchpad a été refusé une fois par le contrôle de sécurité de l'outil : les
   dossiers ont été laissés, et les builds suivants ont pris de nouveaux noms.
 
+### 7.24 Le 8 novembre (la tâche PS)
+
+- La tâche PS est travaillée dans un clone du scratchpad (branche
+  `todo-ps-stale-texts` créée avec `--no-track` depuis
+  `origin/configure-clean`), l'arbre partagé restant sur `configure-clean`. Les
+  registres de #295 et de #297 sont faits ensuite, en une fois, directement sur
+  `configure-clean` après la fusion de #297 (3.27) : `TODO.md` (la tâche PS sort
+  du fichier et du tableau, l'en-tête prend `5392bbc`, la liste des pull
+  requests ouvertes ne garde que #298 et #299), ce fichier (1, 2.3 pour #295 et
+  #297, l'entrée de #232, 3.27, cette section et 8.1) et `process.md` (l'en-tête
+  et §12). `TODO_AFTER.md` n'a rien de nouveau : son en-tête garde `634e3e1` et
+  l'issue #178 n'est pas touchée. L'issue #179 est mise à jour avec le texte
+  joint de `TODO.md`.
+- Le dernier commit du code passe de `634e3e1` à `5392bbc` : #297 change des
+  commentaires, le message de deux `#error` et un test, que `performance.yml` et
+  les autres workflows ont vus. Le mainteneur a fusionné #297 à 19 h 38 UTC,
+  avant la fin de la CI de macOS (20 jobs, le dernier terminé à 19 h 46 UTC,
+  tous verts, comme les six autres workflows).
+- Les pièges. (1) La cible CMake de `tests/core_math.cpp` est
+  `gaol_test_core_math` : `cmake --build <dir> --target core_math` ne fait rien
+  et ne dit rien. (2) Un `git add` de `CMakeLists.txt` qui prend deux
+  changements sans rapport : `git apply --cached --unidiff-zero` sur le diff
+  d'un seul l'isole. (3) Des sujets de commit de 101 à 113 caractères, réécrits
+  avant le push (`process.md` §3.1 : 100 au plus). (4) Un script qui attend la
+  CI d'un commit dont le push suivant a annulé les runs (`concurrency`) rend «
+  tout terminé » avec des runs annulés : ne regarder que les runs de la tête,
+  par `gh run list --commit <sha entier>`. (5) Pour montrer qu'un test complété
+  voit quelque chose quand aucun bogue n'est à corriger : casser temporairement
+  le prédicat en un point intérieur, montrer que seules les nouvelles
+  vérifications échouent, puis ne pas commiter la cassure. (6) Le relecteur
+  indépendant de #297 a consommé 131 000 jetons au lieu des 60 000 demandés, et
+  un de ses points était faux (vérifié contre l'arbre avant d'y toucher).
+
 ## 8. Le ménage fait
 
 ### 8.1 Branches, lignes de crédit, outillage
@@ -7115,6 +7280,12 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   GAOL_V9, supprimées le 7 novembre (`git branch -d`, fusionnée), GAOL_V9 étant
   déjà revenu sur `configure-clean` (`1e23540`) ; le clone de travail du manuel
   (`GAOL_manual/`, avec ses rapports de relecture et ses mesures) reste.
+- [x] Celles de #295 (`manual-neon-pown-text`), de #296 (`manual-case-b-text`)
+  et de #297 (`todo-ps-stale-texts`), sur GitHub (supprimées à la fusion,
+  vérifié le 8 novembre par `git ls-remote --heads origin`) ; en local, la
+  branche `todo-ps-stale-texts` du clone de travail de #297, supprimée le 8
+  novembre (`git branch -d`, fusionnée), puis ce clone et ses builds du
+  scratchpad (550 Mo).
 
 ### 8.2 Les branches inachevées
 
