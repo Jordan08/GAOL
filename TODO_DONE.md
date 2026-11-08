@@ -75,7 +75,8 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   `configure-clean`, qui reste la branche de développement après v5.0.0 ;
   `MATH-CORE` et `master` (GAOL 4.3.2, plus deux commits de `.claude/CLAUDE.md`)
   ne bougent qu'à la version (point Y). La pull request #300 est ouverte
-  (7.23). Le mainteneur a fusionné #165 à #167, #169 à #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194,
+  (7.23). Le mainteneur a fusionné #165 à #167, #169 à #174, #176 et #180 à #184
+  les 23 et 24 octobre, et #186 à #194,
   #196 et #197 le 25 octobre, #199, #200 et #201
   le 26 octobre, #202 à #205 le 27, #206 à #210, #212, #213, #215 et #216 le 28
   (#216, hors des points : le tableau des lignes longues sur ARM 64 bits, à la
