@@ -25,7 +25,12 @@ echo "files changed: $(printf '%s\n' "$files" | grep -c .)"
 # touches either (a PDF cannot be merged).
 # Those branches also correct doc/differences.md, which describes the same changes as the
 # manual: any other branch leaves it to the pull request of the synthesis
-case "$branch" in manual*) pdf_ok='manual/Manual_GAOLv5\.pdf|manual/v5/gaol\.pdf|doc/differences\.md' ;; *) pdf_ok='^$' ;; esac
+# A pull request for which the maintainer asked for the PDF (#298, 8 November 2026) is
+# checked with CHECK_BRANCH_PDF=1 and may commit the PDF, not doc/differences.md
+case "$branch" in
+  manual*) pdf_ok='manual/Manual_GAOLv5\.pdf|manual/v5/gaol\.pdf|doc/differences\.md' ;;
+  *) if [ -n "$CHECK_BRANCH_PDF" ]; then pdf_ok='manual/Manual_GAOLv5\.pdf'; else pdf_ok='^$'; fi ;;
+esac
 if printf '%s\n' "$files" | grep -Ex 'TODO\.md|ChangeLog|doc/differences\.md|manual/v5/gaol\.pdf|manual/Manual_GAOLv5\.pdf|manual/v4/.*' | grep -vx 'manual/v4/Manual_GAOLv4\.pdf' | grep -vEx "$pdf_ok"; then
   echo "FAIL: ledger files, the manual PDF or manual/v4 changed (see the house rules)"; fail=1; fi
 if printf '%s\n' "$files" | grep -E '(^|/)(build([-_.][^/]*)?|CMakeFiles|\.deps|\.libs|autom4te\.cache)/|\.(o|lo|a|so|log)$|CMakeCache\.txt|^(nohup|core)$'; then

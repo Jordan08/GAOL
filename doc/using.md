@@ -711,11 +711,13 @@ themselves:
 - `x.inflate(r)`: x widened by the absolute radius r, `x + interval(-r, r)`,
   each bound rounded outward; r = +∞ gives the whole line, and r < 0 or a NaN
   r the empty set.
-- `interval::midrad(m, r)`: the interval of midpoint m and radius r,
+- `interval::centered_form(m, r)`: the interval of midpoint m and radius r,
   `interval(m) + interval(-r, r)`, which encloses [m − r, m + r], where
   `interval(m - r, m + r)` does not: both bounds are then computed in the
   upward rounding of GAOL, the lower one above m − r where it is inexact. An
-  infinite m gives the empty set, as `interval(m)` does.
+  infinite m gives the empty set, as `interval(m)` does. `gaol_ieee1788` has it
+  as the function `centeredForm(m, r)`, which the standard does not name
+  (GAOL v5).
 - `x.bisect(ratio)`: the pair of the parts of x on either side of a cut point
   at the given ratio of its width, 0 < ratio < 1, which share the cut point and
   cover x; `bisect(0.5)` cuts where `split()` does, at `midpoint()`, and so does
@@ -734,8 +736,9 @@ using namespace gaol;
 
 int main()
 {
-  const interval x = textToInterval("0.1");        // encloses 0.1
-  const interval y = interval::midrad(1.0, 1e-20); // [1 - 1e-20, 1 + 1e-20]
+  const interval x = textToInterval("0.1");  // encloses 0.1
+  const interval y = interval::centered_form(1.0, 1e-20);
+  // y encloses [1 - 1e-20, 1 + 1e-20]
   const std::pair<interval, interval> parts = interval(0.0, 1.0).bisect(0.25);
   std::cout << x.width_enclosure() << ' ' << y << ' ' << parts.first << ' '
             << parts.second << ' ' << hull(x, y) << std::endl;
@@ -1019,7 +1022,7 @@ example; they are listed here for the reader who looks in this page first.
   call compiled and computed `gaol::sqrt(interval(2.0))`.
 - **A midpoint and a radius.** `interval(m - r, m + r)` does not enclose
   [m − r, m + r], the program computing both bounds in the direction it is in:
-  `interval::midrad(m, r)` does (GAOL v5).
+  `interval::centered_form(m, r)` does (GAOL v5).
 - **The program's own doubles** are rounded upward after an operation of GAOL
   until `gaol::cleanup()` (see
   [What the upward rounding does to the program](#what-the-upward-rounding-does-to-the-program)).

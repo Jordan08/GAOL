@@ -984,11 +984,11 @@ $300$ times it did not enclose their midpoints. \code{rad()} and
 
 \medskip
 The tools that algorithms of intervals write for themselves are
-new:\newinvfive{} \code{width\_enclosure()}, \code{inflate(r)},
-\code{interval::midrad(m, r)}, \code{bisect(ratio)}, \code{is\_bisectable()},
+new:\newinvfive{} \code{width\_enclosure()}, \code{inflate(r)},\hfill\break
+\code{interval::centered\_form(m, r)}, \code{bisect(ratio)}, \code{is\_bisectable()},
 and \code{hull(a, b)} and \code{intersect(a, b)}, the functions of
 \code{a | b} and \code{a \& b}. The first three compute with the operations
-of intervals, each bound rounded outward: \code{interval::midrad(m, r)}
+of intervals, each bound rounded outward: \code{interval::centered\_form(m, r)}
 encloses $[m - r, m + r]$, which \code{interval(m - r, m + r)} does not, both
 of its bounds being computed upward; \code{width\_enclosure()} is the
 enclosure of the exact width that \code{width()} bounds from above.

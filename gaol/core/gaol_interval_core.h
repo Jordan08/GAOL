@@ -872,7 +872,7 @@ namespace gaol_core {
       point m and r = +oo the whole line; r < 0 or NaN, or m NaN, gives the
       empty set, and so does an infinite m, as interval(m) does (IBEX's rules).
     */
-    GAOL_NODISCARD static interval midrad(double m, double r);
+    GAOL_NODISCARD static interval centered_form(double m, double r);
 
     /*!
       @name Splitting methods
@@ -2748,7 +2748,7 @@ GAOL_INLINE interval interval::inflate(double r) const
   interval(m) + [-r, r] (GAOL v5): see inflate(). interval(m) is the empty set
   for an infinite or a NaN m, and interval(-r, r) for r < 0 or a NaN r.
 */
-GAOL_INLINE interval interval::midrad(double m, double r)
+GAOL_INLINE interval interval::centered_form(double m, double r)
 {
     return interval(m) + interval(-r, r);
 }

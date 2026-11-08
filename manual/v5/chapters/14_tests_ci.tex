@@ -599,7 +599,7 @@ doubles has to give the bits of the formula of the other kinds, and the
 quotients of the NEON intervals with a NaN in a lane of an operand the bits
 of \code{interval::emptyset()}. The tools of interval algorithms,
 \code{width\_enclosure()}, \code{inflate(r)} and
-\code{interval::midrad(m, r)}, have to be the tightest enclosures of the
+\code{interval::centered\_form(m, r)}, have to be the tightest enclosures of the
 exact width, of $\itv{a-r}{b+r}$ and of $\itv{m-r}{m+r}$, computed with exact
 rationals; \code{bisect(ratio)} has to give two parts that cover the
 interval exactly, cut strictly inside where \code{is\_bisectable()}, for

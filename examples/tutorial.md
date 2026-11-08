@@ -366,6 +366,6 @@ interval printed contains.
   systems (Krawczyk), estimate parameters, enclose differential equations and
   use affine arithmetic, and a review of how intervals are used with GAOL v5.
 - [Using GAOL](../doc/using.md): the tools of interval algorithms (`inflate`,
-  `bisect`, `midrad`, `mulRevToPair`), the namespaces, the names of IBEX, Codac,
-  C-XSC and Boost.Interval next to GAOL's, and the pitfalls.
+  `bisect`, `centered_form`, `mulRevToPair`), the namespaces, the names of IBEX,
+  Codac, C-XSC and Boost.Interval next to GAOL's, and the pitfalls.
 - The manual of GAOL v5, `manual/Manual_GAOLv5.pdf`: each operation, with examples.

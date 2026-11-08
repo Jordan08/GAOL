@@ -385,7 +385,7 @@ times wider), 1000 pieces [0.23992, 0.25010].
 | Two-piece division | two `div_rel`, on `J & negative()` and `J & positive()` | `mulRevToPair`: not provided | `div2` | — |
 
 (GAOL v5 has since added `inflate()`, `bisect(ratio)`, `mulRevToPair`, and
-`interval::midrad()`: the table of names in
+`interval::centered_form()`: the table of names in
 [Using GAOL](../doc/using.md#coming-from-another-library) is the current one,
 with C-XSC and Boost.Interval.)
 

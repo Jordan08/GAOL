@@ -113,6 +113,8 @@ namespace gaol_ieee1788 {
   //! numsToInterval(l, u) with an integer bound: interval(l, u), which contains the integers given (GAOL v5)
   template <class A, class B, ::gaol_detail::if_integer_bounds<A, B> = 0>
   GAOL_NODISCARD inline interval numsToInterval(A l, B u) { return interval(l, u); }
+  //! centeredForm(m, r): interval::centered_form(m, r), the interval of midpoint m and radius r, each bound rounded outward; not in the standard (GAOL v5)
+  GAOL_NODISCARD inline interval centeredForm(double m, double r) { return interval::centered_form(m, r); }
   
   /*!
   textToInterval(s): the interval s writes, read with the names of the

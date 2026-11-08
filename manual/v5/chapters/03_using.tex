@@ -780,7 +780,7 @@ do change \code{x}, do not carry it.
 \section{Tools of interval algorithms}\label{sec:tools}
 %%-----------------------------------
 \cindex{tools of interval algorithms}%
-\findex{width\_enclosure}\findex{inflate}\findex{midrad}\findex{bisect}%
+\findex{width\_enclosure}\findex{inflate}\findex{centered\_form}\findex{bisect}%
 \findex{is\_bisectable}%
 
 The algorithms of interval computing, the enclosure of a range by
@@ -799,7 +799,7 @@ otherwise write for themselves. GAOL v5 provides them.\newinvfive
   the absolute radius $r$, \code{x + interval(-r, r)}, each bound rounded
   outward; $r=+\infty$ gives the whole line, and $r<0$ or a NaN $r$ the empty
   set.
-\item[$\bullet$] \textbf{A midpoint and a radius.} \code{interval::midrad(m, r)}
+\item[$\bullet$] \textbf{A midpoint and a radius.} \code{interval::centered\_form(m, r)}
   is the interval of midpoint $m$ and radius $r$,
   \code{interval(m) + interval(-r, r)}, which encloses $[m-r,\,m+r]$, where
   \code{interval(m - r, m + r)} does not: both bounds are then computed in the
@@ -831,8 +831,8 @@ using namespace gaol;
 
 int main()
 {
-  const interval x = textToInterval("0.1");        @rem^// encloses 0.1~
-  const interval y = interval::midrad(1.0, 1e-20); @rem^// [1 - 1e-20, 1 + 1e-20]~
+  const interval x = textToInterval("0.1");               @rem^// encloses 0.1~
+  const interval y = interval::centered_form(1.0, 1e-20); @rem^// [1 - 1e-20, 1 + 1e-20]~
   const std::pair<interval, interval> parts = interval(0.0, 1.0).bisect(0.25);
   std::cout << x.width_enclosure() << ' ' << y << ' ' << parts.first << ' '
             << parts.second << ' ' << hull(x, y) << std::endl;
@@ -995,14 +995,14 @@ the direction in effect, which is upward until \code{cleanup()}, so that
 \code{m - r} may be above the real $m-r$, and to nearest each bound may be on
 either side. With \code{m = 1.0} and \code{r = 1e-20}, the interval is
 \itv{1}{1+2^{-52}} while the direction is upward, and does not contain
-$1-10^{-20}$. \code{interval::midrad(m, r)} (\pxref{sec:constructors}),
+$1-10^{-20}$. \code{interval::centered\_form(m, r)} (\pxref{sec:constructors}),
 or \code{m + interval(-r, r)}, computes both bounds in intervals, and gives
 \itv{1-2^{-53}}{1+2^{-52}}, which does.\newinvfive
 
 \begin{example}
 double m = 1.0, r = 1e-20;
 interval wrong(m - r, m + r);  @rem^// Does not enclose [m - r, m + r]~
-interval right = interval::midrad(m, r);  @rem^// Does~
+interval right = interval::centered_form(m, r);  @rem^// Does~
 \end{example}
 
 \subsection{The doubles of the program}
