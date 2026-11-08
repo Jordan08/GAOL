@@ -31,8 +31,8 @@
 // instruction, its square root being two scalar roots, and the integer powers have a two-lane FMA kernel
 // with NEON, and with SSE2 and AVX-512 where __FMA__ is. What is scalar in this file is the elementary
 // functions, which are CORE-MATH calls, one per bound, and the operations made of branches on the bounds.
-// doc/simd.md lists what could still gain (sqrt with SSE2, mid(), the reduction of the argument of sin()
-// and cos()) and what the other processors would need
+// doc/simd.md lists what could still gain (sqrt with SSE2, mid(), the reduction of the argument of sin(),
+// cos() and tan()) and what the other processors would need
 
 #include <iostream>
 #include <iomanip>
