@@ -723,7 +723,7 @@ point Q), which `numbers` checks there too.
   prompt shows before the user types (the `std::ws` of libstdc++ before GCC 12
   alone does none of this).
   Numbers with a million zeros after their point and an exponent of 7 digits
-  (`0.00…0001e1000001`, and in hexadecimal and in the uncertain form)
+  (`0.00…01e1000001`, and in hexadecimal and in the uncertain form)
   have to be read exactly: the exponent was cut at 100000 (GAOL v5).
   Under a locale writing a decimal comma, where one is installed
   (`fr_FR.UTF-8`, `de_DE.UTF-8`, `French_France.1252`...), numbers have to be
