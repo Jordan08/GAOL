@@ -8,10 +8,10 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12. Dernière mise à jour : 8 novembre 2026, au
-commit `0f469e7` de `configure-clean` (la fusion de #298, après celles de #299,
-de #297, de #296, de #295 et de #294, de #217 à #220, #222 à #225, #227 à #232,
-#234 à #239, #242, #245, #248 à #250, #262 à #276 et #279 à #285, de la branche
-`std-exceptions`, de #287 à #293).
+commit `ac9f130` de `configure-clean` (la fusion de #300, après celles de #298,
+de #299, de #297, de #296, de #295 et de #294, de #217 à #220, #222 à #225, #227
+à #232, #234 à #239, #242, #245, #248 à #250, #262 à #276 et #279 à #285, de la
+branche `std-exceptions`, de #287 à #293).
 
 ## 1. Le contexte
 
@@ -853,18 +853,20 @@ git ls-remote --heads origin
   `<a, a>` avec `hexfloat`, dans `tests/ieee1788.cpp`) et #298 à 20 h 44 UTC
   (`0f469e7` : `interval::midrad` devient `centered_form`, `centeredForm` pour
   `gaol_ieee1788`, le PDF du manuel refait), décrites dans `TODO_DONE.md` (2.3
-  et 3.26) ; l'audit du 13
+  et 3.26) ; puis #300 à 21 h 38 UTC (`ac9f130`, hors des points : la recette
+  de compilation croisée GCC 12.2 pour aarch64 de `todo-notes/gcc12-aarch64/`,
+  2.3) ; l'audit du 13
   octobre a vérifié dans `configure-clean` ce qu'annonçaient alors les points A,
   C à H et J à V.
-- **En cours** : au 8 novembre, la pull request #300 est ouverte (hors des
-  points : la recette de compilation croisée GCC 12.2 pour aarch64 de
-  `todo-notes/gcc12-aarch64/` ; `todo-notes-gcc12-aarch64`) ; #295 (PS.2
+- **En cours** : au 8 novembre, aucune pull request n'est ouverte : #295 (PS.2
   ; `manual-neon-pown-text`), #296 (le cas (b) ; `manual-case-b-text`), #297 (la
-  tâche PS ; `todo-ps-stale-texts`), #299 (PQ.2 ; `todo-pq-hexfloat-point`) et
-  #298 (PQ.1 ; `todo-pq-centered-form`) sont fusionnées, leurs registres
-  faits ; `configure-clean` est au commit `0f469e7` (la fusion de #298, après
-  celles de #299, `36b4f93`, de #297, `5392bbc`, de #296, `7bc3d05`, et de #295,
-  `5bd52a6`, et le commit direct
+  tâche PS ; `todo-ps-stale-texts`), #299 (PQ.2 ; `todo-pq-hexfloat-point`),
+  #298 (PQ.1 ; `todo-pq-centered-form`) et #300 (la recette de compilation
+  croisée de `todo-notes/gcc12-aarch64/` ; `todo-notes-gcc12-aarch64`) sont
+  fusionnées, leurs registres faits ; `configure-clean` est au commit `ac9f130`
+  (la fusion de #300, après celles de #298, `0f469e7`, de #299, `36b4f93`, de
+  #297, `5392bbc`, de #296, `7bc3d05`, et de #295, `5bd52a6`, et le commit
+  direct
   `634e3e1`, après la fusion de #294, `1e23540`, après celle de #292, `130acea`,
   et celles de #293, #291, #290 et #289, les registres de #288, `6ed4441`, et la
   fusion de #288, `61a432b`). Ses branches sur GitHub sont `configure-clean`,

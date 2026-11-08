@@ -74,8 +74,8 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   27 octobre, voir 7.6 à 7.10). Les pull requests des corrections vont vers
   `configure-clean`, qui reste la branche de développement après v5.0.0 ;
   `MATH-CORE` et `master` (GAOL 4.3.2, plus deux commits de `.claude/CLAUDE.md`)
-  ne bougent qu'à la version (point Y). La pull request #300 est ouverte
-  (7.23). Le mainteneur a fusionné #165 à #167, #169 à #174, #176 et #180 à #184
+  ne bougent qu'à la version (point Y). Aucune pull request n'est ouverte. Le
+  mainteneur a fusionné #165 à #167, #169 à #174, #176 et #180 à #184
   les 23 et 24 octobre, et #186 à #194,
   #196 et #197 le 25 octobre, #199, #200 et #201
   le 26 octobre, #202 à #205 le 27, #206 à #210, #212, #213, #215 et #216 le 28
@@ -2882,6 +2882,24 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   d'autres, un `\hfill\break` gardé pour un « Overfull » de 21 pt). Sa CI au
   dernier commit : les sept workflows verts (vérifié après la fusion).
   Décisions : 3.26.
+
+- #300 (hors des points : la recette de compilation croisée GCC 12.2 pour
+  aarch64, demandée par le mainteneur après l'échec de la CI de #299 ; ouverte
+  le 8 novembre à 21 h 27 UTC, 2 commits, 5 fichiers, 128 lignes ajoutées et 1
+  retirée contre `configure-clean`) : fusionnée le même jour à 21 h 38 UTC par
+  le mainteneur (`ac9f130`, tête `d32849c`). `todo-notes/gcc12-aarch64/` : un
+  `Dockerfile` (l'image `gaol-bookworm-cross` : Debian 12, GCC 12.2 pour
+  aarch64, CMake 3.25, qemu-aarch64 7.2), `cross-test` (construit un programme
+  de `tests/` d'une référence git ou de l'arbre de travail, en Release, et le
+  lance sous qemu avec un délai) et un `README.md`, une ligne de
+  `todo-notes/README.md` et une phrase de `process.md` §11. Essayé : `numbers` à
+  `97c76c2` (la première tête de #299), 18 échecs sur 451 806 vérifications,
+  comme la CI ; `ieee1788`, 131 901 vérifications, aucune en échec ; `-t 5`,
+  code 124 ; la construction de l'image (33 s). Le premier essai de `-W` a
+  trouvé un défaut, corrigé dans le second commit. Pas de relecteur
+  indépendant, dit dans la description. Sa CI au dernier commit : Linux, Linux
+  containers et Windows verts, Autotools et meson et macOS pas finis à la
+  fusion.
 
 ### 2.4 Fermées sans fusion
 
@@ -7156,6 +7174,10 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   (`todo-notes/gcc12-aarch64/`, ouverte à 21 h 27 UTC, 2 commits, un
   `Dockerfile` et `cross-test`, essayés sur `97c76c2` : 18 échecs, comme la CI,
   et sur `ieee1788` : aucun) ; le reste du scratchpad est laissé.
+- Le mainteneur a fusionné #300 à 21 h 38 UTC (`ac9f130`) : les registres de sa
+  partie sont faits ici (2.3, 1, `TODO.md`, `process.md` §12). Aucune pull
+  request n'est ouverte, et rien n'est commencé : le mainteneur n'a pas
+  demandé de tâche.
 
 ## 8. Le ménage fait
 

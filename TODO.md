@@ -1,26 +1,25 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `0f469e7` de `configure-clean` (la
-fusion de #298, la tâche PQ, le 8 novembre 2026 à 20 h 44 UTC, après celles
-de #299, de #297, de #296 et de #295, de #294, le manuel dans le style de la
-thèse, et de #292, de #293, #291, #290 et #289), en tâches PH, PJ, PP et PT (PA
-à PG, PI, PL, PQ et PS sont faites, PK et PM sont closes sans code : voir
-`TODO_DONE.md`). Ce
-fichier et l'issue #179 ont le même contenu. Ce qui est fait et décidé est dans
-`TODO_DONE.md` (l'issue #177 n'est plus mise à jour), ce qui est reporté dans
-`TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142 sont fermées, et
-`TODO_mistral.md` est supprimé, comme `TODO_fin.md` : ses articles sont répartis
-dans les trois registres, dont les tâches PS (faite par #297) et PT
-(`TODO_DONE.md` 3.25).
+Ce qui reste à faire sur GAOL v5 au commit `ac9f130` de `configure-clean` (la
+fusion de #300, hors des points, le 8 novembre 2026 à 21 h 38 UTC, après celles
+de #298, de #299, de #297, de #296 et de #295, de #294, le manuel dans le style
+de la thèse, et de #292, de #293, #291, #290 et #289), en tâches PH, PJ, PP et
+PT (PA à PG, PI, PL, PQ et PS sont faites, PK et PM sont closes sans code : voir
+`TODO_DONE.md`). Ce fichier et l'issue #179 ont le même contenu. Ce qui est fait
+et décidé est dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour), ce qui
+est reporté dans `TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142
+sont fermées, et `TODO_mistral.md` est supprimé, comme `TODO_fin.md` : ses
+articles sont répartis dans les trois registres, dont les tâches PS (faite par
+#297) et PT (`TODO_DONE.md` 3.25).
 
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à envoyer à un autre projet ni à publier sans l'accord
-du mainteneur. La pull request #300 est ouverte (hors des points : la recette de
-compilation croisée GCC 12.2 pour aarch64 de `todo-notes/gcc12-aarch64/`).
-#295 (PS.2), #296 (PM), #297 (la tâche PS), #299 (PQ.2) et #298 (PQ.1) sont
-fusionnées le 8 novembre, à 17 h 21, 17 h 29, 19 h 38, 20 h 31 et 20 h 44 UTC ;
-leurs registres sont faits.
+du mainteneur. Aucune pull request n'est ouverte. #295 (PS.2), #296 (PM), #297
+(la tâche PS), #299 (PQ.2), #298 (PQ.1) et #300 (hors des points : la recette de
+compilation croisée GCC 12.2 pour aarch64 de `todo-notes/gcc12-aarch64/`) sont
+fusionnées le 8 novembre, à 17 h 21, 17 h 29, 19 h 38, 20 h 31, 20 h 44 et
+21 h 38 UTC ; leurs registres sont faits.
 
 ## Comment lire ce fichier
 
