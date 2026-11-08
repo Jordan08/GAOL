@@ -141,7 +141,7 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   d'autres projets (PH), le tableau de Clang 21 et la publication (PJ), un cas
   de 12.12.7 à décider (PM), le FIXME de `div_rel` en SSE2 (PP), deux petits
   changements décidés le 8 novembre (PQ), les textes faux ou périmés du code et
-  de la documentation (PS) et trois relevés jamais faits (PT) : voir `TODO.md`.
+  de la documentation (PS) et deux relevés jamais faits (PT) : voir `TODO.md`.
   Le 8 novembre, `TODO_fin.md` (la relecture du 4 novembre) est réparti dans les
   trois registres et supprimé (3.25).
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
@@ -1997,8 +1997,19 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   test, le mutant qui échange l'ordre des deux tests (`IOC` levé pour un `x`
   vide et un `d` NaN signalant) passait toute la suite : `rounding_direction`
   vérifie maintenant, pour NEON, que `x += d`, `-=`, `*=`, `/=` et `%=` d'un `x`
-  vide et d'un `d` NaN signalant ne lèvent pas `FE_INVALID` ; fusionnée à 21 h
-  21)
+  vide et d'un `d` NaN signalant ne lèvent pas `FE_INVALID` ; le micro-banc de
+  `x op= d` demandé à la session MACarm4, dont le résultat n'était noté nulle
+  part, est **fait** le 30 octobre (noté le 8 novembre d'après son message) :
+  Apple M2, Apple clang 21.0.0, sur secteur avec `lowpowermode 0` (charge de
+  1,37 à 1,50), `bench_ctor.cpp` (1 024 appels indépendants, le minimum de 9
+  répétitions), 5 alternations dans les deux ordres et la médiane, #250
+  (`4c3aee1`) contre la base `ffc875a` (le code objet de `4c3aee1` est celui de
+  `786f13b`, mesuré d'abord) ; `x += d`, `-=`, `*=` et `/=` avec un `x` vide
+  (1,48 ns, 1,77 pour `/=`) ou un `d` NaN : 1,000 ; avec `x` et `d` finis :
+  0,880, 0,879, 0,892 et 0,907 ; aucune ligne au-dessus de 1,03 ; **non
+  chronométrés** : `%=`, `x` vide et `d` NaN ensemble (déduit des deux cas
+  séparés, jamais vérifié), une chaîne d'appels dépendants et le Neoverse N2 ;
+  fusionnée à 21 h 21)
 
 - #239 (NEON `max(x, y)` et `min(x, y)` par des instructions entières sur les
   quatre mots stockés, en plus court que le noyau de #236 (41 à 43 instructions
@@ -5060,10 +5071,11 @@ Où est allé chaque article, par section de `TODO_fin.md` :
   3.4, avec les quatre lignes de la seule CI décidées le 8 novembre) ; PQ.1
   (3.5, `centered_form`) ; décidé (3.6, le `ChangeLog` décrit la bibliothèque :
   3.24).
-- **4, les mesures jamais faites** : la tâche PT (4.2, 4.3 et 4.9) ; PJ.2 (4.1
-  et 4.10) ; PH.2 (4.11) ; `TODO_AFTER.md` 4.11 (4.6, `/GS`), 4.12 (4.7, ce que
-  #200 n'a pas vérifié) et 5.19 (4.5, `round_ties_to_even()`) ; PQ.2 (4.8) ;
-  sans objet (4.4, `compoundm1`, décidé le 8 novembre).
+- **4, les mesures jamais faites** : la tâche PT (4.2 et 4.9) ; 4.3 fait (le
+  résultat de MACarm4, 2.3, #250) ; PJ.2 (4.1 et 4.10) ; PH.2 (4.11) ;
+  `TODO_AFTER.md` 4.11 (4.6, `/GS`), 4.12 (4.7, ce que #200 n'a pas vérifié) et
+  5.19 (4.5, `round_ties_to_even()`) ; PQ.2 (4.8) ; sans objet (4.4,
+  `compoundm1`, décidé le 8 novembre).
 - **5, les limites connues** : `TODO_AFTER.md` §5, articles 5 à 18 (3.24), sauf
   l'article 6 (`gaol_pown()`), fait par `634e3e1`.
 - **6, les faits et les décisions que ce fichier ne notait pas** : écrits ici le
@@ -5094,8 +5106,11 @@ quatre réponses chacune :
   `gaol_interval_core.cpp` reste dans PS.
 - **Trois mesures mineures** (`round_ties_to_even()`, `/GS`, #200) : où elles
   sont, dans `TODO_AFTER.md` (5.19, 4.11 et 4.12) : confirmé.
-- **`x op= d` de #250 (PT.3)** : demander le résultat à la session MACarm4
-  (message du 8 novembre, accusé de réception reçu).
+- **`x op= d` de #250 (PT.3)** : demander le résultat à la session MACarm4.
+  Elle l'avait mesuré le 30 octobre : « fait, sauf deux points » (`%=` et `x`
+  vide avec `d` NaN ensemble, sans ligne), écrit dans l'entrée de #250 (2.3) ;
+  PT.3 sort de `TODO.md`, et la session n'ajoute ces deux lignes que si le
+  mainteneur le redemande.
 
 Les tâches nouvelles sont PS et PT ; la lettre PR est laissée de côté, car «
 PR » dit déjà pull request. `TODO.md`, `TODO_AFTER.md`, `process.md` et
@@ -6705,7 +6720,8 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   5.19, l'introduction de §5 et la fin des renvois à `TODO_fin.md`), ce fichier
   (3.25 et les articles que son 6 demandait), `process.md` (l'en-tête et §12),
   `STEP.md` (la phrase qui nommait `TODO_fin.md`) et la suppression de
-  `TODO_fin.md` (`git rm`). Les issues #178 et #179 suivent (`process.md` §9).
+  `TODO_fin.md` (`git rm`). Les issues #178 et #179 sont mises à jour le même
+  jour (`process.md` §9).
 - Avant d'écrire, les articles à faire de `TODO_fin.md` ont été relus contre
   l'arbre : les articles 2.1, 2.2, 2.5 à 2.8 et 2.10 sont encore vrais (les
   numéros de ligne
@@ -6723,6 +6739,10 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   l'arbre partagé restant sur `configure-clean`. Reconstruire les sources de la
   base donne le PDF commité, à un numéro de page de l'index près (« accuracy,
   205 » au lieu de 206). Pas de relecteur indépendant, dit dans la pull request.
+- Le micro-banc de `x op= d` de #250 : MACarm4 a répondu le même jour (2.3,
+  entrée de #250) ; PT n'a plus que deux points. `gh issue view` échoue ici sur
+  GraphQL après un `gh api -X PATCH` réussi : vérifier le corps par `gh api
+  repos/Jordan08/GAOL/issues/N --jq .body`.
 - Les pièges. Un `Edit` qui remplace le début d'une ligne en laisse la fin sur
   la même ligne (deux lignes de plus de 80 colonnes, trouvées par un contrôle de
   longueur en caractères). Un script qui retire des renvois en fin de ligne

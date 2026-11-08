@@ -55,7 +55,7 @@ du manuel sur les puissances entières de NEON (PS.2), avec le PDF refait.
 | PP | Le FIXME de `div_rel` : le cas N1 M en SSE2 | un point | M |
 | PQ | `centered_form` pour `midrad`, et le test de `<a, a>` en `hexfloat` | deux points | S |
 | PS | Les textes faux ou périmés du code et de la documentation | huit points | S |
-| PT | Les relevés et les vérifications jamais faits | trois points | S |
+| PT | Les relevés et les vérifications jamais faits | deux points | S |
 
 ## PH. Les signalements à d'autres projets [attend l'accord du mainteneur]
 
@@ -517,10 +517,13 @@ article contre l'arbre, car un autre travail a pu le régler.
 
 ## PT. Les relevés et les vérifications jamais faits [S]
 
-Trois mesures ou vérifications que des pull requests ont demandées sans que leur
+Deux mesures ou vérifications que des pull requests ont demandées sans que leur
 résultat soit noté nulle part (relecture du 4 novembre, `TODO_DONE.md` 3.19 ;
-tâche demandée le 8 novembre, 3.25). Chacune est indépendante. Aucune ne change
-le code, sauf si la première trouve des avertissements à corriger.
+tâche demandée le 8 novembre, 3.25). Une troisième, le micro-banc de `x op= d`
+de #250, est faite : la session MACarm4 l'avait mesuré le 30 octobre, et son
+résultat est dans l'entrée de #250 (`TODO_DONE.md` 2.3). Chacune est
+indépendante. Aucune ne change le code, sauf si la première trouve des
+avertissements à corriger.
 
 1. **Les avertissements de meson dans `tests/rounding_direction.cpp`.** Le
    build meson y donnait 6 avertissements (`-Wconversion` et
@@ -540,11 +543,3 @@ le code, sauf si la première trouve des avertissements à corriger.
    journaux 90 jours par défaut, soit jusqu'à la fin de janvier 2027), noter les
    rapports du N2 dans l'entrée de #219 ; si la CI ne les a plus, écrire qu'ils
    sont perdus, la mesure de PJ.2 les refaisant avec la version.
-3. **Le micro-banc de `x op= d` de #250** (x vide, d NaN) : demandé à la session
-   MACarm4, son résultat n'est nulle part, et `tests/performance.cpp` n'a pas de
-   ligne `x op= d`. *Décidé le 8 novembre* : demander le résultat à la session
-   MACarm4 (message du 8 novembre, accusé de réception reçu : elle cherche dans
-   son transcript et répond « RÉSULTATS » ou « non fait » ; elle ne refait la
-   mesure que sur secteur avec `lowpowermode 0`, ce que le mainteneur doit lui
-   donner) ; écrire sa réponse dans l'entrée de #250 de `TODO_DONE.md` 2.3, fait
-   ou non fait.

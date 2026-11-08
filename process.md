@@ -855,7 +855,7 @@ git ls-remote --heads origin
   littéraux aux bornes calculées), le FIXME de `div_rel` en SSE2 (PP), le
   renommage de `midrad` en `centered_form` et le test de `<a, a>` en `hexfloat`
   (PQ, le renommage avant l'étiquette), les textes faux ou périmés du code et
-  de la documentation (PS) et trois relevés jamais faits (PT), nés de la
+  de la documentation (PS) et deux relevés jamais faits (PT), nés de la
   relecture du 4 novembre (`TODO_DONE.md` 3.25), les signalements à d'autres
   projets (PH, avec l'accord du mainteneur), puis la version (PJ, qui reprend le
   tableau de
