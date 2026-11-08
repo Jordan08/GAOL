@@ -461,7 +461,7 @@ int main()
   // one after the other: the compilers evaluate arguments in another order
   const auto random_double = [&generator](int spread) {
     const double significand = std::ldexp(static_cast<double>(generator() >> 11), -52) - 1.0;
-    const int exponent = static_cast<int>(generator() % (2 * spread + 1)) - spread;
+    const int exponent = static_cast<int>(generator() % static_cast<std::mt19937_64::result_type>(2 * spread + 1)) - spread;
     return std::ldexp(significand, exponent);
   };
   std::vector<double> values;
