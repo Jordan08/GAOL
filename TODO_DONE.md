@@ -139,7 +139,7 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   reproduite avec les drapeaux de GAOL (3.17), ses boucles de relations étant
   entrées dans `rounding_direction` par #292 ; PM, le cas (b) de 12.12.7 (les
   littéraux aux bornes calculées), est close sans code le 8 novembre : on la
-  documente seulement, dans la synthèse de PJ.7 (3.26) ; il reste les
+  documente seulement, par #296 (3.26) ; il reste les
   signalements à d'autres projets (PH), le tableau de Clang 21 et la
   publication (PJ), le FIXME de `div_rel` en SSE2 (PP), deux petits changements
   décidés le 8 novembre (PQ), les textes faux ou périmés du code et de la
@@ -5163,6 +5163,23 @@ traite la tâche PM en faisant le choix 1 (documenter seulement...) »).
   seulement que `textToInterval` rend « l'ensemble vide sans rien dire » pour
   une chaîne qui n'est pas un intervalle, ce qui ne couvre pas le cas (b), non
   vide : à décider (PJ.7).
+- **La suite, le même jour.** Les réponses du mainteneur aux trois questions
+  posées après la tâche : la phrase du manuel et de l'en-tête, « pull request
+  `manual*` maintenant » (#296, branche `manual-case-b-text`, PDF refait) ;
+  les registres, « direct, toujours » après une décision du mainteneur qui ne
+  donne pas de pull request (`process.md` §3.4, `f1d4281`) ; la tâche suivante,
+  PQ (#298 et #299, 7.23). #296 corrige aussi `doc/differences.md`
+  (`process.md` §7.5 : une branche `manual*` le corrige) et
+  `doc/compare/itf1788.md`. Le relecteur de #296 a trouvé que « un intervalle
+  qui contient l et u », écrit d'abord, est faux : pour l au-dessus de u et une
+  borne calculée, le littéral est l'intervalle de la borne inférieure de l à la
+  borne supérieure de u, qui peut manquer l ou u (mesuré le 8 novembre :
+  `[1/3, 0x1.5555555555555p-2]` est le point `0x1.5555555555555p-2`,
+  `[0.1+0, 0x1.9999999999999p-4]` le point `0x1.9999999999999p-4`,
+  `[sqrt(2), 0x1.6a09e667f3bccp+0]` le point `0x1.6a09e667f3bccp+0`). C'est un
+  faux positif que 12.12.7 permet, mais le cas (b) demande un intervalle qui
+  contient l et u : les textes disent la restriction, et le choix de rendre
+  l'enveloppe des deux encadrements est à décider (`TODO.md` PJ.7).
 
 ## 4. Les points faits, par lettre
 
@@ -6815,6 +6832,30 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
 - Le dernier commit du code reste `634e3e1` : les en-têtes de `TODO.md` et de
   `TODO_AFTER.md` ne changent pas de commit. Le push annule la CI de `eb56df7`,
   un commit de registres sans effet sur le code, encore en file d'attente.
+- La suite du même jour, travaillée dans des clones `--shared` du scratchpad
+  (`origin` remis sur GitHub, SSH), l'arbre partagé restant sur
+  `configure-clean` : #296 (`manual-case-b-text`, 2 commits, le texte puis le
+  PDF de 385 pages comme la base), #298 (`todo-pq-centered-form`, 1 commit : 38
+  lignes de 11 fichiers, la déclaration, `centeredForm(m, r)` de
+  `gaol_ieee1788`, ses trois vérifications dans `tests/ieee1788.cpp`) et #299
+  (`todo-pq-hexfloat-point`, un bloc de 136 vérifications dans
+  `tests/numbers.cpp`). Les validations de #298 : CMake SSE2, FPU, Clang 18,
+  `-Werror` avec GCC et Clang 18, autotools, meson, le GAOL installé,
+  `manual/check_examples.py` (116 exemples) et le manuel ; #296 (des textes) et
+  #299 (un test) n'en demandaient pas autant, leurs descriptions disent ce qui
+  a été lancé.
+- Les pièges. (1) `f1d4281` (la règle de `process.md` §3.4), commité en local
+  sur `configure-clean` dans l'arbre partagé, était déjà sur GitHub quand la
+  session voulait le pousser : la synchronisation de VS Code l'a fait, après
+  avoir rapatrié `593ddf3` (`process.md` §7.3). (2) Un `sed` qui met `\_` dans
+  un exemple du manuel casse `manual/check_examples.py` : dans les
+  environnements `example` le code est brut, et `\_` n'est que pour `\code`,
+  `\findex` et les arguments de `defstaticmethod`. (3) Un nom de 7 caractères
+  de plus fait déborder un paragraphe du chapitre 15 de 21 pt : ni
+  `\allowbreak` ni une autre coupure des lignes de la source n'y ont rien
+  changé, `\hfill\break` oui. (4) Un `rm -rf` de dossiers de build du
+  scratchpad a été refusé une fois par le contrôle de sécurité de l'outil : les
+  dossiers ont été laissés, et les builds suivants ont pris de nouveaux noms.
 
 ## 8. Le ménage fait
 
