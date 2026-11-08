@@ -5103,8 +5103,10 @@ quatre réponses chacune :
   #179 et #178.
 - **Le manuel (PS.2)** : corriger maintenant la phrase périmée de `doc/simd.md`
   et du chapitre 12 du manuel, et refaire le PDF : #295 (branche
-  `manual-neon-pown-text`, deux commits, 385 pages comme avant, la date
-  d'édition gardée au 6 novembre) ; le commentaire de tête de
+  `manual-neon-pown-text`, 385 pages comme avant, la date d'édition gardée au
+  6 novembre ; relue par un sous-agent, rien de bloquant, ses remarques sur ce
+  que chaque rapport compare et sur la portée des mesures reprises dans deux
+  commits de plus, quatre en tout) ; le commentaire de tête de
   `gaol_interval_core.cpp` reste dans PS.
 - **Trois mesures mineures** (`round_ties_to_even()`, `/GS`, #200) : où elles
   sont, dans `TODO_AFTER.md` (5.19, 4.11 et 4.12) : confirmé.
@@ -6775,14 +6777,19 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   faits de l'article 6 (#82, #118, #63, le commit `849384a`, les corps de #197,
   #201, #202 et #204, le commentaire de #241) ont été vérifiés par `gh api` et
   `git log`, non recopiés.
-- La pull request #295 (branche `manual-neon-pown-text`, deux commits, ouverte
-  le même jour par l'API REST) : le paragraphe « The integer powers on NEON »
-  de `doc/simd.md` et du chapitre 12 du manuel, puis le PDF refait avec
+- La pull request #295 (branche `manual-neon-pown-text`, quatre commits,
+  ouverte le même jour par l'API REST) : le paragraphe « The integer powers on
+  NEON » de `doc/simd.md` et du chapitre 12 du manuel, puis le PDF refait avec
   `manual/build-pdf.sh` (385 pages, 7 « Overfull » comme avant) ; travaillée
   dans un clone du scratchpad (`git clone --shared`, `origin` remis sur GitHub),
   l'arbre partagé restant sur `configure-clean`. Reconstruire les sources de la
   base donne le PDF commité, à un numéro de page de l'index près (« accuracy,
-  205 » au lieu de 206). Pas de relecteur indépendant, dit dans la pull request.
+  205 » au lieu de 206). Relue le même jour par un sous-agent à la demande du
+  mainteneur : rien de bloquant, neuf remarques de rédaction (ce que chaque
+  rapport compare, appels indépendants et dépendants, la portée M2 et
+  AppleClang 21, `a * b - c` et non « chaque soustraction fusionnée », « 80
+  lines » devenu 86), reprises dans un commit de texte et le PDF refait ; il a
+  consommé 131 848 jetons au lieu des 60 000 demandés.
 - Le micro-banc de `x op= d` de #250 : MACarm4 a répondu le même jour (2.3,
   entrée de #250) ; PT n'a plus que deux points. `gh issue view` échoue ici sur
   GraphQL après un `gh api -X PATCH` réussi : vérifier le corps par `gh api
