@@ -136,6 +136,9 @@ commits.
   - la mise à jour de `TODO.md`, `TODO_DONE.md` et `TODO_AFTER.md` après une
     fusion, avec celle de la date et du commit de l'en-tête de `process.md` et
     de son §12 (section 9) ;
+  - la même mise à jour des registres, et des issues #178 et #179, juste après
+    une décision du mainteneur qui ne donne pas de pull request (la réponse à
+    une question, une tâche close sans code), *décidé le 8 novembre* ;
   - les corrections que le mainteneur a explicitement autorisées là, comme les
     avertissements trouvés par les jobs `-Werror` et `/WX` ou un délai de la
     CI.
@@ -833,9 +836,14 @@ git ls-remote --heads origin
   on le documente seulement, dans la synthèse de PJ.7, 3.26) ; l'audit du 13
   octobre a vérifié dans `configure-clean` ce qu'annonçaient alors les points A,
   C à H et J à V.
-- **En cours** : au 8 novembre, la pull request #295 est ouverte (le texte de
-  `doc/simd.md` et du manuel sur les puissances entières de NEON, PS.2, avec le
-  PDF du manuel refait ; branche `manual-neon-pown-text`) ;
+- **En cours** : au 8 novembre, cinq pull requests sont ouvertes : #295 (le
+  texte de `doc/simd.md` et du manuel sur les puissances entières de NEON,
+  PS.2, avec le PDF du manuel refait ; branche `manual-neon-pown-text`), #296
+  (le cas (b) de 12.12.7 de la tâche PM dans le manuel, `gaol_ieee1788.h` et
+  `doc/differences.md`, PDF refait ; `manual-case-b-text`), #297 (la tâche PS,
+  ouverte par une autre session ; `todo-ps-stale-texts`), #298 (PQ.1,
+  `centered_form` ; `todo-pq-centered-form`) et #299 (PQ.2, le test de
+  `hexfloat` ; `todo-pq-hexfloat-point`) ;
   `configure-clean` est au commit `634e3e1` (un commit direct, après la fusion
   de #294, `1e23540`, après celle de #292, `130acea`, et celles de #293, #291,
   #290 et #289, les registres de #288, `6ed4441`, et la fusion de #288,
@@ -855,10 +863,11 @@ git ls-remote --heads origin
   joint en fait plus de 270 000 (voir `TODO_DONE.md` 7.8).
 - **À faire**, dans l'ordre de `TODO.md` : le FIXME de `div_rel` en SSE2 (PP),
   le renommage de `midrad` en `centered_form` et le test de `<a, a>` en
-  `hexfloat` (PQ, le renommage avant l'étiquette), les textes faux ou périmés
-  du code et de la documentation (PS) et deux relevés jamais faits (PT), nés de
-  la relecture du 4 novembre (`TODO_DONE.md` 3.25), les signalements à d'autres
-  projets (PH, avec l'accord du mainteneur), puis la version (PJ, qui reprend le
+  `hexfloat` (PQ : #298 et #299, ouvertes), les textes faux ou périmés du code
+  et de la documentation (PS : #297, ouverte) et deux relevés jamais faits
+  (PT), nés de la relecture du 4 novembre (`TODO_DONE.md` 3.25), les
+  signalements à d'autres projets (PH, avec l'accord du mainteneur), puis la
+  version (PJ, qui reprend le
   tableau de Clang 21, le manuel, les textes qui citent macOS 14, la licence des
   cas d'IBEX et de Codac, sur laquelle le mainteneur écrit aux auteurs (*décidé
   le 5 novembre* : #281), le PDF du manuel, que #294 a refait (385 pages) et qui
