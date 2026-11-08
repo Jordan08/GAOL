@@ -18,14 +18,14 @@
  *--------------------------------------------------------------------------*/
 
 /*
-    This file shall be included by gaol_interval_core.cpp only. It must not be included directly
+    This file shall be included by gaol_interval_core.h only. It must not be included directly
         by any other file.
 
     This file contains all declarations related to the 'interval' class that consider
     the bounds to be a pair of 'double' variables.
 */
 #ifndef GAOL_INTERVAL_CORE_H
-#  error "File gaol_interval_fpu.h shall only be included directly by gaol_interval_core.cpp"
+#  error "File gaol_interval_fpu.h shall only be included directly by gaol_interval_core.h"
 #endif
 
 

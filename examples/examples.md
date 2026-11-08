@@ -306,10 +306,14 @@ explicit comparator.
 `[empty]` and hexadecimal floating-point numbers, always enclosing the number
 written; a malformed text throws `std::invalid_argument`, whose `what()`
 says where and why. A file is read line by line with `std::getline` and
-`gaol::textToInterval(line)` in a `try` of its own. `exact_string()` reads back bit
-for bit. The second part writes one contractor step with the names of the
-standard (`numsToInterval`, `pown`, `mulRev`, `sqrRev`, `precedes`…) in a
-function that opens `gaol_ieee1788` alone.
+`gaol::textToInterval(line)` in a `try` of its own. Where GAOL is built
+without exceptions (`-DGAOL_EXCEPTIONS_ENABLED=OFF`, `--disable-exceptions` of
+configure, `-Denable-exception=false` of meson), its reader ends the program on
+a malformed text, and the example reads such a text, in sections 1.2 and 1.3,
+with `gaol_ieee1788::textToInterval()`, which returns the empty set.
+`exact_string()` reads back bit for bit. The second part writes one contractor
+step with the names of the standard (`numsToInterval`, `pown`, `mulRev`,
+`sqrRev`, `precedes`…) in a function that opens `gaol_ieee1788` alone.
 
 **16 — The example of GAOL 4.** It times a million evaluations of the
 Goldstein-Price function and prints `z = [-87881320, 147125080]`, the natural

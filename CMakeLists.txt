@@ -1214,9 +1214,9 @@ if(NOT MSVC)
   # add_bounds() is 40 bytes, and when a build put its first instructions at
   # the end of a line, a line of 15 additions took 23.3 ns instead of 14.2
   # with Clang 21, the code being the same bytes at another address (GAOL v5,
-  # point PG.105 of TODO.md and #230); GCC 15.2 gained 16.2 against 17.0 ns
-  # and 15.8 against 19.9 for a line of 15 additions and subtractions. For the
-  # library alone, here and with configure and meson
+  # #230 and #232); GCC 15.2 gained 16.2 against 17.0 ns and 15.8 against 19.9
+  # for a line of 15 additions and subtractions. For the library alone, here
+  # and with configure and meson
   set(GAOL_RELEASE_FLAGS "")
   foreach(flag -funroll-loops -fomit-frame-pointer -fexpensive-optimizations -falign-functions=64)
     string(MAKE_C_IDENTIFIER "${flag}" _flag_id)
@@ -1557,12 +1557,12 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   # The archive of the sources: the files of the repository, without what git
   # ignores (.gitignore), the builds within the sources, the packages, and the
   # notes of the work on GAOL v5 (TODO.md, TODO_AFTER.md, TODO_DONE.md,
-  # TODO_fin.md, STEP.md, process.md, todo-notes/), which serve its
-  # maintainers, not the users of a version. CPack writes the CPACK_* variables
-  # into CPackConfig.cmake and CPackSourceConfig.cmake, which it reads when it
-  # runs: CPACK_VERBATIM_VARIABLES has it escape them, so that the backslashes
-  # of these regular expressions reach it as they are, where CMake 3 warned of
-  # an invalid escape sequence, \. (CMP0010, GAOL v5)
+  # STEP.md, process.md, todo-notes/), which serve its maintainers, not the
+  # users of a version. CPack writes the CPACK_* variables into CPackConfig.cmake
+  # and CPackSourceConfig.cmake, which it reads when it runs:
+  # CPACK_VERBATIM_VARIABLES has it escape them, so that the backslashes of
+  # these regular expressions reach it as they are, where CMake 3 warned of an
+  # invalid escape sequence, \. (CMP0010, GAOL v5)
   set(CPACK_VERBATIM_VARIABLES ON)
   set(CPACK_SOURCE_GENERATOR "TGZ")
   set(CPACK_SOURCE_PACKAGE_FILE_NAME "gaol-${PROJECT_VERSION}")
@@ -1577,8 +1577,8 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
     "^${_gaol_source_regex}/build[^/]*/" "/_CPack_Packages/"
     "^${_gaol_source_regex}/gaol-[^/]*\\.tar\\.gz$" "^${_gaol_source_regex}/libgaol-dev_[^/]*\\.deb$"
     "^${_gaol_source_regex}/TODO\\.md$" "^${_gaol_source_regex}/TODO_AFTER\\.md$" "^${_gaol_source_regex}/TODO_DONE\\.md$"
-    "^${_gaol_source_regex}/TODO_fin\\.md$" "^${_gaol_source_regex}/STEP\\.md$"
-    "^${_gaol_source_regex}/process\\.md$" "^${_gaol_source_regex}/todo-notes/"
+    "^${_gaol_source_regex}/STEP\\.md$" "^${_gaol_source_regex}/process\\.md$"
+    "^${_gaol_source_regex}/todo-notes/"
   )
 
   # The archive holds configure as it is committed, and configure says the

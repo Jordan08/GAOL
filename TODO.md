@@ -15,8 +15,11 @@ ses articles sont répartis dans les trois registres, dont les tâches PS et PT
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à envoyer à un autre projet ni à publier sans l'accord
-du mainteneur. La pull request #295 est ouverte : le texte de `doc/simd.md` et
-du manuel sur les puissances entières de NEON (PS.2), avec le PDF refait.
+du mainteneur. Trois pull requests sont ouvertes : #297 (la tâche PS, ouverte
+par une autre session), #298 (PQ.1, `centered_form`) et #299 (PQ.2, le test de
+`hexfloat`). #295 (le texte de `doc/simd.md` et du manuel sur les puissances
+entières de NEON, PS.2) est fusionnée à 17 h 21 UTC (`5bd52a6`) : ses registres
+restent à faire.
 
 ## Comment lire ce fichier
 
@@ -55,7 +58,7 @@ du manuel sur les puissances entières de NEON (PS.2), avec le PDF refait.
 | PP | Le FIXME de `div_rel` : le cas N1 M en SSE2 | un point | M |
 | PQ | `centered_form` pour `midrad`, et le test de `<a, a>` en `hexfloat` | deux points | S |
 | PS | Les textes faux ou périmés du code et de la documentation | huit points | S |
-| PT | Les relevés et les vérifications jamais faits | deux points | S |
+| PT | Les relevés et les vérifications jamais faits | trois points | S |
 
 ## PH. Les signalements à d'autres projets [attend l'accord du mainteneur]
 
@@ -350,19 +353,7 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    chaque pull request limitée à la CI, #34, #35, #48 et #74 (leurs textes sont
    dans `todo-notes/synthese.md`, l'article `29.md` pour #35) ; le `ChangeLog`
    décrit la bibliothèque, non les corrections des pages de `doc/` (la seconde
-   puce de #140 n'y entre donc pas : `TODO_DONE.md` 3.24). Un quatrième texte
-   manque à `doc/differences.md` (*décidé le 8 novembre*, tâche PM, « documenter
-   seulement » : `TODO_DONE.md` 3.26) : la puce « `[l, u]` with l above u is the
-   empty set » (ligne 1633) finit par « the literal is then the interval from
-   the lower bound of l to the upper bound of u » ; y ajouter que c'est le cas
-   (b) de 12.12.7, un intervalle qui contient l et u, que GAOL v5 rend sans
-   signaler `PossiblyUndefinedOperation`, comme il ne signale aucune exception
-   de la norme (`doc/compare/itf1788.md` le dit déjà). Rien au `ChangeLog`, et
-   aucun changement de code. *À décider* : le manuel (`10_ieee1788.tex`, ligne
-   430) et la fin de `gaol/gaol_ieee1788.h` disent seulement que
-   `textToInterval` rend l'ensemble vide sans rien dire, ce qui ne couvre pas ce
-   cas (b), non vide ; la même phrase dans le manuel demande une pull request
-   `manual*` avec le PDF refait (`TODO_DONE.md` 3.26). [S]
+   puce de #140 n'y entre donc pas : `TODO_DONE.md` 3.24). [S]
 
 ## PP. Le FIXME de `div_rel` : le cas N1 M en SSE2 [M]
 
@@ -399,7 +390,13 @@ reste (`TODO_DONE.md` 3.24).
 
 Demandée par le mainteneur le 8 novembre (réponses à la relecture du 4
 novembre : `TODO_DONE.md` 3.24). Deux points indépendants, chacun sa branche et
-sa pull request.
+sa pull request : #298 (le point 1, ouverte le 8 novembre, avec `centeredForm`
+en fonction libre, *confirmé le 8 novembre*) et #299 (le point 2 : le test passe
+avec libstdc++, qui ignore la précision de `hexfloat`, donc rien à corriger
+ici, et il est dans `tests/ieee1788.cpp`, `numbers.cpp` étant déplacé par GCC
+12.2 sur aarch64 à chaque changement : `TODO_DONE.md` 7.23 ; *décidé le 8
+novembre* : si la CI le fait échouer sous une autre bibliothèque, GAOL écrit
+lui-même le hexfloat arrondi vers l'extérieur, dans la même pull request).
 
 1. **`centered_form` à la place de `midrad`** (la remarque de #271), **avant
    l'étiquette de PJ.3** : après v5.0.0, un renommage casserait des programmes.
@@ -416,9 +413,11 @@ sa pull request.
    (1), `doc/differences.md` (2, dont la puce qui suit celle de `mid_rad()`),
    `doc/tests.md` (1), `doc/using.md` (3), `examples/examples.md` (2),
    `examples/tutorial.md` (1) et les chapitres 3, 5, 14 et 15 du manuel (17).
-   Le test de `centeredForm` rend les mêmes bornes que `centered_form`. Le PDF
-   du manuel sera plus vieux que sa source : une pull request `manual*` le
-   refait avant la version (PJ.5).
+   Le test de `centeredForm` rend les mêmes bornes que `centered_form`.
+   *Décidé le 8 novembre* : le PDF du manuel est refait dans le dernier commit
+   de #298, après la fusion de #297 (qui change aussi le manuel) et d'un merge
+   de `configure-clean` dans la branche ; `check_branch` (`CHECK_BRANCH_PDF=1`),
+   `HOUSE_RULES.md` et `process.md` §6.2 admettent ce cas.
 
 2. **Le test de `<a, a>` avec `hexfloat`** (#43, question 8) : la règle qui
    écrit `[a]` pour un intervalle réduit à un point (`display_bounds()`,
@@ -513,3 +512,13 @@ avertissements à corriger.
    journaux 90 jours par défaut, soit jusqu'à la fin de janvier 2027), noter les
    rapports du N2 dans l'entrée de #219 ; si la CI ne les a plus, écrire qu'ils
    sont perdus, la mesure de PJ.2 les refaisant avec la version.
+3. **Trois outils absents des tableaux d'exactitude** (remarqué en faisant
+   #298, *décidé le 8 novembre* : un point de PT). `inflate(r)`,
+   `width_enclosure()` et `interval::centered_form(m, r)`
+   (`gaol/core/gaol_interval_core.h`) ne figurent ni dans `doc/accuracy.md` ni
+   dans le chapitre 11 du manuel (`manual/v5/chapters/11_accuracy.tex`), alors
+   que `tests/other_functions.cpp` vérifie, avec de l'arithmétique rationnelle
+   exacte, qu'ils rendent le plus petit encadrement de [a − r, b + r], de la
+   largeur exacte et de [m − r, m + r]. Ajouter une ligne pour chacun (avec «
+   GAOL v5 »), renvoyant aux tests que `doc/tests.md` décrit déjà. Aucun
+   changement de code ; à faire après la fusion de #298, qui renomme `midrad`.

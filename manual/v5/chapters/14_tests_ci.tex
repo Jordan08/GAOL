@@ -358,9 +358,7 @@ magnitude, \code{sin([1e-10])} and \code{cos([2\textasciicircum{}60])} included,
 has to be the tightest, $\pm1.63\cdot10^{16}$, its width being the double
 below $\pi$ and holding no pole, and \code{tan} within one double over 158
 intervals whose bounds are next to two consecutive poles.\newinvfive{}
-\code{exp2}, \code{exp10}, \code{log2} and \code{log10} have to be the
-tightest, and the exact values where they are doubles (\code{exp10} of 0 to
-22, \code{log10} of a power of ten up to $10^{22}$). The integer functions
+The integer functions
 \code{sign}, \code{trunc}, \code{round\_ties\_to\_even} and
 \code{round\_ties\_to\_away} have to be exact whatever the rounding
 direction, which \code{std::nearbyint} and \code{std::rint} would not be,
@@ -739,7 +737,10 @@ itself, computed with integers apart from GAOL and from CORE-MATH, whose
 values downward and upward have to be its roundings too, which tells a
 fault of CORE-MATH from one of GAOL: CORE-MATH's \code{pow} rounded to
 nearest the midpoints of its exact phase on 32-bit ARM, and its square roots
-on a 32-bit x86 Windows. The functions of Table~10.5 but \code{compoundm1}
+on a 32-bit x86 Windows. \code{exp2}, \code{exp10}, \code{log2} and
+\code{log10} have to be the tightest, and the exact values where they are
+doubles (\code{exp10} of 0 to 22, \code{log10} of a power of ten up to
+$10^{22}$). The functions of Table~10.5 but \code{compoundm1}
 have to be the tightest over intervals too, the hull of their image computed
 from the values at the bounds of the part of the interval in the domain, at
 the points nearest to and farthest from the origin (\code{hypot}), and at

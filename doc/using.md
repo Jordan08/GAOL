@@ -1095,7 +1095,7 @@ intervals of 64-bit ARM processors (see
 [The NEON intervals](#the-neon-intervals)) it is a read of the control register
 FPCR, which holds both, and on 32-bit x86 processors a read of the control
 registers of the two units that round (see
-[The control registers of 32-bit x86 processors](#the-control-registers-of-32-bit-x86-processors))
+[The control registers of x86 processors](#the-control-registers-of-x86-processors))
 (GAOL v5). Code that needs
 its own rounding direction after GAOL's operations builds GAOL with
 `GAOL_PRESERVE_ROUNDING` (`--enable-preserve-rounding`,
@@ -1612,7 +1612,7 @@ overflows raises the overflow exception (`FE_OVERFLOW`) for 23 672 more, whose
 result has an infinite bound all the same; no operation raises the
 invalid-operation or the division-by-zero exception it did not.
 
-### The control registers of 32-bit x86 processors
+### The control registers of x86 processors
 
 A 32-bit x86 processor has two units that round, each with a direction of its
 own: the x87 unit, in the field RC of its control word (bits 11 and 10), and the

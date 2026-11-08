@@ -701,7 +701,12 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   une boucle sur un tableau local de structures (`-O2` et `-O3` ; `-O0` et `-O1`
   donnent les bonnes) : écris un appel de fonction par cas. C'est le même défaut
   que celui de `tests/numbers.cpp`, qui dépasse son délai de 300 s quand le code
-  autour des appels change.
+  autour des appels change. Le 8 novembre (#299), 29 lignes de plus dans
+  `stream_settings()` ont fait échouer 18 vérifications de la lecture des lignes
+  vides, puis, une fois ce test réécrit (un appel par cas, avec ou sans
+  `std::vector`), le programme est resté dans `decimal_output()` : n'ajoute rien
+  à `numbers.cpp` sans l'essayer avec cette compilation croisée, et mets un
+  test nouveau dans un autre programme quand tu peux.
 - Sans matériel ARM : une compilation croisée avec GCC 12.2 dans une image
   Docker locale (`debian:bookworm`, `g++-aarch64-linux-gnu`, `qemu-user`, au
   plus 4 cœurs avec `--cpus`), les tests lancés par `qemu-aarch64 -L
@@ -837,12 +842,16 @@ git ls-remote --heads origin
   3.23), puis, le 8 novembre, le retrait de l'amitié de `gaol_pown()`,
   directement sur `configure-clean` (`634e3e1`, 3.24) ; la tâche PM, close sans
   code le même jour (le cas (b) de 12.12.7, les littéraux aux bornes calculées :
-  on le documente seulement, dans la synthèse de PJ.7, 3.26) ; l'audit du 13
+  on le documente seulement, par #296, fusionnée à 17 h 29 UTC, `7bc3d05`,
+  3.26) ; l'audit du 13
   octobre a vérifié dans `configure-clean` ce qu'annonçaient alors les points A,
   C à H et J à V.
-- **En cours** : au 8 novembre, la pull request #295 est ouverte (le texte de
-  `doc/simd.md` et du manuel sur les puissances entières de NEON, PS.2, avec le
-  PDF du manuel refait ; branche `manual-neon-pown-text`) ;
+- **En cours** : au 8 novembre, trois pull requests sont ouvertes : #297 (la
+  tâche PS, ouverte par une autre session ; `todo-ps-stale-texts`), #298 (PQ.1,
+  `centered_form` ; `todo-pq-centered-form`) et #299 (PQ.2, le test de
+  `hexfloat` ; `todo-pq-hexfloat-point`) ; #295 (le texte de `doc/simd.md` et du
+  manuel sur les puissances entières de NEON, PS.2 ; `manual-neon-pown-text`)
+  est fusionnée à 17 h 21 UTC (`5bd52a6`), ses registres restent à faire ;
   `configure-clean` est au commit `634e3e1` (un commit direct, après la fusion
   de #294, `1e23540`, après celle de #292, `130acea`, et celles de #293, #291,
   #290 et #289, les registres de #288, `6ed4441`, et la fusion de #288,
@@ -862,10 +871,11 @@ git ls-remote --heads origin
   joint en fait plus de 270 000 (voir `TODO_DONE.md` 7.8).
 - **À faire**, dans l'ordre de `TODO.md` : le FIXME de `div_rel` en SSE2 (PP),
   le renommage de `midrad` en `centered_form` et le test de `<a, a>` en
-  `hexfloat` (PQ, le renommage avant l'étiquette), les textes faux ou périmés
-  du code et de la documentation (PS) et deux relevés jamais faits (PT), nés de
-  la relecture du 4 novembre (`TODO_DONE.md` 3.25), les signalements à d'autres
-  projets (PH, avec l'accord du mainteneur), puis la version (PJ, qui reprend le
+  `hexfloat` (PQ : #298 et #299, ouvertes), les textes faux ou périmés du code
+  et de la documentation (PS : #297, ouverte) et deux relevés jamais faits
+  (PT, avec un écart de `doc/accuracy.md`), nés de la relecture du 4 novembre
+  (`TODO_DONE.md` 3.25), les signalements à d'autres projets (PH, avec l'accord
+  du mainteneur), puis la version (PJ, qui reprend le
   tableau de Clang 21, le manuel, les textes qui citent macOS 14, la licence des
   cas d'IBEX et de Codac, sur laquelle le mainteneur écrit aux auteurs (*décidé
   le 5 novembre* : #281), le PDF du manuel, que #294 a refait (385 pages) et qui

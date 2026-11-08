@@ -429,8 +429,15 @@ exact reduction operations of 12.13.5, the conversion specifier \var{cs} of
 \ieee{intervalToText} (13.3), or the exceptions \ieee{UndefinedOperation} and
 \ieee{PossiblyUndefinedOperation} that \ieee{textToInterval} and
 \ieee{exactToInterval} signal (12.12.7, 13.4): for a string that is no
-interval they return the empty set silently. The end of \file{gaol/gaol\_ieee1788.h}
-keeps this list.
+interval they return the empty set silently. Where they cannot tell whether
+$l \le u$ in a literal \code{[l, u]}, case (b) of 12.12.7 (the bounds of
+\pxref{sec:reading-intervals}), they return the interval from the lower bound
+of $l$ to the upper bound of $u$, without \ieee{PossiblyUndefinedOperation}.
+That interval holds $[l, u]$ where $l \le u$; where $l$ is above $u$ it is a
+false positive that the standard permits, and it can miss $l$ or $u$ when a
+bound is computed: \code{"[1/3, 0x1.5555555555555p-2]"} is the point
+\code{0x1.5555555555555p-2}, below $1/3$. The end of
+\file{gaol/gaol\_ieee1788.h} keeps this list.
 
 \begin{Rem}\label{rem:ieee1788-erf}
 In the other direction, a function of GAOL that the standard does not name

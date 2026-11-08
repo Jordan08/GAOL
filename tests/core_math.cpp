@@ -1195,6 +1195,56 @@ namespace
                    + "] rather than [" + show(c.value) + "]";
             });
     }
+    /* Every power of ten that is a double, 10^0 to 10^22 (the cases above hold
+       three of them): exp10_is_exact() and log10_is_exact() of gaol_core
+       decide for each one, and a power left out would give a lower bound one
+       double below it. The literals 1e0 to 1e22 are exact doubles. */
+    static const double powers_of_ten[] = {1e0,  1e1,  1e2,  1e3,  1e4,  1e5,  1e6,  1e7,
+                                           1e8,  1e9,  1e10, 1e11, 1e12, 1e13, 1e14, 1e15,
+                                           1e16, 1e17, 1e18, 1e19, 1e20, 1e21, 1e22};
+    for (int k = 0; k <= 22; ++k) {
+      const double n = static_cast<double>(k), p = powers_of_ten[k];
+      const interval e = exp10(interval(n, n)), l = log10(interval(p, p));
+      check("exp10: 10^k is both bounds, for k from 0 to 22", !e.is_empty() && e.left() == p && e.right() == p,
+            [&] {
+              return "exp10(" + show(n) + ") = ["
+                   + (e.is_empty() ? std::string("empty") : show(e.left()) + ", " + show(e.right()))
+                   + "] rather than [" + show(p) + "]";
+            });
+      check("log10: k is both bounds of the logarithm of 10^k, for k from 0 to 22",
+            !l.is_empty() && l.left() == n && l.right() == n,
+            [&] {
+              return "log10(" + show(p) + ") = ["
+                   + (l.is_empty() ? std::string("empty") : show(l.left()) + ", " + show(l.right()))
+                   + "] rather than [" + show(n) + "]";
+            });
+    }
+    /* Every power of two that is a double, 2^-1074 to 2^1023, the subnormal
+       ones too (the cases above hold five of them): exp2_is_exact() and
+       log2_is_exact() decide for each one. The double is made from its bits:
+       the exponent field k + 1023 for a normal one, the one bit k + 1074 of
+       the significand for a subnormal one. */
+    for (int k = -1074; k <= 1023; ++k) {
+      const std::uint64_t bits = (k >= -1022) ? static_cast<std::uint64_t>(k + 1023) << 52
+                                              : static_cast<std::uint64_t>(1) << (k + 1074);
+      double p;
+      std::memcpy(&p, &bits, sizeof p);
+      const double n = static_cast<double>(k);
+      const interval e = exp2(interval(n, n)), l = log2(interval(p, p));
+      check("exp2: 2^k is both bounds, for k from -1074 to 1023", !e.is_empty() && e.left() == p && e.right() == p,
+            [&] {
+              return "exp2(" + show(n) + ") = ["
+                   + (e.is_empty() ? std::string("empty") : show(e.left()) + ", " + show(e.right()))
+                   + "] rather than [" + show(p) + "]";
+            });
+      check("log2: k is both bounds of the logarithm of 2^k, for k from -1074 to 1023",
+            !l.is_empty() && l.left() == n && l.right() == n,
+            [&] {
+              return "log2(" + show(p) + ") = ["
+                   + (l.is_empty() ? std::string("empty") : show(l.left()) + ", " + show(l.right()))
+                   + "] rather than [" + show(n) + "]";
+            });
+    }
     // The domains of Table 9.1: the logarithms are defined on (0, +oo) only
     check("log2: empty where no number is positive", log2(interval(-4.0, 0.0)).is_empty(),
           [] { return std::string("log2([-4, 0])"); });

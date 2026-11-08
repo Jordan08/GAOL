@@ -196,12 +196,7 @@ point Q), which `numbers` checks there too.
   that `floor(interval(x) / interval::pi())` gives, over the intervals whose
   bounds are 0, ±1, ±3, multiples of π and their neighbours, 2<sup>52</sup>,
   10<sup>300</sup>, the largest double, subnormals and ±∞ (GAOL v5: it
-  computes them on doubles). `exp2`, `exp10`, `log2` and `log10` have
-  to be the tightest enclosures, and the exact values themselves where they are
-  doubles (`exp2` of a whole number, `exp10` of 0 to 22, `log2` of a power of
-  two, `log10` of a power of ten up to 10^22). `nth_root(I, q)` has to be an
-  enclosure for a negative q too, which is `inverse(nth_root(I, -q))`, and
-  `nth_root(I, 3)` the cube root CORE-MATH gives. The integer functions of
+  computes them on doubles). The integer functions of
   Table 9.1 — `sign`, `trunc`, `round_ties_to_even` and `round_ties_to_away` —
   are exact, and have to give the same result whatever rounding direction the
   calling code left, which `std::nearbyint` and `std::rint` would not: they are
@@ -1006,20 +1001,26 @@ point Q), which `numbers` checks there too.
   the pairs is 8 to the double nearest 1/3, whose product 3y rounds to 1 without
   being 1. With flush-to-zero set (x86), the lower bound of
   `pow([0.5], [2^-1074])` has to stay below 1, the product 1024y
-  being flushed to 0. The functions of Table 10.5 GAOL provides, but
-  `compoundm1`, which CORE-MATH has not and which the test `compoundm1` (below)
-  checks, have to be the tightest enclosures over intervals too: the hull
-  of their image, computed from the values at the bounds of the
-  part of the interval in the domain (`expm1`, `exp2m1`, `exp10m1`, `log1p`,
-  `log2p1`, `log10p1`, `rsqrt`, `atanpi`, `asinpi`, `acospi`), at the points of
-  the box nearest to the origin and farthest from it (`hypot`), at the
-  corners of the box (`atan2pi`), and, for `sinpi`, `cospi` and `tanpi`, at
-  every multiple of 1/2 within, enumerated one by one, where their extrema
-  and poles are (GAOL v5). The bounds are drawn among the points where the
-  value is a double (2<sup>k</sup> − 1, 10<sup>k</sup> − 1, the powers of 4,
-  Pythagorean triples, the diagonals) and their neighbours, so that a value
-  taken for exact when it is not, which gives a bound that no longer encloses
-  the image, fails as a double missed does. The arguments of `asinpi` next to
+  being flushed to 0. `exp2`, `exp10`, `log2` and `log10` have
+  to be the tightest enclosures, and the exact values themselves where they are
+  doubles (`exp2` of a whole number, `exp10` of 0 to 22, `log2` of a power of
+  two, `log10` of a power of ten up to 10^22). `nth_root(I, q)` has to be an
+  enclosure for a negative q too, which is `inverse(nth_root(I, -q))`, and
+  `nth_root(I, 3)` the cube root CORE-MATH gives. The functions of Table 10.5
+  GAOL provides, but `compoundm1`, which CORE-MATH has not and which the test
+  `compoundm1` (below) checks, have to be the tightest enclosures over
+  intervals too: the hull of their image, computed from the values at the
+  bounds of the part of the interval in the domain (`expm1`, `exp2m1`,
+  `exp10m1`, `log1p`, `log2p1`, `log10p1`, `rsqrt`, `atanpi`, `asinpi`,
+  `acospi`), at the points of the box nearest to the origin and farthest from
+  it (`hypot`), at the corners of the box (`atan2pi`), and, for `sinpi`,
+  `cospi` and `tanpi`, at every multiple of 1/2 within, enumerated one by one,
+  where their extrema and poles are (GAOL v5). The bounds are drawn among the
+  points where the value is a double (2<sup>k</sup> − 1, 10<sup>k</sup> − 1, the
+  powers of 4, Pythagorean triples, the diagonals) and their neighbours, so
+  that a value taken for exact when it is not, which gives a bound that no
+  longer encloses the image, fails as a double missed does. The arguments of
+  `asinpi` next to
   ±1 where CORE-MATH shifted a 64-bit integer by 65 bits are among them: the
   jobs of the continuous integration with the sanitizers stop there if that
   undefined behaviour comes back. `sin` is also checked, in the four

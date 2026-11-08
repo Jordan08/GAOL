@@ -1645,7 +1645,15 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   doubles around them. `pi` and another number, a number far beyond the doubles
   (about 10^311 or more, or about 10^-331 or less, in decimal) and bounds that
   are computed (`1/3`, `sqrt(2)`) may not be told apart: the literal is then the
-  interval from the lower bound of l to the upper bound of u.
+  interval from the lower bound of l to the upper bound of u. That is case (b)
+  of 12.12.7, where the constructor cannot decide whether l ≤ u: GAOL v5
+  returns that interval without signalling `PossiblyUndefinedOperation`, as it
+  signals none of the exceptions of the standard. It holds [l, u] where l ≤ u.
+  Where l is above u, the empty set is the exact answer and the interval is a
+  false positive that 12.12.7 permits, but it may miss l or u when a bound is
+  computed, where case (b) asks for an interval that contains both:
+  `[1/3, 0x1.5555555555555p-2]` is the point `0x1.5555555555555p-2`, which is
+  below 1/3.
 - **A bound of `<a, b>` has to be a double.** `<0.1, 0x1.9999999999999p-4>`
   (the double just below 0.1), `<0x1.999999999999ap-4, 0.1>` and `<1e-400, 0>`
   were read as the point interval of a bound of the interval of the number
