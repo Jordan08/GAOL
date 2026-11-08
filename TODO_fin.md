@@ -90,9 +90,14 @@ un autre projet sans l'accord du mainteneur.
    de protection de branche s'il y en a » : `master` est protégée sur GitHub, et
    aucun registre n'en parle. Destination : PJ.3, vérifier avant la fusion de
    `MATH-CORE` dans `master` que ces règles n'exigent pas un contrôle qui
-   n'existe plus (les jobs de macOS 14) ; non vérifiable ici, les règles ne se
-   lisent pas avec l'accès de cette session. Le mainteneur s'en occupe (réponse
-   du 5 novembre).
+   n'existe plus (les jobs de macOS 14) ; le mainteneur s'en occupe (réponse du
+   5 novembre). *Vérifié le 8 novembre* par l'API de GitHub, en lecture seule
+   (`repos/Jordan08/GAOL/rulesets`, `rules/branches/master`) : la protection est
+   le jeu de règles « master verif » (18 octobre, actif, sans contournement),
+   qui interdit la suppression et le push qui n'est pas une avance rapide, et
+   exige une pull request (0 approbation) ; aucun contrôle d'état n'est exigé,
+   donc aucun job de macOS 14. Reste à retenir pour PJ.3 (écrit dans
+   `TODO.md`) : la fusion de `MATH-CORE` dans `master` est une pull request.
 
 ## 2. Des textes faux ou périmés dans le code et la documentation
 
@@ -454,10 +459,14 @@ change. La liste reste, comme mémoire.
 1. **#178** n'a pas suivi `TODO_AFTER.md` depuis le 3 novembre : son en-tête dit
    « au 31 octobre 2026 (commit `5aef739`) », et il n'a aucun des changements
    faits depuis. À mettre à jour avec le `TODO_AFTER.md` de cette branche, après
-   sa fusion (`process.md` §9).
+   sa fusion (`process.md` §9). Fait le 7 novembre (22 h 38 UTC, après
+   `4350bda`) : l'en-tête dit « au 7 novembre 2026 (commit `1e23540`) » et le
+   corps est celui de `TODO_AFTER.md` (vérifié le 8 novembre, aux sauts de
+   ligne près).
 2. **#179** est à mettre à jour après `1e0f368` (la tâche PK) ; les titres de
    #178 (« au 31 octobre ») et de #179 (« PH à PK (au 31 octobre) ») sont
-   périmés.
+   périmés. Fait le 7 novembre, avec #178 : les deux titres disent « au 7
+   novembre 2026 » et celui de #179 « les tâches PH, PJ et PM ».
 3. **#125 (CORE-MATH)** donne encore le correctif 3 « à envoyer », que l'amont a
    fait (`0d8b885a`), et le correctif 8 « à écrire », que #144 a écrit
    (`3rd/README.md:1557`).

@@ -193,11 +193,16 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    28 octobre (*décidé le 28 octobre*). Refaire enfin, au même commit, la mesure
    de la règle du chemin AVX-512 de `doc/simd.md` (il suit
    `GAOL_PRESERVE_ROUNDING`, seuil d'un gain médian de 5 %, mesuré le 26 octobre
-   sur le seul i7-1185G7, dont l'AVX-512 est à demi-largeur), sur une machine à
-   AVX-512 pleine largeur si le mainteneur en donne l'accès (un Xeon, un Zen 4)
-   : `.github/scripts/performance-ab.sh --runs 9 --lines`, quatre builds de la
-   même source ; corriger la règle et `doc/simd.md` si le résultat diffère.
-   *Décidé le 26 octobre* : avec les mesures de PJ, pas avant.
+   sur le seul i7-1185G7, dont l'AVX-512 est à demi-largeur ; *remesuré le 7
+   novembre par #294* sur le même processeur, Clang 21.1.8, médiane de 9
+   passes : la règle tient, 0,83 sans préservation et 2,87 avec, et
+   `doc/simd.md`, `doc/using.md`, `CMakeLists.txt` et les chapitres 4 et 12 du
+   manuel portent les chiffres du 7 novembre), sur une machine à AVX-512 pleine
+   largeur si le mainteneur en donne l'accès (un Xeon, un Zen 4) :
+   `.github/scripts/performance-ab.sh --runs 9 --lines`, quatre builds de la
+   même source ; corriger la règle et `doc/simd.md` si le résultat diffère (et
+   le manuel, PJ.5). *Décidé le 26 octobre* : avec les mesures de PJ, pas
+   avant ; reste donc la machine à pleine largeur.
 3. **34** : les recettes FetchContent récupèrent GAOL 4 : `doc/using.md`, le
    manuel et `tests/fetch_content` prennent la branche `master` de
    `Jordan08/GAOL`, et le `git clone` de `doc/building.md` la branche par
@@ -209,11 +214,19 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    `406d850`, ceux de `.claude/CLAUDE.md` que `configure-clean` a par `68fe887`
    et `195e4a2` : une vraie fusion, sans différence de contenu), puis étiqueter
    `v5.0.0` ; les recettes et le test gardent `master` jusqu'à l'étiquette, puis
-   la citent. Après v5.0.0, le développement continue dans `configure-clean`, et
-   `master` ne reçoit que les versions. Les commits à ligne de crédit (123)
-   restent (*décidé le 19 octobre*). La licence est dite (LGPL pour GAOL, MIT
-   pour CORE-MATH) dans la section « Licences » de `README.md` et dans le manuel
-   : fait. Pour #281, les cas de `tests/test_ibex_codac.cpp` viennent de tests
+   la citent. *Vérifié le 8 novembre* par l'API de GitHub (lecture seule) :
+   `master`, la branche par défaut, n'a pas de protection classique, mais le
+   jeu de règles « master verif » (18 octobre, actif, sans contournement, même
+   pour le mainteneur) interdit de la supprimer et d'y pousser autre chose
+   qu'une avance rapide, et exige une pull request (0 approbation, fusion,
+   squash et rebase permis) ; aucun contrôle d'état n'est exigé, donc aucun job
+   de macOS 14 ; rien ne vise `MATH-CORE`, `configure-clean` ni les étiquettes
+   (les quatre `v4.*` existent). La fusion de `MATH-CORE` dans `master` passe
+   donc par une pull request, non par un push direct. Après v5.0.0, le
+   développement continue dans `configure-clean`, et `master` ne reçoit que les
+   versions. Les commits à ligne de crédit (123) restent (*décidé le 19
+   octobre*). La licence est dite (LGPL pour GAOL, MIT pour CORE-MATH) dans la
+   section « Licences » de `README.md` et dans le manuel : fait. Pour #281, les cas de `tests/test_ibex_codac.cpp` viennent de tests
    d'IBEX et de Codac sous LGPL v3 (leur `COPYING.LESSER`), alors que le
    `README.md` dit GAOL sous LGPL v2 (`COPYING.LIB`) ; l'en-tête du fichier
    donne les copyrights et les deux licences sans conclure (*décidé le 2
