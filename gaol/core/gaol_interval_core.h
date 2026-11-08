@@ -933,7 +933,6 @@ namespace gaol_core {
 
 
     friend GAOL_PUBLIC interval gaol_uipow(const interval& I, unsigned int e);
-    friend GAOL_PUBLIC interval gaol_pown(const interval& I, int e);
 #if !GAOL_VECTOR_INTERVALS
     friend GAOL_PUBLIC interval sqr(const interval& I);
 #endif
