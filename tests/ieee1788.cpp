@@ -1428,7 +1428,7 @@ namespace
 //     intervalToExact() in one thread while another writes intervals in
 //     interval_format::bounds: the other one has to write them in that format.
 //     intervalToExact() switched the global output format to hexa and back,
-//     which the other threads saw meanwhile (TODO.md, point 7).
+//     which the other threads saw meanwhile.
 //   */
 //   void exact_text_in_another_thread()
 //   {
