@@ -12,7 +12,9 @@
  * interval::centered_form(), bisect(), is_bisectable(), hull() and intersect(); the
  * comparisons of IEEE 1788-2015 (Tables 10.3 and 10.4); and
  * the relational functions (sqrt_rel, div_rel...), which have to keep the
- * values they are given and bound them within a few doubles; and the reverse
+ * values they are given and bound them within a few doubles, div_rel() of a
+ * negative K by a J with 0 inside being the exact hull of its two parts (GAOL
+ * v5, point PP of TODO.md); and the reverse
  * functions of max, min, sign and floor (max_rel, min_rel, sign_rel,
  * floor_rel), which have to be the hulls of their sets, read from their
  * definitions on a grid and by sampling (GAOL v5).
@@ -998,6 +1000,138 @@ namespace
     }
   }
 
+  // The smallest double that is at least num/den, num and den being finite and
+  // den not 0: the quotient rounded upward, read from the exact quotient (the
+  // largest double, negated, below minus the largest double; the zero of the
+  // sign of the quotient where it underflows)
+  double quotient_up(double num, double den)
+  {
+    double q;
+    {
+      RoundingToNearest nearest;
+      q = num/den;
+    }
+    if (q == inf) {
+      return inf;
+    }
+    if (q == -inf) {
+      return -std::numeric_limits<double>::max();
+    }
+    const Exact v = quotient(dyadic(num), dyadic(den));
+    while (compare(q, v) < 0) {
+      q = next_double(q);
+    }
+    while (compare(previous_double(q), v) >= 0) {
+      q = previous_double(q);
+    }
+    return q;
+  }
+
+  // The largest double that is at most num/den, the same way
+  double quotient_down(double num, double den)
+  {
+    return -quotient_up(-num, den);
+  }
+
+  /*
+    div_rel(K, J, I) for a negative K and a J with 0 in its interior, the
+    case N1 M of the SSE2 intervals (GAOL v5, point PP of TODO.md), the only
+    one that was written with scalar operations. The quotients of K by the
+    y of J are those of K.right() by the part of J below 0, which are above
+    K.right()/J.left() and unbounded above, and by the part above 0, which are
+    below K.right()/J.right() and unbounded below. The result is the hull of
+    I & [-oo, U] and I & [D, +oo], where U is K.right()/J.right() rounded
+    upward and D is K.right()/J.left() rounded downward: a bound has to be
+    the one of these two that the exact quotient gives (an infinite bound of J
+    gives the zero U = -0 or D = +0), K.left() playing no part. The quotients
+    are the smallest double above the exact one, and the largest below, which
+    is computed with exact rationals. I is taken with bounds next to U and D,
+    and 0 which lies between them, so that the result has U or D for a bound:
+    I = [x, 0] gives [x, U] for an x below U, and I = [0, y] gives [D, y]
+    for a y above D. The exponents go from the subnormal numbers to the
+    largest, past 2^500 and 2^-500, where the quotients are computed on the
+    bounds (div_rel_upward()), and the bounds of J and the lower bound of K are
+    infinite in some cases.
+  */
+  void div_rel_negative_by_mixed()
+  {
+    // The rounding directions, written out: 1/10 is above 0.1 in a double
+    const interval minus_one(-1.0), mixed(-10.0, 10.0);
+    {
+      const interval z1 = div_rel(minus_one, mixed, interval(-1.0, 0.0));
+      const interval z2 = div_rel(minus_one, mixed, interval(0.0, 1.0));
+      check("div_rel([-1], [-10, 10], [-1, 0]) is [-1, -0.1 rounded upward]",
+            z1.left() == -1.0 && z1.right() == -0x1.9999999999999p-4, [&] { return hex(z1); });
+      check("div_rel([-1], [-10, 10], [0, 1]) is [0.1 rounded downward, 1]",
+            z2.left() == 0x1.9999999999999p-4 && z2.right() == 1.0, [&] { return hex(z2); });
+      const interval z3 = div_rel(interval(-6.0, -3.0), interval(-2.0, 3.0), interval(-100.0, 0.0));
+      const interval z4 = div_rel(interval(-6.0, -3.0), interval(-2.0, 3.0), interval(0.0, 100.0));
+      check("div_rel([-6, -3], [-2, 3], [-100, 0]) is [-100, -1]", z3.left() == -100.0 && z3.right() == -1.0,
+            [&] { return hex(z3); });
+      check("div_rel([-6, -3], [-2, 3], [0, 100]) is [1.5, 100]", z4.left() == 1.5 && z4.right() == 100.0,
+            [&] { return hex(z4); });
+    }
+    Random random;
+    // A magnitude: moderate, anywhere, next to 2^500 or 2^-500, or any double
+    const auto magnitude = [&random]() -> double {
+      const int kind = random.integer(0, 3);
+      if (kind == 0) {
+        return random.positive(-30, 30);
+      }
+      if (kind == 1) {
+        return random.positive(-1022, 1023);
+      }
+      if (kind == 2) {
+        const int around = (random.integer(0, 1) == 0) ? 500 : -500;
+        return random.positive(around - 3, around + 3);
+      }
+      const double x = std::fabs(random.any());
+      return x == 0.0 ? 1.0 : x;
+    };
+    for (int i = 0; i < nb_random_values; ++i) {
+      const double k2 = -magnitude();
+      const double k1 = (random.integer(0, 7) == 0) ? -inf : std::min(k2, -magnitude());
+      const double a = (random.integer(0, 11) == 0) ? -inf : -magnitude();
+      const double b = (random.integer(0, 11) == 0) ? inf : magnitude();
+      const interval K(k1, k2), J(a, b);
+      const double U = std::isinf(b) ? -0.0 : quotient_up(k2, b);
+      const double D = std::isinf(a) ? 0.0 : quotient_down(k2, a);
+      const std::vector<double> pool = { -inf, inf, 0.0, U, previous_double(U), next_double(U), D, previous_double(D),
+                                         next_double(D), random(-30, 30), random(-1022, 1023), -magnitude(), magnitude() };
+      const int n = static_cast<int>(pool.size());
+      std::vector<interval> Is = { interval(-inf, 0.0), interval(0.0, inf), interval::universe(), interval(-inf, U),
+                                   interval(D, inf), interval(U, 0.0), interval(0.0, D), interval(next_double(U), previous_double(D)) };
+      for (int j = 0; j < 8; ++j) {
+        const double x = pool[random.integer(0, n - 1)], y = pool[random.integer(0, n - 1)];
+        Is.push_back(interval(std::min(x, y), std::max(x, y)));
+      }
+      for (const interval& I : Is) {
+        const interval z = div_rel(K, J, I);
+        // Some of the intervals made above are empty (the constructor of two
+        // infinite bounds of the same sign, of bounds in the wrong order)
+        if (I.is_empty()) {
+          check("div_rel(K, J, I) for K < 0 and J with 0 inside: empty for an empty I", z.is_empty(),
+                [&] { return "div_rel(" + hex(K) + ", " + hex(J) + ", the empty set) = " + hex(z); });
+          continue;
+        }
+        // I & [-oo, U], then I & [D, +oo], and their hull
+        const bool below = I.left() <= U, above = D <= I.right();
+        const auto describe = [&] {
+          return "div_rel(" + hex(K) + ", " + hex(J) + ", " + hex(I) + ") = " + hex(z) + ", U = " + hex(U) + ", D = " + hex(D);
+        };
+        if (!below && !above) {
+          check("div_rel(K, J, I) for K < 0 and J with 0 inside: empty where I meets neither [-oo, U] nor [D, +oo]",
+                z.is_empty(), describe);
+        } else {
+          const double l = below ? I.left() : std::max(I.left(), D);
+          const double r = above ? I.right() : std::min(I.right(), U);
+          check("div_rel(K, J, I) for K < 0 and J with 0 inside: the hull of I & [-oo, K.right()/J.right()] and I & [K.right()/J.left(), +oo]",
+                !z.is_empty() && z.left() == l && z.right() == r, describe);
+        }
+      }
+    }
+  }
+
   // The relational functions of the periodic functions at every magnitude
   // (issue #6): f_rel(f([x]), [x - d, x + d]) has to keep x within a few
   // doubles from 1 up to 2^50, away from the points where the inverse
@@ -1789,6 +1923,7 @@ int main()
   float_midpoints();
 #endif // GAOL_FLOAT_INTERVALS
   relations();
+  div_rel_negative_by_mixed();
   periodic_relations_at_every_magnitude();
   ieee1788_order();
   ieee1788_names();

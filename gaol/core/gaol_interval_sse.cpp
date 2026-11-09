@@ -188,13 +188,25 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
           return I & interval(r, gaol_detail::unchecked_bounds); // N1 N0
         }
       } else { // [J] P or M
-        if ( J.left() < 0.0 ) { // [J] M // FIXME: replace with SSE code
-			interval tmp(-GAOL_INFINITY,K.right()/J.right());
-			// The lower bound rounded downward, the rounding direction being
-			// upward (GAOL v5: K.right()/J.left() was rounded upward, and
-			// the result left out the doubles below it that belong to the hull)
-			interval tmp2(-((-K.right())/J.left()),GAOL_INFINITY);
-	    	return (I&tmp) | (I&tmp2); // N1 M
+        if ( J.left() < 0.0 ) { // [J] M
+          // The two quotients, [-oo, K.right()/J.right()] and [K.right()/J.left(),
+          // +oo], have K.right() for numerator and no divisor is 0 (J.left() < 0
+          // < J.right()): one division of the vectors gives both bounds (GAOL
+          // v5, point PP of TODO.md; the scalar code made two intervals). The
+          // bounds are stored as (-lower, upper): the low half of the quotient,
+          // K.right()/(-J.left()) rounded upward, is minus the lower bound
+          // K.right()/J.left() rounded downward (GAOL v5: it was rounded upward,
+          // and the result left out the doubles below it that belong to the
+          // hull), the rounding direction being upward; its high half is the
+          // upper bound K.right()/J.right() rounded upward. No half is thrown
+          // away, and neither raises the invalid-operation or the
+          // division-by-zero exception: the numerator is finite (K is not
+          // empty, and [-oo, -oo] is) and not 0, and the divisors are not 0. The
+          // overflow of the finite quotients is left to div_rel_upward() above
+          __m128d q = _mm_div_pd(_mm_unpackhi_pd(K.xmmbounds,K.xmmbounds),J.xmmbounds);
+          __m128d r = _mm_move_sd(q,interval::m128_infinf);   // [-oo, K.right()/J.right()]
+          __m128d r2 = _mm_move_sd(interval::m128_infinf,q);  // [K.right()/J.left(), +oo]
+          return (I & interval(r, gaol_detail::unchecked_bounds)) | (I & interval(r2, gaol_detail::unchecked_bounds)); // N1 M
         } else { // [J] P0 or P1
           if ( J.left() == 0.0 ) { // [I] P0
             __m128d r = _mm_unpacklo_pd(interval::m128_infinf,
