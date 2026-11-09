@@ -1,30 +1,32 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `7053c74` de `configure-clean` (la
-fusion de #301, la tâche PT, le 8 novembre 2026 à 23 h 09 UTC, après celles de
-#300, hors des points, de #298, de #299, de #297, de #296 et de #295, de #294,
-le manuel dans le style de la thèse, et de #292, de #293, #291, #290 et #289),
-en tâches PH, PJ et PP (PA à PG, PI, PL, PQ, PS et PT sont faites, PK et PM sont
-closes sans code : voir `TODO_DONE.md`). Ce fichier et l'issue #179 ont le même
+Ce qui reste à faire sur GAOL v5 au commit `9acea90` de `configure-clean` (la
+fusion de #302, la tâche PP, le 9 novembre 2026 à 22 h 03 UTC, après celles de
+#304 et de #303, les registres de la tâche PT, de #301, la tâche PT, de #300,
+hors des points, de #298, de #299, de #297, de #296 et de #295, de #294, le
+manuel dans le style de la thèse, et de #292, de #293, #291, #290 et #289), en
+tâches PH et PJ (PA à PG, PI, PL, PP, PQ, PS et PT sont faites, PK et PM sont
+close sans code : voir `TODO_DONE.md`). Ce fichier et l'issue #179 ont le même
 contenu. Ce qui est fait et décidé est dans `TODO_DONE.md` (l'issue #177 n'est
 plus mise à jour), ce qui est reporté dans `TODO_AFTER.md` (issue #178). Les
 anciennes issues #49 et #142 sont fermées, et `TODO_mistral.md` est supprimé,
 comme `TODO_fin.md` : ses articles sont répartis dans les trois registres, dont
-les tâches PS (faite par #297) et PT (faite par #301 : `TODO_DONE.md` 3.25).
+les tâches PS (faite par #297), PT (faite par #301 : `TODO_DONE.md` 3.25) et PP
+(faite par #302 : `TODO_DONE.md` 2.3 et 7.25).
 
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à envoyer à un autre projet ni à publier sans l'accord
-du mainteneur. La pull request #302 est ouverte (la tâche PP : le cas N1 M de
-`div_rel()` en SSE2). #295 (PS.2), #296 (PM), #297 (la tâche PS), #299 (PQ.2),
-#298 (PQ.1), #300 (hors des points : la recette de compilation croisée GCC 12.2
-pour aarch64 de `todo-notes/gcc12-aarch64/`) et #301 (la tâche PT) sont
-fusionnées le 8 novembre, à 17 h 21, 17 h 29, 19 h 38, 20 h 31, 20 h 44, 21 h 38
-et 23 h 09 UTC ; leurs registres sont faits.
+du mainteneur. Aucune pull request n'est ouverte. #295 (PS.2), #296 (PM), #297
+(la tâche PS), #299 (PQ.2), #298 (PQ.1), #300 (hors des points : la recette de
+compilation croisée GCC 12.2 pour aarch64 de `todo-notes/gcc12-aarch64/`) et
+#301 (la tâche PT) sont fusionnées le 8 novembre, à 17 h 21, 17 h 29, 19 h 38,
+20 h 31, 20 h 44, 21 h 38 et 23 h 09 UTC, et #302 (la tâche PP : le cas N1 M de
+`div_rel()` en SSE2) le 9 novembre à 22 h 03 UTC ; leurs registres sont faits.
 
 ## Comment lire ce fichier
 
-- Une tâche (PH, PJ, PP) regroupe des points qui touchent le
+- Une tâche (PH, PJ) regroupe des points qui touchent le
   même code, les mêmes fichiers ou les mêmes builds de validation, pour les
   traiter dans la même session ; chaque point reste une pull request à part
   (process.md : un point, une branche), sauf quand la tâche dit qu'une seule
@@ -34,8 +36,8 @@ et 23 h 09 UTC ; leurs registres sont faits.
   fait que ralentir ; le petit et sans dépendance avant le gros ; la version
   (PJ) en dernier. La lettre PR n'est pas une tâche : le sigle dit déjà « pull
   request ».
-- PH et PP ne dépendent d'aucune autre tâche, sauf quand le texte le dit
-  (PJ suit PI, PS, PQ, PT et les études de PG, qui sont faites).
+- PH ne dépend d'aucune autre tâche, sauf quand le texte le dit (PJ suit PI,
+  PS, PQ, PP, PT et les études de PG, qui sont faites).
 - Chaque point garde sa lettre et son ancien numéro, par exemple « 79 (AB) » :
   ce sont ceux des pull requests, des issues, des commentaires du code et de
   `TODO_DONE.md` (section 4 pour les lettres, section 5 pour les numéros faits).
@@ -54,7 +56,6 @@ et 23 h 09 UTC ; leurs registres sont faits.
 | --- | --- | --- | --- |
 | PH | Les signalements à d'autres projets | #125 à #138, #175 | accord |
 | PJ | Les mesures et la publication de v5.0.0 | 32 à 34, 71, manuel, CI | M |
-| PP | Le FIXME de `div_rel` : le cas N1 M en SSE2 | un point | M |
 
 ## PH. Les signalements à d'autres projets [attend l'accord du mainteneur]
 
@@ -240,7 +241,14 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    direction preserved, armhf » de `containers.yml` mesure. Lancer enfin
    `doc/compare/code/run_lines.sh` en entier sur l'i7-1185G7 : sa colonne
    `gaol5p` (#216) n'a jamais tourné sur x86 (`results_lines.csv` n'a aucune
-   ligne `gaol5p`, `results_lines_arm64.csv` en a 30).
+   ligne `gaol5p`, `results_lines_arm64.csv` en a 30). Le cas N1 M de
+   `div_rel()` en SSE2 (#302) n'a aucune ligne du banc : sa mesure (avec Clang
+   18, de 12,97 ns avant à 11,01 après ; avec GCC 13.3, de 11,76 à 11,59 ; sur
+   une machine virtuelle, non sur l'i7-1185G7) est à refaire ici avec Clang 21
+   si on la veut, par un petit programme à part. *À décider* : le cas P1 M de
+   `div_rel()` (`gaol/core/gaol_interval_sse.cpp`) calcule deux `_mm_div_sd` de
+   même numérateur, que l'on pourrait ramener à une division vectorielle comme
+   #302 l'a fait pour N1 M ; non mesuré, non demandé.
 3. **34** : les recettes FetchContent récupèrent GAOL 4 : `doc/using.md`, le
    manuel et `tests/fetch_content` prennent la branche `master` de
    `Jordan08/GAOL`, et le `git clone` de `doc/building.md` la branche par
@@ -324,7 +332,7 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    d'autres signes de zéro (`[-0, +0]` au lieu de `[+0, -0]` pour x = `[+0, -0]`
    et un d positif, avec les intervalles SSE2) ; dans `doc/differences.md`, la
    phrase de l'exception du chemin AVX-512 au « bit pour bit » (ligne
-   834, « `x * d` and `x *= d` ») y ajoute `d * x`. Restent aussi trois
+   834, « `x * d` et `x *= d` ») y ajoute `d * x`. Restent aussi trois
    détails : le commentaire de `CMakeLists.txt` (ligne 1441) cite
    `core_math_log_dint.h`, qui n'existe pas ; la liste de `doc/differences.md`
    (lignes 2387 et 2388) des fichiers que l'archive des sources laisse de côté
@@ -350,34 +358,3 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    dans `todo-notes/synthese.md`, l'article `29.md` pour #35) ; le `ChangeLog`
    décrit la bibliothèque, non les corrections des pages de `doc/` (la seconde
    puce de #140 n'y entre donc pas : `TODO_DONE.md` 3.24). [S]
-
-## PP. Le FIXME de `div_rel` : le cas N1 M en SSE2 [M]
-
-Demandée par le mainteneur le 8 novembre (réponse à la relecture du 4 novembre,
-`TODO_DONE.md` 3.24 : « créer une tâche PP pour faire le FIXME: replace with SSE
-code », et laisser les deux marques pour le moment). Dans `div_rel()` de
-`gaol/core/gaol_interval_sse.cpp` (le `mulRev` d'IEEE 1788-2015 : le quotient de
-K par J, coupé par I), le cas de K strictement négatif (N1) et de J qui contient
-0 dans son intérieur (M) est le seul du fichier en code scalaire, à la ligne 191
-(« FIXME: replace with SSE code ») : deux intervalles, `tmp(-oo, K.right() /
-J.right())` et `tmp2(-((-K.right()) / J.left()), +oo)`, puis `(I & tmp) | (I &
-tmp2)`. Les autres cas sont déjà en SSE2 (`_mm_div_sd()` et `_mm_div_pd()`) ;
-NEON et le FPU appellent `div_rel_upward()` de `gaol_interval_core.cpp` et
-n'ont pas ce cas.
-
-À tenir : les mêmes bornes, bit pour bit, que le code scalaire, la borne
-inférieure de `tmp2` étant arrondie vers le bas alors que le sens est vers le
-haut (le commentaire du code) ; aucune exception de plus (le commentaire du
-point D.24, plus haut : `_mm_div_sd()` divise la moitié basse seule, car la
-moitié jetée par `_mm_div_pd()` divisait une borne infinie par une infinie ou
-une finie par zéro) ; les sens d'arrondi et `GAOL_PRESERVE_ROUNDING`, les grands
-et les petits opérandes étant déjà pris par `div_rel_upward()` plus haut. Les
-tests qui appellent `div_rel` sont dans `tests/reverse.cpp`,
-`reverse_mappings.cpp`, `rounding_direction.cpp`, `other_functions.cpp`,
-`misc.cpp`, `elementary.cpp` et `test_ibex_codac.cpp` : le nouveau code a un
-test qui échoue sur un mutant de chaque opérande (`process.md` §5). Aucune ligne
-du banc (`tests/performance.cpp`) n'a `div_rel` : mesurer d'abord si le cas vaut
-le code, par un petit programme à part, comme pour la racine cubique
-(`TODO_DONE.md` 7.20). La marque « FIXME » de la ligne 191 se retire avec le
-code ; l'autre (« TODO: check existence of stdint.h in configure.in », ligne 25)
-reste (`TODO_DONE.md` 3.24).
