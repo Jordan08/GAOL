@@ -1,29 +1,30 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `ac9f130` de `configure-clean` (la
-fusion de #300, hors des points, le 8 novembre 2026 à 21 h 38 UTC, après celles
-de #298, de #299, de #297, de #296 et de #295, de #294, le manuel dans le style
-de la thèse, et de #292, de #293, #291, #290 et #289), en tâches PH, PJ, PP et
-PT (PA à PG, PI, PL, PQ et PS sont faites, PK et PM sont closes sans code : voir
-`TODO_DONE.md`). Ce fichier et l'issue #179 ont le même contenu. Ce qui est fait
-et décidé est dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour), ce qui
-est reporté dans `TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142
-sont fermées, et `TODO_mistral.md` est supprimé, comme `TODO_fin.md` : ses
-articles sont répartis dans les trois registres, dont les tâches PS (faite par
-#297) et PT (`TODO_DONE.md` 3.25).
+Ce qui reste à faire sur GAOL v5 au commit `7053c74` de `configure-clean` (la
+fusion de #301, la tâche PT, le 8 novembre 2026 à 23 h 09 UTC, après celles de
+#300, hors des points, de #298, de #299, de #297, de #296 et de #295, de #294,
+le manuel dans le style de la thèse, et de #292, de #293, #291, #290 et #289),
+en tâches PH, PJ et PP (PA à PG, PI, PL, PQ, PS et PT sont faites, PK et PM sont
+closes sans code : voir `TODO_DONE.md`). Ce fichier et l'issue #179 ont le même
+contenu. Ce qui est fait et décidé est dans `TODO_DONE.md` (l'issue #177 n'est
+plus mise à jour), ce qui est reporté dans `TODO_AFTER.md` (issue #178). Les
+anciennes issues #49 et #142 sont fermées, et `TODO_mistral.md` est supprimé,
+comme `TODO_fin.md` : ses articles sont répartis dans les trois registres, dont
+les tâches PS (faite par #297) et PT (faite par #301 : `TODO_DONE.md` 3.25).
 
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à envoyer à un autre projet ni à publier sans l'accord
-du mainteneur. Aucune pull request n'est ouverte. #295 (PS.2), #296 (PM), #297
-(la tâche PS), #299 (PQ.2), #298 (PQ.1) et #300 (hors des points : la recette de
-compilation croisée GCC 12.2 pour aarch64 de `todo-notes/gcc12-aarch64/`) sont
-fusionnées le 8 novembre, à 17 h 21, 17 h 29, 19 h 38, 20 h 31, 20 h 44 et
-21 h 38 UTC ; leurs registres sont faits.
+du mainteneur. La pull request #302 est ouverte (la tâche PP : le cas N1 M de
+`div_rel()` en SSE2). #295 (PS.2), #296 (PM), #297 (la tâche PS), #299 (PQ.2),
+#298 (PQ.1), #300 (hors des points : la recette de compilation croisée GCC 12.2
+pour aarch64 de `todo-notes/gcc12-aarch64/`) et #301 (la tâche PT) sont
+fusionnées le 8 novembre, à 17 h 21, 17 h 29, 19 h 38, 20 h 31, 20 h 44, 21 h 38
+et 23 h 09 UTC ; leurs registres sont faits.
 
 ## Comment lire ce fichier
 
-- Une tâche (PH, PJ, PP, PT) regroupe des points qui touchent le
+- Une tâche (PH, PJ, PP) regroupe des points qui touchent le
   même code, les mêmes fichiers ou les mêmes builds de validation, pour les
   traiter dans la même session ; chaque point reste une pull request à part
   (process.md : un point, une branche), sauf quand la tâche dit qu'une seule
@@ -33,9 +34,8 @@ fusionnées le 8 novembre, à 17 h 21, 17 h 29, 19 h 38, 20 h 31, 20 h 44 et
   fait que ralentir ; le petit et sans dépendance avant le gros ; la version
   (PJ) en dernier. La lettre PR n'est pas une tâche : le sigle dit déjà « pull
   request ».
-- PH, PP et PT ne dépendent d'aucune autre tâche, sauf quand le texte le dit
-  (PJ suit PI, PS, PQ et les études de PG, qui sont faites ; PT précède
-  l'étiquette de PJ.3).
+- PH et PP ne dépendent d'aucune autre tâche, sauf quand le texte le dit
+  (PJ suit PI, PS, PQ, PT et les études de PG, qui sont faites).
 - Chaque point garde sa lettre et son ancien numéro, par exemple « 79 (AB) » :
   ce sont ceux des pull requests, des issues, des commentaires du code et de
   `TODO_DONE.md` (section 4 pour les lettres, section 5 pour les numéros faits).
@@ -55,7 +55,6 @@ fusionnées le 8 novembre, à 17 h 21, 17 h 29, 19 h 38, 20 h 31, 20 h 44 et
 | PH | Les signalements à d'autres projets | #125 à #138, #175 | accord |
 | PJ | Les mesures et la publication de v5.0.0 | 32 à 34, 71, manuel, CI | M |
 | PP | Le FIXME de `div_rel` : le cas N1 M en SSE2 | un point | M |
-| PT | Les relevés et les vérifications jamais faits | deux points | S |
 
 ## PH. Les signalements à d'autres projets [attend l'accord du mainteneur]
 
@@ -382,39 +381,3 @@ le code, par un petit programme à part, comme pour la racine cubique
 (`TODO_DONE.md` 7.20). La marque « FIXME » de la ligne 191 se retire avec le
 code ; l'autre (« TODO: check existence of stdint.h in configure.in », ligne 25)
 reste (`TODO_DONE.md` 3.24).
-
-## PT. Les relevés et les vérifications jamais faits [S]
-
-Les relevés et les vérifications que des pull requests ont demandés sans que
-leur résultat soit noté nulle part (relecture du 4 novembre, `TODO_DONE.md`
-3.19 ; tâche demandée le 8 novembre, 3.25). Le micro-banc de `x op= d` de #250
-est fait : la session MACarm4 l'avait mesuré le 30 octobre, et son résultat est
-dans l'entrée de #250 (`TODO_DONE.md` 2.3). Le banc A/B de #219 sur le Neoverse
-N2 et avec GCC (le point 2) est fait aussi : lu le 8 novembre dans les jobs
-`performance.yml` de la pull request, son résultat est dans l'entrée de #219
-(`TODO_DONE.md` 2.3). Restent les points 1 et 3, indépendants. Aucun ne change
-le code, sauf si le premier trouve des avertissements à corriger.
-
-1. **Les avertissements de meson dans `tests/rounding_direction.cpp`.** Le
-   build meson y donnait 6 avertissements (`-Wconversion` et
-   `-Wunused-function`), antérieurs à la branche de la revue 40
-   (`todo-notes/synthese.md`, lignes 1493 à 1497) : `meson.build` (lignes 335 à
-   340) ajoute `-Wconversion` à tout le projet, tests compris, alors que
-   `CMakeLists.txt` (ligne 1203) ne le met qu'aux sources de la bibliothèque et
-   que les jobs `-Werror` passent par CMake avec `-Wall -Wextra`. Non revérifié
-   depuis, aucun job de meson ne compilant en `-Werror`. Construire avec meson
-   (GCC et Clang, tests et exemples) et lire les avertissements de la
-   bibliothèque, de CORE-MATH, des tests et des exemples : les corriger dans
-   une pull request, ou les décider avec le mainteneur ; s'il n'y en a aucun, le
-   dire dans `TODO_DONE.md`.
-3. **Trois outils absents des tableaux d'exactitude** (remarqué en faisant
-   #298, *décidé le 8 novembre* : un point de PT). `inflate(r)`,
-   `width_enclosure()` et `interval::centered_form(m, r)`
-   (`gaol/core/gaol_interval_core.h`) ne figurent ni dans `doc/accuracy.md` ni
-   dans le chapitre 11 du manuel (`manual/v5/chapters/11_accuracy.tex`), alors
-   que `tests/other_functions.cpp` vérifie, avec de l'arithmétique rationnelle
-   exacte, qu'ils rendent le plus petit encadrement de [a − r, b + r], de la
-   largeur exacte et de [m − r, m + r]. Ajouter une ligne pour chacun (avec «
-   GAOL v5 »), renvoyant aux tests que `doc/tests.md` décrit déjà. Aucun
-   changement de code ; à faire maintenant : #298, qui renomme `midrad`, est
-   fusionnée.
