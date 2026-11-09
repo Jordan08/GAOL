@@ -55,7 +55,7 @@ fusionnées le 8 novembre, à 17 h 21, 17 h 29, 19 h 38, 20 h 31, 20 h 44 et
 | PH | Les signalements à d'autres projets | #125 à #138, #175 | accord |
 | PJ | Les mesures et la publication de v5.0.0 | 32 à 34, 71, manuel, CI | M |
 | PP | Le FIXME de `div_rel` : le cas N1 M en SSE2 | un point | M |
-| PT | Les relevés et les vérifications jamais faits | trois points | S |
+| PT | Les relevés et les vérifications jamais faits | deux points | S |
 
 ## PH. Les signalements à d'autres projets [attend l'accord du mainteneur]
 
@@ -385,13 +385,15 @@ reste (`TODO_DONE.md` 3.24).
 
 ## PT. Les relevés et les vérifications jamais faits [S]
 
-Deux mesures ou vérifications que des pull requests ont demandées sans que leur
-résultat soit noté nulle part (relecture du 4 novembre, `TODO_DONE.md` 3.19 ;
-tâche demandée le 8 novembre, 3.25). Une troisième, le micro-banc de `x op= d`
-de #250, est faite : la session MACarm4 l'avait mesuré le 30 octobre, et son
-résultat est dans l'entrée de #250 (`TODO_DONE.md` 2.3). Chacune est
-indépendante. Aucune ne change le code, sauf si la première trouve des
-avertissements à corriger.
+Les relevés et les vérifications que des pull requests ont demandés sans que
+leur résultat soit noté nulle part (relecture du 4 novembre, `TODO_DONE.md`
+3.19 ; tâche demandée le 8 novembre, 3.25). Le micro-banc de `x op= d` de #250
+est fait : la session MACarm4 l'avait mesuré le 30 octobre, et son résultat est
+dans l'entrée de #250 (`TODO_DONE.md` 2.3). Le banc A/B de #219 sur le Neoverse
+N2 et avec GCC (le point 2) est fait aussi : lu le 8 novembre dans les jobs
+`performance.yml` de la pull request, son résultat est dans l'entrée de #219
+(`TODO_DONE.md` 2.3). Restent les points 1 et 3, indépendants. Aucun ne change
+le code, sauf si le premier trouve des avertissements à corriger.
 
 1. **Les avertissements de meson dans `tests/rounding_direction.cpp`.** Le
    build meson y donnait 6 avertissements (`-Wconversion` et
@@ -405,12 +407,6 @@ avertissements à corriger.
    bibliothèque, de CORE-MATH, des tests et des exemples : les corriger dans
    une pull request, ou les décider avec le mainteneur ; s'il n'y en a aucun, le
    dire dans `TODO_DONE.md`.
-2. **Le banc A/B de #219 sur le Neoverse N2 et avec GCC**, « à lire dans le
-   résumé de ses jobs » : `TODO_DONE.md` 2.3 (#219) ne donne que le M2. Relire
-   le résumé des jobs `performance.yml` de la pull request (GitHub garde les
-   journaux 90 jours par défaut, soit jusqu'à la fin de janvier 2027), noter les
-   rapports du N2 dans l'entrée de #219 ; si la CI ne les a plus, écrire qu'ils
-   sont perdus, la mesure de PJ.2 les refaisant avec la version.
 3. **Trois outils absents des tableaux d'exactitude** (remarqué en faisant
    #298, *décidé le 8 novembre* : un point de PT). `inflate(r)`,
    `width_enclosure()` et `interval::centered_form(m, r)`
