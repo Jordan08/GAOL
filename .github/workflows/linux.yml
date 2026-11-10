@@ -282,7 +282,10 @@ jobs:
   # them, the tests and the examples compile without a warning with the GCC
   # and the Clang of Ubuntu 26.04, and so does each header GAOL installs,
   # included alone with -std=c++11, whose macros all start with GAOL_ or gaol_
-  # (.github/scripts/headers.sh). The flags of the warnings go to every
+  # (.github/scripts/headers.sh), also with the SSE2 intervals in the form of
+  # Visual C++ and clang-cl on x86 (-DGAOL_SSE2_UNALIGNED_STORAGE=ON, GAOL v5):
+  # gaol/core/gaol_interval_detail.h did not compile alone with it, and no
+  # other job installs GAOL in that form. The flags of the warnings go to every
   # compilation, and -Werror to those of the targets only
   # (CMAKE_COMPILE_WARNING_AS_ERROR), so that no check of CMake fails on a
   # warning of its test program.
@@ -296,6 +299,8 @@ jobs:
         cfg:
           - { os: ubuntu-26.04,     cc: gcc,   cxx: g++,     desc: 'Ubuntu 26.04 x86_64 GCC, -Wall -Wextra -Werror' }
           - { os: ubuntu-26.04,     cc: clang, cxx: clang++, desc: 'Ubuntu 26.04 x86_64 Clang, -Wall -Wextra -Werror' }
+          - { os: ubuntu-26.04,     cc: gcc,   cxx: g++,     opts: '-DGAOL_SSE2_UNALIGNED_STORAGE=ON', desc: 'Ubuntu 26.04 x86_64 GCC, SSE2 intervals of two doubles, -Wall -Wextra -Werror' }
+          - { os: ubuntu-26.04,     cc: clang, cxx: clang++, opts: '-DGAOL_SSE2_UNALIGNED_STORAGE=ON', desc: 'Ubuntu 26.04 x86_64 Clang, SSE2 intervals of two doubles, -Wall -Wextra -Werror' }
           # The check of the installed headers compiles the header of the NEON
           # intervals too, with the warnings of the headers (-Wold-style-cast,
           # -Wundef) that the intrinsics of <arm_neon.h> have to stay clear of
@@ -314,7 +319,13 @@ jobs:
           flags="-Wall -Wextra"
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DWITH_EXAMPLES=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
             -DCMAKE_C_COMPILER=${{ matrix.cfg.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }} "-DCMAKE_C_FLAGS=$flags" "-DCMAKE_CXX_FLAGS=$flags" \
-            -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install"
+            -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install" ${{ matrix.cfg.opts }}
+      # The configuration has the form the job asks for: a build that ignored
+      # the option would keep the check of the headers green (GAOL v5)
+      - name: The form of the SSE2 intervals
+        run: |
+          case "${{ matrix.cfg.opts }}" in *GAOL_SSE2_UNALIGNED_STORAGE=ON*)
+            grep -q "^#define GAOL_SSE2_UNALIGNED_STORAGE 1" build/gaol/gaol_configuration.h ;; esac
       - name: Build
         run: cmake --build build -j 4
       - name: Install
