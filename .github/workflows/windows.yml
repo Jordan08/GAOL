@@ -545,10 +545,14 @@ jobs:
           echo "$count fused multiply-add instructions"
           # not grep -q: it ends before objdump does, which pipefail reads as 141
           [ "$count" -gt 0 ]
-          if nm -u "$object" | grep -w 'fma'; then
-            echo "gaol_interval_core.cpp.o calls the fma() of the C library"
-            exit 1
-          fi
+          # fma_once() is in gaol/core/gaol_interval_internal.h, which each
+          # source of the intervals includes: all their objects are read
+          for object in build-debug/CMakeFiles/gaol.dir/gaol/core/*.cpp.o; do
+            if nm -u "$object" | grep -w 'fma'; then
+              echo "$(basename "$object") calls the fma() of the C library"
+              exit 1
+            fi
+          done
       - name: Tests (make test), Debug
         run: cmake --build build-debug --target test
       # Without the fused multiply-add instructions Cygwin has the fma() of its

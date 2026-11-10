@@ -989,8 +989,9 @@ point Q), which `numbers` checks there too.
   independently of GAOL. Computing in the upward direction it keeps, GAOL takes
   the upper bound from CORE-MATH and the double below it as the lower one: its
   bounds have to enclose the tightest ones, to be equal above and within one
-  double below, and to be the tightest ones where `gaol_interval_core.cpp` gives the
-  exact value itself (`log(1)`, `sin(0)`, the bounds of π/2 at `asin(1)`...).
+  double below, and to be the tightest ones where the sources of the intervals
+  (`gaol/core/`) give the exact value themselves (`log(1)`, `sin(0)`, the
+  bounds of π/2 at `asin(1)`...).
   Each function is tried at the ends of its domain and next to them, at the
   values GAOL treats apart, at the powers of two and their neighbours, at the
   subnormals, and at random doubles of every magnitude. `pow(x, y)` has to be
@@ -1903,7 +1904,8 @@ and three times with its head, in turn, and compares them (see
 [Continuous integration](continuous-integration.md#the-speed-of-a-pull-request)).
 
 `tests/tools/pow/` holds the tools that check a change of `pow` in
-`gaol/core/gaol_interval_core.cpp` (see [its README](../tests/tools/pow/README.md)).
+`gaol/core/gaol_interval_pow.cpp` and `gaol/core/gaol_interval_core.cpp` (see
+[its README](../tests/tools/pow/README.md)).
 They are not tests either: no build compiles them and no job runs them.
 `diffpow.py` prints the bounds of `gaol_ieee1788::pow` and `gaol::pow` with
 two builds of GAOL, on 70 500 boxes and under the four rounding directions at

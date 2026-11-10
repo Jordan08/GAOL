@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# Tools of GAOL v5: one source file made of three units of GAOL (the core of
-# the intervals, the common code and the test of the rounding direction), for a
+# Tools of GAOL v5: one source file made of units of GAOL (the sources of the
+# intervals, the common code and the test of the rounding direction), for a
 # compiler that is not here and takes one file, such as the ones of Compiler
 # Explorer (https://godbolt.org): Visual C++ for x86 and x64, clang-cl, a GCC
 # or a Clang for another target. The file is meant to be compiled, not linked
@@ -10,8 +10,8 @@
 #     python3 amalgamate.py [--root DIR] [--define NAME[=VALUE]]...
 #                           [--output FILE] [UNIT...]
 #
-# Each UNIT (by default gaol/core/gaol_interval_core.cpp, gaol/gaol_common.cpp
-# and tests/rounding_direction.cpp, relative to the root of the sources, by
+# Each UNIT (by default the sources of gaol/core/, gaol/gaol_common.cpp and
+# tests/rounding_direction.cpp, relative to the root of the sources, by
 # default the tree this script is in) is copied in turn, and each
 #
 #     #include "path"
@@ -41,8 +41,8 @@
 # literals) -O2 -frounding-math -ffp-contract=off -msse2 -mfpmath=sse for GCC
 # and Clang on x86, /std:c++17 /O2 /fp:strict with Visual C++; and
 # -faligned-new=8 for GCC and Clang on 32-bit Windows with the SSE2 intervals
-# (gaol/gaol_config.h refuses them without it). The result is large (the three
-# units, 33 000 lines), and a Compiler Explorer stops a compilation at about 20
+# (gaol/gaol_config.h refuses them without it). The result is large (the
+# units, 37 000 lines), and a Compiler Explorer stops a compilation at about 20
 # seconds.
 #
 # Copyright (c) 2026 ENSTA, France
@@ -59,7 +59,10 @@ import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-UNITS = ['gaol/core/gaol_interval_core.cpp', 'gaol/gaol_common.cpp', 'tests/rounding_direction.cpp']
+UNITS = ['gaol/core/gaol_interval_core.cpp', 'gaol/core/gaol_interval_pow.cpp', 'gaol/core/gaol_interval_exp_log.cpp',
+         'gaol/core/gaol_interval_trig.cpp', 'gaol/core/gaol_interval_hyperbolic.cpp',
+         'gaol/core/gaol_interval_relational.cpp', 'gaol/core/gaol_interval_io.cpp', 'gaol/gaol_common.cpp',
+         'tests/rounding_direction.cpp']
 INCLUDE = re.compile(r'^\s*#\s*include\s+"([^"]+)"')
 
 
