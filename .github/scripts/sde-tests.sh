@@ -12,6 +12,14 @@
 #   sh .github/scripts/sde-tests.sh <sde.exe> <directory of the test programs>
 #
 # The output of the tests that failed is printed after the list.
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-10-20)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+
 if [ "$1" = "--one" ]; then
   # One test: SDE ($2) runs the program ($4), whose output and exit status go
   # into the directory $3

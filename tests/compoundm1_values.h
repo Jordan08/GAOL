@@ -2,7 +2,10 @@
 //
 // Copyright (c) 2026 ENSTA, France
 //
-// Created 2026-11-04 by Jordan NININ
+// By: Jordan NININ (created 2026-11-04)
+//
+// GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+// COPYING.LIB file for information.
 
 // The greatest double at most (1 + x)^y - 1 and the least double at least it
 struct CompoundPoint { double x, y, below, above; };

@@ -3,7 +3,11 @@ with the argument c, a C file for the flags of the C sources, those of CORE-MATH
 
 # Copyright (c) 2026 ENSTA, France
 #
-# Created 2026-09-20 by Jordan NININ
+# By: Jordan NININ (created 2026-09-20)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+#
 # The macros of the configuration of GAOL: those of gaol/gaol_configuration.h,
 # the same with the three builds (see doc/building.md), and those
 # gaol/gaol_config.h and gaol/gaol_fpu.h derive from the compiler (GAOL v5)

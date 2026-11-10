@@ -1,6 +1,6 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
- *--------------------------------------------------------------------------*
+ * GAOL -- not Just Another Interval Library
+ *--------------------------------------------------------------------------
  * The AVX-512 path of the SSE2 intervals (GAOL v5).
  *
  * This file is not meant to be compiled. It is only to be included
@@ -74,13 +74,13 @@
  * two candidates, which orders them as their values, both positive in the
  * stored form, and the latter reads the zero of the magnitude and the
  * infinity of the exponent (GAOL v5).
- *
+ *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
- * Created 2026-10-05 by Jordan NININ
- *--------------------------------------------------------------------------*
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
+ * By: Jordan NININ (created 2026-10-05)
+ *--------------------------------------------------------------------------
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
 /* The target of the functions (GAOL_AVX512_TARGET) and GAOL_NOINLINE are defined

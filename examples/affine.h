@@ -1,5 +1,5 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
+ * GAOL -- not Just Another Interval Library
  *--------------------------------------------------------------------------
  * Examples of GAOL v5: a minimal affine arithmetic built on GAOL's
  * intervals.
@@ -36,13 +36,13 @@
  * over the range of x. That band is enclosed by interval evaluations of f at
  * a few points, so that any double alpha gives a sound result: the choice of
  * alpha, min-range or Chebyshev, only makes it tighter or looser.
- *
+ *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
- * Created 2026-09-27 by Jordan NININ
+ * By: Jordan NININ (created 2026-09-27)
  *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
 #ifndef GAOL_EXAMPLES_AFFINE_H

@@ -1,20 +1,15 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
+ * GAOL -- not Just Another Interval Library
  *--------------------------------------------------------------------------
- * This file is part of the gaol distribution. Gaol was primarily
- * developed at the Swiss Federal Institute of Technology, Lausanne,
- * Switzerland, and is now developed at the Laboratoire d'Informatique de
- * Nantes-Atlantique, France.
- *
  * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
  * Copyright (c) 2002-2006 Laboratoire d'Informatique de
  *                         Nantes-Atlantique, France
  * Copyright (c) 2026 ENSTA, France
- *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
- *--------------------------------------------------------------------------
+ *
  * By: Frederic Goualard, Jordan NININ
+ *--------------------------------------------------------------------------
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
 /*!
@@ -955,6 +950,10 @@ namespace gaol_core {
 #else
 #  include "gaol/core/gaol_interval_fpu.cpp"
 #endif // GAOL_USING_SSE2_INSTRUCTIONS
+
+// The file included above closes gaol_core, which this file opened above:
+// it is opened again for what follows (GAOL v5)
+namespace gaol_core {
 
   // Default format for output
   interval_format::format_t interval::output = interval_format::bounds;

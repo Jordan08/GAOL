@@ -1,43 +1,42 @@
-/*-*-C-*---------------------------------------------------------------------
-* gaol -- NOT Just Another Interval Library
-*--------------------------------------------------------------------------
-* What the sources of CORE-MATH (3rd/math-core) need to compile as a part of
-* GAOL, with every compiler GAOL is built with and on every architecture.
-*
-* The three builds include this header of themselves, before anything else,
-* in each source of CORE-MATH they compile (`-include` with GCC and Clang,
-* `/FI` with Visual C++): the sources themselves do not name it, so that
-* importing a newer CORE-MATH is a plain copy.
-*
-* It gives them:
-*
-* - the 128-bit integer their accurate phases compute with
-*   (gaol/math/gaol_u128.h), so that log, sin, cos, tan, atan2, pow, log2p1,
-*   log10p1, atan2pi, hypot, rsqrt and asinpi are built with Visual C++ and on
-*   the 32-bit targets where the compiler has no 128-bit type of its own;
-* - the names gaol_cr_<f>() rather than cr_<f>(), so that GAOL does not clash
-*   with a program or a C library holding CORE-MATH's functions too;
-* - __builtin_roundeven() where the compiler or the math library has not;
-* - on a 32-bit x86 Windows, a fegetexceptflag() and a fesetexceptflag()
-*   written on MXCSR, which leave its exception masks alone;
-* - on 32-bit x86, the square root of SSE2, rounded in the direction in
-*   effect, rather than the one of the C library;
-* - on x86, a fegetround() that reads MXCSR, where their doubles are
-*   rounded, rather than the x87 unit, which the C library may read;
-* - what Visual C++ has not of GCC: the builtins the sources call,
-*   __attribute__, and NAN and INFINITY as constants;
-* - the ldexp() of gaol/math/gaol_ldexp.h, rounded in the direction in effect,
-*   rather than the one of the C library;
-* - silence for the warnings on conversions GAOL's library is compiled with.
-*
-* Copyright (c) 2026 ENSTA, France
-* Modified by Jordan NININ (GAOL v5)
-*
-* Created 2026-09-20 by Jordan NININ
-*--------------------------------------------------------------------------
-* gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
-* COPYING file for information.
-*--------------------------------------------------------------------------*/
+/*-*-C-*--------------------------------------------------------------------
+ * GAOL -- not Just Another Interval Library
+ *--------------------------------------------------------------------------
+ * What the sources of CORE-MATH (3rd/math-core) need to compile as a part of
+ * GAOL, with every compiler GAOL is built with and on every architecture.
+ *
+ * The three builds include this header of themselves, before anything else,
+ * in each source of CORE-MATH they compile (`-include` with GCC and Clang,
+ * `/FI` with Visual C++): the sources themselves do not name it, so that
+ * importing a newer CORE-MATH is a plain copy.
+ *
+ * It gives them:
+ *
+ * - the 128-bit integer their accurate phases compute with
+ *   (gaol/math/gaol_u128.h), so that log, sin, cos, tan, atan2, pow, log2p1,
+ *   log10p1, atan2pi, hypot, rsqrt and asinpi are built with Visual C++ and on
+ *   the 32-bit targets where the compiler has no 128-bit type of its own;
+ * - the names gaol_cr_<f>() rather than cr_<f>(), so that GAOL does not clash
+ *   with a program or a C library holding CORE-MATH's functions too;
+ * - __builtin_roundeven() where the compiler or the math library has not;
+ * - on a 32-bit x86 Windows, a fegetexceptflag() and a fesetexceptflag()
+ *   written on MXCSR, which leave its exception masks alone;
+ * - on 32-bit x86, the square root of SSE2, rounded in the direction in
+ *   effect, rather than the one of the C library;
+ * - on x86, a fegetround() that reads MXCSR, where their doubles are
+ *   rounded, rather than the x87 unit, which the C library may read;
+ * - what Visual C++ has not of GCC: the builtins the sources call,
+ *   __attribute__, and NAN and INFINITY as constants;
+ * - the ldexp() of gaol/math/gaol_ldexp.h, rounded in the direction in effect,
+ *   rather than the one of the C library;
+ * - silence for the warnings on conversions GAOL's library is compiled with.
+ *--------------------------------------------------------------------------
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * By: Jordan NININ (created 2026-09-20)
+ *--------------------------------------------------------------------------
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
+ *--------------------------------------------------------------------------*/
 
 #ifndef GAOL_CORE_MATH_PORT_H
 #define GAOL_CORE_MATH_PORT_H

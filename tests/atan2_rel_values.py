@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-#---------------------------------------------------------------------------
-# gaol -- NOT Just Another Interval Library
-#---------------------------------------------------------------------------
 # Tests of GAOL v5: generates atan2_rel_values.h, the cases of atan2Rev1 and
 # atan2Rev2, the reverse functions of atan2 of IEEE 1788-2015 (10.5.4,
 # Table 10.1), which tests/reverse.cpp checks atan2_rel_y() and atan2_rel_x()
@@ -40,14 +37,14 @@
 # infinite bounds; and random cases.
 #
 #     python3 tests/atan2_rel_values.py > tests/atan2_rel_values.h
-#---------------------------------------------------------------------------
-# gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
-# COPYING file for information.
-#---------------------------------------------------------------------------
 #
 # Copyright (c) 2026 ENSTA, France
 #
-# Created 2026-10-06 by Jordan NININ
+# By: Jordan NININ (created 2026-10-06)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+
 import math
 import random
 import struct
@@ -362,7 +359,11 @@ def main():
     print("//")
     print("// Copyright (c) 2026 ENSTA, France")
     print("//")
-    print("// Created 2026-10-06 by Jordan NININ")
+    print("// By: Jordan NININ (created 2026-10-06)")
+    print("//")
+    print("// GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated")
+    print("// COPYING.LIB file for information.")
+    print("")
     print("#ifndef GAOL_TESTS_ATAN2_REL_VALUES_H")
     print("#define GAOL_TESTS_ATAN2_REL_VALUES_H")
     print("namespace atan2_rel_values")

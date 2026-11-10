@@ -1,5 +1,5 @@
-/*-*-C-*---------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
+/*-*-C-*--------------------------------------------------------------------
+ * GAOL -- not Just Another Interval Library
  *--------------------------------------------------------------------------
  * The elementary functions of CORE-MATH (https://core-math.gitlabpages.inria.fr,
  * MIT licence, see 3rd/math-core), correctly rounded in double precision: the
@@ -15,14 +15,13 @@
  * compiled into GAOL's library under the names below, the three builds
  * including gaol/math/gaol_core_math_port.h in each of them (`-include`,
  * `/FI`).
- *
- * Copyright (c) 2026 ENSTA, France
- * Modified by Jordan NININ (GAOL v5)
- *
- * Created 2026-09-20 by Jordan NININ
  *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * By: Jordan NININ (created 2026-09-20)
+ *--------------------------------------------------------------------------
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
 #ifndef GAOL_CORE_MATH_H

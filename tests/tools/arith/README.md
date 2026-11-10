@@ -1,5 +1,9 @@
 <!-- Copyright (c) 2026 ENSTA, France
-     Created 2026-10-19 by Jordan NININ -->
+
+     By: Jordan NININ (created 2026-10-19)
+
+     GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+     COPYING.LIB file for information. -->
 # Verification tool of the arithmetic
 
 Part of the [tests](../../../doc/tests.md) of GAOL v5.

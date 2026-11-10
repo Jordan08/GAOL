@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-#---------------------------------------------------------------------------
-# gaol -- NOT Just Another Interval Library
-#---------------------------------------------------------------------------
 # Tests of GAOL v5: the forward tests of IBEX (ibex-lib commit 65ed587,
 # tests/TestInterval.cpp and tests/TestArith.cpp), as native GAOL tests.
 #
@@ -56,14 +53,13 @@
 # The exit status is 1 when --check finds a difference, --originals a
 # disagreement that is not listed in KNOWN, or --selftest a failure. Python 3.8
 # or later, and mpmath (1.1 or later).
-#---------------------------------------------------------------------------
-# gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
-# COPYING file for information.
-#---------------------------------------------------------------------------
 #
 # Copyright (c) 2026 ENSTA, France
 #
-# Created 2026-11-02 by Jordan NININ
+# By: Jordan NININ (created 2026-11-02)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 
 import argparse
 import math

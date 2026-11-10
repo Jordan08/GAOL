@@ -1,6 +1,6 @@
-/*-*-C++-*----------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
- *------------------------------------------------------------------------------
+/*-*-C++-*------------------------------------------------------------------
+ * GAOL -- not Just Another Interval Library
+ *--------------------------------------------------------------------------
  * Tools of GAOL v5: the bounds of pow on the boxes of a rows file
  * (tests/tools/pow).
  *
@@ -21,14 +21,14 @@
  *   evalrows rows.txt > results.txt
  *
  * The decimal numbers are read to nearest, as a compiler reads them.
- *
+ *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
- * Created 2026-09-29 by Jordan NININ
- *------------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
- *----------------------------------------------------------------------------*/
+ * By: Jordan NININ (created 2026-09-29)
+ *--------------------------------------------------------------------------
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
+ *--------------------------------------------------------------------------*/
 
 #include "gaol/gaol.h"
 #include "gaol/gaol_ieee1788.h"

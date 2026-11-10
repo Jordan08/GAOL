@@ -1,5 +1,5 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
+ * GAOL -- not Just Another Interval Library
  *--------------------------------------------------------------------------
  * Tests of GAOL v5: the unit tests of GAOL 4.
  *
@@ -12,15 +12,16 @@
  * the values compared; a failure no longer ends the test, as CPPUNIT_ASSERT
  * did, so that every failure of a run is reported. gaol_tests::summary()
  * gives the exit status, 0 when every check passed.
- *
- * Copyright (c) 2001-2006 Laboratoire d'Informatique de Nantes-Atlantique
+ *--------------------------------------------------------------------------
+ * Copyright (c) 2001-2006 Laboratoire d'Informatique de
+ *                         Nantes-Atlantique, France
  * Copyright (c) 2026 ENSTA, France
  *
- * check/tests.h: Frederic Goualard, 2006-03-16
- * Modified 2026-09-27 by Jordan NININ: CppUnit replaced by gaol_tests.h
+ * By: Frederic Goualard, Jordan NININ (check/tests.h of Frederic Goualard,
+ *     2006-03-16; modified 2026-09-27: CppUnit replaced by gaol_tests.h)
  *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
 #ifndef GAOL_UNIT_TESTS_H

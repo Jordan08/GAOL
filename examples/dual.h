@@ -1,5 +1,5 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
+ * GAOL -- not Just Another Interval Library
  *--------------------------------------------------------------------------
  * Examples of GAOL v5: forward-mode automatic differentiation over
  * intervals.
@@ -16,13 +16,13 @@
  * built on it are false: a sign error in a Jacobian can make Krawczyk's test
  * "prove" a root in a box that does not hold it. Computing it here removes
  * that risk.
- *
+ *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
- * Created 2026-09-27 by Jordan NININ
+ * By: Jordan NININ (created 2026-09-27)
  *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
 #ifndef GAOL_EXAMPLES_DUAL_H

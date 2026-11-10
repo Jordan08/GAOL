@@ -1,3 +1,17 @@
+/*-*-C++-*------------------------------------------------------------------
+ * GAOL -- not Just Another Interval Library
+ *--------------------------------------------------------------------------
+ * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
+ * Copyright (c) 2002-2006 Laboratoire d'Informatique de
+ *                         Nantes-Atlantique, France
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * By: Frederic Goualard, Jordan NININ
+ *--------------------------------------------------------------------------
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
+ *--------------------------------------------------------------------------*/
+
 // GAOL 4's unit test check/constructor.cpp, run with the checks of unit_tests.h
 // rather than CppUnit (GAOL v5)
 #include "unit_tests.h"

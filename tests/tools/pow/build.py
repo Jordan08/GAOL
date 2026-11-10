@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-#---------------------------------------------------------------------------
-# gaol -- NOT Just Another Interval Library
-#---------------------------------------------------------------------------
 # Tools of GAOL v5: compiles one of the programs of tests/tools/pow
 # (diffpow.cpp, evalrows.cpp, bench.cpp, pownhash.cpp, pownedge.cpp) against a build of GAOL, with the
 # compiler and the flags that build compiles its own tests with.
@@ -28,14 +25,13 @@
 #
 # With --build, the object file is written next to the program (PROGRAM.o).
 # diffpow.py and mutate.py import it to build diffpow once per build of GAOL.
-#---------------------------------------------------------------------------
-# gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
-# COPYING file for information.
-#---------------------------------------------------------------------------
 #
 # Copyright (c) 2026 ENSTA, France
 #
-# Created 2026-10-04 by Jordan NININ
+# By: Jordan NININ (created 2026-10-04)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 
 import argparse
 import json

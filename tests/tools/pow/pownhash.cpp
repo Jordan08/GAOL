@@ -1,6 +1,6 @@
-/*-*-C++-*----------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
- *------------------------------------------------------------------------------
+/*-*-C++-*------------------------------------------------------------------
+ * GAOL -- not Just Another Interval Library
+ *--------------------------------------------------------------------------
  * Tools of GAOL v5: a hash of the bounds of about four million gaol::pow(x, n)
  * for an integer n, to tell at once whether a change of the integer power
  * changed a bound (point PG.7 of TODO.md; tests/tools/pow).
@@ -26,15 +26,15 @@
  * upward): compare hashes of builds with the same option. It is compiled with
  * build.py, like the other programs of the directory, in C++17 (hexadecimal
  * floating literals).
- *
+ *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
- * Created 2026-10-28 by Jordan NININ (from a program of the study of the weak
- * gain of the NEON kernel of pown, point PG.7)
- *------------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
- *----------------------------------------------------------------------------*/
+ * By: Jordan NININ (created 2026-10-28; from a program of the study of the
+ *     weak gain of the NEON kernel of pown, point PG.7)
+ *--------------------------------------------------------------------------
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
+ *--------------------------------------------------------------------------*/
 
 #include "gaol/gaol.h"
 

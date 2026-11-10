@@ -1,6 +1,3 @@
-#---------------------------------------------------------------------------
-# gaol -- NOT Just Another Interval Library
-#---------------------------------------------------------------------------
 # Tools of GAOL v5: the mutants of the rounding direction of a 32-bit x86
 # processor, for tests/tools/pow/mutate.py (see README.md). Each is
 # gaol/gaol_fpu.h with one deliberate error in the functions gaol_core::x86_*(),
@@ -21,16 +18,16 @@
 # gaol_read_x86_control()) and the functions that give it to x86_*()
 # (get_rounding(), set_rounding()...) are here since point PG.10 of TODO.md:
 # an x86-64 processor runs them (rounding_state_on_the_processor() of the test).
-#---------------------------------------------------------------------------
-# gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
-# COPYING file for information.
-#---------------------------------------------------------------------------
 #
 # Copyright (c) 2026 ENSTA, France
 #
-# Created 2026-10-27 by Jordan NININ (from the 46 mutants of the work of #156,
-# whose file was lost, rewritten for the code of configure-clean; the 17 of
-# sse_enter_upward() and sse_leave() added for point 3 of PF, GAOL v5)
+# By: Jordan NININ (created 2026-10-27; from the 46 mutants of the work of
+#     #156, whose file was lost, rewritten for the code of configure-clean;
+#     the 17 of sse_enter_upward() and sse_leave() added for point 3 of PF,
+#     GAOL v5)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 
 F = 'gaol/gaol_fpu.h'
 # The constants of the fields and x86_set_modes(), which gaol_set_rounding_x86() of this header needs before it

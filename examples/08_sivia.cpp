@@ -1,5 +1,5 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
+ * GAOL -- not Just Another Interval Library
  *--------------------------------------------------------------------------
  * Examples of GAOL v5: set inversion via interval analysis (SIVIA).
  *
@@ -30,13 +30,13 @@
  *
  * Given a file name, the program also draws the paving of Part 1 there, as
  * an SVG picture.
- *
+ *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
- * Created 2026-09-27 by Jordan NININ
+ * By: Jordan NININ (created 2026-09-27)
  *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
 #include <cstddef>

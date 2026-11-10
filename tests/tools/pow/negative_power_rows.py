@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-#---------------------------------------------------------------------------
-# gaol -- NOT Just Another Interval Library
-#---------------------------------------------------------------------------
 # Tools of GAOL v5: writes rows { x, n, lo, hi } for the table `negative[]` of
 # large_powers() in tests/arithmetic.cpp: the tightest bounds of x^n for a
 # large negative n (from -2^31 + 1 to -2^27), computed with mpmath on 2000
@@ -22,14 +19,13 @@
 #
 # writes COUNT rows (40 by default) to the standard output, as the lines of
 # the table. The 40 rows of the table are those of the default seed.
-#---------------------------------------------------------------------------
-# gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
-# COPYING file for information.
-#---------------------------------------------------------------------------
 #
 # Copyright (c) 2026 ENSTA, France
 #
-# Created 2026-10-25 by Jordan NININ
+# By: Jordan NININ (created 2026-10-25)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 
 import argparse
 import random

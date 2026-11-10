@@ -1,6 +1,6 @@
-/*-*-C-*-----------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
- *------------------------------------------------------------------------------
+/*-*-C-*--------------------------------------------------------------------
+ * GAOL -- not Just Another Interval Library
+ *--------------------------------------------------------------------------
  * x rounded to the nearest integer, halfway values to the even one: the
  * roundTiesToEven of IEEE 1788-2015 (Table 9.1) and the roundeven() of C23.
  *
@@ -30,15 +30,14 @@
  * the macros below for what C and C++ do not write the same way.
  * tests/elementary.cpp checks round_ties_to_even() in the four rounding
  * directions, on halfway values, whole numbers and the doubles next to them.
- *
+ *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
- * Modified by Jordan NININ (GAOL v5)
  *
- * Created 2026-09-20 by Jordan NININ
- *------------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
- *----------------------------------------------------------------------------*/
+ * By: Jordan NININ (created 2026-09-20)
+ *--------------------------------------------------------------------------
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
+ *--------------------------------------------------------------------------*/
 
 #ifndef GAOL_ROUNDEVEN_H
 #define GAOL_ROUNDEVEN_H

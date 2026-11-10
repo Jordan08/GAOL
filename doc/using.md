@@ -1,5 +1,9 @@
 <!-- Copyright (c) 2026 ENSTA, France
-     Created 2026-09-20 by Jordan NININ -->
+
+     By: Jordan NININ (created 2026-09-20)
+
+     GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+     COPYING.LIB file for information. -->
 # Using GAOL
 
 Part of the documentation of [GAOL v5](../README.md#documentation).
@@ -957,7 +961,7 @@ that a handler that knows nothing of GAOL says what went wrong:
 try {
   interval x = gaol::textToInterval("[1, 2");
 } catch (const std::exception& e) {
-  std::cerr << e.what() << '\n';   // gaol_interval.cpp:48: Syntax error in interval initialization: [1, 2
+  std::cerr << e.what() << '\n';   // gaol_interval.cpp:43: Syntax error in interval initialization: [1, 2
 }
 ```
 
@@ -970,7 +974,7 @@ in a call (`nth_root(8, 1.5)`, `sin(1, 2)`) name the grammar,
 `gaol_interval_parser.ypp`, and a line of it, which the `#line` directives of
 the generated parser give. An exception that nothing catches ends the
 program with the same text (with libstdc++: `terminate called after throwing
-an instance of 'std::invalid_argument'`, then `what():  gaol_interval.cpp:48:
+an instance of 'std::invalid_argument'`, then `what():  gaol_interval.cpp:43:
 Syntax error in interval initialization: [1, 2`). GAOL 4 wrote `std::exception`
 in both places, whatever the error. A handler that wants one kind of error
 catches its class: a handler of `std::invalid_argument` does not catch a

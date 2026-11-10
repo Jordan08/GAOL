@@ -1,3 +1,9 @@
+/* Copyright (c) 2026 ENSTA, France
+ *
+ * By: Jordan NININ (created 2026-09-13)
+ *
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information. */
 /* gaol/gaol_configuration.h, written by CMake from
    cmake/gaol_configuration.h.in.
 

@@ -1,18 +1,14 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- Just Another Interval Library
+ * GAOL -- not Just Another Interval Library
  *--------------------------------------------------------------------------
- * This file is part of the gaol distribution. Gaol was primarily 
- * developed at the Swiss Federal Institute of Technology, Lausanne, 
- * Switzerland, and is now developed at the Institut de Recherche 
- * en Informatique de Nantes, France.
- *
  * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
  * Copyright (c) 2002 Institut de Recherche en Informatique de Nantes, France
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * By: Frederic Goualard, Jordan NININ
  *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated 
- * COPYING file for information.
- *--------------------------------------------------------------------------
- * By: Frederic Goualard <Frederic.Goualard@lina.univ-nantes.fr>
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
 #include <chrono>

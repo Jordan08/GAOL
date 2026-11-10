@@ -1,5 +1,9 @@
 <!-- Copyright (c) 2026 ENSTA, France
-     Created 2026-09-20 by Jordan NININ -->
+
+     By: Jordan NININ (created 2026-09-20)
+
+     GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+     COPYING.LIB file for information. -->
 
 # GAOL
 <em>Not Just Another Interval Library</em>
@@ -218,10 +222,22 @@ under the GNU LGPL v2 (`COPYING.LIB`).
 under the MIT licence (`3rd/math-core/LICENSE`).
 
 The files GAOL v5 adds, which are neither GAOL's nor CORE-MATH's, carry the
-copyright of ENSTA and are distributed under the same GNU LGPL v2 as GAOL:
+copyright of ENSTA and are distributed under the same GNU LGPL v2 as GAOL. Most
+of them say so in a header, in the comment marks of their language:
 
     Copyright (c) 2026 ENSTA, France
-    Created 2026-09-20 by Jordan NININ
 
-Each of them names it in its own header. The files of GAOL and of CORE-MATH
-that GAOL v5 changes keep the copyright of their authors.
+    By: Jordan NININ (created 2026-09-20)
+
+    GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+    COPYING.LIB file for information.
+
+The header of most C and C++ sources starts with `GAOL -- not Just Another
+Interval Library` between two lines of dashes, and a description of the file may
+come before the three fields. A file of GAOL 4 that GAOL v5 changes and that has
+a header keeps the copyright lines of its authors above that of ENSTA, and their
+names in the `By:` line (`By: Frederic Goualard, Jordan NININ`). A chapter of
+the manual of GAOL v5 that follows one of the manual of GAOL 4 without taking
+text of it names no author but Jordan NININ, and says in its comment that it is
+based on the manual of GAOL 4. The files of the meson build, by Raphaël
+Chenouard, name him there too. The files of CORE-MATH keep their own.

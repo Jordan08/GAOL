@@ -5,7 +5,10 @@
 #
 # Copyright (c) 2026 ENSTA, France
 #
-# Created 2026-10-17 by Jordan NININ
+# By: Jordan NININ (created 2026-10-17)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 
 # bench_double, bench_gaol5 (the GAOL of this repository), bench_gaol5p (the
 # same, built with GAOL_PRESERVE_ROUNDING=ON), bench_gaol (the last GAOL of

@@ -1,5 +1,9 @@
 <!-- Copyright (c) 2026 ENSTA, France
-     Created 2026-10-27 by Jordan NININ -->
+
+     By: Jordan NININ (created 2026-10-27)
+
+     GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+     COPYING.LIB file for information. -->
 # The order of the computations and of the writes of the control register
 
 Tool of GAOL v5 for the assembly of the library: the check of #150 (task PF,

@@ -1,5 +1,5 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
+ * GAOL -- not Just Another Interval Library
  *--------------------------------------------------------------------------
  * Tests of GAOL v5: the warning for a result thrown away.
  *
@@ -16,13 +16,13 @@
  * functions throw no result away. It also throws a result away on purpose,
  * with a cast to void, where doc/using.md says that it does not warn: with
  * every compiler but GCC before 7, whose attribute is its own.
- *
+ *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
- * Created 2026-09-29 by Jordan NININ
+ * By: Jordan NININ (created 2026-09-29)
  *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
 #include <gaol/gaol>

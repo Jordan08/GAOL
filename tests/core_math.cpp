@@ -1,5 +1,5 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
+ * GAOL -- not Just Another Interval Library
  *--------------------------------------------------------------------------
  * Tests of GAOL v5: the bounds of the elementary functions against
  * CORE-MATH itself.
@@ -26,13 +26,13 @@
  * First, the test checks the fma() and round() of the C library, which
  * CORE-MATH and GAOL call, against values computed apart: where they are
  * wrong, so are the bounds, whatever the platform.
- *
+ *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
- * Created 2026-09-20 by Jordan NININ
+ * By: Jordan NININ (created 2026-09-20)
  *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
 #include "gaol_tests.h"

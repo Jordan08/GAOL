@@ -1,6 +1,6 @@
-/*-*-C++-*----------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
- *------------------------------------------------------------------------------
+/*-*-C++-*------------------------------------------------------------------
+ * GAOL -- not Just Another Interval Library
+ *--------------------------------------------------------------------------
  * Tools of GAOL v5: the differential test of pow (tests/tools/pow).
  *
  * Prints, one line per box (x, y), the bounds of
@@ -27,14 +27,14 @@
  * rounding direction to nearest, so that they are the same in every build.
  *
  *   diffpow [number of random boxes, 60000 by default] > output.txt
- *
+ *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
- * Created 2026-09-29 by Jordan NININ
- *------------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
- *----------------------------------------------------------------------------*/
+ * By: Jordan NININ (created 2026-09-29)
+ *--------------------------------------------------------------------------
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
+ *--------------------------------------------------------------------------*/
 
 #include "gaol/gaol.h"
 #include "gaol/gaol_ieee1788.h"

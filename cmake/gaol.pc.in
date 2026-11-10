@@ -12,6 +12,14 @@
 # The paths are taken from the directory of this file, ${pcfiledir}, so that
 # it stays right wherever GAOL is installed: cmake --install --prefix, the
 # archive and the .deb that CPack makes (GAOL v5).
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-09-14)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+
 prefix=@GAOL_PC_PREFIX@
 libdir=@GAOL_PC_LIBDIR@
 includedir=@GAOL_PC_INCLUDEDIR@

@@ -1,6 +1,6 @@
-/*-*-C-*-----------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
- *------------------------------------------------------------------------------
+/*-*-C-*--------------------------------------------------------------------
+ * GAOL -- not Just Another Interval Library
+ *--------------------------------------------------------------------------
  * x * 2^n rounded once, in the rounding direction in effect: the ldexp() of C
  * as the C standard and IEEE 754 (scaleB) define it (GAOL v5).
  *
@@ -27,14 +27,14 @@
  * This header is C, and is included both by gaol/math/gaol_core_math_port.h,
  * for the sources of CORE-MATH, and by tests/core_math.cpp, which checks it in
  * the four rounding directions on every platform. It is not installed.
- *
+ *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
- * Created 2026-10-11 by Jordan NININ
- *------------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
- *----------------------------------------------------------------------------*/
+ * By: Jordan NININ (created 2026-10-11)
+ *--------------------------------------------------------------------------
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
+ *--------------------------------------------------------------------------*/
 
 #ifndef GAOL_LDEXP_H
 #define GAOL_LDEXP_H

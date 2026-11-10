@@ -33,7 +33,11 @@
 #
 # Copyright (c) 2026 ENSTA, France
 #
-# Created 2026-10-04 by Jordan NININ
+# By: Jordan NININ (created 2026-10-04)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+
 set -e
 # sort and comm in one collation, the C one: in fr_FR.UTF-8, the sort and the
 # comm of uutils coreutils (Ubuntu 26.04) did not order the names alike, and

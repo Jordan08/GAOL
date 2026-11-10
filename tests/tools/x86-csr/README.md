@@ -1,5 +1,9 @@
 <!-- Copyright (c) 2026 ENSTA, France
-     Created 2026-10-27 by Jordan NININ -->
+
+     By: Jordan NININ (created 2026-10-27)
+
+     GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+     COPYING.LIB file for information. -->
 # Tools for the control registers of a 32-bit x86 processor
 
 Tools of GAOL v5 for `gaol_core::x86_*()` of [gaol/gaol_fpu.h](../../../gaol/gaol_fpu.h),

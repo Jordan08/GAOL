@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-#---------------------------------------------------------------------------
-# gaol -- NOT Just Another Interval Library
-#---------------------------------------------------------------------------
 # Tools of GAOL v5: reads the assembly of the library for the instructions
 # that compute with the rounding direction (add, sub, mul, div, sqrt, fused
 # multiply-add, conversions that round, rounding with the direction of the
@@ -78,15 +75,15 @@
 # (difference_at_least() computes the halves of its bounds after the last
 # write, and the check sees it with some compilers only). The text of an asm
 # statement is read as code (fldcw is written by one).
-#---------------------------------------------------------------------------
-# gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
-# COPYING file for information.
-#---------------------------------------------------------------------------
 #
 # Copyright (c) 2026 ENSTA, France
 #
-# Created 2026-10-27 by Jordan NININ (the check of the assembly of AArch64 and
-# 32-bit ARM of #150 was a script of the work directory, which was lost)
+# By: Jordan NININ (created 2026-10-27; the check of the assembly of AArch64
+#     and 32-bit ARM of #150 was a script of the work directory, which was
+#     lost)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 
 import argparse
 import collections

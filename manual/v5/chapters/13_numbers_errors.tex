@@ -3,6 +3,18 @@
 %% Chapter 13: Floating-point numbers, errors and debugging. Sources:
 %% gaol.tex of f5bf180 lines 6007-6123 and 6156-6404 (the rounding functions
 %% of the FPU, lines 6124-6155, are in Chapter 4), doc/using.md lines 931-998.
+%%
+%% Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
+%% Copyright (c) 2002-2016 Laboratoire d'Informatique de
+%%                         Nantes-Atlantique, France
+%% Copyright (c) 2017-2020 Laboratoire des Sciences du Numérique de Nantes,
+%%                         France
+%% Copyright (c) 2026 ENSTA, France
+%%
+%% By: Frederic Goualard, Jordan NININ
+%%
+%% GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+%% COPYING.LIB file for information.
 \chapter{Floating-point numbers, errors and debugging}%
 \label{chap:errors}\label{chap:numbers}
 
@@ -320,7 +332,7 @@ catches the \code{std::bad\_alloc} that GAOL throws where memory runs out.
 The \code{what()} of these exceptions is
 ``\code{file:line: }\var{explanation}'': the name of the source file of GAOL,
 without its directories, and the line that threw the exception, then what
-went wrong, as in \code{gaol\_interval.cpp:48: Syntax error in interval
+went wrong, as in \code{gaol\_interval.cpp:43: Syntax error in interval
 initialization: [1, 2}. For the errors that the reader of strings finds in a
 call (\code{nth\_root(8, 1.5)}, \code{sin(1, 2)}), the file is that of the
 grammar, \code{gaol\_interval\_parser.ypp}, and the line one of that file,
@@ -340,13 +352,13 @@ try {
   std::cerr << e.what() << '\n';
 }
 \end{example}
-The handler writes \code{gaol\_interval.cpp:48: Syntax error in interval
+The handler writes \code{gaol\_interval.cpp:43: Syntax error in interval
 initialization: [1, 2} on the standard error. Had nothing caught the
 exception, the program would have ended with the same text; with libstdc++,
 the output is the following.
 \begin{onscreen}
 terminate called after throwing an instance of 'std::invalid_argument'
-  what():  gaol_interval.cpp:48: Syntax error in interval initialization: [1, 2
+  what():  gaol_interval.cpp:43: Syntax error in interval initialization: [1, 2
 \end{onscreen}
 \end{Ex}
 

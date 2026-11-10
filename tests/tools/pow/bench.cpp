@@ -1,6 +1,6 @@
-/*-*-C++-*----------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
- *------------------------------------------------------------------------------
+/*-*-C++-*------------------------------------------------------------------
+ * GAOL -- not Just Another Interval Library
+ *--------------------------------------------------------------------------
  * Tools of GAOL v5: the time per call of the pow functions, on each path of
  * pow_standard() and of what gaol::pow adds to it (tests/tools/pow).
  *
@@ -22,14 +22,14 @@
  * the best time of each row (README.md). The times depend on the machine and
  * the compiler: only the ratios between two builds measured together mean
  * something.
- *
+ *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
- * Created 2026-09-29 by Jordan NININ
- *------------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
- *----------------------------------------------------------------------------*/
+ * By: Jordan NININ (created 2026-09-29)
+ *--------------------------------------------------------------------------
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
+ *--------------------------------------------------------------------------*/
 
 #include "gaol/gaol.h"
 #include "gaol/gaol_ieee1788.h"

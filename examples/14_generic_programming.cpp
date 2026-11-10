@@ -1,5 +1,5 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
+ * GAOL -- not Just Another Interval Library
  *--------------------------------------------------------------------------
  * Examples of GAOL v5: generic code, one function for double, interval and
  * Dual.
@@ -27,13 +27,13 @@
  * Codac's AnalyticFunction, which evaluates one expression on several
  * domains. The model is the Maxwell-Boltzmann distribution of any textbook
  * of statistical physics.
- *
+ *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
- * Created 2026-09-27 by Jordan NININ
+ * By: Jordan NININ (created 2026-09-27)
  *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
 #include <algorithm>

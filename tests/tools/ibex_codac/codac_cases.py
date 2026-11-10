@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-#---------------------------------------------------------------------------
-# gaol -- NOT Just Another Interval Library
-#---------------------------------------------------------------------------
 # Tests of GAOL v5: the cases of the interval tests of Codac, with their
 # exact results, and the rows of the tables of the section `codac_`
 # of tests/test_ibex_codac.cpp.
@@ -47,14 +44,13 @@
 #
 # The exit status is 1 when a row differs (--check), or a self-test fails.
 # Python 3.9 or later, and mpmath (https://mpmath.org).
-#---------------------------------------------------------------------------
-# gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
-# COPYING file for information.
-#---------------------------------------------------------------------------
 #
 # Copyright (c) 2026 ENSTA, France
 #
-# Created 2026-11-02 by Jordan NININ
+# By: Jordan NININ (created 2026-11-02)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 
 import argparse
 import math

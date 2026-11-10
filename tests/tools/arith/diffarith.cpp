@@ -1,6 +1,6 @@
-/*-*-C++-*----------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
- *------------------------------------------------------------------------------
+/*-*-C++-*------------------------------------------------------------------
+ * GAOL -- not Just Another Interval Library
+ *--------------------------------------------------------------------------
  * Tools of GAOL v5: the differential test of the arithmetic (tests/tools/arith).
  *
  * Prints, one line per operation, the bounds of the result in hexadecimal (the
@@ -31,14 +31,14 @@
  * diffarith.py builds it, runs it and compares the outputs.
  *
  *   diffarith [direction...] > output.txt     (all four by default)
- *------------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
- *------------------------------------------------------------------------------
+ *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
- * Created 2026-10-19 by Jordan NININ
- *----------------------------------------------------------------------------*/
+ * By: Jordan NININ (created 2026-10-19)
+ *--------------------------------------------------------------------------
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
+ *--------------------------------------------------------------------------*/
 
 #include "gaol/gaol.h"
 

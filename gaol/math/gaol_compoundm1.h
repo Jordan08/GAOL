@@ -1,6 +1,6 @@
-/*-*-C++-*---------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
- *------------------------------------------------------------------------------
+/*-*-C++-*------------------------------------------------------------------
+ * GAOL -- not Just Another Interval Library
+ *--------------------------------------------------------------------------
  * compoundm1(x, y) = (1 + x)^y - 1 of IEEE 1788-2015 (Table 10.5) at a point,
  * with bounds that are the tightest ones but in a case out of 10^17 or so: the
  * greatest double at most the value and the least double at least it (GAOL v5).
@@ -53,14 +53,14 @@
  * 1/(1 + x) = 1 - x + x^2 - x^3 + ... loses its cubic term and f is within
  * 2^-155 of a double. Only the cases that the fast phase does not settle come
  * to the balls (5 % of the pairs).
- *
+ *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
- * Created 2026-11-04 by Jordan NININ
- *------------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
- *----------------------------------------------------------------------------*/
+ * By: Jordan NININ (created 2026-11-04)
+ *--------------------------------------------------------------------------
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
+ *--------------------------------------------------------------------------*/
 
 #ifndef GAOL_COMPOUNDM1_H
 #define GAOL_COMPOUNDM1_H

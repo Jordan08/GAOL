@@ -1,5 +1,5 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
+ * GAOL -- not Just Another Interval Library
  *--------------------------------------------------------------------------
  * Tests of GAOL v5: the other functions on intervals.
  *
@@ -18,13 +18,13 @@
  * functions of max, min, sign and floor (max_rel, min_rel, sign_rel,
  * floor_rel), which have to be the hulls of their sets, read from their
  * definitions on a grid and by sampling (GAOL v5).
- *
+ *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
- * Created 2026-09-20 by Jordan NININ
+ * By: Jordan NININ (created 2026-09-20)
  *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
 #include "gaol_tests.h"

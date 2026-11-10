@@ -7,6 +7,14 @@
 # (the machine has 8, and its owner works on it too). The command itself must
 # be single-threaded when N is 1: cmake --build <dir> -j1, ctest -j1, make -j1,
 # ninja -j1. Wait for a free token as long as it takes.
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-10-04)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+
 N=1
 if [ "$1" = "-n" ]; then N=$2; shift 2; fi
 case "$N" in 1|2|3|4) ;; *) echo "gcore: N must be 1, 2, 3 or 4" >&2; exit 2;; esac

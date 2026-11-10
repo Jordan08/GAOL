@@ -14,6 +14,14 @@
 # architecture, indented, so that it would say fpu: the job of macos.yml for it
 # asks the preprocessor of each architecture instead.
 #
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-10-19)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+
 header=$1
 expected=$2
 if [ ! -f "$header" ] || [ -z "$expected" ]; then

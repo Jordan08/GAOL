@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-#---------------------------------------------------------------------------
-# gaol -- NOT Just Another Interval Library
-#---------------------------------------------------------------------------
 # Tools of GAOL v5: one source file made of three units of GAOL (the core of
 # the intervals, the common code and the test of the rounding direction), for a
 # compiler that is not here and takes one file, such as the ones of Compiler
@@ -47,15 +44,14 @@
 # (gaol/gaol_config.h refuses them without it). The result is large (the three
 # units, 33 000 lines), and a Compiler Explorer stops a compilation at about 20
 # seconds.
-#---------------------------------------------------------------------------
-# gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
-# COPYING file for information.
-#---------------------------------------------------------------------------
 #
 # Copyright (c) 2026 ENSTA, France
 #
-# Created 2026-10-27 by Jordan NININ (the work of #156 had such a script,
-# which was lost, rewritten)
+# By: Jordan NININ (created 2026-10-27; the work of #156 had such a script,
+#     which was lost, rewritten)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 
 import argparse
 import os

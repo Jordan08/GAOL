@@ -1,3 +1,10 @@
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-10-04)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+
 """The big points of TODO.md (25, 26, 27, 28, 30): points made of several sub-features, and research-scale ones.
 
 Sub-features are implemented and reviewed in branches of their own (not pushed); an integration point per TODO

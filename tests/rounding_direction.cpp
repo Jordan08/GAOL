@@ -1,5 +1,5 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
+ * GAOL -- not Just Another Interval Library
  *--------------------------------------------------------------------------
  * Tests of GAOL v5: the rounding direction of the code using GAOL.
  *
@@ -77,13 +77,13 @@
  * operations and right before them, in the six states where the units agree or
  * differ; on x86-64, the state that get_rounding() reads and the registers that
  * set_rounding() and set_rounding_and_flush_modes() write.
- *
+ *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
- * Created 2026-09-20 by Jordan NININ
+ * By: Jordan NININ (created 2026-09-20)
  *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
 #include "gaol_tests.h"

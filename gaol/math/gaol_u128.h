@@ -1,6 +1,6 @@
-/*-*-C-*-----------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
- *------------------------------------------------------------------------------
+/*-*-C-*--------------------------------------------------------------------
+ * GAOL -- not Just Another Interval Library
+ *--------------------------------------------------------------------------
  * The 128-bit unsigned integer that the accurate phases of CORE-MATH's log,
  * sin, cos, tan, atan2 and pow, and of log2p1, log10p1, atan2pi, hypot, rsqrt
  * and asinpi, compute with, on every compiler GAOL is built with. asinpi
@@ -23,15 +23,14 @@
  * emulated ones are the textbook algorithms on two halves, and
  * tests/u128.cpp compares them with the native type over random values and
  * over the values at the ends of the ranges.
- *
+ *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
- * Modified by Jordan NININ (GAOL v5)
  *
- * Created 2026-09-20 by Jordan NININ
- *------------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
- *----------------------------------------------------------------------------*/
+ * By: Jordan NININ (created 2026-09-20)
+ *--------------------------------------------------------------------------
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
+ *--------------------------------------------------------------------------*/
 
 #ifndef GAOL_U128_H
 #define GAOL_U128_H
