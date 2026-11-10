@@ -80,8 +80,8 @@ library_include_HEADERS = gaol gaol.h \
 # gaol/core/ as in the sources (GAOL v5)
 library_core_includedir = $(includedir)/gaol/core
 library_core_include_HEADERS = core/gaol_interval_core.h \
-	core/gaol_interval_fpu.h core/gaol_interval_neon.h \
-	core/gaol_interval_sse.h
+	core/gaol_interval_detail.h core/gaol_interval_fpu.h \
+	core/gaol_interval_neon.h core/gaol_interval_sse.h
 
 # The headers of the parser of the strings and of the expressions, which a
 # program includes as gaol/parser/gaol_expression.h and

@@ -198,7 +198,7 @@ intervals on 64-bit ARM, the SSE2 intervals on x86-64, and the FPU intervals
 where the option (`GAOL_SIMD`) is off; the Visual Studio jobs
 of `windows.yml`, those of clang-cl included, expect the SSE2 intervals on x64
 and on x86 (GAOL v5) and the NEON intervals on arm64; the MSYS2 jobs, the SSE2
-ones on x64 and the NEON ones on arm64; two jobs of `linux.yml` give the SSE2
+ones on x64 and the NEON ones on arm64; four jobs of `linux.yml` give the SSE2
 intervals of Linux the form they have on x86 with Visual C++ and clang-cl
 (`-DGAOL_SSE2_UNALIGNED_STORAGE=ON`), and check that the configuration has it;
 the
@@ -206,8 +206,10 @@ Linux containers make the check before the build, from `uname -m`: the NEON
 intervals on aarch64, the SSE2 intervals on x86_64, and the FPU intervals on
 armhf, s390x, ppc64le and riscv64.
 
-Four jobs of `linux.yml`, with the GCC and the Clang of Ubuntu 26.04 on x86_64
-and on arm64, and one of `macos.yml`, with the AppleClang of macOS 26 arm64,
+Six jobs of `linux.yml`, with the GCC and the Clang of Ubuntu 26.04 on x86_64
+and on arm64, and on x86_64 again with the SSE2 intervals in the form they have
+on x86 with Visual C++ and clang-cl (`-DGAOL_SSE2_UNALIGNED_STORAGE=ON`, GAOL
+v5), and one of `macos.yml`, with the AppleClang of macOS 26 arm64,
 build the library, the sources of CORE-MATH included, the tests and the
 examples with `-Wall -Wextra -Werror`, and four of `windows.yml` with `/W4 /WX`,
 with the Visual C++ of Visual Studio 2026: x64 in Release, and again asking for the
@@ -216,13 +218,16 @@ and x86 in Release. On arm64, the check of the
 installed headers below compiles the header of the NEON intervals, which
 `gaol/core/gaol_interval_core.h` includes, with the warnings of the headers
 (`-Wold-style-cast`, `-Wundef`) that the intrinsics of `<arm_neon.h>` have to
-stay clear of (GAOL v5). The first five check the headers
+stay clear of (GAOL v5). The first seven check the headers
 GAOL installs with `.github/scripts/headers.sh` (GAOL v5): each compiles alone
 with `-std=c++11`, the oldest standard GAOL takes, and
 `-Wall -Wextra -Wold-style-cast -Wundef -Werror` (they have no cast of C,
 nor any `#if` on a macro that may be undefined), but the
 four that other headers include in the middle of their code or for Visual C++
-only, and the macros they define start with `GAOL_` or `gaol_`.
+only, and the macros they define start with `GAOL_` or `gaol_`. The two jobs
+with `-DGAOL_SSE2_UNALIGNED_STORAGE=ON` check the configuration has that form
+before they build, and make the check for the installation in that form:
+`gaol/core/gaol_interval_detail.h` did not compile alone there (GAOL v5).
 `-Werror` and `/WX` go to the targets only (`CMAKE_COMPILE_WARNING_AS_ERROR`),
 so that no check of CMake fails on a warning of its test program. Until then,
 the library was compiled with `-Wall -Wconversion`, and no job failed on a

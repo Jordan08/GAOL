@@ -119,7 +119,7 @@
   // registers where it if-converts them, and 30% more in a loop of
   // constructions (GCC 9.4, FPU intervals). GCC for 64-bit ARM computed them
   // for every element of a loop of constructions it vectorized, an empty one
-  // included: the bounds go through GAOL_FPU_SCALAR() (gaol_interval_core.h),
+  // included: the bounds go through GAOL_FPU_SCALAR() (gaol_interval_detail.h),
   // which keeps GCC from vectorizing that loop. On 32-bit ARM and on POWER9,
   // the quiet first comparison has the form GCC reversed into a signaling one
   // in is_empty(), and the constructor tells NaN bounds as is_empty() does,
@@ -271,6 +271,28 @@ GAOL_INLINE double
 interval::right_internal() const
 {
     return rb_;
+}
+
+// The sum, the difference, the product and the quotient of two intervals, on
+// the operators of assignment of gaol_interval_fpu.cpp (GAOL v5)
+GAOL_NODISCARD GAOL_INLINE interval operator+(const interval& I1, const interval& I2)
+{
+  return interval(I1) += I2;
+}
+
+GAOL_NODISCARD GAOL_INLINE interval operator-(const interval& I1, const interval& I2)
+{
+  return interval(I1) -= I2;
+}
+
+GAOL_NODISCARD GAOL_INLINE interval operator*(const interval& I1, const interval& I2)
+{
+  return interval(I1) *= I2;
+}
+
+GAOL_NODISCARD GAOL_INLINE interval operator/(const interval& I1, const interval& I2)
+{
+  return interval(I1) /= I2;
 }
 
 #endif // GAOL_INTERVAL_FPU_H

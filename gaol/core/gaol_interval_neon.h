@@ -199,7 +199,7 @@ namespace neon_detail {
 // An infinite v gives the empty set, as in IBEX: IEEE 1788-2015 has no
 // interval [+oo, +oo] nor [-oo, -oo] (10.5.8). A NaN gives it too, told by
 // a quiet comparison of |v| with +oo (neon_detail::finite_double()). The bounds go
-// through GAOL_FPU_SCALAR() as with the FPU intervals (gaol_interval_core.h):
+// through GAOL_FPU_SCALAR() as with the FPU intervals (gaol_interval_detail.h):
 // GCC for 64-bit ARM vectorizes loops of constructions and compares the
 // bounds of every element, an empty one included, with signaling comparisons
 GAOL_INLINE interval::interval(double v)
@@ -355,6 +355,29 @@ GAOL_INLINE interval& interval::operator/=(const interval& I)
 {
   neonbounds = gaol_detail::div_bounds(neonbounds, I.neonbounds);
   return *this;
+}
+
+// The sum, the difference, the product and the quotient of two intervals, the
+// bounds in registers from the operands to the result, as with the SSE2
+// intervals (GAOL v5)
+GAOL_NODISCARD GAOL_INLINE interval operator+(const interval& I1, const interval& I2)
+{
+  return interval(gaol_detail::add_bounds(I1.get_neoninterval(), I2.get_neoninterval()), gaol_detail::unchecked_bounds);
+}
+
+GAOL_NODISCARD GAOL_INLINE interval operator-(const interval& I1, const interval& I2)
+{
+  return interval(gaol_detail::sub_bounds(I1.get_neoninterval(), I2.get_neoninterval()), gaol_detail::unchecked_bounds);
+}
+
+GAOL_NODISCARD GAOL_INLINE interval operator*(const interval& I1, const interval& I2)
+{
+  return interval(gaol_detail::mul_bounds(I1.get_neoninterval(), I2.get_neoninterval()), gaol_detail::unchecked_bounds);
+}
+
+GAOL_NODISCARD GAOL_INLINE interval operator/(const interval& I1, const interval& I2)
+{
+  return interval(gaol_detail::div_bounds(I1.get_neoninterval(), I2.get_neoninterval()), gaol_detail::unchecked_bounds);
 }
 
 //! I^2

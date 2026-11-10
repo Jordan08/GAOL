@@ -126,6 +126,7 @@ gaol_HEADERS = [
 # gaol/core/ as in the sources (GAOL v5)
 gaol_CORE_HEADERS = [
   'core/gaol_interval_core.h',
+  'core/gaol_interval_detail.h',
   'core/gaol_interval_fpu.h',
   'core/gaol_interval_neon.h',
   'core/gaol_interval_sse.h',
