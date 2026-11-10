@@ -937,7 +937,6 @@ namespace gaol_core {
 #endif
     friend GAOL_PUBLIC interval cos(const interval& I);
     friend GAOL_PUBLIC interval sin(const interval& I);
-    friend GAOL_PUBLIC interval div_rel(const interval &K, const interval &J, const interval &I);
 
 #if GAOL_USING_SSE2_INSTRUCTIONS
     typedef GAOL_ALIGN16(double xmm2d[2]);

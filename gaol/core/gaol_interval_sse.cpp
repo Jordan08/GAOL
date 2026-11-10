@@ -131,8 +131,9 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
   // which the denormals-are-zero mode made wrong for the subnormal ones, and
   // with GAOL_PRESERVE_ROUNDING the intersections with I compared bounds after
   // the mode was restored. The division and its intersection with I are made
-  // by the lambda, whose returns come back before GAOL_RND_LEAVE_SSE(); it has
-  // the access of div_rel(), a friend of interval
+  // by the lambda, whose returns come back before GAOL_RND_LEAVE_SSE(). The
+  // bounds of K and J are read by get_xmminterval(): div_rel() is no friend
+  // of interval (GAOL v5)
   GAOL_RND_ENTER_SSE();
   interval res = [&]() -> interval {
   // The emptiness tests of this file are not worth writing with SSE2
@@ -155,7 +156,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
   // empty operand having been left above
   {
 	const __m128d sign = _mm_set1_pd(-0.0), infinity = _mm_set1_pd(GAOL_INFINITY);
-	const __m128d k = _mm_andnot_pd(sign, K.xmmbounds), j = _mm_andnot_pd(sign, J.xmmbounds);
+	const __m128d k = _mm_andnot_pd(sign, K.get_xmminterval()), j = _mm_andnot_pd(sign, J.get_xmminterval());
 	const __m128d big = _mm_and_pd(_mm_cmpge_pd(k, _mm_set1_pd(two_power_500)), _mm_cmplt_pd(k, infinity));
 	const __m128d tiny = _mm_and_pd(_mm_cmplt_pd(j, _mm_set1_pd(two_power_minus_500)), _mm_cmpneq_pd(j, _mm_setzero_pd()));
 	if (_mm_movemask_pd(_mm_or_pd(big, tiny)) != 0) {
@@ -176,15 +177,15 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 
   if ( K.right() < 0.0 ) { // [K] N1
     if ( J.right() < 0.0 ) { // [J] N1
-      __m128d r = _mm_xor_pd(K.xmmbounds,interval::lbsignmask);
-      __m128d r2 = _mm_div_pd(_mm_shuffle_pd(r,r,1),J.xmmbounds);
+      __m128d r = _mm_xor_pd(K.get_xmminterval(),interval::lbsignmask);
+      __m128d r2 = _mm_div_pd(_mm_shuffle_pd(r,r,1),J.get_xmminterval());
       return I & interval(r2, gaol_detail::unchecked_bounds); // N1 N1
     } else { // [J] P or Z
       if ( J.right() == 0.0 ) { // [J] N0 or Z
         if ( J.left() == 0.0 ) { // [J] Z
           return interval::emptyset(); // N1 Z
         } else {
-          __m128d r = _mm_move_sd(interval::m128_infinf,_mm_div_sd(_mm_shuffle_pd(K.xmmbounds,K.xmmbounds,1),J.xmmbounds));
+          __m128d r = _mm_move_sd(interval::m128_infinf,_mm_div_sd(_mm_shuffle_pd(K.get_xmminterval(),K.get_xmminterval(),1),J.get_xmminterval()));
           return I & interval(r, gaol_detail::unchecked_bounds); // N1 N0
         }
       } else { // [J] P or M
@@ -203,18 +204,18 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
           // division-by-zero exception: the numerator is finite (K is not
           // empty, and [-oo, -oo] is) and not 0, and the divisors are not 0. The
           // overflow of the finite quotients is left to div_rel_upward() above
-          __m128d q = _mm_div_pd(_mm_unpackhi_pd(K.xmmbounds,K.xmmbounds),J.xmmbounds);
+          __m128d q = _mm_div_pd(_mm_unpackhi_pd(K.get_xmminterval(),K.get_xmminterval()),J.get_xmminterval());
           __m128d r = _mm_move_sd(q,interval::m128_infinf);   // [-oo, K.right()/J.right()]
           __m128d r2 = _mm_move_sd(interval::m128_infinf,q);  // [K.right()/J.left(), +oo]
           return (I & interval(r, gaol_detail::unchecked_bounds)) | (I & interval(r2, gaol_detail::unchecked_bounds)); // N1 M
         } else { // [J] P0 or P1
           if ( J.left() == 0.0 ) { // [I] P0
             __m128d r = _mm_unpacklo_pd(interval::m128_infinf,
-                                        _mm_div_sd(_mm_unpackhi_pd(K.xmmbounds,K.xmmbounds),
-                                                   _mm_unpackhi_pd(J.xmmbounds,J.xmmbounds))); // N1 P0
+                                        _mm_div_sd(_mm_unpackhi_pd(K.get_xmminterval(),K.get_xmminterval()),
+                                                   _mm_unpackhi_pd(J.get_xmminterval(),J.get_xmminterval()))); // N1 P0
             return I & interval(r, gaol_detail::unchecked_bounds);
           } else { // [J] P1
-            __m128d r = _mm_div_pd(K.xmmbounds,_mm_xor_pd(J.xmmbounds,interval::lbsignmask)); // N1 P1
+            __m128d r = _mm_div_pd(K.get_xmminterval(),_mm_xor_pd(J.get_xmminterval(),interval::lbsignmask)); // N1 P1
             return I & interval(r, gaol_detail::unchecked_bounds);
           }
         }
@@ -230,8 +231,8 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 		}
 	  } else { // [K] N0
 		if ( J.right() < 0.0 ) { // [J] N1
-			__m128d r1 = _mm_xor_pd(K.xmmbounds,interval::lbsignmask);
-			__m128d r2 = _mm_move_sd(_mm_div_pd(_mm_shuffle_pd(r1,r1,1),J.xmmbounds),interval::m128_zero);	// N0 N1
+			__m128d r1 = _mm_xor_pd(K.get_xmminterval(),interval::lbsignmask);
+			__m128d r2 = _mm_move_sd(_mm_div_pd(_mm_shuffle_pd(r1,r1,1),J.get_xmminterval()),interval::m128_zero);	// N0 N1
 			return I & interval(r2, gaol_detail::unchecked_bounds);
 		} else { // [J] P or Z
 		  if ( J.right() == 0.0 ) { // [J] N0 or Z
@@ -247,7 +248,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 			  if ( J.left() == 0.0 ) { // [J] P0
           return I; // N0 P0
 			  } else { // [J] P1
-          __m128d r = _mm_move_sd(interval::m128_zero,_mm_div_pd(K.xmmbounds,_mm_xor_pd(J.xmmbounds,interval::lbsignmask))); 
+          __m128d r = _mm_move_sd(interval::m128_zero,_mm_div_pd(K.get_xmminterval(),_mm_xor_pd(J.get_xmminterval(),interval::lbsignmask)));
           return I & interval(r, gaol_detail::unchecked_bounds); // N0 P1
 			  }
 			}
@@ -257,8 +258,8 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 	} else { // [K] M, P0, or P1
 	  if ( K.left() < 0.0 ) { // [K] M
 		if ( J.right() < 0.0 ) { // [J] N1
-		  __m128d r1 = _mm_xor_pd(K.xmmbounds,interval::lbrbsignmask);
-		  __m128d r2 = _mm_div_pd(_mm_shuffle_pd(r1,r1,1),_mm_unpackhi_pd(J.xmmbounds,J.xmmbounds));
+		  __m128d r1 = _mm_xor_pd(K.get_xmminterval(),interval::lbrbsignmask);
+		  __m128d r2 = _mm_div_pd(_mm_shuffle_pd(r1,r1,1),_mm_unpackhi_pd(J.get_xmminterval(),J.get_xmminterval()));
       return I & interval(r2, gaol_detail::unchecked_bounds); // M N1
 		} else { // [J] P or Z
 		  if ( J.right() == 0.0 ) { // [J] N0 or Z
@@ -270,8 +271,8 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 			  if ( J.left() == 0.0 ) { // [J] P0
 				return I; // M P0
 			  } else { // [J] P1
-          __m128d r1 = _mm_xor_pd(J.xmmbounds,interval::lbsignmask);
-          __m128d r2 = _mm_div_pd(K.xmmbounds,_mm_unpacklo_pd(r1,r1)); 
+          __m128d r1 = _mm_xor_pd(J.get_xmminterval(),interval::lbsignmask);
+          __m128d r2 = _mm_div_pd(K.get_xmminterval(),_mm_unpacklo_pd(r1,r1));
           return I & interval(r2, gaol_detail::unchecked_bounds); // M P1
 			  }
 			}
@@ -280,8 +281,8 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 	  } else { // [K] P0 or P1
 		if ( K.left() == 0.0 ) { // [K] P0
 		  if ( J.right() < 0.0 ) { // [J] N1
-        __m128d r1 = _mm_xor_pd(_mm_shuffle_pd(K.xmmbounds,K.xmmbounds,1),interval::lbsignmask);
-        __m128d r2 = _mm_shuffle_pd(J.xmmbounds,J.xmmbounds,1);
+        __m128d r1 = _mm_xor_pd(_mm_shuffle_pd(K.get_xmminterval(),K.get_xmminterval(),1),interval::lbsignmask);
+        __m128d r2 = _mm_shuffle_pd(J.get_xmminterval(),J.get_xmminterval(),1);
         __m128d r3 = _mm_move_sd(interval::m128_zero,_mm_div_pd(r1,r2));
         return I & interval(r3, gaol_detail::unchecked_bounds); // P0 N1
 		  } else { // [J] P or Z
@@ -294,9 +295,9 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 				if ( J.left() == 0.0 ) { // [J] P0
 				  return I; // P0 P0
 				} else { // [J] P1
-				  __m128d r1 = _mm_xor_pd(J.xmmbounds,interval::lbsignmask);
+				  __m128d r1 = _mm_xor_pd(J.get_xmminterval(),interval::lbsignmask);
 				  __m128d r2 = _mm_shuffle_pd(r1,r1,1);
-				  __m128d r3 = _mm_move_sd(_mm_div_pd(K.xmmbounds,r2),interval::m128_zero);// P0 P1
+				  __m128d r3 = _mm_move_sd(_mm_div_pd(K.get_xmminterval(),r2),interval::m128_zero);// P0 P1
           return I & interval(r3, gaol_detail::unchecked_bounds);
 				}
 			  }
@@ -304,8 +305,8 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 		  }
 		} else { // [K] P1
 		  if ( J.right() < 0.0 ) { // [J] N1
-        __m128d r1 = _mm_xor_pd(_mm_shuffle_pd(K.xmmbounds,K.xmmbounds,1),interval::lbrbsignmask);
-        __m128d r2 = _mm_xor_pd(J.xmmbounds,interval::lbsignmask);
+        __m128d r1 = _mm_xor_pd(_mm_shuffle_pd(K.get_xmminterval(),K.get_xmminterval(),1),interval::lbrbsignmask);
+        __m128d r2 = _mm_xor_pd(J.get_xmminterval(),interval::lbsignmask);
         __m128d r3 = _mm_div_pd(r1,_mm_shuffle_pd(r2,r2,1)); 
         return I & interval(r3, gaol_detail::unchecked_bounds); // P1 N1
       } else { // [J] P or Z
@@ -313,25 +314,25 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 			  if ( J.left() == 0.0 ) { // [J] Z
 				return interval::emptyset(); // P1 Z
 			  } else {
-          __m128d r = _mm_unpacklo_pd(interval::m128_infinf,_mm_div_sd(K.xmmbounds,J.xmmbounds));
+          __m128d r = _mm_unpacklo_pd(interval::m128_infinf,_mm_div_sd(K.get_xmminterval(),J.get_xmminterval()));
           return I & interval(r, gaol_detail::unchecked_bounds); // P1 N0
 			  }
 			} else { // [J] P or M
 			  if ( J.left() < 0.0 ) { // [J] M
-          __m128d r = _mm_unpacklo_pd(interval::m128_infinf,_mm_div_sd(K.xmmbounds,J.xmmbounds)); // P1 N0
+          __m128d r = _mm_unpacklo_pd(interval::m128_infinf,_mm_div_sd(K.get_xmminterval(),J.get_xmminterval())); // P1 N0
 				  __m128d r2 = _mm_move_sd(interval::m128_infinf,
-                        _mm_div_sd(K.xmmbounds,
-												_mm_shuffle_pd(J.xmmbounds,J.xmmbounds,1))); // P1 P0
+                        _mm_div_sd(K.get_xmminterval(),
+												_mm_shuffle_pd(J.get_xmminterval(),J.get_xmminterval(),1))); // P1 P0
           return (I & interval(r, gaol_detail::unchecked_bounds)) | (I & interval(r2, gaol_detail::unchecked_bounds)); // P1 M
 			  } else { // [J] P0 or P1
 				if ( J.left() == 0.0 ) { // [J] P0
 				  __m128d r = _mm_move_sd(interval::m128_infinf,
-                        _mm_div_sd(K.xmmbounds,
-												_mm_shuffle_pd(J.xmmbounds,J.xmmbounds,1))); // P1 P0
+                        _mm_div_sd(K.get_xmminterval(),
+												_mm_shuffle_pd(J.get_xmminterval(),J.get_xmminterval(),1))); // P1 P0
           return I & interval(r, gaol_detail::unchecked_bounds);
 				} else { // [J] P1
-				  __m128d r1 = _mm_xor_pd(J.xmmbounds,interval::lbsignmask);
-				  __m128d r2 = _mm_div_pd(K.xmmbounds,_mm_shuffle_pd(r1,r1,1));
+				  __m128d r1 = _mm_xor_pd(J.get_xmminterval(),interval::lbsignmask);
+				  __m128d r2 = _mm_div_pd(K.get_xmminterval(),_mm_shuffle_pd(r1,r1,1));
           return I & interval(r2, gaol_detail::unchecked_bounds); // P1 P1
 				}
 			  }
