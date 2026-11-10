@@ -12,7 +12,9 @@
 # This configure script is free software; the Free Software Foundation
 # gives unlimited permission to copy, distribute and modify it.
 #
-# Copyright (c) 2001-2020 Frederic Goualard
+# Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
+# Copyright (c) 2002-2016 Laboratoire d'Informatique de Nantes-Atlantique, France
+# Copyright (c) 2017-2020 Laboratoire des Sciences du Numérique de Nantes, France
 # Copyright (c) 2026 ENSTA, France
 ## -------------------- ##
 ## M4sh Initialization. ##
@@ -1626,7 +1628,9 @@ Copyright (C) 2023 Free Software Foundation, Inc.
 This configure script is free software; the Free Software Foundation
 gives unlimited permission to copy, distribute and modify it.
 
-Copyright (c) 2001-2020 Frederic Goualard
+Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
+Copyright (c) 2002-2016 Laboratoire d'Informatique de Nantes-Atlantique, France
+Copyright (c) 2017-2020 Laboratoire des Sciences du Numérique de Nantes, France
 Copyright (c) 2026 ENSTA, France
 _ACEOF
   exit

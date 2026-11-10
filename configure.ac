@@ -122,7 +122,9 @@ fi
 # gaol/gaol_configuration_meson.h.in; see doc/building.md), and nothing else
 # (GAOL v5)
 AC_CONFIG_HEADERS([gaol/gaol_configuration.h])
-AC_COPYRIGHT([Copyright (c) 2001-2020 Frederic Goualard
+AC_COPYRIGHT([Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
+Copyright (c) 2002-2016 Laboratoire d'Informatique de Nantes-Atlantique, France
+Copyright (c) 2017-2020 Laboratoire des Sciences du Numérique de Nantes, France
 Copyright (c) 2026 ENSTA, France])
 
 AC_CONFIG_MACRO_DIR([m4])
