@@ -26,10 +26,11 @@
   div_rel()); gaol_interval_io.cpp, the input and the output. Each includes
   this file first: the headers they all included, the macros of the integer
   powers and of the AVX-512 path, the static functions that more than one of
-  them call (the saturated products and quotients, the square root rounded
-  upward, the bounds of the elementary functions at the points where GAOL
-  knows them, pow_lo() and pow_hi(), pown_upward()...), and the declarations
-  of the functions that one of them defines for the others.
+  them call (the saturated quotients, with the saturated products that the
+  relational functions alone call, the square root rounded upward, the
+  bounds of the elementary functions at the points where GAOL knows them,
+  pow_lo() and pow_hi(), pown_upward()...), and the declarations of the
+  functions that one of them defines for the others.
 
   \author Goualard Frederic, NININ Jordan
   \date   2001-09-28
