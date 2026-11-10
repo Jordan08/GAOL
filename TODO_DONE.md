@@ -1,7 +1,7 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 10 novembre
-2026 (commit `39ce501` de `configure-clean`, la fusion de #305 : voir la section
+2026 (commit `99229cc` de `configure-clean`, la fusion de #306 : voir la section
 1). Ce fichier fait foi : l'issue #177, qui avait le même contenu, n'est
 plus mise à jour depuis le 28 octobre (voir 7.8).
 
@@ -56,8 +56,9 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 
 ## 1. L'état au 10 novembre 2026
 
-- **`configure-clean`** est au commit `39ce501` (la fusion de #305 le 10
-  novembre à 8 h 52 UTC, après celles de #302 le 9 novembre à 22 h 03 UTC, de
+- **`configure-clean`** est au commit `99229cc` (la fusion de #306 le 10
+  novembre à 17 h 55 UTC, après celles de #305 à 8 h 52 UTC (`39ce501`), de
+  #302 le 9 novembre à 22 h 03 UTC, de
   #301 à 23 h 09, de #300 à 21 h 38, de #298 à 20 h 44 et de #299 à 20 h 31 le
   8, et de #297 (`5392bbc`) à 19 h 38 UTC, qui suit celles de #295 et de #296 et
   le commit direct `634e3e1` du 8 novembre, 7.21, qui suit la fusion de #294 le
@@ -116,7 +117,9 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   tâche PM : le cas (b) documenté) à 17 h 29 et #297 (la tâche PS) à 19 h 38 UTC
   (2.3, 3.25, 3.26 et 3.27), puis, le 9 novembre, #302 (la tâche PP : le cas N1
   M de `div_rel()` en SSE2) à 22 h 03 UTC et, le 10, #305 (hors des points : six
-  `friend` de `interval` retirés) à 8 h 52 UTC (2.3, 3.28, 7.25 et 7.26). #168,
+  `friend` de `interval` retirés) à 8 h 52 UTC et #306 (hors des points :
+  `gaol_interval_core.h` allégé, ses aides dans `gaol_interval_detail.h`) à 17 h
+  55 UTC (2.3, 3.28, 3.29 et 7.25 à 7.27). #168,
   #195, #211, #214, #221, #226 et #233 sont fermées sans fusion, et, du 30 et du
   31 octobre, #240, #241, #243, #244, #246, #247, #251 à #261, #277 et #278,
   puis #286, le « Revert » de #285 fermé onze secondes après son ouverture
@@ -2952,6 +2955,47 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   dit dans la description. Sa CI au dernier commit : 224 jobs, tous verts, vus
   avant la fusion. Décisions : 3.28.
 
+- #306 (hors des points : simplifier la structure de `gaol_interval_core.h`, sur
+  demande du mainteneur ; ouverte le 10 novembre à 15 h 26 UTC, 3 commits, 12
+  fichiers, 457 lignes ajoutées et 394 retirées contre `configure-clean`) :
+  fusionnée le même jour à 17 h 55 UTC par le mainteneur (`99229cc`, tête
+  `3a4c61f`). Le fichier passe de 3 139 à 2 766 lignes. Premier commit : les
+  aides de `gaol_detail` qui ne lisent aucun `interval` (`unaligned_xmm`, la
+  balise `unchecked_bounds`, les traits des entiers avec `bounds_in_order()`,
+  `text_in_message()`, la macro `GAOL_FPU_SCALAR`, `keep_ordered()` de l'ARM 32
+  bits et de POWER9) vont dans `gaol/core/gaol_interval_detail.h`, un en-tête
+  installé qui compile seul, ajouté aux trois builds (`CMakeLists.txt`,
+  `gaol/Makefile.am` avec son `Makefile.in` régénéré par automake 1.18.1,
+  `gaol/meson.build`) ; `gaol_interval_core.h` ne rouvre plus que deux fois
+  `namespace gaol_detail`, au lieu de cinq. Deuxième commit : `x + y`, `x - y`,
+  `x * y` et `x / y` de deux intervalles passent dans `gaol_interval_sse.h`,
+  `gaol_interval_neon.h` et `gaol_interval_fpu.h`, et leur `#if / #elif / #else`
+  quitte `gaol_interval_core.h`. Troisième commit : deux entrées du job
+  `warnings` de `linux.yml` (GCC et Clang d'Ubuntu 26.04 sur x86_64 avec
+  `-DGAOL_SSE2_UNALIGNED_STORAGE=ON`, la forme de Visual C++ et de clang-cl sur
+  x86, avec une étape qui vérifie que la configuration a cette forme) et
+  `doc/continuous-integration.md`. Le texte déplacé est le même : en comparant
+  les multi-ensembles de lignes (blancs ignorés) avant et après, ne diffèrent
+  que les `#if`, `#else`, `#endif` et `namespace` des blocs déplacés, des
+  commentaires réécrits et l'en-tête du nouveau fichier ; les 10 objets de la
+  bibliothèque (GCC 15.2) sont identiques octet pour octet contre
+  `configure-clean`, en SSE2 et en FPU (mesuré avant la correction du défaut 1
+  de 7.27, qui n'entre dans aucune de ces deux configurations). Validations en
+  local : CMake avec `-Wall -Wextra -Werror`, GCC SSE2 (63 tests), GCC FPU (60)
+  et Clang 18 (63) ; autotools (31 réussis et 2 ignorés, puis 16) et meson (31
+  réussis, 2 ignorés), la même liste d'en-têtes installés dans les trois,
+  `headers.sh` sur les trois installations, `tests.sh` avec le GAOL installé (1
+  425 585 vérifications, aucune en échec) ; NEON, GCC 12.2 pour aarch64 sous
+  qemu (`todo-notes/gcc12-aarch64/cross-test`) : `arithmetic`,
+  `arithmetic_operators` et `ieee1788` sans échec ;
+  `-DGAOL_SSE2_UNALIGNED_STORAGE=ON` (43 tests, sauf `numbers`). Non vérifiables
+  en local, vus par la CI seule : l'ARM 32 bits, POWER9, s390x, riscv64, Visual
+  C++ et clang-cl. Relecteur indépendant (un sous-agent sans contexte) : deux
+  défauts, 7.27. Sa CI au dernier commit : 226 jobs, 222 verts et 4 annulés de
+  macOS sans avoir eu d'exécuteur, un manque d'exécuteurs et non une régression
+  (7.27). Celle du commit de fusion (`99229cc`, les cinq workflows de `push`) :
+  204 jobs, tous verts. Décisions : 3.29.
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -5495,6 +5539,37 @@ l'arbre (`origin/configure-clean` à `593ddf3`) avant d'être corrigé : les hui
   (pas de compilateur croisé dans la session, le raisonnement est écrit dans la
   description) ; autotools et meson (aucun fichier de build ne change).
 
+### 3.29 Le 10 novembre : `gaol_interval_core.h` allégé (#306)
+
+- **La demande** (le mainteneur, le 10 novembre, après des questions sur
+  `quiet_unordered`, sur le `#if` de `is_empty()`, sur `GAOL_FPU_ALWAYS_INLINE`
+  à la place de `GAOL_INLINE`, sur `mul_infinite` hors ligne, sur
+  `pown_large_upward` hors de `upward_access` et sur le nombre de `#include` des
+  en-têtes de `gaol/core/`) : « est-il possible de simplifier la structure de
+  `gaol_interval_core.h` ». Deux changements retenus, les points 1 et 2 de la
+  proposition : les aides indépendantes de `interval` dans un en-tête interne,
+  et `+ - * /` de deux intervalles dans les fragments. Aucun `#include` n'est
+  retiré ; `gaol_interval_core.h` inclut le nouvel en-tête.
+- **Le nom de l'en-tête** : `gaol_interval_detail.h` (celui de l'espace de noms
+  `gaol_detail`, dont il tient les aides), choisi à la place de
+  `gaol_interval_traits.h`, le nom donné en exemple dans la proposition :
+  *décidé le 10 novembre*, le nom est gardé.
+- **Le job de CI** : `headers.sh` ne tourne que sur une installation par défaut,
+  et le défaut trouvé à la relecture (`gaol_interval_detail.h` seul, avec
+  `-DGAOL_SSE2_UNALIGNED_STORAGE=ON`) lui aurait échappé. *Décidé le 10
+  novembre* : le job est ajouté dans #306 (l'autre choix était une pull request
+  à part).
+- **`<float.h>` (le bloc `_MSC_VER`) et `<iosfwd>`** de `gaol_interval_core.h`,
+  superflus mais sans coût : *décidé le 10 novembre*, on les laisse.
+- **La factorisation de `certainly_ge()`, `certainly_geq()`, `certainly_le()` et
+  `certainly_leq()`** : *décidé le 10 novembre*, on y renonce.
+- **Les textes pour `doc/differences.md` et le `ChangeLog`**, écrits dans la
+  description sans toucher aux registres : dans `TODO.md` PJ.7.
+- **Non fait** : l'ARM 32 bits, POWER9, s390x, riscv64, Visual C++ et clang-cl,
+  ni en local ni par le relecteur : seule la CI les compile (le texte de
+  `GAOL_FPU_SCALAR` et de `keep_ordered()` est le même, avec les mêmes
+  conditions).
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -7319,6 +7394,57 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   requests, le point 33 de PJ), ce fichier, `process.md` (l'en-tête et §12) et
   l'issue #179. `TODO_AFTER.md` n'a rien de nouveau.
 
+### 7.27 Le 10 novembre (`gaol_interval_core.h` allégé, #306)
+
+- Le travail se fait dans l'arbre de GAOL_V9, sur la branche
+  `core-detail-header` (`--no-track`, depuis `origin/configure-clean` à
+  `3d8c7b9`), avec trois commits `Jordan08`, un par changement ; les builds et
+  les essais sont dans le scratchpad (`check/`, `cross/`, `b-gcc/`), hors de
+  l'arbre. Cet arbre porte des modifications non commitées qui ne sont pas de
+  cette session (des en-têtes de fichiers dans `gaol_interval_neon.cpp`,
+  `gaol_interval_neon.h` et `gaol_interval_sse.cpp`) : laissées telles quelles,
+  et la branche locale est donc encore là (8.1).
+- La relecture : un sous-agent sans contexte, avec un texte de consignes
+  (`reviewer_brief.md` du scratchpad). Il trouve deux défauts, reproduits avant
+  d'être corrigés. (1) `gaol_interval_detail.h` ne compile pas seul avec
+  `-DGAOL_SSE2_UNALIGNED_STORAGE=ON` : `'__m128d' does not name a type` (GCC 15
+  et Clang 18 avec les avertissements de `headers.sh`), parce que `gaol_port.h`
+  n'inclut `<emmintrin.h>` que pour Visual C++ ; corrigé par l'inclusion de
+  `<emmintrin.h>` sous cette condition, repliée dans le premier commit par
+  `git commit --fixup` et `GIT_SEQUENCE_EDITOR=true git rebase --autosquash`
+  (branche non poussée), et couvert ensuite par le troisième commit (la CI). (2)
+  `doc/differences.md` lignes 1966 et 1967 devient inexact : registre, non
+  touché dans la branche, le texte est dans la description et dans `TODO.md`
+  PJ.7.
+- Pièges : `.github/scripts/tests.sh` lancé depuis la racine y laisse ses
+  exécutables de test et ses journaux (retirés un à un, l'arbre est redevenu
+  propre) ; un sujet de commit faisait 100 caractères, ramené à 89 par
+  `git commit --amend` (branche non poussée) ; `gh pr create` échoue en GraphQL
+  (« Head sha can't be blank... »), la pull request est ouverte par
+  `gh api -X POST repos/Jordan08/GAOL/pulls`.
+- La CI de la tête (`3a4c61f`, 226 jobs) : Linux containers (23 jobs), Linux
+  (49), Windows (64) et Autotools and meson (48) sont verts, dont les deux jobs
+  `warnings` ajoutés ; Performance (22 jobs) et macOS (20) ont chacun des jobs
+  annulés, 4 en tout (`macOS 26 arm64` de Performance ;
+  `macOS 15 universal (arm64 and x86_64), autotools`,
+  `macOS 26 universal (arm64 and x86_64), meson` et
+  `macOS 15 arm64, FPU intervals` de macOS), les 222 autres étant verts. Ces 4
+  jobs sont partis à 16 h 41 UTC, sans exécuteur (`runner_name` vide) et sans
+  une étape, et ont été annulés après 43 à 52 minutes : le dernier commit ne
+  change que `linux.yml` et `doc/continuous-integration.md`, et le précédent
+  (`281375e`, le même code) avait passé les six workflows en entier ; un manque
+  d'exécuteurs macOS, non une régression. La CI du commit de fusion (`99229cc`,
+  les cinq workflows de `push`, sans Performance) : 204 jobs, tous verts
+  (Autotools and meson 48, Linux containers 23, Linux 49, Windows 64, macOS 20,
+  dont les 3 jobs macOS annulés sur la tête), vue avant le push des registres,
+  qui l'aurait annulée (process.md §10) : le manque d'exécuteurs de la tête est
+  confirmé.
+- Les registres de #306 sont faits ici, en un commit direct sur
+  `configure-clean`, depuis un clone `--shared` du scratchpad : `TODO.md`
+  (l'en-tête prend `99229cc`, la liste des pull requests, PJ.7), ce fichier,
+  `process.md` (l'en-tête et §12) et l'issue #179. `TODO_AFTER.md` n'a rien de
+  nouveau.
+
 ## 8. Le ménage fait
 
 ### 8.1 Branches, lignes de crédit, outillage
@@ -7509,6 +7635,13 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   `configure-clean` avec la modification non commitée du mainteneur, puis le
   clone de travail du scratchpad et ses builds. `todo-pt-verif` (#301) est
   encore sur GitHub.
+
+- [x] Celle de #306 (`core-detail-header`), sur GitHub (supprimée à la fusion,
+  vérifié le 10 novembre par `git ls-remote --heads origin`) ; en local, la
+  branche `core-detail-header` est encore la branche courante de GAOL_V9, dont
+  l'arbre porte des modifications non commitées qui ne sont pas de cette session
+  : elle se supprime par `git branch -d` quand l'arbre sera libre. Le clone de
+  travail du scratchpad (registres) et les builds de la session y sont effacés.
 
 ### 8.2 Les branches inachevées
 
