@@ -22,6 +22,14 @@
 # Prints the failed checks and the last lines of the output of the program, and
 # exits with its status. Docker gets 4 cores (--cpus 4), the most process.md
 # allows. A directory is made per run and none is removed: clean <dir> by hand.
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-11-08)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+
 set -e
 seconds=240
 work="${TMPDIR:-/tmp}/gaol-cross"

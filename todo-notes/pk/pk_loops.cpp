@@ -1,3 +1,14 @@
+/*-*-C++-*------------------------------------------------------------------
+ * GAOL -- not Just Another Interval Library
+ *--------------------------------------------------------------------------
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * By: Jordan NININ (created 2026-11-05)
+ *--------------------------------------------------------------------------
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
+ *--------------------------------------------------------------------------*/
+
 // Harness of task PK: loops over relations, with empty operands, that must not
 // raise FE_INVALID (the flag is read after each loop), and whose results must
 // be those of the relation computed on its own.

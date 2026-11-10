@@ -1,3 +1,14 @@
+/*-*-C++-*------------------------------------------------------------------
+ * GAOL -- not Just Another Interval Library
+ *--------------------------------------------------------------------------
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * By: Jordan NININ (created 2026-11-05)
+ *--------------------------------------------------------------------------
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
+ *--------------------------------------------------------------------------*/
+
 // Harness of task PK, second bench: relations (certainly_le, certainly_leq,
 // certainly_ge, certainly_geq) and operators (<, <=, >, >=) between x[i] and a
 // constant interval (1.5, 0, -2.5, 1e300), on either side, over operands that are

@@ -114,6 +114,12 @@ def main():
     reached = gaol_percent >= TARGET
 
     out = []
+    out.append("<!-- Copyright (c) 2026 ENSTA, France")
+    out.append("")
+    out.append("     By: Jordan NININ (created 2026-09-20)")
+    out.append("")
+    out.append("     GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated")
+    out.append("     COPYING.LIB file for information. -->")
     out.append("# Coverage of the tests")
     out.append("")
     out.append("*Written by `coverage/coverage_summary.py` from the report of gcovr, "

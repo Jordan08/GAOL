@@ -7,6 +7,14 @@
 #
 # usage: [SRC=pk_const.cpp] [CXXS="clang++-21 g++"] [OUT=dir] without_flags.sh \
 #          <build dir with libgaol.a, of an FPU build>
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-11-05)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+
 D=$(cd "$(dirname "$0")" && pwd)
 R=$D/../..
 B=$1

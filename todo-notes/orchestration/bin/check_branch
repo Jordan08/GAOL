@@ -2,6 +2,14 @@
 # check_branch <branch> [base]   (default base: origin/configure-clean)
 # Lints a branch before it is pushed: the maintainer's rules for commits and files.
 # Run it from within the GAOL tree that holds the branch.
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-10-04)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+
 MAIN=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "check_branch: run it from within the GAOL tree" >&2; exit 2; }
 branch=$1; base=${2:-origin/configure-clean}
 [ -n "$branch" ] || { echo "usage: check_branch <branch> [base]" >&2; exit 2; }

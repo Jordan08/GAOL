@@ -1,3 +1,9 @@
+<!-- Copyright (c) 2026 ENSTA, France
+
+     By: Jordan NININ (created 2026-10-04)
+
+     GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+     COPYING.LIB file for information. -->
 # Procédure pour traiter un point du TODO.md de GAOL v5
 
 Ce fichier s'adresse à un agent IA qui reprend le travail sur GAOL v5. Il décrit

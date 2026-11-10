@@ -1,3 +1,9 @@
+<!-- Copyright (c) 2026 ENSTA, France
+
+     By: Jordan NININ (created 2026-10-04)
+
+     GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+     COPYING.LIB file for information. -->
 # Orchestration du travail sur les points du TODO.md
 
 Le 29 et le 30 septembre 2026, les points du `TODO.md` ont été repris par

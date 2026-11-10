@@ -53,6 +53,14 @@
 # that fails (a base that has no such target on this system, Visual C++...), or
 # numpy that cannot be installed, makes the script say so, as a warning of the
 # job, and leave the lines out.
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-10-20)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+
 set -e
 
 before_src=.

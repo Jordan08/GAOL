@@ -13,6 +13,13 @@
 # refusal is an #error. Not with Visual C++, which has neither option nor
 # macro: neither build runs it there. As CMake runs its tests with GCC and Clang
 # only, a compiler that does not define __GNUC__ skips it (exit status 77).
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-10-06)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 
 : "${GAOL_CXX:?the compiler of the code using GAOL}"
 source=$(dirname "$0")/refused_options.cpp

@@ -1,3 +1,9 @@
+<!-- Copyright (c) 2026 ENSTA, France
+
+     By: Jordan NININ (created 2026-11-08)
+
+     GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+     COPYING.LIB file for information. -->
 # GCC 12.2 pour aarch64, sous qemu
 
 Le job « Debian 12 Bookworm arm64 » de la CI compile les tests avec GCC 12.2,

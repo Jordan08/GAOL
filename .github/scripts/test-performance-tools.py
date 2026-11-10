@@ -9,6 +9,14 @@
 #
 # COMPARE_PERFORMANCE and RUN_PERF give other copies of the two programs to
 # test (to check that a test fails on a copy with a deliberate error).
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-10-21)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+
 import ast
 import os
 import re

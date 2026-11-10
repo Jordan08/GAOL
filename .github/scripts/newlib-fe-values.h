@@ -1,3 +1,14 @@
+/*-*-C++-*------------------------------------------------------------------
+ * GAOL -- not Just Another Interval Library
+ *--------------------------------------------------------------------------
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * By: Jordan NININ (created 2026-10-12)
+ *--------------------------------------------------------------------------
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
+ *--------------------------------------------------------------------------*/
+
 /* The FE_* rounding values of newlib, the C library of Cygwin (0 to nearest,
    1 downward, 2 upward, 3 toward zero, newlib/libc/machine/shared_x86/sys/
    fenv.h), put over those of glibc for the sources of CORE-MATH, which the job

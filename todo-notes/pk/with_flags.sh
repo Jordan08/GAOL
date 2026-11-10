@@ -7,6 +7,14 @@
 #          <build dir with libgaol.a, of an FPU build> [extra flags...]
 #
 # The build dir comes from: cmake -S . -B build -DGAOL_SIMD=OFF
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-11-05)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+
 D=$(cd "$(dirname "$0")" && pwd)
 R=$D/../..
 B=$1; shift

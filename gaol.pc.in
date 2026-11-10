@@ -8,6 +8,14 @@
 # arithmetic (-mno-daz-ftz, where the compiler takes it). Not -lm (GAOL v5):
 # GAOL still calls functions of the math library, which the C++ compiler links.
 # Version is the one configure read from VERSION.txt (GAOL v5).
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-09-14)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 libdir=@libdir@

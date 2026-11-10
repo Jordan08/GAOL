@@ -1,3 +1,14 @@
+/*-*-C++-*------------------------------------------------------------------
+ * GAOL -- not Just Another Interval Library
+ *--------------------------------------------------------------------------
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * By: Jordan NININ (created 2026-11-05)
+ *--------------------------------------------------------------------------
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
+ *--------------------------------------------------------------------------*/
+
 // Positive control of task PK: a raw `<=` between doubles, with NaNs, signals
 // (it must raise FE_INVALID), which shows that fetestexcept() sees the flag in the
 // benches. Build it like them: it must print "raised".

@@ -40,6 +40,14 @@
 # tables cannot be compared: a file with no row, or no row common to the two
 # builds, which is what a change of the format of the output of
 # gaol_performance gives; with --optional it says so and succeeds.
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-10-20)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+
 import statistics
 import sys
 

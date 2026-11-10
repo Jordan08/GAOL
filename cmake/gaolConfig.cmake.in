@@ -15,6 +15,13 @@
 # 11.4 and 12.4 in the series 11 and 12 only). The elementary functions come
 # from CORE-MATH, whose sources are compiled into libgaol: there is no other
 # library to link.
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-09-13)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 
 @PACKAGE_INIT@
 

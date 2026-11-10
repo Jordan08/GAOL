@@ -1,3 +1,9 @@
+<!-- Copyright (c) 2026 ENSTA, France
+
+     By: Jordan NININ (created 2026-11-04)
+
+     GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+     COPYING.LIB file for information. -->
 # Ce qui a été fait sur GAOL v5, par étape
 
 Tout ce qui a été fait sur GAOL v5 du 13 septembre au 4 novembre 2026 (commit
