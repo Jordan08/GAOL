@@ -357,6 +357,29 @@ GAOL_INLINE interval& interval::operator/=(const interval& I)
   return *this;
 }
 
+// The sum, the difference, the product and the quotient of two intervals, the
+// bounds in registers from the operands to the result, as with the SSE2
+// intervals (GAOL v5)
+GAOL_NODISCARD GAOL_INLINE interval operator+(const interval& I1, const interval& I2)
+{
+  return interval(gaol_detail::add_bounds(I1.get_neoninterval(), I2.get_neoninterval()), gaol_detail::unchecked_bounds);
+}
+
+GAOL_NODISCARD GAOL_INLINE interval operator-(const interval& I1, const interval& I2)
+{
+  return interval(gaol_detail::sub_bounds(I1.get_neoninterval(), I2.get_neoninterval()), gaol_detail::unchecked_bounds);
+}
+
+GAOL_NODISCARD GAOL_INLINE interval operator*(const interval& I1, const interval& I2)
+{
+  return interval(gaol_detail::mul_bounds(I1.get_neoninterval(), I2.get_neoninterval()), gaol_detail::unchecked_bounds);
+}
+
+GAOL_NODISCARD GAOL_INLINE interval operator/(const interval& I1, const interval& I2)
+{
+  return interval(gaol_detail::div_bounds(I1.get_neoninterval(), I2.get_neoninterval()), gaol_detail::unchecked_bounds);
+}
+
 //! I^2
 GAOL_NODISCARD GAOL_INLINE interval sqr(const interval& I)
 {
