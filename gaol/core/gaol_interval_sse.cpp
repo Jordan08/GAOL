@@ -1710,3 +1710,5 @@ interval interval::inverse() const
     return pown_scalar_ops::large(I, n);
   }
 #endif
+
+} //namespace gaol_core
