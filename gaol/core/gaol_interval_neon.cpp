@@ -1,12 +1,9 @@
 /*-*-C++-*------------------------------------------------------------------
  * GAOL -- not Just Another Interval Library
  *--------------------------------------------------------------------------
- * Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
- * Copyright (c) 2002-2009 Laboratoire d'Informatique de
- *                         Nantes-Atlantique, France
  * Copyright (c) 2026 ENSTA, France
  *
- * By: Frederic Goualard, Jordan NININ
+ * By: Jordan NININ (created 2026-10-19)
  *--------------------------------------------------------------------------
  * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING.LIB file for information.
