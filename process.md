@@ -7,11 +7,11 @@ propose une pull request, et comment on tient les registres à jour une fois la
 pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
-en cours, ce qui reste) est au §12. Dernière mise à jour : 8 novembre 2026, au
-commit `ac9f130` de `configure-clean` (la fusion de #300, après celles de #298,
-de #299, de #297, de #296, de #295 et de #294, de #217 à #220, #222 à #225, #227
-à #232, #234 à #239, #242, #245, #248 à #250, #262 à #276 et #279 à #285, de la
-branche `std-exceptions`, de #287 à #293).
+en cours, ce qui reste) est au §12. Dernière mise à jour : 10 novembre 2026, au
+commit `39ce501` de `configure-clean` (la fusion de #305, après celles de #302,
+de #301, de #300, de #298, de #299, de #297, de #296, de #295 et de #294, de
+#217 à #220, #222 à #225, #227 à #232, #234 à #239, #242, #245, #248 à #250,
+#262 à #276 et #279 à #285, de la branche `std-exceptions`, de #287 à #293).
 
 ## 1. Le contexte
 
@@ -762,9 +762,9 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   `bash -e`, un `! grep ...` au milieu d'une étape ne la fait pas échouer (seule
   la dernière commande donne son statut) : écris un `if` explicite.
 
-## 12. Où en est le travail (8 novembre 2026)
+## 12. Où en est le travail (10 novembre 2026)
 
-Le reste à faire est dans `TODO.md` (tâches PH, PJ, PP et PT) et
+Le reste à faire est dans `TODO.md` (tâches PH et PJ) et
 l'issue #179 ; ce qui est fait et décidé (pull requests fusionnées, décisions,
 mesures)
 est dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour) ; ce qui est
@@ -855,18 +855,27 @@ git ls-remote --heads origin
   `gaol_ieee1788`, le PDF du manuel refait), décrites dans `TODO_DONE.md` (2.3
   et 3.26) ; puis #300 à 21 h 38 UTC (`ac9f130`, hors des points : la recette
   de compilation croisée GCC 12.2 pour aarch64 de `todo-notes/gcc12-aarch64/`,
-  2.3) ; l'audit du 13
+  2.3) ; puis #301 (la tâche PT : `doc/accuracy.md`, deux exemples et le
+  chapitre 11 du manuel) à 23 h 09 UTC (`7053c74`), #303 et #304 (les registres
+  de PT, `TODO.md` seul), #302 (la tâche PP : le cas N1 M de `div_rel()` en SSE2
+  en une division vectorielle, avec son test contre les quotients exacts) le 9
+  novembre à 22 h 03 UTC (`9acea90`, 2.3, 3.28 et 7.25) et #305 (hors des
+  points : six `friend` de `interval` retirés) le 10 novembre à 8 h 52 UTC
+  (`39ce501`, 2.3, 3.28 et 7.26) ; l'entrée de #301, #303 et #304 dans
+  `TODO_DONE.md` reste à écrire ; l'audit du 13
   octobre a vérifié dans `configure-clean` ce qu'annonçaient alors les points A,
   C à H et J à V.
-- **En cours** : au 8 novembre, aucune pull request n'est ouverte : #295 (PS.2
+- **En cours** : au 10 novembre, aucune pull request n'est ouverte : #295 (PS.2
   ; `manual-neon-pown-text`), #296 (le cas (b) ; `manual-case-b-text`), #297 (la
   tâche PS ; `todo-ps-stale-texts`), #299 (PQ.2 ; `todo-pq-hexfloat-point`),
-  #298 (PQ.1 ; `todo-pq-centered-form`) et #300 (la recette de compilation
-  croisée de `todo-notes/gcc12-aarch64/` ; `todo-notes-gcc12-aarch64`) sont
-  fusionnées, leurs registres faits ; `configure-clean` est au commit `ac9f130`
-  (la fusion de #300, après celles de #298, `0f469e7`, de #299, `36b4f93`, de
-  #297, `5392bbc`, de #296, `7bc3d05`, et de #295, `5bd52a6`, et le commit
-  direct
+  #298 (PQ.1 ; `todo-pq-centered-form`), #300 (la recette de compilation
+  croisée de `todo-notes/gcc12-aarch64/` ; `todo-notes-gcc12-aarch64`), #302
+  (la tâche PP ; `todo-pp-div-rel-n1-m`) et #305 (les `friend` ;
+  `friend-cleanup`) sont fusionnées, leurs registres faits ; `configure-clean`
+  est au commit `39ce501` (la fusion de #305, après celles de #302, `9acea90`,
+  de #301, `7053c74`, de #300, `ac9f130`, de #298, `0f469e7`, de #299,
+  `36b4f93`, de #297, `5392bbc`, de #296, `7bc3d05`, et de #295, `5bd52a6`, et
+  le commit direct
   `634e3e1`, après la fusion de #294, `1e23540`, après celle de #292, `130acea`,
   et celles de #293, #291, #290 et #289, les registres de #288, `6ed4441`, et la
   fusion de #288, `61a432b`). Ses branches sur GitHub sont `configure-clean`,
@@ -877,19 +886,17 @@ git ls-remote --heads origin
   (`ieee1788-overlap`), de #291 (`todo-pn-trie-fin`), de #293
   (`todo-pn-d-times-x`), de #292 (`relation-loops`), de #294
   (`manual-thesis-style`), de #295 (`manual-neon-pown-text`), de #296
-  (`manual-case-b-text`) et de #297 (`todo-ps-stale-texts`) sont supprimées à
-  leur fusion, comme celles de #287 (`pown-rel`) et de #288 (`compoundm1`), et
+  (`manual-case-b-text`), de #297 (`todo-ps-stale-texts`), de #302
+  (`todo-pp-div-rel-n1-m`) et de #305 (`friend-cleanup`) sont supprimées à leur
+  fusion, comme celles de #287 (`pown-rel`) et de #288 (`compoundm1`), et
   `std-exceptions` et `revert-285-std-exceptions` depuis le 4 novembre.
   L'issue #198 (`x / y` des intervalles NEON avec `FPCR.AH`) est ouverte, sans
   tâche dans `TODO.md` ; #185 est fermée, le masquage des exceptions de `pow`
   est gardé. L'issue #177 (`TODO_DONE.md`) n'est plus mise à jour (*décidé le 28
   octobre*) : GitHub borne le corps d'une issue à 262 144 octets et le texte
   joint en fait plus de 270 000 (voir `TODO_DONE.md` 7.8).
-- **À faire**, dans l'ordre de `TODO.md` : le FIXME de `div_rel` en SSE2 (PP),
-  trois relevés ou vérifications jamais faits (PT : deux nés de la relecture du
-  4 novembre, `TODO_DONE.md` 3.25, et un écart de `doc/accuracy.md`), les
-  signalements à d'autres projets (PH, avec l'accord
-  du mainteneur), puis la version (PJ, qui reprend le
+- **À faire**, dans l'ordre de `TODO.md` : les signalements à d'autres projets
+  (PH, avec l'accord du mainteneur), puis la version (PJ, qui reprend le
   tableau de Clang 21, le manuel, les textes qui citent macOS 14, la licence des
   cas d'IBEX et de Codac, sur laquelle le mainteneur écrit aux auteurs (*décidé
   le 5 novembre* : #281), le PDF du manuel, que #294 a refait (385 pages) et qui

@@ -1,12 +1,13 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `9acea90` de `configure-clean` (la
-fusion de #302, la tâche PP, le 9 novembre 2026 à 22 h 03 UTC, après celles de
-#304 et de #303, les registres de la tâche PT, de #301, la tâche PT, de #300,
-hors des points, de #298, de #299, de #297, de #296 et de #295, de #294, le
-manuel dans le style de la thèse, et de #292, de #293, #291, #290 et #289), en
-tâches PH et PJ (PA à PG, PI, PL, PP, PQ, PS et PT sont faites, PK et PM sont
-close sans code : voir `TODO_DONE.md`). Ce fichier et l'issue #179 ont le même
+Ce qui reste à faire sur GAOL v5 au commit `39ce501` de `configure-clean` (la
+fusion de #305, hors des points, le 10 novembre 2026 à 8 h 52 UTC, après celles
+de #302, la tâche PP, de #304 et de #303, les registres de la tâche PT, de
+#301, la tâche PT, de #300, hors des points, de #298, de #299, de #297, de #296
+et de #295, de #294, le manuel dans le style de la thèse, et de #292, de #293,
+#291, #290 et #289), en tâches PH et PJ (PA à PG, PI, PL, PP, PQ, PS et PT sont
+faites, PK et PM sont close sans code : voir `TODO_DONE.md`). Ce fichier et
+l'issue #179 ont le même
 contenu. Ce qui est fait et décidé est dans `TODO_DONE.md` (l'issue #177 n'est
 plus mise à jour), ce qui est reporté dans `TODO_AFTER.md` (issue #178). Les
 anciennes issues #49 et #142 sont fermées, et `TODO_mistral.md` est supprimé,
@@ -22,7 +23,9 @@ du mainteneur. Aucune pull request n'est ouverte. #295 (PS.2), #296 (PM), #297
 compilation croisée GCC 12.2 pour aarch64 de `todo-notes/gcc12-aarch64/`) et
 #301 (la tâche PT) sont fusionnées le 8 novembre, à 17 h 21, 17 h 29, 19 h 38,
 20 h 31, 20 h 44, 21 h 38 et 23 h 09 UTC, et #302 (la tâche PP : le cas N1 M de
-`div_rel()` en SSE2) le 9 novembre à 22 h 03 UTC ; leurs registres sont faits.
+`div_rel()` en SSE2) le 9 novembre à 22 h 03 UTC et #305 (hors des points : six
+`friend` de `interval` retirés) le 10 novembre à 8 h 52 UTC ; leurs registres
+sont faits.
 
 ## Comment lire ce fichier
 
@@ -244,8 +247,11 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    ligne `gaol5p`, `results_lines_arm64.csv` en a 30). Le cas N1 M de
    `div_rel()` en SSE2 (#302) n'a aucune ligne du banc : sa mesure (avec Clang
    18, de 12,97 ns avant à 11,01 après ; avec GCC 13.3, de 11,76 à 11,59 ; sur
-   une machine virtuelle, non sur l'i7-1185G7) est à refaire ici avec Clang 21
-   si on la veut, par un petit programme à part. *À décider* : le cas P1 M de
+   une machine virtuelle) a été refaite sur l'i7-1185G7 le 9 novembre par un
+   petit programme à part (`TODO_DONE.md` 7.25) : aucun gain mesurable (la
+   branche contre la base, de -3,9 % avec Clang 18 à +2,5 % avec Clang 21, dans
+   le bruit), et les 15 % de Clang 18 ne se reproduisent pas. *À décider* : le
+   cas P1 M de
    `div_rel()` (`gaol/core/gaol_interval_sse.cpp`) calcule deux `_mm_div_sd` de
    même numérateur, que l'on pourrait ramener à une division vectorielle comme
    #302 l'a fait pour N1 M ; non mesuré, non demandé.

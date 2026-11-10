@@ -1,7 +1,7 @@
 # Fait et décidé sur GAOL v5
 
-Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 8 novembre 2026
-(commit `5392bbc` de `configure-clean`, la fusion de #297 : voir la section
+Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 10 novembre
+2026 (commit `39ce501` de `configure-clean`, la fusion de #305 : voir la section
 1). Ce fichier fait foi : l'issue #177, qui avait le même contenu, n'est
 plus mise à jour depuis le 28 octobre (voir 7.8).
 
@@ -11,7 +11,7 @@ l'ancien `TODO.md` et dans `TODO_mistral.md`, avec les réponses du mainteneur
 des 22 et 23 octobre. #49 et #142 sont fermées le 24 octobre, `TODO_mistral.md`
 est supprimé. Le reste du travail est dans deux autres registres :
 
-- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PH, PJ, PP et PT ;
+- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PH et PJ ;
 - `TODO_AFTER.md` (issue #178) : ce qui est reporté, après la version, jusqu'à
   une décision ou jusqu'à du matériel.
 
@@ -42,24 +42,26 @@ est supprimé. Le reste du travail est dans deux autres registres :
   : elle s'applique telle quelle.
 - Le classement par rang et par tiers (A à I) de l'ancien #142 n'existe plus :
   un « rang N » cité dans un texte d'avant le 24 octobre désigne cet ancien
-  classement. Ce qui reste à faire est classé en tâches PH, PJ, PP et PT
+  classement. Ce qui reste à faire est classé en tâches PH et PJ
   dans `TODO.md`.
 - Ce qui sert encore des rapports des agents est dans
   [todo-notes/synthese.md](todo-notes/synthese.md), leurs originaux au commit
   `16a2f60` (`todo-notes/`, ceux du 30 septembre dans `todo-notes/2026-09-30/`)
   ; la procédure suivie pour chaque point est dans `process.md`.
 
-Sommaire : 1. L'état au 8 novembre ; 2. Les pull requests ; 3. Les décisions,
+Sommaire : 1. L'état au 10 novembre ; 2. Les pull requests ; 3. Les décisions,
 par date ; 4. Les points faits, par lettre ; 5. Les anciens numéros faits ; 6.
 Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 `configure-clean` ; 8. Le ménage fait.
 
-## 1. L'état au 8 novembre 2026
+## 1. L'état au 10 novembre 2026
 
-- **`configure-clean`** est au commit `5392bbc` (la fusion de #297 le 8 novembre
-  à 19 h 38 UTC, après celles de #295 et de #296 et le commit direct `634e3e1`
-  du 8 novembre, 7.21, qui suit la fusion de #294 le 7 novembre à 21 h 17 UTC,
-  elle-même après
+- **`configure-clean`** est au commit `39ce501` (la fusion de #305 le 10
+  novembre à 8 h 52 UTC, après celles de #302 le 9 novembre à 22 h 03 UTC, de
+  #301 à 23 h 09, de #300 à 21 h 38, de #298 à 20 h 44 et de #299 à 20 h 31 le
+  8, et de #297 (`5392bbc`) à 19 h 38 UTC, qui suit celles de #295 et de #296 et
+  le commit direct `634e3e1` du 8 novembre, 7.21, qui suit la fusion de #294 le
+  7 novembre à 21 h 17 UTC, elle-même après
   celles de #217 le 28 octobre, de #218, #219, #222, #223 et #225 le matin du
   29, de #220, #224 et #227 à #231 de 18 h 04 à 18 h 19 UTC, de #232, #234 et
   #235 de 19 h 55 à 19 h 57, de #236 à 23 h 42, de #237 et #238 le 30 octobre à
@@ -112,13 +114,15 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   le 8 novembre, #295 (PS.2 : le texte de `doc/simd.md` et du manuel sur les
   puissances entières de NEON, avec le PDF) à 17 h 21 UTC, #296 (la suite de la
   tâche PM : le cas (b) documenté) à 17 h 29 et #297 (la tâche PS) à 19 h 38 UTC
-  (2.3, 3.25, 3.26 et 3.27). #168,
+  (2.3, 3.25, 3.26 et 3.27), puis, le 9 novembre, #302 (la tâche PP : le cas N1
+  M de `div_rel()` en SSE2) à 22 h 03 UTC et, le 10, #305 (hors des points : six
+  `friend` de `interval` retirés) à 8 h 52 UTC (2.3, 3.28, 7.25 et 7.26). #168,
   #195, #211, #214, #221, #226 et #233 sont fermées sans fusion, et, du 30 et du
   31 octobre, #240, #241, #243, #244, #246, #247, #251 à #261, #277 et #278,
   puis #286, le « Revert » de #285 fermé onze secondes après son ouverture
-  (2.4). Les tâches PA, PB, PC, PD, PE, PF, PG, PI, PL et PS sont faites (PE :
-  #200 et #204 pour le 95, #201 pour le 92, #205 pour le 3, #202 pour le 4, #204
-  pour le 5, #203 pour le 6 ;
+  (2.4). Les tâches PA, PB, PC, PD, PE, PF, PG, PI, PL, PP et PS sont faites
+  (PE : #200 et #204 pour le 95, #201 pour le 92, #205 pour le 3, #202 pour le
+  4, #204 pour le 5, #203 pour le 6 ;
   PF : #206 pour le reste du 108, #209 pour le 109, #210
   et #215 pour écrire seulement si ça change, #208 pour l'alignement de la pile
   32 bits, #207 pour le contrôle de l'assembleur de x86-64 ; PG : la division du
@@ -2901,6 +2905,53 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   containers et Windows verts, Autotools et meson et macOS pas finis à la
   fusion.
 
+- #302 (la tâche PP, le `FIXME: replace with SSE code` de `div_rel()` ; ouverte
+  le 8 novembre à 23 h 12 UTC, 6 commits dont deux de réparation et la mise à
+  jour par fusion de `configure-clean`, 3 fichiers, 165 lignes ajoutées et 9
+  retirées contre `configure-clean`) : fusionnée le 9 novembre à 22 h 03 UTC par
+  le mainteneur (`9acea90`, tête `d78170d`). Le cas N1 M (K strictement négatif,
+  J qui contient 0 dans son intérieur), le seul cas de `div_rel()` en SSE2 écrit
+  en scalaire, tient en une `_mm_div_pd(_mm_unpackhi_pd(K, K), J)` et deux
+  `_mm_move_sd` pour les infinis, au lieu de deux intervalles scalaires ; la
+  marque `FIXME` est retirée, l'autre (`TODO: check existence of stdint.h`)
+  reste. Les bornes, les indicateurs d'exception et le sens d'arrondi sont les
+  mêmes, bit pour bit, pour 190 486 728 appels (deux fichiers de 4,6 Go
+  identiques). Le test `div_rel_negative_by_mixed()` de
+  `tests/other_functions.cpp` compare à des quotients exacts : 5 000 tirages de
+  K et de J, chacun avec 16 intervalles I, 80 000 vérifications ; il passe aussi
+  avec les sources de `configure-clean` (ce n'est pas la correction d'un bogue),
+  et neuf mutants non équivalents du nouveau code le font échouer (un dixième,
+  qui échange les deux parties, est équivalent). Mesures de la description, sur
+  une machine virtuelle (non l'i7-1185G7) : N1 M de 12,97 à 11,01 ns avec Clang
+  18, de 11,76 à 11,59 ns avec GCC 13.3 ; refaites sur l'i7, sans gain mesurable
+  : 7.25. Pas de relecteur indépendant, dit dans la description ; la branche est
+  poussée par l'API de contenu des outils MCP, faute de jeton d'écriture :
+  commits signés `Jordan <jordan.ninin@ensta.fr>`. Sa CI au dernier commit : 224
+  jobs, tous verts (vérifié après la fusion). Décisions : 3.28.
+
+- #305 (hors des points : six `friend` de `interval` retirés, sur demande du
+  mainteneur ; ouverte le 10 novembre à 7 h 53 UTC, 3 commits, 3 fichiers, 34
+  lignes ajoutées et 39 retirées contre `configure-clean`) : fusionnée le même
+  jour à 8 h 52 UTC par le mainteneur (`39ce501`, tête `5aeea74`). Les `friend`
+  de `gaol_uipow`, `sqrt` et `sqrt_rel` (aucun membre privé lu), de `div_rel`
+  (le `div_rel` SSE2 lit `K.get_xmminterval()` et `J.get_xmminterval()` au lieu
+  de `K.xmmbounds` et `J.xmmbounds`, 46 occurrences) et de `cos` et `sin`
+  (`cos_or_sin(-I.left(), I.right())`, le même `double` que `left_internal()`)
+  sont retirés ; il reste le `friend` de `sqr` du FPU, qui écrit `res.lb_` et
+  `res.rb_`. Mesures (GCC 15.2, i7-1185G7) : les instructions de `cos` et de
+  `sin` sont les mêmes avant et après (626 et 454 en SSE2, 650 et 571 avec le
+  FPU), celles de `div_rel` SSE2 le sont en nombre (seule la pile change) ; les
+  temps de `cos` et de `sin` sont dans la dispersion (de -0,9 % à +5,8 %, les
+  plages des 6 runs se recouvrent) ; le hash des bits de `cos`, `sin`, `sqrt`,
+  `pow(I, 7)`, `gaol_uipow`, `sqrt_rel` et `div_rel` sur 8 774 886 appels est le
+  même (`f3dfe9d101f6f880` en SSE2, `73dfe9d101f6f880` avec le FPU). Validations
+  : CMake avec GCC SSE2 (63 tests), GCC FPU (60), Clang 18 (63),
+  `GAOL_SSE2_UNALIGNED_STORAGE=ON` (60) et `GAOL_PREFER_AVX512=ON` (63), `-Wall
+  -Wextra -Werror`, tous à 100 % ; ni autotools ni meson (aucun fichier de build
+  ne change), ni NEON (pas de compilateur croisé). Pas de relecteur indépendant,
+  dit dans la description. Sa CI au dernier commit : 224 jobs, tous verts, vus
+  avant la fusion. Décisions : 3.28.
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -5412,10 +5463,42 @@ l'arbre (`origin/configure-clean` à `593ddf3`) avant d'être corrigé : les hui
   que l'archive des sources laisse de côté ne nomme pas `STEP.md` (PS.8 l'a
   remarqué sans le corriger, `doc/differences.md` étant dans la synthèse).
 
+### 3.28 Les 9 et 10 novembre : la tâche PP (#302) et les `friend` de `interval` (#305)
+
+- **Les mesures de #302 sur l'i7** (le 9 novembre, à la demande du mainteneur,
+  PJ.33) : voir 7.25. La branche contre la base, sur N1 M, va de -3,9 % à +2,5 %
+  selon le compilateur, dans le bruit de disposition du code : #302 ne
+  revendique aucun gain. Le code reste justifié par le dernier cas scalaire
+  retiré du fichier et par son test, le seul qui compare N1 M à des quotients
+  exacts.
+- **Le cas P1 M de `div_rel()`** (deux `_mm_div_sd` de même numérateur, que #302
+  remarque sans le corriger) : *à décider*, dans `TODO.md` PJ.33.
+- **Les `friend` de `interval`** (#305, demandé le 10 novembre après la question
+  « pourquoi `sqr` n'est disponible qu'avec le FPU dans `interval_core` ? » :
+  `sqr` du FPU est une fonction de `gaol_interval_fpu.cpp`, `friend` parce
+  qu'elle écrit `lb_` et `rb_`, déclarée dans `gaol_interval_core.h` sous `#if
+  !GAOL_VECTOR_INTERVALS` ; celles de SSE2 et de NEON sont `GAOL_INLINE` dans
+  `gaol_interval_sse.h` et `gaol_interval_neon.h`, par les accesseurs publics).
+  Un `friend` ne sert que si le corps de la fonction lit un membre privé :
+  `gaol_uipow`, `sqrt` et `sqrt_rel` n'en lisent aucun, le `div_rel` SSE2 passe
+  par `get_xmminterval()`, et `cos` et `sin` passent par `left()` et `right()`
+  (`-I.left()` est le même `double` que `left_internal()`, signe du zéro
+  compris). `left_internal()` et `right_internal()` restent privées, d'autres
+  fonctions les lisent.
+- **Le benchmark demandé pour `cos` et `sin`** avant de les changer : GCC 15.2
+  replie `-(-x)`, le code est le même instruction pour instruction, et les temps
+  ne montrent que le bruit. #305 ne cite donc aucun gain ni aucune perte. Sous
+  le bruit de disposition de cette machine, un écart de quelques pour cent d'un
+  cas ne se voit pas avec un chronomètre : on compare les flux d'instructions
+  (`objdump -d`, adresses normalisées) et les bits des résultats.
+- **Non fait** : un relecteur indépendant, avant comme après l'ouverture ; NEON
+  (pas de compilateur croisé dans la session, le raisonnement est écrit dans la
+  description) ; autotools et meson (aucun fichier de build ne change).
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
-`TODO.md` (tâches PH, PJ, PP et PT) ou dans `TODO_AFTER.md` ; leur
+`TODO.md` (tâches PH et PJ) ou dans `TODO_AFTER.md` ; leur
 partie faite est dite ici ou dans la section 5.
 
 ### Même changement, ou même code
@@ -5994,7 +6077,7 @@ Les cases cochées de l'ancienne issue #142, avec leur compte rendu, par point.
 
 Les « Questions ouvertes » des descriptions de #146 à #163, que l'ancien
 `TODO.md` gardait sous « Remarqué par #NN, à trier », avec leur sort. Les
-questions qui restent sans réponse sont dans `TODO.md` (tâches PH, PJ, PP et PT)
+questions qui restent sans réponse sont dans `TODO.md` (tâches PH et PJ)
 et `TODO_AFTER.md` ; elles ne sont pas répétées ici.
 
 ### #146
@@ -7179,6 +7262,63 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   request n'est ouverte, et rien n'est commencé : le mainteneur n'a pas
   demandé de tâche.
 
+### 7.25 Le 9 novembre (la tâche PP, #302)
+
+- `TODO.md` est mis à jour à la fusion de #302 (`9058352`, signé `Jordan
+  <jordan.ninin@ensta.fr>`, comme les commits de la branche) : la tâche PP sort
+  du fichier et du tableau. `TODO_DONE.md` et `process.md` n'étaient pas touchés
+  : leurs parties sont faites avec celles de #305 (7.26), ici (1, 2.3, 3.28,
+  cette section, 8.1) et dans `process.md` (l'en-tête et §12). Même constat pour
+  #301 (la tâche PT : `doc/accuracy.md`, deux exemples et le chapitre 11 du
+  manuel), #303 et #304 (les registres de PT, `TODO.md` seul) : `TODO.md` les
+  dit faites, leurs entrées de ce fichier restent à écrire.
+- Les mesures de #302 refaites sur l'i7-1185G7 (le mainteneur l'a demandé le 9
+  novembre, PJ.33). Un portable sur batterie, profils `performance`. Le
+  `bench.cpp` de la description n'est plus sur un disque : il est réécrit, hors
+  de l'arbre (1 024 triplets, 20 000 tours, 15 passes, épinglé sur le cœur 2, 12
+  exécutions alternées de chaque binaire, médiane des médianes ; trois cas : N1
+  M, et N1 P1 et P1 M qui ne changent pas, comme témoins). Un objet du banc par
+  compilateur, lié à deux `libgaol.a` de CMake en Release : `configure-clean` à
+  `7053c74` et la tête de #302 (`d78170d`), dont seul `gaol_interval_sse.cpp`
+  diffère.
+- Résultat sur N1 M, la branche contre la base : Clang 21 +2,5 %, Clang 20 -3,2
+  %, Clang 18 -3,9 %, GCC 15.2 -1,6 %, tous dans le bruit. Les témoins, que #302
+  ne touche pas, bougent jusqu'à -9,9 % (GCC 15.2, N1 P1) et +7,4 % (Clang 18,
+  N1 P1), et un même binaire va de 13,3 à 15,7 ns d'une exécution à l'autre. Les
+  15 % de Clang 18 de la description (un Xeon virtuel) ne se reproduisent pas.
+  Un écart de moins de 10 % d'un cas demande une méthode indépendante de la
+  disposition du code (les cycles du cas seul, des copies de fonction alignées).
+- Piège : Clang 18 refuse `-mno-daz-ftz` à l'édition de liens ; prendre
+  `pkg-config --libs gaol` de chaque préfixe plutôt que d'écrire les drapeaux.
+
+### 7.26 Le 10 novembre (les `friend` de `interval`, #305)
+
+- La question du mainteneur sur `sqr` et les `friend` (3.28) : les essais sont
+  faits dans un clone `--shared` du scratchpad, l'arbre de GAOL_V9 portant une
+  modification non commitée du mainteneur (`gaol_interval_fpu.cpp`). La branche
+  `friend-cleanup` (`--no-track`, depuis `origin/configure-clean` à `9058352`)
+  est importée dans GAOL_V9 par `git fetch <clone>
+  friend-cleanup:friend-cleanup`, qui crée la référence sans changer l'arbre,
+  puis poussée par `git push -u origin friend-cleanup` ; la pull request est
+  ouverte par `gh api` (REST).
+- Essai de retrait : retirer les `friend` dans une copie de `HEAD` et compiler
+  `gaol_interval_core.cpp` (SSE2 et FPU) ; seul `div_rel` de SSE2 échoue, avec
+  46 erreurs (`xmmbounds` est privé), toutes dans `gaol_interval_sse.cpp`. Le
+  chemin AVX-512 de `sqrt` n'est compilé que par `GAOL_PREFER_AVX512=ON` : la
+  configuration par défaut de cette machine laisse `GAOL_AVX512_ARITHMETIC`
+  indéfini, et la matrice de #305 le prend donc à part.
+- Piège : `check_branch` signale deux espaces en fin de ligne dans
+  `gaol_interval_sse.cpp`, qui existaient et que #305 touchait en changeant ces
+  lignes ; corrigés par un `git commit --fixup` et `GIT_SEQUENCE_EDITOR=true git
+  rebase --autosquash`, sur une branche non poussée.
+- La CI de #305 (224 jobs, tous verts) est suivie par une boucle en arrière-plan
+  qui interroge `check-runs` du commit toutes les deux minutes (18
+  interrogations) ; le mainteneur a fusionné à 8 h 52 UTC (`39ce501`). Les
+  registres de #302 et de #305 sont faits ici, en un commit direct sur
+  `configure-clean` : `TODO.md` (l'en-tête prend `39ce501`, la liste des pull
+  requests, le point 33 de PJ), ce fichier, `process.md` (l'en-tête et §12) et
+  l'issue #179. `TODO_AFTER.md` n'a rien de nouveau.
+
 ## 8. Le ménage fait
 
 ### 8.1 Branches, lignes de crédit, outillage
@@ -7361,6 +7501,14 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   branche `todo-ps-stale-texts` du clone de travail de #297, supprimée le 8
   novembre (`git branch -d`, fusionnée), puis ce clone et ses builds du
   scratchpad (550 Mo).
+
+- [x] Celles de #302 (`todo-pp-div-rel-n1-m`) et de #305 (`friend-cleanup`), sur
+  GitHub (supprimées à la fusion, vérifié le 10 novembre par `git ls-remote
+  --heads origin`) ; en local, la branche `friend-cleanup` de GAOL_V9, supprimée
+  le 10 novembre (`git branch -d`, fusionnée), GAOL_V9 restant sur
+  `configure-clean` avec la modification non commitée du mainteneur, puis le
+  clone de travail du scratchpad et ses builds. `todo-pt-verif` (#301) est
+  encore sur GitHub.
 
 ### 8.2 Les branches inachevées
 
