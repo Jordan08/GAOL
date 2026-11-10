@@ -225,7 +225,7 @@ un est refusée, quel que soit son gain.
       « Licences »), le même pour tous les langages, au cadre de commentaire
       près : les lignes `Copyright (c)`, la ligne `By:` et la phrase de licence
       (`COPYING.LIB`). La bannière `GAOL -- not Just Another Interval Library`
-      n'est que pour C et C++. Un fichier écrit en entier pour GAOL v5 ne porte
+      ne concerne que C et C++. Un fichier écrit en entier pour GAOL v5 ne porte
       que la ligne d'ENSTA et le nom de Jordan NININ, avec la date de création
       (`By: Jordan NININ (created 2026-09-20)`) ; un fichier qui reprend du code
       de GAOL 4 garde les lignes de copyright de ses auteurs et leurs noms.
