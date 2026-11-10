@@ -932,14 +932,11 @@ namespace gaol_core {
     static std::streamsize precision(std::streamsize n);
 
 
-    friend GAOL_PUBLIC interval gaol_uipow(const interval& I, unsigned int e);
 #if !GAOL_VECTOR_INTERVALS
     friend GAOL_PUBLIC interval sqr(const interval& I);
 #endif
     friend GAOL_PUBLIC interval cos(const interval& I);
     friend GAOL_PUBLIC interval sin(const interval& I);
-    friend GAOL_PUBLIC interval sqrt(const interval& I);
-    friend GAOL_PUBLIC interval sqrt_rel(const interval& J, const interval& I);
     friend GAOL_PUBLIC interval div_rel(const interval &K, const interval &J, const interval &I);
 
 #if GAOL_USING_SSE2_INSTRUCTIONS
