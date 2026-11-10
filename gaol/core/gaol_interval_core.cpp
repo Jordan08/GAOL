@@ -7279,7 +7279,7 @@ static inline interval cos_or_sin(double Il, double Ir)
     if (I.is_empty()) {
       return interval::emptyset();
     }
-    return cos_or_sin<false>(I.left_internal(),I.right_internal());
+    return cos_or_sin<false>(-I.left(), I.right());
   }
 
   interval sin(const interval& I)
@@ -7287,7 +7287,7 @@ static inline interval cos_or_sin(double Il, double Ir)
     if (I.is_empty()) {
       return interval::emptyset();
     }
-    return cos_or_sin<true>(I.left_internal(),I.right_internal());
+    return cos_or_sin<true>(-I.left(), I.right());
   }
 
 
