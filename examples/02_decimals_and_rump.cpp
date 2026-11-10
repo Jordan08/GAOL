@@ -1,5 +1,5 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
+ * GAOL -- not Just Another Interval Library
  *--------------------------------------------------------------------------
  * Examples of GAOL v5: decimal numbers, cancellation, and Rump's example.
  *
@@ -23,13 +23,13 @@
  * computation needs more precision (MPFI, Arb). The references were computed
  * apart with mpmath (50 digits), and Rump's true value, -54767/66192, with
  * the rational numbers of Python.
- *
+ *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
- * Created 2026-09-27 by Jordan NININ
+ * By: Jordan NININ (created 2026-09-27)
  *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
 #include <cfenv>

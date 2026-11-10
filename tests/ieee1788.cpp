@@ -1,6 +1,6 @@
-/*-*-C++-*----------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
- *------------------------------------------------------------------------------
+/*-*-C++-*------------------------------------------------------------------
+ * GAOL -- not Just Another Interval Library
+ *--------------------------------------------------------------------------
  * Tests of GAOL v5: gaol_ieee1788 as a program uses it, with
  * using namespace gaol_ieee1788 at file scope and without using namespace
  * gaol.
@@ -28,14 +28,14 @@
  * gaol_ieee1788 too, as the functions of gaol_core are: called by their
  * qualified names, which argument-dependent lookup does not help, they compile
  * only if the namespace holds them (see gaol_functions()).
- *
+ *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
- * Created 2026-09-21 by Jordan NININ
- *------------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
- *----------------------------------------------------------------------------*/
+ * By: Jordan NININ (created 2026-09-21)
+ *--------------------------------------------------------------------------
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
+ *--------------------------------------------------------------------------*/
 
 #include "gaol_tests.h"
 #include "gaol/parser/gaol_expr_eval.h"

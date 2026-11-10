@@ -1,7 +1,11 @@
 # Meson build of GAOL: the examples of examples/ (see examples.md)
 #
-# Created 2025-11-25 by Raphaël Chenouard
-# Modified in 2026 by Jordan NININ (GAOL v5)
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Raphaël Chenouard, Jordan NININ (created 2025-11-25)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 #
 # Built where with-examples is true, as examples/CMakeLists.txt builds them
 # with WITH_EXAMPLES; each checks what it prints, and is a test of the suite

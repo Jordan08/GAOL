@@ -1,5 +1,5 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
+ * GAOL -- not Just Another Interval Library
  *--------------------------------------------------------------------------
  * Tests of GAOL v5: compoundm1, (1 + x)^y - 1 of IEEE 1788-2015 (Table 10.5).
  *
@@ -39,13 +39,13 @@
  *    and at points inside them, the three names of the function, the
  *    reading of the text, the exception flags and the modes that flush
  *    the subnormals to zero.
- *
+ *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
- * Created 2026-11-04 by Jordan NININ
+ * By: Jordan NININ (created 2026-11-04)
  *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
 #include "gaol_tests.h"

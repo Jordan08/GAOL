@@ -1,9 +1,11 @@
-# Copyright (c) 2026 ENSTA, France
-# Modified by Jordan NININ (GAOL v5)
 # Meson build of GAOL: libgaol
 #
-# Created 2025-11-25 by Raphaël Chenouard
-# Modified in 2026 by Jordan NININ (GAOL v5)
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Raphaël Chenouard, Jordan NININ (created 2025-11-25)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 #
 # Installed in the directory of the headers of the build (includedir), as the
 # other headers, rather than in include/gaol under the prefix

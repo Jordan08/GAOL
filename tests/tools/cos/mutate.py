@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-#---------------------------------------------------------------------------
-# gaol -- NOT Just Another Interval Library
-#---------------------------------------------------------------------------
 # Tools of GAOL v5: mutation testing of the port of cos.c to gaol_u128. Puts
 # one deliberate error at a time in a line of 3rd/math-core/src/binary64/cos/
 # cos.c that carries /* GAOL */ (or in the macro U128 of the halves), rebuilds
@@ -15,14 +12,13 @@
 # -DWITH_TESTS=ON, with -DGAOL_U128_EMULATION=ON to run the code of Visual C++
 # and of the 32-bit targets. A mutant that survives is not always a gap of the
 # test: see README.md for the two kinds.
-#---------------------------------------------------------------------------
-# gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
-# COPYING file for information.
-#---------------------------------------------------------------------------
 #
 # Copyright (c) 2026 ENSTA, France
 #
-# Created 2026-10-27 by Jordan NININ
+# By: Jordan NININ (created 2026-10-27)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 
 import argparse
 import os

@@ -1,5 +1,5 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
+ * GAOL -- not Just Another Interval Library
  *--------------------------------------------------------------------------
  * Tests of GAOL v5: numbers, constants and constructors.
  *
@@ -17,13 +17,13 @@
  * uncertain form 3.56?1. The numbers in base 16, 8 and 2, 0x10, 0o17 and
  * 0b101, with or without an exponent, have to be read as the tightest
  * enclosures too.
- *
+ *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
- * Created 2026-09-20 by Jordan NININ
+ * By: Jordan NININ (created 2026-09-20)
  *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
 // GCC 12 on 64-bit ARM processors (Debian 12: c++ 12.2.0, aarch64) miscompiles

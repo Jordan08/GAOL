@@ -1,26 +1,21 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
-# ------------------------------------------------------------------------
-# gaol -- NOT Just Another Interval Library
-# ------------------------------------------------------------------------
-# This file is part of the gaol distribution. Gaol was primarily
-# developed at the Swiss Federal Institute of Technology, Lausanne,
-# Switzerland, and is now developed at the Laboratoire d'Informatique
-# de Nantes-Atlantique, France.
-dnl
-# Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
-# Copyright (c) 2002-2016 Laboratoire d'Informatique de Nantes-Atlantique,
-#                         France
-# Copyright (c) 2017-2020 Laboratoire des Sciences du Numérique de Nantes,
-#                         France
-# ------------------------------------------------------------------------
-# gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
-# COPYING file for information.
-# ------------------------------------------------------------------------
+#
 # This file is an input file used by the GNU "autoconf" program to
 # generate the file "configure", which is run during gaol installation
 # to configure the system for the local environment.
-# ------------------------------------------------------------------------
+#
+# Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
+# Copyright (c) 2002-2016 Laboratoire d'Informatique de
+#                         Nantes-Atlantique, France
+# Copyright (c) 2017-2020 Laboratoire des Sciences du Numérique de Nantes,
+#                         France
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Frederic Goualard, Jordan NININ
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 
 # autoconf 2.64 for m4_esyscmd_s, which reads VERSION.txt (GAOL v5)
 AC_PREREQ(2.64)

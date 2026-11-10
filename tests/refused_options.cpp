@@ -1,5 +1,5 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
+ * GAOL -- not Just Another Interval Library
  *--------------------------------------------------------------------------
  * Tests of GAOL v5: the options gaol/gaol_config.h refuses.
  *
@@ -16,13 +16,13 @@
  * -O3, and the program told it empty with -ffinite-math-only. Compiled without
  * the refused options, this program is right: it computes what the tests are
  * about, and returns 0.
- *
+ *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
- * Created 2026-09-29 by Jordan NININ
+ * By: Jordan NININ (created 2026-09-29)
  *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
 #include <gaol/gaol>

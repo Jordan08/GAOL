@@ -27,7 +27,11 @@
 #
 # Copyright (c) 2026 ENSTA, France
 #
-# Created 2026-10-20 by Jordan NININ
+# By: Jordan NININ (created 2026-10-20)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+
 objdump=${OBJDUMP:-objdump}
 if ! command -v "$objdump" > /dev/null 2>&1; then
   echo "::error::$objdump not found: the objects cannot be checked"

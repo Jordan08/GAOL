@@ -1,5 +1,5 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
+ * GAOL -- not Just Another Interval Library
  *--------------------------------------------------------------------------
  * Tests of GAOL v5: the 128-bit unsigned integer of gaol/math/gaol_u128.h.
  *
@@ -19,13 +19,13 @@
  * runs in earnest, there is nothing to compare with: the test then checks the
  * identities the operations satisfy (a + b - b = a, shifting left then right,
  * the product of the halves against the schoolbook product, and the order).
- *
+ *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
- * Created 2026-09-20 by Jordan NININ
+ * By: Jordan NININ (created 2026-09-20)
  *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
 #define GAOL_U128_FORCE_EMULATION 1

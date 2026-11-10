@@ -1,66 +1,65 @@
-/*-*-C++-*----------------------------------------------------------------------
-* gaol -- NOT Just Another Interval Library
-*------------------------------------------------------------------------------
-* The operations of IEEE 1788-2015 under their own names: gaol_ieee1788.
-*
-* GAOL names its operations its own way: the reverse function coshRev(c, x) of
-* the standard is acosh_rel(c, x) here, mulRev(b, c, x) is div_rel(c, b, x),
-* with its arguments in another order, and roundTiesToEven(x) is
-* round_ties_to_even(x). This namespace gives each operation of the standard
-* that GAOL provides the name the standard gives it, with its arguments in the
-* order the standard puts them, so that a reader of the standard finds it
-* without looking for its translation. Each one forwards to the operation of
-* GAOL, which the comment above it names.
-*
-* The namespace is not in gaol, and it holds GAOL's type interval as well: a
-* program that adds
-*
-*   using namespace gaol_ieee1788;
-*
-* uses GAOL under the names of the standard, without naming gaol: a program
-* opens one of the two namespaces, not both. The type interval and GAOL's
-* functions are in gaol_core (gaol/core/gaol_interval_core.h), the only namespace where
-* argument-dependent lookup looks for a call sin(x) on an interval, so that
-* it finds neither gaol's functions nor these. The functions of GAOL that
-* have the name and the meaning the standard gives them (sin, exp, sqrt,
-* min...) are brought in by using-declarations of those of gaol_core, which
-* name the functions argument-dependent lookup finds too, and so are the
-* operators of intervals (+, -, *, /, %, & and |) and the operator<< writing
-* an interval. This file does not
-* include gaol/parser/gaol_expression.h (GAOL v5): a program using the expressions
-* includes it, as with GAOL 4, and it declares them again for its overloads,
-* whatever the order of the includes, and defines pown(e, n) and pow(e1, e2)
-* in this namespace.
-*
-* Where the standard and GAOL differ, these functions follow the standard:
-*   - pow(x, y) and pow(x, p) are the pow of Table 9.1, defined for x > 0, and
-*     for x = 0 when y > 0, [p] being the exponent for a number p, an int
-*     included: the power with an integer exponent is pown(x, p) in the
-*     standard. gaol::pow takes that integer power for an integer exponent,
-*     which is defined for x < 0 too, beyond the ints as well (GAOL v5).
-*     Neither pow is in gaol_core: each namespace has its own.
-*     pown(e, n) and pow(e1, e2) build expressions (gaol/parser/gaol_expression.h)
-*     computed with the pown and the pow of the standard;
-*   - inf(x) and sup(x) are +oo and -oo for the empty set (Table 10.2), where
-*     GAOL's bounds are NaN, and inf returns -0 for a lower bound 0 (12.12.8);
-*   - isMember(m, x) is false for an infinite m (10.6.3);
-*   - textToInterval and exactToInterval read the names of the functions of
-*     the standard (pown, rootn, sinPi...), where gaol::textToInterval reads
-*     those of GAOL, and return the empty set for a string that is no
-*     interval literal (12.1.3), where GAOL throws.
-*
-* Only bare intervals are provided: GAOL has no decorations (Clause 11). The
-* operations of the standard GAOL does not provide are listed at the end of
-* this file.
-*
-* Copyright (c) 2026 ENSTA, France
-* Modified by Jordan NININ (GAOL v5)
-*
-* Created 2026-09-21 by Jordan NININ
-*------------------------------------------------------------------------------
-* gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
-* COPYING file for information.
-*----------------------------------------------------------------------------*/
+/*-*-C++-*------------------------------------------------------------------
+ * GAOL -- not Just Another Interval Library
+ *--------------------------------------------------------------------------
+ * The operations of IEEE 1788-2015 under their own names: gaol_ieee1788.
+ *
+ * GAOL names its operations its own way: the reverse function coshRev(c, x) of
+ * the standard is acosh_rel(c, x) here, mulRev(b, c, x) is div_rel(c, b, x),
+ * with its arguments in another order, and roundTiesToEven(x) is
+ * round_ties_to_even(x). This namespace gives each operation of the standard
+ * that GAOL provides the name the standard gives it, with its arguments in the
+ * order the standard puts them, so that a reader of the standard finds it
+ * without looking for its translation. Each one forwards to the operation of
+ * GAOL, which the comment above it names.
+ *
+ * The namespace is not in gaol, and it holds GAOL's type interval as well: a
+ * program that adds
+ *
+ *   using namespace gaol_ieee1788;
+ *
+ * uses GAOL under the names of the standard, without naming gaol: a program
+ * opens one of the two namespaces, not both. The type interval and GAOL's
+ * functions are in gaol_core (gaol/core/gaol_interval_core.h), the only namespace where
+ * argument-dependent lookup looks for a call sin(x) on an interval, so that
+ * it finds neither gaol's functions nor these. The functions of GAOL that
+ * have the name and the meaning the standard gives them (sin, exp, sqrt,
+ * min...) are brought in by using-declarations of those of gaol_core, which
+ * name the functions argument-dependent lookup finds too, and so are the
+ * operators of intervals (+, -, *, /, %, & and |) and the operator<< writing
+ * an interval. This file does not
+ * include gaol/parser/gaol_expression.h (GAOL v5): a program using the expressions
+ * includes it, as with GAOL 4, and it declares them again for its overloads,
+ * whatever the order of the includes, and defines pown(e, n) and pow(e1, e2)
+ * in this namespace.
+ *
+ * Where the standard and GAOL differ, these functions follow the standard:
+ *   - pow(x, y) and pow(x, p) are the pow of Table 9.1, defined for x > 0, and
+ *     for x = 0 when y > 0, [p] being the exponent for a number p, an int
+ *     included: the power with an integer exponent is pown(x, p) in the
+ *     standard. gaol::pow takes that integer power for an integer exponent,
+ *     which is defined for x < 0 too, beyond the ints as well (GAOL v5).
+ *     Neither pow is in gaol_core: each namespace has its own.
+ *     pown(e, n) and pow(e1, e2) build expressions (gaol/parser/gaol_expression.h)
+ *     computed with the pown and the pow of the standard;
+ *   - inf(x) and sup(x) are +oo and -oo for the empty set (Table 10.2), where
+ *     GAOL's bounds are NaN, and inf returns -0 for a lower bound 0 (12.12.8);
+ *   - isMember(m, x) is false for an infinite m (10.6.3);
+ *   - textToInterval and exactToInterval read the names of the functions of
+ *     the standard (pown, rootn, sinPi...), where gaol::textToInterval reads
+ *     those of GAOL, and return the empty set for a string that is no
+ *     interval literal (12.1.3), where GAOL throws.
+ *
+ * Only bare intervals are provided: GAOL has no decorations (Clause 11). The
+ * operations of the standard GAOL does not provide are listed at the end of
+ * this file.
+ *--------------------------------------------------------------------------
+ * Copyright (c) 2026 ENSTA, France
+ *
+ * By: Jordan NININ (created 2026-09-21)
+ *--------------------------------------------------------------------------
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
+ *--------------------------------------------------------------------------*/
 
 #ifndef GAOL_IEEE1788_H
 #define GAOL_IEEE1788_H

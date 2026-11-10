@@ -2,7 +2,11 @@
 #
 # Copyright (c) 2026 ENSTA, France
 #
-# Created 2026-09-22 by Jordan NININ
+# By: Jordan NININ (created 2026-09-22)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+
 configure_file(
   input: 'gaol_version.tex.in',
   output: 'gaol_version.tex',

@@ -1,5 +1,5 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
+ * GAOL -- not Just Another Interval Library
  *--------------------------------------------------------------------------
  * Tests of GAOL v5: the results that doubles computed in extended precision,
  * on the x87 unit of an x86 processor, round wrongly.
@@ -29,13 +29,13 @@
  * CORE-MATH (gaol/math/gaol_core_math.h) is checked in the four rounding
  * directions, and GAOL's bounds of [x, x] in the upward direction it keeps.
  * The values are computed with mpmath (tests/extended_precision_values.py).
- *
+ *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
- * Created 2026-09-21 by Jordan NININ
+ * By: Jordan NININ (created 2026-09-21)
  *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
 #include "gaol_tests.h"

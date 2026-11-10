@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-#---------------------------------------------------------------------------
-# gaol -- NOT Just Another Interval Library
-#---------------------------------------------------------------------------
 # Tools of GAOL v5: checks the bounds of pow in a rows file against the exact
 # power, computed apart from GAOL with 500 bits of precision by mpmath
 # (https://mpmath.org).
@@ -26,14 +23,13 @@
 #     python3 checkrows.py expected.txt [--max-distance 1] [--quiet]
 #
 # The exit status is 1 when a result fails.
-#---------------------------------------------------------------------------
-# gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
-# COPYING file for information.
-#---------------------------------------------------------------------------
 #
 # Copyright (c) 2026 ENSTA, France
 #
-# Created 2026-09-29 by Jordan NININ
+# By: Jordan NININ (created 2026-09-29)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 
 import argparse
 import struct

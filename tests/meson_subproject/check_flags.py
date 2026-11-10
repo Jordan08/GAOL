@@ -15,7 +15,10 @@ GAOL reaching none of the targets of another project.
 
 Copyright (c) 2026 ENSTA, France
 
-Created 2026-10-06 by Jordan NININ
+By: Jordan NININ (created 2026-10-06)
+
+GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+COPYING.LIB file for information.
 """
 import json
 import os

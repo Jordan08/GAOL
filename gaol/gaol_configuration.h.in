@@ -1,5 +1,9 @@
-/* Copyright (c) 2026 ENSTA, France */
-/* Modified by Jordan NININ (GAOL v5) */
+/* Copyright (c) 2026 ENSTA, France
+ *
+ * By: Jordan NININ
+ *
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information. */
 /* gaol/gaol_configuration.h, written by configure from
    gaol/gaol_configuration.h.in.
 

@@ -3,7 +3,11 @@
 // 32-bit ARM (#150), for tests/tools/asm-order/check_order.py to read. Only compiled, with -S.
 //
 // Copyright (c) 2026 ENSTA, France
-// Created 2026-10-27 by Jordan NININ
+//
+// By: Jordan NININ (created 2026-10-27)
+//
+// GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+// COPYING.LIB file for information.
 
 #include "gaol/gaol.h"
 

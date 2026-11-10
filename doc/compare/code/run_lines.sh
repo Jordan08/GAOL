@@ -20,7 +20,11 @@
 #
 # Copyright (c) 2026 ENSTA, France
 #
-# Created 2026-10-17 by Jordan NININ
+# By: Jordan NININ (created 2026-10-17)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+
 set -euo pipefail
 # shellcheck source=env.sh
 source "$(dirname "$0")/env.sh"

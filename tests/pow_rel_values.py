@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-#---------------------------------------------------------------------------
-# gaol -- NOT Just Another Interval Library
-#---------------------------------------------------------------------------
 # Tests of GAOL v5: generates pow_rel_values.h, the cases of the reverse
 # functions of pow, powRev1 and powRev2 of IEEE 1788-2015 (10.5.4, Table
 # 10.1), with which tests/reverse.cpp checks pow_rel() and
@@ -52,14 +49,14 @@
 #    the solutions, which the solutions leave out or not.
 #
 #     python3 tests/pow_rel_values.py <ITF1788>/itl/pow_rev.itl > tests/pow_rel_values.h
-#---------------------------------------------------------------------------
-# gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
-# COPYING file for information.
-#---------------------------------------------------------------------------
 #
 # Copyright (c) 2026 ENSTA, France
 #
-# Created 2026-10-06 by Jordan NININ
+# By: Jordan NININ (created 2026-10-06)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+
 import math
 import random
 import re
@@ -514,7 +511,11 @@ def main():
     print("//")
     print("// Copyright (c) 2026 ENSTA, France")
     print("//")
-    print("// Created 2026-10-06 by Jordan NININ")
+    print("// By: Jordan NININ (created 2026-10-06)")
+    print("//")
+    print("// GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated")
+    print("// COPYING.LIB file for information.")
+    print("")
     print("#ifndef GAOL_TESTS_POW_REL_VALUES_H")
     print("#define GAOL_TESTS_POW_REL_VALUES_H")
     print("namespace pow_rel_values")

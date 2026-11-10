@@ -22,9 +22,12 @@
 # directives of the committed files.
 #
 # Copyright (c) 2026 ENSTA, France
-# Modified by Jordan NININ (GAOL v5)
 #
-# Created 2026-09-27 by Jordan NININ
+# By: Jordan NININ (created 2026-09-27)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+
 set -e
 gaol_dir=$(cd "$(dirname "$0")" && pwd)
 flex=${FLEX:-flex}

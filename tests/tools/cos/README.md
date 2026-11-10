@@ -1,5 +1,9 @@
 <!-- Copyright (c) 2026 ENSTA, France
-     Created 2026-10-27 by Jordan NININ -->
+
+     By: Jordan NININ (created 2026-10-27)
+
+     GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+     COPYING.LIB file for information. -->
 # Verification tools of the accurate path of cos
 
 Part of the [tests](../../../doc/tests.md) of GAOL v5.

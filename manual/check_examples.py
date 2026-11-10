@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-#---------------------------------------------------------------------------
-# gaol -- NOT Just Another Interval Library
-#---------------------------------------------------------------------------
 # The outputs the manual of GAOL v5 shows, against those of the library
 # (GAOL v5): each example of manual/v5/manual_gaolv5.tex, and of the files of
 # chapters/ it \input's, that shows what it prints, in its lines @outputs^...~, is compiled with an installed GAOL and run, and
@@ -33,14 +30,13 @@
 #
 # The exit status is 1 when an example does not compile, fails, or prints
 # something else than the manual shows.
-#---------------------------------------------------------------------------
-# gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
-# COPYING file for information.
-#---------------------------------------------------------------------------
 #
 # Copyright (c) 2026 ENSTA, France
 #
-# Created 2026-10-06 by Jordan NININ
+# By: Jordan NININ (created 2026-10-06)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 
 import argparse
 import concurrent.futures

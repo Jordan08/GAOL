@@ -1,5 +1,9 @@
 <!-- Copyright (c) 2026 ENSTA, France
-     Created 2026-10-18 by Jordan NININ -->
+
+     By: Jordan NININ (created 2026-10-18)
+
+     GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+     COPYING.LIB file for information. -->
 # A short tutorial: interval algorithms with GAOL v5
 
 Part of the documentation of [GAOL v5](../README.md#documentation).

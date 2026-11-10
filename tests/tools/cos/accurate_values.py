@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-#---------------------------------------------------------------------------
-# gaol -- NOT Just Another Interval Library
-#---------------------------------------------------------------------------
 # Tools of GAOL v5: the correct roundings of cos(x) in the four rounding
 # directions, computed with mpmath (4000 bits) and exact rationals, apart from
 # CORE-MATH and from GAOL, for the table of cos_accurate_path() in
@@ -17,14 +14,13 @@
 # are those of the accurate path of cos.c in the upward rounding, found with
 # a copy of cos.c that counts the branches of cos_large_accurate() (see
 # README.md).
-#---------------------------------------------------------------------------
-# gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
-# COPYING file for information.
-#---------------------------------------------------------------------------
 #
 # Copyright (c) 2026 ENSTA, France
 #
-# Created 2026-10-27 by Jordan NININ
+# By: Jordan NININ (created 2026-10-27)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 
 import argparse
 import math

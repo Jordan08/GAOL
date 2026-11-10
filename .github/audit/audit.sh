@@ -4,7 +4,11 @@
 #
 # Copyright (c) 2026 ENSTA, France
 #
-# Created 2026-09-20 by Jordan NININ
+# By: Jordan NININ (created 2026-09-20)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+
 label=$1; cc=$2; cxx=$3; src=$(cd "$4" && pwd); out=$5; meson=${6:-meson}
 here=$(cd "$(dirname "$0")" && pwd)
 mkdir -p "$out"; out=$(cd "$out" && pwd); work=$out/$label; rm -rf "$work"; mkdir -p "$work"

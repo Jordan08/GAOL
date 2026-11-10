@@ -1,5 +1,9 @@
 <!-- Copyright (c) 2026 ENSTA, France
-     Created 2026-10-06 by Jordan NININ -->
+
+     By: Jordan NININ (created 2026-10-06)
+
+     GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+     COPYING.LIB file for information. -->
 # Enclosure of the elementary functions: GAOL and Boost.Interval
 
 Part of the [comparison](README.md) of GAOL with libieeep1788, filib++,

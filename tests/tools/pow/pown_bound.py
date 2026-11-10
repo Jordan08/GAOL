@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-#---------------------------------------------------------------------------
-# gaol -- NOT Just Another Interval Library
-#---------------------------------------------------------------------------
 # Tools of GAOL v5: checks, with rationals, the bound K of the error of the
 # integer powers x^n of pown_products() (gaol/core/gaol_interval_core.cpp), whose
 # comment gives the induction: after j steps (squares and products by c) of
@@ -22,14 +19,13 @@
 # by default), and k = 2^31 - 1 and 2^30, for each j from 1 to 2 bitlen(k),
 # and prints the largest ratio of the error to K found: below 1 where the
 # bound holds. The exit status is 1 where an inequality fails.
-#---------------------------------------------------------------------------
-# gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
-# COPYING file for information.
-#---------------------------------------------------------------------------
 #
 # Copyright (c) 2026 ENSTA, France
 #
-# Created 2026-10-13 by Jordan NININ
+# By: Jordan NININ (created 2026-10-13)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 
 import argparse
 import random

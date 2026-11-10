@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-#---------------------------------------------------------------------------
-# gaol -- NOT Just Another Interval Library
-#---------------------------------------------------------------------------
 # Tools of GAOL v5: the differential test of pow. Builds diffpow.cpp against
 # two builds of GAOL or more, runs it with each, and compares the outputs.
 #
@@ -23,14 +20,13 @@
 # call ("DIFF"). It prints the first lines that differ otherwise, and exits
 # with 1 when there is one, or a result that depended on the rounding
 # direction: a difference in the sign of a zero alone is reported, not failed.
-#---------------------------------------------------------------------------
-# gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
-# COPYING file for information.
-#---------------------------------------------------------------------------
 #
 # Copyright (c) 2026 ENSTA, France
 #
-# Created 2026-10-04 by Jordan NININ
+# By: Jordan NININ (created 2026-10-04)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 
 import argparse
 import os

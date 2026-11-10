@@ -34,7 +34,11 @@
 #
 # Copyright (c) 2026 ENSTA, France
 #
-# Created 2026-09-27 by Jordan NININ
+# By: Jordan NININ (created 2026-09-27)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+
 set -euo pipefail
 
 if [ $# -lt 1 ]; then

@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-#---------------------------------------------------------------------------
-# gaol -- NOT Just Another Interval Library
-#---------------------------------------------------------------------------
 # Tools of GAOL v5: mutation testing of pow. Each mutant is GAOL with one
 # deliberate error in pow_standard_upward(), pow_hybrid_upward(),
 # gaol_pow_real(), pow_lo(), pow_hi() or gaol_ieee1788::pow
@@ -49,14 +46,13 @@
 # of dict(name=..., edits=[(old, new), ...], file='gaol/core/gaol_interval_core.cpp',
 # survives='why it is equivalent'), file and survives being optional; --list
 # prints the mutants and whether they apply to the sources.
-#---------------------------------------------------------------------------
-# gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
-# COPYING file for information.
-#---------------------------------------------------------------------------
 #
 # Copyright (c) 2026 ENSTA, France
 #
-# Created 2026-09-29 by Jordan NININ
+# By: Jordan NININ (created 2026-09-29)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 
 import argparse
 import difflib

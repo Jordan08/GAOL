@@ -1,9 +1,15 @@
 # Meson build of GAOL: the manual
 #
-# Created 2025-11-25 by Raphaël Chenouard (doc/meson.build)
-# Modified in 2026 by Jordan NININ (GAOL v5): the manual of GAOL v5; the
-# documentation Doxygen wrote from the sources (gaol_doxygen.cfg.in) is gone, as
-# the Doxyfile of the root; the manual of GAOL 4 is no longer built
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Raphaël Chenouard, Jordan NININ (created 2025-11-25; from
+#     doc/meson.build; modified in 2026: the manual of GAOL v5; the
+#     documentation Doxygen wrote from the sources (gaol_doxygen.cfg.in) is
+#     gone, as the Doxyfile of the root; the manual of GAOL 4 is no longer
+#     built)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 #
 # The manual: meson compile -C <build directory> pdf (build-pdf.sh) builds the
 # manual of GAOL v5 and writes its PDF in manual/ of the sources,

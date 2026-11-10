@@ -3,7 +3,10 @@
 #
 # Copyright (c) 2026 ENSTA, France
 #
-# Created 2026-09-27 by Jordan NININ
+# By: Jordan NININ (created 2026-09-27)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 #
 # Built where with-tests is true; each is a test of the suite unit, which meson
 # test (make test) and meson test --setup check (make check) run. They are

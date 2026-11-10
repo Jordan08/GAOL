@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-#---------------------------------------------------------------------------
-# gaol -- NOT Just Another Interval Library
-#---------------------------------------------------------------------------
 # Tests of GAOL v5: generates reverse_values.h, the cases of the
 # reverse functions of IEEE 1788-2015 (10.5.4, Table 10.1) tests/reverse.cpp
 # checks GAOL's relational functions with.
@@ -52,14 +49,14 @@
 #       > tests/reverse_values.h
 #
 # (libieeep1788 at commit 1f10b89, which doc/compare/code/setup.sh clones.)
-#---------------------------------------------------------------------------
-# gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
-# COPYING file for information.
-#---------------------------------------------------------------------------
 #
 # Copyright (c) 2026 ENSTA, France
 #
-# Created 2026-09-20 by Jordan NININ
+# By: Jordan NININ (created 2026-09-20)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+
 import math
 import random
 import re
@@ -682,7 +679,11 @@ def main():
     print("//")
     print("// Copyright (c) 2026 ENSTA, France")
     print("//")
-    print("// Created 2026-09-20 by Jordan NININ")
+    print("// By: Jordan NININ (created 2026-09-20)")
+    print("//")
+    print("// GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated")
+    print("// COPYING.LIB file for information.")
+    print("")
     print("#ifndef GAOL_TESTS_REVERSE_VALUES_H")
     print("#define GAOL_TESTS_REVERSE_VALUES_H")
     print("namespace reverse_values")

@@ -1,22 +1,16 @@
-#-*-Makefile-*-----------------------------------------------------------------
-#  gaol -- Just Another Interval Library
-#------------------------------------------------------------------------------
-# This file is part of the gaol distribution. Gaol was primarily 
-# developed at the Swiss Federal Institute of Technology, Lausanne, 
-# Switzerland, and is now developed at the Institut de Recherche 
-# en Informatique de Nantes, France.
+# Note: To be used with GNU Make
+# If this file has the name "Makefile.in" then it is a template for a
+# Makefile; to generate the actual Makefile, run "./configure" from the base
+# directory of gaol.
 #
 # Copyright (c) 2001 Swiss Federal Institute of Technology, Switzerland
 # Copyright (c) 2002 Institut de Recherche en Informatique de Nantes, France
-#------------------------------------------------------------------------------
-# gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated 
-# COPYING file for information.
-#------------------------------------------------------------------------------
-# Note: To be used with GNU Make                                              
-# If this file has the name "Makefile.in" then it is a template for a         
-# Makefile; to generate the actual Makefile, run "./configure" from the base  
-# directory of gaol.                                                          
-#------------------------------------------------------------------------------
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Frederic Goualard, Jordan NININ
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 
 # The examples of GAOL v5 (see examples.md), as examples/CMakeLists.txt builds
 # them: ./configure --with-examples builds them with GAOL (make), and make

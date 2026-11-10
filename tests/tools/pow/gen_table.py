@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-#---------------------------------------------------------------------------
-# gaol -- NOT Just Another Interval Library
-#---------------------------------------------------------------------------
 # Tools of GAOL v5: the table of pow_on_boxes() in tests/ieee1788.cpp, read
 # into a rows file and written back from one.
 #
@@ -30,14 +27,13 @@
 # bounds of the code before the pow of the standard was written once
 # (a2ca992), then edited for the exact corners of #63, and written again by
 # them from the code of B.2 (the corners and their limits).
-#---------------------------------------------------------------------------
-# gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
-# COPYING file for information.
-#---------------------------------------------------------------------------
 #
 # Copyright (c) 2026 ENSTA, France
 #
-# Created 2026-09-29 by Jordan NININ
+# By: Jordan NININ (created 2026-09-29)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 
 import argparse
 import math

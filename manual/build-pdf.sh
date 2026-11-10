@@ -28,7 +28,11 @@
 #
 # Copyright (c) 2026 ENSTA, France
 #
-# Created 2026-09-20 by Jordan NININ
+# By: Jordan NININ (created 2026-09-20)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+
 set -e
 if [ $# -ne 3 ]; then
   echo "usage: sh build-pdf.sh <directory of the main file> <build directory> <PDF>" >&2

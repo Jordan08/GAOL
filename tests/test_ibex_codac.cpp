@@ -1,5 +1,5 @@
 /*-*-C++-*------------------------------------------------------------------
- * gaol -- NOT Just Another Interval Library
+ * GAOL -- not Just Another Interval Library
  *--------------------------------------------------------------------------
  * Tests of GAOL v5: the cases of the unit tests of IBEX and of Codac on their
  * intervals.
@@ -42,13 +42,13 @@
  * IBEX and Codac are distributed under the GNU Lesser General Public License
  * (the COPYING.LESSER of each project is its version 3), GAOL under its
  * version 2 (COPYING.LIB).
- *
+ *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
- * Created 2026-11-02 by Jordan NININ
+ * By: Jordan NININ (created 2026-11-02)
  *--------------------------------------------------------------------------
- * gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
- * COPYING file for information.
+ * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+ * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
 #include "gaol_tests.h"

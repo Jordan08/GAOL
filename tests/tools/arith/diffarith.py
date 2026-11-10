@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-#---------------------------------------------------------------------------
-# gaol -- NOT Just Another Interval Library
-#---------------------------------------------------------------------------
 # Tools of GAOL v5: the differential test of the arithmetic. Builds
 # diffarith.cpp against two builds of GAOL or more, runs it with each, and
 # compares the outputs.
@@ -22,14 +19,13 @@
 # that differ otherwise: a bound, an empty set, or an exception flag. It prints
 # the first lines that differ otherwise, and exits with 1 when there is one: a
 # difference in the sign of a zero alone is reported, not failed.
-#---------------------------------------------------------------------------
-# gaol is a software distributed WITHOUT ANY WARRANTY. Read the associated
-# COPYING file for information.
-#---------------------------------------------------------------------------
 #
 # Copyright (c) 2026 ENSTA, France
 #
-# Created 2026-10-19 by Jordan NININ
+# By: Jordan NININ (created 2026-10-19)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
 
 import argparse
 import collections
