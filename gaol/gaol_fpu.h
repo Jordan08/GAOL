@@ -448,7 +448,7 @@ With Visual C++ and clang-cl for 32-bit x86 and the SSE2 intervals, the operatio
 that GAOL_RND_ENTER_SSE() and GAOL_RND_LEAVE_SSE() frame set both units too, as
 the macros above do (GAOL v5). A double a function returns is in ST0 there, and
 Visual C++ computes it on the x87 unit: quotient_sat() of
-gaol/core/gaol_interval_core.cpp, which div_rel() calls, divides with fdiv, in the
+gaol/core/gaol_interval_internal.h, which div_rel() calls, divides with fdiv, in the
 direction of the x87 control word, which the macros for MXCSR alone leave as the
 program had it, and the bounds were rounded to nearest (the job "Visual Studio
 2026 x86 Release, rounding direction preserved", div_rel() with a subnormal

@@ -1081,7 +1081,7 @@ namespace
     check("exception: the line of what() is the one of the throw",
           syntax.line > 0 && null_pointer.line > 0 && syntax.line != null_pointer.line,
           [&] { return "lines " + std::to_string(syntax.line) + " and " + std::to_string(null_pointer.line); });
-    thrown_says<std::invalid_argument>("operator>> of \"[1, 2\"", "std::invalid_argument", "gaol_interval_core.cpp",
+    thrown_says<std::invalid_argument>("operator>> of \"[1, 2\"", "std::invalid_argument", "gaol_interval_io.cpp",
                                        "Syntax error in expression of interval: [1, 2",
                                        [] { std::istringstream in("[1, 2"); interval x; in >> x; });
     // A function called with an argument it does not take

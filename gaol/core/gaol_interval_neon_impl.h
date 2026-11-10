@@ -839,19 +839,6 @@ double hausdorff(const interval &I1, const interval &I2)
     return interval(mid_left,mid_right);
   }
 
-  interval div_rel(const interval &K, const interval &J, const interval &I)
-  {
-    // One check, before the bounds are compared, as in the SSE2 build (GAOL
-    // v5, see gaol/gaol_fpu.h). The quotients are those of div_rel_upward()
-    // of gaol/core/gaol_interval_core.cpp, which raise no overflow exception for a
-    // finite result (GAOL v5, point 79 of TODO.md)
-    GAOL_RND_ENTER();
-    interval res = div_rel_upward(K, J, I);
-    GAOL_RND_KEEP(res);
-    GAOL_RND_LEAVE();
-    return res;
-  }
-
   /*
     The integer powers (GAOL v5, point AP of TODO.md): the two lanes of the
     kernel of pown_products() in a NEON register, vmulq_f64() and the fused

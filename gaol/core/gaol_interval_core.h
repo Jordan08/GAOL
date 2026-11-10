@@ -736,11 +736,12 @@ namespace gaol_core {
     */
     static interval sqr_upward(const interval& I);
     /*
-      Gives inverse_upward() and sqr_upward() to the functions of
-      gaol/core/gaol_interval_core.cpp that check the rounding direction once and
-      take the inverse or the square after it: the integer power of pow() and
-      the roots of negative order, which have no access of their own (GAOL
-      v5). Defined there alone
+      Gives inverse_upward() and sqr_upward() to the functions of the sources
+      of the intervals that check the rounding direction once and take the
+      inverse or the square after it: the integer power of pow() and the roots
+      of negative order, which have no access of their own (GAOL v5). Defined
+      in gaol/core/gaol_interval_internal.h, which these sources alone
+      include
     */
     friend class upward_access;
     static interval_format::format_t output;
@@ -1496,7 +1497,7 @@ namespace gaol_core {
     The pow of IEEE 1788-2015 (Table 9.1), after one check of the rounding
     direction: gaol_ieee1788::pow() is this function (GAOL v5), the inline
     function of gaol/gaol_ieee1788.h calling it, so that it is exported
-    (GAOL_PUBLIC). Defined in gaol/core/gaol_interval_core.cpp, with the other
+    (GAOL_PUBLIC). Defined in gaol/core/gaol_interval_pow.cpp, with the other
     powers.
   */
   GAOL_NODISCARD extern GAOL_PUBLIC interval pow_standard(const interval &I, const interval &J);

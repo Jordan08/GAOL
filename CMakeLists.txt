@@ -456,7 +456,7 @@ string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
 
 # The fused multiply-add instructions of the processor (GAOL v5), with
 # the flag that gives them to the compiler where it has one, as Codac takes
-# them: GAOL's exact products (fma_once() in gaol/core/gaol_interval_core.cpp, for the
+# them: GAOL's exact products (fma_once() of gaol/core/gaol_interval_internal.h, for the
 # integer powers and the reduction of sin and cos) and CORE-MATH's functions
 # then compute fma() with one instruction, rather than with a call to the
 # fma() of the math library. The flags are given to the code using GAOL too
@@ -1251,7 +1251,10 @@ configure_file(cmake/gaol_configuration.h.in "${CMAKE_CURRENT_BINARY_DIR}/gaol/g
 # __declspec(dllexport) or dllimport (GAOL_PUBLIC, gaol/gaol_config.h).
 
 set(GAOL_SOURCES
-  gaol_interval.cpp core/gaol_interval_core.cpp gaol_ieee1788.cpp gaol_common.cpp
+  gaol_interval.cpp core/gaol_interval_core.cpp core/gaol_interval_pow.cpp
+  core/gaol_interval_exp_log.cpp core/gaol_interval_trig.cpp
+  core/gaol_interval_hyperbolic.cpp core/gaol_interval_relational.cpp
+  core/gaol_interval_io.cpp gaol_ieee1788.cpp gaol_common.cpp
   parser/gaol_parser.cpp parser/gaol_expression.cpp gaol_port.cpp gaol_init_cleanup.cpp
   parser/gaol_interval_lexer.cpp
   parser/gaol_interval_parser.cpp

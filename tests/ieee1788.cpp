@@ -387,7 +387,7 @@ namespace
   }
 
   /*
-    The pow of Table 9.1 is written once, in gaol/core/gaol_interval_core.cpp:
+    The pow of Table 9.1 is written once, in gaol/core/gaol_interval_pow.cpp:
     gaol_ieee1788::pow(x, y) is that function, and gaol::pow(x, y) calls it for
     every exponent but a degenerate integer, which takes pown on the whole of x,
     beyond the ints too. Each box below reaches a branch of the

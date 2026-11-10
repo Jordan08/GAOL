@@ -84,7 +84,8 @@
  *--------------------------------------------------------------------------*/
 
 /* The target of the functions (GAOL_AVX512_TARGET) and GAOL_NOINLINE are defined
-   in gaol/core/gaol_interval_core.cpp, before the generic part of the integer powers
+   in gaol/core/gaol_interval_internal.h, which gaol/core/gaol_interval_core.cpp
+   includes before the generic part of the integer powers
    (the templates pown_products() and pown_powers(), whose functions carry the
    target too), which this file needs before its pown_er_ops. */
 

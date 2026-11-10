@@ -608,7 +608,7 @@ double hausdorff(const interval &I1, const interval &I2)
   /*
     The rounding direction being upward already (see gaol_interval_core.h). The
     bound that is 0 in the other branch, I.rb_ for N1 and I.lb_ for P1, is
-    read in its branch (read_in_branch(), gaol/core/gaol_interval_core.cpp):
+    read in its branch (read_in_branch(), gaol/core/gaol_interval_internal.h):
     AppleClang computed -1/I.rb_ for N0 too, inverse() choosing between the
     branches afterwards, and inverse([-2, 0]) raised the division-by-zero
     exception (macOS arm64, GAOL_PRESERVE_ROUNDING; GAOL v5). Not the
@@ -699,19 +699,6 @@ double hausdorff(const interval &I1, const interval &I2)
     fpu_detail::quotient(xl, xr, yl, yr, true, lb_, rb_);
     GAOL_RND_LEAVE();
     return *this;
-  }
-
-  interval div_rel(const interval &K, const interval &J, const interval &I)
-  {
-    // One check, before the bounds are compared, as in the SSE2 build (GAOL
-    // v5, see gaol/gaol_fpu.h). The quotients are those of div_rel_upward()
-    // of gaol/core/gaol_interval_core.cpp, which raise no overflow exception for a
-    // finite result (GAOL v5, point 79 of TODO.md)
-    GAOL_RND_ENTER();
-    interval res = div_rel_upward(K, J, I);
-    GAOL_RND_KEEP(res);
-    GAOL_RND_LEAVE();
-    return res;
   }
 
 

@@ -30,7 +30,10 @@ AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir) $(GAOL_MSVC_CPPFLAGS)
 AM_CXXFLAGS = $(GAOL_CXX_STD) @GAOL_ALIGN_CXXFLAGS@
 
 libgaol_la_SOURCES = \
-	gaol_interval.cpp core/gaol_interval_core.cpp gaol_ieee1788.cpp gaol_common.cpp \
+	gaol_interval.cpp core/gaol_interval_core.cpp core/gaol_interval_pow.cpp \
+	core/gaol_interval_exp_log.cpp core/gaol_interval_trig.cpp \
+	core/gaol_interval_hyperbolic.cpp core/gaol_interval_relational.cpp \
+	core/gaol_interval_io.cpp gaol_ieee1788.cpp gaol_common.cpp \
 	parser/gaol_parser.cpp parser/gaol_expression.cpp \
 	parser/gaol_interval_parser.cpp parser/gaol_interval_lexer.cpp \
 	gaol_port.cpp \
@@ -93,6 +96,7 @@ library_parser_include_HEADERS = parser/gaol_eval_stack.h \
 noinst_HEADERS = math/gaol_core_math.h \
 	gaol_init_cleanup.h parser/gaol_interval_parser.h \
 	math/gaol_u128.h \
+	core/gaol_interval_internal.h \
 	core/gaol_interval_sse_impl.h core/gaol_interval_neon_impl.h \
 	core/gaol_interval_fpu_impl.h core/gaol_interval_avx512_impl.h \
 	math/gaol_double_op.h float/gaol_intervalf.h float/gaol_interval2f.h \
