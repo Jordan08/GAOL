@@ -119,7 +119,7 @@
   // registers where it if-converts them, and 30% more in a loop of
   // constructions (GCC 9.4, FPU intervals). GCC for 64-bit ARM computed them
   // for every element of a loop of constructions it vectorized, an empty one
-  // included: the bounds go through GAOL_FPU_SCALAR() (gaol_interval_core.h),
+  // included: the bounds go through GAOL_FPU_SCALAR() (gaol_interval_detail.h),
   // which keeps GCC from vectorizing that loop. On 32-bit ARM and on POWER9,
   // the quiet first comparison has the form GCC reversed into a signaling one
   // in is_empty(), and the constructor tells NaN bounds as is_empty() does,

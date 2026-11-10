@@ -1452,8 +1452,9 @@ set(GAOL_HEADERS
 # The headers of the intervals, which gaol/gaol_interval.h includes: installed
 # in gaol/core/ as in the sources (GAOL v5)
 set(GAOL_CORE_HEADERS
-  gaol/core/gaol_interval_core.h gaol/core/gaol_interval_fpu.h
-  gaol/core/gaol_interval_neon.h gaol/core/gaol_interval_sse.h)
+  gaol/core/gaol_interval_core.h gaol/core/gaol_interval_detail.h
+  gaol/core/gaol_interval_fpu.h gaol/core/gaol_interval_neon.h
+  gaol/core/gaol_interval_sse.h)
 # The headers of the parser of the strings and of the expressions, which a
 # program includes as gaol/parser/gaol_expression.h and
 # gaol/parser/gaol_parser.h: installed in gaol/parser/ as in the sources

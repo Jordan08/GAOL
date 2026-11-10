@@ -384,7 +384,7 @@ namespace gaol_detail {
     integers or zeros. No comparison of x as a double: GCC vectorizes the
     loops of floor() into signaling comparisons, which raise the
     invalid-operation exception on the NaN bounds of the empty set (see
-    GAOL_FPU_SCALAR() in gaol/core/gaol_interval_core.h).
+    GAOL_FPU_SCALAR() in gaol/core/gaol_interval_detail.h).
   */
   //! Whether x is subnormal, as its bits tell
   GAOL_INLINE bool bound_is_subnormal(double x)

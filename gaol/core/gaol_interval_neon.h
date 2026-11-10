@@ -199,7 +199,7 @@ namespace neon_detail {
 // An infinite v gives the empty set, as in IBEX: IEEE 1788-2015 has no
 // interval [+oo, +oo] nor [-oo, -oo] (10.5.8). A NaN gives it too, told by
 // a quiet comparison of |v| with +oo (neon_detail::finite_double()). The bounds go
-// through GAOL_FPU_SCALAR() as with the FPU intervals (gaol_interval_core.h):
+// through GAOL_FPU_SCALAR() as with the FPU intervals (gaol_interval_detail.h):
 // GCC for 64-bit ARM vectorizes loops of constructions and compares the
 // bounds of every element, an empty one included, with signaling comparisons
 GAOL_INLINE interval::interval(double v)
