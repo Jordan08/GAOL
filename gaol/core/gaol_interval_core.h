@@ -935,8 +935,6 @@ namespace gaol_core {
 #if !GAOL_VECTOR_INTERVALS
     friend GAOL_PUBLIC interval sqr(const interval& I);
 #endif
-    friend GAOL_PUBLIC interval cos(const interval& I);
-    friend GAOL_PUBLIC interval sin(const interval& I);
 
 #if GAOL_USING_SSE2_INSTRUCTIONS
     typedef GAOL_ALIGN16(double xmm2d[2]);
