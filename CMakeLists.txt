@@ -818,7 +818,7 @@ endif()
 # -msse3 is given where the compiler takes it, as the autotools build on a
 # processor with SSE3. Visual C++ and clang-cl take them on x64 (GAOL v5),
 # where SSE2 is the baseline of the processor and no flag is to be given
-# (cl does not know -msse2): gaol/core/gaol_interval_sse.cpp is written for the
+# (cl does not know -msse2): gaol/core/gaol_interval_sse_impl.h is written for the
 # __m128d of Visual C++, a structure and not a vector, and needs no asm
 # statement there (clang-cl keeps the ones of Clang).
 #
@@ -1036,7 +1036,7 @@ endif()
 # cached under a name of its own, GAOL_COMPILER_TAKES_AVX512_PATH, so that a
 # build directory configured before that check checks again. Only the
 # functions of the AVX-512 path of +, -, *, /, sqr, sqrt and, with FMA, the
-# integer powers beyond 1 and -1 (gaol/core/gaol_interval_avx512.cpp) carry the
+# integer powers beyond 1 and -1 (gaol/core/gaol_interval_avx512_impl.h) carry the
 # attribute, and the rest of the library is compiled as without it; the path
 # is compiled in where GAOL_AVX512_ARITHMETIC below is (GAOL v5).
 # The program that finds out whether Visual C++ and clang-cl for x64 run the
@@ -1240,10 +1240,10 @@ configure_file(cmake/gaol_configuration.h.in "${CMAKE_CURRENT_BINARY_DIR}/gaol/g
 ################################################################################
 #
 # The sources listed in gaol/meson.build, those of the intervals in gaol/core/
-# (GAOL v5). gaol_interval_core.cpp includes gaol_interval_neon.cpp,
-# gaol_interval_sse.cpp or gaol_interval_fpu.cpp itself, according to
+# (GAOL v5). gaol_interval_core.cpp includes gaol_interval_neon_impl.h,
+# gaol_interval_sse_impl.h or gaol_interval_fpu_impl.h itself, according to
 # GAOL_USING_NEON_INSTRUCTIONS and GAOL_USING_SSE2_INSTRUCTIONS, and
-# gaol/float/gaol_intervalf.cpp and gaol/float/gaol_interval2f.cpp where a
+# gaol/float/gaol_intervalf_impl.h and gaol/float/gaol_interval2f_impl.h where a
 # developer of GAOL defines GAOL_FLOAT_INTERVALS (see gaol/gaol_config.h).
 #
 # A static library, or a shared one with BUILD_SHARED_LIBS=ON: for Visual
@@ -1439,7 +1439,9 @@ install(TARGETS gaol EXPORT gaolTargets
 # gaol/meson.build install the same ones. Not the headers of the sources of
 # GAOL only (GAOL v5): gaol/parser/gaol_interval_parser.h, which did not
 # compile when included, the parts of the library (gaol_init_cleanup.h,
-# math/gaol_core_math.h, math/gaol_u128.h, math/gaol_compoundm1.h), what
+# math/gaol_core_math.h, math/gaol_u128.h, math/gaol_compoundm1.h, and the
+# operations of each kind of intervals, core/*_impl.h, which
+# core/gaol_interval_core.cpp includes), what
 # CORE-MATH's sources need to compile within GAOL (math/gaol_core_math_port.h,
 # core_math_log_dint.h, math/gaol_ldexp.h, math/gaol_roundeven.h), the bounds
 # at doubles, *_dn() and *_up(), which are not part of GAOL's interface

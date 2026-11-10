@@ -21,8 +21,8 @@
 */
 
 // SIMD (GAOL v5, doc/simd.md): with SSE2 and NEON the two bounds of an interval are the two lanes of one
-// vector, and + - * / sqr are vector kernels of gaol_interval_sse.cpp and gaol_interval_neon.cpp (sqrt too
-// with NEON); the AVX-512 path of gaol_interval_avx512.cpp carries the rounding direction in the
+// vector, and + - * / sqr are vector kernels of gaol_interval_sse_impl.h and gaol_interval_neon_impl.h (sqrt too
+// with NEON); the AVX-512 path of gaol_interval_avx512_impl.h carries the rounding direction in the
 // instruction, its square root being two scalar roots, and the integer powers have a two-lane FMA kernel
 // with NEON, and with SSE2 and AVX-512 where __FMA__ is. What is scalar in this file is the elementary
 // functions, which are CORE-MATH calls, one per bound, and the operations made of branches on the bounds.
@@ -80,7 +80,7 @@
 // The FMA instructions on two doubles at once, for the integer powers, where
 // the build has them (GAOL v5, see pown_products()): SSE2 with FMA on x86
 // (GAOL_FMA_AS_INSTRUCTION, gaol/gaol_fpu.h). The NEON intervals have them all
-// (gaol/core/gaol_interval_neon.cpp)
+// (gaol/core/gaol_interval_neon_impl.h)
 #if GAOL_USING_SSE2_INSTRUCTIONS && GAOL_FMA_AS_INSTRUCTION
 #  define GAOL_POWN_PACKED 1
 #  include <immintrin.h>
@@ -90,7 +90,7 @@
 // The same kernel rounded upward by the embedded rounding of AVX-512, where
 // GAOL_AVX512_ARITHMETIC is (GAOL v5, point ZZ of TODO.md, see
 // pown_large_er()): it needs the packed kernel, and runs in functions that
-// carry the target of gaol/core/gaol_interval_avx512.cpp
+// carry the target of gaol/core/gaol_interval_avx512_impl.h
 #if GAOL_POWN_PACKED && (defined(__x86_64__) || defined(_M_X64)) && GAOL_AVX512_ARITHMETIC
 #  define GAOL_POWN_ER 1
 #else
@@ -270,7 +270,7 @@ namespace gaol_core {
     quotients of the bounds of K by those of J, whichever the signs. The FPU
     and the NEON intervals compute it so, and the SSE2 intervals where a
     quotient of their vectors could overflow (see div_rel() in
-    gaol/core/gaol_interval_sse.cpp). The quotients are those of quotient_sat():
+    gaol/core/gaol_interval_sse_impl.h). The quotients are those of quotient_sat():
     one that overflows is the infinity it gives, which is intersected with a
     finite I or joined to an infinite bound of the hull, where the division
     raised the overflow exception for a finite result, as in div_rel([0, 1/2],
@@ -824,9 +824,9 @@ namespace gaol_core {
     The operations on the two lanes are those of a class for each kind of
     intervals (GAOL v5, point AP of TODO.md): a pair of doubles here, for the
     FPU intervals and for the SSE2 intervals without the FMA instructions; an
-    SSE2 register with FMA in gaol/core/gaol_interval_sse.cpp, the embedded rounding
-    of AVX-512 in gaol/core/gaol_interval_avx512.cpp and a NEON register in
-    gaol/core/gaol_interval_neon.cpp. Each has the types lanes and rests (the rests
+    SSE2 register with FMA in gaol/core/gaol_interval_sse_impl.h, the embedded rounding
+    of AVX-512 in gaol/core/gaol_interval_avx512_impl.h and a NEON register in
+    gaol/core/gaol_interval_neon_impl.h. Each has the types lanes and rests (the rests
     or-ed together) and the operations mul, fms (a * b - c), fma, twice_plus
     (2 a + b), first_rest and add_rest; the file of the intervals defines the
     function pown_large_inline() that makes the two corners and the bounds from
@@ -924,31 +924,31 @@ namespace gaol_core {
   /*
     pown_large_inline(I, n), I^n for |n| >= 2 and a nonempty I, the rounding
     direction being upward, is defined by the file of each kind of intervals,
-    included below (gaol_interval_sse.cpp, _neon.cpp and _fpu.cpp): both
+    included below (gaol_interval_sse_impl.h, _neon_impl.h and _fpu_impl.h): both
     corners at once, in the lanes of the kind, where they are within the range
     of pown_least[] and pown_greatest[], and pown_by_corners() otherwise (see
     pown_products()). It is inlined in pown_checked() alone, the body of
     gaol_pown() for n != 2: its switch over the small exponents is long, and
     the callers that take pown_upward() after their own check call
-    pown_large_upward(). pown_large_er() of gaol_interval_avx512.cpp is its
+    pown_large_upward(). pown_large_er() of gaol_interval_avx512_impl.h is its
     twin rounded by the embedded rounding.
   */
 
 #if (defined(__x86_64__) || defined(_M_X64)) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_AVX512_ARITHMETIC
   // GAOL_AVX512_ARITHMETIC, decided when GAOL is configured: +, -, *, /, sqr,
   // sqrt and, with FMA, the integer powers beyond 1 and -1 take the AVX-512
-  // path of gaol/core/gaol_interval_avx512.cpp, which sets no rounding direction,
+  // path of gaol/core/gaol_interval_avx512_impl.h, which sets no rounding direction,
   // and clears the flush-to-zero modes as the other operations do
   // (flush_guard there; GAOL v5, point Q of TODO.md)
 #  include <immintrin.h>   // the AVX-512 intrinsics of the path below
-#  include "gaol/core/gaol_interval_avx512.cpp"
+#  include "gaol/core/gaol_interval_avx512_impl.h"
 #endif
 #if GAOL_USING_SSE2_INSTRUCTIONS
-#  include "gaol/core/gaol_interval_sse.cpp"
+#  include "gaol/core/gaol_interval_sse_impl.h"
 #elif GAOL_USING_NEON_INSTRUCTIONS
-#  include "gaol/core/gaol_interval_neon.cpp"
+#  include "gaol/core/gaol_interval_neon_impl.h"
 #else
-#  include "gaol/core/gaol_interval_fpu.cpp"
+#  include "gaol/core/gaol_interval_fpu_impl.h"
 #endif // GAOL_USING_SSE2_INSTRUCTIONS
 
 // The file included above closes gaol_core, which this file opened above:
@@ -6465,7 +6465,7 @@ interval nth_root(const interval& I, int q)
   }
 
   // The word in the register it is in, at no cost: an empty asm statement that the compilers do not
-  // move a computation above (as reread_bounds() of gaol_interval_neon.cpp; Visual C++ has none on ARM64)
+  // move a computation above (as reread_bounds() of gaol_interval_neon_impl.h; Visual C++ has none on ARM64)
   GAOL_INLINE std::uint64_t keep_word(std::uint64_t w)
   {
 #  if !GAOL_NEON_MSVC
@@ -7028,7 +7028,7 @@ interval nth_root(const interval& I, int q)
     }
 #elif GAOL_USING_NEON_INSTRUCTIONS
     // The roots of both bounds by one vector instruction (GAOL v5, see
-    // gaol/core/gaol_interval_neon.cpp), unless the upper bound is above
+    // gaol/core/gaol_interval_neon_impl.h), unless the upper bound is above
     // huge_root_argument: the vector product of its proof of exactness
     // overflows, and the code below scales it (GAOL v5, point 79 of TODO.md).
     // The empty set, whose bounds are NaN, is not above it
@@ -7299,8 +7299,8 @@ static inline interval cos_or_sin(double Il, double Ir)
   (GAOL v5)
 */
 #ifdef GAOL_FLOAT_INTERVALS
-#  include "gaol/float/gaol_intervalf.cpp"
+#  include "gaol/float/gaol_intervalf_impl.h"
 #  if GAOL_USING_SSE3_INSTRUCTIONS
-#    include "gaol/float/gaol_interval2f.cpp"
+#    include "gaol/float/gaol_interval2f_impl.h"
 #  endif
 #endif // GAOL_FLOAT_INTERVALS

@@ -14,7 +14,7 @@
  * initialization of its files: gaol_pi_dn and the other doubles of
  * gaol/gaol_port.h, read from unions, the intervals interval::cst_pi,
  * cst_one... of gaol/core/gaol_interval_core.cpp, and the masks of the SSE2 operations
- * of gaol/core/gaol_interval_sse.cpp. A static object computing intervals found
+ * of gaol/core/gaol_interval_sse_impl.h. A static object computing intervals found
  * them 0: pi() was [-0, 0], [1, 2]/[-1, 1] was [-0, 0] rather than
  * [-oo, +oo], sin([0, 4]) was [-0, 0], with the SSE2 intervals and with the
  * others, without any warning. They are now initialized when compiling

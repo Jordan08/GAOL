@@ -5469,7 +5469,7 @@ int main()
      building that runs the AVX-512 instructions), the addition takes the
      embedded rounding: it sets no direction, and the one the program left
      stays (to nearest here, as restore_rounding() set it), as it stays with
-     GAOL_PRESERVE_ROUNDING (GAOL v5, gaol/core/gaol_interval_avx512.cpp) */
+     GAOL_PRESERVE_ROUNDING (GAOL v5, gaol/core/gaol_interval_avx512_impl.h) */
 #if defined(GAOL_USING_SSE2_INSTRUCTIONS) && GAOL_USING_SSE2_INSTRUCTIONS \
     && defined(GAOL_AVX512_ARITHMETIC) && GAOL_AVX512_ARITHMETIC
   check("rounding direction set back by gaol::restore_rounding() as many times as needed",

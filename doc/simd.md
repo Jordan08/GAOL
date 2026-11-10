@@ -332,8 +332,8 @@ which is done, and none needs a new path.
   ports to `_mm_sqrt_pd`. `sqrt_rel` follows.
 - **The integer powers on NEON** (done, GAOL v5): the kernel of
   `pown` on two lanes with `vfmaq_f64` (`pown_neon_ops` and `pown_large_inline()`
-  in `gaol/core/gaol_interval_neon.cpp`, 86 lines), as the SSE2 one with `__FMA__`
-  (`gaol_interval_sse.cpp`), where it was two scalar lanes with `std::fma`; the
+  in `gaol/core/gaol_interval_neon_impl.h`, 86 lines), as the SSE2 one with `__FMA__`
+  (`gaol_interval_sse_impl.h`), where it was two scalar lanes with `std::fma`; the
   generic part, `pown_products()`, `pown_powers()` and `pown_point()`, is in
   `gaol_interval_core.cpp`, and each kind of intervals defines the operations
   of its lanes as a class and its `pown_large_inline()`.

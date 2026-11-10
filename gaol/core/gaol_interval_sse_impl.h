@@ -391,7 +391,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
     operation that followed. The check of the rounding direction is theirs:
     the code that calls them is compiled with the flags of its own program.
     Where GAOL_AVX512_ARITHMETIC is, they are the functions of
-    gaol_interval_avx512.cpp, and carry its target.
+    gaol_interval_avx512_impl.h, and carry its target.
   */
 #if GAOL_AVX512_ARITHMETIC
 #  define GAOL_BOUNDS_TARGET GAOL_AVX512_TARGET
@@ -727,7 +727,7 @@ namespace gaol_core {
       // memory keeps it as written: Visual C++ (/O2 /fp:strict) rewrites
       // (-.5)*x + y into y - .5*x, which rounds the half of x in the wrong
       // direction when it is inexact, and mid([2^-1074, MAX]) was
-      // [MAX/2, MAX/2], as with the FPU intervals (gaol_interval_fpu.cpp)
+      // [MAX/2, MAX/2], as with the FPU intervals (gaol_interval_fpu_impl.h)
       mid_left  = -(.5*l + gaol_core::rnd_keep((-.5)*r));
       mid_right = gaol_core::rnd_keep((-.5)*l) + .5*r;
 #else
@@ -1647,8 +1647,8 @@ interval interval::inverse() const
   // pown_least[] and pown_greatest[], and pown_by_corners() otherwise (see
   // pown_products(), and the comment of gaol_interval_core.cpp before the includes of the
   // files of the kinds of intervals).
-  // Keep it alike with pown_large_er() (gaol_interval_avx512.cpp) and with the
-  // block of the NEON intervals (gaol_interval_neon.cpp)
+  // Keep it alike with pown_large_er() (gaol_interval_avx512_impl.h) and with the
+  // block of the NEON intervals (gaol_interval_neon_impl.h)
   static GAOL_POWN_INLINE_T interval pown_large_inline(const interval& I, int n)
   {
     const bool negative = n < 0;

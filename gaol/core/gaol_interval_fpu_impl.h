@@ -22,8 +22,8 @@
     -faligned-new=8 (the other compilers take the SSE2 intervals there); and
     the builds with GAOL_SIMD=OFF. The product, the quotient and the square take
     no branch on the signs of the bounds in the source (GAOL v5, the kernels of
-    fpu_detail below, on two doubles as those of gaol/core/gaol_interval_sse.cpp
-    and gaol/core/gaol_interval_neon.cpp are on a vector): see doc/using.md, The
+    fpu_detail below, on two doubles as those of gaol/core/gaol_interval_sse_impl.h
+    and gaol/core/gaol_interval_neon_impl.h are on a vector): see doc/using.md, The
     FPU intervals.
 */
 
@@ -65,7 +65,7 @@ double hausdorff(const interval &I1, const interval &I2)
   /*
     The kernels of the product and of the quotient of two intervals, on the
     stored bounds <-l, r> (GAOL v5), as those of the SSE2 intervals
-    (gaol_interval_sse.cpp) and of the NEON ones (gaol_interval_neon.cpp), but
+    (gaol_interval_sse_impl.h) and of the NEON ones (gaol_interval_neon_impl.h), but
     on two doubles each: the common case has no branch on the signs of the
     bounds, where the former code took one of nine cases of the signs for a
     product, and went down a chain of up to eight tests for a quotient, which

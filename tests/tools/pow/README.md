@@ -193,10 +193,10 @@ give another list with `--mutants FILE`.
 The mutants of the integer power (GAOL v5, the third pull request of B) are
 named `pown-*` where they edit the code of all the builds (the generic part,
 `gaol/core/gaol_interval_core.cpp`), `sse-fma-*` where they edit the two lanes in
-an SSE2 register (`gaol/core/gaol_interval_sse.cpp`), compiled with the SSE2
+an SSE2 register (`gaol/core/gaol_interval_sse_impl.h`), compiled with the SSE2
 intervals and the FMA instructions only, `er-*` for the embedded rounding of
-AVX-512 (`gaol/core/gaol_interval_avx512.cpp`), `neon-*` for the NEON register
-(`gaol/core/gaol_interval_neon.cpp`, compiled on a 64-bit ARM processor only,
+AVX-512 (`gaol/core/gaol_interval_avx512_impl.h`), `neon-*` for the NEON register
+(`gaol/core/gaol_interval_neon_impl.h`, compiled on a 64-bit ARM processor only,
 where they mirror the `sse-fma-*` ones, but for `sse-fma-exact-flag-as-doubles`,
 which has no NEON twin, and `neon-sign-dropped`, which has no SSE2 one) and `fpu-*` where they edit the pair
 of doubles of the other builds (`pown_scalar_ops::large()`; the tests

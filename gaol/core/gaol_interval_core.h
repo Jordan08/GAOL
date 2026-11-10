@@ -568,7 +568,7 @@ namespace gaol_core {
     GAOL_NODISCARD static interval_format::format_t format(void);
 
     /* The masks of the SSE2 operations, initialized when compiling
-       (gaol/core/gaol_interval_sse.cpp), so that the operations computed in the
+       (gaol/core/gaol_interval_sse_impl.h), so that the operations computed in the
        initialization of the static objects of a program are right, before
        the files of GAOL are initialized (GAOL v5). The constants of intervals
        (one(), pi()...) are built by the functions giving them, from doubles

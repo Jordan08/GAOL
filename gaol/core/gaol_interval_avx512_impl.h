@@ -4,7 +4,7 @@
  * The AVX-512 path of the SSE2 intervals (GAOL v5).
  *
  * This file is not meant to be compiled. It is only to be included
- *        by gaol/core/gaol_interval_core.cpp, before gaol/core/gaol_interval_sse.cpp: the
+ *        by gaol/core/gaol_interval_core.cpp, before gaol/core/gaol_interval_sse_impl.h: the
  *        operations of the SSE2 fragments call the functions of this one.
  *
  * The AVX-512 instructions can carry the rounding direction of a
@@ -67,7 +67,7 @@
  * their values: a subnormal bound, which the denormals-are-zero mode reads
  * as 0, keeps its sign and its magnitude, and the classification of an
  * operand is the same whatever the modes (see operator*=(double) of
- * gaol/core/gaol_interval_sse.cpp for the comparison that needed the check of
+ * gaol/core/gaol_interval_sse_impl.h for the comparison that needed the check of
  * the modes). The max of the straddling product, and the zero of a bound
  * by an infinite one, are the two places where the SSE2 path compares
  * values that the mode reads wrong: the former compares the bits of its
@@ -335,7 +335,7 @@
 
   /*
     The quotients of the lanes of a by those of b, by scalar divisions with the
-    embedded rounding, which div_bounds() of gaol/core/gaol_interval_sse.cpp calls
+    embedded rounding, which div_bounds() of gaol/core/gaol_interval_sse_impl.h calls
     (GAOL v5): the packed division takes the embedded rounding on its 512-bit
     form only, which is a division of eight doubles (16 cycles of throughput
     on Ice Lake and Tiger Lake, uops.info), where two scalar ones take 2 x 4.
@@ -385,7 +385,7 @@
     The products of the stored bounds u and v, one of their lanes holding a
     zero bound and the other an infinite one: that lane gives +0, the
     product of such bounds in interval arithmetic, as the SSE2 path
-    computes it (products_with_infinities() of gaol/core/gaol_interval_sse.cpp),
+    computes it (products_with_infinities() of gaol/core/gaol_interval_sse_impl.h),
     the zero and the infinity read from the bits, not from the values the
     denormals-are-zero mode reads wrong. The other lanes are the plain
     products.
@@ -470,7 +470,7 @@
   /*
     x * y of the stored bounds of two nonempty operands, neither of them
     empty: the dispatch and the products of product_of_bounds() of
-    gaol/core/gaol_interval_sse.cpp, the products by the embedded rounding, the
+    gaol/core/gaol_interval_sse_impl.h, the products by the embedded rounding, the
     classification by the sign bits as that dispatch reads them, and the
     max of the straddling case by the bits (max_of_positive() above). The
     products go through the zero of a bound by an infinite one only where
@@ -560,7 +560,7 @@
 
   /*
     x / y of the stored bounds of two nonempty operands: the dispatch of
-    divide_general() of gaol/core/gaol_interval_sse.cpp, its comparisons with 0 read
+    divide_general() of gaol/core/gaol_interval_sse_impl.h, its comparisons with 0 read
     from the sign and the magnitude bits (stored_left_below_zero() and
     stored_right_below_zero() above), its divisions by the embedded
     rounding. The cases the dispatch does not divide give the stored bounds
@@ -741,7 +741,7 @@
 
   /*
     x op= d on the AVX-512 path, d a double: the four operators with a double
-    (gaol/core/gaol_interval_sse.cpp) call them last, as tail calls: past the tests of
+    (gaol/core/gaol_interval_sse_impl.h) call them last, as tail calls: past the tests of
     their operand, each operator is a jump to its function, which saves no
     register (Clang 18 and GCC 13). Called there and followed by the store of
     their result, fast_add() and the others made Clang 18 save a register and
@@ -873,7 +873,7 @@
     read after the clearing of the modes that flush the subnormals to zero
     (flush_guard), which the embedded rounding honours. res is the stored
     pair, <-lower, upper>. It repeats the block of pown_large_inline() of the SSE2
-    intervals (gaol_interval_sse.cpp), on the other lanes: keep them alike. They give the
+    intervals (gaol_interval_sse_impl.h), on the other lanes: keep them alike. They give the
     same bounds on 8.8 million powers (tests/tools/pow/mutate.py has
     mutants of both).
   */

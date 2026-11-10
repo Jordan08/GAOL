@@ -96,7 +96,7 @@ floating-point operations where the source puts them with respect to the
 writes of the control register under /fp:strict, with which GAOL is
 compiled (tests/rounding_direction.cpp checks it in the continuous
 integration); not the intrinsics with an embedded rounding of the AVX-512
-path, which it moves past them (gaol/core/gaol_interval_avx512.cpp). The NEON
+path, which it moves past them (gaol/core/gaol_interval_avx512_impl.h). The NEON
 intervals of Visual C++ have _ReadWriteBarrier() after the writes of FPCR,
 as the asm statements of the others have a "memory" clobber (GAOL v5). */
 #if defined(__GNUC__) || defined(__clang__)
@@ -276,7 +276,7 @@ bounds are read from memory after the check, which clears the modes with a
 compiler barrier after it (round_upward_if_needed()), and a double it takes
 by value goes through rnd_reread() after the check; the kernels of the SSE2
 operations, which receive the bounds in a register, pass them through an
-empty asm statement after it (reread_bounds(), gaol_interval_sse.cpp). With
+empty asm statement after it (reread_bounds(), gaol_interval_sse_impl.h). With
 GAOL_PRESERVE_ROUNDING, an operation makes its result, the maxima and the
 minima of its bounds included, before GAOL_RND_LEAVE() restores the modes,
 and keeps it with GAOL_RND_KEEP(): with denormals-are-zero restored, sinpi()

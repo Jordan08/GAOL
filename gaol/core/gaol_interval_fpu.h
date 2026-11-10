@@ -269,7 +269,7 @@ interval::right_internal() const
 }
 
 // The sum, the difference, the product and the quotient of two intervals, on
-// the operators of assignment of gaol_interval_fpu.cpp (GAOL v5)
+// the operators of assignment of gaol_interval_fpu_impl.h (GAOL v5)
 GAOL_NODISCARD GAOL_INLINE interval operator+(const interval& I1, const interval& I2)
 {
   return interval(I1) += I2;

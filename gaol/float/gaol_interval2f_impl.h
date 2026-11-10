@@ -80,7 +80,7 @@ namespace gaol_core {
 		return p;
 	}
 
-    // The placement delete: the memory is the caller's (see gaol_interval_sse.cpp)
+    // The placement delete: the memory is the caller's (see gaol_interval_sse_impl.h)
     void interval2f::operator delete(void *, void *)
     {
     }

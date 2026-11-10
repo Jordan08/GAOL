@@ -13,7 +13,7 @@
 #
 # Run with python3 and ply (pip install ply); it writes the 256 cases of the
 # multiplication on the standard output, which are the ones of
-# gaol_interval2f.cpp. No build runs it: it is a tool of the author.
+# gaol_interval2f_impl.h. No build runs it: it is a tool of the author.
 # (GAOL v5: rewritten from Python 2, giving the same bytes)
 
 # [a,b]x[e,f] | [c,d]x[g,h]
@@ -241,7 +241,7 @@ for x in range(0,256):
     code = parser.parse(SSEformula)
     # Python 2 wrote "print code," here: that printed the string without a
     # newline, and left a space for the next print unless the string already
-    # ended with one. The space is in the code of gaol_interval2f.cpp, after
+    # ended with one. The space is in the code of gaol_interval2f_impl.h, after
     # the cases whose result is m128_zero(), so it is written here too.
     print(code, end="" if code.endswith("\n") else " ")
     print("}\nbreak;")

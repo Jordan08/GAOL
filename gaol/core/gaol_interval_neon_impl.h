@@ -14,7 +14,7 @@
         by gaol/core/gaol_interval_core.cpp.
     The intervals of 64-bit ARM processors, whose two stored bounds <-left,
     right> are the two lanes of a float64x2_t (GAOL v5): the counterpart of
-    gaol_interval_sse.cpp, with the NEON instructions.
+    gaol_interval_sse_impl.h, with the NEON instructions.
 */
 
   /*
@@ -379,7 +379,7 @@ namespace gaol_core {
   /*
     The quotient of x by a y that contains zero, c <= 0 <= d, neither empty (GAOL
     v5): the cases of the signs of x and of the bounds of y that are zero, as
-    the quotient of the FPU intervals (gaol_interval_fpu.cpp), each with the one
+    the quotient of the FPU intervals (gaol_interval_fpu_impl.h), each with the one
     division it needs, of two numbers that are no zero, so that none raises
     the division-by-zero or the invalid-operation exception (the divisor
     goes through read_in_branch(): Clang for 64-bit ARM computes the
@@ -815,7 +815,7 @@ double hausdorff(const interval &I1, const interval &I2)
       // memory keeps it as written: Visual C++ (/O2 /fp:strict) rewrites
       // (-.5)*x + y into y - .5*x, which rounds the half of x in the wrong
       // direction when it is inexact, and mid([2^-1074, MAX]) was
-      // [MAX/2, MAX/2], as with the SSE2 and the FPU intervals (gaol_interval_sse.cpp)
+      // [MAX/2, MAX/2], as with the SSE2 and the FPU intervals (gaol_interval_sse_impl.h)
       mid_left  = -(.5*l + gaol_core::rnd_keep((-.5)*r));
       mid_right = gaol_core::rnd_keep((-.5)*l) + .5*r;
 #else
@@ -877,8 +877,8 @@ double hausdorff(const interval &I1, const interval &I2)
     direction being upward: both corners at once, in the NEON register, where
     they are within the range of pown_least[] and pown_greatest[], and
     pown_by_corners() otherwise (see pown_products()). It repeats the block of
-    the SSE2 intervals (gaol/core/gaol_interval_sse.cpp), the same operations in the
-    same order: keep them alike, with pown_large_er() (gaol_interval_avx512.cpp).
+    the SSE2 intervals (gaol/core/gaol_interval_sse_impl.h), the same operations in the
+    same order: keep them alike, with pown_large_er() (gaol_interval_avx512_impl.h).
     tests/tools/pow/mutate.py has the mutants of the SSE2 block.
   */
   static GAOL_POWN_INLINE_T interval pown_large_inline(const interval& I, int n)
@@ -933,7 +933,7 @@ double hausdorff(const interval &I1, const interval &I2)
         } else {
           K = vdupq_n_f64(pown_bound(m, L));
         }
-        // The rests compared as integers (see gaol_interval_sse.cpp): K is 0 where they are
+        // The rests compared as integers (see gaol_interval_sse_impl.h): K is 0 where they are
         K = vreinterpretq_f64_u64(vbicq_u64(vreinterpretq_u64_f64(K), vceqzq_u64(s)));
         // (-v0 + RU(K h - w0), v1 + RU(K h + w1)), v + w being +-(h + l), of
         // the sign of c for an odd m, the lower bound negated

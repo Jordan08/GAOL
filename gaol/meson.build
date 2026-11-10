@@ -158,19 +158,19 @@ EXTRA_DIST = [
   'math/gaol_compoundm1.h',
   'parser/gaol_interval_lexer.lpp',
   'parser/gaol_interval_parser.ypp',
-  'core/gaol_interval_sse.cpp',
-  'core/gaol_interval_neon.cpp',
-  'core/gaol_interval_fpu.cpp',
-  'core/gaol_interval_avx512.cpp',
+  'core/gaol_interval_sse_impl.h',
+  'core/gaol_interval_neon_impl.h',
+  'core/gaol_interval_fpu_impl.h',
+  'core/gaol_interval_avx512_impl.h',
   # Headers and sources of GAOL, not installed: the bounds at doubles, *_dn()
   # and *_up(), which are not part of its interface, and the intervals of
   # floats, which gaol_interval_core.cpp includes where a developer of GAOL
   # defines GAOL_FLOAT_INTERVALS (see gaol_config.h) (GAOL v5)
   'math/gaol_double_op.h',
   'float/gaol_intervalf.h',
-  'float/gaol_intervalf.cpp',
+  'float/gaol_intervalf_impl.h',
   'float/gaol_interval2f.h',
-  'float/gaol_interval2f.cpp',
+  'float/gaol_interval2f_impl.h',
 ]
 
 

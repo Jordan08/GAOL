@@ -1575,9 +1575,9 @@ i7-1185G7, 3.75 with the AVX-512 path and the direction preserved, 2.0 on
 the M2 with NEON); the NEON kernel ports to \code{\_mm\_sqrt\_pd}.
 \code{sqrt\_rel} follows.
 \item[$\bullet$] \textbf{The integer powers on NEON} (done).
-The kernel of \code{pown}, in \file{gaol/core/gaol\_interval\_neon.cpp},
+The kernel of \code{pown}, in \file{gaol/core/gaol\_interval\_neon\_impl.h},
 computes on two lanes with \code{vfmaq\_f64}, as the SSE2 one of
-\file{gaol\_interval\_sse.cpp} does with \code{\_\_FMA\_\_}, where it was
+\file{gaol\_interval\_sse\_impl.h} does with \code{\_\_FMA\_\_}, where it was
 two scalar lanes with \code{std::fma}; the generic part is in
 \file{gaol\_interval\_core.cpp}, and each kind of intervals defines the
 operations of its lanes as a class.\newinvfive{} The bounds are the same bit

@@ -1196,7 +1196,7 @@ namespace
     of doubles, would compute it in the rounding to nearest (it does so once
     the library is inlined too, with -flto). The kernels pass their operands
     through an empty asm statement to prevent it (reread_bounds() of
-    gaol/core/gaol_interval_neon.cpp). Every operation below is inexact, so that
+    gaol/core/gaol_interval_neon_impl.h). Every operation below is inexact, so that
     an interval folded to one double is not the tightest enclosure of its
     result (the exact value is no double: 0.1 + 0.2, 1 - 0.1, 0.1*0.3, 1/3,
     0.1^2 and the root of 2), and has to be the tightest, whatever the
