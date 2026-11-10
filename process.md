@@ -221,6 +221,16 @@ un est refusée, quel que soit son gain.
       porte pas. Ce qui est nouveau par rapport à GAOL 4 est marqué
       « (GAOL v5) » dans les commentaires et `doc/*.md`, et `\newinvfive` dans
       le manuel.
+    - L'en-tête d'un fichier suit le modèle du `README.md` (section
+      « Licences »), le même pour tous les langages, au cadre de commentaire
+      près : les lignes `Copyright (c)`, la ligne `By:` et la phrase de licence
+      (`COPYING.LIB`). La bannière `GAOL -- not Just Another Interval Library`
+      n'est que pour C et C++. Un fichier écrit en entier pour GAOL v5 ne porte
+      que la ligne d'ENSTA et le nom de Jordan NININ, avec la date de création
+      (`By: Jordan NININ (created 2026-09-20)`) ; un fichier qui reprend du code
+      de GAOL 4 garde les lignes de copyright de ses auteurs et leurs noms.
+      Pas d'adresse électronique. Un fichier généré (`Makefile.in`, lexer et
+      parser) se régénère après le changement de son en-tête.
     - Dans les tests, la documentation et les exemples, un intervalle aux bornes
       exactes se construit avec les constructeurs numériques
       (`interval(1.0, 2.0)`, `interval(2.0)`, `interval::emptyset()`,
