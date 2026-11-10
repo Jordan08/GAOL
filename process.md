@@ -234,8 +234,10 @@ un est refusée, quel que soit son gain.
       ne concerne que C et C++. Un fichier écrit en entier pour GAOL v5 ne porte
       que la ligne d'ENSTA et le nom de Jordan NININ, avec la date de création
       (`By: Jordan NININ (created 2026-09-20)`) ; un fichier qui reprend du code
-      de GAOL 4 garde les lignes de copyright de ses auteurs et leurs noms.
-      Pas d'adresse électronique. Un fichier généré (`Makefile.in`, lexer et
+      de GAOL 4 garde les lignes de copyright de ses auteurs et leurs noms ; un
+      chapitre du manuel qui suit un chapitre de celui de GAOL 4 sans en
+      reprendre le texte ne nomme que Jordan NININ, et dit dans son commentaire
+      qu'il est fait d'après le manuel de GAOL 4. Pas d'adresse électronique. Un fichier généré (`Makefile.in`, lexer et
       parser) se régénère après le changement de son en-tête.
     - Dans les tests, la documentation et les exemples, un intervalle aux bornes
       exactes se construit avec les constructeurs numériques

@@ -236,6 +236,8 @@ The header of most C and C++ sources starts with `GAOL -- not Just Another
 Interval Library` between two lines of dashes, and a description of the file may
 come before the three fields. A file of GAOL 4 that GAOL v5 changes and that has
 a header keeps the copyright lines of its authors above that of ENSTA, and their
-names in the `By:` line (`By: Frederic Goualard, Jordan NININ`). The files of
-the meson build, by Raphaël Chenouard, name him there too. The files of
-CORE-MATH keep their own.
+names in the `By:` line (`By: Frederic Goualard, Jordan NININ`). A chapter of
+the manual of GAOL v5 that follows one of the manual of GAOL 4 without taking
+text of it names no author but Jordan NININ, and says in its comment that it is
+based on the manual of GAOL 4. The files of the meson build, by Raphaël
+Chenouard, name him there too. The files of CORE-MATH keep their own.
