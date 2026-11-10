@@ -33,8 +33,6 @@
 */
 
 
-//#include "cycle.h"
-
 
 double hausdorff(const interval &I1, const interval &I2)
 {
@@ -67,13 +65,6 @@ double hausdorff(const interval &I1, const interval &I2)
 	GAOL_RND_LEAVE();
 	return d;
 }
-
-/*
-	The integer powers are computed in gaol_interval_core.cpp, from exact
-	products, the same way as with the SSE2 intervals (GAOL v5, see
-	pown_products() there): the products rounded outward of GAOL 4,
-	uipow_dnup(), uipow_upup() and uipow_rounded(), are gone.
-*/
 
 
   /*
@@ -759,7 +750,7 @@ double hausdorff(const interval &I1, const interval &I2)
 
   interval sqr(const interval& I)
   {
-    if (gaol_detail::quiet_unordered(I.lb_, I.rb_)) { // the empty set
+    if (I.is_empty()) { // the empty set
       return interval::emptyset();
     }
 
