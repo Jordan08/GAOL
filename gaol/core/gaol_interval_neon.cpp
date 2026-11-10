@@ -947,3 +947,5 @@ double hausdorff(const interval &I1, const interval &I2)
     }
     return pown_by_corners(a, b, n);
   }
+
+} // namespace gaol_core

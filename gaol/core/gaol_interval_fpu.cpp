@@ -813,3 +813,5 @@ double hausdorff(const interval &I1, const interval &I2)
   {
     return pown_scalar_ops::large(I, n);
   }
+
+} // namespace gaol_core

@@ -951,6 +951,10 @@ namespace gaol_core {
 #  include "gaol/core/gaol_interval_fpu.cpp"
 #endif // GAOL_USING_SSE2_INSTRUCTIONS
 
+// The file included above closes gaol_core, which this file opened above:
+// it is opened again for what follows (GAOL v5)
+namespace gaol_core {
+
   // Default format for output
   interval_format::format_t interval::output = interval_format::bounds;
 
