@@ -1,0 +1,225 @@
+# The packages of a version of GAOL, attached to its GitHub Release (GAOL v5):
+# on every new tag of a commit of master, the tag being the version of
+# VERSION.txt (5.0.0 or v5.0.0), three packages built in Release by CPack:
+#
+#   libgaol-dev_<version>_amd64.deb   Ubuntu 26.04 x86_64, GCC (the one of the
+#                                     system), installed in /usr
+#   gaol-<version>-macos-arm64.pkg    macOS 26 arm64, AppleClang, installed in
+#                                     /usr/local (not signed: Gatekeeper asks
+#                                     to open it with a right click, or
+#                                     sudo installer -pkg ... -target /)
+#   gaol-<version>-windows-x64.exe    Windows Server 2025, Visual C++ 2026 x64,
+#                                     /MD (MultiThreadedDLL), installed in
+#                                     C:\Program Files\gaol
+#
+# The newest LTS Ubuntu, macOS and Visual C++ that GitHub runs. Each package is
+# built for any processor of its architecture (GAOL_FMA=OFF and
+# GAOL_PREFER_AVX512=OFF on x86-64, see doc/building.md), after the unit tests
+# pass, and installed on the runner, where the unit tests are built and run
+# again with the installed GAOL (tests/find_package). The Release of the tag is
+# made where it does not exist, with notes GitHub generates, and the packages
+# are attached to it, replacing those of the same names.
+#
+# A pull request that changes this workflow or the files of CPack builds the
+# three packages and keeps them as artifacts of the run, without a Release.
+#
+# Copyright (c) 2026 ENSTA, France
+#
+# By: Jordan NININ (created 2026-11-11)
+#
+# GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
+# COPYING.LIB file for information.
+
+name: Release
+
+on:
+  push:
+    tags: ['*']
+  pull_request:
+    paths:
+      - '.github/workflows/release.yml'
+      - 'CMakeLists.txt'
+      - 'cmake/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  # actions/checkout runs git init, whose hint about the name of the initial
+  # branch was in the log of every job
+  GIT_CONFIG_COUNT: 1
+  GIT_CONFIG_KEY_0: init.defaultBranch
+  GIT_CONFIG_VALUE_0: main
+
+jobs:
+  # The tag: of a commit of master, and the version of VERSION.txt, which names
+  # the packages
+  tag:
+    name: The tag, of master and of VERSION.txt
+    if: github.event_name == 'push'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: The commit of the tag is on master
+        run: |
+          git fetch -q origin master
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
+            echo "::error::the tag $GITHUB_REF_NAME is on $GITHUB_SHA, which is not a commit of master: no Release"
+            exit 1
+          fi
+      - name: The tag is the version of VERSION.txt
+        id: version
+        run: |
+          version=$(tr -d ' \t\r\n' < VERSION.txt)
+          case "$GITHUB_REF_NAME" in
+            "$version"|"v$version") ;;
+            *) echo "::error::the tag $GITHUB_REF_NAME is not the version of VERSION.txt, $version (nor v$version)"; exit 1 ;;
+          esac
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  packages:
+    name: ${{ matrix.cfg.desc }}
+    needs: tag
+    # On a pull request the job tag is skipped, and the packages are built all
+    # the same
+    if: ${{ !failure() && !cancelled() }}
+    runs-on: ${{ matrix.cfg.os }}
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        cfg:
+          - { os: ubuntu-26.04, generator: DEB, intervals: sse2, desc: 'Ubuntu 26.04 x86_64 GCC, .deb',
+              opts: '-DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DGAOL_FMA=OFF -DGAOL_PREFER_AVX512=OFF' }
+          - { os: macos-26, generator: productbuild, intervals: neon, desc: 'macOS 26 arm64 AppleClang, .pkg', name: macos-arm64,
+              opts: '-DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_INSTALL_PREFIX=/usr/local',
+              cpack: '-D CPACK_PACKAGING_INSTALL_PREFIX=/usr/local' }
+          - { os: windows-2025-vs2026, generator: NSIS, intervals: sse2, desc: 'Windows Server 2025 Visual C++ 2026 x64 /MD, .exe', name: windows-x64,
+              opts: '-G "Visual Studio 18 2026" -A x64 -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL -DGAOL_FMA=OFF -DGAOL_PREFER_AVX512=OFF' }
+    steps:
+      - uses: actions/checkout@v7
+      - name: Tools
+        run: |
+          if [ "${{ matrix.cfg.generator }}" = DEB ]; then
+            sudo apt-get update -q
+            sudo apt-get install -y -q g++ cmake make
+          fi
+          cmake --version | head -1
+          case "${{ matrix.cfg.generator }}" in
+            DEB) g++ --version | head -1; dpkg --print-architecture ;;
+            productbuild) c++ --version | head -1; xcodebuild -version | head -1; command -v productbuild ;;
+            NSIS)
+              if ! command -v makensis > /dev/null && [ ! -x "/c/Program Files (x86)/NSIS/makensis.exe" ]; then
+                choco install nsis -y --no-progress
+              fi ;;
+          esac
+      - name: Configure
+        run: |
+          cmake -S . -B build -DWITH_TESTS=ON ${{ matrix.cfg.opts }} | tee configure.log
+          # The intervals of the package: SSE2 on x86-64, NEON on arm64
+          sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h ${{ matrix.cfg.intervals }}
+      # /MD: every configuration of the library that Visual Studio builds in
+      # Release takes the DLL runtime (MultiThreadedDLL), which the programs of
+      # the users link with by default; /MT (MultiThreaded) would refuse them
+      - name: The library is built with /MD
+        if: matrix.cfg.generator == 'NSIS'
+        run: |
+          grep -o "<RuntimeLibrary>[A-Za-z]*</RuntimeLibrary>" build/gaol.vcxproj | sort | uniq -c
+          grep -q "<RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>" build/gaol.vcxproj
+          if grep -q "<RuntimeLibrary>MultiThreaded</RuntimeLibrary>" build/gaol.vcxproj; then
+            echo "::error::a configuration of the library takes the static runtime, /MT"
+            exit 1
+          fi
+      - name: Build
+        run: cmake --build build --config Release -j 4
+      - name: Tests
+        run: ctest --test-dir build -C Release --output-on-failure -j 4
+      - name: The package
+        run: |
+          version=$(tr -d ' \t\r\n' < VERSION.txt)
+          cd build
+          # The name of the .pkg and of the .exe: gaol-<version>-<system>-<processor>;
+          # the .deb keeps the one of Debian (CPACK_DEBIAN_FILE_NAME)
+          name=
+          if [ -n "${{ matrix.cfg.name }}" ]; then name="-DCPACK_PACKAGE_FILE_NAME=gaol-$version-${{ matrix.cfg.name }}"; fi
+          # shellcheck disable=SC2086
+          cpack -G "${{ matrix.cfg.generator }}" -C Release ${{ matrix.cfg.cpack }} ${name:+"$name"}
+          mkdir -p ../packages
+          case "${{ matrix.cfg.generator }}" in
+            DEB) mv libgaol-dev_*.deb ../packages/; dpkg-deb --info ../packages/*.deb; dpkg-deb --contents ../packages/*.deb ;;
+            productbuild) mv gaol-*.pkg ../packages/; pkgutil --payload-files ../packages/*.pkg ;;
+            NSIS) mv gaol-*.exe ../packages/ ;;
+          esac
+          ls -l ../packages
+      # The package installed on the runner, and the unit tests built with it
+      - name: Install the package
+        if: matrix.cfg.generator == 'DEB'
+        run: sudo apt-get install -y -q ./packages/libgaol-dev_*.deb
+      - name: Install the package
+        if: matrix.cfg.generator == 'productbuild'
+        run: |
+          sudo installer -pkg packages/gaol-*.pkg -target /
+          # The receipt of the package and its files, which doc/building.md
+          # gives to uninstall it
+          pkgutil --pkg-info fr.ensta.gaol.Development
+          pkgutil --only-files --files fr.ensta.gaol.Development
+      - name: Install the package
+        if: matrix.cfg.generator == 'NSIS'
+        shell: pwsh
+        run: |
+          $exe = (Get-ChildItem packages\gaol-*.exe).FullName
+          Start-Process -FilePath $exe -ArgumentList '/S' -Wait
+          Get-ChildItem -Recurse 'C:\Program Files\gaol' | Select-Object -First 40 FullName
+      - name: Tests built with the installed GAOL
+        run: |
+          case "${{ matrix.cfg.generator }}" in
+            DEB) cmake -S tests/find_package -B build-find-package -DCMAKE_BUILD_TYPE=Release ;;
+            productbuild) cmake -S tests/find_package -B build-find-package -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_PREFIX_PATH=/usr/local ;;
+            NSIS) cmake -S tests/find_package -B build-find-package -G "Visual Studio 18 2026" -A x64 "-DCMAKE_PREFIX_PATH=C:/Program Files/gaol" ;;
+          esac
+          cmake --build build-find-package --config Release -j 4
+          ctest --test-dir build-find-package -C Release --output-on-failure -j 4
+      - uses: actions/upload-artifact@v7
+        with:
+          name: package-${{ matrix.cfg.generator }}
+          path: packages/*
+          if-no-files-found: error
+
+  release:
+    name: The Release of the tag, with the three packages
+    needs: [tag, packages]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: package-*
+          path: packages
+          merge-multiple: true
+      - name: Attach the packages to the Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.tag.outputs.version }}
+        run: |
+          ls -l packages
+          test "$(find packages -type f | wc -l)" = 3
+          if ! gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag \
+              --title "GAOL $VERSION" --generate-notes
+          fi
+          gh release upload "$GITHUB_REF_NAME" packages/* --repo "$GITHUB_REPOSITORY" --clobber

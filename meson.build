@@ -8,7 +8,10 @@
 # COPYING.LIB file for information.
 #
 project(
-  'GAOL',
+  # gaol, in lowercase, as the archive of meson dist takes its name,
+  # gaol-<version>.tar.gz, the one of make dist and of package_source of CMake
+  # (GAOL v5: GAOL, which named it GAOL-<version>)
+  'gaol',
   'c',
   'cpp',
   # The version of GAOL is the line of the file VERSION.txt, which

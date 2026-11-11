@@ -49,3 +49,19 @@ endif
 # them (GAOL v5)
 distclean-local:
 	-rm -rf ./$(DEPDIR)
+
+# The archive of the sources, make dist (GAOL v5): automake takes the sources,
+# the headers and the scripts it knows from the variables of the Makefile.am,
+# and EXTRA_DIST names the other files of the repository, here the headers of the examples, their builds of CMake and meson, and their documents.
+# make dist, package_source of CMake and meson dist hold the same files, those
+# of the repository but the notes of the work on GAOL v5 (.gitattributes): a
+# file added to the repository is added to this list too, or the job Archives
+# of the sources of the CI, which compares the three archives, fails
+EXTRA_DIST = \
+	CMakeLists.txt \
+	affine.h \
+	box.h \
+	dual.h \
+	examples.md \
+	meson.build \
+	tutorial.md

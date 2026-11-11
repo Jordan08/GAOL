@@ -255,22 +255,65 @@ CMake that are not GAOL's: `CMAKE_BUILD_TYPE`, `CMAKE_INSTALL_PREFIX`,
 
 ### The archive of the sources and the packages
 
-CPack makes them from the CMake build, where `make dist` of the autotools
-build made the archive of the sources:
+The three builds make the archive of the sources, `gaol-<version>.tar.gz`,
+with the same files: those of the repository but the notes of the work on
+GAOL v5, which `.gitattributes` marks `export-ignore` (GAOL v5):
 
 ```bash
 git clone https://github.com/Jordan08/GAOL.git gaol && cd gaol
+# CMake: dist, or package_source (make dist with the Makefile generators)
+cmake -S . -B build && cmake --build build --target dist
+# autotools: make dist, and make distcheck to build and test the archive
+./configure && make dist
+# meson: the commit, built and tested (--no-tests leaves that out)
+meson setup build-meson && meson dist -C build-meson --formats gztar
+```
+
+Each takes its files its own way. CPack takes the source tree less what git
+ignores and the notes (`CPACK_SOURCE_IGNORE_FILES` of `CMakeLists.txt`):
+made from a clean checkout, it holds the files of the commit. `make dist`
+takes the sources and the headers that the variables of the `Makefile.am`
+name, and the files their `EXTRA_DIST` list: a file added to the repository
+goes into the `EXTRA_DIST` of the `Makefile.am` of its directory, or of the
+top one for a directory without its own. `meson dist` archives the commit with
+`git archive`, which reads `export-ignore`, and refuses a tree with changes not
+committed (`--allow-dirty`); without `--formats gztar` it makes
+`gaol-<version>.tar.xz`, as `ninja dist` of meson does. The job *Archives of
+the sources* of the continuous integration makes the three and checks that
+they hold the same files. The archives are not the same bytes: the order and
+the dates of the entries are those of each tool, and `make dist` writes
+`README`, a symbolic link to `README.md` in the repository, as a copy of the
+file, where the other two keep the link.
+
+The packages are CPack's, from the CMake build:
+
+```bash
 cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/usr -DGAOL_FMA=OFF -DGAOL_PREFER_AVX512=OFF
 cmake --build build --config Release
-cmake --build build --target package_source
 cmake --build build --target package
 ```
 
 | File | What it holds |
 |---|---|
-| `gaol-<version>.tar.gz` (`package_source`) | The sources, in `gaol-<version>/`, with `configure` and the `Makefile.in`: the three builds build them. CPack takes the source tree as it is, less what git ignores, the builds made within it, and the notes of the work on GAOL v5 (`TODO.md`, `TODO_AFTER.md`, `TODO_DONE.md`, `STEP.md`, `process.md`, `todo-notes/`), so that made from a clean checkout, the archive holds the other files of the commit, `configure` as it was generated among them: if that was for another version than `VERSION.txt` holds, `configure --version` in the archive gives the old one, and CMake warns of it when it configures (see [The version of GAOL](#the-version-of-gaol)). |
+| `gaol-<version>.tar.gz` (`dist`, `package_source`, `make dist`, `meson dist --formats gztar`) | The sources, in `gaol-<version>/`, with `configure` and the `Makefile.in`: the three builds build them. The files of the commit less the notes of the work on GAOL v5 (`TODO.md`, `TODO_AFTER.md`, `TODO_DONE.md`, `STEP.md`, `process.md`, `todo-notes/`, `.claude/`), `configure` as it was generated among them: if that was for another version than `VERSION.txt` holds, `configure --version` in the archive gives the old one, and CMake warns of it when it configures (see [The version of GAOL](#the-version-of-gaol)). |
 | `gaol-<version>-<system>.tar.gz` (`package`) | What `cmake --install` installs, in `gaol-<version>-<system>/`: the headers, `libgaol.a` (or `libgaol.so*` with `BUILD_SHARED_LIBS`), the CMake package of GAOL and `gaol.pc`, to extract anywhere, `gaol.pc` finding its directories from where it is. |
 | `libgaol-dev_<version>_<arch>.deb` (`package`, on Linux) | The same files in `/usr`, for `apt install ./libgaol-dev_<version>_<arch>.deb`: by default a static library and its headers, hence the name and the section `libdevel` of the development packages of Debian. |
+| `gaol-<version>-macos-arm64.pkg` (`cpack -G productbuild -D CPACK_PACKAGING_INSTALL_PREFIX=/usr/local`, without which the files go in `/Applications`) | The same files in `/usr/local`, for the Installer of macOS, or `sudo installer -pkg gaol-<version>-macos-arm64.pkg -target /`. Not signed: Gatekeeper asks to open it with a right click. No uninstaller: `pkgutil --only-files --files fr.ensta.gaol.Development` lists the files it installed, relative to `/`, and `sudo pkgutil --forget fr.ensta.gaol.Development` forgets the package once they are removed. |
+| `gaol-<version>-windows-x64.exe` (`cpack -G NSIS`) | The same files in `C:\Program Files\gaol`, where `find_package(gaol)` finds them, with an uninstaller; `/S` installs it without a window. Built with `/MD`: a program built in Debug, with `/MDd`, does not link with it. |
+
+The workflow Release (`.github/workflows/release.yml`) makes three packages
+for each tag of a commit of `master`, the tag being the version of
+`VERSION.txt` (`5.0.0` or `v5.0.0`), and attaches them to the GitHub Release of
+the tag, which it makes if there is none, with the notes GitHub generates
+(GAOL v5): `libgaol-dev_<version>_amd64.deb` (Ubuntu 26.04 x86_64, the GCC of
+the system), `gaol-<version>-macos-arm64.pkg` (macOS 26 arm64, AppleClang) and
+`gaol-<version>-windows-x64.exe` (Windows Server 2025, Visual C++ 2026 x64,
+`/MD`), in Release, with `-DGAOL_FMA=OFF -DGAOL_PREFER_AVX512=OFF` on x86-64.
+Each job runs the unit tests, makes the package, installs it on the runner,
+and builds and runs the unit tests again with the installed GAOL
+(`tests/find_package`). A pull request that changes the workflow,
+`CMakeLists.txt` or `cmake/` builds the three and keeps them as artifacts of
+the run.
 
 The archive takes its name from the version CMake read when it configured, and
 CMake warns of a `configure` generated for another version at that moment.
@@ -337,10 +380,11 @@ and `config.sub` are those of 2026-05-17 from
 libtool installs. The versions matter: the files of GAOL 4.2.2 came from
 libtool 2.4.2, which linked `libgaol` with `-flat_namespace -undefined
 suppress` on macOS 11 and later, taking them for Mac OS X 10.0, and from a
-`config.sub` of 2016, which refused `loongarch64`. There is no `make dist` nor
-`make distcheck`: the archive of the sources is made with CMake (see
-[above](#the-archive-of-the-sources-and-the-packages)). The options, with
-their defaults:
+`config.sub` of 2016, which refused `loongarch64`. `make dist` makes the
+archive of the sources, and `make distcheck` builds it in a directory of its
+own with the unit tests and the examples, runs them, installs and uninstalls
+it (see [above](#the-archive-of-the-sources-and-the-packages); GAOL v5: there
+was neither, `no-dist` in `configure.ac`). The options, with their defaults:
 
 | Option | Default | |
 |---|---|---|

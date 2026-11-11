@@ -93,3 +93,73 @@ BASH = bash
 # them (GAOL v5)
 distclean-local:
 	-rm -rf ./$(DEPDIR)
+
+# The archive of the sources, make dist (GAOL v5): automake takes the sources,
+# the headers and the scripts it knows from the variables of the Makefile.am,
+# and EXTRA_DIST names the other files of the repository, here the headers of the tests, the programs that generate their values, the tests of CMake and meson, and the tools of tests/tools/.
+# make dist, package_source of CMake and meson dist hold the same files, those
+# of the repository but the notes of the work on GAOL v5 (.gitattributes): a
+# file added to the repository is added to this list too, or the job Archives
+# of the sources of the CI, which compares the three archives, fails
+EXTRA_DIST = \
+	CMakeLists.txt \
+	atan2_rel_values.h \
+	atan2_rel_values.py \
+	automatic_configuration.cmake \
+	compile_error.cmake \
+	compoundm1_values.h \
+	compoundm1_values.py \
+	cpack_stale_configure.cmake \
+	elementary_values.h \
+	elementary_values.py \
+	extended_precision_values.h \
+	extended_precision_values.py \
+	fetch_content/CMakeLists.txt \
+	find_package/CMakeLists.txt \
+	fp_strict/CMakeLists.txt \
+	gaol_tests.h \
+	meson.build \
+	meson_subproject/check_flags.py \
+	meson_subproject/meson.build \
+	nodiscard.cpp \
+	pow_rel_values.h \
+	pow_rel_values.py \
+	refused_aligned_new.cpp \
+	refused_options.cpp \
+	refused_options.sh \
+	release_flags.py \
+	reverse_values.h \
+	reverse_values.py \
+	tools/arith/README.md \
+	tools/arith/diffarith.cpp \
+	tools/arith/diffarith.py \
+	tools/asm-order/README.md \
+	tools/asm-order/check_order.py \
+	tools/asm-order/inline.cpp \
+	tools/cos/README.md \
+	tools/cos/accurate_values.py \
+	tools/cos/mutate.py \
+	tools/ibex_codac/README.md \
+	tools/ibex_codac/codac_cases.py \
+	tools/ibex_codac/ibex_forward_cases.py \
+	tools/ibex_codac/ibexb_cases.py \
+	tools/pow/README.md \
+	tools/pow/bench.cpp \
+	tools/pow/build.py \
+	tools/pow/checkrows.py \
+	tools/pow/diffpow.cpp \
+	tools/pow/diffpow.py \
+	tools/pow/evalrows.cpp \
+	tools/pow/gen_table.py \
+	tools/pow/mutate.py \
+	tools/pow/negative_power_rows.py \
+	tools/pow/pown_bound.py \
+	tools/pow/pownedge.cpp \
+	tools/pow/pownhash.cpp \
+	tools/x86-csr/README.md \
+	tools/x86-csr/amalgamate.py \
+	tools/x86-csr/mutants.py \
+	unit_tests.h \
+	version_file.cmake \
+	version_file/nul_after_version.txt \
+	version_file/utf16le_bom.txt

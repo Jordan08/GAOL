@@ -57,12 +57,13 @@ m4_divert_push([KILL])m4_include([VERSION.txt])m4_divert_pop([KILL])
 # configure --help ends with the address for the bug reports and the page of
 # GAOL v5 (GAOL v5)
 AC_INIT([gaol],[gaol_m4_version],[jordan.ninin@ensta.fr],[gaol],[https://github.com/Jordan08/GAOL])
-# no-dist: no make dist nor make distcheck, the archives of the sources and
-# the packages being made by CMake (cmake --build <build> --target
-# package_source, package; see doc/building.md) (GAOL v5). no-define: no
-# PACKAGE nor VERSION in gaol/gaol_configuration.h, which the code using GAOL
-# includes.
-AM_INIT_AUTOMAKE([gnu 1.7 no-dist no-define subdir-objects])
+# make dist gives gaol-<version>.tar.gz, the files that the EXTRA_DIST of the
+# Makefile.am list with those automake distributes itself: the archive that
+# package_source of CMake and meson dist --formats gztar give (GAOL v5: it was
+# no-dist, the archives being made by CMake alone; see doc/building.md).
+# no-define: no PACKAGE nor VERSION in gaol/gaol_configuration.h, which the
+# code using GAOL includes.
+AM_INIT_AUTOMAKE([gnu 1.7 no-define subdir-objects])
 
 AM_MAINTAINER_MODE([disable])
 # In maintainer mode, the rule of automake that regenerates

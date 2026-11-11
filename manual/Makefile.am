@@ -36,3 +36,58 @@ if PDF_TO_LATEX
 else
 	@echo Sorry, no tool to compile a LaTeX file into a pdf file found
 endif
+
+# The archive of the sources, make dist (GAOL v5): automake takes the sources,
+# the headers and the scripts it knows from the variables of the Makefile.am,
+# and EXTRA_DIST names the other files of the repository, here the sources of the manuals, v4 and v5, and the PDF files.
+# make dist, package_source of CMake and meson dist hold the same files, those
+# of the repository but the notes of the work on GAOL v5 (.gitattributes): a
+# file added to the repository is added to this list too, or the job Archives
+# of the sources of the CI, which compares the three archives, fails
+EXTRA_DIST = \
+	Manual_GAOLv5.pdf \
+	build-pdf.sh \
+	check_examples.py \
+	meson.build \
+	v4/Manual_GAOLv4.pdf \
+	v4/gaol.bib \
+	v4/gaol.tex \
+	v4/include/lgpl.texi \
+	v4/lgpl.tex \
+	v4/manual.cls \
+	v4/meson.build \
+	v4/pdfcolor.tex \
+	v4/pdftex.cfg \
+	v4/relation-cos.pdf \
+	v4/relation-cos.tex \
+	v4/texinfo.tex \
+	v5/chapters/01_interval_arithmetic.tex \
+	v5/chapters/02_installation.tex \
+	v5/chapters/03_using.tex \
+	v5/chapters/04_rounding.tex \
+	v5/chapters/05_creation.tex \
+	v5/chapters/06_relations.tex \
+	v5/chapters/07_arithmetic.tex \
+	v5/chapters/08_functions.tex \
+	v5/chapters/09_io.tex \
+	v5/chapters/10_ieee1788.tex \
+	v5/chapters/11_accuracy.tex \
+	v5/chapters/12_computing.tex \
+	v5/chapters/13_numbers_errors.tex \
+	v5/chapters/14_tests_ci.tex \
+	v5/chapters/15_migration.tex \
+	v5/chapters/abstract.tex \
+	v5/chapters/appendix_copying.tex \
+	v5/chapters/appendix_documentation.tex \
+	v5/chapters/conclusion.tex \
+	v5/chapters/contributors.tex \
+	v5/chapters/copyright.tex \
+	v5/chapters/introduction.tex \
+	v5/chapters/titlepage.tex \
+	v5/gaol.bib \
+	v5/gaol_def.tex \
+	v5/lgpl.tex \
+	v5/manual_gaolv5.tex \
+	v5/meson.build \
+	v5/relation-cos.pdf \
+	v5/relation-cos.tex

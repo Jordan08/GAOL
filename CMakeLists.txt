@@ -1430,6 +1430,18 @@ endif()
 # interval arithmetic. CORE-MATH is compiled into libgaol, so there is no
 # other target and nothing else to install.
 
+# The .pkg of macOS (productbuild, Packages (CPack) below) is made of component
+# packages. With the files in the component that install() gives them,
+# Unspecified, and no list of components, CPack built a .pkg of 14 936 bytes
+# with no package in it, which installer refuses (CMake 4.4.3). So on macOS,
+# where GAOL is the project built, the files go in the component Development,
+# the one CPACK_COMPONENTS_ALL lists below, which names the package
+# fr.ensta.gaol.Development (GAOL v5). The other generators, and the projects
+# that bring GAOL in, keep Unspecified.
+if(APPLE AND CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+  set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME "Development")
+endif()
+
 install(TARGETS gaol EXPORT gaolTargets
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -1550,8 +1562,33 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "GAOL, Not Just Another Interval Library: interval arithmetic in C++")
   set(CPACK_PACKAGE_DESCRIPTION "GAOL v5 computes the tightest enclosures of the arithmetic operations and of the elementary functions, with the correctly rounded functions of CORE-MATH, compiled into the library. The package holds the library libgaol, its headers, and the files find_package(gaol) and pkg-config read.")
   set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/Jordan08/GAOL")
-  set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/COPYING.LIB")
-  set(CPACK_RESOURCE_FILE_README "${PROJECT_SOURCE_DIR}/README.md")
+  # The license and the readme that the installers of macOS (productbuild,
+  # .pkg) and of Windows (NSIS, .exe) show, which the workflow Release makes
+  # (.github/workflows/release.yml): copies of COPYING.LIB and README.md named
+  # .txt, the installer of macOS reading a resource by its extension (.txt,
+  # .rtf, .html); the .deb and the archives do not read them (GAOL v5)
+  configure_file("${PROJECT_SOURCE_DIR}/COPYING.LIB" "${PROJECT_BINARY_DIR}/cpack/License.txt" COPYONLY)
+  configure_file("${PROJECT_SOURCE_DIR}/README.md" "${PROJECT_BINARY_DIR}/cpack/ReadMe.txt" COPYONLY)
+  set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_BINARY_DIR}/cpack/License.txt")
+  set(CPACK_RESOURCE_FILE_README "${PROJECT_BINARY_DIR}/cpack/ReadMe.txt")
+  # The .pkg of macOS: its identifier; the .exe of Windows: installed in
+  # C:\Program Files\gaol, which find_package(gaol) searches (gaol*), with an
+  # uninstaller
+  set(CPACK_PRODUCTBUILD_IDENTIFIER "fr.ensta.gaol")
+  set(CPACK_PACKAGE_INSTALL_DIRECTORY "gaol")
+  set(CPACK_NSIS_PACKAGE_NAME "GAOL ${PROJECT_VERSION}")
+  set(CPACK_NSIS_DISPLAY_NAME "GAOL ${PROJECT_VERSION}")
+  set(CPACK_NSIS_URL_INFO_ABOUT "https://github.com/Jordan08/GAOL")
+  # The .pkg: one component package, Development. CPACK_COMPONENTS_ALL names it,
+  # CPack not listing the only component of a project by itself (CMake 4.4.3),
+  # and productbuild then making a product that holds no package. The choice
+  # of the installer is titled by the display name, and cannot be unchecked
+  # (GAOL v5)
+  if(APPLE)
+    set(CPACK_COMPONENTS_ALL "Development")
+    set(CPACK_COMPONENT_DEVELOPMENT_DISPLAY_NAME "GAOL: libgaol and its headers")
+    set(CPACK_COMPONENT_DEVELOPMENT_REQUIRED ON)
+  endif()
   if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(CPACK_GENERATOR "TGZ;DEB")
   else()
@@ -1568,7 +1605,9 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   # ignores (.gitignore), the builds within the sources, the packages, and the
   # notes of the work on GAOL v5 (TODO.md, TODO_AFTER.md, TODO_DONE.md,
   # STEP.md, process.md, todo-notes/), which serve its maintainers, not the
-  # users of a version. CPack writes the CPACK_* variables into CPackConfig.cmake
+  # users of a version: those of export-ignore in .gitattributes, which meson
+  # dist leaves out, and that the EXTRA_DIST of make dist do not list, so that
+  # the three archives hold the same files (GAOL v5). CPack writes the CPACK_* variables into CPackConfig.cmake
   # and CPackSourceConfig.cmake, which it reads when it runs:
   # CPACK_VERBATIM_VARIABLES has it escape them, so that the backslashes of
   # these regular expressions reach it as they are, where CMake 3 warned of an
@@ -1634,6 +1673,17 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   endif()
 
   include(CPack)
+
+  # dist, as make dist of the autotools build and meson dist give the archive:
+  # the one of package_source, gaol-<version>.tar.gz, in the build directory
+  # (make dist with the Makefile generators, ninja dist, cmake --build <build>
+  # --target dist; GAOL v5). The three archives hold the same files
+  # (.gitattributes, EXTRA_DIST of the Makefile.am)
+  add_custom_target(dist
+    COMMAND "${CMAKE_CPACK_COMMAND}" --config "${PROJECT_BINARY_DIR}/CPackSourceConfig.cmake"
+    WORKING_DIRECTORY "${PROJECT_BINARY_DIR}"
+    COMMENT "The archive of the sources, gaol-${PROJECT_VERSION}.tar.gz"
+    VERBATIM)
 endif()
 
 
