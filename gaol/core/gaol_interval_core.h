@@ -723,25 +723,15 @@ namespace gaol_core {
     double left_internal() const;
     double right_internal() const;
     /*
-      inverse() of a non-empty I, the rounding direction being upward already:
-      the body of inverse(), which checks the direction, for the integer
-      powers and the roots of negative order, which checked it before
-      (GAOL v5)
-    */
-    static interval inverse_upward(const interval& I);
-    /*
-      sqr() of a non-empty I, the rounding direction being upward already: the
-      body of sqr(), which checks the direction, for the integer power x^2 of
-      pow(), which takes the square after its own check (GAOL v5)
-    */
-    static interval sqr_upward(const interval& I);
-    /*
-      Gives inverse_upward() and sqr_upward() to the functions of the sources
-      of the intervals that check the rounding direction once and take the
-      inverse or the square after it: the integer power of pow() and the roots
-      of negative order, which have no access of their own (GAOL v5). Defined
-      in gaol/core/gaol_interval_internal.h, which these sources alone
-      include
+      The inverse and the square of a non-empty interval, the rounding
+      direction being upward already, and the square with its check, inline
+      for the sources of the intervals: the integer powers and the roots of
+      negative order, which check the direction once and take the inverse or
+      the square after it (GAOL v5: inverse_upward() and sqr_upward(), private
+      functions of the library, which these sources called). Defined in
+      gaol/core/gaol_interval_internal.h, which these sources alone include,
+      and in the header of the kernels of each kind of intervals that it
+      includes
     */
     friend class upward_access;
     static interval_format::format_t output;

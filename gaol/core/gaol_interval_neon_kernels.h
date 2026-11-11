@@ -19,11 +19,11 @@
   call, and the helpers they take. They are inline here, so that the integer
   powers and the roots of gaol_interval_pow.cpp take them inline, as they did
   when every definition was in gaol_interval_core.cpp, and the functions of
-  gaol_interval_neon_impl.h are calls of them: interval::inverse_upward() and
-  interval::sqr_upward(), the inverse and the square with the rounding
-  direction upward already, are upward_access::inverse() and
-  upward_access::sqr(), and gaol_detail::sqr_bounds(), the square with its
-  check, is neon_detail::sqr_bounds_inline() (see the kernels in
+  gaol_interval_neon_impl.h are calls of them. upward_access::inverse() and
+  upward_access::sqr() are the inverse and the square with the rounding
+  direction upward already (inverse_upward() and sqr_upward(), private
+  functions of interval before), and neon_detail::sqr_bounds_inline() the
+  body of gaol_detail::sqr_bounds(), the square with its check (see the kernels in
   gaol_interval_internal.h). The helpers of the division come along with
   inverse_bounds(), the kernel of the inverse.
 */
@@ -142,11 +142,11 @@ namespace gaol_core {
   namespace neon_detail {
 
   /*
-    The two products and the maximum of sqr_bounds() below on the stored
+    The two products and the maximum of sqr_bounds_inline() below on the stored
     bounds x of a non-empty interval, the rounding direction being upward and
     the modes that flush the subnormals to zero clear: the body of
-    sqr_bounds() after its check, which interval::sqr_upward() takes for x^2
-    (GAOL v5)
+    sqr_bounds_inline() after its check, which upward_access::sqr() takes for
+    x^2 (GAOL v5)
   */
   GAOL_INLINE float64x2_t sqr_products(float64x2_t x)
   {

@@ -22,11 +22,11 @@
   call, and the helpers they take. They are inline here, so that the integer
   powers and the roots of gaol_interval_pow.cpp take them inline, as they did
   when every definition was in gaol_interval_core.cpp, and the functions of
-  gaol_interval_fpu_impl.h are calls of them: interval::inverse_upward() and
-  interval::sqr_upward(), the inverse and the square with the rounding
-  direction upward already, are upward_access::inverse() and
-  upward_access::sqr(), and sqr(), the square with its check,
-  upward_access::checked_sqr() (see the kernels in gaol_interval_internal.h).
+  gaol_interval_fpu_impl.h are calls of them. upward_access::inverse() and
+  upward_access::sqr() are the inverse and the square with the rounding
+  direction upward already (inverse_upward() and sqr_upward(), private
+  functions of interval before), and upward_access::checked_sqr() the body of
+  sqr(), the square with its check (see the kernels in gaol_interval_internal.h).
 */
 
 #ifndef GAOL_INTERVAL_FPU_KERNELS_H
@@ -62,10 +62,11 @@ namespace gaol_core {
   }
 
   /*
-    The bounds of the square of <a, b> (see interval::sqr_upward()), forced
-    inline into sqr() and into sqr_upward() (GAOL v5): with sqr_upward() a
-    function sqr() called, the square took 3.37 ns rather than 2.41 (GCC 15.2,
-    x86-64, FPU intervals)
+    The bounds of the square of <a, b> (see upward_access::sqr()), forced
+    inline into upward_access::sqr() and upward_access::checked_sqr(), the
+    bodies of the square after the check and with it (GAOL v5): with the
+    square after the check a function that sqr() called, the square took
+    3.37 ns rather than 2.41 (GCC 15.2, x86-64, FPU intervals)
   */
 #if defined(__GNUC__) || defined(__clang__)
 #  define GAOL_FPU_ALWAYS_INLINE __attribute__((always_inline)) inline
@@ -91,9 +92,9 @@ namespace gaol_core {
   } // namespace fpu_detail
 
   /*
-    The body of interval::inverse_upward(). The rounding direction being
-    upward already (see gaol_interval_core.h). The bound that is 0 in the
-    other branch, I.rb_ for N1 and I.lb_ for P1, is
+    The inverse of a non-empty I (inverse_upward() before), the rounding
+    direction being upward already (see gaol_interval_core.h). The bound
+    that is 0 in the other branch, I.rb_ for N1 and I.lb_ for P1, is
     read in its branch (read_in_branch(), gaol/core/gaol_interval_internal.h):
     AppleClang computed -1/I.rb_ for N0 too, inverse() choosing between the
     branches afterwards, and inverse([-2, 0]) raised the division-by-zero

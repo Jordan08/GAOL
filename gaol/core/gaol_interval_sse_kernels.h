@@ -22,11 +22,11 @@
   call, and what they take. They are inline here, so that the integer powers
   and the roots of gaol_interval_pow.cpp take them inline, as they did when
   every definition was in gaol_interval_core.cpp, and the functions of
-  gaol_interval_sse_impl.h are calls of them: interval::inverse_upward() and
-  interval::sqr_upward(), the inverse and the square with the rounding
-  direction upward already, are upward_access::inverse() and
-  upward_access::sqr(), and the SSE2 path of gaol_detail::sqr_bounds(), the
-  square with its check, is sqr_bounds_inline() (see the kernels in
+  gaol_interval_sse_impl.h are calls of them. upward_access::inverse() and
+  upward_access::sqr() are the inverse and the square with the rounding
+  direction upward already (inverse_upward() and sqr_upward(), private
+  functions of interval before), and sqr_bounds_inline() the SSE2 path of
+  gaol_detail::sqr_bounds(), the square with its check (see the kernels in
   gaol_interval_internal.h).
 
   \author Goualard Frederic, NININ Jordan
@@ -61,22 +61,20 @@ namespace gaol_core {
   }
 
   /*
-    The lanes of the result that the interval straddling zero (movemask 0: the
-    left bound stored negated and the right one both not negative) sets to 0:
-    its lower bound is 0, where the maximum of the two squares below gives
-    -min(l^2, r^2) there
+    The lanes of the result that the interval straddling zero sets to 0 (see
+    the definition, in gaol_interval_sse_impl.h): defined there once, and not
+    static here, so that sqr_products(), inline in every source, reads the
+    same array in all of them (the one-definition rule; GAOL v5)
   */
-  alignas(16) static const std::uint64_t sqr_lanes[4][2] = {
-    { 0, ~std::uint64_t(0) }, { ~std::uint64_t(0), ~std::uint64_t(0) },
-    { ~std::uint64_t(0), ~std::uint64_t(0) }, { ~std::uint64_t(0), ~std::uint64_t(0) } };
+  alignas(16) extern const std::uint64_t sqr_lanes[4][2];
 
 #if !GAOL_AVX512_ARITHMETIC
   /*
-    The two products and the maximum of sqr_bounds() below, the SSE2 path, on
+    The two products and the maximum of sqr_bounds_inline() below, the SSE2 path, on
     the stored bounds x of a non-empty interval, the rounding direction being
     upward and the modes that flush the subnormals to zero clear: the body of
-    sqr_bounds() after its check, which interval::sqr_upward() takes for x^2
-    (GAOL v5)
+    sqr_bounds_inline() after its check, which upward_access::sqr() takes for
+    x^2 (GAOL v5)
   */
   GAOL_INLINE __m128d sqr_products(__m128d x)
   {

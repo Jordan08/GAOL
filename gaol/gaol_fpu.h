@@ -276,7 +276,7 @@ bounds are read from memory after the check, which clears the modes with a
 compiler barrier after it (round_upward_if_needed()), and a double it takes
 by value goes through rnd_reread() after the check; the kernels of the SSE2
 operations, which receive the bounds in a register, pass them through an
-empty asm statement after it (reread_bounds(), gaol_interval_sse_impl.h). With
+empty asm statement after it (reread_bounds(), gaol_interval_sse_kernels.h). With
 GAOL_PRESERVE_ROUNDING, an operation makes its result, the maxima and the
 minima of its bounds included, before GAOL_RND_LEAVE() restores the modes,
 and keeps it with GAOL_RND_KEEP(): with denormals-are-zero restored, sinpi()
@@ -293,7 +293,7 @@ Each operation checks the direction once, at its entry. What it calls after
 its GAOL_RND_ENTER() takes the direction to be upward and does not check it
 again: the functions of namespace upward (gaol/math/gaol_double_op.h) and the
 bodies of the operations of intervals that other operations use, such as
-pown_upward() and interval::inverse_upward(), which the operations
+pown_upward() and upward_access::inverse(), which the operations
 checking the direction call too (GAOL v5). A check within another gives the
 same bounds, the inner GAOL_RND_LEAVE() setting back the direction upward
 that the inner GAOL_RND_ENTER() found, but it costs an addition, and a save

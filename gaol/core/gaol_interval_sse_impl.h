@@ -150,6 +150,17 @@
 #  define GAOL_BOUNDS_TARGET
 #endif
 
+  /*
+    The lanes of the result that the interval straddling zero (movemask 0: the
+    left bound stored negated and the right one both not negative) sets to 0:
+    its lower bound is 0, where the maximum of the two squares below gives
+    -min(l^2, r^2) there. Declared in gaol_interval_sse_kernels.h, whose
+    sqr_products() reads it (GAOL v5)
+  */
+  alignas(16) const std::uint64_t sqr_lanes[4][2] = {
+    { 0, ~std::uint64_t(0) }, { ~std::uint64_t(0), ~std::uint64_t(0) },
+    { ~std::uint64_t(0), ~std::uint64_t(0) }, { ~std::uint64_t(0), ~std::uint64_t(0) } };
+
 } // namespace gaol_core
 
 namespace gaol_detail {
@@ -204,12 +215,6 @@ namespace gaol_detail {
 
 namespace gaol_core {
 
-  // The body is upward_access::sqr() of gaol_interval_sse_kernels.h, which the
-  // powers of gaol_interval_pow.cpp take inline too (GAOL v5)
-  interval interval::sqr_upward(const interval& I)
-  {
-    return upward_access::sqr(I);
-  }
 
 
 } // namespace gaol_core
@@ -1107,24 +1112,18 @@ GAOL_BOUNDS_TARGET __m128d GAOL_VECTORCALL div_bounds(__m128d x, __m128d y)
 
 namespace gaol_core {
 
-// The branch #else, not compiled, has no inverse_upward(), which the integer
-// powers and nth_root(I, q) for q < 0 call (GAOL v5)
+// The branch #else, not compiled, has no upward_access::inverse()
+// (gaol_interval_sse_kernels.h), which inverse(), the integer powers and
+// nth_root(I, q) for q < 0 take (GAOL v5)
 //#define OPT_INV 1
 //#if OPT_INV
-// The body is upward_access::inverse() of gaol_interval_sse_kernels.h, which the
-// powers and the roots of gaol_interval_pow.cpp take inline too (GAOL v5)
-interval interval::inverse_upward(const interval& I)
-{
-  return upward_access::inverse(I);
-}
-
 interval interval::inverse() const
 {
   if (is_empty()) {
     return *this;
   }
   GAOL_RND_ENTER_SSE();
-  __m128d res = inverse_upward(*this).get_xmminterval();
+  __m128d res = upward_access::inverse(*this).get_xmminterval();
   GAOL_RND_KEEP(res);
   GAOL_RND_LEAVE_SSE();
   return interval(res, gaol_detail::unchecked_bounds);

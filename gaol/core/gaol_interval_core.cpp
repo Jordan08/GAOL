@@ -1161,7 +1161,7 @@ namespace gaol_core {
   }
 
   // The word in the register it is in, at no cost: an empty asm statement that the compilers do not
-  // move a computation above (as reread_bounds() of gaol_interval_neon_impl.h; Visual C++ has none on ARM64)
+  // move a computation above (as reread_bounds() of gaol_interval_neon_kernels.h; Visual C++ has none on ARM64)
   GAOL_INLINE std::uint64_t keep_word(std::uint64_t w)
   {
 #  if !GAOL_NEON_MSVC

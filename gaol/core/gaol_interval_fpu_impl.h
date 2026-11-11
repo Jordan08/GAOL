@@ -553,13 +553,6 @@ double hausdorff(const interval &I1, const interval &I2)
   }
 
 
-  // The body is upward_access::inverse() of gaol_interval_fpu_kernels.h, which the
-  // powers and the roots of gaol_interval_pow.cpp take inline too (GAOL v5)
-  interval interval::inverse_upward(const interval& I)
-  {
-    return upward_access::inverse(I);
-  }
-
   interval interval::inverse() const
   {
     if (is_empty()) {
@@ -567,7 +560,9 @@ double hausdorff(const interval &I1, const interval &I2)
     }
 
     GAOL_RND_ENTER();
-    interval res = inverse_upward(*this);
+    // The body is upward_access::inverse() of gaol_interval_fpu_kernels.h, which the
+    // powers and the roots of gaol_interval_pow.cpp take inline too (GAOL v5)
+    interval res = upward_access::inverse(*this);
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
     return res;
@@ -614,14 +609,8 @@ double hausdorff(const interval &I1, const interval &I2)
   }
 
 
-  // The bodies are upward_access::sqr() and upward_access::checked_sqr() of
-  // gaol_interval_fpu_kernels.h, which the powers of gaol_interval_pow.cpp take
-  // inline too (GAOL v5)
-  interval interval::sqr_upward(const interval& I)
-  {
-    return upward_access::sqr(I);
-  }
-
+  // The body is upward_access::checked_sqr() of gaol_interval_fpu_kernels.h,
+  // which the powers of gaol_interval_pow.cpp take inline too (GAOL v5)
   interval sqr(const interval& I)
   {
     return upward_access::checked_sqr(I);

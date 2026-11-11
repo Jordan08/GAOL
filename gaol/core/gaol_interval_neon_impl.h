@@ -90,13 +90,6 @@ namespace gaol_detail {
 
 namespace gaol_core {
 
-  // The body is upward_access::sqr() of gaol_interval_neon_kernels.h, which the
-  // powers of gaol_interval_pow.cpp take inline too (GAOL v5)
-  interval interval::sqr_upward(const interval& I)
-  {
-    return upward_access::sqr(I);
-  }
-
   namespace neon_detail {
 
   /*
@@ -310,17 +303,10 @@ namespace gaol_core {
     return *this;
   }
 
-  // The body is upward_access::inverse() of gaol_interval_neon_kernels.h, which the
-  // powers and the roots of gaol_interval_pow.cpp take inline too (GAOL v5)
-  interval interval::inverse_upward(const interval& I)
-  {
-    return upward_access::inverse(I);
-  }
-
   interval interval::inverse() const
   {
     // is_empty() is true for a NaN in a bound, the comparison it makes being false: no
-    // empty set is left below, which a reduction as in inverse_upward() would tell again
+    // empty set is left below, which a reduction as in upward_access::inverse() would tell again
     if (is_empty()) {
       return interval::emptyset();
     }

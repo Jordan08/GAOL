@@ -206,7 +206,7 @@ namespace gaol_core {
     power took four times the time of sqr() for the same bounds (doc/simd.md),
     and the sign of a zero bound is now that of sqr(). The other forms of the
     integer power take pown_upward() after their own check, which has
-    sqr_upward() for n = 2. The rest is a function of its own, which is not
+    upward_access::sqr() for n = 2. The rest is a function of its own, which is not
     inlined here: with it, the frame that its kernel needs was set up before
     the test of n = 2, which took 3.6 ns for x^2 against 1.7 (an Apple M2,
     NEON intervals).

@@ -145,9 +145,12 @@ namespace gaol_core {
     (AppleClang), where the slope 0 leaves out the product +oo * 0, and the
     inverse of the FPU intervals, inverse([-2, 0]), the division-by-zero one
     with -1/0 (AppleClang, GAOL_PRESERVE_ROUNDING) (tests/rounding_direction.cpp,
-    tests/reverse.cpp).
+    tests/reverse.cpp). inline and not static: the inline kernels of
+    gaol_interval_neon_kernels.h and gaol_interval_fpu_kernels.h, which every
+    source defines, call it, and have to call the same function in all of
+    them (the one-definition rule; GAOL v5)
   */
-  static inline double read_in_branch(double x)
+  inline double read_in_branch(double x)
   {
     const volatile double v = x;
     return v;
@@ -817,15 +820,16 @@ namespace gaol_core {
 
 
   /*
-    inverse_upward() and sqr_upward() of gaol/core/gaol_interval_core.h, which are
-    private to interval, for pown_upward() and nth_root(I, q) for q < 0: they
-    check the rounding direction once and take the inverse or the square after
-    it, without checking it again as inverse() and sqr() do (GAOL v5).
-    inverse() and sqr() are their bodies, and checked_sqr() the body of sqr()
-    with its check, the square of x^2 in gaol_pown(): they are inline in the
-    header of the kernels of each kind of intervals, included below, of which
-    interval::inverse_upward(), interval::sqr_upward() and the square of the
-    library are calls
+    The inverse and the square of a non-empty interval, the rounding direction
+    being upward already, for inverse(), pown_upward() and nth_root(I, q) for
+    q < 0, which check the direction once and take the inverse or the square
+    after it, without checking it again as inverse() and sqr() do; and
+    checked_sqr(), sqr() with its check, the square of x^2 in gaol_pown() (GAOL
+    v5). A friend of interval (gaol/core/gaol_interval_core.h), for its stored
+    bounds. Its functions are inline in the header of the kernels of each kind
+    of intervals, included below, and the square of the library calls
+    checked_sqr(): they were inverse_upward() and sqr_upward(), private
+    functions of interval, which gaol_interval_core.cpp alone defined
   */
   class upward_access {
   public:
