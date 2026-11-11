@@ -26,7 +26,8 @@
 # each function that holds a write of the control register, on the paths of
 # its control flow graph (the jump tables of the switch statements are
 # followed; calls are taken as they are: what a callee does is read in the
-# callee, the code of which is read as well):
+# callee, the code of which is read as well; the call of a function that does
+# not return, __stack_chk_fail(), abort(), a throw..., ends its path):
 #
 # - BEFORE: an instruction that rounds, other than the probe of the direction
 #   (1 + (2^-1060 + 0), whose sums are meant to be computed in the direction
@@ -115,6 +116,12 @@ PROBE_SYMBOL = re.compile(r'(subnormal|tiny)', re.I)
 # The instructions and the calls that read the control register, which a jump around a write follows
 READ_REGISTER = re.compile(r'^(v?stmxcsr|fnstcw|fstcw|fnstenv|v?fxsave(64)?)$')
 READ_CALLS = re.compile(r'(fegetround|fegetenv|get_rounding|get_flush_modes)')
+# The functions that do not return, whose call has no successor: GCC puts other blocks of the function after the
+# call of __stack_chk_fail(), which a fall-through would join to the code they jump to, a path that no run takes
+# (GAOL v5: periodic_rel() of gaol/core/gaol_interval_relational.cpp, GCC with the direction preserved, 2026-11-11)
+NORETURN_CALLS = re.compile(r'^(__stack_chk_fail|abort|exit|_exit|_Exit|__assert_fail|_Unwind_Resume|__cxa_throw|'
+                            r'__cxa_rethrow|__cxa_bad_cast|__cxa_bad_typeid|__cxa_call_terminate|_ZSt9terminatev|'
+                            r'_ZSt\d+__throw_\w+)(@PLT)?$')
 
 # The findings that are right and harmless, read on the code of 2026-10-27 and 2026-10-29: kind, a regular expression
 # for the name of the function (demangled), why, and for some a regular expression for the mnemonic of the
@@ -351,12 +358,15 @@ class Assembly:
         return None
 
     def successors(self, i, entry=None):
-        """The indices that can follow instruction i (a call returns; a jump to a symbol that is no label of the
-        function leaves it; an indirect jump goes to the labels of its table)"""
+        """The indices that can follow instruction i (a call returns, but the call of a function that does not
+        return; a jump to a symbol that is no label of the function leaves it; an indirect jump goes to the labels
+        of its table)"""
         ins = self.insns[i]
         mn = ins.mnemonic
         out = []
         if mn.startswith('ret') or mn in ('ud2', 'hlt', 'iret', 'iretq'):
+            return out
+        if mn in ('call', 'callq') and NORETURN_CALLS.match(ins.operands.strip()):
             return out
         if mn in ('jmp', 'jmpq'):
             if ins.operands.strip().startswith(('*', '%')):
@@ -1288,6 +1298,33 @@ g:
 	ldmxcsr	(%rsp)
 	ret
 ''', None, False),
+    'the call of a function that does not return has no successor': ('''
+	.type	f, @function
+f:
+	testl	%esi, %esi
+	jne	.L9
+	stmxcsr	4(%rsp)
+	movl	4(%rsp), %eax
+	cmpl	$0x4000, %eax
+	jne	.LW
+.LB:
+	mulsd	%xmm1, %xmm0
+	stmxcsr	8(%rsp)
+	movl	8(%rsp), %edx
+	cmpl	%eax, %edx
+	je	.L3
+	ldmxcsr	12(%rsp)
+.L3:
+	ret
+.LW:
+	ldmxcsr	(%rsp)
+	jmp	.LB
+.L9:
+	call	__stack_chk_fail@PLT
+.L7:
+	movsd	%xmm2, %xmm7
+	jmp	.LB
+''', None, True),
     'code in another section does not follow': ('''
 	.type	f, @function
 f:
