@@ -15,7 +15,9 @@
 # (-Denable-exception=false) build GAOL without exceptions, where an error ends
 # the program, and run the examples and the tests, which leave out the checks
 # of an exception there (GAOL v5). One job builds and tests GAOL with meson
-# 0.53.2, the oldest meson the build takes (GAOL v5).
+# 0.53.2, the oldest meson the build takes (GAOL v5). One job makes the
+# archive of the sources with the three builds, and checks that they hold the
+# same files (GAOL v5).
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -782,3 +784,52 @@ jobs:
           cat agree.md; cat agree.md >> "$GITHUB_STEP_SUMMARY"
           sh .github/audit/logs.sh "$out/audit" $status
 
+
+  # The archive of the sources made by the three builds, make dist, dist
+  # (package_source) of CMake and meson dist: gaol-<version>.tar.gz, with the
+  # same files, those of the commit less export-ignore of .gitattributes, as git
+  # archive gives them. make distcheck builds the archive with the tests and the
+  # examples, runs them, installs and uninstalls it (GAOL v5, doc/building.md).
+  # A file added to the repository and not to the EXTRA_DIST of a Makefile.am is
+  # missing from the archive of make dist, which fails the comparison
+  dist:
+    name: Archives of the sources, Ubuntu 24.04 x86_64
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - name: Tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q g++ cmake pipx
+          pipx install meson
+          pipx install ninja
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: make dist and make distcheck
+        run: |
+          mkdir build-autotools && cd build-autotools
+          ../configure
+          make dist
+          make -j4 distcheck
+      - name: dist of CMake (package_source)
+        run: |
+          cmake -S . -B build-cmake
+          cmake --build build-cmake --target dist
+      - name: meson dist
+        run: |
+          meson setup build-meson
+          # meson dist builds the archive with meson and runs its tests too
+          meson dist -C build-meson --formats gztar
+      - name: The three archives have the same name and hold the same files
+        run: |
+          set -e
+          version=$(cat VERSION.txt)
+          git archive --prefix="gaol-$version/" HEAD | tar -t | grep -v '/$' | sort > git.list
+          for a in "build-autotools/gaol-$version.tar.gz" "build-cmake/gaol-$version.tar.gz" "build-meson/meson-dist/gaol-$version.tar.gz"; do
+            test -f "$a" || { echo "$a: missing"; exit 1; }
+            tar -tzf "$a" | grep -v '/$' | sort > archive.list
+            if ! diff git.list archive.list > diff.txt; then
+              echo "$a does not hold the files of git archive (< git archive, > $a):"; cat diff.txt; exit 1
+            fi
+            echo "$a: $(wc -l < archive.list) files, those of git archive"
+          done
