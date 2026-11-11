@@ -12,12 +12,10 @@
  * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
-/*
-    This file shall be included by gaol_interval_core.h only. It must not be included directly
-        by any other file.
-
-    This file contains all declarations related to the 'interval' class that consider
-    the bounds to be a pair of 'double' variables.
+/*!
+  \file   gaol_interval_fpu.h
+  \brief  The interval of the FPU builds, whose bounds are two doubles: its inline members and
+          operators. Included by gaol_interval_core.h only, never directly.
 */
 #ifndef GAOL_INTERVAL_CORE_H
 #  error "File gaol_interval_fpu.h shall only be included directly by gaol_interval_core.h"
@@ -269,7 +267,7 @@ interval::right_internal() const
 }
 
 // The sum, the difference, the product and the quotient of two intervals, on
-// the operators of assignment of gaol_interval_fpu.cpp (GAOL v5)
+// the operators of assignment of gaol_interval_fpu_impl.h (GAOL v5)
 GAOL_NODISCARD GAOL_INLINE interval operator+(const interval& I1, const interval& I2)
 {
   return interval(I1) += I2;

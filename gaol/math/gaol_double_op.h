@@ -24,8 +24,8 @@ in:
 
 - the value at a bound IS the upper bound, with nothing to add;
 - the lower bound is the double below it, which is the tightest one unless
-the exact value is a double, and the operations of
-gaol/core/gaol_interval_core.cpp give those exactly (log(1) = 0, sin(0) = 0,
+the exact value is a double, and the operations of the intervals
+(gaol/core/) give those exactly (log(1) = 0, sin(0) = 0,
 asin(1) = the bounds of pi/2...).
 
 A header of the sources of GAOL, which the builds do not install and no

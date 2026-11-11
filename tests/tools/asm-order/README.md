@@ -49,7 +49,8 @@ write the register back. The exit status is 1 for a finding.
 For each function that holds a write of the control register (`ldmxcsr`,
 `fldcw`, and a call of `round_upward_if_needed()` or `fesetround()`, which
 write it), on the paths of its control flow graph, the jump tables of the
-`switch` statements being followed:
+`switch` statements being followed, and the call of a function that does not
+return (`__stack_chk_fail()`, `abort()`, a throw...) ending its path:
 
 - **BEFORE**: an instruction that rounds (add, sub, mul, div, sqrt, fused
   multiply-add, a conversion that rounds, `roundsd` with the direction of the
@@ -179,10 +180,10 @@ of the reverse functions of `pow`), of two kinds, both harmless:
 With `GAOL_RND_KEEP()` removed from `width()`, GCC 15 still kept the subtraction
 before the write that sets the direction back, at `-O1` to `-O3`, and Clang 21
 at `-O1` and `-O3`: `inline.cpp` is what reads `width()` in a build. The check
-has teeth on assembly written for it (`--selftest`, 131 cases: a sum before a
+has teeth on assembly written for it (`--selftest`, 132 cases: a sum before a
 write, after the write that sets back, hoisted above the probe, among the
 instructions of the probe, in a loop, behind a jump table of GCC and of Clang,
-in a cold section, after a tail call; the store of an extended constant that
+in a cold section, after a tail call, after the call of `__stack_chk_fail()`; the store of an extended constant that
 is a double or that is not, in single precision, behind a label, after a call,
 more than five instructions after the load; `extended_is_double()` on 19
 encodings of the x87 unit, `extended_is_tiny()` on 15 and `KNOWN` on 19

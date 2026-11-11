@@ -370,7 +370,7 @@ endif
 
 # On x86 processors (the target of the compiler, as CMakeLists.txt and
 # configure): the intervals are computed with SSE2 instructions
-# (gaol_interval_sse.cpp), -msse3 is given where the compiler takes it, and on
+# (gaol_interval_sse_impl.h), -msse3 is given where the compiler takes it, and on
 # 32-bit x86 the doubles are computed with SSE2
 # (-mfpmath=sse) rather than on the x87 unit, where CORE-MATH rounds some
 # results twice and some bounds are wrong (see CMakeLists.txt). Visual C++

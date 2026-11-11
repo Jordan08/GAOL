@@ -456,7 +456,7 @@ string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
 
 # The fused multiply-add instructions of the processor (GAOL v5), with
 # the flag that gives them to the compiler where it has one, as Codac takes
-# them: GAOL's exact products (fma_once() in gaol/core/gaol_interval_core.cpp, for the
+# them: GAOL's exact products (fma_once() of gaol/core/gaol_interval_internal.h, for the
 # integer powers and the reduction of sin and cos) and CORE-MATH's functions
 # then compute fma() with one instruction, rather than with a call to the
 # fma() of the math library. The flags are given to the code using GAOL too
@@ -818,7 +818,7 @@ endif()
 # -msse3 is given where the compiler takes it, as the autotools build on a
 # processor with SSE3. Visual C++ and clang-cl take them on x64 (GAOL v5),
 # where SSE2 is the baseline of the processor and no flag is to be given
-# (cl does not know -msse2): gaol/core/gaol_interval_sse.cpp is written for the
+# (cl does not know -msse2): gaol/core/gaol_interval_sse_impl.h is written for the
 # __m128d of Visual C++, a structure and not a vector, and needs no asm
 # statement there (clang-cl keeps the ones of Clang).
 #
@@ -1036,7 +1036,7 @@ endif()
 # cached under a name of its own, GAOL_COMPILER_TAKES_AVX512_PATH, so that a
 # build directory configured before that check checks again. Only the
 # functions of the AVX-512 path of +, -, *, /, sqr, sqrt and, with FMA, the
-# integer powers beyond 1 and -1 (gaol/core/gaol_interval_avx512.cpp) carry the
+# integer powers beyond 1 and -1 (gaol/core/gaol_interval_avx512_impl.h) carry the
 # attribute, and the rest of the library is compiled as without it; the path
 # is compiled in where GAOL_AVX512_ARITHMETIC below is (GAOL v5).
 # The program that finds out whether Visual C++ and clang-cl for x64 run the
@@ -1240,10 +1240,10 @@ configure_file(cmake/gaol_configuration.h.in "${CMAKE_CURRENT_BINARY_DIR}/gaol/g
 ################################################################################
 #
 # The sources listed in gaol/meson.build, those of the intervals in gaol/core/
-# (GAOL v5). gaol_interval_core.cpp includes gaol_interval_neon.cpp,
-# gaol_interval_sse.cpp or gaol_interval_fpu.cpp itself, according to
+# (GAOL v5). gaol_interval_core.cpp includes gaol_interval_neon_impl.h,
+# gaol_interval_sse_impl.h or gaol_interval_fpu_impl.h itself, according to
 # GAOL_USING_NEON_INSTRUCTIONS and GAOL_USING_SSE2_INSTRUCTIONS, and
-# gaol/float/gaol_intervalf.cpp and gaol/float/gaol_interval2f.cpp where a
+# gaol/float/gaol_intervalf_impl.h and gaol/float/gaol_interval2f_impl.h where a
 # developer of GAOL defines GAOL_FLOAT_INTERVALS (see gaol/gaol_config.h).
 #
 # A static library, or a shared one with BUILD_SHARED_LIBS=ON: for Visual
@@ -1251,7 +1251,10 @@ configure_file(cmake/gaol_configuration.h.in "${CMAKE_CURRENT_BINARY_DIR}/gaol/g
 # __declspec(dllexport) or dllimport (GAOL_PUBLIC, gaol/gaol_config.h).
 
 set(GAOL_SOURCES
-  gaol_interval.cpp core/gaol_interval_core.cpp gaol_ieee1788.cpp gaol_common.cpp
+  gaol_interval.cpp core/gaol_interval_core.cpp core/gaol_interval_pow.cpp
+  core/gaol_interval_exp_log.cpp core/gaol_interval_trig.cpp
+  core/gaol_interval_hyperbolic.cpp core/gaol_interval_relational.cpp
+  core/gaol_interval_io.cpp gaol_ieee1788.cpp gaol_common.cpp
   parser/gaol_parser.cpp parser/gaol_expression.cpp gaol_port.cpp gaol_init_cleanup.cpp
   parser/gaol_interval_lexer.cpp
   parser/gaol_interval_parser.cpp
@@ -1439,7 +1442,10 @@ install(TARGETS gaol EXPORT gaolTargets
 # gaol/meson.build install the same ones. Not the headers of the sources of
 # GAOL only (GAOL v5): gaol/parser/gaol_interval_parser.h, which did not
 # compile when included, the parts of the library (gaol_init_cleanup.h,
-# math/gaol_core_math.h, math/gaol_u128.h, math/gaol_compoundm1.h), what
+# math/gaol_core_math.h, math/gaol_u128.h, math/gaol_compoundm1.h, and the
+# operations of each kind of intervals, core/*_impl.h, which
+# core/gaol_interval_core.cpp includes, and their kernels that the other
+# sources take inline, core/*_kernels.h), what
 # CORE-MATH's sources need to compile within GAOL (math/gaol_core_math_port.h,
 # core_math_log_dint.h, math/gaol_ldexp.h, math/gaol_roundeven.h), the bounds
 # at doubles, *_dn() and *_up(), which are not part of GAOL's interface
@@ -1571,14 +1577,24 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   set(CPACK_SOURCE_GENERATOR "TGZ")
   set(CPACK_SOURCE_PACKAGE_FILE_NAME "gaol-${PROJECT_VERSION}")
   string(REGEX REPLACE "([][+.*()^$?|\\])" "\\\\\\1" _gaol_source_regex "${PROJECT_SOURCE_DIR}")
+  # The expressions follow the .gitignore files of the repository (the one at
+  # the top, 3rd/math-core/ and doc/compare/*/): CPack archives the files of the
+  # tree, git's or not, and a file that git ignores went into the archive where
+  # no expression matched it, as the 14 files that a build of the manual leaves
+  # in manual/v5/build/ (GAOL v5)
   set(CPACK_SOURCE_IGNORE_FILES
-    "/\\.git/" "/\\.git$" "/\\.claude/" "/\\.vscode/" "/\\.idea/" "/\\.cache/"
-    "\\.swp$" "~$" "/#" "/\\.#"
-    "/autom4te\\.cache/" "/doc/compare/code/work/" "/doc/compare/itf1788/work/"
-    "/doc/compare/tang2021/work/" "/tests/meson_subproject/subprojects/"
+    "/\\.git/" "/\\.git$" "/\\.claude/" "/\\.vscode/" "/\\.idea/" "/\\.cache/" "/\\.continue/"
+    "\\.swp$" "~$" "/#" "/\\.#" "/__pycache__/"
+    "/autom4te\\.cache/" "/doc/compare/code/work[^/]*/" "/doc/compare/itf1788/work/"
+    "/doc/compare/tang2021/work[^/]*/" "/tests/meson_subproject/subprojects/"
     "/coverage/[^/]*\\.(css|js)$" "/coverage/coverage\\.json$"
-    "\\.o$" "\\.lo$" "/\\.libs/" "/\\.deps/" "\\.dirstamp$" "/check/performances_result\\.txt$"
-    "^${_gaol_source_regex}/build[^/]*/" "/_CPack_Packages/"
+    "\\.o$" "\\.lo$" "\\.a$" "\\.so$" "\\.la$" "/\\.libs/" "/\\.deps/" "\\.dirstamp$"
+    "/check/performances_result\\.txt$"
+    "/3rd/math-core/perf\\.data$" "/3rd/math-core/src/[^/]+/[^/]+/(check_exhaustive|check_worst|check_special|perf)$"
+    "^${_gaol_source_regex}/build[^/]*/" "^${_gaol_source_regex}/[^/]+/[^/]+/build/" "/_CPack_Packages/"
+    "^${_gaol_source_regex}/manual/v5/manual_gaolv5\\.(aux|bbl|blg|fdb_latexmk|fls|idx|ilg|ind|lof|log|lot|out|pdf|synctex\\.gz|toc)$"
+    "^${_gaol_source_regex}/manual/v5/Manual_GAOLv5\\." "^${_gaol_source_regex}/manual/v5/pdflatex-[^/]*\\.log$"
+    "^${_gaol_source_regex}/manual/v5/gaol_version\\.tex$"
     "^${_gaol_source_regex}/gaol-[^/]*\\.tar\\.gz$" "^${_gaol_source_regex}/libgaol-dev_[^/]*\\.deb$"
     "^${_gaol_source_regex}/TODO\\.md$" "^${_gaol_source_regex}/TODO_AFTER\\.md$" "^${_gaol_source_regex}/TODO_DONE\\.md$"
     "^${_gaol_source_regex}/STEP\\.md$" "^${_gaol_source_regex}/process\\.md$"

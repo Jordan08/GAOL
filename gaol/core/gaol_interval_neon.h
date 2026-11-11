@@ -9,14 +9,11 @@
  * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
-/*
-This file shall be included by gaol_interval_core.h only. It must not be included directly
-by any other file.
-This file contains all declarations related to the 'interval' class that consider
-the bounds to be a float64x2_t variable, on 64-bit ARM processors (GAOL v5).
-It is the counterpart of gaol_interval_sse.h: the same stored form, <-left,
-right> in the two lanes, so that one addition rounded upward gives both bounds.
-**/
+/*!
+  \file   gaol_interval_neon.h
+  \brief  The interval of the NEON builds (64-bit ARM), whose bounds are the two lanes of a
+          float64x2_t: its inline members and operators. Included by gaol_interval_core.h only.
+*/
 
 #ifndef GAOL_INTERVAL_CORE_H
 #  error "File gaol_interval_neon.h shall only be included directly by gaol_interval_core.h"
@@ -26,8 +23,13 @@ right> in the two lanes, so that one addition rounded upward gives both bounds.
 #define GAOL_INTERVAL_NEON_H
 
 /*
+  It is the counterpart of gaol_interval_sse.h: the same stored form, <-left,
+  right> in the two lanes, so that one addition rounded upward gives both bounds.
+*/
+
+/*
   The helpers of the intersection and the hull, and of the kernels of
-  gaol/core/gaol_interval_neon.cpp (GAOL v5). They work on the bits of the bounds, with
+  gaol/core/gaol_interval_neon_impl.h (GAOL v5). They work on the bits of the bounds, with
   integer instructions: these depend neither on the rounding direction nor on the
   modes that flush the subnormals to zero, which the operations that only compare
   or copy bounds do not check (point Q of TODO.md), and raise nothing on a NaN,

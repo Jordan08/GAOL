@@ -50,8 +50,8 @@
 // Allocation of 'size' bytes on 'boundary' bytes.
 // NOTE: GAOL_MEMALIGN() must return null value if no allocation error
 // GAOL_MEMFREE() releases the memory GAOL_MEMALIGN() allocated (operator new
-// and operator delete of the SSE2 intervals, gaol_interval_sse.cpp, and of
-// the intervals of floats, gaol/float/gaol_interval2f.cpp): the two have to
+// and operator delete of the SSE2 intervals, gaol_interval_sse_impl.h, and of
+// the intervals of floats, gaol/float/gaol_interval2f_impl.h): the two have to
 // match.
 // gaol_allocator.h, the allocator of the containers that used them too, is
 // gone (GAOL v5).

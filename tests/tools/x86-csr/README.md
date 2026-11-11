@@ -97,10 +97,11 @@ python3 tests/tools/x86-csr/amalgamate.py --define GAOL_USING_SSE2_INSTRUCTIONS 
         --define GAOL_USING_SSE3_INSTRUCTIONS --output gaol-all.cpp
 ```
 
-writes the three units `gaol/core/gaol_interval_core.cpp`,
-`gaol/gaol_common.cpp` and `tests/rounding_direction.cpp`, with their
-includes, and the `gaol/gaol_configuration.h` that the options say
-(`--define GAOL_PRESERVE_ROUNDING`, and so on), in one file (33 000 lines
+writes the units of the intervals (`gaol/core/gaol_interval_core.cpp` and the
+other sources of `gaol/core/`), `gaol/gaol_common.cpp` and
+`tests/rounding_direction.cpp`, with their includes, and the
+`gaol/gaol_configuration.h` that the options say
+(`--define GAOL_PRESERVE_ROUNDING`, and so on), in one file (37 000 lines
 with the two options above), which compiles with the flags of the builds (`-std=c++17 -O2 -frounding-math -ffp-contract=off -msse2 -mfpmath=sse`
 with GCC and Clang for x86, `/std:c++17 /O2 /fp:strict` with Visual C++; C++17
 because the test writes hexadecimal floating literals; add `-faligned-new=8`

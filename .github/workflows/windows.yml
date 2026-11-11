@@ -268,7 +268,7 @@ jobs:
   # (-DGAOL_MACHINE_RUNS_AVX512=1, which CMake takes for the result of its own
   # check), and the unit tests run under SDE (.github/scripts/sde-tests.sh),
   # those that compute with intervals only. Visual C++ orders the operations of
-  # the path by volatile accesses and calls (gaol/core/gaol_interval_avx512.cpp),
+  # the path by volatile accesses and calls (gaol/core/gaol_interval_avx512_impl.h),
   # which only the tests of the rounding direction and of the flush-to-zero
   # modes can show wrong. The action sets SDE up from the binaries of its own
   # repository, after checking their SHA-256: by using it, the project accepts
@@ -545,10 +545,14 @@ jobs:
           echo "$count fused multiply-add instructions"
           # not grep -q: it ends before objdump does, which pipefail reads as 141
           [ "$count" -gt 0 ]
-          if nm -u "$object" | grep -w 'fma'; then
-            echo "gaol_interval_core.cpp.o calls the fma() of the C library"
-            exit 1
-          fi
+          # fma_once() is in gaol/core/gaol_interval_internal.h, which each
+          # source of the intervals includes: all their objects are read
+          for object in build-debug/CMakeFiles/gaol.dir/gaol/core/*.cpp.o; do
+            if nm -u "$object" | grep -w 'fma'; then
+              echo "$(basename "$object") calls the fma() of the C library"
+              exit 1
+            fi
+          done
       - name: Tests (make test), Debug
         run: cmake --build build-debug --target test
       # Without the fused multiply-add instructions Cygwin has the fma() of its

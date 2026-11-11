@@ -12,9 +12,10 @@
  * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
-/*
-    This file is not meant to be compiled. It is only to be included
-        by gaol/core/gaol_interval_core.cpp.
+/*!
+  \file   gaol_interval_sse_impl.h
+  \brief  The operations of the SSE2 intervals: + - * / and their vector kernels on __m128d,
+          out of line. Included by gaol_interval_core.cpp only.
 */
 
 // TODO: check existence of stdint.h in configure.in
@@ -118,235 +119,8 @@
 		return d;
 	}
 
-
-interval div_rel(const interval &K, const interval &J, const interval &I)
-{
-  // One check, before the bounds are compared (GAOL v5, see gaol/gaol_fpu.h):
-  // the branches made their own checks, after comparing the bounds with 0,
-  // which the denormals-are-zero mode made wrong for the subnormal ones, and
-  // with GAOL_PRESERVE_ROUNDING the intersections with I compared bounds after
-  // the mode was restored. The division and its intersection with I are made
-  // by the lambda, whose returns come back before GAOL_RND_LEAVE_SSE(). The
-  // bounds of K and J are read by get_xmminterval(): div_rel() is no friend
-  // of interval (GAOL v5)
-  GAOL_RND_ENTER_SSE();
-  interval res = [&]() -> interval {
-  // The emptiness tests of this file are not worth writing with SSE2
-  // intrinsics, as the FIXMEs of GAOL here and in operator*=, operator/= and
-  // operator%= asked: testing the bounds of both operands at once, with
-  // _mm_cmpnge_pd and _mm_movemask_pd, gives the same results as
-  // is_empty() || I.is_empty() but no faster, 1.3 to 1.6 ns rather than 1.0 to
-  // 1.2 ns (GCC 9.4, x86-64)
-  if (K.is_empty() || J.is_empty() || I.is_empty()) {
-	return interval::emptyset();
-  }
-
-  // A quotient of the vectors that may overflow, though the result is finite,
-  // is computed on the bounds by div_rel_upward(), which saturates it (GAOL
-  // v5, point 79 of TODO.md): a finite bound of K of magnitude 2^500 or more,
-  // or a bound of J that is not 0 and is below 2^-500 in magnitude (the
-  // quotients are then below 2^1000 otherwise; those with a zero bound of J
-  // are not formed, and an infinite bound gives an infinity or a zero with no
-  // exception). The magnitudes are compared in the vectors, the NaN of an
-  // empty operand having been left above
-  {
-	const __m128d sign = _mm_set1_pd(-0.0), infinity = _mm_set1_pd(GAOL_INFINITY);
-	const __m128d k = _mm_andnot_pd(sign, K.get_xmminterval()), j = _mm_andnot_pd(sign, J.get_xmminterval());
-	const __m128d big = _mm_and_pd(_mm_cmpge_pd(k, _mm_set1_pd(two_power_500)), _mm_cmplt_pd(k, infinity));
-	const __m128d tiny = _mm_and_pd(_mm_cmplt_pd(j, _mm_set1_pd(two_power_minus_500)), _mm_cmpneq_pd(j, _mm_setzero_pd()));
-	if (_mm_movemask_pd(_mm_or_pd(big, tiny)) != 0) {
-	  return div_rel_upward(K, J, I);
-	}
-  }
-
-  // Where a branch keeps one half of a division, the other half is not
-  // computed: _mm_div_sd() divides the low halves alone, the kept quotient
-  // being moved to the high half where it belongs (GAOL v5, point D.24 of
-  // TODO.md). _mm_div_pd() divided both, and the half thrown away divided an
-  // infinite bound by an infinite one, which raised the invalid-operation
-  // exception (P1 M, div_rel([2, +oo], [-oo, 2], I)), or a finite one by a
-  // zero bound, which raised the division-by-zero one (N1 N0, N1 P0, P1 N0,
-  // P1 P0); the FPU intervals divide the kept bounds alone. The halves thrown
-  // away in N0 N1, N0 P1, P0 N1 and P0 P1 divide a zero bound by a nonzero
-  // one, which raises nothing, and stay
-
-  if ( K.right() < 0.0 ) { // [K] N1
-    if ( J.right() < 0.0 ) { // [J] N1
-      __m128d r = _mm_xor_pd(K.get_xmminterval(),interval::lbsignmask);
-      __m128d r2 = _mm_div_pd(_mm_shuffle_pd(r,r,1),J.get_xmminterval());
-      return I & interval(r2, gaol_detail::unchecked_bounds); // N1 N1
-    } else { // [J] P or Z
-      if ( J.right() == 0.0 ) { // [J] N0 or Z
-        if ( J.left() == 0.0 ) { // [J] Z
-          return interval::emptyset(); // N1 Z
-        } else {
-          __m128d r = _mm_move_sd(interval::m128_infinf,_mm_div_sd(_mm_shuffle_pd(K.get_xmminterval(),K.get_xmminterval(),1),J.get_xmminterval()));
-          return I & interval(r, gaol_detail::unchecked_bounds); // N1 N0
-        }
-      } else { // [J] P or M
-        if ( J.left() < 0.0 ) { // [J] M
-          // The two quotients, [-oo, K.right()/J.right()] and [K.right()/J.left(),
-          // +oo], have K.right() for numerator and no divisor is 0 (J.left() < 0
-          // < J.right()): one division of the vectors gives both bounds (GAOL
-          // v5, point PP of TODO.md; the scalar code made two intervals). The
-          // bounds are stored as (-lower, upper): the low half of the quotient,
-          // K.right()/(-J.left()) rounded upward, is minus the lower bound
-          // K.right()/J.left() rounded downward (GAOL v5: it was rounded upward,
-          // and the result left out the doubles below it that belong to the
-          // hull), the rounding direction being upward; its high half is the
-          // upper bound K.right()/J.right() rounded upward. No half is thrown
-          // away, and neither raises the invalid-operation or the
-          // division-by-zero exception: the numerator is finite (K is not
-          // empty, and [-oo, -oo] is) and not 0, and the divisors are not 0. The
-          // overflow of the finite quotients is left to div_rel_upward() above
-          __m128d q = _mm_div_pd(_mm_unpackhi_pd(K.get_xmminterval(),K.get_xmminterval()),J.get_xmminterval());
-          __m128d r = _mm_move_sd(q,interval::m128_infinf);   // [-oo, K.right()/J.right()]
-          __m128d r2 = _mm_move_sd(interval::m128_infinf,q);  // [K.right()/J.left(), +oo]
-          return (I & interval(r, gaol_detail::unchecked_bounds)) | (I & interval(r2, gaol_detail::unchecked_bounds)); // N1 M
-        } else { // [J] P0 or P1
-          if ( J.left() == 0.0 ) { // [I] P0
-            __m128d r = _mm_unpacklo_pd(interval::m128_infinf,
-                                        _mm_div_sd(_mm_unpackhi_pd(K.get_xmminterval(),K.get_xmminterval()),
-                                                   _mm_unpackhi_pd(J.get_xmminterval(),J.get_xmminterval()))); // N1 P0
-            return I & interval(r, gaol_detail::unchecked_bounds);
-          } else { // [J] P1
-            __m128d r = _mm_div_pd(K.get_xmminterval(),_mm_xor_pd(J.get_xmminterval(),interval::lbsignmask)); // N1 P1
-            return I & interval(r, gaol_detail::unchecked_bounds);
-          }
-        }
-      }
-    }
-  } else { // [K] N0, Z, M, or P
-	if ( K.right() == 0.0 ) { // [K] N0 or Z
-	  if ( K.left() == 0.0 ) { // [K] Z
-		if ( J.left() <= 0.0 && J.right() >= 0.0 ) {
-		  return I; // Z (N0 M, P0)
-		} else {
-		  return I & interval::zero(); // Z (N1,P1)
-		}
-	  } else { // [K] N0
-		if ( J.right() < 0.0 ) { // [J] N1
-			__m128d r1 = _mm_xor_pd(K.get_xmminterval(),interval::lbsignmask);
-			__m128d r2 = _mm_move_sd(_mm_div_pd(_mm_shuffle_pd(r1,r1,1),J.get_xmminterval()),interval::m128_zero);	// N0 N1
-			return I & interval(r2, gaol_detail::unchecked_bounds);
-		} else { // [J] P or Z
-		  if ( J.right() == 0.0 ) { // [J] N0 or Z
-        if ( J.left() == 0.0 ) { // [J] Z
-          return I; // N0 Z
-        } else {
-          return I;// N0 N0
-        }
-		  } else { // [I] P or M
-			if ( J.left() < 0.0 ) { // [J] M
-			  return I; // N0 M
-			} else { // [J] P0 or P1
-			  if ( J.left() == 0.0 ) { // [J] P0
-          return I; // N0 P0
-			  } else { // [J] P1
-          __m128d r = _mm_move_sd(interval::m128_zero,_mm_div_pd(K.get_xmminterval(),_mm_xor_pd(J.get_xmminterval(),interval::lbsignmask)));
-          return I & interval(r, gaol_detail::unchecked_bounds); // N0 P1
-			  }
-			}
-		  }
-		}
-	  }
-	} else { // [K] M, P0, or P1
-	  if ( K.left() < 0.0 ) { // [K] M
-		if ( J.right() < 0.0 ) { // [J] N1
-		  __m128d r1 = _mm_xor_pd(K.get_xmminterval(),interval::lbrbsignmask);
-		  __m128d r2 = _mm_div_pd(_mm_shuffle_pd(r1,r1,1),_mm_unpackhi_pd(J.get_xmminterval(),J.get_xmminterval()));
-      return I & interval(r2, gaol_detail::unchecked_bounds); // M N1
-		} else { // [J] P or Z
-		  if ( J.right() == 0.0 ) { // [J] N0 or Z
-        return I; // M N0
-		  } else { // [J] P or M
-			if ( J.left() < 0.0 ) { // [J] M
-			  return I; // M M
-			} else { // [J] P0 or P1
-			  if ( J.left() == 0.0 ) { // [J] P0
-				return I; // M P0
-			  } else { // [J] P1
-          __m128d r1 = _mm_xor_pd(J.get_xmminterval(),interval::lbsignmask);
-          __m128d r2 = _mm_div_pd(K.get_xmminterval(),_mm_unpacklo_pd(r1,r1));
-          return I & interval(r2, gaol_detail::unchecked_bounds); // M P1
-			  }
-			}
-		  }
-		}
-	  } else { // [K] P0 or P1
-		if ( K.left() == 0.0 ) { // [K] P0
-		  if ( J.right() < 0.0 ) { // [J] N1
-        __m128d r1 = _mm_xor_pd(_mm_shuffle_pd(K.get_xmminterval(),K.get_xmminterval(),1),interval::lbsignmask);
-        __m128d r2 = _mm_shuffle_pd(J.get_xmminterval(),J.get_xmminterval(),1);
-        __m128d r3 = _mm_move_sd(interval::m128_zero,_mm_div_pd(r1,r2));
-        return I & interval(r3, gaol_detail::unchecked_bounds); // P0 N1
-		  } else { // [J] P or Z
-			if ( J.right() == 0.0 ) { // [J] N0 or Z
-        return I; // P0 (Z or N0)
-			} else { // [J] P or M
-			  if ( J.left() < 0.0 ) { // [J] M
-				return I; // P0 M
-			  } else { // [J] P0 or P1
-				if ( J.left() == 0.0 ) { // [J] P0
-				  return I; // P0 P0
-				} else { // [J] P1
-				  __m128d r1 = _mm_xor_pd(J.get_xmminterval(),interval::lbsignmask);
-				  __m128d r2 = _mm_shuffle_pd(r1,r1,1);
-				  __m128d r3 = _mm_move_sd(_mm_div_pd(K.get_xmminterval(),r2),interval::m128_zero);// P0 P1
-          return I & interval(r3, gaol_detail::unchecked_bounds);
-				}
-			  }
-			}
-		  }
-		} else { // [K] P1
-		  if ( J.right() < 0.0 ) { // [J] N1
-        __m128d r1 = _mm_xor_pd(_mm_shuffle_pd(K.get_xmminterval(),K.get_xmminterval(),1),interval::lbrbsignmask);
-        __m128d r2 = _mm_xor_pd(J.get_xmminterval(),interval::lbsignmask);
-        __m128d r3 = _mm_div_pd(r1,_mm_shuffle_pd(r2,r2,1)); 
-        return I & interval(r3, gaol_detail::unchecked_bounds); // P1 N1
-      } else { // [J] P or Z
-        if ( J.right() == 0.0 ) { // [J] N0 or Z
-			  if ( J.left() == 0.0 ) { // [J] Z
-				return interval::emptyset(); // P1 Z
-			  } else {
-          __m128d r = _mm_unpacklo_pd(interval::m128_infinf,_mm_div_sd(K.get_xmminterval(),J.get_xmminterval()));
-          return I & interval(r, gaol_detail::unchecked_bounds); // P1 N0
-			  }
-			} else { // [J] P or M
-			  if ( J.left() < 0.0 ) { // [J] M
-          __m128d r = _mm_unpacklo_pd(interval::m128_infinf,_mm_div_sd(K.get_xmminterval(),J.get_xmminterval())); // P1 N0
-				  __m128d r2 = _mm_move_sd(interval::m128_infinf,
-                        _mm_div_sd(K.get_xmminterval(),
-												_mm_shuffle_pd(J.get_xmminterval(),J.get_xmminterval(),1))); // P1 P0
-          return (I & interval(r, gaol_detail::unchecked_bounds)) | (I & interval(r2, gaol_detail::unchecked_bounds)); // P1 M
-			  } else { // [J] P0 or P1
-				if ( J.left() == 0.0 ) { // [J] P0
-				  __m128d r = _mm_move_sd(interval::m128_infinf,
-                        _mm_div_sd(K.get_xmminterval(),
-												_mm_shuffle_pd(J.get_xmminterval(),J.get_xmminterval(),1))); // P1 P0
-          return I & interval(r, gaol_detail::unchecked_bounds);
-				} else { // [J] P1
-				  __m128d r1 = _mm_xor_pd(J.get_xmminterval(),interval::lbsignmask);
-				  __m128d r2 = _mm_div_pd(K.get_xmminterval(),_mm_shuffle_pd(r1,r1,1));
-          return I & interval(r2, gaol_detail::unchecked_bounds); // P1 P1
-				}
-			  }
-			}
-		  }
-		}
-	  }
-	}
-  }
-  }();
-  GAOL_RND_KEEP(res);
-  GAOL_RND_LEAVE_SSE();
-  return res;
-}
-
-  interval interval::operator-() const
-  {
-    return interval(_mm_shuffle_pd(xmmbounds,xmmbounds,_MM_SHUFFLE2(0,1)), gaol_detail::unchecked_bounds);
-  }
+  // operator-() is inline in gaol_interval_sse.h, as with the NEON and the FPU
+  // intervals (GAOL v5)
 
   /*
     The square from one product, as the FPU intervals compute it (GAOL v5,
@@ -361,28 +135,6 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
     products, see pown_products() in gaol_interval_core.cpp).
   */
   /*
-    The two stored bounds x of an operand, read again after the check of the
-    rounding direction: the empty asm statement keeps its place after the
-    check, and gives x back in the register it is in, at no cost, so that no
-    compiler computes with it, or compares it, before the check has set the
-    direction and cleared the modes that flush the subnormals to zero. The
-    kernels take their operands in registers, where the operators read them
-    from memory behind the barrier of the check (see rnd_reread() of
-    gaol/gaol_fpu.h, for a double; GAOL v5, point ZZ of TODO.md). Visual C++
-    has no asm statement on x64, and none is needed: it keeps the
-    floating-point operations where the source puts them with respect to the
-    writes of the control register under /fp:strict, with which GAOL is
-    compiled (see GAOL_RND_BARRIER() of gaol/gaol_fpu.h)
-  */
-  GAOL_INLINE __m128d reread_bounds(__m128d x)
-  {
-#if defined(__GNUC__) || defined(__clang__)
-    __asm__ __volatile__ ("" : "+x" (x));
-#endif
-    return x;
-  }
-
-  /*
     The kernels of the four operations between two intervals, on their stored
     bounds <-l, r> (GAOL v5, point ZZ of TODO.md): the operators of the
     header call them (see gaol_interval_sse.h) with the two doubles in a
@@ -391,7 +143,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
     operation that followed. The check of the rounding direction is theirs:
     the code that calls them is compiled with the flags of its own program.
     Where GAOL_AVX512_ARITHMETIC is, they are the functions of
-    gaol_interval_avx512.cpp, and carry its target.
+    gaol_interval_avx512_impl.h, and carry its target.
   */
 #if GAOL_AVX512_ARITHMETIC
 #  define GAOL_BOUNDS_TARGET GAOL_AVX512_TARGET
@@ -403,29 +155,12 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
     The lanes of the result that the interval straddling zero (movemask 0: the
     left bound stored negated and the right one both not negative) sets to 0:
     its lower bound is 0, where the maximum of the two squares below gives
-    -min(l^2, r^2) there
+    -min(l^2, r^2) there. Declared in gaol_interval_sse_kernels.h, whose
+    sqr_products() reads it (GAOL v5)
   */
-  alignas(16) static const std::uint64_t sqr_lanes[4][2] = {
+  alignas(16) const std::uint64_t sqr_lanes[4][2] = {
     { 0, ~std::uint64_t(0) }, { ~std::uint64_t(0), ~std::uint64_t(0) },
     { ~std::uint64_t(0), ~std::uint64_t(0) }, { ~std::uint64_t(0), ~std::uint64_t(0) } };
-
-#if !GAOL_AVX512_ARITHMETIC
-  /*
-    The two products and the maximum of sqr_bounds() below, the SSE2 path, on
-    the stored bounds x of a non-empty interval, the rounding direction being
-    upward and the modes that flush the subnormals to zero clear: the body of
-    sqr_bounds() after its check, which interval::sqr_upward() takes for x^2
-    (GAOL v5)
-  */
-  GAOL_INLINE __m128d sqr_products(__m128d x)
-  {
-    const __m128d s1 = _mm_mul_pd(x, _mm_xor_pd(x, interval::lbsignmask));
-    const __m128d xs = _mm_shuffle_pd(x, x, 1);
-    const __m128d s2 = _mm_mul_pd(xs, _mm_xor_pd(xs, interval::lbsignmask));
-    return _mm_and_pd(_mm_max_pd(s1, s2),
-                      _mm_load_pd(reinterpret_cast<const double *>(sqr_lanes[_mm_movemask_pd(x)])));
-  }
-#endif
 
 } // namespace gaol_core
 
@@ -449,10 +184,10 @@ namespace gaol_detail {
   GAOL_BOUNDS_TARGET __m128d GAOL_VECTORCALL sqr_bounds(__m128d x)
   {
     using namespace gaol_core;
+#if GAOL_AVX512_ARITHMETIC
     if (_mm_movemask_pd(_mm_cmpunord_pd(x, x)) != 0) { // the empty set
       return x;
     }
-#if GAOL_AVX512_ARITHMETIC
     /*
       The AVX-512 path: the same two products and the same maximum, the
       products being those of the embedded rounding, which sets no rounding
@@ -471,12 +206,9 @@ namespace gaol_detail {
     return flush_guard::out(_mm_and_pd(_mm_max_pd(s1, s2),
                             _mm_load_pd(reinterpret_cast<const double *>(sqr_lanes[_mm_movemask_pd(xi)]))));
 #else
-    GAOL_RND_ENTER_SSE();
-    x = reread_bounds(x);
-    __m128d res = sqr_products(x);
-    GAOL_RND_KEEP(res);
-    GAOL_RND_LEAVE_SSE();
-    return res;
+    // The SSE2 path, sqr_bounds_inline() of gaol_interval_sse_kernels.h, which
+    // the powers of gaol_interval_pow.cpp take inline too (GAOL v5)
+    return sqr_bounds_inline(x);
 #endif
   }
 
@@ -484,21 +216,6 @@ namespace gaol_detail {
 
 namespace gaol_core {
 
-  /*
-    sqr() of a non-empty I, the rounding direction being upward already (see
-    gaol_interval_core.h): the square that pow() takes for x^2 after its own
-    check (GAOL v5). The AVX-512 path sets no direction, so that its kernel
-    is the function itself, whose guard of the modes that flush the
-    subnormals to zero finds them clear.
-  */
-  interval interval::sqr_upward(const interval& I)
-  {
-#if GAOL_AVX512_ARITHMETIC
-    return interval(gaol_detail::sqr_bounds(I.xmmbounds), gaol_detail::unchecked_bounds);
-#else
-    return interval(sqr_products(I.xmmbounds), gaol_detail::unchecked_bounds);
-#endif
-  }
 
 
 } // namespace gaol_core
@@ -727,7 +444,7 @@ namespace gaol_core {
       // memory keeps it as written: Visual C++ (/O2 /fp:strict) rewrites
       // (-.5)*x + y into y - .5*x, which rounds the half of x in the wrong
       // direction when it is inexact, and mid([2^-1074, MAX]) was
-      // [MAX/2, MAX/2], as with the FPU intervals (gaol_interval_fpu.cpp)
+      // [MAX/2, MAX/2], as with the FPU intervals (gaol_interval_fpu_impl.h)
       mid_left  = -(.5*l + gaol_core::rnd_keep((-.5)*r));
       mid_right = gaol_core::rnd_keep((-.5)*l) + .5*r;
 #else
@@ -1396,51 +1113,16 @@ GAOL_BOUNDS_TARGET __m128d GAOL_VECTORCALL div_bounds(__m128d x, __m128d y)
 
 namespace gaol_core {
 
-// The branch #else, not compiled, has no inverse_upward(), which the integer
-// powers and nth_root(I, q) for q < 0 call (GAOL v5)
+// The branch #else, not compiled, has no upward_access::inverse()
+// (gaol_interval_sse_kernels.h), which inverse(), the integer powers and
+// nth_root(I, q) for q < 0 take (GAOL v5)
 //#define OPT_INV 1
 //#if OPT_INV
-/*
-  The rounding direction being upward already (see gaol_interval_core.h). A zero
-  bound is divided by 1 rather than 0, its quotient being thrown away: -1/0
-  raised the division-by-zero exception, inverse([0, 2]) and pow([0, 2], -1)
-  among them, where the FPU intervals raise nothing (GAOL v5)
-*/
-interval interval::inverse_upward(const interval& I)
-{
-  const __m128d xmmbounds = I.xmmbounds;
-  __m128d r1 = _mm_xor_pd(xmmbounds,interval::lbsignmask); // r1 == < d, c >
-  __m128d r2 = _mm_shuffle_pd(r1,r1,1); // r2 == <c, d>
-  __m128d r4 = _mm_cmpeq_pd(r2,interval::m128_zero); // r4 == < c==0, d==0 >
-  // r3 == < -1/c, -1/d >, -1 or 1 where c or d is +-0
-  __m128d r3 = _mm_div_pd(interval::m128_minus_one,_mm_or_pd(r2,_mm_and_pd(r4,_mm_set1_pd(1.0))));
-  __m128d r5 = _mm_shuffle_pd(r4,r4,1); // r5 == < d==0, c==0 >
-  __m128d r6 = _mm_and_pd(r4,r5); // r6 == < c==0 && d==0, c==0 && d==0 >
-  __m128d r7 = _mm_and_pd(r6,interval::m128_nan); // < r7 == < (c==0 && d==0) ? NaN : 0, (c==0 && d==0) ? NaN : 0 >
-  __m128d r8 = _mm_and_pd(r4,interval::m128_infinf); // r8 == < (c==0) ? inf : 0, (d==0) ? inf : 0 >
-  __m128d r9 = _mm_andnot_pd(r4,r3); // r9 == < (c!=0) ? -1/c : 0, (d!=0) ? -1/d : 0 >
-  __m128d r10 = _mm_or_pd(r9,r8); // r10 == < (c==0) ? inf : -1/c, (d==0) ? inf : -1/d >
-  __m128d r11 = _mm_andnot_pd(r6,r10); // r11 == < (c!=0 || d!=0) ? hi(r10) : 0, (c!=0 || d!=0) ? lo(r10) : 0 >
-  __m128d r12 = _mm_or_pd(r11,r7); // r12 == < (c==0 && d==0) ? NaN : hi(r10), (c==0 && d==0) ? NaN : lo(r10) >
-  __m128d r13 = _mm_cmpgt_pd(xmmbounds,interval::m128_zero); // r13 == < d>0, (-c)>0 >
-  __m128d r14 = _mm_shuffle_pd(r13,r13,1); // r14 == < (-c)>0, d>0 >
-  __m128d r15 = _mm_and_pd(r13,r14); // r15 == < d>0 && (-c)>0, (-c)>0 && d>0 >
-  __m128d r16 = _mm_and_pd(r15, interval::m128_infinf); // r14 == < ((-c)>0 && d>0) ? inf : 0, ((-c)>0 && d>0) ? inf : 0 >
-  __m128d r17 = _mm_andnot_pd(r15, r12); // r17 ==  < ((-c)<=0 || d<=0) ? hi(r12) : 0, ((-c)<=0 || d<=0) ? lo(r12) : 0 >
-  __m128d r18 = _mm_or_pd(r16,r17); // < ((-c)>0 && d>0) ? inf : hi(r12), ((-c)>0 && d>0) ? inf : lo(r12) >
-  return interval(r18, gaol_detail::unchecked_bounds);
-}
-
+// The body is upward_access::checked_inverse() of gaol_interval_sse_kernels.h,
+// which nth_root(I, q) for q = -2 takes inline too (GAOL v5)
 interval interval::inverse() const
 {
-  if (is_empty()) {
-    return *this;
-  }
-  GAOL_RND_ENTER_SSE();
-  __m128d res = inverse_upward(*this).get_xmminterval();
-  GAOL_RND_KEEP(res);
-  GAOL_RND_LEAVE_SSE();
-  return interval(res, gaol_detail::unchecked_bounds);
+  return upward_access::checked_inverse(*this);
 }
 // #else
 //   interval interval::inverse() const
@@ -1647,8 +1329,8 @@ interval interval::inverse() const
   // pown_least[] and pown_greatest[], and pown_by_corners() otherwise (see
   // pown_products(), and the comment of gaol_interval_core.cpp before the includes of the
   // files of the kinds of intervals).
-  // Keep it alike with pown_large_er() (gaol_interval_avx512.cpp) and with the
-  // block of the NEON intervals (gaol_interval_neon.cpp)
+  // Keep it alike with pown_large_er() (gaol_interval_avx512_impl.h) and with the
+  // block of the NEON intervals (gaol_interval_neon_impl.h)
   static GAOL_POWN_INLINE_T interval pown_large_inline(const interval& I, int n)
   {
     const bool negative = n < 0;

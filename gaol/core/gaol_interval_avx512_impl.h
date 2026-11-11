@@ -1,80 +1,6 @@
 /*-*-C++-*------------------------------------------------------------------
  * GAOL -- not Just Another Interval Library
  *--------------------------------------------------------------------------
- * The AVX-512 path of the SSE2 intervals (GAOL v5).
- *
- * This file is not meant to be compiled. It is only to be included
- *        by gaol/core/gaol_interval_core.cpp, before gaol/core/gaol_interval_sse.cpp: the
- *        operations of the SSE2 fragments call the functions of this one.
- *
- * The AVX-512 instructions can carry the rounding direction of a
- * floating-point operation in themselves, in the imm8 the EVEX encoding
- * gives them (the embedded rounding): an operation that uses it sets
- * neither the rounding direction of the processor nor the exception
- * flags, the architecture requiring the exception suppression with the
- * embedded rounding. Their bounds are those of the SSE2 path, bit for
- * bit, the rounding rule being the same, but for the sign of a zero bound
- * in one case: x * d, x *= d and d * x (computed as x * d, GAOL v5) of an
- * interval x whose zero bounds have different signs, [+0, -0], which are
- * [-0, +0] here and [+0, -0] with the SSE2 path, +0 and -0 being the same
- * number. Checked against the SSE2 path on 500 000 intervals of random
- * bounds plus the empty set, on the
- * zero corners of the products and of the quotients, the signs of their
- * bounds included, and on every value the tests of tests/ take, and on
- * every result of the operations of intervals and with a double on the
- * intervals of two bounds among 0 of either sign, +-1, +-2.5, +-3,
- * +-1e-310, +-1e300 and +-oo (GAOL v5).
- *
- * The embedded rounding honours the modes that flush the subnormal
- * numbers to zero, as the other operations do: flush-to-zero, which
- * flushes a subnormal result (measured on an Intel i7-1185G7, GCC 9.4 and
- * Clang 18: with the mode set, the product of 1e-300 by 1e-20 and the
- * difference of 3e-308 and 2.9e-308 are 0), and denormals-are-zero, which
- * reads a subnormal operand as 0 (measured: the product of 2^-1060 by 1e10
- * is 0 with the mode set). It was thought to ignore flush-to-zero, from a
- * measure the compiler had reordered. The operations of the path clear
- * the modes before they read a bound, as the SSE2 operations clear them at
- * their entry, and compute their results before the modes are set back
- * with GAOL_PRESERVE_ROUNDING (flush_guard below; GAOL v5, point Q of
- * TODO.md).
- *
- * The functions of this file are compiled into the library where
- * GAOL_AVX512_ARITHMETIC is (gaol_configuration.h): GAOL_PREFER_AVX512, a
- * compiler that takes them, and a machine building that runs them. Only
- * they, and the functions of the integer powers that call theirs
- * (GAOL_POWN_TARGET), carry __attribute__((target("avx512f"))), which makes the compiler
- * accept the AVX-512 instructions in them alone, and the code outside them
- * is compiled as before; the library then needs a processor with the
- * instructions. +, -, *, / and sqrt take this path, and so do sqr() and the
- * integer powers of gaol_pown() (pown_large_er() of this file; GAOL v5, point
- * ZZ of TODO.md), with no flag to
- * test as they run (gaol::init() set one, which every operation tested, until point
- * AA of TODO.md): they never touch the rounding direction, whatever the
- * program left, and clear the modes that flush the subnormals to zero only
- * where they are set, as the other operations do. The divisions and the square
- * roots take it as scalar instructions, a division of the two bounds being two
- * of them (er_div2() below), the embedded rounding of their 512-bit form being
- * slower on the processors that halve it (the i7-1185G7 measures 6.0 ns against
- * 1.8 for a division, 8.0 against 2.0 for a square root, where an addition takes
- * 0.9 against 1.8 and a product 0.8 against 1.9). The operations the path does
- * not take are unchanged: the integer powers beyond the range of their exact
- * products, and the exponents 0, 1 and -1, the relational divisions, the
- * reverse functions, the reading of a number, which set the direction as they
- * always did.
- *
- * The dispatch of the products and of the divisions below compares the
- * bounds with 0. It reads the sign and the magnitude of their bits, not
- * their values: a subnormal bound, which the denormals-are-zero mode reads
- * as 0, keeps its sign and its magnitude, and the classification of an
- * operand is the same whatever the modes (see operator*=(double) of
- * gaol/core/gaol_interval_sse.cpp for the comparison that needed the check of
- * the modes). The max of the straddling product, and the zero of a bound
- * by an infinite one, are the two places where the SSE2 path compares
- * values that the mode reads wrong: the former compares the bits of its
- * two candidates, which orders them as their values, both positive in the
- * stored form, and the latter reads the zero of the magnitude and the
- * infinity of the exponent (GAOL v5).
- *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
  * By: Jordan NININ (created 2026-10-05)
@@ -83,8 +9,88 @@
  * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
+/*!
+  \file   gaol_interval_avx512_impl.h
+  \brief  The AVX-512 path of the SSE2 intervals: + - * / sqr sqrt and the integer powers
+          by the embedded rounding, which sets no direction. Included by gaol_interval_core.cpp.
+*/
+
+/*
+  Included before gaol/core/gaol_interval_sse_impl.h: the operations of the SSE2 fragments call
+  the functions of this one.
+
+  The AVX-512 instructions can carry the rounding direction of a
+  floating-point operation in themselves, in the imm8 the EVEX encoding
+  gives them (the embedded rounding): an operation that uses it sets
+  neither the rounding direction of the processor nor the exception
+  flags, the architecture requiring the exception suppression with the
+  embedded rounding. Their bounds are those of the SSE2 path, bit for
+  bit, the rounding rule being the same, but for the sign of a zero bound
+  in one case: x * d, x *= d and d * x (computed as x * d, GAOL v5) of an
+  interval x whose zero bounds have different signs, [+0, -0], which are
+  [-0, +0] here and [+0, -0] with the SSE2 path, +0 and -0 being the same
+  number. Checked against the SSE2 path on 500 000 intervals of random
+  bounds plus the empty set, on the
+  zero corners of the products and of the quotients, the signs of their
+  bounds included, and on every value the tests of tests/ take, and on
+  every result of the operations of intervals and with a double on the
+  intervals of two bounds among 0 of either sign, +-1, +-2.5, +-3,
+  +-1e-310, +-1e300 and +-oo (GAOL v5).
+
+  The embedded rounding honours the modes that flush the subnormal
+  numbers to zero, as the other operations do: flush-to-zero, which
+  flushes a subnormal result (measured on an Intel i7-1185G7, GCC 9.4 and
+  Clang 18: with the mode set, the product of 1e-300 by 1e-20 and the
+  difference of 3e-308 and 2.9e-308 are 0), and denormals-are-zero, which
+  reads a subnormal operand as 0 (measured: the product of 2^-1060 by 1e10
+  is 0 with the mode set). It was thought to ignore flush-to-zero, from a
+  measure the compiler had reordered. The operations of the path clear
+  the modes before they read a bound, as the SSE2 operations clear them at
+  their entry, and compute their results before the modes are set back
+  with GAOL_PRESERVE_ROUNDING (flush_guard below; GAOL v5, point Q of
+  TODO.md).
+
+  The functions of this file are compiled into the library where
+  GAOL_AVX512_ARITHMETIC is (gaol_configuration.h): GAOL_PREFER_AVX512, a
+  compiler that takes them, and a machine building that runs them. Only
+  they, and the functions of the integer powers that call theirs
+  (GAOL_POWN_TARGET), carry __attribute__((target("avx512f"))), which makes the compiler
+  accept the AVX-512 instructions in them alone, and the code outside them
+  is compiled as before; the library then needs a processor with the
+  instructions. +, -, *, / and sqrt take this path, and so do sqr() and the
+  integer powers of gaol_pown() (pown_large_er() of this file; GAOL v5, point
+  ZZ of TODO.md), with no flag to
+  test as they run (gaol::init() set one, which every operation tested, until point
+  AA of TODO.md): they never touch the rounding direction, whatever the
+  program left, and clear the modes that flush the subnormals to zero only
+  where they are set, as the other operations do. The divisions and the square
+  roots take it as scalar instructions, a division of the two bounds being two
+  of them (er_div2() below), the embedded rounding of their 512-bit form being
+  slower on the processors that halve it (the i7-1185G7 measures 6.0 ns against
+  1.8 for a division, 8.0 against 2.0 for a square root, where an addition takes
+  0.9 against 1.8 and a product 0.8 against 1.9). The operations the path does
+  not take are unchanged: the integer powers beyond the range of their exact
+  products, and the exponents 0, 1 and -1, the relational divisions, the
+  reverse functions, the reading of a number, which set the direction as they
+  always did.
+
+  The dispatch of the products and of the divisions below compares the
+  bounds with 0. It reads the sign and the magnitude of their bits, not
+  their values: a subnormal bound, which the denormals-are-zero mode reads
+  as 0, keeps its sign and its magnitude, and the classification of an
+  operand is the same whatever the modes (see operator*=(double) of
+  gaol/core/gaol_interval_sse_impl.h for the comparison that needed the check of
+  the modes). The max of the straddling product, and the zero of a bound
+  by an infinite one, are the two places where the SSE2 path compares
+  values that the mode reads wrong: the former compares the bits of its
+  two candidates, which orders them as their values, both positive in the
+  stored form, and the latter reads the zero of the magnitude and the
+  infinity of the exponent (GAOL v5).
+*/
+
 /* The target of the functions (GAOL_AVX512_TARGET) and GAOL_NOINLINE are defined
-   in gaol/core/gaol_interval_core.cpp, before the generic part of the integer powers
+   in gaol/core/gaol_interval_internal.h, which gaol/core/gaol_interval_core.cpp
+   includes before the generic part of the integer powers
    (the templates pown_products() and pown_powers(), whose functions carry the
    target too), which this file needs before its pown_er_ops. */
 
@@ -335,7 +341,7 @@
 
   /*
     The quotients of the lanes of a by those of b, by scalar divisions with the
-    embedded rounding, which div_bounds() of gaol/core/gaol_interval_sse.cpp calls
+    embedded rounding, which div_bounds() of gaol/core/gaol_interval_sse_impl.h calls
     (GAOL v5): the packed division takes the embedded rounding on its 512-bit
     form only, which is a division of eight doubles (16 cycles of throughput
     on Ice Lake and Tiger Lake, uops.info), where two scalar ones take 2 x 4.
@@ -385,7 +391,7 @@
     The products of the stored bounds u and v, one of their lanes holding a
     zero bound and the other an infinite one: that lane gives +0, the
     product of such bounds in interval arithmetic, as the SSE2 path
-    computes it (products_with_infinities() of gaol/core/gaol_interval_sse.cpp),
+    computes it (products_with_infinities() of gaol/core/gaol_interval_sse_impl.h),
     the zero and the infinity read from the bits, not from the values the
     denormals-are-zero mode reads wrong. The other lanes are the plain
     products.
@@ -470,7 +476,7 @@
   /*
     x * y of the stored bounds of two nonempty operands, neither of them
     empty: the dispatch and the products of product_of_bounds() of
-    gaol/core/gaol_interval_sse.cpp, the products by the embedded rounding, the
+    gaol/core/gaol_interval_sse_impl.h, the products by the embedded rounding, the
     classification by the sign bits as that dispatch reads them, and the
     max of the straddling case by the bits (max_of_positive() above). The
     products go through the zero of a bound by an infinite one only where
@@ -560,7 +566,7 @@
 
   /*
     x / y of the stored bounds of two nonempty operands: the dispatch of
-    divide_general() of gaol/core/gaol_interval_sse.cpp, its comparisons with 0 read
+    divide_general() of gaol/core/gaol_interval_sse_impl.h, its comparisons with 0 read
     from the sign and the magnitude bits (stored_left_below_zero() and
     stored_right_below_zero() above), its divisions by the embedded
     rounding. The cases the dispatch does not divide give the stored bounds
@@ -741,7 +747,7 @@
 
   /*
     x op= d on the AVX-512 path, d a double: the four operators with a double
-    (gaol/core/gaol_interval_sse.cpp) call them last, as tail calls: past the tests of
+    (gaol/core/gaol_interval_sse_impl.h) call them last, as tail calls: past the tests of
     their operand, each operator is a jump to its function, which saves no
     register (Clang 18 and GCC 13). Called there and followed by the store of
     their result, fast_add() and the others made Clang 18 save a register and
@@ -873,7 +879,7 @@
     read after the clearing of the modes that flush the subnormals to zero
     (flush_guard), which the embedded rounding honours. res is the stored
     pair, <-lower, upper>. It repeats the block of pown_large_inline() of the SSE2
-    intervals (gaol_interval_sse.cpp), on the other lanes: keep them alike. They give the
+    intervals (gaol_interval_sse_impl.h), on the other lanes: keep them alike. They give the
     same bounds on 8.8 million powers (tests/tools/pow/mutate.py has
     mutants of both).
   */

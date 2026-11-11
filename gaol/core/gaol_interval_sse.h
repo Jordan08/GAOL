@@ -12,12 +12,11 @@
  * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
-/*
-This file shall be included by gaol_interval_core.h only. It must not be included directly
-by any other file.
-This file contains all declarations related to the 'interval' class that consider
-the bounds to be an __m128d variable.
-**/
+/*!
+  \file   gaol_interval_sse.h
+  \brief  The interval of the SSE2 builds, whose bounds are the two lanes of a __m128d: its inline
+          members and operators. Included by gaol_interval_core.h only, never directly.
+*/
 
 #ifndef GAOL_INTERVAL_CORE_H
 #  error "File gaol_interval_sse.h shall only be included directly by gaol_interval_core.h"
@@ -255,6 +254,15 @@ GAOL_INLINE const interval::xmm_bounds& interval::get_xmminterval(void) const
 GAOL_INLINE interval::xmm_bounds& interval::get_xmminterval(void)
 {
   return xmmbounds;
+}
+
+// [-right(), -left()]: the two stored bounds exchanged, with no comparison, as
+// with the NEON and the FPU intervals (GAOL v5: a function of the library,
+// which the sources of the intervals other than gaol_interval_core.cpp called
+// once the definitions were apart, where they had inlined it)
+GAOL_INLINE interval interval::operator-(void) const
+{
+  return interval(_mm_shuffle_pd(xmmbounds,xmmbounds,_MM_SHUFFLE2(0,1)), gaol_detail::unchecked_bounds);
 }
 
 /*

@@ -11,18 +11,8 @@
 
 /*!
   \file   gaol_interval_detail.h
-  \brief  The helpers of the intervals that read no interval (GAOL v5)
-
-  What gaol/core/gaol_interval_core.h and the headers it includes in the
-  middle of its code (gaol_interval_sse.h, gaol_interval_neon.h and
-  gaol_interval_fpu.h) use, and that need no interval: the tag of the
-  constructors that make no check, the traits of the integers that GAOL takes
-  as they are, the storage of the SSE2 bounds that is not aligned,
-  GAOL_FPU_SCALAR() and keep_ordered(), which keep GCC from compiling the
-  comparisons of the bounds of an empty interval into signaling ones. The
-  helpers are in gaol_detail, with the other helpers of the library, and not
-  part of the interface. This file is what gaol_interval_core.h held before
-  its class and after it (GAOL v5).
+  \brief  The helpers of the intervals that read no interval, in gaol_detail: the tag of the
+          unchecked constructors, the traits of the integers, the unaligned SSE2 storage.
 
   \author NININ Jordan
   \date   2026-11-10
@@ -37,6 +27,19 @@
 #include <type_traits>
 #include "gaol/gaol_config.h"
 #include "gaol/gaol_port.h"
+
+/*
+  What gaol/core/gaol_interval_core.h and the headers it includes in the
+  middle of its code (gaol_interval_sse.h, gaol_interval_neon.h and
+  gaol_interval_fpu.h) use, and that need no interval: the tag of the
+  constructors that make no check, the traits of the integers that GAOL takes
+  as they are, the storage of the SSE2 bounds that is not aligned,
+  GAOL_FPU_SCALAR() and keep_ordered(), which keep GCC from compiling the
+  comparisons of the bounds of an empty interval into signaling ones. The
+  helpers are in gaol_detail, with the other helpers of the library, and not
+  part of the interface. This file is what gaol_interval_core.h held before
+  its class and after it (GAOL v5).
+*/
 
 // __m128d and _mm_storeu_pd() of unaligned_xmm: gaol_port.h includes
 // <emmintrin.h> for Visual C++ alone, and this header compiles alone (GAOL v5)
