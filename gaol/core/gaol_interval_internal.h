@@ -30,14 +30,16 @@
   relational functions alone call, the square root rounded upward, the
   bounds of the elementary functions at the points where GAOL knows them,
   mig_of() and mag_of(), acosh_upward() and its twins, pow_lo(), pow_hi()
-  and pow_up_without_overflow_exception(), pown_upward()...), the kernels of
-  the kind of intervals that they take inline (the header of the kernels it
-  includes, gaol_interval_{sse,neon,fpu}_kernels.h), and the declarations of
-  the functions that one of them defines for the others. A function that
-  gaol_interval_core.cpp took inline when every definition was there is
-  inline here, and the function of the library is a call of it, so that the
-  other sources take it inline too (GAOL v5); pown_large_upward() alone,
-  whose kernel is the long switch of pown_large_inline(), is called.
+  and pow_up_without_overflow_exception(), pown_upward(), sqrt_checked()...),
+  the kernels of the kind of intervals that they take inline (the header of
+  the kernels it includes, gaol_interval_{sse,neon,fpu}_kernels.h), and the
+  declarations of the functions that one of them defines for the others. A
+  function that gaol_interval_core.cpp took inline when every definition was
+  there is inline here, and the function of the library is a call of it, so
+  that the other sources take it inline too (GAOL v5). Two are called:
+  pown_large_upward(), whose kernel is the long switch of pown_large_inline(),
+  and midpoint(), which the output alone calls (through mid_rad(), inline in
+  gaol_interval_core.h), where the writing of the digits costs far more.
 
   \author Goualard Frederic, NININ Jordan
   \date   2001-09-28
@@ -290,6 +292,13 @@ namespace gaol_core {
 #  define GAOL_NOINLINE __declspec(noinline)
 #endif
 #endif
+
+#if (defined(__x86_64__) || defined(_M_X64)) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_AVX512_ARITHMETIC
+  // The square root of the AVX-512 path (gaol_interval_avx512_impl.h), which
+  // sqrt_checked() below calls (GAOL v5)
+  GAOL_AVX512_TARGET __m128d fast_sqrt(__m128d x);
+#endif
+
 // The functions of the integer powers inlined by force, and those kept out of
 // line (see pown_products() and pown_checked() in gaol_interval_core.cpp)
 #if defined(__GNUC__) || defined(__clang__)
@@ -824,11 +833,11 @@ namespace gaol_core {
     being upward already, for inverse(), pown_upward() and nth_root(I, q) for
     q < 0, which check the direction once and take the inverse or the square
     after it, without checking it again as inverse() and sqr() do; and
-    checked_sqr(), sqr() with its check, the square of x^2 in gaol_pown() (GAOL
-    v5). A friend of interval (gaol/core/gaol_interval_core.h), for its stored
+    checked_sqr() and checked_inverse(), sqr() and inverse() with their check,
+    for x^2 in gaol_pown() and 1/sqrt(x) in nth_root(x, -2) (GAOL v5). A friend of interval (gaol/core/gaol_interval_core.h), for its stored
     bounds. Its functions are inline in the header of the kernels of each kind
-    of intervals, included below, and the square of the library calls
-    checked_sqr(): they were inverse_upward() and sqr_upward(), private
+    of intervals, included below, and the square and the inverse of the
+    library call checked_sqr() and checked_inverse(): inverse() and sqr() were inverse_upward() and sqr_upward(), private
     functions of interval, which gaol_interval_core.cpp alone defined
   */
   class upward_access {
@@ -836,6 +845,7 @@ namespace gaol_core {
     static interval inverse(const interval& I);
     static interval sqr(const interval& I);
     static interval checked_sqr(const interval& I);
+    static interval checked_inverse(const interval& I);
 #if GAOL_USING_SSE2_INSTRUCTIONS
     //! The stored bounds <-l, r>, for max() and min() (GAOL v5)
     static __m128d stored_bounds(const interval& I) { return I.get_xmminterval(); }
@@ -939,6 +949,49 @@ namespace gaol_core {
     const double l = (Ipos.left() == 0.0) ? 0.0 : -gaol_minus_sqrt_down(Ipos.left(), gaol_sqrt_up(Ipos.left()));
     const double r = gaol_sqrt_up(Ipos.right());
     return interval(l,r);
+  }
+
+  /*
+    sqrt() of I, with its check: its body, which sqrt() (gaol_interval_core.cpp)
+    calls and nth_root(I, q) for q = -2 takes inline, as it did when both
+    were in gaol_interval_core.cpp (GAOL v5). fast_sqrt() is the AVX-512 root
+    of gaol_interval_avx512_impl.h, and neon_detail::sqrt_bounds() the NEON
+    one of gaol_interval_neon_kernels.h
+  */
+  static inline interval sqrt_checked(const interval& I)
+  {
+#if (defined(__x86_64__) || defined(_M_X64)) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_AVX512_ARITHMETIC
+    /* The AVX-512 path: the roots by the embedded rounding, the part of I
+       in [0, +oo] and its emptiness by the sign and the magnitude bits,
+       which the denormals-are-zero mode does not change (the SSE2 path
+       checks the modes for the intersection, a lower bound -1e-310 having
+       been compared equal to 0) */
+    if (!I.is_empty()) {
+      return interval(fast_sqrt(I.get_xmminterval()), gaol_detail::unchecked_bounds);
+    }
+#elif GAOL_USING_NEON_INSTRUCTIONS
+    // The roots of both bounds by one vector instruction (GAOL v5, see
+    // gaol/core/gaol_interval_neon_kernels.h), unless the upper bound is above
+    // huge_root_argument: the vector product of its proof of exactness
+    // overflows, and the code below scales it (GAOL v5, point 79 of TODO.md).
+    // The empty set, whose bounds are NaN, is not above it
+    if (!gaol_detail::quiet_greater(I.right(), huge_root_argument)) {
+      return interval(neon_detail::sqrt_bounds(I.get_neoninterval()), gaol_detail::unchecked_bounds);
+    }
+#endif
+    // The part of I in [0, +oo], as nth_root() takes it: the intersection
+    // compares the bounds with quiet comparisons, and keeps an empty I as it
+    // is, where the constructor, given its NaN bounds, raised the
+    // invalid-operation exception (GAOL v5). A lower bound -0 is taken as 0
+    // below. The check before the intersection: with denormals-are-zero, a
+    // lower bound -1e-310 compared equal to 0 and stayed, and its root, once
+    // the check had cleared the mode, made the result empty (GAOL v5, see
+    // gaol/gaol_fpu.h)
+    GAOL_RND_ENTER();
+    interval res = sqrt_upward(I);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
   }
 
 } // namespace gaol_core

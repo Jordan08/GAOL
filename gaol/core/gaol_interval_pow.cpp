@@ -1098,7 +1098,8 @@ interval nth_root(const interval& I, int q)
 	// 46.4 ns against 67.6 ns with this path, 8.4 against 5.5 without the
 	// preservation) (GAOL v5, point PG.2 of TODO.md)
 	if (n == 2u) {
-		return inverse(sqrt(I));
+		// inverse(sqrt(I)), inline (gaol_interval_internal.h)
+		return upward_access::checked_inverse(sqrt_checked(I));
 	}
 #endif
 	// One check, before the root and its inverse, which do not check the

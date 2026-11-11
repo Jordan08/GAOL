@@ -1117,16 +1117,11 @@ namespace gaol_core {
 // nth_root(I, q) for q < 0 take (GAOL v5)
 //#define OPT_INV 1
 //#if OPT_INV
+// The body is upward_access::checked_inverse() of gaol_interval_sse_kernels.h,
+// which nth_root(I, q) for q = -2 takes inline too (GAOL v5)
 interval interval::inverse() const
 {
-  if (is_empty()) {
-    return *this;
-  }
-  GAOL_RND_ENTER_SSE();
-  __m128d res = upward_access::inverse(*this).get_xmminterval();
-  GAOL_RND_KEEP(res);
-  GAOL_RND_LEAVE_SSE();
-  return interval(res, gaol_detail::unchecked_bounds);
+  return upward_access::checked_inverse(*this);
 }
 // #else
 //   interval interval::inverse() const

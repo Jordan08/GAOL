@@ -553,19 +553,11 @@ double hausdorff(const interval &I1, const interval &I2)
   }
 
 
+  // The body is upward_access::checked_inverse() of gaol_interval_fpu_kernels.h
+  // (GAOL v5)
   interval interval::inverse() const
   {
-    if (is_empty()) {
-      return interval::emptyset();
-    }
-
-    GAOL_RND_ENTER();
-    // The body is upward_access::inverse() of gaol_interval_fpu_kernels.h, which the
-    // powers and the roots of gaol_interval_pow.cpp take inline too (GAOL v5)
-    interval res = upward_access::inverse(*this);
-    GAOL_RND_KEEP(res);
-    GAOL_RND_LEAVE();
-    return res;
+    return upward_access::checked_inverse(*this);
   }
 
   /*

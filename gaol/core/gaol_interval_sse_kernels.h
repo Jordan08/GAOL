@@ -25,9 +25,10 @@
   gaol_interval_sse_impl.h are calls of them. upward_access::inverse() and
   upward_access::sqr() are the inverse and the square with the rounding
   direction upward already (inverse_upward() and sqr_upward(), private
-  functions of interval before), and sqr_bounds_inline() the SSE2 path of
-  gaol_detail::sqr_bounds(), the square with its check (see the kernels in
-  gaol_interval_internal.h).
+  functions of interval before), sqr_bounds_inline() the SSE2 path of
+  gaol_detail::sqr_bounds(), the square with its check, and
+  upward_access::checked_inverse() the body of inverse(), the inverse with
+  its check (see the kernels in gaol_interval_internal.h).
 
   \author Goualard Frederic, NININ Jordan
   \date   2001-09-28
@@ -168,6 +169,20 @@ namespace gaol_core {
 #else
     return interval(sqr_bounds_inline(I.xmmbounds), gaol_detail::unchecked_bounds);
 #endif
+  }
+
+  // inverse() of I, the empty set or not, with its check: its body, and
+  // 1/sqrt(x) of nth_root(x, -2) (GAOL v5)
+  inline interval upward_access::checked_inverse(const interval& I)
+  {
+    if (I.is_empty()) {
+      return I;
+    }
+    GAOL_RND_ENTER_SSE();
+    __m128d res = upward_access::inverse(I).get_xmminterval();
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE_SSE();
+    return interval(res, gaol_detail::unchecked_bounds);
   }
 
 } // namespace gaol_core

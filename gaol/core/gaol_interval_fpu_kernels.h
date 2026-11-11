@@ -25,8 +25,9 @@
   gaol_interval_fpu_impl.h are calls of them. upward_access::inverse() and
   upward_access::sqr() are the inverse and the square with the rounding
   direction upward already (inverse_upward() and sqr_upward(), private
-  functions of interval before), and upward_access::checked_sqr() the body of
-  sqr(), the square with its check (see the kernels in gaol_interval_internal.h).
+  functions of interval before), and upward_access::checked_sqr() and
+  upward_access::checked_inverse() the bodies of sqr() and inverse(), with
+  their check (see the kernels in gaol_interval_internal.h).
 */
 
 #ifndef GAOL_INTERVAL_FPU_KERNELS_H
@@ -175,6 +176,20 @@ namespace gaol_core {
     const double a = rnd_reread(I.lb_), b = rnd_reread(I.rb_);
     interval res;
     fpu_detail::sqr_bounds(a, b, res.lb_, res.rb_);
+    GAOL_RND_KEEP(res);
+    GAOL_RND_LEAVE();
+    return res;
+  }
+
+  // inverse() of I, the empty set or not, with its check: its body (GAOL v5)
+  inline interval upward_access::checked_inverse(const interval& I)
+  {
+    if (I.is_empty()) {
+      return interval::emptyset();
+    }
+
+    GAOL_RND_ENTER();
+    interval res = upward_access::inverse(I);
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
     return res;

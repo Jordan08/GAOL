@@ -1482,40 +1482,11 @@ namespace gaol_core {
     return std::make_pair(interval(l, c), interval(c, r));
   }
 
+  // The body is sqrt_checked() of gaol_interval_internal.h, which nth_root(I, q)
+  // for q = -2 takes inline too (GAOL v5)
   interval sqrt(const interval& I)
   {
-#if (defined(__x86_64__) || defined(_M_X64)) && GAOL_USING_SSE2_INSTRUCTIONS && GAOL_AVX512_ARITHMETIC
-    /* The AVX-512 path: the roots by the embedded rounding, the part of I
-       in [0, +oo] and its emptiness by the sign and the magnitude bits,
-       which the denormals-are-zero mode does not change (the SSE2 path
-       checks the modes for the intersection, a lower bound -1e-310 having
-       been compared equal to 0) */
-    if (!I.is_empty()) {
-      return interval(fast_sqrt(I.get_xmminterval()), gaol_detail::unchecked_bounds);
-    }
-#elif GAOL_USING_NEON_INSTRUCTIONS
-    // The roots of both bounds by one vector instruction (GAOL v5, see
-    // gaol/core/gaol_interval_neon_impl.h), unless the upper bound is above
-    // huge_root_argument: the vector product of its proof of exactness
-    // overflows, and the code below scales it (GAOL v5, point 79 of TODO.md).
-    // The empty set, whose bounds are NaN, is not above it
-    if (!gaol_detail::quiet_greater(I.right(), huge_root_argument)) {
-      return interval(neon_detail::sqrt_bounds(I.get_neoninterval()), gaol_detail::unchecked_bounds);
-    }
-#endif
-    // The part of I in [0, +oo], as nth_root() takes it: the intersection
-    // compares the bounds with quiet comparisons, and keeps an empty I as it
-    // is, where the constructor, given its NaN bounds, raised the
-    // invalid-operation exception (GAOL v5). A lower bound -0 is taken as 0
-    // below. The check before the intersection: with denormals-are-zero, a
-    // lower bound -1e-310 compared equal to 0 and stayed, and its root, once
-    // the check had cleared the mode, made the result empty (GAOL v5, see
-    // gaol/gaol_fpu.h)
-    GAOL_RND_ENTER();
-    interval res = sqrt_upward(I);
-    GAOL_RND_KEEP(res);
-    GAOL_RND_LEAVE();
-    return res;
+    return sqrt_checked(I);
   }
 
 } // namespace gaol_core
