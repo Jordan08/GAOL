@@ -1577,14 +1577,24 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   set(CPACK_SOURCE_GENERATOR "TGZ")
   set(CPACK_SOURCE_PACKAGE_FILE_NAME "gaol-${PROJECT_VERSION}")
   string(REGEX REPLACE "([][+.*()^$?|\\])" "\\\\\\1" _gaol_source_regex "${PROJECT_SOURCE_DIR}")
+  # The expressions follow the .gitignore files of the repository (the one at
+  # the top, 3rd/math-core/ and doc/compare/*/): CPack archives the files of the
+  # tree, git's or not, and a file that git ignores went into the archive where
+  # no expression matched it, as the 14 files that a build of the manual leaves
+  # in manual/v5/build/ (GAOL v5)
   set(CPACK_SOURCE_IGNORE_FILES
-    "/\\.git/" "/\\.git$" "/\\.claude/" "/\\.vscode/" "/\\.idea/" "/\\.cache/"
-    "\\.swp$" "~$" "/#" "/\\.#"
-    "/autom4te\\.cache/" "/doc/compare/code/work/" "/doc/compare/itf1788/work/"
-    "/doc/compare/tang2021/work/" "/tests/meson_subproject/subprojects/"
+    "/\\.git/" "/\\.git$" "/\\.claude/" "/\\.vscode/" "/\\.idea/" "/\\.cache/" "/\\.continue/"
+    "\\.swp$" "~$" "/#" "/\\.#" "/__pycache__/"
+    "/autom4te\\.cache/" "/doc/compare/code/work[^/]*/" "/doc/compare/itf1788/work/"
+    "/doc/compare/tang2021/work[^/]*/" "/tests/meson_subproject/subprojects/"
     "/coverage/[^/]*\\.(css|js)$" "/coverage/coverage\\.json$"
-    "\\.o$" "\\.lo$" "/\\.libs/" "/\\.deps/" "\\.dirstamp$" "/check/performances_result\\.txt$"
-    "^${_gaol_source_regex}/build[^/]*/" "/_CPack_Packages/"
+    "\\.o$" "\\.lo$" "\\.a$" "\\.so$" "\\.la$" "/\\.libs/" "/\\.deps/" "\\.dirstamp$"
+    "/check/performances_result\\.txt$"
+    "/3rd/math-core/perf\\.data$" "/3rd/math-core/src/[^/]+/[^/]+/(check_exhaustive|check_worst|check_special|perf)$"
+    "^${_gaol_source_regex}/build[^/]*/" "^${_gaol_source_regex}/[^/]+/[^/]+/build/" "/_CPack_Packages/"
+    "^${_gaol_source_regex}/manual/v5/manual_gaolv5\\.(aux|bbl|blg|fdb_latexmk|fls|idx|ilg|ind|lof|log|lot|out|pdf|synctex\\.gz|toc)$"
+    "^${_gaol_source_regex}/manual/v5/Manual_GAOLv5\\." "^${_gaol_source_regex}/manual/v5/pdflatex-[^/]*\\.log$"
+    "^${_gaol_source_regex}/manual/v5/gaol_version\\.tex$"
     "^${_gaol_source_regex}/gaol-[^/]*\\.tar\\.gz$" "^${_gaol_source_regex}/libgaol-dev_[^/]*\\.deb$"
     "^${_gaol_source_regex}/TODO\\.md$" "^${_gaol_source_regex}/TODO_AFTER\\.md$" "^${_gaol_source_regex}/TODO_DONE\\.md$"
     "^${_gaol_source_regex}/STEP\\.md$" "^${_gaol_source_regex}/process\\.md$"
