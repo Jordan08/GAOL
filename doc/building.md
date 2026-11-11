@@ -298,6 +298,22 @@ cmake --build build --target package
 | `gaol-<version>.tar.gz` (`dist`, `package_source`, `make dist`, `meson dist --formats gztar`) | The sources, in `gaol-<version>/`, with `configure` and the `Makefile.in`: the three builds build them. The files of the commit less the notes of the work on GAOL v5 (`TODO.md`, `TODO_AFTER.md`, `TODO_DONE.md`, `STEP.md`, `process.md`, `todo-notes/`, `.claude/`), `configure` as it was generated among them: if that was for another version than `VERSION.txt` holds, `configure --version` in the archive gives the old one, and CMake warns of it when it configures (see [The version of GAOL](#the-version-of-gaol)). |
 | `gaol-<version>-<system>.tar.gz` (`package`) | What `cmake --install` installs, in `gaol-<version>-<system>/`: the headers, `libgaol.a` (or `libgaol.so*` with `BUILD_SHARED_LIBS`), the CMake package of GAOL and `gaol.pc`, to extract anywhere, `gaol.pc` finding its directories from where it is. |
 | `libgaol-dev_<version>_<arch>.deb` (`package`, on Linux) | The same files in `/usr`, for `apt install ./libgaol-dev_<version>_<arch>.deb`: by default a static library and its headers, hence the name and the section `libdevel` of the development packages of Debian. |
+| `gaol-<version>-macos-arm64.pkg` (`cpack -G productbuild`) | The same files in `/usr/local`, for the Installer of macOS, or `sudo installer -pkg gaol-<version>-macos-arm64.pkg -target /`. Not signed: Gatekeeper asks to open it with a right click. |
+| `gaol-<version>-windows-x64.exe` (`cpack -G NSIS`) | The same files in `C:\Program Files\gaol`, where `find_package(gaol)` finds them, with an uninstaller; `/S` installs it without a window. Built with `/MD`: a program built in Debug, with `/MDd`, does not link with it. |
+
+The workflow Release (`.github/workflows/release.yml`) makes three packages
+for each tag of a commit of `master`, the tag being the version of
+`VERSION.txt` (`5.0.0` or `v5.0.0`), and attaches them to the GitHub Release of
+the tag, which it makes if there is none, with the notes GitHub generates
+(GAOL v5): `libgaol-dev_<version>_amd64.deb` (Ubuntu 26.04 x86_64, the GCC of
+the system), `gaol-<version>-macos-arm64.pkg` (macOS 26 arm64, AppleClang) and
+`gaol-<version>-windows-x64.exe` (Windows Server 2025, Visual C++ 2026 x64,
+`/MD`), in Release, with `-DGAOL_FMA=OFF -DGAOL_PREFER_AVX512=OFF` on x86-64.
+Each job runs the unit tests, makes the package, installs it on the runner,
+and builds and runs the unit tests again with the installed GAOL
+(`tests/find_package`). A pull request that changes the workflow,
+`CMakeLists.txt` or `cmake/` builds the three and keeps them as artifacts of
+the run.
 
 The archive takes its name from the version CMake read when it configured, and
 CMake warns of a `configure` generated for another version at that moment.

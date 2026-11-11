@@ -424,6 +424,7 @@ EXTRA_DIST = \
 	.github/workflows/macos.yml \
 	.github/workflows/manual.yml \
 	.github/workflows/performance.yml \
+	.github/workflows/release.yml \
 	.github/workflows/windows.yml \
 	.gitignore \
 	.shellcheckrc \

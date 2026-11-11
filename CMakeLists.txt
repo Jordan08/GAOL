@@ -1550,8 +1550,23 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "GAOL, Not Just Another Interval Library: interval arithmetic in C++")
   set(CPACK_PACKAGE_DESCRIPTION "GAOL v5 computes the tightest enclosures of the arithmetic operations and of the elementary functions, with the correctly rounded functions of CORE-MATH, compiled into the library. The package holds the library libgaol, its headers, and the files find_package(gaol) and pkg-config read.")
   set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/Jordan08/GAOL")
-  set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/COPYING.LIB")
-  set(CPACK_RESOURCE_FILE_README "${PROJECT_SOURCE_DIR}/README.md")
+  # The license and the readme that the installers of macOS (productbuild,
+  # .pkg) and of Windows (NSIS, .exe) show, which the workflow Release makes
+  # (.github/workflows/release.yml): copies of COPYING.LIB and README.md named
+  # .txt, the installer of macOS reading a resource by its extension (.txt,
+  # .rtf, .html); the .deb and the archives do not read them (GAOL v5)
+  configure_file("${PROJECT_SOURCE_DIR}/COPYING.LIB" "${PROJECT_BINARY_DIR}/cpack/License.txt" COPYONLY)
+  configure_file("${PROJECT_SOURCE_DIR}/README.md" "${PROJECT_BINARY_DIR}/cpack/ReadMe.txt" COPYONLY)
+  set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_BINARY_DIR}/cpack/License.txt")
+  set(CPACK_RESOURCE_FILE_README "${PROJECT_BINARY_DIR}/cpack/ReadMe.txt")
+  # The .pkg of macOS: its identifier; the .exe of Windows: installed in
+  # C:\Program Files\gaol, which find_package(gaol) searches (gaol*), with an
+  # uninstaller
+  set(CPACK_PRODUCTBUILD_IDENTIFIER "fr.ensta.gaol")
+  set(CPACK_PACKAGE_INSTALL_DIRECTORY "gaol")
+  set(CPACK_NSIS_PACKAGE_NAME "GAOL ${PROJECT_VERSION}")
+  set(CPACK_NSIS_DISPLAY_NAME "GAOL ${PROJECT_VERSION}")
+  set(CPACK_NSIS_URL_INFO_ABOUT "https://github.com/Jordan08/GAOL")
   if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(CPACK_GENERATOR "TGZ;DEB")
   else()
