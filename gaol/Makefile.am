@@ -69,7 +69,10 @@ library_include_HEADERS = gaol gaol.h \
 	gaol_fpu.h gaol_fpu_fenv.h gaol_fpu_msvc.h gaol_ieee1788.h \
 	gaol_interval.h \
 	gaol_port.h \
-	gaol_version.h gaol_configuration.h
+	gaol_version.h
+# gaol_configuration.h, which configure writes from gaol_configuration.h.in:
+# installed, and not in the archive of the sources (GAOL v5)
+nodist_library_include_HEADERS = gaol_configuration.h
 
 # The headers of the intervals, which gaol_interval.h includes: installed in
 # gaol/core/ as in the sources (GAOL v5)
@@ -113,6 +116,10 @@ install-data-local:
 	$(MKDIR_P) $(DESTDIR)$(libdir)/pkgconfig
 	$(INSTALL_DATA) ../gaol.pc $(DESTDIR)$(libdir)/pkgconfig/gaol.pc
 
+# make uninstall removes it too, as make distcheck checks (GAOL v5: it stayed)
+uninstall-local:
+	-rm -f $(DESTDIR)$(libdir)/pkgconfig/gaol.pc
+
 
 # make distclean removes the files of the dependencies one by one and leaves
 # their directories, in gaol/, in gaol/core/ where the sources of the intervals
@@ -120,3 +127,20 @@ install-data-local:
 # that it gives the sources back as git has them (GAOL v5)
 distclean-local:
 	-rm -rf ./$(DEPDIR) core/$(DEPDIR) parser/$(DEPDIR)
+
+# The archive of the sources, make dist (GAOL v5): automake takes the sources,
+# the headers and the scripts it knows from the variables of the Makefile.am,
+# and EXTRA_DIST names the other files of the repository, here the files of the builds of CMake and meson, the sources of the lexer and the parser, and their tools.
+# make dist, package_source of CMake and meson dist hold the same files, those
+# of the repository but the notes of the work on GAOL v5 (.gitattributes): a
+# file added to the repository is added to this list too, or the job Archives
+# of the sources of the CI, which compares the three archives, fails
+EXTRA_DIST = \
+	float/gaol_generator_mul_i2f.py \
+	gaol_configuration_meson.h.in \
+	math/gaol_core_math_port.h \
+	meson.build \
+	parser/gaol_interval_lexer.lpp \
+	parser/gaol_interval_parser.ypp \
+	parser/regenerate_parser.sh \
+	stamp-h.in
