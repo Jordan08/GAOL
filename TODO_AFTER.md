@@ -358,17 +358,19 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    +3 à +5 %, la ligne de 13 opérations +10 %) ; le diviseur à deux voies borne
    le Neoverse N2 (llvm-mca : 17,1 cycles par itération avant, 17,0 après), si
    bien qu'un gain d'instructions n'y change rien. Leurs branches
-   `experiment-pg-neon-divtests` et `-divtests-tbl` sont gardées. *À rouvrir*
-   seulement si un processeur ARM 64 bits divise assez vite pour que les tests
-   d'une division comptent.
+   `experiment-pg-neon-divtests` et `-divtests-tbl` sont supprimées (11
+   novembre) : les commits sont sous `refs/pull/243/head` et `244/head`. *À
+   rouvrir* seulement si un processeur ARM 64 bits divise assez vite pour que
+   les tests d'une division comptent.
 8. **NEON : `interval(d)` et `x op= d` par le test de `d` sur ses bits** (#251,
    fermée sans fusion, *refusée par le mainteneur le 30 octobre*). Une
    instruction entière et aucune comparaison à virgule flottante : `x / d` ×1,14
    avec Clang et ×1,05 avec GCC sur le N2 (contre ×1,06 et ×1,07 pour #250),
    0,736 sur le M2 (contre 0,846), mais deux drapeaux changent (l'invalidité
    d'un NaN signalant, l'opérande dénormalisé sous `FZ`) ; #250 garde ceux de la
-   base. Sa branche `experiment-pg-neon-double-ops-bits` est gardée. *À rouvrir*
-   si le mainteneur accepte que ces deux drapeaux changent.
+   base. Sa branche `experiment-pg-neon-double-ops-bits` est supprimée (11
+   novembre) : les commits sont sous `refs/pull/251/head`. *À rouvrir* si le
+   mainteneur accepte que ces deux drapeaux changent.
 
 ## 4. En attente de matériel ou d'un environnement qui manque
 

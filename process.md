@@ -903,10 +903,11 @@ git ls-remote --heads origin
   `634e3e1`, après la fusion de #294, `1e23540`, après celle de #292, `130acea`,
   et celles de #293, #291, #290 et #289, les registres de #288, `6ed4441`, et la
   fusion de #288, `61a432b`). Ses branches sur GitHub sont `configure-clean`,
-  `MATH-CORE` et `master`, avec des pull requests jetables fermées, gardées
-  (`experiment-pg*`, voir `TODO_DONE.md` 8.1), et deux branches, fusionnée ou
-  fermée, que le mainteneur supprime (`todo-pg-relations-order` et
-  `todo-pg-xle-exfirst`), et celle de #307 (`uniform-file-headers`) ; celles de
+  `MATH-CORE` et `master`, avec les branches des pull requests ouvertes ; celles
+  des pull requests jetables fermées (`experiment-pg*`, `todo-pg-xle-exfirst`)
+  et de #279 (`todo-pg-relations-order`), de #301 (`todo-pt-verif`) et de #311
+  (`fix-cstdint-include`) sont supprimées depuis le 11 novembre (`TODO_DONE.md`
+  8.1), comme celle de #307 (`uniform-file-headers`) ; celles de
   #289 (`synthese-283-288`), de #290 (`ieee1788-overlap`), de #291
   (`todo-pn-trie-fin`), de #293 (`todo-pn-d-times-x`), de #292
   (`relation-loops`), de #294 (`manual-thesis-style`), de #295

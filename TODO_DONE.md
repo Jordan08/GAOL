@@ -182,10 +182,10 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   débogage sont décidés par des tests de la configuration, les anciennes
   options restant des réglages des développeurs (`doc/building.md`).
 - **Branches** : GitHub a `configure-clean`, `MATH-CORE` et `master`, avec les
-  branches des pull requests ouvertes et celles des pull requests jetables
-  fermées, gardées (8.1), et `todo-pg-relations-order` (#279) et
-  `todo-pg-xle-exfirst` (#246), que le mainteneur supprime (8.1) ; les branches
-  fusionnées sont supprimées en local.
+  branches des pull requests ouvertes ; celles des pull requests jetables
+  fermées (`experiment-pg*`, `todo-pg-xle-exfirst`) et les fusionnées sont
+  supprimées depuis le 11 novembre (8.1), leurs commits restant sous
+  `refs/pull/<n>/head` ; les branches fusionnées sont supprimées en local.
 - **Aucune borne fausse n'est connue** : sur environ 1,3 million de puissances
   entières, 550 000 `pow` réels, 600 000 autres opérations et 760 lectures de
   nombres (relecture du 14 octobre, revérifiée le 18 octobre à `4eaf69a`), tout
@@ -7562,6 +7562,18 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   `todo-pg-max-base` et `todo-pg-max-control`, les branches de mesure du témoin
   de placement de `max`, locales et jamais poussées, supprimées une fois cette
   mise à jour poussée.
+- [x] Le 11 novembre, à la demande du mainteneur (« fais le ménage dans les
+  branches locales et sur origine ») : sur GitHub, les dix-neuf branches
+  `experiment-pg*` des pull requests jetables fermées (gardées jusque-là, 31
+  octobre), `todo-pg-xle-exfirst` (#246) et les fusionnées
+  `todo-pg-relations-order` (#279), `todo-pt-verif` (#301) et
+  `fix-cstdint-include` (#311) ; en local, `core-detail-header` et
+  `core-split-domains`. Les commits restent sous `refs/pull/<n>/head` (la
+  pointe de chaque branche est la tête d'une pull request fermée ou l'un de ses
+  ancêtres) ; `MATH-CORE` est gardée (`process.md` : elle ne reçoit
+  `configure-clean` qu'à v5.0.0). Le réglage « supprimer la branche à la
+  fusion » est activé sur GitHub. Restent : `configure-clean`, `MATH-CORE`,
+  `master` et `make-dist` (#309).
 - [x] Lignes de crédit retirées des descriptions de #50, #51, #53 à #57 et #59,
   d'un commentaire de #59 et de cette issue. Il en reste dans les messages des
   commits a0d3871, 790ca12 et f1f4239 de #99, fusionnée sans squash. Retirées
