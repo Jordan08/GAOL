@@ -118,11 +118,8 @@
 		return d;
 	}
 
-
-  interval interval::operator-() const
-  {
-    return interval(_mm_shuffle_pd(xmmbounds,xmmbounds,_MM_SHUFFLE2(0,1)), gaol_detail::unchecked_bounds);
-  }
+  // operator-() is inline in gaol_interval_sse.h, as with the NEON and the FPU
+  // intervals (GAOL v5)
 
   /*
     The square from one product, as the FPU intervals compute it (GAOL v5,
