@@ -29,8 +29,15 @@
   them call (the saturated quotients, with the saturated products that the
   relational functions alone call, the square root rounded upward, the
   bounds of the elementary functions at the points where GAOL knows them,
-  pow_lo() and pow_hi(), pown_upward()...), and the declarations of the
-  functions that one of them defines for the others.
+  mig_of() and mag_of(), acosh_upward() and its twins, pow_lo(), pow_hi()
+  and pow_up_without_overflow_exception(), pown_upward()...), the kernels of
+  the kind of intervals that they take inline (the header of the kernels it
+  includes, gaol_interval_{sse,neon,fpu}_kernels.h), and the declarations of
+  the functions that one of them defines for the others. A function that
+  gaol_interval_core.cpp took inline when every definition was there is
+  inline here, and the function of the library is a call of it, so that the
+  other sources take it inline too (GAOL v5); pown_large_upward() alone,
+  whose kernel is the long switch of pown_large_inline(), is called.
 
   \author Goualard Frederic, NININ Jordan
   \date   2001-09-28
@@ -67,6 +74,18 @@
 #include "gaol/gaol_common.h"
 #include "gaol/gaol_port.h"
 #include "gaol/core/gaol_interval_core.h"
+// Whether pow_up_without_overflow_exception() writes the control register of
+// the SSE instructions, MXCSR, which compute the doubles on x86 (not with
+// Visual C++ for 32-bit x86, where its Release build left the flag of the
+// masked section raised: it takes the functions of <cfenv>, which that C
+// library does right)
+#if (defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)) \
+    && !(defined(_MSC_VER) && !defined(__clang__) && defined(_M_IX86))
+#  include <xmmintrin.h>
+#  define GAOL_POW_MASKS_MXCSR 1
+#else
+#  define GAOL_POW_MASKS_MXCSR 0
+#endif
 
 // The FMA instructions on two doubles at once, for the integer powers, where
 // the build has them (GAOL v5, see pown_products()): SSE2 with FMA on x86
@@ -341,18 +360,39 @@ namespace gaol_core {
   // intervals (pown_large_inline()), and gaol_pown() after the test of n = 2
   GAOL_POWN_TARGET interval pown_large_upward(const interval& I, int n);
   GAOL_POWN_TARGET GAOL_POWN_NOINLINE interval pown_checked(const interval& I, int n);
-  // gaol_interval_pow.cpp: whether x^y is a double, x^y rounded upward
-  // without the overflow exception, and the n-th root after the check of the
-  // direction
+  // gaol_interval_pow.cpp: whether x^y is a double, and the n-th root after
+  // the check of the direction
   bool pow_is_double(double x, double y, double& d);
-  double pow_up_without_overflow_exception(double x, double y);
   interval nth_root_upward(const interval& I, unsigned int n);
-  // gaol_interval_hyperbolic.cpp: acosh(), asinh() and atanh() after the
-  // check of the direction
-  interval acosh_upward(const interval& I);
-  interval asinh_upward(const interval& I);
-  interval atanh_upward(const interval& I, bool by_division = true);
 
+
+  /*
+    The mignitude and the magnitude of I: the bodies of interval::mig() and
+    interval::mag() (gaol_interval_core.cpp), which call them, inline for
+    hypot() too (GAOL v5)
+  */
+  static inline double mig_of(const interval& I)
+  {
+    if (I.is_empty()) {
+      return GAOL_NAN;
+    } else {
+      if (I.set_contains(0)) {
+	return 0.0;
+      }
+      // Compared as in the relations (gaol_port.h): under denormals-are-zero,
+      // mig([-3, -2]*2^-1074) was 0 (GAOL v5, point Q of TODO.md)
+      if (gaol_detail::bound_less(I.right(), 0.0)) {
+	return -I.right();
+      } else { // left() > 0.0
+	return I.left();
+      }
+    }
+  }
+
+  static inline double mag_of(const interval& I)
+  {
+    return maximum(std::fabs(I.left()),std::fabs(I.right()));
+  }
 
   /* The square root rounded upward, whatever the rounding of ::sqrt. IEEE 754
      requires a square root to be rounded in the rounding direction in effect,
@@ -515,6 +555,142 @@ namespace gaol_core {
     return upward::atan_up(x);
   }
 
+  static inline double asinh_lo(double x) { return (x == 0.0) ? 0.0 : upward::asinh_dn(x); }
+  static inline double asinh_hi(double x) { return (x == 0.0) ? 0.0 : upward::asinh_up(x); }
+  static inline double acosh_lo(double x) { return (x == 1.0) ? 0.0 : upward::acosh_dn(x); }
+  static inline double acosh_hi(double x) { return (x == 1.0) ? 0.0 : upward::acosh_up(x); }
+  static inline double atanh_lo(double x) { return (x == 0.0) ? 0.0 : upward::atanh_dn(x); }
+  static inline double atanh_hi(double x) { return (x == 0.0) ? 0.0 : upward::atanh_up(x); }
+
+  /*
+    The bodies of acosh(), asinh() and atanh() after their check, for these
+    functions and for acosh_rel(), asinh_rel() and atanh_rel(), which check
+    the direction before them (GAOL v5: the reverse functions called acosh(),
+    asinh() and atanh(), which checked it a second time)
+  */
+  static inline interval acosh_upward(const interval& I)
+  {
+    const interval J = I &  interval::one_plus_infinity();
+
+    if (J.is_empty()) {
+      return J;
+    }
+    const double l = acosh_lo(J.left()), r = acosh_hi(J.right());
+    return interval(l,r);
+  }
+
+  static inline interval asinh_upward(const interval& I)
+  {
+    if (I.is_empty()) {
+      return I;
+    }
+    const double l = asinh_lo(I.left()), r = asinh_hi(I.right());
+    return interval(l,r);
+  }
+
+  // by_division: the infinite bounds at -1 and 1 are those of CORE-MATH, which
+  // raises the division-by-zero exception for them; atanh_rel() takes them
+  // without a division, its result being a finite interval where I is (GAOL
+  // v5, point 79 of TODO.md: atanh_rel([0, 1], [0, 1]) raised it)
+  static inline interval atanh_upward(const interval& I, bool by_division = true)
+  {
+    const interval J = I & interval::minus_one_plus_one();
+    // atanh is defined on (-1, 1) (IEEE 1788-2015, Table 9.1, GAOL v5): an I
+    // meeting [-1, 1] at 1 alone, or at -1 alone, as [1] and [-5,-1], holds
+    // no point of it, and gives the empty set. The value of CORE-MATH at 1 is
+    // +oo, and the lower bound the double below the value: [1] was [MAX,+oo]
+    // ([-1] was empty only because interval(-oo,-oo) is). The limits -oo at
+    // -1 and +oo at 1 remain the bounds when I holds other points of (-1, 1)
+    if (J.is_empty() || J.left() == 1.0 || J.right() == -1.0) {
+      return interval::emptyset();
+    }
+    const double l = (!by_division && J.left() == -1.0) ? -GAOL_INFINITY : atanh_lo(J.left());
+    const double r = (!by_division && J.right() == 1.0) ? GAOL_INFINITY : atanh_hi(J.right());
+    return interval(l,r);
+  }
+
+  /*
+    CORE-MATH's pow(x, y) in the upward rounding, for a finite x > 0 and a y
+    of normal magnitude, without the overflow exception where x^y is above
+    the largest double (GAOL v5, point 79 of TODO.md). The reverse functions of
+    pow look for the bounds of c^(1/y) and log(c)/log(x) by powers d^y of the
+    doubles on either side of them, which overflow for a finite bound when c
+    is next to the largest double, or when y is huge, where d^y is beyond the
+    doubles for a d one double above 1. The answer there is +oo, the value
+    CORE-MATH gives, which the tests against a finite bound take as they take
+    the exception. The functions pow_rounded_up(), pow_rounded_dn(), pow_lo()
+    and pow_hi() call this one for the template argument quiet, which the
+    reverse functions give: pow keeps raising the exception for its infinite
+    upper bound, as doc/using.md says of the infinite bounds.
+    x^y can only overflow where it is above 1, for x > 1 and y > 0 or
+    x < 1 and y < 0: CORE-MATH's pow goes its way in the other cases, where
+    pow_rounded_up() has taken the tiny powers of |y| >= 2^1013 apart (before
+    upstream commit c01f08c5, 5 October 2026, CORE-MATH squared y log(x) in
+    its first phase, which overflowed from 2^512 on, for a power that is tiny).
+    The binary logarithm of x^y is
+    bounded by |y| |log2(x)|, with |log2(x)| at most |e| + 1, e being the
+    exponent of x as frexp() gives it: when that is below 1000, nothing
+    overflows. From |y| >= 2^500 on, |y log2(x)| >= 2^447, and x^y is beyond
+    the doubles, +oo. Otherwise
+    t = |y| |log(x)|/log(2) is computed from the logarithm of CORE-MATH,
+    which is within a few units of 2^-52 of it relatively, so that
+    x^y < 2^(1024 - 2^-30) is no overflow for t < 1024 - 10^-9, and x^y is
+    beyond the doubles for t > 1024 + 10^-9. Only the powers in between ask
+    CORE-MATH to decide: they are computed with the exceptions masked, and
+    the environment of the program, its flags and the exceptions it enabled,
+    restored.
+  */
+  static inline double pow_up_without_overflow_exception(double x, double y)
+  {
+    if (!(x > 0.0 && x < GAOL_INFINITY) || x == 1.0) {
+      return upward::nthroot_up(x, y);
+    }
+    const bool grows = (x > 1.0) == (y > 0.0);
+    if (!grows) {
+      return upward::nthroot_up(x, y);
+    }
+    const double magnitude = std::fabs(y);
+    // |e| from the exponent field of x: e = field - 1022 for a normal x, and
+    // 1074 at most for a subnormal one
+    std::uint64_t bits;
+    std::memcpy(&bits, &x, sizeof bits);
+    const int field = static_cast<int>((bits >> 52) & 0x7ffu);
+    const int e = (field == 0) ? 1074 : std::abs(field - 1022);
+    if (magnitude < 1000.0/(e + 1)) {
+      return upward::nthroot_up(x, y);
+    }
+    if (magnitude >= two_power_500) {
+      return GAOL_INFINITY;
+    }
+    // 1/log(2), rounded to nearest: the margins below are far larger than its error
+    const double t = magnitude*std::fabs(upward::log_up(x))*1.4426950408889634;
+    if (t < 1023.999999999) {
+      return upward::nthroot_up(x, y);
+    }
+    if (t > 1024.000000001) {
+      return GAOL_INFINITY;
+    }
+#if GAOL_POW_MASKS_MXCSR
+    // On x86 the doubles are computed by SSE instructions, whose exceptions
+    // the control register MXCSR masks (bits 7 to 12) and whose flags it holds
+    // (bits 0 to 5): written back as it was, it gives the program its masks
+    // and flags exactly, where the functions of <cfenv> of MinGW-w64 12 to 14
+    // left the flags of the masked section raised after fesetenv(), and
+    // crashed with fesetexceptflag() (the continuous integration)
+    const unsigned int csr = _mm_getcsr();
+    _mm_setcsr(csr | 0x1f80u);
+    const double power = upward::nthroot_up(x, y);
+    _mm_setcsr(csr);
+    return power;
+#else
+    std::fenv_t environment;
+    std::feholdexcept(&environment);
+    const double power = upward::nthroot_up(x, y);
+    std::fesetenv(&environment);
+    return power;
+#endif
+  }
+
   /*
     x^y rounded upward for x >= 0 and y finite or not, the rounding direction
     being upward: CORE-MATH's pow, which is correctly rounded in that
@@ -644,12 +820,18 @@ namespace gaol_core {
     inverse_upward() and sqr_upward() of gaol/core/gaol_interval_core.h, which are
     private to interval, for pown_upward() and nth_root(I, q) for q < 0: they
     check the rounding direction once and take the inverse or the square after
-    it, without checking it again as inverse() and sqr() do (GAOL v5)
+    it, without checking it again as inverse() and sqr() do (GAOL v5).
+    inverse() and sqr() are their bodies, and checked_sqr() the body of sqr()
+    with its check, the square of x^2 in gaol_pown(): they are inline in the
+    header of the kernels of each kind of intervals, included below, of which
+    interval::inverse_upward(), interval::sqr_upward() and the square of the
+    library are calls
   */
   class upward_access {
   public:
-    static interval inverse(const interval& I) { return interval::inverse_upward(I); }
-    static interval sqr(const interval& I) { return interval::sqr_upward(I); }
+    static interval inverse(const interval& I);
+    static interval sqr(const interval& I);
+    static interval checked_sqr(const interval& I);
 #if GAOL_USING_SSE2_INSTRUCTIONS
     //! The stored bounds <-l, r>, for max() and min() (GAOL v5)
     static __m128d stored_bounds(const interval& I) { return I.get_xmminterval(); }
@@ -657,6 +839,28 @@ namespace gaol_core {
     static float64x2_t stored_bounds(const interval& I) { return I.get_neoninterval(); }
 #endif
   };
+
+} // namespace gaol_core
+
+/*
+  The kernels of each kind of intervals that more than one source takes: the
+  inverse and the square above, and what they take, inline (GAOL v5). They
+  were functions of gaol_interval_{sse,neon,fpu}_impl.h, which
+  gaol_interval_core.cpp alone includes, and the compilers took them inline
+  into the powers and the roots while every definition was in that file:
+  called from gaol_interval_pow.cpp, x^2 took 1.93 ns rather than 1.60 and
+  nth_root(x, -2) 4.11 ns rather than 3.59 (Apple M2, NEON intervals, Apple
+  clang 21). The functions of the fragments are now calls of them
+*/
+#if GAOL_USING_SSE2_INSTRUCTIONS
+#  include "gaol/core/gaol_interval_sse_kernels.h"
+#elif GAOL_USING_NEON_INSTRUCTIONS
+#  include "gaol/core/gaol_interval_neon_kernels.h"
+#else
+#  include "gaol/core/gaol_interval_fpu_kernels.h"
+#endif
+
+namespace gaol_core {
 
   /*
     I^n for an int n, the rounding direction being upward already: the body

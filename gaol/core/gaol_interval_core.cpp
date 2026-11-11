@@ -1307,27 +1307,16 @@ namespace gaol_core {
     }
   }
 
+  // The bodies are mig_of() and mag_of() of gaol_interval_internal.h, which
+  // hypot() takes inline too (GAOL v5)
   double interval::mig(void) const
   {
-    if (is_empty()) {
-      return GAOL_NAN;
-    } else {
-      if (set_contains(0)) {
-	return 0.0;
-      }
-      // Compared as in the relations (gaol_port.h): under denormals-are-zero,
-      // mig([-3, -2]*2^-1074) was 0 (GAOL v5, point Q of TODO.md)
-      if (gaol_detail::bound_less(right(), 0.0)) {
-	return -right();
-      } else { // left() > 0.0
-	return left();
-      }
-    }
+    return mig_of(*this);
   }
 
   double interval::mag(void) const
   {
-    return maximum(std::fabs(left()),std::fabs(right()));
+    return mag_of(*this);
   }
 
 

@@ -26,18 +26,6 @@
 */
 
 #include "gaol/core/gaol_interval_internal.h"
-// Whether pow_up_without_overflow_exception() writes the control register of
-// the SSE instructions, MXCSR, which compute the doubles on x86 (not with
-// Visual C++ for 32-bit x86, where its Release build left the flag of the
-// masked section raised: it takes the functions of <cfenv>, which that C
-// library does right)
-#if (defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)) \
-    && !(defined(_MSC_VER) && !defined(__clang__) && defined(_M_IX86))
-#  include <xmmintrin.h>
-#  define GAOL_POW_MASKS_MXCSR 1
-#else
-#  define GAOL_POW_MASKS_MXCSR 0
-#endif
 // x * 2^n rounded once, for the n-th roots (compare_scaled(), GAOL v5)
 #include "gaol/math/gaol_ldexp.h"
 // (1 + x)^y - 1 at a point, with the tightest bounds (GAOL v5)
@@ -154,88 +142,6 @@ namespace gaol_core {
   }
 
   /*
-    CORE-MATH's pow(x, y) in the upward rounding, for a finite x > 0 and a y
-    of normal magnitude, without the overflow exception where x^y is above
-    the largest double (GAOL v5, point 79 of TODO.md). The reverse functions of
-    pow look for the bounds of c^(1/y) and log(c)/log(x) by powers d^y of the
-    doubles on either side of them, which overflow for a finite bound when c
-    is next to the largest double, or when y is huge, where d^y is beyond the
-    doubles for a d one double above 1. The answer there is +oo, the value
-    CORE-MATH gives, which the tests against a finite bound take as they take
-    the exception. The functions pow_rounded_up(), pow_rounded_dn(), pow_lo()
-    and pow_hi() call this one for the template argument quiet, which the
-    reverse functions give: pow keeps raising the exception for its infinite
-    upper bound, as doc/using.md says of the infinite bounds.
-    x^y can only overflow where it is above 1, for x > 1 and y > 0 or
-    x < 1 and y < 0: CORE-MATH's pow goes its way in the other cases, where
-    pow_rounded_up() has taken the tiny powers of |y| >= 2^1013 apart (before
-    upstream commit c01f08c5, 5 October 2026, CORE-MATH squared y log(x) in
-    its first phase, which overflowed from 2^512 on, for a power that is tiny).
-    The binary logarithm of x^y is
-    bounded by |y| |log2(x)|, with |log2(x)| at most |e| + 1, e being the
-    exponent of x as frexp() gives it: when that is below 1000, nothing
-    overflows. From |y| >= 2^500 on, |y log2(x)| >= 2^447, and x^y is beyond
-    the doubles, +oo. Otherwise
-    t = |y| |log(x)|/log(2) is computed from the logarithm of CORE-MATH,
-    which is within a few units of 2^-52 of it relatively, so that
-    x^y < 2^(1024 - 2^-30) is no overflow for t < 1024 - 10^-9, and x^y is
-    beyond the doubles for t > 1024 + 10^-9. Only the powers in between ask
-    CORE-MATH to decide: they are computed with the exceptions masked, and
-    the environment of the program, its flags and the exceptions it enabled,
-    restored.
-  */
-  double pow_up_without_overflow_exception(double x, double y)
-  {
-    if (!(x > 0.0 && x < GAOL_INFINITY) || x == 1.0) {
-      return upward::nthroot_up(x, y);
-    }
-    const bool grows = (x > 1.0) == (y > 0.0);
-    if (!grows) {
-      return upward::nthroot_up(x, y);
-    }
-    const double magnitude = std::fabs(y);
-    // |e| from the exponent field of x: e = field - 1022 for a normal x, and
-    // 1074 at most for a subnormal one
-    std::uint64_t bits;
-    std::memcpy(&bits, &x, sizeof bits);
-    const int field = static_cast<int>((bits >> 52) & 0x7ffu);
-    const int e = (field == 0) ? 1074 : std::abs(field - 1022);
-    if (magnitude < 1000.0/(e + 1)) {
-      return upward::nthroot_up(x, y);
-    }
-    if (magnitude >= two_power_500) {
-      return GAOL_INFINITY;
-    }
-    // 1/log(2), rounded to nearest: the margins below are far larger than its error
-    const double t = magnitude*std::fabs(upward::log_up(x))*1.4426950408889634;
-    if (t < 1023.999999999) {
-      return upward::nthroot_up(x, y);
-    }
-    if (t > 1024.000000001) {
-      return GAOL_INFINITY;
-    }
-#if GAOL_POW_MASKS_MXCSR
-    // On x86 the doubles are computed by SSE instructions, whose exceptions
-    // the control register MXCSR masks (bits 7 to 12) and whose flags it holds
-    // (bits 0 to 5): written back as it was, it gives the program its masks
-    // and flags exactly, where the functions of <cfenv> of MinGW-w64 12 to 14
-    // left the flags of the masked section raised after fesetenv(), and
-    // crashed with fesetexceptflag() (the continuous integration)
-    const unsigned int csr = _mm_getcsr();
-    _mm_setcsr(csr | 0x1f80u);
-    const double power = upward::nthroot_up(x, y);
-    _mm_setcsr(csr);
-    return power;
-#else
-    std::fenv_t environment;
-    std::feholdexcept(&environment);
-    const double power = upward::nthroot_up(x, y);
-    std::fesetenv(&environment);
-    return power;
-#endif
-  }
-
-  /*
     x^n for an integer n beyond the ints (GAOL v5, point 74 of TODO.md):
     the bounds of c^n at the corners of pown_corners(), from CORE-MATH's pow
     (pow_lo(), pow_hi()), the tightest, where n is a double, |n| <= 2^53 and
@@ -308,7 +214,8 @@ namespace gaol_core {
   interval gaol_pown(const interval& I, int n)
   {
     if (n == 2) {
-      return sqr(I);
+      // sqr(I), inline (gaol_interval_internal.h)
+      return upward_access::checked_sqr(I);
     }
     return pown_checked(I, n);
   }
@@ -1348,7 +1255,7 @@ interval nth_root(const interval& I, int q)
     }
     // mig and mag compare the bounds: after the check (see gaol/gaol_fpu.h)
     GAOL_RND_ENTER();
-    const double al = X.mig(), bl = Y.mig(), ar = X.mag(), br = Y.mag();
+    const double al = mig_of(X), bl = mig_of(Y), ar = mag_of(X), br = mag_of(Y);
     const double w = gaol_cr_hypot(al, bl);
     const double u = hypot_is_exact(al, bl, w) ? w : previous_float(w);
     const double v = gaol_cr_hypot(ar, br);

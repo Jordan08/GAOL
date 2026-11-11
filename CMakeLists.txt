@@ -1444,7 +1444,8 @@ install(TARGETS gaol EXPORT gaolTargets
 # compile when included, the parts of the library (gaol_init_cleanup.h,
 # math/gaol_core_math.h, math/gaol_u128.h, math/gaol_compoundm1.h, and the
 # operations of each kind of intervals, core/*_impl.h, which
-# core/gaol_interval_core.cpp includes), what
+# core/gaol_interval_core.cpp includes, and their kernels that the other
+# sources take inline, core/*_kernels.h), what
 # CORE-MATH's sources need to compile within GAOL (math/gaol_core_math_port.h,
 # core_math_log_dint.h, math/gaol_ldexp.h, math/gaol_roundeven.h), the bounds
 # at doubles, *_dn() and *_up(), which are not part of GAOL's interface

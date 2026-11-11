@@ -96,7 +96,8 @@ library_parser_include_HEADERS = parser/gaol_eval_stack.h \
 noinst_HEADERS = math/gaol_core_math.h \
 	gaol_init_cleanup.h parser/gaol_interval_parser.h \
 	math/gaol_u128.h \
-	core/gaol_interval_internal.h \
+	core/gaol_interval_internal.h core/gaol_interval_sse_kernels.h \
+	core/gaol_interval_neon_kernels.h core/gaol_interval_fpu_kernels.h \
 	core/gaol_interval_sse_impl.h core/gaol_interval_neon_impl.h \
 	core/gaol_interval_fpu_impl.h core/gaol_interval_avx512_impl.h \
 	math/gaol_double_op.h float/gaol_intervalf.h float/gaol_interval2f.h \
