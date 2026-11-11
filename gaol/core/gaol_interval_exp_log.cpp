@@ -309,7 +309,7 @@ namespace gaol_core {
       return interval::emptyset();
     }
 	/* We intersect the result with [0, +oo] to ensure that the result is strictly positive
- 		Otherwise, we might have: exp([-oo, -MAX] = [-v, +v] with v very small.
+		Otherwise, we might have: exp([-oo, -MAX] = [-v, +v] with v very small.
 	*/
     // exp(0) = 1 exactly, where the value of the mathematical library moved
     // outward gave exp([0]) a width, and pow([1], [-oo, +oo]) = [0, +oo]

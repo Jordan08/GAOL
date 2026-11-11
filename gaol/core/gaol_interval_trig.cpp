@@ -717,7 +717,7 @@ static inline interval cos_or_sin(double Il, double Ir)
   double a,b;
   double Ileft = -Il;
   double Iright = Ir;
-  
+
   // a <= Ileft/pi, b >= Iright/pi
   if (Ileft >= 0) {
     a = -(Il/gaol_pi_up);
@@ -735,13 +735,13 @@ static inline interval cos_or_sin(double Il, double Ir)
     a = -((-a) + 0.5);
     b = b - 0.5;
   }
-  
+
   double m=std::floor(a),
   n=std::ceil(b),
   u = -1.0, v = 1.0;
-  
+
   double nm = (n-m); // Must be rounded towards +oo
-  
+
   if (nm < 2.0) {
     // even(m)? No conversion to int in order to avoid overflow
     const bool even_m = integer_is_even(m);
@@ -785,7 +785,7 @@ static inline interval cos_or_sin(double Il, double Ir)
       return interval::minus_one_plus_one();
     }
     const bool even_m = integer_is_even(m);
-    
+
     // -1: a minimum within I; 1: a maximum; 0: none; 2: both
     int extremum;
     if (sure) {

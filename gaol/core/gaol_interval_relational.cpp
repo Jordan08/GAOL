@@ -384,7 +384,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 		  if ( J.right() < 0.0 ) { // [J] N1
         __m128d r1 = _mm_xor_pd(_mm_shuffle_pd(K.get_xmminterval(),K.get_xmminterval(),1),interval::lbrbsignmask);
         __m128d r2 = _mm_xor_pd(J.get_xmminterval(),interval::lbsignmask);
-        __m128d r3 = _mm_div_pd(r1,_mm_shuffle_pd(r2,r2,1)); 
+        __m128d r3 = _mm_div_pd(r1,_mm_shuffle_pd(r2,r2,1));
         return I & interval(r3, gaol_detail::unchecked_bounds); // P1 N1
       } else { // [J] P or Z
         if ( J.right() == 0.0 ) { // [J] N0 or Z
