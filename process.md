@@ -13,8 +13,9 @@ propose une pull request, et comment on tient les registres à jour une fois la
 pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
-en cours, ce qui reste) est au §12. Dernière mise à jour : 10 novembre 2026, au
-commit `99229cc` de `configure-clean` (la fusion de #306, après celles de #305,
+en cours, ce qui reste) est au §12. Dernière mise à jour : 11 novembre 2026, au
+commit `dcce690` de `configure-clean` (la fusion de #309, après le commit direct
+`be73e24` et celles de #311, de #310, de #308, de #307, de #306, de #305,
 de #302, de #301, de #300, de #298, de #299, de #297, de #296, de #295 et de
 #294, de #217 à #220, #222 à #225, #227 à #232, #234 à #239, #242, #245, #248 à
 #250, #262 à #276 et #279 à #285, de la branche `std-exceptions`, de #287 à
@@ -781,7 +782,7 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   `bash -e`, un `! grep ...` au milieu d'une étape ne la fait pas échouer (seule
   la dernière commande donne son statut) : écris un `if` explicite.
 
-## 12. Où en est le travail (10 novembre 2026)
+## 12. Où en est le travail (11 novembre 2026)
 
 Le reste à faire est dans `TODO.md` (tâches PH et PJ) et
 l'issue #179 ; ce qui est fait et décidé (pull requests fusionnées, décisions,
@@ -883,27 +884,41 @@ git ls-remote --heads origin
   (`39ce501`, 2.3, 3.28 et 7.26) et #306 (hors des points :
   `gaol_interval_core.h` allégé, ses aides dans `gaol_interval_detail.h`,
   `x + y`, `x - y`, `x * y` et `x / y` dans les fragments, deux jobs de CI) à
-  17 h 55 UTC (`99229cc`, 2.3, 3.29 et 7.27) ; l'entrée de #301, #303 et #304
+  17 h 55 UTC (`99229cc`, 2.3, 3.29 et 7.27), #307 (hors des points : les
+  en-têtes de tous les fichiers sur un même modèle) à 21 h 04 UTC (`6ef18d7`,
+  2.3), puis, le 11 novembre, #308 (hors des points : `gaol_interval_core.cpp`
+  découpé par domaine, avec l'en-tête interne `gaol_interval_internal.h` et les
+  noyaux partagés de `*_kernels.h`) à 21 h 05 UTC (`13582c3`, 2.3, 3.30 et
+  7.28), #310 (du mainteneur : `.gitignore`, et un `<stdint>` qui n'existe pas)
+  à 21 h 08 UTC (`d8c2699`), #311 (hors des points : `<cstdint>`) à 21 h 36 UTC
+  (`d326846`) et #309 (hors des points : `make dist` dans les trois builds, la
+  même archive `gaol-<version>.tar.gz`, et le workflow Release des paquets) à
+  22 h 16 UTC (`dcce690`, 2.3, 3.31 et 7.28) ; l'entrée de #301, #303 et #304
   dans `TODO_DONE.md` reste à écrire ; l'audit du 13
   octobre a vérifié dans `configure-clean` ce qu'annonçaient alors les points A,
   C à H et J à V.
-- **En cours** : au 10 novembre, une seule pull request est ouverte, #307 (les
-  en-têtes des fichiers, un même modèle partout ; `uniform-file-headers`, du 10
-  novembre à 17 h 52 UTC, hors des points de `TODO.md`) ; #295 (PS.2 ;
-  `manual-neon-pown-text`), #296 (le cas (b) ; `manual-case-b-text`), #297 (la
+- **En cours** : au 11 novembre, aucune pull request n'est ouverte : #295 (PS.2
+  ; `manual-neon-pown-text`), #296 (le cas (b) ; `manual-case-b-text`), #297 (la
   tâche PS ; `todo-ps-stale-texts`), #299 (PQ.2 ; `todo-pq-hexfloat-point`),
   #298 (PQ.1 ; `todo-pq-centered-form`), #300 (la recette de compilation croisée
   de `todo-notes/gcc12-aarch64/` ; `todo-notes-gcc12-aarch64`), #302 (la tâche
-  PP ; `todo-pp-div-rel-n1-m`), #305 (les `friend` ; `friend-cleanup`) et #306
-  (`gaol_interval_core.h` allégé ; `core-detail-header`) sont fusionnées, leurs
-  registres faits ; `configure-clean` est au commit `99229cc` (la fusion de
-  #306, après celles de #305, `39ce501`, de #302, `9acea90`, de #301, `7053c74`,
+  PP ; `todo-pp-div-rel-n1-m`), #305 (les `friend` ; `friend-cleanup`), #306
+  (`gaol_interval_core.h` allégé ; `core-detail-header`), #307 (les en-têtes ;
+  `uniform-file-headers`), #308 (le découpage ; `core-split-domains`), #310 (du
+  mainteneur, depuis `core-split-domains`), #311 (`fix-cstdint-include`) et
+  #309 (`make dist` et Release ; `make-dist`) sont fusionnées, leurs registres
+  faits ; `configure-clean` est au commit `dcce690` (la fusion de #309, après
+  le commit direct `be73e24`, les fusions de #311, `d326846`, de #310,
+  `d8c2699`, de #308, `13582c3`, de #307, `6ef18d7`, et de #306, `99229cc`,
+  après celles de #305, `39ce501`, de #302, `9acea90`, de #301, `7053c74`,
   de #300, `ac9f130`, de #298, `0f469e7`, de #299, `36b4f93`, de #297,
   `5392bbc`, de #296, `7bc3d05`, et de #295, `5bd52a6`, et le commit direct
   `634e3e1`, après la fusion de #294, `1e23540`, après celle de #292, `130acea`,
   et celles de #293, #291, #290 et #289, les registres de #288, `6ed4441`, et la
-  fusion de #288, `61a432b`). Ses branches sur GitHub sont `configure-clean`,
-  `MATH-CORE` et `master`, avec les branches des pull requests ouvertes ; celles
+  fusion de #288, `61a432b`). Ses branches sur GitHub sont `configure-clean` et
+  `master` (`MATH-CORE` y est supprimée le 11 novembre à 22 h 01 UTC, sa
+  pointe `e80819a` dans `configure-clean`, à confirmer par le mainteneur :
+  `TODO_DONE.md` 8.1), avec les branches des pull requests ouvertes ; celles
   des pull requests jetables fermées (`experiment-pg*`, `todo-pg-xle-exfirst`)
   et de #279 (`todo-pg-relations-order`), de #301 (`todo-pt-verif`) et de #311
   (`fix-cstdint-include`) sont supprimées depuis le 11 novembre (`TODO_DONE.md`
@@ -913,7 +928,8 @@ git ls-remote --heads origin
   (`relation-loops`), de #294 (`manual-thesis-style`), de #295
   (`manual-neon-pown-text`), de #296 (`manual-case-b-text`), de #297
   (`todo-ps-stale-texts`), de #302 (`todo-pp-div-rel-n1-m`), de #305
-  (`friend-cleanup`) et de #306 (`core-detail-header`) sont supprimées à leur
+  (`friend-cleanup`), de #306 (`core-detail-header`), de #308 et #310
+  (`core-split-domains`) et de #309 (`make-dist`) sont supprimées à leur
   fusion, comme celles de #287 (`pown-rel`) et de #288 (`compoundm1`), et
   `std-exceptions` et `revert-285-std-exceptions` depuis le 4 novembre. L'issue
   #198 (`x / y` des intervalles NEON avec `FPCR.AH`) est ouverte, sans tâche
@@ -929,7 +945,8 @@ git ls-remote --heads origin
   n'est à refaire que si les mesures de PJ changent le manuel (PJ.5), et les
   trois détails qui restent de la synthèse de #283 à #288, faite par #289 le 5
   novembre, avec la phrase sur le cas (b) de 12.12.7 que PM a décidée, et les
-  textes de #306 pour `doc/differences.md` et le `ChangeLog` : PJ.7).
+  textes de #306, de #308 et de #309 pour `doc/differences.md` et le
+  `ChangeLog` : PJ.7).
   Ce qui est reporté (le 113, le site, les traits pour YalAA
   et VNODE-LP, les décorations, ce qui attend du matériel) est dans
   `TODO_AFTER.md`. Les dépendances entre points sont écrites dans chaque tâche.

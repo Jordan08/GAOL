@@ -1,7 +1,7 @@
 # Fait et décidé sur GAOL v5
 
-Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 10 novembre
-2026 (commit `99229cc` de `configure-clean`, la fusion de #306 : voir la section
+Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 11 novembre
+2026 (commit `dcce690` de `configure-clean`, la fusion de #309 : voir la section
 1). Ce fichier fait foi : l'issue #177, qui avait le même contenu, n'est
 plus mise à jour depuis le 28 octobre (voir 7.8).
 
@@ -54,10 +54,13 @@ par date ; 4. Les points faits, par lettre ; 5. Les anciens numéros faits ; 6.
 Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 `configure-clean` ; 8. Le ménage fait.
 
-## 1. L'état au 10 novembre 2026
+## 1. L'état au 11 novembre 2026
 
-- **`configure-clean`** est au commit `99229cc` (la fusion de #306 le 10
-  novembre à 17 h 55 UTC, après celles de #305 à 8 h 52 UTC (`39ce501`), de
+- **`configure-clean`** est au commit `dcce690` (la fusion de #309 le 11
+  novembre à 22 h 16 UTC, après le commit direct `be73e24` (8.1), et celles de
+  #311 à 21 h 36 UTC (`d326846`), de #310 à 21 h 08 UTC (`d8c2699`), de #308 à
+  21 h 05 UTC (`13582c3`), de #307 le 10 novembre à 21 h 04 UTC (`6ef18d7`) et
+  de #306 à 17 h 55 UTC (`99229cc`), de #305 à 8 h 52 UTC (`39ce501`), de
   #302 le 9 novembre à 22 h 03 UTC, de
   #301 à 23 h 09, de #300 à 21 h 38, de #298 à 20 h 44 et de #299 à 20 h 31 le
   8, et de #297 (`5392bbc`) à 19 h 38 UTC, qui suit celles de #295 et de #296 et
@@ -119,7 +122,13 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   M de `div_rel()` en SSE2) à 22 h 03 UTC et, le 10, #305 (hors des points : six
   `friend` de `interval` retirés) à 8 h 52 UTC et #306 (hors des points :
   `gaol_interval_core.h` allégé, ses aides dans `gaol_interval_detail.h`) à 17 h
-  55 UTC (2.3, 3.28, 3.29 et 7.25 à 7.27). #168,
+  55 UTC et #307 (hors des points : les en-têtes de tous les fichiers sur un
+  même modèle) à 21 h 04 UTC (2.3, 3.28, 3.29 et 7.25 à 7.27), puis, le 11
+  novembre, #308 (hors des points : `gaol_interval_core.cpp` découpé par
+  domaine) à 21 h 05 UTC, #310 (du mainteneur : `.gitignore`, et l'en-tête
+  `<stdint>`, qui n'existe pas) à 21 h 08, #311 (hors des points : `<cstdint>`)
+  à 21 h 36 et #309 (hors des points : `make dist` dans les trois builds, le
+  workflow Release des paquets) à 22 h 16 UTC (2.3, 3.30, 3.31 et 7.28). #168,
   #195, #211, #214, #221, #226 et #233 sont fermées sans fusion, et, du 30 et du
   31 octobre, #240, #241, #243, #244, #246, #247, #251 à #261, #277 et #278,
   puis #286, le « Revert » de #285 fermé onze secondes après son ouverture
@@ -181,8 +190,9 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   défaut ; les instructions FMA, le chemin AVX-512, l'entier 128 bits et le
   débogage sont décidés par des tests de la configuration, les anciennes
   options restant des réglages des développeurs (`doc/building.md`).
-- **Branches** : GitHub a `configure-clean`, `MATH-CORE` et `master`, avec les
-  branches des pull requests ouvertes ; celles des pull requests jetables
+- **Branches** : GitHub a `configure-clean` et `master` (`MATH-CORE` y est
+  supprimée le 11 novembre à 22 h 01 UTC, sa pointe dans `configure-clean` :
+  8.1), avec les branches des pull requests ouvertes ; celles des pull requests jetables
   fermées (`experiment-pg*`, `todo-pg-xle-exfirst`) et les fusionnées sont
   supprimées depuis le 11 novembre (8.1), leurs commits restant sous
   `refs/pull/<n>/head` ; les branches fusionnées sont supprimées en local.
@@ -2996,6 +3006,173 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   (7.27). Celle du commit de fusion (`99229cc`, les cinq workflows de `push`) :
   204 jobs, tous verts. Décisions : 3.29.
 
+- #307 (hors des points : un même modèle pour l'en-tête de tous les fichiers,
+  sur demande du mainteneur ; `uniform-file-headers`, ouverte le 10 novembre à
+  17 h 52 UTC, 14 commits, 321 fichiers, 2 342 lignes ajoutées et 1 569
+  retirées contre `configure-clean`) : fusionnée le même jour à 21 h 04 UTC par
+  le mainteneur (`6ef18d7`, tête `cd3d957`). Le modèle a trois champs dans tous
+  les langages : les lignes `Copyright (c)`, la ligne `By:` et la phrase de
+  licence, qui renvoie à `COPYING.LIB` (l'ancienne renvoyait à un `COPYING`
+  absent) ; 311 fichiers portent la ligne `By:`, dont 63 qui n'avaient aucun
+  en-tête. Frédéric Goualard est nommé dans les 70 fichiers qui ont de son code
+  ou de son texte (GAOL 4, `v4.2.3`), Jordan Ninin seul dans 235 fichiers,
+  Raphaël Chenouard dans les six fichiers de meson qu'il a écrits ; plus
+  d'adresse électronique ni de paragraphe d'historique.
+  `gaol_interval_neon.h`, `gaol_interval_neon.cpp`, `gaol_interval_detail.h`
+  et `gaol_ieee1788.cpp` passent à Jordan seul (*décidé par le mainteneur*).
+  Seule modification de code : chacun des trois fragments ferme `gaol_core` à
+  sa fin, et `gaol_interval_core.cpp` le rouvre après l'inclusion. Le lexer et
+  le parser sont régénérés (flex 2.6.4, bison 3.8.2), comme les `Makefile.in`
+  (automake 1.18.1) et `configure`, dont l'`AC_COPYRIGHT` reprend les quatre
+  lignes de copyright de `configure.ac` ; `README.md` et `process.md` (4.10)
+  donnent le modèle ; le message d'erreur d'exemple de `doc/using.md` et du
+  chapitre 13 du manuel passe de `gaol_interval.cpp:48:` à `:43:` (le PDF n'est
+  pas refait : PJ.5). Validations en local : CMake GCC SSE2 (63 tests), FPU
+  (60), Clang 18 (63), `-Wall -Wextra -Werror` ; autotools (31 réussis, 2
+  ignorés, 16 exemples) et meson (31, 2 ignorés) ; `headers.sh` et `tests.sh`
+  sur le GAOL installé (1 425 585 vérifications) ; NEON par GCC 12.2 pour
+  aarch64 sous qemu (131 901 vérifications) ; le PDF du manuel, 387 pages,
+  même texte hors les trois `:48:`. Deux relecteurs indépendants. Sa CI à la
+  tête : 227 jobs, 214 verts et 13 jobs de Performance en échec à la
+  construction de la base (`base/gaol/core/gaol_interval_core.cpp:960` :
+  `'interval_format' does not name a type`), cause non cherchée par la session
+  qui écrit ces registres ; celle du commit de fusion (`6ef18d7`, les cinq
+  workflows de `push`) : 205 jobs, tous verts. Ses points ouverts, tranchés par
+  le mainteneur, sont dans sa description (les années des en-têtes ajoutés
+  gardées, les chapitres 02, 10, 11, 12, 14 et 15 à Jordan seul avec la phrase
+  `Based on the manual of GAOL 4…`, pas de contrôle du modèle en CI). Rien pour
+  `doc/differences.md` ni le `ChangeLog`, dit sa description. Ses registres sont
+  faits le 11 novembre, avec ceux de #308 à #311 (7.28).
+
+- #308 (hors des points : le point 1 de la revue d'architecture du 10
+  novembre, découper `gaol/core/gaol_interval_core.cpp` par domaine ;
+  `core-split-domains`, ouverte le 10 novembre à 23 h 24 UTC, 12 commits, 59
+  fichiers, 8 129 lignes ajoutées et 7 355 retirées contre `configure-clean`) :
+  fusionnée le 11 novembre à 21 h 05 UTC par le mainteneur (`13582c3`, tête
+  `aa2c1b6`). Les fragments inclus (`gaol_interval_{sse,neon,fpu,avx512}.cpp`,
+  `gaol_intervalf.cpp`, `gaol_interval2f.cpp`) deviennent `*_impl.h`
+  (`505f1a5`) ; le fichier de 7 306 lignes devient sept sources (`f5d04c1`) :
+  `gaol_interval_core.cpp` (les membres, + - * / et `sqrt` de chaque sorte
+  d'intervalles, le noyau des puissances entières, `max`, `min`, `abs`, `fma`,
+  `erf`…, 1 534 lignes), `gaol_interval_pow.cpp` (1 398),
+  `gaol_interval_exp_log.cpp` (358), `gaol_interval_trig.cpp` (867),
+  `gaol_interval_hyperbolic.cpp` (146), `gaol_interval_relational.cpp` (toutes
+  les `_rel` et `div_rel()`, 1 772) et `gaol_interval_io.cpp` (865), avec
+  l'en-tête interne, non installé, `gaol_interval_internal.h` (942) ; quatre
+  fonctions perdent `static` et y sont déclarées (`pown_large_upward()`,
+  `pown_checked()`, `pow_is_double()`, `nth_root_upward()`), les aides
+  partagées y sont `static inline`, et `div_rel()` de NEON et du FPU n'en fait
+  plus qu'une. Les outils et la CI suivent (`c26b23e` : `mutate.py`,
+  `amalgamate.py`, l'étape Cygwin de `windows.yml`) ; `check_order.py` ne prend
+  plus le bloc qui suit `__stack_chk_fail()` pour la suite de l'appel, un faux
+  chemin que la source plus petite faisait voir (`2af739b`, un cas de
+  `--selftest`) ; les noyaux que plusieurs sources prennent inline vont dans
+  `gaol_interval_{sse,neon,fpu}_kernels.h`, non installés, et `operator-()` des
+  intervalles SSE2 devient inline dans `gaol_interval_sse.h` (`138c93e`,
+  `e705c00`, `9031dc8`, `83667a7`), ce qui rend à `pow(x, 2)` et
+  `nth_root(x, -2)` la vitesse de la base sur le M2 (1,52 et 3,05 ns, contre
+  1,59 et 3,58 avant le découpage) ; chaque fichier de `gaol/core/` a une
+  description de deux lignes en tête (`59f67a3`) ; `CPACK_SOURCE_IGNORE_FILES`
+  suit les `.gitignore` (`aa2c1b6`). Les appels entre fonctions de la
+  bibliothèque ont été comparés à ceux de la base (`objdump -dr`, onze
+  configurations) : seuls restent des appels `pown_large_upward()` et
+  `midpoint()`, décidés. Vitesse (`performance-ab.sh`, i7-1185G7, M2 et Xeon de
+  cloud1) : des lignes plus rapides, aucune plus lente hors de la dispersion ;
+  le workflow Performance ne signale que des lignes plus rapides. Validations en
+  local : CMake GCC 15.2 SSE2 et AVX-512 avec l'arrondi préservé (47 tests),
+  FPU (44), Clang 18 et 21, `-Wall -Wextra -Werror` ; NEON par GCC 12.2 pour
+  aarch64 sous qemu (`ieee1788`, `reverse`, `arithmetic`, 8 242 527
+  vérifications) ; meson (31 réussis, 2 ignorés), autotools (31, 2, 16
+  exemples) ; `check_order.py` sur les quatre configurations de son job. Deux
+  relecteurs indépendants (le second : la règle de la définition unique,
+  corrigée par `9031dc8`). Sa CI à la tête : 227 jobs, tous verts, après des
+  relances des jobs qu'une panne des serveurs DNS des exécuteurs avait fait
+  échouer à `apt-get` (7.28) ; celle du commit de fusion (`13582c3`) : 20 jobs
+  verts et 185 annulés par les pushs suivants sur `configure-clean`.
+  Décisions : 3.30.
+
+- #310 (« update .gitignore », du mainteneur, depuis `core-split-domains`,
+  ouverte et fusionnée le 11 novembre à 21 h 08 UTC, `d8c2699`, tête
+  `22c6f03`, 1 commit, 2 fichiers) : `.cache/` et `compile_commands.json` dans
+  `.gitignore`, et, dans `gaol/core/gaol_interval_sse_impl.h`, `#include
+  <stdint.h>` (et son commentaire `TODO`) remplacé par `#include <stdint>`, un
+  en-tête qui n'existe pas : aucune construction SSE2 ne compile plus (GCC 15 :
+  `fatal error: stdint: Aucun fichier ou dossier de ce nom` ; la CI de #310 :
+  les jobs de Performance sur la même ligne). Fusionnée avant que sa CI ne
+  tourne ; corrigée par #311. Les deux motifs ajoutés à `.gitignore` ne sont
+  pas dans `CPACK_SOURCE_IGNORE_FILES`, qui en suit la liste depuis #308 (un
+  `.cache/` de clangd dans l'arbre entrerait dans l'archive de la cible `dist`
+  de CMake, et non dans celles de `make dist` et de `meson dist`) : proposé au
+  mainteneur, sans réponse (7.28).
+
+- #311 (hors des points : `#include <cstdint>` dans `gaol_interval_sse_impl.h`
+  ; `fix-cstdint-include`, ouverte le 11 novembre à 21 h 22 UTC, 1 commit, 1
+  ligne) : fusionnée à 21 h 36 UTC par le mainteneur (`d326846`, tête
+  `3a9d9c9`). `<cstdint>` est l'en-tête qui déclare `std::uint64_t`, que le
+  fichier emploie (`sqr_lanes`), et celui que `gaol_interval_internal.h` inclut.
+  Validations en local : `d8c2699` ne se construit pas (GCC 15, la ligne 21) ;
+  avec la correction, GCC 15 et Clang 21 en SSE2, 47 tests sur 47 chacun, sans
+  avertissement. Sa CI à la tête : 172 jobs verts, 13 jobs de Performance en
+  échec parce que la base, `d8c2699`, ne compile pas
+  (`base/gaol/core/gaol_interval_sse_impl.h:21:10: fatal error: stdint`), et 41
+  annulés ; les cinq workflows de `push` de `d326846` sont annulés par le push
+  suivant (`be73e24`).
+
+- #309 (hors des points : `make dist` dans le build autotools, une même archive
+  des sources pour les trois builds, et un workflow Release des paquets, sur
+  demande du mainteneur ; `make-dist`, ouverte le 11 novembre à 14 h 43 UTC,
+  empilée sur #308, 5 commits, 21 fichiers, 2 163 lignes ajoutées et 62
+  retirées) : fusionnée à 22 h 16 UTC par le mainteneur (`dcce690`, tête
+  `8e5142f`). `e71a39c` : `no-dist` retiré de `AM_INIT_AUTOMAKE`, une liste
+  `EXTRA_DIST` dans chaque `Makefile.am` (3rd 315 fichiers, tests 61, manual
+  46, gaol 8, examples 7, celui du haut 104 pour la racine, `doc/`, `cmake/`,
+  `coverage/` et `.github/`), `gaol_configuration.h` dans
+  `nodist_library_include_HEADERS`, `make uninstall` qui retire `gaol.pc`,
+  `AM_DISTCHECK_CONFIGURE_FLAGS = --with-tests --with-examples`, `configure` et
+  les `Makefile.in` régénérés (autoconf 2.72, automake 1.18.1). `61a54e8` :
+  `.gitattributes` marque `export-ignore` les notes (`TODO*.md`, `STEP.md`,
+  `process.md`, `todo-notes/`, `.claude/`), que `meson dist` (par `git
+  archive`) laisse donc de côté ; le projet meson s'appelle `gaol` ; une cible
+  `dist` dans CMake (CPack sur `CPackSourceConfig.cmake`). `e6ea704` : le job
+  « Archives of the sources, Ubuntu 24.04 x86_64 » du workflow Autotools and
+  meson lance `make dist` et `make distcheck`, la cible `dist` et `meson dist`,
+  et vérifie que les trois archives s'appellent `gaol-<version>.tar.gz` et
+  contiennent exactement les fichiers de `git archive HEAD` ; `doc/building.md`.
+  `4ffece9` : `.github/workflows/release.yml`, à chaque tag d'un commit de
+  `master` qui est la version de `VERSION.txt`, trois paquets CPack en Release,
+  installés sur l'exécuteur puis testés par `tests/find_package` :
+  `libgaol-dev_<version>_amd64.deb` (Ubuntu 26.04, GCC 15.2 du système),
+  `gaol-<version>-macos-arm64.pkg` (macOS 26, AppleClang, `/usr/local`) et
+  `gaol-<version>-windows-x64.exe` (Windows Server 2025, Visual C++ 2026 x64,
+  `/MD`, NSIS), attachés à la Release GitHub du tag ; une pull request qui
+  touche le workflow, `CMakeLists.txt` ou `cmake/` les construit sans Release.
+  `8e5142f` : le `.pkg` de `4ffece9` était vide (14 936 octets, `installer`
+  tombait sur `NSInvalidArgumentException … key: packages`) ; sous macOS, les
+  fichiers vont dans le composant `Development`, que `CPACK_COMPONENTS_ALL`
+  nomme (diagnostic et correction de la session MACarm4, 3.31) ;
+  `doc/building.md` donne l'option `CPACK_PACKAGING_INSTALL_PREFIX` et la
+  désinstallation. Validations en local, sur un clone propre : les trois
+  archives ont les mêmes 726 fichiers que `git archive HEAD`, `make distcheck`
+  réussit (31 tests, 2 ignorés, 16 exemples), `meson dist` construit et teste
+  la sienne ; le chemin Ubuntu du workflow Release (47 tests, le `.deb`
+  décompressé, les 6 tests de `tests/find_package`). Sur le Mac M2 (MACarm4) :
+  le `.pkg` corrigé, 682 895 octets, son payload, les 6 tests de
+  `tests/find_package` contre le payload décompressé, sans installation. Sa CI
+  à la tête : 233 jobs, 231 verts et 2 sautés (les jobs du tag et de la
+  Release, qui ne tournent que sur un tag) ; le job macOS du workflow Release
+  installe le `.pkg` (679 314 octets) et y retrouve les 28 fichiers, le job
+  Windows installe le `.exe` (1 063 294 octets) sous
+  `C:\Program Files\gaol`, et les 6 tests de `tests/find_package` réussissent
+  sur les trois plateformes. Après la fusion de #308, sa base devient
+  `configure-clean` : la pull request est fermée puis rouverte pour que sa CI
+  tourne sur la nouvelle base (une relance garde l'ancien commit de fusion),
+  puis cette CI est annulée à la fusion. CI du commit de fusion (`dcce690`, les
+  six workflows de `push`) : 206 jobs, tous verts (Manual 1, Windows 64, Linux
+  49, Linux containers 23, Autotools and meson 49, macOS 20), après une relance
+  du job `macOS 26 arm64 LLVM Clang Debug ASan+UBSan`, où `numbers` avait
+  dépassé sa limite de 300 s (300,39 s ; 230,75 s à la relance, 238 et 252 s
+  dans les deux runs précédents du même job : 7.28). Décisions : 3.31.
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -5570,6 +5747,77 @@ l'arbre (`origin/configure-clean` à `593ddf3`) avant d'être corrigé : les hui
   `GAOL_FPU_SCALAR` et de `keep_ordered()` est le même, avec les mêmes
   conditions).
 
+### 3.30 Les 10 et 11 novembre : `gaol_interval_core.cpp` découpé par domaine (#308)
+
+- **La demande** : le point 1 de la revue d'architecture du 10 novembre,
+  découper `gaol/core/gaol_interval_core.cpp` (7 306 lignes) par domaine. *Décidé
+  le 10 novembre* : le noyau des puissances entières reste avec + - * / dans
+  `gaol_interval_core.cpp`, qui inclut les fragments, et `gaol_pown()` et les
+  autres puissances vont dans `gaol_interval_pow.cpp` ; toutes les fonctions
+  `_rel` vont dans `gaol_interval_relational.cpp`, et non avec la fonction de
+  leur domaine ; les exponentielles et les logarithmes ont leur propre fichier.
+- **`product_up_sat()` et `product_dn_sat()`**, que seules les fonctions
+  relationnelles appellent : *décidé le 11 novembre*, elles restent dans
+  l'en-tête interne, à côté des quotients saturés que le même commentaire
+  décrit.
+- **La perte d'inlining du découpage** (sur le M2, à `60bc83e`, `pow(x, 2)`
+  +21 % et `nth_root(x, -2)` +14,5 %) : *décidé le 11 novembre*, des corps
+  inline partagés, les noyaux de chaque sorte d'intervalles dans des en-têtes
+  non installés (`gaol_interval_{sse,neon,fpu}_kernels.h`), que
+  `gaol_interval_internal.h` inclut, plutôt que de rendre ces fonctions à
+  `gaol_interval_core.cpp` ; `operator-()` des intervalles SSE2 devient inline
+  dans l'en-tête installé `gaol_interval_sse.h`, comme pour NEON et le FPU.
+  `midpoint()` reste un appel (seul `mid_rad()` de `operator<<` l'appelle), et
+  `pown_large_upward()` aussi (le noyau reste dans `gaol_interval_core.cpp`).
+- **Les mesures** : un banc A/B (`performance-ab.sh`) avec GCC 15 sur l'i7, sur
+  cloud1 (Xeon, GCC 13.3, Clang 18, AVX-512) et sur MACarm4 (M2, Apple clang
+  21), *demandé le 11 novembre* ; les temps de toutes les lignes sur les trois
+  machines ont été montrés au mainteneur.
+- **Les en-têtes de `gaol/core/`** : *demandé le 11 novembre*, une description
+  de deux lignes au plus en tête de chaque fichier ; les détails sont déplacés
+  sous elle, dans #308.
+- **`CPACK_SOURCE_IGNORE_FILES`** : l'archive de `package_source` prenait
+  `manual/v5/build/` et les autres produits que les `.gitignore` ignorent ;
+  *décidé le 11 novembre*, corrigé dans #308 (`aa2c1b6`).
+- **L'arbre de travail** : *décidé le 11 novembre*, le clone `GAOL_split` est
+  supprimé, le travail se fait dans GAOL_V9.
+- **Les textes pour `doc/differences.md` et le `ChangeLog`**, écrits dans la
+  description sans toucher aux registres : dans `TODO.md` PJ.7.
+
+### 3.31 Le 11 novembre : `make dist` dans les trois builds et le workflow Release (#309)
+
+- **La demande** : `make dist` dans le build autotools, et la même archive,
+  avec les mêmes fichiers, pour CMake, meson et autotools, les listes de
+  fichiers étant dans les builds, sans script. *Décidé le 11 novembre* : une
+  pull request à part, empilée sur #308 (elle prend la correction de
+  `CPACK_SOURCE_IGNORE_FILES`) ; l'archive s'appelle `gaol-<version>.tar.gz`
+  (`meson dist --formats gztar`) ; le projet meson est renommé `gaol` (il
+  s'appelait `GAOL`, et `meson dist` nomme l'archive d'après lui).
+- **Les paquets** (la question du mainteneur : un `.deb`, un `.rpm`, un `.dmg`
+  ou un `.exe` pour chaque plateforme) : *décidé le 11 novembre*, dans #309, un
+  workflow Release déclenché par tout nouveau tag de `master`, qui construit en
+  Release et attache trois paquets à la Release GitHub : Ubuntu LTS la plus
+  récente avec GCC, macOS le plus récent avec AppleClang, Windows le plus récent
+  avec Visual C++ le plus récent en `/MD`. Les choix : GCC 15.2 du système
+  (`gcc-16` n'est qu'un instantané de développement sur Ubuntu 26.04), un
+  `.pkg` arm64 seul, un `.exe` NSIS. Pas de `.rpm`.
+- **Le `.pkg` vide** : la session MACarm4 a proposé deux corrections, toutes
+  deux essayées ; celle qui est prise met les fichiers dans un composant
+  `Development`, avec un titre pour l'installeur et obligatoire, le reçu
+  s'appelant `fr.ensta.gaol.Development` ; l'autre, une ligne
+  (`CPACK_COMPONENTS_ALL` à `Unspecified`), donnait un paquet
+  `fr.ensta.gaol.Unspecified` sans choix affiché. MACarm4 n'a pas installé le
+  `.pkg` avec `sudo` sur le Mac sans l'accord du mainteneur lui-même : seule la
+  CI l'installe.
+- **Non fait** : la signature et la notarisation du `.pkg` (il faudrait un
+  compte Apple Developer ; Gatekeeper demande de l'ouvrir par clic droit) ;
+  `make dist` sous macOS, MSYS2 et Cygwin, `meson dist` avec meson 0.53.2.
+- **`.cache/` et `compile_commands.json`**, ajoutés à `.gitignore` par #310 et
+  absents de `CPACK_SOURCE_IGNORE_FILES` : proposés au mainteneur le 11
+  novembre, sans réponse.
+- **Les textes pour `doc/differences.md` et le `ChangeLog`** : dans `TODO.md`
+  PJ.7.
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -7445,6 +7693,53 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   `process.md` (l'en-tête et §12) et l'issue #179. `TODO_AFTER.md` n'a rien de
   nouveau.
 
+### 7.28 Le 11 novembre (le découpage, #308 ; `make dist` et Release, #309 ; #310 et #311)
+
+- Le travail se fait dans l'arbre de GAOL_V9, sur `core-split-domains` puis
+  `make-dist` (`--no-track`), avec des commits `Jordan08` ; les builds et les
+  essais sont dans le scratchpad. Les branches sont poussées par SSH
+  (`git push git@github.com:Jordan08/GAOL.git <branche>`), ce qui ne met pas à
+  jour `origin/<branche>` en local, et les pull requests sont ouvertes par
+  `gh api -X POST repos/Jordan08/GAOL/pulls`.
+- Les sessions MACarm4 (M2) et cloud1 (Xeon) ont mesuré les bancs A/B de #308 ;
+  MACarm4 a reproduit et diagnostiqué le `.pkg` vide : CPack voit un seul
+  composant, `Unspecified`, sans liste de composants, fait le paquet du
+  composant mais écrit une `Distribution` sans `choice` ni `pkg-ref`, et
+  `productbuild` fait un produit sans paquet ; `CMAKE_INSTALL_DEFAULT_COMPONENT_NAME`
+  n'agit qu'écrit par `set()` avant les `install()` (un `-D` de `cmake` ne
+  change rien), et `CPACK_COMPONENTS_ALL` doit être donné à la configuration,
+  non à `cpack -D`. Il a envoyé un diff, appliqué tel quel (`8e5142f`).
+- Une panne des serveurs DNS des exécuteurs de GitHub, l'après-midi du 11
+  novembre (`Temporary failure resolving 'archive.ubuntu.com'`, puis
+  `ports.ubuntu.com`, `security.ubuntu.com`, et `Network is unreachable`), fait
+  échouer à `apt-get` tous les jobs Ubuntu qui installent des paquets. Un
+  script du scratchpad (`rerun3.sh`) attend les runs et ne relance les jobs en
+  échec que si leur journal montre la panne, trois fois au plus par run ;
+  jusqu'à quatre relances ont été nécessaires. Le job `macOS 15 arm64, FPU
+  intervals` de `83667a7` n'a pas eu d'exécuteur, et a réussi relancé.
+- Pièges : le workflow Release a `cancel-in-progress: false` (une Release ne
+  doit pas s'interrompre), si bien qu'un nouveau push n'annule pas le run d'une
+  tête dépassée, qui fait attendre le suivant : il est annulé à la main ; une
+  relance d'un run de `pull_request` garde son commit de fusion d'origine, et
+  ne teste donc pas une nouvelle base (d'où la fermeture et la réouverture de
+  #309) ; `gh api …/jobs/<id>/logs` refuse un journal qui contient des
+  séquences d'échappement sans `--allow-escape-sequences`.
+- `numbers` sous ASan et UBSan sur macOS 26 arm64 (Debug) prend de 230 à 252 s
+  pour une limite de 300 s (`GAOL_NUMBERS_TIMEOUT`, que `macos.yml` règle par
+  configuration avec `matrix.cfg.timeout`) : sur un exécuteur lent, il la
+  dépasse (300,39 s dans la CI de `dcce690`, réussi à la relance). Relever la
+  limite de ce job est proposé au mainteneur, non fait.
+- `<stdint>` : vu en regardant les commits de la fusion de #308 (#310), avant
+  que sa CI ne tourne ; la correction, #311, est faite à la demande du
+  mainteneur. Les deux motifs de `.gitignore` absents de
+  `CPACK_SOURCE_IGNORE_FILES` lui sont proposés pour #309, sans réponse.
+- Les registres de #307 à #311 sont faits ici, en un commit direct sur
+  `configure-clean`, depuis l'arbre de GAOL_V9 : `TODO.md` (l'en-tête prend
+  `dcce690`, la liste des pull requests, PJ.7), ce fichier (1, 2.3, 3.30,
+  3.31, 7.28 et 8.1), `process.md` (l'en-tête et §12) et l'issue #179.
+  `TODO_AFTER.md` n'a rien de nouveau. Le commit est poussé une fois la CI de
+  `dcce690` finie, qu'il aurait annulée (process.md §10).
+
 ## 8. Le ménage fait
 
 ### 8.1 Branches, lignes de crédit, outillage
@@ -7574,6 +7869,15 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   `configure-clean` qu'à v5.0.0). Le réglage « supprimer la branche à la
   fusion » est activé sur GitHub. Restent : `configure-clean`, `MATH-CORE`,
   `master` et `make-dist` (#309).
+- [x] Le 11 novembre, après la fusion de #309 : `make-dist` est supprimée sur
+  GitHub à la fusion (le réglage du même jour) et en local, comme
+  `fix-cstdint-include` en local. `MATH-CORE` est supprimée sur GitHub le 11
+  novembre à 22 h 01 UTC (compte `Jordan08`, après `be73e24`, qui la disait
+  gardée) : sa pointe, `e80819a` (la fusion de #30), est un ancêtre de
+  `configure-clean`, rien n'est perdu ; le chemin de la version (point Y :
+  `configure-clean` dans `MATH-CORE`, puis dans `master`) passait par elle, à
+  confirmer par le mainteneur. Restent sur GitHub `configure-clean` et
+  `master`, et en local `configure-clean` et `master`.
 - [x] Lignes de crédit retirées des descriptions de #50, #51, #53 à #57 et #59,
   d'un commentaire de #59 et de cette issue. Il en reste dans les messages des
   commits a0d3871, 790ca12 et f1f4239 de #99, fusionnée sans squash. Retirées

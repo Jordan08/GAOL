@@ -1,12 +1,14 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `99229cc` de `configure-clean` (la
-fusion de #306, hors des points, le 10 novembre 2026 à 17 h 55 UTC, après
-celles de #305, hors des points, de #302, la tâche PP, de #304 et de #303, les
-registres de la tâche PT, de #301, la tâche PT, de #300, hors des points, de
-#298, de #299, de #297, de #296 et de #295, de #294, le manuel dans le style de
-la thèse, et de #292, de #293, #291, #290 et #289), en tâches PH et PJ (PA à
-PG, PI, PL, PP, PQ, PS et PT sont faites, PK et PM sont close sans code : voir
+Ce qui reste à faire sur GAOL v5 au commit `dcce690` de `configure-clean` (la
+fusion de #309, hors des points, le 11 novembre 2026 à 22 h 16 UTC, après le
+commit direct `be73e24` et celles de #311, de #310 et de #308, hors des
+points, de #307 et de #306, hors des points, de #305, hors des points, de
+#302, la tâche PP, de #304 et de #303, les registres de la tâche PT, de #301,
+la tâche PT, de #300, hors des points, de #298, de #299, de #297, de #296 et
+de #295, de #294, le manuel dans le style de la thèse, et de #292, de #293,
+#291, #290 et #289), en tâches PH et PJ (PA à PG, PI, PL, PP, PQ, PS et PT
+sont faites, PK et PM sont close sans code : voir
 `TODO_DONE.md`). Ce fichier et l'issue #179 ont le même
 contenu. Ce qui est fait et décidé est dans `TODO_DONE.md` (l'issue #177 n'est
 plus mise à jour), ce qui est reporté dans `TODO_AFTER.md` (issue #178). Les
@@ -18,17 +20,21 @@ les tâches PS (faite par #297), PT (faite par #301 : `TODO_DONE.md` 3.25) et PP
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à envoyer à un autre projet ni à publier sans l'accord
-du mainteneur. Une seule pull request est ouverte : #307 (hors des points : les
-en-têtes des fichiers, un même modèle partout, sans adresses électroniques ;
-ouverte le 10 novembre à 17 h 52 UTC). #295 (PS.2), #296 (PM), #297 (la tâche
-PS), #299 (PQ.2), #298 (PQ.1), #300 (hors des points : la recette de compilation
-croisée GCC 12.2 pour aarch64 de `todo-notes/gcc12-aarch64/`) et #301 (la tâche
-PT) sont fusionnées le 8 novembre, à 17 h 21, 17 h 29, 19 h 38, 20 h 31,
-20 h 44, 21 h 38 et 23 h 09 UTC, et #302 (la tâche PP : le cas N1 M de
+du mainteneur. Aucune pull request n'est ouverte. #295 (PS.2), #296 (PM), #297
+(la tâche PS), #299 (PQ.2), #298 (PQ.1), #300 (hors des points : la recette de
+compilation croisée GCC 12.2 pour aarch64 de `todo-notes/gcc12-aarch64/`) et
+#301 (la tâche PT) sont fusionnées le 8 novembre, à 17 h 21, 17 h 29, 19 h 38,
+20 h 31, 20 h 44, 21 h 38 et 23 h 09 UTC, #302 (la tâche PP : le cas N1 M de
 `div_rel()` en SSE2) le 9 novembre à 22 h 03 UTC, #305 (hors des points : six
-`friend` de `interval` retirés) le 10 novembre à 8 h 52 UTC et #306 (hors des
+`friend` de `interval` retirés) le 10 novembre à 8 h 52 UTC, #306 (hors des
 points : `gaol_interval_core.h` allégé, ses aides dans `gaol_interval_detail.h`)
-à 17 h 55 UTC ; leurs registres sont faits.
+à 17 h 55 UTC et #307 (hors des points : les en-têtes de tous les fichiers sur
+un même modèle) à 21 h 04 UTC, puis, le 11 novembre, #308 (hors des points :
+`gaol_interval_core.cpp` découpé par domaine) à 21 h 05 UTC, #310 (du
+mainteneur : `.gitignore`) à 21 h 08 UTC, #311 (hors des points : l'en-tête
+`<cstdint>`, que #310 avait remplacé par un `<stdint>` qui n'existe pas) à
+21 h 36 UTC et #309 (hors des points : `make dist` dans les trois builds, le
+workflow Release des paquets) à 22 h 16 UTC ; leurs registres sont faits.
 
 ## Comment lire ce fichier
 
@@ -374,6 +380,21 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    lisent aucun `interval`, et `x + y`, `x - y`, `x * y` et `x / y` sont définis
    dans le fragment de chaque type d'intervalles, sans changement pour
    l'utilisateur de l'interface.
+   Les textes « Pour `doc/differences.md` et `ChangeLog` » de #308 et de #309
+   (fusionnées le 11 novembre) ne sont pas reportés non plus. #308 :
+   `doc/differences.md` lignes 1964 à 1967 (les sources de `gaol/core/`, une
+   par domaine, qui partagent `gaol_interval_internal.h`, non installé), 952
+   (`double_denorm_min` dans cet en-tête), 1930 (`two_power_52` dans
+   `gaol_interval_relational.cpp`), 2389 et 2390 (les fragments des
+   intervalles de floats, `*_impl.h`) et 363 (`interval::inverse_upward()`
+   n'existe plus), le `what()` de `operator>>` qui nomme
+   `gaol_interval_io.cpp`, `operator-()` des intervalles SSE2 inline dans
+   l'en-tête (la bibliothèque n'exporte plus son symbole), les noyaux
+   partagés de `gaol_interval_{sse,neon,fpu}_kernels.h`, et l'entrée du
+   `ChangeLog`. #309 : `doc/differences.md` lignes 2403 à 2406 (`make dist` et
+   `make distcheck` revenus, une même archive `gaol-<version>.tar.gz` pour les
+   trois builds, le projet meson `gaol`), et l'entrée du `ChangeLog`. #307
+   n'a rien pour l'utilisateur, dit sa description.
    *Décidé le 8 novembre* : quatre lignes de plus au `ChangeLog`, une pour
    chaque pull request limitée à la CI, #34, #35, #48 et #74 (leurs textes sont
    dans `todo-notes/synthese.md`, l'article `29.md` pour #35) ; le `ChangeLog`
