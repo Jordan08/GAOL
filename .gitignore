@@ -43,3 +43,7 @@ build/*
 /manual/v5/Manual_GAOLv5.*
 /manual/v5/pdflatex-*.log
 /manual/v5/gaol_version.tex
+
+
+.cache/
+compile_commands.json

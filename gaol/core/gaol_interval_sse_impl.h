@@ -18,8 +18,7 @@
           out of line. Included by gaol_interval_core.cpp only.
 */
 
-// TODO: check existence of stdint.h in configure.in
-#include <stdint.h>
+#include <stdint>
 
 	/* Written as vectors, lower double first, rather than computed with
 	   _mm_set_pd() and _mm_cmpeq_pd(): the compilers put them in read-only
