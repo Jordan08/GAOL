@@ -9,12 +9,16 @@
  * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
+/*!
+  \file   gaol_interval_neon_impl.h
+  \brief  The operations of the NEON intervals: + - * / and their vector kernels on float64x2_t,
+          out of line. Included by gaol_interval_core.cpp only.
+*/
+
 /*
-    This file is not meant to be compiled. It is only to be included
-        by gaol/core/gaol_interval_core.cpp.
-    The intervals of 64-bit ARM processors, whose two stored bounds <-left,
-    right> are the two lanes of a float64x2_t (GAOL v5): the counterpart of
-    gaol_interval_sse_impl.h, with the NEON instructions.
+  The intervals of 64-bit ARM processors, whose two stored bounds <-left,
+  right> are the two lanes of a float64x2_t (GAOL v5): the counterpart of
+  gaol_interval_sse_impl.h, with the NEON instructions.
 */
 
 } // namespace gaol_core

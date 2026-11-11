@@ -12,12 +12,11 @@
  * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
-/*
-This file shall be included by gaol_interval_core.h only. It must not be included directly
-by any other file.
-This file contains all declarations related to the 'interval' class that consider
-the bounds to be an __m128d variable.
-**/
+/*!
+  \file   gaol_interval_sse.h
+  \brief  The interval of the SSE2 builds, whose bounds are the two lanes of a __m128d: its inline
+          members and operators. Included by gaol_interval_core.h only, never directly.
+*/
 
 #ifndef GAOL_INTERVAL_CORE_H
 #  error "File gaol_interval_sse.h shall only be included directly by gaol_interval_core.h"

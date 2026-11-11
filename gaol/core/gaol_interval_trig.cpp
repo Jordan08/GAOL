@@ -14,18 +14,21 @@
 
 /*!
   \file   gaol_interval_trig.cpp
-  \brief  The trigonometric functions of the intervals: gaol_core
-
-  sin, cos, tan, asin, acos, atan, atan2 and the functions of pi x (sinpi,
-  cospi, tanpi, asinpi, acospi, atanpi, atan2pi), with modulo_k_pi() (GAOL
-  v5: a part of gaol_interval_core.cpp, see gaol_interval_internal.h). Their
-  reverse functions are in gaol_interval_relational.cpp.
+  \brief  The trigonometric functions of the intervals: sin, cos, tan, their inverses, atan2,
+          the functions of pi x, and modulo_k_pi(), the reduction modulo pi.
 
   \author Goualard Frederic, NININ Jordan
   \date   2001-09-28
 */
 
 #include "gaol/core/gaol_interval_internal.h"
+
+/*
+  sin, cos, tan, asin, acos, atan, atan2 and the functions of pi x (sinpi,
+  cospi, tanpi, asinpi, acospi, atanpi, atan2pi), with modulo_k_pi() (GAOL
+  v5: a part of gaol_interval_core.cpp, see gaol_interval_internal.h). Their
+  reverse functions are in gaol_interval_relational.cpp.
+*/
 
 namespace gaol_core {
 

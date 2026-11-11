@@ -14,15 +14,8 @@
 
 /*!
   \file   gaol_interval_core.cpp
-  \brief  The definitions of the intervals: gaol_core
-
-  The operations of the intervals: the members of interval, +, -, *, / and
-  sqrt of each kind of intervals (gaol_interval_sse_impl.h,
-  gaol_interval_neon_impl.h or gaol_interval_fpu_impl.h, and
-  gaol_interval_avx512_impl.h, included below), the kernel of the integer
-  powers, max, min, abs, fma, the cancellative operations, erf, erfc, chi,
-  midpoint() and bisect(). The other functions are in the sources of their
-  domain (GAOL v5), listed in gaol_interval_internal.h.
+  \brief  The operations of the intervals: the members of interval, + - * / and sqrt of each
+          kind (the *_impl.h it includes), the kernel of the integer powers, max, min, abs, fma.
 
   \author Goualard Frederic, NININ Jordan
   \date   2001-09-28
@@ -43,6 +36,16 @@
 #include "gaol/math/gaol_ldexp.h"
 // The nearest integer, halfway values to the even one, from the bits (GAOL v5)
 #include "gaol/math/gaol_roundeven.h"
+
+/*
+  The operations of the intervals: the members of interval, +, -, *, / and
+  sqrt of each kind of intervals (gaol_interval_sse_impl.h,
+  gaol_interval_neon_impl.h or gaol_interval_fpu_impl.h, and
+  gaol_interval_avx512_impl.h, included below), the kernel of the integer
+  powers, max, min, abs, fma, the cancellative operations, erf, erfc, chi,
+  midpoint() and bisect(). The other functions are in the sources of their
+  domain (GAOL v5), listed in gaol_interval_internal.h.
+*/
 
 namespace gaol_core {
 

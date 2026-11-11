@@ -14,32 +14,8 @@
 
 /*!
   \file   gaol_interval_internal.h
-  \brief  What the sources of the intervals share: gaol_core (GAOL v5)
-
-  A header of the sources, not installed. The definitions of the intervals
-  were all in gaol_interval_core.cpp; they are in one source for each domain
-  now (GAOL v5): gaol_interval_core.cpp, the operations and their kernels;
-  gaol_interval_pow.cpp, the powers and the roots; gaol_interval_exp_log.cpp,
-  the exponentials and the logarithms; gaol_interval_trig.cpp, the
-  trigonometric functions; gaol_interval_hyperbolic.cpp, the hyperbolic ones;
-  gaol_interval_relational.cpp, the relational functions (*_rel() and
-  div_rel()); gaol_interval_io.cpp, the input and the output. Each includes
-  this file first: the headers they all included, the macros of the integer
-  powers and of the AVX-512 path, the static functions that more than one of
-  them call (the saturated quotients, with the saturated products that the
-  relational functions alone call, the square root rounded upward, the
-  bounds of the elementary functions at the points where GAOL knows them,
-  mig_of() and mag_of(), acosh_upward() and its twins, pow_lo(), pow_hi()
-  and pow_up_without_overflow_exception(), pown_upward(), sqrt_checked()...),
-  the kernels of the kind of intervals that they take inline (the header of
-  the kernels it includes, gaol_interval_{sse,neon,fpu}_kernels.h), and the
-  declarations of the functions that one of them defines for the others. A
-  function that gaol_interval_core.cpp took inline when every definition was
-  there is inline here, and the function of the library is a call of it, so
-  that the other sources take it inline too (GAOL v5). Two are called:
-  pown_large_upward(), whose kernel is the long switch of pown_large_inline(),
-  and midpoint(), which the output alone calls (through mid_rad(), inline in
-  gaol_interval_core.h), where the writing of the digits costs far more.
+  \brief  What the sources of gaol/core/ share, not installed: the common includes and macros,
+          the static helpers, the inline kernels and the declarations between sources.
 
   \author Goualard Frederic, NININ Jordan
   \date   2001-09-28
@@ -76,6 +52,33 @@
 #include "gaol/gaol_common.h"
 #include "gaol/gaol_port.h"
 #include "gaol/core/gaol_interval_core.h"
+
+/*
+  A header of the sources, not installed. The definitions of the intervals
+  were all in gaol_interval_core.cpp; they are in one source for each domain
+  now (GAOL v5): gaol_interval_core.cpp, the operations and their kernels;
+  gaol_interval_pow.cpp, the powers and the roots; gaol_interval_exp_log.cpp,
+  the exponentials and the logarithms; gaol_interval_trig.cpp, the
+  trigonometric functions; gaol_interval_hyperbolic.cpp, the hyperbolic ones;
+  gaol_interval_relational.cpp, the relational functions (*_rel() and
+  div_rel()); gaol_interval_io.cpp, the input and the output. Each includes
+  this file first: the headers they all included, the macros of the integer
+  powers and of the AVX-512 path, the static functions that more than one of
+  them call (the saturated quotients, with the saturated products that the
+  relational functions alone call, the square root rounded upward, the
+  bounds of the elementary functions at the points where GAOL knows them,
+  mig_of() and mag_of(), acosh_upward() and its twins, pow_lo(), pow_hi()
+  and pow_up_without_overflow_exception(), pown_upward(), sqrt_checked()...),
+  the kernels of the kind of intervals that they take inline (the header of
+  the kernels it includes, gaol_interval_{sse,neon,fpu}_kernels.h), and the
+  declarations of the functions that one of them defines for the others. A
+  function that gaol_interval_core.cpp took inline when every definition was
+  there is inline here, and the function of the library is a call of it, so
+  that the other sources take it inline too (GAOL v5). Two are called:
+  pown_large_upward(), whose kernel is the long switch of pown_large_inline(),
+  and midpoint(), which the output alone calls (through mid_rad(), inline in
+  gaol_interval_core.h), where the writing of the digits costs far more.
+*/
 // Whether pow_up_without_overflow_exception() writes the control register of
 // the SSE instructions, MXCSR, which compute the doubles on x86 (not with
 // Visual C++ for 32-bit x86, where its Release build left the flag of the

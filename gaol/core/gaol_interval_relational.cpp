@@ -14,20 +14,23 @@
 
 /*!
   \file   gaol_interval_relational.cpp
-  \brief  The relational functions of the intervals: gaol_core
-
-  The relational (reverse) functions: div_rel(), pow_rel(),
-  pow_exponent_rel(), nth_root_rel(), sqrt_rel(), the _rel() of the
-  trigonometric and of the hyperbolic functions, atan2_rel_x(),
-  atan2_rel_y(), invabs_rel(), max_rel(), min_rel(), sign_rel() and
-  floor_rel() (GAOL v5: a part of gaol_interval_core.cpp, and div_rel() of
-  the source of each kind of intervals, see gaol_interval_internal.h).
+  \brief  The relational (reverse) functions of the intervals: every _rel() function, and
+          div_rel() of each kind of intervals.
 
   \author Goualard Frederic, NININ Jordan
   \date   2001-09-28
 */
 
 #include "gaol/core/gaol_interval_internal.h"
+
+/*
+  The relational (reverse) functions: div_rel(), pow_rel(),
+  pow_exponent_rel(), nth_root_rel(), sqrt_rel(), the _rel() of the
+  trigonometric and of the hyperbolic functions, atan2_rel_x(),
+  atan2_rel_y(), invabs_rel(), max_rel(), min_rel(), sign_rel() and
+  floor_rel() (GAOL v5: a part of gaol_interval_core.cpp, and div_rel() of
+  the source of each kind of intervals, see gaol_interval_internal.h).
+*/
 
 namespace gaol_core {
 

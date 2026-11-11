@@ -14,12 +14,8 @@
 
 /*!
   \file   gaol_interval_pow.cpp
-  \brief  The powers and the roots of the intervals: gaol_core
-
-  The integer powers (gaol_pown(), gaol_uipow(), gaol_pown_ll(), whose kernel
-  is in gaol_interval_core.cpp), pow, the n-th roots, the cube root, rsqrt,
-  hypot and compoundm1 (GAOL v5: a part of gaol_interval_core.cpp, see
-  gaol_interval_internal.h).
+  \brief  The powers and the roots of the intervals: the integer powers, pow, the n-th and cube
+          roots, rsqrt, hypot and compoundm1 (the kernel of the integer powers is in core.cpp).
 
   \author Goualard Frederic, NININ Jordan
   \date   2001-09-28
@@ -30,6 +26,13 @@
 #include "gaol/math/gaol_ldexp.h"
 // (1 + x)^y - 1 at a point, with the tightest bounds (GAOL v5)
 #include "gaol/math/gaol_compoundm1.h"
+
+/*
+  The integer powers (gaol_pown(), gaol_uipow(), gaol_pown_ll(), whose kernel
+  is in gaol_interval_core.cpp), pow, the n-th roots, the cube root, rsqrt,
+  hypot and compoundm1 (GAOL v5: a part of gaol_interval_core.cpp, see
+  gaol_interval_internal.h).
+*/
 
 namespace gaol_core {
 

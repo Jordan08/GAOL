@@ -12,19 +12,22 @@
  * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
-/*
-    This file is not meant to be compiled. It is only to be included
-        by gaol/core/gaol_interval_core.cpp.
+/*!
+  \file   gaol_interval_fpu_impl.h
+  \brief  The operations of the FPU intervals, without SSE2 nor NEON: + - * / and their kernels
+          on two doubles, out of line. Included by gaol_interval_core.cpp only.
+*/
 
-    The intervals of the builds that have neither SSE2 nor NEON intervals
-    (gaol/gaol_configuration.h): 32-bit ARM, POWER, s390x, RISC-V and the other
-    processors; Windows on 32-bit x86 with a GCC or a Clang that takes no
-    -faligned-new=8 (the other compilers take the SSE2 intervals there); and
-    the builds with GAOL_SIMD=OFF. The product, the quotient and the square take
-    no branch on the signs of the bounds in the source (GAOL v5, the kernels of
-    fpu_detail below, on two doubles as those of gaol/core/gaol_interval_sse_impl.h
-    and gaol/core/gaol_interval_neon_impl.h are on a vector): see doc/using.md, The
-    FPU intervals.
+/*
+  The intervals of the builds that have neither SSE2 nor NEON intervals
+  (gaol/gaol_configuration.h): 32-bit ARM, POWER, s390x, RISC-V and the other
+  processors; Windows on 32-bit x86 with a GCC or a Clang that takes no
+  -faligned-new=8 (the other compilers take the SSE2 intervals there); and
+  the builds with GAOL_SIMD=OFF. The product, the quotient and the square take
+  no branch on the signs of the bounds in the source (GAOL v5, the kernels of
+  fpu_detail below, on two doubles as those of gaol/core/gaol_interval_sse_impl.h
+  and gaol/core/gaol_interval_neon_impl.h are on a vector): see doc/using.md, The
+  FPU intervals.
 */
 
 

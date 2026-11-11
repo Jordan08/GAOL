@@ -14,7 +14,8 @@
 
 /*!
   \file   gaol_interval_core.h
-  \brief  The interval class and operators, in the namespace gaol_core
+  \brief  The interval class and its operators in gaol_core, installed: the interface of the
+          intervals, which includes the header of the kind of intervals of the build.
 
   \author Goualard Frederic, NININ Jordan
   \date   2001-09-28

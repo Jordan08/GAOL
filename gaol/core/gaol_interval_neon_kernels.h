@@ -11,8 +11,14 @@
 
 /*!
   \file   gaol_interval_neon_kernels.h
-  \brief  The kernels of the NEON intervals that several sources take (GAOL v5)
+  \brief  The NEON kernels that several sources take inline: the inverse, the square and the
+          square root, before and with the check. Included by gaol_interval_internal.h.
+*/
 
+#ifndef GAOL_INTERVAL_NEON_KERNELS_H
+#define GAOL_INTERVAL_NEON_KERNELS_H
+
+/*
   A header of the sources, not installed, that gaol_interval_internal.h
   includes for the NEON intervals: the bodies of the kernels of
   gaol_interval_neon_impl.h that the sources other than gaol_interval_core.cpp
@@ -29,9 +35,6 @@
   gaol_interval_internal.h takes (see the kernels there). The helpers of the
   division come along with inverse_bounds(), the kernel of the inverse.
 */
-
-#ifndef GAOL_INTERVAL_NEON_KERNELS_H
-#define GAOL_INTERVAL_NEON_KERNELS_H
 
 namespace gaol_core {
 

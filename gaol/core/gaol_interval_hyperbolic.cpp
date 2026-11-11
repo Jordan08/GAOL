@@ -14,17 +14,20 @@
 
 /*!
   \file   gaol_interval_hyperbolic.cpp
-  \brief  The hyperbolic functions of the intervals: gaol_core
-
-  sinh, cosh, tanh, asinh, acosh and atanh (GAOL v5: a part of
-  gaol_interval_core.cpp, see gaol_interval_internal.h). Their reverse
-  functions are in gaol_interval_relational.cpp.
+  \brief  The hyperbolic functions of the intervals: sinh, cosh, tanh, asinh, acosh and atanh.
+          Their reverse functions are in gaol_interval_relational.cpp.
 
   \author Goualard Frederic, NININ Jordan
   \date   2001-09-28
 */
 
 #include "gaol/core/gaol_interval_internal.h"
+
+/*
+  sinh, cosh, tanh, asinh, acosh and atanh (GAOL v5: a part of
+  gaol_interval_core.cpp, see gaol_interval_internal.h). Their reverse
+  functions are in gaol_interval_relational.cpp.
+*/
 
 namespace gaol_core {
 

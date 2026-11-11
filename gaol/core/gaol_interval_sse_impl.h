@@ -12,9 +12,10 @@
  * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
-/*
-    This file is not meant to be compiled. It is only to be included
-        by gaol/core/gaol_interval_core.cpp.
+/*!
+  \file   gaol_interval_sse_impl.h
+  \brief  The operations of the SSE2 intervals: + - * / and their vector kernels on __m128d,
+          out of line. Included by gaol_interval_core.cpp only.
 */
 
 // TODO: check existence of stdint.h in configure.in

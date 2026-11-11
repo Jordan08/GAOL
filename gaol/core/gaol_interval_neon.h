@@ -9,14 +9,11 @@
  * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
-/*
-This file shall be included by gaol_interval_core.h only. It must not be included directly
-by any other file.
-This file contains all declarations related to the 'interval' class that consider
-the bounds to be a float64x2_t variable, on 64-bit ARM processors (GAOL v5).
-It is the counterpart of gaol_interval_sse.h: the same stored form, <-left,
-right> in the two lanes, so that one addition rounded upward gives both bounds.
-**/
+/*!
+  \file   gaol_interval_neon.h
+  \brief  The interval of the NEON builds (64-bit ARM), whose bounds are the two lanes of a
+          float64x2_t: its inline members and operators. Included by gaol_interval_core.h only.
+*/
 
 #ifndef GAOL_INTERVAL_CORE_H
 #  error "File gaol_interval_neon.h shall only be included directly by gaol_interval_core.h"
@@ -24,6 +21,11 @@ right> in the two lanes, so that one addition rounded upward gives both bounds.
 
 #ifndef GAOL_INTERVAL_NEON_H
 #define GAOL_INTERVAL_NEON_H
+
+/*
+  It is the counterpart of gaol_interval_sse.h: the same stored form, <-left,
+  right> in the two lanes, so that one addition rounded upward gives both bounds.
+*/
 
 /*
   The helpers of the intersection and the hull, and of the kernels of

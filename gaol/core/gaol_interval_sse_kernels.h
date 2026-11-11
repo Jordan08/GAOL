@@ -14,8 +14,17 @@
 
 /*!
   \file   gaol_interval_sse_kernels.h
-  \brief  The kernels of the SSE2 intervals that several sources take (GAOL v5)
+  \brief  The SSE2 kernels that several sources take inline: the inverse and the square, before
+          and with the check of the rounding direction. Included by gaol_interval_internal.h.
 
+  \author Goualard Frederic, NININ Jordan
+  \date   2001-09-28
+*/
+
+#ifndef GAOL_INTERVAL_SSE_KERNELS_H
+#define GAOL_INTERVAL_SSE_KERNELS_H
+
+/*
   A header of the sources, not installed, that gaol_interval_internal.h
   includes for the SSE2 intervals: the bodies of the kernels of
   gaol_interval_sse_impl.h that the sources other than gaol_interval_core.cpp
@@ -29,13 +38,7 @@
   gaol_detail::sqr_bounds(), the square with its check, and
   upward_access::checked_inverse() the body of inverse(), the inverse with
   its check (see the kernels in gaol_interval_internal.h).
-
-  \author Goualard Frederic, NININ Jordan
-  \date   2001-09-28
 */
-
-#ifndef GAOL_INTERVAL_SSE_KERNELS_H
-#define GAOL_INTERVAL_SSE_KERNELS_H
 
 namespace gaol_core {
 

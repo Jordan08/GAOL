@@ -14,12 +14,8 @@
 
 /*!
   \file   gaol_interval_io.cpp
-  \brief  The input and the output of the intervals: gaol_core
-
-  operator>> and operator<< of the intervals, their formats and precision,
-  the text of an interval (operator std::string(), literal_text(),
-  exact_string()) (GAOL v5: a part of gaol_interval_core.cpp, see
-  gaol_interval_internal.h).
+  \brief  The input and the output of the intervals: operator>> and operator<<, their formats
+          and precision, and the text of an interval (literal_text(), exact_string()).
 
   \author Goualard Frederic, NININ Jordan
   \date   2001-09-28
@@ -27,6 +23,13 @@
 
 #include "gaol/core/gaol_interval_internal.h"
 #include "gaol/parser/gaol_parser.h"
+
+/*
+  operator>> and operator<< of the intervals, their formats and precision,
+  the text of an interval (operator std::string(), literal_text(),
+  exact_string()) (GAOL v5: a part of gaol_interval_core.cpp, see
+  gaol_interval_internal.h).
+*/
 
 namespace gaol_core {
 

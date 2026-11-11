@@ -14,17 +14,20 @@
 
 /*!
   \file   gaol_interval_exp_log.cpp
-  \brief  The exponentials and the logarithms of the intervals: gaol_core
-
-  exp, log, exp2, exp10, log2, log10, expm1, exp2m1, exp10m1, log1p, log2p1
-  and log10p1 (GAOL v5: a part of gaol_interval_core.cpp, see
-  gaol_interval_internal.h).
+  \brief  The exponentials and the logarithms of the intervals: exp and log, in bases e, 2
+          and 10, and their forms near 0 (expm1, exp2m1, exp10m1, log1p, log2p1, log10p1).
 
   \author Goualard Frederic, NININ Jordan
   \date   2001-09-28
 */
 
 #include "gaol/core/gaol_interval_internal.h"
+
+/*
+  exp, log, exp2, exp10, log2, log10, expm1, exp2m1, exp10m1, log1p, log2p1
+  and log10p1 (GAOL v5: a part of gaol_interval_core.cpp, see
+  gaol_interval_internal.h).
+*/
 
 namespace gaol_core {
 
