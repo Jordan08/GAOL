@@ -1430,6 +1430,18 @@ endif()
 # interval arithmetic. CORE-MATH is compiled into libgaol, so there is no
 # other target and nothing else to install.
 
+# The .pkg of macOS (productbuild, Packages (CPack) below) is made of component
+# packages. With the files in the component that install() gives them,
+# Unspecified, and no list of components, CPack built a .pkg of 14 936 bytes
+# with no package in it, which installer refuses (CMake 4.4.3). So on macOS,
+# where GAOL is the project built, the files go in the component Development,
+# the one CPACK_COMPONENTS_ALL lists below, which names the package
+# fr.ensta.gaol.Development (GAOL v5). The other generators, and the projects
+# that bring GAOL in, keep Unspecified.
+if(APPLE AND CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+  set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME "Development")
+endif()
+
 install(TARGETS gaol EXPORT gaolTargets
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -1567,6 +1579,16 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   set(CPACK_NSIS_PACKAGE_NAME "GAOL ${PROJECT_VERSION}")
   set(CPACK_NSIS_DISPLAY_NAME "GAOL ${PROJECT_VERSION}")
   set(CPACK_NSIS_URL_INFO_ABOUT "https://github.com/Jordan08/GAOL")
+  # The .pkg: one component package, Development. CPACK_COMPONENTS_ALL names it,
+  # CPack not listing the only component of a project by itself (CMake 4.4.3),
+  # and productbuild then making a product that holds no package. The choice
+  # of the installer is titled by the display name, and cannot be unchecked
+  # (GAOL v5)
+  if(APPLE)
+    set(CPACK_COMPONENTS_ALL "Development")
+    set(CPACK_COMPONENT_DEVELOPMENT_DISPLAY_NAME "GAOL: libgaol and its headers")
+    set(CPACK_COMPONENT_DEVELOPMENT_REQUIRED ON)
+  endif()
   if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(CPACK_GENERATOR "TGZ;DEB")
   else()

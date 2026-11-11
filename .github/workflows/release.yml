@@ -169,7 +169,12 @@ jobs:
         run: sudo apt-get install -y -q ./packages/libgaol-dev_*.deb
       - name: Install the package
         if: matrix.cfg.generator == 'productbuild'
-        run: sudo installer -pkg packages/gaol-*.pkg -target /
+        run: |
+          sudo installer -pkg packages/gaol-*.pkg -target /
+          # The receipt of the package and its files, which doc/building.md
+          # gives to uninstall it
+          pkgutil --pkg-info fr.ensta.gaol.Development
+          pkgutil --only-files --files fr.ensta.gaol.Development
       - name: Install the package
         if: matrix.cfg.generator == 'NSIS'
         shell: pwsh
