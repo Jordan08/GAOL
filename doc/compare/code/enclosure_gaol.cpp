@@ -16,7 +16,7 @@
    -DGAOL_ENCLOSURE_IEEE1788, under the names of IEEE 1788-2015,
    gaol_ieee1788 ("gaol5std"): the same functions but for the cube, pow(x, 3)
    in gaol and pown(x, 3) in gaol_ieee1788, both GAOL's integer power (GAOL
-   v5, decided on 13 October 2026, TODO.md B) */
+   v5, decided on 13 October 2026) */
 #ifdef GAOL_ENCLOSURE_IEEE1788
 namespace names = gaol_ieee1788;
 #else

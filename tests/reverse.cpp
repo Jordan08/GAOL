@@ -406,8 +406,8 @@ namespace
   // real number, so that pow_rel() and pow_exponent_rel() are empty for one
   // as any argument, as gaol_ieee1788::pow(x, y) is for an exponent: as the
   // power, the exponent or the base, which they test, and as the x or y to
-  // find, whose result interval(lo, hi) is empty by itself (GAOL v5,
-  // point 82 of TODO.md: powRev1([+oo], [2]) was [1, 1 + 2^-52],
+  // find, whose result interval(lo, hi) is empty by itself (GAOL v5:
+  // powRev1([+oo], [2]) was [1, 1 + 2^-52],
   // powRev2([+oo], [2]) [0, 2^-1074], powRev1([2], [+oo]) [DBL_MAX, +oo] and
   // powRev1([-oo], [0, 1]) [1, +oo], the limits of x^y)
   void pow_reverse_infinite_arguments()

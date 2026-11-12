@@ -3,7 +3,7 @@
  *--------------------------------------------------------------------------
  * Tools of GAOL v5: a hash of the bounds of about four million gaol::pow(x, n)
  * for an integer n, to tell at once whether a change of the integer power
- * changed a bound (point PG.7 of TODO.md; tests/tools/pow).
+ * changed a bound (tests/tools/pow).
  *
  *   pownhash [d] [calls]
  *

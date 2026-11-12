@@ -38,8 +38,8 @@ double hausdorff(const interval &I1, const interval &I2)
 	return GAOL_NAN;
 	}
 	// A bound infinite in one interval only puts them at distance +oo, returned
-	// before the check of the rounding direction (GAOL v5, point R.50 of
-	// TODO.md; GAOL 4 returned +oo there for every infinite bound): the check
+	// before the check of the rounding direction (GAOL v5; GAOL 4 returned +oo
+	// there for every infinite bound): the check
 	// and the differences made it two to four times as long (Intel i7-1185G7,
 	// GCC 9.4 and Clang 18). Whether a bound is infinite depends neither on the
 	// rounding direction nor on the flush-to-zero modes, which read a subnormal

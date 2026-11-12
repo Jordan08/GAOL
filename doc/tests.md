@@ -247,7 +247,7 @@ point Q), which `numbers` checks there too.
   between, which must not be lost: MXCSR is written when the direction is not
   upward or a mode is set, once, and read only to give back what was found,
   never when that was upward with the modes clear, nor written when it holds it
-  already (GAOL v5, point 108 (AI) of TODO.md). On an x86 processor,
+  already (GAOL v5). On an x86 processor,
   `round_upward()`, `round_nearest()` and `round_downward()` are called from the
   16 states of the field RC and the two flush modes of MXCSR, with other bits
   that must not change: the field RC is the direction asked, and no other bit
@@ -262,7 +262,7 @@ point Q), which `numbers` checks there too.
   one, the flush modes stay as they are (`set_rounding()`) or are the saved ones
   (`set_rounding_and_flush_modes()`), and no other bit changes, the exception
   flags among them; Visual C++ for x64 has MXCSR alone, and its x87 unit is left
-  as it is (GAOL v5, point PG.10 of TODO.md). With GCC, Clang or Visual
+  as it is (GAOL v5). With GCC, Clang or Visual
   C++ for 32-bit x86,
   the registers themselves, read and written by the test apart from the library
   in the six states above and with each flush mode, after ten operations: both
@@ -275,8 +275,8 @@ point Q), which `numbers` checks there too.
   these states and with four sets of the other bits of the registers (the
   precision and the exception masks of the control word, the exception masks
   and flags of MXCSR, an exception unmasked in each), so that a read that
-  drops the flags or a write that forces the masks is seen (GAOL v5, point
-  AI.108 of TODO_DONE.md). `cbrt`, `pow` and
+  drops the flags or a write that forces the masks is seen (GAOL v5). `cbrt`,
+  `pow` and
   `atan2` have to leave the exception masks of the SSE control register as they
   found them, and an empty interval to be told empty after them: the
   `fesetexceptflag()` of mingw-w64 for 32-bit Windows unmasked the exceptions,
@@ -311,8 +311,8 @@ point Q), which `numbers` checks there too.
   flag, and, with glibc, not die in a child process that enabled
   the exception (GAOL v5): 45 of the 48 died with the SSE2 intervals,
   and all 48 with the FPU ones (`x & y` for an empty `y`, `sqrt`, `exp`,
-  `min`, `max`, `floor`, `set_contains()`, the output...). So do (GAOL v5,
-  point D.24 of `TODO.md`) 18 operations given a NaN double, the empty set
+  `min`, `max`, `floor`, `set_contains()`, the output...). So do (GAOL v5) 18
+  operations given a NaN double, the empty set
   for `interval(d)` (`interval(NAN)`, `interval(NAN, 1)`, `x += NAN`,
   `x <= NAN`, `pow(x, NAN)`..., which compared it with `<` or `<=`), and, with
   the NEON intervals, `x += d`, `x -= d`, `x *= d`, `x /= d` and `x %= d` of an
@@ -388,8 +388,8 @@ point Q), which `numbers` checks there too.
   doubles next to the largest and the smallest ones, powers of 2 and their
   neighbours, any exponent and subnormal ones: whatever the draw, a result
   with no infinite bound (the empty set included) has to come with neither the
-  overflow nor the division-by-zero flag (GAOL v5, point 79 of TODO.md). 27
-  cases of TODO.md and their like (`sqrt([1, DBL_MAX])`, `nth_root([DBL_MAX],
+  overflow nor the division-by-zero flag (GAOL v5). 27
+  known cases and their like (`sqrt([1, DBL_MAX])`, `nth_root([DBL_MAX],
   3)`, `sin([-1, DBL_MAX])`, `tan([DBL_MAX])`, `div_rel([1], [2^-1074, 1], [1,
   2])`, `sqrt_rel([DBL_MAX], [-3, 0])`, `pow_rel([DBL_MAX], [2], I)`,
   `pow_exponent_rel([DBL_MAX], [2], I)`, `atanh_rel([0, 1], [0])`, and the
@@ -412,7 +412,7 @@ point Q), which `numbers` checks there too.
   are checked from each direction the test runs, six with the SSE instructions
   and four elsewhere (GAOL v5; they were checked from upward only, mingw-w64 on
   x86-64 apart), and after `gaol::cleanup()` and `gaol::restore_rounding()`.
-  With mingw-w64 on x86-64 (GAOL v5, point AI.110 of TODO_DONE.md), the
+  With mingw-w64 on x86-64 (GAOL v5), the
   control word of the x87 unit is read apart (`fnstcw`) and is part of the
   state that has to be the same before and after each operation, as
   `fegetround()` of mingw-w64 13 and later joins the fields RC of the two units
@@ -1117,8 +1117,8 @@ point Q), which `numbers` checks there too.
   +oo]`, and to raise no
   overflow flag, which `1e400*0`, `[0]`, must not carry either, nor stop a
   program that enabled that exception: the reader gave every number to
-  `strtod()`, which computes +oo for these and raises it (GAOL v5, point 79
-  of TODO.md). The same for a number below the least normal double (`1e-400`,
+  `strtod()`, which computes +oo for these and raises it (GAOL v5). The same for
+  a number below the least normal double (`1e-400`,
   `-1e-400`, `1e-310`, `0x1p-1075`, `0x1p-1074`, `9?e-324`, and those times 0),
   with the underflow exception and the tightest bounds, 0 and the least
   subnormal for `1e-400`: `strtod()` rounds them to a subnormal or to 0 and
@@ -1144,7 +1144,7 @@ point Q), which `numbers` checks there too.
   direction of the x87 unit. GAOL's operations set both units before they call
   it, which hides the difference, and on a 32-bit x86 processor its
   `fegetround()` was the C library's, reading the x87 unit (glibc) or giving -1
-  (Visual C++) when the two differ (GAOL v5, point AI.108 of TODO_DONE.md).
+  (Visual C++) when the two differ (GAOL v5).
   `erf` and `erfc` have to be the tightest
   enclosures over 80 000 intervals, whose bounds are drawn among 0, the
   infinities, the subnormals, the arguments past which their values are within
@@ -1356,7 +1356,7 @@ point Q), which `numbers` checks there too.
   to `exactToInterval()` has to throw `std::invalid_argument`, with the names of
   GAOL and with those of the standard, `std::string` being built from it
   otherwise, which the standard leaves undefined (libstdc++ throws
-  `std::logic_error`; GAOL v5, point 128 of TODO.md). `[l, u]` with l above u has to be the empty set, with the names of GAOL and with those
+  `std::logic_error`; GAOL v5). `[l, u]` with l above u has to be the empty set, with the names of GAOL and with those
   of the standard, where the numbers written are between the same doubles
   (`[9007199254740993, 9007199254740992]`, `[0x1.999999999999ap-4, 0.1]`,
   `[1.00000000000000001, 1]`, `[pi, 0x1.921fb54442d18p+1]`, `[1e400, dmax]`,
@@ -1382,7 +1382,7 @@ point Q), which `numbers` checks there too.
   text of 536870500 characters (`1e` and 9s), 4L + 2000 for a text of L
   characters, was held in a `long`, which wraps beyond 2^31 − 1 where a `long`
   has 32 bits (Windows, 32-bit processors): the number was read `[0, 2^-1074]`
-  instead of `[DBL_MAX, +oo]` (GAOL v5, point 85 of TODO.md). The correction,
+  instead of `[DBL_MAX, +oo]` (GAOL v5). The correction,
   `long long`, has no test: the text is 512 MiB, read through two more copies
   of it, which was dropped on 2026-10-24 (it had run in a Debian i386
   container, and failed without the correction). The second argument
@@ -1663,7 +1663,7 @@ point Q), which `numbers` checks there too.
   path) and the old `GAOL_ARM64=OFF`, which is read no more and says so; the
   AVX-512 path, which follows `GAOL_PRESERVE_ROUNDING` at every `cmake` of a
   directory, off and on again (a default that the second `cmake` took for a
-  request left the path out, point 112 of `TODO.md`), is refused by
+  request left the path out), is refused by
   `-DGAOL_PREFER_AVX512=OFF` and stays so for the next `cmake` until
   `-UGAOL_PREFER_AVX512`, and asked for by `=ON`, which is an error where the
   compiler has no path; the Debug build type, which sets `GAOL_DEBUGGING` and
@@ -1795,7 +1795,7 @@ point Q), which `numbers` checks there too.
   `cos`), entered through a trampoline in assembly with the stack at each of
   the four alignments of 4 bytes (the trampoline says which it gave, and the
   test checks it), has to return, and give the bounds it gives with the stack
-  aligned on 16, far from 0 (GAOL v5, point 106 (AI) of TODO.md). A signal
+  aligned on 16, far from 0 (GAOL v5). A signal
   handler turns the stop of the program into a failure. The test prints a
   line when it runs and passes, which the jobs of the continuous integration
   for 32-bit Windows show (`ctest -V`). The ABI of Linux and macOS has the
@@ -1812,8 +1812,8 @@ point Q), which `numbers` checks there too.
   `GAOL_PRESERVE_ROUNDING` whose operations write MXCSR alone
   (`GAOL_RND_MXCSR_ONLY` of `gaol/gaol_fpu.h`): x86-64 with the SSE2 intervals
   and the fused multiply-add instructions, `__FMA__` for GCC, Clang and
-  clang-cl and `/arch:AVX2` for Visual C++ (GAOL v5, point 109 (AI) of
-  TODO.md); any other build, on x86-64 (GCC or Clang without `-mfma`, Visual
+  clang-cl and `/arch:AVX2` for Visual C++ (GAOL v5); any other build, on x86-64
+  (GCC or Clang without `-mfma`, Visual
   C++ without `/arch:AVX2`) or elsewhere, has the macros of its own, which call
   `fegetround()` and `fesetround()` or write the control register of the
   processor. The test checks the macro against a copy of the condition, which
@@ -1873,9 +1873,9 @@ integration configures (GAOL v5).
 `tests/performance.cpp` (`gaol_performance`) measures the time per operation of
 GAOL's arithmetic and elementary functions, of the quotient by a positive
 double (`x / d`, the one row that divides by a double: `fast_div_by()` of the
-AVX-512 path, GAOL v5, point PG.9 of TODO.md), of the constructor
+AVX-512 path, GAOL v5), of the constructor
 `interval(a, b)`, `floor()`, `x &= y`, `x | y`, `max()`, `min()`, `x % y`, `x.inverse()`, `midpoint()`, `nth_root(x, -2)` (the
-inverse of the square root, GAOL v5, point PG.2 of `TODO.md`), `nth_root(x, 3)`, the cube root, and `asinpi()` (the
+inverse of the square root, GAOL v5), `nth_root(x, 3)`, the cube root, and `asinpi()` (the
 functions of CORE-MATH that read the rounding direction at each call, GAOL v5,
 point 108) and two relations, which
 compare bounds with the quiet comparisons of `<cmath>` (one instruction each
@@ -1924,8 +1924,7 @@ beforehand (`pown_products()` in `gaol/core/gaol_interval_core.cpp`). `bench.cpp
 measures the time per call of each path of `pow`. `pownhash.cpp` and
 `pownedge.cpp` print a hash of the bounds of four million integer powers and of
 the integer powers at the edges of the range of the packed kernel (the tests of
-the repository have no value there), the sign of a zero included (GAOL v5, point
-PG.7 of `TODO.md`).
+the repository have no value there), the sign of a zero included (GAOL v5).
 
 `tests/tools/arith/` holds a tool of the same kind for the arithmetic (see
 [its README](../tests/tools/arith/README.md)): `diffarith.py` prints the bounds

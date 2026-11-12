@@ -48,7 +48,7 @@ namespace gaol_core {
     one that overflows is the infinity it gives, which is intersected with a
     finite I or joined to an infinite bound of the hull, where the division
     raised the overflow exception for a finite result, as in div_rel([0, 1/2],
-    [2^-1074, 2^-1022], [0, 1]) (GAOL v5, point 79 of TODO.md). The code is
+    [2^-1074, 2^-1022], [0, 1]) (GAOL v5). The code is
     that of the FPU and the NEON intervals, which took the stored bounds of
     their operands, the opposite of the lower bound being -K.left().
   */
@@ -228,7 +228,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 
   // A quotient of the vectors that may overflow, though the result is finite,
   // is computed on the bounds by div_rel_upward(), which saturates it (GAOL
-  // v5, point 79 of TODO.md): a finite bound of K of magnitude 2^500 or more,
+  // v5): a finite bound of K of magnitude 2^500 or more,
   // or a bound of J that is not 0 and is below 2^-500 in magnitude (the
   // quotients are then below 2^1000 otherwise; those with a zero bound of J
   // are not formed, and an infinite bound gives an infinity or a zero with no
@@ -246,8 +246,8 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
 
   // Where a branch keeps one half of a division, the other half is not
   // computed: _mm_div_sd() divides the low halves alone, the kept quotient
-  // being moved to the high half where it belongs (GAOL v5, point D.24 of
-  // TODO.md). _mm_div_pd() divided both, and the half thrown away divided an
+  // being moved to the high half where it belongs (GAOL v5). _mm_div_pd()
+  // divided both, and the half thrown away divided an
   // infinite bound by an infinite one, which raised the invalid-operation
   // exception (P1 M, div_rel([2, +oo], [-oo, 2], I)), or a finite one by a
   // zero bound, which raised the division-by-zero one (N1 N0, N1 P0, P1 N0,
@@ -273,7 +273,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
           // The two quotients, [-oo, K.right()/J.right()] and [K.right()/J.left(),
           // +oo], have K.right() for numerator and no divisor is 0 (J.left() < 0
           // < J.right()): one division of the vectors gives both bounds (GAOL
-          // v5, point PP of TODO.md; the scalar code made two intervals). The
+          // v5; the scalar code made two intervals). The
           // bounds are stored as (-lower, upper): the low half of the quotient,
           // K.right()/(-J.left()) rounded upward, is minus the lower bound
           // K.right()/J.left() rounded downward (GAOL v5: it was rounded upward,
@@ -432,8 +432,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
   {
     // One check, before the bounds are compared, as in the SSE2 build (GAOL
     // v5, see gaol/gaol_fpu.h). The quotients are those of div_rel_upward()
-    // above, which raise no overflow exception for a finite result (GAOL v5,
-    // point 79 of TODO.md)
+    // above, which raise no overflow exception for a finite result (GAOL v5)
     GAOL_RND_ENTER();
     interval res = div_rel_upward(K, J, I);
     GAOL_RND_KEEP(res);
@@ -619,20 +618,20 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
   {
     const double largest = std::numeric_limits<double>::max();
     // 1/y overflows for a y next to 2^-1074, to +oo (-DBL_MAX for y < 0): the
-    // quotient_sat() that raises no exception (GAOL v5, point 79 of TODO.md)
+    // quotient_sat() that raises no exception (GAOL v5)
     const double r = pow_rounded_up<true>(c, quotient_sat(1.0, y));
     // The step is for |y| up to 1024 and c up to 2^1000: r is then within
     // about 2^-43 relatively of the root, so that r^y is within 2^-33 of c, and
     // r^y cannot overflow. For a greater |y| the rounded 1/y moves r by less
     // than 745/|y| 2^-53 relatively, below one double, and a step would take
-    // r^y, which overflows for |y| next to 2^52 (GAOL v5, point 79 of
-    // TODO.md: pow_rel([3], [2^512], I) raised the overflow exception)
+    // r^y, which overflows for |y| next to 2^52 (GAOL v5: pow_rel([3], [2^512],
+    // I) raised the overflow exception)
     if (r > 0.0 && r <= largest && std::fabs(y) <= 1024.0 && c <= huge_root_argument) {
       const double p = pow_rounded_up<true>(r, y);
       if (p != c && p >= std::numeric_limits<double>::min() && p <= largest) {
         // r (p - c)/(y p), as (p - c)/p then /y, whose quotients saturate,
-        // where y p and the quotient of (p - c) by it overflowed (GAOL v5,
-        // point 79 of TODO.md), and which is left out where it is 1 or more
+        // where y p and the quotient of (p - c) by it overflowed (GAOL v5), and
+        // which is left out where it is 1 or more
         // in magnitude, the power being then no approximation of c
         const double t = quotient_sat(quotient_sat(p - c, p), y);
         if (std::fabs(t) < 1.0) {
@@ -1071,8 +1070,8 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
     an x next to 2^-1074, and inverse() raised the overflow exception for it,
     where nth_root_rel() intersects the result with an interval that may make
     it finite. The quotients are those of quotient_sat(): the infinity, or the
-    largest double for a lower bound, without the exception (GAOL v5, point 79
-    of TODO.md). The inverse of 0, an end of root, is +oo or -oo by the sign of
+    largest double for a lower bound, without the exception (GAOL v5). The
+    inverse of 0, an end of root, is +oo or -oo by the sign of
     the other end, without a division by zero, and [0] has no inverse.
   */
   static interval reciprocal_sat_upward(const interval& root)
@@ -1204,7 +1203,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
     // The quotients and the products of finite bounds, which are intersected
     // with the box below, are those of the saturating operations: a slope next
     // to 2^-1074 or to 2^54, with a bound next to the largest double, overflows
-    // for a finite result (GAOL v5, point 79 of TODO.md)
+    // for a finite result (GAOL v5)
     double u_lo = (t_hi == GAOL_INFINITY || vl == 0.0) ? 0.0 : quotient_dn_sat(vl, t_hi);
     const double u_hi = (t_lo == 0.0) ? GAOL_INFINITY
       : ((vu == 0.0) ? 0.0 : ((vu == GAOL_INFINITY) ? GAOL_INFINITY : quotient_up_sat(vu, t_lo)));
@@ -1553,8 +1552,8 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
   }
 
   /*
-    The reverse functions of max, min, sign and floor (GAOL v5, point P.25 of
-    TODO.md), which IBEX wrote itself: each returns the hull of the x of X
+    The reverse functions of max, min, sign and floor (GAOL v5), which IBEX
+    wrote itself: each returns the hull of the x of X
     that the function, given the other operand Y for max and min, sends into
     Z, the natural reverse extension of IEEE 1788-2015 (10.5.4, (5) and (6)),
     which names none of them. The sets are intervals, or unions of pieces,

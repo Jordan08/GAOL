@@ -16,7 +16,7 @@
 # a static_assert compares them with those of <xmmintrin.h>, and a mutant
 # that fails to compile is no mutant. The processor itself (x86_registers,
 # gaol_read_x86_control()) and the functions that give it to x86_*()
-# (get_rounding(), set_rounding()...) are here since point PG.10 of TODO.md:
+# (get_rounding(), set_rounding()...) are here as well:
 # an x86-64 processor runs them (rounding_state_on_the_processor() of the test).
 #
 # Copyright (c) 2026 ENSTA, France

@@ -8,7 +8,7 @@
 
 Tools of GAOL v5 for `gaol_core::x86_*()` of [gaol/gaol_fpu.h](../../../gaol/gaol_fpu.h),
 the functions that decide what to write in the control word of the x87 unit
-and in MXCSR (point AI.108 of [TODO_DONE.md](../../../TODO_DONE.md)), and for
+and in MXCSR, and for
 `gaol_core::sse_enter_upward()` and `sse_leave()`, which decide what the
 operations write in MXCSR alone with `GAOL_PRESERVE_ROUNDING` (point 3 of PF,
 which writes the register only if it changes). They
@@ -60,8 +60,8 @@ says otherwise (macOS on arm64, Windows). The constants `x86_flush_mask`,
 them with those of `<xmmintrin.h>`.
 
 `get_rounding()`, `set_rounding()` and `set_rounding_and_flush_modes()`, which
-give the registers of the processor to these functions on x86-64 as well since
-point PG.10 of `TODO.md` (they called `fegetround()` and `fesetround()`), and
+give the registers of the processor to these functions on x86-64 as well (they
+called `fegetround()` and `fesetround()` at first), and
 the registers themselves (`x86_registers` and `gaol_read_x86_control()` of
 `gaol/gaol_fpu_fenv.h`) are checked on an x86-64 processor by
 `rounding_state_on_the_processor()` of the same test, in the six directions,

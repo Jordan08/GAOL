@@ -364,7 +364,7 @@ jobs:
       - name: Build
         run: cmake --build build -j 4
       # GAOL_FMA gives GCC for Windows on x64 and on x86 -mfma
-      # -mprefer-vector-width=128 (CMakeLists.txt, point AI.110 of TODO_DONE.md): the
+      # -mprefer-vector-width=128 (CMakeLists.txt): the
       # objects of the Release builds hold fused multiply-add instructions,
       # which CORE-MATH and the integer powers need to be fast, and none on a
       # 256-bit register, which GCC would spill to a stack that Windows x64
@@ -478,7 +478,7 @@ jobs:
           case "${{ matrix.cfg.msystem }}" in CLANGARM64) expected=neon ;; *) expected=sse2 ;; esac
           sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h $expected
       # GAOL_FMA gives GCC for Windows -mfma -mprefer-vector-width=128
-      # (CMakeLists.txt, point AI.110 of TODO_DONE.md), as the job above checks (GAOL
+      # (CMakeLists.txt), as the job above checks (GAOL
       # v5). Not Clang, which aligns its stack and gets -mfma alone
       - name: Fused multiply-add instructions, and no 256-bit register in the objects
         if: matrix.cfg.cc == 'gcc' && !contains(matrix.cfg.opts, 'GAOL_FMA=OFF')

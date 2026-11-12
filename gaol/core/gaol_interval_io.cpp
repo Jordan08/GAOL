@@ -337,7 +337,7 @@ namespace gaol_core {
     const std::ios_base::fmtflags floatfield = fmt.flags & std::ios_base::floatfield;
     // A subnormal under denormals-are-zero, which a program may set, compares
     // equal to 0. operator<< and intervalToText() clear that mode before
-    // they write (GAOL v5, point Q of TODO.md), where GAOL can (x86, and ARM
+    // they write (GAOL v5), where GAOL can (x86, and ARM
     // with GCC and Clang): only where it cannot (ARM with Visual C++, the
     // program having set FZ itself) does a subnormal come here. The C
     // library may write it 0 under the mode (the snprintf called below did
@@ -479,8 +479,7 @@ namespace gaol_core {
     have been the double: with 1 digit, [22u] (u = 5e-324) was written
     [1e-322], which is read as [20u, 21u]. operator<< and intervalToText()
     clear that mode before they write, where GAOL can, and number_to_text()
-    writes such a bound outward where it cannot: GAOL v5, point Q of
-    TODO.md.)
+    writes such a bound outward where it cannot: GAOL v5.)
     fmt has the C locale, whose decimal point is '.', the reader's: operator<<
     writes the bounds format with it whatever the locale of the stream (GAOL
     v5). Under a locale writing a decimal comma, the reader took the comma of
@@ -674,7 +673,7 @@ namespace gaol_core {
     // denormals-are-zero, a subnormal bound was 0 for the comparisons and
     // was written to nearest, [22*2^-1074] as [1e-322] with 1 digit, and the
     // C library writes it 0 (gdtoa of FreeBSD and macOS, the Debug runtime
-    // of Visual C++, issue #68; GAOL v5, point Q of TODO.md)
+    // of Visual C++, issue #68; GAOL v5)
     const rounding_guard rnd;
 	round_upward_if_needed();
 

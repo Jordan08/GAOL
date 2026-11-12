@@ -170,8 +170,7 @@ end or before the comment that ends it, or is part of a comment beginning with
    bits on Windows and on the 32-bit targets, where `~0ul >> 12` is not the
    mask of the 52 low bits of a double. No result was found to change with a
    mask of 20 bits, in these files; `sinpi.c` and `log1p.c`, left as they were
-   at first, are changed as well since 12 October 2026 (decided on 3 October,
-   point A.31 of `TODO.md`).
+   at first, are changed as well since 12 October 2026 (decided on 3 October).
    The fix of every one of them is
    [proposed to CORE-MATH](#1-masks-written-with-long).
 
@@ -260,8 +259,8 @@ end or before the comment that ends it, or is part of a comment beginning with
    GAOL's copy first made the two smallest changes, `mode = fegetround();`
    for `return fegetround();` in `cbrt.c` (mingw-w64) and `|| defined(_WIN32)`
    in the condition of the three files (clang-cl), which left Cygwin as it
-   was. It makes the whole patch since 12 October 2026 (decided on 3 October,
-   points A.31 and A.47 of `TODO.md`): the rounding field, 0 to nearest,
+   was. It makes the whole patch since 12 October 2026 (decided on 3 October):
+   the rounding field, 0 to nearest,
    1 downward, 2 upward and 3 toward zero on every x86 processor, is `cbrt`'s
    0 to 3 itself, and `rsqrt` and `asinpi` look their `FE_*` value up in a
    table, whatever values the C library gives `FE_*`; the `#warning` and the

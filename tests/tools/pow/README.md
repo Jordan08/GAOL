@@ -16,11 +16,11 @@ IEEE 1788-2015 (Table 9.1), which `gaol_ieee1788::pow` is, the integer power
 that `gaol::pow(x, y)` (`gaol_pow_hybrid()`) and `gaol::pow(x, p)`
 (`gaol_pow_real()`) add to it, the corners of a box (`pow_lo()`, `pow_hi()`,
 `pow_is_double()`), and the integer power itself, `pown` (`pown_products()`,
-`pown_point()`, `pown_upward()` and the powers beyond the ints, GAOL v5,
-point B of `TODO.md`). They were written when the pow of
+`pown_point()`, `pown_upward()` and the powers beyond the ints, GAOL v5). They
+were written when the pow of
 the standard was written once (#37), to show that no bound changed and that
 `pow_on_boxes()` of `tests/ieee1788.cpp` fails on a wrong `pow`, and kept for
-the points B.1 and B.2 of `TODO.md`: B.1 removes a check, which must change
+the changes B.1 and B.2 of GAOL v5: B.1 removes a check, which must change
 no bound; B.2 extends the corners to the boxes with an infinite bound and to
 the bases from 0, which changes bounds of `pow_on_boxes()`, to be computed
 again and checked apart from GAOL.
@@ -236,7 +236,7 @@ done
 ```
 
 **5. The hash of the integer powers.** For a change of the packed kernel of the
-integer power or of the comparisons that choose it (point PG.7 of `TODO.md`):
+integer power or of the comparisons that choose it:
 the two programs print a hash of the bounds, which a change that keeps every
 bound leaves as it is, and which the SSE2, NEON and FPU intervals share but for
 the sign of a zero (the same hash was found with SSE2 intervals and with NEON

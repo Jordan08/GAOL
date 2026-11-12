@@ -97,7 +97,7 @@ void run_all(const Data& d, int repeats, const std::string& only)
 #undef OP
 }
 
-// The long lines (GAOL v5, point ZZ of TODO.md): each is one expression of
+// The long lines (GAOL v5): each is one expression of
 // 7 to 19 operations of + - * / alone, between 8 intervals read from the same
 // arrays as above (A and B in [-10, 10], P in [1, 10], E in [0.5, 2.5], S1 to
 // S4 in [0, 10]), run only where the operations asked name them (see

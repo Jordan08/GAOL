@@ -2,7 +2,7 @@
  * GAOL -- not Just Another Interval Library
  *--------------------------------------------------------------------------
  * Tools of GAOL v5: the edges of the range of the packed kernel of the integer
- * power (point PG.7 of TODO.md; tests/tools/pow).
+ * power (tests/tools/pow).
  *
  *   pownedge [gaol/core/gaol_interval_core.cpp]
  *

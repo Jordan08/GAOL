@@ -52,7 +52,7 @@ namespace gaol_core {
   /*
     x^n for an int n, |n| >= 2 but n = 2 (x^2 is sqr(), which gaol_pown() and
     pown_upward() take before this code, GAOL v5), with the tightest bounds,
-    from exact products (GAOL v5, points 8, 72 and 73 of TODO.md). GAOL rounded each
+    from exact products (GAOL v5). GAOL rounded each
     product of its binary exponentiation outward, and its bounds were up to
     n + 1 doubles beyond the tightest (32 to 39 at n = 30, 1300 to 1500 at
     n = 1000); GAOL v5 then kept each power as a double and a rest, rounded
@@ -95,7 +95,7 @@ namespace gaol_core {
     [1 + 2^-51, 1 + 2^-50], [1 + 3 2^-52, 1 + 2^-50] being the tightest.
     Deciding these bounds with CORE-MATH's pow took 55 to 270 ns, these
     powers being its hard cases: they are left so (decided on 13 October
-    2026, TODO.md B).
+    2026).
 
     For n < 0, 1/c^m from h + l: q = 1/h rounded upward, R = 1 - q(h + l) =
     (1 - q h) - q l, 1 - q h being exact, r = R rounded once, and
@@ -372,7 +372,7 @@ namespace gaol_core {
 
   /*
     The operations on the two lanes are those of a class for each kind of
-    intervals (GAOL v5, point AP of TODO.md): a pair of doubles here, for the
+    intervals (GAOL v5): a pair of doubles here, for the
     FPU intervals and for the SSE2 intervals without the FMA instructions; an
     SSE2 register with FMA in gaol/core/gaol_interval_sse_impl.h, the embedded rounding
     of AVX-512 in gaol/core/gaol_interval_avx512_impl.h and a NEON register in
@@ -489,7 +489,7 @@ namespace gaol_core {
   // sqrt and, with FMA, the integer powers beyond 1 and -1 take the AVX-512
   // path of gaol/core/gaol_interval_avx512_impl.h, which sets no rounding direction,
   // and clears the flush-to-zero modes as the other operations do
-  // (flush_guard there; GAOL v5, point Q of TODO.md)
+  // (flush_guard there; GAOL v5)
 #  include <immintrin.h>   // the AVX-512 intrinsics of the path below
 #  include "gaol/core/gaol_interval_avx512_impl.h"
 #endif
@@ -513,8 +513,7 @@ namespace gaol_core {
   {
     // A subnormal is no integer, which its bits tell whatever the modes that
     // flush the subnormals to zero: under denormals-are-zero, 0.5*d and d
-    // were 0 for the comparison, and feven(2^-1074) was true (GAOL v5,
-    // point Q of TODO.md)
+    // were 0 for the comparison, and feven(2^-1074) was true (GAOL v5)
     if (gaol_detail::bound_is_subnormal(d)) {
       return false;
     }
@@ -529,7 +528,7 @@ namespace gaol_core {
     library computes with doubles, which the modes that flush the subnormals
     to zero change: under denormals-are-zero, the UCRT of Windows and the
     libm of macOS (arm64 and x86_64) did not give the subnormal above 100
-    times 2^-1074 (GAOL v5, point Q of TODO.md, continuous integration)
+    times 2^-1074 (GAOL v5, continuous integration)
   */
   static double next_double_above(double x)
   {
@@ -553,7 +552,7 @@ namespace gaol_core {
   // The bounds compared as the relations compare them, and the double above
   // the left one taken from its bits, whatever the modes that flush the
   // subnormals to zero: under denormals-are-zero, [2^-1074, 3*2^-1074] was
-  // canonical (GAOL v5, point Q of TODO.md)
+  // canonical (GAOL v5)
   bool interval::is_canonical(void) const
   {
 #if defined (_MSC_VER)
@@ -603,7 +602,7 @@ namespace gaol_core {
   {
     // a and b compared as bounds, whatever the modes that flush the
     // subnormals to zero (gaol_port.h): under denormals-are-zero,
-    // nb_fp_numbers(2^-1074, 2*2^-1074) was 1 (GAOL v5, point Q of TODO.md)
+    // nb_fp_numbers(2^-1074, 2*2^-1074) was 1 (GAOL v5)
     if (!is_finite(a) || !is_finite(b) || gaol_detail::bound_greater(a, b)) {
       // Either a or b is a NaN or +/-oo, or [a,b] is empty? gaol_ERROR
       // throws, or aborts where the exceptions are disabled: there is no
@@ -901,7 +900,7 @@ namespace gaol_core {
 	double res;
 	// The check first, which clears the modes that flush the subnormals to
 	// zero, as in midpoint(): under denormals-are-zero, the quotient of two
-	// subnormal bounds is 0/0 (GAOL v5, point Q of TODO.md). Before,
+	// subnormal bounds is 0/0 (GAOL v5). Before,
 	// is_zero() took them for zeros, and chi([2, 4]*2^-1074) was -1
 	GAOL_RND_PRESERVE();
 	round_upward_if_needed();
@@ -1301,7 +1300,7 @@ namespace gaol_core {
 	return 0.0;
       }
       // Compared as in the relations (gaol_port.h), whatever the modes that
-      // flush the subnormals to zero (GAOL v5, point Q of TODO.md)
+      // flush the subnormals to zero (GAOL v5)
       if (gaol_detail::bound_less(right(), 0.0)) {
 	return right();
       } else { // left() > 0.0
@@ -1354,7 +1353,7 @@ namespace gaol_core {
       flush the subnormals to zero, and which GAOL_RND_RESTORE() sets back
       with GAOL_PRESERVE_ROUNDING: under denormals-are-zero, the midpoint of
       [2, 4]*2^-1074 was 0, outside the interval, and split() made an empty
-      half of it (GAOL v5, point Q of TODO.md). The comparisons above are
+      half of it (GAOL v5). The comparisons above are
       those of the relations, which these modes do not change.
     */
     GAOL_RND_PRESERVE();
@@ -1392,15 +1391,15 @@ namespace gaol_core {
     l to the next double. The ratio is compared quietly, a NaN raising no
     invalid-operation exception before it is refused, by the comparisons of
     gaol_detail, ucomisd in line with Visual C++, where std::isgreater() and
-    std::isless() are calls of _dpcomp() (GAOL v5, point Z of TODO.md), and by
+    std::isless() are calls of _dpcomp() (GAOL v5), and by
     the bits where the quiet comparison finds two doubles equal: a subnormal
     ratio is no 0 for the modes that flush the subnormals to zero, that the
     program may have set. The cut point is put within [l, r] before the
-    direction is restored, by the bits as well (GAOL v5, point Q of TODO.md).
+    direction is restored, by the bits as well (GAOL v5).
   */
   // The double next to x on the side of y, x and y finite and different, from the bits of x:
   // nextafter() of the C library may compare doubles, which the modes that flush the
-  // subnormals to zero change (GAOL v5, point Q of TODO.md)
+  // subnormals to zero change (GAOL v5)
   static double bisect_step_toward(double x, double y)
   {
     std::uint64_t bits = gaol_detail::bound_bits(x);

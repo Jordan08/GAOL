@@ -142,7 +142,7 @@ namespace
     check("gaol::pow([2], 3000000000ul) = gaol::pow([2], 3000000000u)",
           gaol::pow(two, 3000000000ul).set_eq(gaol::pow(two, 3000000000u)), [&] { return hex(gaol::pow(two, 3000000000ul)); });
     // Beyond the unsigned ints, pown from CORE-MATH's pow at the corners
-    // (GAOL v5, point 74 of TODO.md: [-oo, +oo]); beyond the long longs, as
+    // (GAOL v5: [-oo, +oo]); beyond the long longs, as
     // for +-(2^63 - 1) or +-(2^63 - 2), of the parity of n, all the powers of
     // these bases being beyond the doubles there
     const interval below_one = numsToInterval(-0.5, -0.25), near_one(-0x1.0000000000001p+0);
@@ -461,7 +461,7 @@ namespace
       {I(0.5, 1), P(-2147483648.0), I(1, oo)},
       {I(-2, 3), P(100), I(0, 0x1.69194f299cddbp+158)},
       // pown, one double below the tightest lower bound 0x1.ffffffffffffcp-1: (1 + 2^-52)^-2 is within twice the
-      // error bound of pown of it (decided on 13 October 2026, TODO.md B), and the corners would give it
+      // error bound of pown of it (decided on 13 October 2026), and the corners would give it
       {I(0, 0x1.0000000000001p+0), P(-2), I(0x1.ffffffffffffbp-1, oo)},
       // an integer exponent beyond the ints: the corners at the bounds of x for the standard's pow, pown on the whole
       // of x for gaol::pow, the same on x >= 0 (GAOL v5: [-oo, +oo])
@@ -1217,8 +1217,7 @@ namespace
     libraries that limit the digits (libc++, Visual C++...). This test is here
     and not in numbers.cpp, where the stream settings are tested: GCC 12.2 for
     aarch64 (the job Debian 12 arm64) miscompiles that file, a different
-    function of it after each change (process.md, section 11, and TODO_DONE.md,
-    7.23).
+    function of it after each change.
   */
   void text_of_a_point_interval_in_hexfloat()
   {

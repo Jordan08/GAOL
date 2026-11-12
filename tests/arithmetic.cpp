@@ -519,7 +519,7 @@ namespace
   // small integers, subnormal and large doubles, by intervals with no zero:
   // the tightest enclosure of the quotients of the bounds, which the division
   // of the SSE2 intervals takes from the signs of both operands without a
-  // branch (GAOL v5, point ZZ of TODO.md). An infinite bound over a finite
+  // branch (GAOL v5). An infinite bound over a finite
   // one is an infinite bound, a finite one over an infinite one is 0, and
   // the quotient of two infinite bounds, which the limits of the quotients
   // leave anywhere between the others, counts for none (the divisors with a
@@ -587,7 +587,7 @@ namespace
   /*
     Lines of + - * / alone between eight operands, written once for the
     intervals and for the rational numbers: a, b, s1 to s4 of either sign, p
-    and e positive, the divisors (GAOL v5, point ZZ of TODO.md: the same lines
+    and e positive, the divisors (GAOL v5: the same lines
     as the benchmark of doc/compare)
   */
   template<class T> T sum16(const T& a, const T& b, const T& p, const T& e, const T& s1, const T& s2, const T& s3, const T& s4)
@@ -1472,8 +1472,8 @@ namespace
     cases of the signs of the stored bounds of the SSE2 intervals (I
     positive, negative, straddling 0, and [0, -0]). sqr() of the SSE2
     intervals computes its one product itself, where it took the binary
-    exponentiation of the products rounded outward, for e = 2 (GAOL v5,
-    point AA of TODO.md). The bounds are the tightest, worked out by hand.
+    exponentiation of the products rounded outward, for e = 2 (GAOL v5). The
+    bounds are the tightest, worked out by hand.
   */
   void squares_at_special_values()
   {
@@ -2151,8 +2151,8 @@ namespace
   /*
     The n-th roots of x below 2^-1020 (4 times the smallest normal number), the
     subnormal x included, as tight as those of the other x: within 2 doubles
-    of the tightest bounds, and exact where x is an n-th power (GAOL v5, point
-    AC of TODO.md). The proofs of the bounds took the powers l^k of the binary
+    of the tightest bounds, and exact where x is an n-th power (GAOL v5). The
+    proofs of the bounds took the powers l^k of the binary
     exponentiation as subnormal doubles, which have 33 bits at 2^-1041.5, and
     nth_root([2^-1074], 33) was [0x1.5ecf527769956p-33, 0x1.5ecf527771187p-33],
     1983 doubles below its tightest lower bound and 28785 above its upper one;

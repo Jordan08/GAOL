@@ -481,8 +481,8 @@ namespace
 
   /*
     pow of a result next to the largest double raises no invalid-operation
-    exception, in the four rounding directions (GAOL v5, point 77 of
-    TODO.md). For y*log(x) from 709.78263 to 709.78267 (a power next to
+    exception, in the four rounding directions (GAOL v5). For y*log(x) from
+    709.78263 to 709.78267 (a power next to
     1.7975e308), the first phase of CORE-MATH's pow scaled its approximation
     of exp(y*log(x)) by 2^1024, an infinity, and computed Inf - Inf before the
     second phase rounded the power right: the exception was raised, and
@@ -1688,7 +1688,7 @@ namespace
 #if defined(GAOL_TESTS_HAVE_MXCSR) && (defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64))
   /* pow with a subnormal result and cbrt at a hard case, called without GAOL in
      each direction where the x87 unit and the SSE instructions differ as well
-     (GAOL v5, point AI.108 of TODO_DONE.md): the doubles of CORE-MATH are
+     (GAOL v5): the doubles of CORE-MATH are
      rounded by the SSE instructions, and what it rounds by itself follows the
      direction of MXCSR too, whatever fegetround() of the C library reads, which
      is the control word of the x87 unit with glibc and gives -1 with Visual C++

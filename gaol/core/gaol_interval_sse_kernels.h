@@ -50,7 +50,7 @@ namespace gaol_core {
     direction and cleared the modes that flush the subnormals to zero. The
     kernels take their operands in registers, where the operators read them
     from memory behind the barrier of the check (see rnd_reread() of
-    gaol/gaol_fpu.h, for a double; GAOL v5, point ZZ of TODO.md). Visual C++
+    gaol/gaol_fpu.h, for a double; GAOL v5). Visual C++
     has no asm statement on x64, and none is needed: it keeps the
     floating-point operations where the source puts them with respect to the
     writes of the control register under /fp:strict, with which GAOL is

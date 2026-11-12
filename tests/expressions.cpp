@@ -532,8 +532,8 @@ namespace
     refused("[1,2]+[nth_root(8,1.5)]");
   }
 
-  /* A null pointer is no string, so no expression (GAOL v5, point 114 of
-     TODO.md): parse_interval() took its length with std::strlen(), which read
+  /* A null pointer is no string, so no expression (GAOL v5): parse_interval()
+     took its length with std::strlen(), which read
      it, and the program died of a segmentation fault. It returns false, as for
      any other string that is no expression, with the names of GAOL and with
      those of the standard, with or without exceptions, and leaves the interval
@@ -562,7 +562,7 @@ namespace
   }
 
   /* A null pointer is no text for the functions that read one either (GAOL
-     v5, point 128 of TODO.md): gaol::textToInterval(nullptr),
+     v5): gaol::textToInterval(nullptr),
      textToInterval(nullptr, "1"), gaol_ieee1788::textToInterval(nullptr) and
      exactToInterval(nullptr) took a const std::string&, which the call builds
      from the pointer before GAOL is reached, and the standard leaves that
@@ -628,7 +628,7 @@ namespace
                     [&] { return text; });
   }
 
-  /* [l, u] with l above u is the empty set (GAOL v5, point 84 of TODO.md), as
+  /* [l, u] with l above u is the empty set (GAOL v5), as
      IEEE 1788-2015 has it (9.7.4 a and 12.12.7), and as [2, 1] was. The
      literal was read from the lower bound of the interval of l to the upper
      bound of the interval of u, the doubles around the numbers written, so
@@ -781,7 +781,7 @@ namespace
     }
   }
 
-  /* The bounds of <a, b> are doubles (GAOL v5, point 84 of TODO.md): a number
+  /* The bounds of <a, b> are doubles (GAOL v5): a number
      that is not a double is refused, as is pi, where the reader took the
      interval of the doubles around it for the bound. <0.1, 0x1.9999999999999p-4>,
      the double just below 0.1, was the point interval [0x1.9999999999999p-4]:
@@ -851,7 +851,7 @@ namespace
   }
 
   /* The integer second argument of nth_root(), pown() and rootn() beyond the
-     ints (GAOL v5, point 83 of TODO.md): nth_root(8,3000000000) threw
+     ints (GAOL v5): nth_root(8,3000000000) threw
      std::domain_error and rootn(8,3000000000) and pown([2,3],3000000000)
      were the empty set, where nth_root(8, 3000000000LL) and
      pown([2,3], 3000000000LL) are computed. The bounds are the tightest ones,

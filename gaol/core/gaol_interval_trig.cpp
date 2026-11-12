@@ -504,7 +504,7 @@ namespace gaol_core {
   {
     // x + gaol_half_pi_up rounded upward is next to x or above it, +oo for the
     // largest double only, which is not computed: the sum raised the overflow
-    // exception for a finite tangent (GAOL v5, point 79 of TODO.md:
+    // exception for a finite tangent (GAOL v5:
     // tan([DBL_MAX]))
     const double nr = (x == (std::numeric_limits<double>::max)()) ? GAOL_INFINITY : read_in_branch(x) + gaol_half_pi_up;
     return nr / ((nr > 0.0) ? gaol_pi_dn : gaol_pi_up);
@@ -703,8 +703,8 @@ namespace gaol_core {
 
     That the test w < gaol_pi_dn below gives the tightest bounds was measured,
     not proved: sin and cos gave the tightest bounds over 29 400 intervals
-    of width about pi whose bounds are next to extrema of sin (GAOL v5, old
-    point 9 of TODO.md, decided on 3 October).
+    of width about pi whose bounds are next to extrema of sin (GAOL v5, decided
+    on 3 October).
   */
 template<bool sine>
 static inline interval cos_or_sin(double Il, double Ir)
@@ -759,7 +759,7 @@ static inline interval cos_or_sin(double Il, double Ir)
     // The half of the width of I, rounded upward: both extrema from 2 pi on,
     // or for infinite bounds. The width itself, Ir + Il, overflowed for a
     // finite result, [-1, 1], when a bound was next to the largest double
-    // (GAOL v5, point 79 of TODO.md: cos([-1, DBL_MAX])); the halves of the
+    // (GAOL v5: cos([-1, DBL_MAX])); the halves of the
     // bounds are exact, and their sum is the half of the rounded sum
     const double half_width = 0.5*Ir + 0.5*Il;
     if (!(half_width < gaol_pi_dn)) {

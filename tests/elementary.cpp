@@ -733,8 +733,8 @@ namespace
     // a check, built from an SSE2 register, the lower bound stored negated:
     // pow(x, y) has to be empty for one as the exponent, such an exponent
     // holding no real number, where a pow() taking it for an integer beyond the
-    // ints would give a power of 4 (GAOL v5: TODO.md B.1 took the test of these
-    // exponents for one that is never true)
+    // ints would give a power of 4 (GAOL v5: the test of these exponents was
+    // once taken for one that is never true)
     for (const double d : { inf, -inf }) {
       const interval J(_mm_set_pd(d, -d), gaol_detail::unchecked_bounds);
       const interval r = pow(interval(4.), J);
@@ -773,7 +773,7 @@ namespace
     || (defined(GAOL_USING_NEON_INSTRUCTIONS) && GAOL_USING_NEON_INSTRUCTIONS)
     /*
       The constructor of the interface from a register (GAOL v5, decided on
-      2026-10-24, point AC of TODO.md) gives the empty set for the lanes of
+      2026-10-24) gives the empty set for the lanes of
       [+oo] and [-oo], which hold no real number (IEEE 1788-2015, 10.5.8):
       the operations took them for intervals, and gave, for J = [+oo],
       gaol_ieee1788::pow(J, [2]) and gaol::pow(J, [2]) [+oo], sqr(J) [+oo],
@@ -826,7 +826,7 @@ namespace
     // An integer exponent beyond the ints, for which pow(const interval&, int)
     // cannot be called, still takes the integer power rather than the real
     // one: pown, from CORE-MATH's pow at the corners of the base, the sign
-    // from the parity of the exponent (GAOL v5, point 74 of TODO.md: [-oo,+oo]
+    // from the parity of the exponent (GAOL v5: [-oo,+oo]
     // whatever the base). The bounds of the powers near 1 were computed with
     // mpmath at 600 bits
     const Equal beyond[] = {

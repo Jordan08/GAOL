@@ -92,15 +92,15 @@ GAOL_INLINE interval::interval(double v)
 // cost: a NaN bound, which <= compared, raised the invalid-operation
 // exception, and so did interval(NAN), x += NAN and the functions giving
 // the constructor the NaN bounds of an empty operand (floor(), max()...),
-// which had to tell the empty set first (GAOL v5, decided for point D.24 of
-// TODO.md). The other two compare bounds that are no NaN once it is true:
+// which had to tell the empty set first (GAOL v5). The other two compare
+// bounds that are no NaN once it is true:
 // made quiet too, they cost GCC a conditional move through the integer
 // registers where it if-converts them, and 30% more in a loop of
 // constructions (GCC 9.4, FPU intervals). The first one is also right with
 // the modes that flush the subnormals to zero
 // (gaol_detail::bound_less_equal(), gaol_port.h): under denormals-are-zero,
-// interval(2^-1073, 2^-1074) kept its bounds in the wrong order (GAOL v5,
-// point Q of TODO.md); the other two compare with an infinity, which these
+// interval(2^-1073, 2^-1074) kept its bounds in the wrong order (GAOL v5); the
+// other two compare with an infinity, which these
 // modes do not change
 GAOL_INLINE interval::interval(double l, double r)
 {
@@ -126,7 +126,7 @@ GAOL_INLINE interval::interval(const interval& I)
 One quiet comparison, std::isunordered() of the two stored lower bounds,
 tells whether either operand is empty, both bounds of the empty set being
 NaN, and the intersection is then [NaN, NaN], interval::emptyset() (GAOL
-v5, decided for point D.24 of TODO.md): is_empty() of *this, and the NaN
+v5): is_empty() of *this, and the NaN
 bounds of an empty I carried through the comparisons below, took two
 comparisons more. The bounds are compared after it with quiet comparisons
 too: GCC 9.4 at -O3 computed them before that test, for an empty I, in a
@@ -140,7 +140,7 @@ for 32-bit ARM and POWER9. They are the comparisons of bounds that the
 modes flushing the subnormals to zero do not change (gaol_port.h): under
 denormals-are-zero, [3, 100]*2^-1074 & [50, 200]*2^-1074 was
 [3, 100]*2^-1074, and two disjoint intervals of subnormals were not
-empty (GAOL v5, point Q of TODO.md).
+empty (GAOL v5).
 */
 GAOL_INLINE interval& interval::operator&=(const interval& I)
 {
@@ -159,7 +159,7 @@ GAOL_INLINE interval& interval::operator&=(const interval& I)
   // twice as long on the paths that the branches do not predict (Intel
   // i7-1185G7, GCC of Ubuntu). Clang 21 stays within 0.2 ns, a little slower
   // for x &= y (1.79 to 1.97) and where both bounds of x | y are replaced (1.27
-  // to 1.54) (GAOL v5, point PG of TODO.md)
+  // to 1.54) (GAOL v5)
   __m128d res = xmmbounds;
   double lo = bd[0], hi = bd[1];
   if (!gaol_detail::bound_greater_equal(Ibd[0], bd[0])) { // Left bounds negated
@@ -271,7 +271,7 @@ GAOL_INLINE interval interval::operator-(void) const
   library: the operators call these functions with the two doubles in a
   register, which they give back in one, where operator+=() was a function of
   the library that read and wrote them through memory, the result going back
-  to memory for the operation that followed (GAOL v5, point ZZ of TODO.md).
+  to memory for the operation that followed (GAOL v5).
   They are not part of the interface: they are in gaol_detail, with the other
   helpers of the library, and not in gaol_core, which holds the interface. The
   check of the rounding direction, and the code that depends on it, are in the

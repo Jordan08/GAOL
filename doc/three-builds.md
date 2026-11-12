@@ -447,14 +447,14 @@ is not to be compiled with them.
   and the operators `<`, `<=`, `>`, `>=`): at `-O3 -march=native`, Clang 18
   and 20 vectorize them into the signaling comparisons `vcmplepd`, `vcmpnlepd`
   and `vcmpnltpd`, which they make for the empty operands too, whose bounds
-  are NaNs (120 of the 184 runs of loops of `todo-notes/pk/pk_loops.cpp`
+  are NaNs (120 of 184 runs of such loops
   raised the flag, none with `-frounding-math`; `-fno-fast-math` or
   `-ffp-contract=off` alone change nothing). `tests/rounding_direction.cpp`
   runs such loops on empty operands, and fails when one raises the flag or
   gives a wrong result.
 
-The probe of the modes is `!(1.0 + (subnormal + 0.0) > 1.0)` since point ZZ of
-`TODO.md`, no longer `== 1.0`: with `-funsafe-math-optimizations`, GCC 15 does
+The probe of the modes is `!(1.0 + (subnormal + 0.0) > 1.0)`, not
+`== 1.0`: with `-funsafe-math-optimizations`, GCC 15 does
 not rewrite it as `!(subnormal > 0.0)`, and with `-fno-signed-zeros` GCC 15 and
 Clang 21 drop its `+ 0.0` as they did that of the earlier form (GCC 9 to 14
 were not tried with it). The code using GAOL is still not to be compiled with

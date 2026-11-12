@@ -88,7 +88,7 @@ namespace gaol_core {
   }
 
   /*
-    The tests on the bounds of the divisor of 1 / y (GAOL v5, point PG of TODO.md) are made on the bits of
+    The tests on the bounds of the divisor of 1 / y (GAOL v5) are made on the bits of
     its two bounds, in general registers, with integer instructions only: nothing is compared as a double,
     which would raise an exception on a NaN
   */
@@ -270,7 +270,7 @@ namespace gaol_core {
   {
     // The signs of the stored bounds of y, told on the integer side (the bits of the two lanes in
     // general registers), where two reductions and the broadcast of a lane cost vector operations:
-    // x / y took 5.35 ns, and now 3.96, with Clang 18 on a Neoverse N2 (GAOL v5, point PG.8 of TODO.md)
+    // x / y took 5.35 ns, and now 3.96, with Clang 18 on a Neoverse N2 (GAOL v5)
     const std::uint64_t y_low_bits = vgetq_lane_u64(bits_of(y), 0), y_high_bits = vgetq_lane_u64(bits_of(y), 1);
     // lane 0: c > 0 (-c < 0, not a zero), lane 1: d < 0; with bitwise operators, so that the only
     // branch is on whether y holds a zero, none on the sign of each bound (random in a program)
@@ -292,7 +292,7 @@ namespace gaol_core {
 
   /*
     1 / y of the stored bounds <-c, d> of a y that is no empty set, with the rounding direction upward, on
-    bounds read after its check (GAOL v5, point PG of TODO.md). For a y without a zero, the quotient of [1], stored
+    bounds read after its check (GAOL v5). For a y without a zero, the quotient of [1], stored
     <-1, 1>, by y of divide_upward() is -1 / d and 1 / -(-c) for the sign of d clear, 1 / -d and -1 / (-c)
     for a negative d: the numerator being a constant, each of the two bounds is the quotient of -1 by one of
     the stored bounds of y, -1 / d for the lower bound and -1 / (-c) for the upper one, whichever the sign of d, and the

@@ -248,7 +248,7 @@ jobs:
       # enable-preserve-rounding asks for it by default: the option was a
       # boolean, whose false meson could not tell from the default, and a
       # library built so on a runner with the AVX-512 instructions needed them
-      # (GAOL v5, point AA of TODO.md)
+      # (GAOL v5)
       - name: enable-prefer-avx512=false refuses the AVX-512 path
         if: contains(matrix.cfg.options, '-Denable-preserve-rounding=true')
         run: |

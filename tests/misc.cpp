@@ -468,7 +468,7 @@ kernels_of_the_program::result sqr_bounds(kernels_of_the_program::registers);
 #endif
 
 /*
-  32-bit Windows with GCC or Clang (GAOL v5, point 106 (AI) of TODO.md): the
+  32-bit Windows with GCC or Clang (GAOL v5): the
   system calls its threads and its callbacks with the stack aligned on 4 bytes,
   where GCC takes a function to be entered with it aligned on 16 and puts the
   intervals it keeps in locals at addresses that movaps needs aligned (bug
@@ -630,7 +630,7 @@ public:
 
   // The kernels that the operators of the SSE2 and NEON intervals call are in
   // gaol_detail, with the other helpers of the library, and not in gaol_core
-  // (GAOL v5, point AP of TODO.md). Opened, gaol_core brings none of them: a
+  // (GAOL v5). Opened, gaol_core brings none of them: a
   // call finds the function of the program, which the kernels in gaol_core
   // made ambiguous, and the program did not compile. The FPU intervals have no
   // such kernels, and nothing to check
@@ -811,7 +811,7 @@ public:
   }
 
   // The builds that write MXCSR alone in GAOL_RND_ENTER() and GAOL_RND_LEAVE() with
-  // GAOL_PRESERVE_ROUNDING (GAOL v5, point 109 (AI) of TODO.md; see gaol/gaol_fpu.h): x86-64
+  // GAOL_PRESERVE_ROUNDING (GAOL v5; see gaol/gaol_fpu.h): x86-64
   // with the SSE2 intervals and the fused multiply-add, which is __FMA__ for GCC, Clang and
   // clang-cl and /arch:AVX2 (__AVX2__) for Visual C++. Written again here so that a build
   // that loses them, and takes the macros that call fegetround() and fesetround() and write the

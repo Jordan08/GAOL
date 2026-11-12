@@ -1675,8 +1675,8 @@ registers itself there, as above, where it restores a direction
 (`GAOL_PRESERVE_ROUNDING`, `gaol::cleanup()`, `gaol::restore_rounding()`, and
 the operations that set the direction to nearest and back: `midpoint()`,
 `chi()`, the writing and the reading of an interval), rather than call
-`fegetround()` and `fesetround()` (GAOL v5; mingw-w64 alone did so before point
-PG.10 of `TODO.md`), which write both registers whatever they hold, and then
+`fegetround()` and `fesetround()` (GAOL v5; mingw-w64 alone did so before),
+which write both registers whatever they hold, and then
 MXCSR once more for the direction of the SSE instructions: three writes and a
 call, where a program that computes to nearest needs one and a program that
 computes upward none. The register that differs is written only, with `fldcw`

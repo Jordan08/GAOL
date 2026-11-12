@@ -14,7 +14,7 @@
  * the relational functions (sqrt_rel, div_rel...), which have to keep the
  * values they are given and bound them within a few doubles, div_rel() of a
  * negative K by a J with 0 inside being the exact hull of its two parts (GAOL
- * v5, point PP of TODO.md); and the reverse
+ * v5); and the reverse
  * functions of max, min, sign and floor (max_rel, min_rel, sign_rel,
  * floor_rel), which have to be the hulls of their sets, read from their
  * definitions on a grid and by sampling (GAOL v5).
@@ -1035,7 +1035,7 @@ namespace
 
   /*
     div_rel(K, J, I) for a negative K and a J with 0 in its interior, the
-    case N1 M of the SSE2 intervals (GAOL v5, point PP of TODO.md), the only
+    case N1 M of the SSE2 intervals (GAOL v5), the only
     one that was written with scalar operations. The quotients of K by the
     y of J are those of K.right() by the part of J below 0, which are above
     K.right()/J.left() and unbounded above, and by the part above 0, which are
@@ -1411,7 +1411,7 @@ namespace
   }
 
   // ---------------------------------------------------------------------------
-  // max_rel, min_rel, sign_rel and floor_rel (GAOL v5, point P.25 of TODO.md)
+  // max_rel, min_rel, sign_rel and floor_rel (GAOL v5)
   // ---------------------------------------------------------------------------
 
   /*

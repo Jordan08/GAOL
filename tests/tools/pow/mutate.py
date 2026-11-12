@@ -82,7 +82,7 @@ INTERNAL = 'gaol/core/gaol_interval_internal.h'
 # base is 0 or +oo or the exponent infinite (pow_is_limit(), pow_limit()).
 # Each edit replaces a text that has to be once in the file; survives says
 # why the bounds of an equivalent mutant are those of the sources. B.1 of
-# TODO.md removed the code that std-beyond-no-one-upper edited, an
+# README.md removed the code that std-beyond-no-one-upper edited, an
 # equivalent mutant, and kept the guard of [+oo] and [-oo], which an exponent
 # built from an SSE2 register reaches; B.2 removed the conditions of the
 # corners, their branch of a base from 0 and exp(y*log(base)), whose
@@ -344,8 +344,8 @@ MUTANTS = [
                 ('        const __m128d sign = _mm_xor_pd(_mm_set_pd(0.0, -0.0), _mm_and_pd(c, odd));',
                  '        const __m128d sign = _mm_xor_pd(_mm_set_pd(0.0, -0.0), _mm_and_pd(zero, odd));'),
                 ('_mm_fmadd_pd(K, h, _mm_xor_pd(l, sign))', '_mm_fmadd_pd(K, _mm_andnot_pd(minus_zero, h), _mm_xor_pd(l, sign))')]),
-    # The same kernel rounded upward by the embedded rounding of AVX-512, pown_large_er() (GAOL v5, point ZZ of
-    # TODO.md): compiled where GAOL_AVX512_ARITHMETIC is only (--cmake-option=-DGAOL_PREFER_AVX512=ON, and
+    # The same kernel rounded upward by the embedded rounding of AVX-512, pown_large_er() (GAOL v5): compiled
+    # where GAOL_AVX512_ARITHMETIC is only (--cmake-option=-DGAOL_PREFER_AVX512=ON, and
     # -DGAOL_PRESERVE_ROUNDING=ON to have the library take no direction), where the SSE2 mutants above are the
     # mutants of pown_large_inline() (gaol_interval_sse_impl.h), which the other powers call
     dict(name='er-no-exact-flag',
@@ -419,7 +419,7 @@ MUTANTS = [
                 ('const double t1 = ((m & 1u) != 0u && std::signbit(c1)) ? -1.0 : 1.0;', 'const double t1 = 1.0;'),
                 ('fma_once(K0, h.l0, -t0*l.l0)', 'fma_once(K0, std::fabs(h.l0), -t0*l.l0)'),
                 ('fma_once(K1, h.l1, t1*l.l1)', 'fma_once(K1, std::fabs(h.l1), t1*l.l1)')]),
-    # The NEON register (GAOL v5, point AP of TODO.md), pown_large_inline() of gaol/core/gaol_interval_neon_impl.h:
+    # The NEON register (GAOL v5), pown_large_inline() of gaol/core/gaol_interval_neon_impl.h:
     # compiled on a 64-bit ARM processor only (GAOL_SIMD, on by default there); the mutants
     # mirror the SSE2 ones
     dict(name='neon-no-exact-flag',

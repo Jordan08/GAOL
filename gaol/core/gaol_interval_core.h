@@ -907,8 +907,8 @@ namespace gaol_core {
     the bounds with the comparisons of gaol_port.h that these modes do not
     change, quiet ones too (gaol_detail::bound_less()...): under
     denormals-are-zero, [3*2^-1074] < [5*2^-1074] was false, [2, 5]*2^-1074
-    contained 7*2^-1074, and [2^-1074, 2*2^-1074] was zero (GAOL v5, point Q
-    of TODO.md). The test of the empty set is the same under these modes,
+    contained 7*2^-1074, and [2^-1074, 2*2^-1074] was zero (GAOL v5). The test
+    of the empty set is the same under these modes,
     which keep two bounds in their order and a NaN a NaN.
   */
   GAOL_INLINE
@@ -1192,7 +1192,7 @@ namespace gaol_core {
 
   // The floor of a subnormal l is 0 or -1 (gaol_detail::bound_floor(),
   // gaol_port.h), which no subnormal equals: compared as bounds, it is not
-  // taken for l under denormals-are-zero (GAOL v5, point Q of TODO.md)
+  // taken for l under denormals-are-zero (GAOL v5)
   GAOL_INLINE
   bool interval::is_an_int(void) const
   {
@@ -1863,7 +1863,7 @@ GAOL_NODISCARD extern GAOL_PUBLIC   interval invabs_rel(const interval &J, const
     false for it, so without this it would be given the sign 0. They are
     quiet ones, as in the relations, and compare d as a bound, as the
     relations do: under denormals-are-zero, the sign of -2^-1074 was 0
-    (GAOL v5, point Q of TODO.md).
+    (GAOL v5).
   */
 GAOL_NODISCARD GAOL_INLINE double gaol_sign_of(double d)
   {
@@ -1881,7 +1881,7 @@ GAOL_NODISCARD GAOL_INLINE double gaol_sign_of(double d)
     invalid-operation exception on a NaN. The floor and the ceil of a bound
     are those of gaol_port.h, which the modes flushing the subnormals to zero
     do not change: under denormals-are-zero, floor([-1e-310]) was [-0, -0]
-    (GAOL v5, point Q of TODO.md).
+    (GAOL v5).
   */
 GAOL_NODISCARD GAOL_INLINE interval floor(const interval &I)
   {
@@ -1941,7 +1941,7 @@ GAOL_NODISCARD GAOL_INLINE interval integer(const interval &I)
   std::trunc and std::round are called through gaol_detail::bound_trunc() and
   bound_round() (gaol_port.h), which round a subnormal from its bits, as
   floor and ceil do, whatever the modes that flush the subnormals to zero
-  (GAOL v5, point Q of TODO.md).
+  (GAOL v5).
 
   Each tests the empty set first. GAOL holds the empty interval as the two
   bounds NaN, in both of its representations (interval::emptyset() of
@@ -2218,7 +2218,7 @@ namespace gaol_detail {
     The bounds are compared by bound_equal(), which the modes that flush the
     subnormals to zero do not change: nth_root_rel(J, T, I) calls this after
     nth_root() restored the modes of the program, where [0, 2^-1074] would be
-    read as {0} under denormals-are-zero (process.md, section 11)
+    read as {0} under denormals-are-zero
   */
   GAOL_NODISCARD GAOL_INLINE gaol_core::interval nonzero_part(const gaol_core::interval& roots,
                                                               const gaol_core::interval& I)

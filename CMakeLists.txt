@@ -472,7 +472,7 @@ string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
 #    the rounding direction had changed, in spite of /fp:strict (in Codac,
 #    with Visual Studio 2022 and 2026).
 #  - GCC for Windows (MinGW-w64, MSYS2, Cygwin) for x86-64 and 32-bit x86: -mfma
-#    -mprefer-vector-width=128 (GAOL v5, point AI.110 of TODO_DONE.md). -mfma turns AVX
+#    -mprefer-vector-width=128 (GAOL v5). -mfma turns AVX
 #    on, and GCC then vectorizes with the 256-bit registers (ymm), which it may
 #    spill to a stack it takes to be aligned on 32 bytes, where the Windows x64
 #    ABI aligns it on 16 (GCC bug 54412: an aligned vmovaps to such a slot
@@ -1026,7 +1026,7 @@ endif()
 # -mfma with -mprefer-vector-width=128, which keeps it out of the 32 bytes of
 # the ymm registers of AVX). The code of the path compiled by MinGW-w64 GCC 13 makes no
 # aligned access of a zmm register to the stack, but nothing keeps the
-# compiler from doing it (GAOL v5, point AA of TODO.md). Visual C++ and
+# compiler from doing it (GAOL v5). Visual C++ and
 # clang-cl for x64 take it too (GAOL v5): Visual C++ needs no attribute, it
 # takes the intrinsics of any instruction set in any function, clang-cl has
 # the attribute, and both tell the processor by cpuid and xgetbv, Visual C++
@@ -1150,8 +1150,8 @@ endif()
 # true: without the test, the line (a + b) * (a - b) / p of the benchmark of
 # doc/compare takes 25.9 ns rather than 26.3 in the default build, Shekel 5
 # 259 ns rather than 263 (Clang 18, Intel Xeon E3-1220 v6, the library and
-# the program built with -mbranches-within-32B-boundaries; GAOL v5, point AA
-# of TODO.md). A library so built needs a processor with the AVX-512
+# the program built with -mbranches-within-32B-boundaries; GAOL v5). A library
+# so built needs a processor with the AVX-512
 # instructions, as one built with GAOL_FMA needs FMA: -DGAOL_PREFER_AVX512=OFF
 # builds it for any processor of the architecture.
 set(GAOL_AVX512_ARITHMETIC OFF)
