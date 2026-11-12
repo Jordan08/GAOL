@@ -232,6 +232,16 @@
 	* .github/workflows/build-systems.yml: a job makes the three archives,
 	builds and tests the one of make distcheck and of meson dist, and
 	checks that all hold the files of git archive HEAD.
+	* .github/workflows/release.yml, CMakeLists.txt: new; a tag of a
+	commit of master that is the version of VERSION.txt (5.0.0 or v5.0.0)
+	builds three packages with CPack, in Release, and attaches them to the
+	GitHub Release of the tag, which the workflow makes if there is none:
+	libgaol-dev_<version>_amd64.deb (Ubuntu 26.04, the GCC of the system),
+	gaol-<version>-macos-arm64.pkg (macOS 26, AppleClang) and
+	gaol-<version>-windows-x64.exe (Windows Server 2025, Visual C++ 2026
+	x64, /MD); each job installs its package and runs the unit tests again
+	with the installed GAOL.  On macOS the files are in the component
+	Development, so that productbuild makes a .pkg with a package in it.
 	* CMakeLists.txt: the archive of the sources that CMake makes (dist,
 	package_source) no longer carries a compile_commands.json of the
 	source tree, as make dist and meson dist do not.

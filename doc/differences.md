@@ -835,12 +835,12 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   for the AVX-512 registers: GCC bug 54412). They set no rounding direction,
   the program keeping its own, and raise no exception flag, the embedded
   rounding suppressing them. The bounds are those of the SSE2 intervals bit for
-  bit, but for the sign of a zero bound of `x * d` and `x *= d` where the zero
-  bounds of the interval differ in sign: `[+0, -0]` times a double is `[+0, -0]`
-  with the SSE2 intervals and `[-0, +0]` with this path, +0 and -0 being the
-  same number; every other result of the operations of intervals and with a
-  double, compared bit for bit over the intervals of two bounds among 0 of
-  either sign, ±1, ±2.5, ±3, ±1e-310, ±1e300 and ±∞, is the same in the two
+  bit, but for the sign of a zero bound of `x * d`, `d * x` and `x *= d` where
+  the zero bounds of the interval differ in sign: `[+0, -0]` times a double is
+  `[+0, -0]` with the SSE2 intervals and `[-0, +0]` with this path, +0 and -0
+  being the same number; every other result of the operations of intervals and
+  with a double, compared bit for bit over the intervals of two bounds among 0
+  of either sign, ±1, ±2.5, ±3, ±1e-310, ±1e300 and ±∞, is the same in the two
   paths. The three builds take the path where `GAOL_PRESERVE_ROUNDING` is on and
   the machine building runs the instructions (the figures are in the bullet on
   the three builds below); the library then needs a processor with them, and
