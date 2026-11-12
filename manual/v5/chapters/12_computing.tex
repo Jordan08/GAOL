@@ -1761,12 +1761,8 @@ Apple M2, against one or two nanoseconds for the operation, and the choice
 of GAOL v5 is to check the direction with one comparison and to write the
 register only when the direction is not upward already. The measurements
 bear the choice out. GAOL v5 is faster than GAOL 4.2.3 on every line measured and on every
-operation but the square root, which takes the same time, 1.06 to 4.4 times
-on x86 and 1.7 to 8.3 times on
-the M2, and it is the fastest of the six libraries compared on the
-arithmetic, the integer power and most formulas, with the bounds of
-libieeep1788, which computes every bound with MPFR, 17 to 135 times faster.
-Where it is slower, on \code{sin} and \code{cos} against filib++ and Solaris Studio, and on the square root, \code{exp}, \code{log} and the real power against PROFIL/BIAS, whose bounds are among the widest, it pays for a correct rounding over the whole range that the others
+operation but the square root, which takes the same time, 1.03 to 4.9 times on x86 and 1.7 to 8.4 times on the M2, and it is the fastest of the six libraries compared on the
+arithmetic, the integer power and every formula, with the bounds of libieeep1788, which computes every bound with MPFR, 16 to 156 times faster. Where it is slower, on the square root, \code{exp}, \code{log} and the real power against PROFIL/BIAS, whose bounds are among the widest, it pays for a correct rounding over the whole range that the others
 do not give: the test of enclosure found no result of GAOL v5 that misses
 the value of the function, where 20 to 34\,\% of Boost.Interval's do.
 
@@ -1775,10 +1771,9 @@ The trade-offs are those of the rounding direction. Preserving it costs
 no write of the control register on the AVX-512 path, whose instructions carry their own direction,
 and that is why a build takes that path with \option{GAOL\_PRESERVE\_ROUNDING}
 only: without the preservation the operations take 20\,\% longer with the path at the median, and the
-rule relies on one processor, with halved AVX-512 units. On 64-bit ARM, no
+rule holds on two processors, an i7 with halved AVX-512 units and a Xeon of a virtual machine. On 64-bit ARM, no
 instruction carries its direction, and preserving it for a program that
-computes to nearest makes a line of operations 13.0 to 43.5 times slower on
-the M2. The paths that remain to try are few: the RISC-V scalar
+computes to nearest makes a line of operations 12.7 to 42.3 times slower on the M2. The paths that remain to try are few: the RISC-V scalar
 instructions are the only other ones with a rounding direction by
 instruction, and they need a board; POWER and s390x need hardware to
 measure; the 128 and 256-bit forms of AVX-512 and the vectors of SVE offer
