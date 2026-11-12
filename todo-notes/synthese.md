@@ -23,8 +23,12 @@ textes ont été écrits en anglais ou en français, selon le relecteur.
    plus récents les ont rendus inexacts. Aucun n'était encore dans `ChangeLog`
    ni dans `doc/differences.md`, que rien n'avait touchés depuis le 28
    septembre ; la synthèse du point Y (#263 à #274, le 30 octobre) les a écrits
-   depuis, et les mentions « In `configure-clean` » ci-dessous datent du 4
-   octobre.
+   depuis, et les mentions « In `configure-clean` », « State in
+   `configure-clean` » et « Dans `configure-clean` » ci-dessous datent du 4
+   octobre. Les dix notes « Présence » ont été revérifiées le 12 novembre 2026
+   au commit `0b5febe` : leurs textes sont tous dans `ChangeLog` ou dans
+   `doc/differences.md`, celui de #35 depuis la pull request de PJ.7, avec ceux
+   de #34, #48 et #74, les pull requests de la seule CI.
 2. **Le contenu encore utile** aux points qui restent : mesures, cas de test,
    mises en garde, et ce qu'aucun autre document ne dit (les pull requests #37
    et #39 n'ont pas de description).
@@ -310,9 +314,11 @@ doc/differences.md (l. 64) :
 In the bullet "Numbers are read, and exact texts written, whatever the locale", after "and at most about 125 whatever it gives": "The text of the number is taken apart once, not by each comparison: a number of 20000 characters reads in about 0.03 s whatever the locale (2.5 s under a comma locale before, each comparison reading the text again in a time quadratic in its length)."
 ~~~~
 
-Présence : **absents**. Le point d'insertion existe toujours tel quel
-(`doc/differences.md`, puce « Numbers are read, and exact texts written,
-whatever the locale », l. 360-373, « and at most about 125 whatever it gives »).
+Présence au 12 novembre (commit `0b5febe`) : **faite**. `ChangeLog` (« a number
+is taken apart once ») et la puce « Numbers are read, and exact texts written,
+whatever the locale » de `doc/differences.md` (après « and at most about 125
+whatever it gives ») la disent, avec des chiffres harmonisés : plus de 2 s
+contre environ 0,02 s pour 20 000 caractères.
 
 ### `24.md` (#47) — exceptions et indicateurs flottants
 
@@ -328,12 +334,13 @@ doc/differences.md (l. 60) :
 - **`is_empty()` and `interval::emptyset()` raise no floating-point exception.** The empty set has NaN bounds, and `is_empty()` compared them with `<=`, a signaling comparison: with the invalid-operation exception enabled (`feenableexcept(FE_INVALID)`) every emptiness test of an empty interval, and every operation that starts with it, died on SIGFPE, and without it the test raised `FE_INVALID`. `interval::emptyset()` did the same in a build without optimization, through the comparisons of `interval(double)`. `is_empty()` now uses `std::islessequal` (`ucomisd` for `comisd`, same cost) and `emptyset()` sets its bounds without comparing. The other operations still raise the exceptions they raise (divide-by-zero for `log([0, 1])`, overflow for `[1e308]*10`, inexact for almost every operation): the exceptions have to be masked while GAOL computes (`doc/using.md`, the manual); `tests/rounding_direction.cpp` checks the empty sets with FE_INVALID enabled, in a child process (glibc).
 ~~~~
 
-Présence : **absents** (ni `FE_INVALID`, ni `islessequal` dans
-`doc/differences.md` ; la puce de l'ensemble vide, l. 640-642, ne parle pas
-des exceptions). Le texte précède #50 et les décisions du 3 octobre : « The
-other operations still raise the exceptions they raise » est dépassé pour les
-opérandes vides (#50, texte dans `pr-50.md`) et le sera pour `0 × oo` (D.24) ;
-à fondre dans la pull request de synthèse.
+Présence au 12 novembre (commit `0b5febe`) : **faite, sous une autre forme**.
+Le texte précède #50 et les décisions du 3 octobre : « The other operations
+still raise the exceptions they raise » était dépassé pour les opérandes vides
+(#50) et pour `0 × oo` (D.24, #83). La section « Floating-point exceptions » de
+`ChangeLog` (quiet comparisons, `std::islessequal()`) et la puce « Operations
+raise no invalid-operation exception for the empty set » de
+`doc/differences.md` les remplacent.
 
 ### `29.md` (#35) — le test sous une locale à virgule dans la CI
 
@@ -349,9 +356,13 @@ doc/differences.md (l. 30, facultatif) :
 Optional, appended to the bullet 'Numbers are read, and exact texts written, whatever the locale', after 'tests/numbers.cpp reads and writes under such a locale where one is installed.': ' The Linux jobs of the continuous integration generate fr_FR.UTF-8 for it and fail if it did not check under it.' Otherwise none.
 ~~~~
 
-Présence : **absents**. Le texte dit « the Linux jobs » : depuis #74, chaque
-job (Linux, macOS, Windows, conteneurs, `build-systems.yml`) génère ou vérifie
-la locale ; à reformuler.
+Présence au 12 novembre (commit `0b5febe`) : **faite par la pull request de
+PJ.7**, dans `ChangeLog` seulement (*décidé le 8 novembre* : une ligne pour
+chacune des pull requests de la seule CI, #34, #35, #48 et #74). Le texte dit
+« the Linux jobs » : depuis #74, chaque job (Linux, macOS, Windows, conteneurs,
+`build-systems.yml`) génère ou vérifie la locale, et l'entrée du `ChangeLog` le
+dit ainsi. Le texte facultatif de `doc/differences.md` n'est pas repris ;
+`doc/continuous-integration.md` a le paragraphe.
 
 ### `39.md` (#53) — la fonction de Goldstein-Price du manuel
 
@@ -361,8 +372,10 @@ doc/differences.md (l. 52 ; pas de texte pour ChangeLog) :
 - **The Goldstein-Price function of the manual and of `examples/16_Goldstein_Price.cpp`** had the factor (x + y)^2 where the function has (x + y + 1)^2, as in GAOL 4; the manual said its output [-56254330, 94177270] was the range of f, which is [3, 1015690.27...] (148 times narrower). Both now compute the true function, whose natural extension over [-2, 2]^2 is [-87881320, 147125080] (231 times the range); the manual says that z encloses the range, and why it is wider. The example checks its output (exact integer bounds computed apart) and fails if a check fails.
 ~~~~
 
-Présence : **absent** (« Goldstein » n'apparaît pas dans
-`doc/differences.md`).
+Présence au 12 novembre (commit `0b5febe`) : **faite**. La puce « The
+Goldstein-Price function of the manual and of
+`examples/16_Goldstein_Price.cpp` » de `doc/differences.md`, et une entrée du
+`ChangeLog`.
 
 ### `42.md` (#44) — meson 0.53 et le faux Python du Microsoft Store
 
@@ -372,7 +385,8 @@ ChangeLog (l. 51 ; pas de texte pour doc/differences.md) :
 Document the Python that meson setup runs, and the Microsoft Store aliases (WindowsApps) that meson 0.53.0 and earlier take for it (doc/building.md, manual).
 ~~~~
 
-Présence : **absent**.
+Présence au 12 novembre (commit `0b5febe`) : **faite**, dans `ChangeLog`
+(« the Microsoft Store aliases of Python (WindowsApps) »).
 
 ### `43.md` (#45) — un `VERSION.txt` qui commence par une marque d'ordre des octets
 
@@ -388,9 +402,12 @@ doc/differences.md (l. 60) :
 - **`VERSION.txt` is read alike by the three builds**: a UTF-8 byte order mark at the start of the file (which some editors of Windows write), the line ends of Windows and the blanks and empty lines around the version are ignored, where CMake, meson and configure refused a file with a mark as `VERSION.txt holds "5.0.0"`, the mark not being seen. A file that is refused (a second mark, UTF-16 characters, a letter) gets a message that gives its first bytes in hexadecimal. The test `version_file` (CMake) and `.github/scripts/version-file.sh` (configure, meson) check it.
 ~~~~
 
-Présence : **absents** (ni « byte order mark » ni « BOM »). À compléter avec
-b505f0b : mêmes blancs dans les trois builds et autoconf, octet NUL refusé
-partout, UTF-16 nommé dans le message.
+Présence au 12 novembre (commit `0b5febe`) : **faite, complétée**. `ChangeLog`
+(« a UTF-8 byte order mark at the start are ignored, a NUL byte is refused,
+UTF-16 is named in the message ») et la puce de `doc/differences.md` sur
+`VERSION.txt` lu par les trois builds disent aussi ce que b505f0b ajoute : les
+mêmes blancs dans les trois builds et autoconf, l'octet NUL refusé partout,
+UTF-16 nommé dans le message.
 
 ### `44.md` (#33) — l'archive CPack et un `configure` en retard
 
@@ -406,8 +423,10 @@ doc/differences.md (l. 30) :
 - **CMake warns of a `configure` generated for another version**: the archive of the sources holds `configure` as it is committed, and `configure --version` gives the version autoconf read from `VERSION.txt` when it generated it (the line `PACKAGE_VERSION=`). After a change of `VERSION.txt` without a new generation of `configure`, the archive of the new version held a `configure` that said the old one, which only the autotools job of the continuous integration reported. CMake now warns while it configures GAOL as the project built, naming both versions, and says nothing without `configure` or without that line; `tests/cpack_stale_configure.cmake` checks it (see [Building GAOL](building.md#the-version-of-gaol)).
 ~~~~
 
-Présence : **absents**. Une fois N.44 fait, ajouter que `package_source`
-reconfigure d'abord.
+Présence au 12 novembre (commit `0b5febe`) : **faite, complétée**. `ChangeLog`
+et la puce de `doc/differences.md` sur l'archive des sources (« The archive
+holds `configure` as it is committed ») disent aussi que `package_source`
+reconfigure d'abord (`cmake/gaol_package_source.cmake`).
 
 ### `2026-09-30/06.md` (#54) — `fegetround()` lu dans MXCSR, puis `cbrt` avec mingw-w64
 
@@ -459,11 +478,20 @@ doc/differences.md, troisième passe (l. 484-493) :
   arguments against mpmath.
 ~~~~
 
-Présence : **absents**. Dans `doc/differences.md`, MXCSR n'apparaît que dans
-les puces sur le sens d'arrondi de GAOL lui-même (l. 152-167, 274-286), et la
-puce `cbrt` (l. 102) dit seulement que `nth_root(x, 3)` est le `cbrt` de
-CORE-MATH. Avec #59, la puce `cbrt` gagnerait une phrase sur clang-cl
-(`_WIN32`).
+Présence au 12 novembre (commit `0b5febe`) : **faite**. `ChangeLog`
+(« get_rounding_mode() takes the rounding field of MXCSR as 0 to 3 ») et la
+puce « CORE-MATH reads the rounding direction as GAOL sets it » de
+`doc/differences.md`, avec ses deux sous-puces : `pow` lu dans MXCSR, puis
+`cbrt`, `rsqrt` et `asinpi` avec clang-cl, Cygwin et mingw-w64 avant 13 (la
+phrase de #59 sur `_WIN32` en fait partie). Les renvois « change 6 » et
+« change 7 » de `3rd/README.md` (ci-dessus, et dans `2026-10-01/47.md`) sont
+périmés depuis #111 : le correctif 6 est devenu le patch entier (le champ
+d'arrondi de MXCSR vaut 0 à 3 de lui-même, `rsqrt` et `asinpi` le cherchent
+dans une table, quelles que soient les valeurs de `FE_*`), et celui de `_WIN32`,
+qui était le 7, n'existe plus : les deux renvois se lisent « change 6 », et
+« The value now goes through the switch of the other branches » décrit l'ancien
+correctif minimal. Le correctif 7 de `3rd/README.md` est aujourd'hui celui des
+puissances de `pow` sur ARM 32 bits.
 
 ### `2026-09-30/06b.md` (aucune (enquête)) — enquête sur le refus de mingw-w64 avant 12
 
@@ -482,10 +510,11 @@ None (no change committed). If option 1(a) is taken, the item of
 `fma()` and `round()` instead.
 ~~~~
 
-Présence : l'option 1(a) a été prise (#51), mais **l'item de
-`doc/differences.md` l. 37-44 dit toujours** « only those whose `<fenv.h>`
-answers `fegetround()` from a state of its own are still refused ». Le texte
-de remplacement est dans `06b-msvcrt.md`.
+Présence au 12 novembre (commit `0b5febe`) : l'option 1(a) a été prise (#51) et
+**l'item est remplacé** : la puce « mingw-w64 is no longer refused for its
+version alone » de `doc/differences.md` nomme `fma()` et `round()`, comme le
+texte de `06b-msvcrt.md`, et « answers `fegetround()` from a state of its own »
+n'est plus nulle part dans `doc/`.
 
 ### `2026-09-30/06b-msvcrt.md` (#51) — mingw-w64 lié à msvcrt.dll refusé, et la vraie raison
 
@@ -585,12 +614,15 @@ CORE-MATH..." becomes "`tests/core_math.cpp` checks the `fma()` and `round()` of
 the C library, then the bounds against CORE-MATH...".
 ~~~~
 
-Présence : **absents** (ni `msvcrt` ni `_UCRT` dans `ChangeLog` ni dans
-`doc/differences.md`) ; l'item l. 37-44 de `doc/differences.md` est toujours
-l'ancien, à la raison fausse. Le texte final dit « On ARM, mingw-w64 before 11
-stays refused, not tested » : une fois A.6 fait (décision du 3 octobre), ce
-sera « avant 12 ou sans `_UCRT` », comme sur x86-64, et
-`GAOL_RND_MINGW_FENV_ONLY` aura disparu.
+Présence au 12 novembre (commit `0b5febe`) : **faite**, dans `ChangeLog`
+(« mingw-w64 is refused when the program gets mingw-w64's own fma() and round()
+») et dans la puce « mingw-w64 is no longer refused for its version alone » de
+`doc/differences.md`, qui a remplacé l'ancien item à la raison fausse. Le texte
+final disait « On ARM, mingw-w64 before 11 stays refused, not tested » : A.6 est
+fait (#111), le refus de l'ARM est celui de x86-64 (avant 12 ou sans `_UCRT`),
+pour `round()` seul puisque `fma()` y est une instruction, et
+`GAOL_RND_MINGW_FENV_ONLY` a disparu ; `ChangeLog` et `doc/differences.md` le
+disent ainsi.
 
 ### `2026-09-30/16.md` (#57) — points 16 et 13, puis tour de relecture
 
@@ -1087,9 +1119,16 @@ Copied from `todo-notes/2026-10-01/47.md`, lines 420 to 445:
 ````
 
 State in `configure-clean`: absent from ChangeLog and from
-`doc/differences.md`, which has no entry for clang-cl.
+`doc/differences.md`, which has no entry for clang-cl. On 12 November (commit
+`0b5febe`): **written**. `ChangeLog` has the entry of `cbrt.c`, `rsqrt.c` and
+`asinpi.c` (clang-cl, Cygwin and mingw-w64 before 13), and `doc/differences.md`
+the bullet "CORE-MATH reads the rounding direction as GAOL sets it". The text
+above says "change 7 of `3rd/README.md`": since #111 that change is part of
+change 6, the whole patch (the rounding field is 0 to 3 itself and `_WIN32` is
+not tested any more), so read "change 6"; change 7 is now the powers of `pow`
+on 32-bit ARM.
 
-The texts need two updates:
+The texts needed two updates:
 
 - **The third ChangeLog bullet is obsolete.** Since #73, `tests/fp_strict`
   checks clang-cl from Clang 16 too ("Refusal of Visual C++ and clang-cl
@@ -1097,7 +1136,9 @@ The texts need two updates:
 - **The `windows.yml` bullet**: there are now five clang-cl jobs, with VS 2026
   x86, x64 and arm64.
 
-Point K (#72, #73) is still to be written "d'après #72 et #73" (TODO, point Y).
+Point K (#72, #73) was to be written "d'après #72 et #73" (TODO, point Y): the
+synthesis wrote it (`ChangeLog`: `GAOL_INFINITY`, clang-cl refused without
+`/fp:strict`, the clang-cl jobs of `windows.yml`).
 
 ### `2026-10-01/armhf.md` (#60) — the 24b fix on armhf, operator&= raised FE_INVALID
 
@@ -1231,7 +1272,14 @@ Nothing (the measurements are in TODO M.9 and PR #36).
   30 000 random texts `[a, b]` with a > b, both subnormal, gave an interval
   with reversed bounds; for instance `[0x2.19e9cb0p-1041, 0x3.f1p-1073]` gives
   the bits `0000000433d39600 0000000000000008` (the base commit did so in more
-  cases). Issue #68 cites only `interval(0x1p-1073, 0x1p-1074)`.
+  cases). Issue #68 cites only `interval(0x1p-1073, 0x1p-1074)`. *Done* by #100
+  (point Q, issue #68): the bounds are compared by their bits, under the modes
+  too; `tests/rounding_direction.cpp` checks `interval(2^-1073, 2^-1074)` and
+  the other functions that compare bounds, and `tests/numbers.cpp` the reading
+  of `<a, b>` of subnormals, under each mode the processor honours. On 12
+  November (commit `0b5febe`), with denormals-are-zero and flush-to-zero set,
+  `textToInterval("[0x2.19e9cb0p-1041, 0x3.f1p-1073]")`, `"[0x1p-1073,
+  0x1p-1074]"` and `"[1e-309, 1e-310]"` give the empty set, as without them.
 - The bit-based reader still makes two comparisons per number (glibc's
   `strtod` gives the same first guess in every mode); `gaol_compare_number()`
   with a NaN candidate and v = 0 now returns 1 instead of 0 (no caller passes
@@ -1268,7 +1316,8 @@ Nothing beyond the notes above.
 - Chiffres à harmoniser dans la pull request de synthèse : le ledger dit
   « 2.5 s down to 0.03 s », F.18 dit 0,02 s, la relecture a mesuré 2,1 s puis
   0,021 s ; forme incertaine à 100 000 chiffres : 1,3 s contre 0,5 s
-  (relecture) et 1,1 s contre 0,46 s (F.18).
+  (relecture) et 1,1 s contre 0,46 s (F.18). *Fait* : `ChangeLog` et
+  `doc/differences.md` disent « plus de 2 s » et « environ 0,02 s ».
 - Si l'on revenait sur la décision : 9 chiffres décimaux (7 hexadécimaux) par
   passe rendraient l'analyse environ 9 fois plus rapide, une conversion par
   dichotomie la rendrait sous-quadratique (pas dans `TODO.md`).
@@ -1276,7 +1325,9 @@ Nothing beyond the notes above.
   20000 chiffres du test (à 5000, l'ancien code échoue encore d'un facteur 40
   environ, avec une marge plus étroite à cause des 50 ms constants). Le délai
   est aujourd'hui `GAOL_NUMBERS_TIMEOUT` (300 s ; 600 s pour le job macOS GCC
-  avec sanitizers, dc036c6).
+  avec sanitizers, dc036c6 ; depuis #312, 900 s pour le job macOS 15 x86_64 GCC
+  avec sanitizers et 600 s pour celui de macOS 26 arm64 LLVM, 400 s pour les
+  quatre de `linux.yml` avec sanitizers).
 - Les nombres courts sont plus rapides (0.1 : 550 ns contre 945 ns).
 - `gaol_take_apart()` précède `round_nearest()`, mais `gaol_compare_number()`
   alloue encore (`gaol_natural_mul_u64()`, l. 351) après `round_nearest()`
@@ -1288,7 +1339,9 @@ Nothing beyond the notes above.
 
 - Ajouter `#include <cmath>` à `gaol/gaol_intervalf.h` (l'en-tête ne compile
   pas seul avec `-DGAOL_FLOAT_INTERVALS=1`) : à mettre dans D.24, qui traite
-  déjà de ces intervalles.
+  déjà de ces intervalles. *Fait* par D.24 (#83) :
+  `gaol/float/gaol_intervalf.h` inclut `<cmath>` (« std::islessequal() of
+  is_empty() »).
 - Coût mesuré de `std::islessequal` contre `<=` : nul (0,634 ns avec GCC 9.4,
   0,511 ns avec Clang 18, chaîne dépendante 4,63-4,69 ns) ; utile si l'on
   mesure le coût sous Visual C++ demandé en D.24.
@@ -1483,7 +1536,10 @@ l'exemple et dans `examples.md`.
   blocs de ce chapitre), l'exécuter et comparer à la sortie montrée ; une
   exception connue, `@version` (la macro du manuel pour 5.0.0). Le
   30 septembre : 58 sur 88 avant #55, 88 sur 88 après (sse, fpu, clang, C++11
-  et C++17).
+  et C++17). *Fait* : réécrit en `manual/check_examples.py` (créé le 6 octobre,
+  `7cc80fd` ; `doc/tools.md`), que `linux.yml` lance avec un GAOL installé, en
+  C++11 ; il lit aujourd'hui les exemples de `manual/v5/manual_gaolv5.tex` et de
+  ses chapitres (116 sur 116 lors de #298).
 - **Compiler Explorer** (`https://godbolt.org/api/compiler/<id>/compile`)
   donne les vrais Visual C++ 2015 à 2026 (x64, x86, arm64) et GCC 4.8 à 16 :
   c'est ainsi que les questions de Visual C++ ont été tranchées sans Windows
@@ -1621,11 +1677,17 @@ identiques) était dans le bloc-notes de l'agent.
     next to ±1).
   - But the comment of `core_math_port.h` (l. 180–200) discusses 32-bit
     Windows only. One sentence there would record the assumption. It is low
-    priority, and fits A.56 (the comments of the rounding direction).
+    priority, and fits A.56 (the comments of the rounding direction). *Done*:
+    the comment of `gaol/math/gaol_core_math_port.h` ("The square root on
+    32-bit x86...") ends with the x64 case ("On x64 Windows, Visual C++ and
+    clang-cl call the sqrt() of the UCRT for the builtin as well (/fp:strict):
+    it rounds in the direction of MXCSR there").
 - **Any clang for x86_64 with `_WIN32` but no `__WIN32__` takes the new branch
   too**, rightly, since it uses the UCRT (e.g. the clang-based Intel icx for
   Windows, windows-itanium). This is not in `3rd/README.md`. It becomes moot
-  once patch 6 in its table form (A.31) replaces the one-word change.
+  once patch 6 in its table form (A.31) replaces the one-word change. *Moot*
+  since #111: patch 6 is the whole patch, and the three files test neither
+  `_WIN32` nor `__WIN32__` any more.
 - **Recipe to build and run clang-cl without Windows**: clang-cl 18 with the
   MSVC 14.44 STL/CRT and UCRT 10.0.26100 taken from the VS manifest (xwin),
   `lld-link`, `/MT`, run under wine.
