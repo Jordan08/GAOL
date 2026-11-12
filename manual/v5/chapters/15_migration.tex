@@ -559,9 +559,7 @@ exception flags of MXCSR when it changes the register, and its
 \code{fegetround()} joins by OR the rounding fields of the two units. On a
 32-bit x86 processor GAOL also reads the two registers in line, in one asm
 statement, rather than through \code{fegetround()}, about 80 ns with Visual
-C++ for x86. With \code{GAOL\_PRESERVE\_ROUNDING}, \code{x.midpoint()} takes
-17.5 ns rather than 27.9 (GCC 15.2, Intel i7-1185G7), and 52 ns rather than
-131 with Visual C++ for x64 on the runners of the continuous integration;
+C++ for x86. With \code{GAOL\_PRESERVE\_ROUNDING}, \code{x.midpoint()} takes 13.2 ns in a program that computes to nearest (GCC 15.2, Intel i7-1185G7, the best of 15 runs of a loop over 1024 intervals), and 52 ns rather than 131 with Visual C++ for x64 on the runners of the continuous integration;
 the bounds are the same. The option also writes the registers only if they
 have to change: an operation of the SSE2 intervals read MXCSR and wrote it
 twice whatever it held. In a program that computes upward, \code{x + y}

@@ -1574,6 +1574,21 @@ preserved on Visual C++ for x86, the line of 13 operations is 1.9 times slower
 (0.53, spread 1.08), where each operation wins or stays: the cause was not
 searched. POWER, s390x, RISC-V and MinGW-w64 for arm64 are not measured.
 
+**Visual C++ and clang-cl against their default intervals** (GAOL v5). The columns of Visual C++ and clang-cl above are those of the FPU intervals as they were. The same jobs measured, on 12 November 2026 (run 43264694580 of GitHub Actions, on an experiment branch that is not to be merged, at the commit `1afb90a` and one workflow file), the FPU intervals (`-DGAOL_SIMD=OFF`) against the intervals these compilers take by default, SSE2 for x86 and x64 and NEON for arm64, of the same source: each job builds both and runs `gaol_performance` five times with each, alternately, with the same tools. The compilers are Visual C++ 19.51 and clang-cl 22.1.3 of Visual Studio 2026. The table gives the ratio of the median time of the FPU intervals to that of the default ones, so that a ratio above 1 means that the default intervals are faster, and, in parentheses, the spread of the five runs where it exceeds 1.15 (the ratio is then noise); no ratio of a stable row is below 0.9:
+
+| | VS x86 | VS x86, direction preserved | VS x64 | VS arm64 | clang-cl x86 | clang-cl x64 | clang-cl arm64 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `x * y` | 1.15 | 1.20 | 1.40 | 3.03 (1.56) | 1.19 (1.28) | 1.68 | 2.10 |
+| `x * y, random signs` | 1.14 (1.18) | 1.20 | 1.41 | 3.07 | 1.18 | 1.65 (1.62) | 1.97 |
+| `x / y` | 1.17 | 0.97 | 1.65 | 2.05 | 1.10 (1.20) | 1.08 | 1.03 |
+| `sqr(x)` | 1.07 | 1.09 | 1.23 | 1.26 | 1.11 | 1.27 (1.45) | 1.30 |
+| `x - y` | 1.04 (1.17) | 0.99 | 1.01 | 1.28 (1.28) | 1.20 | 1.48 | 2.42 |
+| `line of 7 *` | 2.14 | 1.38 | 3.08 | 2.49 | 1.97 | 3.05 | 2.25 |
+| `line of 7 /` | 2.07 | 1.16 | 2.46 | 1.59 | 1.83 | 2.61 | 1.25 |
+| `line of 13 + - * /` | 2.07 | 1.20 | 3.26 | 2.51 | 1.80 (1.19) | 4.34 | 2.30 |
+
+The default intervals are faster in 54 of the 56 cells, from 1.01 to 4.34 times. The two others are the quotient (0.97) and the difference (0.99) with Visual C++ for x86 and the direction preserved, the same within the noise. The lines gain most, 1.16 to 4.34 times (the line of 13 operations 1.20 with Visual C++ for x86 and the direction preserved, 1.80 with clang-cl for x86, 3.26 and 4.34 for x64, 2.51 and 2.30 for arm64), and the product on arm64 2.1 times with clang-cl and 3.0 with Visual C++; the quotient gains least with clang-cl (1.03 to 1.10). The losses of the table above for clang-cl for arm64 (0.57 and 0.77) are those of the kernels of the FPU intervals against the former code; against the NEON intervals, the same FPU intervals take 2.25 times longer on the line of 7 products.
+
 What a compiler makes of the choices is its own, and was read in the assembly
 on Compiler Explorer, not run. The maxima of the product are conditional moves
 with GCC (13 to 16) for 32-bit ARM, arm64 and x86, with Clang, and with Visual
