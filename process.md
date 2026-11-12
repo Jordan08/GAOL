@@ -13,13 +13,13 @@ propose une pull request, et comment on tient les registres à jour une fois la
 pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
-en cours, ce qui reste) est au §12. Dernière mise à jour : 11 novembre 2026, au
-commit `dcce690` de `configure-clean` (la fusion de #309, après le commit direct
-`be73e24` et celles de #311, de #310, de #308, de #307, de #306, de #305,
-de #302, de #301, de #300, de #298, de #299, de #297, de #296, de #295 et de
-#294, de #217 à #220, #222 à #225, #227 à #232, #234 à #239, #242, #245, #248 à
-#250, #262 à #276 et #279 à #285, de la branche `std-exceptions`, de #287 à
-#293).
+en cours, ce qui reste) est au §12. Dernière mise à jour : 12 novembre 2026, au
+commit `269c12e` de `configure-clean` (la fusion de #312, après le commit direct
+`f27c6c2`, celle de #309, le commit direct `be73e24` et celles de #311, de
+#310, de #308, de #307, de #306, de #305, de #302, de #301, de #300, de #298, de
+#299, de #297, de #296, de #295 et de #294, de #217 à #220, #222 à #225, #227 à
+#232, #234 à #239, #242, #245, #248 à #250, #262 à #276 et #279 à #285, de la
+branche `std-exceptions`, de #287 à #293).
 
 ## 1. Le contexte
 
@@ -784,7 +784,7 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   `bash -e`, un `! grep ...` au milieu d'une étape ne la fait pas échouer (seule
   la dernière commande donne son statut) : écris un `if` explicite.
 
-## 12. Où en est le travail (11 novembre 2026)
+## 12. Où en est le travail (12 novembre 2026)
 
 Le reste à faire est dans `TODO.md` (tâches PH et PJ) et
 l'issue #179 ; ce qui est fait et décidé (pull requests fusionnées, décisions,
@@ -895,14 +895,16 @@ git ls-remote --heads origin
   à 21 h 08 UTC (`d8c2699`), #311 (hors des points : `<cstdint>`) à 21 h 36 UTC
   (`d326846`) et #309 (hors des points : `make dist` dans les trois builds, la
   même archive `gaol-<version>.tar.gz`, et le workflow Release des paquets) à
-  22 h 16 UTC (`dcce690`, 2.3, 3.31 et 7.28) ; l'entrée de #301, #303 et #304
+  22 h 16 UTC (`dcce690`, 2.3, 3.31 et 7.28), puis, le 12 novembre, #312 (hors
+  des points : `MATH-CORE` retirée de la CI, `numbers` à 600 et à 900 s dans
+  deux jobs de macOS avec les sanitizers, `compile_commands.json` hors de
+  l'archive de CMake) à 7 h 53 UTC (`269c12e`, 2.3, 3.32 et 7.29), fusionnée
+  par la session sur la demande explicite du mainteneur ; l'entrée de #301,
+  #303 et #304
   dans `TODO_DONE.md` reste à écrire ; l'audit du 13
   octobre a vérifié dans `configure-clean` ce qu'annonçaient alors les points A,
   C à H et J à V.
-- **En cours** : au 12 novembre, #312 est ouverte (hors des points :
-  `MATH-CORE` retirée de la CI, `numbers` à 600 s dans le job macOS 26 arm64
-  LLVM Clang Debug ASan+UBSan, `compile_commands.json` hors de l'archive de
-  CMake ; `ci-branches-timeout`) ; #295 (PS.2
+- **En cours** : au 12 novembre, aucune pull request n'est ouverte : #295 (PS.2
   ; `manual-neon-pown-text`), #296 (le cas (b) ; `manual-case-b-text`), #297 (la
   tâche PS ; `todo-ps-stale-texts`), #299 (PQ.2 ; `todo-pq-hexfloat-point`),
   #298 (PQ.1 ; `todo-pq-centered-form`), #300 (la recette de compilation croisée
@@ -911,9 +913,11 @@ git ls-remote --heads origin
   (`gaol_interval_core.h` allégé ; `core-detail-header`), #307 (les en-têtes ;
   `uniform-file-headers`), #308 (le découpage ; `core-split-domains`), #310 (du
   mainteneur, depuis `core-split-domains`), #311 (`fix-cstdint-include`) et
-  #309 (`make dist` et Release ; `make-dist`) sont fusionnées, leurs registres
-  faits ; `configure-clean` est au commit `dcce690` (la fusion de #309, après
-  le commit direct `be73e24`, les fusions de #311, `d326846`, de #310,
+  #309 (`make dist` et Release ; `make-dist`) et #312 (la CI sans `MATH-CORE`
+  ; `ci-branches-timeout`) sont fusionnées, leurs registres faits ;
+  `configure-clean` est au commit `269c12e` (la fusion de #312, après le commit
+  direct `f27c6c2` et la fusion de #309, `dcce690`, après le commit direct
+  `be73e24`, les fusions de #311, `d326846`, de #310,
   `d8c2699`, de #308, `13582c3`, de #307, `6ef18d7`, et de #306, `99229cc`,
   après celles de #305, `39ce501`, de #302, `9acea90`, de #301, `7053c74`,
   de #300, `ac9f130`, de #298, `0f469e7`, de #299, `36b4f93`, de #297,
@@ -935,10 +939,11 @@ git ls-remote --heads origin
   (`manual-neon-pown-text`), de #296 (`manual-case-b-text`), de #297
   (`todo-ps-stale-texts`), de #302 (`todo-pp-div-rel-n1-m`), de #305
   (`friend-cleanup`), de #306 (`core-detail-header`), de #308 et #310
-  (`core-split-domains`) et de #309 (`make-dist`) sont supprimées à leur
-  fusion, comme celles de #287 (`pown-rel`) et de #288 (`compoundm1`), et
-  `std-exceptions` et `revert-285-std-exceptions` depuis le 4 novembre. L'issue
-  #198 (`x / y` des intervalles NEON avec `FPCR.AH`) est ouverte, sans tâche
+  (`core-split-domains`), de #309 (`make-dist`) et de #312
+  (`ci-branches-timeout`) sont supprimées à leur fusion, comme celles de #287
+  (`pown-rel`) et de #288 (`compoundm1`), et `std-exceptions` et
+  `revert-285-std-exceptions` depuis le 4 novembre. L'issue #198 (`x / y` des
+  intervalles NEON avec `FPCR.AH`) est ouverte, sans tâche
   dans `TODO.md` ; #185 est fermée, le masquage des exceptions de `pow` est
   gardé. L'issue #177 (`TODO_DONE.md`) n'est plus mise à jour (*décidé le 28
   octobre*) : GitHub borne le corps d'une issue à 262 144 octets et le texte
@@ -951,7 +956,7 @@ git ls-remote --heads origin
   n'est à refaire que si les mesures de PJ changent le manuel (PJ.5), et les
   trois détails qui restent de la synthèse de #283 à #288, faite par #289 le 5
   novembre, avec la phrase sur le cas (b) de 12.12.7 que PM a décidée, et les
-  textes de #306, de #308 et de #309 pour `doc/differences.md` et le
+  textes de #306, de #308, de #309 et de #312 pour `doc/differences.md` et le
   `ChangeLog` : PJ.7).
   Ce qui est reporté (le 113, le site, les traits pour YalAA
   et VNODE-LP, les décorations, ce qui attend du matériel) est dans

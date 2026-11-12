@@ -1,29 +1,26 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `dcce690` de `configure-clean` (la
-fusion de #309, hors des points, le 11 novembre 2026 à 22 h 16 UTC, après le
-commit direct `be73e24` et celles de #311, de #310 et de #308, hors des
-points, de #307 et de #306, hors des points, de #305, hors des points, de
-#302, la tâche PP, de #304 et de #303, les registres de la tâche PT, de #301,
-la tâche PT, de #300, hors des points, de #298, de #299, de #297, de #296 et
-de #295, de #294, le manuel dans le style de la thèse, et de #292, de #293,
-#291, #290 et #289), en tâches PH et PJ (PA à PG, PI, PL, PP, PQ, PS et PT
-sont faites, PK et PM sont close sans code : voir
-`TODO_DONE.md`). Ce fichier et l'issue #179 ont le même
-contenu. Ce qui est fait et décidé est dans `TODO_DONE.md` (l'issue #177 n'est
-plus mise à jour), ce qui est reporté dans `TODO_AFTER.md` (issue #178). Les
-anciennes issues #49 et #142 sont fermées, et `TODO_mistral.md` est supprimé,
-comme `TODO_fin.md` : ses articles sont répartis dans les trois registres, dont
-les tâches PS (faite par #297), PT (faite par #301 : `TODO_DONE.md` 3.25) et PP
-(faite par #302 : `TODO_DONE.md` 2.3 et 7.25).
+Ce qui reste à faire sur GAOL v5 au commit `269c12e` de `configure-clean` (la
+fusion de #312, hors des points, le 12 novembre 2026 à 7 h 53 UTC, après le
+commit direct `f27c6c2`, celle de #309, hors des points, le 11 novembre à
+22 h 16 UTC, le commit direct `be73e24` et celles de #311, de #310 et de
+#308, hors des points, de #307 et de #306, hors des points, de #305, hors des
+points, de #302, la tâche PP, de #304 et de #303, les registres de la tâche PT,
+de #301, la tâche PT, de #300, hors des points, de #298, de #299, de #297, de
+#296 et de #295, de #294, le manuel dans le style de la thèse, et de #292, de
+#293, #291, #290 et #289), en tâches PH et PJ (PA à PG, PI, PL, PP, PQ, PS et PT
+sont faites, PK et PM sont close sans code : voir `TODO_DONE.md`). Ce fichier et
+l'issue #179 ont le même contenu. Ce qui est fait et décidé est dans
+`TODO_DONE.md` (l'issue #177 n'est plus mise à jour), ce qui est reporté dans
+`TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142 sont fermées, et
+`TODO_mistral.md` est supprimé, comme `TODO_fin.md` : ses articles sont répartis
+dans les trois registres, dont les tâches PS (faite par #297), PT (faite par
+#301 : `TODO_DONE.md` 3.25) et PP (faite par #302 : `TODO_DONE.md` 2.3 et 7.25).
 
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à envoyer à un autre projet ni à publier sans l'accord
-du mainteneur. #312 est ouverte depuis le 12 novembre (hors des points :
-`MATH-CORE` retirée de la CI, `numbers` à 600 s dans le job macOS 26 arm64 LLVM
-Clang Debug ASan+UBSan, `compile_commands.json` hors de l'archive de CMake).
-#295 (PS.2), #296 (PM), #297
+du mainteneur. Aucune pull request n'est ouverte. #295 (PS.2), #296 (PM), #297
 (la tâche PS), #299 (PQ.2), #298 (PQ.1), #300 (hors des points : la recette de
 compilation croisée GCC 12.2 pour aarch64 de `todo-notes/gcc12-aarch64/`) et
 #301 (la tâche PT) sont fusionnées le 8 novembre, à 17 h 21, 17 h 29, 19 h 38,
@@ -37,7 +34,12 @@ un même modèle) à 21 h 04 UTC, puis, le 11 novembre, #308 (hors des points :
 mainteneur : `.gitignore`) à 21 h 08 UTC, #311 (hors des points : l'en-tête
 `<cstdint>`, que #310 avait remplacé par un `<stdint>` qui n'existe pas) à
 21 h 36 UTC et #309 (hors des points : `make dist` dans les trois builds, le
-workflow Release des paquets) à 22 h 16 UTC ; leurs registres sont faits.
+workflow Release des paquets) à 22 h 16 UTC, puis, le 12 novembre, #312 (hors
+des points : `MATH-CORE` retirée de la CI, `numbers` à 600 s dans le job macOS
+26 arm64 LLVM Clang Debug ASan+UBSan et à 900 s dans celui de macOS 15 x86_64
+GCC, `compile_commands.json` hors de l'archive de CMake), fusionnée à 7 h 53
+UTC par la session, sur la demande explicite du mainteneur ; leurs registres
+sont faits.
 
 ## Comment lire ce fichier
 
@@ -398,7 +400,12 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    `ChangeLog`. #309 : `doc/differences.md` lignes 2403 à 2406 (`make dist` et
    `make distcheck` revenus, une même archive `gaol-<version>.tar.gz` pour les
    trois builds, le projet meson `gaol`), et l'entrée du `ChangeLog`. #307
-   n'a rien pour l'utilisateur, dit sa description.
+   n'a rien pour l'utilisateur, dit sa description. Le texte de #312
+   (fusionnée le 12 novembre) n'est pas reporté non plus : l'archive des
+   sources que fait CMake (`dist`, `package_source`) n'emporte plus un
+   `compile_commands.json` de l'arbre des sources, comme `make dist` et
+   `meson dist` (la CI et les limites de `numbers` ne changent rien pour
+   l'utilisateur).
    *Décidé le 8 novembre* : quatre lignes de plus au `ChangeLog`, une pour
    chaque pull request limitée à la CI, #34, #35, #48 et #74 (leurs textes sont
    dans `todo-notes/synthese.md`, l'article `29.md` pour #35) ; le `ChangeLog`

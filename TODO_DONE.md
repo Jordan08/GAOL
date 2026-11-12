@@ -54,10 +54,11 @@ par date ; 4. Les points faits, par lettre ; 5. Les anciens numéros faits ; 6.
 Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 `configure-clean` ; 8. Le ménage fait.
 
-## 1. L'état au 11 novembre 2026
+## 1. L'état au 12 novembre 2026
 
-- **`configure-clean`** est au commit `dcce690` (la fusion de #309 le 11
-  novembre à 22 h 16 UTC, après le commit direct `be73e24` (8.1), et celles de
+- **`configure-clean`** est au commit `269c12e` (la fusion de #312 le 12
+  novembre à 7 h 53 UTC, après le commit direct `f27c6c2` (3.32), celle de #309
+  le 11 novembre à 22 h 16 UTC, le commit direct `be73e24` (8.1), et celles de
   #311 à 21 h 36 UTC (`d326846`), de #310 à 21 h 08 UTC (`d8c2699`), de #308 à
   21 h 05 UTC (`13582c3`), de #307 le 10 novembre à 21 h 04 UTC (`6ef18d7`) et
   de #306 à 17 h 55 UTC (`99229cc`), de #305 à 8 h 52 UTC (`39ce501`), de
@@ -81,9 +82,7 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   `configure-clean`, qui reste la branche de développement après v5.0.0 ;
   `master` (GAOL 4.3.2, plus deux commits de `.claude/CLAUDE.md`) ne bouge qu'à
   la version (point Y : `configure-clean` → `master`, *décidé le 12 novembre*,
-  `MATH-CORE` étant supprimée : 3.32). #312 est ouverte depuis le 12 novembre
-  (la CI sans `MATH-CORE`, `numbers` à 600 s sous ASan avec LLVM Clang sur
-  macOS 26, `compile_commands.json` hors de l'archive de CMake). Le
+  `MATH-CORE` étant supprimée : 3.32). Aucune pull request n'est ouverte. Le
   mainteneur a fusionné #165 à #167, #169 à #174, #176 et #180 à #184
   les 23 et 24 octobre, et #186 à #194,
   #196 et #197 le 25 octobre, #199, #200 et #201
@@ -131,7 +130,11 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   domaine) à 21 h 05 UTC, #310 (du mainteneur : `.gitignore`, et l'en-tête
   `<stdint>`, qui n'existe pas) à 21 h 08, #311 (hors des points : `<cstdint>`)
   à 21 h 36 et #309 (hors des points : `make dist` dans les trois builds, le
-  workflow Release des paquets) à 22 h 16 UTC (2.3, 3.30, 3.31 et 7.28). #168,
+  workflow Release des paquets) à 22 h 16 UTC (2.3, 3.30, 3.31 et 7.28), puis,
+  le 12 novembre, #312 (hors des points : la CI sans `MATH-CORE`, `numbers` à
+  600 et à 900 s dans deux jobs de macOS avec les sanitizers,
+  `compile_commands.json` hors de l'archive de CMake) à 7 h 53 UTC, par la
+  session, sur la demande explicite du mainteneur (2.3, 3.32 et 7.29). #168,
   #195, #211, #214, #221, #226 et #233 sont fermées sans fusion, et, du 30 et du
   31 octobre, #240, #241, #243, #244, #246, #247, #251 à #261, #277 et #278,
   puis #286, le « Revert » de #285 fermé onze secondes après son ouverture
@@ -3176,6 +3179,45 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   du job `macOS 26 arm64 LLVM Clang Debug ASan+UBSan`, où `numbers` avait
   dépassé sa limite de 300 s (300,39 s ; 230,75 s à la relance, 238 et 252 s
   dans les deux runs précédents du même job : 7.28). Décisions : 3.31.
+- #312 (hors des points : quatre demandes du mainteneur du 12 novembre ;
+  `ci-branches-timeout`, ouverte le 12 novembre à 7 h 30 UTC, 4 commits, 11
+  fichiers, 37 lignes ajoutées et 25 retirées) : fusionnée à 7 h 53 UTC
+  (`269c12e`, tête `cea3737`) par la session, sur la demande explicite du
+  mainteneur (« exceptionnellement tu peux fusionner la branche dans
+  configure-clean »). `f43b7e9` : les six workflows qui tournaient sur un push
+  vers `master`, `MATH-CORE` et `configure-clean` (`build-systems.yml`,
+  `containers.yml`, `linux.yml`, `macos.yml`, `manual.yml`, `windows.yml`) ne
+  nomment plus que `master` et `configure-clean`, comme
+  `doc/continuous-integration.md`, la section « The continuous integration »
+  du manuel et la recommandation 12 de `examples/examples.md` (3.32).
+  `25b073a` : `numbers` a 600 s (`timeout: 600` de la matrice de `macos.yml`,
+  passé par `GAOL_NUMBERS_TIMEOUT`) dans le job `macOS 26 arm64 LLVM Clang
+  Debug ASan+UBSan`, où il a pris de 161,74 à 296,87 s dans 28 exécutions du 9
+  au 11 novembre et dépassé 300 s une fois (`dcce690`). `a4166b9` :
+  `CPACK_SOURCE_IGNORE_FILES` écarte `compile_commands.json` (`.cache/` l'était
+  depuis `faecc3d`), que #310 a mis dans `.gitignore`. `cea3737` : `numbers` a
+  900 s dans le job `macOS 15 x86_64 GCC Debug ASan+UBSan`, qui avait 600 s et
+  où il a pris de 181,86 à 576,73 s dans 30 exécutions, plus de 400 s six fois
+  (demandé par le mainteneur à la lecture des questions ouvertes de la pull
+  request) ; `doc/continuous-integration.md`, `doc/tests.md` et le manuel
+  donnent les deux limites et les mesures. Validations en local : sur un
+  clone, avec un `compile_commands.json` lien à la racine, une copie dans
+  `tests/` et des fichiers dans `.cache/` et `gaol/.cache/`, l'archive de la
+  cible `dist` a exactement les 726 fichiers de `git archive HEAD`, et avec le
+  `CMakeLists.txt` d'avant `a4166b9` les deux `compile_commands.json` en plus ;
+  les workflows lus par PyYAML ; `check_branch` ; le manuel par
+  `manual/build-pdf.sh` avant et après (0 erreur, 387 pages, les mêmes 7
+  « Overfull »). Un relecteur indépendant a trouvé deux défauts, corrigés
+  avant l'ouverture (« 30 runs » au lieu de 28 pour le job LLVM Clang, une
+  relance listant deux fois le même job ; une ligne de 123 colonnes dans
+  `doc/tests.md`). CI à la tête `a4166b9` : 179 jobs finis, tous verts, dont
+  les 22 de Performance, Manual et le workflow Release (les trois paquets
+  construits, installés et testés), les autres annulés au push de `cea3737` ;
+  la CI de `cea3737` est annulée à la fusion, que celle du commit de fusion
+  remplace (le même arbre, plus le commit de registres `f27c6c2`) : 206 jobs,
+  tous verts (Manual 1, Windows 64, Linux 49, Linux containers 23, Autotools
+  and meson 49, macOS 20), `numbers` en 236,82 s dans le job LLVM Clang et en
+  359,01 s dans le job x86_64 GCC. Décisions : 3.32.
 
 ### 2.4 Fermées sans fusion
 
@@ -5822,7 +5864,7 @@ l'arbre (`origin/configure-clean` à `593ddf3`) avant d'être corrigé : les hui
 - **Les textes pour `doc/differences.md` et le `ChangeLog`** : dans `TODO.md`
   PJ.7.
 
-### 3.32 Le 12 novembre : la version va de `configure-clean` à `master`, sans `MATH-CORE`
+### 3.32 Le 12 novembre : la version va de `configure-clean` à `master`, sans `MATH-CORE` (#312)
 
 - **Le chemin** : une fois `configure-clean` fini, une pull request fusionne
   `configure-clean` dans `master` (le jeu de règles « master verif » l'exige),
@@ -5834,8 +5876,15 @@ l'arbre (`origin/configure-clean` à `593ddf3`) avant d'être corrigé : les hui
   perdu : sa pointe sur GitHub, `e80819a` (la fusion de #30), et celle de
   GAOL_V8, `7ade167`, sont des ancêtres de `configure-clean`.
 - **La CI** : les workflows ne tournent plus que sur un push vers `master` et
-  `configure-clean` (#312, ouverte le 12 novembre) ; `release.yml` part
+  `configure-clean` (#312, fusionnée le 12 novembre) ; `release.yml` part
   toujours des étiquettes d'un commit de `master`.
+- **Les limites de `numbers`** (demandées le 12 novembre) : 600 s dans le job
+  `macOS 26 arm64 LLVM Clang Debug ASan+UBSan` (au plus 296,87 s en 28
+  exécutions, et un dépassement de 300 s), 900 s dans le job `macOS 15 x86_64
+  GCC Debug ASan+UBSan` (jusqu'à 576,73 s pour 600) ; les autres jobs gardent
+  les leurs (300 s, 400 s pour les quatre de `linux.yml` avec les sanitizers).
+- **L'archive des sources de CMake** suit `.gitignore` : `compile_commands.json`
+  en est écarté, comme `.cache/` l'était déjà.
 
 ## 4. Les points faits, par lettre
 
@@ -7750,14 +7799,56 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   limite de ce job est proposé au mainteneur, non fait.
 - `<stdint>` : vu en regardant les commits de la fusion de #308 (#310), avant
   que sa CI ne tourne ; la correction, #311, est faite à la demande du
-  mainteneur. Les deux motifs de `.gitignore` absents de
-  `CPACK_SOURCE_IGNORE_FILES` lui sont proposés pour #309, sans réponse.
+  mainteneur. Les deux motifs ajoutés à `.gitignore` par #310 lui sont dits
+  absents de `CPACK_SOURCE_IGNORE_FILES` et proposés pour #309, sans réponse :
+  à tort pour `.cache/`, qui y était déjà (7.29).
 - Les registres de #307 à #311 sont faits ici, en un commit direct sur
   `configure-clean`, depuis l'arbre de GAOL_V9 : `TODO.md` (l'en-tête prend
   `dcce690`, la liste des pull requests, PJ.7), ce fichier (1, 2.3, 3.30,
   3.31, 7.28 et 8.1), `process.md` (l'en-tête et §12) et l'issue #179.
   `TODO_AFTER.md` n'a rien de nouveau. Le commit est poussé une fois la CI de
   `dcce690` finie, qu'il aurait annulée (process.md §10).
+
+### 7.29 Le 12 novembre (`MATH-CORE` supprimée, #312)
+
+- Le mainteneur répond aux trois questions du 11 novembre : « supprime
+  MATH-CORE et mets le chemin configure-clean -> master pour la version », le
+  temps limite à 600 s pour le job qui s'était arrêté, `.cache/` et
+  `compile_commands.json` dans `CPACK_SOURCE_IGNORE_FILES`. `MATH-CORE`
+  n'existait plus sur GitHub ; sa branche locale de GAOL_V8 (`7ade167`, un
+  ancêtre de `configure-clean`) est supprimée. `.cache/` était déjà dans
+  `CPACK_SOURCE_IGNORE_FILES` (depuis `faecc3d`) : la question du 11 novembre
+  le disait à tort absent, seul `compile_commands.json` manquait.
+- Le chemin de la version est écrit dans les registres par le commit direct
+  `f27c6c2` (`process.md` point Y et §12, `TODO.md` point 34, ce fichier 1, 3.32
+  et 8.1, l'issue #179), poussé avant l'ouverture de #312 ; le reste va dans
+  #312, depuis l'arbre de GAOL_V9 (`ci-branches-timeout`, `--no-track`,
+  poussée par SSH, ouverte par `gh api -X POST …/pulls`).
+- Les temps de `numbers` viennent des journaux des jobs de macOS avec les
+  sanitizers des 40 derniers runs terminés de `macos.yml` (du 9 au 11
+  novembre ; `gh api --allow-escape-sequences …/jobs/<id>/logs`, la ligne
+  `Test #n: numbers` de ctest). Piège : la liste des jobs d'une relance
+  (`…/attempts/2/jobs`) reprend les jobs non relancés, si bien qu'un même job
+  compte deux fois ; il faut dédoublonner avant de compter. Le relecteur l'a
+  vu (« 30 runs » pour 29 exécutions, dont 28 réussies).
+- Le job `macOS 15 x86_64 GCC Debug ASan+UBSan`, à 600 s depuis octobre, est
+  monté jusqu'à 576,73 s (`5aeea74`, le 10 novembre) : signalé dans les
+  questions ouvertes de #312, le mainteneur demande 900 s (« ok passe à 900 »),
+  ajouté en quatrième commit (`cea3737`), que seule la session a relu.
+- Au push de `cea3737`, les runs de `a4166b9` encore en cours sont annulés à
+  la main (Release, à `cancel-in-progress: false`, avait déjà fini). Le
+  mainteneur autorise la session, exceptionnellement, à fusionner : fusion par
+  `gh api -X PUT repos/Jordan08/GAOL/pulls/312/merge -f sha=<tête> -f
+  merge_method=merge` (le message par défaut de GitHub, l'auteur `Jordan`),
+  puis la CI de `cea3737`, qui testait le même arbre que le commit de fusion,
+  est annulée pour libérer les exécuteurs ; celle de `f27c6c2` est annulée par
+  la `concurrency` au push de la fusion. La branche est supprimée sur GitHub à
+  la fusion (le réglage du 11 novembre) et en local.
+- Les registres de #312 sont faits ici, en un commit direct sur
+  `configure-clean` poussé une fois finie la CI de `269c12e`, depuis un clone
+  du scratchpad : `TODO.md` (l'en-tête, la liste des pull requests, PJ.7), ce
+  fichier (1, 2.3, 3.32, 7.28, 7.29 et 8.1), `process.md` (l'en-tête et §12)
+  et l'issue #179 ; `TODO_AFTER.md` n'a rien de nouveau.
 
 ## 8. Le ménage fait
 
@@ -7903,6 +7994,9 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   la branche locale `MATH-CORE` de GAOL_V8 est supprimée (sa pointe,
   `7ade167`, est un ancêtre de `configure-clean`), et #312 retire `MATH-CORE`
   des six workflows qui la nommaient et de la documentation.
+- [x] Le 12 novembre, `ci-branches-timeout` (#312) est supprimée sur GitHub à
+  la fusion et en local. Restent sur GitHub et en local (GAOL_V8 et GAOL_V9)
+  `configure-clean` et `master`.
 - [x] Lignes de crédit retirées des descriptions de #50, #51, #53 à #57 et #59,
   d'un commentaire de #59 et de cette issue. Il en reste dans les messages des
   commits a0d3871, 790ca12 et f1f4239 de #99, fusionnée sans squash. Retirées
