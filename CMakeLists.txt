@@ -1375,7 +1375,7 @@ endif()
 # on the option, and the option is not in every later release: GCC has it from
 # 11.4 in the series 11 and from 12.4 in the series 12, so that a GAOL built by
 # GCC 11.4 (Ubuntu 22.04) and a program built by GCC 12.3 (its g++-12) have it
-# and do not (GAOL v5, review of point 4: gcc/config/i386/i386.opt of the
+# and do not (GAOL v5: gcc/config/i386/i386.opt of the
 # release tags)
 if(GAOL_LINK_FLAGS)
   string(REGEX MATCH "^[0-9]+" GAOL_COMPILER_MAJOR "${CMAKE_CXX_COMPILER_VERSION}")

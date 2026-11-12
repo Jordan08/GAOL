@@ -138,7 +138,7 @@ KNOWN = [
      '(1.4426950408889634 is rounded to nearest on purpose)'),
     # GCC inlines pow_up_without_overflow_exception() (and pow_rounded_up<true>()) into the callers below instead of
     # keeping the function that the entry above names, and the same estimates come before its write: the products
-    # |y| |log(x)| 1.44... and the quotient 1000/(e + 1) that decide whether the masks are needed (point PG, 2026-10-29).
+    # |y| |log(x)| 1.44... and the quotient 1000/(e + 1) that decide whether the masks are needed (2026-10-29).
     # root_end() and log_ratio_end() have the hints of the search for the tightest bound of c^(1/y) and of
     # log(c)/log(x) as well (root_of_power_near() and log_ratio_near()): they only say where to start
     ('BEFORE', r'pow_lo<true>|log_ratio_(up|dn)\(double, double\)::|root_of_power_(up|dn)\(double, double, double\)::|'

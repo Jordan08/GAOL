@@ -533,7 +533,7 @@ Other consequences:
 `GAOL_PRESERVE_ROUNDING` removes all of this, at a measured cost of 4.8 times
 on x + y, 6.7 times on x/y, 1.4 to 1.6 times on exp and sin, and 12 times on
 a Horner polynomial mixing intervals and doubles (at the time of the review:
-the AVX-512 path and the operators of point ZZ have since brought it to 1.3 to
+the AVX-512 path and the new operators have since brought it to 1.3 to
 1.7 times on the four operations where the machine has the AVX-512
 instructions, and the figures of
 [Using GAOL](../doc/using.md#what-the-upward-rounding-does-to-the-program) are

@@ -158,7 +158,7 @@ namespace
   static_assert(std::is_constructible<expression, double>::value && std::is_constructible<expression, interval>::value,
                 "expression(d) and expression(x) build the expressions of [d, d] and x");
   static_assert(!has_gaol_sin<double>::value, "gaol::sin(0.5) does not compile, gaol/parser/gaol_expression.h included");
-  // An integer neither, and expression(n) is expression(interval(n)) (GAOL v5, point D.21)
+  // An integer neither, and expression(n) is expression(interval(n)) (GAOL v5)
   static_assert(!std::is_convertible<long long, expression>::value && std::is_constructible<expression, long long>::value,
                 "expression(n) builds the expression of interval(n)");
   static_assert(std::is_same<decltype(gaol::sin(std::declval<const interval&>())), interval>::value,
@@ -1178,7 +1178,7 @@ namespace
     const expression y = expression(interval(3.0, 4.0));
     const expression d = expression(2.5);
     // 2^53 + 1, which expression(double) made the double 2^53: expression(n)
-    // is the interval of the two doubles around it (GAOL v5, point D.21)
+    // is the interval of the two doubles around it (GAOL v5)
     const double two53 = std::ldexp(1.0, 53);
     const expression n = expression(9007199254740993LL);
 

@@ -201,7 +201,7 @@ direction of the x87 unit: three writes, and a call, where a program that
 computes to nearest and a GAOL_RND_NEAREST_LEAVE() that gives back the
 direction upward needs one. Visual C++ has no inline assembly for x64 and does
 not use the x87 unit: MXCSR alone (gaol_core::x86_registers of
-gaol/gaol_fpu_fenv.h). It was so with mingw-w64 alone since point AI.110
+gaol/gaol_fpu_fenv.h). It was so with mingw-w64 alone at first
 (found by tests/rounding_direction.cpp in the continuous integration): from
 mingw-w64 13 (commit 5c5973cf, "fenv: Use MSVC-compatible ABI for fenv.h
 functions", in v13.0.0 and not in v12.0.0) fegetround() and fesetround() are
@@ -280,7 +280,7 @@ GAOL_PRESERVE_ROUNDING, an operation makes its result, the maxima and the
 minima of its bounds included, before GAOL_RND_LEAVE() restores the modes,
 and keeps it with GAOL_RND_KEEP(): with denormals-are-zero restored, sinpi()
 took the minimum of two subnormals as if they were zeros, and
-sinpi([100, 1000] 2^-1074) was empty (GAOL v5, review of point 4,
+sinpi([100, 1000] 2^-1074) was empty (GAOL v5,
 tests/rounding_direction.cpp). The functions that make no check, the
 constructor from two bounds, the relations, & and |, max(), abs()...,
 compare the bounds as bounds (gaol_detail::bound_less()..., gaol_port.h),
@@ -975,8 +975,8 @@ namespace gaol_core {
     computes its bounds with SSE, and what the x87 unit computes, the square
     root and the fma() of a C library, follows its direction (the elementary
     functions of CORE-MATH read MXCSR, gaol/math/gaol_core_math_port.h; they
-    read the x87 unit with the fegetround() of a C library before GAOL v5, point
-    AI.108). Either being elsewhere, it is set upward (GAOL v5, found by
+    read the x87 unit with the fegetround() of a C library before GAOL v5).
+    Either being elsewhere, it is set upward (GAOL v5, found by
     tests/rounding_direction.cpp in the continuous integration, which leaves
     the two differing on purpose). Not the probe above, which shows the
     direction of the unit computing GAOL's doubles only. The two registers

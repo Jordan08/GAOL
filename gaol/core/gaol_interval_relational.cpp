@@ -1384,7 +1384,7 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
     the whole line: these are decided after the check too, though the modes
     flushing the subnormals to zero do not change how J compares with -1 and
     1, so that the check, which clears the modes, is made on every path of a
-    non-empty J and I (GAOL v5, second review of point 4).
+    non-empty J and I (GAOL v5).
   */
   template<class Inverse, class Piece, class Image>
   static interval periodic_rel(const interval& J, const interval& I, double shift, bool bounded, Inverse inverse,

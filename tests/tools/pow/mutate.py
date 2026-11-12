@@ -232,7 +232,7 @@ MUTANTS = [
                  '// [+oo] and [-oo]')],
          survives='an empty J fails J.left() == J.right(), a quiet comparison, and pow_standard_upward() gives '
                   'the empty set for it; an empty I is given back by pown_upward() and pown_beyond_upward(), '
-                  'which took [-oo, +oo] for it beyond the ints before point B, and pow_standard_upward() gives '
+                  'which took [-oo, +oo] for it beyond the ints before #121, and pow_standard_upward() gives '
                   'the empty set for it'),
     dict(name='gaol-infinite-guard-dropped', file=POW,
          edits=[('if (J.left() == J.right() && !(std::fabs(J.left()) <= (std::numeric_limits<double>::max)())) {',
@@ -255,7 +255,7 @@ MUTANTS = [
     dict(name='ieee-is-gaol',
          file='gaol/gaol_ieee1788.h',
          edits=[('return ::gaol_core::pow_standard(x, y);', 'return ::gaol_core::gaol_pow_hybrid(x, y);')]),
-    # The integer powers (point B, third pull request): pown_products(), pown_point(), pown_corners(),
+    # The integer powers (#121): pown_products(), pown_point(), pown_corners(),
     # pown_upward() and the powers beyond the ints, in both builds (pown-*), and the two lanes of
     # pown_large_inline() in an SSE2 register with the FMA instructions (sse-fma-*, gaol_interval_sse_impl.h) or in a pair of doubles,
     # the FPU intervals and the SSE2 ones without FMA (fpu-*): each one is compiled in one build only
@@ -437,13 +437,13 @@ MUTANTS = [
          edits=[('vcageq_f64(g, vdupq_n_f64(pown_least[L]))', 'vcagtq_f64(g, vdupq_n_f64(pown_least[L]))')],
          survives='a base at pown_least[L] itself takes the corners instead of the kernel: the same bounds, but a zero '
                   'lower bound is -0 with the kernel and +0 with the corners (pownedge.cpp hashes the sign of a zero, '
-                  'which the tests do not compare; point PG.7)'),
+                  'which the tests do not compare)'),
     dict(name='neon-range-greatest-strict',
          file='gaol/core/gaol_interval_neon_impl.h',
          edits=[('vcaleq_f64(g, vdupq_n_f64(pown_greatest[L]))', 'vcaltq_f64(g, vdupq_n_f64(pown_greatest[L]))')],
          survives='a base at pown_greatest[L] itself takes the corners instead of the kernel: the same bounds, but a zero '
                   'lower bound is -0 with the kernel and +0 with the corners (pownedge.cpp hashes the sign of a zero, '
-                  'which the tests do not compare; point PG.7)'),
+                  'which the tests do not compare)'),
     dict(name='neon-even-lower-without-zero',
          file='gaol/core/gaol_interval_neon_impl.h',
          edits=[('c = vcombine_f64(vget_low_f64(vmaxq_f64(greater, zero)), vget_high_f64(greater));', 'c = greater;')]),

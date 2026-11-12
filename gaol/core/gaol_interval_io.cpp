@@ -344,7 +344,7 @@ namespace gaol_core {
     // for 5e-324 with MSYS2 CLANG64, gdtoa does), and GAOL wrote it to
     // nearest, below an upper bound: a bound is written as the double on its
     // outer side that no mode changes, the smallest normal double, 2^-1022,
-    // away from zero, and 0 toward it, loose but outward (GAOL v5, point Q).
+    // away from zero, and 0 toward it, loose but outward (GAOL v5).
     // A number written to nearest is written by a stream, as before. Tested
     // before the hexadecimal format, which a stream writes too.
     std::uint64_t bits;

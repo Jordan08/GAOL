@@ -36,7 +36,7 @@
  * Copyright (c) 2026 ENSTA, France
  *
  * By: Jordan NININ (created 2026-10-28; from a program of the study of the
- *     weak gain of the NEON kernel of pown, point PG.7)
+ *     weak gain of the NEON kernel of pown)
  *--------------------------------------------------------------------------
  * GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
  * COPYING.LIB file for information.

@@ -8,7 +8,7 @@
  * where a developer of GAOL compiles it, see gaol/gaol_config.h),
  * widths, magnitudes and mignitudes, Hausdorff distances (of intervals with
  * infinite bounds too), nb_fp_numbers() across the two zeros, splitting, integer
- * parts, radii, max() and min() of special bounds; the tools of TODO point P: width_enclosure(), inflate(),
+ * parts, radii, max() and min() of special bounds; the interval tools: width_enclosure(), inflate(),
  * interval::centered_form(), bisect(), is_bisectable(), hull() and intersect(); the
  * comparisons of IEEE 1788-2015 (Tables 10.3 and 10.4); and
  * the relational functions (sqrt_rel, div_rel...), which have to keep the
@@ -130,7 +130,7 @@ namespace
             [&] { return describe() + ": " + hex(left) + " " + hex(right); });
       check("split_left() and split_right()" + in, X.split_left().set_eq(left) && X.split_right().set_eq(right), describe);
 
-      // The tools of TODO point P (GAOL v5): the enclosure of the width, X
+      // The interval tools (GAOL v5): the enclosure of the width, X
       // widened by a radius and the interval of a midpoint and a radius, each
       // the tightest enclosure of its exact bounds, which GAOL computed
       // rounding both upward; the parts of bisect(), and hull() and
@@ -220,7 +220,7 @@ namespace
                              && nb_fp_numbers(1.0, 2.0) == 4503599627370497ull);
   }
 
-  /* The tools of TODO point P on special intervals and arguments (GAOL v5):
+  /* The interval tools on special intervals and arguments (GAOL v5):
      the empty set, points, zeros, infinite bounds and radii, NaN, the
      largest double, and the cases the random draws seldom give: an inexact
      bound, which GAOL rounded upward on both sides (the lower bound of

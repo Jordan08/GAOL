@@ -105,7 +105,7 @@ namespace
   }
 
   /*
-    Integers (GAOL v5, point D.21): numsToInterval() and isMember() take an
+    Integers (GAOL v5): numsToInterval() and isMember() take an
     integer as the integer it is, 2^53 + 1 being in no double; pown() and
     gaol::pow() take an exponent of any integer type: pown(x, 3000000000u)
     converted it to a negative int, and gaol::pow(x, 5L) was ambiguous.

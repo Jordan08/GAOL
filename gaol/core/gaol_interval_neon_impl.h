@@ -516,7 +516,7 @@ double hausdorff(const interval &I1, const interval &I2)
         c = vextq_f64(c, c, 1);
 #if !GAOL_NEON_MSVC
         // Clang makes a select of this swap, with a move from a general register
-        // to the vector one on the way to the kernel (GAOL v5, point PG.7)
+        // to the vector one on the way to the kernel (GAOL v5)
         __asm__ ("" : "+w" (c));
 #endif
       }
@@ -525,7 +525,7 @@ double hausdorff(const interval &I1, const interval &I2)
       // -frounding-math Clang scalarizes the plain vcgeq_f64(), vcleq_f64() and
       // vceqq_f64() (a fcmpe or fcmp, a csetm and a move for each lane: 18
       // instructions more in pow(x, 3) for the same masks), and vcageq_f64() and
-      // vcaleq_f64() stay on the vector unit; c == 0 is |c| <= 0 (GAOL v5, point PG.7)
+      // vcaleq_f64() stay on the vector unit; c == 0 is |c| <= 0 (GAOL v5)
       uint64x2_t ok = vandq_u64(vcageq_f64(g, vdupq_n_f64(pown_least[L])), vcaleq_f64(g, vdupq_n_f64(pown_greatest[L])));
       if (!negative) {
         ok = vorrq_u64(ok, vcaleq_f64(c, zero));

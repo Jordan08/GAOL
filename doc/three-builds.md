@@ -524,8 +524,8 @@ GAOL v5 defends itself:
   `has_link_argument()`. `gaol::gaol` gives it to a program built by GCC 13 or
   a later one, or by the compiler that built GAOL, of its major version and not
   older: GCC has the option from 11.4 and 12.4 in the series 11 and 12 only,
-  and a GAOL built by GCC 11.4 gave it to GCC 12.3, which stops on it (GAOL v5,
-  review of point 4). `gaol.pc`, written for that compiler, gives it to every
+  and a GAOL built by GCC 11.4 gave it to GCC 12.3, which stops on it (GAOL v5).
+  `gaol.pc`, written for that compiler, gives it to every
   program, and a program linked by a compiler that refuses it (Clang 18, a GCC
   before 11.4, GCC 12.0 to 12.3, GCC for ARM) is to be linked without it.
 

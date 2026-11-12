@@ -23,7 +23,7 @@
 #
 # By: Jordan NININ (created 2026-10-27; from the 46 mutants of the work of
 #     #156, whose file was lost, rewritten for the code of configure-clean;
-#     the 17 of sse_enter_upward() and sse_leave() added for point 3 of PF,
+#     the 17 of sse_enter_upward() and sse_leave() added since,
 #     GAOL v5)
 #
 # GAOL is a software distributed WITHOUT ANY WARRANTY. Read the associated
@@ -31,7 +31,7 @@
 
 F = 'gaol/gaol_fpu.h'
 # The constants of the fields and x86_set_modes(), which gaol_set_rounding_x86() of this header needs before it
-# (point 3 of PF, GAOL v5)
+# (GAOL v5)
 FENV = 'gaol/gaol_fpu_fenv.h'
 
 
@@ -175,7 +175,7 @@ MUTANTS = [
     m('sse-leave-direction-only', SSE_WANTED, 'const unsigned int wanted = (csr & ~sse_rc_mask) | (saved & sse_rc_mask);'),
 
     # get_rounding(), set_rounding() and set_rounding_and_flush_modes() on the processor, and the registers they give
-    # to the functions above (x86-64 and 32-bit x86, point PG.10): rounding_state_on_the_processor() of the test, which
+    # to the functions above (x86-64 and 32-bit x86): rounding_state_on_the_processor() of the test, which
     # reads and writes the registers apart from the library, kills them on x86-64
     m('get-rounding-reads-nothing', 'x86_get_state(hw, s);', 's.x87 = 0u; s.sse = 0u; s.flush = 0u;'),
     m('set-rounding-also-sets-the-modes', 'x86_set_rounding(hw, s);', 'x86_set_rounding_and_flush_modes(hw, s);'),

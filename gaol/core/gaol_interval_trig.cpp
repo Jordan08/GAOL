@@ -231,8 +231,8 @@ namespace gaol_core {
 
   /* The minimum and the maximum taken before GAOL_RND_LEAVE(): with
      GAOL_PRESERVE_ROUNDING, the denormals-are-zero mode it restores made two
-     subnormal values equal, and sinpi([100, 1000] 2^-1074) was empty (GAOL v5,
-     review of point 4) */
+     subnormal values equal, and sinpi([100, 1000] 2^-1074) was empty (GAOL v5)
+     */
   static interval sin_or_cos_pi(const interval& I, double (*f)(double),
                                 std::int64_t up, std::int64_t down)
   {

@@ -194,7 +194,7 @@ int main()
   }
 
   // The operands of nth_root(x, 3), the cube root, and asinpi(x), drawn after all the others so that those of the rows above stay as
-  // they were (GAOL v5, point 108): asinpi() is defined on [-1, 1]. They are the rows that show a function of CORE-MATH
+  // they were (GAOL v5): asinpi() is defined on [-1, 1]. They are the rows that show a function of CORE-MATH
   // reading the rounding direction at each call, through fegetround() of the C library on a 32-bit x86 processor
   std::uniform_real_distribution<double> within_unit(-0.9, 0.9);
   std::vector<double> u(n);

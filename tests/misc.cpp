@@ -97,7 +97,7 @@ namespace gaol_names
   GAOL_NAMES_CLASS(log2_node);
   GAOL_NAMES_CLASS(sign_node);
   GAOL_NAMES_CLASS(trunc_node);
-  // The comparator of the containers of the standard library (GAOL v5, point V)
+  // The comparator of the containers of the standard library (GAOL v5)
   GAOL_NAMES_CLASS(lexicographic_less);
   // The 16 states of overlap() (GAOL v5)
   GAOL_NAMES_CLASS(overlapping_state);

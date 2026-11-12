@@ -26,7 +26,7 @@
  * the root of a negative number is the opposite of the root of its magnitude.
  * Those of numbers below 2^-1020, subnormal ones included, are within 2 doubles
  * of the tightest bounds, and exact where x is an n-th power, for n up to
- * 2^32 - 1 (GAOL v5, point AC).
+ * 2^32 - 1 (GAOL v5).
  * All the intervals made of 15 special bounds (zeros of both signs, infinities,
  * the smallest subnormal and the smallest normal numbers, the largest double...)
  * are operated on with +, -, *, /, %, sqr(), sqrt(), inverse(), the compound
@@ -2359,7 +2359,7 @@ namespace
        where TwoSum is no longer exact, and [0.5] looked as wide as
        [4.9e-324, 1e-300], whose rounded differences of the bounds are the
        same; with a bound of DBL_MAX, the first sum read +oo and the terms of
-       the error inf - inf, which raised FE_INVALID (GAOL v5, point 48, the
+       the error inf - inf, which raised FE_INVALID (GAOL v5, the
        flag checked in tests/rounding_direction.cpp) */
     check("cancel_minus([0.5], [4.9e-324, 1e-300]) = entire: X narrower than Y, which the rounded differences do not show",
           cancel_minus(interval(0.5), interval(4.9e-324, 1e-300)).is_entire(),

@@ -17,7 +17,7 @@
 # - the objects of gaol_interval_core.cpp (the exact products, the integer
 #   powers) and of the cos of CORE-MATH hold fused multiply-add instructions
 #   (vfmadd): without them CORE-MATH calls a software fma(), and pow(x, 3),
-#   log and cos take 3 to 6 times as long (point 110). The instructions also
+#   log and cos take 3 to 6 times as long. The instructions also
 #   show that objdump disassembles these objects, so that a count of zero
 #   %ymm is no mere failure to read them.
 #

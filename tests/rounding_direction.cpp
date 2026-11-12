@@ -47,7 +47,7 @@
  * of [DBL_MAX] the overflow exception; nor does any function that computed
  * beyond the largest double on the way (sqrt(), the roots, sin(), cos(),
  * tan(), div_rel(), the reverse functions...) raise the overflow or the
- * division-by-zero exception for a result with no infinite bound (point 79);
+ * division-by-zero exception for a result with no infinite bound;
  * every operation keeps the exception flags and masks of the program (GAOL v5).
  *
  * On 64-bit ARM with GCC or Clang, whatever the intervals (NEON or FPU), the
@@ -1648,8 +1648,8 @@ namespace
   };
 
   /*
-    Products of intervals with a zero bound and an infinite one (GAOL v5,
-    point D.24): the product of the SSE2 intervals multiplied the bounds
+    Products of intervals with a zero bound and an infinite one (GAOL v5): the
+    product of the SSE2 intervals multiplied the bounds
     pairwise, 0 by +oo among them, which raised the invalid-operation
     exception, and made a 0 of the NaN afterwards: [0]*[1, +oo] and
     [0, +oo]*[0] raised it, and so did pow([1], [1, +oo]) through them. The
@@ -1739,7 +1739,7 @@ namespace
 
   /*
     div_rel(K, J, [-oo, +oo]) for every K and J with bounds in
-    {-oo, -2, -0, 0, 4, +oo} (GAOL v5, point D.24): with the SSE2 intervals,
+    {-oo, -2, -0, 0, 4, +oo} (GAOL v5): with the SSE2 intervals,
     the branches keeping one half of a division divided both halves, and the
     half thrown away divided +oo by +oo, which raised the invalid-operation
     exception (div_rel([4, +oo], [-oo, 4], I)), or a nonzero bound by a zero
@@ -1918,7 +1918,7 @@ namespace
   }
 
   /*
-    pow for an exponent of extreme magnitude (GAOL v5, point D.24): CORE-MATH's
+    pow for an exponent of extreme magnitude (GAOL v5): CORE-MATH's
     pow makes its approximation of log(x) a NaN on purpose for |y| < 2^-969 and
     |y| >= 2^1014, and compared the NaN product with < until upstream commit
     c01f08c5 (5 October 2026), which raised the invalid-operation exception at
@@ -2606,7 +2606,7 @@ namespace
 
   /*
     The midpoint of an interval with a bound of 2^1023 or more in magnitude,
-    finite (GAOL v5, point D.24): midpoint() and mid() computed the sum of the
+    finite (GAOL v5): midpoint() and mid() computed the sum of the
     bounds first, which overflowed for [DBL_MAX] and raised the overflow
     exception, before they took the sum of the halves. The midpoints are
     computed by midpoints_of(), which calls GAOL only, and checked against the
@@ -2684,7 +2684,7 @@ namespace
 
   /*
     floor_rel(Z, X) of a Z ending at DBL_MAX, whose set ends at DBL_MAX + 1,
-    beyond the doubles (GAOL v5, point P.25): its upper end is +oo, which
+    beyond the doubles (GAOL v5): its upper end is +oo, which
     floor_rel() takes without computing DBL_MAX + 1, whose overflow raised the
     overflow exception where the result has no infinite bound:
     floor_rel([DBL_MAX], [0, 1]) is empty and floor_rel([0, DBL_MAX], [0, 1])
@@ -2940,7 +2940,7 @@ namespace
 
   /*
     The relations in loops, which a compiler vectorizes or if-converts (GAOL
-    v5, point D.24): the comparison that follows a test of the empty set is
+    v5): the comparison that follows a test of the empty set is
     then made for the empty operands too, and <, <=, >= or > raise the
     invalid-operation exception on their NaN bounds, as GCC 9.4 at -O3 made
     for the FPU intervals the constructor raise it (and with -mavx2,
@@ -4328,7 +4328,7 @@ int main()
     Every operation that checks the rounding direction, with each of the modes
     set just before it, gives what it gives with the modes cleared, which the
     cases above show to be the tightest bounds, and leaves them cleared, or
-    restored with GAOL_PRESERVE_ROUNDING (GAOL v5, review of point 4).
+    restored with GAOL_PRESERVE_ROUNDING (GAOL v5).
     Its check clears the modes before it reads, compares or copies a bound, and
     with GAOL_PRESERVE_ROUNDING it makes its result before it restores them;
     the compilers do not model the modes, so this is checked on what each
@@ -4549,8 +4549,8 @@ int main()
       by its NaN bounds, so that bounds in the wrong order, which is_empty()
       takes for the empty set with the modes cleared, are told apart; their
       doubles are written once the modes are cleared (Kept). The check of
-      <a, b> by the parser, which compares the two numbers as doubles, is left
-      to point E.
+      <a, b> by the parser, which compares the two numbers by their bits, is
+      in numbers.
     */
     {
       struct UncheckedFunction
@@ -4805,8 +4805,8 @@ int main()
   // A NaN the program gives, the products with a zero and an infinite bound,
   // the powers with an exponent of extreme magnitude and the relations in
   // loops raise no invalid-operation flag, and the midpoints of intervals
-  // with a huge bound no overflow flag (GAOL v5, point D.24), nor floor_rel()
-  // of a Z ending at DBL_MAX (GAOL v5, point P.25)
+  // with a huge bound no overflow flag (GAOL v5), nor floor_rel()
+  // of a Z ending at DBL_MAX (GAOL v5)
   for (const EmptyOperand& e : nan_operands) {
     std::feclearexcept(FE_ALL_EXCEPT);
     const volatile bool right = e.run();
@@ -4911,7 +4911,7 @@ int main()
        changes back: GCC computed them after it, upward, where TwoSum is no
        longer exact, and the terms of the error of
        cancel_minus([DBL_MAX], [1]) read +oo and inf - inf, and raised the
-       invalid-operation flag (GAOL v5, point 48; the bounds are checked in
+       invalid-operation flag (GAOL v5; the bounds are checked in
        tests/arithmetic.cpp) */
     std::feclearexcept(FE_ALL_EXCEPT);
     const interval z = cancel_minus(interval((std::numeric_limits<double>::max)()), interval(1.0));
@@ -5137,7 +5137,7 @@ int main()
             [&] { return std::string(r.name) + ": " + outcome_text(ol); });
     }
     // The exception the program enabled stays enabled after each operation
-    // (GAOL v5, point D.24): with GAOL_PRESERVE_ROUNDING, the SSE2 operations
+    // (GAOL v5): with GAOL_PRESERVE_ROUNDING, the SSE2 operations
     // wrote the SSE control register with every exception masked
     const Outcome om = run_with_exceptions_enabled(FE_INVALID, [&] {
       bool enabled = true;
@@ -5202,7 +5202,7 @@ int main()
     GAOL_PREFER_AVX512 and the SSE2 intervals give another bit pattern of the
     same bounds (+0 and -0 are one number): [-0, +0] with the first, [+0, -0]
     with the second, for a nonzero d (doc/using.md, The AVX-512 path; decided
-    on 2026-10-18 as an acceptable exception to "bit for bit", point AF, and
+    on 2026-10-18 as an acceptable exception to "bit for bit", and
     its bits checked here from 2026-10-23, the checks of the interval with == not
     seeing the sign of a zero). Whatever the direction of the program. d * x,
     computed as x * d since 2026-11-05 (it had bits of its own before: SSE2

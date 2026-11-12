@@ -67,7 +67,7 @@ public:
       CPPUNIT_ASSERT(d.left()==-4 && d.right() == 6);
   }
 
-  /* Integers (GAOL v5, point D.21): interval(n) is the tightest interval
+  /* Integers (GAOL v5): interval(n) is the tightest interval
      containing n, the two doubles around it where n is no double, whatever
      the rounding direction, and interval(a, b) with an integer bound contains
      it. Converted to a double, 2^53 + 1 was [2^53, 2^53] and 2^64 - 1
