@@ -81,8 +81,7 @@ build, and the CMake build follows them, apart from the errors corrected (see
   no AVX, the x86_64 tests stopped on an illegal instruction.
   GAOL's exact products (`fma_once()`) and CORE-MATH's functions then compute
   `fma()` with one instruction rather than with a call to the math library: on
-  an Intel i7-1185G7 with Clang 21.1, `pow(x, 3)` of an interval takes 5.4 ns
-  rather than 17.4, `sin` 1.3 times less and `cos` 2.5 times less, measured in
+  an Intel i7-1185G7 with Clang 21.1, `pow(x, 3)` of an interval takes 7.0 ns rather than 21.9, `sin` 1.4 times less and `cos` 1.4 times less, measured in
   [What the options are worth](#what-the-options-are-worth). The code using GAOL is given the flag
   too (`gaol::gaol`, `gaol.pc`), and compiled for the same processor.
   `-ffp-contract=off` stays, which forbids the compiler to contract a
@@ -154,41 +153,37 @@ the continuous integration runs it on each kind of machine.
 ## What the options are worth
 
 Measured with `tests/performance.cpp` on an Intel i7-1185G7 with Clang 21.1,
-in nanoseconds per operation, the best of nine runs, each program being run in
-turn with the others (GAOL v5):
+in nanoseconds per operation, the best of nine runs, each program being run in turn with the others, on 12 November 2026 (GAOL v5; two sessions: the default build and `-DGAOL_FMA=OFF`, then the default build again and `-DGAOL_SIMD=OFF`, whose default build gave 1.24, 2.53, 2.06, 6.82, 24.0, 27.7, 35.7 and 34.5):
 
 | | x + y | x × y | sqr(x) | pow(x, 3) | exp(x) | log(x) | sin(x) | cos(x) |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Default (`GAOL_FMA` and `GAOL_SIMD` on) | 1.07 | 2.04 | 1.80 | 5.42 | 18.6 | 21.7 | 31.3 | 36.6 |
-| `-DGAOL_FMA=OFF` | 1.14 | 2.06 | 1.81 | 17.4 | 21.6 | 34.5 | 41.4 | 90.3 |
-| `-DGAOL_SIMD=OFF` | 2.30 | 4.32 | 2.46 | 7.65 | 19.9 | 23.6 | 32.8 | 39.0 |
+| Default (`GAOL_FMA` and `GAOL_SIMD` on) | 1.23 | 2.49 | 2.08 | 7.03 | 22.9 | 27.8 | 36.0 | 34.4 |
+| `-DGAOL_FMA=OFF` | 1.25 | 2.52 | 2.03 | 21.9 | 26.1 | 43.4 | 50.2 | 49.4 |
+| `-DGAOL_SIMD=OFF` | 2.52 | 4.17 | 2.63 | 8.94 | 23.6 | 27.6 | 34.4 | 39.2 |
 
 - **The fused multiply-add instructions (`GAOL_FMA`) pay on the elementary
-  functions**: cos is **2.5 times faster** with them, pow(x, 3) 3.2 times, log
-  1.6 times, sin 1.3 times and exp 1.2 times. CORE-MATH computes with
+  functions**: pow(x, 3) is **3.1 times faster** with them, log 1.6 times, cos 1.4 times, sin 1.4 times and exp 1.1 times. CORE-MATH computes with
   `__builtin_fma` throughout, which is one instruction where the processor has
   it and a call to the math library where it has not. They are on by default wherever the compiler has a flag for them and the
   machine building runs a program compiled with it. They do nothing for the
   arithmetic, which does not multiply and add in one step.
 - **The SSE2 intervals (`GAOL_SIMD`) pay on the products and the additions**:
-  x × y takes 2.04 ns rather than 4.32, and x + y 1.07 rather than 2.30, the two
+  x × y takes 2.5 ns rather than 4.2, and x + y 1.24 rather than 2.52, the two
   bounds being computed in one instruction. They are on by default on x86
   processors. The elementary functions do not go through them.
 
 On a 64-bit ARM processor, measured the same way on an Apple M2 with AppleClang
-21.0, the median of nine runs of each program, 6 November 2026 (GAOL v5): the first two builds in turn in one session, the last two in another:
+21.0, the median of nine runs of each program, 12 November 2026 (GAOL v5): the first two builds in turn in one session, the last two in another:
 
 | | x + y | x − y | x × y | x ÷ y | sqr(x) | sqrt(x) | 13 operations in a line |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| `-DGAOL_SIMD=OFF` (FPU intervals) | 1.15 | 1.15 | 3.26 | 3.22 | 1.78 | 5.17 | 50.6 |
-| Default (NEON intervals) | 0.90 | 0.90 | 1.52 | 2.08 | 1.27 | 2.04 | 16.6 |
-| `-DGAOL_SIMD=OFF -DGAOL_PRESERVE_ROUNDING=ON` | 37.4 | 37.7 | 43.2 | 43.9 | 42.6 | 46.6 | 519 |
-| `-DGAOL_PRESERVE_ROUNDING=ON` (NEON intervals) | 26.6 | 27.1 | 27.8 | 35.1 | 27.2 | 35.7 | 370 |
+| `-DGAOL_SIMD=OFF` (FPU intervals) | 1.15 | 1.15 | 3.25 | 3.24 | 1.78 | 5.15 | 50.4 |
+| Default (NEON intervals) | 0.89 | 0.89 | 1.52 | 2.07 | 1.26 | 2.03 | 16.6 |
+| `-DGAOL_SIMD=OFF -DGAOL_PRESERVE_ROUNDING=ON` | 38.2 | 38.7 | 43.6 | 44.9 | 43.6 | 47.8 | 532 |
+| `-DGAOL_PRESERVE_ROUNDING=ON` (NEON intervals) | 26.5 | 27.1 | 27.7 | 35.0 | 27.1 | 35.6 | 370 |
 
 - **The NEON intervals (`GAOL_SIMD`) pay on every operation of the table**:
-  x − y takes 0.90 ns rather than 1.15, x × y 1.52 rather than 3.26 (of operands
-  of random signs 1.60 rather than 3.32), x ÷ y 2.08 rather than 3.22, sqrt
-  2.04 rather than 5.17, and a line of 13 operations 16.6 ns rather than 50.6.
+  x − y takes 0.89 ns rather than 1.15, x × y 1.52 rather than 3.25 (of operands of random signs 1.59 rather than 3.31), x ÷ y 2.07 rather than 3.24, sqrt 2.03 rather than 5.15, and a line of 13 operations 16.6 ns rather than 50.4.
   The two bounds are one vector, and the operations take them from one to the
   next in a register. The elementary functions, which CORE-MATH computes,
   go through them only for their arguments: no faster, no slower. They are on by
@@ -351,8 +346,7 @@ such options is exposed to GCC bug 54412, as with `-mavx`.
 ### Interprocedural optimization is not offered
 
 Compiled with it (`-flto`), GAOL's basic operations are 1.1 to 1.5 times
-faster where the code using GAOL is compiled with it too — an addition of
-intervals took 0.73 ns rather than 1.07 with Clang 21.1, `x * y` 1.71 rather
+faster where the code using GAOL is compiled with it too — an addition of intervals took 0.73 ns rather than 1.07 with Clang 21.1 (in an earlier session than the table above, whose default build took 1.07, 2.04 and 1.80 ns for its first three columns then), `x * y` 1.71 rather
 than 2.04, `sqr(x)` 1.27 rather than 1.80 — and the elementary functions no
 faster, a little **slower**: cos took 39.2 ns rather than 36.6, sin 32.6 rather
 than 31.3, log 22.7 rather than 21.7. With Clang 18.1, before the operators

@@ -751,10 +751,7 @@ whose NEON has no vector of doubles, still does. The two bounds are the two
 lanes of a \code{float64x2\_t}, as the SSE2 intervals keep them in a
 \code{\_\_m128d}, and \code{+}, \code{-}, \code{*}, \code{/}, \code{sqr()}
 and \code{sqrt()} are kernels that take and return them in registers. On an
-Apple M2 (AppleClang 21.0), \code{x + y} takes 0.90 ns rather than 1.15,
-\code{x * y} 1.52 ns rather than 3.26, \code{x / y} 2.08 ns rather than 3.22,
-\code{sqrt(x)} 2.04 ns rather than 5.17 and a line of 13 operations 16.6 ns
-rather than 50.6, the second figures being those of the FPU intervals. The
+Apple M2 (AppleClang 21.0), \code{x + y} takes 0.89 ns rather than 1.15, \code{x * y} 1.52 ns rather than 3.25, \code{x / y} 2.07 ns rather than 3.24, \code{sqrt(x)} 2.03 ns rather than 5.15 and a line of 13 operations 16.6 ns rather than 50.4, the second figures being those of the FPU intervals. The
 bounds are the same, but for the sign of a zero bound, which the maximum of
 64-bit ARM, ranking $+0$ above $-0$, can set otherwise: the lower bound of
 $[-1, 0] \cdot [-1, 0]$ is $-0$ with NEON. Each operation checks the rounding
@@ -795,8 +792,7 @@ two lanes of an SSE2 register; \code{x / y} one division of the two lanes by
 the denominators that masks drawn from the signs choose; \code{sqr(x)} two
 products and a mask. Only an empty operand, an infinite bound or a divisor
 holding 0 takes a branch. On an Intel i7-1185G7 with Clang 21, \code{x * y}
-takes 2.3 ns rather than 10.0 with GAOL 4.2.3, \code{x / y} 2.5 ns rather
-than 7.5, and Shekel 5 108 ns rather than 189 (\pxref{sec:comparison}). The
+takes 2.3 ns rather than 11.0 with GAOL 4.2.3, \code{x / y} 2.5 ns rather than 8.3, and Shekel 5 84.5 ns rather than 202 (\pxref{sec:comparison}). The
 sign of a zero bound of a product or of a quotient may differ from GAOL~4's,
 the value never: \code{maxpd} chooses between a $+0$ and a $-0$ that compare
 equal, where GAOL~4 chose one product by the signs; $[-1, 0] \cdot [-1, 0]$
@@ -1067,7 +1063,7 @@ each bound is rounded once. A corner whose powers leave
 $[2^{-968}, 2^{960}]$ is computed alone, scaled by powers of two: GAOL~4's
 $1/x^n$ overflowed before the inversion, and \code{pow([10], -400)} was
 $[0, 5.6 \cdot 10^{-309}]$ rather than $[0, 2^{-1074}]$. \code{pow(x, 3)}
-takes 5.1 ns against 9.1 with GAOL 4.2.3 (Intel i7-1185G7, Clang 21). The
+takes 5.8 ns against 9.7 with GAOL 4.2.3 (Intel i7-1185G7, Clang 21). The
 exponent 2 is \code{sqr(x)} in every form, the squares of the bounds rounded
 outward: in the earlier versions of GAOL v5, with the exact products,
 \code{pow(x, 2)} took 5.3 ns with the NEON intervals and 5.2 with the FPU intervals, and it takes 1.6 and 1.9 now (Apple

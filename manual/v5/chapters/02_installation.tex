@@ -483,8 +483,7 @@ its meson build, and the CMake build gives the same, apart from the errors corre
   exact products of GAOL (\code{fma\_once()}) and the functions of CORE-MATH
   then compute \code{fma()} with one instruction rather than with a call to
   the math library: on an Intel i7-1185G7 with Clang 21.1, \code{pow(x, 3)} of an
-  interval takes 5.4~ns rather than 17.4, \code{sin} 1.3 times less and
-  \code{cos} 2.5 times less (\pxref{sec:install-options-worth}). The code
+  interval takes 7.0~ns rather than 21.9, \code{sin} 1.4 times less and \code{cos} 1.4 times less (\pxref{sec:install-options-worth}). The code
   using GAOL is given the flag too (\code{gaol::gaol}, \file{gaol.pc}), and
   compiled for the same processor. \option{-ffp-contract=off} stays, which
   forbids the compiler to contract a multiplication and an addition into a
@@ -1364,9 +1363,7 @@ rounding direction (\option{GAOL\_PRESERVE\_ROUNDING}); the fused
 multiply-add instructions, which the configuration decides, change it too.
 Table~\ref{tab:install-worth-x86} measures the vector intervals and the fused
 multiply-add instructions with
-\file{tests/performance.cpp} on an Intel i7-1185G7 with Clang 21.1, in
-nanoseconds per operation, the best of nine runs, each program being run in
-turn with the others.
+\file{tests/performance.cpp} on an Intel i7-1185G7 with Clang 21.1, in nanoseconds per operation, the best of nine runs, each program being run in turn with the others, on 12 November 2026 (two sessions: the default build and \option{-DGAOL\_FMA=OFF}, then the default build again and \option{-DGAOL\_SIMD=OFF}, whose default build gave 1.24, 2.53, 2.06, 6.82, 24.0, 27.7, 35.7 and 34.5).
 
 \begin{table}[htbp]
   \centering\renewcommand{\arraystretch}{1.1}\footnotesize
@@ -1377,12 +1374,9 @@ turn with the others.
     Build & $x + y$ & $x \times y$ & \code{sqr} & \code{pow(x, 3)} &
     \code{exp} & \code{log} & \code{sin} & \code{cos}\\
     \hline\hline
-    Default (FMA and \option{GAOL\_SIMD} on) & 1.07 & 2.04 & 1.80 & 5.42 &
-    18.6 & 21.7 & 31.3 & 36.6\\
-    \option{-DGAOL\_FMA=OFF} & 1.14 & 2.06 & 1.81 & 17.4 & 21.6 & 34.5 &
-    41.4 & 90.3\\
-    \option{-DGAOL\_SIMD=OFF} & 2.30 & 4.32 & 2.46 & 7.65 & 19.9 & 23.6 &
-    32.8 & 39.0\\
+    Default (FMA and \option{GAOL\_SIMD} on) & 1.23 & 2.49 & 2.08 & 7.03 & 22.9 & 27.8 & 36.0 & 34.4\\
+    \option{-DGAOL\_FMA=OFF} & 1.25 & 2.52 & 2.03 & 21.9 & 26.1 & 43.4 & 50.2 & 49.4\\
+    \option{-DGAOL\_SIMD=OFF} & 2.52 & 4.17 & 2.63 & 8.94 & 23.6 & 27.6 & 34.4 & 39.2\\
     \hline
   \end{tabular}
 
@@ -1390,25 +1384,21 @@ turn with the others.
 
 \begin{itemize}
 \item[$\bullet$] \textbf{The fused multiply-add instructions pay on the elementary
-  functions.} \code{cos} is 2.5 times faster with them,
-  \code{pow(x, 3)} 3.2 times, \code{log} 1.6 times, \code{sin} 1.3 times and
-  \code{exp} 1.2 times. CORE-MATH computes with \code{\_\_builtin\_fma}
+  functions.} \code{pow(x, 3)} is 3.1 times faster with them, \code{log} 1.6 times, \code{cos} 1.4 times, \code{sin} 1.4 times and \code{exp} 1.1 times. CORE-MATH computes with \code{\_\_builtin\_fma}
   throughout, which is one instruction where the processor has it and a call
   to the math library where it has not. They are on by default wherever the
   compiler has a flag for them and the machine building runs a program
   compiled with it. They do nothing for the arithmetic, which does not
   multiply and add in one step.\newinvfive
 \item[$\bullet$] \textbf{The SSE2 intervals pay on the products and the
-  additions.} $x \times y$ takes 2.04~ns rather than 4.32, and $x + y$ 1.07
-  rather than 2.30, the two bounds being computed in one instruction. They
+  additions.} $x \times y$ takes 2.5~ns rather than 4.2, and $x + y$ 1.24 rather than 2.52, the two bounds being computed in one instruction. They
   are on by default on x86 processors. The elementary functions do not go
   through them.
 \end{itemize}
 
 \medskip
 On a 64-bit ARM processor, Table~\ref{tab:install-worth-arm} measures them
-with \file{tests/\allowbreak performance.cpp} on an Apple M2 with AppleClang 21.0, the median of nine runs of
-each program, 6 November 2026: the first two builds in turn in one session,
+with \file{tests/\allowbreak performance.cpp} on an Apple M2 with AppleClang 21.0, the median of nine runs of each program, 12 November 2026: the first two builds in turn in one session,
 the last two in another.
 
 \begin{table}[htbp]
@@ -1419,14 +1409,10 @@ the last two in another.
     Build & $x + y$ & $x - y$ & $x \times y$ & $x / y$ & \code{sqr} &
     \code{sqrt} & 13 operations\\
     \hline\hline
-    \option{-DGAOL\_SIMD=OFF} (FPU intervals) & 1.15 & 1.15 & 3.26 & 3.22 &
-    1.78 & 5.17 & 50.6\\
-    Default (NEON intervals) & 0.90 & 0.90 & 1.52 & 2.08 & 1.27 & 2.04 &
-    16.6\\
-    \option{-DGAOL\_SIMD=OFF} \option{-DGAOL\_PRESERVE\_ROUNDING=ON} & 37.4 &
-    37.7 & 43.2 & 43.9 & 42.6 & 46.6 & 519\\
-    \option{-DGAOL\_PRESERVE\_ROUNDING=ON} (NEON intervals) & 26.6 & 27.1 &
-    27.8 & 35.1 & 27.2 & 35.7 & 370\\
+    \option{-DGAOL\_SIMD=OFF} (FPU intervals) & 1.15 & 1.15 & 3.25 & 3.24 & 1.78 & 5.15 & 50.4\\
+    Default (NEON intervals) & 0.89 & 0.89 & 1.52 & 2.07 & 1.26 & 2.03 & 16.6\\
+    \option{-DGAOL\_SIMD=OFF} \option{-DGAOL\_PRESERVE\_ROUNDING=ON} & 38.2 & 38.7 & 43.6 & 44.9 & 43.6 & 47.8 & 532\\
+    \option{-DGAOL\_PRESERVE\_ROUNDING=ON} (NEON intervals) & 26.5 & 27.1 & 27.7 & 35.0 & 27.1 & 35.6 & 370\\
     \hline
   \end{tabular}
 
@@ -1434,10 +1420,7 @@ the last two in another.
 
 \begin{itemize}
 \item[$\bullet$] \textbf{The NEON intervals pay on every operation of the
-  table.} $x - y$ takes 0.90~ns rather than 1.15, $x \times y$ 1.52 rather
-  than 3.26 (of operands of random signs 1.60 rather than 3.32), $x / y$
-  2.08 rather than 3.22, \code{sqrt} 2.04 rather than 5.17, and a line of 13
-  operations 16.6~ns rather than 50.6. The two bounds are one vector, and the
+  table.} $x - y$ takes 0.89~ns rather than 1.15, $x \times y$ 1.52 rather than 3.25 (of operands of random signs 1.59 rather than 3.31), $x / y$ 2.07 rather than 3.24, \code{sqrt} 2.03 rather than 5.15, and a line of 13 operations 16.6~ns rather than 50.4. The two bounds are one vector, and the
   operations take them from one to the next in a register. The elementary
   functions, which CORE-MATH computes, go through them only for their
   arguments: no faster, no slower. They are on by default on 64-bit ARM
@@ -1453,7 +1436,7 @@ the last two in another.
   \option{GAOL\_PRESERVE\_ROUNDING} the write of FPCR waits for the result as
   well, and the FPU row of that option loses 6 to 7~\% on operands of one sign
   ($x \times y$ 42.4~ns rather than 39.7 for the former code, measured in
-  another session than Table~\ref{tab:install-worth-arm}, where it is 43.2)
+  another session than Table~\ref{tab:install-worth-arm}, where it is 43.6)
   and gains on operands of random signs (42.4 rather than 47.5). These are the figures
   of this processor, with AppleClang. The processors of the continuous
   integration that run the FPU intervals (32-bit ARM, Ubuntu with GCC and
@@ -1632,8 +1615,7 @@ tell the bounds by their bits.
 \cindex{optimization!interprocedural}%
 
 Compiled with it (\option{-flto}), the basic operations of GAOL are 1.1 to
-1.5 times faster where the code using GAOL is compiled with it too: an
-addition of intervals took 0.73~ns rather than 1.07 with Clang 21.1,
+1.5 times faster where the code using GAOL is compiled with it too: an addition of intervals took 0.73~ns rather than 1.07 with Clang 21.1 (in an earlier session than Table~\ref{tab:install-worth-x86}, whose default build took 1.07, 2.04 and 1.80~ns for the first three columns then),
 $x \times y$ 1.71 rather than 2.04, \code{sqr(x)} 1.27 rather than 1.80. The
 elementary functions are no faster, and a little slower: \code{cos} took
 39.2~ns rather than 36.6, \code{sin} 32.6 rather than 31.3, \code{log} 22.7

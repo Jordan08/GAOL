@@ -1992,25 +1992,24 @@ It needs GCC or Clang, gcovr and Python~3, and the tests (\option{WITH\_TESTS});
 (\file{gaol/}) are counted apart from those of CORE-MATH
 (\file{3rd/math-core/}), whose accurate phases are reached by a handful of
 arguments in a million: counting them together would say nothing of either.
-Table~\ref{tab:coverage} gives the report of the run of 4 November 2026.
+Table~\ref{tab:coverage} gives the report of the run of 12 November 2026.
 
 \begin{table}[htbp]
   \centering\renewcommand{\arraystretch}{1.1}
-  \caption{The coverage of the tests on 4 November 2026} \label{tab:coverage}
+  \caption{The coverage of the tests on 12 November 2026} \label{tab:coverage}
   \begin{tabular}{lrrrr}
     \hline
     & Lines & Covered & Not run & \%\\
     \hline\hline
-    GAOL (\file{gaol/}) & 5466 & 5153 & 313 & 94.3\\
-    CORE-MATH (\file{3rd/math-core/}) & 8172 & 6732 & 1440 & 82.4\\
+    GAOL (\file{gaol/}) & 6423 & 6106 & 317 & 95.1\\
+    CORE-MATH (\file{3rd/math-core/}) & 8172 & 6738 & 1434 & 82.5\\
     \hline
   \end{tabular}
 
 \end{table}
 
 \noindent
-The tests run 94.3\,\% of the lines of GAOL, above the 80\,\% GAOL v5 aims
-at, and 66.5\,\% of its branches are taken both ways. The lines of CORE-MATH
+The tests run 95.1\,\% of the lines of GAOL, above the 80\,\% GAOL v5 aims at, and 68.4\,\% of its branches are taken both ways. The lines of CORE-MATH
 that are never run are its accurate phases, which a handful of arguments in
 a million reach, and the paths of the architectures the machine is not: they
 are counted among the lines not run, and are checked otherwise: the accurate
@@ -2021,9 +2020,7 @@ tests of their bounds only. File by file, the least
 covered are \file{gaol/parser/gaol\_expr\_visitor.h} (9 of 99 lines, 9.1\,\%),
 \file{gaol/parser/gaol\_expr\_eval.h} (87.3\,\%),
 \file{gaol/parser/gaol\_expression.cpp} (89.6\,\%) and
-\file{gaol/core/gaol\_interval\_sse.cpp} (93.9\,\%);
-\file{gaol/core/gaol\_interval\_core.cpp}, the largest file, with 2492 lines counted,
-is covered at 97.0\,\%, and 18 files of the 26 at 100\,\%. The page lists
+\file{gaol/core/gaol\_interval\_sse\_impl.h} (91.7\,\%); \file{gaol/math/gaol\_compoundm1.h}, the largest file, with 808 lines counted, is covered at 99.1\,\%, and 21 files of the 36 at 100\,\%. The page lists
 the lines the tests never run, file by file.
 
 \section{Discussion}

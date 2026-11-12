@@ -24,7 +24,7 @@ makeindex = find_program('makeindex', required: false)
 if pdflatex.found() and bibtex.found() and makeindex.found()
   v5_version_data = configuration_data()
   v5_version_data.set('GAOL_V5_EDITION', '5.0')
-  v5_version_data.set('GAOL_V5_UPDATED', '6 November 2026')
+  v5_version_data.set('GAOL_V5_UPDATED', '12 November 2026')
   v5_version_data.set('GAOL_VERSION', meson.project_version())
   subdir('v5')
   run_target(
