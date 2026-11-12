@@ -1,10 +1,12 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `269c12e` de `configure-clean` (la
-fusion de #312, hors des points, le 12 novembre 2026 à 7 h 53 UTC, après le
-commit direct `f27c6c2`, celle de #309, hors des points, le 11 novembre à
-22 h 16 UTC, le commit direct `be73e24` et celles de #311, de #310 et de
-#308, hors des points, de #307 et de #306, hors des points, de #305, hors des
+Ce qui reste à faire sur GAOL v5 au commit `2b5e4f9` de `configure-clean` (la
+fusion de #314, hors des points, le 12 novembre 2026 à 12 h 42 UTC, après celle
+de #313, hors des points, à 12 h 31 UTC, le commit direct `7528253`, la fusion
+de #312, hors des points, à 7 h 53 UTC, le commit direct `f27c6c2`, celle de
+#309, hors des points, le 11 novembre à 22 h 16 UTC, le commit direct `be73e24`
+et celles de #311, de #310 et de #308, hors des points, de #307 et de #306,
+hors des points, de #305, hors des
 points, de #302, la tâche PP, de #304 et de #303, les registres de la tâche PT,
 de #301, la tâche PT, de #300, hors des points, de #298, de #299, de #297, de
 #296 et de #295, de #294, le manuel dans le style de la thèse, et de #292, de
@@ -20,12 +22,8 @@ dans les trois registres, dont les tâches PS (faite par #297), PT (faite par
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à envoyer à un autre projet ni à publier sans l'accord
-du mainteneur. Deux pull requests sont ouvertes : #313 (hors des points : les
-textes qui citent macOS 14 comme testé, PJ.6, et un commentaire de
-`CMakeLists.txt`, PJ.7) et #314 (la synthèse des textes de #279, #281, #85,
-#306, #308, #309 et #312 pour `doc/differences.md` et le `ChangeLog`, PJ.7).
-#295 (PS.2), #296 (PM), #297 (la tâche PS), #299 (PQ.2), #298 (PQ.1), #300
-(hors des points : la recette de
+du mainteneur. Aucune pull request n'est ouverte. #295 (PS.2), #296 (PM), #297
+(la tâche PS), #299 (PQ.2), #298 (PQ.1), #300 (hors des points : la recette de
 compilation croisée GCC 12.2 pour aarch64 de `todo-notes/gcc12-aarch64/`) et
 #301 (la tâche PT) sont fusionnées le 8 novembre, à 17 h 21, 17 h 29, 19 h 38,
 20 h 31, 20 h 44, 21 h 38 et 23 h 09 UTC, #302 (la tâche PP : le cas N1 M de
@@ -42,8 +40,12 @@ workflow Release des paquets) à 22 h 16 UTC, puis, le 12 novembre, #312 (hors
 des points : `MATH-CORE` retirée de la CI, `numbers` à 600 s dans le job macOS
 26 arm64 LLVM Clang Debug ASan+UBSan et à 900 s dans celui de macOS 15 x86_64
 GCC, `compile_commands.json` hors de l'archive de CMake), fusionnée à 7 h 53
-UTC par la session, sur la demande explicite du mainteneur ; leurs registres
-sont faits.
+UTC par la session, sur la demande explicite du mainteneur, puis #313 (hors
+des points : les textes qui citent macOS 14, PJ.6, et un commentaire de
+`CMakeLists.txt`, PJ.7) à 12 h 31 UTC et #314 (hors des points : les textes de
+#279, #281, #85, #306, #308, #309 et #312 dans `doc/differences.md` et le
+`ChangeLog`, trois passages du manuel avec son PDF, PJ.7) à 12 h 42 UTC, par le
+mainteneur ; leurs registres sont faits.
 
 ## Comment lire ce fichier
 
@@ -321,9 +323,10 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    novembre). Le manuel est réécrit dans la mise en page et le style de la
    thèse du mainteneur (`manual/v5/manual_gaolv5.tex` et un fichier par chapitre
    dans `manual/v5/chapters/`, à la place de `gaol.tex`), relu deux fois par des
-   relecteurs indépendants, et son PDF, `manual/Manual_GAOLv5.pdf` (385 pages, 0
-   erreur de TeX, les 7 « Overfull \hbox » de moins de 4,1 pt qui restent), est
-   commité : le mainteneur a supprimé l'ancien `manual/v5/gaol.pdf` (154
+   relecteurs indépendants, et son PDF, `manual/Manual_GAOLv5.pdf` (385 pages,
+   387 depuis #313 et #314, 0 erreur de TeX, les 7 « Overfull \hbox » de moins
+   de 4,1 pt qui restent), est commité : le mainteneur a supprimé l'ancien
+   `manual/v5/gaol.pdf` (154
    pages) et `manual/v4/gaol.pdf`, et la cible `pdf` (`-DWITH_DOC=ON`,
    `make -C manual pdf` ou `meson compile pdf`) écrit le PDF dans `manual/`.
    *Décidé le 7 novembre* : la pull request du manuel (une branche `manual*`) le
@@ -337,82 +340,34 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    la date d'édition étant alors à remettre à jour. *Décidé le 3 octobre*, pour
    les points 7 et 10 : un seul `\newinvfive` dans l'entrée `hausdorff` du
    manuel, et aucun sur la phrase du domaine de `atanh`.
-6. **La CI de macOS 27** (#276, fusionnée le 30 octobre) : le job `macOS 27
-   arm64` remplace `macOS 14` sur l'étiquette `xcode-27` (le mainteneur,
-   `57650a4` du 1er novembre) et passe le 2 novembre ; celui de x86_64 sous
-   Rosetta est retiré (« not available now », l'étiquette `macos-27` n'a pas
-   d'exécuteur). Les textes qui citent macOS 14 comme testé
-   (`manual/v5/chapters/02_installation.tex` ligne 473, `doc/three-builds.md`
-   ligne 76, `CMakeLists.txt` ligne 512, `gaol/math/gaol_core_math_port.h`
-   ligne 453, `configure.ac` et `meson.build`) sont à revoir avec la version si
-   macOS 14 ne doit plus y figurer ; `doc/continuous-integration.md` ligne 54
-   (« macOS: 14, 15 and 26 », alors que `macos.yml` a 15, 26 et 27) est à
-   corriger de même.
+6. **Les textes qui citent macOS 14** : *fait par #313* (fusionnée le 12
+   novembre). macOS 14 est sorti de la CI par #276 (le job `macOS 27 arm64`
+   sur l'étiquette `xcode-27`, `57650a4` du 1er novembre ; celui de x86_64 sous
+   Rosetta est retiré, l'étiquette `macos-27` n'ayant pas d'exécuteur) ;
+   `doc/continuous-integration.md` dit macOS 15, 26 et 27, et les textes qui
+   expliquent pourquoi la configuration vérifie que la machine exécute les
+   instructions FMA disent que le Rosetta de macOS 14 « had no AVX », au passé.
+   `configure.ac` et `meson.build` renvoient seulement à `CMakeLists.txt` et
+   restent.
 7. **Les restes de la synthèse de #283 à #288, et le texte de #293** : la pull
    request #289 a fait la synthèse (`doc/differences.md`, `ChangeLog`,
    `todo-notes/synthese.md`, fusionnée le 5 novembre) ; #290 a écrit son texte
-   dans sa propre pull request. Le texte « Pour `doc/differences.md` et
-   `ChangeLog` » de #293 (`d * x`, fusionnée le 5 novembre) n'est pas reporté :
-   `d * x` (un double fois un intervalle) est calculé comme `x * d`, et `n * x`
-   d'un entier comme `x * n`, les mêmes bornes, bit pour bit, le signe d'une
-   borne nulle compris, avec toutes les sortes d'intervalles ; GAOL 4 calculait
-   le produit des intervalles `interval(d)` et `x`, le même ensemble avec
-   d'autres signes de zéro (`[-0, +0]` au lieu de `[+0, -0]` pour x = `[+0, -0]`
-   et un d positif, avec les intervalles SSE2) ; dans `doc/differences.md`, la
-   phrase de l'exception du chemin AVX-512 au « bit pour bit » (ligne
-   834, « `x * d` et `x *= d` ») y ajoute `d * x`. Restent aussi trois
-   détails : le commentaire de `CMakeLists.txt` (ligne 1441) cite
-   `core_math_log_dint.h`, qui n'existe pas ; la liste de `doc/differences.md`
-   (lignes 2387 et 2388) des fichiers que l'archive des sources laisse de côté
-   ne nomme pas `STEP.md`, que `CMakeLists.txt` exclut depuis #291 ; dans
-   `todo-notes/synthese.md`, les notes « Présence : absents » et les renvois «
-   change 6 » et « change 7 » de `3rd/README.md` (lignes 447 et 1073, périmés
-   depuis #111) sont périmés, et des points y sont faits sans que le texte le
-   dise (`run_examples.py` devenu `manual/check_examples.py`, le commentaire
-   hexadécimal de la ligne 1233, le `#include <cmath>` de la ligne 1278, la
-   remarque de la ligne 1611). Trois textes manquent aussi à
-   `doc/differences.md` et au `ChangeLog` (relecture du 4 novembre) : celui de
-   #279, dont la pull request n'a pas de section « Pour `doc/differences.md` et
-   `ChangeLog` » (`GAOL_RELATION_BOUNDS_FIRST`, `doc/building.md` ligne 211, et
-   les relations qui testent les bornes avant les ensembles vides, alors que
-   les deux documents ont les réglages voisins) ; celui de #281, dont l'entrée
-   proposée pour le `ChangeLog` (`tests/test_ibex_codac.cpp`,
-   `tests/tools/ibex_codac/`, 3 905 vérifications) n'y est pas ; et celui de
-   #85 : `auto f = &gaol_ieee1788::rootn;` ne compile plus (les surcharges pour
-   tout type entier), `pown` non plus depuis #84, et `doc/differences.md`
-   (ligne 2065) ne le dit que pour `textToInterval` et `exactToInterval`.
-   Le texte « Pour `doc/differences.md` et `ChangeLog` » de #306 (fusionnée le
-   10 novembre) n'est pas reporté non plus : `doc/differences.md`, lignes 1966
-   et 1967, dit que les trois builds installent quatre en-têtes dans
-   `include/gaol/core/` (`gaol_interval_core.h`, `gaol_interval_fpu.h`,
-   `gaol_interval_neon.h` et `gaol_interval_sse.h`) : ils en installent cinq,
-   avec `gaol_interval_detail.h` (les aides de `gaol_detail` que
-   `gaol_interval_core.h` inclut ; il compile seul), et le reste de ce
-   paragraphe est exact ; au `ChangeLog`, `gaol/core/gaol_interval_detail.h`,
-   installé, reçoit de `gaol_interval_core.h` les aides de `gaol_detail` qui ne
-   lisent aucun `interval`, et `x + y`, `x - y`, `x * y` et `x / y` sont définis
-   dans le fragment de chaque type d'intervalles, sans changement pour
-   l'utilisateur de l'interface.
-   Les textes « Pour `doc/differences.md` et `ChangeLog` » de #308 et de #309
-   (fusionnées le 11 novembre) ne sont pas reportés non plus. #308 :
-   `doc/differences.md` lignes 1964 à 1967 (les sources de `gaol/core/`, une
-   par domaine, qui partagent `gaol_interval_internal.h`, non installé), 952
-   (`double_denorm_min` dans cet en-tête), 1930 (`two_power_52` dans
-   `gaol_interval_relational.cpp`), 2389 et 2390 (les fragments des
-   intervalles de floats, `*_impl.h`) et 363 (`interval::inverse_upward()`
-   n'existe plus), le `what()` de `operator>>` qui nomme
-   `gaol_interval_io.cpp`, `operator-()` des intervalles SSE2 inline dans
-   l'en-tête (la bibliothèque n'exporte plus son symbole), les noyaux
-   partagés de `gaol_interval_{sse,neon,fpu}_kernels.h`, et l'entrée du
-   `ChangeLog`. #309 : `doc/differences.md` lignes 2403 à 2406 (`make dist` et
-   `make distcheck` revenus, une même archive `gaol-<version>.tar.gz` pour les
-   trois builds, le projet meson `gaol`), et l'entrée du `ChangeLog`. #307
-   n'a rien pour l'utilisateur, dit sa description. Le texte de #312
-   (fusionnée le 12 novembre) n'est pas reporté non plus : l'archive des
-   sources que fait CMake (`dist`, `package_source`) n'emporte plus un
-   `compile_commands.json` de l'arbre des sources, comme `make dist` et
-   `meson dist` (la CI et les limites de `numbers` ne changent rien pour
-   l'utilisateur).
+   dans sa propre pull request. *Fait par #313 et #314* (fusionnées le 12
+   novembre) : les textes de #279, #281, #85, #306, #308, #309 et #312 dans
+   `doc/differences.md` et le `ChangeLog` ; la phrase de l'exception du chemin
+   AVX-512 au « bit pour bit », qui nomme aussi `d * x` (#293) ; `STEP.md` et
+   `.claude/` dans la liste de l'archive des sources ; `release.yml` au
+   `ChangeLog` (*décidé le 12 novembre*, au `ChangeLog` seulement) ; trois
+   passages du manuel qui disaient que `make dist` n'existe plus, avec son
+   PDF ; le commentaire de `CMakeLists.txt` qui citait `core_math_log_dint.h`.
+   Restent : dans `todo-notes/synthese.md`, les notes « Présence : absents » et
+   les renvois « change 6 » et « change 7 » de `3rd/README.md` (lignes 447 et
+   1073, périmés depuis #111), qui sont périmés, et des points y sont faits
+   sans que le texte le dise (`run_examples.py` devenu
+   `manual/check_examples.py`, le commentaire hexadécimal de la ligne 1233, le
+   `#include <cmath>` de la ligne 1278, la remarque de la ligne 1611) ; le
+   commentaire de `gaol/core/gaol_interval_core.h` (ligne 1043), qui dit 1,55 et
+   1,03 ns pour le Neoverse N2 là où #279 dit 1,56 et 1,04.
    *Décidé le 8 novembre* : quatre lignes de plus au `ChangeLog`, une pour
    chaque pull request limitée à la CI, #34, #35, #48 et #74 (leurs textes sont
    dans `todo-notes/synthese.md`, l'article `29.md` pour #35) ; le `ChangeLog`
