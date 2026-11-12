@@ -371,6 +371,13 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    base. Sa branche `experiment-pg-neon-double-ops-bits` est supprimée (11
    novembre) : les commits sont sous `refs/pull/251/head`. *À rouvrir* si le
    mainteneur accepte que ces deux drapeaux changent.
+9. **`div_rel()` en SSE2, le cas P1 M : une division vectorielle** (*décidé le
+   12 novembre* : on laisse comme ça). Le cas P1 M
+   (`gaol/core/gaol_interval_sse_impl.h`) calcule deux `_mm_div_sd` de même
+   numérateur, que l'on pourrait ramener à une division vectorielle comme #302
+   l'a fait pour N1 M, dont la mesure n'a montré aucun gain sur l'i7-1185G7
+   (`TODO_DONE.md` 7.25). Non mesuré, non demandé. *À rouvrir* si une mesure
+   montre un gain, ou si le banc a une ligne de ce cas.
 
 ## 4. En attente de matériel ou d'un environnement qui manque
 
@@ -419,7 +426,8 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    inférieure NaN pour `x = [-inf, 0]` et `y = [-inf, -0]`) : le défaut n'est
    plus théorique pour `x / y`, et aucun `vmaxq_f64` ne l'explique, car
    `div_bounds()` n'en a pas. Cause non trouvée, décidé le 25 octobre de n'en
-   faire qu'une issue (#198), sans tâche. Revenu le 28 octobre sur un runner
+   faire qu'une issue (#198), sans tâche, *confirmé le 12 novembre* : on la
+   laisse comme elle est. Revenu le 28 octobre sur un runner
    Windows arm64 (les jobs « MSYS2 CLANGARM64 Clang arm64 » de #215, run
    40672302929, image `windows-11-vs2026-arm64` 20261025.196.1) : les mêmes 52
    échecs sur 441 et les mêmes cinq cas, avec le Clang de MSYS2 ; ils sont

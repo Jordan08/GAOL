@@ -904,7 +904,10 @@ git ls-remote --heads origin
   dans `TODO_DONE.md` reste à écrire ; l'audit du 13
   octobre a vérifié dans `configure-clean` ce qu'annonçaient alors les points A,
   C à H et J à V.
-- **En cours** : au 12 novembre, aucune pull request n'est ouverte : #295 (PS.2
+- **En cours** : au 12 novembre, deux pull requests sont ouvertes, #313
+  (macOS 14 hors de la CI, un commentaire de `CMakeLists.txt` ;
+  `manual-macos-14-texts`) et #314 (la synthèse de #279 à #312 ;
+  `synthese-279-312`) ; #295 (PS.2
   ; `manual-neon-pown-text`), #296 (le cas (b) ; `manual-case-b-text`), #297 (la
   tâche PS ; `todo-ps-stale-texts`), #299 (PQ.2 ; `todo-pq-hexfloat-point`),
   #298 (PQ.1 ; `todo-pq-centered-form`), #300 (la recette de compilation croisée
@@ -957,7 +960,7 @@ git ls-remote --heads origin
   trois détails qui restent de la synthèse de #283 à #288, faite par #289 le 5
   novembre, avec la phrase sur le cas (b) de 12.12.7 que PM a décidée, et les
   textes de #306, de #308, de #309 et de #312 pour `doc/differences.md` et le
-  `ChangeLog` : PJ.7).
+  `ChangeLog` : PJ.7, que #313 et #314 ouvertes font en partie).
   Ce qui est reporté (le 113, le site, les traits pour YalAA
   et VNODE-LP, les décorations, ce qui attend du matériel) est dans
   `TODO_AFTER.md`. Les dépendances entre points sont écrites dans chaque tâche.
