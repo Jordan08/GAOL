@@ -1,26 +1,26 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `9cd5113` de `configure-clean` (la
-fusion de #317, la suite de #316, le 12 novembre 2026 à 17 h 31 UTC, après celle
-de #316, la tâche PJ.2, à 15 h 30 UTC, après celle de
-#315, la tâche PJ.1, à 15 h 20 UTC, le commit direct `7745279`, la fusion de
-#314, hors des points, à 12 h 42 UTC, celle de #313, hors des points, à 12 h 31
-UTC, le commit direct `7528253`, la fusion
-de #312, hors des points, à 7 h 53 UTC, le commit direct `f27c6c2`, celle de
-#309, hors des points, le 11 novembre à 22 h 16 UTC, le commit direct `be73e24`
-et celles de #311, de #310 et de #308, hors des points, de #307 et de #306,
-hors des points, de #305, hors des
-points, de #302, la tâche PP, de #304 et de #303, les registres de la tâche PT,
-de #301, la tâche PT, de #300, hors des points, de #298, de #299, de #297, de
-#296 et de #295, de #294, le manuel dans le style de la thèse, et de #292, de
-#293, #291, #290 et #289), en tâches PH et PJ (PA à PG, PI, PL, PP, PQ, PS et PT
-sont faites, PK et PM sont close sans code : voir `TODO_DONE.md`). Ce fichier et
-l'issue #179 ont le même contenu. Ce qui est fait et décidé est dans
-`TODO_DONE.md` (l'issue #177 n'est plus mise à jour), ce qui est reporté dans
-`TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142 sont fermées, et
-`TODO_mistral.md` est supprimé, comme `TODO_fin.md` : ses articles sont répartis
-dans les trois registres, dont les tâches PS (faite par #297), PT (faite par
-#301 : `TODO_DONE.md` 3.25) et PP (faite par #302 : `TODO_DONE.md` 2.3 et 7.25).
+Ce qui reste à faire sur GAOL v5 au commit `f006421` de `configure-clean` (la
+fusion de #318, la tâche PJ.7, le 12 novembre 2026 à 19 h 56 UTC, après celle de
+#317, la suite de #316, à 17 h 31 UTC, après celle de #316, la tâche PJ.2, à 15
+h 30 UTC, après celle de #315, la tâche PJ.1, à 15 h 20 UTC, le commit direct
+`7745279`, la fusion de #314, hors des points, à 12 h 42 UTC, celle de #313,
+hors des points, à 12 h 31 UTC, le commit direct `7528253`, la fusion de #312,
+hors des points, à 7 h 53 UTC, le commit direct `f27c6c2`, celle de #309, hors
+des points, le 11 novembre à 22 h 16 UTC, le commit direct `be73e24` et celles
+de #311, de #310 et de #308, hors des points, de #307 et de #306, hors des
+points, de #305, hors des points, de #302, la tâche PP, de #304 et de #303, les
+registres de la tâche PT, de #301, la tâche PT, de #300, hors des points, de
+#298, de #299, de #297, de #296 et de #295, de #294, le manuel dans le style de
+la thèse, et de #292, de #293, #291, #290 et #289), en tâches PH et PJ (PA à PG,
+PI, PL, PP, PQ, PS et PT sont faites, PK et PM sont close sans code : voir
+`TODO_DONE.md`). Ce fichier et l'issue #179 ont le même contenu. Ce qui est fait
+et décidé est dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour), ce qui
+est reporté dans `TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142
+sont fermées, et `TODO_mistral.md` est supprimé, comme `TODO_fin.md` : ses
+articles sont répartis dans les trois registres, dont les tâches PS (faite par
+#297), PT (faite par #301 : `TODO_DONE.md` 3.25) et PP (faite par #302 :
+`TODO_DONE.md` 2.3 et 7.25).
 
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
@@ -54,8 +54,10 @@ couverture, 95,1 % des lignes de `gaol/`) à 15 h 20 UTC et #316 (PJ.2 : les
 temps remesurés, le manuel et son PDF) à 15 h 30 UTC, puis #317 (la suite de
 #316, PJ.2 : le tableau de Visual C++ et de clang-cl par une expérience de CI,
 `x.midpoint()`) à 17 h 31 UTC, par le mainteneur, alors que leur CI attendait
-des runners de GitHub ; leurs registres sont faits ici (`TODO_DONE.md` 2.3, 3.34
-et 7.31).
+des runners de GitHub, puis #318 (PJ.7 : les restes de la synthèse, quatre
+entrées de CI au `ChangeLog`) à 19 h 56 UTC, par le mainteneur, alors qu'un job
+de macOS attendait encore un runner ; leurs registres sont faits ici
+(`TODO_DONE.md` 2.3, 3.34, 3.35, 7.31 et 7.32).
 
 ## Comment lire ce fichier
 
@@ -88,8 +90,7 @@ et 7.31).
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
 | PH | Les signalements à d'autres projets | #125 à #138, #175 | accord |
-| PJ | La publication de v5.0.0 (les mesures sont faites : #315, #316) | 34, 71,
-manuel, CI | S |
+| PJ | La publication de v5.0.0 (`master`, étiquette, annonce) | 34, 71 | S |
 
 ## PH. Les signalements à d'autres projets [attend l'accord du mainteneur]
 
@@ -204,54 +205,17 @@ correctif 8 « à écrire » (#144 l'a écrit, `3rd/README.md`).
 ## PJ. La publication de v5.0.0 (Y) [S, dans cet ordre]
 
 En dernier : elle suppose les corrections faites et les études de PG faites
-(*décidé le 19 octobre*).
+(*décidé le 19 octobre*). Les points faits sont coupés d'ici et sont dans
+`TODO_DONE.md` : le 32 (la couverture, PJ.1) par #315, le 33 (les temps, PJ.2)
+par #316 et #317, le manuel (PJ.5) par #294, les textes qui citent macOS 14
+(PJ.6) par #313 et les restes de la synthèse (PJ.7) par #313, #314 et #318
+(2.3, 3.23, 3.33, 3.34 et 3.35). À refaire au commit de la version, si le code
+ou les textes ont changé depuis : le rapport de couverture (`coverage/`, 5
+minutes), les mesures de PJ.2 (25 minutes, avec le Mac M2 sur secteur et un Xeon
+à AVX-512 ; `sqrt` y est plus lent de 10 à 17 % qu'au 17 octobre, cause non
+isolée) et le PDF du manuel, avec la date d'édition (dans la pull request qui
+change les mesures ou les textes, comme #294).
 
-1. **32** : *fait par #315* (fusionnée le 12 novembre à 15 h 20 UTC, `df680fe`)
-   : le rapport de couverture ([coverage/README.md](coverage/README.md) et
-   `coverage/coverage.html`) refait au commit `2b5e4f9` : 95,1 % des 6 423
-   lignes de `gaol/` (contre 94,3 % des 5 466 le 4 novembre ; les fichiers de
-   `gaol/core/` sont découpés par domaine depuis #308), 68,4 % des branches
-   prises dans les deux sens, CORE-MATH 82,5 %. Le test `numbers` est entré dans
-   la cible `coverage` (264 s ; `-DGAOL_NUMBERS_TIMEOUT=3600` pour ce relevé, le
-   délai de CTest étant de 300 s) et il a tourné en entier sous ASan + UBSan, en
-   Debug avec les exemples : 63 tests sur 63 en 216 s (`numbers` : 204 s), aucun
-   message de sanitizer. À refaire au commit de la version si `gaol/` change (5
-   minutes ; *décidé le 15 octobre* : pas avant ce relevé). `TODO_DONE.md` 2.3
-   et 3.34.
-2. **33** : *fait par #316* (fusionnée à 15 h 30 UTC, `1afb90a`) *et #317*
-   (fusionnée à 17 h 31 UTC, `9cd5113`, la suite). Les tableaux de
-   [doc/compare/performance.md](doc/compare/performance.md) (le banc, les lignes
-   longues avec la colonne de la direction préservée, qui n'avait jamais tourné
-   sur x86, et le tableau ARM 64 bits d'un Mac M2), le tableau de
-   `doc/compare/README.md`, le chapitre 12 du manuel, les chiffres de NEON de
-   #146 (`doc/three-builds.md`, `doc/simd.md`, `doc/differences.md`, chapitres 2
-   et 15), le tableau des options de x86 (FMA, SIMD) et la règle du chemin
-   AVX-512 (sur un Xeon d'une machine virtuelle, GCC 13.3 et Clang 18 : la règle
-   tient, l'attente d'une perte moindre à pleine largeur ne se vérifie pas) sont
-   remesurés au commit `2b5e4f9` avec Clang 21 sur l'i7-1185G7, le Mac M2 et le
-   Xeon prêtés par deux sessions distantes ; le PDF du manuel est refait (387
-   pages) et la date d'édition passe au 12 novembre. Les chiffres du bloc « The
-   rounding direction and the control registers » : ceux de l'armhf sont ceux du
-   job « Rounding direction preserved, armhf » de `containers.yml` sur `2b5e4f9`
-   (49 → 22,5 ns, 63 → 38, 721 → 318), ceux de x86 sont vérifiés par une boucle
-   (1,5 et 2,3 ns vers le haut, 8,4 et 8,6 vers le plus proche), et
-   `x.midpoint()` (17,5 ns plutôt que 27,9) n'est pas reproduit : *décidé le 12
-   novembre* : 13,2 ns, fait par #317. Les colonnes de Visual C++ et de clang-cl
-   de
-   « The FPU intervals » (`doc/using.md`) : *décidé le 12 novembre* : une
-   expérience de CI, faite par #317 (le run 43264694580 : les intervalles par
-   défaut plus rapides dans 54 cases sur 56 ; un tableau de plus dans
-   `doc/using.md` et le chapitre 4 du manuel). Reste : `sqrt` est plus lent de
-   10 à 17 % qu'au 17 octobre (cause non isolée : le
-   banc est trop bruité pour une bissection) ; tout est à refaire au commit de
-   la version si le code change (25 minutes, avec le Mac M2 sur secteur et un
-   Xeon à AVX-512). Les temps de `gaol_performance` sont de 15 à 30 % plus longs
-   qu'au 17 octobre sur la même machine, pour le même code (un A/B dans une même
-   séance : `x + y` 1,22 ns contre 1,24) : deux jours ne se comparent qu'avec un
-   A/B. *Décidé le 12 novembre* : le cas P1 M de `div_rel()`
-   (`gaol/core/gaol_interval_sse_impl.h`), qui calcule deux `_mm_div_sd` de même
-   numérateur, reste tel quel (`TODO_AFTER.md` 3.9). `TODO_DONE.md` 2.3, 3.34 et
-   7.31.
 3. **34** : les recettes FetchContent récupèrent GAOL 4 : `doc/using.md`, le
    manuel et `tests/fetch_content` prennent la branche `master` de
    `Jordan08/GAOL`, et le `git clone` de `doc/building.md` la branche par
@@ -297,59 +261,3 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    d'un échange de 2014 et d'une liste de 2020 : elle peut avoir changé) ; le
    second paragraphe (les défauts de GAOL 4) dépasse l'annonce décidée le 3
    octobre, mais *décidé le 24 octobre* : le garder tel quel.
-5. **Le manuel** (l'ancien point 4 de PI) : *fait par #294* (fusionnée le 7
-   novembre). Le manuel est réécrit dans la mise en page et le style de la
-   thèse du mainteneur (`manual/v5/manual_gaolv5.tex` et un fichier par chapitre
-   dans `manual/v5/chapters/`, à la place de `gaol.tex`), relu deux fois par des
-   relecteurs indépendants, et son PDF, `manual/Manual_GAOLv5.pdf` (385 pages,
-   387 depuis #313 et #314, 0 erreur de TeX, les 7 « Overfull \hbox » de moins
-   de 4,1 pt qui restent), est commité : le mainteneur a supprimé l'ancien
-   `manual/v5/gaol.pdf` (154
-   pages) et `manual/v4/gaol.pdf`, et la cible `pdf` (`-DWITH_DOC=ON`,
-   `make -C manual pdf` ou `meson compile pdf`) écrit le PDF dans `manual/`.
-   *Décidé le 7 novembre* : la pull request du manuel (une branche `manual*`) le
-   régénère dans son dernier commit, `check_branch` le lui permet et
-   `process.md` (§6.2 point 7, §7 point 5) le dit ; les autres branches ne le
-   commitent jamais. La date
-   d'édition (`GAOL_V5_UPDATED` de `configure.ac`, de `configure` et de
-   `manual/meson.build`) reste le 6 novembre 2026 (*décidé le 7 novembre*). Le
-   PDF est à jour avec sa source : refait par #316 (387 pages, date d'édition du
-   12 novembre) et par #317 (389 pages) ; à refaire seulement si des mesures ou
-   des textes changent le manuel (dans la pull request qui les change, comme
-   #294), la date d'édition étant alors à remettre à jour. *Décidé le 3
-   octobre*, pour
-   les points 7 et 10 : un seul `\newinvfive` dans l'entrée `hausdorff` du
-   manuel, et aucun sur la phrase du domaine de `atanh`.
-6. **Les textes qui citent macOS 14** : *fait par #313* (fusionnée le 12
-   novembre). macOS 14 est sorti de la CI par #276 (le job `macOS 27 arm64`
-   sur l'étiquette `xcode-27`, `57650a4` du 1er novembre ; celui de x86_64 sous
-   Rosetta est retiré, l'étiquette `macos-27` n'ayant pas d'exécuteur) ;
-   `doc/continuous-integration.md` dit macOS 15, 26 et 27, et les textes qui
-   expliquent pourquoi la configuration vérifie que la machine exécute les
-   instructions FMA disent que le Rosetta de macOS 14 « had no AVX », au passé.
-   `configure.ac` et `meson.build` renvoient seulement à `CMakeLists.txt` et
-   restent.
-7. **Les restes de la synthèse de #283 à #288, et le texte de #293** : la pull
-   request #289 a fait la synthèse (`doc/differences.md`, `ChangeLog`,
-   `todo-notes/synthese.md`, fusionnée le 5 novembre) ; #290 a écrit son texte
-   dans sa propre pull request. *Fait par #313 et #314* (fusionnées le 12
-   novembre) : les textes de #279, #281, #85, #306, #308, #309 et #312 dans
-   `doc/differences.md` et le `ChangeLog` ; la phrase de l'exception du chemin
-   AVX-512 au « bit pour bit », qui nomme aussi `d * x` (#293) ; `STEP.md` et
-   `.claude/` dans la liste de l'archive des sources ; `release.yml` au
-   `ChangeLog` (*décidé le 12 novembre*, au `ChangeLog` seulement) ; trois
-   passages du manuel qui disaient que `make dist` n'existe plus, avec son
-   PDF ; le commentaire de `CMakeLists.txt` qui citait `core_math_log_dint.h`.
-   Restent : dans `todo-notes/synthese.md`, les notes « Présence : absents » et
-   les renvois « change 6 » et « change 7 » de `3rd/README.md` (lignes 447 et
-   1073, périmés depuis #111), qui sont périmés, et des points y sont faits
-   sans que le texte le dise (`run_examples.py` devenu
-   `manual/check_examples.py`, le commentaire hexadécimal de la ligne 1233, le
-   `#include <cmath>` de la ligne 1278, la remarque de la ligne 1611) ; le
-   commentaire de `gaol/core/gaol_interval_core.h` (ligne 1043), qui dit 1,55 et
-   1,03 ns pour le Neoverse N2 là où #279 dit 1,56 et 1,04.
-   *Décidé le 8 novembre* : quatre lignes de plus au `ChangeLog`, une pour
-   chaque pull request limitée à la CI, #34, #35, #48 et #74 (leurs textes sont
-   dans `todo-notes/synthese.md`, l'article `29.md` pour #35) ; le `ChangeLog`
-   décrit la bibliothèque, non les corrections des pages de `doc/` (la seconde
-   puce de #140 n'y entre donc pas : `TODO_DONE.md` 3.24). [S]

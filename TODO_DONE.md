@@ -1,7 +1,7 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 12 novembre
-2026 (commit `9cd5113` de `configure-clean`, la fusion de #317 : voir la section
+2026 (commit `f006421` de `configure-clean`, la fusion de #318 : voir la section
 1). Ce fichier fait foi : l'issue #177, qui avait le même contenu, n'est
 plus mise à jour depuis le 28 octobre (voir 7.8).
 
@@ -56,9 +56,10 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 
 ## 1. L'état au 12 novembre 2026
 
-- **`configure-clean`** est au commit `9cd5113` (la fusion de #317 le 12
-  novembre à 17 h 31 UTC, après celle de #316 à 15 h 30 UTC (`1afb90a`), après
-  celle de #315 à 15 h 20 UTC (`df680fe`), le
+- **`configure-clean`** est au commit `f006421` (la fusion de #318 le 12
+  novembre à 19 h 56 UTC, après celle de #317 à 17 h 31 UTC (`9cd5113`), après
+  celle de #316 à 15 h 30 UTC (`1afb90a`), après celle de #315 à 15 h 20 UTC
+  (`df680fe`), le
   commit direct `7745279` (7.30), la fusion de #314 à 12 h 42 UTC (`2b5e4f9`),
   celle de #313 à 12 h 31 UTC (`7949b41`), le
   commit direct `7528253` (3.33), la fusion de #312 à 7 h 53 UTC (`269c12e`),
@@ -148,7 +149,9 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   puis #315 (PJ.1 : le rapport de couverture, 95,1 %) à 15 h 20 UTC et #316
   (PJ.2 : les temps remesurés, le manuel et son PDF) à 15 h 30 UTC, puis #317
   (la suite de #316 : le tableau de Visual C++ et de clang-cl, `x.midpoint()`) à
-  17 h 31 UTC, par le mainteneur, avant la fin de leur CI (2.3, 3.34 et 7.31).
+  17 h 31 UTC, puis #318 (PJ.7 : les restes de la synthèse de #283 à #288,
+  quatre entrées de CI au `ChangeLog`) à 19 h 56 UTC, par le mainteneur, avant
+  la fin de leur CI (2.3, 3.34, 3.35, 7.31 et 7.32).
   #168,
   #195, #211, #214, #221, #226 et #233 sont fermées sans fusion, et, du 30 et du
   31 octobre, #240, #241, #243, #244, #246, #247, #251 à #261, #277 et #278,
@@ -3379,6 +3382,32 @@ restent. `c339f23` : le PDF du manuel, 387 pages au lieu de 385 : le PDF commit�
   `ChangeLog`, un registre, comme pour #314. CI à la tête `a7ab0bf` : Manual
   seul avait tourné à la fusion, les autres workflows attendaient des runners de
   GitHub. Décisions : 3.34.
+- #318 (PJ.7 : les restes de la synthèse de #283 à #288 ;
+  `todo-pj7-synthese-leftovers`, base `0b5febe`, tête `57d7680`, 3 commits, 3
+  fichiers, 142 lignes ajoutées et 48 retirées) : fusionnée par le mainteneur le
+  12 novembre à 19 h 56 UTC (`f006421`). Le `ChangeLog` : quatre entrées, une
+  par pull request limitée à la CI, à la fin de « Tests, examples and
+  documentation » (`c70166b`) : #34 (le pragma de GCC 12 sur aarch64 dans
+  `numbers.cpp`), #35 et #74 (`comma-locale.sh` dans chaque job), #48 (le `PATH`
+  de MinGW dans `windows.yml`) et le reste de #74 (le push sur `master` et
+  `configure-clean` seulement, les compilateurs de 22.04 sur 24.04, les badges).
+  Le commentaire de `gaol/core/gaol_interval_core.h` qui disait 1,55 et 1,03 ns
+  pour le Neoverse N2 dit 1,56 et 1,04, comme #279, sans remesure (`990b75c`).
+  `todo-notes/synthese.md` (`57d7680`) : les dix notes « Présence : absents »
+  récrites à l'état du 12 novembre ; les renvois « change 6 » et « change 7 » de
+  `3rd/README.md` expliqués (depuis #111 le changement 6 est tout le correctif,
+  le 7 est `pow` sur ARM 32 bits) ; quatre points faits sans que le texte le
+  dise (le programme du DAZ de #68 par #100, `check_examples.py` à la place de
+  `run_examples.py`, le `<cmath>` de `gaol/float/gaol_intervalf.h`, le
+  commentaire de `sqrt` de l'UCRT) et les délais de `numbers` de #312, marqués
+  faits. Pas de relecteur indépendant (du texte et un commentaire).
+  `check_branch` ne signale que le `ChangeLog`, un registre, comme pour #314 ;
+  CMake SSE2 avec GCC : 63 tests sur 63. CI à la tête `57d7680` : Linux
+  containers, Performance, Windows, Linux, Autotools and meson verts ; macOS :
+  19 jobs verts et un annulé, « macOS 26 arm64 AppleClang Debug ASan+UBSan »,
+  sans runner, annulé après 80 minutes dans la file (aucune étape lancée, ce
+  n'est pas un échec d'un test) ; la reprise demandée (tentative 2) s'est
+  terminée annulée elle aussi. Décisions : 3.35.
 
 ### 2.4 Fermées sans fusion
 
@@ -6143,6 +6172,34 @@ puis répartir le travail.
   banc de `doc/compare` ; dispersion de 1,18 : trop bruité pour une bissection,
   cause non isolée). Deux jours ne se comparent qu'avec un A/B.
 
+### 3.35 Le 12 novembre : les restes de PJ.7 (#318), et les points faits coupés de `TODO.md`
+
+Le mainteneur demande de traiter la tâche PJ.7 (les notes périmées de
+`todo-notes/synthese.md`, le commentaire de `gaol_interval_core.h`, les quatre
+entrées de CI du `ChangeLog`), qui devient #318 ; il répond au rapport de la
+session, puis, #318 fusionnée, demande de couper de `TODO.md` les tâches faites,
+entre chaque point, et de mettre dans `TODO_DONE.md` ce qui a été fait.
+
+- **Les réponses du mainteneur** au rapport de #318 : (1) la phrase de
+  `doc/continuous-integration.md` (ligne 24) qui dit que les badges suivent
+  `configure-clean`, alors que ceux du `README.md` suivent `master` (`a9c3da8`)
+  : la laisser telle quelle et ne l'écrire dans aucun registre ; (2) les vingt
+  autres notes de présence de `todo-notes/synthese.md` (onze « In », cinq
+  « Dans », quatre « State in ») : les laisser datées, sans les revérifier ; (3)
+  les chiffres 1,56 et 1,04 ns du Neoverse N2 : les garder, sans remesure ; (4)
+  après la fusion, les registres seulement (`TODO.md`, `TODO_DONE.md`,
+  `process.md` §12, puis l'issue #179), et s'arrêter : pas de préparation de
+  PJ.3 (la fusion dans `master`, l'étiquette) sans demande.
+- **Les points de PJ coupés de `TODO.md`** : PJ.1, PJ.2, PJ.5, PJ.6 et PJ.7 sont
+  faits et sortent du fichier ; leur texte est dans 2.3 et 3.34 (le point 32, la
+  couverture, par #315 ; le 33, les temps, par #316 et #317), 3.23 (le manuel,
+  #294, dont le PDF est refait par #316, 387 pages, puis #317, 389), 3.33 (macOS
+  14, #313, et les textes de #314) et ici (PJ.7, #318). Il reste PJ.3 (le point
+  34) et PJ.4 (le 71), qui gardent leur numéro, et, en tête de la tâche, ce qui
+  est à refaire au commit de la version si le code ou les textes ont changé : la
+  couverture (5 minutes, *décidé le 15 octobre* : pas avant ce relevé), les
+  mesures de PJ.2 (25 minutes) et le PDF du manuel, avec sa date d'édition.
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -6348,7 +6405,10 @@ leur partie faite.
 - **AJ, AK, W, X.** Rien n'est fait ; voir `TODO_AFTER.md`.
 - **Y.** La synthèse des textes de la version (la tâche PI) est faite par #263 à
   #274, avec #275 pour les phrases hors de `doc/differences.md` et du
-  `ChangeLog` et #280 pour leurs restes ; il reste la publication (tâche PJ).
+  `ChangeLog` et #280 pour leurs restes ; dans la tâche PJ, le 32 (#315), le 33
+  (#316 et #317), le manuel (#294), macOS 14 (#313) et les restes de la synthèse
+  (#313, #314 et #318) sont faits (3.34 et 3.35) ; il reste la publication (PJ.3
+  et PJ.4).
 
 ## 5. Les anciens numéros faits
 
@@ -8155,6 +8215,20 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   lancé aucun run (vérifié par l'API) : le code de `gaol/` n'a de toute façon
   pas changé depuis `2b5e4f9`, dont la CI a été verte (206 jobs).
 
+### 7.32 Le 12 novembre (après #318 : les registres)
+
+- Les registres de #318 sont faits en un commit direct sur `configure-clean`,
+  depuis l'arbre de GAOL_V9 (propre, à `f006421`, qu'aucune autre session
+  n'utilisait : les pairs de `ListAgents` étaient inactifs ou hors ligne) :
+  `TODO.md` (l'en-tête, la liste des pull requests, la table et PJ : les points
+  faits PJ.1, PJ.2, PJ.5, PJ.6 et PJ.7 sont coupés, il reste PJ.3 et PJ.4 avec
+  ce qui est à refaire à la version), ce fichier (l'en-tête, 1, 2.3, 3.35, 4,
+  7.32 et 8.1), `process.md` (l'en-tête et §12) et l'issue #179 ;
+  `TODO_AFTER.md` (l'issue #178) n'a rien de nouveau.
+- La CI du commit de fusion `f006421` tournait encore (Linux verte, les autres
+  workflows en file) : le push des registres l'annule (§10) ; le commit des
+  registres porte le même code et a sa propre CI.
+
 ## 8. Le ménage fait
 
 ### 8.1 Branches, lignes de crédit, outillage
@@ -8403,6 +8477,12 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   `configure-clean` et `master`. Les clones du scratchpad et leurs builds, comme
   la copie du dossier
   `work/clang21` de `doc/compare/code`, disparaissent avec la session.
+
+- [x] Celle de #318 (`todo-pj7-synthese-leftovers`), sur GitHub (supprimée à la
+  fusion, vérifié le 12 novembre par `git ls-remote --heads origin` : il ne
+  reste que `configure-clean` et `master`) ; GAOL_V9 n'en a pas de copie
+  locale. Le clone et le build du scratchpad de la session qui a écrit #318
+  disparaissent avec elle.
 
 ### 8.2 Les branches inachevées
 

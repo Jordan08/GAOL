@@ -14,8 +14,8 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12. Dernière mise à jour : 12 novembre 2026, au
-commit `9cd5113` de `configure-clean` (la fusion de #317, après celle de #316 et
-de #315,
+commit `f006421` de `configure-clean` (la fusion de #318, après celle de #317,
+de #316 et de #315,
 le commit direct `7745279`, la fusion de #314, celle de #313, le commit direct
 `7528253`, la fusion de #312, le commit direct
 `f27c6c2`, celle de #309, le commit direct `be73e24` et celles de #311, de
@@ -941,7 +941,9 @@ git ls-remote --heads origin
   UTC (`df680fe`) et #316 (la tâche PJ.2 : les temps remesurés, le manuel et son
   PDF) à 15 h 30 UTC (`1afb90a`, 2.3, 3.34 et 7.31), puis #317 (la suite de #316
   : le tableau de Visual C++ et de clang-cl, `x.midpoint()`) à 17 h 31 UTC
-  (`9cd5113`), par le mainteneur, avant la fin de leur CI ; l'entrée de #301,
+  (`9cd5113`), puis #318 (la tâche PJ.7 : les restes de la synthèse, quatre
+  entrées de CI au `ChangeLog`) à 19 h 56 UTC (`f006421`, 2.3, 3.35 et 7.32),
+  par le mainteneur, avant la fin de leur CI ; l'entrée de #301,
   #303 et #304
   dans `TODO_DONE.md` reste à écrire ; l'audit du 13
   octobre a vérifié dans `configure-clean` ce qu'annonçaient alors les points A,
@@ -959,11 +961,12 @@ git ls-remote --heads origin
   ; `ci-branches-timeout`), #313 (macOS 14 hors de la CI ;
   `manual-macos-14-texts`), #314 (la synthèse de #279 à #312 ;
   `synthese-279-312`), #315 (PJ.1, la couverture ; `todo-pj-coverage`), #316
-  (PJ.2, les mesures ; `manual-pj-measures`) et #317 (la suite de #316 ;
-  `manual-pj-followups`) sont fusionnées, leurs registres faits ;
-  `configure-clean` est au commit `9cd5113` (la fusion de #317, après celle de
-  #316, `1afb90a`, et de #315, `df680fe`, le commit direct `7745279`, la fusion
-  de #314,
+  (PJ.2, les mesures ; `manual-pj-measures`), #317 (la suite de #316 ;
+  `manual-pj-followups`) et #318 (PJ.7, les restes de la synthèse ;
+  `todo-pj7-synthese-leftovers`) sont fusionnées, leurs registres faits ;
+  `configure-clean` est au commit `f006421` (la fusion de #318, après celle de
+  #317, `9cd5113`, de #316, `1afb90a`, et de #315, `df680fe`, le commit direct
+  `7745279`, la fusion de #314,
   `2b5e4f9`, après celle de #313, `7949b41`, le commit direct `7528253`, la
   fusion de #312, `269c12e`,
   le commit direct `f27c6c2` et la fusion de #309, `dcce690`, après le commit
@@ -992,8 +995,9 @@ git ls-remote --heads origin
   (`core-split-domains`), de #309 (`make-dist`), de #312
   (`ci-branches-timeout`), de #313 (`manual-macos-14-texts`), de #314
   (`synthese-279-312`), de #315 (`todo-pj-coverage`) et de #316
-  (`manual-pj-measures`, supprimée le 12 novembre par la session) et de #317
-  (`manual-pj-followups`) sont supprimées à leur fusion, comme
+  (`manual-pj-measures`, supprimée le 12 novembre par la session), de #317
+  (`manual-pj-followups`) et de #318 (`todo-pj7-synthese-leftovers`) sont
+  supprimées à leur fusion, comme
   `experiment-pj-vs-fpu`, l'expérience de CI jamais fusionnée, comme celles de
   #287
   (`pown-rel`) et de #288 (`compoundm1`), et `std-exceptions` et
@@ -1004,14 +1008,13 @@ git ls-remote --heads origin
   octobre*) : GitHub borne le corps d'une issue à 262 144 octets et le texte
   joint en fait plus de 270 000 (voir `TODO_DONE.md` 7.8).
 - **À faire**, dans l'ordre de `TODO.md` : les signalements à d'autres projets
-  (PH, avec l'accord du mainteneur), puis la version (PJ, dont les mesures sont
-  faites par #315 et #316 (à refaire au commit de la version si le code change,
-  `TODO.md` PJ.1 et PJ.2), qui reprend la fusion de `configure-clean` dans
-  `master` et l'étiquette, l'annonce à Frédéric Goualard, la licence des cas
-  d'IBEX et de Codac, sur laquelle le mainteneur écrit aux auteurs (*décidé le 5
-  novembre* : #281), et les deux restes de PJ.7 que #313 et #314 ont laissés :
-  les notes périmées de
-  `todo-notes/synthese.md` et un commentaire de `gaol_interval_core.h`).
+  (PH, avec l'accord du mainteneur), puis la version (PJ : la fusion de
+  `configure-clean` dans `master` et l'étiquette, l'annonce à Frédéric Goualard,
+  la licence des cas d'IBEX et de Codac, sur laquelle le mainteneur écrit aux
+  auteurs (*décidé le 5 novembre* : #281) ; les points 32 et 33, le manuel,
+  macOS 14 et PJ.7 sont faits par #315 à #318 et coupés de `TODO.md`, la
+  couverture, les mesures et le PDF du manuel étant à refaire au commit de la
+  version si le code ou les textes ont changé).
   Ce qui est reporté (le 113, le site, les traits pour YalAA
   et VNODE-LP, les décorations, ce qui attend du matériel) est dans
   `TODO_AFTER.md`. Les dépendances entre points sont écrites dans chaque tâche.
