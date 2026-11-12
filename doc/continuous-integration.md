@@ -256,8 +256,8 @@ locale: the output ctest keeps in `Testing/Temporary/LastTest.log`,
 manylinux have no locale writing a decimal comma to generate, and check
 nothing of the kind. `numbers` has 300 s (`GAOL_NUMBERS_TIMEOUT`), 400 in the
 four jobs of `linux.yml` with the sanitizers, where it took 109 to 287 s and
-once more than 300, 600 in the job of macOS 15 x86_64 GCC with the sanitizers,
-where it took 146 to 367 s on the same code, and once more than 400, and 600
+once more than 300, 900 in the job of macOS 15 x86_64 GCC with the sanitizers,
+where it took 182 to 577 s in 30 runs, and more than 400 six times, and 600
 in the job of macOS 26 arm64 LLVM Clang with the sanitizers, where it took 162
 to 297 s in 28 runs, and once more than 300.
 

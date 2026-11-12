@@ -736,8 +736,8 @@ point Q), which `numbers` checks there too.
   would otherwise let run with no limit, fails after 5 minutes should it hang
   again (GAOL v5), in `tests/find_package`, `tests/fetch_content` and
   `tests/meson_subproject` too; the cache variable `GAOL_NUMBERS_TIMEOUT`
-  gives it more time on a slower build (600 s with GCC and the sanitizers on
-  macOS x86_64, and with LLVM Clang and the sanitizers on macOS arm64).
+  gives it more time on a slower build (900 s with GCC and the sanitizers on
+  macOS x86_64, 600 s with LLVM Clang and the sanitizers on macOS arm64).
   Numbers of 5000 to 20000 characters, in decimal, in hexadecimal and in the
   uncertain form, have to be read as the tightest
   enclosures, known without reading them (`1.5` followed by zeros is 1.5, and
