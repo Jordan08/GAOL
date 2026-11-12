@@ -14,7 +14,8 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12. Dernière mise à jour : 12 novembre 2026, au
-commit `1afb90a` de `configure-clean` (la fusion de #316, après celle de #315,
+commit `9cd5113` de `configure-clean` (la fusion de #317, après celle de #316 et
+de #315,
 le commit direct `7745279`, la fusion de #314, celle de #313, le commit direct
 `7528253`, la fusion de #312, le commit direct
 `f27c6c2`, celle de #309, le commit direct `be73e24` et celles de #311, de
@@ -909,16 +910,14 @@ git ls-remote --heads origin
   manuel avec son PDF) à 12 h 42 UTC (`2b5e4f9`, 2.3 et 7.30), puis #315 (la
   tâche PJ.1 : le rapport de couverture, 95,1 % des lignes de `gaol/`) à 15 h 20
   UTC (`df680fe`) et #316 (la tâche PJ.2 : les temps remesurés, le manuel et son
-  PDF) à 15 h 30 UTC (`1afb90a`, 2.3, 3.34 et 7.31), par le mainteneur, avant la
-  fin de leur CI ; l'entrée de #301,
+  PDF) à 15 h 30 UTC (`1afb90a`, 2.3, 3.34 et 7.31), puis #317 (la suite de #316
+  : le tableau de Visual C++ et de clang-cl, `x.midpoint()`) à 17 h 31 UTC
+  (`9cd5113`), par le mainteneur, avant la fin de leur CI ; l'entrée de #301,
   #303 et #304
   dans `TODO_DONE.md` reste à écrire ; l'audit du 13
   octobre a vérifié dans `configure-clean` ce qu'annonçaient alors les points A,
   C à H et J à V.
-- **En cours** : au 12 novembre, une pull request est ouverte, #317 (la suite de
-  #316 : les colonnes de Visual C++ et de clang-cl par une expérience de CI,
-  `x.midpoint()` ; `manual-pj-followups`, avec la branche d'expérience
-  `experiment-pj-vs-fpu`, à ne pas fusionner) ; #295 (PS.2
+- **En cours** : au 12 novembre, aucune pull request n'est ouverte : #295 (PS.2
   ; `manual-neon-pown-text`), #296 (le cas (b) ; `manual-case-b-text`), #297 (la
   tâche PS ; `todo-ps-stale-texts`), #299 (PQ.2 ; `todo-pq-hexfloat-point`),
   #298 (PQ.1 ; `todo-pq-centered-form`), #300 (la recette de compilation croisée
@@ -930,10 +929,12 @@ git ls-remote --heads origin
   #309 (`make dist` et Release ; `make-dist`), #312 (la CI sans `MATH-CORE`
   ; `ci-branches-timeout`), #313 (macOS 14 hors de la CI ;
   `manual-macos-14-texts`), #314 (la synthèse de #279 à #312 ;
-  `synthese-279-312`), #315 (PJ.1, la couverture ; `todo-pj-coverage`) et #316
-  (PJ.2, les mesures ; `manual-pj-measures`) sont fusionnées, leurs registres
-  faits ; `configure-clean` est au commit `1afb90a` (la fusion de #316, après
-  celle de #315, `df680fe`, le commit direct `7745279`, la fusion de #314,
+  `synthese-279-312`), #315 (PJ.1, la couverture ; `todo-pj-coverage`), #316
+  (PJ.2, les mesures ; `manual-pj-measures`) et #317 (la suite de #316 ;
+  `manual-pj-followups`) sont fusionnées, leurs registres faits ;
+  `configure-clean` est au commit `9cd5113` (la fusion de #317, après celle de
+  #316, `1afb90a`, et de #315, `df680fe`, le commit direct `7745279`, la fusion
+  de #314,
   `2b5e4f9`, après celle de #313, `7949b41`, le commit direct `7528253`, la
   fusion de #312, `269c12e`,
   le commit direct `f27c6c2` et la fusion de #309, `dcce690`, après le commit
@@ -962,8 +963,10 @@ git ls-remote --heads origin
   (`core-split-domains`), de #309 (`make-dist`), de #312
   (`ci-branches-timeout`), de #313 (`manual-macos-14-texts`), de #314
   (`synthese-279-312`), de #315 (`todo-pj-coverage`) et de #316
-  (`manual-pj-measures`, supprimée le 12 novembre par la session) sont
-  supprimées à leur fusion, comme celles de #287
+  (`manual-pj-measures`, supprimée le 12 novembre par la session) et de #317
+  (`manual-pj-followups`) sont supprimées à leur fusion, comme
+  `experiment-pj-vs-fpu`, l'expérience de CI jamais fusionnée, comme celles de
+  #287
   (`pown-rel`) et de #288 (`compoundm1`), et `std-exceptions` et
   `revert-285-std-exceptions` depuis le 4 novembre. L'issue #198 (`x / y` des
   intervalles NEON avec `FPCR.AH`) est ouverte, sans tâche

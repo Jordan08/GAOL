@@ -1,7 +1,8 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `1afb90a` de `configure-clean` (la
-fusion de #316, la tâche PJ.2, le 12 novembre 2026 à 15 h 30 UTC, après celle de
+Ce qui reste à faire sur GAOL v5 au commit `9cd5113` de `configure-clean` (la
+fusion de #317, la suite de #316, le 12 novembre 2026 à 17 h 31 UTC, après celle
+de #316, la tâche PJ.2, à 15 h 30 UTC, après celle de
 #315, la tâche PJ.1, à 15 h 20 UTC, le commit direct `7745279`, la fusion de
 #314, hors des points, à 12 h 42 UTC, celle de #313, hors des points, à 12 h 31
 UTC, le commit direct `7528253`, la fusion
@@ -24,8 +25,7 @@ dans les trois registres, dont les tâches PS (faite par #297), PT (faite par
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à envoyer à un autre projet ni à publier sans l'accord
-du mainteneur. Une pull request est ouverte : #317 (la suite de #316, PJ.2 : les
-colonnes de Visual C++ et de clang-cl, `x.midpoint()`). #295 (PS.2), #296 (PM),
+du mainteneur. Aucune pull request n'est ouverte. #295 (PS.2), #296 (PM),
 #297
 (la tâche PS), #299 (PQ.2), #298 (PQ.1), #300 (hors des points : la recette de
 compilation croisée GCC 12.2 pour aarch64 de `todo-notes/gcc12-aarch64/`) et
@@ -51,9 +51,11 @@ des points : les textes qui citent macOS 14, PJ.6, et un commentaire de
 `ChangeLog`, trois passages du manuel avec son PDF, PJ.7) à 12 h 42 UTC, par le
 mainteneur ; leurs registres sont faits, puis #315 (PJ.1 : le rapport de
 couverture, 95,1 % des lignes de `gaol/`) à 15 h 20 UTC et #316 (PJ.2 : les
-temps remesurés, le manuel et son PDF) à 15 h 30 UTC, par le mainteneur, alors
-que leur CI attendait des runners de macOS ; leurs registres sont faits ici
-(`TODO_DONE.md` 2.3, 3.34 et 7.31).
+temps remesurés, le manuel et son PDF) à 15 h 30 UTC, puis #317 (la suite de
+#316, PJ.2 : le tableau de Visual C++ et de clang-cl par une expérience de CI,
+`x.midpoint()`) à 17 h 31 UTC, par le mainteneur, alors que leur CI attendait
+des runners de GitHub ; leurs registres sont faits ici (`TODO_DONE.md` 2.3, 3.34
+et 7.31).
 
 ## Comment lire ce fichier
 
@@ -217,7 +219,7 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    minutes ; *décidé le 15 octobre* : pas avant ce relevé). `TODO_DONE.md` 2.3
    et 3.34.
 2. **33** : *fait par #316* (fusionnée à 15 h 30 UTC, `1afb90a`) *et #317*
-   (ouverte, la suite). Les tableaux de
+   (fusionnée à 17 h 31 UTC, `9cd5113`, la suite). Les tableaux de
    [doc/compare/performance.md](doc/compare/performance.md) (le banc, les lignes
    longues avec la colonne de la direction préservée, qui n'avait jamais tourné
    sur x86, et le tableau ARM 64 bits d'un Mac M2), le tableau de
@@ -234,12 +236,13 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    (49 → 22,5 ns, 63 → 38, 721 → 318), ceux de x86 sont vérifiés par une boucle
    (1,5 et 2,3 ns vers le haut, 8,4 et 8,6 vers le plus proche), et
    `x.midpoint()` (17,5 ns plutôt que 27,9) n'est pas reproduit : *décidé le 12
-   novembre* : 13,2 ns, dans #317. Les colonnes de Visual C++ et de clang-cl de
+   novembre* : 13,2 ns, fait par #317. Les colonnes de Visual C++ et de clang-cl
+   de
    « The FPU intervals » (`doc/using.md`) : *décidé le 12 novembre* : une
-   expérience de CI, dans #317 (le run 43264694580 : les intervalles par défaut
-   plus rapides dans 54 cases sur 56). Reste, après #317 : la branche
-   d'expérience `experiment-pj-vs-fpu` à supprimer (l'accord du mainteneur) ;
-   `sqrt` est plus lent de 10 à 17 % qu'au 17 octobre (cause non isolée : le
+   expérience de CI, faite par #317 (le run 43264694580 : les intervalles par
+   défaut plus rapides dans 54 cases sur 56 ; un tableau de plus dans
+   `doc/using.md` et le chapitre 4 du manuel). Reste : `sqrt` est plus lent de
+   10 à 17 % qu'au 17 octobre (cause non isolée : le
    banc est trop bruité pour une bissection) ; tout est à refaire au commit de
    la version si le code change (25 minutes, avec le Mac M2 sur secteur et un
    Xeon à AVX-512). Les temps de `gaol_performance` sont de 15 à 30 % plus longs

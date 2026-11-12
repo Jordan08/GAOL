@@ -1,7 +1,7 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 12 novembre
-2026 (commit `1afb90a` de `configure-clean`, la fusion de #316 : voir la section
+2026 (commit `9cd5113` de `configure-clean`, la fusion de #317 : voir la section
 1). Ce fichier fait foi : l'issue #177, qui avait le même contenu, n'est
 plus mise à jour depuis le 28 octobre (voir 7.8).
 
@@ -56,8 +56,9 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 
 ## 1. L'état au 12 novembre 2026
 
-- **`configure-clean`** est au commit `1afb90a` (la fusion de #316 le 12
-  novembre à 15 h 30 UTC, après celle de #315 à 15 h 20 UTC (`df680fe`), le
+- **`configure-clean`** est au commit `9cd5113` (la fusion de #317 le 12
+  novembre à 17 h 31 UTC, après celle de #316 à 15 h 30 UTC (`1afb90a`), après
+  celle de #315 à 15 h 20 UTC (`df680fe`), le
   commit direct `7745279` (7.30), la fusion de #314 à 12 h 42 UTC (`2b5e4f9`),
   celle de #313 à 12 h 31 UTC (`7949b41`), le
   commit direct `7528253` (3.33), la fusion de #312 à 7 h 53 UTC (`269c12e`),
@@ -86,8 +87,8 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   `configure-clean`, qui reste la branche de développement après v5.0.0 ;
   `master` (GAOL 4.3.2, plus deux commits de `.claude/CLAUDE.md`) ne bouge qu'à
   la version (point Y : `configure-clean` → `master`, *décidé le 12 novembre*,
-  `MATH-CORE` étant supprimée : 3.32). Une pull request est ouverte : #317 (la
-  suite de #316). Le mainteneur a fusionné #165 à #167, #169 à #174, #176 et
+  `MATH-CORE` étant supprimée : 3.32). Aucune pull request n'est ouverte. Le
+  mainteneur a fusionné #165 à #167, #169 à #174, #176 et
   #180 à #184
   les 23 et 24 octobre, et #186 à #194,
   #196 et #197 le 25 octobre, #199, #200 et #201
@@ -145,8 +146,9 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   #279 à #312 dans `doc/differences.md` et le `ChangeLog`, trois passages du
   manuel avec son PDF) à 12 h 42 UTC, par le mainteneur (2.3, 3.33 et 7.30),
   puis #315 (PJ.1 : le rapport de couverture, 95,1 %) à 15 h 20 UTC et #316
-  (PJ.2 : les temps remesurés, le manuel et son PDF) à 15 h 30 UTC, par le
-  mainteneur, avant la fin de leur CI (2.3, 3.34 et 7.31).
+  (PJ.2 : les temps remesurés, le manuel et son PDF) à 15 h 30 UTC, puis #317
+  (la suite de #316 : le tableau de Visual C++ et de clang-cl, `x.midpoint()`) à
+  17 h 31 UTC, par le mainteneur, avant la fin de leur CI (2.3, 3.34 et 7.31).
   #168,
   #195, #211, #214, #221, #226 et #233 sont fermées sans fusion, et, du 30 et du
   31 octobre, #240, #241, #243, #244, #246, #247, #251 à #261, #277 et #278,
@@ -3360,9 +3362,23 @@ restent. `c339f23` : le PDF du manuel, 387 pages au lieu de 385 : le PDF commit�
   même) ; trois jobs de macOS (`Meson, macOS 15 arm64, rounding direction
   preserved`, `macOS 15 universal`, `macOS 15 arm64`) annulés par GitHub avant
   d'avoir tourné, la pull request étant fusionnée entre-temps. Décisions : 3.34.
-- #317 (la suite de #316, ouverte à 17 h 08 UTC ; `manual-pj-followups`, quatre
-  commits, huit fichiers) : ouverte à la fin de ce relevé, décrite ici quand
-  elle sera fusionnée (3.34).
+- #317 (la suite de #316 : les réponses du mainteneur du 12 novembre ;
+  `manual-pj-followups`, ouverte à 17 h 08 UTC, 5 commits, 8 fichiers, 73 lignes
+  ajoutées et 12 retirées) : fusionnée par le mainteneur à 17 h 31 UTC
+  (`9cd5113`, tête `a7ab0bf`, une fusion de `configure-clean` faite par lui). Le
+  tableau du FPU contre les intervalles par défaut de Visual C++ et de clang-cl
+  (`doc/using.md`, `doc/three-builds.md`, les chapitres 2 et 4 du manuel, le PDF
+  à 389 pages), tiré du run 43264694580 de l'expérience de CI (la branche
+  `experiment-pj-vs-fpu`, un fichier de workflow lancé par un push, supprimée le
+  12 novembre) ; `x.midpoint()` « 17,5 ns plutôt que 27,9 » remplacé par 13,2 ns
+  dans un programme qui calcule vers le plus proche (`ChangeLog`,
+  `doc/differences.md`, chapitre 15 du manuel) ; la cause de l'écart des temps
+  de `gaol_performance` cherchée (la machine, non le code : 3.34). Pas de
+  relecteur indépendant (un tableau tiré des journaux d'un run, trois phrases et
+  un chiffre). `CHECK_BRANCH_PDF=1 check_branch` : ne signale que le
+  `ChangeLog`, un registre, comme pour #314. CI à la tête `a7ab0bf` : Manual
+  seul avait tourné à la fusion, les autres workflows attendaient des runners de
+  GitHub. Décisions : 3.34.
 
 ### 2.4 Fermées sans fusion
 
@@ -8380,10 +8396,12 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
 - [x] Celle de #315 (`todo-pj-coverage`), sur GitHub (supprimée à la fusion) ;
   celle de #316 (`manual-pj-measures`), qui ne l'avait pas été, supprimée le 12
   novembre par la session après avoir vérifié qu'elle est contenue dans
-  `configure-clean` ; celles de #317 (`manual-pj-followups`) et de l'expérience
-  de CI (`experiment-pj-vs-fpu`, un seul fichier de workflow : à supprimer quand
-  le mainteneur le dit, le run 43264694580 et ses journaux restent) sont
-  ouvertes. Les clones du scratchpad et leurs builds, comme la copie du dossier
+  `configure-clean` ; celle de #317 (`manual-pj-followups`), supprimée à la
+  fusion, et celle de l'expérience de CI (`experiment-pj-vs-fpu`, un seul
+  fichier de workflow, jamais fusionnée), supprimée le 12 novembre à la demande
+  du mainteneur (le run 43264694580 et ses journaux restent). Il ne reste que
+  `configure-clean` et `master`. Les clones du scratchpad et leurs builds, comme
+  la copie du dossier
   `work/clang21` de `doc/compare/code`, disparaissent avec la session.
 
 ### 8.2 Les branches inachevées
