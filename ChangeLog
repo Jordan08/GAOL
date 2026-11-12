@@ -223,12 +223,10 @@
 	distributed; make uninstall removes gaol.pc; make distcheck builds the
 	archive with the tests and the examples and runs them
 	(AM_DISTCHECK_CONFIGURE_FLAGS).
-	* CMakeLists.txt, meson.build, .gitattributes: the three builds make
-	the same archive of the sources, gaol-<version>.tar.gz, with the same
-	files, those of the commit less the notes of the work on GAOL v5
-	(.gitattributes marks them export-ignore, which meson dist reads): the
-	target dist of CMake is new, and the project of meson is gaol, not
-	GAOL, which named the archive GAOL-<version>.
+	* CMakeLists.txt, meson.build: the three builds make the same
+	archive of the sources, gaol-<version>.tar.gz, with the same files,
+	those of the commit: the target dist of CMake is new, and the project
+	of meson is gaol, not GAOL, which named the archive GAOL-<version>.
 	* .github/workflows/build-systems.yml: a job makes the three archives,
 	builds and tests the one of make distcheck and of meson dist, and
 	checks that all hold the files of git archive HEAD.

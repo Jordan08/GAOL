@@ -2455,13 +2455,10 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   `cmake --build <build> --target dist` (`make dist` with the Makefile
   generators, or `--target package_source`), `make dist` of the autotools
   build and `meson dist -C <build> --formats gztar` give `gaol-<version>.tar.gz`
-  with the same files, those of the repository less the notes of the work on
-  GAOL v5 (`TODO.md`, `TODO_AFTER.md`, `TODO_DONE.md`, `STEP.md`, `process.md`
-  and `todo-notes/`) and the settings of the maintainers' tools (`.claude/`).
-  `.gitattributes` marks them `export-ignore`, which `meson dist` reads, as it
-  archives the commit with `git archive`; CMake leaves them out with
-  `CPACK_SOURCE_IGNORE_FILES`, and `make dist` does not list them in the
-  `EXTRA_DIST` of its `Makefile.am`. `--target package` makes an archive of
+  with the same files, those of the repository: `meson dist` archives the
+  commit with `git archive`, CMake leaves out what git ignores with
+  `CPACK_SOURCE_IGNORE_FILES`, and `make dist` takes the files that the
+  `EXTRA_DIST` of its `Makefile.am` list. `--target package` makes an archive of
   what `cmake --install` installs and, on Linux,
   `libgaol-dev_<version>_<arch>.deb`.
   `make dist` and `make distcheck` of the autotools build work: the
