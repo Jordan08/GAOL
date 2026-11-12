@@ -1015,8 +1015,18 @@ tells it, and both entries go.
 \subsection{The archive of the sources and the packages}\label{sec:packages}
 \cindex{package}%
 
-CPack makes them from the CMake build, in the directory of the build, where
-\cmd{make dist} of the autotools build made the archive of the sources:
+The three builds make the archive of the sources,
+\file{gaol-\var{version}.tar.gz}, with the same files: those of the
+repository less the notes of the work on GAOL~v5, which \file{.gitattributes}
+marks \code{export-ignore}.\newinvfive{} \cmd{make dist} of the autotools
+build makes it from the files that the \code{EXTRA\_DIST} of the
+\file{Makefile.am} list (a file added to the repository goes into that of its
+directory, or of the top one for a directory without its own), and
+\cmd{make distcheck} builds it with the tests and the examples, runs them, and
+installs and uninstalls it; \cmd{cmake --build build --target dist} makes it
+with CPack, as \code{package\_source} does; \cmd{meson dist -C build
+--formats gztar} archives the commit. CPack makes the packages from the CMake
+build, in the directory of the build:
 
 \begin{cmdshell}
 % cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/usr \
@@ -1102,8 +1112,9 @@ In the root directory of the sources (for a build outside the sources,
 \file{libgaol} (\file{3rd/Makefile.am}, whose convenience library
 \file{gaol/Makefile.am} puts into \file{libgaol}), with the flags it gives to the C
 code of GAOL: there is nothing else to build, nothing else to install and
-nothing else to link. There is no \cmd{make dist} nor \cmd{make distcheck}:
-the archive of the sources is made with CMake (\pxref{sec:packages}).
+nothing else to link. \cmd{make dist} makes the archive of the sources, and
+\cmd{make distcheck} builds it with the tests and the examples, runs them, and
+installs and uninstalls it (\pxref{sec:packages}).
 
 \medskip
 \file{configure}, \file{aclocal.m4}, the \file{Makefile.in},
