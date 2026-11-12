@@ -75,7 +75,7 @@ compiled by Clang 21.1 (see [performance](performance.md)).
   negative base included. Its elementary functions, CORE-MATH's, give the
   tightest bounds; its exp and log are faster than filib++'s, its sin and cos as
   fast (42 and 41 ns against 42 and 43).
-- **filib++** is as fast as GAOL on sin and 5 % slower on cos, but 6.3 times as
+- **filib++** is as fast as GAOL on sin and 6 % slower on cos, but 6.3 times as
   slow on ×, 4.1 times on ÷ and 2.5 times on + and −, and its bounds of
   elementary functions and real powers are up to 36 doubles wider than the
   tightest. Its extended mode gives other results than

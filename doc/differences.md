@@ -1267,8 +1267,7 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
     `pow([10], -400)` was `[0, 5.6e-309]` rather than `[0, 2^-1074]`,
     `pow([2], -1050)` `[0, 5.6e-309]` rather than `[2^-1050]`, and
     `pow([-2, 2], -1050)` `[0, +oo]` rather than `[2^-1050, +oo]`.
-  - **Time** (Intel i7-1185G7, Clang 21): `pow(x, 3)` takes 5.1 ns against 9.1
-    with GAOL 4.2.3 (see [performance.md](compare/performance.md)).
+  - **Time** (Intel i7-1185G7, Clang 21): `pow(x, 3)` takes 5.8 ns against 9.7 with GAOL 4.2.3 (see [performance.md](compare/performance.md)).
   - **The exponent 2 is `sqr(x)`.** `pow(x, 2)`, `pow(x, 2u)`, `pow(x, 2.0)`,
     `pow(x, [2])`, `gaol_ieee1788::pown(x, 2)` and, on the part of x in
     [0, +oo], `gaol_ieee1788::pow(x, [2])` call `sqr(x)`, the squares of the

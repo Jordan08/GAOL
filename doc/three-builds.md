@@ -346,8 +346,7 @@ such options is exposed to GCC bug 54412, as with `-mavx`.
 ### Interprocedural optimization is not offered
 
 Compiled with it (`-flto`), GAOL's basic operations are 1.1 to 1.5 times
-faster where the code using GAOL is compiled with it too — an addition of
-intervals took 0.73 ns rather than 1.07 with Clang 21.1, `x * y` 1.71 rather
+faster where the code using GAOL is compiled with it too — an addition of intervals took 0.73 ns rather than 1.07 with Clang 21.1 (in an earlier session than the table above, whose default build took 1.07, 2.04 and 1.80 ns for its first three columns then), `x * y` 1.71 rather
 than 2.04, `sqr(x)` 1.27 rather than 1.80 — and the elementary functions no
 faster, a little **slower**: cos took 39.2 ns rather than 36.6, sin 32.6 rather
 than 31.3, log 22.7 rather than 21.7. With Clang 18.1, before the operators

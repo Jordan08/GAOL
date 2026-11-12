@@ -483,8 +483,7 @@ its meson build, and the CMake build gives the same, apart from the errors corre
   exact products of GAOL (\code{fma\_once()}) and the functions of CORE-MATH
   then compute \code{fma()} with one instruction rather than with a call to
   the math library: on an Intel i7-1185G7 with Clang 21.1, \code{pow(x, 3)} of an
-  interval takes 5.4~ns rather than 17.4, \code{sin} 1.3 times less and
-  \code{cos} 2.5 times less (\pxref{sec:install-options-worth}). The code
+  interval takes 7.0~ns rather than 21.9, \code{sin} 1.4 times less and \code{cos} 1.4 times less (\pxref{sec:install-options-worth}). The code
   using GAOL is given the flag too (\code{gaol::gaol}, \file{gaol.pc}), and
   compiled for the same processor. \option{-ffp-contract=off} stays, which
   forbids the compiler to contract a multiplication and an addition into a
@@ -1437,7 +1436,7 @@ the last two in another.
   \option{GAOL\_PRESERVE\_ROUNDING} the write of FPCR waits for the result as
   well, and the FPU row of that option loses 6 to 7~\% on operands of one sign
   ($x \times y$ 42.4~ns rather than 39.7 for the former code, measured in
-  another session than Table~\ref{tab:install-worth-arm}, where it is 43.2)
+  another session than Table~\ref{tab:install-worth-arm}, where it is 43.6)
   and gains on operands of random signs (42.4 rather than 47.5). These are the figures
   of this processor, with AppleClang. The processors of the continuous
   integration that run the FPU intervals (32-bit ARM, Ubuntu with GCC and
@@ -1616,8 +1615,7 @@ tell the bounds by their bits.
 \cindex{optimization!interprocedural}%
 
 Compiled with it (\option{-flto}), the basic operations of GAOL are 1.1 to
-1.5 times faster where the code using GAOL is compiled with it too: an
-addition of intervals took 0.73~ns rather than 1.07 with Clang 21.1,
+1.5 times faster where the code using GAOL is compiled with it too: an addition of intervals took 0.73~ns rather than 1.07 with Clang 21.1 (in an earlier session than Table~\ref{tab:install-worth-x86}, whose default build took 1.07, 2.04 and 1.80~ns for the first three columns then),
 $x \times y$ 1.71 rather than 2.04, \code{sqr(x)} 1.27 rather than 1.80. The
 elementary functions are no faster, and a little slower: \code{cos} took
 39.2~ns rather than 36.6, \code{sin} 32.6 rather than 31.3, \code{log} 22.7

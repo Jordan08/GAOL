@@ -1063,7 +1063,7 @@ each bound is rounded once. A corner whose powers leave
 $[2^{-968}, 2^{960}]$ is computed alone, scaled by powers of two: GAOL~4's
 $1/x^n$ overflowed before the inversion, and \code{pow([10], -400)} was
 $[0, 5.6 \cdot 10^{-309}]$ rather than $[0, 2^{-1074}]$. \code{pow(x, 3)}
-takes 5.1 ns against 9.1 with GAOL 4.2.3 (Intel i7-1185G7, Clang 21). The
+takes 5.8 ns against 9.7 with GAOL 4.2.3 (Intel i7-1185G7, Clang 21). The
 exponent 2 is \code{sqr(x)} in every form, the squares of the bounds rounded
 outward: in the earlier versions of GAOL v5, with the exact products,
 \code{pow(x, 2)} took 5.3 ns with the NEON intervals and 5.2 with the FPU intervals, and it takes 1.6 and 1.9 now (Apple

@@ -105,16 +105,16 @@ is not upward already, as it is by default: so the rule is that of
 `GAOL_PRESERVE_ROUNDING`. The threshold was a median gain of 5 % over `+ - * /
 sqr sqrt` and `pown`. The medians of the other rows are in the output of the script.
 
-The i7 has AVX-512 units of half width. The same four builds were measured again on 12 November 2026 (commit `2b5e4f9`, nine runs of each, the two builds in turn) on an Intel Xeon of a cloud virtual machine (4 vCPU, family 6 model 173, a Granite Rapids as far as the model tells, whose full-width units are deduced from the model and were not tested; the machine is shared with other tenants, and the spreads of its runs go from 1.02 to 2.7), with GCC 13.3 and Clang 18.1, and on the i7 with Clang 18.1, for the same compiler on both. The medians of the ratio, as above, over the seven operations and over the ten long lines:
+The i7 has AVX-512 units of half width. The same four builds were measured again on 12 November 2026 (commit `2b5e4f9`, nine runs of each, the two builds in turn) on an Intel Xeon of a cloud virtual machine (4 vCPU, family 6 model 173, a Granite Rapids as far as the model tells, whose full-width units are deduced from the model and were not tested; the machine is shared with other tenants, and the spreads of its runs go from 1.02 to 2.7), with GCC 13.3 and Clang 18.1.3, and on the i7 with Clang 18.1.8, the same compiler family on both. The medians of the ratio, as above, over the seven operations and over the ten long lines:
 
 | Processor, compiler | Not preserved: 7 operations | 10 lines | Preserved: 7 operations | 10 lines |
 |---|---:|---:|---:|---:|
 | i7-1185G7, Clang 21.1.8 (7 November) | 0.83 | 0.58 | 2.87 | 3.19 |
-| i7-1185G7, Clang 18.1.3 | 0.80 | 0.57 | 2.96 | 3.20 |
-| Xeon of a virtual machine, Clang 18.1.3 | 0.73 | 0.61 | 3.89 | 4.44 |
+| i7-1185G7, Clang 18.1.8 | 0.80 | 0.58 | 2.96 | 3.20 |
+| Xeon of a virtual machine, Clang 18.1.3 | 0.73 | 0.62 | 3.89 | 4.44 |
 | Xeon of a virtual machine, GCC 13.3.0 | 0.69 | 0.76 | 4.21 | 5.23 |
 
-A processor with full-width units was expected to lose less without `GAOL_PRESERVE_ROUNDING`; it does not (0.69 to 0.73 for the operations, against 0.80 for the i7 with the same Clang 18, and 0.61 and 0.76 for the lines, against 0.57), and with the option the path gains more there (3.9 and 4.2 for the operations, against 3.0). The path is slower than SSE2 on `+`, `-`, `*` and `/` without the option in the four series (ratios of 0.52 to 0.85), and faster with it in the four, by 2.2 to 9.2 times; of the seven operations, `sqrt` alone gains without the option, in three series of four (1.25 to 1.81; 0.78 with Clang 18 on the Xeon). The rule stands on both processors, and does not rely on the width of the units.
+A processor with full-width units was expected to lose less without `GAOL_PRESERVE_ROUNDING`; that is not borne out on the operations (0.69 to 0.73, against 0.80 for the i7 with Clang 18) and only slightly on the long lines (0.62 and 0.76, against 0.58), and with the option the path gains more there (3.9 and 4.2 for the operations, against 3.0). The path is slower than SSE2 on `+`, `-`, `*` and `/` without the option in the four series (ratios of 0.52 to 0.85), and faster with it in the four, by 2.2 to 9.2 times; of the seven operations, `sqrt` alone gains without the option, in three series of four (1.25 to 1.81; 0.78 with Clang 18 on the Xeon). The rule stands on both processors, and does not rely on the width of the units.
 
 CORE-MATH (`3rd/math-core`; GAOL calls 38 of its binary64 functions) is scalar,
 with no vector variant; its functions are called once per bound. `GAOL_FMA` pays
@@ -162,8 +162,7 @@ to 3 points, and the table gives the second.
   saves 0.8 % (03), 1.4 % (09), 4.7 % (06) and 8.3 % (16).
   `GAOL_PRESERVE_ROUNDING` on the M2, for a program that computes to nearest,
   makes 03 and 16 about 16 times slower, 06 eight times, 09 five times. On x86
-  with the AVX-512 path the ratio is not measured for these programs; the
-  operations of the benchmark take 0.6 to 1.5 times as long
+  with the AVX-512 path the ratio is not measured for these programs; the operations of the benchmark take 0.6 to 2.0 times as long
   ([performance](compare/performance.md)).
 - The text is 41 to 69 % of the five demonstration programs that print (01,
   02, 05, 12, 15; 28 to 31 % of 14 and 11 % of 03), at 0.2 to 0.45 µs per bound
@@ -293,7 +292,7 @@ the T-Head C910 the draft 0.7.1.
 |---|---|---|---|
 | SSE4.1, AVX, AVX2 (a 256-bit path) | no path | A batch of two intervals per register needs an interface of arrays, and nothing makes one interval faster; `ROUNDPD` rounds to an integer, not as an operation | An interface of boxes or arrays of intervals, and a program bound by the computation and not by the memory |
 | FMA3 | in use (`GAOL_FMA`) | It pays in the elementary functions and the integer powers, none in the basic operations | The exact transformations that would replace the directed rounding are another study (the rounding direction left to nearest) |
-| AVX-512 path | keep; the division and the square root are scalar instructions with the embedded rounding, two for the two bounds | On Intel the 512-bit division takes 16 cycles of throughput against 4 for the 128-bit one (uops.info), and Zen 5 has full-width units; the square root of the path takes two scalar embedded roots (3.75 ns against 6.30 with SSE2), `x / y` two scalar divisions, and so do `x / d` of a double (2.8 ns against 3.7 for d > 0, 3.0 to 3.3 for d < 0, on an Intel i7-1185G7 with Clang 21), the divisors with a zero (5.5 ns) and the negative integer powers (`pow(x, -3)` 9.1 ns), which the change left within the noise | A processor where the two scalar divisions lose to the 512-bit one (not seen on the i7-1185G7; no other processor was measured, Zen 5 included) |
+| AVX-512 path | keep; the division and the square root are scalar instructions with the embedded rounding, two for the two bounds | On Intel the 512-bit division takes 16 cycles of throughput against 4 for the 128-bit one (uops.info), and Zen 5 has full-width units; the square root of the path takes two scalar embedded roots (4.36 ns against 7.35 with SSE2), `x / y` two scalar divisions, and so do `x / d` of a double (2.8 ns against 3.7 for d > 0, 3.0 to 3.3 for d < 0, on an Intel i7-1185G7 with Clang 21), the divisors with a zero (5.5 ns) and the negative integer powers (`pow(x, -3)` 9.1 ns), which the change left within the noise | A processor where the two scalar divisions lose to the 512-bit one (not seen on the i7-1185G7; no other processor was measured for it, Zen 5 included, the Xeon of the rule above having run the path as it is) |
 | AVX-512VL, AVX10.2 at 128 and 256 bits | nothing to build | No embedded rounding at these widths | A new revision of the Intel manual restoring it (revision 3.0 of AVX10.2 had it) |
 | NEON (arm64) | keep | Done: 1.3 to 2.5 times faster than the FPU intervals on an M2, 3.0 times on a line of 13 operations | Hardware with FPCR.AH set (see below) |
 | SVE, SVE2, SME | no path | The same FPCR, and 128-bit vectors on most of the processors | An interface of arrays, on a 256 or 512-bit implementation; a static rounding in the instruction set |

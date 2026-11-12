@@ -166,8 +166,7 @@ Solaris Studio's `x**3` 162 ns; `sqr` takes GAOL V5.0.0 1.9 ns, against 9.9
 for filib++, 18 for Boost.Interval, 23 for PROFIL/BIAS and 63 for Solaris
 Studio.
 
-**Elementary functions.** PROFIL/BIAS is the fastest on the square root
-(4.5 ns), exp (12 ns), log (13 ns) and the real power `pow(x, y)` (37 ns),
+**Elementary functions.** PROFIL/BIAS is the fastest on the square root (4.5 ns, against 4.4 for GAOL V5.0.0 with the direction preserved), exp (12 ns), log (13 ns) and the real power `pow(x, y)` (37 ns),
 which it computes from the libm of the system, moved outward, without correct
 rounding: its bounds are among the widest (below), and its sin and cos,
 computed by its own argument reduction, are the slowest after libieeep1788's,

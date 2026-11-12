@@ -254,9 +254,7 @@ again on 12 November 2026 (commit \code{2b5e4f9}, nine runs of each, the two
 builds in turn) on an Intel Xeon of a cloud virtual machine (4 vCPU, family 6
 model 173, a Granite Rapids as far as the model tells, whose full-width units
 are deduced from the model and were not tested; the machine is shared with
-other tenants, and the spreads of its runs go from 1.02 to 2.7), with GCC
-13.3 and Clang 18.1, and on the i7 with Clang 18.1, for the same compiler on
-both. Table~\ref{tab:computing-avx512-xeon} gives the medians of the ratio,
+other tenants, and the spreads of its runs go from 1.02 to 2.7), with GCC 13.3 and Clang 18.1.3, and on the i7 with Clang 18.1.8, the same compiler family on both. Table~\ref{tab:computing-avx512-xeon} gives the medians of the ratio,
 as above, over the seven operations and over the ten long lines.
 
 \begin{table}[htbp]
@@ -269,8 +267,8 @@ as above, over the seven operations and over the ten long lines.
 \textbf{Processor, compiler} & 7 operations & 10 lines & 7 operations & 10 lines \\
 \hline
 i7-1185G7, Clang 21.1.8 & 0.83 & 0.58 & 2.87 & 3.19 \\
-i7-1185G7, Clang 18.1.3 & 0.80 & 0.57 & 2.96 & 3.20 \\
-Xeon (virtual machine), Clang 18.1.3 & 0.73 & 0.61 & 3.89 & 4.44 \\
+i7-1185G7, Clang 18.1.8 & 0.80 & 0.58 & 2.96 & 3.20 \\
+Xeon (virtual machine), Clang 18.1.3 & 0.73 & 0.62 & 3.89 & 4.44 \\
 Xeon (virtual machine), GCC 13.3.0 & 0.69 & 0.76 & 4.21 & 5.23 \\
 \hline
 \end{tabular}
@@ -278,10 +276,7 @@ Xeon (virtual machine), GCC 13.3.0 & 0.69 & 0.76 & 4.21 & 5.23 \\
 \end{table}
 
 A processor with full-width units was expected to lose less without
-\option{GAOL\_PRESERVE\_ROUNDING}; it does not (0.69 to 0.73 for the
-operations, against 0.80 for the i7 with the same Clang 18, and 0.61 and 0.76
-for the lines, against 0.57), and with the option the path gains more there
-(3.9 and 4.2 for the operations, against 3.0). The path is slower than SSE2
+\option{GAOL\_PRESERVE\_ROUNDING}; that is not borne out on the operations (0.69 to 0.73, against 0.80 for the i7 with Clang 18) and only slightly on the long lines (0.62 and 0.76, against 0.58), and with the option the path gains more there (3.9 and 4.2 for the operations, against 3.0). The path is slower than SSE2
 on \code{+}, \code{-}, \code{*} and \code{/} without the option in the four
 series (ratios of 0.52 to 0.85), and faster with it in the four, by 2.2 to
 9.2 times; of the seven operations, \code{sqrt} alone gains without the
@@ -363,7 +358,7 @@ M2: two writes of FPCR).
 (09), 4.7\,\% (06) and 8.3\,\% (16). \option{GAOL\_PRESERVE\_ROUNDING} on the
 M2, for a program that computes to nearest, makes 03 and 16 about 16 times
 slower, 06 eight times, 09 five times. On x86 with the AVX-512 path the
-ratio is not measured for these programs; the operations of the benchmark of Section~\ref{sec:computing-performance} take 0.6 to 1.5 times as long (Table~\ref{tab:computing-times}).
+ratio is not measured for these programs; the operations of the benchmark of Section~\ref{sec:computing-performance} take 0.6 to 2.0 times as long (Table~\ref{tab:computing-times}).
 \item[$\bullet$] \textbf{The text.} The text is 41 to 69\,\% of the five
 demonstration programs that print (01, 02, 05, 12, 15; 28 to 31\,\% of 14 and
 11\,\% of 03), at 0.2 to 0.45 $\mu$s per bound written. Among the solvers it
@@ -743,7 +738,7 @@ under its own, \code{gaol}, in all but 8, all from its hybrid \code{pow},
 which takes \code{pown} for integer exponents, a negative base included. Its
 elementary functions, CORE-MATH's, give the tightest bounds; its \code{exp}
 and \code{log} are faster than filib++'s, its \code{sin} and \code{cos} as fast (42 and 41 ns against 42 and 43).
-\item[$\bullet$] \textbf{filib++} is as fast as GAOL on \code{sin} and 5\,\% slower on \code{cos}, but 6.3 times as slow on $\times$, 4.1 times on $\div$ and 2.5 times on $+$ and $-$, and its bounds
+\item[$\bullet$] \textbf{filib++} is as fast as GAOL on \code{sin} and 6\,\% slower on \code{cos}, but 6.3 times as slow on $\times$, 4.1 times on $\div$ and 2.5 times on $+$ and $-$, and its bounds
 of elementary functions and real powers are up to 36 doubles wider than the
 tightest. Its extended mode gives other results than IEEE 1788 wherever an
 infinity or a division by zero is involved, much as Solaris Studio:
@@ -992,8 +987,7 @@ filib++, 18 for Boost.Interval, 23 for PROFIL/BIAS and 63 for Solaris
 Studio.
 
 \medskip
-On the elementary functions, PROFIL/BIAS is the fastest on the square root
-(4.5 ns), \code{exp} (12 ns), \code{log} (13 ns) and the real power
+On the elementary functions, PROFIL/BIAS is the fastest on the square root (4.5 ns, against 4.4 for GAOL v5 with the direction preserved), \code{exp} (12 ns), \code{log} (13 ns) and the real power
 \code{pow(x, y)} (37 ns), which it computes from the libm of the system,
 moved outward, without correct rounding: its bounds are among the widest,
 and its \code{sin} and \code{cos}, computed by its own argument reduction,
@@ -1526,14 +1520,13 @@ AVX-512 path & keep; the division and the square root are scalar
 instructions with the embedded rounding, two for the two bounds & On Intel
 the 512-bit division takes 16 cycles of throughput against 4 for the
 128-bit one (uops.info), and Zen 5 has full-width units; the square root of
-the path takes two scalar embedded roots (3.75 ns against 6.30 with SSE2),
+the path takes two scalar embedded roots (4.36 ns against 7.35 with SSE2),
 \code{x / y} two scalar divisions, and so do \code{x / d} of a double
 (2.8 ns against 3.7 for $d > 0$, 3.0 to 3.3 for $d < 0$, on an Intel
 i7-1185G7 with Clang 21), the divisors with a zero (5.5 ns) and the negative
 integer powers (\code{pow(x, -3)} 9.1 ns), which the two scalar divisions, in place of the 512-bit one, left within the
 noise & A processor where the two scalar divisions lose to the 512-bit one
-(not seen on the i7-1185G7; no other processor was measured, Zen 5
-included) \\
+(not seen on the i7-1185G7; no other processor was measured for it, Zen 5 included, the Xeon of Section~\ref{sec:computing-avx512-rule} having run the path as it is) \\
 \hline
 AVX-512VL, AVX10.2 at 128 and 256 bits & nothing to build & No embedded
 rounding at these widths & A new revision of the Intel manual restoring it
