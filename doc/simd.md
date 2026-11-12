@@ -103,11 +103,18 @@ operation gains, the ten lines by 1.91 to 4.64, median 3.19). The path pays wher
 the control register twice, and costs where it writes it only if the direction
 is not upward already, as it is by default: so the rule is that of
 `GAOL_PRESERVE_ROUNDING`. The threshold was a median gain of 5 % over `+ - * /
-sqr sqrt` and `pown`. One processor was measured, and not one with full-width
-AVX-512 units: such a processor is expected to lose less without
-`GAOL_PRESERVE_ROUNDING` (see [What was not measured](#what-was-not-measured)),
-which the rule does not rely on. The medians of the other rows are in the output
-of the script.
+sqr sqrt` and `pown`. The medians of the other rows are in the output of the script.
+
+The i7 has AVX-512 units of half width. The same four builds were measured again on 12 November 2026 (commit `2b5e4f9`, nine runs of each, the two builds in turn) on an Intel Xeon of a cloud virtual machine (4 vCPU, family 6 model 173, a Granite Rapids as far as the model tells, whose full-width units are deduced from the model and were not tested; the machine is shared with other tenants, and the spreads of its runs go from 1.02 to 2.7), with GCC 13.3 and Clang 18.1, and on the i7 with Clang 18.1, for the same compiler on both. The medians of the ratio, as above, over the seven operations and over the ten long lines:
+
+| Processor, compiler | Not preserved: 7 operations | 10 lines | Preserved: 7 operations | 10 lines |
+|---|---:|---:|---:|---:|
+| i7-1185G7, Clang 21.1.8 (7 November) | 0.83 | 0.58 | 2.87 | 3.19 |
+| i7-1185G7, Clang 18.1.3 | 0.80 | 0.57 | 2.96 | 3.20 |
+| Xeon of a virtual machine, Clang 18.1.3 | 0.73 | 0.61 | 3.89 | 4.44 |
+| Xeon of a virtual machine, GCC 13.3.0 | 0.69 | 0.76 | 4.21 | 5.23 |
+
+A processor with full-width units was expected to lose less without `GAOL_PRESERVE_ROUNDING`; it does not (0.69 to 0.73 for the operations, against 0.80 for the i7 with the same Clang 18, and 0.61 and 0.76 for the lines, against 0.57), and with the option the path gains more there (3.9 and 4.2 for the operations, against 3.0). The path is slower than SSE2 on `+`, `-`, `*` and `/` without the option in the four series (ratios of 0.52 to 0.85), and faster with it in the four, by 2.2 to 9.2 times; of the seven operations, `sqrt` alone gains without the option, in three series of four (1.25 to 1.81; 0.78 with Clang 18 on the Xeon). The rule stands on both processors, and does not rely on the width of the units.
 
 CORE-MATH (`3rd/math-core`; GAOL calls 38 of its binary64 functions) is scalar,
 with no vector variant; its functions are called once per bound. `GAOL_FMA` pays
@@ -454,9 +461,7 @@ Before a path is added (the steps the issue lists, with the rules of GAOL):
 
 ## What was not measured
 
-- Nothing ran on x86 (the SSE2 and AVX-512 paths) but an Intel i7-1185G7, for
-  the times of [performance](compare/performance.md) and the divisions of the
-  [Verdicts](#verdicts); no path was timed on RISC-V, POWER, s390x, LoongArch,
+- Nothing ran on x86 (the SSE2 and AVX-512 paths) but an Intel i7-1185G7, for the times of [performance](compare/performance.md) and the divisions of the [Verdicts](#verdicts), and, for the rule of the AVX-512 path alone, an Intel Xeon of a virtual machine ([above](#when-the-build-takes-the-avx-512-path)); no path was timed on RISC-V, POWER, s390x, LoongArch,
   MIPS or WebAssembly: the figures given for these come from uops.info or the
   references, and every compilation of other
   targets was made on Compiler Explorer, without running the code. The calls

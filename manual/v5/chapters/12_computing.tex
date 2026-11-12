@@ -247,10 +247,47 @@ the others are in the output of the script); their median ratio is 0.58; only
 control register twice, and costs where the register is written only if the
 direction is not upward already, as it is by default: the rule is therefore
 that of \option{GAOL\_PRESERVE\_ROUNDING}. The threshold was a median gain of
-5\,\% over \code{+ - * / sqr sqrt} and \code{pown}. One processor was
-measured, and not one with full-width AVX-512 units: such a processor is
-expected to lose less without \option{GAOL\_PRESERVE\_ROUNDING}, which the
-rule does not rely on.
+5\,\% over \code{+ - * / sqr sqrt} and \code{pown}. The medians of the other rows are in the output of the script.
+
+The i7 has AVX-512 units of half width. The same four builds were measured
+again on 12 November 2026 (commit \code{2b5e4f9}, nine runs of each, the two
+builds in turn) on an Intel Xeon of a cloud virtual machine (4 vCPU, family 6
+model 173, a Granite Rapids as far as the model tells, whose full-width units
+are deduced from the model and were not tested; the machine is shared with
+other tenants, and the spreads of its runs go from 1.02 to 2.7), with GCC
+13.3 and Clang 18.1, and on the i7 with Clang 18.1, for the same compiler on
+both. Table~\ref{tab:computing-avx512-xeon} gives the medians of the ratio,
+as above, over the seven operations and over the ten long lines.
+
+\begin{table}[htbp]
+\centering\footnotesize
+\caption[The AVX-512 path on a second processor]{The AVX-512 path on a second processor: the median of the ratio of the time with SSE2 to the time with the path (above 1, the path is faster), over the seven operations and over the ten long lines; 12 November 2026, except the first line (7 November).} \label{tab:computing-avx512-xeon}
+\begin{tabular}{|l|r|r|r|r|}
+\hline
+& \multicolumn{2}{c|}{\textbf{Not preserved}}
+& \multicolumn{2}{c|}{\textbf{Preserved}} \\
+\textbf{Processor, compiler} & 7 operations & 10 lines & 7 operations & 10 lines \\
+\hline
+i7-1185G7, Clang 21.1.8 & 0.83 & 0.58 & 2.87 & 3.19 \\
+i7-1185G7, Clang 18.1.3 & 0.80 & 0.57 & 2.96 & 3.20 \\
+Xeon (virtual machine), Clang 18.1.3 & 0.73 & 0.61 & 3.89 & 4.44 \\
+Xeon (virtual machine), GCC 13.3.0 & 0.69 & 0.76 & 4.21 & 5.23 \\
+\hline
+\end{tabular}
+
+\end{table}
+
+A processor with full-width units was expected to lose less without
+\option{GAOL\_PRESERVE\_ROUNDING}; it does not (0.69 to 0.73 for the
+operations, against 0.80 for the i7 with the same Clang 18, and 0.61 and 0.76
+for the lines, against 0.57), and with the option the path gains more there
+(3.9 and 4.2 for the operations, against 3.0). The path is slower than SSE2
+on \code{+}, \code{-}, \code{*} and \code{/} without the option in the four
+series (ratios of 0.52 to 0.85), and faster with it in the four, by 2.2 to
+9.2 times; of the seven operations, \code{sqrt} alone gains without the
+option, in three series of four (1.25 to 1.81; 0.78 with Clang 18 on the
+Xeon). The rule stands on both processors, and does not rely on the width of
+the units.
 
 \subsection{CORE-MATH is scalar}
 \cindex{CORE-MATH!scalar}\cindex{fused multiply-add}\findex{GAOL\_FMA}%
@@ -1697,9 +1734,7 @@ measured: \cmd{perf} is not allowed on the runners and the machine).
 
 \subsection{What was not measured}
 
-No measurement of this chapter on x86 (the SSE2 and AVX-512 paths) was made on another processor than an Intel i7-1185G7, for
-the times of Section~\ref{sec:computing-performance} and the divisions of
-Table~\ref{tab:computing-verdicts}; no path was timed on RISC-V, POWER, s390x,
+No measurement of this chapter on x86 (the SSE2 and AVX-512 paths) was made on another processor than an Intel i7-1185G7, for the times of Section~\ref{sec:computing-performance} and the divisions of Table~\ref{tab:computing-verdicts}, but for the rule of the AVX-512 path (Section~\ref{sec:computing-avx512-rule}), measured on an Intel Xeon of a virtual machine too; no path was timed on RISC-V, POWER, s390x,
 LoongArch, MIPS or WebAssembly (the tests of GAOL run on POWER, s390x and
 RISC-V under QEMU in the continuous integration, \pxref{sec:ci}): the figures
 given for these come from uops.info or the references, and the compilations made to study their instruction sets were made on
