@@ -360,7 +360,7 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
     `modulo_k_pi()` twice; `nth_root(x, q)` for an order beyond the unsigned
     ints (`long long`, `unsigned long long`) two or three times. They compute on
     doubles, or with the bodies of the operations they called (`pown_upward()`,
-    `nth_root_upward()`, `interval::inverse_upward()`), after their one check,
+    `nth_root_upward()`, `upward_access::inverse()`), after their one check,
     and give the same bounds, bit for bit, in the SSE2 and FPU builds and with
     `GAOL_PRESERVE_ROUNDING`, but for the quotients of `modulo_k_pi()` (below).
     `sqrt_rel()` no longer sets the direction downward then upward again, two
@@ -521,7 +521,7 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
     intervals build their interval from these doubles, which the compiler
     folds, rather than copy the static intervals `interval::cst_one`,
     `cst_pi`..., which are gone.
-  - The masks of the SSE2 intervals (`gaol/core/gaol_interval_sse.cpp`) are
+  - The masks of the SSE2 intervals (`gaol/core/gaol_interval_sse_impl.h`) are
     written as vectors, which the compilers of the SSE2 intervals put in
     read-only memory (GCC and Clang) or in initialized data (Visual C++),
     rather than computed with `_mm_set_pd()` and `_mm_cmpeq_pd()`.
@@ -835,12 +835,12 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   for the AVX-512 registers: GCC bug 54412). They set no rounding direction,
   the program keeping its own, and raise no exception flag, the embedded
   rounding suppressing them. The bounds are those of the SSE2 intervals bit for
-  bit, but for the sign of a zero bound of `x * d` and `x *= d` where the zero
-  bounds of the interval differ in sign: `[+0, -0]` times a double is `[+0, -0]`
-  with the SSE2 intervals and `[-0, +0]` with this path, +0 and -0 being the
-  same number; every other result of the operations of intervals and with a
-  double, compared bit for bit over the intervals of two bounds among 0 of
-  either sign, ±1, ±2.5, ±3, ±1e-310, ±1e300 and ±∞, is the same in the two
+  bit, but for the sign of a zero bound of `x * d`, `d * x` and `x *= d` where
+  the zero bounds of the interval differ in sign: `[+0, -0]` times a double is
+  `[+0, -0]` with the SSE2 intervals and `[-0, +0]` with this path, +0 and -0
+  being the same number; every other result of the operations of intervals and
+  with a double, compared bit for bit over the intervals of two bounds among 0
+  of either sign, ±1, ±2.5, ±3, ±1e-310, ±1e300 and ±∞, is the same in the two
   paths. The three builds take the path where `GAOL_PRESERVE_ROUNDING` is on and
   the machine building runs the instructions (the figures are in the bullet on
   the three builds below); the library then needs a processor with them, and
@@ -949,8 +949,9 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   Intel processors, about 100 ns on an i7-1185G7. `sqrt()` took 124 ns rather
   than 7.8, and `nth_root(x, 2)` and `nth_root(x, -2)` 113 and 118 ns rather
   than 6.8 and 10.2 (GCC 15.2, i7-1185G7); Clang folds the conversion. The
-  constant is a literal now (`gaol/core/gaol_interval_core.cpp`), and the
-  bounds are the same, bit for bit. The runners of the continuous integration,
+  constant is a literal now (`double_denorm_min` of
+  `gaol/core/gaol_interval_internal.h`), and the bounds are the same, bit for
+  bit. The runners of the continuous integration,
   AMD processors and 64-bit ARM, show no difference.
 - **Numbers are read exactly** (`gaol/parser/gaol_interval_lexer.lpp`). GAOL read them
   with `strtod()` rounding downward and upward, and relied on the inexact flag.
@@ -1569,6 +1570,43 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   `interior(Entire, Entire)` and `[2, +oo]` interior to `[1, +oo]` were
   false, as `set_le()` of the empty set in the empty set.
   `check/relations.cpp` wanted the former results.
+- **The relations between intervals compare the bounds first, and raise no
+  invalid-operation exception with GCC 14**: `certainly_le()`,
+  `certainly_leq()`, `certainly_ge()` and `certainly_geq()`, so `x < y`,
+  `x <= y`, `x > y` and `x >= y`, are four tests joined by `||`, each marked
+  with the answer the compiler is to believe usual (the bounds in order,
+  probable; an empty operand, and equal bounds, improbable: `GAOL_LIKELY()` is
+  new, beside `GAOL_UNLIKELY()`), and the comparison of the bounds comes
+  first, so that "true" costs one comparison rather than three. The answers
+  are the same; the order of the tests changes what a processor makes of
+  them. `x <= y` of `gaol_performance` takes 1.04 ns where it took 1.31 with
+  GCC, and 0.68 where it took 1.00 with Clang, on the Ubuntu 24.04 x86-64
+  runners; 1.04 where it took 1.56 on a Neoverse N2 with Clang, and 0.93 where
+  it took 1.06 on an Apple M2. An empty operand takes the long path: on an
+  Intel i7-1185G7, an array whose first operands are all empty takes +0.2 to
+  +0.3 ns more per relation (GCC 15.2 and Clang 21), and one whose second
+  operands are all empty +0.2 ns more with Clang and the same time with GCC.
+  Two rows of the continuous integration lose, Clang x86-64 with the FPU
+  intervals (1.11 to 1.31 ns) and clang-cl x64 (1.33 to 1.52), probably
+  because of the placement of the x86 code, which was not shown.
+  - **Equal bounds are found by `quiet_less_equal(r, l)`, not by `r == l`**
+    (`bound_tied_less()` and `bound_tied_less_equal()` of `gaol/gaol_port.h`;
+    `bound_less()` and `bound_less_equal()` keep `x == y`). With a constant
+    other than zero on either side of a `<=` or a `>=` (`x >= 1.5`,
+    `x <= 2.5`), GCC 14 (x86-64, AArch64,
+    RISC-V) merged `quiet_less(r, l) || r == l` into one signaling `r <= l`,
+    which raised `FE_INVALID` on the NaN bounds of an empty operand as soon as
+    the compiler computed it before the tests of the empty sets (a loop is
+    enough). `tests/rounding_direction.cpp` has a loop more for it.
+  - **`GAOL_RELATION_BOUNDS_FIRST`** is 1, except on RISC-V, where it is 0 and
+    the relations test the empty sets before they compare the bounds: GCC 14
+    for RISC-V compiled that comparison, on the NaN bounds of an empty
+    operand, into a signaling one in some loops. It is a setting of the
+    developers (`-DGAOL_RELATION_BOUNDS_FIRST=0` or `=1` among the flags, see
+    [Building GAOL](building.md#the-settings-of-the-developers)), defined the
+    same in every file that includes GAOL, `gaol/gaol_port.h` being installed.
+    A job of `containers.yml` (Debian 13, amd64) builds with `=0`, which gives
+    the test of the exceptions teeth on amd64.
 - **The possibly relations, `certainly_eq()`, `certainly_neq()`, `==` and
   `!=` are removed**, and so is the option that chose what the relation
   symbols mean (`--enable-relations`, `-Denable-relations`), gone from
@@ -1927,9 +1965,9 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   rounded downward), and those of ln 2 are those of `log(interval(2.0))`. The
   library of GAOL v5 uses none of `two_pi`, `pi`, `half_pi`, `ln2_dn`, `ln2_up`
   and `two_power_51`, which are removed; `two_power_52` is a constant of
-  `gaol/core/gaol_interval_core.cpp`; the four doubles around π and π/2 that the
-  library does use are `gaol_pi_dn`, `gaol_pi_up`, `gaol_half_pi_dn` and
-  `gaol_half_pi_up` (see the namespaces above).
+  `gaol/core/gaol_interval_relational.cpp`; the four doubles around π and π/2
+  that the library does use are `gaol_pi_dn`, `gaol_pi_up`, `gaol_half_pi_dn`
+  and `gaol_half_pi_up` (see the namespaces above).
 - **The headers GAOL installs are the ones a program includes.** The three
   builds install the same list: `gaol/gaol`, `gaol/gaol.h`, the headers they
   include, and `gaol/parser/gaol_expression.h` and
@@ -1960,20 +1998,35 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   installed in `include/gaol/core/`.** GAOL 4 declared the class `interval`, its
   functions and the namespace `gaol` in `gaol/gaol_interval.h`, defined them in
   `gaol/gaol_interval.cpp`, and installed `gaol_interval_fpu.h` and
-  `gaol_interval_sse.h` beside it in `include/gaol/`. The class, the functions
-  and the helpers of `gaol_core` are declared in
-  `gaol/core/gaol_interval_core.h` and defined in
-  `gaol/core/gaol_interval_core.cpp` now, which includes the code of the SSE2,
-  NEON and FPU intervals; `gaol/gaol_interval.h` and `gaol/gaol_interval.cpp`
+  `gaol_interval_sse.h` beside it in `include/gaol/`. The class and the
+  functions of `gaol_core` are declared in `gaol/core/gaol_interval_core.h`
+  now, which includes `gaol/core/gaol_interval_detail.h` for the helpers of
+  `gaol_detail` that read no interval, and defined in the sources of
+  `gaol/core/`, one for each domain: `gaol_interval_core.cpp` holds the
+  operations and includes the code of the SSE2, NEON and FPU intervals
+  (`gaol_interval_{sse,neon,fpu}_impl.h`, and `gaol_interval_avx512_impl.h`
+  for the AVX-512 path); `gaol_interval_pow.cpp`, `gaol_interval_exp_log.cpp`,
+  `gaol_interval_trig.cpp`, `gaol_interval_hyperbolic.cpp`,
+  `gaol_interval_relational.cpp` and `gaol_interval_io.cpp` hold the powers
+  and the roots, the exponentials and the logarithms, the trigonometric
+  functions, the hyperbolic ones, the relational functions (`div_rel()`
+  among the `*_rel()`) and the input and the output. They share
+  `gaol_interval_internal.h`, and the kernels of each kind of intervals that
+  more than one of them takes inline, `gaol_interval_{sse,neon,fpu}_kernels.h`;
+  neither is installed. `x + y`, `x - y`, `x * y` and `x / y` are defined in
+  `gaol_interval_sse.h`, `gaol_interval_neon.h` and `gaol_interval_fpu.h`,
+  one for each kind of intervals, and `operator-()` of the SSE2 intervals is
+  inline there too, as for NEON and the FPU, so that the library no longer
+  exports its symbol. `gaol/gaol_interval.h` and `gaol/gaol_interval.cpp`
   hold the namespace `gaol` alone (its using-declarations, its `pow` and
   `textToInterval()`), as `gaol/gaol_ieee1788.h` and `gaol/gaol_ieee1788.cpp`
   hold `gaol_ieee1788`. The three builds install `gaol_interval_core.h`,
-  `gaol_interval_fpu.h`, `gaol_interval_neon.h` and `gaol_interval_sse.h` in
-  `include/gaol/core/`, as their sources are in `gaol/core/`, and no header is
-  left at the old place. `gaol/gaol_interval.h` stays in `include/gaol/` and
-  includes `gaol/core/gaol_interval_core.h`, so that a program that includes it,
-  or `gaol/gaol`, is not touched by the move (see [Using
-  GAOL](using.md#the-headers)).
+  `gaol_interval_detail.h`, `gaol_interval_fpu.h`, `gaol_interval_neon.h` and
+  `gaol_interval_sse.h` in `include/gaol/core/`, as their sources are in
+  `gaol/core/`, and no header is left at the old place. `gaol/gaol_interval.h`
+  stays in `include/gaol/` and includes `gaol/core/gaol_interval_core.h`, so
+  that a program that includes it, or `gaol/gaol`, is not touched by the move
+  (see [Using GAOL](using.md#the-headers)).
 - **The timing of GAOL 4 is gone: `gaol/gaol_profile.h` and
   `gaol/gaol_profile.cpp`.** `gaol/gaol` no longer includes the header, and
   the three builds neither install it nor compile the source. The class
@@ -2158,7 +2211,12 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
     of a power of expressions to an `int`. An order beyond the unsigned ints is
     enclosed through `pow` with the exponent 1/q, x<sup>1/q</sup> being within
     2<sup>−21</sup> of 1 for every double x > 0 there; a negative order of an
-    expression within the ints is 1/`nth_root(e, |n|)`.
+    expression within the ints is 1/`nth_root(e, |n|)`. These functions are
+    overloaded for every integer type, so that the address of
+    `gaol_ieee1788::rootn` or of `gaol_ieee1788::pown` needs a cast or a typed
+    pointer, as that of `textToInterval`: `auto f = &gaol_ieee1788::rootn;`
+    does not compile, and `interval (*f)(const interval&, int) =
+    &gaol_ieee1788::rootn;` does.
   - **`pownRev(c, x, p)` for p ≤ 0**, the last reverse operation of the standard
     GAOL lacked (Table 10.1), is `nth_root_rel(J, p, I)` of `gaol_core`, which
     takes any integer p now. For p = 0 it is `x` where 1 is in `c` and the empty
@@ -2387,23 +2445,41 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   and `enable-float-intervals` of meson, which compiled them for a while,
   are gone. A developer working on them defines the macro in
   `gaol/gaol_config.h`: `gaol/core/gaol_interval_core.cpp` then includes their
-  sources, `gaol/float/gaol_intervalf.cpp` and `gaol/float/gaol_interval2f.cpp`,
-  as it includes those of the SSE2 and FPU intervals. Their headers, in
+  sources, `gaol/float/gaol_intervalf_impl.h` and
+  `gaol/float/gaol_interval2f_impl.h`, as it includes those of the SSE2, NEON
+  and FPU intervals. Their headers, in
   `gaol/float/` too with `gaol_generator_mul_i2f.py`, the script that writes the
   cases of the product of `interval2f`, are not installed, `gaol/gaol` does not
   include them, and their tests, `tests/intervalf.cpp` and
   `tests/interval2f.cpp`, are skipped.
-- **The archive of the sources and the packages are made by CMake**
-  (CPack, see [Building GAOL](building.md#the-archive-of-the-sources-and-the-packages)):
-  `cmake --build <build> --target package_source` gives `gaol-<version>.tar.gz`,
-  the files of the repository less the notes of the work on GAOL v5 (`TODO.md`,
-  `TODO_AFTER.md`, `TODO_DONE.md`, `process.md` and `todo-notes/`) and the files
-  of the maintainers' tools, and `--target package` an archive of what
-  `cmake --install` installs and, on Linux, `libgaol-dev_<version>_<arch>.deb`.
-  `make dist` and `make distcheck` of the autotools build are gone
-  (`no-dist` in `configure.ac`), with the lists of files they put in the
-  archive and `make rpm`, which built an RPM from it: `make dist` stopped on
-  `m4/libtool.m4`, which it could not copy. The `gaol.pc` of the CMake build
+- **The three builds make the same archive of the sources, and CMake makes the
+  packages** (CPack, see [Building
+  GAOL](building.md#the-archive-of-the-sources-and-the-packages)):
+  `cmake --build <build> --target dist` (`make dist` with the Makefile
+  generators, or `--target package_source`), `make dist` of the autotools
+  build and `meson dist -C <build> --formats gztar` give `gaol-<version>.tar.gz`
+  with the same files, those of the repository less the notes of the work on
+  GAOL v5 (`TODO.md`, `TODO_AFTER.md`, `TODO_DONE.md`, `STEP.md`, `process.md`
+  and `todo-notes/`) and the settings of the maintainers' tools (`.claude/`).
+  `.gitattributes` marks them `export-ignore`, which `meson dist` reads, as it
+  archives the commit with `git archive`; CMake leaves them out with
+  `CPACK_SOURCE_IGNORE_FILES`, and `make dist` does not list them in the
+  `EXTRA_DIST` of its `Makefile.am`. `--target package` makes an archive of
+  what `cmake --install` installs and, on Linux,
+  `libgaol-dev_<version>_<arch>.deb`.
+  `make dist` and `make distcheck` of the autotools build work: the
+  `EXTRA_DIST` of each `Makefile.am` lists the files of its directory that
+  automake does not distribute itself, the top one those of the root,
+  `doc/`, `cmake/`, `coverage/` and `.github/`, which have no `Makefile.am`,
+  so that a file added to the repository goes into one of them;
+  `gaol_configuration.h`, which configure writes, is installed and not
+  distributed; `make distcheck` builds the archive with the tests and the
+  examples, runs them, installs and uninstalls it (`make uninstall` removes
+  `gaol.pc`, as `make distcheck` checks), and a job of the continuous
+  integration makes the three archives and checks that they hold the files of
+  `git archive HEAD`. The project of meson is `gaol`, not `GAOL`, so that
+  `meson dist` names the archive `gaol-<version>`. `make rpm`, which built an
+  RPM from the archive, is gone. The `gaol.pc` of the CMake build
   finds its directories from where it is (`${pcfiledir}`), where it named
   those of `CMAKE_INSTALL_PREFIX`, so that it stays right in the archive and
   the `.deb`, or after `cmake --install --prefix`.
@@ -2424,7 +2500,10 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   expressions of `CPACK_SOURCE_IGNORE_FILES` with their backslashes
   (`CPACK_VERBATIM_VARIABLES`): CMake 3 warned of them, and CMake 4.4 read `\.`
   as `.`, which matches any character, so that a file such as `examples/halo`
-  would have been left out of the archive.
+  would have been left out of the archive. The archive of CMake no longer
+  carries a `compile_commands.json` of the source tree, which a tool or an
+  editor wrote there, as `make dist` (which lists its files) and `meson dist`
+  (which archives the commit) do not.
 - **`is_finite()`** is `std::isfinite()`, in every build: `finite()` of the C
   library was used where the build system found it, and is not declared by
   every C library.

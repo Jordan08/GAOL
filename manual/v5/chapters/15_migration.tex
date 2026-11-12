@@ -1649,11 +1649,12 @@ neither IBEX nor Codac uses them, the manual leaves them undocumented, and
 they are unfinished: \code{sqrt(intervalf)} returns its argument, and
 \code{interval2f::inverse()} aborts. Their code is within
 \code{\#ifdef GAOL\_FLOAT\_INTERVALS}, a macro no build has an option for.
-The archive of the sources and the packages are made by CMake: \cmd{cmake
---build <build> --target package\_source} gives \file{gaol-<version>.tar.gz},
-and \loption{target package} an archive of what is installed and, on Linux, a
-\file{.deb}; \cmd{make dist} and \cmd{make rpm} of the autotools build are
-gone, \cmd{make dist} stopping on a file it could not copy. The version is in
+The three builds make the same archive of the sources,
+\file{gaol-<version>.tar.gz} (\cmd{make dist} of the autotools build,
+\cmd{cmake --build <build> --target dist} and \cmd{meson dist}), and CMake
+makes the packages: \loption{target package} gives an archive of what is
+installed and, on Linux, a \file{.deb}; \cmd{make rpm} of the autotools build
+is gone. The version is in
 \file{VERSION.txt} alone, where GAOL~4 wrote it in \file{configure.ac}, in
 \file{meson.build} and in two headers, and \cmd{configure --help} gives the
 address for the bug reports. \code{is\_finite()} is \code{std::isfinite()}
