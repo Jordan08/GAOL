@@ -82,7 +82,8 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   `configure-clean`, qui reste la branche de développement après v5.0.0 ;
   `master` (GAOL 4.3.2, plus deux commits de `.claude/CLAUDE.md`) ne bouge qu'à
   la version (point Y : `configure-clean` → `master`, *décidé le 12 novembre*,
-  `MATH-CORE` étant supprimée : 3.32). Aucune pull request n'est ouverte. Le
+  `MATH-CORE` étant supprimée : 3.32). Deux pull requests sont ouvertes, #313 et
+  #314 (3.33). Le
   mainteneur a fusionné #165 à #167, #169 à #174, #176 et #180 à #184
   les 23 et 24 octobre, et #186 à #194,
   #196 et #197 le 25 octobre, #199, #200 et #201
@@ -5886,6 +5887,29 @@ l'arbre (`origin/configure-clean` à `593ddf3`) avant d'être corrigé : les hui
 - **L'archive des sources de CMake** suit `.gitignore` : `compile_commands.json`
   en est écarté, comme `.cache/` l'était déjà.
 
+### 3.33 Le 12 novembre : FetchContent sur `master`, `div_rel()` P1 M et #198
+
+Le mainteneur répond à la liste de ce qui reste à faire dans le code (la
+lecture de `process.md`, de `TODO.md` et de `TODO_AFTER.md` du jour) :
+
+- **Les recettes FetchContent visent `master` tout le temps** (point 34, PJ.3),
+  avant comme après l'étiquette `v5.0.0`, pour avoir la dernière version de
+  GAOL. Cela remplace « les recettes et le test gardent `master` jusqu'à
+  l'étiquette, puis la citent » (3.32). `doc/using.md` (ligne 169),
+  `manual/v5/chapters/03_using.tex` (ligne 354) et
+  `tests/fetch_content/CMakeLists.txt` (ligne 33) disent déjà `GIT_TAG master` :
+  rien à changer. Elles récupèrent GAOL 4.3.2 tant que `configure-clean` n'est
+  pas fusionnée dans `master`.
+- **Le cas P1 M de `div_rel()`** (deux `_mm_div_sd` de même numérateur, que
+  l'on pourrait ramener à une division vectorielle comme #302 pour N1 M) reste
+  tel quel : `TODO_AFTER.md` 3.9.
+- **L'issue #198** (`x / y` des intervalles NEON avec `FPCR.AH`, cause non
+  trouvée) reste ouverte, sans tâche : `TODO_AFTER.md` 4.5.
+- Les trois autres demandes du même message sont des corrections : les textes
+  qui citent macOS 14 et le commentaire de `CMakeLists.txt` qui nomme
+  `core_math_log_dint.h` (#313), et les textes de #279, #281, #85, #306, #308,
+  #309 et #312 pour `doc/differences.md` et le `ChangeLog` (#314), PJ.6 et PJ.7.
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -7849,6 +7873,21 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   du scratchpad : `TODO.md` (l'en-tête, la liste des pull requests, PJ.7), ce
   fichier (1, 2.3, 3.32, 7.28, 7.29 et 8.1), `process.md` (l'en-tête et §12)
   et l'issue #179 ; `TODO_AFTER.md` n'a rien de nouveau.
+
+### 7.30 Le 12 novembre (trois décisions, #313 et #314)
+
+- Le mainteneur lit `process.md` et demande ce qui reste dans le code ; la
+  réponse (PJ.2, PJ.3, PJ.6 et PJ.7, les restes de `TODO_AFTER.md`) mène à six
+  demandes, dont trois décisions sans code (3.33) et trois corrections.
+- Les corrections vont dans deux pull requests, depuis des clones du
+  scratchpad (`git clone --shared`, poussées par https avec le jeton de `gh`,
+  ouvertes par `gh api -X POST …/pulls`) : #313 (`manual-macos-14-texts`, trois
+  commits, dont le PDF du manuel refait : 387 pages au lieu de 385, le PDF
+  commité datant de `72ec3d4`) et #314 (`synthese-279-312`, deux commits).
+- Les décisions sont écrites ici, en un commit direct sur `configure-clean`
+  (`TODO.md` PJ.2, PJ.3 et la liste des pull requests ouvertes, `TODO_AFTER.md`
+  3.9 et 4.5, ce fichier 1, 3.33 et 7.30, `process.md` §12, l'issue #179 et
+  l'issue #178) avant la fusion des deux pull requests.
 
 ## 8. Le ménage fait
 

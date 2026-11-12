@@ -20,8 +20,12 @@ dans les trois registres, dont les tâches PS (faite par #297), PT (faite par
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à envoyer à un autre projet ni à publier sans l'accord
-du mainteneur. Aucune pull request n'est ouverte. #295 (PS.2), #296 (PM), #297
-(la tâche PS), #299 (PQ.2), #298 (PQ.1), #300 (hors des points : la recette de
+du mainteneur. Deux pull requests sont ouvertes : #313 (hors des points : les
+textes qui citent macOS 14 comme testé, PJ.6, et un commentaire de
+`CMakeLists.txt`, PJ.7) et #314 (la synthèse des textes de #279, #281, #85,
+#306, #308, #309 et #312 pour `doc/differences.md` et le `ChangeLog`, PJ.7).
+#295 (PS.2), #296 (PM), #297 (la tâche PS), #299 (PQ.2), #298 (PQ.1), #300
+(hors des points : la recette de
 compilation croisée GCC 12.2 pour aarch64 de `todo-notes/gcc12-aarch64/`) et
 #301 (la tâche PT) sont fusionnées le 8 novembre, à 17 h 21, 17 h 29, 19 h 38,
 20 h 31, 20 h 44, 21 h 38 et 23 h 09 UTC, #302 (la tâche PP : le cas N1 M de
@@ -264,11 +268,10 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    une machine virtuelle) a été refaite sur l'i7-1185G7 le 9 novembre par un
    petit programme à part (`TODO_DONE.md` 7.25) : aucun gain mesurable (la
    branche contre la base, de -3,9 % avec Clang 18 à +2,5 % avec Clang 21, dans
-   le bruit), et les 15 % de Clang 18 ne se reproduisent pas. *À décider* : le
-   cas P1 M de
-   `div_rel()` (`gaol/core/gaol_interval_sse.cpp`) calcule deux `_mm_div_sd` de
-   même numérateur, que l'on pourrait ramener à une division vectorielle comme
-   #302 l'a fait pour N1 M ; non mesuré, non demandé.
+   le bruit), et les 15 % de Clang 18 ne se reproduisent pas. *Décidé le 12
+   novembre* : le cas P1 M de `div_rel()`
+   (`gaol/core/gaol_interval_sse_impl.h`), qui calcule deux `_mm_div_sd` de
+   même numérateur, reste tel quel (`TODO_AFTER.md` 3.9).
 3. **34** : les recettes FetchContent récupèrent GAOL 4 : `doc/using.md`, le
    manuel et `tests/fetch_content` prennent la branche `master` de
    `Jordan08/GAOL`, et le `git clone` de `doc/building.md` la branche par
@@ -279,8 +282,12 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    `configure-clean` fini, fusionner `configure-clean` dans `master` (qui a deux
    commits de plus, `577c850` et `406d850`, ceux de `.claude/CLAUDE.md` que
    `configure-clean` a par `68fe887` et `195e4a2` : une vraie fusion, sans
-   différence de contenu), puis étiqueter `v5.0.0` ; les recettes et le test
-   gardent `master` jusqu'à l'étiquette, puis la citent. *Vérifié le 8
+   différence de contenu), puis étiqueter `v5.0.0`. *Décidé le 12 novembre* :
+   les recettes FetchContent (`doc/using.md`, le manuel, `tests/fetch_content`)
+   et le `git clone` de `doc/building.md` visent `master` tout le temps, avant
+   comme après l'étiquette, pour avoir la dernière version de GAOL ; elles ne
+   citent donc jamais `v5.0.0`, et rien n'est à y changer à la publication
+   (elles disent déjà `GIT_TAG master`). *Vérifié le 8
    novembre* par l'API de GitHub (lecture seule) : `master`, la branche par
    défaut, n'a pas de protection classique, mais le jeu
    de règles « master verif » (18 octobre, actif, sans contournement, même pour
