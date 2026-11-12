@@ -566,7 +566,8 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   write the one that differs, none when both hold the direction to set back; the
   `fesetround()` of glibc writes both whatever they hold, and GAOL then wrote
   MXCSR again for the SSE instructions. With `GAOL_PRESERVE_ROUNDING`,
-  `x.midpoint()` takes 17.5 ns rather than 27.9 (GCC 15.2, Intel i7-1185G7),
+  `x.midpoint()` takes 13.2 ns in a program that computes to nearest (GCC
+  15.2, Intel i7-1185G7, the best of 15 runs of a loop over 1024 intervals),
   and 52 ns rather than 131 with Visual C++ for x64 on the runners of the
   continuous integration; the bounds are the same.
 - **On ARM processors GAOL writes the control register itself too.** With the

@@ -620,11 +620,11 @@
 	decisions on simulated registers.
 	* gaol/gaol_fpu.h: on x86-64 GAOL reads and writes the control
 	registers itself, with every compiler, and only the one that differs,
-	not through fegetround() and fesetround() (x.midpoint() takes 17.5 ns
-	rather than 27.9 with GAOL_PRESERVE_ROUNDING): with mingw-w64 13 and
-	later, fesetround() clears the six exception flags of MXCSR when it
-	changes it, and fegetround() joins by OR the rounding fields of the
-	x87 unit and of MXCSR.
+	not through fegetround() and fesetround() (x.midpoint() takes 13.2 ns
+	with GAOL_PRESERVE_ROUNDING, in a program that computes to nearest):
+	with mingw-w64 13 and later, fesetround() clears the six exception
+	flags of MXCSR when it changes it, and fegetround() joins by OR the
+	rounding fields of the x87 unit and of MXCSR.
 	* gaol/gaol_fpu.h, gaol/gaol_fpu_fenv.h: on x86, with
 	GAOL_PRESERVE_ROUNDING, the SSE2 operations read MXCSR once, write
 	it at their start only if the direction is not upward or a mode
