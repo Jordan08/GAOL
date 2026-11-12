@@ -141,16 +141,6 @@ first, which downloads and builds what the comparisons need under `$WORK`.
 | [tang2021/run.sh](compare/tang2021/run.sh) | Builds GAOL for each variant (`sse`, `fpu`), builds the benchmark with it, runs its queries and writes the tables of the results. |
 | [tang2021/check.py](compare/tang2021/check.py) | Checks the queries `lo <= expression <= hi` of the benchmark with exact rationals, without Mathematica. |
 
-## Tools for the maintainers and their agents
-
-In [todo-notes/orchestration/](../todo-notes/orchestration/README.md).
-
-| Script | What it is for |
-|---|---|
-| [bin/check_branch](../todo-notes/orchestration/bin/check_branch) | Checks a branch before it is pushed: commit messages, registers, build products, whitespace. |
-| [bin/gcore](../todo-notes/orchestration/bin/gcore) | Shares the 4 permitted cores among several agents with `flock` tokens. Copy it out of the tree before use. |
-| [points_w4.py](../todo-notes/orchestration/points_w4.py) | The detailed plans of the large points 25 to 30 (sub-features in a branch each, joined in one pull request). None of it was done. |
-
 ## Taken from other projects
 
 GAOL does not change these files, and does not document them one by one
