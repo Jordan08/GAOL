@@ -257,7 +257,9 @@ manylinux have no locale writing a decimal comma to generate, and check
 nothing of the kind. `numbers` has 300 s (`GAOL_NUMBERS_TIMEOUT`), 400 in the
 four jobs of `linux.yml` with the sanitizers, where it took 109 to 287 s and
 once more than 300, 600 in the job of macOS 15 x86_64 GCC with the sanitizers,
-where it took 146 to 367 s on the same code, and once more than 400.
+where it took 146 to 367 s on the same code, and once more than 400, and 600
+in the job of macOS 26 arm64 LLVM Clang with the sanitizers, where it took 162
+to 297 s in 28 runs, and once more than 300.
 
 The manual of GAOL v5 (`manual/v5/manual_gaolv5.tex`) is built with the LaTeX of
 Ubuntu 24.04, by the autotools, the CMake and the meson builds, when `manual/`
