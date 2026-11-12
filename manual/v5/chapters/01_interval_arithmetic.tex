@@ -809,9 +809,7 @@ a technique.
   one in effect included. This is what GAOL v5 rests on: correctly rounded
   in the upward rounding GAOL computes in, CORE-MATH gives the tightest
   bounds without switching the rounding direction: the interval \code{log} of
-  GAOL v5 takes 20.9\,ns where that of GAOL~4.2.3, which calls mathlib, moves
-  its value outward and switches the rounding direction twice, takes 46.8\,ns
-  (Intel i7-1185G7, Clang 21.1, 17 October 2026, \pxref{sec:comparison}).
+  GAOL v5 takes 20.0\,ns where that of GAOL~4.2.3, which calls mathlib, moves its value outward and switches the rounding direction twice, takes 51.2\,ns (Intel i7-1185G7, Clang 21.1, 12 November 2026, \pxref{sec:comparison}).
 \end{itemize}
 A proposal to add \code{cr\_*} functions to the C standard comes from the
 same team, so that correct rounding can be asked for by the program rather
