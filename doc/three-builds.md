@@ -205,7 +205,9 @@ On a 64-bit ARM processor, measured the same way on an Apple M2 with AppleClang
   GCC and Clang, macOS; and, when they were measured, Visual C++ and clang-cl
   for x86 and for arm64, which have the SSE2 and the NEON intervals now: the
   columns "VS x86" and "clang-cl x86" of
-  [The FPU intervals](using.md#the-fpu-intervals) are those of the FPU),
+  [The FPU intervals](using.md#the-fpu-intervals) are those of the FPU, which
+  the same page measures again against the default intervals of these
+  compilers: faster in 54 of 56 cells, up to 4.3 times),
   measured in turn, give other ratios, losses included (the line of 7 products
   0.58 with GCC on Ubuntu, 0.57 with clang-cl for arm64); POWER, s390x and
   RISC-V are not measured. See
