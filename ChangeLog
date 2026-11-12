@@ -1185,6 +1185,38 @@
 	and mpmath), 3905 checks; tests/CMakeLists.txt, tests/meson.build,
 	tests/Makefile.am, .github/scripts/tests.sh; gaol_tests.h:
 	summary(only_failed).
+	* tests/numbers.cpp: #pragma GCC optimize("no-inline-functions")
+	with GCC 12 on 64-bit ARM (Debian 12), whose inlining at -O2 and
+	-O3 made decimal_output() read its table of precisions at a wrong
+	address ("1e--1", which std::stol refuses) and constants() a
+	garbage pointer for the name of a constant: the job Debian 12
+	arm64 of containers.yml failed on it.  Neither the test nor GAOL
+	has an undefined behaviour (the sanitizers on x86-64 say nothing,
+	and the test passes at -O1 and with GCC 14).
+	* .github/scripts/comma-locale.sh, .github/workflows: the jobs make
+	the locale writing a decimal comma that tests/numbers.cpp reads and
+	writes numbers under (fr_FR.UTF-8, by localedef, where the system
+	has none: Ubuntu and Debian; macOS has it, and Windows
+	French_France.1252) and fail after the tests if numbers checked no
+	number under such a locale, which it passes without, and says so
+	in an output that ctest hides when the test passes.  The output
+	read is the one ctest keeps (Testing/Temporary/LastTest.log),
+	tests/numbers.log of the autotools and meson-logs/testlog.txt of
+	meson.  Alpine and manylinux have no such locale and check
+	nothing of the kind.
+	* .github/workflows/windows.yml: the programs of the MinGW-w64
+	jobs on x64 run with the bin of MinGW-w64 first in PATH: the bash
+	of Git for Windows puts its own mingw64/bin before it, whose
+	libstdc++-6.dll is older than the compiler's and lacks
+	std::basic_streambuf<char>::seekpos, which tests/numbers.cpp
+	imports, so that Windows did not start the test (0xc0000139).
+	* .github/workflows, README.md: a push runs the continuous
+	integration on master and configure-clean only (a pull request,
+	or workflow_dispatch, runs it for another branch); the jobs that
+	took Ubuntu 22.04 for its compilers (GCC 11 and Clang 14 on x86_64,
+	GCC 11 on arm64) run on Ubuntu 24.04, which has them too, GitHub
+	retiring the image of 22.04 by April 2027; README.md shows the
+	badge of each workflow, on master.
 
 2020-05-10  Frederic Goualard  <Frederic.Goualard@univ-nantes.fr>
 

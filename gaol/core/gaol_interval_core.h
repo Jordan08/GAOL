@@ -1042,7 +1042,7 @@ namespace gaol_core {
     GCC 12 and 14 and Clang 18 and 21 for 64-bit ARM).
     The comparison of the bounds comes first, so that "true" costs it alone,
     where the tests of the empty set made two comparisons more: x <= y took
-    1.55 ns instead of 1.03 ns with Clang on a Neoverse N2. The price is an
+    1.56 ns instead of 1.04 ns with Clang on a Neoverse N2. The price is an
     empty operand, which takes the longer path: up to 1.6 times the time of the
     former order, with GCC 15 and Clang 21, in a loop over empty operands only.
     On RISC-V the tests of the empty set stay first (GAOL_RELATION_BOUNDS_FIRST,
