@@ -18,7 +18,8 @@
 	GAOL (GAOL_FLOAT_INTERVALS).
 	* CMakeLists.txt: a CMake build, the one to use, which finds GAOL
 	with find_package(gaol) and makes the archive of the sources and
-	the packages (CPack); make dist is gone.
+	the packages (CPack); make dist of the autotools build and meson
+	dist make the same archive.
 	* tests/: tests of the bounds against the exact results, and the
 	continuous integration on Linux, macOS and Windows
 	(.github/workflows).
@@ -212,6 +213,28 @@
 	then the one that runs meson) and the Microsoft Store aliases
 	of Python (WindowsApps) that meson 0.53.0 and earlier may take
 	for it.
+	* configure.ac, Makefile.am, 3rd/Makefile.am, gaol/Makefile.am,
+	tests/Makefile.am, examples/Makefile.am, manual/Makefile.am: make dist
+	and make distcheck are back in the autotools build (no-dist is gone
+	from AM_INIT_AUTOMAKE).  The EXTRA_DIST of each Makefile.am lists the
+	files of its directory that automake does not distribute itself, the
+	top one those of the root, doc/, cmake/, coverage/ and .github/;
+	gaol_configuration.h, which configure writes, is installed and not
+	distributed; make uninstall removes gaol.pc; make distcheck builds the
+	archive with the tests and the examples and runs them
+	(AM_DISTCHECK_CONFIGURE_FLAGS).
+	* CMakeLists.txt, meson.build, .gitattributes: the three builds make
+	the same archive of the sources, gaol-<version>.tar.gz, with the same
+	files, those of the commit less the notes of the work on GAOL v5
+	(.gitattributes marks them export-ignore, which meson dist reads): the
+	target dist of CMake is new, and the project of meson is gaol, not
+	GAOL, which named the archive GAOL-<version>.
+	* .github/workflows/build-systems.yml: a job makes the three archives,
+	builds and tests the one of make distcheck and of meson dist, and
+	checks that all hold the files of git archive HEAD.
+	* CMakeLists.txt: the archive of the sources that CMake makes (dist,
+	package_source) no longer carries a compile_commands.json of the
+	source tree, as make dist and meson dist do not.
 
 	Compilers and platforms:
 
@@ -355,7 +378,7 @@
 	gaol_expr_visitor.h, gaol_eval_stack.h), the reader of strings
 	(gaol_parser.h), the lexer, the parser and regenerate_parser.sh,
 	moved from gaol/; the three builds install the five headers in
-	include/gaol/parser/, 23 headers in all with those of include/gaol/
+	include/gaol/parser/, 22 headers in all with those of include/gaol/
 	and include/gaol/core/.
 	* gaol/core/gaol_interval_core.h, gaol/core/gaol_interval_core.cpp:
 	the class interval, the functions of gaol_core and the code of the
@@ -368,6 +391,36 @@
 	their sources are in gaol/core/, rather than in include/gaol/
 	(GAOL 4 installed gaol_interval_fpu.h and gaol_interval_sse.h
 	there); gaol_interval.h includes gaol_interval_core.h.
+	* gaol/core/gaol_interval_detail.h, gaol/core/gaol_interval_core.h,
+	gaol_interval_sse.h, gaol_interval_neon.h, gaol_interval_fpu.h: the
+	helpers of gaol_detail that read no interval (the tag of the
+	constructors that make no check, the traits of the integers, the
+	storage of the unaligned SSE2 bounds, GAOL_FPU_SCALAR(),
+	keep_ordered()) are in gaol_interval_detail.h, which
+	gaol_interval_core.h includes and which compiles alone: the three
+	builds install it in include/gaol/core/, five headers there.  x + y,
+	x - y, x * y and x / y are defined in the header of each kind of
+	intervals, no longer in gaol_interval_core.h.  No change for the user
+	of the interface.
+	* gaol/core/gaol_interval_core.cpp, gaol_interval_pow.cpp,
+	gaol_interval_exp_log.cpp, gaol_interval_trig.cpp,
+	gaol_interval_hyperbolic.cpp, gaol_interval_relational.cpp,
+	gaol_interval_io.cpp, gaol_interval_internal.h,
+	gaol_interval_{sse,neon,fpu}_kernels.h: gaol_interval_core.cpp, which
+	defined every function of the intervals, is one source for each domain
+	(the operations, the powers and the roots, the exponentials and the
+	logarithms, the trigonometric functions, the hyperbolic ones, the
+	relational functions, with div_rel() among the *_rel(), and the input
+	and the output).  They share gaol_interval_internal.h and the kernels
+	of each kind of intervals that more than one takes inline, which are
+	not installed.  The code of the kinds of intervals that
+	gaol_interval_core.cpp includes is renamed
+	gaol_interval_{sse,neon,fpu,avx512}_impl.h, from the .cpp of the same
+	names, and the code of the intervals of floats
+	gaol/float/gaol_intervalf_impl.h and gaol_interval2f_impl.h.
+	operator-() of the SSE2 intervals is inline in gaol_interval_sse.h, as
+	with NEON and the FPU, and the library no longer exports its symbol.
+	The message of the exception of operator>> names gaol_interval_io.cpp.
 	* gaol/float/: gaol_intervalf.*, gaol_interval2f.* and
 	gaol_generator_mul_i2f.py, moved from gaol/; none is installed.
 	* gaol/gaol_parameters.h: removed, it declared an empty namespace.
@@ -617,6 +670,20 @@
 	32-bit ARM (GCC 12 to 14) and POWER9, is_empty() and the constructors
 	of the FPU intervals tell NaN bounds with std::isunordered() first,
 	GCC having compiled its quiet comparisons into signaling ones.
+	* gaol/core/gaol_interval_core.h, gaol/gaol_port.h,
+	gaol/gaol_config.h: certainly_le(), certainly_leq(), certainly_ge()
+	and certainly_geq() (<, <=, >, >=) are four tests joined by ||, each
+	marked with the answer to believe usual (GAOL_LIKELY() is new), and
+	compare the bounds first, so that "true" costs one comparison rather
+	than three; the answers are the same.  GAOL_RELATION_BOUNDS_FIRST is 0
+	on RISC-V, where the empty sets are tested first: GCC 14 compiled the
+	comparison of the NaN bounds of an empty operand into a signaling one
+	in some loops.  The equal bounds are found by quiet_less_equal(r, l)
+	and not by r == l (bound_tied_less(), bound_tied_less_equal()): GCC 14
+	merged quiet_less(r, l) || r == l into one r <= l, which raises the
+	invalid-operation exception on the NaN of an empty operand;
+	tests/rounding_direction.cpp, and a job of containers.yml built with
+	-DGAOL_RELATION_BOUNDS_FIRST=0.
 	* gaol/core/gaol_interval_core.cpp, gaol_interval_fpu.cpp,
 	gaol_interval_sse.cpp, gaol_interval_neon.cpp: no overflow nor
 	division-by-zero exception for a result with no infinite bound,
@@ -766,7 +833,10 @@
 	of the expressions take an integer of any type, as pow(x, n)
 	does; an order beyond the unsigned ints is enclosed through pow
 	with the exponent 1/q, and nth_root(e, -2) is no longer the
-	order 4294967294.
+	order 4294967294.  rootn and pown of gaol_ieee1788 being
+	overloaded for every integer type, their address needs a cast or
+	a typed pointer: auto f = &gaol_ieee1788::rootn; does not
+	compile.
 	* gaol/core/gaol_interval_core.cpp: pow(x, y) with an interval
 	exponent, pow(x, d) with a double, pow(x, n) with a long long
 	beyond the unsigned ints and gaol_ieee1788::pow(x, y) return the
@@ -1099,6 +1169,12 @@
 	tests/fetch_content/CMakeLists.txt: the cache variable
 	GAOL_NUMBERS_TIMEOUT (300 s) is the time allowed to the test
 	numbers.
+	* tests/test_ibex_codac.cpp, tests/tools/ibex_codac/: new; the cases
+	of the unit tests that IBEX and Codac run on their intervals, written
+	with gaol::interval and checked against the exact results (rationals
+	and mpmath), 3905 checks; tests/CMakeLists.txt, tests/meson.build,
+	tests/Makefile.am, .github/scripts/tests.sh; gaol_tests.h:
+	summary(only_failed).
 
 2020-05-10  Frederic Goualard  <Frederic.Goualard@univ-nantes.fr>
 
