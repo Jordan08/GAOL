@@ -686,6 +686,17 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
     (`CMAKE_COMPILE_WARNING_AS_ERROR`) ;
   - les jobs Debug de Visual C++ écrivent les assertions du runtime sur stderr
     au lieu d'ouvrir une boîte de dialogue (`tests/gaol_tests.h`).
+  - une expérience de CI (comparer deux builds sur les jobs de Windows, sans
+    lancer les autres workflows) se fait par un workflow à part qui se lance par
+    `on: push: branches: [<la branche>]` : un push vers une branche autre que
+    `master` et `configure-clean` ne lance que les workflows qui la nomment, ni
+    pull request ni les 200 jobs des autres. Exemple :
+    `.github/workflows/experiment-fpu-simd.yml` sur la branche jetable
+    `experiment-pj-vs-fpu`, jamais fusionnée, supprimée ensuite (#317, run
+    43264694580) ;
+  - le jeton de `gh` n'a pas la portée `workflow` (`gist`, `read:org`, `repo`) :
+    un fichier de `.github/workflows/` ne se pousse pas par https, mais par SSH
+    (`git push git@github.com:Jordan08/GAOL.git <branche>`).
 
 ## 11. Pièges déjà rencontrés
 
@@ -787,6 +798,24 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   n'est que pour arm64 : lance les programmes de test un à un (#194). Et sous
   `bash -e`, un `! grep ...` au milieu d'une étape ne la fait pas échouer (seule
   la dernière commande donne son statut) : écris un `if` explicite.
+- `.github/scripts/performance-ab.sh` ne se lance pas sous `taskset` : il
+  épingle aussi les compilations de CMake (un build de 4 minutes sur un cœur).
+  Lance-le seul, sans autre charge, et prends le meilleur de neuf passes dans
+  `perf-before-N.md` et `perf-after-N.md`, ou la médiane de
+  `compare-performance.py`.
+- Deux jours de mesure ne se comparent pas : le même code a donné de 15 à 30 %
+  de plus sur `gaol_performance` entre le 17 octobre et le 12 novembre. Compare
+  avec un A/B de `performance-ab.sh` dans une même séance (`--before-src` et
+  `--after-src`, deux `git archive` des deux commits), qui construit et mesure
+  les deux en alternance (`TODO_DONE.md` 3.34).
+- Pour arrêter un job de fond que tu as lancé, `pkill -f` est refusé par la
+  politique de la session : `kill -TERM -- -<groupe de processus>` (le groupe se
+  lit par `ps -o pgid`) l'arrête, sans toucher aux autres processus.
+- Un dossier `doc/compare/code/work/clang21` se copie dans le scratchpad pour
+  mesurer hors de l'arbre : écris le chemin de la copie dans `work/filib-dir`,
+  supprime `gaol-build` et `gaol-preserve-build`, puis `FORCE_GAOL=1 ./setup.sh`
+  reconstruit les deux GAOL au commit mesuré (les autres bibliothèques restent
+  celles de la copie).
 
 ## 12. Où en est le travail (12 novembre 2026)
 
