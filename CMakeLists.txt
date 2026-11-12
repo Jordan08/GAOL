@@ -1603,12 +1603,8 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   set(CPACK_DEBIAN_PACKAGE_SECTION "libdevel")
 
   # The archive of the sources: the files of the repository, without what git
-  # ignores (.gitignore), the builds within the sources, the packages, and the
-  # notes of the work on GAOL v5 (TODO.md, TODO_AFTER.md, TODO_DONE.md,
-  # STEP.md, process.md, todo-notes/), which serve its maintainers, not the
-  # users of a version: those of export-ignore in .gitattributes, which meson
-  # dist leaves out, and that the EXTRA_DIST of make dist do not list, so that
-  # the three archives hold the same files (GAOL v5). CPack writes the CPACK_* variables into CPackConfig.cmake
+  # ignores (.gitignore), the builds within the sources and the packages, so
+  # that the three archives hold the same files (GAOL v5). CPack writes the CPACK_* variables into CPackConfig.cmake
   # and CPackSourceConfig.cmake, which it reads when it runs:
   # CPACK_VERBATIM_VARIABLES has it escape them, so that the backslashes of
   # these regular expressions reach it as they are, where CMake 3 warned of an
@@ -1639,9 +1635,6 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
     "^${_gaol_source_regex}/manual/v5/Manual_GAOLv5\\." "^${_gaol_source_regex}/manual/v5/pdflatex-[^/]*\\.log$"
     "^${_gaol_source_regex}/manual/v5/gaol_version\\.tex$"
     "^${_gaol_source_regex}/gaol-[^/]*\\.tar\\.gz$" "^${_gaol_source_regex}/libgaol-dev_[^/]*\\.deb$"
-    "^${_gaol_source_regex}/TODO\\.md$" "^${_gaol_source_regex}/TODO_AFTER\\.md$" "^${_gaol_source_regex}/TODO_DONE\\.md$"
-    "^${_gaol_source_regex}/STEP\\.md$" "^${_gaol_source_regex}/process\\.md$"
-    "^${_gaol_source_regex}/todo-notes/"
   )
 
   # The archive holds configure as it is committed, and configure says the
@@ -1682,7 +1675,7 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   # the one of package_source, gaol-<version>.tar.gz, in the build directory
   # (make dist with the Makefile generators, ninja dist, cmake --build <build>
   # --target dist; GAOL v5). The three archives hold the same files
-  # (.gitattributes, EXTRA_DIST of the Makefile.am)
+  # (EXTRA_DIST of the Makefile.am)
   add_custom_target(dist
     COMMAND "${CMAKE_CPACK_COMMAND}" --config "${PROJECT_BINARY_DIR}/CPackSourceConfig.cmake"
     WORKING_DIRECTORY "${PROJECT_BINARY_DIR}"

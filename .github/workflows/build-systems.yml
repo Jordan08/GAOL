@@ -787,9 +787,9 @@ jobs:
 
   # The archive of the sources made by the three builds, make dist, dist
   # (package_source) of CMake and meson dist: gaol-<version>.tar.gz, with the
-  # same files, those of the commit less export-ignore of .gitattributes, as git
-  # archive gives them. make distcheck builds the archive with the tests and the
-  # examples, runs them, installs and uninstalls it (GAOL v5, doc/building.md).
+  # same files, those of the commit, as git archive gives them. make distcheck
+  # builds the archive with the tests and the examples, runs them, installs and
+  # uninstalls it (GAOL v5, doc/building.md).
   # A file added to the repository and not to the EXTRA_DIST of a Makefile.am is
   # missing from the archive of make dist, which fails the comparison
   dist:

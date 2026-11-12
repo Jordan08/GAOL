@@ -68,8 +68,8 @@ distclean-local:
 # the headers and the scripts it knows from the variables of the Makefile.am,
 # and EXTRA_DIST names the other files of the repository, here CORE-MATH as GAOL takes it, the sources that libgaolcoremath does not compile among them (its tests, its tools, its documentation).
 # make dist, package_source of CMake and meson dist hold the same files, those
-# of the repository but the notes of the work on GAOL v5 (.gitattributes): a
-# file added to the repository is added to this list too, or the job Archives
+# of the repository: a file added to the repository is added to this list too,
+# or the job Archives
 # of the sources of the CI, which compares the three archives, fails
 EXTRA_DIST = \
 	math-core/.gitignore \
