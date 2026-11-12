@@ -112,8 +112,7 @@ of the script.
 CORE-MATH (`3rd/math-core`; GAOL calls 38 of its binary64 functions) is scalar,
 with no vector variant; its functions are called once per bound. `GAOL_FMA` pays
 in them and in the integer powers of GAOL
-([three builds](three-builds.md#what-the-options-are-worth): `cos` 2.5 times
-faster, `pow(x, 3)` 3.2 times), and does nothing for the arithmetic.
+([three builds](three-builds.md#what-the-options-are-worth): `pow(x, 3)` 3.1 times faster, `log` 1.6 times), and does nothing for the arithmetic.
 
 ## Where the time of a program goes
 
@@ -166,14 +165,9 @@ to 3 points, and the table gives the second.
 
 On an Intel i7-1185G7 ([performance](compare/performance.md): a million
 operations on arrays of intervals, so partly bound by the memory), the time
-of an operation is 2.2 ns for `+` and `-`, 2.30 for `*`, 2.52 for `/`, 1.87
-for `sqr`, 6.30 for `sqrt` and 5.12 for `pow(x, 3)`, the same operation on
-doubles taking 0.96 ns for `+`. With `GAOL_PRESERVE_ROUNDING` and the AVX-512
-path: 2.19, 2.16, 3.42, 3.60, 2.04, 3.75 and 6.18. On the M2
+of an operation is 2.2 ns for `+` and `-`, 2.26 for `*`, 2.50 for `/`, 1.86 for `sqr`, 7.35 for `sqrt` and 5.75 for `pow(x, 3)`, the same operation on doubles taking 0.90 ns for `+`. With `GAOL_PRESERVE_ROUNDING` and the AVX-512 path: 2.31, 2.35, 3.77, 3.94, 2.21, 4.36 and 7.23. On the M2
 ([three builds](three-builds.md#what-the-options-are-worth)) the NEON
-intervals take 0.90 ns for `+`, 1.52 for `*`, 2.08 for `/`, 1.27 for `sqr`
-and 2.04 for `sqrt`, against 1.15, 3.26, 3.22, 1.78 and 5.17 with the FPU
-intervals, whose `*`, `/` and `sqr` take no branch on the signs
+intervals take 0.89 ns for `+`, 1.52 for `*`, 2.07 for `/`, 1.26 for `sqr` and 2.03 for `sqrt`, against 1.15, 3.25, 3.24, 1.78 and 5.15 with the FPU intervals, whose `*`, `/` and `sqr` take no branch on the signs
 ([the FPU intervals](using.md#the-fpu-intervals); 1.15, 3.25, 3.98, 2.07 and 4.49
 before).
 
@@ -294,7 +288,7 @@ the T-Head C910 the draft 0.7.1.
 | FMA3 | in use (`GAOL_FMA`) | It pays in the elementary functions and the integer powers, none in the basic operations | The exact transformations that would replace the directed rounding are another study (the rounding direction left to nearest) |
 | AVX-512 path | keep; the division and the square root are scalar instructions with the embedded rounding, two for the two bounds | On Intel the 512-bit division takes 16 cycles of throughput against 4 for the 128-bit one (uops.info), and Zen 5 has full-width units; the square root of the path takes two scalar embedded roots (3.75 ns against 6.30 with SSE2), `x / y` two scalar divisions, and so do `x / d` of a double (2.8 ns against 3.7 for d > 0, 3.0 to 3.3 for d < 0, on an Intel i7-1185G7 with Clang 21), the divisors with a zero (5.5 ns) and the negative integer powers (`pow(x, -3)` 9.1 ns), which the change left within the noise | A processor where the two scalar divisions lose to the 512-bit one (not seen on the i7-1185G7; no other processor was measured, Zen 5 included) |
 | AVX-512VL, AVX10.2 at 128 and 256 bits | nothing to build | No embedded rounding at these widths | A new revision of the Intel manual restoring it (revision 3.0 of AVX10.2 had it) |
-| NEON (arm64) | keep | Done: 1.3 to 2.5 times faster than the FPU intervals on an M2, 3.2 times on a line of 13 operations | Hardware with FPCR.AH set (see below) |
+| NEON (arm64) | keep | Done: 1.3 to 2.5 times faster than the FPU intervals on an M2, 3.0 times on a line of 13 operations | Hardware with FPCR.AH set (see below) |
 | SVE, SVE2, SME | no path | The same FPCR, and 128-bit vectors on most of the processors | An interface of arrays, on a 256 or 512-bit implementation; a static rounding in the instruction set |
 | ARMv7 | no vector path | NEON has no double | none |
 | POWER (VSX), s390x (vector facility) | measure first | Two doubles per register and a write of the control register, as NEON, but no hardware here and no figure for the write | A machine to run the tests and the benchmark on |

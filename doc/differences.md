@@ -86,7 +86,7 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
     bounds against CORE-MATH called in the downward and the upward rounding,
     `tests/expressions.cpp` the intervals read from a string, and
     `-DGAOL_COVERAGE=ON` writes the coverage of the tests in
-    [coverage/README.md](../coverage/README.md) (94 % of the lines of GAOL).
+    [coverage/README.md](../coverage/README.md) (95 % of the lines of GAOL).
   - **`exp2`, `exp10`, `log2` and `log10`**, which IEEE 1788-2015 requires
     among the forward elementary functions (Table 9.1) and which GAOL did not
     provide, are bounded with CORE-MATH's, the tightest bounds. The value that
@@ -810,10 +810,7 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   `+`, `-`, `*`, `/`, `sqr()` and `sqrt()` are kernels that take and return
   them in registers: the product is the maximum of four products, with no
   branch on the signs, and the quotient one vector division when the divisor
-  holds no zero. On an Apple M2 (AppleClang 21.0), `x + y` takes 0.90 ns rather
-  than 1.15, `x * y` 1.52 ns rather than 3.26, `x / y` 2.08 ns rather than
-  3.22, `sqrt(x)` 2.04 ns rather than 5.17 and a line of 13 operations 16.6 ns
-  rather than 50.6, the second figures being those of the FPU intervals
+  holds no zero. On an Apple M2 (AppleClang 21.0), `x + y` takes 0.89 ns rather than 1.15, `x * y` 1.52 ns rather than 3.25, `x / y` 2.07 ns rather than 3.24, `sqrt(x)` 2.03 ns rather than 5.15 and a line of 13 operations 16.6 ns rather than 50.4, the second figures being those of the FPU intervals
   (`GAOL_SIMD=OFF`). The bounds are the same, but for the sign of a zero bound,
   which the maximum of 64-bit ARM, ranking +0 above -0, can set otherwise than
   the SSE2 and the FPU intervals do: the lower bound of `[-1, 0] * [-1, 0]` is
@@ -871,8 +868,8 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   infinite bound or a divisor holding 0 takes a branch. The bounds are the same
   but for the sign of a zero bound (next bullet). On an Intel i7-1185G7 with
   Clang 21 (see [performance.md](compare/performance.md)), `x * y` takes 2.3 ns
-  rather than 10.0 with GAOL 4.2.3, `x / y` 2.5 ns rather than 7.5, and Shekel 5
-  108 ns rather than 189.
+  rather than 11.0 with GAOL 4.2.3, `x / y` 2.5 ns rather than 8.3, and Shekel 5
+  84.5 ns rather than 202.
 - **The sign of a zero bound of a product or of a quotient** may differ from
   GAOL 4's with the SSE2 intervals, the value never: the larger of four products
   leaves `maxpd` to choose between a +0 and a -0 that compare equal, where GAOL
