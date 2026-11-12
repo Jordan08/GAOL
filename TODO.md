@@ -20,7 +20,10 @@ les tâches PS (faite par #297), PT (faite par #301 : `TODO_DONE.md` 3.25) et PP
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à envoyer à un autre projet ni à publier sans l'accord
-du mainteneur. Aucune pull request n'est ouverte. #295 (PS.2), #296 (PM), #297
+du mainteneur. #312 est ouverte depuis le 12 novembre (hors des points :
+`MATH-CORE` retirée de la CI, `numbers` à 600 s dans le job macOS 26 arm64 LLVM
+Clang Debug ASan+UBSan, `compile_commands.json` hors de l'archive de CMake).
+#295 (PS.2), #296 (PM), #297
 (la tâche PS), #299 (PQ.2), #298 (PQ.1), #300 (hors des points : la recette de
 compilation croisée GCC 12.2 pour aarch64 de `todo-notes/gcc12-aarch64/`) et
 #301 (la tâche PT) sont fusionnées le 8 novembre, à 17 h 21, 17 h 29, 19 h 38,
@@ -269,21 +272,22 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    `Jordan08/GAOL`, et le `git clone` de `doc/building.md` la branche par
    défaut. `master` est GAOL 4.3.2, avec lequel les programmes de la
    documentation ne compilent pas, et il n'y a pas d'étiquette `v5.0.0`. *Décidé
-   le 3 octobre* : une fois `configure-clean` fini, fusionner `configure-clean`
-   dans `MATH-CORE` (c'est un ancêtre de `configure-clean` : une avance rapide),
-   puis `MATH-CORE` dans `master` (qui a deux commits de plus, `577c850` et
-   `406d850`, ceux de `.claude/CLAUDE.md` que `configure-clean` a par `68fe887`
-   et `195e4a2` : une vraie fusion, sans différence de contenu), puis étiqueter
-   `v5.0.0` ; les recettes et le test gardent `master` jusqu'à l'étiquette, puis
-   la citent. *Vérifié le 8 novembre* par l'API de GitHub (lecture seule) :
-   `master`, la branche par défaut, n'a pas de protection classique, mais le jeu
+   le 12 novembre* (à la place du chemin du 3 octobre, par `MATH-CORE`, que
+   le mainteneur a supprimée sur GitHub le 11 novembre) : une fois
+   `configure-clean` fini, fusionner `configure-clean` dans `master` (qui a deux
+   commits de plus, `577c850` et `406d850`, ceux de `.claude/CLAUDE.md` que
+   `configure-clean` a par `68fe887` et `195e4a2` : une vraie fusion, sans
+   différence de contenu), puis étiqueter `v5.0.0` ; les recettes et le test
+   gardent `master` jusqu'à l'étiquette, puis la citent. *Vérifié le 8
+   novembre* par l'API de GitHub (lecture seule) : `master`, la branche par
+   défaut, n'a pas de protection classique, mais le jeu
    de règles « master verif » (18 octobre, actif, sans contournement, même pour
    le mainteneur) interdit de la supprimer et d'y pousser autre chose qu'une
    avance rapide, et exige une pull request (0 approbation, fusion, squash et
    rebase permis) ; aucun contrôle d'état n'est exigé, donc aucun job de macOS
-   14 ; rien ne vise `MATH-CORE`, `configure-clean` ni les étiquettes (les
-   quatre `v4.*` existent). La fusion de `MATH-CORE` dans `master` passe donc
-   par une pull request, non par un push direct. Après v5.0.0, le développement
+   14 ; rien ne vise `configure-clean` ni les étiquettes (les quatre `v4.*`
+   existent). La fusion de `configure-clean` dans `master` passe donc par une
+   pull request, non par un push direct. Après v5.0.0, le développement
    continue dans `configure-clean`, et `master` ne reçoit que les versions. Les
    commits à ligne de crédit (123) restent (*décidé le 19 octobre*). La licence
    est dite (LGPL pour GAOL, MIT pour CORE-MATH) dans la section « Licences » de

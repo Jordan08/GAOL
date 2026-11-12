@@ -34,9 +34,11 @@ de #302, de #301, de #300, de #298, de #299, de #297, de #296, de #295 et de
 - **Les branches** :
   - `configure-clean` : la branche de développement, et la base de toutes les
     pull requests.
-  - `MATH-CORE` et `master` : elles ne recevront `configure-clean` qu'à la
-    publication de v5.0.0 (point Y : `configure-clean` → `MATH-CORE` →
-    `master`, puis l'étiquette `v5.0.0`).
+  - `master` : elle ne recevra `configure-clean` qu'à la publication de
+    v5.0.0 (point Y : `configure-clean` → `master`, par une pull request, puis
+    l'étiquette `v5.0.0`). `MATH-CORE`, l'étape intermédiaire prévue le 3
+    octobre, est supprimée le 11 novembre, et la version va directement de
+    `configure-clean` à `master` (*décidé le 12 novembre*).
   - `todo-status`, l'ancienne branche des rapports et de l'outillage, a été
     supprimée le 4 octobre : ce qui en sert encore est dans `todo-notes/`.
 - **Les arbres de travail** : `/home/jninin/Documents/WORK/DEV/GAOL/GAOL_V9/GAOL`
@@ -472,7 +474,7 @@ Ce que tu ne peux pas tester ici (Windows, macOS, ARM, gros-boutiste, sans FMA),
    espaces. Commite par fichiers nommés (section 3.1). Plusieurs commits
    courts valent mieux qu'un fourre-tout.
 9. **Pousser et ouvrir la pull request.** Un push sur une branche autre que
-   `master`, `MATH-CORE` ou `configure-clean` ne lance **aucune** CI. Elle part
+   `master` ou `configure-clean` ne lance **aucune** CI. Elle part
    à l'ouverture de la pull request, ou par `workflow_dispatch`
    (`gh workflow run <fichier>.yml --ref <branche>`).
 
@@ -648,7 +650,7 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
     job).
 - **Le déclenchement** : sur chaque pull request (`manual.yml` et
   `performance.yml` seulement si leurs chemins changent), sur un push vers
-  `master`, `MATH-CORE` ou `configure-clean` (sauf `performance.yml`, qui ne
+  `master` ou `configure-clean` (sauf `performance.yml`, qui ne
   tourne que sur les pull requests), et par `workflow_dispatch`. La
   `concurrency` annule le run en cours d'un même workflow sur la même
   référence : un nouveau push sur `configure-clean` annule la CI du commit
@@ -897,7 +899,10 @@ git ls-remote --heads origin
   dans `TODO_DONE.md` reste à écrire ; l'audit du 13
   octobre a vérifié dans `configure-clean` ce qu'annonçaient alors les points A,
   C à H et J à V.
-- **En cours** : au 11 novembre, aucune pull request n'est ouverte : #295 (PS.2
+- **En cours** : au 12 novembre, #312 est ouverte (hors des points :
+  `MATH-CORE` retirée de la CI, `numbers` à 600 s dans le job macOS 26 arm64
+  LLVM Clang Debug ASan+UBSan, `compile_commands.json` hors de l'archive de
+  CMake ; `ci-branches-timeout`) ; #295 (PS.2
   ; `manual-neon-pown-text`), #296 (le cas (b) ; `manual-case-b-text`), #297 (la
   tâche PS ; `todo-ps-stale-texts`), #299 (PQ.2 ; `todo-pq-hexfloat-point`),
   #298 (PQ.1 ; `todo-pq-centered-form`), #300 (la recette de compilation croisée
@@ -917,8 +922,9 @@ git ls-remote --heads origin
   et celles de #293, #291, #290 et #289, les registres de #288, `6ed4441`, et la
   fusion de #288, `61a432b`). Ses branches sur GitHub sont `configure-clean` et
   `master` (`MATH-CORE` y est supprimée le 11 novembre à 22 h 01 UTC, sa
-  pointe `e80819a` dans `configure-clean`, à confirmer par le mainteneur :
-  `TODO_DONE.md` 8.1), avec les branches des pull requests ouvertes ; celles
+  pointe `e80819a` dans `configure-clean`, ce que le mainteneur confirme le 12
+  novembre : `TODO_DONE.md` 8.1), avec les branches des pull requests
+  ouvertes ; celles
   des pull requests jetables fermées (`experiment-pg*`, `todo-pg-xle-exfirst`)
   et de #279 (`todo-pg-relations-order`), de #301 (`todo-pt-verif`) et de #311
   (`fix-cstdint-include`) sont supprimées depuis le 11 novembre (`TODO_DONE.md`

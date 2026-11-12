@@ -79,8 +79,11 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   02 et de #292 à 10 h 08 (`130acea`) ; l'import de CORE-MATH `0b2ae6d1` est du
   27 octobre, voir 7.6 à 7.10). Les pull requests des corrections vont vers
   `configure-clean`, qui reste la branche de développement après v5.0.0 ;
-  `MATH-CORE` et `master` (GAOL 4.3.2, plus deux commits de `.claude/CLAUDE.md`)
-  ne bougent qu'à la version (point Y). Aucune pull request n'est ouverte. Le
+  `master` (GAOL 4.3.2, plus deux commits de `.claude/CLAUDE.md`) ne bouge qu'à
+  la version (point Y : `configure-clean` → `master`, *décidé le 12 novembre*,
+  `MATH-CORE` étant supprimée : 3.32). #312 est ouverte depuis le 12 novembre
+  (la CI sans `MATH-CORE`, `numbers` à 600 s sous ASan avec LLVM Clang sur
+  macOS 26, `compile_commands.json` hors de l'archive de CMake). Le
   mainteneur a fusionné #165 à #167, #169 à #174, #176 et #180 à #184
   les 23 et 24 octobre, et #186 à #194,
   #196 et #197 le 25 octobre, #199, #200 et #201
@@ -191,8 +194,9 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   débogage sont décidés par des tests de la configuration, les anciennes
   options restant des réglages des développeurs (`doc/building.md`).
 - **Branches** : GitHub a `configure-clean` et `master` (`MATH-CORE` y est
-  supprimée le 11 novembre à 22 h 01 UTC, sa pointe dans `configure-clean` :
-  8.1), avec les branches des pull requests ouvertes ; celles des pull requests jetables
+  supprimée le 11 novembre à 22 h 01 UTC, sa pointe dans `configure-clean`, ce
+  que le mainteneur confirme le 12 : 8.1), avec les branches des pull requests
+  ouvertes ; celles des pull requests jetables
   fermées (`experiment-pg*`, `todo-pg-xle-exfirst`) et les fusionnées sont
   supprimées depuis le 11 novembre (8.1), leurs commits restant sous
   `refs/pull/<n>/head` ; les branches fusionnées sont supprimées en local.
@@ -5818,6 +5822,21 @@ l'arbre (`origin/configure-clean` à `593ddf3`) avant d'être corrigé : les hui
 - **Les textes pour `doc/differences.md` et le `ChangeLog`** : dans `TODO.md`
   PJ.7.
 
+### 3.32 Le 12 novembre : la version va de `configure-clean` à `master`, sans `MATH-CORE`
+
+- **Le chemin** : une fois `configure-clean` fini, une pull request fusionne
+  `configure-clean` dans `master` (le jeu de règles « master verif » l'exige),
+  puis l'étiquette `v5.0.0` est posée sur `master` (point 34 de `TODO.md`).
+  Il remplace celui du 3 octobre (`configure-clean` dans `MATH-CORE`, puis
+  `MATH-CORE` dans `master`) : le mainteneur a supprimé `MATH-CORE` sur GitHub
+  le 11 novembre à 22 h 01 UTC, et le confirme le 12 (« supprime MATH-CORE et
+  mets le chemin configure-clean -> master pour la version »). Rien n'est
+  perdu : sa pointe sur GitHub, `e80819a` (la fusion de #30), et celle de
+  GAOL_V8, `7ade167`, sont des ancêtres de `configure-clean`.
+- **La CI** : les workflows ne tournent plus que sur un push vers `master` et
+  `configure-clean` (#312, ouverte le 12 novembre) ; `release.yml` part
+  toujours des étiquettes d'un commit de `master`.
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -7878,6 +7897,12 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   `configure-clean` dans `MATH-CORE`, puis dans `master`) passait par elle, à
   confirmer par le mainteneur. Restent sur GitHub `configure-clean` et
   `master`, et en local `configure-clean` et `master`.
+- [x] Le 12 novembre, le mainteneur confirme (« supprime MATH-CORE et mets le
+  chemin configure-clean -> master pour la version ») : la version va de
+  `configure-clean` à `master` (3.32, point 34 de `TODO.md`, `process.md`) ;
+  la branche locale `MATH-CORE` de GAOL_V8 est supprimée (sa pointe,
+  `7ade167`, est un ancêtre de `configure-clean`), et #312 retire `MATH-CORE`
+  des six workflows qui la nommaient et de la documentation.
 - [x] Lignes de crédit retirées des descriptions de #50, #51, #53 à #57 et #59,
   d'un commentaire de #59 et de cette issue. Il en reste dans les messages des
   commits a0d3871, 790ca12 et f1f4239 de #99, fusionnée sans squash. Retirées
