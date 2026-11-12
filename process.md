@@ -14,8 +14,9 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12. Dernière mise à jour : 12 novembre 2026, au
-commit `2b5e4f9` de `configure-clean` (la fusion de #314, après celle de #313,
-le commit direct `7528253`, la fusion de #312, le commit direct
+commit `1afb90a` de `configure-clean` (la fusion de #316, après celle de #315,
+le commit direct `7745279`, la fusion de #314, celle de #313, le commit direct
+`7528253`, la fusion de #312, le commit direct
 `f27c6c2`, celle de #309, le commit direct `be73e24` et celles de #311, de
 #310, de #308, de #307, de #306, de #305, de #302, de #301, de #300, de #298, de
 #299, de #297, de #296, de #295 et de #294, de #217 à #220, #222 à #225, #227 à
@@ -281,8 +282,9 @@ un est refusée, quel que soit son gain.
   mets-le à jour.
 - `numbers` est le test le plus long. Son délai est de 300 s
   (`GAOL_NUMBERS_TIMEOUT`), 400 s dans les jobs avec sanitizers de `linux.yml`
-  (109 à 287 s, et plus de 300 s une fois) et 600 s dans le job macOS 15 x86_64
-  GCC avec les sanitizers.
+  (109 à 287 s, et plus de 300 s une fois), 600 s dans le job macOS 26 arm64
+  LLVM Clang avec les sanitizers et 900 s dans le job macOS 15 x86_64 GCC avec
+  les sanitizers (#312).
 
 ## 6. Valider en local
 
@@ -904,13 +906,19 @@ git ls-remote --heads origin
   points : les textes qui citent macOS 14, un commentaire de `CMakeLists.txt`)
   à 12 h 31 UTC (`7949b41`, 2.3 et 3.33) et #314 (hors des points : les textes
   de #279 à #312 dans `doc/differences.md` et le `ChangeLog`, trois passages du
-  manuel avec son PDF) à 12 h 42 UTC (`2b5e4f9`, 2.3 et 7.30), par le
-  mainteneur ; l'entrée de #301,
+  manuel avec son PDF) à 12 h 42 UTC (`2b5e4f9`, 2.3 et 7.30), puis #315 (la
+  tâche PJ.1 : le rapport de couverture, 95,1 % des lignes de `gaol/`) à 15 h 20
+  UTC (`df680fe`) et #316 (la tâche PJ.2 : les temps remesurés, le manuel et son
+  PDF) à 15 h 30 UTC (`1afb90a`, 2.3, 3.34 et 7.31), par le mainteneur, avant la
+  fin de leur CI ; l'entrée de #301,
   #303 et #304
   dans `TODO_DONE.md` reste à écrire ; l'audit du 13
   octobre a vérifié dans `configure-clean` ce qu'annonçaient alors les points A,
   C à H et J à V.
-- **En cours** : au 12 novembre, aucune pull request n'est ouverte : #295 (PS.2
+- **En cours** : au 12 novembre, une pull request est ouverte, #317 (la suite de
+  #316 : les colonnes de Visual C++ et de clang-cl par une expérience de CI,
+  `x.midpoint()` ; `manual-pj-followups`, avec la branche d'expérience
+  `experiment-pj-vs-fpu`, à ne pas fusionner) ; #295 (PS.2
   ; `manual-neon-pown-text`), #296 (le cas (b) ; `manual-case-b-text`), #297 (la
   tâche PS ; `todo-ps-stale-texts`), #299 (PQ.2 ; `todo-pq-hexfloat-point`),
   #298 (PQ.1 ; `todo-pq-centered-form`), #300 (la recette de compilation croisée
@@ -921,10 +929,13 @@ git ls-remote --heads origin
   mainteneur, depuis `core-split-domains`), #311 (`fix-cstdint-include`) et
   #309 (`make dist` et Release ; `make-dist`), #312 (la CI sans `MATH-CORE`
   ; `ci-branches-timeout`), #313 (macOS 14 hors de la CI ;
-  `manual-macos-14-texts`) et #314 (la synthèse de #279 à #312 ;
-  `synthese-279-312`) sont fusionnées, leurs registres faits ;
-  `configure-clean` est au commit `2b5e4f9` (la fusion de #314, après celle de
-  #313, `7949b41`, le commit direct `7528253`, la fusion de #312, `269c12e`,
+  `manual-macos-14-texts`), #314 (la synthèse de #279 à #312 ;
+  `synthese-279-312`), #315 (PJ.1, la couverture ; `todo-pj-coverage`) et #316
+  (PJ.2, les mesures ; `manual-pj-measures`) sont fusionnées, leurs registres
+  faits ; `configure-clean` est au commit `1afb90a` (la fusion de #316, après
+  celle de #315, `df680fe`, le commit direct `7745279`, la fusion de #314,
+  `2b5e4f9`, après celle de #313, `7949b41`, le commit direct `7528253`, la
+  fusion de #312, `269c12e`,
   le commit direct `f27c6c2` et la fusion de #309, `dcce690`, après le commit
   direct `be73e24`, les fusions de #311, `d326846`, de #310,
   `d8c2699`, de #308, `13582c3`, de #307, `6ef18d7`, et de #306, `99229cc`,
@@ -949,8 +960,10 @@ git ls-remote --heads origin
   (`todo-ps-stale-texts`), de #302 (`todo-pp-div-rel-n1-m`), de #305
   (`friend-cleanup`), de #306 (`core-detail-header`), de #308 et #310
   (`core-split-domains`), de #309 (`make-dist`), de #312
-  (`ci-branches-timeout`), de #313 (`manual-macos-14-texts`) et de #314
-  (`synthese-279-312`) sont supprimées à leur fusion, comme celles de #287
+  (`ci-branches-timeout`), de #313 (`manual-macos-14-texts`), de #314
+  (`synthese-279-312`), de #315 (`todo-pj-coverage`) et de #316
+  (`manual-pj-measures`, supprimée le 12 novembre par la session) sont
+  supprimées à leur fusion, comme celles de #287
   (`pown-rel`) et de #288 (`compoundm1`), et `std-exceptions` et
   `revert-285-std-exceptions` depuis le 4 novembre. L'issue #198 (`x / y` des
   intervalles NEON avec `FPCR.AH`) est ouverte, sans tâche
@@ -959,12 +972,13 @@ git ls-remote --heads origin
   octobre*) : GitHub borne le corps d'une issue à 262 144 octets et le texte
   joint en fait plus de 270 000 (voir `TODO_DONE.md` 7.8).
 - **À faire**, dans l'ordre de `TODO.md` : les signalements à d'autres projets
-  (PH, avec l'accord du mainteneur), puis la version (PJ, qui reprend le
-  tableau de Clang 21, le manuel, la licence des cas d'IBEX et de Codac, sur
-  laquelle le mainteneur écrit aux auteurs (*décidé le 5 novembre* : #281), le
-  PDF du manuel, que #313 et #314 ont refait (387 pages) et qui n'est à refaire
-  que si les mesures de PJ changent le manuel (PJ.5), et les deux restes de
-  PJ.7 que #313 et #314 ont laissés : les notes périmées de
+  (PH, avec l'accord du mainteneur), puis la version (PJ, dont les mesures sont
+  faites par #315 et #316 (à refaire au commit de la version si le code change,
+  `TODO.md` PJ.1 et PJ.2), qui reprend la fusion de `configure-clean` dans
+  `master` et l'étiquette, l'annonce à Frédéric Goualard, la licence des cas
+  d'IBEX et de Codac, sur laquelle le mainteneur écrit aux auteurs (*décidé le 5
+  novembre* : #281), et les deux restes de PJ.7 que #313 et #314 ont laissés :
+  les notes périmées de
   `todo-notes/synthese.md` et un commentaire de `gaol_interval_core.h`).
   Ce qui est reporté (le 113, le site, les traits pour YalAA
   et VNODE-LP, les décorations, ce qui attend du matériel) est dans

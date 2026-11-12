@@ -1,7 +1,7 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 12 novembre
-2026 (commit `2b5e4f9` de `configure-clean`, la fusion de #314 : voir la section
+2026 (commit `1afb90a` de `configure-clean`, la fusion de #316 : voir la section
 1). Ce fichier fait foi : l'issue #177, qui avait le même contenu, n'est
 plus mise à jour depuis le 28 octobre (voir 7.8).
 
@@ -56,8 +56,10 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 
 ## 1. L'état au 12 novembre 2026
 
-- **`configure-clean`** est au commit `2b5e4f9` (la fusion de #314 le 12
-  novembre à 12 h 42 UTC, après celle de #313 à 12 h 31 UTC (`7949b41`), le
+- **`configure-clean`** est au commit `1afb90a` (la fusion de #316 le 12
+  novembre à 15 h 30 UTC, après celle de #315 à 15 h 20 UTC (`df680fe`), le
+  commit direct `7745279` (7.30), la fusion de #314 à 12 h 42 UTC (`2b5e4f9`),
+  celle de #313 à 12 h 31 UTC (`7949b41`), le
   commit direct `7528253` (3.33), la fusion de #312 à 7 h 53 UTC (`269c12e`),
   le commit direct `f27c6c2` (3.32), celle de #309
   le 11 novembre à 22 h 16 UTC, le commit direct `be73e24` (8.1), et celles de
@@ -84,8 +86,9 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   `configure-clean`, qui reste la branche de développement après v5.0.0 ;
   `master` (GAOL 4.3.2, plus deux commits de `.claude/CLAUDE.md`) ne bouge qu'à
   la version (point Y : `configure-clean` → `master`, *décidé le 12 novembre*,
-  `MATH-CORE` étant supprimée : 3.32). Aucune pull request n'est ouverte. Le
-  mainteneur a fusionné #165 à #167, #169 à #174, #176 et #180 à #184
+  `MATH-CORE` étant supprimée : 3.32). Une pull request est ouverte : #317 (la
+  suite de #316). Le mainteneur a fusionné #165 à #167, #169 à #174, #176 et
+  #180 à #184
   les 23 et 24 octobre, et #186 à #194,
   #196 et #197 le 25 octobre, #199, #200 et #201
   le 26 octobre, #202 à #205 le 27, #206 à #210, #212, #213, #215 et #216 le 28
@@ -140,7 +143,10 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   #313 (hors des points : les textes qui citent macOS 14 et un commentaire de
   `CMakeLists.txt`) à 12 h 31 UTC et #314 (hors des points : les textes de
   #279 à #312 dans `doc/differences.md` et le `ChangeLog`, trois passages du
-  manuel avec son PDF) à 12 h 42 UTC, par le mainteneur (2.3, 3.33 et 7.30).
+  manuel avec son PDF) à 12 h 42 UTC, par le mainteneur (2.3, 3.33 et 7.30),
+  puis #315 (PJ.1 : le rapport de couverture, 95,1 %) à 15 h 20 UTC et #316
+  (PJ.2 : les temps remesurés, le manuel et son PDF) à 15 h 30 UTC, par le
+  mainteneur, avant la fin de leur CI (2.3, 3.34 et 7.31).
   #168,
   #195, #211, #214, #221, #226 et #233 sont fermées sans fusion, et, du 30 et du
   31 octobre, #240, #241, #243, #244, #246, #247, #251 à #261, #277 et #278,
@@ -3280,6 +3286,83 @@ restent. `c339f23` : le PDF du manuel, 387 pages au lieu de 385 : le PDF commit�
   206 jobs, tous verts (Manual 1, Windows 64, Linux 49, Autotools and meson 49,
   Linux containers 23, macOS 20), le dernier terminé à 13 h 56 UTC.
   Décisions : 3.33.
+- #315 (la tâche PJ.1, le point 32 ; `todo-pj-coverage`, ouverte à 13 h 44 UTC,
+  un commit, deux fichiers, 247 lignes ajoutées et 70 retirées) : fusionnée par
+  le mainteneur à 15 h 20 UTC (`df680fe`, tête `847359b`). Le rapport de
+  couverture (`coverage/README.md` et `coverage/coverage.html`) refait au commit
+  `2b5e4f9`, sans aucune modification du code : GCC 15.2 et gcovr 7.2, `cmake -S
+  . -B build -DCMAKE_BUILD_TYPE=Debug -DWITH_TESTS=ON -DGAOL_COVERAGE=ON
+  -DGAOL_NUMBERS_TIMEOUT=3600` puis `CMAKE_BUILD_PARALLEL_LEVEL=4
+  CTEST_PARALLEL_LEVEL=4 cmake --build build --target coverage` (5 minutes en
+  tout) : 95,1 % des 6 423 lignes de `gaol/` (6 106 couvertes, 317 non exécutées
+  ; le 4 novembre, 94,3 % de 5 466), 68,4 % des branches prises dans les deux
+  sens (66,5 %), CORE-MATH 82,5 % de 8 172 lignes (82,4 %). Le compte de lignes
+  monte parce que `compoundm1` (808 lignes de `gaol_compoundm1.h`, couvert à
+  99,1 %) et `overlap` sont entrés et que `gaol/core/` est découpé par domaine
+  (36 fichiers de `gaol/`, dont 21 à 100 %) ; les moins couverts :
+  `gaol_expr_visitor.h` (9,1 %), `gaol_expr_eval.h` (87,3 %),
+  `gaol_expression.cpp` (89,6 %), `gaol_interval_sse_impl.h` (91,7 %). `numbers`
+  est dans le `ctest` de la cible (264,2 s, le délai de CTest étant de 300 s) :
+  47 tests sur 47 (`intervalf` et `interval2f` « Skipped » par construction). Et
+  sous ASan + UBSan, Debug avec les exemples, `ctest -j4` : 63 tests sur 63 en
+  216 s (`numbers` : 203,6 s), aucun message de sanitizer. Pas de relecteur
+  indépendant (un rapport produit par la cible). `check_branch` : OK. CI à la
+  tête `847359b` : Linux, Linux containers, Windows et macOS verts ; le job
+  `Meson, macOS 15 arm64` d'Autotools and meson annulé deux fois (87 minutes,
+  puis 34 après le `rerun-failed-jobs`) sans qu'aucune étape ait tourné : un
+  runner de macOS, non un échec de test (le même job a pris 3,7 minutes sur
+  `2b5e4f9`). CI du commit de fusion `df680fe` (push) : 13 jobs de macOS verts
+  et 7 annulés (sans doute par le push suivant, la fusion de #316, du même
+  groupe de `concurrency`), les autres workflows verts. Décisions : 3.34.
+- #316 (la tâche PJ.2, le point 33 ; `manual-pj-measures`, ouverte à 14 h 20
+  UTC, 9 commits dont une fusion de `configure-clean` à `7745279`, 21 fichiers,
+  1 340 lignes ajoutées et 1 322 retirées) : fusionnée par le mainteneur à 15 h
+  30 UTC (`1afb90a`, tête `d19272e`). Les temps de `doc/compare/performance.md`
+  remesurés au commit `2b5e4f9` (Clang 21.1.8, i7-1185G7, `CPU=2 ./run_bench.sh`
+  7 minutes et `./run_lines.sh` 3, le dossier `work/clang21` copié dans le
+  scratchpad, les deux GAOL du dépôt reconstruits par `FORCE_GAOL=1 ./setup.sh`,
+  les autres bibliothèques étant les compilations du 13 octobre) ; la prose de
+  `performance.md`, le tableau de `doc/compare/README.md` et le chapitre 12 du
+  manuel réécrits d'après les tableaux (`cos` de 54,0 à 40,5 ns par l'import de
+  CORE-MATH du 27 octobre : GAOL V5.0.0 est au niveau de filib++ sur `sin` et
+  devant sur `cos`, et le plus rapide de toutes les formules ; Shekel 5 de 108 à
+  84,5 ns) ; les lignes longues avec la colonne de la direction préservée sur
+  x86 ; le tableau ARM 64 bits et les chiffres de NEON mesurés par la session
+  distante du Mac M2 (`run_lines_arm64.sh`, puis `performance-ab.sh --runs 9`
+  FPU contre NEON, avec et sans préservation : les chiffres du 6 novembre
+  tiennent à 0,01 ns près) ; le tableau des options de x86 (FMA et SIMD,
+  meilleur de neuf passes : `cos` sans FMA 49,4 ns au lieu de 90,3, l'avantage
+  du FMA sur `cos` passe de 2,5 à 1,4 fois) ; la règle du chemin AVX-512 sur un
+  Xeon d'une machine virtuelle (la session distante du nuage : famille 6 modèle
+  173, GCC 13.3 et Clang 18.1.3, quatre séries de `performance-ab.sh --runs 9
+  --lines`) et sur l'i7 avec Clang 18.1.8 : la règle tient, les médianes sont
+  dans `doc/simd.md` et le chapitre 12 ; la date d'édition du manuel au 12
+  novembre (`configure.ac`, `configure` régénéré par `autoconf` 2.72,
+  `CMakeLists.txt`, `manual/meson.build`) ; le PDF du manuel refait (387 pages,
+  0 erreur de TeX, les 7 « Overfull » de moins de 4,1 pt). Les chiffres du bloc
+  « The rounding direction and the control registers » : armhf lus dans le job «
+  Rounding direction preserved, armhf » de `2b5e4f9` (49 → 22,5 ns, 63 → 38, 721
+  → 318 : ceux du texte), x86 par une boucle (GCC 15.2, SSE2 préservé : 1,50 et
+  2,32 ns vers le haut, 8,43 et 8,56 vers le plus proche), `x.midpoint()` (17,5
+  ns plutôt que 27,9) non reproduit (13,2 ns, 8,6 vers le haut). Un relecteur
+  indépendant (un sous-agent, sonnet : 209 000 tokens et 11 minutes, malgré un
+  plafond de 60 000 écrit dans son prompt) n'a trouvé aucun chiffre faux dans
+  les textes réécrits, et une dizaine de textes périmés que les recherches
+  avaient manqués, corrigés dans `2942f74` (`pow(x, 3)` « 5,4 plutôt que 17,4 »
+  du chapitre 2, la racine carrée du chemin AVX-512 3,75 contre 6,30, la
+  fourchette « 0,6 à 1,5 fois », deux phrases `pow(x, 3)` de `differences.md` et
+  du chapitre 15, la version de Clang 18 de l'i7, deux médianes arrondies d'une
+  unité) ; en vérifiant ses médianes, la conclusion sur les lignes longues du
+  Xeon a été corrigée (il perd un peu moins que l'i7 sur les lignes, plus sur
+  les opérations). `CHECK_BRANCH_PDF=1 check_branch` : OK. CI à la tête
+  `d19272e` : Linux, Linux containers, Windows, Manual, Performance et Release
+  verts (le job Performance mesure la base et la pull request : le code est le
+  même) ; trois jobs de macOS (`Meson, macOS 15 arm64, rounding direction
+  preserved`, `macOS 15 universal`, `macOS 15 arm64`) annulés par GitHub avant
+  d'avoir tourné, la pull request étant fusionnée entre-temps. Décisions : 3.34.
+- #317 (la suite de #316, ouverte à 17 h 08 UTC ; `manual-pj-followups`, quatre
+  commits, huit fichiers) : ouverte à la fin de ce relevé, décrite ici quand
+  elle sera fusionnée (3.34).
 
 ### 2.4 Fermées sans fusion
 
@@ -5978,6 +6061,72 @@ lecture de `process.md`, de `TODO.md` et de `TODO_AFTER.md` du jour) :
   `core_math_log_dint.h` (#313), et les textes de #279, #281, #85, #306, #308,
   #309 et #312 pour `doc/differences.md` et le `ChangeLog` (#314), PJ.6 et PJ.7.
 
+### 3.34 Le 12 novembre : les tâches PJ.1 et PJ.2 (#315, #316 et #317)
+
+Le mainteneur lit `process.md` et les trois registres, et demande de traiter
+PJ.1 (le point 32 : la couverture) et PJ.2 (le point 33 : les temps), en prêtant
+deux sessions distantes, MACarm5 (un Mac M2, macOS 27.0.1, Apple clang 21.0.0)
+et cloud5 (un Xeon de famille 6 et modèle 173 d'une machine virtuelle de 4 vCPU,
+Ubuntu 24.04, GCC 13.3 et Clang 18.1.3, sans Clang 21 ni gcovr) : leur demander
+d'abord leurs caractéristiques techniques, accuser réception de chaque message,
+puis répartir le travail.
+
+- **Le partage** : l'i7 mesure le banc, les lignes longues, les options de x86
+  et la couverture, une seule chose à la fois et la machine au repos (le banc,
+  `performance-ab.sh`, la couverture et les sanitizers se suivent, jamais en
+  parallèle) ; MACarm5 mesure le tableau des lignes longues ARM 64 bits
+  (`run_lines_arm64.sh`) puis les chiffres de NEON (`performance-ab.sh --runs 9
+  --lines`, FPU contre NEON, avec et sans préservation) ; cloud5 mesure la règle
+  du chemin AVX-512 (quatre séries : GCC 13.3 et Clang 18.1.3, direction non
+  préservée et préservée, SSE2 contre chemin AVX-512). Chaque session répond par
+  un message « RÉSULTATS » par résultat, que la session accuse (cloud5 ne peut
+  pas répondre à la session par le nom : ses messages arrivent par le serveur
+  MCP distant ; son conteneur a été redémarré une fois en cours de travail, les
+  fichiers ont survécu). Aucun des deux n'a rien commité ni poussé.
+- **Les pièges de la mesure** : `performance-ab.sh` ne se lance pas sous
+  `taskset` (il épingle aussi les compilations de CMake : un build de 4 minutes
+  sur un cœur) ; on ne tue pas ses propres jobs par `pkill -f` (refusé par la
+  politique de la session), mais par `kill -TERM -- -<groupe>` ; un dossier
+  `work/clang21` copié se rebranche en réécrivant `work/filib-dir` et en
+  supprimant `gaol-build` et `gaol-preserve-build` ; le meilleur de neuf passes
+  (le tableau des options) se lit dans les fichiers `perf-before-N.md` et
+  `perf-after-N.md`, la médiane dans la sortie de `compare-performance.py`.
+- **Les réponses du mainteneur** à la question « as-tu des questions ? » (quatre
+  questions, quatre réponses chacune) : (1) les colonnes de Visual C++ et de
+  clang-cl (les rapports avant/après des noyaux de l'ancien code FPU, run
+  39817973814, que ces compilateurs n'utilisent plus) : *une expérience de CI* ;
+  (2) `x.midpoint()` « 17,5 ns plutôt que 27,9 » : *la valeur actuelle*, 13,2
+  ns, le « plutôt que » retiré ; (3) l'ordre de fusion de #315 et de #316 : il
+  avait déjà fusionné les deux (« ouvre une nouvelle pull request si nécessaire
+  ») ; (4) l'écart de 15 à 30 % des temps de `gaol_performance` : *chercher la
+  cause*.
+- **L'expérience de CI** (#317) : la branche `experiment-pj-vs-fpu`, **à ne pas
+  fusionner**, a un seul fichier de workflow,
+  `.github/workflows/experiment-fpu-simd.yml`, qui se lance sur un push de cette
+  branche (`on: push: branches:`) : un push vers une branche autre que `master`
+  et `configure-clean` ne lance que les workflows qui la nomment, ni pull
+  request ni les 200 jobs des autres. Le jeton de `gh` n'a pas la portée
+  `workflow` (`gist`, `read:org`, `repo`) : le fichier se pousse par SSH (`git
+  push git@github.com:Jordan08/GAOL.git <branche>`). Sept jobs de Visual Studio
+  2026 (Visual C++ x86, x86 avec la direction préservée, x64 et arm64, clang-cl
+  x86, x64 et arm64) font `performance-ab.sh --runs 5 --lines --options …
+  --before-options -DGAOL_SIMD=OFF` : le run 43264694580 les voit tous verts, et
+  les intervalles par défaut (SSE2 et NEON) sont plus rapides dans 54 des 56
+  cases (de 1,01 à 4,34 fois), les deux autres étant le quotient (0,97) et la
+  différence (0,99) de Visual C++ x86 avec la direction préservée. Le tableau
+  est dans `doc/using.md` et le chapitre 4 du manuel, l'ancien reste comme
+  historique.
+- **L'écart des temps de `gaol_performance`** : un A/B de `performance-ab.sh
+  --runs 9` entre `491d713^` (le 17 octobre, avant l'écriture du tableau des
+  options) et `2b5e4f9`, construits et mesurés en alternance dans la même
+  séance, donne le même temps à 3 % près sur l'arithmétique (`x + y` 1,22 contre
+  1,24 ns, `x * y` 2,46 contre 2,39, `x / y` 2,71 contre 2,73, la ligne de 13
+  opérations 20,70 contre 20,43) : l'écart de 15 à 30 % est celui de la machine
+  du jour. Le code a changé de trois façons : `cos` 1,21 fois plus rapide
+  (CORE-MATH), `x.midpoint()` 1,30 fois, `sqrt` plus lent de 10 % (17 % dans le
+  banc de `doc/compare` ; dispersion de 1,18 : trop bruité pour une bissection,
+  cause non isolée). Deux jours ne se comparent qu'avec un A/B.
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -7974,6 +8123,22 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   relecteur sonnet a coûté 185 000 tokens malgré un plafond de 60 000 écrit
   dans son prompt (`feedback-gaol-agent-token-budget`).
 
+### 7.31 Le 12 novembre (après #316 : les registres)
+
+- Les registres de #315 et de #316 sont faits en un commit direct sur
+  `configure-clean`, depuis un clone du scratchpad (`git clone --shared`, poussé
+  par https avec le jeton de `gh`) : `TODO.md` (l'en-tête, la pull request
+  ouverte, la table, PJ.1 à PJ.5 : les points 32 et 33 sont faits, il reste PJ.3
+  à PJ.7), ce fichier (l'en-tête, 1, 2.3, 3.34, 7.31 et 8.1), `process.md`
+  (l'en-tête, le délai de `numbers` du §5 et le §12) et l'issue #179 ;
+  `TODO_AFTER.md` n'a rien de nouveau. Le mainteneur a fusionné #315 puis #316
+  avant la fin de leur CI : les jobs de macOS qui attendaient un runner ont été
+  annulés, et sept jobs de macOS sur vingt du commit de fusion de #315 ont été
+  annulés (sans doute par le push suivant, du même groupe de `concurrency`). La
+  CI du commit `1afb90a` n'a
+  lancé aucun run (vérifié par l'API) : le code de `gaol/` n'a de toute façon
+  pas changé depuis `2b5e4f9`, dont la CI a été verte (206 jobs).
+
 ## 8. Le ménage fait
 
 ### 8.1 Branches, lignes de crédit, outillage
@@ -8211,6 +8376,15 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   disparu) que la session n'a pas créée, et que le mainteneur a sans doute
   extraite pour relire la pull request : elle se supprime par `git branch -d`
   quand il le veut, la session n'y touche pas. GAOL_V8 n'en a pas.
+
+- [x] Celle de #315 (`todo-pj-coverage`), sur GitHub (supprimée à la fusion) ;
+  celle de #316 (`manual-pj-measures`), qui ne l'avait pas été, supprimée le 12
+  novembre par la session après avoir vérifié qu'elle est contenue dans
+  `configure-clean` ; celles de #317 (`manual-pj-followups`) et de l'expérience
+  de CI (`experiment-pj-vs-fpu`, un seul fichier de workflow : à supprimer quand
+  le mainteneur le dit, le run 43264694580 et ses journaux restent) sont
+  ouvertes. Les clones du scratchpad et leurs builds, comme la copie du dossier
+  `work/clang21` de `doc/compare/code`, disparaissent avec la session.
 
 ### 8.2 Les branches inachevées
 

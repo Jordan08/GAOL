@@ -1,8 +1,10 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `2b5e4f9` de `configure-clean` (la
-fusion de #314, hors des points, le 12 novembre 2026 à 12 h 42 UTC, après celle
-de #313, hors des points, à 12 h 31 UTC, le commit direct `7528253`, la fusion
+Ce qui reste à faire sur GAOL v5 au commit `1afb90a` de `configure-clean` (la
+fusion de #316, la tâche PJ.2, le 12 novembre 2026 à 15 h 30 UTC, après celle de
+#315, la tâche PJ.1, à 15 h 20 UTC, le commit direct `7745279`, la fusion de
+#314, hors des points, à 12 h 42 UTC, celle de #313, hors des points, à 12 h 31
+UTC, le commit direct `7528253`, la fusion
 de #312, hors des points, à 7 h 53 UTC, le commit direct `f27c6c2`, celle de
 #309, hors des points, le 11 novembre à 22 h 16 UTC, le commit direct `be73e24`
 et celles de #311, de #310 et de #308, hors des points, de #307 et de #306,
@@ -22,7 +24,9 @@ dans les trois registres, dont les tâches PS (faite par #297), PT (faite par
 Aucune borne fausse n'est connue, sauf peut-être pour un programme qui met
 lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des intervalles NEON, cause
 non trouvée). Rien n'est à envoyer à un autre projet ni à publier sans l'accord
-du mainteneur. Aucune pull request n'est ouverte. #295 (PS.2), #296 (PM), #297
+du mainteneur. Une pull request est ouverte : #317 (la suite de #316, PJ.2 : les
+colonnes de Visual C++ et de clang-cl, `x.midpoint()`). #295 (PS.2), #296 (PM),
+#297
 (la tâche PS), #299 (PQ.2), #298 (PQ.1), #300 (hors des points : la recette de
 compilation croisée GCC 12.2 pour aarch64 de `todo-notes/gcc12-aarch64/`) et
 #301 (la tâche PT) sont fusionnées le 8 novembre, à 17 h 21, 17 h 29, 19 h 38,
@@ -45,7 +49,11 @@ des points : les textes qui citent macOS 14, PJ.6, et un commentaire de
 `CMakeLists.txt`, PJ.7) à 12 h 31 UTC et #314 (hors des points : les textes de
 #279, #281, #85, #306, #308, #309 et #312 dans `doc/differences.md` et le
 `ChangeLog`, trois passages du manuel avec son PDF, PJ.7) à 12 h 42 UTC, par le
-mainteneur ; leurs registres sont faits.
+mainteneur ; leurs registres sont faits, puis #315 (PJ.1 : le rapport de
+couverture, 95,1 % des lignes de `gaol/`) à 15 h 20 UTC et #316 (PJ.2 : les
+temps remesurés, le manuel et son PDF) à 15 h 30 UTC, par le mainteneur, alors
+que leur CI attendait des runners de macOS ; leurs registres sont faits ici
+(`TODO_DONE.md` 2.3, 3.34 et 7.31).
 
 ## Comment lire ce fichier
 
@@ -78,7 +86,8 @@ mainteneur ; leurs registres sont faits.
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
 | PH | Les signalements à d'autres projets | #125 à #138, #175 | accord |
-| PJ | Les mesures et la publication de v5.0.0 | 32 à 34, 71, manuel, CI | M |
+| PJ | La publication de v5.0.0 (les mesures sont faites : #315, #316) | 34, 71,
+manuel, CI | S |
 
 ## PH. Les signalements à d'autres projets [attend l'accord du mainteneur]
 
@@ -190,90 +199,56 @@ correctif 8 « à écrire » (#144 l'a écrit, `3rd/README.md`).
    PJ, point 71) ; l'issue est fermée depuis le 18 octobre et le brouillon est
    dans Gmail.
 
-## PJ. Les mesures et la publication de v5.0.0 (Y) [M, dans cet ordre]
+## PJ. La publication de v5.0.0 (Y) [S, dans cet ordre]
 
 En dernier : elle suppose les corrections faites et les études de PG faites
 (*décidé le 19 octobre*).
 
-1. **32** : le rapport de couverture ([coverage/README.md](coverage/README.md)
-   et `coverage/coverage.html`) a été refait le 4 novembre à `2313e07` (94,3 %
-   des 5 466 lignes de `gaol/`, contre 87,2 % le 2026-09-27 à `605728e`), à la
-   demande du mainteneur, avec la tâche PL (*décidé le 4 novembre*) : l'ancien
-   citait `gaol_exceptions.*` et des fichiers disparus. Le job « Coverage » de
-   `linux.yml` le refait à chaque push, mais pas la copie du dépôt (94,9 % de
-   6 329 lignes dans celui de #288, où `compoundm1` est entrée). À refaire une
-   dernière fois au commit de la version (`-DGAOL_COVERAGE=ON`, cible
-   `coverage`, gcovr) et à enregistrer ; *décidé le 15 octobre* : pas avant,
-   sauf ce relevé du 4 novembre. Le test `numbers` y dépasse les 300 s de CTest
-   quand la machine est chargée (`ctest --timeout` ne les change pas) : le
-   relevé du 4 novembre a lancé `ctest -E '^numbers$'`, puis `gaol_test_numbers`
-   à la main. Lancer aussi une fois, sous ASan + UBSan, le test `numbers` en
-   entier (trop long pour la relecture du 14 octobre : 158 s pour `arithmetic`
-   seul) : fait en local le 4 novembre, en Debug, 9 tests sur 9 ; à relancer au
-   commit de la version si `numbers` ou la bibliothèque ont changé depuis ;
-   `GAOL_NUMBERS_TIMEOUT` n'était pas relevé pour les builds avec sanitizers
-   (*décidé le 14 octobre*) ; il vaut 400 s dans les quatre jobs de `linux.yml`
-   qui en ont, depuis #281 (*décidé le 3 novembre* : `numbers` a dépassé 300 s
-   une fois, dans le job Clang x86_64).
-2. **33** : les temps de
-   [doc/compare/performance.md](doc/compare/performance.md), remesurés le 17
-   octobre (`febd2b1`, `a055160`), sa colonne « rounding direction preserved »
-   le 18 (`7fd5c09`), avec Clang 21 sur l'i7-1185G7 ; les études de PG, faites,
-   les ont changés. *Décidé le 30 octobre* : le tableau de Clang 21 de
-   `doc/compare/performance.md` et de `process.md` §4.11 se remesure ici, et
-   seulement ici (sur l'i7-1185G7 avec Clang 21, la base d'avant #232 avait
-   `line of 15 +` à 22,4 ns et la base avec elle à 13,2 ; `x &= y`, que #234
-   ralentit avec Clang 21 (rapport 0,92, accepté le 29 octobre) ; `max` et
-   `min`, `x * y`, `inverse()`, `interval(l, r)` et `x <= y` ont changé de noyau
-   ou de disposition depuis). À remesurer en dernier, sur le commit propre de la
-   version, la machine ne faisant rien d'autre (`doc/compare/code/run_bench.sh`,
-   ou `make perf`), puis reprendre le tableau de `doc/compare/README.md` :
-   `performance.md` cite encore l'amont de CORE-MATH `6b84457`, et l'import du
-   27 octobre (`0b2ae6d1`) a réécrit `sin`, `cos` et d'autres fonctions, dont
-   les temps peuvent changer (*décidé le 27 octobre* : dans PJ). Les temps pris
-   sur une machine non au repos (#158, les racines d'un x sous-normal) sont à
-   refaire ici si on les cite. Refaire aussi, au même commit, les colonnes de
-   Visual C++ et de clang-cl pour x86 et pour arm64 de `doc/using.md` (« The FPU
-   intervals ») et de `doc/three-builds.md` : elles ont été mesurées avec les
-   intervalles FPU, avant #192 et #193 (une phrase le dit), et ces compilateurs
-   ont maintenant SSE2 et NEON. *Décidé le 25 octobre* (#192, #193) : à la fin.
-   Refaire aussi, au même commit, le tableau des lignes longues sur un
-   processeur ARM de 64 bits, à la fin de `performance.md`
-   (`doc/compare/code/run_lines_arm64.sh` sur un Mac M2 sur secteur, sans mode
-   économie d'énergie, au repos) : #216 l'a ajouté avec une première mesure du
-   28 octobre (*décidé le 28 octobre*). Refaire enfin, au même commit, la mesure
-   de la règle du chemin AVX-512 de `doc/simd.md` (il suit
-   `GAOL_PRESERVE_ROUNDING`, seuil d'un gain médian de 5 %, mesuré le 26 octobre
-   sur le seul i7-1185G7, dont l'AVX-512 est à demi-largeur ; *remesuré le 7
-   novembre par #294* sur le même processeur, Clang 21.1.8, médiane de 9
-   passes : la règle tient, 0,83 sans préservation et 2,87 avec, et
-   `doc/simd.md`, `doc/using.md`, `CMakeLists.txt` et les chapitres 4 et 12 du
-   manuel portent les chiffres du 7 novembre), sur une machine à AVX-512 pleine
-   largeur si le mainteneur en donne l'accès (un Xeon, un Zen 4) :
-   `.github/scripts/performance-ab.sh --runs 9 --lines`, quatre builds de la
-   même source ; corriger la règle et `doc/simd.md` si le résultat diffère (et
-   le manuel, PJ.5). *Décidé le 26 octobre* : avec les mesures de PJ, pas
-   avant ; reste donc la machine à pleine largeur. Au même commit, les
-   chiffres que la synthèse de PI a gardés en les renvoyant à PJ (#264, #266,
-   #267 et #280) sont à remesurer ou à vérifier dans `doc/differences.md` et
-   le `ChangeLog` : ceux de #150, #218, #210, #209 et #62 (le bloc « The
-   rounding direction and the control registers »), ceux de NEON de #146, qui
-   viennent de trois sources à remesurer ensemble (#146, `doc/three-builds.md`
-   et `doc/compare/performance.md`), et ceux de l'armhf sans
-   `GAOL_PRESERVE_ROUNDING` (`doc/using.md`), que seul le job « Rounding
-   direction preserved, armhf » de `containers.yml` mesure. Lancer enfin
-   `doc/compare/code/run_lines.sh` en entier sur l'i7-1185G7 : sa colonne
-   `gaol5p` (#216) n'a jamais tourné sur x86 (`results_lines.csv` n'a aucune
-   ligne `gaol5p`, `results_lines_arm64.csv` en a 30). Le cas N1 M de
-   `div_rel()` en SSE2 (#302) n'a aucune ligne du banc : sa mesure (avec Clang
-   18, de 12,97 ns avant à 11,01 après ; avec GCC 13.3, de 11,76 à 11,59 ; sur
-   une machine virtuelle) a été refaite sur l'i7-1185G7 le 9 novembre par un
-   petit programme à part (`TODO_DONE.md` 7.25) : aucun gain mesurable (la
-   branche contre la base, de -3,9 % avec Clang 18 à +2,5 % avec Clang 21, dans
-   le bruit), et les 15 % de Clang 18 ne se reproduisent pas. *Décidé le 12
-   novembre* : le cas P1 M de `div_rel()`
-   (`gaol/core/gaol_interval_sse_impl.h`), qui calcule deux `_mm_div_sd` de
-   même numérateur, reste tel quel (`TODO_AFTER.md` 3.9).
+1. **32** : *fait par #315* (fusionnée le 12 novembre à 15 h 20 UTC, `df680fe`)
+   : le rapport de couverture ([coverage/README.md](coverage/README.md) et
+   `coverage/coverage.html`) refait au commit `2b5e4f9` : 95,1 % des 6 423
+   lignes de `gaol/` (contre 94,3 % des 5 466 le 4 novembre ; les fichiers de
+   `gaol/core/` sont découpés par domaine depuis #308), 68,4 % des branches
+   prises dans les deux sens, CORE-MATH 82,5 %. Le test `numbers` est entré dans
+   la cible `coverage` (264 s ; `-DGAOL_NUMBERS_TIMEOUT=3600` pour ce relevé, le
+   délai de CTest étant de 300 s) et il a tourné en entier sous ASan + UBSan, en
+   Debug avec les exemples : 63 tests sur 63 en 216 s (`numbers` : 204 s), aucun
+   message de sanitizer. À refaire au commit de la version si `gaol/` change (5
+   minutes ; *décidé le 15 octobre* : pas avant ce relevé). `TODO_DONE.md` 2.3
+   et 3.34.
+2. **33** : *fait par #316* (fusionnée à 15 h 30 UTC, `1afb90a`) *et #317*
+   (ouverte, la suite). Les tableaux de
+   [doc/compare/performance.md](doc/compare/performance.md) (le banc, les lignes
+   longues avec la colonne de la direction préservée, qui n'avait jamais tourné
+   sur x86, et le tableau ARM 64 bits d'un Mac M2), le tableau de
+   `doc/compare/README.md`, le chapitre 12 du manuel, les chiffres de NEON de
+   #146 (`doc/three-builds.md`, `doc/simd.md`, `doc/differences.md`, chapitres 2
+   et 15), le tableau des options de x86 (FMA, SIMD) et la règle du chemin
+   AVX-512 (sur un Xeon d'une machine virtuelle, GCC 13.3 et Clang 18 : la règle
+   tient, l'attente d'une perte moindre à pleine largeur ne se vérifie pas) sont
+   remesurés au commit `2b5e4f9` avec Clang 21 sur l'i7-1185G7, le Mac M2 et le
+   Xeon prêtés par deux sessions distantes ; le PDF du manuel est refait (387
+   pages) et la date d'édition passe au 12 novembre. Les chiffres du bloc « The
+   rounding direction and the control registers » : ceux de l'armhf sont ceux du
+   job « Rounding direction preserved, armhf » de `containers.yml` sur `2b5e4f9`
+   (49 → 22,5 ns, 63 → 38, 721 → 318), ceux de x86 sont vérifiés par une boucle
+   (1,5 et 2,3 ns vers le haut, 8,4 et 8,6 vers le plus proche), et
+   `x.midpoint()` (17,5 ns plutôt que 27,9) n'est pas reproduit : *décidé le 12
+   novembre* : 13,2 ns, dans #317. Les colonnes de Visual C++ et de clang-cl de
+   « The FPU intervals » (`doc/using.md`) : *décidé le 12 novembre* : une
+   expérience de CI, dans #317 (le run 43264694580 : les intervalles par défaut
+   plus rapides dans 54 cases sur 56). Reste, après #317 : la branche
+   d'expérience `experiment-pj-vs-fpu` à supprimer (l'accord du mainteneur) ;
+   `sqrt` est plus lent de 10 à 17 % qu'au 17 octobre (cause non isolée : le
+   banc est trop bruité pour une bissection) ; tout est à refaire au commit de
+   la version si le code change (25 minutes, avec le Mac M2 sur secteur et un
+   Xeon à AVX-512). Les temps de `gaol_performance` sont de 15 à 30 % plus longs
+   qu'au 17 octobre sur la même machine, pour le même code (un A/B dans une même
+   séance : `x + y` 1,22 ns contre 1,24) : deux jours ne se comparent qu'avec un
+   A/B. *Décidé le 12 novembre* : le cas P1 M de `div_rel()`
+   (`gaol/core/gaol_interval_sse_impl.h`), qui calcule deux `_mm_div_sd` de même
+   numérateur, reste tel quel (`TODO_AFTER.md` 3.9). `TODO_DONE.md` 2.3, 3.34 et
+   7.31.
 3. **34** : les recettes FetchContent récupèrent GAOL 4 : `doc/using.md`, le
    manuel et `tests/fetch_content` prennent la branche `master` de
    `Jordan08/GAOL`, et le `git clone` de `doc/building.md` la branche par
@@ -335,9 +310,11 @@ En dernier : elle suppose les corrections faites et les études de PG faites
    commitent jamais. La date
    d'édition (`GAOL_V5_UPDATED` de `configure.ac`, de `configure` et de
    `manual/meson.build`) reste le 6 novembre 2026 (*décidé le 7 novembre*). Le
-   PDF est à jour avec sa source : à refaire seulement si les mesures de ce
-   point changent le manuel (dans la pull request qui les change, comme #294),
-   la date d'édition étant alors à remettre à jour. *Décidé le 3 octobre*, pour
+   PDF est à jour avec sa source : refait par #316 (387 pages, date d'édition du
+   12 novembre) et par #317 (389 pages) ; à refaire seulement si des mesures ou
+   des textes changent le manuel (dans la pull request qui les change, comme
+   #294), la date d'édition étant alors à remettre à jour. *Décidé le 3
+   octobre*, pour
    les points 7 et 10 : un seul `\newinvfive` dans l'entrée `hausdorff` du
    manuel, et aucun sur la phrase du domaine de `atanh`.
 6. **Les textes qui citent macOS 14** : *fait par #313* (fusionnée le 12
