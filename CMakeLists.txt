@@ -1454,12 +1454,13 @@ install(TARGETS gaol EXPORT gaolTargets
 # gaol/meson.build install the same ones. Not the headers of the sources of
 # GAOL only (GAOL v5): gaol/parser/gaol_interval_parser.h, which did not
 # compile when included, the parts of the library (gaol_init_cleanup.h,
-# math/gaol_core_math.h, math/gaol_u128.h, math/gaol_compoundm1.h, and the
+# math/gaol_core_math.h, math/gaol_u128.h, math/gaol_compoundm1.h, the header
+# that the sources of core/ share, core/gaol_interval_internal.h, and the
 # operations of each kind of intervals, core/*_impl.h, which
 # core/gaol_interval_core.cpp includes, and their kernels that the other
 # sources take inline, core/*_kernels.h), what
 # CORE-MATH's sources need to compile within GAOL (math/gaol_core_math_port.h,
-# core_math_log_dint.h, math/gaol_ldexp.h, math/gaol_roundeven.h), the bounds
+# math/gaol_ldexp.h, math/gaol_roundeven.h), the bounds
 # at doubles, *_dn() and *_up(), which are not part of GAOL's interface
 # (math/gaol_double_op.h), and the intervals of floats, which only a developer
 # of GAOL compiles (see gaol/gaol_config.h)
