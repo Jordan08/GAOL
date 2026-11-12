@@ -61,7 +61,9 @@ GAOL v5). The badges of
     RISC-V), where GCC 14 raised the invalid-operation flag for an empty
     operand when the equal bounds were found by `==`
     (`tests/rounding_direction.cpp`).
-- **macOS:** 14, 15 and 26, on arm64 and x86_64 (natively or under Rosetta), a
+- **macOS:** 15 and 26, on arm64 and x86_64 (natively or under Rosetta), 27 on
+  arm64 (on the runner labelled `xcode-27`; there is no job of macOS 27 on
+  x86_64 under Rosetta, GitHub having no runner for it), a
   universal build (arm64 and x86_64, GAOL v5: the macros of each part, the tests
   of the arm64 part natively and the test programs of the x86_64 part under
   Rosetta, and the intervals each part says it has) with CMake, with autotools

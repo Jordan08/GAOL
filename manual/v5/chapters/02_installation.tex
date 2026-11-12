@@ -478,11 +478,11 @@ its meson build, and the CMake build gives the same, apart from the errors corre
   \option{/arch:AVX2} with Visual C++ for x64, not for 32-bit x86, where it
   broke the rounding direction; \option{-mfpu=neon-vfpv4 -mfloat-abi=hard} on
   32-bit ARM. The check that the machine runs them matters even when it is
-  not a cross-compilation: under Rosetta on macOS 14, which has no AVX, the
-  x86\_64 tests stopped on an illegal instruction. The exact products of GAOL
-  (\code{fma\_once()}) and the functions of CORE-MATH then compute
-  \code{fma()} with one instruction rather than with a call to the math
-  library: on an Intel i7-1185G7 with Clang 21.1, \code{pow(x, 3)} of an
+  not a cross-compilation: under Rosetta on macOS 14 (no longer in the CI),
+  which had no AVX, the x86\_64 tests stopped on an illegal instruction. The
+  exact products of GAOL (\code{fma\_once()}) and the functions of CORE-MATH
+  then compute \code{fma()} with one instruction rather than with a call to
+  the math library: on an Intel i7-1185G7 with Clang 21.1, \code{pow(x, 3)} of an
   interval takes 5.4~ns rather than 17.4, \code{sin} 1.3 times less and
   \code{cos} 2.5 times less (\pxref{sec:install-options-worth}). The code
   using GAOL is given the flag too (\code{gaol::gaol}, \file{gaol.pc}), and
