@@ -214,7 +214,10 @@ ou les textes ont changé depuis : le rapport de couverture (`coverage/`, 5
 minutes), les mesures de PJ.2 (25 minutes, avec le Mac M2 sur secteur et un Xeon
 à AVX-512 ; `sqrt` y est plus lent de 10 à 17 % qu'au 17 octobre, cause non
 isolée) et le PDF du manuel, avec la date d'édition (dans la pull request qui
-change les mesures ou les textes, comme #294).
+change les mesures ou les textes, comme #294). *Vérifié le 12 novembre* à
+`0ae1840` : rien n'est à refaire, `gaol/` n'ayant changé depuis #315 et #316
+que d'un commentaire (#318) et les sources du manuel pas depuis son PDF
+(`TODO_DONE.md` 3.36).
 
 3. **34** : les recettes FetchContent récupèrent GAOL 4 : `doc/using.md`, le
    manuel et `tests/fetch_content` prennent la branche `master` de
@@ -226,12 +229,21 @@ change les mesures ou les textes, comme #294).
    `configure-clean` fini, fusionner `configure-clean` dans `master` (qui a deux
    commits de plus, `577c850` et `406d850`, ceux de `.claude/CLAUDE.md` que
    `configure-clean` a par `68fe887` et `195e4a2` : une vraie fusion, sans
-   différence de contenu), puis étiqueter `v5.0.0`. *Décidé le 12 novembre* :
-   les recettes FetchContent (`doc/using.md`, le manuel, `tests/fetch_content`)
-   et le `git clone` de `doc/building.md` visent `master` tout le temps, avant
-   comme après l'étiquette, pour avoir la dernière version de GAOL ; elles ne
-   citent donc jamais `v5.0.0`, et rien n'est à y changer à la publication
-   (elles disent déjà `GIT_TAG master`). *Vérifié le 8
+   différence de contenu), puis étiqueter `v5.0.0`. *Décidé le 12 novembre au
+   soir* (`TODO_DONE.md` 3.36) : le mainteneur ouvre et fusionne lui-même cette
+   pull request, la session ne l'ouvre pas ; une fois la fusion faite, et sur
+   son mot seulement, la session pose sur le commit de fusion l'étiquette
+   `v5.0.0`, annotée comme `v4.3.2`, qui lance `release.yml` : la GitHub
+   Release, avec les notes que génère GitHub et les trois paquets (`.deb`,
+   `.pkg` de macOS, `.exe` de Windows) ; aucune date ne change, et rien n'est
+   gardé de l'ancien `master` (pas de branche `gaol-4`, les étiquettes `v4.*`
+   suffisent). La fusion d'essai (`git merge-tree`, le 12 novembre à `0ae1840`)
+   est sans conflit et donne l'arbre de `configure-clean`. *Décidé le 12
+   novembre* : les recettes FetchContent (`doc/using.md`, le manuel,
+   `tests/fetch_content`) et le `git clone` de `doc/building.md` visent `master`
+   tout le temps, avant comme après l'étiquette, pour avoir la dernière version
+   de GAOL ; elles ne citent donc jamais `v5.0.0`, et rien n'est à y changer
+   à la publication (elles disent déjà `GIT_TAG master`). *Vérifié le 8
    novembre* par l'API de GitHub (lecture seule) : `master`, la branche par
    défaut, n'a pas de protection classique, mais le jeu
    de règles « master verif » (18 octobre, actif, sans contournement, même pour
@@ -254,8 +266,10 @@ change les mesures ou les textes, comme #294).
    *À décider* à leur réponse : une ligne dans la section « Licences » du
    `README.md`, voire un `COPYING.LESSER`.
 4. **71 et #128** : annoncer GAOL v5.0.0 à Frédéric Goualard, l'auteur de GAOL,
-   une fois l'étiquette posée : pas d'annonce publique, et pas de GitHub
-   Release, l'étiquette suffisant (*décidé le 3 octobre*). Le message est écrit,
+   une fois l'étiquette posée : pas d'annonce publique (*décidé le 3 octobre*) ;
+   la GitHub Release que `release.yml` fait à l'étiquette remplace le « pas de
+   GitHub Release » du 3 octobre (*décidé le 12 novembre au soir* :
+   `TODO_DONE.md` 3.36). Le message est écrit,
    en brouillon dans Gmail (objet « GAOL v5.0.0 ») ; il suppose que l'étiquette
    existe. À faire avant l'envoi : vérifier l'adresse (celle du brouillon vient
    d'un échange de 2014 et d'une liste de 2020 : elle peut avoir changé) ; le

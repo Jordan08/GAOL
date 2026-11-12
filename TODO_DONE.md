@@ -187,12 +187,14 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   reproduite avec les drapeaux de GAOL (3.17), ses boucles de relations étant
   entrées dans `rounding_direction` par #292 ; PM, le cas (b) de 12.12.7 (les
   littéraux aux bornes calculées), est close sans code le 8 novembre : on la
-  documente seulement, par #296, fusionnée le même jour (3.26) ; il reste les
-  signalements à d'autres projets (PH), le tableau de Clang 21 et la
-  publication (PJ), le FIXME de `div_rel` en SSE2 (PP), deux petits changements
-  et trois relevés ou vérifications jamais faits (PT) : voir `TODO.md` ; PQ,
-  les deux petits changements décidés le 8 novembre, est faite par #298 et #299
-  (2.3).
+  documente seulement, par #296, fusionnée le même jour (3.26) ; PQ, les deux
+  petits changements décidés le 8 novembre, est faite par #298 et #299, PT, les
+  relevés et les vérifications jamais faits, par #301, #303 et #304, et PP, le
+  FIXME de `div_rel` en SSE2, par #302 (2.3) ; le tableau de Clang 21 est
+  remesuré par #316 (PJ.2, 3.34) ; il reste les signalements à d'autres projets
+  (PH) et la publication (PJ : la fusion de `configure-clean` dans `master`, que
+  le mainteneur fait lui-même, l'étiquette `v5.0.0` et sa Release, l'annonce à
+  Frédéric Goualard ; 3.36) : voir `TODO.md`.
   Le 8 novembre, `TODO_fin.md` (la relecture du 4 novembre) est réparti dans les
   trois registres et supprimé (3.25).
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
@@ -1656,8 +1658,19 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   `c8fab6e9d5d9e405`, avec `c5cba1a3c6272a56`, `7ac72fc26f92b097`) sur le M2,
   avec GCC 12.2 sous qemu et avec les intervalles SSE2 ; relue par un agent
   indépendant (572 979 200 cas de comparaisons) ; les jobs Visual C++ arm64
-  compilent `vcageq_f64` ; 223 jobs verts ; fusionnée le 29 octobre à 11 h 12
-  UTC)
+  compilent `vcageq_f64` ; 223 jobs verts ; le banc A/B de `performance.yml` de
+  la pull request, lu le 8 novembre (PT.2, #303) dans les jobs arm64 d'Ubuntu
+  24.04 (NEON, trois passes de la base et de la pull request en alternance dans
+  le même job ; `e7e0874`) : avec Clang 18.1.3, `pow(x, 3)` de 14,16 à 9,26 ns
+  (1,53, dispersion 1,00, la seule ligne du job à 1,5 ou plus) ; avec GCC 13.3,
+  de 9,51 à 9,77 ns (0,97, dispersion 1,00 : pas de gain, 0,26 ns de plus, non
+  cherché), ce que disait l'hypothèse de la description (la scalarisation est
+  celle de Clang) ; `pow(x, 2)` inchangé (3,14 ns avec Clang, 3,84 avec GCC) ;
+  les intervalles FPU avec GCC 13.3, le témoin : `pow(x, 3)` 11,80 ns et
+  `pow(x, 2)` 4,75, sans écart ; toutes les autres lignes et les dix lignes
+  longues de 0,98 à 1,03 dans les trois jobs ; les jobs de macOS 26, de Visual
+  Studio arm64, de clang-cl et de MSYS2 du même banc ne sont pas lus ; fusionnée
+  le 29 octobre à 11 h 12 UTC)
 - #222 (le point PG.2, le 116 (AI), les écarts de temps sans cause trouvée,
   refaits avec Clang 21 ; *décidé le 28 octobre* : chercher encore ; un seul se
   reproduit, `nth_root(x, -2)` avec `GAOL_PRESERVE_ROUNDING`, de 19,54 à 25,15
@@ -2943,6 +2956,55 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   containers et Windows verts, Autotools et meson et macOS pas finis à la
   fusion.
 
+- #301 (les points 1 et 3 de la tâche PT ; `todo-pt-verif`, ouverte le 8
+  novembre à 22 h 04 UTC, 4 commits, 4 fichiers, 32 lignes ajoutées et 2
+  retirées contre `configure-clean`) : fusionnée le même jour à 23 h 09 UTC par
+  le mainteneur (`7053c74`, tête `8e03c90`). Point 1 : le build meson avec GCC
+  13.3 et Clang 18.1 (tests et exemples, avertissements au niveau par défaut
+  puis `-Dwarning_level=2`) ne donne plus aucun avertissement avec GCC (les six
+  de `tests/rounding_direction.cpp` ont disparu) et en donne deux avec Clang,
+  des `-Wsign-conversion` dans `examples/04_centered_form.cpp` (`cell()`) et
+  `examples/13_rounding_environment.cpp` (`random_double()`), corrigés par une
+  conversion explicite ; les deux exemples impriment la même chose qu'avant (29
+  et 50 lignes, comparés à un build de `configure-clean`). Point 3 : une ligne
+  pour `width_enclosure()`, `inflate(r)` et `interval::centered_form(m, r)` dans
+  `doc/accuracy.md` et dans le chapitre 11 du manuel (le tableau 11.1 et un
+  point de « Set operations and numeric functions »), avec les 10 000
+  intervalles de `tests/other_functions.cpp` (deux plages de 5 000) ; aucun
+  changement de code. Validations : `meson test` avec GCC, 31 réussis et 2
+  « Skipped » ; CMake avec GCC en `-Wall -Wextra -Werror`, 63 tests sur 63 ;
+  les deux exemples avec Clang 18 en `-Werror` ; le manuel (deux passes de
+  `pdflatex`, 0 erreur, les 7 « Overfull » de la base, 378 pages contre 376 :
+  la version de TeX Live n'est pas celle de #294, et le PDF n'est pas commité).
+  Pas de relecteur indépendant. Poussée par l'API de contenu des outils MCP
+  (aucun jeton git), en 4 commits signés `Jordan <jordan.ninin@ensta.fr>` : les
+  SHA des blobs des quatre fichiers sont ceux de la copie locale validée ; le
+  sujet du premier commit cite les deux exemples et n'en contient qu'un. Sa CI :
+  celle de #303, faite sur `7053c74`, est verte (202 jobs sur 202). Décisions :
+  aucune ; la description notait pour la synthèse que `doc/differences.md`
+  écrivait encore `interval::midrad(m, r)`, renommé `centered_form` par #298.
+- #303 (le point 2 de la tâche PT, le banc A/B de #219 sur le Neoverse N2 et
+  avec GCC ; `todo-pt2-registres`, ouverte le 9 novembre à 7 h 59 UTC sur
+  `7053c74`, 1 commit, `TODO.md` seul, 10 lignes ajoutées et 14 retirées) :
+  fusionnée le 9 novembre à 21 h 53 UTC par le mainteneur (`ad96ba7`, tête
+  `b14ca3e`). Les résumés des jobs de `performance.yml` du run `40788291535` ne
+  se lisaient pas sans compte GitHub : le mainteneur a collé les tableaux de
+  trois jobs arm64 d'Ubuntu 24.04 (Clang, GCC, GCC avec les intervalles FPU),
+  dont le résultat est dans l'entrée de #219 (ci-dessus). `TODO.md` retire le
+  point 2 de PT. Les changements de ce fichier et de `process.md` que donnait
+  sa description (`TODO_DONE.md` était trop gros pour l'API de GitHub) ne sont
+  écrits que le 12 novembre (7.33). Questions ouvertes de la description, sans
+  réponse écrite : noter le point 1 de PT (fait ci-dessus, #301) ; chercher
+  `pow(x, 3)` à 0,97 avec GCC, ou le laisser à la mesure de PJ.2.
+- #304 (la fin de la tâche PT : `TODO.md` sans PT ; `todo-pt-fin-registres`,
+  empilée sur #303, ouverte le 9 novembre à 21 h 43 UTC, 1 commit, `TODO.md`
+  seul, 20 lignes ajoutées et 57 retirées) : fusionnée à 21 h 53 UTC par le
+  mainteneur, juste après #303 (`bb9f4d7`, tête `fea4200`). L'en-tête de
+  `TODO.md` prend `7053c74`, #302 (ouverte par une autre session) y est citée
+  comme ouverte, et la tâche PT en sort, ligne du tableau comprise. Les
+  entrées de #301, #303 et #304 que donnait sa description pour ce fichier sont
+  écrites le 12 novembre (ici, et 7.33).
+
 - #302 (la tâche PP, le `FIXME: replace with SSE code` de `div_rel()` ; ouverte
   le 8 novembre à 23 h 12 UTC, 6 commits dont deux de réparation et la mise à
   jour par fusion de `configure-clean`, 3 fichiers, 165 lignes ajoutées et 9
@@ -3681,7 +3743,7 @@ refus de `-ffinite-math-only`, FTZ/DAZ, `atanh`, `pow` sous-normal,
 une branche de version ; la signature `mid_rad` proposée), ou nouvelles :
 - 34 : après v5.0.0, le développement continue dans `configure-clean`, et
   `master` ne reçoit que les versions ; pas de GitHub Release, l'étiquette
-  suffit.
+  suffit (remplacé le 12 novembre : la Release de `release.yml`, 3.36).
 - 35 : le tutoriel va dans `examples/tutorial.md`.
 - 38 : les pièges vont aussi, en bref, dans `doc/using.md`.
 - 68 (nouveau) : un job GCC et un job Clang en `-Wall -Wextra -Werror`.
@@ -6200,6 +6262,50 @@ entre chaque point, et de mettre dans `TODO_DONE.md` ce qui a été fait.
   couverture (5 minutes, *décidé le 15 octobre* : pas avant ce relevé), les
   mesures de PJ.2 (25 minutes) et le PDF du manuel, avec sa date d'édition.
 
+### 3.36 Le 12 novembre au soir : la fusion dans `master` et l'étiquette `v5.0.0` (PJ.3)
+
+Le mainteneur demande de traiter PJ.3 (le point 34) et répond à quatre
+questions de la session, `configure-clean` étant à `0ae1840` (les registres
+de #318) ; il demande ensuite ce qu'il faut pour préparer la fusion, puis que
+ces décisions soient écrites dans les registres avant qu'il n'ouvre la pull
+request (7.33).
+
+- **La fusion de `configure-clean` dans `master`** : « non je m'en occuperai ».
+  Le mainteneur ouvre et fusionne lui-même la pull request qu'exige le jeu de
+  règles « master verif » (une vraie fusion) ; la session ne l'ouvre pas et ne
+  touche pas à ses conditions (la CI, la réponse d'IBEX et de Codac sur la
+  licence des cas de #281).
+- **L'étiquette** : `v5.0.0`, annotée comme `v4.3.2` (l'étiqueteur Jordan08, un
+  message d'une ligne), posée par la session sur le commit de fusion de
+  `master`, une fois la fusion faite et sur le mot du mainteneur seulement. Elle
+  lance `release.yml` (#309), qui crée la GitHub Release avec les notes que
+  génère GitHub et y joint les trois paquets : le `.deb` d'Ubuntu 26.04 x86_64,
+  le `.pkg` de macOS 26 arm64 et l'installateur `.exe` de Windows x64. Cette
+  décision remplace « pas de GitHub Release, l'étiquette suffit » du 3 octobre
+  (3.2, point 34). Le message proposé, à confirmer au moment de l'étiquette :
+  « GAOL 5.0.0: correctly rounded elementary functions (CORE-MATH), SSE2 and
+  NEON intervals, IEEE 1788-2015 functions ».
+- **Les dates** : aucune ne change ; le `ChangeLog` garde le 27 septembre 2026,
+  et le manuel son édition du 12 novembre (389 pages).
+- **L'ancien `master`** : rien n'en est gardé à part, pas de branche `gaol-4` ;
+  les étiquettes `v4.2.3` à `v4.3.2` suffisent, et les recettes FetchContent et
+  le `git clone` visent toujours `master` (3.33).
+- **Vérifié le 12 novembre**, en lecture seule, `configure-clean` étant à
+  `0ae1840` : la fusion d'essai (`git merge-tree`) est sans conflit et donne
+  l'arbre de `configure-clean`, les deux commits de plus de `master` (`577c850`,
+  `406d850`) ayant le contenu de `68fe887` et `195e4a2` ; le jeu de règles
+  « master verif » est actif, sans contournement (suppression interdite, push
+  en avance rapide seulement, une pull request avec 0 approbation, aucun
+  contrôle d'état exigé) ; `VERSION.txt` vaut 5.0.0, `GAOL_V5_EDITION` 5.0 et
+  `GAOL_V5_UPDATED` « 12 November 2026 » ; depuis #315 et #316, `gaol/` n'a
+  changé que d'un commentaire (1,55 et 1,03 ns devenus 1,56 et 1,04, #318), et
+  les sources du manuel n'ont pas changé depuis son PDF (`4afbf11`) : la
+  couverture, les mesures de PJ.2 et le PDF n'ont pas à être refaits. La pull
+  request de `configure-clean` vers `master` lancera toute la CI, et
+  `release.yml` en mode pull request (`CMakeLists.txt` diffère de `master`), qui
+  construit les trois paquets en artefacts, sans Release ; seul son job `tag`
+  attend la vraie étiquette, sur laquelle il n'a encore jamais tourné.
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -6408,7 +6514,7 @@ leur partie faite.
   `ChangeLog` et #280 pour leurs restes ; dans la tâche PJ, le 32 (#315), le 33
   (#316 et #317), le manuel (#294), macOS 14 (#313) et les restes de la synthèse
   (#313, #314 et #318) sont faits (3.34 et 3.35) ; il reste la publication (PJ.3
-  et PJ.4).
+  et PJ.4, décidées le 12 novembre au soir : 3.36).
 
 ## 5. Les anciens numéros faits
 
@@ -7979,7 +8085,8 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   cette section, 8.1) et dans `process.md` (l'en-tête et §12). Même constat pour
   #301 (la tâche PT : `doc/accuracy.md`, deux exemples et le chapitre 11 du
   manuel), #303 et #304 (les registres de PT, `TODO.md` seul) : `TODO.md` les
-  dit faites, leurs entrées de ce fichier restent à écrire.
+  dit faites, leurs entrées de ce fichier restent à écrire (écrites le 12
+  novembre : 2.3 et 7.33).
 - Les mesures de #302 refaites sur l'i7-1185G7 (le mainteneur l'a demandé le 9
   novembre, PJ.33). Un portable sur batterie, profils `performance`. Le
   `bench.cpp` de la description n'est plus sur un disque : il est réécrit, hors
@@ -8228,6 +8335,32 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
 - La CI du commit de fusion `f006421` tournait encore (Linux verte, les autres
   workflows en file) : le push des registres l'annule (§10) ; le commit des
   registres porte le même code et a sa propre CI.
+
+### 7.33 Le 12 novembre au soir (les décisions de PJ.3 : les registres)
+
+- Les décisions de 3.36 sont écrites en un commit direct sur `configure-clean`
+  (`process.md` §3.4 : une décision sans pull request), sur la demande du
+  mainteneur, avant qu'il n'ouvre la pull request vers `master`, pour que
+  `v5.0.0` porte des registres à jour ; depuis l'arbre de GAOL_V9 (propre, à
+  `0ae1840`) : `TODO.md` (PJ, PJ.3 et PJ.4, la table), ce fichier (1, 2.3,
+  3.2, 3.36, 4, 7.33 et 8.1), `process.md` (§1 et §12, et des défauts de
+  forme : une ligne de plus de 80 colonnes au §4, deux lignes du §12 qui
+  commençaient par « : » ou « ; », des coupures irrégulières) et l'issue #179.
+  `TODO_AFTER.md` (l'issue #178) n'a rien de nouveau.
+- Les entrées de #301, #303 et #304 (la tâche PT), que 7.25 disait à écrire,
+  sont en 2.3, d'après les textes que leurs descriptions donnaient pour ce
+  fichier, avec le résultat du banc A/B de #219 (PT.2) dans l'entrée de #219.
+  Ces textes proposaient aussi deux sections, 7.25 et 7.26, dont les numéros
+  ont servi depuis ; leur contenu est ici : les registres de PT sont passés par
+  des pull requests, la session de #303 et de #304 n'ayant pas de jeton git et
+  `TODO_DONE.md` étant trop gros pour l'API de contenu de GitHub ; les
+  résumés des jobs du run `40788291535` ne se lisaient pas sans compte GitHub,
+  et le mainteneur en a collé trois ; ses journaux se gardent jusqu'à la fin
+  de janvier 2027.
+- La CI de `0ae1840` est verte avant ce push (Linux, Windows, Linux
+  containers, Autotools and meson, et macOS, 20 jobs sur 20 : vérifié par
+  l'API) ; le commit des registres porte le même code et a sa propre CI, et la
+  pull request vers `master` aura la sienne.
 
 ## 8. Le ménage fait
 
@@ -8483,6 +8616,11 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   reste que `configure-clean` et `master`) ; GAOL_V9 n'en a pas de copie
   locale. Le clone et le build du scratchpad de la session qui a écrit #318
   disparaissent avec elle.
+
+- [x] Celles de #303 (`todo-pt2-registres`) et de #304
+  (`todo-pt-fin-registres`) : absentes de GitHub (vérifié le 12 novembre par
+  l'API, `git/matching-refs/heads/todo-pt`), et sans copie locale dans
+  GAOL_V9.
 
 ### 8.2 Les branches inachevées
 
