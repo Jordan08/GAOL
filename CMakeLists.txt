@@ -512,9 +512,9 @@ string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
 # v5: GAOL_FMA was an option, on by default; -DGAOL_FMA=OFF is a setting of the
 # developers, for a library running on any processor of the architecture, or to
 # run the path without them). A compiler takes the flag whatever the processor,
-# and under Rosetta on macOS 14, which has no AVX, the x86_64 programs of the
-# tests stopped on an illegal instruction: where the program cannot be run,
-# when cross-compiling, they are left out too, unless
+# and under Rosetta on macOS 14 (no longer in the CI), which had no AVX, the
+# x86_64 programs of the tests stopped on an illegal instruction: where the
+# program cannot be run, when cross-compiling, they are left out too, unless
 # -DGAOL_MACHINE_RUNS_FMA=1 says that the machine running GAOL has them (GAOL v5:
 # they were taken on the word of the compiler).
 set(GAOL_FMA_FLAGS "")

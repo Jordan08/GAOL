@@ -449,8 +449,8 @@ only if that ldexp() rounds in the direction in effect. Not all do: the UCRT
 of Windows, which Visual C++ and clang-cl call, rounds subnormal results
 otherwise, and erfc(x) was the double below its value rounding upward from
 x = 26.54 on; the C library of macOS gave 0 for 2^-1127 rounded upward, and
-missed 5 (macOS 14 and 15) to 22 (macOS 26) of the checks of
-tests/core_math.cpp (GAOL v5). The function of gaol/math/gaol_ldexp.h is given
+missed 5 (macOS 14, no longer in the CI, and 15) to 22 (macOS 26) of the
+checks of tests/core_math.cpp (GAOL v5). The function of gaol/math/gaol_ldexp.h is given
 instead, everywhere, so that erfc() depends on no C library; the other
 sources call __builtin_ldexp() with exact results only (powers of two).
 --------------------------------------------------------------------------*/
