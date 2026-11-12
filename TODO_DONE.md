@@ -1,7 +1,7 @@
 # Fait et décidé sur GAOL v5
 
-Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 11 novembre
-2026 (commit `dcce690` de `configure-clean`, la fusion de #309 : voir la section
+Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 12 novembre
+2026 (commit `2b5e4f9` de `configure-clean`, la fusion de #314 : voir la section
 1). Ce fichier fait foi : l'issue #177, qui avait le même contenu, n'est
 plus mise à jour depuis le 28 octobre (voir 7.8).
 
@@ -56,8 +56,10 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 
 ## 1. L'état au 12 novembre 2026
 
-- **`configure-clean`** est au commit `269c12e` (la fusion de #312 le 12
-  novembre à 7 h 53 UTC, après le commit direct `f27c6c2` (3.32), celle de #309
+- **`configure-clean`** est au commit `2b5e4f9` (la fusion de #314 le 12
+  novembre à 12 h 42 UTC, après celle de #313 à 12 h 31 UTC (`7949b41`), le
+  commit direct `7528253` (3.33), la fusion de #312 à 7 h 53 UTC (`269c12e`),
+  le commit direct `f27c6c2` (3.32), celle de #309
   le 11 novembre à 22 h 16 UTC, le commit direct `be73e24` (8.1), et celles de
   #311 à 21 h 36 UTC (`d326846`), de #310 à 21 h 08 UTC (`d8c2699`), de #308 à
   21 h 05 UTC (`13582c3`), de #307 le 10 novembre à 21 h 04 UTC (`6ef18d7`) et
@@ -82,8 +84,7 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   `configure-clean`, qui reste la branche de développement après v5.0.0 ;
   `master` (GAOL 4.3.2, plus deux commits de `.claude/CLAUDE.md`) ne bouge qu'à
   la version (point Y : `configure-clean` → `master`, *décidé le 12 novembre*,
-  `MATH-CORE` étant supprimée : 3.32). Deux pull requests sont ouvertes, #313 et
-  #314 (3.33). Le
+  `MATH-CORE` étant supprimée : 3.32). Aucune pull request n'est ouverte. Le
   mainteneur a fusionné #165 à #167, #169 à #174, #176 et #180 à #184
   les 23 et 24 octobre, et #186 à #194,
   #196 et #197 le 25 octobre, #199, #200 et #201
@@ -135,7 +136,12 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   le 12 novembre, #312 (hors des points : la CI sans `MATH-CORE`, `numbers` à
   600 et à 900 s dans deux jobs de macOS avec les sanitizers,
   `compile_commands.json` hors de l'archive de CMake) à 7 h 53 UTC, par la
-  session, sur la demande explicite du mainteneur (2.3, 3.32 et 7.29). #168,
+  session, sur la demande explicite du mainteneur (2.3, 3.32 et 7.29), puis
+  #313 (hors des points : les textes qui citent macOS 14 et un commentaire de
+  `CMakeLists.txt`) à 12 h 31 UTC et #314 (hors des points : les textes de
+  #279 à #312 dans `doc/differences.md` et le `ChangeLog`, trois passages du
+  manuel avec son PDF) à 12 h 42 UTC, par le mainteneur (2.3, 3.33 et 7.30).
+  #168,
   #195, #211, #214, #221, #226 et #233 sont fermées sans fusion, et, du 30 et du
   31 octobre, #240, #241, #243, #244, #246, #247, #251 à #261, #277 et #278,
   puis #286, le « Revert » de #285 fermé onze secondes après son ouverture
@@ -3219,6 +3225,61 @@ Une pull request par ligne, dans l'ordre où l'issue #49 les a tenues. Les point
   tous verts (Manual 1, Windows 64, Linux 49, Linux containers 23, Autotools
   and meson 49, macOS 20), `numbers` en 236,82 s dans le job LLVM Clang et en
   359,01 s dans le job x86_64 GCC. Décisions : 3.32.
+- #313 (hors des points : PJ.6 et un commentaire de PJ.7 ;
+`manual-macos-14-texts`, ouverte le 12 novembre à 11 h 03 UTC, 3 commits, 6
+fichiers, 18 lignes ajoutées et 15 retirées) : fusionnée par le mainteneur à 12
+h 31 UTC (`7949b41`, tête `c339f23`). `86c4264` : le commentaire de
+`CMakeLists.txt` qui précède `GAOL_HEADERS` ne nomme plus
+`core_math_log_dint.h`, qui n'existe pas, et nomme
+`core/gaol_interval_internal.h`, qui n'est pas installé (`noinst_HEADERS` de
+`gaol/Makefile.am`). `abea181` : macOS 14 n'est plus dans la CI (#276) :
+`doc/continuous-integration.md` dit macOS 15 et 26 sur arm64 et x86_64 et 27 sur
+arm64, au lieu de « 14, 15 and 26 » ; `CMakeLists.txt`, `doc/three-builds.md`,
+le chapitre 2 du manuel et `gaol/math/gaol_core_math_port.h` disent « macOS 14
+(no longer in the CI) », et de son Rosetta qu'il « had no AVX » ; `configure.ac`
+(et `configure`) et `meson.build`, qui renvoient seulement à `CMakeLists.txt`,
+restent. `c339f23` : le PDF du manuel, 387 pages au lieu de 385 : le PDF commité
+  datait de `72ec3d4`, et 26 fichiers de `manual/v5` avaient changé depuis.
+  Validations en local : CMake, GCC 15.2, SSE2, avec les tests, les exemples et
+  `WITH_DOC`, sans avertissement, 63 tests, 0 échec (2 ignorés) ; le manuel, 0
+  erreur de TeX et les mêmes 7 « Overfull » ; `check_branch`. Pas de
+  relecteur indépendant : seuls des commentaires et des textes changent. CI à
+  la tête `c339f23` : 233 jobs, 231 verts et 2 sautés (les jobs du tag et de
+  la Release, qui ne tournent que sur un tag). Décisions : 3.33.
+- #314 (hors des points : PJ.7, demandé par le mainteneur le 12 novembre ;
+  `synthese-279-312`, ouverte à 11 h 25 UTC, 6 commits, 5 fichiers, 228 lignes
+  ajoutées et 51 retirées) : fusionnée par le mainteneur à 12 h 42 UTC
+  (`2b5e4f9`, tête `01e4995`). `doc/differences.md` et le `ChangeLog` reprennent
+  les textes de #279 (l'ordre des tests des relations, `quiet_less_equal` au
+  lieu de `==` avec GCC 14, `GAOL_RELATION_BOUNDS_FIRST`), de #281 (le
+  `ChangeLog` seul : `tests/test_ibex_codac.cpp`, 3 905 vérifications), de #85
+  (l'adresse de `gaol_ieee1788::rootn` et de `pown` ne compile plus), de #306
+  et de #308 (cinq en-têtes installés dans `include/gaol/core/`, une source par
+  domaine, `*_impl.h`, `*_kernels.h`), de #309 (`make dist` et `make distcheck`
+  de retour, une même archive pour les trois builds) et de #312 (l'archive de
+  CMake sans `compile_commands.json`), la phrase de l'exception du chemin
+  AVX-512 au « bit pour bit » qui nomme `d * x` (#293), `release.yml` au
+  `ChangeLog` (*décidé le 12 novembre*), et corrigent en passant des
+  phrases que ces pull requests rendaient fausses : `gaol_interval_sse.cpp`
+  pour les masques de SSE2, `STEP.md` et `.claude/` dans la liste de l'archive,
+  les fichiers des intervalles de floats, `interval::inverse_upward()` (devenu
+  `upward_access::inverse()`), « 23 headers » du `ChangeLog` (22 fichiers
+  installés, `gaol/gaol` compris, comptés par `cmake --install`). Trois
+  passages du manuel qui disaient que `make dist` n'existe plus
+  (`02_installation.tex` deux fois, `15_migration.tex`) sont corrigés, avec le
+  PDF du manuel dans le dernier commit (387 pages, 0 erreur, les mêmes 7
+  « Overfull » ; `check_branch` avec `CHECK_BRANCH_PDF=1`, qui ne signale que
+  les deux registres, attendu pour une pull request de synthèse). Un relecteur
+  indépendant (un sous-agent, sonnet, qui a lu les deux premiers commits : 185
+  000 tokens et 11 minutes) n'a trouvé aucune affirmation fausse et trois
+  imprécisions, corrigées : la constante « non nulle » de GCC 14, le surcoût
+  d'un opérande vide (le premier opérande, le second avec Clang seulement),
+  et la phrase « le `make dist` de GAOL 4 s'arrêtait sur `m4/libtool.m4` »,
+  non vérifiable et retirée. CI à la tête `01e4995` : encore en cours à la
+  fusion. CI du commit de fusion (`2b5e4f9`, six workflows de `push`) :
+  206 jobs, tous verts (Manual 1, Windows 64, Linux 49, Autotools and meson 49,
+  Linux containers 23, macOS 20), le dernier terminé à 13 h 56 UTC.
+  Décisions : 3.33.
 
 ### 2.4 Fermées sans fusion
 
@@ -5905,6 +5966,13 @@ lecture de `process.md`, de `TODO.md` et de `TODO_AFTER.md` du jour) :
   tel quel : `TODO_AFTER.md` 3.9.
 - **L'issue #198** (`x / y` des intervalles NEON avec `FPCR.AH`, cause non
   trouvée) reste ouverte, sans tâche : `TODO_AFTER.md` 4.5.
+- **Les réponses du mainteneur aux questions de la fin du travail** (12
+  novembre) : il fusionne lui-même les deux pull requests ; `release.yml` va
+  au `ChangeLog` seulement, non à `doc/differences.md` ; le texte du manuel sur
+  l'archive des sources (« where `make dist` ... made the archive ») se corrige
+  dans #314 ; la phrase de `d * x` aussi. Il ne répond pas pour les notes de
+  `todo-notes/synthese.md` ni pour le commentaire de `gaol_interval_core.h`
+  (1,55 et 1,03 ns), qui restent dans PJ.7.
 - Les trois autres demandes du même message sont des corrections : les textes
   qui citent macOS 14 et le commentaire de `CMakeLists.txt` qui nomme
   `core_math_log_dint.h` (#313), et les textes de #279, #281, #85, #306, #308,
@@ -7883,11 +7951,28 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   scratchpad (`git clone --shared`, poussées par https avec le jeton de `gh`,
   ouvertes par `gh api -X POST …/pulls`) : #313 (`manual-macos-14-texts`, trois
   commits, dont le PDF du manuel refait : 387 pages au lieu de 385, le PDF
-  commité datant de `72ec3d4`) et #314 (`synthese-279-312`, deux commits).
-- Les décisions sont écrites ici, en un commit direct sur `configure-clean`
-  (`TODO.md` PJ.2, PJ.3 et la liste des pull requests ouvertes, `TODO_AFTER.md`
-  3.9 et 4.5, ce fichier 1, 3.33 et 7.30, `process.md` §12, l'issue #179 et
-  l'issue #178) avant la fusion des deux pull requests.
+  commité datant de `72ec3d4`) et #314 (`synthese-279-312`). À la question
+  « as-tu des questions ? », quatre questions (la fusion, `release.yml`, le
+  manuel, les restes de PJ.7) ; les réponses (3.33) ajoutent à #314 quatre
+  commits : `release.yml` au `ChangeLog` et `d * x`, trois passages du manuel,
+  le PDF, et la fusion de `origin/configure-clean` (#313 était déjà fusionnée).
+- Les décisions sont écrites en un commit direct sur `configure-clean`
+  (`7528253` : `TODO.md` PJ.2, PJ.3 et la liste des pull requests ouvertes,
+  `TODO_AFTER.md` 3.9 et 4.5, ce fichier 1, 3.33 et 7.30, `process.md` §12,
+  l'issue #179 et l'issue #178) avant la fusion des deux pull requests ; le
+  mainteneur fusionne #313 à 12 h 31 UTC, #314 à 12 h 42, alors que la CI de la
+  tête de #314 n'était pas finie. Les registres des deux pull requests sont
+  faits ici, en un commit direct poussé une fois finie la CI de `2b5e4f9`,
+  depuis un clone du scratchpad : `TODO.md` (l'en-tête, la liste des pull
+  requests, PJ.6 et PJ.7), ce fichier (l'en-tête, 1, 2.3, 3.33, 7.30 et 8.1),
+  `process.md` (l'en-tête et §12) et l'issue #179 ; `TODO_AFTER.md` n'a rien de
+  nouveau.
+- Pièges : `gh api 'repos/…/actions/runs?head_branch=<branche>'` ne filtre
+  pas toujours (il a rendu les runs de tous les commits) : filtrer par
+  `head_sha`. Le relecteur lit l'arbre du clone pendant qu'on l'édite : ne rien
+  modifier dans le clone avant son rapport, ou travailler sur une copie. Un
+  relecteur sonnet a coûté 185 000 tokens malgré un plafond de 60 000 écrit
+  dans son prompt (`feedback-gaol-agent-token-budget`).
 
 ## 8. Le ménage fait
 
@@ -8116,6 +8201,16 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   l'arbre porte des modifications non commitées qui ne sont pas de cette session
   : elle se supprime par `git branch -d` quand l'arbre sera libre. Le clone de
   travail du scratchpad (registres) et les builds de la session y sont effacés.
+
+- [x] Celles de #313 (`manual-macos-14-texts`) et de #314 (`synthese-279-312`),
+  sur GitHub (supprimées à la fusion, vérifié le 12 novembre par l'API des
+  branches : il ne reste que `configure-clean` et `master`) ; en local, le
+  travail s'est fait dans des clones du scratchpad (`git clone --shared`), que
+  la fin de la session efface. GAOL_V9 a une branche locale
+  `manual-macos-14-texts` (`c339f23`, la tête de #313, fusionnée, son amont
+  disparu) que la session n'a pas créée, et que le mainteneur a sans doute
+  extraite pour relire la pull request : elle se supprime par `git branch -d`
+  quand il le veut, la session n'y touche pas. GAOL_V8 n'en a pas.
 
 ### 8.2 Les branches inachevées
 

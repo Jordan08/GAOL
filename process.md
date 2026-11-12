@@ -14,7 +14,8 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12. Dernière mise à jour : 12 novembre 2026, au
-commit `269c12e` de `configure-clean` (la fusion de #312, après le commit direct
+commit `2b5e4f9` de `configure-clean` (la fusion de #314, après celle de #313,
+le commit direct `7528253`, la fusion de #312, le commit direct
 `f27c6c2`, celle de #309, le commit direct `be73e24` et celles de #311, de
 #310, de #308, de #307, de #306, de #305, de #302, de #301, de #300, de #298, de
 #299, de #297, de #296, de #295 et de #294, de #217 à #220, #222 à #225, #227 à
@@ -899,15 +900,17 @@ git ls-remote --heads origin
   des points : `MATH-CORE` retirée de la CI, `numbers` à 600 et à 900 s dans
   deux jobs de macOS avec les sanitizers, `compile_commands.json` hors de
   l'archive de CMake) à 7 h 53 UTC (`269c12e`, 2.3, 3.32 et 7.29), fusionnée
-  par la session sur la demande explicite du mainteneur ; l'entrée de #301,
+  par la session sur la demande explicite du mainteneur, puis #313 (hors des
+  points : les textes qui citent macOS 14, un commentaire de `CMakeLists.txt`)
+  à 12 h 31 UTC (`7949b41`, 2.3 et 3.33) et #314 (hors des points : les textes
+  de #279 à #312 dans `doc/differences.md` et le `ChangeLog`, trois passages du
+  manuel avec son PDF) à 12 h 42 UTC (`2b5e4f9`, 2.3 et 7.30), par le
+  mainteneur ; l'entrée de #301,
   #303 et #304
   dans `TODO_DONE.md` reste à écrire ; l'audit du 13
   octobre a vérifié dans `configure-clean` ce qu'annonçaient alors les points A,
   C à H et J à V.
-- **En cours** : au 12 novembre, deux pull requests sont ouvertes, #313
-  (macOS 14 hors de la CI, un commentaire de `CMakeLists.txt` ;
-  `manual-macos-14-texts`) et #314 (la synthèse de #279 à #312 ;
-  `synthese-279-312`) ; #295 (PS.2
+- **En cours** : au 12 novembre, aucune pull request n'est ouverte : #295 (PS.2
   ; `manual-neon-pown-text`), #296 (le cas (b) ; `manual-case-b-text`), #297 (la
   tâche PS ; `todo-ps-stale-texts`), #299 (PQ.2 ; `todo-pq-hexfloat-point`),
   #298 (PQ.1 ; `todo-pq-centered-form`), #300 (la recette de compilation croisée
@@ -916,11 +919,14 @@ git ls-remote --heads origin
   (`gaol_interval_core.h` allégé ; `core-detail-header`), #307 (les en-têtes ;
   `uniform-file-headers`), #308 (le découpage ; `core-split-domains`), #310 (du
   mainteneur, depuis `core-split-domains`), #311 (`fix-cstdint-include`) et
-  #309 (`make dist` et Release ; `make-dist`) et #312 (la CI sans `MATH-CORE`
-  ; `ci-branches-timeout`) sont fusionnées, leurs registres faits ;
-  `configure-clean` est au commit `269c12e` (la fusion de #312, après le commit
-  direct `f27c6c2` et la fusion de #309, `dcce690`, après le commit direct
-  `be73e24`, les fusions de #311, `d326846`, de #310,
+  #309 (`make dist` et Release ; `make-dist`), #312 (la CI sans `MATH-CORE`
+  ; `ci-branches-timeout`), #313 (macOS 14 hors de la CI ;
+  `manual-macos-14-texts`) et #314 (la synthèse de #279 à #312 ;
+  `synthese-279-312`) sont fusionnées, leurs registres faits ;
+  `configure-clean` est au commit `2b5e4f9` (la fusion de #314, après celle de
+  #313, `7949b41`, le commit direct `7528253`, la fusion de #312, `269c12e`,
+  le commit direct `f27c6c2` et la fusion de #309, `dcce690`, après le commit
+  direct `be73e24`, les fusions de #311, `d326846`, de #310,
   `d8c2699`, de #308, `13582c3`, de #307, `6ef18d7`, et de #306, `99229cc`,
   après celles de #305, `39ce501`, de #302, `9acea90`, de #301, `7053c74`,
   de #300, `ac9f130`, de #298, `0f469e7`, de #299, `36b4f93`, de #297,
@@ -942,8 +948,9 @@ git ls-remote --heads origin
   (`manual-neon-pown-text`), de #296 (`manual-case-b-text`), de #297
   (`todo-ps-stale-texts`), de #302 (`todo-pp-div-rel-n1-m`), de #305
   (`friend-cleanup`), de #306 (`core-detail-header`), de #308 et #310
-  (`core-split-domains`), de #309 (`make-dist`) et de #312
-  (`ci-branches-timeout`) sont supprimées à leur fusion, comme celles de #287
+  (`core-split-domains`), de #309 (`make-dist`), de #312
+  (`ci-branches-timeout`), de #313 (`manual-macos-14-texts`) et de #314
+  (`synthese-279-312`) sont supprimées à leur fusion, comme celles de #287
   (`pown-rel`) et de #288 (`compoundm1`), et `std-exceptions` et
   `revert-285-std-exceptions` depuis le 4 novembre. L'issue #198 (`x / y` des
   intervalles NEON avec `FPCR.AH`) est ouverte, sans tâche
@@ -953,14 +960,12 @@ git ls-remote --heads origin
   joint en fait plus de 270 000 (voir `TODO_DONE.md` 7.8).
 - **À faire**, dans l'ordre de `TODO.md` : les signalements à d'autres projets
   (PH, avec l'accord du mainteneur), puis la version (PJ, qui reprend le
-  tableau de Clang 21, le manuel, les textes qui citent macOS 14, la licence des
-  cas d'IBEX et de Codac, sur laquelle le mainteneur écrit aux auteurs (*décidé
-  le 5 novembre* : #281), le PDF du manuel, que #294 a refait (385 pages) et qui
-  n'est à refaire que si les mesures de PJ changent le manuel (PJ.5), et les
-  trois détails qui restent de la synthèse de #283 à #288, faite par #289 le 5
-  novembre, avec la phrase sur le cas (b) de 12.12.7 que PM a décidée, et les
-  textes de #306, de #308, de #309 et de #312 pour `doc/differences.md` et le
-  `ChangeLog` : PJ.7, que #313 et #314 ouvertes font en partie).
+  tableau de Clang 21, le manuel, la licence des cas d'IBEX et de Codac, sur
+  laquelle le mainteneur écrit aux auteurs (*décidé le 5 novembre* : #281), le
+  PDF du manuel, que #313 et #314 ont refait (387 pages) et qui n'est à refaire
+  que si les mesures de PJ changent le manuel (PJ.5), et les deux restes de
+  PJ.7 que #313 et #314 ont laissés : les notes périmées de
+  `todo-notes/synthese.md` et un commentaire de `gaol_interval_core.h`).
   Ce qui est reporté (le 113, le site, les traits pour YalAA
   et VNODE-LP, les décorations, ce qui attend du matériel) est dans
   `TODO_AFTER.md`. Les dépendances entre points sont écrites dans chaque tâche.
