@@ -580,7 +580,8 @@ times the time it takes under the C locale, and 50~ms more: the reader read
 the text again for each of its 125 comparisons or so, in a time quadratic
 in its length, and took 50 times as long.\newinvfive{} The cache variable
 \option{GAOL\_NUMBERS\_TIMEOUT} gives the test more than its 5 minutes on a
-slower build (600~s with GCC and the sanitizers on macOS x86\_64). With
+slower build (900~s with GCC and the sanitizers on macOS x86\_64, 600~s
+with LLVM Clang and the sanitizers on macOS arm64). With
 each flush mode the processor honours, the numbers from 0 to the least
 normal double have to be read as the tightest intervals enclosing them, and
 the doubles among them as themselves: the reader compared each number with
@@ -1269,8 +1270,8 @@ changes one of the outputs shows.
 The workflows of \file{.github/workflows/} build GAOL with CMake and run the
 tests, with \cmd{make test} (\cmd{cmake -{}-build <build> -{}-target test},
 \cmd{RUN\_TESTS} with Visual Studio). They run for each pull request, and
-for each push to the branches \code{master}, \code{MATH-CORE} and
-\code{configure-clean} only: a push to another branch runs nothing until it
+for each push to the branches \code{master} and \code{configure-clean}
+only: a push to another branch runs nothing until it
 is proposed, which halves the jobs of a pull request;\newinvfive{}
 \code{workflow\_dispatch} runs them on any branch. \file{performance.yml} and
 \file{manual.yml} are the exceptions: the first runs for the pull requests
@@ -1488,8 +1489,10 @@ the autotools or \file{meson-logs/testlog.txt} with meson.\newinvfive{}
 Alpine and manylinux have no such locale to generate, and check nothing of
 the kind. \code{numbers} has 300~s (\option{GAOL\_NUMBERS\_TIMEOUT}), 400 in
 the four Linux jobs with the sanitizers, where it took 109 to 287~s and once more
-than 300, and 600 in the job of macOS 15 x86\_64 GCC with the sanitizers,
-where it took 146 to 367~s on the same code, and once more than 400. The manual of GAOL v5 is
+than 300, 900 in the job of macOS 15 x86\_64 GCC with the sanitizers,
+where it took 182 to 577~s in 30 runs, and more than 400 six times, and 600
+in the job of macOS 26 arm64 LLVM Clang with the sanitizers, where it took
+162 to 297~s in 28 runs, and once more than 300. The manual of GAOL v5 is
 built with the LaTeX of Ubuntu 24.04, by the autotools, the CMake and the
 meson builds, when \file{manual/} changes (\file{manual.yml}), and its PDF,
 \file{manual/Manual\_GAOLv5.pdf}, is an artefact of the run; the manual of

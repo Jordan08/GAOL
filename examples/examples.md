@@ -1006,8 +1006,8 @@ To take:
 
 ### Priority 4: documentation
 
-12. Tag `v5.0.0`, or merge `MATH-CORE` into `master`, and write the tag in the
-    FetchContent recipes.
+12. Tag `v5.0.0`, or merge `configure-clean` into `master` (`MATH-CORE` is
+    gone since 2026-11-11), and write the tag in the FetchContent recipes.
 13. Put a ten-line program in `README.md`, and point to this directory. Add a
     short tutorial (range enclosure and subdivision, Newton with `%` or
     `div_rel`, a contractor with the `*_rel` functions, branch and bound),

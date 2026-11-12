@@ -11,9 +11,9 @@ Part of the documentation of [GAOL v5](../README.md#documentation).
 The workflows of `.github/workflows/` build GAOL with CMake and run the tests,
 with `make test` (`cmake --build <build> --target test`, `RUN_TESTS` with
 Visual Studio). They run for each pull request, and for each push to the
-branches `master`, `MATH-CORE` and `configure-clean` only: a push to another
-branch runs nothing until it is proposed, which halves the jobs of a pull
-request (GAOL v5); `workflow_dispatch` runs them on any branch. `performance.yml`
+branches `master` and `configure-clean` only: a push to another branch runs
+nothing until it is proposed, which halves the jobs of a pull request (GAOL
+v5); `workflow_dispatch` runs them on any branch. `performance.yml`
 is the exception: it runs for the pull requests that change what it measures
 only (see [The speed of a pull request](#the-speed-of-a-pull-request)), and so
 is `release.yml`, which runs for every tag of a commit of `master`: it builds
@@ -256,8 +256,10 @@ locale: the output ctest keeps in `Testing/Temporary/LastTest.log`,
 manylinux have no locale writing a decimal comma to generate, and check
 nothing of the kind. `numbers` has 300 s (`GAOL_NUMBERS_TIMEOUT`), 400 in the
 four jobs of `linux.yml` with the sanitizers, where it took 109 to 287 s and
-once more than 300, 600 in the job of macOS 15 x86_64 GCC with the sanitizers,
-where it took 146 to 367 s on the same code, and once more than 400.
+once more than 300, 900 in the job of macOS 15 x86_64 GCC with the sanitizers,
+where it took 182 to 577 s in 30 runs, and more than 400 six times, and 600
+in the job of macOS 26 arm64 LLVM Clang with the sanitizers, where it took 162
+to 297 s in 28 runs, and once more than 300.
 
 The manual of GAOL v5 (`manual/v5/manual_gaolv5.tex`) is built with the LaTeX of
 Ubuntu 24.04, by the autotools, the CMake and the meson builds, when `manual/`

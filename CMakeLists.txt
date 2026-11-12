@@ -1620,9 +1620,12 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   # the top, 3rd/math-core/ and doc/compare/*/): CPack archives the files of the
   # tree, git's or not, and a file that git ignores went into the archive where
   # no expression matched it, as the 14 files that a build of the manual leaves
-  # in manual/v5/build/ (GAOL v5)
+  # in manual/v5/build/ (GAOL v5). The cache of clangd, .cache/, and the
+  # compile_commands.json that an editor reads, often a link to the one of a
+  # build, at the top of the sources, are left out too
   set(CPACK_SOURCE_IGNORE_FILES
     "/\\.git/" "/\\.git$" "/\\.claude/" "/\\.vscode/" "/\\.idea/" "/\\.cache/" "/\\.continue/"
+    "/compile_commands\\.json$"
     "\\.swp$" "~$" "/#" "/\\.#" "/__pycache__/"
     "/autom4te\\.cache/" "/doc/compare/code/work[^/]*/" "/doc/compare/itf1788/work/"
     "/doc/compare/tang2021/work[^/]*/" "/tests/meson_subproject/subprojects/"

@@ -30,7 +30,7 @@ name: Autotools and meson
 
 on:
   push:
-    branches: [master, MATH-CORE, configure-clean]
+    branches: [master, configure-clean]
   pull_request:
   workflow_dispatch:
 
