@@ -20,7 +20,7 @@ name: Manual
 
 on:
   push:
-    branches: [master, configure-clean]
+    branches: [master, configure-clean, dev]
     paths: ['manual/**', '.github/workflows/manual.yml']
   pull_request:
     paths: ['manual/**', '.github/workflows/manual.yml']

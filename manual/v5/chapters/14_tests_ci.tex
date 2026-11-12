@@ -1270,8 +1270,8 @@ changes one of the outputs shows.
 The workflows of \file{.github/workflows/} build GAOL with CMake and run the
 tests, with \cmd{make test} (\cmd{cmake -{}-build <build> -{}-target test},
 \cmd{RUN\_TESTS} with Visual Studio). They run for each pull request, and
-for each push to the branches \code{master} and \code{configure-clean}
-only: a push to another branch runs nothing until it
+for each push to the branches \code{master}, \code{configure-clean} and
+\code{dev} only: a push to another branch runs nothing until it
 is proposed, which halves the jobs of a pull request;\newinvfive{}
 \code{workflow\_dispatch} runs them on any branch. \file{performance.yml} and
 \file{manual.yml} are the exceptions: the first runs for the pull requests
