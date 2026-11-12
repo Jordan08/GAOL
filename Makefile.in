@@ -175,8 +175,8 @@ am__define_uniq_tagged_files = \
 am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/gaol.pc.in \
 	$(top_srcdir)/manual/v4/gaol_version.tex.in \
 	$(top_srcdir)/manual/v5/gaol_version.tex.in AUTHORS \
-	COPYING.LIB ChangeLog INSTALL NEWS README TODO compile \
-	config.guess config.sub depcomp install-sh ltmain.sh missing
+	COPYING.LIB ChangeLog INSTALL NEWS README compile config.guess \
+	config.sub depcomp install-sh ltmain.sh missing
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -395,11 +395,10 @@ AUTOMAKE_OPTIONS = 1.4
 # the headers and the scripts it knows from the variables of the Makefile.am,
 # and EXTRA_DIST names the other files of the repository, here the files at the top of the tree that no Makefile.am of a directory takes (the builds of CMake and meson, the documents, cmake/, coverage/, doc/, the CI in .github/).
 # make dist, package_source of CMake and meson dist hold the same files, those
-# of the repository but the notes of the work on GAOL v5 (.gitattributes): a
+# of the repository but the notes of the work on GAOL v5 of the branch dev: a
 # file added to the repository is added to this list too, or the job Archives
 # of the sources of the CI, which compares the three archives, fails
 EXTRA_DIST = \
-	.gitattributes \
 	.github/actionlint.yaml \
 	.github/audit/README.md \
 	.github/audit/audit.sh \
@@ -428,7 +427,6 @@ EXTRA_DIST = \
 	.github/workflows/windows.yml \
 	.gitignore \
 	.shellcheckrc \
-	BUGS \
 	CMakeLists.txt \
 	README.md \
 	cmake/gaol.pc.in \

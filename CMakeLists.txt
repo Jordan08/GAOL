@@ -1604,11 +1604,12 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 
   # The archive of the sources: the files of the repository, without what git
   # ignores (.gitignore), the builds within the sources, the packages, and the
-  # notes of the work on GAOL v5 (TODO.md, TODO_AFTER.md, TODO_DONE.md,
-  # STEP.md, process.md, todo-notes/), which serve its maintainers, not the
-  # users of a version: those of export-ignore in .gitattributes, which meson
-  # dist leaves out, and that the EXTRA_DIST of make dist do not list, so that
-  # the three archives hold the same files (GAOL v5). CPack writes the CPACK_* variables into CPackConfig.cmake
+  # notes of the work on GAOL v5 that only the development branch dev holds
+  # (TODO.md, TODO_AFTER.md, TODO_DONE.md, STEP.md, process.md, todo-notes/,
+  # and .gitattributes, which marks them export-ignore for meson dist), which
+  # serve its maintainers, not the users of a version: the EXTRA_DIST of make
+  # dist do not list them, so that the three archives hold the same files, on
+  # dev as on configure-clean, which has none of them (GAOL v5). CPack writes the CPACK_* variables into CPackConfig.cmake
   # and CPackSourceConfig.cmake, which it reads when it runs:
   # CPACK_VERBATIM_VARIABLES has it escape them, so that the backslashes of
   # these regular expressions reach it as they are, where CMake 3 warned of an
@@ -1642,6 +1643,7 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
     "^${_gaol_source_regex}/TODO\\.md$" "^${_gaol_source_regex}/TODO_AFTER\\.md$" "^${_gaol_source_regex}/TODO_DONE\\.md$"
     "^${_gaol_source_regex}/STEP\\.md$" "^${_gaol_source_regex}/process\\.md$"
     "^${_gaol_source_regex}/todo-notes/"
+    "^${_gaol_source_regex}/\\.gitattributes$"
   )
 
   # The archive holds configure as it is committed, and configure says the
@@ -1682,7 +1684,7 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   # the one of package_source, gaol-<version>.tar.gz, in the build directory
   # (make dist with the Makefile generators, ninja dist, cmake --build <build>
   # --target dist; GAOL v5). The three archives hold the same files
-  # (.gitattributes, EXTRA_DIST of the Makefile.am)
+  # (export-ignore, CPACK_SOURCE_IGNORE_FILES, EXTRA_DIST of the Makefile.am)
   add_custom_target(dist
     COMMAND "${CMAKE_CPACK_COMMAND}" --config "${PROJECT_BINARY_DIR}/CPackSourceConfig.cmake"
     WORKING_DIRECTORY "${PROJECT_BINARY_DIR}"
