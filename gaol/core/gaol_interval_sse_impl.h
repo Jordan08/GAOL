@@ -873,12 +873,15 @@ namespace gaol_core {
 namespace {
   GAOL_NOINLINE_COLD __m128d divide_general(__m128d xb, __m128d yb)
   {
-	interval x(xb, gaol_detail::unchecked_bounds);
-	const interval I(yb, gaol_detail::unchecked_bounds);
-	if (x.is_empty() || I.is_empty()) {
+	if (interval(xb, gaol_detail::unchecked_bounds).is_empty()
+	    || interval(yb, gaol_detail::unchecked_bounds).is_empty()) {
 		return interval::emptyset().get_xmminterval();
 	}
 	GAOL_RND_ENTER_SSE();
+	// The bounds, received in registers, pass through reread_bounds() after
+	// the check, as in mul_bounds() (GAOL v5; see gaol/gaol_fpu.h)
+	interval x(reread_bounds(xb), gaol_detail::unchecked_bounds);
+	const interval I(reread_bounds(yb), gaol_detail::unchecked_bounds);
 
 	if ( x.right() < 0.0 ) { // [this] N1
 		if ( I.right() < 0.0 ) { // [I] N1
