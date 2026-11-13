@@ -61,7 +61,7 @@ namespace gaol_ieee1788 {
   }
 
   /*
-    textToInterval(s) of a C string (GAOL v5, point 128 of TODO.md): a null
+    textToInterval(s) of a C string (GAOL v5): a null
     pointer is no string, so no literal, and the standard gives no answer for
     it. It is an error of GAOL, as for gaol::textToInterval(): std::invalid_argument
     is thrown, or, without exceptions, a message is printed and abort() called.

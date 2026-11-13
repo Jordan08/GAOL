@@ -1675,8 +1675,8 @@ registers itself there, as above, where it restores a direction
 (`GAOL_PRESERVE_ROUNDING`, `gaol::cleanup()`, `gaol::restore_rounding()`, and
 the operations that set the direction to nearest and back: `midpoint()`,
 `chi()`, the writing and the reading of an interval), rather than call
-`fegetround()` and `fesetround()` (GAOL v5; mingw-w64 alone did so before point
-PG.10 of `TODO.md`), which write both registers whatever they hold, and then
+`fegetround()` and `fesetround()` (GAOL v5; mingw-w64 alone did so before),
+which write both registers whatever they hold, and then
 MXCSR once more for the direction of the SSE instructions: three writes and a
 call, where a program that computes to nearest needs one and a program that
 computes upward none. The register that differs is written only, with `fldcw`
@@ -1762,8 +1762,8 @@ bounds wrong**, and GAOL defends itself in two ways:
   processors (x86-64, i386, arm64 and armhf, under Linux, Windows and macOS,
   Rosetta 2 included), the first took 0.35 to 1.43 ns and the second 0.40 to
   1.38 ns, the two differing by -0.63 to +0.44 ns, either way from one job
-  to another: none of these processors took such an assist (GAOL v5, point
-  Q). Under qemu (ppc64le, riscv64, s390x), both took 25 to 83 ns.
+  to another: none of these processors took such an assist (GAOL v5). Under qemu
+  (ppc64le, riscv64, s390x), both took 25 to 83 ns.
 - `gaol.pc` and `gaol::gaol` give `-mno-daz-ftz` to the link, where the
   compiler accepts it: GCC 13 and later on x86, from 11.4 and 12.4 in the
   series 11 and 12, and Clang 20 and 21 (GCC 9.4, 12.3, GCC for ARM and Clang 18 refuse it, and the

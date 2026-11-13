@@ -90,8 +90,8 @@ computing them the same in every direction (below).
 **GAOL v5** encloses f(x) in every one of the 1 600 000 results, under both
 namespaces, and gives the tightest interval of doubles around it in all of
 them (GAOL v5: 1 232 results of x³, where the cube is below 2^−968, came from
-products rounded outward and were one or two doubles wider, until point B of
-`TODO.md` computed these corners apart, scaled; see [accuracy](../accuracy.md)).
+products rounded outward and were one or two doubles wider, until these
+corners were computed apart, scaled; see [accuracy](../accuracy.md)).
 
 **Boost.Interval misses f(x) in 34 % of the results with `rounded_transc_opp`
 and in 20 % with `rounded_transc_std`.** Its square root and its x³, which it

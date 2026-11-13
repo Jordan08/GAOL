@@ -92,8 +92,8 @@
 			return std::numeric_limits<double>::quiet_NaN();
 		}
 		// A bound infinite in one interval only puts them at distance +oo,
-		// returned before the check of the rounding direction (GAOL v5, point
-		// R.50 of TODO.md; GAOL 4 returned +oo there for every infinite bound):
+		// returned before the check of the rounding direction (GAOL v5; GAOL 4
+		// returned +oo there for every infinite bound):
 		// the check and the differences made it two to four times as long
 		// (Intel i7-1185G7, GCC 9.4 and Clang 18). Whether a bound is infinite
 		// depends neither on the rounding direction nor on the flush-to-zero
@@ -122,8 +122,8 @@
   // intervals (GAOL v5)
 
   /*
-    The square from one product, as the FPU intervals compute it (GAOL v5,
-    point AA of TODO.md). It took the binary exponentiation of the products
+    The square from one product, as the FPU intervals compute it (GAOL v5). It
+    took the binary exponentiation of the products
     rounded outward, uipow_rounded(I,2), whose last product, of 1 by the
     square, is exact, and gives the same bounds, bit for bit: Clang 18 kept
     its loop for e = 2, two products and three branches, and sqr() took
@@ -135,7 +135,7 @@
   */
   /*
     The kernels of the four operations between two intervals, on their stored
-    bounds <-l, r> (GAOL v5, point ZZ of TODO.md): the operators of the
+    bounds <-l, r> (GAOL v5): the operators of the
     header call them (see gaol_interval_sse.h) with the two doubles in a
     register and have them back in one, where operator+=() read and wrote
     them through memory, and its result went back to memory for the
@@ -176,8 +176,8 @@ namespace gaol_detail {
     the maximum would signal (maxpd raises the invalid-operation exception for
     a NaN): the three cases of the signs, told by a switch, were taken at
     random by the sign of x - a in Shekel 5, 20 times per evaluation, and a
-    mispredicted branch costs more than the products it spares (GAOL v5,
-    point ZZ of TODO.md, which made sqr() three times faster). The bounds are
+    mispredicted branch costs more than the products it spares (GAOL v5, which
+    made sqr() three times faster). The bounds are
     those of the switch, bit for bit, the sign of the zeros included.
   */
   GAOL_BOUNDS_TARGET __m128d GAOL_VECTORCALL sqr_bounds(__m128d x)
@@ -781,7 +781,7 @@ namespace {
 namespace gaol_detail {
 
 /*
-  x * y of the stored bounds <-l, r> (GAOL v5, point ZZ of TODO.md): the four
+  x * y of the stored bounds <-l, r> (GAOL v5): the four
   products l_x l_y, l_x r_y, r_x l_y and r_x r_y, the largest of each of the two
   lanes being a bound of the result, with no branch to tell the signs of the
   operands apart, where the former code took one of nine, by a switch, which
@@ -864,7 +864,7 @@ namespace gaol_core {
   N1 P0, P1 N0, P1 P0), which raised the division-by-zero exception, [1, 2]/[0, 2]
   among them, where the FPU intervals, which divide the kept bounds alone,
   raise nothing. operator%=() below does the same. div_bounds() calls it where
-  the divisor has a zero, which it tells (GAOL v5, point ZZ of TODO.md).
+  the divisor has a zero, which it tells (GAOL v5).
 */
 #if !GAOL_AVX512_ARITHMETIC
 namespace {
@@ -1029,7 +1029,7 @@ namespace gaol_detail {
 
 /*
   x / y of the stored bounds <-l, r>, in the common case where y has no zero
-  and no operand is empty (GAOL v5, point ZZ of TODO.md): the quotient is the
+  and no operand is empty (GAOL v5): the quotient is the
   one of the corners that the signs choose, chosen here by masks and not by
   branches, the signs of the bounds of the divisor and of the dividend coming
   at random where the former code took one of nine branches. The divisor is

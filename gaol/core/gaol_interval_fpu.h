@@ -106,8 +106,8 @@
   // cost: a NaN bound, which <= compared, raised the invalid-operation
   // exception, and so did interval(NAN), x += NAN and the functions giving
   // the constructor the NaN bounds of an empty operand (floor(), max()...),
-  // which had to tell the empty set first (GAOL v5, decided for point D.24 of
-  // TODO.md). The other two compare bounds that are no NaN once it is true:
+  // which had to tell the empty set first (GAOL v5). The other two compare
+  // bounds that are no NaN once it is true:
   // made quiet too, they cost GCC a conditional move through the integer
   // registers where it if-converts them, and 30% more in a loop of
   // constructions (GCC 9.4, FPU intervals). GCC for 64-bit ARM computed them
@@ -122,8 +122,8 @@
   // without testing it first. The bounds are compared with
   // gaol_detail::bound_less_equal() (gaol_port.h), which the modes that flush
   // the subnormals to zero do not change: under denormals-are-zero,
-  // interval(2^-1073, 2^-1074) kept its bounds in the wrong order (GAOL v5,
-  // point Q of TODO.md); the comparisons with an infinity are the same under
+  // interval(2^-1073, 2^-1074) kept its bounds in the wrong order (GAOL v5);
+  // the comparisons with an infinity are the same under
   // these modes
   GAOL_INLINE
   interval::interval(double a, double b)
@@ -175,7 +175,7 @@
     One quiet comparison, std::isunordered() of the two stored lower bounds,
     tells whether either operand is empty, both bounds of the empty set being
     NaN, and the intersection is then [NaN, NaN], interval::emptyset() (GAOL
-    v5, decided for point D.24 of TODO.md). Before it, *this was told empty
+    v5). Before it, *this was told empty
     with is_empty() and returned as it was, with the NaN it held, and I with
     the quiet comparisons of its bounds below, or on 32-bit ARM with
     std::isunordered() of its bounds (#60): GCC for 32-bit ARM (12 to 14),
@@ -216,7 +216,7 @@
     // on the bounds gave [3, 2] + [0, 1] = [3, 3]. The bounds are no NaN
     // here, and compared as bounds (gaol_port.h) rather than by is_empty(),
     // which took two disjoint intervals of subnormals, [5, 4]*2^-1074, for
-    // an interval under denormals-are-zero (GAOL v5, point Q of TODO.md).
+    // an interval under denormals-are-zero (GAOL v5).
     // They go through gaol_detail::keep_ordered() on 32-bit ARM and on POWER9,
     // GAOL_FPU_SCALAR() elsewhere, as in is_empty()
     double l = left(), r = right();

@@ -103,7 +103,7 @@
 #  define GAOL_POWN_PACKED 0
 #endif
 // The same kernel rounded upward by the embedded rounding of AVX-512, where
-// GAOL_AVX512_ARITHMETIC is (GAOL v5, point ZZ of TODO.md, see
+// GAOL_AVX512_ARITHMETIC is (GAOL v5, see
 // pown_large_er()): it needs the packed kernel, and runs in functions that
 // carry the target of gaol/core/gaol_interval_avx512_impl.h
 #if GAOL_POWN_PACKED && (defined(__x86_64__) || defined(_M_X64)) && GAOL_AVX512_ARITHMETIC
@@ -164,8 +164,8 @@ namespace gaol_core {
   /*
     Quotients and products of finite doubles a >= 0 and b > 0 (b >= 0 for a
     product) that return what the operation returns when it overflows,
-    without executing it, so that no overflow exception is raised (GAOL v5,
-    point 79 of TODO.md): +oo rounded upward, and the largest double for
+    without executing it, so that no overflow exception is raised (GAOL v5): +oo
+    rounded upward, and the largest double for
     -((-a)/b) and -((-a)*b), the same operations rounded downward by the
     upward rounding GAOL computes in. The intermediate values of the
     relational functions, which are then intersected with a finite interval,
@@ -268,7 +268,7 @@ namespace gaol_core {
     upward, like a / b in the upward rounding GAOL computes in, but for the
     overflow: it gives the infinity, or the largest double of the opposite
     sign, that an overflowing quotient gives (see quotient_up_sat()),
-    without raising the exception (GAOL v5, point 79 of TODO.md)
+    without raising the exception (GAOL v5)
   */
   static inline double quotient_sat(double a, double b)
   {
@@ -395,7 +395,7 @@ namespace gaol_core {
 	return 0.0;
       }
       // Compared as in the relations (gaol_port.h): under denormals-are-zero,
-      // mig([-3, -2]*2^-1074) was 0 (GAOL v5, point Q of TODO.md)
+      // mig([-3, -2]*2^-1074) was 0 (GAOL v5)
       if (gaol_detail::bound_less(I.right(), 0.0)) {
 	return -I.right();
       } else { // left() > 0.0
@@ -428,7 +428,7 @@ namespace gaol_core {
 
      The products of this check and of gaol_minus_sqrt_down() reach 2^1024 for
      an x next to the largest double, which raised the overflow exception for
-     a finite root (GAOL v5, point 79 of TODO.md: sqrt([1, DBL_MAX])). From
+     a finite root (GAOL v5: sqrt([1, DBL_MAX])). From
      huge_root_argument, 2^1000, the root s >= 2^500 is scaled by 2^-512 and x
      by 2^-1024 (x >= 2^-24 is then normal), exactly, and the products are
      those of the check scaled by 2^-1024, rounded to the same bits. */
@@ -539,7 +539,7 @@ namespace gaol_core {
     but after a test that Visual C++ (x64 and arm64, /fp:strict) compiles
     with the sum x + x it returns for a NaN, which overflows from |x| = 2^1023
     on: atan([DBL_MAX]) and atan_rel() raised the overflow exception for a
-    finite result (GAOL v5, point 79 of TODO.md; the continuous integration)
+    finite result (GAOL v5; the continuous integration)
   */
   static const double atan_is_half_pi = 1.8014398509481984e+16; // 2^54
 
@@ -606,7 +606,7 @@ namespace gaol_core {
   // by_division: the infinite bounds at -1 and 1 are those of CORE-MATH, which
   // raises the division-by-zero exception for them; atanh_rel() takes them
   // without a division, its result being a finite interval where I is (GAOL
-  // v5, point 79 of TODO.md: atanh_rel([0, 1], [0, 1]) raised it)
+  // v5: atanh_rel([0, 1], [0, 1]) raised it)
   static inline interval atanh_upward(const interval& I, bool by_division = true)
   {
     const interval J = I & interval::minus_one_plus_one();
@@ -627,7 +627,7 @@ namespace gaol_core {
   /*
     CORE-MATH's pow(x, y) in the upward rounding, for a finite x > 0 and a y
     of normal magnitude, without the overflow exception where x^y is above
-    the largest double (GAOL v5, point 79 of TODO.md). The reverse functions of
+    the largest double (GAOL v5). The reverse functions of
     pow look for the bounds of c^(1/y) and log(c)/log(x) by powers d^y of the
     doubles on either side of them, which overflow for a finite bound when c
     is next to the largest double, or when y is huge, where d^y is beyond the
@@ -718,7 +718,7 @@ namespace gaol_core {
     root_of_power_near() asks of it). The is_exact() of CORE-MATH's pow
     multiplies y by the exponent e of a power of two x, a product that
     overflows from |y e| = 2^1024 on (|e| is at most 1074), which raises the
-    overflow exception for this finite result (GAOL v5, point 79 of TODO.md;
+    overflow exception for this finite result (GAOL v5;
     pow(2^-1074, 1.5 2^1014) does): it needs y > 0, so x < 1, but the power is
     right for the other sign too, and cheaper than CORE-MATH.
     Until upstream commit c01f08c5 (5 October 2026) CORE-MATH's pow raised two
@@ -976,7 +976,7 @@ namespace gaol_core {
     // The roots of both bounds by one vector instruction (GAOL v5, see
     // gaol/core/gaol_interval_neon_kernels.h), unless the upper bound is above
     // huge_root_argument: the vector product of its proof of exactness
-    // overflows, and the code below scales it (GAOL v5, point 79 of TODO.md).
+    // overflows, and the code below scales it (GAOL v5).
     // The empty set, whose bounds are NaN, is not above it
     if (!gaol_detail::quiet_greater(I.right(), huge_root_argument)) {
       return interval(neon_detail::sqrt_bounds(I.get_neoninterval()), gaol_detail::unchecked_bounds);

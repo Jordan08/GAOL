@@ -14,7 +14,7 @@
    (GAOL_BENCH_NAME "gaol5") and the one before it, from the master branch
    ("gaol"), so that the tables hold both. GAOL v5 is measured through the
    names of IEEE 1788-2015, gaol_ieee1788, as the other libraries of the
-   standard (GAOL v5, decided on 13 October 2026, TODO.md B): pown is the
+   standard (GAOL v5, decided on 13 October 2026): pown is the
    integer power and pow the real power of the standard, the same functions
    as gaol::pow(x, n) and, on the positive bases of the benchmark, as
    gaol::pow(x, y). GAOL 4 has only its own names, gaol. */

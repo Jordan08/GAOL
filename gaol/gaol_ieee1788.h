@@ -411,7 +411,7 @@ namespace gaol_ieee1788 {
   bound is compared with 0 as the relations compare it, whatever the modes
   that flush the subnormals to zero: under denormals-are-zero, inf() of
   [2^-1074, 1] was -0, and sup() of [-1, 2^-1074] +0, below the interval
-  (GAOL v5, point Q of TODO.md)
+  (GAOL v5)
   */
   GAOL_NODISCARD inline double inf(const interval& x)
   {

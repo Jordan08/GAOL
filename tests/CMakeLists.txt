@@ -281,7 +281,7 @@ endif()
 # generator and the compilers that built it, and holds the header and the
 # messages of each to what the checks found (automatic_configuration.cmake). It
 # keeps what the second cmake of a directory had lost, the AVX-512 path under
-# GAOL_PRESERVE_ROUNDING (point 112 of TODO.md). It runs where the system builds
+# GAOL_PRESERVE_ROUNDING. It runs where the system builds
 # for itself and is Unix (the generator and the compilers are passed as for
 # cpack_stale_configure; not on Windows, not in a cross-compilation), on every
 # architecture: it asks of a platform what its own checks found. It configures

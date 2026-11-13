@@ -43,7 +43,7 @@
 #  define GAOL_RND_SSE_REGISTER 1
 #else
 // 0, so that #if reads it under -Wundef, as the other macros of this header
-// (GAOL v5, point Z of TODO.md)
+// (GAOL v5)
 #  define GAOL_RND_SSE_REGISTER 0
 #endif
 
@@ -182,8 +182,7 @@ inline assembly with Visual C++). Always defined, to 0 or 1. */
 than to read its two registers. It had one with fegetround() for a compiler
 GAOL_RND_X86_DIRECT does not take (not GCC, Clang or Visual C++, or without
 <fenv.h>), which no configuration the three builds accept reached; it is an
-error now rather than a check that would leave a register unseen (GAOL v5,
-point AI.108 of TODO_DONE.md) */
+error now rather than a check that would leave a register unseen (GAOL v5) */
 #if (defined(__i386__) || defined(_M_IX86)) && !GAOL_RND_X86_DIRECT
 #  error "GAOL reads and writes the control registers of a 32-bit x86 processor itself, and cannot: it needs <fenv.h> and GCC, Clang or Visual C++"
 #endif
@@ -195,14 +194,14 @@ GAOL_RND_PRESERVE() calls) and the functions that set the direction back
 gaol::cleanup()...) read the control word of the x87 unit and MXCSR themselves
 and write the register that differs from the state to set back, and none when both hold it, as x86_set_modes() does
 for a 32-bit x86 processor (GAOL_RND_X86_DIRECT above), rather than call
-fegetround() and fesetround() (GAOL v5, point PG.10 of TODO.md). fesetround()
+fegetround() and fesetround() (GAOL v5). fesetround()
 writes both registers whatever they hold, and GAOL wrote MXCSR a second time
 for the direction of the SSE instructions that fesetround() had set to the
 direction of the x87 unit: three writes, and a call, where a program that
 computes to nearest and a GAOL_RND_NEAREST_LEAVE() that gives back the
 direction upward needs one. Visual C++ has no inline assembly for x64 and does
 not use the x87 unit: MXCSR alone (gaol_core::x86_registers of
-gaol/gaol_fpu_fenv.h). It was so with mingw-w64 alone since point AI.110
+gaol/gaol_fpu_fenv.h). It was so with mingw-w64 alone at first
 (found by tests/rounding_direction.cpp in the continuous integration): from
 mingw-w64 13 (commit 5c5973cf, "fenv: Use MSVC-compatible ABI for fenv.h
 functions", in v13.0.0 and not in v12.0.0) fegetround() and fesetround() are
@@ -281,13 +280,13 @@ GAOL_PRESERVE_ROUNDING, an operation makes its result, the maxima and the
 minima of its bounds included, before GAOL_RND_LEAVE() restores the modes,
 and keeps it with GAOL_RND_KEEP(): with denormals-are-zero restored, sinpi()
 took the minimum of two subnormals as if they were zeros, and
-sinpi([100, 1000] 2^-1074) was empty (GAOL v5, review of point 4,
+sinpi([100, 1000] 2^-1074) was empty (GAOL v5,
 tests/rounding_direction.cpp). The functions that make no check, the
 constructor from two bounds, the relations, & and |, max(), abs()...,
 compare the bounds as bounds (gaol_detail::bound_less()..., gaol_port.h),
 which these modes do not change, and leave them as they found them;
 midpoint(), chi() and the writing of an interval make the check (GAOL v5,
-point Q of TODO.md, doc/using.md).
+doc/using.md).
 
 Each operation checks the direction once, at its entry. What it calls after
 its GAOL_RND_ENTER() takes the direction to be upward and does not check it
@@ -349,8 +348,8 @@ direction when it is preserved.
 #endif // GAOL_PRESERVE_ROUNDING
 
 /*
-1 where the build has the fused multiply-add as an instruction (GAOL v5, point
-109 (AI) of TODO.md): __FMA__ for GCC, Clang and clang-cl, and /arch:AVX2
+1 where the build has the fused multiply-add as an instruction (GAOL v5):
+__FMA__ for GCC, Clang and clang-cl, and /arch:AVX2
 (__AVX2__, which implies it) for Visual C++: __AVX2__ alone says nothing of
 the instruction for clang-cl, which has -mavx2 without -mfma. The packed
 products of the integer powers (gaol/core/gaol_interval_core.cpp) and the
@@ -365,10 +364,10 @@ macros below ask for it, and tests/misc.cpp writes the condition again
 /*
 On x86-64 with SSE2 intervals and the fused multiply-add as an instruction
 (__FMA__, GAOL_FMA; with Visual C++, /arch:AVX2, which implies them and
-defines __AVX2__, and which GAOL_FMA gives it: GAOL v5, point 109 (AI) of
-TODO.md), GAOL_RND_ENTER() and GAOL_RND_LEAVE() are GAOL_RND_ENTER_SSE()
-and GAOL_RND_LEAVE_SSE() with GAOL_PRESERVE_ROUNDING (GAOL v5, point ZZ of
-TODO.md): every double GAOL computes is an SSE one there, the elementary
+defines __AVX2__, and which GAOL_FMA gives it: GAOL v5), GAOL_RND_ENTER() and
+GAOL_RND_LEAVE() are GAOL_RND_ENTER_SSE()
+and GAOL_RND_LEAVE_SSE() with GAOL_PRESERVE_ROUNDING (GAOL v5): every double
+GAOL computes is an SSE one there, the elementary
 functions of CORE-MATH read the direction from MXCSR
 (gaol/math/gaol_core_math_port.h), and no code of GAOL uses the x87 unit, a long
 double or a function of the C library that the x87 unit would round (the fma()
@@ -378,10 +377,10 @@ at all, its long double is a double): the direction of the x87 unit changes no
 bound, and is left as the program had it. The operations then read MXCSR once at
 their start, write it only if it is not upward with the modes that flush the
 subnormals clear, and write back at their end what they found only if it was
-not (see gaol_core::sse_enter_upward() and sse_leave(); GAOL v5, point 108
-(AI) of TODO.md), where the macros
+not (see gaol_core::sse_enter_upward() and sse_leave(); GAOL v5), where the
+macros
 for the other builds read the direction through fegetround() and set it
-back through fesetround() as well (before point PG.10 of TODO.md), which
+back through fesetround() as well (as GAOL did at first), which
 write the control word of the x87 unit and MXCSR again, and clear the
 flush-to-zero modes and set the direction upward as two separate writes:
 pown(x, 3) took 19.0 ns with them, 8.4 with the others, and 5.1 with the
@@ -622,8 +621,8 @@ namespace gaol_core {
   /*
     The start and the end of an operation under GAOL_PRESERVE_ROUNDING that
     keeps MXCSR alone (GAOL_RND_ENTER_SSE() and GAOL_RND_LEAVE_SSE()), on the
-    model of x86_enter_upward() and x86_leave() (GAOL v5, point 108 (AI) of
-    TODO.md; they read and wrote MXCSR twice whatever it held, which cost
+    model of x86_enter_upward() and x86_leave() (GAOL v5; they read and wrote
+    MXCSR twice whatever it held, which cost
     about 20 ns an operation on the AMD EPYC runners of GitHub and 7 on an
     Intel i7-1185G7): saved is MXCSR as the
     operation found it, read once. The direction upward and the modes that
@@ -926,7 +925,7 @@ namespace gaol_core {
   would pay there: none of those of the continuous integration did, where
   the probe took 0.35 to 1.43 ns, as long as the same probe made of 2^-60
   within the noise (gaol_performance, 68 jobs on x86-64, i386, arm64 and
-  armhf; GAOL v5, point Q of TODO.md).
+  armhf; GAOL v5).
   */
   GAOL_INLINE void round_upward_if_needed()
   {
@@ -953,8 +952,8 @@ namespace gaol_core {
     static const volatile double subnormal = 8.0947715414629834e-320;
     // Not above 1, rather than == 1: no operand is a NaN, and the compiler
     // makes one comparison and one branch of it where == takes the three
-    // instructions that tell an unordered result (GAOL v5, point ZZ of
-    // TODO.md). The branch is the unlikely one, so that the code that sets the
+    // instructions that tell an unordered result (GAOL v5). The branch is the
+    // unlikely one, so that the code that sets the
     // direction is out of the way of the one that does not
     if (GAOL_UNLIKELY(!(1.0 + (subnormal + 0.0) > 1.0))) {
       round_upward_with_flush_cleared();
@@ -976,8 +975,8 @@ namespace gaol_core {
     computes its bounds with SSE, and what the x87 unit computes, the square
     root and the fma() of a C library, follows its direction (the elementary
     functions of CORE-MATH read MXCSR, gaol/math/gaol_core_math_port.h; they
-    read the x87 unit with the fegetround() of a C library before GAOL v5, point
-    AI.108). Either being elsewhere, it is set upward (GAOL v5, found by
+    read the x87 unit with the fegetround() of a C library before GAOL v5).
+    Either being elsewhere, it is set upward (GAOL v5, found by
     tests/rounding_direction.cpp in the continuous integration, which leaves
     the two differing on purpose). Not the probe above, which shows the
     direction of the unit computing GAOL's doubles only. The two registers

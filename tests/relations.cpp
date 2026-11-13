@@ -214,7 +214,7 @@ public:
   }
 
   /* <, <=, > and >= between an interval and an integer, set_contains() and
-     set_strictly_contains() of an integer (GAOL v5, point D.21): n compared
+     set_strictly_contains() of an integer (GAOL v5): n compared
      as the integer it is. 2^53 + 1, converted to the double 2^53, was not
      above [2^53], and [2^53] contained it. */
   void test_symbols_with_integers() {
@@ -326,7 +326,7 @@ public:
     }
   }
 
-  /* lexicographic_less (GAOL v5, point V): a total order for the containers
+  /* lexicographic_less (GAOL v5): a total order for the containers
      of the standard library. < is strictPrecedes of IEEE 1788-2015, true as
      soon as either interval is empty: a std::set<interval> built on < loses
      the intervals that overlap, and std::sort reads past the end of a vector

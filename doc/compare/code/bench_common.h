@@ -68,7 +68,7 @@ inline bool selected(const std::string& only, const char *name)
 
 // Whether the operation name is in the comma-separated list only, which has
 // to name it: the long lines of bench_ops.h, which a run of all the operations
-// leaves out (GAOL v5, point ZZ of TODO.md)
+// leaves out (GAOL v5)
 inline bool selected_exactly(const std::string& only, const char *name)
 {
   return !only.empty() && ("," + only + ",").find(std::string(",") + name + ",") != std::string::npos;

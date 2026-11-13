@@ -79,7 +79,7 @@ Two things go at once with mathlib: the outward move of each bound, and the
 two changes of rounding direction each function made, to nearest before
 mathlib and back upward after. The integer power is computed from exact
 products, both bounds at once in an SSE2 register, with an error bound proved
-beforehand (point B of `TODO.md`). **And the bounds are tighter,
+beforehand. **And the bounds are tighter,
 not looser**: in the last table below, GAOL V5.0.0's results are no wider than
 libieeep1788's, which computes every bound with MPFR, for **every one of the
 seventeen operations** (excess 0.0e+00), where GAOL 4.2.3 is wider on the
@@ -87,7 +87,7 @@ square root, `exp`, `log`, `sin`, `cos`, both powers and the lines that use
 them.
 
 **The arithmetic is faster than GAOL 4.2.3's**, which is what the operators
-of GAOL V5.0.0 are written for (point ZZ of `TODO.md`):
+of GAOL V5.0.0 are written for:
 
 | | GAOL V5.0.0 | GAOL 4.2.3 | |
 |---|---:|---:|---|
@@ -137,8 +137,8 @@ rounds each root in its direction, where the SSE2 path checks the root of the C
 library with a product. The elementary functions read the control register of
 the direction, set it upward and write it back, once each, and take 1.2 to 1.5
 times longer (`exp` 27.7 ns against 18.7, `log` 25.1 against 20.0, `sin` and
-`cos` 1.3 times, `pow(x, y)` 1.2 times). They paid more, as `sqr` and the integer powers did, until point ZZ of
-`TODO.md`: the two writes of the control register, each one waiting for the
+`cos` 1.3 times, `pow(x, y)` 1.2 times). They paid more, as `sqr` and the
+integer powers did, before the operators were rewritten: the two writes of the control register, each one waiting for the
 operations in flight, took 6 ns a `sqr` (8.3 ns, 4.4 times); with the C
 library's `fegetround()` and `fesetround()` and the writes of the control word
 of the x87 unit as well, `pow(x, 3)` took 14 ns more (19.0 ns, 3.7 times; 8.4 ns

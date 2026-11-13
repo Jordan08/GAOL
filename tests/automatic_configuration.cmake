@@ -16,7 +16,7 @@
 #     the old GAOL_ARM64=OFF no longer reads (and says so);
 #   - the AVX-512 path follows GAOL_PRESERVE_ROUNDING at every configure, in
 #     the same directory too (a default that a second cmake took for a request
-#     left the path out, point 112 of TODO.md), where the compiler has one;
+#     left the path out), where the compiler has one;
 #     -DGAOL_PREFER_AVX512=OFF refuses it under GAOL_PRESERVE_ROUNDING, =ON asks
 #     for it without, and an error says so where no compiler could take it;
 #   - the Debug build type is the build for debugging, GAOL_DEBUGGING follows it,
@@ -342,7 +342,7 @@ message(STATUS "GAOL_EXCEPTIONS_ENABLED=OFF and GAOL_VERBOSE_MODE=ON: as expecte
 # instructions: a C compiler that refuses the first of them (-mfma on x86,
 # -mfpu=neon-vfpv4 on 32-bit ARM), with a C++ compiler that takes them, leaves
 # them out (CMake checked the C++ compiler alone, where configure and meson
-# check both: point 95 of TODO.md). Where the default configuration takes flags,
+# check both). Where the default configuration takes flags,
 # and a script of sh can be the C compiler
 if(UNIX AND _default_fma_line MATCHES "flags: [^\n]")
   string(REGEX REPLACE "^Fused multiply-add flags: ([^\n]*)\n$" "\\1" _fma_flags "${_default_fma_line}")

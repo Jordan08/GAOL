@@ -187,8 +187,8 @@ namespace gaol_core {
   std::string literal_text(const interval& x);
 
   /*
-    The value of the token of a number that is not a double (GAOL v5, point 84
-    of TODO.md): the tightest interval of doubles [l, r] enclosing it, and the
+    The value of the token of a number that is not a double (GAOL v5): the
+    tightest interval of doubles [l, r] enclosing it, and the
     rank of its text in the context of the reading, which keeps it (never 0),
     with which the parser asks the context for that text, to tell two such
     numbers apart. Given by the lexer to the parser, in
@@ -215,7 +215,7 @@ namespace gaol_detail {
 
   /*
     The sign of a - b, a and b being the numbers the texts a and b write, with
-    no sign, compared exactly (GAOL v5, point 84 of TODO.md); 2 when one of
+    no sign, compared exactly (GAOL v5); 2 when one of
     them is far beyond the doubles, above 10^311 or below 10^-331 or the
     like in the other bases (see gaol_take_apart() in
     gaol/parser/gaol_interval_lexer.lpp),

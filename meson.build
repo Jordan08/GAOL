@@ -595,7 +595,7 @@ endif
 # option was a boolean, whose false could not be told from the default: under
 # enable-preserve-rounding, meson kept the path where CMake and configure let it
 # go, which, chosen when GAOL is configured, makes on a machine with the AVX-512
-# instructions a library that needs them (GAOL v5, point AA of TODO.md)
+# instructions a library that needs them (GAOL v5)
 if prefer_avx512_requested and not have_avx512_target
   error('GAOL_PREFER_AVX512 takes the SSE2 intervals of x86-64, with Clang, Visual C++, or GCC except on Windows (MinGW-w64, Cygwin)')
 endif

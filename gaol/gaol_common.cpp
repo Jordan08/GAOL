@@ -105,7 +105,7 @@ namespace gaol_core {
       which the initialization of a static object can use before the
       streams of C++ are built, and __builtin_cpu_init() first, which
       __builtin_cpu_supports() needs in a function run before the
-      constructors (GAOL v5, point AA of TODO.md). */
+      constructors (GAOL v5). */
       if (!GAOL_CPU_RUNS_AVX512F()) {
         std::fputs("[gaol error]: this GAOL was built for the AVX-512 instructions"
                    " (GAOL_PREFER_AVX512, on by default with GAOL_PRESERVE_ROUNDING),"
@@ -213,8 +213,8 @@ namespace gaol_core {
   (GAOL v5). Two values the comparisons find equal are compared as bounds
   first (gaol_detail::bound_key(), gaol_port.h): under denormals-are-zero,
   which max(), min(), abs() and mag() leave set, two subnormals compare
-  equal, and maximum(3*2^-1074, 100*2^-1074) was 3*2^-1074 (GAOL v5,
-  point Q of TODO.md). Where the modes are cleared, this is made only for
+  equal, and maximum(3*2^-1074, 100*2^-1074) was 3*2^-1074 (GAOL v5). Where the
+  modes are cleared, this is made only for
   equal values. */
   double maximum(double a, double b)
   {

@@ -132,7 +132,7 @@ distclean-local:
 # the headers and the scripts it knows from the variables of the Makefile.am,
 # and EXTRA_DIST names the other files of the repository, here the files of the builds of CMake and meson, the sources of the lexer and the parser, and their tools.
 # make dist, package_source of CMake and meson dist hold the same files, those
-# of the repository but the notes of the work on GAOL v5 (.gitattributes): a
+# of the repository but the notes of the work on GAOL v5 of the branch dev: a
 # file added to the repository is added to this list too, or the job Archives
 # of the sources of the CI, which compares the three archives, fails
 EXTRA_DIST = \

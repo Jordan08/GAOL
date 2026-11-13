@@ -113,7 +113,7 @@ namespace gaol_detail {
 
   /*
     The tag of the constructors of an interval from the two lanes of a
-    register that make no check (GAOL v5, point AC of TODO.md): the code of
+    register that make no check (GAOL v5): the code of
     GAOL gives them the lanes it computed, which are right, where the
     constructor of the interface refuses the lanes of [+oo] and [-oo]
   */
@@ -121,7 +121,7 @@ namespace gaol_detail {
   const unchecked_bounds_t unchecked_bounds = unchecked_bounds_t();
 
   /*
-    The integers GAOL takes as they are (GAOL v5, point D.21 of TODO.md):
+    The integers GAOL takes as they are (GAOL v5):
     the integer types but bool. An integer given where GAOL takes a double
     was converted to a double, the nearest one or the one of the rounding
     direction, which an integer beyond 2^53 is not: interval(2^53 + 1) was
