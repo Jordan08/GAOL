@@ -473,13 +473,18 @@ namespace gaol_core {
           GAOL_DEBUG_VERBOSE(3,std::cout << "unary_minus_node destroyed" << std::endl);
         }
         
+        /* The operand is displayed as a node, as the other nodes do: written
+           through operator<<(), it was taken as a temporary expression, whose
+           construction and destruction changed the count of references of the
+           node, a plain unsigned int, so that two threads displaying the same
+           -x deleted the node of x while x held it (GAOL v5) */
         std::ostream& unary_minus_node::display(std::ostream& os) const
         {
           os.put('-');
           if (e_uminus->get_precedence()<precedence) {
-            os.put('('); os << (*e_uminus); os.put(')');
+            os.put('('); e_uminus->display(os); os.put(')');
           } else {
-            os << (*e_uminus);
+            e_uminus->display(os);
           }
           return os;
         }
