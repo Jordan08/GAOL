@@ -1376,15 +1376,16 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
     (GAOL v5: two were, and acos_rel([1], [20, 31.415926535897928]) was
     empty, though 8 pi is in I).
 
-    The third piece on the left is not known to be needed, and is tried for
-    safety: the quotient of the lower bound, rounded down, falls below the
-    piece of x only through the gap between pi and gaol_pi_dn or gaol_pi_up,
-    narrower than a double of x, so that x is then the first double after
-    the start of its piece; the enclosure of that piece, the second one
-    tried, rounded outward, then reaches x, and meets I unless I holds no
-    solution. Over 117 million random I with a bound next to the start of a
-    piece, the third piece met I on the left 2 728 times, each time with the
-    right side empty, and changed no result (GAOL v5).
+    The third piece on the left is not needed, and is tried for safety: the
+    quotient of the lower bound, rounded down, the integers and the halves
+    of integers being doubles there, falls below the piece of x only through
+    the gap between pi and gaol_pi_dn or gaol_pi_up, narrower than a double
+    of x, so that x is then the first double after the start of its piece;
+    the enclosure of that piece, the second one tried, rounded outward, then
+    reaches x, and meets I unless I holds no solution. Over 117 million
+    random I with a bound next to the start of a piece, the third piece met I
+    on the left 2 728 times, each time with the right side empty, and changed
+    no result (GAOL v5).
 
     Beyond 2^52 the quotient may be off by more, and I is kept as it is on
     that side; an I of a single double is decided by the image of the
