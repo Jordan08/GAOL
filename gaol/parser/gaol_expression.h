@@ -99,7 +99,15 @@ namespace gaol_core {
     }
     public:
     expression(const expression& e);
-    expression(const expr_node& e);
+    /*
+    The expression of the node e, which counts one reference more to it.
+    Explicit (GAOL v5): a node no longer converts silently to an expression,
+    a temporary one whose construction and destruction change the count of
+    the node, a plain unsigned int; unary_minus_node::display() made one to
+    write its operand, and two threads displaying the same -x deleted the
+    node of x. Written out, expression(*node)
+    */
+    explicit expression(const expr_node& e);
     virtual ~expression();
     
     expression& operator=(const expression& e);
@@ -1538,7 +1546,7 @@ namespace gaol_core {
           GAOL_NODISCARD inline const ::gaol_core::expression pow(const ::gaol_core::expression& e1, const ::gaol_core::expression& e2)
           {
             const ::gaol_core::pow_itv_node::power_function standard_pow = pow;
-            return *(new ::gaol_core::pow_itv_node(e1, e2, standard_pow));
+            return ::gaol_core::expression(*(new ::gaol_core::pow_itv_node(e1, e2, standard_pow)));
           }
         } // namespace gaol_ieee1788
         

@@ -449,7 +449,7 @@ namespace gaol_core {
         
         expr_node* add_node::clone() const
         {
-          add_node* e = new add_node(*e_left,*e_right);
+          add_node* e = new add_node(expression(*e_left),expression(*e_right));
           return e;
         }
         
@@ -491,7 +491,7 @@ namespace gaol_core {
         
         expr_node* unary_minus_node::clone() const
         {
-          unary_minus_node* e = new unary_minus_node(*e_uminus);
+          unary_minus_node* e = new unary_minus_node(expression(*e_uminus));
           return e;
         }
         
@@ -531,7 +531,7 @@ namespace gaol_core {
           
           expr_node* sub_node::clone() const
           {
-            sub_node* e = new sub_node(*e_left,*e_right);
+            sub_node* e = new sub_node(expression(*e_left),expression(*e_right));
             return e;
           }
           
@@ -571,7 +571,7 @@ namespace gaol_core {
             
             expr_node* mult_node::clone() const
             {
-              mult_node* e = new mult_node(*e_left,*e_right);
+              mult_node* e = new mult_node(expression(*e_left),expression(*e_right));
               return e;
             }
             
@@ -612,7 +612,7 @@ namespace gaol_core {
               
               expr_node* div_node::clone() const
               {
-                div_node* e = new div_node(*e_left,*e_right);
+                div_node* e = new div_node(expression(*e_left),expression(*e_right));
                 return e;
               }
               
@@ -647,7 +647,7 @@ namespace gaol_core {
               
               expr_node* pow_node::clone() const
               {
-                pow_node* e = new pow_node(*e_pow,exponent);
+                pow_node* e = new pow_node(expression(*e_pow),exponent);
                 return e;
               }
               
@@ -685,7 +685,7 @@ namespace gaol_core {
               
               expr_node* pow_itv_node::clone() const
               {
-                pow_itv_node* e = new pow_itv_node(*e_left,*e_right,f);
+                pow_itv_node* e = new pow_itv_node(expression(*e_left),expression(*e_right),f);
                 return e;
               }
               
@@ -720,7 +720,7 @@ namespace gaol_core {
               
               expr_node* nth_root_node::clone() const
               {
-                nth_root_node* e = new nth_root_node(*e_nth_root,exponent);
+                nth_root_node* e = new nth_root_node(expression(*e_nth_root),exponent);
                 return e;
               }
               
@@ -754,7 +754,7 @@ namespace gaol_core {
               
               expr_node* cos_node::clone() const
               {
-                cos_node* e = new cos_node(*e_cos);
+                cos_node* e = new cos_node(expression(*e_cos));
                 return e;
               }
               
@@ -788,7 +788,7 @@ namespace gaol_core {
               
               expr_node* sin_node::clone() const
               {
-                sin_node* e = new sin_node(*e_sin);
+                sin_node* e = new sin_node(expression(*e_sin));
                 return e;
               }
               
@@ -822,7 +822,7 @@ namespace gaol_core {
               
               expr_node* tan_node::clone() const
               {
-                tan_node* e = new tan_node(*e_tan);
+                tan_node* e = new tan_node(expression(*e_tan));
                 return e;
               }
               
@@ -861,7 +861,7 @@ namespace gaol_core {
               
               expr_node* atan2_node::clone() const
               {
-                atan2_node* e = new atan2_node(*Y,*X);
+                atan2_node* e = new atan2_node(expression(*Y),expression(*X));
                 return e;
               }
               
@@ -895,7 +895,7 @@ namespace gaol_core {
               
               expr_node* acos_node::clone() const
               {
-                acos_node* e = new acos_node(*e_acos);
+                acos_node* e = new acos_node(expression(*e_acos));
                 return e;
               }
               
@@ -929,7 +929,7 @@ namespace gaol_core {
               
               expr_node* asin_node::clone() const
               {
-                asin_node* e = new asin_node(*e_asin);
+                asin_node* e = new asin_node(expression(*e_asin));
                 return e;
               }
               
@@ -963,7 +963,7 @@ namespace gaol_core {
               
               expr_node* atan_node::clone() const
               {
-                atan_node* e = new atan_node(*e_atan);
+                atan_node* e = new atan_node(expression(*e_atan));
                 return e;
               }
               
@@ -997,7 +997,7 @@ namespace gaol_core {
               
               expr_node* cosh_node::clone() const
               {
-                cosh_node* e = new cosh_node(*e_cosh);
+                cosh_node* e = new cosh_node(expression(*e_cosh));
                 return e;
               }
               
@@ -1031,7 +1031,7 @@ namespace gaol_core {
               
               expr_node* sinh_node::clone() const
               {
-                sinh_node* e = new sinh_node(*e_sinh);
+                sinh_node* e = new sinh_node(expression(*e_sinh));
                 return e;
               }
               
@@ -1065,7 +1065,7 @@ namespace gaol_core {
               
               expr_node* tanh_node::clone() const
               {
-                tanh_node* e = new tanh_node(*e_tanh);
+                tanh_node* e = new tanh_node(expression(*e_tanh));
                 return e;
               }
               
@@ -1100,7 +1100,7 @@ namespace gaol_core {
               
               expr_node* acosh_node::clone() const
               {
-                acosh_node* e = new acosh_node(*e_acosh);
+                acosh_node* e = new acosh_node(expression(*e_acosh));
                 return e;
               }
               
@@ -1134,7 +1134,7 @@ namespace gaol_core {
               
               expr_node* asinh_node::clone() const
               {
-                asinh_node* e = new asinh_node(*e_asinh);
+                asinh_node* e = new asinh_node(expression(*e_asinh));
                 return e;
               }
               
@@ -1168,7 +1168,7 @@ namespace gaol_core {
               
               expr_node* atanh_node::clone() const
               {
-                atanh_node* e = new atanh_node(*e_atanh);
+                atanh_node* e = new atanh_node(expression(*e_atanh));
                 return e;
               }
               
@@ -1203,7 +1203,7 @@ namespace gaol_core {
               
               expr_node* exp_node::clone() const
               {
-                exp_node* e = new exp_node(*e_exp);
+                exp_node* e = new exp_node(expression(*e_exp));
                 return e;
               }
               
@@ -1237,7 +1237,7 @@ namespace gaol_core {
               
               expr_node* log_node::clone() const
               {
-                log_node* e = new log_node(*e_log);
+                log_node* e = new log_node(expression(*e_log));
                 return e;
               }
               
@@ -1271,7 +1271,7 @@ namespace gaol_core {
               
               expr_node* exp2_node::clone() const
               {
-                exp2_node* e = new exp2_node(*e_exp2);
+                exp2_node* e = new exp2_node(expression(*e_exp2));
                 return e;
               }
               
@@ -1305,7 +1305,7 @@ namespace gaol_core {
               
               expr_node* log2_node::clone() const
               {
-                log2_node* e = new log2_node(*e_log2);
+                log2_node* e = new log2_node(expression(*e_log2));
                 return e;
               }
               
@@ -1339,7 +1339,7 @@ namespace gaol_core {
               
               expr_node* sign_node::clone() const
               {
-                sign_node* e = new sign_node(*e_sign);
+                sign_node* e = new sign_node(expression(*e_sign));
                 return e;
               }
               
@@ -1373,7 +1373,7 @@ namespace gaol_core {
               
               expr_node* trunc_node::clone() const
               {
-                trunc_node* e = new trunc_node(*e_trunc);
+                trunc_node* e = new trunc_node(expression(*e_trunc));
                 return e;
               }
               
@@ -1388,27 +1388,27 @@ namespace gaol_core {
               
               const expression operator+(const expression& el, const expression& er)
               {
-                return *(new add_node(el,er));
+                return expression(*(new add_node(el,er)));
               }
               
               const expression operator-(const expression& e)
               {
-                return *(new unary_minus_node(e));
+                return expression(*(new unary_minus_node(e)));
               }
               
               const expression operator-(const expression& el, const expression& er)
               {
-                return *(new sub_node(el,er));
+                return expression(*(new sub_node(el,er)));
               }
               
               const expression operator*(const expression& el, const expression& er)
               {
-                return *(new mult_node(el,er));
+                return expression(*(new mult_node(el,er)));
               }
               
               const expression operator/(const expression& el, const expression& er)
               {
-                return *(new div_node(el,er));
+                return expression(*(new div_node(el,er)));
               }
               
               /*
@@ -1417,99 +1417,99 @@ namespace gaol_core {
               */
               const expression gaol_pown_exp(const expression& e, int n)
               {
-                return *(new pow_node(e,n));
+                return expression(*(new pow_node(e,n)));
               }
               
               const expression gaol_pow_exp(const expression& e1, const expression &e2)
               {
-                return *(new pow_itv_node(e1,e2));
+                return expression(*(new pow_itv_node(e1,e2)));
               }
               
               const expression nth_root(const expression& e, unsigned int n)
               {
-                return *(new nth_root_node(e,n));
+                return expression(*(new nth_root_node(e,n)));
               }
               
               const expression cos(const expression& e)
               {
-                return *(new cos_node(e));
+                return expression(*(new cos_node(e)));
               }
               const expression sin(const expression& e)
               {
-                return *(new sin_node(e));
+                return expression(*(new sin_node(e)));
               }
               const expression tan(const expression& e)
               {
-                return *(new tan_node(e));
+                return expression(*(new tan_node(e)));
               }
               
               const expression atan2(const expression& e1, const expression& e2)
               {
-                return *(new atan2_node(e1,e2));
+                return expression(*(new atan2_node(e1,e2)));
               }
               
               const expression acos(const expression& e)
               {
-                return *(new acos_node(e));
+                return expression(*(new acos_node(e)));
               }
               const expression asin(const expression& e)
               {
-                return *(new asin_node(e));
+                return expression(*(new asin_node(e)));
               }
               const expression atan(const expression& e)
               {
-                return *(new atan_node(e));
+                return expression(*(new atan_node(e)));
               }
               
               const expression cosh(const expression& e)
               {
-                return *(new cosh_node(e));
+                return expression(*(new cosh_node(e)));
               }
               const expression sinh(const expression& e)
               {
-                return *(new sinh_node(e));
+                return expression(*(new sinh_node(e)));
               }
               const expression tanh(const expression& e)
               {
-                return *(new tanh_node(e));
+                return expression(*(new tanh_node(e)));
               }
               
               const expression acosh(const expression& e)
               {
-                return *(new acosh_node(e));
+                return expression(*(new acosh_node(e)));
               }
               const expression asinh(const expression& e)
               {
-                return *(new asinh_node(e));
+                return expression(*(new asinh_node(e)));
               }
               const expression atanh(const expression& e)
               {
-                return *(new atanh_node(e));
+                return expression(*(new atanh_node(e)));
               }
               
               const expression exp(const expression& e)
               {
-                return *(new exp_node(e));
+                return expression(*(new exp_node(e)));
               }
               const expression log(const expression& e)
               {
-                return *(new log_node(e));
+                return expression(*(new log_node(e)));
               }
               const expression exp2(const expression& e)
               {
-                return *(new exp2_node(e));
+                return expression(*(new exp2_node(e)));
               }
               const expression log2(const expression& e)
               {
-                return *(new log2_node(e));
+                return expression(*(new log2_node(e)));
               }
               const expression sign(const expression& e)
               {
-                return *(new sign_node(e));
+                return expression(*(new sign_node(e)));
               }
               const expression trunc(const expression& e)
               {
-                return *(new trunc_node(e));
+                return expression(*(new trunc_node(e)));
               }
               
               bool evaluate_left_right(const expression& el, const expression& er,
