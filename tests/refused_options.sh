@@ -93,4 +93,17 @@ case $(uname -s 2>/dev/null) in
     fi ;;
 esac
 
+# ARM64EC (GAOL v5), which gaol/gaol_config.h refuses and no build targets, as
+# the test refused_arm64ec of tests/CMakeLists.txt checks it: _M_ARM64EC is
+# defined by hand
+output=$($GAOL_CXX $GAOL_CXXFLAGS -D_M_ARM64EC=1 -fsyntax-only "$source" 2>&1)
+case $output in
+  *"GAOL cannot be compiled for ARM64EC"*)
+    echo "PASS: ARM64EC refused" ;;
+  *)
+    printf '%s\n' "$output"
+    echo "FAIL: ARM64EC not refused"
+    status=1 ;;
+esac
+
 exit $status
