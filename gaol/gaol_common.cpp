@@ -98,12 +98,21 @@ namespace gaol_core {
   (32-bit ARM with the floating point in software, MIPS or RISC-V without
   it...), so that every bound would be rounded to nearest, in silence. The
   sum 1 + 2^-60, inexact, is above 1 upward only; its operands are volatile,
-  so that it is computed here, under the direction set. Told in C stdio, as
-  the processor without AVX-512 in init(). */
+  so that it is computed here, under the direction set. The flag of the
+  inexact exception it raises is set back as it was. Told in C stdio, as the
+  processor without AVX-512 in init(). On Debian armel (32-bit ARM, the
+  floating point in software, GCC 12), fesetround(FE_UPWARD) returns 0 and
+  changes nothing, and GAOL computed every bound to nearest; valgrind
+  (memcheck 3.26 on x86-64) computes the SSE instructions to nearest whatever
+  MXCSR says, and a program using GAOL stops there too. */
   static void check_upward_rounding()
   {
+    fexcept_t inexact;
+    fegetexceptflag(&inexact, FE_INEXACT);
     volatile double one = 1.0, tiny = std::ldexp(1.0, -60);
-    if (!(one + tiny > 1.0)) {
+    const bool upward = one + tiny > 1.0;
+    fesetexceptflag(&inexact, FE_INEXACT);
+    if (!upward) {
       std::fputs("[gaol error]: the rounding direction cannot be set upward on this"
                  " target (fesetround(FE_UPWARD) has no effect there, as without a"
                  " floating-point unit): every bound GAOL computes would be rounded"
