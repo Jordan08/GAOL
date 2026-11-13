@@ -175,14 +175,17 @@ namespace gaol_core {
   }
 
   // inverse() of I, the empty set or not, with its check: its body, and
-  // 1/sqrt(x) of nth_root(x, -2) (GAOL v5)
+  // 1/sqrt(x) of nth_root(x, -2) (GAOL v5). The bounds pass through
+  // reread_bounds() after the check, as in the NEON intervals: inlined, I may
+  // be held in a register, which the barrier of the check does not reload
   inline interval upward_access::checked_inverse(const interval& I)
   {
     if (I.is_empty()) {
       return I;
     }
     GAOL_RND_ENTER_SSE();
-    __m128d res = upward_access::inverse(I).get_xmminterval();
+    const interval J(reread_bounds(I.xmmbounds), gaol_detail::unchecked_bounds);
+    __m128d res = upward_access::inverse(J).get_xmminterval();
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE_SSE();
     return interval(res, gaol_detail::unchecked_bounds);
