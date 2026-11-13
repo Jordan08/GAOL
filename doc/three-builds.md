@@ -368,8 +368,9 @@ Compiling GAOL's sources alone with it was enough for the test to fail; Clang
 18.1 passed the tests with it. With GCC 15.2 and the code of 13 November 2026,
 the 63 tests pass with it (`-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON`, `-flto`
 in the flags of the target `gaol`), `rounding_direction` among them, with and
-without `GAOL_PRESERVE_ROUNDING` (GAOL v5). No other version of GCC was tried
-with it, and no job of the continuous integration builds with it.
+without `GAOL_PRESERVE_ROUNDING` (GAOL v5), and with GCC 13.3, the direction
+preserved, which a job of `linux.yml` builds with it, all the tests run. The
+other compilers and versions were not tried with it.
 
 It is not refused either: the standard settings of the tools reach the
 sources of GAOL, `CMAKE_INTERPROCEDURAL_OPTIMIZATION` of CMake, given to GAOL
