@@ -6306,6 +6306,50 @@ request (7.33).
   construit les trois paquets en artefacts, sans Release ; seul son job `tag`
   attend la vraie étiquette, sur laquelle il n'a encore jamais tourné.
 
+### 3.37 Le 13 novembre : la relecture complète, ses constats en tâches PU à PZ
+
+Le mainteneur demande une relecture complète du code et des documentations
+(« Prends tout le temps nécessaire pour faire une relecture complète du code et
+des documentations ») et choisit, parmi quatre étendues, la relecture de tout
+par une trentaine de relecteurs (environ 6 M jetons annoncés ; 31 relecteurs en
+ont pris 7,1 M) ; il demande ensuite d'ajouter à `TODO.md` tout ce qu'il y a à
+faire.
+
+- **Ce qui a été relu** : l'archive de `9d59e0c` (`dev` et `configure-clean`,
+  725 fichiers), en 31 périmètres disjoints : le code (10), les builds et la CI
+  (3), les tests (3), `doc/`, le README et les exemples (8), le manuel (7) ;
+  chaque constat est revérifié par la session. Le rapport, les rapports des
+  relecteurs et les programmes de preuve sont hors du dépôt, dans
+  `/home/jninin/Documents/WORK/DEV/GAOL/GAOL_review_2026-11-13/`.
+- **Les contrôles automatiques passent tous** : CMake avec GCC 15 (SSE2 et FPU),
+  Clang 18 et Clang 21, `-Wall -Wextra -Werror` avec GCC et Clang 21, Debug avec
+  ASan et UBSan (63 tests sur 63), autotools avec `make distclean`, meson,
+  `headers.sh`, les tests reconstruits avec le GAOL installé, `fr_FR.UTF-8`,
+  `GAOL_PRESERVE_ROUNDING` ; le lexer, le parser, les six `Makefile.in`,
+  `configure` et trois des six tables de valeurs se régénèrent à l'identique
+  (les trois autres à une ligne vide près, `TODO.md` PW.10) ; le texte du PDF du
+  manuel est celui de ses sources, à une entrée d'index près, et ses 116
+  exemples affichent ce qu'il dit.
+- **Les constats** sont dans `TODO.md`, tâches PU à PZ : deux bloquants (PU.1 :
+  `acos_rel()`, `asin_rel()` et `atan_rel()` rendent parfois le vide alors que
+  l'intervalle contient des solutions ; PU.2 : deux threads qui affichent la
+  même expression `-x` plantent), une quinzaine d'importants, et des mineurs.
+- **Écartés après vérification**, à ne pas relever de nouveau : la borne « non
+  sûre » de `doc/using.md` (lignes 892 et 893), qui contient la valeur exacte
+  (seul reste que ce n'est pas ce qu'écrit GAOL, PY.4) ; `tanh()` sous DAZ avec
+  `GAOL_PRESERVE_ROUNDING`, juste dans une construction de GAOL avec cette
+  option (l'intersection compare et copie les bornes par leurs bits) ; cinq
+  alertes de clang-tidy (une valeur non initialisée de `gaol_interval_core.cpp`,
+  ligne 438, un décalage négatif de `gaol_interval_detail.h`, ligne 206,
+  l'auto-affectation de `expression::operator=`, les branches identiques de
+  `gaol_interval_relational.cpp`, ligne 319, le `catch` vide de
+  `gaol_interval_io.cpp`, ligne 61).
+- **Déjà fait par #319** : les renvois vers les registres et `todo-notes/` de 83
+  fichiers de l'archive.
+- **Le commit des registres** est fait sur `dev` seul : `configure-clean` perd
+  ses notes par #321, qu'un changement de `TODO.md` y rendrait non fusionnable
+  (une modification contre une suppression).
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -8361,6 +8405,16 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   containers, Autotools and meson, et macOS, 20 jobs sur 20 : vérifié par
   l'API) ; le commit des registres porte le même code et a sa propre CI, et la
   pull request vers `master` aura la sienne.
+
+### 7.34 Le 13 novembre (la relecture complète : les registres)
+
+- `TODO.md` (l'en-tête, « Comment lire ce fichier », la table et les tâches PU à
+  PZ), ce fichier (3.37 et 7.34) et l'issue #179, en un commit direct sur `dev`
+  (process.md §3.4 : une décision sans pull request), depuis un clone privé du
+  scratchpad ; `TODO_AFTER.md` (l'issue #178) n'a rien de nouveau, et
+  `process.md` n'est pas touché, sa mise à jour pour `dev` attendant les fusions
+  de #319 et de #321. Aucune CI ne part : un push sur `dev` n'en lance pas avant
+  #322.
 
 ## 8. Le ménage fait
 
