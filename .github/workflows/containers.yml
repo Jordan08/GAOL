@@ -2,7 +2,8 @@
 # Debian (amd64, arm64, armhf, i386), manylinux_2_28, Alpine (musl), and under
 # qemu on s390x (big-endian), ppc64le, POWER9 (Ubuntu 24.04) and riscv64, and
 # on armhf and POWER9 built for size too. Checks that the three builds refuse
-# Clang for 32-bit ARM processors, as the C compiler or as the C++ compiler.
+# Clang for 32-bit ARM processors, as the C compiler or as the C++ compiler,
+# and that GAOL stops on Debian armel, whose floating point is in software.
 # On Debian, numbers reads and writes numbers under a locale writing a decimal
 # comma, which the job generates and checks.
 #
@@ -157,6 +158,43 @@ jobs:
         run: |
           python3 .github/scripts/compare-performance.py --rows register "${{ matrix.cfg.before_label }}" perf-before-1.md perf-before-2.md perf-before-3.md \
             -- "${{ matrix.cfg.after_label }}" perf-after-1.md perf-after-2.md perf-after-3.md | tee -a "$GITHUB_STEP_SUMMARY"
+
+  # A target whose floating point is in software (GAOL v5): Debian 12 armel,
+  # 32-bit ARM, cross-compiled by its GCC 12 and run under qemu-arm.
+  # fesetround(FE_UPWARD) returns 0 there, glibc writing the FPSCR of the VFP
+  # qemu emulates, which the arithmetic in software does not read, and GAOL
+  # computed every bound to nearest (765 344 of the 6 234 574 checks of
+  # arithmetic failed): its initialization has to stop the program, with the
+  # message saying why (check_upward_rounding(), gaol/gaol_common.cpp)
+  armel-soft-float:
+    name: Debian 12 Bookworm armel (floating point in software), GAOL stops
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: Cross-compile for armel and run under qemu-arm
+        run: |
+          docker run --rm -v "$PWD:/gaol:ro" debian:bookworm sh -c '
+            set -e
+            apt-get update -qq
+            apt-get install -y -qq --no-install-recommends g++-arm-linux-gnueabi gcc-arm-linux-gnueabi cmake make qemu-user ca-certificates > /dev/null
+            arm-linux-gnueabi-g++ --version | head -1
+            cmake -S /gaol -B /tmp/b -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON \
+              -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=arm \
+              -DCMAKE_C_COMPILER=arm-linux-gnueabi-gcc -DCMAKE_CXX_COMPILER=arm-linux-gnueabi-g++ > /tmp/cmake.log 2>&1 || { tail -30 /tmp/cmake.log; exit 1; }
+            cmake --build /tmp/b -j 4 --target gaol_test_arithmetic > /tmp/build.log 2>&1 || { tail -20 /tmp/build.log; exit 1; }
+            status=0
+            qemu-arm -L /usr/arm-linux-gnueabi /tmp/b/tests/gaol_test_arithmetic > /tmp/run.log 2>&1 || status=$?
+            tail -3 /tmp/run.log
+            if [ "$status" -eq 0 ]; then
+              echo "GAOL ran on a target whose floating point is in software"
+              exit 1
+            fi
+            if ! grep -q "the rounding direction cannot be set upward on this target" /tmp/run.log; then
+              echo "GAOL stopped, but not for the rounding direction"
+              exit 1
+            fi
+            echo "GAOL stopped with its message (exit status $status)"'
 
   clang-arm32:
     name: Debian 13 Trixie armhf, Clang refused
