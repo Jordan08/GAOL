@@ -732,9 +732,10 @@ fi
 # CORE-MATH is correctly rounded in the rounding direction in effect, so GAOL
 # takes its values as bounds without moving them outward and without switching
 # the rounding direction (gaol/math/gaol_double_op.h).
-# -fno-lto for the sources of CORE-MATH, where the user compiles GAOL with
-# -flto: the interprocedural optimization is worth having on GAOL's own
-# operations and costs on the elementary functions (see doc/three-builds.md)
+# -fno-lto for the sources of CORE-MATH, where the interprocedural optimization
+# costs, while it makes GAOL's own operations faster (see doc/three-builds.md).
+# It comes before CFLAGS on the command line, and the last of the two wins: a
+# -flto in CFLAGS reaches these sources all the same (GAOL v5)
 GAOL_CHECK_C_FLAG([-fno-lto], [core_math_takes_fno_lto])
 CORE_MATH_NO_LTO=""
 if test "${core_math_takes_fno_lto}" = yes; then
