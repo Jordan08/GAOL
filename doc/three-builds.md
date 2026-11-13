@@ -405,6 +405,14 @@ alone refuses, when compiling:
 | Cygwin without the fused multiply-add instructions (`GAOL_FMA=OFF`, or a processor without them) | **Bounds not certified.** The `fma()` of the C library of Cygwin is not correctly rounded: `fma(1 + 2^-30, 1 - 2^-30, -1)` gives 0 instead of -2^-60, and `std::fma` is a call of it without optimization. CORE-MATH computes with `fma()`. GAOL v5 has the instruction instead (`-mfma`, `__builtin_fma`), which every level of optimization keeps. | Refused by `gaol/gaol_config.h`; the Cygwin job of `windows.yml` checks the refusal, and builds and tests Cygwin with `-mfma` (GCC 14.4, Release, the tests passing but three skipped). |
 | Doubles computed on the x87 unit of 32-bit x86 processors (without `-msse2 -mfpmath=sse`, or `/arch:SSE2`) | CORE-MATH assumes every operation on doubles rounded to a double. Computed in extended precision, its results rounded to nearest are rounded twice, and 175 arguments gave the other neighbour of the exact value with GCC 12 on Debian 12 i386; with GCC 9, which rounds to nearest at compile time the constants CORE-MATH rounds in the direction in effect, GAOL's bounds of `exp2(-1075)`, `expm1(-800)` or `atan2()` of a tiny and a huge number did not enclose the exact values. `tests/extended_precision.cpp` checks these arguments. |
 
+`gaol/gaol_config.h` refuses ARM64EC too (`_M_ARM64EC`, GAOL v5), the 64-bit
+ARM code of Windows that keeps the conventions of x64, which no build of GAOL
+targets: GAOL would take its paths for x64 there, which set the rounding
+direction through the MXCSR of the SSE instructions, not known to reach the
+FPCR that rounds the ARM64 instructions the code runs. A build for ARM64
+computes with the NEON instructions. The test `refused_arm64ec` and
+`tests/refused_options.sh` define `_M_ARM64EC` and check the refusal.
+
 `-fno-fast-math`, one of the flags of interval arithmetic, turns `-ffast-math`
 and `-ffinite-math-only` off when it comes after them on the command line, and
 not when it comes before them: `gaol.pc` and `gaol::gaol` give it, and the code

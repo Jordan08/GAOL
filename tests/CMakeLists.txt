@@ -238,6 +238,16 @@ if(GAOL_USING_SSE2_INSTRUCTIONS AND NOT GAOL_SSE2_UNALIGNED_STORAGE AND NOT WIN3
   gaol_aligned_new_test(refused_aligned_new_positive 11 -faligned-new=8 "")
 endif()
 
+# ARM64EC, which gaol/gaol_config.h refuses and no build targets (GAOL v5): the
+# test refused_arm64ec compiles refused_options.cpp with _M_ARM64EC defined by
+# hand, and the compilation has to fail with the message of the refusal, with
+# GCC or Clang (Visual C++ and clang-cl would define _M_X64 and the rest of the
+# target, which a definition alone does not give). tests/refused_options.sh
+# makes the same check in the autotools and meson builds.
+if(NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  gaol_refused_test(refused_arm64ec -D_M_ARM64EC=1 "GAOL cannot be compiled for ARM64EC")
+endif()
+
 # The compilers that built GAOL, for the tests below that configure it again,
 # on a system that builds for itself. They are passed with their arguments,
 # which CMake keeps apart: with CC="ccache gcc", CMAKE_C_COMPILER is ccache and

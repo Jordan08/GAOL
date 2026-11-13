@@ -299,8 +299,8 @@ once), which the switch gives back whichever they are.
 The standard lets fegetround() be a macro, and it is a function in the C
 libraries known here: what the sources call is renamed by a macro of ours,
 after <fenv.h> has declared it, and only for the sources of CORE-MATH, the
-only ones this header is included in. ARM64EC, which no build of GAOL
-targets, defines _M_X64 too, and would read the MXCSR its emulation keeps.
+only ones this header is included in. ARM64EC, which defines _M_X64 too,
+is refused by gaol/gaol_config.h (GAOL v5).
 
 On a 32-bit x86 processor too (GAOL v5). The
 operations that call CORE-MATH have read both units there and set the one that

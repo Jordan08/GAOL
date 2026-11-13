@@ -301,6 +301,17 @@
 #if defined(__arm__) && !defined(__aarch64__) && defined(__clang__)
 #  error "GAOL cannot be compiled by Clang for 32-bit ARM processors: Clang does not honour the rounding direction there (see CMakeLists.txt)"
 #endif
+/* ARM64EC, the 64-bit ARM code of Windows that keeps the conventions of x64,
+   for which Visual C++ and clang-cl define _M_ARM64EC along with _M_X64:
+   GAOL would take its paths for x64 there, which set the rounding direction
+   through the MXCSR of the SSE instructions, not known to reach the FPCR that
+   rounds the ARM64 instructions the code runs, and no build of GAOL targets
+   it nor tests it (GAOL v5: gaol/gaol_fpu.h said it was refused here, and
+   nothing refused it). The test refused_arm64ec (tests/CMakeLists.txt) and
+   tests/refused_options.sh define _M_ARM64EC and check the refusal. */
+#if defined(_M_ARM64EC)
+#  error "GAOL cannot be compiled for ARM64EC: its paths for x64 would set the rounding direction through the MXCSR, which is not known to reach the FPCR of the processor there, and no build of GAOL targets ARM64EC (build for ARM64, where GAOL computes with the NEON instructions)"
+#endif
 /* 1 with Visual C++ (cl) for 64-bit ARM, whose NEON header is
    <arm_neon.h> as the others', and which reads and writes the control register
    FPCR through the intrinsics _ReadStatusReg() and _WriteStatusReg() where GCC

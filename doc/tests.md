@@ -1597,6 +1597,12 @@ which `numbers` checks there too.
   `-Ofast` or `-ffast-math` followed by `-frounding-math` with Clang, which
   leave `__FAST_MATH__` undefined and `__FINITE_MATH_ONLY__` at 1 (GAOL v5).
   `tests/fp_strict` is the check of Visual C++ without `/fp:strict`.
+  **`refused_arm64ec`** (CMake build) and the same check in
+  **`refused_options.sh`** and **`refused_options`** compile
+  `tests/refused_options.cpp` with `-D_M_ARM64EC=1`, which stands for ARM64EC,
+  the 64-bit ARM code of Windows that keeps the conventions of x64, and the
+  compilation has to fail with the message of `gaol/gaol_config.h`: GAOL would
+  take its paths for x64 there, and no build targets it (GAOL v5).
 - **`refused_aligned_new`, `refused_aligned_new_cxx17` and
   `refused_aligned_new_positive`** (CMake build, where the intervals are the SSE2
   ones, on a system that is not Windows, with GCC or Clang, and not where
