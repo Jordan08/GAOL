@@ -224,13 +224,18 @@ namespace gaol_core {
     // out as <0.0, 0.1>): it is written to nearest. The other cases keep the
     // direction of the bound, the hexadecimal format being rounded by the C
     // library when the stream limits its digits.
-    if (x == 0.0 || rounding == text_nearest) {
-      round_nearest();
-    } else if (rounding == text_downward) {
-      round_downward();
+    // The guard sets the direction back, by an exception of the stream too
+    // (std::bad_alloc): literal_text() and operator<<(), the only callers,
+    // hold one already, and this function no longer counts on them (GAOL v5)
+    {
+      const rounding_guard rnd;
+      if (x == 0.0 || rounding == text_nearest) {
+        round_nearest();
+      } else if (rounding == text_downward) {
+        round_downward();
+      }
+      out << x;
     }
-    out << x;
-    round_upward();
     return out.str();
   }
 
@@ -246,16 +251,21 @@ namespace gaol_core {
   {
     char buffer[512];
     const char *const format = fixed ? "%.*f" : "%.*e";
-    round_nearest();
-    int n = std::snprintf(buffer, sizeof buffer, format, prec, magnitude);
-    if (n >= 0 && static_cast<std::size_t>(n) < sizeof buffer) {
-      text.assign(buffer, static_cast<std::size_t>(n));
-    } else if (n >= 0) {
-      text.assign(static_cast<std::size_t>(n) + 1, '\0');
-      n = std::snprintf(&text[0], text.size(), format, prec, magnitude);
-      text.resize((n >= 0) ? static_cast<std::size_t>(n) : 0);
+    int n;
+    // The guard sets the direction back, by an exception of text.assign()
+    // too (std::bad_alloc), as in stream_text() (GAOL v5)
+    {
+      const rounding_guard rnd;
+      round_nearest();
+      n = std::snprintf(buffer, sizeof buffer, format, prec, magnitude);
+      if (n >= 0 && static_cast<std::size_t>(n) < sizeof buffer) {
+        text.assign(buffer, static_cast<std::size_t>(n));
+      } else if (n >= 0) {
+        text.assign(static_cast<std::size_t>(n) + 1, '\0');
+        n = std::snprintf(&text[0], text.size(), format, prec, magnitude);
+        text.resize((n >= 0) ? static_cast<std::size_t>(n) : 0);
+      }
     }
-    round_upward();
     if (n < 0 || text.empty()) {
       return false;
     }
@@ -393,9 +403,11 @@ namespace gaol_core {
         out.imbue(std::locale::classic());
         out.setf(fixed ? std::ios_base::fixed : std::ios_base::scientific, std::ios_base::floatfield);
         out.precision(prec);
-        round_nearest();
-        out << magnitude;
-        round_upward();
+        {
+          const rounding_guard rnd; // as in stream_text() (GAOL v5)
+          round_nearest();
+          out << magnitude;
+        }
         text = out.str();
       }
       // The magnitude written has to be at least that of x when rounding away
