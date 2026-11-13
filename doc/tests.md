@@ -1577,12 +1577,14 @@ which `numbers` checks there too.
   test failed until it was removed, after a header or the source was restored
   with its former modification time (GAOL v5). `tests/refused_options.sh` runs
   the three compilations in the autotools and meson builds, with the compiler
-  and the flags of the code using GAOL. With GCC, **`refused_no_signed_zeros`**,
+  and the flags of the code using GAOL. **`refused_no_signed_zeros`**,
   **`refused_no_trapping_math`**, **`refused_unsafe_math`** and
   **`refused_reciprocal_math`**, and the same compilations in
   `tests/refused_options.sh`, check that `-fno-signed-zeros`,
   `-fno-trapping-math`, `-funsafe-math-optimizations` and `-freciprocal-math`
-  are refused too, which GCC shows by macros and Clang does not (GAOL v5; see
+  are refused too, where the compiler shows them by macros, which the
+  configuration and the script look for: GCC from 12 on, not GCC 9.4 nor 11.4,
+  nor Clang (GAOL v5; see
   [Compilers and options refused](three-builds.md#compilers-and-options-refused)).
   With `-ffinite-math-only` the compiler
   takes NaN and infinities never to occur, in the inline functions of the

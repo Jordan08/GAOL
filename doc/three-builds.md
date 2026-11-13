@@ -417,8 +417,10 @@ With GCC, `gaol/gaol_config.h` refuses `-fno-signed-zeros`,
 `-fno-trapping-math`, `-fassociative-math` and `-freciprocal-math` too, which
 `-funsafe-math-optimizations` turns on, as do `-ffast-math` and `-Ofast` with
 `-fno-finite-math-only`: GCC shows them by `__NO_SIGNED_ZEROS__`,
-`__NO_TRAPPING_MATH__`, `__ASSOCIATIVE_MATH__` and `__RECIPROCAL_MATH__`
-(GAOL v5, which said no macro showed them). `-fno-fast-math` turns them off
+`__NO_TRAPPING_MATH__`, `__ASSOCIATIVE_MATH__` and `__RECIPROCAL_MATH__` from
+GCC 12 on (12.2 and 15.2 checked; GCC 9.4 and 11.4 define none of them, and
+the options are not refused there; GAOL v5, which said no macro showed them).
+`-fno-fast-math` turns them off
 when it comes after them, as it does `-ffinite-math-only`. Compiled with
 GCC 15.2, each option after all the flags of interval arithmetic:
 
@@ -442,18 +444,23 @@ GCC 15.2, each option after all the flags of interval arithmetic:
   operations whose rounding a bound depends on.
 
 The CMake tests `refused_no_signed_zeros`, `refused_no_trapping_math`,
-`refused_unsafe_math` and `refused_reciprocal_math`, with GCC, and
-`tests/refused_options.sh` check these refusals.
+`refused_unsafe_math` and `refused_reciprocal_math`, and
+`tests/refused_options.sh`, check these refusals where the compiler shows the
+options by these macros, which the configuration and the script look for.
 
 No macro of the compiler shows the following, which `gaol/gaol_config.h`
 cannot refuse and which give wrong results all the same: the code using GAOL
 is not to be compiled with them.
 
-- `-fno-signed-zeros`, and `-funsafe-math-optimizations`, which implies it,
-  with Clang, which defines none of the macros above: Clang 18 (at `-O2` and
-  `-O3`) and Clang 21 drop the `+ 0.0` of the probe of the modes as GCC does,
-  one `addsd` and one `ucomisd` being left; Clang 18 does not rewrite the
-  probe of the direction.
+- These options with GCC before 12.
+- With Clang, which defines none of the macros above: `-fno-signed-zeros`,
+  with which Clang 18 (at `-O2` and `-O3`) and Clang 21 drop the `+ 0.0` of
+  the probe of the modes as GCC does, one `addsd` and one `ucomisd` being left
+  (Clang 18 does not rewrite the probe of the direction); `-fno-trapping-math`,
+  `-fassociative-math` and `-freciprocal-math`; `-funsafe-math-optimizations`,
+  which turns them on; and `-ffast-math` or `-Ofast` with
+  `-fno-finite-math-only`, with which Clang defines `__NO_MATH_ERRNO__` alone
+  (Clang 18 and 21).
 - `-fno-honor-nans` alone, with Clang, which does to the empty interval what
   `-ffinite-math-only` does: `__FINITE_MATH_ONLY__` is 1 only with
   `-fno-honor-infinities` too.

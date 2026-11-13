@@ -267,9 +267,10 @@
    -freciprocal-math, which -funsafe-math-optimizations turns on, as do
    -ffast-math and -Ofast (with -fno-finite-math-only too), with GCC, which
    defines __NO_SIGNED_ZEROS__, __NO_TRAPPING_MATH__, __ASSOCIATIVE_MATH__ and
-   __RECIPROCAL_MATH__ for them (GCC 15; GAOL v5, where they were said to show
-   no macro). Compiled with GCC 15.2, each option after all the flags of
-   interval arithmetic:
+   __RECIPROCAL_MATH__ for them from GCC 12 on (12.2 and 15.2 checked; GCC 9.4
+   and 11.4 define none of them, and these options are not refused there;
+   GAOL v5, where they were said to show no macro). Compiled with GCC 15.2,
+   each option after all the flags of interval arithmetic:
    - -fno-signed-zeros: 6 of the 63 tests failed. GCC drops the + 0.0 of the
      probe !(1.0 + (subnormal + 0.0) > 1.0) of round_upward_if_needed()
      (gaol/gaol_fpu.h), which then misses the flush-to-zero mode alone: under
@@ -290,12 +291,15 @@
    command line, as it does -ffinite-math-only. The tests
    refused_no_signed_zeros, refused_no_trapping_math, refused_unsafe_math and
    refused_reciprocal_math (tests/CMakeLists.txt) and tests/refused_options.sh
-   check the refusal.
+   check the refusal, where the compiler shows the options by these macros.
 
-   No macro shows what follows, which GAOL cannot refuse: with Clang (18 and
-   21), which defines none of the macros above, -fno-signed-zeros, and
-   -funsafe-math-optimizations, which implies it, with which Clang drops the
-   + 0.0 of the probe as GCC does; -fno-honor-nans of Clang, given without
+   No macro shows what follows, which GAOL cannot refuse: these options with
+   GCC before 12; with Clang (18 and 21), which defines none of the macros
+   above, -fno-signed-zeros, with which Clang drops the + 0.0 of the probe as
+   GCC does, -fno-trapping-math, -fassociative-math and -freciprocal-math, and
+   -funsafe-math-optimizations, which turns them on, and -ffast-math or -Ofast
+   with -fno-finite-math-only, with which Clang defines __NO_MATH_ERRNO__ alone;
+   -fno-honor-nans of Clang, given without
    -fno-honor-infinities, which does to the empty interval what
    -ffinite-math-only does; and -ffast-math or -Ofast followed by
    -fno-fast-math with Clang, which leaves -frounding-math off (above). See
