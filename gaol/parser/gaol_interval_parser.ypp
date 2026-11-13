@@ -563,12 +563,13 @@ static interval gaol_cbrt(const interval& x)
 }
 
 /* The names of GAOL: its functions of intervals, the functions of Tables 9.1
-   and 10.5 of IEEE 1788-2015 under GAOL's names, and cbrt, integer and
-   inverse. pow is gaol::pow, gaol_pow_hybrid(), which takes gaol_pown() for an
-   exponent that is an integer: the parser took 1/x^|n| for n < 0, whose x^|n|
-   overflowed, and 1 for n = 0, which is no value for an empty x. nth_root(x,
-   q) takes a long long q (an int before GAOL v5), which
-   may be negative: rootn(x, q) of IEEE 1788-2015 */
+   and 10.5 of IEEE 1788-2015 under GAOL's names, cbrt, integer and inverse,
+   and erf, erfc, cancel_minus, cancel_plus, hull(x, y) = x | y and
+   intersect(x, y) = x & y (GAOL v5). pow is gaol::pow, gaol_pow_hybrid(),
+   which takes gaol_pown() for an exponent that is an integer: the parser took
+   1/x^|n| for n < 0, whose x^|n| overflowed, and 1 for n = 0, which is no
+   value for an empty x. nth_root(x, q) takes a long long q (an int before GAOL
+   v5), which may be negative: rootn(x, q) of IEEE 1788-2015 */
 static const gaol_function gaol_functions[] = {
   GAOL_F1("sqr", ::gaol_core::sqr), GAOL_F1("sqrt", ::gaol_core::sqrt), GAOL_F1("cbrt", gaol_cbrt),
   GAOL_F2("pow", ::gaol_core::gaol_pow_hybrid), GAOL_FN("nth_root", gaol_text_nth_root),
@@ -595,6 +596,9 @@ static const gaol_function gaol_functions[] = {
   GAOL_F1("round_ties_to_away", ::gaol_core::round_ties_to_away),
   GAOL_F1("abs", ::gaol_core::abs), GAOL_F2("min", ::gaol_core::min), GAOL_F2("max", ::gaol_core::max),
   GAOL_F1("inverse", ::gaol_core::inverse),
+  GAOL_F1("erf", ::gaol_core::erf), GAOL_F1("erfc", ::gaol_core::erfc),
+  GAOL_F2("cancel_minus", ::gaol_core::cancel_minus), GAOL_F2("cancel_plus", ::gaol_core::cancel_plus),
+  GAOL_F2("hull", ::gaol_core::hull), GAOL_F2("intersect", ::gaol_core::intersect),
   { "fma", 3, 0, 0, ::gaol_core::fma, 0 },
 };
 

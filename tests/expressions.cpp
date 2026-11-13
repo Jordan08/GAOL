@@ -415,6 +415,21 @@ namespace
     same("round_ties_to_away([0.5,2.5])", round_ties_to_away(interval(0.5, 2.5)));
     same("inverse([2,4])", inverse(interval(2.0, 4.0)));
     same("fma([1,2],[3,4],[0,1])", fma(v, w, u));
+    /* erf, erfc, cancel_minus, cancel_plus, hull and intersect, which the
+       table of the names did not have (GAOL v5), with the values written
+       apart from the functions where they are exact */
+    same("erf([0,1])", erf(u));
+    same("erfc([0,1])", erfc(u));
+    same("erf(0)", interval(0.0, 0.0));
+    same("erfc(0)", interval(1.0, 1.0));
+    same("cancel_minus([1,5],[0,2])", interval(1.0, 3.0));
+    same("cancel_plus([1,5],[0,2])", interval(3.0, 5.0));
+    same("hull([1,2],[3,4])", interval(1.0, 4.0));
+    same("intersect([1,3],[2,4])", interval(2.0, 3.0));
+    same("intersect([1,2],[3,4])", interval::emptyset());
+    same("hull(intersect([1,2],[3,4]),[3,4])", interval(3.0, 4.0));
+    same("Hull([1,2],[3,4])+Intersect([1,3],[2,4])", interval(3.0, 7.0));
+    same("erf(erfc(cancel_minus([1,5],[0,2])))", erf(erfc(interval(1.0, 3.0))));
     same("SinPi([0,1])", sinpi(u));
     same("[exp10(0), hypot(3,4)]", interval(1.0, 5.0));
 
@@ -518,6 +533,12 @@ namespace
     refused("pow(2)");
     refused("fma(1,2)");
     refused("nth_root(8)");
+    refused("erf(1,2)");
+    refused("erfc()");
+    refused("cancel_minus(1)");
+    refused("cancel_plus(1,2,3)");
+    refused("hull([1,2])");
+    refused("intersect([1,2],[3,4],[0,5])");
     /* The names of IEEE 1788-2015 alone, which gaol_ieee1788::textToInterval
        reads: gaol::textToInterval reads those of GAOL */
     refused("pown([2,5],5)");
