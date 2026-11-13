@@ -50,6 +50,33 @@ for option in -ffinite-math-only -ffast-math; do
   esac
 done
 
+# -fno-signed-zeros, -funsafe-math-optimizations and -freciprocal-math, with
+# GCC, which shows them by __NO_SIGNED_ZEROS__, __ASSOCIATIVE_MATH__ and
+# __RECIPROCAL_MATH__ (GAOL v5), as the tests refused_no_signed_zeros,
+# refused_unsafe_math and refused_reciprocal_math of tests/CMakeLists.txt check
+# them: Clang defines none of these macros, nor GCC's __GNUC__ without
+# __clang__
+case $($GAOL_CXX $GAOL_CXXFLAGS -dM -E -x c++ /dev/null 2>/dev/null) in
+  *__clang__*)
+    echo "SKIP: -fno-signed-zeros, -funsafe-math-optimizations and -freciprocal-math, which Clang does not show" ;;
+  *)
+    for case in "-fno-signed-zeros:-fno-signed-zeros" \
+                "-funsafe-math-optimizations:-fassociative-math or -freciprocal-math" \
+                "-freciprocal-math:-fassociative-math or -freciprocal-math"; do
+      option=${case%%:*}
+      refused=${case#*:}
+      output=$($GAOL_CXX $GAOL_CXXFLAGS $option -fsyntax-only "$source" 2>&1)
+      case $output in
+        *"GAOL cannot be compiled with $refused"*)
+          echo "PASS: $option refused" ;;
+        *)
+          printf '%s\n' "$output"
+          echo "FAIL: $option not refused"
+          status=1 ;;
+      esac
+    done ;;
+esac
+
 # The SSE2 intervals on 32-bit Windows (GAOL v5), which gaol/gaol_config.h
 # refuses where the compiler is not told to ask for aligned memory, as the
 # tests refused_aligned_new, refused_aligned_new_cxx17 and
