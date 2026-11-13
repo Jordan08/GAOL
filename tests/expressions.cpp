@@ -1407,6 +1407,8 @@ namespace
   // writing it, as unary_minus_node::display() did (display_keeps_counts())
   static_assert(!std::is_convertible<const gaol_core::expr_node&, expression>::value,
                 "expression(const expr_node&) has to be explicit");
+  static_assert(std::is_constructible<expression, const gaol_core::expr_node&>::value,
+                "expression(const expr_node&) has to exist");
 
   void display_keeps_counts()
   {

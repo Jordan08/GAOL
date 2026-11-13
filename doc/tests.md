@@ -1322,13 +1322,12 @@ which `numbers` checks there too.
   threads displaying the same `-x` crashed (GAOL v5); the constructor
   `expression(const expr_node&)` has to be `explicit` (a `static_assert`), so
   that no such temporary is made without being written (GAOL v5). Long
-  expressions have to
-  be evaluated and deleted: chains read from a string of 200000 sums
-  (`pi+pi+...`) or products and quotients (`pi*pi/pi*...`), and of 20000
-  differences and sums, the same chains built in C++ on the left, with the
-  operators that change an expression in place, and on the right, and chains
-  of 200000 minus signs and of 20000 sines, whose value is that of the same
-  operations written in C++, bit for bit. Their evaluation
+  expressions have to be evaluated and deleted: chains read from a string of
+  200000 sums (`pi+pi+...`) or products and quotients (`pi*pi/pi*...`), and
+  of 20000 differences and sums, the same chains built in C++ on the left,
+  with the operators that change an expression in place, and on the right,
+  and chains of 200000 minus signs and of 20000 sines, whose value is that of
+  the same operations written in C++, bit for bit. Their evaluation
   and their deletion made one call within another per node, and overflowed the
   stack of 8 MB (GAOL v5). A crash shows it only where the
   stack is small enough, so a leaf at the bottom of a chain of 20000 nodes
