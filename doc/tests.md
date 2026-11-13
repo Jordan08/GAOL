@@ -1319,7 +1319,10 @@ which `numbers` checks there too.
   must leave the counts of its operands as they are, read at each character
   written, for every node of one or two operands: `-x` wrote its operand as a
   temporary expression, one reference more while it was written, and two
-  threads displaying the same `-x` crashed (GAOL v5). Long expressions have to
+  threads displaying the same `-x` crashed (GAOL v5); the constructor
+  `expression(const expr_node&)` has to be `explicit` (a `static_assert`), so
+  that no such temporary is made without being written (GAOL v5). Long
+  expressions have to
   be evaluated and deleted: chains read from a string of 200000 sums
   (`pi+pi+...`) or products and quotients (`pi*pi/pi*...`), and of 20000
   differences and sums, the same chains built in C++ on the left, with the

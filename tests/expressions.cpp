@@ -1401,6 +1401,13 @@ namespace
      thread: the count of the operand is read at each character written, for
      every node of one or two operands, the operand being a sum, which some
      nodes write within parentheses, or a sine, which none does. */
+  // A node is no expression unless it is written so (GAOL v5): the
+  // constructor expression(const expr_node&) is explicit, so that no function
+  // builds a temporary expression of a node, which changes its count, without
+  // writing it, as unary_minus_node::display() did (display_keeps_counts())
+  static_assert(!std::is_convertible<const gaol_core::expr_node&, expression>::value,
+                "expression(const expr_node&) has to be explicit");
+
   void display_keeps_counts()
   {
     const expression x = expression(interval(1.0, 2.0));
