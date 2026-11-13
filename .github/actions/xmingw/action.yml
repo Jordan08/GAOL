@@ -1,0 +1,30 @@
+name: xmingw
+description: One MinGW-w64 install as in windows.yml, and what it leaves (experiment)
+inputs:
+  version:
+    default: ''
+  bin:
+    default: ''
+  flags:
+    default: ''
+  expect:
+    default: ''
+runs:
+  using: composite
+  steps:
+    - name: MinGW-w64, from Chocolatey
+      shell: bash
+      run: |
+        choco install -y -r --no-progress mingw --version=${{ inputs.version }} --force ${{ inputs.flags }}
+        echo '${{ inputs.bin }}' >> "$GITHUB_PATH"
+    - name: What the install left
+      shell: bash
+      run: |
+        echo "XM which g++: $(which g++)"
+        echo "XM g++ first line: $(g++ --version | head -1)"
+        echo "XM expected prefix: ${{ inputs.expect }}"
+        g++ --version | head -1 | grep -F "${{ inputs.expect }}" || echo "XM MISMATCH: PATH g++ is not ${{ inputs.expect }}"
+        for d in 'C:\ProgramData\mingw64\mingw64\bin' 'C:\ProgramData\mingw64\mingw32\bin' 'C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin' 'C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw32\bin'; do
+          u=$(cygpath -u "$d")
+          if [ -x "$u/g++.exe" ]; then echo "XM $d: $("$u/g++.exe" --version | head -1)"; else echo "XM $d: absent"; fi
+        done

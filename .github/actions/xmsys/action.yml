@@ -1,0 +1,24 @@
+name: xmsys
+description: One MSYS2 setup as in windows.yml, then a step in its shell (experiment)
+inputs:
+  msystem:
+    default: ''
+  pkg:
+    default: ''
+  extra:
+    default: ''
+runs:
+  using: composite
+  steps:
+    - uses: msys2/setup-msys2@v2
+      with:
+        msystem: ${{ inputs.msystem }}
+        suppress-deprecation-warnings: msystem-mingw64
+        install: ${{ inputs.pkg }}-toolchain ${{ inputs.pkg }}-cmake ${{ inputs.pkg }}-ninja ${{ inputs.extra }}
+    - name: In the shell of MSYS2
+      shell: msys2 {0}
+      run: |
+        echo "XS MSYSTEM=$MSYSTEM"
+        echo "XS g++: $(command -v g++) $(g++ --version | head -1)"
+        command -v clang++ && clang++ --version | head -1 || echo "XS no clang++"
+        cmake --version | head -1

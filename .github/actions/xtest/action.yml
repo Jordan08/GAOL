@@ -1,0 +1,33 @@
+name: xtest
+description: Semantics of a composite action in a group job (experiment)
+inputs:
+  id:
+    default: ''
+  fail:
+    default: 'false'
+runs:
+  using: composite
+  steps:
+    - name: first
+      shell: bash
+      run: |
+        echo "XT config ${{ inputs.id }}: XTEST_ENV=[$XTEST_ENV] GLOBAL_LEAK=[${GLOBAL_LEAK:-}] PATH_LEAKS=$(echo "$PATH" | tr ':' '\n' | grep -c xtest-path || true)"
+        printf '## config %s\n\nXTEST_ENV=%s\n\n' "${{ inputs.id }}" "$XTEST_ENV" >> "$GITHUB_STEP_SUMMARY"
+        echo "GLOBAL_LEAK=from-${{ inputs.id }}" >> "$GITHUB_ENV"
+        mkdir -p "$RUNNER_TEMP/xtest-path-${{ inputs.id }}"
+        echo "$RUNNER_TEMP/xtest-path-${{ inputs.id }}" >> "$GITHUB_PATH"
+    - name: fails when asked
+      shell: bash
+      run: |
+        if [ "${{ inputs.fail }}" = true ]; then echo "XT deliberate failure of ${{ inputs.id }}"; exit 1; fi
+    - name: after the failure, no if
+      shell: bash
+      run: echo "XT inner step without if ran (config ${{ inputs.id }})"
+    - name: after the failure, not cancelled
+      if: ${{ !cancelled() }}
+      shell: bash
+      run: echo "XT inner step if not cancelled ran (config ${{ inputs.id }})"
+    - name: after the failure, always
+      if: ${{ always() }}
+      shell: bash
+      run: echo "XT inner step if always ran (config ${{ inputs.id }})"

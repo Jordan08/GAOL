@@ -1,0 +1,216 @@
+# Experiment (throwaway branch): the points of chapter 4 of the proposal to
+# group the jobs of the continuous integration.
+name: Experiment section 4
+
+on:
+  push:
+    branches: [experiment-ci-section4]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v1-composite:
+    name: V1 composite semantics in a group job
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - id: a
+        name: config a
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/xtest
+        with: { id: a }
+        env: { XTEST_ENV: from-step-env-a }
+      - id: b
+        name: config b (fails)
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/xtest
+        with: { id: b, fail: 'true' }
+        env: { XTEST_ENV: from-step-env-b }
+      - id: c
+        name: config c
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/xtest
+        with: { id: c }
+      - name: Results of the configurations
+        if: ${{ always() }}
+        env:
+          OUTCOMES: "a=${{ steps.a.outcome }} b=${{ steps.b.outcome }} c=${{ steps.c.outcome }}"
+        run: |
+          echo "XT outcomes: $OUTCOMES"
+          printf '## Results\n\n| configuration | outcome |\n|---|---|\n' >> "$GITHUB_STEP_SUMMARY"
+          status=0
+          for kv in $OUTCOMES; do
+            printf '| %s | %s |\n' "${kv%%=*}" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  v1b-linux-tools:
+    name: V1b CMake 3.14.7 and Ninja in a group
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: system cmake
+        run: cmake --version | head -1; command -v cmake
+      - name: CMake 3.14.7 in GITHUB_PATH, as the job cmake-3-14 does
+        run: |
+          curl -sSL https://github.com/Kitware/CMake/releases/download/v3.14.7/cmake-3.14.7-Linux-x86_64.tar.gz | tar xz -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/cmake-3.14.7-Linux-x86_64/bin" >> "$GITHUB_PATH"
+      - name: the next configuration sees 3.14.7, and Ninja Multi-Config needs 3.17
+        run: |
+          cmake --version | head -1
+          if cmake -G "Ninja Multi-Config" -S . -B "$RUNNER_TEMP/multi" > "$RUNNER_TEMP/multi.log" 2>&1; then
+            echo "XT Ninja Multi-Config worked with 3.14.7"
+          else
+            echo "XT Ninja Multi-Config FAILED with 3.14.7:"; tail -3 "$RUNNER_TEMP/multi.log"
+          fi
+      - name: with the PATH local to the step, the next one does not see it
+        run: |
+          echo "XT this step prepends nothing: $(cmake --version | head -1)"
+      - name: Ninja of the system, then removed as launcher-ninja does
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q ninja-build
+          command -v ninja
+          for name in ninja-build ninja samu; do
+            for program in $(which -a "$name"); do sudo rm -f "$program"; done
+            if command -v "$name"; then exit 1; fi
+          done
+      - name: a later configuration that wants the Ninja of apt
+        run: |
+          sudo apt-get install -y -q ninja-build
+          if command -v ninja; then echo "XT ninja is back"; else echo "XT ninja is NOT back (dpkg thinks it is installed)"; fi
+          sudo apt-get install -y -q --reinstall ninja-build
+          command -v ninja && echo "XT --reinstall brings it back"
+
+  v5-pipx:
+    name: V5 pipx meson versions in one job
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q pipx
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: the oldest first, as meson-oldest does
+        run: |
+          pipx install meson==0.53.2
+          meson --version
+      - name: then the latest, as the other jobs do
+        run: |
+          pipx install meson
+          echo "XT after 'pipx install meson': $(meson --version)"
+      - name: with --force
+        run: |
+          pipx install --force meson
+          echo "XT after 'pipx install --force meson': $(meson --version)"
+      - name: the oldest after the latest
+        run: |
+          pipx install meson==0.53.2 || echo "XT pipx install meson==0.53.2 failed: $?"
+          echo "XT now: $(meson --version)"
+          pipx install --force meson==0.53.2
+          echo "XT after --force: $(meson --version)"
+      - name: pipx ninja twice
+        run: |
+          pipx install ninja
+          pipx install ninja
+          ninja --version
+
+  v2a-mingw:
+    name: V2a MinGW sequence of the groups W5 and W6
+    runs-on: windows-2022
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - { name: '11.2 x64 (refused)', uses: ./.github/actions/xmingw, with: { version: '11.2.0.07112021', bin: 'C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin', expect: '11.2.0' } }
+      - { name: '11.2 x86 (refused)', uses: ./.github/actions/xmingw, with: { version: '11.2.0.07112021', bin: 'C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw32\bin', flags: '--x86', expect: '11.2.0' } }
+      - { name: '12.2 x64 (refused)', uses: ./.github/actions/xmingw, with: { version: '12.2.0.03042023', bin: 'C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin', expect: '12.2.0' } }
+      - { name: '12.2 x86 Release', uses: ./.github/actions/xmingw, with: { version: '12.2.0.03042023', bin: 'C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw32\bin', flags: '--x86', expect: '12.2.0' } }
+      - { name: '13.2 x64 (refused)', uses: ./.github/actions/xmingw, with: { version: '13.2.0', bin: 'C:\ProgramData\mingw64\mingw64\bin', expect: '13.2.0' } }
+      - { name: '13.2 x86 Release', uses: ./.github/actions/xmingw, with: { version: '13.2.0', bin: 'C:\ProgramData\mingw64\mingw32\bin', flags: '--x86', expect: '13.2.0' } }
+      - { name: '13.2 x86 Release, no FMA', uses: ./.github/actions/xmingw, with: { version: '13.2.0', bin: 'C:\ProgramData\mingw64\mingw32\bin', flags: '--x86', expect: '13.2.0' } }
+
+  v2b-mingw:
+    name: V2b MinGW sequence of the groups W7 and W8
+    runs-on: windows-2022
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - { name: '14.2 x64', uses: ./.github/actions/xmingw, with: { version: '14.2.0', bin: 'C:\ProgramData\mingw64\mingw64\bin', expect: '14.2.0' } }
+      - { name: '14.2 x86', uses: ./.github/actions/xmingw, with: { version: '14.2.0', bin: 'C:\ProgramData\mingw64\mingw32\bin', flags: '--x86', expect: '14.2.0' } }
+      - { name: '15.2 x64 Debug', uses: ./.github/actions/xmingw, with: { version: '15.2.0', bin: 'C:\ProgramData\mingw64\mingw64\bin', expect: '15.2.0' } }
+      - { name: '15.2 x64 Release', uses: ./.github/actions/xmingw, with: { version: '15.2.0', bin: 'C:\ProgramData\mingw64\mingw64\bin', expect: '15.2.0' } }
+      - { name: '15.2 x86 Debug', uses: ./.github/actions/xmingw, with: { version: '15.2.0', bin: 'C:\ProgramData\mingw64\mingw32\bin', flags: '--x86', expect: '15.2.0' } }
+      - { name: '15.2 x86 Release', uses: ./.github/actions/xmingw, with: { version: '15.2.0', bin: 'C:\ProgramData\mingw64\mingw32\bin', flags: '--x86', expect: '15.2.0' } }
+
+  v3-msys2:
+    name: V3 MSYS2 several setups in one job
+    runs-on: windows-2022
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - { name: 'MINGW64 GCC', uses: ./.github/actions/xmsys, with: { msystem: MINGW64, pkg: mingw-w64-x86_64 } }
+      - { name: 'MINGW64 Clang', uses: ./.github/actions/xmsys, with: { msystem: MINGW64, pkg: mingw-w64-x86_64, extra: mingw-w64-x86_64-clang } }
+      - { name: 'MINGW32', uses: ./.github/actions/xmsys, with: { msystem: MINGW32, pkg: mingw-w64-i686 } }
+      - { name: 'UCRT64', uses: ./.github/actions/xmsys, with: { msystem: UCRT64, pkg: mingw-w64-ucrt-x86_64 } }
+      - { name: 'CLANG64', uses: ./.github/actions/xmsys, with: { msystem: CLANG64, pkg: mingw-w64-clang-x86_64 } }
+      - { name: 'UCRT64 again', uses: ./.github/actions/xmsys, with: { msystem: UCRT64, pkg: mingw-w64-ucrt-x86_64 } }
+      - name: the shell of the last setup with MSYSTEM overridden for one step
+        shell: msys2 {0}
+        env: { MSYSTEM: MINGW32 }
+        run: |
+          echo "XS override: MSYSTEM=$MSYSTEM g++=$(command -v g++)"
+
+  v4-msvc:
+    name: V4 msvc-dev-cmd with several architectures in one job
+    runs-on: windows-2022
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ilammy/msvc-dev-cmd@v1
+        with: { arch: x64 }
+      - name: after x64 (1)
+        run: |
+          Set-Content hello.cpp 'int main(){return 0;}'
+          Write-Output "XV VSCMD_ARG_TGT_ARCH=$env:VSCMD_ARG_TGT_ARCH"
+          cl /nologo hello.cpp /Fe:h1.exe 2>&1 | Select-Object -First 1
+          dumpbin /headers h1.exe | Select-String 'machine' | ForEach-Object { "XV h1 $_" }
+          clang++ --target=x86_64-pc-windows-msvc hello.cpp -o c1.exe
+          dumpbin /headers c1.exe | Select-String 'machine' | ForEach-Object { "XV c1 $_" }
+      - uses: ilammy/msvc-dev-cmd@v1
+        with: { arch: x86 }
+      - name: after x86 (2)
+        run: |
+          Write-Output "XV VSCMD_ARG_TGT_ARCH=$env:VSCMD_ARG_TGT_ARCH"
+          cl /nologo hello.cpp /Fe:h2.exe 2>&1 | Select-Object -First 1
+          dumpbin /headers h2.exe | Select-String 'machine' | ForEach-Object { "XV h2 $_" }
+          clang++ --target=i686-pc-windows-msvc hello.cpp -o c2.exe
+          dumpbin /headers c2.exe | Select-String 'machine' | ForEach-Object { "XV c2 $_" }
+          Write-Output ("XV LIB first: " + ($env:LIB.Split(';')[0..1] -join ' | '))
+      - uses: ilammy/msvc-dev-cmd@v1
+        with: { arch: x64 }
+      - name: after x64 again (3)
+        run: |
+          Write-Output "XV VSCMD_ARG_TGT_ARCH=$env:VSCMD_ARG_TGT_ARCH"
+          cl /nologo hello.cpp /Fe:h3.exe 2>&1 | Select-Object -First 1
+          dumpbin /headers h3.exe | Select-String 'machine' | ForEach-Object { "XV h3 $_" }
+          clang++ --target=x86_64-pc-windows-msvc hello.cpp -o c3.exe
+          dumpbin /headers c3.exe | Select-String 'machine' | ForEach-Object { "XV c3 $_" }
+          Write-Output ("XV LIB first: " + ($env:LIB.Split(';')[0..1] -join ' | '))
+      - uses: ilammy/msvc-dev-cmd@v1
+        with: { arch: x86 }
+      - name: after x86 again (4)
+        run: |
+          Write-Output "XV VSCMD_ARG_TGT_ARCH=$env:VSCMD_ARG_TGT_ARCH"
+          cl /nologo hello.cpp /Fe:h4.exe 2>&1 | Select-Object -First 1
+          dumpbin /headers h4.exe | Select-String 'machine' | ForEach-Object { "XV h4 $_" }
+          clang++ --target=i686-pc-windows-msvc hello.cpp -o c4.exe
+          dumpbin /headers c4.exe | Select-String 'machine' | ForEach-Object { "XV c4 $_" }
