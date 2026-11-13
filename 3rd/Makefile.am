@@ -51,8 +51,8 @@ libgaolcoremath_la_SOURCES = \
 
 libgaolcoremath_la_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
 # -fno-lto, for the interprocedural optimization: reached by it, sin and cos
-# took half as long again, while it makes GAOL's own operations twice as fast
-# (see doc/three-builds.md). It comes before CFLAGS on the command line, and the
+# took half as long again, while it makes GAOL's own operations faster (see
+# doc/three-builds.md). It comes before CFLAGS on the command line, and the
 # last of the two wins: a -flto in CFLAGS reaches these sources all the same
 # (GAOL v5). The flag is given where the compiler takes it, which configure
 # tested (CORE_MATH_NO_LTO).

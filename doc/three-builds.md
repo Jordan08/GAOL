@@ -354,8 +354,7 @@ faster, a little **slower**: cos took 39.2 ns rather than 36.6, sin 32.6 rather
 than 31.3, log 22.7 rather than 21.7. With Clang 18.1, before the operators
 took their bounds in a register, the basic operations took two to three times
 less time with it and the elementary functions two to three times more. The
-sources of CORE-MATH are compiled apart, without it, and it reaches them
-through the link all the same.
+sources of CORE-MATH are compiled apart, without it.
 
 On 20 September 2026, with **GCC** and the code of then, it broke the
 bounds: GAOL failed `tests/rounding_direction.cpp`, which checks that an
