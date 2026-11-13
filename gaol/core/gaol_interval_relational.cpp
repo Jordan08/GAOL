@@ -1364,14 +1364,32 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
     1/2 for the sine and the tangent (GAOL v5, issue #6: GAOL had three
     copies of this, with k [pi]).
 
-    A bound of I lies on the piece floor(x/pi + shift), or on the next one
-    when the quotient, rounded outward, is off by one: the leftmost point of
-    the preimage within I is on the piece of the left bound or the next one,
-    the union of the pieces being symmetric about every multiple of pi (plus
-    shift pi), and the rightmost point on the piece of the right bound or the
-    previous one. Beyond 2^52 the quotient may be off by more, and I is kept
-    as it is on that side; an I of a single double is decided by the image of
-    the function, at every magnitude.
+    A bound x of I lies on the piece floor(x/pi + shift). The quotient is
+    rounded outward, and is off by less than 1 up to 2^52: its floor is the
+    piece of x, or the next one for the upper bound, whose quotient may be
+    rounded up to an integer it does not reach (31.415926535897928, two
+    doubles below 10 pi, gives 10), and the previous one for the lower bound.
+    The leftmost point of the preimage within I is on the piece of the lower
+    bound or the next one, and the rightmost point on the piece of the upper
+    bound or the previous one, the union of the pieces being symmetric about
+    every multiple of pi (plus shift pi): three pieces are tried on each side
+    (GAOL v5: two were, and acos_rel([1], [20, 31.415926535897928]) was
+    empty, though 8 pi is in I).
+
+    The third piece on the left is not needed, and is tried for safety: the
+    quotient of the lower bound, rounded down, the integers and the halves
+    of integers being doubles there, falls below the piece of x only through
+    the gap between pi and gaol_pi_dn or gaol_pi_up, narrower than a double
+    of x, so that x is then the first double after the start of its piece;
+    the enclosure of that piece, the second one tried, rounded outward, then
+    reaches x, and meets I unless I holds no solution. Over 117 million
+    random I with a bound next to the start of a piece, the third piece met I
+    on the left 2 728 times, each time with the right side empty, and changed
+    no result (GAOL v5).
+
+    Beyond 2^52 the quotient may be off by more, and I is kept as it is on
+    that side; an I of a single double is decided by the image of the
+    function, at every magnitude.
 
     The rounding direction is checked once (GAOL v5): the inverse image of J
     (inverse(), with the bounds of acos_lo(), asin_lo()... and no check of
@@ -1419,6 +1437,9 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
       if (Ileft.is_empty()) {
 	Ileft = piece(kl + 1.0, Jinv) & I;
       }
+      if (Ileft.is_empty()) {
+	Ileft = piece(kl + 2.0, Jinv) & I;
+      }
     }
     if (std::fabs(I.right()) > two_power_52) {
       Iright = I;
@@ -1427,6 +1448,9 @@ interval div_rel(const interval &K, const interval &J, const interval &I)
       Iright = piece(kr, Jinv) & I;
       if (Iright.is_empty()) {
 	Iright = piece(kr - 1.0, Jinv) & I;
+      }
+      if (Iright.is_empty()) {
+	Iright = piece(kr - 2.0, Jinv) & I;
       }
     }
     GAOL_RND_KEEP(Ileft); GAOL_RND_KEEP(Iright);
