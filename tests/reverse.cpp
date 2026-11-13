@@ -14,9 +14,11 @@
  * (coshRev), and div_rel(c, b, x), c % b and c %= b (mulRev), c % d and
  * c %= d for b = [d].
  *
- * In each case of reverse_values.h (the minimal tests of libieeep1788 and
- * random ones, see reverse_values.py), GAOL's result has to be, as IEEE 1788
- * asks of the reverse functions (12.10.2):
+ * In each case of reverse_values.h (the minimal tests of libieeep1788, random
+ * ones, and, for sinRev, cosRev and tanRev, a bound of x one or two doubles
+ * beside a point where the function reaches -1 or 1 or has a pole, the
+ * solutions next to it being a period away, see reverse_values.py), GAOL's
+ * result has to be, as IEEE 1788 asks of the reverse functions (12.10.2):
  *  - empty when an argument is;
  *  - valid: enclose the hull, whose tightest enclosure the table gives;
  *  - accurate, which the standard recommends for inf-sup types: be within
