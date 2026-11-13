@@ -357,17 +357,29 @@ less time with it and the elementary functions two to three times more. The
 sources of CORE-MATH are compiled apart, without it, and it reaches them
 through the link all the same.
 
-Worse, with **GCC** it breaks the bounds: GAOL then fails
-`tests/rounding_direction.cpp`, which checks that an operation gives the same
-result whatever the rounding direction the calling code left. With
-`GAOL_PRESERVE_ROUNDING`, `textToInterval("sin(1)+exp(0.1)")` gave an upper bound
-one double below the right one when the caller left the direction downward or
-toward zero: the compiler moves floating-point operations across the changes of
-rounding direction, which `-frounding-math` is meant to forbid and which it
-does not do across translation units. Compiling GAOL's sources alone with it is
-enough for the test to fail. Clang 18.1 passes the tests with it, so this is not
-a property of the option but of one compiler's handling of it — which is reason
-enough not to offer it.
+On 20 September 2026, with **GCC** and the code of then, it broke the
+bounds: GAOL failed `tests/rounding_direction.cpp`, which checks that an
+operation gives the same result whatever the rounding direction the calling
+code left. With `GAOL_PRESERVE_ROUNDING`, `textToInterval("sin(1)+exp(0.1)")`
+gave an upper bound one double below the right one when the caller left the
+direction downward or toward zero: the compiler moved floating-point
+operations across the changes of rounding direction, which `-frounding-math`
+is meant to forbid and which it did not do across translation units.
+Compiling GAOL's sources alone with it was enough for the test to fail; Clang
+18.1 passed the tests with it. With GCC 15.2 and the code of 13 November 2026,
+the 63 tests pass with it (`-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON`, `-flto`
+in the flags of the target `gaol`), `rounding_direction` among them, with and
+without `GAOL_PRESERVE_ROUNDING` (GAOL v5). No other version of GCC was tried
+with it, and no job of the continuous integration builds with it.
+
+It is not refused either: the standard settings of the tools reach the
+sources of GAOL, `CMAKE_INTERPROCEDURAL_OPTIMIZATION` of CMake, given to GAOL
+or to a project taking it by FetchContent, `-Db_lto=true` of meson and
+`-flto` in `CXXFLAGS`. CMake and meson keep their settings away from the
+sources of CORE-MATH; a `-flto` given by hand in the flags of C
+(`CMAKE_C_FLAGS`, `CFLAGS`, `c_args`) reaches them, in the three builds: the
+`-fno-lto` configure gives them comes before `CFLAGS` on the command line, and
+the last of the two wins.
 
 An interval that does not enclose the exact value is worse than a slow one, so
 there is no option for this, and `gaol.pc` and `gaol::gaol` carry no such flag.
