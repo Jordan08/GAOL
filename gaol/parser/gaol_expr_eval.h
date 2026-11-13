@@ -55,6 +55,12 @@ namespace gaol_core {
   stands for it on the stack of values, so that the operands of the other
   nodes stay in place. The interval an evaluation that set it gives means
   nothing.
+
+  The evaluation of a tree leaves one value, which result() takes (GAOL v5).
+  A node that takes more values than its operands left, because the accept()
+  of a node of a program of its own visits nothing, sets error_occurred()
+  too, and so does a tree that leaves more than one: the stack gave the value
+  of an earlier evaluation, or none, and no error was set.
   */
   class expr_eval : public expr_visitor {
     public:
@@ -83,180 +89,204 @@ namespace gaol_core {
       if (operands(node, node->get_left(), node->get_right())) {
         return;
       }
-      interval r=stack.pop();
-      interval l=stack.pop();
+      interval r=pop_value();
+      interval l=pop_value();
       stack.push(l+r);
     }
     virtual void visit(unary_minus_node* node) {
       if (operands(node, node->get_subexpr())) {
         return;
       }
-      stack.push(-stack.pop());
+      stack.push(-pop_value());
     }
     virtual void visit(sub_node* node) {
       if (operands(node, node->get_left(), node->get_right())) {
         return;
       }
-      interval r=stack.pop();
-      interval l=stack.pop();
+      interval r=pop_value();
+      interval l=pop_value();
       stack.push(l-r);
     }
     virtual void visit(mult_node* node) {
       if (operands(node, node->get_left(), node->get_right())) {
         return;
       }
-      interval r=stack.pop();
-      interval l=stack.pop();
+      interval r=pop_value();
+      interval l=pop_value();
       stack.push(l*r);
     }
     virtual void visit(div_node* node) {
       if (operands(node, node->get_left(), node->get_right())) {
         return;
       }
-      interval r=stack.pop();
-      interval l=stack.pop();
+      interval r=pop_value();
+      interval l=pop_value();
       stack.push(l/r);
     }
     virtual void visit(pow_node* node) {
       if (operands(node, node->get_subexpr())) {
         return;
       }
-      stack.push(gaol_core::gaol_pown(stack.pop(),node->get_exponent()));
+      stack.push(gaol_core::gaol_pown(pop_value(),node->get_exponent()));
     }
     virtual void visit(pow_itv_node* node) {
       if (operands(node, node->get_left(), node->get_right())) {
         return;
       }
-      interval r = stack.pop();
-      interval l = stack.pop();
+      interval r = pop_value();
+      interval l = pop_value();
       stack.push((*node->get_function())(l,r));
     }
     virtual void visit(nth_root_node* node) {
       if (operands(node, node->get_subexpr())) {
         return;
       }
-      stack.push(gaol_core::nth_root(stack.pop(),node->get_exponent()));
+      stack.push(gaol_core::nth_root(pop_value(),node->get_exponent()));
     }
     virtual void visit(cos_node* node) {
       if (operands(node, node->get_subexpr())) {
         return;
       }
-      stack.push(gaol_core::cos(stack.pop()));
+      stack.push(gaol_core::cos(pop_value()));
     }
     virtual void visit(sin_node* node) {
       if (operands(node, node->get_subexpr())) {
         return;
       }
-      stack.push(gaol_core::sin(stack.pop()));
+      stack.push(gaol_core::sin(pop_value()));
     }
     virtual void visit(tan_node* node) {
       if (operands(node, node->get_subexpr())) {
         return;
       }
-      stack.push(gaol_core::tan(stack.pop()));
+      stack.push(gaol_core::tan(pop_value()));
     }
     virtual void visit(atan2_node* node) {
       if (operands(node, node->get_Y(), node->get_X())) {
         return;
       }
-      interval X=stack.pop();
-      interval Y=stack.pop();
+      interval X=pop_value();
+      interval Y=pop_value();
       stack.push(gaol_core::atan2(Y,X));
     }
     virtual void visit(acos_node* node) {
       if (operands(node, node->get_subexpr())) {
         return;
       }
-      stack.push(gaol_core::acos(stack.pop()));
+      stack.push(gaol_core::acos(pop_value()));
     }
     virtual void visit(asin_node* node) {
       if (operands(node, node->get_subexpr())) {
         return;
       }
-      stack.push(gaol_core::asin(stack.pop()));
+      stack.push(gaol_core::asin(pop_value()));
     }
     virtual void visit(atan_node* node) {
       if (operands(node, node->get_subexpr())) {
         return;
       }
-      stack.push(gaol_core::atan(stack.pop()));
+      stack.push(gaol_core::atan(pop_value()));
     }
     virtual void visit(cosh_node* node) {
       if (operands(node, node->get_subexpr())) {
         return;
       }
-      stack.push(gaol_core::cosh(stack.pop()));
+      stack.push(gaol_core::cosh(pop_value()));
     }
     virtual void visit(sinh_node* node) {
       if (operands(node, node->get_subexpr())) {
         return;
       }
-      stack.push(gaol_core::sinh(stack.pop()));
+      stack.push(gaol_core::sinh(pop_value()));
     }
     virtual void visit(tanh_node* node) {
       if (operands(node, node->get_subexpr())) {
         return;
       }
-      stack.push(gaol_core::tanh(stack.pop()));
+      stack.push(gaol_core::tanh(pop_value()));
     }
     virtual void visit(acosh_node* node) {
       if (operands(node, node->get_subexpr())) {
         return;
       }
-      stack.push(gaol_core::acosh(stack.pop()));
+      stack.push(gaol_core::acosh(pop_value()));
     }
     virtual void visit(asinh_node* node) {
       if (operands(node, node->get_subexpr())) {
         return;
       }
-      stack.push(gaol_core::asinh(stack.pop()));
+      stack.push(gaol_core::asinh(pop_value()));
     }
     virtual void visit(atanh_node* node) {
       if (operands(node, node->get_subexpr())) {
         return;
       }
-      stack.push(gaol_core::atanh(stack.pop()));
+      stack.push(gaol_core::atanh(pop_value()));
     }
     virtual void visit(log_node* node) {
       if (operands(node, node->get_subexpr())) {
         return;
       }
-      stack.push(gaol_core::log(stack.pop()));
+      stack.push(gaol_core::log(pop_value()));
     }
     virtual void visit(exp_node* node) {
       if (operands(node, node->get_subexpr())) {
         return;
       }
-      stack.push(gaol_core::exp(stack.pop()));
+      stack.push(gaol_core::exp(pop_value()));
     }
     virtual void visit(exp2_node* node) {
       if (operands(node, node->get_subexpr())) {
         return;
       }
-      stack.push(gaol_core::exp2(stack.pop()));
+      stack.push(gaol_core::exp2(pop_value()));
     }
     virtual void visit(log2_node* node) {
       if (operands(node, node->get_subexpr())) {
         return;
       }
-      stack.push(gaol_core::log2(stack.pop()));
+      stack.push(gaol_core::log2(pop_value()));
     }
     virtual void visit(sign_node* node) {
       if (operands(node, node->get_subexpr())) {
         return;
       }
-      stack.push(gaol_core::sign(stack.pop()));
+      stack.push(gaol_core::sign(pop_value()));
     }
     virtual void visit(trunc_node* node) {
       if (operands(node, node->get_subexpr())) {
         return;
       }
-      stack.push(gaol_core::trunc(stack.pop()));
+      stack.push(gaol_core::trunc(pop_value()));
     }
+    /*
+    The value the evaluation left, which the stack of values holds alone; the
+    stack is empty after it, and the evaluator ready for another tree. When it
+    holds none, or more than one, error_occurred() is true, and the interval
+    means nothing (the values it holds are dropped).
+    */
     interval result() {
-      return stack.pop();
+      const interval value = pop_value();
+      if (!stack.empty()) {
+        error = true;
+        stack.clear();
+      }
+      return value;
     }
     private:
+    /*
+    The value on the top of the stack of values. An empty stack, which a tree
+    leaves when the accept() of one of its nodes visits nothing, sets the
+    error, and gives an interval that means nothing: pop() of the stack takes
+    the value of an earlier evaluation, or none (GAOL v5).
+    */
+    interval pop_value() {
+      if (stack.empty()) {
+        error = true;
+        return interval();
+      }
+      return stack.pop();
+    }
     // The levels of the tree visited one call within another, beyond which
     // the loop of run() takes over (see the class)
     static const unsigned int max_depth = 32;

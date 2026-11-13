@@ -44,7 +44,8 @@ namespace gaol_core {
   on it the values of the operands not combined yet, as many as the tree is
   deep, where GAOL kept them on the stack of the program.
   
-  \warning Underflows are not reported
+  \warning pop() of an empty stack gives T(), and reports nothing: the user of
+  the stack has to know that it holds a value (expr_eval::result() does)
   
   \param T type of the elements on the stack
   \param SZ number of elements the stack holds without allocating
@@ -129,12 +130,13 @@ namespace gaol_core {
   T eval_stack<T,SZ>::pop()
   {
     /*
-    Case of underflow: only happens if the type of the result of 
-    the evaluation is not the expected one. We return 0, knowing that
-    the visitor MUST somehow set the error variable to true.
+    Case of underflow, which happens when a tree leaves fewer values than the
+    visitor takes: T() (GAOL v5; it was the_stack[0], the value of an earlier
+    evaluation, or one never set). Nothing is reported here: the visitor has
+    to set its error variable, as expr_eval::result() does.
     */
     if (next_pos == 0) {
-      return the_stack[0];
+      return T();
     } else {
       return the_stack[--next_pos]; 
     }

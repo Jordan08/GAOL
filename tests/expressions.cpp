@@ -1944,6 +1944,81 @@ namespace
           !ev.error_occurred() && same_bits(three, interval(3.0)), [&] { return hex(three); });
   }
 
+  /* A node of a program whose accept() visits no node, and one that visits two
+     leaves: an evaluation leaves no value, then two (GAOL v5). pop() of the
+     empty stack gave the first element of it, the value of the evaluation
+     before, and nothing set the error: result() of an evaluation of a node
+     with no value was the value of the tree evaluated just before, and the
+     other left a value on the stack for the next tree. */
+  class leaves_values : public expr_node
+  {
+    public:
+      explicit leaves_values(int count) : count_(count), a_(1.0), b_(2.0) {}
+      expr_node* clone() const override { return new leaves_values(count_); }
+      void accept(expr_visitor& visitor) override
+      {
+        if (count_ > 0) {
+          visitor.visit(&a_);
+        }
+        if (count_ > 1) {
+          visitor.visit(&b_);
+        }
+      }
+      unsigned int get_precedence() const override { return 0; }
+      std::ostream& display(std::ostream& os) const override { return os; }
+
+    private:
+      int count_;
+      double_node a_, b_;
+  };
+
+  void evaluation_leaves_one_value()
+  {
+    expr_eval ev;
+    const expression five = expression(interval(5.0, 5.0));
+    five.get_root()->accept(ev);
+    const interval known = ev.result();
+    check("expr_eval::result(): the value of a tree that leaves one, and no error",
+          !ev.error_occurred() && same_bits(known, interval(5.0, 5.0)), [&] { return hex(known); });
+
+    // The same evaluator, which holds the value of the tree before in the first element of its stack
+    const expression nothing(*new leaves_values(0));
+    nothing.get_root()->accept(ev);
+    const interval none = ev.result();
+    check("expr_eval::result(): a tree that leaves no value is an error, and not the value of the tree before",
+          ev.error_occurred() && !same_bits(none, interval(5.0, 5.0)), [&] { return hex(none); });
+    ev.reset();
+    five.get_root()->accept(ev);
+    const interval again = ev.result();
+    check("expr_eval::result(): after an error and a reset, the evaluator gives the value of the next tree",
+          !ev.error_occurred() && same_bits(again, interval(5.0, 5.0)), [&] { return hex(again); });
+
+    expr_eval two;
+    const expression twice(*new leaves_values(2));
+    twice.get_root()->accept(two);
+    const interval last = two.result();
+    check("expr_eval::result(): a tree that leaves two values is an error", two.error_occurred(),
+          [&] { return hex(last); });
+    two.reset();
+    five.get_root()->accept(two);
+    const interval next = two.result();
+    check("expr_eval::result(): the values left over do not count in the next tree",
+          !two.error_occurred() && same_bits(next, interval(5.0, 5.0)), [&] { return hex(next); });
+
+    // Seen by the functions that evaluate an expression
+    interval x;
+    check("evaluate_expr: a tree that leaves no value is an error", !evaluate_expr(nothing, x));
+    check("evaluate_expr: nor a tree that leaves two", !evaluate_expr(twice, x));
+    check("evaluate_expr: nor one of them in a sum", !evaluate_expr(five + nothing, x));
+    check("evaluate_expr: a tree that leaves one is right", evaluate_expr(five, x) && same_bits(x, interval(5.0, 5.0)),
+          [&] { return hex(x); });
+    interval l;
+    check("evaluate_left_right: a tree that leaves no value is an error", !evaluate_left_right(nothing, &l));
+    check("evaluate_left_right: nor one of the two", !evaluate_left_right(five, nothing, &l));
+    check("evaluate_left_right: the bounds of two trees that leave one",
+          evaluate_left_right(five, five, &l) && same_bits(l, interval(5.0, 5.0)), [&] { return hex(l); });
+  }
+
   /* The stack of values of an evaluation is a stack that grows: 10000 values
      pushed on one that holds 4 come out in reverse */
   void eval_stack_growth()
@@ -1957,6 +2032,13 @@ namespace
       in_reverse = (stack.pop() == i) && in_reverse;
     }
     check("eval_stack: 10000 values pushed on a stack of 4 come out in reverse", in_reverse);
+    // pop() of an empty stack is T(), not the first element of the stack, the
+    // value the stack held before (GAOL v5)
+    gaol_core::eval_stack<int, 4> emptied;
+    emptied.push(7);
+    const int seven = emptied.pop(), none = emptied.pop();
+    check("eval_stack: pop() of an empty stack is 0, not the first element it held", seven == 7 && none == 0,
+          [&] { return std::to_string(seven) + ", " + std::to_string(none); });
   }
 
   // A string with its NUL characters written \0, for the messages
@@ -2244,6 +2326,7 @@ int main()
   step("display_keeps_counts"); display_keeps_counts();
   step("eval_stack");        eval_stack_growth();
   step("null_operands");     null_operands();
+  step("evaluation_leaves_one_value"); evaluation_leaves_one_value();
   step("random_trees");      random_trees();
   step("deep_strings");      deep_strings();
   // The graceful checks of the stack come before the chains of 200000 nodes,

@@ -1529,10 +1529,13 @@ namespace gaol_core {
                 {
                   expr_eval eval;
                   (e.get_root())->accept(eval);
+                  // result() sets the error of a tree that leaves no value, or
+                  // more than one (GAOL v5): the error is read after it
+                  const interval value = eval.result();
                   if (eval.error_occurred()) {
                     return false;
                   }
-                  *itv = eval.result();
+                  *itv = value;
                   return true;
                   
                 }
@@ -1541,10 +1544,11 @@ namespace gaol_core {
                 {
                   expr_eval eval;
                   (e.get_root())->accept(eval);
+                  const interval value = eval.result();
                   if (eval.error_occurred()) {
                     return false;
                   }
-                  itv = eval.result();
+                  itv = value;
                   return true;
                 }
                 
