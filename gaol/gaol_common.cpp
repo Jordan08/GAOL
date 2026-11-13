@@ -104,8 +104,11 @@ namespace gaol_core {
   fesetexceptflag(), and a program started with the flag raised. Told in C
   stdio, as the
   processor without AVX-512 in init(). On Debian armel (32-bit ARM, the
-  floating point in software, GCC 12), fesetround(FE_UPWARD) returns 0 and
-  changes nothing, and GAOL computed every bound to nearest; valgrind
+  floating point in software, GCC 12) under qemu-arm, fesetround(FE_UPWARD)
+  returns 0, glibc writing the FPSCR of the VFP qemu emulates, which the
+  floating point in software does not read, and GAOL computed every bound to
+  nearest; without a VFP, fesetround() returns an error, which the generic
+  path does not read either; valgrind
   (memcheck 3.26 on x86-64) computes the SSE instructions to nearest whatever
   MXCSR says, and a program using GAOL stops there too. */
   static void check_upward_rounding()

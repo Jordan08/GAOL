@@ -463,11 +463,11 @@ namespace gaol_core {
   // The generic path (POWER, s390x, RISC-V, MIPS...): the direction only. The
   // return value of fesetround() is not read: init() checks that the direction
   // set upward rounds upward (check_upward_rounding(), gaol_common.cpp, GAOL
-  // v5), which a target without a floating-point unit may not do even when
-  // fesetround() returns 0 (Debian armel). The modes that flush the
-  // subnormal numbers (NI of the FPSCR of POWER, FS of the FCSR of MIPS) are
-  // not cleared, as FTZ, DAZ and FZ are by round_upward_if_needed() of
-  // gaol_fpu.h (GAOL v5, see doc/using.md, "Flush-to-zero and
+  // v5), which a target with the floating point in software does not do, even
+  // when fesetround() returns 0 (Debian armel under qemu-arm). The modes that
+  // flush the subnormal numbers (NI of the FPSCR of POWER, FS of the FCSR of
+  // MIPS) are not cleared, as FTZ, DAZ and FZ are by round_upward_if_needed()
+  // of gaol_fpu.h (GAOL v5, see doc/using.md, "Flush-to-zero and
   // denormals-are-zero")
   GAOL_INLINE  void
   round_downward(void)
