@@ -90,6 +90,53 @@ namespace gaol_core {
   #endif
   
   int debug_level;
+
+  /* Stops the program where the rounding direction set upward does not round
+  upward (GAOL v5): the generic path of gaol_fpu_fenv.h (POWER, s390x,
+  RISC-V, MIPS...) sets it with fesetround(FE_UPWARD), whose result it does
+  not read, and which does nothing where there is no floating-point unit
+  (32-bit ARM with the floating point in software, MIPS or RISC-V without
+  it...), so that every bound would be rounded to nearest, in silence. The
+  sum 1 + 2^-60, inexact, is above 1 upward only; its operands are volatile,
+  so that it is computed here, under the direction set, and it goes through
+  rnd_keep(), so that it is computed before the flag of the inexact exception
+  it raises is set back as it was: without it, GCC 15 moved the addition after
+  fesetexceptflag(), and a program started with the flag raised. Told in C
+  stdio, as the
+  processor without AVX-512 in init(). On Debian armel (32-bit ARM, the
+  floating point in software, GCC 12) under qemu-arm, fesetround(FE_UPWARD)
+  returns 0, glibc writing the FPSCR of the VFP qemu emulates, which the
+  floating point in software does not read, and GAOL computed every bound to
+  nearest; without a VFP, fesetround() returns an error, which the generic
+  path does not read either; valgrind
+  (memcheck 3.26 on x86-64) computes the SSE instructions to nearest whatever
+  MXCSR says, and a program using GAOL stops there too. */
+  static void check_upward_rounding()
+  {
+    volatile double one = 1.0, tiny = std::ldexp(1.0, -60);
+    #if GAOL_RND_SSE_REGISTER
+    // On x86, where the SSE instructions compute the doubles, the flag is
+    // that of MXCSR, read and written directly, as the rounding direction is
+    // (gaol_fpu.h): with fegetexceptflag() and fesetexceptflag() of
+    // MinGW-w64 for 32-bit x86 (GCC 12.2 to 14.2), every test stopped on a
+    // floating-point exception at its first operations
+    const unsigned int inexact = static_cast<unsigned int>(_mm_getcsr()) & 0x20u; // PE
+    const bool upward = rnd_keep(one + tiny) > 1.0;
+    _mm_setcsr((static_cast<unsigned int>(_mm_getcsr()) & ~0x20u) | inexact);
+    #else
+    fexcept_t inexact;
+    fegetexceptflag(&inexact, FE_INEXACT);
+    const bool upward = rnd_keep(one + tiny) > 1.0;
+    fesetexceptflag(&inexact, FE_INEXACT);
+    #endif
+    if (!upward) {
+      std::fputs("[gaol error]: the rounding direction cannot be set upward on this"
+                 " target (fesetround(FE_UPWARD) has no effect there, as without a"
+                 " floating-point unit): every bound GAOL computes would be rounded"
+                 " to nearest, and would not enclose the exact results\n", stderr);
+      std::abort();
+    }
+  }
   
   bool init(int dbg_lvl)
   {
@@ -123,6 +170,14 @@ namespace gaol_core {
       #   if GAOL_USING_SSE2_INSTRUCTIONS
       round_upward_sse();
       #   endif
+      check_upward_rounding();
+      #else
+      {
+        // As an operation sets it, the program's direction and modes set back
+        GAOL_RND_ENTER();
+        check_upward_rounding();
+        GAOL_RND_LEAVE();
+      }
       #endif
       // Not counted: expr_node::inc_refcount() leaves it alone (GAOL v5)
       the_null_expr = new null_node;
