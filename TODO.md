@@ -30,41 +30,43 @@ l'intervalle contient des solutions (PU.1), et deux threads qui affichent la
 même expression `-x` plantent (PU.2) ; une borne est peut-être fausse aussi pour
 un programme qui met lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des
 intervalles NEON, cause non trouvée). Rien n'est à envoyer à un autre projet ni
-à publier sans l'accord du mainteneur. Trois pull requests sont ouvertes : #319
-et #322 vers `dev`, la branche créée de `configure-clean` le 12 novembre, qui
-devient la base du développement, et #321 vers `configure-clean`, qui en retire
-les notes ; ce fichier n'est donc mis à jour que dans `dev`. #295 (PS.2), #296
-(PM), #297 (la tâche PS), #299 (PQ.2), #298 (PQ.1), #300 (hors des points : la
-recette de compilation croisée GCC 12.2 pour aarch64 de
-`todo-notes/gcc12-aarch64/`) et #301 (la tâche PT) sont fusionnées le 8
-novembre, à 17 h 21, 17 h 29, 19 h 38, 20 h 31, 20 h 44, 21 h 38 et 23 h 09 UTC,
-#302 (la tâche PP : le cas N1 M de `div_rel()` en SSE2) le 9 novembre à
-22 h 03 UTC, #305 (hors des points : six `friend` de `interval` retirés) le 10
-novembre à 8 h 52 UTC, #306 (hors des points : `gaol_interval_core.h` allégé,
-ses aides dans `gaol_interval_detail.h`) à 17 h 55 UTC et #307 (hors des
-points : les en-têtes de tous les fichiers sur un même modèle) à 21 h 04 UTC,
-puis, le 11 novembre, #308 (hors des points : `gaol_interval_core.cpp` découpé
-par domaine) à 21 h 05 UTC, #310 (du mainteneur : `.gitignore`) à 21 h 08 UTC,
-#311 (hors des points : l'en-tête `<cstdint>`, que #310 avait remplacé par un
-`<stdint>` qui n'existe pas) à 21 h 36 UTC et #309 (hors des points : `make
-dist` dans les trois builds, le workflow Release des paquets) à 22 h 16 UTC,
-puis, le 12 novembre, #312 (hors des points : `MATH-CORE` retirée de la CI,
-`numbers` à 600 s dans le job macOS 26 arm64 LLVM Clang Debug ASan+UBSan et à
-900 s dans celui de macOS 15 x86_64 GCC, `compile_commands.json` hors de
-l'archive de CMake), fusionnée à 7 h 53 UTC par la session, sur la demande
-explicite du mainteneur, puis #313 (hors des points : les textes qui citent
-macOS 14, PJ.6, et un commentaire de `CMakeLists.txt`, PJ.7) à 12 h 31 UTC et
-#314 (hors des points : les textes de #279, #281, #85, #306, #308, #309 et #312
-dans `doc/differences.md` et le `ChangeLog`, trois passages du manuel avec son
-PDF, PJ.7) à 12 h 42 UTC, par le mainteneur ; leurs registres sont faits, puis
-#315 (PJ.1 : le rapport de couverture, 95,1 % des lignes de `gaol/`) à
-15 h 20 UTC et #316 (PJ.2 : les temps remesurés, le manuel et son PDF) à
-15 h 30 UTC, puis #317 (la suite de #316, PJ.2 : le tableau de Visual C++ et de
-clang-cl par une expérience de CI, `x.midpoint()`) à 17 h 31 UTC, par le
-mainteneur, alors que leur CI attendait des runners de GitHub, puis #318 (PJ.7 :
-les restes de la synthèse, quatre entrées de CI au `ChangeLog`) à 19 h 56 UTC,
-par le mainteneur, alors qu'un job de macOS attendait encore un runner ; leurs
-registres sont faits ici (`TODO_DONE.md` 2.3, 3.34, 3.35, 7.31 et 7.32).
+à publier sans l'accord du mainteneur. #319 (les renvois aux registres récrits,
+la même archive des sources) est fusionnée dans `dev` (`45efbd1`), ses registres
+restant à faire ; deux pull requests sont ouvertes : #322 vers `dev`, la branche
+créée de `configure-clean` le 12 novembre, qui devient la base du développement,
+et #321 vers `configure-clean`, qui en retire les notes ; ce fichier n'est donc
+mis à jour que dans `dev`. #295 (PS.2), #296 (PM), #297 (la tâche PS), #299
+(PQ.2), #298 (PQ.1), #300 (hors des points : la recette de compilation croisée
+GCC 12.2 pour aarch64 de `todo-notes/gcc12-aarch64/`) et #301 (la tâche PT) sont
+fusionnées le 8 novembre, à 17 h 21, 17 h 29, 19 h 38, 20 h 31, 20 h 44, 21 h 38
+et 23 h 09 UTC, #302 (la tâche PP : le cas N1 M de `div_rel()` en SSE2) le 9
+novembre à 22 h 03 UTC, #305 (hors des points : six `friend` de `interval`
+retirés) le 10 novembre à 8 h 52 UTC, #306 (hors des points :
+`gaol_interval_core.h` allégé, ses aides dans `gaol_interval_detail.h`) à
+17 h 55 UTC et #307 (hors des points : les en-têtes de tous les fichiers sur un
+même modèle) à 21 h 04 UTC, puis, le 11 novembre, #308 (hors des points :
+`gaol_interval_core.cpp` découpé par domaine) à 21 h 05 UTC, #310 (du
+mainteneur : `.gitignore`) à 21 h 08 UTC, #311 (hors des points : l'en-tête
+`<cstdint>`, que #310 avait remplacé par un `<stdint>` qui n'existe pas) à
+21 h 36 UTC et #309 (hors des points : `make dist` dans les trois builds, le
+workflow Release des paquets) à 22 h 16 UTC, puis, le 12 novembre, #312 (hors
+des points : `MATH-CORE` retirée de la CI, `numbers` à 600 s dans le job macOS
+26 arm64 LLVM Clang Debug ASan+UBSan et à 900 s dans celui de macOS 15 x86_64
+GCC, `compile_commands.json` hors de l'archive de CMake), fusionnée à 7 h 53 UTC
+par la session, sur la demande explicite du mainteneur, puis #313 (hors des
+points : les textes qui citent macOS 14, PJ.6, et un commentaire de
+`CMakeLists.txt`, PJ.7) à 12 h 31 UTC et #314 (hors des points : les textes de
+#279, #281, #85, #306, #308, #309 et #312 dans `doc/differences.md` et le
+`ChangeLog`, trois passages du manuel avec son PDF, PJ.7) à 12 h 42 UTC, par le
+mainteneur ; leurs registres sont faits, puis #315 (PJ.1 : le rapport de
+couverture, 95,1 % des lignes de `gaol/`) à 15 h 20 UTC et #316 (PJ.2 : les
+temps remesurés, le manuel et son PDF) à 15 h 30 UTC, puis #317 (la suite de
+#316, PJ.2 : le tableau de Visual C++ et de clang-cl par une expérience de CI,
+`x.midpoint()`) à 17 h 31 UTC, par le mainteneur, alors que leur CI attendait
+des runners de GitHub, puis #318 (PJ.7 : les restes de la synthèse, quatre
+entrées de CI au `ChangeLog`) à 19 h 56 UTC, par le mainteneur, alors qu'un job
+de macOS attendait encore un runner ; leurs registres sont faits ici
+(`TODO_DONE.md` 2.3, 3.34, 3.35, 7.31 et 7.32).
 
 ## Comment lire ce fichier
 
@@ -99,10 +101,10 @@ registres sont faits ici (`TODO_DONE.md` 2.3, 3.34, 3.35, 7.31 et 7.32).
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
 | PU | Les bornes, les refus de compilation et les plantages | PU.1 à PU.9 | M |
-| PV | Le lecteur et les expressions | PV.1 à PV.5 | S |
+| PV | Le lecteur et les expressions | PV.1 à PV.6 | S |
 | PW | Les builds et la CI | PW.1 à PW.10 | M |
 | PX | Les tests sans dents | PX.1 à PX.5 | S |
-| PY | Les textes faux hors du manuel, le code mort | PY.1 à PY.11 | M |
+| PY | Les textes faux hors du manuel, le code mort | PY.1 à PY.12 | M |
 | PZ | Le manuel, `differences.md` et le `ChangeLog` | PZ.1 à PZ.6 | M |
 | PH | Les signalements à d'autres projets | #125 à #138, #175 | accord |
 | PJ | La publication de v5.0.0 (`master`, étiquette, annonce) | 34, 71 | S |
@@ -251,6 +253,12 @@ Relevés par la relecture du 13 novembre (voir PU).
 5. **Un caractère perdu** (mineur) : le signe § de « Stroustrup, 3rd ed.
    §15.3.1 » est devenu U+FFFD (`gaol/parser/gaol_expression.h`, lignes 143 et
    150).
+6. **La lecture d'un nombre très long** (piste, mineur) : elle prend un temps
+   quadratique (0,26 s pour 100 000 chiffres, quatre fois plus quand la longueur
+   double), ce que `doc/using.md` (ligne 1072) dit ; pour un nombre dont le seul
+   compte des chiffres montre qu'il vaut [MAX, +oo] (`"7"` répété 100 000 fois),
+   l'entier N est construit avant le test `beyond` : le construire après ce test
+   serait un gain facile.
 
 ## PW. Les builds et la CI [M]
 
@@ -394,7 +402,9 @@ PU.1.
    `tests/reverse_mappings.cpp`, lignes 94 et 125) ; des cas répétés à la place
    de -5.0 et de -5.5 (`tests/float_functions.cpp`, lignes 37, 38, 59 et 68) ;
    un libellé faux (`tests/compoundm1.cpp`, ligne 865 : y = [-oo, -1], non [-oo,
-   0]).
+   0]) ; une référence de `tanpi` fausse mais jamais atteinte
+   (`tests/core_math.cpp`, lignes 1404 à 1407 : `[-oo, +oo]` au lieu du vide
+   quand l = r tombe sur un pôle).
 5. **Des références calculées par GAOL** (mineur) : `tests/elementary.cpp`
    (lignes 281 à 291), `tests/core_math.cpp` (lignes 1296 à 1313, qui fige en
    plus l'implémentation), `tests/compoundm1.cpp` (lignes 933 à 947) et
@@ -440,7 +450,10 @@ est dans PZ. Aucun point ne change une borne.
    1e-310 n'est pas un double, non par la comparaison des bits (prendre
    `<0x1p-1070, 0x1p-1071>`) ; lignes 1725 à 1729 et 1866 à 1871, « x86 » pour
    le test par addition, que le x86 32 bits ne fait pas (`fnstcw`, `stmxcsr` ;
-   plausible) : « x86-64 ».
+   plausible) : « x86-64 ». Piste : une phrase d'exemple pour le piège que
+   décrit `gaol/core/gaol_interval_core.h` (lignes 2509 à 2514), `x > +oo`, `x
+   >= +oo`, `x < -oo` et `x <= NaN` vrais pour tout x, `interval(±oo)` étant
+   vide.
 5. **`doc/simd.md` et `doc/accuracy.md`** : `simd.md` (lignes 330 et 331) donne
    6,3 ns pour `sqrt` et 3,75 avec AVX-512, contre 7,35 et 4,36 aux lignes 174
    et 295 ; `accuracy.md` (lignes 62 à 64) dit le chemin AVX-512 identique à
@@ -535,6 +548,34 @@ est dans PZ. Aucun point ne change une borne.
     macro publique `gaol_ERROR` (`gaol/gaol_common.h`, lignes 203 à 209), le nom
     de GAOL 4, contre la règle des macros en `GAOL_` (process.md §4, principe
     7).
+12. **Les avertissements de plus** (mineur ; *à décider* : lesquels valent une
+    correction) : relevés en compilant la bibliothèque, les tests et les
+    exemples avec GCC 15 (`-Wshadow -Wuseless-cast -Wsuggest-override -Wformat=2
+    -Wmissing-declarations` et d'autres) et Clang 21 (`-Wshadow-all
+    -Wdocumentation -Wunused-member-function -Wheader-hygiene` et d'autres),
+    puis avec clang-tidy 21 (bugprone, clang-analyzer, cert) ; aucun ne cache un
+    défaut, mais : `-Wshadow` dans `tests/arithmetic.cpp` (ligne 147),
+    `tests/core_math.cpp` (ligne 1714), `tests/elementary.cpp` (ligne 805),
+    `tests/rounding_direction.cpp` (lignes 5087, 5092 et 5145) et
+    `gaol/parser/gaol_expression.cpp` (ligne 657, le paramètre `f` de
+    `pow_itv_node`, sans défaut) ; des conversions inutiles (`-Wuseless-cast`)
+    dans `gaol/gaol_fpu_fenv.h` (ligne 120), `gaol/gaol_fpu.h` (ligne 665),
+    `gaol/parser/gaol_expression.h` (ligne 877) et 30 lignes de `tests/`
+    (`core_math.cpp`, `rounding_direction.cpp`, `u128.cpp`, `unit_tests.h`),
+    peut-être voulues pour d'autres cibles : à vérifier avant d'y toucher ; 150
+    fonctions virtuelles sans `override` (120 dans
+    `gaol/parser/gaol_expression.h`, 30 dans `gaol/parser/gaol_expr_eval.h`) ;
+    un `using namespace` au niveau global d'un en-tête (`tests/unit_tests.h`,
+    ligne 43) ; un membre inutilisé (`not_an_exception`,
+    `tests/expressions.cpp`, ligne 1010) ; des formats non littéraux
+    (`gaol/core/gaol_interval_io.cpp`, lignes 250 et 255, sûrs ;
+    `tests/numbers.cpp`, ligne 162) ; pour clang-tidy, les valeurs rendues par
+    `snprintf()` ignorées (`gaol/core/gaol_interval_io.cpp`, lignes 561, 565 et
+    585), trois `using` inutilisés (`gaol/gaol_init_cleanup.cpp`, lignes 26 à
+    28) et des compteurs de boucle flottants (`gaol/core/gaol_interval_pow.cpp`,
+    lignes 776, 787, 817 et 825). Les 1 140 `-Wfloat-equal` sont voulus
+    (l'arithmétique compare des bornes), et les avertissements du lexer et du
+    parser générés ne se corrigent pas à la main.
 
 ## PZ. Le manuel et les registres [M]
 

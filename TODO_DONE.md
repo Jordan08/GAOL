@@ -8415,6 +8415,12 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   `process.md` n'est pas touché, sa mise à jour pour `dev` attendant les fusions
   de #319 et de #321. Aucune CI ne part : un push sur `dev` n'en lance pas avant
   #322.
+- Un second commit, après la fusion de #319 dans `dev` (`45efbd1`), ajoute ce
+  que le premier avait laissé de la relecture : PV.6 (la lecture d'un nombre
+  très long), PY.12 (les avertissements de plus et les remarques de clang-tidy),
+  une référence de `tanpi` jamais atteinte (PX.4) et une piste pour
+  `doc/using.md` (PY.4) ; l'en-tête de `TODO.md` dit #319 fusionnée, ses
+  registres restant à faire.
 
 ## 8. Le ménage fait
 
