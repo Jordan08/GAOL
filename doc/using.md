@@ -294,6 +294,17 @@ with a message on the standard error, when the processor or the system does
 not run the AVX-512 instructions, even in a program that computes nothing
 (GAOL v5).
 
+On every target, the initialization stops the program in the same way when
+the rounding direction set upward does not round upward: `1 + 2^-60`,
+computed there, has to be above 1 (GAOL v5). That is the case of a target
+without a floating-point unit, whose arithmetic in software keeps rounding to
+nearest: on Debian armel (32-bit ARM, GCC 12), `fesetround(FE_UPWARD)` returns
+0 and changes nothing, and GAOL computed every bound to nearest, in silence.
+It is the case too under valgrind (memcheck 3.26 on x86-64), which computes
+the SSE instructions to nearest whatever MXCSR says: a program using GAOL
+stops there at its start, where its bounds were wrong before. The check sets
+back the flag of the inexact exception it raises.
+
 The constants of GAOL (π, the masks of its SSE2 operations) are initialized
 when compiling: a static object of the program may compute intervals, before
 the files of GAOL are initialized, which with the static library of the CMake
