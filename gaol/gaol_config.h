@@ -259,24 +259,43 @@
    all the flags of gaol.pc and gaol::gaol after the option, not -fno-fast-math
    alone, with which Clang 18 compiled GAOL's operations as if rounding to
    nearest (54 checks of tests/rounding_direction.cpp failed after -ffast-math
-   -fno-fast-math, 126 after -Ofast -fno-fast-math, none with the flags).
-
-   No macro shows what follows, which GAOL cannot refuse:
-   -funsafe-math-optimizations and -ffast-math -fno-finite-math-only, with
-   which GCC rewrites the probe 1.0 + tiny == 1.0 of round_upward_if_needed()
-   (gaol/gaol_fpu.h) as tiny == 0.0, and 1.0 + (subnormal + 0.0) == 1.0 as
-   subnormal == 0.0, so that an operation does not set the rounding direction
-   upward again after the code using GAOL left it elsewhere, and width() is
-   below the exact width; -fno-signed-zeros, with which GCC and Clang drop the
-   + 0.0 of the second probe, which then misses flush-to-zero (GAOL v5; the
-   probe is now !(1.0 + (subnormal + 0.0) > 1.0), which GCC 15 does not
-   rewrite with -funsafe-math-optimizations, see doc/three-builds.md);
-   -fno-honor-nans of Clang, given without -fno-honor-infinities, which does to
-   the empty interval what -ffinite-math-only does; and -ffast-math or -Ofast
-   followed by -fno-fast-math with Clang, which leaves -frounding-math off
-   (above). */
+   -fno-fast-math, 126 after -Ofast -fno-fast-math, none with the flags). */
 #if defined(__FINITE_MATH_ONLY__) && __FINITE_MATH_ONLY__
 #  error "GAOL cannot be compiled with -ffinite-math-only (which -ffast-math and -Ofast turn on): its empty interval has NaN bounds and its unbounded ones infinite bounds, which the compiler then takes never to occur (remove the option that turns it on, or put the flags of gaol.pc and gaol::gaol after that option)"
+#endif
+/* -fno-signed-zeros, -fassociative-math and -freciprocal-math, which
+   -funsafe-math-optimizations turns on, as do -ffast-math and -Ofast (with
+   -fno-finite-math-only too), with GCC, which defines __NO_SIGNED_ZEROS__,
+   __ASSOCIATIVE_MATH__ and __RECIPROCAL_MATH__ for them (GCC 15; GAOL v5,
+   where they were said to show no macro). With -fno-signed-zeros GCC drops the
+   + 0.0 of the probe !(1.0 + (subnormal + 0.0) > 1.0) of
+   round_upward_if_needed() (gaol/gaol_fpu.h), which then misses the
+   flush-to-zero mode alone: under it, width() of [2, 3]*2^-1074 was 0, below
+   the exact width. With -funsafe-math-optimizations GCC rewrote the former
+   probe 1.0 + tiny == 1.0 as tiny == 0.0 (GCC 9.4), so that an operation did
+   not set the rounding direction upward again after the code using GAOL left
+   it elsewhere. -freciprocal-math lets the compiler compute x / y as
+   x * (1 / y), whose two roundings upward do not bound x / y from above where
+   x is negative (no test of GAOL failed with it alone, GCC 15), and
+   -fassociative-math lets it reorder the operations whose rounding a bound
+   depends on. -fno-fast-math turns these options off when they come before
+   it on the command line, as it does -ffinite-math-only. The tests
+   refused_no_signed_zeros, refused_unsafe_math and refused_reciprocal_math
+   (tests/CMakeLists.txt) and tests/refused_options.sh check the refusal.
+
+   No macro shows what follows, which GAOL cannot refuse: with Clang (18 and
+   21), which defines none of the macros above, -fno-signed-zeros, and
+   -funsafe-math-optimizations, which implies it, with which Clang drops the
+   + 0.0 of the probe as GCC does; -fno-honor-nans of Clang, given without
+   -fno-honor-infinities, which does to the empty interval what
+   -ffinite-math-only does; and -ffast-math or -Ofast followed by
+   -fno-fast-math with Clang, which leaves -frounding-math off (above). See
+   doc/three-builds.md. */
+#if defined(__NO_SIGNED_ZEROS__)
+#  error "GAOL cannot be compiled with -fno-signed-zeros (which -funsafe-math-optimizations, -ffast-math and -Ofast turn on): the compiler then drops the + 0.0 by which GAOL sees the modes flushing the subnormal numbers to zero, and some bounds would not enclose the exact results (remove the option that turns it on, or put the flags of gaol.pc and gaol::gaol after that option)"
+#endif
+#if defined(__ASSOCIATIVE_MATH__) || defined(__RECIPROCAL_MATH__)
+#  error "GAOL cannot be compiled with -fassociative-math or -freciprocal-math (which -funsafe-math-optimizations, -ffast-math and -Ofast turn on): the compiler may then reorder and rewrite the operations whose rounding the bounds depend on, and the bounds would not be certified (remove the option that turns them on, or put the flags of gaol.pc and gaol::gaol after that option)"
 #endif
 #if defined(_M_FP_FAST)
 #  error "GAOL cannot be compiled with /fp:fast: the bounds it computes would not enclose the exact results (it needs /fp:strict)"
