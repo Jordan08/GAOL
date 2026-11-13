@@ -90,6 +90,27 @@ namespace gaol_core {
   #endif
   
   int debug_level;
+
+  /* Stops the program where the rounding direction set upward does not round
+  upward (GAOL v5): the generic path of gaol_fpu_fenv.h (POWER, s390x,
+  RISC-V, MIPS...) sets it with fesetround(FE_UPWARD), whose result it does
+  not read, and which does nothing where there is no floating-point unit
+  (32-bit ARM with the floating point in software, MIPS or RISC-V without
+  it...), so that every bound would be rounded to nearest, in silence. The
+  sum 1 + 2^-60, inexact, is above 1 upward only; its operands are volatile,
+  so that it is computed here, under the direction set. Told in C stdio, as
+  the processor without AVX-512 in init(). */
+  static void check_upward_rounding()
+  {
+    volatile double one = 1.0, tiny = std::ldexp(1.0, -60);
+    if (!(one + tiny > 1.0)) {
+      std::fputs("[gaol error]: the rounding direction cannot be set upward on this"
+                 " target (fesetround(FE_UPWARD) has no effect there, as without a"
+                 " floating-point unit): every bound GAOL computes would be rounded"
+                 " to nearest, and would not enclose the exact results\n", stderr);
+      std::abort();
+    }
+  }
   
   bool init(int dbg_lvl)
   {
@@ -123,6 +144,14 @@ namespace gaol_core {
       #   if GAOL_USING_SSE2_INSTRUCTIONS
       round_upward_sse();
       #   endif
+      check_upward_rounding();
+      #else
+      {
+        // As an operation sets it, the program's direction and modes set back
+        GAOL_RND_ENTER();
+        check_upward_rounding();
+        GAOL_RND_LEAVE();
+      }
       #endif
       // Not counted: expr_node::inc_refcount() leaves it alone (GAOL v5)
       the_null_expr = new null_node;
