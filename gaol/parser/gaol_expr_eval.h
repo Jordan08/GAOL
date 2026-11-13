@@ -56,11 +56,13 @@ namespace gaol_core {
   nodes stay in place. The interval an evaluation that set it gives means
   nothing.
 
-  The evaluation of a tree leaves one value, which result() takes (GAOL v5).
-  A node that takes more values than its operands left, because the accept()
-  of a node of a program of its own visits nothing, sets error_occurred()
-  too, and so does a tree that leaves more than one: the stack gave the value
-  of an earlier evaluation, or none, and no error was set.
+  The evaluation of a tree leaves one value, which result() takes off the
+  stack, once (GAOL v5). A node that takes a value when the stack holds none
+  (the accept() of a node of a program of its own visited nothing) sets
+  error_occurred() too, and so does a tree that leaves more than one value:
+  the stack gave the value of an earlier evaluation, or none, and no error was
+  set. Nodes that balance each other, one that visits too few operands and
+  another too many, are not seen.
   */
   class expr_eval : public expr_visitor {
     public:
