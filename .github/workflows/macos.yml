@@ -16,7 +16,7 @@ name: macOS
 
 on:
   push:
-    branches: [master, configure-clean]
+    branches: [master, configure-clean, dev]
   pull_request:
   workflow_dispatch:
 

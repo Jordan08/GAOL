@@ -11,8 +11,8 @@ Part of the documentation of [GAOL v5](../README.md#documentation).
 The workflows of `.github/workflows/` build GAOL with CMake and run the tests,
 with `make test` (`cmake --build <build> --target test`, `RUN_TESTS` with
 Visual Studio). They run for each pull request, and for each push to the
-branches `master` and `configure-clean` only: a push to another branch runs
-nothing until it is proposed, which halves the jobs of a pull request (GAOL
+branches `master`, `configure-clean` and `dev` only: a push to another branch
+runs nothing until it is proposed, which halves the jobs of a pull request (GAOL
 v5); `workflow_dispatch` runs them on any branch. `performance.yml`
 is the exception: it runs for the pull requests that change what it measures
 only (see [The speed of a pull request](#the-speed-of-a-pull-request)), and so
