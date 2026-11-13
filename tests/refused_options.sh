@@ -50,17 +50,18 @@ for option in -ffinite-math-only -ffast-math; do
   esac
 done
 
-# -fno-signed-zeros, -funsafe-math-optimizations and -freciprocal-math, with
-# GCC, which shows them by __NO_SIGNED_ZEROS__, __ASSOCIATIVE_MATH__ and
-# __RECIPROCAL_MATH__ (GAOL v5), as the tests refused_no_signed_zeros,
+# -fno-signed-zeros, -fno-trapping-math, -funsafe-math-optimizations and
+# -freciprocal-math, with GCC, which shows them by __NO_SIGNED_ZEROS__,
+# __NO_TRAPPING_MATH__, __ASSOCIATIVE_MATH__ and __RECIPROCAL_MATH__ (GAOL v5),
+# as the tests refused_no_signed_zeros, refused_no_trapping_math,
 # refused_unsafe_math and refused_reciprocal_math of tests/CMakeLists.txt check
-# them: Clang defines none of these macros, nor GCC's __GNUC__ without
-# __clang__
+# them: Clang, which defines __GNUC__ too, defines none of these macros
 case $($GAOL_CXX $GAOL_CXXFLAGS -dM -E -x c++ /dev/null 2>/dev/null) in
   *__clang__*)
-    echo "SKIP: -fno-signed-zeros, -funsafe-math-optimizations and -freciprocal-math, which Clang does not show" ;;
+    echo "SKIP: -fno-signed-zeros, -fno-trapping-math, -funsafe-math-optimizations and -freciprocal-math, which Clang does not show" ;;
   *)
     for case in "-fno-signed-zeros:-fno-signed-zeros" \
+                "-fno-trapping-math:-fno-trapping-math" \
                 "-funsafe-math-optimizations:-fassociative-math or -freciprocal-math" \
                 "-freciprocal-math:-fassociative-math or -freciprocal-math"; do
       option=${case%%:*}

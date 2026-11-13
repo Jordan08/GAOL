@@ -211,12 +211,15 @@ if(NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
                     "GAOL cannot be compiled with -ffast-math")
   gaol_refused_test(refused_positive "" "")
 endif()
-# -fno-signed-zeros, -funsafe-math-optimizations and -freciprocal-math, which
-# GCC shows by __NO_SIGNED_ZEROS__, __ASSOCIATIVE_MATH__ and __RECIPROCAL_MATH__
-# and Clang by no macro (GAOL v5)
+# -fno-signed-zeros, -fno-trapping-math, -funsafe-math-optimizations and
+# -freciprocal-math, which GCC shows by __NO_SIGNED_ZEROS__,
+# __NO_TRAPPING_MATH__, __ASSOCIATIVE_MATH__ and __RECIPROCAL_MATH__ and Clang
+# by no macro (GAOL v5)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   gaol_refused_test(refused_no_signed_zeros -fno-signed-zeros
                     "GAOL cannot be compiled with -fno-signed-zeros")
+  gaol_refused_test(refused_no_trapping_math -fno-trapping-math
+                    "GAOL cannot be compiled with -fno-trapping-math")
   gaol_refused_test(refused_unsafe_math -funsafe-math-optimizations
                     "GAOL cannot be compiled with -fassociative-math or -freciprocal-math")
   gaol_refused_test(refused_reciprocal_math -freciprocal-math

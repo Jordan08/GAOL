@@ -263,25 +263,34 @@
 #if defined(__FINITE_MATH_ONLY__) && __FINITE_MATH_ONLY__
 #  error "GAOL cannot be compiled with -ffinite-math-only (which -ffast-math and -Ofast turn on): its empty interval has NaN bounds and its unbounded ones infinite bounds, which the compiler then takes never to occur (remove the option that turns it on, or put the flags of gaol.pc and gaol::gaol after that option)"
 #endif
-/* -fno-signed-zeros, -fassociative-math and -freciprocal-math, which
-   -funsafe-math-optimizations turns on, as do -ffast-math and -Ofast (with
-   -fno-finite-math-only too), with GCC, which defines __NO_SIGNED_ZEROS__,
-   __ASSOCIATIVE_MATH__ and __RECIPROCAL_MATH__ for them (GCC 15; GAOL v5,
-   where they were said to show no macro). With -fno-signed-zeros GCC drops the
-   + 0.0 of the probe !(1.0 + (subnormal + 0.0) > 1.0) of
-   round_upward_if_needed() (gaol/gaol_fpu.h), which then misses the
-   flush-to-zero mode alone: under it, width() of [2, 3]*2^-1074 was 0, below
-   the exact width. With -funsafe-math-optimizations GCC rewrote the former
-   probe 1.0 + tiny == 1.0 as tiny == 0.0 (GCC 9.4), so that an operation did
-   not set the rounding direction upward again after the code using GAOL left
-   it elsewhere. -freciprocal-math lets the compiler compute x / y as
-   x * (1 / y), whose two roundings upward do not bound x / y from above where
-   x is negative (no test of GAOL failed with it alone, GCC 15), and
-   -fassociative-math lets it reorder the operations whose rounding a bound
-   depends on. -fno-fast-math turns these options off when they come before
-   it on the command line, as it does -ffinite-math-only. The tests
-   refused_no_signed_zeros, refused_unsafe_math and refused_reciprocal_math
-   (tests/CMakeLists.txt) and tests/refused_options.sh check the refusal.
+/* -fno-signed-zeros, -fno-trapping-math, -fassociative-math and
+   -freciprocal-math, which -funsafe-math-optimizations turns on, as do
+   -ffast-math and -Ofast (with -fno-finite-math-only too), with GCC, which
+   defines __NO_SIGNED_ZEROS__, __NO_TRAPPING_MATH__, __ASSOCIATIVE_MATH__ and
+   __RECIPROCAL_MATH__ for them (GCC 15; GAOL v5, where they were said to show
+   no macro). Compiled with GCC 15.2, each option after all the flags of
+   interval arithmetic:
+   - -fno-signed-zeros: 6 of the 63 tests failed. GCC drops the + 0.0 of the
+     probe !(1.0 + (subnormal + 0.0) > 1.0) of round_upward_if_needed()
+     (gaol/gaol_fpu.h), which then misses the flush-to-zero mode alone: under
+     it, width() of [2, 3]*2^-1074 was 0, below the exact width. With
+     -funsafe-math-optimizations GCC rewrote the former probe
+     1.0 + tiny == 1.0 as tiny == 0.0 (GCC 9.4), so that an operation did not
+     set the rounding direction upward again after the code using GAOL left
+     it elsewhere;
+   - -fno-trapping-math: 52 checks of tests/rounding_direction.cpp failed,
+     operations with an empty operand, whose bounds are NaNs, raising the
+     invalid-operation flag, which no operation of GAOL raises then;
+   - -freciprocal-math, with which no test failed: it lets the compiler
+     compute x / y as x * (1 / y), whose two roundings upward do not bound
+     x / y from above where x is negative; -fassociative-math, which GCC
+     takes only with -fno-signed-zeros and -fno-trapping-math, lets it
+     reorder the operations whose rounding a bound depends on.
+   -fno-fast-math turns these options off when they come before it on the
+   command line, as it does -ffinite-math-only. The tests
+   refused_no_signed_zeros, refused_no_trapping_math, refused_unsafe_math and
+   refused_reciprocal_math (tests/CMakeLists.txt) and tests/refused_options.sh
+   check the refusal.
 
    No macro shows what follows, which GAOL cannot refuse: with Clang (18 and
    21), which defines none of the macros above, -fno-signed-zeros, and
@@ -293,6 +302,9 @@
    doc/three-builds.md. */
 #if defined(__NO_SIGNED_ZEROS__)
 #  error "GAOL cannot be compiled with -fno-signed-zeros (which -funsafe-math-optimizations, -ffast-math and -Ofast turn on): the compiler then drops the + 0.0 by which GAOL sees the modes flushing the subnormal numbers to zero, and some bounds would not enclose the exact results (remove the option that turns it on, or put the flags of gaol.pc and gaol::gaol after that option)"
+#endif
+#if defined(__NO_TRAPPING_MATH__)
+#  error "GAOL cannot be compiled with -fno-trapping-math (which -funsafe-math-optimizations, -ffast-math and -Ofast turn on): the compiler then takes floating-point operations to raise no exception, and operations with an empty operand raise the invalid-operation exception, which GAOL keeps from them (remove the option that turns it on, or put the flags of gaol.pc and gaol::gaol after that option)"
 #endif
 #if defined(__ASSOCIATIVE_MATH__) || defined(__RECIPROCAL_MATH__)
 #  error "GAOL cannot be compiled with -fassociative-math or -freciprocal-math (which -funsafe-math-optimizations, -ffast-math and -Ofast turn on): the compiler may then reorder and rewrite the operations whose rounding the bounds depend on, and the bounds would not be certified (remove the option that turns them on, or put the flags of gaol.pc and gaol::gaol after that option)"
