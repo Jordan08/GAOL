@@ -1,0 +1,35 @@
+# Experiment (throwaway branch): the configuration with the interprocedural
+# optimization, alone in its job, on several machines.
+name: Experiment IPO
+
+on:
+  push:
+    branches: [experiment-ci-ipo]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CTEST_PARALLEL_LEVEL: 4
+  CTEST_OUTPUT_ON_FAILURE: 1
+
+jobs:
+  ipo:
+    name: IPO alone ${{ matrix.n }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        n: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    steps:
+      - uses: actions/checkout@v7
+      - name: The processor
+        run: grep -m 1 "model name" /proc/cpuinfo
+      - uses: ./.github/actions/linux-cmake
+        with:
+          desc: IPO alone
+          cc: gcc
+          cxx: g++
+          opts: '-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON -DGAOL_PRESERVE_ROUNDING=ON'
