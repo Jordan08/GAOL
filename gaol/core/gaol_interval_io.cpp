@@ -24,6 +24,8 @@
 #include "gaol/core/gaol_interval_internal.h"
 #include "gaol/parser/gaol_parser.h"
 
+#include <algorithm>
+
 /*
   operator>> and operator<< of the intervals, their formats and precision,
   the text of an interval (operator std::string(), literal_text(),
@@ -122,19 +124,84 @@ namespace gaol_core {
   }
 
   /*
+    The text of 10^exponent in the format of the digits of a bound: `fraction`
+    digits after the point, none and no point if 0; in the scientific format
+    d.ddde+XX, in the fixed one ddd.ddd, where a power of ten below the last
+    digit is the last digit, 10^-fraction.
+  */
+  static std::string power_of_ten_text(int exponent, std::size_t fraction, bool scientific)
+  {
+    const std::string zeros(fraction, '0');
+    if (scientific) {
+      std::ostringstream suffix;
+      suffix << 'e' << ((exponent < 0) ? '-' : '+') << std::setw(2) << std::setfill('0')
+             << ((exponent < 0) ? -exponent : exponent);
+      return std::string("1") + ((fraction > 0) ? "." + zeros : std::string()) + suffix.str();
+    }
+    if (exponent >= 0) {
+      return "1" + std::string(static_cast<std::size_t>(exponent), '0')
+             + ((fraction > 0) ? "." + zeros : std::string());
+    }
+    const std::size_t places = std::min(static_cast<std::size_t>(-exponent), fraction);
+    if (places == 0) {
+      return "1";
+    }
+    return "0." + std::string(places - 1, '0') + "1" + std::string(fraction - places, '0');
+  }
+
+  /*
+    A number of the shape of text, in the fixed format or in the scientific
+    one, that is on the side of the double `magnitude` asked for whatever the
+    digits the C library wrote (GAOL v5): 0 toward zero, and away from it the
+    least power of ten that is not below magnitude. Loose, up to ten times
+    away from zero, and to 0 toward it, but outward, as the bound of a
+    subnormal under denormals-are-zero in number_to_text(). It is the last
+    resort of move_to_side().
+  */
+  static void outward_text(std::string& text, double magnitude, bool away, bool scientific)
+  {
+    const std::size_t last = scientific ? text.find_first_of("eE") : text.size();
+    const std::size_t point = text.find('.');
+    const std::size_t fraction = (point < last) ? last - point - 1 : 0;
+    if (!away) {
+      text = std::string("0") + ((fraction > 0) ? "." + std::string(fraction, '0') : std::string())
+             + (scientific ? "e+00" : "");
+      return;
+    }
+    // The decimal logarithm is within one of the exponent, so that the loop
+    // makes a few turns at most; a power below the last digit is written as
+    // the last digit, which is above a magnitude below it
+    for (int exponent = static_cast<int>(std::ceil(std::log10(magnitude))) - 1; ; ++exponent) {
+      std::string power = power_of_ten_text(exponent, fraction, scientific);
+      if (gaol_detail::compare_number_with_double(power.c_str(), magnitude) >= 0) {
+        text.swap(power);
+        return;
+      }
+    }
+  }
+
+  /*
     Moves the last digit of text by one unit, away from zero or toward it,
     until the number it writes is on the side of the double `magnitude` asked
     for: at least it if `away`, at most it otherwise. text is a positive
     number written to nearest in the fixed format, or in the scientific one if
     `scientific`: one digit, the others after a point, and an exponent with
-    its sign.
+    its sign. A C library that wrote digits wrong by more than the four moves
+    make up for (the msvcrt.dll of Windows, which MinGW-w64 calls for
+    snprintf() when __USE_MINGW_ANSI_STDIO is 0, writes no more than 17
+    significant digits right) left the text on the wrong side, a bound inside
+    the interval: outward_text() is then written instead (GAOL v5).
   */
   static void move_to_side(std::string& text, double magnitude, bool away, bool scientific)
   {
-    for (int moves = 0; moves < 4; ++moves) {
+    for (int moves = 0; ; ++moves) {
       const std::size_t last = scientific ? text.find_first_of("eE") : text.size(); // One past the mantissa
       const int sign = gaol_detail::compare_number_with_double(text.c_str(), magnitude);
       if (sign == 0 || (sign > 0) == away) {
+        return;
+      }
+      if (moves == 4) {
+        outward_text(text, magnitude, away, scientific);
         return;
       }
       std::size_t i = last;
