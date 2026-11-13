@@ -113,11 +113,22 @@ namespace gaol_core {
   MXCSR says, and a program using GAOL stops there too. */
   static void check_upward_rounding()
   {
+    volatile double one = 1.0, tiny = std::ldexp(1.0, -60);
+    #if GAOL_RND_SSE_REGISTER
+    // On x86, where the SSE instructions compute the doubles, the flag is
+    // that of MXCSR, read and written directly, as the rounding direction is
+    // (gaol_fpu.h): with fegetexceptflag() and fesetexceptflag() of
+    // MinGW-w64 for 32-bit x86 (GCC 12.2 to 14.2), every test stopped on a
+    // floating-point exception at its first operations
+    const unsigned int inexact = static_cast<unsigned int>(_mm_getcsr()) & 0x20u; // PE
+    const bool upward = rnd_keep(one + tiny) > 1.0;
+    _mm_setcsr((static_cast<unsigned int>(_mm_getcsr()) & ~0x20u) | inexact);
+    #else
     fexcept_t inexact;
     fegetexceptflag(&inexact, FE_INEXACT);
-    volatile double one = 1.0, tiny = std::ldexp(1.0, -60);
     const bool upward = rnd_keep(one + tiny) > 1.0;
     fesetexceptflag(&inexact, FE_INEXACT);
+    #endif
     if (!upward) {
       std::fputs("[gaol error]: the rounding direction cannot be set upward on this"
                  " target (fesetround(FE_UPWARD) has no effect there, as without a"
