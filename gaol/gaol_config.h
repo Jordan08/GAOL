@@ -138,7 +138,7 @@
 #  define GAOL_ARM_MACOSX 1
 #endif
 /* The three others are 0, as the macros of gaol/gaol_configuration.h, so
-   that #if reads them under -Wundef (GAOL v5, point Z of TODO.md) */
+   that #if reads them under -Wundef (GAOL v5) */
 #ifndef GAOL_IX86_LINUX
 #  define GAOL_IX86_LINUX 0
 #endif
@@ -174,7 +174,7 @@
 #  define GAOL_WORDS_BIGENDIAN 1
 #endif
 #ifndef GAOL_WORDS_BIGENDIAN
-#  define GAOL_WORDS_BIGENDIAN 0 /* GAOL v5, point Z of TODO.md */
+#  define GAOL_WORDS_BIGENDIAN 0 /* GAOL v5 */
 #endif
 
 /* GAOL_NODISCARD: the attribute on the functions whose result is all they do
@@ -460,7 +460,7 @@
    out: it stays accepted without -mfma, as above, its job being the measure.
 
    On ARM, mingw-w64 is refused as on x86-64, before version 12 or linked
-   with msvcrt.dll (decided for point A.6 of TODO.md; mingw-w64 before 11 only
+   with msvcrt.dll (GAOL v5; mingw-w64 before 11 only
    was refused before), the refusal not being tested there (MSYS2 CLANGARM64,
    which links the UCRT, is built and tested). Its fma() is an
    instruction: fmadd, fused, on 64-bit ARM; fmacd, which is vmla.f64, a

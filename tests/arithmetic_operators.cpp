@@ -290,7 +290,7 @@ public:
     TEST_SEQ(inverse(interval(2,4)),interval(0.25,0.5));
  }
 
-  /* An interval and an integer, in either order (GAOL v5, point D.21): the
+  /* An interval and an integer, in either order (GAOL v5): the
      double n where n is one, interval(n), the two doubles around it,
      otherwise. With n = 2^53 + 1 converted to the double 2^53, [1, 2] + n was
      [2^53, 2^53 + 2], and n + 2 = 2^53 + 3 was not in it. Each result has to

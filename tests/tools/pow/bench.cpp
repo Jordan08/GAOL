@@ -6,7 +6,7 @@
  *
  * For each row, the function is called on n random bases (200000 by
  * default), seven times, and the best time per call is printed, in
- * nanoseconds. The rows are the paths that the points B.1 and B.2 of TODO.md
+ * nanoseconds. The rows are the paths that the changes B.1 and B.2 of README.md
  * change: the corners of a box with finite bounds (gaol::pow with a
  * non-integer exponent goes through two checks more than
  * gaol_ieee1788::pow), the integer powers, the integer exponents beyond the

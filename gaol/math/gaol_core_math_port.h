@@ -249,8 +249,8 @@ Elsewhere than on Windows, the square root of the C library, fsqrt on the
 x87 unit with glibc and musl, is right as long as the x87 unit rounds as
 MXCSR, which round_upward_if_needed() of gaol/gaol_fpu.h sees to before
 CORE-MATH runs; with SSE2 everywhere, the square roots of CORE-MATH depend
-neither on the C library nor on the x87 unit (GAOL v5, point A.3 of
-TODO.md). On x64 Windows, Visual C++ and clang-cl call the sqrt() of the
+neither on the C library nor on the x87 unit (GAOL v5). On x64 Windows, Visual
+C++ and clang-cl call the sqrt() of the
 UCRT for the builtin as well (/fp:strict): it rounds in the direction of
 MXCSR there, which tests/core_math.cpp checks in their jobs of the
 continuous integration (pow(x, 0.5) in pow_exact_at_corners(), pow.c
@@ -302,7 +302,7 @@ after <fenv.h> has declared it, and only for the sources of CORE-MATH, the
 only ones this header is included in. ARM64EC, which no build of GAOL
 targets, defines _M_X64 too, and would read the MXCSR its emulation keeps.
 
-On a 32-bit x86 processor too (GAOL v5, point AI.108 of TODO_DONE.md). The
+On a 32-bit x86 processor too (GAOL v5). The
 operations that call CORE-MATH have read both units there and set the one that
 is not upward (round_upward_if_needed() of gaol/gaol_fpu.h), so that the two
 agree when it runs and the answer has been the same; but fegetround() is a

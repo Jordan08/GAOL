@@ -8,13 +8,13 @@
  * where a developer of GAOL compiles it, see gaol/gaol_config.h),
  * widths, magnitudes and mignitudes, Hausdorff distances (of intervals with
  * infinite bounds too), nb_fp_numbers() across the two zeros, splitting, integer
- * parts, radii, max() and min() of special bounds; the tools of TODO point P: width_enclosure(), inflate(),
+ * parts, radii, max() and min() of special bounds; the interval tools: width_enclosure(), inflate(),
  * interval::centered_form(), bisect(), is_bisectable(), hull() and intersect(); the
  * comparisons of IEEE 1788-2015 (Tables 10.3 and 10.4); and
  * the relational functions (sqrt_rel, div_rel...), which have to keep the
  * values they are given and bound them within a few doubles, div_rel() of a
  * negative K by a J with 0 inside being the exact hull of its two parts (GAOL
- * v5, point PP of TODO.md); and the reverse
+ * v5); and the reverse
  * functions of max, min, sign and floor (max_rel, min_rel, sign_rel,
  * floor_rel), which have to be the hulls of their sets, read from their
  * definitions on a grid and by sampling (GAOL v5).
@@ -130,7 +130,7 @@ namespace
             [&] { return describe() + ": " + hex(left) + " " + hex(right); });
       check("split_left() and split_right()" + in, X.split_left().set_eq(left) && X.split_right().set_eq(right), describe);
 
-      // The tools of TODO point P (GAOL v5): the enclosure of the width, X
+      // The interval tools (GAOL v5): the enclosure of the width, X
       // widened by a radius and the interval of a midpoint and a radius, each
       // the tightest enclosure of its exact bounds, which GAOL computed
       // rounding both upward; the parts of bisect(), and hull() and
@@ -220,7 +220,7 @@ namespace
                              && nb_fp_numbers(1.0, 2.0) == 4503599627370497ull);
   }
 
-  /* The tools of TODO point P on special intervals and arguments (GAOL v5):
+  /* The interval tools on special intervals and arguments (GAOL v5):
      the empty set, points, zeros, infinite bounds and radii, NaN, the
      largest double, and the cases the random draws seldom give: an inexact
      bound, which GAOL rounded upward on both sides (the lower bound of
@@ -1035,7 +1035,7 @@ namespace
 
   /*
     div_rel(K, J, I) for a negative K and a J with 0 in its interior, the
-    case N1 M of the SSE2 intervals (GAOL v5, point PP of TODO.md), the only
+    case N1 M of the SSE2 intervals (GAOL v5), the only
     one that was written with scalar operations. The quotients of K by the
     y of J are those of K.right() by the part of J below 0, which are above
     K.right()/J.left() and unbounded above, and by the part above 0, which are
@@ -1411,7 +1411,7 @@ namespace
   }
 
   // ---------------------------------------------------------------------------
-  // max_rel, min_rel, sign_rel and floor_rel (GAOL v5, point P.25 of TODO.md)
+  // max_rel, min_rel, sign_rel and floor_rel (GAOL v5)
   // ---------------------------------------------------------------------------
 
   /*

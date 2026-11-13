@@ -106,7 +106,7 @@ namespace gaol_core {
   /*
     The fields of the control word of the x87 unit and of MXCSR of an x86
     processor, as the hardware has them (see gaol/gaol_fpu.h), and the function
-    that writes them (GAOL v5, point 108 (AI) of TODO.md): round_upward()
+    that writes them (GAOL v5): round_upward()
     and the others below write a register only if it has to change
   */
   const unsigned int x87_rc_mask = 0x0c00u;
@@ -222,8 +222,7 @@ namespace gaol_core {
   control word, which is written here as well, and the wrong bounds seen
   then came from their fma() (gaol/gaol_config.h): with the mingw-w64 11 of
   Ubuntu, the tests pass with the registers written directly, under wine,
-  and the registers are written so with every mingw-w64 for x86 (GAOL v5,
-  point A.6 of TODO.md).
+  and the registers are written so with every mingw-w64 for x86 (GAOL v5).
   */
   #if (defined(__i386__) || defined(__x86_64__)) && (defined(__GNUC__) || defined(__clang__))
   #  define GAOL_RND_X86_REGISTERS 1
@@ -295,7 +294,7 @@ namespace gaol_core {
   }
   #  endif
   #else
-  // 0, so that #if reads it under -Wundef (GAOL v5, point Z of TODO.md)
+  // 0, so that #if reads it under -Wundef (GAOL v5)
   #  define GAOL_RND_X86_REGISTERS 0
   #endif
 
@@ -312,7 +311,7 @@ namespace gaol_core {
     The fields RC of the control word of the x87 unit and of MXCSR set to
     x87_rc and sse_rc (0x0000, 0x0400 or 0x0800 and the _MM_ROUND_* of
     <xmmintrin.h>), a register written only if its field is not that already
-    (GAOL v5, point 108 (AI) of TODO.md; it wrote both whatever they held)
+    (GAOL v5; it wrote both whatever they held)
   */
   GAOL_INLINE void gaol_set_rounding_x86(unsigned short x87_rc, unsigned int sse_rc)
   {
@@ -325,7 +324,7 @@ namespace gaol_core {
     its registers are MXCSR alone, read with the control word of the x87 unit
     as 0 (the field RC of the state that get_rounding() saves is then 0, and
     writing it back never writes the control word) and written as MXCSR only
-    (GAOL v5, point PG.10 of TODO.md)
+    (GAOL v5)
   */
   struct x86_registers
   {

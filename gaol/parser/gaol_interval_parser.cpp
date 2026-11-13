@@ -273,8 +273,8 @@ void gaol_flex_error()
   Keeps the text of a number that is not a double, which the lexer has read,
   and gives its rank, its offset in the context plus 1, so that no rank is 0:
   the leaf of the number holds it (see inside_node), for the literal [l, u]
-  to tell two numbers between the same two doubles apart (GAOL v5, point 84
-  of TODO.md). The texts are in one vector, where a std::string of its own
+  to tell two numbers between the same two doubles apart (GAOL v5). The texts
+  are in one vector, where a std::string of its own
   would cost an allocation, and 32 bytes, per number. A vector and not a
   std::string: the allocations of a std::string are made by libstdc++, in its
   DLL on Windows, which the operator new of the program does not reach, so that
@@ -475,8 +475,8 @@ static expr_node *gaol_uncertain_number(void *context, const interval& I)
 }
 
 /*
-  The leaf of a number that is not a double, or of pi (GAOL v5, point 84 of
-  TODO.md): its interval is the tightest one of doubles enclosing the number,
+  The leaf of a number that is not a double, or of pi (GAOL v5): its interval is
+  the tightest one of doubles enclosing the number,
   which is strictly inside it. The leaf of a double is told apart from it, and
   so is the result of an operation or of a function, an enclosure of the
   values it can take: the literal [l, u] then knows when l is above u although
@@ -590,7 +590,7 @@ static bool gaol_uncertain_bound(expr_node *e, void *context)
 
   Each name gives a function of intervals of one, two or three arguments, or
   of an interval and a long long, whose second argument has to be an integer
-  (GAOL v5, point 83 of TODO.md: an int, where nth_root(8,3000000000) was
+  (GAOL v5: an int, where nth_root(8,3000000000) was
   refused although nth_root(8, 3000000000LL) is computed). A
   call is computed when it is read, its arguments being computed then too,
   and gives a leaf of the tree, as a literal does: GAOL built a node of
@@ -612,7 +612,7 @@ typedef interval (*gaol_f2)(const interval&, const interval&);
 #define GAOL_FN(name, f) { name, 2, 0, 0, 0, f }
 
 /* The functions of an interval and an integer, with the integer a long long
-   (GAOL v5, point 83 of TODO.md): nth_root(I, long long) and the templates of
+   (GAOL v5): nth_root(I, long long) and the templates of
    gaol_ieee1788 for pown and rootn, which forward an integer within the ints
    to the functions of an int as before; written out, so that no address of a
    function template is taken */
@@ -642,7 +642,7 @@ static interval gaol_cbrt(const interval& x)
    inverse. pow is gaol::pow, gaol_pow_hybrid(), which takes gaol_pown() for an
    exponent that is an integer: the parser took 1/x^|n| for n < 0, whose x^|n|
    overflowed, and 1 for n = 0, which is no value for an empty x. nth_root(x,
-   q) takes a long long q (an int before GAOL v5, point 83 of TODO.md), which
+   q) takes a long long q (an int before GAOL v5), which
    may be negative: rootn(x, q) of IEEE 1788-2015 */
 static const gaol_function gaol_functions[] = {
   GAOL_F1("sqr", ::gaol_core::sqr), GAOL_F1("sqrt", ::gaol_core::sqrt), GAOL_F1("cbrt", gaol_cbrt),
@@ -744,7 +744,7 @@ const void *gaol_lookup_function(const char *name, void *context)
 
 /*
   The integer n that the interval q is, if it is a point interval holding one
-  (GAOL v5, point 83 of TODO.md): the second argument of nth_root(), pown() and
+  (GAOL v5): the second argument of nth_root(), pown() and
   rootn(). is_an_int() is true within the ints; beyond them, an integer
   double is as many as a long long holds, and one of 2^63 or more in
   magnitude, an even integer as every double from 2^53 on, is taken as
@@ -900,12 +900,12 @@ enum gaol_literal_form {
   gaol_literal_infinity()). The two bounds of <a, b> are the same double: they
   are compared by their bits, -0 and +0 being the same bound, as
   gaol_detail::bound_equal() does, so that two subnormals that are equal as
-  doubles under denormals-are-zero are told apart (GAOL v5, point Q of
-  TODO.md): compared as doubles, <1e-310, 1e-309> was read [1e-310, 1e-309]
+  doubles under denormals-are-zero are told apart (GAOL v5): compared as
+  doubles, <1e-310, 1e-309> was read [1e-310, 1e-309]
   under that mode, and refused without it.
 
   [l, u] is the empty set where l is above u (IEEE 1788-2015, 12.12.7), as
-  [2, 1] is (GAOL v5, point 84 of TODO.md). The interval of l and the one of u
+  [2, 1] is (GAOL v5). The interval of l and the one of u
   hold the numbers written, and the literal is the one from the lower bound of
   the first to the upper bound of the second, so that it was not empty where
   l is above u and the two intervals meet: [9007199254740993,
@@ -922,7 +922,7 @@ enum gaol_literal_form {
   1/3, sqrt(2)...), the literal is the interval from the lower bound of l to
   the upper bound of u.
 
-  The bounds of <a, b> are doubles (GAOL v5, point 84 of TODO.md): a number
+  The bounds of <a, b> are doubles (GAOL v5): a number
   that is not a double is refused. <0.1, 0x1.9999999999999p-4>, the double
   just below 0.1, was read as the interval [0x1.9999999999999p-4], the lower
   bound of the interval of 0.1 being that double, and <0.1, 0.1> was refused

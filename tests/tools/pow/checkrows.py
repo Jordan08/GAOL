@@ -12,8 +12,8 @@
 # S has to be the pow of IEEE 1788-2015 (Table 9.1): the hull of x^y over the
 # x of X in [0, +oo] and the y of Y, x = 0 taking only y > 0; H the same, but
 # for a degenerate integer exponent Y = [n]: pown(X, n) on the whole of X,
-# beyond the ints too (GAOL v5: [-oo, +oo] there before the third pull request
-# of point B). For each, the bounds have to enclose
+# beyond the ints too (GAOL v5: [-oo, +oo] there before #121).
+# For each, the bounds have to enclose
 # the exact hull, and be at most --max-distance doubles (1 by default) from
 # the tightest ones, the doubles on each side of the exact bounds. Each result
 # is printed with its distances, and the tightest bounds where it is not them;

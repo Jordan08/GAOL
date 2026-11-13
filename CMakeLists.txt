@@ -472,7 +472,7 @@ string(REPLACE ";" " " GAOL_INTERVAL_FLAGS_STRING "${GAOL_INTERVAL_FLAGS}")
 #    the rounding direction had changed, in spite of /fp:strict (in Codac,
 #    with Visual Studio 2022 and 2026).
 #  - GCC for Windows (MinGW-w64, MSYS2, Cygwin) for x86-64 and 32-bit x86: -mfma
-#    -mprefer-vector-width=128 (GAOL v5, point AI.110 of TODO_DONE.md). -mfma turns AVX
+#    -mprefer-vector-width=128 (GAOL v5). -mfma turns AVX
 #    on, and GCC then vectorizes with the 256-bit registers (ymm), which it may
 #    spill to a stack it takes to be aligned on 32 bytes, where the Windows x64
 #    ABI aligns it on 16 (GCC bug 54412: an aligned vmovaps to such a slot
@@ -1026,7 +1026,7 @@ endif()
 # -mfma with -mprefer-vector-width=128, which keeps it out of the 32 bytes of
 # the ymm registers of AVX). The code of the path compiled by MinGW-w64 GCC 13 makes no
 # aligned access of a zmm register to the stack, but nothing keeps the
-# compiler from doing it (GAOL v5, point AA of TODO.md). Visual C++ and
+# compiler from doing it (GAOL v5). Visual C++ and
 # clang-cl for x64 take it too (GAOL v5): Visual C++ needs no attribute, it
 # takes the intrinsics of any instruction set in any function, clang-cl has
 # the attribute, and both tell the processor by cpuid and xgetbv, Visual C++
@@ -1150,8 +1150,8 @@ endif()
 # true: without the test, the line (a + b) * (a - b) / p of the benchmark of
 # doc/compare takes 25.9 ns rather than 26.3 in the default build, Shekel 5
 # 259 ns rather than 263 (Clang 18, Intel Xeon E3-1220 v6, the library and
-# the program built with -mbranches-within-32B-boundaries; GAOL v5, point AA
-# of TODO.md). A library so built needs a processor with the AVX-512
+# the program built with -mbranches-within-32B-boundaries; GAOL v5). A library
+# so built needs a processor with the AVX-512
 # instructions, as one built with GAOL_FMA needs FMA: -DGAOL_PREFER_AVX512=OFF
 # builds it for any processor of the architecture.
 set(GAOL_AVX512_ARITHMETIC OFF)
@@ -1375,7 +1375,7 @@ endif()
 # on the option, and the option is not in every later release: GCC has it from
 # 11.4 in the series 11 and from 12.4 in the series 12, so that a GAOL built by
 # GCC 11.4 (Ubuntu 22.04) and a program built by GCC 12.3 (its g++-12) have it
-# and do not (GAOL v5, review of point 4: gcc/config/i386/i386.opt of the
+# and do not (GAOL v5: gcc/config/i386/i386.opt of the
 # release tags)
 if(GAOL_LINK_FLAGS)
   string(REGEX MATCH "^[0-9]+" GAOL_COMPILER_MAJOR "${CMAKE_CXX_COMPILER_VERSION}")
@@ -1604,11 +1604,12 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 
   # The archive of the sources: the files of the repository, without what git
   # ignores (.gitignore), the builds within the sources, the packages, and the
-  # notes of the work on GAOL v5 (TODO.md, TODO_AFTER.md, TODO_DONE.md,
-  # STEP.md, process.md, todo-notes/), which serve its maintainers, not the
-  # users of a version: those of export-ignore in .gitattributes, which meson
-  # dist leaves out, and that the EXTRA_DIST of make dist do not list, so that
-  # the three archives hold the same files (GAOL v5). CPack writes the CPACK_* variables into CPackConfig.cmake
+  # notes of the work on GAOL v5 that only the development branch dev holds
+  # (TODO.md, TODO_AFTER.md, TODO_DONE.md, STEP.md, process.md, todo-notes/,
+  # and .gitattributes, which marks them export-ignore for meson dist), which
+  # serve its maintainers, not the users of a version: the EXTRA_DIST of make
+  # dist do not list them, so that the three archives hold the same files, on
+  # dev as on configure-clean, which has none of them (GAOL v5). CPack writes the CPACK_* variables into CPackConfig.cmake
   # and CPackSourceConfig.cmake, which it reads when it runs:
   # CPACK_VERBATIM_VARIABLES has it escape them, so that the backslashes of
   # these regular expressions reach it as they are, where CMake 3 warned of an
@@ -1642,6 +1643,7 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
     "^${_gaol_source_regex}/TODO\\.md$" "^${_gaol_source_regex}/TODO_AFTER\\.md$" "^${_gaol_source_regex}/TODO_DONE\\.md$"
     "^${_gaol_source_regex}/STEP\\.md$" "^${_gaol_source_regex}/process\\.md$"
     "^${_gaol_source_regex}/todo-notes/"
+    "^${_gaol_source_regex}/\\.gitattributes$"
   )
 
   # The archive holds configure as it is committed, and configure says the
@@ -1682,7 +1684,7 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   # the one of package_source, gaol-<version>.tar.gz, in the build directory
   # (make dist with the Makefile generators, ninja dist, cmake --build <build>
   # --target dist; GAOL v5). The three archives hold the same files
-  # (.gitattributes, EXTRA_DIST of the Makefile.am)
+  # (export-ignore, CPACK_SOURCE_IGNORE_FILES, EXTRA_DIST of the Makefile.am)
   add_custom_target(dist
     COMMAND "${CMAKE_CPACK_COMMAND}" --config "${PROJECT_BINARY_DIR}/CPackSourceConfig.cmake"
     WORKING_DIRECTORY "${PROJECT_BINARY_DIR}"

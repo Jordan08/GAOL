@@ -47,7 +47,7 @@ namespace gaol {
 
   namespace {
     /*
-      A null pointer is no string (GAOL v5, point 128 of TODO.md): the
+      A null pointer is no string (GAOL v5): the
       overloads of std::string would build a std::string from it, which the
       standard leaves undefined (libstdc++ throws std::logic_error, and libc++
       and Visual C++ probably read it with strlen()). what names the argument
@@ -100,7 +100,7 @@ namespace gaol {
   }
 
   // textToInterval(sl, sr) with C strings, in either place or both, which take
-  // the null pointer (GAOL v5, point 128 of TODO.md)
+  // the null pointer (GAOL v5)
   interval textToInterval(const char* sl, const char* sr)
   {
     refuse_null_pointer(sl, "left bound");

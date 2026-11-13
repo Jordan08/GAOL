@@ -248,7 +248,7 @@ jobs:
       # enable-preserve-rounding asks for it by default: the option was a
       # boolean, whose false meson could not tell from the default, and a
       # library built so on a runner with the AVX-512 instructions needed them
-      # (GAOL v5, point AA of TODO.md)
+      # (GAOL v5)
       - name: enable-prefer-avx512=false refuses the AVX-512 path
         if: contains(matrix.cfg.options, '-Denable-preserve-rounding=true')
         run: |
@@ -787,9 +787,10 @@ jobs:
 
   # The archive of the sources made by the three builds, make dist, dist
   # (package_source) of CMake and meson dist: gaol-<version>.tar.gz, with the
-  # same files, those of the commit less export-ignore of .gitattributes, as git
-  # archive gives them. make distcheck builds the archive with the tests and the
-  # examples, runs them, installs and uninstalls it (GAOL v5, doc/building.md).
+  # same files, those of the commit as git archive gives them (without the notes
+  # of the work of the branch dev, which are export-ignore). make distcheck
+  # builds the archive with the tests and the examples, runs them, installs and
+  # uninstalls it (GAOL v5, doc/building.md).
   # A file added to the repository and not to the EXTRA_DIST of a Makefile.am is
   # missing from the archive of make dist, which fails the comparison
   dist:

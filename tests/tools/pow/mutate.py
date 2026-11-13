@@ -82,7 +82,7 @@ INTERNAL = 'gaol/core/gaol_interval_internal.h'
 # base is 0 or +oo or the exponent infinite (pow_is_limit(), pow_limit()).
 # Each edit replaces a text that has to be once in the file; survives says
 # why the bounds of an equivalent mutant are those of the sources. B.1 of
-# TODO.md removed the code that std-beyond-no-one-upper edited, an
+# README.md removed the code that std-beyond-no-one-upper edited, an
 # equivalent mutant, and kept the guard of [+oo] and [-oo], which an exponent
 # built from an SSE2 register reaches; B.2 removed the conditions of the
 # corners, their branch of a base from 0 and exp(y*log(base)), whose
@@ -232,7 +232,7 @@ MUTANTS = [
                  '// [+oo] and [-oo]')],
          survives='an empty J fails J.left() == J.right(), a quiet comparison, and pow_standard_upward() gives '
                   'the empty set for it; an empty I is given back by pown_upward() and pown_beyond_upward(), '
-                  'which took [-oo, +oo] for it beyond the ints before point B, and pow_standard_upward() gives '
+                  'which took [-oo, +oo] for it beyond the ints before #121, and pow_standard_upward() gives '
                   'the empty set for it'),
     dict(name='gaol-infinite-guard-dropped', file=POW,
          edits=[('if (J.left() == J.right() && !(std::fabs(J.left()) <= (std::numeric_limits<double>::max)())) {',
@@ -255,7 +255,7 @@ MUTANTS = [
     dict(name='ieee-is-gaol',
          file='gaol/gaol_ieee1788.h',
          edits=[('return ::gaol_core::pow_standard(x, y);', 'return ::gaol_core::gaol_pow_hybrid(x, y);')]),
-    # The integer powers (point B, third pull request): pown_products(), pown_point(), pown_corners(),
+    # The integer powers (#121): pown_products(), pown_point(), pown_corners(),
     # pown_upward() and the powers beyond the ints, in both builds (pown-*), and the two lanes of
     # pown_large_inline() in an SSE2 register with the FMA instructions (sse-fma-*, gaol_interval_sse_impl.h) or in a pair of doubles,
     # the FPU intervals and the SSE2 ones without FMA (fpu-*): each one is compiled in one build only
@@ -344,8 +344,8 @@ MUTANTS = [
                 ('        const __m128d sign = _mm_xor_pd(_mm_set_pd(0.0, -0.0), _mm_and_pd(c, odd));',
                  '        const __m128d sign = _mm_xor_pd(_mm_set_pd(0.0, -0.0), _mm_and_pd(zero, odd));'),
                 ('_mm_fmadd_pd(K, h, _mm_xor_pd(l, sign))', '_mm_fmadd_pd(K, _mm_andnot_pd(minus_zero, h), _mm_xor_pd(l, sign))')]),
-    # The same kernel rounded upward by the embedded rounding of AVX-512, pown_large_er() (GAOL v5, point ZZ of
-    # TODO.md): compiled where GAOL_AVX512_ARITHMETIC is only (--cmake-option=-DGAOL_PREFER_AVX512=ON, and
+    # The same kernel rounded upward by the embedded rounding of AVX-512, pown_large_er() (GAOL v5): compiled
+    # where GAOL_AVX512_ARITHMETIC is only (--cmake-option=-DGAOL_PREFER_AVX512=ON, and
     # -DGAOL_PRESERVE_ROUNDING=ON to have the library take no direction), where the SSE2 mutants above are the
     # mutants of pown_large_inline() (gaol_interval_sse_impl.h), which the other powers call
     dict(name='er-no-exact-flag',
@@ -419,7 +419,7 @@ MUTANTS = [
                 ('const double t1 = ((m & 1u) != 0u && std::signbit(c1)) ? -1.0 : 1.0;', 'const double t1 = 1.0;'),
                 ('fma_once(K0, h.l0, -t0*l.l0)', 'fma_once(K0, std::fabs(h.l0), -t0*l.l0)'),
                 ('fma_once(K1, h.l1, t1*l.l1)', 'fma_once(K1, std::fabs(h.l1), t1*l.l1)')]),
-    # The NEON register (GAOL v5, point AP of TODO.md), pown_large_inline() of gaol/core/gaol_interval_neon_impl.h:
+    # The NEON register (GAOL v5), pown_large_inline() of gaol/core/gaol_interval_neon_impl.h:
     # compiled on a 64-bit ARM processor only (GAOL_SIMD, on by default there); the mutants
     # mirror the SSE2 ones
     dict(name='neon-no-exact-flag',
@@ -437,13 +437,13 @@ MUTANTS = [
          edits=[('vcageq_f64(g, vdupq_n_f64(pown_least[L]))', 'vcagtq_f64(g, vdupq_n_f64(pown_least[L]))')],
          survives='a base at pown_least[L] itself takes the corners instead of the kernel: the same bounds, but a zero '
                   'lower bound is -0 with the kernel and +0 with the corners (pownedge.cpp hashes the sign of a zero, '
-                  'which the tests do not compare; point PG.7)'),
+                  'which the tests do not compare)'),
     dict(name='neon-range-greatest-strict',
          file='gaol/core/gaol_interval_neon_impl.h',
          edits=[('vcaleq_f64(g, vdupq_n_f64(pown_greatest[L]))', 'vcaltq_f64(g, vdupq_n_f64(pown_greatest[L]))')],
          survives='a base at pown_greatest[L] itself takes the corners instead of the kernel: the same bounds, but a zero '
                   'lower bound is -0 with the kernel and +0 with the corners (pownedge.cpp hashes the sign of a zero, '
-                  'which the tests do not compare; point PG.7)'),
+                  'which the tests do not compare)'),
     dict(name='neon-even-lower-without-zero',
          file='gaol/core/gaol_interval_neon_impl.h',
          edits=[('c = vcombine_f64(vget_low_f64(vmaxq_f64(greater, zero)), vget_high_f64(greater));', 'c = greater;')]),

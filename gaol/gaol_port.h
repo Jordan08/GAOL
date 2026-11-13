@@ -262,7 +262,7 @@ namespace gaol_detail {
 
   /*
     The comparisons of bounds that the modes flushing the subnormal numbers to
-    zero do not change (GAOL v5, point Q of TODO.md, issue #68). With
+    zero do not change (GAOL v5, issue #68). With
     denormals-are-zero (DAZ of MXCSR on x86, FZ and FIZ on ARM), which a
     program linked with -Ofast has (see gaol/gaol_fpu.h), a comparison reads
     a subnormal operand as a zero of its sign: 3*2^-1074 < 5*2^-1074 is false,
@@ -369,7 +369,7 @@ namespace gaol_detail {
 
   /*
     The roundings of a bound to an integer, as without the modes that flush
-    the subnormals to zero (GAOL v5, point Q of TODO.md). Under
+    the subnormals to zero (GAOL v5). Under
     denormals-are-zero, the instruction that rounds (roundsd on x86) reads a
     subnormal as a zero of its sign, so that the floor of -2^-1074 was -0 and
     the ceil of 2^-1074 +0; and musl's floor() and ceil() return x itself

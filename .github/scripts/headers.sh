@@ -7,7 +7,7 @@
 # - each header of include/gaol, included alone, compiles with -std=c++11,
 #   the oldest standard GAOL takes, and -Wall -Wextra -Wold-style-cast
 #   -Wundef -Werror (no cast of C in GAOL's headers, GAOL v5, and no #if on a
-#   macro left undefined, point Z of TODO.md), but those that other headers
+#   macro left undefined), but those that other headers
 #   include in the middle of their own code (core/gaol_interval_fpu.h,
 #   core/gaol_interval_neon.h and core/gaol_interval_sse.h, the inline
 #   functions of gaol_interval.h) or with Visual C++ only (gaol_fpu_msvc.h);

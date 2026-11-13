@@ -20,7 +20,7 @@
  * [-oo, +oo] and interval::zero(). The powers of two are there for the bit
  * patterns with a single bit set besides the sign (2 is 0x4000000000000000,
  * which a kernel of division that tests the exponent bits as it tests zero
- * takes for a zero, GAOL v5, point PG.8 of TODO.md). Each line is computed
+ * takes for a zero, GAOL v5). Each line is computed
  * with the rounding direction of the call set to nearest, upward, downward,
  * then toward zero (the key of a line starts with the direction, 0 to 3), the
  * boxes being built once with the direction to nearest, so that they are the

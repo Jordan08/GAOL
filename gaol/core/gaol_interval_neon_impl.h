@@ -27,7 +27,7 @@ namespace gaol_detail {
 
   /*
     With Visual C++ for ARM64 (cl.exe, not clang-cl) add_bounds() and sub_bounds() are each in a code
-    section of their own (GAOL v5, point PG of TODO.md). The linker puts the functions of one object
+    section of their own (GAOL v5). The linker puts the functions of one object
     file one after the other in .text$mn, 4 bytes aligned, so that the address of these two, and the
     time of x + y, x - y and the lines of sums and differences, changed with the size of whatever
     comes before them in the link: any change of the library, one that no operation of these rows
@@ -115,7 +115,7 @@ namespace gaol_core {
 
   /*
     Whether a bound of x or of y is a NaN or an infinity, the exponent field of
-    its bits being all ones (GAOL v5, point PG of TODO.md). That is told by the
+    its bits being all ones (GAOL v5). That is told by the
     bits 62 to 31 of each lane, which vshrn_n_u64() narrows to 32 bits, the sign
     bit dropped: they are at least 0xffe00000 for a NaN and an infinity, and
     below for a finite number, whatever the low bits. The four narrowed values
@@ -180,7 +180,7 @@ namespace gaol_detail {
     // test of special, and hold the comparisons back with them (the test works
     // on bits, which the check of the rounding direction does not change).
     // GCC and Visual C++ are unchanged; a call in this branch would give them a
-    // frame on the path that runs (GAOL v5, point PG of TODO.md)
+    // frame on the path that runs (GAOL v5)
     if (special && any_lane(vorrq_u64(nan_lanes(reread_bounds(x)),
                                       nan_lanes(reread_bounds(y))))) { // an empty operand
       return nan_pair();
@@ -378,8 +378,8 @@ double hausdorff(const interval &I1, const interval &I2)
 	return GAOL_NAN;
 	}
 	// A bound infinite in one interval only puts them at distance +oo, returned
-	// before the check of the rounding direction (GAOL v5, point R.50 of
-	// TODO.md; GAOL 4 returned +oo there for every infinite bound): the check
+	// before the check of the rounding direction (GAOL v5; GAOL 4 returned +oo
+	// there for every infinite bound): the check
 	// and the differences made it two to four times as long (Intel i7-1185G7,
 	// GCC 9.4 and Clang 18). Whether a bound is infinite depends neither on the
 	// rounding direction nor on the flush-to-zero modes, which read a subnormal
@@ -466,7 +466,7 @@ double hausdorff(const interval &I1, const interval &I2)
   }
 
   /*
-    The integer powers (GAOL v5, point AP of TODO.md): the two lanes of the
+    The integer powers (GAOL v5): the two lanes of the
     kernel of pown_products() in a NEON register, vmulq_f64() and the fused
     vfmaq_f64(): a * b - c is a * b + (-c), the negation being exact, so that
     the sum is rounded once and the product not at all, as _mm_fmsub_pd()
@@ -516,7 +516,7 @@ double hausdorff(const interval &I1, const interval &I2)
         c = vextq_f64(c, c, 1);
 #if !GAOL_NEON_MSVC
         // Clang makes a select of this swap, with a move from a general register
-        // to the vector one on the way to the kernel (GAOL v5, point PG.7)
+        // to the vector one on the way to the kernel (GAOL v5)
         __asm__ ("" : "+w" (c));
 #endif
       }
@@ -525,7 +525,7 @@ double hausdorff(const interval &I1, const interval &I2)
       // -frounding-math Clang scalarizes the plain vcgeq_f64(), vcleq_f64() and
       // vceqq_f64() (a fcmpe or fcmp, a csetm and a move for each lane: 18
       // instructions more in pow(x, 3) for the same masks), and vcageq_f64() and
-      // vcaleq_f64() stay on the vector unit; c == 0 is |c| <= 0 (GAOL v5, point PG.7)
+      // vcaleq_f64() stay on the vector unit; c == 0 is |c| <= 0 (GAOL v5)
       uint64x2_t ok = vandq_u64(vcageq_f64(g, vdupq_n_f64(pown_least[L])), vcaleq_f64(g, vdupq_n_f64(pown_greatest[L])));
       if (!negative) {
         ok = vorrq_u64(ok, vcaleq_f64(c, zero));

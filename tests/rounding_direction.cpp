@@ -32,7 +32,7 @@
  * set before it, what it gives with the modes cleared, and clears or restores
  * the modes (GAOL v5); so do the functions that make no check, the relations,
  * the constructor from two bounds, max(), abs(), floor()..., which leave the
- * modes as they found them (GAOL v5, point Q of TODO.md). At the end,
+ * modes as they found them (GAOL v5). At the end,
  * gaol::cleanup() has to set back the direction the first gaol::init()
  * found (GAOL v5).
  *
@@ -42,14 +42,13 @@
  * invalid-operation exception, which kills a program that enabled it (GAOL v5).
  * Nor do a NaN the program gives, the products with a zero and an infinite
  * bound, pow with an exponent of extreme magnitude, cancel_minus() and
- * cancel_plus() with bounds next to the largest double (point 78 of TODO.md)
+ * cancel_plus() with bounds next to the largest double
  * and the relations in loops a compiler vectorizes raise it, nor the midpoint
  * of [DBL_MAX] the overflow exception; nor does any function that computed
  * beyond the largest double on the way (sqrt(), the roots, sin(), cos(),
  * tan(), div_rel(), the reverse functions...) raise the overflow or the
- * division-by-zero exception for a result with no infinite bound (point 79);
- * every operation keeps the exception flags and masks of the program (GAOL v5,
- * point D.24 of TODO.md).
+ * division-by-zero exception for a result with no infinite bound;
+ * every operation keeps the exception flags and masks of the program (GAOL v5).
  *
  * On 64-bit ARM with GCC or Clang, whatever the intervals (NEON or FPU), the
  * control register FPCR is read and written directly, with mrs and msr, and on
@@ -67,7 +66,7 @@
  * direction, as the product and the sum do (GAOL v5).
  *
  * On a 32-bit x86 processor, and on x86-64 for get_rounding(), set_rounding()
- * and set_rounding_and_flush_modes() (point PG.10 of TODO.md), the control word
+ * and set_rounding_and_flush_modes(), the control word
  * of the x87 unit and MXCSR are read and written directly (GAOL v5): what
  * gaol_core::x86_*() decide to write, and the values, are checked on every
  * platform, with two variables for the registers, in every state of the two
@@ -135,7 +134,7 @@
 
 // x86-64, where the library reads and writes the control word of the x87 unit
 // (GCC, Clang, clang-cl) and MXCSR directly, and the register that differs only
-// (GAOL v5, point PG.10 of TODO.md); Visual C++ has MXCSR alone there, and the
+// (GAOL v5); Visual C++ has MXCSR alone there, and the
 // tests see no x87 unit (its control word reads as 0)
 #if defined(GAOL_TESTS_SSE) && (defined(__x86_64__) || defined(_M_X64))
 #  define GAOL_TESTS_X86_64 1
@@ -143,7 +142,7 @@
 #  define GAOL_TESTS_X86_64 0
 #endif
 
-// mingw-w64 on x86-64 (GAOL v5, point AI.110 of TODO_DONE.md): from its version 13,
+// mingw-w64 on x86-64 (GAOL v5): from its version 13,
 // fegetround() joins the field RC of the x87 unit and that of MXCSR by OR, and
 // fesetround() clears the exception flags of MXCSR when it changes it. The
 // control word of the x87 unit is then read apart from fegetround(), as on a
@@ -668,7 +667,7 @@ namespace
 
   /*
     The registers of Visual C++ for x64 (gaol_core::x86_registers of
-    gaol/gaol_fpu_fenv.h, GAOL v5, point PG.10 of TODO.md): MXCSR alone, the
+    gaol/gaol_fpu_fenv.h, GAOL v5): MXCSR alone, the
     control word of the x87 unit read as 0 and never written, there being no
     x87 unit that it uses and no inline assembly to reach it. Only the
     continuous integration of Windows runs that type; the decisions that
@@ -739,7 +738,7 @@ namespace
   }
 
   /*
-    MXCSR alone, as a variable (GAOL v5, point 108 (AI) of TODO.md): the
+    MXCSR alone, as a variable (GAOL v5): the
     start and the end of the operations that keep it alone with
     GAOL_PRESERVE_ROUNDING (GAOL_RND_ENTER_SSE() and GAOL_RND_LEAVE_SSE()) are
     gaol_core::sse_enter_upward() and sse_leave(), which decide what to write
@@ -924,7 +923,7 @@ namespace
   /*
     gaol_core::x86_registers, the type through which the library reads and
     writes the two registers, against the reads and the writes of the test
-    above (GAOL v5, point AI.108 of TODO_DONE.md): the checks of
+    above (GAOL v5): the checks of
     x86_registers_simulated() hold for the decisions the library takes on the
     registers it is given, and say nothing of a read of the wrong register, of
     the wrong size, or of a write that goes elsewhere. In each of the six
@@ -1015,7 +1014,7 @@ namespace
 #if GAOL_RND_X86_REGISTERS
   /*
     round_upward(), round_nearest() and round_downward() on the processor
-    (GAOL v5, point 108 (AI) of TODO.md): the field RC of MXCSR is the direction
+    (GAOL v5): the field RC of MXCSR is the direction
     asked, and no other bit changes, not the modes that flush the subnormals to
     zero, the exception masks nor the exception flags the program had; a
     register is written only if its field differs (the checks do not see that,
@@ -1082,7 +1081,7 @@ namespace
 #if GAOL_TESTS_X86_64 && GAOL_RND_X86_64_DIRECT
   /*
     get_rounding(), set_rounding() and set_rounding_and_flush_modes() on the
-    processor, x86-64 (GAOL v5, point PG.10 of TODO.md): they read the control
+    processor, x86-64 (GAOL v5): they read the control
     word of the x87 unit and MXCSR, as the hardware holds them, and write the
     register that differs from the state to set back, where they called
     fegetround() and fesetround(), which write both registers whatever they
@@ -1418,7 +1417,7 @@ namespace
     of an intersection when operator&= told that operand empty otherwise than
     is_empty() did (#60), and of the bounds of an empty interval itself in the
     choice on its own is_empty(), and GCC for POWER9 (-mcpu=power9) too, where
-    is_empty() was one quiet comparison (GAOL v5, point D.24 of TODO.md).
+    is_empty() was one quiet comparison (GAOL v5).
   */
   struct EmptyOperand
   {
@@ -1616,8 +1615,8 @@ namespace
 
   /*
     A NaN the program gives GAOL, which interval(d) makes the empty set, to
-    the constructors, the operations and the relations with a double (GAOL v5,
-    point D.24 of TODO.md): the first comparison of the constructors, and of
+    the constructors, the operations and the relations with a double (GAOL v5):
+    the first comparison of the constructors, and of
     the operations with a double testing d, compared the NaN with <, <= or >,
     which raised the invalid-operation exception, and so did pow(x, d). Each
     returns whether its result is the one of the empty set.
@@ -1649,8 +1648,8 @@ namespace
   };
 
   /*
-    Products of intervals with a zero bound and an infinite one (GAOL v5,
-    point D.24): the product of the SSE2 intervals multiplied the bounds
+    Products of intervals with a zero bound and an infinite one (GAOL v5): the
+    product of the SSE2 intervals multiplied the bounds
     pairwise, 0 by +oo among them, which raised the invalid-operation
     exception, and made a 0 of the NaN afterwards: [0]*[1, +oo] and
     [0, +oo]*[0] raised it, and so did pow([1], [1, +oo]) through them. The
@@ -1740,7 +1739,7 @@ namespace
 
   /*
     div_rel(K, J, [-oo, +oo]) for every K and J with bounds in
-    {-oo, -2, -0, 0, 4, +oo} (GAOL v5, point D.24): with the SSE2 intervals,
+    {-oo, -2, -0, 0, 4, +oo} (GAOL v5): with the SSE2 intervals,
     the branches keeping one half of a division divided both halves, and the
     half thrown away divided +oo by +oo, which raised the invalid-operation
     exception (div_rel([4, +oo], [-oo, 4], I)), or a nonzero bound by a zero
@@ -1919,7 +1918,7 @@ namespace
   }
 
   /*
-    pow for an exponent of extreme magnitude (GAOL v5, point D.24): CORE-MATH's
+    pow for an exponent of extreme magnitude (GAOL v5): CORE-MATH's
     pow makes its approximation of log(x) a NaN on purpose for |y| < 2^-969 and
     |y| >= 2^1014, and compared the NaN product with < until upstream commit
     c01f08c5 (5 October 2026), which raised the invalid-operation exception at
@@ -1965,7 +1964,7 @@ namespace
   };
 
   /*
-    Powers next to the largest double (GAOL v5, point 77 of TODO.md):
+    Powers next to the largest double (GAOL v5):
     for a power next to 1.7975e308, y log(x) from 709.78263 to 709.78267,
     CORE-MATH's pow scaled its first approximation by 2^1024, an infinity,
     and computed Inf - Inf, which raised the invalid-operation exception
@@ -2018,8 +2017,8 @@ namespace
   };
 
   /*
-    The reading of a number above the largest double (GAOL v5, point 79 of
-    TODO.md): the reader gave the text of every number to strtod(), which
+    The reading of a number above the largest double (GAOL v5): the reader gave
+    the text of every number to strtod(), which
     computes +oo for these and raises the overflow exception, so that 1e400 * 0,
     which is [0], raised the flag that stands for an infinite bound of the
     interval, and a program that had enabled the exception died while it
@@ -2092,8 +2091,8 @@ namespace
   };
 
   /*
-    Integer powers at the ends of the doubles (GAOL v5, points 8, 72, 73 and
-    74 of TODO.md): an infinite bound, a power beyond the largest double or
+    Integer powers at the ends of the doubles (GAOL v5):
+    an infinite bound, a power beyond the largest double or
     below the least subnormal, 0 for n < 0, and the exponents beyond the ints.
     The exponentiation of the exact products would compute oo - oo there; it
     is not run on these corners, which are taken one at a time, scaled. Its
@@ -2122,7 +2121,7 @@ namespace
 
   /*
     The differences of the bounds of cancel_minus() and cancel_plus() next to
-    the largest double (GAOL v5, point 78 of TODO.md). The TwoSum that
+    the largest double (GAOL v5). The TwoSum that
     compares the two differences read an infinite sum, whose terms ap = s - b
     and bp = s - ap are inf and inf - inf, and raised the invalid-operation
     exception (it stops a program that enabled it), though the result has an
@@ -2607,7 +2606,7 @@ namespace
 
   /*
     The midpoint of an interval with a bound of 2^1023 or more in magnitude,
-    finite (GAOL v5, point D.24): midpoint() and mid() computed the sum of the
+    finite (GAOL v5): midpoint() and mid() computed the sum of the
     bounds first, which overflowed for [DBL_MAX] and raised the overflow
     exception, before they took the sum of the halves. The midpoints are
     computed by midpoints_of(), which calls GAOL only, and checked against the
@@ -2685,7 +2684,7 @@ namespace
 
   /*
     floor_rel(Z, X) of a Z ending at DBL_MAX, whose set ends at DBL_MAX + 1,
-    beyond the doubles (GAOL v5, point P.25): its upper end is +oo, which
+    beyond the doubles (GAOL v5): its upper end is +oo, which
     floor_rel() takes without computing DBL_MAX + 1, whose overflow raised the
     overflow exception where the result has no infinite bound:
     floor_rel([DBL_MAX], [0, 1]) is empty and floor_rel([0, DBL_MAX], [0, 1])
@@ -2702,7 +2701,7 @@ namespace
 
   /*
     No overflow nor division-by-zero exception for a result with no infinite
-    bound (GAOL v5, point 79 of TODO.md): these exceptions tell an infinite
+    bound (GAOL v5): these exceptions tell an infinite
     bound of the result (doc/using.md). The functions below raised the
     overflow exception for a finite result, or an empty one, from an
     intermediate value beyond the largest double: the product that proves a
@@ -2852,7 +2851,7 @@ namespace
   /*
     The cases the exceptions of which kill a program that enabled them, run in
     a child process with the overflow and the division-by-zero exceptions
-    enabled (the cases of TODO.md, the largest double as an operand, divisors
+    enabled (the known cases, the largest double as an operand, divisors
     and exponents next to 2^-1074): each has to give its tightest bounds,
     computed apart with exact arithmetic (mpmath for the tangent), when the
     exceptions are masked, and the same when they are enabled. Three give a
@@ -2941,7 +2940,7 @@ namespace
 
   /*
     The relations in loops, which a compiler vectorizes or if-converts (GAOL
-    v5, point D.24): the comparison that follows a test of the empty set is
+    v5): the comparison that follows a test of the empty set is
     then made for the empty operands too, and <, <=, >= or > raise the
     invalid-operation exception on their NaN bounds, as GCC 9.4 at -O3 made
     for the FPU intervals the constructor raise it (and with -mavx2,
@@ -3842,8 +3841,8 @@ int main()
 
   /*
     The exception flags the program raised, and its exception masks, are
-    kept by every operation, whichever way GAOL is built (GAOL v5, point D.24
-    of TODO.md): with GAOL_PRESERVE_ROUNDING, the SSE2 operations (+, -, *,
+    kept by every operation, whichever way GAOL is built (GAOL v5): with
+    GAOL_PRESERVE_ROUNDING, the SSE2 operations (+, -, *,
     /, %, sqr(), inverse(), the operations with a double...) wrote the SSE
     control register whole, every exception masked and every flag cleared.
     Each operation is run with the five flags of IEEE 754 raised, and on x86
@@ -3857,7 +3856,7 @@ int main()
     with mingw-w64 on x86-64, the functions that set the direction to nearest
     and back (midpoint(), chi()...) changed MXCSR through fesetround() from
     every direction but to nearest (split() lost the flags from five of the
-    six), which cleared its flags there (point AI.110 of TODO_DONE.md); everywhere else the check was made from upward only, where a
+    six), which cleared its flags there; everywhere else the check was made from upward only, where a
     function can change the direction and lose a flag the same way.
   */
   std::feclearexcept(FE_ALL_EXCEPT);
@@ -4070,7 +4069,7 @@ int main()
     }
 #if GAOL_TESTS_FPCR64
     /*
-      FPCR.AH (bit 1, FEAT_AFP of Armv8.7; GAOL v5, point 129 of TODO.md), which
+      FPCR.AH (bit 1, FEAT_AFP of Armv8.7; GAOL v5), which
       GAOL does not clear: with it, FMAX and FMAXP return the second operand for
       two zeros of different signs (and for a NaN), where they rank +0 above -0.
       The NEON kernels take a maximum (the products, the square) and sqrt() took
@@ -4239,7 +4238,7 @@ int main()
 
   /*
     bisect(ratio) and is_bisectable() with a mode that flushes the subnormals to
-    zero set (GAOL v5, point Q of TODO.md). bisect(ratio) put its cut point
+    zero set (GAOL v5). bisect(ratio) put its cut point
     within [l, r], and strictly inside, after GAOL_RND_LEAVE(), which gives the
     modes back with GAOL_PRESERVE_ROUNDING, and compared the ratio with 0 and 1
     in the modes of the program; is_bisectable() compared the next double above
@@ -4247,8 +4246,8 @@ int main()
     denormals-are-zero, or FZ, read two subnormals as two zeros: with
     denormals-are-zero set and GAOL_PRESERVE_ROUNDING on x86, 100 099 cuts in
     200 000 random intervals of subnormal bounds were not within [l, r] or not
-    strictly inside, and is_bisectable() was false for all of them (TODO.md
-    counted 634 on ARM). The bounds, the cut and the doubles between are told by
+    strictly inside, and is_bisectable() was false for all of them (634
+    on ARM). The bounds, the cut and the doubles between are told by
     the integers of the bits (the order of the doubles, -0 and +0 one number),
     not by comparisons of doubles, which the modes change. A subnormal ratio is
     one of the cases: it was refused, as 0, with the modes set.
@@ -4329,7 +4328,7 @@ int main()
     Every operation that checks the rounding direction, with each of the modes
     set just before it, gives what it gives with the modes cleared, which the
     cases above show to be the tightest bounds, and leaves them cleared, or
-    restored with GAOL_PRESERVE_ROUNDING (GAOL v5, review of point 4).
+    restored with GAOL_PRESERVE_ROUNDING (GAOL v5).
     Its check clears the modes before it reads, compares or copies a bound, and
     with GAOL_PRESERVE_ROUNDING it makes its result before it restores them;
     the compilers do not model the modes, so this is checked on what each
@@ -4534,7 +4533,7 @@ int main()
       set before them what they give with the modes cleared, and leave the
       modes as they found them: they compare the bounds as bounds
       (gaol_detail::bound_less()..., gaol_port.h), which no mode changes, and
-      write nothing to the control register (GAOL v5, point Q of TODO.md,
+      write nothing to the control register (GAOL v5,
       issue #68). Under denormals-are-zero, interval(2^-1073, 2^-1074) kept
       its bounds in the wrong order, max([3, 100]*2^-1074, [200*2^-1074]) was
       the first one, abs([-1e-309, -1e-310]) stayed negative, sign([-2^-1074])
@@ -4550,8 +4549,8 @@ int main()
       by its NaN bounds, so that bounds in the wrong order, which is_empty()
       takes for the empty set with the modes cleared, are told apart; their
       doubles are written once the modes are cleared (Kept). The check of
-      <a, b> by the parser, which compares the two numbers as doubles, is left
-      to point E.
+      <a, b> by the parser, which compares the two numbers by their bits, is
+      in numbers.
     */
     {
       struct UncheckedFunction
@@ -4806,8 +4805,8 @@ int main()
   // A NaN the program gives, the products with a zero and an infinite bound,
   // the powers with an exponent of extreme magnitude and the relations in
   // loops raise no invalid-operation flag, and the midpoints of intervals
-  // with a huge bound no overflow flag (GAOL v5, point D.24), nor floor_rel()
-  // of a Z ending at DBL_MAX (GAOL v5, point P.25)
+  // with a huge bound no overflow flag (GAOL v5), nor floor_rel()
+  // of a Z ending at DBL_MAX (GAOL v5)
   for (const EmptyOperand& e : nan_operands) {
     std::feclearexcept(FE_ALL_EXCEPT);
     const volatile bool right = e.run();
@@ -4912,7 +4911,7 @@ int main()
        changes back: GCC computed them after it, upward, where TwoSum is no
        longer exact, and the terms of the error of
        cancel_minus([DBL_MAX], [1]) read +oo and inf - inf, and raised the
-       invalid-operation flag (GAOL v5, point 48; the bounds are checked in
+       invalid-operation flag (GAOL v5; the bounds are checked in
        tests/arithmetic.cpp) */
     std::feclearexcept(FE_ALL_EXCEPT);
     const interval z = cancel_minus(interval((std::numeric_limits<double>::max)()), interval(1.0));
@@ -5138,7 +5137,7 @@ int main()
             [&] { return std::string(r.name) + ": " + outcome_text(ol); });
     }
     // The exception the program enabled stays enabled after each operation
-    // (GAOL v5, point D.24): with GAOL_PRESERVE_ROUNDING, the SSE2 operations
+    // (GAOL v5): with GAOL_PRESERVE_ROUNDING, the SSE2 operations
     // wrote the SSE control register with every exception masked
     const Outcome om = run_with_exceptions_enabled(FE_INVALID, [&] {
       bool enabled = true;
@@ -5173,7 +5172,7 @@ int main()
     const Outcome of = run_with_exceptions_enabled(FE_OVERFLOW, floor_rel_at_dbl_max_is_right);
     check("floor_rel() of a Z ending at DBL_MAX, without an infinite bound, FE_OVERFLOW enabled", of == returned_true,
           [&] { return std::string(outcome_text(of)); });
-    // The cases of TODO.md and their like, which GAOL computed with the overflow
+    // The known cases and their like, which GAOL computed with the overflow
     // and the division-by-zero exceptions masked in the loop above: the same
     // bounds with both enabled
     const std::vector<TrapCase>& cases = trap_cases();
@@ -5203,7 +5202,7 @@ int main()
     GAOL_PREFER_AVX512 and the SSE2 intervals give another bit pattern of the
     same bounds (+0 and -0 are one number): [-0, +0] with the first, [+0, -0]
     with the second, for a nonzero d (doc/using.md, The AVX-512 path; decided
-    on 2026-10-18 as an acceptable exception to "bit for bit", point AF, and
+    on 2026-10-18 as an acceptable exception to "bit for bit", and
     its bits checked here from 2026-10-23, the checks of the interval with == not
     seeing the sign of a zero). Whatever the direction of the program. d * x,
     computed as x * d since 2026-11-05 (it had bits of its own before: SSE2
@@ -5401,8 +5400,8 @@ int main()
   const unsigned x87_other_before = x87_other_bits();
   // The exception flags raised since gaol::init() are the program's: neither
   // gaol::cleanup() nor gaol::restore_rounding() clears the six of MXCSR, as
-  // fesetround() of mingw-w64 did when it changed the direction (GAOL v5,
-  // point AI.110 of TODO_DONE.md), with GAOL_PRESERVE_ROUNDING or without
+  // fesetround() of mingw-w64 did when it changed the direction (GAOL v5), with
+  // GAOL_PRESERVE_ROUNDING or without
   raise_all_flags();
 #endif
   gaol::cleanup();

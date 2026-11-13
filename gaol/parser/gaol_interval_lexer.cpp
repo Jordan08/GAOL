@@ -1060,13 +1060,13 @@ namespace {
     // k + k2: long long, as k and k2, which are worth up to 5 times the
     // length of the text (8 times in base 16, 4 bits a digit): 2^31 and more
     // for a text of 2^29 characters, where a long of 32 bits (Windows, i386,
-    // armhf) wrapped (GAOL v5, point 85 of TODO.md)
+    // armhf) wrapped (GAOL v5)
     long long kb;
     // v may be above the largest double, whose strtod() raises the overflow
     // exception: it is not known to be below it from the exponent and the
     // digits (below 10^308 in decimal, or 2^1023 in base 16, 8 or 2) or is
     // far above it (beyond is +1). It is false for v = 0, and for the numbers
-    // far below the least positive double (GAOL v5, point 79 of TODO.md)
+    // far below the least positive double (GAOL v5)
     bool may_overflow;
     // v may be below 2^-1022, the least normal double: strtod() of a number
     // that is subnormal, or below the least subnormal, raises the underflow
@@ -1260,8 +1260,7 @@ namespace {
     // largest double is compared with it first, and when it is above, strtod()
     // is not called: the largest double is the guess, which the steps and the
     // bisection below place. Below it, strtod() cannot overflow, and gives the
-    // guess as it did, so that the reading takes as long as before (GAOL v5,
-    // point 79 of TODO.md).
+    // guess as it did, so that the reading takes as long as before (GAOL v5).
     // The same for the underflow exception, which strtod() raises for a number
     // below the least normal double, as it rounds it to a subnormal or to 0:
     // a number that may be below it is compared with 2^-1022, and when it is
@@ -1323,7 +1322,7 @@ namespace {
   // Reads the number s: returns NUMBER, with lval->d set to it, if it is a
   // double, and INTERVAL_CST, with lval->num set to the tightest interval of
   // doubles enclosing it and to the rank of its text, which the context of
-  // the reading keeps (GAOL v5, point 84 of TODO.md), otherwise
+  // the reading keeps (GAOL v5), otherwise
   int gaol_read_number(const char *s, YYSTYPE *lval, void *context)
   {
     double l, r;
@@ -1520,8 +1519,8 @@ namespace gaol_detail {
 
   /*
     The sign of a - b, a and b being the numbers the texts a and b write, with
-    no sign, compared exactly (declared in gaol/parser/gaol_parser.h; GAOL v5,
-    point 84 of TODO.md). a = A/PA*2^kA and b = B/PB*2^kB, A and B being the
+    no sign, compared exactly (declared in gaol/parser/gaol_parser.h; GAOL v5).
+    a = A/PA*2^kA and b = B/PB*2^kB, A and B being the
     integers gaol_take_apart() keeps (N*5^k, or N) and PA and PB the powers of
     5 it divides by (none for 1): a - b has the sign of A*PB*2^kA - B*PA*2^kB.
     2 when one of the two is far beyond the doubles, whose digits it does not
@@ -1546,7 +1545,7 @@ namespace gaol_detail {
     return gaol_natural_compare(left, right);
   }
 }
-#line 1550 "lex.gaol_.c"
+#line 1549 "lex.gaol_.c"
 
 /* yyunput() and yyinput() are not used. The case of letters is ignored, as
    IEEE 1788-2015 has it for literals (9.7.1): [Empty], [1, Inf] and 1E3 are
@@ -1563,7 +1562,7 @@ namespace gaol_detail {
 /* The input is the string given (YY_INPUT), never interactive: flex would
    test whether stdin is a terminal, by isatty(), for the buffer it creates.
    The memory of flex is that of the reading (GAOL v5) */
-#line 1567 "lex.gaol_.c"
+#line 1566 "lex.gaol_.c"
 
 #define INITIAL 0
 
@@ -1835,10 +1834,10 @@ YY_DECL
 		}
 
 	{
-#line 810 "gaol_interval_lexer.lpp"
+#line 809 "gaol_interval_lexer.lpp"
 
 
-#line 1842 "lex.gaol_.c"
+#line 1841 "lex.gaol_.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -1893,42 +1892,42 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 812 "gaol_interval_lexer.lpp"
+#line 811 "gaol_interval_lexer.lpp"
 { return EMPTY_STR; }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 813 "gaol_interval_lexer.lpp"
+#line 812 "gaol_interval_lexer.lpp"
 { return ENTIRE_STR; }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 814 "gaol_interval_lexer.lpp"
+#line 813 "gaol_interval_lexer.lpp"
 { return INFINITY_STR; }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 815 "gaol_interval_lexer.lpp"
+#line 814 "gaol_interval_lexer.lpp"
 { return INFINITY_STR; }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 816 "gaol_interval_lexer.lpp"
+#line 815 "gaol_interval_lexer.lpp"
 { return PI_STR; }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 817 "gaol_interval_lexer.lpp"
+#line 816 "gaol_interval_lexer.lpp"
 { return DMIN_STR; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 818 "gaol_interval_lexer.lpp"
+#line 817 "gaol_interval_lexer.lpp"
 { return DMAX_STR; }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 819 "gaol_interval_lexer.lpp"
+#line 818 "gaol_interval_lexer.lpp"
 { /* The name of a function, looked for in the table of the
 			     names the string is read with, those of GAOL or those
 			     of IEEE 1788-2015 (gaol_lookup_function() in
@@ -1940,107 +1939,107 @@ YY_RULE_SETUP
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 827 "gaol_interval_lexer.lpp"
+#line 826 "gaol_interval_lexer.lpp"
 { return '['; }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 828 "gaol_interval_lexer.lpp"
+#line 827 "gaol_interval_lexer.lpp"
 { return ']'; }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 829 "gaol_interval_lexer.lpp"
+#line 828 "gaol_interval_lexer.lpp"
 { return '<'; }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 830 "gaol_interval_lexer.lpp"
+#line 829 "gaol_interval_lexer.lpp"
 { return '>'; }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 831 "gaol_interval_lexer.lpp"
+#line 830 "gaol_interval_lexer.lpp"
 { return '('; }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 832 "gaol_interval_lexer.lpp"
+#line 831 "gaol_interval_lexer.lpp"
 { return ')'; }
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 833 "gaol_interval_lexer.lpp"
+#line 832 "gaol_interval_lexer.lpp"
 { return ','; }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 834 "gaol_interval_lexer.lpp"
+#line 833 "gaol_interval_lexer.lpp"
 { return '+'; }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 835 "gaol_interval_lexer.lpp"
+#line 834 "gaol_interval_lexer.lpp"
 { return '-'; }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 836 "gaol_interval_lexer.lpp"
+#line 835 "gaol_interval_lexer.lpp"
 { return '*'; }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 837 "gaol_interval_lexer.lpp"
+#line 836 "gaol_interval_lexer.lpp"
 { return '/'; }
 	YY_BREAK
 case 20:
-#line 840 "gaol_interval_lexer.lpp"
+#line 839 "gaol_interval_lexer.lpp"
 case 21:
-#line 841 "gaol_interval_lexer.lpp"
+#line 840 "gaol_interval_lexer.lpp"
 case 22:
-#line 842 "gaol_interval_lexer.lpp"
+#line 841 "gaol_interval_lexer.lpp"
 case 23:
 YY_RULE_SETUP
-#line 842 "gaol_interval_lexer.lpp"
+#line 841 "gaol_interval_lexer.lpp"
 { return gaol_read_number(yytext, yylval, yyextra); }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 843 "gaol_interval_lexer.lpp"
+#line 842 "gaol_interval_lexer.lpp"
 { return gaol_read_number(yytext, yylval, yyextra); }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 844 "gaol_interval_lexer.lpp"
+#line 843 "gaol_interval_lexer.lpp"
 { return gaol_read_number(yytext, yylval, yyextra); }
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 845 "gaol_interval_lexer.lpp"
+#line 844 "gaol_interval_lexer.lpp"
 { return gaol_read_number(yytext, yylval, yyextra); }
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 846 "gaol_interval_lexer.lpp"
+#line 845 "gaol_interval_lexer.lpp"
 { return gaol_read_uncertain(yytext, yylval); }
 	YY_BREAK
 case 28:
 /* rule 28 can match eol */
 YY_RULE_SETUP
-#line 847 "gaol_interval_lexer.lpp"
+#line 846 "gaol_interval_lexer.lpp"
 {  }
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 848 "gaol_interval_lexer.lpp"
+#line 847 "gaol_interval_lexer.lpp"
 { return UNEXPECTED_CHAR; /* Just to avoid stopping here */ }
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 849 "gaol_interval_lexer.lpp"
+#line 848 "gaol_interval_lexer.lpp"
 YY_FATAL_ERROR( "flex scanner jammed" );
 	YY_BREAK
-#line 2044 "lex.gaol_.c"
+#line 2043 "lex.gaol_.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -3155,7 +3154,7 @@ static int yy_flex_strlen (const char * s , yyscan_t yyscanner)
 
 #define YYTABLES_NAME "yytables"
 
-#line 849 "gaol_interval_lexer.lpp"
+#line 848 "gaol_interval_lexer.lpp"
 
 
 /*

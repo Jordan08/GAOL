@@ -8,9 +8,9 @@
 
 Tools of GAOL v5 for `gaol_core::x86_*()` of [gaol/gaol_fpu.h](../../../gaol/gaol_fpu.h),
 the functions that decide what to write in the control word of the x87 unit
-and in MXCSR (point AI.108 of [TODO_DONE.md](../../../TODO_DONE.md)), and for
+and in MXCSR, and for
 `gaol_core::sse_enter_upward()` and `sse_leave()`, which decide what the
-operations write in MXCSR alone with `GAOL_PRESERVE_ROUNDING` (point 3 of PF,
+operations write in MXCSR alone with `GAOL_PRESERVE_ROUNDING` (GAOL v5,
 which writes the register only if it changes). They
 were written for [#156](https://github.com/Jordan08/GAOL/pull/156) on a Mac
 and kept out of the repository; their files were lost, and these are written
@@ -33,7 +33,7 @@ python3 tests/tools/pow/mutate.py --mutants tests/tools/x86-csr/mutants.py \
 ```
 
 The whole library is built again for each mutant, `gaol_fpu.h` being included
-everywhere: the first 63 mutants took 1000 s with 4 cores (the 7 of point PG.10, 154 s). Each mutant is an error in
+everywhere: the first 63 mutants took 1000 s with 4 cores (the 7 added since, 154 s). Each mutant is an error in
 one of the functions `x86_is_upward()`,
 `x86_set_modes()` (and the constants of the fields, which are in
 `gaol_fpu_fenv.h` with it), `x86_set_upward()`, `x86_enter_registers()`,
@@ -60,8 +60,8 @@ says otherwise (macOS on arm64, Windows). The constants `x86_flush_mask`,
 them with those of `<xmmintrin.h>`.
 
 `get_rounding()`, `set_rounding()` and `set_rounding_and_flush_modes()`, which
-give the registers of the processor to these functions on x86-64 as well since
-point PG.10 of `TODO.md` (they called `fegetround()` and `fesetround()`), and
+give the registers of the processor to these functions on x86-64 as well (they
+called `fegetround()` and `fesetround()` at first), and
 the registers themselves (`x86_registers` and `gaol_read_x86_control()` of
 `gaol/gaol_fpu_fenv.h`) are checked on an x86-64 processor by
 `rounding_state_on_the_processor()` of the same test, in the six directions,

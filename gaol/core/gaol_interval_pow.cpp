@@ -145,7 +145,7 @@ namespace gaol_core {
   }
 
   /*
-    x^n for an integer n beyond the ints (GAOL v5, point 74 of TODO.md):
+    x^n for an integer n beyond the ints (GAOL v5):
     the bounds of c^n at the corners of pown_corners(), from CORE-MATH's pow
     (pow_lo(), pow_hi()), the tightest, where n is a double, |n| <= 2^53 and
     beyond as a double; the sign from the parity of n. An integer n of more
@@ -428,7 +428,7 @@ namespace gaol_core {
     // has no value for l = +oo or u = -oo (10.5.8). The constructors and the
     // operations make none, but get_xmminterval() of the SSE2 intervals and the
     // constructor of a register without a check do, as in tan() (GAOL v5: kept,
-    // TODO.md B.1 having taken the test for one that is never true)
+    // where a like test that is never true was removed)
     if (J.left() == J.right() && !(std::fabs(J.left()) <= (std::numeric_limits<double>::max)())) {
       return interval::emptyset();
     }
@@ -444,8 +444,8 @@ namespace gaol_core {
       if (J.is_an_int()) {
         return pown_upward(I,int(J.left()));
       }
-      // An integer beyond the ints: the pown of CORE-MATH's pow (GAOL v5,
-      // point 74 of TODO.md: [-oo, +oo] before)
+      // An integer beyond the ints: the pown of CORE-MATH's pow (GAOL v5: [-oo,
+      // +oo] before)
       return pown_double_upward(I, J.left());
     }
     return pow_standard_upward(I, J);
@@ -538,7 +538,7 @@ namespace gaol_core {
 
   /*
     ipow_hi() and ipow_lo() for the proofs of the roots of an x below
-    tiny_root_argument (GAOL v5, point AC of TODO.md). Next to the root of
+    tiny_root_argument (GAOL v5). Next to the root of
     x < 1, the powers l^k of the binary exponentiation (k <= n) are no smaller
     than x, which is below 2^-1022 for a subnormal x, and a subnormal has
     fewer bits: l^32 is about 2^-1041.5 for x = 2^-1074 and n = 33, which has
@@ -675,8 +675,8 @@ namespace gaol_core {
       return std::numeric_limits<double>::max();
     }
     // The power of an r next to the root of an x above huge_root_argument may
-    // overflow, which raised the overflow exception (GAOL v5, point 79 of
-    // TODO.md): the step is left out, as for a subnormal x, and the search
+    // overflow, which raised the overflow exception (GAOL v5): the step is left
+    // out, as for a subnormal x, and the search
     // starts from the value of CORE-MATH
     if (x > huge_root_argument) {
       return r;
@@ -684,7 +684,7 @@ namespace gaol_core {
     const double p = ipow_hi(r,n);
     if (p >= std::numeric_limits<double>::min() && p <= std::numeric_limits<double>::max()) {
       // (p - x)/(n p) as ((p - x)/p)/n: n p overflowed for an n up to 2^32 and
-      // a p above 2^992 (GAOL v5, point 79 of TODO.md). The step is left out
+      // a p above 2^992 (GAOL v5). The step is left out
       // where it is 1 or more in magnitude, p being then no approximation of x
       const double t = quotient_sat(p - x, p)/double(n);
       if (std::fabs(t) < 1.0) {
@@ -700,8 +700,8 @@ namespace gaol_core {
   /*
     The two tests of the proofs, by the powers they take: ipow_hi() and
     ipow_lo(), or the scaled ones for an x below tiny_root_argument. The
-    searches below are made for one or the other, chosen once (GAOL v5, point
-    AC of TODO.md): a test of x inside them cost 3 to 30 ns of the 80 of the
+    searches below are made for one or the other, chosen once (GAOL v5): a test
+    of x inside them cost 3 to 30 ns of the 80 of the
     root of a normal x, according to how the compiler inlined them (n = 33,
     AppleClang 21, arm64, two builds of the same code)
   */
@@ -846,8 +846,8 @@ namespace gaol_core {
   // The scaled proofs also for an x above huge_root_argument, 2^1000: the
   // powers of the doubles next to the root, up to a relative 2^-17 beyond it
   // as far as the search goes, stay below 2^1024 up to there, and the plain
-  // ones overflowed above the largest double for a finite root (GAOL v5, point
-  // 79 of TODO.md: nth_root([DBL_MAX], 5))
+  // ones overflowed above the largest double for a finite root (GAOL v5:
+  // nth_root([DBL_MAX], 5))
   static double proved_root_dn(double x, double r, unsigned int n)
   {
     return (x < tiny_root_argument || x > huge_root_argument) ? proved_root_dn_by<scaled_proofs>(x,r,n)
@@ -928,7 +928,7 @@ namespace gaol_core {
 /*
   u*u*u rounded upward == x, for u the cube root of x rounded upward. The
   products reach 2^1024 for an x next to the largest double, which raised the
-  overflow exception for a finite root (GAOL v5, point 79 of TODO.md): from
+  overflow exception for a finite root (GAOL v5): from
   huge_root_argument, the root u >= 2^333 is scaled by 2^-342 and x by 2^-1026,
   exactly (x >= 2^-26 is then normal), as the square root is (see
   gaol_sqrt_up()), and the products scaled with them are rounded to the same
@@ -1099,7 +1099,7 @@ interval nth_root(const interval& I, int q)
 	// at its entry and sets it back at its exit there, and inverse() does it again,
 	// which the one check of the code below pays once (an Apple M2, Clang 21:
 	// 46.4 ns against 67.6 ns with this path, 8.4 against 5.5 without the
-	// preservation) (GAOL v5, point PG.2 of TODO.md)
+	// preservation) (GAOL v5)
 	if (n == 2u) {
 		// inverse(sqrt(I)), inline (gaol_interval_internal.h)
 		return upward_access::checked_inverse(sqrt_checked(I));

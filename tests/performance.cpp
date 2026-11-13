@@ -10,8 +10,8 @@
  * written in Markdown. This is not a test: it always succeeds.
  *
  * The last rows are lines of + - * / alone between 8 or 16 intervals, which
- * the operations of GAOL v5 take in a register from one to the next (GAOL v5,
- * point ZZ of TODO.md): 15 additions, 15 additions and subtractions, 7
+ * the operations of GAOL v5 take in a register from one to the next (GAOL v5):
+ * 15 additions, 15 additions and subtractions, 7
  * products, 7 quotients and 13 operations of the four kinds, the time of the
  * whole line, in nanoseconds, against the same line of doubles.
  *
@@ -21,14 +21,14 @@
  * these comparisons cost with the other compilers of the continuous
  * integration, Visual C++ among them. They compare the bounds as bounds,
  * as integers where two compare equal (gaol_port.h), which the modes that
- * flush the subnormals to zero do not change (GAOL v5, point Q of TODO.md).
+ * flush the subnormals to zero do not change (GAOL v5).
  *
  * After the table, the time of the check each operation makes, 1 + (2^-1060
  * + 0) not above 1, which shows the rounding direction and the modes that flush the
  * subnormals to zero (gaol/gaol_fpu.h), and of the same check made of 2^-60,
  * a normal double: a processor that takes a microcode assist for a subnormal
  * operand or result shows it there, each operation of GAOL paying it (GAOL
- * v5, point Q of TODO.md).
+ * v5).
  *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
@@ -194,7 +194,7 @@ int main()
   }
 
   // The operands of nth_root(x, 3), the cube root, and asinpi(x), drawn after all the others so that those of the rows above stay as
-  // they were (GAOL v5, point 108): asinpi() is defined on [-1, 1]. They are the rows that show a function of CORE-MATH
+  // they were (GAOL v5): asinpi() is defined on [-1, 1]. They are the rows that show a function of CORE-MATH
   // reading the rounding direction at each call, through fegetround() of the C library on a 32-bit x86 processor
   std::uniform_real_distribution<double> within_unit(-0.9, 0.9);
   std::vector<double> u(n);
@@ -218,12 +218,12 @@ int main()
                nanoseconds_per_operation([&](std::size_t i) { sink = a[i] * b[i]; }, n) },
     { "x / y", nanoseconds_per_operation([&](std::size_t i) { const interval z = X[i] / Y[i]; sink = z.left(); sink = z.right(); }, n),
                nanoseconds_per_operation([&](std::size_t i) { sink = a[i] / b[i]; }, n) },
-    // The quotient by a positive double (GAOL v5, point PG.9 of TODO.md): D[0] is drawn for the lines of the last rows,
+    // The quotient by a positive double (GAOL v5): D[0] is drawn for the lines of the last rows,
     // and is only read here. It is the one row that divides by a double: on the AVX-512 path that is fast_div_by(),
     // whose scalar divisions with the embedded rounding (#191) no other row runs (x / y runs div_bounds())
     { "x / d", nanoseconds_per_operation([&](std::size_t i) { const interval z = X[i] / D[0][i]; sink = z.left(); sink = z.right(); }, n),
                nanoseconds_per_operation([&](std::size_t i) { sink = a[i] / D[0][i]; }, n) },
-    // The extended quotient and the inverse (GAOL v5, point PG of TODO.md): operator%= and inverse() have kernels
+    // The extended quotient and the inverse (GAOL v5): operator%= and inverse() have kernels
     // of their own with the NEON and SSE2 intervals, which no other row runs (the operands have no zero)
     { "x % y", nanoseconds_per_operation([&](std::size_t i) { const interval z = X[i] % Y[i]; sink = z.left(); sink = z.right(); }, n),
                nanoseconds_per_operation([&](std::size_t i) { sink = a[i] / b[i]; }, n) },
@@ -255,8 +255,8 @@ int main()
                nanoseconds_per_operation([&](std::size_t i) { sink = std::cos(a[i]); }, n) },
     { "nth_root(x, 3)", nanoseconds_per_operation([&](std::size_t i) { const interval z = nth_root(X[i], 3); sink = z.left(); sink = z.right(); }, n),
                nanoseconds_per_operation([&](std::size_t i) { sink = std::cbrt(a[i]); }, n) },
-    // The root of a negative order, one check for the root and its inverse (GAOL v5,
-    // point PG.2 of TODO.md): -2 goes through the square root, which has a vector
+    // The root of a negative order, one check for the root and its inverse (GAOL
+    // v5): -2 goes through the square root, which has a vector
     // path on some builds
     { "nth_root(x, -2)", nanoseconds_per_operation([&](std::size_t i) { const interval z = nth_root(X[i], -2); sink = z.left(); sink = z.right(); }, n),
                nanoseconds_per_operation([&](std::size_t i) { sink = 1.0/std::sqrt(a[i]); }, n) },

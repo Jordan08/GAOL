@@ -47,8 +47,7 @@
   measure the compiler had reordered. The operations of the path clear
   the modes before they read a bound, as the SSE2 operations clear them at
   their entry, and compute their results before the modes are set back
-  with GAOL_PRESERVE_ROUNDING (flush_guard below; GAOL v5, point Q of
-  TODO.md).
+  with GAOL_PRESERVE_ROUNDING (flush_guard below; GAOL v5).
 
   The functions of this file are compiled into the library where
   GAOL_AVX512_ARITHMETIC is (gaol_configuration.h): GAOL_PREFER_AVX512, a
@@ -58,10 +57,10 @@
   accept the AVX-512 instructions in them alone, and the code outside them
   is compiled as before; the library then needs a processor with the
   instructions. +, -, *, / and sqrt take this path, and so do sqr() and the
-  integer powers of gaol_pown() (pown_large_er() of this file; GAOL v5, point
-  ZZ of TODO.md), with no flag to
-  test as they run (gaol::init() set one, which every operation tested, until point
-  AA of TODO.md): they never touch the rounding direction, whatever the
+  integer powers of gaol_pown() (pown_large_er() of this file; GAOL v5), with no
+  flag to
+  test as they run (gaol::init() once set one, which every operation tested):
+  they never touch the rounding direction, whatever the
   program left, and clear the modes that flush the subnormals to zero only
   where they are set, as the other operations do. The divisions and the square
   roots take it as scalar instructions, a division of the two bounds being two
@@ -205,7 +204,7 @@
     control register and leave the doubles in their registers, at no cost.
     Clang 18 computed the difference of fast_sub() after the destructor had
     set flush-to-zero back, with GAOL_PRESERVE_ROUNDING, and
-    [3e-308] - [2.9e-308] was [0, 0] (GAOL v5, point Q of TODO.md,
+    [3e-308] - [2.9e-308] was [0, 0] (GAOL v5,
     tests/rounding_direction.cpp).
 
     Visual C++ has no asm statement on x64, and its optimizer takes an
@@ -754,10 +753,10 @@
     set up a stack frame in these operators, which the SSE2 path paid too when
     gaol::init() chose the path as the program ran, and x + 4 took 3.0 ns
     rather than 2.5 there (Clang 18, Intel Xeon E3-1220 v6, the library and
-    the program built with -mbranches-within-32B-boundaries; GAOL v5, point
-    AA of TODO.md). The operations between two intervals are the functions
+    the program built with -mbranches-within-32B-boundaries; GAOL v5). The
+    operations between two intervals are the functions
     add_bounds() and the others, which the header calls with the bounds in a
-    register (point ZZ of TODO.md).
+    register.
 
     They take the double by value, which is passed in a register by the
     calling conventions of x86-64 Linux, macOS and Windows, where a __m128d
@@ -863,7 +862,7 @@
 
   /*
     The packed kernel of pown_large_inline(), rounded upward by the embedded
-    rounding (GAOL v5, point ZZ of TODO.md): the same operations in the same
+    rounding (GAOL v5): the same operations in the same
     order, on pown_er_lanes, so that the bounds are the same bit for bit, and
     no direction of MXCSR is read or written. With GAOL_PRESERVE_ROUNDING,
     gaol_pown() saved the direction, set it upward and restored it around the

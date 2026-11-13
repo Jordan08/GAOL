@@ -121,7 +121,7 @@ public:
 
   // =, &= and |= with an integer: interval(n), the tightest interval
   // containing it, the two doubles around 2^53 + 1, which the double 2^53
-  // did not contain (GAOL v5, point D.21)
+  // did not contain (GAOL v5)
   void test_integer_assignment() {
       const double two53 = std::ldexp(1.0, 53);
       const volatile long long n = 9007199254740993LL; // 2^53 + 1

@@ -32,7 +32,7 @@
   gaol/core/gaol_interval_neon_impl.h (GAOL v5). They work on the bits of the bounds, with
   integer instructions: these depend neither on the rounding direction nor on the
   modes that flush the subnormals to zero, which the operations that only compare
-  or copy bounds do not check (point Q of TODO.md), and raise nothing on a NaN,
+  or copy bounds do not check, and raise nothing on a NaN,
   which the empty set holds in both bounds, where the comparisons of 64-bit ARM on
   doubles signal the invalid-operation exception on a quiet NaN. valid_bounds() is
   the exception: it starts with a quiet comparison of doubles, which raises nothing
@@ -74,8 +74,8 @@ namespace neon_detail {
 
   /*
     The bounds l and r make an interval, the condition of the constructor of two
-    bounds: gaol_detail::bound_less_equal(l, r) && l < +oo && r > -oo (GAOL v5,
-    point PG of TODO.md). l < r (false for a NaN) is the case that runs, and it
+    bounds: gaol_detail::bound_less_equal(l, r) && l < +oo && r > -oo (GAOL v5).
+    l < r (false for a NaN) is the case that runs, and it
     needs no test of the infinities, since l < r <= +oo and -oo <= l < r. Else
     l == r, the very next test, is false for the bounds in the wrong order (l =
     +oo and r = -oo with a bound that is not the same infinity too) and for a
@@ -164,8 +164,8 @@ GAOL_INLINE interval interval::negative(void)
 namespace neon_detail {
 
   /*
-    Whether d is neither a NaN nor an infinity, for which interval(d) is the empty set (GAOL v5, point
-    PG of TODO.md): |d| < +oo, one quiet comparison in place of the two with -oo and +oo of the old test
+    Whether d is neither a NaN nor an infinity, for which interval(d) is the empty set (GAOL v5):
+    |d| < +oo, one quiet comparison in place of the two with -oo and +oo of the old test
     (-oo < d && d < +oo), which were 4 vector instructions (two constants and two comparisons) in place
     of the 3 of the new one (fabs, the move of the result and the comparison). Counted under qemu, the
     path of x + d is 20 instructions with GCC 12 in place of 23, and 21 with Clang 18 and 21 in place
@@ -209,11 +209,11 @@ GAOL_INLINE interval::interval(double v)
 
 // The empty set for a lower bound of +oo, an upper bound of -oo, bounds in
 // the wrong order and NaN bounds, as in IBEX; the first comparison is a quiet
-// one, as in is_empty() and the FPU and SSE2 constructors (GAOL v5, decided
-// for point D.24 of TODO.md), and the bounds are compared as bounds
+// one, as in is_empty() and the FPU and SSE2 constructors (GAOL v5),
+// and the bounds are compared as bounds
 // (neon_detail::valid_bounds(), which is gaol_detail::bound_less_equal() of
 // gaol_port.h and the tests of the infinities), which the modes that flush
-// the subnormals to zero do not change (point Q of TODO.md)
+// the subnormals to zero do not change
 GAOL_INLINE interval::interval(double l, double r)
 {
   GAOL_FPU_SCALAR(l);
@@ -269,7 +269,7 @@ GAOL_INLINE interval interval::operator-(void) const
   lesser right bound) for the intersection, the greater for the hull, chosen by
   one comparison of the keys of the bounds, the integers of
   neon_detail::bound_keys(), which order the doubles whatever the modes that
-  flush the subnormals to zero (point Q of TODO.md), and which tell -0 and +0
+  flush the subnormals to zero, and which tell -0 and +0
   equal, the bound of *this being kept: no comparison of doubles, those of
   64-bit ARM signaling the invalid-operation exception on the NaN bounds of
   the empty set. The empty set is told by its NaN, which is never an interval

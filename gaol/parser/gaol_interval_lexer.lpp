@@ -282,13 +282,13 @@ namespace {
     // k + k2: long long, as k and k2, which are worth up to 5 times the
     // length of the text (8 times in base 16, 4 bits a digit): 2^31 and more
     // for a text of 2^29 characters, where a long of 32 bits (Windows, i386,
-    // armhf) wrapped (GAOL v5, point 85 of TODO.md)
+    // armhf) wrapped (GAOL v5)
     long long kb;
     // v may be above the largest double, whose strtod() raises the overflow
     // exception: it is not known to be below it from the exponent and the
     // digits (below 10^308 in decimal, or 2^1023 in base 16, 8 or 2) or is
     // far above it (beyond is +1). It is false for v = 0, and for the numbers
-    // far below the least positive double (GAOL v5, point 79 of TODO.md)
+    // far below the least positive double (GAOL v5)
     bool may_overflow;
     // v may be below 2^-1022, the least normal double: strtod() of a number
     // that is subnormal, or below the least subnormal, raises the underflow
@@ -482,8 +482,7 @@ namespace {
     // largest double is compared with it first, and when it is above, strtod()
     // is not called: the largest double is the guess, which the steps and the
     // bisection below place. Below it, strtod() cannot overflow, and gives the
-    // guess as it did, so that the reading takes as long as before (GAOL v5,
-    // point 79 of TODO.md).
+    // guess as it did, so that the reading takes as long as before (GAOL v5).
     // The same for the underflow exception, which strtod() raises for a number
     // below the least normal double, as it rounds it to a subnormal or to 0:
     // a number that may be below it is compared with 2^-1022, and when it is
@@ -545,7 +544,7 @@ namespace {
   // Reads the number s: returns NUMBER, with lval->d set to it, if it is a
   // double, and INTERVAL_CST, with lval->num set to the tightest interval of
   // doubles enclosing it and to the rank of its text, which the context of
-  // the reading keeps (GAOL v5, point 84 of TODO.md), otherwise
+  // the reading keeps (GAOL v5), otherwise
   int gaol_read_number(const char *s, YYSTYPE *lval, void *context)
   {
     double l, r;
@@ -742,8 +741,8 @@ namespace gaol_detail {
 
   /*
     The sign of a - b, a and b being the numbers the texts a and b write, with
-    no sign, compared exactly (declared in gaol/parser/gaol_parser.h; GAOL v5,
-    point 84 of TODO.md). a = A/PA*2^kA and b = B/PB*2^kB, A and B being the
+    no sign, compared exactly (declared in gaol/parser/gaol_parser.h; GAOL v5).
+    a = A/PA*2^kA and b = B/PB*2^kB, A and B being the
     integers gaol_take_apart() keeps (N*5^k, or N) and PA and PB the powers of
     5 it divides by (none for 1): a - b has the sign of A*PB*2^kA - B*PA*2^kB.
     2 when one of the two is far beyond the doubles, whose digits it does not

@@ -245,7 +245,7 @@ class reverse_mappings_test {
 	 TEST_EQ(atanh_rel(interval(-1.0,1.0),interval(1.0,2.0)),interval(1.0,2.0));
 	 // The infinite ends themselves, which a bounded I hides: TEST_EQ can
 	 // compare them since hausdorff() puts two equal infinite bounds at
-	 // distance 0 (GAOL v5, point R.7 of TODO.md)
+	 // distance 0 (GAOL v5)
 	 TEST_EQ(atanh_rel(interval(0.5,1.0),interval(0.0,GAOL_INFINITY)),interval(0.5493061443340548457,GAOL_INFINITY));
 	 TEST_EQ(atanh_rel(interval(-1.0,-0.5),interval(-GAOL_INFINITY,0.0)),interval(-GAOL_INFINITY,-0.5493061443340548457));
 

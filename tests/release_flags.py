@@ -17,7 +17,7 @@ With --debug, the other way round, for GAOL_DEBUG of CMake and enable-debug of
 meson: no optimization (no -O, or a last -O0 or /Od), NDEBUG not defined in
 the end (no -DNDEBUG, or a -UNDEBUG after it), and GAOL_DEBUGGING defined to
 1, by gaol_configuration.h or on the command line. Each option of
-gaol_configuration.h is defined, to 1 or 0 (GAOL v5, point Z of TODO.md):
+gaol_configuration.h is defined, to 1 or 0 (GAOL v5):
 what tells a Debug build is the value 1, which configure writes also in the
 block that gives the options left undefined their 0.
 

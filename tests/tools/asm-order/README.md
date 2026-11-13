@@ -6,8 +6,8 @@
      COPYING.LIB file for information. -->
 # The order of the computations and of the writes of the control register
 
-Tool of GAOL v5 for the assembly of the library: the check of #150 (task PF,
-point 5, of `TODO.md`), made for AArch64 and 32-bit ARM, made for x86-64.
+Tool of GAOL v5 for the assembly of the library: the check of #150, made for
+AArch64 and 32-bit ARM, made for x86-64.
 
 GCC does not model the rounding direction
 ([bug 34678](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=34678)): it may move

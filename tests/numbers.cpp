@@ -42,7 +42,7 @@
 // The same file made GCC 12.2 on aarch64 read `precisions` of decimal_output()
 // wrong again (0 and 1074790400, the high word of a double, for 1 and 2), and
 // the test hang, when the calls of textToInterval() with a C string chose the
-// overloads of a C string (GAOL v5, point 128 of TODO.md) rather than build a
+// overloads of a C string (GAOL v5) rather than build a
 // std::string at the call: the code around them changed, and the inlining with
 // it. The calls below therefore build the std::string themselves, as they did,
 // so that the code of this file is the one that passed. Checked with the cross
@@ -319,7 +319,7 @@ namespace
     with GCC and Clang, FZ, which crtfastmath.o sets on ARM Linux, and FIZ
     (64-bit, Armv8.7), which read a subnormal as 0 too, and, with the FPU
     intervals of Visual C++ for 64-bit ARM, FZ set through _controlfp_s(),
-    which GAOL does not clear there (GAOL v5, point F of TODO.md: the test ran
+    which GAOL does not clear there (GAOL v5: the test ran
     on x86 only). Nothing is
     checked where the tests cannot set the modes, nor with a mode the
     processor does not honour.
@@ -389,16 +389,16 @@ namespace
 
   /*
     The two bounds of <a, b> have to be the same double, which the reader
-    tells by their bits under denormals-are-zero too (GAOL v5, point Q of
-    TODO.md): it compared them as doubles, which two subnormals are equal as
+    tells by their bits under denormals-are-zero too (GAOL v5): it compared them
+    as doubles, which two subnormals are equal as
     under the mode, and read <1e-310, 1e-309> as [1e-310, 1e-309], and
     <0x1p-1074, 0x1p-1073> as [2^-1074, 2^-1073], which it refuses without
     the mode. A refused string is the empty set of
     gaol_ieee1788::textToInterval(), with or without exceptions, and the
     std::invalid_argument of gaol::textToInterval(). With each mode the processor
     honours that reads a subnormal as 0: denormals-are-zero on x86, FZ and FIZ
-    on ARM, FZ with the FPU intervals of Visual C++ for 64-bit ARM too (GAOL v5, point F of
-    TODO.md: denormals-are-zero alone, on x86).
+    on ARM, FZ with the FPU intervals of Visual C++ for 64-bit ARM too (GAOL v5:
+    denormals-are-zero alone, on x86).
   */
   void degenerate_subnormals()
   {
@@ -467,12 +467,12 @@ namespace
     [5e-324] and [-5e-324, 0] as points, in angles, which the reader refused,
     or, as the literal [a] of a point, [0]. It compares their bits. With each
     mode the processor honours that reads a subnormal as 0, denormals-are-zero
-    on x86, FZ and FIZ on ARM, where GAOL sees it (GAOL v5, point F of
-    TODO.md: denormals-are-zero alone, on x86). Not with the FPU intervals of
+    on x86, FZ and FIZ on ARM, where GAOL sees it (GAOL v5: denormals-are-zero
+    alone, on x86). Not with the FPU intervals of
     Visual C++ for 64-bit ARM, where GAOL does not clear the modes, and writes a subnormal bound
     outward: subnormal_output_flush_not_cleared() below checks it there.
     The text has to be the one written without the mode too: operator<<
-    clears it before it writes (GAOL v5, point Q of TODO.md). It wrote a
+    clears it before it writes (GAOL v5). It wrote a
     subnormal bound rounded to nearest, [0, 4.940656458412465e-324] for
     [0, 5e-324], below the upper bound, and left it to the C library under
     the mode: the dtoa() of gdtoa, which the printf of FreeBSD and of macOS
@@ -532,8 +532,8 @@ namespace
     cannot clear the modes that flush the subnormals to zero: a program that sets FZ itself (_controlfp_s(),
     _DN_FLUSH) has operator<< write a subnormal bound outward, as 2^-1022 away
     from zero and 0 toward it, without the C library, which may write it 0
-    under the mode; it was written to nearest, below an upper bound (GAOL v5,
-    point Q of TODO.md). Read back once the mode is cleared, the text of each
+    under the mode; it was written to nearest, below an upper bound (GAOL v5).
+    Read back once the mode is cleared, the text of each
     bound has to be on its side of the bound, and the interval read to
     enclose the one written. The mode is checked first, with a product whose
     subnormal result it flushes.
