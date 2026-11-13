@@ -156,14 +156,14 @@ namespace gaol_core {
     Used to increment refcount of an object "a" from an object "b"
     whose type, though deriving also from expr_node, is not necessarily
     the same as "a".
-    \see The C++ programming language, B. Stroustrup, 3rd ed. �15.3.1
+    \see The C++ programming language, B. Stroustrup, 3rd ed. section 15.3.1
     */
     unsigned int inc_refcount();
     /*!
     Used to decrement refcount of an object "a" from an object "b"
     whose type, though deriving also from expr_node, is not necessarily
     the same as "a".
-    \see The C++ programming language, B. Stroustrup, 3rd ed. �15.3.1
+    \see The C++ programming language, B. Stroustrup, 3rd ed. section 15.3.1
     */
     unsigned int dec_refcount();
     /*!
