@@ -1,8 +1,9 @@
 # Fait et décidé sur GAOL v5
 
-Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 12 novembre
-2026 (commit `f006421` de `configure-clean`, la fusion de #318 : voir la section
-1). Ce fichier fait foi : l'issue #177, qui avait le même contenu, n'est
+Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 13 novembre
+2026 (commit `f7046b9` de `dev`, la fusion de #322, et `83e2f69` de
+`configure-clean`, la fusion de #321 : voir la section 1). Ce fichier n'est que
+dans `dev`. Ce fichier fait foi : l'issue #177, qui avait le même contenu, n'est
 plus mise à jour depuis le 28 octobre (voir 7.8).
 
 Il réunit l'historique de l'ancienne issue #49 (« Suivi du TODO de GAOL v5 »),
@@ -54,9 +55,15 @@ par date ; 4. Les points faits, par lettre ; 5. Les anciens numéros faits ; 6.
 Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 `configure-clean` ; 8. Le ménage fait.
 
-## 1. L'état au 12 novembre 2026
+## 1. L'état au 13 novembre 2026
 
-- **`configure-clean`** est au commit `f006421` (la fusion de #318 le 12
+- **`dev`**, la base du développement depuis le 13 novembre (3.38), est au
+  commit `f7046b9` (la fusion de #322 le 13 novembre à 10 h 53 UTC, après les
+  registres de la relecture, `5d047c0` et `474a7c6` (7.34), et la fusion de
+  #319 à 10 h 17 UTC, `45efbd1`) ; elle seule a les notes de travail.
+  **`configure-clean`**, la branche des versions, est au commit `83e2f69` (la
+  fusion de #321 à 10 h 52 UTC, qui en retire les notes). Les deux partent de
+  `9d59e0c` (7.33), après `f006421` (la fusion de #318 le 12
   novembre à 19 h 56 UTC, après celle de #317 à 17 h 31 UTC (`9cd5113`), après
   celle de #316 à 15 h 30 UTC (`1afb90a`), après celle de #315 à 15 h 20 UTC
   (`df680fe`), le
@@ -194,7 +201,8 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   remesuré par #316 (PJ.2, 3.34) ; il reste les signalements à d'autres projets
   (PH) et la publication (PJ : la fusion de `configure-clean` dans `master`, que
   le mainteneur fait lui-même, l'étiquette `v5.0.0` et sa Release, l'annonce à
-  Frédéric Goualard ; 3.36) : voir `TODO.md`.
+  Frédéric Goualard ; 3.36), qui attend les constats de la relecture du 13
+  novembre (PU à PZ, 3.37 et 3.38) : voir `TODO.md`.
   Le 8 novembre, `TODO_fin.md` (la relecture du 4 novembre) est réparti dans les
   trois registres et supprimé (3.25).
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
@@ -216,13 +224,13 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   défaut ; les instructions FMA, le chemin AVX-512, l'entier 128 bits et le
   débogage sont décidés par des tests de la configuration, les anciennes
   options restant des réglages des développeurs (`doc/building.md`).
-- **Branches** : GitHub a `configure-clean` et `master` (`MATH-CORE` y est
-  supprimée le 11 novembre à 22 h 01 UTC, sa pointe dans `configure-clean`, ce
-  que le mainteneur confirme le 12 : 8.1), avec les branches des pull requests
-  ouvertes ; celles des pull requests jetables
-  fermées (`experiment-pg*`, `todo-pg-xle-exfirst`) et les fusionnées sont
-  supprimées depuis le 11 novembre (8.1), leurs commits restant sous
-  `refs/pull/<n>/head` ; les branches fusionnées sont supprimées en local.
+- **Branches** : GitHub a `dev`, `configure-clean` et `master` (`MATH-CORE` y
+  est supprimée le 11 novembre à 22 h 01 UTC, sa pointe dans `configure-clean`,
+  ce que le mainteneur confirme le 12 : 8.1), avec les branches des pull
+  requests ouvertes ; celles des pull requests jetables fermées
+  (`experiment-pg*`, `todo-pg-xle-exfirst`) et les fusionnées sont supprimées
+  depuis le 11 novembre (8.1), leurs commits restant sous `refs/pull/<n>/head` ;
+  les branches fusionnées sont supprimées en local.
 - **Aucune borne fausse n'est connue** : sur environ 1,3 million de puissances
   entières, 550 000 `pow` réels, 600 000 autres opérations et 760 lectures de
   nombres (relecture du 14 octobre, revérifiée le 18 octobre à `4eaf69a`), tout
@@ -3471,6 +3479,50 @@ restent. `c339f23` : le PDF du manuel, 387 pages au lieu de 385 : le PDF commit�
   n'est pas un échec d'un test) ; la reprise demandée (tentative 2) s'est
   terminée annulée elle aussi. Décisions : 3.35.
 
+- #319 (la récriture des renvois aux registres, et la même archive des sources
+  sur `dev` et sur `configure-clean` ; `rewrite-todo-references`, vers `dev`,
+  ouverte le 12 novembre à 21 h 39 UTC, 5 commits, 108 fichiers, 551 lignes
+  ajoutées et 578 retirées) : fusionnée par le mainteneur le 13 novembre à
+  10 h 17 UTC (`45efbd1`, tête `b20fcc2`). `eb76250` : 243 renvois « (GAOL v5,
+  point Q of TODO.md) » retirés par un script (il reste « (GAOL v5) ») et 56
+  récrits à la main, dans 79 fichiers. `91fe10a` : les points cités sans le nom
+  du fichier, « (GAOL v5, point Q) », « review of point 4 », « TODO point
+  P »..., 55 par le script et 26 à la main, dans 31 fichiers. Pour les 53
+  fichiers C et C++ touchés, le texte sans commentaires est identique avant et
+  après (`gcc -x c++ -fpreprocessed -dD -E -P`) ; le lexer et le parser
+  régénérés ne diffèrent des fichiers récrits que par les numéros des `#line`.
+  `ddb69c5` : `.gitattributes` se marque lui-même `export-ignore` (et un motif
+  de CPack de plus), sort de l'`EXTRA_DIST`, et `TODO` et `BUGS` sont retirés
+  des deux branches (automake met `TODO` de lui-même dans le `DIST_COMMON` du
+  `Makefile.in` commun) ; les six `Makefile.in` régénérés par automake 1.18.1.
+  `c3c0f1a` : `doc/building.md`, `doc/differences.md`, le `ChangeLog` et le
+  chapitre 2 du manuel disent l'archive « les fichiers du dépôt moins les notes
+  du travail que seule la branche `dev` contient » ; `doc/tools.md` perd sa
+  section des outils des mainteneurs. `b20fcc2` : le PDF du manuel, 389 pages,
+  dont le texte ne change que de cette phrase. Vérifié : les trois archives
+  donnent les 723 fichiers de `git archive` sur les deux branches, les mêmes ;
+  CMake avec GCC 15.2 en `-Werror`, 63 tests sur 63. Pas de relecteur
+  indépendant. CI à la tête : les huit workflows verts. Décisions : 3.38.
+- #321 (les notes de travail retirées de `configure-clean` ;
+  `release-remove-notes`, ouverte le 12 novembre à 22 h 24 UTC, construite sur
+  #319) : fusionnée par le mainteneur le 13 novembre à 10 h 52 UTC (`83e2f69`,
+  tête `ab44349`). Un commit à elle, qui retire 23 fichiers et rien d'autre :
+  `TODO.md`, `TODO_AFTER.md`, `TODO_DONE.md`, `process.md`, `STEP.md`,
+  `todo-notes/` (16), `.claude/CLAUDE.md` et `.gitattributes`. Elle remplace
+  #320 (2.4). Vérifié : les trois archives, 723 fichiers, ceux de `git archive`
+  et ceux de #319 ; 63 tests sur 63. CI à la tête : les huit workflows verts.
+- #322 (la CI sur un push vers `dev` ; `ci-push-dev`, vers `dev`, ouverte le 12
+  novembre à 22 h 33 UTC, construite sur #319 pour éviter un conflit sur le
+  PDF) : fusionnée par le mainteneur le 13 novembre à 10 h 53 UTC (`f7046b9`,
+  tête `65fd263`). `dev` entre dans les `push: branches:` de
+  `build-systems.yml`, `containers.yml`, `linux.yml`, `macos.yml`, `manual.yml`
+  et `windows.yml` ; `doc/continuous-integration.md` et le chapitre 14 du manuel
+  le disent ; le PDF est refait (389 pages). actionlint : rien sur les fichiers
+  changés. Question ouverte : un `paths-ignore` des registres sur ces pushes
+  (`TODO.md` PW.11). CI à la tête : les huit workflows verts ; celle du premier
+  push sur `dev`, la fusion `f7046b9`, est annulée par le commit de ces
+  registres (7.35).
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -3562,6 +3614,12 @@ restent. `c339f23` : le PDF du manuel, 387 pages au lieu de 385 : le PDF commit�
 - **#286** (4 novembre) : le « Revert » de #285 (`revert-285-std-exceptions`),
   ouvert à 8 h 35 UTC et fermé 11 secondes plus tard, sans fusion ; sa branche a
   été supprimée le même jour (3.15).
+- **#320** (12 novembre) : la première forme du retrait des notes
+  (`release-without-notes`, 5 commits, construite sur #319), qui changeait aussi
+  les builds, la documentation et le PDF pour `configure-clean` seule. Le
+  mainteneur demande que tout sauf le retrait des fichiers aille dans #319 ;
+  elle est fermée le 12 novembre à 22 h 25 UTC, remplacée par #319 et #321, et
+  sa branche est supprimée à sa demande (3.38).
 
 ### 2.5 Les pull requests du 23 octobre au soir et les décisions qu'elles exécutent
 
@@ -6350,6 +6408,45 @@ faire.
   ses notes par #321, qu'un changement de `TODO.md` y rendrait non fusionnable
   (une modification contre une suppression).
 
+### 3.38 Le 12 et le 13 novembre : `dev` base du développement, `configure-clean` sans les notes
+
+Le 12 novembre au soir, le mainteneur demande de créer `dev` à partir de
+`configure-clean` (`9d59e0c`, poussée), puis de retirer de `configure-clean`
+les `TODO*`, `todo-notes/`, `.claude/` et ce qui ne sert qu'au développement,
+après lui en avoir donné la liste. Ses réponses aux quatre questions de la
+session :
+
+- **Les outils de développement restent** : `.github/` (la CI, `release.yml`,
+  l'audit des trois builds), `tests/tools/`, `doc/tools.md`,
+  `doc/continuous-integration.md`, `.shellcheckrc` et `coverage/`.
+- **Les renvois aux registres sont récrits** (#319), non laissés ni expliqués
+  par une phrase du `README.md`. Les points cités sans le nom du fichier le
+  sont aussi : le mainteneur a fusionné #319 avec ce commit (`91fe10a`), que la
+  session lui proposait de garder.
+- **`manual/v4/` et la revue d'`examples/examples.md` restent.**
+- **« dev devient la base »** : tout le développement se fait sur `dev`, base
+  des pull requests ; `configure-clean` reçoit `dev` à chaque version, les notes
+  retirées (`process.md` §13).
+
+Puis :
+
+- **Tout sauf le retrait des fichiers va dans `dev`** (« tous les commit de
+  #320 devrait aller dans #319 sauf les 25 fichiers retirés ») : `dev` et
+  `configure-clean` ne diffèrent que par les notes, avec les mêmes builds, la
+  même archive et le même manuel (#319, #321 ; #320 fermée). `TODO` et `BUGS`
+  quittent aussi `dev`.
+- **La branche de #320 est supprimée** (« supprime »).
+- **La CI tourne sur un push vers `dev`** (#322) ; le `paths-ignore` des
+  registres est à décider (`TODO.md` PW.11).
+- **`process.md` est mis à jour pour `dev` après les fusions** : la base des
+  branches et des pull requests, les commits de registres sur `dev`, la
+  version de `dev` à `configure-clean` (§13), et la règle de §4 : le code et la
+  documentation ne renvoient plus aux notes ni à leurs points.
+- **Le 13 novembre**, après les fusions de #319, #321 et #322 : « il y a encore
+  des TODO. Donc ne fusionne pas dans master maintenant ». La fusion de
+  `configure-clean` dans `master` et l'étiquette `v5.0.0` attendent les tâches
+  PU à PZ.
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -6558,7 +6655,8 @@ leur partie faite.
   `ChangeLog` et #280 pour leurs restes ; dans la tâche PJ, le 32 (#315), le 33
   (#316 et #317), le manuel (#294), macOS 14 (#313) et les restes de la synthèse
   (#313, #314 et #318) sont faits (3.34 et 3.35) ; il reste la publication (PJ.3
-  et PJ.4, décidées le 12 novembre au soir : 3.36).
+  et PJ.4, décidées le 12 novembre au soir : 3.36), qui attend PU à PZ
+  (*décidé le 13 novembre* : 3.38).
 
 ## 5. Les anciens numéros faits
 
@@ -8422,6 +8520,19 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   `doc/using.md` (PY.4) ; l'en-tête de `TODO.md` dit #319 fusionnée, ses
   registres restant à faire.
 
+### 7.35 Le 13 novembre (après #319, #321 et #322 : les registres et `process.md`)
+
+- Les registres de #319, #321 et #322 et les décisions de 3.38, en un commit
+  direct sur `dev`, depuis un clone privé du scratchpad (une autre session
+  était active, et l'arbre de GAOL_V9 sur `dev`) : `process.md` (l'en-tête, §1,
+  §2, §3.1, §3.4, une règle de plus en §4, §5, §7, §9, §10, §11, §12 et une
+  section 13, la version de `dev` à `master`), `TODO.md` (l'en-tête, la liste
+  des pull requests, PW.11 et l'introduction de PJ), ce fichier (l'en-tête, 1,
+  2.3, 2.4, 3.38, 4, 7.35 et 8.1) et l'issue #179. `TODO_AFTER.md` (l'issue
+  #178) n'a rien de nouveau.
+- Ce push sur `dev` est le premier depuis #322 : il annule la CI de la fusion
+  `f7046b9`, dont il porte le code, et a la sienne.
+
 ## 8. Le ménage fait
 
 ### 8.1 Branches, lignes de crédit, outillage
@@ -8681,6 +8792,12 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   (`todo-pt-fin-registres`) : absentes de GitHub (vérifié le 12 novembre par
   l'API, `git/matching-refs/heads/todo-pt`), et sans copie locale dans
   GAOL_V9.
+
+- [x] Celles de #319 (`rewrite-todo-references`), de #321
+  (`release-remove-notes`) et de #322 (`ci-push-dev`), sur GitHub (supprimées à
+  leur fusion, le 13 novembre) et en local ; celle de #320
+  (`release-without-notes`) le 12 novembre, sur GitHub et en local, à la demande
+  du mainteneur, sa pointe restant sous `refs/pull/320/head`.
 
 ### 8.2 Les branches inachevées
 

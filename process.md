@@ -13,16 +13,23 @@ propose une pull request, et comment on tient les registres à jour une fois la
 pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
-en cours, ce qui reste) est au §12. Dernière mise à jour : 12 novembre 2026, au
-commit `f006421` de `configure-clean` (la fusion de #318, après celle de #317,
-de #316 et de #315,
+en cours, ce qui reste) est au §12, et la façon de faire une version au §13.
+Dernière mise à jour : 13 novembre 2026, au commit `f7046b9` de `dev` (la
+fusion de #322, après les registres de la relecture du 13 novembre, `5d047c0`
+et `474a7c6`, et la fusion de #319, `45efbd1`), `configure-clean` étant au
+commit `83e2f69` (la fusion de #321) ; avant, au commit `f006421` de
+`configure-clean` (la fusion de #318, après celle de #317, de #316 et de #315,
 le commit direct `7745279`, la fusion de #314, celle de #313, le commit direct
-`7528253`, la fusion de #312, le commit direct
-`f27c6c2`, celle de #309, le commit direct `be73e24` et celles de #311, de
-#310, de #308, de #307, de #306, de #305, de #302, de #301, de #300, de #298, de
-#299, de #297, de #296, de #295 et de #294, de #217 à #220, #222 à #225, #227 à
-#232, #234 à #239, #242, #245, #248 à #250, #262 à #276 et #279 à #285, de la
-branche `std-exceptions`, de #287 à #293).
+`7528253`, la fusion de #312, le commit direct `f27c6c2`, celle de #309, le
+commit direct `be73e24` et celles de #311, de #310, de #308, de #307, de #306,
+de #305, de #302, de #301, de #300, de #298, de #299, de #297, de #296, de #295
+et de #294, de #217 à #220, #222 à #225, #227 à #232, #234 à #239, #242, #245,
+#248 à #250, #262 à #276 et #279 à #285, de la branche `std-exceptions`, de
+#287 à #293).
+
+Ce fichier, comme les autres notes de travail (`TODO.md`, `TODO_DONE.md`,
+`TODO_AFTER.md`, `STEP.md`, `todo-notes/`, `.claude/`), n'est que dans la
+branche `dev` (section 1).
 
 ## 1. Le contexte
 
@@ -35,8 +42,18 @@ branche `std-exceptions`, de #287 à #293).
   `Jordan08/GAOL`. Il écrit en français. Réponds-lui en français, de façon
   factuelle et concise.
 - **Les branches** :
-  - `configure-clean` : la branche de développement, et la base de toutes les
-    pull requests.
+  - `dev` : la branche de développement, et la base de toutes les pull
+    requests, depuis le 13 novembre (*décidé le 12 novembre*, « dev devient la
+    base »). Créée de `configure-clean` le 12 novembre (`9d59e0c`), elle seule
+    porte les notes de travail : `TODO.md`, `TODO_DONE.md`, `TODO_AFTER.md`,
+    `process.md`, `STEP.md`, `todo-notes/`, `.claude/` et `.gitattributes`,
+    qui les marque `export-ignore`. Pour le reste, `dev` et `configure-clean`
+    ont les mêmes fichiers, la même archive des sources et le même manuel
+    (#319).
+  - `configure-clean` : la branche des versions, sans les notes de travail
+    (#321, le 13 novembre). Elle ne reçoit que `dev`, à chaque version, notes
+    retirées (section 13), et ne se fusionne jamais dans `dev`, dont elle
+    retirerait les notes.
   - `master` : elle ne recevra `configure-clean` qu'à la publication de
     v5.0.0 (point Y : `configure-clean` → `master`, par une pull request que
     le mainteneur ouvre et fusionne lui-même, puis l'étiquette annotée
@@ -44,7 +61,10 @@ branche `std-exceptions`, de #287 à #293).
     GitHub Release et ses trois paquets ; *décidé le 12 novembre*,
     `TODO_DONE.md` 3.36). `MATH-CORE`, l'étape intermédiaire prévue le 3
     octobre, est supprimée le 11 novembre, et la version va directement de
-    `configure-clean` à `master` (*décidé le 12 novembre*).
+    `configure-clean` à `master` (*décidé le 12 novembre*). *Décidé le 13
+    novembre* : pas de fusion dans `master` tant que les tâches PU à PZ de
+    `TODO.md` ne sont pas faites (« il y a encore des TODO. Donc ne fusionne
+    pas dans master maintenant »).
   - `todo-status`, l'ancienne branche des rapports et de l'outillage, a été
     supprimée le 4 octobre : ce qui en sert encore est dans `todo-notes/`.
 - **Les arbres de travail** : `/home/jninin/Documents/WORK/DEV/GAOL/GAOL_V9/GAOL`
@@ -61,9 +81,9 @@ branche `std-exceptions`, de #287 à #293).
 
 | Quoi | Où |
 | --- | --- |
-| Le reste à faire, en tâches (PA, PB...) qui regroupent des points (lettre et ancien numéro), avec leurs décisions | `TODO.md` de `configure-clean`, et l'issue #179 (même texte) |
-| Ce qui est fait et décidé : pull requests fusionnées, décisions par date, points faits, mesures | `TODO_DONE.md` de `configure-clean` (l'issue #177 n'est plus mise à jour depuis le 28 octobre) |
-| Ce qui est reporté : après la version, indéfiniment, en attente de matériel | `TODO_AFTER.md` de `configure-clean`, et l'issue #178 (même texte) |
+| Le reste à faire, en tâches (PA, PB...) qui regroupent des points (lettre et ancien numéro), avec leurs décisions | `TODO.md` de `dev`, et l'issue #179 (même texte) |
+| Ce qui est fait et décidé : pull requests fusionnées, décisions par date, points faits, mesures | `TODO_DONE.md` de `dev` (l'issue #177 n'est plus mise à jour depuis le 28 octobre) |
+| Ce qui est reporté : après la version, indéfiniment, en attente de matériel | `TODO_AFTER.md` de `dev`, et l'issue #178 (même texte) |
 | Les signalements à d'autres projets, et les questions reportées | issues « À communiquer… » (#125 à #138 sauf #128, et #175), #67 (décorations), et celles qui suivront |
 | Ce qui reste utile des rapports des agents (textes pour la synthèse, mesures, cas de test), l'outillage (`HOUSE_RULES.md`, `check_branch`, `gcore`...) | `todo-notes/` (index : `todo-notes/README.md`) ; les rapports d'origine sont dans l'historique, au commit `16a2f60` |
 | La revue d'origine (« revue n° n » dans `TODO_DONE.md`) | `examples/examples.md`, section 5 ; corrections proposées en annexe B |
@@ -111,8 +131,8 @@ commits.
   quelqu'un d'autre.
 - `--amend`, `rebase` et `reset` ne s'appliquent qu'à ton travail non poussé.
   Jamais de `push --force` sur une branche partagée. Une fois une branche
-  poussée, rattrape `configure-clean` par un merge
-  (`git merge origin/configure-clean`), pas par un rebase.
+  poussée, rattrape `dev` par un merge
+  (`git merge origin/dev`), pas par un rebase.
 
 ### 3.2 GitHub
 
@@ -142,13 +162,13 @@ commits.
 ### 3.4 Branches et arbre de travail
 
 - Travaille **en local, dans `GAOL_V8` ou `GAOL_V9/GAOL` (section 1), sur une
-  nouvelle branche** créée depuis `origin/configure-clean` à jour. Jamais de
+  nouvelle branche** créée depuis `origin/dev` à jour. Jamais de
   worktree : le mainteneur l'a demandé le 3 octobre (« met toi en local dans la
   branche sur laquelle tu travailles »).
 - Noms de branche : `todo-<lettre>-<sujet>` pour un point du TODO
   (`todo-j-headers-werror`, `todo-l-ci-workflows`) ; un nom descriptif pour une
   autre tâche (`autotools-distclean`, `no-explicit-libm`).
-- Une seule exception : on commite **directement sur `configure-clean`**
+- Une seule exception : on commite **directement sur `dev`**
   - la mise à jour de `TODO.md`, `TODO_DONE.md` et `TODO_AFTER.md` après une
     fusion, avec celle de la date et du commit de l'en-tête de `process.md` et
     de son §12 (section 9) ;
@@ -256,6 +276,13 @@ un est refusée, quel que soit son gain.
       `interval::universe()`). `textToInterval()` ne sert que lorsque le texte
       apporte quelque chose : un décimal comme `"0.1"`, une expression, ou un
       test du lecteur.
+    - Le code, les tests, la documentation et le manuel ne renvoient ni aux
+      notes de travail (`TODO.md`, `TODO_DONE.md`, `process.md`,
+      `todo-notes/`...), ni à leurs points (« point Q of TODO.md », « (GAOL
+      v5, point AC) ») : `configure-clean` et les versions ne les ont pas. On
+      renvoie à une issue ou à une pull request (#NN), et l'histoire d'un
+      changement va dans `doc/differences.md` et le `ChangeLog` (les renvois
+      de l'époque sont récrits par #319, *décidé le 12 novembre*).
     - Tout programme complet de la documentation se termine par
       `gaol::cleanup();`, après le dernier usage de GAOL et avant `return`.
       `gaol::init()` est automatique : ne le montre pas.
@@ -270,7 +297,7 @@ un est refusée, quel que soit son gain.
   seulement la correction en gardant le test, reconstruis, et vérifie que le
   test **échoue**. Rétablis ensuite la correction et vérifie qu'il passe. Note
   la commande et le résultat : ils iront dans la pull request (« Vérifié :
-  avec les sources de `configure-clean`, ce test échoue »). Un test qui passe
+  avec les sources de `dev`, ce test échoue »). Un test qui passe
   avec le bug ne protège rien.
 - **Les valeurs de référence** se calculent indépendamment du code testé :
   arithmétique rationnelle exacte, entiers, mpmath à 2000 bits (scripts
@@ -442,12 +469,13 @@ Ce que tu ne peux pas tester ici (Windows, macOS, ARM, gros-boutiste, sans FMA),
 
    ```sh
    git fetch origin && git status --short     # repère ce qui n'est pas à toi
-   git switch --no-track -c todo-<lettre>-<sujet> origin/configure-clean
+   git switch --no-track -c todo-<lettre>-<sujet> origin/dev
    ```
 
-   `--no-track` : sans lui, la branche suit `origin/configure-clean`, et avec
+   `--no-track` : sans lui, la branche suit sa base, `origin/dev`, et avec
    la synchronisation de VS Code des commits de branche sont arrivés
-   directement dans `configure-clean` (c7915a7 et ccf694a, le 6 octobre).
+   directement dans la base, alors `configure-clean` (c7915a7 et ccf694a, le 6
+   octobre).
 
 4. **Corriger, au plus juste.** Fais ce que le point demande, avec son test et
    la documentation de ce qui change : `doc/*.md`, les commentaires Doxygen des
@@ -482,14 +510,14 @@ Ce que tu ne peux pas tester ici (Windows, macOS, ARM, gros-boutiste, sans FMA),
    espaces. Commite par fichiers nommés (section 3.1). Plusieurs commits
    courts valent mieux qu'un fourre-tout.
 9. **Pousser et ouvrir la pull request.** Un push sur une branche autre que
-   `master` ou `configure-clean` ne lance **aucune** CI. Elle part
+   `master`, `configure-clean` ou `dev` ne lance **aucune** CI. Elle part
    à l'ouverture de la pull request, ou par `workflow_dispatch`
    (`gh workflow run <fichier>.yml --ref <branche>`).
 
    ```sh
-   git fetch origin && git merge origin/configure-clean   # si la base a avancé
+   git fetch origin && git merge origin/dev   # si la base a avancé
    git push -u origin <branche>
-   gh pr create --base configure-clean --head <branche> --title "<titre>" --body-file <fichier>
+   gh pr create --base dev --head <branche> --title "<titre>" --body-file <fichier>
    ```
 
    La forme du texte est donnée à la section 8. Le jeton de `gh` peut ne
@@ -556,7 +584,7 @@ Si une pull request dépend d'une autre, dis-le explicitement dans le texte.
 
 ## 9. Après la fusion : les registres `TODO.md`, `TODO_DONE.md`, `TODO_AFTER.md`
 
-Trois registres, chacun un fichier de `configure-clean` et une issue au même
+Trois registres, chacun un fichier de `dev` et une issue au même
 texte :
 
 | Registre | Fichier | Issue |
@@ -565,17 +593,17 @@ texte :
 | Le fait et le décidé | `TODO_DONE.md` | #177 (gelée le 28 octobre) |
 | Le reporté | `TODO_AFTER.md` | #178 |
 
-Les fichiers se mettent à jour **directement sur `configure-clean`**, et les
+Les fichiers se mettent à jour **directement sur `dev`**, et les
 issues par `gh`, une fois les pull requests fusionnées par le mainteneur.
 Fais-les ensemble, et regarde d'abord les derniers commits de
-`origin/configure-clean` après un `git fetch origin` : une autre session peut
+`origin/dev` après un `git fetch origin` : une autre session peut
 les avoir faites (§12).
 
 **Les fichiers.** D'abord, `git diff TODO.md TODO_DONE.md TODO_AFTER.md` : si le
 mainteneur y a des changements non commités, ne les écrase pas et ne les
 commite pas. Fais seulement ta mise à jour, ou demande-lui. Ensuite :
 
-- `TODO.md` : l'en-tête « au commit `xxxxxxx` de `configure-clean` » prend le
+- `TODO.md` : l'en-tête « au commit `xxxxxxx` de `dev` » prend le
   commit courant, celui de la fusion ; retire le point fait de sa tâche et des
   phrases qui le citent (une tâche entièrement faite sort du fichier et du
   tableau « Les tâches restantes ») ; un point fait en partie (106 et 107 par
@@ -596,7 +624,7 @@ commite pas. Fais seulement ta mise à jour, ou demande-lui. Ensuite :
 Garde des lignes de 80 colonnes au plus. Commite seulement les fichiers que tu
 as changés, en les nommant (`git add TODO.md TODO_DONE.md`), avec un sujet comme
 `TODO files: point X done by #NN`, puis pousse. Ce push annule la CI en cours du
-même workflow sur `configure-clean` (§10) : si tu as besoin de la CI du commit
+même workflow sur `dev` (§10) : si tu as besoin de la CI du commit
 de fusion, attends qu'elle finisse.
 
 **Les issues.** Chaque issue a le même texte que son fichier, un paragraphe ou
@@ -658,10 +686,11 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
     job).
 - **Le déclenchement** : sur chaque pull request (`manual.yml` et
   `performance.yml` seulement si leurs chemins changent), sur un push vers
-  `master` ou `configure-clean` (sauf `performance.yml`, qui ne
+  `master`, `configure-clean` ou `dev` (`dev` depuis #322, le 13 novembre ;
+  sauf `performance.yml`, qui ne
   tourne que sur les pull requests), et par `workflow_dispatch`. La
   `concurrency` annule le run en cours d'un même workflow sur la même
-  référence : un nouveau push sur `configure-clean` annule la CI du commit
+  référence : un nouveau push sur une de ces branches annule la CI du commit
   précédent. Ne pousse pas un commit de registre pendant qu'une CI dont tu as
   besoin tourne, ou sache que la suivante la remplace.
 - **Suivre** :
@@ -693,8 +722,8 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   - une expérience de CI (comparer deux builds sur les jobs de Windows, sans
     lancer les autres workflows) se fait par un workflow à part qui se lance par
     `on: push: branches: [<la branche>]` : un push vers une branche autre que
-    `master` et `configure-clean` ne lance que les workflows qui la nomment, ni
-    pull request ni les 200 jobs des autres. Exemple :
+    `master`, `configure-clean` et `dev` ne lance que les workflows qui la
+    nomment, ni pull request ni les 200 jobs des autres. Exemple :
     `.github/workflows/experiment-fpu-simd.yml` sur la branche jetable
     `experiment-pj-vs-fpu`, jamais fusionnée, supprimée ensuite (#317, run
     43264694580) ;
@@ -709,7 +738,7 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
 - La sortie de `TODO.md` dans la conversation ne suffit pas pour éditer :
   relis-le juste avant, car le mainteneur le modifie souvent.
 - Un sujet de commit trop long ne se corrige plus une fois poussé sur
-  `configure-clean` (on ne force pas cette branche) : mesure-le avant.
+  `dev` ou `configure-clean` (on ne force pas ces branches) : mesure-le avant.
 - `make distclean` doit rendre l'arbre tel que git l'a, y compris sans laisser
   de répertoire `.deps` vide. La CI le vérifie.
 - `pkg-config --libs gaol` ne donne pas `-lm` : g++ et clang++ lient eux-mêmes
@@ -725,7 +754,8 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   `interval::two_pi()`.
 - Des branches locales et des stashs du mainteneur existent :
   - ne supprime une branche que si elle est entièrement contenue dans
-    `origin/configure-clean` (`git branch -d` le vérifie) ;
+    `origin/dev`, ou `origin/configure-clean` pour une branche de version
+    (`git branch -d` le vérifie) ;
   - ne touche pas à une branche non fusionnée sans son accord (par exemple
     `fix-path-core-math`, qui est la seule copie de son travail) ;
   - ne lance pas `git stash` sur ses fichiers.
@@ -759,15 +789,15 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   `todo-notes/gcc12-aarch64/cross-test` fait cette compilation et lance un
   programme de `tests/` (8 novembre 2026, #299).
 - Pour montrer qu'un test échoue sans la correction, ne remets que les fichiers
-  de la correction, par leur nom (`git checkout origin/configure-clean --
-  gaol/f.cpp`), jamais `git checkout origin/configure-clean -- .`, qui efface
+  de la correction, par leur nom (`git checkout origin/dev --
+  gaol/f.cpp`), jamais `git checkout origin/dev -- .`, qui efface
   aussi les modifications non commitées du test ; garde la correction en patch
   pour la rétablir.
 - Un changement de signature d'un en-tête installé touche beaucoup de lignes :
   cherche les usages internes avec le compilateur (marque la fonction
   `[[deprecated]]` provisoirement et compile avec chaque configuration : SSE2,
   SSE2 avec AVX-512, NEON en compilation croisée), non par `grep`, et recommence
-  après chaque fusion de `configure-clean`.
+  après chaque fusion de `dev`.
 - Le test d'allocations de `tests/expressions.cpp` remplace `operator new` et
   `operator delete` du programme. Quand la bibliothèque C++ est dans une DLL
   (Windows : libstdc++ de MSYS2 et de MinGW-w64, libc++ de CLANG64), il ne voit
@@ -821,17 +851,17 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   reconstruit les deux GAOL au commit mesuré (les autres bibliothèques restent
   celles de la copie).
 
-## 12. Où en est le travail (12 novembre 2026)
+## 12. Où en est le travail (13 novembre 2026)
 
-Le reste à faire est dans `TODO.md` (tâches PH et PJ) et
+Le reste à faire est dans `TODO.md` (tâches PU à PZ, PH et PJ) et
 l'issue #179 ; ce qui est fait et décidé (pull requests fusionnées, décisions,
 mesures)
 est dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour) ; ce qui est
 reporté est dans `TODO_AFTER.md` et l'issue #178. L'état qui suit est daté : les
 commandes ci-dessous, les trois fichiers et les issues font foi. Avant de
-commencer un point, regarde les pull requests ouvertes et les branches distantes
-: une autre session peut déjà le traiter (le 19 octobre, la même mise à jour de
-`TODO.md` a été faite deux fois).
+commencer un point, regarde les pull requests ouvertes et les branches
+distantes : une autre session peut déjà le traiter (le 19 octobre, la même
+mise à jour de `TODO.md` a été faite deux fois).
 
 ```sh
 gh api 'repos/Jordan08/GAOL/pulls?state=open' --jq '.[] | "#\(.number) \(.head.ref) \(.title)"'
@@ -951,70 +981,82 @@ git ls-remote --heads origin
   décisions de PJ.3 (la fusion dans `master` par le mainteneur, l'étiquette
   annotée et la Release), écrites en un commit direct avant la pull request
   vers `master` (3.36 et 7.33), avec les entrées de #301, #303 et #304 dans
-  `TODO_DONE.md` (2.3) ; l'audit du 13 octobre a vérifié dans `configure-clean`
-  ce qu'annonçaient alors les points A, C à H et J à V.
-- **En cours** : au 12 novembre, aucune pull request n'est ouverte : #295
+  `TODO_DONE.md` (2.3) ; puis, le 13 novembre, la relecture complète, dont les
+  constats sont les tâches PU à PZ (`TODO_DONE.md` 3.37 et 7.34), #319 (les
+  renvois aux registres récrits, la même archive des sources sur `dev` et sur
+  `configure-clean`) à 10 h 17 UTC (`45efbd1`) et #322 (la CI sur un push vers
+  `dev`) à 10 h 53 UTC (`f7046b9`), fusionnées dans `dev`, et #321 (les notes
+  retirées de `configure-clean`) à 10 h 52 UTC (`83e2f69`), par le mainteneur
+  (`TODO_DONE.md` 2.3, 3.38 et 7.35) ; #320, remplacée par #319 et #321, est
+  fermée sans fusion (2.4) ; l'audit du 13 octobre a vérifié dans
+  `configure-clean` ce qu'annonçaient alors les points A, C à H et J à V.
+- **En cours** : au 13 novembre, aucune pull request n'est ouverte : #295
   (PS.2 ; `manual-neon-pown-text`), #296 (le cas (b) ; `manual-case-b-text`),
   #297 (la tâche PS ; `todo-ps-stale-texts`), #299 (PQ.2 ;
   `todo-pq-hexfloat-point`), #298 (PQ.1 ; `todo-pq-centered-form`), #300 (la
   recette de compilation croisée de `todo-notes/gcc12-aarch64/` ;
-  `todo-notes-gcc12-aarch64`), #302 (la tâche
-  PP ; `todo-pp-div-rel-n1-m`), #305 (les `friend` ; `friend-cleanup`), #306
-  (`gaol_interval_core.h` allégé ; `core-detail-header`), #307 (les en-têtes ;
-  `uniform-file-headers`), #308 (le découpage ; `core-split-domains`), #310 (du
-  mainteneur, depuis `core-split-domains`), #311 (`fix-cstdint-include`) et
-  #309 (`make dist` et Release ; `make-dist`), #312 (la CI sans `MATH-CORE`
-  ; `ci-branches-timeout`), #313 (macOS 14 hors de la CI ;
-  `manual-macos-14-texts`), #314 (la synthèse de #279 à #312 ;
-  `synthese-279-312`), #315 (PJ.1, la couverture ; `todo-pj-coverage`), #316
-  (PJ.2, les mesures ; `manual-pj-measures`), #317 (la suite de #316 ;
-  `manual-pj-followups`) et #318 (PJ.7, les restes de la synthèse ;
-  `todo-pj7-synthese-leftovers`) sont fusionnées, leurs registres faits ;
-  `configure-clean` est au commit des registres des décisions de PJ.3 (7.33),
-  après `0ae1840`, ceux de #318, et `f006421` (la fusion de #318, après celle
-  de #317, `9cd5113`, de #316, `1afb90a`, et de #315, `df680fe`, le commit
-  direct `7745279`, la fusion de #314, `2b5e4f9`, après celle de #313,
-  `7949b41`, le commit direct `7528253`, la fusion de #312, `269c12e`, le
-  commit direct `f27c6c2` et la fusion de #309, `dcce690`, après le commit
-  direct `be73e24`, les fusions de #311, `d326846`, de #310, `d8c2699`, de
-  #308, `13582c3`, de #307, `6ef18d7`, et de #306, `99229cc`,
-  après celles de #305, `39ce501`, de #302, `9acea90`, de #301, `7053c74`,
-  de #300, `ac9f130`, de #298, `0f469e7`, de #299, `36b4f93`, de #297,
-  `5392bbc`, de #296, `7bc3d05`, et de #295, `5bd52a6`, et le commit direct
-  `634e3e1`, après la fusion de #294, `1e23540`, après celle de #292, `130acea`,
-  et celles de #293, #291, #290 et #289, les registres de #288, `6ed4441`, et la
-  fusion de #288, `61a432b`). Ses branches sur GitHub sont `configure-clean` et
-  `master` (`MATH-CORE` y est supprimée le 11 novembre à 22 h 01 UTC, sa
-  pointe `e80819a` dans `configure-clean`, ce que le mainteneur confirme le 12
-  novembre : `TODO_DONE.md` 8.1), avec les branches des pull requests
-  ouvertes ; celles des pull requests jetables fermées (`experiment-pg*`,
-  `todo-pg-xle-exfirst`) et de #279 (`todo-pg-relations-order`), de #301
-  (`todo-pt-verif`) et de #311 (`fix-cstdint-include`) sont supprimées depuis
-  le 11 novembre (`TODO_DONE.md` 8.1), comme celle de #307
-  (`uniform-file-headers`), et celles de #303 (`todo-pt2-registres`) et de
-  #304 (`todo-pt-fin-registres`) sont absentes (vérifié le 12 novembre) ;
-  celles de #289 (`synthese-283-288`), de #290 (`ieee1788-overlap`), de #291
-  (`todo-pn-trie-fin`), de #293 (`todo-pn-d-times-x`), de #292
-  (`relation-loops`), de #294 (`manual-thesis-style`), de #295
-  (`manual-neon-pown-text`), de #296 (`manual-case-b-text`), de #297
-  (`todo-ps-stale-texts`), de #302 (`todo-pp-div-rel-n1-m`), de #305
-  (`friend-cleanup`), de #306 (`core-detail-header`), de #308 et #310
-  (`core-split-domains`), de #309 (`make-dist`), de #312
-  (`ci-branches-timeout`), de #313 (`manual-macos-14-texts`), de #314
-  (`synthese-279-312`), de #315 (`todo-pj-coverage`) et de #316
-  (`manual-pj-measures`, supprimée le 12 novembre par la session), de #317
-  (`manual-pj-followups`) et de #318 (`todo-pj7-synthese-leftovers`) sont
-  supprimées à leur fusion, comme `experiment-pj-vs-fpu`, l'expérience de CI
-  jamais fusionnée, comme celles de #287 (`pown-rel`) et de #288
-  (`compoundm1`), et `std-exceptions` et `revert-285-std-exceptions` depuis le
-  4 novembre. L'issue #198 (`x / y` des intervalles NEON avec `FPCR.AH`) est
-  ouverte, sans tâche dans `TODO.md` ; #185 est fermée, le masquage des
-  exceptions de `pow` est gardé. L'issue #177 (`TODO_DONE.md`) n'est plus mise
-  à jour (*décidé le 28 octobre*) : GitHub borne le corps d'une issue à
-  262 144 octets et le texte joint en fait plus de 270 000 (voir
-  `TODO_DONE.md` 7.8).
-- **À faire**, dans l'ordre de `TODO.md` : les signalements à d'autres projets
-  (PH, avec l'accord du mainteneur), puis la version (PJ : la fusion de
+  `todo-notes-gcc12-aarch64`), #302 (la tâche PP ; `todo-pp-div-rel-n1-m`), #305
+  (les `friend` ; `friend-cleanup`), #306 (`gaol_interval_core.h` allégé ;
+  `core-detail-header`), #307 (les en-têtes ; `uniform-file-headers`), #308 (le
+  découpage ; `core-split-domains`), #310 (du mainteneur, depuis
+  `core-split-domains`), #311 (`fix-cstdint-include`) et #309 (`make dist` et
+  Release ; `make-dist`), #312 (la CI sans `MATH-CORE` ; `ci-branches-timeout`),
+  #313 (macOS 14 hors de la CI ; `manual-macos-14-texts`), #314 (la synthèse de
+  #279 à #312 ; `synthese-279-312`), #315 (PJ.1, la couverture ;
+  `todo-pj-coverage`), #316 (PJ.2, les mesures ; `manual-pj-measures`), #317 (la
+  suite de #316 ; `manual-pj-followups`) et #318 (PJ.7, les restes de la
+  synthèse ; `todo-pj7-synthese-leftovers`), #319 (`rewrite-todo-references`),
+  #322 (`ci-push-dev`) et #321 (`release-remove-notes`) sont fusionnées, leurs
+  registres faits ; `dev` est au commit de ces registres (7.35), après
+  `f7046b9`, la fusion de #322, et `configure-clean` à `83e2f69`, la fusion de
+  #321, toutes deux après `9d59e0c`, les registres des décisions de PJ.3 (7.33),
+  après `0ae1840`, ceux de #318, et `f006421` (la fusion de #318, après celle de
+  #317, `9cd5113`, de #316, `1afb90a`, et de #315, `df680fe`, le commit direct
+  `7745279`, la fusion de #314, `2b5e4f9`, après celle de #313, `7949b41`, le
+  commit direct `7528253`, la fusion de #312, `269c12e`, le commit direct
+  `f27c6c2` et la fusion de #309, `dcce690`, après le commit direct `be73e24`,
+  les fusions de #311, `d326846`, de #310, `d8c2699`, de #308, `13582c3`, de
+  #307, `6ef18d7`, et de #306, `99229cc`, après celles de #305, `39ce501`, de
+  #302, `9acea90`, de #301, `7053c74`, de #300, `ac9f130`, de #298, `0f469e7`,
+  de #299, `36b4f93`, de #297, `5392bbc`, de #296, `7bc3d05`, et de #295,
+  `5bd52a6`, et le commit direct `634e3e1`, après la fusion de #294, `1e23540`,
+  après celle de #292, `130acea`, et celles de #293, #291, #290 et #289, les
+  registres de #288, `6ed4441`, et la fusion de #288, `61a432b`). Ses branches
+  sur GitHub sont `dev`, `configure-clean` et `master` (`MATH-CORE` y est
+  supprimée le 11 novembre à 22 h 01 UTC, sa pointe `e80819a` dans
+  `configure-clean`, ce que le mainteneur confirme le 12 novembre :
+  `TODO_DONE.md` 8.1), avec les branches des pull requests ouvertes ; celles des
+  pull requests jetables fermées (`experiment-pg*`, `todo-pg-xle-exfirst`) et de
+  #279 (`todo-pg-relations-order`), de #301 (`todo-pt-verif`) et de #311
+  (`fix-cstdint-include`) sont supprimées depuis le 11 novembre (`TODO_DONE.md`
+  8.1), comme celle de #307 (`uniform-file-headers`), et celles de #303
+  (`todo-pt2-registres`) et de #304 (`todo-pt-fin-registres`) sont absentes
+  (vérifié le 12 novembre) ; celles de #289 (`synthese-283-288`), de #290
+  (`ieee1788-overlap`), de #291 (`todo-pn-trie-fin`), de #293
+  (`todo-pn-d-times-x`), de #292 (`relation-loops`), de #294
+  (`manual-thesis-style`), de #295 (`manual-neon-pown-text`), de #296
+  (`manual-case-b-text`), de #297 (`todo-ps-stale-texts`), de #302
+  (`todo-pp-div-rel-n1-m`), de #305 (`friend-cleanup`), de #306
+  (`core-detail-header`), de #308 et #310 (`core-split-domains`), de #309
+  (`make-dist`), de #312 (`ci-branches-timeout`), de #313
+  (`manual-macos-14-texts`), de #314 (`synthese-279-312`), de #315
+  (`todo-pj-coverage`) et de #316 (`manual-pj-measures`, supprimée le 12
+  novembre par la session), de #317 (`manual-pj-followups`) et de #318
+  (`todo-pj7-synthese-leftovers`) sont supprimées à leur fusion, comme
+  `experiment-pj-vs-fpu`, l'expérience de CI jamais fusionnée, comme celles de
+  #287 (`pown-rel`) et de #288 (`compoundm1`), et `std-exceptions` et
+  `revert-285-std-exceptions` depuis le 4 novembre ; celles de #319, #321 et
+  #322 sont supprimées à leur fusion, le 13 novembre, et celle de #320
+  (`release-without-notes`) le 12 novembre, à la demande du mainteneur. L'issue
+  #198 (`x / y` des intervalles NEON avec `FPCR.AH`) est ouverte, sans tâche
+  dans `TODO.md` ; #185 est fermée, le masquage des exceptions de `pow` est
+  gardé. L'issue #177 (`TODO_DONE.md`) n'est plus mise à jour (*décidé le 28
+  octobre*) : GitHub borne le corps d'une issue à 262 144 octets et le texte
+  joint en fait plus de 270 000 (voir `TODO_DONE.md` 7.8).
+- **À faire**, dans l'ordre de `TODO.md` : les constats de la relecture du 13
+  novembre (PU à PZ), les signalements à d'autres projets (PH, avec l'accord
+  du mainteneur), puis la version (PJ, après PU à PZ, *décidé le 13
+  novembre* : `dev` dans `configure-clean`, section 13, puis la fusion de
   `configure-clean` dans `master`, que le mainteneur ouvre et fusionne
   lui-même, puis l'étiquette annotée `v5.0.0`, que la session pose sur son mot
   sur le commit de fusion et qui lance la Release de `release.yml` (*décidé le
@@ -1023,10 +1065,54 @@ git ls-remote --heads origin
   auteurs (*décidé le 5 novembre* : #281) ; les points 32 et 33, le manuel,
   macOS 14 et PJ.7 sont faits par #315 à #318 et coupés de `TODO.md`, la
   couverture, les mesures et le PDF du manuel étant à refaire au commit de la
-  version si le code ou les textes ont changé, ce qui n'est pas le cas le 12
-  novembre à `0ae1840`).
+  version si le code ou les textes ont changé, ce qui n'était pas le cas le 12
+  novembre à `0ae1840` et le sera après PU à PZ).
   Ce qui est reporté (le 113, le site, les traits pour YalAA
   et VNODE-LP, les décorations, ce qui attend du matériel) est dans
   `TODO_AFTER.md`. Les dépendances entre points sont écrites dans chaque tâche.
   Le mainteneur donne les tâches ou les points un par un (« traite la tâche PF
   », « traite le point 129 ») : ne commence pas le suivant sans lui.
+
+## 13. Une version : `dev` → `configure-clean` → `master`
+
+`configure-clean` ne reçoit que `dev`, à chaque version, sans ses notes de
+travail (*décidé le 12 novembre* : « dev devient la base »). La première est
+v5.0.0, après les tâches PU à PZ (*décidé le 13 novembre*).
+
+1. **Quand.** Le mainteneur le dit. Les tâches de `TODO.md` qui précèdent la
+   version sont faites, et la CI de `dev` est verte.
+2. **La fusion de `dev` dans une branche de version**, créée de
+   `configure-clean` :
+
+   ```sh
+   git fetch origin
+   git switch --no-track -c release-<version> origin/configure-clean
+   git merge origin/dev
+   ```
+
+   Une note changée sur `dev` depuis la version précédente donne un conflit
+   « modifié / supprimé » : `git rm` de la note, jamais `git add`. Une note
+   nouvelle de `dev` arrive, elle, sans conflit : retire-la aussi. Après la
+   fusion, aucune note ne doit rester :
+
+   ```sh
+   git ls-files | grep -E '^(TODO|process\.md|STEP\.md|todo-notes/|\.claude/|\.gitattributes)'
+   git diff --stat origin/dev   # rien que la suppression des notes
+   ```
+
+   Une note nouvelle prend aussi sa ligne `export-ignore` dans le
+   `.gitattributes` de `dev`, et son motif dans les `CPACK_SOURCE_IGNORE_FILES`
+   de `CMakeLists.txt`, par une pull request vers `dev` : les deux branches
+   gardent les mêmes builds et la même archive.
+3. **La vérification.** Les trois archives (`cmake --build <build> --target
+   dist`, `make dist`, `meson dist --formats gztar`) donnent exactement les
+   fichiers de `git archive HEAD`, sur la branche de version comme sur `dev`.
+   La couverture, les mesures de PJ.2 et le PDF du manuel se refont si le code
+   ou les textes ont changé (`TODO.md`, PJ).
+4. **Les pull requests.** Celle de `release-<version>` vers `configure-clean`
+   est fusionnée par le mainteneur. Puis il ouvre et fusionne lui-même celle de
+   `configure-clean` vers `master` (*décidé le 12 novembre*), et la session pose
+   l'étiquette, sur son mot (`TODO.md`, PJ).
+5. **Jamais dans l'autre sens.** `configure-clean` ne se fusionne pas dans
+   `dev`, ni les commits d'une branche de version : ils y retireraient les
+   notes.
