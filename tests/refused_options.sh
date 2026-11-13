@@ -6,7 +6,9 @@
 # program using GAOL, is compiled with the compiler and the flags the build
 # gives the code using GAOL ($GAOL_CXX and $GAOL_CXXFLAGS), followed by
 # -ffinite-math-only, then by -ffast-math, and the compilation has to fail with
-# the message of the refusal; with neither, it has to succeed. The option comes
+# the message of the refusal; with neither, it has to succeed. The same for
+# -fno-signed-zeros, -fno-trapping-math, -funsafe-math-optimizations and
+# -freciprocal-math, where the compiler shows them by a macro (below). The option comes
 # after the flags, whose -fno-fast-math turns it off otherwise. A compilation
 # fails for many reasons, so its exit status only counts for the one that has
 # to succeed. Only the preprocessor and the parser run (-fsyntax-only): the
@@ -51,32 +53,34 @@ for option in -ffinite-math-only -ffast-math; do
 done
 
 # -fno-signed-zeros, -fno-trapping-math, -funsafe-math-optimizations and
-# -freciprocal-math, with GCC, which shows them by __NO_SIGNED_ZEROS__,
-# __NO_TRAPPING_MATH__, __ASSOCIATIVE_MATH__ and __RECIPROCAL_MATH__ (GAOL v5),
-# as the tests refused_no_signed_zeros, refused_no_trapping_math,
-# refused_unsafe_math and refused_reciprocal_math of tests/CMakeLists.txt check
-# them: Clang, which defines __GNUC__ too, defines none of these macros
-case $($GAOL_CXX $GAOL_CXXFLAGS -dM -E -x c++ /dev/null 2>/dev/null) in
-  *__clang__*)
-    echo "SKIP: -fno-signed-zeros, -fno-trapping-math, -funsafe-math-optimizations and -freciprocal-math, which Clang does not show" ;;
-  *)
-    for case in "-fno-signed-zeros:-fno-signed-zeros" \
-                "-fno-trapping-math:-fno-trapping-math" \
-                "-funsafe-math-optimizations:-fassociative-math or -freciprocal-math" \
-                "-freciprocal-math:-fassociative-math or -freciprocal-math"; do
-      option=${case%%:*}
-      refused=${case#*:}
-      output=$($GAOL_CXX $GAOL_CXXFLAGS $option -fsyntax-only "$source" 2>&1)
-      case $output in
-        *"GAOL cannot be compiled with $refused"*)
-          echo "PASS: $option refused" ;;
-        *)
-          printf '%s\n' "$output"
-          echo "FAIL: $option not refused"
-          status=1 ;;
-      esac
-    done ;;
-esac
+# -freciprocal-math (GAOL v5), as the tests refused_no_signed_zeros,
+# refused_no_trapping_math, refused_unsafe_math and refused_reciprocal_math of
+# tests/CMakeLists.txt check them: where the compiler shows the option by its
+# macro (__NO_SIGNED_ZEROS__, __NO_TRAPPING_MATH__, __ASSOCIATIVE_MATH__,
+# __RECIPROCAL_MATH__), which GCC defines from GCC 12 on and GCC 9.4 and 11.4
+# and Clang do not, the compilation has to fail with the message of the refusal
+for case in "-fno-signed-zeros:__NO_SIGNED_ZEROS__:-fno-signed-zeros" \
+            "-fno-trapping-math:__NO_TRAPPING_MATH__:-fno-trapping-math" \
+            "-funsafe-math-optimizations:__ASSOCIATIVE_MATH__:-fassociative-math or -freciprocal-math" \
+            "-freciprocal-math:__RECIPROCAL_MATH__:-fassociative-math or -freciprocal-math"; do
+  option=${case%%:*}
+  rest=${case#*:}
+  macro=${rest%%:*}
+  refused=${rest#*:}
+  case $($GAOL_CXX $GAOL_CXXFLAGS $option -dM -E -x c++ /dev/null 2>/dev/null) in
+    *"$macro"*) ;;
+    *) echo "SKIP: $option, which the compiler shows by no macro"; continue ;;
+  esac
+  output=$($GAOL_CXX $GAOL_CXXFLAGS $option -fsyntax-only "$source" 2>&1)
+  case $output in
+    *"GAOL cannot be compiled with $refused"*)
+      echo "PASS: $option refused" ;;
+    *)
+      printf '%s\n' "$output"
+      echo "FAIL: $option not refused"
+      status=1 ;;
+  esac
+done
 
 # The SSE2 intervals on 32-bit Windows (GAOL v5), which gaol/gaol_config.h
 # refuses where the compiler is not told to ask for aligned memory, as the

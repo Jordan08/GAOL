@@ -15,7 +15,11 @@
  * constants, Clang 18 computed the intersection at compile time at -O2 and
  * -O3, and the program told it empty with -ffinite-math-only. Compiled without
  * the refused options, this program is right: it computes what the tests are
- * about, and returns 0.
+ * about, and returns 0. The tests refused_no_signed_zeros,
+ * refused_no_trapping_math, refused_unsafe_math and refused_reciprocal_math,
+ * where the compiler shows these options by macros (GCC from 12 on), compile it
+ * with -fno-signed-zeros, -fno-trapping-math, -funsafe-math-optimizations and
+ * -freciprocal-math, which gaol/gaol_config.h refuses too (GAOL v5).
  *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
