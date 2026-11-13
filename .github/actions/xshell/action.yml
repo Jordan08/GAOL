@@ -1,0 +1,17 @@
+name: xshell
+description: Shells of the steps of a composite action (experiment)
+runs:
+  using: composite
+  steps:
+    - name: shell bash -e {0}
+      shell: bash -e {0}
+      run: |
+        echo "XH bash -e {0}: options=$- pipefail=$(set -o | grep pipefail)"
+        false | true
+        echo "XH false | true gave $? with that shell"
+    - name: shell bash
+      shell: bash
+      run: |
+        echo "XH bash: options=$- pipefail=$(set -o | grep pipefail)"
+        status=0; { false | true; } || status=$?
+        echo "XH false | true gave $status with that shell"

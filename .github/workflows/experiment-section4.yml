@@ -214,3 +214,64 @@ jobs:
           dumpbin /headers h4.exe | Select-String 'machine' | ForEach-Object { "XV h4 $_" }
           clang++ --target=i686-pc-windows-msvc hello.cpp -o c4.exe
           dumpbin /headers c4.exe | Select-String 'machine' | ForEach-Object { "XV c4 $_" }
+
+  v7-shell:
+    name: V7 shells of a composite action, and root-owned files of Docker
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/xshell
+      - name: a step without shell, as the old jobs have
+        run: |
+          echo "XH no shell: options=$- pipefail=$(set -o | grep pipefail)"
+      - name: files that a container makes as root in the workspace
+        run: |
+          docker run --rm -v "$PWD:/gaol" -w /gaol alpine sh -c 'mkdir -p build-root/.deps && touch build-root/.deps/f agree.md && chmod 755 build-root'
+          ls -ld build-root agree.md
+          if git clean -ffdx -q; then echo "XH git clean as the user worked"; else echo "XH git clean as the user FAILED"; fi
+          ls -d build-root 2>/dev/null && echo "XH build-root is still there"
+          sudo chown -R "$(id -u):$(id -g)" .
+          git clean -ffdx -q && git reset --hard -q && echo "XH after chown, clean and reset worked"
+          git status --short --ignored | head -3
+          test -z "$(git status --porcelain --ignored)" && echo "XH the tree is pristine"
+
+  v3b-msys2-one-setup:
+    name: V3b MSYS2 one setup, MSYSTEM chosen per step
+    runs-on: windows-2022
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          suppress-deprecation-warnings: msystem-mingw64
+          install: >-
+            mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja mingw-w64-x86_64-clang
+            mingw-w64-i686-toolchain mingw-w64-i686-cmake mingw-w64-i686-ninja
+            mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-clang-x86_64-toolchain mingw-w64-clang-x86_64-cmake mingw-w64-clang-x86_64-ninja
+      - { name: 'MINGW64', shell: 'msys2 {0}', env: { MSYSTEM: MINGW64 }, run: 'echo "XS MSYSTEM=$MSYSTEM g++=$(command -v g++) $(g++ --version | head -1) clang++=$(command -v clang++)"; echo "#include <stdlib.h>" | g++ -dM -E -x c++ - | grep -E "_UCRT|MSVCRT_VERSION" || true' }
+      - { name: 'MINGW32', shell: 'msys2 {0}', env: { MSYSTEM: MINGW32 }, run: 'echo "XS MSYSTEM=$MSYSTEM g++=$(command -v g++) $(g++ --version | head -1) -dumpmachine=$(g++ -dumpmachine)"; cmake --version | head -1; command -v ninja' }
+      - { name: 'UCRT64', shell: 'msys2 {0}', env: { MSYSTEM: UCRT64 }, run: 'echo "XS MSYSTEM=$MSYSTEM g++=$(command -v g++) $(g++ --version | head -1) -dumpmachine=$(g++ -dumpmachine)"; echo "#include <stdlib.h>" | g++ -dM -E -x c++ - | grep -E "_UCRT" || true' }
+      - { name: 'CLANG64', shell: 'msys2 {0}', env: { MSYSTEM: CLANG64 }, run: 'echo "XS MSYSTEM=$MSYSTEM clang++=$(command -v clang++) $(clang++ --version | head -1)"' }
+      - { name: 'MSYSTEM unset again: the msystem of the setup', shell: 'msys2 {0}', run: 'echo "XS MSYSTEM=$MSYSTEM"' }
+
+  v3c-msys2-location:
+    name: V3c MSYS2 two setups with location
+    runs-on: windows-2022
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          install: mingw-w64-ucrt-x86_64-toolchain
+      - { name: 'first', shell: 'msys2 {0}', run: 'echo "XS first: MSYSTEM=$MSYSTEM g++=$(command -v g++)"; cygpath -m /' }
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW32
+          location: D:\msys-second
+          suppress-deprecation-warnings: msystem-mingw64
+          install: mingw-w64-i686-toolchain
+      - { name: 'second', shell: 'msys2 {0}', run: 'echo "XS second: MSYSTEM=$MSYSTEM g++=$(command -v g++)"; cygpath -m /' }
