@@ -56,6 +56,11 @@ GAOL v5). The badges of
   - Alpine (musl) on x86_64 and aarch64;
   - Debian 13 under qemu on s390x, ppc64le and riscv64, and Ubuntu 24.04
     (GCC 13) under qemu for POWER9 (`-mcpu=power9`);
+  - Debian 12 armel, 32-bit ARM with the floating point in software,
+    cross-compiled by its GCC 12 and run under qemu-arm, where GAOL has to stop
+    at its initialization with the message saying that the rounding direction
+    cannot be set upward (GAOL v5): `fesetround(FE_UPWARD)` returns 0 there
+    and changes nothing;
   - built for size (`MinSizeRel`, `-Os`) on Debian 13 armhf and for POWER9,
     where GCC calls the intersection rather than inlining it, and
     `tests/rounding_direction.cpp` checks the choices a program makes on
