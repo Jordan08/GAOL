@@ -14,18 +14,20 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12, et la façon de faire une version au §13.
-Dernière mise à jour : 13 novembre 2026, au commit `f7046b9` de `dev` (la
-fusion de #322, après les registres de la relecture du 13 novembre, `5d047c0`
-et `474a7c6`, et la fusion de #319, `45efbd1`), `configure-clean` étant au
-commit `83e2f69` (la fusion de #321) ; avant, au commit `f006421` de
-`configure-clean` (la fusion de #318, après celle de #317, de #316 et de #315,
-le commit direct `7745279`, la fusion de #314, celle de #313, le commit direct
-`7528253`, la fusion de #312, le commit direct `f27c6c2`, celle de #309, le
-commit direct `be73e24` et celles de #311, de #310, de #308, de #307, de #306,
-de #305, de #302, de #301, de #300, de #298, de #299, de #297, de #296, de #295
-et de #294, de #217 à #220, #222 à #225, #227 à #232, #234 à #239, #242, #245,
-#248 à #250, #262 à #276 et #279 à #285, de la branche `std-exceptions`, de
-#287 à #293).
+Dernière mise à jour : 13 novembre 2026, au commit `998e61c` de `dev` (la fusion
+de #334, la dernière des douze pull requests de la tâche PU, #323 à #334, après
+les registres de ses décisions, `07dca51`, ceux de #319, #321 et #322,
+`03f3783`, la fusion de #322, `f7046b9`, les registres de la relecture du 13
+novembre, `5d047c0` et `474a7c6`, et la fusion de #319, `45efbd1`),
+`configure-clean` étant au commit `83e2f69` (la fusion de #321) ; avant, au
+commit `f006421` de `configure-clean` (la fusion de #318, après celle de #317,
+de #316 et de #315, le commit direct `7745279`, la fusion de #314, celle de
+#313, le commit direct `7528253`, la fusion de #312, le commit direct `f27c6c2`,
+celle de #309, le commit direct `be73e24` et celles de #311, de #310, de #308,
+de #307, de #306, de #305, de #302, de #301, de #300, de #298, de #299, de #297,
+de #296, de #295 et de #294, de #217 à #220, #222 à #225, #227 à #232, #234 à
+#239, #242, #245, #248 à #250, #262 à #276 et #279 à #285, de la branche
+`std-exceptions`, de #287 à #293).
 
 Ce fichier, comme les autres notes de travail (`TODO.md`, `TODO_DONE.md`,
 `TODO_AFTER.md`, `STEP.md`, `todo-notes/`, `.claude/`), n'est que dans la
@@ -853,15 +855,14 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
 
 ## 12. Où en est le travail (13 novembre 2026)
 
-Le reste à faire est dans `TODO.md` (tâches PU à PZ, PH et PJ) et
-l'issue #179 ; ce qui est fait et décidé (pull requests fusionnées, décisions,
-mesures)
-est dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour) ; ce qui est
-reporté est dans `TODO_AFTER.md` et l'issue #178. L'état qui suit est daté : les
+Le reste à faire est dans `TODO.md` (tâches PV à PZ, PH et PJ) et l'issue #179 ;
+ce qui est fait et décidé (pull requests fusionnées, décisions, mesures) est
+dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour) ; ce qui est reporté
+est dans `TODO_AFTER.md` et l'issue #178. L'état qui suit est daté : les
 commandes ci-dessous, les trois fichiers et les issues font foi. Avant de
 commencer un point, regarde les pull requests ouvertes et les branches
-distantes : une autre session peut déjà le traiter (le 19 octobre, la même
-mise à jour de `TODO.md` a été faite deux fois).
+distantes : une autre session peut déjà le traiter (le 19 octobre, la même mise
+à jour de `TODO.md` a été faite deux fois).
 
 ```sh
 gh api 'repos/Jordan08/GAOL/pulls?state=open' --jq '.[] | "#\(.number) \(.head.ref) \(.title)"'
@@ -918,32 +919,32 @@ git ls-remote --heads origin
   décrites dans `TODO_DONE.md` (2.3 et 3.15), puis #287 (hors des points :
   `pownRev` pour p ≤ 0 par `nth_root_rel(J, p, I)` de `gaol_core`), fusionnée le
   même jour à 19 h 12 UTC, décrite dans `TODO_DONE.md` (2.3 et 3.16), puis #288
-  (hors des points : `compoundm1` de la norme IEEE 1788-2015), fusionnée à 19 h
-  19 UTC, décrite dans `TODO_DONE.md` (2.3 et 3.18) ; puis la tâche PK, close
-  sans code (un `FE_INVALID` de Clang avec les intervalles FPU, que les drapeaux
-  de GAOL suppriment : `TODO_DONE.md` 3.17) ; puis, le 5 novembre, #289 (la
-  synthèse de #283 à #288, avec le PDF du manuel), #290 (`overlap` de la norme),
-  #291 (la tâche PN : `TODO_fin.md`, réparti et supprimé le 8 novembre, et
-  `STEP.md`) et #293 (`d * x` calculé comme `x * d`), décrites dans
-  `TODO_DONE.md` (2.3, 3.21 et 3.25), puis #292 (les boucles
-  de relations de la tâche PK dans `rounding_direction`, 3.17), puis, le 7
-  novembre, #294 (hors des points : le manuel de GAOL v5 réécrit dans le style
-  de la thèse du mainteneur, 385 pages, avec son PDF `manual/Manual_GAOLv5.pdf`,
-  quelques corrections du code qu'il a trouvées et des pages de `doc/` ; 2.3 et
-  3.23), puis, le 8 novembre, le retrait de l'amitié de `gaol_pown()`,
-  directement sur `configure-clean` (`634e3e1`, 3.24) ; la tâche PM, close sans
-  code le même jour (le cas (b) de 12.12.7, les littéraux aux bornes calculées :
-  on le documente seulement, par #296, fusionnée à 17 h 29 UTC, `7bc3d05`,
-  3.26) ; puis #295 (hors des points : le texte de `doc/simd.md` et du manuel
-  sur les puissances entières de NEON, PS.2) à 17 h 21 UTC (`5bd52a6`) et #297
-  (la tâche PS : huit textes faux ou périmés, et deux boucles de plus dans
-  `core_math`) à 19 h 38 UTC (`5392bbc`), décrites dans `TODO_DONE.md` (2.3 et
-  3.27) ; puis la tâche PQ : #299 à 20 h 31 UTC (`36b4f93` : le test de
-  `<a, a>` avec `hexfloat`, dans `tests/ieee1788.cpp`) et #298 à 20 h 44 UTC
-  (`0f469e7` : `interval::midrad` devient `centered_form`, `centeredForm` pour
+  (hors des points : `compoundm1` de la norme IEEE 1788-2015), fusionnée à
+  19 h 19 UTC, décrite dans `TODO_DONE.md` (2.3 et 3.18) ; puis la tâche PK,
+  close sans code (un `FE_INVALID` de Clang avec les intervalles FPU, que les
+  drapeaux de GAOL suppriment : `TODO_DONE.md` 3.17) ; puis, le 5 novembre, #289
+  (la synthèse de #283 à #288, avec le PDF du manuel), #290 (`overlap` de la
+  norme), #291 (la tâche PN : `TODO_fin.md`, réparti et supprimé le 8 novembre,
+  et `STEP.md`) et #293 (`d * x` calculé comme `x * d`), décrites dans
+  `TODO_DONE.md` (2.3, 3.21 et 3.25), puis #292 (les boucles de relations de la
+  tâche PK dans `rounding_direction`, 3.17), puis, le 7 novembre, #294 (hors des
+  points : le manuel de GAOL v5 réécrit dans le style de la thèse du mainteneur,
+  385 pages, avec son PDF `manual/Manual_GAOLv5.pdf`, quelques corrections du
+  code qu'il a trouvées et des pages de `doc/` ; 2.3 et 3.23), puis, le 8
+  novembre, le retrait de l'amitié de `gaol_pown()`, directement sur
+  `configure-clean` (`634e3e1`, 3.24) ; la tâche PM, close sans code le même
+  jour (le cas (b) de 12.12.7, les littéraux aux bornes calculées : on le
+  documente seulement, par #296, fusionnée à 17 h 29 UTC, `7bc3d05`, 3.26) ;
+  puis #295 (hors des points : le texte de `doc/simd.md` et du manuel sur les
+  puissances entières de NEON, PS.2) à 17 h 21 UTC (`5bd52a6`) et #297 (la tâche
+  PS : huit textes faux ou périmés, et deux boucles de plus dans `core_math`) à
+  19 h 38 UTC (`5392bbc`), décrites dans `TODO_DONE.md` (2.3 et 3.27) ; puis la
+  tâche PQ : #299 à 20 h 31 UTC (`36b4f93` : le test de `<a, a>` avec
+  `hexfloat`, dans `tests/ieee1788.cpp`) et #298 à 20 h 44 UTC (`0f469e7` :
+  `interval::midrad` devient `centered_form`, `centeredForm` pour
   `gaol_ieee1788`, le PDF du manuel refait), décrites dans `TODO_DONE.md` (2.3
-  et 3.26) ; puis #300 à 21 h 38 UTC (`ac9f130`, hors des points : la recette
-  de compilation croisée GCC 12.2 pour aarch64 de `todo-notes/gcc12-aarch64/`,
+  et 3.26) ; puis #300 à 21 h 38 UTC (`ac9f130`, hors des points : la recette de
+  compilation croisée GCC 12.2 pour aarch64 de `todo-notes/gcc12-aarch64/`,
   2.3) ; puis #301 (la tâche PT : `doc/accuracy.md`, deux exemples et le
   chapitre 11 du manuel) à 23 h 09 UTC (`7053c74`), #303 et #304 (les registres
   de PT, `TODO.md` seul), #302 (la tâche PP : le cas N1 M de `div_rel()` en SSE2
@@ -951,25 +952,25 @@ git ls-remote --heads origin
   novembre à 22 h 03 UTC (`9acea90`, 2.3, 3.28 et 7.25) et #305 (hors des
   points : six `friend` de `interval` retirés) le 10 novembre à 8 h 52 UTC
   (`39ce501`, 2.3, 3.28 et 7.26) et #306 (hors des points :
-  `gaol_interval_core.h` allégé, ses aides dans `gaol_interval_detail.h`,
-  `x + y`, `x - y`, `x * y` et `x / y` dans les fragments, deux jobs de CI) à
-  17 h 55 UTC (`99229cc`, 2.3, 3.29 et 7.27), #307 (hors des points : les
-  en-têtes de tous les fichiers sur un même modèle) à 21 h 04 UTC (`6ef18d7`,
-  2.3), puis, le 11 novembre, #308 (hors des points : `gaol_interval_core.cpp`
-  découpé par domaine, avec l'en-tête interne `gaol_interval_internal.h` et les
-  noyaux partagés de `*_kernels.h`) à 21 h 05 UTC (`13582c3`, 2.3, 3.30 et
-  7.28), #310 (du mainteneur : `.gitignore`, et un `<stdint>` qui n'existe pas)
-  à 21 h 08 UTC (`d8c2699`), #311 (hors des points : `<cstdint>`) à 21 h 36 UTC
+  `gaol_interval_core.h` allégé, ses aides dans `gaol_interval_detail.h`, `x +
+  y`, `x - y`, `x * y` et `x / y` dans les fragments, deux jobs de CI) à 17 h 55
+  UTC (`99229cc`, 2.3, 3.29 et 7.27), #307 (hors des points : les en-têtes de
+  tous les fichiers sur un même modèle) à 21 h 04 UTC (`6ef18d7`, 2.3), puis, le
+  11 novembre, #308 (hors des points : `gaol_interval_core.cpp` découpé par
+  domaine, avec l'en-tête interne `gaol_interval_internal.h` et les noyaux
+  partagés de `*_kernels.h`) à 21 h 05 UTC (`13582c3`, 2.3, 3.30 et 7.28), #310
+  (du mainteneur : `.gitignore`, et un `<stdint>` qui n'existe pas) à 21 h 08
+  UTC (`d8c2699`), #311 (hors des points : `<cstdint>`) à 21 h 36 UTC
   (`d326846`) et #309 (hors des points : `make dist` dans les trois builds, la
   même archive `gaol-<version>.tar.gz`, et le workflow Release des paquets) à
   22 h 16 UTC (`dcce690`, 2.3, 3.31 et 7.28), puis, le 12 novembre, #312 (hors
   des points : `MATH-CORE` retirée de la CI, `numbers` à 600 et à 900 s dans
   deux jobs de macOS avec les sanitizers, `compile_commands.json` hors de
-  l'archive de CMake) à 7 h 53 UTC (`269c12e`, 2.3, 3.32 et 7.29), fusionnée
-  par la session sur la demande explicite du mainteneur, puis #313 (hors des
-  points : les textes qui citent macOS 14, un commentaire de `CMakeLists.txt`)
-  à 12 h 31 UTC (`7949b41`, 2.3 et 3.33) et #314 (hors des points : les textes
-  de #279 à #312 dans `doc/differences.md` et le `ChangeLog`, trois passages du
+  l'archive de CMake) à 7 h 53 UTC (`269c12e`, 2.3, 3.32 et 7.29), fusionnée par
+  la session sur la demande explicite du mainteneur, puis #313 (hors des
+  points : les textes qui citent macOS 14, un commentaire de `CMakeLists.txt`) à
+  12 h 31 UTC (`7949b41`, 2.3 et 3.33) et #314 (hors des points : les textes de
+  #279 à #312 dans `doc/differences.md` et le `ChangeLog`, trois passages du
   manuel avec son PDF) à 12 h 42 UTC (`2b5e4f9`, 2.3 et 7.30), puis #315 (la
   tâche PJ.1 : le rapport de couverture, 95,1 % des lignes de `gaol/`) à 15 h 20
   UTC (`df680fe`) et #316 (la tâche PJ.2 : les temps remesurés, le manuel et son
@@ -977,26 +978,27 @@ git ls-remote --heads origin
   #316 : le tableau de Visual C++ et de clang-cl, `x.midpoint()`) à 17 h 31 UTC
   (`9cd5113`), puis #318 (la tâche PJ.7 : les restes de la synthèse, quatre
   entrées de CI au `ChangeLog`) à 19 h 56 UTC (`f006421`, 2.3, 3.35 et 7.32),
-  par le mainteneur, avant la fin de leur CI ; puis, le même soir, les
-  décisions de PJ.3 (la fusion dans `master` par le mainteneur, l'étiquette
-  annotée et la Release), écrites en un commit direct avant la pull request
-  vers `master` (3.36 et 7.33), avec les entrées de #301, #303 et #304 dans
-  `TODO_DONE.md` (2.3) ; puis, le 13 novembre, la relecture complète, dont les
-  constats sont les tâches PU à PZ (`TODO_DONE.md` 3.37 et 7.34), #319 (les
-  renvois aux registres récrits, la même archive des sources sur `dev` et sur
+  par le mainteneur, avant la fin de leur CI ; puis, le même soir, les décisions
+  de PJ.3 (la fusion dans `master` par le mainteneur, l'étiquette annotée et la
+  Release), écrites en un commit direct avant la pull request vers `master`
+  (3.36 et 7.33), avec les entrées de #301, #303 et #304 dans `TODO_DONE.md`
+  (2.3) ; puis, le 13 novembre, la relecture complète, dont les constats sont
+  les tâches PU à PZ (`TODO_DONE.md` 3.37 et 7.34), #319 (les renvois aux
+  registres récrits, la même archive des sources sur `dev` et sur
   `configure-clean`) à 10 h 17 UTC (`45efbd1`) et #322 (la CI sur un push vers
   `dev`) à 10 h 53 UTC (`f7046b9`), fusionnées dans `dev`, et #321 (les notes
   retirées de `configure-clean`) à 10 h 52 UTC (`83e2f69`), par le mainteneur
   (`TODO_DONE.md` 2.3, 3.38 et 7.35) ; #320, remplacée par #319 et #321, est
-  fermée sans fusion (2.4) ; l'audit du 13 octobre a vérifié dans
-  `configure-clean` ce qu'annonçaient alors les points A, C à H et J à V.
-- **En cours** : au 13 novembre au soir, neuf pull requests sont ouvertes vers
-  `dev`, une par point de la tâche PU, #323 à #331 (`TODO.md`, tâche PU, et
-  `TODO_DONE.md` 3.39 pour les décisions de leurs questions) ; #295
-  (PS.2 ; `manual-neon-pown-text`), #296 (le cas (b) ; `manual-case-b-text`),
-  #297 (la tâche PS ; `todo-ps-stale-texts`), #299 (PQ.2 ;
-  `todo-pq-hexfloat-point`), #298 (PQ.1 ; `todo-pq-centered-form`), #300 (la
-  recette de compilation croisée de `todo-notes/gcc12-aarch64/` ;
+  fermée sans fusion (2.4) ; puis, le soir, les douze pull requests de la tâche
+  PU, #323 à #334, fusionnées dans `dev` par le mainteneur de 16 h 43 à 22 h 09
+  UTC (`998e61c`, `TODO_DONE.md` 2.3, 3.39, 4 et 7.37) ; l'audit du 13 octobre a
+  vérifié dans `configure-clean` ce qu'annonçaient alors les points A, C à H et
+  J à V.
+- **En cours** : au 13 novembre au soir, aucune pull request n'est ouverte ;
+  #295 (PS.2 ; `manual-neon-pown-text`), #296 (le cas (b) ;
+  `manual-case-b-text`), #297 (la tâche PS ; `todo-ps-stale-texts`), #299
+  (PQ.2 ; `todo-pq-hexfloat-point`), #298 (PQ.1 ; `todo-pq-centered-form`), #300
+  (la recette de compilation croisée de `todo-notes/gcc12-aarch64/` ;
   `todo-notes-gcc12-aarch64`), #302 (la tâche PP ; `todo-pp-div-rel-n1-m`), #305
   (les `friend` ; `friend-cleanup`), #306 (`gaol_interval_core.h` allégé ;
   `core-detail-header`), #307 (les en-têtes ; `uniform-file-headers`), #308 (le
@@ -1008,28 +1010,31 @@ git ls-remote --heads origin
   `todo-pj-coverage`), #316 (PJ.2, les mesures ; `manual-pj-measures`), #317 (la
   suite de #316 ; `manual-pj-followups`) et #318 (PJ.7, les restes de la
   synthèse ; `todo-pj7-synthese-leftovers`), #319 (`rewrite-todo-references`),
-  #322 (`ci-push-dev`) et #321 (`release-remove-notes`) sont fusionnées, leurs
-  registres faits ; `dev` est au commit de ces registres (7.35), après
-  `f7046b9`, la fusion de #322, et `configure-clean` à `83e2f69`, la fusion de
-  #321, toutes deux après `9d59e0c`, les registres des décisions de PJ.3 (7.33),
-  après `0ae1840`, ceux de #318, et `f006421` (la fusion de #318, après celle de
-  #317, `9cd5113`, de #316, `1afb90a`, et de #315, `df680fe`, le commit direct
-  `7745279`, la fusion de #314, `2b5e4f9`, après celle de #313, `7949b41`, le
-  commit direct `7528253`, la fusion de #312, `269c12e`, le commit direct
-  `f27c6c2` et la fusion de #309, `dcce690`, après le commit direct `be73e24`,
-  les fusions de #311, `d326846`, de #310, `d8c2699`, de #308, `13582c3`, de
-  #307, `6ef18d7`, et de #306, `99229cc`, après celles de #305, `39ce501`, de
-  #302, `9acea90`, de #301, `7053c74`, de #300, `ac9f130`, de #298, `0f469e7`,
-  de #299, `36b4f93`, de #297, `5392bbc`, de #296, `7bc3d05`, et de #295,
-  `5bd52a6`, et le commit direct `634e3e1`, après la fusion de #294, `1e23540`,
-  après celle de #292, `130acea`, et celles de #293, #291, #290 et #289, les
-  registres de #288, `6ed4441`, et la fusion de #288, `61a432b`). Ses branches
-  sur GitHub sont `dev`, `configure-clean` et `master` (`MATH-CORE` y est
-  supprimée le 11 novembre à 22 h 01 UTC, sa pointe `e80819a` dans
-  `configure-clean`, ce que le mainteneur confirme le 12 novembre :
-  `TODO_DONE.md` 8.1), avec les branches des pull requests ouvertes ; celles des
-  pull requests jetables fermées (`experiment-pg*`, `todo-pg-xle-exfirst`) et de
-  #279 (`todo-pg-relations-order`), de #301 (`todo-pt-verif`) et de #311
+  #322 (`ci-push-dev`), #321 (`release-remove-notes`) et #323 à #334 (la tâche
+  PU ; `todo-pu1-periodic-rel` à `todo-pu12-ci-armel`) sont fusionnées, leurs
+  registres faits ; `dev` est au commit de ces registres (7.37), après
+  `998e61c`, la fusion de #334, `07dca51`, les registres des décisions de PU
+  (7.36), `03f3783`, ceux de #319, #321 et #322 (7.35), et `f7046b9`, la fusion
+  de #322, et `configure-clean` à `83e2f69`, la fusion de #321, toutes deux
+  après `9d59e0c`, les registres des décisions de PJ.3 (7.33), après `0ae1840`,
+  ceux de #318, et `f006421` (la fusion de #318, après celle de #317, `9cd5113`,
+  de #316, `1afb90a`, et de #315, `df680fe`, le commit direct `7745279`, la
+  fusion de #314, `2b5e4f9`, après celle de #313, `7949b41`, le commit direct
+  `7528253`, la fusion de #312, `269c12e`, le commit direct `f27c6c2` et la
+  fusion de #309, `dcce690`, après le commit direct `be73e24`, les fusions de
+  #311, `d326846`, de #310, `d8c2699`, de #308, `13582c3`, de #307, `6ef18d7`,
+  et de #306, `99229cc`, après celles de #305, `39ce501`, de #302, `9acea90`, de
+  #301, `7053c74`, de #300, `ac9f130`, de #298, `0f469e7`, de #299, `36b4f93`,
+  de #297, `5392bbc`, de #296, `7bc3d05`, et de #295, `5bd52a6`, et le commit
+  direct `634e3e1`, après la fusion de #294, `1e23540`, après celle de #292,
+  `130acea`, et celles de #293, #291, #290 et #289, les registres de #288,
+  `6ed4441`, et la fusion de #288, `61a432b`). Ses branches sur GitHub sont
+  `dev`, `configure-clean` et `master` (`MATH-CORE` y est supprimée le 11
+  novembre à 22 h 01 UTC, sa pointe `e80819a` dans `configure-clean`, ce que le
+  mainteneur confirme le 12 novembre : `TODO_DONE.md` 8.1), avec les branches
+  des pull requests ouvertes ; celles des pull requests jetables fermées
+  (`experiment-pg*`, `todo-pg-xle-exfirst`) et de #279
+  (`todo-pg-relations-order`), de #301 (`todo-pt-verif`) et de #311
   (`fix-cstdint-include`) sont supprimées depuis le 11 novembre (`TODO_DONE.md`
   8.1), comme celle de #307 (`uniform-file-headers`), et celles de #303
   (`todo-pt2-registres`) et de #304 (`todo-pt-fin-registres`) sont absentes
@@ -1048,32 +1053,32 @@ git ls-remote --heads origin
   `experiment-pj-vs-fpu`, l'expérience de CI jamais fusionnée, comme celles de
   #287 (`pown-rel`) et de #288 (`compoundm1`), et `std-exceptions` et
   `revert-285-std-exceptions` depuis le 4 novembre ; celles de #319, #321 et
-  #322 sont supprimées à leur fusion, le 13 novembre, et celle de #320
-  (`release-without-notes`) le 12 novembre, à la demande du mainteneur. L'issue
-  #198 (`x / y` des intervalles NEON avec `FPCR.AH`) est ouverte, sans tâche
-  dans `TODO.md` ; #185 est fermée, le masquage des exceptions de `pow` est
-  gardé. L'issue #177 (`TODO_DONE.md`) n'est plus mise à jour (*décidé le 28
-  octobre*) : GitHub borne le corps d'une issue à 262 144 octets et le texte
-  joint en fait plus de 270 000 (voir `TODO_DONE.md` 7.8).
+  #322 sont supprimées à leur fusion, le 13 novembre, comme celles de #323 à
+  #334, et celle de #320 (`release-without-notes`) le 12 novembre, à la demande
+  du mainteneur. L'issue #198 (`x / y` des intervalles NEON avec `FPCR.AH`) est
+  ouverte, sans tâche dans `TODO.md` ; #185 est fermée, le masquage des
+  exceptions de `pow` est gardé. L'issue #177 (`TODO_DONE.md`) n'est plus mise à
+  jour (*décidé le 28 octobre*) : GitHub borne le corps d'une issue à 262 144
+  octets et le texte joint en fait plus de 270 000 (voir `TODO_DONE.md` 7.8).
 - **À faire**, dans l'ordre de `TODO.md` : les constats de la relecture du 13
-  novembre (PU à PZ), les signalements à d'autres projets (PH, avec l'accord
-  du mainteneur), puis la version (PJ, après PU à PZ, *décidé le 13
-  novembre* : `dev` dans `configure-clean`, section 13, puis la fusion de
-  `configure-clean` dans `master`, que le mainteneur ouvre et fusionne
-  lui-même, puis l'étiquette annotée `v5.0.0`, que la session pose sur son mot
-  sur le commit de fusion et qui lance la Release de `release.yml` (*décidé le
-  12 novembre* : `TODO_DONE.md` 3.36), l'annonce à Frédéric Goualard, la
-  licence des cas d'IBEX et de Codac, sur laquelle le mainteneur écrit aux
-  auteurs (*décidé le 5 novembre* : #281) ; les points 32 et 33, le manuel,
-  macOS 14 et PJ.7 sont faits par #315 à #318 et coupés de `TODO.md`, la
-  couverture, les mesures et le PDF du manuel étant à refaire au commit de la
-  version si le code ou les textes ont changé, ce qui n'était pas le cas le 12
-  novembre à `0ae1840` et le sera après PU à PZ).
-  Ce qui est reporté (le 113, le site, les traits pour YalAA
-  et VNODE-LP, les décorations, ce qui attend du matériel) est dans
-  `TODO_AFTER.md`. Les dépendances entre points sont écrites dans chaque tâche.
-  Le mainteneur donne les tâches ou les points un par un (« traite la tâche PF
-  », « traite le point 129 ») : ne commence pas le suivant sans lui.
+  novembre (PV à PZ ; PU est faite), les signalements à d'autres projets (PH,
+  avec l'accord du mainteneur), puis la version (PJ, après PU à PZ, *décidé le
+  13 novembre* : `dev` dans `configure-clean`, section 13, puis la fusion de
+  `configure-clean` dans `master`, que le mainteneur ouvre et fusionne lui-même,
+  puis l'étiquette annotée `v5.0.0`, que la session pose sur son mot sur le
+  commit de fusion et qui lance la Release de `release.yml` (*décidé le 12
+  novembre* : `TODO_DONE.md` 3.36), l'annonce à Frédéric Goualard, la licence
+  des cas d'IBEX et de Codac, sur laquelle le mainteneur écrit aux auteurs
+  (*décidé le 5 novembre* : #281) ; les points 32 et 33, le manuel, macOS 14 et
+  PJ.7 sont faits par #315 à #318 et coupés de `TODO.md`, la couverture, les
+  mesures et le PDF du manuel étant à refaire au commit de la version si le code
+  ou les textes ont changé, ce qui n'était pas le cas le 12 novembre à `0ae1840`
+  et l'est depuis PU, qui a changé le code de `gaol/`). Ce qui est reporté (le
+  113, le site, les traits pour YalAA et VNODE-LP, les décorations, ce qui
+  attend du matériel) est dans `TODO_AFTER.md`. Les dépendances entre points
+  sont écrites dans chaque tâche. Le mainteneur donne les tâches ou les points
+  un par un (« traite la tâche PF », « traite le point 129 ») : ne commence pas
+  le suivant sans lui.
 
 ## 13. Une version : `dev` → `configure-clean` → `master`
 
