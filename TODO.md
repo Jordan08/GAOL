@@ -27,13 +27,18 @@ articles sont répartis dans les trois registres, dont les tâches PS (faite par
 #297), PT (faite par #301 : `TODO_DONE.md` 3.25) et PP (faite par #302 :
 `TODO_DONE.md` 2.3 et 7.25).
 
-Deux défauts bloquants sont connus depuis la relecture du 13 novembre :
-`acos_rel()`, `asin_rel()` et `atan_rel()` rendent parfois le vide alors que
-l'intervalle contient des solutions (PU.1), et deux threads qui affichent la
-même expression `-x` plantent (PU.2) ; une borne est peut-être fausse aussi pour
+Deux défauts bloquants sont connus depuis la relecture du 13 novembre, et
+corrigés par des pull requests ouvertes : `acos_rel()`, `asin_rel()` et
+`atan_rel()` rendent parfois le vide alors que l'intervalle contient des
+solutions (PU.1, #323), et deux threads qui affichent la même expression `-x`
+plantent (PU.2, #324) ; une borne est peut-être fausse aussi pour
 un programme qui met lui-même `FPCR.AH` sur arm64 (issue #198 : `x / y` des
 intervalles NEON, cause non trouvée). Rien n'est à envoyer à un autre projet ni
-à publier sans l'accord du mainteneur. Aucune pull request n'est ouverte. #319
+à publier sans l'accord du mainteneur. Neuf pull requests sont ouvertes, une
+par point de la tâche PU, vers `dev` : #323 (PU.1), #324 (PU.2), #330 (PU.3),
+#325 (PU.4), #331 (PU.5), #326 (PU.6), #327 (PU.7), #328 (PU.8) et #329
+(PU.9) ; les réponses du mainteneur à leurs questions, le 13 novembre, sont dans
+`TODO_DONE.md` 3.39, et trois d'entre elles sont les points PU.10 à PU.12. #319
 (les renvois aux registres récrits, la même archive des sources) et #322 (la CI
 sur un push vers `dev`) sont fusionnées le 13 novembre dans `dev`, la branche
 créée de `configure-clean` le 12 novembre et la base du développement, et #321
@@ -103,7 +108,7 @@ ici (`TODO_DONE.md` 2.3, 3.34, 3.35, 7.31 et 7.32).
 
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
-| PU | Les bornes, les refus de compilation et les plantages | PU.1 à PU.9 | M |
+| PU | Les bornes, les refus de compilation et les plantages | PU.1 à PU.12 | M |
 | PV | Le lecteur et les expressions | PV.1 à PV.6 | S |
 | PW | Les builds et la CI | PW.1 à PW.11 | M |
 | PX | Les tests sans dents | PX.1 à PX.5 | S |
@@ -145,7 +150,8 @@ en premier.
    (`tests/reverse.cpp`). Correction : essayer aussi `kr - 2`, et `kl + 2` à
    gauche (18 millions d'essais n'y ont trouvé aucun cas, mais le même
    raisonnement le demande), avec un test sur ces trois cas et sur des bornes à
-   un et deux doubles des frontières.
+   un et deux doubles des frontières. Pull request #323 ouverte (*décidé le
+   13 novembre* : `kl + 2` reste, quoique jamais nécessaire).
 2. **Deux threads qui affichent la même expression `-x` plantent** (bloquant,
    démontré : erreur de segmentation à chaque essai) :
    `unary_minus_node::display()` (`gaol/parser/gaol_expression.cpp`, lignes 476
@@ -155,6 +161,7 @@ en premier.
    de copier ou de détruire une expression partagée dans deux threads à la fois.
    Correction : `e_uminus->display(os)`, comme les autres nœuds, et un test
    (l'affichage dans deux threads, ou le compteur inchangé pendant l'affichage).
+   Pull request #324 ouverte ; sa suite est PU.10.
 3. **`-fno-signed-zeros` et `-funsafe-math-optimizations` passent avec GCC**
    (important, démontré) : `gaol/gaol_config.h` (lignes 264 à 273) et
    `doc/three-builds.md` (lignes 416 et 417) disent qu'aucune macro ne les
@@ -165,8 +172,12 @@ en premier.
    voit plus le flush-to-zero seul, et `width()` de `[2, 3]·2^-1074` sous FTZ
    vaut 0, sous la largeur exacte. À faire : un `#error` sur ces macros dans
    `gaol_config.h`, un cas de plus dans les tests `refused_*`, et les deux
-   textes corrigés. *À décider* : refuser aussi `__NO_TRAPPING_MATH__`, sans
-   effet connu sur une borne.
+   textes corrigés. *Décidé le 13 novembre* : refuser aussi
+   `__NO_TRAPPING_MATH__` (avec GCC 15.2, 52 vérifications de
+   `rounding_direction` échouent, `FE_INVALID` sur un opérande vide). Les
+   macros n'existent qu'à partir de GCC 12 (9.4 et 11.4 n'en définissent
+   aucune) : les tests ne se font que là où le compilateur les définit. Pull
+   request #330 ouverte.
 4. **La LTO n'est pas écartée de la cible `gaol`** (important, démontré) : seule
    `gaol_core_math` a `INTERPROCEDURAL_OPTIMIZATION OFF` (`CMakeLists.txt`,
    ligne 1270) ; `-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON`, ou un projet qui
@@ -180,7 +191,10 @@ en premier.
    `-flto` de `CMAKE_C_FLAGS` atteint bien CORE-MATH) sont faux. *À décider* :
    mettre la propriété à `OFF` sur `gaol` aussi, avec un message, ou refaire la
    mesure et corriger les textes ; voir aussi `b_lto` de meson et un `-flto`
-   donné à configure.
+   donné à configure. *Décidé le 13 novembre* : la laisser faire, et corriger
+   les textes (avec GCC 15.2, les 63 tests passent avec elle, avec et sans
+   `GAOL_PRESERVE_ROUNDING`) ; le `-fno-lto` de configure, que le `-flto` de
+   `CFLAGS` emporte, reste. Pull request #325 ouverte ; le job de CI est PU.11.
 5. **Le résultat de `fesetround(FE_UPWARD)` n'est pas vérifié** (important,
    plausible) : le chemin générique de `gaol/gaol_fpu_fenv.h` (lignes 464 à 480)
    l'ignore ; sur une cible où il échoue (ARM 32 bits en flottant logiciel,
@@ -190,12 +204,19 @@ en premier.
    (`gaol_config.h`, ligne 301). Aucune de ces cibles n'est dans la CI. *À
    décider* : refaire la sonde après `round_upward()` dans `init()` et arrêter
    le programme avec un message, ou un `#error` pour les cibles sans unité
-   flottante.
+   flottante. *Décidé le 13 novembre* : la vérification dans `init()`, sans
+   `#error`. Démontré depuis sur Debian armel, sous qemu : `fesetround()` y
+   rend 0 sans rien changer, et 765 344 des 6 234 574 vérifications de
+   `arithmetic` échouent. Sous valgrind, qui calcule SSE au plus près, GAOL
+   s'arrête désormais aussi (rien de plus, *décidé*). Pull request #331
+   ouverte ; le job armel est PU.12.
 6. **ARM64EC n'est refusé nulle part** (mineur) : `gaol/gaol_fpu.h` (ligne 224)
    dit que `gaol_config.h` le refuse, mais aucun build ni en-tête ne teste
    `_M_ARM64EC`, et cette cible prendrait le chemin x64, qui écrit le MXCSR
    émulé (`gaol/math/gaol_core_math_port.h`, ligne 302) : un `#error`, ou
-   corriger le commentaire.
+   corriger le commentaire. Pull request #326 ouverte (le `#error`) ; les
+   mentions d'ARM64EC de `gaol_u128.h` et de `gaol_core_math_port.h` restent
+   (*décidé le 13 novembre*).
 7. **Le `mid()` des intervalles FPU sans la garde de Visual C++** (mineur,
    plausible) : SSE2 (`gaol/core/gaol_interval_sse_impl.h`, lignes 456 à 459) et
    NEON (`gaol/core/gaol_interval_neon_impl.h`, lignes 454 à 457) passent la
@@ -204,19 +225,38 @@ en premier.
    `cl` compile ces intervalles (les jobs `-DGAOL_SIMD=OFF` de `windows.yml`).
    Soit la réécriture n'a pas lieu et la garde de SSE2 et de NEON ne sert à
    rien, soit il en manque une au FPU : aligner les trois, ou dire pourquoi.
-   `subnormal_bounds()` de `tests/other_functions.cpp` teste ce cas.
+   `subnormal_bounds()` de `tests/other_functions.cpp` teste ce cas. Pull
+   request #327 ouverte (la garde dans les trois).
 8. **Des bornes tenues en registre après `GAOL_RND_ENTER()`** (mineur,
    plausible) : `mul_special()` (`gaol/core/gaol_interval_sse_impl.h`, lignes
    765 à 773) et `checked_inverse()` (`gaol/core/gaol_interval_sse_kernels.h`,
    lignes 180 à 189) ne passent pas leurs bornes par `reread_bounds()`,
    contrairement à la règle de `gaol/gaol_fpu.h` (lignes 276 à 279, #150) ; sans
    effet avec GCC 15 et Clang 21 (désassemblés), mais cela dépend du
-   compilateur.
+   compilateur. Pull request #328 ouverte, avec `divide_general()` de SSE2 et
+   `checked_inverse()` des intervalles FPU, que la relecture de la branche a
+   trouvés.
 9. **Le sens d'arrondi sur exception dans `magnitude_text()`** (mineur, vu à la
    lecture) : `gaol/core/gaol_interval_io.cpp` (lignes 246 à 262) passe au plus
    près pour `snprintf()` puis revient vers le haut ; un `std::bad_alloc` de
    `text.assign()` laisse le plus près (process.md §4, principe 3) : un
-   `rounding_guard`.
+   `rounding_guard`. Le défaut ne se produit pas, les appelants tenant un
+   garde ; *décidé le 13 novembre* : un `rounding_guard` quand même, pull
+   request #329 ouverte ; `operator<<` des intervalles de floats, de même
+   forme, reste (*décidé*).
+10. **Le constructeur implicite `expression(const expr_node&)`**
+    (`gaol/parser/gaol_expression.h`, installé), par lequel le `-x` de PU.2
+    faisait une expression temporaire : *décidé le 13 novembre*, le rendre
+    `explicit` avant v5.0.0, par une pull request à part (les fonctions qui
+    construisent les nœuds, les `clone()` et le parser l'écrivent alors ; un
+    changement de l'interface, dans `doc/differences.md`).
+11. **Un job de CI avec la LTO** : *décidé le 13 novembre*, un job GCC de
+    `linux.yml` avec `-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON` et
+    `GAOL_PRESERVE_ROUNDING=ON`, tous les tests (la LTO n'est ni offerte ni
+    refusée, PU.4).
+12. **Un job de CI pour Debian armel** : *décidé le 13 novembre*, un job de
+    `containers.yml`, Debian 12 armel sous qemu, qui vérifie que GAOL s'y
+    arrête avec le message de PU.5 (après #331).
 
 ## PV. Le lecteur et les expressions [S]
 
