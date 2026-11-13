@@ -132,7 +132,15 @@ namespace gaol_core {
     friend class expression;
     public:
     expr_node();
-    expr_node(const expr_node& e);
+    /*
+    A node is not copied, nor are the classes that derive from it (GAOL v5):
+    an interval_node deletes the interval it points to, and the copy the
+    compiler wrote gave the same pointer to both, so that `interval_node
+    b(*a);` and the destruction of the two deleted the same interval twice.
+    clone() is the copy of a node.
+    */
+    expr_node(const expr_node&) = delete;
+    expr_node& operator=(const expr_node&) = delete;
     
     virtual ~expr_node();
     

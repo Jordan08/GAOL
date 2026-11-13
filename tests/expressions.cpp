@@ -1431,6 +1431,25 @@ namespace
   static_assert(std::is_constructible<expression, const gaol_core::expr_node&>::value,
                 "expression(const expr_node&) has to exist");
 
+  /* A node is not copied, nor assigned, nor moved (GAOL v5): the copy the
+     compiler wrote took the interval an interval_node deletes, and
+     `interval_node b(*a);` deleted it twice. clone() copies a node. Checked
+     for the null node, the nodes of no operand, of one and of two */
+  template <class Node>
+  struct node_is_not_copied
+  {
+    static const bool value = !std::is_copy_constructible<Node>::value && !std::is_copy_assignable<Node>::value
+                              && !std::is_move_constructible<Node>::value && !std::is_move_assignable<Node>::value;
+  };
+  static_assert(node_is_not_copied<gaol_core::null_node>::value
+                  && node_is_not_copied<gaol_core::double_node>::value
+                  && node_is_not_copied<gaol_core::interval_node>::value
+                  && node_is_not_copied<gaol_core::unary_minus_node>::value
+                  && node_is_not_copied<gaol_core::sin_node>::value
+                  && node_is_not_copied<gaol_core::add_node>::value
+                  && node_is_not_copied<gaol_core::atan2_node>::value,
+                "a node is not copied");
+
   void display_keeps_counts()
   {
     const expression x = expression(interval(1.0, 2.0));
