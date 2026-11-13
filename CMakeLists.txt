@@ -188,9 +188,10 @@ option(GAOL_COVERAGE "Compile GAOL and its tests with the counters of gcov, and 
 # toward zero: the compiler moved floating-point operations across the changes
 # of rounding direction, which -frounding-math is meant to forbid. With GCC
 # 15.2 and the code of 13 November 2026, the 63 tests pass with it, with and
-# without GAOL_PRESERVE_ROUNDING; no other version of GCC was tried with it,
-# and no job of the continuous integration builds with it, so that it is not
-# offered (see doc/three-builds.md). A -flto given by hand in CMAKE_C_FLAGS
+# without GAOL_PRESERVE_ROUNDING, and with GCC 13.3 as well, which a job of
+# linux.yml builds it with, the direction preserved; the other compilers and
+# versions were not tried with it, and it is not offered (see
+# doc/three-builds.md). A -flto given by hand in CMAKE_C_FLAGS
 # reaches the sources of CORE-MATH too, as one in CFLAGS does in the autotools
 # build and one in c_args in meson's.
 

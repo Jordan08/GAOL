@@ -35,7 +35,11 @@ GAOL v5). The badges of
   no `__builtin_roundeven()` (see [3rd/README.md](../3rd/README.md)), and as a
   shared library (`BUILD_SHARED_LIBS`, `--enable-shared` and
   `-Ddefault_library=shared`: the static library is the default of the three
-  builds, GAOL v5); the test `automatic_configuration` configures GAOL several
+  builds, GAOL v5), and with the interprocedural optimization
+  (`-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON`, GCC of Ubuntu 24.04, the rounding
+  direction preserved), which GAOL neither offers nor refuses (see
+  [Three builds](three-builds.md#interprocedural-optimization-is-not-offered),
+  GAOL v5); the test `automatic_configuration` configures GAOL several
   times, with the settings of a user and of a developer and in a
   cross-compilation, and holds the header and the messages to what the checks
   found (the fused multiply-add instructions, the AVX-512 path, the 128-bit

@@ -142,6 +142,14 @@ jobs:
           # (-DGAOL_PREFER_AVX512=OFF), the SSE2 operations of the
           # preserved direction staying covered (GAOL v5)
           - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     opts: '-DGAOL_PRESERVE_ROUNDING=ON -DGAOL_PREFER_AVX512=OFF', desc: 'Ubuntu 24.04 x86_64 GCC, rounding direction preserved, AVX-512 arithmetic not taken' }
+          # The interprocedural optimization (-flto), which GAOL neither offers
+          # nor refuses, with GCC (13.3 here) and the rounding direction
+          # preserved: on 20 September 2026, with the code of then, GCC moved
+          # operations across the changes of direction with it, and
+          # rounding_direction failed; GCC 13.3 and 15.2 pass the tests with it
+          # (GAOL v5, doc/three-builds.md). The step after Configure checks
+          # that the target gaol takes -flto
+          - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     opts: '-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON -DGAOL_PRESERVE_ROUNDING=ON', desc: 'Ubuntu 24.04 x86_64 GCC, interprocedural optimization, rounding direction preserved' }
     steps:
       - uses: actions/checkout@v7
       - name: Tools
@@ -165,6 +173,16 @@ jobs:
           case "${{ matrix.cfg.opts }}" in *GAOL_SSE2_UNALIGNED_STORAGE=ON*)
             grep -q "^#define GAOL_SSE2_UNALIGNED_STORAGE 1" build/gaol/gaol_configuration.h ;; esac
           sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h $expected
+      # The interprocedural optimization, where the job asks for it: the target
+      # gaol is compiled with -flto, so that the job tests what it says
+      - name: The interprocedural optimization
+        if: contains(matrix.cfg.opts, 'CMAKE_INTERPROCEDURAL_OPTIMIZATION=ON')
+        run: |
+          if ! grep -q -- "-flto" build/CMakeFiles/gaol.dir/flags.make; then
+            echo "::error::CMAKE_INTERPROCEDURAL_OPTIMIZATION=ON, but the target gaol is compiled without -flto"
+            exit 1
+          fi
+          grep -o -- "-flto[^ ]*" build/CMakeFiles/gaol.dir/flags.make | sort -u
       # The processor of the runner, and whether the arithmetic takes the
       # AVX-512 path, which the configuration decides from the instructions
       # the runner has (GAOL_AVX512_ARITHMETIC): a warning where
