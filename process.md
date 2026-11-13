@@ -990,7 +990,9 @@ git ls-remote --heads origin
   (`TODO_DONE.md` 2.3, 3.38 et 7.35) ; #320, remplacée par #319 et #321, est
   fermée sans fusion (2.4) ; l'audit du 13 octobre a vérifié dans
   `configure-clean` ce qu'annonçaient alors les points A, C à H et J à V.
-- **En cours** : au 13 novembre, aucune pull request n'est ouverte : #295
+- **En cours** : au 13 novembre au soir, neuf pull requests sont ouvertes vers
+  `dev`, une par point de la tâche PU, #323 à #331 (`TODO.md`, tâche PU, et
+  `TODO_DONE.md` 3.39 pour les décisions de leurs questions) ; #295
   (PS.2 ; `manual-neon-pown-text`), #296 (le cas (b) ; `manual-case-b-text`),
   #297 (la tâche PS ; `todo-ps-stale-texts`), #299 (PQ.2 ;
   `todo-pq-hexfloat-point`), #298 (PQ.1 ; `todo-pq-centered-form`), #300 (la

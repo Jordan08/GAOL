@@ -6447,6 +6447,40 @@ Puis :
   `configure-clean` dans `master` et l'étiquette `v5.0.0` attendent les tâches
   PU à PZ.
 
+### 3.39 Le 13 novembre au soir : les questions de la tâche PU
+
+Pendant la tâche PU (« traite la tache PU »), le mainteneur répond à huit
+questions de la session, posées avec leurs mesures, puis à huit autres, les
+« Questions ouvertes » des pull requests #323 à #331 (« As-tu des questions ?
+Propose 4 réponse par question ») :
+
+- **PU.3** : refuser aussi `-fno-trapping-math` (`__NO_TRAPPING_MATH__`), qui
+  fait lever `FE_INVALID` sur un opérande vide (52 vérifications de
+  `rounding_direction` avec GCC 15.2) ; fait par #330.
+- **PU.4** : la LTO n'est pas écartée de la cible `gaol` ; les textes sont
+  corrigés (avec GCC 15.2, les 63 tests passent avec elle, avec et sans
+  `GAOL_PRESERVE_ROUNDING`), #325. Le `-fno-lto` de configure, que le `-flto` de
+  `CFLAGS` emporte, reste ; un job GCC de CI avec la LTO et
+  `GAOL_PRESERVE_ROUNDING` est ajouté (`TODO.md` PU.11).
+- **PU.5** : vérifier à l'initialisation que le sens réglé vers le haut arrondit
+  vers le haut, et arrêter le programme avec un message, sans `#error` pour les
+  cibles sans unité flottante (#331). L'arrêt sous valgrind, qui calcule SSE au
+  plus près, ne demande rien de plus ; un job Debian armel est ajouté maintenant
+  (`TODO.md` PU.12).
+- **PU.9** : le défaut ne se produit pas (les appelants tiennent un
+  `rounding_guard`) ; un garde quand même (#329), pas dans `operator<<` des
+  intervalles de floats, qu'aucun build ne compile.
+- **PU.1** : `kl + 2`, jamais nécessaire à gauche, reste (#323).
+- **PU.2** : le constructeur `expression(const expr_node&)` devient `explicit`
+  avant v5.0.0, par une pull request à part (`TODO.md` PU.10).
+- **PU.6** : les mentions d'ARM64EC de `gaol/math/gaol_u128.h` et de
+  `gaol/math/gaol_core_math_port.h`, que le refus de #326 rend inutiles,
+  restent.
+
+PU.6 (un `#error`), PU.7 (aligner les trois sortes d'intervalles) et PU.8
+étaient tranchés par les principes de `process.md` §4 ; chaque pull request le
+dit.
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -8532,6 +8566,14 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   #178) n'a rien de nouveau.
 - Ce push sur `dev` est le premier depuis #322 : il annule la CI de la fusion
   `f7046b9`, dont il porte le code, et a la sienne.
+
+### 7.36 Le 13 novembre au soir (la tâche PU : les décisions)
+
+- Les décisions de 3.39, et les neuf pull requests ouvertes de la tâche PU
+  (#323 à #331), en un commit direct sur `dev` (process.md §3.4 : des décisions
+  sans pull request), depuis un clone privé : `TODO.md` (l'en-tête, la table, la
+  tâche PU et ses points PU.10 à PU.12), ce fichier (3.39 et 7.36), `process.md`
+  (§12) et l'issue #179. `TODO_AFTER.md` (l'issue #178) n'a rien de nouveau.
 
 ## 8. Le ménage fait
 
