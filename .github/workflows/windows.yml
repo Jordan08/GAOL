@@ -28,7 +28,7 @@
 # same image of runner, each one an action of .github/actions/ called
 # with the row of the matrix it had when it was a job of its own: the
 # configurations, their options and their checks are those of the jobs
-# they replace (GAOL v5).
+# they replace (GAOL v5). Below, a job is one of these configurations.
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -67,14 +67,11 @@ env:
 jobs:
 
   w1:
-    name: 'Visual Studio 2022 x64 and clang-cl x64 Release (4 configurations)'
+    name: 'Visual Studio 2022 x64, clang-cl x64 Release (4 configurations)'
     runs-on: windows-2022
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
-      # One setup of Intel SDE for the group
-      - name: Intel SDE
-        uses: petarpetrovt/setup-sde@6d2773bc0ef3005fd52e0ae0bb91782321793aec # v6.0
       - id: c1
         name: 'Visual Studio 2022 x64 Debug'
         if: ${{ !cancelled() }}
@@ -131,7 +128,7 @@ jobs:
             c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }}
         run: |
           status=0
-          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Visual Studio 2022 x64 and clang-cl x64 Release' >> "$GITHUB_STEP_SUMMARY"
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Visual Studio 2022 x64, clang-cl x64 Release' >> "$GITHUB_STEP_SUMMARY"
           for kv in $OUTCOMES; do
             case "${kv%%=*}" in
               c1) name='Visual Studio 2022 x64 Debug' ;;
@@ -554,11 +551,12 @@ jobs:
       # fesetround() for its elementary functions. Those whose fma() or
       # round() is wrong are refused, CORE-MATH computing with that fma()
       # (see gaol/gaol_config.h): MinGW-w64 GCC 11 to 13 on x86-64, and GCC
-      # 11 on 32-bit x86, which the job mingw-refused checks. GCC 12 and 13
-      # on 32-bit x86 compute the fma() of mingw-w64 11 on the x87 unit,
-      # in extended precision, when GAOL_FMA is off: it passes the tests,
-      # though it is not correctly rounded (the job 13.2.0 x86 Release,
-      # no FMA). With GAOL_FMA, the default, they get -mfma (GAOL v5).
+      # 11 on 32-bit x86, which the configurations ending in ", refused"
+      # check. GCC 12 and 13 on 32-bit x86 compute the fma() of mingw-w64 11
+      # on the x87 unit, in extended precision, when GAOL_FMA is off: it
+      # passes the tests, though it is not correctly rounded (MinGW-w64
+      # 13.2.0 x86 Release, no FMA). With GAOL_FMA, the default, they get
+      # -mfma (GAOL v5)
       - id: c1
         name: 'MinGW-w64 14.2.0 x64 Release'
         if: ${{ !cancelled() }}
@@ -716,12 +714,15 @@ jobs:
       # Visual C++ and clang-cl take as GCC and Clang do: on a runner with
       # the instructions, which the step after Configure tells, the whole
       # suite of tests takes that path, its bounds being those of the SSE2
-      # path (GAOL v5). The job above takes the path too, on such a runner,
-      # as GAOL_PREFER_AVX512 follows the rounding direction preserved; the
-      # one below refuses it (-DGAOL_PREFER_AVX512=OFF), the SSE2
-      # operations of the preserved direction staying covered, as in
-      # linux.yml. No asm statement orders the operations of Visual C++:
-      # these jobs and tests/rounding_direction.cpp are what checks them
+      # path (GAOL v5). "Visual Studio 2026 x64 Release, rounding direction
+      # preserved" takes the path too, on such a runner, as
+      # GAOL_PREFER_AVX512 follows the rounding direction preserved;
+      # "Visual Studio 2026 x64 Release, rounding direction preserved,
+      # AVX-512 arithmetic not taken" refuses it (-DGAOL_PREFER_AVX512=OFF),
+      # the SSE2 operations of the preserved direction staying covered, as
+      # in linux.yml. No asm statement orders the operations of Visual C++:
+      # these configurations and tests/rounding_direction.cpp are what
+      # checks them
       - id: c4
         name: 'Visual Studio 2026 x64 Release, AVX-512 arithmetic'
         if: ${{ !cancelled() }}
@@ -770,9 +771,6 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
-      # One setup of Intel SDE for the group
-      - name: Intel SDE
-        uses: petarpetrovt/setup-sde@6d2773bc0ef3005fd52e0ae0bb91782321793aec # v6.0
       - id: c1
         name: 'Visual Studio 2026 x64 Debug'
         if: ${{ !cancelled() }}
@@ -825,9 +823,6 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
-      # One setup of Intel SDE for the group
-      - name: Intel SDE
-        uses: petarpetrovt/setup-sde@6d2773bc0ef3005fd52e0ae0bb91782321793aec # v6.0
       - id: c1
         name: 'Visual Studio 2026 x64 Release, AVX-512 arithmetic under SDE'
         if: ${{ !cancelled() }}
@@ -1117,23 +1112,14 @@ jobs:
           generator: 'Visual Studio 18 2026'
           arch: 'ARM64'
           config: 'Release'
-      - id: c2
-        name: 'Visual Studio 2026 arm64 Release, FPU intervals'
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/windows-visual-studio
-        with:
-          desc: 'Visual Studio 2026 arm64 Release, FPU intervals'
-          generator: 'Visual Studio 18 2026'
-          arch: 'ARM64'
-          config: 'Release'
-          opts: '-DGAOL_SIMD=OFF'
       # The NEON intervals of Visual C++ for arm64 (GAOL v5) read and write
       # FPCR through _ReadStatusReg() and _WriteStatusReg(), and no asm
-      # statement orders their operations: the jobs above and
-      # tests/rounding_direction.cpp are what checks them. This one runs
-      # them with the rounding direction restored by each operation too,
-      # and the next one the FPU intervals, which -DGAOL_SIMD=OFF gives
-      - id: c3
+      # statement orders their operations: the other configurations for
+      # arm64 and tests/rounding_direction.cpp are what checks them. This
+      # one runs them with the rounding direction restored by each
+      # operation too, and "Visual Studio 2026 arm64 Release, FPU
+      # intervals" the FPU intervals, which -DGAOL_SIMD=OFF gives
+      - id: c2
         name: 'Visual Studio 2026 arm64 Release, rounding direction preserved'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio
@@ -1143,6 +1129,16 @@ jobs:
           arch: 'ARM64'
           config: 'Release'
           opts: '-DGAOL_PRESERVE_ROUNDING=ON'
+      - id: c3
+        name: 'Visual Studio 2026 arm64 Release, FPU intervals'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio
+        with:
+          desc: 'Visual Studio 2026 arm64 Release, FPU intervals'
+          generator: 'Visual Studio 18 2026'
+          arch: 'ARM64'
+          config: 'Release'
+          opts: '-DGAOL_SIMD=OFF'
       - id: c4
         name: 'Visual Studio 2026 clang-cl arm64 Release'
         if: ${{ !cancelled() }}
@@ -1166,8 +1162,8 @@ jobs:
           for kv in $OUTCOMES; do
             case "${kv%%=*}" in
               c1) name='Visual Studio 2026 arm64 Release' ;;
-              c2) name='Visual Studio 2026 arm64 Release, FPU intervals' ;;
-              c3) name='Visual Studio 2026 arm64 Release, rounding direction preserved' ;;
+              c2) name='Visual Studio 2026 arm64 Release, rounding direction preserved' ;;
+              c3) name='Visual Studio 2026 arm64 Release, FPU intervals' ;;
               c4) name='Visual Studio 2026 clang-cl arm64 Release' ;;
             esac
             printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"

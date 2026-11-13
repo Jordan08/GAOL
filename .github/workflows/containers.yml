@@ -11,7 +11,7 @@
 # same image of runner, each one an action of .github/actions/ called
 # with the row of the matrix it had when it was a job of its own: the
 # configurations, their options and their checks are those of the jobs
-# they replace (GAOL v5).
+# they replace (GAOL v5). Below, a job is one of these configurations.
 #
 # Copyright (c) 2026 ENSTA, France
 #

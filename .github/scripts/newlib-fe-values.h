@@ -11,8 +11,8 @@
 
 /* The FE_* rounding values of newlib, the C library of Cygwin (0 to nearest,
    1 downward, 2 upward, 3 toward zero, newlib/libc/machine/shared_x86/sys/
-   fenv.h), put over those of glibc for the sources of CORE-MATH, which the job
-   cygwin-fe-values of linux.yml compiles with -include and this header
+   fenv.h), put over those of glibc for the sources of CORE-MATH, which the
+   configuration cygwin-fe-values of linux.yml compiles with -include and this header
    (GAOL v5). GCC and Clang for Cygwin define __x86_64__ but not __WIN32__,
    which Linux mimics: upstream's get_rounding_mode() of cbrt.c, rsqrt.c and
    asinpi.c then took the downward and upward roundings for toward zero there,

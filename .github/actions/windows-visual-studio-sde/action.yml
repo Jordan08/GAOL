@@ -51,6 +51,8 @@ runs:
         git reset --hard -q
         for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
         test -z "$(git status --porcelain --ignored)"
+    - name: Intel SDE
+      uses: petarpetrovt/setup-sde@6d2773bc0ef3005fd52e0ae0bb91782321793aec # v6.0
     - name: Configure
       shell: bash
       run: |

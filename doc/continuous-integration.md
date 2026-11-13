@@ -8,7 +8,9 @@
 
 Part of the documentation of [GAOL v5](../README.md#documentation).
 
-The workflows of `.github/workflows/` build GAOL with CMake and run the tests,
+The workflows of `.github/workflows/` build GAOL with CMake and run the tests
+(a job is a group of configurations: see
+[Jobs and configurations](#jobs-and-configurations)),
 with `make test` (`cmake --build <build> --target test`, `RUN_TESTS` with
 Visual Studio). They run for each pull request, and for each push to the
 branches `master`, `configure-clean` and `dev` only: a push to another branch
@@ -282,6 +284,47 @@ x86_64 GCC of `linux.yml` installs, at each run, so that a change of the
 library that changes one of their outputs shows, and have to print what the
 manual shows (`manual/check_examples.py`, GAOL v5).
 
+## Jobs and configurations
+
+A job of `linux.yml`, `containers.yml`, `macos.yml`, `windows.yml` and
+`build-systems.yml` is a group of configurations: they run one after the other
+on the same image of runner, so that a pull request lists about sixty checks
+instead of two hundred (GAOL v5). A configuration is a step of the job that
+calls an action of `.github/actions/` (`<workflow>-<job>`: the steps of what
+was a job of its own) with the row of the matrix that job had, and it has the
+name that job had. Where this document says "job" for something that is
+checked (the jobs of `windows.yml` that ask for `/W4 /WX`, for example), it
+means such a configuration.
+
+- A configuration that fails does not stop the next ones of its job (`if: ${{
+  !cancelled() }}`). The job fails at the end; its summary has a table with the
+  result of each configuration, its log a step for each. Running the failed
+  job again runs all its configurations again.
+- Each action starts by giving its configuration the tree as git has it
+  (`git clean`, `git reset --hard`; `sudo chown` first on Linux, the containers
+  writing as root) and a temporary directory without what the previous
+  configurations left in it. What a configuration changes outside of those is
+  dealt with where it changes it: the CMake 3.14.7 of `cmake-3-14` is put first
+  in the PATH of its own steps only, and `launcher-ninja` puts back the Ninja
+  it removes; the MinGW-w64 of Chocolatey replaces the previous one, each
+  configuration installing its own and checking that its `g++` is the first in
+  PATH; MSYS2 is installed once for the group, the configurations choosing their
+  environment with `MSYSTEM` (the action refuses a second installation); meson
+  is installed with `pipx install --force`, so that 0.53.2 and the latest follow
+  each other; the macOS sanitizers set `LDFLAGS` for every compiler.
+- The groups are of about fifteen minutes of work. The configurations that
+  change the machine come last in their group, and the ones that need it as it
+  is come first (the meson of Ubuntu before any `pipx install meson`, the
+  archives of the sources before `apt-get install autoconf`, the setup of MSYS2
+  before the calls of `ilammy/msvc-dev-cmd`, whose environment grows at each
+  call until the `xargs` of MSYS2 refuses it). Intel SDE is set up by each
+  configuration that runs under it: the action extracts it into the tree,
+  which the next configuration cleans.
+- To add a configuration, add a step to the job of the machine it runs on, with
+  the name it is to have and the row of its matrix as `with:`. A new kind of
+  job is a new action; a configuration longer than the others, or that has to
+  start from a machine of its own (Cygwin), is a job of its own.
+
 ## The speed of a pull request
 
 The times of the continuous integration cannot be compared from one run to the
@@ -375,7 +418,7 @@ cannot be installed, and that table is a notice, not an error, where it cannot
 be made. `make perf` runs the same ten lines (see
 [doc/compare/code/README.md](compare/code/README.md)).
 
-The job `control-register-performance` of `containers.yml` (Debian 13 armhf and
+The configuration `control-register-performance` of `containers.yml` (Debian 13 armhf and
 arm64) uses the same scripts to compare two builds of one tree that differ by a
 CMake option: the control register of the rounding direction written directly
 with `GAOL_PRESERVE_ROUNDING`, or the functions of the C library, and only the

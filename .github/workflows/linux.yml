@@ -33,7 +33,7 @@
 # same image of runner, each one an action of .github/actions/ called
 # with the row of the matrix it had when it was a job of its own: the
 # configurations, their options and their checks are those of the jobs
-# they replace (GAOL v5).
+# they replace (GAOL v5). Below, a job is one of these configurations.
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -156,7 +156,7 @@ jobs:
           exit $status
 
   l2:
-    name: 'Ubuntu 24.04 x86_64, GCC, other intervals (5 configurations)'
+    name: 'Ubuntu 24.04 x86_64, GCC, other intervals and AVX-512 (5 configurations)'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
@@ -223,9 +223,9 @@ jobs:
       # The same, with the rounding direction of the program preserved:
       # the AVX-512 path then spares the store of MXCSR that the SSE2
       # one pays in every operation, which GAOL_PRESERVE_ROUNDING takes
-      # by default. The job above takes the path, this one refuses it
-      # (-DGAOL_PREFER_AVX512=OFF), the SSE2 operations of the
-      # preserved direction staying covered (GAOL v5)
+      # by default. "Ubuntu 24.04 x86_64 GCC, AVX-512 arithmetic" takes the
+      # path, this one refuses it (-DGAOL_PREFER_AVX512=OFF), the SSE2
+      # operations of the preserved direction staying covered (GAOL v5)
       - id: c5
         name: 'Ubuntu 24.04 x86_64 GCC, rounding direction preserved, AVX-512 arithmetic not taken'
         if: ${{ !cancelled() }}
@@ -243,7 +243,7 @@ jobs:
             c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }} c5=${{ steps.c5.outcome }}
         run: |
           status=0
-          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Ubuntu 24.04 x86_64, GCC, other intervals' >> "$GITHUB_STEP_SUMMARY"
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Ubuntu 24.04 x86_64, GCC, other intervals and AVX-512' >> "$GITHUB_STEP_SUMMARY"
           for kv in $OUTCOMES; do
             case "${kv%%=*}" in
               c1) name='Ubuntu 24.04 x86_64 GCC, FPU intervals' ;;

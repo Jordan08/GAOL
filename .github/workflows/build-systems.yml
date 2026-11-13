@@ -23,7 +23,7 @@
 # same image of runner, each one an action of .github/actions/ called
 # with the row of the matrix it had when it was a job of its own: the
 # configurations, their options and their checks are those of the jobs
-# they replace (GAOL v5).
+# they replace (GAOL v5). Below, a job is one of these configurations.
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -549,6 +549,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - id: c1
+        name: 'Autotools, Clang for Visual C++ x64 (clang++)'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/build-autotools-clang-msvc
+        with:
+          desc: 'Autotools, Clang for Visual C++ x64 (clang++)'
+      - id: c2
         name: 'Meson, Clang for Visual C++ x64 (clang++)'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/build-meson-clang-msvc
@@ -559,7 +565,7 @@ jobs:
           cpu_family: 'x86_64'
           cpu: 'x86_64'
           machine: 'X64'
-      - id: c2
+      - id: c3
         name: 'Meson, Clang for Visual C++ x86 (clang++)'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/build-meson-clang-msvc
@@ -570,26 +576,20 @@ jobs:
           cpu_family: 'x86'
           cpu: 'i686'
           machine: 'X86'
-      - id: c3
+      - id: c4
         name: 'Meson, Visual Studio 2022 x64'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/build-meson-msvc
         with:
           desc: 'Meson, Visual Studio 2022 x64'
           arch: 'x64'
-      - id: c4
+      - id: c5
         name: 'Meson, Visual Studio 2022 x86'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/build-meson-msvc
         with:
           desc: 'Meson, Visual Studio 2022 x86'
           arch: 'x86'
-      - id: c5
-        name: 'Autotools, Clang for Visual C++ x64 (clang++)'
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-autotools-clang-msvc
-        with:
-          desc: 'Autotools, Clang for Visual C++ x64 (clang++)'
       - name: Results of the configurations
         if: ${{ always() }}
         shell: bash
@@ -601,11 +601,11 @@ jobs:
           printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Clang for Visual C++ and Visual Studio 2022' >> "$GITHUB_STEP_SUMMARY"
           for kv in $OUTCOMES; do
             case "${kv%%=*}" in
-              c1) name='Meson, Clang for Visual C++ x64 (clang++)' ;;
-              c2) name='Meson, Clang for Visual C++ x86 (clang++)' ;;
-              c3) name='Meson, Visual Studio 2022 x64' ;;
-              c4) name='Meson, Visual Studio 2022 x86' ;;
-              c5) name='Autotools, Clang for Visual C++ x64 (clang++)' ;;
+              c1) name='Autotools, Clang for Visual C++ x64 (clang++)' ;;
+              c2) name='Meson, Clang for Visual C++ x64 (clang++)' ;;
+              c3) name='Meson, Clang for Visual C++ x86 (clang++)' ;;
+              c4) name='Meson, Visual Studio 2022 x64' ;;
+              c5) name='Meson, Visual Studio 2022 x86' ;;
             esac
             printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
             [ "${kv#*=}" = success ] || status=1
