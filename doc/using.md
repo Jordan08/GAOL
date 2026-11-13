@@ -1088,7 +1088,10 @@ example; they are listed here for the reader who looks in this page first.
   80 000 digits 0.18 s, 320 000 digits 2.8 s (about 28 s expected for a
   million), and the uncertain form 2.2 to 2.4 times as long (Intel i7-1185G7,
   GCC 15.2, the best of five runs, 7 November 2026). A text from elsewhere
-  can thus block a program.
+  can thus block a program. A number far beyond the doubles (10^311 or more,
+  below 10^-331, or, in base 16, 8 or 2, about 2^1026 or more and 2^-1081 or
+  less) is the exception: its digits are counted and not put in an integer,
+  and it is read in a time linear in their number (GAOL v5).
 - **Threads and the global settings.** `interval::format()` and
   `interval::precision()` are plain variables of the program, shared by its
   threads: setting one while another thread writes an interval (`operator<<`,
