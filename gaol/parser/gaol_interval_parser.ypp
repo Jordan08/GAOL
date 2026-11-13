@@ -800,7 +800,7 @@ static expr_node *gaol_negation(void *context, expr_node *e)
 {
   expr_node *result = 0;
   try {
-    result = gaol_node(new unary_minus_node(*e));
+    result = gaol_node(new unary_minus_node(expression(*e)));
   } catch (...) {
     gaol_context(context)->exception = std::current_exception();
   }
