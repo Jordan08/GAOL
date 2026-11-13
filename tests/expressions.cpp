@@ -1371,6 +1371,86 @@ namespace
           [&] { return std::to_string(before) + ", " + std::to_string(during) + ", " + std::to_string(after); });
   }
 
+  // A stream buffer of no buffer, which reads the count of references of a
+  // node at each character written
+  class counting_buffer : public std::streambuf
+  {
+  public:
+    explicit counting_buffer(const gaol_core::expr_node* node) : node_(node) {}
+    const std::vector<unsigned int>& counts() const { return counts_; }
+
+  protected:
+    int_type overflow(int_type c) override
+    {
+      counts_.push_back(node_->references());
+      return traits_type::not_eof(c);
+    }
+
+  private:
+    const gaol_core::expr_node* node_;
+    std::vector<unsigned int> counts_;
+  };
+
+  /* Displaying an expression leaves the counts of references of its nodes as
+     they are (GAOL v5): the counts are plain unsigned ints, and an expression
+     may be displayed in two threads at once. unary_minus_node::display()
+     wrote its operand through operator<<(), which took it as a temporary
+     expression, one reference more while it was written and one less after:
+     two threads displaying the same -x lost updates, and the node of x was
+     deleted while x held it, a segmentation fault each time. The tests run no
+     thread: the count of the operand is read at each character written, for
+     every node of one or two operands, the operand being a sum, which some
+     nodes write within parentheses, or a sine, which none does. */
+  void display_keeps_counts()
+  {
+    const expression x = expression(interval(1.0, 2.0));
+    const expression operands[] = { x + x, sin(x) };
+    using build = std::function<expression(const expression&)>;
+    struct Case { const char* name; build f; };
+    const Case cases[] = {
+      {"-c", [&](const expression& c) { return -c; }},
+      {"c+x", [&](const expression& c) { return c + x; }}, {"x+c", [&](const expression& c) { return x + c; }},
+      {"c-x", [&](const expression& c) { return c - x; }}, {"x-c", [&](const expression& c) { return x - c; }},
+      {"c*x", [&](const expression& c) { return c * x; }}, {"x*c", [&](const expression& c) { return x * c; }},
+      {"c/x", [&](const expression& c) { return c / x; }}, {"x/c", [&](const expression& c) { return x / c; }},
+      {"c^x", [&](const expression& c) { return pow(c, x); }}, {"x^c", [&](const expression& c) { return pow(x, c); }},
+      {"c^3", [&](const expression& c) { return pow(c, 3); }},
+      {"nth_root(c,3)", [&](const expression& c) { return nth_root(c, 3u); }},
+      {"atan2(c,x)", [&](const expression& c) { return atan2(c, x); }},
+      {"atan2(x,c)", [&](const expression& c) { return atan2(x, c); }},
+      {"cos", [&](const expression& c) { return cos(c); }}, {"sin", [&](const expression& c) { return sin(c); }},
+      {"tan", [&](const expression& c) { return tan(c); }}, {"acos", [&](const expression& c) { return acos(c); }},
+      {"asin", [&](const expression& c) { return asin(c); }}, {"atan", [&](const expression& c) { return atan(c); }},
+      {"cosh", [&](const expression& c) { return cosh(c); }}, {"sinh", [&](const expression& c) { return sinh(c); }},
+      {"tanh", [&](const expression& c) { return tanh(c); }}, {"acosh", [&](const expression& c) { return acosh(c); }},
+      {"asinh", [&](const expression& c) { return asinh(c); }}, {"atanh", [&](const expression& c) { return atanh(c); }},
+      {"exp", [&](const expression& c) { return exp(c); }}, {"log", [&](const expression& c) { return log(c); }},
+      {"exp2", [&](const expression& c) { return exp2(c); }}, {"log2", [&](const expression& c) { return log2(c); }},
+      {"sign", [&](const expression& c) { return sign(c); }}, {"trunc", [&](const expression& c) { return trunc(c); }},
+    };
+    for (const expression& c : operands) {
+      for (const Case& k : cases) {
+        const expression e = k.f(c);
+        const unsigned int before = c.get_root()->references();
+        counting_buffer counting(c.get_root());
+        std::ostream os(&counting);
+        os << e;
+        const std::vector<unsigned int>& during = counting.counts();
+        const bool kept = !during.empty() && std::all_of(during.begin(), during.end(),
+                                                         [&](unsigned int n) { return n == before; });
+        check("expression: displaying it leaves the counts of references of its operands as they are",
+              kept && c.get_root()->references() == before, [&] {
+                std::ostringstream o;
+                o << k.name << " of c = " << c << ": " << before << " references to c, then";
+                for (unsigned int n : during) {
+                  o << ' ' << n;
+                }
+                return o.str();
+              });
+      }
+    }
+  }
+
   /* The long and the deeply nested expressions (GAOL v5)
 
      A sum of 100000 terms read from a string, and an expression that long
@@ -2112,6 +2192,7 @@ int main()
   step("decimals");          decimals();
   step("built_expressions"); built_expressions();
   step("null_node_not_counted"); null_node_not_counted();
+  step("display_keeps_counts"); display_keeps_counts();
   step("eval_stack");        eval_stack_growth();
   step("null_operands");     null_operands();
   step("random_trees");      random_trees();

@@ -1315,7 +1315,11 @@ which `numbers` checks there too.
   expressions to that node, `the_null_expr`, must not be counted
   (`expr_node::references()` does not change as they are built, copied,
   assigned and extended): the count, changed by several threads at once, came
-  down to 0 and the node was deleted twice (GAOL v5). Long expressions have to
+  down to 0 and the node was deleted twice (GAOL v5). Displaying an expression
+  must leave the counts of its operands as they are, read at each character
+  written, for every node of one or two operands: `-x` wrote its operand as a
+  temporary expression, one reference more while it was written, and two
+  threads displaying the same `-x` crashed (GAOL v5). Long expressions have to
   be evaluated and deleted: chains read from a string of 200000 sums
   (`pi+pi+...`) or products and quotients (`pi*pi/pi*...`), and of 20000
   differences and sums, the same chains built in C++ on the left, with the
@@ -1449,8 +1453,15 @@ which `numbers` checks there too.
   (`absRev`), `nth_root_rel` (`pownRev`, for every integer p, GAOL v5),
   `asin_rel`, `acos_rel`, `atan_rel`
   (`sinRev`, `cosRev`, `tanRev`), `acosh_rel` (`coshRev`), and `div_rel`,
-  `%` and `%=` (`mulRev`). Over the cases of the minimal tests of
-  libieeep1788 and random ones, each result has to be, as 12.10.2 asks:
+  `%` and `%=` (`mulRev`). The cases are those of the minimal tests of
+  libieeep1788, random ones and, for the periodic functions, 602 cases with
+  a bound of x one or two doubles beside a point where the function reaches
+  −1 or 1 or has a pole, kπ or (k + 1/2)π for k of either sign up to
+  2^50 + 17, c being the value or the limit there: the solutions next to that
+  bound are then a period away (GAOL v5; `acos_rel([1], [20,
+  31.415926535897928])` was empty, though 8π is in x, the upper bound being
+  two doubles below 10π). In each case, the result has to be, as 12.10.2
+  asks:
   empty when an argument is; **valid**, enclosing the hull of the x of I
   whose image is in J, which the tests hold the tightest enclosure of; and
   **accurate**, which the standard recommends for inf-sup types, within
