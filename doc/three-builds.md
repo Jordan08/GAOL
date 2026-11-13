@@ -413,24 +413,47 @@ command line, before `-Ofast` too: `-frounding-math` stays, and the header has
 nothing to refuse. With Clang, `-fno-fast-math` turns them off only when it
 comes after `-Ofast`, and `-frounding-math` stays off.
 
+With GCC, `gaol/gaol_config.h` refuses `-fno-signed-zeros`,
+`-fno-trapping-math`, `-fassociative-math` and `-freciprocal-math` too, which
+`-funsafe-math-optimizations` turns on, as do `-ffast-math` and `-Ofast` with
+`-fno-finite-math-only`: GCC shows them by `__NO_SIGNED_ZEROS__`,
+`__NO_TRAPPING_MATH__`, `__ASSOCIATIVE_MATH__` and `__RECIPROCAL_MATH__`
+(GAOL v5, which said no macro showed them). `-fno-fast-math` turns them off
+when it comes after them, as it does `-ffinite-math-only`. Compiled with
+GCC 15.2, each option after all the flags of interval arithmetic:
+
+- `-fno-signed-zeros` failed 6 of the 63 tests. GCC drops the `+ 0.0` of
+  `!(1.0 + (subnormal + 0.0) > 1.0)`, by which GAOL sees the modes flushing
+  the subnormals to zero, which then misses the flush-to-zero mode alone:
+  `width()` of [2, 3]·2^-1074 is 0 under it, below the exact width. With
+  `-funsafe-math-optimizations`, GCC rewrote the former probes
+  `1.0 + tiny == 1.0`, by which GAOL sees the rounding direction, as
+  `tiny == 0.0` (GCC 9.4), and `1.0 + (subnormal + 0.0) == 1.0` as
+  `subnormal == 0.0` (GCC 9.4 from `-O0`, and GCC 13), so that an operation
+  did not set the direction upward again after the code using GAOL left it to
+  nearest.
+- `-fno-trapping-math` failed 52 checks of `tests/rounding_direction.cpp`:
+  operations with an empty operand, whose bounds are NaNs, raised the
+  invalid-operation flag, which no operation of GAOL raises then.
+- `-freciprocal-math` failed no test, but lets the compiler compute x / y as
+  x · (1 / y), whose two roundings upward do not bound x / y from above
+  where x is negative; `-fassociative-math`, which GCC takes only with
+  `-fno-signed-zeros` and `-fno-trapping-math`, lets it reorder the
+  operations whose rounding a bound depends on.
+
+The CMake tests `refused_no_signed_zeros`, `refused_no_trapping_math`,
+`refused_unsafe_math` and `refused_reciprocal_math`, with GCC, and
+`tests/refused_options.sh` check these refusals.
+
 No macro of the compiler shows the following, which `gaol/gaol_config.h`
 cannot refuse and which give wrong results all the same: the code using GAOL
 is not to be compiled with them.
 
-- `-funsafe-math-optimizations`, and `-ffast-math -fno-finite-math-only`, with
-  GCC: the compiler rewrites the addition `1.0 + tiny == 1.0`, by which GAOL
-  sees the rounding direction, as `tiny == 0.0` (GCC 9.4), and
-  `1.0 + (subnormal + 0.0) == 1.0`, which sees the modes flushing the
-  subnormals to zero too, as `subnormal == 0.0` (GCC 9.4 from `-O0`, and
-  GCC 13), so that an operation does not set the direction upward again
-  after the code using GAOL left it to nearest, and `width()` is below the
-  exact width. Clang 18 does not rewrite the first addition, but its
-  `-funsafe-math-optimizations` implies `-fno-signed-zeros` (below): at `-O2`
-  and `-O3`, the second addition loses its `+ 0.0` there too, one `addsd` and
-  one `ucomisd` being left.
-- `-fno-signed-zeros`, with which GCC (9.4 from `-O0`, and 13) and Clang 18
-  (at `-O2` and `-O3`) drop the `+ 0.0` of the second addition, which then
-  misses the flush-to-zero mode (GAOL v5).
+- `-fno-signed-zeros`, and `-funsafe-math-optimizations`, which implies it,
+  with Clang, which defines none of the macros above: Clang 18 (at `-O2` and
+  `-O3`) and Clang 21 drop the `+ 0.0` of the probe of the modes as GCC does,
+  one `addsd` and one `ucomisd` being left; Clang 18 does not rewrite the
+  probe of the direction.
 - `-fno-honor-nans` alone, with Clang, which does to the empty interval what
   `-ffinite-math-only` does: `__FINITE_MATH_ONLY__` is 1 only with
   `-fno-honor-infinities` too.
