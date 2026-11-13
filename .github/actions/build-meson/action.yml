@@ -1,0 +1,130 @@
+# The steps of the job meson of build-systems.yml, for one configuration of
+# the group of the job that calls this action (GAOL v5).
+name: build-meson
+description: The job meson of build-systems.yml for one configuration
+inputs:
+  desc:
+    description: The key desc of the row of the matrix of the job
+    default: ''
+  linking:
+    description: The key linking of the row of the matrix of the job
+    default: ''
+  options:
+    description: The key options of the row of the matrix of the job
+    default: ''
+runs:
+  using: composite
+  steps:
+    # In a group of configurations the job runs several of them: each
+    # starts from the tree as git has it, and from a temporary directory
+    # without what the previous ones left in it (GAOL v5)
+    - name: The tree and the temporary directory as the job found them
+      shell: bash
+      env:
+        DESC: ${{ inputs.desc }}
+      run: |
+        printf '\n## %s\n\n' "$DESC" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$RUNNER_OS" = Linux ]; then
+          # the containers write as root in the tree
+          sudo chown -R "$(id -u):$(id -g)" .
+        fi
+        git clean -ffdx -q
+        git reset --hard -q
+        for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
+        test -z "$(git status --porcelain --ignored)"
+    - name: Tools
+      shell: bash -e {0}
+      run: |
+        if [ "$RUNNER_OS" = Linux ]; then
+          sudo apt-get update -q
+          sudo apt-get install -y -q g++ cmake pipx
+        else
+          brew install pipx
+        fi
+        pipx install --force meson
+        pipx install ninja
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+    - name: VERSION.txt with a byte order mark and the line ends of Windows
+      shell: bash -e {0}
+      run: sh .github/scripts/version-file.sh meson
+    - name: meson setup with no Python on PATH
+      if: runner.os == 'Linux'
+      shell: bash -e {0}
+      run: |
+        # meson.build reads VERSION.txt with find_program('python3', 'python'):
+        # when PATH holds neither, meson takes the Python that runs it, as the
+        # meson.exe of the Windows installer does on a machine without Python,
+        # but only for a first name that ends with python3 (doc/building.md).
+        # PATH is here a directory of links to the programs of PATH but
+        # Python's; meson itself runs, the interpreter of its script being
+        # named by its absolute path
+        nopython="$RUNNER_TEMP/no-python"
+        mkdir "$nopython"
+        echo "$PATH" | tr ':' '\n' | while read -r dir; do
+          for program in "$dir"/*; do
+            name=${program##*/}
+            case "$name" in python*) continue ;; esac
+            if [ -f "$program" ] && [ -x "$program" ] && [ ! -e "$nopython/$name" ]; then
+              ln -s "$program" "$nopython/$name"
+            fi
+          done
+        done
+        if PATH="$nopython" command -v python3 || PATH="$nopython" command -v python; then
+          echo "a Python is on PATH"; exit 1
+        fi
+        PATH="$nopython" meson setup "$RUNNER_TEMP/build-no-python"
+    - name: Configure, build and install
+      shell: bash -e {0}
+      run: |
+        set -o pipefail
+        meson --version
+        meson setup build-meson --prefix="$RUNNER_TEMP/gaol" --libdir=lib -Dwith-tests=true ${{ inputs.options }} | tee configure.log
+        meson compile -C build-meson
+        meson install -C build-meson
+        # CORE-MATH is compiled into libgaol: no other library is installed
+        grep -qi "elementary functions" configure.log
+        ls "$RUNNER_TEMP/gaol/lib"
+        for f in "$RUNNER_TEMP"/gaol/lib/lib*; do
+          case "${f##*/}" in libgaol*) ;; *) echo "$f: not GAOL's"; exit 1 ;; esac
+        done
+    # NEON on 64-bit ARM, SSE2 on x86-64, the FPU where -Denable-simd=false
+    # asked for it (GAOL v5)
+    - name: The intervals
+      shell: bash -e {0}
+      run: |
+        case "$(uname -m)" in aarch64|arm64) expected=neon ;; *) expected=sse2 ;; esac
+        case "${{ inputs.options }}" in *-Denable-simd=false*) expected=fpu ;; esac
+        sh .github/scripts/check-intervals.sh build-meson/gaol/gaol_configuration.h $expected
+    # enable-prefer-avx512=false refuses the AVX-512 path where
+    # enable-preserve-rounding asks for it by default: the option was a
+    # boolean, whose false meson could not tell from the default, and a
+    # library built so on a runner with the AVX-512 instructions needed them
+    # (GAOL v5)
+    - name: enable-prefer-avx512=false refuses the AVX-512 path
+      if: contains(inputs.options, '-Denable-preserve-rounding=true')
+      shell: bash -e {0}
+      run: |
+        meson setup build-no-avx512 -Denable-preserve-rounding=true -Denable-prefer-avx512=false
+        ! grep -E "^#define GAOL_(PREFER_AVX512|AVX512_ARITHMETIC) 1" build-no-avx512/gaol/gaol_configuration.h
+    - name: Locale writing a decimal comma
+      if: runner.os == 'Linux'
+      shell: bash -e {0}
+      run: sh .github/scripts/comma-locale.sh generate
+    - name: Tests (ninja test, make test of meson)
+      shell: bash -e {0}
+      run: ninja -C build-meson test
+    - name: The examples
+      if: contains(inputs.options, '-Dwith-examples=true')
+      shell: bash -e {0}
+      run: meson test -C build-meson --setup check --suite examples --print-errorlogs
+    - name: The test numbers ran under a locale writing a decimal comma
+      shell: bash -e {0}
+      run: sh .github/scripts/comma-locale.sh check build-meson/meson-logs/testlog.txt
+    - name: Tests built with the installed GAOL
+      shell: bash -e {0}
+      run: sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" ${{ inputs.linking || 'static' }}
+    - name: Performance
+      shell: bash -e {0}
+      run: |
+        set -o pipefail
+        ./performance | tee -a "$GITHUB_STEP_SUMMARY"

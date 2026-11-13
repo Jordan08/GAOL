@@ -1,0 +1,76 @@
+# The steps of the job sanitizers of macos.yml, for one configuration of
+# the group of the job that calls this action (GAOL v5).
+name: macos-sanitizers
+description: The job sanitizers of macos.yml for one configuration
+inputs:
+  compiler:
+    description: The key compiler of the row of the matrix of the job
+    default: ''
+  desc:
+    description: The key desc of the row of the matrix of the job
+    default: ''
+  timeout:
+    description: The key timeout of the row of the matrix of the job
+    default: ''
+runs:
+  using: composite
+  steps:
+    # In a group of configurations the job runs several of them: each
+    # starts from the tree as git has it, and from a temporary directory
+    # without what the previous ones left in it (GAOL v5)
+    - name: The tree and the temporary directory as the job found them
+      shell: bash
+      env:
+        DESC: ${{ inputs.desc }}
+      run: |
+        printf '\n## %s\n\n' "$DESC" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$RUNNER_OS" = Linux ]; then
+          # the containers write as root in the tree
+          sudo chown -R "$(id -u):$(id -g)" .
+        fi
+        git clean -ffdx -q
+        git reset --hard -q
+        for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
+        test -z "$(git status --porcelain --ignored)"
+    - name: Compiler
+      shell: bash -e {0}
+      run: |
+        case "${{ inputs.compiler }}" in
+          gcc)
+            echo "LDFLAGS=" >> "$GITHUB_ENV"
+            brew install gcc
+            major=$(brew list --versions gcc | awk '{print $2}' | cut -d. -f1)
+            echo "CC=gcc-$major" >> "$GITHUB_ENV"
+            echo "CXX=g++-$major" >> "$GITHUB_ENV"
+            ;;
+          llvm)
+            brew install llvm
+            prefix=$(brew --prefix llvm)
+            echo "CC=$prefix/bin/clang" >> "$GITHUB_ENV"
+            echo "CXX=$prefix/bin/clang++" >> "$GITHUB_ENV"
+            echo "LDFLAGS=-L$prefix/lib/c++ -Wl,-rpath,$prefix/lib/c++" >> "$GITHUB_ENV"
+            ;;
+          *)
+            echo "LDFLAGS=" >> "$GITHUB_ENV"
+            echo "CC=clang" >> "$GITHUB_ENV"
+            echo "CXX=clang++" >> "$GITHUB_ENV"
+            ;;
+        esac
+    - name: Configure
+      shell: bash -e {0}
+      run: |
+        $CXX --version
+        # halt_on_error (UBSAN_OPTIONS) stops a test on its first undefined
+        # behaviour; none is suppressed
+        flags="-fsanitize=address,undefined -fno-omit-frame-pointer"
+        cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DWITH_TESTS=ON "-DCMAKE_C_FLAGS=$flags" "-DCMAKE_CXX_FLAGS=$flags" "-DCMAKE_EXE_LINKER_FLAGS=$flags" \
+          -DGAOL_NUMBERS_TIMEOUT=${{ inputs.timeout || 300 }}
+    - name: Build
+      shell: bash -e {0}
+      run: cmake --build build -j 4
+    - name: Tests (make test)
+      shell: bash -e {0}
+      run: cmake --build build --target test
+    - name: The test numbers ran under a locale writing a decimal comma
+      shell: bash -e {0}
+      run: sh .github/scripts/comma-locale.sh check build

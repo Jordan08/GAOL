@@ -1,0 +1,140 @@
+# The steps of the job autotools of build-systems.yml, for one configuration of
+# the group of the job that calls this action (GAOL v5).
+name: build-autotools
+description: The job autotools of build-systems.yml for one configuration
+inputs:
+  configure:
+    description: The key configure of the row of the matrix of the job
+    default: ''
+  desc:
+    description: The key desc of the row of the matrix of the job
+    default: ''
+  linking:
+    description: The key linking of the row of the matrix of the job
+    default: ''
+runs:
+  using: composite
+  steps:
+    # In a group of configurations the job runs several of them: each
+    # starts from the tree as git has it, and from a temporary directory
+    # without what the previous ones left in it (GAOL v5)
+    - name: The tree and the temporary directory as the job found them
+      shell: bash
+      env:
+        DESC: ${{ inputs.desc }}
+      run: |
+        printf '\n## %s\n\n' "$DESC" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$RUNNER_OS" = Linux ]; then
+          # the containers write as root in the tree
+          sudo chown -R "$(id -u):$(id -g)" .
+        fi
+        git clean -ffdx -q
+        git reset --hard -q
+        for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
+        test -z "$(git status --porcelain --ignored)"
+    - name: Tools
+      shell: bash -e {0}
+      run: |
+        if [ "$RUNNER_OS" = Linux ]; then
+          sudo apt-get update -q
+          sudo apt-get install -y -q g++ cmake make
+        fi
+    - name: configure generated for the version of VERSION.txt
+      shell: bash -e {0}
+      run: |
+        # configure reads VERSION.txt when it runs, but configure --version
+        # and --help give the version of the last generation of configure,
+        # which is to be generated again when VERSION.txt changes
+        # (doc/building.md). With the commands of configure.ac, without the
+        # byte order mark that an editor may have written at the start of
+        # the file, nor the blanks around the version
+        version=$(LC_ALL=C tr -d '\000' < VERSION.txt | LC_ALL=C sed -e "1s/^$(printf '\357\273\277')//" -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d' | tr '\n' ' ' | sed -e 's/ $//')
+        ./configure --version | head -n 1
+        test "$(./configure --version | head -n 1)" = "gaol configure $version" || {
+          echo "configure was not generated again for GAOL $version (see doc/building.md)"; exit 1; }
+    - name: VERSION.txt with a byte order mark and the line ends of Windows
+      shell: bash -e {0}
+      run: sh .github/scripts/version-file.sh configure
+    - name: VERSION.txt read by autoconf, as by configure
+      # Once per runner: the jobs with configure's options read the same file
+      if: runner.os == 'Linux' && inputs.configure == ''
+      shell: bash -e {0}
+      run: |
+        # autoconf reads VERSION.txt for the version of configure --version
+        # when it generates configure, which no build does: the script
+        # generates configure in a copy of the sources (the autoconf of
+        # Ubuntu, 2.71, warns that aclocal.m4 was generated for autoconf
+        # 2.72, and works)
+        sudo apt-get install -y -q autoconf
+        sh .github/scripts/version-file.sh autoconf
+    - name: Configure, build and install
+      shell: bash -e {0}
+      run: |
+        set -o pipefail
+        # The same date on every file, as in a release archive: make then
+        # does not regenerate configure, the Makefile.in or the lexer
+        find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
+        # The output of configure out of the sources, which make distclean
+        # is to give back as git has them
+        ./configure --prefix="$RUNNER_TEMP/gaol" --with-tests ${{ inputs.configure }} | tee "$RUNNER_TEMP/configure.log"
+        # config.status writes each of its files again when given its name,
+        # as the rules of make that follow the templates do: the m4 macro of
+        # the version named gaol_version made it refuse
+        # manual/v5/gaol_version.tex, which it knew as manual/v5/5.0.0.tex
+        ./config.status gaol.pc manual/v4/gaol_version.tex manual/v5/gaol_version.tex
+        grep -E "^(CXXFLAGS|CPPFLAGS) =" gaol/Makefile
+        make -j 4
+        make install
+        # CORE-MATH is compiled into libgaol: no other library is installed
+        grep -q "elementary functions" "$RUNNER_TEMP/configure.log"
+        ls "$RUNNER_TEMP/gaol/lib"
+        for f in "$RUNNER_TEMP"/gaol/lib/lib*; do
+          case "${f##*/}" in libgaol*) ;; *) echo "$f: not GAOL's"; exit 1 ;; esac
+        done
+    # NEON on 64-bit ARM, SSE2 on x86-64, the FPU where --disable-simd
+    # asked for it (GAOL v5)
+    - name: The intervals
+      shell: bash -e {0}
+      run: |
+        case "$(uname -m)" in aarch64|arm64) expected=neon ;; *) expected=sse2 ;; esac
+        case "${{ inputs.configure }}" in *--disable-simd*) expected=fpu ;; esac
+        sh .github/scripts/check-intervals.sh gaol/gaol_configuration.h $expected
+    - name: Locale writing a decimal comma
+      if: runner.os == 'Linux'
+      shell: bash -e {0}
+      run: sh .github/scripts/comma-locale.sh generate
+    - name: Tests (make test)
+      shell: bash -e {0}
+      run: make -j 4 test || { cat tests/test-suite.log; exit 1; }
+    - name: The examples
+      if: contains(inputs.configure, '--with-examples')
+      shell: bash -e {0}
+      run: make -j 4 -C examples check || { cat examples/test-suite.log; exit 1; }
+    - name: The test numbers ran under a locale writing a decimal comma
+      shell: bash -e {0}
+      run: sh .github/scripts/comma-locale.sh check tests/numbers.log
+    - name: make distclean gives the sources back as git has them
+      shell: bash -e {0}
+      run: |
+        # make clean keeps what configure made, for make to build again
+        # without configure; make distclean erases it too, the .deps and
+        # .dirstamp of the dependencies and of CORE-MATH among them
+        # (doc/building.md). Before tests.sh, which compiles its tests at the
+        # root of the sources. git status shows no empty directory, as the
+        # .deps that make distclean left, emptied, before GAOL v5's
+        # distclean-local: find looks for them, a checkout having none
+        make distclean
+        git status --short --ignored
+        empty=$(find . -path ./.git -prune -o -type d -empty -print)
+        echo "$empty"
+        test -z "$(git status --porcelain --ignored)$empty" || {
+          echo "make distclean left the files or the empty directories above, or changed files"; exit 1; }
+    - name: Tests built with the installed GAOL
+      shell: bash -e {0}
+      run: |
+        sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" ${{ inputs.linking || 'static' }}
+    - name: Performance
+      shell: bash -e {0}
+      run: |
+        set -o pipefail
+        ./performance | tee -a "$GITHUB_STEP_SUMMARY"

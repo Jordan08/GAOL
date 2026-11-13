@@ -1,0 +1,78 @@
+# The steps of the job msys2 of build-systems.yml, for one configuration of
+# the group of the job that calls this action (GAOL v5).
+name: build-msys2
+description: The job msys2 of build-systems.yml for one configuration
+inputs:
+  build:
+    description: The key build of the row of the matrix of the job
+    default: ''
+  desc:
+    description: The key desc of the row of the matrix of the job
+    default: ''
+  intervals:
+    description: The key intervals of the row of the matrix of the job
+    default: ''
+  msystem:
+    description: The key msystem of the row of the matrix of the job
+    default: ''
+runs:
+  using: composite
+  steps:
+    # In a group of configurations the job runs several of them: each
+    # starts from the tree as git has it, and from a temporary directory
+    # without what the previous ones left in it (GAOL v5)
+    - name: The tree and the temporary directory as the job found them
+      shell: bash
+      env:
+        DESC: ${{ inputs.desc }}
+      run: |
+        printf '\n## %s\n\n' "$DESC" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$RUNNER_OS" = Linux ]; then
+          # the containers write as root in the tree
+          sudo chown -R "$(id -u):$(id -g)" .
+        fi
+        git clean -ffdx -q
+        git reset --hard -q
+        for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
+        test -z "$(git status --porcelain --ignored)"
+    # The environment of MSYS2 of this configuration, which the step of the
+    # group that calls the action chose with MSYSTEM (GAOL v5)
+    - name: The environment of MSYS2 asked for
+      shell: msys2 {0}
+      run: test "$MSYSTEM" = "${{ inputs.msystem }}"
+    - name: VERSION.txt with a byte order mark and the line ends of Windows
+      if: inputs.build == 'meson'
+      shell: msys2 {0}
+      run: sh .github/scripts/version-file.sh meson
+    - name: Configure, build and install
+      shell: msys2 {0}
+      run: |
+        prefix="$(cygpath -m "$RUNNER_TEMP")/gaol"
+        if [ ${{ inputs.build }} = autotools ]; then
+          find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
+          ./configure --prefix="$prefix" --with-tests
+          grep -E '^(CXXFLAGS|CPPFLAGS) =' gaol/Makefile
+          sh .github/scripts/check-intervals.sh gaol/gaol_configuration.h ${{ inputs.intervals }}
+          if [ "$MSYSTEM" = MINGW32 ]; then grep -F -e -faligned-new=8 gaol/Makefile; fi
+          make -j 4 && make install
+          make -j 4 test
+          sh .github/scripts/comma-locale.sh check tests/numbers.log
+        else
+          meson setup build-meson --prefix="$prefix" --libdir=lib -Dwith-tests=true
+          sh .github/scripts/check-intervals.sh build-meson/gaol/gaol_configuration.h ${{ inputs.intervals }}
+          if [ "$MSYSTEM" = MINGW32 ]; then grep -F -e -faligned-new=8 build-meson/compile_commands.json > /dev/null; fi
+          meson compile -C build-meson && meson install -C build-meson
+          ninja -C build-meson test
+          sh .github/scripts/comma-locale.sh check build-meson/meson-logs/testlog.txt
+        fi
+        # CORE-MATH is compiled into libgaol: no other library is installed
+        ls "$prefix/lib"
+        ! ls "$prefix/lib" | grep "^lib" | grep -v "^libgaol"
+    - name: Tests built with the installed GAOL
+      shell: msys2 {0}
+      run: sh .github/scripts/tests.sh "$(cygpath -m "$RUNNER_TEMP")/gaol" static
+    - name: Performance
+      shell: msys2 {0}
+      run: |
+        set -o pipefail
+        ./performance | tee -a "$GITHUB_STEP_SUMMARY"

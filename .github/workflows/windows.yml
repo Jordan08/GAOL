@@ -24,6 +24,12 @@
 # multiply-add instructions GAOL_FMA gives them (-mfma) and no 256-bit
 # instruction (-mprefer-vector-width=128; GCC bug 54412, GAOL v5).
 #
+# A job is a group of configurations that run one after the other on the
+# same image of runner, each one an action of .github/actions/ called
+# with the row of the matrix it had when it was a job of its own: the
+# configurations, their options and their checks are those of the jobs
+# they replace (GAOL v5).
+#
 # Copyright (c) 2026 ENSTA, France
 #
 # By: Jordan NININ (created 2026-09-20)
@@ -35,7 +41,7 @@ name: Windows
 
 on:
   push:
-    branches: [master, configure-clean, dev]
+    branches: [master, configure-clean, dev, experiment-ci-groups]
   pull_request:
   workflow_dispatch:
 
@@ -59,436 +65,1189 @@ env:
   CTEST_OUTPUT_ON_FAILURE: 1
 
 jobs:
-  visual-studio:
-    name: ${{ matrix.cfg.desc }}
-    runs-on: ${{ matrix.cfg.os }}
-    timeout-minutes: 60
-    defaults:
-      run:
-        shell: bash
-    strategy:
-      fail-fast: false
-      matrix:
-        cfg:
-          - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', arch: Win32, config: Release, desc: 'Visual Studio 2026 x86 Release' }
-          - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', arch: x64,   config: Release, desc: 'Visual Studio 2026 x64 Release' }
-          - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', arch: ARM64, config: Release, desc: 'Visual Studio 2026 arm64 Release' }
-          - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', arch: Win32, config: Debug,   desc: 'Visual Studio 2026 x86 Debug' }
-          # The control word of the x87 unit and MXCSR are read and written
-          # directly on 32-bit x86, with the inline assembly of Visual C++
-          # (gaol/gaol_fpu.h, GAOL v5): this job runs it with the rounding
-          # direction restored by each operation too, which no job did
-          - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', arch: Win32, config: Release, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Visual Studio 2026 x86 Release, rounding direction preserved' }
-          # The FPU intervals, which the SSE2 ones replace on x86 with Visual C++
-          # (GAOL v5), so that their code, and the rounding direction they keep
-          # through the x87 unit and MXCSR, stay covered
-          - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', arch: Win32, config: Release, opts: '-DGAOL_SIMD=OFF', desc: 'Visual Studio 2026 x86 Release, FPU intervals' }
-          - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', arch: x64,   config: Debug,   desc: 'Visual Studio 2026 x64 Debug' }
-          - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', arch: ARM64, config: Debug,   desc: 'Visual Studio 2026 arm64 Debug' }
-          - { os: windows-2022,          generator: 'Visual Studio 17 2022', arch: Win32, config: Release, desc: 'Visual Studio 2022 x86 Release' }
-          - { os: windows-2022,          generator: 'Visual Studio 17 2022', arch: x64,   config: Release, desc: 'Visual Studio 2022 x64 Release' }
-          - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', toolset: '-T v143', cl: '19.44', arch: ARM64, config: Release, desc: 'Visual Studio 2022 arm64 Release' }
-          - { os: windows-2022,          generator: 'Visual Studio 17 2022', arch: Win32, config: Debug,   desc: 'Visual Studio 2022 x86 Debug' }
-          - { os: windows-2022,          generator: 'Visual Studio 17 2022', arch: x64,   config: Debug,   desc: 'Visual Studio 2022 x64 Debug' }
-          - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', toolset: '-T v143', cl: '19.44', arch: ARM64, config: Debug,   desc: 'Visual Studio 2022 arm64 Debug' }
-          # The NEON intervals of Visual C++ for arm64 (GAOL v5) read and write
-          # FPCR through _ReadStatusReg() and _WriteStatusReg(), and no asm
-          # statement orders their operations: the jobs above and
-          # tests/rounding_direction.cpp are what checks them. This one runs
-          # them with the rounding direction restored by each operation too,
-          # and the next one the FPU intervals, which -DGAOL_SIMD=OFF gives
-          - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', arch: ARM64, config: Release, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Visual Studio 2026 arm64 Release, rounding direction preserved' }
-          - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', arch: ARM64, config: Release, opts: '-DGAOL_SIMD=OFF', desc: 'Visual Studio 2026 arm64 Release, FPU intervals' }
-          - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', arch: x64,   config: Release, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Visual Studio 2026 x64 Release, rounding direction preserved' }
-          # The AVX-512 path of the arithmetic (GAOL_PREFER_AVX512), which
-          # Visual C++ and clang-cl take as GCC and Clang do: on a runner with
-          # the instructions, which the step after Configure tells, the whole
-          # suite of tests takes that path, its bounds being those of the SSE2
-          # path (GAOL v5). The job above takes the path too, on such a runner,
-          # as GAOL_PREFER_AVX512 follows the rounding direction preserved; the
-          # one below refuses it (-DGAOL_PREFER_AVX512=OFF), the SSE2
-          # operations of the preserved direction staying covered, as in
-          # linux.yml. No asm statement orders the operations of Visual C++:
-          # these jobs and tests/rounding_direction.cpp are what checks them
-          - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', arch: x64,   config: Release, opts: '-DGAOL_PREFER_AVX512=ON', desc: 'Visual Studio 2026 x64 Release, AVX-512 arithmetic' }
-          - { os: windows-2022,          generator: 'Visual Studio 17 2022', arch: x64,   config: Debug,   opts: '-DGAOL_PREFER_AVX512=ON', desc: 'Visual Studio 2022 x64 Debug, AVX-512 arithmetic' }
-          - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', arch: x64,   config: Release, opts: '-DGAOL_PRESERVE_ROUNDING=ON -DGAOL_PREFER_AVX512=OFF', desc: 'Visual Studio 2026 x64 Release, rounding direction preserved, AVX-512 arithmetic not taken' }
-          # clang-cl, the Clang of Visual Studio (toolset ClangCL, installed
-          # with Visual Studio in the images), for which CMake sets MSVC too
-          # and GAOL gives /fp:strict (-frounding-math -ffp-contract=off),
-          # /arch:AVX2 on x64, and -msse2 on x86, where clang-cl computes
-          # doubles on the x87 unit otherwise, /arch:SSE2 included. On x64 it
-          # defines __x86_64__ and _WIN32 but not __WIN32__, which upstream
-          # CORE-MATH tests to read the rounding direction in cbrt, rsqrt and
-          # asinpi (3rd/README.md, item 6): tests/core_math.cpp checks them.
-          # gaol/gaol_config.h refuses it without /fp:strict from Clang 16, as
-          # it refuses Visual C++, and tests/fp_strict checks both (GAOL v5).
-          - { os: windows-2022,          generator: 'Visual Studio 17 2022', toolset: '-T ClangCL', clang_cl: true, arch: x64, config: Release, desc: 'Visual Studio 2022 clang-cl x64 Release' }
-          - { os: windows-2022,          generator: 'Visual Studio 17 2022', toolset: '-T ClangCL', clang_cl: true, arch: x64, config: Debug,   desc: 'Visual Studio 2022 clang-cl x64 Debug' }
-          - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', toolset: '-T ClangCL', clang_cl: true, arch: x64,   config: Release, desc: 'Visual Studio 2026 clang-cl x64 Release' }
-          - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', toolset: '-T ClangCL', clang_cl: true, arch: Win32, config: Release, desc: 'Visual Studio 2026 clang-cl x86 Release' }
-          - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', toolset: '-T ClangCL', clang_cl: true, arch: ARM64, config: Release, desc: 'Visual Studio 2026 clang-cl arm64 Release' }
-          # The FPU intervals of clang-cl on arm64, which the NEON ones replace
-          # there (GAOL v5): they read and write FPCR with asm, as the NEON ones
-          - { os: windows-11-vs2026-arm, generator: 'Visual Studio 18 2026', toolset: '-T ClangCL', clang_cl: true, arch: ARM64, config: Release, opts: '-DGAOL_SIMD=OFF', desc: 'Visual Studio 2026 clang-cl arm64 Release, FPU intervals' }
-          # clang-cl x64 keeps the asm statements of Clang in the AVX-512 path and
-          # takes the SSE2 intervals with the rounding direction preserved through
-          # MXCSR alone (/arch:AVX2 defines __FMA__ for it, not for cl), which no
-          # job covered before (GAOL v5)
-          - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', toolset: '-T ClangCL', clang_cl: true, arch: x64,   config: Release, opts: '-DGAOL_PREFER_AVX512=ON', desc: 'Visual Studio 2026 clang-cl x64 Release, AVX-512 arithmetic' }
-          - { os: windows-2025-vs2026,   generator: 'Visual Studio 18 2026', toolset: '-T ClangCL', clang_cl: true, arch: x64,   config: Release, opts: '-DGAOL_PRESERVE_ROUNDING=ON -DGAOL_PREFER_AVX512=OFF', desc: 'Visual Studio 2026 clang-cl x64 Release, rounding direction preserved, AVX-512 arithmetic not taken' }
-    steps:
-      - uses: actions/checkout@v7
-      - name: Configure
-        run: |
-          cmake -S . -B build -G "${{ matrix.cfg.generator }}" -A ${{ matrix.cfg.arch }} ${{ matrix.cfg.toolset }} -DWITH_TESTS=ON -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install" ${{ matrix.cfg.opts }} | tee configure.log
-          # The compiler of the toolset asked for, not the one of the generator
-          if [ -n "${{ matrix.cfg.cl }}" ]; then
-            grep "The CXX compiler identification is MSVC ${{ matrix.cfg.cl }}\." configure.log
-          fi
-          # clang-cl for the C sources of CORE-MATH as for those of GAOL
-          if [ "${{ matrix.cfg.clang_cl }}" = "true" ]; then
-            test "$(grep -c -E "The (C|CXX) compiler identification is Clang .* with MSVC-like command-line" configure.log)" = 2
-          fi
-      # The intervals of the build: the SSE2 ones on x64 and on x86, where Visual
-      # C++ and clang-cl take them (on x86 with their two bounds as two doubles
-      # of alignment 8, GAOL_SSE2_UNALIGNED_STORAGE; GAOL v5), the NEON ones on
-      # arm64 with Visual C++ and clang-cl (GAOL_SIMD, on by default; GAOL v5),
-      # and the FPU ones where the job asks for them (-DGAOL_SIMD=OFF)
-      - name: The intervals
-        run: |
-          case "${{ matrix.cfg.arch }}" in x64|Win32) expected=sse2 ;; ARM64) expected=neon ;; *) expected=fpu ;; esac
-          case "${{ matrix.cfg.opts }}" in *GAOL_SIMD=OFF*) expected=fpu ;; esac
-          sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h $expected
-      # On x64, the processor of the runner, and whether the arithmetic takes
-      # the AVX-512 path, which the configuration decides from the
-      # instructions the runner has (GAOL_AVX512_ARITHMETIC): a warning where
-      # GAOL_PREFER_AVX512 asked for it, or took it from the rounding
-      # direction preserved, and the runner has none (GAOL v5)
-      - name: The processor, and the AVX-512 path
-        if: matrix.cfg.arch == 'x64'
-        run: |
-          powershell -NoProfile -Command "(Get-CimInstance Win32_Processor).Name" || true
-          grep -E "^#define GAOL_(HAVE_AVX512_TARGET|PREFER_AVX512|AVX512_ARITHMETIC) " build/gaol/gaol_configuration.h || true
-          if ! grep -q "^#define GAOL_HAVE_AVX512_TARGET 1" build/gaol/gaol_configuration.h; then
-            echo "::error::the compiler takes no AVX-512 path"
-            exit 1
-          fi
-          if grep -q "^#define GAOL_PREFER_AVX512 1" build/gaol/gaol_configuration.h \
-             && ! grep -q "^#define GAOL_AVX512_ARITHMETIC 1" build/gaol/gaol_configuration.h; then
-            echo "::warning::GAOL_PREFER_AVX512, on a runner without the AVX-512 instructions: the tests take the SSE2 path"
-          fi
-      - name: Build
-        run: cmake --build build --config ${{ matrix.cfg.config }} -j 4
-      - name: Tests (make test)
-        run: cmake --build build --config ${{ matrix.cfg.config }} --target RUN_TESTS
-      - name: The test numbers ran under a locale writing a decimal comma
-        run: sh .github/scripts/comma-locale.sh check build
-      # Visual C++ with /arch:AVX2 (GAOL_FMA) and clang-cl write MXCSR alone in the
-      # macros of the rounding direction preserved on x64 (GAOL_RND_MXCSR_ONLY,
-      # gaol/gaol_fpu.h, GAOL v5): the value of the macro as the compiler gave it,
-      # which misc prints and ctest shows only with -V
-      - name: The macros of the rounding direction write MXCSR alone
-        if: matrix.cfg.arch == 'x64' && contains(matrix.cfg.opts, 'GAOL_PRESERVE_ROUNDING=ON')
-        run: |
-          ctest --test-dir build -C ${{ matrix.cfg.config }} -R '^misc$' -V | tee misc.log
-          grep -F "GAOL_RND_MXCSR_ONLY is 1:" misc.log
-      - name: Performance
-        if: matrix.cfg.config == 'Release'
-        run: build/tests/${{ matrix.cfg.config }}/gaol_performance.exe | tee -a "$GITHUB_STEP_SUMMARY"
-      # The test of misc that enters a function with the stack aligned on 4
-      # bytes, as 32-bit Windows enters its threads and its callbacks (GAOL v5,
-      # tests/misc.cpp): it runs with clang-cl on x86 and prints a line when it
-      # does, which ctest shows only with -V, and which this step looks for. After the
-      # check of the locale, which reads the output of the last ctest (LastTest.log)
-      - name: The stack entered aligned on 4 bytes
-        if: matrix.cfg.clang_cl && matrix.cfg.arch == 'Win32'
-        run: |
-          ctest --test-dir build -C ${{ matrix.cfg.config }} -R '^misc$' -V | tee misc.log
-          grep -F "returned the bounds of the entry aligned on 16 with the stack aligned on 16 minus 4, 8 and 12 bytes at its entry" misc.log
-      - name: Install
-        run: cmake --install build --config ${{ matrix.cfg.config }}
-      - name: Tests built with the installed GAOL
-        run: |
-          cmake -S tests/find_package -B build-find-package -G "${{ matrix.cfg.generator }}" -A ${{ matrix.cfg.arch }} ${{ matrix.cfg.toolset }} -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
-          cmake --build build-find-package --config ${{ matrix.cfg.config }} -j 4
-          cmake --build build-find-package --config ${{ matrix.cfg.config }} --target RUN_TESTS
-      - name: GAOL's headers refused without /fp:strict
-        run: cmake -S tests/fp_strict -B build-fp-strict -G "${{ matrix.cfg.generator }}" -A ${{ matrix.cfg.arch }} ${{ matrix.cfg.toolset }} -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
 
-  # /W4 /WX with the Visual C++ of Visual Studio 2026 x64 and x86, whose
-  # intervals are the SSE2 ones, those of x86 keeping their two bounds as two
-  # doubles (GAOL v5), x86 being where size_t has 32 bits, as
-  # -Wall -Wextra -Werror with GCC and Clang
-  # (linux.yml) and AppleClang (macos.yml):
-  # the library, the sources of CORE-MATH included, the tests and the examples.
-  # /W4 goes to every compilation, through CFLAGS and CXXFLAGS, which CMake
-  # puts before the flags it gives Visual C++ (CMAKE_CXX_FLAGS on the command
-  # line would replace /GR /EHsc), and /WX to those of the targets only
-  # (CMAKE_COMPILE_WARNING_AS_ERROR), so that no check of CMake fails on a
-  # warning of its test program. In PowerShell, which passes /W4 as it is.
-  # The Debug build has a job too: it finds what the Release build does not,
-  # as the unreachable code that Visual C++ reports there (C4702), which
-  # CMakeLists.txt turns off for the parser that bison writes.
-  warnings:
-    name: ${{ matrix.cfg.desc }}
-    runs-on: windows-2025-vs2026
-    timeout-minutes: 60
-    defaults:
-      run:
-        shell: pwsh
-    strategy:
-      fail-fast: false
-      matrix:
-        cfg:
-          - { arch: x64,   config: Release, desc: 'Visual Studio 2026 x64 Release, /W4 /WX' }
-          - { arch: x64,   config: Release, opts: '-DGAOL_PREFER_AVX512=ON', desc: 'Visual Studio 2026 x64 Release, /W4 /WX, AVX-512 arithmetic' }
-          - { arch: Win32, config: Release, desc: 'Visual Studio 2026 x86 Release, /W4 /WX' }
-          - { arch: x64,   config: Debug,   desc: 'Visual Studio 2026 x64 Debug, /W4 /WX' }
-    steps:
-      - uses: actions/checkout@v7
-      - name: Configure
-        env:
-          CFLAGS: /W4
-          CXXFLAGS: /W4
-        run: |
-          cmake -S . -B build -G "Visual Studio 18 2026" -A ${{ matrix.cfg.arch }} -DWITH_TESTS=ON -DWITH_EXAMPLES=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=ON ${{ matrix.cfg.opts }}
-          if ($LASTEXITCODE) { exit 1 }
-          Select-String -Path build/CMakeCache.txt -Pattern '^CMAKE_(C|CXX)_FLAGS:'
-      - name: Build
-        run: |
-          cmake --build build --config ${{ matrix.cfg.config }} -j 4
-          if ($LASTEXITCODE) { exit 1 }
-
-  # The AVX-512 path of the arithmetic with Visual C++ and clang-cl, run
-  # (GAOL v5): the runners for Windows have no AVX-512 instructions, and the
-  # jobs above that ask for the path leave it out there, with a warning. Intel
-  # SDE emulates a Skylake-X processor, 20 to 100 times as slowly: the
-  # configuration is told by hand that the machine runs the instructions
-  # (-DGAOL_MACHINE_RUNS_AVX512=1, which CMake takes for the result of its own
-  # check), and the unit tests run under SDE (.github/scripts/sde-tests.sh),
-  # those that compute with intervals only. Visual C++ orders the operations of
-  # the path by volatile accesses and calls (gaol/core/gaol_interval_avx512_impl.h),
-  # which only the tests of the rounding direction and of the flush-to-zero
-  # modes can show wrong. The action sets SDE up from the binaries of its own
-  # repository, after checking their SHA-256: by using it, the project accepts
-  # Intel's licence of SDE, which is in the files it extracts.
-  visual-studio-sde:
-    name: ${{ matrix.cfg.desc }}
-    runs-on: ${{ matrix.cfg.os }}
-    timeout-minutes: 90
-    defaults:
-      run:
-        shell: bash
-    strategy:
-      fail-fast: false
-      matrix:
-        cfg:
-          - { os: windows-2025-vs2026, generator: 'Visual Studio 18 2026', config: Release, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Visual Studio 2026 x64 Release, AVX-512 arithmetic under SDE, rounding direction preserved' }
-          - { os: windows-2025-vs2026, generator: 'Visual Studio 18 2026', config: Release, opts: '-DGAOL_PREFER_AVX512=ON', desc: 'Visual Studio 2026 x64 Release, AVX-512 arithmetic under SDE' }
-          - { os: windows-2025-vs2026, generator: 'Visual Studio 18 2026', config: Debug,   opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Visual Studio 2026 x64 Debug, AVX-512 arithmetic under SDE, rounding direction preserved' }
-          - { os: windows-2022,        generator: 'Visual Studio 17 2022', config: Release, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Visual Studio 2022 x64 Release, AVX-512 arithmetic under SDE, rounding direction preserved' }
-          - { os: windows-2025-vs2026, generator: 'Visual Studio 18 2026', toolset: '-T ClangCL', config: Release, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'Visual Studio 2026 clang-cl x64 Release, AVX-512 arithmetic under SDE, rounding direction preserved' }
-    steps:
-      - uses: actions/checkout@v7
-      - name: Intel SDE
-        uses: petarpetrovt/setup-sde@6d2773bc0ef3005fd52e0ae0bb91782321793aec # v6.0
-      - name: Configure
-        run: |
-          cmake -S . -B build -G "${{ matrix.cfg.generator }}" -A x64 ${{ matrix.cfg.toolset }} -DWITH_TESTS=ON -DGAOL_MACHINE_RUNS_AVX512=1 ${{ matrix.cfg.opts }} | tee configure.log
-          sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h sse2
-          grep -E "^#define GAOL_(HAVE_AVX512_TARGET|PREFER_AVX512|AVX512_ARITHMETIC|PRESERVE_ROUNDING) " build/gaol/gaol_configuration.h || true
-          if ! grep -q "^#define GAOL_AVX512_ARITHMETIC 1" build/gaol/gaol_configuration.h; then
-            echo "::error::the AVX-512 path is not the one of the build"
-            exit 1
-          fi
-      - name: Build
-        run: cmake --build build --config ${{ matrix.cfg.config }} -j 4
-      - name: Tests under SDE
-        run: sh .github/scripts/sde-tests.sh "$(cygpath -u "$SDE_PATH")/sde.exe" build/tests/${{ matrix.cfg.config }}
-
-  mingw:
-    name: ${{ matrix.cfg.desc }}
+  w1:
+    name: 'Visual Studio 2022 x64 and clang-cl x64 Release (4 configurations)'
     runs-on: windows-2022
     timeout-minutes: 60
-    defaults:
-      run:
+    steps:
+      - uses: actions/checkout@v7
+      # One setup of Intel SDE for the group
+      - name: Intel SDE
+        uses: petarpetrovt/setup-sde@6d2773bc0ef3005fd52e0ae0bb91782321793aec # v6.0
+      - id: c1
+        name: 'Visual Studio 2022 x64 Debug'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio
+        with:
+          desc: 'Visual Studio 2022 x64 Debug'
+          generator: 'Visual Studio 17 2022'
+          arch: 'x64'
+          config: 'Debug'
+      - id: c2
+        name: 'Visual Studio 2022 x64 Release'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio
+        with:
+          desc: 'Visual Studio 2022 x64 Release'
+          generator: 'Visual Studio 17 2022'
+          arch: 'x64'
+          config: 'Release'
+      - id: c3
+        name: 'Visual Studio 2022 x64 Release, AVX-512 arithmetic under SDE, rounding direction preserved'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio-sde
+        with:
+          desc: 'Visual Studio 2022 x64 Release, AVX-512 arithmetic under SDE, rounding direction preserved'
+          generator: 'Visual Studio 17 2022'
+          config: 'Release'
+          opts: '-DGAOL_PRESERVE_ROUNDING=ON'
+      # clang-cl, the Clang of Visual Studio (toolset ClangCL, installed
+      # with Visual Studio in the images), for which CMake sets MSVC too
+      # and GAOL gives /fp:strict (-frounding-math -ffp-contract=off),
+      # /arch:AVX2 on x64, and -msse2 on x86, where clang-cl computes
+      # doubles on the x87 unit otherwise, /arch:SSE2 included. On x64 it
+      # defines __x86_64__ and _WIN32 but not __WIN32__, which upstream
+      # CORE-MATH tests to read the rounding direction in cbrt, rsqrt and
+      # asinpi (3rd/README.md, item 6): tests/core_math.cpp checks them.
+      # gaol/gaol_config.h refuses it without /fp:strict from Clang 16, as
+      # it refuses Visual C++, and tests/fp_strict checks both (GAOL v5).
+      - id: c4
+        name: 'Visual Studio 2022 clang-cl x64 Release'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio
+        with:
+          desc: 'Visual Studio 2022 clang-cl x64 Release'
+          generator: 'Visual Studio 17 2022'
+          toolset: '-T ClangCL'
+          clang_cl: 'true'
+          arch: 'x64'
+          config: 'Release'
+      - name: Results of the configurations
+        if: ${{ always() }}
         shell: bash
-    strategy:
-      fail-fast: false
-      matrix:
-        cfg:
-          - { version: '15.2.0',         bin: 'C:\ProgramData\mingw64\mingw64\bin', choco_flags: '',      config: Release, desc: 'MinGW-w64 15.2.0 x64 Release' }
-          - { version: '15.2.0',         bin: 'C:\ProgramData\mingw64\mingw32\bin', choco_flags: '--x86', config: Release, desc: 'MinGW-w64 15.2.0 x86 Release' }
-          - { version: '15.2.0',         bin: 'C:\ProgramData\mingw64\mingw64\bin', choco_flags: '',      config: Debug,   desc: 'MinGW-w64 15.2.0 x64 Debug' }
-          - { version: '15.2.0',         bin: 'C:\ProgramData\mingw64\mingw32\bin', choco_flags: '--x86', config: Debug,   desc: 'MinGW-w64 15.2.0 x86 Debug' }
-          # -mfma is on x86 too (GAOL v5, __FMA__ defined): the rounding
-          # direction preserved, which no MinGW-w64 job for 32-bit x86 ran,
-          # with it
-          - { version: '15.2.0',         bin: 'C:\ProgramData\mingw64\mingw32\bin', choco_flags: '--x86', config: Release, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'MinGW-w64 15.2.0 x86 Release, rounding direction preserved' }
-          # The older MinGW-w64 GAOL builds with: GAOL v5 takes no elementary
-          # function from the math library of the system and no longer calls
-          # fesetround() for its elementary functions. Those whose fma() or
-          # round() is wrong are refused, CORE-MATH computing with that fma()
-          # (see gaol/gaol_config.h): MinGW-w64 GCC 11 to 13 on x86-64, and GCC
-          # 11 on 32-bit x86, which the job mingw-refused checks. GCC 12 and 13
-          # on 32-bit x86 compute the fma() of mingw-w64 11 on the x87 unit,
-          # in extended precision, when GAOL_FMA is off: it passes the tests,
-          # though it is not correctly rounded (the job 13.2.0 x86 Release,
-          # no FMA). With GAOL_FMA, the default, they get -mfma (GAOL v5).
-          - { version: '14.2.0',          bin: 'C:\ProgramData\mingw64\mingw64\bin', choco_flags: '',      config: Release, desc: 'MinGW-w64 14.2.0 x64 Release' }
-          - { version: '14.2.0',          bin: 'C:\ProgramData\mingw64\mingw32\bin', choco_flags: '--x86', config: Release, desc: 'MinGW-w64 14.2.0 x86 Release' }
-          - { version: '13.2.0',          bin: 'C:\ProgramData\mingw64\mingw32\bin', choco_flags: '--x86', config: Release, desc: 'MinGW-w64 13.2.0 x86 Release' }
-          - { version: '13.2.0',          bin: 'C:\ProgramData\mingw64\mingw32\bin', choco_flags: '--x86', config: Release, opts: '-DGAOL_FMA=OFF', desc: 'MinGW-w64 13.2.0 x86 Release, no FMA' }
-          - { version: '12.2.0.03042023', bin: 'C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw32\bin', choco_flags: '--x86', config: Release, desc: 'MinGW-w64 12.2.0 x86 Release' }
-    steps:
-      - uses: actions/checkout@v7
-      - name: MinGW-w64, from Chocolatey
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }}
         run: |
-          choco install -y -r --no-progress mingw --version=${{ matrix.cfg.version }} --force ${{ matrix.cfg.choco_flags }}
-          echo '${{ matrix.cfg.bin }}' >> "$GITHUB_PATH"
-      - name: Configure
-        run: |
-          which gcc g++ mingw32-make
-          g++ --version
-          g++ -dumpmachine
-          cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{ matrix.cfg.config }} -DWITH_TESTS=ON -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install" ${{ matrix.cfg.opts }}
-      # The SSE2 intervals on x86 as on x64, with -faligned-new=8 on x86, where
-      # the C runtime aligns the memory of new on 8 bytes (GAOL v5)
-      - name: The intervals
-        run: |
-          sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h sse2
-          if [ "$(g++ -dumpmachine | cut -c1-4)" = "i686" ]; then
-            grep -F -e "-faligned-new=8" build/CMakeFiles/gaol.dir/flags.make
-          fi
-      - name: Build
-        run: cmake --build build -j 4
-      # GAOL_FMA gives GCC for Windows on x64 and on x86 -mfma
-      # -mprefer-vector-width=128 (CMakeLists.txt): the
-      # objects of the Release builds hold fused multiply-add instructions,
-      # which CORE-MATH and the integer powers need to be fast, and none on a
-      # 256-bit register, which GCC would spill to a stack that Windows x64
-      # aligns on 16 bytes (GCC bug 54412; on x86 the lines with %ymm are
-      # listed and noticed, not an error). Not in Debug, where the vectorizer
-      # does not run, nor without GAOL_FMA (GAOL v5)
-      - name: Fused multiply-add instructions, and no 256-bit register in the objects
-        if: matrix.cfg.config == 'Release' && !contains(matrix.cfg.opts, 'GAOL_FMA=OFF')
-        run: |
-          PATH="$(cygpath -u '${{ matrix.cfg.bin }}'):$PATH"
-          export PATH
-          sh .github/scripts/check-gcc-windows-fma.sh build
-      # The programs are run with the MinGW-w64 first in PATH: bash starts with the
-      # mingw64/bin of Git for Windows before it, and the libstdc++-6.dll there (x64
-      # only: an x86 program skips a 64-bit DLL) is older than the compiler's, without
-      # std::streambuf::seekpos, so that gaol_test_numbers did not start (exit code
-      # 0xc0000139, entry point not found).
-      - name: Tests (make test)
-        run: |
-          bindir=$(cygpath -u '${{ matrix.cfg.bin }}')
-          export PATH="$bindir:$PATH"
-          cmake --build build --target test
-      - name: The test numbers ran under a locale writing a decimal comma
-        run: sh .github/scripts/comma-locale.sh check build
-      # The test of misc with the stack aligned on 4 bytes (see the job
-      # visual-studio): GCC for x86 stops on it where it does not align the
-      # stack of the function. After the check of the locale, which reads the output of
-      # the last ctest (LastTest.log)
-      - name: The stack entered aligned on 4 bytes
-        if: matrix.cfg.choco_flags == '--x86'
-        run: |
-          bindir=$(cygpath -u '${{ matrix.cfg.bin }}')
-          export PATH="$bindir:$PATH"
-          ctest --test-dir build -R '^misc$' -V | tee misc.log
-          grep -F "returned the bounds of the entry aligned on 16 with the stack aligned on 16 minus 4, 8 and 12 bytes at its entry" misc.log
-      - name: Performance
-        if: matrix.cfg.config == 'Release'
-        run: |
-          bindir=$(cygpath -u '${{ matrix.cfg.bin }}')
-          export PATH="$bindir:$PATH"
-          build/tests/gaol_performance.exe | tee -a "$GITHUB_STEP_SUMMARY"
-      - name: Install
-        run: cmake --install build
-      - name: Tests built with the installed GAOL
-        run: |
-          bindir=$(cygpath -u '${{ matrix.cfg.bin }}')
-          export PATH="$bindir:$PATH"
-          cmake -S tests/find_package -B build-find-package -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{ matrix.cfg.config }} -DCMAKE_CXX_COMPILER=g++ -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
-          cmake --build build-find-package -j 4
-          cmake --build build-find-package --target test
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Visual Studio 2022 x64 and clang-cl x64 Release' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='Visual Studio 2022 x64 Debug' ;;
+              c2) name='Visual Studio 2022 x64 Release' ;;
+              c3) name='Visual Studio 2022 x64 Release, AVX-512 arithmetic under SDE, rounding direction preserved' ;;
+              c4) name='Visual Studio 2022 clang-cl x64 Release' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
 
-  msys2:
-    name: ${{ matrix.cfg.desc }}
-    runs-on: ${{ matrix.cfg.os || 'windows-2022' }}
+  w2:
+    name: 'Visual Studio 2022 x86 and clang-cl x64 Debug (3 configurations)'
+    runs-on: windows-2022
     timeout-minutes: 60
-    defaults:
-      run:
-        shell: msys2 {0}
-    strategy:
-      fail-fast: false
-      matrix:
-        cfg:
-          - { msystem: UCRT64,  packages: ucrt-x86_64,  cc: gcc,   cxx: g++,     desc: 'MSYS2 UCRT64 GCC x64' }
-          # With -mfma (GAOL_FMA, GAOL v5) GCC for Windows defines __FMA__, and
-          # GAOL_PRESERVE_ROUNDING then keeps the rounding direction through
-          # MXCSR alone (GAOL_RND_ENTER_SSE of gaol/gaol_fpu.h), which only the
-          # jobs of Linux and clang-cl ran: this one runs it with GCC for Windows.
-          # mingw-w64 13 and later read the direction with a fegetround() that
-          # joins the x87 unit and MXCSR, and set it with a fesetround() that
-          # clears the exception flags: GAOL reads and writes the registers
-          # itself there (GAOL_RND_X86_64_DIRECT)
-          - { msystem: UCRT64,  packages: ucrt-x86_64,  cc: gcc,   cxx: g++,     opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'MSYS2 UCRT64 GCC x64, rounding direction preserved' }
-          # The same without the fused multiply-add instructions: __FMA__ is
-          # not defined, and the operations that are not SSE2 ones (the
-          # elementary functions, midpoint()...) keep the direction with the
-          # generic macros, as before GAOL_FMA gave -mfma
-          - { msystem: UCRT64,  packages: ucrt-x86_64,  cc: gcc,   cxx: g++,     opts: '-DGAOL_FMA=OFF -DGAOL_PRESERVE_ROUNDING=ON', desc: 'MSYS2 UCRT64 GCC x64, rounding direction preserved, no FMA' }
-          - { msystem: CLANG64, packages: clang-x86_64, cc: clang, cxx: clang++, desc: 'MSYS2 CLANG64 Clang x64' }
-          # Clang for Windows has taken -mfma since GAOL_FMA exists, so that
-          # __FMA__ is defined there and the direction is kept through MXCSR
-          # alone: the same configuration as the GCC entry above, with the same C
-          # runtime (the step that counts the instructions is GCC's), but for the
-          # AVX-512 path: Clang takes it where the runner has the instructions
-          # (the step tells), GCC for Windows never does. Then +, -, *, /, sqr and
-          # sqrt of this job set no direction, and GAOL_RND_ENTER_SSE() is only
-          # covered by the GCC entry; the readers and writers of the registers
-          # (midpoint(), chi(), split(), the reading and the writing of an
-          # interval), which this job runs, are covered whatever the runner
-          - { msystem: CLANG64, packages: clang-x86_64, cc: clang, cxx: clang++, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'MSYS2 CLANG64 Clang x64, rounding direction preserved' }
-          # MSYS2 for arm64, on the arm64 runners: the Clang of MinGW-w64 takes the
-          # NEON intervals as that of Linux and macOS does, FPCR being read and
-          # written by the asm statements of Clang, and the UCRT of Windows having
-          # FE_* values that are not the bits of FPCR (GAOL v5)
-          - { os: windows-11-vs2026-arm, msystem: CLANGARM64, packages: clang-aarch64, cc: clang, cxx: clang++, desc: 'MSYS2 CLANGARM64 Clang arm64' }
-          - { os: windows-11-vs2026-arm, msystem: CLANGARM64, packages: clang-aarch64, cc: clang, cxx: clang++, opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'MSYS2 CLANGARM64 Clang arm64, rounding direction preserved' }
     steps:
       - uses: actions/checkout@v7
+      - id: c1
+        name: 'Visual Studio 2022 x86 Debug'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio
+        with:
+          desc: 'Visual Studio 2022 x86 Debug'
+          generator: 'Visual Studio 17 2022'
+          arch: 'Win32'
+          config: 'Debug'
+      - id: c2
+        name: 'Visual Studio 2022 x86 Release'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio
+        with:
+          desc: 'Visual Studio 2022 x86 Release'
+          generator: 'Visual Studio 17 2022'
+          arch: 'Win32'
+          config: 'Release'
+      - id: c3
+        name: 'Visual Studio 2022 clang-cl x64 Debug'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio
+        with:
+          desc: 'Visual Studio 2022 clang-cl x64 Debug'
+          generator: 'Visual Studio 17 2022'
+          toolset: '-T ClangCL'
+          clang_cl: 'true'
+          arch: 'x64'
+          config: 'Debug'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Visual Studio 2022 x86 and clang-cl x64 Debug' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='Visual Studio 2022 x86 Debug' ;;
+              c2) name='Visual Studio 2022 x86 Release' ;;
+              c3) name='Visual Studio 2022 clang-cl x64 Debug' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  w3:
+    name: 'VS 2022 AVX-512 Debug, Clang for Visual C++, MSYS2 refused (6 configurations)'
+    runs-on: windows-2022
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      # One setup of MSYS2 for the group: the configurations choose their
+      # environment with MSYSTEM, the action refusing a second installation
       - uses: msys2/setup-msys2@v2
         with:
-          msystem: ${{ matrix.cfg.msystem }}
-          install: mingw-w64-${{ matrix.cfg.packages }}-toolchain mingw-w64-${{ matrix.cfg.packages }}-cmake mingw-w64-${{ matrix.cfg.packages }}-ninja
-      - name: Configure
+          msystem: MINGW64
+          suppress-deprecation-warnings: msystem-mingw64
+          install: >-
+            mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-clang mingw-w64-i686-toolchain mingw-w64-i686-cmake
+            mingw-w64-i686-ninja
+      - id: c1
+        name: 'MSYS2 MINGW64 GCC x64, refused'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-msys2-refused
+        with:
+          desc: 'MSYS2 MINGW64 GCC x64, refused'
+          msystem: 'MINGW64'
+          cc: 'gcc'
+          cxx: 'g++'
+          opts: ''
+          message: 'or linked with msvcrt.dll rather than the UCRT, its fma() and round() are those of mingw-w64''s own math library'
+        env:
+          MSYSTEM: 'MINGW64'
+      - id: c2
+        name: 'MSYS2 MINGW64 Clang x64, refused'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-msys2-refused
+        with:
+          desc: 'MSYS2 MINGW64 Clang x64, refused'
+          msystem: 'MINGW64'
+          cc: 'clang'
+          cxx: 'clang++'
+          opts: ''
+          message: 'or linked with msvcrt.dll rather than the UCRT, its fma() and round() are those of mingw-w64''s own math library'
+        env:
+          MSYSTEM: 'MINGW64'
+      - id: c3
+        name: 'MSYS2 MINGW32 GCC x86 without FMA, refused'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-msys2-refused
+        with:
+          desc: 'MSYS2 MINGW32 GCC x86 without FMA, refused'
+          msystem: 'MINGW32'
+          cc: 'gcc'
+          cxx: 'g++'
+          opts: '-DGAOL_FMA=OFF'
+          message: 'linked with msvcrt.dll rather than the UCRT, without the fused multiply-add instructions'
+        env:
+          MSYSTEM: 'MINGW32'
+      - id: c4
+        name: 'Visual Studio 2022 x64 Debug, AVX-512 arithmetic'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio
+        with:
+          desc: 'Visual Studio 2022 x64 Debug, AVX-512 arithmetic'
+          generator: 'Visual Studio 17 2022'
+          arch: 'x64'
+          config: 'Debug'
+          opts: '-DGAOL_PREFER_AVX512=ON'
+      - id: c5
+        name: 'Clang for Visual C++ x64 (clang++), Release'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-clang-msvc
+        with:
+          desc: 'Clang for Visual C++ x64 (clang++), Release'
+          arch: 'x64'
+          target: 'x86_64-pc-windows-msvc'
+      - id: c6
+        name: 'Clang for Visual C++ x86 (clang++), Release'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-clang-msvc
+        with:
+          desc: 'Clang for Visual C++ x86 (clang++), Release'
+          arch: 'x86'
+          target: 'i686-pc-windows-msvc'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }} c5=${{ steps.c5.outcome }} c6=${{ steps.c6.outcome }}
         run: |
-          ${{ matrix.cfg.cxx }} --version
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_C_COMPILER=${{ matrix.cfg.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }} ${{ matrix.cfg.opts }}
-      - name: Build
-        run: cmake --build build -j 4
-      # The intervals of the build: the SSE2 ones on x64 and the NEON ones on arm64
-      - name: The intervals
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'VS 2022 AVX-512 Debug, Clang for Visual C++, MSYS2 refused' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='MSYS2 MINGW64 GCC x64, refused' ;;
+              c2) name='MSYS2 MINGW64 Clang x64, refused' ;;
+              c3) name='MSYS2 MINGW32 GCC x86 without FMA, refused' ;;
+              c4) name='Visual Studio 2022 x64 Debug, AVX-512 arithmetic' ;;
+              c5) name='Clang for Visual C++ x64 (clang++), Release' ;;
+              c6) name='Clang for Visual C++ x86 (clang++), Release' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  w4:
+    name: 'MSYS2 UCRT64 and CLANG64 (5 configurations)'
+    runs-on: windows-2022
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      # One setup of MSYS2 for the group: the configurations choose their
+      # environment with MSYSTEM, the action refusing a second installation
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          install: >-
+            mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-clang-x86_64-toolchain mingw-w64-clang-x86_64-cmake mingw-w64-clang-x86_64-ninja
+      - id: c1
+        name: 'MSYS2 UCRT64 GCC x64'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-msys2
+        with:
+          desc: 'MSYS2 UCRT64 GCC x64'
+          msystem: 'UCRT64'
+          cc: 'gcc'
+          cxx: 'g++'
+        env:
+          MSYSTEM: 'UCRT64'
+      # With -mfma (GAOL_FMA, GAOL v5) GCC for Windows defines __FMA__, and
+      # GAOL_PRESERVE_ROUNDING then keeps the rounding direction through
+      # MXCSR alone (GAOL_RND_ENTER_SSE of gaol/gaol_fpu.h), which only the
+      # jobs of Linux and clang-cl ran: this one runs it with GCC for Windows.
+      # mingw-w64 13 and later read the direction with a fegetround() that
+      # joins the x87 unit and MXCSR, and set it with a fesetround() that
+      # clears the exception flags: GAOL reads and writes the registers
+      # itself there (GAOL_RND_X86_64_DIRECT)
+      - id: c2
+        name: 'MSYS2 UCRT64 GCC x64, rounding direction preserved'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-msys2
+        with:
+          desc: 'MSYS2 UCRT64 GCC x64, rounding direction preserved'
+          msystem: 'UCRT64'
+          cc: 'gcc'
+          cxx: 'g++'
+          opts: '-DGAOL_PRESERVE_ROUNDING=ON'
+        env:
+          MSYSTEM: 'UCRT64'
+      # The same without the fused multiply-add instructions: __FMA__ is
+      # not defined, and the operations that are not SSE2 ones (the
+      # elementary functions, midpoint()...) keep the direction with the
+      # generic macros, as before GAOL_FMA gave -mfma
+      - id: c3
+        name: 'MSYS2 UCRT64 GCC x64, rounding direction preserved, no FMA'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-msys2
+        with:
+          desc: 'MSYS2 UCRT64 GCC x64, rounding direction preserved, no FMA'
+          msystem: 'UCRT64'
+          cc: 'gcc'
+          cxx: 'g++'
+          opts: '-DGAOL_FMA=OFF -DGAOL_PRESERVE_ROUNDING=ON'
+        env:
+          MSYSTEM: 'UCRT64'
+      - id: c4
+        name: 'MSYS2 CLANG64 Clang x64'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-msys2
+        with:
+          desc: 'MSYS2 CLANG64 Clang x64'
+          msystem: 'CLANG64'
+          cc: 'clang'
+          cxx: 'clang++'
+        env:
+          MSYSTEM: 'CLANG64'
+      # Clang for Windows has taken -mfma since GAOL_FMA exists, so that
+      # __FMA__ is defined there and the direction is kept through MXCSR
+      # alone: the same configuration as the GCC entry above, with the same C
+      # runtime (the step that counts the instructions is GCC's), but for the
+      # AVX-512 path: Clang takes it where the runner has the instructions
+      # (the step tells), GCC for Windows never does. Then +, -, *, /, sqr and
+      # sqrt of this job set no direction, and GAOL_RND_ENTER_SSE() is only
+      # covered by the GCC entry; the readers and writers of the registers
+      # (midpoint(), chi(), split(), the reading and the writing of an
+      # interval), which this job runs, are covered whatever the runner
+      - id: c5
+        name: 'MSYS2 CLANG64 Clang x64, rounding direction preserved'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-msys2
+        with:
+          desc: 'MSYS2 CLANG64 Clang x64, rounding direction preserved'
+          msystem: 'CLANG64'
+          cc: 'clang'
+          cxx: 'clang++'
+          opts: '-DGAOL_PRESERVE_ROUNDING=ON'
+        env:
+          MSYSTEM: 'CLANG64'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }} c5=${{ steps.c5.outcome }}
         run: |
-          case "${{ matrix.cfg.msystem }}" in CLANGARM64) expected=neon ;; *) expected=sse2 ;; esac
-          sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h $expected
-      # GAOL_FMA gives GCC for Windows -mfma -mprefer-vector-width=128
-      # (CMakeLists.txt), as the job above checks (GAOL
-      # v5). Not Clang, which aligns its stack and gets -mfma alone
-      - name: Fused multiply-add instructions, and no 256-bit register in the objects
-        if: matrix.cfg.cc == 'gcc' && !contains(matrix.cfg.opts, 'GAOL_FMA=OFF')
-        run: sh .github/scripts/check-gcc-windows-fma.sh build
-      - name: Tests (make test)
-        run: cmake --build build --target test
-      - name: The test numbers ran under a locale writing a decimal comma
-        run: sh .github/scripts/comma-locale.sh check build
-      - name: Performance
-        run: build/tests/gaol_performance.exe
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'MSYS2 UCRT64 and CLANG64' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='MSYS2 UCRT64 GCC x64' ;;
+              c2) name='MSYS2 UCRT64 GCC x64, rounding direction preserved' ;;
+              c3) name='MSYS2 UCRT64 GCC x64, rounding direction preserved, no FMA' ;;
+              c4) name='MSYS2 CLANG64 Clang x64' ;;
+              c5) name='MSYS2 CLANG64 Clang x64, rounding direction preserved' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  w5:
+    name: 'MinGW-w64 11.2, 12.2, 13.2 x64 (refused) and 12.2 x86 (5 configurations)'
+    runs-on: windows-2022
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'MinGW-w64 11.2.0 x64, refused'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-mingw-refused
+        with:
+          desc: 'MinGW-w64 11.2.0 x64, refused'
+          version: '11.2.0.07112021'
+          bin: 'C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin'
+          choco_flags: ''
+          message: 'or linked with msvcrt.dll rather than the UCRT, its fma() and round() are those of mingw-w64''s own math library'
+      - id: c2
+        name: 'MinGW-w64 11.2.0 x86, refused'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-mingw-refused
+        with:
+          desc: 'MinGW-w64 11.2.0 x86, refused'
+          version: '11.2.0.07112021'
+          bin: 'C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw32\bin'
+          choco_flags: '--x86'
+          message: 'whose fma(), which CORE-MATH computes with, rounds each of its partial sums to a double'
+      - id: c3
+        name: 'MinGW-w64 12.2.0 x64, refused'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-mingw-refused
+        with:
+          desc: 'MinGW-w64 12.2.0 x64, refused'
+          version: '12.2.0.03042023'
+          bin: 'C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin'
+          choco_flags: ''
+          message: 'or linked with msvcrt.dll rather than the UCRT, its fma() and round() are those of mingw-w64''s own math library'
+      - id: c4
+        name: 'MinGW-w64 12.2.0 x86 Release'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-mingw
+        with:
+          desc: 'MinGW-w64 12.2.0 x86 Release'
+          version: '12.2.0.03042023'
+          bin: 'C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw32\bin'
+          choco_flags: '--x86'
+          config: 'Release'
+      - id: c5
+        name: 'MinGW-w64 13.2.0 x64, refused'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-mingw-refused
+        with:
+          desc: 'MinGW-w64 13.2.0 x64, refused'
+          version: '13.2.0'
+          bin: 'C:\ProgramData\mingw64\mingw64\bin'
+          choco_flags: ''
+          message: 'or linked with msvcrt.dll rather than the UCRT, its fma() and round() are those of mingw-w64''s own math library'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }} c5=${{ steps.c5.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'MinGW-w64 11.2, 12.2, 13.2 x64 (refused) and 12.2 x86' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='MinGW-w64 11.2.0 x64, refused' ;;
+              c2) name='MinGW-w64 11.2.0 x86, refused' ;;
+              c3) name='MinGW-w64 12.2.0 x64, refused' ;;
+              c4) name='MinGW-w64 12.2.0 x86 Release' ;;
+              c5) name='MinGW-w64 13.2.0 x64, refused' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  w6:
+    name: 'MinGW-w64 13.2 x86 (2 configurations)'
+    runs-on: windows-2022
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'MinGW-w64 13.2.0 x86 Release'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-mingw
+        with:
+          desc: 'MinGW-w64 13.2.0 x86 Release'
+          version: '13.2.0'
+          bin: 'C:\ProgramData\mingw64\mingw32\bin'
+          choco_flags: '--x86'
+          config: 'Release'
+      - id: c2
+        name: 'MinGW-w64 13.2.0 x86 Release, no FMA'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-mingw
+        with:
+          desc: 'MinGW-w64 13.2.0 x86 Release, no FMA'
+          version: '13.2.0'
+          bin: 'C:\ProgramData\mingw64\mingw32\bin'
+          choco_flags: '--x86'
+          config: 'Release'
+          opts: '-DGAOL_FMA=OFF'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'MinGW-w64 13.2 x86' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='MinGW-w64 13.2.0 x86 Release' ;;
+              c2) name='MinGW-w64 13.2.0 x86 Release, no FMA' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  w7:
+    name: 'MinGW-w64 14.2 and 15.2 Debug x64 (3 configurations)'
+    runs-on: windows-2022
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      # The older MinGW-w64 GAOL builds with: GAOL v5 takes no elementary
+      # function from the math library of the system and no longer calls
+      # fesetround() for its elementary functions. Those whose fma() or
+      # round() is wrong are refused, CORE-MATH computing with that fma()
+      # (see gaol/gaol_config.h): MinGW-w64 GCC 11 to 13 on x86-64, and GCC
+      # 11 on 32-bit x86, which the job mingw-refused checks. GCC 12 and 13
+      # on 32-bit x86 compute the fma() of mingw-w64 11 on the x87 unit,
+      # in extended precision, when GAOL_FMA is off: it passes the tests,
+      # though it is not correctly rounded (the job 13.2.0 x86 Release,
+      # no FMA). With GAOL_FMA, the default, they get -mfma (GAOL v5).
+      - id: c1
+        name: 'MinGW-w64 14.2.0 x64 Release'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-mingw
+        with:
+          desc: 'MinGW-w64 14.2.0 x64 Release'
+          version: '14.2.0'
+          bin: 'C:\ProgramData\mingw64\mingw64\bin'
+          choco_flags: ''
+          config: 'Release'
+      - id: c2
+        name: 'MinGW-w64 14.2.0 x86 Release'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-mingw
+        with:
+          desc: 'MinGW-w64 14.2.0 x86 Release'
+          version: '14.2.0'
+          bin: 'C:\ProgramData\mingw64\mingw32\bin'
+          choco_flags: '--x86'
+          config: 'Release'
+      - id: c3
+        name: 'MinGW-w64 15.2.0 x64 Debug'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-mingw
+        with:
+          desc: 'MinGW-w64 15.2.0 x64 Debug'
+          version: '15.2.0'
+          bin: 'C:\ProgramData\mingw64\mingw64\bin'
+          choco_flags: ''
+          config: 'Debug'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'MinGW-w64 14.2 and 15.2 Debug x64' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='MinGW-w64 14.2.0 x64 Release' ;;
+              c2) name='MinGW-w64 14.2.0 x86 Release' ;;
+              c3) name='MinGW-w64 15.2.0 x64 Debug' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  w8:
+    name: 'MinGW-w64 15.2 Release and x86 (4 configurations)'
+    runs-on: windows-2022
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'MinGW-w64 15.2.0 x64 Release'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-mingw
+        with:
+          desc: 'MinGW-w64 15.2.0 x64 Release'
+          version: '15.2.0'
+          bin: 'C:\ProgramData\mingw64\mingw64\bin'
+          choco_flags: ''
+          config: 'Release'
+      - id: c2
+        name: 'MinGW-w64 15.2.0 x86 Debug'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-mingw
+        with:
+          desc: 'MinGW-w64 15.2.0 x86 Debug'
+          version: '15.2.0'
+          bin: 'C:\ProgramData\mingw64\mingw32\bin'
+          choco_flags: '--x86'
+          config: 'Debug'
+      - id: c3
+        name: 'MinGW-w64 15.2.0 x86 Release'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-mingw
+        with:
+          desc: 'MinGW-w64 15.2.0 x86 Release'
+          version: '15.2.0'
+          bin: 'C:\ProgramData\mingw64\mingw32\bin'
+          choco_flags: '--x86'
+          config: 'Release'
+      # -mfma is on x86 too (GAOL v5, __FMA__ defined): the rounding
+      # direction preserved, which no MinGW-w64 job for 32-bit x86 ran,
+      # with it
+      - id: c4
+        name: 'MinGW-w64 15.2.0 x86 Release, rounding direction preserved'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-mingw
+        with:
+          desc: 'MinGW-w64 15.2.0 x86 Release, rounding direction preserved'
+          version: '15.2.0'
+          bin: 'C:\ProgramData\mingw64\mingw32\bin'
+          choco_flags: '--x86'
+          config: 'Release'
+          opts: '-DGAOL_PRESERVE_ROUNDING=ON'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'MinGW-w64 15.2 Release and x86' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='MinGW-w64 15.2.0 x64 Release' ;;
+              c2) name='MinGW-w64 15.2.0 x86 Debug' ;;
+              c3) name='MinGW-w64 15.2.0 x86 Release' ;;
+              c4) name='MinGW-w64 15.2.0 x86 Release, rounding direction preserved' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  w9:
+    name: 'Visual Studio 2026 x64 Release (5 configurations)'
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'Visual Studio 2026 x64 Release'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio
+        with:
+          desc: 'Visual Studio 2026 x64 Release'
+          generator: 'Visual Studio 18 2026'
+          arch: 'x64'
+          config: 'Release'
+      - id: c2
+        name: 'Visual Studio 2026 x64 Release, /W4 /WX'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-warnings
+        with:
+          desc: 'Visual Studio 2026 x64 Release, /W4 /WX'
+          arch: 'x64'
+          config: 'Release'
+      - id: c3
+        name: 'Visual Studio 2026 x64 Release, /W4 /WX, AVX-512 arithmetic'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-warnings
+        with:
+          desc: 'Visual Studio 2026 x64 Release, /W4 /WX, AVX-512 arithmetic'
+          arch: 'x64'
+          config: 'Release'
+          opts: '-DGAOL_PREFER_AVX512=ON'
+      # The AVX-512 path of the arithmetic (GAOL_PREFER_AVX512), which
+      # Visual C++ and clang-cl take as GCC and Clang do: on a runner with
+      # the instructions, which the step after Configure tells, the whole
+      # suite of tests takes that path, its bounds being those of the SSE2
+      # path (GAOL v5). The job above takes the path too, on such a runner,
+      # as GAOL_PREFER_AVX512 follows the rounding direction preserved; the
+      # one below refuses it (-DGAOL_PREFER_AVX512=OFF), the SSE2
+      # operations of the preserved direction staying covered, as in
+      # linux.yml. No asm statement orders the operations of Visual C++:
+      # these jobs and tests/rounding_direction.cpp are what checks them
+      - id: c4
+        name: 'Visual Studio 2026 x64 Release, AVX-512 arithmetic'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio
+        with:
+          desc: 'Visual Studio 2026 x64 Release, AVX-512 arithmetic'
+          generator: 'Visual Studio 18 2026'
+          arch: 'x64'
+          config: 'Release'
+          opts: '-DGAOL_PREFER_AVX512=ON'
+      - id: c5
+        name: 'Visual Studio 2026 x64 Release, rounding direction preserved'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio
+        with:
+          desc: 'Visual Studio 2026 x64 Release, rounding direction preserved'
+          generator: 'Visual Studio 18 2026'
+          arch: 'x64'
+          config: 'Release'
+          opts: '-DGAOL_PRESERVE_ROUNDING=ON'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }} c5=${{ steps.c5.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Visual Studio 2026 x64 Release' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='Visual Studio 2026 x64 Release' ;;
+              c2) name='Visual Studio 2026 x64 Release, /W4 /WX' ;;
+              c3) name='Visual Studio 2026 x64 Release, /W4 /WX, AVX-512 arithmetic' ;;
+              c4) name='Visual Studio 2026 x64 Release, AVX-512 arithmetic' ;;
+              c5) name='Visual Studio 2026 x64 Release, rounding direction preserved' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  w10:
+    name: 'Visual Studio 2026 x64 Debug (3 configurations)'
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      # One setup of Intel SDE for the group
+      - name: Intel SDE
+        uses: petarpetrovt/setup-sde@6d2773bc0ef3005fd52e0ae0bb91782321793aec # v6.0
+      - id: c1
+        name: 'Visual Studio 2026 x64 Debug'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio
+        with:
+          desc: 'Visual Studio 2026 x64 Debug'
+          generator: 'Visual Studio 18 2026'
+          arch: 'x64'
+          config: 'Debug'
+      - id: c2
+        name: 'Visual Studio 2026 x64 Debug, /W4 /WX'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-warnings
+        with:
+          desc: 'Visual Studio 2026 x64 Debug, /W4 /WX'
+          arch: 'x64'
+          config: 'Debug'
+      - id: c3
+        name: 'Visual Studio 2026 x64 Debug, AVX-512 arithmetic under SDE, rounding direction preserved'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio-sde
+        with:
+          desc: 'Visual Studio 2026 x64 Debug, AVX-512 arithmetic under SDE, rounding direction preserved'
+          generator: 'Visual Studio 18 2026'
+          config: 'Debug'
+          opts: '-DGAOL_PRESERVE_ROUNDING=ON'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Visual Studio 2026 x64 Debug' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='Visual Studio 2026 x64 Debug' ;;
+              c2) name='Visual Studio 2026 x64 Debug, /W4 /WX' ;;
+              c3) name='Visual Studio 2026 x64 Debug, AVX-512 arithmetic under SDE, rounding direction preserved' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  w11:
+    name: 'VS 2026 x64 SDE, clang-cl x64 SDE (5 configurations)'
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      # One setup of Intel SDE for the group
+      - name: Intel SDE
+        uses: petarpetrovt/setup-sde@6d2773bc0ef3005fd52e0ae0bb91782321793aec # v6.0
+      - id: c1
+        name: 'Visual Studio 2026 x64 Release, AVX-512 arithmetic under SDE'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio-sde
+        with:
+          desc: 'Visual Studio 2026 x64 Release, AVX-512 arithmetic under SDE'
+          generator: 'Visual Studio 18 2026'
+          config: 'Release'
+          opts: '-DGAOL_PREFER_AVX512=ON'
+      - id: c2
+        name: 'Visual Studio 2026 x64 Release, AVX-512 arithmetic under SDE, rounding direction preserved'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio-sde
+        with:
+          desc: 'Visual Studio 2026 x64 Release, AVX-512 arithmetic under SDE, rounding direction preserved'
+          generator: 'Visual Studio 18 2026'
+          config: 'Release'
+          opts: '-DGAOL_PRESERVE_ROUNDING=ON'
+      - id: c3
+        name: 'Visual Studio 2026 x64 Release, rounding direction preserved, AVX-512 arithmetic not taken'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio
+        with:
+          desc: 'Visual Studio 2026 x64 Release, rounding direction preserved, AVX-512 arithmetic not taken'
+          generator: 'Visual Studio 18 2026'
+          arch: 'x64'
+          config: 'Release'
+          opts: '-DGAOL_PRESERVE_ROUNDING=ON -DGAOL_PREFER_AVX512=OFF'
+      - id: c4
+        name: 'Visual Studio 2026 clang-cl x64 Release, AVX-512 arithmetic under SDE, rounding direction preserved'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio-sde
+        with:
+          desc: 'Visual Studio 2026 clang-cl x64 Release, AVX-512 arithmetic under SDE, rounding direction preserved'
+          generator: 'Visual Studio 18 2026'
+          toolset: '-T ClangCL'
+          config: 'Release'
+          opts: '-DGAOL_PRESERVE_ROUNDING=ON'
+      - id: c5
+        name: 'Visual Studio 2026 clang-cl x64 Release, rounding direction preserved, AVX-512 arithmetic not taken'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio
+        with:
+          desc: 'Visual Studio 2026 clang-cl x64 Release, rounding direction preserved, AVX-512 arithmetic not taken'
+          generator: 'Visual Studio 18 2026'
+          toolset: '-T ClangCL'
+          clang_cl: 'true'
+          arch: 'x64'
+          config: 'Release'
+          opts: '-DGAOL_PRESERVE_ROUNDING=ON -DGAOL_PREFER_AVX512=OFF'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }} c5=${{ steps.c5.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'VS 2026 x64 SDE, clang-cl x64 SDE' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='Visual Studio 2026 x64 Release, AVX-512 arithmetic under SDE' ;;
+              c2) name='Visual Studio 2026 x64 Release, AVX-512 arithmetic under SDE, rounding direction preserved' ;;
+              c3) name='Visual Studio 2026 x64 Release, rounding direction preserved, AVX-512 arithmetic not taken' ;;
+              c4) name='Visual Studio 2026 clang-cl x64 Release, AVX-512 arithmetic under SDE, rounding direction preserved' ;;
+              c5) name='Visual Studio 2026 clang-cl x64 Release, rounding direction preserved, AVX-512 arithmetic not taken' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  w12:
+    name: 'clang-cl x64 and x86, VS 2026 x86 Release (5 configurations)'
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'Visual Studio 2026 clang-cl x64 Release'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio
+        with:
+          desc: 'Visual Studio 2026 clang-cl x64 Release'
+          generator: 'Visual Studio 18 2026'
+          toolset: '-T ClangCL'
+          clang_cl: 'true'
+          arch: 'x64'
+          config: 'Release'
+      # clang-cl x64 keeps the asm statements of Clang in the AVX-512 path and
+      # takes the SSE2 intervals with the rounding direction preserved through
+      # MXCSR alone (/arch:AVX2 defines __FMA__ for it, not for cl), which no
+      # job covered before (GAOL v5)
+      - id: c2
+        name: 'Visual Studio 2026 clang-cl x64 Release, AVX-512 arithmetic'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio
+        with:
+          desc: 'Visual Studio 2026 clang-cl x64 Release, AVX-512 arithmetic'
+          generator: 'Visual Studio 18 2026'
+          toolset: '-T ClangCL'
+          clang_cl: 'true'
+          arch: 'x64'
+          config: 'Release'
+          opts: '-DGAOL_PREFER_AVX512=ON'
+      - id: c3
+        name: 'Visual Studio 2026 clang-cl x86 Release'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio
+        with:
+          desc: 'Visual Studio 2026 clang-cl x86 Release'
+          generator: 'Visual Studio 18 2026'
+          toolset: '-T ClangCL'
+          clang_cl: 'true'
+          arch: 'Win32'
+          config: 'Release'
+      - id: c4
+        name: 'Visual Studio 2026 x86 Release'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio
+        with:
+          desc: 'Visual Studio 2026 x86 Release'
+          generator: 'Visual Studio 18 2026'
+          arch: 'Win32'
+          config: 'Release'
+      - id: c5
+        name: 'Visual Studio 2026 x86 Release, /W4 /WX'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-warnings
+        with:
+          desc: 'Visual Studio 2026 x86 Release, /W4 /WX'
+          arch: 'Win32'
+          config: 'Release'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }} c5=${{ steps.c5.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'clang-cl x64 and x86, VS 2026 x86 Release' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='Visual Studio 2026 clang-cl x64 Release' ;;
+              c2) name='Visual Studio 2026 clang-cl x64 Release, AVX-512 arithmetic' ;;
+              c3) name='Visual Studio 2026 clang-cl x86 Release' ;;
+              c4) name='Visual Studio 2026 x86 Release' ;;
+              c5) name='Visual Studio 2026 x86 Release, /W4 /WX' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  w13:
+    name: 'Visual Studio 2026 x86 Debug and variants (3 configurations)'
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'Visual Studio 2026 x86 Debug'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio
+        with:
+          desc: 'Visual Studio 2026 x86 Debug'
+          generator: 'Visual Studio 18 2026'
+          arch: 'Win32'
+          config: 'Debug'
+      # The FPU intervals, which the SSE2 ones replace on x86 with Visual C++
+      # (GAOL v5), so that their code, and the rounding direction they keep
+      # through the x87 unit and MXCSR, stay covered
+      - id: c2
+        name: 'Visual Studio 2026 x86 Release, FPU intervals'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio
+        with:
+          desc: 'Visual Studio 2026 x86 Release, FPU intervals'
+          generator: 'Visual Studio 18 2026'
+          arch: 'Win32'
+          config: 'Release'
+          opts: '-DGAOL_SIMD=OFF'
+      # The control word of the x87 unit and MXCSR are read and written
+      # directly on 32-bit x86, with the inline assembly of Visual C++
+      # (gaol/gaol_fpu.h, GAOL v5): this job runs it with the rounding
+      # direction restored by each operation too, which no job did
+      - id: c3
+        name: 'Visual Studio 2026 x86 Release, rounding direction preserved'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio
+        with:
+          desc: 'Visual Studio 2026 x86 Release, rounding direction preserved'
+          generator: 'Visual Studio 18 2026'
+          arch: 'Win32'
+          config: 'Release'
+          opts: '-DGAOL_PRESERVE_ROUNDING=ON'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Visual Studio 2026 x86 Debug and variants' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='Visual Studio 2026 x86 Debug' ;;
+              c2) name='Visual Studio 2026 x86 Release, FPU intervals' ;;
+              c3) name='Visual Studio 2026 x86 Release, rounding direction preserved' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  w14:
+    name: 'Visual Studio 2022 and 2026 arm64, Debug (3 configurations)'
+    runs-on: windows-11-vs2026-arm
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'Visual Studio 2022 arm64 Debug'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio
+        with:
+          desc: 'Visual Studio 2022 arm64 Debug'
+          generator: 'Visual Studio 18 2026'
+          toolset: '-T v143'
+          cl: '19.44'
+          arch: 'ARM64'
+          config: 'Debug'
+      - id: c2
+        name: 'Visual Studio 2022 arm64 Release'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio
+        with:
+          desc: 'Visual Studio 2022 arm64 Release'
+          generator: 'Visual Studio 18 2026'
+          toolset: '-T v143'
+          cl: '19.44'
+          arch: 'ARM64'
+          config: 'Release'
+      - id: c3
+        name: 'Visual Studio 2026 arm64 Debug'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio
+        with:
+          desc: 'Visual Studio 2026 arm64 Debug'
+          generator: 'Visual Studio 18 2026'
+          arch: 'ARM64'
+          config: 'Debug'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Visual Studio 2022 and 2026 arm64, Debug' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='Visual Studio 2022 arm64 Debug' ;;
+              c2) name='Visual Studio 2022 arm64 Release' ;;
+              c3) name='Visual Studio 2026 arm64 Debug' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  w15:
+    name: 'Visual Studio 2026 arm64 Release, clang-cl Release (4 configurations)'
+    runs-on: windows-11-vs2026-arm
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'Visual Studio 2026 arm64 Release'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio
+        with:
+          desc: 'Visual Studio 2026 arm64 Release'
+          generator: 'Visual Studio 18 2026'
+          arch: 'ARM64'
+          config: 'Release'
+      - id: c2
+        name: 'Visual Studio 2026 arm64 Release, FPU intervals'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio
+        with:
+          desc: 'Visual Studio 2026 arm64 Release, FPU intervals'
+          generator: 'Visual Studio 18 2026'
+          arch: 'ARM64'
+          config: 'Release'
+          opts: '-DGAOL_SIMD=OFF'
+      # The NEON intervals of Visual C++ for arm64 (GAOL v5) read and write
+      # FPCR through _ReadStatusReg() and _WriteStatusReg(), and no asm
+      # statement orders their operations: the jobs above and
+      # tests/rounding_direction.cpp are what checks them. This one runs
+      # them with the rounding direction restored by each operation too,
+      # and the next one the FPU intervals, which -DGAOL_SIMD=OFF gives
+      - id: c3
+        name: 'Visual Studio 2026 arm64 Release, rounding direction preserved'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio
+        with:
+          desc: 'Visual Studio 2026 arm64 Release, rounding direction preserved'
+          generator: 'Visual Studio 18 2026'
+          arch: 'ARM64'
+          config: 'Release'
+          opts: '-DGAOL_PRESERVE_ROUNDING=ON'
+      - id: c4
+        name: 'Visual Studio 2026 clang-cl arm64 Release'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio
+        with:
+          desc: 'Visual Studio 2026 clang-cl arm64 Release'
+          generator: 'Visual Studio 18 2026'
+          toolset: '-T ClangCL'
+          clang_cl: 'true'
+          arch: 'ARM64'
+          config: 'Release'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Visual Studio 2026 arm64 Release, clang-cl Release' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='Visual Studio 2026 arm64 Release' ;;
+              c2) name='Visual Studio 2026 arm64 Release, FPU intervals' ;;
+              c3) name='Visual Studio 2026 arm64 Release, rounding direction preserved' ;;
+              c4) name='Visual Studio 2026 clang-cl arm64 Release' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  w16:
+    name: 'MSYS2 CLANGARM64 and clang-cl arm64 FPU (3 configurations)'
+    runs-on: windows-11-vs2026-arm
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      # One setup of MSYS2 for the group: the configurations choose their
+      # environment with MSYSTEM, the action refusing a second installation
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: CLANGARM64
+          install: >-
+            mingw-w64-clang-aarch64-toolchain mingw-w64-clang-aarch64-cmake mingw-w64-clang-aarch64-ninja
+      # MSYS2 for arm64, on the arm64 runners: the Clang of MinGW-w64 takes the
+      # NEON intervals as that of Linux and macOS does, FPCR being read and
+      # written by the asm statements of Clang, and the UCRT of Windows having
+      # FE_* values that are not the bits of FPCR (GAOL v5)
+      - id: c1
+        name: 'MSYS2 CLANGARM64 Clang arm64'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-msys2
+        with:
+          desc: 'MSYS2 CLANGARM64 Clang arm64'
+          msystem: 'CLANGARM64'
+          cc: 'clang'
+          cxx: 'clang++'
+        env:
+          MSYSTEM: 'CLANGARM64'
+      - id: c2
+        name: 'MSYS2 CLANGARM64 Clang arm64, rounding direction preserved'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-msys2
+        with:
+          desc: 'MSYS2 CLANGARM64 Clang arm64, rounding direction preserved'
+          msystem: 'CLANGARM64'
+          cc: 'clang'
+          cxx: 'clang++'
+          opts: '-DGAOL_PRESERVE_ROUNDING=ON'
+        env:
+          MSYSTEM: 'CLANGARM64'
+      # The FPU intervals of clang-cl on arm64, which the NEON ones replace
+      # there (GAOL v5): they read and write FPCR with asm, as the NEON ones
+      - id: c3
+        name: 'Visual Studio 2026 clang-cl arm64 Release, FPU intervals'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-visual-studio
+        with:
+          desc: 'Visual Studio 2026 clang-cl arm64 Release, FPU intervals'
+          generator: 'Visual Studio 18 2026'
+          toolset: '-T ClangCL'
+          clang_cl: 'true'
+          arch: 'ARM64'
+          config: 'Release'
+          opts: '-DGAOL_SIMD=OFF'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'MSYS2 CLANGARM64 and clang-cl arm64 FPU' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='MSYS2 CLANGARM64 Clang arm64' ;;
+              c2) name='MSYS2 CLANGARM64 Clang arm64, rounding direction preserved' ;;
+              c3) name='Visual Studio 2026 clang-cl arm64 Release, FPU intervals' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
 
   # Cygwin, GCC for x86-64 (GAOL v5). GAOL_FMA gives it -mfma
   # -mprefer-vector-width=128 as the MinGW-w64 and MSYS2 above (CMakeLists.txt:
@@ -570,139 +1329,3 @@ jobs:
             echo "The build was refused, but not for that reason"
             exit 1
           }
-
-  # Clang with the target of Visual C++ and the driver of GCC (clang++, not
-  # clang-cl), from the LLVM of the runner, in the environment of Visual Studio
-  # (GAOL v5): the compiler of the programs that name the target
-  # x86_64-pc-windows-msvc or i686-pc-windows-msvc, with CMake here, and with
-  # meson in build-systems.yml
-  clang-msvc:
-    name: ${{ matrix.cfg.desc }}
-    runs-on: windows-2022
-    timeout-minutes: 60
-    defaults:
-      run:
-        shell: pwsh
-    strategy:
-      fail-fast: false
-      matrix:
-        cfg:
-          - { arch: x64, target: x86_64-pc-windows-msvc, desc: 'Clang for Visual C++ x64 (clang++), Release' }
-          - { arch: x86, target: i686-pc-windows-msvc,   desc: 'Clang for Visual C++ x86 (clang++), Release' }
-    steps:
-      - uses: actions/checkout@v7
-      - uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: ${{ matrix.cfg.arch }}
-      - name: Configure
-        run: |
-          clang++ --version
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER_TARGET=${{ matrix.cfg.target }} -DCMAKE_CXX_COMPILER_TARGET=${{ matrix.cfg.target }}
-          if ($LASTEXITCODE) { exit 1 }
-      - name: The intervals
-        shell: bash
-        run: sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h sse2
-      - name: Build
-        run: |
-          cmake --build build -j 4
-          if ($LASTEXITCODE) { exit 1 }
-      - name: Tests (make test)
-        run: |
-          cmake --build build --target test
-          if ($LASTEXITCODE) { exit 1 }
-      # The test of misc with the stack aligned on 4 bytes (see the job
-      # visual-studio)
-      - name: The stack entered aligned on 4 bytes
-        if: matrix.cfg.arch == 'x86'
-        run: |
-          ctest --test-dir build -R '^misc$' -V | Tee-Object -FilePath misc.log
-          if ($LASTEXITCODE) { exit 1 }
-          if (-not (Select-String -Path misc.log -SimpleMatch -Pattern "returned the bounds of the entry aligned on 16 with the stack aligned on 16 minus 4, 8 and 12 bytes at its entry" -Quiet)) { exit 1 }
-
-  # The mingw-w64 whose fma() or round() is wrong are refused when compiling
-  # (gaol/gaol_config.h): CORE-MATH computes with that fma() where the build
-  # has no -mfma (GAOL_FMA OFF; GAOL_FMA gives it to GCC for Windows on x86-64
-  # and on 32-bit x86, and these toolchains stay refused, their round() being
-  # wrong too), so that the bounds would not enclose the exact values. On x86-64, GCC 12.2.0 and 13.2.0 of Chocolatey are
-  # MinGW-Builds of mingw-w64 11 (UCRT) and GCC 11.2.0 is WinLibs mingw-w64 9
-  # (msvcrt.dll), all before 12: their fma() and round() are those of
-  # mingw-w64's own math library. On 32-bit x86, GCC 11.2.0 is WinLibs
-  # mingw-w64 9, whose fma() rounds each of its partial sums to a double. Each
-  # job looks for the reason in the message.
-  mingw-refused:
-    name: ${{ matrix.cfg.desc }}
-    runs-on: windows-2022
-    timeout-minutes: 30
-    defaults:
-      run:
-        shell: bash
-    strategy:
-      fail-fast: false
-      matrix:
-        cfg:
-          - { version: '13.2.0',          bin: 'C:\ProgramData\mingw64\mingw64\bin', choco_flags: '',      message: "or linked with msvcrt.dll rather than the UCRT, its fma() and round() are those of mingw-w64's own math library", desc: 'MinGW-w64 13.2.0 x64, refused' }
-          - { version: '12.2.0.03042023', bin: 'C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin', choco_flags: '',      message: "or linked with msvcrt.dll rather than the UCRT, its fma() and round() are those of mingw-w64's own math library", desc: 'MinGW-w64 12.2.0 x64, refused' }
-          - { version: '11.2.0.07112021', bin: 'C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin', choco_flags: '',      message: "or linked with msvcrt.dll rather than the UCRT, its fma() and round() are those of mingw-w64's own math library", desc: 'MinGW-w64 11.2.0 x64, refused' }
-          - { version: '11.2.0.07112021', bin: 'C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw32\bin', choco_flags: '--x86', message: "whose fma(), which CORE-MATH computes with, rounds each of its partial sums to a double", desc: 'MinGW-w64 11.2.0 x86, refused' }
-    steps:
-      - uses: actions/checkout@v7
-      - name: MinGW-w64, from Chocolatey
-        run: |
-          choco install -y -r --no-progress mingw --version=${{ matrix.cfg.version }} --force ${{ matrix.cfg.choco_flags }}
-          echo '${{ matrix.cfg.bin }}' >> "$GITHUB_PATH"
-      - name: The version of mingw-w64, and a build that has to fail
-        run: |
-          g++ --version
-          echo '#include <stdlib.h>' | g++ -dM -E -x c++ - | grep -E '__MINGW64_VERSION_(MAJOR|MINOR) '
-          cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
-          if cmake --build build > build.log 2>&1; then
-            cat build.log
-            echo "This MinGW-w64 was not refused"
-            exit 1
-          fi
-          cat build.log
-          grep -F -q "GAOL cannot be compiled with this mingw-w64" build.log
-          grep -F -q "${{ matrix.cfg.message }}" build.log
-
-  # MSYS2 MINGW64 links msvcrt.dll rather than the UCRT: its mingw-w64, 12 or
-  # later, still gives the programs the fma() and round() of mingw-w64's own
-  # math library, which gaol/gaol_config.h refuses, with GCC and with Clang
-  # (_UCRT undefined). MINGW32 links it too: its fma() is refused where the
-  # build has no -mfma (GAOL_FMA OFF here; with it, the default, MINGW32 is
-  # built and tested in build-systems.yml). UCRT64, CLANG64 and CLANGARM64 are
-  # built and tested above.
-  msys2-refused:
-    name: ${{ matrix.cfg.desc }}
-    runs-on: windows-2022
-    timeout-minutes: 30
-    defaults:
-      run:
-        shell: msys2 {0}
-    strategy:
-      fail-fast: false
-      matrix:
-        cfg:
-          - { msystem: MINGW64, pkg: mingw-w64-x86_64, cc: gcc,   cxx: g++,     packages: '',                       opts: '',               message: "or linked with msvcrt.dll rather than the UCRT, its fma() and round() are those of mingw-w64's own math library", desc: 'MSYS2 MINGW64 GCC x64, refused' }
-          - { msystem: MINGW64, pkg: mingw-w64-x86_64, cc: clang, cxx: clang++, packages: 'mingw-w64-x86_64-clang', opts: '',               message: "or linked with msvcrt.dll rather than the UCRT, its fma() and round() are those of mingw-w64's own math library", desc: 'MSYS2 MINGW64 Clang x64, refused' }
-          - { msystem: MINGW32, pkg: mingw-w64-i686,   cc: gcc,   cxx: g++,     packages: '',                       opts: '-DGAOL_FMA=OFF', message: "linked with msvcrt.dll rather than the UCRT, without the fused multiply-add instructions", desc: 'MSYS2 MINGW32 GCC x86 without FMA, refused' }
-    steps:
-      - uses: actions/checkout@v7
-      - uses: msys2/setup-msys2@v2
-        with:
-          msystem: ${{ matrix.cfg.msystem }}
-          # What these jobs check is that GAOL refuses MINGW64, which the action calls deprecated
-          suppress-deprecation-warnings: msystem-mingw64
-          install: ${{ matrix.cfg.pkg }}-toolchain ${{ matrix.cfg.pkg }}-cmake ${{ matrix.cfg.pkg }}-ninja ${{ matrix.cfg.packages }}
-      - name: The version and the C runtime of mingw-w64, and a build that has to fail
-        run: |
-          ${{ matrix.cfg.cxx }} --version
-          echo '#include <stdlib.h>' | ${{ matrix.cfg.cxx }} -dM -E -x c++ - | grep -E '__MINGW64_VERSION_(MAJOR|MINOR) |__MSVCRT_VERSION__ |define _UCRT( |$)'
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=${{ matrix.cfg.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cfg.cxx }} ${{ matrix.cfg.opts }}
-          if cmake --build build > build.log 2>&1; then
-            cat build.log
-            echo "This MinGW-w64 was not refused"
-            exit 1
-          fi
-          cat build.log
-          grep -F -q "GAOL cannot be compiled with this mingw-w64" build.log
-          grep -F -q "${{ matrix.cfg.message }}" build.log

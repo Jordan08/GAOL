@@ -1,0 +1,62 @@
+# The test cpack_stale_configure configures copies of the tree with the
+# compilers and the generator that configured GAOL: with a compiler given
+# with an argument, which CMake keeps in CMAKE_C_COMPILER_ARG1, and Ninja
+# outside PATH, where CMake finds it by CMAKE_MAKE_PROGRAM only. The test
+# needs no build (GAOL v5)
+# The steps of the job launcher-ninja of linux.yml, for one configuration of
+# the group of the job that calls this action (GAOL v5).
+name: linux-launcher-ninja
+description: The job launcher-ninja of linux.yml for one configuration
+inputs:
+  desc:
+    description: The key desc of the row of the matrix of the job
+    default: ''
+runs:
+  using: composite
+  steps:
+    # In a group of configurations the job runs several of them: each
+    # starts from the tree as git has it, and from a temporary directory
+    # without what the previous ones left in it (GAOL v5)
+    - name: The tree and the temporary directory as the job found them
+      shell: bash
+      env:
+        DESC: ${{ inputs.desc }}
+      run: |
+        printf '\n## %s\n\n' "$DESC" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$RUNNER_OS" = Linux ]; then
+          # the containers write as root in the tree
+          sudo chown -R "$(id -u):$(id -g)" .
+        fi
+        git clean -ffdx -q
+        git reset --hard -q
+        for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
+        test -z "$(git status --porcelain --ignored)"
+    - name: ccache, and Ninja outside PATH
+      shell: bash -e {0}
+      run: |
+        sudo apt-get update -q
+        sudo apt-get install -y -q ccache
+        curl -sSL -o "$RUNNER_TEMP/ninja-linux.zip" https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-linux.zip
+        unzip -q "$RUNNER_TEMP/ninja-linux.zip" -d "$RUNNER_TEMP/ninja"
+        # A Ninja of the image, under the names CMake looks for in PATH
+        for name in ninja-build ninja samu; do
+          for program in $(which -a "$name"); do sudo rm -f "$program"; done
+          if command -v "$name"; then exit 1; fi
+        done
+    - name: Configure
+      shell: bash -e {0}
+      run: CC="ccache gcc" CXX="ccache g++" cmake -S . -B build -G Ninja -DCMAKE_MAKE_PROGRAM="$RUNNER_TEMP/ninja/ninja" -DWITH_TESTS=ON
+    - name: The test cpack_stale_configure, which has to run, not be skipped
+      shell: bash -e {0}
+      run: |
+        cd build
+        ctest -R cpack_stale_configure --no-tests=error > ctest.log 2>&1 || { cat ctest.log; exit 1; }
+        cat ctest.log
+        if grep -q Skipped ctest.log; then exit 1; fi
+    # The Ninja of the machine was removed above: the configurations that
+    # follow in the group find it again (GAOL v5)
+    - name: The Ninja of the machine, put back
+      if: ${{ always() }}
+      shell: bash -e {0}
+      run: sudo apt-get install -y -q --reinstall ninja-build
+

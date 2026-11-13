@@ -1,0 +1,62 @@
+# meson 0.53.2, the oldest that the meson build takes, the meson of Ubuntu
+# 20.04 (doc/building.md), from pipx, as the other jobs take the latest: the
+# maintainer's machine checked it, as its meson of the system, until it
+# moved to Ubuntu 26.04 and meson 1.10, and nothing checked it then (GAOL
+# v5). meson compile needs meson 0.54: ninja builds, as doc/building.md
+# says. It runs on the Python 3.12 of Ubuntu 24.04 (and on 3.14).
+# The steps of the job meson-oldest of build-systems.yml, for one configuration of
+# the group of the job that calls this action (GAOL v5).
+name: build-meson-oldest
+description: The job meson-oldest of build-systems.yml for one configuration
+inputs:
+  desc:
+    description: The key desc of the row of the matrix of the job
+    default: ''
+runs:
+  using: composite
+  steps:
+    # In a group of configurations the job runs several of them: each
+    # starts from the tree as git has it, and from a temporary directory
+    # without what the previous ones left in it (GAOL v5)
+    - name: The tree and the temporary directory as the job found them
+      shell: bash
+      env:
+        DESC: ${{ inputs.desc }}
+      run: |
+        printf '\n## %s\n\n' "$DESC" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$RUNNER_OS" = Linux ]; then
+          # the containers write as root in the tree
+          sudo chown -R "$(id -u):$(id -g)" .
+        fi
+        git clean -ffdx -q
+        git reset --hard -q
+        for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
+        test -z "$(git status --porcelain --ignored)"
+    - name: Tools
+      shell: bash -e {0}
+      run: |
+        sudo apt-get update -q
+        sudo apt-get install -y -q g++ ninja-build pipx
+        pipx install --force meson==0.53.2
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+    - name: Configure, build and install
+      shell: bash -e {0}
+      run: |
+        set -o pipefail
+        test "$(meson --version)" = 0.53.2
+        meson setup build-meson --prefix="$RUNNER_TEMP/gaol" --libdir=lib -Dwith-tests=true -Dwith-examples=true | tee configure.log
+        ninja -C build-meson
+        meson install -C build-meson
+        grep -qi "elementary functions" configure.log
+    - name: Locale writing a decimal comma
+      shell: bash -e {0}
+      run: sh .github/scripts/comma-locale.sh generate
+    - name: Tests and examples
+      shell: bash -e {0}
+      run: meson test -C build-meson --print-errorlogs
+    - name: The test numbers ran under a locale writing a decimal comma
+      shell: bash -e {0}
+      run: sh .github/scripts/comma-locale.sh check build-meson/meson-logs/testlog.txt
+    - name: Tests built with the installed GAOL
+      shell: bash -e {0}
+      run: sh .github/scripts/tests.sh "$RUNNER_TEMP/gaol" static

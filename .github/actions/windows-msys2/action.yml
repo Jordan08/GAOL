@@ -1,0 +1,75 @@
+# The steps of the job msys2 of windows.yml, for one configuration of
+# the group of the job that calls this action (GAOL v5).
+name: windows-msys2
+description: The job msys2 of windows.yml for one configuration
+inputs:
+  cc:
+    description: The key cc of the row of the matrix of the job
+    default: ''
+  cxx:
+    description: The key cxx of the row of the matrix of the job
+    default: ''
+  desc:
+    description: The key desc of the row of the matrix of the job
+    default: ''
+  msystem:
+    description: The key msystem of the row of the matrix of the job
+    default: ''
+  opts:
+    description: The key opts of the row of the matrix of the job
+    default: ''
+runs:
+  using: composite
+  steps:
+    # In a group of configurations the job runs several of them: each
+    # starts from the tree as git has it, and from a temporary directory
+    # without what the previous ones left in it (GAOL v5)
+    - name: The tree and the temporary directory as the job found them
+      shell: bash
+      env:
+        DESC: ${{ inputs.desc }}
+      run: |
+        printf '\n## %s\n\n' "$DESC" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$RUNNER_OS" = Linux ]; then
+          # the containers write as root in the tree
+          sudo chown -R "$(id -u):$(id -g)" .
+        fi
+        git clean -ffdx -q
+        git reset --hard -q
+        for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
+        test -z "$(git status --porcelain --ignored)"
+    # The environment of MSYS2 of this configuration, which the step of the
+    # group that calls the action chose with MSYSTEM (GAOL v5)
+    - name: The environment of MSYS2 asked for
+      shell: msys2 {0}
+      run: test "$MSYSTEM" = "${{ inputs.msystem }}"
+    - name: Configure
+      shell: msys2 {0}
+      run: |
+        ${{ inputs.cxx }} --version
+        cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_C_COMPILER=${{ inputs.cc }} -DCMAKE_CXX_COMPILER=${{ inputs.cxx }} ${{ inputs.opts }}
+    - name: Build
+      shell: msys2 {0}
+      run: cmake --build build -j 4
+    # The intervals of the build: the SSE2 ones on x64 and the NEON ones on arm64
+    - name: The intervals
+      shell: msys2 {0}
+      run: |
+        case "${{ inputs.msystem }}" in CLANGARM64) expected=neon ;; *) expected=sse2 ;; esac
+        sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h $expected
+    # GAOL_FMA gives GCC for Windows -mfma -mprefer-vector-width=128
+    # (CMakeLists.txt), as the job above checks (GAOL
+    # v5). Not Clang, which aligns its stack and gets -mfma alone
+    - name: Fused multiply-add instructions, and no 256-bit register in the objects
+      if: inputs.cc == 'gcc' && !contains(inputs.opts, 'GAOL_FMA=OFF')
+      shell: msys2 {0}
+      run: sh .github/scripts/check-gcc-windows-fma.sh build
+    - name: Tests (make test)
+      shell: msys2 {0}
+      run: cmake --build build --target test
+    - name: The test numbers ran under a locale writing a decimal comma
+      shell: msys2 {0}
+      run: sh .github/scripts/comma-locale.sh check build
+    - name: Performance
+      shell: msys2 {0}
+      run: build/tests/gaol_performance.exe

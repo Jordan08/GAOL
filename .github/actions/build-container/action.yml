@@ -1,0 +1,63 @@
+# The steps of the job container of build-systems.yml, for one configuration of
+# the group of the job that calls this action (GAOL v5).
+name: build-container
+description: The job container of build-systems.yml for one configuration
+inputs:
+  build:
+    description: The key build of the row of the matrix of the job
+    default: ''
+  desc:
+    description: The key desc of the row of the matrix of the job
+    default: ''
+  image:
+    description: The key image of the row of the matrix of the job
+    default: ''
+  platform:
+    description: The key platform of the row of the matrix of the job
+    default: ''
+runs:
+  using: composite
+  steps:
+    # In a group of configurations the job runs several of them: each
+    # starts from the tree as git has it, and from a temporary directory
+    # without what the previous ones left in it (GAOL v5)
+    - name: The tree and the temporary directory as the job found them
+      shell: bash
+      env:
+        DESC: ${{ inputs.desc }}
+      run: |
+        printf '\n## %s\n\n' "$DESC" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$RUNNER_OS" = Linux ]; then
+          # the containers write as root in the tree
+          sudo chown -R "$(id -u):$(id -g)" .
+        fi
+        git clean -ffdx -q
+        git reset --hard -q
+        for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
+        test -z "$(git status --porcelain --ignored)"
+    - name: Build and tests
+      shell: bash -e {0}
+      run: |
+        docker run --rm --platform ${{ inputs.platform }} -v "$PWD:/gaol" -w /gaol -e TEST_FLAGS -e MESON_TESTTHREADS ${{ inputs.image }} sh -c "
+          set -e
+          apt-get update -qq && apt-get install -y -qq g++ make meson ninja-build locales > /dev/null
+          uname -m && c++ --version | head -1
+          sh .github/scripts/comma-locale.sh generate
+          if [ ${{ inputs.build }} = autotools ]; then
+            find . -path ./.git -prune -o -exec touch -h -d '2020-01-01 00:00:00' {} +
+            ./configure --prefix=/tmp/gaol --with-tests
+            grep -E '^(CXXFLAGS|CPPFLAGS) =' gaol/Makefile
+            make -j 4 && make install
+            make -j 4 test
+            sh .github/scripts/comma-locale.sh check tests/numbers.log
+            sh .github/scripts/tests.sh /tmp/gaol static
+          else
+            meson setup build-meson --prefix=/tmp/gaol --libdir=lib -Dwith-tests=true
+            meson compile -C build-meson && meson install -C build-meson
+            ninja -C build-meson test
+            sh .github/scripts/comma-locale.sh check build-meson/meson-logs/testlog.txt
+            sh .github/scripts/tests.sh /tmp/gaol static
+          fi
+          ./performance > /gaol/performance.md
+          cat /gaol/performance.md"
+        cat performance.md >> "$GITHUB_STEP_SUMMARY"
