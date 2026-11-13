@@ -211,6 +211,33 @@ if(NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
                     "GAOL cannot be compiled with -ffast-math")
   gaol_refused_test(refused_positive "" "")
 endif()
+# -fno-signed-zeros, -fno-trapping-math, -funsafe-math-optimizations and
+# -freciprocal-math, which GCC shows by __NO_SIGNED_ZEROS__,
+# __NO_TRAPPING_MATH__, __ASSOCIATIVE_MATH__ and __RECIPROCAL_MATH__ from GCC 12
+# on, and GCC 9.4 and 11.4 and Clang by no macro (GAOL v5): a test for each
+# option the compiler shows, which the configuration tells by compiling, with
+# the option, a source that needs the macro
+function(gaol_refused_shown_test name flag macro text)
+  set(CMAKE_REQUIRED_FLAGS "${flag}")
+  set(CMAKE_REQUIRED_QUIET ON)
+  check_cxx_source_compiles("#ifndef ${macro}
+#error the option is shown by no macro
+#endif
+int main() { return 0; }" GAOL_COMPILER_SHOWS_${macro})
+  if(GAOL_COMPILER_SHOWS_${macro})
+    gaol_refused_test(refused_${name} ${flag} "${text}")
+  endif()
+endfunction()
+if(NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  gaol_refused_shown_test(no_signed_zeros -fno-signed-zeros __NO_SIGNED_ZEROS__
+                          "GAOL cannot be compiled with -fno-signed-zeros")
+  gaol_refused_shown_test(no_trapping_math -fno-trapping-math __NO_TRAPPING_MATH__
+                          "GAOL cannot be compiled with -fno-trapping-math")
+  gaol_refused_shown_test(unsafe_math -funsafe-math-optimizations __ASSOCIATIVE_MATH__
+                          "GAOL cannot be compiled with -fassociative-math or -freciprocal-math")
+  gaol_refused_shown_test(reciprocal_math -freciprocal-math __RECIPROCAL_MATH__
+                          "GAOL cannot be compiled with -fassociative-math or -freciprocal-math")
+endif()
 
 # The SSE2 intervals on 32-bit Windows, which gaol/gaol_config.h refuses where
 # the compiler is not told to ask for aligned memory (GAOL v5): the tests

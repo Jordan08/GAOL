@@ -86,7 +86,7 @@ what the programs check.
 | [reverse_values.py](../tests/reverse_values.py) | Writes `reverse_values.h`: the cases of the reverse functions of IEEE 1788-2015 (10.5.4) for `reverse.cpp`. |
 | [atan2_rel_values.py](../tests/atan2_rel_values.py) | Writes `atan2_rel_values.h`: the cases of `atan2Rev1` and `atan2Rev2`, for `reverse.cpp`. |
 | [pow_rel_values.py](../tests/pow_rel_values.py) | Writes `pow_rel_values.h`: the cases of `powRev1` and `powRev2`, for `reverse.cpp`. |
-| [refused_options.sh](../tests/refused_options.sh) | Checks that autotools and meson refuse `-ffast-math` and `-ffinite-math-only`, as the tests `refused_*` of CMake do. |
+| [refused_options.sh](../tests/refused_options.sh) | Checks that autotools and meson refuse the options and the targets `gaol/gaol_config.h` refuses, as the tests `refused_*` of CMake do: `-ffast-math`, `-ffinite-math-only`, and, where the compiler shows them by macros (GCC from 12 on), `-fno-signed-zeros`, `-fno-trapping-math`, `-funsafe-math-optimizations` and `-freciprocal-math`. |
 | [release_flags.py](../tests/release_flags.py) | Checks that a project which brings GAOL in without a build type compiles it in release (`-O3`, `NDEBUG`, `GAOL_DEBUGGING` at 0). |
 | [meson_subproject/check_flags.py](../tests/meson_subproject/check_flags.py) | Checks that a meson project which takes GAOL as a subproject gets the flags of its `gaol.pc`. |
 | [compile_error.cmake](../tests/compile_error.cmake) | A `cmake -P` script that compiles a source whose compilation has to fail (the tests `refused_*` and `nodiscard_discard_cxx<N>`). |
