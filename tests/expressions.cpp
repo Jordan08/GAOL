@@ -48,6 +48,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <chrono>
 #include <clocale>
 #include <cstdio>
 #include <functional>
@@ -1149,6 +1150,54 @@ namespace
     }
   }
 #endif
+
+  // The least time, in seconds, that three readings of the text s take
+  double reading_time(const std::string& s)
+  {
+    double least = GAOL_INFINITY;
+    for (int i = 0; i < 3; ++i) {
+      const auto start = std::chrono::steady_clock::now();
+      static_cast<void>(textToInterval(s));
+      const std::chrono::duration<double> elapsed = std::chrono::steady_clock::now() - start;
+      least = std::min(least, elapsed.count());
+    }
+    return least;
+  }
+
+  /* A number far beyond the doubles, whose digits are not put in an integer
+     (GAOL v5): the reader built the integer of the digits, in a time
+     quadratic in their number, before it knew that the number was above the
+     largest double or below the least positive one, whatever its digits (a
+     million digits 7 took 26 s, on an Intel i7-1185G7). It is [DBL_MAX, +oo]
+     above, and [0, DBL_MIN_SUBNORMAL] below, in decimal and in hexadecimal.
+     Each reading is timed against one of a number of the same length that is
+     0, whose digits no integer holds either: at most 10 times as long, and
+     50 ms more, a margin that a slow or a busy machine does not exhaust (the
+     fault made it 1000 times as long and more). */
+  void long_numbers_beyond_the_doubles()
+  {
+    const std::size_t n = 400000;
+    const double dmax = std::numeric_limits<double>::max(), dmin = std::numeric_limits<double>::denorm_min();
+    struct Case { const char* name; std::string text; double left, right; };
+    const Case cases[] = {
+      {"decimal, above", std::string(n, '7'), dmax, GAOL_INFINITY},
+      {"decimal, below", "0." + std::string(n/2, '0') + std::string(n/2, '7'), 0.0, dmin},
+      {"decimal, above, with an exponent", "7." + std::string(n, '7') + "e400", dmax, GAOL_INFINITY},
+      {"hexadecimal, above", "0x" + std::string(n, 'f'), dmax, GAOL_INFINITY},
+      {"hexadecimal, below", "0x0." + std::string(n/8, '0') + std::string(n/2, 'f'), 0.0, dmin},
+    };
+    const double zeros = reading_time("0." + std::string(n, '0'));
+    for (const Case& c : cases) {
+      const interval x = textToInterval(c.text);
+      const double elapsed = reading_time(c.text);
+      check("textToInterval(long number beyond the doubles): the enclosure of the doubles beyond",
+            x.left() == c.left && x.right() == c.right, [&] { return std::string(c.name) + ": " + hex(x); });
+      check("textToInterval(long number beyond the doubles): the time of a number of the same length that is 0",
+            elapsed <= 10*zeros + 0.05,
+            [&] { return std::string(c.name) + ": " + std::to_string(elapsed) + " s, against "
+                         + std::to_string(zeros) + " s"; });
+    }
+  }
 
   /* Many decimal intervals, whose bounds are no doubles: the interval read has
      to hold them, and to be no wider than the two doubles around them. */
@@ -2320,6 +2369,7 @@ int main()
 #if GAOL_EXCEPTIONS_ENABLED
   step("exception_messages"); exception_messages();
 #endif
+  step("long_numbers_beyond_the_doubles"); long_numbers_beyond_the_doubles();
   step("decimals");          decimals();
   step("built_expressions"); built_expressions();
   step("null_node_not_counted"); null_node_not_counted();

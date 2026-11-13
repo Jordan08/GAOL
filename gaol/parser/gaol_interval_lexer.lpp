@@ -303,6 +303,12 @@ namespace {
     gaol_number() : is_zero(true), beyond(0), kb(0), may_overflow(false), may_underflow(false) {}
   };
 
+  // The value of a digit of a number in base 16 or less, in either case
+  uint32_t gaol_digit_value(char c)
+  {
+    return static_cast<uint32_t>((c >= '0' && c <= '9') ? c - '0' : ((c | 0x20) - 'a' + 10));
+  }
+
   // The number s writes, taken apart
   gaol_number gaol_take_apart(const char *s)
   {
@@ -321,16 +327,19 @@ namespace {
     if (power_of_two) {
       s += 2;
     }
+    // The digits are counted first, and put in N only for a number that is
+    // not beyond the doubles (below): building N takes a time quadratic in the
+    // number of digits, which a number of 100000 digits 7, far above the
+    // largest double, spent for nothing (GAOL v5)
+    const char *const digits = s;
     bool fraction = false;
     for (; *s != '\0' && (power_of_two ? (*s != 'p' && *s != 'P') : (*s != 'e' && *s != 'E')); ++s) {
       if (*s == '.') {
         fraction = true;
         continue;
       }
-      const uint32_t digit = static_cast<uint32_t>((*s >= '0' && *s <= '9') ? *s - '0'
-                                                   : ((*s | 0x20) - 'a' + 10));
+      const uint32_t digit = gaol_digit_value(*s);
       if (ndigits != 0 || digit != 0) {
-        gaol_natural_mul_add(N, base, digit);
         ++ndigits;
       }
       if (fraction) {
@@ -341,6 +350,7 @@ namespace {
         }
       }
     }
+    const char *const digits_end = s;
     if (*s != '\0') { // Exponent
       ++s;
       const bool negative = (*s == '-');
@@ -360,7 +370,7 @@ namespace {
     }
 
     gaol_number v;
-    v.is_zero = N.empty();
+    v.is_zero = (ndigits == 0);
     if (v.is_zero) {
       return v;
     }
@@ -382,6 +392,15 @@ namespace {
     v.may_overflow = power_of_two ? k2 + digit_bits*ndigits > 1023 : k + ndigits > 308;
     // v >= 10^(k+ndigits-1) >= 10^-307 > 2^-1022, or v >= 2^(k2+b(ndigits-1)) >= 2^-1022, is a normal double or more
     v.may_underflow = power_of_two ? k2 + digit_bits*(ndigits - 1) < -1022 : k + ndigits - 1 < -307;
+    // N, the digits after the leading zeros
+    for (const char *d = digits; d != digits_end; ++d) {
+      if (*d != '.') {
+        const uint32_t digit = gaol_digit_value(*d);
+        if (!N.empty() || digit != 0) {
+          gaol_natural_mul_add(N, base, digit);
+        }
+      }
+    }
     v.scaled.swap(N);
     if (k >= 0) {
       gaol_natural_mul_pow5(v.scaled, k);

@@ -1081,6 +1081,12 @@ namespace {
     gaol_number() : is_zero(true), beyond(0), kb(0), may_overflow(false), may_underflow(false) {}
   };
 
+  // The value of a digit of a number in base 16 or less, in either case
+  uint32_t gaol_digit_value(char c)
+  {
+    return static_cast<uint32_t>((c >= '0' && c <= '9') ? c - '0' : ((c | 0x20) - 'a' + 10));
+  }
+
   // The number s writes, taken apart
   gaol_number gaol_take_apart(const char *s)
   {
@@ -1099,16 +1105,19 @@ namespace {
     if (power_of_two) {
       s += 2;
     }
+    // The digits are counted first, and put in N only for a number that is
+    // not beyond the doubles (below): building N takes a time quadratic in the
+    // number of digits, which a number of 100000 digits 7, far above the
+    // largest double, spent for nothing (GAOL v5)
+    const char *const digits = s;
     bool fraction = false;
     for (; *s != '\0' && (power_of_two ? (*s != 'p' && *s != 'P') : (*s != 'e' && *s != 'E')); ++s) {
       if (*s == '.') {
         fraction = true;
         continue;
       }
-      const uint32_t digit = static_cast<uint32_t>((*s >= '0' && *s <= '9') ? *s - '0'
-                                                   : ((*s | 0x20) - 'a' + 10));
+      const uint32_t digit = gaol_digit_value(*s);
       if (ndigits != 0 || digit != 0) {
-        gaol_natural_mul_add(N, base, digit);
         ++ndigits;
       }
       if (fraction) {
@@ -1119,6 +1128,7 @@ namespace {
         }
       }
     }
+    const char *const digits_end = s;
     if (*s != '\0') { // Exponent
       ++s;
       const bool negative = (*s == '-');
@@ -1138,7 +1148,7 @@ namespace {
     }
 
     gaol_number v;
-    v.is_zero = N.empty();
+    v.is_zero = (ndigits == 0);
     if (v.is_zero) {
       return v;
     }
@@ -1160,6 +1170,15 @@ namespace {
     v.may_overflow = power_of_two ? k2 + digit_bits*ndigits > 1023 : k + ndigits > 308;
     // v >= 10^(k+ndigits-1) >= 10^-307 > 2^-1022, or v >= 2^(k2+b(ndigits-1)) >= 2^-1022, is a normal double or more
     v.may_underflow = power_of_two ? k2 + digit_bits*(ndigits - 1) < -1022 : k + ndigits - 1 < -307;
+    // N, the digits after the leading zeros
+    for (const char *d = digits; d != digits_end; ++d) {
+      if (*d != '.') {
+        const uint32_t digit = gaol_digit_value(*d);
+        if (!N.empty() || digit != 0) {
+          gaol_natural_mul_add(N, base, digit);
+        }
+      }
+    }
     v.scaled.swap(N);
     if (k >= 0) {
       gaol_natural_mul_pow5(v.scaled, k);
@@ -1545,7 +1564,7 @@ namespace gaol_detail {
     return gaol_natural_compare(left, right);
   }
 }
-#line 1549 "lex.gaol_.c"
+#line 1568 "lex.gaol_.c"
 
 /* yyunput() and yyinput() are not used. The case of letters is ignored, as
    IEEE 1788-2015 has it for literals (9.7.1): [Empty], [1, Inf] and 1E3 are
@@ -1562,7 +1581,7 @@ namespace gaol_detail {
 /* The input is the string given (YY_INPUT), never interactive: flex would
    test whether stdin is a terminal, by isatty(), for the buffer it creates.
    The memory of flex is that of the reading (GAOL v5) */
-#line 1566 "lex.gaol_.c"
+#line 1585 "lex.gaol_.c"
 
 #define INITIAL 0
 
@@ -1834,10 +1853,10 @@ YY_DECL
 		}
 
 	{
-#line 809 "gaol_interval_lexer.lpp"
+#line 828 "gaol_interval_lexer.lpp"
 
 
-#line 1841 "lex.gaol_.c"
+#line 1860 "lex.gaol_.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -1892,42 +1911,42 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 811 "gaol_interval_lexer.lpp"
+#line 830 "gaol_interval_lexer.lpp"
 { return EMPTY_STR; }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 812 "gaol_interval_lexer.lpp"
+#line 831 "gaol_interval_lexer.lpp"
 { return ENTIRE_STR; }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 813 "gaol_interval_lexer.lpp"
+#line 832 "gaol_interval_lexer.lpp"
 { return INFINITY_STR; }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 814 "gaol_interval_lexer.lpp"
+#line 833 "gaol_interval_lexer.lpp"
 { return INFINITY_STR; }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 815 "gaol_interval_lexer.lpp"
+#line 834 "gaol_interval_lexer.lpp"
 { return PI_STR; }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 816 "gaol_interval_lexer.lpp"
+#line 835 "gaol_interval_lexer.lpp"
 { return DMIN_STR; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 817 "gaol_interval_lexer.lpp"
+#line 836 "gaol_interval_lexer.lpp"
 { return DMAX_STR; }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 818 "gaol_interval_lexer.lpp"
+#line 837 "gaol_interval_lexer.lpp"
 { /* The name of a function, looked for in the table of the
 			     names the string is read with, those of GAOL or those
 			     of IEEE 1788-2015 (gaol_lookup_function() in
@@ -1939,107 +1958,107 @@ YY_RULE_SETUP
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 826 "gaol_interval_lexer.lpp"
+#line 845 "gaol_interval_lexer.lpp"
 { return '['; }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 827 "gaol_interval_lexer.lpp"
+#line 846 "gaol_interval_lexer.lpp"
 { return ']'; }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 828 "gaol_interval_lexer.lpp"
+#line 847 "gaol_interval_lexer.lpp"
 { return '<'; }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 829 "gaol_interval_lexer.lpp"
+#line 848 "gaol_interval_lexer.lpp"
 { return '>'; }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 830 "gaol_interval_lexer.lpp"
+#line 849 "gaol_interval_lexer.lpp"
 { return '('; }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 831 "gaol_interval_lexer.lpp"
+#line 850 "gaol_interval_lexer.lpp"
 { return ')'; }
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 832 "gaol_interval_lexer.lpp"
+#line 851 "gaol_interval_lexer.lpp"
 { return ','; }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 833 "gaol_interval_lexer.lpp"
+#line 852 "gaol_interval_lexer.lpp"
 { return '+'; }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 834 "gaol_interval_lexer.lpp"
+#line 853 "gaol_interval_lexer.lpp"
 { return '-'; }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 835 "gaol_interval_lexer.lpp"
+#line 854 "gaol_interval_lexer.lpp"
 { return '*'; }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 836 "gaol_interval_lexer.lpp"
+#line 855 "gaol_interval_lexer.lpp"
 { return '/'; }
 	YY_BREAK
 case 20:
-#line 839 "gaol_interval_lexer.lpp"
+#line 858 "gaol_interval_lexer.lpp"
 case 21:
-#line 840 "gaol_interval_lexer.lpp"
+#line 859 "gaol_interval_lexer.lpp"
 case 22:
-#line 841 "gaol_interval_lexer.lpp"
+#line 860 "gaol_interval_lexer.lpp"
 case 23:
 YY_RULE_SETUP
-#line 841 "gaol_interval_lexer.lpp"
+#line 860 "gaol_interval_lexer.lpp"
 { return gaol_read_number(yytext, yylval, yyextra); }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 842 "gaol_interval_lexer.lpp"
+#line 861 "gaol_interval_lexer.lpp"
 { return gaol_read_number(yytext, yylval, yyextra); }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 843 "gaol_interval_lexer.lpp"
+#line 862 "gaol_interval_lexer.lpp"
 { return gaol_read_number(yytext, yylval, yyextra); }
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 844 "gaol_interval_lexer.lpp"
+#line 863 "gaol_interval_lexer.lpp"
 { return gaol_read_number(yytext, yylval, yyextra); }
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 845 "gaol_interval_lexer.lpp"
+#line 864 "gaol_interval_lexer.lpp"
 { return gaol_read_uncertain(yytext, yylval); }
 	YY_BREAK
 case 28:
 /* rule 28 can match eol */
 YY_RULE_SETUP
-#line 846 "gaol_interval_lexer.lpp"
+#line 865 "gaol_interval_lexer.lpp"
 {  }
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 847 "gaol_interval_lexer.lpp"
+#line 866 "gaol_interval_lexer.lpp"
 { return UNEXPECTED_CHAR; /* Just to avoid stopping here */ }
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 848 "gaol_interval_lexer.lpp"
+#line 867 "gaol_interval_lexer.lpp"
 YY_FATAL_ERROR( "flex scanner jammed" );
 	YY_BREAK
-#line 2043 "lex.gaol_.c"
+#line 2062 "lex.gaol_.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -3154,7 +3173,7 @@ static int yy_flex_strlen (const char * s , yyscan_t yyscanner)
 
 #define YYTABLES_NAME "yytables"
 
-#line 848 "gaol_interval_lexer.lpp"
+#line 867 "gaol_interval_lexer.lpp"
 
 
 /*
