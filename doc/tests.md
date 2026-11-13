@@ -1315,7 +1315,11 @@ which `numbers` checks there too.
   expressions to that node, `the_null_expr`, must not be counted
   (`expr_node::references()` does not change as they are built, copied,
   assigned and extended): the count, changed by several threads at once, came
-  down to 0 and the node was deleted twice (GAOL v5). Long expressions have to
+  down to 0 and the node was deleted twice (GAOL v5). Displaying an expression
+  must leave the counts of its operands as they are, read at each character
+  written, for every node of one or two operands: `-x` wrote its operand as a
+  temporary expression, one reference more while it was written, and two
+  threads displaying the same `-x` crashed (GAOL v5). Long expressions have to
   be evaluated and deleted: chains read from a string of 200000 sums
   (`pi+pi+...`) or products and quotients (`pi*pi/pi*...`), and of 20000
   differences and sums, the same chains built in C++ on the left, with the
