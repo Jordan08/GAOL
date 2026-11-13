@@ -192,7 +192,13 @@ namespace gaol_core {
     }
 
     GAOL_RND_ENTER();
-    interval res = upward_access::inverse(I);
+    // The bounds through rnd_reread() after the check, as in sqr() above and
+    // in the SSE2 and the NEON intervals: inlined, I may be held in registers,
+    // which the barrier of the check does not reload (GAOL v5)
+    interval J;
+    J.lb_ = rnd_reread(I.lb_);
+    J.rb_ = rnd_reread(I.rb_);
+    interval res = upward_access::inverse(J);
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE();
     return res;

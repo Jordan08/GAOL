@@ -760,7 +760,8 @@ namespace {
   // x * y for x and y empty or with an infinite bound, out of mul_bounds(),
   // where it is rare, and its code with it: the empty set, or the products by
   // the switch of the signs, where a bound 0 and an infinite one give +0 (see
-  // above)
+  // above). The bounds, received in registers, pass through reread_bounds()
+  // after the check, as in mul_bounds() (GAOL v5; see gaol/gaol_fpu.h)
 #if !GAOL_AVX512_ARITHMETIC
   GAOL_NOINLINE_COLD __m128d mul_special(__m128d x, __m128d y)
   {
@@ -768,6 +769,8 @@ namespace {
       return interval::emptyset().get_xmminterval();
     }
     GAOL_RND_ENTER_SSE();
+    x = reread_bounds(x);
+    y = reread_bounds(y);
     __m128d res = product_of_bounds(x, y, products_with_infinities());
     GAOL_RND_KEEP(res);
     GAOL_RND_LEAVE_SSE();
@@ -870,12 +873,15 @@ namespace gaol_core {
 namespace {
   GAOL_NOINLINE_COLD __m128d divide_general(__m128d xb, __m128d yb)
   {
-	interval x(xb, gaol_detail::unchecked_bounds);
-	const interval I(yb, gaol_detail::unchecked_bounds);
-	if (x.is_empty() || I.is_empty()) {
+	if (interval(xb, gaol_detail::unchecked_bounds).is_empty()
+	    || interval(yb, gaol_detail::unchecked_bounds).is_empty()) {
 		return interval::emptyset().get_xmminterval();
 	}
 	GAOL_RND_ENTER_SSE();
+	// The bounds, received in registers, pass through reread_bounds() after
+	// the check, as in mul_bounds() (GAOL v5; see gaol/gaol_fpu.h)
+	interval x(reread_bounds(xb), gaol_detail::unchecked_bounds);
+	const interval I(reread_bounds(yb), gaol_detail::unchecked_bounds);
 
 	if ( x.right() < 0.0 ) { // [this] N1
 		if ( I.right() < 0.0 ) { // [I] N1
