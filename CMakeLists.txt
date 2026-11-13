@@ -174,25 +174,25 @@ option(GAOL_COVERAGE "Compile GAOL and its tests with the counters of gcov, and 
 # unfinished, which only a developer of GAOL compiles (see gaol/gaol_config.h)
 # Interprocedural optimization (link-time optimization) is not offered
 #
-# It makes GAOL's basic operations two to three times faster where the code
-# using GAOL is compiled with it too (an addition of intervals took 0.99 ns
-# rather than 2.68 on an Intel i7-1185G7 with Clang 18.1 at -O3) and the
-# elementary functions two to three times slower (cos 169 ns rather than 58),
-# and **with GCC it breaks the bounds**: GAOL then fails
+# No option of GAOL turns it on, and GAOL does not turn it off on its own
+# sources (GAOL v5): CMAKE_INTERPROCEDURAL_OPTIMIZATION, given to this build or
+# to a project taking GAOL by FetchContent, reaches the target gaol. It makes
+# GAOL's basic operations faster where the code using GAOL is compiled with it
+# too, and the elementary functions slower, whose sources, of CORE-MATH, are
+# compiled apart without it (gaol_core_math below). On 20 September 2026, with
+# GCC and the code of then, it broke the bounds: GAOL failed
 # tests/rounding_direction.cpp, which checks that an operation gives the same
 # result whatever the rounding direction the calling code left. With
 # GAOL_PRESERVE_ROUNDING, textToInterval("sin(1)+exp(0.1)") gave an upper bound
 # one double below the right one when the caller left the direction downward or
-# toward zero: the compiler moves floating-point operations across the changes
-# of rounding direction, which -frounding-math is meant to forbid and which it
-# does not across translation units. Clang 18.1 passes the tests with it, so
-# this is one compiler's handling of the option rather than the option itself
-# -- which is reason enough not to offer it.
-#
-# GAOL's whole point is that its intervals enclose the exact values, so there is
-# no option for this (GAOL v5, see doc/three-builds.md). The sources of
-# CORE-MATH are compiled apart all the same, which keeps a -flto given by hand
-# away from them.
+# toward zero: the compiler moved floating-point operations across the changes
+# of rounding direction, which -frounding-math is meant to forbid. With GCC
+# 15.2 and the code of 13 November 2026, the 63 tests pass with it, with and
+# without GAOL_PRESERVE_ROUNDING; no other version of GCC was tried with it,
+# and no job of the continuous integration builds with it, so that it is not
+# offered (see doc/three-builds.md). A -flto given by hand in CMAKE_C_FLAGS
+# reaches the sources of CORE-MATH too, as one in CFLAGS does in the autotools
+# build and one in c_args in meson's.
 
 # The settings of the developers of GAOL (GAOL v5), which the checks decide by
 # themselves and which a developer gives with -D to run a path the machine would
@@ -1262,9 +1262,11 @@ set(GAOL_SOURCES
 list(TRANSFORM GAOL_SOURCES PREPEND "gaol/")
 
 # The sources of CORE-MATH, compiled apart and put into libgaol: apart so that
-# the interprocedural optimization GAOL is compiled with does not reach them,
-# which made sin and cos half as fast again while it makes the basic
-# operations twice as fast (GAOL v5, see doc/three-builds.md)
+# the interprocedural optimization of CMAKE_INTERPROCEDURAL_OPTIMIZATION, which
+# reaches the target gaol when it is given, does not reach them: it made sin
+# and cos half as fast again while it made the basic operations twice as fast
+# (GAOL v5, see doc/three-builds.md). A -flto given in CMAKE_C_FLAGS reaches
+# them all the same
 add_library(gaol_core_math OBJECT ${GAOL_CORE_MATH_SOURCES})
 set_target_properties(gaol_core_math PROPERTIES
   INTERPROCEDURAL_OPTIMIZATION OFF
