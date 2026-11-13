@@ -650,7 +650,17 @@ double hausdorff(const interval &I1, const interval &I2)
     } else {
       double sum = rb_ - lb_;     // a+b, rounded upward
       double opp_sum = lb_ - rb_; // -(a+b), rounded upward
+#if defined(_MSC_VER) && !defined(__clang__)
+      // The half goes through rnd_keep() before it is negated, for the reason
+      // given above (-(.5*x) is not (-.5)*x in the rounding direction upward),
+      // as in the SSE2 and the NEON intervals (GAOL v5). Without it, the FPU
+      // intervals built by Visual C++ 2026 for x86 and for arm64 passed
+      // subnormal_bounds() (tests/other_functions.cpp), which checks these
+      // halves: the guard keeps the three kinds of intervals alike
+      mid_left  = -gaol_core::rnd_keep(.5*opp_sum);
+#else
       mid_left  = -(.5*opp_sum);
+#endif
       mid_right = .5*sum;
     }
     GAOL_RND_KEEP(mid_left); GAOL_RND_KEEP(mid_right);
