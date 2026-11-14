@@ -454,6 +454,7 @@ EXTRA_DIST = \
 	.github/audit/logs.sh \
 	.github/audit/make_probe.py \
 	.github/audit/probe_build.py \
+	.github/audit/test_compare.py \
 	.github/scripts/check-gcc-windows-fma.sh \
 	.github/scripts/check-intervals.sh \
 	.github/scripts/comma-locale.sh \

@@ -45,10 +45,13 @@ runs:
         pipx install --force meson
         pipx install ninja
         echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+    - name: The tool that compares
+      shell: bash -e {0}
+      run: python3 .github/audit/test_compare.py
     - name: Configure with the three builds and compare
       shell: bash -e {0}
       run: |
         sh .github/audit/audit.sh audit ${{ inputs.cc }} ${{ inputs.cxx }} . "$RUNNER_TEMP/audit" meson
-        status=0; python3 .github/audit/compare.py --check "$RUNNER_TEMP/audit/audit.json" > agree.md || status=$?
+        status=0; python3 .github/audit/compare.py --check "$RUNNER_TEMP"/audit/audit*.json > agree.md || status=$?
         cat agree.md; cat agree.md >> "$GITHUB_STEP_SUMMARY"
         sh .github/audit/logs.sh "$RUNNER_TEMP/audit/audit" $status

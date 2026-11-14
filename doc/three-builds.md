@@ -152,7 +152,10 @@ GAOL is compiled with, those of its C++ sources and those of a C source of
 CORE-MATH (`compare.py --check`; GAOL v5: only the C++ flags were compared, and
 the C sources had `-msse2 -msse3 -fvisibility=hidden` with CMake alone and the
 standard of the compiler with configure, `gnu11` with meson, `gnu99` with CMake);
-the continuous integration runs it on each kind of machine.
+the continuous integration runs it on each kind of machine, with the default
+options and with five sets of options: the rounding direction preserved, with and
+without the AVX-512 path, the FPU intervals, no fused multiply-add instruction,
+no exceptions and the verbose mode (GAOL v5: the default options alone).
 
 ## What the options are worth
 

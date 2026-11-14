@@ -72,21 +72,24 @@ def main():
         r = json.load(open(path))
         print('######## %s' % r['label'])
         ok = []
+        broken = False
         for b in BUILDS:
             e = r[b]
             if e.get('error') or 'macros' not in e:
                 print('  %-9s NOT CONFIGURED: %s' % (b, e.get('error', '?')))
-                failed = True
+                failed = broken = True
             else:
                 print('  %-9s %s: %s' % (b, e.get('version', ''), ' '.join(e['flags'])))
                 ok.append(b)
         rows = []
         cs = [r[b].get('c', {}) for b in ok]
-        cok = [b for b, c in zip(ok, cs) if 'macros' in c]
+        # A probe that failed (probe_build.py) leaves no macros and an error; the
+        # error is tested too, for a file written by another version
+        cok = [b for b, c in zip(ok, cs) if 'macros' in c and not c.get('error')]
         for b, c in zip(ok, cs):
-            if 'macros' not in c:
+            if 'macros' not in c or c.get('error'):
                 print('  %-9s C sources: %s' % (b, c.get('error', 'not probed')))
-                failed = True
+                failed = broken = True
             else:
                 print('  %-9s C sources: %s' % (b, ' '.join(c['flags'])))
         for n in C_MACROS:
@@ -134,7 +137,7 @@ def main():
             print('  %-28s ' % 'differs' + ' '.join('%-24s' % b for b in ok))
             for n, vals in rows:
                 print('  %-28s ' % n + ' '.join('%-24s' % v[:24] for v in vals))
-        elif ok:
+        elif ok and not broken:
             print('  the same configuration in: ' + ', '.join(ok))
     if check and failed:
         print('The builds do not agree, or one of them did not configure')

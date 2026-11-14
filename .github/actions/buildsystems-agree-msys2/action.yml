@@ -40,6 +40,6 @@ runs:
         export CMAKE_GENERATOR=Ninja
         out="$(cygpath -m "$RUNNER_TEMP")/audit"
         sh .github/audit/audit.sh audit gcc g++ . "$out" meson
-        status=0; python3 .github/audit/compare.py --check "$out/audit.json" > agree.md || status=$?
+        status=0; python3 .github/audit/compare.py --check "$out"/audit*.json > agree.md || status=$?
         cat agree.md; cat agree.md >> "$GITHUB_STEP_SUMMARY"
         sh .github/audit/logs.sh "$out/audit" $status
