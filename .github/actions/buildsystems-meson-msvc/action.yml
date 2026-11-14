@@ -1,0 +1,101 @@
+# meson with Visual C++: the static libgaol, as CMake builds it, its tests,
+# and the installed GAOL, with which a test is compiled again (GAOL v5). In
+# PowerShell: the link of Git Bash would hide the linker of Visual C++.
+# The steps of the job meson-msvc of build-systems.yml, for one configuration of
+# the group of the job that calls this action (GAOL v5).
+name: buildsystems-meson-msvc
+description: The job meson-msvc of build-systems.yml for one configuration
+inputs:
+  arch:
+    description: The key arch of the row of the matrix of the job
+    default: ''
+  desc:
+    description: The key desc of the row of the matrix of the job
+    default: ''
+runs:
+  using: composite
+  steps:
+    # In a group of configurations the job runs several of them: each
+    # starts from the tree as git has it, and from a temporary directory
+    # without what the previous ones left in it (GAOL v5)
+    - name: The tree and the temporary directory as the job found them
+      shell: bash
+      env:
+        DESC: ${{ inputs.desc }}
+      run: |
+        printf '\n## %s\n\n' "$DESC" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$RUNNER_OS" = Linux ]; then
+          # the containers write as root in the tree
+          sudo chown -R "$(id -u):$(id -g)" .
+        fi
+        git clean -ffdx -q
+        git reset --hard -q
+        for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
+        test -z "$(git status --porcelain --ignored)"
+    - uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: ${{ inputs.arch }}
+    # The architecture of the environment of Visual C++ is the one of this
+    # configuration, whatever the previous ones of the job asked for: the
+    # clang of Visual Studio for x64 stays in PATH, and an x86 build would
+    # take it instead of the clang of LLVM (GAOL v5)
+    - name: The environment of Visual C++ asked for
+      shell: pwsh
+      run: |
+        if ($env:VSCMD_ARG_TGT_ARCH -ne '${{ inputs.arch }}') { Write-Output "VSCMD_ARG_TGT_ARCH is $env:VSCMD_ARG_TGT_ARCH"; exit 1 }
+    - name: Tools
+      shell: pwsh
+      run: pip install meson ninja
+    - name: Configure, build and install
+      shell: pwsh
+      run: |
+        meson --version
+        $prefix = "$env:RUNNER_TEMP/gaol" -replace '\\', '/'
+        $env:CC = 'cl'
+        $env:CXX = 'cl'
+        meson setup build-meson --prefix="$prefix" --libdir=lib -Dwith-tests=true
+        if ($LASTEXITCODE) { exit 1 }
+        meson compile -C build-meson
+        if ($LASTEXITCODE) { exit 1 }
+        meson install -C build-meson
+        if ($LASTEXITCODE) { exit 1 }
+        Get-ChildItem -Recurse -File $prefix | ForEach-Object { $_.FullName }
+        # What the code using GAOL includes with Visual C++, and the
+        # configuration, in include/gaol under the prefix, but not the
+        # headers of the sources of GAOL only (GAOL v5)
+        foreach ($f in 'gaol_configuration.h', 'gaol_fpu_msvc.h', 'parser/gaol_expression.h') {
+          if (-not (Test-Path "$prefix/include/gaol/$f")) { Write-Output "$f is not installed"; exit 1 }
+        }
+        foreach ($f in 'parser/gaol_interval_parser.h') {
+          if (Test-Path "$prefix/include/gaol/$f") { Write-Output "$f is installed"; exit 1 }
+        }
+    # The intervals meson took, as CMake does (windows.yml): the SSE2 ones on
+    # x64 and on x86, where their bounds are two doubles, and the NEON ones on
+    # arm64 (GAOL v5)
+    - name: The intervals
+      shell: bash
+      run: |
+        case "${{ inputs.arch }}" in x64|x86) expected=sse2 ;; arm64) expected=neon ;; *) expected=fpu ;; esac
+        sh .github/scripts/check-intervals.sh build-meson/gaol/gaol_configuration.h $expected
+    - name: Tests (ninja test, make test of meson)
+      shell: pwsh
+      run: |
+        ninja -C build-meson test
+        if ($LASTEXITCODE) { Get-Content build-meson/meson-logs/testlog.txt; exit 1 }
+    - name: The test numbers ran under a locale writing a decimal comma
+      shell: bash
+      run: sh .github/scripts/comma-locale.sh check build-meson/meson-logs/testlog.txt
+    - name: A test built with the installed GAOL
+      shell: pwsh
+      run: |
+        $prefix = "$env:RUNNER_TEMP/gaol" -replace '\\', '/'
+        $lib = Get-ChildItem "$prefix/lib" | Where-Object { $_.Name -match 'gaol\.(lib|a)$' } | Select-Object -First 1
+        # cl takes a file it does not know by its name, libgaol.a with meson, for an
+        # object file, and warns (D9024): the same library, named .lib
+        $gaol_lib = "$env:RUNNER_TEMP/gaol_installed.lib"
+        Copy-Item $lib.FullName $gaol_lib
+        # /MD: the C runtime of the DLLs, which meson builds libgaol with
+        cl /nologo /MD /O2 /EHsc /std:c++17 /fp:strict /D_CRT_SECURE_NO_WARNINGS "/I$prefix/include" /Itests tests/rounding_direction.cpp $gaol_lib /Fe:rounding_direction.exe
+        if ($LASTEXITCODE) { exit 1 }
+        ./rounding_direction.exe
+        if ($LASTEXITCODE) { exit 1 }

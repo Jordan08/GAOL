@@ -1,0 +1,65 @@
+# /W4 /WX with the Visual C++ of Visual Studio 2026 x64 and x86, whose
+# intervals are the SSE2 ones, those of x86 keeping their two bounds as two
+# doubles (GAOL v5), x86 being where size_t has 32 bits, as
+# -Wall -Wextra -Werror with GCC and Clang
+# (linux.yml) and AppleClang (macos.yml):
+# the library, the sources of CORE-MATH included, the tests and the examples.
+# /W4 goes to every compilation, through CFLAGS and CXXFLAGS, which CMake
+# puts before the flags it gives Visual C++ (CMAKE_CXX_FLAGS on the command
+# line would replace /GR /EHsc), and /WX to those of the targets only
+# (CMAKE_COMPILE_WARNING_AS_ERROR), so that no check of CMake fails on a
+# warning of its test program. In PowerShell, which passes /W4 as it is.
+# The Debug build has a job too: it finds what the Release build does not,
+# as the unreachable code that Visual C++ reports there (C4702), which
+# CMakeLists.txt turns off for the parser that bison writes.
+# The steps of the job warnings of windows.yml, for one configuration of
+# the group of the job that calls this action (GAOL v5).
+name: windows-warnings
+description: The job warnings of windows.yml for one configuration
+inputs:
+  arch:
+    description: The key arch of the row of the matrix of the job
+    default: ''
+  config:
+    description: The key config of the row of the matrix of the job
+    default: ''
+  desc:
+    description: The key desc of the row of the matrix of the job
+    default: ''
+  opts:
+    description: The key opts of the row of the matrix of the job
+    default: ''
+runs:
+  using: composite
+  steps:
+    # In a group of configurations the job runs several of them: each
+    # starts from the tree as git has it, and from a temporary directory
+    # without what the previous ones left in it (GAOL v5)
+    - name: The tree and the temporary directory as the job found them
+      shell: bash
+      env:
+        DESC: ${{ inputs.desc }}
+      run: |
+        printf '\n## %s\n\n' "$DESC" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$RUNNER_OS" = Linux ]; then
+          # the containers write as root in the tree
+          sudo chown -R "$(id -u):$(id -g)" .
+        fi
+        git clean -ffdx -q
+        git reset --hard -q
+        for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
+        test -z "$(git status --porcelain --ignored)"
+    - name: Configure
+      env:
+        CFLAGS: /W4
+        CXXFLAGS: /W4
+      shell: pwsh
+      run: |
+        cmake -S . -B build -G "Visual Studio 18 2026" -A ${{ inputs.arch }} -DWITH_TESTS=ON -DWITH_EXAMPLES=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=ON ${{ inputs.opts }}
+        if ($LASTEXITCODE) { exit 1 }
+        Select-String -Path build/CMakeCache.txt -Pattern '^CMAKE_(C|CXX)_FLAGS:'
+    - name: Build
+      shell: pwsh
+      run: |
+        cmake --build build --config ${{ inputs.config }} -j 4
+        if ($LASTEXITCODE) { exit 1 }

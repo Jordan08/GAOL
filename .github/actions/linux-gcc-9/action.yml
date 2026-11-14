@@ -1,0 +1,52 @@
+# The steps of the job gcc-9 of linux.yml, for one configuration of
+# the group of the job that calls this action (GAOL v5).
+name: linux-gcc-9
+description: The job gcc-9 of linux.yml for one configuration
+inputs:
+  desc:
+    description: The key desc of the row of the matrix of the job
+    default: ''
+runs:
+  using: composite
+  steps:
+    # In a group of configurations the job runs several of them: each
+    # starts from the tree as git has it, and from a temporary directory
+    # without what the previous ones left in it (GAOL v5)
+    - name: The tree and the temporary directory as the job found them
+      shell: bash
+      env:
+        DESC: ${{ inputs.desc }}
+      run: |
+        printf '\n## %s\n\n' "$DESC" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$RUNNER_OS" = Linux ]; then
+          # the containers write as root in the tree
+          sudo chown -R "$(id -u):$(id -g)" .
+        fi
+        git clean -ffdx -q
+        git reset --hard -q
+        for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
+        test -z "$(git status --porcelain --ignored)"
+    - name: Tools
+      shell: bash -e {0}
+      run: |
+        # GCC 9 has no __builtin_roundeven(), which CORE-MATH's sin.c calls
+        # unguarded: gaol/math/gaol_core_math_port.h gives it
+        # gaol_roundeven()
+        sudo apt-get update -q
+        sudo apt-get install -y -q gcc-9 g++-9 cmake make
+        g++-9 --version
+    - name: Locale writing a decimal comma
+      shell: bash -e {0}
+      run: sh .github/scripts/comma-locale.sh generate
+    - name: Configure
+      shell: bash -e {0}
+      run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_C_COMPILER=gcc-9 -DCMAKE_CXX_COMPILER=g++-9
+    - name: Build
+      shell: bash -e {0}
+      run: cmake --build build -j 4
+    - name: Tests (make test)
+      shell: bash -e {0}
+      run: cmake --build build --target test
+    - name: The test numbers ran under a locale writing a decimal comma
+      shell: bash -e {0}
+      run: sh .github/scripts/comma-locale.sh check build

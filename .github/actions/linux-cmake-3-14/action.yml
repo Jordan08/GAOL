@@ -1,0 +1,72 @@
+# The steps of the job cmake-3-14 of linux.yml, for one configuration of
+# the group of the job that calls this action (GAOL v5).
+name: linux-cmake-3-14
+description: The job cmake-3-14 of linux.yml for one configuration
+inputs:
+  desc:
+    description: The key desc of the row of the matrix of the job
+    default: ''
+runs:
+  using: composite
+  steps:
+    # In a group of configurations the job runs several of them: each
+    # starts from the tree as git has it, and from a temporary directory
+    # without what the previous ones left in it (GAOL v5)
+    - name: The tree and the temporary directory as the job found them
+      shell: bash
+      env:
+        DESC: ${{ inputs.desc }}
+      run: |
+        printf '\n## %s\n\n' "$DESC" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$RUNNER_OS" = Linux ]; then
+          # the containers write as root in the tree
+          sudo chown -R "$(id -u):$(id -g)" .
+        fi
+        git clean -ffdx -q
+        git reset --hard -q
+        for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
+        test -z "$(git status --porcelain --ignored)"
+    - name: CMake 3.14.7, from Kitware's releases
+      shell: bash -e {0}
+      run: |
+        export PATH="$RUNNER_TEMP/cmake-3.14.7-Linux-x86_64/bin:$PATH"
+        curl -sSL https://github.com/Kitware/CMake/releases/download/v3.14.7/cmake-3.14.7-Linux-x86_64.tar.gz | tar xz -C "$RUNNER_TEMP"
+        # not in GITHUB_PATH: the next configurations keep the CMake of the machine
+    - name: Locale writing a decimal comma
+      shell: bash -e {0}
+      run: |
+        export PATH="$RUNNER_TEMP/cmake-3.14.7-Linux-x86_64/bin:$PATH"
+        sh .github/scripts/comma-locale.sh generate
+    - name: Configure
+      shell: bash -e {0}
+      run: |
+        export PATH="$RUNNER_TEMP/cmake-3.14.7-Linux-x86_64/bin:$PATH"
+        cmake --version
+        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install"
+    - name: Build
+      shell: bash -e {0}
+      run: |
+        export PATH="$RUNNER_TEMP/cmake-3.14.7-Linux-x86_64/bin:$PATH"
+        cmake --build build -j 4
+    - name: Tests (make test)
+      shell: bash -e {0}
+      run: |
+        export PATH="$RUNNER_TEMP/cmake-3.14.7-Linux-x86_64/bin:$PATH"
+        cmake --build build --target test
+    - name: The test numbers ran under a locale writing a decimal comma
+      shell: bash -e {0}
+      run: |
+        export PATH="$RUNNER_TEMP/cmake-3.14.7-Linux-x86_64/bin:$PATH"
+        sh .github/scripts/comma-locale.sh check build
+    - name: Install
+      shell: bash -e {0}
+      run: |
+        export PATH="$RUNNER_TEMP/cmake-3.14.7-Linux-x86_64/bin:$PATH"
+        cmake --build build --target install
+    - name: Tests built with the installed GAOL
+      shell: bash -e {0}
+      run: |
+        export PATH="$RUNNER_TEMP/cmake-3.14.7-Linux-x86_64/bin:$PATH"
+        cmake -S tests/find_package -B build-find-package -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
+        cmake --build build-find-package -j 4
+        cmake --build build-find-package --target test
