@@ -45,9 +45,9 @@
  *     GAOL's bounds are NaN, and inf returns -0 for a lower bound 0 (12.12.8);
  *   - isMember(m, x) is false for an infinite m (10.6.3);
  *   - textToInterval and exactToInterval read the names of the functions of
- *     the standard (pown, rootn, sinPi...), where gaol::textToInterval reads
- *     those of GAOL, and return the empty set for a string that is no
- *     interval literal (12.1.3), where GAOL throws.
+ *     the standard (pown, rootn, sinPi, cancelMinus, convexHull...), where
+ *     gaol::textToInterval reads those of GAOL, and return the empty set for
+ *     a string that is no interval literal (12.1.3), where GAOL throws.
  *
  * Only bare intervals are provided: GAOL has no decorations (Clause 11). The
  * operations of the standard GAOL does not provide are listed at the end of
@@ -117,11 +117,11 @@ namespace gaol_ieee1788 {
   
   /*!
   textToInterval(s): the interval s writes, read with the names of the
-  functions of IEEE 1788-2015 (pown, rootn, sinPi, logp1...), where
-  gaol::textToInterval() reads those of GAOL (GAOL v5); the empty set for a
-  string that is no interval (12.12.7), a wrong call or a NUL character
-  included, where GAOL throws, and with or without exceptions. Throws
-  std::bad_alloc when memory runs out.
+  functions of IEEE 1788-2015 (pown, rootn, sinPi, logp1, cancelMinus,
+  intersection...), where gaol::textToInterval() reads those of GAOL (GAOL
+  v5); the empty set for a string that is no interval (12.12.7), a wrong call
+  or a NUL character included, where GAOL throws, and with or without
+  exceptions. Throws std::bad_alloc when memory runs out.
   */
   GAOL_NODISCARD extern GAOL_PUBLIC interval textToInterval(const std::string& s);
   

@@ -56,8 +56,10 @@ int main()
   GAOL_DEBUG_VERBOSE(3, std::cout << "level 3");
   std::cout.rdbuf(saved);
 
-  check("GAOL_DEBUGGING: an expression is evaluated", ev.result().set_eq(interval(4.0, 8.0)),
-        [&] { return hex(ev.result()); });
+  // result() takes the value off the stack (GAOL v5): it is read once
+  const interval value = ev.result();
+  check("GAOL_DEBUGGING: an expression is evaluated", value.set_eq(interval(4.0, 8.0)),
+        [&] { return hex(value); });
   check("GAOL_DEBUGGING: GAOL_DEBUG_VERBOSE runs its command at the level given to init()",
         out.str().find("level 2") != std::string::npos, [&] { return out.str(); });
   check("GAOL_DEBUGGING: GAOL_DEBUG_VERBOSE does not run it above that level",

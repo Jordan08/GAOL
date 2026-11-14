@@ -96,9 +96,13 @@ set(GAOL_TESTS
 # which ELF runs before GAOL initializes itself (GAOL v5): a static libgaol
 # only, a shared one initializing itself before that constructor runs
 # (BUILD_SHARED_LIBS)
+# bad_snprintf: the bounds written with a snprintf() that writes wrong digits,
+# which the link of the test gives, by -Wl,--wrap, to the calls of the static
+# libgaol (GAOL v5): a shared libgaol is out of the reach of the linker, so
+# that the test is built with a static one only, on Linux (see below)
 get_target_property(_gaol_type gaol TYPE)
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND _gaol_type STREQUAL "STATIC_LIBRARY")
-  list(APPEND GAOL_TESTS automatic_cleanup)
+  list(APPEND GAOL_TESTS automatic_cleanup bad_snprintf)
 endif()
 
 # -Wno-psabi (see above)
@@ -122,6 +126,12 @@ foreach(test ${GAOL_TESTS})
   list(APPEND GAOL_CHECK_TARGETS gaol_test_${test})
 endforeach()
 set(GAOL_CHECK_TARGETS ${GAOL_CHECK_TARGETS} PARENT_SCOPE)
+# bad_snprintf: the calls to snprintf() and to __snprintf_chk(), which the
+# fortified calls of the C library of GNU reach, go to the functions of the
+# test, which write the digits after the 17th as zeros (see bad_snprintf.cpp)
+if(TARGET gaol_test_bad_snprintf)
+  target_link_options(gaol_test_bad_snprintf PRIVATE -Wl,--wrap=snprintf -Wl,--wrap=__snprintf_chk)
+endif()
 # fast_math_link: -ffast-math to its link only, with GCC and Clang, its source
 # being compiled as any code using GAOL, and GAOL_TESTS_NO_DAZ_FTZ where
 # gaol::gaol gives the link -mno-daz-ftz

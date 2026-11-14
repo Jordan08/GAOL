@@ -583,6 +583,29 @@ which `numbers` checks there too.
   initializes itself in the initialization of the static objects, so that it
   runs after GAOL's automatic cleanup: the priorities of constructors are those
   of ELF, and GAOL is linked statically, as the CMake build makes it.
+- **`bad_snprintf`** (Linux, with a static `libgaol`): a bound of an interval
+  is written from the text `snprintf()` gives of the double, whose last digit
+  GAOL moves until the number is on the side of the interval, and the
+  `msvcrt.dll` of Windows, which MinGW-w64 calls for `snprintf()`, writes no
+  more than 17 significant digits right and zeros after: a bound of 20 digits
+  or more stayed on the wrong side, inside the interval, after the four moves.
+  The link of the test (`-Wl,--wrap=snprintf -Wl,--wrap=__snprintf_chk`, given
+  by `CMakeLists.txt`, `Makefile.am` and `meson.build` to this test alone)
+  sends the calls of the static library to functions that call the C library,
+  round the number to 17 significant digits and replace the following ones by
+  zeros, as `msvcrt.dll` does (`0.1` is `0.10000000000000001000`). The 264
+  intervals from x to the double above it, for 11 doubles of both signs, in the
+  three formats and with 17, 20, 25 and 30 digits, are written with the C
+  library right, then with it wrong, and each bound is read back by
+  `gaol::textToInterval`: the lower one has to be at most x, and the upper one
+  at least the double above. With the code before the fix, 202 of the 528
+  bounds written with the wrong `snprintf()` were on the wrong side (92 lower
+  ones and 110 upper ones: the rounding of the 17th digit puts the number above
+  the double or below it), and none of those written with the right one. The
+  test is skipped (exit status 77) where the functions of the test are not
+  called: a shared library is out of the reach of the linker, and Clang with
+  `_FORTIFY_SOURCE` has the library call `__vsnprintf_chk()`, which is not
+  wrapped (GAOL v5).
 - **`static_initialization`:** about 40 operations computed before `main()`, in
   the initialization of a static object of the program, have to give the
   intervals they give in `main()`, bit for bit: the constants of intervals
@@ -971,9 +994,12 @@ which `numbers` checks there too.
   `[0,]`, read as `[0, +oo]`, then a point with its two bounds, `[-2,5, -2,5]`,
   which the reader refused). `textToInterval` has to read each name of
   Tables 9.1 and 10.5 as the function of that name, in any case of letters,
-  `pow([-4,-1],2)` being the empty set, and to give the empty set for the
-  names of GAOL alone (`nth_root`, `cbrt`, `log1p`...) and the calls that are
-  wrong, where `gaol::textToInterval` reads the names of GAOL (GAOL v5).
+  `pow([-4,-1],2)` being the empty set, and `cancelMinus`, `cancelPlus`,
+  `intersection` and `convexHull` (10.5.6, 10.5.7) with the exact bounds
+  written apart from the functions, and to give the empty set for the names
+  of GAOL alone (`nth_root`, `cbrt`, `log1p`, `erf`, `hull`...) and the calls
+  that are wrong, where `gaol::textToInterval` reads the names of GAOL
+  (GAOL v5).
   `mulRevToPair(b, c)` has to be the pair of 10.5.5, the part below first,
   `(u, empty)` for one part and two empty sets for none (GAOL v5):
   tight on cases whose parts have exact bounds and on thirds, against exact
@@ -1250,6 +1276,10 @@ which `numbers` checks there too.
   (GAOL v5). The names GAOL v5 adds — `exp2`, `log2`, `cbrt`, `sign` and
   `trunc` — are read alone and in bounds, in any case of letters, the lexer
   taking the longest name so that `exp2` is not read as `exp` followed by 2.
+  `erf`, `erfc`, `cancel_minus`, `cancel_plus`, `hull` and `intersect`, which
+  the table of the names did not have, though the reader was said to know every
+  function of GAOL, are read as the functions of that name, in any case of
+  letters, and refused with a wrong number of arguments (GAOL v5).
   A negative exponent of `nth_root` has to give the root of C++,
   1/x<sup>1/|q|</sup>, alone and in a bound: the reader converted it to an
   unsigned int (GAOL v5). The expressions built in C++ go through every node
@@ -1262,7 +1292,7 @@ which `numbers` checks there too.
   `x/(y*z)` with its `/` and `(-2)^2` with its parentheses (GAOL v5).
   Every function of GAOL has to be read under its name, those the reader did
   not know included (`exp10`, `hypot`, `compoundm1`, `sinpi`, `fma`...), the names of IEEE
-  1788-2015 alone (`pown`, `rootn`, `recip`...) and the calls with a wrong
+  1788-2015 alone (`pown`, `rootn`, `recip`, `cancelMinus`...) and the calls with a wrong
   number of arguments have to be refused, and `gaol::textToInterval` has to
   read the names of GAOL, and with two strings to take the left bound of the
   first and the right bound of the second. The names have to be read in any
@@ -1321,7 +1351,21 @@ which `numbers` checks there too.
   temporary expression, one reference more while it was written, and two
   threads displaying the same `-x` crashed (GAOL v5); the constructor
   `expression(const expr_node&)` has to be `explicit` (a `static_assert`), so
-  that no such temporary is made without being written (GAOL v5). Long
+  that no such temporary is made without being written (GAOL v5). No node is
+  copied, assigned or moved (a `static_assert` for the classes of the nodes of
+  no operand, of one, of two and the null node): the copy the compiler wrote
+  gave the interval an `interval_node` deletes to both, which deleted it twice.
+  An evaluation has to leave one value: the `accept()` of a node of a program
+  that visits nothing, then one that visits two leaves, set `error_occurred()`
+  of `expr_eval` through `result()` and `evaluate_expr()`, alone and as an
+  operand of a sum, where `pop()` of the empty stack gave the first element of
+  the stack, the value of the tree evaluated before, and `pop()` of an empty
+  `eval_stack` has to be `T()` (GAOL v5). A number far beyond the doubles, of
+  400000 digits, in decimal and in hexadecimal, above and below, has to be read
+  as `[DBL_MAX, +oo]` and `[0, DBL_MIN_SUBNORMAL]` in at most 10 times the time
+  of a number of the same length that is 0, and 50 ms more, where the reader
+  built the integer of its digits first, in a time quadratic in their number
+  (4 s for these, GAOL v5). Long
   expressions have to be evaluated and deleted: chains read from a string of
   200000 sums (`pi+pi+...`) or products and quotients (`pi*pi/pi*...`), and
   of 20000 differences and sums, the same chains built in C++ on the left,

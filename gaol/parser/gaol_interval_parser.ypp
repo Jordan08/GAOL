@@ -22,6 +22,7 @@
 #include <exception>
 #include <limits>
 #include <new>
+#include <stdexcept>
 #include <string>
 #include <vector>
 #include "gaol/gaol_common.h"
@@ -289,13 +290,22 @@ static void gaol_release(expr_node *e)
 
 /*
   The value of the tree e: a literal, a bound, the exponent of nth_root(). The
-  parser builds no null node, the only one whose evaluation fails.
+  parser builds no null node, the only one whose evaluation fails, and every
+  tree it holds leaves one value: an evaluation that does not (a tree that
+  leaves none or more than one, which expr_eval::error_occurred() tells) is an
+  error of GAOL, a std::logic_error, which the action that called it keeps in
+  the context as any other (without exceptions, gaol_ERROR writes it and ends
+  the program).
 */
 static interval gaol_value(expr_node *e)
 {
   expr_eval eval;
   e->accept(eval);
-  return eval.result();
+  const interval value = eval.result();
+  if (eval.error_occurred()) {
+    gaol_ERROR(std::logic_error, "the tree of the reader leaves no value, or more than one");
+  }
+  return value;
 }
 
 /*
@@ -563,12 +573,13 @@ static interval gaol_cbrt(const interval& x)
 }
 
 /* The names of GAOL: its functions of intervals, the functions of Tables 9.1
-   and 10.5 of IEEE 1788-2015 under GAOL's names, and cbrt, integer and
-   inverse. pow is gaol::pow, gaol_pow_hybrid(), which takes gaol_pown() for an
-   exponent that is an integer: the parser took 1/x^|n| for n < 0, whose x^|n|
-   overflowed, and 1 for n = 0, which is no value for an empty x. nth_root(x,
-   q) takes a long long q (an int before GAOL v5), which
-   may be negative: rootn(x, q) of IEEE 1788-2015 */
+   and 10.5 of IEEE 1788-2015 under GAOL's names, cbrt, integer and inverse,
+   and erf, erfc, cancel_minus, cancel_plus, hull(x, y) = x | y and
+   intersect(x, y) = x & y (GAOL v5). pow is gaol::pow, gaol_pow_hybrid(),
+   which takes gaol_pown() for an exponent that is an integer: the parser took
+   1/x^|n| for n < 0, whose x^|n| overflowed, and 1 for n = 0, which is no
+   value for an empty x. nth_root(x, q) takes a long long q (an int before GAOL
+   v5), which may be negative: rootn(x, q) of IEEE 1788-2015 */
 static const gaol_function gaol_functions[] = {
   GAOL_F1("sqr", ::gaol_core::sqr), GAOL_F1("sqrt", ::gaol_core::sqrt), GAOL_F1("cbrt", gaol_cbrt),
   GAOL_F2("pow", ::gaol_core::gaol_pow_hybrid), GAOL_FN("nth_root", gaol_text_nth_root),
@@ -595,12 +606,17 @@ static const gaol_function gaol_functions[] = {
   GAOL_F1("round_ties_to_away", ::gaol_core::round_ties_to_away),
   GAOL_F1("abs", ::gaol_core::abs), GAOL_F2("min", ::gaol_core::min), GAOL_F2("max", ::gaol_core::max),
   GAOL_F1("inverse", ::gaol_core::inverse),
+  GAOL_F1("erf", ::gaol_core::erf), GAOL_F1("erfc", ::gaol_core::erfc),
+  GAOL_F2("cancel_minus", ::gaol_core::cancel_minus), GAOL_F2("cancel_plus", ::gaol_core::cancel_plus),
+  GAOL_F2("hull", ::gaol_core::hull), GAOL_F2("intersect", ::gaol_core::intersect),
   { "fma", 3, 0, 0, ::gaol_core::fma, 0 },
 };
 
 /* The names of IEEE 1788-2015: the functions of Tables 9.1 and 10.5 that
-   GAOL provides, as gaol_ieee1788 names them. pow is the pow of Table 9.1,
-   pown(x, p) the power with an integer exponent, rootn(x, q) the root */
+   GAOL provides, as gaol_ieee1788 names them, and the cancellative and set
+   operations of 10.5.6 and 10.5.7: cancelMinus(x, y), cancelPlus(x, y),
+   intersection(x, y) and convexHull(x, y) (GAOL v5). pow is the pow of Table
+   9.1, pown(x, p) the power with an integer exponent, rootn(x, q) the root */
 static const gaol_function ieee1788_functions[] = {
   GAOL_F1("neg", ::gaol_ieee1788::neg), GAOL_F2("add", ::gaol_ieee1788::add),
   GAOL_F2("sub", ::gaol_ieee1788::sub), GAOL_F2("mul", ::gaol_ieee1788::mul),
@@ -632,6 +648,8 @@ static const gaol_function ieee1788_functions[] = {
   GAOL_F1("tanPi", ::gaol_ieee1788::tanPi), GAOL_F1("asinPi", ::gaol_ieee1788::asinPi),
   GAOL_F1("acosPi", ::gaol_ieee1788::acosPi), GAOL_F1("atanPi", ::gaol_ieee1788::atanPi),
   GAOL_F2("atan2Pi", ::gaol_ieee1788::atan2Pi),
+  GAOL_F2("cancelMinus", ::gaol_ieee1788::cancelMinus), GAOL_F2("cancelPlus", ::gaol_ieee1788::cancelPlus),
+  GAOL_F2("intersection", ::gaol_ieee1788::intersection), GAOL_F2("convexHull", ::gaol_ieee1788::convexHull),
 };
 
 // The letter c in lower case, if it is an ASCII capital, whatever the locale

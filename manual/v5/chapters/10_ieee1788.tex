@@ -374,8 +374,10 @@ the two results.
 
 \code{textToInterval(\var{s})} reads a string as \code{gaol::textToInterval()}
 does (\pxref{sec:input-format}), with the names of the functions of IEEE
-1788-2015: those of Tables~9.1 and 10.5 that GAOL provides, whatever the case
-of their letters.\newinvfive{} These names are the following ones.
+1788-2015: those of Tables~9.1 and 10.5 that GAOL provides, and
+\code{cancelMinus}, \code{cancelPlus} (10.5.6), \code{intersection} and
+\code{convexHull} (10.5.7), whatever the case of their letters.\newinvfive{}
+These names are the following ones.
 
 \begin{center}\small
 \begin{tabular}{L{11cm}}
@@ -389,7 +391,9 @@ of their letters.\newinvfive{} These names are the following ones.
 \code{max}, \code{rootn}, \code{expm1}, \code{exp2m1}, \code{exp10m1},
 \code{logp1}, \code{log2p1}, \code{log10p1}, \code{hypot},
 \code{compoundm1}, \code{rSqrt}, \code{sinPi}, \code{cosPi}, \code{tanPi},
-\code{asinPi}, \code{acosPi}, \code{atanPi}, \code{atan2Pi}\\
+\code{asinPi}, \code{acosPi}, \code{atanPi}, \code{atan2Pi},
+\code{cancelMinus}, \code{cancelPlus}, \code{intersection},
+\code{convexHull}\\
 \end{tabular}
 \end{center}
 
@@ -397,7 +401,8 @@ of their letters.\newinvfive{} These names are the following ones.
 \code{pow} is the \ieee{pow} of Table~9.1, and the second argument of
 \code{pown} and \code{rootn} is an integer. The names of GAOL alone
 (\code{nth\_root}, \code{cbrt}, \code{inverse}, \code{integer},
-\code{log1p}, \code{round\_ties\_to\_even}\ldots) are no functions there.
+\code{log1p}, \code{round\_ties\_to\_even}, \code{erf},
+\code{cancel\_minus}, \code{hull}\ldots) are no functions there.
 They give the empty set, as any string that is no interval: a wrong call
 (\code{"pown([2,5],2.5)"}, \code{"sin(1,2)"}) and a string holding a NUL
 character included, whether GAOL was configured with exceptions or

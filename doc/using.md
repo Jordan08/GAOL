@@ -520,9 +520,10 @@ standard:
   not in c; the hull of u and v is `mulRev(b, c)` (GAOL v5);
 - `textToInterval` reads the names of the functions of the standard, those of
   Tables 9.1 and 10.5 that GAOL provides (`pown([2,5],5)`, `rootn(x,3)`,
-  `sinPi(x)`, `logp1(x)`...), `pow` being the pow of Table 9.1, and returns the
-  empty set for a string that is no interval, a name of GAOL alone
-  (`nth_root`, `cbrt`, `log1p`...), a wrong call (`pown([2,5],2.5)`) and a
+  `sinPi(x)`, `logp1(x)`...) and `cancelMinus`, `cancelPlus`, `intersection`
+  and `convexHull` (10.5.6, 10.5.7), `pow` being the pow of Table 9.1, and
+  returns the empty set for a string that is no interval, a name of GAOL alone
+  (`nth_root`, `cbrt`, `log1p`, `erf`, `hull`...), a wrong call (`pown([2,5],2.5)`) and a
   string holding a NUL character included, with or without exceptions; it
   lets `std::bad_alloc` through. `gaol::textToInterval`, which
   replaces the constructor `interval(const char*)` of GAOL 4, reads the names
@@ -1088,7 +1089,10 @@ example; they are listed here for the reader who looks in this page first.
   80 000 digits 0.18 s, 320 000 digits 2.8 s (about 28 s expected for a
   million), and the uncertain form 2.2 to 2.4 times as long (Intel i7-1185G7,
   GCC 15.2, the best of five runs, 7 November 2026). A text from elsewhere
-  can thus block a program.
+  can thus block a program. A number far beyond the doubles (10^311 or more,
+  below 10^-331, or, in base 16, 8 or 2, about 2^1026 or more and 2^-1081 or
+  less) is the exception: its digits are counted and not put in an integer,
+  and it is read in a time linear in their number (GAOL v5).
 - **Threads and the global settings.** `interval::format()` and
   `interval::precision()` are plain variables of the program, shared by its
   threads: setting one while another thread writes an interval (`operator<<`,

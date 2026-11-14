@@ -116,8 +116,12 @@ build_triplet = @build@
 host_triplet = @host@
 # The rounding direction after the automatic cleanup of GAOL, read by a
 # function registered in a constructor of priority 101, which ELF runs before
-# GAOL initializes itself
-@HOST_LINUX_TRUE@am__append_1 = automatic_cleanup
+# GAOL initializes itself; and the bounds written with a snprintf() that
+# writes wrong digits, which the link of bad_snprintf gives, by -Wl,--wrap, to
+# the calls of the static libgaol: the functions of the test replace
+# snprintf() and __snprintf_chk(), which the fortified calls of the C library
+# of GNU reach (GAOL v5)
+@HOST_LINUX_TRUE@am__append_1 = automatic_cleanup bad_snprintf
 @WITH_TESTS_TRUE@noinst_PROGRAMS = $(am__EXEEXT_2) \
 @WITH_TESTS_TRUE@	gaol_performance$(EXEEXT)
 @WITH_TESTS_TRUE@TESTS = $(am__EXEEXT_2) refused_options.sh
@@ -134,7 +138,8 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/gaol/gaol_configuration.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-@HOST_LINUX_TRUE@am__EXEEXT_1 = automatic_cleanup$(EXEEXT)
+@HOST_LINUX_TRUE@am__EXEEXT_1 = automatic_cleanup$(EXEEXT) \
+@HOST_LINUX_TRUE@	bad_snprintf$(EXEEXT)
 am__EXEEXT_2 = arithmetic$(EXEEXT) elementary$(EXEEXT) \
 	rounding_direction$(EXEEXT) numbers$(EXEEXT) \
 	other_functions$(EXEEXT) ieee1788$(EXEEXT) reverse$(EXEEXT) \
@@ -175,6 +180,14 @@ automatic_cleanup_OBJECTS = automatic_cleanup.$(OBJEXT)
 automatic_cleanup_LDADD = $(LDADD)
 automatic_cleanup_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
 	$(am__DEPENDENCIES_1)
+bad_snprintf_SOURCES = bad_snprintf.cpp
+bad_snprintf_OBJECTS = bad_snprintf.$(OBJEXT)
+bad_snprintf_LDADD = $(LDADD)
+bad_snprintf_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
+bad_snprintf_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
+	$(CXXFLAGS) $(bad_snprintf_LDFLAGS) $(LDFLAGS) -o $@
 compoundm1_SOURCES = compoundm1.cpp
 compoundm1_OBJECTS = compoundm1.$(OBJEXT)
 compoundm1_LDADD = $(LDADD)
@@ -345,11 +358,11 @@ depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/arithmetic.Po \
 	./$(DEPDIR)/arithmetic_operators.Po ./$(DEPDIR)/assignment.Po \
-	./$(DEPDIR)/automatic_cleanup.Po ./$(DEPDIR)/compoundm1.Po \
-	./$(DEPDIR)/constants.Po ./$(DEPDIR)/constructor.Po \
-	./$(DEPDIR)/core_math.Po ./$(DEPDIR)/debugging.Po \
-	./$(DEPDIR)/elementary.Po ./$(DEPDIR)/expressions.Po \
-	./$(DEPDIR)/extended_precision.Po \
+	./$(DEPDIR)/automatic_cleanup.Po ./$(DEPDIR)/bad_snprintf.Po \
+	./$(DEPDIR)/compoundm1.Po ./$(DEPDIR)/constants.Po \
+	./$(DEPDIR)/constructor.Po ./$(DEPDIR)/core_math.Po \
+	./$(DEPDIR)/debugging.Po ./$(DEPDIR)/elementary.Po \
+	./$(DEPDIR)/expressions.Po ./$(DEPDIR)/extended_precision.Po \
 	./$(DEPDIR)/fast_math_link-fast_math_link.Po \
 	./$(DEPDIR)/float_functions.Po \
 	./$(DEPDIR)/gaol_performance-performance.Po \
@@ -384,27 +397,29 @@ am__v_CXXLD_ = $(am__v_CXXLD_@AM_DEFAULT_V@)
 am__v_CXXLD_0 = @echo "  CXXLD   " $@;
 am__v_CXXLD_1 = 
 SOURCES = arithmetic.cpp arithmetic_operators.cpp assignment.cpp \
-	automatic_cleanup.cpp compoundm1.cpp constants.cpp \
-	constructor.cpp core_math.cpp debugging.cpp elementary.cpp \
-	expressions.cpp extended_precision.cpp fast_math_link.cpp \
-	float_functions.cpp $(gaol_performance_SOURCES) \
-	generic_functions.cpp ieee1788.cpp input_output.cpp \
-	interval2f.cpp interval_functions.cpp intervalf.cpp misc.cpp \
-	non_arithmetic.cpp numbers.cpp other_functions.cpp \
-	relations.cpp reverse.cpp reverse_mappings.cpp \
-	rounding_direction.cpp static_initialization.cpp \
-	test_ibex_codac.cpp trigonometric.cpp u128.cpp
+	automatic_cleanup.cpp bad_snprintf.cpp compoundm1.cpp \
+	constants.cpp constructor.cpp core_math.cpp debugging.cpp \
+	elementary.cpp expressions.cpp extended_precision.cpp \
+	fast_math_link.cpp float_functions.cpp \
+	$(gaol_performance_SOURCES) generic_functions.cpp ieee1788.cpp \
+	input_output.cpp interval2f.cpp interval_functions.cpp \
+	intervalf.cpp misc.cpp non_arithmetic.cpp numbers.cpp \
+	other_functions.cpp relations.cpp reverse.cpp \
+	reverse_mappings.cpp rounding_direction.cpp \
+	static_initialization.cpp test_ibex_codac.cpp \
+	trigonometric.cpp u128.cpp
 DIST_SOURCES = arithmetic.cpp arithmetic_operators.cpp assignment.cpp \
-	automatic_cleanup.cpp compoundm1.cpp constants.cpp \
-	constructor.cpp core_math.cpp debugging.cpp elementary.cpp \
-	expressions.cpp extended_precision.cpp fast_math_link.cpp \
-	float_functions.cpp $(gaol_performance_SOURCES) \
-	generic_functions.cpp ieee1788.cpp input_output.cpp \
-	interval2f.cpp interval_functions.cpp intervalf.cpp misc.cpp \
-	non_arithmetic.cpp numbers.cpp other_functions.cpp \
-	relations.cpp reverse.cpp reverse_mappings.cpp \
-	rounding_direction.cpp static_initialization.cpp \
-	test_ibex_codac.cpp trigonometric.cpp u128.cpp
+	automatic_cleanup.cpp bad_snprintf.cpp compoundm1.cpp \
+	constants.cpp constructor.cpp core_math.cpp debugging.cpp \
+	elementary.cpp expressions.cpp extended_precision.cpp \
+	fast_math_link.cpp float_functions.cpp \
+	$(gaol_performance_SOURCES) generic_functions.cpp ieee1788.cpp \
+	input_output.cpp interval2f.cpp interval_functions.cpp \
+	intervalf.cpp misc.cpp non_arithmetic.cpp numbers.cpp \
+	other_functions.cpp relations.cpp reverse.cpp \
+	reverse_mappings.cpp rounding_direction.cpp \
+	static_initialization.cpp test_ibex_codac.cpp \
+	trigonometric.cpp u128.cpp
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -802,6 +817,7 @@ GAOL_TESTS = arithmetic elementary rounding_direction numbers \
 	input_output interval_functions misc non_arithmetic relations \
 	reverse_mappings trigonometric intervalf interval2f \
 	$(am__append_1)
+@HOST_LINUX_TRUE@bad_snprintf_LDFLAGS = $(AM_LDFLAGS) -Wl,--wrap=snprintf -Wl,--wrap=__snprintf_chk
 
 # fast_math_link: -ffast-math to its link only, its source being compiled as
 # any code using GAOL, and GAOL_TESTS_NO_DAZ_FTZ where its link has
@@ -948,6 +964,10 @@ automatic_cleanup$(EXEEXT): $(automatic_cleanup_OBJECTS) $(automatic_cleanup_DEP
 	@rm -f automatic_cleanup$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(automatic_cleanup_OBJECTS) $(automatic_cleanup_LDADD) $(LIBS)
 
+bad_snprintf$(EXEEXT): $(bad_snprintf_OBJECTS) $(bad_snprintf_DEPENDENCIES) $(EXTRA_bad_snprintf_DEPENDENCIES) 
+	@rm -f bad_snprintf$(EXEEXT)
+	$(AM_V_CXXLD)$(bad_snprintf_LINK) $(bad_snprintf_OBJECTS) $(bad_snprintf_LDADD) $(LIBS)
+
 compoundm1$(EXEEXT): $(compoundm1_OBJECTS) $(compoundm1_DEPENDENCIES) $(EXTRA_compoundm1_DEPENDENCIES) 
 	@rm -f compoundm1$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(compoundm1_OBJECTS) $(compoundm1_LDADD) $(LIBS)
@@ -1074,6 +1094,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/arithmetic_operators.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/assignment.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/automatic_cleanup.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bad_snprintf.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/compoundm1.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/constants.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/constructor.Po@am__quote@ # am--include-marker
@@ -1610,6 +1631,13 @@ automatic_cleanup.log: automatic_cleanup$(EXEEXT)
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
 	"$$tst" $(AM_TESTS_FD_REDIRECT)
+bad_snprintf.log: bad_snprintf$(EXEEXT)
+	@p='bad_snprintf$(EXEEXT)'; \
+	b='bad_snprintf'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
 .sh.log:
 	@p='$<'; \
 	$(am__set_b); \
@@ -1708,6 +1736,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/arithmetic_operators.Po
 	-rm -f ./$(DEPDIR)/assignment.Po
 	-rm -f ./$(DEPDIR)/automatic_cleanup.Po
+	-rm -f ./$(DEPDIR)/bad_snprintf.Po
 	-rm -f ./$(DEPDIR)/compoundm1.Po
 	-rm -f ./$(DEPDIR)/constants.Po
 	-rm -f ./$(DEPDIR)/constructor.Po
@@ -1786,6 +1815,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/arithmetic_operators.Po
 	-rm -f ./$(DEPDIR)/assignment.Po
 	-rm -f ./$(DEPDIR)/automatic_cleanup.Po
+	-rm -f ./$(DEPDIR)/bad_snprintf.Po
 	-rm -f ./$(DEPDIR)/compoundm1.Po
 	-rm -f ./$(DEPDIR)/constants.Po
 	-rm -f ./$(DEPDIR)/constructor.Po

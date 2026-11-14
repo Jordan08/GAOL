@@ -48,6 +48,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <chrono>
 #include <clocale>
 #include <cstdio>
 #include <functional>
@@ -415,6 +416,21 @@ namespace
     same("round_ties_to_away([0.5,2.5])", round_ties_to_away(interval(0.5, 2.5)));
     same("inverse([2,4])", inverse(interval(2.0, 4.0)));
     same("fma([1,2],[3,4],[0,1])", fma(v, w, u));
+    /* erf, erfc, cancel_minus, cancel_plus, hull and intersect, which the
+       table of the names did not have (GAOL v5), with the values written
+       apart from the functions where they are exact */
+    same("erf([0,1])", erf(u));
+    same("erfc([0,1])", erfc(u));
+    same("erf(0)", interval(0.0, 0.0));
+    same("erfc(0)", interval(1.0, 1.0));
+    same("cancel_minus([1,5],[0,2])", interval(1.0, 3.0));
+    same("cancel_plus([1,5],[0,2])", interval(3.0, 5.0));
+    same("hull([1,2],[3,4])", interval(1.0, 4.0));
+    same("intersect([1,3],[2,4])", interval(2.0, 3.0));
+    same("intersect([1,2],[3,4])", interval::emptyset());
+    same("hull(intersect([1,2],[3,4]),[3,4])", interval(3.0, 4.0));
+    same("Hull([1,2],[3,4])+Intersect([1,3],[2,4])", interval(3.0, 7.0));
+    same("erf(erfc(cancel_minus([1,5],[0,2])))", erf(erfc(interval(1.0, 3.0))));
     same("SinPi([0,1])", sinpi(u));
     same("[exp10(0), hypot(3,4)]", interval(1.0, 5.0));
 
@@ -518,6 +534,12 @@ namespace
     refused("pow(2)");
     refused("fma(1,2)");
     refused("nth_root(8)");
+    refused("erf(1,2)");
+    refused("erfc()");
+    refused("cancel_minus(1)");
+    refused("cancel_plus(1,2,3)");
+    refused("hull([1,2])");
+    refused("intersect([1,2],[3,4],[0,5])");
     /* The names of IEEE 1788-2015 alone, which gaol_ieee1788::textToInterval
        reads: gaol::textToInterval reads those of GAOL */
     refused("pown([2,5],5)");
@@ -526,6 +548,10 @@ namespace
     refused("logp1(0)");
     refused("roundTiesToEven(1)");
     refused("add(1,2)");
+    refused("cancelMinus([1,5],[0,2])");
+    refused("cancelPlus([1,5],[0,2])");
+    refused("intersection([1,3],[2,4])");
+    refused("convexHull([1,2],[3,4])");
     /* An error stops the reading: each literal set the flag of success again,
        and this string gave [-oo, +oo] (GAOL v5) */
     refused("[nth_root(8,1.5)]+[1,2]");
@@ -1129,6 +1155,54 @@ namespace
   }
 #endif
 
+  // The least time, in seconds, that three readings of the text s take
+  double reading_time(const std::string& s)
+  {
+    double least = GAOL_INFINITY;
+    for (int i = 0; i < 3; ++i) {
+      const auto start = std::chrono::steady_clock::now();
+      static_cast<void>(textToInterval(s));
+      const std::chrono::duration<double> elapsed = std::chrono::steady_clock::now() - start;
+      least = std::min(least, elapsed.count());
+    }
+    return least;
+  }
+
+  /* A number far beyond the doubles, whose digits are not put in an integer
+     (GAOL v5): the reader built the integer of the digits, in a time
+     quadratic in their number, before it knew that the number was above the
+     largest double or below the least positive one, whatever its digits (a
+     million digits 7 took 26 s, on an Intel i7-1185G7). It is [DBL_MAX, +oo]
+     above, and [0, DBL_MIN_SUBNORMAL] below, in decimal and in hexadecimal.
+     Each reading is timed against one of a number of the same length that is
+     0, whose digits no integer holds either: at most 10 times as long, and
+     50 ms more, a margin that a slow or a busy machine does not exhaust (the
+     fault made it 1000 times as long and more). */
+  void long_numbers_beyond_the_doubles()
+  {
+    const std::size_t n = 400000;
+    const double dmax = std::numeric_limits<double>::max(), dmin = std::numeric_limits<double>::denorm_min();
+    struct Case { const char* name; std::string text; double left, right; };
+    const Case cases[] = {
+      {"decimal, above", std::string(n, '7'), dmax, GAOL_INFINITY},
+      {"decimal, below", "0." + std::string(n/2, '0') + std::string(n/2, '7'), 0.0, dmin},
+      {"decimal, above, with an exponent", "7." + std::string(n, '7') + "e400", dmax, GAOL_INFINITY},
+      {"hexadecimal, above", "0x" + std::string(n, 'f'), dmax, GAOL_INFINITY},
+      {"hexadecimal, below", "0x0." + std::string(n/8, '0') + std::string(n/2, 'f'), 0.0, dmin},
+    };
+    const double zeros = reading_time("0." + std::string(n, '0'));
+    for (const Case& c : cases) {
+      const interval x = textToInterval(c.text);
+      const double elapsed = reading_time(c.text);
+      check("textToInterval(long number beyond the doubles): the enclosure of the doubles beyond",
+            x.left() == c.left && x.right() == c.right, [&] { return std::string(c.name) + ": " + hex(x); });
+      check("textToInterval(long number beyond the doubles): the time of a number of the same length that is 0",
+            elapsed <= 10*zeros + 0.05,
+            [&] { return std::string(c.name) + ": " + std::to_string(elapsed) + " s, against "
+                         + std::to_string(zeros) + " s"; });
+    }
+  }
+
   /* Many decimal intervals, whose bounds are no doubles: the interval read has
      to hold them, and to be no wider than the two doubles around them. */
   void decimals()
@@ -1409,6 +1483,25 @@ namespace
                 "expression(const expr_node&) has to be explicit");
   static_assert(std::is_constructible<expression, const gaol_core::expr_node&>::value,
                 "expression(const expr_node&) has to exist");
+
+  /* A node is not copied, nor assigned, nor moved (GAOL v5): the copy the
+     compiler wrote took the interval an interval_node deletes, and
+     `interval_node b(*a);` deleted it twice. clone() copies a node. Checked
+     for the null node, the nodes of no operand, of one and of two */
+  template <class Node>
+  struct node_is_not_copied
+  {
+    static const bool value = !std::is_copy_constructible<Node>::value && !std::is_copy_assignable<Node>::value
+                              && !std::is_move_constructible<Node>::value && !std::is_move_assignable<Node>::value;
+  };
+  static_assert(node_is_not_copied<gaol_core::null_node>::value
+                  && node_is_not_copied<gaol_core::double_node>::value
+                  && node_is_not_copied<gaol_core::interval_node>::value
+                  && node_is_not_copied<gaol_core::unary_minus_node>::value
+                  && node_is_not_copied<gaol_core::sin_node>::value
+                  && node_is_not_copied<gaol_core::add_node>::value
+                  && node_is_not_copied<gaol_core::atan2_node>::value,
+                "a node is not copied");
 
   void display_keeps_counts()
   {
@@ -1904,6 +1997,81 @@ namespace
           !ev.error_occurred() && same_bits(three, interval(3.0)), [&] { return hex(three); });
   }
 
+  /* A node of a program whose accept() visits no node, and one that visits two
+     leaves: an evaluation leaves no value, then two (GAOL v5). pop() of the
+     empty stack gave the first element of it, the value of the evaluation
+     before, and nothing set the error: result() of an evaluation of a node
+     with no value was the value of the tree evaluated just before, and the
+     other left a value on the stack for the next tree. */
+  class leaves_values : public expr_node
+  {
+    public:
+      explicit leaves_values(int count) : count_(count), a_(1.0), b_(2.0) {}
+      expr_node* clone() const override { return new leaves_values(count_); }
+      void accept(expr_visitor& visitor) override
+      {
+        if (count_ > 0) {
+          visitor.visit(&a_);
+        }
+        if (count_ > 1) {
+          visitor.visit(&b_);
+        }
+      }
+      unsigned int get_precedence() const override { return 0; }
+      std::ostream& display(std::ostream& os) const override { return os; }
+
+    private:
+      int count_;
+      double_node a_, b_;
+  };
+
+  void evaluation_leaves_one_value()
+  {
+    expr_eval ev;
+    const expression five = expression(interval(5.0, 5.0));
+    five.get_root()->accept(ev);
+    const interval known = ev.result();
+    check("expr_eval::result(): the value of a tree that leaves one, and no error",
+          !ev.error_occurred() && same_bits(known, interval(5.0, 5.0)), [&] { return hex(known); });
+
+    // The same evaluator, which holds the value of the tree before in the first element of its stack
+    const expression nothing(*new leaves_values(0));
+    nothing.get_root()->accept(ev);
+    const interval none = ev.result();
+    check("expr_eval::result(): a tree that leaves no value is an error, and not the value of the tree before",
+          ev.error_occurred() && !same_bits(none, interval(5.0, 5.0)), [&] { return hex(none); });
+    ev.reset();
+    five.get_root()->accept(ev);
+    const interval again = ev.result();
+    check("expr_eval::result(): after an error and a reset, the evaluator gives the value of the next tree",
+          !ev.error_occurred() && same_bits(again, interval(5.0, 5.0)), [&] { return hex(again); });
+
+    expr_eval two;
+    const expression twice(*new leaves_values(2));
+    twice.get_root()->accept(two);
+    const interval last = two.result();
+    check("expr_eval::result(): a tree that leaves two values is an error", two.error_occurred(),
+          [&] { return hex(last); });
+    two.reset();
+    five.get_root()->accept(two);
+    const interval next = two.result();
+    check("expr_eval::result(): the values left over do not count in the next tree",
+          !two.error_occurred() && same_bits(next, interval(5.0, 5.0)), [&] { return hex(next); });
+
+    // Seen by the functions that evaluate an expression
+    interval x;
+    check("evaluate_expr: a tree that leaves no value is an error", !evaluate_expr(nothing, x));
+    check("evaluate_expr: nor a tree that leaves two", !evaluate_expr(twice, x));
+    check("evaluate_expr: nor one of them in a sum", !evaluate_expr(five + nothing, x));
+    check("evaluate_expr: a tree that leaves one is right", evaluate_expr(five, x) && same_bits(x, interval(5.0, 5.0)),
+          [&] { return hex(x); });
+    interval l;
+    check("evaluate_left_right: a tree that leaves no value is an error", !evaluate_left_right(nothing, &l));
+    check("evaluate_left_right: nor one of the two", !evaluate_left_right(five, nothing, &l));
+    check("evaluate_left_right: the bounds of two trees that leave one",
+          evaluate_left_right(five, five, &l) && same_bits(l, interval(5.0, 5.0)), [&] { return hex(l); });
+  }
+
   /* The stack of values of an evaluation is a stack that grows: 10000 values
      pushed on one that holds 4 come out in reverse */
   void eval_stack_growth()
@@ -1917,6 +2085,13 @@ namespace
       in_reverse = (stack.pop() == i) && in_reverse;
     }
     check("eval_stack: 10000 values pushed on a stack of 4 come out in reverse", in_reverse);
+    // pop() of an empty stack is T(), not the first element of the stack, the
+    // value the stack held before (GAOL v5)
+    gaol_core::eval_stack<int, 4> emptied;
+    emptied.push(7);
+    const int seven = emptied.pop(), none = emptied.pop();
+    check("eval_stack: pop() of an empty stack is 0, not the first element it held", seven == 7 && none == 0,
+          [&] { return std::to_string(seven) + ", " + std::to_string(none); });
   }
 
   // A string with its NUL characters written \0, for the messages
@@ -2198,12 +2373,14 @@ int main()
 #if GAOL_EXCEPTIONS_ENABLED
   step("exception_messages"); exception_messages();
 #endif
+  step("long_numbers_beyond_the_doubles"); long_numbers_beyond_the_doubles();
   step("decimals");          decimals();
   step("built_expressions"); built_expressions();
   step("null_node_not_counted"); null_node_not_counted();
   step("display_keeps_counts"); display_keeps_counts();
   step("eval_stack");        eval_stack_growth();
   step("null_operands");     null_operands();
+  step("evaluation_leaves_one_value"); evaluation_leaves_one_value();
   step("random_trees");      random_trees();
   step("deep_strings");      deep_strings();
   // The graceful checks of the stack come before the chains of 200000 nodes,

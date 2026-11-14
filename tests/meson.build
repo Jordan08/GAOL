@@ -33,8 +33,11 @@ gaol_tests = [
 # GAOL initializes itself: a static libgaol only, a shared one initializing
 # itself before that constructor runs (as tests/CMakeLists.txt, BUILD_SHARED_LIBS;
 # GAOL v5: the tests linked the static library whatever default_library)
+# bad_snprintf: the bounds written with a snprintf() that writes wrong digits,
+# which the link of the test gives, by -Wl,--wrap, to the calls of the static
+# libgaol (GAOL v5; see below): on Linux, with a static libgaol, as CMake
 if host_machine.system() == 'linux' and get_option('default_library') != 'shared'
-  gaol_tests += ['automatic_cleanup']
+  gaol_tests += ['automatic_cleanup', 'bad_snprintf']
 endif
 tests_args = []
 if msvc
@@ -61,6 +64,12 @@ foreach t : gaol_tests
   # -mno-daz-ftz (GAOL v5)
   test_cpp_args = []
   test_link_args = []
+  # bad_snprintf: snprintf() and __snprintf_chk(), which the fortified calls of
+  # the C library of GNU reach, go to the functions of the test (see
+  # bad_snprintf.cpp)
+  if t == 'bad_snprintf'
+    test_link_args += ['-Wl,--wrap=snprintf', '-Wl,--wrap=__snprintf_chk']
+  endif
   if t == 'fast_math_link'
     if not msvc
       test_link_args += ['-ffast-math']

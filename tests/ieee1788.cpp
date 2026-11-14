@@ -1091,10 +1091,13 @@ namespace
 
   /* textToInterval reads the names of the standard (GAOL v5): each name of
      Tables 9.1 and 10.5 gives the function of the same name, pow the pow of
-     Table 9.1, and a name of GAOL alone is no function, which gives the
-     empty set; gaol::textToInterval reads the names of GAOL. textToInterval
-     read those of GAOL, and pow([-4,-1],2) was [1, 16], where
-     pow([-4,-1], 2) is the empty set. */
+     Table 9.1, and so do cancelMinus, cancelPlus (10.5.6), intersection and
+     convexHull (10.5.7); a name of GAOL alone is no function, which gives
+     the empty set; gaol::textToInterval reads the names of GAOL.
+     textToInterval read those of GAOL, and pow([-4,-1],2) was [1, 16], where
+     pow([-4,-1], 2) is the empty set. The four names of 10.5.6 and 10.5.7
+     were no names of either reader and gave the empty set; their values are
+     written apart from the functions, being exact. */
   void text_with_the_names_of_the_standard()
   {
     const interval x = numsToInterval(0.25, 0.5), y = numsToInterval(-1.0, 2.0),
@@ -1130,6 +1133,14 @@ namespace
       {"asinPi([0.25,0.5])", asinPi(x)}, {"acosPi([0.25,0.5])", acosPi(x)},
       {"atanPi([0.25,0.5])", atanPi(x)}, {"atan2Pi([-1,2],[0.25,0.5])", atan2Pi(y, x)},
       {"SINPI([0.25,0.5])", sinPi(x)}, {"[pown(2,3), rootn(27,3)*3]", numsToInterval(8.0, 9.0)},
+      {"cancelMinus([-1,2],[0.25,0.5])", numsToInterval(-1.25, 1.5)},
+      {"cancelPlus([-1,2],[0.25,0.5])", numsToInterval(-0.5, 2.25)},
+      {"intersection([-1,2],[2,5])", numsToInterval(2.0, 2.0)},
+      {"intersection([0.25,0.5],[2,5])", interval::emptyset()},
+      {"convexHull([-1,2],[2,5])", numsToInterval(-1.0, 5.0)},
+      {"convexHull([0.25,0.5],[2,5])", numsToInterval(0.25, 5.0)},
+      {"CANCELminus([-1,2],[0.25,0.5])", cancelMinus(y, x)}, {"INTERSECTION([-1,2],[2,5])", intersection(y, p)},
+      {"convexhull(intersection([-1,2],[2,5]),[7,8])", numsToInterval(2.0, 8.0)},
     };
     for (const Case& c : cases) {
       const interval got = textToInterval(c.text);
@@ -1143,6 +1154,11 @@ namespace
     const char *const not_the_standard[] = {
       "nth_root(8,3)", "cbrt(8)", "inverse(2)", "integer([1.5,3])", "log1p(0)",
       "round_ties_to_even(1)", "pown([2,5],2.5)", "sin(1,2)", "fma(1,2)",
+      // The names of GAOL alone, of functions the standard has no name for (erf, erfc) or names otherwise
+      "erf(1)", "erfc(1)", "cancel_minus([1,5],[0,2])", "cancel_plus([1,5],[0,2])", "hull([1,2],[3,4])",
+      "intersect([1,3],[2,4])",
+      // The standard's names with a wrong number of arguments
+      "cancelMinus([1,5])", "cancelPlus(1,2,3)", "intersection([1,2])", "convexHull(1,2,3)",
     };
     for (const char *t : not_the_standard) {
       const interval got = textToInterval(t);
