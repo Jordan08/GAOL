@@ -697,6 +697,7 @@ GAOL_MSVC_CPPFLAGS = @GAOL_MSVC_CPPFLAGS@
 GAOL_PC_CFLAGS = @GAOL_PC_CFLAGS@
 GAOL_PC_LIBS = @GAOL_PC_LIBS@
 GAOL_TESTS_CXXFLAGS = @GAOL_TESTS_CXXFLAGS@
+GAOL_TIMEOUT = @GAOL_TIMEOUT@
 GAOL_UPDATED = @GAOL_UPDATED@
 GAOL_V5_EDITION = @GAOL_V5_EDITION@
 GAOL_V5_UPDATED = @GAOL_V5_UPDATED@
@@ -835,6 +836,13 @@ AM_TESTS_ENVIRONMENT = GAOL_CXX='$(CXX)'; \
 	GAOL_CXXFLAGS='$(DEFS) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)'; \
 	export GAOL_CXX GAOL_CXXFLAGS;
 
+
+# 300 seconds for each test, as meson gives them (CMake: numbers,
+# GAOL_NUMBERS_TIMEOUT), where configure found timeout(1): a test that hangs
+# fails with the status 124 of timeout. make check GAOL_TEST_TIMEOUT=900 gives
+# a slower build more time (GAOL v5)
+GAOL_TEST_TIMEOUT = 300
+@GAOL_HAVE_TIMEOUT_TRUE@LOG_COMPILER = $(GAOL_TIMEOUT) $(GAOL_TEST_TIMEOUT)
 gaol_performance_SOURCES = performance.cpp
 gaol_performance_CXXFLAGS = -std=c++14 $(GAOL_TESTS_CXXFLAGS)
 CLEANFILES = gaol_bench$(EXEEXT)

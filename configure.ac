@@ -909,6 +909,12 @@ AC_ARG_WITH([tests],
             [with_tests=${withval}],
             [with_tests="no"])
 AM_CONDITIONAL([WITH_TESTS], [test "${with_tests}" = yes])
+# The time limit of a test: 300 seconds, which meson gives all of them and CMake
+# gives numbers (GAOL_NUMBERS_TIMEOUT), by timeout of GNU coreutils (gtimeout
+# where Homebrew installs it). A test that hangs fails, rather than holding the
+# build until something stops it (GAOL v5)
+AC_CHECK_PROGS([GAOL_TIMEOUT], [timeout gtimeout])
+AM_CONDITIONAL([GAOL_HAVE_TIMEOUT], [test -n "${GAOL_TIMEOUT}"])
 # -Wno-psabi for the tests where the compiler takes it, as
 # tests/CMakeLists.txt gives it (GAOL v5)
 GAOL_CHECK_CXX_FLAG([-Wno-psabi], [gaol_cxx_wno_psabi])

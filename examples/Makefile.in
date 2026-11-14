@@ -560,6 +560,7 @@ GAOL_MSVC_CPPFLAGS = @GAOL_MSVC_CPPFLAGS@
 GAOL_PC_CFLAGS = @GAOL_PC_CFLAGS@
 GAOL_PC_LIBS = @GAOL_PC_LIBS@
 GAOL_TESTS_CXXFLAGS = @GAOL_TESTS_CXXFLAGS@
+GAOL_TIMEOUT = @GAOL_TIMEOUT@
 GAOL_UPDATED = @GAOL_UPDATED@
 GAOL_V5_EDITION = @GAOL_V5_EDITION@
 GAOL_V5_UPDATED = @GAOL_V5_UPDATED@
@@ -688,6 +689,12 @@ GAOL_EXAMPLES = 01_first_steps 02_decimals_and_rump 03_dependency_problem \
 	12_affine_arithmetic 13_rounding_environment 14_generic_programming \
 	15_text_and_ieee1788 16_Goldstein_Price
 
+
+# 300 seconds for each example, as meson gives them, where configure found
+# timeout(1); make check GAOL_TEST_TIMEOUT=900 gives a slower build more time
+# (GAOL v5)
+GAOL_TEST_TIMEOUT = 300
+@GAOL_HAVE_TIMEOUT_TRUE@LOG_COMPILER = $(GAOL_TIMEOUT) $(GAOL_TEST_TIMEOUT)
 
 # The archive of the sources, make dist (GAOL v5): automake takes the sources,
 # the headers and the scripts it knows from the variables of the Makefile.am,

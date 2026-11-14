@@ -66,6 +66,15 @@ AM_TESTS_ENVIRONMENT = GAOL_CXX='$(CXX)'; \
 	GAOL_CXXFLAGS='$(DEFS) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)'; \
 	export GAOL_CXX GAOL_CXXFLAGS;
 
+# 300 seconds for each test, as meson gives them (CMake: numbers,
+# GAOL_NUMBERS_TIMEOUT), where configure found timeout(1): a test that hangs
+# fails with the status 124 of timeout. make check GAOL_TEST_TIMEOUT=900 gives
+# a slower build more time (GAOL v5)
+GAOL_TEST_TIMEOUT = 300
+if GAOL_HAVE_TIMEOUT
+LOG_COMPILER = $(GAOL_TIMEOUT) $(GAOL_TEST_TIMEOUT)
+endif
+
 if WITH_TESTS
 noinst_PROGRAMS = $(GAOL_TESTS) gaol_performance
 TESTS = $(GAOL_TESTS) refused_options.sh
