@@ -40,10 +40,6 @@
 #include <cstring>
 #include <sstream>
 
-#if GAOL_USING_SSE2_INSTRUCTIONS
-#  include <pmmintrin.h>
-#endif
-
 #include "gaol/gaol_config.h"
 #include "gaol/gaol_fpu.h"
 // The bounds at doubles, *_dn() and *_up(): a header of the sources, not

@@ -28,9 +28,6 @@ AM_DISTCHECK_CONFIGURE_FLAGS = --with-tests --with-examples
 # again (the m4_include of VERSION.txt in configure.ac) (GAOL v5)
 CONFIG_STATUS_DEPENDENCIES = $(top_srcdir)/VERSION.txt
 
-# Requires automake 1.4
-AUTOMAKE_OPTIONS = 1.4
-
 # make check runs the unit tests of tests/ (--with-tests) and the examples of
 # examples/ (--with-examples), make test the unit tests only, as with CMake and
 # meson (GAOL v5)

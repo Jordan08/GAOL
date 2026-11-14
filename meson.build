@@ -470,16 +470,16 @@ if target_x86
   endif
 endif
 
-# enable-arm64 (GAOL v5): on 64-bit ARM processors, the intervals are computed
-# with NEON instructions (gaol_interval_neon.h), as CMakeLists.txt and configure
-# do (see CMakeLists.txt), independently of enable-simd. Where the test below
+# On 64-bit ARM processors, with enable-simd (GAOL v5), the intervals are
+# computed with NEON instructions (gaol_interval_neon.h), as CMakeLists.txt and
+# configure do (see CMakeLists.txt). Where the test below
 # compiles, whatever the processor of the machine building: every compiler of
 # AArch64, GCC, Clang and AppleClang, clang-cl and the Clang of MinGW-w64 and
 # MSYS2 included (GAOL v5), with the intrinsics of <arm_neon.h> and the
 # registers of the rounding mode. NEON needs no flag. Visual C++ (cl) has
 # _ReadStatusReg() and _WriteStatusReg() for the registers, and a test of its
-# own. Not for 32-bit ARM or x86: the option is then ignored, and the intervals
-# are computed with the FPU. The refusals above (Clang 14, Clang on 32-bit ARM)
+# own. Not for 32-bit ARM or x86, where the intervals are computed with the FPU
+# or, on x86, with SSE2. The refusals above (Clang 14, Clang on 32-bit ARM)
 # come first. The program is the same as that of CMakeLists.txt (and configure,
 # for GCC and Clang: it does not build with Visual C++); the flags of interval
 # arithmetic are given to it, as the checks of the compiler do not get

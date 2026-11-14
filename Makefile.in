@@ -391,9 +391,6 @@ AM_DISTCHECK_CONFIGURE_FLAGS = --with-tests --with-examples
 # again (the m4_include of VERSION.txt in configure.ac) (GAOL v5)
 CONFIG_STATUS_DEPENDENCIES = $(top_srcdir)/VERSION.txt
 
-# Requires automake 1.4
-AUTOMAKE_OPTIONS = 1.4
-
 # The archive of the sources, make dist (GAOL v5): automake takes the sources,
 # the headers and the scripts it knows from the variables of the Makefile.am,
 # and EXTRA_DIST names the other files of the repository, here the files at the top of the tree that no Makefile.am of a directory takes (the builds of CMake and meson, the documents, cmake/, coverage/, doc/, the CI in .github/).
