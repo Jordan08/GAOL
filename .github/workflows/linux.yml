@@ -846,3 +846,27 @@ jobs:
             [ "${kv#*=}" = success ] || status=1
           done
           exit $status
+
+  l10:
+    name: 'Ubuntu 24.04 x86_64 GCC, interprocedural optimization, rounding direction preserved, AVX-512 arithmetic not taken'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      # The same with the arithmetic on the SSE2 path
+      # (-DGAOL_PREFER_AVX512=OFF): the configuration of the same name
+      # without the last words takes the AVX-512 path on a runner that has
+      # the instructions, and the SSE2 path on the others alone (AMD EPYC
+      # 7763), where GCC 12.4, 13.3 and 14.2 computed the sum of an interval
+      # and a double in the direction the caller left, with -flto, and
+      # arithmetic failed. This one takes the SSE2 path whatever the runner
+      # is (GAOL v5)
+      - id: c1
+        name: 'Ubuntu 24.04 x86_64 GCC, interprocedural optimization, rounding direction preserved, AVX-512 arithmetic not taken'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/linux-cmake
+        with:
+          desc: 'Ubuntu 24.04 x86_64 GCC, interprocedural optimization, rounding direction preserved, AVX-512 arithmetic not taken'
+          cc: 'gcc'
+          cxx: 'g++'
+          opts: '-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON -DGAOL_PRESERVE_ROUNDING=ON -DGAOL_PREFER_AVX512=OFF'
