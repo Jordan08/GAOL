@@ -109,7 +109,6 @@ gaol_SOURCES += [
   'parser/gaol_expression.cpp',
   'gaol_port.cpp',
   'gaol_init_cleanup.cpp',
-  # CORE-MATH's log, where there is a 128-bit integer type (GAOL_CORE_MATH_LOG)
 ]
 
 # The headers a program includes, gaol, gaol/parser/gaol_expression.h and

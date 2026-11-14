@@ -167,7 +167,7 @@ endif()
 set(GAOL_ARM64 ${GAOL_SIMD})
 # Coverage: the library and the tests compiled with the counters of gcov
 # (--coverage), and the target "coverage", which runs the tests and writes the
-# report in coverage/ (see doc/coverage.md). GCC and Clang only; the build has
+# report in coverage/ (see coverage/README.md). GCC and Clang only; the build has
 # to be a Debug or an unoptimized one for the counts to follow the source.
 option(GAOL_COVERAGE "Compile GAOL and its tests with the counters of gcov, and add the target coverage, which runs the tests and writes the report in coverage/" OFF)
 # No option for the intervals of floats, gaol::intervalf and gaol::interval2f,
@@ -828,8 +828,8 @@ endif()
 
 # On x86 processors, with GAOL_SIMD (--enable-simd of configure), the intervals
 # of GAOL are computed with SSE2 instructions (gaol/core/gaol_interval_sse.h), and
-# -msse3 is given where the compiler takes it, as the autotools build on a
-# processor with SSE3. Visual C++ and clang-cl take them on x64 (GAOL v5),
+# -msse3 is given where the compiler takes it, as configure and meson do (the
+# compiler decides, not the processor). Visual C++ and clang-cl take them on x64 (GAOL v5),
 # where SSE2 is the baseline of the processor and no flag is to be given
 # (cl does not know -msse2): gaol/core/gaol_interval_sse_impl.h is written for the
 # __m128d of Visual C++, a structure and not a vector, and needs no asm
@@ -1432,8 +1432,6 @@ if(MSVC OR CMAKE_CXX_SIMULATE_ID STREQUAL "MSVC")
   # No __GAOL_PUBLIC__= for GAOL and the code using it any longer:
   # gaol/gaol_config.h declares GAOL's classes and functions without
   # __declspec(dllimport) for Visual C++, where GAOL_PUBLIC is empty (GAOL v5)
-endif()
-if(FALSE)
 endif()
 
 

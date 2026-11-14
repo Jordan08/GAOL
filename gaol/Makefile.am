@@ -110,7 +110,7 @@ noinst_HEADERS = math/gaol_core_math.h \
 tags: TAGS
 	etags --language=c++ *.cpp *.h *.c core/*.cpp core/*.h math/*.h
 
-TAGS: $(gaol_HEADERS) $(libgaol_la_SOURCES)
+TAGS: $(libgaol_la_SOURCES)
 
 install-data-local:
 	$(MKDIR_P) $(DESTDIR)$(libdir)/pkgconfig

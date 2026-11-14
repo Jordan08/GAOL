@@ -4066,9 +4066,8 @@ LT_VERSION_INFO="`expr $gaol_major + $gaol_minor`:$gaol_micro:$gaol_minor"
 
 # CFLAGS and CXXFLAGS left empty when not given, rather than the "-g -O2" that
 # AC_PROG_CC and AC_PROG_CXX give them otherwise: LT_INIT calls AC_PROG_CC, and
-# the C sources (CORE-MATH) were compiled with "-g -O2 ... -O3".
-# --enable-optimize gives the C and C++ sources -O3 alike, --enable-debug -g
-# (see below).
+# the C sources (CORE-MATH) were compiled with "-g -O2 ... -O3". The C and C++
+# sources get -O3 alike, and --enable-debug -g (see below).
 # A universal build of macOS (GAOL v5, as CMAKE_OSX_ARCHITECTURES of CMake with
 # several architectures): several -arch in the flags of the compilers, which
 # compile each source once per architecture with one configuration, e.g.
