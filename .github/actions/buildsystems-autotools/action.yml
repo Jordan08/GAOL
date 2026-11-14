@@ -38,6 +38,10 @@ runs:
         if [ "$RUNNER_OS" = Linux ]; then
           sudo apt-get update -q
           sudo apt-get install -y -q g++ cmake make
+        elif [ "$RUNNER_OS" = macOS ]; then
+          # gtimeout, which configure looks for: macOS has no timeout, and
+          # make check would give no test a time limit
+          brew install coreutils
         fi
     - name: configure generated for the version of VERSION.txt
       shell: bash -e {0}
