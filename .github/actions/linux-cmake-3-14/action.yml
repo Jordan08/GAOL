@@ -31,6 +31,9 @@ runs:
       run: |
         export PATH="$RUNNER_TEMP/cmake-3.14.7-Linux-x86_64/bin:$PATH"
         curl -sSL https://github.com/Kitware/CMake/releases/download/v3.14.7/cmake-3.14.7-Linux-x86_64.tar.gz | tar xz -C "$RUNNER_TEMP"
+        # The cmake that runs is the one that was downloaded, not the machine's
+        test "$(command -v cmake)" = "$RUNNER_TEMP/cmake-3.14.7-Linux-x86_64/bin/cmake"
+        test "$(cmake --version | sed -n 1p)" = "cmake version 3.14.7"
         # not in GITHUB_PATH: the next configurations keep the CMake of the machine
     - name: Locale writing a decimal comma
       shell: bash -e {0}

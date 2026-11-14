@@ -145,5 +145,4 @@ EXTRA_DIST = \
 	meson.build \
 	parser/gaol_interval_lexer.lpp \
 	parser/gaol_interval_parser.ypp \
-	parser/regenerate_parser.sh \
-	stamp-h.in
+	parser/regenerate_parser.sh

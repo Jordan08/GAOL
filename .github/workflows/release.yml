@@ -79,7 +79,9 @@ jobs:
       - name: The tag is the version of VERSION.txt
         id: version
         run: |
-          version=$(tr -d ' \t\r\n' < VERSION.txt)
+          # As the builds read it: without the byte order mark of UTF-8 and the
+          # six blanks of ASCII
+          version=$(LC_ALL=C sed "1s/^$(printf '\357\273\277')//" VERSION.txt | tr -d ' \t\r\n\v\f')
           case "$GITHUB_REF_NAME" in
             "$version"|"v$version") ;;
             *) echo "::error::the tag $GITHUB_REF_NAME is not the version of VERSION.txt, $version (nor v$version)"; exit 1 ;;
@@ -148,7 +150,7 @@ jobs:
         run: ctest --test-dir build -C Release --output-on-failure -j 4
       - name: The package
         run: |
-          version=$(tr -d ' \t\r\n' < VERSION.txt)
+          version=$(LC_ALL=C sed "1s/^$(printf '\357\273\277')//" VERSION.txt | tr -d ' \t\r\n\v\f')
           cd build
           # The name of the .pkg and of the .exe: gaol-<version>-<system>-<processor>;
           # the .deb keeps the one of Debian (CPACK_DEBIAN_FILE_NAME)
