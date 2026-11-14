@@ -22,6 +22,7 @@
 #include <exception>
 #include <limits>
 #include <new>
+#include <stdexcept>
 #include <string>
 #include <vector>
 #include "gaol/gaol_common.h"
@@ -289,13 +290,22 @@ static void gaol_release(expr_node *e)
 
 /*
   The value of the tree e: a literal, a bound, the exponent of nth_root(). The
-  parser builds no null node, the only one whose evaluation fails.
+  parser builds no null node, the only one whose evaluation fails, and every
+  tree it holds leaves one value: an evaluation that does not (a tree that
+  leaves none or more than one, which expr_eval::error_occurred() tells) is an
+  error of GAOL, a std::logic_error, which the action that called it keeps in
+  the context as any other (without exceptions, gaol_ERROR writes it and ends
+  the program).
 */
 static interval gaol_value(expr_node *e)
 {
   expr_eval eval;
   e->accept(eval);
-  return eval.result();
+  const interval value = eval.result();
+  if (eval.error_occurred()) {
+    gaol_ERROR(std::logic_error, "the tree of the reader leaves no value, or more than one");
+  }
+  return value;
 }
 
 /*
