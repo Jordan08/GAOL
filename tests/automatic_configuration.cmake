@@ -29,7 +29,10 @@
 #   - a cross-compilation, where no program can be run to check the machine,
 #     leaves the fused multiply-add instructions and the AVX-512 path out, and
 #     takes them on the word of -DGAOL_MACHINE_RUNS_FMA=1 and
-#     -DGAOL_MACHINE_RUNS_AVX512=1.
+#     -DGAOL_MACHINE_RUNS_AVX512=1;
+#   - a machine that does not run the fused multiply-add instructions (the check
+#     that runs a program fails: -DGAOL_MACHINE_RUNS_FMA=0 makes it, on any
+#     machine) leaves them out and says which flags it leaves out.
 #
 # What a platform may not give (an AVX-512 path on ARM, an FMA flag on 64-bit
 # ARM) is not asked for: the script compares each configuration with what its
@@ -198,6 +201,18 @@ set(_default_neon ${USING_NEON_INSTRUCTIONS})
 set(_has_avx512_target ${HAVE_AVX512_TARGET})
 cache_value("${_build}" GAOL_MACHINE_RUNS_FMA _runs_fma OFF)
 string(REGEX MATCH "Fused multiply-add flags: [^\n]*\n" _default_fma_line "${output}")
+# The flags of the fused multiply-add instructions that the compiler takes: those
+# of the line above where the machine runs the instructions, and, where it does
+# not (an x86 processor older than Haswell and Piledriver, an Atom, an ARMv7
+# without VFPv4), that line is empty and the message that leaves them out names
+# them. A cross-compilation for a machine that runs them takes these flags,
+# whatever the machine the test runs on
+set(_compiler_fma_flags "")
+if(_default_fma_line MATCHES "flags: [^\n]")
+  string(REGEX REPLACE "^Fused multiply-add flags: ([^\n]*)\n$" "\\1" _compiler_fma_flags "${_default_fma_line}")
+elseif(output MATCHES "left out: this machine does not run a program compiled with ([^\n]*)\n")
+  set(_compiler_fma_flags "${CMAKE_MATCH_1}")
+endif()
 cache_value("${_build}" GAOL_COMPILER_HAS_U128 _has_u128 ON)
 # The fused multiply-add flags, as the message says them: not empty where the
 # machine runs the instructions the flag gives, on x86
@@ -342,10 +357,10 @@ message(STATUS "GAOL_EXCEPTIONS_ENABLED=OFF and GAOL_VERBOSE_MODE=ON: as expecte
 # instructions: a C compiler that refuses the first of them (-mfma on x86,
 # -mfpu=neon-vfpv4 on 32-bit ARM), with a C++ compiler that takes them, leaves
 # them out (CMake checked the C++ compiler alone, where configure and meson
-# check both). Where the default configuration takes flags,
-# and a script of sh can be the C compiler
-if(UNIX AND _default_fma_line MATCHES "flags: [^\n]")
-  string(REGEX REPLACE "^Fused multiply-add flags: ([^\n]*)\n$" "\\1" _fma_flags "${_default_fma_line}")
+# check both). Where the compiler has flags, whether the machine runs the
+# instructions or not, and a script of sh can be the C compiler
+if(UNIX AND _compiler_fma_flags)
+  set(_fma_flags "${_compiler_fma_flags}")
   string(REGEX MATCH "^[^ ]+" _first_flag "${_fma_flags}")
   set(_c_compiler "${GAOL_C_COMPILER}")
   set(_wrapper "${GAOL_WORK_DIR}/cc-without-fma-flag")
@@ -369,7 +384,7 @@ if(UNIX AND _default_fma_line MATCHES "flags: [^\n]")
   endif()
   message(STATUS "A C compiler that refuses ${_first_flag}: as expected")
 else()
-  message(STATUS "A C compiler that refuses the flag of the fused multiply-add instructions: not made, the default configuration takes none")
+  message(STATUS "A C compiler that refuses the flag of the fused multiply-add instructions: not made, the compiler has none")
 endif()
 
 # ---- A cross-compilation --------------------------------------------------------
@@ -389,11 +404,30 @@ file(REMOVE_RECURSE "${_cross}")
 configure_ok("a cross-compilation for a machine that runs them" "${_cross}" ${_cross_args}
   -DGAOL_MACHINE_RUNS_FMA=1 -DGAOL_MACHINE_RUNS_AVX512=1)
 expect("-DGAOL_MACHINE_RUNS_AVX512=1 in a cross-compilation" "PREFER_AVX512 EQUAL ${_cross_prefer} AND AVX512_ARITHMETIC EQUAL ${_cross_prefer}")
-# ... and -DGAOL_MACHINE_RUNS_FMA=1 has it take the flags a native configuration took
-string(FIND "${output}" "${_default_fma_line}" _fma_found)
+# ... and -DGAOL_MACHINE_RUNS_FMA=1 has it take the flags the compiler takes, which
+# a native configuration took where the machine runs them
+string(FIND "${output}" "Fused multiply-add flags: ${_compiler_fma_flags}\n" _fma_found)
 if(_fma_found EQUAL -1)
-  message(FATAL_ERROR "-DGAOL_MACHINE_RUNS_FMA=1 in a cross-compilation does not give the flags of the native configuration, ${_default_fma_line}:\n${output}")
+  message(FATAL_ERROR "-DGAOL_MACHINE_RUNS_FMA=1 in a cross-compilation does not give the flags of the compiler, \"${_compiler_fma_flags}\":\n${output}")
 endif()
 message(STATUS "A cross-compilation: as expected")
+
+# ---- A machine that does not run the fused multiply-add instructions ----------
+
+# The check that runs a program compiled with the flags says it fails, as on a
+# processor older than Haswell and Piledriver: the configuration leaves the
+# instructions out and says the flags it leaves out, which the cross-compilation
+# above takes. Made on any machine, not only on one that lacks the instructions
+if(_compiler_fma_flags)
+  configure_ok("a machine that does not run the fused multiply-add instructions" "${GAOL_WORK_DIR}/no-fma"
+    -DGAOL_MACHINE_RUNS_FMA=0)
+  string(FIND "${output}" "Fused multiply-add instructions left out: this machine does not run a program compiled with ${_compiler_fma_flags}\n" _left_out)
+  if(_left_out EQUAL -1 OR NOT output MATCHES "Fused multiply-add flags: \n")
+    message(FATAL_ERROR "a machine that does not run a program compiled with ${_compiler_fma_flags}, and the configuration takes the flags of the fused multiply-add instructions, or does not say which it leaves out:\n${output}")
+  endif()
+  message(STATUS "A machine that does not run the fused multiply-add instructions: as expected")
+else()
+  message(STATUS "A machine that does not run the fused multiply-add instructions: not made, the compiler has no flag for them")
+endif()
 
 file(REMOVE_RECURSE "${GAOL_WORK_DIR}")

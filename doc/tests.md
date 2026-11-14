@@ -1745,7 +1745,13 @@ which `numbers` checks there too.
   configuration; and a cross-compilation (`CMAKE_SYSTEM_NAME` given), where no
   program can be run, which leaves the fused multiply-add instructions and the
   AVX-512 path out and takes them on the word of `-DGAOL_MACHINE_RUNS_FMA=1` and
-  `-DGAOL_MACHINE_RUNS_AVX512=1`. Run against the CMake build before this
+  `-DGAOL_MACHINE_RUNS_AVX512=1`, the flags that the compiler takes, which a
+  machine that does not run the instructions (an x86 processor older than
+  Haswell and Piledriver, an Atom, an ARMv7 without VFPv4) names in the message
+  that leaves them out, its own line of flags being empty; and a machine whose
+  check that runs a program fails, which `-DGAOL_MACHINE_RUNS_FMA=0` makes on any
+  machine, and which leaves the instructions out and says which flags. Run
+  against the CMake build before this
   change, it fails on the 128-bit integer message, on `GAOL_ARM64`, on
   `GAOL_DEBUGGING`, on the settings of the exceptions and of the verbose mode,
   and on both cross-compilations. The script takes
