@@ -127,7 +127,14 @@ build, and the CMake build follows them, apart from the errors corrected (see
 - the shared library is `libgaol.so.5.0.0`, whose soname is `libgaol.so.5`,
   where the build makes one (configure, meson, CMake with
   `BUILD_SHARED_LIBS`); it was `libgaol-5.0.so.0` with configure, and meson
-  gave no version (GAOL v5).
+  gave no version (GAOL v5). On macOS the three builds make `libgaol.5.dylib`
+  (CMake keeps the file `libgaol.5.0.0.dylib` and links to it), but its
+  Mach-O versions differ, as `otool -L` shows on an Apple M2 with macOS 27 and
+  Apple clang 21: compatibility and current version 5.0.0 with CMake and
+  meson, 6.0.0 with configure, where libtool adds 1 to the current version of
+  `-version-info` on Darwin (`ltmain.sh`, "Darwin ld doesn't like 0 for these
+  options"). It matters only to a program linked with the dylib of one build
+  and run with the dylib of another (not tried).
 
 In a Debug build (`CMAKE_BUILD_TYPE=Debug`, `configure --enable-debug`,
 `meson setup --buildtype=debug`), GAOL is compiled with `-g`, without
