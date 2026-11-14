@@ -124,7 +124,10 @@ public:
     TEST_EMPTY(log(interval::zero()));
     TEST_EMPTY(log(interval::emptyset()));
 	interval tmp = log(interval(-3,4));
-	CPPUNIT_ASSERT(tmp.left()==-GAOL_INFINITY && (tmp.right()-1.386294361119891)<=1e-8);
+	// ln 4 = 1.3862943611198906188..., between 0x1.62e42fefa39efp+0 and 0x1.62e42fefa39f0p+0:
+	// the bound encloses it, and is within 1e-8 of it
+	CPPUNIT_ASSERT(tmp.left()==-GAOL_INFINITY && tmp.right()>=0x1.62e42fefa39f0p+0
+		       && (tmp.right()-1.386294361119891)<=1e-8);
 	TEST_EQ(log(interval(5,9)),interval(1.6094379124341003746,2.19722457733621938279));
 	TEST_EQ(log(interval(56.1)),interval(4.02713581252865063169));
   }
