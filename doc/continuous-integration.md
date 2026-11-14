@@ -342,6 +342,17 @@ means such a configuration.
   the name it is to have and the row of its matrix as `with:`. A new kind of
   job is a new action; a configuration longer than the others, or that has to
   start from a machine of its own (Cygwin), is a job of its own.
+- Two configurations of `build-systems.yml` are alone in their job, there being
+  no other of their image of runner in this workflow: *Meson, Visual Studio 2026
+  x64* (`windows-2025-vs2026`) and *Meson, Visual Studio 2026 arm64*
+  (`windows-11-vs2026-arm`), 2.4 minutes each. They stay so: joining a group of
+  `windows.yml` would put actions of another workflow in it and bring back what
+  one configuration leaves to the next on Windows (the environment of
+  `ilammy/msvc-dev-cmd`, the installs of `pipx`).
+- The actions that the workflows use are on the moving tag of their release
+  (`actions/checkout@v7`, `msys2/setup-msys2@v2`, `ilammy/msvc-dev-cmd@v1`...),
+  which is how a fix of theirs reaches the jobs; only `petarpetrovt/setup-sde`
+  is pinned, to the commit of its release.
 
 ## The speed of a pull request
 
