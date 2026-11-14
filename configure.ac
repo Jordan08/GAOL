@@ -976,8 +976,8 @@ done
 AC_SUBST([GAOL_PC_CFLAGS])
 
 # The link option -mno-daz-ftz, where the compiler takes it (GCC 13 and later on
-# x86, and from 11.4 and 12.4 in the series 11 and 12; GCC 9.4, 12.3, GCC for
-# ARM and Clang 18 refuse it), which gaol.pc gives the code using GAOL in Libs,
+# x86, and from 11.4 and 12.4 in the series 11 and 12, and Clang 20 and later;
+# GCC 9.4, 12.3, GCC for ARM and Clang 18 refuse it), which gaol.pc gives the code using GAOL in Libs,
 # as CMakeLists.txt gives it to gaol::gaol, and the tests are linked with (GAOL
 # v5). GCC links crtfastmath.o into a program linked with -Ofast, -ffast-math
 # or -funsafe-math-optimizations, and its constructor sets the flush-to-zero and
