@@ -25,9 +25,12 @@ DISTCLEANFILES = *.~* *.obj TAGS
 # otherwise: a prefix given there may hold an installed GAOL too, whose headers
 # were then included rather than those of the sources
 AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir) $(GAOL_MSVC_CPPFLAGS)
-# GAOL in C++11, as with CMake and meson (see configure.ac); the alignment of the
-# functions of the library alone (GAOL_ALIGN_CXXFLAGS, empty with enable-debug)
-AM_CXXFLAGS = $(GAOL_CXX_STD) @GAOL_ALIGN_CXXFLAGS@
+# GAOL in C++11, as with CMake and meson (see configure.ac); the flags of the
+# library alone (GAOL_LIBRARY_CXXFLAGS: the optimizations added to -O3, hidden
+# visibility, -Wall -Wconversion; the tests, the examples and the benchmarks
+# are compiled as the code using GAOL) and the alignment of its functions
+# (GAOL_ALIGN_CXXFLAGS, empty with enable-debug)
+AM_CXXFLAGS = $(GAOL_CXX_STD) @GAOL_LIBRARY_CXXFLAGS@ @GAOL_ALIGN_CXXFLAGS@
 
 libgaol_la_SOURCES = \
 	gaol_interval.cpp core/gaol_interval_core.cpp core/gaol_interval_pow.cpp \

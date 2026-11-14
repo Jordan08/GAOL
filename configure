@@ -682,6 +682,8 @@ COVERAGE_FALSE
 COVERAGE_TRUE
 PYTHON3
 GCOVR
+GAOL_LIBRARY_CFLAGS
+GAOL_LIBRARY_CXXFLAGS
 GAOL_ALIGN_CFLAGS
 GAOL_ALIGN_CXXFLAGS
 CORE_MATH_EXCESS_PRECISION
@@ -18796,6 +18798,11 @@ fi
 # accepts it. GAOL_ADD_INTERVAL_FLAG(flag) also adds it to GAOL_PC_CFLAGS, the
 # flags of interval arithmetic gaol.pc gives the code using GAOL.
 
+# GAOL_ADD_LIBRARY_FLAG(flag): adds flag to GAOL_LIBRARY_CXXFLAGS and
+# GAOL_LIBRARY_CFLAGS where each compiler accepts it: the flags of the library
+# alone (gaol/ and 3rd/), as CMake and meson give them, not those of the tests,
+# the examples and the benchmarks, which are compiled as the code using GAOL.
+
 
 GAOL_PC_CFLAGS=""
 
@@ -20437,6 +20444,10 @@ fi
 optimize="yes"
 GAOL_ALIGN_CXXFLAGS=""
 GAOL_ALIGN_CFLAGS=""
+# The flags of the library alone (GAOL_ADD_LIBRARY_FLAG), as CMake and meson
+# give them: the optimizations added to -O3, hidden visibility, the warnings
+GAOL_LIBRARY_CXXFLAGS=""
+GAOL_LIBRARY_CFLAGS=""
 if test "$debug" = yes; then
     optimize="no (--enable-debug)"
 
@@ -20448,8 +20459,93 @@ else
     # With any compiler, each flag where the compiler accepts it (they were
     # added when the compiler was named g++ exactly, and clang++ or g++-13
     # compiled without any optimization), and NDEBUG, as the Release build of
-    # CMake and meson define it
-    for gaol_flag in -O3 -funroll-loops -fomit-frame-pointer -fexpensive-optimizations; do
+    # CMake and meson define it. -O3 for everything that is compiled, the
+    # other optimizations for the library alone, as CMake (GAOL_RELEASE_FLAGS)
+    # and meson give them: the tests, the examples and the benchmarks are
+    # compiled as the code using GAOL, and make perf measures what CMake does
+    ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+gaol_save_CXXFLAGS=$CXXFLAGS
+CXXFLAGS="-Werror -O3"
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether the C++ compiler accepts -O3" >&5
+printf %s "checking whether the C++ compiler accepts -O3... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main (void)
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"
+then :
+  gaol_cxx_takes=yes
+else case e in #(
+  e) gaol_cxx_takes=no ;;
+esac
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: ${gaol_cxx_takes}" >&5
+printf "%s\n" "${gaol_cxx_takes}" >&6; }
+CXXFLAGS=$gaol_save_CXXFLAGS
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+if test "${gaol_cxx_takes}" = yes; then
+    CXXFLAGS="${CXXFLAGS} -O3"
+fi
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+gaol_save_CFLAGS=$CFLAGS
+CFLAGS="-Werror -O3"
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether the C compiler accepts -O3" >&5
+printf %s "checking whether the C compiler accepts -O3... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main (void)
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"
+then :
+  gaol_c_takes=yes
+else case e in #(
+  e) gaol_c_takes=no ;;
+esac
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: ${gaol_c_takes}" >&5
+printf "%s\n" "${gaol_c_takes}" >&6; }
+CFLAGS=$gaol_save_CFLAGS
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+if test "${gaol_c_takes}" = yes; then
+    CFLAGS="${CFLAGS} -O3"
+fi
+    for gaol_flag in -funroll-loops -fomit-frame-pointer -fexpensive-optimizations; do
         ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -20489,7 +20585,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 if test "${gaol_cxx_takes}" = yes; then
-    CXXFLAGS="${CXXFLAGS} ${gaol_flag}"
+    GAOL_LIBRARY_CXXFLAGS="${GAOL_LIBRARY_CXXFLAGS} ${gaol_flag}"
 fi
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
@@ -20530,7 +20626,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 if test "${gaol_c_takes}" = yes; then
-    CFLAGS="${CFLAGS} ${gaol_flag}"
+    GAOL_LIBRARY_CFLAGS="${GAOL_LIBRARY_CFLAGS} ${gaol_flag}"
 fi
     done
     CPPFLAGS="${CPPFLAGS} -DNDEBUG"
@@ -20662,7 +20758,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 if test "${has_visibility_opt}" = yes; then
-    CXXFLAGS="${CXXFLAGS} -fvisibility-inlines-hidden -fvisibility=hidden"
+    GAOL_LIBRARY_CXXFLAGS="${GAOL_LIBRARY_CXXFLAGS} -fvisibility-inlines-hidden -fvisibility=hidden"
 
 printf "%s\n" "#define GAOL_HAVE_VISIBILITY_OPTIONS 1" >>confdefs.h
 
@@ -20708,11 +20804,13 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 if test "${c_has_visibility_opt}" = yes; then
-    CFLAGS="${CFLAGS} -fvisibility=hidden"
+    GAOL_LIBRARY_CFLAGS="${GAOL_LIBRARY_CFLAGS} -fvisibility=hidden"
 fi
 
-CFLAGS="${CFLAGS} -Wall -Wconversion"
-CXXFLAGS="${CXXFLAGS} -Wall -Wconversion"
+GAOL_LIBRARY_CFLAGS="${GAOL_LIBRARY_CFLAGS} -Wall -Wconversion"
+GAOL_LIBRARY_CXXFLAGS="${GAOL_LIBRARY_CXXFLAGS} -Wall -Wconversion"
+
+
 
 
 # -ffloat-store only where doubles are still computed on the x87 unit

@@ -56,7 +56,7 @@ libgaolcoremath_la_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)
 # last of the two wins: a -flto in CFLAGS reaches these sources all the same
 # (GAOL v5). The flag is given where the compiler takes it, which configure
 # tested (CORE_MATH_NO_LTO).
-libgaolcoremath_la_CFLAGS = $(AM_CFLAGS) @GAOL_C_STD@ @CORE_MATH_NO_LTO@ @CORE_MATH_EXCESS_PRECISION@ @GAOL_ALIGN_CFLAGS@ -include $(top_srcdir)/gaol/math/gaol_core_math_port.h
+libgaolcoremath_la_CFLAGS = $(AM_CFLAGS) @GAOL_C_STD@ @CORE_MATH_NO_LTO@ @CORE_MATH_EXCESS_PRECISION@ @GAOL_LIBRARY_CFLAGS@ @GAOL_ALIGN_CFLAGS@ -include $(top_srcdir)/gaol/math/gaol_core_math_port.h
 
 
 # make distclean removes the files of the dependencies one by one and leaves

@@ -264,6 +264,19 @@ GAOL_CHECK_C_FLAG([$1], [gaol_c_takes])
 if test "${gaol_c_takes}" = yes; then
     CFLAGS="${CFLAGS} $1"
 fi])
+# GAOL_ADD_LIBRARY_FLAG(flag): adds flag to GAOL_LIBRARY_CXXFLAGS and
+# GAOL_LIBRARY_CFLAGS where each compiler accepts it: the flags of the library
+# alone (gaol/ and 3rd/), as CMake and meson give them, not those of the tests,
+# the examples and the benchmarks, which are compiled as the code using GAOL.
+AC_DEFUN([GAOL_ADD_LIBRARY_FLAG],
+[GAOL_CHECK_CXX_FLAG([$1], [gaol_cxx_takes])
+if test "${gaol_cxx_takes}" = yes; then
+    GAOL_LIBRARY_CXXFLAGS="${GAOL_LIBRARY_CXXFLAGS} $1"
+fi
+GAOL_CHECK_C_FLAG([$1], [gaol_c_takes])
+if test "${gaol_c_takes}" = yes; then
+    GAOL_LIBRARY_CFLAGS="${GAOL_LIBRARY_CFLAGS} $1"
+fi])
 AC_DEFUN([GAOL_ADD_INTERVAL_FLAG],
 [GAOL_ADD_FLAG([$1])
 if test "${gaol_cxx_takes}" = yes; then
@@ -784,6 +797,10 @@ AC_ARG_ENABLE(debug,
 optimize="yes"
 GAOL_ALIGN_CXXFLAGS=""
 GAOL_ALIGN_CFLAGS=""
+# The flags of the library alone (GAOL_ADD_LIBRARY_FLAG), as CMake and meson
+# give them: the optimizations added to -O3, hidden visibility, the warnings
+GAOL_LIBRARY_CXXFLAGS=""
+GAOL_LIBRARY_CFLAGS=""
 if test "$debug" = yes; then
     optimize="no (--enable-debug)"
     AC_DEFINE(GAOL_DEBUGGING,1,[Define this to 1 to have GAOL check its assertions (Debug build)])
@@ -793,9 +810,13 @@ else
     # With any compiler, each flag where the compiler accepts it (they were
     # added when the compiler was named g++ exactly, and clang++ or g++-13
     # compiled without any optimization), and NDEBUG, as the Release build of
-    # CMake and meson define it
-    for gaol_flag in -O3 -funroll-loops -fomit-frame-pointer -fexpensive-optimizations; do
-        GAOL_ADD_FLAG([${gaol_flag}])
+    # CMake and meson define it. -O3 for everything that is compiled, the
+    # other optimizations for the library alone, as CMake (GAOL_RELEASE_FLAGS)
+    # and meson give them: the tests, the examples and the benchmarks are
+    # compiled as the code using GAOL, and make perf measures what CMake does
+    GAOL_ADD_FLAG([-O3])
+    for gaol_flag in -funroll-loops -fomit-frame-pointer -fexpensive-optimizations; do
+        GAOL_ADD_LIBRARY_FLAG([${gaol_flag}])
     done
     CPPFLAGS="${CPPFLAGS} -DNDEBUG"
     # -falign-functions=64, explained in CMakeLists.txt, for the library alone
@@ -815,7 +836,7 @@ AC_SUBST([GAOL_ALIGN_CXXFLAGS])
 AC_SUBST([GAOL_ALIGN_CFLAGS])
 GAOL_CHECK_CXX_FLAG([-fvisibility-inlines-hidden -fvisibility=hidden], [has_visibility_opt])
 if test "${has_visibility_opt}" = yes; then
-    CXXFLAGS="${CXXFLAGS} -fvisibility-inlines-hidden -fvisibility=hidden"
+    GAOL_LIBRARY_CXXFLAGS="${GAOL_LIBRARY_CXXFLAGS} -fvisibility-inlines-hidden -fvisibility=hidden"
     AC_DEFINE(GAOL_HAVE_VISIBILITY_OPTIONS,1,
                 [Define this to 1 if the compiler supports the "-fvisibility" option])
 fi
@@ -823,11 +844,13 @@ fi
 # shared library are the same with the three builds (GAOL v5)
 GAOL_CHECK_C_FLAG([-fvisibility=hidden], [c_has_visibility_opt])
 if test "${c_has_visibility_opt}" = yes; then
-    CFLAGS="${CFLAGS} -fvisibility=hidden"
+    GAOL_LIBRARY_CFLAGS="${GAOL_LIBRARY_CFLAGS} -fvisibility=hidden"
 fi
 
-CFLAGS="${CFLAGS} -Wall -Wconversion"
-CXXFLAGS="${CXXFLAGS} -Wall -Wconversion"
+GAOL_LIBRARY_CFLAGS="${GAOL_LIBRARY_CFLAGS} -Wall -Wconversion"
+GAOL_LIBRARY_CXXFLAGS="${GAOL_LIBRARY_CXXFLAGS} -Wall -Wconversion"
+AC_SUBST([GAOL_LIBRARY_CXXFLAGS])
+AC_SUBST([GAOL_LIBRARY_CFLAGS])
 
 
 # -ffloat-store only where doubles are still computed on the x87 unit
