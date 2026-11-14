@@ -15,7 +15,11 @@ with `make test` (`cmake --build <build> --target test`, `RUN_TESTS` with
 Visual Studio). They run for each pull request, and for each push to the
 branches `master`, `configure-clean` and `dev` only: a push to another branch
 runs nothing until it is proposed, which halves the jobs of a pull request (GAOL
-v5); `workflow_dispatch` runs them on any branch. `performance.yml`
+v5), and neither does a push to `dev` that changes only the notes of the work on
+GAOL v5 (`TODO*.md`, `process.md`, `STEP.md`, `todo-notes/` and `.claude/`:
+`paths-ignore` of the five workflows that build GAOL), which would otherwise
+cancel the checks of the commit before it; `workflow_dispatch` runs them on any
+branch. `performance.yml`
 is the exception: it runs for the pull requests that change what it measures
 only (see [The speed of a pull request](#the-speed-of-a-pull-request)), and so
 is `release.yml`, which runs for every tag of a commit of `master`: it builds
