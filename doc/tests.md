@@ -1486,8 +1486,13 @@ which `numbers` checks there too.
   computes elsewhere. Where the compiler has no 128-bit type of its own, which
   is where the halves run in earnest, there is nothing to compare with, and the
   test checks the identities the operations satisfy instead (a + b − b = a,
-  shifting left then right, the product of the halves against the schoolbook
-  product, and the order).
+  shifting left then right, and the order). With or without a native type, the
+  three products (`gaol_u128_mul64()`, `gaol_u128_mul()` and
+  `gaol_u128_imul64()`) are compared with a schoolbook product on digits of 16
+  bits written in the test, which multiplies digits only and uses no 128-bit
+  type: it is the independent value for the `_umul128` and `__umulh` branches of
+  Visual C++ and for the four 32-bit products, and where there is a native type
+  it is itself checked by the same comparison.
 - **`extended_precision`:** the results that doubles computed in extended
   precision, on the x87 unit of an x86 processor, round wrongly, which is why
   `gaol/gaol_config.h` refuses that unit. CORE-MATH in the four rounding
