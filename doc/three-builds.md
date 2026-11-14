@@ -34,9 +34,9 @@ build, and the CMake build follows them, apart from the errors corrected (see
   meson, with its ninja backend (GAOL v5);
 - with the flags of interval arithmetic of [Using GAOL](using.md), and the code
   using GAOL, the tests included, is linked with `-mno-daz-ftz` where the
-  compiler accepts it (GCC 13 and later on x86, and from 11.4 and 12.4 in the
-  series 11 and 12), in `gaol::gaol` and in `gaol.pc`: each build tests the
-  compiler with a link (GAOL v5);
+  compiler accepts it (GCC 13 and later on x86, from 11.4 and 12.4 in the
+  series 11 and 12, and Clang 20 and later), in `gaol::gaol` and in `gaol.pc`:
+  each build tests the compiler with a link (GAOL v5);
 - on x86 processors, the intervals are computed with SSE2 instructions
   (`-msse2 -msse3`; no flag with Visual C++ and clang-cl for x64, where SSE2 is
   the baseline of the processor). On 32-bit Windows the C runtime aligns the
@@ -592,9 +592,13 @@ GAOL v5 defends itself:
   `check_cxx_source_compiles()` with `CMAKE_REQUIRED_LINK_OPTIONS`,
   `AC_LINK_IFELSE` with `-Werror` and the `LDFLAGS` of the user,
   `has_link_argument()`. `gaol::gaol` gives it to a program built by GCC 13 or
-  a later one, or by the compiler that built GAOL, of its major version and not
-  older: GCC has the option from 11.4 and 12.4 in the series 11 and 12 only,
-  and a GAOL built by GCC 11.4 gave it to GCC 12.3, which stops on it (GAOL v5).
+  a later one, by Clang 20 or a later one (not on Windows, where the option was
+  not tried with Clang: the compiler that built GAOL alone is trusted with it),
+  or by the compiler that built
+  GAOL, of its major version and not older: GCC has the option from 11.4 and
+  12.4 in the series 11 and 12 only, and a GAOL built by GCC 11.4 gave it to
+  GCC 12.3, which stops on it; a GAOL built by GCC gave it to no program built
+  by Clang, which has it from 20 (GAOL v5).
   `gaol.pc`, written for that compiler, gives it to every
   program, and a program linked by a compiler that refuses it (Clang 18, a GCC
   before 11.4, GCC 12.0 to 12.3, GCC for ARM) is to be linked without it.

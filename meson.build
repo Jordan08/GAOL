@@ -789,8 +789,8 @@ if float_store_needed and cpp_comp.has_argument('-ffloat-store')
 endif
 
 # The link option -mno-daz-ftz, where the compiler takes it (GCC 13 and later on
-# x86, and from 11.4 and 12.4 in the series 11 and 12; GCC 9.4, 12.3, GCC for
-# ARM and Clang 18 refuse it), which the code using GAOL is given (gaol_dep,
+# x86, and from 11.4 and 12.4 in the series 11 and 12, and Clang 20 and later;
+# GCC 9.4, 12.3, GCC for ARM and Clang 18 refuse it), which the code using GAOL is given (gaol_dep,
 # gaol.pc) and the tests are linked with, as CMakeLists.txt gives it (GAOL v5):
 # GCC links crtfastmath.o into a program linked with -Ofast, -ffast-math or
 # -funsafe-math-optimizations, and its constructor sets the flush-to-zero and

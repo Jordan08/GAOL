@@ -13,7 +13,8 @@
  * only.
  *
  * Where the build gives the link of the code using GAOL -mno-daz-ftz, which
- * keeps crtfastmath.o out of it (GCC 13 and later, 11.4 and 12.4, on x86),
+ * keeps crtfastmath.o out of it (GCC 13 and later, 11.4 and 12.4, on x86, and
+ * Clang 20 and later),
  * the build defines GAOL_TESTS_NO_DAZ_FTZ, and the modes have to be clear when
  * main() starts. Otherwise they may be set: the first operation of GAOL has
  * to clear them. Where they are clear, the test sets them, as loading a
