@@ -61,5 +61,7 @@ runs:
     - name: The table
       shell: bash -e {0}
       run: |
+        # pipefail: the status of the script, not that of tee
+        set -o pipefail
         python3 .github/scripts/compare-performance.py --rows register "${{ inputs.before_label }}" perf-before-1.md perf-before-2.md perf-before-3.md \
           -- "${{ inputs.after_label }}" perf-after-1.md perf-after-2.md perf-after-3.md | tee -a "$GITHUB_STEP_SUMMARY"

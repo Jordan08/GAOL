@@ -110,6 +110,8 @@ runs:
     - name: Tests built with the installed GAOL
       shell: bash -e {0}
       run: |
+        # pipefail: the status of rounding_direction_pc, not that of tail
+        set -o pipefail
         # With the flags and libraries of gaol.pc alone, then with find_package()
         export PKG_CONFIG_PATH="$PWD/gaol-install/lib/pkgconfig"
         pkg-config --cflags --libs gaol
