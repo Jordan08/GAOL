@@ -369,8 +369,16 @@ Compiling GAOL's sources alone with it was enough for the test to fail; Clang
 the 63 tests pass with it (`-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON`, `-flto`
 in the flags of the target `gaol`), `rounding_direction` among them, with and
 without `GAOL_PRESERVE_ROUNDING` (GAOL v5), and with GCC 13.3, the direction
-preserved, which a job of `linux.yml` builds with it, all the tests run. The
-other compilers and versions were not tried with it.
+preserved, which a job of `linux.yml` builds with it, all the tests run. They
+ran on the processors with AVX-512 only, whose arithmetic takes the AVX-512
+path: with the SSE2 path (`-DGAOL_PREFER_AVX512=OFF`, and the AMD EPYC 7763 of
+some runners), `arithmetic` failed with GCC 12.4, 13.3 and 14.2 and `-flto`
+(5240 checks of 7 365 456 with 13.3, about 24 700 with the others; 15.2
+passed): `operator+=(double)` and `operator-=(double)` computed their sum after
+the change of rounding direction that gives the caller's back, in the caller's
+direction (GCC bug 34678, as above), and now keep it before: GCC 13.3 and
+14.2 then pass, and GCC 12.4 still fails the three checks of `[1]%[3]` with
+literal operands. The other compilers and versions were not tried with it.
 
 It is not refused either: the standard settings of the tools reach the
 sources of GAOL, `CMAKE_INTERPROCEDURAL_OPTIMIZATION` of CMake, given to GAOL
