@@ -14,13 +14,17 @@ same flags. The reference is the autotools build of GAOL, then its meson
 build, and the CMake build follows them, apart from the errors corrected (see
 [What differs from GAOL](differences.md)). In every build, by default:
 
-- GAOL is compiled in release: `-O3` and the optimizations configure adds
+- GAOL is compiled in release: `-O3`, `NDEBUG`, `-std=c++11` (`-std=c++14` for
+  Clang with the target of Visual C++, whose standard library needs it), and,
+  for the library alone (`gaol/` and `3rd/`: the tests, the examples and the
+  benchmarks are compiled as the code using GAOL, with the flags of interval
+  arithmetic below and without these), the optimizations configure adds
   (`-funroll-loops -fomit-frame-pointer -fexpensive-optimizations`, each where
-  the compiler takes it), `-falign-functions=64` for the library alone (not for
-  the tests, the examples and the benchmarks), `NDEBUG`, `-std=c++11` (`-std=c++14` for Clang with
-  the target of Visual C++, whose standard library needs it), hidden visibility
+  the compiler takes it), `-falign-functions=64`, hidden visibility
   (`-fvisibility=hidden -fvisibility-inlines-hidden`) and `-Wall -Wconversion`,
-  which GAOL compiles without warnings, `-Wsign-conversion` of Clang included.
+  which GAOL compiles without warnings, `-Wsign-conversion` of Clang included
+  (meson's own `warning_level`, 1 by default, gives `-Wall` to everything it
+  compiles).
   Its libraries are compiled in release too where a project brings GAOL in
   without choosing a build type, as by a configure calling GAOL's: a CMake
   project without `CMAKE_BUILD_TYPE`, with a generator of one configuration

@@ -328,38 +328,43 @@ if msvc
   endif
 endif
 
+# The flags of the library alone, as CMake (GAOL_LIBRARY_FLAGS) and configure
+# (GAOL_LIBRARY_CXXFLAGS) give them, not those of the tests, the examples and
+# the benchmarks, which are compiled as the code using GAOL: given to the
+# targets of gaol/meson.build (the static library of CORE-MATH and libgaol)
+gaol_library_cpp_args = []
+gaol_library_c_args = []
 # The library compiled with hidden visibility, as configure builds it: GAOL's
 # public declarations carry __attribute__ ((visibility("default")))
 if cpp_comp.has_multi_arguments('-fvisibility-inlines-hidden', '-fvisibility=hidden')
   conf_data.set('GAOL_HAVE_VISIBILITY_OPTIONS', 1)
-  add_project_arguments(['-fvisibility-inlines-hidden', '-fvisibility=hidden'], language: 'cpp')
+  gaol_library_cpp_args += ['-fvisibility-inlines-hidden', '-fvisibility=hidden']
 endif
 # The C sources (CORE-MATH) hidden too, as CMake builds them: the symbols of the
 # shared library are the same with the three builds (GAOL v5)
 if c_comp.has_argument('-fvisibility=hidden')
-  add_project_arguments(['-fvisibility=hidden'], language: 'c')
+  gaol_library_c_args += ['-fvisibility=hidden']
 endif
 if cpp_comp.has_argument('-Wconversion')
-  add_project_arguments(['-Wconversion'], language: 'cpp')
+  gaol_library_cpp_args += ['-Wconversion']
 endif
 if c_comp.has_argument('-Wconversion')
-  add_project_arguments(['-Wconversion'], language: 'c')
+  gaol_library_c_args += ['-Wconversion']
 endif
-# The optimizations configure (--enable-optimize) and the Release build of
-# CMake add to -O3, in the release build type, where the compiler takes them
+# The optimizations configure and the Release build of CMake add to -O3, in the
+# release build type, where the compiler takes them
 if release
   foreach flag : ['-funroll-loops', '-fomit-frame-pointer', '-fexpensive-optimizations']
     if cpp_comp.has_argument(flag)
-      add_project_arguments([flag], language: 'cpp')
+      gaol_library_cpp_args += [flag]
     endif
     if c_comp.has_argument(flag)
-      add_project_arguments([flag], language: 'c')
+      gaol_library_c_args += [flag]
     endif
   endforeach
 endif
-# -falign-functions=64, explained in CMakeLists.txt, for the library alone as
-# CMake gives it, not for the tests, the examples and the benchmarks: given to
-# the targets of gaol/meson.build (the static library of CORE-MATH and libgaol)
+# -falign-functions=64, explained in CMakeLists.txt, for the library alone too,
+# where the compiler takes it (gaol/meson.build)
 gaol_align_cpp_args = []
 gaol_align_c_args = []
 if release
