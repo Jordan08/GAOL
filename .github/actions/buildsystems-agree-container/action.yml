@@ -39,7 +39,7 @@ runs:
           set -e
           apt-get update -qq && apt-get install -y -qq g++ cmake make meson ninja-build python3 > /dev/null
           sh .github/audit/audit.sh audit gcc g++ /gaol /tmp/audit meson
-          status=0; python3 .github/audit/compare.py --check /tmp/audit/audit.json > /gaol/agree.md || status=\$?
+          status=0; python3 .github/audit/compare.py --check /tmp/audit/audit*.json > /gaol/agree.md || status=\$?
           cat /gaol/agree.md
           sh .github/audit/logs.sh /tmp/audit/audit \$status"
         cat agree.md >> "$GITHUB_STEP_SUMMARY"

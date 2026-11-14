@@ -33,10 +33,11 @@ In [.github/audit/](../.github/audit/).
 
 | Script | What it is for |
 |---|---|
-| [audit.sh](../.github/audit/audit.sh) | Configures GAOL with CMake, autotools and meson, and writes `OUT/LABEL.json` (with `probe_build.py`). |
+| [audit.sh](../.github/audit/audit.sh) | Configures GAOL with CMake, autotools and meson with the default options and with five sets of options (the rounding direction preserved, with and without the AVX-512 path, the FPU intervals, no fused multiply-add instruction, no exceptions and the verbose mode), and writes `OUT/LABEL.json` and `OUT/LABEL-<variant>.json` (with `probe_build.py`). |
 | [probe_build.py](../.github/audit/probe_build.py) | For the three configured builds, reads the compiler flags and the configuration GAOL sees, for a C++ source and for a C source of CORE-MATH. |
 | [make_probe.py](../.github/audit/make_probe.py) | Writes a C++ file which, preprocessed with the flags of a build, shows the configuration GAOL sees, or with the argument `c` a C file for the C sources. |
-| [compare.py](../.github/audit/compare.py) | Compares the macros and the flags of the three builds, and with `--check` fails if they differ. |
+| [compare.py](../.github/audit/compare.py) | Compares the macros and the flags of the three builds, and with `--check` fails if they differ, if a build did not configure or if a probe failed. |
+| [test_compare.py](../.github/audit/test_compare.py) | Runs `compare.py --check` on made-up results: builds that agree, a probe that failed, builds that differ. |
 | [logs.sh](../.github/audit/logs.sh) | When the audit fails, prints the end of the logs of the three builds, then exits with the same status. |
 
 ## Continuous integration: the checks

@@ -53,6 +53,10 @@ def analyse(kind, suffix, needle, make_n, make_dir, probe_file, drop_include):
     p = subprocess.run([tokens[0]] + args + ['-E', '-P', probe_file], cwd=cwd, capture_output=True, text=True)
     if p.returncode != 0:
         out['error'] = 'probe: ' + ' | '.join(l.strip()[:200] for l in p.stderr.strip().splitlines()[-4:]) if p.stderr.strip() else 'probe failed'
+        # No macros: compare.py takes the build for one that did not configure,
+        # where macros read from nothing were taken for the macros of a build
+        # that agreed (GAOL v5)
+        return out
     macros, ifs = {}, {}
     for l in p.stdout.splitlines():
         m = re.match(r'\s*GAOLPROBE_(\w+) (?:= (.*)|undefined)\s*$', l)
