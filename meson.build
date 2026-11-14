@@ -364,7 +364,7 @@ if release
   endforeach
 endif
 # -falign-functions=64, explained in CMakeLists.txt, for the library alone too,
-# and not with Visual C++ or clang-cl (gaol/meson.build)
+# where the compiler takes it (gaol/meson.build)
 gaol_align_cpp_args = []
 gaol_align_c_args = []
 if release
