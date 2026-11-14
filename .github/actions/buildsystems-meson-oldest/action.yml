@@ -6,7 +6,7 @@
 # says. It runs on the Python 3.12 of Ubuntu 24.04 (and on 3.14).
 # The steps of the job meson-oldest of build-systems.yml, for one configuration of
 # the group of the job that calls this action (GAOL v5).
-name: build-meson-oldest
+name: buildsystems-meson-oldest
 description: The job meson-oldest of build-systems.yml for one configuration
 inputs:
   desc:

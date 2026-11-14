@@ -3,7 +3,7 @@
 # of windows.yml
 # The steps of the job meson-clang-msvc of build-systems.yml, for one configuration of
 # the group of the job that calls this action (GAOL v5).
-name: build-meson-clang-msvc
+name: buildsystems-meson-clang-msvc
 description: The job meson-clang-msvc of build-systems.yml for one configuration
 inputs:
   arch:
@@ -47,6 +47,14 @@ runs:
     - uses: ilammy/msvc-dev-cmd@v1
       with:
         arch: ${{ inputs.arch }}
+    # The architecture of the environment of Visual C++ is the one of this
+    # configuration, whatever the previous ones of the job asked for: the
+    # clang of Visual Studio for x64 stays in PATH, and an x86 build would
+    # take it instead of the clang of LLVM (GAOL v5)
+    - name: The environment of Visual C++ asked for
+      shell: pwsh
+      run: |
+        if ($env:VSCMD_ARG_TGT_ARCH -ne '${{ inputs.arch }}') { Write-Output "VSCMD_ARG_TGT_ARCH is $env:VSCMD_ARG_TGT_ARCH"; exit 1 }
     - name: Tools
       shell: pwsh
       run: pip install meson ninja

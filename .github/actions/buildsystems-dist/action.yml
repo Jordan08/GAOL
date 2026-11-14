@@ -8,7 +8,7 @@
 # missing from the archive of make dist, which fails the comparison
 # The steps of the job dist of build-systems.yml, for one configuration of
 # the group of the job that calls this action (GAOL v5).
-name: build-dist
+name: buildsystems-dist
 description: The job dist of build-systems.yml for one configuration
 inputs:
   desc:

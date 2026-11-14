@@ -1,6 +1,6 @@
 # The steps of the job msys2 of build-systems.yml, for one configuration of
 # the group of the job that calls this action (GAOL v5).
-name: build-msys2
+name: buildsystems-msys2
 description: The job msys2 of build-systems.yml for one configuration
 inputs:
   build:

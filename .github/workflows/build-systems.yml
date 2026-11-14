@@ -64,26 +64,29 @@ jobs:
   b1:
     name: 'Ubuntu 24.04 x86_64, the three builds (8 configurations)'
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'Meson of Ubuntu 24.04, x86_64, GAOL as a subproject'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-meson-subproject
+        uses: ./.github/actions/buildsystems-meson-subproject
+        timeout-minutes: 60
         with:
           desc: 'Meson of Ubuntu 24.04, x86_64, GAOL as a subproject'
           meson: 'apt'
       - id: c2
         name: 'Archives of the sources, Ubuntu 24.04 x86_64'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-dist
+        uses: ./.github/actions/buildsystems-dist
+        timeout-minutes: 60
         with:
           desc: 'Archives of the sources, Ubuntu 24.04 x86_64'
       - id: c3
         name: 'The builds agree, Ubuntu 24.04 x86_64 GCC'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-agree
+        uses: ./.github/actions/buildsystems-agree
+        timeout-minutes: 45
         with:
           desc: 'The builds agree, Ubuntu 24.04 x86_64 GCC'
           cc: 'gcc'
@@ -91,7 +94,8 @@ jobs:
       - id: c4
         name: 'The builds agree, Ubuntu 24.04 x86_64 Clang'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-agree
+        uses: ./.github/actions/buildsystems-agree
+        timeout-minutes: 45
         with:
           desc: 'The builds agree, Ubuntu 24.04 x86_64 Clang'
           cc: 'clang'
@@ -99,27 +103,31 @@ jobs:
       - id: c5
         name: 'Meson 0.53.2, Ubuntu 24.04 x86_64'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-meson-oldest
+        uses: ./.github/actions/buildsystems-meson-oldest
+        timeout-minutes: 60
         with:
           desc: 'Meson 0.53.2, Ubuntu 24.04 x86_64'
       - id: c6
         name: 'Meson, Ubuntu 24.04 x86_64'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-meson
+        uses: ./.github/actions/buildsystems-meson
+        timeout-minutes: 60
         with:
           desc: 'Meson, Ubuntu 24.04 x86_64'
           options: ''
       - id: c7
         name: 'Meson, Ubuntu 24.04 x86_64, GAOL as a subproject'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-meson-subproject
+        uses: ./.github/actions/buildsystems-meson-subproject
+        timeout-minutes: 60
         with:
           desc: 'Meson, Ubuntu 24.04 x86_64, GAOL as a subproject'
           meson: 'pipx'
       - id: c8
         name: 'Autotools, Ubuntu 24.04 x86_64'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-autotools
+        uses: ./.github/actions/buildsystems-autotools
+        timeout-minutes: 60
         with:
           desc: 'Autotools, Ubuntu 24.04 x86_64'
           configure: ''
@@ -151,34 +159,38 @@ jobs:
   b2:
     name: 'Ubuntu 24.04 x86_64, rounding direction and exceptions (4 configurations)'
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 240
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'Autotools, Ubuntu 24.04 x86_64, rounding direction preserved'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-autotools
+        uses: ./.github/actions/buildsystems-autotools
+        timeout-minutes: 60
         with:
           desc: 'Autotools, Ubuntu 24.04 x86_64, rounding direction preserved'
           configure: '--enable-preserve-rounding'
       - id: c2
         name: 'Meson, Ubuntu 24.04 x86_64, rounding direction preserved'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-meson
+        uses: ./.github/actions/buildsystems-meson
+        timeout-minutes: 60
         with:
           desc: 'Meson, Ubuntu 24.04 x86_64, rounding direction preserved'
           options: '-Denable-preserve-rounding=true'
       - id: c3
         name: 'Autotools, Ubuntu 24.04 x86_64, without exceptions'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-autotools
+        uses: ./.github/actions/buildsystems-autotools
+        timeout-minutes: 60
         with:
           desc: 'Autotools, Ubuntu 24.04 x86_64, without exceptions'
           configure: '--disable-exceptions --with-examples'
       - id: c4
         name: 'Meson, Ubuntu 24.04 x86_64, without exceptions'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-meson
+        uses: ./.github/actions/buildsystems-meson
+        timeout-minutes: 60
         with:
           desc: 'Meson, Ubuntu 24.04 x86_64, without exceptions'
           options: '-Denable-exception=false -Dwith-examples=true'
@@ -206,13 +218,14 @@ jobs:
   b3:
     name: 'Debian 12 i386 and shared library (5 configurations)'
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 285
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'Autotools, Debian 12 Bookworm i386'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-container
+        uses: ./.github/actions/buildsystems-container
+        timeout-minutes: 60
         with:
           desc: 'Autotools, Debian 12 Bookworm i386'
           platform: 'linux/386'
@@ -221,7 +234,8 @@ jobs:
       - id: c2
         name: 'Meson, Debian 12 Bookworm i386'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-container
+        uses: ./.github/actions/buildsystems-container
+        timeout-minutes: 60
         with:
           desc: 'Meson, Debian 12 Bookworm i386'
           platform: 'linux/386'
@@ -230,7 +244,8 @@ jobs:
       - id: c3
         name: 'The builds agree, Debian 12 Bookworm i386'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-agree-container
+        uses: ./.github/actions/buildsystems-agree-container
+        timeout-minutes: 45
         with:
           desc: 'The builds agree, Debian 12 Bookworm i386'
           platform: 'linux/386'
@@ -238,7 +253,8 @@ jobs:
       - id: c4
         name: 'Autotools, Ubuntu 24.04 x86_64, shared library'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-autotools
+        uses: ./.github/actions/buildsystems-autotools
+        timeout-minutes: 60
         with:
           desc: 'Autotools, Ubuntu 24.04 x86_64, shared library'
           configure: '--enable-shared'
@@ -246,7 +262,8 @@ jobs:
       - id: c5
         name: 'Meson, Ubuntu 24.04 x86_64, shared library'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-meson
+        uses: ./.github/actions/buildsystems-meson
+        timeout-minutes: 60
         with:
           desc: 'Meson, Ubuntu 24.04 x86_64, shared library'
           options: '-Ddefault_library=shared'
@@ -276,27 +293,30 @@ jobs:
   b4:
     name: 'Ubuntu 24.04 arm64 (6 configurations)'
     runs-on: ubuntu-24.04-arm
-    timeout-minutes: 60
+    timeout-minutes: 330
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'Autotools, Ubuntu 24.04 arm64'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-autotools
+        uses: ./.github/actions/buildsystems-autotools
+        timeout-minutes: 60
         with:
           desc: 'Autotools, Ubuntu 24.04 arm64'
           configure: ''
       - id: c2
         name: 'Meson, Ubuntu 24.04 arm64'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-meson
+        uses: ./.github/actions/buildsystems-meson
+        timeout-minutes: 60
         with:
           desc: 'Meson, Ubuntu 24.04 arm64'
           options: ''
       - id: c3
         name: 'The builds agree, Ubuntu 24.04 arm64 GCC'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-agree
+        uses: ./.github/actions/buildsystems-agree
+        timeout-minutes: 45
         with:
           desc: 'The builds agree, Ubuntu 24.04 arm64 GCC'
           cc: 'gcc'
@@ -304,7 +324,8 @@ jobs:
       - id: c4
         name: 'The builds agree, Ubuntu 24.04 arm64 Clang'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-agree
+        uses: ./.github/actions/buildsystems-agree
+        timeout-minutes: 45
         with:
           desc: 'The builds agree, Ubuntu 24.04 arm64 Clang'
           cc: 'clang'
@@ -312,14 +333,16 @@ jobs:
       - id: c5
         name: 'Autotools, Ubuntu 24.04 arm64, FPU intervals'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-autotools
+        uses: ./.github/actions/buildsystems-autotools
+        timeout-minutes: 60
         with:
           desc: 'Autotools, Ubuntu 24.04 arm64, FPU intervals'
           configure: '--disable-simd'
       - id: c6
         name: 'Meson, Ubuntu 24.04 arm64, FPU intervals'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-meson
+        uses: ./.github/actions/buildsystems-meson
+        timeout-minutes: 60
         with:
           desc: 'Meson, Ubuntu 24.04 arm64, FPU intervals'
           options: '-Denable-simd=false'
@@ -349,13 +372,14 @@ jobs:
   b5:
     name: 'Debian 13 armhf and arm64 rounding direction (4 configurations)'
     runs-on: ubuntu-24.04-arm
-    timeout-minutes: 60
+    timeout-minutes: 225
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'Autotools, Debian 13 Trixie armhf'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-container
+        uses: ./.github/actions/buildsystems-container
+        timeout-minutes: 60
         with:
           desc: 'Autotools, Debian 13 Trixie armhf'
           platform: 'linux/arm/v7'
@@ -364,7 +388,8 @@ jobs:
       - id: c2
         name: 'Meson, Debian 13 Trixie armhf'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-container
+        uses: ./.github/actions/buildsystems-container
+        timeout-minutes: 60
         with:
           desc: 'Meson, Debian 13 Trixie armhf'
           platform: 'linux/arm/v7'
@@ -373,7 +398,8 @@ jobs:
       - id: c3
         name: 'The builds agree, Debian 13 Trixie armhf'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-agree-container
+        uses: ./.github/actions/buildsystems-agree-container
+        timeout-minutes: 45
         with:
           desc: 'The builds agree, Debian 13 Trixie armhf'
           platform: 'linux/arm/v7'
@@ -381,7 +407,8 @@ jobs:
       - id: c4
         name: 'Autotools, Ubuntu 24.04 arm64, rounding direction preserved'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-autotools
+        uses: ./.github/actions/buildsystems-autotools
+        timeout-minutes: 60
         with:
           desc: 'Autotools, Ubuntu 24.04 arm64, rounding direction preserved'
           configure: '--enable-preserve-rounding'
@@ -409,7 +436,7 @@ jobs:
   b6:
     name: 'MSYS2 MINGW32 (3 configurations)'
     runs-on: windows-2022
-    timeout-minutes: 60
+    timeout-minutes: 165
     steps:
       - uses: actions/checkout@v7
       # One setup of MSYS2 for the group: the configurations choose their
@@ -428,7 +455,8 @@ jobs:
       - id: c1
         name: 'Autotools, MSYS2 MINGW32 GCC x86'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-msys2
+        uses: ./.github/actions/buildsystems-msys2
+        timeout-minutes: 60
         with:
           desc: 'Autotools, MSYS2 MINGW32 GCC x86'
           build: 'autotools'
@@ -439,7 +467,8 @@ jobs:
       - id: c2
         name: 'Meson, MSYS2 MINGW32 GCC x86'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-msys2
+        uses: ./.github/actions/buildsystems-msys2
+        timeout-minutes: 60
         with:
           desc: 'Meson, MSYS2 MINGW32 GCC x86'
           build: 'meson'
@@ -450,7 +479,8 @@ jobs:
       - id: c3
         name: 'The builds agree, MSYS2 MINGW32 GCC x86'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-agree-msys2
+        uses: ./.github/actions/buildsystems-agree-msys2
+        timeout-minutes: 45
         with:
           desc: 'The builds agree, MSYS2 MINGW32 GCC x86'
           msystem: 'MINGW32'
@@ -479,7 +509,7 @@ jobs:
   b7:
     name: 'MSYS2 UCRT64 (3 configurations)'
     runs-on: windows-2022
-    timeout-minutes: 60
+    timeout-minutes: 165
     steps:
       - uses: actions/checkout@v7
       # One setup of MSYS2 for the group: the configurations choose their
@@ -494,7 +524,8 @@ jobs:
       - id: c1
         name: 'Autotools, MSYS2 UCRT64 GCC x64'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-msys2
+        uses: ./.github/actions/buildsystems-msys2
+        timeout-minutes: 60
         with:
           desc: 'Autotools, MSYS2 UCRT64 GCC x64'
           build: 'autotools'
@@ -505,7 +536,8 @@ jobs:
       - id: c2
         name: 'Meson, MSYS2 UCRT64 GCC x64'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-msys2
+        uses: ./.github/actions/buildsystems-msys2
+        timeout-minutes: 60
         with:
           desc: 'Meson, MSYS2 UCRT64 GCC x64'
           build: 'meson'
@@ -516,7 +548,8 @@ jobs:
       - id: c3
         name: 'The builds agree, MSYS2 UCRT64 GCC x64'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-agree-msys2
+        uses: ./.github/actions/buildsystems-agree-msys2
+        timeout-minutes: 45
         with:
           desc: 'The builds agree, MSYS2 UCRT64 GCC x64'
           msystem: 'UCRT64'
@@ -543,21 +576,28 @@ jobs:
           exit $status
 
   b8:
-    name: 'Clang for Visual C++ and Visual Studio 2022 (5 configurations)'
+    name: 'Clang for Visual C++ and Visual Studio 2022 (4 configurations)'
     runs-on: windows-2022
-    timeout-minutes: 60
+    timeout-minutes: 240
     steps:
       - uses: actions/checkout@v7
       - id: c1
-        name: 'Autotools, Clang for Visual C++ x64 (clang++)'
+        name: 'Meson, Clang for Visual C++ x86 (clang++)'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-autotools-clang-msvc
+        uses: ./.github/actions/buildsystems-meson-clang-msvc
+        timeout-minutes: 60
         with:
-          desc: 'Autotools, Clang for Visual C++ x64 (clang++)'
+          desc: 'Meson, Clang for Visual C++ x86 (clang++)'
+          arch: 'x86'
+          target: 'i686-pc-windows-msvc'
+          cpu_family: 'x86'
+          cpu: 'i686'
+          machine: 'X86'
       - id: c2
         name: 'Meson, Clang for Visual C++ x64 (clang++)'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-meson-clang-msvc
+        uses: ./.github/actions/buildsystems-meson-clang-msvc
+        timeout-minutes: 60
         with:
           desc: 'Meson, Clang for Visual C++ x64 (clang++)'
           arch: 'x64'
@@ -566,27 +606,18 @@ jobs:
           cpu: 'x86_64'
           machine: 'X64'
       - id: c3
-        name: 'Meson, Clang for Visual C++ x86 (clang++)'
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-meson-clang-msvc
-        with:
-          desc: 'Meson, Clang for Visual C++ x86 (clang++)'
-          arch: 'x86'
-          target: 'i686-pc-windows-msvc'
-          cpu_family: 'x86'
-          cpu: 'i686'
-          machine: 'X86'
-      - id: c4
         name: 'Meson, Visual Studio 2022 x64'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-meson-msvc
+        uses: ./.github/actions/buildsystems-meson-msvc
+        timeout-minutes: 60
         with:
           desc: 'Meson, Visual Studio 2022 x64'
           arch: 'x64'
-      - id: c5
+      - id: c4
         name: 'Meson, Visual Studio 2022 x86'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-meson-msvc
+        uses: ./.github/actions/buildsystems-meson-msvc
+        timeout-minutes: 60
         with:
           desc: 'Meson, Visual Studio 2022 x86'
           arch: 'x86'
@@ -595,22 +626,34 @@ jobs:
         shell: bash
         env:
           OUTCOMES: >-
-            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }} c5=${{ steps.c5.outcome }}
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }}
         run: |
           status=0
           printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'Clang for Visual C++ and Visual Studio 2022' >> "$GITHUB_STEP_SUMMARY"
           for kv in $OUTCOMES; do
             case "${kv%%=*}" in
-              c1) name='Autotools, Clang for Visual C++ x64 (clang++)' ;;
+              c1) name='Meson, Clang for Visual C++ x86 (clang++)' ;;
               c2) name='Meson, Clang for Visual C++ x64 (clang++)' ;;
-              c3) name='Meson, Clang for Visual C++ x86 (clang++)' ;;
-              c4) name='Meson, Visual Studio 2022 x64' ;;
-              c5) name='Meson, Visual Studio 2022 x86' ;;
+              c3) name='Meson, Visual Studio 2022 x64' ;;
+              c4) name='Meson, Visual Studio 2022 x86' ;;
             esac
             printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
             [ "${kv#*=}" = success ] || status=1
           done
           exit $status
+
+  b16:
+    name: 'Autotools, Clang for Visual C++ x64 (clang++)'
+    runs-on: windows-2022
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'Autotools, Clang for Visual C++ x64 (clang++)'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/buildsystems-autotools-clang-msvc
+        with:
+          desc: 'Autotools, Clang for Visual C++ x64 (clang++)'
 
   # Cygwin, GCC for x86-64 (GAOL v5), with autotools and with meson as with
   # CMake in windows.yml: GAOL_FMA gives it -mfma -mprefer-vector-width=128,
@@ -681,7 +724,7 @@ jobs:
       - id: c1
         name: 'Meson, Visual Studio 2026 x64'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-meson-msvc
+        uses: ./.github/actions/buildsystems-meson-msvc
         with:
           desc: 'Meson, Visual Studio 2026 x64'
           arch: 'x64'
@@ -695,7 +738,7 @@ jobs:
       - id: c1
         name: 'Meson, Visual Studio 2026 arm64'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-meson-msvc
+        uses: ./.github/actions/buildsystems-meson-msvc
         with:
           desc: 'Meson, Visual Studio 2026 arm64'
           arch: 'arm64'
@@ -703,34 +746,38 @@ jobs:
   b13:
     name: 'macOS 15 arm64, the three builds (4 configurations)'
     runs-on: macos-15
-    timeout-minutes: 60
+    timeout-minutes: 225
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'Autotools, macOS 15 arm64'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-autotools
+        uses: ./.github/actions/buildsystems-autotools
+        timeout-minutes: 60
         with:
           desc: 'Autotools, macOS 15 arm64'
           configure: ''
       - id: c2
         name: 'Meson, macOS 15 arm64'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-meson
+        uses: ./.github/actions/buildsystems-meson
+        timeout-minutes: 60
         with:
           desc: 'Meson, macOS 15 arm64'
           options: ''
       - id: c3
         name: 'Meson, macOS 15 arm64, rounding direction preserved'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-meson
+        uses: ./.github/actions/buildsystems-meson
+        timeout-minutes: 60
         with:
           desc: 'Meson, macOS 15 arm64, rounding direction preserved'
           options: '-Denable-preserve-rounding=true'
       - id: c4
         name: 'The builds agree, macOS 15 arm64'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-agree
+        uses: ./.github/actions/buildsystems-agree
+        timeout-minutes: 45
         with:
           desc: 'The builds agree, macOS 15 arm64'
           cc: 'cc'
@@ -759,20 +806,22 @@ jobs:
   b14:
     name: 'macOS 15 x86_64, autotools (2 configurations)'
     runs-on: macos-15-intel
-    timeout-minutes: 60
+    timeout-minutes: 105
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'Autotools, macOS 15 x86_64'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-autotools
+        uses: ./.github/actions/buildsystems-autotools
+        timeout-minutes: 60
         with:
           desc: 'Autotools, macOS 15 x86_64'
           configure: ''
       - id: c2
         name: 'The builds agree, macOS 15 x86_64'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-agree
+        uses: ./.github/actions/buildsystems-agree
+        timeout-minutes: 45
         with:
           desc: 'The builds agree, macOS 15 x86_64'
           cc: 'cc'
@@ -805,7 +854,7 @@ jobs:
       - id: c1
         name: 'Meson, macOS 15 x86_64'
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/build-meson
+        uses: ./.github/actions/buildsystems-meson
         with:
           desc: 'Meson, macOS 15 x86_64'
           options: ''

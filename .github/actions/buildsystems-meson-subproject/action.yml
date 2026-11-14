@@ -7,7 +7,7 @@
 # v5)
 # The steps of the job meson-subproject of build-systems.yml, for one configuration of
 # the group of the job that calls this action (GAOL v5).
-name: build-meson-subproject
+name: buildsystems-meson-subproject
 description: The job meson-subproject of build-systems.yml for one configuration
 inputs:
   desc:

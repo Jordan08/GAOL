@@ -31,7 +31,7 @@ runs:
       run: |
         export PATH="$RUNNER_TEMP/cmake-3.14.7-Linux-x86_64/bin:$PATH"
         curl -sSL https://github.com/Kitware/CMake/releases/download/v3.14.7/cmake-3.14.7-Linux-x86_64.tar.gz | tar xz -C "$RUNNER_TEMP"
-        # not in GITHUB_PATH: the configurations after this one in the group keep the CMake of the machine (GAOL v5)
+        # not in GITHUB_PATH: the next configurations keep the CMake of the machine
     - name: Locale writing a decimal comma
       shell: bash -e {0}
       run: |

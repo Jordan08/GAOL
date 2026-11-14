@@ -1,6 +1,6 @@
 # The steps of the job autotools of build-systems.yml, for one configuration of
 # the group of the job that calls this action (GAOL v5).
-name: build-autotools
+name: buildsystems-autotools
 description: The job autotools of build-systems.yml for one configuration
 inputs:
   configure:

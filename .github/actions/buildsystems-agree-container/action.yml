@@ -1,13 +1,16 @@
-# The steps of the job agree-msys2 of build-systems.yml, for one configuration of
+# The steps of the job agree-container of build-systems.yml, for one configuration of
 # the group of the job that calls this action (GAOL v5).
-name: build-agree-msys2
-description: The job agree-msys2 of build-systems.yml for one configuration
+name: buildsystems-agree-container
+description: The job agree-container of build-systems.yml for one configuration
 inputs:
   desc:
     description: The key desc of the row of the matrix of the job
     default: ''
-  msystem:
-    description: The key msystem of the row of the matrix of the job
+  image:
+    description: The key image of the row of the matrix of the job
+    default: ''
+  platform:
+    description: The key platform of the row of the matrix of the job
     default: ''
 runs:
   using: composite
@@ -29,17 +32,14 @@ runs:
         git reset --hard -q
         for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
         test -z "$(git status --porcelain --ignored)"
-    # The environment of MSYS2 of this configuration, which the step of the
-    # group that calls the action chose with MSYSTEM (GAOL v5)
-    - name: The environment of MSYS2 asked for
-      shell: msys2 {0}
-      run: test "$MSYSTEM" = "${{ inputs.msystem }}"
     - name: Configure with the three builds and compare
-      shell: msys2 {0}
+      shell: bash -e {0}
       run: |
-        export CMAKE_GENERATOR=Ninja
-        out="$(cygpath -m "$RUNNER_TEMP")/audit"
-        sh .github/audit/audit.sh audit gcc g++ . "$out" meson
-        status=0; python3 .github/audit/compare.py --check "$out/audit.json" > agree.md || status=$?
-        cat agree.md; cat agree.md >> "$GITHUB_STEP_SUMMARY"
-        sh .github/audit/logs.sh "$out/audit" $status
+        docker run --rm --platform ${{ inputs.platform }} -v "$PWD:/gaol" -w /gaol ${{ inputs.image }} sh -c "
+          set -e
+          apt-get update -qq && apt-get install -y -qq g++ cmake make meson ninja-build python3 > /dev/null
+          sh .github/audit/audit.sh audit gcc g++ /gaol /tmp/audit meson
+          status=0; python3 .github/audit/compare.py --check /tmp/audit/audit.json > /gaol/agree.md || status=\$?
+          cat /gaol/agree.md
+          sh .github/audit/logs.sh /tmp/audit/audit \$status"
+        cat agree.md >> "$GITHUB_STEP_SUMMARY"

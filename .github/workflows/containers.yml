@@ -52,13 +52,14 @@ jobs:
   c1:
     name: 'Containers x86_64 and i386, Debian, Alpine, manylinux (8 configurations)'
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'Debian 12 Bookworm amd64'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/containers-container
+        timeout-minutes: 180
         with:
           desc: 'Debian 12 Bookworm amd64'
           platform: 'linux/amd64'
@@ -68,6 +69,7 @@ jobs:
         name: 'Debian 13 Trixie amd64'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/containers-container
+        timeout-minutes: 180
         with:
           desc: 'Debian 13 Trixie amd64'
           platform: 'linux/amd64'
@@ -82,6 +84,7 @@ jobs:
         name: 'Debian 13 Trixie amd64, the relations test the empty sets first'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/containers-container
+        timeout-minutes: 180
         with:
           desc: 'Debian 13 Trixie amd64, the relations test the empty sets first'
           platform: 'linux/amd64'
@@ -92,6 +95,7 @@ jobs:
         name: 'Debian 12 Bookworm i386'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/containers-container
+        timeout-minutes: 180
         with:
           desc: 'Debian 12 Bookworm i386'
           platform: 'linux/386'
@@ -101,6 +105,7 @@ jobs:
         name: 'Debian 12 Bookworm i386, rounding direction preserved'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/containers-container
+        timeout-minutes: 180
         with:
           desc: 'Debian 12 Bookworm i386, rounding direction preserved'
           platform: 'linux/386'
@@ -111,12 +116,14 @@ jobs:
         name: 'Debian 12 Bookworm armel (floating point in software), GAOL stops'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/containers-armel-soft-float
+        timeout-minutes: 30
         with:
           desc: 'Debian 12 Bookworm armel (floating point in software), GAOL stops'
       - id: c7
         name: 'Alpine 3.22 x86_64 (musl)'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/containers-container
+        timeout-minutes: 180
         with:
           desc: 'Alpine 3.22 x86_64 (musl)'
           platform: 'linux/amd64'
@@ -128,6 +135,7 @@ jobs:
         name: 'manylinux_2_28 x86_64'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/containers-container
+        timeout-minutes: 180
         with:
           desc: 'manylinux_2_28 x86_64'
           platform: 'linux/amd64'
@@ -248,13 +256,14 @@ jobs:
   c7:
     name: 'Containers arm64 (5 configurations)'
     runs-on: ubuntu-24.04-arm
-    timeout-minutes: 60
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'Debian 12 Bookworm arm64'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/containers-container
+        timeout-minutes: 180
         with:
           desc: 'Debian 12 Bookworm arm64'
           platform: 'linux/arm64'
@@ -264,6 +273,7 @@ jobs:
         name: 'Debian 13 Trixie arm64'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/containers-container
+        timeout-minutes: 180
         with:
           desc: 'Debian 13 Trixie arm64'
           platform: 'linux/arm64'
@@ -273,6 +283,7 @@ jobs:
         name: 'Alpine 3.22 aarch64 (musl)'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/containers-container
+        timeout-minutes: 180
         with:
           desc: 'Alpine 3.22 aarch64 (musl)'
           platform: 'linux/arm64'
@@ -282,6 +293,7 @@ jobs:
         name: 'manylinux_2_28 aarch64'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/containers-container
+        timeout-minutes: 180
         with:
           desc: 'manylinux_2_28 aarch64'
           platform: 'linux/arm64'
@@ -291,6 +303,7 @@ jobs:
         name: 'Rounding direction preserved, arm64: FPCR with the NEON intervals or the C library'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/containers-control-register-performance
+        timeout-minutes: 60
         with:
           desc: 'Rounding direction preserved, arm64: FPCR with the NEON intervals or the C library'
           platform: 'linux/arm64'
@@ -322,13 +335,14 @@ jobs:
   c8:
     name: 'Containers armhf (6 configurations)'
     runs-on: ubuntu-24.04-arm
-    timeout-minutes: 60
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'Debian 12 Bookworm armhf'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/containers-container
+        timeout-minutes: 180
         with:
           desc: 'Debian 12 Bookworm armhf'
           platform: 'linux/arm/v7'
@@ -338,6 +352,7 @@ jobs:
         name: 'Debian 13 Trixie armhf'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/containers-container
+        timeout-minutes: 180
         with:
           desc: 'Debian 13 Trixie armhf'
           platform: 'linux/arm/v7'
@@ -347,6 +362,7 @@ jobs:
         name: 'Debian 13 Trixie armhf, rounding direction preserved'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/containers-container
+        timeout-minutes: 180
         with:
           desc: 'Debian 13 Trixie armhf, rounding direction preserved'
           platform: 'linux/arm/v7'
@@ -363,6 +379,7 @@ jobs:
         name: 'Debian 13 Trixie armhf, built for size'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/containers-container
+        timeout-minutes: 180
         with:
           desc: 'Debian 13 Trixie armhf, built for size'
           platform: 'linux/arm/v7'
@@ -373,12 +390,14 @@ jobs:
         name: 'Debian 13 Trixie armhf, Clang refused'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/containers-clang-arm32
+        timeout-minutes: 30
         with:
           desc: 'Debian 13 Trixie armhf, Clang refused'
       - id: c6
         name: 'Rounding direction preserved, armhf: FPSCR or the C library'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/containers-control-register-performance
+        timeout-minutes: 60
         with:
           desc: 'Rounding direction preserved, armhf: FPSCR or the C library'
           platform: 'linux/arm/v7'

@@ -69,13 +69,14 @@ jobs:
   w1:
     name: 'Visual Studio 2022 x64, clang-cl x64 Release (4 configurations)'
     runs-on: windows-2022
-    timeout-minutes: 60
+    timeout-minutes: 270
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'Visual Studio 2022 x64 Debug'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2022 x64 Debug'
           generator: 'Visual Studio 17 2022'
@@ -85,6 +86,7 @@ jobs:
         name: 'Visual Studio 2022 x64 Release'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2022 x64 Release'
           generator: 'Visual Studio 17 2022'
@@ -94,6 +96,7 @@ jobs:
         name: 'Visual Studio 2022 x64 Release, AVX-512 arithmetic under SDE, rounding direction preserved'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio-sde
+        timeout-minutes: 90
         with:
           desc: 'Visual Studio 2022 x64 Release, AVX-512 arithmetic under SDE, rounding direction preserved'
           generator: 'Visual Studio 17 2022'
@@ -113,6 +116,7 @@ jobs:
         name: 'Visual Studio 2022 clang-cl x64 Release'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2022 clang-cl x64 Release'
           generator: 'Visual Studio 17 2022'
@@ -144,13 +148,14 @@ jobs:
   w2:
     name: 'Visual Studio 2022 x86 and clang-cl x64 Debug (3 configurations)'
     runs-on: windows-2022
-    timeout-minutes: 60
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'Visual Studio 2022 x86 Debug'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2022 x86 Debug'
           generator: 'Visual Studio 17 2022'
@@ -160,6 +165,7 @@ jobs:
         name: 'Visual Studio 2022 x86 Release'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2022 x86 Release'
           generator: 'Visual Studio 17 2022'
@@ -169,6 +175,7 @@ jobs:
         name: 'Visual Studio 2022 clang-cl x64 Debug'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2022 clang-cl x64 Debug'
           generator: 'Visual Studio 17 2022'
@@ -199,7 +206,7 @@ jobs:
   w3:
     name: 'VS 2022 AVX-512 Debug, Clang for Visual C++, MSYS2 refused (6 configurations)'
     runs-on: windows-2022
-    timeout-minutes: 60
+    timeout-minutes: 270
     steps:
       - uses: actions/checkout@v7
       # One setup of MSYS2 for the group: the configurations choose their
@@ -216,6 +223,7 @@ jobs:
         name: 'MSYS2 MINGW64 GCC x64, refused'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-msys2-refused
+        timeout-minutes: 30
         with:
           desc: 'MSYS2 MINGW64 GCC x64, refused'
           msystem: 'MINGW64'
@@ -229,6 +237,7 @@ jobs:
         name: 'MSYS2 MINGW64 Clang x64, refused'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-msys2-refused
+        timeout-minutes: 30
         with:
           desc: 'MSYS2 MINGW64 Clang x64, refused'
           msystem: 'MINGW64'
@@ -242,6 +251,7 @@ jobs:
         name: 'MSYS2 MINGW32 GCC x86 without FMA, refused'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-msys2-refused
+        timeout-minutes: 30
         with:
           desc: 'MSYS2 MINGW32 GCC x86 without FMA, refused'
           msystem: 'MINGW32'
@@ -255,6 +265,7 @@ jobs:
         name: 'Visual Studio 2022 x64 Debug, AVX-512 arithmetic'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2022 x64 Debug, AVX-512 arithmetic'
           generator: 'Visual Studio 17 2022'
@@ -262,21 +273,23 @@ jobs:
           config: 'Debug'
           opts: '-DGAOL_PREFER_AVX512=ON'
       - id: c5
-        name: 'Clang for Visual C++ x64 (clang++), Release'
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/windows-clang-msvc
-        with:
-          desc: 'Clang for Visual C++ x64 (clang++), Release'
-          arch: 'x64'
-          target: 'x86_64-pc-windows-msvc'
-      - id: c6
         name: 'Clang for Visual C++ x86 (clang++), Release'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-clang-msvc
+        timeout-minutes: 60
         with:
           desc: 'Clang for Visual C++ x86 (clang++), Release'
           arch: 'x86'
           target: 'i686-pc-windows-msvc'
+      - id: c6
+        name: 'Clang for Visual C++ x64 (clang++), Release'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/windows-clang-msvc
+        timeout-minutes: 60
+        with:
+          desc: 'Clang for Visual C++ x64 (clang++), Release'
+          arch: 'x64'
+          target: 'x86_64-pc-windows-msvc'
       - name: Results of the configurations
         if: ${{ always() }}
         shell: bash
@@ -292,8 +305,8 @@ jobs:
               c2) name='MSYS2 MINGW64 Clang x64, refused' ;;
               c3) name='MSYS2 MINGW32 GCC x86 without FMA, refused' ;;
               c4) name='Visual Studio 2022 x64 Debug, AVX-512 arithmetic' ;;
-              c5) name='Clang for Visual C++ x64 (clang++), Release' ;;
-              c6) name='Clang for Visual C++ x86 (clang++), Release' ;;
+              c5) name='Clang for Visual C++ x86 (clang++), Release' ;;
+              c6) name='Clang for Visual C++ x64 (clang++), Release' ;;
             esac
             printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
             [ "${kv#*=}" = success ] || status=1
@@ -303,7 +316,7 @@ jobs:
   w4:
     name: 'MSYS2 UCRT64 and CLANG64 (5 configurations)'
     runs-on: windows-2022
-    timeout-minutes: 60
+    timeout-minutes: 300
     steps:
       - uses: actions/checkout@v7
       # One setup of MSYS2 for the group: the configurations choose their
@@ -318,6 +331,7 @@ jobs:
         name: 'MSYS2 UCRT64 GCC x64'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-msys2
+        timeout-minutes: 60
         with:
           desc: 'MSYS2 UCRT64 GCC x64'
           msystem: 'UCRT64'
@@ -337,6 +351,7 @@ jobs:
         name: 'MSYS2 UCRT64 GCC x64, rounding direction preserved'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-msys2
+        timeout-minutes: 60
         with:
           desc: 'MSYS2 UCRT64 GCC x64, rounding direction preserved'
           msystem: 'UCRT64'
@@ -353,6 +368,7 @@ jobs:
         name: 'MSYS2 UCRT64 GCC x64, rounding direction preserved, no FMA'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-msys2
+        timeout-minutes: 60
         with:
           desc: 'MSYS2 UCRT64 GCC x64, rounding direction preserved, no FMA'
           msystem: 'UCRT64'
@@ -365,6 +381,7 @@ jobs:
         name: 'MSYS2 CLANG64 Clang x64'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-msys2
+        timeout-minutes: 60
         with:
           desc: 'MSYS2 CLANG64 Clang x64'
           msystem: 'CLANG64'
@@ -386,6 +403,7 @@ jobs:
         name: 'MSYS2 CLANG64 Clang x64, rounding direction preserved'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-msys2
+        timeout-minutes: 60
         with:
           desc: 'MSYS2 CLANG64 Clang x64, rounding direction preserved'
           msystem: 'CLANG64'
@@ -419,13 +437,14 @@ jobs:
   w5:
     name: 'MinGW-w64 11.2, 12.2, 13.2 x64 (refused) and 12.2 x86 (5 configurations)'
     runs-on: windows-2022
-    timeout-minutes: 60
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'MinGW-w64 11.2.0 x64, refused'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-mingw-refused
+        timeout-minutes: 30
         with:
           desc: 'MinGW-w64 11.2.0 x64, refused'
           version: '11.2.0.07112021'
@@ -436,6 +455,7 @@ jobs:
         name: 'MinGW-w64 11.2.0 x86, refused'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-mingw-refused
+        timeout-minutes: 30
         with:
           desc: 'MinGW-w64 11.2.0 x86, refused'
           version: '11.2.0.07112021'
@@ -446,6 +466,7 @@ jobs:
         name: 'MinGW-w64 12.2.0 x64, refused'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-mingw-refused
+        timeout-minutes: 30
         with:
           desc: 'MinGW-w64 12.2.0 x64, refused'
           version: '12.2.0.03042023'
@@ -456,6 +477,7 @@ jobs:
         name: 'MinGW-w64 12.2.0 x86 Release'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-mingw
+        timeout-minutes: 60
         with:
           desc: 'MinGW-w64 12.2.0 x86 Release'
           version: '12.2.0.03042023'
@@ -466,6 +488,7 @@ jobs:
         name: 'MinGW-w64 13.2.0 x64, refused'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-mingw-refused
+        timeout-minutes: 30
         with:
           desc: 'MinGW-w64 13.2.0 x64, refused'
           version: '13.2.0'
@@ -497,13 +520,14 @@ jobs:
   w6:
     name: 'MinGW-w64 13.2 x86 (2 configurations)'
     runs-on: windows-2022
-    timeout-minutes: 60
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'MinGW-w64 13.2.0 x86 Release'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-mingw
+        timeout-minutes: 60
         with:
           desc: 'MinGW-w64 13.2.0 x86 Release'
           version: '13.2.0'
@@ -514,6 +538,7 @@ jobs:
         name: 'MinGW-w64 13.2.0 x86 Release, no FMA'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-mingw
+        timeout-minutes: 60
         with:
           desc: 'MinGW-w64 13.2.0 x86 Release, no FMA'
           version: '13.2.0'
@@ -543,7 +568,7 @@ jobs:
   w7:
     name: 'MinGW-w64 14.2 and 15.2 Debug x64 (3 configurations)'
     runs-on: windows-2022
-    timeout-minutes: 60
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v7
       # The older MinGW-w64 GAOL builds with: GAOL v5 takes no elementary
@@ -561,6 +586,7 @@ jobs:
         name: 'MinGW-w64 14.2.0 x64 Release'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-mingw
+        timeout-minutes: 60
         with:
           desc: 'MinGW-w64 14.2.0 x64 Release'
           version: '14.2.0'
@@ -571,6 +597,7 @@ jobs:
         name: 'MinGW-w64 14.2.0 x86 Release'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-mingw
+        timeout-minutes: 60
         with:
           desc: 'MinGW-w64 14.2.0 x86 Release'
           version: '14.2.0'
@@ -581,6 +608,7 @@ jobs:
         name: 'MinGW-w64 15.2.0 x64 Debug'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-mingw
+        timeout-minutes: 60
         with:
           desc: 'MinGW-w64 15.2.0 x64 Debug'
           version: '15.2.0'
@@ -610,13 +638,14 @@ jobs:
   w8:
     name: 'MinGW-w64 15.2 Release and x86 (4 configurations)'
     runs-on: windows-2022
-    timeout-minutes: 60
+    timeout-minutes: 240
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'MinGW-w64 15.2.0 x64 Release'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-mingw
+        timeout-minutes: 60
         with:
           desc: 'MinGW-w64 15.2.0 x64 Release'
           version: '15.2.0'
@@ -627,6 +656,7 @@ jobs:
         name: 'MinGW-w64 15.2.0 x86 Debug'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-mingw
+        timeout-minutes: 60
         with:
           desc: 'MinGW-w64 15.2.0 x86 Debug'
           version: '15.2.0'
@@ -637,6 +667,7 @@ jobs:
         name: 'MinGW-w64 15.2.0 x86 Release'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-mingw
+        timeout-minutes: 60
         with:
           desc: 'MinGW-w64 15.2.0 x86 Release'
           version: '15.2.0'
@@ -650,6 +681,7 @@ jobs:
         name: 'MinGW-w64 15.2.0 x86 Release, rounding direction preserved'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-mingw
+        timeout-minutes: 60
         with:
           desc: 'MinGW-w64 15.2.0 x86 Release, rounding direction preserved'
           version: '15.2.0'
@@ -681,13 +713,14 @@ jobs:
   w9:
     name: 'Visual Studio 2026 x64 Release (5 configurations)'
     runs-on: windows-2025-vs2026
-    timeout-minutes: 60
+    timeout-minutes: 300
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'Visual Studio 2026 x64 Release'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2026 x64 Release'
           generator: 'Visual Studio 18 2026'
@@ -697,6 +730,7 @@ jobs:
         name: 'Visual Studio 2026 x64 Release, /W4 /WX'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-warnings
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2026 x64 Release, /W4 /WX'
           arch: 'x64'
@@ -705,6 +739,7 @@ jobs:
         name: 'Visual Studio 2026 x64 Release, /W4 /WX, AVX-512 arithmetic'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-warnings
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2026 x64 Release, /W4 /WX, AVX-512 arithmetic'
           arch: 'x64'
@@ -727,6 +762,7 @@ jobs:
         name: 'Visual Studio 2026 x64 Release, AVX-512 arithmetic'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2026 x64 Release, AVX-512 arithmetic'
           generator: 'Visual Studio 18 2026'
@@ -737,6 +773,7 @@ jobs:
         name: 'Visual Studio 2026 x64 Release, rounding direction preserved'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2026 x64 Release, rounding direction preserved'
           generator: 'Visual Studio 18 2026'
@@ -768,13 +805,14 @@ jobs:
   w10:
     name: 'Visual Studio 2026 x64 Debug (3 configurations)'
     runs-on: windows-2025-vs2026
-    timeout-minutes: 60
+    timeout-minutes: 210
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'Visual Studio 2026 x64 Debug'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2026 x64 Debug'
           generator: 'Visual Studio 18 2026'
@@ -784,6 +822,7 @@ jobs:
         name: 'Visual Studio 2026 x64 Debug, /W4 /WX'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-warnings
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2026 x64 Debug, /W4 /WX'
           arch: 'x64'
@@ -792,6 +831,7 @@ jobs:
         name: 'Visual Studio 2026 x64 Debug, AVX-512 arithmetic under SDE, rounding direction preserved'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio-sde
+        timeout-minutes: 90
         with:
           desc: 'Visual Studio 2026 x64 Debug, AVX-512 arithmetic under SDE, rounding direction preserved'
           generator: 'Visual Studio 18 2026'
@@ -820,13 +860,14 @@ jobs:
   w11:
     name: 'VS 2026 x64 SDE, clang-cl x64 SDE (5 configurations)'
     runs-on: windows-2025-vs2026
-    timeout-minutes: 60
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'Visual Studio 2026 x64 Release, AVX-512 arithmetic under SDE'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio-sde
+        timeout-minutes: 90
         with:
           desc: 'Visual Studio 2026 x64 Release, AVX-512 arithmetic under SDE'
           generator: 'Visual Studio 18 2026'
@@ -836,6 +877,7 @@ jobs:
         name: 'Visual Studio 2026 x64 Release, AVX-512 arithmetic under SDE, rounding direction preserved'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio-sde
+        timeout-minutes: 90
         with:
           desc: 'Visual Studio 2026 x64 Release, AVX-512 arithmetic under SDE, rounding direction preserved'
           generator: 'Visual Studio 18 2026'
@@ -845,6 +887,7 @@ jobs:
         name: 'Visual Studio 2026 x64 Release, rounding direction preserved, AVX-512 arithmetic not taken'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2026 x64 Release, rounding direction preserved, AVX-512 arithmetic not taken'
           generator: 'Visual Studio 18 2026'
@@ -855,6 +898,7 @@ jobs:
         name: 'Visual Studio 2026 clang-cl x64 Release, AVX-512 arithmetic under SDE, rounding direction preserved'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio-sde
+        timeout-minutes: 90
         with:
           desc: 'Visual Studio 2026 clang-cl x64 Release, AVX-512 arithmetic under SDE, rounding direction preserved'
           generator: 'Visual Studio 18 2026'
@@ -865,6 +909,7 @@ jobs:
         name: 'Visual Studio 2026 clang-cl x64 Release, rounding direction preserved, AVX-512 arithmetic not taken'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2026 clang-cl x64 Release, rounding direction preserved, AVX-512 arithmetic not taken'
           generator: 'Visual Studio 18 2026'
@@ -898,13 +943,14 @@ jobs:
   w12:
     name: 'clang-cl x64 and x86, VS 2026 x86 Release (5 configurations)'
     runs-on: windows-2025-vs2026
-    timeout-minutes: 60
+    timeout-minutes: 300
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'Visual Studio 2026 clang-cl x64 Release'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2026 clang-cl x64 Release'
           generator: 'Visual Studio 18 2026'
@@ -920,6 +966,7 @@ jobs:
         name: 'Visual Studio 2026 clang-cl x64 Release, AVX-512 arithmetic'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2026 clang-cl x64 Release, AVX-512 arithmetic'
           generator: 'Visual Studio 18 2026'
@@ -932,6 +979,7 @@ jobs:
         name: 'Visual Studio 2026 clang-cl x86 Release'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2026 clang-cl x86 Release'
           generator: 'Visual Studio 18 2026'
@@ -943,6 +991,7 @@ jobs:
         name: 'Visual Studio 2026 x86 Release'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2026 x86 Release'
           generator: 'Visual Studio 18 2026'
@@ -952,6 +1001,7 @@ jobs:
         name: 'Visual Studio 2026 x86 Release, /W4 /WX'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-warnings
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2026 x86 Release, /W4 /WX'
           arch: 'Win32'
@@ -981,13 +1031,14 @@ jobs:
   w13:
     name: 'Visual Studio 2026 x86 Debug and variants (3 configurations)'
     runs-on: windows-2025-vs2026
-    timeout-minutes: 60
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'Visual Studio 2026 x86 Debug'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2026 x86 Debug'
           generator: 'Visual Studio 18 2026'
@@ -1000,6 +1051,7 @@ jobs:
         name: 'Visual Studio 2026 x86 Release, FPU intervals'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2026 x86 Release, FPU intervals'
           generator: 'Visual Studio 18 2026'
@@ -1014,6 +1066,7 @@ jobs:
         name: 'Visual Studio 2026 x86 Release, rounding direction preserved'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2026 x86 Release, rounding direction preserved'
           generator: 'Visual Studio 18 2026'
@@ -1043,13 +1096,14 @@ jobs:
   w14:
     name: 'Visual Studio 2022 and 2026 arm64, Debug (3 configurations)'
     runs-on: windows-11-vs2026-arm
-    timeout-minutes: 60
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'Visual Studio 2022 arm64 Debug'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2022 arm64 Debug'
           generator: 'Visual Studio 18 2026'
@@ -1061,6 +1115,7 @@ jobs:
         name: 'Visual Studio 2022 arm64 Release'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2022 arm64 Release'
           generator: 'Visual Studio 18 2026'
@@ -1072,6 +1127,7 @@ jobs:
         name: 'Visual Studio 2026 arm64 Debug'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2026 arm64 Debug'
           generator: 'Visual Studio 18 2026'
@@ -1100,13 +1156,14 @@ jobs:
   w15:
     name: 'Visual Studio 2026 arm64 Release, clang-cl Release (4 configurations)'
     runs-on: windows-11-vs2026-arm
-    timeout-minutes: 60
+    timeout-minutes: 240
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'Visual Studio 2026 arm64 Release'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2026 arm64 Release'
           generator: 'Visual Studio 18 2026'
@@ -1123,6 +1180,7 @@ jobs:
         name: 'Visual Studio 2026 arm64 Release, rounding direction preserved'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2026 arm64 Release, rounding direction preserved'
           generator: 'Visual Studio 18 2026'
@@ -1133,6 +1191,7 @@ jobs:
         name: 'Visual Studio 2026 arm64 Release, FPU intervals'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2026 arm64 Release, FPU intervals'
           generator: 'Visual Studio 18 2026'
@@ -1143,6 +1202,7 @@ jobs:
         name: 'Visual Studio 2026 clang-cl arm64 Release'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2026 clang-cl arm64 Release'
           generator: 'Visual Studio 18 2026'
@@ -1174,7 +1234,7 @@ jobs:
   w16:
     name: 'MSYS2 CLANGARM64 and clang-cl arm64 FPU (3 configurations)'
     runs-on: windows-11-vs2026-arm
-    timeout-minutes: 60
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v7
       # One setup of MSYS2 for the group: the configurations choose their
@@ -1192,6 +1252,7 @@ jobs:
         name: 'MSYS2 CLANGARM64 Clang arm64'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-msys2
+        timeout-minutes: 60
         with:
           desc: 'MSYS2 CLANGARM64 Clang arm64'
           msystem: 'CLANGARM64'
@@ -1203,6 +1264,7 @@ jobs:
         name: 'MSYS2 CLANGARM64 Clang arm64, rounding direction preserved'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-msys2
+        timeout-minutes: 60
         with:
           desc: 'MSYS2 CLANGARM64 Clang arm64, rounding direction preserved'
           msystem: 'CLANGARM64'
@@ -1217,6 +1279,7 @@ jobs:
         name: 'Visual Studio 2026 clang-cl arm64 Release, FPU intervals'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/windows-visual-studio
+        timeout-minutes: 60
         with:
           desc: 'Visual Studio 2026 clang-cl arm64 Release, FPU intervals'
           generator: 'Visual Studio 18 2026'

@@ -50,13 +50,14 @@ jobs:
   m1:
     name: 'macOS 15 arm64 (4 configurations)'
     runs-on: macos-15
-    timeout-minutes: 60
+    timeout-minutes: 240
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'macOS 15 arm64'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/macos-cmake
+        timeout-minutes: 60
         with:
           desc: 'macOS 15 arm64'
           arch: 'arm64'
@@ -65,6 +66,7 @@ jobs:
         name: 'macOS 15 arm64, FPU intervals'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/macos-cmake
+        timeout-minutes: 60
         with:
           desc: 'macOS 15 arm64, FPU intervals'
           arch: 'arm64'
@@ -73,6 +75,7 @@ jobs:
         name: 'macOS 15 arm64, rounding direction preserved'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/macos-cmake
+        timeout-minutes: 60
         with:
           desc: 'macOS 15 arm64, rounding direction preserved'
           arch: 'arm64'
@@ -81,6 +84,7 @@ jobs:
         name: 'macOS 15 universal (arm64 and x86_64)'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/macos-universal
+        timeout-minutes: 60
         with:
           desc: 'macOS 15 universal (arm64 and x86_64)'
       - name: Results of the configurations
@@ -107,19 +111,21 @@ jobs:
   m2:
     name: 'macOS 15 universal, autotools and meson (2 configurations)'
     runs-on: macos-15
-    timeout-minutes: 60
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'macOS 15 universal (arm64 and x86_64), autotools'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/macos-universal-autotools
+        timeout-minutes: 60
         with:
           desc: 'macOS 15 universal (arm64 and x86_64), autotools'
       - id: c2
         name: 'macOS 15 universal (arm64 and x86_64), meson'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/macos-universal-meson
+        timeout-minutes: 60
         with:
           desc: 'macOS 15 universal (arm64 and x86_64), meson'
       - name: Results of the configurations
@@ -144,13 +150,14 @@ jobs:
   m3:
     name: 'macOS 15 x86_64 (2 configurations)'
     runs-on: macos-15-intel
-    timeout-minutes: 60
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'macOS 15 x86_64'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/macos-cmake
+        timeout-minutes: 60
         with:
           desc: 'macOS 15 x86_64'
           arch: 'x86_64'
@@ -160,6 +167,7 @@ jobs:
         name: 'macOS 15 x86_64 GCC Debug ASan+UBSan'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/macos-sanitizers
+        timeout-minutes: 90
         with:
           desc: 'macOS 15 x86_64 GCC Debug ASan+UBSan'
           compiler: 'gcc'
@@ -188,13 +196,14 @@ jobs:
   m4:
     name: 'macOS 26 arm64, sanitizers (3 configurations)'
     runs-on: macos-26
-    timeout-minutes: 60
+    timeout-minutes: 270
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'macOS 26 arm64 AppleClang Debug ASan+UBSan'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/macos-sanitizers
+        timeout-minutes: 90
         with:
           desc: 'macOS 26 arm64 AppleClang Debug ASan+UBSan'
           compiler: 'appleclang'
@@ -204,6 +213,7 @@ jobs:
         name: 'macOS 26 arm64 GCC Debug ASan+UBSan'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/macos-sanitizers
+        timeout-minutes: 90
         with:
           desc: 'macOS 26 arm64 GCC Debug ASan+UBSan'
           compiler: 'gcc'
@@ -215,6 +225,7 @@ jobs:
         name: 'macOS 26 arm64 LLVM Clang Debug ASan+UBSan'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/macos-sanitizers
+        timeout-minutes: 90
         with:
           desc: 'macOS 26 arm64 LLVM Clang Debug ASan+UBSan'
           compiler: 'llvm'
@@ -244,13 +255,14 @@ jobs:
   m5:
     name: 'macOS 26, Xcode universal and arm64 (2 configurations)'
     runs-on: macos-26
-    timeout-minutes: 60
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'macOS 26 Xcode generator, universal (arm64 and x86_64)'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/macos-xcode
+        timeout-minutes: 60
         with:
           desc: 'macOS 26 Xcode generator, universal (arm64 and x86_64)'
           archs: '-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64'
@@ -259,6 +271,7 @@ jobs:
         name: 'macOS 26 arm64'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/macos-cmake
+        timeout-minutes: 60
         with:
           desc: 'macOS 26 arm64'
           arch: 'arm64'
@@ -284,13 +297,14 @@ jobs:
   m6:
     name: 'macOS 26, Xcode without architectures, universal autotools, -Werror (3 configurations)'
     runs-on: macos-26
-    timeout-minutes: 60
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'macOS 26 Xcode generator, no architectures given'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/macos-xcode
+        timeout-minutes: 60
         with:
           desc: 'macOS 26 Xcode generator, no architectures given'
           archs: ''
@@ -299,12 +313,14 @@ jobs:
         name: 'macOS 26 universal (arm64 and x86_64), autotools'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/macos-universal-autotools
+        timeout-minutes: 60
         with:
           desc: 'macOS 26 universal (arm64 and x86_64), autotools'
       - id: c3
         name: 'macOS 26 arm64 AppleClang, -Wall -Wextra -Werror'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/macos-warnings
+        timeout-minutes: 60
         with:
           desc: 'macOS 26 arm64 AppleClang, -Wall -Wextra -Werror'
       - name: Results of the configurations
@@ -330,25 +346,28 @@ jobs:
   m7:
     name: 'macOS 26 universal, CMake and meson, and Rosetta (3 configurations)'
     runs-on: macos-26
-    timeout-minutes: 60
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'macOS 26 universal (arm64 and x86_64)'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/macos-universal
+        timeout-minutes: 60
         with:
           desc: 'macOS 26 universal (arm64 and x86_64)'
       - id: c2
         name: 'macOS 26 universal (arm64 and x86_64), meson'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/macos-universal-meson
+        timeout-minutes: 60
         with:
           desc: 'macOS 26 universal (arm64 and x86_64), meson'
       - id: c3
         name: 'macOS 26 x86_64 (Rosetta)'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/macos-cmake
+        timeout-minutes: 60
         with:
           desc: 'macOS 26 x86_64 (Rosetta)'
           arch: 'x86_64'

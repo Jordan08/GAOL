@@ -59,4 +59,3 @@ runs:
       if: ${{ always() }}
       shell: bash -e {0}
       run: sudo apt-get install -y -q --reinstall ninja-build
-

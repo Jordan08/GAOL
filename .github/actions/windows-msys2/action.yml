@@ -58,8 +58,8 @@ runs:
         case "${{ inputs.msystem }}" in CLANGARM64) expected=neon ;; *) expected=sse2 ;; esac
         sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h $expected
     # GAOL_FMA gives GCC for Windows -mfma -mprefer-vector-width=128
-    # (CMakeLists.txt), as the job above checks (GAOL
-    # v5). Not Clang, which aligns its stack and gets -mfma alone
+    # (CMakeLists.txt), as the action windows-mingw
+    # checks (GAOL v5). Not Clang, which aligns its stack and gets -mfma alone
     - name: Fused multiply-add instructions, and no 256-bit register in the objects
       if: inputs.cc == 'gcc' && !contains(inputs.opts, 'GAOL_FMA=OFF')
       shell: msys2 {0}

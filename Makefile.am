@@ -85,19 +85,19 @@ endif
 # of the sources of the CI, which compares the three archives, fails
 EXTRA_DIST = \
 	.github/actionlint.yaml \
-	.github/actions/build-agree/action.yml \
-	.github/actions/build-agree-container/action.yml \
-	.github/actions/build-agree-msys2/action.yml \
-	.github/actions/build-autotools/action.yml \
-	.github/actions/build-autotools-clang-msvc/action.yml \
-	.github/actions/build-container/action.yml \
-	.github/actions/build-dist/action.yml \
-	.github/actions/build-meson/action.yml \
-	.github/actions/build-meson-clang-msvc/action.yml \
-	.github/actions/build-meson-msvc/action.yml \
-	.github/actions/build-meson-oldest/action.yml \
-	.github/actions/build-meson-subproject/action.yml \
-	.github/actions/build-msys2/action.yml \
+	.github/actions/buildsystems-agree/action.yml \
+	.github/actions/buildsystems-agree-container/action.yml \
+	.github/actions/buildsystems-agree-msys2/action.yml \
+	.github/actions/buildsystems-autotools/action.yml \
+	.github/actions/buildsystems-autotools-clang-msvc/action.yml \
+	.github/actions/buildsystems-container/action.yml \
+	.github/actions/buildsystems-dist/action.yml \
+	.github/actions/buildsystems-meson/action.yml \
+	.github/actions/buildsystems-meson-clang-msvc/action.yml \
+	.github/actions/buildsystems-meson-msvc/action.yml \
+	.github/actions/buildsystems-meson-oldest/action.yml \
+	.github/actions/buildsystems-meson-subproject/action.yml \
+	.github/actions/buildsystems-msys2/action.yml \
 	.github/actions/containers-armel-soft-float/action.yml \
 	.github/actions/containers-clang-arm32/action.yml \
 	.github/actions/containers-container/action.yml \

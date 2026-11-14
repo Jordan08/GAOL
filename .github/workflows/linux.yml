@@ -17,7 +17,7 @@
 # The self-test of the check of the order of the computations and of the writes
 # of the control register in the assembly of the library
 # (tests/tools/asm-order/check_order.py --selftest) runs in a job of Python
-# alone (GAOL v5). The check itself runs in a job of its own on the assembly
+# alone (GAOL v5). The check itself is a configuration of its own, on the assembly
 # that GCC 13.3 and Clang 18 make of the library, with and without
 # GAOL_PRESERVE_ROUNDING: an instruction that rounds on the wrong side of a
 # write of the control register, and the conversion of a subnormal constant by
@@ -74,13 +74,14 @@ jobs:
   l1:
     name: 'Ubuntu 24.04 x86_64, GCC (5 configurations)'
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 300
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'Ubuntu 24.04 x86_64 GCC'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 24.04 x86_64 GCC'
           cc: 'gcc'
@@ -92,6 +93,7 @@ jobs:
         name: 'Ubuntu 24.04 x86_64 GCC 11'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 24.04 x86_64 GCC 11'
           cc: 'gcc-11'
@@ -101,6 +103,7 @@ jobs:
         name: 'Ubuntu 24.04 x86_64 GCC, rounding direction preserved'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 24.04 x86_64 GCC, rounding direction preserved'
           cc: 'gcc'
@@ -112,6 +115,7 @@ jobs:
         name: 'Ubuntu 24.04 x86_64 GCC, shared library'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 24.04 x86_64 GCC, shared library'
           cc: 'gcc'
@@ -128,6 +132,7 @@ jobs:
         name: 'Ubuntu 24.04 x86_64 GCC, interprocedural optimization, rounding direction preserved'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 24.04 x86_64 GCC, interprocedural optimization, rounding direction preserved'
           cc: 'gcc'
@@ -158,13 +163,14 @@ jobs:
   l2:
     name: 'Ubuntu 24.04 x86_64, GCC, other intervals and AVX-512 (5 configurations)'
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 300
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'Ubuntu 24.04 x86_64 GCC, FPU intervals'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 24.04 x86_64 GCC, FPU intervals'
           cc: 'gcc'
@@ -174,6 +180,7 @@ jobs:
         name: 'Ubuntu 24.04 x86_64 GCC, FPU intervals, rounding direction preserved'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 24.04 x86_64 GCC, FPU intervals, rounding direction preserved'
           cc: 'gcc'
@@ -202,6 +209,7 @@ jobs:
         name: 'Ubuntu 24.04 x86_64 GCC, SSE2 intervals of two doubles'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 24.04 x86_64 GCC, SSE2 intervals of two doubles'
           cc: 'gcc'
@@ -215,6 +223,7 @@ jobs:
         name: 'Ubuntu 24.04 x86_64 GCC, AVX-512 arithmetic'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 24.04 x86_64 GCC, AVX-512 arithmetic'
           cc: 'gcc'
@@ -230,6 +239,7 @@ jobs:
         name: 'Ubuntu 24.04 x86_64 GCC, rounding direction preserved, AVX-512 arithmetic not taken'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 24.04 x86_64 GCC, rounding direction preserved, AVX-512 arithmetic not taken'
           cc: 'gcc'
@@ -260,13 +270,14 @@ jobs:
   l3:
     name: 'Ubuntu 24.04 x86_64, Clang (5 configurations)'
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 300
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'Ubuntu 24.04 x86_64 Clang'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 24.04 x86_64 Clang'
           cc: 'clang'
@@ -275,6 +286,7 @@ jobs:
         name: 'Ubuntu 24.04 x86_64 Clang 14'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 24.04 x86_64 Clang 14'
           cc: 'clang-14'
@@ -288,6 +300,7 @@ jobs:
         name: 'Ubuntu 24.04 x86_64 Clang, rounding direction preserved'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 24.04 x86_64 Clang, rounding direction preserved'
           cc: 'clang'
@@ -297,6 +310,7 @@ jobs:
         name: 'Ubuntu 24.04 x86_64 Clang, FPU intervals, rounding direction preserved'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 24.04 x86_64 Clang, FPU intervals, rounding direction preserved'
           cc: 'clang'
@@ -306,6 +320,7 @@ jobs:
         name: 'Ubuntu 24.04 x86_64 Clang, SSE2 intervals of two doubles, rounding direction preserved'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 24.04 x86_64 Clang, SSE2 intervals of two doubles, rounding direction preserved'
           cc: 'clang'
@@ -336,31 +351,35 @@ jobs:
   l4:
     name: 'Ubuntu 24.04 x86_64, tools and checks of the build (11 configurations)'
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'Self-test of the check of the assembly (Python)'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-asm-order-selftest
+        timeout-minutes: 10
         with:
           desc: 'Self-test of the check of the assembly (Python)'
       - id: c2
         name: 'Check of the assembly of the library'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-asm-order-library
+        timeout-minutes: 30
         with:
           desc: 'Check of the assembly of the library'
       - id: c3
         name: 'Coverage, Ubuntu 24.04 x86_64 GCC'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-coverage
+        timeout-minutes: 60
         with:
           desc: 'Coverage, Ubuntu 24.04 x86_64 GCC'
       - id: c4
         name: 'The 128-bit integer emulated, Ubuntu 24.04 x86_64 gcc'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-u128-emulation
+        timeout-minutes: 30
         with:
           desc: 'The 128-bit integer emulated, Ubuntu 24.04 x86_64 gcc'
           cc: 'gcc'
@@ -369,6 +388,7 @@ jobs:
         name: 'The 128-bit integer emulated, Ubuntu 24.04 x86_64 clang'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-u128-emulation
+        timeout-minutes: 30
         with:
           desc: 'The 128-bit integer emulated, Ubuntu 24.04 x86_64 clang'
           cc: 'clang'
@@ -377,36 +397,42 @@ jobs:
         name: 'Ubuntu 24.04 x86_64 GCC 9, without __builtin_roundeven'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-gcc-9
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 24.04 x86_64 GCC 9, without __builtin_roundeven'
       - id: c7
         name: 'Ubuntu 24.04 x86_64 GCC, GAOL built by FetchContent'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-fetch-content
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 24.04 x86_64 GCC, GAOL built by FetchContent'
       - id: c8
         name: 'Ubuntu 24.04 x86_64 GCC, the FE_* values of Cygwin for CORE-MATH'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-cygwin-fe-values
+        timeout-minutes: 30
         with:
           desc: 'Ubuntu 24.04 x86_64 GCC, the FE_* values of Cygwin for CORE-MATH'
       - id: c9
         name: 'Ubuntu 24.04 x86_64 GCC, GAOL_DEBUG and Ninja Multi-Config'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-build-types
+        timeout-minutes: 30
         with:
           desc: 'Ubuntu 24.04 x86_64 GCC, GAOL_DEBUG and Ninja Multi-Config'
       - id: c10
         name: 'Ubuntu 24.04 x86_64 GCC, CMake 3.14.7'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-cmake-3-14
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 24.04 x86_64 GCC, CMake 3.14.7'
       - id: c11
         name: 'Ubuntu 24.04 x86_64 GCC, cpack_stale_configure with ccache in CC and Ninja outside PATH'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-launcher-ninja
+        timeout-minutes: 15
         with:
           desc: 'Ubuntu 24.04 x86_64 GCC, cpack_stale_configure with ccache in CC and Ninja outside PATH'
       - name: Results of the configurations
@@ -440,13 +466,14 @@ jobs:
   l5:
     name: 'Ubuntu 24.04 arm64, GCC (5 configurations)'
     runs-on: ubuntu-24.04-arm
-    timeout-minutes: 60
+    timeout-minutes: 300
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'Ubuntu 24.04 arm64 GCC'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 24.04 arm64 GCC'
           cc: 'gcc'
@@ -455,6 +482,7 @@ jobs:
         name: 'Ubuntu 24.04 arm64 GCC 11'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 24.04 arm64 GCC 11'
           cc: 'gcc-11'
@@ -467,6 +495,7 @@ jobs:
         name: 'Ubuntu 24.04 arm64 GCC, rounding direction preserved'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 24.04 arm64 GCC, rounding direction preserved'
           cc: 'gcc'
@@ -479,6 +508,7 @@ jobs:
         name: 'Ubuntu 24.04 arm64 GCC, FPU intervals'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 24.04 arm64 GCC, FPU intervals'
           cc: 'gcc'
@@ -488,6 +518,7 @@ jobs:
         name: 'Ubuntu 24.04 arm64 GCC, FPU intervals, rounding direction preserved'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 24.04 arm64 GCC, FPU intervals, rounding direction preserved'
           cc: 'gcc'
@@ -518,13 +549,14 @@ jobs:
   l6:
     name: 'Ubuntu 24.04 arm64, Clang (5 configurations)'
     runs-on: ubuntu-24.04-arm
-    timeout-minutes: 60
+    timeout-minutes: 270
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'Ubuntu 24.04 arm64 Clang'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 24.04 arm64 Clang'
           cc: 'clang'
@@ -533,6 +565,7 @@ jobs:
         name: 'Ubuntu 24.04 arm64 Clang, rounding direction preserved'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 24.04 arm64 Clang, rounding direction preserved'
           cc: 'clang'
@@ -542,6 +575,7 @@ jobs:
         name: 'Ubuntu 24.04 arm64 Clang, FPU intervals'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 24.04 arm64 Clang, FPU intervals'
           cc: 'clang'
@@ -551,6 +585,7 @@ jobs:
         name: 'Ubuntu 24.04 arm64 Clang, FPU intervals, rounding direction preserved'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 24.04 arm64 Clang, FPU intervals, rounding direction preserved'
           cc: 'clang'
@@ -560,6 +595,7 @@ jobs:
         name: 'Ubuntu 24.04 arm64 Clang 14, refused'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-clang-14-arm64
+        timeout-minutes: 30
         with:
           desc: 'Ubuntu 24.04 arm64 Clang 14, refused'
       - name: Results of the configurations
@@ -587,13 +623,14 @@ jobs:
   l7:
     name: 'Ubuntu 26.04 x86_64, GCC (4 configurations)'
     runs-on: ubuntu-26.04
-    timeout-minutes: 60
+    timeout-minutes: 270
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'Ubuntu 26.04 x86_64 GCC'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 26.04 x86_64 GCC'
           cc: 'gcc'
@@ -602,6 +639,7 @@ jobs:
         name: 'Ubuntu 26.04 x86_64 GCC, -Wall -Wextra -Werror'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-warnings
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 26.04 x86_64 GCC, -Wall -Wextra -Werror'
           cc: 'gcc'
@@ -610,6 +648,7 @@ jobs:
         name: 'Ubuntu 26.04 x86_64 GCC, SSE2 intervals of two doubles, -Wall -Wextra -Werror'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-warnings
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 26.04 x86_64 GCC, SSE2 intervals of two doubles, -Wall -Wextra -Werror'
           cc: 'gcc'
@@ -619,6 +658,7 @@ jobs:
         name: 'Ubuntu 26.04 x86_64 GCC Debug ASan+UBSan'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-sanitizers
+        timeout-minutes: 90
         with:
           desc: 'Ubuntu 26.04 x86_64 GCC Debug ASan+UBSan'
           cc: 'gcc'
@@ -650,13 +690,14 @@ jobs:
   l8:
     name: 'Ubuntu 26.04 x86_64, Clang (4 configurations)'
     runs-on: ubuntu-26.04
-    timeout-minutes: 60
+    timeout-minutes: 270
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'Ubuntu 26.04 x86_64 Clang'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 26.04 x86_64 Clang'
           cc: 'clang'
@@ -665,6 +706,7 @@ jobs:
         name: 'Ubuntu 26.04 x86_64 Clang, -Wall -Wextra -Werror'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-warnings
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 26.04 x86_64 Clang, -Wall -Wextra -Werror'
           cc: 'clang'
@@ -673,6 +715,7 @@ jobs:
         name: 'Ubuntu 26.04 x86_64 Clang, SSE2 intervals of two doubles, -Wall -Wextra -Werror'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-warnings
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 26.04 x86_64 Clang, SSE2 intervals of two doubles, -Wall -Wextra -Werror'
           cc: 'clang'
@@ -682,6 +725,7 @@ jobs:
         name: 'Ubuntu 26.04 x86_64 Clang Debug ASan+UBSan'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-sanitizers
+        timeout-minutes: 90
         with:
           desc: 'Ubuntu 26.04 x86_64 Clang Debug ASan+UBSan'
           cc: 'clang'
@@ -713,13 +757,14 @@ jobs:
   l9:
     name: 'Ubuntu 26.04 arm64, GCC and Clang (6 configurations)'
     runs-on: ubuntu-26.04-arm
-    timeout-minutes: 60
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v7
       - id: c1
         name: 'Ubuntu 26.04 arm64 GCC'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 26.04 arm64 GCC'
           cc: 'gcc'
@@ -732,6 +777,7 @@ jobs:
         name: 'Ubuntu 26.04 arm64 GCC, -Wall -Wextra -Werror'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-warnings
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 26.04 arm64 GCC, -Wall -Wextra -Werror'
           cc: 'gcc'
@@ -740,6 +786,7 @@ jobs:
         name: 'Ubuntu 26.04 arm64 GCC Debug ASan+UBSan'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-sanitizers
+        timeout-minutes: 90
         with:
           desc: 'Ubuntu 26.04 arm64 GCC Debug ASan+UBSan'
           cc: 'gcc'
@@ -751,6 +798,7 @@ jobs:
         name: 'Ubuntu 26.04 arm64 Clang'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-cmake
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 26.04 arm64 Clang'
           cc: 'clang'
@@ -759,6 +807,7 @@ jobs:
         name: 'Ubuntu 26.04 arm64 Clang, -Wall -Wextra -Werror'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-warnings
+        timeout-minutes: 60
         with:
           desc: 'Ubuntu 26.04 arm64 Clang, -Wall -Wextra -Werror'
           cc: 'clang'
@@ -767,6 +816,7 @@ jobs:
         name: 'Ubuntu 26.04 arm64 Clang Debug ASan+UBSan'
         if: ${{ !cancelled() }}
         uses: ./.github/actions/linux-sanitizers
+        timeout-minutes: 90
         with:
           desc: 'Ubuntu 26.04 arm64 Clang Debug ASan+UBSan'
           cc: 'clang'

@@ -290,9 +290,10 @@ A job of `linux.yml`, `containers.yml`, `macos.yml`, `windows.yml` and
 `build-systems.yml` is a group of configurations: they run one after the other
 on the same image of runner, so that a pull request lists about sixty checks
 instead of two hundred (GAOL v5). A configuration is a step of the job that
-calls an action of `.github/actions/` (`<workflow>-<job>`: the steps of what
-was a job of its own) with the row of the matrix that job had, and it has the
-name that job had. Where this document says "job" for something that is
+calls an action of `.github/actions/` (`<workflow>-<job>`, and
+`buildsystems-<job>` for `build-systems.yml`: the steps of what was a job of
+its own) with the row of the matrix that job had, and it has the name that job
+had. Where this document says "job" for something that is
 checked (the jobs of `windows.yml` that ask for `/W4 /WX`, for example), it
 means such a configuration.
 
@@ -302,8 +303,9 @@ means such a configuration.
   job again runs all its configurations again.
 - Each action starts by giving its configuration the tree as git has it
   (`git clean`, `git reset --hard`; `sudo chown` first on Linux, the containers
-  writing as root) and a temporary directory without what the previous
-  configurations left in it. What a configuration changes outside of those is
+  writing as root) and a temporary directory from which the names the actions
+  write there (`gaol`, `audit`, `configure.log`...) are removed. What a
+  configuration changes outside of those is
   dealt with where it changes it: the CMake 3.14.7 of `cmake-3-14` is put first
   in the PATH of its own steps only, and `launcher-ninja` puts back the Ninja
   it removes; the MinGW-w64 of Chocolatey replaces the previous one, each
@@ -317,9 +319,14 @@ means such a configuration.
   is come first (the meson of Ubuntu before any `pipx install meson`, the
   archives of the sources before `apt-get install autoconf`, the setup of MSYS2
   before the calls of `ilammy/msvc-dev-cmd`, whose environment grows at each
-  call until the `xargs` of MSYS2 refuses it). Intel SDE is set up by each
+  call until the `xargs` of MSYS2 refuses it; the x86 configurations with the
+  clang of LLVM before the x64 ones, whose call puts the clang of Visual
+  Studio first in PATH). Intel SDE is set up by each
   configuration that runs under it: the action extracts it into the tree,
   which the next configuration cleans.
+- Each configuration keeps on its step the `timeout-minutes` its job had, and
+  the job has their sum (at most the 6 hours GitHub allows): a configuration
+  that hangs is stopped as before, and the ones after it still run.
 - To add a configuration, add a step to the job of the machine it runs on, with
   the name it is to have and the row of its matrix as `with:`. A new kind of
   job is a new action; a configuration longer than the others, or that has to

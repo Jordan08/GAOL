@@ -1,6 +1,6 @@
 # The steps of the job container of build-systems.yml, for one configuration of
 # the group of the job that calls this action (GAOL v5).
-name: build-container
+name: buildsystems-container
 description: The job container of build-systems.yml for one configuration
 inputs:
   build:

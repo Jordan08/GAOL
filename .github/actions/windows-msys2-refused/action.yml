@@ -4,7 +4,7 @@
 # (_UCRT undefined). MINGW32 links it too: its fma() is refused where the
 # build has no -mfma (GAOL_FMA OFF here; with it, the default, MINGW32 is
 # built and tested in build-systems.yml). UCRT64, CLANG64 and CLANGARM64 are
-# built and tested above.
+# built and tested by the configurations of windows-msys2.
 # The steps of the job msys2-refused of windows.yml, for one configuration of
 # the group of the job that calls this action (GAOL v5).
 name: windows-msys2-refused

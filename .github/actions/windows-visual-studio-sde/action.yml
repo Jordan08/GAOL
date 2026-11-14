@@ -1,6 +1,7 @@
 # The AVX-512 path of the arithmetic with Visual C++ and clang-cl, run
 # (GAOL v5): the runners for Windows have no AVX-512 instructions, and the
-# jobs above that ask for the path leave it out there, with a warning. Intel
+# configurations of windows-visual-studio that ask for the path leave it
+# out there, with a warning. Intel
 # SDE emulates a Skylake-X processor, 20 to 100 times as slowly: the
 # configuration is told by hand that the machine runs the instructions
 # (-DGAOL_MACHINE_RUNS_AVX512=1, which CMake takes for the result of its own

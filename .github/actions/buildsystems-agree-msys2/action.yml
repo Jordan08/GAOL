@@ -1,17 +1,13 @@
-# The three builds give GAOL the same configuration (.github/audit)
-# The steps of the job agree of build-systems.yml, for one configuration of
+# The steps of the job agree-msys2 of build-systems.yml, for one configuration of
 # the group of the job that calls this action (GAOL v5).
-name: build-agree
-description: The job agree of build-systems.yml for one configuration
+name: buildsystems-agree-msys2
+description: The job agree-msys2 of build-systems.yml for one configuration
 inputs:
-  cc:
-    description: The key cc of the row of the matrix of the job
-    default: ''
-  cxx:
-    description: The key cxx of the row of the matrix of the job
-    default: ''
   desc:
     description: The key desc of the row of the matrix of the job
+    default: ''
+  msystem:
+    description: The key msystem of the row of the matrix of the job
     default: ''
 runs:
   using: composite
@@ -33,22 +29,17 @@ runs:
         git reset --hard -q
         for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
         test -z "$(git status --porcelain --ignored)"
-    - name: Tools
-      shell: bash -e {0}
-      run: |
-        if [ "$RUNNER_OS" = Linux ]; then
-          sudo apt-get update -q
-          sudo apt-get install -y -q g++ clang cmake make pipx
-        else
-          brew install pipx
-        fi
-        pipx install --force meson
-        pipx install ninja
-        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+    # The environment of MSYS2 of this configuration, which the step of the
+    # group that calls the action chose with MSYSTEM (GAOL v5)
+    - name: The environment of MSYS2 asked for
+      shell: msys2 {0}
+      run: test "$MSYSTEM" = "${{ inputs.msystem }}"
     - name: Configure with the three builds and compare
-      shell: bash -e {0}
+      shell: msys2 {0}
       run: |
-        sh .github/audit/audit.sh audit ${{ inputs.cc }} ${{ inputs.cxx }} . "$RUNNER_TEMP/audit" meson
-        status=0; python3 .github/audit/compare.py --check "$RUNNER_TEMP/audit/audit.json" > agree.md || status=$?
+        export CMAKE_GENERATOR=Ninja
+        out="$(cygpath -m "$RUNNER_TEMP")/audit"
+        sh .github/audit/audit.sh audit gcc g++ . "$out" meson
+        status=0; python3 .github/audit/compare.py --check "$out/audit.json" > agree.md || status=$?
         cat agree.md; cat agree.md >> "$GITHUB_STEP_SUMMARY"
-        sh .github/audit/logs.sh "$RUNNER_TEMP/audit/audit" $status
+        sh .github/audit/logs.sh "$out/audit" $status
