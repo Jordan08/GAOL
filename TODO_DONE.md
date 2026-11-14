@@ -58,8 +58,10 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 ## 1. L'état au 14 novembre 2026
 
 - **`dev`**, la base du développement depuis le 13 novembre (3.38), est au
-  commit `773d6a1` (la fusion de #335 le 14 novembre à 14 h 53 UTC, la tâche PV,
-  après les registres de la tâche PU, `079687e` (7.37), qui suivent la fusion de
+  commit `89cd896` (la fusion de #336 le 14 novembre à 18 h 28 UTC, hors des
+  points : la CI regroupée, après les registres de la tâche PV, `e3acf0a`
+  (7.38), et la fusion de #335 à 14 h 53 UTC, `773d6a1`, la tâche PV, après les
+  registres de la tâche PU, `079687e` (7.37), qui suivent la fusion de
   #334 le 13 novembre à 22 h 09 UTC, `998e61c`, la dernière des douze pull
   requests de la tâche PU, #323 à #334, fusionnées depuis 16 h 43 UTC après les
   registres de ses décisions, `07dca51` (7.36), et ceux de #319, #321 et #322,
@@ -97,11 +99,8 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   requests des corrections vont vers `dev`, la base du développement depuis le
   13 novembre (3.38) ; `master` (GAOL 4.3.2, plus deux commits de
   `.claude/CLAUDE.md`) ne bouge qu'à la version (point Y : `configure-clean` →
-  `master`, *décidé le 12 novembre*, `MATH-CORE` étant supprimée : 3.32). Une
-  pull request est ouverte, vers `dev` : #336 (hors des points : les 207 jobs de
-  la CI regroupés en 59, un job de plus pour l'IPO sur le chemin SSE2, et la
-  correction de `x += d` et des opérations voisines avec `-flto`). Le mainteneur
-  a fusionné #165 à #167, #169 à #174,
+  `master`, *décidé le 12 novembre*, `MATH-CORE` étant supprimée : 3.32). Aucune
+  pull request n'est ouverte. Le mainteneur a fusionné #165 à #167, #169 à #174,
   #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194, #196 et #197 le 25
   octobre, #199, #200 et #201 le 26 octobre, #202 à #205 le 27, #206 à #210,
   #212, #213, #215 et #216 le 28 (#216, hors des points : le tableau des lignes
@@ -165,7 +164,9 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   dans `dev` et #321 dans `configure-clean` (2.3, 3.38 et 7.35), puis les douze
   pull requests de la tâche PU, #323 à #334, de 16 h 43 à 22 h 09 UTC (2.3,
   3.39, 4 et 7.37), puis, le 14 novembre, #335, la tâche PV, à 14 h 53 UTC (2.3,
-  3.40, 4 et 7.38). #168, #195, #211, #214, #221, #226 et #233 sont fermées sans
+  3.40, 4 et 7.38) et #336 (hors des points : les jobs de la CI regroupés, 207
+  en 59, et la correction de `x += d` avec `-flto`) à 18 h 28 UTC (2.3, 3.41 et
+  7.39). #168, #195, #211, #214, #221, #226 et #233 sont fermées sans
   fusion, et, du 30 et du 31 octobre, #240, #241, #243, #244, #246, #247, #251 à
   #261, #277 et #278, puis #286, le « Revert » de #285 fermé onze secondes après
   son ouverture (2.4). Les tâches PA, PB, PC, PD, PE, PF, PG, PI, PL, PP, PS, PU
@@ -3771,6 +3772,90 @@ restent. `c339f23` : le PDF du manuel, 387 pages au lieu de 385 : le PDF commit�
   » dans 72 jobs de `afaa5bc` (CMake, autotools, meson ; x86_64, arm64, armhf,
   i386, ppc64le, s390x, riscv64, musl, manylinux).
 
+- #336 (hors des points de `TODO.md` : réduire le nombre de jobs de la CI sans
+  retirer de vérification ; `ci-grouped-jobs`, ouverte le 14 novembre à 1 h 07
+  UTC, 12 commits, 60 fichiers) : fusionnée par le mainteneur à 18 h 28 UTC
+  (`89cd896`, tête `27f2be2`). Chaque ancien job de `linux.yml`,
+  `containers.yml`, `macos.yml`, `windows.yml` et `build-systems.yml` devient
+  une action composite de `.github/actions/` (46 ; `buildsystems-<job>` pour
+  `build-systems.yml`) ; un job de workflow est un groupe de configurations
+  d'une même image de runner, chacune une étape qui appelle l'action avec la
+  ligne de l'ancienne matrice et le nom de l'ancien job : 207 jobs en 58, puis
+  59 avec le job `l10`. Chaque action commence par rendre à la configuration
+  l'arbre tel que git l'a (`git clean -ffdx`, `git reset --hard`, `sudo chown`
+  sous Linux) et un `$RUNNER_TEMP` sans ce que les actions y écrivent ; les
+  délais sont ceux des anciens jobs sur les étapes (la somme sur le job, 360
+  minutes au plus). Les deux jobs Cygwin sont recopiés. `Makefile.am` met les 46
+  `action.yml` dans `EXTRA_DIST` (« Archives of the sources » : 770 fichiers au
+  lieu de 724). `doc/continuous-integration.md` : la section « Jobs and
+  configurations » ; `process.md` §10. Essais de CI avant d'écrire la migration
+  (branches jetables `experiment-ci-section4`, `experiment-ci-groups`,
+  `experiment-ci-ipo`) : `GITHUB_ENV` et `GITHUB_PATH` passent d'une étape à la
+  suivante, `env:` d'un `uses:` non ; `setup-msys2` refuse une deuxième
+  installation dans un job ; `choco install mingw --force` remplace
+  l'installation précédente ; `setup-sde` extrait dans l'arbre, que `git clean`
+  vide ; `ilammy/msvc-dev-cmd` fait grossir l'environnement (`xargs` de MSYS2 :
+  « environment is too large ») et laisse le clang de Visual Studio x64 en tête
+  du `PATH`, de sorte qu'une configuration x86 qui le suit prenait ce clang
+  (19.1.5) au lieu de celui de LLVM (20.1.8), ce qu'une CI verte ne montrait pas
+  : les configurations x86 passent avant les x64 et une étape de chacune des
+  deux actions clang le vérifie. **La correction du code.** La configuration IPO
+  (`-flto`, GCC 13.3) de `linux.yml`, ajoutée par PU.11, échouait `arithmetic`
+  sur les runners AMD EPYC 7763, sans AVX-512 (`[x]+d` et `[x]-d` aux bornes
+  `±DBL_MAX` : 5240 vérifications sur 7 365 456) ; les machines avec AVX-512
+  prennent le chemin AVX-512, qui n'exécute pas le code fautif. Le bug GCC
+  34678, que `gaol_fpu.h` décrit : avec `-flto` (GCC 12.4, 13.3, 14.2), le
+  chemin SSE2 de `operator+=(double)` et `-=(double)` calcule la somme après le
+  retour à la direction de l'appelant. Reproduit sur l'i7 en Docker (Ubuntu
+  24.04, `-DGAOL_PREFER_AVX512=OFF`). Correction : `d = rnd_reread(d)` après
+  `GAOL_RND_ENTER_SSE()` et `GAOL_RND_KEEP(xmmbounds)` avant
+  `GAOL_RND_LEAVE_SSE()` dans ces deux opérateurs, puis dans `*=(double)`,
+  `/=(double)`, `%=(double)`, `%=(const interval&)` et `divide_general()` (le
+  quotient par un intervalle qui contient 0) (GCC 12.4 échouait `[1]%[3]` aux
+  opérandes littéraux avec le seul premier jeu ; aucun test n'échouait pour
+  `*=`, `/=` et `%=` avec un double ni pour `divide_general()` seuls). Avec
+  elle, GCC 12.4, 13.3 et 14.2 avec `-flto` et le chemin SSE2 passent
+  `arithmetic` et `rounding_direction` (et `other_functions` et
+  `reverse_mappings` avec `divide_general()`), GCC 13.3 les 52 tests d'avant le
+  rebase sur `dev` ; GCC 15 et Clang 20 aussi, avec le stockage non aligné
+  (`GAOL_SSE2_UNALIGNED_STORAGE`), la direction préservée ou non, et Clang 20
+  avec `-flto`. Le job `l10` de `linux.yml`, « Ubuntu 24.04 x86_64 GCC,
+  interprocedural optimization, rounding direction preserved, AVX-512 arithmetic
+  not taken » (la seule configuration que l'ancienne CI n'avait pas, 208 au lieu
+  de 207), prend le chemin SSE2 quelle que soit la machine : sans la correction
+  il échoue (5240), avec elle il passe (sur un Xeon 8573C, puis sur un AMD EPYC
+  7763, la machine qui échouait, `taken: OFF`, 53 tests sur 53 avec ceux de
+  #335). Vitesse (i7-1185G7, `taskset`, 12 séries alternées, la direction
+  préservée, `-DGAOL_PREFER_AVX512=OFF`, un exécutable de mesure lié à
+  `libgaol.a` d'avant et d'après, un témoin copie de l'avant) : GCC 15.2, de
+  +0,0 % (`x + d`) à +2,8 % (`x % y`), dans le bruit des deux copies (jusqu'à
+  2,6 %) ; Clang 20, +9,6 % pour `x + d` et +9,4 % pour `x - d` (8,13 à 8,91
+  ns), de +0,5 % à +3,8 % pour les autres ; `x + y` et `x * y`, qu'elle ne
+  touche pas, à 0,1 % et 0,7 %. Les builds par défaut (le chemin AVX-512, ou la
+  direction non préservée) ne changent pas : `GAOL_RND_KEEP()` y est vide.
+  Rebasée sur `dev` après la fusion de #335, à la demande du mainteneur
+  (`--force-with-lease`) : `.github/` n'avait pas changé dans `dev` depuis
+  `079687e`, de sorte qu'aucune CI n'était à ajouter ; les deux tests de #335,
+  `expressions` et `bad_snprintf`, tournent dans les jobs existants. Le
+  commentaire de `windows-clang-msvc`, faux des x64, dit le clang du LLVM du
+  runner pour x86 et celui de Visual Studio pour x64 (les journaux du run
+  43595282367). Relecteurs : quatre sous-agents sans contexte (les matrices ;
+  les étapes et les fuites d'état ; la couverture ; puis Windows seule). Trouvé
+  et corrigé : le clang x86 ci-dessus (relecture 3), les délais d'un groupe de
+  60 minutes (relectures 1 à 3, les délais des anciens jobs sur les étapes), la
+  garde sur `VSCMD_ARG_TGT_ARCH` qui ne détectait rien (relecture 4, remplacée
+  par un test du chemin du `clang++`). Journaux comparés configuration par
+  configuration aux cinq runs de l'ancienne CI sur `dev` à `e3acf0a` (avec les
+  tests de #335) : 173 sur 207 identiques pour les étapes, les comptes de tests,
+  les lignes du compilateur et le résultat, les autres expliquées
+  (l'installation de MSYS2 faite une fois par job, les gardes ajoutées, «
+  Archives of the sources », une version d'image, une ligne d'`apt`). CI verte,
+  jeu final (Linux 43619058005, containers 43619057983, macOS 43619058038,
+  Autotools and meson 43619057978, Windows 43619058016, Release 43619058008,
+  Performance 43619058067 (tête `27f2be2`)), Windows à sa deuxième tentative
+  dans un jeu précédent (une signature de `pacman` dans `setup-msys2`, avant
+  tout code de GAOL).
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -6772,6 +6857,44 @@ puis, le 14, aux « Questions ouvertes » de la pull request #335 et à d'autres
 
 Fait : #335, fusionnée le 14 novembre à 14 h 53 UTC (2.3, 4 et 7.38).
 
+### 3.41 Le 14 novembre : la CI regroupée, `x += d` avec `-flto` (#336)
+
+Le mainteneur a dit que la CI avait trop de jobs et demandé comment les réduire
+sans retirer de vérification ; la proposition (jobs d'au plus 15 minutes) a été
+vérifiée point par point par des essais de CI, puis migrée, avec trois
+relectures indépendantes de la couverture. Décidé pendant la session, fait par
+#336 :
+
+- un job est un groupe de configurations d'une même image de runner, une
+  configuration une étape qui appelle une action ; une configuration longue ou
+  qui part d'une machine à elle (Cygwin, `Autotools, Clang for Visual C++ x64`,
+  les cinq jobs qemu) reste un job ;
+- `process.md` §10 est mis à jour dans la pull request, les registres après la
+  fusion ; les trois branches d'essai de CI restent jusqu'à la fusion, puis sont
+  supprimées ;
+- la quatrième relecture porte sur Windows seule (un agent) ;
+- l'échec de la configuration IPO sur les EPYC 7763 est étudié tout de suite sur
+  une branche d'essai : la cause est le bug GCC 34678 sur le chemin SSE2 ; la
+  correction et un job qui prend ce chemin à coup sûr entrent dans #336 («
+  ajoute un job dédié et ajoute la correction à la RP #336 ») ;
+- la correction s'étend à `*=`, `/=` et `%=` avec un double et à `%=` entre
+  intervalles (« les ajouter à la PR #336 maintenant ») ; la vitesse est mesurée
+  sur l'i7, avant et après ;
+- après la fusion de #335 : rebaser la branche sur `dev` et vérifier qu'aucune
+  CI n'y a été ajoutée (« Rebase la branche et vérifie qu'aucune CI n'a été
+  ajoutée depuis tes modifs ») ; si `dev` avance encore, ne rien faire à la
+  branche sans l'ordre du mainteneur ;
+- `divide_general()` (le quotient par un intervalle qui contient 0) reçoit lui
+  aussi son `GAOL_RND_KEEP()` dans #336 (« L'ajouter à #336 maintenant »), non
+  dans une pull request à part ; des restes, seul le commentaire inexact de
+  `windows-clang-msvc` entre dans #336 : PW.3 (`pipefail`), PW.4, PW.9 et PW.11
+  restent des points de PW, avec un PW.12 pour les deux configurations de Meson
+  seules dans leur job ;
+- la fusion est celle du mainteneur, en *merge commit* comme #335 ; la session
+  fait alors les registres et supprime les trois branches d'essai de CI.
+
+Fait : #336, fusionnée le 14 novembre à 18 h 28 UTC (2.3 et 7.39).
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -8926,6 +9049,30 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   workflow Manual fini, les autres en attente), dont il porte le code, celui de
   la tête de #335, `0a83a7f`, vert (2.3).
 
+### 7.39 Le 14 novembre au soir (après #336 : les registres)
+
+- Les registres de #336, en un commit direct sur `dev`, depuis GAOL_V9 (propre,
+  sur `dev`) : `TODO.md` (l'en-tête, la liste des pull requests, l'introduction
+  de PW, PW.3, PW.4, PW.9, PW.11, le nouveau PW.12, PY, PZ.2 et PZ, et la
+  table), ce fichier (1, 2.3, 3.41, 7.39 et 8.1), `process.md` (l'en-tête et
+  §12) et l'issue #179. `TODO_AFTER.md` (l'issue #178) n'a rien de nouveau. Les
+  points de PW qui citaient des lignes de `.github/workflows/` citent les
+  actions et les étapes, que la fusion ne déplace pas.
+- La CI : les sept workflows de la tête de #336, `27f2be2`, sont verts (2.3).
+  L'arbre du commit de fusion, `89cd896`, est celui de cette tête (aucune
+  différence), de sorte que la CI de son push n'ajoute rien ; ce commit annule
+  ces runs, encore en file ou en cours au moment du push. Le dernier run complet
+  de `dev` est celui de `e3acf0a` (les registres de 7.38), vert. Comme tout
+  commit de registres sur `dev` depuis #322, celui-ci lance les 59 jobs de la CI
+  (PW.11).
+- L'outillage de la session, hors du dépôt, est gardé dans
+  `/home/jninin/Documents/WORK/DEV/GAOL/GAOL_V9/GAOL_CI_regroupement/` (le
+  générateur `ci_migrate.py`, les vérifications `verify_*.py` et
+  `compare_logs.py`, le journal `NOTES.md`, le corps de la pull request, les
+  brouillons de ces registres, les essais de l'IPO et le banc de la vitesse) ;
+  un changement des workflows regroupés se fait à la main, le générateur ne
+  servant qu'à vérifier que le texte des actions est celui des anciens jobs.
+
 ## 8. Le ménage fait
 
 ### 8.1 Branches, lignes de crédit, outillage
@@ -9202,6 +9349,19 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
 - [x] Celle de #335 (`todo-pv-reader-expressions`), sur GitHub (supprimée à la
   fusion le 14 novembre : `git ls-remote --heads origin` ne la montre plus) et
   dans le clone de la session (`git branch -d`, après le passage sur `dev`).
+
+- [x] Celle de #336 (`ci-grouped-jobs`), sur GitHub (supprimée à la fusion le 14
+  novembre) ; les trois branches d'essai de CI, `experiment-ci-section4` (les
+  shells des étapes composites, les fichiers appartenant à root, MSYS2 avec une
+  seule installation), `experiment-ci-groups` (la migration, avant la pull
+  request) et `experiment-ci-ipo` (la configuration IPO seule, sur plusieurs
+  machines), sur GitHub, à la demande du mainteneur après la fusion (leurs runs
+  et leurs journaux restent) ; dans GAOL_V8, les branches locales
+  `ci-grouped-jobs`, `ci-base-ipo-sse2` (la base des vérifications : `dev` à
+  `079687e` plus la ligne de matrice de l'IPO sur le chemin SSE2, `8e03dd44`),
+  `ci-grouped-jobs-avant-rebase` (la tête d'avant le rebase, `d50f2d44`) et les
+  trois d'essai ; GAOL_V8 est sur `dev`, sans suivi. `git ls-remote --heads
+  origin` ne montre que `configure-clean`, `dev` et `master`.
 
 ### 8.2 Les branches inachevées
 

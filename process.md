@@ -14,8 +14,9 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12, et la façon de faire une version au §13.
-Dernière mise à jour : 14 novembre 2026, au commit `773d6a1` de `dev` (la fusion
-de #335, la tâche PV, après les registres de la tâche PU, `079687e`, et
+Dernière mise à jour : 14 novembre 2026, au commit `89cd896` de `dev` (la fusion
+de #336, la CI regroupée, après celle de #335, la tâche PV, `773d6a1`, et ses
+registres, `e3acf0a`, après les registres de la tâche PU, `079687e`, et
 `998e61c`, la fusion de #334, la dernière des douze pull requests de la tâche
 PU, #323 à #334, après les registres de ses décisions, `07dca51`, ceux de #319,
 #321 et #322, `03f3783`, la fusion de #322, `f7046b9`, les registres de la
@@ -1036,12 +1037,14 @@ git ls-remote --heads origin
   UTC (`998e61c`, `TODO_DONE.md` 2.3, 3.39, 4 et 7.37) ; puis, le 14 novembre,
   #335, la tâche PV (le lecteur et les expressions, six points en une seule pull
   request sur la demande du mainteneur), à 14 h 53 UTC (`773d6a1`,
-  `TODO_DONE.md` 2.3, 3.40, 4 et 7.38) ; l'audit du 13 octobre a
+  `TODO_DONE.md` 2.3, 3.40, 4 et 7.38), puis #336 (hors des points : les jobs de
+  la CI regroupés, 207 en 59, et la correction de `x += d` avec `-flto`) à 18 h
+  28 UTC (`89cd896`, `TODO_DONE.md` 2.3, 3.41 et 7.39) ; l'audit du 13 octobre a
   vérifié dans `configure-clean` ce qu'annonçaient alors les points A, C à H et
   J à V.
-- **En cours** : au 14 novembre, une pull request est ouverte, #336 (hors des
-  points : les jobs de la CI regroupés ; `ci-grouped-jobs`) ; #295 (PS.2 ;
-  `manual-neon-pown-text`), #296 (le cas (b) ; `manual-case-b-text`), #297 (la
+- **En cours** : au 14 novembre au soir, aucune pull request n'est ouverte ;
+  #295 (PS.2 ; `manual-neon-pown-text`), #296 (le cas (b) ;
+  `manual-case-b-text`), #297 (la
   tâche PS ; `todo-ps-stale-texts`), #299 (PQ.2 ; `todo-pq-hexfloat-point`),
   #298 (PQ.1 ; `todo-pq-centered-form`), #300 (la recette de compilation croisée
   de `todo-notes/gcc12-aarch64/` ; `todo-notes-gcc12-aarch64`), #302 (la tâche
@@ -1057,11 +1060,13 @@ git ls-remote --heads origin
   `manual-pj-followups`) et #318 (PJ.7, les restes de la synthèse ;
   `todo-pj7-synthese-leftovers`), #319 (`rewrite-todo-references`), #322
   (`ci-push-dev`), #321 (`release-remove-notes`), #323 à #334 (la tâche PU ;
-  `todo-pu1-periodic-rel` à `todo-pu12-ci-armel`) et #335 (la tâche PV ;
-  `todo-pv-reader-expressions`) sont fusionnées, leurs registres faits ; `dev`
-  est au commit de ces registres (7.38), après `773d6a1`, la fusion de #335,
-  `079687e`, les registres de PU (7.37), `998e61c`, la fusion de #334,
-  `07dca51`, les registres des décisions de PU (7.36), `03f3783`, ceux de #319,
+  `todo-pu1-periodic-rel` à `todo-pu12-ci-armel`), #335 (la tâche PV ;
+  `todo-pv-reader-expressions`) et #336 (la CI regroupée ; `ci-grouped-jobs`)
+  sont fusionnées, leurs registres faits ; `dev` est au commit de ces registres
+  (7.39), après `89cd896`, la fusion de #336, `e3acf0a`, les registres de PV
+  (7.38), `773d6a1`, la fusion de #335, `079687e`, les registres de PU (7.37),
+  `998e61c`, la fusion de #334, `07dca51`, les registres des décisions de PU
+  (7.36), `03f3783`, ceux de #319,
   #321 et #322 (7.35), et `f7046b9`, la fusion de #322, et `configure-clean` à
   `83e2f69`, la fusion de #321, toutes deux après `9d59e0c`, les registres des
   décisions de PJ.3 (7.33), après `0ae1840`, ceux de #318, et `f006421` (la
@@ -1101,9 +1106,12 @@ git ls-remote --heads origin
   #287 (`pown-rel`) et de #288 (`compoundm1`), et `std-exceptions` et
   `revert-285-std-exceptions` depuis le 4 novembre ; celles de #319, #321 et
   #322 sont supprimées à leur fusion, le 13 novembre, comme celles de #323 à
-  #334, et, le 14, celle de #335, et celle de #320 (`release-without-notes`) le
-  12 novembre, à la demande du mainteneur. L'issue #198 (`x / y` des intervalles
-  NEON avec `FPCR.AH`) est ouverte, sans tâche dans `TODO.md` ; #185 est fermée,
+  #334, et, le 14, celles de #335 et de #336 (`ci-grouped-jobs`), et celle de
+  #320 (`release-without-notes`) le 12 novembre, à la demande du mainteneur,
+  avec, le 14 novembre après la fusion de #336, les trois branches d'essai de CI
+  (`experiment-ci-section4`, `experiment-ci-groups` et `experiment-ci-ipo` :
+  `TODO_DONE.md` 8.1). L'issue #198 (`x / y` des intervalles NEON avec
+  `FPCR.AH`) est ouverte, sans tâche dans `TODO.md` ; #185 est fermée,
   le masquage des exceptions de `pow` est gardé. L'issue #177 (`TODO_DONE.md`)
   n'est plus mise à jour (*décidé le 28 octobre*) : GitHub borne le corps d'une
   issue à 262 144 octets et le texte joint en fait plus de 270 000 (voir

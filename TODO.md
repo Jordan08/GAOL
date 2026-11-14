@@ -1,10 +1,14 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `773d6a1` de `dev` (la fusion de #335
-le 14 novembre 2026 à 14 h 53 UTC, la tâche PV, en une seule pull request, après
-les registres de la tâche PU, `079687e` ; `configure-clean` est à `83e2f69`, la
-fusion de #321, sans les notes de travail), et avant au commit `998e61c` de
-`dev` (la fusion de #334 le 13 novembre à 22 h 09 UTC, la dernière des douze
+Ce qui reste à faire sur GAOL v5 au commit `89cd896` de `dev` (la fusion de #336
+le 14 novembre 2026 à 18 h 28 UTC, hors des points : les jobs de la CI
+regroupés, 207 en 59, et la correction de `x += d` et des opérations voisines
+avec `-flto`, après les registres de la tâche PV, `e3acf0a` ; `configure-clean`
+est à `83e2f69`, la fusion de #321, sans les notes de travail), et avant au
+commit `773d6a1` de `dev` (la fusion de #335 le 14 novembre à 14 h 53 UTC, la
+tâche PV, en une seule pull request, après les registres de la tâche PU,
+`079687e`), et avant au commit `998e61c` de `dev` (la fusion de #334 le 13
+novembre à 22 h 09 UTC, la dernière des douze
 pull requests de la tâche PU, #323 à #334, fusionnées depuis 16 h 43 UTC après
 les registres de ses décisions, `07dca51`, et ceux de #319, #321 et #322,
 `03f3783`), et avant au commit `f7046b9` de `dev` (la fusion de #322 à 10 h 53
@@ -38,10 +42,13 @@ l'intervalle contient des solutions (PU.1, #323), et deux threads qui
 affichaient la même expression `-x` plantaient (PU.2, #324) ; une borne est
 peut-être fausse encore pour un programme qui met lui-même `FPCR.AH` sur arm64
 (issue #198 : `x / y` des intervalles NEON, cause non trouvée). Rien n'est à
-envoyer à un autre projet ni à publier sans l'accord du mainteneur. Une pull
-request est ouverte, vers `dev` : #336 (hors des points : les 207 jobs de la CI
-regroupés en 59, un job de plus pour l'IPO sur le chemin SSE2, et la correction
-de `x += d` et des opérations voisines avec `-flto`). #335 (la tâche PV : le
+envoyer à un autre projet ni à publier sans l'accord du mainteneur. Aucune pull
+request n'est ouverte. #336 (hors des points : les 207 jobs de la CI regroupés
+en 59, un job de plus pour l'IPO sur le chemin SSE2, et la correction de `x +=
+d` et des opérations voisines avec `-flto`) est fusionnée dans `dev` le 14
+novembre à 18 h 28 UTC par le mainteneur ; ses registres sont faits
+(`TODO_DONE.md` 2.3, 3.41 et 7.39), et ce qu'elle laisse aux workflows est dans
+PW (PW.3, PW.4, PW.9, PW.11 et PW.12) et PZ (PZ.2). #335 (la tâche PV : le
 lecteur et les expressions, six points en une seule pull request sur la demande
 du mainteneur, et quatre commits qu'il a demandés ensuite) est fusionnée dans
 `dev` le 14 novembre à 14 h 53 UTC par le mainteneur ; ses registres sont faits
@@ -123,7 +130,7 @@ de macOS attendait encore un runner ; leurs registres sont faits ici
 
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
-| PW | Les builds et la CI | PW.1 à PW.11 | M |
+| PW | Les builds et la CI | PW.1 à PW.12 | M |
 | PX | Les tests sans dents | PX.1 à PX.5 | S |
 | PY | Les textes faux hors du manuel, le code mort | PY.1 à PY.12 | M |
 | PZ | Le manuel, `differences.md` et le `ChangeLog` | PZ.1 à PZ.7 | M |
@@ -142,8 +149,10 @@ pull request (`TODO_DONE.md` 2.3 et 3.40). Le rapport, les rapports des
 relecteurs et les programmes de preuve sont hors du dépôt, dans
 `/home/jninin/Documents/WORK/DEV/GAOL/GAOL_review_2026-11-13/` (`rapport.md`).
 Les numéros de ligne sont ceux de `9d59e0c` : au début d'un point, le relire
-contre l'arbre, que PU et PV ont changé. « Démontré » : un programme ou un
-calcul le montre ; « plausible » : raisonné, non montré. Chaque point est une
+contre l'arbre, que PU, PV et #336 ont changé (#336 a mis les étapes des
+workflows dans `.github/actions/`, dont ceux de `.github/workflows/` ne gardent
+que les matrices). « Démontré » : un programme ou un calcul le montre ; «
+plausible » : raisonné, non montré. Chaque point est une
 pull request, avec un test qui a des dents (process.md §5). Les fichiers de
 `.github/workflows/` se poussent par SSH (process.md §10).
 
@@ -163,24 +172,32 @@ pull request, avec un test qui a des dents (process.md §5). Les fichiers de
    lie `libgaol.so` et échoue. Le commentaire des lignes 9 et 10 est faux dans
    ce cas. Un `AM_CONDITIONAL` sur `enable_static`.
 3. **Des étapes de CI qui ne peuvent pas échouer** (important, démontré) :
-   `linux.yml`, ligne 200, `./rounding_direction_pc | tail -1` sans `pipefail`
-   (l'étape n'a pas le `set -o pipefail` de la ligne 188) : l'échec du seul test
-   lié par le `gaol.pc` de CMake est perdu, dans les 26 jobs `cmake` ; de même
-   `compare-performance.py ... | tee -a` (`containers.yml`, lignes 158 et 159 ;
-   `performance.yml`, ligne 305) dans les jobs sans `shell: bash`.
+   `.github/actions/linux-cmake/action.yml`, l'étape « Tests built with the
+   installed GAOL », `./rounding_direction_pc | tail -1` sans `pipefail`
+   (l'étape « Performance », plus haut, a le `set -o pipefail` ; les étapes sans
+   `shell:` des anciens jobs tournent sous `bash -e {0}` dans les actions, pour
+   ne pas changer ce qu'elles font, #336) : l'échec du seul test lié par le
+   `gaol.pc` de CMake est perdu, dans les 29 configurations de `linux-cmake` (26
+   à `9d59e0c`) ; de même `compare-performance.py ... | tee -a`
+   (`.github/actions/containers-control-register-performance/action.yml`, étape
+   « The table » ; `performance.yml`, ligne 305) dans les jobs sans `shell:
+   bash`.
 4. **La locale à virgule et les tests reconstruits, annoncés et non faits**
    (important) : `doc/continuous-integration.md` (lignes 253 à 257) et les
-   en-têtes de `build-systems.yml` (lignes 8 à 11), de `macos.yml` (lignes 4 à
-   6) et de `windows.yml` (lignes 12 à 14) disent que chaque job qui lance les
-   tests vérifie que `numbers` a lu sous une locale à virgule ; ne le vérifient
-   pas `cygwin` (deux jobs de `windows.yml`, un de `build-systems.yml`),
-   `clang-msvc`, `meson-clang-msvc`, `autotools-clang-msvc`, `universal`,
-   `xcode`, `universal-autotools` et `universal-meson`. Les en-têtes de
-   `windows.yml` (lignes 5 à 8) et de `build-systems.yml` (lignes 3 à 7)
-   annoncent des tests reconstruits avec le GAOL installé que `msys2`,
-   `clang-msvc`, `visual-studio-sde` et `meson-clang-msvc` ne font pas. *À
-   décider* : ajouter les vérifications, ou nommer les exceptions, comme Alpine
-   et manylinux.
+   en-têtes de `build-systems.yml`, de `macos.yml` et de `windows.yml` (le
+   paragraphe de la locale `French_France.1252`, « each job ... ») disent que
+   chaque configuration qui lance les tests vérifie que `numbers` a lu sous une
+   locale à virgule ; ne le vérifient pas `cygwin` (deux jobs de `windows.yml`,
+   un de `build-systems.yml`, recopiés tels quels par #336), les actions
+   `windows-clang-msvc`, `buildsystems-meson-clang-msvc`,
+   `buildsystems-autotools-clang-msvc`, `macos-universal`, `macos-xcode`,
+   `macos-universal-autotools` et `macos-universal-meson`. Les en-têtes de
+   `windows.yml` (« builds the tests again with the installed GAOL ») et de
+   `build-systems.yml` (« the tests are built again with each installed GAOL »)
+   annoncent des tests reconstruits avec le GAOL installé que `windows-msys2`,
+   `windows-clang-msvc`, `windows-visual-studio-sde` et
+   `buildsystems-meson-clang-msvc` ne font pas. *À décider* : ajouter les
+   vérifications, ou nommer les exceptions, comme Alpine et manylinux.
 5. **autotools et meson compilent les tests, les exemples et `gaol_bench` avec
    les drapeaux de la bibliothèque** (mineur, démontré) : `configure.ac` (lignes
    796 à 829) et `meson.build` (lignes 333 à 359) donnent à tout `-funroll-loops
@@ -206,12 +223,15 @@ pull request, avec un test qui a des dents (process.md §5). Les fichiers de
    exportée (ligne 1384), réservée à GNU, ne citent que GCC : un programme
    compilé par Clang 21 avec `gaol::gaol` perd cette protection (les bornes
    restent sûres, `round_upward_if_needed()` effaçant les modes).
-9. **Des restes de petite portée** (mineur) : la boucle Rosetta du job
-   `universal` sans `test "$count" -ge 20` (`macos.yml`, lignes 143 à 155) ;
-   `VERSION.txt` lu sans le BOM, `\v` et `\f` que les builds acceptent
-   (`release.yml`, lignes 82 et 151 ; `build-systems.yml`, ligne 826) ; le job
-   « CMake 3.14.7 » ne vérifie pas la version qui tourne (`linux.yml`, lignes
-   386 à 395) ; `CPACK_GENERATOR "TGZ;DEB"` sur tout Linux, même sans `dpkg`
+9. **Des restes de petite portée** (mineur) : la boucle Rosetta de l'action
+   `macos-universal` sans `test "$count" -ge 20` ; `VERSION.txt` lu sans le BOM,
+   `\v` et `\f` que les builds acceptent (`release.yml`, lignes 82 et 151 ; les
+   étapes « VERSION.txt with a byte order mark and the line ends of Windows »
+   des actions `buildsystems-autotools`, `buildsystems-meson` et
+   `buildsystems-msys2`) ; l'action `linux-cmake-3-14` ne vérifie pas la version
+   qui tourne (l'étape « CMake 3.14.7 » ; #336 a mis le `PATH` de CMake 3.14.7
+   dans chacune de ses étapes, `cmake --version` y est lancé une fois) ;
+   `CPACK_GENERATOR "TGZ;DEB"` sur tout Linux, même sans `dpkg`
    (`CMakeLists.txt`, lignes 1593 et 1594, plausible) ; les versions Mach-O de
    la dylib de libtool (6 et 6.0) contre 5.0.0 avec CMake et meson
    (`configure.ac`, ligne 156, plausible, non essayé sous macOS) ; `meson dist`
@@ -236,12 +256,17 @@ pull request, avec un test qui a des dents (process.md §5). Les fichiers de
     vide après l'en-tête (`elementary_values.h`, `extended_precision_values.h`
     et `compoundm1_values.h`, retouchés par `afd838a`, #307) : régénérer les
     tables ou corriger les scripts.
-11. **Un commit de registres sur `dev` lance toute la CI** (de #322) : depuis
-    le 13 novembre, un push sur `dev` lance les workflows, environ 200 jobs,
-    même pour un commit qui ne change que `TODO.md`, `TODO_DONE.md`,
+11. **Un commit de registres sur `dev` lance toute la CI** (de #322) : depuis le
+    13 novembre, un push sur `dev` lance les workflows, 59 jobs depuis #336 (207
+    avant), même pour un commit qui ne change que `TODO.md`, `TODO_DONE.md`,
     `TODO_AFTER.md`, `process.md`, `STEP.md` ou `todo-notes/`. *À décider* : un
     `paths-ignore` de ces fichiers sur le push des six workflows (non fait par
-    #322).
+    #322 ni par #336).
+12. **Deux configurations de Meson seules dans leur job** (mineur, *à décider*,
+    relevé par #336) : `Meson, Visual Studio 2026 x64` et `Meson, Visual Studio
+    2026 arm64` (`build-systems.yml`, 2,4 minutes chacune) sont seules dans leur
+    job faute d'autre configuration de leur image dans ce workflow ; elles
+    pourraient rejoindre un groupe de `windows.yml`.
 
 ## PX. Les tests sans dents [S]
 
@@ -366,8 +391,8 @@ est dans PZ. Aucun point ne change une borne.
    de CORE-MATH), ligne 51 (`check-gcc-windows-fma.sh` exige aussi des
    `vfmadd`), ligne 53, comme `.github/scripts/sde-tests.sh` (ligne 3) : « the
    runners of GitHub for Windows have none » contredit
-   `continuous-integration.md` (lignes 88 à 91) et `windows.yml` (lignes 9 à
-   11) ; `tests/tools/pow/README.md` (lignes 215 à 217 : le mutant
+   `continuous-integration.md` (lignes 88 à 91) et l'en-tête de `windows.yml` ;
+   `tests/tools/pow/README.md` (lignes 215 à 217 : le mutant
    `pown-square-bound` n'existe plus ; ligne 170 : 48 mutants, quand la liste en
    a 106) ; `tests/tools/arith/README.md` (ligne 24 : 23 nombres, quand
    `diffarith.cpp` prend 29 bornes) ; `doc/compare/code/README.md`, lignes 171 à
@@ -484,10 +509,11 @@ corrections se reportent ici ; celles de PU et de PV, faites, sont aux points 3,
    même chapitre (lignes 1377 et 1378 : `cos` 1,44, `sin` 1,39, `log` 1,56,
    `pow(x, 3)` 3,1).
 2. **Le chapitre 14** (important) : lignes 1458 à 1461, 1469 et 1470, cinq jobs
-   `-Wall -Wextra -Werror` (sept : six de `linux.yml`, lignes 303 à 312, et un
-   de `macos.yml`) ; lignes 1455 et 1456, deux jobs
-   `GAOL_SSE2_UNALIGNED_STORAGE` (quatre) ; lignes 1270 à 1279, `release.yml`
-   manque parmi les exceptions des déclencheurs (et `manual.yml` dans
+   `-Wall -Wextra -Werror` (sept : six configurations de `linux.yml`, les jobs
+   `l7`, `l8` et `l9`, et une de `macos.yml`) ; lignes 1455 et 1456, deux jobs
+   `GAOL_SSE2_UNALIGNED_STORAGE` (quatre configurations) ; lignes 1270 à 1279,
+   `release.yml` manque parmi les exceptions des déclencheurs (et `manual.yml`
+   dans
    `doc/continuous-integration.md`) ; lignes 87 et 88, 520 et 521 (45
    vérifications de `static_initialization` : 44) ; lignes 440, 478 et 697 (66,
    96 et 1 969, comme PY.3).
@@ -563,7 +589,8 @@ corrections se reportent ici ; celles de PU et de PV, faites, sont aux points 3,
    breaks the bounds », « which the three builds keep away from CORE-MATH
    alone »), comme
    `doc/three-builds.md` par #325 et #333 (GCC 13.3 et 15.2 passent avec la LTO,
-   qu'un job de `linux.yml` construit) ; la liste « No macro of the compiler
+   que deux configurations de `linux.yml` construisent, avec le chemin AVX-512
+   et avec le chemin SSE2, #336) ; la liste « No macro of the compiler
    shows the following options » (lignes 243 à 268) et `15_migration.tex`
    (lignes 1602 à 1606), comme `doc/three-builds.md` par #330 ; l'arrêt de
    `init()` quand le sens réglé vers le haut n'arrondit pas vers le haut, sur
