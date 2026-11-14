@@ -37,9 +37,14 @@ GAOL_TESTS = arithmetic elementary rounding_direction numbers other_functions \
 	relations reverse_mappings trigonometric intervalf interval2f
 # The rounding direction after the automatic cleanup of GAOL, read by a
 # function registered in a constructor of priority 101, which ELF runs before
-# GAOL initializes itself
+# GAOL initializes itself; and the bounds written with a snprintf() that
+# writes wrong digits, which the link of bad_snprintf gives, by -Wl,--wrap, to
+# the calls of the static libgaol: the functions of the test replace
+# snprintf() and __snprintf_chk(), which the fortified calls of the C library
+# of GNU reach (GAOL v5)
 if HOST_LINUX
-GAOL_TESTS += automatic_cleanup
+GAOL_TESTS += automatic_cleanup bad_snprintf
+bad_snprintf_LDFLAGS = $(AM_LDFLAGS) -Wl,--wrap=snprintf -Wl,--wrap=__snprintf_chk
 endif
 
 # fast_math_link: -ffast-math to its link only, its source being compiled as

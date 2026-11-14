@@ -583,6 +583,29 @@ which `numbers` checks there too.
   initializes itself in the initialization of the static objects, so that it
   runs after GAOL's automatic cleanup: the priorities of constructors are those
   of ELF, and GAOL is linked statically, as the CMake build makes it.
+- **`bad_snprintf`** (Linux, with a static `libgaol`): a bound of an interval
+  is written from the text `snprintf()` gives of the double, whose last digit
+  GAOL moves until the number is on the side of the interval, and the
+  `msvcrt.dll` of Windows, which MinGW-w64 calls for `snprintf()`, writes no
+  more than 17 significant digits right and zeros after: a bound of 20 digits
+  or more stayed on the wrong side, inside the interval, after the four moves.
+  The link of the test (`-Wl,--wrap=snprintf -Wl,--wrap=__snprintf_chk`, given
+  by `CMakeLists.txt`, `Makefile.am` and `meson.build` to this test alone)
+  sends the calls of the static library to functions that call the C library,
+  round the number to 17 significant digits and replace the following ones by
+  zeros, as `msvcrt.dll` does (`0.1` is `0.10000000000000001000`). The 264
+  intervals from x to the double above it, for 11 doubles of both signs, in the
+  three formats and with 17, 20, 25 and 30 digits, are written with the C
+  library right, then with it wrong, and each bound is read back by
+  `gaol::textToInterval`: the lower one has to be at most x, and the upper one
+  at least the double above. With the code before the fix, 202 of the 528
+  bounds written with the wrong `snprintf()` were on the wrong side (92 lower
+  ones and 110 upper ones: the rounding of the 17th digit puts the number above
+  the double or below it), and none of those written with the right one. The
+  test is skipped (exit status 77) where the functions of the test are not
+  called: a shared library is out of the reach of the linker, and Clang with
+  `_FORTIFY_SOURCE` has the library call `__vsnprintf_chk()`, which is not
+  wrapped (GAOL v5).
 - **`static_initialization`:** about 40 operations computed before `main()`, in
   the initialization of a static object of the program, have to give the
   intervals they give in `main()`, bit for bit: the constants of intervals
