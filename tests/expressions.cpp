@@ -548,6 +548,10 @@ namespace
     refused("logp1(0)");
     refused("roundTiesToEven(1)");
     refused("add(1,2)");
+    refused("cancelMinus([1,5],[0,2])");
+    refused("cancelPlus([1,5],[0,2])");
+    refused("intersection([1,3],[2,4])");
+    refused("convexHull([1,2],[3,4])");
     /* An error stops the reading: each literal set the flag of success again,
        and this string gave [-oo, +oo] (GAOL v5) */
     refused("[nth_root(8,1.5)]+[1,2]");

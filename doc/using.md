@@ -520,9 +520,10 @@ standard:
   not in c; the hull of u and v is `mulRev(b, c)` (GAOL v5);
 - `textToInterval` reads the names of the functions of the standard, those of
   Tables 9.1 and 10.5 that GAOL provides (`pown([2,5],5)`, `rootn(x,3)`,
-  `sinPi(x)`, `logp1(x)`...), `pow` being the pow of Table 9.1, and returns the
-  empty set for a string that is no interval, a name of GAOL alone
-  (`nth_root`, `cbrt`, `log1p`...), a wrong call (`pown([2,5],2.5)`) and a
+  `sinPi(x)`, `logp1(x)`...) and `cancelMinus`, `cancelPlus`, `intersection`
+  and `convexHull` (10.5.6, 10.5.7), `pow` being the pow of Table 9.1, and
+  returns the empty set for a string that is no interval, a name of GAOL alone
+  (`nth_root`, `cbrt`, `log1p`, `erf`, `hull`...), a wrong call (`pown([2,5],2.5)`) and a
   string holding a NUL character included, with or without exceptions; it
   lets `std::bad_alloc` through. `gaol::textToInterval`, which
   replaces the constructor `interval(const char*)` of GAOL 4, reads the names

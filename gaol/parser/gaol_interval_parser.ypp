@@ -603,8 +603,10 @@ static const gaol_function gaol_functions[] = {
 };
 
 /* The names of IEEE 1788-2015: the functions of Tables 9.1 and 10.5 that
-   GAOL provides, as gaol_ieee1788 names them. pow is the pow of Table 9.1,
-   pown(x, p) the power with an integer exponent, rootn(x, q) the root */
+   GAOL provides, as gaol_ieee1788 names them, and the cancellative and set
+   operations of 10.5.6 and 10.5.7: cancelMinus(x, y), cancelPlus(x, y),
+   intersection(x, y) and convexHull(x, y) (GAOL v5). pow is the pow of Table
+   9.1, pown(x, p) the power with an integer exponent, rootn(x, q) the root */
 static const gaol_function ieee1788_functions[] = {
   GAOL_F1("neg", ::gaol_ieee1788::neg), GAOL_F2("add", ::gaol_ieee1788::add),
   GAOL_F2("sub", ::gaol_ieee1788::sub), GAOL_F2("mul", ::gaol_ieee1788::mul),
@@ -636,6 +638,8 @@ static const gaol_function ieee1788_functions[] = {
   GAOL_F1("tanPi", ::gaol_ieee1788::tanPi), GAOL_F1("asinPi", ::gaol_ieee1788::asinPi),
   GAOL_F1("acosPi", ::gaol_ieee1788::acosPi), GAOL_F1("atanPi", ::gaol_ieee1788::atanPi),
   GAOL_F2("atan2Pi", ::gaol_ieee1788::atan2Pi),
+  GAOL_F2("cancelMinus", ::gaol_ieee1788::cancelMinus), GAOL_F2("cancelPlus", ::gaol_ieee1788::cancelPlus),
+  GAOL_F2("intersection", ::gaol_ieee1788::intersection), GAOL_F2("convexHull", ::gaol_ieee1788::convexHull),
 };
 
 // The letter c in lower case, if it is an ASCII capital, whatever the locale

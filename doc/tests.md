@@ -971,9 +971,12 @@ which `numbers` checks there too.
   `[0,]`, read as `[0, +oo]`, then a point with its two bounds, `[-2,5, -2,5]`,
   which the reader refused). `textToInterval` has to read each name of
   Tables 9.1 and 10.5 as the function of that name, in any case of letters,
-  `pow([-4,-1],2)` being the empty set, and to give the empty set for the
-  names of GAOL alone (`nth_root`, `cbrt`, `log1p`...) and the calls that are
-  wrong, where `gaol::textToInterval` reads the names of GAOL (GAOL v5).
+  `pow([-4,-1],2)` being the empty set, and `cancelMinus`, `cancelPlus`,
+  `intersection` and `convexHull` (10.5.6, 10.5.7) with the exact bounds
+  written apart from the functions, and to give the empty set for the names
+  of GAOL alone (`nth_root`, `cbrt`, `log1p`, `erf`, `hull`...) and the calls
+  that are wrong, where `gaol::textToInterval` reads the names of GAOL
+  (GAOL v5).
   `mulRevToPair(b, c)` has to be the pair of 10.5.5, the part below first,
   `(u, empty)` for one part and two empty sets for none (GAOL v5):
   tight on cases whose parts have exact bounds and on thirds, against exact
@@ -1266,7 +1269,7 @@ which `numbers` checks there too.
   `x/(y*z)` with its `/` and `(-2)^2` with its parentheses (GAOL v5).
   Every function of GAOL has to be read under its name, those the reader did
   not know included (`exp10`, `hypot`, `compoundm1`, `sinpi`, `fma`...), the names of IEEE
-  1788-2015 alone (`pown`, `rootn`, `recip`...) and the calls with a wrong
+  1788-2015 alone (`pown`, `rootn`, `recip`, `cancelMinus`...) and the calls with a wrong
   number of arguments have to be refused, and `gaol::textToInterval` has to
   read the names of GAOL, and with two strings to take the left bound of the
   first and the right bound of the second. The names have to be read in any
