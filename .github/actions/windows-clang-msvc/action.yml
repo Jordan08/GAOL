@@ -40,14 +40,16 @@ runs:
     - uses: ilammy/msvc-dev-cmd@v1
       with:
         arch: ${{ inputs.arch }}
-    # The architecture of the environment of Visual C++ is the one of this
-    # configuration, whatever the previous ones of the job asked for: the
-    # clang of Visual Studio for x64 stays in PATH, and an x86 build would
-    # take it instead of the clang of LLVM (GAOL v5)
-    - name: The environment of Visual C++ asked for
+    # The clang of an x86 configuration is the one of LLVM: the call of
+    # ilammy/msvc-dev-cmd of an x64 configuration of the job leaves the clang of
+    # Visual Studio for x64 first in PATH, and the call of an x86 one does not
+    # remove it (GAOL v5)
+    - name: The clang of the architecture asked for
       shell: pwsh
       run: |
-        if ($env:VSCMD_ARG_TGT_ARCH -ne '${{ inputs.arch }}') { Write-Output "VSCMD_ARG_TGT_ARCH is $env:VSCMD_ARG_TGT_ARCH"; exit 1 }
+        $clang = (Get-Command clang++).Source
+        Write-Output $clang
+        if ('${{ inputs.arch }}' -eq 'x86' -and $clang -like '*\Llvm\x64\*') { Write-Output 'the clang of Visual Studio for x64 is first in PATH'; exit 1 }
     - name: Configure
       shell: pwsh
       run: |

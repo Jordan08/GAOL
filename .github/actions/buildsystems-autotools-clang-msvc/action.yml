@@ -34,14 +34,6 @@ runs:
     - uses: ilammy/msvc-dev-cmd@v1
       with:
         arch: x64
-    # The architecture of the environment of Visual C++ is the one of this
-    # configuration, whatever the previous ones of the job asked for: the
-    # clang of Visual Studio for x64 stays in PATH, and an x86 build would
-    # take it instead of the clang of LLVM (GAOL v5)
-    - name: The environment of Visual C++ asked for
-      shell: pwsh
-      run: |
-        if ($env:VSCMD_ARG_TGT_ARCH -ne 'x64') { Write-Output "VSCMD_ARG_TGT_ARCH is $env:VSCMD_ARG_TGT_ARCH"; exit 1 }
     - uses: msys2/setup-msys2@v2
       with:
         msystem: MSYS

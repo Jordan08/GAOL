@@ -321,7 +321,9 @@ means such a configuration.
   before the calls of `ilammy/msvc-dev-cmd`, whose environment grows at each
   call until the `xargs` of MSYS2 refuses it; the x86 configurations with the
   clang of LLVM before the x64 ones, whose call puts the clang of Visual
-  Studio first in PATH). Intel SDE is set up by each
+  Studio first in PATH, and which a step of the clang configurations checks:
+  an x86 one fails if the `clang++` it finds is the one of Visual Studio for
+  x64). Intel SDE is set up by each
   configuration that runs under it: the action extracts it into the tree,
   which the next configuration cleans.
 - Each configuration keeps on its step the `timeout-minutes` its job had, and
