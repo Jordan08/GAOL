@@ -39,7 +39,8 @@ GAOL v5). The badges of
   `-Ddefault_library=shared`: the static library is the default of the three
   builds, GAOL v5), and with the interprocedural optimization
   (`-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON`, GCC of Ubuntu 24.04, the rounding
-  direction preserved), which GAOL neither offers nor refuses (see
+  direction preserved, and again with the arithmetic on the SSE2 path, in a job
+  of its own, whatever the runner has), which GAOL neither offers nor refuses (see
   [Three builds](three-builds.md#interprocedural-optimization-is-not-offered),
   GAOL v5); the test `automatic_configuration` configures GAOL several
   times, with the settings of a user and of a developer and in a

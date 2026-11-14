@@ -674,8 +674,9 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
 - **Les jobs sont des groupes de configurations** (#336, 14 novembre 2026).
   Dans `linux.yml`, `containers.yml`, `macos.yml`, `windows.yml` et
   `build-systems.yml`, un job est un groupe de configurations qui se suivent sur
-  la même image de runner : 58 jobs, au lieu des 207 que listait une pull
-  request. Une configuration est une étape du job, qui appelle une action
+  la même image de runner : 59 jobs, au lieu des 207 que listait une pull
+  request (208 configurations : l'IPO avec le chemin SSE2, dans un job à elle,
+  est nouvelle). Une configuration est une étape du job, qui appelle une action
   composite de `.github/actions/` (`<workflow>-<job>`, `buildsystems-<job>` pour
   `build-systems.yml`) avec la ligne de matrice de l'ancien job, et porte le nom
   de cet ancien job. Dans la suite, « job » dit « configuration » quand il s'agit
@@ -705,7 +706,8 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
 - **Les workflows** (`.github/workflows/`, décrits dans
   `doc/continuous-integration.md`) :
   - `linux.yml` : GCC et Clang, sanitizers, CMake 3.14, GCC 9, GAOL inclus
-    par FetchContent, jobs `warnings` en `-Werror` ;
+    par FetchContent, l'IPO (`-flto`) sur les chemins AVX-512 et SSE2, jobs
+    `warnings` en `-Werror` ;
   - `containers.yml` : Debian, manylinux, Alpine, qemu ;
   - `macos.yml` : dont un job AppleClang en `-Werror` et les sanitizers ;
   - `windows.yml` : Visual Studio 2022 et 2026, clang-cl, MinGW-w64, MSYS2, et
@@ -765,7 +767,7 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
     lancer les autres workflows) se fait par un workflow à part qui se lance par
     `on: push: branches: [<la branche>]` : un push vers une branche autre que
     `master`, `configure-clean` et `dev` ne lance que les workflows qui la
-    nomment, ni pull request ni les 58 jobs des autres. Exemple :
+    nomment, ni pull request ni les 59 jobs des autres. Exemple :
     `.github/workflows/experiment-fpu-simd.yml` sur la branche jetable
     `experiment-pj-vs-fpu`, jamais fusionnée, supprimée ensuite (#317, run
     43264694580) ;

@@ -378,7 +378,9 @@ passed): `operator+=(double)` and `operator-=(double)` computed their sum after
 the change of rounding direction that gives the caller's back, in the caller's
 direction (GCC bug 34678, as above), and now keep it before: GCC 13.3 and
 14.2 then pass, and GCC 12.4 still fails the three checks of `[1]%[3]` with
-literal operands. The other compilers and versions were not tried with it.
+literal operands. A job of `linux.yml` builds it with the SSE2 path whatever the
+runner is (GCC 13.3, `-DGAOL_PREFER_AVX512=OFF`). The other compilers and
+versions were not tried with it.
 
 It is not refused either: the standard settings of the tools reach the
 sources of GAOL, `CMAKE_INTERPROCEDURAL_OPTIMIZATION` of CMake, given to GAOL
