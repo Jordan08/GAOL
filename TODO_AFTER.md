@@ -378,6 +378,26 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    l'a fait pour N1 M, dont la mesure n'a montré aucun gain sur l'i7-1185G7
    (`TODO_DONE.md` 7.25). Non mesuré, non demandé. *À rouvrir* si une mesure
    montre un gain, ou si le banc a une ligne de ce cas.
+10. **`CPACK_GENERATOR "TGZ;DEB"` sans `dpkg`** (PW.9, #345). Le point disait
+    que CPack écrirait un `.deb` pour un mauvais processeur sur un Linux sans
+    `dpkg` : non reproduit, `cpack -G DEB` de CMake 4.2 écrit
+    `libgaol-dev_5.0.0_amd64.deb` avec un PATH sans `dpkg`. CMake 3.14, le plus
+    ancien que le build prend, n'est pas essayé. *À rouvrir* si un `.deb` sort
+    avec une architecture fausse.
+11. **Les configurations sous Intel SDE ne contrôlent ni la locale à virgule ni
+    les tests reconstruits** (PW.4, #340, *décidé le 14 novembre* : exceptions
+    nommées dans `doc/continuous-integration.md`). `sde-tests.sh` lance les
+    programmes un à un sous émulation, et les configurations voisines sans SDE,
+    avec le même compilateur, contrôlent la locale et reconstruisent les tests.
+    *À rouvrir* si un défaut de la locale ou de l'installation n'apparaît que
+    sous SDE.
+12. **`GAOL_PREFER_AVX512=ON` et les tables de `pow_rel` et de `reverse`**
+    (restes de PW.6 et de PW.10, #342 et #346). L'audit des trois builds ne
+    configure pas `GAOL_PREFER_AVX512=ON` sans `GAOL_PRESERVE_ROUNDING` : c'est
+    une erreur là où aucun compilateur ne prend le chemin AVX-512.
+    `tests/pow_rel_values.py` et `tests/reverse_values.py` ont échoué sans
+    argument (`IndexError`) : leurs tables n'ont pas été comparées à leur
+    générateur. *À reprendre* si l'on veut ces deux contrôles.
 
 ## 4. En attente de matériel ou d'un environnement qui manque
 
@@ -512,6 +532,20 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
     sur une machine sans FMA ni AVX-512 (l'i7-1185G7 a les deux : la CI couvre
     le reste), et les cibles `make coverage` et `ninja gaol-coverage` sous macOS
     et sous Windows.
+13. **Clang 19 et `-mno-daz-ftz`** (PW.8, #344). `gaol::gaol` donne l'option à
+    un programme compilé par Clang 20 et plus (essayés : 20 et 21 ; 18 la
+    refuse). L'option est entrée dans LLVM le 25 avril 2024 (PR #80475) : Clang
+    19 l'a sans doute, mais il n'est pas sur la machine. *À reprendre* avec un
+    Clang 19 : essayer `clang++-19 -mno-daz-ftz`, puis abaisser le seuil de
+    l'expression exportée de `CMakeLists.txt` à 19.
+14. **`timeout` de `make check` sous Windows et sur le macOS de la CI**
+    (PW.7, #343). `configure` prend le premier `timeout` du `PATH` : un shell de
+    Windows qui aurait le `timeout.exe` de Windows avant celui de coreutils le
+    prendrait à tort (les shells de MSYS2 et de Cygwin des jobs ont `/usr/bin`
+    en tête : non vérifié), et les jobs autotools de macOS installent coreutils
+    pour avoir `gtimeout` (la CI de `ebf2efd` le dira). `numbers` a pris de 146
+    à plus de 400 s sur le macOS Intel : si une limite de 300 s y échoue,
+    relancer, puis relever `GAOL_TEST_TIMEOUT`. *À surveiller.*
 
 ## 5. Une limite connue, documentée, sans décision de la lever
 

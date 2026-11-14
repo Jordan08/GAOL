@@ -1,40 +1,43 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `89cd896` de `dev` (la fusion de #336
-le 14 novembre 2026 à 18 h 28 UTC, hors des points : les jobs de la CI
-regroupés, 207 en 59, et la correction de `x += d` et des opérations voisines
-avec `-flto`, après les registres de la tâche PV, `e3acf0a` ; `configure-clean`
-est à `83e2f69`, la fusion de #321, sans les notes de travail), et avant au
-commit `773d6a1` de `dev` (la fusion de #335 le 14 novembre à 14 h 53 UTC, la
-tâche PV, en une seule pull request, après les registres de la tâche PU,
-`079687e`), et avant au commit `998e61c` de `dev` (la fusion de #334 le 13
-novembre à 22 h 09 UTC, la dernière des douze
-pull requests de la tâche PU, #323 à #334, fusionnées depuis 16 h 43 UTC après
-les registres de ses décisions, `07dca51`, et ceux de #319, #321 et #322,
-`03f3783`), et avant au commit `f7046b9` de `dev` (la fusion de #322 à 10 h 53
-UTC, après les registres de la relecture du 13 novembre et la fusion de #319,
-`45efbd1`), et avant au commit `9d59e0c` de `dev` et de `configure-clean` (les
-décisions de PJ.3, après `0ae1840` et la fusion de #318, `f006421`, la tâche
-PJ.7, le 12 novembre 2026 à 19 h 56 UTC, après celle de #317, la suite de #316,
-à 17 h 31 UTC, après celle de #316, la tâche PJ.2, à 15 h 30 UTC, après celle de
-#315, la tâche PJ.1, à 15 h 20 UTC, le commit direct `7745279`, la fusion de
-#314, hors des points, à 12 h 42 UTC, celle de #313, hors des points, à 12 h 31
-UTC, le commit direct `7528253`, la fusion de #312, hors des points, à 7 h 53
-UTC, le commit direct `f27c6c2`, celle de #309, hors des points, le 11 novembre
-à 22 h 16 UTC, le commit direct `be73e24` et celles de #311, de #310 et de #308,
-hors des points, de #307 et de #306, hors des points, de #305, hors des points,
-de #302, la tâche PP, de #304 et de #303, les registres de la tâche PT, de #301,
-la tâche PT, de #300, hors des points, de #298, de #299, de #297, de #296 et de
-#295, de #294, le manuel dans le style de la thèse, et de #292, de #293, #291,
-#290 et #289), en tâches PW à PZ (les constats de la relecture complète du 13
-novembre), PH et PJ (PA à PG, PI, PL, PP, PQ, PS, PT, PU et PV sont faites, PK
-et PM sont closes sans code : voir `TODO_DONE.md`). Ce fichier et l'issue #179
-ont le même contenu. Ce qui est fait et décidé est dans `TODO_DONE.md` (l'issue
-#177 n'est plus mise à jour), ce qui est reporté dans `TODO_AFTER.md` (issue
-#178). Les anciennes issues #49 et #142 sont fermées, et `TODO_mistral.md` est
-supprimé, comme `TODO_fin.md` : ses articles sont répartis dans les trois
-registres, dont les tâches PS (faite par #297), PT (faite par #301 :
-`TODO_DONE.md` 3.25) et PP (faite par #302 : `TODO_DONE.md` 2.3 et 7.25).
+Ce qui reste à faire sur GAOL v5 au commit `ebf2efd` de `dev` (la fusion de #349
+le 14 novembre à 22 h 18 UTC, la dernière des treize pull requests de la tâche
+PW, #337 à #349, fusionnées de 21 h 01 à 22 h 18 UTC après les registres
+de #336, `8780a1c`), et avant au commit `89cd896` de `dev` (la fusion de #336 le
+14 novembre 2026 à 18 h 28 UTC, hors des points : les jobs de la CI regroupés,
+207 en 59, et la correction de `x += d` et des opérations voisines avec `-flto`,
+après les registres de la tâche PV, `e3acf0a` ; `configure-clean` est à
+`83e2f69`, la fusion de #321, sans les notes de travail), et avant au commit
+`773d6a1` de `dev` (la fusion de #335 le 14 novembre à 14 h 53 UTC, la tâche PV,
+en une seule pull request, après les registres de la tâche PU, `079687e`), et
+avant au commit `998e61c` de `dev` (la fusion de #334 le 13 novembre à 22 h 09
+UTC, la dernière des douze pull requests de la tâche PU, #323 à #334, fusionnées
+depuis 16 h 43 UTC après les registres de ses décisions, `07dca51`, et ceux
+de #319, #321 et #322, `03f3783`), et avant au commit `f7046b9` de `dev` (la
+fusion de #322 à 10 h 53 UTC, après les registres de la relecture du 13 novembre
+et la fusion de #319, `45efbd1`), et avant au commit `9d59e0c` de `dev` et de
+`configure-clean` (les décisions de PJ.3, après `0ae1840` et la fusion de #318,
+`f006421`, la tâche PJ.7, le 12 novembre 2026 à 19 h 56 UTC, après celle
+de #317, la suite de #316, à 17 h 31 UTC, après celle de #316, la tâche PJ.2, à
+15 h 30 UTC, après celle de #315, la tâche PJ.1, à 15 h 20 UTC, le commit direct
+`7745279`, la fusion de #314, hors des points, à 12 h 42 UTC, celle de #313,
+hors des points, à 12 h 31 UTC, le commit direct `7528253`, la fusion de #312,
+hors des points, à 7 h 53 UTC, le commit direct `f27c6c2`, celle de #309, hors
+des points, le 11 novembre à 22 h 16 UTC, le commit direct `be73e24` et celles
+de #311, de #310 et de #308, hors des points, de #307 et de #306, hors des
+points, de #305, hors des points, de #302, la tâche PP, de #304 et de #303, les
+registres de la tâche PT, de #301, la tâche PT, de #300, hors des points,
+de #298, de #299, de #297, de #296 et de #295, de #294, le manuel dans le style
+de la thèse, et de #292, de #293, #291, #290 et #289), en tâches PX à PZ (les
+constats de la relecture complète du 13 novembre), PH et PJ (PA à PG, PI, PL,
+PP, PQ, PS, PT, PU, PV et PW sont faites, PK et PM sont closes sans code : voir
+`TODO_DONE.md`). Ce fichier et l'issue #179 ont le même contenu. Ce qui est fait
+et décidé est dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour), ce qui
+est reporté dans `TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142
+sont fermées, et `TODO_mistral.md` est supprimé, comme `TODO_fin.md` : ses
+articles sont répartis dans les trois registres, dont les tâches PS (faite
+par #297), PT (faite par #301 : `TODO_DONE.md` 3.25) et PP (faite par #302 :
+`TODO_DONE.md` 2.3 et 7.25).
 
 Les deux défauts bloquants de la relecture du 13 novembre sont corrigés :
 `acos_rel()`, `asin_rel()` et `atan_rel()` rendaient parfois le vide alors que
@@ -43,65 +46,72 @@ affichaient la même expression `-x` plantaient (PU.2, #324) ; une borne est
 peut-être fausse encore pour un programme qui met lui-même `FPCR.AH` sur arm64
 (issue #198 : `x / y` des intervalles NEON, cause non trouvée). Rien n'est à
 envoyer à un autre projet ni à publier sans l'accord du mainteneur. Aucune pull
-request n'est ouverte. #336 (hors des points : les 207 jobs de la CI regroupés
-en 59, un job de plus pour l'IPO sur le chemin SSE2, et la correction de `x +=
-d` et des opérations voisines avec `-flto`) est fusionnée dans `dev` le 14
-novembre à 18 h 28 UTC par le mainteneur ; ses registres sont faits
-(`TODO_DONE.md` 2.3, 3.41 et 7.39), et ce qu'elle laisse aux workflows est dans
-PW (PW.3, PW.4, PW.9, PW.11 et PW.12) et PZ (PZ.2). #335 (la tâche PV : le
-lecteur et les expressions, six points en une seule pull request sur la demande
-du mainteneur, et quatre commits qu'il a demandés ensuite) est fusionnée dans
-`dev` le 14 novembre à 14 h 53 UTC par le mainteneur ; ses registres sont faits
-(`TODO_DONE.md` 2.3, 3.40, 4 et 7.38), et ce qu'elle laisse au manuel, à
-`doc/differences.md` et au `ChangeLog` est dans PZ (PZ.3 et PZ.5 à PZ.7). Les
-douze pull requests de la tâche PU, une par point, sont fusionnées dans `dev` le
-13 novembre par le mainteneur : #323 (PU.1) à
+request n'est ouverte. #337 à #349 (la tâche PW : les builds et la CI de la
+relecture du 13 novembre, une pull request par point, plus #349 pour les
+versions Mach-O de la dylib) sont fusionnées dans `dev` le 14 novembre, de
+21 h 01 à 22 h 18 UTC, par le mainteneur, avant la fin de leur CI (aucun run ne
+s'est terminé en échec) ; leurs registres sont faits (`TODO_DONE.md` 2.3, 3.42,
+4 et 7.40), et ce qu'elles laissent au manuel, à `doc/differences.md` et au
+`ChangeLog` est dans PZ (PZ.5, PZ.7 et PZ.8). La CI de `dev` à `ebf2efd`
+tournait au moment des registres. #336 (hors des points : les 207 jobs de la CI
+regroupés en 59, un job de plus pour l'IPO sur le chemin SSE2, et la correction
+de `x += d` et des opérations voisines avec `-flto`) est fusionnée dans `dev` le
+14 novembre à 18 h 28 UTC par le mainteneur ; ses registres sont faits
+(`TODO_DONE.md` 2.3, 3.41 et 7.39), et ce qu'elle laissait aux workflows est
+fait par la tâche PW (#339, #340, #345, #347 et #348) ; PZ.2 reste au
+manuel. #335 (la tâche PV : le lecteur et les expressions, six points en une
+seule pull request sur la demande du mainteneur, et quatre commits qu'il a
+demandés ensuite) est fusionnée dans `dev` le 14 novembre à 14 h 53 UTC par le
+mainteneur ; ses registres sont faits (`TODO_DONE.md` 2.3, 3.40, 4 et 7.38), et
+ce qu'elle laisse au manuel, à `doc/differences.md` et au `ChangeLog` est dans
+PZ (PZ.3 et PZ.5 à PZ.7). Les douze pull requests de la tâche PU, une par point,
+sont fusionnées dans `dev` le 13 novembre par le mainteneur : #323 (PU.1) à
 16 h 43 UTC, #324 (PU.2) à 16 h 46, #325 (PU.4) à 17 h 03, #326 (PU.6) à
-17 h 09, #327 (PU.7) à 21 h 09, #329 (PU.9) à 21 h 26, #328 (PU.8) à 21 h 29,
-#331 (PU.5) à 21 h 38, #332 (PU.10) à 21 h 46, #330 (PU.3) à 21 h 54, #333
-(PU.11) à 22 h 04 et #334 (PU.12) à 22 h 09 ; leurs registres sont faits
-(`TODO_DONE.md` 2.3, 3.39, 4 et 7.37), et ce qu'elles laissent au manuel, à
-`doc/differences.md` et au `ChangeLog` est dans PZ (PZ.5 et PZ.7). #319 (les
+17 h 09, #327 (PU.7) à 21 h 09, #329 (PU.9) à 21 h 26, #328 (PU.8) à
+21 h 29, #331 (PU.5) à 21 h 38, #332 (PU.10) à 21 h 46, #330 (PU.3) à
+21 h 54, #333 (PU.11) à 22 h 04 et #334 (PU.12) à 22 h 09 ; leurs registres sont
+faits (`TODO_DONE.md` 2.3, 3.39, 4 et 7.37), et ce qu'elles laissent au manuel,
+à `doc/differences.md` et au `ChangeLog` est dans PZ (PZ.5 et PZ.7). #319 (les
 renvois aux registres récrits, la même archive des sources) et #322 (la CI sur
 un push vers `dev`) sont fusionnées le 13 novembre dans `dev`, la branche créée
 de `configure-clean` le 12 novembre et la base du développement, et #321 dans
 `configure-clean`, la branche des versions, qui n'a plus les notes de travail :
-ce fichier n'est que dans `dev` (process.md §1 et §13). #295 (PS.2), #296 (PM),
-#297 (la tâche PS), #299 (PQ.2), #298 (PQ.1), #300 (hors des points : la recette
-de compilation croisée GCC 12.2 pour aarch64 de `todo-notes/gcc12-aarch64/`) et
-#301 (la tâche PT) sont fusionnées le 8 novembre, à 17 h 21, 17 h 29, 19 h 38,
-20 h 31, 20 h 44, 21 h 38 et 23 h 09 UTC, #302 (la tâche PP : le cas N1 M de
-`div_rel()` en SSE2) le 9 novembre à 22 h 03 UTC, #305 (hors des points : six
-`friend` de `interval` retirés) le 10 novembre à 8 h 52 UTC, #306 (hors des
-points : `gaol_interval_core.h` allégé, ses aides dans `gaol_interval_detail.h`)
-à 17 h 55 UTC et #307 (hors des points : les en-têtes de tous les fichiers sur
-un même modèle) à 21 h 04 UTC, puis, le 11 novembre, #308 (hors des points :
-`gaol_interval_core.cpp` découpé par domaine) à 21 h 05 UTC, #310 (du
-mainteneur : `.gitignore`) à 21 h 08 UTC, #311 (hors des points : l'en-tête
-`<cstdint>`, que #310 avait remplacé par un `<stdint>` qui n'existe pas) à
-21 h 36 UTC et #309 (hors des points : `make dist` dans les trois builds, le
-workflow Release des paquets) à 22 h 16 UTC, puis, le 12 novembre, #312 (hors
-des points : `MATH-CORE` retirée de la CI, `numbers` à 600 s dans le job macOS
-26 arm64 LLVM Clang Debug ASan+UBSan et à 900 s dans celui de macOS 15 x86_64
-GCC, `compile_commands.json` hors de l'archive de CMake), fusionnée à 7 h 53 UTC
-par la session, sur la demande explicite du mainteneur, puis #313 (hors des
-points : les textes qui citent macOS 14, PJ.6, et un commentaire de
-`CMakeLists.txt`, PJ.7) à 12 h 31 UTC et #314 (hors des points : les textes de
-#279, #281, #85, #306, #308, #309 et #312 dans `doc/differences.md` et le
-`ChangeLog`, trois passages du manuel avec son PDF, PJ.7) à 12 h 42 UTC, par le
-mainteneur ; leurs registres sont faits, puis #315 (PJ.1 : le rapport de
-couverture, 95,1 % des lignes de `gaol/`) à 15 h 20 UTC et #316 (PJ.2 : les
-temps remesurés, le manuel et son PDF) à 15 h 30 UTC, puis #317 (la suite de
-#316, PJ.2 : le tableau de Visual C++ et de clang-cl par une expérience de CI,
-`x.midpoint()`) à 17 h 31 UTC, par le mainteneur, alors que leur CI attendait
-des runners de GitHub, puis #318 (PJ.7 : les restes de la synthèse, quatre
-entrées de CI au `ChangeLog`) à 19 h 56 UTC, par le mainteneur, alors qu'un job
-de macOS attendait encore un runner ; leurs registres sont faits ici
-(`TODO_DONE.md` 2.3, 3.34, 3.35, 7.31 et 7.32).
+ce fichier n'est que dans `dev` (process.md §1 et §13). #295 (PS.2), #296
+(PM), #297 (la tâche PS), #299 (PQ.2), #298 (PQ.1), #300 (hors des points : la
+recette de compilation croisée GCC 12.2 pour aarch64 de
+`todo-notes/gcc12-aarch64/`) et #301 (la tâche PT) sont fusionnées le 8
+novembre, à 17 h 21, 17 h 29, 19 h 38, 20 h 31, 20 h 44, 21 h 38 et 23 h 09
+UTC, #302 (la tâche PP : le cas N1 M de `div_rel()` en SSE2) le 9 novembre à
+22 h 03 UTC, #305 (hors des points : six `friend` de `interval` retirés) le 10
+novembre à 8 h 52 UTC, #306 (hors des points : `gaol_interval_core.h` allégé,
+ses aides dans `gaol_interval_detail.h`) à 17 h 55 UTC et #307 (hors des
+points : les en-têtes de tous les fichiers sur un même modèle) à 21 h 04 UTC,
+puis, le 11 novembre, #308 (hors des points : `gaol_interval_core.cpp` découpé
+par domaine) à 21 h 05 UTC, #310 (du mainteneur : `.gitignore`) à 21 h 08
+UTC, #311 (hors des points : l'en-tête `<cstdint>`, que #310 avait remplacé par
+un `<stdint>` qui n'existe pas) à 21 h 36 UTC et #309 (hors des points : `make
+dist` dans les trois builds, le workflow Release des paquets) à 22 h 16 UTC,
+puis, le 12 novembre, #312 (hors des points : `MATH-CORE` retirée de la CI,
+`numbers` à 600 s dans le job macOS 26 arm64 LLVM Clang Debug ASan+UBSan et à
+900 s dans celui de macOS 15 x86_64 GCC, `compile_commands.json` hors de
+l'archive de CMake), fusionnée à 7 h 53 UTC par la session, sur la demande
+explicite du mainteneur, puis #313 (hors des points : les textes qui citent
+macOS 14, PJ.6, et un commentaire de `CMakeLists.txt`, PJ.7) à 12 h 31 UTC
+et #314 (hors des points : les textes de #279, #281, #85, #306, #308, #309
+et #312 dans `doc/differences.md` et le `ChangeLog`, trois passages du manuel
+avec son PDF, PJ.7) à 12 h 42 UTC, par le mainteneur ; leurs registres sont
+faits, puis #315 (PJ.1 : le rapport de couverture, 95,1 % des lignes de `gaol/`)
+à 15 h 20 UTC et #316 (PJ.2 : les temps remesurés, le manuel et son PDF) à
+15 h 30 UTC, puis #317 (la suite de #316, PJ.2 : le tableau de Visual C++ et de
+clang-cl par une expérience de CI, `x.midpoint()`) à 17 h 31 UTC, par le
+mainteneur, alors que leur CI attendait des runners de GitHub, puis #318 (PJ.7 :
+les restes de la synthèse, quatre entrées de CI au `ChangeLog`) à 19 h 56 UTC,
+par le mainteneur, alors qu'un job de macOS attendait encore un runner ; leurs
+registres sont faits ici (`TODO_DONE.md` 2.3, 3.34, 3.35, 7.31 et 7.32).
 
 ## Comment lire ce fichier
 
-- Une tâche (PW à PZ, PH, PJ) regroupe des points qui touchent le même code, les
+- Une tâche (PX à PZ, PH, PJ) regroupe des points qui touchent le même code, les
   mêmes fichiers ou les mêmes builds de validation, pour les traiter dans la
   même session ; chaque point reste une pull request à part (process.md : un
   point, une branche), sauf quand la tâche dit qu'une seule suffit. Les tâches
@@ -111,7 +121,7 @@ de macOS attendait encore un runner ; leurs registres sont faits ici
   petit et sans dépendance avant le gros ; la version (PJ) en dernier. La lettre
   PR n'est pas une tâche : le sigle dit déjà « pull request ».
 - PH ne dépend d'aucune autre tâche, sauf quand le texte le dit (PJ suit PI, PS,
-  PQ, PP, PT, PU, PV et les études de PG, qui sont faites, et PW à PZ : la
+  PQ, PP, PT, PU, PV, PW et les études de PG, qui sont faites, et PX à PZ : la
   version en dernier, les corrections faites, *décidé le 19 octobre*). PZ suit
   PU à PY, dont les corrections se reportent dans le manuel et les registres.
 - Chaque point garde sa lettre et son ancien numéro, par exemple « 79 (AB) » :
@@ -130,148 +140,29 @@ de macOS attendait encore un runner ; leurs registres sont faits ici
 
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
-| PW | Les builds et la CI | PW.1 à PW.12 | M |
 | PX | Les tests sans dents | PX.1 à PX.5 | S |
 | PY | Les textes faux hors du manuel, le code mort | PY.1 à PY.12 | M |
-| PZ | Le manuel, `differences.md` et le `ChangeLog` | PZ.1 à PZ.7 | M |
+| PZ | Le manuel, `differences.md` et le `ChangeLog` | PZ.1 à PZ.8 | M |
 | PH | Les signalements à d'autres projets | #125 à #138, #175 | accord |
 | PJ | La publication de v5.0.0 (`master`, étiquette, annonce) | 34, 71 | S |
 
-## PW. Les builds et la CI [M]
+## PX. Les tests sans dents [S]
 
-Les tâches PW à PZ viennent de la relecture complète du 13 novembre : 31
+Les tâches PX à PZ viennent de la relecture complète du 13 novembre : 31
 relecteurs indépendants sur l'archive de `9d59e0c`, après des contrôles
 automatiques qui passent tous (builds, fichiers générés, PDF, exemples du
 manuel), chaque constat revérifié par la session ; le mainteneur en a fait des
-tâches le même jour (`TODO_DONE.md` 3.37), dont la tâche PU, faite par #323 à
-#334 (`TODO_DONE.md` 2.3 et 3.39), et la tâche PV, faite par #335 en une seule
-pull request (`TODO_DONE.md` 2.3 et 3.40). Le rapport, les rapports des
-relecteurs et les programmes de preuve sont hors du dépôt, dans
+tâches le même jour (`TODO_DONE.md` 3.37), dont la tâche PU, faite par #323
+à #334 (`TODO_DONE.md` 2.3 et 3.39), la tâche PV, faite par #335 en une seule
+pull request (`TODO_DONE.md` 2.3 et 3.40) et la tâche PW, faite par #337 à #349
+(`TODO_DONE.md` 2.3 et 3.42). Le rapport, les rapports des relecteurs et les
+programmes de preuve sont hors du dépôt, dans
 `/home/jninin/Documents/WORK/DEV/GAOL/GAOL_review_2026-11-13/` (`rapport.md`).
 Les numéros de ligne sont ceux de `9d59e0c` : au début d'un point, le relire
-contre l'arbre, que PU, PV et #336 ont changé (#336 a mis les étapes des
-workflows dans `.github/actions/`, dont ceux de `.github/workflows/` ne gardent
-que les matrices). « Démontré » : un programme ou un calcul le montre ; «
-plausible » : raisonné, non montré. Chaque point est une
-pull request, avec un test qui a des dents (process.md §5). Les fichiers de
-`.github/workflows/` se poussent par SSH (process.md §10).
-
-1. **`automatic_configuration` échoue sur une machine sans FMA** (important,
-   démontré) : `tests/automatic_configuration.cmake` (lignes 389 à 396) exige
-   que la compilation croisée avec `-DGAOL_MACHINE_RUNS_FMA=1` donne les
-   drapeaux FMA de la configuration native, vides sur une telle machine (x86
-   d'avant Haswell ou Piledriver, Atom, ARMv7 sans VFPv4) : la configuration est
-   juste et le test échoue (process.md §5 : pas de test fragile). Comparer aux
-   drapeaux que le compilateur prend, ou sauter cette vérification quand la
-   machine n'exécute pas FMA.
-2. **`make check` échoue avec `--enable-shared --disable-static`** (important,
-   démontré) : `tests/Makefile.am` (lignes 41 à 43) construit
-   `automatic_cleanup` sous Linux même quand la bibliothèque est partagée, ce
-   que CMake (`tests/CMakeLists.txt`, ligne 100) et meson (`tests/meson.build`,
-   ligne 36) écartent ; sans archive statique, libtool ignore `-static`, le test
-   lie `libgaol.so` et échoue. Le commentaire des lignes 9 et 10 est faux dans
-   ce cas. Un `AM_CONDITIONAL` sur `enable_static`.
-3. **Des étapes de CI qui ne peuvent pas échouer** (important, démontré) :
-   `.github/actions/linux-cmake/action.yml`, l'étape « Tests built with the
-   installed GAOL », `./rounding_direction_pc | tail -1` sans `pipefail`
-   (l'étape « Performance », plus haut, a le `set -o pipefail` ; les étapes sans
-   `shell:` des anciens jobs tournent sous `bash -e {0}` dans les actions, pour
-   ne pas changer ce qu'elles font, #336) : l'échec du seul test lié par le
-   `gaol.pc` de CMake est perdu, dans les 29 configurations de `linux-cmake` (26
-   à `9d59e0c`) ; de même `compare-performance.py ... | tee -a`
-   (`.github/actions/containers-control-register-performance/action.yml`, étape
-   « The table » ; `performance.yml`, ligne 305) dans les jobs sans `shell:
-   bash`.
-4. **La locale à virgule et les tests reconstruits, annoncés et non faits**
-   (important) : `doc/continuous-integration.md` (lignes 253 à 257) et les
-   en-têtes de `build-systems.yml`, de `macos.yml` et de `windows.yml` (le
-   paragraphe de la locale `French_France.1252`, « each job ... ») disent que
-   chaque configuration qui lance les tests vérifie que `numbers` a lu sous une
-   locale à virgule ; ne le vérifient pas `cygwin` (deux jobs de `windows.yml`,
-   un de `build-systems.yml`, recopiés tels quels par #336), les actions
-   `windows-clang-msvc`, `buildsystems-meson-clang-msvc`,
-   `buildsystems-autotools-clang-msvc`, `macos-universal`, `macos-xcode`,
-   `macos-universal-autotools` et `macos-universal-meson`. Les en-têtes de
-   `windows.yml` (« builds the tests again with the installed GAOL ») et de
-   `build-systems.yml` (« the tests are built again with each installed GAOL »)
-   annoncent des tests reconstruits avec le GAOL installé que `windows-msys2`,
-   `windows-clang-msvc`, `windows-visual-studio-sde` et
-   `buildsystems-meson-clang-msvc` ne font pas. *À décider* : ajouter les
-   vérifications, ou nommer les exceptions, comme Alpine et manylinux.
-5. **autotools et meson compilent les tests, les exemples et `gaol_bench` avec
-   les drapeaux de la bibliothèque** (mineur, démontré) : `configure.ac` (lignes
-   796 à 829) et `meson.build` (lignes 333 à 359) donnent à tout `-funroll-loops
-   -fomit-frame-pointer -fexpensive-optimizations`, la visibilité cachée et
-   `-Wall -Wconversion`, que CMake réserve à la bibliothèque
-   (`GAOL_LIBRARY_FLAGS`, `CMakeLists.txt`, lignes 1200 à 1232) : `make perf` et
-   `ninja perf` ne mesurent pas le binaire de CMake, et le commentaire de
-   `tests/Makefile.am` (lignes 75 et 76) est faux. Les réserver à `gaol/` et
-   `3rd/` (process.md §4, principe 6).
-6. **L'audit des trois builds** (mineur, démontré) : un échec de la sonde C,
-   celle de CORE-MATH, passe inaperçu (`.github/audit/probe_build.py`, lignes 53
-   à 65, remplit `macros` même en erreur, et `compare.py`, lignes 85 à 87, ne
-   teste que `'macros' not in c`) ; `audit.sh` (lignes 17 à 27) ne compare que
-   les options par défaut, jamais `GAOL_PRESERVE_ROUNDING`, SIMD, FMA, les
-   exceptions ni `GAOL_PREFER_AVX512`.
-7. **Les délais** (mineur) : `numbers` n'a aucun délai avec autotools (300 s
-   avec CMake et meson), ce que `doc/tests.md` (lignes 732 à 740) ne dit pas ;
-   `examples/meson.build` (ligne 37) laisse aux exemples les 30 s de meson
-   (`06_global_optimization` prend 12 s en Debug avec ASan sur l'i7).
-8. **`-mno-daz-ftz` avec Clang** (mineur, démontré) : Clang 20 et 21 le
-   prennent, Clang 18 non ; `doc/three-builds.md` (lignes 32 à 34 et 524 à 530),
-   le commentaire de `CMakeLists.txt` (lignes 678 à 681) et l'expression
-   exportée (ligne 1384), réservée à GNU, ne citent que GCC : un programme
-   compilé par Clang 21 avec `gaol::gaol` perd cette protection (les bornes
-   restent sûres, `round_upward_if_needed()` effaçant les modes).
-9. **Des restes de petite portée** (mineur) : la boucle Rosetta de l'action
-   `macos-universal` sans `test "$count" -ge 20` ; `VERSION.txt` lu sans le BOM,
-   `\v` et `\f` que les builds acceptent (`release.yml`, lignes 82 et 151 ; les
-   étapes « VERSION.txt with a byte order mark and the line ends of Windows »
-   des actions `buildsystems-autotools`, `buildsystems-meson` et
-   `buildsystems-msys2`) ; l'action `linux-cmake-3-14` ne vérifie pas la version
-   qui tourne (l'étape « CMake 3.14.7 » ; #336 a mis le `PATH` de CMake 3.14.7
-   dans chacune de ses étapes, `cmake --version` y est lancé une fois) ;
-   `CPACK_GENERATOR "TGZ;DEB"` sur tout Linux, même sans `dpkg`
-   (`CMakeLists.txt`, lignes 1593 et 1594, plausible) ; les versions Mach-O de
-   la dylib de libtool (6 et 6.0) contre 5.0.0 avec CMake et meson
-   (`configure.ac`, ligne 156, plausible, non essayé sous macOS) ; `meson dist`
-   ne donne les fichiers de `git archive` qu'avec un meson récent
-   (`Makefile.am`, lignes 82 à 85, plausible pour 0.53) ; `gaol/stamp-h.in`
-   toujours distribué (`gaol/Makefile.am`, ligne 146) et lu par aucun build ;
-   les actions des workflows suivies par des étiquettes mobiles, sauf
-   `setup-sde` (*à décider*).
-10. **Des commentaires morts ou faux des builds** (mineur) : `configure.ac`
-    (lignes 163 et 164) et `meson.build` (ligne 348) sur `--enable-optimize`,
-    qui n'existe plus ; `meson.build` (lignes 468 à 476) sur `enable-arm64`, qui
-    n'existe plus ; `gaol/meson.build` (ligne 112) sur `GAOL_CORE_MATH_LOG`, qui
-    n'existe pas ; `Makefile.am` (lignes 31 et 32) « Requires automake 1.4 » ;
-    `gaol/Makefile.am` (ligne 113) `$(gaol_HEADERS)`, indéfinie ;
-    `CMakeLists.txt`, ligne 170 (`doc/coverage.md`, absent), lignes 818 et 819
-    (configure ne teste que le drapeau `-msse3`), lignes 1421 et 1422
-    (`if(FALSE)` vide) ; `tests/CMakeLists.txt` (lignes 139 et 140 : le job
-    macOS x86_64 donne 900 s à `numbers`, non 600) ;
-    `gaol/core/gaol_interval_internal.h`, ligne 43 (le `#if
-    GAOL_USING_SSE2_INSTRUCTIONS` est lu avant `gaol_config.h` et n'est jamais
-    vrai) ; trois tables de valeurs diffèrent de leur générateur d'une ligne
-    vide après l'en-tête (`elementary_values.h`, `extended_precision_values.h`
-    et `compoundm1_values.h`, retouchés par `afd838a`, #307) : régénérer les
-    tables ou corriger les scripts.
-11. **Un commit de registres sur `dev` lance toute la CI** (de #322) : depuis le
-    13 novembre, un push sur `dev` lance les workflows, 59 jobs depuis #336 (207
-    avant), même pour un commit qui ne change que `TODO.md`, `TODO_DONE.md`,
-    `TODO_AFTER.md`, `process.md`, `STEP.md` ou `todo-notes/`. *À décider* : un
-    `paths-ignore` de ces fichiers sur le push des six workflows (non fait par
-    #322 ni par #336).
-12. **Deux configurations de Meson seules dans leur job** (mineur, *à décider*,
-    relevé par #336) : `Meson, Visual Studio 2026 x64` et `Meson, Visual Studio
-    2026 arm64` (`build-systems.yml`, 2,4 minutes chacune) sont seules dans leur
-    job faute d'autre configuration de leur image dans ce workflow ; elles
-    pourraient rejoindre un groupe de `windows.yml`.
-
-## PX. Les tests sans dents [S]
-
-Relevés par la relecture du 13 novembre (voir PW). Le test de PU.1 est fait par
-#323.
+contre l'arbre, que PU, PV, PW et #336 ont changé. « Démontré » : un programme
+ou un calcul le montre ; « plausible » : raisonné, non montré. Chaque point est
+une pull request, avec un test qui a des dents (process.md §5). Le test de PU.1
+est fait par #323.
 
 1. **`tests/u128.cpp`** (important, démontré) : sans entier natif de 128 bits
    (i386, armhf, Visual C++, « where this code runs in earnest »), « mul64 is
@@ -326,7 +217,7 @@ Relevés par la relecture du 13 novembre (voir PW). Le test de PU.1 est fait par
 
 ## PY. Les textes faux de `doc/`, des exemples et du code ; le code mort [M]
 
-Relevés par la relecture du 13 novembre (voir PW). Une pull request par document
+Relevés par la relecture du 13 novembre (voir PX). Une pull request par document
 ou par groupe ; ce qui va dans le manuel, `doc/differences.md` et le `ChangeLog`
 est dans PZ. Aucun point ne change une borne.
 
@@ -350,8 +241,7 @@ est dans PZ. Aucun point ne change une borne.
    opérations (97, `flush_operations[]`) ; ligne 1477, 1 969 cas d'`atan2_rel`,
    dont 1 263 avec points (2 071 et 1 338, ce qu'affiche `atan2_rel_values.py`),
    comme `doc/accuracy.md` (ligne 180) ; ligne 593, « 25 of the 45 checks » de
-   `static_initialization` (44 aujourd'hui : la mesure date du correctif) ; le
-   délai de `numbers` avec autotools (PW.7).
+   `static_initialization` (44 aujourd'hui : la mesure date du correctif).
 4. **`doc/using.md`** : lignes 539 à 541, `0x8000u >> s` ne compile pas
    (`overlapping_state` est un `enum class` : `static_cast<unsigned>(s)`), et
    `gaol_ieee1788::disjointMask` n'existe que dans des commentaires ; lignes 892
@@ -492,12 +382,12 @@ est dans PZ. Aucun point ne change une borne.
 
 ## PZ. Le manuel et les registres [M]
 
-Relevés par la relecture du 13 novembre (voir PW). Le manuel dans une pull
+Relevés par la relecture du 13 novembre (voir PX). Le manuel dans une pull
 request `manual*`, qui régénère le PDF dans son dernier commit (process.md §6.2,
 point 7) et corrige `doc/differences.md` avec lui ; le `ChangeLog` par la pull
 request de synthèse (process.md §7, point 5). Après PU à PY, dont les
-corrections se reportent ici ; celles de PU et de PV, faites, sont aux points 3,
-5, 6 et 7.
+corrections se reportent ici ; celles de PU, de PV et de PW, faites, sont aux
+points 3, 5, 6, 7 et 8.
 
 1. **Les chiffres du chemin AVX-512 et de FMA** (important) :
    `02_installation.tex` (lignes 872 à 874 : « no other processor was
@@ -558,11 +448,9 @@ corrections se reportent ici ; celles de PU et de PV, faites, sont aux points 3,
    2742 à 2758, le dit) ; `cos([2^60])` est montré un double plus large que ce
    que GAOL donne (`differences.md`, lignes 1390 et 1391 : `…6947p-1`) ;
    `check/non_arithmetic.cpp` et `check/trigonometric.cpp` cités au présent
-   (lignes 1318 et 1319, 1475 à 1478 : `tests/`) ; `stamp-h.in` dit retiré
-   (`differences.md`, lignes 2723 et 2724 ; `ChangeLog`, lignes 128 et 129 :
-   celui de `gaol/` reste, PW.9) ; dans le `ChangeLog`, `manual/v5/gaol.tex`
-   (lignes 211, 721, 1157 et 1161) et des chemins d'avant #308
-   (`gaol_interval_{sse,fpu,neon,avx512}.cpp`, les fonctions de
+   (lignes 1318 et 1319, 1475 à 1478 : `tests/`) ; dans le `ChangeLog`,
+   `manual/v5/gaol.tex` (lignes 211, 721, 1157 et 1161) et des chemins
+   d'avant #308 (`gaol_interval_{sse,fpu,neon,avx512}.cpp`, les fonctions de
    `gaol_interval_core.cpp`) ; des chiffres différents d'un registre à l'autre
    (NEON préservé : 27 ns contre 39 ou 37 ; sept produits FPU : 35,8 et 23,8
    contre 35,0 et 23,3 ; `max` et `min` « 3 to 4 times ») ; les corrections de
@@ -573,16 +461,24 @@ corrections se reportent ici ; celles de PU et de PV, faites, sont aux points 3,
    `doc/differences.md` et `ChangeLog` » de #335 : les noms de GAOL et de la
    norme que le lecteur lit, les nœuds d'expression qui ne se copient plus,
    `result()` qui lève l'erreur, `gaol_value()`, le texte de repli d'une borne,
-   le nombre très long lu en temps linéaire et le test `bad_snprintf`.
+   le nombre très long lu en temps linéaire et le test `bad_snprintf`. Pour PW,
+   les sections « Pour `doc/differences.md` et `ChangeLog` » de #337 à #349 :
+   `make check` qui passe avec `--disable-static` (#338), les drapeaux de la
+   bibliothèque seule avec configure et meson (#341), l'audit des trois builds
+   et ses cinq jeux d'options (#342), les 300 s de `make check` (#343),
+   `-mno-daz-ftz` pour Clang 20 et plus (#344), `stamp-h.in` retiré (#345, que
+   `differences.md` et le `ChangeLog` disaient déjà disparu) et les versions
+   Mach-O (#349).
 6. **Le PDF** : régénéré dans le dernier commit (l'index de celui de `9d59e0c`
    donne « accuracy, 208 », 207 dans le PDF reconstruit) ; le rapport de
    couverture et les mesures de PJ.2 sont à refaire, PU ayant changé le code de
    `gaol/` (#323, #324 et #326 à #332 ; PJ), et PV aussi (#335 : le lecteur,
-   l'écriture d'une borne, l'évaluateur). Le PDF de #335 (391 pages, régénéré
-   dans cette pull request à la demande du mainteneur, avec les noms des
-   chapitres 9 et 10) a le dernier paragraphe du chapitre 10 seul sur une page
-   de trois lignes, suivie d'une page blanche : le mainteneur l'a laissé ; à
-   resserrer au besoin, avec le PDF de PZ.
+   l'écriture d'une borne, l'évaluateur) ; PW n'a changé aucun code compilé de
+   `gaol/` (un bloc mort de `gaol_interval_internal.h`, #346). Le PDF de #335
+   (391 pages, régénéré dans cette pull request à la demande du mainteneur, avec
+   les noms des chapitres 9 et 10) a le dernier paragraphe du chapitre 10 seul
+   sur une page de trois lignes, suivie d'une page blanche : le mainteneur l'a
+   laissé ; à resserrer au besoin, avec le PDF de PZ.
 7. **Les passages du manuel que laissent les tâches PU et PV** (important ;
    avant le PDF de PZ.6) : `02_installation.tex`, la section « Interprocedural
    optimization is not offered » (lignes 1612 à 1645 : « With GCC, moreover, it
@@ -604,6 +500,17 @@ corrections se reportent ici ; celles de PU et de PV, faites, sont aux points 3,
    `cancelPlus`, `intersection`, `convexHull`) que
    `gaol_ieee1788::textToInterval` lit, dans le chapitre 10 (fait) et dans cette
    liste.
+8. **Les passages du manuel que laisse la tâche PW** (avant le PDF de PZ.6) :
+   `02_installation.tex` (lignes 404 à 413 et 1162 à 1164) liste encore
+   `-funroll-loops -fomit-frame-pointer -fexpensive-optimizations`, la
+   visibilité cachée et `-Wall -Wconversion` comme les drapeaux de tous les
+   builds, avec `-falign-functions=64` seul pour la bibliothèque, quand
+   configure et meson ne les donnent plus qu'à la bibliothèque, comme CMake
+   (#341, comme `doc/three-builds.md` et `doc/building.md`) ; la liste des
+   compilateurs qui reçoivent `-mno-daz-ftz` (« Clang 20 and 21 », les versions
+   essayées) quand `gaol::gaol` le donne à Clang 20 et plus (#344) ; et, s'il
+   les décrit, les 300 s de `make check` de configure (#343) et les versions
+   Mach-O de la dylib (#349).
 
 ## PH. Les signalements à d'autres projets [attend l'accord du mainteneur]
 
