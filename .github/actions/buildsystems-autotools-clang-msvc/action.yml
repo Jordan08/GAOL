@@ -49,3 +49,4 @@ runs:
         grep -E '^GAOL_CXX_STD = -std=c\+\+14$' gaol/Makefile
         make -j 4
         make -j 4 test
+        sh .github/scripts/comma-locale.sh check tests/numbers.log

@@ -107,3 +107,6 @@ runs:
       run: |
         ninja -C build-meson test
         if ($LASTEXITCODE) { Get-Content build-meson/meson-logs/testlog.txt; exit 1 }
+    - name: The test numbers ran under a locale writing a decimal comma
+      shell: bash
+      run: sh .github/scripts/comma-locale.sh check build-meson/meson-logs/testlog.txt

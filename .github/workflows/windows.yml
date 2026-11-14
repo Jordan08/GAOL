@@ -5,13 +5,15 @@
 # too), MSYS2 (UCRT64 GCC, CLANG64 Clang, CLANGARM64 Clang) and Cygwin (GCC, x64; GAOL v5), runs
 # its tests, installs it, and builds the tests again with the installed GAOL
 # (but Cygwin, which builds, checks the objects and runs the tests, and checks
-# that a build without FMA is refused); with Visual Studio 2026 x64 and x86
+# that a build without FMA is refused, and the configurations under Intel SDE,
+# which run the tests of the build); with Visual Studio 2026 x64 and x86
 # and /W4 /WX too (GAOL v5). The AVX-512 path of Visual C++ and clang-cl runs
 # under Intel SDE, the runners having AVX-512 instructions or not, according to
 # the machine GitHub gives.
 # Windows has French_France.1252, a locale writing a decimal comma: each job
-# that runs the tests but Cygwin's checks that numbers read and wrote numbers
-# under it (.github/scripts/comma-locale.sh) (GAOL v5). On arm64, the compiler
+# that runs the tests with ctest checks that numbers read and wrote numbers
+# under it (.github/scripts/comma-locale.sh) (GAOL v5); the configurations
+# under Intel SDE, which run each test program by sde-tests.sh, do not. On arm64, the compiler
 # of Visual Studio 2022 (toolset v143, MSVC 14.44) is the one installed with
 # Visual Studio 2026: the label windows-11-arm runs the image of Visual Studio
 # 2026 since September 2026 (actions/runner-images#14602), and no image of
@@ -1350,6 +1352,8 @@ jobs:
         run: sh .github/scripts/check-gcc-windows-fma.sh build
       - name: Tests (make test)
         run: cmake --build build --target test
+      - name: The test numbers ran under a locale writing a decimal comma
+        run: sh .github/scripts/comma-locale.sh check build
       # fma_once(): without optimization the objects of GAOL call no fma() of the
       # C library, which is the one of Cygwin, not correctly rounded, where
       # std::fma is such a call. The tests are built and run too (GAOL v5): the
@@ -1373,6 +1377,8 @@ jobs:
           done
       - name: Tests (make test), Debug
         run: cmake --build build-debug --target test
+      - name: The test numbers ran under a locale writing a decimal comma, Debug
+        run: sh .github/scripts/comma-locale.sh check build-debug
       # Without the fused multiply-add instructions Cygwin has the fma() of its
       # C library, which is wrong: the build has to be refused
       - name: Cygwin without GAOL_FMA is refused

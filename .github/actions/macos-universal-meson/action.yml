@@ -66,6 +66,9 @@ runs:
       run: |
         lipo -archs build-meson/tests/gaol_test_arithmetic
         meson test -C build-meson --print-errorlogs
+    - name: The test numbers ran under a locale writing a decimal comma
+      shell: bash -e {0}
+      run: sh .github/scripts/comma-locale.sh check build-meson/meson-logs/testlog.txt
     - name: Tests of the x86_64 part (Rosetta)
       shell: bash -e {0}
       run: |

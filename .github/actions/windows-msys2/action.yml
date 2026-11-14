@@ -73,3 +73,12 @@ runs:
     - name: Performance
       shell: msys2 {0}
       run: build/tests/gaol_performance.exe
+    - name: Install
+      shell: msys2 {0}
+      run: cmake --install build --prefix "$PWD/gaol-install"
+    - name: Tests built with the installed GAOL
+      shell: msys2 {0}
+      run: |
+        cmake -S tests/find_package -B build-find-package -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${{ inputs.cxx }} -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
+        cmake --build build-find-package -j 4
+        cmake --build build-find-package --target test

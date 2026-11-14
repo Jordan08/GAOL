@@ -86,6 +86,9 @@ runs:
     - name: Tests of the arm64 part (natively)
       shell: bash -e {0}
       run: cd build && ctest -C Release --output-on-failure -j 4
+    - name: The test numbers ran under a locale writing a decimal comma
+      shell: bash -e {0}
+      run: sh .github/scripts/comma-locale.sh check build
     - name: Tests of the x86_64 part (Rosetta)
       if: inputs.universal == 'true'
       shell: bash -e {0}
