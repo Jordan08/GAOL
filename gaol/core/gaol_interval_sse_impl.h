@@ -270,7 +270,9 @@ namespace gaol_core {
       }
 #else
       GAOL_RND_ENTER_SSE();
+      d = rnd_reread(d);
       xmmbounds = _mm_add_pd(xmmbounds, _mm_set_pd(d, -d)); // <-l, r> + <-d, d>
+      GAOL_RND_KEEP(xmmbounds);
       GAOL_RND_LEAVE_SSE();
       return *this;
 #endif
@@ -288,7 +290,9 @@ namespace gaol_core {
       }
 #else
       GAOL_RND_ENTER_SSE();
+      d = rnd_reread(d);
       xmmbounds = _mm_add_pd(xmmbounds, _mm_set_pd(-d, d)); // <-l, r> + <d, -d>
+      GAOL_RND_KEEP(xmmbounds);
       GAOL_RND_LEAVE_SSE();
       return *this;
 #endif
