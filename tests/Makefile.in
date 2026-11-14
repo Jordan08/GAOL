@@ -831,18 +831,20 @@ fast_math_link_LDFLAGS = $(AM_LDFLAGS) -ffast-math
 # compile tests refused_* of tests/CMakeLists.txt check in the CMake build
 # (GAOL v5), compiled with the compiler and the flags of the tests
 TEST_EXTENSIONS = .sh
-SH_LOG_COMPILER = $(SHELL)
 AM_TESTS_ENVIRONMENT = GAOL_CXX='$(CXX)'; \
 	GAOL_CXXFLAGS='$(DEFS) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)'; \
 	export GAOL_CXX GAOL_CXXFLAGS;
 
 
-# 300 seconds for each test, as meson gives them (CMake: numbers,
-# GAOL_NUMBERS_TIMEOUT), where configure found timeout(1): a test that hangs
-# fails with the status 124 of timeout. make check GAOL_TEST_TIMEOUT=900 gives
-# a slower build more time (GAOL v5)
+# 300 seconds for each test, refused_options.sh included, as meson gives them
+# (CMake: numbers, GAOL_NUMBERS_TIMEOUT), where configure found timeout(1): a
+# test that hangs fails with the status 124 of timeout. make check
+# GAOL_TEST_TIMEOUT=900 (on the command line: the environment does not reach
+# it) gives a slower build more time (GAOL v5)
 GAOL_TEST_TIMEOUT = 300
 @GAOL_HAVE_TIMEOUT_TRUE@LOG_COMPILER = $(GAOL_TIMEOUT) $(GAOL_TEST_TIMEOUT)
+@GAOL_HAVE_TIMEOUT_FALSE@SH_LOG_COMPILER = $(SHELL)
+@GAOL_HAVE_TIMEOUT_TRUE@SH_LOG_COMPILER = $(GAOL_TIMEOUT) $(GAOL_TEST_TIMEOUT) $(SHELL)
 gaol_performance_SOURCES = performance.cpp
 gaol_performance_CXXFLAGS = -std=c++14 $(GAOL_TESTS_CXXFLAGS)
 CLEANFILES = gaol_bench$(EXEEXT)
