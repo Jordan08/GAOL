@@ -1,7 +1,7 @@
 # Fait et décidé sur GAOL v5
 
-Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 13 novembre
-2026 (commit `998e61c` de `dev`, la fusion de #334, et `83e2f69` de
+Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 14 novembre
+2026 (commit `773d6a1` de `dev`, la fusion de #335, et `83e2f69` de
 `configure-clean`, la fusion de #321 : voir la section 1). Ce fichier n'est que
 dans `dev`. Ce fichier fait foi : l'issue #177, qui avait le même contenu, n'est
 plus mise à jour depuis le 28 octobre (voir 7.8).
@@ -12,7 +12,7 @@ l'ancien `TODO.md` et dans `TODO_mistral.md`, avec les réponses du mainteneur
 des 22 et 23 octobre. #49 et #142 sont fermées le 24 octobre, `TODO_mistral.md`
 est supprimé. Le reste du travail est dans deux autres registres :
 
-- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PV à PZ, PH et PJ ;
+- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PW à PZ, PH et PJ ;
 - `TODO_AFTER.md` (issue #178) : ce qui est reporté, après la version, jusqu'à
   une décision ou jusqu'à du matériel.
 
@@ -55,13 +55,15 @@ par date ; 4. Les points faits, par lettre ; 5. Les anciens numéros faits ; 6.
 Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 `configure-clean` ; 8. Le ménage fait.
 
-## 1. L'état au 13 novembre 2026
+## 1. L'état au 14 novembre 2026
 
 - **`dev`**, la base du développement depuis le 13 novembre (3.38), est au
-  commit `998e61c` (la fusion de #334 le 13 novembre à 22 h 09 UTC, la dernière
-  des douze pull requests de la tâche PU, #323 à #334, fusionnées depuis 16 h 43
-  UTC après les registres de ses décisions, `07dca51` (7.36), et ceux de #319,
-  #321 et #322, `03f3783` (7.35), eux-mêmes après la fusion de #322 à 10 h 53
+  commit `773d6a1` (la fusion de #335 le 14 novembre à 14 h 53 UTC, la tâche PV,
+  après les registres de la tâche PU, `079687e` (7.37), qui suivent la fusion de
+  #334 le 13 novembre à 22 h 09 UTC, `998e61c`, la dernière des douze pull
+  requests de la tâche PU, #323 à #334, fusionnées depuis 16 h 43 UTC après les
+  registres de ses décisions, `07dca51` (7.36), et ceux de #319, #321 et #322,
+  `03f3783` (7.35), eux-mêmes après la fusion de #322 à 10 h 53
   UTC, `f7046b9`, les registres de la relecture, `5d047c0` et `474a7c6` (7.34),
   et la fusion de #319 à 10 h 17 UTC, `45efbd1`) ; elle seule a les notes de
   travail. **`configure-clean`**, la branche des versions, est au commit
@@ -95,8 +97,11 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   requests des corrections vont vers `dev`, la base du développement depuis le
   13 novembre (3.38) ; `master` (GAOL 4.3.2, plus deux commits de
   `.claude/CLAUDE.md`) ne bouge qu'à la version (point Y : `configure-clean` →
-  `master`, *décidé le 12 novembre*, `MATH-CORE` étant supprimée : 3.32). Aucune
-  pull request n'est ouverte. Le mainteneur a fusionné #165 à #167, #169 à #174,
+  `master`, *décidé le 12 novembre*, `MATH-CORE` étant supprimée : 3.32). Une
+  pull request est ouverte, vers `dev` : #336 (hors des points : les 207 jobs de
+  la CI regroupés en 59, un job de plus pour l'IPO sur le chemin SSE2, et la
+  correction de `x += d` et des opérations voisines avec `-flto`). Le mainteneur
+  a fusionné #165 à #167, #169 à #174,
   #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194, #196 et #197 le 25
   octobre, #199, #200 et #201 le 26 octobre, #202 à #205 le 27, #206 à #210,
   #212, #213, #215 et #216 le 28 (#216, hors des points : le tableau des lignes
@@ -159,12 +164,13 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   (2.3, 3.34, 3.35, 7.31 et 7.32). Le 13 novembre, il a fusionné #319 et #322
   dans `dev` et #321 dans `configure-clean` (2.3, 3.38 et 7.35), puis les douze
   pull requests de la tâche PU, #323 à #334, de 16 h 43 à 22 h 09 UTC (2.3,
-  3.39, 4 et 7.37). #168, #195, #211, #214, #221, #226 et #233 sont fermées sans
+  3.39, 4 et 7.37), puis, le 14 novembre, #335, la tâche PV, à 14 h 53 UTC (2.3,
+  3.40, 4 et 7.38). #168, #195, #211, #214, #221, #226 et #233 sont fermées sans
   fusion, et, du 30 et du 31 octobre, #240, #241, #243, #244, #246, #247, #251 à
   #261, #277 et #278, puis #286, le « Revert » de #285 fermé onze secondes après
-  son ouverture (2.4). Les tâches PA, PB, PC, PD, PE, PF, PG, PI, PL, PP, PS et
-  PU sont faites (PE : #200 et #204 pour le 95, #201 pour le 92, #205 pour le 3,
-  #202 pour le 4, #204 pour le 5, #203 pour le 6 ; PF : #206 pour le reste du
+  son ouverture (2.4). Les tâches PA, PB, PC, PD, PE, PF, PG, PI, PL, PP, PS, PU
+  et PV sont faites (PE : #200 et #204 pour le 95, #201 pour le 92, #205 pour le
+  3, #202 pour le 4, #204 pour le 5, #203 pour le 6 ; PF : #206 pour le reste du
   108, #209 pour le 109, #210 et #215 pour écrire seulement si ça change, #208
   pour l'alignement de la pile 32 bits, #207 pour le contrôle de l'assembleur de
   x86-64 ; PG : la division du chemin AVX-512, le 106 a : #191 à #194 ; puis
@@ -189,7 +195,10 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   périmés du code et de la documentation : #295 pour le texte de NEON (PS.2) et
   #297 pour les huit articles, avec deux boucles de plus dans `core_math`
   (3.27) ; PU, les bornes, les refus de compilation et les plantages de la
-  relecture du 13 novembre : #323 à #334, une par point (2.3, 3.39 et 4) ; PK,
+  relecture du 13 novembre : #323 à #334, une par point (2.3, 3.39 et 4) ; PV,
+  le lecteur de chaînes et les expressions de la même relecture : #335, les six
+  points en une seule pull request sur la demande du mainteneur (2.3, 3.40 et
+  4) ; PK,
   un `FE_INVALID` de Clang avec les intervalles FPU, est close sans code, non
   reproduite avec les drapeaux de GAOL (3.17), ses boucles de relations étant
   entrées dans `rounding_direction` par #292 ; PM, le cas (b) de 12.12.7 (les
@@ -202,7 +211,7 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   (PH) et la publication (PJ : la fusion de `configure-clean` dans `master`, que
   le mainteneur fait lui-même, l'étiquette `v5.0.0` et sa Release, l'annonce à
   Frédéric Goualard ; 3.36), qui attend les constats de la relecture du 13
-  novembre (PV à PZ, 3.37 et 3.38 ; PU est faite) : voir `TODO.md`. Le 8
+  novembre (PW à PZ, 3.37 et 3.38 ; PU et PV sont faites) : voir `TODO.md`. Le 8
   novembre, `TODO_fin.md` (la relecture du 4 novembre) est réparti dans les
   trois registres et supprimé (3.25).
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
@@ -243,7 +252,10 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   `asin_rel()` et `atan_rel()` (tirés au hasard, 60 229 cas sur 800 000 pour
   `acos_rel` et 373 336 sur 1 600 000 pour `asin_rel`), corrigés par #323, et
   des bornes au plus près sur une cible sans unité flottante (Debian armel, sous
-  qemu), où GAOL s'arrête depuis #331.
+  qemu), où GAOL s'arrête depuis #331. Le texte d'une borne écrite avec le
+  `snprintf()` de `msvcrt.dll` (MinGW-w64 avec `__USE_MINGW_ANSI_STDIO` à 0)
+  pouvait être du mauvais côté de la valeur (PV.4, plausible, aucune cible de la
+  CI) : #335 écrit alors une borne plus large, mais sûre.
 - **Issues ouvertes** : les issues « À communiquer… » #125 (CORE-MATH), #126
   (GCC), #127 (mingw-w64), #129 (ITF1788), #130 (Boost.Interval), #131
   (Microsoft), #132 (Apple), #133 (LLVM/Clang), #134 (gmpy2), #135 (musl), #136
@@ -3707,6 +3719,58 @@ restent. `c339f23` : le PDF du manuel, 387 pages au lieu de 385 : le PDF commit�
   d'échec, « floating point in software » (le 0 de `fesetround()` ne vaut que
   sous qemu). CI verte (les six workflows).
 
+- #335 (PV : le lecteur de chaînes et les expressions, les six points PV.1 à
+  PV.6 de la relecture du 13 novembre en une seule pull request sur la demande
+  du mainteneur ; `todo-pv-reader-expressions`, vers `dev`, ouverte le 13
+  novembre à 23 h 37 UTC, 12 commits, 24 fichiers, 955 lignes ajoutées et 251
+  retirées) : fusionnée par le mainteneur le 14 novembre à 14 h 53 UTC
+  (`773d6a1`, tête `0a83a7f`). PV.1 : `erf`, `erfc`, `cancel_minus`,
+  `cancel_plus`, `hull(x, y)` (`x | y`) et `intersect(x, y)` (`x & y`) entrent
+  dans la table de GAOL du lecteur, où `textToInterval("erf(1)")` levait
+  `std::invalid_argument` ; puis, sur la demande du mainteneur, `cancelMinus`,
+  `cancelPlus` (10.5.6), `intersection` et `convexHull` (10.5.7) entrent dans la
+  table de la norme, que le lecteur de GAOL refuse comme `pown` et `rootn` ;
+  parser régénéré (bison 3.8.2 et flex 2.6.4) ; 12 vérifications de
+  `tests/expressions.cpp` et 8 de `tests/ieee1788.cpp` échouent avec l'ancien
+  parser. PV.2 : `expr_node` n'a plus ni constructeur de copie ni affectation
+  (`= delete`), un `static_assert` par type de nœud ; seul `interval_node`
+  détruisait deux fois. PV.3 : `eval_stack::pop()` d'une pile vide rend `T()`,
+  `expr_eval::result()` lève `error_occurred()` pour zéro valeur ou plus d'une,
+  et `evaluate_expr()` et `evaluate_left_right()` le lisent après lui ; puis
+  `gaol_value()` du parser lève une `std::logic_error` (dix lignes, vérifié par
+  une panne injectée dans une copie, sans test dans le dépôt, aucune chaîne
+  n'atteignant ce chemin). PV.4 : `move_to_side()` vérifie le côté après ses
+  quatre déplacements et écrit sinon `outward_text()`, 0 vers zéro ou la plus
+  petite puissance de dix qui n'est pas au-dessous de la grandeur à l'opposé
+  (jusqu'à dix fois plus large, mais sûr) ; `tests/bad_snprintf.cpp` (Linux,
+  `libgaol` statique, `-Wl,--wrap=snprintf` et `--wrap=__snprintf_chk` dans les
+  trois builds) imite `msvcrt.dll`, qui arrondit à 17 chiffres puis écrit des
+  zéros : avec le code de `dev`, 202 des 528 bornes écrites sont du mauvais
+  côté, 0 des 1 585 vérifications avec la branche, et deux mutations du repli
+  sont attrapées ; il saute (code 77) quand le lien ne touche pas les appels,
+  avec une bibliothèque partagée ou Clang et `_FORTIFY_SOURCE`. PV.5 : le § de «
+  Stroustrup, 3rd ed. §15.3.1 », devenu U+FFFD, est écrit « section ». PV.6 :
+  `gaol_take_apart()` construit l'entier des chiffres après le test « au-delà
+  des doubles » : 1 000 000 de chiffres 7 se lisent en 16 ms au lieu de 29,3 s,
+  les champs étant les mêmes pour 300 000 nombres tirés au hasard et 3 000 019
+  chaînes du relecteur ; le test est dans `tests/expressions.cpp`, non dans
+  `numbers.cpp` (process.md §11). Le PDF du manuel est régénéré dans cette pull
+  request, à la demande du mainteneur, comme pour #298 (391 pages au lieu de
+  389, avec les noms des chapitres 9 et 10) ; `doc/using.md` et `doc/tests.md`
+  sont mis à jour. Deux relecteurs indépendants, sans bloquant : le premier sur
+  les six points (`tests/debugging.cpp` lisait `result()` deux fois, le
+  commentaire d'`expr_eval` disait plus qu'il ne détecte), le second sur les
+  noms de la norme et `bad_snprintf` (le modèle de `snprintf()` tronquait le 17e
+  chiffre au lieu de l'arrondir, la branche vers zéro du repli n'était pas
+  exercée ; `__attribute__((used))` pour `-flto -static`) ; `gaol_value()` n'a
+  pas été relu par un sous-agent. CI verte à `afaa5bc`, à `8fa90ce` et à
+  `0a83a7f` (sept workflows, 230 jobs), les deux derniers après un relancement :
+  le job IPO, dont le test `arithmetic` échoue sur un runner AMD EPYC 7763 (bug
+  34678 de GCC avec `-flto` sur le chemin SSE2, corrigé par #336), et `MSYS2
+  CLANGARM64`, dont `setup-msys2` échoue à `paccache` ; `bad_snprintf` « Passed
+  » dans 72 jobs de `afaa5bc` (CMake, autotools, meson ; x86_64, arm64, armhf,
+  i386, ppc64le, s390x, riscv64, musl, manylinux).
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -6668,6 +6732,46 @@ dit.
 Fait : les douze pull requests #323 à #334, une par point, fusionnées le 13
 novembre de 16 h 43 à 22 h 09 UTC (2.3, 4 et 7.37).
 
+### 3.40 Le 13 et le 14 novembre : les questions de la tâche PV
+
+Pendant la tâche PV (« traite la tache PV en une seule PR »), le mainteneur
+répond à deux questions de la session, le 13 novembre avant d'écrire le code,
+puis, le 14, aux « Questions ouvertes » de la pull request #335 et à d'autres
+(« As-tu des questions ? Propose 4 réponse par question ») :
+
+- **La forme** : une seule pull request pour les six points, non une par point
+  comme le dit la tâche (#335).
+- **PV.1** (13 novembre) : ajouter `erf`, `erfc`, `cancel_minus`, `cancel_plus`,
+  `hull` et `intersect` à la table du lecteur de GAOL, plutôt que corriger les
+  textes ; fait.
+- **PV.2** (13 novembre) : `= delete` sur la copie et l'affectation
+  d'`expr_node`, plutôt que documenter.
+- **Les noms de la norme** (14 novembre) : `cancelMinus`, `cancelPlus`,
+  `intersection` et `convexHull` entrent dans la table de
+  `gaol_ieee1788::textToInterval()` dans #335 même, non dans une pull request à
+  part ni dans `TODO_AFTER.md`.
+- **Le repli de PV.4** (14 novembre) : il reste large (0 ou une puissance de
+  dix), sans le repli serré qui réécrirait le nombre avec 17 chiffres puis
+  rajouterait les zéros ; et un test Linux avec `-Wl,--wrap`, dans #335
+  (`tests/bad_snprintf.cpp`).
+- **Le manuel** (14 novembre) : régénérer le PDF dans #335, une exception à la
+  règle du process (le PDF d'une pull request du manuel), comme pour #298 ; la
+  page de trois lignes qui en résulte à la fin du chapitre 10 est laissée, PZ
+  pouvant y revenir (`TODO.md` PZ.6).
+- **Le saut de `bad_snprintf`** avec Clang et `_FORTIFY_SOURCE`, dont l'appel
+  passe par `__vsnprintf_chk()` : gardé tel quel, dit dans le test et dans
+  `doc/tests.md`.
+- **`gaol_value()`** (14 novembre) : lire `error_occurred()` de l'évaluateur et
+  lever une `std::logic_error` (0a83a7f), plutôt que laisser la question
+  ouverte.
+- **Laissés** (14 novembre) : le commentaire de `configure.ac` sur `HOST_LINUX`,
+  qui ne nomme que `automatic_cleanup` ; la pull request #336, que #335 ne
+  gêne pas.
+- **La suite** : le mainteneur fusionne #335 lui-même, la session fait alors les
+  registres ; aucune tâche n'est prise ensuite sans sa consigne.
+
+Fait : #335, fusionnée le 14 novembre à 14 h 53 UTC (2.3, 4 et 7.38).
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -6830,6 +6934,16 @@ est dite ici ou dans la section 5.
   par #332, PU.11 par #333 et PU.12 par #334 ; décidé pendant le travail : voir
   3.39. Ce qu'elles laissent au manuel, à `doc/differences.md` et au `ChangeLog`
   est dans `TODO.md` (PZ.5 et PZ.7).
+- [x] **PV** (le lecteur et les expressions de la relecture du 13 novembre) :
+  les six points en une seule pull request, #335, fusionnée le 14 novembre :
+  PV.1 les six noms de GAOL, puis quatre noms de la norme, dans les tables du
+  lecteur ; PV.2 les nœuds d'expression non copiables ; PV.3 la pile
+  d'évaluation vide et l'erreur de `result()` et de `gaol_value()` ; PV.4 le
+  repli de `move_to_side()`, avec le test `bad_snprintf` ; PV.5 le § perdu ;
+  PV.6 la lecture d'un nombre très long en temps linéaire au-delà des doubles ;
+  décidé pendant le travail : voir 3.40. Ce qu'elle laisse au manuel, à
+  `doc/differences.md` et au `ChangeLog` est dans `TODO.md` (PZ.3 et PZ.5 à
+  PZ.7).
 
 ### Trouvé par la relecture de `configure-clean` du 14 octobre (62dad3a) : ce qui est fait
 
@@ -8799,6 +8913,19 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   celui de `dev` à `014b0c2` est à 162, celui de #331, qui ne touche pas la
   division, à 254.
 
+### 7.38 Le 14 novembre (après #335 : les registres)
+
+- Les registres de la tâche PV, en un commit direct sur `dev`, depuis le clone
+  de la session : `TODO.md` (l'en-tête, la liste des pull requests, « Comment
+  lire ce fichier », la table, la tâche PV retirée, son introduction reprise par
+  PW, PZ.3 et PZ.5 à PZ.7), ce fichier (l'en-tête, 1, 2.3, 3.40, 4, 7.38 et
+  8.1), `process.md` (l'en-tête et §12) et l'issue #179. `TODO_AFTER.md`
+  (l'issue #178) n'a rien de nouveau.
+- La CI : le dernier run complet de `dev` est celui de `079687e` (les registres
+  de 7.37), vert. Ce commit annule celui de la fusion de #335, `773d6a1` (le
+  workflow Manual fini, les autres en attente), dont il porte le code, celui de
+  la tête de #335, `0a83a7f`, vert (2.3).
+
 ## 8. Le ménage fait
 
 ### 8.1 Branches, lignes de crédit, outillage
@@ -9071,6 +9198,10 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   de la session (`git branch -d`), avec `dev-registers-pu` (le commit `07dca51`,
   poussé sur `dev`) et `todo-pu9-magnitude-text-guard`, une branche sans commit
   à elle, laissée pour `todo-pu9-text-rounding-guard`.
+
+- [x] Celle de #335 (`todo-pv-reader-expressions`), sur GitHub (supprimée à la
+  fusion le 14 novembre : `git ls-remote --heads origin` ne la montre plus) et
+  dans le clone de la session (`git branch -d`, après le passage sur `dev`).
 
 ### 8.2 Les branches inachevées
 

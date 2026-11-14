@@ -1,11 +1,13 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `998e61c` de `dev` (la fusion de #334
-le 13 novembre 2026 à 22 h 09 UTC, la dernière des douze pull requests de la
-tâche PU, #323 à #334, fusionnées depuis 16 h 43 UTC après les registres de ses
-décisions, `07dca51`, et ceux de #319, #321 et #322, `03f3783` ;
-`configure-clean` est à `83e2f69`, la fusion de #321, sans les notes de
-travail), et avant au commit `f7046b9` de `dev` (la fusion de #322 à 10 h 53
+Ce qui reste à faire sur GAOL v5 au commit `773d6a1` de `dev` (la fusion de #335
+le 14 novembre 2026 à 14 h 53 UTC, la tâche PV, en une seule pull request, après
+les registres de la tâche PU, `079687e` ; `configure-clean` est à `83e2f69`, la
+fusion de #321, sans les notes de travail), et avant au commit `998e61c` de
+`dev` (la fusion de #334 le 13 novembre à 22 h 09 UTC, la dernière des douze
+pull requests de la tâche PU, #323 à #334, fusionnées depuis 16 h 43 UTC après
+les registres de ses décisions, `07dca51`, et ceux de #319, #321 et #322,
+`03f3783`), et avant au commit `f7046b9` de `dev` (la fusion de #322 à 10 h 53
 UTC, après les registres de la relecture du 13 novembre et la fusion de #319,
 `45efbd1`), et avant au commit `9d59e0c` de `dev` et de `configure-clean` (les
 décisions de PJ.3, après `0ae1840` et la fusion de #318, `f006421`, la tâche
@@ -20,12 +22,12 @@ hors des points, de #307 et de #306, hors des points, de #305, hors des points,
 de #302, la tâche PP, de #304 et de #303, les registres de la tâche PT, de #301,
 la tâche PT, de #300, hors des points, de #298, de #299, de #297, de #296 et de
 #295, de #294, le manuel dans le style de la thèse, et de #292, de #293, #291,
-#290 et #289), en tâches PV à PZ (les constats de la relecture complète du 13
-novembre), PH et PJ (PA à PG, PI, PL, PP, PQ, PS, PT et PU sont faites, PK et PM
-sont closes sans code : voir `TODO_DONE.md`). Ce fichier et l'issue #179 ont le
-même contenu. Ce qui est fait et décidé est dans `TODO_DONE.md` (l'issue #177
-n'est plus mise à jour), ce qui est reporté dans `TODO_AFTER.md` (issue #178).
-Les anciennes issues #49 et #142 sont fermées, et `TODO_mistral.md` est
+#290 et #289), en tâches PW à PZ (les constats de la relecture complète du 13
+novembre), PH et PJ (PA à PG, PI, PL, PP, PQ, PS, PT, PU et PV sont faites, PK
+et PM sont closes sans code : voir `TODO_DONE.md`). Ce fichier et l'issue #179
+ont le même contenu. Ce qui est fait et décidé est dans `TODO_DONE.md` (l'issue
+#177 n'est plus mise à jour), ce qui est reporté dans `TODO_AFTER.md` (issue
+#178). Les anciennes issues #49 et #142 sont fermées, et `TODO_mistral.md` est
 supprimé, comme `TODO_fin.md` : ses articles sont répartis dans les trois
 registres, dont les tâches PS (faite par #297), PT (faite par #301 :
 `TODO_DONE.md` 3.25) et PP (faite par #302 : `TODO_DONE.md` 2.3 et 7.25).
@@ -36,9 +38,17 @@ l'intervalle contient des solutions (PU.1, #323), et deux threads qui
 affichaient la même expression `-x` plantaient (PU.2, #324) ; une borne est
 peut-être fausse encore pour un programme qui met lui-même `FPCR.AH` sur arm64
 (issue #198 : `x / y` des intervalles NEON, cause non trouvée). Rien n'est à
-envoyer à un autre projet ni à publier sans l'accord du mainteneur. Aucune pull
-request n'est ouverte. Les douze pull requests de la tâche PU, une par point,
-sont fusionnées dans `dev` le 13 novembre par le mainteneur : #323 (PU.1) à
+envoyer à un autre projet ni à publier sans l'accord du mainteneur. Une pull
+request est ouverte, vers `dev` : #336 (hors des points : les 207 jobs de la CI
+regroupés en 59, un job de plus pour l'IPO sur le chemin SSE2, et la correction
+de `x += d` et des opérations voisines avec `-flto`). #335 (la tâche PV : le
+lecteur et les expressions, six points en une seule pull request sur la demande
+du mainteneur, et quatre commits qu'il a demandés ensuite) est fusionnée dans
+`dev` le 14 novembre à 14 h 53 UTC par le mainteneur ; ses registres sont faits
+(`TODO_DONE.md` 2.3, 3.40, 4 et 7.38), et ce qu'elle laisse au manuel, à
+`doc/differences.md` et au `ChangeLog` est dans PZ (PZ.3 et PZ.5 à PZ.7). Les
+douze pull requests de la tâche PU, une par point, sont fusionnées dans `dev` le
+13 novembre par le mainteneur : #323 (PU.1) à
 16 h 43 UTC, #324 (PU.2) à 16 h 46, #325 (PU.4) à 17 h 03, #326 (PU.6) à
 17 h 09, #327 (PU.7) à 21 h 09, #329 (PU.9) à 21 h 26, #328 (PU.8) à 21 h 29,
 #331 (PU.5) à 21 h 38, #332 (PU.10) à 21 h 46, #330 (PU.3) à 21 h 54, #333
@@ -84,7 +94,7 @@ de macOS attendait encore un runner ; leurs registres sont faits ici
 
 ## Comment lire ce fichier
 
-- Une tâche (PV à PZ, PH, PJ) regroupe des points qui touchent le même code, les
+- Une tâche (PW à PZ, PH, PJ) regroupe des points qui touchent le même code, les
   mêmes fichiers ou les mêmes builds de validation, pour les traiter dans la
   même session ; chaque point reste une pull request à part (process.md : un
   point, une branche), sauf quand la tâche dit qu'une seule suffit. Les tâches
@@ -94,9 +104,9 @@ de macOS attendait encore un runner ; leurs registres sont faits ici
   petit et sans dépendance avant le gros ; la version (PJ) en dernier. La lettre
   PR n'est pas une tâche : le sigle dit déjà « pull request ».
 - PH ne dépend d'aucune autre tâche, sauf quand le texte le dit (PJ suit PI, PS,
-  PQ, PP, PT, PU et les études de PG, qui sont faites, et PV à PZ : la version
-  en dernier, les corrections faites, *décidé le 19 octobre*). PZ suit PU à PY,
-  dont les corrections se reportent dans le manuel et les registres.
+  PQ, PP, PT, PU, PV et les études de PG, qui sont faites, et PW à PZ : la
+  version en dernier, les corrections faites, *décidé le 19 octobre*). PZ suit
+  PU à PY, dont les corrections se reportent dans le manuel et les registres.
 - Chaque point garde sa lettre et son ancien numéro, par exemple « 79 (AB) » :
   ce sont ceux des pull requests, des issues, des commentaires du code et de
   `TODO_DONE.md` (section 4 pour les lettres, section 5 pour les numéros faits).
@@ -113,7 +123,6 @@ de macOS attendait encore un runner ; leurs registres sont faits ici
 
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
-| PV | Le lecteur et les expressions | PV.1 à PV.6 | S |
 | PW | Les builds et la CI | PW.1 à PW.11 | M |
 | PX | Les tests sans dents | PX.1 à PX.5 | S |
 | PY | Les textes faux hors du manuel, le code mort | PY.1 à PY.12 | M |
@@ -121,65 +130,21 @@ de macOS attendait encore un runner ; leurs registres sont faits ici
 | PH | Les signalements à d'autres projets | #125 à #138, #175 | accord |
 | PJ | La publication de v5.0.0 (`master`, étiquette, annonce) | 34, 71 | S |
 
-## PV. Le lecteur et les expressions [S]
+## PW. Les builds et la CI [M]
 
-Les tâches PV à PZ viennent de la relecture complète du 13 novembre : 31
+Les tâches PW à PZ viennent de la relecture complète du 13 novembre : 31
 relecteurs indépendants sur l'archive de `9d59e0c`, après des contrôles
 automatiques qui passent tous (builds, fichiers générés, PDF, exemples du
 manuel), chaque constat revérifié par la session ; le mainteneur en a fait des
 tâches le même jour (`TODO_DONE.md` 3.37), dont la tâche PU, faite par #323 à
-#334 (`TODO_DONE.md` 2.3 et 3.39). Le rapport, les rapports des relecteurs et
-les programmes de preuve sont hors du dépôt, dans
+#334 (`TODO_DONE.md` 2.3 et 3.39), et la tâche PV, faite par #335 en une seule
+pull request (`TODO_DONE.md` 2.3 et 3.40). Le rapport, les rapports des
+relecteurs et les programmes de preuve sont hors du dépôt, dans
 `/home/jninin/Documents/WORK/DEV/GAOL/GAOL_review_2026-11-13/` (`rapport.md`).
 Les numéros de ligne sont ceux de `9d59e0c` : au début d'un point, le relire
-contre l'arbre, que PU a changé. « Démontré » : un programme ou un calcul le
-montre ; « plausible » : raisonné, non montré. Chaque point est une pull
-request, avec un test qui a des dents (process.md §5).
-
-1. **Le lecteur ne connaît pas `erf`, `erfc`, `cancel_minus`, `cancel_plus`,
-   `hull` ni `intersect`** (important, démontré) : la table de
-   `gaol/parser/gaol_interval_parser.ypp` (lignes 565 à 599) ne les a pas, et
-   `textToInterval("erf(1)")` lève `std::invalid_argument`. Sont donc faux le
-   commentaire de la table (« The names of GAOL: its functions of intervals »),
-   `doc/differences.md` (lignes 1761 et 1765 à 1770 : « read all the functions
-   of GAOL on intervals ») et le chapitre 15 du manuel (lignes 238, 1378 et
-   1379) ; le chapitre 9 (lignes 229 à 240) donne la liste exacte. *À décider* :
-   les ajouter à la table, avec un test dans `tests/expressions.cpp` et le
-   parser régénéré, ou corriger les textes (PZ.3).
-2. **Les nœuds d'expression sont copiables** (mineur, démontré) : `expr_node` et
-   ses dérivées (`gaol/parser/gaol_expression.h`, lignes 123 à 257), publiques,
-   gardent leurs constructeurs de copie implicites, qui recopient les pointeurs
-   propriétaires sans prendre de référence (`interval_node b(*a);`, puis la
-   destruction des deux : « double free ») ; et `expression(const expr_node&)`
-   (ligne 102), implicite, prend possession de n'importe quel nœud, même sur la
-   pile. C'est l'interface de GAOL 4 : *à décider*, `= delete` sur la copie et
-   l'affectation d'`expr_node` (`clone()` copie), ou le documenter.
-3. **La pile d'évaluation vide** (mineur, démontré) : le commentaire de
-   `gaol/parser/gaol_eval_stack.h` (lignes 124 à 134) dit que `pop()` sur une
-   pile vide rend 0 et que le visiteur doit lever l'erreur ; il rend
-   `the_stack[0]`, une valeur périmée, et rien ne lève l'erreur (un nœud du
-   programme dont `accept()` ne visite rien s'évalue sans erreur).
-   `expr_eval::result()` (`gaol/parser/gaol_expr_eval.h`, lignes 256 à 258)
-   pourrait lever l'erreur quand la pile est vide ou garde plus d'une valeur.
-4. **`move_to_side()` sans vérification finale** (mineur, plausible) :
-   `gaol/core/gaol_interval_io.cpp` (lignes 134 à 179) s'arrête après quatre
-   déplacements du dernier chiffre sans vérifier le côté ; seul un `snprintf()`
-   faux de plus de quatre unités (celui de `msvcrt.dll`, appelé seulement avec
-   `__USE_MINGW_ANSI_STDIO` à 0) laisserait une borne écrite du mauvais côté.
-   Aucune cible de la CI n'est touchée.
-5. **Un caractère perdu** (mineur) : le signe § de « Stroustrup, 3rd ed.
-   §15.3.1 » est devenu U+FFFD (`gaol/parser/gaol_expression.h`, lignes 143 et
-   150).
-6. **La lecture d'un nombre très long** (piste, mineur) : elle prend un temps
-   quadratique (0,26 s pour 100 000 chiffres, quatre fois plus quand la longueur
-   double), ce que `doc/using.md` (ligne 1072) dit ; pour un nombre dont le seul
-   compte des chiffres montre qu'il vaut [MAX, +oo] (`"7"` répété 100 000 fois),
-   l'entier N est construit avant le test `beyond` : le construire après ce test
-   serait un gain facile.
-
-## PW. Les builds et la CI [M]
-
-Relevés par la relecture du 13 novembre (voir PV). Les fichiers de
+contre l'arbre, que PU et PV ont changé. « Démontré » : un programme ou un
+calcul le montre ; « plausible » : raisonné, non montré. Chaque point est une
+pull request, avec un test qui a des dents (process.md §5). Les fichiers de
 `.github/workflows/` se poussent par SSH (process.md §10).
 
 1. **`automatic_configuration` échoue sur une machine sans FMA** (important,
@@ -280,7 +245,7 @@ Relevés par la relecture du 13 novembre (voir PV). Les fichiers de
 
 ## PX. Les tests sans dents [S]
 
-Relevés par la relecture du 13 novembre (voir PV). Le test de PU.1 est fait par
+Relevés par la relecture du 13 novembre (voir PW). Le test de PU.1 est fait par
 #323.
 
 1. **`tests/u128.cpp`** (important, démontré) : sans entier natif de 128 bits
@@ -336,7 +301,7 @@ Relevés par la relecture du 13 novembre (voir PV). Le test de PU.1 est fait par
 
 ## PY. Les textes faux de `doc/`, des exemples et du code ; le code mort [M]
 
-Relevés par la relecture du 13 novembre (voir PV). Une pull request par document
+Relevés par la relecture du 13 novembre (voir PW). Une pull request par document
 ou par groupe ; ce qui va dans le manuel, `doc/differences.md` et le `ChangeLog`
 est dans PZ. Aucun point ne change une borne.
 
@@ -502,11 +467,12 @@ est dans PZ. Aucun point ne change une borne.
 
 ## PZ. Le manuel et les registres [M]
 
-Relevés par la relecture du 13 novembre (voir PV). Le manuel dans une pull
+Relevés par la relecture du 13 novembre (voir PW). Le manuel dans une pull
 request `manual*`, qui régénère le PDF dans son dernier commit (process.md §6.2,
 point 7) et corrige `doc/differences.md` avec lui ; le `ChangeLog` par la pull
 request de synthèse (process.md §7, point 5). Après PU à PY, dont les
-corrections se reportent ici ; celles de PU, faite, sont aux points 5 et 7.
+corrections se reportent ici ; celles de PU et de PV, faites, sont aux points 3,
+5, 6 et 7.
 
 1. **Les chiffres du chemin AVX-512 et de FMA** (important) :
    `02_installation.tex` (lignes 872 à 874 : « no other processor was
@@ -525,12 +491,20 @@ corrections se reportent ici ; celles de PU, faite, sont aux points 5 et 7.
    `doc/continuous-integration.md`) ; lignes 87 et 88, 520 et 521 (45
    vérifications de `static_initialization` : 44) ; lignes 440, 478 et 697 (66,
    96 et 1 969, comme PY.3).
-3. **Le lecteur** : le chapitre 15 (lignes 238, 1378 et 1379) et
-   `doc/differences.md` (lignes 1761 et 1765 à 1770), selon la décision de
-   PV.1 ; le chapitre 9 (lignes 285 à 288), comme `gaol/parser/gaol_parser.h`
-   (lignes 97 à 99) : les seuils des bornes non départagées (au-dessous de
-   2^-1084 en base 16, et de 10^-331 en décimal, d'après
-   `gaol/parser/gaol_interval_lexer.lpp`, lignes 276 à 279).
+3. **Le lecteur** : le chapitre 9 (lignes 285 à 288), comme
+   `gaol/parser/gaol_parser.h` (lignes 97 à 99) : les seuils des bornes non
+   départagées (au-dessous de 2^-1084 en base 16, et de 10^-331 en décimal,
+   d'après `gaol/parser/gaol_interval_lexer.lpp`, lignes 276 à 279) ; et, depuis
+   PV.6 (#335), un nombre au-delà des doubles (plus de 10^311, moins de 10^-331
+   et leurs équivalents en bases 16, 8 et 2) est lu en temps linéaire, quand les
+   passages suivants disent le temps quadratique sans exception :
+   `doc/differences.md` (lignes 960 et 975), `03_using.tex` (ligne 1248),
+   `09_io.tex` (lignes 192 et 765), `15_migration.tex` (lignes 1280 et 1696),
+   `doc/using.md` (ligne 1087) le disant déjà avec l'exception. Les phrases
+   « le lecteur connaît toutes les fonctions de GAOL » (chapitre 15, lignes 238,
+   1378 et 1379, `doc/differences.md`, lignes 1761 et 1765 à 1770) sont vraies
+   depuis PV.1, et le lecteur de la norme lit `cancelMinus`, `cancelPlus`,
+   `intersection` et `convexHull` : rien n'y est à corriger pour ce point.
 4. **Les autres passages du manuel** : `03_using.tex` (lignes 730 et 731 :
    l'exemple de PY.4) ; `07_arithmetic.tex` (lignes 620 et 621) et
    `11_accuracy.tex` (lignes 749 et 750) : les seuils d'`erfc` ;
@@ -569,15 +543,25 @@ corrections se reportent ici ; celles de PU, faite, sont aux points 5 et 7.
    PU à PY, en puces pour ces deux registres : pour PU, les sections « Pour
    `doc/differences.md` et `ChangeLog` » de #323 à #334, et `differences.md`
    (lignes 2344 à 2353 de `998e61c`), qui dit encore qu'aucune macro ne montre
-   les options que #330 refuse avec GCC 12 et après.
+   les options que #330 refuse avec GCC 12 et après. Pour PV, la section « Pour
+   `doc/differences.md` et `ChangeLog` » de #335 : les noms de GAOL et de la
+   norme que le lecteur lit, les nœuds d'expression qui ne se copient plus,
+   `result()` qui lève l'erreur, `gaol_value()`, le texte de repli d'une borne,
+   le nombre très long lu en temps linéaire et le test `bad_snprintf`.
 6. **Le PDF** : régénéré dans le dernier commit (l'index de celui de `9d59e0c`
    donne « accuracy, 208 », 207 dans le PDF reconstruit) ; le rapport de
    couverture et les mesures de PJ.2 sont à refaire, PU ayant changé le code de
-   `gaol/` (#323, #324 et #326 à #332 ; PJ).
-7. **Les passages du manuel que laisse la tâche PU** (important ; avant le PDF
-   de PZ.6) : `02_installation.tex`, la section « Interprocedural optimization
-   is not offered » (lignes 1612 à 1645 : « With GCC, moreover, it breaks the
-   bounds », « which the three builds keep away from CORE-MATH alone »), comme
+   `gaol/` (#323, #324 et #326 à #332 ; PJ), et PV aussi (#335 : le lecteur,
+   l'écriture d'une borne, l'évaluateur). Le PDF de #335 (391 pages, régénéré
+   dans cette pull request à la demande du mainteneur, avec les noms des
+   chapitres 9 et 10) a le dernier paragraphe du chapitre 10 seul sur une page
+   de trois lignes, suivie d'une page blanche : le mainteneur l'a laissé ; à
+   resserrer au besoin, avec le PDF de PZ.
+7. **Les passages du manuel que laissent les tâches PU et PV** (important ;
+   avant le PDF de PZ.6) : `02_installation.tex`, la section « Interprocedural
+   optimization is not offered » (lignes 1612 à 1645 : « With GCC, moreover, it
+   breaks the bounds », « which the three builds keep away from CORE-MATH
+   alone »), comme
    `doc/three-builds.md` par #325 et #333 (GCC 13.3 et 15.2 passent avec la LTO,
    qu'un job de `linux.yml` construit) ; la liste « No macro of the compiler
    shows the following options » (lignes 243 à 268) et `15_migration.tex`
@@ -586,7 +570,13 @@ corrections se reportent ici ; celles de PU, faite, sont aux points 5 et 7.
    Debian armel et sous valgrind, comme `doc/using.md` par #331 ; le
    constructeur `expression(const expr_node&)` `explicit` (#332), dans le
    chapitre des expressions s'il montre la construction d'un nœud, et dans la
-   liste des changements de l'interface du chapitre 15.
+   liste des changements de l'interface du chapitre 15. Pour PV (#335), s'ils
+   les montrent : les nœuds d'expression qui ne se copient plus et
+   `expr_eval::result()` qui lève l'erreur, dans le chapitre des expressions et
+   dans la même liste, et les quatre noms de la norme (`cancelMinus`,
+   `cancelPlus`, `intersection`, `convexHull`) que
+   `gaol_ieee1788::textToInterval` lit, dans le chapitre 10 (fait) et dans cette
+   liste.
 
 ## PH. Les signalements à d'autres projets [attend l'accord du mainteneur]
 
