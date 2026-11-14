@@ -277,7 +277,10 @@ name, and the files their `EXTRA_DIST` list: a file added to the repository
 goes into the `EXTRA_DIST` of the `Makefile.am` of its directory, or of the
 top one for a directory without its own. `meson dist` archives the commit with
 `git archive`, which reads `export-ignore`, and refuses a tree with changes not
-committed (`--allow-dirty`); without `--formats gztar` it makes
+committed (`--allow-dirty`), with a recent meson: the 0.53.2 of Ubuntu 20.04
+copies the files of git itself, without the ones whose name starts with a dot
+(`.github/`, `.gitignore`) and with the notes of the branch `dev`, so that its
+archive is not the one of the other two; without `--formats gztar` it makes
 `gaol-<version>.tar.xz`, as `ninja dist` of meson does. The job *Archives of
 the sources* of the continuous integration makes the three and checks that
 they hold the same files. The archives are not the same bytes: the order and

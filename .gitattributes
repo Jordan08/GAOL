@@ -3,8 +3,8 @@
 # not the users of a version, and the settings of the maintainers' tools. Only
 # the development branch dev holds them, and this file, which leaves itself
 # out: the branch of the versions, configure-clean, has neither.
-# git archive, and so meson dist, which archives the commit with it, reads
-# export-ignore; CMake leaves them out of package_source with
+# git archive, and so meson dist, which archives the commit with it (a recent
+# meson: see doc/building.md), reads export-ignore; CMake leaves them out of package_source with
 # CPACK_SOURCE_IGNORE_FILES (CMakeLists.txt), and make dist of the autotools
 # build does not list them in its EXTRA_DIST (Makefile.am): the three
 # archives hold the same files, on dev as on configure-clean.
