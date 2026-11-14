@@ -670,6 +670,8 @@ PDF_TO_LATEX_TRUE
 MAKEINDEX
 BIBTEX
 PDFLATEX
+GAOL_STATIC_LIBRARY_FALSE
+GAOL_STATIC_LIBRARY_TRUE
 HOST_LINUX_FALSE
 HOST_LINUX_TRUE
 PTHREAD_FLAGS
@@ -21163,7 +21165,11 @@ if test "${gaol_cxx_pthread}" = yes; then
     PTHREAD_FLAGS="-pthread"
 fi
 
-# tests/automatic_cleanup.cpp, on Linux only, as with CMake and meson
+# tests/automatic_cleanup.cpp and tests/bad_snprintf.cpp, on Linux only, and with
+# a static libgaol: a shared one initializes itself before the constructor of
+# the first reads the rounding direction, and is out of the reach of the link
+# option --wrap of the second, which CMake (BUILD_SHARED_LIBS) and meson
+# (default_library) leave out too. libtool sets enable_static (yes by default)
 case $host_os in
   linux*) gaol_host_linux=yes ;;
   *) gaol_host_linux=no ;;
@@ -21174,6 +21180,14 @@ esac
 else
   HOST_LINUX_TRUE='#'
   HOST_LINUX_FALSE=
+fi
+
+ if test "${enable_static}" = yes; then
+  GAOL_STATIC_LIBRARY_TRUE=
+  GAOL_STATIC_LIBRARY_FALSE='#'
+else
+  GAOL_STATIC_LIBRARY_TRUE='#'
+  GAOL_STATIC_LIBRARY_FALSE=
 fi
 
 
@@ -21725,6 +21739,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${HOST_LINUX_TRUE}" && test -z "${HOST_LINUX_FALSE}"; then
   as_fn_error $? "conditional \"HOST_LINUX\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${GAOL_STATIC_LIBRARY_TRUE}" && test -z "${GAOL_STATIC_LIBRARY_FALSE}"; then
+  as_fn_error $? "conditional \"GAOL_STATIC_LIBRARY\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${PDF_TO_LATEX_TRUE}" && test -z "${PDF_TO_LATEX_FALSE}"; then

@@ -7,10 +7,11 @@
 # but u128.cpp include, of the *_values.h, and of several of the programs; see
 # CMakeLists.txt), with -Wno-psabi where the compiler takes it
 # (GAOL_TESTS_CXXFLAGS, see CMakeLists.txt), and linked with the static
-# libgaol just built (-static: a libtool library not installed), and with the
-# link option gaol.pc gives (-mno-daz-ftz, where the compiler takes it), as
-# CMake links them. Exit status 77 is a test skipped (intervalf and interval2f
-# where the intervals of floats are not compiled).
+# libgaol just built (-static: a libtool library not installed, which makes it
+# take the static library where one is built; with --disable-static it links
+# the shared one), and with the link option gaol.pc gives (-mno-daz-ftz, where
+# the compiler takes it), as CMake links them. Exit status 77 is a test skipped
+# (intervalf and interval2f where the intervals of floats are not compiled).
 #
 # make perf measures GAOL v5 on the benchmark of doc/compare/performance.md
 # (doc/compare/code/run_perf.sh).
@@ -41,10 +42,14 @@ GAOL_TESTS = arithmetic elementary rounding_direction numbers other_functions \
 # writes wrong digits, which the link of bad_snprintf gives, by -Wl,--wrap, to
 # the calls of the static libgaol: the functions of the test replace
 # snprintf() and __snprintf_chk(), which the fortified calls of the C library
-# of GNU reach (GAOL v5)
+# of GNU reach (GAOL v5). Both with a static libgaol only (as CMake and meson):
+# a shared one initializes itself before that constructor runs, and is out of
+# the reach of --wrap, so that configure --disable-static leaves them out
 if HOST_LINUX
+if GAOL_STATIC_LIBRARY
 GAOL_TESTS += automatic_cleanup bad_snprintf
 bad_snprintf_LDFLAGS = $(AM_LDFLAGS) -Wl,--wrap=snprintf -Wl,--wrap=__snprintf_chk
+endif
 endif
 
 # fast_math_link: -ffast-math to its link only, its source being compiled as

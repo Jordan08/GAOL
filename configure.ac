@@ -934,12 +934,17 @@ if test "${gaol_cxx_pthread}" = yes; then
     PTHREAD_FLAGS="-pthread"
 fi
 AC_SUBST([PTHREAD_FLAGS])
-# tests/automatic_cleanup.cpp, on Linux only, as with CMake and meson
+# tests/automatic_cleanup.cpp and tests/bad_snprintf.cpp, on Linux only, and with
+# a static libgaol: a shared one initializes itself before the constructor of
+# the first reads the rounding direction, and is out of the reach of the link
+# option --wrap of the second, which CMake (BUILD_SHARED_LIBS) and meson
+# (default_library) leave out too. libtool sets enable_static (yes by default)
 case $host_os in
   linux*) gaol_host_linux=yes ;;
   *) gaol_host_linux=no ;;
 esac
 AM_CONDITIONAL([HOST_LINUX], [test "${gaol_host_linux}" = yes])
+AM_CONDITIONAL([GAOL_STATIC_LIBRARY], [test "${enable_static}" = yes])
 
 # The tools that compile the manuals (make -C manual pdf)
 AC_CHECK_PROG(PDFLATEX,pdflatex,pdflatex,no)
