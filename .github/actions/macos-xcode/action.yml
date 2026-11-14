@@ -1,0 +1,114 @@
+# The generator of Xcode builds the architectures of $(ARCHS_STANDARD), arm64
+# and x86_64, when CMAKE_OSX_ARCHITECTURES is not given, from one
+# configuration (GAOL v5): CMake gives Xcode the architecture of the machine
+# then, as the other generators, configure and meson build for it alone, and
+# the configuration has the intervals of that architecture. With the list
+# "arm64;x86_64" the build is universal, as with the other generators, and its
+# programs run natively (arm64) and under Rosetta (x86_64). The programs of
+# the generator of Xcode are in build/tests/Release.
+# The steps of the job xcode of macos.yml, for one configuration of
+# the group of the job that calls this action (GAOL v5).
+name: macos-xcode
+description: The job xcode of macos.yml for one configuration
+inputs:
+  archs:
+    description: The key archs of the row of the matrix of the job
+    default: ''
+  desc:
+    description: The key desc of the row of the matrix of the job
+    default: ''
+  universal:
+    description: The key universal of the row of the matrix of the job
+    default: ''
+runs:
+  using: composite
+  steps:
+    # In a group of configurations the job runs several of them: each
+    # starts from the tree as git has it, and from a temporary directory
+    # without what the previous ones left in it (GAOL v5)
+    - name: The tree and the temporary directory as the job found them
+      shell: bash
+      env:
+        DESC: ${{ inputs.desc }}
+      run: |
+        printf '\n## %s\n\n' "$DESC" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$RUNNER_OS" = Linux ]; then
+          # the containers write as root in the tree
+          sudo chown -R "$(id -u):$(id -g)" .
+        fi
+        git clean -ffdx -q
+        git reset --hard -q
+        for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
+        test -z "$(git status --porcelain --ignored)"
+    - name: Rosetta, to run x86_64 programs on arm64
+      if: inputs.universal == 'true'
+      shell: bash -e {0}
+      run: sudo softwareupdate --install-rosetta --agree-to-license
+    - name: Configure
+      env:
+        ARCHS: ${{ inputs.archs }}
+      shell: bash -e {0}
+      run: |
+        xcodebuild -version
+        cmake -S . -B build -G Xcode -DWITH_TESTS=ON ${ARCHS:+"$ARCHS"}
+    - name: The intervals of each architecture
+      if: inputs.universal == 'true'
+      shell: bash -e {0}
+      run: |
+        for spec in "arm64 NEON SSE2" "x86_64 SSE2 NEON"; do
+          # shellcheck disable=SC2086
+          set -- $spec
+          echo '#include "gaol/gaol_configuration.h"' | c++ -arch "$1" -I build -x c++ -dM -E - | grep GAOL_USING_ > "macros-$1.txt"
+          cat "macros-$1.txt"
+          grep -q "^#define GAOL_USING_$2_INSTRUCTIONS 1" "macros-$1.txt"
+          if grep -q "^#define GAOL_USING_$3_INSTRUCTIONS 1" "macros-$1.txt"; then
+            echo "::error::the $1 part has the $3 intervals"
+            exit 1
+          fi
+        done
+    - name: The intervals of the architecture of the machine
+      if: ${{ inputs.universal != 'true' }}
+      shell: bash -e {0}
+      run: sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h neon
+    - name: Build
+      shell: bash -e {0}
+      run: cmake --build build --config Release -j 4
+    - name: The architectures built
+      shell: bash -e {0}
+      run: |
+        archs=$(lipo -archs build/tests/Release/gaol_test_arithmetic)
+        echo "lipo: $archs"
+        if [ "${{ inputs.universal }}" = true ]; then
+          case "$archs" in *arm64*x86_64*|*x86_64*arm64*) ;; *) echo "::error::not universal: $archs"; exit 1 ;; esac
+        else
+          [ "$archs" = arm64 ] || { echo "::error::the architecture of the machine alone was expected: $archs"; exit 1; }
+        fi
+    - name: Tests of the arm64 part (natively)
+      shell: bash -e {0}
+      run: cd build && ctest -C Release --output-on-failure -j 4
+    - name: Tests of the x86_64 part (Rosetta)
+      if: inputs.universal == 'true'
+      shell: bash -e {0}
+      run: |
+        count=0
+        for t in build/tests/Release/gaol_test_*; do
+          if [ -f "$t" ] && [ -x "$t" ]; then
+            echo "== $t"
+            status=0
+            arch -x86_64 "$t" || status=$?
+            if [ "$status" != 0 ] && [ "$status" != 77 ]; then
+              echo "::error::$t failed ($status)"
+              exit 1
+            fi
+            count=$((count + 1))
+          fi
+        done
+        test "$count" -ge 20
+    - name: Which intervals each part has
+      if: inputs.universal == 'true'
+      shell: bash -e {0}
+      run: |
+        build/tests/Release/gaol_performance | head -n 1 | tee arm64.txt
+        arch -x86_64 build/tests/Release/gaol_performance | head -n 1 | tee x86_64.txt
+        grep -q "NEON intervals" arm64.txt
+        grep -q "SSE2 intervals" x86_64.txt

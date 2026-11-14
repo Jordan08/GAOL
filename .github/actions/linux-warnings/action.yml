@@ -1,0 +1,77 @@
+# -Wall -Wextra -Werror (GAOL v5): the library, CORE-MATH's sources among
+# them, the tests and the examples compile without a warning with the GCC
+# and the Clang of Ubuntu 26.04, and so does each header GAOL installs,
+# included alone with -std=c++11, whose macros all start with GAOL_ or gaol_
+# (.github/scripts/headers.sh), also with the SSE2 intervals in the form of
+# Visual C++ and clang-cl on x86 (-DGAOL_SSE2_UNALIGNED_STORAGE=ON, GAOL v5):
+# gaol/core/gaol_interval_detail.h did not compile alone with it, and no
+# other job installs GAOL in that form. The flags of the warnings go to every
+# compilation, and -Werror to those of the targets only
+# (CMAKE_COMPILE_WARNING_AS_ERROR), so that no check of CMake fails on a
+# warning of its test program.
+# The steps of the job warnings of linux.yml, for one configuration of
+# the group of the job that calls this action (GAOL v5).
+name: linux-warnings
+description: The job warnings of linux.yml for one configuration
+inputs:
+  cc:
+    description: The key cc of the row of the matrix of the job
+    default: ''
+  cxx:
+    description: The key cxx of the row of the matrix of the job
+    default: ''
+  desc:
+    description: The key desc of the row of the matrix of the job
+    default: ''
+  opts:
+    description: The key opts of the row of the matrix of the job
+    default: ''
+runs:
+  using: composite
+  steps:
+    # In a group of configurations the job runs several of them: each
+    # starts from the tree as git has it, and from a temporary directory
+    # without what the previous ones left in it (GAOL v5)
+    - name: The tree and the temporary directory as the job found them
+      shell: bash
+      env:
+        DESC: ${{ inputs.desc }}
+      run: |
+        printf '\n## %s\n\n' "$DESC" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$RUNNER_OS" = Linux ]; then
+          # the containers write as root in the tree
+          sudo chown -R "$(id -u):$(id -g)" .
+        fi
+        git clean -ffdx -q
+        git reset --hard -q
+        for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
+        test -z "$(git status --porcelain --ignored)"
+    - name: Tools
+      shell: bash -e {0}
+      run: |
+        sudo apt-get update -q
+        sudo apt-get install -y -q g++ clang cmake make pkg-config
+        ${{ inputs.cxx }} --version
+    - name: Configure
+      shell: bash -e {0}
+      run: |
+        flags="-Wall -Wextra"
+        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DWITH_EXAMPLES=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
+          -DCMAKE_C_COMPILER=${{ inputs.cc }} -DCMAKE_CXX_COMPILER=${{ inputs.cxx }} "-DCMAKE_C_FLAGS=$flags" "-DCMAKE_CXX_FLAGS=$flags" \
+          -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install" ${{ inputs.opts }}
+    # The configuration has the form the job asks for: a build that ignored
+    # the option would keep the check of the headers green (GAOL v5)
+    - name: The form of the SSE2 intervals
+      shell: bash -e {0}
+      run: |
+        case "${{ inputs.opts }}" in *GAOL_SSE2_UNALIGNED_STORAGE=ON*)
+          grep -q "^#define GAOL_SSE2_UNALIGNED_STORAGE 1" build/gaol/gaol_configuration.h ;; esac
+    - name: Build
+      shell: bash -e {0}
+      run: cmake --build build -j 4
+    - name: Install
+      shell: bash -e {0}
+      run: cmake --install build
+    - name: The headers of the installed GAOL, each alone, and their macros
+      shell: bash -e {0}
+      run: CXX=${{ inputs.cxx }} sh .github/scripts/headers.sh "$PWD/gaol-install"

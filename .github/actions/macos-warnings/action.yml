@@ -1,0 +1,50 @@
+# -Wall -Wextra -Werror with the AppleClang of macOS 26 arm64 (GAOL v5), as
+# with GCC and Clang in linux.yml: the library, the sources of CORE-MATH
+# included, the tests and the examples, and each header GAOL installs,
+# included alone (.github/scripts/headers.sh). -Werror goes to the targets
+# only (CMAKE_COMPILE_WARNING_AS_ERROR), so that no check of CMake fails on a
+# warning of its test program.
+# The steps of the job warnings of macos.yml, for one configuration of
+# the group of the job that calls this action (GAOL v5).
+name: macos-warnings
+description: The job warnings of macos.yml for one configuration
+inputs:
+  desc:
+    description: The key desc of the row of the matrix of the job
+    default: ''
+runs:
+  using: composite
+  steps:
+    # In a group of configurations the job runs several of them: each
+    # starts from the tree as git has it, and from a temporary directory
+    # without what the previous ones left in it (GAOL v5)
+    - name: The tree and the temporary directory as the job found them
+      shell: bash
+      env:
+        DESC: ${{ inputs.desc }}
+      run: |
+        printf '\n## %s\n\n' "$DESC" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$RUNNER_OS" = Linux ]; then
+          # the containers write as root in the tree
+          sudo chown -R "$(id -u):$(id -g)" .
+        fi
+        git clean -ffdx -q
+        git reset --hard -q
+        for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
+        test -z "$(git status --porcelain --ignored)"
+    - name: Configure
+      shell: bash -e {0}
+      run: |
+        c++ --version
+        flags="-Wall -Wextra"
+        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DWITH_EXAMPLES=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
+          "-DCMAKE_C_FLAGS=$flags" "-DCMAKE_CXX_FLAGS=$flags" -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install"
+    - name: Build
+      shell: bash -e {0}
+      run: cmake --build build -j 4
+    - name: Install
+      shell: bash -e {0}
+      run: cmake --install build
+    - name: The headers of the installed GAOL, each alone, and their macros
+      shell: bash -e {0}
+      run: sh .github/scripts/headers.sh "$PWD/gaol-install"

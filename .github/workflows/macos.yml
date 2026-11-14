@@ -5,6 +5,12 @@
 # locale writing a decimal comma: each job checks after its tests that numbers
 # read and wrote numbers under it (.github/scripts/comma-locale.sh) (GAOL v5).
 #
+# A job is a group of configurations that run one after the other on the
+# same image of runner, each one an action of .github/actions/ called
+# with the row of the matrix it had when it was a job of its own: the
+# configurations, their options and their checks are those of the jobs
+# they replace (GAOL v5). Below, a job is one of these configurations.
+#
 # Copyright (c) 2026 ENSTA, France
 #
 # By: Jordan NININ (created 2026-09-20)
@@ -40,431 +46,361 @@ env:
   CTEST_OUTPUT_ON_FAILURE: 1
 
 jobs:
-  cmake:
-    name: ${{ matrix.cfg.desc }}
-    runs-on: ${{ matrix.cfg.os }}
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        cfg:
-          - { os: macos-26,       arch: arm64,  desc: 'macOS 26 arm64' }
-          - { os: macos-26,       arch: x86_64, desc: 'macOS 26 x86_64 (Rosetta)' }
-          - { os: macos-15,       arch: arm64,  desc: 'macOS 15 arm64' }
-          - { os: macos-15-intel, arch: x86_64, desc: 'macOS 15 x86_64' }
-          - { os: xcode-27,       arch: arm64,  desc: 'macOS 27 arm64' }
-   #   not available now    - { os: macos-27,       arch: x86_64, desc: 'macOS 27 x86_64 (Rosetta)' }
-          - { os: macos-15,       arch: arm64,  opts: '-DGAOL_PRESERVE_ROUNDING=ON', desc: 'macOS 15 arm64, rounding direction preserved' }
-          # The FPU intervals, which the NEON ones replace on arm64 (GAOL v5)
-          - { os: macos-15,       arch: arm64,  opts: '-DGAOL_SIMD=OFF', desc: 'macOS 15 arm64, FPU intervals' }
-    steps:
-      - uses: actions/checkout@v7
-      - name: Rosetta, to run x86_64 programs on arm64
-        if: matrix.cfg.arch == 'x86_64' && runner.arch == 'ARM64'
-        run: sudo softwareupdate --install-rosetta --agree-to-license
-      - name: Configure
-        run: |
-          c++ --version
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_OSX_ARCHITECTURES=${{ matrix.cfg.arch }} -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install" ${{ matrix.cfg.opts }}
-      # NEON on arm64, SSE2 on x86_64 (under Rosetta too), the FPU where
-      # -DGAOL_SIMD=OFF asked for it (GAOL v5)
-      - name: The intervals
-        run: |
-          expected=sse2
-          if [ "${{ matrix.cfg.arch }}" = arm64 ]; then expected=neon; fi
-          case "${{ matrix.cfg.opts }}" in *GAOL_SIMD=OFF*) expected=fpu ;; esac
-          sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h $expected
-      - name: Build
-        run: cmake --build build -j 4
-      - name: Tests (make test)
-        run: |
-          file build/tests/gaol_test_arithmetic
-          cmake --build build --target test
-      - name: The test numbers ran under a locale writing a decimal comma
-        run: sh .github/scripts/comma-locale.sh check build
-      - name: Performance
-        run: |
-          set -o pipefail
-          build/tests/gaol_performance | tee -a "$GITHUB_STEP_SUMMARY"
-      - name: Install
-        run: cmake --install build
-      - name: Tests built with the installed GAOL
-        run: |
-          cmake -S tests/find_package -B build-find-package -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=${{ matrix.cfg.arch }} -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
-          cmake --build build-find-package -j 4
-          cmake --build build-find-package --target test
 
-  # A universal build (arm64 and x86_64 compiled from one configuration, GAOL
-  # v5): each architecture takes its own intervals, NEON for arm64 and SSE2 for
-  # x86_64, which the configuration header derives from __aarch64__ and
-  # __x86_64__ (GAOL_UNIVERSAL_NEON and GAOL_UNIVERSAL_SSE2). The macros are
-  # read for each architecture by the preprocessor, then the tests run natively
-  # (the arm64 part) and under Rosetta (the x86_64 part), and the program of
-  # performance says which intervals each one has.
-  universal:
-    name: ${{ matrix.cfg.desc }}
-    runs-on: ${{ matrix.cfg.os }}
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        cfg:
-          - { os: macos-26, desc: 'macOS 26 universal (arm64 and x86_64)' }
-          - { os: macos-15, desc: 'macOS 15 universal (arm64 and x86_64)' }
+  m1:
+    name: 'macOS 15 arm64 (4 configurations)'
+    runs-on: macos-15
+    timeout-minutes: 240
     steps:
       - uses: actions/checkout@v7
-      - name: Rosetta, to run x86_64 programs on arm64
-        run: sudo softwareupdate --install-rosetta --agree-to-license
-      - name: Configure
-        run: |
-          c++ --version
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON "-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64"
-      - name: The intervals of each architecture
-        run: |
-          for spec in "arm64 NEON SSE2" "x86_64 SSE2 NEON"; do
-            # shellcheck disable=SC2086
-            set -- $spec
-            echo '#include "gaol/gaol_configuration.h"' | c++ -arch "$1" -I build -x c++ -dM -E - | grep GAOL_USING_ > "macros-$1.txt"
-            cat "macros-$1.txt"
-            grep -q "^#define GAOL_USING_$2_INSTRUCTIONS 1" "macros-$1.txt"
-            if grep -q "^#define GAOL_USING_$3_INSTRUCTIONS 1" "macros-$1.txt"; then
-              echo "::error::the $1 part has the $3 intervals"
-              exit 1
-            fi
-          done
-      - name: Build
-        run: cmake --build build -j 4
-      - name: Tests of the arm64 part (natively)
-        run: |
-          lipo -archs build/tests/gaol_test_arithmetic
-          cmake --build build --target test
-      # The test programs themselves, not ctest, which is arm64 only on the
-      # runner (Homebrew): a program that skips gives 77
-      - name: Tests of the x86_64 part (Rosetta)
-        run: |
-          for t in build/tests/gaol_test_*; do
-            if [ -f "$t" ] && [ -x "$t" ]; then
-              echo "== $t"
-              status=0
-              arch -x86_64 "$t" || status=$?
-              if [ "$status" != 0 ] && [ "$status" != 77 ]; then
-                echo "::error::$t failed ($status)"
-                exit 1
-              fi
-            fi
-          done
-      - name: Which intervals each part has
-        run: |
-          build/tests/gaol_performance | head -n 1 | tee arm64.txt
-          arch -x86_64 build/tests/gaol_performance | head -n 1 | tee x86_64.txt
-          grep -q "NEON intervals" arm64.txt
-          grep -q "SSE2 intervals" x86_64.txt
-
-  # The generator of Xcode builds the architectures of $(ARCHS_STANDARD), arm64
-  # and x86_64, when CMAKE_OSX_ARCHITECTURES is not given, from one
-  # configuration (GAOL v5): CMake gives Xcode the architecture of the machine
-  # then, as the other generators, configure and meson build for it alone, and
-  # the configuration has the intervals of that architecture. With the list
-  # "arm64;x86_64" the build is universal, as with the other generators, and its
-  # programs run natively (arm64) and under Rosetta (x86_64). The programs of
-  # the generator of Xcode are in build/tests/Release.
-  xcode:
-    name: ${{ matrix.cfg.desc }}
-    runs-on: macos-26
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        cfg:
-          - { archs: '-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64', universal: true,  desc: 'macOS 26 Xcode generator, universal (arm64 and x86_64)' }
-          - { archs: '',                                       universal: false, desc: 'macOS 26 Xcode generator, no architectures given' }
-    steps:
-      - uses: actions/checkout@v7
-      - name: Rosetta, to run x86_64 programs on arm64
-        if: matrix.cfg.universal
-        run: sudo softwareupdate --install-rosetta --agree-to-license
-      - name: Configure
+      - id: c1
+        name: 'macOS 15 arm64'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/macos-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'macOS 15 arm64'
+          arch: 'arm64'
+      # The FPU intervals, which the NEON ones replace on arm64 (GAOL v5)
+      - id: c2
+        name: 'macOS 15 arm64, FPU intervals'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/macos-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'macOS 15 arm64, FPU intervals'
+          arch: 'arm64'
+          opts: '-DGAOL_SIMD=OFF'
+      - id: c3
+        name: 'macOS 15 arm64, rounding direction preserved'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/macos-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'macOS 15 arm64, rounding direction preserved'
+          arch: 'arm64'
+          opts: '-DGAOL_PRESERVE_ROUNDING=ON'
+      - id: c4
+        name: 'macOS 15 universal (arm64 and x86_64)'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/macos-universal
+        timeout-minutes: 60
+        with:
+          desc: 'macOS 15 universal (arm64 and x86_64)'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
         env:
-          ARCHS: ${{ matrix.cfg.archs }}
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }} c4=${{ steps.c4.outcome }}
         run: |
-          xcodebuild -version
-          cmake -S . -B build -G Xcode -DWITH_TESTS=ON ${ARCHS:+"$ARCHS"}
-      - name: The intervals of each architecture
-        if: matrix.cfg.universal
-        run: |
-          for spec in "arm64 NEON SSE2" "x86_64 SSE2 NEON"; do
-            # shellcheck disable=SC2086
-            set -- $spec
-            echo '#include "gaol/gaol_configuration.h"' | c++ -arch "$1" -I build -x c++ -dM -E - | grep GAOL_USING_ > "macros-$1.txt"
-            cat "macros-$1.txt"
-            grep -q "^#define GAOL_USING_$2_INSTRUCTIONS 1" "macros-$1.txt"
-            if grep -q "^#define GAOL_USING_$3_INSTRUCTIONS 1" "macros-$1.txt"; then
-              echo "::error::the $1 part has the $3 intervals"
-              exit 1
-            fi
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'macOS 15 arm64' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='macOS 15 arm64' ;;
+              c2) name='macOS 15 arm64, FPU intervals' ;;
+              c3) name='macOS 15 arm64, rounding direction preserved' ;;
+              c4) name='macOS 15 universal (arm64 and x86_64)' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
           done
-      - name: The intervals of the architecture of the machine
-        if: ${{ !matrix.cfg.universal }}
-        run: sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h neon
-      - name: Build
-        run: cmake --build build --config Release -j 4
-      - name: The architectures built
-        run: |
-          archs=$(lipo -archs build/tests/Release/gaol_test_arithmetic)
-          echo "lipo: $archs"
-          if [ "${{ matrix.cfg.universal }}" = true ]; then
-            case "$archs" in *arm64*x86_64*|*x86_64*arm64*) ;; *) echo "::error::not universal: $archs"; exit 1 ;; esac
-          else
-            [ "$archs" = arm64 ] || { echo "::error::the architecture of the machine alone was expected: $archs"; exit 1; }
-          fi
-      - name: Tests of the arm64 part (natively)
-        run: cd build && ctest -C Release --output-on-failure -j 4
-      - name: Tests of the x86_64 part (Rosetta)
-        if: matrix.cfg.universal
-        run: |
-          count=0
-          for t in build/tests/Release/gaol_test_*; do
-            if [ -f "$t" ] && [ -x "$t" ]; then
-              echo "== $t"
-              status=0
-              arch -x86_64 "$t" || status=$?
-              if [ "$status" != 0 ] && [ "$status" != 77 ]; then
-                echo "::error::$t failed ($status)"
-                exit 1
-              fi
-              count=$((count + 1))
-            fi
-          done
-          test "$count" -ge 20
-      - name: Which intervals each part has
-        if: matrix.cfg.universal
-        run: |
-          build/tests/Release/gaol_performance | head -n 1 | tee arm64.txt
-          arch -x86_64 build/tests/Release/gaol_performance | head -n 1 | tee x86_64.txt
-          grep -q "NEON intervals" arm64.txt
-          grep -q "SSE2 intervals" x86_64.txt
+          exit $status
 
-  # The same universal build with autotools and with meson (GAOL v5): the
-  # architectures are in the flags of the compilers (-arch twice), configure and
-  # meson reading them, and the configuration is the one CMake gives
-  # (GAOL_UNIVERSAL_SSE2 and GAOL_UNIVERSAL_NEON of gaol_configuration.h): the
-  # intervals of each architecture are read by the preprocessor, the tests run
-  # natively (arm64) and under Rosetta (x86_64), and the program of performance
-  # says which intervals each part has. Not checked on a machine other than the
-  # runner (the maintainer's has no macOS).
-  universal-autotools:
-    name: ${{ matrix.cfg.desc }}, autotools
-    runs-on: ${{ matrix.cfg.os }}
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        cfg:
-          - { os: macos-26, desc: 'macOS 26 universal (arm64 and x86_64)' }
-          - { os: macos-15, desc: 'macOS 15 universal (arm64 and x86_64)' }
+  m2:
+    name: 'macOS 15 universal, autotools and meson (2 configurations)'
+    runs-on: macos-15
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v7
-      - name: Rosetta, to run x86_64 programs on arm64
-        run: sudo softwareupdate --install-rosetta --agree-to-license
-      - name: Configure
+      - id: c1
+        name: 'macOS 15 universal (arm64 and x86_64), autotools'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/macos-universal-autotools
+        timeout-minutes: 60
+        with:
+          desc: 'macOS 15 universal (arm64 and x86_64), autotools'
+      - id: c2
+        name: 'macOS 15 universal (arm64 and x86_64), meson'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/macos-universal-meson
+        timeout-minutes: 60
+        with:
+          desc: 'macOS 15 universal (arm64 and x86_64), meson'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }}
         run: |
-          set -o pipefail
-          c++ --version
-          archs="-arch arm64 -arch x86_64"
-          ./configure CFLAGS="$archs" CXXFLAGS="$archs" LDFLAGS="$archs" --with-tests | tee configure.log
-          grep -q "universal build of macOS" configure.log
-      - name: The intervals of each architecture
-        run: |
-          for spec in "arm64 NEON SSE2" "x86_64 SSE2 NEON"; do
-            # shellcheck disable=SC2086
-            set -- $spec
-            echo '#include "gaol/gaol_configuration.h"' | c++ -arch "$1" -I . -x c++ -dM -E - | grep GAOL_USING_ > "macros-$1.txt"
-            cat "macros-$1.txt"
-            grep -q "^#define GAOL_USING_$2_INSTRUCTIONS 1" "macros-$1.txt"
-            if grep -q "^#define GAOL_USING_$3_INSTRUCTIONS 1" "macros-$1.txt"; then
-              echo "::error::the $1 part has the $3 intervals"
-              exit 1
-            fi
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'macOS 15 universal, autotools and meson' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='macOS 15 universal (arm64 and x86_64), autotools' ;;
+              c2) name='macOS 15 universal (arm64 and x86_64), meson' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
           done
-      - name: Build
-        run: make -j 4
-      - name: Tests of the arm64 part (natively)
-        run: |
-          lipo -archs tests/arithmetic
-          make -j 4 test || { cat tests/test-suite.log; exit 1; }
-      # The test programs themselves: a program that skips gives 77
-      - name: Tests of the x86_64 part (Rosetta)
-        run: |
-          count=0
-          for t in tests/*; do
-            case "$t" in */gaol_performance) continue ;; esac
-            if [ -f "$t" ] && [ -x "$t" ] && lipo -archs "$t" > /dev/null 2>&1; then
-              echo "== $t"
-              status=0
-              arch -x86_64 "$t" || status=$?
-              if [ "$status" != 0 ] && [ "$status" != 77 ]; then
-                echo "::error::$t failed ($status)"
-                exit 1
-              fi
-              count=$((count + 1))
-            fi
-          done
-          echo "$count test programs ran under Rosetta"
-          test "$count" -ge 20
-      - name: Which intervals each part has
-        run: |
-          tests/gaol_performance | head -n 1 | tee arm64.txt
-          arch -x86_64 tests/gaol_performance | head -n 1 | tee x86_64.txt
-          grep -q "NEON intervals" arm64.txt
-          grep -q "SSE2 intervals" x86_64.txt
+          exit $status
 
-  universal-meson:
-    name: ${{ matrix.cfg.desc }}, meson
-    runs-on: ${{ matrix.cfg.os }}
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        cfg:
-          - { os: macos-26, desc: 'macOS 26 universal (arm64 and x86_64)' }
-          - { os: macos-15, desc: 'macOS 15 universal (arm64 and x86_64)' }
+  m3:
+    name: 'macOS 15 x86_64 (2 configurations)'
+    runs-on: macos-15-intel
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@v7
-      - name: Rosetta, to run x86_64 programs on arm64
-        run: sudo softwareupdate --install-rosetta --agree-to-license
-      - name: Tools
+      - id: c1
+        name: 'macOS 15 x86_64'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/macos-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'macOS 15 x86_64'
+          arch: 'x86_64'
+      # numbers took 182 to 577 s in 30 runs (9 to 11 November), more than
+      # 400 six times: 900
+      - id: c2
+        name: 'macOS 15 x86_64 GCC Debug ASan+UBSan'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/macos-sanitizers
+        timeout-minutes: 90
+        with:
+          desc: 'macOS 15 x86_64 GCC Debug ASan+UBSan'
+          compiler: 'gcc'
+          timeout: '900'
+        env:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }}
         run: |
-          brew install pipx
-          pipx install meson
-          pipx install ninja
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-      - name: Configure
-        run: |
-          set -o pipefail
-          c++ --version
-          archs="-arch arm64 -arch x86_64"
-          meson setup build-meson -Dwith-tests=true "-Dc_args=$archs" "-Dcpp_args=$archs" "-Dc_link_args=$archs" "-Dcpp_link_args=$archs" | tee configure.log
-          grep -q "Universal build of macOS" configure.log
-      - name: The intervals of each architecture
-        run: |
-          for spec in "arm64 NEON SSE2" "x86_64 SSE2 NEON"; do
-            # shellcheck disable=SC2086
-            set -- $spec
-            echo '#include "gaol/gaol_configuration.h"' | c++ -arch "$1" -I build-meson -x c++ -dM -E - | grep GAOL_USING_ > "macros-$1.txt"
-            cat "macros-$1.txt"
-            grep -q "^#define GAOL_USING_$2_INSTRUCTIONS 1" "macros-$1.txt"
-            if grep -q "^#define GAOL_USING_$3_INSTRUCTIONS 1" "macros-$1.txt"; then
-              echo "::error::the $1 part has the $3 intervals"
-              exit 1
-            fi
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'macOS 15 x86_64' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='macOS 15 x86_64' ;;
+              c2) name='macOS 15 x86_64 GCC Debug ASan+UBSan' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
           done
-      - name: Build
-        run: meson compile -C build-meson
-      - name: Tests of the arm64 part (natively)
-        run: |
-          lipo -archs build-meson/tests/gaol_test_arithmetic
-          meson test -C build-meson --print-errorlogs
-      - name: Tests of the x86_64 part (Rosetta)
-        run: |
-          count=0
-          for t in build-meson/tests/gaol_test_*; do
-            if [ -f "$t" ] && [ -x "$t" ] && lipo -archs "$t" > /dev/null 2>&1; then
-              echo "== $t"
-              status=0
-              arch -x86_64 "$t" || status=$?
-              if [ "$status" != 0 ] && [ "$status" != 77 ]; then
-                echo "::error::$t failed ($status)"
-                exit 1
-              fi
-              count=$((count + 1))
-            fi
-          done
-          echo "$count test programs ran under Rosetta"
-          test "$count" -ge 20
-      - name: Which intervals each part has
-        run: |
-          build-meson/tests/gaol_performance | head -n 1 | tee arm64.txt
-          arch -x86_64 build-meson/tests/gaol_performance | head -n 1 | tee x86_64.txt
-          grep -q "NEON intervals" arm64.txt
-          grep -q "SSE2 intervals" x86_64.txt
+          exit $status
 
-  # -Wall -Wextra -Werror with the AppleClang of macOS 26 arm64 (GAOL v5), as
-  # with GCC and Clang in linux.yml: the library, the sources of CORE-MATH
-  # included, the tests and the examples, and each header GAOL installs,
-  # included alone (.github/scripts/headers.sh). -Werror goes to the targets
-  # only (CMAKE_COMPILE_WARNING_AS_ERROR), so that no check of CMake fails on a
-  # warning of its test program.
-  warnings:
-    name: macOS 26 arm64 AppleClang, -Wall -Wextra -Werror
+  m4:
+    name: 'macOS 26 arm64, sanitizers (3 configurations)'
     runs-on: macos-26
+    timeout-minutes: 270
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'macOS 26 arm64 AppleClang Debug ASan+UBSan'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/macos-sanitizers
+        timeout-minutes: 90
+        with:
+          desc: 'macOS 26 arm64 AppleClang Debug ASan+UBSan'
+          compiler: 'appleclang'
+        env:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+      - id: c2
+        name: 'macOS 26 arm64 GCC Debug ASan+UBSan'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/macos-sanitizers
+        timeout-minutes: 90
+        with:
+          desc: 'macOS 26 arm64 GCC Debug ASan+UBSan'
+          compiler: 'gcc'
+        env:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+      # numbers took 162 to 297 s in 28 runs (9 to 11 November), and once
+      # more than 300: 600
+      - id: c3
+        name: 'macOS 26 arm64 LLVM Clang Debug ASan+UBSan'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/macos-sanitizers
+        timeout-minutes: 90
+        with:
+          desc: 'macOS 26 arm64 LLVM Clang Debug ASan+UBSan'
+          compiler: 'llvm'
+          timeout: '600'
+        env:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'macOS 26 arm64, sanitizers' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='macOS 26 arm64 AppleClang Debug ASan+UBSan' ;;
+              c2) name='macOS 26 arm64 GCC Debug ASan+UBSan' ;;
+              c3) name='macOS 26 arm64 LLVM Clang Debug ASan+UBSan' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  m5:
+    name: 'macOS 26, Xcode universal and arm64 (2 configurations)'
+    runs-on: macos-26
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'macOS 26 Xcode generator, universal (arm64 and x86_64)'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/macos-xcode
+        timeout-minutes: 60
+        with:
+          desc: 'macOS 26 Xcode generator, universal (arm64 and x86_64)'
+          archs: '-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64'
+          universal: 'true'
+      - id: c2
+        name: 'macOS 26 arm64'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/macos-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'macOS 26 arm64'
+          arch: 'arm64'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'macOS 26, Xcode universal and arm64' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='macOS 26 Xcode generator, universal (arm64 and x86_64)' ;;
+              c2) name='macOS 26 arm64' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  m6:
+    name: 'macOS 26, Xcode without architectures, universal autotools, -Werror (3 configurations)'
+    runs-on: macos-26
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'macOS 26 Xcode generator, no architectures given'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/macos-xcode
+        timeout-minutes: 60
+        with:
+          desc: 'macOS 26 Xcode generator, no architectures given'
+          archs: ''
+          universal: 'false'
+      - id: c2
+        name: 'macOS 26 universal (arm64 and x86_64), autotools'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/macos-universal-autotools
+        timeout-minutes: 60
+        with:
+          desc: 'macOS 26 universal (arm64 and x86_64), autotools'
+      - id: c3
+        name: 'macOS 26 arm64 AppleClang, -Wall -Wextra -Werror'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/macos-warnings
+        timeout-minutes: 60
+        with:
+          desc: 'macOS 26 arm64 AppleClang, -Wall -Wextra -Werror'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'macOS 26, Xcode without architectures, universal autotools, -Werror' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='macOS 26 Xcode generator, no architectures given' ;;
+              c2) name='macOS 26 universal (arm64 and x86_64), autotools' ;;
+              c3) name='macOS 26 arm64 AppleClang, -Wall -Wextra -Werror' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  m7:
+    name: 'macOS 26 universal, CMake and meson, and Rosetta (3 configurations)'
+    runs-on: macos-26
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v7
+      - id: c1
+        name: 'macOS 26 universal (arm64 and x86_64)'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/macos-universal
+        timeout-minutes: 60
+        with:
+          desc: 'macOS 26 universal (arm64 and x86_64)'
+      - id: c2
+        name: 'macOS 26 universal (arm64 and x86_64), meson'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/macos-universal-meson
+        timeout-minutes: 60
+        with:
+          desc: 'macOS 26 universal (arm64 and x86_64), meson'
+      - id: c3
+        name: 'macOS 26 x86_64 (Rosetta)'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/macos-cmake
+        timeout-minutes: 60
+        with:
+          desc: 'macOS 26 x86_64 (Rosetta)'
+          arch: 'x86_64'
+      - name: Results of the configurations
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OUTCOMES: >-
+            c1=${{ steps.c1.outcome }} c2=${{ steps.c2.outcome }} c3=${{ steps.c3.outcome }}
+        run: |
+          status=0
+          printf '### %s\n\n| Configuration | Result |\n| --- | --- |\n' 'macOS 26 universal, CMake and meson, and Rosetta' >> "$GITHUB_STEP_SUMMARY"
+          for kv in $OUTCOMES; do
+            case "${kv%%=*}" in
+              c1) name='macOS 26 universal (arm64 and x86_64)' ;;
+              c2) name='macOS 26 universal (arm64 and x86_64), meson' ;;
+              c3) name='macOS 26 x86_64 (Rosetta)' ;;
+            esac
+            printf '| %s | %s |\n' "$name" "${kv#*=}" >> "$GITHUB_STEP_SUMMARY"
+            [ "${kv#*=}" = success ] || status=1
+          done
+          exit $status
+
+  m8:
+    name: 'macOS 27 arm64'
+    runs-on: xcode-27
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
-      - name: Configure
-        run: |
-          c++ --version
-          flags="-Wall -Wextra"
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DWITH_EXAMPLES=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
-            "-DCMAKE_C_FLAGS=$flags" "-DCMAKE_CXX_FLAGS=$flags" -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install"
-      - name: Build
-        run: cmake --build build -j 4
-      - name: Install
-        run: cmake --install build
-      - name: The headers of the installed GAOL, each alone, and their macros
-        run: sh .github/scripts/headers.sh "$PWD/gaol-install"
-
-  sanitizers:
-    name: ${{ matrix.cfg.desc }}
-    runs-on: ${{ matrix.cfg.os }}
-    timeout-minutes: 90
-    strategy:
-      fail-fast: false
-      matrix:
-        cfg:
-          - { os: macos-26,       compiler: appleclang, desc: 'macOS 26 arm64 AppleClang Debug ASan+UBSan' }
-          # numbers took 162 to 297 s in 28 runs (9 to 11 November), and once
-          # more than 300: 600
-          - { os: macos-26,       compiler: llvm,       timeout: 600, desc: 'macOS 26 arm64 LLVM Clang Debug ASan+UBSan' }
-          - { os: macos-26,       compiler: gcc,        desc: 'macOS 26 arm64 GCC Debug ASan+UBSan' }
-          # numbers took 182 to 577 s in 30 runs (9 to 11 November), more than
-          # 400 six times: 900
-          - { os: macos-15-intel, compiler: gcc,        timeout: 900, desc: 'macOS 15 x86_64 GCC Debug ASan+UBSan' }
-    env:
-      UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
-    steps:
-      - uses: actions/checkout@v7
-      - name: Compiler
-        run: |
-          case "${{ matrix.cfg.compiler }}" in
-            gcc)
-              brew install gcc
-              major=$(brew list --versions gcc | awk '{print $2}' | cut -d. -f1)
-              echo "CC=gcc-$major" >> "$GITHUB_ENV"
-              echo "CXX=g++-$major" >> "$GITHUB_ENV"
-              ;;
-            llvm)
-              brew install llvm
-              prefix=$(brew --prefix llvm)
-              echo "CC=$prefix/bin/clang" >> "$GITHUB_ENV"
-              echo "CXX=$prefix/bin/clang++" >> "$GITHUB_ENV"
-              echo "LDFLAGS=-L$prefix/lib/c++ -Wl,-rpath,$prefix/lib/c++" >> "$GITHUB_ENV"
-              ;;
-            *)
-              echo "CC=clang" >> "$GITHUB_ENV"
-              echo "CXX=clang++" >> "$GITHUB_ENV"
-              ;;
-          esac
-      - name: Configure
-        run: |
-          $CXX --version
-          # halt_on_error (UBSAN_OPTIONS) stops a test on its first undefined
-          # behaviour; none is suppressed
-          flags="-fsanitize=address,undefined -fno-omit-frame-pointer"
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DWITH_TESTS=ON "-DCMAKE_C_FLAGS=$flags" "-DCMAKE_CXX_FLAGS=$flags" "-DCMAKE_EXE_LINKER_FLAGS=$flags" \
-            -DGAOL_NUMBERS_TIMEOUT=${{ matrix.cfg.timeout || 300 }}
-      - name: Build
-        run: cmake --build build -j 4
-      - name: Tests (make test)
-        run: cmake --build build --target test
-      - name: The test numbers ran under a locale writing a decimal comma
-        run: sh .github/scripts/comma-locale.sh check build
+      - id: c1
+        name: 'macOS 27 arm64'
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/macos-cmake
+        with:
+          desc: 'macOS 27 arm64'
+          arch: 'arm64'
