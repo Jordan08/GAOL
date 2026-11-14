@@ -68,9 +68,11 @@ runs:
     - name: Tests of the x86_64 part (Rosetta)
       shell: bash -e {0}
       run: |
+        count=0
         for t in build/tests/gaol_test_*; do
           if [ -f "$t" ] && [ -x "$t" ]; then
             echo "== $t"
+            count=$((count + 1))
             status=0
             arch -x86_64 "$t" || status=$?
             if [ "$status" != 0 ] && [ "$status" != 77 ]; then
@@ -79,6 +81,9 @@ runs:
             fi
           fi
         done
+        # A loop over a pattern that matches nothing, a build that wrote its
+        # programs elsewhere, would pass without running a test
+        test "$count" -ge 20 || { echo "::error::$count programs of tests run under Rosetta, fewer than 20"; exit 1; }
     - name: Which intervals each part has
       shell: bash -e {0}
       run: |
