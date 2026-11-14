@@ -34,6 +34,8 @@ foreach ex : gaol_examples
   exe = executable(ex, ex + '.cpp',
     dependencies: [gaol_dep, threads_dep],
     override_options: ['cpp_std=c++17'])
-  test(ex, exe, suite: 'examples')
+  # 300 seconds, as the unit tests: the 30 s of meson are short for an example
+  # in a Debug build with the sanitizers (06_global_optimization takes 12 s)
+  test(ex, exe, suite: 'examples', timeout: 300)
   check_targets += [exe]
 endforeach

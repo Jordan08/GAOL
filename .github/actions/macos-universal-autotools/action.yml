@@ -37,6 +37,11 @@ runs:
     - name: Rosetta, to run x86_64 programs on arm64
       shell: bash -e {0}
       run: sudo softwareupdate --install-rosetta --agree-to-license
+    # gtimeout, which configure looks for: macOS has no timeout, and make test
+    # would give no test a time limit
+    - name: Tools
+      shell: bash -e {0}
+      run: brew install coreutils
     - name: Configure
       shell: bash -e {0}
       run: |

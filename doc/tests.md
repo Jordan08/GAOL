@@ -764,6 +764,13 @@ which `numbers` checks there too.
   `tests/meson_subproject` too; the cache variable `GAOL_NUMBERS_TIMEOUT`
   gives it more time on a slower build (900 s with GCC and the sanitizers on
   macOS x86_64, 600 s with LLVM Clang and the sanitizers on macOS arm64).
+  Meson gives every test, the examples included, 300 s, and so does
+  `make check` of the autotools build where `configure` finds `timeout` (GNU
+  coreutils, `gtimeout` where Homebrew installs it, as the macOS jobs of the
+  continuous integration do; `configure` prints what it found): a test that
+  hangs fails with the status 124 of `timeout`.
+  `make check GAOL_TEST_TIMEOUT=900` gives a slower build more time (GAOL v5:
+  `make check` had no limit, and meson gave the examples its 30 s).
   Numbers of 5000 to 20000 characters, in decimal, in hexadecimal and in the
   uncertain form, have to be read as the tightest
   enclosures, known without reading them (`1.5` followed by zeros is 1.5, and

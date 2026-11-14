@@ -39,6 +39,14 @@ GAOL_EXAMPLES = 01_first_steps 02_decimals_and_rump 03_dependency_problem \
 	12_affine_arithmetic 13_rounding_environment 14_generic_programming \
 	15_text_and_ieee1788 16_Goldstein_Price
 
+# 300 seconds for each example, as meson gives them, where configure found
+# timeout(1); make check GAOL_TEST_TIMEOUT=900 gives a slower build more time
+# (GAOL v5)
+GAOL_TEST_TIMEOUT = 300
+if GAOL_HAVE_TIMEOUT
+LOG_COMPILER = $(GAOL_TIMEOUT) $(GAOL_TEST_TIMEOUT)
+endif
+
 if WITH_EXAMPLES
 noinst_PROGRAMS = $(GAOL_EXAMPLES)
 TESTS = $(GAOL_EXAMPLES)

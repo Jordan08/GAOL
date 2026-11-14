@@ -66,10 +66,22 @@ endif
 # compile tests refused_* of tests/CMakeLists.txt check in the CMake build
 # (GAOL v5), compiled with the compiler and the flags of the tests
 TEST_EXTENSIONS = .sh
-SH_LOG_COMPILER = $(SHELL)
 AM_TESTS_ENVIRONMENT = GAOL_CXX='$(CXX)'; \
 	GAOL_CXXFLAGS='$(DEFS) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)'; \
 	export GAOL_CXX GAOL_CXXFLAGS;
+
+# 300 seconds for each test, refused_options.sh included, as meson gives them
+# (CMake: numbers, GAOL_NUMBERS_TIMEOUT), where configure found timeout(1): a
+# test that hangs fails with the status 124 of timeout. make check
+# GAOL_TEST_TIMEOUT=900 (on the command line: the environment does not reach
+# it) gives a slower build more time (GAOL v5)
+GAOL_TEST_TIMEOUT = 300
+if GAOL_HAVE_TIMEOUT
+LOG_COMPILER = $(GAOL_TIMEOUT) $(GAOL_TEST_TIMEOUT)
+SH_LOG_COMPILER = $(GAOL_TIMEOUT) $(GAOL_TEST_TIMEOUT) $(SHELL)
+else
+SH_LOG_COMPILER = $(SHELL)
+endif
 
 if WITH_TESTS
 noinst_PROGRAMS = $(GAOL_TESTS) gaol_performance
