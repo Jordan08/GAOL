@@ -376,10 +376,12 @@ some runners), `arithmetic` failed with GCC 12.4, 13.3 and 14.2 and `-flto`
 (5240 checks of 7 365 456 with 13.3, about 24 700 with the others; 15.2
 passed): `operator+=(double)` and `operator-=(double)` computed their sum after
 the change of rounding direction that gives the caller's back, in the caller's
-direction (GCC bug 34678, as above), and now keep it before: GCC 13.3 and
-14.2 then pass, and GCC 12.4 still fails the three checks of `[1]%[3]` with
-literal operands. A job of `linux.yml` builds it with the SSE2 path whatever the
-runner is (GCC 13.3, `-DGAOL_PREFER_AVX512=OFF`). The other compilers and
+direction (GCC bug 34678, as above), and now keep it before, as do `*=`, `/=`
+and `%=` with a double and `%=` between intervals (GCC 12.4 failed `[1]%[3]`
+with literal operands until the last one did; no test failed for the other
+three alone): GCC 12.4, 13.3 and 14.2 then pass. A job of `linux.yml` builds it
+with the SSE2 path whatever the runner is (GCC 13.3,
+`-DGAOL_PREFER_AVX512=OFF`). The other compilers and
 versions were not tried with it.
 
 It is not refused either: the standard settings of the tools reach the

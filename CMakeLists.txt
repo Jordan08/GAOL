@@ -193,14 +193,16 @@ option(GAOL_COVERAGE "Compile GAOL and its tests with the counters of gcov, and 
 # processors with AVX-512 only, where the arithmetic takes the AVX-512 path: on
 # the SSE2 path (GAOL_PREFER_AVX512=OFF, or an AMD EPYC 7763), GCC 12.4, 13.3
 # and 14.2 failed tests/arithmetic.cpp with it (5240 checks of 7 365 456 with
-# 13.3, about 24 700 with the others; 15.2 passed) until operator+=(double) and
-# operator-=(double) kept their sum before the direction is given back, as the
-# other operations do (GCC bug 34678, see gaol/gaol_fpu.h): GCC 13.3 and 14.2
-# then pass, and GCC 12.4 still fails the three checks of [1]%[3] with literal
-# operands. A job of linux.yml builds it with the SSE2 path whatever the runner
-# is (GCC 13.3, GAOL_PREFER_AVX512=OFF). The other compilers and versions were
-# not tried with it, and it is not offered (see
-# doc/three-builds.md). A -flto given by hand in CMAKE_C_FLAGS
+# 13.3, about 24 700 with the others; 15.2 passed) until operator+=(double),
+# -=(double), *=(double), /=(double), %=(double) and %=(const interval&) kept
+# their result before the direction is given back, as the other operations do
+# (GCC bug 34678, see gaol/gaol_fpu.h): GCC 12.4, 13.3 and 14.2 then pass (the
+# last one needed %= alone, which GCC 12.4 failed with literal operands, [1]%[3];
+# no test failed for *=(double), /=(double) and %=(double) alone). A job of
+# linux.yml builds it with the SSE2 path whatever the runner is (GCC 13.3,
+# GAOL_PREFER_AVX512=OFF). The other compilers and versions were not tried
+# with it, and it is not offered (see doc/three-builds.md). A -flto given by
+# hand in CMAKE_C_FLAGS
 # reaches the sources of CORE-MATH too, as one in CFLAGS does in the autotools
 # build and one in c_args in meson's.
 
