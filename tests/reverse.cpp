@@ -542,7 +542,10 @@ namespace
   /*
     Whether the angle of the point (x, y), not (0, 0), is in c: 1 if it is,
     0 if not, -1 where atan2() of the point is neither the angle 0 nor two
-    adjacent doubles, which the decision needs
+    adjacent doubles, which the decision needs. The reference is GAOL's own
+    atan2(), so that this checks the soundness of the results against the
+    points; the independent values, computed with mpmath, are those of the
+    table of atan2_rel_values.h, which atan2_expect() checks
   */
   int angle_in(double y, double x, const interval& c)
   {

@@ -917,7 +917,9 @@ namespace
   }
 
   // Random boxes with finite bounds, whose result is the hull of the values at the corners and at 0 where
-  // the box crosses x = 0 or y = 0, and holds the values at points inside
+  // the box crosses x = 0 or y = 0, and holds the values at points inside. The values at the corners are
+  // those of compoundm1() itself, so that this is a check of consistency between a box and its points; the
+  // independent values, computed with mpmath, are those of points() and boxes()
   void random_boxes()
   {
     Random rnd;

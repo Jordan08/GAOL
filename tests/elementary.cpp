@@ -258,7 +258,10 @@ namespace
   // is empty, gives NaN and no flag. Over the intervals whose bounds are 0,
   // +-1, +-3, the bounds of pi, the doubles next to 3 pi and 1e6 pi, 2^52,
   // 1e300, DBL_MAX, subnormals and +-oo, the multiples of pi computed as
-  // [pi] times an integer
+  // [pi] times an integer. The reference is GAOL's own division and floor, so
+  // that this is a check of consistency, and not of the bounds of sin, cos and
+  // tan: their independent values, computed with mpmath, are those of
+  // at_doubles() and trigonometric_intervals()
   void modulo_k_pi_values()
   {
     const double oo = std::numeric_limits<double>::infinity();
