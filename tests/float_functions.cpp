@@ -34,8 +34,8 @@ public:
       CPPUNIT_ASSERT(!feven(5.5));
       CPPUNIT_ASSERT(feven(-4.0));
       CPPUNIT_ASSERT(!feven(-4.5));
-      CPPUNIT_ASSERT(!feven(5.0));
-      CPPUNIT_ASSERT(!feven(5.5));
+      CPPUNIT_ASSERT(!feven(-5.0));
+      CPPUNIT_ASSERT(!feven(-5.5));
       CPPUNIT_ASSERT(feven(GAOL_INFINITY));
       CPPUNIT_ASSERT(!feven(GAOL_NAN));
       
@@ -56,7 +56,7 @@ public:
       CPPUNIT_ASSERT(minimum(5,6)==5);
       CPPUNIT_ASSERT(minimum(6,5)==5);
       CPPUNIT_ASSERT(minimum(-5,-6)==-6);
-      CPPUNIT_ASSERT(minimum(-5,-6)==-6);
+      CPPUNIT_ASSERT(minimum(-6,-5)==-6);
       CPPUNIT_ASSERT(std::isnan(minimum(5,GAOL_NAN)));
       CPPUNIT_ASSERT(std::isnan(minimum(GAOL_NAN,5)));
       CPPUNIT_ASSERT(is_signed(minimum(0.0,-0.0)));
@@ -65,7 +65,7 @@ public:
       CPPUNIT_ASSERT(maximum(5,6)==6);
       CPPUNIT_ASSERT(maximum(6,5)==6);
       CPPUNIT_ASSERT(maximum(-5,-6)==-5);
-      CPPUNIT_ASSERT(maximum(-5,-6)==-5);
+      CPPUNIT_ASSERT(maximum(-6,-5)==-5);
       CPPUNIT_ASSERT(std::isnan(maximum(5,GAOL_NAN)));
       CPPUNIT_ASSERT(std::isnan(maximum(GAOL_NAN,5)));
       CPPUNIT_ASSERT(!is_signed(maximum(0.0,-0.0)));
