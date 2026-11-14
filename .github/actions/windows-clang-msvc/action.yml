@@ -71,6 +71,10 @@ runs:
       run: |
         cmake --build build --target test
         if ($LASTEXITCODE) { exit 1 }
+    # Before the next ctest, which writes the output of the tests again
+    - name: The test numbers ran under a locale writing a decimal comma
+      shell: bash
+      run: sh .github/scripts/comma-locale.sh check build
     # The test of misc with the stack aligned on 4 bytes (see the job
     # visual-studio)
     - name: The stack entered aligned on 4 bytes
@@ -80,3 +84,17 @@ runs:
         ctest --test-dir build -R '^misc$' -V | Tee-Object -FilePath misc.log
         if ($LASTEXITCODE) { exit 1 }
         if (-not (Select-String -Path misc.log -SimpleMatch -Pattern "returned the bounds of the entry aligned on 16 with the stack aligned on 16 minus 4, 8 and 12 bytes at its entry" -Quiet)) { exit 1 }
+    - name: Install
+      shell: pwsh
+      run: |
+        cmake --install build --prefix "$PWD/gaol-install"
+        if ($LASTEXITCODE) { exit 1 }
+    - name: Tests built with the installed GAOL
+      shell: pwsh
+      run: |
+        cmake -S tests/find_package -B build-find-package -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_COMPILER_TARGET=${{ inputs.target }} -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
+        if ($LASTEXITCODE) { exit 1 }
+        cmake --build build-find-package -j 4
+        if ($LASTEXITCODE) { exit 1 }
+        cmake --build build-find-package --target test
+        if ($LASTEXITCODE) { exit 1 }

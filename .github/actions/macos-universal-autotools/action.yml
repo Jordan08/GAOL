@@ -67,6 +67,9 @@ runs:
       run: |
         lipo -archs tests/arithmetic
         make -j 4 test || { cat tests/test-suite.log; exit 1; }
+    - name: The test numbers ran under a locale writing a decimal comma
+      shell: bash -e {0}
+      run: sh .github/scripts/comma-locale.sh check tests/numbers.log
     # The test programs themselves: a program that skips gives 77
     - name: Tests of the x86_64 part (Rosetta)
       shell: bash -e {0}

@@ -3,8 +3,9 @@
 # as the CMake build does. Each build runs the unit tests (make test, ninja
 # test), and the tests are built again with each installed GAOL, on Linux
 # (x86_64, arm64, and i386 and armhf in containers), macOS (arm64, x86_64) and
-# Windows (MSYS2 for x64 and for x86, Cygwin, and Visual C++ and Clang with
-# meson). Checks that the three builds give GAOL the same configuration on each
+# Windows (MSYS2 for x64 and for x86, Cygwin, and Visual C++ with meson; not
+# Clang with meson, nor Clang with autotools, which run the tests of the
+# build). Checks that the three builds give GAOL the same configuration on each
 # kind of machine (.github/audit). Each job that runs the unit tests checks
 # that numbers read and wrote numbers under a locale writing a decimal comma,
 # which the Linux jobs and the containers generate first, macOS and Windows
@@ -700,12 +701,14 @@ jobs:
             grep -F -e "-mfma -mprefer-vector-width=128" gaol/Makefile
             make -j 4 && make install
             make -j 4 test
+            sh .github/scripts/comma-locale.sh check tests/numbers.log
           else
             meson setup build-meson --prefix="$prefix" --libdir=lib -Dwith-tests=true
             sh .github/scripts/check-intervals.sh build-meson/gaol/gaol_configuration.h sse2
             grep -F -e "-mfma" build-meson/compile_commands.json > /dev/null
             meson compile -C build-meson && meson install -C build-meson
             ninja -C build-meson test
+            sh .github/scripts/comma-locale.sh check build-meson/meson-logs/testlog.txt
           fi
           # CORE-MATH is compiled into libgaol: no other library is installed
           ls "$prefix/lib"

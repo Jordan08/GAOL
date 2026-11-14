@@ -157,7 +157,8 @@ for x86, GAOL v5) and Cygwin, and with meson and
 Visual Studio 2022 (x64, x86) and 2026 (x64, arm64), and with meson 0.53.2, the oldest the
 meson build takes (Ubuntu x86_64, GAOL v5), run the tests (`make test`,
 `ninja test`), and build them again with the
-GAOL they install, which is the only library installed, CORE-MATH being
+GAOL they install (but with Clang for the target of Visual C++, with autotools
+and meson), which is the only library installed, CORE-MATH being
 compiled into it; build GAOL as a part of another project, brought in by
 FetchContent (`tests/fetch_content`), and the tests with the GAOL that project
 installs, and check that GAOL and CORE-MATH are compiled as in Release where
@@ -268,7 +269,10 @@ locale: the output ctest keeps in `Testing/Temporary/LastTest.log`,
 `tests/numbers.log` with the autotools, `meson-logs/testlog.txt` with meson
 (GAOL v5: only the CMake jobs of `linux.yml` checked it). Alpine and
 manylinux have no locale writing a decimal comma to generate, and check
-nothing of the kind. `numbers` has 300 s (`GAOL_NUMBERS_TIMEOUT`), 400 in the
+nothing of the kind; nor do the configurations under Intel SDE, which run each
+test program by `.github/scripts/sde-tests.sh`, and the x86_64 part of the
+universal builds of macOS, whose programs run one by one under Rosetta (the
+arm64 part is checked). `numbers` has 300 s (`GAOL_NUMBERS_TIMEOUT`), 400 in the
 four jobs of `linux.yml` with the sanitizers, where it took 109 to 287 s and
 once more than 300, 900 in the job of macOS 15 x86_64 GCC with the sanitizers,
 where it took 182 to 577 s in 30 runs, and more than 400 six times, and 600

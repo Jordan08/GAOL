@@ -1,9 +1,12 @@
 # Builds GAOL with CMake on macOS, arm64 and x86_64 (natively or under Rosetta),
 # runs its tests, installs it, and builds the tests again with the installed
-# GAOL. Also with the sanitizers, with AppleClang, LLVM's Clang and GCC, and
-# with AppleClang and -Wall -Wextra -Werror (GAOL v5). macOS has fr_FR.UTF-8, a
+# GAOL (but the universal and Xcode builds and the sanitizers, which run the
+# tests of the build). Also with the sanitizers, with AppleClang, LLVM's Clang
+# and GCC, and with AppleClang and -Wall -Wextra -Werror (GAOL v5). macOS has fr_FR.UTF-8, a
 # locale writing a decimal comma: each job checks after its tests that numbers
-# read and wrote numbers under it (.github/scripts/comma-locale.sh) (GAOL v5).
+# read and wrote numbers under it (.github/scripts/comma-locale.sh) (GAOL v5);
+# in a universal build, the arm64 part alone, the x86_64 part running its
+# test programs one by one under Rosetta.
 #
 # A job is a group of configurations that run one after the other on the
 # same image of runner, each one an action of .github/actions/ called

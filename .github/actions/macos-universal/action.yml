@@ -63,6 +63,9 @@ runs:
       run: |
         lipo -archs build/tests/gaol_test_arithmetic
         cmake --build build --target test
+    - name: The test numbers ran under a locale writing a decimal comma
+      shell: bash -e {0}
+      run: sh .github/scripts/comma-locale.sh check build
     # The test programs themselves, not ctest, which is arm64 only on the
     # runner (Homebrew): a program that skips gives 77
     - name: Tests of the x86_64 part (Rosetta)
