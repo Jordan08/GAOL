@@ -1,0 +1,96 @@
+# The same universal build with autotools and with meson (GAOL v5): the
+# architectures are in the flags of the compilers (-arch twice), configure and
+# meson reading them, and the configuration is the one CMake gives
+# (GAOL_UNIVERSAL_SSE2 and GAOL_UNIVERSAL_NEON of gaol_configuration.h): the
+# intervals of each architecture are read by the preprocessor, the tests run
+# natively (arm64) and under Rosetta (x86_64), and the program of performance
+# says which intervals each part has. Not checked on a machine other than the
+# runner (the maintainer's has no macOS).
+# The steps of the job universal-autotools of macos.yml, for one configuration of
+# the group of the job that calls this action (GAOL v5).
+name: macos-universal-autotools
+description: The job universal-autotools of macos.yml for one configuration
+inputs:
+  desc:
+    description: The key desc of the row of the matrix of the job
+    default: ''
+runs:
+  using: composite
+  steps:
+    # In a group of configurations the job runs several of them: each
+    # starts from the tree as git has it, and from a temporary directory
+    # without what the previous ones left in it (GAOL v5)
+    - name: The tree and the temporary directory as the job found them
+      shell: bash
+      env:
+        DESC: ${{ inputs.desc }}
+      run: |
+        printf '\n## %s\n\n' "$DESC" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$RUNNER_OS" = Linux ]; then
+          # the containers write as root in the tree
+          sudo chown -R "$(id -u):$(id -g)" .
+        fi
+        git clean -ffdx -q
+        git reset --hard -q
+        for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
+        test -z "$(git status --porcelain --ignored)"
+    - name: Rosetta, to run x86_64 programs on arm64
+      shell: bash -e {0}
+      run: sudo softwareupdate --install-rosetta --agree-to-license
+    - name: Configure
+      shell: bash -e {0}
+      run: |
+        set -o pipefail
+        c++ --version
+        archs="-arch arm64 -arch x86_64"
+        ./configure CFLAGS="$archs" CXXFLAGS="$archs" LDFLAGS="$archs" --with-tests | tee configure.log
+        grep -q "universal build of macOS" configure.log
+    - name: The intervals of each architecture
+      shell: bash -e {0}
+      run: |
+        for spec in "arm64 NEON SSE2" "x86_64 SSE2 NEON"; do
+          # shellcheck disable=SC2086
+          set -- $spec
+          echo '#include "gaol/gaol_configuration.h"' | c++ -arch "$1" -I . -x c++ -dM -E - | grep GAOL_USING_ > "macros-$1.txt"
+          cat "macros-$1.txt"
+          grep -q "^#define GAOL_USING_$2_INSTRUCTIONS 1" "macros-$1.txt"
+          if grep -q "^#define GAOL_USING_$3_INSTRUCTIONS 1" "macros-$1.txt"; then
+            echo "::error::the $1 part has the $3 intervals"
+            exit 1
+          fi
+        done
+    - name: Build
+      shell: bash -e {0}
+      run: make -j 4
+    - name: Tests of the arm64 part (natively)
+      shell: bash -e {0}
+      run: |
+        lipo -archs tests/arithmetic
+        make -j 4 test || { cat tests/test-suite.log; exit 1; }
+    # The test programs themselves: a program that skips gives 77
+    - name: Tests of the x86_64 part (Rosetta)
+      shell: bash -e {0}
+      run: |
+        count=0
+        for t in tests/*; do
+          case "$t" in */gaol_performance) continue ;; esac
+          if [ -f "$t" ] && [ -x "$t" ] && lipo -archs "$t" > /dev/null 2>&1; then
+            echo "== $t"
+            status=0
+            arch -x86_64 "$t" || status=$?
+            if [ "$status" != 0 ] && [ "$status" != 77 ]; then
+              echo "::error::$t failed ($status)"
+              exit 1
+            fi
+            count=$((count + 1))
+          fi
+        done
+        echo "$count test programs ran under Rosetta"
+        test "$count" -ge 20
+    - name: Which intervals each part has
+      shell: bash -e {0}
+      run: |
+        tests/gaol_performance | head -n 1 | tee arm64.txt
+        arch -x86_64 tests/gaol_performance | head -n 1 | tee x86_64.txt
+        grep -q "NEON intervals" arm64.txt
+        grep -q "SSE2 intervals" x86_64.txt

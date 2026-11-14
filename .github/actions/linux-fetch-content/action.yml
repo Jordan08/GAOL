@@ -1,0 +1,71 @@
+# The steps of the job fetch-content of linux.yml, for one configuration of
+# the group of the job that calls this action (GAOL v5).
+name: linux-fetch-content
+description: The job fetch-content of linux.yml for one configuration
+inputs:
+  desc:
+    description: The key desc of the row of the matrix of the job
+    default: ''
+runs:
+  using: composite
+  steps:
+    # In a group of configurations the job runs several of them: each
+    # starts from the tree as git has it, and from a temporary directory
+    # without what the previous ones left in it (GAOL v5)
+    - name: The tree and the temporary directory as the job found them
+      shell: bash
+      env:
+        DESC: ${{ inputs.desc }}
+      run: |
+        printf '\n## %s\n\n' "$DESC" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$RUNNER_OS" = Linux ]; then
+          # the containers write as root in the tree
+          sudo chown -R "$(id -u):$(id -g)" .
+        fi
+        git clean -ffdx -q
+        git reset --hard -q
+        for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
+        test -z "$(git status --porcelain --ignored)"
+    - name: Locale writing a decimal comma
+      shell: bash -e {0}
+      run: sh .github/scripts/comma-locale.sh generate
+    - name: Configure tests/fetch_content, a project building GAOL for itself with FetchContent, from this checkout
+      shell: bash -e {0}
+      run: |
+        set -o pipefail
+        cmake -S tests/fetch_content -B build-fetch-content -DCMAKE_BUILD_TYPE=Release -DFETCHCONTENT_SOURCE_DIR_GAOL="$PWD" -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install" | tee configure.log
+        grep -q "Elementary functions: CORE-MATH" configure.log
+    - name: Without a build type, GAOL and CORE-MATH compiled as in Release all the same
+      shell: bash -e {0}
+      run: |
+        # configure only: tests/release_flags.py reads compile_commands.json
+        # (GAOL v5: CORE-MATH was compiled without optimization)
+        cmake -S tests/fetch_content -B build-fetch-content-default -DFETCHCONTENT_SOURCE_DIR_GAOL="$PWD" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+        python3 tests/release_flags.py build-fetch-content-default "$PWD"
+    - name: Build
+      shell: bash -e {0}
+      run: cmake --build build-fetch-content -j 4
+    - name: Tests (make test)
+      shell: bash -e {0}
+      run: cmake --build build-fetch-content --target test
+    - name: The test numbers ran under a locale writing a decimal comma
+      shell: bash -e {0}
+      run: sh .github/scripts/comma-locale.sh check build-fetch-content
+    - name: Install, which installs GAOL with the project
+      shell: bash -e {0}
+      run: |
+        cmake --install build-fetch-content
+        for file in lib/libgaol.a include/gaol/gaol.h include/gaol/parser/gaol_expression.h lib/cmake/gaol/gaolConfig.cmake lib/pkgconfig/gaol.pc; do
+          test -f "gaol-install/$file" || { echo "$file is not installed"; exit 1; }
+        done
+        # Not the headers of the sources of GAOL only, nor the parser's at
+        # their old place (GAOL v5)
+        for file in include/gaol/math/gaol_u128.h include/gaol/math/gaol_roundeven.h include/gaol/math/gaol_compoundm1.h include/gaol/parser/gaol_interval_parser.h include/gaol/gaol_expression.h; do
+          test ! -e "gaol-install/$file" || { echo "$file is installed"; exit 1; }
+        done
+    - name: Tests built with the installed GAOL
+      shell: bash -e {0}
+      run: |
+        cmake -S tests/find_package -B build-find-package -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
+        cmake --build build-find-package -j 4
+        cmake --build build-find-package --target test

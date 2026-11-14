@@ -671,10 +671,43 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
 
 ## 10. La CI
 
+- **Les jobs sont des groupes de configurations** (#336, 14 novembre 2026).
+  Dans `linux.yml`, `containers.yml`, `macos.yml`, `windows.yml` et
+  `build-systems.yml`, un job est un groupe de configurations qui se suivent sur
+  la même image de runner : 59 jobs, au lieu des 207 que listait une pull
+  request (208 configurations : l'IPO avec le chemin SSE2, dans un job à elle,
+  est nouvelle). Une configuration est une étape du job, qui appelle une action
+  composite de `.github/actions/` (`<workflow>-<job>`, `buildsystems-<job>` pour
+  `build-systems.yml`) avec la ligne de matrice de l'ancien job, et porte le nom
+  de cet ancien job. Dans la suite, « job » dit « configuration » quand il s'agit
+  de ce qu'un job vérifiait (les jobs `-Werror`, `/WX`). Voir
+  [Jobs and configurations](doc/continuous-integration.md#jobs-and-configurations)
+  pour le détail : l'étape d'isolation de chaque action, l'ordre dans les
+  groupes, les délais.
+- **Ajouter une configuration** : une étape `uses: ./.github/actions/<action>` au
+  job de la machine où elle tourne, nommée comme elle doit l'être, avec sa ligne
+  de matrice en `with:` (`if: ${{ !cancelled() }}`, et `timeout-minutes` si elle
+  est lente : la somme des étapes ne dépasse pas 360 minutes, le plafond de
+  GitHub). Un nouveau genre de job est une nouvelle action ; un fichier ajouté à
+  `.github/actions/` va dans `EXTRA_DIST` de `Makefile.am` (puis `automake
+  Makefile` pour `Makefile.in`), sinon « Archives of the sources » échoue.
+  Une configuration longue, ou qui doit partir d'une machine à elle (Cygwin,
+  `Autotools, Clang for Visual C++ x64`), est un job à part.
+- **Ce qu'une configuration laisse à la suivante** est le piège de ce
+  regroupement : le PATH, `GITHUB_ENV`, les outils installés (MSYS2 une seule
+  fois par job, `choco install mingw`, `pipx install --force meson`), l'arbre
+  (SDE s'extrait dans l'arbre, que `git clean` vide). Un job vert ne montre pas
+  qu'un compilateur a changé en silence : compare les lignes d'identification
+  du compilateur du log avec celles d'un run précédent (le clang de Visual
+  Studio x64 que `ilammy/msvc-dev-cmd` laisse en tête du PATH a déjà remplacé le
+  LLVM d'une configuration x86 qui le suivait : les configurations x86 passent
+  avant les x64, et l'étape « The clang of the architecture asked for » des
+  deux actions clang le vérifie).
 - **Les workflows** (`.github/workflows/`, décrits dans
   `doc/continuous-integration.md`) :
   - `linux.yml` : GCC et Clang, sanitizers, CMake 3.14, GCC 9, GAOL inclus
-    par FetchContent, jobs `warnings` en `-Werror` ;
+    par FetchContent, l'IPO (`-flto`) sur les chemins AVX-512 et SSE2, jobs
+    `warnings` en `-Werror` ;
   - `containers.yml` : Debian, manylinux, Alpine, qemu ;
   - `macos.yml` : dont un job AppleClang en `-Werror` et les sanitizers ;
   - `windows.yml` : Visual Studio 2022 et 2026, clang-cl, MinGW-w64, MSYS2, et
@@ -702,8 +735,14 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   gh pr checks <n>                         # ou :
   gh run list --commit <sha complet> --json name,status,conclusion
   gh run view <run> --json jobs --jq '.jobs[] | select(.conclusion=="failure") | "\(.name) \(.databaseId)"'
+  gh run view <run> --json jobs --jq '.jobs[].steps[] | select(.conclusion=="failure") | .name'   # la configuration
   gh api --allow-escape-sequences repos/Jordan08/GAOL/actions/jobs/<job>/logs > job.log
   ```
+
+  Le job échoue à la fin ; ses étapes donnent la configuration qui a échoué, et
+  le résumé du job (« Results of the configurations ») un tableau des résultats.
+  Dans le log, chaque configuration commence par `##[group]Run
+  ./.github/actions/<action>`.
 
   `gh run list --commit` exige le SHA complet. Pour attendre, une boucle en
   arrière-plan qui interroge toutes les deux minutes suffit.
@@ -711,7 +750,9 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   même job. Le runner macOS Intel, par exemple, a fait varier `numbers` de 146 à
   plus de 400 s sur le même code. Un dépassement de délai sur un runner lent se
   relance (`gh run rerun <run> --failed`). S'il revient, relève le délai de ce
-  job : c'est une décision du mainteneur. Un test qui échoue vraiment se
+  job : c'est une décision du mainteneur. `gh run rerun --failed` relance le
+  groupe entier, toutes ses configurations ; le délai d'une configuration est
+  le `timeout-minutes` de son étape. Un test qui échoue vraiment se
   corrige ; on ne l'affaiblit jamais pour faire passer la CI.
 - **Particularités connues** :
   - avec `/WX`, MSBuild arrête les projets qui dépendent d'une cible en erreur ;
@@ -726,7 +767,7 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
     lancer les autres workflows) se fait par un workflow à part qui se lance par
     `on: push: branches: [<la branche>]` : un push vers une branche autre que
     `master`, `configure-clean` et `dev` ne lance que les workflows qui la
-    nomment, ni pull request ni les 200 jobs des autres. Exemple :
+    nomment, ni pull request ni les 59 jobs des autres. Exemple :
     `.github/workflows/experiment-fpu-simd.yml` sur la branche jetable
     `experiment-pj-vs-fpu`, jamais fusionnée, supprimée ensuite (#317, run
     43264694580) ;

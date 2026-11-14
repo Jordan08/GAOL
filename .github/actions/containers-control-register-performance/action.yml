@@ -1,0 +1,65 @@
+# Clang does not honour the rounding direction on 32-bit ARM processors, for
+# the C compiler, which builds CORE-MATH, as for the C++ compiler: each of the
+# three builds has to refuse it for either alone (GAOL v5)
+# The control register of the rounding direction read and written directly,
+# against the functions of the C library, with GAOL_PRESERVE_ROUNDING (GAOL
+# v5): FPSCR with vmrs and vmsr on 32-bit ARM (GAOL_RND_FPSCR_DIRECT), and on
+# 64-bit ARM FPCR with mrs and msr, which comes with the NEON intervals, the
+# build before having the FPU intervals and fesetround(). The medians of three
+# runs of gaol_performance, alternately, in the summary of the job. The
+# scripts are those of performance.yml, which compares the base of a pull
+# request with its head: two builds of one source here, which differ by an
+# option, and only the rows that the register can change.
+# The steps of the job control-register-performance of containers.yml, for one configuration of
+# the group of the job that calls this action (GAOL v5).
+name: containers-control-register-performance
+description: The job control-register-performance of containers.yml for one configuration
+inputs:
+  after_label:
+    description: The key after_label of the row of the matrix of the job
+    default: ''
+  before:
+    description: The key before of the row of the matrix of the job
+    default: ''
+  before_label:
+    description: The key before_label of the row of the matrix of the job
+    default: ''
+  desc:
+    description: The key desc of the row of the matrix of the job
+    default: ''
+  platform:
+    description: The key platform of the row of the matrix of the job
+    default: ''
+runs:
+  using: composite
+  steps:
+    # In a group of configurations the job runs several of them: each
+    # starts from the tree as git has it, and from a temporary directory
+    # without what the previous ones left in it (GAOL v5)
+    - name: The tree and the temporary directory as the job found them
+      shell: bash
+      env:
+        DESC: ${{ inputs.desc }}
+      run: |
+        printf '\n## %s\n\n' "$DESC" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$RUNNER_OS" = Linux ]; then
+          # the containers write as root in the tree
+          sudo chown -R "$(id -u):$(id -g)" .
+        fi
+        git clean -ffdx -q
+        git reset --hard -q
+        for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
+        test -z "$(git status --porcelain --ignored)"
+    - name: Build both and measure
+      shell: bash -e {0}
+      run: |
+        docker run --rm --platform ${{ inputs.platform }} -v "$PWD:/gaol" -w /gaol debian:trixie sh -c "
+          set -e
+          apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq g++ cmake make > /dev/null
+          c++ --version
+          sh .github/scripts/performance-ab.sh --options -DGAOL_PRESERVE_ROUNDING=ON --before-options '${{ inputs.before }}' --build-dir /tmp/performance"
+    - name: The table
+      shell: bash -e {0}
+      run: |
+        python3 .github/scripts/compare-performance.py --rows register "${{ inputs.before_label }}" perf-before-1.md perf-before-2.md perf-before-3.md \
+          -- "${{ inputs.after_label }}" perf-after-1.md perf-after-2.md perf-after-3.md | tee -a "$GITHUB_STEP_SUMMARY"

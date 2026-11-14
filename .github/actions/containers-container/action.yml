@@ -1,0 +1,80 @@
+# The steps of the job container of containers.yml, for one configuration of
+# the group of the job that calls this action (GAOL v5).
+name: containers-container
+description: The job container of containers.yml for one configuration
+inputs:
+  desc:
+    description: The key desc of the row of the matrix of the job
+    default: ''
+  image:
+    description: The key image of the row of the matrix of the job
+    default: ''
+  opts:
+    description: The key opts of the row of the matrix of the job
+    default: ''
+  platform:
+    description: The key platform of the row of the matrix of the job
+    default: ''
+  qemu:
+    description: The key qemu of the row of the matrix of the job
+    default: ''
+  tools:
+    description: The key tools of the row of the matrix of the job
+    default: ''
+runs:
+  using: composite
+  steps:
+    # In a group of configurations the job runs several of them: each
+    # starts from the tree as git has it, and from a temporary directory
+    # without what the previous ones left in it (GAOL v5)
+    - name: The tree and the temporary directory as the job found them
+      shell: bash
+      env:
+        DESC: ${{ inputs.desc }}
+      run: |
+        printf '\n## %s\n\n' "$DESC" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$RUNNER_OS" = Linux ]; then
+          # the containers write as root in the tree
+          sudo chown -R "$(id -u):$(id -g)" .
+        fi
+        git clean -ffdx -q
+        git reset --hard -q
+        for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
+        test -z "$(git status --porcelain --ignored)"
+    - if: inputs.qemu == 'true'
+      uses: docker/setup-qemu-action@v4
+    - name: Build and tests
+      shell: bash -e {0}
+      run: |
+        # Debian has no locale writing a decimal comma until one is
+        # generated, which numbers reads and writes numbers under, and the
+        # job checks it did; Alpine and manylinux have none to generate
+        # (.github/scripts/comma-locale.sh) (GAOL v5)
+        comma_generate=true
+        comma_check=true
+        case "${{ inputs.tools }}" in
+          apt)
+            tools='apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq g++ cmake make ca-certificates locales > /dev/null'
+            comma_generate='sh .github/scripts/comma-locale.sh generate'
+            comma_check='sh .github/scripts/comma-locale.sh check /tmp/build'
+            ;;
+          apk) tools='apk add --no-cache build-base cmake linux-headers ca-certificates > /dev/null' ;;
+          *) tools='true' ;;
+        esac
+        docker run --rm --platform ${{ inputs.platform }} -v "$PWD:/gaol" -w /gaol -e CTEST_PARALLEL_LEVEL -e CTEST_OUTPUT_ON_FAILURE ${{ inputs.image }} sh -c "
+          set -e
+          $tools
+          uname -m
+          c++ --version
+          cmake --version
+          $comma_generate
+          cmake -S . -B /tmp/build -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON ${{ inputs.opts }}
+          case \$(c++ -dumpmachine) in aarch64-*) expected=neon ;; x86_64-*|i?86-*) expected=sse2 ;; arm*|s390x-*|powerpc64le-*|ppc64le-*|riscv64-*) expected=fpu ;; *) expected=any ;; esac
+          if [ \$expected != any ]; then sh .github/scripts/check-intervals.sh /tmp/build/gaol/gaol_configuration.h \$expected; fi
+          cmake --build /tmp/build -j 4
+          cmake --build /tmp/build --target test
+          $comma_check
+          cd /tmp/build
+          ./tests/gaol_performance > /gaol/performance.md
+          cat /gaol/performance.md"
+        cat performance.md >> "$GITHUB_STEP_SUMMARY"

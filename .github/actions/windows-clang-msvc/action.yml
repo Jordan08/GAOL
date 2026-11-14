@@ -1,0 +1,82 @@
+# Clang with the target of Visual C++ and the driver of GCC (clang++, not
+# clang-cl), in the environment of Visual Studio (GAOL v5): the clang of the
+# LLVM of the runner (C:\Program Files\LLVM) for x86, and the one of Visual
+# Studio (VC\Tools\Llvm\x64) for x64, which that environment puts first in
+# PATH, as the step that checks it shows. The compiler of the programs
+# that name the target x86_64-pc-windows-msvc or i686-pc-windows-msvc, with
+# CMake here, and with meson in build-systems.yml
+# The steps of the job clang-msvc of windows.yml, for one configuration of
+# the group of the job that calls this action (GAOL v5).
+name: windows-clang-msvc
+description: The job clang-msvc of windows.yml for one configuration
+inputs:
+  arch:
+    description: The key arch of the row of the matrix of the job
+    default: ''
+  desc:
+    description: The key desc of the row of the matrix of the job
+    default: ''
+  target:
+    description: The key target of the row of the matrix of the job
+    default: ''
+runs:
+  using: composite
+  steps:
+    # In a group of configurations the job runs several of them: each
+    # starts from the tree as git has it, and from a temporary directory
+    # without what the previous ones left in it (GAOL v5)
+    - name: The tree and the temporary directory as the job found them
+      shell: bash
+      env:
+        DESC: ${{ inputs.desc }}
+      run: |
+        printf '\n## %s\n\n' "$DESC" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$RUNNER_OS" = Linux ]; then
+          # the containers write as root in the tree
+          sudo chown -R "$(id -u):$(id -g)" .
+        fi
+        git clean -ffdx -q
+        git reset --hard -q
+        for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
+        test -z "$(git status --porcelain --ignored)"
+    - uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: ${{ inputs.arch }}
+    # The clang of an x86 configuration is the one of LLVM: the call of
+    # ilammy/msvc-dev-cmd of an x64 configuration of the job leaves the clang of
+    # Visual Studio for x64 first in PATH, and the call of an x86 one does not
+    # remove it (GAOL v5)
+    - name: The clang of the architecture asked for
+      shell: pwsh
+      run: |
+        $clang = (Get-Command clang++).Source
+        Write-Output $clang
+        if ('${{ inputs.arch }}' -eq 'x86' -and $clang -like '*\Llvm\x64\*') { Write-Output 'the clang of Visual Studio for x64 is first in PATH'; exit 1 }
+    - name: Configure
+      shell: pwsh
+      run: |
+        clang++ --version
+        cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER_TARGET=${{ inputs.target }} -DCMAKE_CXX_COMPILER_TARGET=${{ inputs.target }}
+        if ($LASTEXITCODE) { exit 1 }
+    - name: The intervals
+      shell: bash
+      run: sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h sse2
+    - name: Build
+      shell: pwsh
+      run: |
+        cmake --build build -j 4
+        if ($LASTEXITCODE) { exit 1 }
+    - name: Tests (make test)
+      shell: pwsh
+      run: |
+        cmake --build build --target test
+        if ($LASTEXITCODE) { exit 1 }
+    # The test of misc with the stack aligned on 4 bytes (see the job
+    # visual-studio)
+    - name: The stack entered aligned on 4 bytes
+      if: inputs.arch == 'x86'
+      shell: pwsh
+      run: |
+        ctest --test-dir build -R '^misc$' -V | Tee-Object -FilePath misc.log
+        if ($LASTEXITCODE) { exit 1 }
+        if (-not (Select-String -Path misc.log -SimpleMatch -Pattern "returned the bounds of the entry aligned on 16 with the stack aligned on 16 minus 4, 8 and 12 bytes at its entry" -Quiet)) { exit 1 }

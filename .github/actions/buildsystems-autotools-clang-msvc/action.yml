@@ -1,0 +1,51 @@
+# Autotools with Clang for the target of Visual C++ and the driver of GCC
+# (clang++, not clang-cl), in the shell of MSYS2 with the environment of Visual
+# Studio (GAOL v5): the link.exe of MSYS2 (coreutils) comes before that of
+# Visual Studio in PATH, so that the linker is lld, and the archiver that of
+# LLVM
+# The steps of the job autotools-clang-msvc of build-systems.yml, for one configuration of
+# the group of the job that calls this action (GAOL v5).
+name: buildsystems-autotools-clang-msvc
+description: The job autotools-clang-msvc of build-systems.yml for one configuration
+inputs:
+  desc:
+    description: The key desc of the row of the matrix of the job
+    default: ''
+runs:
+  using: composite
+  steps:
+    # In a group of configurations the job runs several of them: each
+    # starts from the tree as git has it, and from a temporary directory
+    # without what the previous ones left in it (GAOL v5)
+    - name: The tree and the temporary directory as the job found them
+      shell: bash
+      env:
+        DESC: ${{ inputs.desc }}
+      run: |
+        printf '\n## %s\n\n' "$DESC" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$RUNNER_OS" = Linux ]; then
+          # the containers write as root in the tree
+          sudo chown -R "$(id -u):$(id -g)" .
+        fi
+        git clean -ffdx -q
+        git reset --hard -q
+        for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
+        test -z "$(git status --porcelain --ignored)"
+    - uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+    - uses: msys2/setup-msys2@v2
+      with:
+        msystem: MSYS
+        path-type: inherit
+        install: make libtool
+    - name: Configure, build and test
+      shell: msys2 {0}
+      run: |
+        clang++ --version
+        export CC=clang CXX=clang++ AR=llvm-ar RANLIB=llvm-ranlib LDFLAGS=-fuse-ld=lld
+        ./configure --with-tests
+        sh .github/scripts/check-intervals.sh gaol/gaol_configuration.h sse2
+        grep -E '^GAOL_CXX_STD = -std=c\+\+14$' gaol/Makefile
+        make -j 4
+        make -j 4 test

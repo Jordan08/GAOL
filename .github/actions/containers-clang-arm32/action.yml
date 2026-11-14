@@ -1,0 +1,56 @@
+# The steps of the job clang-arm32 of containers.yml, for one configuration of
+# the group of the job that calls this action (GAOL v5).
+name: containers-clang-arm32
+description: The job clang-arm32 of containers.yml for one configuration
+inputs:
+  desc:
+    description: The key desc of the row of the matrix of the job
+    default: ''
+runs:
+  using: composite
+  steps:
+    # In a group of configurations the job runs several of them: each
+    # starts from the tree as git has it, and from a temporary directory
+    # without what the previous ones left in it (GAOL v5)
+    - name: The tree and the temporary directory as the job found them
+      shell: bash
+      env:
+        DESC: ${{ inputs.desc }}
+      run: |
+        printf '\n## %s\n\n' "$DESC" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$RUNNER_OS" = Linux ]; then
+          # the containers write as root in the tree
+          sudo chown -R "$(id -u):$(id -g)" .
+        fi
+        git clean -ffdx -q
+        git reset --hard -q
+        for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
+        test -z "$(git status --porcelain --ignored)"
+    - name: Configure with Clang, which has to fail
+      shell: bash -e {0}
+      run: |
+        docker run --rm --platform linux/arm/v7 -v "$PWD:/gaol" -w /gaol debian:trixie sh -c '
+          set -e
+          apt-get update -qq && apt-get install -y -qq clang g++ cmake make meson ninja-build ca-certificates > /dev/null
+          clang++ --version
+          # refused <what> <command...>: the command has to fail, saying why
+          refused() {
+            what=$1; shift
+            if "$@" > /tmp/configure.log 2>&1; then
+              cat /tmp/configure.log
+              echo "$what: Clang was not refused for a 32-bit ARM processor"
+              return 1
+            fi
+            cat /tmp/configure.log
+            grep -q "cannot be built with .*Clang for a 32-bit ARM processor" /tmp/configure.log || {
+              echo "$what: refused, but not for Clang on a 32-bit ARM processor"
+              return 1
+            }
+          }
+          for pair in "clang clang++" "clang g++" "gcc clang++"; do
+            set -- $pair
+            rm -rf /tmp/build /tmp/ac /tmp/mb && mkdir /tmp/ac
+            refused "CMake with $1 and $2" env CC=$1 CXX=$2 cmake -S . -B /tmp/build
+            refused "configure with $1 and $2" sh -c "cd /tmp/ac && CC=$1 CXX=$2 /gaol/configure"
+            refused "meson with $1 and $2" env CC=$1 CXX=$2 meson setup /tmp/mb
+          done'

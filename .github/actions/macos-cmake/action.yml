@@ -1,0 +1,77 @@
+# The steps of the job cmake of macos.yml, for one configuration of
+# the group of the job that calls this action (GAOL v5).
+name: macos-cmake
+description: The job cmake of macos.yml for one configuration
+inputs:
+  arch:
+    description: The key arch of the row of the matrix of the job
+    default: ''
+  desc:
+    description: The key desc of the row of the matrix of the job
+    default: ''
+  opts:
+    description: The key opts of the row of the matrix of the job
+    default: ''
+runs:
+  using: composite
+  steps:
+    # In a group of configurations the job runs several of them: each
+    # starts from the tree as git has it, and from a temporary directory
+    # without what the previous ones left in it (GAOL v5)
+    - name: The tree and the temporary directory as the job found them
+      shell: bash
+      env:
+        DESC: ${{ inputs.desc }}
+      run: |
+        printf '\n## %s\n\n' "$DESC" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$RUNNER_OS" = Linux ]; then
+          # the containers write as root in the tree
+          sudo chown -R "$(id -u):$(id -g)" .
+        fi
+        git clean -ffdx -q
+        git reset --hard -q
+        for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
+        test -z "$(git status --porcelain --ignored)"
+    - name: Rosetta, to run x86_64 programs on arm64
+      if: inputs.arch == 'x86_64' && runner.arch == 'ARM64'
+      shell: bash -e {0}
+      run: sudo softwareupdate --install-rosetta --agree-to-license
+    - name: Configure
+      shell: bash -e {0}
+      run: |
+        c++ --version
+        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_OSX_ARCHITECTURES=${{ inputs.arch }} -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install" ${{ inputs.opts }}
+    # NEON on arm64, SSE2 on x86_64 (under Rosetta too), the FPU where
+    # -DGAOL_SIMD=OFF asked for it (GAOL v5)
+    - name: The intervals
+      shell: bash -e {0}
+      run: |
+        expected=sse2
+        if [ "${{ inputs.arch }}" = arm64 ]; then expected=neon; fi
+        case "${{ inputs.opts }}" in *GAOL_SIMD=OFF*) expected=fpu ;; esac
+        sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h $expected
+    - name: Build
+      shell: bash -e {0}
+      run: cmake --build build -j 4
+    - name: Tests (make test)
+      shell: bash -e {0}
+      run: |
+        file build/tests/gaol_test_arithmetic
+        cmake --build build --target test
+    - name: The test numbers ran under a locale writing a decimal comma
+      shell: bash -e {0}
+      run: sh .github/scripts/comma-locale.sh check build
+    - name: Performance
+      shell: bash -e {0}
+      run: |
+        set -o pipefail
+        build/tests/gaol_performance | tee -a "$GITHUB_STEP_SUMMARY"
+    - name: Install
+      shell: bash -e {0}
+      run: cmake --install build
+    - name: Tests built with the installed GAOL
+      shell: bash -e {0}
+      run: |
+        cmake -S tests/find_package -B build-find-package -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=${{ inputs.arch }} -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
+        cmake --build build-find-package -j 4
+        cmake --build build-find-package --target test

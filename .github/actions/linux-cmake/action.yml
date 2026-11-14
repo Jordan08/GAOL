@@ -1,0 +1,129 @@
+# The steps of the job cmake of linux.yml, for one configuration of
+# the group of the job that calls this action (GAOL v5).
+name: linux-cmake
+description: The job cmake of linux.yml for one configuration
+inputs:
+  cc:
+    description: The key cc of the row of the matrix of the job
+    default: ''
+  cxx:
+    description: The key cxx of the row of the matrix of the job
+    default: ''
+  desc:
+    description: The key desc of the row of the matrix of the job
+    default: ''
+  manual:
+    description: The key manual of the row of the matrix of the job
+    default: ''
+  opts:
+    description: The key opts of the row of the matrix of the job
+    default: ''
+  packages:
+    description: The key packages of the row of the matrix of the job
+    default: ''
+runs:
+  using: composite
+  steps:
+    # In a group of configurations the job runs several of them: each
+    # starts from the tree as git has it, and from a temporary directory
+    # without what the previous ones left in it (GAOL v5)
+    - name: The tree and the temporary directory as the job found them
+      shell: bash
+      env:
+        DESC: ${{ inputs.desc }}
+      run: |
+        printf '\n## %s\n\n' "$DESC" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$RUNNER_OS" = Linux ]; then
+          # the containers write as root in the tree
+          sudo chown -R "$(id -u):$(id -g)" .
+        fi
+        git clean -ffdx -q
+        git reset --hard -q
+        for name in gaol gaol_installed.lib configure.log no-python build-no-python audit multi multi.log; do rm -rf "${RUNNER_TEMP:?}/$name"; done
+        test -z "$(git status --porcelain --ignored)"
+    - name: Tools
+      shell: bash -e {0}
+      run: |
+        sudo apt-get update -q
+        sudo apt-get install -y -q g++ clang cmake make ${{ inputs.packages }}
+        ${{ inputs.cxx }} --version
+        cmake --version
+    - name: Locale writing a decimal comma
+      shell: bash -e {0}
+      run: sh .github/scripts/comma-locale.sh generate
+    - name: Configure
+      shell: bash -e {0}
+      run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=ON -DCMAKE_C_COMPILER=${{ inputs.cc }} -DCMAKE_CXX_COMPILER=${{ inputs.cxx }} -DCMAKE_INSTALL_PREFIX="$PWD/gaol-install" ${{ inputs.opts }}
+    # NEON on the 64-bit ARM runners, SSE2 on the x86-64 ones, the FPU
+    # where -DGAOL_SIMD=OFF asked for it: a configuration that fell back
+    # to the FPU intervals would keep every test green (GAOL v5)
+    - name: The intervals
+      shell: bash -e {0}
+      run: |
+        case "$(uname -m)" in aarch64) expected=neon ;; *) expected=sse2 ;; esac
+        case "${{ inputs.opts }}" in *GAOL_SIMD=OFF*) expected=fpu ;; esac
+        # The form of the SSE2 intervals that Visual C++ and clang-cl take on x86
+        case "${{ inputs.opts }}" in *GAOL_SSE2_UNALIGNED_STORAGE=ON*)
+          grep -q "^#define GAOL_SSE2_UNALIGNED_STORAGE 1" build/gaol/gaol_configuration.h ;; esac
+        sh .github/scripts/check-intervals.sh build/gaol/gaol_configuration.h $expected
+    # The interprocedural optimization, where the job asks for it: the target
+    # gaol is compiled with -flto, so that the job tests what it says
+    - name: The interprocedural optimization
+      if: contains(inputs.opts, 'CMAKE_INTERPROCEDURAL_OPTIMIZATION=ON')
+      shell: bash -e {0}
+      run: |
+        if ! grep -q -- "-flto" build/CMakeFiles/gaol.dir/flags.make; then
+          echo "::error::CMAKE_INTERPROCEDURAL_OPTIMIZATION=ON, but the target gaol is compiled without -flto"
+          exit 1
+        fi
+        grep -o -- "-flto[^ ]*" build/CMakeFiles/gaol.dir/flags.make | sort -u
+    # The processor of the runner, and whether the arithmetic takes the
+    # AVX-512 path, which the configuration decides from the instructions
+    # the runner has (GAOL_AVX512_ARITHMETIC): a warning where
+    # GAOL_PREFER_AVX512 asked for it and the runner has none (GAOL v5)
+    - name: The processor, and the AVX-512 path
+      shell: bash -e {0}
+      run: |
+        grep -m 1 "model name" /proc/cpuinfo || true
+        grep -E "^#define GAOL_(HAVE_AVX512_TARGET|PREFER_AVX512|AVX512_ARITHMETIC) " build/gaol/gaol_configuration.h || true
+        if grep -q "^#define GAOL_PREFER_AVX512 1" build/gaol/gaol_configuration.h \
+           && ! grep -q "^#define GAOL_AVX512_ARITHMETIC 1" build/gaol/gaol_configuration.h; then
+          echo "::warning::GAOL_PREFER_AVX512, on a runner without the AVX-512 instructions: the tests take the SSE2 path"
+        fi
+    - name: Build
+      shell: bash -e {0}
+      run: cmake --build build -j 4
+    - name: Tests (make test)
+      shell: bash -e {0}
+      run: cmake --build build --target test
+    - name: The test numbers ran under a locale writing a decimal comma
+      shell: bash -e {0}
+      run: sh .github/scripts/comma-locale.sh check build
+    - name: Performance
+      shell: bash -e {0}
+      run: |
+        set -o pipefail
+        build/tests/gaol_performance | tee -a "$GITHUB_STEP_SUMMARY"
+    - name: Install
+      shell: bash -e {0}
+      run: cmake --install build
+    - name: Tests built with the installed GAOL
+      shell: bash -e {0}
+      run: |
+        # With the flags and libraries of gaol.pc alone, then with find_package()
+        export PKG_CONFIG_PATH="$PWD/gaol-install/lib/pkgconfig"
+        pkg-config --cflags --libs gaol
+        # The flags are several words, which are to be split
+        # shellcheck disable=SC2046
+        ${{ inputs.cxx }} -std=c++17 -O2 $(pkg-config --cflags gaol) -Itests tests/rounding_direction.cpp $(pkg-config --libs gaol) -Wl,-rpath,"$PWD/gaol-install/lib" -o rounding_direction_pc
+        ./rounding_direction_pc | tail -1
+        cmake -S tests/find_package -B build-find-package -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${{ inputs.cxx }} -DCMAKE_PREFIX_PATH="$PWD/gaol-install"
+        cmake --build build-find-package -j 4
+        cmake --build build-find-package --target test
+    - name: The examples of the manual print what it shows
+      if: inputs.manual == 'true'
+      shell: bash -e {0}
+      run: |
+        # Compiled with the flags of gaol.pc, in C++11, the oldest standard
+        # GAOL's headers compile in
+        PKG_CONFIG_PATH="$PWD/gaol-install/lib/pkgconfig" CXX=${{ inputs.cxx }} python3 manual/check_examples.py -j 4 --std c++11

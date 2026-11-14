@@ -270,7 +270,9 @@ namespace gaol_core {
       }
 #else
       GAOL_RND_ENTER_SSE();
+      d = rnd_reread(d);
       xmmbounds = _mm_add_pd(xmmbounds, _mm_set_pd(d, -d)); // <-l, r> + <-d, d>
+      GAOL_RND_KEEP(xmmbounds);
       GAOL_RND_LEAVE_SSE();
       return *this;
 #endif
@@ -288,7 +290,9 @@ namespace gaol_core {
       }
 #else
       GAOL_RND_ENTER_SSE();
+      d = rnd_reread(d);
       xmmbounds = _mm_add_pd(xmmbounds, _mm_set_pd(-d, d)); // <-l, r> + <d, -d>
+      GAOL_RND_KEEP(xmmbounds);
       GAOL_RND_LEAVE_SSE();
       return *this;
 #endif
@@ -337,6 +341,7 @@ namespace gaol_core {
       } else { // d < 0.0
         xmmbounds = _mm_mul_pd(_mm_shuffle_pd(xmmbounds, xmmbounds, 1), _mm_set1_pd(-d)); // <r*(-d), -l*(-d)>
       }
+      GAOL_RND_KEEP(xmmbounds);
       GAOL_RND_LEAVE_SSE();
       return *this;
 #endif
@@ -377,6 +382,7 @@ namespace gaol_core {
       } else { // d < 0.0
         xmmbounds = _mm_div_pd(_mm_shuffle_pd(xmmbounds, xmmbounds, 1), _mm_set1_pd(-d)); // <r/(-d), -l/(-d)>
       }
+      GAOL_RND_KEEP(xmmbounds);
       GAOL_RND_LEAVE_SSE();
       return *this;
 #endif
@@ -402,6 +408,7 @@ namespace gaol_core {
       } else { // d < 0.0
         xmmbounds = _mm_div_pd(_mm_shuffle_pd(xmmbounds, xmmbounds, 1), _mm_set1_pd(-d)); // <r/(-d), -l/(-d)>
       }
+      GAOL_RND_KEEP(xmmbounds);
       GAOL_RND_LEAVE_SSE();
       return *this;
     }
@@ -1023,6 +1030,8 @@ namespace {
 		}
 	}
 
+	// The quotient kept before the direction is given back (gaol/gaol_fpu.h)
+	GAOL_RND_KEEP(x.get_xmminterval());
 	GAOL_RND_LEAVE_SSE();
 	return x.get_xmminterval();
   }
@@ -1301,6 +1310,7 @@ interval interval::inverse() const
 		}
 	}
 
+	GAOL_RND_KEEP(xmmbounds);
 	GAOL_RND_LEAVE_SSE();
 	return *this;
   }

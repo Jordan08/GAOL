@@ -400,6 +400,52 @@ AUTOMAKE_OPTIONS = 1.4
 # of the sources of the CI, which compares the three archives, fails
 EXTRA_DIST = \
 	.github/actionlint.yaml \
+	.github/actions/buildsystems-agree/action.yml \
+	.github/actions/buildsystems-agree-container/action.yml \
+	.github/actions/buildsystems-agree-msys2/action.yml \
+	.github/actions/buildsystems-autotools/action.yml \
+	.github/actions/buildsystems-autotools-clang-msvc/action.yml \
+	.github/actions/buildsystems-container/action.yml \
+	.github/actions/buildsystems-dist/action.yml \
+	.github/actions/buildsystems-meson/action.yml \
+	.github/actions/buildsystems-meson-clang-msvc/action.yml \
+	.github/actions/buildsystems-meson-msvc/action.yml \
+	.github/actions/buildsystems-meson-oldest/action.yml \
+	.github/actions/buildsystems-meson-subproject/action.yml \
+	.github/actions/buildsystems-msys2/action.yml \
+	.github/actions/containers-armel-soft-float/action.yml \
+	.github/actions/containers-clang-arm32/action.yml \
+	.github/actions/containers-container/action.yml \
+	.github/actions/containers-control-register-performance/action.yml \
+	.github/actions/linux-asm-order-library/action.yml \
+	.github/actions/linux-asm-order-selftest/action.yml \
+	.github/actions/linux-build-types/action.yml \
+	.github/actions/linux-clang-14-arm64/action.yml \
+	.github/actions/linux-cmake/action.yml \
+	.github/actions/linux-cmake-3-14/action.yml \
+	.github/actions/linux-coverage/action.yml \
+	.github/actions/linux-cygwin-fe-values/action.yml \
+	.github/actions/linux-fetch-content/action.yml \
+	.github/actions/linux-gcc-9/action.yml \
+	.github/actions/linux-launcher-ninja/action.yml \
+	.github/actions/linux-sanitizers/action.yml \
+	.github/actions/linux-u128-emulation/action.yml \
+	.github/actions/linux-warnings/action.yml \
+	.github/actions/macos-cmake/action.yml \
+	.github/actions/macos-sanitizers/action.yml \
+	.github/actions/macos-universal/action.yml \
+	.github/actions/macos-universal-autotools/action.yml \
+	.github/actions/macos-universal-meson/action.yml \
+	.github/actions/macos-warnings/action.yml \
+	.github/actions/macos-xcode/action.yml \
+	.github/actions/windows-clang-msvc/action.yml \
+	.github/actions/windows-mingw/action.yml \
+	.github/actions/windows-mingw-refused/action.yml \
+	.github/actions/windows-msys2/action.yml \
+	.github/actions/windows-msys2-refused/action.yml \
+	.github/actions/windows-visual-studio/action.yml \
+	.github/actions/windows-visual-studio-sde/action.yml \
+	.github/actions/windows-warnings/action.yml \
 	.github/audit/README.md \
 	.github/audit/audit.sh \
 	.github/audit/compare.py \
