@@ -575,14 +575,17 @@ which `numbers` checks there too.
   operands or results have then to be the tightest enclosures, and the modes
   cleared after them, or restored with `GAOL_PRESERVE_ROUNDING`, where the
   processor honours them (GAOL v5).
-- **`automatic_cleanup`** (Linux only): after the end of `main()`, which leaves
-  the rounding direction downward, GAOL's automatic cleanup has to set back
-  the direction to nearest, as the program started, or to leave it downward
-  with `GAOL_PRESERVE_ROUNDING`. The direction is read by a function a
-  constructor of priority 101 registers with `std::atexit()`, before GAOL
-  initializes itself in the initialization of the static objects, so that it
-  runs after GAOL's automatic cleanup: the priorities of constructors are those
-  of ELF, and GAOL is linked statically, as the CMake build makes it.
+- **`automatic_cleanup`** (Linux, with a static `libgaol`): after the end of
+  `main()`, which leaves the rounding direction downward, GAOL's automatic
+  cleanup has to set back the direction to nearest, as the program started, or
+  to leave it downward with `GAOL_PRESERVE_ROUNDING`. The direction is read by a
+  function a constructor of priority 101 registers with `std::atexit()`, before
+  GAOL initializes itself in the initialization of the static objects, so that
+  it runs after GAOL's automatic cleanup: the priorities of constructors are
+  those of ELF, and GAOL is linked statically. A shared `libgaol` initializes
+  itself before that constructor runs, so that the test is not built with one
+  (nor is `bad_snprintf`): `BUILD_SHARED_LIBS=ON` of CMake, `configure
+  --disable-static` and `default_library=shared` of meson leave both out.
 - **`bad_snprintf`** (Linux, with a static `libgaol`): a bound of an interval
   is written from the text `snprintf()` gives of the double, whose last digit
   GAOL moves until the number is on the side of the interval, and the
