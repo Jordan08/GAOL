@@ -1030,6 +1030,8 @@ namespace {
 		}
 	}
 
+	// The quotient kept before the direction is given back (gaol/gaol_fpu.h)
+	GAOL_RND_KEEP(x.get_xmminterval());
 	GAOL_RND_LEAVE_SSE();
 	return x.get_xmminterval();
   }

@@ -377,9 +377,10 @@ some runners), `arithmetic` failed with GCC 12.4, 13.3 and 14.2 and `-flto`
 passed): `operator+=(double)` and `operator-=(double)` computed their sum after
 the change of rounding direction that gives the caller's back, in the caller's
 direction (GCC bug 34678, as above), and now keep it before, as do `*=`, `/=`
-and `%=` with a double and `%=` between intervals (GCC 12.4 failed `[1]%[3]`
-with literal operands until the last one did; no test failed for the other
-three alone): GCC 12.4, 13.3 and 14.2 then pass. A job of `linux.yml` builds it
+and `%=` with a double, `%=` between intervals and `divide_general()`, the
+quotient by an interval with a zero (GCC 12.4 failed `[1]%[3]` with literal
+operands until `%=` between intervals did; no test failed for the other three
+alone): GCC 12.4, 13.3 and 14.2 then pass. A job of `linux.yml` builds it
 with the SSE2 path whatever the runner is (GCC 13.3,
 `-DGAOL_PREFER_AVX512=OFF`). The other compilers and
 versions were not tried with it.
