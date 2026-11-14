@@ -91,8 +91,8 @@ class reverse_mappings_test {
 	  TEST_EQ(acos_rel(interval::universe(),interval(0.5,0.6)),interval(0.5,0.6));
 	}
 
-  void test_asin_rel() {
-  }
+  // asin_rel() and sqrt_rel() have no test here: tests/reverse.cpp and
+  // tests/other_functions.cpp test them
 
   void test_atan_rel() {
 	 TEST_EMPTY(atan_rel(interval::emptyset(),interval::emptyset()));
@@ -120,9 +120,6 @@ class reverse_mappings_test {
 	 TEST_EQ(atan_rel(interval(.5,.6),interval(3.5,7)),interval(3.605240262590599, 6.823604807450172));
 	 TEST_EQ(atan_rel(interval(.5,.6),interval(3.62,7)),interval(3.62, 6.823604807450172));
 	 TEST_EQ(atan_rel(interval(.5,.6),interval(-7,-3.62)),interval(-5.819537698178782, -5.742765806909001));
-  }
-
-  void test_sqrt_rel() {
   }
 
   void test_nth_root_rel() {
@@ -276,9 +273,7 @@ class reverse_mappings_test {
 
 GAOL_UNIT_MAIN(reverse_mappings_test, "reverse_mappings",
                GAOL_UNIT_TEST(test_acos_rel),
-               GAOL_UNIT_TEST(test_asin_rel),
                GAOL_UNIT_TEST(test_atan_rel),
-               GAOL_UNIT_TEST(test_sqrt_rel),
                GAOL_UNIT_TEST(test_nth_root_rel),
                GAOL_UNIT_TEST(test_invabs_rel),
                GAOL_UNIT_TEST(test_div_rel),
