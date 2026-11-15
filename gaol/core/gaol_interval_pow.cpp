@@ -773,23 +773,27 @@ namespace gaol_core {
     double l = newton_root(x,r,n), h = l, step = first_step(l);
     int steps = 0;
     if (Proofs::below(l,x,n)) {
-      for (h = minimum(l + step, largest); Proofs::below(h,x,n) && h < largest; h = minimum(l + step, largest)) {
+      h = minimum(l + step, largest);
+      while (Proofs::below(h,x,n) && h < largest) {
 	l = h;
 	step *= 2.0;
 	if (++steps > root_search_limit) {
 	  return l;
 	}
+	h = minimum(l + step, largest);
       }
       if (h >= largest && Proofs::below(h,x,n)) { // Not for n > 1 and a finite x
 	return h;
       }
     } else {
-      for (l = maximum(-(step - h), 0.0); !Proofs::below(l,x,n); l = maximum(-(step - h), 0.0)) {
+      l = maximum(-(step - h), 0.0);
+      while (!Proofs::below(l,x,n)) {
 	h = l;
 	step *= 2.0;
 	if (++steps > root_search_limit) {
 	  return 0.0;
 	}
+	l = maximum(-(step - h), 0.0);
       }
     }
     for (;;) {
@@ -814,20 +818,24 @@ namespace gaol_core {
     double u = newton_root(x,r,n), l = u, step = first_step(u);
     int steps = 0;
     if (Proofs::above(u,x,n)) {
-      for (l = maximum(-(step - u), 0.0); Proofs::above(l,x,n); l = maximum(-(step - u), 0.0)) {
+      l = maximum(-(step - u), 0.0);
+      while (Proofs::above(l,x,n)) {
 	u = l;
 	step *= 2.0;
 	if (++steps > root_search_limit) {
 	  return u;
 	}
+	l = maximum(-(step - u), 0.0);
       }
     } else {
-      for (u = minimum(l + step, largest); !Proofs::above(u,x,n); u = minimum(l + step, largest)) {
+      u = minimum(l + step, largest);
+      while (!Proofs::above(u,x,n)) {
 	l = u;
 	step *= 2.0;
 	if (++steps > root_search_limit) {
 	  return GAOL_INFINITY;
 	}
+	u = minimum(l + step, largest);
       }
     }
     for (;;) {
