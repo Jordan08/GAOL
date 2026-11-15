@@ -104,8 +104,9 @@ are asked to (`-DWITH_EXAMPLES=ON`, `./configure --with-examples`,
 `meson setup -Dwith-examples=true`), and `make check` (`ninja check` with
 meson) runs them with the unit tests (see
 [Building GAOL](../doc/building.md#tests-examples-performance-and-the-parser)).
-The autotools and meson builds compiled `16_Goldstein_Price` only, as they
-compiled `Goldstein_Price` before.
+The autotools and meson builds build the 16 examples, as CMake does (they
+compiled `16_Goldstein_Price` only, as they compiled `Goldstein_Price`
+before).
 
 Examples 01 to 15 **check what they print**: each enclosure is compared with
 a value computed apart (mpmath, closed forms, exact fractions), each proof
@@ -168,7 +169,7 @@ Three headers are shared:
 **01 — A first program.** Everything a first program meets, each line checked:
 
 ```text
-  interval(0.1)                [0x1.999999999999ap-4, 0x1.999999999999ap-4] one double: misses 1/10
+  interval(0.1)                [0x1.999999999999ap-4]                       one double: misses 1/10
   textToInterval("0.1")        [0x1.9999999999999p-4, 0x1.999999999999ap-4] two doubles: encloses 1/10
   interval(a, b)               [empty]                                      a = 3.5 > b = -1.25: empty
   interval(a) | interval(b)    [-1.25, 3.5]                                 the hull: from b to a
@@ -213,8 +214,9 @@ X = [−10, 10], f(m) = 0 and F'(X) = [−1.1, 0.9] ∋ 0, IEEE 1788's division 
 0 / F'(X) = [0], so m − f(m)/F'(X) lies inside X and "proves" one root where
 there are seven. The relational division `%` (or `div_rel`) gives the whole
 line, and the extended division, computed as two `div_rel` on the negative and
-positive parts of F'(X) (GAOL has no `mulRevToPair`), finds and proves all 7
-roots in 19 steps.
+positive parts of F'(X) (what `gaol_ieee1788::mulRevToPair` does for a numerator
+without 0, where `div_rel` also takes X − m), finds and proves all 7 roots in 19
+steps.
 
 **06 — Global optimization.** A best-first branch and bound needs an ordering
 of boxes: `operator<` of intervals is the certainly relation, not an ordering,
@@ -447,9 +449,12 @@ documents that `bwd_pow` takes the roots of the whole of y, where
 the two parts of y (`nth_root_rel([-1, 2], -3, [-0.5, 0.5])`).
 
 With them, a forward-backward contractor is a dozen lines (07, 08, 09), and
-IBEX's documented results are reproduced. What is missing for Newton-type
-algorithms is the two-piece division `mulRevToPair`, and reverse functions
-for `pow(x, y)`, `max`, `min`, `sign`, `floor` (which IBEX writes itself).
+IBEX's documented results are reproduced. What was missing for Newton-type
+algorithms, the two-piece division `mulRevToPair` and the reverse functions of
+`pow(x, y)`, `max`, `min`, `sign` and `floor` (which IBEX writes itself), GAOL
+v5 has since added: `mulRevToPair`, `pow_rel`, `pow_exponent_rel`, `max_rel`,
+`min_rel`, `sign_rel` and `floor_rel`
+([Using GAOL](../doc/using.md#the-reverse-functions-of-max-min-sign-and-floor)).
 
 ### 2.6 Generic code
 
@@ -461,7 +466,8 @@ intervals and automatic differentiation. With GAOL:
 - `pow` is not found so, on purpose (`gaol::pow` and `gaol_ieee1788::pow`
   differ): generic code writes `using std::pow; using gaol::pow;`, and the
   error message otherwise names `gaol_core::interval`, which the user never
-  wrote; `pow(x, 2L)` and `pow(x, size_t)` are ambiguous;
+  wrote (`pow(x, 2L)` and `pow(x, size_t)` were ambiguous, and compile since:
+  the exponent is of any integer type);
 - constants are written `T(0.0)` or `T(0)`, never `T{}` (the whole line);
 - `Eigen::Matrix<gaol::interval, ...>` compiles for sums, GAOL v5 having no
   `interval(const char*)` to make Eigen's `Scalar(0)` ambiguous, but for
@@ -579,10 +585,12 @@ All 172 names the manual documents exist in the headers.
 
 - The FetchContent recipe of `doc/using.md` and of the manual, and the
   `git clone` of `doc/building.md`, fetch the `master` branch of
-  `Jordan08/GAOL`, which on 2026-09-27 is GAOL 4.2.3 (`fc47222`), 121 commits
-  behind `MATH-CORE`: it has `3rd/mathlib`, no `gaol_ieee1788.h` and no
-  namespace `gaol_core`, so the programs of the docs do not compile against
-  it. There is no `v5.0.0` tag to pin.
+  `Jordan08/GAOL`, which on 2026-09-27 was GAOL 4.2.3 (`fc47222`), 121 commits
+  behind `MATH-CORE` (the branch of GAOL v5 then, replaced by `configure-clean`
+  and `dev`): it had `3rd/mathlib` (GAOL v5 has `3rd/math-core`), no
+  `gaol_ieee1788.h` and no namespace `gaol_core`, so that the programs of the
+  docs did not compile against it. There was no `v5.0.0` tag to pin; `master`
+  is GAOL 4.2.3 until v5.0.0 is published.
 - A program compiled with `-Wall -Wextra` and pkg-config's `-I`, or through
   FetchContent (whose include directory is not `SYSTEM`), gets about 35
   warnings from GAOL's headers: 30 `-Wunused-parameter` in
@@ -590,7 +598,9 @@ All 172 names the manual documents exist in the headers.
   are not used) and `-Wdeprecated-copy`, which GCC repeats at every
   `x = ...;` of the user's code (the class has a user-provided copy
   constructor and an implicit copy assignment). A 13-line `main.cpp` built
-  through FetchContent printed 38 warnings.
+  through FetchContent printed 38 warnings. (Fixed since: the installed headers
+  compile alone with `-Wall -Wextra -Wold-style-cast -Wundef -Werror`, as
+  `.github/scripts/headers.sh` checks.)
 - `[[nodiscard]]` worked in C++17 only; `GAOL_NODISCARD` now also takes the
   attribute of GCC, Clang and Visual C++ before C++17. `gaol::gaol` still
   sets no language standard, so a CMake project with GCC 9 compiles in C++14
@@ -600,9 +610,11 @@ All 172 names the manual documents exist in the headers.
   GAOL 4, not built by CMake, some for types no build compiles (they have been
   in `tests/` since, run by the three builds without CppUnit).
 - The public headers put `using std::exception; using std::string;` at global
-  scope, define unprefixed macros (`INLINE`, `HAVE_FENV_H`, `MEMALIGN`,
-  `__HI`… 25 in all) and `#undef PACKAGE` (gone since: the configuration no
-  longer defines `PACKAGE`).
+  scope, defined unprefixed macros (`INLINE`, `HAVE_FENV_H`, `MEMALIGN`,
+  `__HI`… 25 in all) and did `#undef PACKAGE`. All three are gone: no
+  installed header has a `using` at global scope, the macros of the installed
+  headers start with `GAOL_` or `gaol_` (`.github/scripts/headers.sh` checks
+  it), and the configuration no longer defines `PACKAGE`.
 - Smaller slips, since fixed: the width output format is described as
   "midpoint and width" but prints the radius; the header comment of `chi()`
   said `chi([0,0]) = 0` while the code and the manual say −1;
@@ -692,13 +704,13 @@ reviewer and every example writer:
 - `operator<` is IEEE 1788's strictPrecedes, true for (∅, ∅): not an ordering
   (section 2.3). A named total order and a `std::less` specialization would
   make the standard containers safe.
-- The literal `0` converts to `interval`, GAOL v5 having no
-  `interval(const char*)`, but `interval(0, 0)` does not compile, being
+- The literal `0` converted to `interval`, GAOL v5 having no
+  `interval(const char*)`, but `interval(0, 0)` did not compile, being
   ambiguous with `interval(const char*, const char*)` (section 2.1). (Since
   then, the constructor from two strings is gone and `interval(0, 0)`
-  compiles.)
-  Constrained template constructors for the integer types would fix it, and
-  enclose integers beyond 2⁵³.
+  compiles; `interval(double)` is explicit, so that `0` converts no more; and
+  the integer types are accepted by the constructors and the operations, and
+  enclose the integers beyond 2⁵³: [Integers](../doc/using.md#integers).)
 - The rounding direction leaks into the program (section 2.8), `cleanup()`
   restored only once, there is no scoped guard and there was no documented
   barrier (`rnd_keep()` existed but was not presented as interface;
@@ -984,7 +996,8 @@ To take:
 ### Priority 3: natural code
 
 7. Accept every integer (constrained template constructors), which makes
-   `interval(0, 0)` compile and encloses the integers beyond 2⁵³.
+   `interval(0, 0)` compile and encloses the integers beyond 2⁵³. (Done since:
+   [Integers](../doc/using.md#integers).)
 8. Give a total order for containers (`gaol::lexicographic_less`, and possibly
    a `std::less` specialization), and warn against `std::sort`, `std::set`,
    `std::max` with the certainly relations (done: `gaol::lexicographic_less`,
@@ -995,14 +1008,18 @@ To take:
 10. Add the helpers every algorithm writes: `mulRevToPair`/`div_rel_pair`,
     `inflate`, `bisect(ratio)` and `is_bisectable()`, a mid-radius
     constructor, `hull()` and `intersect()` as functions, an enclosure of the
-    width; `erf` and `erfc`.
+    width; `erf` and `erfc`. (Done since: `mulRevToPair`, `inflate()`,
+    `bisect(ratio)`, `is_bisectable()`, `interval::centered_form(m, r)`,
+    `hull()`, `intersect()`, `width_enclosure()`, `erf` and `erfc`.)
 11. Remove the global `using` declarations and prefix the macros of the public
     headers; stop installing the internal headers; silence the header warnings
     (a defaulted copy assignment, unnamed unused parameters); restore
     `gaol::sin(0.5)` by not including `gaol_expression.h` from
-    `gaol_ieee1788.h`. (Done since: the internal headers are no longer
-    installed, number 22.) (Not done: the constructors from a double are
-    explicit instead, number 16.)
+    `gaol_ieee1788.h`. (Done since: no global `using` in the installed
+    headers, their macros start with `GAOL_` or `gaol_`, their warnings are
+    silenced, and the internal headers are no longer installed, number 22.)
+    (Not done: the constructors from a double are explicit instead, number
+    16.)
 
 ### Priority 4: documentation
 

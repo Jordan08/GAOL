@@ -166,14 +166,19 @@ int main()
       roots.push_back(X);
       continue;
     }
-    for (const interval& part : newton_step(X)) {
-      if (part.set_eq(X)) {                      // no progress: cut X in two
-        const std::pair<interval, interval> halves = X.bisect(0.5);
-        work.push_back(halves.first);
-        work.push_back(halves.second);
-      } else {
-        work.push_back(part);
+    const std::vector<interval> parts = newton_step(X);
+    bool progress = true;
+    for (const interval& part : parts) {
+      if (part.set_eq(X)) {
+        progress = false;                        // a part is X itself
       }
+    }
+    if (progress) {
+      work.insert(work.end(), parts.begin(), parts.end());
+    } else {                                     // no progress: cut X in two, once
+      const std::pair<interval, interval> halves = X.bisect(0.5);
+      work.push_back(halves.first);
+      work.push_back(halves.second);
     }
   }
   for (const interval& r : roots) {
@@ -195,6 +200,10 @@ int main()
 - `f(X)` encloses the range of f over X: where it holds no 0, X holds no root.
   `set_contains()` is the test of membership, and there is no `==` on
   intervals (`set_eq()` is the equality of two sets).
+- X is cut once when a part of the step is X itself, even when both parts are:
+  cutting for each part pushed the halves twice, and every root came out
+  twice (eight intervals for the three roots of x³ − x on [−3, 3]; the loop
+  above gives four, the root 0 being the cut point and in both halves).
 - The two intervals printed are the ones no test discarded, each narrower than
   1e-12 and holding one of ±√2. To prove that an interval holds exactly one
   root, the algorithm asks that the step N(X) lies strictly inside X
