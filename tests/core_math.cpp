@@ -1711,8 +1711,8 @@ namespace
       { "upward, and to nearest for SSE", FE_UPWARD, _MM_ROUND_NEAREST },
       { "to nearest, and upward for SSE", FE_TONEAREST, _MM_ROUND_UP },
     };
-    struct Power { double x, y; long long lo, hi; };
-    const Power powers[] = {
+    struct PowerCase { double x, y; long long lo, hi; };
+    const PowerCase powers[] = {
       { 0x1.4a1249ba9b6d5p-1, 0x1.97f9e85175cf7p+10, 1458662373659LL, 1458662373660LL },
       { 0x1.0d00c0deaf87fp-2, 0x1.117ee54c23de1p+9, 567863LL, 567864LL },
       { 0x1.999999999999ap-1, 0x1.a0df226893p+11, 1LL, 2LL },
@@ -1724,7 +1724,7 @@ namespace
     };
     for (const Direction& d : directions) {
       const bool upward = d.sse == static_cast<unsigned>(_MM_ROUND_UP);
-      for (const Power& p : powers) {
+      for (const PowerCase& p : powers) {
         set(d);
         const double z = gaol_core::rnd_keep(gaol_cr_pow(p.x, p.y));
         set(directions[0]);

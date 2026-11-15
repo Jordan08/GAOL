@@ -5083,17 +5083,16 @@ int main()
       register written back with the masks set) passed every other check of
       this file and of the tests.
     */
-    const double largest = (std::numeric_limits<double>::max)();
     // 2^1024 (1 - 2^-k) for k from 53 to 33, whose binary logarithm is 1024 - 1.4 2^-k
     const double next_to_the_largest[] = { largest, 0x1.ffffffffffffep+1023, 0x1.fffffffffffp+1023, 0x1.ffffffffp+1023 };
     for (const double c : next_to_the_largest) {
       for (const double y : { 0.5, 2.0, 3.0, 7.0, 37.0, -2.0, -3.0 }) {
-        const Outcome op = run_with_exceptions_enabled(FE_INVALID, [c, y] {
+        const Outcome pow_rel_outcome = run_with_exceptions_enabled(FE_INVALID, [c, y] {
           const interval z = pow_rel(opaque(interval(c)), opaque(interval(y)), interval::universe());
           return !z.is_empty() && only_the_invalid_operation_is_enabled() && std::fetestexcept(FE_INVALID) == 0;
         });
         check("pow_rel() of a power next to the largest double, FE_INVALID enabled: no trap, still enabled, no flag",
-              op == returned_true, [&] { return "c=" + hex(c) + " y=" + hex(y) + ": " + outcome_text(op); });
+              pow_rel_outcome == returned_true, [&] { return "c=" + hex(c) + " y=" + hex(y) + ": " + outcome_text(pow_rel_outcome); });
       }
       for (const double x : { 2.0, 1.5, 10.0, 0.5, 0.001, 1e300 }) {
         const Outcome oe = run_with_exceptions_enabled(FE_INVALID, [c, x] {
@@ -5141,8 +5140,8 @@ int main()
     // wrote the SSE control register with every exception masked
     const Outcome om = run_with_exceptions_enabled(FE_INVALID, [&] {
       bool enabled = true;
-      for (const Operation& o : operations) {
-        static_cast<void>(run(o, operands[0].first, operands[0].second));
+      for (const Operation& operation : operations) {
+        static_cast<void>(run(operation, operands[0].first, operands[0].second));
 #if GAOL_TESTS_SSE
         enabled = enabled && (_mm_getcsr() & _MM_MASK_INVALID) == 0u;
 #else

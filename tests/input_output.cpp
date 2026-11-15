@@ -21,6 +21,8 @@
 #include "gaol/gaol_config.h"
 #include "unit_tests.h"
 
+using namespace gaol;
+
 
 class input_output_test {
 public:

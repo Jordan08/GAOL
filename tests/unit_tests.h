@@ -40,8 +40,6 @@
 
 #include "gaol_tests.h"
 
-using namespace gaol;
-
 namespace gaol_unit
 {
   // The name of the test running, "suite: test", which names its checks
@@ -171,11 +169,11 @@ namespace gaol_unit
   }
 #define GAOL_UNIT_TEST(test) std::make_pair(std::string(#test), &gaol_unit_fixture::test)
 
-const interval max_inf(std::numeric_limits<double>::max(),+GAOL_INFINITY);
-const interval m_inf_m_max(-GAOL_INFINITY,-std::numeric_limits<double>::max());
+const gaol::interval max_inf(std::numeric_limits<double>::max(),+GAOL_INFINITY);
+const gaol::interval m_inf_m_max(-GAOL_INFINITY,-std::numeric_limits<double>::max());
 
-const interval m_min_zero(-std::numeric_limits<double>::min(),0);
-const interval zero_min(0.0,std::numeric_limits<double>::min());
-const interval m_min_min(-std::numeric_limits<double>::min(),std::numeric_limits<double>::min());
+const gaol::interval m_min_zero(-std::numeric_limits<double>::min(),0);
+const gaol::interval zero_min(0.0,std::numeric_limits<double>::min());
+const gaol::interval m_min_min(-std::numeric_limits<double>::min(),std::numeric_limits<double>::min());
 
 #endif /* GAOL_UNIT_TESTS_H */

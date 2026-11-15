@@ -1033,7 +1033,7 @@ namespace
      GAOL throws, another of the standard library, a class of a program and
      types that are no exception. */
   struct program_error : std::runtime_error { using std::runtime_error::runtime_error; };
-  struct not_an_exception { explicit not_an_exception(const std::string&) {} };
+  struct not_an_exception {};
   struct private_exception : private std::exception {};
   static_assert(::gaol_detail::is_error_class<std::invalid_argument>::value, "std::invalid_argument is a valid error class");
   static_assert(::gaol_detail::is_error_class<std::domain_error>::value, "std::domain_error is a valid error class");

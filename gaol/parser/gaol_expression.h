@@ -195,10 +195,10 @@ namespace gaol_core {
       public:
       null_node();
       ~null_node();
-      expr_node* clone() const;
-      std::ostream& display(std::ostream& os) const;
-      unsigned int get_precedence() const;
-      GAOL_INLINE void accept(expr_visitor& visitor);
+      expr_node* clone() const override;
+      std::ostream& display(std::ostream& os) const override;
+      unsigned int get_precedence() const override;
+      GAOL_INLINE void accept(expr_visitor& visitor) override;
       protected:
       static const unsigned int precedence;
     };
@@ -214,10 +214,10 @@ namespace gaol_core {
       public:
       double_node(double d);
       ~double_node();
-      expr_node* clone() const;
-      std::ostream& display(std::ostream& os) const;
-      unsigned int get_precedence() const;
-      GAOL_INLINE void accept(expr_visitor& visitor);
+      expr_node* clone() const override;
+      std::ostream& display(std::ostream& os) const override;
+      unsigned int get_precedence() const override;
+      GAOL_INLINE void accept(expr_visitor& visitor) override;
       
       //! Accessor
       GAOL_INLINE double get_val() const;
@@ -235,10 +235,10 @@ namespace gaol_core {
       public:
       interval_node(const interval& I);
       ~interval_node();
-      expr_node* clone() const;
-      std::ostream& display(std::ostream& os) const;
-      unsigned int get_precedence() const;
-      GAOL_INLINE void accept(expr_visitor& visitor);
+      expr_node* clone() const override;
+      std::ostream& display(std::ostream& os) const override;
+      unsigned int get_precedence() const override;
+      GAOL_INLINE void accept(expr_visitor& visitor) override;
       
       //! Accessor
       GAOL_INLINE interval get_val() const;
@@ -256,10 +256,10 @@ namespace gaol_core {
       public:
       add_node(const expression &el, const expression &er);
       ~add_node();
-      expr_node* clone() const;
-      std::ostream& display(std::ostream& os) const;
-      unsigned int get_precedence() const;
-      GAOL_INLINE void accept(expr_visitor& visitor);
+      expr_node* clone() const override;
+      std::ostream& display(std::ostream& os) const override;
+      unsigned int get_precedence() const override;
+      GAOL_INLINE void accept(expr_visitor& visitor) override;
       
       //! Accessors
       //@{
@@ -279,10 +279,10 @@ namespace gaol_core {
       public:
       unary_minus_node(const expression &e);
       ~unary_minus_node();
-      expr_node* clone() const;
-      std::ostream& display(std::ostream& os) const;
-      unsigned int get_precedence() const;
-      GAOL_INLINE void accept(expr_visitor& visitor);
+      expr_node* clone() const override;
+      std::ostream& display(std::ostream& os) const override;
+      unsigned int get_precedence() const override;
+      GAOL_INLINE void accept(expr_visitor& visitor) override;
       
       // Accessor -
       GAOL_INLINE expr_node* get_subexpr();
@@ -300,10 +300,10 @@ namespace gaol_core {
       public:
       sub_node(const expression &el, const expression &er);
       ~sub_node();
-      expr_node* clone() const;
-      std::ostream& display(std::ostream& os) const;
-      unsigned int get_precedence() const;
-      GAOL_INLINE void accept(expr_visitor& visitor);
+      expr_node* clone() const override;
+      std::ostream& display(std::ostream& os) const override;
+      unsigned int get_precedence() const override;
+      GAOL_INLINE void accept(expr_visitor& visitor) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_left();
@@ -324,10 +324,10 @@ namespace gaol_core {
       public:
       mult_node(const expression &el, const expression &er);
       ~mult_node();
-      expr_node* clone() const;
-      std::ostream& display(std::ostream& os) const;
-      unsigned int get_precedence() const;
-      GAOL_INLINE void accept(expr_visitor& visitor);
+      expr_node* clone() const override;
+      std::ostream& display(std::ostream& os) const override;
+      unsigned int get_precedence() const override;
+      GAOL_INLINE void accept(expr_visitor& visitor) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_left();
@@ -347,10 +347,10 @@ namespace gaol_core {
       public:
       div_node(const expression &el, const expression &er);
       ~div_node();
-      expr_node* clone() const;
-      std::ostream& display(std::ostream& os) const;
-      unsigned int get_precedence() const;
-      GAOL_INLINE void accept(expr_visitor& visitor);
+      expr_node* clone() const override;
+      std::ostream& display(std::ostream& os) const override;
+      unsigned int get_precedence() const override;
+      GAOL_INLINE void accept(expr_visitor& visitor) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_left();
@@ -369,10 +369,10 @@ namespace gaol_core {
       public:
       pow_node(const expression& e, int n);
       ~pow_node();
-      expr_node* clone() const;
-      std::ostream& display(std::ostream& os) const;
-      unsigned int get_precedence() const;
-      GAOL_INLINE void accept(expr_visitor& visitor);
+      expr_node* clone() const override;
+      std::ostream& display(std::ostream& os) const override;
+      unsigned int get_precedence() const override;
+      GAOL_INLINE void accept(expr_visitor& visitor) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -400,10 +400,10 @@ namespace gaol_core {
       typedef interval (*power_function)(const interval&, const interval&);
       pow_itv_node(const expression& e1, const expression& e2, power_function f = gaol_pow_hybrid);
       ~pow_itv_node();
-      expr_node* clone() const;
-      std::ostream& display(std::ostream& os) const;
-      unsigned int get_precedence() const;
-      GAOL_INLINE void accept(expr_visitor& visitor);
+      expr_node* clone() const override;
+      std::ostream& display(std::ostream& os) const override;
+      unsigned int get_precedence() const override;
+      GAOL_INLINE void accept(expr_visitor& visitor) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_left();
@@ -426,10 +426,10 @@ namespace gaol_core {
       public:
       nth_root_node(const expression& e, unsigned int n);
       ~nth_root_node();
-      expr_node* clone() const;
-      std::ostream& display(std::ostream& os) const;
-      unsigned int get_precedence() const;
-      GAOL_INLINE void accept(expr_visitor& visitor);
+      expr_node* clone() const override;
+      std::ostream& display(std::ostream& os) const override;
+      unsigned int get_precedence() const override;
+      GAOL_INLINE void accept(expr_visitor& visitor) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -447,10 +447,10 @@ namespace gaol_core {
       public:
       cos_node(const expression& e);
       ~cos_node();
-      expr_node* clone() const;
-      std::ostream& display(std::ostream& os) const;
-      unsigned int get_precedence() const;
-      GAOL_INLINE void accept(expr_visitor& visitor);
+      expr_node* clone() const override;
+      std::ostream& display(std::ostream& os) const override;
+      unsigned int get_precedence() const override;
+      GAOL_INLINE void accept(expr_visitor& visitor) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -467,10 +467,10 @@ namespace gaol_core {
       public:
       sin_node(const expression& e);
       ~sin_node();
-      expr_node* clone() const;
-      std::ostream& display(std::ostream& os) const;
-      unsigned int get_precedence() const;
-      GAOL_INLINE void accept(expr_visitor& visitor);
+      expr_node* clone() const override;
+      std::ostream& display(std::ostream& os) const override;
+      unsigned int get_precedence() const override;
+      GAOL_INLINE void accept(expr_visitor& visitor) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -487,10 +487,10 @@ namespace gaol_core {
       public:
       tan_node(const expression& e);
       ~tan_node();
-      expr_node* clone() const;
-      std::ostream& display(std::ostream& os) const;
-      unsigned int get_precedence() const;
-      GAOL_INLINE void accept(expr_visitor& visitor);
+      expr_node* clone() const override;
+      std::ostream& display(std::ostream& os) const override;
+      unsigned int get_precedence() const override;
+      GAOL_INLINE void accept(expr_visitor& visitor) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -506,10 +506,10 @@ namespace gaol_core {
       public:
       atan2_node(const expression& e1, const expression& e2);
       ~atan2_node();
-      expr_node* clone() const;
-      std::ostream& display(std::ostream& os) const;
-      unsigned int get_precedence() const;
-      GAOL_INLINE void accept(expr_visitor& visitor);
+      expr_node* clone() const override;
+      std::ostream& display(std::ostream& os) const override;
+      unsigned int get_precedence() const override;
+      GAOL_INLINE void accept(expr_visitor& visitor) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_Y();
@@ -526,10 +526,10 @@ namespace gaol_core {
       public:
       acos_node(const expression& e);
       ~acos_node();
-      expr_node* clone() const;
-      std::ostream& display(std::ostream& os) const;
-      unsigned int get_precedence() const;
-      GAOL_INLINE void accept(expr_visitor& visitor);
+      expr_node* clone() const override;
+      std::ostream& display(std::ostream& os) const override;
+      unsigned int get_precedence() const override;
+      GAOL_INLINE void accept(expr_visitor& visitor) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -545,10 +545,10 @@ namespace gaol_core {
       public:
       asin_node(const expression& e);
       ~asin_node();
-      expr_node* clone() const;
-      std::ostream& display(std::ostream& os) const;
-      unsigned int get_precedence() const;
-      GAOL_INLINE void accept(expr_visitor& visitor);
+      expr_node* clone() const override;
+      std::ostream& display(std::ostream& os) const override;
+      unsigned int get_precedence() const override;
+      GAOL_INLINE void accept(expr_visitor& visitor) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -564,10 +564,10 @@ namespace gaol_core {
       public:
       atan_node(const expression& e);
       ~atan_node();
-      expr_node* clone() const;
-      std::ostream& display(std::ostream& os) const;
-      unsigned int get_precedence() const;
-      GAOL_INLINE void accept(expr_visitor& visitor);
+      expr_node* clone() const override;
+      std::ostream& display(std::ostream& os) const override;
+      unsigned int get_precedence() const override;
+      GAOL_INLINE void accept(expr_visitor& visitor) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -584,10 +584,10 @@ namespace gaol_core {
       public:
       cosh_node(const expression& e);
       ~cosh_node();
-      expr_node* clone() const;
-      std::ostream& display(std::ostream& os) const;
-      unsigned int get_precedence() const;
-      GAOL_INLINE void accept(expr_visitor& visitor);
+      expr_node* clone() const override;
+      std::ostream& display(std::ostream& os) const override;
+      unsigned int get_precedence() const override;
+      GAOL_INLINE void accept(expr_visitor& visitor) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -603,10 +603,10 @@ namespace gaol_core {
       public:
       sinh_node(const expression& e);
       ~sinh_node();
-      expr_node* clone() const;
-      std::ostream& display(std::ostream& os) const;
-      unsigned int get_precedence() const;
-      GAOL_INLINE void accept(expr_visitor& visitor);
+      expr_node* clone() const override;
+      std::ostream& display(std::ostream& os) const override;
+      unsigned int get_precedence() const override;
+      GAOL_INLINE void accept(expr_visitor& visitor) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -622,10 +622,10 @@ namespace gaol_core {
       public:
       tanh_node(const expression& e);
       ~tanh_node();
-      expr_node* clone() const;
-      std::ostream& display(std::ostream& os) const;
-      unsigned int get_precedence() const;
-      GAOL_INLINE void accept(expr_visitor& visitor);
+      expr_node* clone() const override;
+      std::ostream& display(std::ostream& os) const override;
+      unsigned int get_precedence() const override;
+      GAOL_INLINE void accept(expr_visitor& visitor) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -643,10 +643,10 @@ namespace gaol_core {
       public:
       acosh_node(const expression& e);
       ~acosh_node();
-      expr_node* clone() const;
-      std::ostream& display(std::ostream& os) const;
-      unsigned int get_precedence() const;
-      GAOL_INLINE void accept(expr_visitor& visitor);
+      expr_node* clone() const override;
+      std::ostream& display(std::ostream& os) const override;
+      unsigned int get_precedence() const override;
+      GAOL_INLINE void accept(expr_visitor& visitor) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -662,10 +662,10 @@ namespace gaol_core {
       public:
       asinh_node(const expression& e);
       ~asinh_node();
-      expr_node* clone() const;
-      std::ostream& display(std::ostream& os) const;
-      unsigned int get_precedence() const;
-      GAOL_INLINE void accept(expr_visitor& visitor);
+      expr_node* clone() const override;
+      std::ostream& display(std::ostream& os) const override;
+      unsigned int get_precedence() const override;
+      GAOL_INLINE void accept(expr_visitor& visitor) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -681,10 +681,10 @@ namespace gaol_core {
       public:
       atanh_node(const expression& e);
       ~atanh_node();
-      expr_node* clone() const;
-      std::ostream& display(std::ostream& os) const;
-      unsigned int get_precedence() const;
-      GAOL_INLINE void accept(expr_visitor& visitor);
+      expr_node* clone() const override;
+      std::ostream& display(std::ostream& os) const override;
+      unsigned int get_precedence() const override;
+      GAOL_INLINE void accept(expr_visitor& visitor) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -701,10 +701,10 @@ namespace gaol_core {
       public:
       exp_node(const expression& e);
       ~exp_node();
-      expr_node* clone() const;
-      std::ostream& display(std::ostream& os) const;
-      unsigned int get_precedence() const;
-      GAOL_INLINE void accept(expr_visitor& visitor);
+      expr_node* clone() const override;
+      std::ostream& display(std::ostream& os) const override;
+      unsigned int get_precedence() const override;
+      GAOL_INLINE void accept(expr_visitor& visitor) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -720,10 +720,10 @@ namespace gaol_core {
       public:
       log_node(const expression& e);
       ~log_node();
-      expr_node* clone() const;
-      std::ostream& display(std::ostream& os) const;
-      unsigned int get_precedence() const;
-      GAOL_INLINE void accept(expr_visitor& visitor);
+      expr_node* clone() const override;
+      std::ostream& display(std::ostream& os) const override;
+      unsigned int get_precedence() const override;
+      GAOL_INLINE void accept(expr_visitor& visitor) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -742,10 +742,10 @@ namespace gaol_core {
       public:
       exp2_node(const expression& e);
       ~exp2_node();
-      expr_node* clone() const;
-      std::ostream& display(std::ostream& os) const;
-      unsigned int get_precedence() const;
-      GAOL_INLINE void accept(expr_visitor& visitor);
+      expr_node* clone() const override;
+      std::ostream& display(std::ostream& os) const override;
+      unsigned int get_precedence() const override;
+      GAOL_INLINE void accept(expr_visitor& visitor) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -764,10 +764,10 @@ namespace gaol_core {
       public:
       log2_node(const expression& e);
       ~log2_node();
-      expr_node* clone() const;
-      std::ostream& display(std::ostream& os) const;
-      unsigned int get_precedence() const;
-      GAOL_INLINE void accept(expr_visitor& visitor);
+      expr_node* clone() const override;
+      std::ostream& display(std::ostream& os) const override;
+      unsigned int get_precedence() const override;
+      GAOL_INLINE void accept(expr_visitor& visitor) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -786,10 +786,10 @@ namespace gaol_core {
       public:
       sign_node(const expression& e);
       ~sign_node();
-      expr_node* clone() const;
-      std::ostream& display(std::ostream& os) const;
-      unsigned int get_precedence() const;
-      GAOL_INLINE void accept(expr_visitor& visitor);
+      expr_node* clone() const override;
+      std::ostream& display(std::ostream& os) const override;
+      unsigned int get_precedence() const override;
+      GAOL_INLINE void accept(expr_visitor& visitor) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();
@@ -808,10 +808,10 @@ namespace gaol_core {
       public:
       trunc_node(const expression& e);
       ~trunc_node();
-      expr_node* clone() const;
-      std::ostream& display(std::ostream& os) const;
-      unsigned int get_precedence() const;
-      GAOL_INLINE void accept(expr_visitor& visitor);
+      expr_node* clone() const override;
+      std::ostream& display(std::ostream& os) const override;
+      unsigned int get_precedence() const override;
+      GAOL_INLINE void accept(expr_visitor& visitor) override;
       //! Accessors
       //@{
       GAOL_INLINE expr_node* get_subexpr();

@@ -141,10 +141,10 @@ namespace
     }
   }
 
-  // Operations on doubles, drawn by draw, root_limit being the largest distance
+  // Operations on doubles, drawn by draw, nth_root_limit being the largest distance
   // from the tightest bounds allowed for n-th roots
   template<class Draw>
-  void operations_on_doubles(const std::string& range, Draw draw, int root_limit)
+  void operations_on_doubles(const std::string& range, Draw draw, int nth_root_limit)
   {
     const std::string in = " (" + range + ")";
     for (int i = 0; i < nb_random_values; ++i) {
@@ -213,7 +213,7 @@ namespace
       const double m = std::fabs(a);
       expect_root("sqrt([|a|])" + in, sqrt(interval(m)), m, 2, square_root_limit);
       for (int n = 2; n <= 7; ++n) {
-        expect_root("nth_root([|a|],n) for n=" + std::to_string(n) + in, nth_root(interval(m), static_cast<unsigned int>(n)), m, n, root_limit);
+        expect_root("nth_root([|a|],n) for n=" + std::to_string(n) + in, nth_root(interval(m), static_cast<unsigned int>(n)), m, n, nth_root_limit);
       }
       // The odd roots of -|a|, the opposites of those of |a|, and the even
       // roots of -|a|, which are empty unless a is 0

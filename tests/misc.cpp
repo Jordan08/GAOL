@@ -19,6 +19,8 @@
 #include "gaol/parser/gaol_expr_eval.h"
 #include "unit_tests.h"
 
+using namespace gaol;
+
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>

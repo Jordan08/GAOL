@@ -16,6 +16,8 @@
 // rather than CppUnit (GAOL v5)
 #include "unit_tests.h"
 
+using namespace gaol;
+
 #include <cfenv>
 #include <climits>
 #include <type_traits>

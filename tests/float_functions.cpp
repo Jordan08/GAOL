@@ -18,6 +18,8 @@
 
 #include "unit_tests.h"
 
+using namespace gaol;
+
 
 class float_functions_test {
 public:

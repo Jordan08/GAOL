@@ -18,6 +18,8 @@
 #include "unit_tests.h"
 #include <limits>
 
+using namespace gaol;
+
 class interval_function_test {
 public:
   void setUp() {

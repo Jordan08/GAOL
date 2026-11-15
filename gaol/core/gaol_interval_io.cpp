@@ -635,12 +635,15 @@ namespace gaol_core {
   */
   static void write_hexa_bound(double x, char *buf, std::size_t n)
   {
+    // The texts are at most 24 characters ("-0x1.fffffffffffffp+1023") and the
+    // buffers of the callers have 64: no snprintf() below truncates, and its
+    // result, the length, is not needed
     if (x == GAOL_INFINITY) {
-      std::snprintf(buf, n, "inf");
+      static_cast<void>(std::snprintf(buf, n, "inf"));
       return;
     }
     if (x == -GAOL_INFINITY) {
-      std::snprintf(buf, n, "-inf");
+      static_cast<void>(std::snprintf(buf, n, "-inf"));
       return;
     }
     std::uint64_t bits;
@@ -660,8 +663,8 @@ namespace gaol_core {
       --nb_digits;
     }
     digits[nb_digits] = '\0';
-    std::snprintf(buf, n, "%s0x%d%s%sp%+d", (bits >> 63) ? "-" : "", leading,
-                  (nb_digits > 0) ? "." : "", digits, exponent);
+    static_cast<void>(std::snprintf(buf, n, "%s0x%d%s%sp%+d", (bits >> 63) ? "-" : "", leading,
+                                    (nb_digits > 0) ? "." : "", digits, exponent));
   }
 
   /*
