@@ -233,7 +233,10 @@ cmake --build build --target test      # make test with the Makefiles of CMake
 cmake --install build --config Release
 ```
 
-CMake 3.14 or later. The build compiles the thirty-eight sources of CORE-MATH
+CMake 3.14 or later (`cmake --install` is CMake 3.15: with 3.14,
+`cmake --build build --config Release --target install` installs, as the job
+`cmake-3-14` of the continuous integration does). The build compiles the
+thirty-eight sources of CORE-MATH
 into `libgaol`, which is static unless `BUILD_SHARED_LIBS` is `ON`: there is
 nothing else to build and nothing else to install. The build type is Release
 unless another is given; brought in by a project that gives none
