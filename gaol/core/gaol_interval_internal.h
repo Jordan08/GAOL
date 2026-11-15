@@ -108,15 +108,6 @@
 #  define GAOL_POWN_ER 0
 #endif
 
-using std::ostream;
-using std::istream;
-using std::sqrt;
-
-//debug
-using std::cout;
-using std::endl;
-
-
 namespace gaol_core {
 
   // The names of gaol_detail (GAOL v5)
