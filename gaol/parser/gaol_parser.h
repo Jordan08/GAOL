@@ -99,7 +99,7 @@ namespace gaol_core {
       about 2^1026 or more, or about 2^-1081 or less, in the other bases) and
       bounds that are computed (1/3, sqrt(2)...) are not told apart: the
       literal is then the interval from the lower bound of l to the upper
-      bound of u. <a, b> is [a, b], whose bounds have to be the same double:
+      bound of u. \<a, b\> is [a, b], whose bounds have to be the same double:
       a number that is not a double is refused, <0.1, 0.1> as well, and so
       is a bound that is computed and whose value is not a point, as
       <[0.1], 0x1.9999999999999p-4> (GAOL v5).
@@ -118,7 +118,7 @@ namespace gaol_core {
 
     \note A call with a wrong number of arguments, an uncertain number as a
     bound and two different bounds, or a bound that is no double (or whose
-    value is not a point), in <a, b> throw std::invalid_argument, and a
+    value is not a point), in \<a, b\> throw std::invalid_argument, and a
     second argument of nth_root, pown or rootn that is no integer
     std::domain_error. That argument is an integer of any size that a
     double holds, beyond the ints too (GAOL v5): nth_root(8,3000000000) is
