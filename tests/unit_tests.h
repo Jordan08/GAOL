@@ -79,6 +79,14 @@ namespace gaol_unit
     return gaol_tests::check(current(), ok, [&] { return where(line, expression) + ": " + show(a) + " and " + show(b); });
   }
 
+  // Whether a encloses [lo, hi], its bounds no more than one double from lo and
+  // hi (TEST_HULL)
+  inline bool encloses_within_one_double(const gaol::interval& a, double lo, double hi)
+  {
+    return !a.is_empty() && a.left() <= lo && hi <= a.right()
+      && gaol_tests::previous_double(lo) <= a.left() && a.right() <= gaol_tests::next_double(hi);
+  }
+
   // CPPUNIT_FAIL(message): a check that fails
   inline void fail(const std::string& message, int line)
   {
@@ -135,11 +143,20 @@ namespace gaol_unit
 // Possibly equal: not disjoint, possibly_eq() being gone (GAOL v5)
 #define TEST_PEQ(a,b)  do { const auto gaol_a_ = (a); const auto gaol_b_ = (b); \
     gaol_unit::check(!gaol_a_.set_disjoint(gaol_b_), __LINE__, "TEST_PEQ(" #a ", " #b ")", gaol_a_, gaol_b_); } while (0)
-// At a Hausdorff distance of 1e-8 at most
+// At a Hausdorff distance of 1e-8 at most. It does not tell an enclosure that
+// misses the value it is compared with by less from one that holds it: where
+// the exact bounds are doubles, TEST_SEQ does, and TEST_HULL where they are not
 #define TEST_EQ(a,b)   do { const auto gaol_a_ = (a); const auto gaol_b_ = (b); \
     gaol_unit::check(hausdorff(gaol_a_, gaol_b_) <= 1e-8, __LINE__, "TEST_EQ(" #a ", " #b ")", gaol_a_, gaol_b_); } while (0)
 #define TEST_CONT(a,b) do { const auto gaol_a_ = (a); const auto gaol_b_ = (b); \
     gaol_unit::check(gaol_a_.set_contains(gaol_b_), __LINE__, "TEST_CONT(" #a ", " #b ")", gaol_a_, gaol_b_); } while (0)
+// Encloses the hull [lo, hi] of the values of a function, and has its bounds
+// one double from lo and hi at most: lo is the greatest double at most the lower
+// bound of the hull, and hi the least double at least its upper bound, computed
+// by tests/hull_values.py. The bounds may be infinite
+#define TEST_HULL(a,lo,hi) do { const auto gaol_a_ = (a); const double gaol_lo_ = (lo), gaol_hi_ = (hi); \
+    gaol_unit::check(gaol_unit::encloses_within_one_double(gaol_a_, gaol_lo_, gaol_hi_), __LINE__, \
+                     "TEST_HULL(" #a ", " #lo ", " #hi ")", gaol_a_, gaol::interval(gaol_lo_, gaol_hi_)); } while (0)
 #define CPPUNIT_ASSERT(a) TEST_TRUE(a)
 #define CPPUNIT_FAIL(message) gaol_unit::fail(message, __LINE__)
 

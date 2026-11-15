@@ -140,6 +140,7 @@ EXTRA_DIST = \
 	find_package/CMakeLists.txt \
 	fp_strict/CMakeLists.txt \
 	gaol_tests.h \
+	hull_values.py \
 	meson.build \
 	meson_subproject/check_flags.py \
 	meson_subproject/meson.build \
