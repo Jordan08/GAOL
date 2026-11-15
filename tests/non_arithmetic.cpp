@@ -79,10 +79,13 @@ public:
     TEST_EQ(pow(interval(-2,3),3),interval(-8,27));
     TEST_EQ(pow(interval(-2,3),4),interval(0,81));
 
-    TEST_CONT(pow(interval(-15,-15),17),-98526125335693359375.0);
-    TEST_CONT(pow(interval(15,15),17),98526125335693359375.0);
-    TEST_CONT(pow(interval(-15,-15),18),1477891880035400390625.0);
-    TEST_CONT(pow(interval(15,15),18),1477891880035400390625.0);
+    // 15^17 and 15^18 are no doubles (a literal would be one, rounded to
+    // nearest, and a power that is the double nearest would not hold the exact
+    // one): the tightest enclosure of the exact power
+    TEST_TRUE(gaol_tests::is_tightest_enclosure(pow(interval(-15,-15),17),gaol_tests::power(-15.0,17)));
+    TEST_TRUE(gaol_tests::is_tightest_enclosure(pow(interval(15,15),17),gaol_tests::power(15.0,17)));
+    TEST_TRUE(gaol_tests::is_tightest_enclosure(pow(interval(-15,-15),18),gaol_tests::power(-15.0,18)));
+    TEST_TRUE(gaol_tests::is_tightest_enclosure(pow(interval(15,15),18),gaol_tests::power(15.0,18)));
 
     TEST_SEQ(pow(m_inf_m_max,3),m_inf_m_max);
     TEST_SEQ(pow(m_inf_m_max,4),max_inf);

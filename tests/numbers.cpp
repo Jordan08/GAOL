@@ -1062,12 +1062,32 @@ namespace
     return (s[0] == '-') ? -decimal(s.substr(1)) : decimal(s[0] == '+' ? s.substr(1) : s);
   }
 
+  // The unit of the last digit of the number s that the stream wrote with the
+  // flags and the precision given: 10^-precision in the fixed format, and
+  // 10^(e - precision) in the scientific one, e being the power of ten of the
+  // first digit of s that is not a zero, or 10^(e + 1 - precision) in the
+  // general one, which writes that many significant digits
+  Exact unit_of(const std::string& s, std::ios_base::fmtflags flags, int precision)
+  {
+    const std::ios_base::fmtflags floatfield = flags & std::ios_base::floatfield;
+    if (floatfield == std::ios_base::fixed) {
+      return decimal("1e-" + std::to_string(precision));
+    }
+    const std::size_t exponent = s.find('e');
+    const std::string mantissa = s.substr(0, exponent);
+    const std::size_t point = std::min(mantissa.find('.'), mantissa.size()), first = mantissa.find_first_of("123456789");
+    long e = (exponent == std::string::npos) ? 0 : std::stol(s.substr(exponent + 1));
+    if (first != std::string::npos) {
+      e += (first < point) ? static_cast<long>(point - first) - 1 : -static_cast<long>(first - point);
+    }
+    const long significant = (floatfield == std::ios_base::scientific) ? precision + 1 : std::max(precision, 1);
+    return decimal("1e" + std::to_string(e + 1 - significant));
+  }
+
   // The interval [l, r] written by operator<< with the flags and the precision
   // given has to enclose [l, r], whatever the C library does of the rounding
   // direction in its decimal conversions (issue #3), and each bound has to be
-  // less than one unit of its last digit away: 10^-precision in the fixed
-  // format, 10^-precision times the power of ten written in the scientific
-  // one, and at most 10^(1 - precision) times the bound in the general one
+  // less than one unit of its last digit away, unit_of()
   void expect_output(const std::string& name, double l, double r, std::ios_base::fmtflags flags, int precision)
   {
     std::ostringstream os;
@@ -1089,17 +1109,16 @@ namespace
     const Exact vl = written(sl), vr = written(sr);
     check(name + ": encloses the interval", compare(l, vl) >= 0 && compare(r, vr) <= 0, describe);
 
-    const std::ios_base::fmtflags floatfield = flags & std::ios_base::floatfield;
     const std::string bounds[2] = { sl, sr };
     const Exact values[2] = { vl, vr };
     const double doubles[2] = { l, r };
     for (int i = 0; i < 2; ++i) {
-      Exact unit = decimal("1e-" + std::to_string(precision));
-      if (floatfield == std::ios_base::scientific) {
-        unit = unit*decimal("1" + bounds[i].substr(bounds[i].find('e')));
-      } else if (floatfield != std::ios_base::fixed) {
-        const Exact magnitude = (compare(doubles[i], exact(0.0)) < 0) ? -exact(doubles[i]) : exact(doubles[i]);
-        unit = magnitude*decimal("1e" + std::to_string(1 - precision));
+      const Exact unit = unit_of(bounds[i], flags, precision);
+      // In the scientific and general formats, a bound that is not 0 is not
+      // written as 0 (the unit of a text of 0 is no relative one): the fixed
+      // format has no digit for a bound below its unit
+      if ((flags & std::ios_base::floatfield) != std::ios_base::fixed && doubles[i] != 0.0) {
+        check(name + ": a bound that is not 0 is not written as 0", values[i].num.sign != 0, describe);
       }
       // vl + unit > l, and vr - unit < r
       const bool tight = (doubles[i] == 0.0) ? compare(0.0, values[i]) == 0
@@ -1755,26 +1774,6 @@ namespace
     const int precisions[] = { 1, 2, 4, 6, 15, 16, 17, 20 };
     const double smallest = std::numeric_limits<double>::denorm_min(), largest = std::numeric_limits<double>::max();
 
-    // The unit of the last digit of the number s that the stream wrote with
-    // the flags and the precision given: 10^-precision in the fixed format,
-    // and 10^(e - precision) in the scientific one, e being the power of ten
-    // of the first digit of s that is not a zero, or 10^(e + 1 - precision)
-    // in the general one, which writes that many significant digits
-    const auto unit_of = [](const std::string& s, std::ios_base::fmtflags flags, int precision) {
-      const std::ios_base::fmtflags floatfield = flags & std::ios_base::floatfield;
-      if (floatfield == std::ios_base::fixed) {
-        return decimal("1e-" + std::to_string(precision));
-      }
-      const std::size_t exponent = s.find('e');
-      const std::string mantissa = s.substr(0, exponent);
-      const std::size_t point = std::min(mantissa.find('.'), mantissa.size()), first = mantissa.find_first_of("123456789");
-      long e = (exponent == std::string::npos) ? 0 : std::stol(s.substr(exponent + 1));
-      if (first != std::string::npos) {
-        e += (first < point) ? static_cast<long>(point - first) - 1 : -static_cast<long>(first - point);
-      }
-      const long significant = (floatfield == std::ios_base::scientific) ? precision + 1 : std::max(precision, 1);
-      return decimal("1e" + std::to_string(e + 1 - significant));
-    };
     const auto is_infinite_text = [](const std::string& s) { return s == "inf" || s == "+inf"; };
     // Whether s is a decimal number, a sign, digits with a point and an exponent, and not inf or nan
     const auto is_decimal_text = [](const std::string& s) {

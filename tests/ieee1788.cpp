@@ -270,8 +270,13 @@ namespace
           && bounds_are(huge_long, q_lo, q_hi)
           && pownRev(numsToInterval(-8.0, 8.0), numsToInterval(-0.5, 0.5), -5000000001LL).is_empty(),
           [&] { return hex(huge_odd) + " " + hex(huge_even) + " " + hex(huge_below) + " " + hex(huge_long); });
+    // The x with x^(-2^31) in [2, 8], |x| at most 2^(-2^-31) = 0.99999999967723
+    // (the least |x| is 8^(-2^-31)): the least double above that is
+    // 0x1.fffffffd3a37bp-1 (mpmath), and the bound is no more than 4 doubles
+    // above it (doc/accuracy.md), so that a c with its bounds swapped, which gives
+    // 8^(-2^-31) = 0x1.fffffff7aea6ep-1, fails
     check("pownRev(c, INT_MIN): the order is 2^31, which an int cannot negate",
-          !smallest.is_empty() && smallest.right() > 0.9999999 && smallest.right() < 1.0
+          !smallest.is_empty() && smallest.right() >= 0x1.fffffffd3a37bp-1 && smallest.right() <= 0x1.fffffffd3a37fp-1
           && smallest.left() == -smallest.right(),
           [&] { return hex(smallest); });
     // pown(e, n) of the expressions for an unsigned beyond the ints, which
