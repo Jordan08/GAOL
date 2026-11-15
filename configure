@@ -21661,6 +21661,136 @@ if test "${gaol_cxx_takes}" = yes; then
     GAOL_PC_CFLAGS="${GAOL_PC_CFLAGS} ${gaol_flag}"
 fi
 done
+# -fno-section-anchors with GCC 12 for a 64-bit ARM target (Debian 12), as
+# CMakeLists.txt gives it, where the reason is: -fsection-anchors gave a
+# constant array of tests/numbers.cpp the wrong offset, and the test never
+# ended
+ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether the C++ compiler is GCC 12 for a 64-bit ARM target" >&5
+printf %s "checking whether the C++ compiler is GCC 12 for a 64-bit ARM target... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#if defined(__clang__) || !defined(__GNUC__) || __GNUC__ != 12 || !defined(__aarch64__)
+#error not GCC 12 for a 64-bit ARM target
+#endif
+
+int
+main (void)
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"
+then :
+  gaol_gcc_12_aarch64=yes
+else case e in #(
+  e) gaol_gcc_12_aarch64=no ;;
+esac
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: ${gaol_gcc_12_aarch64}" >&5
+printf "%s\n" "${gaol_gcc_12_aarch64}" >&6; }
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+if test "${gaol_gcc_12_aarch64}" = yes; then
+    ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+gaol_save_CXXFLAGS=$CXXFLAGS
+CXXFLAGS="-Werror -fno-section-anchors"
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether the C++ compiler accepts -fno-section-anchors" >&5
+printf %s "checking whether the C++ compiler accepts -fno-section-anchors... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main (void)
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"
+then :
+  gaol_cxx_takes=yes
+else case e in #(
+  e) gaol_cxx_takes=no ;;
+esac
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: ${gaol_cxx_takes}" >&5
+printf "%s\n" "${gaol_cxx_takes}" >&6; }
+CXXFLAGS=$gaol_save_CXXFLAGS
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+if test "${gaol_cxx_takes}" = yes; then
+    CXXFLAGS="${CXXFLAGS} -fno-section-anchors"
+fi
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+gaol_save_CFLAGS=$CFLAGS
+CFLAGS="-Werror -fno-section-anchors"
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether the C compiler accepts -fno-section-anchors" >&5
+printf %s "checking whether the C compiler accepts -fno-section-anchors... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main (void)
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"
+then :
+  gaol_c_takes=yes
+else case e in #(
+  e) gaol_c_takes=no ;;
+esac
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: ${gaol_c_takes}" >&5
+printf "%s\n" "${gaol_c_takes}" >&6; }
+CFLAGS=$gaol_save_CFLAGS
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+if test "${gaol_c_takes}" = yes; then
+    CFLAGS="${CFLAGS} -fno-section-anchors"
+fi
+if test "${gaol_cxx_takes}" = yes; then
+    GAOL_PC_CFLAGS="${GAOL_PC_CFLAGS} -fno-section-anchors"
+fi
+fi
 
 
 # The link option -mno-daz-ftz, where the compiler takes it (GCC 13 and later on

@@ -314,6 +314,24 @@ foreach flag : ['-frounding-math', '-ffp-contract=off', '-fno-fast-math']
     add_project_arguments([flag], language: 'c')
   endif
 endforeach
+# -fno-section-anchors with GCC 12 for a 64-bit ARM target (Debian 12), as
+# CMakeLists.txt gives it, where the reason is: -fsection-anchors gave a
+# constant array of tests/numbers.cpp the wrong offset, and the test never
+# ended (GAOL v5)
+if cpp_comp.compiles('''
+#if defined(__clang__) || !defined(__GNUC__) || __GNUC__ != 12 || !defined(__aarch64__)
+#error not GCC 12 for a 64-bit ARM target
+#endif
+int main(void) { return 0; }
+''', name: 'the C++ compiler is GCC 12 for a 64-bit ARM target')
+  if cpp_comp.has_argument('-fno-section-anchors')
+    add_project_arguments(['-fno-section-anchors'], language: 'cpp')
+    pc_cflags += ['-fno-section-anchors']
+  endif
+  if c_comp.has_argument('-fno-section-anchors')
+    add_project_arguments(['-fno-section-anchors'], language: 'c')
+  endif
+endif
 # Visual C++: /fp:strict, as CMakeLists.txt gives it to GAOL and to CORE-MATH,
 # without which gaol/gaol_config.h refuses to compile
 if msvc

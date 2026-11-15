@@ -1006,6 +1006,22 @@ AC_LANG([C])
 for gaol_flag in -frounding-math -ffp-contract=off -fno-fast-math; do
     GAOL_ADD_INTERVAL_FLAG([${gaol_flag}])
 done
+# -fno-section-anchors with GCC 12 for a 64-bit ARM target (Debian 12), as
+# CMakeLists.txt gives it, where the reason is: -fsection-anchors gave a
+# constant array of tests/numbers.cpp the wrong offset, and the test never
+# ended
+AC_LANG_PUSH([C++])
+AC_MSG_CHECKING([whether the C++ compiler is GCC 12 for a 64-bit ARM target])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+#if defined(__clang__) || !defined(__GNUC__) || __GNUC__ != 12 || !defined(__aarch64__)
+#error not GCC 12 for a 64-bit ARM target
+#endif
+]], [[]])],[gaol_gcc_12_aarch64=yes],[gaol_gcc_12_aarch64=no])
+AC_MSG_RESULT([${gaol_gcc_12_aarch64}])
+AC_LANG_POP([C++])
+if test "${gaol_gcc_12_aarch64}" = yes; then
+    GAOL_ADD_INTERVAL_FLAG([-fno-section-anchors])
+fi
 AC_SUBST([GAOL_PC_CFLAGS])
 
 # The link option -mno-daz-ftz, where the compiler takes it (GCC 13 and later on
