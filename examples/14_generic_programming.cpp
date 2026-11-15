@@ -246,13 +246,13 @@ int main()
         "the means of the midpoints, in double, lie in the enclosures");
 
   // -------------------------------------------------------------------------
-  std::cout << "4. Comparisons are \"certainly\" relations, and there is no ==\n";
+  std::cout << "4. Comparisons are \"certainly\" relations, and == is the equality of sets\n";
   const interval a(1.20, 1.25), b(1.40, 1.42), c(1.22, 1.30);
   std::cout << "   [1.2, 1.25] < [1.4, 1.42] : " << (a < b) << "   each element of one is below each of the other\n"
             << "   [1.2, 1.25] < [1.22, 1.3] : " << (a < c) << ", and >= : " << (a >= c)
             << "   they overlap: false is not \"the opposite\"\n";
   check(a < b && !(a < c) && !(a >= c) && !(a > c) && !(c < a), "the certainly relations on overlapping speeds");
-  // Set equality is set_eq; == does not compile, having no single meaning.
+  // Set equality is set_eq, or ==: the same sets, not the same unknown number.
   // The lower bound 0 of pow(x, 2) may print as -0 (it does with the SSE2
   // build): the same number as 0, the sign of a zero bound meaning nothing
   // for an interval (IEEE 1788-2015, 14.4).
@@ -284,10 +284,10 @@ int main()
   check(increasing, "the speeds sorted by by_bounds are sorted by left bound");
   check(kept.size() == speeds.size() && queue.top().set_eq(gaol::textToInterval("[1.95, 2.05]")),
         "std::set keeps the 6 speeds, the queue gives [1.95, 2.05] first");
-  // Eigen writes Scalar(0) and Scalar(1), which compile for an interval, but
-  // its products of dynamic size or from 8 x 8 test a scalar with ==, which
-  // interval does not have: Eigen::Matrix<interval> adds matrices of any
-  // size, and multiplies small fixed-size ones only.
+  // Eigen writes Scalar(0) and Scalar(1), which compile for an interval, and
+  // its products of dynamic size or from 8 x 8 test a scalar with ==, the
+  // equality of sets for an interval: Eigen::Matrix<interval> adds and
+  // multiplies matrices of any size.
 
   // GAOL is not used below. gaol::cleanup() sets the rounding direction back
   // to the one the program started with, to nearest: the doubles computed

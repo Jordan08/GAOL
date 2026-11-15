@@ -204,8 +204,8 @@ namespace {
           break;
         }
         // Once a solution is proved, the operator converges quadratically:
-        // go on until X no longer changes (set_eq(), GAOL having no == on
-        // intervals). Otherwise stop when it makes too little progress.
+        // go on until X no longer changes (set_eq(), the equality of sets, as
+        // ==). Otherwise stop when it makes too little progress.
         const bool fixpoint = Y[0].set_eq(X[0]) && Y[1].set_eq(X[1]);
         const bool progress = Y.max_width() < 0.9 * X.max_width();
         X = Y;

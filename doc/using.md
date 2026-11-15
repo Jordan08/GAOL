@@ -618,7 +618,7 @@ kind, not that the algorithm cannot be written.
 | Interior | `x.set_le(y)`; `y.set_strictly_contains(x)` | `interior(x, y)` | `x.is_interior_subset(y)` | `x < y`, `in(x, y)` | — |
 | Contains a number | `x.set_contains(d)` | `isMember(d, x)` | `x.contains(d)` | `d <= x`, `in(d, x)` | `in(d, x)` |
 | Disjoint | `x.set_disjoint(y)` | `disjoint(x, y)` | `x.is_disjoint(y)` | `Disjoint(x, y)` | `!overlap(x, y)` |
-| Equal | `x.set_eq(y)` | `equal(x, y)` | `x == y` | `x == y` | `equal(x, y)` |
+| Equal | `x == y`, `x.set_eq(y)` | `equal(x, y)` | `x == y` | `x == y` | `equal(x, y)` |
 | Inflate by r | `x.inflate(r)` | — | `x.inflate(r)` | `Blow(x, eps)`, relative to the width | `widen(x, r)` |
 | Bisect | `x.bisect(ratio)` | — | `x.bisect(ratio)`, ratio 0.5 (IBEX) or 0.49 (Codac) | — | `bisect(x)`, at the median only |
 | Two-piece division | two `div_rel`; `mulRevToPair(b, c)` | `mulRevToPair(b, c)` | `div2` (IBEX only) | — | — |
@@ -634,7 +634,7 @@ library compiles and changes meaning:
 
 | | `x < y` | `x <= y` | `x == y` |
 |---|---|---|---|
-| GAOL v5 | every point of x is below every point of y (`strictPrecedes`) | every point of x is at most every point of y (`precedes`) | not defined: `x.set_eq(y)` |
+| GAOL v5 | every point of x is below every point of y (`strictPrecedes`) | every point of x is at most every point of y (`precedes`) | the same bounds, the empty set equal to itself (`equal`; `x.set_eq(y)`) |
 | IBEX | not defined | not defined | the same bounds, the empty set equal to itself |
 | Codac | a `BoolInterval`: true, false, unknown, or empty if an operand is | not defined | the same bounds, as IBEX |
 | C-XSC | x in the interior of y | x is a subset of y; `r <= x`: the number r is in x | the same bounds |
@@ -661,10 +661,11 @@ of IEEE 1788-2015: `x < y`, `strictPrecedes`, is true when every point of x is
 below every point of y, and `x <= y`, `precedes`, when every point of x is at
 most every point of y. They do not tell which of two intervals is the greater:
 `[1, 3] < [2, 4]` and `[1, 3] >= [2, 4]` are both false, and false is not the
-opposite. There is no `==` nor `!=` on intervals (`set_eq()` compares the
-bounds, `set_disjoint()` and `less()` are the other relations of the standard),
-and the empty set, which has no point to contradict a certainly relation, is
-less than every interval, and greater, itself included: `e < e` is true.
+opposite. `==` and `!=` are the equality of two sets and its negation
+(`set_eq()` compares the bounds, `set_disjoint()` and `less()` are the other
+relations of the standard), and the empty set, which has no point to contradict
+a certainly relation, is less than every interval, and greater, itself
+included: `e < e` is true.
 
 **None of them is a strict weak ordering, so intervals are not given to the
 algorithms and the containers of the standard library that compare with `<`**
@@ -1057,9 +1058,9 @@ example; they are listed here for the reader who looks in this page first.
   The empty set passes every certainly relation and every inclusion test
   (`e < z`, `z.set_contains(e)` and `e.set_disjoint(z)` are all true): a
   program tests `is_empty()` first.
-- **Relations, sorting and containers.** `<` is `strictPrecedes`, there is no
-  `==`, and `<=` is not the inclusion of C-XSC and PROFIL/BIAS; `<` is no
-  ordering for `std::sort`, `std::set` or `std::max`: they take
+- **Relations, sorting and containers.** `<` is `strictPrecedes`, `==` is the
+  equality of sets, and `<=` is not the inclusion of C-XSC and PROFIL/BIAS; `<`
+  is no ordering for `std::sort`, `std::set` or `std::max`: they take
   `gaol::lexicographic_less` (see
   [Coming from another library](#coming-from-another-library) and
   [Relations, sorting and containers](#relations-sorting-and-containers)).

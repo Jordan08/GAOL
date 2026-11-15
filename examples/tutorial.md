@@ -193,8 +193,8 @@ int main()
   computed with intervals and rounded outward; with doubles it would not
   enclose f at the middle.
 - `f(X)` encloses the range of f over X: where it holds no 0, X holds no root.
-  `set_contains()` is the test of membership, and there is no `==` on
-  intervals (`set_eq()` is the equality of two sets).
+  `set_contains()` is the test of membership, and `==` is the equality of two
+  sets (`set_eq()`).
 - The two intervals printed are the ones no test discarded, each narrower than
   1e-12 and holding one of ±√2. To prove that an interval holds exactly one
   root, the algorithm asks that the step N(X) lies strictly inside X

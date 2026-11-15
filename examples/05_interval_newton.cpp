@@ -184,8 +184,8 @@ namespace {
           break;
         }
         // Once a root is proved, Newton converges quadratically: go on
-        // until X no longer changes. set_eq() is the equality of two sets;
-        // GAOL has no == on intervals.
+        // until X no longer changes. set_eq() is the equality of two sets,
+        // that is ==.
         const bool fixpoint = N[0].set_eq(X);
         const bool progress = N[0].width() < 0.9 * X.width();
         X = N[0];

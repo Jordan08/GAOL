@@ -134,7 +134,7 @@ Every program follows GAOL v5's rules: `#include <gaol/gaol.h>`, no call to
 
 | File | What it computes | What it shows | After |
 |---|---|---|---|
-| `01_first_steps.cpp` | Intervals built every way, their numbers, sets and relations | Containment; `interval(0.1)` vs `textToInterval("0.1")`; `interval(0, 0)` is zero; `mid()` vs `midpoint()`; no `==`; the certainly relations | IBEX `doc-arithmetic.cpp`, Codac's manual, GAOL's manual |
+| `01_first_steps.cpp` | Intervals built every way, their numbers, sets and relations | Containment; `interval(0.1)` vs `textToInterval("0.1")`; `interval(0, 0)` is zero; `mid()` vs `midpoint()`; `==` is the equality of sets; the certainly relations | IBEX `doc-arithmetic.cpp`, Codac's manual, GAOL's manual |
 | `02_decimals_and_rump.cpp` | 0.1 summed ten times; π by Machin; Rump's polynomial | Decimals are not doubles; `sqrt(2)` on a number is the C library's; the width as an alarm | Rump 1988, INTLAB demos |
 | `03_dependency_problem.cpp` | x − x, x(1 − x) three ways, (x − 1)^5, subdivision, Goldstein-Price, rotations | The dependency problem, single-use forms, `sqr` vs `x*x`, linear convergence of subdivision, the wrapping effect | Moore et al. 2009, IBEX lab1, filib++ `horner.cc` |
 | `04_centered_form.cpp` | x cos x and Chebyshev T5, natural and mean-value forms | Automatic differentiation over intervals, quadratic convergence of the centered form, monotonicity test | Codac's `AnalyticFunction`, `02_centered_form` |
@@ -206,8 +206,8 @@ divided by 10 when r is, that of the centered form by 100. T5 on [−1, 1] is
 [−41, 41] expanded, [−15, 15] in Horner form and [−1, 1] as cos(5 acos y).
 
 **05 — Interval Newton.** C-XSC's `inewton.cpp`, ported: `0.0 <= f` (element
-of, in C-XSC) becomes `f.set_contains(0.0)`, `x != xOld` becomes
-`!x.set_eq(xOld)`; the root is proved at the first step and enclosed in
+of, in C-XSC) becomes `f.set_contains(0.0)`, `x != xOld` is the
+inequality of two sets (`!x.set_eq(xOld)` in the example); the root is proved at the first step and enclosed in
 [2.059045253415143, 2.059045253415145]. Then the trap: with
 X = [−10, 10], f(m) = 0 and F'(X) = [−1.1, 0.9] ∋ 0, IEEE 1788's division gives
 0 / F'(X) = [0], so m − f(m)/F'(X) lies inside X and "proves" one root where
@@ -382,7 +382,7 @@ times wider), 1000 pieces [0.23992, 0.25010].
 | Subset, interior | `x.set_leq(y)`, `y.set_strictly_contains(x)` | `subset`, `interior` | `is_subset`, `is_interior_subset` | `is_subset`, `is_interior_subset` |
 | Contains a number | `x.set_contains(d)` | `isMember` | `contains` | `contains` |
 | Disjoint | `set_disjoint` | `disjoint` | `is_disjoint` | `is_disjoint` |
-| Equal | `set_eq` | `equal` | `==` | `==` |
+| Equal | `x == y`, `set_eq` | `equal` | `==` | `==` |
 | Certainly less | `x < y` | `strictPrecedes` | — | `x < y` gives a three-valued `BoolInterval` |
 | Bisect | `split(l, r)`, at the midpoint | — | `bisect(ratio)` | `bisect(ratio = 0.49)` |
 | Inflate | `x + interval(-r, r)` | — | `inflate(r)` | `inflate(r)` |
@@ -398,9 +398,9 @@ Three points need care in natural code:
 - **The relations `<`, `<=`, `>`, `>=` are the certainly relations** of IEEE
   1788 (strictPrecedes, precedes): true when true for every pair of points.
   False does not mean the opposite (`[1, 3] < [2, 4]` and `[1, 3] >= [2, 4]`
-  are both false). There is no `==`. In C-XSC and PROFIL/BIAS, `<=` means
-  subset and `0.0 <= f` means "0 is in f": code ported from them compiles and
-  changes meaning. None of the relations is a strict weak ordering, so
+  are both false). `==` is the equality of two sets. In C-XSC and PROFIL/BIAS,
+  `<=` means subset and `0.0 <= f` means "0 is in f": code ported from them
+  compiles and changes meaning. None of the relations is a strict weak ordering, so
   `std::sort`, `std::set`, `std::map`, `std::max`, `std::min` and
   `std::clamp` must not be given intervals without an explicit comparator:
   `std::set` drops overlapping intervals, and `std::sort` of a vector holding
@@ -463,12 +463,16 @@ intervals and automatic differentiation. With GAOL:
   error message otherwise names `gaol_core::interval`, which the user never
   wrote; `pow(x, 2L)` and `pow(x, size_t)` are ambiguous;
 - constants are written `T(0.0)` or `T(0)`, never `T{}` (the whole line);
-- `Eigen::Matrix<gaol::interval, ...>` compiles for sums, GAOL v5 having no
-  `interval(const char*)` to make Eigen's `Scalar(0)` ambiguous, but for
-  products of small fixed-size matrices only: from 8 × 8, or with a dynamic
-  size, Eigen compares a scalar with `==`;
-- `std::complex<interval>` compiles for `+ - * /` and `exp`, not for `abs`,
-  `norm` or `sqrt`, which need `==`.
+- `Eigen::Matrix<gaol::interval, ...>` compiles for sums and for products,
+  GAOL v5 having no `interval(const char*)` to make Eigen's `Scalar(0)`
+  ambiguous, and `==` between intervals: the products from 8 × 8 or of dynamic
+  size compare a scalar with it;
+- `std::complex<interval>` compiles for `+ - * /`, `exp`, `abs`, `norm` and
+  `sqrt` (`abs` and `sqrt` compare with `==`), but `std::sqrt` of a box is no
+  enclosure: for [1, 2] + [3, 4] i it gives the imaginary part [1.30, 2.00],
+  while those of the square roots of the points of the box lie in [0.896,
+  1.250], and the real part [0.75, 1.54] lacks 1.799, that of the square root
+  of 2 + 4 i. Take the square root of a complex box with care.
 
 ### 2.7 Text
 
