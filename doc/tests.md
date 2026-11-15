@@ -298,8 +298,8 @@ which `numbers` checks there too.
   invalid-operation exception, which must not die on SIGFPE: the comparison
   of the NaN bounds with `<=` did, and `interval::emptyset()` in a build
   without optimization. The operations of the interface with an empty operand
-  on either side (about 220 calls, in 66 checks: one for each of the 48 calls
-  that compared the NaN bounds of the empty set, the others in thirteen groups,
+  on either side (about 220 calls, in 67 checks: one for each of the 48 calls
+  that compared the NaN bounds of the empty set, the others in fourteen groups,
   and five choices a program makes with `is_empty()` of an empty interval,
   three after an intersection whose left operand is empty, one after an
   intersection whose right operand is empty and one on the empty interval
@@ -445,7 +445,7 @@ which `numbers` checks there too.
   restored with `GAOL_PRESERVE_ROUNDING`: a program linked with `-Ofast` gets
   them from `crtfastmath.o`, and `[1e-300] * [1e-20]` was [0, 0]; with the FPU
   intervals, `[1e-300] / [100·2^-1074]` was the empty set, the bounds being
-  compared before the check (GAOL v5). Then each of the 96 operations that
+  compared before the check (GAOL v5). Then each of the 97 operations that
   check the rounding direction (the arithmetic, the elementary functions, the
   powers and roots, the relational functions, `fma`, `cancel_minus`, `mid()`,
   `width()`...), called on intervals with subnormal, mixed and normal bounds
@@ -616,8 +616,9 @@ which `numbers` checks there too.
   masks of the SSE2 intervals, the elementary functions, the trigonometric ones
   using π, and the reader of strings. The static library of the CMake build is
   initialized after the program, except with MinGW-w64, and GAOL's constants
-  were computed by its dynamic initialization: 25 of the 45 checks failed with
-  the SSE2 intervals, 24 with the others, `pi()` giving [-0, 0] (GAOL v5). With
+  were computed by its dynamic initialization: when the test was written, 25 of
+  its 45 checks failed with the SSE2 intervals and 24 with the others (it has 44
+  now), `pi()` giving [-0, 0] (GAOL v5). With
   MinGW-w64, which initializes GAOL's files first, the test passes with or
   without the fix. The bounds of π and π/2 of `gaol/gaol_port.h`, now written
   in decimal, have to be the doubles next to π and π/2.
@@ -1541,7 +1542,7 @@ which `numbers` checks there too.
   enclosures of them. `atan2_rel_y` and `atan2_rel_x` (`atan2Rev1` and
   `atan2Rev2`, GAOL v5), which libieeep1788 does not test, have a table of
   their own, `atan2_rel_values.h`, which `atan2_rel_values.py` generates with
-  mpmath at 3000 bits: 1 969 cases, 1 263 of them with points, of angles at,
+  mpmath at 3000 bits: 2 071 cases, 1 338 of them with points, of angles at,
   next to and around the multiples of π/4, across the half-line y = 0, x < 0
   where atan2 jumps from π to −π, outside [−π, π], subnormal and infinite, on
   boxes in and across the quadrants with zero, subnormal, huge and infinite
