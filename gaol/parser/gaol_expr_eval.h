@@ -67,11 +67,11 @@ namespace gaol_core {
   class expr_eval : public expr_visitor {
     public:
     expr_eval() : depth(0), running(false), combining(false) {}
-    virtual void visit(null_node*) {
+    virtual void visit(null_node*) override {
       error = true;
       stack.push(interval());
     }
-    virtual void visit(double_node* node) {
+    virtual void visit(double_node* node) override {
       const double v = node->get_val();
       // interval(+oo) and interval(-oo) are the empty set: an infinity read in
       // an expression is the largest interval reaching it, so that "[dmax, inf]"
@@ -84,10 +84,10 @@ namespace gaol_core {
         stack.push(interval(v));
       }
     }
-    virtual void visit(interval_node* node) {
+    virtual void visit(interval_node* node) override {
       stack.push(node->get_val());
     }
-    virtual void visit(add_node* node) {
+    virtual void visit(add_node* node) override {
       if (operands(node, node->get_left(), node->get_right())) {
         return;
       }
@@ -95,13 +95,13 @@ namespace gaol_core {
       interval l=pop_value();
       stack.push(l+r);
     }
-    virtual void visit(unary_minus_node* node) {
+    virtual void visit(unary_minus_node* node) override {
       if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(-pop_value());
     }
-    virtual void visit(sub_node* node) {
+    virtual void visit(sub_node* node) override {
       if (operands(node, node->get_left(), node->get_right())) {
         return;
       }
@@ -109,7 +109,7 @@ namespace gaol_core {
       interval l=pop_value();
       stack.push(l-r);
     }
-    virtual void visit(mult_node* node) {
+    virtual void visit(mult_node* node) override {
       if (operands(node, node->get_left(), node->get_right())) {
         return;
       }
@@ -117,7 +117,7 @@ namespace gaol_core {
       interval l=pop_value();
       stack.push(l*r);
     }
-    virtual void visit(div_node* node) {
+    virtual void visit(div_node* node) override {
       if (operands(node, node->get_left(), node->get_right())) {
         return;
       }
@@ -125,13 +125,13 @@ namespace gaol_core {
       interval l=pop_value();
       stack.push(l/r);
     }
-    virtual void visit(pow_node* node) {
+    virtual void visit(pow_node* node) override {
       if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::gaol_pown(pop_value(),node->get_exponent()));
     }
-    virtual void visit(pow_itv_node* node) {
+    virtual void visit(pow_itv_node* node) override {
       if (operands(node, node->get_left(), node->get_right())) {
         return;
       }
@@ -139,31 +139,31 @@ namespace gaol_core {
       interval l = pop_value();
       stack.push((*node->get_function())(l,r));
     }
-    virtual void visit(nth_root_node* node) {
+    virtual void visit(nth_root_node* node) override {
       if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::nth_root(pop_value(),node->get_exponent()));
     }
-    virtual void visit(cos_node* node) {
+    virtual void visit(cos_node* node) override {
       if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::cos(pop_value()));
     }
-    virtual void visit(sin_node* node) {
+    virtual void visit(sin_node* node) override {
       if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::sin(pop_value()));
     }
-    virtual void visit(tan_node* node) {
+    virtual void visit(tan_node* node) override {
       if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::tan(pop_value()));
     }
-    virtual void visit(atan2_node* node) {
+    virtual void visit(atan2_node* node) override {
       if (operands(node, node->get_Y(), node->get_X())) {
         return;
       }
@@ -171,91 +171,91 @@ namespace gaol_core {
       interval Y=pop_value();
       stack.push(gaol_core::atan2(Y,X));
     }
-    virtual void visit(acos_node* node) {
+    virtual void visit(acos_node* node) override {
       if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::acos(pop_value()));
     }
-    virtual void visit(asin_node* node) {
+    virtual void visit(asin_node* node) override {
       if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::asin(pop_value()));
     }
-    virtual void visit(atan_node* node) {
+    virtual void visit(atan_node* node) override {
       if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::atan(pop_value()));
     }
-    virtual void visit(cosh_node* node) {
+    virtual void visit(cosh_node* node) override {
       if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::cosh(pop_value()));
     }
-    virtual void visit(sinh_node* node) {
+    virtual void visit(sinh_node* node) override {
       if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::sinh(pop_value()));
     }
-    virtual void visit(tanh_node* node) {
+    virtual void visit(tanh_node* node) override {
       if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::tanh(pop_value()));
     }
-    virtual void visit(acosh_node* node) {
+    virtual void visit(acosh_node* node) override {
       if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::acosh(pop_value()));
     }
-    virtual void visit(asinh_node* node) {
+    virtual void visit(asinh_node* node) override {
       if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::asinh(pop_value()));
     }
-    virtual void visit(atanh_node* node) {
+    virtual void visit(atanh_node* node) override {
       if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::atanh(pop_value()));
     }
-    virtual void visit(log_node* node) {
+    virtual void visit(log_node* node) override {
       if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::log(pop_value()));
     }
-    virtual void visit(exp_node* node) {
+    virtual void visit(exp_node* node) override {
       if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::exp(pop_value()));
     }
-    virtual void visit(exp2_node* node) {
+    virtual void visit(exp2_node* node) override {
       if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::exp2(pop_value()));
     }
-    virtual void visit(log2_node* node) {
+    virtual void visit(log2_node* node) override {
       if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::log2(pop_value()));
     }
-    virtual void visit(sign_node* node) {
+    virtual void visit(sign_node* node) override {
       if (operands(node, node->get_subexpr())) {
         return;
       }
       stack.push(gaol_core::sign(pop_value()));
     }
-    virtual void visit(trunc_node* node) {
+    virtual void visit(trunc_node* node) override {
       if (operands(node, node->get_subexpr())) {
         return;
       }
