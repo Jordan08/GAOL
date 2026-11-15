@@ -169,7 +169,7 @@ namespace gaol_tests
   /*
     What an exception of GAOL says. GAOL throws the exceptions of the
     standard library, std::invalid_argument and std::domain_error, whose
-    what() is "file:line: explanation" (gaol_ERROR of gaol/gaol_common.h; GAOL
+    what() is "file:line: explanation" (GAOL_ERROR of gaol/gaol_common.h; GAOL
     v5), the file being a name without directories. The first colon followed
     by digits and by a colon and a blank ends the file name. A text of another
     form has no file, and 0 for its line: it is the explanation whole.

@@ -605,10 +605,10 @@ namespace gaol_core {
     // subnormals to zero (gaol_port.h): under denormals-are-zero,
     // nb_fp_numbers(2^-1074, 2*2^-1074) was 1 (GAOL v5)
     if (!is_finite(a) || !is_finite(b) || gaol_detail::bound_greater(a, b)) {
-      // Either a or b is a NaN or +/-oo, or [a,b] is empty? gaol_ERROR
+      // Either a or b is a NaN or +/-oo, or [a,b] is empty? GAOL_ERROR
       // throws, or aborts where the exceptions are disabled: there is no
       // value to return, whose line Visual C++ found unreachable (C4702)
-      gaol_ERROR(std::domain_error,"invalid argument(s) in call to nb_fp_numbers()");
+      GAOL_ERROR(std::domain_error,"invalid argument(s) in call to nb_fp_numbers()");
     }
 
     if (gaol_detail::bound_equal(a, b)) {
@@ -1420,7 +1420,7 @@ namespace gaol_core {
   std::pair<interval, interval> interval::bisect(double ratio) const
   {
     if (!(gaol_detail::bound_greater(ratio, 0.0) && gaol_detail::bound_less(ratio, 1.0))) {
-      gaol_ERROR(std::domain_error, "bisect(): the ratio is not in (0, 1)");
+      GAOL_ERROR(std::domain_error, "bisect(): the ratio is not in (0, 1)");
     }
     if (is_empty()) {
       return std::make_pair(*this, *this);

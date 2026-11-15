@@ -26,7 +26,7 @@
 
 #include <cmath>
 
-// The classes of <stdexcept> that gaol_ERROR (below) takes are declared with
+// The classes of <stdexcept> that GAOL_ERROR (below) takes are declared with
 // exceptions or without: its static_assert needs the type in both (GAOL v5)
 #include <cstdlib>
 #include <exception>
@@ -200,14 +200,21 @@ namespace gaol_core {
   stream, with gaol_error(), and calls abort().
   */
   #if GAOL_EXCEPTIONS_ENABLED
-  #   define gaol_ERROR(excep,msg) do { \
-        static_assert(::gaol_detail::is_error_class<excep>::value, "gaol_ERROR: excep must be derived from std::exception"); \
+  #   define GAOL_ERROR(excep,msg) do { \
+        static_assert(::gaol_detail::is_error_class<excep>::value, "GAOL_ERROR: excep must be derived from std::exception"); \
         throw excep(::gaol_detail::error_text(GAOL_FILE_POS,msg)); } while (0)
   #else
-  #   define gaol_ERROR(excep,msg) do { \
-        static_assert(::gaol_detail::is_error_class<excep>::value, "gaol_ERROR: excep must be derived from std::exception"); \
+  #   define GAOL_ERROR(excep,msg) do { \
+        static_assert(::gaol_detail::is_error_class<excep>::value, "GAOL_ERROR: excep must be derived from std::exception"); \
         gaol_core::gaol_error(GAOL_FILE_POS,msg); std::abort(); } while (0)
   #endif
+  
+  /*
+  gaol_ERROR is the name of GAOL 4, kept for the programs that add their own
+  errors with it (GAOL v5): the macros of GAOL start with GAOL_, and GAOL_ERROR
+  is the name to write
+  */
+  #define gaol_ERROR(excep,msg) GAOL_ERROR(excep,msg)
   
   #if GAOL_VERBOSE_MODE
   #   define GAOL_IF_VERBOSE(a) do { a; } while (0)
@@ -266,7 +273,7 @@ namespace gaol_detail {
   }
 
   /*
-    What gaol_ERROR takes for its first argument (GAOL v5): a class that
+    What GAOL_ERROR takes for its first argument (GAOL v5): a class that
     std::exception is a public and unambiguous base of, so that a handler of
     std::exception catches it. The macro checks it with a static_assert in the
     two builds, with exceptions or without, where a type that is no exception
@@ -278,7 +285,7 @@ namespace gaol_detail {
 #if GAOL_EXCEPTIONS_ENABLED
   /*
     The text of the exceptions of GAOL, "file:line: message": the standard
-    exceptions that gaol_ERROR throws hold a text only, where those of GAOL 4
+    exceptions that GAOL_ERROR throws hold a text only, where those of GAOL 4
     had the file, the line and the explanation apart (GAOL v5). The file is
     the name of the source without its directories, after the last / or \ of
     __FILE__, which is the path the build gave the compiler (an absolute path

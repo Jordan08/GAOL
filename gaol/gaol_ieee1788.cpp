@@ -34,7 +34,7 @@ namespace gaol_ieee1788 {
     whole of s, NUL characters included (GAOL v5): the empty set for a string
     that is no literal, as for one that the reader refuses with an exception of
     GAOL, std::invalid_argument or std::domain_error (the exceptions of the
-    standard library that gaol_ERROR throws, gaol/gaol_common.h). The other
+    standard library that GAOL_ERROR throws, gaol/gaol_common.h). The other
     exceptions go through, std::bad_alloc among them: the reader threw it where
     memory ran out, and textToInterval() turned it into the empty set, the
     interval of no literal, catching every std::exception. The handlers name
@@ -73,7 +73,7 @@ namespace gaol_ieee1788 {
   {
     if (s == nullptr) {
       GAOL_ERRNO = -1;
-      gaol_ERROR(std::invalid_argument, "Null pointer in interval initialization: a null pointer is no string");
+      GAOL_ERROR(std::invalid_argument, "Null pointer in interval initialization: a null pointer is no string");
     }
     return textToInterval(std::string(s));
   }

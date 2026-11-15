@@ -98,7 +98,7 @@ namespace gaol {
   using gaol_core::gaol_half_pi_up;
 
   // The functions of doubles and the rounding direction of GAOL 4
-  // (gaol/gaol_fpu_fenv.h or gaol/gaol_fpu_msvc.h, and gaol/gaol_port.h)
+  // (gaol/gaol_fpu_fenv.h and gaol/gaol_port.h)
   using gaol_core::previous_float;
   using gaol_core::next_float;
   using gaol_core::round_downward;

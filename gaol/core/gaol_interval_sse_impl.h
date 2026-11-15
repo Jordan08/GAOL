@@ -213,12 +213,6 @@ namespace gaol_detail {
 
 } // namespace gaol_detail
 
-namespace gaol_core {
-
-
-
-} // namespace gaol_core
-
 namespace gaol_detail {
 
   GAOL_BOUNDS_TARGET __m128d GAOL_VECTORCALL add_bounds(__m128d x, __m128d y)
@@ -474,152 +468,151 @@ namespace gaol_core {
     return interval(mid_left,mid_right);
   }
 
-#if 0
-interval& interval::operator*=(const interval& I)
-{
-  if (is_empty() || I.is_empty()) {
-	*this = interval::emptyset();
-	return *this;
-  }
+// #if 0
+// interval& interval::operator*=(const interval& I)
+// {
+//   if (is_empty() || I.is_empty()) {
+// 	*this = interval::emptyset();
+// 	return *this;
+//   }
   
-  if (is_zero()) {
-	return *this;
-  }
-  if (I.is_zero()) {
-	xmmbounds=interval::m128_zero;
-	return *this;
-  }
-  GAOL_RND_ENTER_SSE();
+//   if (is_zero()) {
+// 	return *this;
+//   }
+//   if (I.is_zero()) {
+// 	xmmbounds=interval::m128_zero;
+// 	return *this;
+//   }
+//   GAOL_RND_ENTER_SSE();
   
-  if (certainly_positive()) { // P ?
-	if (I.certainly_positive()) { // P P
-	  xmmbounds = _mm_mul_pd(_mm_xor_pd(xmmbounds,lbsignmask),I.xmmbounds);
-	} else {
-	  if (I.strictly_straddles_zero()) { // P M
-		xmmbounds = _mm_mul_pd(_mm_unpackhi_pd(xmmbounds,xmmbounds),I.xmmbounds);
-	  } else { // P N
-		__m128d ba = _mm_xor_pd(xmmbounds,lbsignmask);
-		xmmbounds = _mm_mul_pd(_mm_shuffle_pd(ba,ba,1),I.xmmbounds);
-	  }
-	}
-  } else {
-	if (strictly_straddles_zero()) { // M ?
-	  if (I.certainly_positive()) { // M P
-		xmmbounds = _mm_mul_pd(xmmbounds,_mm_unpackhi_pd(I.xmmbounds,I.xmmbounds));
-	  } else {
-		if (I.strictly_straddles_zero()) { // M M
-		  xmmbounds = _mm_max_pd(_mm_mul_pd(_mm_unpacklo_pd(xmmbounds,xmmbounds),
-											_mm_shuffle_pd(I.xmmbounds,I.xmmbounds,1)),
-								 _mm_mul_pd(_mm_unpackhi_pd(xmmbounds,xmmbounds),
-											I.xmmbounds));
-		} else { // M N
-		  xmmbounds = _mm_mul_pd(_mm_shuffle_pd(xmmbounds,xmmbounds,1),
-								 _mm_unpacklo_pd(I.xmmbounds,I.xmmbounds));
-		}
-	  }
-	} else { // N  (case Z already tested)
-	  if (I.certainly_positive()) { // N P
-		__m128d tmp = _mm_xor_pd(I.xmmbounds,lbsignmask);
-		xmmbounds = _mm_mul_pd(xmmbounds,_mm_shuffle_pd(tmp,tmp,1));
-	  } else {
-		if (I.strictly_straddles_zero()) { // N M
-		  xmmbounds = _mm_mul_pd(_mm_unpacklo_pd(xmmbounds,xmmbounds),
-								 _mm_shuffle_pd(I.xmmbounds,I.xmmbounds,1));
-		} else { // N N
-		  xmmbounds = _mm_mul_pd(_mm_xor_pd(_mm_shuffle_pd(xmmbounds,xmmbounds,1),lbsignmask),
-								 _mm_shuffle_pd(I.xmmbounds,I.xmmbounds,1));
-		}
-	  }
-	}
-  }
+//   if (certainly_positive()) { // P ?
+// 	if (I.certainly_positive()) { // P P
+// 	  xmmbounds = _mm_mul_pd(_mm_xor_pd(xmmbounds,lbsignmask),I.xmmbounds);
+// 	} else {
+// 	  if (I.strictly_straddles_zero()) { // P M
+// 		xmmbounds = _mm_mul_pd(_mm_unpackhi_pd(xmmbounds,xmmbounds),I.xmmbounds);
+// 	  } else { // P N
+// 		__m128d ba = _mm_xor_pd(xmmbounds,lbsignmask);
+// 		xmmbounds = _mm_mul_pd(_mm_shuffle_pd(ba,ba,1),I.xmmbounds);
+// 	  }
+// 	}
+//   } else {
+// 	if (strictly_straddles_zero()) { // M ?
+// 	  if (I.certainly_positive()) { // M P
+// 		xmmbounds = _mm_mul_pd(xmmbounds,_mm_unpackhi_pd(I.xmmbounds,I.xmmbounds));
+// 	  } else {
+// 		if (I.strictly_straddles_zero()) { // M M
+// 		  xmmbounds = _mm_max_pd(_mm_mul_pd(_mm_unpacklo_pd(xmmbounds,xmmbounds),
+// 											_mm_shuffle_pd(I.xmmbounds,I.xmmbounds,1)),
+// 								 _mm_mul_pd(_mm_unpackhi_pd(xmmbounds,xmmbounds),
+// 											I.xmmbounds));
+// 		} else { // M N
+// 		  xmmbounds = _mm_mul_pd(_mm_shuffle_pd(xmmbounds,xmmbounds,1),
+// 								 _mm_unpacklo_pd(I.xmmbounds,I.xmmbounds));
+// 		}
+// 	  }
+// 	} else { // N  (case Z already tested)
+// 	  if (I.certainly_positive()) { // N P
+// 		__m128d tmp = _mm_xor_pd(I.xmmbounds,lbsignmask);
+// 		xmmbounds = _mm_mul_pd(xmmbounds,_mm_shuffle_pd(tmp,tmp,1));
+// 	  } else {
+// 		if (I.strictly_straddles_zero()) { // N M
+// 		  xmmbounds = _mm_mul_pd(_mm_unpacklo_pd(xmmbounds,xmmbounds),
+// 								 _mm_shuffle_pd(I.xmmbounds,I.xmmbounds,1));
+// 		} else { // N N
+// 		  xmmbounds = _mm_mul_pd(_mm_xor_pd(_mm_shuffle_pd(xmmbounds,xmmbounds,1),lbsignmask),
+// 								 _mm_shuffle_pd(I.xmmbounds,I.xmmbounds,1));
+// 		}
+// 	  }
+// 	}
+//   }
   
-  GAOL_RND_LEAVE_SSE();
-  return *this;
-}
-#endif 
-#if 0
-// Modified Lambov algorithm
-  interval& interval::operator*=(const interval& Itv)
-    {
-      if (is_empty() || Itv.is_empty()) {
-       *this = interval::emptyset();
-       return *this;
-       }
-      GAOL_RND_ENTER_SSE();
+//   GAOL_RND_LEAVE_SSE();
+//   return *this;
+// }
+// #endif 
+// #if 0
+// // Modified Lambov algorithm
+//   interval& interval::operator*=(const interval& Itv)
+//     {
+//       if (is_empty() || Itv.is_empty()) {
+//        *this = interval::emptyset();
+//        return *this;
+//        }
+//       GAOL_RND_ENTER_SSE();
 
-      // *this = <b, -a>
-      // Itv = <d, -c>
-      __m128d A = _mm_xor_pd(xmmbounds,interval::lbsignmask);  	// < b, a >
-      __m128d B = _mm_shuffle_pd(Itv.xmmbounds,Itv.xmmbounds,1); 	// < -c, d >
-      __m128d C = _mm_cmplt_pd(A,interval::m128_zero);				// < b<0, a<0 >
-      __m128d D = _mm_xor_pd(B,interval::lbrbsignmask);		// < c, -d >
-      __m128d G = _mm_shuffle_pd(C,C,1); 				// < a<0, b<0 >
-      __m128d E = _mm_and_pd(C,D); 						// < (b<0)?c:0, (a<0)?-d:0 >
-      __m128d F = _mm_andnot_pd(C,Itv.xmmbounds);		// < (b>=0)?d:0, (a>=0)?-c:0 >
-      __m128d K = _mm_andnot_pd(G,Itv.xmmbounds);		// < (a>=0)?d:0, (b>=0)?-c:0 >
-      __m128d I = _mm_and_pd(D,G);						// < (a<0)?c:0, (b<0)?-d:0 >
-      __m128d H = _mm_or_pd(E,F);						// < (b<0)?c:d, (a<0)?-d:-c >
-      __m128d L = _mm_shuffle_pd(A,A,1);				// < a, b >
-      __m128d M = _mm_or_pd(I,K);						// < (a<0)?c:d, (b<0)?-d:-c >
-      __m128d J = _mm_mul_pd(A,H);						// < (b<0)?bc:bd, (a<0)?a(-d):a(-c) >
-      __m128d N = _mm_mul_pd(L,M);						// < (a<0)?ac:ad, (b<0)?b(-d):b(-c) >
-      __m128d ordJ = _mm_cmpord_pd(J,J);				//
-      __m128d newJ = _mm_and_pd(J,ordJ);
-      __m128d ordN = _mm_cmpord_pd(N,N);
-      __m128d newN = _mm_and_pd(N,ordN);
+//       // *this = <b, -a>
+//       // Itv = <d, -c>
+//       __m128d A = _mm_xor_pd(xmmbounds,interval::lbsignmask);  	// < b, a >
+//       __m128d B = _mm_shuffle_pd(Itv.xmmbounds,Itv.xmmbounds,1); 	// < -c, d >
+//       __m128d C = _mm_cmplt_pd(A,interval::m128_zero);				// < b<0, a<0 >
+//       __m128d D = _mm_xor_pd(B,interval::lbrbsignmask);		// < c, -d >
+//       __m128d G = _mm_shuffle_pd(C,C,1); 				// < a<0, b<0 >
+//       __m128d E = _mm_and_pd(C,D); 						// < (b<0)?c:0, (a<0)?-d:0 >
+//       __m128d F = _mm_andnot_pd(C,Itv.xmmbounds);		// < (b>=0)?d:0, (a>=0)?-c:0 >
+//       __m128d K = _mm_andnot_pd(G,Itv.xmmbounds);		// < (a>=0)?d:0, (b>=0)?-c:0 >
+//       __m128d I = _mm_and_pd(D,G);						// < (a<0)?c:0, (b<0)?-d:0 >
+//       __m128d H = _mm_or_pd(E,F);						// < (b<0)?c:d, (a<0)?-d:-c >
+//       __m128d L = _mm_shuffle_pd(A,A,1);				// < a, b >
+//       __m128d M = _mm_or_pd(I,K);						// < (a<0)?c:d, (b<0)?-d:-c >
+//       __m128d J = _mm_mul_pd(A,H);						// < (b<0)?bc:bd, (a<0)?a(-d):a(-c) >
+//       __m128d N = _mm_mul_pd(L,M);						// < (a<0)?ac:ad, (b<0)?b(-d):b(-c) >
+//       __m128d ordJ = _mm_cmpord_pd(J,J);				//
+//       __m128d newJ = _mm_and_pd(J,ordJ);
+//       __m128d ordN = _mm_cmpord_pd(N,N);
+//       __m128d newN = _mm_and_pd(N,ordN);
 
-      xmmbounds = _mm_max_pd(newJ,newN);							// < (b<0)?max(ac,bc)
-      // 		 :(a<0)?max(ac,bd)
-      //					 :max(ad,bd),
-      //	  (b<0)?max(b(-d),a(-d))
-      //        :(a<0)?max(b(-c),a(-d))
-      //			       :max(b(-c),a(-c)) >
-      GAOL_RND_LEAVE_SSE();
-      return *this;
-    }
-#endif 
+//       xmmbounds = _mm_max_pd(newJ,newN);							// < (b<0)?max(ac,bc)
+//       // 		 :(a<0)?max(ac,bd)
+//       //					 :max(ad,bd),
+//       //	  (b<0)?max(b(-d),a(-d))
+//       //        :(a<0)?max(b(-c),a(-d))
+//       //			       :max(b(-c),a(-c)) >
+//       GAOL_RND_LEAVE_SSE();
+//       return *this;
+//     }
+// #endif 
+// #if 0
+// // Brute force algorithm
+// interval& interval::operator*=(const interval& I)
+// {
+//         if (is_empty() || I.is_empty()) {
+//                 *this = interval::emptyset();
+//                 return *this;
+//         }
 
-#if 0
-// Brute force algorithm
-interval& interval::operator*=(const interval& I)
-{
-        if (is_empty() || I.is_empty()) {
-                *this = interval::emptyset();
-                return *this;
-        }
+// 	  GAOL_RND_ENTER_SSE();
+//         __m128d r1  = _mm_shuffle_pd(xmmbounds,xmmbounds,1);            // r1  = <-a, b>
+//         __m128d r2  = _mm_xor_pd(r1,lbrbsignmask);                    // r2  = <a, -b>
+//         __m128d r3  = _mm_xor_pd(I.xmmbounds,lbsignmask);             // r3  = <d, c>
+//         __m128d r4  = _mm_shuffle_pd(r3,r3,1);                          // r4  = <c, d>
+//         __m128d r5  = _mm_unpacklo_pd(I.xmmbounds,I.xmmbounds);         // r5  = <-c, -c>
+//         __m128d r6  = _mm_unpackhi_pd(I.xmmbounds,I.xmmbounds);         // r6  = <d, d>
+//         __m128d r7  = _mm_mul_pd(xmmbounds,r3);                         // r7  = <bd, (-a)c>
+// 		__m128d ordr7 = _mm_cmpord_pd(r7,r7);
+// 		r7 = _mm_and_pd(r7,ordr7);
+//         __m128d r8  = _mm_mul_pd(r1,r5);                                // r8  = <ac, b(-c)>
+// 		__m128d ordr8 = _mm_cmpord_pd(r8,r8);
+// 		r8 = _mm_and_pd(r8,ordr8);
+//         __m128d r9  = _mm_mul_pd(xmmbounds,r4);                         // r9  = <bc, (-a)d>
+// 		__m128d ordr9 = _mm_cmpord_pd(r9,r9);
+// 		r9 = _mm_and_pd(r9,ordr9);
+//         __m128d r10 = _mm_mul_pd(r2,r6);                                // r10 = <ad,(-b)d>
+// 		__m128d ordr10 = _mm_cmpord_pd(r10,r10);
+// 		r10 = _mm_and_pd(r10,ordr10);
+//         __m128d r11 = _mm_max_pd(r7, r8);
+//         __m128d r12 = _mm_max_pd(r9, r10);
+//         xmmbounds   = _mm_max_pd(r11,r12);
+// 		GAOL_RND_LEAVE_SSE();
+//         return *this;
 
-	  GAOL_RND_ENTER_SSE();
-        __m128d r1  = _mm_shuffle_pd(xmmbounds,xmmbounds,1);            // r1  = <-a, b>
-        __m128d r2  = _mm_xor_pd(r1,lbrbsignmask);                    // r2  = <a, -b>
-        __m128d r3  = _mm_xor_pd(I.xmmbounds,lbsignmask);             // r3  = <d, c>
-        __m128d r4  = _mm_shuffle_pd(r3,r3,1);                          // r4  = <c, d>
-        __m128d r5  = _mm_unpacklo_pd(I.xmmbounds,I.xmmbounds);         // r5  = <-c, -c>
-        __m128d r6  = _mm_unpackhi_pd(I.xmmbounds,I.xmmbounds);         // r6  = <d, d>
-        __m128d r7  = _mm_mul_pd(xmmbounds,r3);                         // r7  = <bd, (-a)c>
-		__m128d ordr7 = _mm_cmpord_pd(r7,r7);
-		r7 = _mm_and_pd(r7,ordr7);
-        __m128d r8  = _mm_mul_pd(r1,r5);                                // r8  = <ac, b(-c)>
-		__m128d ordr8 = _mm_cmpord_pd(r8,r8);
-		r8 = _mm_and_pd(r8,ordr8);
-        __m128d r9  = _mm_mul_pd(xmmbounds,r4);                         // r9  = <bc, (-a)d>
-		__m128d ordr9 = _mm_cmpord_pd(r9,r9);
-		r9 = _mm_and_pd(r9,ordr9);
-        __m128d r10 = _mm_mul_pd(r2,r6);                                // r10 = <ad,(-b)d>
-		__m128d ordr10 = _mm_cmpord_pd(r10,r10);
-		r10 = _mm_and_pd(r10,ordr10);
-        __m128d r11 = _mm_max_pd(r7, r8);
-        __m128d r12 = _mm_max_pd(r9, r10);
-        xmmbounds   = _mm_max_pd(r11,r12);
-		GAOL_RND_LEAVE_SSE();
-        return *this;
+// }
+// #endif
 
-}
-#endif
 
-#if 1
 /*
   The products of the pairs of stored bounds u and v, lane by lane, for
-  operator*= below. Where neither has an infinite lane, the plain products,
+  mul_special() below. Where neither has an infinite lane, the plain products,
   which are never NaN. Otherwise a lane with a factor 0 and the other infinite
   gives +0, the product of such bounds in interval arithmetic, as the
   ordered-mask of the products gave from the NaN of 0*oo; the multiplication
@@ -644,14 +637,6 @@ interval& interval::operator*=(const interval& I)
 #endif
 
 namespace {
-  struct finite_products
-  {
-    __m128d operator()(__m128d u, __m128d v) const
-    {
-      return _mm_mul_pd(u, v);
-    }
-  };
-
   struct products_with_infinities
   {
     __m128d operator()(__m128d u, __m128d v) const
@@ -860,7 +845,6 @@ GAOL_BOUNDS_TARGET __m128d GAOL_VECTORCALL mul_bounds(__m128d x, __m128d y)
 } // namespace gaol_detail
 
 namespace gaol_core {
-#endif
 
 
 /*

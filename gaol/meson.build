@@ -112,9 +112,8 @@ gaol_SOURCES += [
 ]
 
 # The headers a program includes, gaol, gaol/parser/gaol_expression.h and
-# gaol/parser/gaol_expr_eval.h for the expressions, and those they include,
-# gaol_fpu_msvc.h for Visual C++ among them: CMake and configure install the
-# same ones (GAOL v5)
+# gaol/parser/gaol_expr_eval.h for the expressions, and those they include:
+# CMake and configure install the same ones (GAOL v5)
 gaol_HEADERS = [
   'gaol',
   'gaol.h',
@@ -122,7 +121,6 @@ gaol_HEADERS = [
   'gaol_config.h',
   'gaol_fpu.h',
   'gaol_fpu_fenv.h',
-  'gaol_fpu_msvc.h',
   'gaol_ieee1788.h',
   'gaol_interval.h',
   'gaol_port.h',
