@@ -27,9 +27,9 @@ public:
 
   // Tests of logical predicates ===================================================================
   void test_interval_const() {
-    TEST_EQ(interval::two_pi(),interval(6.283185307179586, 6.283185307179587));
-    TEST_EQ(interval::pi(),interval(3.141592653589793, 3.141592653589794));
-    TEST_EQ(interval::half_pi(),interval(1.570796326794897, 1.570796326794897));
+    TEST_HULL(interval::two_pi(),0x1.921fb54442d18p+2,0x1.921fb54442d19p+2);
+    TEST_HULL(interval::pi(),0x1.921fb54442d18p+1,0x1.921fb54442d19p+1);
+    TEST_HULL(interval::half_pi(),0x1.921fb54442d18p+0,0x1.921fb54442d19p+0);
     TEST_SEQ(interval::positive(),interval(0,GAOL_INFINITY));
     TEST_SEQ(interval::negative(),interval(-GAOL_INFINITY,0));
     TEST_SEQ(interval::minus_one_plus_one(),interval(-1.0,1.0));
@@ -47,7 +47,7 @@ public:
       TEST_SEQ(interval::pi(),interval(0x1.921fb54442d18p+1,0x1.921fb54442d19p+1));
       TEST_SEQ(interval::half_pi(),interval(0x1.921fb54442d18p+0,0x1.921fb54442d19p+0));
       TEST_SEQ(interval::two_pi(),interval(0x1.921fb54442d18p+2,0x1.921fb54442d19p+2));
-      TEST_EQ(interval(0x1.62e42fefa39efp-1,0x1.62e42fefa39f0p-1),log(interval(2)));
+      TEST_HULL(log(interval(2)),0x1.62e42fefa39efp-1,0x1.62e42fefa39f0p-1);
       TEST_SEQ(pow(interval(2),52),interval(0x1p+52));
       TEST_SEQ(pow(interval(2),51),interval(0x1p+51));
       CPPUNIT_ASSERT(std::isnan(GAOL_NAN));

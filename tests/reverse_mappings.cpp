@@ -48,47 +48,37 @@ class reverse_mappings_test {
 	  const double two_power_52 = 4503599627370496.0;
 	  I = interval(previous_float(two_power_52),two_power_52);
 	  J = cos(I);
-	  TEST_EQ(acos_rel(J,I),I);
+	  TEST_SEQ(acos_rel(J,I),I);
 	  // Fails with a cosine compiled with contraction into fused multiply-adds,
 	  // as GCC compiles by default on AArch64: cos(I) is then far from its
 	  // value (see BRANRED_ARGUMENTS in tests/elementary_values.py)
 	  I = interval(previous_float(previous_float(two_power_52)),previous_float(two_power_52));
 	  J = cos(I);
-	  TEST_EQ(acos_rel(J,I),I);
-	  TEST_EQ(acos_rel(interval(.25,.5),interval(1.02, 1.32)),interval(1.047197551196, 1.31811607165282));
+	  TEST_SEQ(acos_rel(J,I),I);
+	  TEST_HULL(acos_rel(interval(0.25,0.5),interval(1.02,1.32)), 0x1.0c152382d7365p+0, 0x1.51700e0c14b25p+0);
 	  I = interval(-1e8,next_float(-1e8));
 	  J = cos(I);
-	  TEST_EQ(acos_rel(J,I),I);
+	  TEST_SEQ(acos_rel(J,I),I);
 	  I = interval(previous_float(1e8),1e8);
 	  J = cos(I);
-	  TEST_EQ(acos_rel(J,I),I);
+	  TEST_SEQ(acos_rel(J,I),I);
 	  I = interval::pi();
 	  J = cos(I);
-	  TEST_EQ(acos_rel(J,I),I);
+	  TEST_SEQ(acos_rel(J,I),I);
 	  I = interval::pi();
 	  J = cos(I);
-	  TEST_EQ(acos_rel(J,I),I);
+	  TEST_SEQ(acos_rel(J,I),I);
 	  for (int i = 10; i <= 10000; i*=10) {
         I = interval(0.5,0.7)+i*interval::pi();
 	  	  J = cos(I);
-	  	  TEST_EQ(acos_rel(J,I),I);
+		  TEST_SEQ(acos_rel(J,I),I);
 	  }
-	  I = interval(-6.3,6.3);
-	  J = interval(0.5,0.75);
-	  TEST_EQ(acos_rel(J,I),interval(-5.560451059366172, 5.560451059366172));
-	  I = interval(-2,6.3);
-	  J = interval(0.5,0.75);
-	  TEST_EQ(acos_rel(J,I),interval(-1.047197551196598, 5.560451059366172));
-	  I = interval(-6.3,2);
-	  J = interval(0.5,0.75);
-	  TEST_EQ(acos_rel(J,I),interval(-5.560451059366172, 1.047197551196598));
-	  I = interval(-0.32,0.2);
-	  J = interval(0.9,0.95);
-	  TEST_EQ(acos_rel(J,I),interval(-0.32, -0.3175604292));
-	  I = interval(-interval::pi().left(),interval::pi().left());
-	  J = interval(0.5,0.75);
-	  TEST_EQ(acos_rel(interval::universe(),interval(-3,2)),interval(-3,2));
-	  TEST_EQ(acos_rel(interval::universe(),interval(0.5,0.6)),interval(0.5,0.6));
+	  TEST_HULL(acos_rel(interval(0.5,0.75),interval(-6.3,6.3)), -0x1.63de6e1ebf1eep+2, 0x1.63de6e1ebf1eep+2);
+	  TEST_HULL(acos_rel(interval(0.5,0.75),interval(-2,6.3)), -0x1.0c152382d7366p+0, 0x1.63de6e1ebf1eep+2);
+	  TEST_HULL(acos_rel(interval(0.5,0.75),interval(-6.3,2)), -0x1.63de6e1ebf1eep+2, 0x1.0c152382d7366p+0);
+	  TEST_HULL(acos_rel(interval(0.9,0.95),interval(-0.32,0.2)), -0x1.47ae147ae147bp-2, -0x1.452e8fa93e43bp-2);
+	  TEST_HULL(acos_rel(interval::universe(),interval(-3,2)), -0x1.8000000000000p+1, 0x1.0000000000000p+1);
+	  TEST_HULL(acos_rel(interval::universe(),interval(0.5,0.6)), 0x1.0000000000000p-1, 0x1.3333333333333p-1);
 	}
 
   void test_asin_rel() {
@@ -100,7 +90,7 @@ class reverse_mappings_test {
 	 TEST_EMPTY(atan_rel(interval(-3,2),interval::emptyset()));
 	 interval I = interval(4.0,6.0);
 	 interval J = tan(I);
-	 TEST_EQ(atan_rel(J,I),I);
+	 TEST_SEQ(atan_rel(J,I),I);
 
 	 interval TI[MAX];
 	 for (unsigned int i = 0; i < MAX; ++i) {
@@ -111,15 +101,15 @@ class reverse_mappings_test {
 	 }
 	 for (unsigned int i = 0; i < MAX; ++i) {
 	   J = tan(TI[i]);
-		TEST_EQ(atan_rel(J,TI[i]),TI[i]);
+		TEST_SEQ(atan_rel(J,TI[i]),TI[i]);
 	 }
-	 TEST_EQ(atan_rel(interval(-5,5),interval::universe()),interval::universe());
-	 TEST_EQ(atan_rel(interval::universe(),interval(4.0,5.5)),interval(4.0,5.5));
-	 TEST_EQ(atan_rel(interval::universe(),interval(4.0,6.5)),interval(4.0,6.5));
-	 TEST_EQ(atan_rel(interval(.5,.6),interval(3.7,7)),interval(6.746832916180391, 6.823604807450172));
-	 TEST_EQ(atan_rel(interval(.5,.6),interval(3.5,7)),interval(3.605240262590599, 6.823604807450172));
-	 TEST_EQ(atan_rel(interval(.5,.6),interval(3.62,7)),interval(3.62, 6.823604807450172));
-	 TEST_EQ(atan_rel(interval(.5,.6),interval(-7,-3.62)),interval(-5.819537698178782, -5.742765806909001));
+	 TEST_HULL(atan_rel(interval(-5,5),interval::universe()), -GAOL_INFINITY, GAOL_INFINITY);
+	 TEST_HULL(atan_rel(interval::universe(),interval(4,5.5)), 0x1.0000000000000p+2, 0x1.6000000000000p+2);
+	 TEST_HULL(atan_rel(interval::universe(),interval(4,6.5)), 0x1.0000000000000p+2, 0x1.a000000000000p+2);
+	 TEST_HULL(atan_rel(interval(0.5,0.6),interval(3.7,7)), 0x1.afcc1c49a48cdp+2, 0x1.b4b5f0f034eb5p+2);
+	 TEST_HULL(atan_rel(interval(0.5,0.6),interval(3.5,7)), 0x1.cd78834f06482p+1, 0x1.b4b5f0f034eb5p+2);
+	 TEST_HULL(atan_rel(interval(0.5,0.6),interval(3.62,7)), 0x1.cf5c28f5c28f6p+1, 0x1.b4b5f0f034eb5p+2);
+	 TEST_HULL(atan_rel(interval(0.5,0.6),interval(-7,-3.62)), -0x1.74734e3ee1164p+2, -0x1.6f89799850b7cp+2);
   }
 
   void test_sqrt_rel() {
@@ -127,19 +117,18 @@ class reverse_mappings_test {
 
   void test_nth_root_rel() {
 	TEST_EMPTY(nth_root_rel(interval(-3,-2),2,interval::universe()));
-	TEST_EQ(nth_root_rel(interval(-3,2),2,interval::universe()),interval(-1.41421356237, 1.41421356237));
-	TEST_EQ(nth_root_rel(interval(2,3),2,interval::universe()),interval(-1.73205080756, 1.73205080756));
-	TEST_EQ(nth_root_rel(interval(2,3),2,interval(-2,-1.5)),interval(-1.73205080756, -1.5));
-	TEST_EQ(nth_root_rel(interval(2,3),2,interval(1.5,2)),interval(1.5, 1.73205080756));
+	TEST_HULL(nth_root_rel(interval(-3,2),2,interval::universe()), -0x1.6a09e667f3bcdp+0, 0x1.6a09e667f3bcdp+0);
+	TEST_HULL(nth_root_rel(interval(2,3),2,interval::universe()), -0x1.bb67ae8584cabp+0, 0x1.bb67ae8584cabp+0);
+	TEST_HULL(nth_root_rel(interval(2,3),2,interval(-2,-1.5)), -0x1.bb67ae8584cabp+0, -0x1.8000000000000p+0);
+	TEST_HULL(nth_root_rel(interval(2,3),2,interval(1.5,2)), 0x1.8000000000000p+0, 0x1.bb67ae8584cabp+0);
 
-	TEST_EQ(nth_root_rel(interval(2,3),5,interval::universe()),interval(1.14869835, 1.245730939));
-	TEST_EQ(nth_root_rel(interval(0.5,3),5,interval::universe()),interval(0.87055056, 1.245730939));
-	TEST_EQ(nth_root_rel(interval(-.2,3),5,interval::universe()),interval(-0.72477966, 1.245730939));
-	TEST_EQ(nth_root_rel(interval(-3,-2),5,interval::universe()),interval(-1.245730939, -1.14869835));
+	TEST_HULL(nth_root_rel(interval(2,3),5,interval::universe()), 0x1.2611186bae674p+0, 0x1.3ee8390d43956p+0);
+	TEST_HULL(nth_root_rel(interval(0.5,3),5,interval::universe()), 0x1.bdb8cdadbe120p-1, 0x1.3ee8390d43956p+0);
+	TEST_HULL(nth_root_rel(interval(-0.2,3),5,interval::universe()), -0x1.731651f09a68fp-1, 0x1.3ee8390d43956p+0);
+	TEST_HULL(nth_root_rel(interval(-3,-2),5,interval::universe()), -0x1.3ee8390d43956p+0, -0x1.2611186bae674p+0);
 
-	TEST_EQ(nth_root_rel(interval(0.2,0.5),5,interval::universe()),interval(0.72477966, 0.87055056));
-	TEST_EQ(nth_root_rel(interval(-3,-.2),5,interval::universe()),interval(-1.245730939, -0.72477966));
-	TEST_EQ(nth_root_rel(interval(-3,-2),5,interval::universe()),interval(-1.245730939, -1.14869835));
+	TEST_HULL(nth_root_rel(interval(0.2,0.5),5,interval::universe()), 0x1.731651f09a68ep-1, 0x1.bdb8cdadbe121p-1);
+	TEST_HULL(nth_root_rel(interval(-3,-0.2),5,interval::universe()), -0x1.3ee8390d43956p+0, -0x1.731651f09a68ep-1);
 
   }
 
@@ -172,13 +161,13 @@ class reverse_mappings_test {
 	 }
 	 for (unsigned int i = 0; i < MAX; ++i) {
 	   interval K = TI[i]*TJ[i];
-		TEST_EQ(div_rel(K,TJ[i],TI[i]),TI[i]);
+		TEST_SEQ(div_rel(K,TJ[i],TI[i]),TI[i]);
 	 }
 	
-	TEST_EQ(div_rel(interval(-6, 0), interval(3.0), interval(-2,0)),interval(-2,0));
-	TEST_EQ(div_rel(interval(-4.7, -1.5), interval(3.0), interval(-2, 0)),interval(-1.5666666666666669, -0.5));
-	TEST_EQ(div_rel(interval(-1.5, 0), interval(3.0), interval(-2, 0)),interval(-0.5, 0));
-	TEST_EQ(div_rel(interval(-3, 0), interval(3.0), interval(-2, 0)),interval(-1.0,0.0));
+	TEST_HULL(div_rel(interval(-6,0),interval(3),interval(-2,0)), -0x1.0000000000000p+1, 0x0.0p+0);
+	TEST_HULL(div_rel(interval(-4.7,-1.5),interval(3),interval(-2,0)), -0x1.9111111111112p+0, -0x1.0000000000000p-1);
+	TEST_HULL(div_rel(interval(-1.5,0),interval(3),interval(-2,0)), -0x1.0000000000000p-1, 0x0.0p+0);
+	TEST_HULL(div_rel(interval(-3,0),interval(3),interval(-2,0)), -0x1.0000000000000p+0, 0x0.0p+0);
 
   }
 
@@ -198,7 +187,7 @@ class reverse_mappings_test {
 	 }
 	 for (unsigned int i = 0; i < MAX; ++i) {
 	   interval J = cosh(TI[i]);
-		TEST_EQ(acosh_rel(J,TI[i]),TI[i]);
+		TEST_SEQ(acosh_rel(J,TI[i]),TI[i]);
 	 }
   }
 
@@ -218,7 +207,7 @@ class reverse_mappings_test {
 	 }
 	 for (unsigned int i = 0; i < MAX; ++i) {
 	   interval J = sinh(TI[i]);
-		TEST_EQ(asinh_rel(J,TI[i]),TI[i]);
+		TEST_SEQ(asinh_rel(J,TI[i]),TI[i]);
 	 }
 
   }
@@ -241,13 +230,12 @@ class reverse_mappings_test {
 	 // ... while a J that holds points of (-1, 1) keeps its preimage, whose
 	 // end is +oo where J ends at 1: tanh(x) is in [0.5,1] from atanh(0.5)
 	 // on, and every x has its tanh in [-1,1]
-	 TEST_EQ(atanh_rel(interval(0.5,1.0),interval(0.0,100.0)),interval(0.5493061443340548457,100.0));
-	 TEST_EQ(atanh_rel(interval(-1.0,1.0),interval(1.0,2.0)),interval(1.0,2.0));
-	 // The infinite ends themselves, which a bounded I hides: TEST_EQ can
-	 // compare them since hausdorff() puts two equal infinite bounds at
-	 // distance 0 (GAOL v5)
-	 TEST_EQ(atanh_rel(interval(0.5,1.0),interval(0.0,GAOL_INFINITY)),interval(0.5493061443340548457,GAOL_INFINITY));
-	 TEST_EQ(atanh_rel(interval(-1.0,-0.5),interval(-GAOL_INFINITY,0.0)),interval(-GAOL_INFINITY,-0.5493061443340548457));
+	 TEST_HULL(atanh_rel(interval(0.5,1),interval(0,100)), 0x1.193ea7aad030ap-1, 0x1.9000000000000p+6);
+	 TEST_HULL(atanh_rel(interval(-1,1),interval(1,2)), 0x1.0000000000000p+0, 0x1.0000000000000p+1);
+	 // The infinite ends themselves, which a bounded I hides: TEST_HULL has an
+	 // infinite bound be the one asked for (GAOL v5)
+	 TEST_HULL(atanh_rel(interval(0.5,1),interval(0,GAOL_INFINITY)), 0x1.193ea7aad030ap-1, GAOL_INFINITY);
+	 TEST_HULL(atanh_rel(interval(-1,-0.5),interval(-GAOL_INFINITY,0)), -GAOL_INFINITY, -0x1.193ea7aad030ap-1);
 
 	 interval TI[MAX];
 	 for (unsigned int i = 0; i < MAX; ++i) {
@@ -258,7 +246,7 @@ class reverse_mappings_test {
 	 }
 	 for (unsigned int i = 0; i < MAX; ++i) {
 	   interval J = tanh(TI[i]);
-		TEST_EQ(atanh_rel(J,TI[i]),TI[i]);
+		TEST_SEQ(atanh_rel(J,TI[i]),TI[i]);
 	 }
 
   }
