@@ -551,7 +551,7 @@ namespace gaol_core {
       2^52, the signs of the cosine at the bounds do (GAOL v5, issue #6,
       see cos_or_sin()): I being narrower than pi, as w <= gaol_pi_dn shows, there
       is a pole within I exactly when they differ. GAOL gave [-oo, +oo] then,
-      as for the double below pi/2, whose tangent is 0x1.9153d9443ed0bp+51, and
+      as for the double below pi/2, whose tangent is 0x1.d02967c31cdb5p+53, and
       for every interval beyond 2^52.
     */
     // l and r are finite, w being at most gaol_pi_dn

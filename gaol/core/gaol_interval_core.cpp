@@ -22,8 +22,9 @@
 */
 
 // SIMD (GAOL v5, doc/simd.md): with SSE2 and NEON the two bounds of an interval are the two lanes of one
-// vector, and + - * / sqr are vector kernels of gaol_interval_sse_impl.h and gaol_interval_neon_impl.h (sqrt too
-// with NEON); the AVX-512 path of gaol_interval_avx512_impl.h carries the rounding direction in the
+// vector, and + - * / are vector kernels of gaol_interval_sse_impl.h and gaol_interval_neon_impl.h, sqr and, with
+// NEON, sqrt kernels of gaol_interval_sse_kernels.h and gaol_interval_neon_kernels.h; the AVX-512 path of
+// gaol_interval_avx512_impl.h carries the rounding direction in the
 // instruction, its square root being two scalar roots, and the integer powers have a two-lane FMA kernel
 // with NEON, and with SSE2 and AVX-512 where __FMA__ is. What is scalar in the sources of the intervals is
 // the elementary functions, which are CORE-MATH calls, one per bound, and the operations made of branches on
@@ -844,12 +845,12 @@ namespace gaol_core {
     }
     // The check before the bounds are read, and the result made before
     // GAOL_RND_LEAVE(), as acospi() does (see gaol/gaol_fpu.h): erfc(x) is
-    // subnormal from x = 26.55 on, and with GAOL_PRESERVE_ROUNDING the
+    // subnormal from x = 26.5433 on, and with GAOL_PRESERVE_ROUNDING the
     // denormals-are-zero mode it restores would compare such bounds as 0
     GAOL_RND_ENTER();
     const double l = I.left(), r = I.right();
     // Decreasing: the upper bound at the left bound, the lower one at the
-    // right, within [0, 2]. erfc(x) is below 2^-1074 from x = 27.22 on, where
+    // right, within [0, 2]. erfc(x) is below 2^-1074 from x = 27.2133 on, where
     // CORE-MATH rounds it upward to 2^-1074 and the lower bound is 0
     const double v = gaol_cr_erfc(l);
     const double w = gaol_cr_erfc(r);

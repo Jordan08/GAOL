@@ -158,8 +158,8 @@ namespace gaol_core {
   }
 
   /*
-    Quotients and products of finite doubles a >= 0 and b > 0 (b >= 0 for a
-    product) that return what the operation returns when it overflows,
+    Quotients and products of finite doubles a > 0 and b > 0 (a >= 0 and
+    b >= 0 for a product) that return what the operation returns when it overflows,
     without executing it, so that no overflow exception is raised (GAOL v5): +oo
     rounded upward, and the largest double for
     -((-a)/b) and -((-a)*b), the same operations rounded downward by the
@@ -176,7 +176,9 @@ namespace gaol_core {
     double exactly when its quarter is above that quarter, and the scaling by
     4 is exact (a >= 2^-51 there). The operands go through read_in_branch() where the operation is
     executed, as above. A first test tells the usual operands, for which the
-    exponents are not computed.
+    exponents are not computed. A quotient of a = 0 is not for them: frexp()
+    gives 0 the exponent 0, so that 0 / b for a b below 2^-1025 would be taken
+    for an overflow; the callers set a = 0 apart.
   */
   static const double two_power_500 = 3.273390607896142e+150, two_power_minus_500 = 3.054936363499605e-151;
 
@@ -490,11 +492,11 @@ namespace gaol_core {
   /*
     The bounds of the elementary functions at the arguments where their value
     is a double, or one of the constants whose tightest bounds GAOL knows (fork
-    of GAOL): the value of the mathematical library moved outward is not the
-    tightest bound there. sin(0) = tan(0) = asin(0) = atan(0) = 0, cos(0) = 1,
-    acos(1) = 0, acos(0) = asin(1) = atan(+oo) = pi/2, acos(-1) = pi,
-    atan(1) = pi/4, and for the hyperbolic functions, from the libm moved three
-    doubles outward: sinh(0) = tanh(0) = asinh(0) = atanh(0) = 0, cosh(0) = 1,
+    of GAOL): the value of CORE-MATH with the double below it as the lower
+    bound is not the tightest bound there. sin(0) = tan(0) = asin(0) = atan(0)
+    = 0, cos(0) = 1, acos(1) = 0, acos(0) = asin(1) = atan(+oo) = pi/2,
+    acos(-1) = pi, atan(1) = pi/4, and for the hyperbolic functions:
+    sinh(0) = tanh(0) = asinh(0) = atanh(0) = 0, cosh(0) = 1,
     acosh(1) = 0, cosh(x) and sinh(x) beyond the largest double for x >= 711,
     and tanh(x) above the double below 1 for x >= 20, 2 exp(-2x) being below
     2^-54 there.
