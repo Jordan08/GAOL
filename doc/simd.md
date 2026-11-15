@@ -327,7 +327,7 @@ which is done, and none needs a new path.
   FPU ones; the old `pow` did not give +0 for every interval holding 0, as the
   first check thought it did (the program of the checks is not in the
   repository).
-- **`sqrt` on SSE2** is scalar (6.3 ns on the i7-1185G7, 3.75 with the AVX-512
+- **`sqrt` on SSE2** is scalar (7.35 ns on the i7-1185G7, 4.36 with the AVX-512
   path and the direction preserved, 2.0 on the M2 with NEON); the NEON kernel
   ports to `_mm_sqrt_pd`. `sqrt_rel` follows.
 - **The integer powers on NEON** (done, GAOL v5): the kernel of
