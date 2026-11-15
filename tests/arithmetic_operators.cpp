@@ -111,7 +111,8 @@ public:
 	TEST_EMPTY(interval::universe()/0);
 
 	// N1 N1
-	TEST_EQ(interval(-3,-2)/interval(-5,-4),interval(0.4, 0.75));
+	// 2/5 is no double: the double below it
+	TEST_SEQ(interval(-3,-2)/interval(-5,-4),interval(0x1.9999999999999p-2, 0.75));
 	// N1 Z
 	TEST_EMPTY(interval(-3,-2)/interval::zero());
 
@@ -125,7 +126,7 @@ public:
 	tmp = interval(-3,-2)/interval(0,4);
 	CPPUNIT_ASSERT(tmp.left()==-GAOL_INFINITY && tmp.right()==-.5);
 	// N1 P1
-	TEST_EQ(interval(-3,-2)/interval(4,5),interval(-0.75, -0.4));
+	TEST_SEQ(interval(-3,-2)/interval(4,5),interval(-0.75, -0x1.9999999999999p-2));
 	// Z Z
 	TEST_EMPTY(interval::zero()/interval::zero());
 	// Z (NMP)
@@ -173,7 +174,7 @@ public:
 	// P0 P1
 	TEST_SEQ(interval(0,2)/interval(4,5),interval(0,0.5));
 	// P1 N1
-	TEST_EQ(interval(2,3)/interval(-5,-4),interval(-0.75, -0.4));
+	TEST_SEQ(interval(2,3)/interval(-5,-4),interval(-0.75, -0x1.9999999999999p-2));
 	// P1 Z
 	TEST_EMPTY(interval(2,3)/interval::zero());
 	// P1 N0
@@ -185,7 +186,7 @@ public:
 	tmp = interval(2,3)/interval(0,4);
 	CPPUNIT_ASSERT(tmp.left() == 0.5 && tmp.right() == GAOL_INFINITY);
 	// P1 P1
-	TEST_EQ(interval(2,3)/interval(4,5),interval(0.4, 0.75));
+	TEST_SEQ(interval(2,3)/interval(4,5),interval(0x1.9999999999999p-2, 0.75));
  }
 
   void test_reldivision() { // Test for %
@@ -203,7 +204,7 @@ public:
 
 	interval tmp;
 	// N1 N1
-	TEST_EQ(interval(-3,-2)%interval(-5,-4),interval(0.4, 0.75));
+	TEST_SEQ(interval(-3,-2)%interval(-5,-4),interval(0x1.9999999999999p-2, 0.75));
 	// N1 Z
 	TEST_EMPTY(interval(-3,-2)%interval::zero());
 	// N1 N0
@@ -215,7 +216,7 @@ public:
 	tmp = interval(-3,-2)%interval(0,4);
 	CPPUNIT_ASSERT(tmp.left()==-GAOL_INFINITY && tmp.right()==-.5);
 	// N1 P1
-	TEST_EQ(interval(-3,-2)%interval(4,5),interval(-0.75, -0.4));
+	TEST_SEQ(interval(-3,-2)%interval(4,5),interval(-0.75, -0x1.9999999999999p-2));
 	// Z Z
 	TEST_SEQ(interval::zero()%interval::zero(),interval::universe());
 	// Z (NMP)
@@ -261,7 +262,7 @@ public:
 	// P0 P1
 	TEST_SEQ(interval(0,2)%interval(4,5),interval(0,0.5));
 	// P1 N1
-	TEST_EQ(interval(2,3)%interval(-5,-4),interval(-0.75, -0.4));
+	TEST_SEQ(interval(2,3)%interval(-5,-4),interval(-0.75, -0x1.9999999999999p-2));
 	// P1 Z
 	TEST_EMPTY(interval(2,3)%interval::zero());
 	// P1 N0
@@ -273,13 +274,14 @@ public:
 	tmp = interval(2,3)%interval(0,4);
 	CPPUNIT_ASSERT(tmp.left() == 0.5 && tmp.right() == GAOL_INFINITY);
 	// P1 P1
-	TEST_EQ(interval(2,3)%interval(4,5),interval(0.4, 0.75));
+	TEST_SEQ(interval(2,3)%interval(4,5),interval(0x1.9999999999999p-2, 0.75));
   }
 
   void test_inverse() {
     TEST_EMPTY(inverse(interval::emptyset()));
     TEST_SEQ(inverse(interval::universe()),interval::universe());
-    TEST_EQ(inverse(interval(10.0)),interval(0.1));
+    // 1/10 is no double: the doubles around it
+    TEST_SEQ(inverse(interval(10.0)),interval(0x1.9999999999999p-4,0x1.999999999999ap-4));
 
     TEST_SEQ(inverse(interval(-4,-2)),interval(-.5,-.25));
     interval tmp = inverse(interval(-2,0));
@@ -311,6 +313,7 @@ public:
     TEST_TRUE(encloses(x * n, two53, two54 + 4));          // [n, 2n]
     TEST_TRUE(encloses(n * x, two53, two54 + 4));
     TEST_TRUE((x / n).left() < std::ldexp(1.0, -53));      // 1/n < 2^-53
+    TEST_TRUE((x / n).right() >= std::ldexp(1.0, -52));    // 2/n > the double below 2^-52
     TEST_TRUE(encloses(n / x, std::ldexp(1.0, 52), two53 + 2)); // [n/2, n]
     interval y(x);
     y += n;
