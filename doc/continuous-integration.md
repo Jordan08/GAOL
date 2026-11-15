@@ -231,9 +231,11 @@ ones on x64 and the NEON ones on arm64; four jobs of `linux.yml` give the SSE2
 intervals of Linux the form they have on x86 with Visual C++ and clang-cl
 (`-DGAOL_SSE2_UNALIGNED_STORAGE=ON`), and check that the configuration has it;
 the
-Linux containers make the check before the build, from `uname -m`: the NEON
-intervals on aarch64, the SSE2 intervals on x86_64, and the FPU intervals on
-armhf, s390x, ppc64le and riscv64.
+Linux containers make the check before the build, from the triplet that
+`c++ -dumpmachine` gives: the NEON intervals for `aarch64-*`, the SSE2
+intervals for `x86_64-*` and `i?86-*` (i386 included), and the FPU intervals
+for `arm*`, `s390x-*`, `powerpc64le-*` and `riscv64-*`; for any other triplet
+the check is left out, without a message.
 
 Six jobs of `linux.yml`, with the GCC and the Clang of Ubuntu 26.04 on x86_64
 and on arm64, and on x86_64 again with the SSE2 intervals in the form they have
@@ -449,9 +451,13 @@ be made. `make perf` runs the same ten lines (see
 
 The configuration `control-register-performance` of `containers.yml` (Debian 13 armhf and
 arm64) uses the same scripts to compare two builds of one tree that differ by a
-CMake option: the control register of the rounding direction written directly
-with `GAOL_PRESERVE_ROUNDING`, or the functions of the C library, and only the
-rows that the register can change.
+CMake option, both with `GAOL_PRESERVE_ROUNDING`, and only the rows that the
+register can change. On armhf the option is `GAOL_RND_FPSCR_DIRECT`: FPSCR
+written directly (`vmrs`, `vmsr`), or the functions of the C library. On arm64
+it is `GAOL_SIMD`: the NEON intervals, which write FPCR directly (`mrs`, `msr`),
+or the FPU intervals (`-DGAOL_SIMD=OFF`), which use the functions of the C
+library, so that the table compares the two kinds of intervals as much as the
+two ways of writing the register.
 
 The same comparison runs anywhere with CMake, a C++ compiler and, for the long
 lines, Python 3 with numpy:
