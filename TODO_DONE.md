@@ -1,7 +1,7 @@
 # Fait et décidé sur GAOL v5
 
-Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 14 novembre
-2026 (commit `ebf2efd` de `dev`, la fusion de #349, et `83e2f69` de
+Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 15 novembre
+2026 (commit `1efa1c4` de `dev`, la fusion de #368, et `83e2f69` de
 `configure-clean`, la fusion de #321 : voir la section 1). Ce fichier n'est que
 dans `dev`. Ce fichier fait foi : l'issue #177, qui avait le même contenu, n'est
 plus mise à jour depuis le 28 octobre (voir 7.8).
@@ -12,7 +12,7 @@ l'ancien `TODO.md` et dans `TODO_mistral.md`, avec les réponses du mainteneur
 des 22 et 23 octobre. #49 et #142 sont fermées le 24 octobre, `TODO_mistral.md`
 est supprimé. Le reste du travail est dans deux autres registres :
 
-- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PW à PZ, PH et PJ ;
+- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PX à PZ, PH et PJ ;
 - `TODO_AFTER.md` (issue #178) : ce qui est reporté, après la version, jusqu'à
   une décision ou jusqu'à du matériel.
 
@@ -55,10 +55,15 @@ par date ; 4. Les points faits, par lettre ; 5. Les anciens numéros faits ; 6.
 Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 `configure-clean` ; 8. Le ménage fait.
 
-## 1. L'état au 14 novembre 2026
+## 1. L'état au 15 novembre 2026
 
 - **`dev`**, la base du développement depuis le 13 novembre (3.38), est au
-  commit `ebf2efd` (la fusion de #349 le 14 novembre à 22 h 18 UTC, la dernière
+  commit `1efa1c4` (la fusion de #368 le 15 novembre à 21 h 58 UTC, la dernière
+  des quatorze pull requests de la tâche PY, #356 à #368 et #370, fusionnées de
+  13 h 31 à 21 h 58 UTC (2.3, 3.43, 4 et 7.41), après la fusion de #352 à
+  13 h 29 UTC, `1f901d9`, PX.2, d'une autre session, dont les registres ne sont
+  pas faits ici, et les registres de la tâche PW, `40c328a` (7.40), qui
+  suivent la fusion de #349 le 14 novembre à 22 h 18 UTC, `ebf2efd`, la dernière
   des treize pull requests de la tâche PW, #337 à #349, fusionnées de 21 h 01 à
   22 h 18 UTC (2.3, 3.42 et 7.40), après les registres de #336, `8780a1c`
   (7.39), et la fusion de #336 à 18 h 28 UTC, `89cd896`, hors des points : la CI
@@ -102,8 +107,13 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   corrections vont vers `dev`, la base du développement depuis le 13 novembre
   (3.38) ; `master` (GAOL 4.3.2, plus deux commits de `.claude/CLAUDE.md`) ne
   bouge qu'à la version (point Y : `configure-clean` → `master`, *décidé le 12
-  novembre*, `MATH-CORE` étant supprimée : 3.32). Aucune pull request n'est
-  ouverte. Le mainteneur a fusionné #165 à #167, #169 à #174, #176 et #180
+  novembre*, `MATH-CORE` étant supprimée : 3.32). Trois pull requests sont
+  ouvertes, vers `dev` : #373 (hors des points : le diagnostic du contrôle de
+  `pow(x, [2])` de `tests/arithmetic.cpp`, qui a échoué une fois sous Rosetta
+  sur #358 ; sa CI est verte, sauf macOS, qui attend un runner) et #353 et #372
+  (la tâche PX, d'une autre session, dont les registres ne sont pas faits ici,
+  pas plus que ceux de #350 à #352, #354 et #355, fusionnées le même jour). Le
+  mainteneur a fusionné #165 à #167, #169 à #174, #176 et #180
   à #184 les 23 et 24 octobre, et #186 à #194, #196 et #197 le 25
   octobre, #199, #200 et #201 le 26 octobre, #202 à #205 le 27, #206
   à #210, #212, #213, #215 et #216 le 28 (#216, hors des points : le tableau des
@@ -171,11 +181,14 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   les jobs de la CI regroupés, 207 en 59, et la correction de `x += d` avec
   `-flto`) à 18 h 28 UTC (2.3, 3.41 et 7.39), puis, le même soir, les treize
   pull requests de la tâche PW, #337 à #349, de 21 h 01 à 22 h 18 UTC (2.3,
-  3.42, 4 et 7.40). #168, #195, #211, #214, #221, #226 et #233 sont fermées sans
+  3.42, 4 et 7.40), puis, le 15 novembre, les quatorze pull requests de la tâche
+  PY, #356 à #368 et #370, de 13 h 31 à 21 h 58 UTC (2.3, 2.4, 3.43, 4 et
+  7.41). #168, #195, #211, #214, #221, #226, #233 et #369 sont fermées sans
   fusion, et, du 30 et du 31 octobre, #240, #241, #243, #244, #246, #247, #251
   à #261, #277 et #278, puis #286, le « Revert » de #285 fermé onze secondes
   après son ouverture (2.4). Les tâches PA, PB, PC, PD, PE, PF, PG, PI, PL, PP,
-  PS, PU, PV et PW sont faites (PE : #200 et #204 pour le 95, #201 pour le
+  PS, PU, PV et PW sont faites, PY presque (PE :
+  #200 et #204 pour le 95, #201 pour le
   92, #205 pour le 3, #202 pour le 4, #204 pour le 5, #203 pour le 6 ; PF : #206
   pour le reste du 108, #209 pour le 109, #210 et #215 pour écrire seulement si
   ça change, #208 pour l'alignement de la pile 32 bits, #207 pour le contrôle de
@@ -206,7 +219,11 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   relecture : #335, les six points en une seule pull request sur la demande du
   mainteneur (2.3, 3.40 et 4) ; PW, les builds et la CI de la même
   relecture : #337 à #349, une par point, plus #349 pour les versions Mach-O
-  (2.3, 3.42 et 4) ; PK, un `FE_INVALID` de Clang avec les intervalles FPU, est
+  (2.3, 3.42 et 4) ; PY, les textes faux hors du manuel, le code mort et les
+  avertissements de la même relecture : #356 à #368 et #370, une par point,
+  sauf le reste de PY.12 (`-Wuseless-cast`, les compteurs de boucle flottants :
+  l'issue #371) (2.3, 3.43 et 4) ;
+  PK, un `FE_INVALID` de Clang avec les intervalles FPU, est
   close sans code, non reproduite avec les drapeaux de GAOL (3.17), ses boucles
   de relations étant entrées dans `rounding_direction` par #292 ; PM, le cas (b)
   de 12.12.7 (les littéraux aux bornes calculées), est close sans code le 8
@@ -219,7 +236,8 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   `configure-clean` dans `master`, que le mainteneur fait lui-même, l'étiquette
   `v5.0.0` et sa Release, l'annonce à Frédéric Goualard ; 3.36), qui attend les
   constats de la relecture du 13 novembre (PX à PZ, 3.37 et 3.38 ; PU, PV et PW
-  sont faites) : voir `TODO.md`. Le 8 novembre, `TODO_fin.md` (la relecture du 4
+  sont faites, PY presque) : voir `TODO.md`.
+  Le 8 novembre, `TODO_fin.md` (la relecture du 4
   novembre) est réparti dans les trois registres et supprimé (3.25).
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
   sur tout processeur ARM 64 bits avec tous les compilateurs (GCC, Clang,
@@ -4022,6 +4040,172 @@ et 23 runs annulés en trois fois ; la CI de `ebf2efd` était en file ou en cour
 au moment de ces registres. Pour les runs de #337, #338, #339 et #341, quatre ou
 cinq workflows sur cinq à sept avaient fini au vert.
 
+- #356 (PY.1, la règle du chemin AVX-512 de `doc/building.md` ;
+  `todo-py1-avx512-measured`, vers `dev`, ouverte le 15 novembre à 8 h 33 UTC,
+  un commit, un fichier) : fusionnée à 13 h 31 UTC (`d5fd990`, tête `6ef1655`).
+  `doc/building.md` disait la règle mesurée sur l'i7-1185G7, dont les unités
+  AVX-512 sont de demi-largeur, « and no other was measured », quand
+  `doc/simd.md` publie depuis le 12 novembre le Xeon de machine virtuelle : 3,9
+  et 4,2 fois plus vite avec `GAOL_PRESERVE_ROUNDING`, 37 et 45 % de temps en
+  plus sans (les rapports 0,73 et 0,69, contre 0,83 sur l'i7). La phrase donne
+  les deux processeurs, sans chiffre nouveau ; le manuel a la même phrase
+  (PZ.1).
+- #357 (PY.2, `doc/math-libraries.md` ; `todo-py2-math-libraries`, deux commits,
+  deux fichiers) : fusionnée à 13 h 32 UTC (`4d88c1b`, tête `c95671d`). Quatre
+  textes faux : « this is what GAOL does » (déplacer d'un double les valeurs de
+  mathlib) est ce que faisait GAOL 4, non v5 (`doc/accuracy.md`) ; le `sin` de
+  GAOL 4 était `cos(x - [π/2])`, non CRlibm ; les options de mathlib et de
+  CRlibm ne sont pas « refusées » par les trois builds (essayé : configure et
+  CMake avertissent et continuent, meson refuse l'option inconnue, ce que dit
+  aussi `doc/building.md`) ; le `log` de GAOL V5.0.0 est 2,6 fois plus rapide
+  que celui de GAOL 4.2.3 (20,0 ns contre 51,2), non 2,2.
+- #358 (PY.3, les nombres de `doc/tests.md` ; `todo-py3-tests-md`, deux commits,
+  deux fichiers) : fusionnée à 18 h 00 UTC (`d09eec3`, tête `ce9ce20`).
+  Recomptés sur `dev` : 67 vérifications et quatorze groupes pour les opérandes
+  vides de `rounding_direction` (48 + 14 + 5), 97 opérations avec un mode de
+  vidage (`flush_operations[]`), 2 071 cas d'`atan2_rel`, dont 1 338 avec points
+  (`tests/atan2_rel_values.py`, aussi dans `doc/accuracy.md`) et 44
+  vérifications pour `static_initialization` (les 25 échecs sur 45 sont la
+  mesure du jour de la correction, non remesurée). Le manuel garde les anciens
+  nombres (PZ.2). Un job de sa CI, « macOS 15 universal (arm64 and x86_64),
+  autotools and meson », étape meson, tranche x86_64 sous Rosetta, a échoué sur
+  `arithmetic` (`pow(x, [2])` : x = [0x1.1b57d9687ef1p+162], direction
+  « downward », modes de vidage 64, référence vide ; 1 contrôle sur 7 365 351)
+  et est passé à la relance, sur une pull request qui ne change que deux
+  documents : le deuxième exemplaire de l'échec de `TODO_AFTER.md` 4.8, d'où
+  #373.
+- #359 (PY.4, `doc/using.md` ; `todo-py4-using-md`, un commit, un fichier) :
+  fusionnée à 17 h 59 UTC (`71b69d5`, tête `8331821`). `0x8000u >> s` ne compile
+  pas (`overlapping_state` est une `enum class` : `static_cast<unsigned>(s)`) et
+  `disjointMask` n'est que le nom de la note de la norme ; les bornes de
+  `pow(interval(1 + 0x1p-30), 1LL << 33)` sont `0x1.749ea7bd26dc6p+11` et
+  `0x1.749ea7bd26dc7p+11` (`interval::precision(17)` : `[2980.9579759367943,
+  2980.9579759367949]`) ; l'exemple sous denormals-are-zero devient `<0x1p-1070,
+  0x1p-1071>` (1e-310 n'est pas un double) ; « x86 » devient « x86-64 » pour le
+  test par addition (le x86 32 bits lit les deux registres) ; une phrase dit le
+  piège de `x > +oo`, `x >= +oo`, `x < -oo` et `x <= NaN`, vrais pour tout x
+  (dix comparaisons essayées).
+- #360 (PY.5, `doc/simd.md` et `doc/accuracy.md` ; `todo-py5-simd-accuracy`,
+  deux commits, deux fichiers) : fusionnée à 18 h 01 UTC (`5265903`, tête
+  `1d1a4ed`). `sqrt` en SSE2 : 7,35 ns, et 4,36 avec le chemin AVX-512 et le
+  sens préservé (le tableau de `doc/compare/performance.md`), non 6,3 et 3,75 ;
+  le chemin AVX-512 n'est identique à SSE2 bit à bit que sous la réserve du
+  signe d'un zéro de `x * d` ; `operator<<` prend les chiffres de
+  `interval::precision()`, et seulement les drapeaux du flux. Le manuel garde
+  les 6,3 ns (PZ.9).
+- #361 (PY.6, « CMake 3.14 or later » et `cmake --install` ;
+  `todo-py6-install-cmake`, deux commits, quatre fichiers) : fusionnée à 18 h 03
+  UTC (`291b8a1`, tête `cd1cb38`). `cmake --install` date de CMake 3.15, quand
+  le projet accepte la 3.14 : `INSTALL`, `README.md` et `doc/building.md` disent
+  la commande avec la 3.15 et `cmake --build build --config Release --target
+  install` pour la 3.14, comme le job `cmake-3-14` de `linux.yml`. Dans
+  `doc/three-builds.md`, la ligne de Cygwin du tableau des refus avait trois
+  cellules dans un tableau à deux colonnes (GitHub n'affiche pas la troisième),
+  et « the last four » devient « the last five ». Le manuel : PZ.9.
+- #362 (PY.7, les textes de la CI et des outils ; `todo-py7-ci-tools-docs`, cinq
+  commits, sept fichiers) : fusionnée à 18 h 04 UTC (`731e841`, tête `5ea4d8c`).
+  Les conteneurs de Linux lisent `c++ -dumpmachine`, non `uname -m` ;
+  `control-register-performance` compare, sur arm64, les intervalles NEON aux
+  intervalles FPU ; `doc/tools.md` : six `*_values.py` et quatre scripts
+  décrits, `check-gcc-windows-fma.sh` exige aussi des `vfmadd` ; `sde-tests.sh`
+  et une action de Windows ne disent plus que les runners n'ont pas AVX-512 (ils
+  l'ont ou non selon la machine) ; `tests/tools/pow/README.md` : 106 mutants (la
+  liste entière lancée : 511 s avec quatre processus, 58 tués, 18 « expected to
+  survive », 30 d'autres familles) ; `tests/tools/arith/README.md` : 29 bornes ;
+  `doc/compare/code/README.md` : `results.csv` est du 12 novembre, à `2b5e4f9`,
+  et `run_all.sh` lance aussi `run_lines.sh`.
+- #363 (PY.8, `doc/compare/` ; `todo-py8-compare-docs`, cinq commits, six
+  fichiers) : fusionnée à 18 h 08 UTC (`c0bcdba`, tête `0afe3dc`).
+  `special_cases.md` : deux cas sans résultat d'IEEE 1788 (019 et 206), Boost
+  « 20 to 34 % » (glibc 2.43), la liste des opérations absentes de PROFIL/BIAS
+  recomptée sur les cellules `n/a` (65 cas, six de l'ancienne liste donnaient un
+  résultat), « without 0 », et le cas 082, `0 * [1, +oo]`, qui vaut `[-0]` pour
+  GAOL (programmes relancés : 580 cellules, deux différences, celles-là) ;
+  `performance.md` : GAOL est le plus rapide sur la racine carrée (4,36 contre
+  4,48 ns) et la v5 continue la 4.2.2 ; `itf1788.md` : la suite relancée au
+  commit de `dev` (9 542 cas, 7 415 réussis, 22 échecs, tableaux identiques),
+  seul le commit de la phrase change ; trois commentaires de
+  `doc/compare/code/`. Les autres bibliothèques de `special_cases.md` ne sont
+  pas relancées.
+- #364 (PY.9, les exemples ; `todo-py9-examples`, quatre commits, trois
+  fichiers) : fusionnée à 21 h 05 UTC (`ad0e8df`, tête `8a15b7a`).
+  `examples/examples.md` : `gaol_ieee1788::mulRevToPair` existe (aussi dans le
+  commentaire de l'exemple 05), `pow(x, 2L)` et `pow(x, size_t)` compilent
+  (essai), autotools et meson construisent les 16 exemples, la revue d'origine
+  présentait comme actuels des `using` globaux, 25 macros et « 0 converts to
+  interval » (dit corrigé) ; `examples/tutorial.md` : la boucle de Newton
+  coupait X deux fois quand un morceau vaut X (huit intervalles pour `x³ − x`
+  sur [−3, 3], quatre avec la boucle corrigée). Un premier commit lisait les
+  décimaux des exemples 03, 09 et 12 par `textToInterval` ; sur la demande du
+  mainteneur, le dernier (`8a15b7a`) le défait : ces exemples gardent
+  `interval(0.99, 1.01)` et les autres (3.43).
+- #365 (PY.10, des commentaires du code faux ; `todo-py10-code-comments`, cinq
+  commits, 15 fichiers, 60 lignes ajoutées et 50 retirées) : fusionnée à 21 h 12
+  UTC (`be5caa2`, tête `57bd6af`). `log10` parmi les fonctions de CORE-MATH qui
+  calculent sur l'entier de 128 bits (13, non 12) ; « moved three doubles
+  outward » (un double) ; `quotient_up_sat()` et `quotient_dn_sat()` pour `a >
+  0` (latent : les appelants écartent 0) ; le carré et la racine de NEON dans
+  les `*_kernels.h` ; les trois représentations du vide ; les seuils d'`erfc`,
+  26,5433 et 27,2133 (bissection de mpmath à 300 bits) ; « bit for bit » faux
+  pour le signe d'un zéro de `x % y` (FPU) ; AVX-512F et SSE4.1 ;
+  `0x1.9153d9443ed0bp+51` est la tangente du double sous `M_PI_2` ;
+  `-fno-honor-infinities` de Clang seul, comme `-fno-honor-nans` seul, échappe à
+  `__FINITE_MATH_ONLY__` (essayé avec Clang 21 :
+  `interval::universe().is_entire()` faux, [-oo, 5] vide) ; le Doxygen de
+  `gaol_common.h`, `gaol_eval_stack.h` et `gaol_parser.h` (huit avertissements
+  de `clang++ -Wdocumentation`, zéro après).
+- #366 (PY.11, le code mort et `GAOL_ERROR` ; `todo-py11-dead-code`, six
+  commits, 22 fichiers, 247 lignes ajoutées et 370 retirées) : fusionnée à 21 h
+  50 UTC (`c575752`, tête `a40879e`). Dans `gaol_interval_sse_impl.h`, trois
+  blocs `#if 0` (les anciens algorithmes de `operator*=`), `finite_products` (le
+  multiplicateur des produits sans borne infinie d'`operator*=` jusqu'à
+  `cf60ef6`, le 17 octobre : plus aucun appel depuis), un `#if 1`, l'ancien
+  `inverse()` et un namespace vide, 210 lignes ; le namespace `nearest` de
+  `gaol_double_op.h` (32 fonctions jamais appelées) ; la branche sans `<fenv.h>`
+  de `gaol_fpu.h`, qui ne pouvait pas compiler (elle incluait `<fenv.h>` là où
+  il manque), devient `#error`, et `gaol_fpu_msvc.h` est supprimé (21 en-têtes
+  installés au lieu de 22 dans les trois builds) ; `root_of_large_order()` est
+  `static`. `GAOL_ERROR` est la macro de v5 et `gaol_ERROR` un alias (3.43), le
+  lexer et le parser régénérés (flex 2.6.4, bison 3.8.2), avec un test de
+  l'alias (`__LINE__`). Vérifié : CMake SSE2 69 tests sur 69, FPU 66 sur 66,
+  Clang 18 65 sur 65, autotools 32 réussis et 2 non lancés, meson 0 échec,
+  `headers.sh`.
+- #367 (PY.12, des avertissements ; `todo-py12-warnings`, trois commits, 26
+  fichiers, 213 lignes ajoutées et 186 retirées) : fusionnée à 21 h 57 UTC
+  (`28d6653`, tête `625eb8b`). `-Wshadow` : sept déclarations renommées ;
+  `override` sur les 150 fonctions virtuelles de `gaol_expression.h` (120) et de
+  `gaol_expr_eval.h` (30), `virtual` gardé ; petits restes : le constructeur de
+  `not_an_exception`, `using namespace gaol;` hors de `tests/unit_tests.h`,
+  trois `using` de `gaol_init_cleanup.cpp`, les valeurs de `snprintf()` de
+  `write_hexa_bound()`. `-Wuseless-cast` n'est pas retenu par le mainteneur
+  (3.43, issue #371). Matrice : 69, 66 et 65 tests, GCC 15 et Clang 21 sans
+  avertissement `-Wshadow`, `-Wsuggest-override` ni `-Wformat=2`.
+- #368 (la suite de PY.12, le format non littéral de `tests/numbers.cpp` ;
+  `todo-py12b-numbers-format`, un commit, un fichier) : fusionnée à 21 h 58 UTC
+  (`1efa1c4`, tête `744e502`). Deux `#pragma GCC diagnostic` autour de
+  `format()` (`__attribute__((format(printf, 1, 0)))` n'ôte pas l'avertissement
+  de GCC 15). Essai de GCC 12.2 pour aarch64 sous qemu
+  (`todo-notes/gcc12-aarch64/cross-test`) avant et après : `numbers`, 411 816
+  vérifications, 0 échec (88 et 97 s), le piège de `process.md` §11 n'est pas
+  réveillé.
+- #370 (la suite de PY.11, les `using` globaux de `gaol_interval_internal.h` ;
+  `todo-py11b-internal-usings`, un commit, deux fichiers) : fusionnée à 21 h 48
+  UTC (`89e98cb`, tête `db69b68`). Les cinq `using` (`ostream`, `istream`,
+  `sqrt`, `cout`, `endl`) sont retirés, avec six qualifications `std::` dans
+  `gaol_interval_io.cpp`, le seul fichier qui s'en servait ; CMake SSE2 69 tests
+  sur 69, FPU 66 sur 66, avec `GAOL_PRESERVE_ROUNDING` 69 sur 69, Clang 18 65
+  sur 65, et GCC 12.2 pour aarch64 sous qemu (les intervalles NEON).
+
+La CI des quinze pull requests de PY (#369 comprise) : les cinq workflows
+(Linux, Linux containers, Windows, macOS, Autotools and meson) ont fini au vert,
+sauf l'échec sous Rosetta de #358 passé à la relance. Les relecteurs sans
+contexte : trois pour #356 à #367 (PY.1 à PY.5 : 140 000 jetons, PY.6 à PY.9 :
+181 000, PY.10 à PY.12 : 169 000), sans point bloquant, leurs remarques
+corrigées avant l'ouverture ; un quatrième pour #368, #369, #370 et #373 (155
+000), rien de bloquant, une phrase de #369 corrigée et deux remarques de #373
+appliquées. #350, #351 et #352 (la fin de PW, PX.1 et PX.2), fusionnées le même
+jour, ne sont pas dans ces registres.
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -4119,6 +4303,11 @@ cinq workflows sur cinq à sept avaient fini au vert.
   mainteneur demande que tout sauf le retrait des fichiers aille dans #319 ;
   elle est fermée le 12 novembre à 22 h 25 UTC, remplacée par #319 et #321, et
   sa branche est supprimée à sa demande (3.38).
+- **#369** (15 novembre) : « Suite de PY.9 : les valeurs de référence des
+  exemples 01, 02 et 04 par `textToInterval` » (`todo-py9b-reference-decimals`,
+  un commit, trois fichiers), fermée par le mainteneur à 21 h 09 UTC avec le mot
+  « non on ne veut pas de TextToInterval dans les exemples » : ces exemples
+  gardent `interval(décimal long)` pour leurs références (3.43).
 
 ### 2.5 Les pull requests du 23 octobre au soir et les décisions qu'elles exécutent
 
@@ -7108,6 +7297,53 @@ sauf pour les étiquettes des actions. Décidé :
 Fait : #337 à #349 (2.3 et 7.40). Ce qu'elles laissent : le manuel (`TODO.md`,
 PZ.8) et `TODO_AFTER.md` (3 et 4).
 
+### 3.43 Le 15 novembre : la tâche PY, textes faux et code mort (#356 à #370)
+
+Pendant la tâche PY (« traite la tache PY dans le dossier GAOL_V8 »), le
+mainteneur répond aux questions de la session (« As-tu des questions ? Propose 4
+réponses par question »), puis aux « Questions ouvertes » des pull requests, et
+décide en fusionnant :
+
+- **Le nom de la macro** (PY.11, « à décider ») : `GAOL_ERROR` est la macro,
+  dans la bibliothèque, les tests et les documents, et `gaol_ERROR` en reste un
+  alias, pour les programmes de GAOL 4 (#366).
+- **PY.12** : corriger `-Wshadow`, les petits restes et `override` sur les 150
+  fonctions virtuelles ; ne pas corriger `-Wuseless-cast` (#367) ; `virtual`
+  reste à côté d'`override` ; puis le format non littéral de `tests/numbers.cpp`
+  après l'essai de GCC 12.2 pour aarch64 (#368), et les cinq `using` globaux de
+  `gaol_interval_internal.h` retirés (#370). Les conversions inutiles et les
+  compteurs de boucle flottants de `gaol_interval_pow.cpp` restent à faire :
+  l'issue #371 et `TODO.md` (PY.12).
+- **Les exemples** : les références décimales des exemples 01, 02 et 04 d'abord
+  lues par `textToInterval` (#369), puis le mainteneur dit « non on ne veut pas
+  de TextToInterval dans les exemples » (21 h 09 UTC) : #369 est fermée sans
+  fusion, et les exemples 03, 09 et 12 de #364 reviennent aux
+  `interval(décimal)` (`8a15b7a`). Les « vraies images » bâties sur les doubles
+  d'`interval(0.99, 1.01)` et d'`interval(0.01, 1.0)` restent donc telles
+  quelles, comme les autres références décimales des exemples (04 : lignes 170
+  et 185, 05, 06, 07, 09 et 10). Consigne du mainteneur : pas de
+  `textToInterval` dans les exemples.
+- **Le diagnostic de l'échec sous Rosetta** : l'échec de `pow(x, [2])` de
+  `arithmetic`, revenu sur #358, reçoit le diagnostic que `TODO_AFTER.md` 4.8
+  prévoyait « si cela revient » (« Diagnostic dans le test », #373) ; aucun pour
+  le contrôle de `pown` de `tests/ieee1788.cpp` ni pour `cancel_minus` tant
+  qu'ils ne reviennent pas. Une CI qui échoue ainsi : lire le journal, relancer
+  le job échoué une fois, dire s'il passe. Deux remarques de la relecture de
+  #373 sont appliquées à sa demande (recalculer dans l'état d'avant, nommer les
+  directions).
+- **La relecture** : un seul sous-agent pour #368, #369, #370 et #373 (rien de
+  bloquant).
+- **Les registres et la suite** : les registres après toutes les fusions ; pas
+  d'autre tâche pour le moment (PZ non commencée) ; les branches des pull
+  requests de PY ne sont pas touchées (« Je ne touche à rien »), sauf une fusion
+  de `dev` en cas de conflit signalé par GitHub (il n'y en a pas eu) ; `PY.12`
+  reste une tâche courte dans `TODO.md`.
+
+Fait : #356 à #368 et #370, fusionnées le 15 novembre de 13 h 31 à 21 h 58 UTC,
+#369 fermée (2.3, 2.4, 4 et 7.41). Ce qu'elles laissent au manuel, à
+`doc/differences.md` et au `ChangeLog` est dans `TODO.md` (PZ.2, PZ.5, PZ.6 et
+PZ.9).
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -7289,6 +7525,16 @@ est dite ici ou dans la section 5.
   voir 3.42. Ce qu'elles laissent au manuel, à `doc/differences.md` et au
   `ChangeLog` est dans `TODO.md` (PZ.5, PZ.7 et PZ.8).
 
+- [x] **PY.1 à PY.11** (les textes faux hors du manuel, le code mort et le nom
+  de `GAOL_ERROR` de la relecture du 13 novembre) : une pull request par point,
+  fusionnées le 15 novembre : PY.1 par #356, PY.2 par #357, PY.3 par #358, PY.4
+  par #359, PY.5 par #360, PY.6 par #361, PY.7 par #362, PY.8 par #363, PY.9 par
+  #364 (sans `textToInterval` : #369 fermée), PY.10 par #365 et PY.11 par #366,
+  avec #370 pour les `using` globaux ; PY.12 par #367 et #368 pour sa part
+  faite ; décidé pendant le travail : voir 3.43. Ce qu'elles laissent au manuel,
+  à `doc/differences.md` et au `ChangeLog` est dans `TODO.md` (PZ.2, PZ.5, PZ.6
+  et PZ.9).
+
 ### Trouvé par la relecture de `configure-clean` du 14 octobre (62dad3a) : ce qui est fait
 
 Six relecteurs indépendants (puissances entières, `pow` réel et réciproques,
@@ -7343,6 +7589,12 @@ leur partie faite.
   (#313, #314 et #318) sont faits (3.34 et 3.35) ; il reste la publication (PJ.3
   et PJ.4, décidées le 12 novembre au soir : 3.36), qui attend PX à PZ, PU à PW
   étant faites (*décidé le 13 novembre* : 3.38).
+
+- **PY.12.** Les avertissements de plus : `-Wshadow`, les petits restes et
+  `override` par #367, le format non littéral de `tests/numbers.cpp` par #368,
+  les cinq `using` globaux de `gaol_interval_internal.h` par #370 ; reste (issue
+  #371) `-Wuseless-cast`, que le mainteneur n'a pas retenu, et les compteurs de
+  boucle flottants de `gaol/core/gaol_interval_pow.cpp` (`TODO.md`, PY.12).
 
 ## 5. Les anciens numéros faits
 
@@ -9308,6 +9560,25 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
 - Les branches : les treize `todo-pw*` de GitHub étaient supprimées à la fusion,
   sauf `todo-pw3-pipefail`, supprimée à la main (dans `dev`) ; en local `git
   branch -d` pour toutes (8.1).
+
+### 7.41 Le 15 novembre (après #356 à #368 et #370 : les registres)
+
+- Les registres de la tâche PY, en un commit direct sur `dev`, depuis GAOL_V8
+  (propre, sur `dev` à `1efa1c4`) : `TODO.md` (l'en-tête, la liste des pull
+  requests, la table, PY réduite à PY.12, PZ.2, PZ.5 et PZ.6 complétés, le
+  nouveau PZ.9), ce fichier (en-tête, 1, 2.3, 2.4, 3.43, 4, 7.41),
+  `TODO_AFTER.md` (4, point 8, l'échec revenu sous Rosetta et #373),
+  `process.md` (l'en-tête et §12) et les issues #179 et #178.
+- Ce commit ne change que des fichiers que les cinq workflows ignorent
+  (`TODO*.md` et `process.md`) : il ne lance aucun workflow et n'annule pas la
+  CI du commit de fusion.
+- Les branches : les 14 branches `todo-py*` de GitHub et les locales de GAOL_V8
+  sont gardées, ainsi que `todo-py9b-reference-decimals` de #369 (le
+  mainteneur : « Je ne touche à rien »).
+- #373 (`todo-rosetta-diagnostic-pow2`, deux commits dont celui des deux
+  remarques de la relecture) est ouverte : sa CI est verte sauf macOS, en
+  attente d'un runner ; `TODO_AFTER.md` 4.8 est à reprendre à sa fusion et quand
+  l'échec reviendra.
 
 ## 8. Le ménage fait
 

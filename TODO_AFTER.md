@@ -507,6 +507,23 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    x86_64 (Rosetta) » n'existe plus (#276 l'a passé sur `macos-27`, sans
    exécuteur, et il est en commentaire dans `macos.yml`) ; Rosetta reste dans la
    CI (« macOS 26 x86_64 (Rosetta) » et la tranche x86_64 des jobs universels).
+   Le premier échec (`pow(x, [2])`) est revenu le 15 novembre sur #358 (run
+   43695097045, job « macOS 15 universal (arm64 and x86_64), autotools and
+   meson », étape meson, tranche x86_64 sous Rosetta) : x = le point
+   [0x1.1b57d9687ef1p+162], « the caller's direction downward, flush modes 64 »,
+   GAOL rendant [0x1.399b58d286516p+324, 0x1.399b58d286517p+324] (juste) et la
+   référence vide ; un contrôle sur 7 365 351, passé à la relance, sur une pull
+   request qui ne change que deux documents. #373 (ouverte le 15 novembre, deux
+   commits) ajoute à `tests/arithmetic.cpp` le diagnostic prévu : sur un échec,
+   le texte dit ce que valaient `x & [0, +oo]` et son carré à l'origine,
+   recalculés dans l'état d'alors, dans l'état d'après et avec l'arrondi au plus
+   proche sans mode de vidage, l'état du processeur (direction, bits de vidage,
+   `MXCSR`) avant et après, et ce que répondent les comparaisons
+   d'`operator&=()` ; un échec forcé le montre, et rien n'a encore échoué avec
+   lui. Le mainteneur a décidé (15 novembre) de ne rien ajouter au contrôle de
+   `pown` de `tests/ieee1788.cpp` ni à `cancel_minus` tant que l'échec ne
+   revient pas. *À reprendre si cela revient* : lire ce texte dans le journal du
+   job, relancer le job échoué une fois et le noter ici.
 9. **Un délai de test juste pour un exécuteur lent** (#215) :
    `automatic_configuration` (600 s) a dépassé son délai le 28 octobre dans le
    job « macOS 26 Xcode generator, universal (arm64 and x86_64) » de #215, sur

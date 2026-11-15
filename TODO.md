@@ -1,8 +1,12 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `ebf2efd` de `dev` (la fusion de #349
-le 14 novembre à 22 h 18 UTC, la dernière des treize pull requests de la tâche
-PW, #337 à #349, fusionnées de 21 h 01 à 22 h 18 UTC après les registres
+Ce qui reste à faire sur GAOL v5 au commit `1efa1c4` de `dev` (la fusion de #368
+le 15 novembre à 21 h 58 UTC, la dernière des quatorze pull requests de la
+tâche PY, #356 à #368 et #370, fusionnées de 13 h 31 à 21 h 58 UTC par le
+mainteneur, après celle de #352, PX.2, d'une autre session, et les registres
+de la tâche PW, `40c328a`), et avant au commit `ebf2efd` de `dev` (la fusion de
+#349 le 14 novembre à 22 h 18 UTC, la dernière des treize pull requests de la
+tâche PW, #337 à #349, fusionnées de 21 h 01 à 22 h 18 UTC après les registres
 de #336, `8780a1c`), et avant au commit `89cd896` de `dev` (la fusion de #336 le
 14 novembre 2026 à 18 h 28 UTC, hors des points : les jobs de la CI regroupés,
 207 en 59, et la correction de `x += d` et des opérations voisines avec `-flto`,
@@ -30,7 +34,8 @@ registres de la tâche PT, de #301, la tâche PT, de #300, hors des points,
 de #298, de #299, de #297, de #296 et de #295, de #294, le manuel dans le style
 de la thèse, et de #292, de #293, #291, #290 et #289), en tâches PX à PZ (les
 constats de la relecture complète du 13 novembre), PH et PJ (PA à PG, PI, PL,
-PP, PQ, PS, PT, PU, PV et PW sont faites, PK et PM sont closes sans code : voir
+PP, PQ, PS, PT, PU, PV et PW sont faites, PY ne garde que son point 12, PK et
+PM sont closes sans code : voir
 `TODO_DONE.md`). Ce fichier et l'issue #179 ont le même contenu. Ce qui est fait
 et décidé est dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour), ce qui
 est reporté dans `TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142
@@ -45,8 +50,24 @@ l'intervalle contient des solutions (PU.1, #323), et deux threads qui
 affichaient la même expression `-x` plantaient (PU.2, #324) ; une borne est
 peut-être fausse encore pour un programme qui met lui-même `FPCR.AH` sur arm64
 (issue #198 : `x / y` des intervalles NEON, cause non trouvée). Rien n'est à
-envoyer à un autre projet ni à publier sans l'accord du mainteneur. Aucune pull
-request n'est ouverte. #337 à #349 (la tâche PW : les builds et la CI de la
+envoyer à un autre projet ni à publier sans l'accord du mainteneur. Trois pull
+requests sont ouvertes, vers `dev` : #373 (hors des points : le diagnostic du
+contrôle de `pow(x, [2])` de `tests/arithmetic.cpp`, qui a échoué une fois sous
+Rosetta sur #358 ; sa CI est verte, sauf macOS, qui attend un runner) et #353 et
+#372 (la tâche PX, d'une autre session : ses registres ne sont pas faits ici,
+pas plus que ceux de #350 à #352, #354 et #355, fusionnées le même jour). #356 à
+#368 et #370 (la tâche PY : les textes faux hors du manuel, le code mort, le nom
+de `GAOL_ERROR` et les avertissements de la relecture du 13 novembre, une pull
+request par point, plus #368 et #370 pour les suites de PY.12 et de PY.11) sont
+fusionnées dans `dev` le 15 novembre, de 13 h 31 à 21 h 58 UTC, par le
+mainteneur ; #369 (les références des exemples 01, 02 et 04 par
+`textToInterval`) est fermée sans fusion à 21 h 09 UTC (« non on ne veut pas de
+TextToInterval dans les exemples »). Leurs registres sont faits (`TODO_DONE.md`
+2.3, 2.4, 3.43, 4 et 7.41), PY ne garde que PY.12 (`-Wuseless-cast` et les
+compteurs de boucle flottants : l'issue #371), et ce qu'elles laissent au
+manuel, à `doc/differences.md` et au `ChangeLog` est dans PZ (PZ.2, PZ.5, PZ.6
+et PZ.9).
+#337 à #349 (la tâche PW : les builds et la CI de la
 relecture du 13 novembre, une pull request par point, plus #349 pour les
 versions Mach-O de la dylib) sont fusionnées dans `dev` le 14 novembre, de
 21 h 01 à 22 h 18 UTC, par le mainteneur, avant la fin de leur CI (aucun run ne
@@ -141,7 +162,7 @@ registres sont faits ici (`TODO_DONE.md` 2.3, 3.34, 3.35, 7.31 et 7.32).
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
 | PX | Les tests sans dents | PX.1 à PX.5 | S |
-| PY | Les textes faux hors du manuel, le code mort | PY.1 à PY.12 | M |
+| PY | Les avertissements qui restent | PY.12 | S |
 | PZ | Le manuel, `differences.md` et le `ChangeLog` | PZ.1 à PZ.8 | M |
 | PH | Les signalements à d'autres projets | #125 à #138, #175 | accord |
 | PJ | La publication de v5.0.0 (`master`, étiquette, annonce) | 34, 71 | S |
@@ -215,170 +236,28 @@ est fait par #323.
    `tests/reverse.cpp` (lignes 545 à 552) ; des références indépendantes
    existent ailleurs : le dire dans leur commentaire.
 
-## PY. Les textes faux de `doc/`, des exemples et du code ; le code mort [M]
+## PY. Les avertissements qui restent [S]
 
-Relevés par la relecture du 13 novembre (voir PX). Une pull request par document
-ou par groupe ; ce qui va dans le manuel, `doc/differences.md` et le `ChangeLog`
-est dans PZ. Aucun point ne change une borne.
+Le reste de la tâche PY de la relecture du 13 novembre : PY.1 à PY.11 sont faits
+par #356 à #366 et #370, et PY.12 en partie par #367 et #368 (`TODO_DONE.md`
+2.3, 3.43 et 4) ; ce qu'ils laissent au manuel, à `doc/differences.md` et au
+`ChangeLog` est dans PZ (PZ.2, PZ.5, PZ.6 et PZ.9). Aucun point ne change une
+borne.
 
-1. **Le chemin AVX-512 « mesuré sur l'i7 seul »** (important) :
-   `doc/building.md` (lignes 167 et 168 : « the processor halves the AVX-512
-   units, and no other was measured ») contre `doc/simd.md` (lignes 108 à 117),
-   qui publie un Xeon de machine virtuelle à unités pleines : le rapport des
-   temps de SSE2 à ceux du chemin y est de 0,73 et 0,69 sans
-   `GAOL_PRESERVE_ROUNDING` (le chemin y perd plus que sur l'i7, 0,83) et de
-   3,89 et 4,21 avec ; le manuel a la même phrase (PZ.1).
-2. **`doc/math-libraries.md`** : lignes 89 à 93, « this is what GAOL does »
-   (déplacer d'un double les valeurs de mathlib), au présent, est faux pour v5
-   (important : `doc/accuracy.md`, vers lequel pointe le lien, dit le
-   contraire) ; lignes 124 à 127, le `sin` de GAOL 4 ne venait pas de CRlibm
-   (c'était `cos(x - [π/2])`) ; lignes 14 et 15, les options de mathlib sont
-   dites refusées, alors que configure les ignore avec un avertissement
-   (`doc/building.md`, lignes 407 à 410) ; ligne 162, `log` 2,2 fois plus
-   rapide, 2,6 dans `doc/compare/performance.md` (ligne 68).
-3. **`doc/tests.md`** : lignes 301 à 303, 66 vérifications et treize groupes (67
-   et quatorze, d'après la sortie de `rounding_direction`) ; ligne 448, 96
-   opérations (97, `flush_operations[]`) ; ligne 1477, 1 969 cas d'`atan2_rel`,
-   dont 1 263 avec points (2 071 et 1 338, ce qu'affiche `atan2_rel_values.py`),
-   comme `doc/accuracy.md` (ligne 180) ; ligne 593, « 25 of the 45 checks » de
-   `static_initialization` (44 aujourd'hui : la mesure date du correctif).
-4. **`doc/using.md`** : lignes 539 à 541, `0x8000u >> s` ne compile pas
-   (`overlapping_state` est un `enum class` : `static_cast<unsigned>(s)`), et
-   `gaol_ieee1788::disjointMask` n'existe que dans des commentaires ; lignes 892
-   et 893, `[2980.9579759367944, 2980.9579759367948]` contient bien la valeur
-   exacte, mais n'est pas ce qu'écrit GAOL, dont les bornes
-   (`0x1.749ea7bd26dc6p+11` et `0x1.749ea7bd26dc7p+11`) sont plus larges :
-   écrire `[2980.9579759367943, 2980.9579759367949]` ou les bornes en
-   hexadécimal ; lignes 1821 à 1824, `<1e-310, 1e-309>` est refusé parce que
-   1e-310 n'est pas un double, non par la comparaison des bits (prendre
-   `<0x1p-1070, 0x1p-1071>`) ; lignes 1725 à 1729 et 1866 à 1871, « x86 » pour
-   le test par addition, que le x86 32 bits ne fait pas (`fnstcw`, `stmxcsr` ;
-   plausible) : « x86-64 ». Piste : une phrase d'exemple pour le piège que
-   décrit `gaol/core/gaol_interval_core.h` (lignes 2509 à 2514), `x > +oo`, `x
-   >= +oo`, `x < -oo` et `x <= NaN` vrais pour tout x, `interval(±oo)` étant
-   vide.
-5. **`doc/simd.md` et `doc/accuracy.md`** : `simd.md` (lignes 330 et 331) donne
-   6,3 ns pour `sqrt` et 3,75 avec AVX-512, contre 7,35 et 4,36 aux lignes 174
-   et 295 ; `accuracy.md` (lignes 62 à 64) dit le chemin AVX-512 identique à
-   SSE2 bit à bit, sans la réserve du zéro de `x * d` des lignes 272 à 276 ;
-   `accuracy.md` (ligne 226) : `operator<<` prend les chiffres de
-   `interval::precision()`, et seulement les drapeaux du flux.
-6. **README, INSTALL, `doc/building.md` et `doc/three-builds.md`** : « CMake
-   3.14 or later », puis `cmake --install`, qui date de CMake 3.15 (`INSTALL`,
-   lignes 9 à 14 ; `README.md`, ligne 66 ; `building.md`, lignes 233 et 236 ; le
-   job CMake 3.14.7 installe par `--target install`) ; le tableau des refus de
-   `three-builds.md` (lignes 377 à 394) : « the last four » et « the third row
-   it alone refuses » ne tombent plus juste depuis la ligne de Cygwin, qui a une
-   troisième cellule que GitHub n'affiche pas.
-7. **`doc/continuous-integration.md`, `doc/tools.md` et les README des
-   outils** : `continuous-integration.md`, lignes 216 à 219 (les conteneurs
-   lisent `c++ -dumpmachine`, non `uname -m`, attendent SSE2 sur i386, et
-   sautent la vérification sans rien dire pour un autre triplet), lignes 369 à
-   373 (sur arm64, `control-register-performance` compare les intervalles FPU
-   aux NEON) ; `tools.md`, ligne 76 (« five `*_values.py` » : six), quatre
-   scripts non décrits (`doc/compare/code/run_lines_arm64.sh`,
-   `tests/tools/pow/negative_power_rows.py`, et `logtiny.sh` et `lognearzero.sh`
-   de CORE-MATH), ligne 51 (`check-gcc-windows-fma.sh` exige aussi des
-   `vfmadd`), ligne 53, comme `.github/scripts/sde-tests.sh` (ligne 3) : « the
-   runners of GitHub for Windows have none » contredit
-   `continuous-integration.md` (lignes 88 à 91) et l'en-tête de `windows.yml` ;
-   `tests/tools/pow/README.md` (lignes 215 à 217 : le mutant
-   `pown-square-bound` n'existe plus ; ligne 170 : 48 mutants, quand la liste en
-   a 106) ; `tests/tools/arith/README.md` (ligne 24 : 23 nombres, quand
-   `diffarith.cpp` prend 29 bornes) ; `doc/compare/code/README.md`, lignes 171 à
-   174 (important : `results.csv` serait du 17 octobre, à `7c1ebb9`, quand
-   `machine.txt` dit le 12 novembre, à `2b5e4f9`), ligne 208 (`run_all.sh` lance
-   aussi `run_lines.sh`).
-8. **`doc/compare/`** : `special_cases.md`, ligne 268 (important : Boost « 27 to
-   41 % », les taux de la glibc 2.31, quand le document annonce la 2.43, 20 à 34
-   % d'après `enclosure.md`, ligne 43), ligne 29 (« five cases » sans résultat
-   d'IEEE 1788 : deux), lignes 172 et 173 (la liste des opérations absentes de
-   PROFIL/BIAS en a six qu'il calcule), lignes 179 et 180 (« without a negative
-   bound » : sans 0), et le cas 082, `0 * [1, +oo]`, qui vaut aujourd'hui
-   `[-0]` ; `performance.md`, ligne 169 (PROFIL/BIAS « the fastest on the square
-   root (4.5 ns, against 4.4 for GAOL V5.0.0 with the direction preserved) ») et
-   ligne 36 (« GAOL 4.2.3, which it continues » : v5 continue la 4.2.2) ;
-   `itf1788.md`, ligne 279 (« `d5a345e`, the last commit of its sources » : 46
-   commits depuis ; la suite relancée le 13 novembre donne les mêmes tableaux).
-9. **Les exemples** : `examples/examples.md`, lignes 216 et 451, et
-   `examples/05_interval_newton.cpp`, ligne 119 (important : « GAOL has no
-   `mulRevToPair` », alors que `gaol_ieee1788::mulRevToPair` existe) ; ligne 464
-   (« `pow(x, 2L)` and `pow(x, size_t)` are ambiguous » : les deux compilent) ;
-   lignes 107 et 108 (autotools et meson construisent les 16 exemples) ; ligne
-   171 (un point s'écrit `[a]`) ; lignes 583 (`3rd/mathlib`), 602 à 605, 695 à
-   697 et 999 à 1005 (la revue d'origine présente comme actuels des `using`
-   globaux, 25 macros et « 0 converts to interval » : dire qu'ils sont
-   corrigés) ; `examples/tutorial.md`, lignes 169 à 177 (la boucle de Newton
-   coupe X deux fois quand les deux morceaux valent X, et chaque racine sort
-   deux fois : huit intervalles pour les trois racines de x³ − x sur [−3, 3]) ;
-   les « vraies images » bâties sur les doubles d'`interval(0.99, 1.01)` et
-   d'`interval(0.01, 1.0)`, plus étroites que l'image vraie
-   (`examples/03_dependency_problem.cpp`, lignes 199 et 205 ;
-   `examples/12_affine_arithmetic.cpp`, ligne 199), et les points
-   d'`examples/09_parameter_estimation.cpp` (lignes 267 et 375) :
-   `textToInterval` (process.md §4, principe 10).
-10. **Des commentaires du code** : `gaol/math/gaol_u128.h` (lignes 4 à 6),
-    `gaol/math/gaol_core_math_port.h` (lignes 15 à 17 et 107 à 109) et
-    `3rd/README.md` (lignes 130 à 133) oublient `log10` parmi les fonctions à
-    128 bits (13, non 12) ; `gaol/core/gaol_interval_internal.h`, lignes 500 et
-    501 (« from the libm moved three doubles outward » : CORE-MATH, un double),
-    lignes 164 à 231 (`quotient_up_sat()` et `quotient_dn_sat()`, annoncés pour
-    a ≥ 0, sont faux en a = 0 ; latent, les appelants l'écartent) ;
-    `gaol/core/gaol_interval_core.cpp`, lignes 24 à 26 (le carré et la racine de
-    NEON sont dans les `*_kernels.h` depuis #308) ;
-    `gaol/core/gaol_interval_core.h`, lignes 1946 à 1950 (trois représentations
-    du vide, et `is_empty()` n'est plus `islessequal`), ligne 1832 (les seuils
-    d'`erfc` sont 26,5433 et 27,2133, non 26,55 et 27,22), lignes 508 et 2702
-    (`///!` et `/*!(void)`) ; `gaol/core/gaol_interval_fpu_impl.h`, lignes 307 à
-    310 (« bit for bit » est vrai pour `x / y`, non pour le signe d'un zéro de
-    `x % y`) ; `gaol/core/gaol_interval_avx512_impl.h`, lignes 379 et 380 (rien
-    avant AVX-512F n'a de maximum d'entiers de 64 bits, et la bibliothèque est
-    compilée avec `-mfma`, qui implique SSE4.1) ;
-    `gaol/core/gaol_interval_trig.cpp`, ligne 554 (`0x1.9153d9443ed0bp+51` est
-    la tangente de `0x1.921fb54442d17p+0` ; tan(M_PI_2) vaut
-    `0x1.d02967c31cdb5p+53`) ; `gaol/gaol_config.h`, lignes 274 à 276
-    (`-fno-honor-infinities` de Clang, seul) ; le Doxygen mal formé de
-    `gaol/gaol_common.h` (lignes 69 et 83), de `gaol/parser/gaol_parser.h`
-    (lignes 102 et 121) et de `gaol/parser/gaol_eval_stack.h` (lignes 49 et 50).
-11. **Du code mort** : `finite_products`, trois blocs `#if 0`, l'ancien
-    `inverse()` en commentaire et un namespace vide
-    (`gaol/core/gaol_interval_sse_impl.h`, lignes 216 à 220, 470 à 646 et 1115 à
-    1172) ; `gaol_core::nearest` (`gaol/math/gaol_double_op.h`, lignes 65 à
-    102 : 32 fonctions jamais appelées) ; la branche sans `<fenv.h>`
-    (`gaol/gaol_fpu.h`, lignes 492 à 494, et `gaol/gaol_fpu_msvc.h`), qui ne
-    compile pas ; `root_of_large_order()`, exportée sans déclaration
-    (`gaol/core/gaol_interval_pow.cpp`, ligne 1127 : `static`). *À décider* : la
-    macro publique `gaol_ERROR` (`gaol/gaol_common.h`, lignes 203 à 209), le nom
-    de GAOL 4, contre la règle des macros en `GAOL_` (process.md §4, principe
-    7).
-12. **Les avertissements de plus** (mineur ; *à décider* : lesquels valent une
-    correction) : relevés en compilant la bibliothèque, les tests et les
-    exemples avec GCC 15 (`-Wshadow -Wuseless-cast -Wsuggest-override -Wformat=2
-    -Wmissing-declarations` et d'autres) et Clang 21 (`-Wshadow-all
-    -Wdocumentation -Wunused-member-function -Wheader-hygiene` et d'autres),
-    puis avec clang-tidy 21 (bugprone, clang-analyzer, cert) ; aucun ne cache un
-    défaut, mais : `-Wshadow` dans `tests/arithmetic.cpp` (ligne 147),
-    `tests/core_math.cpp` (ligne 1714), `tests/elementary.cpp` (ligne 805),
-    `tests/rounding_direction.cpp` (lignes 5087, 5092 et 5145) et
-    `gaol/parser/gaol_expression.cpp` (ligne 657, le paramètre `f` de
-    `pow_itv_node`, sans défaut) ; des conversions inutiles (`-Wuseless-cast`)
-    dans `gaol/gaol_fpu_fenv.h` (ligne 120), `gaol/gaol_fpu.h` (ligne 665),
-    `gaol/parser/gaol_expression.h` (ligne 877) et 30 lignes de `tests/`
+12. **Les avertissements de plus** (mineur ; l'issue #371) : #367 corrige
+    `-Wshadow`, les petits restes et `override` sur les 150 fonctions
+    virtuelles, et #368 le format non littéral de `tests/numbers.cpp`, comme le
+    mainteneur l'a décidé le 15 novembre. Restent, relevés avec GCC 15 et
+    clang-tidy 21 le 13 novembre, que le mainteneur n'a pas retenus : des
+    conversions inutiles (`-Wuseless-cast`) dans `gaol/gaol_fpu_fenv.h`,
+    `gaol/gaol_fpu.h`, `gaol/parser/gaol_expression.h` et 30 lignes de `tests/`
     (`core_math.cpp`, `rounding_direction.cpp`, `u128.cpp`, `unit_tests.h`),
-    peut-être voulues pour d'autres cibles : à vérifier avant d'y toucher ; 150
-    fonctions virtuelles sans `override` (120 dans
-    `gaol/parser/gaol_expression.h`, 30 dans `gaol/parser/gaol_expr_eval.h`) ;
-    un `using namespace` au niveau global d'un en-tête (`tests/unit_tests.h`,
-    ligne 43) ; un membre inutilisé (`not_an_exception`,
-    `tests/expressions.cpp`, ligne 1010) ; des formats non littéraux
-    (`gaol/core/gaol_interval_io.cpp`, lignes 250 et 255, sûrs ;
-    `tests/numbers.cpp`, ligne 162) ; pour clang-tidy, les valeurs rendues par
-    `snprintf()` ignorées (`gaol/core/gaol_interval_io.cpp`, lignes 561, 565 et
-    585), trois `using` inutilisés (`gaol/gaol_init_cleanup.cpp`, lignes 26 à
-    28) et des compteurs de boucle flottants (`gaol/core/gaol_interval_pow.cpp`,
-    lignes 776, 787, 817 et 825). Les 1 140 `-Wfloat-equal` sont voulus
+    peut-être voulues pour d'autres cibles : à vérifier avant d'y toucher ; et
+    des compteurs de boucle flottants (`gaol/core/gaol_interval_pow.cpp`, lignes
+    776, 787, 817 et 825 au 13 novembre). Les 1 140 `-Wfloat-equal` sont voulus
     (l'arithmétique compare des bornes), et les avertissements du lexer et du
-    parser générés ne se corrigent pas à la main.
+    parser générés ne se corrigent pas à la main. *À décider* : si l'un ou
+    l'autre vaut une pull request.
 
 ## PZ. Le manuel et les registres [M]
 
@@ -386,8 +265,8 @@ Relevés par la relecture du 13 novembre (voir PX). Le manuel dans une pull
 request `manual*`, qui régénère le PDF dans son dernier commit (process.md §6.2,
 point 7) et corrige `doc/differences.md` avec lui ; le `ChangeLog` par la pull
 request de synthèse (process.md §7, point 5). Après PU à PY, dont les
-corrections se reportent ici ; celles de PU, de PV et de PW, faites, sont aux
-points 3, 5, 6, 7 et 8.
+corrections se reportent ici ; celles de PU, de PV, de PW et de PY,
+faites, sont aux points 2 à 9.
 
 1. **Les chiffres du chemin AVX-512 et de FMA** (important) :
    `02_installation.tex` (lignes 872 à 874 : « no other processor was
@@ -406,7 +285,9 @@ points 3, 5, 6, 7 et 8.
    dans
    `doc/continuous-integration.md`) ; lignes 87 et 88, 520 et 521 (45
    vérifications de `static_initialization` : 44) ; lignes 440, 478 et 697 (66,
-   96 et 1 969, comme PY.3).
+   96 et 1 969 : 67, 97 et 2 071 depuis #358, PY.3), `15_migration.tex`, ligne
+   712 (25 des 45 vérifications) et `11_accuracy.tex`, ligne 878 (1 969 cas,
+   dont 1 263 avec points : 2 071 et 1 338).
 3. **Le lecteur** : le chapitre 9 (lignes 285 à 288), comme
    `gaol/parser/gaol_parser.h` (lignes 97 à 99) : les seuils des bornes non
    départagées (au-dessous de 2^-1084 en base 16, et de 10^-331 en décimal,
@@ -468,13 +349,25 @@ points 3, 5, 6, 7 et 8.
    et ses cinq jeux d'options (#342), les 300 s de `make check` (#343),
    `-mno-daz-ftz` pour Clang 20 et plus (#344), `stamp-h.in` retiré (#345, que
    `differences.md` et le `ChangeLog` disaient déjà disparu) et les versions
-   Mach-O (#349).
+   Mach-O (#349). Pour PY, les sections « Pour `doc/differences.md` et
+   `ChangeLog` » de #365, #366 et #367 : `-fno-honor-infinities` seul avec
+   Clang, comme `-fno-honor-nans` seul (`differences.md`, ligne 2349, § des
+   options refusées) ; `gaol_fpu_msvc.h`, retiré (#366) des listes d'en-têtes
+   installés (lignes 1980 et 2669) ; `GAOL_ERROR`, la macro de v5, avec
+   `gaol_ERROR`, son alias (lignes 1136, 1145 et 1851) ; et `override` sur les
+   fonctions virtuelles de `gaol_expression.h` et de `gaol_expr_eval.h` (#367 :
+   une classe de l'utilisateur qui dérive d'`expr_eval` et redéfinit `visit()`
+   sans `override` reçoit au plus `-Wsuggest-override`) ; le `ChangeLog` garde
+   ses entrées anciennes.
 6. **Le PDF** : régénéré dans le dernier commit (l'index de celui de `9d59e0c`
    donne « accuracy, 208 », 207 dans le PDF reconstruit) ; le rapport de
    couverture et les mesures de PJ.2 sont à refaire, PU ayant changé le code de
    `gaol/` (#323, #324 et #326 à #332 ; PJ), et PV aussi (#335 : le lecteur,
    l'écriture d'une borne, l'évaluateur) ; PW n'a changé aucun code compilé de
-   `gaol/` (un bloc mort de `gaol_interval_internal.h`, #346). Le PDF de #335
+   `gaol/` (un bloc mort de `gaol_interval_internal.h`, #346) ; PY a retiré
+   du code que rien n'appelait (`gaol_core::nearest`, trois blocs `#if 0`,
+   `finite_products`, la branche sans `<fenv.h>` : #366), ce qui change le
+   chiffre de couverture de PJ.1, sans changer une borne. Le PDF de #335
    (391 pages, régénéré dans cette pull request à la demande du mainteneur, avec
    les noms des chapitres 9 et 10) a le dernier paragraphe du chapitre 10 seul
    sur une page de trois lignes, suivie d'une page blanche : le mainteneur l'a
@@ -511,6 +404,22 @@ points 3, 5, 6, 7 et 8.
    essayées) quand `gaol::gaol` le donne à Clang 20 et plus (#344) ; et, s'il
    les décrit, les 300 s de `make check` de configure (#343) et les versions
    Mach-O de la dylib (#349).
+9. **Les passages du manuel que laisse la tâche PY** (avant le PDF de PZ.6) :
+   `12_computing.tex` (lignes 1581 à 1583) donne 6,3 ns pour `sqrt` en SSE2 et
+   3,75 avec le chemin AVX-512 et le sens préservé, quand le tableau du même
+   chapitre (lignes 953 et 1523) et `doc/simd.md` (#360) disent 7,35 et 4,36 ;
+   `02_installation.tex` (lignes 102 et 584 à 585) dit « CMake 3.14 or later »,
+   quand `cmake --install` (lignes 576, 747 et 1057, `03_using.tex`, ligne 361)
+   date de CMake 3.15 : la 3.14 installe par `--target install` (#361, comme
+   `INSTALL`, `README.md` et `doc/building.md`) ; `02_installation.tex` (lignes
+   269 à 272), « `-fno-honor-nans` alone, with Clang » : `-fno-honor-infinities`
+   seul, avec Clang, échappe aussi à `__FINITE_MATH_ONLY__` (#365, comme
+   `doc/three-builds.md`) ; `03_using.tex` (ligne 157) cite `gaol_fpu_msvc.h`,
+   retiré par #366 ; `13_numbers_errors.tex` (lignes 276 et 295) donne la macro
+   `gaol_ERROR`, que #366 remplace par `GAOL_ERROR`, `gaol_ERROR` restant un
+   alias (aussi dans la liste des changements du chapitre 15) ; et, s'il dit le
+   chemin AVX-512 identique à SSE2 bit à bit, la réserve du signe d'un zéro de
+   `x * d` (#360, `doc/accuracy.md`).
 
 ## PH. Les signalements à d'autres projets [attend l'accord du mainteneur]
 

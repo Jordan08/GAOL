@@ -14,8 +14,11 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12, et la façon de faire une version au §13.
-Dernière mise à jour : 14 novembre 2026, au commit `ebf2efd` de `dev` (la fusion
-de #349, la dernière des treize pull requests de la tâche PW, #337 à #349, après
+Dernière mise à jour : 15 novembre 2026, au commit `1efa1c4` de `dev` (la fusion
+de #368, la dernière des quatorze pull requests de la tâche PY, #356 à #368 et
+#370, après la fusion de #352, `1f901d9`, et les registres de la tâche PW,
+`40c328a`, qui suivent la fusion de #349, `ebf2efd`, la dernière des treize pull
+requests de la tâche PW, #337 à #349, après
 les registres de #336, `8780a1c`, et la fusion de #336, `89cd896`, la CI
 regroupée, après celle de #335, la tâche PV, `773d6a1`, et ses registres,
 `e3acf0a`, après les registres de la tâche PU, `079687e`, et `998e61c`, la
@@ -903,7 +906,7 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   reconstruit les deux GAOL au commit mesuré (les autres bibliothèques restent
   celles de la copie).
 
-## 12. Où en est le travail (14 novembre 2026)
+## 12. Où en est le travail (15 novembre 2026)
 
 Le reste à faire est dans `TODO.md` (tâches PX à PZ, PH et PJ) et l'issue #179 ;
 ce qui est fait et décidé (pull requests fusionnées, décisions, mesures) est
@@ -1049,11 +1052,16 @@ git ls-remote --heads origin
   la CI regroupés, 207 en 59, et la correction de `x += d` avec `-flto`) à
   18 h 28 UTC (`89cd896`, `TODO_DONE.md` 2.3, 3.41 et 7.39), puis, le soir, les
   treize pull requests de la tâche PW, #337 à #349, de 21 h 01 à 22 h 18 UTC
-  (`ebf2efd`, `TODO_DONE.md` 2.3, 3.42, 4 et 7.40) ; l'audit du 13 octobre a
+  (`ebf2efd`, `TODO_DONE.md` 2.3, 3.42, 4 et 7.40), puis, le 15 novembre,
+  #356 à #368 et #370, les quatorze pull requests de la tâche PY, de 13 h 31 à
+  21 h 58 UTC (`1efa1c4`, `TODO_DONE.md` 2.3, 2.4, 3.43, 4 et 7.41), #369 étant
+  fermée sans fusion ; l'audit du 13 octobre a
   vérifié dans `configure-clean` ce qu'annonçaient alors les points A, C à H et
   J à V.
-- **En cours** : au 14 novembre au soir, aucune pull request n'est
-  ouverte ; #295 (PS.2 ; `manual-neon-pown-text`), #296 (le cas (b) ;
+- **En cours** : au 15 novembre au soir, trois pull requests sont ouvertes,
+  vers `dev` : #373 (le diagnostic d'un échec sous Rosetta ;
+  `todo-rosetta-diagnostic-pow2`) et #353 et #372 (la tâche PX, d'une
+  autre session) ; #295 (PS.2 ; `manual-neon-pown-text`), #296 (le cas (b) ;
   `manual-case-b-text`), #297 (la tâche PS ; `todo-ps-stale-texts`), #299
   (PQ.2 ; `todo-pq-hexfloat-point`), #298 (PQ.1 ; `todo-pq-centered-form`), #300
   (la recette de compilation croisée de `todo-notes/gcc12-aarch64/` ;
@@ -1073,8 +1081,11 @@ git ls-remote --heads origin
   `todo-pu1-periodic-rel` à `todo-pu12-ci-armel`), #335 (la tâche PV ;
   `todo-pv-reader-expressions`), #336 (la CI regroupée ; `ci-grouped-jobs`)
   et #337 à #349 (la tâche PW ; `todo-pw1-auto-config-fma` à
-  `todo-pw12-lone-jobs-doc` et `todo-pw9b-macho-doc`) sont fusionnées, leurs
-  registres faits ; `dev` est au commit de ces registres (7.40), après
+  `todo-pw12-lone-jobs-doc` et `todo-pw9b-macho-doc`) et #356 à #368 et #370 (la
+  tâche PY ; `todo-py1-avx512-measured` à `todo-py12b-numbers-format` et
+  `todo-py11b-internal-usings`, #369 étant fermée sans fusion) sont fusionnées,
+  leurs registres faits ; `dev` est au commit de ces registres (7.41), après
+  `1efa1c4`, la fusion de #368, `40c328a`, les registres de PW (7.40),
   `ebf2efd`, la fusion de #349, `8780a1c`, les registres de #336 (7.39),
   `89cd896`, la fusion de #336, `e3acf0a`, les registres de PV (7.38),
   `773d6a1`, la fusion de #335, `079687e`, les registres de PU (7.37),
@@ -1124,15 +1135,18 @@ git ls-remote --heads origin
   (`release-without-notes`) le 12 novembre, à la demande du mainteneur, avec, le
   14 novembre après la fusion de #336, les trois branches d'essai de CI
   (`experiment-ci-section4`, `experiment-ci-groups` et `experiment-ci-ipo` :
-  `TODO_DONE.md` 8.1). L'issue #198 (`x / y` des intervalles NEON avec
+  `TODO_DONE.md` 8.1). Les branches de #356 à #370 (`todo-py*`) sont gardées :
+  le mainteneur n'y touche pas (15 novembre, `TODO_DONE.md` 3.43). L'issue #198
+  (`x / y` des intervalles NEON avec
   `FPCR.AH`) est ouverte, sans tâche dans `TODO.md` ; #185 est fermée, le
   masquage des exceptions de `pow` est gardé. L'issue #177 (`TODO_DONE.md`)
   n'est plus mise à jour (*décidé le 28 octobre*) : GitHub borne le corps d'une
   issue à 262 144 octets et le texte joint en fait plus de 270 000 (voir
   `TODO_DONE.md` 7.8).
 - **À faire**, dans l'ordre de `TODO.md` : les constats de la relecture du 13
-  novembre (PX à PZ ; PU, PV et PW sont faites), les signalements à d'autres
-  projets (PH, avec l'accord du mainteneur), puis la version (PJ, après PU à PZ,
+  novembre (PX à PZ ; PU, PV et PW sont faites, PY ne garde que PY.12), les
+  signalements à d'autres projets (PH,
+  avec l'accord du mainteneur), puis la version (PJ, après PU à PZ,
   *décidé le 13 novembre* : `dev` dans `configure-clean`, section 13, puis la
   fusion de `configure-clean` dans `master`, que le mainteneur ouvre et fusionne
   lui-même, puis l'étiquette annotée `v5.0.0`, que la session pose sur son mot
@@ -1143,7 +1157,8 @@ git ls-remote --heads origin
   PJ.7 sont faits par #315 à #318 et coupés de `TODO.md`, la couverture, les
   mesures et le PDF du manuel étant à refaire au commit de la version si le code
   ou les textes ont changé, ce qui n'était pas le cas le 12 novembre à `0ae1840`
-  et l'est depuis PU et PV, qui ont changé le code de `gaol/`). Ce qui est
+  et l'est depuis PU et PV, qui ont changé le code de `gaol/`, et PY, qui en a
+  retiré du code mort). Ce qui est
   reporté (le 113, le site, les traits pour YalAA et VNODE-LP, les décorations,
   ce qui attend du matériel) est dans `TODO_AFTER.md`. Les dépendances entre
   points sont écrites dans chaque tâche. Le mainteneur donne les tâches ou les
