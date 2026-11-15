@@ -410,7 +410,8 @@ developers](#the-settings-of-the-developers), as `--enable-fma` and
 other options of GAOL 4 (`--with-mathlib`, `--with-mathlib-include`,
 `--with-mathlib-lib`, `--with-cppunit-include`, `--with-cppunit-lib`,
 `--enable-fast-math`, `--enable-asm`, `--enable-relations`) are gone, and
-configure warns that it does not know them. A
+configure warns that it does not know them (as CMake does for a variable that
+the project does not use, whereas meson refuses an option it does not know). A
 universal build of macOS is configured with `-arch` several times in the flags
 of the compilers (GAOL v5): `./configure CFLAGS="-arch arm64 -arch x86_64"
 CXXFLAGS="-arch arm64 -arch x86_64" LDFLAGS="-arch arm64 -arch x86_64"`; the
