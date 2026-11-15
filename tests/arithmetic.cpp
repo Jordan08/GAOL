@@ -1569,6 +1569,84 @@ namespace
     return r;
   }
 
+  // The state of the processor that an operation of GAOL depends on: the rounding direction of
+  // <cfenv>, the bits of the modes that flush the subnormals to zero, and, with SSE2, the whole
+  // control register MXCSR
+#if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+#  define GAOL_TESTS_MXCSR 1
+#else
+#  define GAOL_TESTS_MXCSR 0
+#endif
+
+  struct ProcessorState
+  {
+    int direction;
+    unsigned int flush;
+    unsigned int control;
+  };
+
+  ProcessorState processor_state()
+  {
+    ProcessorState s = { std::fegetround(), 0u, 0u };
+#if GAOL_TESTS_SET_FLUSH
+    s.flush = flush_bits();
+#endif
+#if GAOL_TESTS_MXCSR
+    s.control = _mm_getcsr();
+#endif
+    return s;
+  }
+
+  std::string shown(const interval& x)
+  {
+    return x.is_empty() ? std::string("empty") : hex(x);
+  }
+
+  std::string shown(const ProcessorState& s)
+  {
+    std::ostringstream o;
+    o.imbue(std::locale::classic());
+    o << "direction " << s.direction << ", flush bits 0x" << std::hex << s.flush;
+#if GAOL_TESTS_MXCSR
+    o << ", MXCSR 0x" << s.control;
+#endif
+    return o.str();
+  }
+
+  /*
+    What a failure of the check of gaol_ieee1788::pow(x, [2]) tells of its reference, sqr(x & [0, +oo]).
+    Under Rosetta (the x86_64 part of the universal builds of macOS in the CI), this check failed a few
+    times with GAOL's result right and the reference empty, for an x that has a part above 0, the caller's
+    direction downward; it passed when the job ran again, and was never seen elsewhere. The empty
+    reference comes from x & [0, +oo], or from the square of that part: the text says which, computes
+    them again, in the state the check found and with rounding to nearest and no flush mode, and
+    gives the state of the processor when x & [0, +oo] was computed and now, and what the comparisons
+    of the bounds that operator&=() makes say of the bounds of x (SSE2 intervals: the left bound is stored
+    negated). It is written for a failed check only, which ran with the state the tests set.
+  */
+  std::string reference_report(const interval& x, const interval& positive_part, const ProcessorState& then,
+                               int direction, unsigned int flush)
+  {
+    const ProcessorState now = processor_state();
+    const interval again = x & interval::positive();
+    const interval square_again = run_in_state(direction, flush, [&] { return sqr(again); });
+    const interval clean = run_in_state(FE_TONEAREST, 0u, [&] { return x & interval::positive(); });
+    const double left = x.left(), right = x.right();
+    const bool unordered = gaol_detail::quiet_unordered(-left, -0.0);
+    const bool left_kept = gaol_detail::bound_greater_equal(-0.0, -left);
+    const bool right_kept = gaol_detail::bound_greater_equal(std::numeric_limits<double>::infinity(), right);
+    // The state the check found, set again
+    std::fesetround(now.direction);
+#if GAOL_TESTS_SET_FLUSH
+    set_flush_bits(now.flush);
+#endif
+    return "; x & [0, +oo] was " + shown(positive_part) + ", is " + shown(again) + " again, and " + shown(clean)
+      + " with rounding to nearest and no flush mode; the square of the part found again is " + shown(square_again)
+      + "; the processor when it was computed: " + shown(then) + ", now: " + shown(now)
+      + "; isunordered(-left, -0) " + std::to_string(unordered) + ", -0 >= -left " + std::to_string(left_kept)
+      + ", +oo >= right " + std::to_string(right_kept);
+  }
+
   struct SquareForm
   {
     std::string check_name;
@@ -1612,6 +1690,7 @@ namespace
           }
           // The part [0] and the empty part are told here, with the modes that flush the subnormals to
           // zero clear: with denormals-are-zero set, a subnormal upper bound is equal to 0
+          const ProcessorState then = processor_state();
           const interval positive_part = x & interval::positive();
           const bool only_zero = !positive_part.is_empty() && positive_part.right() == 0.0;
           const interval expected = positive_part.is_empty() ? interval::emptyset()
@@ -1619,7 +1698,8 @@ namespace
           const interval r = run_in_state(c.fenv, flush, [&] { return gaol_ieee1788::pow(x, interval(2.0)); });
           check(positive_name, identical(r, expected),
                 [&] { return where() + ": " + (r.is_empty() ? std::string("empty") : hex(r)) + ", expected "
-                             + (expected.is_empty() ? std::string("empty") : hex(expected)); });
+                             + (expected.is_empty() ? std::string("empty") : hex(expected))
+                             + reference_report(x, positive_part, then, c.fenv, flush); });
         }
       }
     };
