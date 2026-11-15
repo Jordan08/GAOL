@@ -305,9 +305,10 @@ double hausdorff(const interval &I1, const interval &I2)
     for r < 0. An infinite bound of x is divided by c' or d', which are
     finite, never by an infinity, and a zero bound by a number that is no zero:
     no 0 / 0, no oo / oo, and every division is by a number above 0. The
-    bounds of the quotient are the ones of the SSE2 intervals, bit for bit
-    (no tie of two zeros is chosen: a division of IEEE gives the sign of a
-    zero). The choices of the denominators are conditional moves with Clang
+    bounds of x / y are the ones of the SSE2 intervals, bit for bit (no tie of
+    two zeros is chosen: a division of IEEE gives the sign of a zero), and
+    those of x % y too, but for the sign of a zero bound. The choices of the
+    denominators are conditional moves with Clang
     and Visual C++ for arm64, but one branch on a sign with GCC for arm64, two
     with GCC 13 to 15 and four with GCC 16 for 32-bit ARM (-O2 and -O3), where a
     division takes longer than a branch mispredicted. A y with a zero is the

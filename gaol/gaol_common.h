@@ -66,7 +66,7 @@ namespace gaol_core {
   /*!
   Test for oddness.
   
-  \param x
+  \param x the number to test
   \return true if x is odd.
   \see even
   \warning Should be used only with integer-like types
@@ -80,7 +80,7 @@ namespace gaol_core {
   /*!
   Test for evenness.
   
-  \param x
+  \param x the number to test
   \return true if x is even.
   \see odd
   */

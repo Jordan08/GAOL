@@ -47,8 +47,8 @@ namespace gaol_core {
   \warning pop() of an empty stack gives T(), and reports nothing: the user of
   the stack has to know that it holds a value (expr_eval::result() does)
   
-  \param T type of the elements on the stack
-  \param SZ number of elements the stack holds without allocating
+  \tparam T type of the elements on the stack
+  \tparam SZ number of elements the stack holds without allocating
   */
   template <typename T, unsigned int SZ = 8>
   class eval_stack {

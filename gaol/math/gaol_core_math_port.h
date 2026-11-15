@@ -12,9 +12,10 @@
  * It gives them:
  *
  * - the 128-bit integer their accurate phases compute with
- *   (gaol/math/gaol_u128.h), so that log, sin, cos, tan, atan2, pow, log2p1,
- *   log10p1, atan2pi, hypot, rsqrt and asinpi are built with Visual C++ and on
- *   the 32-bit targets where the compiler has no 128-bit type of its own;
+ *   (gaol/math/gaol_u128.h), so that log, log10, sin, cos, tan, atan2, pow,
+ *   log2p1, log10p1, atan2pi, hypot, rsqrt and asinpi are built with Visual C++
+ *   and on the 32-bit targets where the compiler has no 128-bit type of its
+ *   own;
  * - the names gaol_cr_<f>() rather than cr_<f>(), so that GAOL does not clash
  *   with a program or a C library holding CORE-MATH's functions too;
  * - __builtin_roundeven() where the compiler or the math library has not;
@@ -104,8 +105,8 @@ The names of the functions
 /*---------------------------------------------------------------------------
 The 128-bit unsigned integer
 
-The accurate phases of log, sin, cos, tan, atan2, pow, log2p1, log10p1,
-atan2pi, hypot, rsqrt and asinpi compute with a 128-bit unsigned integer,
+The accurate phases of log, log10, sin, cos, tan, atan2, pow, log2p1,
+log10p1, atan2pi, hypot, rsqrt and asinpi compute with a 128-bit unsigned integer,
 which their sources name u128, and asinpi with a signed one too, i128, held
 in a u128 in two's complement. GCC and Clang have one on 64-bit targets, and
 _BitInt(128) on 32-bit targets too: Clang from 14 on, and GCC from 14 on

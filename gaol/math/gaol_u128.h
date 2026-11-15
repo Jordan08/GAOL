@@ -2,8 +2,8 @@
  * GAOL -- not Just Another Interval Library
  *--------------------------------------------------------------------------
  * The 128-bit unsigned integer that the accurate phases of CORE-MATH's log,
- * sin, cos, tan, atan2 and pow, and of log2p1, log10p1, atan2pi, hypot, rsqrt
- * and asinpi, compute with, on every compiler GAOL is built with. asinpi
+ * log10, sin, cos, tan, atan2 and pow, and of log2p1, log10p1, atan2pi, hypot,
+ * rsqrt and asinpi, compute with, on every compiler GAOL is built with. asinpi
  * computes with a signed 128-bit integer too, which a gaol_u128 holds in two's
  * complement, as the signed type of the compiler holds it:
  * gaol_u128_imul64(), gaol_u128_of_i64() and gaol_u128_sar() are the product,

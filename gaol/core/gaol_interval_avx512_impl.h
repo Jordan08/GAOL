@@ -375,8 +375,8 @@
     -left'*right), products of bounds of the same sign), and the bits of
     two positive doubles order them as their values, which the
     denormals-are-zero mode does not change: the max of the integers is the
-    max of the doubles (SSE has no max of 64-bit integers before SSE4.1,
-    which the library is not compiled with).
+    max of the doubles (no instruction takes the max of 64-bit integers before
+    AVX-512F, SSE4.1 having it for 32-bit integers only).
   */
   GAOL_AVX512_TARGET GAOL_INLINE __m128d max_of_positive(__m128d a, __m128d b)
   {

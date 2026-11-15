@@ -510,8 +510,10 @@ is not to be compiled with them.
   `-fno-finite-math-only`, with which Clang defines `__NO_MATH_ERRNO__` alone
   (Clang 18 and 21).
 - `-fno-honor-nans` alone, with Clang, which does to the empty interval what
-  `-ffinite-math-only` does: `__FINITE_MATH_ONLY__` is 1 only with
-  `-fno-honor-infinities` too.
+  `-ffinite-math-only` does (the sum of the empty set and [1, 2] is not
+  empty), and `-fno-honor-infinities` alone, which does it to the unbounded
+  intervals (`interval::universe().is_entire()` is false, and [-oo, 5] is
+  empty): `__FINITE_MATH_ONLY__` is 1 only with both.
 - `-ffast-math` or `-Ofast` followed by `-fno-fast-math`, after the flags of
   interval arithmetic, with Clang (18): the macros show nothing, but
   `-frounding-math` stays off, and the compiler takes the rounding direction

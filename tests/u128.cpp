@@ -3,8 +3,8 @@
  *--------------------------------------------------------------------------
  * Tests of GAOL v5: the 128-bit unsigned integer of gaol/math/gaol_u128.h.
  *
- * The accurate phases of CORE-MATH's log, sin, cos, tan, atan2 and pow, and of
- * log2p1, log10p1, atan2pi, hypot, rsqrt and asinpi, compute with a 128-bit
+ * The accurate phases of CORE-MATH's log, log10, sin, cos, tan, atan2 and pow,
+ * and of log2p1, log10p1, atan2pi, hypot, rsqrt and asinpi, compute with a 128-bit
  * integer (unsigned, and signed in asinpi), which Visual C++ has on no architecture and
  * GCC has on no 32-bit target: there GAOL computes with the two 64-bit halves
  * of gaol/math/gaol_u128.h. This test compiles those halves (GAOL_U128_FORCE_EMULATION)
