@@ -195,15 +195,14 @@ int main()
   // Horner's scheme evaluates with x five times. Near 1 the terms, as large as
   // 10, cancel down to 1e-10 for each x; the five independent occurrences of x
   // cannot cancel, and each brings its width 0.02 times the size of what it
-  // multiplies. The decimals 0.99 and 1.01 are no doubles: the interval is
-  // read from text, which encloses them, as is the true range below.
-  const interval x = textToInterval("[0.99, 1.01]");
+  // multiplies.
+  const interval x(0.99, 1.01);
   const interval horner = ((((x - 5.0) * x + 10.0) * x - 10.0) * x + 5.0) * x - 1.0;
   // pow is not in namespace gaol_core of the type interval, where
   // argument-dependent lookup finds sqr() or sin(), but in namespace gaol:
   // pow(x, 5) needs using namespace gaol, or gaol::pow
   const interval power = pow(x - 1.0, 5);
-  const interval range = textToInterval("[-1e-10, 1e-10]");
+  const interval range(-1e-10, 1e-10);
   row("Horner's scheme", horner, "x five times");
   row("pow(x - 1, 5)", power, "x once");
   std::cout << "    Horner's scheme gives an enclosure " << approx(horner.width() / power.width()) << " times wider\n";

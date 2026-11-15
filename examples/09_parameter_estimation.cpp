@@ -264,7 +264,7 @@ namespace {
     check(all_fit, "a point of S does not fit the data");
     check(all_covered, "a point of S is not in the paving");
 
-    const Box corner{ textToInterval("0.6"), textToInterval("0.2") };
+    const Box corner{ interval(0.6), interval(0.2) };
     const interval y1 = model(corner, 1.0);
     std::cout << "  (0.6, 0.2): y(1) in " << y1 << ", proved outside [4.5, 7.5]\n";
     check(y1.set_disjoint(data[0].y) && !Paving::meets(s.inside, corner),
@@ -372,7 +372,7 @@ namespace {
     check(ctc.area().width() < plain.area().width(), "the contractor should tighten the area");
 
     // A point of the set found apart, with a margin of 0.27 on each ring
-    const Box point{ textToInterval("0.81"), textToInterval("1.74") };
+    const Box point{ interval(0.81), interval(1.74) };
     const bool in_set = classify(point, beacons) == Verdict::inside;
     const bool covered = (Paving::meets(ctc.inside, point) || Paving::meets(ctc.boundary, point)) &&
                          (Paving::meets(plain.inside, point) || Paving::meets(plain.boundary, point));
