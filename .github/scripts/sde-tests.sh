@@ -3,7 +3,7 @@
 # processor with the AVX-512 instructions (Skylake-X): the runners of GitHub
 # for Windows have them or not, according to the machine they get, so that the
 # AVX-512 path of the arithmetic (GAOL_AVX512_ARITHMETIC) is configured there
-# by hand, and run on every machine.
+# by hand, and run under SDE whatever the machine.
 # SDE is 20 to 100 times as slow as the processor: the tests that do not
 # compute with intervals are left out (numbers reads and writes numbers,
 # core_math and u128 test CORE-MATH and the 128-bit integers), and four run at

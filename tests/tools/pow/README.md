@@ -216,7 +216,7 @@ h + l rounded, tighter where c<sup>n</sup> is within K of a double, and no
 test finds them wrong; `pown_bound.py` checks its proof instead. Its value 0
 for the squares, whose h + l is exact, has no mutant any longer: x<sup>2</sup>
 is `sqr()`, which `gaol_pown()` and `pown_upward()` take before
-`pown_products()`, and no exponent reaches that branch of `pown_bound()`. In
+`pown_products()`, and `pown_bound()` has no branch for it any longer. In
 the FPU build,
 `std-infinite-exponent-unchecked` survives, `diffpow` finding the same
 bounds: the exponents [+oo] and [-oo] that kill it in the SSE2 build are
