@@ -869,13 +869,14 @@ which `numbers` checks there too.
   exponents from the subnormal numbers to the largest, past 2^500 and 2^-500
   and with infinite bounds, each with 16 intervals I whose bounds are next to
   U and D, 0 and the infinities (80 000 checks, the empty I's included). `less`,
-  `strictly_less`, `is_entire` and `is_common_interval` have to
-  give the values of Tables 10.3 and 10.4, and `==` and `!=` must
-  not compile on intervals, `certainly_neq()` and the possibly
-  relations being gone. `gaol_ieee1788::operator<<` has to write an interval
-  as `operator<<` does, in a file that does not include the expressions. Each
-  name of `gaol_ieee1788` has to be the operation
-  of the standard it names, which a wrong translation would not show at
+  `strictly_less`, `is_entire` and `is_common_interval` have to give the values
+  of Tables 10.3 and 10.4, and `==` and `!=` must be the equality of sets and
+  its negation between two intervals (`equal` of the standard, over 729
+  pairs), and not compile with a double, `certainly_neq()` and the possibly
+  relations being gone. `gaol_ieee1788::operator<<` has to write an interval as
+  `operator<<` does, in a file that does not include the expressions. Each name
+  of `gaol_ieee1788` has to be the operation of the standard it names, which a
+  wrong translation would not show at
   compilation: the eight comparisons against the bounds of Table 10.3 and the
   empty cases of Table 10.4, over 20 000 pairs; `inf`, `sup` and the numeric
   functions against Table 10.2; the reverse functions with the arguments in

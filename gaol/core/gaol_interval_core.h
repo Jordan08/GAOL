@@ -400,11 +400,11 @@ namespace gaol_core {
     GAOL_NODISCARD bool certainly_ge(const interval &I) const;
     GAOL_NODISCARD bool certainly_le(const interval &I) const;
     /*
-      Removed from GAOL v5, with the operators == and != (see the relation
-      symbols below): certainly_neq() was !certainly_eq(), which is "possibly
-      not equal", [3,4] being certainly not equal to [3,4]; IEEE 1788-2015 has
-      neither certainly_eq nor the possibly relations, and its "certainly not
-      equal" is disjoint, set_disjoint() here. possibly_eq(I) is
+      Removed from GAOL v5 (see the relation symbols below, where == and !=
+      are the equality of sets): certainly_neq() was !certainly_eq(), which
+      is "possibly not equal", [3,4] being certainly not equal to [3,4]; IEEE
+      1788-2015 has neither certainly_eq nor the possibly relations, and its
+      "certainly not equal" is disjoint, set_disjoint() here. possibly_eq(I) is
       !set_disjoint(I). The code is kept in comments.
     */
 //     GAOL_NODISCARD bool certainly_eq(const interval &I) const;
@@ -2403,37 +2403,15 @@ GAOL_INLINE double interval::rad(void) const
     which chose between the set, certainly and possibly relations, is gone
     with the possibly relations; its set relations were never taken, the
     builds defining GAOL_SET_RELATIONS where this header read
-    GAOL_SET_RELATION. == and != are not defined on intervals: with the
-    certainly relations, != was !certainly_eq(), true for [3,4] and [3,4].
-    set_eq() and set_disjoint() are the equality and the "certainly not equal"
-    of IEEE 1788-2015. The former operators are kept in comments.
+    GAOL_SET_RELATION. == and != are the equality of sets, set_eq() and its
+    negation, the equal of IEEE 1788-2015, whatever the build: [3,4] == [3,4],
+    and two empty sets are equal. The former == and !=, the certainly (or
+    possibly) relations, are not back: != was !certainly_eq(), true for [3,4]
+    and [3,4]. set_disjoint() is the "certainly not equal" of the standard.
+    The former operators other than == and != are kept in comments.
   */
 //   //! Relations
 //   //@{
-// GAOL_NODISCARD GAOL_INLINE bool operator==(const interval &I1, const interval &I2)
-//   {
-// #if GAOL_SET_RELATION
-//     return I1.set_eq(I2);
-// #elif GAOL_CERTAINLY_RELATIONS
-//     return I1.certainly_eq(I2);
-// #else
-//     // No other case than GAOL_POSSIBLY_RELATIONS
-//     return I1.possibly_eq(I2);
-// #endif
-//   }
-//
-// GAOL_NODISCARD GAOL_INLINE bool operator!=(const interval &I1, const interval &I2)
-//   {
-// #if GAOL_SET_RELATION
-//     return I1.set_neq(I2);
-// #elif GAOL_CERTAINLY_RELATIONS
-//     return I1.certainly_neq(I2);
-// #else
-//     // No other case than GAOL_POSSIBLY_RELATIONS
-//     return I1.possibly_neq(I2);
-// #endif
-//   }
-//
 // GAOL_NODISCARD GAOL_INLINE bool operator<=(const interval &I1, const interval &I2)
 //   {
 // #if GAOL_SET_RELATION
@@ -2507,10 +2485,27 @@ GAOL_NODISCARD GAOL_INLINE bool operator>(const interval &I1, const interval &I2
   }
 
   /*
+    == and != (GAOL v5): the equality of two sets, set_eq() and set_neq(), the
+    equal of IEEE 1788-2015. Unlike <= and >=, which are the certainly
+    relations, [1,2] == [1,2] is true; the empty set is equal to itself. !=
+    is defined too: with C++20, a != b would be !(a == b) otherwise, and not
+    compile in an earlier standard.
+  */
+GAOL_NODISCARD GAOL_INLINE bool operator==(const interval &I1, const interval &I2)
+  {
+    return I1.set_eq(I2);
+  }
+
+GAOL_NODISCARD GAOL_INLINE bool operator!=(const interval &I1, const interval &I2)
+  {
+    return I1.set_neq(I2);
+  }
+
+  /*
     An interval and a double (GAOL v5): the relations with interval(d), which
     the implicit conversion gave before interval(double) became explicit, an
-    infinite d or a NaN included (interval(d) is then empty). No == nor !=, as
-    between two intervals.
+    infinite d or a NaN included (interval(d) is then empty). No == nor != with
+    a double: set_eq(interval(d)).
   */
 GAOL_NODISCARD GAOL_INLINE bool operator<=(const interval &I, double d)
   {
