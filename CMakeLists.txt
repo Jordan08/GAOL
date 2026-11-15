@@ -1471,10 +1471,9 @@ install(TARGETS gaol EXPORT gaolTargets
 )
 
 # The headers a program includes, gaol/gaol, gaol/parser/gaol_expression.h and
-# gaol/parser/gaol_expr_eval.h for the expressions, and those they include,
-# gaol/gaol_fpu_msvc.h for Visual C++ among them: gaol/Makefile.am and
-# gaol/meson.build install the same ones. Not the headers of the sources of
-# GAOL only (GAOL v5): gaol/parser/gaol_interval_parser.h, which did not
+# gaol/parser/gaol_expr_eval.h for the expressions, and those they include:
+# gaol/Makefile.am and gaol/meson.build install the same ones. Not the headers
+# of the sources of GAOL only (GAOL v5): gaol/parser/gaol_interval_parser.h, which did not
 # compile when included, the parts of the library (gaol_init_cleanup.h,
 # math/gaol_core_math.h, math/gaol_u128.h, math/gaol_compoundm1.h, the header
 # that the sources of core/ share, core/gaol_interval_internal.h, and the
@@ -1489,7 +1488,7 @@ install(TARGETS gaol EXPORT gaolTargets
 set(GAOL_HEADERS
   gaol/gaol.h gaol/gaol_common.h
   gaol/gaol_config.h
-  gaol/gaol_fpu.h gaol/gaol_fpu_fenv.h gaol/gaol_fpu_msvc.h
+  gaol/gaol_fpu.h gaol/gaol_fpu_fenv.h
   gaol/gaol_ieee1788.h gaol/gaol_interval.h
   gaol/gaol_port.h
   gaol/gaol_version.h)

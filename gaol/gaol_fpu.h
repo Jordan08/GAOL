@@ -488,11 +488,8 @@ the bounds of cancel_minus() no longer made exact.
 
 #if GAOL_HAVE_FENV_H
 #  include "gaol/gaol_fpu_fenv.h"
-#elif defined (_MSC_VER)
-#  include <fenv.h>
-#  include "gaol/gaol_fpu_msvc.h"
 #else
-#  error "Don't know how to define FPU manipulation functions"
+#  error "GAOL needs <fenv.h> to define the FPU manipulation functions"
 #endif // GAOL_HAVE_FENV_H
 
 namespace gaol_core {

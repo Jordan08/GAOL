@@ -104,9 +104,9 @@ accepts it: the three builds test the compiler for it with a link.
 A program includes `gaol/gaol` (or `gaol/gaol.h`), and
 `gaol/parser/gaol_expression.h` for the expressions, with
 `gaol/parser/gaol_expr_eval.h` to evaluate them. The three builds install these and the
-headers they include, each of which compiles alone but the four that other
+headers they include, each of which compiles alone but the three that other
 headers include in the middle of their code (`gaol/core/gaol_interval_fpu.h`,
-`gaol/core/gaol_interval_neon.h`, `gaol/core/gaol_interval_sse.h`) or for Visual C++ only (`gaol_fpu_msvc.h`), and not the
+`gaol/core/gaol_interval_neon.h`, `gaol/core/gaol_interval_sse.h`), and not the
 headers of GAOL's sources (GAOL v5): `gaol/parser/gaol_interval_parser.h`,
 which did not compile when included, `gaol_init_cleanup.h`,
 `gaol/math/gaol_core_math.h`, `gaol/math/gaol_u128.h`,
@@ -982,7 +982,7 @@ try {
 
 The `what()` is `file:line: explanation`: the name of the source file of GAOL,
 without its directories, and the line that threw the exception (`__FILE__`,
-cut after its last `/` or `\`, and `__LINE__` of `gaol_ERROR`, in
+cut after its last `/` or `\`, and `__LINE__` of `GAOL_ERROR`, in
 `gaol/gaol_common.h`: the path of the machine that built GAOL is not in the
 message), then what went wrong. The errors that the reader of strings finds
 in a call (`nth_root(8, 1.5)`, `sin(1, 2)`) name the grammar,
@@ -1004,10 +1004,12 @@ program that caught `gaol_core::input_format_error` now catches
 file and the line. `unavailable_feature_error` was thrown by no operation of
 GAOL v5. `gaol_warning()` and `gaol_error()`, which write on `std::cerr`,
 write a null file name as `(unknown file)` and a null message as nothing.
-`gaol_ERROR(excep, msg)`, which GAOL and a program that adds its own errors
+`GAOL_ERROR(excep, msg)`, which GAOL and a program that adds its own errors
 call, takes a class derived from `std::exception` and refuses any other type
 when it is compiled (a `static_assert`, in a build that aborts as in one that
-throws; GAOL v5).
+throws; GAOL v5). `gaol_ERROR(excep, msg)`, its name in GAOL 4, is the same
+macro, kept for the programs that call it (the macros of GAOL start with
+`GAOL_`; GAOL v5).
 
 Where memory runs out, GAOL throws the `std::bad_alloc` of C++: the reader of
 strings too, where, in GAOL 4, flex ended the program with `exit(2)` when it could not
