@@ -118,7 +118,7 @@ namespace gaol_core {
       err_msg += gaol_detail::text_in_message(buffer);
       I = interval::emptyset();
       set_failbit(is);
-      gaol_ERROR(std::invalid_argument,err_msg.c_str());
+      GAOL_ERROR(std::invalid_argument,err_msg.c_str());
     }
     return is;
   }
