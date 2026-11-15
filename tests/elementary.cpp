@@ -144,6 +144,20 @@ namespace
         expect_close(name, r, v.below, v.above, describe);
       }
     }
+    // A value that is a double is the bound, not a double from it, which
+    // expect_close() allows: the square root of a double that is a square
+    // (sqrt is correctly rounded in each direction), and the value at 0 or at 1
+    // of exp, log, cos, sin, erf... (exp(0), log(1), sin(0)...). The table
+    // writes as a double a value within 2^-1800 of one, relatively, as sin(x)
+    // of a tiny x, which is not that double: expect_close() cannot ask for the
+    // bound where the table does not tell
+    for (const UnaryValue& v : unary_values) {
+      if (v.below == v.above && (std::strcmp(v.function, "sqrt") == 0 || v.x == 0.0 || v.x == 1.0)) {
+        const interval r = unary_functions().at(v.function).f(interval(v.x));
+        check(std::string(v.function) + "([x]): the exact value", r.left() == v.below && r.right() == v.above,
+              [&] { return std::string(v.function) + "(" + hex(v.x) + ") = " + hex(r) + " rather than [" + hex(v.below) + "]"; });
+      }
+    }
     // The functions of two intervals: pow() and atan2()
     for (const BinaryValue& v : binary_values) {
       const std::string name = std::string(v.function) + "([a],[b])";
