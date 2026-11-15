@@ -18,8 +18,9 @@ GAOL v5 continues the GAOL 4.2.2 of Fr\'ed\'eric Goualard, and most programs
 written for GAOL~4 compile and run with it once five things are done: the
 namespace is opened, the strings they gave to \code{interval(const char*)}
 are read by \code{textToInterval()}, the relations \code{==} and \code{!=} on
-intervals are rewritten with \code{set\_eq()}, \code{set\_disjoint()} or
-\code{!set\_disjoint()}, the handlers of the exceptions of GAOL~4 are
+intervals, which compile with another meaning, the equality of sets, are read
+again and rewritten with \code{set\_disjoint()} or \code{!set\_disjoint()}
+where they stood for the possibly relations, the handlers of the exceptions of GAOL~4 are
 retargeted on those of the standard library, and the conversions of a
 \code{double} or an integer to an interval, explicit now, are written out.
 The other changes concern what a program
@@ -121,22 +122,23 @@ them are described in the section the cross-reference names.
   program had computed before its initialization (\pxref{chap:init}). It
   no longer frees what the initialization allocated, which the automatic
   cleanup frees when the program ends.
-\item[$\bullet$] \textbf{The relations.} The operators \code{==} and
-  \code{!=} on intervals are gone, with the possibly relations
+\item[$\bullet$] \textbf{The relations.} The possibly relations
   (\code{possibly\_eq()}, \code{possibly\_le()}\ldots),
-  \code{certainly\_eq()} and \code{certainly\_neq()}, and so is the option
-  \loption{enable-relations} of \cmd{configure} and meson: a program compares
-  intervals with \code{set\_eq()}, \code{set\_disjoint()} and
+  \code{certainly\_eq()} and \code{certainly\_neq()} are gone, and so is the
+  option \loption{enable-relations} of \cmd{configure} and meson: a program
+  compares intervals with \code{set\_eq()}, \code{set\_disjoint()} and
   \code{!set\_disjoint()}, and \code{<}, \code{<=}, \code{>} and \code{>=}
-  are the certainly relations (Chapter~\ref{chap:relations}). The new
-  relations do not give the results of the old operators: \code{==} was
+  are the certainly relations (Chapter~\ref{chap:relations}). The operators
+  \code{==} and \code{!=} on intervals stay, and change meaning: \code{==} was
   \code{certainly\_eq()} in every build by default, true for two empty sets and
   for a point interval equal to the upper bound of the other interval
   (\code{[4] == [3, 4]} was true, \code{[3, 4] == [4]} false), and \code{!=} was
   its negation, so that
-  \code{==} of $[3, 4]$ and $[3, 4]$ was false, where \code{set\_eq()} is
-  true, and \code{!=} was true, where \code{set\_disjoint()} is false. A
-  program chooses the relation it means.
+  \code{==} of $[3, 4]$ and $[3, 4]$ was false, and \code{!=} true. They are
+  now \code{set\_eq()} and \code{set\_neq()}, the equality of sets:
+  \code{[3, 4] == [3, 4]} is true, \code{[4] == [3, 4]} false. A program that
+  used them still compiles, and gives other results: it chooses the relation
+  it means.
 \item[$\bullet$] \textbf{The constructors from strings.} The constructor from
   one string, \code{interval(const char*)}, is gone, and with it the
   conversion of a string wherever an interval is expected:
@@ -1227,16 +1229,19 @@ an infinite bound as beyond the same infinite bound:
 were false, as \code{set\_le()} of the empty set in the empty set.
 
 \medskip
-The possibly relations, \code{certainly\_eq()}, \code{certainly\_neq()},
-\code{==} and \code{!=} are removed, and so is the option that chose what the
-relation symbols mean.\newinvfive{} \code{certainly\_neq()} was
+The possibly relations, \code{certainly\_eq()} and \code{certainly\_neq()}
+are removed, and so is the option that chose what the relation symbols
+mean.\newinvfive{} \code{certainly\_neq()} was
 \code{!certainly\_eq()}, which is ``possibly not equal'': $[3, 4]$ was
 certainly not equal to $[3, 4]$, and so was \code{!=} with the certainly
 relations, the default of every build. IEEE 1788-2015 has neither the
 possibly relations nor a certain equality: its equality is \ieee{equal},
 \code{set\_eq()}, and ``for all $x$ and $y$, $x \neq y$'' is
 \ieee{disjoint}, \code{set\_disjoint()}; \code{possibly\_eq(y)} was
-\code{!set\_disjoint(y)}. \code{<}, \code{<=}, \code{>} and \code{>=} are
+\code{!set\_disjoint(y)}. \code{==} and \code{!=} are \code{set\_eq()} and
+\code{set\_neq()}, the equality of sets and its negation: a program of
+GAOL~4 that used them still compiles, and gives other results.
+\code{<}, \code{<=}, \code{>} and \code{>=} are
 the certainly relations in every build, \ieee{strictPrecedes},
 \ieee{precedes} and their converses. The set relations of the option were
 never taken, \cmd{configure} and meson defining \code{GAOL\_SET\_RELATIONS}
@@ -1671,8 +1676,9 @@ wide as the range, which the example says it encloses.
 
 The move from GAOL~4 to GAOL v5 costs a program little: the namespace to
 open, the strings to read with \code{textToInterval()}, the relations
-\code{==} and \code{!=} to rewrite with \code{set\_eq()},
-\code{set\_disjoint()} or \code{!set\_disjoint()}, the handlers of the exceptions of GAOL~4 to
+\code{==} and \code{!=}, which compile and mean the equality of sets, to read
+again, and to rewrite with \code{set\_disjoint()} or \code{!set\_disjoint()}
+where they stood for the possibly relations, the handlers of the exceptions of GAOL~4 to
 retarget on those of the standard library, and the conversions of a double or an integer
 to an interval, explicit now, to write out. What the program then sees is
 decided by three choices that run through the register of this chapter. The

@@ -1604,11 +1604,11 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
     same in every file that includes GAOL, `gaol/gaol_port.h` being installed.
     A job of `containers.yml` (Debian 13, amd64) builds with `=0`, which gives
     the test of the exceptions teeth on amd64.
-- **The possibly relations, `certainly_eq()`, `certainly_neq()`, `==` and
-  `!=` are removed**, and so is the option that chose what the relation
-  symbols mean (`--enable-relations`, `-Denable-relations`), gone from
-  configure and meson. The code is kept in comments in
-  `gaol/core/gaol_interval_core.h`.
+- **The possibly relations, `certainly_eq()` and `certainly_neq()` are
+  removed**, and so is the option that chose what the relation symbols mean
+  (`--enable-relations`, `-Denable-relations`), gone from configure and meson.
+  The code is kept in comments in `gaol/core/gaol_interval_core.h`. `==` and
+  `!=` stay, with another meaning.
   - **Why.** `certainly_neq()` was `!certainly_eq()`, which is "possibly not
     equal": `[3, 4]` was certainly not equal to `[3, 4]`, and so was `!=` with
     the certainly relations, the default of every build. IEEE 1788-2015 has
@@ -1621,8 +1621,21 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
     converses. The set relations of the option were never taken, configure
     and meson defining `GAOL_SET_RELATIONS` where the header read
     `GAOL_SET_RELATION`: they gave the possibly relations.
-  - **Tests.** `tests/other_functions.cpp` checks that `==` and `!=` do not
-    compile on intervals.
+  - **`==` and `!=`** are the equality of sets in every build, `set_eq()` and
+    `set_neq()`, `equal` of IEEE 1788-2015, between two intervals only (no
+    overload for a `double`: `x == interval(d)`). They were `certainly_eq()`
+    and `certainly_neq()` with the certainly relations, the default: `[3, 4]
+    == [3, 4]` was false and is true, `[4] == [3, 4]` was true and is false.
+    A program of GAOL 4 that used them still compiles, and gives other
+    results. Generic code that tests `==` on its scalar type compiles: the
+    products of Eigen matrices of 8 x 8 and more or of dynamic size,
+    `std::abs` and `std::sqrt` of a `std::complex<interval>`; `std::sqrt` of
+    a complex box is not an enclosure (`examples/examples.md`).
+  - **Tests.** `tests/other_functions.cpp` checks `==` and `!=` against
+    `equal` on 729 pairs of intervals, and that they do not compile with a
+    `double`. `tests/interval_ieee_basic.cpp` checks `gaol_ieee1788` with one
+    line `CHECK( add(interval(1, 2), interval(3, 4)) == interval(4, 6) )` for
+    each result.
 - **`gaol::lexicographic_less`** is a total order on the intervals, for the
   containers and the algorithms of the standard library that compare with `<`
   (`std::set`, `std::map`, `std::sort`, `std::max`, `std::min`, `std::clamp`).
