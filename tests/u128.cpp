@@ -187,17 +187,17 @@ namespace
     const std::string what = hex(ah, al) + " and " + hex(bh, bl);
 
     products(ah, al, bh, bl);
-    same("add", gaol_u128_add(a, b), (native)(na + nb), what);
-    same("add64", gaol_u128_add64(a, bl), (native)(na + bl), what);
-    same("sub", gaol_u128_sub(a, b), (native)(na - nb), what);
-    same("neg", gaol_u128_neg(a), (native)(-na), what);
-    same("mul", gaol_u128_mul(a, b), (native)(na * nb), what);
+    same("add", gaol_u128_add(a, b), na + nb, what);
+    same("add64", gaol_u128_add64(a, bl), na + bl, what);
+    same("sub", gaol_u128_sub(a, b), na - nb, what);
+    same("neg", gaol_u128_neg(a), -na, what);
+    same("mul", gaol_u128_mul(a, b), na * nb, what);
     same("mul64", gaol_u128_mul64(al, bl),
-         (native)((native)al * (native)bl), what);
-    same("or", gaol_u128_or(a, b), (native)(na | nb), what);
-    same("and64", gaol_u128_and64(a, bl), (native)(na & (native)bl), what);
+         (native)al * (native)bl, what);
+    same("or", gaol_u128_or(a, b), na | nb, what);
+    same("and64", gaol_u128_and64(a, bl), na & (native)bl, what);
     same("of", gaol_u128_of(al), (native)al, what);
-    same("and", gaol_u128_and(a, b), (native)(na & nb), what);
+    same("and", gaol_u128_and(a, b), na & nb, what);
     // the signed values, in two's complement
     same("of_i64", gaol_u128_of_i64((int64_t)al), (native)(signed_native)(int64_t)al, what);
     same("imul64", gaol_u128_imul64((int64_t)al, (int64_t)bl),
@@ -216,10 +216,10 @@ namespace
     const native na = to_native(a);
     for (int n = 0; n < 128; ++n) {
       const std::string what = hex(ah, al) + " by " + std::to_string(n);
-      same("shl", gaol_u128_shl(a, n), (native)(na << n), what);
-      same("shr", gaol_u128_shr(a, n), (native)(na >> n), what);
+      same("shl", gaol_u128_shl(a, n), na << n, what);
+      same("shr", gaol_u128_shr(a, n), na >> n, what);
       same("sar", gaol_u128_sar(a, n), (native)((signed_native)na >> n), what);
-      same("bit", gaol_u128_bit(n), (native)((native)1 << n),
+      same("bit", gaol_u128_bit(n), (native)1 << n,
            std::to_string(n));
     }
   }

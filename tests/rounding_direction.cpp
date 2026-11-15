@@ -950,7 +950,7 @@ namespace
     // unmasked. The flags are raised with the exceptions masked, so that no write traps
     const unsigned int x87_hw_others[] = { 0x037fu, 0x027fu, 0x133fu, 0x037du };
     const unsigned int mxcsr_hw_others[] = { 0x1f80u, 0x1fbfu, 0x1fa0u, 0x1f00u };
-    const unsigned int saved_cw = read_x87_word(), saved_csr = static_cast<unsigned int>(_mm_getcsr());
+    const unsigned int saved_cw = read_x87_word(), saved_csr = _mm_getcsr();
     gaol_core::x86_registers hw;
     for (std::size_t d = 0; d < nb_directions; ++d) {
       for (unsigned int flush : flushes) {
@@ -960,26 +960,26 @@ namespace
             write_x86_fields(register_directions[d], flush);
             clear_x87_exceptions();
             write_x87_word((read_x87_word() & 0x0c00u) | x87_hw_others[o]);
-            _mm_setcsr((static_cast<unsigned int>(_mm_getcsr()) & (0x6000u | 0x8040u)) | mxcsr_hw_others[o]);
+            _mm_setcsr((_mm_getcsr() & (0x6000u | 0x8040u)) | mxcsr_hw_others[o]);
           };
           // Everything is read with the registers in the state of the test, and checked after they are given back to the
           // program: with an exception unmasked in them, nothing but the instructions below runs
           set_state();
-          const unsigned int cw = read_x87_word(), csr = static_cast<unsigned int>(_mm_getcsr());
+          const unsigned int cw = read_x87_word(), csr = _mm_getcsr();
           unsigned int read_cw = 0xffffffffu, read_csr = 0xffffffffu;
           hw.read_control(read_cw, read_csr);
-          const unsigned int cw_after = read_x87_word(), csr_after = static_cast<unsigned int>(_mm_getcsr());
+          const unsigned int cw_after = read_x87_word(), csr_after = _mm_getcsr();
           // The four directions of each unit, written through the library: the word read back is the word written
           unsigned int new_cw[4], cw_written[4], csr_untouched[4], new_csr[4], csr_written[4], cw_untouched[4];
           for (unsigned int rc = 0; rc < 4; ++rc) {
             new_cw[rc] = (cw & ~0x0c00u) | (rc << 10);
             hw.write_x87_control(new_cw[rc]);
             cw_written[rc] = read_x87_word();
-            csr_untouched[rc] = static_cast<unsigned int>(_mm_getcsr());
+            csr_untouched[rc] = _mm_getcsr();
             set_state();
             new_csr[rc] = (csr & ~0x6000u) | (rc << 13);
             hw.write_mxcsr(new_csr[rc]);
-            csr_written[rc] = static_cast<unsigned int>(_mm_getcsr());
+            csr_written[rc] = _mm_getcsr();
             cw_untouched[rc] = read_x87_word();
             set_state();
           }
@@ -1034,7 +1034,7 @@ namespace
       { "round_nearest()", [] { gaol_core::round_nearest(); }, 0u, 0u },
       { "round_downward()", [] { gaol_core::round_downward(); }, 1u, 1u },
     };
-    const unsigned int saved_csr = static_cast<unsigned int>(_mm_getcsr());
+    const unsigned int saved_csr = _mm_getcsr();
 #  if GAOL_TESTS_X86_32
     const unsigned int saved_cw = read_x87_word();
 #  endif
@@ -1052,9 +1052,9 @@ namespace
 #  endif
           // Read back: an emulator (Rosetta of macOS) keeps the exceptions masked, whatever MXCSR is given
           _mm_setcsr(mxcsr_register(other, f));
-          const unsigned int csr = static_cast<unsigned int>(_mm_getcsr());
+          const unsigned int csr = _mm_getcsr();
           fn.run();
-          const unsigned int csr_after = static_cast<unsigned int>(_mm_getcsr());
+          const unsigned int csr_after = _mm_getcsr();
 #  if GAOL_TESTS_X86_32
           const unsigned int cw_after = read_x87_word();
 #  endif
@@ -1113,22 +1113,22 @@ namespace
     }
     const unsigned int cw_others[] = { 0x037fu, 0x027fu, 0x133fu };
     const unsigned int csr_flags[] = { 0x0000u, 0x003fu };
-    const unsigned int saved_cw = read_x87_word(), saved_csr = static_cast<unsigned int>(_mm_getcsr());
+    const unsigned int saved_cw = read_x87_word(), saved_csr = _mm_getcsr();
     // The registers in a state of the tests: the directions, the modes, the other bits of the control word and the
     // exception flags (all the exceptions stay masked, so that nothing traps)
     const auto set_state = [&](std::size_t d, unsigned int flush, unsigned int other, unsigned int flags) {
       write_x86_fields(register_directions[d], flush);
       clear_x87_exceptions();
       write_x87_word((read_x87_word() & 0x0c00u) | other);
-      _mm_setcsr((static_cast<unsigned int>(_mm_getcsr()) & ~0x003fu) | flags);
+      _mm_setcsr((_mm_getcsr() & ~0x003fu) | flags);
     };
     for (std::size_t d = 0; d < nb_directions; ++d) {
       for (unsigned int flush : flushes) {
         for (unsigned int other : cw_others) {
           set_state(d, flush, other, 0x003fu);
-          const unsigned int cw = read_x87_word(), csr = static_cast<unsigned int>(_mm_getcsr());
+          const unsigned int cw = read_x87_word(), csr = _mm_getcsr();
           const gaol_core::rounding_state s = gaol_core::get_rounding();
-          const unsigned int cw_after = read_x87_word(), csr_after = static_cast<unsigned int>(_mm_getcsr());
+          const unsigned int cw_after = read_x87_word(), csr_after = _mm_getcsr();
           const auto describe_state = [&] {
             return std::string("in ") + directions[d].name + " with the modes " + x86_hex(flush) + ": control word "
                  + x86_hex(cw) + ", MXCSR " + x86_hex(csr) + ", read " + x86_hex(s.x87) + ", " + x86_hex(s.sse) + ", " + x86_hex(s.flush);
@@ -1144,13 +1144,13 @@ namespace
               for (unsigned int flags : csr_flags) {
                 for (int and_modes = 0; and_modes < 2; ++and_modes) {
                   set_state(e, flush_now, cw_others[(e + d) % (sizeof(cw_others)/sizeof(cw_others[0]))], flags);
-                  const unsigned int cw_now = read_x87_word(), csr_now = static_cast<unsigned int>(_mm_getcsr());
+                  const unsigned int cw_now = read_x87_word(), csr_now = _mm_getcsr();
                   if (and_modes != 0) {
                     gaol_core::set_rounding_and_flush_modes(s);
                   } else {
                     gaol_core::set_rounding(s);
                   }
-                  const unsigned int cw_end = read_x87_word(), csr_end = static_cast<unsigned int>(_mm_getcsr());
+                  const unsigned int cw_end = read_x87_word(), csr_end = _mm_getcsr();
                   const std::string name = and_modes != 0 ? "set_rounding_and_flush_modes()" : "set_rounding()";
                   const auto describe = [&] {
                     return describe_state() + ", set over " + directions[e].name + " with the modes " + x86_hex(flush_now)
@@ -3716,9 +3716,9 @@ int main()
       for (unsigned int flush : flushes) {
         for (const RegisterOperation& op : register_operations) {
           write_x86_fields(register_directions[d], flush);
-          const unsigned int cw_before = read_x87_word(), csr_before = static_cast<unsigned int>(_mm_getcsr());
+          const unsigned int cw_before = read_x87_word(), csr_before = _mm_getcsr();
           const interval r = op.run(x, y);
-          const unsigned int cw_after = read_x87_word(), csr_after = static_cast<unsigned int>(_mm_getcsr());
+          const unsigned int cw_after = read_x87_word(), csr_after = _mm_getcsr();
           write_x86_fields(register_directions[0], 0u);
           const auto describe = [&] {
             return std::string(op.name) + " in " + directions[d].name + " with the modes " + x86_hex(flush) + ": control word "
