@@ -552,8 +552,10 @@ and `erf(0.5)` remains the `erf` of C.
 `finishedBy`, `contains`, `startedBy`, `overlappedBy`, `metBy` and `after`,
 numbered from 0 to 15 in that order, which is the order of the 16 bits of the
 note of the standard, where `bothEmpty` is the leftmost one: the state `s` is
-the pattern `0x8000u >> s`, and `disjoint(a, b)` is true when the pattern of
-`overlap(a, b)` meets `disjointMask`, `0xF001`. The type,
+the pattern `0x8000u >> static_cast<unsigned>(s)` (an `overlapping_state` is
+an `enum class`, which does not convert by itself), and `disjoint(a, b)` is true
+when the pattern of `overlap(a, b)` meets the mask `0xF001` of the note
+(`disjointMask` there; GAOL has no name for it). The type,
 `gaol::overlapping_state`, and the member `a.overlap(b)` are in `gaol` too,
 which has no other name for it. `operator<<` writes a state by its name in the
 table (`meets`, `containedBy`...), as a string, whatever the locale. The state
@@ -664,7 +666,11 @@ most every point of y. They do not tell which of two intervals is the greater:
 opposite. There is no `==` nor `!=` on intervals (`set_eq()` compares the
 bounds, `set_disjoint()` and `less()` are the other relations of the standard),
 and the empty set, which has no point to contradict a certainly relation, is
-less than every interval, and greater, itself included: `e < e` is true.
+less than every interval, and greater, itself included: `e < e` is true. A
+double is compared as `interval(d)`, which is the empty set for an infinite d
+or a NaN (as in IBEX), so that all four relations with one are true for every
+x: `x > +oo`, `x >= +oo`, `x < -oo` and `x <= NaN` are, `[1, 2] > +oo` among
+them, and so is `x < +oo`.
 
 **None of them is a strict weak ordering, so intervals are not given to the
 algorithms and the containers of the standard library that compare with `<`**
@@ -905,7 +911,9 @@ taken as an `int`, one within the unsigned ints as an `unsigned`, and one
 beyond them as a `long long` (`gaol_pown_ll()`), whose power comes from the
 `pow` of CORE-MATH at the bounds of x, as for `gaol::pow(x, [n])` (GAOL v5:
 [−∞, +∞] for a nonempty x): `pow(interval(1 + 0x1p-30), 1LL << 33)`, about
-e^8, is [2980.9579759367944, 2980.9579759367948]. Beyond 64 bits (an
+e^8, is [`0x1.749ea7bd26dc6p+11`, `0x1.749ea7bd26dc7p+11`], which
+`interval::precision(17)` writes [2980.9579759367943, 2980.9579759367949].
+Beyond 64 bits (an
 `__int128`), the exponent is taken as ±(2^63 − 1) or ±(2^63 − 2), of its sign
 and parity, the power of every double but 0, ±1 and ±∞ being beyond the
 doubles there. So do `nth_root(x, q)` and `rootn(x, q)`, whose order beyond the ints and the
@@ -1745,8 +1753,10 @@ bounds wrong**, and GAOL defends itself in two ways:
   of GAOL that computes bounds clears the modes when it starts, in the check
   that sets the rounding direction upward: the check is one comparison with a
   subnormal number, which shows the modes as well as the direction (see
-  [The rounding direction](#the-rounding-direction)), or, with the NEON
-  intervals, a read of FPCR, which holds both; the modes stay
+  [The rounding direction](#the-rounding-direction)), or, with a 32-bit x86
+  processor, a read of the control word and of MXCSR (see
+  [The control registers of x86 processors](#the-control-registers-of-x86-processors)),
+  or, with the NEON intervals, a read of FPCR, which holds both; the modes stay
   cleared for the rest of the program, as the rounding direction stays upward.
   The check comes before the operation reads, compares or copies a bound, the
   test of the empty set aside, and the compiler is kept from making a
@@ -1839,7 +1849,7 @@ gdtoa (FreeBSD, macOS) and the Debug runtime of Visual C++ write it 0
 What remains: the reader, which makes no check of the modes, takes the
 numbers apart by their bits, and compares the two numbers of `<a, b>`, which
 have to be the same double, by theirs too (GAOL v5), so that under
-denormals-are-zero `<1e-310, 1e-309>` is refused, as without it. The unary
+denormals-are-zero `<0x1p-1070, 0x1p-1071>` is refused, as without it. The unary
 minus makes no check either, but it only exchanges the stored bounds, which
 the modes do not change, as they do not change the test of the empty set,
 made before the check
@@ -1881,7 +1891,7 @@ bounds.
   results, and where GAOL checks the rounding direction with an addition,
   1 + 2^-60 or 1 + (2^-1060 + 0), whose result is inexact (see
   [The rounding direction](#the-rounding-direction)), even an operation whose
-  bounds are exact raises it. On x86, the addition of the subnormal 2^-1060
+  bounds are exact raises it. On x86-64, the addition of the subnormal 2^-1060
   also raises the denormal-operand flag of the SSE instructions, which is none
   of the five flags of IEEE 754 (not in `FE_ALL_EXCEPT`), and its exception
   stops the program where the program enabled it; and with flush-to-zero set,
