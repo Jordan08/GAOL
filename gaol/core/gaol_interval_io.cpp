@@ -56,7 +56,7 @@ namespace gaol_core {
   // Sets the failbit of is, without the std::ios_base::failure setstate()
   // throws when the exceptions of is include failbit: the error of a line
   // that is no interval is GAOL's exception. The bit stays set.
-  static void set_failbit(istream& is)
+  static void set_failbit(std::istream& is)
   {
     try {
       is.setstate(std::ios_base::failbit);
@@ -94,11 +94,11 @@ namespace gaol_core {
     first, without skipping (std::getline() does the same): it flushes the
     tied stream, and sets failbit where is is not good.
   */
-  istream& operator >>(istream& is, interval& I)
+  std::istream& operator >>(std::istream& is, interval& I)
   {
     std::string buffer;
 
-    if (!istream::sentry(is,true)) {
+    if (!std::istream::sentry(is,true)) {
       return is;
     }
     if (!std::getline(is >> std::ws,buffer)) {
@@ -699,7 +699,7 @@ namespace gaol_core {
     or to the right only: for std::internal, the fill is put where a number of
     os has it (GAOL v5).
   */
-  static void write_text(ostream& os, std::string& text)
+  static void write_text(std::ostream& os, std::string& text)
   {
     // std::internal puts the fill after the sign of a number and its 0x
     // prefix, before its digits. The text of the width and center formats
@@ -737,7 +737,7 @@ namespace gaol_core {
     never given another precision or width for the time of the writing: the
     threads of a program writing to std::cout at once would race on them.
   */
-  ostream& operator<<(ostream& os, const interval& I)
+  std::ostream& operator<<(std::ostream& os, const interval& I)
   {
     //    double l = ((I.left()==0.0) ? 0.0  : I.left()); // Avoids printing -0
     //    double r = ((I.right()==0.0) ? 0.0 : I.right());  // Avoids printing -0
@@ -908,7 +908,7 @@ namespace gaol_core {
     overlapping_state(k), k in decimal whatever the locale of os, which
     std::to_string does not have.
   */
-  ostream& operator<<(ostream& os, overlapping_state s)
+  std::ostream& operator<<(std::ostream& os, overlapping_state s)
   {
     static const char* const names[16] = {
       "bothEmpty", "firstEmpty", "secondEmpty", "before", "meets", "overlaps", "starts", "containedBy",
