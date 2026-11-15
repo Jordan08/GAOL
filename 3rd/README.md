@@ -128,9 +128,9 @@ which are marked in the code: each changed line carries `/* GAOL */`, at its
 end or before the comment that ends it, or is part of a comment beginning with
 `/* GAOL:`. They are made in the tree rather than kept as a patch to reapply.
 
-1. **The 128-bit integer** of the accurate phases of `log`, `sin`, `cos`, `tan`,
-   `atan2` and `pow`, and of `log2p1`, `log10p1`, `atan2pi`, `hypot`, `rsqrt`
-   and `asinpi`. Upstream writes it `unsigned __int128`, or
+1. **The 128-bit integer** of the accurate phases of `log`, `log10`, `sin`,
+   `cos`, `tan`, `atan2` and `pow`, and of `log2p1`, `log10p1`, `atan2pi`,
+   `hypot`, `rsqrt` and `asinpi`. Upstream writes it `unsigned __int128`, or
    `unsigned _BitInt(128)` with Clang 14 and GCC 14: Visual C++ has neither, on
    no architecture, and neither has GCC for the 32-bit targets whose ABI has
    no `_BitInt(128)` (GCC 14 has it for x86). In
