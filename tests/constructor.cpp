@@ -21,14 +21,6 @@
 #include <type_traits>
 
 #if GAOL_EXCEPTIONS_ENABLED
-#define TEST_INOUT_EQ(Istr,Ires)  \
-  try {                           \
-       interval I = textToInterval(Istr); \
-       TEST_EQ(I,Ires);           \
-  } catch (const std::invalid_argument&) {  \
-    CPPUNIT_FAIL(std::string("Wrong format: ")+std::string(Istr)); \
-  }
-
 #define TEST_INOUT_SEQ(Istr,Ires) \
   try {                           \
        interval I = textToInterval(Istr); \
@@ -40,9 +32,6 @@
 // Without exceptions (configure --disable-exceptions, meson
 // -Denable-exception=false), std::invalid_argument does not exist, and a string
 // the reader refused would end the program (GAOL v5)
-#define TEST_INOUT_EQ(Istr,Ires)  \
-  do { interval I = textToInterval(Istr); TEST_EQ(I,Ires); } while (0)
-
 #define TEST_INOUT_SEQ(Istr,Ires) \
   do { interval I = textToInterval(Istr); TEST_SEQ(I,Ires); } while (0)
 #endif
@@ -150,10 +139,11 @@ public:
 		CPPUNIT_ASSERT(!c.is_empty());
     TEST_EMPTY(a);
     TEST_EMPTY(b);
-    TEST_INOUT_EQ("[3,4]",interval(3,4));
-    TEST_INOUT_EQ("4.5",interval(4.5,4.5));
-    TEST_INOUT_EQ("1.0/10",interval(1.0)/interval(10.0));
-    TEST_INOUT_EQ("1.0/10.0",textToInterval("[0.1,0.1]","[0.1,0.1]"));
+    TEST_INOUT_SEQ("[3,4]",interval(3,4));
+    TEST_INOUT_SEQ("4.5",interval(4.5,4.5));
+    // 1/10 is no double: the doubles around it
+    TEST_INOUT_SEQ("1.0/10",interval(0x1.9999999999999p-4,0x1.999999999999ap-4));
+    TEST_INOUT_SEQ("1.0/10.0",interval(0x1.9999999999999p-4,0x1.999999999999ap-4));
 }
 
   // <-- End of tests
