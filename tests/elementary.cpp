@@ -110,19 +110,6 @@ namespace
     std::exit(1);
   }
 
-  // Checks that r encloses [below, above], with bounds no more than slack away
-  // from them
-  template<class Describe>
-  void expect_within(const std::string& name, const std::string& slack_name, const interval& r, double below, double above,
-                     double slack, const Describe& describe)
-  {
-    if (check(name + ": encloses", !r.is_empty() && r.left() <= below && r.right() >= above, describe)) {
-      RoundingToNearest nearest;
-      check(name + ": no more than " + slack_name + " from the exact value", below - r.left() <= slack && r.right() - above <= slack,
-            describe);
-    }
-  }
-
   void at_doubles()
   {
     for (const UnaryValue& v : unary_values) {
@@ -132,17 +119,13 @@ namespace
       const auto describe = [&] {
         return arguments() + " = " + hex(r) + ", exact value between " + hex(v.below) + " and " + hex(v.above);
       };
-      if (f == "sin" || f == "cos" || f == "tan") {
-        // Within one double of the tightest bounds, at every magnitude. Beyond
-        // 2^25, or next to an extremum or a pole, where the division of the
-        // argument by an enclosure of pi cannot tell whether an extremum is
-        // reached, the signs of the derivative tell (issue #6): GAOL's bounds
-        // were x^2 2^-103 + 2^-51 away, cos([2^60]) was [-1, 1], and the
-        // tangent of the double below pi/2 [-oo, +oo]
-        expect_close(name, r, v.below, v.above, describe, 1);
-      } else {
-        expect_close(name, r, v.below, v.above, describe);
-      }
+      // Within one double of the tightest bounds (limit), for sin, cos and tan
+      // at every magnitude too. Beyond 2^25, or next to an extremum or a pole,
+      // where the division of the argument by an enclosure of pi cannot tell
+      // whether an extremum is reached, the signs of the derivative tell
+      // (issue #6): GAOL's bounds were x^2 2^-103 + 2^-51 away, cos([2^60]) was
+      // [-1, 1], and the tangent of the double below pi/2 [-oo, +oo]
+      expect_close(name, r, v.below, v.above, describe);
     }
     // The functions of two intervals: pow() and atan2()
     for (const BinaryValue& v : binary_values) {
@@ -454,8 +437,7 @@ namespace
     };
     for (const Known& k : known) {
       const interval r = evaluate(k.name, k.f, [] { return std::string(); });
-      const bool trigonometric = std::strncmp(k.name, "sin(", 4) == 0 || std::strncmp(k.name, "cos(", 4) == 0;
-      expect_close(k.name, r, k.below, k.above, [&] { return hex(r); }, trigonometric ? 1 : limit);
+      expect_close(k.name, r, k.below, k.above, [&] { return hex(r); });
     }
 
     // The functions where their value is a double, pi, pi/2 or pi/4, sinh and
