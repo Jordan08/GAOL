@@ -49,13 +49,13 @@ namespace {
   const double inf = std::numeric_limits<double>::infinity();
 
   /* Reference values, computed with mpmath at 60 digits and cut at 45.
-     interval(d) holds the double nearest the number, one of the two doubles
-     around it, which an enclosure of the number contains. */
-  const interval pi_ref = interval(3.14159265358979323846264338327950288419716940);
-  const interval half_pi_ref = interval(1.57079632679489661923132169163975144209858470);
-  const interval e_ref = interval(2.71828182845904523536028747135266249775724709);
-  const interval sqrt2_ref = interval(1.41421356237309504880168872420969807856967188);
-  const interval exp_half_pi_ref = interval(4.81047738096535165547303566670383312639017087);
+     textToInterval() encloses the number: the two doubles around it, so that
+     an interval holds the number when it holds its reference. */
+  const interval pi_ref = textToInterval("3.14159265358979323846264338327950288419716940");
+  const interval half_pi_ref = textToInterval("1.57079632679489661923132169163975144209858470");
+  const interval e_ref = textToInterval("2.71828182845904523536028747135266249775724709");
+  const interval sqrt2_ref = textToInterval("1.41421356237309504880168872420969807856967188");
+  const interval exp_half_pi_ref = textToInterval("4.81047738096535165547303566670383312639017087");
 
   int failures = 0;
 

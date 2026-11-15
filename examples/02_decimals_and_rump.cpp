@@ -207,7 +207,7 @@ int main()
 
   // The terms of f reach 8e36, and cancel down to -0.83: their rounding
   // errors, up to 2^70 = 1.2e21 each, are all that is left of them
-  const interval truth = interval(-0.82739605994682136814116509547981629199903311578438);
+  const interval truth = textToInterval("-0.82739605994682136814116509547981629199903311578438");
   const interval r = rump(interval(77617.0), interval(33096.0));
   show(("with intervals: contains the true value, and 0; its width, " + approx(r.width()) +
         ", is the alarm").c_str(), r);
