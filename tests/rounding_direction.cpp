@@ -1938,7 +1938,7 @@ namespace
   const double above_one = 1.0 + std::numeric_limits<double>::epsilon();
   const double below_one = 1.0 - 0.5*std::numeric_limits<double>::epsilon();
   const double largest = (std::numeric_limits<double>::max)();
-  const double smallest = std::numeric_limits<double>::denorm_min();
+  const double smallest = 0x1p-1074;
 
   // [l, r], an interval the compiler knows nothing about
   interval make(double l, double r) { return opaque(interval(gaol_core::rnd_keep(l), gaol_core::rnd_keep(r))); }
@@ -2059,7 +2059,7 @@ namespace
   */
   // The expected bounds are literals, not products: with the underflow exception enabled, the processor signals
   // a tiny result, exact or not, and Clang does not fold it
-  const double smallest_double_read = std::numeric_limits<double>::denorm_min();
+  const double smallest_double_read = 0x1p-1074;
   const EmptyOperand readings_below_the_least_normal_double[] = {
     { "1e-400", [] { return bounds_are(textToInterval("1e-400"), 0.0, smallest_double_read); } },
     { "-1e-400", [] { return bounds_are(textToInterval("-1e-400"), -smallest_double_read, 0.0); } },

@@ -1213,7 +1213,7 @@ namespace
     check("textToInterval(intervalToText(interval(0.1))) contains 0.1", back.set_contains(0.1),
           [&] { return intervalToText(tenth) + " read " + hex(back); });
     const double points[] = { 0.1, -0.1, 1.0 / 3.0, 3.14159265358979, 1e23, 4.0, 0.5, 0.0, -0.0,
-                              std::numeric_limits<double>::denorm_min(), -std::numeric_limits<double>::max() };
+                              0x1p-1074, -std::numeric_limits<double>::max() };
     for (double x : points) {
       const std::string text = intervalToText(interval(x));
       const interval y = textToInterval(text);
@@ -1249,7 +1249,7 @@ namespace
     interval::format(gaol::interval_format::bounds);
     const double points[] = { 0.1, -0.1, 1.0 / 3.0, -2.0 / 3.0, 1.0, 1.5, std::nextafter(1.0, 2.0),
                               std::nextafter(1.0, 0.0), 123456789.123456789, 3.0e-100, -2.5e300, 0.0, -0.0,
-                              std::numeric_limits<double>::denorm_min(), -std::numeric_limits<double>::denorm_min(),
+                              0x1p-1074, -0x1p-1074,
                               std::numeric_limits<double>::min(), -std::numeric_limits<double>::min(),
                               std::numeric_limits<double>::max(), -std::numeric_limits<double>::max() };
     for (const int digits : { 0, 1, 2, 3, 6, 12, 13, 20 }) {
@@ -1361,7 +1361,7 @@ namespace
   {
     const gaol::interval_format::format_t saved_format = interval::format();
     const std::streamsize saved_precision = interval::precision();
-    const double smallest = std::numeric_limits<double>::denorm_min(), largest = std::numeric_limits<double>::max();
+    const double smallest = 0x1p-1074, largest = std::numeric_limits<double>::max();
     // The texts to expect, written by hand, with 16 digits and with 1
     const struct { const char *name; interval x; const char *text; const char *text1; } forms[] = {
       { "[1, 2]", interval(1.0, 2.0), "[1, 2]", "[1, 2]" },

@@ -110,7 +110,7 @@ public:
     // The same magnitude with the signs the wrong way round: the bits of the bounds differ by the sign only. The
     // operations tell an empty operand by the NaN of its lanes, so they are checked too, not only is_empty()
     const interval wrong_way[] = { interval(1.0, -1.0),
-                                   interval(std::numeric_limits<double>::denorm_min(), -std::numeric_limits<double>::denorm_min()),
+                                   interval(0x1p-1074, -0x1p-1074),
                                    interval((std::numeric_limits<double>::max)(), -(std::numeric_limits<double>::max)()) };
     for (const interval& w : wrong_way) {
       TEST_EMPTY(w);

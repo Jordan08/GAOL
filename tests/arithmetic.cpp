@@ -439,7 +439,7 @@ namespace
   // divisions_by_zero() check
   void operations_with_special_doubles()
   {
-    const double subnormal = std::numeric_limits<double>::denorm_min(), largest = std::numeric_limits<double>::max();
+    const double subnormal = 0x1p-1074, largest = std::numeric_limits<double>::max();
     const double bounds[] = { -inf, -largest, -2., -1., -subnormal, -0., 0., subnormal, 1., 3., largest, inf };
     const double doubles[] = { -inf, -largest, -3., -1., -0.1, -subnormal, -0., 0., subnormal, 0.1, 1., 3., largest, inf,
                                std::numeric_limits<double>::quiet_NaN() };
@@ -526,7 +526,7 @@ namespace
   // zero are the cases of divisions_by_zero())
   void quotients_at_special_values()
   {
-    const double subnormal = std::numeric_limits<double>::denorm_min(), largest = std::numeric_limits<double>::max();
+    const double subnormal = 0x1p-1074, largest = std::numeric_limits<double>::max();
     const double dividends[] = { -inf, -largest, -2., -1., -subnormal, -0., 0., subnormal, 1., 3., largest, inf };
     const double divisors[] = { -inf, -largest, -3., -1., -subnormal, subnormal, 1., 2., largest, inf };
     for (double xl : dividends) {
@@ -1023,7 +1023,7 @@ namespace
   // empty set and the universe
   std::vector<Box> special_boxes()
   {
-    const double subnormal = std::numeric_limits<double>::denorm_min(), smallest_normal = std::numeric_limits<double>::min();
+    const double subnormal = 0x1p-1074, smallest_normal = std::numeric_limits<double>::min();
     const double largest = std::numeric_limits<double>::max();
     // Read from volatile memory: no compiler knows the values of the grid
     const volatile double special[] = { -inf, -largest, -2.5, -1., -smallest_normal, -subnormal, -0., 0., subnormal,
@@ -1444,7 +1444,7 @@ namespace
   // computed 1/x^n, and pow([10], -400) was [0, 5.6e-309]
   void negative_powers_at_special_values()
   {
-    const double tiny = std::numeric_limits<double>::denorm_min(), largest = std::numeric_limits<double>::max();
+    const double tiny = 0x1p-1074, largest = std::numeric_limits<double>::max();
     const struct { const char *name; interval x; int n; double lo, hi; } cases[] = {
       { "pow([10],-400)", interval(10.), -400, 0., tiny },
       { "pow([2],-1050)", interval(2.), -1050, 0x1p-1050, 0x1p-1050 },
@@ -1477,7 +1477,7 @@ namespace
   */
   void squares_at_special_values()
   {
-    const double tiny = std::numeric_limits<double>::denorm_min(), largest = std::numeric_limits<double>::max();
+    const double tiny = 0x1p-1074, largest = std::numeric_limits<double>::max();
     const struct { const char *name; interval x; double lo, hi; } cases[] = {
       { "sqr([0,2])", interval(0., 2.), 0., 4. },
       { "sqr([-0,2])", interval(-0., 2.), 0., 4. },
@@ -1789,7 +1789,7 @@ namespace
   // are computed after the one check of the rounding direction of pow(x, n))
   void powers_at_special_values()
   {
-    const double tiny = std::numeric_limits<double>::denorm_min(), largest = std::numeric_limits<double>::max();
+    const double tiny = 0x1p-1074, largest = std::numeric_limits<double>::max();
     const struct { const char *name; interval x; int n; bool empty; double lo, hi; } cases[] = {
       { "pow([0,2],3)", interval(0., 2.), 3, false, 0., 8. },
       { "pow([-0,1],4)", interval(-0., 1.), 4, false, 0., 1. },
@@ -2218,7 +2218,7 @@ namespace
     // The extreme doubles, and large n, where the power with a rounded
     // exponent was the furthest from the root
     for (const double x : { std::numeric_limits<double>::max(), std::numeric_limits<double>::min(),
-                            std::numeric_limits<double>::denorm_min(), 3*std::numeric_limits<double>::denorm_min(),
+                            0x1p-1074, 3*0x1p-1074,
                             0x1.fffffffffffffp-1, 0x1.0000000000001p+0, 10., 1e300, 1e-300 }) {
       for (const unsigned int n : { 3u, 4u, 17u }) {
         expect_root("nth_root([x],n) at extreme doubles and large n", nth_root(interval(x), n), x, static_cast<int>(n), root_limit);
@@ -2267,7 +2267,7 @@ namespace
   */
   void roots_of_tiny_numbers()
   {
-    const double tiny = std::numeric_limits<double>::denorm_min();
+    const double tiny = 0x1p-1074;
     const double threshold = 4.0*std::numeric_limits<double>::min(); // 2^-1020
     // The last two are on either side of the limit below which the proofs
     // take scaled powers (the bounds are the same on both sides)

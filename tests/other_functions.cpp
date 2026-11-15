@@ -361,7 +361,7 @@ namespace
         }
       }
     }
-    const double tiny = std::numeric_limits<double>::denorm_min(), huge = std::numeric_limits<double>::max();
+    const double tiny = 0x1p-1074, huge = std::numeric_limits<double>::max();
     const interval mixed[] = { interval(-huge, -tiny), interval(tiny, huge), interval(-tiny, huge),
                                interval(huge / 2, huge), interval(huge, huge) };
     for (const interval& X : mixed) {
@@ -441,7 +441,7 @@ namespace
   // intervals compare the bits of the bounds as integers (GAOL v5)
   void max_and_min_on_special_bounds()
   {
-    const double tiny = std::numeric_limits<double>::denorm_min(), least = std::numeric_limits<double>::min();
+    const double tiny = 0x1p-1074, least = std::numeric_limits<double>::min();
     const double huge = std::numeric_limits<double>::max(), infinity = std::numeric_limits<double>::infinity();
     const double bounds[] = { -infinity, -huge, -2.0, -1.0, -least, -5 * tiny, -3 * tiny, -tiny, -0.0, 0.0,
                               tiny, 3 * tiny, 5 * tiny, least, 1.0, 2.0, huge, infinity };
@@ -518,7 +518,7 @@ namespace
   // through, or an empty set of other bits (GAOL v5)
   void max_and_min_on_stored_lanes()
   {
-    const double tiny = std::numeric_limits<double>::denorm_min(), least = std::numeric_limits<double>::min();
+    const double tiny = 0x1p-1074, least = std::numeric_limits<double>::min();
     const double huge = std::numeric_limits<double>::max(), infinity = std::numeric_limits<double>::infinity();
     const double nan = std::numeric_limits<double>::quiet_NaN();
     const double lanes[] = { 0.0, -0.0, tiny, -tiny, 3 * tiny, -3 * tiny, least, -least, 1.0, -1.0, 2.0, -2.0,
@@ -575,7 +575,7 @@ namespace
   // signaling NaN of the least payload, is the one a threshold that is off by one lets through (GAOL v5)
   void quotient_on_nan_lanes()
   {
-    const double tiny = std::numeric_limits<double>::denorm_min(), least = std::numeric_limits<double>::min();
+    const double tiny = 0x1p-1074, least = std::numeric_limits<double>::min();
     const double huge = std::numeric_limits<double>::max(), infinity = std::numeric_limits<double>::infinity();
     const std::uint64_t nan_patterns[] = { 0x7ff8000000000000ull, 0xfff8000000000000ull, 0x7ff0000000000001ull,
                                            0xfff0000000000001ull, 0x7ff8000000000001ull, 0x7fffffffffffffffull,
@@ -699,7 +699,7 @@ namespace
   // of doubles of [1, 2] - 1, whose lower bound is -0
   void nb_fp_numbers_across_zero()
   {
-    const double tiny = std::numeric_limits<double>::denorm_min(), huge = std::numeric_limits<double>::max();
+    const double tiny = 0x1p-1074, huge = std::numeric_limits<double>::max();
     // The multiples of the smallest subnormal are consecutive doubles, the zeros
     // being the one multiple 0: [i, j] holds j - i + 1 doubles. With the zeros
     // of both signs at i = 0 and at j = 0
@@ -1322,7 +1322,7 @@ namespace
       {"pow([2, 3], [1e10]) = [DBL_MAX, +oo]", interval(2.0, 3.0), interval(1e10),
        interval(std::numeric_limits<double>::max(), inf), false},
       {"pow([0.5, 0.9], [1e10]) = [0, 2^-1074]", interval(0.5, 0.9), interval(1e10),
-       interval(0.0, std::numeric_limits<double>::denorm_min()), false},
+       interval(0.0, 0x1p-1074), false},
       {"pow([1], [-1e12]) = [1]", interval(1.0), interval(-1e12), interval(1.0), false},
       {"pow([-1, 1], [2^31 + 1]) = [0, 1]", interval(-1.0, 1.0), interval(2147483649.0), interval(0.0, 1.0), false},
       // 0^n for an odd n < 0: +oo, the limit at 0 of x^n for x > 0

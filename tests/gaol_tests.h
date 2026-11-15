@@ -53,6 +53,12 @@
 
 #include "gaol/gaol"
 
+// The tests write the smallest positive double as the literal 0x1p-1074, not as
+// std::numeric_limits<double>::denorm_min(): with -frounding-math, GCC 12.1 to
+// 12.3 and 13.1 to 13.2 write the long double of that value, 16 bytes on
+// aarch64, in a list, an array or a table of constants, and the constants after
+// it are then read 8 bytes too early (tests/numbers.cpp, doc/using.md; GAOL v5)
+
 // 1 with Visual C++ and the NEON intervals, whose tests read and write FPCR
 // through _ReadStatusReg() and _WriteStatusReg(), where GCC and Clang have
 // the instructions mrs and msr in an asm statement (GAOL v5)
