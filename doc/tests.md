@@ -1783,7 +1783,19 @@ which `numbers` checks there too.
   checks of `unit_tests.h` rather than CppUnit, which no build needs any more:
   each suite keeps its class and its tests, a `TEST_...` counts a check named
   after its test and describes a failure by its line, its expression and the
-  values compared, and a failure no longer ends its test. `reverse_mappings`
+  values compared, and a failure no longer ends its test. `TEST_EQ` compares
+  with a decimal number at a Hausdorff distance of 1e-8, which an enclosure
+  that misses the exact value by less passes. `trigonometric`,
+  `reverse_mappings` and `constants` have `TEST_HULL` instead, the result
+  enclosing the hull of the values of the function and no more than a double
+  from it, the hull of the first two being computed exactly (mpmath, 2000 bits)
+  by `hull_values.py`, which writes the statements and checks with `--check`
+  (by hand, as the other scripts of values) that they are in the two files. The
+  quotients of `arithmetic_operators` and `constructor` are `TEST_SEQ` with the
+  doubles around the exact quotient, and a relational function of the image of
+  an interval called on that interval (`acos_rel(cos(I), I)`) is `TEST_SEQ` to
+  I: the result is within I, and holds it as the image encloses cos(I).
+  `reverse_mappings`
   draws its random intervals from a seed of its own rather than from the
   process identifier (`srand48(getpid())`, which Visual C++ does not have), so
   that its checks are the same at each run, and checks the infinite ends of
