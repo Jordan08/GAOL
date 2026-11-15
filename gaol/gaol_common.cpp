@@ -120,9 +120,9 @@ namespace gaol_core {
     // (gaol_fpu.h): with fegetexceptflag() and fesetexceptflag() of
     // MinGW-w64 for 32-bit x86 (GCC 12.2 to 14.2), every test stopped on a
     // floating-point exception at its first operations
-    const unsigned int inexact = static_cast<unsigned int>(_mm_getcsr()) & 0x20u; // PE
+    const unsigned int inexact = _mm_getcsr() & 0x20u; // PE
     const bool upward = rnd_keep(one + tiny) > 1.0;
-    _mm_setcsr((static_cast<unsigned int>(_mm_getcsr()) & ~0x20u) | inexact);
+    _mm_setcsr((_mm_getcsr() & ~0x20u) | inexact);
     #else
     fexcept_t inexact;
     fegetexceptflag(&inexact, FE_INEXACT);

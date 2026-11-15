@@ -117,7 +117,7 @@ namespace gaol_core {
   #if GAOL_RND_SSE_REGISTER
   static_assert(sse_rc_mask == static_cast<unsigned int>(_MM_ROUND_MASK)
                 && sse_rc_upward == static_cast<unsigned int>(_MM_ROUND_UP)
-                && x86_flush_mask == static_cast<unsigned int>(GAOL_RND_FLUSH_BITS),
+                && x86_flush_mask == GAOL_RND_FLUSH_BITS,
                 "the fields of MXCSR");
   #endif
 

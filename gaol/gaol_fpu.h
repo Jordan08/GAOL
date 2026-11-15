@@ -658,7 +658,7 @@ namespace gaol_core {
   //! MXCSR
   struct sse_control_register
   {
-    unsigned int read() const { return static_cast<unsigned int>(_mm_getcsr()); }
+    unsigned int read() const { return _mm_getcsr(); }
     void write(unsigned int mxcsr) const { _mm_setcsr(mxcsr); }
   };
 
