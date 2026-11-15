@@ -143,31 +143,36 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 @GAOL_STATIC_LIBRARY_TRUE@@HOST_LINUX_TRUE@am__EXEEXT_1 = automatic_cleanup$(EXEEXT) \
 @GAOL_STATIC_LIBRARY_TRUE@@HOST_LINUX_TRUE@	bad_snprintf$(EXEEXT)
-am__EXEEXT_2 = arithmetic$(EXEEXT) elementary$(EXEEXT) \
-	rounding_direction$(EXEEXT) numbers$(EXEEXT) \
-	other_functions$(EXEEXT) ieee1788$(EXEEXT) reverse$(EXEEXT) \
-	u128$(EXEEXT) core_math$(EXEEXT) compoundm1$(EXEEXT) \
-	expressions$(EXEEXT) extended_precision$(EXEEXT) \
-	static_initialization$(EXEEXT) debugging$(EXEEXT) \
-	fast_math_link$(EXEEXT) test_ibex_codac$(EXEEXT) \
-	arithmetic_operators$(EXEEXT) assignment$(EXEEXT) \
-	constants$(EXEEXT) constructor$(EXEEXT) \
+am__EXEEXT_2 = Interval_ieee_basic$(EXEEXT) arithmetic$(EXEEXT) \
+	elementary$(EXEEXT) rounding_direction$(EXEEXT) \
+	numbers$(EXEEXT) other_functions$(EXEEXT) ieee1788$(EXEEXT) \
+	reverse$(EXEEXT) u128$(EXEEXT) core_math$(EXEEXT) \
+	compoundm1$(EXEEXT) expressions$(EXEEXT) \
+	extended_precision$(EXEEXT) static_initialization$(EXEEXT) \
+	debugging$(EXEEXT) fast_math_link$(EXEEXT) \
+	test_ibex_codac$(EXEEXT) arithmetic_operators$(EXEEXT) \
+	assignment$(EXEEXT) constants$(EXEEXT) constructor$(EXEEXT) \
 	float_functions$(EXEEXT) generic_functions$(EXEEXT) \
 	input_output$(EXEEXT) interval_functions$(EXEEXT) \
 	misc$(EXEEXT) non_arithmetic$(EXEEXT) relations$(EXEEXT) \
 	reverse_mappings$(EXEEXT) trigonometric$(EXEEXT) \
 	intervalf$(EXEEXT) interval2f$(EXEEXT) $(am__EXEEXT_1)
 PROGRAMS = $(noinst_PROGRAMS)
-arithmetic_SOURCES = arithmetic.cpp
-arithmetic_OBJECTS = arithmetic.$(OBJEXT)
-arithmetic_LDADD = $(LDADD)
+Interval_ieee_basic_SOURCES = Interval_ieee_basic.cpp
+Interval_ieee_basic_OBJECTS = Interval_ieee_basic.$(OBJEXT)
+Interval_ieee_basic_LDADD = $(LDADD)
 am__DEPENDENCIES_1 =
-arithmetic_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+Interval_ieee_basic_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
 	$(am__DEPENDENCIES_1)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
+arithmetic_SOURCES = arithmetic.cpp
+arithmetic_OBJECTS = arithmetic.$(OBJEXT)
+arithmetic_LDADD = $(LDADD)
+arithmetic_DEPENDENCIES = $(top_builddir)/gaol/libgaol.la \
+	$(am__DEPENDENCIES_1)
 arithmetic_operators_SOURCES = arithmetic_operators.cpp
 arithmetic_operators_OBJECTS = arithmetic_operators.$(OBJEXT)
 arithmetic_operators_LDADD = $(LDADD)
@@ -359,13 +364,14 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/gaol
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/arithmetic.Po \
-	./$(DEPDIR)/arithmetic_operators.Po ./$(DEPDIR)/assignment.Po \
-	./$(DEPDIR)/automatic_cleanup.Po ./$(DEPDIR)/bad_snprintf.Po \
-	./$(DEPDIR)/compoundm1.Po ./$(DEPDIR)/constants.Po \
-	./$(DEPDIR)/constructor.Po ./$(DEPDIR)/core_math.Po \
-	./$(DEPDIR)/debugging.Po ./$(DEPDIR)/elementary.Po \
-	./$(DEPDIR)/expressions.Po ./$(DEPDIR)/extended_precision.Po \
+am__depfiles_remade = ./$(DEPDIR)/Interval_ieee_basic.Po \
+	./$(DEPDIR)/arithmetic.Po ./$(DEPDIR)/arithmetic_operators.Po \
+	./$(DEPDIR)/assignment.Po ./$(DEPDIR)/automatic_cleanup.Po \
+	./$(DEPDIR)/bad_snprintf.Po ./$(DEPDIR)/compoundm1.Po \
+	./$(DEPDIR)/constants.Po ./$(DEPDIR)/constructor.Po \
+	./$(DEPDIR)/core_math.Po ./$(DEPDIR)/debugging.Po \
+	./$(DEPDIR)/elementary.Po ./$(DEPDIR)/expressions.Po \
+	./$(DEPDIR)/extended_precision.Po \
 	./$(DEPDIR)/fast_math_link-fast_math_link.Po \
 	./$(DEPDIR)/float_functions.Po \
 	./$(DEPDIR)/gaol_performance-performance.Po \
@@ -399,11 +405,11 @@ AM_V_CXXLD = $(am__v_CXXLD_@AM_V@)
 am__v_CXXLD_ = $(am__v_CXXLD_@AM_DEFAULT_V@)
 am__v_CXXLD_0 = @echo "  CXXLD   " $@;
 am__v_CXXLD_1 = 
-SOURCES = arithmetic.cpp arithmetic_operators.cpp assignment.cpp \
-	automatic_cleanup.cpp bad_snprintf.cpp compoundm1.cpp \
-	constants.cpp constructor.cpp core_math.cpp debugging.cpp \
-	elementary.cpp expressions.cpp extended_precision.cpp \
-	fast_math_link.cpp float_functions.cpp \
+SOURCES = Interval_ieee_basic.cpp arithmetic.cpp \
+	arithmetic_operators.cpp assignment.cpp automatic_cleanup.cpp \
+	bad_snprintf.cpp compoundm1.cpp constants.cpp constructor.cpp \
+	core_math.cpp debugging.cpp elementary.cpp expressions.cpp \
+	extended_precision.cpp fast_math_link.cpp float_functions.cpp \
 	$(gaol_performance_SOURCES) generic_functions.cpp ieee1788.cpp \
 	input_output.cpp interval2f.cpp interval_functions.cpp \
 	intervalf.cpp misc.cpp non_arithmetic.cpp numbers.cpp \
@@ -411,11 +417,11 @@ SOURCES = arithmetic.cpp arithmetic_operators.cpp assignment.cpp \
 	reverse_mappings.cpp rounding_direction.cpp \
 	static_initialization.cpp test_ibex_codac.cpp \
 	trigonometric.cpp u128.cpp
-DIST_SOURCES = arithmetic.cpp arithmetic_operators.cpp assignment.cpp \
-	automatic_cleanup.cpp bad_snprintf.cpp compoundm1.cpp \
-	constants.cpp constructor.cpp core_math.cpp debugging.cpp \
-	elementary.cpp expressions.cpp extended_precision.cpp \
-	fast_math_link.cpp float_functions.cpp \
+DIST_SOURCES = Interval_ieee_basic.cpp arithmetic.cpp \
+	arithmetic_operators.cpp assignment.cpp automatic_cleanup.cpp \
+	bad_snprintf.cpp compoundm1.cpp constants.cpp constructor.cpp \
+	core_math.cpp debugging.cpp elementary.cpp expressions.cpp \
+	extended_precision.cpp fast_math_link.cpp float_functions.cpp \
 	$(gaol_performance_SOURCES) generic_functions.cpp ieee1788.cpp \
 	input_output.cpp interval2f.cpp interval_functions.cpp \
 	intervalf.cpp misc.cpp non_arithmetic.cpp numbers.cpp \
@@ -815,12 +821,13 @@ LDADD = $(top_builddir)/gaol/libgaol.la $(GAOL_PC_LIBS)
 AM_DEFAULT_SOURCE_EXT = .cpp
 
 # The same list as tests/CMakeLists.txt
-GAOL_TESTS = arithmetic elementary rounding_direction numbers \
-	other_functions ieee1788 reverse u128 core_math compoundm1 \
-	expressions extended_precision static_initialization debugging \
-	fast_math_link test_ibex_codac arithmetic_operators assignment \
-	constants constructor float_functions generic_functions \
-	input_output interval_functions misc non_arithmetic relations \
+GAOL_TESTS = Interval_ieee_basic arithmetic elementary \
+	rounding_direction numbers other_functions ieee1788 reverse \
+	u128 core_math compoundm1 expressions extended_precision \
+	static_initialization debugging fast_math_link test_ibex_codac \
+	arithmetic_operators assignment constants constructor \
+	float_functions generic_functions input_output \
+	interval_functions misc non_arithmetic relations \
 	reverse_mappings trigonometric intervalf interval2f \
 	$(am__append_1)
 @GAOL_STATIC_LIBRARY_TRUE@@HOST_LINUX_TRUE@bad_snprintf_LDFLAGS = $(AM_LDFLAGS) -Wl,--wrap=snprintf -Wl,--wrap=__snprintf_chk
@@ -962,6 +969,10 @@ $(am__aclocal_m4_deps):
 clean-noinstPROGRAMS:
 	$(am__rm_f) $(noinst_PROGRAMS)
 	test -z "$(EXEEXT)" || $(am__rm_f) $(noinst_PROGRAMS:$(EXEEXT)=)
+
+Interval_ieee_basic$(EXEEXT): $(Interval_ieee_basic_OBJECTS) $(Interval_ieee_basic_DEPENDENCIES) $(EXTRA_Interval_ieee_basic_DEPENDENCIES) 
+	@rm -f Interval_ieee_basic$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(Interval_ieee_basic_OBJECTS) $(Interval_ieee_basic_LDADD) $(LIBS)
 
 arithmetic$(EXEEXT): $(arithmetic_OBJECTS) $(arithmetic_DEPENDENCIES) $(EXTRA_arithmetic_DEPENDENCIES) 
 	@rm -f arithmetic$(EXEEXT)
@@ -1105,6 +1116,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Interval_ieee_basic.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/arithmetic.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/arithmetic_operators.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/assignment.Po@am__quote@ # am--include-marker
@@ -1422,6 +1434,13 @@ recheck: all
 	        am__force_recheck=am--force-recheck \
 	        TEST_LOGS="$$log_list"; \
 	exit $$?
+Interval_ieee_basic.log: Interval_ieee_basic$(EXEEXT)
+	@p='Interval_ieee_basic$(EXEEXT)'; \
+	b='Interval_ieee_basic'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
 arithmetic.log: arithmetic$(EXEEXT)
 	@p='arithmetic$(EXEEXT)'; \
 	b='arithmetic'; \
@@ -1747,6 +1766,7 @@ clean-am: clean-generic clean-libtool clean-noinstPROGRAMS \
 	mostlyclean-am
 
 distclean: distclean-am
+	-rm -f ./$(DEPDIR)/Interval_ieee_basic.Po
 	-rm -f ./$(DEPDIR)/arithmetic.Po
 	-rm -f ./$(DEPDIR)/arithmetic_operators.Po
 	-rm -f ./$(DEPDIR)/assignment.Po
@@ -1826,6 +1846,7 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
+	-rm -f ./$(DEPDIR)/Interval_ieee_basic.Po
 	-rm -f ./$(DEPDIR)/arithmetic.Po
 	-rm -f ./$(DEPDIR)/arithmetic_operators.Po
 	-rm -f ./$(DEPDIR)/assignment.Po

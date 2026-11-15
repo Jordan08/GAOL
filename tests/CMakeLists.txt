@@ -35,6 +35,9 @@
 # COPYING.LIB file for information.
 
 set(GAOL_TESTS
+  # The arithmetic of gaol_ieee1788 on intervals of doubles written out, one
+  # line CHECK(...) for each result: a test to read first (GAOL v5)
+  Interval_ieee_basic
   arithmetic
   elementary
   rounding_direction

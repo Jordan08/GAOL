@@ -18,6 +18,9 @@
 # compiled). check/, which built the unit tests of GAOL 4 with CppUnit, is
 # gone: they are among these (GAOL v5).
 gaol_tests = [
+  # The arithmetic of gaol_ieee1788 on intervals of doubles written out, a test
+  # to read first (GAOL v5)
+  'Interval_ieee_basic',
   'arithmetic', 'elementary', 'rounding_direction', 'numbers', 'other_functions',
   'ieee1788', 'reverse', 'u128', 'core_math', 'compoundm1', 'expressions', 'extended_precision',
   'static_initialization', 'debugging', 'fast_math_link',
