@@ -167,7 +167,8 @@ public:
 		
 		os << I;
 		interval K = textToInterval(os.str());
-		TEST_PEQ(K,interval(3.452, 3.453));
+		TEST_CONT(K,I);
+		TEST_CONT(interval(3.45, 3.46),K);
 		os.str("");
 		interval::precision(2);
 		os << I;

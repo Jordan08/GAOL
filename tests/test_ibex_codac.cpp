@@ -3378,9 +3378,13 @@ namespace
 
   void codac_after_operations_run()
   {
-    // Codac sets the direction upward once, with the initialization of oo
+    // Codac sets the direction upward once, with the initialization of oo, and
+    // checks it (line 357) before any operation. Here gaol::round_upward() does
+    // it, from another direction, so that a call that changed nothing would
+    // fail the check
+    std::fesetround(FE_DOWNWARD);
     gaol::round_upward();
-    check("Codac Interval_rounding:357 the rounding direction is upward before any operation", std::fegetround() == FE_UPWARD);
+    check("Codac Interval_rounding:357 gaol::round_upward() sets the rounding direction upward", std::fegetround() == FE_UPWARD);
 
     // x is within [0,1] and y above 1, the domain of every function
     const interval x(0.1, 0.3), y(1.5, 2.5);
