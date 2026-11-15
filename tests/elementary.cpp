@@ -802,7 +802,7 @@ namespace
     // The lanes <-left, right>, as a register of the SSE2 or the NEON intervals holds them.
     // A function called for each case, not a table of structures: GCC 12.2 on aarch64 at -O2
     // gave the loop over such a table values that are not the ones of the table
-    const auto register_case = [&](double first, double second, bool empty, double left, double right) {
+    const auto register_case = [&](double first, double second, bool lanes_empty, double left, double right) {
 #  if defined(GAOL_USING_SSE2_INSTRUCTIONS) && GAOL_USING_SSE2_INSTRUCTIONS
       const interval K(_mm_set_pd(second, first));
 #  else
@@ -810,7 +810,7 @@ namespace
       const interval K(vld1q_f64(values));
 #  endif
       check("the interval of a register: the empty set for a lane at -oo, else the interval of its lanes",
-            K.is_empty() == empty && (empty || (K.left() == left && K.right() == right)),
+            K.is_empty() == lanes_empty && (lanes_empty || (K.left() == left && K.right() == right)),
             [&] { return "lanes <" + hex(first) + ", " + hex(second) + ">: " + hex(K); });
     };
     register_case(inf, inf, false, -inf, inf);   // the universe
