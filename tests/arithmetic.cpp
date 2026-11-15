@@ -141,10 +141,10 @@ namespace
     }
   }
 
-  // Operations on doubles, drawn by draw, root_limit being the largest distance
+  // Operations on doubles, drawn by draw, nth_root_limit being the largest distance
   // from the tightest bounds allowed for n-th roots
   template<class Draw>
-  void operations_on_doubles(const std::string& range, Draw draw, int root_limit)
+  void operations_on_doubles(const std::string& range, Draw draw, int nth_root_limit)
   {
     const std::string in = " (" + range + ")";
     for (int i = 0; i < nb_random_values; ++i) {
@@ -213,7 +213,7 @@ namespace
       const double m = std::fabs(a);
       expect_root("sqrt([|a|])" + in, sqrt(interval(m)), m, 2, square_root_limit);
       for (int n = 2; n <= 7; ++n) {
-        expect_root("nth_root([|a|],n) for n=" + std::to_string(n) + in, nth_root(interval(m), static_cast<unsigned int>(n)), m, n, root_limit);
+        expect_root("nth_root([|a|],n) for n=" + std::to_string(n) + in, nth_root(interval(m), static_cast<unsigned int>(n)), m, n, nth_root_limit);
       }
       // The odd roots of -|a|, the opposites of those of |a|, and the even
       // roots of -|a|, which are empty unless a is 0
@@ -2317,9 +2317,16 @@ namespace
         const interval Y(b, u);
         const interval got = cancel_minus(X, Y);
         // defined when X is at least as wide as Y: in exact arithmetic
-        // X.right() - X.left() >= u - b, which Y + result must then contain
+        // X.right() - X.left() >= u - b, which Y + result must then contain;
+        // otherwise there is no value at Level 1, and the result is [-oo, +oo].
+        // For the shifts 0 and +1, Y is almost always wider, and this check
+        // is the only one the result goes through
+        const bool narrower =
+          compare(dyadic(X.right()) - dyadic(X.left()), dyadic(u) - dyadic(b)) < 0;
+        check("cancel_minus: [-oo, +oo] exactly when X is narrower than Y", got.is_entire() == narrower,
+              [&] { return "cancel_minus(" + hex(X) + ", " + hex(Y) + ") = " + hex(got); });
         if (got.is_entire()) {
-          continue;  // no value at Level 1, which the next check does not see
+          continue;  // nothing more to check: the next check needs a value
         }
         const interval sum = Y + got;
         check("cancel_minus: Y + result encloses X", sum.set_contains(X),
@@ -2339,6 +2346,24 @@ namespace
                      + " rather than [" + hex(lo) + ", " + hex(hi) + "]";
               });
       }
+    }
+    // Widths that are equal, which the loop above reaches by chance only:
+    // X = [p, p + k] and Y = [r, r + k + d], with p, r and k small integers
+    // times 2^e, so that every bound and every difference of two bounds is a
+    // double. Y is as wide as X for d = 0 (the result is the point p - r),
+    // narrower for d = -1 (the result is [p - r, p - r + 1]), and wider for
+    // d = +1 (the result is [-oo, +oo])
+    for (int i = 0; i < 100000; ++i) {
+      const int e = random.integer(-1074, 1000);
+      const int p = random.integer(-1000, 1000), r = random.integer(-1000, 1000);
+      const int k = random.integer(1, 1000), d = random.integer(-1, 1);
+      const interval X(std::ldexp(p, e), std::ldexp(p + k, e));
+      const interval Y(std::ldexp(r, e), std::ldexp(r + k + d, e));
+      const interval got = cancel_minus(X, Y);
+      const interval expected = d > 0 ? interval::universe()
+                                      : interval(std::ldexp(p - r, e), std::ldexp(p - r - d, e));
+      check("cancel_minus: X as wide as Y, one unit wider or one unit narrower", got.set_eq(expected),
+            [&] { return "cancel_minus(" + hex(X) + ", " + hex(Y) + ") = " + hex(got); });
     }
     check("cancel_minus(empty, [1, 2]) = empty",
           cancel_minus(interval::emptyset(), interval(1.0, 2.0)).is_empty(), [] { return std::string(); });

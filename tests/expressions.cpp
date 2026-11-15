@@ -1025,7 +1025,7 @@ namespace
           [&] { return captured.str(); });
   }
 
-  /* The first argument of gaol_ERROR (GAOL v5) is a class derived from
+  /* The first argument of GAOL_ERROR (GAOL v5) is a class derived from
      std::exception: the macro checks it with a static_assert on this
      predicate, in the build with exceptions and in the one that aborts, which
      takes any type otherwise. A static_assert that refuses a type cannot be
@@ -1033,7 +1033,7 @@ namespace
      GAOL throws, another of the standard library, a class of a program and
      types that are no exception. */
   struct program_error : std::runtime_error { using std::runtime_error::runtime_error; };
-  struct not_an_exception { explicit not_an_exception(const std::string&) {} };
+  struct not_an_exception {};
   struct private_exception : private std::exception {};
   static_assert(::gaol_detail::is_error_class<std::invalid_argument>::value, "std::invalid_argument is a valid error class");
   static_assert(::gaol_detail::is_error_class<std::domain_error>::value, "std::domain_error is a valid error class");
@@ -1126,7 +1126,7 @@ namespace
                                        "sin called with a wrong number of arguments",
                                        [] { const interval x = textToInterval("sin(1, 2)"); (void)x; });
 
-    /* gaol_ERROR itself: the text is "file:line: message" with the file and the
+    /* GAOL_ERROR itself: the text is "file:line: message" with the file and the
        line of the macro, "(unknown file)" for a null file name and nothing for a
        null message, as gaol_warning() and gaol_error() write them (error_text()
        of gaol/gaol_common.h) */
@@ -1144,13 +1144,24 @@ namespace
           [&] { return ::gaol_detail::error_text("/home/me/gaol/gaol/f.cpp", 3, "m") + " | " + ::gaol_detail::error_text("C:\\src\\gaol\\f.cpp", 3, "m"); });
     const long here = __LINE__ + 2;
     try {
-      gaol_ERROR(std::logic_error, static_cast<const char*>(nullptr));
+      GAOL_ERROR(std::logic_error, static_cast<const char*>(nullptr));
     } catch (const std::logic_error& e) {
       const exception_text t = split_what(e);
-      check("exception: gaol_ERROR throws the class it is given, with the file and the line of the macro, and no text for a null message",
+      check("exception: GAOL_ERROR throws the class it is given, with the file and the line of the macro, and no text for a null message",
             typeid(e) == typeid(std::logic_error) && t.line == here && t.explanation.empty()
             && t.file == "expressions.cpp",
             [&] { return std::string(e.what()) + " rather than line " + std::to_string(here); });
+    }
+    // gaol_ERROR, the name of GAOL 4, is GAOL_ERROR
+    const long there = __LINE__ + 2;
+    try {
+      gaol_ERROR(std::domain_error, "boom");
+    } catch (const std::domain_error& e) {
+      const exception_text t = split_what(e);
+      check("exception: gaol_ERROR, the name of GAOL 4, throws as GAOL_ERROR does, at its own line",
+            typeid(e) == typeid(std::domain_error) && t.line == there && t.explanation == "boom"
+            && t.file == "expressions.cpp",
+            [&] { return std::string(e.what()) + " rather than line " + std::to_string(there); });
     }
   }
 #endif

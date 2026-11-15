@@ -17,6 +17,8 @@
 #include <iostream>
 #include "unit_tests.h"
 
+using namespace gaol;
+
 class trigonometric_test {
 public:
   void setUp() {
@@ -48,9 +50,9 @@ public:
 	TEST_EQ(cos(interval(4503599627370495,4503599627370496)),interval(-0.48553486774222065, 0.4732928859543091));
   }
 
-  void test_sin() {
-	// No test because it uses cos()
-  }
+  // sin() has no test here: tests/elementary.cpp and tests/core_math.cpp test
+  // it, at doubles and over intervals
+
   void test_tan() {
 	TEST_EMPTY(tan(interval::emptyset()));
  	TEST_SEQ(tan(interval::universe()),interval::universe());
@@ -143,7 +145,6 @@ public:
 
 GAOL_UNIT_MAIN(trigonometric_test, "trigonometric",
                GAOL_UNIT_TEST(test_cos),
-               GAOL_UNIT_TEST(test_sin),
                GAOL_UNIT_TEST(test_tan),
                GAOL_UNIT_TEST(test_acos),
                GAOL_UNIT_TEST(test_asin),

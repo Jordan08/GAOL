@@ -951,21 +951,16 @@ namespace
     }
   }
 
-  // Checks that r contains v, and is no more than limit doubles away from it,
-  // or no more than slack when slack is given
-  void expect_kept(const std::string& name, const interval& r, double v, const std::string& operands, double slack = 0.0,
+  // Checks that r contains v, and is no more than max_doubles doubles away from
+  // it
+  void expect_kept(const std::string& name, const interval& r, double v, const std::string& operands,
                    int max_doubles = limit)
   {
     const auto describe = [&] { return operands + ": " + hex(r) + ", which has to contain " + hex(v); };
     const Exact e = exact(v);
     if (check(name + ": keeps the value", !r.is_empty() && r.left() <= v && v <= r.right(), describe)) {
-      if (slack > 0.0) {
-        RoundingToNearest nearest;
-        check(name + ": no more than " + hex(slack) + " from the value", v - r.left() <= slack && r.right() - v <= slack, describe);
-      } else {
-        check_distance(name, std::max(doubles_below_tightest(r.left(), e, max_doubles), doubles_above_tightest(r.right(), e, max_doubles)),
-                       max_doubles, describe);
-      }
+      check_distance(name, std::max(doubles_below_tightest(r.left(), e, max_doubles), doubles_above_tightest(r.right(), e, max_doubles)),
+                     max_doubles, describe);
     }
   }
 
@@ -1001,11 +996,11 @@ namespace
       // enclosing pi, whose width, 2^-51, the bounds took on, and they were
       // checked to within 2^-49)
       const double u = random.uniform(0.5, 2.6), v = random.uniform(-1.3, 1.3), w = random.uniform(-1.4, 1.4);
-      expect_kept("acos_rel(cos([u]), [u-1/4,u+1/4])", acos_rel(cos(interval(u)), interval(u - 0.25, u + 0.25)), u, "u=" + hex(u), 0.0,
+      expect_kept("acos_rel(cos([u]), [u-1/4,u+1/4])", acos_rel(cos(interval(u)), interval(u - 0.25, u + 0.25)), u, "u=" + hex(u),
                   periodic_limit);
-      expect_kept("asin_rel(sin([v]), [v-1/10,v+1/10])", asin_rel(sin(interval(v)), interval(v - 0.1, v + 0.1)), v, "v=" + hex(v), 0.0,
+      expect_kept("asin_rel(sin([v]), [v-1/10,v+1/10])", asin_rel(sin(interval(v)), interval(v - 0.1, v + 0.1)), v, "v=" + hex(v),
                   periodic_limit);
-      expect_kept("atan_rel(tan([w]), [w-1,w+1])", atan_rel(tan(interval(w)), interval(w - 1.0, w + 1.0)), w, "w=" + hex(w), 0.0,
+      expect_kept("atan_rel(tan([w]), [w-1,w+1])", atan_rel(tan(interval(w)), interval(w - 1.0, w + 1.0)), w, "w=" + hex(w),
                   periodic_limit);
     }
   }
@@ -1159,11 +1154,11 @@ namespace
       RoundingToNearest nearest;
       const double s = std::sin(x), c = std::cos(x);
       if (std::fabs(s) >= 0.25) {
-        expect_kept("acos_rel(cos([x]), [x-1/4,x+1/4]) from 1 to 2^50", acos_rel(cos(X), around), x, xs, 0.0, periodic_limit);
+        expect_kept("acos_rel(cos([x]), [x-1/4,x+1/4]) from 1 to 2^50", acos_rel(cos(X), around), x, xs, periodic_limit);
       }
       if (std::fabs(c) >= 0.25) {
-        expect_kept("asin_rel(sin([x]), [x-1/4,x+1/4]) from 1 to 2^50", asin_rel(sin(X), around), x, xs, 0.0, periodic_limit);
-        expect_kept("atan_rel(tan([x]), [x-1,x+1]) from 1 to 2^50", atan_rel(tan(X), wide), x, xs, 0.0, periodic_limit);
+        expect_kept("asin_rel(sin([x]), [x-1/4,x+1/4]) from 1 to 2^50", asin_rel(sin(X), around), x, xs, periodic_limit);
+        expect_kept("atan_rel(tan([x]), [x-1,x+1]) from 1 to 2^50", atan_rel(tan(X), wide), x, xs, periodic_limit);
       }
     }
     for (int i = 0; i < 1000; ++i) {

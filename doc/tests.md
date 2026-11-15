@@ -314,8 +314,8 @@ which `numbers` checks there too.
   invalid-operation exception, which must not die on SIGFPE: the comparison
   of the NaN bounds with `<=` did, and `interval::emptyset()` in a build
   without optimization. The operations of the interface with an empty operand
-  on either side (about 220 calls, in 66 checks: one for each of the 48 calls
-  that compared the NaN bounds of the empty set, the others in thirteen groups,
+  on either side (about 220 calls, in 67 checks: one for each of the 48 calls
+  that compared the NaN bounds of the empty set, the others in fourteen groups,
   and five choices a program makes with `is_empty()` of an empty interval,
   three after an intersection whose left operand is empty, one after an
   intersection whose right operand is empty and one on the empty interval
@@ -461,7 +461,7 @@ which `numbers` checks there too.
   restored with `GAOL_PRESERVE_ROUNDING`: a program linked with `-Ofast` gets
   them from `crtfastmath.o`, and `[1e-300] * [1e-20]` was [0, 0]; with the FPU
   intervals, `[1e-300] / [100·2^-1074]` was the empty set, the bounds being
-  compared before the check (GAOL v5). Then each of the 96 operations that
+  compared before the check (GAOL v5). Then each of the 97 operations that
   check the rounding direction (the arithmetic, the elementary functions, the
   powers and roots, the relational functions, `fma`, `cancel_minus`, `mid()`,
   `width()`...), called on intervals with subnormal, mixed and normal bounds
@@ -632,8 +632,9 @@ which `numbers` checks there too.
   masks of the SSE2 intervals, the elementary functions, the trigonometric ones
   using π, and the reader of strings. The static library of the CMake build is
   initialized after the program, except with MinGW-w64, and GAOL's constants
-  were computed by its dynamic initialization: 25 of the 45 checks failed with
-  the SSE2 intervals, 24 with the others, `pi()` giving [-0, 0] (GAOL v5). With
+  were computed by its dynamic initialization: when the test was written, 25 of
+  its 45 checks failed with the SSE2 intervals and 24 with the others (it has 44
+  now), `pi()` giving [-0, 0] (GAOL v5). With
   MinGW-w64, which initializes GAOL's files first, the test passes with or
   without the fix. The bounds of π and π/2 of `gaol/gaol_port.h`, now written
   in decimal, have to be the doubles next to π and π/2.
@@ -1340,21 +1341,24 @@ which `numbers` checks there too.
   path the build gave the compiler (that of the grammar,
   `gaol_interval_parser.ypp`, for what the parser refuses in a call, whose
   `#line` directives give the file), the line is positive and differs between two throws of one
-  file, and the explanation is the one expected; the text that `gaol_ERROR`
+  file, and the explanation is the one expected; the text that `GAOL_ERROR`
   builds is checked with its line, that of the macro, for a null file name
   and a null message too, and with the directories of a path cut after `/`
   and after `\` (GAOL v5, which replaced the classes of GAOL 4,
   `gaol_exception`, `input_format_error`, `invalid_action_error` and
   `unavailable_feature_error`, by them). `what()` was `std::exception`, which
   a handler of `std::exception` printed and an exception that nothing catches
-  ended the program with, in GAOL 4. The check that `gaol_ERROR` makes of its
+  ended the program with, in GAOL 4. The check that `GAOL_ERROR` makes of its
   first argument, a class derived from `std::exception`, is tested on its
   predicate (`gaol_detail::is_error_class`: true for `std::invalid_argument`,
   `std::domain_error`, `std::bad_alloc` and a class of a program, false for an
   `int`, a `std::string`, a class that is no exception and a private derived
   class), since a `static_assert` that refuses a type cannot be compiled in a
   test; that the macro makes the check is tested by `.github/scripts/headers.sh`,
-  which compiles `gaol_ERROR(int, ...)` and expects it to be refused (GAOL v5). `gaol_warning()` and `gaol_error()`, which write on `std::cerr`, have
+  which compiles `GAOL_ERROR(int, ...)` and expects it to be refused, as
+  `gaol_ERROR(int, ...)`, the name of GAOL 4 (GAOL v5), which
+  `tests/expressions.cpp` throws too, at its own line. `gaol_warning()` and
+  `gaol_error()`, which write on `std::cerr`, have
   to write a null file name as `(unknown file)` and no text for a null message,
   and leave the stream good for what follows: the null pointer was sent to the
   stream, which the standard leaves undefined and libstdc++ puts in the state
@@ -1503,8 +1507,13 @@ which `numbers` checks there too.
   computes elsewhere. Where the compiler has no 128-bit type of its own, which
   is where the halves run in earnest, there is nothing to compare with, and the
   test checks the identities the operations satisfy instead (a + b − b = a,
-  shifting left then right, the product of the halves against the schoolbook
-  product, and the order).
+  shifting left then right, and the order). With or without a native type, the
+  three products (`gaol_u128_mul64()`, `gaol_u128_mul()` and
+  `gaol_u128_imul64()`) are compared with a schoolbook product on digits of 16
+  bits written in the test, which multiplies digits only and uses no 128-bit
+  type: it is the independent value for the `_umul128` and `__umulh` branches of
+  Visual C++ and for the four 32-bit products, and where there is a native type
+  it is itself checked by the same comparison.
 - **`extended_precision`:** the results that doubles computed in extended
   precision, on the x87 unit of an x86 processor, round wrongly, which is why
   `gaol/gaol_config.h` refuses that unit. CORE-MATH in the four rounding
@@ -1558,7 +1567,7 @@ which `numbers` checks there too.
   enclosures of them. `atan2_rel_y` and `atan2_rel_x` (`atan2Rev1` and
   `atan2Rev2`, GAOL v5), which libieeep1788 does not test, have a table of
   their own, `atan2_rel_values.h`, which `atan2_rel_values.py` generates with
-  mpmath at 3000 bits: 1 969 cases, 1 263 of them with points, of angles at,
+  mpmath at 3000 bits: 2 071 cases, 1 338 of them with points, of angles at,
   next to and around the multiples of π/4, across the half-line y = 0, x < 0
   where atan2 jumps from π to −π, outside [−π, π], subnormal and infinite, on
   boxes in and across the quadrants with zero, subnormal, huge and infinite

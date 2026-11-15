@@ -181,7 +181,8 @@ else
   echo "   note: the AVX-512 path is off here (no AVX-512 compiler or processor): the column of the preserved direction is SSE2's"
 fi
 
-## The last GAOL of Frédéric Goualard, which GAOL v5 continues, with mathlib,
+## The last GAOL of Frédéric Goualard, which came after the 4.2.2 that GAOL v5
+## continues, with mathlib,
 ## both built with their configure, as his README has it for Linux, and static,
 ## as GAOL v5's library. Its configure gives -O3 and the SSE flags to g++
 ## alone: the flags GAOL v5 is built with in Release are given instead. The

@@ -110,19 +110,6 @@ namespace
     std::exit(1);
   }
 
-  // Checks that r encloses [below, above], with bounds no more than slack away
-  // from them
-  template<class Describe>
-  void expect_within(const std::string& name, const std::string& slack_name, const interval& r, double below, double above,
-                     double slack, const Describe& describe)
-  {
-    if (check(name + ": encloses", !r.is_empty() && r.left() <= below && r.right() >= above, describe)) {
-      RoundingToNearest nearest;
-      check(name + ": no more than " + slack_name + " from the exact value", below - r.left() <= slack && r.right() - above <= slack,
-            describe);
-    }
-  }
-
   void at_doubles()
   {
     for (const UnaryValue& v : unary_values) {
@@ -132,17 +119,13 @@ namespace
       const auto describe = [&] {
         return arguments() + " = " + hex(r) + ", exact value between " + hex(v.below) + " and " + hex(v.above);
       };
-      if (f == "sin" || f == "cos" || f == "tan") {
-        // Within one double of the tightest bounds, at every magnitude. Beyond
-        // 2^25, or next to an extremum or a pole, where the division of the
-        // argument by an enclosure of pi cannot tell whether an extremum is
-        // reached, the signs of the derivative tell (issue #6): GAOL's bounds
-        // were x^2 2^-103 + 2^-51 away, cos([2^60]) was [-1, 1], and the
-        // tangent of the double below pi/2 [-oo, +oo]
-        expect_close(name, r, v.below, v.above, describe, 1);
-      } else {
-        expect_close(name, r, v.below, v.above, describe);
-      }
+      // Within one double of the tightest bounds (limit), for sin, cos and tan
+      // at every magnitude too. Beyond 2^25, or next to an extremum or a pole,
+      // where the division of the argument by an enclosure of pi cannot tell
+      // whether an extremum is reached, the signs of the derivative tell
+      // (issue #6): GAOL's bounds were x^2 2^-103 + 2^-51 away, cos([2^60]) was
+      // [-1, 1], and the tangent of the double below pi/2 [-oo, +oo]
+      expect_close(name, r, v.below, v.above, describe);
     }
     // The functions of two intervals: pow() and atan2()
     for (const BinaryValue& v : binary_values) {
@@ -258,7 +241,10 @@ namespace
   // is empty, gives NaN and no flag. Over the intervals whose bounds are 0,
   // +-1, +-3, the bounds of pi, the doubles next to 3 pi and 1e6 pi, 2^52,
   // 1e300, DBL_MAX, subnormals and +-oo, the multiples of pi computed as
-  // [pi] times an integer
+  // [pi] times an integer. The reference is GAOL's own division and floor, so
+  // that this is a check of consistency, and not of the bounds of sin, cos and
+  // tan: their independent values, computed with mpmath, are those of
+  // at_doubles() and trigonometric_intervals()
   void modulo_k_pi_values()
   {
     const double oo = std::numeric_limits<double>::infinity();
@@ -454,8 +440,7 @@ namespace
     };
     for (const Known& k : known) {
       const interval r = evaluate(k.name, k.f, [] { return std::string(); });
-      const bool trigonometric = std::strncmp(k.name, "sin(", 4) == 0 || std::strncmp(k.name, "cos(", 4) == 0;
-      expect_close(k.name, r, k.below, k.above, [&] { return hex(r); }, trigonometric ? 1 : limit);
+      expect_close(k.name, r, k.below, k.above, [&] { return hex(r); });
     }
 
     // The functions where their value is a double, pi, pi/2 or pi/4, sinh and
@@ -802,7 +787,7 @@ namespace
     // The lanes <-left, right>, as a register of the SSE2 or the NEON intervals holds them.
     // A function called for each case, not a table of structures: GCC 12.2 on aarch64 at -O2
     // gave the loop over such a table values that are not the ones of the table
-    const auto register_case = [&](double first, double second, bool empty, double left, double right) {
+    const auto register_case = [&](double first, double second, bool lanes_empty, double left, double right) {
 #  if defined(GAOL_USING_SSE2_INSTRUCTIONS) && GAOL_USING_SSE2_INSTRUCTIONS
       const interval K(_mm_set_pd(second, first));
 #  else
@@ -810,7 +795,7 @@ namespace
       const interval K(vld1q_f64(values));
 #  endif
       check("the interval of a register: the empty set for a lane at -oo, else the interval of its lanes",
-            K.is_empty() == empty && (empty || (K.left() == left && K.right() == right)),
+            K.is_empty() == lanes_empty && (lanes_empty || (K.left() == left && K.right() == right)),
             [&] { return "lanes <" + hex(first) + ", " + hex(second) + ">: " + hex(K); });
     };
     register_case(inf, inf, false, -inf, inf);   // the universe

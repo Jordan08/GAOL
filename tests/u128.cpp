@@ -3,8 +3,8 @@
  *--------------------------------------------------------------------------
  * Tests of GAOL v5: the 128-bit unsigned integer of gaol/math/gaol_u128.h.
  *
- * The accurate phases of CORE-MATH's log, sin, cos, tan, atan2 and pow, and of
- * log2p1, log10p1, atan2pi, hypot, rsqrt and asinpi, compute with a 128-bit
+ * The accurate phases of CORE-MATH's log, log10, sin, cos, tan, atan2 and pow,
+ * and of log2p1, log10p1, atan2pi, hypot, rsqrt and asinpi, compute with a 128-bit
  * integer (unsigned, and signed in asinpi), which Visual C++ has on no architecture and
  * GCC has on no 32-bit target: there GAOL computes with the two 64-bit halves
  * of gaol/math/gaol_u128.h. This test compiles those halves (GAOL_U128_FORCE_EMULATION)
@@ -18,7 +18,17 @@
  * Where the compiler has no 128-bit type of its own, which is where this code
  * runs in earnest, there is nothing to compare with: the test then checks the
  * identities the operations satisfy (a + b - b = a, shifting left then right,
- * the product of the halves against the schoolbook product, and the order).
+ * and the order).
+ *
+ * The three products, gaol_u128_mul64(), gaol_u128_mul() and
+ * gaol_u128_imul64(), are compared in both cases with a schoolbook product on
+ * digits of 16 bits, written in this file. The other two start with
+ * gaol_u128_mul64(), so that an identity between the three cannot tell a wrong
+ * gaol_u128_mul64() from a right one; the schoolbook product is what the
+ * branches of Visual C++ (_umul128 on x64, __umulh on ARM64) and the four
+ * 32-bit products are compared with, where there is no native type. Where
+ * there is one, the same comparison checks the schoolbook product itself, as
+ * the halves are compared with the native type.
  *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
@@ -89,6 +99,69 @@ namespace
     }
     return v;
   }
+
+  struct word128 { uint64_t h, l; };
+
+  // The product of a and b modulo 2^128 by the schoolbook algorithm on digits
+  // of 16 bits: a partial product is under 2^32, a sum of eight of them fits a
+  // uint64_t, and the carries are explicit. It multiplies digits only and uses
+  // no 128-bit type, so it is independent of every implementation of
+  // gaol_u128_mul64(). The digits from the ninth on, the part of the product
+  // from 2^128 up, are not computed: gaol_u128_mul() drops them.
+  word128 schoolbook(word128 a, word128 b)
+  {
+    uint64_t x[8], y[8];
+    for (int i = 0; i < 4; ++i) {
+      x[i] = (a.l >> (16 * i)) & 0xffff;
+      x[i + 4] = (a.h >> (16 * i)) & 0xffff;
+      y[i] = (b.l >> (16 * i)) & 0xffff;
+      y[i + 4] = (b.h >> (16 * i)) & 0xffff;
+    }
+    word128 r = { 0, 0 };
+    uint64_t carry = 0;
+    for (int k = 0; k < 8; ++k) {
+      uint64_t sum = carry;
+      for (int i = 0; i <= k; ++i) {
+        sum += x[i] * y[k - i];
+      }
+      const uint64_t digit = sum & 0xffff;
+      carry = sum >> 16;
+      if (k < 4) {
+        r.l |= digit << (16 * k);
+      } else {
+        r.h |= digit << (16 * (k - 4));
+      }
+    }
+    return r;
+  }
+
+  void equals(const char* name, gaol_u128 got, word128 expected, const std::string& what)
+  {
+    const uint64_t gh = gaol_u128_hi(got), gl = gaol_u128_lo(got);
+    check(name, gh == expected.h && gl == expected.l,
+          what + ": " + hex(gh, gl) + " rather than " + hex(expected.h, expected.l));
+  }
+
+  // The three products against the schoolbook product: gaol_u128_mul64() on
+  // the low halves, whose product is exact, gaol_u128_mul() on the two values,
+  // and gaol_u128_imul64() on the low halves read as signed values, which the
+  // schoolbook product multiplies once extended with their sign
+  void products(uint64_t ah, uint64_t al, uint64_t bh, uint64_t bl)
+  {
+    const std::string what = hex(ah, al) + " and " + hex(bh, bl);
+    const word128 wa = { ah, al }, wb = { bh, bl };
+    const word128 la = { 0, al }, lb = { 0, bl };
+    const word128 sa = { (al >> 63) ? UINT64_MAX : 0, al };
+    const word128 sb = { (bl >> 63) ? UINT64_MAX : 0, bl };
+
+    equals("mul64 against the schoolbook product", gaol_u128_mul64(al, bl),
+           schoolbook(la, lb), what);
+    equals("mul against the schoolbook product",
+           gaol_u128_mul(gaol_u128_make(ah, al), gaol_u128_make(bh, bl)),
+           schoolbook(wa, wb), what);
+    equals("imul64 against the schoolbook product",
+           gaol_u128_imul64((int64_t)al, (int64_t)bl), schoolbook(sa, sb), what);
+  }
 }
 
 #if defined(__SIZEOF_INT128__)
@@ -113,6 +186,7 @@ namespace
     const native na = to_native(a), nb = to_native(b);
     const std::string what = hex(ah, al) + " and " + hex(bh, bl);
 
+    products(ah, al, bh, bl);
     same("add", gaol_u128_add(a, b), (native)(na + nb), what);
     same("add64", gaol_u128_add64(a, bl), (native)(na + bl), what);
     same("sub", gaol_u128_sub(a, b), (native)(na - nb), what);
@@ -188,6 +262,7 @@ namespace
     const gaol_u128 a = gaol_u128_make(ah, al), b = gaol_u128_make(bh, bl);
     const std::string what = hex(ah, al) + " and " + hex(bh, bl);
 
+    products(ah, al, bh, bl);
     check("add then sub", gaol_u128_eq(gaol_u128_sub(gaol_u128_add(a, b), b), a), what);
     check("neg twice", gaol_u128_eq(gaol_u128_neg(gaol_u128_neg(a)), a), what);
     check("add is commutative",
@@ -196,20 +271,12 @@ namespace
           gaol_u128_eq(gaol_u128_mul(a, b), gaol_u128_mul(b, a)), what);
     check("add64 is add of the low half",
           gaol_u128_eq(gaol_u128_add64(a, bl), gaol_u128_add(a, gaol_u128_of(bl))), what);
-    check("mul64 is mul of the low halves",
-          gaol_u128_eq(gaol_u128_mul64(al, bl),
-                       gaol_u128_mul(gaol_u128_of(al), gaol_u128_of(bl))), what);
     check("the order is total",
           gaol_u128_lt(a, b) + gaol_u128_gt(a, b) + gaol_u128_eq(a, b) == 1, what);
     const gaol_u128 ones = gaol_u128_make(UINT64_MAX, UINT64_MAX);
     check("and is commutative",
           gaol_u128_eq(gaol_u128_and(a, b), gaol_u128_and(b, a)), what);
     check("and with all ones", gaol_u128_eq(gaol_u128_and(a, ones), a), what);
-    // the signed product is the product of the values extended with their sign
-    check("imul64 is mul of the values extended",
-          gaol_u128_eq(gaol_u128_imul64((int64_t)al, (int64_t)bl),
-                       gaol_u128_mul(gaol_u128_of_i64((int64_t)al),
-                                     gaol_u128_of_i64((int64_t)bl))), what);
     check("of_i64 is the high half shifted with its sign",
           gaol_u128_eq(gaol_u128_of_i64((int64_t)al),
                        gaol_u128_sar(gaol_u128_make(al, 0), 64)), what);

@@ -1292,7 +1292,13 @@ namespace
       }
     }
     /* A positive q gives what nth_root(x, unsigned) gives, and a negative one
-       its inverse: checked over the doubles of a range. */
+       its inverse: checked over the doubles of a range. The reference of a
+       negative q is GAOL's own inverse() of the root, so that this checks the
+       consistency of the two, and fixes the implementation (a negative order
+       that gave bounds tighter than the inverse of the root would fail). The
+       tightest bounds of the roots of a negative order, computed apart with
+       mpmath, are those of roots_of_tiny_numbers() in tests/arithmetic.cpp, for
+       x below 2^-1020 */
     for (int k = 1; k <= 2000; ++k) {
       const double x = (double)k / 8.0;
       for (int q : {2, 3, 5, 7}) {
@@ -1383,13 +1389,22 @@ namespace
       {"tanpi", gaol_cr_tanpi, tanpi, true},
     };
     for (const Periodic& p : periodic) {
-      for (int i = 0; i < 20000; ++i) {
+      for (int i = 0; i < 20025; ++i) {
+        // the last 25 intervals are the points -6, -5.5, ... 6, among them the
+        // poles of tanpi (odd multiples of 1/2), where tanpi has no value
+        const bool point = i >= 20000;
         const double a = uniform(-6.0, 6.0);
         // every eighth interval starts on a multiple of 1/2
-        const double l = (i % 8 == 0) ? std::floor(2.0 * a) / 2.0 : a;
-        const double r = l + uniform(0.0, 2.6);
+        const double l = point ? (i - 20012) / 2.0 : ((i % 8 == 0) ? std::floor(2.0 * a) / 2.0 : a);
+        const double width = uniform(0.0, 2.6);
+        const double r = point ? l : l + width;
         std::fesetround(FE_UPWARD);
         const interval got = p.g(interval(l, r));
+        if (p.tan && l == r && is_pole(l)) {
+          check("tanpi over a pole alone: the empty set", got.is_empty(),
+                [&] { return "tanpi([" + show(l) + "]) = [" + show(got.left()) + ", " + show(got.right()) + "]"; });
+          continue;
+        }
         double lo = GAOL_INFINITY, hi = -GAOL_INFINITY;
         bool pole_in = false;
         for (double h = std::ceil(2.0 * l) / 2.0; h <= r; h += 0.5) {
@@ -1711,8 +1726,8 @@ namespace
       { "upward, and to nearest for SSE", FE_UPWARD, _MM_ROUND_NEAREST },
       { "to nearest, and upward for SSE", FE_TONEAREST, _MM_ROUND_UP },
     };
-    struct Power { double x, y; long long lo, hi; };
-    const Power powers[] = {
+    struct PowerCase { double x, y; long long lo, hi; };
+    const PowerCase powers[] = {
       { 0x1.4a1249ba9b6d5p-1, 0x1.97f9e85175cf7p+10, 1458662373659LL, 1458662373660LL },
       { 0x1.0d00c0deaf87fp-2, 0x1.117ee54c23de1p+9, 567863LL, 567864LL },
       { 0x1.999999999999ap-1, 0x1.a0df226893p+11, 1LL, 2LL },
@@ -1724,7 +1739,7 @@ namespace
     };
     for (const Direction& d : directions) {
       const bool upward = d.sse == static_cast<unsigned>(_MM_ROUND_UP);
-      for (const Power& p : powers) {
+      for (const PowerCase& p : powers) {
         set(d);
         const double z = gaol_core::rnd_keep(gaol_cr_pow(p.x, p.y));
         set(directions[0]);

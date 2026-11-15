@@ -10,7 +10,7 @@
 #   macro left undefined), but those that other headers
 #   include in the middle of their own code (core/gaol_interval_fpu.h,
 #   core/gaol_interval_neon.h and core/gaol_interval_sse.h, the inline
-#   functions of gaol_interval.h) or with Visual C++ only (gaol_fpu_msvc.h);
+#   functions of gaol_interval.h);
 # - including gaol/gaol, gaol/parser/gaol_expression.h and
 #   gaol/parser/gaol_expr_eval.h defines no macro whose name does not start
 #   with GAOL_ or gaol_ (__GAOL, __gaol for the include guards): the macros
@@ -22,8 +22,9 @@
 #   which stop on an #error elsewhere, as on macOS arm64, and only on 64-bit ARM
 #   those of NEON, which Clang has for every target and which stop on an #error
 #   on x86, as on macOS x86_64: GAOL v5);
-# - gaol_ERROR(std::domain_error, ...) compiles and gaol_ERROR(int, ...) is
-#   refused by its static_assert, with the exceptions of the installed GAOL
+# - GAOL_ERROR(std::domain_error, ...) compiles and GAOL_ERROR(int, ...) is
+#   refused by its static_assert, as gaol_ERROR, its name in GAOL 4, with the
+#   exceptions of the installed GAOL
 #   or without (the check of the macro cannot be compiled in the tests of
 #   tests/, which test its predicate only: GAOL v5).
 #
@@ -65,7 +66,7 @@ for f in "$prefix"/include/gaol/* "$prefix"/include/gaol/core/* "$prefix"/includ
   [ -f "$f" ] || continue
   h=${f#"$prefix"/include/gaol/}
   case "$h" in
-    core/gaol_interval_fpu.h|core/gaol_interval_neon.h|core/gaol_interval_sse.h|gaol_fpu_msvc.h) continue ;;
+    core/gaol_interval_fpu.h|core/gaol_interval_neon.h|core/gaol_interval_sse.h) continue ;;
   esac
   printf '#include <gaol/%s>\n' "$h" > "$work/alone.cpp"
   # shellcheck disable=SC2086
@@ -112,27 +113,30 @@ else
   echo "The macros of GAOL's headers start with GAOL_ or gaol_: $(comm -13 "$work/system.txt" "$work/both.txt" | wc -l) macros"
 fi
 
-# gaol_ERROR takes a class derived from std::exception, and refuses any other
-# type when it is compiled, in a build that throws as in one that aborts
-printf '#include <gaol/gaol_common.h>\ninline void raise() { gaol_ERROR(std::domain_error, "refused"); }\n' > "$work/error_ok.cpp"
-printf '#include <gaol/gaol_common.h>\ninline void raise() { gaol_ERROR(int, "refused"); }\n' > "$work/error_bad.cpp"
-# shellcheck disable=SC2086
-if $cxx $flags -fsyntax-only "$work/error_ok.cpp" > "$work/error.log" 2>&1; then
-  echo "gaol_ERROR(std::domain_error, ...): ok"
-else
-  echo "gaol_ERROR(std::domain_error, ...): FAILED"
-  cat "$work/error.log"
-  status=1
-fi
-# shellcheck disable=SC2086
-if $cxx $flags -fsyntax-only "$work/error_bad.cpp" > "$work/error.log" 2>&1; then
-  echo "gaol_ERROR(int, ...): FAILED, it compiles"
-  status=1
-elif grep -q "excep must be derived from std::exception" "$work/error.log"; then
-  echo "gaol_ERROR(int, ...): refused by its static_assert, as it has to be"
-else
-  echo "gaol_ERROR(int, ...): refused, but not by its static_assert:"
-  cat "$work/error.log"
-  status=1
-fi
+# GAOL_ERROR, and gaol_ERROR, its name in GAOL 4, take a class derived from
+# std::exception, and refuse any other type when it is compiled, in a build
+# that throws as in one that aborts
+for macro in GAOL_ERROR gaol_ERROR; do
+  printf '#include <gaol/gaol_common.h>\ninline void raise() { %s(std::domain_error, "refused"); }\n' "$macro" > "$work/error_ok.cpp"
+  printf '#include <gaol/gaol_common.h>\ninline void raise() { %s(int, "refused"); }\n' "$macro" > "$work/error_bad.cpp"
+  # shellcheck disable=SC2086
+  if $cxx $flags -fsyntax-only "$work/error_ok.cpp" > "$work/error.log" 2>&1; then
+    echo "$macro(std::domain_error, ...): ok"
+  else
+    echo "$macro(std::domain_error, ...): FAILED"
+    cat "$work/error.log"
+    status=1
+  fi
+  # shellcheck disable=SC2086
+  if $cxx $flags -fsyntax-only "$work/error_bad.cpp" > "$work/error.log" 2>&1; then
+    echo "$macro(int, ...): FAILED, it compiles"
+    status=1
+  elif grep -q "excep must be derived from std::exception" "$work/error.log"; then
+    echo "$macro(int, ...): refused by its static_assert, as it has to be"
+  else
+    echo "$macro(int, ...): refused, but not by its static_assert:"
+    cat "$work/error.log"
+    status=1
+  fi
+done
 exit $status

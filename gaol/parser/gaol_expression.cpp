@@ -654,9 +654,9 @@ namespace gaol_core {
               /*
               pow_itv_node
               */
-              pow_itv_node::pow_itv_node(const expression& e1, const expression &e2, power_function f) : e_left(e1.get_root()),
+              pow_itv_node::pow_itv_node(const expression& e1, const expression &e2, power_function fn) : e_left(e1.get_root()),
               e_right(e2.get_root()),
-              f(f)
+              f(fn)
               {
                 e_left->inc_refcount();
                 e_right->inc_refcount();

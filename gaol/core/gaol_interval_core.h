@@ -505,7 +505,7 @@ namespace gaol_core {
     GAOL_NODISCARD bool is_a_double(void) const;
     GAOL_NODISCARD bool is_an_int(void) const;
 
-    ///! Size of the interval
+    //! Size of the interval
     GAOL_NODISCARD double width(void) const;
 
     /*!
@@ -1829,7 +1829,7 @@ GAOL_NODISCARD extern GAOL_PUBLIC   interval atanh(const interval& I);
     bounds of I, correctly rounded: the tightest enclosure, exact at 0 and
     at the infinities, erf([0]) being [0], erfc([0]) [1], erf([-oo, +oo])
     [-1, 1] and erfc([-oo, +oo]) [0, 2]. erfc(x) is subnormal from
-    x = 26.55 on, and below the least subnormal from x = 27.22 on, where the
+    x = 26.5433 on, and below the least subnormal from x = 27.2133 on, where the
     lower bound is 0.
   */
 GAOL_NODISCARD extern GAOL_PUBLIC   interval erf(const interval& I);
@@ -1944,10 +1944,11 @@ GAOL_NODISCARD GAOL_INLINE interval integer(const interval &I)
   (GAOL v5).
 
   Each tests the empty set first. GAOL holds the empty interval as the two
-  bounds NaN, in both of its representations (interval::emptyset() of
-  gaol/core/gaol_interval_sse.h and of gaol/core/gaol_interval_fpu.h), and
-  is_empty() reads it as !std::islessequal(left(), right()), which a NaN makes
-  true. trunc and the two roundings send a NaN to itself, so they would give
+  bounds NaN, in the three of its representations (interval::emptyset() of
+  gaol/core/gaol_interval_sse.h, gaol/core/gaol_interval_fpu.h and
+  gaol/core/gaol_interval_neon.h), and is_empty() tells it from its bounds by
+  a quiet comparison (see is_empty()), which a NaN makes true for the empty
+  set. trunc and the two roundings send a NaN to itself, so they would give
   the empty set back without the test, but the constructor would compare the
   NaN bounds, which raises the invalid-operation exception; sign would not, a
   NaN comparing false both to 0 and above it, so sign(empty) would be the
@@ -2694,7 +2695,7 @@ GAOL_INLINE double
 GAOL_NODISCARD extern GAOL_PUBLIC bool feven(double d);
 
 
-  /*!(void)
+  /*!
     \brief Hausdorff distance between two intervals:
 
     hausdorff([a,b],[c,d]) = max(|a-c|,|b-d|)

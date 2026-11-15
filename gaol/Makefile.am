@@ -64,12 +64,11 @@ libgaol_la_LIBADD = $(top_builddir)/3rd/libgaolcoremath.la
 
 library_includedir=$(includedir)/gaol
 
-# The headers a program includes, gaol, and those they include,
-# gaol_fpu_msvc.h for Visual C++ among them: CMake and meson install the same
-# ones (GAOL v5)
+# The headers a program includes, gaol, and those they include: CMake and
+# meson install the same ones (GAOL v5)
 library_include_HEADERS = gaol gaol.h \
 	gaol_common.h gaol_config.h \
-	gaol_fpu.h gaol_fpu_fenv.h gaol_fpu_msvc.h gaol_ieee1788.h \
+	gaol_fpu.h gaol_fpu_fenv.h gaol_ieee1788.h \
 	gaol_interval.h \
 	gaol_port.h \
 	gaol_version.h

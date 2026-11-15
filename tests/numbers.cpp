@@ -155,13 +155,20 @@ namespace
     check(name, is_tightest_enclosure(r, decimal(s)), [&] { return "\"" + s + "\": " + hex(r); });
   }
 
-  // s formatted by snprintf()
+  // s formatted by snprintf(); the formats of the callers are literals
+#if defined(__GNUC__) || defined(__clang__)
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wformat-nonliteral"
+#endif
   std::string format(const char *f, double x)
   {
     std::vector<char> buffer(4096);
     std::snprintf(buffer.data(), buffer.size(), f, x);
     return buffer.data();
   }
+#if defined(__GNUC__) || defined(__clang__)
+#  pragma GCC diagnostic pop
+#endif
 
   void numbers()
   {

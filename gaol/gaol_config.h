@@ -299,11 +299,13 @@
    GCC does, -fno-trapping-math, -fassociative-math and -freciprocal-math, and
    -funsafe-math-optimizations, which turns them on, and -ffast-math or -Ofast
    with -fno-finite-math-only, with which Clang defines __NO_MATH_ERRNO__ alone;
-   -fno-honor-nans of Clang, given without
-   -fno-honor-infinities, which does to the empty interval what
-   -ffinite-math-only does; and -ffast-math or -Ofast followed by
-   -fno-fast-math with Clang, which leaves -frounding-math off (above). See
-   doc/three-builds.md. */
+   -fno-honor-nans of Clang, given without -fno-honor-infinities, which does
+   to the empty interval what -ffinite-math-only does (the sum of the empty
+   set and [1, 2] was not empty with Clang 21), and -fno-honor-infinities,
+   given without -fno-honor-nans, which does it to the unbounded intervals
+   (interval::universe().is_entire() was false, and [-oo, 5] was empty); and
+   -ffast-math or -Ofast followed by -fno-fast-math with Clang, which leaves
+   -frounding-math off (above). See doc/three-builds.md. */
 #if defined(__NO_SIGNED_ZEROS__)
 #  error "GAOL cannot be compiled with -fno-signed-zeros (which -funsafe-math-optimizations, -ffast-math and -Ofast turn on): the compiler then drops the + 0.0 by which GAOL sees the modes flushing the subnormal numbers to zero, and some bounds would not enclose the exact results (remove the option that turns it on, or put the flags of gaol.pc and gaol::gaol after that option)"
 #endif

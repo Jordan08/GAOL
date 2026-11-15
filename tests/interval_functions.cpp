@@ -18,6 +18,8 @@
 #include "unit_tests.h"
 #include <limits>
 
+using namespace gaol;
+
 class interval_function_test {
 public:
   void setUp() {
@@ -74,11 +76,11 @@ public:
       TEST_TRUE(std::isnan(interval::emptyset().midpoint()));
       TEST_TRUE(std::isnan(interval(6,-4).midpoint()));
       TEST_TRUE(interval(4,4).midpoint() == 4);
-      TEST_TRUE(interval(10,next_float(10)).set_contains(interval(10,next_float(10))));
+      TEST_TRUE(interval(10,next_float(10)).set_contains(interval(10,next_float(10)).midpoint()));
       TEST_TRUE(interval(6,10).midpoint() == 8);
       TEST_TRUE(interval(previous_float(1.0),
 			 next_float(1.0)).set_contains(interval(previous_float(1.0),
-								next_float(1.0))));
+								next_float(1.0)).midpoint()));
       TEST_TRUE(interval(-6,GAOL_INFINITY).midpoint()==std::numeric_limits<double>::max());
       TEST_TRUE(interval(-GAOL_INFINITY,5).midpoint()==-std::numeric_limits<double>::max());
       TEST_TRUE(interval(-GAOL_INFINITY,GAOL_INFINITY).midpoint()==0);

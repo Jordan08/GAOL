@@ -12,7 +12,9 @@ a note kept for reference.*
 GAOL v5 bounds every one of its elementary functions with CORE-MATH, which is
 the only math library it uses (`3rd/math-core`). Before that it was built with
 one of three — mathlib by default, CRlibm, or the math library of the system —
-which the three builds now refuse rather than ignore. The four come from four
+and the options that chose one are gone: configure and CMake warn that they do
+not know them and go on, meson refuses an option it does not know (see
+[Building GAOL](building.md#with-autotools)). The four come from four
 moments of the same history and were written with different goals, which is why
 they give bounds of different tightness. This page says where each of them comes
 from and what separates them, and why GAOL v5 ended up with the last.
@@ -88,8 +90,8 @@ Its two limits are the ones that decided its fate. Nothing bounds the number
 of iterations: the strategy has no proof and no bound on the worst case, which
 can cost thousands of cycles. And it rounds to nearest only, so a bound drawn
 from it has to be moved one double outward, which costs one unit in the last
-place of tightness — this is what GAOL does for exp, pow, the trigonometric
-and the inverse trigonometric functions ([Accuracy of the
+place of tightness — this is what GAOL 4 did with mathlib for the elementary
+functions but the hyperbolic ones, and GAOL v5 does no longer ([Accuracy of the
 operations](accuracy.md)).
 
 mathlib was contributed to the glibc around 2001 and provided its exp, log,
@@ -122,8 +124,9 @@ CRlibm keeps Ziv's two phases but changes what is guaranteed:
 - **the four rounding directions are provided explicitly**: `cos_rn`, `cos_rd`,
   `cos_ru`, `cos_rz`. This is what makes it natural for interval arithmetic, and
   why GAOL took its functions rounded downward and upward directly, without
-  moving them outward: built with CRlibm, GAOL's exp, log, sin, cos, tan, asin,
-  acos, atan, sinh and cosh were the tightest bounds of the value at the bound.
+  moving them outward: built with CRlibm, GAOL's exp, log, cos, tan, asin,
+  acos, atan, sinh and cosh were the tightest bounds of the value at the bound
+  (not its sin, which GAOL 4 computed as cos(x − [π/2])).
   CORE-MATH gives the same, in the direction in effect, for every function and
   on every system (see [Accuracy of the operations](accuracy.md)).
 
@@ -159,7 +162,7 @@ as much a strategy of adoption as a technique.
 - **The four rounding directions** are honoured, the one in effect included.
   This is what GAOL v5 rests on: correctly rounded in the upward rounding GAOL
   computes in, CORE-MATH gives the tightest bounds without switching the
-  rounding direction, the interval `log` 2.2 times as fast as that of GAOL 4.2.3, which calls mathlib, moves its value outward and switches the rounding direction twice (see
+  rounding direction, the interval `log` 2.6 times as fast as that of GAOL 4.2.3, which calls mathlib, moves its value outward and switches the rounding direction twice (see
   `gaol/math/gaol_core_math.h` and [Performance](compare/performance.md)).
 
 A proposal to add `cr_*` functions to the C standard comes from the same team,

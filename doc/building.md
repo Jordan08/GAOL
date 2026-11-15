@@ -164,8 +164,11 @@ GAOL.
   direction](simd.md#when-the-build-takes-the-avx-512-path): the path spares the
   store of the rounding direction that every operation pays with
   `GAOL_PRESERVE_ROUNDING`, where it gains 1.3 to 6.1 times at the median of 2.9
-  on an Intel i7-1185G7, and takes 20 % longer at the median without it (the processor
-  halves the AVX-512 units, and no other was measured). The library then needs a
+  on an Intel i7-1185G7, whose AVX-512 units are halved, and takes 20 % longer
+  at the median without it. On an Intel Xeon of a virtual machine, whose units
+  are presumably full width, it gains 3.9 and 4.2 times at the median with the
+  option and takes 37 and 45 % longer without it (Clang 18 and GCC 13.3): the
+  rule stands on both processors. The library then needs a
   processor with the instructions, as with the fused multiply-add instructions,
   and `gaol::init()` stops a program run on another one with a message (see
   [The AVX-512 path](using.md#the-avx-512-path)). In a cross-compilation, where
@@ -233,7 +236,10 @@ cmake --build build --target test      # make test with the Makefiles of CMake
 cmake --install build --config Release
 ```
 
-CMake 3.14 or later. The build compiles the thirty-eight sources of CORE-MATH
+CMake 3.14 or later (`cmake --install` is CMake 3.15: with 3.14,
+`cmake --build build --config Release --target install` installs, as the job
+`cmake-3-14` of the continuous integration does). The build compiles the
+thirty-eight sources of CORE-MATH
 into `libgaol`, which is static unless `BUILD_SHARED_LIBS` is `ON`: there is
 nothing else to build and nothing else to install. The build type is Release
 unless another is given; brought in by a project that gives none
@@ -410,7 +416,8 @@ developers](#the-settings-of-the-developers), as `--enable-fma` and
 other options of GAOL 4 (`--with-mathlib`, `--with-mathlib-include`,
 `--with-mathlib-lib`, `--with-cppunit-include`, `--with-cppunit-lib`,
 `--enable-fast-math`, `--enable-asm`, `--enable-relations`) are gone, and
-configure warns that it does not know them. A
+configure warns that it does not know them (as CMake does for a variable that
+the project does not use, whereas meson refuses an option it does not know). A
 universal build of macOS is configured with `-arch` several times in the flags
 of the compilers (GAOL v5): `./configure CFLAGS="-arch arm64 -arch x86_64"
 CXXFLAGS="-arch arm64 -arch x86_64" LDFLAGS="-arch arm64 -arch x86_64"`; the

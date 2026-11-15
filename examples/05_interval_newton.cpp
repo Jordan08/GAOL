@@ -116,7 +116,8 @@ namespace {
     // of these t, though, and over the whole of D that hull would fill the
     // gap around t = 0 again. Dividing by the negative part and by the
     // positive part of D apart keeps the gap, as the two-piece division of
-    // IEEE 1788-2015, mulRevToPair, which GAOL does not provide, would.
+    // IEEE 1788-2015, gaol_ieee1788::mulRevToPair, does for a numerator
+    // without 0 (-f(m) may hold it, and div_rel takes X - m too).
     const interval a = (m + div_rel(-fm, D & interval::negative(), X - m)) & X;
     const interval b = (m + div_rel(-fm, D & interval::positive(), X - m)) & X;
     if (a.is_empty() || b.is_empty()) {

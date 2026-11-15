@@ -862,7 +862,7 @@ namespace
       { "y = 0, whatever x", compoundm1(interval(-0.5, 1e300), interval(0.0)), 0.0, 0.0, false },
       { "the whole line: [-1, +oo]", compoundm1(interval::universe(), interval::universe()), -1.0, infinity, false },
       { "x = [0, +oo] and y = 1: x - 0", compoundm1(interval(0.0, infinity), interval(1.0)), 0.0, infinity, false },
-      { "x = [1, +oo] and y = [-oo, 0]: the limit -1 at +oo, and 0", compoundm1(interval(1.0, infinity), interval(-infinity, -1.0)), -1.0, -0.5, false },
+      { "x = [1, +oo] and y = [-oo, -1]: the limit -1 at +oo, and -1/2", compoundm1(interval(1.0, infinity), interval(-infinity, -1.0)), -1.0, -0.5, false },
       { "x = 1 and y = [1, +oo]: the limit +oo", compoundm1(interval(1.0), interval(1.0, infinity)), 1.0, infinity, false },
       { "x = 1 and y = [-oo, -1]: the limit -1", compoundm1(interval(1.0), interval(-infinity, -1.0)), -1.0, -0.5, false },
       { "x = -0.5 and y = [1, +oo]: the limit -1", compoundm1(interval(-0.5), interval(1.0, infinity)), -1.0, -0.5, false },
@@ -917,7 +917,9 @@ namespace
   }
 
   // Random boxes with finite bounds, whose result is the hull of the values at the corners and at 0 where
-  // the box crosses x = 0 or y = 0, and holds the values at points inside
+  // the box crosses x = 0 or y = 0, and holds the values at points inside. The values at the corners are
+  // those of compoundm1() itself, so that this is a check of consistency between a box and its points; the
+  // independent values, computed with mpmath, are those of points() and boxes()
   void random_boxes()
   {
     Random rnd;

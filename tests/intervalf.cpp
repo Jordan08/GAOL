@@ -19,6 +19,8 @@
 // this test, which is skipped otherwise (exit status 77) (GAOL v5)
 #include "unit_tests.h"
 
+using namespace gaol;
+
 #if defined(GAOL_FLOAT_INTERVALS)
 
 #include "gaol/float/gaol_intervalf.h"

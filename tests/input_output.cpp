@@ -21,6 +21,8 @@
 #include "gaol/gaol_config.h"
 #include "unit_tests.h"
 
+using namespace gaol;
+
 
 class input_output_test {
 public:
@@ -167,7 +169,8 @@ public:
 		
 		os << I;
 		interval K = textToInterval(os.str());
-		TEST_PEQ(K,interval(3.452, 3.453));
+		TEST_CONT(K,I);
+		TEST_CONT(interval(3.45, 3.46),K);
 		os.str("");
 		interval::precision(2);
 		os << I;
