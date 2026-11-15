@@ -1602,11 +1602,22 @@ namespace
     return x.is_empty() ? std::string("empty") : hex(x);
   }
 
+  // The name of a rounding direction, and its value, which depends on the platform
+  std::string direction_name(int direction)
+  {
+    for (const CallerDirection& c : caller_directions) {
+      if (c.fenv == direction) {
+        return std::string(c.name) + " (" + std::to_string(direction) + ")";
+      }
+    }
+    return "unknown (" + std::to_string(direction) + ")";
+  }
+
   std::string shown(const ProcessorState& s)
   {
     std::ostringstream o;
     o.imbue(std::locale::classic());
-    o << "direction " << s.direction << ", flush bits 0x" << std::hex << s.flush;
+    o << "direction " << direction_name(s.direction) << ", flush bits 0x" << std::hex << s.flush;
 #if GAOL_TESTS_MXCSR
     o << ", MXCSR 0x" << s.control;
 #endif
@@ -1619,17 +1630,20 @@ namespace
     times with GAOL's result right and the reference empty, for an x that has a part above 0, the caller's
     direction downward; it passed when the job ran again, and was never seen elsewhere. The empty
     reference comes from x & [0, +oo], or from the square of that part: the text says which, computes
-    them again, in the state the check found and with rounding to nearest and no flush mode, and
-    gives the state of the processor when x & [0, +oo] was computed and now, and what the comparisons
-    of the bounds that operator&=() makes say of the bounds of x (SSE2 intervals: the left bound is stored
-    negated). It is written for a failed check only, which ran with the state the tests set.
+    x & [0, +oo] again in the state of the processor when it was computed (then), in the state the check
+    found (now) and with rounding to nearest and no flush mode, so that a result that differs from the
+    first one in then and not in now is told from one that differs in both, squares the part found in
+    then, gives the two states, and tells what the comparisons of the bounds that operator&=() makes say
+    of the bounds of x (SSE2 intervals: the left bound is stored negated). It is written for a failed
+    check only, which ran with the state the tests set.
   */
   std::string reference_report(const interval& x, const interval& positive_part, const ProcessorState& then,
                                int direction, unsigned int flush)
   {
     const ProcessorState now = processor_state();
-    const interval again = x & interval::positive();
-    const interval square_again = run_in_state(direction, flush, [&] { return sqr(again); });
+    const interval again_now = x & interval::positive();
+    const interval again_then = run_in_state(then.direction, then.flush, [&] { return x & interval::positive(); });
+    const interval square_again = run_in_state(direction, flush, [&] { return sqr(again_then); });
     const interval clean = run_in_state(FE_TONEAREST, 0u, [&] { return x & interval::positive(); });
     const double left = x.left(), right = x.right();
     const bool unordered = gaol_detail::quiet_unordered(-left, -0.0);
@@ -1640,9 +1654,10 @@ namespace
 #if GAOL_TESTS_SET_FLUSH
     set_flush_bits(now.flush);
 #endif
-    return "; x & [0, +oo] was " + shown(positive_part) + ", is " + shown(again) + " again, and " + shown(clean)
-      + " with rounding to nearest and no flush mode; the square of the part found again is " + shown(square_again)
-      + "; the processor when it was computed: " + shown(then) + ", now: " + shown(now)
+    return "; x & [0, +oo] was " + shown(positive_part) + ", is " + shown(again_then) + " again in the state it was computed in, "
+      + shown(again_now) + " in the state of now, and " + shown(clean)
+      + " with rounding to nearest and no flush mode; the square of the part found again in the state it was computed in is "
+      + shown(square_again) + "; the processor when it was computed: " + shown(then) + ", now: " + shown(now)
       + "; isunordered(-left, -0) " + std::to_string(unordered) + ", -0 >= -left " + std::to_string(left_kept)
       + ", +oo >= right " + std::to_string(right_kept);
   }
