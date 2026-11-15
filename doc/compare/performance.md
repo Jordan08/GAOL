@@ -33,8 +33,8 @@ benchmark again.
 
 The two versions of GAOL are measured side by side: **GAOL V5.0.0**, this
 branch, which bounds every elementary function with CORE-MATH, and **GAOL
-4.2.3**, the last version of Frédéric Goualard, which GAOL V5.0.0 continues
-and which bounds them with mathlib. Both are built without the preservation of
+4.2.3**, the last version of Frédéric Goualard, which came after the 4.2.2 that
+GAOL V5.0.0 continues, and which bounds them with mathlib. Both are built without the preservation of
 the rounding direction, the default of GAOL V5.0.0; GAOL V5.0.0 built with it,
 AVX-512 left enabled, has a column of its own in the first table. GAOL V5.0.0
 is called under the names of IEEE 1788-2015, `gaol_ieee1788`, as the other libraries
@@ -166,7 +166,7 @@ Solaris Studio's `x**3` 162 ns; `sqr` takes GAOL V5.0.0 1.9 ns, against 9.9
 for filib++, 18 for Boost.Interval, 23 for PROFIL/BIAS and 63 for Solaris
 Studio.
 
-**Elementary functions.** PROFIL/BIAS is the fastest on the square root (4.5 ns, against 4.4 for GAOL V5.0.0 with the direction preserved), exp (12 ns), log (13 ns) and the real power `pow(x, y)` (37 ns),
+**Elementary functions.** PROFIL/BIAS is the fastest on exp (12 ns), log (13 ns) and the real power `pow(x, y)` (37 ns), and on the square root (4.5 ns) but for GAOL V5.0.0 with the direction preserved (4.4 ns),
 which it computes from the libm of the system, moved outward, without correct
 rounding: its bounds are among the widest (below), and its sin and cos,
 computed by its own argument reduction, are the slowest after libieeep1788's,
