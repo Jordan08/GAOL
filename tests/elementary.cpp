@@ -277,7 +277,7 @@ namespace
   {
     const double oo = std::numeric_limits<double>::infinity();
     std::vector<double> bounds = { 0.0, 1.0, 3.0, 0x1p52, 1e300, std::numeric_limits<double>::max(), oo,
-                                   std::numeric_limits<double>::denorm_min(), 1e-310 };
+                                   0x1p-1074, 1e-310 };
     for (const double k : { 1.0, 3.0, 1e6 }) {
       const interval multiple = interval::pi()*k;
       bounds.push_back(multiple.left());

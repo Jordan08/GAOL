@@ -656,7 +656,13 @@ which `numbers` checks there too.
   IBEX with an integer bound that is not a bound of the exact result (`tan02`
   expects [-1, 1] where it is ±(1 + 2^-52)). The test prints nothing but the
   failed names and the total.
-- **`numbers`:** `textToInterval("0.1")` has to be the tightest interval
+- **`numbers`:** the tests write the smallest positive double as the literal
+  `0x1p-1074`, not as `std::numeric_limits<double>::denorm_min()` (all but the
+  one `rounding_direction.cpp` makes at run time with `rnd_keep()`): with
+  `-frounding-math`, GCC 12.2 for aarch64 wrote that value as a 16-byte long
+  double in a list of doubles, and `numbers` never ended in the job `Debian 12
+  Bookworm arm64` (GAOL v5, [Using GAOL](using.md)).
+  `textToInterval("0.1")` has to be the tightest interval
   enclosing the number read, and the number itself when it is a double. The
   constants have to be the tightest enclosures of π, 2π and π/2. No
   `const char*` nor `nullptr` may convert to an interval, and `interval(0)` has

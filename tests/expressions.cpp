@@ -1181,7 +1181,7 @@ namespace
   void long_numbers_beyond_the_doubles()
   {
     const std::size_t n = 400000;
-    const double dmax = std::numeric_limits<double>::max(), dmin = std::numeric_limits<double>::denorm_min();
+    const double dmax = std::numeric_limits<double>::max(), dmin = 0x1p-1074;
     struct Case { const char* name; std::string text; double left, right; };
     const Case cases[] = {
       {"decimal, above", std::string(n, '7'), dmax, GAOL_INFINITY},

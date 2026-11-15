@@ -90,8 +90,8 @@ public:
 					interval(std::numeric_limits<double>::max()).midpoint()));
 	  TEST_TRUE(interval(std::numeric_limits<double>::min()).set_contains(
 					interval(std::numeric_limits<double>::min()).midpoint()));
-	  TEST_TRUE(interval(std::numeric_limits<double>::denorm_min()).set_contains(
-				       interval(std::numeric_limits<double>::denorm_min()).midpoint()));
+	  TEST_TRUE(interval(0x1p-1074).set_contains(
+				       interval(0x1p-1074).midpoint()));
 	  TEST_TRUE(interval(previous_float(1.0),next_float(1.0)).set_contains(
 					interval(previous_float(1.0),next_float(1.0)).midpoint()));
       TEST_TRUE(interval::emptyset().mid().is_empty());
