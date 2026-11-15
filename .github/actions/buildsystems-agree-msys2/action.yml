@@ -39,6 +39,12 @@ runs:
       run: |
         export CMAKE_GENERATOR=Ninja
         out="$(cygpath -m "$RUNNER_TEMP")/audit"
+        # gaol/gaol_config.h refuses MINGW32 (msvcrt.dll) without the fused
+        # multiply-add instructions: the three builds stop on its #error, which
+        # the audit reads as builds that did not configure (GAOL v5)
+        if [ "$MSYSTEM" = MINGW32 ]; then
+          export GAOL_AUDIT_VARIANTS="preserve preserve-no-avx512 no-simd no-exceptions-verbose"
+        fi
         sh .github/audit/audit.sh audit gcc g++ . "$out" meson
         status=0; python3 .github/audit/compare.py --check "$out"/audit*.json > agree.md || status=$?
         cat agree.md; cat agree.md >> "$GITHUB_STEP_SUMMARY"
