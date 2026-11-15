@@ -49,9 +49,9 @@ In [.github/scripts/](../.github/scripts/).
 | [tests.sh](../.github/scripts/tests.sh) | Builds the tests with a GAOL installed by autotools or meson (`static` or `shared`), then runs them. |
 | [headers.sh](../.github/scripts/headers.sh) | Checks that each installed header compiles alone in C++11 with `-Wall -Wextra -Wold-style-cast -Wundef -Werror`. |
 | [check-intervals.sh](../.github/scripts/check-intervals.sh) | Fails unless the build computes with the expected intervals (`neon`, `sse2` or `fpu`), so that a silent fall back to the FPU does not leave the CI green. |
-| [check-gcc-windows-fma.sh](../.github/scripts/check-gcc-windows-fma.sh) | Checks that no object of GCC for Windows names a 256-bit or 512-bit register (GCC bug 54412, the stack aligned on 16 bytes). |
+| [check-gcc-windows-fma.sh](../.github/scripts/check-gcc-windows-fma.sh) | Checks that no object of GCC for Windows names a 256-bit or 512-bit register (GCC bug 54412, the stack aligned on 16 bytes), and that the objects of `gaol_interval_core.cpp` and of the `cos` of CORE-MATH hold fused multiply-add instructions (`vfmadd`). |
 | [comma-locale.sh](../.github/scripts/comma-locale.sh) | Generates or finds a locale that writes a decimal comma, so that `tests/numbers.cpp` does not pass without having tried one. |
-| [sde-tests.sh](../.github/scripts/sde-tests.sh) | Runs the tests under Intel SDE, which emulates AVX-512: the runners of GitHub for Windows have none, and this covers the AVX-512 path there. |
+| [sde-tests.sh](../.github/scripts/sde-tests.sh) | Runs the tests under Intel SDE, which emulates AVX-512: the runners of GitHub for Windows have it or not, according to the machine they get, and this covers the AVX-512 path there whichever they get. |
 | [version-file.sh](../.github/scripts/version-file.sh) | Checks how `configure`, meson and autoconf read `VERSION.txt` written in several ways (UTF-8 byte order mark...). |
 | [performance-ab.sh](../.github/scripts/performance-ab.sh) | Builds and measures two builds in turn in the same job: the base and the head of a pull request, or one source with two options. |
 | [compare-performance.py](../.github/scripts/compare-performance.py) | Compares two series of measures (median, ratio, spread) and writes a Markdown table for the summary of a job. |
@@ -74,7 +74,7 @@ reports nothing either: the lists of flags that the shell has to split carry a
 
 ## Tests
 
-In [tests/](../tests/). The five `*_values.py` scripts write the headers of
+In [tests/](../tests/). The six `*_values.py` scripts write the headers of
 reference values that the test programs include; they are run by hand when a
 table changes, and need [mpmath](https://mpmath.org). See [Tests](tests.md) for
 what the programs check.
@@ -110,6 +110,7 @@ In [tests/tools/](../tests/tools/), with a `README.md` in each directory.
 | [pow/checkrows.py](../tests/tools/pow/checkrows.py) | Checks the bounds of `pow` in a file of such lines against the exact power (mpmath, 500 bits). |
 | [pow/mutate.py](../tests/tools/pow/mutate.py) | Mutation testing of `pow`: puts one deliberate error in the code, and the tests have to fail. |
 | [pow/pown_bound.py](../tests/tools/pow/pown_bound.py) | Checks, with rationals, the bound K of the error of the integer powers of `pown_products()`. |
+| [pow/negative_power_rows.py](../tests/tools/pow/negative_power_rows.py) | Writes rows `{ x, n, lo, hi }` for the table `negative[]` of `large_powers()` in `tests/arithmetic.cpp`: the tightest bounds of x<sup>n</sup> for a large negative n, computed with mpmath on 2000 bits, for x where GAOL's bounds are the tightest. |
 | [asm-order/check_order.py](../tests/tools/asm-order/check_order.py) | Reads the assembly of the library (x86-64, GCC and Clang) for an instruction that rounds on the wrong side of a write of the control register (GCC bug 34678), and for the conversion of a subnormal constant through the x87 unit (a microcode assist on Intel, #224). |
 | [ibex_codac/ibex_forward_cases.py](../tests/tools/ibex_codac/ibex_forward_cases.py), [ibexb_cases.py](../tests/tools/ibex_codac/ibexb_cases.py), [codac_cases.py](../tests/tools/ibex_codac/codac_cases.py) | The cases of the tables of `tests/test_ibex_codac.cpp` (unit tests of IBEX and Codac), their exact results (rationals, mpmath), and the check that the rows of the test are those the cases give. |
 | [x86-csr/mutants.py](../tests/tools/x86-csr/mutants.py) | The mutants of `gaol_core::x86_*()` of `gaol/gaol_fpu.h`, the writes of the control registers of an x86 processor, and of the functions that give them the registers (`get_rounding()`, `set_rounding()`...), for `pow/mutate.py`: `rounding_direction` has to fail on each. |
@@ -128,6 +129,7 @@ first, which downloads and builds what the comparisons need under `$WORK`.
 | [code/run_all.sh](compare/code/run_all.sh) | Runs the whole comparison: setup, special cases, enclosure, benchmark, long lines. |
 | [code/run_bench.sh](compare/code/run_bench.sh) | Draws the intervals, compiles and runs the benchmark of each library, and writes the tables of `performance.md`. |
 | [code/run_lines.sh](compare/code/run_lines.sh) | Measures the long lines of `+ - * /` (`bench_ops.h`) and writes their tables in `performance.md`. |
+| [code/run_lines_arm64.sh](compare/code/run_lines_arm64.sh) | The same lines on a 64-bit ARM processor (an Apple M2 under macOS, or an arm64 Linux), for GAOL v5 with and without the rounding direction preserved and for GAOL 4.2.3, the only libraries it builds (`setup.sh` builds libraries for x86): the table at the end of `performance.md`. |
 | [code/run_perf.sh](compare/code/run_perf.sh) | `make perf`: measures GAOL v5 alone again on the benchmark and rewrites the tables with its new times. |
 | [code/run_cases.sh](compare/code/run_cases.sh) | Generates and runs the programs of special cases for each library, and writes `special_cases.md`. |
 | [code/run_enclosure.sh](compare/code/run_enclosure.sh) | Tests the enclosure of the elementary functions (GAOL, Boost) against mpmath, and writes `enclosure.md`. |
@@ -152,4 +154,4 @@ GAOL does not change these files, and does not document them one by one
 | `config.guess`, `config.sub`, `configure`, `depcomp`, `compile`, `install-sh`, `ltmain.sh`, `missing`, `test-driver` at the root | Provided or generated by autoconf, automake and libtool, for the autotools build. |
 | [3rd/math-core/](../3rd/math-core/): `check.sh`, `ci.sh`, `perf.sh`, `perf-all.sh`, `prof.sh`, `doc/Fortran.sh` | The tools of CORE-MATH: checking against MPFR, its CI, speed measures, profiling, and the Fortran module. |
 | `3rd/math-core/ci/` (12 scripts) | The CI of CORE-MATH: Docker images, LLVM and RLIBM, and comparisons with these libraries. |
-| `3rd/math-core/src/binary64/*/doit*.sh` (8) | The author's scripts of CORE-MATH: fits of polynomials with Sollya, the error bound of `log`. |
+| `3rd/math-core/src/binary64/*/doit*.sh` (8), `log/logtiny.sh` and `log/lognearzero.sh` | The author's scripts of CORE-MATH: fits of polynomials with Sollya, the error bound of `log` (the last two run Gappa on `logtiny.g` and `lognearzero.g`, for the four rounding directions). |

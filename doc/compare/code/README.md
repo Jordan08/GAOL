@@ -169,9 +169,9 @@ cmake -S . -B build && cmake --build build --target perf         # macOS: no tas
 ```
 
 `results.csv` is written by `run_bench.sh` after a whole run (all the
-libraries, all the operations). The one committed holds the whole run of 17
-October 2026 that the tables of `performance.md` were written from (Clang
-21.1, three rounds, Ubuntu 26.04.1, `7c1ebb9`), and `results_lines.csv` the one of the long lines, of the same day. Under Ubuntu 20.04, on the
+libraries, all the operations). The one committed holds the whole run of 12
+November 2026 that the tables of `performance.md` were written from (Clang
+21.1, three rounds, Ubuntu 26.04.1, `2b5e4f9`), and `results_lines.csv` the one of the long lines, of the same day. Under Ubuntu 20.04, on the
 same processor with Clang 18.1.8, every library took about 30 % more time: the
 times of `make perf` compare with those of `results.csv` only on the system
 and with the compiler they were measured with.
@@ -205,7 +205,7 @@ of the job (`performance.yml`, with `.github/scripts/performance-ab.sh`: see
 | `run_perf.sh` | `make perf`: runs the benchmark of GAOL v5 alone, the long lines included, and writes the tables with its new times (see below) |
 | `results.csv`, `machine.txt`, `results_lines.csv`, `machine_lines.txt` | The results of the last whole run, of the operations and of the long lines, and what they were measured on, which `run_perf.sh` keeps for the other libraries |
 | `results_lines_arm64.csv`, `machine_lines_arm64.txt` | The results of the long lines on the 64-bit ARM processor, and what they were measured on |
-| `run_all.sh` | `setup.sh`, `run_cases.sh`, `run_enclosure.sh` and `run_bench.sh` |
+| `run_all.sh` | `setup.sh`, `run_cases.sh`, `run_enclosure.sh`, `run_bench.sh` and `run_lines.sh` |
 
 To add a special case, add a line `case(expression, result of IEEE 1788, note)`
 to its group in `cases.py` (the expressions are built with `iv`, `op` and
