@@ -26,7 +26,7 @@ tightest interval of doubles, computed with mpmath:
 - ✗ another result: a set not enclosing it, a set where IEEE 1788 has the empty
   set, another boolean, or an exception;
 - n/a: the library has no such operation;
-- no mark: IEEE 1788 defines no result (five cases).
+- no mark: IEEE 1788 defines no result (two cases).
 
 Signed zeros are not told apart. The bounds are written with the shortest
 decimal that reads back as the same double, MAX being the largest double and
@@ -169,14 +169,14 @@ of doubles with no empty set:
 - `x < y`, the interior, is false for the same infinite bound (253, 254).
 - It has no empty set, no relational division, no `atan2`, no `min` and `max`
   of intervals, no radius, and no operators with an infinity or NaN as
-  exceptions (18, 44 to 49, 59, 71, 78, 105, 131, 173, 174, 179, 211, 217 to
-  234, 247 to 261 in part, 262 to 290).
+  exceptions (18, 44 to 49, 59, 71, 78, 105, 131, 173, 174, 179, 211, 217, 219,
+  222, 223, 226, 227, 229 to 234, 247, 248, 250, 255 to 258, 260, 262 to 290).
 
 Its elementary functions are the tightest where the result is a whole range
 ([−1, 1], [0, +∞]) or a special value, and wider otherwise: sin and cos by 4
 to 14 doubles, tan by up to 34 (84, 85, 88, 89, 93), `atan([−∞, +∞])` by 2,
 `exp([−∞, 0])` and `log([1, +∞])` by 1 or 2 (100, 101, 117). `cos([2^52 − 1])`
-is [−0.757, 1] (91). Its integer powers of intervals without a negative bound
+is [−0.757, 1] (91). Its integer powers of intervals without 0
 are the tightest or within a double (138, 139, 148), but `pow([2, 3], 4)` is
 15 to 17 doubles wide and `pow([−2, 3], 3)` is [−18, 27] (134, 161); its real
 powers, exp(y log x), are wider by 3 to 14 doubles, `pow([4], 0)` included,
@@ -265,8 +265,8 @@ of the interval arithmetic before IEEE 1788, without empty set:
   glibc's atan rounds it to nearest, below π/2, whatever the rounding
   direction. It is the only result of an elementary function, among the
   special cases, that misses values of the function; at random points, the
-  test of [enclosure](enclosure.md) finds 27 to 41 % of its results missing
-  the value.
+  test of [enclosure](enclosure.md) finds 20 to 34 % of its results missing
+  the value, according to the policy.
 
 Its sin, cos and tan are wider than the tightest: sin and cos by 1 to 7
 doubles (84, 85, 88, 89; Boost.Interval computes sin(x) as cos(x − π/2), π/2
