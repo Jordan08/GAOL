@@ -251,7 +251,17 @@ the compiler takes it, the flags are the following.
   continuous integration.
 \item Nothing more on 64-bit ARM processors with the NEON intervals
   (\option{GAOL\_SIMD}, \pxref{sec:neon}): the first item is all they ask
-  for.\newinvfive
+  for, and the next one for GCC~12.\newinvfive
+\item \option{-fno-section-anchors} with GCC~12 for a 64-bit ARM target
+  (Debian~12, GCC 12.2.0). The compiler turns \option{-fsection-anchors} on
+  there, and gave a constant array that it copies to the stack an offset 8
+  bytes before the array: the precisions $\{1, 2, 4, 6, 15, 16, 17, 20\}$ of
+  \file{tests/numbers.cpp} were read as $\{0, 1074790400, 1, 2, 4, 6, 15,
+  16\}$, and the test never ended, writing $10^9$ digits in \code{snprintf}. It
+  is a defect of that compiler, not of GAOL, which depends on the layout of the
+  constants of a file, so that any code may meet it, the code using GAOL too:
+  \code{gaol::gaol} and \file{gaol.pc} give the flag, and the three builds give
+  it to GAOL, CORE-MATH, the tests and the examples.\newinvfive
 \item \option{-ffloat-store} where doubles are still computed in extended
   precision (\code{FLT\_EVAL\_METHOD} not 0); on x86 this is the x87 unit,
   which \file{gaol/gaol\_config.h} refuses (\pxref{sec:refused}).

@@ -45,7 +45,17 @@ itself. With GCC and Clang, each where the compiler takes it:
   clang-cl, in the continuous integration;
 - nothing more on 64-bit ARM processors with the NEON intervals
   (`GAOL_SIMD`, GAOL v5, see [The NEON intervals](#the-neon-intervals)): the
-  first line is all they ask for;
+  first line is all they ask for, and the next one for GCC 12;
+- `-fno-section-anchors` with GCC 12 for a 64-bit ARM target (Debian 12, GCC
+  12.2.0; GAOL v5). The compiler turns `-fsection-anchors` on there, and gave
+  a constant array that it copies to the stack an offset 8 bytes before the
+  array: the precisions `{1, 2, 4, 6, 15, 16, 17, 20}` of `tests/numbers.cpp`
+  were read as `{0, 1074790400, 1, 2, 4, 6, 15, 16}`, and the test never
+  ended (a `snprintf` of 10^9 digits). It is a defect of that compiler, not of
+  GAOL, which depends on the layout of the constants of a file, so that any
+  code may meet it, the code using GAOL too: `gaol::gaol` and `gaol.pc` give
+  the flag, and the three builds give it to GAOL, CORE-MATH, the tests and the
+  examples;
 - `-ffloat-store` where doubles are still computed on the x87 unit;
 - `-mfma` on x86, and `-mfpu=neon-vfpv4 -mfloat-abi=hard` on 32-bit ARM, where
   GAOL is compiled with the fused multiply-add instructions of the processor

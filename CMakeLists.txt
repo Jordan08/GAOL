@@ -401,6 +401,29 @@ else()
       list(APPEND GAOL_INTERVAL_FLAGS -msse2 -mfpmath=sse)
     endif()
   endif()
+  # GCC 12 for a 64-bit ARM target (Debian 12, 12.2.0): -fsection-anchors,
+  # which GCC turns on there from -O1, gave a constant array, copied to the
+  # stack by two loads from the anchor of the constants, an offset 8 bytes
+  # before the array: in decimal_output() of tests/numbers.cpp, the precisions
+  # {1, 2, 4, 6, 15, 16, 17, 20} were read as {0, 1074790400, 1, 2, 4, 6, 15,
+  # 16}, and the test never ended (a snprintf with 10^9 digits). What the
+  # error depends on is the layout of the constants of a file, so that it
+  # shows up and goes away with any change of it: -fno-section-anchors, which
+  # -O1, -fno-dse, -fno-store-merging and -fstack-reuse=none do not replace,
+  # keeps it away. Given to the code using GAOL too (gaol::gaol), which a
+  # constant array of its own may meet as well
+  check_cxx_source_compiles("
+    #if defined(__clang__) || !defined(__GNUC__) || __GNUC__ != 12 || !defined(__aarch64__)
+    #error not GCC 12 for a 64-bit ARM target
+    #endif
+    int main() { return 0; }"
+    GAOL_COMPILER_IS_GCC_12_AARCH64)
+  if(GAOL_COMPILER_IS_GCC_12_AARCH64)
+    check_cxx_compiler_flag("-fno-section-anchors" GAOL_COMPILER_SUPPORTS_FNO_SECTION_ANCHORS)
+    if(GAOL_COMPILER_SUPPORTS_FNO_SECTION_ANCHORS)
+      list(APPEND GAOL_INTERVAL_FLAGS -fno-section-anchors)
+    endif()
+  endif()
   # GAOL refuses -ffast-math, -ffinite-math-only and doubles computed on the
   # x87 unit at compile time (gaol/gaol_config.h): the flags above keep them away.
 
