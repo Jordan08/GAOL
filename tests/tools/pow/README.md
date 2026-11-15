@@ -167,8 +167,9 @@ shows what `pow_on_boxes()` catches; `arithmetic`, `rounding_direction`,
 `core_math` and `other_functions` call `pow` too, and take a few seconds
 more). A CMake option is written `--cmake-option=-DGAOL_SIMD=OFF`, with `=`,
 which is all the FPU build needs, on 64-bit ARM too (GAOL v5).
-A run of the 48 mutants takes about 5 minutes (4 jobs); the arguments
-after the options select the mutants whose name contains one of them.
+A run of the whole list, 106 mutants, takes about 9 minutes with 4 jobs (511 s
+on 15 November 2026, GCC 15.2); the arguments after the options select the
+mutants whose name contains one of them.
 
 Each mutant is `KILLED` (with the number of failed checks of each name),
 `expected to survive` (an equivalent mutant: the list says why its bounds are
@@ -213,8 +214,10 @@ compiled. The error bound K of the
 exact products itself has no mutant: with K = 0, the bounds are those of
 h + l rounded, tighter where c<sup>n</sup> is within K of a double, and no
 test finds them wrong; `pown_bound.py` checks its proof instead. Its value 0
-for the squares, whose h + l is exact, has one (`pown-square-bound`), which
-x<sup>2</sup> one double beyond `sqr(x)` near 1 kills. In the FPU build,
+for the squares, whose h + l is exact, has no mutant any longer: x<sup>2</sup>
+is `sqr()`, which `gaol_pown()` and `pown_upward()` take before
+`pown_products()`, and no exponent reaches that branch of `pown_bound()`. In
+the FPU build,
 `std-infinite-exponent-unchecked` survives, `diffpow` finding the same
 bounds: the exponents [+oo] and [-oo] that kill it in the SSE2 build are
 built from an SSE2 register, and no FPU interval holds them. On 13 October
