@@ -50,7 +50,8 @@ PROFIL_URL=https://www.tuhh.de/ti3/keil/profil/Profil-$PROFIL_VERSION.tgz
 PROFIL_SHA256=1706e684166360d60f33b4c9301cfe48a6153fc0c624f2087efa9bc94aa07c20
 PROFIL_TGZ="${PROFIL_TGZ:-}"
 PROFIL_DIR="$PREFIX/profil"
-# The last GAOL of Frédéric Goualard, which GAOL v5 continues: the master
+# The last GAOL of Frédéric Goualard, which came after the 4.2.2 that GAOL v5
+# continues: the master
 # branch of his repository (4.2.3, 9 December 2025), with mathlib, the
 # mathematical library his README gives, from his site
 GAOL_GOUALARD_REPO=https://github.com/goualard-f/GAOL

@@ -92,7 +92,8 @@ def line_operations(formula):
 
 # The reference of the ratios is GAOL V5.0.0, the version that bounds every
 # elementary function with CORE-MATH; GAOL 4.2.3 is the last version of
-# Frédéric Goualard, which GAOL V5.0.0 continues, run on the same intervals
+# Frédéric Goualard, which came after the 4.2.2 that GAOL V5.0.0 continues,
+# run on the same intervals
 REFERENCE = "gaol5"
 LIBRARIES = [("double", "double (reference)"), ("libieeep1788", "libieeep1788"),
              ("gaol5", "GAOL V5.0.0"), ("gaol5p", "GAOL V5.0.0, rounding direction preserved"),
