@@ -315,9 +315,11 @@ foreach flag : ['-frounding-math', '-ffp-contract=off', '-fno-fast-math']
   endif
 endforeach
 # -fno-section-anchors with GCC 12 for a 64-bit ARM target (Debian 12), as
-# CMakeLists.txt gives it, where the reason is: -fsection-anchors gave a
-# constant array of tests/numbers.cpp the wrong offset, and the test never
-# ended (GAOL v5)
+# CMakeLists.txt gives it, where the reason is: with -frounding-math, GCC
+# writes std::numeric_limits<double>::denorm_min() in a constant initializer
+# as a 16-byte long double, and the constants after it in the anchor of the
+# section (-fsection-anchors) are read 8 bytes too early: a constant array of
+# tests/numbers.cpp was read wrongly, and the test never ended (GAOL v5)
 if cpp_comp.compiles('''
 #if defined(__clang__) || !defined(__GNUC__) || __GNUC__ != 12 || !defined(__aarch64__)
 #error not GCC 12 for a 64-bit ARM target

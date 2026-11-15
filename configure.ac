@@ -1007,9 +1007,11 @@ for gaol_flag in -frounding-math -ffp-contract=off -fno-fast-math; do
     GAOL_ADD_INTERVAL_FLAG([${gaol_flag}])
 done
 # -fno-section-anchors with GCC 12 for a 64-bit ARM target (Debian 12), as
-# CMakeLists.txt gives it, where the reason is: -fsection-anchors gave a
-# constant array of tests/numbers.cpp the wrong offset, and the test never
-# ended
+# CMakeLists.txt gives it, where the reason is: with -frounding-math, GCC
+# writes std::numeric_limits<double>::denorm_min() in a constant initializer
+# as a 16-byte long double, and the constants after it in the anchor of the
+# section (-fsection-anchors) are read 8 bytes too early: a constant array of
+# tests/numbers.cpp was read wrongly, and the test never ended
 AC_LANG_PUSH([C++])
 AC_MSG_CHECKING([whether the C++ compiler is GCC 12 for a 64-bit ARM target])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[

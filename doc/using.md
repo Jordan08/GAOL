@@ -47,15 +47,11 @@ itself. With GCC and Clang, each where the compiler takes it:
   (`GAOL_SIMD`, GAOL v5, see [The NEON intervals](#the-neon-intervals)): the
   first line is all they ask for, and the next one for GCC 12;
 - `-fno-section-anchors` with GCC 12 for a 64-bit ARM target (Debian 12, GCC
-  12.2.0; GAOL v5). The compiler turns `-fsection-anchors` on there, and gave
-  a constant array that it copies to the stack an offset 8 bytes before the
-  array: the precisions `{1, 2, 4, 6, 15, 16, 17, 20}` of `tests/numbers.cpp`
-  were read as `{0, 1074790400, 1, 2, 4, 6, 15, 16}`, and the test never
-  ended (a `snprintf` of 10^9 digits). It is a defect of that compiler, not of
-  GAOL, which depends on the layout of the constants of a file, so that any
-  code may meet it, the code using GAOL too: `gaol::gaol` and `gaol.pc` give
-  the flag, and the three builds give it to GAOL, CORE-MATH, the tests and the
-  examples;
+  12.2.0; GAOL v5), because of the defect of that compiler with
+  `std::numeric_limits<double>::denorm_min()` described below: the constants
+  that follow such a value in a constant initializer are read 8 bytes too
+  early. `gaol::gaol` and `gaol.pc` give the flag, and the three builds give it
+  to GAOL, CORE-MATH, the tests and the examples;
 - `-ffloat-store` where doubles are still computed on the x87 unit;
 - `-mfma` on x86, and `-mfpu=neon-vfpv4 -mfloat-abi=hard` on 32-bit ARM, where
   GAOL is compiled with the fused multiply-add instructions of the processor
@@ -95,10 +91,23 @@ has GCC 12.2) initialize wrongly a double member of a static array of
 structures given `std::numeric_limits<double>::denorm_min()`: they store the
 long double 2^-1074 there, whose first eight bytes read -0 and whose last two
 overwrite the next member (`{ denorm_min(), DBL_MAX }` read `[-0, NaN]`, the
-empty set, on 32-bit x86). A double or an array of doubles initialized so is
-right, and so are GCC 12.4, 13.3 and later. A program built with these
+empty set, on 32-bit x86). On x86, a double or an array of doubles initialized
+so is right, and so are GCC 12.4, 13.3 and later. A program built with these
 releases computes such a value at run time, as `tests/rounding_direction.cpp`
-does (GAOL v5).
+does, or writes it as a literal (`0x1p-1074`, or `4.9406564584124654e-324`),
+as `gaol/core/gaol_interval_internal.h` and `tests/numbers.cpp` do (GAOL v5).
+
+On 64-bit ARM, where the long double has 16 bytes, GCC 12.2 also writes the
+long double in a list or an array of doubles: `{ 0.1, denorm_min(), -DBL_MAX }`
+was read `{ 0.1, 0, 0x1.dp-67 }`. With `-fsection-anchors`, which GCC turns on
+from `-O1`, the constants that follow it in the section are then addressed 8
+bytes too early (the `int` array `{ 1, 2, 4, 6, 15, 16, 17, 20 }` of another
+function of `tests/numbers.cpp` was read `{ 0, 1074790400, 1, 2, 4, 6, 15, 16
+}`, and the test never ended, writing 10^9 digits in `snprintf`: the job
+`Debian 12 Bookworm arm64` of `containers.yml`). The three builds give GCC 12 for
+64-bit ARM `-fno-section-anchors`, which mends the offsets of the other
+constants, not the list itself, which the literal mends. GCC 11.4, 13.3 and 14.2
+for 64-bit ARM are right (GAOL v5).
 
 The link of the program takes one option too, where the compiler accepts it
 (GCC 13 and later on x86, from 11.4 and 12.4 in the series 11 and 12, and Clang 20
