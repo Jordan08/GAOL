@@ -62,46 +62,6 @@ namespace gaol_core {
   the lower bound: nothing is added, and the direction is never switched
   (GAOL v5).
   
-  The functions of namespace nearest are for code setting the direction to
-  nearest itself, which no operation of GAOL does today: there the value is
-  rounded to nearest, and moved one double outward to enclose the exact one.
-  */
-  namespace nearest {
-    GAOL_INLINE double nthroot_dn(double d, double e) { return previous_float(gaol_cr_pow(d, e)); }
-    GAOL_INLINE double nthroot_up(double d, double e) { return next_float(gaol_cr_pow(d, e)); }
-    GAOL_INLINE double atan2_dn(double y, double x) { return previous_float(gaol_cr_atan2(y, x)); }
-    GAOL_INLINE double atan2_up(double y, double x) { return next_float(gaol_cr_atan2(y, x)); }
-    GAOL_INLINE double exp_dn(double d) { return previous_float(gaol_cr_exp(d)); }
-    GAOL_INLINE double exp_up(double d) { return next_float(gaol_cr_exp(d)); }
-    GAOL_INLINE double log_dn(double d) { return previous_float(gaol_cr_log(d)); }
-    GAOL_INLINE double log_up(double d) { return next_float(gaol_cr_log(d)); }
-    GAOL_INLINE double sin_dn(double d) { return previous_float(gaol_cr_sin(d)); }
-    GAOL_INLINE double sin_up(double d) { return next_float(gaol_cr_sin(d)); }
-    GAOL_INLINE double cos_dn(double d) { return previous_float(gaol_cr_cos(d)); }
-    GAOL_INLINE double cos_up(double d) { return next_float(gaol_cr_cos(d)); }
-    GAOL_INLINE double tan_dn(double d) { return previous_float(gaol_cr_tan(d)); }
-    GAOL_INLINE double tan_up(double d) { return next_float(gaol_cr_tan(d)); }
-    GAOL_INLINE double asin_dn(double d) { return previous_float(gaol_cr_asin(d)); }
-    GAOL_INLINE double asin_up(double d) { return next_float(gaol_cr_asin(d)); }
-    GAOL_INLINE double acos_dn(double d) { return previous_float(gaol_cr_acos(d)); }
-    GAOL_INLINE double acos_up(double d) { return next_float(gaol_cr_acos(d)); }
-    GAOL_INLINE double atan_dn(double d) { return previous_float(gaol_cr_atan(d)); }
-    GAOL_INLINE double atan_up(double d) { return next_float(gaol_cr_atan(d)); }
-    GAOL_INLINE double sinh_dn(double d) { return previous_float(gaol_cr_sinh(d)); }
-    GAOL_INLINE double sinh_up(double d) { return next_float(gaol_cr_sinh(d)); }
-    GAOL_INLINE double cosh_dn(double d) { return previous_float(gaol_cr_cosh(d)); }
-    GAOL_INLINE double cosh_up(double d) { return next_float(gaol_cr_cosh(d)); }
-    GAOL_INLINE double tanh_dn(double d) { return previous_float(gaol_cr_tanh(d)); }
-    GAOL_INLINE double tanh_up(double d) { return next_float(gaol_cr_tanh(d)); }
-    GAOL_INLINE double asinh_dn(double d) { return previous_float(gaol_cr_asinh(d)); }
-    GAOL_INLINE double asinh_up(double d) { return next_float(gaol_cr_asinh(d)); }
-    GAOL_INLINE double acosh_dn(double d) { return previous_float(gaol_cr_acosh(d)); }
-    GAOL_INLINE double acosh_up(double d) { return next_float(gaol_cr_acosh(d)); }
-    GAOL_INLINE double atanh_dn(double d) { return previous_float(gaol_cr_atanh(d)); }
-    GAOL_INLINE double atanh_up(double d) { return next_float(gaol_cr_atanh(d)); }
-  } // namespace nearest
-  
-  /*
   Computed in the upward rounding GAOL keeps: the tightest bounds, without
   switching the rounding direction. Those of namespace upward take the
   direction to be upward already, as it is in the functions of intervals
