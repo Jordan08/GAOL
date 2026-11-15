@@ -79,6 +79,19 @@ namespace
 {
   const int nb_random_values = 2000;
 
+  // The smallest positive double, 2^-1074, written as a literal rather than as
+  // std::numeric_limits<double>::denorm_min(), as gaol/core/gaol_interval_internal.h
+  // and tests/expressions.cpp write it: with -frounding-math, GCC does not fold
+  // the conversion of the long double __DBL_DENORM_MIN__ to a double, and GCC
+  // 12.1 to 12.3 and 13.1 to 13.2 write the long double itself, 16 bytes, in a
+  // constant initializer (doc/using.md). On aarch64, a list of doubles given
+  // it, { 0.1, denorm_min(), -DBL_MAX } below, was written 8 bytes too long
+  // and the constants after it in the section anchor were read 8 bytes too
+  // early: the precisions { 1, 2, 4, 6, 15, 16, 17, 20 } of decimal_output()
+  // were read { 0, 1074790400, 1, 2, 4, 6, 15, 16 }, and the test never ended
+  // (the job Debian 12 Bookworm arm64 of containers.yml)
+  const double denorm_min = 0x1p-1074;
+
   // The exact value of the number s, written as GAOL reads numbers: decimal
   // digits with an optional point and exponent
   Exact decimal(const std::string& s)
@@ -271,7 +284,7 @@ namespace
   // Flushing otherwise, where the modes are not set anymore.
   bool reads_subnormals_as_zero(unsigned int bits)
   {
-    volatile double least = std::numeric_limits<double>::denorm_min();
+    volatile double least = denorm_min;
     volatile bool not_above_zero;
     {
       Flushing flushing(bits);
@@ -419,7 +432,7 @@ namespace
       "<1e-310, 1e-309>", "<0x1p-1074, 0x1p-1073>", "<0, 0x1p-1074>", "<-0x1p-1074, 0x1p-1074>",
       "<0x0.fffffffffffffp-1022, 0x1p-1074>",
     };
-    const double least = std::numeric_limits<double>::denorm_min();
+    const double least = denorm_min;
     const struct { const char *text; interval value; } accepted[] = {
       { "<0x1p-1074, 0x1p-1074>", interval(least) },
       { "<-0x1p-1074, -0x1p-1074>", interval(-least) },
@@ -497,7 +510,7 @@ namespace
       std::printf("No mode reading the subnormals as 0 is honoured: the output of subnormals with one is not checked\n");
       return;
     }
-    const double least = std::numeric_limits<double>::denorm_min();
+    const double least = denorm_min;
     const interval tiny[] = { interval(0.0, least), interval(-least, 0.0), interval(-0.0, least), interval(least),
                               interval(-least), interval(least, 2.0 * least), interval(21.0 * least, 22.0 * least) };
     const interval_format::format_t saved_format = interval::format();
@@ -562,7 +575,7 @@ namespace
       std::printf("FZ, set by _controlfp_s(), is not honoured: the output of subnormals with it is not checked\n");
       return;
     }
-    const double least = std::numeric_limits<double>::denorm_min();
+    const double least = denorm_min;
     const interval tiny_intervals[] = { interval(0.0, least), interval(-least, 0.0), interval(least),
                                         interval(-least), interval(21.0 * least, 22.0 * least) };
     const std::streamsize saved_precision = interval::precision();
@@ -1024,7 +1037,7 @@ namespace
        all of: the empty set, the infinite bounds, the signed zeros, the
        subnormals and the largest doubles */
     const double max_double = std::numeric_limits<double>::max();
-    const double smallest = std::numeric_limits<double>::denorm_min();
+    const double smallest = denorm_min;
     round_trip(interval::emptyset(), "empty");
     round_trip(interval::universe(), "entire");
     round_trip(interval(1.0, GAOL_INFINITY), "[1, +oo]");
@@ -1237,7 +1250,7 @@ namespace
     // double with 1074 digits after the point, are written [a] and read back
     // as the point itself, where the C++ library writes them exactly (the text
     // of a stream of its own compared with the exact value of the double)
-    const double max_double = std::numeric_limits<double>::max(), smallest = std::numeric_limits<double>::denorm_min();
+    const double max_double = std::numeric_limits<double>::max(), smallest = denorm_min;
     const struct { double x; std::ios_base::fmtflags flags; int precision; } all_digits[] = {
       { max_double, fixed, 0 }, { -max_double, fixed, 2 }, { max_double, scientific, 308 },
       { smallest, fixed, 1074 }, { -smallest, fixed, 1074 }, { 3.0 * smallest, fixed, 1080 },
@@ -1772,7 +1785,7 @@ namespace
     const std::ios_base::fmtflags general = std::ios_base::fmtflags(), scientific = std::ios_base::scientific,
       fixed = std::ios_base::fixed, showpoint = std::ios_base::showpoint, showpos = std::ios_base::showpos;
     const int precisions[] = { 1, 2, 4, 6, 15, 16, 17, 20 };
-    const double smallest = std::numeric_limits<double>::denorm_min(), largest = std::numeric_limits<double>::max();
+    const double smallest = denorm_min, largest = std::numeric_limits<double>::max();
 
     const auto is_infinite_text = [](const std::string& s) { return s == "inf" || s == "+inf"; };
     // Whether s is a decimal number, a sign, digits with a point and an exponent, and not inf or nan
@@ -2287,7 +2300,7 @@ namespace
   std::vector<Long_number> long_numbers(std::size_t n)
   {
     const std::string zeros(n, '0'), nines(n, '9'), digits = std::to_string(n);
-    const double dmax = std::numeric_limits<double>::max(), dmin = std::numeric_limits<double>::denorm_min();
+    const double dmax = std::numeric_limits<double>::max(), dmin = denorm_min;
     return {
       { "1.5" + zeros, 1.5, 1.5 },
       { "1.5" + zeros + "1", 1.5, next_double(1.5) },
@@ -2394,7 +2407,7 @@ namespace
     const interval three = textToInterval(std::string("0x1.8p1"));
     check("textToInterval(\"0x1.8p1\") under a locale writing a decimal comma", three.left() == 3.0 && three.right() == 3.0,
           [&] { return hex(three); });
-    for (double x : { 0.1, std::numeric_limits<double>::denorm_min(), -std::numeric_limits<double>::max() }) {
+    for (double x : { 0.1, denorm_min, -std::numeric_limits<double>::max() }) {
       const interval y = textToInterval(exact_string(interval(x)));
       check("exact_string() read back under a locale writing a decimal comma", y.left() == x && y.right() == x,
             [&] { return exact_string(interval(x)) + " read " + hex(y); });

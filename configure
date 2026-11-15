@@ -21662,9 +21662,11 @@ if test "${gaol_cxx_takes}" = yes; then
 fi
 done
 # -fno-section-anchors with GCC 12 for a 64-bit ARM target (Debian 12), as
-# CMakeLists.txt gives it, where the reason is: -fsection-anchors gave a
-# constant array of tests/numbers.cpp the wrong offset, and the test never
-# ended
+# CMakeLists.txt gives it, where the reason is: with -frounding-math, GCC
+# writes std::numeric_limits<double>::denorm_min() in a constant initializer
+# as a 16-byte long double, and the constants after it in the anchor of the
+# section (-fsection-anchors) are read 8 bytes too early: a constant array of
+# tests/numbers.cpp was read wrongly, and the test never ended
 ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'

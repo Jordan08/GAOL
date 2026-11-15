@@ -401,17 +401,22 @@ else()
       list(APPEND GAOL_INTERVAL_FLAGS -msse2 -mfpmath=sse)
     endif()
   endif()
-  # GCC 12 for a 64-bit ARM target (Debian 12, 12.2.0): -fsection-anchors,
-  # which GCC turns on there from -O1, gave a constant array, copied to the
-  # stack by two loads from the anchor of the constants, an offset 8 bytes
-  # before the array: in decimal_output() of tests/numbers.cpp, the precisions
-  # {1, 2, 4, 6, 15, 16, 17, 20} were read as {0, 1074790400, 1, 2, 4, 6, 15,
-  # 16}, and the test never ended (a snprintf with 10^9 digits). What the
-  # error depends on is the layout of the constants of a file, so that it
-  # shows up and goes away with any change of it: -fno-section-anchors, which
-  # -O1, -fno-dse, -fno-store-merging and -fstack-reuse=none do not replace,
-  # keeps it away. Given to the code using GAOL too (gaol::gaol), which a
-  # constant array of its own may meet as well
+  # GCC 12 for a 64-bit ARM target (Debian 12, 12.2.0): with -frounding-math,
+  # GCC does not fold the conversion of the long double __DBL_DENORM_MIN__ to a
+  # double, and writes the long double itself, 16 bytes, in a constant
+  # initializer that holds std::numeric_limits<double>::denorm_min() (GCC 12.1
+  # to 12.3 and 13.1 to 13.2, see doc/using.md; the aarch64 long double has 16
+  # bytes, and a list of doubles is written wrongly there). The constants
+  # after it in the anchor of the section, which -fsection-anchors makes GCC
+  # turn on from -O1, are then read 8 bytes too early: in decimal_output() of
+  # tests/numbers.cpp, the precisions {1, 2, 4, 6, 15, 16, 17, 20} were read
+  # as {0, 1074790400, 1, 2, 4, 6, 15, 16}, and the test never ended (a
+  # snprintf with 10^9 digits). The shift depends on the layout of the
+  # constants of a file, so that any change of it showed the error or hid it.
+  # -fno-section-anchors keeps the offsets right, which -O1, -fno-dse,
+  # -fno-store-merging and -fstack-reuse=none do not; the initializer is still
+  # wrong, and a program writes the double as a literal. Given to the code
+  # using GAOL too (gaol::gaol), which a constant array of its own may meet
   check_cxx_source_compiles("
     #if defined(__clang__) || !defined(__GNUC__) || __GNUC__ != 12 || !defined(__aarch64__)
     #error not GCC 12 for a 64-bit ARM target

@@ -75,15 +75,20 @@ build, and the CMake build follows them, apart from the errors corrected (see
   (GAOL v5), among the flags of interval arithmetic of [Using GAOL](using.md):
   each build tests the compiler with the same program (`__GNUC__ == 12` and
   `__aarch64__`, not Clang), and gives the flag to GAOL, CORE-MATH, the tests
-  and the examples, and to the code using GAOL (`gaol::gaol`, `gaol.pc`). GCC
-  12.2 gave a constant array of `tests/numbers.cpp`, copied to the stack, the
-  offset of the anchor of its constants minus 8 bytes: `decimal_output()` read
-  the precisions `{1, 2, 4, 6, 15, 16, 17, 20}` as `{0, 1074790400, 1, 2, 4, 6,
-  15, 16}`, and the test never ended, writing 10^9 digits in `snprintf` (the
-  job `Debian 12 Bookworm arm64` of `containers.yml` stopped it at 300 s;
-  `-O1`, `-fno-dse`, `-fno-store-merging` and `-fstack-reuse=none` do not mend
-  it). The offset depends on the layout of the constants of the file, so that
-  every change of `tests/numbers.cpp` moved the failure;
+  and the examples, and to the code using GAOL (`gaol::gaol`, `gaol.pc`). With
+  `-frounding-math`, GCC 12.2 writes `std::numeric_limits<double>::denorm_min()`
+  in a list of doubles as a 16-byte long double (the defect of
+  [Using GAOL](using.md) of GCC 12.1 to 12.3 and 13.1 to 13.2, which reaches a
+  list of doubles on 64-bit ARM), and the constants after it in the anchor of
+  the section are read 8 bytes too early: `decimal_output()` of
+  `tests/numbers.cpp` read the precisions `{1, 2, 4, 6, 15, 16, 17, 20}` as
+  `{0, 1074790400, 1, 2, 4, 6, 15, 16}`, and the test never ended, writing 10^9
+  digits in `snprintf` (the job `Debian 12 Bookworm arm64` of `containers.yml`
+  stopped it at 300 s; `-O1`, `-fno-dse`, `-fno-store-merging` and
+  `-fstack-reuse=none` do not mend it). The shift depends on the layout of the
+  constants of the file, so that every change of `tests/numbers.cpp` moved the
+  failure. `-fno-section-anchors` mends the offsets, and `tests/numbers.cpp`
+  writes the double as a literal, which mends the list;
 - GAOL and CORE-MATH are compiled with the fused multiply-add
   instructions of the processor, where the compiler has a flag for them
   (whenever the machine building runs a program compiled with them: no option
