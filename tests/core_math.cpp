@@ -1292,7 +1292,13 @@ namespace
       }
     }
     /* A positive q gives what nth_root(x, unsigned) gives, and a negative one
-       its inverse: checked over the doubles of a range. */
+       its inverse: checked over the doubles of a range. The reference of a
+       negative q is GAOL's own inverse() of the root, so that this checks the
+       consistency of the two, and fixes the implementation (a negative order
+       that gave bounds tighter than the inverse of the root would fail). The
+       tightest bounds of the roots of a negative order, computed apart with
+       mpmath, are those of roots_of_tiny_numbers() in tests/arithmetic.cpp, for
+       x below 2^-1020 */
     for (int k = 1; k <= 2000; ++k) {
       const double x = (double)k / 8.0;
       for (int q : {2, 3, 5, 7}) {
