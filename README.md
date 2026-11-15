@@ -66,6 +66,9 @@ cmake --build build --target test
 cmake --install build --config Release
 ```
 
+CMake 3.14 is enough to build GAOL; `cmake --install` is CMake 3.15, and with
+3.14 `cmake --build build --config Release --target install` installs.
+
 To see the configuration options, see [Build GAOL](doc/building.md).
 
 Each build compiles the sources of

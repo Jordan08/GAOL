@@ -6,7 +6,8 @@ sources of CORE-MATH, which bounds every elementary function of GAOL, are
 in 3rd/math-core and are compiled into libgaol itself: there is no
 mathematical library to install beforehand, nor to link along with GAOL.
 
-With CMake (3.14 or later):
+With CMake (3.14 or later; cmake --install needs CMake 3.15, and with 3.14
+cmake --build build --config Release --target install does the same):
 
     cmake -S . -B build -DCMAKE_INSTALL_PREFIX=<prefix> -DWITH_TESTS=ON
     cmake --build build --config Release
