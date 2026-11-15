@@ -26,6 +26,22 @@ under denormals-are-zero ("unexpected input value; log10 failed"), then writes
 0, on x86 as on x64: `operator<<` clears that mode before it writes (GAOL v5),
 which `numbers` checks there too.
 
+- **`interval_ieee_basic`:** a short test to read first (GAOL v5), under
+  `using namespace gaol_ieee1788;`: one line `CHECK( add(interval(1, 2),
+  interval(3, 4)) == interval(4, 6) )` for each result, with the bounds written
+  as a person writes them, and `==` the equality of sets. The bounds and the
+  midpoint, the width and the radius, the empty set and the universe, `==` and
+  `!=` (equal, different, the empty set, the two zeros), `add`, `sub`, `neg`,
+  `mul`, `div`, `recip`, `sqr`, `sqrt` and `pown` (an even and an odd power,
+  the powers 0 and 1, negative powers), the infinite bounds, the products by 0,
+  the divisions by an interval with 0 at an end, inside and alone, the
+  operators `+`, `-`, `*` and `/` (25 lines), and the empty set as an operand.
+  Where the exact result is no double (1/3, 0.1 + 0.2, 1 + 10^-20, 1.1 x 1.1,
+  the square roots of 2 and 3), the interval written is the two doubles around
+  it, the narrowest that holds it, so that a bound rounded to nearest instead
+  of outward fails. It includes `<gaol/gaol.h>` alone and none of the
+  headers of the tests, as a program using GAOL does, prints the lines that fail
+  and the number of checks, and ends with the status 1 if one failed.
 - **`arithmetic`:** on doubles and intervals of every magnitude (subnormal
   doubles and overflows included), sums, differences, products, quotients,
   relational divisions, squares, inverses, `abs`, `min`, `max`, `&`, `|` have to
@@ -870,13 +886,14 @@ which `numbers` checks there too.
   exponents from the subnormal numbers to the largest, past 2^500 and 2^-500
   and with infinite bounds, each with 16 intervals I whose bounds are next to
   U and D, 0 and the infinities (80 000 checks, the empty I's included). `less`,
-  `strictly_less`, `is_entire` and `is_common_interval` have to
-  give the values of Tables 10.3 and 10.4, and `==` and `!=` must
-  not compile on intervals, `certainly_neq()` and the possibly
-  relations being gone. `gaol_ieee1788::operator<<` has to write an interval
-  as `operator<<` does, in a file that does not include the expressions. Each
-  name of `gaol_ieee1788` has to be the operation
-  of the standard it names, which a wrong translation would not show at
+  `strictly_less`, `is_entire` and `is_common_interval` have to give the values
+  of Tables 10.3 and 10.4, and `==` and `!=` must be the equality of sets and
+  its negation between two intervals (`equal` of the standard, over 729
+  pairs), and not compile with a double, `certainly_neq()` and the possibly
+  relations being gone. `gaol_ieee1788::operator<<` has to write an interval as
+  `operator<<` does, in a file that does not include the expressions. Each name
+  of `gaol_ieee1788` has to be the operation of the standard it names, which a
+  wrong translation would not show at
   compilation: the eight comparisons against the bounds of Table 10.3 and the
   empty cases of Table 10.4, over 20 000 pairs; `inf`, `sup` and the numeric
   functions against Table 10.2; the reverse functions with the arguments in

@@ -1094,9 +1094,11 @@ does.\newinvfive
 
 The symbols \code{<}, \code{<=}, \code{>} and \code{>=} are the certainly
 relations of IEEE 1788-2015, which do not tell which of two intervals is the
-greater, and there is no \code{==}: \code{interval(1,3) < interval(2,4)} and
-\code{interval(1,3) >= interval(2,4)} are both \code{false}
-(\pxref{sec:relational-symbols}). In C-XSC and in PROFIL/BIAS, \code{x <= y}
+greater: \code{interval(1,3) < interval(2,4)} and
+\code{interval(1,3) >= interval(2,4)} are both \code{false}, and
+\code{interval(1,3) <= interval(1,3)} is \code{false} as well, where
+\code{interval(1,3) == interval(1,3)} is \code{true}, \code{==} being the
+equality of sets (\pxref{sec:relational-symbols}). In C-XSC and in PROFIL/BIAS, \code{x <= y}
 means that \code{x} is a subset of \code{y}, and \code{r <= x} that the number
 \code{r} is in \code{x}: code ported from them compiles, and changes its
 meaning (\pxref{sec:other-libraries}). None of them is an ordering for the
@@ -1358,7 +1360,8 @@ function of the kind, not that the algorithm cannot be written.\newinvfive
     \code{x.set\_disjoint(y)} &
     \code{disjoint(x, y)} &
     \code{x.is\_disjoint(y)}\\
-    Equal & \code{x.set\_eq(y)} & \code{equal(x, y)} & \code{x == y}\\
+    Equal & \code{x.set\_eq(y)}; \code{x == y} & \code{equal(x, y)} &
+    \code{x == y}\\
     Inflate by \code{r} & \code{x.inflate(r)}, a new interval & --- &
     \code{x.inflate(r)}, which changes \code{x}\\*
     Bisect &
@@ -1417,7 +1420,8 @@ function of the kind, not that the algorithm cannot be written.\newinvfive
     \code{x.set\_disjoint(y)} &
     \code{Disjoint(x, y)} &
     \code{!overlap(x, y)}\\
-    Equal & \code{x.set\_eq(y)} & \code{x == y} & \code{equal(x, y)}\\
+    Equal & \code{x.set\_eq(y)}; \code{x == y} & \code{x == y} &
+    \code{equal(x, y)}\\
     Inflate by \code{r} &
     \code{x.inflate(r)} &
     \code{Blow(x, eps)}, relative to the width &
@@ -1461,7 +1465,8 @@ from another library compiles and changes meaning
     (\ieee{strictPrecedes}) &
     every point of \code{x} is at most every point of \code{y}
     (\ieee{precedes}) &
-    not defined: \code{x.set\_eq(y)}\\
+    the same bounds, the empty set equal to itself (\ieee{equal},
+    \code{x.set\_eq(y)})\\
     IBEX &
     not defined &
     not defined &
@@ -1495,9 +1500,12 @@ GAOL v5 the certainly relation ``0 is at most every point of \code{f}'': a
 program ported from them compiles and no longer tests what it did
 (\code{f.set\_contains(0.0)} does). A Boost.Interval program that catches
 \code{comparison\_error} to detect an uncertain comparison never sees it with
-GAOL v5, whose \code{x < y} is false for overlapping intervals, and the empty
-set, which Boost refuses, passes every certainly relation
-(\pxref{sec:lexicographic-less}). The names are those of IBEX~2.9.1
+GAOL v5, whose \code{x < y} is false for overlapping intervals, whose
+\code{x == y} is true for two intervals with the same bounds, which Boost
+does not decide, and the empty set, which Boost refuses, passes every
+certainly relation (\pxref{sec:lexicographic-less}). A program ported from
+IBEX, Codac, C-XSC or PROFIL/BIAS finds the meaning of \code{==} it knows.
+The names are those of IBEX~2.9.1
 (\file{ibex\_Interval.h}), Codac~2 (\file{codac2\_Interval.h}), C-XSC~2.5.4
 (\file{interval.hpp} and \file{interval.inl}), PROFIL/BIAS~2.0.8
 (\file{Interval.h}) and Boost~1.92.0 (\file{boost/numeric/interval/}), read in

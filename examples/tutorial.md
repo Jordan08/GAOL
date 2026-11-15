@@ -198,8 +198,8 @@ int main()
   computed with intervals and rounded outward; with doubles it would not
   enclose f at the middle.
 - `f(X)` encloses the range of f over X: where it holds no 0, X holds no root.
-  `set_contains()` is the test of membership, and there is no `==` on
-  intervals (`set_eq()` is the equality of two sets).
+  `set_contains()` is the test of membership, and `==` is the equality of two
+  sets (`set_eq()`).
 - X is cut once when a part of the step is X itself, even when both parts are:
   cutting for each part pushed the halves twice, and every root came out
   twice (eight intervals for the three roots of x³ − x on [−3, 3]; the loop

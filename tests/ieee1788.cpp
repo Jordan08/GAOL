@@ -596,7 +596,9 @@ namespace
           && gaol_ieee1788::operator/(b, a).set_eq(numsToInterval(2.0, 8.0))
           && gaol_ieee1788::operator%(a, b).set_eq(numsToInterval(0.125, 0.5))
           && gaol_ieee1788::operator&(a, c).set_eq(numsToInterval(1.5, 2.0))
-          && gaol_ieee1788::operator|(a, b).set_eq(numsToInterval(1.0, 8.0)),
+          && gaol_ieee1788::operator|(a, b).set_eq(numsToInterval(1.0, 8.0))
+          && gaol_ieee1788::operator==(a, numsToInterval(1.0, 2.0)) && !gaol_ieee1788::operator==(a, b)
+          && gaol_ieee1788::operator!=(a, b) && !gaol_ieee1788::operator!=(a, numsToInterval(1.0, 2.0)),
           [&] {
             return hex(gaol_ieee1788::operator+(a, b)) + " " + hex(gaol_ieee1788::operator-(a, b)) + " "
               + hex(gaol_ieee1788::operator*(a, b)) + " " + hex(gaol_ieee1788::operator/(b, a)) + " "

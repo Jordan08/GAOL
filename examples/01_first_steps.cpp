@@ -15,8 +15,8 @@
  * example shows the few rules of GAOL that surprise a newcomer: a decimal
  * constant is read from a string, textToInterval("0.1"), the double 0.1 not
  * being 1/10; interval(2, 1) is the empty set; x < y means "for every point
- * of x and every point of y", and there is no ==; mid() is an interval where
- * midpoint() is a double. Each line of the output says what it proves, and
+ * of x and every point of y", where == is the equality of two sets; mid() is
+ * an interval where midpoint() is a double. Each line of the output says what it proves, and
  * the program checks it: the enclosures contain the doubles nearest the
  * values mpmath computed to 45 digits, and the set relations are the ones
  * stated. It follows IBEX's examples/doc-arithmetic.cpp (the constructors
@@ -226,9 +226,9 @@ int main()
   show("u.set_strictly_contains(r)", u.set_strictly_contains(r), "r touches the bound 1 of u",
        !u.set_strictly_contains(r));
   show("u.set_disjoint(w)", u.set_disjoint(w), "no common point", u.set_disjoint(w));
-  // There is no operator ==, whose meaning would be unclear (the same sets?
-  // the same unknown number?): the equality of two sets is set_eq()
-  show("(u & v).set_eq(r + 1.0)", (u & v).set_eq(r + 1.0), "the same set; there is no ==", (u & v).set_eq(r + 1.0));
+  // == is the equality of two sets, set_eq(): the same sets, not the same
+  // unknown number
+  show("(u & v).set_eq(r + 1.0)", (u & v).set_eq(r + 1.0), "the same set, as ==", (u & v) == r + 1.0);
 
   // ------------------------------------------------------------------------
   std::cout << "6. Certainly relations: true when true for every point\n";

@@ -141,10 +141,11 @@ namespace gaol_ieee1788 {
   
   /*!
   The operators of GAOL on intervals, +, -, *, / and % (relational division),
-  & (intersection) and | (hull) (GAOL v5): those of gaol_core, which
-  argument-dependent lookup finds on an interval too. They are named here as
-  well so that gaol_ieee1788::operator+ and the others exist, the unary - being
-  a member of interval. operator<< is below.
+  & (intersection), | (hull), and == and != (the equality of sets, equal(x, y)
+  and its negation) (GAOL v5): those of gaol_core, which argument-dependent
+  lookup finds on an interval too. They are named here as well so that
+  gaol_ieee1788::operator+ and the others exist, the unary - being a member of
+  interval. operator<< is below.
   */
   using ::gaol_core::operator+;
   using ::gaol_core::operator-;
@@ -153,6 +154,8 @@ namespace gaol_ieee1788 {
   using ::gaol_core::operator%;
   using ::gaol_core::operator&;
   using ::gaol_core::operator|;
+  using ::gaol_core::operator==;
+  using ::gaol_core::operator!=;
 
   //! neg(x): -x
   GAOL_NODISCARD inline interval neg(const interval& x) { return -x; }

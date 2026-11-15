@@ -188,6 +188,12 @@ check applies.
   \endhead
   \hline
   \endfoot
+  \code{interval\_ieee\_basic} & A short test to read first: the operations,
+    \code{sqr}, \code{sqrt}, \code{pown}, the empty set and the infinite
+    bounds of \code{gaol\_ieee1788} on intervals of doubles, one line
+    \code{CHECK( add(interval(1, 2), interval(3, 4)) == interval(4, 6) )}
+    for each result, with the bounds written as by hand and \code{==} the
+    equality of sets; 111 checks\\
   \code{arithmetic} & The basic operations, squares, square roots, integer
     powers, \code{fma} and the cancellative operations are the tightest
     enclosures at every magnitude, from every rounding direction, and the
@@ -617,7 +623,8 @@ finite bounds next to the largest double, \code{bisect(0.5)} being
 \code{split()}, and to throw \code{std::domain\_error} for a ratio outside
 $(0, 1)$ or NaN.\newinvfive{} The comparisons of IEEE 1788-2015 have to
 give the values of its Tables~10.3 and 10.4, \code{==} and \code{!=} must
-not compile on intervals, and each name of \code{gaol\_ieee1788} has to be
+be \ieee{equal} and its negation for 729 pairs of intervals, and must not
+compile with a \code{double}, and each name of \code{gaol\_ieee1788} has to be
 the operation of the standard it names, which a wrong translation would not
 show at compilation: the eight comparisons over 20\,000 pairs, \code{inf},
 \code{sup} and the numeric functions against Table~10.2, the reverse
@@ -1074,7 +1081,7 @@ affine forms of example 12. Table~\ref{tab:examples} lists the programs.
   \code{01\_first\_steps} & Intervals built every way, their numbers, sets
     and relations: containment, \code{interval(0.1)} against
     \code{textToInterval("0.1")}, \code{mid()} against \code{midpoint()},
-    no \code{==}, the certainly relations\\
+    \code{==} the equality of sets, the certainly relations\\
   \code{02\_decimals\_and\_rump} & 0.1 summed ten times, $\pi$ by Machin,
     Rump's polynomial: decimals are not doubles, \code{sqrt(2.0)} is the C
     library's, the width as an alarm\\

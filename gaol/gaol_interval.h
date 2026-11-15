@@ -117,6 +117,8 @@ namespace gaol {
   using gaol_core::operator%;
   using gaol_core::operator&;
   using gaol_core::operator|;
+  using gaol_core::operator==;
+  using gaol_core::operator!=;
   using gaol_core::operator<;
   using gaol_core::operator<=;
   using gaol_core::operator>;

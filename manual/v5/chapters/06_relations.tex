@@ -84,8 +84,11 @@ GAOL~4 had a third group, the \dfn{possibly relations}, true when at least
 one pair of values satisfies the relation on the reals, and, among the certainly
 relations, an equality and an inequality, \code{certainly\_eq()} and
 \code{certainly\_neq()}. They are gone
-from GAOL v5, and so are the operators \code{==} and \code{!=} on
-intervals.\newinvfive{} \code{certainly\_neq()} was the negation of
+from GAOL v5.\newinvfive{} The operators \code{==} and \code{!=} on intervals
+were these two relations in the default configuration, and are now the
+equality of sets and its negation, \code{set\_eq()} and \code{set\_neq()}:
+\code{interval(3,4) == interval(3,4)} is \code{true}.
+\code{certainly\_neq()} was the negation of
 \code{certainly\_eq()}, which is ``possibly not equal'', so that \itv{3}{4}
 was certainly not equal to \itv{3}{4}. IEEE 1788-2015 has neither. Its
 equality is \ieee{equal}, \code{set\_eq()}; that no value of $I$ equals a
@@ -96,7 +99,8 @@ equal'' is written \code{!set\_disjoint()}.
 
 \medskip
 The relation symbols \code{<}, \code{<=}, \code{>} and \code{>=} are the
-certainly relations in every build (\pxref{sec:relational-symbols}).
+certainly relations in every build, and \code{==} and \code{!=} the equality
+of sets and its negation (\pxref{sec:relational-symbols}).
 
 \medskip
 The relations that IEEE 1788-2015 defines (Tables~10.3 and 10.4) follow its
@@ -118,7 +122,7 @@ the standard (Chapter~\ref{chap:ieee1788}).
     \multicolumn{1}{c}{IEEE 1788-2015} & \multicolumn{1}{c}{GAOL v5} &
     \multicolumn{1}{c}{Symbol}\\
     \hline\hline
-    \ieee{equal}$(I, J)$ & \code{I.set\_eq(J)} & \\
+    \ieee{equal}$(I, J)$ & \code{I.set\_eq(J)} & \code{I == J}\\
     \ieee{subset}$(I, J)$ & \code{I.set\_leq(J)}, \code{J.set\_contains(I)},
       \code{J.set\_geq(I)} & \\
     \ieee{interior}$(I, J)$ & \code{I.set\_le(J)},
@@ -230,7 +234,8 @@ cout << boolalpha << a.set_disjoint(b) << ' '
          \forall y\in I, \exists x\in \code{self}\colon y=x$}
   \end{operation}
   Returns \code{true} if the intervals \code{self} and \var{I} are equal
-  when considered as sets of reals: \ieee{equal} of IEEE 1788-2015.
+  when considered as sets of reals: \ieee{equal} of IEEE 1788-2015. The
+  operator \code{==} does the same (\pxref{sec:relational-symbols}).\newinvfive
 \begin{example}
 cout << boolalpha << interval(4,8).set_eq(interval(4,8)) << ' '
      << interval::emptyset().set_eq(interval::emptyset()) << endl;
@@ -243,7 +248,8 @@ cout << boolalpha << interval(4,8).set_eq(interval(4,8)) << ' '
       \op{$\neg(\code{self}=I)$}
     \end{operation}
     Returns \code{true} if \code{self} and \var{I} are not equal when
-    considered as sets of reals.
+    considered as sets of reals. The operator \code{!=} does the same
+    (\pxref{sec:relational-symbols}).\newinvfive
     \begin{example}
 cout << boolalpha << interval::universe().set_neq(interval::emptyset());
 @outputs^true~
@@ -579,15 +585,17 @@ certainly relations, whichever build configured GAOL. The option of GAOL~4
 that chose between the set, certainly and possibly relations is gone: \cmd{configure} warns that it does not know it
 (\pxref{sec:configuration}), and meson refuses it
 (\pxref{sec:install-meson}).\newinvfive{}
-The operators \code{==} and \code{!=} are not defined on intervals: a program
-compares intervals with \code{set\_eq()}, \code{set\_disjoint()} or
-\code{less()}.
+The operators \code{==} and \code{!=} are not certainly relations: they are
+the equality of sets, \code{set\_eq()}, \ieee{equal} of IEEE 1788-2015, and its
+negation, \code{set\_neq()}. \code{interval(1,2) <= interval(1,2)} is
+\code{false}, where \code{interval(1,2) == interval(1,2)} is \code{true}.
 
 \medskip
 An interval and a \code{double} \var{d} compare as the interval and
 \code{interval(\var{d})}, which is empty for an infinite or NaN \var{d}:
-\code{x < 0.0} is \code{x < interval(0.0)}, and there is still no \code{==}
-nor \code{!=}. For a finite \var{d}, these overloads give what the implicit
+\code{x < 0.0} is \code{x < interval(0.0)}, and there is no such overload for
+\code{==} nor \code{!=}, which take two intervals: \code{x == interval(0.0)}.
+For a finite \var{d}, these overloads give what the implicit
 conversion of a \code{double} to an interval gave in GAOL~4 configured with
 the certainly relations, its default, before the constructor from one \code{double} became explicit
 (\pxref{sec:constructors}); for an infinite or NaN \var{d}, \code{x < d} and
@@ -634,6 +642,29 @@ cout << boolalpha << (interval(1,2) < interval(3,4)) << ' '
      << (interval(1,3) <= interval(2,4)) << ' '
      << (interval(3,4) > interval(1,2));
 @outputs^true true false true~
+\end{example}
+\end{deffun}
+
+\begin{deffun}{bool}{operator==}{(const interval\& \var{I1}, const interval\& \var{I2})}
+  Returns \code{\var{I1}.set\_eq(\var{I2})}: \ieee{equal} of IEEE 1788-2015.
+  Two intervals are equal when they have the same bounds, $-0$ and $+0$ being
+  the same bound, and the empty set is equal to itself. There is no
+  overload for a \code{double} or an integer: write
+  \code{x == interval(0.0)}.\newinvfive
+\begin{example}
+cout << boolalpha << (interval(1,2) == interval(1,2)) << ' '
+     << (interval(1,2) <= interval(1,2)) << ' '
+     << (interval::emptyset() == interval::emptyset());
+@outputs^true false true~
+\end{example}
+\end{deffun}
+
+\begin{deffun}{bool}{operator!=}{(const interval\& \var{I1}, const interval\& \var{I2})}
+  Returns \code{\var{I1}.set\_neq(\var{I2})}, the negation of \code{==}.\newinvfive
+\begin{example}
+cout << boolalpha << (interval(1,2) != interval(1,3)) << ' '
+     << (interval(1,2) != interval(1,2));
+@outputs^true false~
 \end{example}
 \end{deffun}
 
@@ -889,20 +920,23 @@ This chapter has fixed the vocabulary of the comparisons of GAOL v5. Two
 groups remain of the three of GAOL~4: the set relations, which compare the
 intervals as sets of reals, and the certainly relations, which hold when
 every pair of points is in the relation. The possibly relations,
-\code{certainly\_eq()}, \code{certainly\_neq()} and the operators \code{==}
-and \code{!=} are gone: IEEE 1788-2015 defines none of them, and a certain
-inequality that was the negation of a certain equality made \itv{3}{4}
-certainly not equal to itself. Every
+\code{certainly\_eq()} and \code{certainly\_neq()} are gone: IEEE 1788-2015
+defines none of them, and a certain inequality that was the negation of a
+certain equality made \itv{3}{4} certainly not equal to itself. The
+operators \code{==} and \code{!=}, which were these two relations, are the
+equality of sets and its negation, \ieee{equal}. Every
 relation that IEEE 1788-2015 defines follows the standard, for the empty set
 and for the infinite bounds too, and the overlap state tells in which of the
 sixteen states of the standard two intervals are, from which most of the
 comparisons can be derived.
 
 \medskip
-The relation symbols have one meaning in every build, the certainly
-relations, and compare an interval with a \code{double} or an integer as
-with the interval of that number, an integer that is no double being compared
-as the integer it is. The price of a fixed meaning that follows the
+The relation symbols have one meaning in every build: \code{<}, \code{<=},
+\code{>} and \code{>=} are the certainly relations, and compare an interval
+with a \code{double} or an integer as with the interval of that number, an
+integer that is no double being compared as the integer it is, and \code{==}
+and \code{!=} are the equality of sets and its negation, between two
+intervals only. The price of a fixed meaning that follows the
 standard is that the symbols order nothing: a program that sorts intervals
 or keeps them in a \code{std::set} gives the comparator
 \code{gaol::lexicographic\_less}, and an algorithm that chooses the next box

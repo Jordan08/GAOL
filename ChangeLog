@@ -11,18 +11,18 @@
 	* gaol/: the tightest bounds of the arithmetic, the reverse
 	functions accurate in the sense of IEEE 1788-2015, the empty set
 	[NaN, NaN], numbers read exactly whatever the C library, the
-	possibly relations and == and != removed, one grammar reading every
-	string, a reentrant lexer and a pure parser, the rounding direction
-	checked once per operation, the *_dn() and *_up() of doubles no
-	longer public, the intervals of floats left to the developers of
-	GAOL (GAOL_FLOAT_INTERVALS).
+	possibly relations removed, == and != the equality of sets, one
+	grammar reading every string, a reentrant lexer and a pure parser,
+	the rounding direction checked once per operation, the *_dn() and
+	*_up() of doubles no longer public, the intervals of floats left to
+	the developers of GAOL (GAOL_FLOAT_INTERVALS).
 	* CMakeLists.txt: a CMake build, the one to use, which finds GAOL
 	with find_package(gaol) and makes the archive of the sources and
 	the packages (CPack); make dist of the autotools build and meson
 	dist make the same archive.
-	* tests/: tests of the bounds against the exact results, and the
-	continuous integration on Linux, macOS and Windows
-	(.github/workflows).
+	* tests/: tests of the bounds against the exact results, a short one
+	to read first (interval_ieee_basic), and the continuous integration
+	on Linux, macOS and Windows (.github/workflows).
 	* manual/v5: the manual of GAOL v5; manual/v4 keeps the manual of
 	GAOL 4.
 

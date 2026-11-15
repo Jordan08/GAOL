@@ -831,18 +831,23 @@ namespace
     return a.is_empty() || b.is_empty() || a.right() < b.left() || b.right() < a.left();
   }
 
-  /* == and != are not defined on intervals (GAOL v5): with the certainly
-     relations, != was !certainly_eq(), true for [3,4] and [3,4], and IEEE
-     1788-2015 has equal and disjoint, set_eq() and set_disjoint() */
-  template <typename T, typename = void> struct has_equal : std::false_type {};
-  template <typename T>
-  struct has_equal<T, decltype(void(std::declval<const T&>() == std::declval<const T&>()))> : std::true_type {};
-  template <typename T, typename = void> struct has_not_equal : std::false_type {};
-  template <typename T>
-  struct has_not_equal<T, decltype(void(std::declval<const T&>() != std::declval<const T&>()))> : std::true_type {};
-  static_assert(!has_equal<interval>::value, "== is not defined on intervals");
-  static_assert(!has_not_equal<interval>::value, "!= is not defined on intervals");
-  static_assert(has_equal<double>::value, "the detection of == works");
+  /* == and != are defined between two intervals, as the equality of sets
+     (GAOL v5): set_eq() and its negation, the equal of IEEE 1788-2015, where
+     they were once the certainly relations, != being true for [3,4] and
+     [3,4]. Not with a double, interval(d) being explicit: set_eq(interval(d)) */
+  template <typename T, typename U, typename = void> struct has_equal : std::false_type {};
+  template <typename T, typename U>
+  struct has_equal<T, U, decltype(void(std::declval<const T&>() == std::declval<const U&>()))> : std::true_type {};
+  template <typename T, typename U, typename = void> struct has_not_equal : std::false_type {};
+  template <typename T, typename U>
+  struct has_not_equal<T, U, decltype(void(std::declval<const T&>() != std::declval<const U&>()))> : std::true_type {};
+  static_assert(has_equal<interval, interval>::value, "== is defined on intervals");
+  static_assert(has_not_equal<interval, interval>::value, "!= is defined on intervals");
+  static_assert(!has_equal<interval, double>::value && !has_equal<double, interval>::value,
+                "== is not defined between an interval and a double");
+  static_assert(!has_not_equal<interval, double>::value && !has_not_equal<double, interval>::value,
+                "!= is not defined between an interval and a double");
+  static_assert(has_equal<double, double>::value, "the detection of == works");
 
   /* interval(double) is explicit (GAOL v5): a double does not convert to an
      interval, and gaol::sin(0.5), the sin of [0.5] while it converted, does
@@ -890,6 +895,11 @@ namespace
         check("b.set_contains(a), a.set_leq(b), b.set_geq(a): subset(a, b)",
               b.set_contains(a) == sub && a.set_leq(b) == sub && b.set_geq(a) == sub, describe);
         check("a.set_eq(b): equal(a, b)", a.set_eq(b) == ieee_equal(a, b), describe);
+        check("a == b and a != b: equal(a, b) and its negation",
+              (a == b) == ieee_equal(a, b) && (a != b) == !ieee_equal(a, b), describe);
+        check("== and != of gaol and of gaol_ieee1788 are those of gaol_core",
+              gaol::operator==(a, b) == (a == b) && gaol_ieee1788::operator==(a, b) == (a == b)
+              && gaol::operator!=(a, b) == (a != b) && gaol_ieee1788::operator!=(a, b) == (a != b), describe);
         check("a.set_disjoint(b): disjoint(a, b)", a.set_disjoint(b) == ieee_disjoint(a, b), describe);
       }
     }
