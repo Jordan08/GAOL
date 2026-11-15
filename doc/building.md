@@ -164,8 +164,11 @@ GAOL.
   direction](simd.md#when-the-build-takes-the-avx-512-path): the path spares the
   store of the rounding direction that every operation pays with
   `GAOL_PRESERVE_ROUNDING`, where it gains 1.3 to 6.1 times at the median of 2.9
-  on an Intel i7-1185G7, and takes 20 % longer at the median without it (the processor
-  halves the AVX-512 units, and no other was measured). The library then needs a
+  on an Intel i7-1185G7, whose AVX-512 units are halved, and takes 20 % longer
+  at the median without it. On an Intel Xeon of a virtual machine, whose units
+  are presumably full width, it gains 3.9 and 4.2 times at the median with the
+  option and takes 37 and 45 % longer without it (Clang 18 and GCC 13.3): the
+  rule stands on both processors. The library then needs a
   processor with the instructions, as with the fused multiply-add instructions,
   and `gaol::init()` stops a program run on another one with a message (see
   [The AVX-512 path](using.md#the-avx-512-path)). In a cross-compilation, where
