@@ -409,7 +409,7 @@ From tests/arithmetic.cpp (operations_with_special_doubles).
 | 079 | `x = [1, 2]; x += interval(+∞)` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | [+∞] ✗ | [+∞] ✗ |  |
 | 080 | `[1, 2] + +∞` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [MAX, +∞] ✗ | [MAX, +∞] ✗ | [+∞] ✗ | [+∞] ✗ |  |
 | 081 | `[0, 1] * +∞` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [−∞, +∞] ✗ | [NaN, +∞] ✗ | [NaN, +∞] ✗ |  |
-| 082 | `0 * [1, +∞]` | [0] | [−0] ✓ | [0] ✓ | [0] ✓ | [−∞, +∞] ⊃ | [−∞, +∞] ⊃ | [0, NaN] ✗ | [0] ✓ |  |
+| 082 | `0 * [1, +∞]` | [0] | [−0] ✓ | [−0] ✓ | [−0] ✓ | [−∞, +∞] ⊃ | [−∞, +∞] ⊃ | [0, NaN] ✗ | [0] ✓ |  |
 | 083 | `[1, 2] / 0` | ∅ | ∅ ✓ | ∅ ✓ | ∅ ✓ | [−∞, +∞] ✗ | [−∞, +∞] ✗ | BIAS error, abort ✗ | exception: boost::interval: empty interval created ✗ |  |
 
 ### 7. Elementary functions at the edges of their domains
