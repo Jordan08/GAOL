@@ -16,6 +16,8 @@
 // rather than CppUnit (GAOL v5)
 #include "unit_tests.h"
 
+using namespace gaol;
+
 
 using std::cout;
 using std::endl;

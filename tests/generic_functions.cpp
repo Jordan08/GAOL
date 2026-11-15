@@ -17,6 +17,8 @@
 
 #include "unit_tests.h"
 
+using namespace gaol;
+
 class generic_function_test {
 public:
   void setUp() {

@@ -23,9 +23,6 @@
 #include <iostream>
 #include "gaol/gaol_common.h"
 #include "gaol/gaol_init_cleanup.h"
-using std::cerr;
-using std::cout;
-using std::endl;
 
 
 namespace gaol_core {
@@ -72,24 +69,24 @@ namespace gaol_core {
     std::ios_base::Init ios_init;
     #endif
     #if !GAOL_PRESERVE_ROUNDING
-    GAOL_IF_VERBOSE(cerr << "Automatic initialization of gaol (rounding set to +oo)... ");	
+    GAOL_IF_VERBOSE(std::cerr << "Automatic initialization of gaol (rounding set to +oo)... ");	
     #else
-    GAOL_IF_VERBOSE(cerr << "Automatic initialization of gaol... ");	
+    GAOL_IF_VERBOSE(std::cerr << "Automatic initialization of gaol... ");	
     #endif
     init();
-    GAOL_IF_VERBOSE(cerr << "done" << endl);
+    GAOL_IF_VERBOSE(std::cerr << "done" << std::endl);
   }
   
   void cleanup_process(void)
   {
     #if !GAOL_PRESERVE_ROUNDING
-    GAOL_IF_VERBOSE(cerr << "Automatic cleanup of gaol (rounding set back)... ");
+    GAOL_IF_VERBOSE(std::cerr << "Automatic cleanup of gaol (rounding set back)... ");
     #else
-    GAOL_IF_VERBOSE(cerr << "Automatic cleanup of gaol... ");
+    GAOL_IF_VERBOSE(std::cerr << "Automatic cleanup of gaol... ");
     #endif
     cleanup();
     free_initialization();
-    GAOL_IF_VERBOSE(cerr << "done" << endl);
+    GAOL_IF_VERBOSE(std::cerr << "done" << std::endl);
   }
   
 } // namespace gaol_core

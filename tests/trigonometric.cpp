@@ -17,6 +17,8 @@
 #include <iostream>
 #include "unit_tests.h"
 
+using namespace gaol;
+
 class trigonometric_test {
 public:
   void setUp() {
