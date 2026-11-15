@@ -468,6 +468,148 @@ namespace gaol_core {
     return interval(mid_left,mid_right);
   }
 
+// #if 0
+// interval& interval::operator*=(const interval& I)
+// {
+//   if (is_empty() || I.is_empty()) {
+// 	*this = interval::emptyset();
+// 	return *this;
+//   }
+  
+//   if (is_zero()) {
+// 	return *this;
+//   }
+//   if (I.is_zero()) {
+// 	xmmbounds=interval::m128_zero;
+// 	return *this;
+//   }
+//   GAOL_RND_ENTER_SSE();
+  
+//   if (certainly_positive()) { // P ?
+// 	if (I.certainly_positive()) { // P P
+// 	  xmmbounds = _mm_mul_pd(_mm_xor_pd(xmmbounds,lbsignmask),I.xmmbounds);
+// 	} else {
+// 	  if (I.strictly_straddles_zero()) { // P M
+// 		xmmbounds = _mm_mul_pd(_mm_unpackhi_pd(xmmbounds,xmmbounds),I.xmmbounds);
+// 	  } else { // P N
+// 		__m128d ba = _mm_xor_pd(xmmbounds,lbsignmask);
+// 		xmmbounds = _mm_mul_pd(_mm_shuffle_pd(ba,ba,1),I.xmmbounds);
+// 	  }
+// 	}
+//   } else {
+// 	if (strictly_straddles_zero()) { // M ?
+// 	  if (I.certainly_positive()) { // M P
+// 		xmmbounds = _mm_mul_pd(xmmbounds,_mm_unpackhi_pd(I.xmmbounds,I.xmmbounds));
+// 	  } else {
+// 		if (I.strictly_straddles_zero()) { // M M
+// 		  xmmbounds = _mm_max_pd(_mm_mul_pd(_mm_unpacklo_pd(xmmbounds,xmmbounds),
+// 											_mm_shuffle_pd(I.xmmbounds,I.xmmbounds,1)),
+// 								 _mm_mul_pd(_mm_unpackhi_pd(xmmbounds,xmmbounds),
+// 											I.xmmbounds));
+// 		} else { // M N
+// 		  xmmbounds = _mm_mul_pd(_mm_shuffle_pd(xmmbounds,xmmbounds,1),
+// 								 _mm_unpacklo_pd(I.xmmbounds,I.xmmbounds));
+// 		}
+// 	  }
+// 	} else { // N  (case Z already tested)
+// 	  if (I.certainly_positive()) { // N P
+// 		__m128d tmp = _mm_xor_pd(I.xmmbounds,lbsignmask);
+// 		xmmbounds = _mm_mul_pd(xmmbounds,_mm_shuffle_pd(tmp,tmp,1));
+// 	  } else {
+// 		if (I.strictly_straddles_zero()) { // N M
+// 		  xmmbounds = _mm_mul_pd(_mm_unpacklo_pd(xmmbounds,xmmbounds),
+// 								 _mm_shuffle_pd(I.xmmbounds,I.xmmbounds,1));
+// 		} else { // N N
+// 		  xmmbounds = _mm_mul_pd(_mm_xor_pd(_mm_shuffle_pd(xmmbounds,xmmbounds,1),lbsignmask),
+// 								 _mm_shuffle_pd(I.xmmbounds,I.xmmbounds,1));
+// 		}
+// 	  }
+// 	}
+//   }
+  
+//   GAOL_RND_LEAVE_SSE();
+//   return *this;
+// }
+// #endif 
+// #if 0
+// // Modified Lambov algorithm
+//   interval& interval::operator*=(const interval& Itv)
+//     {
+//       if (is_empty() || Itv.is_empty()) {
+//        *this = interval::emptyset();
+//        return *this;
+//        }
+//       GAOL_RND_ENTER_SSE();
+
+//       // *this = <b, -a>
+//       // Itv = <d, -c>
+//       __m128d A = _mm_xor_pd(xmmbounds,interval::lbsignmask);  	// < b, a >
+//       __m128d B = _mm_shuffle_pd(Itv.xmmbounds,Itv.xmmbounds,1); 	// < -c, d >
+//       __m128d C = _mm_cmplt_pd(A,interval::m128_zero);				// < b<0, a<0 >
+//       __m128d D = _mm_xor_pd(B,interval::lbrbsignmask);		// < c, -d >
+//       __m128d G = _mm_shuffle_pd(C,C,1); 				// < a<0, b<0 >
+//       __m128d E = _mm_and_pd(C,D); 						// < (b<0)?c:0, (a<0)?-d:0 >
+//       __m128d F = _mm_andnot_pd(C,Itv.xmmbounds);		// < (b>=0)?d:0, (a>=0)?-c:0 >
+//       __m128d K = _mm_andnot_pd(G,Itv.xmmbounds);		// < (a>=0)?d:0, (b>=0)?-c:0 >
+//       __m128d I = _mm_and_pd(D,G);						// < (a<0)?c:0, (b<0)?-d:0 >
+//       __m128d H = _mm_or_pd(E,F);						// < (b<0)?c:d, (a<0)?-d:-c >
+//       __m128d L = _mm_shuffle_pd(A,A,1);				// < a, b >
+//       __m128d M = _mm_or_pd(I,K);						// < (a<0)?c:d, (b<0)?-d:-c >
+//       __m128d J = _mm_mul_pd(A,H);						// < (b<0)?bc:bd, (a<0)?a(-d):a(-c) >
+//       __m128d N = _mm_mul_pd(L,M);						// < (a<0)?ac:ad, (b<0)?b(-d):b(-c) >
+//       __m128d ordJ = _mm_cmpord_pd(J,J);				//
+//       __m128d newJ = _mm_and_pd(J,ordJ);
+//       __m128d ordN = _mm_cmpord_pd(N,N);
+//       __m128d newN = _mm_and_pd(N,ordN);
+
+//       xmmbounds = _mm_max_pd(newJ,newN);							// < (b<0)?max(ac,bc)
+//       // 		 :(a<0)?max(ac,bd)
+//       //					 :max(ad,bd),
+//       //	  (b<0)?max(b(-d),a(-d))
+//       //        :(a<0)?max(b(-c),a(-d))
+//       //			       :max(b(-c),a(-c)) >
+//       GAOL_RND_LEAVE_SSE();
+//       return *this;
+//     }
+// #endif 
+// #if 0
+// // Brute force algorithm
+// interval& interval::operator*=(const interval& I)
+// {
+//         if (is_empty() || I.is_empty()) {
+//                 *this = interval::emptyset();
+//                 return *this;
+//         }
+
+// 	  GAOL_RND_ENTER_SSE();
+//         __m128d r1  = _mm_shuffle_pd(xmmbounds,xmmbounds,1);            // r1  = <-a, b>
+//         __m128d r2  = _mm_xor_pd(r1,lbrbsignmask);                    // r2  = <a, -b>
+//         __m128d r3  = _mm_xor_pd(I.xmmbounds,lbsignmask);             // r3  = <d, c>
+//         __m128d r4  = _mm_shuffle_pd(r3,r3,1);                          // r4  = <c, d>
+//         __m128d r5  = _mm_unpacklo_pd(I.xmmbounds,I.xmmbounds);         // r5  = <-c, -c>
+//         __m128d r6  = _mm_unpackhi_pd(I.xmmbounds,I.xmmbounds);         // r6  = <d, d>
+//         __m128d r7  = _mm_mul_pd(xmmbounds,r3);                         // r7  = <bd, (-a)c>
+// 		__m128d ordr7 = _mm_cmpord_pd(r7,r7);
+// 		r7 = _mm_and_pd(r7,ordr7);
+//         __m128d r8  = _mm_mul_pd(r1,r5);                                // r8  = <ac, b(-c)>
+// 		__m128d ordr8 = _mm_cmpord_pd(r8,r8);
+// 		r8 = _mm_and_pd(r8,ordr8);
+//         __m128d r9  = _mm_mul_pd(xmmbounds,r4);                         // r9  = <bc, (-a)d>
+// 		__m128d ordr9 = _mm_cmpord_pd(r9,r9);
+// 		r9 = _mm_and_pd(r9,ordr9);
+//         __m128d r10 = _mm_mul_pd(r2,r6);                                // r10 = <ad,(-b)d>
+// 		__m128d ordr10 = _mm_cmpord_pd(r10,r10);
+// 		r10 = _mm_and_pd(r10,ordr10);
+//         __m128d r11 = _mm_max_pd(r7, r8);
+//         __m128d r12 = _mm_max_pd(r9, r10);
+//         xmmbounds   = _mm_max_pd(r11,r12);
+// 		GAOL_RND_LEAVE_SSE();
+//         return *this;
+
+// }
+// #endif
+
+
 /*
   The products of the pairs of stored bounds u and v, lane by lane, for
   mul_special() below. Where neither has an infinite lane, the plain products,
@@ -969,12 +1111,64 @@ GAOL_BOUNDS_TARGET __m128d GAOL_VECTORCALL div_bounds(__m128d x, __m128d y)
 
 namespace gaol_core {
 
+// The branch #else, not compiled, has no upward_access::inverse()
+// (gaol_interval_sse_kernels.h), which inverse(), the integer powers and
+// nth_root(I, q) for q < 0 take (GAOL v5)
+//#define OPT_INV 1
+//#if OPT_INV
 // The body is upward_access::checked_inverse() of gaol_interval_sse_kernels.h,
 // which nth_root(I, q) for q = -2 takes inline too (GAOL v5)
 interval interval::inverse() const
 {
   return upward_access::checked_inverse(*this);
 }
+// #else
+//   interval interval::inverse() const
+//   {
+//     if (is_empty()) {
+//       return *this;
+//     }
+//     interval res;
+//     xmm2d itv;
+//     get_bounds(itv);
+//     GAOL_RND_ENTER_SSE();
+//     if (itv[1] <= 0.0) { // (Z N0 N1)
+//       if (itv[0] > 0) { // (N0 N1)
+//         if (itv[1] < 0) { // N1
+//           __m128d r0 = _mm_set1_pd(-1.0); // r0 == <-1, -1>
+//           __m128d r1 = _mm_shuffle_pd(xmmbounds,xmmbounds,1); // r1 == <-c, d>
+//           res.xmmbounds = _mm_div_pd(r0,r1);
+//         } else { // N0
+//           __m128d r0 = _mm_set_pd(-1.0,1.0); // r0 == <-1, 1>
+//           __m128d r1 = _mm_shuffle_pd(xmmbounds,xmmbounds,1); // r1 == <-c, d>
+//           __m128d r2 = _mm_and_pd(r1,interval::m128d_02mask); // r2 == <-c, 0>
+//           res.xmmbounds = _mm_div_pd(r0,r2);
+//         }
+//       } else { // Z
+//         res = interval::emptyset();
+//       }
+//     } else { // (M P0 P1)
+//       if (itv[0]>0) { // M : straddles_zero() (left bound negated)
+//             res = interval::universe();
+//       } else { // (P0 P1)
+//         if (itv[0] == 0.0) { // P0
+//           __m128d r0 = _mm_set_pd(1.0,-1.0); // r0 == <1, -1>
+//           __m128d r1 = _mm_xor_pd(xmmbounds,interval::lbsignmask); // r1 == <d, c>
+//           __m128d r2 = _mm_shuffle_pd(r1,r1,1); // r2 == <c, d>
+//           __m128d r3 = _mm_and_pd(r2,interval::m128d_20mask); // r3 == <0, d>
+//           res.xmmbounds = _mm_div_pd(r0,r3);
+//         } else { // P1
+//           __m128d r0 = _mm_set1_pd(-1.0); // r0 == <-1, -1>
+//           __m128d r1 = _mm_shuffle_pd(xmmbounds,xmmbounds,1); // r1 == <-c, d>
+//           res.xmmbounds = _mm_div_pd(r0,r1);
+//         }
+//       }
+//     }
+//     GAOL_RND_KEEP(res);
+//     GAOL_RND_LEAVE_SSE();
+//     return res;
+//   }
+// #endif
 
   interval& interval::operator%=(const interval& I)
   {
