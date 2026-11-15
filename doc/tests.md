@@ -26,7 +26,7 @@ under denormals-are-zero ("unexpected input value; log10 failed"), then writes
 0, on x86 as on x64: `operator<<` clears that mode before it writes (GAOL v5),
 which `numbers` checks there too.
 
-- **`Interval_ieee_basic`:** a short test to read first (GAOL v5), under
+- **`interval_ieee_basic`:** a short test to read first (GAOL v5), under
   `using namespace gaol_ieee1788;`: one line `CHECK( add(interval(1, 2),
   interval(3, 4)) == interval(4, 6) )` for each result, with the bounds written
   as a person writes them, and `==` the equality of sets. The bounds and the
