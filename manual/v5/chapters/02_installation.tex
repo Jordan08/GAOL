@@ -241,19 +241,19 @@ flags of interval arithmetic, and check that the header refuses it, and
 builds.
 
 \medskip
-With GCC, \file{gaol/gaol\_config.h} refuses \option{-fno-signed-zeros},
-\option{-fno-trapping-math}, \option{-fassociative-math} and
-\option{-freciprocal-math} too, which \option{-funsafe-math-optimizations}
+With GCC, \file{gaol/gaol\_config.h} refuses \option{-fno-signed-\allowbreak zeros},
+\option{-fno-trapping-\allowbreak math}, \option{-fassociative-\allowbreak math} and
+\option{-freciprocal-\allowbreak math} too, which \option{-funsafe-math-\allowbreak optimizations}
 turns on, as do \option{-ffast-math} and \option{-Ofast} with
-\option{-fno-finite-math-only}: GCC shows them by \code{\_\_NO\_SIGNED\_ZEROS\_\_},
+\option{-fno-finite-\allowbreak math-only}: GCC shows them by \code{\_\_NO\_SIGNED\_ZEROS\_\_},
 \code{\_\_NO\_TRAPPING\_MATH\_\_}, \code{\_\_ASSOCIATIVE\_MATH\_\_} and
 \code{\_\_RECIPROCAL\_MATH\_\_} from version 12 on (12.2 and 15.2 checked; GCC~9.4
 and 11.4 define none of them, and the options are not refused there), and
 \option{-fno-fast-math} turns them off when it comes after them, as it does
 \option{-ffinite-math-only}.\newinvfive{} Compiled with GCC~15.2,
-\option{-fno-signed-zeros} failed 6 tests, \code{width()} of
+\option{-fno-signed-\allowbreak zeros} failed 6 tests, \code{width()} of
 $[2, 3]\cdot2^{-1074}$ being 0 under flush-to-zero, and
-\option{-fno-trapping-math} 52 checks of \file{tests/rounding\_direction.cpp},
+\option{-fno-trapping-\allowbreak math} 52 checks of \file{tests/rounding\_direction.cpp},
 operations with an empty operand raising the invalid-operation flag. The CMake
 tests \code{refused\_no\_signed\_zeros}, \code{refused\_no\_trapping\_math},
 \code{refused\_unsafe\_math} and \code{refused\_reciprocal\_math}, and
