@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-# Tests of GAOL v5: writes the statements TEST_HULL() of tests/trigonometric.cpp
-# and tests/reverse_mappings.cpp, the unit tests of GAOL 4 whose references were
-# decimal numbers compared at a Hausdorff distance of 1e-8 (TEST_EQ), which an
-# enclosure that missed the exact value by less than that passed.
+# Tests of GAOL v5: writes the statements TEST_HULL() of tests/trigonometric.cpp,
+# tests/reverse_mappings.cpp and tests/non_arithmetic.cpp, the unit tests of GAOL
+# 4 whose references were decimal numbers compared at a Hausdorff distance of
+# 1e-8 (TEST_EQ), which an enclosure that missed the exact value by less than
+# that passed.
 #
 # For each call, this script computes the hull of the values the function takes
 # on the interval(s) it is called with (for the relational functions, the hull
@@ -11,14 +12,17 @@
 # and rational arithmetic, and writes TEST_HULL(call, lo, hi), lo being the
 # greatest double at most the lower bound of the hull, and hi the least double at
 # least the upper one: GAOL's bounds have to enclose them, and be one double from
-# them at most (tests/unit_tests.h). The relational functions come from
-# reverse_values.py, which writes the cases of tests/reverse.cpp.
+# them at most (tests/unit_tests.h). A bound of the hull that is a double itself,
+# a finite one, is GAOL's too: the statement is TEST_HULL_EXACT_LO or
+# TEST_HULL_EXACT_HI when one of the two is, and TEST_SEQ when both are. The
+# relational functions come from reverse_values.py, which writes the cases of
+# tests/reverse.cpp.
 #
 #     python3 tests/hull_values.py            # the statements, by file
 #     python3 tests/hull_values.py --check    # the statements are in the files
 #
-# The statements are in the two files as written here. A difference is an error:
-# --check exits with 1 and names the statements that are missing.
+# The statements are in the three files as written here. A difference is an
+# error: --check exits with 1 and names the statements that are missing.
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -31,6 +35,7 @@ import math
 import os
 import re
 import sys
+from fractions import Fraction
 
 import mpmath
 
@@ -49,6 +54,22 @@ def m(x):
     if x == -INF:
         return -mpmath.inf
     return mpmath.mpf(x)
+
+
+def pair(v):
+    """The greatest double at most the real v and the least double at least it,
+    which are v when it is a double (v is a double, +-inf, a Fraction or an mpf)"""
+    return rv.round_down(v), rv.round_up(v)
+
+
+def bounds(low, high):
+    """The enclosure of a hull whose lower and upper bounds have the pairs low and
+    high (pair()): (lo, hi, lo_exact, hi_exact), lo being the greatest double at most
+    the lower bound and hi the least double at least the upper one, and lo_exact
+    telling that the lower bound is a finite double, so that GAOL's has to be it.
+    The infinite bounds are not told: TEST_HULL asks for them either way"""
+    lo, hi = low[0], high[1]
+    return (lo, hi, low[0] == low[1] and abs(lo) != INF, high[0] == high[1] and abs(hi) != INF)
 
 
 #---------------------------------------------------------------------------
@@ -93,7 +114,7 @@ def double_value(f, x):
     an increasing f. A value that 2000 bits cannot tell from 1 or -1, as tanh(MAX)
     which is 1 - 2^-2000 or so, is not them: it is inside (-1, 1) at a finite x"""
     v = f(m(x))
-    below, above = rv.round_down(v), rv.round_up(v)
+    below, above = pair(v)
     if abs(x) != INF and abs(v) == 1:
         below, above = (rv.next_down(1.0), 1.0) if v > 0 else (-1.0, rv.next_up(-1.0))
     return below, above
@@ -120,14 +141,14 @@ def trig_hull(name, a, b):
 
 
 def hull(name, a, b):
-    """The tightest enclosure of the hull of the function name over [a, b], a
-    pair of doubles"""
+    """The tightest enclosure of the hull of the function name over [a, b], with
+    the bounds that are doubles (bounds())"""
     if name in ("cos", "tan"):
         lo, hi = trig_hull(name, a, b)
-        return rv.round_down(lo), rv.round_up(hi)
+        return bounds(pair(lo), pair(hi))
     if name == "cosh":  # even: the least value at 0 if it is within [a, b]
         least = mpmath.mpf(1) if a <= 0 <= b else min(mpmath.cosh(m(a)), mpmath.cosh(m(b)))
-        return rv.round_down(least), rv.round_up(max(mpmath.cosh(m(a)), mpmath.cosh(m(b))))
+        return bounds(pair(least), pair(max(mpmath.cosh(m(a)), mpmath.cosh(m(b)))))
     # The increasing functions, and acos, which is decreasing: over their domain
     domains = {"asin": (-1.0, 1.0), "acos": (-1.0, 1.0), "acosh": (1.0, INF), "atanh": (-1.0, 1.0)}
     low, high = domains.get(name, (-INF, INF))
@@ -135,14 +156,14 @@ def hull(name, a, b):
     if a > b:
         raise ValueError("%s over an interval outside its domain" % name)
     if name == "acos":
-        return rv.round_down(mpmath.acos(m(b))), rv.round_up(mpmath.acos(m(a)))
+        return bounds(pair(mpmath.acos(m(b))), pair(mpmath.acos(m(a))))
     if name == "atanh":  # +-oo at +-1, which atanh does not reach
         f = lambda v: -mpmath.inf if v == -1 else (mpmath.inf if v == 1 else mpmath.atanh(v))
-        return rv.round_down(f(m(a))), rv.round_up(f(m(b)))
+        return bounds(pair(f(m(a))), pair(f(m(b))))
     functions = {"asin": mpmath.asin, "atan": mpmath.atan, "sinh": mpmath.sinh, "tanh": mpmath.tanh,
                  "asinh": mpmath.asinh, "acosh": mpmath.acosh}
     f = functions[name]
-    return double_value(f, a)[0], double_value(f, b)[1]
+    return bounds(double_value(f, a), double_value(f, b))
 
 
 # The calls of trigonometric.cpp: function, argument
@@ -177,23 +198,36 @@ def tanh_rev(c, x):
     return rv.hull_within([(f(l), f(u))], x)
 
 
+def with_exact_bounds(compute):
+    """The enclosure that compute() finds through rv.hull_within(), with the
+    bounds that are doubles (bounds()), which rv.last_hull has before they are
+    rounded"""
+    rv.last_hull = None
+    result = compute()
+    if result == rv.EMPTY:
+        return result
+    low, high = rv.last_hull
+    assert result == (rv.round_down(low), rv.round_up(high)), (result, rv.last_hull)
+    return bounds(pair(low), pair(high))
+
+
 def relational(name, args):
     """The tightest enclosure of the hull of the relational function name"""
     ranges = [(a.lo, a.hi) for a in args]
     if name == "acos_rel":
-        return rv.tightest("cosRev", ranges[0], None, ranges[1], 0)
+        return with_exact_bounds(lambda: rv.tightest("cosRev", ranges[0], None, ranges[1], 0))
     if name == "atan_rel":
-        return rv.tightest("tanRev", ranges[0], None, ranges[1], 0)
+        return with_exact_bounds(lambda: rv.tightest("tanRev", ranges[0], None, ranges[1], 0))
     if name == "div_rel":  # div_rel(c, b, x): the x with x*b in c for some b
-        return rv.tightest("mulRev", ranges[0], ranges[1], ranges[2], 0)
+        return with_exact_bounds(lambda: rv.tightest("mulRev", ranges[0], ranges[1], ranges[2], 0))
     if name == "atanh_rel":
-        return tanh_rev(ranges[0], ranges[1])
+        return with_exact_bounds(lambda: tanh_rev(ranges[0], ranges[1]))
     raise ValueError(name)
 
 
 def pown(c, n, x):
     """nth_root_rel(c, n, x)"""
-    return rv.tightest("pownRev", (c.lo, c.hi), None, (x.lo, x.hi), n)
+    return with_exact_bounds(lambda: rv.tightest("pownRev", (c.lo, c.hi), None, (x.lo, x.hi), n))
 
 
 # The calls of reverse_mappings.cpp whose result is a literal: the function and
@@ -235,6 +269,69 @@ RELATIONAL = [
 
 
 #---------------------------------------------------------------------------
+# The calls of non_arithmetic.cpp: powers, square roots, logarithms,
+# exponentials and roots, each a function with one argument interval but pow()
+# of two, and the hull of its values, from the exact values at the bounds of the
+# arguments, where a monotone function reaches its least and its greatest value
+#---------------------------------------------------------------------------
+ZERO, ONE = Arg("interval::zero()", 0.0, 0.0), Arg("interval::one()", 1.0, 1.0)
+
+
+def power(x, n):
+    """x^n for the double x and the integer n, a Fraction (x is not 0 for n < 0)"""
+    return Fraction(x) ** n if n >= 0 else 1 / Fraction(x) ** -n
+
+
+def pow_hull(a, n):
+    """The hull of x^n over a, n != 0, a not holding 0 for a negative n: the
+    values at its bounds, and 0 for an even n > 0 when the bounds have two signs"""
+    values = [power(a.lo, n), power(a.hi, n)]
+    if n > 0 and n % 2 == 0 and a.lo < 0 < a.hi:
+        values.append(Fraction(0))
+    return bounds(pair(min(values)), pair(max(values)))
+
+
+def pow_interval_hull(a, b):
+    """The hull of x^y over the x of a, positive, and the y of b: x^y = exp(y ln x)
+    is monotone in each variable, so the least and the greatest values are at the
+    corners"""
+    values = [mpmath.power(m(x), m(y)) for x in (a.lo, a.hi) for y in (b.lo, b.hi)]
+    return bounds(pair(min(values)), pair(max(values)))
+
+
+def increasing_hull(f, a):
+    """The hull of the increasing function f over a, within its domain"""
+    return bounds(pair(f(a.lo)), pair(f(a.hi)))
+
+
+def sqrt_hull(a):
+    return increasing_hull(lambda x: mpmath.sqrt(m(max(x, 0.0))), a)
+
+
+def nth_root_hull(a, n):
+    """The hull of the real n-th root over a, within [0, +oo) for an even n"""
+    return increasing_hull(lambda x: rv.root(max(x, 0.0) if n % 2 == 0 else x, n), a)
+
+
+# The calls, in the order of the file: the text of the call and the hull of its
+# values
+NON_ARITHMETIC = (
+    [("pow(%s,%d)" % (a.text, n), pow_hull(a, n))
+     for a, ns in ((iv(-3, 5), (2,)), (iv(-3, -2), (-4, -3, -2, -1, 1, 2, 3, 4)),
+                   (iv(2, 3), (-4, -3, -2, -1, 1, 2, 3, 4)), (iv(-3, 2), (1, 2, 3, 4)),
+                   (iv(-2, 3), (1, 2, 3, 4))) for n in ns]
+    + [("pow(%s,%s)" % (iv(3, 4).text, iv(2, 3).text), pow_interval_hull(iv(3, 4), iv(2, 3)))]
+    + [("sqrt(%s)" % a.text, sqrt_hull(a)) for a in (iv(2, 3), iv(-3, 2), iv(-2, 3))]
+    + [("log(%s)" % a.text, increasing_hull(lambda x: mpmath.log(m(x)), a)) for a in (iv(5, 9), iv(56.1))]
+    + [("exp(%s)" % a.text, increasing_hull(lambda x: mpmath.exp(m(x)), a))
+       for a in (ZERO, ONE, iv(-800.0), iv(-10, -5), iv(-5, 9), iv(9, 11), iv(-3.5), iv(3.5))]
+    + [("nth_root(%s,%d)" % (a.text, n), nth_root_hull(a, n))
+       for a, n in ((iv(4, 5), 2), (iv(-4, 3), 4), (iv(-4, 3), 5), (iv(0.5, 2), 4), (iv(0.2, 0.5), 4),
+                    (iv(0.5, 2), 5), (iv(0.2, 0.5), 5), (iv(0.1), 4), (iv(0.1), 5), (iv(2.1), 4), (iv(2.1), 5))]
+)
+
+
+#---------------------------------------------------------------------------
 # The statements
 #---------------------------------------------------------------------------
 def literal(x):
@@ -242,13 +339,26 @@ def literal(x):
         return "GAOL_INFINITY"
     if x == -INF:
         return "-GAOL_INFINITY"
+    if abs(x) == math.ldexp(1.0, -1074):  # as the tests write it (tests/gaol_tests.h)
+        return ("-" if x < 0 else "") + "0x1p-1074"
     return (0.0 if x == 0 else x).hex()
+
+
+def exact_literal(x):
+    """A bound that GAOL's has to be: a whole number as one, as the tests of GAOL
+    4 write them, and the others in hexadecimal"""
+    return str(int(x)) if x == int(x) and abs(x) < 2**31 else literal(x)
 
 
 def statement(call, enclosure):
     if enclosure == rv.EMPTY:
         return "TEST_EMPTY(%s);" % call
-    return "TEST_HULL(%s, %s, %s);" % (call, literal(enclosure[0]), literal(enclosure[1]))
+    lo, hi, lo_exact, hi_exact = enclosure
+    if lo_exact and hi_exact:
+        reference = exact_literal(lo) if lo == hi else "%s, %s" % (exact_literal(lo), exact_literal(hi))
+        return "TEST_SEQ(%s, interval(%s));" % (call, reference)
+    macro = "TEST_HULL_EXACT_LO" if lo_exact else "TEST_HULL_EXACT_HI" if hi_exact else "TEST_HULL"
+    return "%s(%s, %s, %s);" % (macro, call, literal(lo), literal(hi))
 
 
 def trigonometric_statements():
@@ -268,7 +378,12 @@ def reverse_mappings_statements():
     return out
 
 
-FILES = {"trigonometric.cpp": trigonometric_statements, "reverse_mappings.cpp": reverse_mappings_statements}
+def non_arithmetic_statements():
+    return [statement(call, enclosure) for call, enclosure in NON_ARITHMETIC]
+
+
+FILES = {"trigonometric.cpp": trigonometric_statements, "reverse_mappings.cpp": reverse_mappings_statements,
+         "non_arithmetic.cpp": non_arithmetic_statements}
 
 
 def main():
@@ -284,7 +399,8 @@ def main():
                     missing += 1
         if missing:
             sys.exit(1)
-        print("every statement is in tests/trigonometric.cpp and tests/reverse_mappings.cpp")
+        print("every statement is in tests/trigonometric.cpp, tests/reverse_mappings.cpp and "
+              "tests/non_arithmetic.cpp")
         return
     for name, statements in FILES.items():
         print("// " + name)

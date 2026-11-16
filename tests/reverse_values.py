@@ -162,6 +162,20 @@ def root(v, p):
 #---------------------------------------------------------------------------
 # The functions whose preimage of c is a list of closed intervals
 #---------------------------------------------------------------------------
+# The bounds of the last enclosure that rounded() wrote, before they were rounded
+# to doubles: tests/hull_values.py tells from them which bounds of a result are
+# doubles themselves
+last_hull = None
+
+
+def rounded(lo, hi):
+    """The enclosure of the hull [lo, hi] of reals: its bounds rounded outwards
+    to doubles"""
+    global last_hull
+    last_hull = (lo, hi)
+    return round_down(lo), round_up(hi)
+
+
 def hull_within(pieces, x, no_zero=False):
     """The tightest enclosure of the hull of the pieces, closed intervals of
     reals, within x, a pair of doubles; with no_zero, 0 is no solution (the
@@ -175,7 +189,7 @@ def hull_within(pieces, x, no_zero=False):
             continue
         lo = l if lo is None or less(l, lo) else lo
         hi = u if hi is None or less(hi, u) else hi
-    return EMPTY if lo is None else (round_down(lo), round_up(hi))
+    return EMPTY if lo is None else rounded(lo, hi)
 
 
 def symmetric(lo, hi):
@@ -283,7 +297,7 @@ def periodic_rev(x, in_preimage, starts, ends, period):
         hi = max(v for v in (e + (k + j) * period for e in ends for j in range(-3, 2)) if v < mpmath.mpf(xh))
     if less(xh, lo) or less(hi, xl):
         return EMPTY
-    return (round_down(lo), round_up(hi))
+    return rounded(lo, hi)
 
 
 def sin_rev(c, x):
@@ -355,7 +369,7 @@ def mul_rev(b, c, x):
     c = (frac(c[0]), frac(c[1]))
     xl, xh = frac(x[0]), frac(x[1])
     if bl <= 0 <= bh and c[0] <= 0 <= c[1]:
-        return x  # t*0 = 0 is in c, for every t
+        return rounded(*x)  # t*0 = 0 is in c, for every t
     pieces = []
     if bh > 0:  # the b > 0 of b
         pieces.append(over_positive(c, max(bl, Fraction(0)), bl > 0, bh))
@@ -377,7 +391,7 @@ def mul_rev(b, c, x):
             continue
         lo_all = l if lo_all is None or less(l, lo_all) else lo_all
         hi_all = u if hi_all is None or less(hi_all, u) else hi_all
-    return EMPTY if lo_all is None else (round_down(lo_all), round_up(hi_all))
+    return EMPTY if lo_all is None else rounded(lo_all, hi_all)
 
 
 #---------------------------------------------------------------------------

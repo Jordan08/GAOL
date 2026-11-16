@@ -78,9 +78,9 @@ class reverse_mappings_test {
 	  TEST_HULL(acos_rel(interval(0.5,0.75),interval(-6.3,6.3)), -0x1.63de6e1ebf1eep+2, 0x1.63de6e1ebf1eep+2);
 	  TEST_HULL(acos_rel(interval(0.5,0.75),interval(-2,6.3)), -0x1.0c152382d7366p+0, 0x1.63de6e1ebf1eep+2);
 	  TEST_HULL(acos_rel(interval(0.5,0.75),interval(-6.3,2)), -0x1.63de6e1ebf1eep+2, 0x1.0c152382d7366p+0);
-	  TEST_HULL(acos_rel(interval(0.9,0.95),interval(-0.32,0.2)), -0x1.47ae147ae147bp-2, -0x1.452e8fa93e43bp-2);
-	  TEST_HULL(acos_rel(interval::universe(),interval(-3,2)), -0x1.8000000000000p+1, 0x1.0000000000000p+1);
-	  TEST_HULL(acos_rel(interval::universe(),interval(0.5,0.6)), 0x1.0000000000000p-1, 0x1.3333333333333p-1);
+	  TEST_HULL_EXACT_LO(acos_rel(interval(0.9,0.95),interval(-0.32,0.2)), -0x1.47ae147ae147bp-2, -0x1.452e8fa93e43bp-2);
+	  TEST_SEQ(acos_rel(interval::universe(),interval(-3,2)), interval(-3, 2));
+	  TEST_SEQ(acos_rel(interval::universe(),interval(0.5,0.6)), interval(0x1.0000000000000p-1, 0x1.3333333333333p-1));
 	}
 
   // asin_rel() and sqrt_rel() have no test here: tests/reverse.cpp and
@@ -106,11 +106,11 @@ class reverse_mappings_test {
 		TEST_SEQ(atan_rel(J,TI[i]),TI[i]);
 	 }
 	 TEST_HULL(atan_rel(interval(-5,5),interval::universe()), -GAOL_INFINITY, GAOL_INFINITY);
-	 TEST_HULL(atan_rel(interval::universe(),interval(4,5.5)), 0x1.0000000000000p+2, 0x1.6000000000000p+2);
-	 TEST_HULL(atan_rel(interval::universe(),interval(4,6.5)), 0x1.0000000000000p+2, 0x1.a000000000000p+2);
+	 TEST_SEQ(atan_rel(interval::universe(),interval(4,5.5)), interval(4, 0x1.6000000000000p+2));
+	 TEST_SEQ(atan_rel(interval::universe(),interval(4,6.5)), interval(4, 0x1.a000000000000p+2));
 	 TEST_HULL(atan_rel(interval(0.5,0.6),interval(3.7,7)), 0x1.afcc1c49a48cdp+2, 0x1.b4b5f0f034eb5p+2);
 	 TEST_HULL(atan_rel(interval(0.5,0.6),interval(3.5,7)), 0x1.cd78834f06482p+1, 0x1.b4b5f0f034eb5p+2);
-	 TEST_HULL(atan_rel(interval(0.5,0.6),interval(3.62,7)), 0x1.cf5c28f5c28f6p+1, 0x1.b4b5f0f034eb5p+2);
+	 TEST_HULL_EXACT_LO(atan_rel(interval(0.5,0.6),interval(3.62,7)), 0x1.cf5c28f5c28f6p+1, 0x1.b4b5f0f034eb5p+2);
 	 TEST_HULL(atan_rel(interval(0.5,0.6),interval(-7,-3.62)), -0x1.74734e3ee1164p+2, -0x1.6f89799850b7cp+2);
   }
 
@@ -118,8 +118,8 @@ class reverse_mappings_test {
 	TEST_EMPTY(nth_root_rel(interval(-3,-2),2,interval::universe()));
 	TEST_HULL(nth_root_rel(interval(-3,2),2,interval::universe()), -0x1.6a09e667f3bcdp+0, 0x1.6a09e667f3bcdp+0);
 	TEST_HULL(nth_root_rel(interval(2,3),2,interval::universe()), -0x1.bb67ae8584cabp+0, 0x1.bb67ae8584cabp+0);
-	TEST_HULL(nth_root_rel(interval(2,3),2,interval(-2,-1.5)), -0x1.bb67ae8584cabp+0, -0x1.8000000000000p+0);
-	TEST_HULL(nth_root_rel(interval(2,3),2,interval(1.5,2)), 0x1.8000000000000p+0, 0x1.bb67ae8584cabp+0);
+	TEST_HULL_EXACT_HI(nth_root_rel(interval(2,3),2,interval(-2,-1.5)), -0x1.bb67ae8584cabp+0, -0x1.8000000000000p+0);
+	TEST_HULL_EXACT_LO(nth_root_rel(interval(2,3),2,interval(1.5,2)), 0x1.8000000000000p+0, 0x1.bb67ae8584cabp+0);
 
 	TEST_HULL(nth_root_rel(interval(2,3),5,interval::universe()), 0x1.2611186bae674p+0, 0x1.3ee8390d43956p+0);
 	TEST_HULL(nth_root_rel(interval(0.5,3),5,interval::universe()), 0x1.bdb8cdadbe120p-1, 0x1.3ee8390d43956p+0);
@@ -163,10 +163,10 @@ class reverse_mappings_test {
 		TEST_SEQ(div_rel(K,TJ[i],TI[i]),TI[i]);
 	 }
 	
-	TEST_HULL(div_rel(interval(-6,0),interval(3),interval(-2,0)), -0x1.0000000000000p+1, 0x0.0p+0);
-	TEST_HULL(div_rel(interval(-4.7,-1.5),interval(3),interval(-2,0)), -0x1.9111111111112p+0, -0x1.0000000000000p-1);
-	TEST_HULL(div_rel(interval(-1.5,0),interval(3),interval(-2,0)), -0x1.0000000000000p-1, 0x0.0p+0);
-	TEST_HULL(div_rel(interval(-3,0),interval(3),interval(-2,0)), -0x1.0000000000000p+0, 0x0.0p+0);
+	TEST_SEQ(div_rel(interval(-6,0),interval(3),interval(-2,0)), interval(-2, 0));
+	TEST_HULL_EXACT_HI(div_rel(interval(-4.7,-1.5),interval(3),interval(-2,0)), -0x1.9111111111112p+0, -0x1.0000000000000p-1);
+	TEST_SEQ(div_rel(interval(-1.5,0),interval(3),interval(-2,0)), interval(-0x1.0000000000000p-1, 0));
+	TEST_SEQ(div_rel(interval(-3,0),interval(3),interval(-2,0)), interval(-1, 0));
 
   }
 
@@ -229,8 +229,8 @@ class reverse_mappings_test {
 	 // ... while a J that holds points of (-1, 1) keeps its preimage, whose
 	 // end is +oo where J ends at 1: tanh(x) is in [0.5,1] from atanh(0.5)
 	 // on, and every x has its tanh in [-1,1]
-	 TEST_HULL(atanh_rel(interval(0.5,1),interval(0,100)), 0x1.193ea7aad030ap-1, 0x1.9000000000000p+6);
-	 TEST_HULL(atanh_rel(interval(-1,1),interval(1,2)), 0x1.0000000000000p+0, 0x1.0000000000000p+1);
+	 TEST_HULL_EXACT_HI(atanh_rel(interval(0.5,1),interval(0,100)), 0x1.193ea7aad030ap-1, 0x1.9000000000000p+6);
+	 TEST_SEQ(atanh_rel(interval(-1,1),interval(1,2)), interval(1, 2));
 	 // The infinite ends themselves, which a bounded I hides: TEST_HULL has an
 	 // infinite bound be the one asked for (GAOL v5)
 	 TEST_HULL(atanh_rel(interval(0.5,1),interval(0,GAOL_INFINITY)), 0x1.193ea7aad030ap-1, GAOL_INFINITY);

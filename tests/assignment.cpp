@@ -46,7 +46,7 @@ public:
       x *= y;
       TEST_SEQ(x,interval(-18,15));
       x /= y;
-      TEST_EQ(x,interval(-9,7.5));
+      TEST_SEQ(x,interval(-9,7.5));
       x = interval(-12,12);
       x /= interval(-6,23);
       TEST_SEQ(x,interval::universe());

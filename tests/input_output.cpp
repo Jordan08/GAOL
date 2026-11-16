@@ -89,11 +89,14 @@ public:
 	  	instr.clear();
 	  	instr.str("[(-3.5+1.5)*2/2+(exp(0))]");
 	  	instr >> I;
-	  	TEST_EQ(I,interval(-1));
+		TEST_SEQ(I,interval(-1));
 	  	instr.clear();
 	  	instr.str("exp(0)+log(exp(1))+3*cos(pi)");
 	  	instr >> I;
-	  	TEST_EQ(I,interval(-1));
+		// The value is -1, which the enclosure holds, and the enclosure is the one
+		// of the operations on intervals
+		TEST_CONT(I,interval(-1));
+		TEST_SEQ(I,exp(interval(0))+log(exp(interval(1)))+3*cos(interval::pi()));
 	  	instr.clear();
 	  	instr.str("[4,5]+[4,10]+[2,3]");
 	  	instr >> I;
