@@ -132,6 +132,31 @@
 
 	The builds, their options and the packages:
 
+	* configure.ac, meson.build, gaol/Makefile.am, gaol/meson.build,
+	3rd/Makefile.am: -funroll-loops, -fomit-frame-pointer,
+	-fexpensive-optimizations, the hidden visibility and -Wall
+	-Wconversion go to the library, CORE-MATH included, and no longer
+	to the tests, the examples and the benchmark of make perf, as with
+	CMake: they are compiled as the code using GAOL is.
+	* tests/Makefile.am, tests/meson.build, configure.ac: make check
+	passes with --enable-shared --disable-static (automatic_cleanup
+	and bad_snprintf need a static library, as with CMake and meson)
+	and gives each test 300 s where the system has timeout
+	(GAOL_TEST_TIMEOUT); meson gives the examples 300 s, not 30.
+	* CMakeLists.txt, cmake/gaol.pc.in: -mno-daz-ftz is given to the
+	code using GAOL built by Clang 20 or later, whatever the compiler
+	that built GAOL.
+	* CMakeLists.txt, configure.ac, meson.build: with GCC 12 for a
+	64-bit ARM target (Debian 12, GCC 12.2.0) the three builds give
+	-fno-section-anchors to GAOL, CORE-MATH, the tests, the examples
+	and the code using GAOL: GCC 12.2 writes denorm_min() on 16 bytes
+	in a list of doubles with -frounding-math and reads the constants
+	that follow it 8 bytes too early (issue #374).  tests/numbers.cpp
+	writes that double as a literal.
+	* CMakeLists.txt, configure.ac, meson.build: on macOS the three
+	builds make libgaol.5.dylib, with other Mach-O versions: 5.0.0
+	with CMake and meson, 6.0.0 with configure, where libtool adds 1
+	to the current version of -version-info on Darwin.
 	* CMakeLists.txt, configure.ac, meson.build, meson_options.txt,
 	cmake/gaol_configuration.h.in, gaol/gaol_configuration.h.in,
 	gaol/gaol_configuration_meson.h.in: GAOL_USING_ASM and its options
@@ -208,7 +233,7 @@
 	* meson.build, gaol/meson.build: meson compiles the committed
 	lexer and parser and no longer requires flex and bison; its
 	generators, whose output nothing compiled, are gone.
-	* doc/building.md, manual/v5/gaol.tex, meson.build: the Python
+	* doc/building.md, manual/v5/chapters, meson.build: the Python
 	that meson setup runs (the first of python3 and python found,
 	then the one that runs meson) and the Microsoft Store aliases
 	of Python (WindowsApps) that meson 0.53.0 and earlier may take
@@ -248,6 +273,26 @@
 
 	Compilers and platforms:
 
+	* gaol/gaol_config.h: with GCC from version 12, -fno-signed-zeros,
+	-fno-trapping-math, -fassociative-math and -freciprocal-math are
+	refused too, hence -funsafe-math-optimizations and -ffast-math
+	-fno-finite-math-only, which GCC shows by __NO_SIGNED_ZEROS__,
+	__NO_TRAPPING_MATH__, __ASSOCIATIVE_MATH__ and __RECIPROCAL_MATH__
+	(GCC before 12 and Clang define none of them);
+	-fno-honor-infinities alone with Clang is to be avoided as
+	-fno-honor-nans alone is.  tests/CMakeLists.txt,
+	tests/refused_options.sh: the tests refused_no_signed_zeros,
+	refused_no_trapping_math, refused_unsafe_math and
+	refused_reciprocal_math.
+	* gaol/gaol_config.h: ARM64EC (_M_ARM64EC) is refused, as the
+	comments said.
+	* gaol/gaol_common.cpp, gaol/gaol_fpu_fenv.h: init() stops the
+	program, with a message, when the rounding direction set upward
+	does not round upward (1 + 2^-60 has to be above 1): on Debian
+	armel under qemu-arm, where fesetround(FE_UPWARD) changes nothing
+	for the arithmetic in software, every bound was computed to
+	nearest, in silence; and under valgrind, which computes the SSE
+	instructions to nearest.
 	* gaol/gaol_config.h: -ffast-math, -ffinite-math-only (which
 	-ffast-math turns on), /fp:fast and Visual C++ without /fp:strict are
 	refused; GAOL 4 refused none of them.  Clang's -Ofast and -ffast-math
@@ -326,6 +371,21 @@
 
 	The installed headers and the names:
 
+	* gaol/parser/gaol_expression.h: expression(const expr_node&) is
+	explicit, and the nodes (expr_node and its derived classes) are
+	neither copied nor assigned: clone() copies a node.
+	unary_minus_node::display() writes its operand as a node, so that
+	two threads displaying the same -x no longer crash.
+	* gaol/parser/gaol_expr_eval.h, gaol/parser/gaol_expression.h:
+	expr_eval::result() sets the error that error_occurred() tells
+	when the evaluation leaves no value or more than one, and takes
+	the value off the stack; eval_stack::pop() of an empty stack
+	returns T(); override marks the virtual functions.
+	* gaol/gaol_common.h: GAOL_ERROR(excep, msg) is the macro of GAOL
+	v5, and gaol_ERROR, the name of GAOL 4, an alias.
+	* gaol/gaol_fpu_msvc.h, CMakeLists.txt, gaol/Makefile.am,
+	gaol/meson.build: removed: no configuration that the builds accept
+	included it, and it is no longer installed (21 installed headers).
 	* gaol/gaol_config.h: GAOL_PUBLIC replaces __GAOL_PUBLIC__, and
 	is empty with Visual C++ and clang-cl, where GAOL is a static
 	library: neither the builds, gaol::gaol, gaol.pc nor the code
@@ -372,7 +432,7 @@
 	pi and pi/2 the library uses are gaol_pi_dn, gaol_pi_up,
 	gaol_half_pi_dn and gaol_half_pi_up, in gaol_core.
 	* gaol/gaol_port.h, gaol/core/gaol_interval_core.h,
-	gaol/core/gaol_interval_sse.cpp: the constants of GAOL
+	gaol/core/gaol_interval_sse_impl.h: the constants of GAOL
 	(gaol_pi_dn..., the static intervals interval::cst_*, which
 	are gone, and the masks of the SSE2 intervals) are initialized
 	when compiling, so that the intervals computed in the
@@ -455,7 +515,7 @@
 
 	The kinds of intervals:
 
-	* gaol/core/gaol_interval_neon.h, gaol/core/gaol_interval_neon.cpp:
+	* gaol/core/gaol_interval_neon.h, gaol/core/gaol_interval_neon_impl.h:
 	the intervals of 64-bit ARM computed with NEON, the two bounds in a
 	float64x2_t as the SSE2 intervals keep them in a __m128d (GAOL_SIMD,
 	GAOL_USING_NEON_INSTRUCTIONS): +, -, *, /, sqr and sqrt are kernels
@@ -469,7 +529,8 @@
 	not upward or a flush mode is set, where the FPU intervals compute
 	1 + (2^-1060 + 0) to see it; with GAOL_PRESERVE_ROUNDING an operation
 	reads FPCR once and writes it back only if it differs (27 ns per
-	operation rather than 39 on an Apple M2).
+	operation rather than 38 to 44 with the FPU intervals, on an
+	Apple M2).
 	* gaol/gaol_config.h, gaol/gaol_fpu_fenv.h, CMakeLists.txt,
 	configure.ac, meson.build: the NEON intervals with every compiler
 	of the 64-bit ARM processors: Visual C++ (FPCR read and written
@@ -479,13 +540,14 @@
 	* CMakeLists.txt, meson.build: Visual C++ and clang-cl for x64 compute
 	the intervals with SSE2, and take the AVX-512 path where the machine
 	building runs it and GAOL_PRESERVE_ROUNDING is on.
-	* gaol/core/gaol_interval_sse.cpp, gaol/core/gaol_interval_avx512.cpp,
-	gaol/gaol_common.cpp: written for the __m128d of Visual C++ (no vector
+	* gaol/core/gaol_interval_sse_impl.h,
+	gaol/core/gaol_interval_avx512_impl.h, gaol/gaol_common.cpp: written
+	for the __m128d of Visual C++ (no vector
 	initializers, no asm statement, no target attribute), the operations
 	of the AVX-512 path ordered there by volatile accesses and calls;
 	cpu_runs_avx512f() tells the processor by cpuid and xgetbv.
 	* gaol/gaol_config.h, gaol/core/gaol_interval_sse.h,
-	gaol/core/gaol_interval_sse.cpp: GAOL_VECTORCALL (__vectorcall with
+	gaol/core/gaol_interval_sse_impl.h: GAOL_VECTORCALL (__vectorcall with
 	Visual C++ and clang-cl for x64) on add_bounds() and the other kernels
 	of the SSE2 intervals, whose __m128d arguments go in registers;
 	left_internal() and right_internal() read the register with Visual
@@ -509,7 +571,7 @@
 	aligned memory (GAOL_SSE2_UNALIGNED_STORAGE); __vectorcall for the
 	kernels; with GAOL_PRESERVE_ROUNDING, the x87 control word is set
 	as well as MXCSR.
-	* gaol/core/gaol_interval_avx512.cpp: the AVX-512 path: x + y,
+	* gaol/core/gaol_interval_avx512_impl.h: the AVX-512 path: x + y,
 	x - y, x * y, x / y, sqrt(x), sqr(x), the same four with a double
 	and, with FMA, the integer powers beyond 1 and -1 are computed with
 	the rounding the AVX-512 instructions carry; they set no rounding
@@ -519,7 +581,7 @@
 	machine building runs the instructions; gaol::init() stops a
 	program run on a processor without them.  GCC for Windows never
 	takes the path (GCC bug 54412).
-	* gaol/core/gaol_interval_sse.h, gaol/core/gaol_interval_sse.cpp: +,
+	* gaol/core/gaol_interval_sse.h, gaol/core/gaol_interval_sse_impl.h: +,
 	-, * and / of two SSE2 intervals and sqr() of one take the bounds of
 	their operands in a register and give those of the result in one,
 	from functions of the library; *, / and sqr() no longer branch on the
@@ -528,14 +590,14 @@
 	bound +0.
 	* doc/compare/code/run_lines.sh, bench_ops.h: ten long lines of
 	operators, with their tables at the end of doc/compare/performance.md.
-	* gaol/core/gaol_interval_fpu.cpp: the FPU intervals (GAOL_SIMD=OFF,
+	* gaol/core/gaol_interval_fpu_impl.h: the FPU intervals (GAOL_SIMD=OFF,
 	32-bit ARM, POWER, s390x, RISC-V) compute the product, the quotient,
 	the remainder and the square without a branch on the signs of the
 	bounds, as the SSE2 and the NEON intervals do, where GAOL 4 took one
 	of nine cases of the signs for a product and went down up to eight
 	tests for a quotient: a product of random signs takes 3.5 ns, where
 	it took 13.9 (Apple M2, doc/compare).  A line of products of operands
-	of one sign takes more time (35.8 ns for seven, where it took 23.8).
+	of one sign takes more time (35.0 ns for seven, where it took 23.3).
 	The sign of a zero bound of a product is not specified.  A product
 	forms every corner, as with SSE2 and NEON: a rounded subnormal corner
 	that is no bound of the result raises FE_UNDERFLOW, and a corner that
@@ -544,7 +606,7 @@
 	* gaol/core/gaol_interval_core.cpp (max, min): the SSE2 and NEON
 	intervals take both bounds of the result at once, from one
 	comparison of the stored bounds, where maximum() and minimum() were
-	called for each bound: 3 to 4 times faster on x86-64, 1.5 to 2.4
+	called for each bound: 2.8 to 3.7 times faster on x86-64, 1.5 to 2.4
 	times on 64-bit ARM, the same bounds bit for bit.  With the SSE2
 	intervals, a signaling NaN in a stored bound raises the
 	invalid-operation exception with Clang too, as it did with GCC.
@@ -558,6 +620,13 @@
 
 	The rounding direction and the control registers:
 
+	* gaol/core/gaol_interval_sse_impl.h, gaol_interval_fpu_impl.h,
+	gaol_interval_io.cpp: mul_special(), divide_general() and
+	checked_inverse() of the SSE2 intervals and checked_inverse() of
+	the FPU intervals read their bounds after the check of the
+	rounding direction; mid() of the FPU intervals passes its half
+	through rnd_keep() with Visual C++; the writing of a number sets
+	back the rounding direction with a rounding_guard.
 	* gaol/gaol_common.h: gaol::restore_rounding() sets back the
 	rounding direction that the first gaol::init() found, as many
 	times as the program needs, where gaol::cleanup() does so at its
@@ -587,15 +656,17 @@
 	(gaol/gaol_common.cpp, hence max, min, abs, mag), mig, smig,
 	is_canonical, feven, nb_fp_numbers (gaol/core/gaol_interval_core.cpp),
 	inf and sup (gaol/gaol_ieee1788.h).
-	* gaol/core/gaol_interval_core.cpp (midpoint, chi, operator<<): the
-	check of the rounding direction, which clears these modes, before the
+	* gaol/core/gaol_interval_core.cpp, gaol_interval_io.cpp (midpoint,
+	chi, operator<<): the check of the rounding direction, which clears
+	these modes, before the
 	bounds are read; set back with GAOL_PRESERVE_ROUNDING.
 	(number_to_text): where GAOL cannot clear these modes, a subnormal
 	bound written outward, as 2^-1022 or 0.  (is_canonical): the double
 	above the left bound from its bits: nextafter() of the UCRT and of
 	macOS is wrong under denormals-are-zero.
-	* gaol/core/gaol_interval_avx512.cpp (flush_guard): the operands read
-	after the modes are cleared, the results made before they are set back
+	* gaol/core/gaol_interval_avx512_impl.h (flush_guard): the operands
+	read after the modes are cleared, the results made before they are set
+	back
 	with GAOL_PRESERVE_ROUNDING: Clang 18 computed x - y after.  The
 	embedded rounding honours flush-to-zero.
 	* .github/workflows/linux.yml: Clang on x86_64 with
@@ -694,8 +765,8 @@
 	invalid-operation exception on the NaN of an empty operand;
 	tests/rounding_direction.cpp, and a job of containers.yml built with
 	-DGAOL_RELATION_BOUNDS_FIRST=0.
-	* gaol/core/gaol_interval_core.cpp, gaol_interval_fpu.cpp,
-	gaol_interval_sse.cpp, gaol_interval_neon.cpp: no overflow nor
+	* gaol/core/gaol_interval_core.cpp, gaol_interval_fpu_impl.h,
+	gaol_interval_sse_impl.h, gaol_interval_neon_impl.h: no overflow nor
 	division-by-zero exception for a result with no infinite bound,
 	the empty set included, from sqrt, nth_root, sin, cos, tan, atan
 	(Visual C++), sqrt_rel, nth_root_rel, div_rel, atan_rel,
@@ -714,11 +785,12 @@
 	the larger magnitude first, which cannot overflow, and an infinite sum
 	has no error.  cancel_minus([DBL_MAX - 2^971, DBL_MAX], [2^970,
 	3*2^970]) was [-oo, +oo]; tests/rounding_direction.cpp.
-	* gaol/core/gaol_interval_sse.cpp (/, %, inverse): the SSE2 intervals
-	divide only the half of a register that a branch keeps, so that a
+	* gaol/core/gaol_interval_sse_impl.h (/, %, inverse): the SSE2
+	intervals divide only the half of a register that a branch keeps, so
+	that a
 	divisor with a zero bound (1/[0, 1], [1, 2]/[0, 2], [1, 2]%[0, 2],
 	inverse([0, 2]), pow([0, 2], -1)) raises no division-by-zero
-	exception.  doc/using.md, manual/v5/gaol.tex: 1/[0, 1] is no example
+	exception.  doc/using.md, manual/v5/chapters: 1/[0, 1] is no example
 	of the division-by-zero exception any more.
 
 	CORE-MATH and the elementary functions:
@@ -767,12 +839,12 @@
 	each use with -frounding-math (a microcode assist on Intel
 	processors): sqrt() took 124 ns, it takes 7.8 ns (GCC 15.2, Intel
 	i7-1185G7).
-	* gaol/core/gaol_interval_core.cpp (tan): an interval whose
+	* gaol/core/gaol_interval_trig.cpp (tan): an interval whose
 	width rounded upward is at most the double below pi is
 	narrower than pi, so tan([-M_PI_2, M_PI_2]) is [-1.63e16,
 	1.63e16], no longer [-oo, +oo]; tests/elementary.cpp: tan next
 	to two consecutive poles, widths about the double below pi.
-	* gaol/core/gaol_interval_core.cpp (atanh): the empty set for
+	* gaol/core/gaol_interval_hyperbolic.cpp (atanh): the empty set for
 	an interval with no point of (-1, 1), atanh([1]) having been
 	[MAX, +oo]; atanh_rel and tanhRev follow; tests in
 	tests/elementary.cpp and tests/reverse_mappings.cpp.
@@ -789,7 +861,7 @@
 
 	Powers and roots:
 
-	* gaol/core/gaol_interval_core.cpp: pow(x, n) and
+	* gaol/core/gaol_interval_pow.cpp: pow(x, n) and
 	gaol_ieee1788::pown(x, n) give the tightest bounds of x^n, of either
 	sign, or one double beyond where x^n is within twice the error bound
 	of a double (2^-98 relatively at n = 3, never for n = 2, which is
@@ -800,19 +872,19 @@
 	* README.md, doc/using.md, manual/v5: the two namespaces, gaol for
 	GAOL 4 and gaol_ieee1788 for IEEE 1788-2015, and their powers side by
 	side.
-	* gaol/core/gaol_interval_core.cpp: pow(x, [n]), pow(x, n.0) and
+	* gaol/core/gaol_interval_pow.cpp: pow(x, [n]), pow(x, n.0) and
 	gaol_ieee1788::pow(x, [n]) for an integer n, nth_root(x, q) for q < 0,
 	acosh_rel(), asinh_rel(), atanh_rel() and nth_root_rel() check the
 	rounding direction once instead of twice, the bodies they call
 	(pown_upward(), nth_root_upward()...) no longer checking it; the
 	bounds are the same, bit for bit.
-	* gaol/core/gaol_interval_core.cpp (modulo_k_pi): one check of the
+	* gaol/core/gaol_interval_trig.cpp (modulo_k_pi): one check of the
 	rounding direction, and the quotients by pi computed on doubles, as
 	tan() computes its own: 10 ns instead of 22; a bound 0 gives a
 	quotient 0 of its own sign, an infinite bound NaN.
-	* gaol/core/gaol_interval_core.cpp (nth_root): |q| is computed without
+	* gaol/core/gaol_interval_pow.cpp (nth_root): |q| is computed without
 	a signed overflow for q = INT_MIN, where long has 32 bits.
-	* gaol/core/gaol_interval_core.cpp (pow): pow(x, y) is taken at the
+	* gaol/core/gaol_interval_pow.cpp (pow): pow(x, y) is taken at the
 	corners of every box, and exp(y log x) is gone: at a corner where x is
 	0 or +oo, or y infinite, the bound is the limit of x^y, 0 or +oo (1
 	for x = 1 or y = 0), so that pow([4, +oo], 0.5) is [2, +oo], and such
@@ -824,7 +896,7 @@
 	GAOL_PRESERVE_ROUNDING, rnd_keep() of an interval keeps its two
 	bounds, instead of copying the interval a byte at a time into volatile
 	memory: pow(x, [-3]) and nth_root_rel() 26 % faster.
-	* gaol/core/gaol_interval_core.cpp: fast_modulo_k_pi(), which tan()
+	* gaol/core/gaol_interval_trig.cpp: fast_modulo_k_pi(), which tan()
 	no longer calls and no header declares, is removed.
 	* gaol/core/gaol_interval_core.h, gaol/gaol_ieee1788.h,
 	gaol/parser/gaol_expression.h: an integer of any type but bool is
@@ -847,21 +919,21 @@
 	overloaded for every integer type, their address needs a cast or
 	a typed pointer: auto f = &gaol_ieee1788::rootn; does not
 	compile.
-	* gaol/core/gaol_interval_core.cpp: pow(x, y) with an interval
+	* gaol/core/gaol_interval_pow.cpp: pow(x, y) with an interval
 	exponent, pow(x, d) with a double, pow(x, n) with a long long
 	beyond the unsigned ints and gaol_ieee1788::pow(x, y) return the
 	empty set for an empty operand before they check the rounding
 	direction, as sqr() does: the direction and the modes that flush
 	the subnormals to zero stay as the program had them.  The integer
 	powers other than 2, of an int or an unsigned, still check first.
-	* gaol/core/gaol_interval_core.cpp (nth_root): the proofs of the
+	* gaol/core/gaol_interval_pow.cpp (nth_root): the proofs of the
 	bounds of the roots of an x below 2^-1020 take scaled powers, which
 	are never subnormal: nth_root([2^-1074], 33) was 1983 doubles below
 	its tightest lower bound and 28785 above its upper one, and
 	nth_root(x, q) for q < 0 followed.  The bounds are the tightest, or up
 	to 2 doubles beyond (4 for q < 0), for every x, where the
 	documentation said one double; tests/arithmetic.cpp.
-	* gaol/core/gaol_interval_core.cpp (pow): at the corner of the
+	* gaol/core/gaol_interval_pow.cpp (pow): at the corner of the
 	box that gives the lower bound, where x^y is a double, the
 	lower bound is x^y itself instead of the double below
 	CORE-MATH's value; pow_is_double() proves it exactly from the
@@ -869,8 +941,15 @@
 
 	Functions of intervals:
 
-	* gaol/core/gaol_interval_core.h (width_enclosure, inflate, midrad,
-	bisect, is_bisectable, hull, intersect): new, the tools that
+	* gaol/core/gaol_interval_relational.cpp (periodic_rel):
+	acos_rel(), asin_rel() and atan_rel() (cosRev, sinRev and tanRev)
+	try three pieces of the preimage on each side, not two:
+	acos_rel([1], [20, 31.415926535897928]) was empty, 8*pi being in
+	the interval, when the upper bound of the interval is one or two
+	doubles below the start of a piece.
+	* gaol/core/gaol_interval_core.h (width_enclosure, inflate,
+	centered_form, bisect, is_bisectable, hull, intersect): new, the tools
+	that
 	algorithms of intervals write for themselves, each bound rounded
 	outward.  bisect throws std::domain_error for a ratio outside
 	(0, 1) or a NaN.  Named in gaol.
@@ -894,7 +973,7 @@
 	new, from the integers to the boxes: 5854 pairs and 850 boxes
 	against mpmath and fractions, the fast phase against the balls.
 	* gaol/core/gaol_interval_core.h (overlapping_state, overlap),
-	gaol/core/gaol_interval_core.cpp (operator<<), gaol/gaol_interval.h,
+	gaol/core/gaol_interval_io.cpp (operator<<), gaol/gaol_interval.h,
 	gaol/gaol_ieee1788.h: new, overlap of IEEE 1788-2015 (10.6.4), which
 	returns one of the 16 states of Table 10.7 under the names of the
 	table and in its order (bothEmpty is 0, after is 15).  The state
@@ -914,8 +993,9 @@
 	gaol/gaol_ieee1788.h (powRev1, powRev2, atan2Rev1, atan2Rev2,
 	mulRevToPair): new.  With pownRev for p <= 0 (next), all the reverse
 	operations of IEEE 1788-2015 are provided.
-	* gaol/core/gaol_interval_core.h, gaol/core/gaol_interval_core.cpp
-	(nth_root_rel), gaol/gaol_ieee1788.h (pownRev): pownRev(c, x, p) for
+	* gaol/core/gaol_interval_core.h,
+	gaol/core/gaol_interval_relational.cpp (nth_root_rel),
+	gaol/gaol_ieee1788.h (pownRev): pownRev(c, x, p) for
 	p <= 0, the last reverse operation of IEEE 1788-2015 GAOL lacked: for
 	p = 0, x where 1 is in c and the empty set elsewhere; for p < 0, the
 	hull of the roots of c cut at 0, met with x.  nth_root_rel(J, p, I)
@@ -932,15 +1012,16 @@
 	* doc/compare/: ITF1788 (itf1788/, itf1788.md), the benchmark of Tang
 	et al. 2021 (tang2021/, tang2021.md), Boost.Interval, and a test of
 	the enclosure of the elementary functions (enclosure.md).
-	* gaol/core/gaol_interval_sse.cpp, gaol_interval_fpu.cpp,
-	gaol_interval_neon.cpp (hausdorff): equal bounds, infinite
+	* gaol/core/gaol_interval_sse_impl.h, gaol_interval_fpu_impl.h,
+	gaol_interval_neon_impl.h (hausdorff): equal bounds, infinite
 	ones included, are at distance 0 (hausdorff([1,+oo],[2,+oo])
 	is 1, not +oo); gaol/core/gaol_interval_core.cpp
 	(nb_fp_numbers): the doubles are numbered by the bits of |a|
 	and |b|, so -0 is +0 (nb_fp_numbers(-0.0, 1.0) was
 	13830554455654793217).
-	* gaol/core/gaol_interval_sse.cpp, gaol/core/gaol_interval_fpu.cpp,
-	gaol/core/gaol_interval_neon.cpp (hausdorff): +oo returned before
+	* gaol/core/gaol_interval_sse_impl.h,
+	gaol/core/gaol_interval_fpu_impl.h,
+	gaol/core/gaol_interval_neon_impl.h (hausdorff): +oo returned before
 	the check of the rounding direction when a bound is infinite in one
 	interval only.
 	* tests/reverse_mappings.cpp: atanh_rel compared at its infinite
@@ -970,11 +1051,26 @@
 
 	Reading numbers, intervals and strings:
 
+	* gaol/parser/gaol_interval_parser.ypp,
+	gaol/parser/gaol_interval_lexer.lpp: gaol::textToInterval() and
+	operator>> read erf, erfc, cancel_minus, cancel_plus, hull(x, y)
+	and intersect(x, y), so that they know every function of GAOL on
+	intervals; gaol_ieee1788::textToInterval() and exactToInterval()
+	read cancelMinus, cancelPlus, intersection and convexHull, which
+	they read as the empty set.  A number far beyond the doubles
+	(10^311 or more, below 10^-331, and the same in the other bases)
+	is read in a time linear in its number of digits.
+	* gaol/core/gaol_interval_io.cpp, tests/bad_snprintf.cpp: with a C
+	library whose snprintf() errs by more than four units of the last
+	digit (msvcrt.dll), the text of a bound is replaced by a safe
+	wider bound (0 or a power of ten), not left on the wrong side;
+	tests/bad_snprintf.cpp (Linux, static libgaol, -Wl,--wrap) checks
+	it.
 	* gaol/parser/gaol_interval_parser.ypp (gaol_lookup_function): the
 	names of functions are read in any case, compared in ASCII and not by
 	std::tolower(), whose result depends on the locale: under a Turkish
 	locale, SIN(...) would have been refused.
-	* gaol/core/gaol_interval_core.cpp (operator>>): the blanks before the
+	* gaol/core/gaol_interval_io.cpp (operator>>): the blanks before the
 	line, line ends included, are skipped, under std::noskipws too: a
 	blank line between two intervals, or at the end of the input, no
 	longer throws std::invalid_argument, and in >> d >> x reads two values
@@ -1077,7 +1173,7 @@
 
 	Writing intervals and the messages of the exceptions:
 
-	* gaol/core/gaol_interval_core.cpp (operator<<): the text is
+	* gaol/core/gaol_interval_io.cpp (operator<<): the text is
 	made in a string and written at once, in 30 to 45 % less time
 	than with a std::ostringstream for each interval and each
 	bound; with std::internal the fill follows the sign or the 0x.
@@ -1087,21 +1183,21 @@
 	writes the radius without a sign under showpos and a center 0
 	as 0; the agreeing format writes the digits two bounds share
 	only for finite bounds, not 0, of the same sign and aligned.
-	* gaol/core/gaol_interval_core.cpp (operator<<, exact_string): the
+	* gaol/core/gaol_interval_io.cpp (operator<<, exact_string): the
 	format hexa writes the bounds in the hexadecimal-significand form
 	([0x1.999999999999ap-4, ...]), an interval literal of IEEE 1788-2015
 	that reads back the same bounds bit for bit (a point interval of zero
 	apart), where GAOL 4 wrote the sixteen hexadecimal digits of each
 	double ([3fb999999999999a, ...]), which the parser refused;
 	exact_string() gives that text whatever the global format.
-	* gaol/core/gaol_interval_core.cpp (display_bounds): a point
+	* gaol/core/gaol_interval_io.cpp (display_bounds): a point
 	interval whose double the digits write exactly is written [a],
 	the literal of IEEE 1788-2015, and a zero of either sign [0]
 	([0x0p+0] in hexadecimal), by operator<< and intervalToText,
 	instead of <a, a>; the other points are written [l, r], which
 	the reader takes back (interval(0.1) is [0.1,
 	0.1000000000000001]); the reader still reads <a, b>.
-	* gaol/core/gaol_interval_core.cpp (operator<<): the format
+	* gaol/core/gaol_interval_io.cpp (operator<<): the format
 	width writes the midpoint() and rad() of IEEE 1788-2015
 	(radius rounded upward, a point interval without radius),
 	center the midpoint alone, and the empty set is [empty] in
@@ -1154,11 +1250,11 @@
 	.github/workflows/build-systems.yml: an autotools job and a meson job
 	without exceptions.
 	* manual/check_examples.py: new; the examples of the manual that show
-	their output in their listing (@outputs in gaol.tex) are compiled with
-	an installed GAOL and run, and have to print it.
+	their output in their listing (@outputs in manual/v5/chapters) are
+	compiled with an installed GAOL and run, and have to print it.
 	.github/workflows/linux.yml runs it in the job Ubuntu 24.04 x86_64
 	GCC, in C++11.
-	* examples/16_Goldstein_Price.cpp, manual/v5/gaol.tex:
+	* examples/16_Goldstein_Price.cpp, manual/v5/chapters:
 	goldstein_price() and the program of the manual have the factor
 	(x + y + 1)^2, as the function does (GAOL 4 had (x + y)^2); the
 	example checks its output and prints its time in ms; the manual
@@ -1166,9 +1262,10 @@
 	* manual/v4/manual.cls, manual/build-pdf.sh,
 	.github/workflows/manual.yml: the manual of GAOL 4 compiles
 	again (marginbib.sty and multicol.sty are gone, bibentry
-	prints the references in the margin, Latin Modern fonts); make
-	-C manual pdf and the target pdf of meson build it, and a
-	workflow builds both manuals.
+	prints the references in the margin, Latin Modern fonts), and
+	its PDF, manual/v4/Manual_GAOLv4.pdf, is built once; make -C
+	manual pdf, the target pdf of the three builds and the workflow
+	build the manual of GAOL v5 only.
 	* README.md, examples/tutorial.md, doc/using.md, manual/v5: a first
 	program, a tutorial of four algorithms of interval computing, the
 	common errors (intervals in std::sort, std::set and std::max, and
