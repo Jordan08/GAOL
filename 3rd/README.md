@@ -72,9 +72,10 @@ commit `6b84457`) to commit `19e85418` (5 October 2026), and GCC 9.4 did not
 link it; `sin.c` and `cos.c` have their own `roundeven_finite()` now,
 and, on a 32-bit x86 Windows, `fegetexceptflag()` and `fesetexceptflag()`
 written on MXCSR: `cbrt`, `pow`, `atan2` and `hypot` keep the exception flags
-around their work with them, and the ones of mingw-w64 clear the mask bits of
-MXCSR as well, which unmasks the exceptions and makes the first comparison of
-the NaN bounds of an empty interval trap; each `FE_*` flag is mapped to its
+around their work with them, and the ones of mingw-w64 up to version 12 clear
+the mask bits of MXCSR as well (version 13.0.0 does not: commit `4696986c30`),
+which unmasks the exceptions and makes the first comparison of the NaN bounds
+of an empty interval trap; each `FE_*` flag is mapped to its
 bit of MXCSR, which the values of the UCRT and of mingw-w64 from 13 on are
 not, so that `hypot(3, 4)` left the inexact flag raised. On every 32-bit
 x86, with every compiler, it gives them too the square root of SSE2 for
@@ -445,7 +446,8 @@ definition `gaol/math/gaol_core_math_port.h` gives the builtin for GCC before
 
 ## Changes to propose upstream
 
-Seven of the [changes above](#what-differs-from-upstream) are fixes rather than
+Two defects found since (items 9 and 10 below) have no counterpart in the list
+above. Seven of the [changes above](#what-differs-from-upstream) are fixes rather than
 adaptations to GAOL (2 to 7 and 9; upstream has made the ones of items 3 and 5
 since), and `gaol/math/gaol_core_math_port.h` makes up for an eighth defect, the
 `__builtin_roundeven()` of `sin.c`, which upstream has fixed since too (see
@@ -475,6 +477,8 @@ against `b1a4badf`, 29 September 2026).
 | [rounding field of MXCSR in `cbrt.c`, `rsqrt.c`, `asinpi.c`, `powl.c`](#6-the-rounding-field-of-mxcsr-in-cbrtc-rsqrtc-asinpic-and-powlc) | present | absent: its `cbrt` maps glibc's own `FE_*` values with a switch |
 | [exact and midpoint powers of `pow` on 32-bit ARM](#7-the-exact-and-midpoint-powers-of-pow-on-32-bit-arm) | present | no `pow` of CORE-MATH |
 | [first phase of `pow` next to the overflow](#8-the-first-phase-of-pow-next-to-the-overflow) | present | no `pow` of CORE-MATH |
+| [`is_exact()` of `pow` and a huge y](#9-the-is_exact-of-pow-and-a-huge-y) | present (`018fa97c`) | no `pow` of CORE-MATH |
+| [`return` of `erfc.c`](#10-the-return-of-erfcc) | present (`018fa97c`) | not looked for |
 | [signed shifts of `cospi.c`](#already-fixed-upstream-the-shifts-of-cospic) | fixed by `b1a4badf` | no `cospi` of doubles from CORE-MATH |
 
 Upstream has moved since. Its master of 27 October 2026, `0b2ae6d1`, has made
@@ -482,13 +486,22 @@ patch 4 itself, with the same guard (commit `19e85418`, 5 October), patch 3
 too (commit `0d8b885a`, 14 October: the rewritten `cr_rsqrt()` tests
 `if (ix.u)` and no longer passes 64 bits to `__builtin_expect`), and has fixed
 the spurious underflow of `pow` downward at a result of −2<sup>−1022</sup>,
-which is the one said below (commit `e072473e`, 5 October; the check was not
-run again). It still has the defects of patches 1, 2 and 5 to 8. Patches 2 and
+which is the one said below (commit `e072473e`, 5 October). It still has the defects of patches 1, 2 and 5 to 8. Patches 2 and
 5 to 8 apply to it as they are; patch 1 does not, `cos.c` having been
 rewritten without the line it changed and the lines of `cosh.c` having moved
 (the masks of `sinh.c` and `cosh.c` are still there, in new lines too), so that
 patch 1 is to be made again on the master of the day before the patches are
 sent (issue #125).
+
+Upstream has moved again. Its master of 10 November 2026, `018fa97c`, has fixed
+the Cygwin part of patch 6 itself (commit `70076f6a`, 8 November), and still
+has the other defects. The series of issue #125 is made on it, in eight patches:
+patches 1, 2, 5, 6, 7 and 8 below are its patches 1, 2, 3, 4, 5 and 6, and
+items 9 and 10 below are its patches 7 and 8. With the series applied,
+`./check.sh --worst` passes for `asinpi`, `cbrt` and `pow` in the four
+directions (116,824, 212,508 and 1,003,179 arguments), and `./check.sh
+--special pow` with `CORE_MATH_TESTS=2000000` has no failure (12 and 13
+November 2026, GCC 15.2, Clang 18 and 21, MPFR 4.2.1).
 
 ### CORE-MATH
 
@@ -519,16 +532,18 @@ four rounding directions, for every function a patch touches, and
 `./check.sh --special` with `CORE_MATH_TESTS=2000000` random arguments rather
 than the default, for all of them but `sincos` and `lgamma`, whose object code
 the patch does not change on x86-64 Linux (the random checks of `sincos` alone
-take more than an hour). The one exception is `pow` in the downward direction,
-where the worst-case check stops at a spurious underflow exception
+take more than an hour). The one exception was `pow` in the downward direction,
+where the worst-case check stopped at a spurious underflow exception
 (`x = -0x1.10a688680a753p-93`, `y = 11`, a result of −2<sup>−1022</sup>, an
-argument added upstream on 22 September) that master raises as well: over the
-whole of `pow.wc` in the four directions, the patched `pow` gives the results
-and the exception flags of master. Patch 7, written later, was checked on
+argument added upstream on 22 September) that master raised as well: over the
+whole of `pow.wc` in the four directions, the patched `pow` gave the results
+and the exception flags of master. Upstream has fixed it (commit `e072473e`),
+and `./check.sh --worst pow` passes in the four directions on master
+`018fa97c` with the patches applied. Patch 7, written later, was checked on
 32-bit ARM and on x86-64, and the parts of patches 1 and 6 for `expm1q.c` and
 `powl.c`, added on 12 October 2026, as their parts say. Patch 8, written on 19
-October 2026, was checked on x86-64 as its part says, and CORE-MATH's own
-checks were not run on it.
+October 2026, was checked on x86-64 as its part says, and by CORE-MATH's own
+checks on `018fa97c` (above).
 
 #### 1. Masks written with `long`
 
@@ -920,6 +935,14 @@ the same object code (GCC 15 and Clang 18), and both pass in the four
 directions. The directed roundings of `atan2l` with a 32-bit `long` are to be
 pointed out to the authors when the patches are sent (issue #125).
 
+**Three more places**, found on master `018fa97c` and in the series of issue
+#125: `fast_path()` of `binary80/exp2/exp2l.c` (lines 223 to 236) shifts
+`unsigned long` values by 48 and 52 places, undefined with a 32-bit `long`
+(mingw-w64 has an 80-bit `long double`), and `long hh = H[1];` in
+`binary128/acosq.c` (line 977) and `asinq.c` (line 985) drops the high half of
+`H[1]` before `mhii()`, which takes `i64`. They are written `ull` and `i64`
+like the others; not run with a 32-bit `long`.
+
 **Status.** Present in master; GAOL makes the change in `sinh.c`, `cosh.c`,
 `tanh.c`, `sinpi.c` and `log1p.c` (item 2 above), and the `1ll` of `tan.c`
 (item 8), the files of the patch it compiles. The `sinh.c` and
@@ -1258,6 +1281,7 @@ comment there says), and otherwise with a `#warning` and
   0 to 3: the four files shift by 3, as with clang-cl, and the downward and
   upward roundings are taken for toward zero in the same way. Upward,
   `cr_cbrt(0x1.3a9ccd7f022dbp+0)` is `0x1.1236160ba9b93p+0` there too.
+  Upstream has fixed this itself since (commit `70076f6a`, 8 November 2026).
 
 Visual C++ defines no `__x86_64__` and calls `fegetround()`, and glibc, musl,
 macOS and the BSDs, whose `FE_*` are the values of the rounding field in the
@@ -1642,11 +1666,96 @@ Master raises the flag for 1,026 to 1,029 of the 1,129 exponents, according to
 the direction, and for the six powers. A patch that stopped one double too
 high, `RHO2` = `0x1.62e42d29db3f1p+9`, still raises it for one exponent to
 nearest and two upward, which the 128 consecutive doubles find. CORE-MATH's own
-`./check.sh`, with MPFR, was not run on the patched tree.
+`./check.sh --worst pow` passes with the patch, applied to master `018fa97c`
+with the others of the series (13 November 2026).
 
 **Status.** Present in master (`b1a4badf`, and `6fc21797` of 19 October 2026,
 whose `pow.c` has these lines at the same places); GAOL's copy makes the same
 change (item 9 above).
+
+#### 9. The `is_exact()` of `pow` and a huge y
+
+**The defect.** For x = ±2<sup>e</sup> (the case `m == 1` of `is_exact()` in
+`pow.c`), `-1074 <= y * e && y * e < 1024` computes y·e in double. For |y| ≥
+2<sup>1024</sup>/1074, about 2<sup>1013.93</sup>, the product overflows and
+raises the overflow exception, while the result of `cr_pow()` is 0 or tiny:
+`cr_pow(0x1p-1074, 0x1.8p+1014)` is 0 with the flags overflow, underflow and
+inexact, and a program that has enabled the overflow exception dies on SIGFPE
+(GCC 15.2 and Clang 21). The patch writes `y <= 1074 &&` first: e is not 0
+there (the case |x| = 1 is treated before), so x<sup>y</sup> can be exact only
+if y ≤ 1074.
+
+The patch, to commit as
+`[pow] is_exact(): do not compute y * e for a huge y (spurious overflow exception)`:
+
+```diff
+diff --git a/src/binary64/pow/pow.c b/src/binary64/pow/pow.c
+index 1c8abde7..e3410729 100644
+--- a/src/binary64/pow/pow.c
++++ b/src/binary64/pow/pow.c
+@@ -1414,7 +1414,10 @@ is_exact (double x, double y)
+     if (y == 0 || y == 1)
+       return 1;
+     if (m == 1)
+-      return -1074 <= y * e && y * e < 1024;
++      /* e <> 0 since the case |x|=1 has already been treated, thus |y * e| >= y,
++         and y * e < 1024 needs y <= 1074: this also avoids y * e overflowing
++         (spurious overflow exception) for a huge y */
++      return y <= 1074 && -1074 <= y * e && y * e < 1024;
+     // now for y < 0 or 33 < y it cannot be exact
+     if (y < 0 || 33 < y)
+       return 0;
+```
+
+**How it was checked.** `cr_pow()` of master and the patched one were compared
+for x = ±2<sup>e</sup> (e from −1074 to 1023, e ≠ 0) and integers y with their
+42 low bits zero, in the four rounding directions: 50,896,000 calls, the same
+results bit for bit and the same flags but overflow; master raises overflow
+4,551,008 times where 2<sup>e·y</sup> does not overflow, the patch never, and
+both raise it whenever it does. `./check.sh --worst pow` passes.
+
+**Status.** Present in master (`018fa97c`, 10 November 2026). GAOL's copy does
+not make this change: `pow_rounded_up()` (`gaol/core/gaol_interval_internal.h`)
+takes the tiny powers of |y| ≥ 2<sup>1013</sup> apart instead, and will drop
+that shortcut if upstream fixes `is_exact()`.
+
+#### 10. The `return` of `erfc.c`
+
+**The defect.** `cr_erf_accurate()` of `erfc.c` is `static void`, and its line
+`return cr_erf_accurate_tiny (h, l, z);` returns a void expression from a void
+function, which C forbids (C11 6.8.6.4p1, a constraint): GCC 15.2 with
+`-Wpedantic` says "ISO C forbids 'return' with expression, in function
+returning void", Clang 21 "void function 'cr_erf_accurate' should not return
+void expression", and Visual C++ warns (C4098, an error under `/W4 /WX`, which
+GAOL's continuous integration saw). The patch writes the call, then `return;`,
+as `erf.c` does.
+
+The patch, to commit as
+`[erfc] no return with a void expression in cr_erf_accurate()`:
+
+```diff
+diff --git a/src/binary64/erfc/erfc.c b/src/binary64/erfc/erfc.c
+index a069931d..780cb631 100644
+--- a/src/binary64/erfc/erfc.c
++++ b/src/binary64/erfc/erfc.c
+@@ -393,7 +393,10 @@ cr_erf_accurate (double *h, double *l, double z)
+ {
+   double th, tl;
+   if (z < 0.125) /* z < 1/8 */
+-    return cr_erf_accurate_tiny (h, l, z);
++  {
++    cr_erf_accurate_tiny (h, l, z);
++    return;
++  }
+   double v = __builtin_floor (8.0 * z);
+   uint32_t i = 8.0 * z;
+   z = (z - 0.0625) - 0.125 * v;
+```
+
+**How it was checked.** No warning with `-Wpedantic` after the patch, and the
+same object code.
+
+**Status.** Present in master (`018fa97c`) and in GAOL's copy.
 
 #### Already fixed upstream: the shifts of `cospi.c`
 
