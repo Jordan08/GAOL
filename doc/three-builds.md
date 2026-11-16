@@ -249,7 +249,7 @@ On a 64-bit ARM processor, measured the same way on an Apple M2 with AppleClang
   processor) and written with `msr` only when the program's is not upward:
   `msr` takes 4 ns for the value FPCR holds and 11 ns when it changes the
   direction. With `GAOL_PRESERVE_ROUNDING` an operation of a program that
-  computes to nearest writes it twice, which is the 27 ns above (37 ns with the
+  computes to nearest writes it twice, which is the 27 ns above (38 to 44 ns with the
   FPU intervals, which called `fegetround()` and `fesetround()`); a program that
   already computes upward writes nothing.
 

@@ -771,7 +771,7 @@ bounds are the same, but for the sign of a zero bound, which the maximum of
 $[-1, 0] \cdot [-1, 0]$ is $-0$ with NEON. Each operation checks the rounding
 direction with one \code{mrs} (0.8 ns on the M2), which raises no exception
 flag; with \code{GAOL\_PRESERVE\_ROUNDING}, an operation takes 27 ns rather
-than 37 (\pxref{sec:neon}).
+than 38 to 44 with the FPU intervals (\pxref{sec:neon}).
 
 \medskip
 The AVX-512 path carries the rounding direction in the

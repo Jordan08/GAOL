@@ -1487,7 +1487,7 @@ the last two in another.
   the direction of the program is not upward: \code{msr} takes 4~ns for the
   value FPCR holds and 11~ns when it changes the direction. With
   \option{GAOL\_PRESERVE\_ROUNDING} an operation of a program that computes
-  to nearest writes it twice, which is the 27~ns above (37~ns with the FPU
+  to nearest writes it twice, which is the 27~ns above (38 to 44~ns with the FPU
   intervals, which call \code{fegetround()} and \code{fesetround()}); a
   program that already computes upward writes nothing.
 \end{itemize}
