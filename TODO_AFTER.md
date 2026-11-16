@@ -298,7 +298,9 @@ Release, l'étiquette suffit » du 3 octobre (*décidé le 12 novembre au soir* 
    (relues le 17 novembre) et ce que le mainteneur a à faire ; les textes de
    GAOL que ces vérifications rendent faux sont dans `TODO.md` (PH). Les états
    des projets visés sont ceux du 10 au 13 novembre : les refaire avant chaque
-   envoi.
+   envoi. Ordre conseillé : ce qui est prêt et qui a une valeur pour GAOL, puis
+   ce qui demande une réplique à écrire, puis ce qui ne demande probablement
+   rien.
    - #125 CORE-MATH : envoyer la série de 8 correctifs, par e-mail à
      core-math@inria.fr ou par merge request sur gitlab.inria.fr.
    - #126 GCC : deux commentaires sur les bogues 91861 et 118541 de Bugzilla,

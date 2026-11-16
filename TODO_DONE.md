@@ -7933,6 +7933,13 @@ corbeille, et c'est pourquoi les issues se suffisent maintenant.
   fichiers `.i` de #126 (`compilers/repro/pre/`). Le dossier a aussi donné la
   phrase de `A_FAIRE.md` sur l'arrêt de `pow` vers le bas : ce sont les lignes
   484 à 486 et 520 à 526 de `3rd/README.md` (`TODO.md`, PH).
+- **Repris d'une comparaison mot à mot** de l'ancienne tâche PH avec les issues
+  (17 novembre) : l'import de CORE-MATH `0b2ae6d1` et #144 dans #125, la façon
+  de refaire la série (`GAOL_PH/core-math/upstream/`, branche `gaol-fixes`), la
+  forme du défaut de GCC 14 de #279 dans #126, l'ordre conseillé dans
+  `TODO_AFTER.md` 2.6. Le ménage que proposait `A_FAIRE.md` § 4 :
+  `libs/src/tang` (4,3 Go) et `exp-clone/` de `GAOL_PH/` peuvent être
+  supprimés ; aucune image Docker n'est restée.
 - **Pas fait** : la pull request de ces textes de GAOL ; la fermeture de #135 et
   de #137, que leurs issues recommandent (au mainteneur) ; rien n'est envoyé.
 
