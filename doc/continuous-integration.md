@@ -20,9 +20,10 @@ GAOL v5 (`TODO*.md`, `process.md`, `STEP.md`, `todo-notes/` and `.claude/`:
 `paths-ignore` of the five workflows that build GAOL), which would otherwise
 cancel the checks of the commit before it; `workflow_dispatch` runs them on any
 branch. `performance.yml`
-is the exception: it runs for the pull requests that change what it measures
-only (see [The speed of a pull request](#the-speed-of-a-pull-request)), and so
-is `release.yml`, which runs for every tag of a commit of `master`: it builds
+is an exception: it runs for the pull requests that change what it measures
+only (see [The speed of a pull request](#the-speed-of-a-pull-request)); so is
+`manual.yml`, which runs for the pushes and the pull requests that change
+`manual/` or itself; and so is `release.yml`, which runs for every tag of a commit of `master`: it builds
 the three packages of the version, tests them installed, and attaches them to
 the GitHub Release of the tag; a pull request that changes it or the files of
 CPack builds them without a Release (see
@@ -254,8 +255,7 @@ GAOL installs with `.github/scripts/headers.sh` (GAOL v5): each compiles alone
 with `-std=c++11`, the oldest standard GAOL takes, and
 `-Wall -Wextra -Wold-style-cast -Wundef -Werror` (they have no cast of C,
 nor any `#if` on a macro that may be undefined), but the
-four that other headers include in the middle of their code or for Visual C++
-only, and the macros they define start with `GAOL_` or `gaol_`. The two jobs
+three that other headers include in the middle of their code, and the macros they define start with `GAOL_` or `gaol_`. The two jobs
 with `-DGAOL_SSE2_UNALIGNED_STORAGE=ON` check the configuration has that form
 before they build, and make the check for the installation in that form:
 `gaol/core/gaol_interval_detail.h` did not compile alone there (GAOL v5).

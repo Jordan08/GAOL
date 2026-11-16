@@ -66,7 +66,8 @@ What it brings, and this manual describes, is the following.
   elementary function that CORE-MATH~\cite{CoreMath:2022} provides is bounded
   with it, which is correctly rounded in the rounding direction in effect: the
   value GAOL computes at a bound, rounding upward, \emph{is} the upper bound,
-  and the double below it the lower one, the tightest bounds. The integer
+  and the double below it the lower one unless the value is a double, the tightest
+  bounds. The integer
   powers, the roots of an order other than 2 and 3 and \code{compoundm1}, which GAOL computes itself, are the
   tightest bounds or within a few doubles of them
   (Chapter~\ref{chap:accuracy}). The bounds are the same on every architecture

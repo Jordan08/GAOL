@@ -746,8 +746,8 @@ $\mathrm{erfc}(0)=1$) and at $\pm\infty$ (the limits $\pm1$ of
 $\mathrm{erf}$, $2$ and $0$ of $\mathrm{erfc}$); the results are within
 $\itv{-1}{1}$ and $\itv{0}{2}$. $\mathrm{erf}(x)$ is within $2^{-53}$ of
 $\pm1$ from $|x|=5.87$ on, where its bounds are $1-2^{-53}$ and $1$, or
-$-1$ and $-(1-2^{-53})$; $\mathrm{erfc}(x)$ is subnormal from $x=26.55$
-on, and below $2^{-1074}$ from $x=27.22$ on, where its lower bound is $0$.
+$-1$ and $-(1-2^{-53})$; $\mathrm{erfc}(x)$ is subnormal from $x=26.5433$
+on, and below $2^{-1074}$ from $x=27.2133$ on, where its lower bound is $0$.
 Neither function is known to take a value that is a double at any other
 double, and the sources of CORE-MATH treat no such case.\newinvfive{} Both
 are tightest. The tests find them so at the 409 doubles of
@@ -875,7 +875,7 @@ are given, within the numbers of doubles below.
   2 doubles of the tightest where both are nonempty; a box within one
   rounding of the cone may give a point that the tightest enclosure, the
   empty set, does not hold. The tests find them within 2 doubles of the
-  tightest over 1\,969 cases (1\,263 nonempty) against mpmath at 3\,000
+  tightest over 2\,071 cases (1\,338 nonempty) against mpmath at 3\,000
   bits, around the multiples of $\pi/4$, the axes, the half-line $y=0$,
   $x<0$, and with zero, subnormal and infinite bounds, and keeping every
   point whose angle is in $c$, over about 600\,000 such points of the
@@ -1034,8 +1034,8 @@ their accuracies.
   with their bounds (those whose bounds are not both finite, nonzero and of the same sign, or are
   written with different numbers of digits before the point or different
   exponents, or share no first digit that is not $0$), writes the same, with the
-  digits and the flags of the stream, and a decimal point whatever its
-  locale, so that the reader reads the text back; \element{agreeing}
+  digits of \code{interval::precision()} (not those of the stream) and the flags
+  of the stream, and a decimal point whatever its locale, so that the reader reads the text back; \element{agreeing}
   writes the other intervals with the digits their bounds share
   (\pxref{sec:output-format}). Each bound is written to nearest by the C
   library, compared exactly with the bound, and its last digit moved
@@ -1144,7 +1144,7 @@ running them, for the products of finite bounds but for that sign, and for
 the quotients by a divisor without zero: \code{[0, 1] / [-2, -1]} has the
 upper bound $-0$, where the FPU intervals gave $+0$ before, the zero bound
 of the dividend being divided. \code{div\_rel(K, J, I)} of the SSE2
-intervals takes the code of the FPU and the NEON intervals where a bound of
+intervals takes the code of the FPU and the NEON intervals where a finite bound of
 $K$ is $2^{500}$ or more in magnitude, or a bound of $J$ that is not $0$
 is below $2^{-500}$, the quotients of the vectors being liable to
 overflow,\newinvfive{} so that a zero lower bound may have the sign of

@@ -249,7 +249,7 @@ On a 64-bit ARM processor, measured the same way on an Apple M2 with AppleClang
   processor) and written with `msr` only when the program's is not upward:
   `msr` takes 4 ns for the value FPCR holds and 11 ns when it changes the
   direction. With `GAOL_PRESERVE_ROUNDING` an operation of a program that
-  computes to nearest writes it twice, which is the 27 ns above (37 ns with the
+  computes to nearest writes it twice, which is the 27 ns above (38 to 44 ns with the
   FPU intervals, which called `fegetround()` and `fesetround()`); a program that
   already computes upward writes nothing.
 
@@ -380,7 +380,7 @@ such options is exposed to GCC bug 54412, as with `-mavx`.
 
 ### Interprocedural optimization is not offered
 
-Compiled with it (`-flto`), GAOL's basic operations are 1.1 to 1.5 times
+Compiled with it (`-flto`), GAOL's basic operations are 1.2 to 1.5 times
 faster where the code using GAOL is compiled with it too — an addition of intervals took 0.73 ns rather than 1.07 with Clang 21.1 (in an earlier session than the table above, whose default build took 1.07, 2.04 and 1.80 ns for its first three columns then), `x * y` 1.71 rather
 than 2.04, `sqr(x)` 1.27 rather than 1.80 — and the elementary functions no
 faster, a little **slower**: cos took 39.2 ns rather than 36.6, sin 32.6 rather

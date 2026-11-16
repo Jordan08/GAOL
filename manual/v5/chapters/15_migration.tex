@@ -179,7 +179,22 @@ them are described in the section the cross-reference names.
   included \file{gaol/\allowbreak gaol\_expression.h} (\pxref{sec:changes-interface}).
 \item[$\bullet$] \textbf{The expressions.} \code{eval\_stack} and
   \code{expr\_eval} are no longer copyable, the stack of an evaluation
-  growing in the heap (\pxref{sec:changes-io}).
+  growing in the heap (\pxref{sec:changes-io}), and neither are the nodes
+  (\code{expr\_node} and its derived classes): a program that copied one,
+  \code{interval\_node b(*a);}, no longer compiles, and \code{clone()} copies
+  a node. The constructor \code{expression(const expr\_node\&)} is
+  \code{explicit}: a program that made an expression of a node without writing
+  it, \code{return *(new my\_node(...));} in a function that returns an
+  \code{expression}, writes \code{expression(*(new my\_node(...)))}.
+  \code{expr\_eval::result()} sets the error that \code{error\_occurred()}
+  tells when the evaluation of a tree leaves no value or more than one, and
+  takes the value off the stack, so that a second call is an error; the reader
+  of strings throws a \code{std::logic\_error} then.\newinvfive
+\item[$\bullet$] \textbf{The macro of errors.} \code{gaol\_ERROR(excep, msg)}
+  is \code{GAOL\_ERROR(excep, msg)}, as the macros of GAOL start with
+  \code{GAOL\_}; the old name is an alias. The class \code{excep} derives from
+  \code{std::exception}, which the compiler checks
+  (\pxref{sec:errors-handling}).\newinvfive
 \item[$\bullet$] \textbf{The debugging macro.} \code{GAOL\_DEBUG(level,
   command)} of the debug build is \code{GAOL\_DEBUG\_VERBOSE}: the old name is
   not kept (\pxref{sec:debugging-facilities}).
@@ -288,7 +303,7 @@ not name it, as the CMake build never did.
 The bounds are the tightest ones rather than one double beyond. CORE-MATH is
 correctly rounded in the rounding direction in effect, so GAOL takes the
 value at a bound, computed in the upward rounding it keeps, as the upper
-bound, and the double below it as the lower one. GAOL~4 took values correctly
+bound, and the double below it as the lower one unless the value is a double. GAOL~4 took values correctly
 rounded to nearest only, so each bound had to be moved one double outward,
 and the direction had to be set to nearest and back around every call. On an
 Intel i7-1185G7 with Clang 18, the bounds of \code{log} took 30 ns rather
@@ -669,7 +684,7 @@ above the exact value, and \code{sqrt([-1e-310, 4])} and \code{atan2} gave the
 empty set. At the link, \file{gaol.pc} and
 \code{gaol::gaol} give \option{-mno-daz-ftz} to the code using GAOL where the
 compiler accepts it (GCC 13 and later on x86, from 11.4 and 12.4 in the series
-11 and 12, and Clang 20 and 21, not Clang 18), which keeps \file{crtfastmath.o} out of the program; the check
+11 and 12, and Clang 20 and later, not Clang 18), which keeps \file{crtfastmath.o} out of the program; the check
 of the operations is the only defence against a plug-in, and the only one on
 the other compilers; on POWER, s390x, RISC-V and MIPS neither defence exists. The cost
 is that of the second addition of the check: \code{x * y}, \code{sqrt} and
@@ -711,9 +726,9 @@ GAOL's files, which, with the static library of the CMake build, comes after
 the static objects of the program, except with MinGW-w64: an interval
 computed there found them 0, and \code{interval::pi()} was $[-0, 0]$,
 $[1, 2]/[-1, 1]$ was $[-0, 0]$ rather than $[-\infty, +\infty]$ and
-\code{sin([0, 4])} was $[-0, 0]$, without any warning (25 of the 45 checks of
-the test of the static initialization failed with the SSE2 intervals, 24 with
-the others). The doubles around $\pi$ and $\pi/2$, \code{gaol\_pi\_dn},
+\code{sin([0, 4])} was $[-0, 0]$, without any warning (when the test of the
+static initialization was written, 25 of its 45 checks failed with the SSE2
+intervals and 24 with the others; it has 44 now). The doubles around $\pi$ and $\pi/2$, \code{gaol\_pi\_dn},
 \code{gaol\_pi\_up}, \code{gaol\_half\_pi\_dn} and \code{gaol\_half\_pi\_up},
 are written in decimal, exactly, rather than read from the unions that give
 their bits, which is not a constant expression; they are in \code{gaol\_core}
@@ -757,7 +772,7 @@ bounds are the same, but for the sign of a zero bound, which the maximum of
 $[-1, 0] \cdot [-1, 0]$ is $-0$ with NEON. Each operation checks the rounding
 direction with one \code{mrs} (0.8 ns on the M2), which raises no exception
 flag; with \code{GAOL\_PRESERVE\_ROUNDING}, an operation takes 27 ns rather
-than 37 (\pxref{sec:neon}).
+than 38 to 44 with the FPU intervals (\pxref{sec:neon}).
 
 \medskip
 The AVX-512 path carries the rounding direction in the
@@ -1282,7 +1297,8 @@ number of digits of its significand and of its exponent; the doubles around
 the number are bracketed by steps doubling from the double \code{strtod()}
 gives, then found by bisection on their bits, two comparisons when
 \code{strtod()} gives the nearest double, and at most about 125 whatever it
-gives. The time to read a number is quadratic in the number of its digits
+gives. The time to read a number is quadratic in the number of its digits, but for a
+number far beyond the doubles, whose time is linear
 (\pxref{sec:reading-intervals}), so that a text from elsewhere can block a
 program.
 \code{strtod()} reads the decimal point of the C locale: under a locale
@@ -1382,8 +1398,10 @@ also where the bounds are numbers that are not doubles: GAOL~4 read
 a double, and a number that is not one, \code{pi} included, is refused. The
 reader knows every function of GAOL on intervals, which GAOL~4 did not read
 (\code{exp10}, \code{hypot}, \code{sqr}, \code{abs}, \code{fma}\ldots), and
-\code{gaol\_ieee1788::textToInterval()} reads the names of the standard,
-whose \code{pow} is the pow of the standard: in the earlier versions of GAOL v5
+\code{gaol\_ieee1788::textToInterval()} reads the names of the standard
+(\code{cancelMinus}, \code{cancelPlus}, \code{intersection} and
+\code{convexHull} included, which it read as the empty set), whose \code{pow}
+is the pow of the standard: in the earlier versions of GAOL v5
 it read those of GAOL, and \code{pown} gave the empty set. Function names are read in any case of
 letters, compared in ASCII and not by \code{std::tolower()}, whose result
 depends on the locale. \code{pow(x, n)} read in a string is the \code{pow}
@@ -1503,7 +1521,7 @@ neither the header of the parser, which did not compile when included, nor
 \file{gaol/gaol\_init\_cleanup.h}, both of which GAOL~4 installed, nor the
 headers of \file{gaol/math/}, among them \file{gaol\_double\_op.h}, whose
 functions of doubles \code{exp\_dn()}, \code{sin\_up()} and the thirty others
-leave the interface. Each installed header, but the four of Section~\ref{sec:headers}, compiles
+leave the interface. Each installed header, but the three of Section~\ref{sec:headers}, compiles
 alone with
 \option{-std=c++11} and the flags of \file{gaol.pc}, and without a warning
 under \option{-Wall -Wextra} and \option{-Wold-style-cast -Wundef}: with
@@ -1604,9 +1622,12 @@ folded the test away (GCC 9.4 and 13 at \option{-O0}, \option{-O2} and \option{-
 on again: Clang 18 compiled GAOL's operations as if rounding to nearest (54
 of the 292728 checks of the test of the rounding direction failed after
 \option{-ffast-math -fno-fast-math}, 126 after \option{-Ofast
--fno-fast-math}, none with all the flags after the option). What no macro
-shows is not refused, and the code using GAOL is not to be compiled with it:
-\option{-funsafe-math-optimizations} and \option{-fno-signed-zeros}, which
+-fno-fast-math}, none with all the flags after the option). With GCC from version 12,
+\option{-fno-signed-zeros}, \option{-fno-trapping-math},
+\option{-fassociative-math} and \option{-freciprocal-math} are refused too,
+which \option{-funsafe-math-optimizations} turns on, GCC showing them by
+macros. What no macro shows is not refused, and the code using GAOL is not to
+be compiled with it: those options with GCC before 12 and with Clang, which
 rewrite the addition by which GAOL tells the rounding direction and the
 modes. The compilers that do not honour the rounding direction are refused,
 the C compiler as well as the C++ compiler: Clang for 32-bit ARM processors,
@@ -1699,7 +1720,8 @@ Some differences are deliberate losses: the possibly relations and
 \code{certainly\_neq()}, which was one of them under another name, the timing of GAOL~4, the intervals of floats, the
 headers of the sources. Others are left as they are, and the register says
 so: the sign of a zero bound of a product, which depends on the kernel, the
-quadratic time of the reading of a number of many digits, the inexact exception
+quadratic time of the reading of a number of many digits (but for a number far
+beyond the doubles), the inexact exception
 that almost every operation raises, and the processors where neither the
 flush-to-zero modes can be cleared nor \option{-mno-daz-ftz} exists. A
 program that depended on one of the former behaviours finds here what

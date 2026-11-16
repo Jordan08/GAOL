@@ -95,8 +95,9 @@ namespace gaol_core {
       [1.00000000000000002, 1.00000000000000001] is empty, and
       [1.00000000000000001, 1.00000000000000002] is the interval of the two
       doubles around them. Pi and another number, a number far beyond the
-      doubles (about 10^311 or more, or about 10^-331 or less, in decimal,
-      about 2^1026 or more, or about 2^-1081 or less, in the other bases) and
+      doubles (10^311 or more, or below 10^-331, in decimal; about 2^1026 or
+      more, or below about 2^-1081, in the other bases, for certain from 2^1029
+      and below 2^-1084 in base 16) and
       bounds that are computed (1/3, sqrt(2)...) are not told apart: the
       literal is then the interval from the lower bound of l to the upper
       bound of u. \<a, b\> is [a, b], whose bounds have to be the same double:
@@ -216,7 +217,7 @@ namespace gaol_detail {
   /*
     The sign of a - b, a and b being the numbers the texts a and b write, with
     no sign, compared exactly (GAOL v5); 2 when one of
-    them is far beyond the doubles, above 10^311 or below 10^-331 or the
+    them is far beyond the doubles, 10^311 or more or below 10^-331 or the
     like in the other bases (see gaol_take_apart() in
     gaol/parser/gaol_interval_lexer.lpp),
     whose exact value is not kept. For the reader of the literal [l, u], to

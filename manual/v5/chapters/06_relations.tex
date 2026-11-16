@@ -166,7 +166,10 @@ is the smaller, \code{set\_leq()} and \code{set\_le()}. \code{set\_geq()} and
   Returns \code{true} if \var{I} (resp.\ $\{\var{d}\}$) is included in
   \code{self}: \ieee{subset}(\var{I}, \code{self}) of IEEE 1788-2015, and
   \ieee{isMember}(\var{d}, \code{self}) for a finite \var{d}. \var{d} shall
-  not be a NaN. An integer of any integer type but \code{bool} is compared as
+  not be a NaN. An infinite \var{d} is compared as the double it is:
+  \itv{1}{+\infty} contains $+\infty$, as does \itv{-\infty}{+\infty}, where
+  \ieee{isMember}, an infinity being no real number, is false for every
+  interval. An integer of any integer type but \code{bool} is compared as
   the integer it is, here and in \code{set\_strictly\_contains()}
   (\pxref{sec:integers}): \itv{2^{53}}{2^{53}} does not contain $2^{53}+1$,
   which its conversion to a double made $2^{53}$ in the rounding to nearest,

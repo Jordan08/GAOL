@@ -52,11 +52,12 @@ subject of Chapter~\ref{chap:io}.
 \cindex{interval!constructors}%
 
 The class \code{interval} has four constructors for a program. The SSE2 and
-NEON intervals have one more, for the code of GAOL (\pxref{sec:kernels}):
+NEON intervals have two more, for the code of GAOL (\pxref{sec:kernels}):
 \code{interval(const \_\_m128d\&)} or \code{interval(const float64x2\_t\&)},
 explicit, which takes the register that holds the stored bounds, the lower
 bound negated in the first lane, and gives the empty set where a lane holds
-$-\infty$. Besides the constructors, a program creates an interval from the
+$-\infty$, and the same with a second argument,
+\code{gaol\_detail::unchecked\_bounds}, which makes no such check. Besides the constructors, a program creates an interval from the
 text that writes it with the function \code{textToInterval()}, and from a
 midpoint and a radius with the static method \code{interval::centered\_form()}. We describe the constructors first,
 then the two functions, and we end with the intervals of one infinite point.

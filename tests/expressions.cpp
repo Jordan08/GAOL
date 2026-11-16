@@ -670,7 +670,7 @@ namespace
      1.00000000000000001] is empty and [1.00000000000000001,
      1.00000000000000002] is that pair of doubles, as are two spellings of the
      same number. They are not told apart where a bound is pi and the other is
-     not, or a number far beyond the doubles (above 10^311 or below 10^-331 in
+     not, or a number far beyond the doubles (10^311 or more or below 10^-331 in
      decimal, about 2^1026 and 2^-1081 in the other bases), or a computed
      bound (0.1+0): the literal is then the pair, whichever is above, which
      holds the values. */
@@ -745,7 +745,7 @@ namespace
       { "[1.7976931348623159e308, 1.8e308]", false, dmax, oo },
       { "[1e-324, 1e-325]", true, 0.0, 0.0 },
       { "[1e-325, 1e-324]", false, 0.0, tiny },
-      // not told apart: the pair, whichever is above (pi and the numbers set aside, above 10^311 and below 10^-331)
+      // not told apart: the pair, whichever is above (pi and the numbers set aside, 10^311 or more, and below 10^-331)
       { "[pi, pi]", false, pi_dn, pi_up },
       { "[pi, 3.14159265358979323846]", false, pi_dn, pi_up },
       { "[3.14159265358979323847, pi]", false, pi_dn, pi_up },

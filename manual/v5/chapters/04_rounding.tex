@@ -511,9 +511,9 @@ $\pm10^{-310}$, $\pm10^{300}$ and $\pm\infty$ was compared bit for bit.
 \end{Rem}
 
 \medskip
-\paragraph{The cost.} The operations of the path cost more time on a processor
-that halves its AVX-512 instructions, where they cost less on one that does
-not. On an Intel i7-1185G7 (halved), with Clang~21.1.8
+\paragraph{The cost.} Without \option{GAOL\_PRESERVE\_ROUNDING} the
+operations of the path cost more time than the SSE2 ones, on a processor that
+halves its AVX-512 instructions as on one that does not. On an Intel i7-1185G7 (halved), with Clang~21.1.8
 (\cmd{gaol\_performance}, the median of 9 runs of 7 November 2026, from
 Table~\ref{tab:computing-avx512}), \code{x * y} takes
 4.5~ns rather than 2.8 in the default build, \code{x / y} 5.0~ns rather than
@@ -523,9 +523,11 @@ of the C library with a product. With \option{GAOL\_PRESERVE\_ROUNDING}, where
 the SSE2 path saves and restores the direction, \code{x + y} takes 1.5~ns
 rather than 8.8, \code{sqr(x)} 2.0 rather than 8.4 and \code{pown(x, 3)} 7.8
 rather than 10.4; the comparison of the libraries (\pxref{sec:comparison}) has
-the preserved column of the other operations. The processors that do not
-halve them, as the Xeon of the continuous integration, are expected to take
-less. Which of the paths a GAOL took,
+the preserved column of the other operations. A Xeon of a cloud virtual
+machine, whose units are taken to be of full width, loses more without that
+option (the seven operations take 37 to 45~\% longer, against 20~\% on the
+i7) and gains more with it (3.9 to 4.2 times, against 2.9): the rule does not
+depend on the width of the units (\pxref{sec:avx512}). Which of the paths a GAOL took,
 \file{examples/13\_rounding\_environment.cpp} tells.
 
 %%------------------------------------------------------------------------
@@ -1092,7 +1094,7 @@ GAOL defends itself in two ways.
 \item[$\bullet$] \textbf{The link option \option{-mno-daz-ftz}.}
   \file{gaol.pc} and \code{gaol::gaol} give \option{-mno-daz-ftz} to the
   link, where the compiler accepts it: GCC~13 and later on x86, from 11.4
-  and 12.4 in the series 11 and 12, and Clang 20 and 21 (GCC~9.4, 12.3, GCC for
+  and 12.4 in the series 11 and 12, and Clang 20 and later (GCC~9.4, 12.3, GCC for
   ARM and Clang~18 refuse it, and the builds test the compiler with a link, not with its
   version). It keeps \file{crtfastmath.o} out of the link, so that a program
   linked with \option{-Ofast} does not get the modes at all, its own code
@@ -1162,7 +1164,7 @@ where the C library writes a subnormal 0 under denormals-are-zero with gdtoa
 \paragraph{What remains.} The reader, which makes no check of the modes, takes
 the numbers apart by their bits, and compares the two numbers of
 \code{<a, b>}, which have to be the same double, by theirs too,\newinvfive{}
-so that under denormals-are-zero \code{<1e-310, 1e-309>} is refused, as
+so that under denormals-are-zero \code{<0x1p-1070, 0x1p-1071>} is refused, as
 without it (\pxref{sec:input-format}). The unary minus makes no check either,
 but it only exchanges the stored bounds, which the modes do not change, as
 they do not change the test of the empty set, made before the check of every
@@ -1418,6 +1420,20 @@ initialized before the static objects that such a file defines after its
 itself (\pxref{sec:rounding-direction}), so that the program does not need to set
 it again after changing it.\newinvfive
 
+On every target, the initialization stops the program, with a message, when
+the rounding direction set upward does not round upward: $1 + 2^{-60}$,
+computed there, has to be above 1.\newinvfive{} That is the case of a target
+whose floating point is in software, which keeps rounding to nearest: on Debian
+armel (32-bit ARM, GCC~12) under \cmd{qemu-arm}, \code{fesetround(FE\_UPWARD)}
+returns 0, glibc writing the control register of the VFP that qemu emulates,
+which the arithmetic in software does not read, and GAOL computed every bound
+to nearest, in silence; on a processor without a VFP, \code{fesetround()}
+returns an error, which GAOL did not read either. It is the case under
+valgrind too (memcheck 3.26 on x86-64), which computes the SSE instructions to
+nearest whatever MXCSR says: a program using GAOL stops there at its start,
+where its bounds were wrong before. The check sets back the flag of the inexact
+exception it raises.
+
 \begin{Rem}\label{rem:cleanup-rounding}
 \code{cleanup()}, on the other hand, is to be called by the program right
 after its last use of GAOL, at the latest at the end of \code{main()}, with
@@ -1626,8 +1642,9 @@ RISC-V, MIPS) have no defence against their flush modes, and nothing was
 tested with them set; the FPU intervals of POWER, s390x, RISC-V and
 MinGW-w64 for arm64 are not measured; the slower line of 13 operations with
 the direction preserved on Visual C++ for x86 has no explanation; and the
-processors that do not halve their AVX-512 instructions are expected, not
-measured, to take less time on that path.
+units of the Xeon on which the AVX-512 path was measured a second time are
+taken to be of full width from its model, not tested, and no AMD processor
+was measured.
 
 \medskip
 With the floating-point environment in place, the next chapters turn to the
