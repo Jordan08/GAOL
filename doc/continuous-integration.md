@@ -20,9 +20,10 @@ GAOL v5 (`TODO*.md`, `process.md`, `STEP.md`, `todo-notes/` and `.claude/`:
 `paths-ignore` of the five workflows that build GAOL), which would otherwise
 cancel the checks of the commit before it; `workflow_dispatch` runs them on any
 branch. `performance.yml`
-is the exception: it runs for the pull requests that change what it measures
-only (see [The speed of a pull request](#the-speed-of-a-pull-request)), and so
-is `release.yml`, which runs for every tag of a commit of `master`: it builds
+is an exception: it runs for the pull requests that change what it measures
+only (see [The speed of a pull request](#the-speed-of-a-pull-request)); so is
+`manual.yml`, which runs for the pushes and the pull requests that change
+`manual/` or itself; and so is `release.yml`, which runs for every tag of a commit of `master`: it builds
 the three packages of the version, tests them installed, and attaches them to
 the GitHub Release of the tag; a pull request that changes it or the files of
 CPack builds them without a Release (see

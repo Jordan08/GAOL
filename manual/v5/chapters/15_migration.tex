@@ -711,9 +711,9 @@ GAOL's files, which, with the static library of the CMake build, comes after
 the static objects of the program, except with MinGW-w64: an interval
 computed there found them 0, and \code{interval::pi()} was $[-0, 0]$,
 $[1, 2]/[-1, 1]$ was $[-0, 0]$ rather than $[-\infty, +\infty]$ and
-\code{sin([0, 4])} was $[-0, 0]$, without any warning (25 of the 45 checks of
-the test of the static initialization failed with the SSE2 intervals, 24 with
-the others). The doubles around $\pi$ and $\pi/2$, \code{gaol\_pi\_dn},
+\code{sin([0, 4])} was $[-0, 0]$, without any warning (when the test of the
+static initialization was written, 25 of its 45 checks failed with the SSE2
+intervals and 24 with the others; it has 44 now). The doubles around $\pi$ and $\pi/2$, \code{gaol\_pi\_dn},
 \code{gaol\_pi\_up}, \code{gaol\_half\_pi\_dn} and \code{gaol\_half\_pi\_up},
 are written in decimal, exactly, rather than read from the unions that give
 their bits, which is not a constant expression; they are in \code{gaol\_core}
