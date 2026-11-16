@@ -101,10 +101,12 @@ A function is computed on the part of its argument that lies within its
 domain, which is the domain of IEEE 1788-2015 (Tables~9.1 and 10.5): the
 part outside is left out, and an argument with no point of the domain gives
 the empty set, as \code{log(\itv{-4}{0})} does.\newinvfive{} Every function
-but \code{cancel\_minus} and \code{cancel\_plus} gives the empty set for an empty
-argument: these two give \itv{-\infty}{+\infty} for a nonempty \var{X} and an
-empty \var{Y}, or an empty \var{X} and an unbounded \var{Y}, as IEEE
-1788-2015 requires (12.12.5).
+but \code{hull}, \code{cancel\_minus} and \code{cancel\_plus} gives the empty set
+for an empty argument: \code{hull} (and \code{x | y}) gives the other operand,
+the hull of the empty set and \itv{1}{2} being \itv{1}{2}, and the other two
+give \itv{-\infty}{+\infty} for a nonempty \var{X} and an empty \var{Y}, or an
+empty \var{X} and an unbounded \var{Y}, as IEEE 1788-2015 requires
+(12.12.5).
 \cindex{domain of a function}%
 
 \section{Functional arithmetic}\label{sec:arithmetic-functional}
@@ -617,8 +619,8 @@ cout << compoundm1(interval(0.5), interval(2)) << ' '
   $\operatorname{erfc}(x)=1-\operatorname{erf}(x)$, decreasing from 2 to 0,
   for $x$ in \var{I}: the \code{erf} and \code{erfc} of C, which CORE-MATH
   computes, with the tightest bounds, exact at 0 and at the infinities.
-  $\operatorname{erfc}(x)$ is subnormal from $x=26.55$ on, and below the
-  least subnormal from $x=27.22$ on, where the lower bound is 0. IEEE
+  $\operatorname{erfc}(x)$ is subnormal from $x=26.5433$ on, and below the
+  least subnormal from $x=27.2133$ on, where the lower bound is 0. IEEE
   1788-2015 does not name them, and \code{gaol\_ieee1788} does not hold
   them: a call \code{erf(\var{x})} on an interval finds them all the same,
   by argument-dependent lookup.\newinvfive

@@ -751,7 +751,7 @@ arithmetic before IEEE 1788: it has no empty set, and an operation whose
 argument leaves the domain of the function, a division by an interval
 containing zero included, prints an error and aborts the program. Its
 exponential, logarithm and real power, taken from the libm, are the fastest
-of the six libraries (12, 13 and 37 ns), and so is its square root (4.5 ns); its arithmetic is 8.0 times slower than GAOL's on $+$ and $-$, its \code{sin} and \code{cos} are the slowest after libieeep1788's (136 and 149 ns), and
+of the six libraries (12, 13 and 37 ns), and so is its square root (4.5 ns), but for GAOL v5 with the direction preserved and the AVX-512 path (4.4 ns); its arithmetic is 8.0 times slower than GAOL's on $+$ and $-$, its \code{sin} and \code{cos} are the slowest after libieeep1788's (136 and 149 ns), and
 its integer power, computed as $\exp(n \log x)$, is $1.1\cdot10^{-5}$ wider
 than the tightest on average.
 \item[$\bullet$] \textbf{Boost.Interval}, the library of Boost, is the
@@ -987,11 +987,13 @@ filib++, 18 for Boost.Interval, 23 for PROFIL/BIAS and 63 for Solaris
 Studio.
 
 \medskip
-On the elementary functions, PROFIL/BIAS is the fastest on the square root (4.5 ns, against 4.4 for GAOL v5 with the direction preserved), \code{exp} (12 ns), \code{log} (13 ns) and the real power
+On the elementary functions, PROFIL/BIAS is the fastest on \code{exp} (12 ns), \code{log} (13 ns) and the real power
 \code{pow(x, y)} (37 ns), which it computes from the libm of the system,
 moved outward, without correct rounding: its bounds are among the widest,
 and its \code{sin} and \code{cos}, computed by its own argument reduction,
-are the slowest after libieeep1788's, 136 and 149 ns. GAOL v5 comes next on
+are the slowest after libieeep1788's, 136 and 149 ns. Its square root, 4.5 ns,
+is beaten only by GAOL v5 with the direction preserved and the AVX-512 path
+(4.4 ns). GAOL v5 comes next on
 \code{exp} and \code{log}, 19 and 20 ns, faster than Boost.Interval (33 ns
 each), filib++ (37 and 33 ns) and Solaris Studio (42 and 43 ns), with
 correctly rounded values, where the others are not. On \code{sin} and
@@ -1732,7 +1734,7 @@ LoongArch, MIPS or WebAssembly (the tests of GAOL run on POWER, s390x and
 RISC-V under QEMU in the continuous integration, \pxref{sec:ci}): the figures
 given for these come from uops.info or the references, and the compilations made to study their instruction sets were made on
 Compiler Explorer, without running the code. The calls
-were counted on the NEON build only. GCC never ran a program of this study: the behaviour of the
+were counted on the NEON build only. GCC ran a program of this study only on the Xeon of the rule of the AVX-512 path (GCC 13.3.0) and on the arm64 runners of the continuous integration, not on the i7 nor on the M2: the behaviour of the
 intrinsics and of the pragma under it is read from the assembly. The profile
 has one machine and one compiler, and \cmd{sample} is the macOS profiler.
 The cost of writing FPSCR (32-bit ARM, POWER), FPC (s390x), FCSR and frm is

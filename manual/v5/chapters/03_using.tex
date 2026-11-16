@@ -751,7 +751,9 @@ one within the unsigned ints as an \code{unsigned}, and one beyond them as a
 \code{pow} of CORE-MATH at the bounds of $x$, as for \code{gaol::pow(x, [n])}
 (\itv{-\infty}{+\infty} for a nonempty $x$ in the earlier versions of GAOL v5):
 \code{pow(interval(1 + std::ldexp(1.0, -30)), 1LL << 33)}, about $e^8$, is
-\itv{2980.9579759367944}{2980.9579759367948}. Beyond 64 bits (an
+\itv{\code{0x1.749ea7bd26dc6p+11}}{\code{0x1.749ea7bd26dc7p+11}}, which
+\code{interval::precision(17)} writes \itv{2980.9579759367943}{2980.9579759367949}.
+Beyond 64 bits (an
 \code{\_\_int128}, in the GNU modes of GCC and Clang with libstdc++), the exponent is taken as $\pm(2^{63}-1)$ or
 $\pm(2^{63}-2)$, of its sign and parity, the power of every double but $0$,
 $\pm 1$ and $\pm\infty$ being beyond the doubles there. The same holds for

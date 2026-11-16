@@ -39,9 +39,9 @@ GAOL~4. Third, the rounding direction is no longer left to the user: each
 operation checks it and sets it upward when it is not, and GAOL can be built
 to restore the direction of the program after each operation; the operations of
 the AVX-512 path, which that build takes where the machine has the instructions,
-set no direction, their instructions carrying it, at a cost that
-the AVX-512 path, where the machine has the instructions, brings back to a
-few tens of percent.
+set no direction, their instructions carrying it, so that preserving the
+direction costs there 0.6 to 2.0 times the time of the operations of the
+benchmark (Table~\ref{tab:computing-times}).
 
 \medskip
 What GAOL v5 does not provide is stated where it would be expected. GAOL has

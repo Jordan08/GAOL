@@ -632,7 +632,7 @@ tightness of their bounds depends on it. GAOL v5 bounds its
 elementary functions with CORE-MATH~\cite{CoreMath:2022}, compiled into it
 from \file{3rd/math-core}, and takes no elementary function from any other
 library: the C library gives it only functions that are exact or correctly
-rounded, \code{sqrt}, \code{fma}, the integer roundings \code{floor},
+rounded, \code{sqrt}, \code{fma}, \code{fabs}, \code{copysign}, the integer roundings \code{floor},
 \code{ceil}, \code{trunc} and \code{round}, \code{frexp}, \code{ldexp},
 \code{fmod}, \code{nextafter} and the functions of \file{fenv.h}, and the
 integer powers, the roots of an order other than 2 and 3 and

@@ -1615,7 +1615,7 @@ tell the bounds by their bits.
 \label{sec:install-ipo}
 \cindex{optimization!interprocedural}%
 
-Compiled with it (\option{-flto}), the basic operations of GAOL are 1.1 to
+Compiled with it (\option{-flto}), the basic operations of GAOL are 1.2 to
 1.5 times faster where the code using GAOL is compiled with it too: an addition of intervals took 0.73~ns rather than 1.07 with Clang 21.1 (in an earlier session than Table~\ref{tab:install-worth-x86}, whose default build took 1.07, 2.04 and 1.80~ns for the first three columns then),
 $x \times y$ 1.71 rather than 2.04, \code{sqr(x)} 1.27 rather than 1.80. The
 elementary functions are no faster, and a little slower: \code{cos} took
@@ -1652,7 +1652,7 @@ Built with \option{WITH\_TESTS} (CMake), \loption{with-tests}
 (\cmd{configure}) or \code{with-tests} (meson), the programs of \file{tests}
 compare the bounds GAOL computes with the exact results of the operations,
 independently of GAOL and of the floating-point environment: the exact
-results are computed with integers, or were computed with \code{mpmath}, with 1500 to 7000 bits of
+results are computed with integers, or were computed with \code{mpmath}, with 200 to 7000 bits of
 precision. They check, among others, that the basic operations are the
 tightest enclosures, that the elementary functions are the tightest or within
 one double of them, that every operation gives the same result whatever the
@@ -1932,9 +1932,10 @@ powers 3.1 times, and the arithmetic
 operations 2.9 times with the AVX-512 path where the rounding direction is
 preserved; the price is a library bound to the processors that have them, and
 a package for any processor turns them off. Interprocedural
-optimization, which would gain 1.1 to 1.5 times on the basic operations, is
-not offered, because GCC then moves operations across the changes of the
-rounding direction.
+optimization, which gains 1.2 to 1.5 times on the basic operations, is
+not offered as an option, because an interval that does not enclose the exact
+value is worse than a slow one: GCC moved operations across the changes of the
+rounding direction with it.
 
 \medskip
 Some points are left open. The refusal of the older MinGW-w64
