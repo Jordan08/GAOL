@@ -1,12 +1,14 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `a42d016` de `dev` (la fusion de #377
-le 16 novembre à 7 h 23 UTC, la dernière des trois pull requests de PY.12, #375
-à #377, fusionnées de 7 h 19 à 7 h 23 UTC par le mainteneur, après celle de #353
-à 7 h 16 UTC, la dernière des six pull requests de la tâche PX, #351 à #355 et
-#372, fusionnées de 13 h 27 à 22 h 15 UTC le 15 novembre et à 7 h 16 UTC le 16,
-et les registres de la tâche PY,
-`1bfca77`), et avant au commit `1efa1c4` de `dev` (la fusion de #368 le 15
+Ce qui reste à faire sur GAOL v5 au commit `41fa78a` de `dev` (la fusion de #378
+le 16 novembre à 17 h 45 UTC, la dernière pull request de la tâche PY, après les
+registres de la tâche PX, `9e257be`, et ceux de PY.12, `7205e5c`), et avant au
+commit `a42d016` de `dev` (la fusion de #377 le 16 novembre à 7 h 23 UTC, la
+dernière des trois pull requests de PY.12, #375 à #377, fusionnées de 7 h 19 à
+7 h 23 UTC par le mainteneur, après celle de #353 à 7 h 16 UTC, la dernière des
+six pull requests de la tâche PX, #351 à #355 et #372, fusionnées de 13 h 27 à
+22 h 15 UTC le 15 novembre et à 7 h 16 UTC le 16, et les registres de la tâche
+PY, `1bfca77`), et avant au commit `1efa1c4` de `dev` (la fusion de #368 le 15
 novembre à 21 h 58 UTC, la dernière des quatorze pull requests de la tâche PY,
 #356 à #368 et #370, fusionnées de 13 h 31 à 21 h 58 UTC par le mainteneur,
 après celle de #352, PX.2, et les registres de la tâche PW,
@@ -40,9 +42,8 @@ registres de la tâche PT, de #301, la tâche PT, de #300, hors des points,
 de #298, de #299, de #297, de #296 et de #295, de #294, le manuel dans le style
 de la thèse, et de #292, de #293, #291, #290 et #289), en tâches PX à PZ (les
 constats de la relecture complète du 13 novembre), PH et PJ (PA à PG, PI, PL,
-PP, PQ, PS, PT, PU, PV et PW sont faites, PX ne garde que le reste de son point
-3, PY ne garde que son point 12, PK et
-PM sont closes sans code : voir
+PP, PQ, PS, PT, PU, PV, PW et PY sont faites, PX ne garde que le reste de son
+point 3, PK et PM sont closes sans code : voir
 `TODO_DONE.md`). Ce fichier et l'issue #179 ont le même contenu. Ce qui est fait
 et décidé est dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour), ce qui
 est reporté dans `TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142
@@ -74,14 +75,14 @@ avertissements de la relecture du 13 novembre, une pull request par point, plus
 #368 et #370 pour les suites de PY.12 et de PY.11) sont fusionnées dans `dev` le
 15 novembre, de 13 h 31 à 21 h 58 UTC, par le mainteneur ; #369 (les références
 des exemples 01, 02 et 04 par `textToInterval`) est fermée sans fusion à 21 h 09
-UTC (« non on ne veut pas de TextToInterval dans les exemples »). #375 à #377
-(la suite de PY.12 : les conversions inutiles de `gaol/` et de `tests/`, puis
-les boucles à compteur flottant de `gaol_interval_pow.cpp`, une pull request par
-famille) sont fusionnées le 16 novembre, de 7 h 19 à 7 h 23 UTC. Leurs registres
-sont faits (`TODO_DONE.md` 2.3, 2.4, 3.43, 3.44, 4, 7.41 et 7.42), PY ne garde
-que PY.12 (les boucles à compteur flottant de `tests/`, en une pull request :
-l'issue #371), et ce qu'elles laissent au manuel, à `doc/differences.md` et au
-`ChangeLog` est dans PZ (PZ.2, PZ.5, PZ.6 et PZ.9).
+UTC (« non on ne veut pas de TextToInterval dans les exemples »). #375 à #378
+(la suite de PY.12 : les conversions inutiles de `gaol/` et de `tests/`, les
+boucles à compteur flottant de `gaol_interval_pow.cpp`, puis celles de `tests/`,
+une pull request par famille) sont fusionnées le 16 novembre, #375 à #377 de
+7 h 19 à 7 h 23 UTC et #378 à 17 h 45 UTC. Leurs registres sont faits
+(`TODO_DONE.md` 2.3, 2.4, 3.43, 3.44, 4, 7.41, 7.42 et 7.44), la tâche PY est
+faite, l'issue #371 est fermée, et ce qu'elles laissent au manuel, à
+`doc/differences.md` et au `ChangeLog` est dans PZ (PZ.2, PZ.5, PZ.6 et PZ.9).
 #337 à #349 (la tâche PW : les builds et la CI de la
 relecture du 13 novembre, une pull request par point, plus #349 pour les
 versions Mach-O de la dylib) sont fusionnées dans `dev` le 14 novembre, de
@@ -177,7 +178,6 @@ registres sont faits ici (`TODO_DONE.md` 2.3, 3.34, 3.35, 7.31 et 7.32).
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
 | PX | Les tests sans dents (le reste de PX.3) | PX.3 | S |
-| PY | Les avertissements qui restent | PY.12 | S |
 | PZ | Le manuel, `differences.md` et le `ChangeLog` | PZ.1 à PZ.8 | M |
 | PH | Les signalements à d'autres projets | #125 à #138, #175 | accord |
 | PJ | La publication de v5.0.0 (`master`, étiquette, annonce) | 34, 71 | S |
@@ -191,8 +191,10 @@ manuel), chaque constat revérifié par la session ; le mainteneur en a fait des
 tâches le même jour (`TODO_DONE.md` 3.37), dont la tâche PU, faite par #323 à
 #334 (`TODO_DONE.md` 2.3 et 3.39), la tâche PV, faite par #335 en une seule pull
 request (`TODO_DONE.md` 2.3 et 3.40), la tâche PW, faite par #337 à #349
-(`TODO_DONE.md` 2.3 et 3.42) et la tâche PX, faite par #351 à #355 et #372
-(`TODO_DONE.md` 2.3, 3.45 et 4), sauf le reste de son point 3, ci-dessous. Le
+(`TODO_DONE.md` 2.3 et 3.42), la tâche PY, faite par #356 à #368, #370 et
+#375 à #378 (`TODO_DONE.md` 2.3, 3.43, 3.44 et 4) et la tâche PX, faite par
+#351 à #355 et #372 (`TODO_DONE.md` 2.3, 3.45 et 4), sauf le reste de son
+point 3, ci-dessous. Le
 rapport, les rapports des relecteurs et les programmes de preuve sont hors du
 dépôt, dans `/home/jninin/Documents/WORK/DEV/GAOL/GAOL_review_2026-11-13/`
 (`rapport.md`). Les numéros de ligne sont ceux de `9d59e0c` : au début d'un
@@ -220,31 +222,6 @@ PZ.6 et PZ.10). Aucun point ne change une borne.
    complètent. Les réécrire de la même façon est possible avec
    `tests/hull_values.py`. *À décider* : si l'un ou l'autre vaut une pull
    request.
-
-## PY. Les avertissements qui restent [S]
-
-Le reste de la tâche PY de la relecture du 13 novembre : PY.1 à PY.11 sont faits
-par #356 à #366 et #370, et PY.12 en partie par #367, #368 et #375 à #377
-(`TODO_DONE.md` 2.3, 3.43, 3.44 et 4) ; ce qu'ils laissent au manuel, à
-`doc/differences.md` et au `ChangeLog` est dans PZ (PZ.2, PZ.5, PZ.6 et PZ.9).
-Aucun point ne change une borne.
-
-12. **Les boucles à compteur flottant de `tests/`** (mineur ; l'issue #371) :
-    #367 a corrigé `-Wshadow`, les petits restes et `override` sur les 150
-    fonctions virtuelles, #368 le format non littéral de `tests/numbers.cpp`,
-    #375 et #376 les conversions inutiles (`-Wuseless-cast`) de `gaol/` et de
-    `tests/`, et #377 les quatre boucles à variable `double` de
-    `gaol/core/gaol_interval_pow.cpp`, réécrites en `while` (le code objet est
-    le même). Reste, relevé par le relecteur de #376, que le point ne comptait
-    pas : les boucles `for` à variable `double` de `tests/` (`arithmetic.cpp`,
-    `elementary.cpp`, `gaol_tests.h`, `reverse.cpp`, `test_ibex_codac.cpp` et
-    `core_math.cpp`). *Décidé le 16 novembre* : une seule pull request pour tout
-    `tests/`, après la fusion de #375 à #377, sans changer les valeurs essayées.
-    Gardées exprès : les huit `static_cast<std::size_t>` de `core_math.cpp`
-    (utiles sous i386), les conversions que seul GCC pour i386 signale et les
-    trois du `lex.gaol_.c` généré. Les 1 140 `-Wfloat-equal` sont voulus
-    (l'arithmétique compare des bornes), et les avertissements du lexer et du
-    parser générés ne se corrigent pas à la main.
 
 ## PZ. Le manuel et les registres [M]
 

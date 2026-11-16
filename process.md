@@ -14,8 +14,10 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12, et la façon de faire une version au §13.
-Dernière mise à jour : 16 novembre 2026, au commit `a42d016` de `dev` (la fusion
-de #377, la dernière des trois pull requests de PY.12, #375 à #377, après la
+Dernière mise à jour : 16 novembre 2026, au commit `41fa78a` de `dev` (la fusion
+de #378, la dernière pull request de la tâche PY, après les registres de la
+tâche PX, `9e257be`, et ceux de PY.12, `7205e5c`, qui suivent la fusion de #377,
+`a42d016`, la dernière des trois pull requests de PY.12, #375 à #377, après la
 fusion de #353, `14f93d3`, la dernière des six pull requests de la tâche PX,
 #351 à #355 et #372, et les registres de la tâche PY,
 `1bfca77`, qui suivent la fusion de #368, `1efa1c4`, la dernière des quatorze
@@ -1060,10 +1062,11 @@ git ls-remote --heads origin
   #356 à #368 et #370, les quatorze pull requests de la tâche PY, de 13 h 31 à
   21 h 58 UTC (`1efa1c4`, `TODO_DONE.md` 2.3, 2.4, 3.43, 4 et 7.41), #369 étant
   fermée sans fusion, puis, le 16 novembre, #375 à #377, le reste de PY.12, de
-  7 h 19 à 7 h 23 UTC (`a42d016`, `TODO_DONE.md` 2.3, 3.44, 4 et 7.42), puis,
-  les 15 et 16 novembre, #351 à #355 et #372, les six pull requests de la tâche
-  PX, de 13 h 27 UTC le 15 à 7 h 16 UTC le 16 (`14f93d3`, `TODO_DONE.md` 2.3,
-  3.45, 4 et 7.43) ;
+  7 h 19 à 7 h 23 UTC (`a42d016`, `TODO_DONE.md` 2.3, 3.44, 4 et 7.42), puis
+  #378, les boucles de `tests/`, à 17 h 45 UTC (`41fa78a`, 2.3, 3.44 et 7.44),
+  puis, les 15 et 16 novembre, #351 à #355 et #372, les six pull requests de la
+  tâche PX, de 13 h 27 UTC le 15 à 7 h 16 UTC le 16 (`14f93d3`, `TODO_DONE.md`
+  2.3, 3.45, 4 et 7.43) ;
   l'audit du 13 octobre a
   vérifié dans `configure-clean` ce qu'annonçaient alors les points A, C à H et
   J à V.
@@ -1095,12 +1098,14 @@ git ls-remote --heads origin
   et #337 à #349 (la tâche PW ; `todo-pw1-auto-config-fma` à
   `todo-pw12-lone-jobs-doc` et `todo-pw9b-macho-doc`) et #356 à #368 et #370 (la
   tâche PY ; `todo-py1-avx512-measured` à `todo-py12b-numbers-format` et
-  `todo-py11b-internal-usings`, #369 étant fermée sans fusion) et #375 à #377
+  `todo-py11b-internal-usings`, #369 étant fermée sans fusion) et #375 à #378
   (PY.12 ; `todo-py12c-useless-casts-lib`, `todo-py12d-useless-casts-tests` et
-  `todo-py12e-float-loops`) et #351 à #355 et #372 (la tâche PX ;
+  `todo-py12e-float-loops`, `todo-py12f-tests-float-loops`) et #351 à #355 et
+  #372 (la tâche PX ;
   `todo-px1-u128-schoolbook` à `todo-px5-reference-comments` et
   `todo-px6-ieee-basic-example`) sont fusionnées, leurs registres faits ; `dev`
-  est au commit de ces registres (7.43), après `7205e5c`, les registres de PY.12
+  est au commit de ces registres (7.44), après `41fa78a`, la fusion de #378,
+  `9e257be`, les registres de PX (7.43), `7205e5c`, les registres de PY.12
   (7.42), `a42d016`, la fusion de #377,
   `1bfca77`, les registres de PY (7.41), `1efa1c4`, la fusion de #368,
   `40c328a`, les registres de PW (7.40),
@@ -1162,8 +1167,8 @@ git ls-remote --heads origin
   issue à 262 144 octets et le texte joint en fait plus de 270 000 (voir
   `TODO_DONE.md` 7.8).
 - **À faire**, dans l'ordre de `TODO.md` : les constats de la relecture du 13
-  novembre (PX à PZ ; PU, PV et PW sont faites, PX ne garde que le reste de
-  PX.3, PY ne garde que PY.12), les
+  novembre (PX à PZ ; PU, PV, PW et PY sont faites, PX ne garde que le
+  reste de PX.3), les
   signalements à d'autres projets (PH,
   avec l'accord du mainteneur), puis la version (PJ, après PU à PZ,
   *décidé le 13 novembre* : `dev` dans `configure-clean`, section 13, puis la

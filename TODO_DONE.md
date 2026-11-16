@@ -1,7 +1,7 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 16 novembre
-2026 (commit `a42d016` de `dev`, la fusion de #377, et `83e2f69` de
+2026 (commit `41fa78a` de `dev`, la fusion de #378, et `83e2f69` de
 `configure-clean`, la fusion de #321 : voir la section 1). Ce fichier n'est que
 dans `dev`. Ce fichier fait foi : l'issue #177, qui avait le même contenu, n'est
 plus mise à jour depuis le 28 octobre (voir 7.8).
@@ -58,9 +58,12 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 ## 1. L'état au 16 novembre 2026
 
 - **`dev`**, la base du développement depuis le 13 novembre (3.38), est au
-  commit `a42d016` (la fusion de #377 le 16 novembre à 7 h 23 UTC, la dernière
-  des trois pull requests de PY.12, #375 à #377, fusionnées de 7 h 19 à 7 h 23
-  UTC (2.3, 3.44, 4 et 7.42), après la fusion de #353 à 7 h 16 UTC, `14f93d3`,
+  commit `41fa78a` (la fusion de #378 le 16 novembre à 17 h 45 UTC, la dernière
+  pull request de la tâche PY, après les registres de la tâche PX, `9e257be`
+  (7.43), et ceux de PY.12, `7205e5c` (7.42), qui suivent la fusion de #377 à
+  7 h 23 UTC, `a42d016`, la dernière des trois pull requests de PY.12, #375 à
+  #377, fusionnées de 7 h 19 à 7 h 23 UTC (2.3, 3.44, 4 et 7.42), après la
+  fusion de #353 à 7 h 16 UTC, `14f93d3`,
   la dernière des six pull requests de la tâche PX, #351 à #355 et #372,
   fusionnées de 13 h 27 à 22 h 15 UTC le 15 novembre et à 7 h 16 UTC le 16 (2.3,
   3.45, 4 et 7.43), et les registres de la tâche PY, `1bfca77` (7.41), qui
@@ -190,15 +193,16 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   pull requests de la tâche PW, #337 à #349, de 21 h 01 à 22 h 18 UTC (2.3,
   3.42, 4 et 7.40), puis, le 15 novembre, les quatorze pull requests de la tâche
   PY, #356 à #368 et #370, de 13 h 31 à 21 h 58 UTC (2.3, 2.4, 3.43, 4 et 7.41),
-  puis, le 16 novembre, #375 à #377, le reste de PY.12, de 7 h 19 à 7 h 23 UTC
-  (2.3, 3.44, 4 et 7.42), puis, les 15 et 16 novembre, les six pull requests de
+  puis, le 16 novembre, #375 à #377, le reste de PY.12, de 7 h 19 à 7 h 23 UTC,
+  et #378, les boucles de `tests/`, à 17 h 45 UTC (2.3, 3.44, 4, 7.42 et 7.44),
+  puis, les 15 et 16 novembre, les six pull requests de
   la tâche PX, #351 à #355 et #372, de 13 h 27 UTC le 15 à 7 h 16 UTC le 16
   (2.3, 3.45, 4 et 7.43). #168, #195, #211, #214, #221, #226, #233, #369 et #373
   (dont le contenu est dans `dev` : 2.4) sont fermées sans fusion, et, du 30 et
   du 31 octobre, #240, #241, #243, #244, #246, #247, #251
   à #261, #277 et #278, puis #286, le « Revert » de #285 fermé onze secondes
   après son ouverture (2.4). Les tâches PA, PB, PC, PD, PE, PF, PG, PI, PL, PP,
-  PS, PU, PV et PW sont faites, PX et PY presque (PE :
+  PS, PU, PV, PW et PY sont faites, PX presque (PE :
   #200 et #204 pour le 95, #201 pour le
   92, #205 pour le 3, #202 pour le 4, #204 pour le 5, #203 pour le 6 ; PF : #206
   pour le reste du 108, #209 pour le 109, #210 et #215 pour écrire seulement si
@@ -232,9 +236,8 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   relecture : #337 à #349, une par point, plus #349 pour les versions Mach-O
   (2.3, 3.42 et 4) ; PY, les textes faux hors du manuel, le code mort et les
   avertissements de la même relecture : #356 à #368 et #370, une par point, puis
-  #375 à #377 pour les conversions inutiles et les boucles de
-  `gaol_interval_pow.cpp`, sauf les boucles à compteur flottant de `tests/`
-  (l'issue #371) (2.3, 3.43, 3.44 et 4) ; PX, les tests sans dents de la même
+  #375 à #378 pour les conversions inutiles et les boucles flottantes (l'issue
+  #371) (2.3, 3.43, 3.44 et 4) ; PX, les tests sans dents de la même
   relecture : #351, #352, #353, #354 et #355, une par point, sauf les `TEST_EQ`
   que PX.3 ne nomme pas, plus #372 pour `==` et `!=` entre intervalles et le
   test `interval_ieee_basic`, que le mainteneur a demandés (2.3, 3.45 et 4) ;
@@ -250,8 +253,8 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   signalements à d'autres projets (PH) et la publication (PJ : la fusion de
   `configure-clean` dans `master`, que le mainteneur fait lui-même, l'étiquette
   `v5.0.0` et sa Release, l'annonce à Frédéric Goualard ; 3.36), qui attend les
-  constats de la relecture du 13 novembre (PX à PZ, 3.37 et 3.38 ; PU, PV et PW
-sont faites, PX et PY presque) : voir `TODO.md`.
+  constats de la relecture du 13 novembre (PX à PZ, 3.37 et 3.38 ; PU, PV, PW et
+  PY sont faites, PX presque) : voir `TODO.md`.
   Le 8 novembre, `TODO_fin.md` (la relecture du 4
   novembre) est réparti dans les trois registres et supprimé (3.25).
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
@@ -4247,6 +4250,24 @@ cinq workflows sur cinq à sept avaient fini au vert.
   pour aarch64, Apple clang 21 pour arm64 et pour x86_64, ces deux derniers
   mesurés par la session MACarm5) ; clang-tidy `cert-flp30-c` : 4
   avertissements, puis aucun.
+- #378 (la fin de PY.12, les boucles de `tests/` ;
+  `todo-py12f-tests-float-loops`, un commit, six fichiers, 34 lignes ajoutées et
+  12 retirées) : fusionnée le 16 novembre à 17 h 45 UTC (`41fa78a`, tête
+  `1e13eb3`). Les douze boucles `for` de `tests/` que clang-tidy 21 signale
+  (`cert-flp30-c`) : dix à variable de contrôle `double` (`gaol_tests.h`,
+  `reverse.cpp`, `elementary.cpp`, `test_ibex_codac.cpp`, `arithmetic.cpp` et
+  `core_math.cpp`), réécrites en `init ; while (condition) { corps ; mise à
+  jour ; }` (huit parcourent les doubles par `next_double()`, deux avancent de
+  `+= 1.0` et de `+= 0.5`, et un indice entier changerait le signe d'un zéro de
+  tête), et deux de `reverse.cpp` (`++k, py = std::nextafter(py, inf)` et la
+  même avec `px`), dont le `double` est mis à jour en fin de corps. Gardée :
+  `for (int k = 0; k <= 17; ++k, p10 *= 10.0)` de `core_math.cpp`, que
+  clang-tidy 21 ne signale pas (le compteur est un entier). clang-tidy : 12
+  avertissements, puis aucun (aucun non plus dans `tests/tools/` et
+  `examples/`) ; GCC 15 SSE2 54 tests sur 54, avec les exemples 70 sur 70, avec
+  `GAOL_PRESERVE_ROUNDING` 54 sur 54, FPU 51 sur 51, Clang 18 50 sur 50, i386 54
+  sur 54, aarch64 49 sur 49 ; la session MACarm5 : arm64 43 sur 45 et Rosetta 46
+  sur 48 (deux sautés), sans avertissement.
 
 La CI des quinze pull requests de PY (#369 comprise) : les cinq workflows
 (Linux, Linux containers, Windows, macOS, Autotools and meson) ont fini au vert,
@@ -4270,6 +4291,11 @@ GCC 15 SSE2 70 tests sur 70, avec `GAOL_PRESERVE_ROUNDING` 54 sur 54, FPU 51 sur
 51, Clang 18 50 sur 50, i386 54 sur 54, aarch64 avec qemu 49 sur 49 ; la session
 MACarm5 (Apple M2, Apple clang 21) : arm64 43 sur 43, x86_64 sous Rosetta 46 sur
 46, sans avertissement.
+
+La CI de #378 : les cinq workflows verts, sans relance, macOS compris. Le
+sixième relecteur sans contexte, un sous-agent (70 000 jetons), sans point
+bloquant : il a lu les douze boucles une à une et relevé la treizième (`p10`),
+laissée ; le sujet du commit dit donc « signalées par `cert-flp30-c` ».
 
 - #351 (PX.1, `tests/u128.cpp` ; `todo-px1-u128-schoolbook`, vers `dev`, ouverte
   le 15 novembre à 8 h 20 UTC, deux commits, deux fichiers) : fusionnée à 13 h
@@ -7542,7 +7568,7 @@ Fait : #356 à #368 et #370, fusionnées le 15 novembre de 13 h 31 à 21 h 58 UT
 `doc/differences.md` et au `ChangeLog` est dans `TODO.md` (PZ.2, PZ.5, PZ.6 et
 PZ.9).
 
-### 3.44 Le 16 novembre : PY.12, conversions inutiles et boucles (#375 à #377)
+### 3.44 Le 16 novembre : PY.12, conversions inutiles et boucles (#375 à #378)
 
 Le mainteneur répond à deux séries de quatre questions de la session (« As-tu
 des questions ? Propose 4 réponses par question ») :
@@ -7567,8 +7593,20 @@ des questions ? Propose 4 réponses par question ») :
   est déjà dans `dev`, pas de nouvelle branche ni de nouvelle pull request
   (2.4).
 
-Fait : #375 à #377, fusionnées le 16 novembre de 7 h 19 à 7 h 23 UTC (2.3 et
-7.42). Reste de PY.12 : les boucles de `tests/` (`TODO.md`).
+Fait : #375 à #377, fusionnées le 16 novembre de 7 h 19 à 7 h 23 UTC, et #378,
+les boucles de `tests/`, à 17 h 45 UTC (2.3, 7.42 et 7.44) : la tâche PY est
+faite, et l'issue #371 est fermée. La première liste de la session comptait dix
+boucles de `tests/` ; clang-tidy en signale douze, dont deux de `reverse.cpp`
+que la session n'avait pas vues (la mise à jour d'un `double` dans l'en-tête
+d'une boucle à compteur entier).
+
+Laissés tels quels, voulus ou non corrigeables : les 1 140 `-Wfloat-equal`
+(l'arithmétique compare des bornes), les avertissements du lexer et du parser
+générés (`lex.gaol_.c` : trois `-Wuseless-cast`), les huit
+`static_cast<std::size_t>(gen() % points.size())` de `tests/core_math.cpp`
+(utiles sous i386, que #376 garde), les conversions que seul GCC pour i386
+signale, et la boucle `p10 *= 10.0` de `tests/core_math.cpp` (compteur entier,
+non signalée par clang-tidy 21).
 
 ### 3.45 Les 15 et 16 novembre : la tâche PX, les tests sans dents, `==` et `!=` (#351 à #355 et #372)
 
@@ -7811,13 +7849,15 @@ est dite ici ou dans la section 5.
   voir 3.42. Ce qu'elles laissent au manuel, à `doc/differences.md` et au
   `ChangeLog` est dans `TODO.md` (PZ.5, PZ.7 et PZ.8).
 
-- [x] **PY.1 à PY.11** (les textes faux hors du manuel, le code mort et le nom
-  de `GAOL_ERROR` de la relecture du 13 novembre) : une pull request par point,
+- [x] **PY.1 à PY.12** (les textes faux hors du manuel, le code mort, le nom de
+  `GAOL_ERROR` et les avertissements de la relecture du 13 novembre) : une pull
+  request par point,
   fusionnées le 15 novembre : PY.1 par #356, PY.2 par #357, PY.3 par #358, PY.4
   par #359, PY.5 par #360, PY.6 par #361, PY.7 par #362, PY.8 par #363, PY.9 par
   #364 (sans `textToInterval` : #369 fermée), PY.10 par #365 et PY.11 par #366,
-  avec #370 pour les `using` globaux ; PY.12 par #367 et #368 pour sa part
-  faite ; décidé pendant le travail : voir 3.43. Ce qu'elles laissent au manuel,
+  avec #370 pour les `using` globaux ; PY.12 par #367, #368 et #375 à #378 (le
+  16 novembre) ; décidé pendant le travail : voir 3.43 et 3.44. Ce qu'elles
+  laissent au manuel,
   à `doc/differences.md` et au `ChangeLog` est dans `TODO.md` (PZ.2, PZ.5, PZ.6
   et PZ.9).
 
@@ -7884,14 +7924,6 @@ leur partie faite.
   (#313, #314 et #318) sont faits (3.34 et 3.35) ; il reste la publication (PJ.3
   et PJ.4, décidées le 12 novembre au soir : 3.36), qui attend PX à PZ, PU à PW
   étant faites (*décidé le 13 novembre* : 3.38).
-
-- **PY.12.** Les avertissements de plus : `-Wshadow`, les petits restes et
-  `override` par #367, le format non littéral de `tests/numbers.cpp` par #368,
-  les cinq `using` globaux de `gaol_interval_internal.h` par #370, les
-  conversions inutiles de `gaol/` et de `tests/` par #375 et #376, les quatre
-  boucles à variable `double` de `gaol/core/gaol_interval_pow.cpp` par #377 ;
-  reste (issue #371) les boucles à `double` de `tests/`, en une pull request
-  (`TODO.md`, PY.12 ; 3.44).
 
 - **PX.3, le reste.** Les `TEST_EQ` à 1e-8 que PX.3 nomme sont remplacés par
   #353 (`TEST_HULL`, `hull_values.py`) ; restent, à décider, ceux de
@@ -9919,6 +9951,23 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   rapport pour GCC et son cas minimal, non envoyé) est ouverte.
 - Pas dans ces registres : #350 (une suite de PW.6, `todo-pw6b-audit-mingw32`),
   fusionnée le 15 novembre à 7 h 37 UTC.
+
+### 7.44 Le 16 novembre au soir (après #378 : les registres)
+
+- Les registres de la fin de la tâche PY, en un commit direct sur `dev`, depuis
+  GAOL_V8 (propre, sur `dev` à `41fa78a`) : `TODO.md` (l'en-tête, la liste des
+  pull requests, la table, la section PY retirée), ce fichier (en-tête, 1, 2.3,
+  3.44, 4 et 7.44) et `process.md` (l'en-tête et §12) ; `TODO_AFTER.md` n'est
+  pas changé. L'issue #179 est mise à jour.
+- Ce commit ne change que des fichiers que les cinq workflows ignorent
+  (`TODO*.md` et `process.md`) : il ne lance aucun workflow.
+- L'issue #371 (« Restes de PY.12 ») est fermée avec un commentaire qui cite
+  #375 à #378.
+- Les branches : `todo-py12c-useless-casts-lib`,
+  `todo-py12d-useless-casts-tests`, `todo-py12e-float-loops` et
+  `todo-py12f-tests-float-loops` ne sont plus sur GitHub ; les locales de
+  GAOL_V8 (celles de PY) sont gardées, la consigne du 15 novembre (« Je ne
+  touche à rien ») n'étant pas levée pour elles.
 
 ## 8. Le ménage fait
 
