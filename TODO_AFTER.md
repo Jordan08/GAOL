@@ -1,10 +1,10 @@
 # Reporté
 
-Tout ce qui est reporté sur GAOL v5 au 8 novembre 2026 (commit `634e3e1` de
-`configure-clean`) : ce qui attend la version v5.0.0, ce que le mainteneur a
-reporté indéfiniment, ce qu'il a écarté en laissant une porte ouverte, et ce qui
-attend du matériel. Ce fichier et l'issue #178 ont le même contenu. Ce qui reste
-à faire avant la version est dans `TODO.md` (issue #179), ce qui est fait et
+Tout ce qui est reporté sur GAOL v5 au 16 novembre 2026 (commit `9a2a88b` de
+`dev`) : ce qui attend la version v5.0.0, ce que le mainteneur a reporté
+indéfiniment, ce qu'il a écarté en laissant une porte ouverte, et ce qui attend
+du matériel. Ce fichier et l'issue #178 ont le même contenu. Ce qui reste à
+faire avant la version est dans `TODO.md` (issue #179), ce qui est fait et
 décidé dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour). Ce que la
 relecture du 4 novembre a relevé sans suite dans aucun registre est réparti,
 depuis le 8 novembre, entre les trois registres (`TODO_DONE.md` 3.25 ;
@@ -12,10 +12,13 @@ depuis le 8 novembre, entre les trois registres (`TODO_DONE.md` 3.25 ;
 est dans `TODO_DONE.md` (3.19).
 
 Rien de ce fichier n'est à faire avant v5.0.0, ni sans l'accord du mainteneur.
-Après v5.0.0, le développement continue dans `configure-clean` et `master` ne
-reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé le
-3 octobre*). Les points gardent leur lettre et leur ancien numéro (voir
-`TODO_DONE.md`, « Comment lire ce fichier »).
+Après v5.0.0, le développement continue dans `dev` (*décidé le 12 novembre*,
+`process.md` §13) : `configure-clean` ne reçoit `dev`, notes retirées, qu'à
+chaque version, et `master` ne reçoit que les versions de `configure-clean`. La
+GitHub Release que `release.yml` fait à l'étiquette remplace le « pas de GitHub
+Release, l'étiquette suffit » du 3 octobre (*décidé le 12 novembre au soir* :
+`TODO_DONE.md` 3.36). Les points gardent leur lettre et leur ancien numéro
+(voir `TODO_DONE.md`, « Comment lire ce fichier »).
 
 ## 1. Après la version
 

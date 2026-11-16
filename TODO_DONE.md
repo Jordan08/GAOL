@@ -1,7 +1,7 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 16 novembre
-2026 (commit `9e36147` de `dev`, la fusion de #379, et `83e2f69` de
+2026 (commit `9a2a88b` de `dev`, la fusion de #381, et `83e2f69` de
 `configure-clean`, la fusion de #321 : voir la section 1). Ce fichier n'est que
 dans `dev`. Ce fichier fait foi : l'issue #177, qui avait le même contenu, n'est
 plus mise à jour depuis le 28 octobre (voir 7.8).
@@ -58,23 +58,26 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 ## 1. L'état au 16 novembre 2026
 
 - **`dev`**, la base du développement depuis le 13 novembre (3.38), est au
-  commit `9e36147` (la fusion de #379 le 16 novembre à 20 h 39 UTC, la dernière
-  pull request de la tâche PX, après les registres de la tâche PY, `1307cf9`
-  (7.44)), et avant au commit `41fa78a` (la fusion de #378 le 16 novembre à 17 h
-  45 UTC, la dernière pull request de la tâche PY, après les registres de la
-  tâche PX, `9e257be` (7.43), et ceux de PY.12, `7205e5c` (7.42), qui suivent la
-  fusion de #377 à 7 h 23 UTC, `a42d016`, la dernière des trois pull requests de
-  PY.12, #375 à #377, fusionnées de 7 h 19 à 7 h 23 UTC (2.3, 3.44, 4 et 7.42),
-  après la fusion de #353 à 7 h 16 UTC, `14f93d3`, la dernière des six pull
-  requests de la tâche PX, #351 à #355 et #372, fusionnées de 13 h 27 à 22 h 15
-  UTC le 15 novembre et à 7 h 16 UTC le 16 (2.3, 3.45, 4 et 7.43), et les
-  registres de la tâche PY, `1bfca77` (7.41), qui suivent la fusion de #368 le
-  15 novembre à 21 h 58 UTC, `1efa1c4`, la dernière des quatorze pull requests
-  de la tâche PY, #356 à #368 et #370, fusionnées de 13 h 31 à 21 h 58 UTC (2.3,
-  3.43, 4 et 7.41), après la fusion de #352 à 13 h 29 UTC, `1f901d9`, PX.2, et
-  les registres de la tâche PW, `40c328a` (7.40), qui suivent la fusion de #349
-  le 14 novembre à 22 h 18 UTC, `ebf2efd`, la dernière des treize pull requests
-  de la tâche PW, #337 à #349, fusionnées de 21 h 01 à 22 h 18 UTC (2.3, 3.42 et
+  commit `9a2a88b` (la fusion de #381 le 16 novembre à 22 h 09 UTC, après celle
+  de #380 à 22 h 07 UTC, les deux pull requests de la tâche PZ, après les
+  registres de la tâche PX, `3d0616e` (7.45)), et avant au commit `9e36147` (la
+  fusion de #379 le 16 novembre à 20 h 39 UTC, la dernière pull request de la
+  tâche PX, après les registres de la tâche PY, `1307cf9` (7.44)), et avant au
+  commit `41fa78a` (la fusion de #378 le 16 novembre à 17 h 45 UTC, la dernière
+  pull request de la tâche PY, après les registres de la tâche PX, `9e257be`
+  (7.43), et ceux de PY.12, `7205e5c` (7.42), qui suivent la fusion de #377 à 7
+  h 23 UTC, `a42d016`, la dernière des trois pull requests de PY.12, #375 à
+  #377, fusionnées de 7 h 19 à 7 h 23 UTC (2.3, 3.44, 4 et 7.42), après la
+  fusion de #353 à 7 h 16 UTC, `14f93d3`, la dernière des six pull requests de
+  la tâche PX, #351 à #355 et #372, fusionnées de 13 h 27 à 22 h 15 UTC le 15
+  novembre et à 7 h 16 UTC le 16 (2.3, 3.45, 4 et 7.43), et les registres de la
+  tâche PY, `1bfca77` (7.41), qui suivent la fusion de #368 le 15 novembre à 21
+  h 58 UTC, `1efa1c4`, la dernière des quatorze pull requests de la tâche PY,
+  #356 à #368 et #370, fusionnées de 13 h 31 à 21 h 58 UTC (2.3, 3.43, 4 et
+  7.41), après la fusion de #352 à 13 h 29 UTC, `1f901d9`, PX.2, et les
+  registres de la tâche PW, `40c328a` (7.40), qui suivent la fusion de #349 le
+  14 novembre à 22 h 18 UTC, `ebf2efd`, la dernière des treize pull requests de
+  la tâche PW, #337 à #349, fusionnées de 21 h 01 à 22 h 18 UTC (2.3, 3.42 et
   7.40), après les registres de #336, `8780a1c` (7.39), et la fusion de #336 à
   18 h 28 UTC, `89cd896`, hors des points : la CI regroupée, après les registres
   de la tâche PV, `e3acf0a` (7.38), et la fusion de #335 à 14 h 53 UTC,
@@ -123,7 +126,8 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   la pull request fusionnée, et le mainteneur l'a fermée le 16 à 7 h 15 UTC
   (2.4) ; #351 à #355 et #372 (la tâche PX) sont fusionnées, leurs registres
   faits (2.3, 3.45 et 7.43), puis #379 (le reste de PX.3) à 20 h 39 UTC (2.3,
-  3.46 et 7.45), alors que ceux de #350 (une suite de PW.6, fusionnée le 15
+  3.46 et 7.45), puis #380 et #381 (la tâche PZ) à 22 h 07 et 22 h 09 UTC (2.3,
+  3.47 et 7.46), alors que ceux de #350 (une suite de PW.6, fusionnée le 15
   novembre à 7 h 37 UTC) ne le sont pas. Le mainteneur a fusionné #165 à #167,
   #169 à #174, #176 et #180 à #184 les 23 et 24 octobre, et #186 à #194, #196 et
   #197 le 25 octobre, #199, #200 et #201 le 26 octobre, #202 à #205 le 27, #206
@@ -199,15 +203,18 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   pull requests de la tâche PX, #351 à #355 et #372, de 13 h 27 UTC le 15 à 7 h
   16 UTC le 16 (2.3, 3.45, 4 et 7.43), puis #379 (le reste de PX.3 : les bornes
   qui sont des doubles et les derniers `TEST_EQ`) le 16 novembre à 20 h 39 UTC
-  (2.3, 3.46, 4 et 7.45). #168, #195, #211, #214, #221, #226, #233, #369 et #373
-  (dont le contenu est dans `dev` : 2.4) sont fermées sans fusion, et, du 30 et
-  du 31 octobre, #240, #241, #243, #244, #246, #247, #251 à #261, #277 et #278,
-  puis #286, le « Revert » de #285 fermé onze secondes après son ouverture
-  (2.4). Les tâches PA, PB, PC, PD, PE, PF, PG, PI, PL, PP, PS, PU, PV, PW, PX
-  et PY sont faites (PE : #200 et #204 pour le 95, #201 pour le 92, #205 pour le
-  3, #202 pour le 4, #204 pour le 5, #203 pour le 6 ; PF : #206 pour le reste du
-  108, #209 pour le 109, #210 et #215 pour écrire seulement si ça change, #208
-  pour l'alignement de la pile 32 bits, #207 pour le contrôle de l'assembleur de
+  (2.3, 3.46, 4 et 7.45), puis #380 (la tâche PZ : le manuel,
+  `doc/differences.md` et le PDF) à 22 h 07 UTC et #381 (le `ChangeLog` de PZ.5)
+  à 22 h 09 UTC, par le mainteneur, avant la fin de leur CI (2.3, 3.47, 4 et
+  7.46). #168, #195, #211, #214, #221, #226, #233, #369 et #373 (dont le contenu
+  est dans `dev` : 2.4) sont fermées sans fusion, et, du 30 et du 31 octobre,
+  #240, #241, #243, #244, #246, #247, #251 à #261, #277 et #278, puis #286, le «
+  Revert » de #285 fermé onze secondes après son ouverture (2.4). Les tâches PA,
+  PB, PC, PD, PE, PF, PG, PI, PL, PP, PS, PU, PV, PW, PX, PY et PZ sont faites
+  (PE : #200 et #204 pour le 95, #201 pour le 92, #205 pour le 3, #202 pour le
+  4, #204 pour le 5, #203 pour le 6 ; PF : #206 pour le reste du 108, #209 pour
+  le 109, #210 et #215 pour écrire seulement si ça change, #208 pour
+  l'alignement de la pile 32 bits, #207 pour le contrôle de l'assembleur de
   x86-64 ; PG : la division du chemin AVX-512, le 106 a : #191 à #194 ; puis
   #217 pour le seuil de la liste, #218 pour `set_rounding()`, #219 pour le noyau
   de `pown` de NEON, #222 et #224 pour `nth_root(x, -2)` et `sqrt()`, #223, #227
@@ -242,20 +249,21 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   plus #379 pour ce qui restait de PX.3 (les bornes qui sont des doubles et 57
   `TEST_EQ`) et #372 pour `==` et `!=` entre intervalles et le test
   `interval_ieee_basic`, que le mainteneur a demandés (2.3, 3.45, 3.46 et 4) ;
-  PK, un `FE_INVALID` de Clang avec les intervalles FPU, est close sans code,
-  non reproduite avec les drapeaux de GAOL (3.17), ses boucles de relations
-  étant entrées dans `rounding_direction` par #292 ; PM, le cas (b) de 12.12.7
-  (les littéraux aux bornes calculées), est close sans code le 8 novembre : on
-  la documente seulement, par #296, fusionnée le même jour (3.26) ; PQ, les deux
-  petits changements décidés le 8 novembre, est faite par #298 et #299, PT, les
-  relevés et les vérifications jamais faits, par #301, #303 et #304, et PP, le
-  FIXME de `div_rel` en SSE2, par #302 (2.3) ; le tableau de Clang 21 est
-  remesuré par #316 (PJ.2, 3.34) ; il reste les signalements à d'autres projets
-  (PH) et la publication (PJ : la fusion de `configure-clean` dans `master`, que
-  le mainteneur fait lui-même, l'étiquette `v5.0.0` et sa Release, l'annonce à
-  Frédéric Goualard ; 3.36), qui attend les constats de la relecture du 13
-  novembre (PX à PZ, 3.37 et 3.38 ; PU, PV, PW, PX et PY sont faites) : voir
-  `TODO.md`. Le 8 novembre, `TODO_fin.md` (la relecture du 4 novembre) est
+  PZ, le manuel, `doc/differences.md`, le `ChangeLog` et le PDF de la même
+  relecture : #380 et #381 (2.3, 3.47 et 4) ; PK, un `FE_INVALID` de Clang avec
+  les intervalles FPU, est close sans code, non reproduite avec les drapeaux de
+  GAOL (3.17), ses boucles de relations étant entrées dans `rounding_direction`
+  par #292 ; PM, le cas (b) de 12.12.7 (les littéraux aux bornes calculées), est
+  close sans code le 8 novembre : on la documente seulement, par #296, fusionnée
+  le même jour (3.26) ; PQ, les deux petits changements décidés le 8 novembre,
+  est faite par #298 et #299, PT, les relevés et les vérifications jamais faits,
+  par #301, #303 et #304, et PP, le FIXME de `div_rel` en SSE2, par #302 (2.3) ;
+  le tableau de Clang 21 est remesuré par #316 (PJ.2, 3.34) ; il reste les
+  signalements à d'autres projets (PH) et la publication (PJ : la fusion de
+  `configure-clean` dans `master`, que le mainteneur fait lui-même, l'étiquette
+  `v5.0.0` et sa Release, l'annonce à Frédéric Goualard ; 3.36), qui attend les
+  constats de la relecture du 13 novembre (PU à PZ, 3.37 et 3.38, sont faites) :
+  voir `TODO.md`. Le 8 novembre, `TODO_fin.md` (la relecture du 4 novembre) est
   réparti dans les trois registres et supprimé (3.25).
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
   sur tout processeur ARM 64 bits avec tous les compilateurs (GCC, Clang,
@@ -4469,6 +4477,94 @@ acquired by Runner of type hosted »), et au commit `a0353be`, 59 au vert après
 la relance de MinGW-w64 15.2 (le même 504) et des deux jobs de macOS 26
 universels (le même défaut de runner) : aucun échec n'a eu un test pour cause.
 
+- - #380 (la tâche PZ, PZ.1 à PZ.10 sauf le `ChangeLog` ;
+  `manual-pz-review-fixes`, neuf commits, vingt-quatre fichiers, le PDF dans le
+  dernier, un commentaire de `gaol_parser.h` et deux de `tests/expressions.cpp`
+  pour tout code) : fusionnée le 16 novembre à 22 h 07 UTC par le mainteneur
+  (`5c746d7`, tête `9e0d1df`), avant la fin de sa CI. PZ.1 : les chiffres du
+  chemin AVX-512 (3,9 à 4,2 fois avec la direction préservée et 37 à 45 % de
+  plus sans elle sur le Xeon, que le chapitre 12 mesure, contre 2,9 et 20 % sur
+  l'i7 ; le chemin ne coûte pas moins sur des unités pleines) et ceux de FMA
+  (`log` 1,6, `cos` 1,4, `sin` 1,4, `exp` 1,1, `pow(x, 3)` 3,1 : ceux du tableau
+  du chapitre 2), dans les chapitres 2 et 4 et `doc/using.md`. PZ.2 : sept
+  configurations `-Wall -Wextra -Werror` et quatre `GAOL_SSE2_UNALIGNED_STORAGE`
+  dans le chapitre 14, `release.yml` et `manual.yml` parmi les exceptions des
+  déclencheurs (`doc/continuous-integration.md` aussi), 67 vérifications
+  d'opérandes vides, 97 opérations du sens d'arrondi, 2 071 cas d'`atan2_rel`
+  dont 1 338 avec points (`atan2_rel_values.py` les compte),
+  `static_initialization` à 44 vérifications aujourd'hui et 45 quand il a été
+  écrit, et, trouvé en passant, 54 tests avec CMake (GCC 12 ou plus, intervalles
+  SSE2 ; 51 avec les FPU, 52 avec la bibliothèque partagée, 50 avec Clang 18) et
+  non 47. PZ.3 : les seuils du lecteur écrits comme le lexer les a (10^311 ou
+  plus et au-dessous de 10^-331 en décimal, environ 2^1026 et 2^-1081 dans les
+  autres bases, sûrement dès 2^1029 et sous 2^-1084 en base 16), et le temps
+  linéaire d'un nombre au-delà des doubles dans six passages (chapitres 3, 9 et
+  15, `doc/differences.md`). PZ.4 : les bornes de `pow(1 + 2^-30, 2^33)` en
+  hexadécimal, les seuils d'`erfc` (26,5433 et 27,2133), `hull` du vide non
+  vide, `set_contains(+oo)` contre `isMember`, les deux constructeurs SIMD,
+  `operator<<` et `interval::precision()`, `div_rel` et la borne *finie* de K,
+  mpmath de 200 à 7 000 bits, la LTO de 1,2 à 1,5 fois, `fabs` et `copysign`, la
+  racine carrée de PROFIL/BIAS (4,5 ns, battue par GAOL v5 préservé à 4,4), GCC
+  qui a tourné sur le Xeon et les runners arm64, « le double au-dessous » du
+  résumé et de l'introduction, la phrase cassée et le coût de la direction
+  préservée (0,6 à 2,0 fois) de la conclusion ; le financement du post-doctorat
+  de Frédéric Goualard n'est pas changé (décidé le 7 novembre : 3.23). PZ.7 à
+  PZ.10 : la LTO acceptée par GAOL avec GCC 15.2 et, avec le chemin SSE2, 12.4,
+  13.3 et 14.2 (#325, #333, #336), les options que GCC 12 et après refuse (#330,
+  avec les macros de GCC et les quatre tests `refused_*`),
+  `-fno-honor-infinities` seul, l'arrêt de `init()` (#331), les nœuds non
+  copiables, `expression(const expr_node&)` explicit et `result()` (#332, #335),
+  `GAOL_ERROR` (#366), les trois en-têtes que `headers.sh` exclut
+  (`gaol_fpu_msvc.h` est retiré), CMake 3.15 pour `cmake --install`, les
+  drapeaux de la bibliothèque seule (#341), `-mno-daz-ftz` de Clang 20 et plus
+  (#344), les 300 s de `make check` (#343), les versions Mach-O (#349) et la
+  racine carrée de SSE2 (7,35 et 4,36 ns). PZ.5 : `doc/differences.md` reprend
+  ces corrections de PU à PY en puces (#323, #324, #326 à #335, #341, #343,
+  #344, #349, #353, #365 à #367), `interval::midrad` y est `centered_form`,
+  `cos([2^60])` n'y est plus d'un double trop large, `check/…` y est dit de GAOL
+  4, et « 27 ns plutôt que 37 » y est « plutôt que 38 à 44 avec les intervalles
+  FPU » (le tableau du chapitre 2 : 26,5 à 27,7 contre 38,2 à 43,6). PZ.6 : le
+  PDF, 393 pages, 0 erreur, sept « Overfull » de moins de 4 points ; les 118
+  exemples du manuel donnent leur sortie (`check_examples.py`). Le relecteur
+  sans contexte (392 000 jetons, plus que l'estimation de 150 000 à 250 000) a
+  vérifié chaque fait ajouté et trouvé deux faits faux, corrigés avant le PDF
+  (`expr_eval::result()` ne lève rien : il met l'erreur que `error_occurred()`
+  dit, dans trois textes ; `-std=c++11` n'est que celui de la bibliothèque, les
+  tests et les exemples étant en C++17) et huit voisins périmés (le chapitre 1,
+  le chapitre 14, `doc/accuracy.md`, « Clang 20 et 21 », « above 10^311 », les «
+  25 sur 45 » de `differences.md`, « the double below » du chapitre 15, les 54
+  tests sans compilateur) ; l'exemple `<1e-310, 1e-309>` du chapitre 4, qui
+  n'illustre pas denormals-are-zero (1e-310 n'est pas un double), devient
+  `<0x1p-1070, 0x1p-1071>`, refusé avec et sans le mode.
+
+La CI de #380 : à la fusion, la tête `9e0d1df` avait fini au vert pour Manual
+(le manuel construit par les trois builds), Linux et Linux containers, et
+attendait des runners pour macOS, Windows, Autotools and meson et Performance ;
+aucun échec.
+
+- - #381 (le `ChangeLog` de PZ.5, la pull request de synthèse ;
+  `synthese-pu-py`, un commit, un fichier) : fusionnée le 16 novembre à 22 h 09
+  UTC par le mainteneur (`9a2a88b`, tête `7c37376`), avant la fin de sa CI.
+  `check_branch` la refuse (« ledger files... changed ») comme toute branche du
+  `ChangeLog`, ce que le texte de la pull request dit. `interval::midrad` y est
+  `centered_form` ; l'entrée du manuel de GAOL 4 dit que `make -C manual pdf`,
+  la cible `pdf` et `manual.yml` ne construisent que celui de GAOL v5 ;
+  `manual/v5/gaol.tex` (quatre entrées) est `manual/v5/chapters` ; les chemins
+  d'avant #308 sont ceux d'aujourd'hui (19
+  `gaol_interval_{sse,fpu,neon,avx512}.cpp` en `*_impl.h`, et les fonctions de
+  `gaol_interval_core.cpp` dans la source de leur domaine) ; les chiffres des
+  autres registres s'accordent (35,0 et 23,3 ns pour sept produits FPU ; 27 ns
+  plutôt que 38 à 44 ; `max` et `min` de 2,8 à 3,7 fois plus rapides sur x86-64
+  d'après 8,5 à 2,3 ns avec GCC et 5,6 à 2,0 avec Clang) ; seize entrées
+  nouvelles pour les corrections de PU à PY. Le relecteur de #380 a relu cette
+  branche : une entrée disait que `result()` lève `error_occurred()`, corrigée
+  avant l'ouverture.
+
+La CI de #381 : à la fusion, la tête `7c37376` avait Linux et Linux containers
+en cours, les trois autres workflows en attente ; la CI du commit de fusion
+`9a2a88b` (celui de #380, `5c746d7`, a été annulé par la fusion de #381)
+tournait au moment des registres.
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -7745,6 +7841,46 @@ Fait : #379 (2.3 et 7.45). Ce qu'elle laisse : rien au manuel, à
 `doc/differences.md` ni au `ChangeLog` (des tests et `doc/tests.md` seulement :
 le manuel ne cite ni les macros ni `hull_values.py`).
 
+### 3.47 Le 16 novembre : la tâche PZ, le manuel et les registres (#380 et #381)
+
+Le mainteneur demande « traite la tâche PZ » (16 novembre). La session travaille
+dans un clone du scratchpad (GAOL_V9 est laissé tel quel), ouvre #380 (le
+manuel, `doc/differences.md` et le PDF) et #381 (le `ChangeLog`), que le
+mainteneur fusionne à 22 h 07 et 22 h 09 UTC. À la question « as-tu des
+questions ? », il répond, chaque fois par l'option recommandée :
+
+- **La couverture (PJ.1) et les mesures (PJ.2)** : à refaire au commit de la
+  version, une seule fois, avec le PDF ; le manuel garde 95,1 % et les temps du
+  12 novembre d'ici là.
+- **Les textes périmés des registres** (`TODO_AFTER.md`, en-tête, qui disait
+  que le développement continue dans `configure-clean` et « pas de GitHub
+  Release », et `TODO.md`, PJ.3) : corrigés dans les registres, après la
+  fusion (7.46), non dans une pull request ni tout de suite.
+- **Le chiffre de NEON avec `GAOL_PRESERVE_ROUNDING`** : celui du tableau du
+  chapitre 2 (26,5 à 27,7 ns contre 38,2 à 43,6 avec les intervalles FPU,
+  mesurés le 12 novembre), « 27 ns plutôt que 38 à 44 avec les intervalles FPU
+  », à la place des 37 du manuel et de `doc/differences.md` et des 39 du
+  `ChangeLog`, qui précédaient le tableau ; aucune nouvelle mesure sur le M2.
+- **Deux pull requests** : le `ChangeLog` seul dans #381, que `check_branch`
+  refuse par construction, et le reste dans #380.
+
+La session a aussi suivi, sans question, des décisions déjà prises : le
+financement du post-doctorat de Frédéric Goualard reste comme dans le manuel de
+GAOL 4 (3.23, le « à décider » de `TODO.md` était périmé), les badges de
+`doc/continuous-integration.md` et du manuel ne sont pas touchés (*décidé le 12
+novembre*, à ne pas inscrire), et les deux pages de trois lignes qui ferment les
+chapitres 5 et 10 du PDF sont celles du PDF d'avant (le mainteneur les avait
+laissées). La ligne « la 4.2.2 » du chapitre 12 n'existe plus : aucune
+occurrence de « 4.2.2 » n'y reste.
+
+Trouvé en passant, hors de PZ : `expr_eval::result()` ne lève rien (il met
+l'erreur que `error_occurred()` dit), contrairement à ce que disait le texte de
+#335 (le relecteur de #380), et `gaol_ERROR` est l'alias de `GAOL_ERROR`.
+Le relecteur a coûté 392 000 jetons, plus que l'estimation donnée avant de le
+lancer (150 000 à 250 000) : la consigne de `process.md` §7 (un relecteur par
+branche) demande un budget que les précédents (160 000 à 208 000 jetons pour des
+pull requests de tests) ne donnaient pas pour 100 Ko de texte.
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -7906,7 +8042,7 @@ dite ici ou dans la section 5.
   par #331, PU.6 par #326, PU.7 par #327, PU.8 par #328, PU.9 par #329, PU.10
   par #332, PU.11 par #333 et PU.12 par #334 ; décidé pendant le travail : voir
   3.39. Ce qu'elles laissent au manuel, à `doc/differences.md` et au `ChangeLog`
-  est dans `TODO.md` (PZ.5 et PZ.7).
+  est repris par la tâche PZ (#380 et #381 : 3.47).
 - [x] **PV** (le lecteur et les expressions de la relecture du 13 novembre) :
   les six points en une seule pull request, #335, fusionnée le 14 novembre :
   PV.1 les six noms de GAOL, puis quatre noms de la norme, dans les tables du
@@ -7915,29 +8051,24 @@ dite ici ou dans la section 5.
   repli de `move_to_side()`, avec le test `bad_snprintf` ; PV.5 le § perdu ;
   PV.6 la lecture d'un nombre très long en temps linéaire au-delà des doubles ;
   décidé pendant le travail : voir 3.40. Ce qu'elle laisse au manuel, à
-  `doc/differences.md` et au `ChangeLog` est dans `TODO.md` (PZ.3 et PZ.5 à
-  PZ.7).
-
+  `doc/differences.md` et au `ChangeLog` est repris par la tâche PZ (#380 et
+  #381 : 3.47).
 - [x] **PW** (les builds et la CI de la relecture du 13 novembre) : une pull
-  request par point, toutes fusionnées le 14 novembre : PW.1 par #337, PW.2
-  par #338, PW.3 par #339, PW.4 par #340, PW.5 par #341, PW.6 par #342, PW.7
-  par #343, PW.8 par #344, PW.9 par #345 (et #349 pour les versions Mach-O),
-  PW.10 par #346, PW.11 par #347 et PW.12 par #348 ; décidé pendant le travail :
-  voir 3.42. Ce qu'elles laissent au manuel, à `doc/differences.md` et au
-  `ChangeLog` est dans `TODO.md` (PZ.5, PZ.7 et PZ.8).
-
+  request par point, toutes fusionnées le 14 novembre : PW.1 par #337, PW.2 par
+  #338, PW.3 par #339, PW.4 par #340, PW.5 par #341, PW.6 par #342, PW.7 par
+  #343, PW.8 par #344, PW.9 par #345 (et #349 pour les versions Mach-O), PW.10
+  par #346, PW.11 par #347 et PW.12 par #348 ; décidé pendant le travail : voir
+  3.42. Ce qu'elles laissent au manuel, à `doc/differences.md` et au `ChangeLog`
+  est repris par la tâche PZ (#380 et #381 : 3.47).
 - [x] **PY.1 à PY.12** (les textes faux hors du manuel, le code mort, le nom de
   `GAOL_ERROR` et les avertissements de la relecture du 13 novembre) : une pull
-  request par point,
-  fusionnées le 15 novembre : PY.1 par #356, PY.2 par #357, PY.3 par #358, PY.4
-  par #359, PY.5 par #360, PY.6 par #361, PY.7 par #362, PY.8 par #363, PY.9 par
-  #364 (sans `textToInterval` : #369 fermée), PY.10 par #365 et PY.11 par #366,
-  avec #370 pour les `using` globaux ; PY.12 par #367, #368 et #375 à #378 (le
-  16 novembre) ; décidé pendant le travail : voir 3.43 et 3.44. Ce qu'elles
-  laissent au manuel,
-  à `doc/differences.md` et au `ChangeLog` est dans `TODO.md` (PZ.2, PZ.5, PZ.6
-  et PZ.9).
-
+  request par point, fusionnées le 15 novembre : PY.1 par #356, PY.2 par #357,
+  PY.3 par #358, PY.4 par #359, PY.5 par #360, PY.6 par #361, PY.7 par #362,
+  PY.8 par #363, PY.9 par #364 (sans `textToInterval` : #369 fermée), PY.10 par
+  #365 et PY.11 par #366, avec #370 pour les `using` globaux ; PY.12 par #367,
+  #368 et #375 à #378 (le 16 novembre) ; décidé pendant le travail : voir 3.43
+  et 3.44. Ce qu'elles laissent au manuel, à `doc/differences.md` et au
+  `ChangeLog` est repris par la tâche PZ (#380 et #381 : 3.47).
 - [x] **PX.1 à PX.5** (les tests sans dents de la relecture du 13 novembre) :
   une pull request par point, fusionnées : PX.1 par #351 et PX.2 par #352 le 15
   novembre à 13 h, PX.4 par #354 et PX.5 par #355 à 22 h, PX.3 par #353 le 16 à
@@ -7945,7 +8076,15 @@ dite ici ou dans la section 5.
   `TEST_EQ`), par #379 à 20 h 39 UTC, avec #372 pour `==` et `!=` entre
   intervalles, que le mainteneur a demandé ; décidé pendant le travail : voir
   3.45 et 3.46. Ce qu'elles laissent au manuel, à `doc/differences.md` et au
-  `ChangeLog` est dans `TODO.md` (PZ.5, PZ.6 et PZ.10).
+  `ChangeLog` est repris par la tâche PZ (#380 et #381 : 3.47).
+- [x] **PZ.1 à PZ.10** (le manuel, `doc/differences.md`, le `ChangeLog` et le
+  PDF, les restes de la relecture du 13 novembre et les corrections de PU à PY)
+  : le manuel et `doc/differences.md` par #380 et le `ChangeLog` par #381,
+  fusionnées le 16 novembre à 22 h 07 et 22 h 09 UTC (2.3) ; PZ.4 ne change pas
+  le financement du post-doctorat de Frédéric Goualard (décidé le 7 novembre :
+  3.23) ; la couverture et les mesures de PZ.6 sont à refaire au commit de la
+  version, avec le PDF (PJ ; décidé le 16 novembre : 3.47) ; décidé pendant le
+  travail : voir 3.47.
 
 ### Trouvé par la relecture de `configure-clean` du 14 octobre (62dad3a) : ce qui est fait
 
@@ -7999,8 +8138,9 @@ leur partie faite.
   `ChangeLog` et #280 pour leurs restes ; dans la tâche PJ, le 32 (#315), le 33
   (#316 et #317), le manuel (#294), macOS 14 (#313) et les restes de la synthèse
   (#313, #314 et #318) sont faits (3.34 et 3.35) ; il reste la publication (PJ.3
-  et PJ.4, décidées le 12 novembre au soir : 3.36), qui attend PX à PZ, PU à PW
-  étant faites (*décidé le 13 novembre* : 3.38).
+  et PJ.4, décidées le 12 novembre au soir : 3.36), qui attendait PU à PZ,
+  faites le 16 novembre (*décidé le 13 novembre* : 3.38) : elle attend le mot du
+  mainteneur.
 
 - **PX.3, le reste.** Les `TEST_EQ` à 1e-8 que PX.3 nomme sont remplacés par
   #353 (`TEST_HULL`, `hull_values.py`) ; les 57 autres
@@ -10062,6 +10202,25 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   fusion). Le clone du scratchpad (ses branches `todo-px3b-test-eq-rest` et
   `registers-px3b`, les arbres de build) est supprimé à la fin de la session ;
   GAOL_V8 et GAOL_V9 ne sont pas touchés.
+
+### 7.46 Le 16 novembre au soir (après #380 et #381 : les registres)
+
+- Les registres de la tâche PZ, en un commit direct sur `dev`, depuis un clone
+  `--shared` du scratchpad (GAOL_V9 est laissé tel quel) : `TODO.md` (l'en-tête,
+  la liste des pull requests, la table, la section PZ retirée avec son premier
+  paragraphe, la relecture du 13 novembre, déplacé ici en 3.47 ; PJ : la
+  couverture, les mesures et le PDF à refaire à la version, la phrase de PJ.3
+  sur `configure-clean`), `TODO_AFTER.md` (l'en-tête : `dev` est la base, la
+  Release de `release.yml`, le 16 novembre et `9a2a88b`), ce fichier (en-tête,
+  1, 2.3, 3.47, 4 et 7.46) et `process.md` (l'en-tête et §12). Les issues
+  #178 et #179 sont mises à jour, #177 non.
+- Ce commit ne change que des fichiers que les cinq workflows ignorent
+  (`TODO*.md` et `process.md`) : il ne lance aucun workflow et n'annule donc pas
+  la CI du commit de fusion `9a2a88b`.
+- Les branches `manual-pz-review-fixes` et `synthese-pu-py` ne sont plus sur
+  GitHub (supprimées à la fusion). Le clone du scratchpad (ses branches, les
+  arbres de build, le PDF et les textes des pull requests) est supprimé à la fin
+  de la session ; GAOL_V8 et GAOL_V9 ne sont pas touchés.
 
 ## 8. Le ménage fait
 

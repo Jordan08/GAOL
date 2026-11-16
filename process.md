@@ -14,9 +14,11 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12, et la façon de faire une version au §13.
-Dernière mise à jour : 16 novembre 2026, au commit `9e36147` de `dev` (la fusion
-de #379, le reste de PX.3, après les registres de la tâche PY, `1307cf9`, et la
-fusion de #378, `41fa78a`, la dernière pull request de la tâche PY, après les
+Dernière mise à jour : 16 novembre 2026, au commit `9a2a88b` de `dev` (la fusion
+de #381, le `ChangeLog` de la tâche PZ, après celle de #380, le manuel et le
+PDF, et les registres de la tâche PX, `3d0616e`, après la fusion de #379,
+`9e36147`, le reste de PX.3, après les registres de la tâche PY, `1307cf9`, et
+la fusion de #378, `41fa78a`, la dernière pull request de la tâche PY, après les
 registres de la tâche PX, `9e257be`, et ceux de PY.12, `7205e5c`, qui suivent la
 fusion de #377, `a42d016`, la dernière des trois pull requests de PY.12, #375 à
 #377, après la fusion de #353, `14f93d3`, la dernière des six pull requests de
@@ -79,7 +81,8 @@ branche `dev` (section 1).
     `configure-clean` à `master` (*décidé le 12 novembre*). *Décidé le 13
     novembre* : pas de fusion dans `master` tant que les tâches PU à PZ de
     `TODO.md` ne sont pas faites (« il y a encore des TODO. Donc ne fusionne
-    pas dans master maintenant »).
+    pas dans master maintenant ») ; elles le sont depuis le 16 novembre, et la
+    version attend le mot du mainteneur.
   - `todo-status`, l'ancienne branche des rapports et de l'outillage, a été
     supprimée le 4 octobre : ce qui en sert encore est dans `todo-notes/`.
 - **Les arbres de travail** : `/home/jninin/Documents/WORK/DEV/GAOL/GAOL_V9/GAOL`
@@ -914,7 +917,7 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
 
 ## 12. Où en est le travail (16 novembre 2026)
 
-Le reste à faire est dans `TODO.md` (tâches PZ, PH et PJ) et l'issue #179 ; ce
+Le reste à faire est dans `TODO.md` (tâches PH et PJ) et l'issue #179 ; ce
 qui est fait et décidé (pull requests fusionnées, décisions, mesures) est dans
 `TODO_DONE.md` (l'issue #177 n'est plus mise à jour) ; ce qui est reporté est
 dans `TODO_AFTER.md` et l'issue #178. L'état qui suit est daté : les commandes
@@ -1066,9 +1069,13 @@ git ls-remote --heads origin
   de 13 h 27 UTC le 15 à 7 h 16 UTC le 16 (`14f93d3`, `TODO_DONE.md` 2.3, 3.45,
   4 et 7.43), puis #379 (le reste de PX.3 : les bornes qui sont des doubles dans
   les `TEST_HULL` et les 57 `TEST_EQ` qui restaient) à 20 h 39 UTC (`9e36147`,
-  2.3, 3.46, 4 et 7.45) ; l'audit du 13 octobre a vérifié dans `configure-clean`
-  ce qu'annonçaient alors les points A, C à H et J à V.
-- **En cours** : au 16 novembre au matin, aucune pull request n'est ouverte :
+  2.3, 3.46, 4 et 7.45), puis #380 (la tâche PZ : le manuel,
+  `doc/differences.md` et le PDF, 393 pages) à 22 h 07 UTC et #381 (le
+  `ChangeLog` de PZ.5) à 22 h 09 UTC, par le mainteneur, avant la fin de leur CI
+  (`9a2a88b`, `TODO_DONE.md` 2.3, 3.47, 4 et 7.46) ; l'audit du 13 octobre a
+  vérifié dans `configure-clean` ce qu'annonçaient alors les points A, C à H et
+  J à V.
+- **En cours** : au 16 novembre au soir, aucune pull request n'est ouverte :
   #373 (le diagnostic d'un échec sous Rosetta ; `todo-rosetta-diagnostic-pow2`)
   est fermée sans fusion, son contenu étant dans `dev` (`TODO_DONE.md` 2.4), et
   #351 à #355 et #372 (la tâche PX) sont fusionnées, leurs registres faits, ceux
@@ -1099,8 +1106,11 @@ git ls-remote --heads origin
   `todo-py12e-float-loops`, `todo-py12f-tests-float-loops`) et #351 à #355 et
   #372 (la tâche PX ; `todo-px1-u128-schoolbook` à `todo-px5-reference-comments`
   et `todo-px6-ieee-basic-example`) et #379 (le reste de PX.3 ;
-  `todo-px3b-test-eq-rest`) sont fusionnées, leurs registres faits ; `dev` est
-  au commit de ces registres (7.45), après `9e36147`, la fusion de #379,
+  `todo-px3b-test-eq-rest`) et #380 et #381 (la tâche PZ ;
+  `manual-pz-review-fixes` et `synthese-pu-py`) sont fusionnées, leurs registres
+  faits ; `dev` est au commit de ces registres (7.46), après `9a2a88b`, la
+  fusion de #381, `5c746d7`, la fusion de #380, `3d0616e`, les registres de PX
+  (7.45), `9e36147`, la fusion de #379,
   `1307cf9`, les registres de PY (7.44), `41fa78a`, la fusion de #378,
   `9e257be`, les registres de PX (7.43), `7205e5c`, les registres de PY.12
   (7.42), `a42d016`, la fusion de #377, `1bfca77`, les registres de PY (7.41),
@@ -1162,8 +1172,8 @@ git ls-remote --heads origin
   : GitHub borne le corps d'une issue à 262 144 octets et le texte joint en fait
   plus de 270 000 (voir `TODO_DONE.md` 7.8).
 - **À faire**, dans l'ordre de `TODO.md` : les constats de la relecture du 13
-  novembre (PZ ; PU, PV, PW, PX et PY sont faites), les signalements à d'autres
-  projets (PH, avec l'accord du mainteneur), puis la version (PJ, après PU à PZ,
+  novembre sont faits (PU à PZ), restent les signalements à d'autres projets
+  (PH, avec l'accord du mainteneur), puis la version (PJ, après PU à PZ,
   *décidé le 13 novembre* : `dev` dans `configure-clean`, section 13, puis la
   fusion de `configure-clean` dans `master`, que le mainteneur ouvre et fusionne
   lui-même, puis l'étiquette annotée `v5.0.0`, que la session pose sur son mot
@@ -1176,10 +1186,11 @@ git ls-remote --heads origin
   ou les textes ont changé, ce qui n'était pas le cas le 12 novembre à `0ae1840`
   et l'est depuis PU et PV, qui ont changé le code de `gaol/`, PY, qui en a
   retiré du code mort, et PX, qui a ajouté `==` et `!=` aux intervalles et
-  l'option de GCC 12 sur aarch64). Ce qui est reporté (le 113, le site, les
-  traits pour YalAA et VNODE-LP, les décorations, ce qui attend du matériel) est
-  dans `TODO_AFTER.md`. Les dépendances entre points sont écrites dans chaque
-  tâche. Le mainteneur donne les tâches ou les points un par un (« traite la
+  l'option de GCC 12 sur aarch64, la couverture, les mesures et le PDF étant à
+  refaire une seule fois, à la version : *décidé le 16 novembre*). Ce qui est
+  reporté (le 113, le site, les traits pour YalAA et VNODE-LP, les décorations,
+  ce qui attend du matériel) est dans `TODO_AFTER.md`. Les dépendances entre
+  points sont écrites dans chaque tâche. Le mainteneur donne les tâches ou les points un par un (« traite la
   tâche PF », « traite le point 129 ») : ne commence pas le suivant sans lui.
 
 ## 13. Une version : `dev` → `configure-clean` → `master`
