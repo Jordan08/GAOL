@@ -848,8 +848,10 @@ namespace gaol_tests
   inline int doubles_below_tightest(double l, const Exact& v, int limit)
   {
     int n = 0;
-    for (double t = next_double(l); is_lower_bound(t, v) && n <= limit; t = next_double(t)) {
+    double t = next_double(l);
+    while (is_lower_bound(t, v) && n <= limit) {
       ++n;
+      t = next_double(t);
     }
     return n;
   }
@@ -857,8 +859,10 @@ namespace gaol_tests
   inline int doubles_above_tightest(double u, const Exact& v, int limit)
   {
     int n = 0;
-    for (double t = previous_double(u); is_upper_bound(t, v) && n <= limit; t = previous_double(t)) {
+    double t = previous_double(u);
+    while (is_upper_bound(t, v) && n <= limit) {
       ++n;
+      t = previous_double(t);
     }
     return n;
   }

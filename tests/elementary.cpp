@@ -81,8 +81,10 @@ namespace
   int doubles_between(double from, double to)
   {
     int n = 0;
-    for (double t = from; t < to && n <= limit; t = next_double(t)) {
+    double t = from;
+    while (t < to && n <= limit) {
       ++n;
+      t = next_double(t);
     }
     return n;
   }

@@ -1407,13 +1407,15 @@ namespace
         }
         double lo = GAOL_INFINITY, hi = -GAOL_INFINITY;
         bool pole_in = false;
-        for (double h = std::ceil(2.0 * l) / 2.0; h <= r; h += 0.5) {
+        double h = std::ceil(2.0 * l) / 2.0;
+        while (h <= r) {
           if (p.tan) {
             pole_in = pole_in || (h > l && h < r && is_pole(h));
           } else {
             lo = std::min(lo, rd(p.cr, h));
             hi = std::max(hi, ru(p.cr, h));
           }
+          h += 0.5;
         }
         if (p.tan) {
           const bool pl = is_pole(l), pr = is_pole(r);

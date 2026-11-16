@@ -131,11 +131,15 @@ namespace
     if (check(name + ": encloses", !r.is_empty() && is_root_lower_bound(r.left(), x, n)
                                    && is_root_upper_bound(r.right(), x, n), describe)) {
       int below = 0, above = 0;
-      for (double t = next_double(r.left()); below <= limit && is_root_lower_bound(t, x, n); t = next_double(t)) {
+      double t = next_double(r.left());
+      while (below <= limit && is_root_lower_bound(t, x, n)) {
         ++below;
+        t = next_double(t);
       }
-      for (double t = previous_double(r.right()); above <= limit && is_root_upper_bound(t, x, n); t = previous_double(t)) {
+      t = previous_double(r.right());
+      while (above <= limit && is_root_upper_bound(t, x, n)) {
         ++above;
+        t = previous_double(t);
       }
       check_distance(name, std::max(below, above), limit, describe);
     }

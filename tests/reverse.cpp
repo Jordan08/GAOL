@@ -77,8 +77,10 @@ namespace
   int doubles_from(double a, double b, int limit)
   {
     int n = 0;
-    for (double t = a; t < b && n <= limit; t = next_double(t)) {
+    double t = a;
+    while (t < b && n <= limit) {
       ++n;
+      t = next_double(t);
     }
     return n;
   }
@@ -505,8 +507,10 @@ namespace
   int atan2_doubles_from(double a, double b, int limit)
   {
     int n = 0;
-    for (double t = a; t < b && n <= limit; t = next_double(t)) {
+    double t = a;
+    while (t < b && n <= limit) {
       ++n;
+      t = next_double(t);
     }
     return n;
   }
@@ -628,10 +632,11 @@ namespace
           for (int k = 0; k < 3 && std::isfinite(py); ++k) {
             py = std::nextafter(py, -inf);
           }
-          for (int k = 0; k < 7 && std::isfinite(py); ++k, py = std::nextafter(py, inf)) {
+          for (int k = 0; k < 7 && std::isfinite(py); ++k) {
             if (y.left() <= py && py <= y.right()) {
               points.push_back(std::make_pair(py, e));
             }
+            py = std::nextafter(py, inf);
           }
         }
         for (double e : ys) {
@@ -639,10 +644,11 @@ namespace
           for (int k = 0; k < 3 && std::isfinite(px); ++k) {
             px = std::nextafter(px, -inf);
           }
-          for (int k = 0; k < 7 && std::isfinite(px); ++k, px = std::nextafter(px, inf)) {
+          for (int k = 0; k < 7 && std::isfinite(px); ++k) {
             if (x.left() <= px && px <= x.right()) {
               points.push_back(std::make_pair(e, px));
             }
+            px = std::nextafter(px, inf);
           }
         }
       }
