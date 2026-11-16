@@ -14,7 +14,7 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12, et la façon de faire une version au §13.
-Dernière mise à jour : 16 novembre 2026, au commit `9a2a88b` de `dev` (la fusion
+Dernière mise à jour : 17 novembre 2026, au commit `9a2a88b` de `dev` (la fusion
 de #381, le `ChangeLog` de la tâche PZ, après celle de #380, le manuel et le
 PDF, et les registres de la tâche PX, `3d0616e`, après la fusion de #379,
 `9e36147`, le reste de PX.3, après les registres de la tâche PY, `1307cf9`, et
@@ -102,7 +102,7 @@ branche `dev` (section 1).
 | Le reste à faire, en tâches (PA, PB...) qui regroupent des points (lettre et ancien numéro), avec leurs décisions | `TODO.md` de `dev`, et l'issue #179 (même texte) |
 | Ce qui est fait et décidé : pull requests fusionnées, décisions par date, points faits, mesures | `TODO_DONE.md` de `dev` (l'issue #177 n'est plus mise à jour depuis le 28 octobre) |
 | Ce qui est reporté : après la version, indéfiniment, en attente de matériel | `TODO_AFTER.md` de `dev`, et l'issue #178 (même texte) |
-| Les signalements à d'autres projets, et les questions reportées | issues « À communiquer… » (#125 à #138 sauf #128, et #175), #67 (décorations), et celles qui suivront |
+| Les signalements à d'autres projets, et les questions reportées | issues « À communiquer… » (#125 à #138 sauf #128, et #175 ; l'index est dans `TODO_AFTER.md` 2.6), #67 (décorations), et celles qui suivront |
 | Ce qui reste utile des rapports des agents (textes pour la synthèse, mesures, cas de test), l'outillage (`HOUSE_RULES.md`, `check_branch`, `gcore`...) | `todo-notes/` (index : `todo-notes/README.md`) ; les rapports d'origine sont dans l'historique, au commit `16a2f60` |
 | La revue d'origine (« revue n° n » dans `TODO_DONE.md`) | `examples/examples.md`, section 5 ; corrections proposées en annexe B |
 | La documentation : construire, utiliser, précision, tests, CI, écarts avec GAOL 4 | `doc/*.md`, `README.md` |
@@ -915,7 +915,7 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   reconstruit les deux GAOL au commit mesuré (les autres bibliothèques restent
   celles de la copie).
 
-## 12. Où en est le travail (16 novembre 2026)
+## 12. Où en est le travail (17 novembre 2026)
 
 Le reste à faire est dans `TODO.md` (tâches PH et PJ) et l'issue #179 ; ce
 qui est fait et décidé (pull requests fusionnées, décisions, mesures) est dans
@@ -1172,8 +1172,10 @@ git ls-remote --heads origin
   : GitHub borne le corps d'une issue à 262 144 octets et le texte joint en fait
   plus de 270 000 (voir `TODO_DONE.md` 7.8).
 - **À faire**, dans l'ordre de `TODO.md` : les constats de la relecture du 13
-  novembre sont faits (PU à PZ), restent les signalements à d'autres projets
-  (PH, avec l'accord du mainteneur), puis la version (PJ, après PU à PZ,
+  novembre sont faits (PU à PZ), reste PH (les textes de GAOL que les
+  signalements rendent faux, une pull request ; les signalements eux-mêmes
+  sont dans leurs issues et `TODO_AFTER.md` 2.6, avec l'accord du mainteneur),
+  puis la version (PJ, après PU à PZ,
   *décidé le 13 novembre* : `dev` dans `configure-clean`, section 13, puis la
   fusion de `configure-clean` dans `master`, que le mainteneur ouvre et fusionne
   lui-même, puis l'étiquette annotée `v5.0.0`, que la session pose sur son mot

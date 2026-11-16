@@ -186,123 +186,52 @@ runner ; leurs registres sont faits ici (`TODO_DONE.md` 2.3, 3.34, 3.35, 7.31 et
 
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
-| PH | Les signalements à d'autres projets | #125 à #138, #175 | accord |
+| PH | Les textes de GAOL que les signalements rendent faux | 7 fichiers | S |
 | PJ | La publication de v5.0.0 (`master`, étiquette, annonce) | 34, 71 | S |
 
-## PH. Les signalements à d'autres projets [attend l'accord du mainteneur]
+## PH. Les textes de GAOL que les signalements rendent faux [S]
 
-Chaque projet a son issue, avec ses brouillons en anglais, ses vérifications à
-refaire avant l'envoi et ses décisions ; les issues « À communiquer… » ne sont
-pas touchées par ce ménage. **Rien n'est envoyé**, et rien ne l'est sans
-l'accord explicite du mainteneur. Ordre : ce qui est prêt et qui a une valeur
-pour GAOL, puis ce qui demande une réplique à écrire, puis ce qui ne demande
-probablement rien.
+Les signalements à d'autres projets ne sont plus une tâche de ce fichier
+(*demandé par le mainteneur le 17 novembre* : « Vide la tâche PH en mettant à
+jour les issues ou en faisant une relecture de chaque issue »). Chaque issue,
+#125 à #138 sauf #128, et #175, porte ses textes anglais prêts à coller, ses
+correctifs, ses répliques, ses vérifications et ce que le mainteneur a à faire ;
+elles sont relues le 17 novembre (`TODO_DONE.md` 3.48), et l'index par projet
+est dans `TODO_AFTER.md` (2.6). Rien n'est envoyé, et rien ne l'est sans
+l'accord du mainteneur.
 
-Les brouillons sont à remettre à jour avant tout envoi (relecture du 4
-novembre, `TODO_DONE.md` 3.25) : des chemins des issues ouvertes ont changé
-avec #199 et #283 (`gaol/gaol_ldexp.h` est `gaol/math/gaol_ldexp.h`, dans les
-issues #125, #131 et #132 ; `gaol/core_math_port.h` est
-`gaol/math/gaol_core_math_port.h`, dans #127 et #131 ;
-`gaol/gaol_interval_core.cpp` est `gaol/core/gaol_interval_core.cpp`, dans #131,
-#132 et #133 ; `gaol/gaol_interval_neon.cpp` est
-`gaol/core/gaol_interval_neon.cpp`, dans l'issue #198), et l'issue #125 donne
-encore le correctif 3 « à envoyer » (l'amont l'a fait, `0d8b885a`) et le
-correctif 8 « à écrire » (#144 l'a écrit, `3rd/README.md`).
+Restent les passages de GAOL que ces vérifications du 13 novembre rendent
+faux, qui n'étaient que dans le fichier de travail du 13 novembre (supprimé le
+16) : à corriger en une pull request (process.md §7, aucun registre dans la
+branche). Lignes constatées à `f4867c7` de `dev` :
 
-1. **#125 CORE-MATH** : six correctifs de `3rd/README.md` à refaire ou à envoyer
-   sur le master du jour, `0b2ae6d1` (importé le 27 octobre). L'amont a fait
-   lui-même le 3 (`rsqrt.c`, `0d8b885a`) et le 4 (`sin.c`, `19e85418`) ; le 1
-   (les masques de `long`) ne s'applique plus, `cos.c` ayant été réécrit et les
-   lignes de `cosh.c` ayant bougé (ceux de `sinh.c` et de `cosh.c` restent),
-   donc à refaire ; les 2 et 5 à 8 s'appliquent tels quels (le 8, `exp_1()`, est
-   fait dans la copie de GAOL par #144). Des défauts sans correctif :
-   `atan2l.c`, la borne de `ss` de `asinpi_acc()`, `return` d'une expression
-   `void` dans `erfc.c`, `erfc` et `__builtin_ldexp()` ; qui envoie et comment
-   (merge request sur gitlab.inria.fr ou `git format-patch` à
-   core-math@inria.fr). Les deux défauts de `cr_pow()` que GAOL contournait
-   (*décidé le 24 octobre*, #184), la comparaison `<` d'un NaN (invalidité) et
-   le carré `rh * rh` qui déborde, sont corrigés par `c01f08c5` (5 octobre),
-   dans l'import : la pull request #213 (fusionnée le 28 octobre) a retiré les
-   contournements, sauf la puissance minuscule de |y| ≥ 2^1013, qu'un défaut de
-   plus de `cr_pow()` impose encore (`is_exact()` calcule `y * e`, qui déborde à
-   partir de |y e| = 2^1024 quand x est une puissance de 2 : `FE_OVERFLOW` pour
-   une puissance qui s'annule) ; #213 a gardé le raccourci (*décidé le 28
-   octobre*), qui sera retiré si l'amont corrige. Ce défaut est à proposer
-   aussi : la réplique et le correctif d'une ligne (`y <= 1074 &&` devant
-   `-1074 <= y * e`, car e ≠ 0 dans ce cas) sont écrits et vérifiés le 28
-   octobre sur 50 896 000 appels dans les quatre arrondis (mêmes résultats,
-   mêmes indicateurs sauf `FE_OVERFLOW`, levé exactement quand 2^(e y) déborde,
-   contre 4 551 008 indicateurs en trop avant) ; le brouillon anglais, avec la
-   réplique, est dans #125 (point 9, ajouté le 28 octobre à la demande du
-   mainteneur), pas encore dans `3rd/README.md` (correctif 9). Un autre, que
-   GAOL contourne sans toucher aux sources, est à proposer aussi : `cr_atan()`
-   calcule `x + x` pour un NaN avant le test qui le garde, ce qui lève
-   `FE_OVERFLOW` à partir de |x| = 2^1023 avec Visual C++ (`/fp:strict`), que
-   `atan_lo()` et `atan_hi()` évitent en rendant les bornes de pi/2 à partir de
-   |x| = 2^54 ; un import qui le corrigerait permettrait de retirer ce
-   contournement. Question de #212 (fusionnée le 28 octobre) sur des arguments
-   difficiles à arrondir de `cos.wc` (le fichier des pires cas de l'amont,
-   absent de l'arbre) : *décidé le 28 octobre*, non, les 45 arguments de
-   `cos_accurate_path()` suffisent ; elle ne voit pas les fautes de moins de
-   2^-70 environ en relatif, et les deux mutants qui survivent ne changent aucun
-   résultat observable. Depuis #283, `3rd/math-core/src` ne garde que
-   `binary64` : ce qui vise `atan2l.c` et `powl.c` de `binary80` ou `expm1q.c`
-   de `binary128` se refait contre un clone de l'amont.
-2. **#126 GCC** (la comparaison silencieuse rendue signalante par
-   l'if-conversion sur ARM 32 bits et POWER9 et par la vectorisation, et le
-   miscompilage de GCC 12.2 sur aarch64, dont #353 a trouvé la cause (avec
-   `-frounding-math`, `denorm_min()` écrit sur 16 octets dans une liste de
-   doubles, puis les constantes suivantes lues 8 octets trop tôt avec
-   `-fsection-anchors` ; un cas minimal de 40 lignes et le texte anglais sont
-   dans l'issue #374 ; GCC 11.4, 13.3 et 14.2 sont justes, 13.1 et 13.2 non
-   essayés sur aarch64) ; le bogue
-   52258 est de la même famille ; le brouillon a aussi, depuis le 5 novembre
-   (rien n'est envoyé), le défaut de GCC 14 que #279 a trouvé : `quiet_less(r,
-   l) || r == l` fusionné en un seul `r <= l`, qui signale, sur x86-64, AArch64
-   et RISC-V, avec sa réplique à écrire), **#127 mingw-w64** (`fma()` et
-   `round()` de msvcrt, `fesetexceptflag()` en 32 bits, le `fma()` x87 de
-   mingw-w64 11 ; deux triplets où il se trompe, qui ne sont ni dans le
-   brouillon ni ailleurs dans le dépôt que `todo-notes/synthese.md`, lignes 1346
-   et suivantes, sont à y ajouter),
-   **#129 ITF1788** (huit cas dont le résultat attendu n'est pas le plus serré,
-   et, depuis le rapport du 4 novembre, deux cas de `textToInterval` où ITF1788
-   attend un intervalle pour un littéral `[l, u]` dont l est au-dessus de u, que
-   GAOL rend vide selon IEEE 1788-2015, 12.12.7 ; *décidé le 4 novembre* :
-   ajoutés au brouillon de #129, en anglais, pour une issue à part ; *à
-   décider* depuis #290 : l'ambiguïté de la Table 10.7 que `overlap` relève, les
-   spécifications d'ensembles de `meets` et de `metBy` étant vraies aussi pour
-   un point d'intervalle sur une borne de l'autre, avec celles de `finishedBy`
-   et de `finishes`, par exemple [2] et [1, 2], à ajouter au brouillon de #129
-   ou à envoyer au groupe de la norme, si le mainteneur le veut : il n'a pas
-   demandé de signalement), **#130 Boost.Interval** (`rounded_transc_opp` donne
-   la borne supérieure pour l'inférieure ; issue seule ou avec une pull request,
-   selon la politique de Boost) et **#175 Cygwin** (le `fma()` mal arrondi dans
-   les quatre sens, le `nextafter()` qui calcule le débordement dans le sens
-   d'arrondi du programme, CPack qui ne met pas le lien `README` dans l'archive,
-   cause non trouvée ; mesures de CI et brouillon anglais dans l'issue, à
-   rejouer avant l'envoi).
-3. **#131 Microsoft** (`ldexp()` de l'UCRT, `NAN` et `INFINITY` sous
-   `/fp:strict`, `sqrt()` en 32 bits, runtime de Debug, `nextafter()`, le
-   `fma()` d'`ucrtbase.dll` jamais vérifié), **#132 Apple** (`ldexp()` et
-   `nextafter()` de macOS ; vérifié pendant la session du 20 au 21 octobre, un
-   commentaire posté dans l'issue), **#133 LLVM/Clang** (ARM 32 bits, `fcsel`
-   sur arm64, `-ffast-math` et `-frounding-math` ; Clang 11 à 23.1 et le trunk
-   émettent encore « overriding currently unsupported rounding mode on this
-   target » pour ARMv7 à flottants matériels, GCC ARM 10.5 à 16.1 est correct,
-   vérifié pendant la même session ; le refus de Clang par GAOL est donc
-   intact), **#135 musl** (la conversion décimale de `printf`) et **#136 les
-   auteurs du benchmark de Tang et al.** (fuite de mémoire, bornes infinies,
-   entrées de FPBench, constantes décimales, README) : chaque point attend une
-   réplique d'un fichier, vérifiée sur la plateforme, et un tri entre défaut,
-   limite connue et comportement voulu.
-4. **#134 gmpy2** (2.2.1 ; probablement rien à envoyer si 2.3.2 les a corrigés),
-   **#137 libieeep1788** (probablement rien : les six cas des réciproques sont
-   dans #129, comme les deux littéraux de `textToInterval`, qui viennent aussi
-   de ses tests) et **#138 la glibc** (probablement rien : relancer avec la
-   glibc 2.44) : vérifier, puis fermer.
-5. **#128 Frédéric Goualard** : l'annonce de v5.0.0, après l'étiquette (tâche
-   PJ, point 71) ; l'issue est fermée depuis le 18 octobre et le brouillon est
-   dans Gmail.
+- `gaol/math/gaol_core_math_port.h` (le commentaire sur `fesetexceptflag()`,
+  lignes 167 à 181) : le `fesetexceptflag()` de mingw-w64 pour x86 32 bits
+  n'écrit les drapeaux avec le masque que jusqu'à la version 12 ; mingw-w64
+  l'a corrigé lui-même (`4696986c30`, le 26 février 2025, dans la 13.0.0 ;
+  issue #127).
+- `gaol/core/gaol_interval_internal.h` (ligne 409) : `nextafter()` ne plante
+  pas sur macOS arm64 quand l'arrondi n'est pas au plus près ; c'était le mot
+  de contrôle x87 `0x0a3f` que Gaol 4.2.3 écrivait dans FPCR, qui active le
+  piège d'underflow (#132).
+- `gaol/core/gaol_interval_core.cpp` (lignes 529 à 531) : sous
+  denormals-are-zero, `nextafter()` se trompe dès k = 1, et non au-delà de 100
+  fois 2^-1074 (l'UCRT rend 0, macOS rend 2^-1074 ; #131 et #132).
+- `3rd/README.md` (constaté le 13 novembre, à revérifier dans la pull request ;
+  les numéros sont ceux de « Changes to propose upstream ») : le correctif 6
+  (la partie Cygwin est faite par l'amont, `70076f6a`, le 8 novembre) ; le
+  correctif 8 (`./check.sh` passe pour `pow` dans les quatre sens) ; un arrêt
+  de `pow` vers le bas qui a disparu (la phrase n'a pas été retrouvée le 17
+  novembre) ; trois endroits de plus pour le correctif 1 (`exp2l.c`,
+  `acosq.c` et `asinq.c`) ; le défaut de `is_exact()`, qui n'y est
+  toujours pas (le correctif 7 de la série de #125).
+- `doc/compare/itf1788.md` (lignes 52 et 177) : préciser que libieeep1788
+  attend lui-même l'ensemble vide pour les lignes 136 à 138 depuis 2015
+  (`201a6ca`), et que la valeur de la ligne 633 n'est pas celle de son test
+  (#129).
+- `doc/compare/tang2021.md` (lignes 149 à 156) et `doc/compare/tang2021/run.sh`
+  (ligne 13), facultatif : la fuite de gmpy2 est corrigée dès la 2.2.2 et
+  `div` dès la 2.3.0 (#134).
 
 ## PJ. La publication de v5.0.0 (Y) [S, dans cet ordre]
 

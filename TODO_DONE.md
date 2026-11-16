@@ -1,6 +1,6 @@
 # Fait et décidé sur GAOL v5
 
-Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 16 novembre
+Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 17 novembre
 2026 (commit `9a2a88b` de `dev`, la fusion de #381, et `83e2f69` de
 `configure-clean`, la fusion de #321 : voir la section 1). Ce fichier n'est que
 dans `dev`. Ce fichier fait foi : l'issue #177, qui avait le même contenu, n'est
@@ -12,7 +12,7 @@ l'ancien `TODO.md` et dans `TODO_mistral.md`, avec les réponses du mainteneur
 des 22 et 23 octobre. #49 et #142 sont fermées le 24 octobre, `TODO_mistral.md`
 est supprimé. Le reste du travail est dans deux autres registres :
 
-- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PZ, PH et PJ ;
+- `TODO.md` (issue #179) : ce qu'il reste à faire, en tâches PH et PJ ;
 - `TODO_AFTER.md` (issue #178) : ce qui est reporté, après la version, jusqu'à
   une décision ou jusqu'à du matériel.
 
@@ -50,12 +50,12 @@ est supprimé. Le reste du travail est dans deux autres registres :
   `16a2f60` (`todo-notes/`, ceux du 30 septembre dans `todo-notes/2026-09-30/`)
   ; la procédure suivie pour chaque point est dans `process.md`.
 
-Sommaire : 1. L'état au 10 novembre ; 2. Les pull requests ; 3. Les décisions,
+Sommaire : 1. L'état au 17 novembre ; 2. Les pull requests ; 3. Les décisions,
 par date ; 4. Les points faits, par lettre ; 5. Les anciens numéros faits ; 6.
 Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 `configure-clean` ; 8. Le ménage fait.
 
-## 1. L'état au 16 novembre 2026
+## 1. L'état au 17 novembre 2026
 
 - **`dev`**, la base du développement depuis le 13 novembre (3.38), est au
   commit `9a2a88b` (la fusion de #381 le 16 novembre à 22 h 09 UTC, après celle
@@ -259,8 +259,10 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   est faite par #298 et #299, PT, les relevés et les vérifications jamais faits,
   par #301, #303 et #304, et PP, le FIXME de `div_rel` en SSE2, par #302 (2.3) ;
   le tableau de Clang 21 est remesuré par #316 (PJ.2, 3.34) ; il reste les
-  signalements à d'autres projets (PH) et la publication (PJ : la fusion de
-  `configure-clean` dans `master`, que le mainteneur fait lui-même, l'étiquette
+  textes de GAOL de PH (une pull request ; ses signalements à d'autres projets
+  sont dans leurs issues et `TODO_AFTER.md` 2.6, 3.48) et la publication (PJ :
+  la fusion de `configure-clean` dans `master`, que le mainteneur fait
+  lui-même, l'étiquette
   `v5.0.0` et sa Release, l'annonce à Frédéric Goualard ; 3.36), qui attend les
   constats de la relecture du 13 novembre (PU à PZ, 3.37 et 3.38, sont faites) :
   voir `TODO.md`. Le 8 novembre, `TODO_fin.md` (la relecture du 4 novembre) est
@@ -7881,6 +7883,50 @@ lancer (150 000 à 250 000) : la consigne de `process.md` §7 (un relecteur par
 branche) demande un budget que les précédents (160 000 à 208 000 jetons pour des
 pull requests de tests) ne donnaient pas pour 100 Ko de texte.
 
+### 3.48 Le 17 novembre : la tâche PH vidée, les issues relues
+
+Le mainteneur demande « Vide la tâche PH en mettant à jour les issues ou en
+faisant une relecture de chaque issue » (17 novembre). La session lit les 20
+issues ouvertes (les 14 des signalements, #67, #198, #374 et les trois
+registres) et les compare à `TODO.md` (PH) et à `A_FAIRE.md` de `GAOL_PH/`, le
+dossier de travail du 13 novembre, que le mainteneur a supprimé le 16 novembre
+à 9 h 22 (il est à la corbeille) : ce qui reste de PH n'est plus que dans les
+issues.
+
+- **Les issues** : #125 à #127, #129 à #138 et #175 (les 14 de PH) reçoivent une
+  section « Relecture du 17 novembre 2026 » (ce qui est vérifié et ce qui ne
+  l'est pas), et « la tâche PH » y devient « tous les signalements ». Les textes
+  anglais prêts à coller ne changent pas. Ajouts : #125, « Côté GAOL » (les
+  décisions du 24 et du 28 octobre sur `cr_pow()` et sur `cos.wc`, `cr_atan()`
+  avec Visual C++, la correspondance entre la série de 8 correctifs et ceux de
+  `3rd/README.md`) et « Les répliques » (les 10 fichiers de `repro/` que la
+  lettre joint, qui n'étaient que dans le dossier supprimé) ; #126, la cause du
+  miscompilage de GCC 12.2 pour aarch64 (#353, rapport dans #374) et les
+  commandes qui refont les trois fichiers `.i` ; #127, deux triplets du `fma()`
+  de mingw-w64 11 pour x86, qui n'étaient que dans `todo-notes/synthese.md` ;
+  #129, la question de la Table 10.7 (`overlap`, #290) ; #132, les numéros de
+  ligne et un second commentaire de GAOL à corriger. Hors de PH, #198 : ses
+  noms de fichiers d'avant #199 et #308, et sa décision du 25 octobre et du 12
+  novembre (pas de tâche). #67, #374 et #177 à #179 ne sont pas modifiées. Les
+  15 corps sont relus après l'écriture, identiques à ce qui est écrit.
+- **Recalculé** (arithmétique rationnelle exacte de Python, mpmath à 2000 bits,
+  glibc 2.43 de la machine) : les valeurs attendues de `fma_round.c`, de
+  `round()` et de `sqrt_modes.c` (#127, #131, #175), les textes de
+  `decimal_modes.c`, les six résultats les plus serrés d'ITF1788 et le `powRev2`
+  de #129, et les pourcentages de `asin`, `sinh` et `tanh` de #138 (87,5, 98,6
+  et 94,0 % contre 87,4, 98,5 et 94,1 % dans le texte) : aucun écart. Les
+  chemins et les liens de GAOL des 16 issues existent dans `dev` et
+  `configure-clean`, sauf les noms de fichiers de #198. Pas refait : l'état des
+  projets visés (CORE-MATH, GCC, Boost, ITF1788...), les sorties de Windows,
+  de macOS et de Cygwin du 13 novembre, les compilateurs de Debian sid.
+- **`TODO.md`** : la tâche PH ne garde que les textes de GAOL que ces
+  vérifications rendent faux (une pull request, S), qui n'étaient que dans
+  `A_FAIRE.md` ; **`TODO_AFTER.md`** 2.6 prend les signalements : l'index par
+  projet et les décisions communes (un outil d'IA, l'adresse d'auteur, les
+  liens vers `configure-clean`).
+- **Pas fait** : la pull request de ces textes de GAOL ; la fermeture de #135 et
+  de #137, que leurs issues recommandent (au mainteneur) ; rien n'est envoyé.
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -10221,6 +10267,18 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   GitHub (supprimées à la fusion). Le clone du scratchpad (ses branches, les
   arbres de build, le PDF et les textes des pull requests) est supprimé à la fin
   de la session ; GAOL_V8 et GAOL_V9 ne sont pas touchés.
+
+### 7.47 Le 17 novembre (la tâche PH vidée : les registres)
+
+- Les registres de la demande du mainteneur (3.48), en un commit direct sur
+  `dev`, depuis un clone `--shared` du scratchpad (GAOL_V9 est laissé tel
+  quel) : `TODO.md` (la tâche PH réduite et le tableau), `TODO_AFTER.md` (2.6 et
+  la date de l'en-tête), ce fichier (en-tête, sommaire, 1, 3.48 et 7.47) et
+  `process.md` (l'en-tête, 2 et 12). Les issues #178 et #179 sont mises à jour,
+  #177 non ; les 15 issues de 3.48 l'ont été avant, par l'API REST.
+- Ce commit ne change que des fichiers que les cinq workflows ignorent
+  (`TODO*.md` et `process.md`) : il ne lance aucun workflow.
+- Le clone du scratchpad est supprimé à la fin de la session.
 
 ## 8. Le ménage fait
 

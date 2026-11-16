@@ -1,6 +1,6 @@
 # Reporté
 
-Tout ce qui est reporté sur GAOL v5 au 16 novembre 2026 (commit `9a2a88b` de
+Tout ce qui est reporté sur GAOL v5 au 17 novembre 2026 (commit `9a2a88b` de
 `dev`) : ce qui attend la version v5.0.0, ce que le mainteneur a reporté
 indéfiniment, ce qu'il a écarté en laissant une porte ouverte, et ce qui attend
 du matériel. Ce fichier et l'issue #178 ont le même contenu. Ce qui reste à
@@ -288,6 +288,57 @@ Release, l'étiquette suffit » du 3 octobre (*décidé le 12 novembre au soir* 
    arithmétique sensible pour un gain de lisibilité ; à reprendre avec un autre
    changement de ce fichier, en vérifiant que le code objet ne change pas (la
    méthode de #377). Reporté, sans condition.
+
+6. **Les signalements à d'autres projets (l'ancienne tâche PH)** [accord]
+   (*demandé par le mainteneur le 17 novembre* : « Vide la tâche PH en mettant
+   à jour les issues ou en faisant une relecture de chaque issue »,
+   `TODO_DONE.md` 3.48). Rien n'est envoyé, et rien ne l'est sans l'accord du
+   mainteneur, qui décide projet par projet. Chaque issue porte ses textes
+   anglais prêts à coller, ses correctifs, ses répliques, ses vérifications
+   (relues le 17 novembre) et ce que le mainteneur a à faire ; les textes de
+   GAOL que ces vérifications rendent faux sont dans `TODO.md` (PH). Les états
+   des projets visés sont ceux du 10 au 13 novembre : les refaire avant chaque
+   envoi.
+   - #125 CORE-MATH : envoyer la série de 8 correctifs, par e-mail à
+     core-math@inria.fr ou par merge request sur gitlab.inria.fr.
+   - #126 GCC : deux commentaires sur les bogues 91861 et 118541 de Bugzilla,
+     un troisième, facultatif, sur le 52258 ; le texte du rapport pour GCC 12.2
+     sur aarch64 est dans #374.
+   - #127 mingw-w64 : un commentaire sur le bogue 848 de SourceForge, et le
+     correctif de `round()` et de `roundf()` à la liste mingw-w64-public de
+     lists.sourceforge.net (abonnement à la liste).
+   - #129 ITF1788 : deux issues sur github.com/oheim/ITF1788 (dépôt inactif
+     depuis 2018) ; la Table 10.7 d'`overlap` est à décider.
+   - #130 Boost.Interval : une issue sur github.com/boostorg/interval ; la
+     pull request, dont le test manque, est à décider.
+   - #131 Microsoft : trois rapports sur la Developer Community (compte
+     Microsoft), un quatrième facultatif.
+   - #132 Apple : rien ; un Feedback facultatif (Feedback Assistant, Apple ID).
+   - #133 LLVM : rien ; une demande facultative (github.com/llvm/llvm-project).
+   - #134 gmpy2 : rien à l'amont ; un bogue Launchpad facultatif.
+   - #135 musl et #137 libieeep1788 : rien ; fermer les issues si le
+     mainteneur est d'accord.
+   - #136 Tang et al. : une issue sur github.com/geometryprocessing/intervals
+     (dépôt inactif depuis 2023).
+   - #138 glibc : rien, ou `asin` seul (Bugzilla de sourceware).
+   - #175 newlib et Cygwin : un correctif et une remarque sur `fma()` à
+     newlib@sourceware.org, un e-mail à cygwin@cygwin.com (`llistxattr()`, la
+     cause du défaut du lien `README` de CPack) ; rien à CMake.
+   - #128 (l'annonce à Frédéric Goualard) : tâche PJ, point 4 de `TODO.md`.
+
+   Décisions communes, à prendre d'abord : (1) *la mention d'un outil d'IA* :
+   les textes ont été préparés par une session Claude et sont envoyés sous le
+   nom du mainteneur ; LLVM demande de le signaler pour une issue dont une part
+   substantielle est générée (une ligne `Assisted-by:` ou une phrase dans la
+   description, sa politique d'outils d'IA), CORE-MATH accepte de tels
+   correctifs et l'écrit dans ses commits (`7f098788`) ; aucune politique
+   trouvée chez GCC, la glibc, musl, Boost, mingw-w64, newlib ni Cygwin ; les
+   textes n'ont aucune mention : à voir projet par projet ; (2) *l'adresse
+   d'auteur des correctifs* : celle du compte personnel du mainteneur, sans
+   `Signed-off-by`, remplacée dans les issues par `<adresse-de-l-auteur>` : la
+   mettre dans les lignes `From:` des fichiers `.patch` avant l'envoi ; (3) *les
+   liens vers GAOL* des textes visent la branche `configure-clean`, qui garde
+   le code ; après la version, l'étiquette `v5.0.0` est un autre choix.
 
 ## 3. Écarté, à rouvrir si une condition change
 
