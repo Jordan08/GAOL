@@ -259,11 +259,11 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   est faite par #298 et #299, PT, les relevés et les vérifications jamais faits,
   par #301, #303 et #304, et PP, le FIXME de `div_rel` en SSE2, par #302 (2.3) ;
   le tableau de Clang 21 est remesuré par #316 (PJ.2, 3.34) ; il reste les
-  textes de GAOL de PH (une pull request ; ses signalements à d'autres projets
-  sont dans leurs issues et `TODO_AFTER.md` 2.6, 3.48) et la publication (PJ :
-  la fusion de `configure-clean` dans `master`, que le mainteneur fait
-  lui-même, l'étiquette
-  `v5.0.0` et sa Release, l'annonce à Frédéric Goualard ; 3.36), qui attend les
+  textes de GAOL de PH (#382, ouverte ; ses signalements à d'autres projets sont
+  dans leurs issues et `TODO_AFTER.md` 2.6, 3.48 et 3.49) et la publication
+  (PJ, préparée par #383 : la fusion de `configure-clean` dans `master`, que le
+  mainteneur fait lui-même, l'étiquette `v5.0.0` et sa Release, l'annonce à
+  Frédéric Goualard ; 3.36), qui attend les
   constats de la relecture du 13 novembre (PU à PZ, 3.37 et 3.38, sont faites) :
   voir `TODO.md`. Le 8 novembre, `TODO_fin.md` (la relecture du 4 novembre) est
   réparti dans les trois registres et supprimé (3.25).
@@ -7940,8 +7940,55 @@ corbeille, et c'est pourquoi les issues se suffisent maintenant.
   `TODO_AFTER.md` 2.6. Le ménage que proposait `A_FAIRE.md` § 4 :
   `libs/src/tang` (4,3 Go) et `exp-clone/` de `GAOL_PH/` peuvent être
   supprimés ; aucune image Docker n'est restée.
-- **Pas fait** : la pull request de ces textes de GAOL ; la fermeture de #135 et
-  de #137, que leurs issues recommandent (au mainteneur) ; rien n'est envoyé.
+- **Pas fait** : la fermeture de #135 et de #137, que leurs issues recommandent
+  (au mainteneur) ; rien n'est envoyé. Les textes de GAOL sont dans #382 (3.49).
+
+### 3.49 Le 17 novembre : la tâche PH par #382, la préparation de PJ (#383)
+
+Le mainteneur demande ensuite « traite tout ce qui n'est pas dans les issues et
+qui est dans la tâche PH. Une fois fini, enlève la tâche PH de `TODO.md`.
+Prépare ensuite la tâche PJ » (17 novembre).
+
+- **PH, #382** (`todo-ph-gaol-texts`, quatre commits sur `2d3b47d7`) : les sept
+  textes de GAOL de l'ancien `A_FAIRE.md` § 3 que les vérifications du 13
+  novembre rendent faux : les commentaires de `gaol_core_math_port.h`
+  (mingw-w64 : `fesetexceptflag()` jusqu'à la 12), de `gaol_interval_internal.h`
+  (le plantage de `nextafter()` que IBEX a vu sur macOS arm64 venait du mot de
+  contrôle x87 de GAOL 4.2.3) et de `gaol_interval_core.cpp` (`nextafter()` sous
+  denormals-are-zero, faux dès k = 1), `3rd/README.md` (la série de huit de
+  #125 sur `018fa97c`, les points 9 et 10, `is_exact()` et `erfc.c`, les
+  contrôles de `pow`), `doc/compare/itf1788.md` et `tang2021.md`. Code objet
+  vérifié avec GCC 15.2 et Clang 18 : 54 objets, 50 identiques, les 4 autres ne
+  diffèrent que par `__FILE__` et deux `__LINE__` décalés d'une ligne. Le
+  relecteur (sous-agent, 151 000 jetons pour un plafond de 60 000 demandé) a
+  trouvé six points, dont le seul vrai défaut de fond : la ligne `erfc.c` du
+  tableau disait « not looked for » pour glibc, qui a la même construction
+  (`s_erfc.c`, `30f988fbe795`) ; tous corrigés. Sur la demande « enlève la
+  tâche PH de `TODO.md` », la tâche sort de `TODO.md` à l'ouverture de la pull
+  request, non à sa fusion.
+- **PJ, #383** (`manual-pj-coverage`, trois commits) : le rapport de couverture
+  au commit `2d3b47d7` (GCC 15.2, gcovr 7.2, 70 tests sur 70, `numbers` 251 s) :
+  95,5 % des 6503 lignes de `gaol/` (95,1 % des 6423 le 12 novembre), 69,2 % des
+  branches, 20 fichiers sur 36 à 100 % ; le tableau 14.8 du manuel et la phrase
+  qui le suit, le PDF régénéré (393 pages), recoupés par script avec le rapport,
+  sans sous-agent.
+- **Les temps** (la vérification de PJ.2) : une comparaison A/B sur l'i7-1185G7
+  (`performance-ab.sh --runs 5 --lines`, Clang 21.1.8, avant `2b5e4f9`, après
+  `dev`) : les 36 lignes de `gaol_performance` et les 10 longues lignes sont
+  toutes dans la dispersion (rapports de 0,96 à 1,06) ; les tableaux de l'x86
+  tiennent. NEON et AVX-512 sont à mesurer sur le M2 et le Xeon, que la session
+  n'a pas sollicités (le Mac est celui du mainteneur) : *à décider*.
+- **La branche de version**, essayée dans un clone du scratchpad sans rien
+  pousser (process.md §13, `release-5.0.0` de `configure-clean` et `dev` à
+  `2d3b47d7`) : cinq conflits, tous des notes ; l'arbre est celui de `dev` moins
+  les 23 fichiers de notes. La fusion de cette branche dans `master` garde
+  `.claude/CLAUDE.md` de `master` : le `git archive` aurait un fichier de plus
+  que les archives de CMake et de `make dist`, et le contrôle de la CI
+  (`buildsystems-dist`) échouerait sur `master` ; voir `TODO.md` PJ.3.
+- **La CI de `dev`** à `9a2a88b` (le dernier commit de code) : les cinq
+  workflows au vert. **Gmail** (lecture seule) : le brouillon « GAOL v5.0.0 » a
+  toujours son seul état du 13 novembre, sans destinataire ; aucun message des
+  auteurs d'IBEX ni de Codac depuis 60 jours.
 
 ## 4. Les points faits, par lettre
 
@@ -10295,6 +10342,17 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
 - Ce commit ne change que des fichiers que les cinq workflows ignorent
   (`TODO*.md` et `process.md`) : il ne lance aucun workflow.
 - Le clone du scratchpad est supprimé à la fin de la session.
+
+### 7.48 Le 17 novembre (la tâche PH sortie de `TODO.md`, PJ préparée)
+
+- Les registres de la demande du mainteneur (3.49), en un commit direct sur
+  `dev`, depuis un clone `--shared` du scratchpad : `TODO.md` (la tâche PH et sa
+  ligne du tableau retirées, les pull requests #382 et #383 ouvertes, PJ : la
+  préparation, la fusion dans `master`), `TODO_AFTER.md` (2.6), ce fichier
+  (1, 3.49 et 7.48) et `process.md` (§12). #179 et #178 sont mises à jour, #177
+  non. Les registres de #382 et de #383 se font après leur fusion.
+- Ce commit ne change que des fichiers que les cinq workflows ignorent : il ne
+  lance aucun workflow.
 
 ## 8. Le ménage fait
 

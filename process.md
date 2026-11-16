@@ -1172,10 +1172,10 @@ git ls-remote --heads origin
   : GitHub borne le corps d'une issue à 262 144 octets et le texte joint en fait
   plus de 270 000 (voir `TODO_DONE.md` 7.8).
 - **À faire**, dans l'ordre de `TODO.md` : les constats de la relecture du 13
-  novembre sont faits (PU à PZ), reste PH (les textes de GAOL que les
-  signalements rendent faux, une pull request ; les signalements eux-mêmes
-  sont dans leurs issues et `TODO_AFTER.md` 2.6, avec l'accord du mainteneur),
-  puis la version (PJ, après PU à PZ,
+  novembre sont faits (PU à PZ), PH est faite par #382 (ouverte : les textes de
+  GAOL que les signalements rendent faux ; les signalements eux-mêmes sont
+  dans leurs issues et `TODO_AFTER.md` 2.6, avec l'accord du mainteneur), puis
+  la version (PJ, préparée le 17 novembre avec #383 : `TODO.md`, après PU à PZ,
   *décidé le 13 novembre* : `dev` dans `configure-clean`, section 13, puis la
   fusion de `configure-clean` dans `master`, que le mainteneur ouvre et fusionne
   lui-même, puis l'étiquette annotée `v5.0.0`, que la session pose sur son mot

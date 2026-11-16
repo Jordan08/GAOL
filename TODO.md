@@ -45,8 +45,9 @@ des points, de #307 et de #306, hors des points, de #305, hors des points, de
 #302, la tâche PP, de #304 et de #303, les registres de la tâche PT, de #301, la
 tâche PT, de #300, hors des points, de #298, de #299, de #297, de #296 et de
 #295, de #294, le manuel dans le style de la thèse, et de #292, de #293, #291,
-#290 et #289), en tâches PH et PJ (PA à PG, PI, PL, PP, PQ, PS, PT, PU, PV, PW,
-PX, PY et PZ sont faites, PK et PM sont closes sans code : voir `TODO_DONE.md`).
+#290 et #289), en tâche PJ (PA à PH, PI, PL, PP, PQ, PS, PT, PU, PV, PW, PX, PY
+et PZ sont faites, PH par #382, ouverte, PK et PM sont closes sans code : voir
+`TODO_DONE.md`).
 Ce fichier et l'issue #179 ont le même contenu. Ce qui est fait et décidé est
 dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour), ce qui est reporté
 dans `TODO_AFTER.md` (issue #178). Les anciennes issues #49 et #142 sont
@@ -61,8 +62,16 @@ l'intervalle contient des solutions (PU.1, #323), et deux threads qui
 affichaient la même expression `-x` plantaient (PU.2, #324) ; une borne est
 peut-être fausse encore pour un programme qui met lui-même `FPCR.AH` sur arm64
 (issue #198 : `x / y` des intervalles NEON, cause non trouvée). Rien n'est à
-envoyer à un autre projet ni à publier sans l'accord du mainteneur. Aucune pull
-request n'est ouverte. #380 (la tâche PZ : le manuel, `doc/differences.md` et
+envoyer à un autre projet ni à publier sans l'accord du mainteneur. Deux pull
+requests sont ouvertes sur `dev` : #382 (la tâche PH : trois commentaires de
+GAOL, `3rd/README.md` et deux fichiers de `doc/compare/`, que les vérifications
+des signalements rendent faux) et #383 (PJ : le rapport de couverture du 17
+novembre, 95,5 % des lignes de `gaol/`, le manuel et son PDF, les temps de
+l'x86 vérifiés) ; leurs registres sont à faire après leur fusion. Aucune autre
+n'est ouverte. Les signalements à d'autres projets sont dans leurs issues, #125
+à #138 sauf #128, et #175 (`TODO_AFTER.md` 2.6) : l'ancienne tâche PH est
+sortie de ce fichier le 17 novembre (`TODO_DONE.md` 3.48 et 3.49). #380 (la
+tâche PZ : le manuel, `doc/differences.md` et
 son PDF, 393 pages) et #381 (le `ChangeLog` de PZ.5) sont fusionnées le 16
 novembre à 22 h 07 et 22 h 09 UTC par le mainteneur, avant la fin de leur CI,
 leurs registres faits (`TODO_DONE.md` 2.3, 3.47, 4 et 7.46) : la tâche PZ est
@@ -158,7 +167,7 @@ runner ; leurs registres sont faits ici (`TODO_DONE.md` 2.3, 3.34, 3.35, 7.31 et
 
 ## Comment lire ce fichier
 
-- Une tâche (PH, PJ) regroupe des points qui touchent le même code, les
+- Une tâche (PJ) regroupe des points qui touchent le même code, les
   mêmes fichiers ou les mêmes builds de validation, pour les traiter dans la
   même session ; chaque point reste une pull request à part (process.md : un
   point, une branche), sauf quand la tâche dit qu'une seule suffit. Les tâches
@@ -167,9 +176,9 @@ runner ; leurs registres sont faits ici (`TODO_DONE.md` 2.3, 3.34, 3.35, 7.31 et
   programme ou rompt une promesse écrite avant ce qui ne fait que ralentir ; le
   petit et sans dépendance avant le gros ; la version (PJ) en dernier. La lettre
   PR n'est pas une tâche : le sigle dit déjà « pull request ».
-- PH ne dépend d'aucune autre tâche, sauf quand le texte le dit (PJ suit PI, PS,
-  PQ, PP, PT, PU, PV, PW, PX, PY, PZ et les études de PG, qui sont faites : la
-  version en dernier, les corrections faites, *décidé le 19 octobre*).
+- PJ suit PH (#382), PI, PS, PQ, PP, PT, PU, PV, PW, PX, PY, PZ et les études
+  de PG, qui sont faites : la version en dernier, les corrections faites,
+  *décidé le 19 octobre*.
 - Chaque point garde sa lettre et son ancien numéro, par exemple « 79 (AB) » :
   ce sont ceux des pull requests, des issues, des commentaires du code et de
   `TODO_DONE.md` (section 4 pour les lettres, section 5 pour les numéros faits).
@@ -186,55 +195,7 @@ runner ; leurs registres sont faits ici (`TODO_DONE.md` 2.3, 3.34, 3.35, 7.31 et
 
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
-| PH | Les textes de GAOL que les signalements rendent faux | 7 fichiers | S |
 | PJ | La publication de v5.0.0 (`master`, étiquette, annonce) | 34, 71 | S |
-
-## PH. Les textes de GAOL que les signalements rendent faux [S]
-
-Les signalements à d'autres projets ne sont plus une tâche de ce fichier
-(*demandé par le mainteneur le 17 novembre* : « Vide la tâche PH en mettant à
-jour les issues ou en faisant une relecture de chaque issue »). Chaque issue,
-#125 à #138 sauf #128, et #175, porte ses textes anglais prêts à coller, ses
-correctifs, ses répliques, ses vérifications et ce que le mainteneur a à faire ;
-elles sont relues le 17 novembre (`TODO_DONE.md` 3.48), et l'index par projet
-est dans `TODO_AFTER.md` (2.6). Rien n'est envoyé, et rien ne l'est sans
-l'accord du mainteneur.
-
-Restent les passages de GAOL que ces vérifications du 13 novembre rendent
-faux, qui n'étaient que dans le fichier de travail du 13 novembre
-(`GAOL_PH/A_FAIRE.md`, hors du dépôt) : à corriger en une pull request
-(process.md §7, aucun registre dans la branche). Lignes constatées à `f4867c7`
-de `dev` :
-
-- `gaol/math/gaol_core_math_port.h` (le commentaire sur `fesetexceptflag()`,
-  lignes 167 à 181) : le `fesetexceptflag()` de mingw-w64 pour x86 32 bits
-  n'écrit les drapeaux avec le masque que jusqu'à la version 12 ; mingw-w64
-  l'a corrigé lui-même (`4696986c30`, le 26 février 2025, dans la 13.0.0 ;
-  issue #127).
-- `gaol/core/gaol_interval_internal.h` (ligne 409) : `nextafter()` ne plante
-  pas sur macOS arm64 quand l'arrondi n'est pas au plus près ; c'était le mot
-  de contrôle x87 `0x0a3f` que Gaol 4.2.3 écrivait dans FPCR, qui active le
-  piège d'underflow (#132).
-- `gaol/core/gaol_interval_core.cpp` (lignes 529 à 531) : sous
-  denormals-are-zero, `nextafter()` se trompe dès k = 1, et non au-delà de 100
-  fois 2^-1074 (l'UCRT rend 0, macOS rend 2^-1074 ; #131 et #132).
-- `3rd/README.md` (constaté le 13 novembre, à revérifier dans la pull request ;
-  les numéros sont ceux de « Changes to propose upstream ») : le correctif 6
-  (la partie Cygwin est faite par l'amont, `70076f6a`, le 8 novembre) ; le
-  correctif 8 (`./check.sh` passe pour `pow` dans les quatre sens) ; les lignes
-  484 à 486 et 520 à 526, qui disent que le contrôle de `pow` vers le bas
-  s'arrête sur un underflow parasite (corrigé par l'amont, `e072473e`, le 5
-  octobre), alors que `./check.sh --worst` passe maintenant ; trois endroits
-  de plus pour le correctif 1 (`exp2l.c`, `acosq.c` et `asinq.c`) ; le défaut
-  de `is_exact()`, qui n'y est toujours pas (le correctif 7 de la série de
-  #125).
-- `doc/compare/itf1788.md` (lignes 52 et 177) : préciser que libieeep1788
-  attend lui-même l'ensemble vide pour les lignes 136 à 138 depuis 2015
-  (`201a6ca`), et que la valeur de la ligne 633 n'est pas celle de son test
-  (#129).
-- `doc/compare/tang2021.md` (lignes 149 à 156) et `doc/compare/tang2021/run.sh`
-  (ligne 13), facultatif : la fuite de gmpy2 est corrigée dès la 2.2.2 et
-  `div` dès la 2.3.0 (#134).
 
 ## PJ. La publication de v5.0.0 (Y) [S, dans cet ordre]
 
@@ -243,18 +204,31 @@ En dernier : elle suppose les corrections faites et les études de PG faites
 `TODO_DONE.md` : le 32 (la couverture, PJ.1) par #315, le 33 (les temps, PJ.2)
 par #316 et #317, le manuel (PJ.5) par #294, les textes qui citent macOS 14
 (PJ.6) par #313 et les restes de la synthèse (PJ.7) par #313, #314 et #318 (2.3,
-3.23, 3.33, 3.34 et 3.35). À refaire au commit de la version, si le code ou les
-textes ont changé depuis : le rapport de couverture (`coverage/`, 5 minutes),
-les mesures de PJ.2 (25 minutes, avec le Mac M2 sur secteur et un Xeon à
-AVX-512 ; `sqrt` y est plus lent de 10 à 17 % qu'au 17 octobre, cause non
-isolée) et le PDF du manuel, avec la date d'édition (dans la pull request qui
-change les mesures ou les textes, comme #294). *Vérifié le 12 novembre* à
-`0ae1840` : rien n'est à refaire, `gaol/` n'ayant changé depuis #315 et #316 que
-d'un commentaire (#318) et les sources du manuel pas depuis son PDF
-(`TODO_DONE.md` 3.36). PU à PZ, faites le 16 novembre, ont changé le code de
-`gaol/` (PU, PV, PX et PY ; PZ n'y a changé que des commentaires) et les
+3.23, 3.33, 3.34 et 3.35). PU à PZ, faites le 16 novembre, ont changé le code
+de `gaol/` (PU, PV, PX et PY ; PZ n'y a changé que des commentaires) et les
 textes : la couverture, les mesures de PJ.2 et le PDF sont à refaire au commit
-de la version, une seule fois (*décidé le 16 novembre*). *Décidé le 13
+de la version, une seule fois (*décidé le 16 novembre*). Préparé le 17
+novembre à `2d3b47d` de `dev` (`TODO_DONE.md` 3.49) :
+- la couverture et le PDF du manuel : #383 (95,5 % des 6503 lignes de `gaol/`,
+  le tableau du chapitre 14, le PDF) ; à refaire seulement si du code de
+  `gaol/` change encore avant la version ;
+- les temps : une comparaison A/B de l'x86 (Clang 21, SSE2, une même séance)
+  entre le code du 12 novembre (`2b5e4f9`) et celui de `dev` ne montre aucune
+  différence au-delà de la dispersion (rapports de 0,96 à 1,06), les tableaux de
+  l'x86 tiennent. Restent le Mac M2 (NEON : `gaol_interval_neon_impl.h` a changé
+  d'une quarantaine de lignes) et le Xeon (AVX-512), par la même comparaison
+  (`.github/scripts/performance-ab.sh --runs 5 --lines`, avant `2b5e4f9`, après
+  `dev`, une dizaine de minutes chacun, le Mac sur secteur ; les sessions
+  MACarm5 et cloud5 sont libres). *À décider* : les refaire, ou garder les
+  mesures du 12 novembre ;
+- la CI de `dev` est verte au dernier commit de code (`9a2a88b`, les cinq
+  workflows) ;
+- la branche de version (process.md §13), essayée sans rien pousser : la
+  fusion de `dev` dans `configure-clean` n'a que cinq conflits modifié /
+  supprimé (`.gitattributes`, `TODO.md`, `TODO_AFTER.md`, `TODO_DONE.md` et
+  `process.md`) ; une fois ceux-là retirés par `git rm`, l'arbre est celui de
+  `dev` moins 23 fichiers de notes, et rien d'autre ; la CI de la pull request
+  compare les trois archives à `git archive`. *Décidé le 13
 novembre* : pas de fusion dans `master` tant que PU à PZ ne sont pas faites («
 il y a encore des TODO. Donc ne fusionne pas dans master maintenant ») ; elles
 le sont, et la version attend le mot du mainteneur : elle passe d'abord de `dev`
@@ -280,7 +254,18 @@ le sont, et la version attend le mot du mainteneur : elle passe d'abord de `dev`
    `.pkg` de macOS, `.exe` de Windows) ; aucune date ne change, et rien n'est
    gardé de l'ancien `master` (pas de branche `gaol-4`, les étiquettes `v4.*`
    suffisent). La fusion d'essai (`git merge-tree`, le 12 novembre à `0ae1840`)
-   est sans conflit et donne l'arbre de `configure-clean`. *Décidé le 12
+   était sans conflit et donnait l'arbre de `configure-clean`. Refaite le 17
+   novembre avec la branche de version (`dev` à `2d3b47d`), elle est sans
+   conflit mais ne donne plus l'arbre de la version : `master` a
+   `.claude/CLAUDE.md` (`577c850`, `406d850`), que `configure-clean` n'a plus
+   depuis #321, et la fusion le garde. Le `git archive` de ce commit aurait donc
+   un fichier de plus que les archives de CMake et de `make dist`, et la
+   comparaison de la CI (`buildsystems-dist`) échouerait sur `master` et sur
+   l'étiquette. *À décider* : supprimer `.claude/CLAUDE.md` de `master` par une
+   petite pull request, que le mainteneur fait avant la fusion de
+   `configure-clean` (c'est ce que la préparation recommande : l'arbre de
+   `master` est alors celui de la version) ; ou ajouter à `master` un
+   `.gitattributes` avec `export-ignore` sur ce fichier. *Décidé le 12
    novembre* : les recettes FetchContent (`doc/using.md`, le manuel,
    `tests/fetch_content`) et le `git clone` de `doc/building.md` visent `master`
    tout le temps, avant comme après l'étiquette, pour avoir la dernière version
@@ -318,4 +303,8 @@ le sont, et la version attend le mot du mainteneur : elle passe d'abord de `dev`
    existe. À faire avant l'envoi : vérifier l'adresse (celle du brouillon vient
    d'un échange de 2014 et d'une liste de 2020 : elle peut avoir changé) ; le
    second paragraphe (les défauts de GAOL 4) dépasse l'annonce décidée le 3
-   octobre, mais *décidé le 24 octobre* : le garder tel quel.
+   octobre, mais *décidé le 24 octobre* : le garder tel quel. *Vérifié le 17
+   novembre* dans Gmail : le brouillon « GAOL v5.0.0 » (13 novembre) n'a
+   toujours pas de destinataire, et l'adresse de Frédéric Goualard ne se lit
+   dans aucun message récent ; aucune réponse des auteurs d'IBEX et de Codac
+   depuis 60 jours (recherche par nom) : la licence de #281 attend toujours.

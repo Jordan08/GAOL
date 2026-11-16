@@ -296,9 +296,10 @@ Release, l'étiquette suffit » du 3 octobre (*décidé le 12 novembre au soir* 
    mainteneur, qui décide projet par projet. Chaque issue porte ses textes
    anglais prêts à coller, ses correctifs, ses répliques, ses vérifications
    (relues le 17 novembre) et ce que le mainteneur a à faire ; les textes de
-   GAOL que ces vérifications rendent faux sont dans `TODO.md` (PH). Les états
-   des projets visés sont ceux du 10 au 13 novembre : les refaire avant chaque
-   envoi. Ordre conseillé : ce qui est prêt et qui a une valeur pour GAOL, puis
+   GAOL que ces vérifications rendent faux sont corrigés par #382 (ouverte).
+   Les états des projets visés sont ceux du 10 au 13 novembre : les refaire
+   avant chaque envoi. Ordre conseillé : ce qui est prêt et qui a une valeur
+   pour GAOL, puis
    ce qui demande une réplique à écrire, puis ce qui ne demande probablement
    rien.
    - #125 CORE-MATH : envoyer la série de 8 correctifs, par e-mail à
