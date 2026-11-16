@@ -107,7 +107,8 @@ function of `tests/numbers.cpp` was read `{ 0, 1074790400, 1, 2, 4, 6, 15, 16
 `Debian 12 Bookworm arm64` of `containers.yml`). The three builds give GCC 12 for
 64-bit ARM `-fno-section-anchors`, which mends the offsets of the other
 constants, not the list itself, which the literal mends. GCC 11.4, 13.3 and 14.2
-for 64-bit ARM are right (GAOL v5).
+for 64-bit ARM are right; GCC 13.1 and 13.2 have not been tried there, and the
+three builds do not give them the option (GAOL v5).
 
 The link of the program takes one option too, where the compiler accepts it
 (GCC 13 and later on x86, from 11.4 and 12.4 in the series 11 and 12, and Clang 20

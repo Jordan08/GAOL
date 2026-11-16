@@ -121,7 +121,7 @@ jobs:
           cmake --version | head -1
           case "${{ matrix.cfg.generator }}" in
             DEB) g++ --version | head -1; dpkg --print-architecture ;;
-            productbuild) c++ --version | head -1; xcodebuild -version | head -1; command -v productbuild ;;
+            productbuild) c++ --version | head -1; xcodebuild -version | sed -n 1p; command -v productbuild ;;
             NSIS)
               if ! command -v makensis > /dev/null && [ ! -x "/c/Program Files (x86)/NSIS/makensis.exe" ]; then
                 choco install nsis -y --no-progress
