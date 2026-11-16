@@ -94,8 +94,10 @@ namespace
   inline int doubles_up_to(double from, double to, int max_doubles)
   {
     int n = 0;
-    for (double t = from; t < to && n <= max_doubles; t = next_double(t)) {
+    double t = from;
+    while (t < to && n <= max_doubles) {
       ++n;
+      t = next_double(t);
     }
     return n;
   }
@@ -2278,10 +2280,12 @@ namespace
       if (!k.is_finite() || k.right() - k.left() > 2.0) {
         return;
       }
-      for (double n = k.left(); n <= k.right(); n += 1.0) {
+      double n = k.left();
+      while (n <= k.right()) {
         const interval multiple = interval(n) * period;
         x_hull |= x & (y + multiple);
         y_hull |= y & (x - multiple);
+        n += 1.0;
       }
     }
     x = x_hull;
