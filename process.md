@@ -16,7 +16,8 @@ Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui e
 en cours, ce qui reste) est au §12, et la façon de faire une version au §13.
 Dernière mise à jour : 16 novembre 2026, au commit `a42d016` de `dev` (la fusion
 de #377, la dernière des trois pull requests de PY.12, #375 à #377, après la
-fusion de #353, `14f93d3`, d'une autre session, et les registres de la tâche PY,
+fusion de #353, `14f93d3`, la dernière des six pull requests de la tâche PX,
+#351 à #355 et #372, et les registres de la tâche PY,
 `1bfca77`, qui suivent la fusion de #368, `1efa1c4`, la dernière des quatorze
 pull requests de la tâche PY, #356 à #368 et #370, après la fusion de #352,
 `1f901d9`, et les registres de la tâche PW,
@@ -1059,15 +1060,19 @@ git ls-remote --heads origin
   #356 à #368 et #370, les quatorze pull requests de la tâche PY, de 13 h 31 à
   21 h 58 UTC (`1efa1c4`, `TODO_DONE.md` 2.3, 2.4, 3.43, 4 et 7.41), #369 étant
   fermée sans fusion, puis, le 16 novembre, #375 à #377, le reste de PY.12, de
-  7 h 19 à 7 h 23 UTC (`a42d016`, `TODO_DONE.md` 2.3, 3.44, 4 et 7.42) ;
+  7 h 19 à 7 h 23 UTC (`a42d016`, `TODO_DONE.md` 2.3, 3.44, 4 et 7.42), puis,
+  les 15 et 16 novembre, #351 à #355 et #372, les six pull requests de la tâche
+  PX, de 13 h 27 UTC le 15 à 7 h 16 UTC le 16 (`14f93d3`, `TODO_DONE.md` 2.3,
+  3.45, 4 et 7.43) ;
   l'audit du 13 octobre a
   vérifié dans `configure-clean` ce qu'annonçaient alors les points A, C à H et
   J à V.
 - **En cours** : au 16 novembre au matin, aucune pull request n'est ouverte :
   #373 (le diagnostic d'un échec sous Rosetta ; `todo-rosetta-diagnostic-pow2`)
   est fermée sans fusion, son contenu étant dans `dev` (`TODO_DONE.md` 2.4), et
-  #353 et #372 (la tâche PX, d'une autre session, dont les registres ne sont pas
-  faits ici) sont fusionnées ; #295 (PS.2 ; `manual-neon-pown-text`), #296 (le
+  #351 à #355 et #372 (la tâche PX) sont fusionnées, leurs registres faits, ceux
+  de #350 (une suite de PW.6 ; `todo-pw6b-audit-mingw32`) ne l'étant pas ;
+  #295 (PS.2 ; `manual-neon-pown-text`), #296 (le
   cas (b) ;
   `manual-case-b-text`), #297 (la tâche PS ; `todo-ps-stale-texts`), #299
   (PQ.2 ; `todo-pq-hexfloat-point`), #298 (PQ.1 ; `todo-pq-centered-form`), #300
@@ -1092,8 +1097,11 @@ git ls-remote --heads origin
   tâche PY ; `todo-py1-avx512-measured` à `todo-py12b-numbers-format` et
   `todo-py11b-internal-usings`, #369 étant fermée sans fusion) et #375 à #377
   (PY.12 ; `todo-py12c-useless-casts-lib`, `todo-py12d-useless-casts-tests` et
-  `todo-py12e-float-loops`) sont fusionnées, leurs registres faits ; `dev` est
-  au commit de ces registres (7.42), après `a42d016`, la fusion de #377,
+  `todo-py12e-float-loops`) et #351 à #355 et #372 (la tâche PX ;
+  `todo-px1-u128-schoolbook` à `todo-px5-reference-comments` et
+  `todo-px6-ieee-basic-example`) sont fusionnées, leurs registres faits ; `dev`
+  est au commit de ces registres (7.43), après `7205e5c`, les registres de PY.12
+  (7.42), `a42d016`, la fusion de #377,
   `1bfca77`, les registres de PY (7.41), `1efa1c4`, la fusion de #368,
   `40c328a`, les registres de PW (7.40),
   `ebf2efd`, la fusion de #349, `8780a1c`, les registres de #336 (7.39),
@@ -1154,7 +1162,8 @@ git ls-remote --heads origin
   issue à 262 144 octets et le texte joint en fait plus de 270 000 (voir
   `TODO_DONE.md` 7.8).
 - **À faire**, dans l'ordre de `TODO.md` : les constats de la relecture du 13
-  novembre (PX à PZ ; PU, PV et PW sont faites, PY ne garde que PY.12), les
+  novembre (PX à PZ ; PU, PV et PW sont faites, PX ne garde que le reste de
+  PX.3, PY ne garde que PY.12), les
   signalements à d'autres projets (PH,
   avec l'accord du mainteneur), puis la version (PJ, après PU à PZ,
   *décidé le 13 novembre* : `dev` dans `configure-clean`, section 13, puis la
@@ -1167,8 +1176,9 @@ git ls-remote --heads origin
   PJ.7 sont faits par #315 à #318 et coupés de `TODO.md`, la couverture, les
   mesures et le PDF du manuel étant à refaire au commit de la version si le code
   ou les textes ont changé, ce qui n'était pas le cas le 12 novembre à `0ae1840`
-  et l'est depuis PU et PV, qui ont changé le code de `gaol/`, et PY, qui en a
-  retiré du code mort). Ce qui est
+  et l'est depuis PU et PV, qui ont changé le code de `gaol/`, PY, qui en a
+  retiré du code mort, et PX, qui a ajouté `==` et `!=` aux intervalles et
+  l'option de GCC 12 sur aarch64). Ce qui est
   reporté (le 113, le site, les traits pour YalAA et VNODE-LP, les décorations,
   ce qui attend du matériel) est dans `TODO_AFTER.md`. Les dépendances entre
   points sont écrites dans chaque tâche. Le mainteneur donne les tâches ou les

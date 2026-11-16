@@ -576,6 +576,18 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
     à plus de 400 s sur le macOS Intel : si une limite de 300 s y échoue,
     relancer, puis relever `GAOL_TEST_TIMEOUT`. *À surveiller.*
 
+15. **GCC 13.1 et 13.2 sur aarch64** (PX.3, #353). Avec `-frounding-math`, GCC
+    12.2 écrit `denorm_min()` sur 16 octets dans une liste de doubles (issue
+    #374) ; sur x86 le défaut va de GCC 12.1 à 12.3 et de 13.1 à 13.2, mais sur
+    aarch64 seul GCC 12.2 est essayé (11.4, 13.3 et 14.2 sont justes), et les
+    trois builds ne donnent `-fno-section-anchors` qu'à la série 12 (*décidé le
+    16 novembre* : « Laisser à GCC 12 » ; `doc/using.md` et le manuel disent que
+    13.1 et 13.2 n'y sont pas essayés). *À reprendre* si un GCC 13.1 ou 13.2
+    pour aarch64 se présente : compiler le cas minimal de l'issue #374 (`-O2
+    -frounding-math`) ; s'il se trompe, étendre la condition des trois builds à
+    ces deux versions et les textes de `doc/using.md`, de `doc/three-builds.md`
+    et du manuel.
+
 ## 5. Une limite connue, documentée, sans décision de la lever
 
 1. **`[l, u]` ne départage pas** pi et un autre nombre de même encadrement

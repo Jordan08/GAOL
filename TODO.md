@@ -2,12 +2,14 @@
 
 Ce qui reste à faire sur GAOL v5 au commit `a42d016` de `dev` (la fusion de #377
 le 16 novembre à 7 h 23 UTC, la dernière des trois pull requests de PY.12, #375
-à #377, fusionnées de 7 h 19 à 7 h 23 UTC par le mainteneur, après celle de
-#353, PX.3, d'une autre session, à 7 h 16 UTC, et les registres de la tâche PY,
+à #377, fusionnées de 7 h 19 à 7 h 23 UTC par le mainteneur, après celle de #353
+à 7 h 16 UTC, la dernière des six pull requests de la tâche PX, #351 à #355 et
+#372, fusionnées de 13 h 27 à 22 h 15 UTC le 15 novembre et à 7 h 16 UTC le 16,
+et les registres de la tâche PY,
 `1bfca77`), et avant au commit `1efa1c4` de `dev` (la fusion de #368 le 15
 novembre à 21 h 58 UTC, la dernière des quatorze pull requests de la tâche PY,
 #356 à #368 et #370, fusionnées de 13 h 31 à 21 h 58 UTC par le mainteneur,
-après celle de #352, PX.2, d'une autre session, et les registres de la tâche PW,
+après celle de #352, PX.2, et les registres de la tâche PW,
 `40c328a`), et avant au commit `ebf2efd` de `dev` (la fusion de
 #349 le 14 novembre à 22 h 18 UTC, la dernière des treize pull requests de la
 tâche PW, #337 à #349, fusionnées de 21 h 01 à 22 h 18 UTC après les registres
@@ -38,7 +40,8 @@ registres de la tâche PT, de #301, la tâche PT, de #300, hors des points,
 de #298, de #299, de #297, de #296 et de #295, de #294, le manuel dans le style
 de la thèse, et de #292, de #293, #291, #290 et #289), en tâches PX à PZ (les
 constats de la relecture complète du 13 novembre), PH et PJ (PA à PG, PI, PL,
-PP, PQ, PS, PT, PU, PV et PW sont faites, PY ne garde que son point 12, PK et
+PP, PQ, PS, PT, PU, PV et PW sont faites, PX ne garde que le reste de son point
+3, PY ne garde que son point 12, PK et
 PM sont closes sans code : voir
 `TODO_DONE.md`). Ce fichier et l'issue #179 ont le même contenu. Ce qui est fait
 et décidé est dans `TODO_DONE.md` (l'issue #177 n'est plus mise à jour), ce qui
@@ -59,10 +62,13 @@ request n'est ouverte. #373 (hors des points : le diagnostic du contrôle de
 `pow(x, [2])` de `tests/arithmetic.cpp`, qui a échoué une fois sous Rosetta sur
 #358) est dans `dev` par le commit de fusion `cc81735`, que GitHub a fait le 15
 novembre à 22 h 50 UTC sans marquer la pull request fusionnée ; le mainteneur
-l'a fermée le 16 novembre à 7 h 15 UTC (`TODO_DONE.md` 2.4). #353 et #372 (la
-tâche PX, d'une autre session : ses registres ne sont pas faits ici, pas plus
-que ceux de #350 à #352, #354 et #355) sont fusionnées, #372 le 15 novembre à
-22 h 15 UTC et #353 le 16 à 7 h 16 UTC. #356 à #368 et #370 (la tâche PY : les
+l'a fermée le 16 novembre à 7 h 15 UTC (`TODO_DONE.md` 2.4). #351 à #355 et #372
+(la tâche PX : les tests sans dents, le défaut de GCC 12 sur aarch64 que la CI
+de #353 a trouvé, et `==` et `!=` entre intervalles) sont fusionnées, de 13 h 27
+à 22 h 15 UTC le 15 novembre et #353 le 16 à 7 h 16 UTC, leurs registres faits
+(`TODO_DONE.md` 2.3, 3.45, 4 et 7.43), PX ne gardant que le reste de son point
+3, alors que ceux de #350 (une suite de PW.6, fusionnée le 15 novembre à 7 h 37
+UTC) ne le sont pas. #356 à #368 et #370 (la tâche PY : les
 textes faux hors du manuel, le code mort, le nom de `GAOL_ERROR` et les
 avertissements de la relecture du 13 novembre, une pull request par point, plus
 #368 et #370 pour les suites de PY.12 et de PY.11) sont fusionnées dans `dev` le
@@ -170,7 +176,7 @@ registres sont faits ici (`TODO_DONE.md` 2.3, 3.34, 3.35, 7.31 et 7.32).
 
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
-| PX | Les tests sans dents | PX.1 à PX.5 | S |
+| PX | Les tests sans dents (le reste de PX.3) | PX.3 | S |
 | PY | Les avertissements qui restent | PY.12 | S |
 | PZ | Le manuel, `differences.md` et le `ChangeLog` | PZ.1 à PZ.8 | M |
 | PH | Les signalements à d'autres projets | #125 à #138, #175 | accord |
@@ -182,68 +188,38 @@ Les tâches PX à PZ viennent de la relecture complète du 13 novembre : 31
 relecteurs indépendants sur l'archive de `9d59e0c`, après des contrôles
 automatiques qui passent tous (builds, fichiers générés, PDF, exemples du
 manuel), chaque constat revérifié par la session ; le mainteneur en a fait des
-tâches le même jour (`TODO_DONE.md` 3.37), dont la tâche PU, faite par #323
-à #334 (`TODO_DONE.md` 2.3 et 3.39), la tâche PV, faite par #335 en une seule
-pull request (`TODO_DONE.md` 2.3 et 3.40) et la tâche PW, faite par #337 à #349
-(`TODO_DONE.md` 2.3 et 3.42). Le rapport, les rapports des relecteurs et les
-programmes de preuve sont hors du dépôt, dans
-`/home/jninin/Documents/WORK/DEV/GAOL/GAOL_review_2026-11-13/` (`rapport.md`).
-Les numéros de ligne sont ceux de `9d59e0c` : au début d'un point, le relire
-contre l'arbre, que PU, PV, PW et #336 ont changé. « Démontré » : un programme
-ou un calcul le montre ; « plausible » : raisonné, non montré. Chaque point est
-une pull request, avec un test qui a des dents (process.md §5). Le test de PU.1
-est fait par #323.
+tâches le même jour (`TODO_DONE.md` 3.37), dont la tâche PU, faite par #323 à
+#334 (`TODO_DONE.md` 2.3 et 3.39), la tâche PV, faite par #335 en une seule pull
+request (`TODO_DONE.md` 2.3 et 3.40), la tâche PW, faite par #337 à #349
+(`TODO_DONE.md` 2.3 et 3.42) et la tâche PX, faite par #351 à #355 et #372
+(`TODO_DONE.md` 2.3, 3.45 et 4), sauf le reste de son point 3, ci-dessous. Le
+rapport, les rapports des relecteurs et les programmes de preuve sont hors du
+dépôt, dans `/home/jninin/Documents/WORK/DEV/GAOL/GAOL_review_2026-11-13/`
+(`rapport.md`). Les numéros de ligne sont ceux de `9d59e0c` : au début d'un
+point, le relire contre l'arbre, que PU, PV, PW et #336 ont changé. « Démontré »
+: un programme ou un calcul le montre ; « plausible » : raisonné, non montré.
+Chaque point est une pull request, avec un test qui a des dents (process.md §5).
+Le test de PU.1 est fait par #323.
 
-1. **`tests/u128.cpp`** (important, démontré) : sans entier natif de 128 bits
-   (i386, armhf, Visual C++, « where this code runs in earnest »), « mul64 is
-   mul of the low halves » (lignes 199 à 201) compare `gaol_u128_mul64()` à
-   lui-même (`gaol_u128_mul()` commence par lui, `gaol/math/gaol_u128.h`, ligne
-   161), et le « schoolbook product » qu'annonce l'en-tête (lignes 18 à 21)
-   n'existe pas ; les branches `_umul128` et `__umulh` de Visual C++ ne sont
-   jamais comparées à une valeur indépendante. Ajouter un produit scolaire sur
-   des chiffres de 16 bits.
-2. **Des vérifications qui ne peuvent pas échouer** (mineur, démontré) : la
-   boucle aléatoire de `cancel_minus` saute tout résultat `entire` sans le
-   justifier, et pour les décalages 0 et +1 ses 100 000 résultats le sont
-   (`tests/arithmetic.cpp`, lignes 2310 à 2323) ; `X.set_contains(X)`
-   (`tests/interval_functions.cpp`, lignes 77 et 79 à 81 : un `.midpoint()`
-   perdu) ; la borne droite de `log([-3, 4])` vérifiée d'un seul côté
-   (`tests/non_arithmetic.cpp`, ligne 127) ; le sens d'arrondi vérifié juste
-   après `round_upward()` (`tests/test_ibex_codac.cpp`, lignes 3382 et 3383) ;
-   `TEST_PEQ` (non disjoints) pour la relecture d'un texte écrit
-   (`tests/input_output.cpp`, lignes 169 et 170 : un point milieu passe).
-3. **Des tolérances trop larges** (mineur, démontré) : `TEST_EQ` accepte une
-   distance de Hausdorff de 1e-8 (`tests/unit_tests.h`, lignes 140 à 142) et ne
-   vérifie aucun encadrement, dans `tests/trigonometric.cpp`,
-   `tests/reverse_mappings.cpp`, `tests/constants.cpp` (ligne 50),
-   `tests/constructor.cpp` (ligne 155) et les quotients exacts de
-   `tests/arithmetic_operators.cpp` (un `acos` décalé de 5e-9 passe) ;
-   `expect_close()` (`tests/elementary.cpp`, lignes 93 à 100) accepte une borne
-   un double trop bas quand la valeur exacte est un double (une mutation de
-   `sqrt` qui donne `[2 - 2^-52, 2]` pour `sqrt([4])` passe) ; l'unité du format
-   général va jusqu'à dix unités du dernier chiffre (`tests/numbers.cpp`, lignes
-   1093 à 1100) ; `pownRev(c, INT_MIN)` (`tests/ieee1788.cpp`, lignes 273 à 276)
-   accepte un résultat aux bornes de c échangées ; 15^17 et 15^18 sont comparés
-   au littéral arrondi (`tests/non_arithmetic.cpp`, lignes 80 à 83) ; la borne
-   droite de `[1, 2] / (2^53 + 1)` n'est pas vérifiée (`test_integer_operands`
-   de `tests/arithmetic_operators.cpp`).
-4. **Du code mort et des tests vides** (mineur) : `expect_within()`, jamais
-   appelée, et les branches identiques de `limit == 1` (`tests/elementary.cpp`,
-   lignes 113 à 145) ; la branche `slack > 0.0` d'`expect_kept()`
-   (`tests/other_functions.cpp`, ligne 952) ; `test_sin`, `test_asin_rel` et
-   `test_sqrt_rel`, vides mais comptés comme réussis (`tests/trigonometric.cpp`,
-   ligne 52, dont le commentaire « No test because it uses cos() » est faux ;
-   `tests/reverse_mappings.cpp`, lignes 94 et 125) ; des cas répétés à la place
-   de -5.0 et de -5.5 (`tests/float_functions.cpp`, lignes 37, 38, 59 et 68) ;
-   un libellé faux (`tests/compoundm1.cpp`, ligne 865 : y = [-oo, -1], non [-oo,
-   0]) ; une référence de `tanpi` fausse mais jamais atteinte
-   (`tests/core_math.cpp`, lignes 1404 à 1407 : `[-oo, +oo]` au lieu du vide
-   quand l = r tombe sur un pôle).
-5. **Des références calculées par GAOL** (mineur) : `tests/elementary.cpp`
-   (lignes 281 à 291), `tests/core_math.cpp` (lignes 1296 à 1313, qui fige en
-   plus l'implémentation), `tests/compoundm1.cpp` (lignes 933 à 947) et
-   `tests/reverse.cpp` (lignes 545 à 552) ; des références indépendantes
-   existent ailleurs : le dire dans leur commentaire.
+Le reste de la tâche PX : PX.1, PX.2, PX.4 et PX.5 sont faits par #351, #352,
+#354 et #355, et PX.3 par #353, sauf ce qui suit ; #372, que le mainteneur a
+demandée et que la liste ne nommait pas, ajoute `==` et `!=` entre intervalles
+et le test `interval_ieee_basic` (`TODO_DONE.md` 2.3, 3.45 et 4). Ce qu'elles
+laissent au manuel, à `doc/differences.md` et au `ChangeLog` est dans PZ (PZ.5,
+PZ.6 et PZ.10). Aucun point ne change une borne.
+
+3. **Les `TEST_EQ` qui restent** (mineur ; le reste de PX.3 ; *à décider*) :
+   #353 a remplacé par des enveloppes exactes (`TEST_HULL`,
+   `tests/hull_values.py`) les `TEST_EQ` à 1e-8 que PX.3 nomme ; `TEST_EQ` reste
+   employé là où PX.3 ne le nomme pas : `tests/non_arithmetic.cpp` (50),
+   `tests/input_output.cpp` (2), `tests/assignment.cpp` (1), et
+   `tests/intervalf.cpp` et `tests/interval2f.cpp`, qui ne tournent pas. 30 des
+   77 `TEST_HULL` ont une borne finie qui est un double exact (cos en ±1, tan en
+   0, cosh en 1…) et admettent un double de plus à cette borne : un encadrement
+   sûr, moins serré, que `tests/elementary.cpp` et `trigonometric_intervals()`
+   complètent. Les réécrire de la même façon est possible avec
+   `tests/hull_values.py`. *À décider* : si l'un ou l'autre vaut une pull
+   request.
 
 ## PY. Les avertissements qui restent [S]
 
@@ -276,8 +252,8 @@ Relevés par la relecture du 13 novembre (voir PX). Le manuel dans une pull
 request `manual*`, qui régénère le PDF dans son dernier commit (process.md §6.2,
 point 7) et corrige `doc/differences.md` avec lui ; le `ChangeLog` par la pull
 request de synthèse (process.md §7, point 5). Après PU à PY, dont les
-corrections se reportent ici ; celles de PU, de PV, de PW et de PY,
-faites, sont aux points 2 à 9.
+corrections se reportent ici ; celles de PU, de PV, de PW, de PX et de PY,
+faites, sont aux points 2 à 10.
 
 1. **Les chiffres du chemin AVX-512 et de FMA** (important) :
    `02_installation.tex` (lignes 872 à 874 : « no other processor was
@@ -368,7 +344,16 @@ faites, sont aux points 2 à 9.
    `gaol_ERROR`, son alias (lignes 1136, 1145 et 1851) ; et `override` sur les
    fonctions virtuelles de `gaol_expression.h` et de `gaol_expr_eval.h` (#367 :
    une classe de l'utilisateur qui dérive d'`expr_eval` et redéfinit `visit()`
-   sans `override` reçoit au plus `-Wsuggest-override`) ; le `ChangeLog` garde
+   sans `override` reçoit au plus `-Wsuggest-override`). Pour PX, la section «
+   Pour `doc/differences.md` et `ChangeLog` » de #353 : avec GCC 12 pour une
+   cible 64 bits ARM (Debian 12, GCC 12.2.0), les trois builds donnent
+   `-fno-section-anchors` à GAOL, à CORE-MATH, aux tests, aux exemples et au
+   code qui utilise GAOL (`gaol::gaol`, `gaol.pc`), parce que GCC 12.2 écrit
+   `denorm_min()` sur 16 octets dans une liste de doubles avec `-frounding-math`
+   et lit les constantes qui la suivent 8 octets trop tôt (issue #374) ; #372 a
+   déjà corrigé la puce des relations de `differences.md` et la ligne de `gaol/`
+   du `ChangeLog` (`==` et `!=`), à garder quand PZ les réécrit. Le `ChangeLog`
+   garde
    ses entrées anciennes.
 6. **Le PDF** : régénéré dans le dernier commit (l'index de celui de `9d59e0c`
    donne « accuracy, 208 », 207 dans le PDF reconstruit) ; le rapport de
@@ -432,6 +417,16 @@ faites, sont aux points 2 à 9.
    chemin AVX-512 identique à SSE2 bit à bit, la réserve du signe d'un zéro de
    `x * d` (#360, `doc/accuracy.md`).
 
+10. **Les passages du manuel que laisse la tâche PX** (avant le PDF de PZ.6) :
+    #372 a corrigé le manuel pour `==` et `!=` (`03_using.tex`,
+    `06_relations.tex`, `14_tests_ci.tex` et `15_migration.tex`) et régénéré le
+    PDF, mais #353 n'a pas régénéré le sien : le texte de `03_using.tex` sur GCC
+    12 pour 64 bits ARM (la remarque `rem:gcc12-denorm` :
+    `-fno-section-anchors`, GCC 13.1 et 13.2 non essayés) n'est pas dans le PDF
+    de `d9abe7d`, et celui de PZ.6 le reprend ; le tableau des programmes de
+    `14_tests_ci.tex`, que #372 a complété de `interval_ieee_basic`, est à
+    compter avec le reste du chapitre 14 (PZ.2).
+
 ## PH. Les signalements à d'autres projets [attend l'accord du mainteneur]
 
 Chaque projet a son issue, avec ses brouillons en anglais, ses vérifications à
@@ -493,7 +488,12 @@ correctif 8 « à écrire » (#144 l'a écrit, `3rd/README.md`).
    de `binary128` se refait contre un clone de l'amont.
 2. **#126 GCC** (la comparaison silencieuse rendue signalante par
    l'if-conversion sur ARM 32 bits et POWER9 et par la vectorisation, et le
-   miscompilage de GCC 12.2 sur aarch64 dans `tests/numbers.cpp` ; le bogue
+   miscompilage de GCC 12.2 sur aarch64, dont #353 a trouvé la cause (avec
+   `-frounding-math`, `denorm_min()` écrit sur 16 octets dans une liste de
+   doubles, puis les constantes suivantes lues 8 octets trop tôt avec
+   `-fsection-anchors` ; un cas minimal de 40 lignes et le texte anglais sont
+   dans l'issue #374 ; GCC 11.4, 13.3 et 14.2 sont justes, 13.1 et 13.2 non
+   essayés sur aarch64) ; le bogue
    52258 est de la même famille ; le brouillon a aussi, depuis le 5 novembre
    (rien n'est envoyé), le défaut de GCC 14 que #279 a trouvé : `quiet_less(r,
    l) || r == l` fusionné en un seul `r <= l`, qui signale, sur x86-64, AArch64

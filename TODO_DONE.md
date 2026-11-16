@@ -61,13 +61,13 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   commit `a42d016` (la fusion de #377 le 16 novembre à 7 h 23 UTC, la dernière
   des trois pull requests de PY.12, #375 à #377, fusionnées de 7 h 19 à 7 h 23
   UTC (2.3, 3.44, 4 et 7.42), après la fusion de #353 à 7 h 16 UTC, `14f93d3`,
-  PX.3, d'une autre session, dont les registres ne sont pas faits ici, et les
-  registres de la tâche PY, `1bfca77` (7.41), qui suivent la fusion de #368 le
-  15 novembre à 21 h 58 UTC, `1efa1c4`, la dernière des quatorze pull requests
-  de la tâche PY, #356 à #368 et #370, fusionnées de 13 h 31 à 21 h 58 UTC (2.3,
-  3.43, 4 et 7.41), après la fusion de #352 à
-  13 h 29 UTC, `1f901d9`, PX.2, d'une autre session, dont les registres ne sont
-  pas faits ici, et les registres de la tâche PW, `40c328a` (7.40), qui
+  la dernière des six pull requests de la tâche PX, #351 à #355 et #372,
+  fusionnées de 13 h 27 à 22 h 15 UTC le 15 novembre et à 7 h 16 UTC le 16 (2.3,
+  3.45, 4 et 7.43), et les registres de la tâche PY, `1bfca77` (7.41), qui
+  suivent la fusion de #368 le 15 novembre à 21 h 58 UTC, `1efa1c4`, la
+  dernière des quatorze pull requests de la tâche PY, #356 à #368 et #370, fusionnées de 13 h 31 à 21 h 58 UTC (2.3,
+  3.43, 4 et 7.41), après la fusion de #352 à 13 h 29 UTC, `1f901d9`, PX.2, et
+  les registres de la tâche PW, `40c328a` (7.40), qui
   suivent la fusion de #349 le 14 novembre à 22 h 18 UTC, `ebf2efd`, la dernière
   des treize pull requests de la tâche PW, #337 à #349, fusionnées de 21 h 01 à
   22 h 18 UTC (2.3, 3.42 et 7.40), après les registres de #336, `8780a1c`
@@ -116,9 +116,10 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   ouverte : #373 (hors des points : le diagnostic du contrôle de `pow(x, [2])`
   de `tests/arithmetic.cpp`) est dans `dev` par le commit de fusion `cc81735`,
   que GitHub a fait le 15 novembre à 22 h 50 UTC sans marquer la pull request
-  fusionnée, et le mainteneur l'a fermée le 16 à 7 h 15 UTC (2.4) ; #353 et #372
-  (la tâche PX, d'une autre session, dont les registres ne sont pas faits ici,
-  pas plus que ceux de #350 à #352, #354 et #355) sont fusionnées. Le
+  fusionnée, et le mainteneur l'a fermée le 16 à 7 h 15 UTC (2.4) ; #351 à #355
+  et #372 (la tâche PX) sont fusionnées, leurs registres faits (2.3, 3.45 et
+  7.43), alors que ceux de #350 (une suite de PW.6, fusionnée le 15 novembre à 7
+  h 37 UTC) ne le sont pas. Le
   mainteneur a fusionné #165 à #167, #169 à #174, #176 et #180
   à #184 les 23 et 24 octobre, et #186 à #194, #196 et #197 le 25
   octobre, #199, #200 et #201 le 26 octobre, #202 à #205 le 27, #206
@@ -190,12 +191,14 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   3.42, 4 et 7.40), puis, le 15 novembre, les quatorze pull requests de la tâche
   PY, #356 à #368 et #370, de 13 h 31 à 21 h 58 UTC (2.3, 2.4, 3.43, 4 et 7.41),
   puis, le 16 novembre, #375 à #377, le reste de PY.12, de 7 h 19 à 7 h 23 UTC
-  (2.3, 3.44, 4 et 7.42). #168, #195, #211, #214, #221, #226, #233, #369 et #373
+  (2.3, 3.44, 4 et 7.42), puis, les 15 et 16 novembre, les six pull requests de
+  la tâche PX, #351 à #355 et #372, de 13 h 27 UTC le 15 à 7 h 16 UTC le 16
+  (2.3, 3.45, 4 et 7.43). #168, #195, #211, #214, #221, #226, #233, #369 et #373
   (dont le contenu est dans `dev` : 2.4) sont fermées sans fusion, et, du 30 et
   du 31 octobre, #240, #241, #243, #244, #246, #247, #251
   à #261, #277 et #278, puis #286, le « Revert » de #285 fermé onze secondes
   après son ouverture (2.4). Les tâches PA, PB, PC, PD, PE, PF, PG, PI, PL, PP,
-  PS, PU, PV et PW sont faites, PY presque (PE :
+  PS, PU, PV et PW sont faites, PX et PY presque (PE :
   #200 et #204 pour le 95, #201 pour le
   92, #205 pour le 3, #202 pour le 4, #204 pour le 5, #203 pour le 6 ; PF : #206
   pour le reste du 108, #209 pour le 109, #210 et #215 pour écrire seulement si
@@ -231,7 +234,10 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   avertissements de la même relecture : #356 à #368 et #370, une par point, puis
   #375 à #377 pour les conversions inutiles et les boucles de
   `gaol_interval_pow.cpp`, sauf les boucles à compteur flottant de `tests/`
-  (l'issue #371) (2.3, 3.43, 3.44 et 4) ;
+  (l'issue #371) (2.3, 3.43, 3.44 et 4) ; PX, les tests sans dents de la même
+  relecture : #351, #352, #353, #354 et #355, une par point, sauf les `TEST_EQ`
+  que PX.3 ne nomme pas, plus #372 pour `==` et `!=` entre intervalles et le
+  test `interval_ieee_basic`, que le mainteneur a demandés (2.3, 3.45 et 4) ;
   PK, un `FE_INVALID` de Clang avec les intervalles FPU, est
   close sans code, non reproduite avec les drapeaux de GAOL (3.17), ses boucles
   de relations étant entrées dans `rounding_direction` par #292 ; PM, le cas (b)
@@ -245,7 +251,7 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   `configure-clean` dans `master`, que le mainteneur fait lui-même, l'étiquette
   `v5.0.0` et sa Release, l'annonce à Frédéric Goualard ; 3.36), qui attend les
   constats de la relecture du 13 novembre (PX à PZ, 3.37 et 3.38 ; PU, PV et PW
-  sont faites, PY presque) : voir `TODO.md`.
+sont faites, PX et PY presque) : voir `TODO.md`.
   Le 8 novembre, `TODO_fin.md` (la relecture du 4
   novembre) est réparti dans les trois registres et supprimé (3.25).
 - **Les intervalles de chaque build** (décidé le 25 octobre, #192 à #194) : NEON
@@ -4249,8 +4255,8 @@ contexte : trois pour #356 à #367 (PY.1 à PY.5 : 140 000 jetons, PY.6 à PY.9 
 181 000, PY.10 à PY.12 : 169 000), sans point bloquant, leurs remarques
 corrigées avant l'ouverture ; un quatrième pour #368, #369, #370 et #373 (155
 000), rien de bloquant, une phrase de #369 corrigée et deux remarques de #373
-appliquées. #350, #351 et #352 (la fin de PW, PX.1 et PX.2), fusionnées le même
-jour, ne sont pas dans ces registres.
+appliquées. #350 (une suite de PW.6), fusionnée le 15 novembre, n'est pas dans
+ces registres ; #351 et #352 (PX.1 et PX.2) sont plus bas.
 
 La CI de #375 à #377 est verte aussi, sans relance : six workflows pour #375 et
 pour #377 (Linux, Linux containers, Windows, macOS, Autotools and meson et
@@ -4264,6 +4270,125 @@ GCC 15 SSE2 70 tests sur 70, avec `GAOL_PRESERVE_ROUNDING` 54 sur 54, FPU 51 sur
 51, Clang 18 50 sur 50, i386 54 sur 54, aarch64 avec qemu 49 sur 49 ; la session
 MACarm5 (Apple M2, Apple clang 21) : arm64 43 sur 43, x86_64 sous Rosetta 46 sur
 46, sans avertissement.
+
+- #351 (PX.1, `tests/u128.cpp` ; `todo-px1-u128-schoolbook`, vers `dev`, ouverte
+  le 15 novembre à 8 h 20 UTC, deux commits, deux fichiers) : fusionnée à 13 h
+  27 UTC (`dbc9fed`, tête `a357514`). Sans entier natif de 128 bits (i386,
+  armhf, Visual C++), « mul64 is mul of the low halves » comparait
+  `gaol_u128_mul64()` à `gaol_u128_mul()`, qui commence par lui, et le «
+  schoolbook product » de l'en-tête n'existait pas. `schoolbook()` est le
+  produit modulo 2^128 sur des chiffres de 16 bits, sans type de 128 bits ;
+  `products()` lui compare `mul64`, `mul` et `imul64` dans les deux chemins, et
+  les deux identités circulaires sont retirées. Mutations de la réalisation
+  portable de `gaol_u128.h` : la retenue `mid >> 32` retirée (0 échec avec le
+  test de `dev`, 141 726 avec la branche), les moitiés échangées (0 et 299 229),
+  `mid >> 31` (0 et 230 388). Sur un vrai x86 32 bits (Docker, Debian 13 i386,
+  GCC 14.2, sans `__SIZEOF_INT128__`) : 20 400 000 vérifications, 0 échec ; le
+  test coûte 0,4 s de plus.
+- #352 (PX.2 ; `todo-px2-vacuous-checks`, trois commits, cinq fichiers, ouverte
+  à 8 h 21 UTC) : fusionnée à 13 h 29 UTC (`1f901d9`, tête `1c3a721`). Cinq
+  vérifications qui ne pouvaient pas échouer : la boucle aléatoire de
+  `cancel_minus` sautait tout résultat `entire` (pour les décalages 0 et +1, ses
+  100 000 résultats le sont), le résultat est maintenant `entire` exactement
+  quand X est strictement moins large que Y, en largeurs exactes (300 000
+  vérifications au lieu de 66 708), avec une seconde boucle de largeurs égales
+  (X = [p, p + k]·2^e, Y plus large de d = −1, 0 ou +1 : 100 000 cas) ;
+  `X.set_contains(X)` de `interval_functions.cpp` teste le point milieu (un
+  `.midpoint()` perdu) ; la borne droite de `log([-3, 4])` est comparée aux deux
+  doubles qui encadrent ln 4 ; le texte écrit, relu, est dans [3,45 ; 3,46] et
+  contient I (`TEST_CONT`) au lieu d'être « non disjoint » ; le contrôle du sens
+  d'arrondi de Codac part de `FE_DOWNWARD`. Mutations (0 échec avec `dev`) :
+  898, 22 441, 1, 1 et 1 échecs avec la branche.
+- #354 (PX.4 ; `todo-px4-dead-code`, quatre commits, sept fichiers, ouverte à 8
+  h 21 UTC) : fusionnée à 22 h 05 UTC (`99bbdcb`, tête `e3396c1`). Retirés :
+  `expect_within()` d'`elementary.cpp`, jamais instanciée, les deux branches
+  identiques de la condition sur `sin`, `cos` et `tan` (`limit` valait 1) et la
+  branche `slack > 0.0` d'`expect_kept()` ; les tests vides `test_sin`,
+  `test_asin_rel` et `test_sqrt_rel`, comptés comme réussis (« No test because
+  it uses cos() » était faux). Corrigés : `!feven(-5.0)`, `!feven(-5.5)`,
+  `minimum(-6,-5)` et `maximum(-6,-5)`, écrits deux fois à la place de ces cas
+  (`float_functions.cpp`), le libellé de `compoundm1.cpp` (y = [-oo, -1]) et la
+  référence de `tanpi` au pôle (le vide, non `[-oo, +oo]` ; 25 points de plus,
+  dont les pôles). Les nombres de vérifications d'`elementary` (371 751) et
+  d'`other_functions` (2 991 545) sont inchangés ; mutations : 0 ou 1 échec avec
+  `dev`, de 1 à 13 avec la branche.
+- #355 (PX.5 ; `todo-px5-reference-comments`, deux commits, quatre fichiers,
+  commentaires seuls) : fusionnée à 22 h 06 UTC (`67c3be9`, tête `e5ae432`).
+  Quatre références calculées par GAOL le disent dans leur commentaire et
+  nomment les références indépendantes qui existent ailleurs : le plancher de
+  x/[pi] de `modulo_k_pi_values()` (`at_doubles()` et
+  `trigonometric_intervals()`), `nth_root(x, -q)` de `core_math.cpp`, comparé à
+  l'inverse de la racine (`roots_of_tiny_numbers()`, pour x inférieur à
+  2^-1020), l'enveloppe des coins de `random_boxes()` de `compoundm1.cpp`
+  (`points()` et `boxes()`) et `angle_in()` de `reverse.cpp` (la table de
+  `atan2_rel_values.h`). Aucune mutation : aucun comportement ne change.
+- #372 (PX.6, que le mainteneur a demandée et que `TODO.md` ne nommait pas ;
+  `todo-px6-ieee-basic-example`, sept commits, vingt-cinq fichiers, ouverte à 12
+  h 02 UTC) : fusionnée à 22 h 15 UTC (`d9abe7d`, tête `765bc86`, après la
+  fusion de `dev` pour deux conflits, `doc/using.md` et `examples/tutorial.md`,
+  réglés en gardant les deux côtés). `operator==` et `operator!=` entre
+  intervalles sont l'égalité d'ensembles (`set_eq` et `set_neq`, l'`equal`
+  d'IEEE 1788-2015 : mêmes bornes, le vide égal au vide, `-0` égal à `+0`), dans
+  `gaol_interval_core.h`, repris par des `using` dans `gaol_interval.h` et
+  `gaol_ieee1788.h` : le contraire du « pas de `==` » de v5, où ils étaient les
+  relations « certainement » de GAOL 4 ; pas de comparaison avec un `double`. Le
+  test `tests/interval_ieee_basic.cpp` (194 lignes, 111 vérifications, chacune
+  de la forme `CHECK( add(interval(1, 2), interval(3, 4)) == interval(4, 6) )`,
+  les bornes inexactes écrites comme les deux doubles qui encadrent) est en tête
+  des listes des trois builds (CMake, `Makefile.am` et `Makefile.in` par
+  automake 1.18.1, `meson.build`). Corrigés dans la même pull request, à la
+  demande du mainteneur : les textes qui disaient « pas de `==` »
+  (`doc/using.md`, `doc/tests.md`, `examples/`, le manuel : `03_using`,
+  `06_relations`, `14_tests_ci` et `15_migration`, avec deux exemples contrôlés
+  par `check_examples.py`, 118 sur 118), `doc/differences.md` et le `ChangeLog`
+  (une exception au §7, point 5, de `process.md` : `check_branch` n'échoue que
+  sur ces deux fichiers), puis le PDF du manuel, régénéré (391 pages). Migration
+  depuis GAOL 4 : un programme qui employait `==` ou `!=` compile et rend
+  d'autres résultats (`[3, 4] == [3, 4]` était faux). Le relecteur (166 000
+  jetons, les trois premiers commits) a montré que le test laissait passer
+  `operator==` rendu `true`, `isEmpty` et `isEntire` rendus `true`, et la borne
+  haute arrondie au plus proche : 21 vérifications de plus (8 sur `==` et `!=`,
+  2 négatives, 11 sur les arrondis), les mutations rejouées. Eigen (les produits
+  de matrices) et `std::complex<interval>` (`std::abs`, `std::sqrt`) compilent
+  désormais ; le `std::sqrt` d'une boîte complexe n'est pas un encadrement (dit
+  dans `examples/examples.md`).
+- #353 (PX.3 ; `todo-px3-tolerances`, neuf commits, vingt-neuf fichiers, ouverte
+  à 8 h 21 UTC) : fusionnée le 16 novembre à 7 h 16 UTC (`14f93d3`, tête
+  `bb1b93f` ; les neuf commits un à un). `TEST_EQ` accepte une distance de
+  Hausdorff de 1e-8 : `TEST_HULL(a, lo, hi)` (`tests/unit_tests.h`) veut un
+  encadrement de [lo, hi] à un double près, et `tests/hull_values.py` (dans
+  `EXTRA_DIST`, `doc/tools.md`) écrit les 77 instructions de `trigonometric.cpp`
+  (45) et de `reverse_mappings.cpp` (32) d'après l'enveloppe exacte (mpmath, 2
+  000 bits ; `--check` les vérifie) ; les 13 cas `f_rel(f(I), I)` sont des
+  `TEST_SEQ` à I ; `constants.cpp`, `constructor.cpp` et les quotients exacts
+  d'`arithmetic_operators.cpp` sont aux doubles exacts, et `TEST_INOUT_EQ`
+  disparaît ; la borne droite de [1, 2] / (2^53 + 1), 15^17 et 15^18 (en
+  arithmétique exacte, `is_tightest_enclosure`), `pownRev(c, INT_MIN)`, l'unité
+  du format général de `numbers.cpp` (`unit_of()` : 10^(e + 1 − p) ; 9,9 écrit «
+  9.0 » avec p = 2 passait) et une boucle d'exactitude d'`elementary.cpp`
+  (`sqrt` des carrés, f(0) et f(1) : 23 vérifications). Mutations de la
+  bibliothèque : 0 échec avec `dev` pour les neuf (`acos` décalé de 5e-9,
+  `acos_rel` rétréci, `inverse(10)`, 2/5 arrondi au plus proche, …), de 1 à 9
+  avec la branche. Le relecteur (180 000 jetons) a recalculé 75 valeurs de
+  `TEST_HULL` (73 identiques, deux écarts de son script) et trouvé un point
+  bloquant (`test_atanh` gardait deux `fabs(…) <= 1e-8`), corrigé. Sa CI a
+  trouvé le défaut de GCC 12.2 sur aarch64 (3.45) : `-fno-section-anchors` pour
+  GCC 12 sur aarch64 dans les trois builds, `0x1p-1074` à la place de
+  `denorm_min()` dans les tests, les textes de `doc/using.md`, de
+  `doc/three-builds.md` et de `03_using.tex`, et, à la demande du mainteneur,
+  `xcodebuild -version | sed -n 1p` dans `release.yml`.
+
+La CI des six pull requests de PX : les cinq workflows (Linux, Linux containers,
+Windows, macOS, Autotools and meson) ont fini au vert, sauf, pour #353, le job
+`Debian 12 Bookworm arm64`, qui a atteint les 300 s sur `numbers` (3.45), et le
+job « macOS … .pkg » de `release.yml`, tombé au hasard une fois (`xcodebuild
+-version | head -1` avec `pipefail` : tube cassé, code 134), passé à la relance
+puis corrigé ; la CI du dernier commit de #353 (`bb1b93f`) : 85 jobs au vert, 2
+sautés, huit workflows sur huit. Les relecteurs sans contexte : un pour #351,
+#352, #354 et #355 (160 000 jetons), un pour #353 (180 000) et un pour les trois
+premiers commits de #372 (166 000), sans point bloquant sauf pour #353
+(corrigé), leurs remarques corrigées avant les fusions. Les runs de CI de #366
+et de #372, déjà fusionnées, sont annulés à la demande du mainteneur (11 runs).
 
 ### 2.4 Fermées sans fusion
 
@@ -7445,6 +7570,66 @@ des questions ? Propose 4 réponses par question ») :
 Fait : #375 à #377, fusionnées le 16 novembre de 7 h 19 à 7 h 23 UTC (2.3 et
 7.42). Reste de PY.12 : les boucles de `tests/` (`TODO.md`).
 
+### 3.45 Les 15 et 16 novembre : la tâche PX, les tests sans dents, `==` et `!=` (#351 à #355 et #372)
+
+Pendant la tâche PX (« traite la tache PX », puis PX.6, que le mainteneur
+demande), il répond aux questions de la session et décide en fusionnant :
+
+- **PX.3, tout réécrire** (question du 15 novembre, « Tout réécrire maintenant
+  ») : les `TEST_EQ` de `trigonometric.cpp` et de `reverse_mappings.cpp`
+  deviennent des enveloppes exactes (`TEST_HULL`, `hull_values.py`), avec
+  `constants.cpp`, `constructor.cpp` et les quotients
+  d'`arithmetic_operators.cpp`. Les `TEST_EQ` que PX.3 ne nomme pas restent
+  (`TODO.md`, PX, à décider).
+- **`==` et `!=`** (PX.6, #372) : ils sont l'égalité d'ensembles, et `!=` aussi
+  (« oui garde operator!= ») ; une seule pull request ; le test s'appelle
+  `interval_ieee_basic.cpp`, en minuscules (« sans le I majuscule ») ; le manuel
+  (`03_using`, `06_relations`, `14_tests_ci`, `15_migration`),
+  `doc/differences.md` et le `ChangeLog` sont corrigés dans la même pull
+  request, une exception voulue au §7, point 5, de `process.md`, puis le PDF est
+  régénéré (« regenere le pdf »). Les 21 vérifications que le relecteur a fait
+  ajouter restent dans le fichier.
+- **Le défaut de GCC 12.2 sur aarch64** (#353) : le job `Debian 12 Bookworm
+  arm64` de `Linux containers` atteint ses 300 s sur `numbers`, qui dure 4 s
+  ailleurs. Le mainteneur demande d'abord de porter le délai à 600 s ; la
+  session montre que le programme est bloqué, non lent, et la question devient «
+  comment empêcher que GCC déplace une compilation fautive à chaque changement
+  de numbers.cpp ? ». Cause trouvée avec gdb sur le programme bloqué (qemu-user)
+  puis dans l'assembleur : avec `-frounding-math`, GCC 12.2 écrit
+  `std::numeric_limits<double>::denorm_min()` comme un long double de 16 octets
+  dans une liste de doubles constante (`{ 0.1, denorm_min(), -DBL_MAX }` est
+  écrite sur 32 octets et comptée pour 24), et avec `-fsection-anchors`, actif
+  sur aarch64 à partir de `-O1`, les constantes qui la suivent sont lues 8
+  octets trop tôt : les précisions `{1, 2, 4, 6, 15, 16, 17, 20}` de
+  `decimal_output()` sont lues `{0, 1074790400, 1, 2, 4, 6, 15, 16}`, et
+  `snprintf` écrit 10^9 chiffres. L'erreur dépend de la disposition des
+  constantes du fichier, d'où les échecs qui se déplaçaient avec chaque
+  changement de `numbers.cpp` ; GCC 11.4, 13.3 et 14.2 pour aarch64, et GCC 11.4
+  à 15.2 pour x86-64, sont justes. *Décidé* (« fais le remede plus large : la
+  même option pour toute la bibliothèque avec GCC 12 sur aarch64, ce qui protège
+  aussi les utilisateurs de Debian 12 », puis les réponses aux questions de la
+  session) : `-fno-section-anchors` pour GCC 12 sur aarch64, toute la série 12,
+  dans les trois builds, parmi les flags d'arithmétique d'intervalles, donc
+  exporté (`gaol::gaol`, `gaol.pc`) ; « Littéral + garder l'option » :
+  `0x1p-1074` à la place de `denorm_min()` dans `numbers.cpp` (une constante
+  nommée) et dans huit autres tests, l'option gardée parce qu'elle rend les
+  décalages, non la liste ; un cas minimal de 40 lignes et le texte du rapport,
+  mis dans l'issue #374 (« met le rapport GCC dans une issue sur github »), non
+  envoyés à GCC ; GCC 13.1 et 13.2 sur aarch64, non essayés, ne reçoivent pas
+  l'option (« Laisser à GCC 12 » : `doc/using.md` et le manuel le disent ;
+  `TODO_AFTER.md` 4.15).
+- **La course de macOS** : le job « macOS … .pkg » de `release.yml` tombe au
+  hasard (`xcodebuild -version | head -1` avec `pipefail` : `head` ferme le
+  tube, `xcodebuild` meurt de `SIGPIPE`, code 134) ; corrigé dans #353 par
+  `xcodebuild -version | sed -n 1p`, à la demande du mainteneur (« L'ajouter à
+  #353 »). Les autres `| head -1` des workflows ne sont pas touchés.
+- **Les registres et la suite** : les registres après la fusion de #353 (« Après
+  ta fusion »), puis aucune autre tâche lancée (« Attendre ta consigne »).
+
+Fait : #351 à #355 et #372 (2.3 et 7.43), l'issue #374. Ce qu'elles laissent :
+le reste de PX.3 (`TODO.md`, PX), le manuel, `doc/differences.md` et le
+`ChangeLog` (PZ.5, PZ.6 et PZ.10), le rapport à GCC (`TODO.md`, PH 2).
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -7636,6 +7821,15 @@ est dite ici ou dans la section 5.
   à `doc/differences.md` et au `ChangeLog` est dans `TODO.md` (PZ.2, PZ.5, PZ.6
   et PZ.9).
 
+- [x] **PX.1 à PX.5** (les tests sans dents de la relecture du 13 novembre) :
+  une pull request par point, fusionnées : PX.1 par #351 et PX.2 par #352 le 15
+  novembre à 13 h, PX.4 par #354 et PX.5 par #355 à 22 h, PX.3 par #353 le 16 à
+  7 h 16 UTC, sauf les `TEST_EQ` que PX.3 ne nomme pas (`TODO.md`, PX), avec
+  #372 pour `==` et `!=` entre intervalles, que le mainteneur a demandé ; décidé
+  pendant le travail : voir 3.45. Ce qu'elles laissent au manuel, à
+  `doc/differences.md` et au `ChangeLog` est dans `TODO.md` (PZ.5, PZ.6 et
+  PZ.10).
+
 ### Trouvé par la relecture de `configure-clean` du 14 octobre (62dad3a) : ce qui est fait
 
 Six relecteurs indépendants (puissances entières, `pow` réel et réciproques,
@@ -7698,6 +7892,12 @@ leur partie faite.
   boucles à variable `double` de `gaol/core/gaol_interval_pow.cpp` par #377 ;
   reste (issue #371) les boucles à `double` de `tests/`, en une pull request
   (`TODO.md`, PY.12 ; 3.44).
+
+- **PX.3, le reste.** Les `TEST_EQ` à 1e-8 que PX.3 nomme sont remplacés par
+  #353 (`TEST_HULL`, `hull_values.py`) ; restent, à décider, ceux de
+  `tests/non_arithmetic.cpp` (50), `input_output.cpp` (2) et `assignment.cpp`
+  (1), et les 30 `TEST_HULL` d'une borne qui est un double exact (`TODO.md`,
+  PX).
 
 ## 5. Les anciens numéros faits
 
@@ -9698,6 +9898,24 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   ne touche à rien », n'est pas levée). `todo-rosetta-diagnostic-pow2` reste sur
   GitHub, #373 étant fermée sans fusion (2.4).
 - L'issue #371 reste ouverte jusqu'à la pull request des boucles de `tests/`.
+
+### 7.43 Le 16 novembre (après #351 à #355 et #372 : les registres)
+
+- Les registres de la tâche PX, en un commit direct sur `dev`, depuis le clone
+  privé GAOL_PX (propre, sur `dev` à `7205e5c`, les registres de PY.12) :
+  `TODO.md` (l'en-tête, la liste des pull requests, la table, PX réduite au
+  reste de son point 3, PZ.5 complété, le nouveau PZ.10, PH 2 pour la cause du
+  défaut de GCC), ce fichier (1, 2.3, 3.45, 4, 7.43), `TODO_AFTER.md` (4.15 :
+  GCC 13.1 et 13.2 sur aarch64), `process.md` (l'en-tête et §12) et les issues
+  #179 et #178.
+- Ce commit ne change que des fichiers que les cinq workflows ignorent
+  (`TODO*.md` et `process.md`) : il ne lance aucun workflow.
+- Les branches `todo-px1-u128-schoolbook` à `todo-px5-reference-comments` et
+  `todo-px6-ieee-basic-example` ne sont plus sur GitHub (vérifié le 16 novembre)
+  ; les locales du clone GAOL_PX sont gardées. L'issue #374 (le rapport pour
+  GCC, non envoyé) est ouverte.
+- Pas dans ces registres : #350 (une suite de PW.6, `todo-pw6b-audit-mingw32`),
+  fusionnée le 15 novembre à 7 h 37 UTC.
 
 ## 8. Le ménage fait
 
