@@ -133,7 +133,7 @@ namespace gaol_unit
   }
 }
 
-#define TEST_TRUE(a)   gaol_unit::check(bool(a), __LINE__, "TEST_TRUE(" #a ")")
+#define TEST_TRUE(a)   gaol_unit::check((a), __LINE__, "TEST_TRUE(" #a ")")
 #define TEST_FALSE(a)  gaol_unit::check(!(a), __LINE__, "TEST_FALSE(" #a ")")
 #define TEST_EMPTY(a)  do { const auto gaol_a_ = (a); \
     gaol_unit::check(gaol_a_.is_empty(), __LINE__, "TEST_EMPTY(" #a ")", gaol_a_, "the empty set"); } while (0)
