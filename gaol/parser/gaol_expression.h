@@ -890,7 +890,7 @@ namespace gaol_core {
         return nth_root(e, static_cast<unsigned int>(n));
       }
       if (::gaol_detail::integer_fits<int>(n)) {
-        return expression(1.0) / nth_root(e, static_cast<unsigned int>(0u - static_cast<unsigned int>(n)));
+        return expression(1.0) / nth_root(e, 0u - static_cast<unsigned int>(n));
       }
       const interval magnitude = ::gaol_detail::integer_is_negative(n) ? -interval(n) : interval(n);
       const interval inverse = interval(1.0) / magnitude;

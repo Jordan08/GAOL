@@ -117,7 +117,7 @@ namespace gaol_core {
   #if GAOL_RND_SSE_REGISTER
   static_assert(sse_rc_mask == static_cast<unsigned int>(_MM_ROUND_MASK)
                 && sse_rc_upward == static_cast<unsigned int>(_MM_ROUND_UP)
-                && x86_flush_mask == static_cast<unsigned int>(GAOL_RND_FLUSH_BITS),
+                && x86_flush_mask == GAOL_RND_FLUSH_BITS,
                 "the fields of MXCSR");
   #endif
 
@@ -331,7 +331,7 @@ namespace gaol_core {
     void read_control(unsigned int& x87_cw, unsigned int& mxcsr) const
     {
       x87_cw = 0u;
-      mxcsr = static_cast<unsigned int>(_mm_getcsr());
+      mxcsr = _mm_getcsr();
     }
     void write_x87_control(unsigned int) const { }
     void write_mxcsr(unsigned int mxcsr) const { _mm_setcsr(mxcsr); }
@@ -340,7 +340,7 @@ namespace gaol_core {
   GAOL_INLINE void gaol_set_rounding_x86(unsigned short x87_rc, unsigned int sse_rc)
   {
     (void)x87_rc;
-    const unsigned int csr = static_cast<unsigned int>(_mm_getcsr());
+    const unsigned int csr = _mm_getcsr();
     if ((csr & static_cast<unsigned int>(_MM_ROUND_MASK)) != sse_rc) {
       _mm_setcsr((csr & ~static_cast<unsigned int>(_MM_ROUND_MASK)) | sse_rc);
     }

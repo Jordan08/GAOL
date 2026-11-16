@@ -332,7 +332,7 @@ direction when it is preserved.
 #  define GAOL_RND_RESTORE()    gaol_core::set_rounding_and_flush_modes(_save_state)
 #  define GAOL_RND_KEEP(x)      ((x) = gaol_core::rnd_keep(x))
 #  if GAOL_USING_SSE2_INSTRUCTIONS
-#     define GAOL_RND_ENTER_SSE() const unsigned int _save_state_sse = static_cast<unsigned int>(_mm_getcsr()); gaol_core::sse_enter_upward(_save_state_sse)
+#     define GAOL_RND_ENTER_SSE() const unsigned int _save_state_sse = _mm_getcsr(); gaol_core::sse_enter_upward(_save_state_sse)
 #     define GAOL_RND_LEAVE_SSE() gaol_core::sse_leave(_save_state_sse)
 #  endif
 #else // !GAOL_PRESERVE_ROUNDING
@@ -658,7 +658,7 @@ namespace gaol_core {
   //! MXCSR
   struct sse_control_register
   {
-    unsigned int read() const { return static_cast<unsigned int>(_mm_getcsr()); }
+    unsigned int read() const { return _mm_getcsr(); }
     void write(unsigned int mxcsr) const { _mm_setcsr(mxcsr); }
   };
 
