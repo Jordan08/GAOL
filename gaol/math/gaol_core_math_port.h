@@ -165,7 +165,7 @@ took for an undeclared function and did not link.
 #endif /* Windows, or no __builtin_roundeven() */
 
 /*---------------------------------------------------------------------------
-fesetexceptflag() on a 32-bit Windows, which unmasks the exceptions
+fesetexceptflag() of mingw-w64 up to 12, which unmasks the exceptions
 
 cbrt, pow, atan2 and hypot keep the exception flags around their work, with
 _mm_getcsr() and _mm_setcsr() on x86-64 (cbrt, pow and hypot; atan2 calls

@@ -446,10 +446,11 @@ definition `gaol/math/gaol_core_math_port.h` gives the builtin for GCC before
 
 ## Changes to propose upstream
 
-Two defects found since (items 9 and 10 below) have no counterpart in the list
-above. Seven of the [changes above](#what-differs-from-upstream) are fixes rather than
-adaptations to GAOL (2 to 7 and 9; upstream has made the ones of items 3 and 5
-since), and `gaol/math/gaol_core_math_port.h` makes up for an eighth defect, the
+Two defects found since, items 9 and 10 of the list below, have no counterpart
+in the list above. Seven of the [changes above](#what-differs-from-upstream) are
+fixes rather than adaptations to GAOL (items 2 to 7 and 9 of that list;
+upstream has made the ones of its items 3 and 5 since), and
+`gaol/math/gaol_core_math_port.h` makes up for an eighth defect, the
 `__builtin_roundeven()` of `sin.c`, which upstream has fixed since too (see
 [How GAOL builds them](#how-gaol-builds-them)). They are written below as
 patches against
@@ -478,7 +479,7 @@ against `b1a4badf`, 29 September 2026).
 | [exact and midpoint powers of `pow` on 32-bit ARM](#7-the-exact-and-midpoint-powers-of-pow-on-32-bit-arm) | present | no `pow` of CORE-MATH |
 | [first phase of `pow` next to the overflow](#8-the-first-phase-of-pow-next-to-the-overflow) | present | no `pow` of CORE-MATH |
 | [`is_exact()` of `pow` and a huge y](#9-the-is_exact-of-pow-and-a-huge-y) | present (`018fa97c`) | no `pow` of CORE-MATH |
-| [`return` of `erfc.c`](#10-the-return-of-erfcc) | present (`018fa97c`) | not looked for |
+| [`return` of `erfc.c`](#10-the-return-of-erfcc) | present (`018fa97c`) | present (`s_erfc.c`, `30f988f`) |
 | [signed shifts of `cospi.c`](#already-fixed-upstream-the-shifts-of-cospic) | fixed by `b1a4badf` | no `cospi` of doubles from CORE-MATH |
 
 Upstream has moved since. Its master of 27 October 2026, `0b2ae6d1`, has made
@@ -514,7 +515,9 @@ of context, written without their leading space, and `git apply` or
 `b1a4badf`). Each block also applies alone to `b1a4badf`, but the `index`
 lines of patch 6 are those of the files patches 2 and 3 leave, and those of
 patch 8 the file patch 7 leaves, which `git am` and `git apply --3way` rely
-on. To send them: a
+on. Items 9 and 10 below are written later, on upstream master `018fa97c` (10
+November 2026), not on `b1a4badf`: the `index` line of item 9 is that of
+`pow.c` as the series of issue #125 leaves it before this patch. To send them: a
 merge request on <https://gitlab.inria.fr/core-math/core-math>, or the output
 of `git format-patch` mailed to core-math@inria.fr, the address the sources
 give for reports, with the defect, the reproduction and the checks of each
@@ -941,7 +944,8 @@ pointed out to the authors when the patches are sent (issue #125).
 (mingw-w64 has an 80-bit `long double`), and `long hh = H[1];` in
 `binary128/acosq.c` (line 977) and `asinq.c` (line 985) drops the high half of
 `H[1]` before `mhii()`, which takes `i64`. They are written `ull` and `i64`
-like the others; not run with a 32-bit `long`.
+like the others, in the first patch of the series of issue #125 (they are not in
+the diff above); not run with a 32-bit `long`.
 
 **Status.** Present in master; GAOL makes the change in `sinh.c`, `cosh.c`,
 `tanh.c`, `sinpi.c` and `log1p.c` (item 2 above), and the `1ll` of `tan.c`
@@ -1573,8 +1577,9 @@ and run under qemu-arm 8.2.2, master gives 415 wrong results downward and
 toward zero and 631 upward, all at midpoints, and the patched `pow` none; on
 x86-64 Linux, GCC 13.3, the two give the same bits in the four directions,
 all right. With MPFR, `./check.sh --worst` (1,003,179 arguments per direction)
-passes to nearest, toward zero and upward; downward it stops at the spurious
-underflow exception said above, where master stops as well.
+passes to nearest, toward zero and upward; downward it stopped at the spurious
+underflow exception said above, where master stopped as well (upstream has
+fixed that since, `e072473e`: the check passes on master `018fa97c`).
 `./check.sh --special` with `CORE_MATH_TESTS=200000`, exact and midpoint values
 among its arguments, passes in the four directions.
 
@@ -1755,7 +1760,8 @@ index a069931d..780cb631 100644
 **How it was checked.** No warning with `-Wpedantic` after the patch, and the
 same object code.
 
-**Status.** Present in master (`018fa97c`) and in GAOL's copy.
+**Status.** Present in master (`018fa97c`), in GAOL's copy, and in glibc's
+`s_erfc.c` (see [glibc](#glibc)).
 
 #### Already fixed upstream: the shifts of `cospi.c`
 
@@ -1774,7 +1780,7 @@ CORE-MATH project": functions of floats from 2.41 (`sysdeps/ieee754/flt-32`),
 and functions of doubles from 2.43 (`sysdeps/ieee754/dbl-64`): `acosh`,
 `asinh`, `atanh`, `erf`, `erfc`, `lgamma` and `tgamma` in 2.43, `cosh`, `sinh`
 and `tanh` in 2.44, and `cbrt` on master (`30f988fbe795`, 29 September 2026).
-None of the defects above is in them, in any of these releases:
+None of the defects of items 1 to 9 is in them, in any of these releases:
 
 - the masks: glibc's `cosh`, `sinh` and `tanh` write `MANTISSA_MASK`, which is
   `UINT64_C(0x000fffffffffffff)` (`sysdeps/ieee754/dbl-64/math_config.h`),
@@ -1800,8 +1806,13 @@ None of the defects above is in them, in any of these releases:
   switch whose default is `__builtin_unreachable()`, so that no raw value
   reaches `off[]`; there is no branch for other C libraries.
 
-So there is nothing to send to glibc. Were one of these defects to reach it
-with a later import, the patch would go by `git send-email` to
+Item 10 is in them: `cr_erf_accurate()` of `sysdeps/ieee754/dbl-64/s_erfc.c`
+(lines 58 to 62 at `30f988fbe795`, the only commit read for this one) is
+`static void` and returns `__cr_erf_accurate_tiny (h, l, z, false)`, as
+CORE-MATH's does.
+
+So there is nothing to send to glibc for items 1 to 9. Were one of these
+defects to reach it with a later import, the patch would go by `git send-email` to
 libc-alpha@sourceware.org, its subject starting with `math:`, with a
 `Signed-off-by:` line under the Developer's Certificate of Origin (glibc has
 not required a copyright assignment to the FSF since August 2021), and a test
