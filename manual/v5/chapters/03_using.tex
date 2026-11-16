@@ -150,11 +150,10 @@ A program includes \file{gaol/gaol} (or \file{gaol/gaol.h}), and
 \file{gaol/parser/gaol\_expression.h} for the expressions, with
 \file{gaol/parser/gaol\_expr\_eval.h} to evaluate them. The three builds
 install these headers and the headers they include. Each of the installed
-headers compiles alone, but for the four that other headers include in the middle
+headers compiles alone, but for the three that other headers include in the middle
 of their code (\file{gaol/core/gaol\_interval\_fpu.h},
-\file{gaol/core/gaol\_interval\_neon.h},
-\file{gaol/core/gaol\_interval\_sse.h}) or that Visual C++ alone uses
-(\file{gaol\_fpu\_msvc.h}). The headers of the sources of GAOL are not
+\file{gaol/core/gaol\_interval\_neon.h} and
+\file{gaol/core/gaol\_interval\_sse.h}). The headers of the sources of GAOL are not
 installed:\newinvfive{} \file{gaol/parser/gaol\_interval\_parser.h}, which did
 not compile when included, \file{gaol\_init\_cleanup.h},
 \file{gaol/math/gaol\_core\_math.h}, \file{gaol/math/gaol\_u128.h},

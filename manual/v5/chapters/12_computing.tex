@@ -1580,8 +1580,8 @@ On 14 million cases (3 million intervals, the special bounds, the empty set
 and the universe, in the four directions of the calling code and with
 flush-to-zero set) the bounds of \code{pow(x, 2)} are the same as before,
 the sign of a zero lower bound aside, which is that of \code{sqr(x)} now.
-\item[$\bullet$] \textbf{\code{sqrt} on SSE2} is scalar (6.3 ns on the
-i7-1185G7, 3.75 with the AVX-512 path and the direction preserved, 2.0 on
+\item[$\bullet$] \textbf{\code{sqrt} on SSE2} is scalar (7.35 ns on the
+i7-1185G7, 4.36 with the AVX-512 path and the direction preserved, 2.0 on
 the M2 with NEON); the NEON kernel ports to \code{\_mm\_sqrt\_pd}.
 \code{sqrt\_rel} follows.
 \item[$\bullet$] \textbf{The integer powers on NEON} (done).

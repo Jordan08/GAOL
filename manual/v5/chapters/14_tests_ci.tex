@@ -1504,7 +1504,10 @@ the four Linux jobs with the sanitizers, where it took 109 to 287~s and once mor
 than 300, 900 in the job of macOS 15 x86\_64 GCC with the sanitizers,
 where it took 182 to 577~s in 30 runs, and more than 400 six times, and 600
 in the job of macOS 26 arm64 LLVM Clang with the sanitizers, where it took
-162 to 297~s in 28 runs, and once more than 300. The manual of GAOL v5 is
+162 to 297~s in 28 runs, and once more than 300. With autotools, \cmd{make check}
+gives each test 300~s where \cmd{configure} finds \cmd{timeout}
+(\code{make check GAOL\_TEST\_TIMEOUT=900} gives a slower build more), and
+meson gives the examples 300~s too.\newinvfive{} The manual of GAOL v5 is
 built with the LaTeX of Ubuntu 24.04, by the autotools, the CMake and the
 meson builds, when \file{manual/} changes (\file{manual.yml}), and its PDF,
 \file{manual/Manual\_GAOLv5.pdf}, is an artefact of the run; the manual of

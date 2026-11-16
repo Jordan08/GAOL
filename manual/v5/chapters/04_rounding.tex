@@ -1420,6 +1420,20 @@ initialized before the static objects that such a file defines after its
 itself (\pxref{sec:rounding-direction}), so that the program does not need to set
 it again after changing it.\newinvfive
 
+On every target, the initialization stops the program, with a message, when
+the rounding direction set upward does not round upward: $1 + 2^{-60}$,
+computed there, has to be above 1.\newinvfive{} That is the case of a target
+whose floating point is in software, which keeps rounding to nearest: on Debian
+armel (32-bit ARM, GCC~12) under \cmd{qemu-arm}, \code{fesetround(FE\_UPWARD)}
+returns 0, glibc writing the control register of the VFP that qemu emulates,
+which the arithmetic in software does not read, and GAOL computed every bound
+to nearest, in silence; on a processor without a VFP, \code{fesetround()}
+returns an error, which GAOL did not read either. It is the case under
+valgrind too (memcheck 3.26 on x86-64), which computes the SSE instructions to
+nearest whatever MXCSR says: a program using GAOL stops there at its start,
+where its bounds were wrong before. The check sets back the flag of the inexact
+exception it raises.
+
 \begin{Rem}\label{rem:cleanup-rounding}
 \code{cleanup()}, on the other hand, is to be called by the program right
 after its last use of GAOL, at the latest at the end of \code{main()}, with

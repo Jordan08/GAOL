@@ -255,8 +255,7 @@ GAOL installs with `.github/scripts/headers.sh` (GAOL v5): each compiles alone
 with `-std=c++11`, the oldest standard GAOL takes, and
 `-Wall -Wextra -Wold-style-cast -Wundef -Werror` (they have no cast of C,
 nor any `#if` on a macro that may be undefined), but the
-four that other headers include in the middle of their code or for Visual C++
-only, and the macros they define start with `GAOL_` or `gaol_`. The two jobs
+three that other headers include in the middle of their code, and the macros they define start with `GAOL_` or `gaol_`. The two jobs
 with `-DGAOL_SSE2_UNALIGNED_STORAGE=ON` check the configuration has that form
 before they build, and make the check for the installation in that form:
 `gaol/core/gaol_interval_detail.h` did not compile alone there (GAOL v5).

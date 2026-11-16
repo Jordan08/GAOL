@@ -273,7 +273,7 @@ It is up to the user to comply with this mechanism when adding error
 reporting code to a program. GAOL defines the following macro, to be used
 whenever one wants to report an error.
 
-\begin{defmacroA}{gaol\_ERROR}{(\var{excep},\var{msg})}
+\begin{defmacroA}{GAOL\_ERROR}{(\var{excep},\var{msg})}
   The behaviour of the macro depends on the value chosen for the option
   \loption{enable-exceptions}. If the exceptions are enabled, an exception of
   the class \var{excep} is thrown with the text
@@ -284,7 +284,10 @@ whenever one wants to report an error.
   in the message. The class \var{excep} derives from \code{std::exception},
   in practice one of \code{<stdexcept>}; the compiler refuses any other type,
   by a \code{static\_assert}, in a build that aborts as in one that throws.
-  Otherwise, the program aborts with the message \var{msg}.\newinvfive
+  Otherwise, the program aborts with the message \var{msg}. \code{gaol\_ERROR},
+  the name of GAOL~4, is kept for the programs that add their own errors with
+  it: the macros of GAOL start with \code{GAOL\_}, and \code{GAOL\_ERROR} is the
+  name to write.\newinvfive
 
 \begin{example}
 interval x;
@@ -292,7 +295,7 @@ interval x;
 @emph^[Code manipulating x]~
 
 if (x.is_empty()) {
-   gaol_ERROR(std::domain_error,"Emptiness of one interval");
+   GAOL_ERROR(std::domain_error,"Emptiness of one interval");
 }
 \end{example}
 \end{defmacroA}

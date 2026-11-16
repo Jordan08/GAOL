@@ -179,7 +179,21 @@ them are described in the section the cross-reference names.
   included \file{gaol/\allowbreak gaol\_expression.h} (\pxref{sec:changes-interface}).
 \item[$\bullet$] \textbf{The expressions.} \code{eval\_stack} and
   \code{expr\_eval} are no longer copyable, the stack of an evaluation
-  growing in the heap (\pxref{sec:changes-io}).
+  growing in the heap (\pxref{sec:changes-io}), and neither are the nodes
+  (\code{expr\_node} and its derived classes): a program that copied one,
+  \code{interval\_node b(*a);}, no longer compiles, and \code{clone()} copies
+  a node. The constructor \code{expression(const expr\_node\&)} is
+  \code{explicit}: a program that made an expression of a node without writing
+  it, \code{return *(new my\_node(...));} in a function that returns an
+  \code{expression}, writes \code{expression(*(new my\_node(...)))}.
+  \code{expr\_eval::result()} throws \code{error\_occurred()} when the
+  evaluation of a tree leaves no value or more than one, and takes the value
+  off the stack, so that a second call is an error.\newinvfive
+\item[$\bullet$] \textbf{The macro of errors.} \code{gaol\_ERROR(excep, msg)}
+  is \code{GAOL\_ERROR(excep, msg)}, as the macros of GAOL start with
+  \code{GAOL\_}; the old name is an alias. The class \code{excep} derives from
+  \code{std::exception}, which the compiler checks
+  (\pxref{sec:errors-handling}).\newinvfive
 \item[$\bullet$] \textbf{The debugging macro.} \code{GAOL\_DEBUG(level,
   command)} of the debug build is \code{GAOL\_DEBUG\_VERBOSE}: the old name is
   not kept (\pxref{sec:debugging-facilities}).
@@ -1383,8 +1397,10 @@ also where the bounds are numbers that are not doubles: GAOL~4 read
 a double, and a number that is not one, \code{pi} included, is refused. The
 reader knows every function of GAOL on intervals, which GAOL~4 did not read
 (\code{exp10}, \code{hypot}, \code{sqr}, \code{abs}, \code{fma}\ldots), and
-\code{gaol\_ieee1788::textToInterval()} reads the names of the standard,
-whose \code{pow} is the pow of the standard: in the earlier versions of GAOL v5
+\code{gaol\_ieee1788::textToInterval()} reads the names of the standard
+(\code{cancelMinus}, \code{cancelPlus}, \code{intersection} and
+\code{convexHull} included, which it read as the empty set), whose \code{pow}
+is the pow of the standard: in the earlier versions of GAOL v5
 it read those of GAOL, and \code{pown} gave the empty set. Function names are read in any case of
 letters, compared in ASCII and not by \code{std::tolower()}, whose result
 depends on the locale. \code{pow(x, n)} read in a string is the \code{pow}
@@ -1504,7 +1520,7 @@ neither the header of the parser, which did not compile when included, nor
 \file{gaol/gaol\_init\_cleanup.h}, both of which GAOL~4 installed, nor the
 headers of \file{gaol/math/}, among them \file{gaol\_double\_op.h}, whose
 functions of doubles \code{exp\_dn()}, \code{sin\_up()} and the thirty others
-leave the interface. Each installed header, but the four of Section~\ref{sec:headers}, compiles
+leave the interface. Each installed header, but the three of Section~\ref{sec:headers}, compiles
 alone with
 \option{-std=c++11} and the flags of \file{gaol.pc}, and without a warning
 under \option{-Wall -Wextra} and \option{-Wold-style-cast -Wundef}: with
@@ -1605,9 +1621,12 @@ folded the test away (GCC 9.4 and 13 at \option{-O0}, \option{-O2} and \option{-
 on again: Clang 18 compiled GAOL's operations as if rounding to nearest (54
 of the 292728 checks of the test of the rounding direction failed after
 \option{-ffast-math -fno-fast-math}, 126 after \option{-Ofast
--fno-fast-math}, none with all the flags after the option). What no macro
-shows is not refused, and the code using GAOL is not to be compiled with it:
-\option{-funsafe-math-optimizations} and \option{-fno-signed-zeros}, which
+-fno-fast-math}, none with all the flags after the option). With GCC from version 12,
+\option{-fno-signed-zeros}, \option{-fno-trapping-math},
+\option{-fassociative-math} and \option{-freciprocal-math} are refused too,
+which \option{-funsafe-math-optimizations} turns on, GCC showing them by
+macros. What no macro shows is not refused, and the code using GAOL is not to
+be compiled with it: those options with GCC before 12 and with Clang, which
 rewrite the addition by which GAOL tells the rounding direction and the
 modes. The compilers that do not honour the rounding direction are refused,
 the C compiler as well as the C++ compiler: Clang for 32-bit ARM processors,

@@ -99,7 +99,8 @@ Two tools are needed to build GAOL:
   Studio 2022 or later), clang-cl (the Clang of Visual Studio, Clang 16 or
   later), or GCC and Clang for Windows (MinGW-w64, MSYS2, Cygwin);
 \cindex{C++!standard}%
-\item CMake 3.14 or later, with the build tool of its generator (\cmd{make},
+\item CMake 3.14 or later (\cmd{cmake --install} is CMake 3.15: with 3.14,
+  \cmd{cmake --build build --config Release --target install}), with the build tool of its generator (\cmd{make},
   \cmd{ninja}, Visual Studio); or, for the autotools build, a shell and
   \cmd{make}; or, for the meson build, meson and ninja.
 \end{itemize}
@@ -240,18 +241,39 @@ flags of interval arithmetic, and check that the header refuses it, and
 builds.
 
 \medskip
+With GCC, \file{gaol/gaol\_config.h} refuses \option{-fno-signed-zeros},
+\option{-fno-trapping-math}, \option{-fassociative-math} and
+\option{-freciprocal-math} too, which \option{-funsafe-math-optimizations}
+turns on, as do \option{-ffast-math} and \option{-Ofast} with
+\option{-fno-finite-math-only}: GCC shows them by \code{\_\_NO\_SIGNED\_ZEROS\_\_},
+\code{\_\_NO\_TRAPPING\_MATH\_\_}, \code{\_\_ASSOCIATIVE\_MATH\_\_} and
+\code{\_\_RECIPROCAL\_MATH\_\_} from version 12 on (12.2 and 15.2 checked; GCC~9.4
+and 11.4 define none of them, and the options are not refused there), and
+\option{-fno-fast-math} turns them off when it comes after them, as it does
+\option{-ffinite-math-only}.\newinvfive{} Compiled with GCC~15.2,
+\option{-fno-signed-zeros} failed 6 tests, \code{width()} of
+$[2, 3]\cdot2^{-1074}$ being 0 under flush-to-zero, and
+\option{-fno-trapping-math} 52 checks of \file{tests/rounding\_direction.cpp},
+operations with an empty operand raising the invalid-operation flag. The CMake
+tests \code{refused\_no\_signed\_zeros}, \code{refused\_no\_trapping\_math},
+\code{refused\_unsafe\_math} and \code{refused\_reciprocal\_math}, and
+\file{tests/refused\_options.sh}, check these refusals where the compiler shows
+the options by these macros.
+
+\medskip
 No macro of the compiler shows the following options, which
 \file{gaol/gaol\_config.h} cannot refuse and which give wrong results all the
-same. The code using GAOL is not to be compiled with them.
+same: with GCC before 12, and with Clang, which defines none of the macros
+above. The code using GAOL is not to be compiled with them.
 
 \begin{itemize}
 \item[$\bullet$] \textbf{\option{-funsafe-math-\allowbreak optimizations}, and
-  \option{-ffast-math -fno-finite-\allowbreak math-only}, with GCC.} The compiler
+  \option{-ffast-math -fno-finite-\allowbreak math-only}, with GCC before 12.} The compiler
   rewrites the addition \code{1.0 + tiny == 1.0}, by which GAOL sees the
   rounding direction, as \code{tiny == 0.0} (GCC 9.4), and the former probe of
   the modes, \code{1.0 + (subnormal + 0.0) == 1.0}, which sees the modes
   flushing the subnormals to zero too, as \code{subnormal == 0.0} (GCC 9.4 from
-  \option{-O0}, and GCC 13), so that an operation does not set the direction
+  \option{-O0}), so that an operation does not set the direction
   upward again after the code using GAOL left it to nearest, and
   \code{width()} is below the exact width. Clang 18 does not rewrite the first
   addition, but its \option{-funsafe-math-optimizations} implies
@@ -262,14 +284,17 @@ same. The code using GAOL is not to be compiled with them.
   it); GCC 15 and Clang 21 drop its
   \code{+ 0.0} under \option{-fno-signed-zeros} as they did for the earlier
   form.
-\item[$\bullet$] \textbf{\option{-fno-signed-zeros}}, with which GCC (9.4 from
-  \option{-O0}, and 13) and Clang 18 (at \option{-O2} and \option{-O3}) drop
-  the \code{+ 0.0} of the second addition, which then misses the
+\item[$\bullet$] \textbf{\option{-fno-signed-zeros}}, with which GCC before 12
+  (9.4 from \option{-O0}) and Clang (18 at \option{-O2} and \option{-O3}, and
+  21) drop the \code{+ 0.0} of the second addition, which then misses the
   flush-to-zero mode (\pxref{sec:ftz}).\newinvfive
 \item[$\bullet$] \textbf{\option{-fno-honor-nans} alone, with Clang}, which
-  does to the empty interval what \option{-ffinite-math-only} does:
-  \code{\_\_FINITE\_MATH\_ONLY\_\_} is 1 only with
-  \option{-fno-honor-infinities} too.
+  does to the empty interval what \option{-ffinite-math-only} does (the sum of
+  the empty set and \itv{1}{2} is not empty), and
+  \option{-fno-honor-infinities} alone, which does it to the unbounded
+  intervals (\code{interval::universe().is\_entire()} is false, and
+  \itv{-\infty}{5} is empty): \code{\_\_FINITE\_MATH\_ONLY\_\_} is 1 only with
+  both.\newinvfive
 \item[$\bullet$] \textbf{\option{-ffast-math} or \option{-Ofast} followed by
   \option{-fno-fast-math}, with Clang.} The macros show nothing, but
   \option{-frounding-math} stays off, and the compiler takes the rounding
@@ -336,10 +361,13 @@ compiled with. GAOL v5 defends itself in two ways.\newinvfive
   \code{CMAKE\_REQUIRED\_LINK\_OPTIONS}, \code{AC\_LINK\_IFELSE} with
   \option{-Werror} and the \env{LDFLAGS} of the user,
   \code{has\_link\_argument()}. \code{gaol::gaol} gives it to a program built
-  by GCC 13 or a later one, or by the compiler that built GAOL, of its major
-  version and not older: GCC has the option from 11.4 and 12.4 in the series
-  11 and 12 only, and a GAOL built by GCC 11.4 gave it to GCC 12.3, which
-  stops on it. \file{gaol.pc}, written for that compiler, gives it to every
+  by GCC 13 or a later one, by Clang 20 or a later one (not on Windows, where
+  the option was not tried with Clang: the compiler that built GAOL alone is
+  trusted with it), or by the compiler that built GAOL, of its major version
+  and not older: GCC has the option from 11.4 and 12.4 in the series 11 and 12
+  only, and a GAOL built by GCC 11.4 gave it to GCC 12.3, which stops on it; a
+  GAOL built by GCC gave it to no program built by Clang, which has it from
+  20.\newinvfive \file{gaol.pc}, written for that compiler, gives it to every
   program, and a program linked by a compiler that refuses it (Clang 18, a GCC
   before 11.4, GCC 12.0 to 12.3, GCC for ARM) is to be linked without it.
 \end{itemize}
@@ -402,14 +430,14 @@ its meson build, and the CMake build gives the same, apart from the errors corre
 
 \begin{itemize}
 \item[$\bullet$] \textbf{GAOL is compiled in release.} The flags are
-  \option{-O3} and the optimizations \cmd{configure} adds
-  (\option{-funroll-loops}, \option{-fomit-frame-pointer} and
-  \option{-fexpensive-\allowbreak optimizations},
-  each where the compiler takes it), \option{-falign-functions=64} for the
-  library alone (not for the tests, the examples and the benchmarks),
-  \code{NDEBUG}, \option{-std=c++11} (\option{-std=c++14} for Clang with the
-  target of Visual C++, whose standard library needs it), hidden visibility
-  (\option{-fvisibility=hidden -fvisibility-inlines-hidden}) and
+  \option{-O3}, \code{NDEBUG} and \option{-std=c++11} (\option{-std=c++14} for
+  Clang with the target of Visual C++, whose standard library needs it) for
+  everything the build compiles, and, for the library alone (not for the
+  tests, the examples and the benchmarks, which are compiled as the code using
+  GAOL is) the optimizations \cmd{configure} adds (\option{-funroll-loops},
+  \option{-fomit-frame-pointer} and \option{-fexpensive-\allowbreak optimizations},
+  each where the compiler takes it), \option{-falign-functions=64}, hidden
+  visibility (\option{-fvisibility=hidden -fvisibility-inlines-hidden}) and
   \option{-Wall -Wconversion}, which GAOL compiles without warnings,
   \option{-Wsign-conversion} of Clang included. Its libraries are compiled in
   release too where a project brings GAOL in without choosing a build type, as
@@ -422,8 +450,8 @@ its meson build, and the CMake build gives the same, apart from the errors corre
 \item[$\bullet$] \textbf{With the flags of interval arithmetic}
   (\pxref{sec:compiling}). The code using GAOL, the tests included, is linked
   with \option{-mno-daz-ftz} where the compiler accepts it (GCC 13 and later
-  on x86, from 11.4 and 12.4 in the series 11 and 12, and Clang 20 and 21, not
-  Clang 18), in \code{gaol::gaol} and in \file{gaol.pc}: each build tests the compiler with
+  on x86, from 11.4 and 12.4 in the series 11 and 12, and Clang 20 and later,
+  not Clang 18), in \code{gaol::gaol} and in \file{gaol.pc}: each build tests the compiler with
   a link.\newinvfive
 \item[$\bullet$] \textbf{SSE2 intervals on x86 processors}
   (\option{-msse2 -msse3}; no flag with Visual C++ and clang-cl for x64, where
@@ -534,7 +562,14 @@ its meson build, and the CMake build gives the same, apart from the errors corre
   build makes one (\cmd{configure}, meson, CMake with
   \option{BUILD\_SHARED\_LIBS}); it was \file{libgaol-5.0.so.0} with
   \cmd{configure} in the earlier versions of GAOL v5, and meson gave no
-  version.\newinvfive
+  version. On macOS the three builds make \file{libgaol.5.dylib} (CMake keeps
+  the file \file{libgaol.5.0.0.dylib} and links to it), but its Mach-O
+  versions differ, as \cmd{otool -L} shows on an Apple M2 with macOS 27 and
+  Apple clang 21: compatibility and current version 5.0.0 with CMake and
+  meson, 6.0.0 with \cmd{configure}, where libtool adds 1 to the current
+  version of \option{-version-info} on Darwin. It matters only to a program
+  linked with the dylib of one build and run with the dylib of another (not
+  tried).\newinvfive
 \cindex{soname}%
 \end{itemize}
 
@@ -579,10 +614,11 @@ In the root directory of the sources:
 \noindent
 With Visual Studio and Xcode the target is \cmd{RUN\_TESTS}: \cmd{cmake --build
 build --config Release --target RUN\_TESTS}. On Linux with the static library
-and the SSE2 intervals, the test step runs 47 tests (the other intervals give
-three fewer, the shared library one fewer), of which \code{intervalf} and \code{interval2f} are skipped, the
+and the SSE2 intervals, the test step runs 54 tests (the FPU intervals give
+three fewer, the shared library two fewer), of which \code{intervalf} and \code{interval2f} are skipped, the
 intervals of floats being compiled only by a developer of GAOL. CMake 3.14 or
-later is needed. The build compiles the thirty-eight sources of
+later is needed, 3.15 for the last command, which 3.14 replaces with
+\cmd{cmake --build build --config Release --target install}. The build compiles the thirty-eight sources of
 CORE-MATH that GAOL uses into \file{libgaol}, which is a static library unless
 \option{BUILD\_SHARED\_LIBS} is \code{ON}: there is nothing else to build and
 nothing else to install. The build type is \code{Release} unless another is
@@ -1160,10 +1196,10 @@ builds (Table~\ref{tab:install-options}):
   as the \code{Debug} build of CMake: with \option{-g}, without optimization
   nor \code{NDEBUG}, and with the debugging facilities
   (\pxref{sec:debugging-facilities}); the \code{Release} build of CMake
-  otherwise, with \option{-O3} and \code{NDEBUG}, and the flags
-  \option{-funroll-loops}, \option{-fomit-frame-pointer} and
+  otherwise, with \option{-O3} and \code{NDEBUG}, and, for the library alone, the
+  flags \option{-funroll-loops}, \option{-fomit-frame-pointer} and
   \option{-fexpensive-optimizations} where the compiler takes them, and
-  \option{-falign-functions=64} for the library alone. This option defaults to
+  \option{-falign-functions=64}. This option defaults to
   \code{no}.
 \cindex{debugging!option}%
 \cindex{optimization!configuration option}%
@@ -1623,27 +1659,47 @@ elementary functions are no faster, and a little slower: \code{cos} took
 rather than 21.7. With Clang 18.1, before the operators took their bounds in
 a register, the basic operations took two to three times less time with it
 and the elementary functions two to three times more. The sources of
-CORE-MATH are compiled apart, without it. The standard options
-of the tools reach the sources of GAOL, \option{CMAKE\_INTERPROCEDURAL\_OPTIMIZATION},
-\option{-Db\_lto=true} of meson and \option{-flto} in \env{CXXFLAGS}, which the
-three builds keep away from CORE-MATH alone: they are not to be given with
-GCC.
+CORE-MATH are compiled apart, without it. The standard settings
+of the tools reach the sources of GAOL, \option{CMAKE\_INTERPROCEDURAL\_OPTIMIZATION}
+of CMake, given to GAOL or to a project that takes it by FetchContent,
+\option{-Db\_lto=true} of meson and \option{-flto} in \env{CXXFLAGS}: none is
+refused. CMake and meson keep their settings away from the sources of
+CORE-MATH; a \option{-flto} given by hand in the flags of C
+(\code{CMAKE\_C\_FLAGS}, \env{CFLAGS}, \code{c\_args}) reaches them, in the
+three builds, the \option{-fno-lto} that \cmd{configure} gives them coming
+before \env{CFLAGS} on the command line, where the last of the two wins.
 
 \medskip
-With GCC, moreover, it breaks the bounds: GAOL then fails
-\file{tests/rounding\_direction.cpp}, which checks that an operation gives
-the same result whatever the rounding direction the calling code left. With
-\option{GAOL\_PRESERVE\_ROUNDING},
+With GCC it broke the bounds, on 20 September 2026 and with the code of that
+day: GAOL then failed \file{tests/rounding\_direction.cpp}, which checks that
+an operation gives the same result whatever the rounding direction the calling
+code left. With \option{GAOL\_PRESERVE\_ROUNDING},
 \code{textToInterval("sin(1)+exp(0.1)")} gave an upper bound one double below
 the right one when the caller left the direction downward or toward zero: the
-compiler moves floating-point operations across the changes of rounding
-direction, which \option{-frounding-math} is meant to forbid and which it
-does not do across translation units. Compiling the sources of GAOL alone
-with it is enough for the test to fail. Clang 18.1 passes the tests with it,
-so this is not a property of the option but of the handling of it by one
-compiler, which is reason enough not to offer it. An interval that does not
-enclose the exact value is worse than a slow one: there is no option for
-this, and \file{gaol.pc} and \code{gaol::gaol} carry no such flag.
+compiler moved floating-point operations across the changes of rounding
+direction, which \option{-frounding-math} is meant to forbid and which it did
+not do across translation units. Compiling the sources of GAOL alone with it
+was enough for the test to fail; Clang 18.1 passed the tests with it. With
+GCC~15.2 and the code of 13 November 2026 the tests pass with it, with and
+without \option{GAOL\_PRESERVE\_ROUNDING}, and so do they with GCC~13.3 and the
+direction preserved, which a configuration of \file{linux.yml} builds with it.
+Those runs were made on processors with AVX-512, whose arithmetic takes the
+AVX-512 path. With the SSE2 path (\option{-DGAOL\_PREFER\_AVX512=OFF}, and the AMD
+EPYC 7763 of some runners), \code{arithmetic} failed with GCC~12.4, 13.3 and
+14.2 and \option{-flto} (not with 15.2):
+\code{operator+=(double)} and \code{operator-=(double)} computed their sum
+after the change of rounding direction that gives the caller's back, in the
+caller's direction (GCC bug~34678, \pxref{sec:preserve-rounding}), and now keep
+it before, as do \code{*=}, \code{/=} and \code{\%=} with a double,
+\code{\%=} between intervals and the quotient by an interval with a zero. GCC~12.4,
+13.3 and 14.2 then pass, and a configuration of \file{linux.yml} builds with
+the SSE2 path whatever the runner is (GCC~13.3). The other compilers and
+versions were not tried with it.
+
+\medskip
+An interval that does not enclose the exact value is worse than a slow one, so
+there is no option for this, and \file{gaol.pc} and \code{gaol::gaol} carry no
+such flag.
 
 \section{Tests, examples, performance and the parser}\label{sec:tests}
 \cindex{tests}%
