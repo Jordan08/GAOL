@@ -186,9 +186,10 @@ them are described in the section the cross-reference names.
   \code{explicit}: a program that made an expression of a node without writing
   it, \code{return *(new my\_node(...));} in a function that returns an
   \code{expression}, writes \code{expression(*(new my\_node(...)))}.
-  \code{expr\_eval::result()} throws \code{error\_occurred()} when the
-  evaluation of a tree leaves no value or more than one, and takes the value
-  off the stack, so that a second call is an error.\newinvfive
+  \code{expr\_eval::result()} sets the error that \code{error\_occurred()}
+  tells when the evaluation of a tree leaves no value or more than one, and
+  takes the value off the stack, so that a second call is an error; the reader
+  of strings throws a \code{std::logic\_error} then.\newinvfive
 \item[$\bullet$] \textbf{The macro of errors.} \code{gaol\_ERROR(excep, msg)}
   is \code{GAOL\_ERROR(excep, msg)}, as the macros of GAOL start with
   \code{GAOL\_}; the old name is an alias. The class \code{excep} derives from
@@ -302,7 +303,7 @@ not name it, as the CMake build never did.
 The bounds are the tightest ones rather than one double beyond. CORE-MATH is
 correctly rounded in the rounding direction in effect, so GAOL takes the
 value at a bound, computed in the upward rounding it keeps, as the upper
-bound, and the double below it as the lower one. GAOL~4 took values correctly
+bound, and the double below it as the lower one unless the value is a double. GAOL~4 took values correctly
 rounded to nearest only, so each bound had to be moved one double outward,
 and the direction had to be set to nearest and back around every call. On an
 Intel i7-1185G7 with Clang 18, the bounds of \code{log} took 30 ns rather
@@ -683,7 +684,7 @@ above the exact value, and \code{sqrt([-1e-310, 4])} and \code{atan2} gave the
 empty set. At the link, \file{gaol.pc} and
 \code{gaol::gaol} give \option{-mno-daz-ftz} to the code using GAOL where the
 compiler accepts it (GCC 13 and later on x86, from 11.4 and 12.4 in the series
-11 and 12, and Clang 20 and 21, not Clang 18), which keeps \file{crtfastmath.o} out of the program; the check
+11 and 12, and Clang 20 and later, not Clang 18), which keeps \file{crtfastmath.o} out of the program; the check
 of the operations is the only defence against a plug-in, and the only one on
 the other compilers; on POWER, s390x, RISC-V and MIPS neither defence exists. The cost
 is that of the second addition of the check: \code{x * y}, \code{sqrt} and

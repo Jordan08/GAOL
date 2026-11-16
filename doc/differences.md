@@ -509,9 +509,9 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   which, with the static library of the CMake build, comes after the static
   objects of the program, except with MinGW-w64: an interval computed there
   found them 0, and `interval::pi()` was [-0, 0], `[1, 2]/[-1, 1]` was [-0, 0]
-  rather than [−∞, +∞] and `sin([0, 4])` was [-0, 0], without any warning (25
-  of the 45 checks of `tests/static_initialization.cpp` failed with the SSE2
-  intervals, 24 with the others).
+  rather than [−∞, +∞] and `sin([0, 4])` was [-0, 0], without any warning (when
+  `tests/static_initialization.cpp` was written, 25 of its 45 checks failed
+  with the SSE2 intervals and 24 with the others; it has 44 now).
   - `gaol_pi_dn`, `gaol_pi_up`, `gaol_half_pi_dn` and `gaol_half_pi_up`
     (`gaol/gaol_port.h`) are written in decimal, exactly, rather than read from
     the unions that give their bits, which is not a constant expression. They
@@ -1986,9 +1986,9 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   classes are neither copied nor assigned: a program that copied a node,
   `interval_node b(*a);`, which destroyed the same interval twice (the other
   nodes copied without harm), no longer compiles, nor does `double_node d =
-  1.0;` before C++17; `clone()` copies a node. `expr_eval::result()` throws
-  `error_occurred()` when the evaluation of a tree leaves no value or more than
-  one (a node of a program whose `accept()` does not visit its operands), and
+  1.0;` before C++17; `clone()` copies a node. `expr_eval::result()` sets the
+  error that `error_occurred()` tells when the evaluation of a tree leaves no
+  value or more than one (a node of a program whose `accept()` does not visit its operands), and
   `evaluate_expr()` and `evaluate_left_right()` then return false; `result()`
   takes the value off the stack, so that a second call is an error, and
   `eval_stack::pop()` of an empty stack returns `T()`, not the first element of

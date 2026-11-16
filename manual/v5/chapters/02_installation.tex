@@ -430,11 +430,11 @@ its meson build, and the CMake build gives the same, apart from the errors corre
 
 \begin{itemize}
 \item[$\bullet$] \textbf{GAOL is compiled in release.} The flags are
-  \option{-O3}, \code{NDEBUG} and \option{-std=c++11} (\option{-std=c++14} for
-  Clang with the target of Visual C++, whose standard library needs it) for
-  everything the build compiles, and, for the library alone (not for the
-  tests, the examples and the benchmarks, which are compiled as the code using
-  GAOL is) the optimizations \cmd{configure} adds (\option{-funroll-loops},
+  \option{-O3} and \code{NDEBUG} for everything the build compiles, and, for
+  the library alone (not for the tests, the examples and the benchmarks, which
+  are compiled as the code using GAOL is, in C++17, the benchmark in C++14),
+  \option{-std=c++11} (\option{-std=c++14} for Clang with the target of Visual
+  C++, whose standard library needs it), the optimizations \cmd{configure} adds (\option{-funroll-loops},
   \option{-fomit-frame-pointer} and \option{-fexpensive-\allowbreak optimizations},
   each where the compiler takes it), \option{-falign-functions=64}, hidden
   visibility (\option{-fvisibility=hidden -fvisibility-inlines-hidden}) and
@@ -614,7 +614,7 @@ In the root directory of the sources:
 \noindent
 With Visual Studio and Xcode the target is \cmd{RUN\_TESTS}: \cmd{cmake --build
 build --config Release --target RUN\_TESTS}. On Linux with the static library
-and the SSE2 intervals, the test step runs 54 tests (the FPU intervals give
+and the SSE2 intervals, the test step runs 54 tests with GCC 12 or later (the FPU intervals give
 three fewer, the shared library two fewer), of which \code{intervalf} and \code{interval2f} are skipped, the
 intervals of floats being compiled only by a developer of GAOL. CMake 3.14 or
 later is needed, 3.15 for the last command, which 3.14 replaces with

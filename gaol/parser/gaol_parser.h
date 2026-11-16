@@ -217,7 +217,7 @@ namespace gaol_detail {
   /*
     The sign of a - b, a and b being the numbers the texts a and b write, with
     no sign, compared exactly (GAOL v5); 2 when one of
-    them is far beyond the doubles, above 10^311 or below 10^-331 or the
+    them is far beyond the doubles, 10^311 or more or below 10^-331 or the
     like in the other bases (see gaol_take_apart() in
     gaol/parser/gaol_interval_lexer.lpp),
     whose exact value is not kept. For the reader of the literal [l, u], to

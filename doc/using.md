@@ -1819,7 +1819,7 @@ bounds wrong**, and GAOL defends itself in two ways:
   (ppc64le, riscv64, s390x), both took 25 to 83 ns.
 - `gaol.pc` and `gaol::gaol` give `-mno-daz-ftz` to the link, where the
   compiler accepts it: GCC 13 and later on x86, from 11.4 and 12.4 in the
-  series 11 and 12, and Clang 20 and 21 (GCC 9.4, 12.3, GCC for ARM and Clang 18 refuse it, and the
+  series 11 and 12, and Clang 20 and later (GCC 9.4, 12.3, GCC for ARM and Clang 18 refuse it, and the
   builds test the compiler with a link, not with its version). It keeps
   `crtfastmath.o` out of the link, so that a program linked with `-Ofast` does
   not get the modes at all, its own code included.
