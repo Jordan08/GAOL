@@ -201,9 +201,10 @@ est dans `TODO_AFTER.md` (2.6). Rien n'est envoyé, et rien ne l'est sans
 l'accord du mainteneur.
 
 Restent les passages de GAOL que ces vérifications du 13 novembre rendent
-faux, qui n'étaient que dans le fichier de travail du 13 novembre (supprimé le
-16) : à corriger en une pull request (process.md §7, aucun registre dans la
-branche). Lignes constatées à `f4867c7` de `dev` :
+faux, qui n'étaient que dans le fichier de travail du 13 novembre
+(`GAOL_PH/A_FAIRE.md`, hors du dépôt) : à corriger en une pull request
+(process.md §7, aucun registre dans la branche). Lignes constatées à `f4867c7`
+de `dev` :
 
 - `gaol/math/gaol_core_math_port.h` (le commentaire sur `fesetexceptflag()`,
   lignes 167 à 181) : le `fesetexceptflag()` de mingw-w64 pour x86 32 bits
@@ -220,11 +221,13 @@ branche). Lignes constatées à `f4867c7` de `dev` :
 - `3rd/README.md` (constaté le 13 novembre, à revérifier dans la pull request ;
   les numéros sont ceux de « Changes to propose upstream ») : le correctif 6
   (la partie Cygwin est faite par l'amont, `70076f6a`, le 8 novembre) ; le
-  correctif 8 (`./check.sh` passe pour `pow` dans les quatre sens) ; un arrêt
-  de `pow` vers le bas qui a disparu (la phrase n'a pas été retrouvée le 17
-  novembre) ; trois endroits de plus pour le correctif 1 (`exp2l.c`,
-  `acosq.c` et `asinq.c`) ; le défaut de `is_exact()`, qui n'y est
-  toujours pas (le correctif 7 de la série de #125).
+  correctif 8 (`./check.sh` passe pour `pow` dans les quatre sens) ; les lignes
+  484 à 486 et 520 à 526, qui disent que le contrôle de `pow` vers le bas
+  s'arrête sur un underflow parasite (corrigé par l'amont, `e072473e`, le 5
+  octobre), alors que `./check.sh --worst` passe maintenant ; trois endroits
+  de plus pour le correctif 1 (`exp2l.c`, `acosq.c` et `asinq.c`) ; le défaut
+  de `is_exact()`, qui n'y est toujours pas (le correctif 7 de la série de
+  #125).
 - `doc/compare/itf1788.md` (lignes 52 et 177) : préciser que libieeep1788
   attend lui-même l'ensemble vide pour les lignes 136 à 138 depuis 2015
   (`201a6ca`), et que la valeur de la ligne 633 n'est pas celle de son test

@@ -7890,8 +7890,8 @@ faisant une relecture de chaque issue » (17 novembre). La session lit les 20
 issues ouvertes (les 14 des signalements, #67, #198, #374 et les trois
 registres) et les compare à `TODO.md` (PH) et à `A_FAIRE.md` de `GAOL_PH/`, le
 dossier de travail du 13 novembre, que le mainteneur a supprimé le 16 novembre
-à 9 h 22 (il est à la corbeille) : ce qui reste de PH n'est plus que dans les
-issues.
+à 9 h 22 (corbeille), puis restauré le 17 : la session l'a d'abord lu à la
+corbeille, et c'est pourquoi les issues se suffisent maintenant.
 
 - **Les issues** : #125 à #127, #129 à #138 et #175 (les 14 de PH) reçoivent une
   section « Relecture du 17 novembre 2026 » (ce qui est vérifié et ce qui ne
@@ -7900,10 +7900,11 @@ issues.
   décisions du 24 et du 28 octobre sur `cr_pow()` et sur `cos.wc`, `cr_atan()`
   avec Visual C++, la correspondance entre la série de 8 correctifs et ceux de
   `3rd/README.md`) et « Les répliques » (les 10 fichiers de `repro/` que la
-  lettre joint, qui n'étaient que dans le dossier supprimé) ; #126, la cause du
-  miscompilage de GCC 12.2 pour aarch64 (#353, rapport dans #374) et les
-  commandes qui refont les trois fichiers `.i` ; #127, deux triplets du `fma()`
-  de mingw-w64 11 pour x86, qui n'étaient que dans `todo-notes/synthese.md` ;
+  lettre joint, qui n'étaient que dans `GAOL_PH/core-math/repro/`) ; #126, la
+  cause du miscompilage de GCC 12.2 pour aarch64 (#353, rapport dans #374) et
+  les commandes qui refont les trois fichiers `.i` ; #127, deux triplets du
+  `fma()` de mingw-w64 11 pour x86, qui n'étaient que dans
+  `todo-notes/synthese.md` ;
   #129, la question de la Table 10.7 (`overlap`, #290) ; #132, les numéros de
   ligne et un second commentaire de GAOL à corriger. Hors de PH, #198 : ses
   noms de fichiers d'avant #199 et #308, et sa décision du 25 octobre et du 12
@@ -7924,6 +7925,14 @@ issues.
   `A_FAIRE.md` ; **`TODO_AFTER.md`** 2.6 prend les signalements : l'index par
   projet et les décisions communes (un outil d'IA, l'adresse d'auteur, les
   liens vers `configure-clean`).
+- **Après la restauration** (17 novembre) : comparé aux issues par le contenu,
+  tout texte, tout correctif et toute réplique à joindre y est ; n'y sont pas
+  des scripts de travail et des sorties (`compilers/repro/*.sh`,
+  `libs/repro/out_*.txt`...), le texte de l'annonce de #128
+  (`texts/128-goualard-annonce.txt`, avec le brouillon Gmail) et les trois
+  fichiers `.i` de #126 (`compilers/repro/pre/`). Le dossier a aussi donné la
+  phrase de `A_FAIRE.md` sur l'arrêt de `pow` vers le bas : ce sont les lignes
+  484 à 486 et 520 à 526 de `3rd/README.md` (`TODO.md`, PH).
 - **Pas fait** : la pull request de ces textes de GAOL ; la fermeture de #135 et
   de #137, que leurs issues recommandent (au mainteneur) ; rien n'est envoyé.
 
