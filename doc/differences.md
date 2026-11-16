@@ -961,7 +961,10 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   followed by 20000 digits `3` takes 0.011 s, 80000 digits 0.18 s and 320000
   digits 2.8 s (about 28 s expected for a million), and the uncertain form 2.2
   to 2.4 times as long (Intel i7-1185G7, GCC 15.2, the best of five runs,
-  7 November 2026), so that a text from elsewhere can block a program.
+  7 November 2026), so that a text from elsewhere can block a program, but for a
+  number far beyond the doubles (10^311 or more, below 10^-331), whose digits
+  are counted and not put in an integer, and which is read in a time linear in
+  their number.
 - **Numbers are read, and exact texts written, whatever the locale** of the
   program. GAOL read numbers with `strtod()`, which reads the decimal point of
   the C locale: under a locale writing a decimal comma, as
@@ -1695,7 +1698,7 @@ below says what GAOL 4 threw, it gives the class of GAOL 4.
   `[1.00000000000000002, 1.00000000000000001]` is empty, and
   `[1.00000000000000001, 1.00000000000000002]` is the interval of the two
   doubles around them. `pi` and another number, a number far beyond the doubles
-  (about 10^311 or more, or about 10^-331 or less, in decimal) and bounds that
+  (10^311 or more, or below 10^-331, in decimal) and bounds that
   are computed (`1/3`, `sqrt(2)`) may not be told apart: the literal is then the
   interval from the lower bound of l to the upper bound of u. That is case (b)
   of 12.12.7, where the constructor cannot decide whether l ≤ u: GAOL v5

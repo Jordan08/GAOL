@@ -1120,8 +1120,9 @@ example; they are listed here for the reader who looks in this page first.
   million), and the uncertain form 2.2 to 2.4 times as long (Intel i7-1185G7,
   GCC 15.2, the best of five runs, 7 November 2026). A text from elsewhere
   can thus block a program. A number far beyond the doubles (10^311 or more,
-  below 10^-331, or, in base 16, 8 or 2, about 2^1026 or more and 2^-1081 or
-  less) is the exception: its digits are counted and not put in an integer,
+  below 10^-331, or, in base 16, 8 or 2, about 2^1026 or more and below about
+  2^-1081, for certain from 2^1029 and below 2^-1084 in base 16) is the
+  exception: its digits are counted and not put in an integer,
   and it is read in a time linear in their number (GAOL v5).
 - **Threads and the global settings.** `interval::format()` and
   `interval::precision()` are plain variables of the program, shared by its

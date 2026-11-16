@@ -1282,7 +1282,8 @@ number of digits of its significand and of its exponent; the doubles around
 the number are bracketed by steps doubling from the double \code{strtod()}
 gives, then found by bisection on their bits, two comparisons when
 \code{strtod()} gives the nearest double, and at most about 125 whatever it
-gives. The time to read a number is quadratic in the number of its digits
+gives. The time to read a number is quadratic in the number of its digits, but for a
+number far beyond the doubles, whose time is linear
 (\pxref{sec:reading-intervals}), so that a text from elsewhere can block a
 program.
 \code{strtod()} reads the decimal point of the C locale: under a locale
@@ -1699,7 +1700,8 @@ Some differences are deliberate losses: the possibly relations and
 \code{certainly\_neq()}, which was one of them under another name, the timing of GAOL~4, the intervals of floats, the
 headers of the sources. Others are left as they are, and the register says
 so: the sign of a zero bound of a product, which depends on the kernel, the
-quadratic time of the reading of a number of many digits, the inexact exception
+quadratic time of the reading of a number of many digits (but for a number far
+beyond the doubles), the inexact exception
 that almost every operation raises, and the processors where neither the
 flush-to-zero modes can be cleared nor \option{-mno-daz-ftz} exists. A
 program that depended on one of the former behaviours finds here what

@@ -1270,8 +1270,9 @@ Two more texts deserve a word. A sign next to an uncertain number,
 lexer reads \code{-3.56?1} (and \code{+3.56?1}) as one token, and
 \code{10 -3.56?1} throws too. A blank is needed after the sign:
 \code{10 - 3.56?1}, or \code{10- 3.56?1}. Reading a long number takes a time
-quadratic in its number of digits (\pxref{sec:reading-intervals}): a text
-coming from elsewhere can thus block a program.
+quadratic in its number of digits, but for a number far beyond the doubles
+(\pxref{sec:reading-intervals}): a text coming from elsewhere can thus block a
+program.
 
 \subsection{Threads and the global settings}
 %%..........................................
