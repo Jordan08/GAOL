@@ -14,9 +14,12 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12, et la façon de faire une version au §13.
-Dernière mise à jour : 15 novembre 2026, au commit `1efa1c4` de `dev` (la fusion
-de #368, la dernière des quatorze pull requests de la tâche PY, #356 à #368 et
-#370, après la fusion de #352, `1f901d9`, et les registres de la tâche PW,
+Dernière mise à jour : 16 novembre 2026, au commit `a42d016` de `dev` (la fusion
+de #377, la dernière des trois pull requests de PY.12, #375 à #377, après la
+fusion de #353, `14f93d3`, d'une autre session, et les registres de la tâche PY,
+`1bfca77`, qui suivent la fusion de #368, `1efa1c4`, la dernière des quatorze
+pull requests de la tâche PY, #356 à #368 et #370, après la fusion de #352,
+`1f901d9`, et les registres de la tâche PW,
 `40c328a`, qui suivent la fusion de #349, `ebf2efd`, la dernière des treize pull
 requests de la tâche PW, #337 à #349, après
 les registres de #336, `8780a1c`, et la fusion de #336, `89cd896`, la CI
@@ -1055,13 +1058,17 @@ git ls-remote --heads origin
   (`ebf2efd`, `TODO_DONE.md` 2.3, 3.42, 4 et 7.40), puis, le 15 novembre,
   #356 à #368 et #370, les quatorze pull requests de la tâche PY, de 13 h 31 à
   21 h 58 UTC (`1efa1c4`, `TODO_DONE.md` 2.3, 2.4, 3.43, 4 et 7.41), #369 étant
-  fermée sans fusion ; l'audit du 13 octobre a
+  fermée sans fusion, puis, le 16 novembre, #375 à #377, le reste de PY.12, de
+  7 h 19 à 7 h 23 UTC (`a42d016`, `TODO_DONE.md` 2.3, 3.44, 4 et 7.42) ;
+  l'audit du 13 octobre a
   vérifié dans `configure-clean` ce qu'annonçaient alors les points A, C à H et
   J à V.
-- **En cours** : au 15 novembre au soir, trois pull requests sont ouvertes,
-  vers `dev` : #373 (le diagnostic d'un échec sous Rosetta ;
-  `todo-rosetta-diagnostic-pow2`) et #353 et #372 (la tâche PX, d'une
-  autre session) ; #295 (PS.2 ; `manual-neon-pown-text`), #296 (le cas (b) ;
+- **En cours** : au 16 novembre au matin, aucune pull request n'est ouverte :
+  #373 (le diagnostic d'un échec sous Rosetta ; `todo-rosetta-diagnostic-pow2`)
+  est fermée sans fusion, son contenu étant dans `dev` (`TODO_DONE.md` 2.4), et
+  #353 et #372 (la tâche PX, d'une autre session, dont les registres ne sont pas
+  faits ici) sont fusionnées ; #295 (PS.2 ; `manual-neon-pown-text`), #296 (le
+  cas (b) ;
   `manual-case-b-text`), #297 (la tâche PS ; `todo-ps-stale-texts`), #299
   (PQ.2 ; `todo-pq-hexfloat-point`), #298 (PQ.1 ; `todo-pq-centered-form`), #300
   (la recette de compilation croisée de `todo-notes/gcc12-aarch64/` ;
@@ -1083,9 +1090,12 @@ git ls-remote --heads origin
   et #337 à #349 (la tâche PW ; `todo-pw1-auto-config-fma` à
   `todo-pw12-lone-jobs-doc` et `todo-pw9b-macho-doc`) et #356 à #368 et #370 (la
   tâche PY ; `todo-py1-avx512-measured` à `todo-py12b-numbers-format` et
-  `todo-py11b-internal-usings`, #369 étant fermée sans fusion) sont fusionnées,
-  leurs registres faits ; `dev` est au commit de ces registres (7.41), après
-  `1efa1c4`, la fusion de #368, `40c328a`, les registres de PW (7.40),
+  `todo-py11b-internal-usings`, #369 étant fermée sans fusion) et #375 à #377
+  (PY.12 ; `todo-py12c-useless-casts-lib`, `todo-py12d-useless-casts-tests` et
+  `todo-py12e-float-loops`) sont fusionnées, leurs registres faits ; `dev` est
+  au commit de ces registres (7.42), après `a42d016`, la fusion de #377,
+  `1bfca77`, les registres de PY (7.41), `1efa1c4`, la fusion de #368,
+  `40c328a`, les registres de PW (7.40),
   `ebf2efd`, la fusion de #349, `8780a1c`, les registres de #336 (7.39),
   `89cd896`, la fusion de #336, `e3acf0a`, les registres de PV (7.38),
   `773d6a1`, la fusion de #335, `079687e`, les registres de PU (7.37),

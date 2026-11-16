@@ -1,10 +1,14 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `1efa1c4` de `dev` (la fusion de #368
-le 15 novembre à 21 h 58 UTC, la dernière des quatorze pull requests de la
-tâche PY, #356 à #368 et #370, fusionnées de 13 h 31 à 21 h 58 UTC par le
-mainteneur, après celle de #352, PX.2, d'une autre session, et les registres
-de la tâche PW, `40c328a`), et avant au commit `ebf2efd` de `dev` (la fusion de
+Ce qui reste à faire sur GAOL v5 au commit `a42d016` de `dev` (la fusion de #377
+le 16 novembre à 7 h 23 UTC, la dernière des trois pull requests de PY.12, #375
+à #377, fusionnées de 7 h 19 à 7 h 23 UTC par le mainteneur, après celle de
+#353, PX.3, d'une autre session, à 7 h 16 UTC, et les registres de la tâche PY,
+`1bfca77`), et avant au commit `1efa1c4` de `dev` (la fusion de #368 le 15
+novembre à 21 h 58 UTC, la dernière des quatorze pull requests de la tâche PY,
+#356 à #368 et #370, fusionnées de 13 h 31 à 21 h 58 UTC par le mainteneur,
+après celle de #352, PX.2, d'une autre session, et les registres de la tâche PW,
+`40c328a`), et avant au commit `ebf2efd` de `dev` (la fusion de
 #349 le 14 novembre à 22 h 18 UTC, la dernière des treize pull requests de la
 tâche PW, #337 à #349, fusionnées de 21 h 01 à 22 h 18 UTC après les registres
 de #336, `8780a1c`), et avant au commit `89cd896` de `dev` (la fusion de #336 le
@@ -50,23 +54,28 @@ l'intervalle contient des solutions (PU.1, #323), et deux threads qui
 affichaient la même expression `-x` plantaient (PU.2, #324) ; une borne est
 peut-être fausse encore pour un programme qui met lui-même `FPCR.AH` sur arm64
 (issue #198 : `x / y` des intervalles NEON, cause non trouvée). Rien n'est à
-envoyer à un autre projet ni à publier sans l'accord du mainteneur. Trois pull
-requests sont ouvertes, vers `dev` : #373 (hors des points : le diagnostic du
-contrôle de `pow(x, [2])` de `tests/arithmetic.cpp`, qui a échoué une fois sous
-Rosetta sur #358 ; sa CI est verte, sauf macOS, qui attend un runner) et #353 et
-#372 (la tâche PX, d'une autre session : ses registres ne sont pas faits ici,
-pas plus que ceux de #350 à #352, #354 et #355, fusionnées le même jour). #356 à
-#368 et #370 (la tâche PY : les textes faux hors du manuel, le code mort, le nom
-de `GAOL_ERROR` et les avertissements de la relecture du 13 novembre, une pull
-request par point, plus #368 et #370 pour les suites de PY.12 et de PY.11) sont
-fusionnées dans `dev` le 15 novembre, de 13 h 31 à 21 h 58 UTC, par le
-mainteneur ; #369 (les références des exemples 01, 02 et 04 par
-`textToInterval`) est fermée sans fusion à 21 h 09 UTC (« non on ne veut pas de
-TextToInterval dans les exemples »). Leurs registres sont faits (`TODO_DONE.md`
-2.3, 2.4, 3.43, 4 et 7.41), PY ne garde que PY.12 (`-Wuseless-cast` et les
-compteurs de boucle flottants : l'issue #371), et ce qu'elles laissent au
-manuel, à `doc/differences.md` et au `ChangeLog` est dans PZ (PZ.2, PZ.5, PZ.6
-et PZ.9).
+envoyer à un autre projet ni à publier sans l'accord du mainteneur. Aucune pull
+request n'est ouverte. #373 (hors des points : le diagnostic du contrôle de
+`pow(x, [2])` de `tests/arithmetic.cpp`, qui a échoué une fois sous Rosetta sur
+#358) est dans `dev` par le commit de fusion `cc81735`, que GitHub a fait le 15
+novembre à 22 h 50 UTC sans marquer la pull request fusionnée ; le mainteneur
+l'a fermée le 16 novembre à 7 h 15 UTC (`TODO_DONE.md` 2.4). #353 et #372 (la
+tâche PX, d'une autre session : ses registres ne sont pas faits ici, pas plus
+que ceux de #350 à #352, #354 et #355) sont fusionnées, #372 le 15 novembre à
+22 h 15 UTC et #353 le 16 à 7 h 16 UTC. #356 à #368 et #370 (la tâche PY : les
+textes faux hors du manuel, le code mort, le nom de `GAOL_ERROR` et les
+avertissements de la relecture du 13 novembre, une pull request par point, plus
+#368 et #370 pour les suites de PY.12 et de PY.11) sont fusionnées dans `dev` le
+15 novembre, de 13 h 31 à 21 h 58 UTC, par le mainteneur ; #369 (les références
+des exemples 01, 02 et 04 par `textToInterval`) est fermée sans fusion à 21 h 09
+UTC (« non on ne veut pas de TextToInterval dans les exemples »). #375 à #377
+(la suite de PY.12 : les conversions inutiles de `gaol/` et de `tests/`, puis
+les boucles à compteur flottant de `gaol_interval_pow.cpp`, une pull request par
+famille) sont fusionnées le 16 novembre, de 7 h 19 à 7 h 23 UTC. Leurs registres
+sont faits (`TODO_DONE.md` 2.3, 2.4, 3.43, 3.44, 4, 7.41 et 7.42), PY ne garde
+que PY.12 (les boucles à compteur flottant de `tests/`, en une pull request :
+l'issue #371), et ce qu'elles laissent au manuel, à `doc/differences.md` et au
+`ChangeLog` est dans PZ (PZ.2, PZ.5, PZ.6 et PZ.9).
 #337 à #349 (la tâche PW : les builds et la CI de la
 relecture du 13 novembre, une pull request par point, plus #349 pour les
 versions Mach-O de la dylib) sont fusionnées dans `dev` le 14 novembre, de
@@ -239,25 +248,27 @@ est fait par #323.
 ## PY. Les avertissements qui restent [S]
 
 Le reste de la tâche PY de la relecture du 13 novembre : PY.1 à PY.11 sont faits
-par #356 à #366 et #370, et PY.12 en partie par #367 et #368 (`TODO_DONE.md`
-2.3, 3.43 et 4) ; ce qu'ils laissent au manuel, à `doc/differences.md` et au
-`ChangeLog` est dans PZ (PZ.2, PZ.5, PZ.6 et PZ.9). Aucun point ne change une
-borne.
+par #356 à #366 et #370, et PY.12 en partie par #367, #368 et #375 à #377
+(`TODO_DONE.md` 2.3, 3.43, 3.44 et 4) ; ce qu'ils laissent au manuel, à
+`doc/differences.md` et au `ChangeLog` est dans PZ (PZ.2, PZ.5, PZ.6 et PZ.9).
+Aucun point ne change une borne.
 
-12. **Les avertissements de plus** (mineur ; l'issue #371) : #367 corrige
-    `-Wshadow`, les petits restes et `override` sur les 150 fonctions
-    virtuelles, et #368 le format non littéral de `tests/numbers.cpp`, comme le
-    mainteneur l'a décidé le 15 novembre. Restent, relevés avec GCC 15 et
-    clang-tidy 21 le 13 novembre, que le mainteneur n'a pas retenus : des
-    conversions inutiles (`-Wuseless-cast`) dans `gaol/gaol_fpu_fenv.h`,
-    `gaol/gaol_fpu.h`, `gaol/parser/gaol_expression.h` et 30 lignes de `tests/`
-    (`core_math.cpp`, `rounding_direction.cpp`, `u128.cpp`, `unit_tests.h`),
-    peut-être voulues pour d'autres cibles : à vérifier avant d'y toucher ; et
-    des compteurs de boucle flottants (`gaol/core/gaol_interval_pow.cpp`, lignes
-    776, 787, 817 et 825 au 13 novembre). Les 1 140 `-Wfloat-equal` sont voulus
+12. **Les boucles à compteur flottant de `tests/`** (mineur ; l'issue #371) :
+    #367 a corrigé `-Wshadow`, les petits restes et `override` sur les 150
+    fonctions virtuelles, #368 le format non littéral de `tests/numbers.cpp`,
+    #375 et #376 les conversions inutiles (`-Wuseless-cast`) de `gaol/` et de
+    `tests/`, et #377 les quatre boucles à variable `double` de
+    `gaol/core/gaol_interval_pow.cpp`, réécrites en `while` (le code objet est
+    le même). Reste, relevé par le relecteur de #376, que le point ne comptait
+    pas : les boucles `for` à variable `double` de `tests/` (`arithmetic.cpp`,
+    `elementary.cpp`, `gaol_tests.h`, `reverse.cpp`, `test_ibex_codac.cpp` et
+    `core_math.cpp`). *Décidé le 16 novembre* : une seule pull request pour tout
+    `tests/`, après la fusion de #375 à #377, sans changer les valeurs essayées.
+    Gardées exprès : les huit `static_cast<std::size_t>` de `core_math.cpp`
+    (utiles sous i386), les conversions que seul GCC pour i386 signale et les
+    trois du `lex.gaol_.c` généré. Les 1 140 `-Wfloat-equal` sont voulus
     (l'arithmétique compare des bornes), et les avertissements du lexer et du
-    parser générés ne se corrigent pas à la main. *À décider* : si l'un ou
-    l'autre vaut une pull request.
+    parser générés ne se corrigent pas à la main.
 
 ## PZ. Le manuel et les registres [M]
 

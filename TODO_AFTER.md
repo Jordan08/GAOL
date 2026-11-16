@@ -275,6 +275,16 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    connaissent pas `overlap`, qui rend un état et non un intervalle : le type de
    retour des expressions changerait. Pas fait, à traiter à part si cela sert
    (les questions ouvertes de #290). Reporté, sans condition.
+5. **`product_of_bounds()` sans paramètre de gabarit** (#366) : dans
+   `gaol/core/gaol_interval_sse_impl.h`, `product_of_bounds(x, y, mul)` est un
+   gabarit sur le foncteur des produits ; depuis que #366 a retiré
+   `finite_products` (sans appelant depuis `cf60ef6`, le 17 octobre), son seul
+   appelant est `mul_special()`, avec `products_with_infinities()`. La rendre
+   non générique (le foncteur dans la fonction) simplifierait la lecture, sans
+   effet sur une borne. Pas fait (*décidé le 16 novembre*) : du code
+   arithmétique sensible pour un gain de lisibilité ; à reprendre avec un autre
+   changement de ce fichier, en vérifiant que le code objet ne change pas (la
+   méthode de #377). Reporté, sans condition.
 
 ## 3. Écarté, à rouvrir si une condition change
 
@@ -513,8 +523,10 @@ reçoit que les versions ; pas de GitHub Release, l'étiquette suffit (*décidé
    [0x1.1b57d9687ef1p+162], « the caller's direction downward, flush modes 64 »,
    GAOL rendant [0x1.399b58d286516p+324, 0x1.399b58d286517p+324] (juste) et la
    référence vide ; un contrôle sur 7 365 351, passé à la relance, sur une pull
-   request qui ne change que deux documents. #373 (ouverte le 15 novembre, deux
-   commits) ajoute à `tests/arithmetic.cpp` le diagnostic prévu : sur un échec,
+   request qui ne change que deux documents. #373 (deux commits ; sa pull
+   request, restée ouverte sans être marquée fusionnée, est fermée le 16
+   novembre, mais son contenu est dans `dev` : `TODO_DONE.md` 2.4) ajoute à
+   `tests/arithmetic.cpp` le diagnostic prévu : sur un échec,
    le texte dit ce que valaient `x & [0, +oo]` et son carré à l'origine,
    recalculés dans l'état d'alors, dans l'état d'après et avec l'arrondi au plus
    proche sans mode de vidage, l'état du processeur (direction, bits de vidage,
