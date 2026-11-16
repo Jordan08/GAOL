@@ -327,7 +327,8 @@ constants that follow it in the section are then addressed 8 bytes too early
 the test never ended, writing $10^9$ digits in \code{snprintf}). The three
 builds give GCC 12 for 64-bit ARM \option{-fno-section-anchors}, which mends
 the offsets of the other constants, not the list itself, which the literal
-mends. GCC 11.4, 13.3 and 14.2 for 64-bit ARM are right.\newinvfive
+mends. GCC 11.4, 13.3 and 14.2 for 64-bit ARM are right; GCC 13.1 and 13.2 have
+not been tried there, and the three builds do not give them the option.\newinvfive
 \end{Rem}
 
 The link of the program takes one option too, where the compiler accepts it
