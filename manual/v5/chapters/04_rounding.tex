@@ -511,9 +511,9 @@ $\pm10^{-310}$, $\pm10^{300}$ and $\pm\infty$ was compared bit for bit.
 \end{Rem}
 
 \medskip
-\paragraph{The cost.} The operations of the path cost more time on a processor
-that halves its AVX-512 instructions, where they cost less on one that does
-not. On an Intel i7-1185G7 (halved), with Clang~21.1.8
+\paragraph{The cost.} Without \option{GAOL\_PRESERVE\_ROUNDING} the
+operations of the path cost more time than the SSE2 ones, on a processor that
+halves its AVX-512 instructions as on one that does not. On an Intel i7-1185G7 (halved), with Clang~21.1.8
 (\cmd{gaol\_performance}, the median of 9 runs of 7 November 2026, from
 Table~\ref{tab:computing-avx512}), \code{x * y} takes
 4.5~ns rather than 2.8 in the default build, \code{x / y} 5.0~ns rather than
@@ -523,9 +523,11 @@ of the C library with a product. With \option{GAOL\_PRESERVE\_ROUNDING}, where
 the SSE2 path saves and restores the direction, \code{x + y} takes 1.5~ns
 rather than 8.8, \code{sqr(x)} 2.0 rather than 8.4 and \code{pown(x, 3)} 7.8
 rather than 10.4; the comparison of the libraries (\pxref{sec:comparison}) has
-the preserved column of the other operations. The processors that do not
-halve them, as the Xeon of the continuous integration, are expected to take
-less. Which of the paths a GAOL took,
+the preserved column of the other operations. A Xeon of a cloud virtual
+machine, whose units are taken to be of full width, loses more without that
+option (the seven operations take 37 to 45~\% longer, against 20~\% on the
+i7) and gains more with it (3.9 to 4.2 times, against 2.9): the rule does not
+depend on the width of the units (\pxref{sec:avx512}). Which of the paths a GAOL took,
 \file{examples/13\_rounding\_environment.cpp} tells.
 
 %%------------------------------------------------------------------------
@@ -1626,8 +1628,9 @@ RISC-V, MIPS) have no defence against their flush modes, and nothing was
 tested with them set; the FPU intervals of POWER, s390x, RISC-V and
 MinGW-w64 for arm64 are not measured; the slower line of 13 operations with
 the direction preserved on Visual C++ for x86 has no explanation; and the
-processors that do not halve their AVX-512 instructions are expected, not
-measured, to take less time on that path.
+units of the Xeon on which the AVX-512 path was measured a second time are
+taken to be of full width from its model, not tested, and no AMD processor
+was measured.
 
 \medskip
 With the floating-point environment in place, the next chapters turn to the

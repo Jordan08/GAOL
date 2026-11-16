@@ -1382,10 +1382,10 @@ any processor of the architecture is built with `-DGAOL_PREFER_AVX512=OFF`, a
 setting of the developers and of those who build a package (see [Building
 GAOL](building.md#the-settings-of-the-developers); GAOL v5: `gaol::init()`
 chose the path as the program ran, and every operation tested the flag it set,
-in the default build too). The
-operations of the path cost more
-time on a processor that halves its AVX-512 instructions, where they cost
-less on one that does not: on an Intel i7-1185G7 (halved), `x * y` takes
+in the default build too). Without
+`GAOL_PRESERVE_ROUNDING` the operations of the path cost more time than the
+SSE2 ones, on a processor that halves its AVX-512 instructions as on one that
+does not: on an Intel i7-1185G7 (halved), `x * y` takes
 3.3 ns rather than 2.1 in the default build, `x / y` 3.8 ns rather than 2.3
 and `x + y` 1.4 rather than 1.1, but `sqrt(x)` 4.6 rather than 6.4, the
 instruction rounding each root where the SSE2 path checks the root of the C
@@ -1394,9 +1394,11 @@ saves and restores the direction, `x + y` takes 1.4 ns rather than 8.3,
 `sqr(x)` 2.2 rather than 8.3 and `pown(x, 3)` 7.0 rather than 9.2
 (`gaol_performance`, Clang 21.1, the best of 9 interleaved runs; the
 benchmark of [doc/compare/performance.md](compare/performance.md) has the
-preserved column of the other operations); the
-processors that do not halve them, as the Xeon of the continuous integration,
-are expected to take less. Which of the paths a GAOL took, the example 13
+preserved column of the other operations); a
+Xeon of a virtual machine, whose units are presumably full width, loses more
+without the option (the operations take 37 and 45 % longer, against 20 % on the
+i7) and gains more with it (3.9 and 4.2 times at the median, against 2.9).
+Which of the paths a GAOL took, the example 13
 tells.
 
 ### The NEON intervals
