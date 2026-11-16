@@ -1815,10 +1815,10 @@ which `numbers` checks there too.
   checks of `unit_tests.h` rather than CppUnit, which no build needs any more:
   each suite keeps its class and its tests, a `TEST_...` counts a check named
   after its test and describes a failure by its line, its expression and the
-  values compared, and a failure no longer ends its test. `TEST_EQ` compares
-  with a decimal number at a Hausdorff distance of 1e-8, which an enclosure
-  that misses the exact value by less passes: only `intervalf`, which does not
-  run, still has it. `trigonometric`, `reverse_mappings`, `non_arithmetic` and
+  values compared, and a failure no longer ends its test. The `TEST_EQ` of GAOL
+  4 compared with a decimal number at a Hausdorff distance of 1e-8, which an
+  enclosure that misses the exact value by less passed: no test has it any
+  more. `trigonometric`, `reverse_mappings`, `non_arithmetic` and
   `constants` have `TEST_HULL` instead, the result enclosing the hull of the
   values of the function and no more than a double from it, the hull of the
   first three being computed exactly (mpmath, 2000 bits) by `hull_values.py`,

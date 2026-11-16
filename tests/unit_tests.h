@@ -146,13 +146,6 @@ namespace gaol_unit
 // Possibly equal: not disjoint, possibly_eq() being gone (GAOL v5)
 #define TEST_PEQ(a,b)  do { const auto gaol_a_ = (a); const auto gaol_b_ = (b); \
     gaol_unit::check(!gaol_a_.set_disjoint(gaol_b_), __LINE__, "TEST_PEQ(" #a ", " #b ")", gaol_a_, gaol_b_); } while (0)
-// At a Hausdorff distance of 1e-8 at most. It does not tell an enclosure that
-// misses the value it is compared with by less from one that holds it: where
-// the exact bounds are doubles, TEST_SEQ does, TEST_HULL_EXACT_LO and
-// TEST_HULL_EXACT_HI where one is, and TEST_HULL where none is (only
-// tests/intervalf.cpp, which does not run, still has TEST_EQ)
-#define TEST_EQ(a,b)   do { const auto gaol_a_ = (a); const auto gaol_b_ = (b); \
-    gaol_unit::check(hausdorff(gaol_a_, gaol_b_) <= 1e-8, __LINE__, "TEST_EQ(" #a ", " #b ")", gaol_a_, gaol_b_); } while (0)
 #define TEST_CONT(a,b) do { const auto gaol_a_ = (a); const auto gaol_b_ = (b); \
     gaol_unit::check(gaol_a_.set_contains(gaol_b_), __LINE__, "TEST_CONT(" #a ", " #b ")", gaol_a_, gaol_b_); } while (0)
 // Encloses the hull [lo, hi] of the values of a function, and has its bounds
