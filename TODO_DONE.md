@@ -9912,8 +9912,11 @@ direct de leur étape. La section 7.1 commence au 15 octobre.
   (`TODO*.md` et `process.md`) : il ne lance aucun workflow.
 - Les branches `todo-px1-u128-schoolbook` à `todo-px5-reference-comments` et
   `todo-px6-ieee-basic-example` ne sont plus sur GitHub (vérifié le 16 novembre)
-  ; les locales du clone GAOL_PX sont gardées. L'issue #374 (le rapport pour
-  GCC, non envoyé) est ouverte.
+  ; les locales sont supprimées le même jour, à la demande du mainteneur, dans
+  GAOL_PX (le clone privé, supprimé lui aussi, avec les textes des pull requests)
+  et dans GAOL_V9 (aussi `manual-macos-14-texts`, `todo-py11-dead-code`,
+  `todo-rosetta-diagnostic-pow2` et `todo-px3-tolerances`). L'issue #374 (le
+  rapport pour GCC et son cas minimal, non envoyé) est ouverte.
 - Pas dans ces registres : #350 (une suite de PW.6, `todo-pw6b-audit-mingw32`),
   fusionnée le 15 novembre à 7 h 37 UTC.
 
