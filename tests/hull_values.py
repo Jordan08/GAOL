@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-# Tests of GAOL v5: writes the statements TEST_HULL() of tests/trigonometric.cpp
-# and tests/reverse_mappings.cpp, the unit tests of GAOL 4 whose references were
-# decimal numbers compared at a Hausdorff distance of 1e-8 (TEST_EQ), which an
-# enclosure that missed the exact value by less than that passed.
+# Tests of GAOL v5: writes the statements TEST_HULL() of tests/trigonometric.cpp,
+# tests/reverse_mappings.cpp and tests/non_arithmetic.cpp, the unit tests of GAOL
+# 4 whose references were decimal numbers compared at a Hausdorff distance of
+# 1e-8 (TEST_EQ), which an enclosure that missed the exact value by less than
+# that passed.
 #
 # For each call, this script computes the hull of the values the function takes
 # on the interval(s) it is called with (for the relational functions, the hull
@@ -20,8 +21,8 @@
 #     python3 tests/hull_values.py            # the statements, by file
 #     python3 tests/hull_values.py --check    # the statements are in the files
 #
-# The statements are in the two files as written here. A difference is an error:
-# --check exits with 1 and names the statements that are missing.
+# The statements are in the three files as written here. A difference is an
+# error: --check exits with 1 and names the statements that are missing.
 #
 # Copyright (c) 2026 ENSTA, France
 #
@@ -34,6 +35,8 @@ import math
 import os
 import re
 import sys
+from fractions import Fraction
+
 import mpmath
 
 sys.dont_write_bytecode = True  # no tests/__pycache__ for reverse_values
@@ -266,6 +269,69 @@ RELATIONAL = [
 
 
 #---------------------------------------------------------------------------
+# The calls of non_arithmetic.cpp: powers, square roots, logarithms,
+# exponentials and roots, each a function with one argument interval but pow()
+# of two, and the hull of its values, from the exact values at the bounds of the
+# arguments, where a monotone function reaches its least and its greatest value
+#---------------------------------------------------------------------------
+ZERO, ONE = Arg("interval::zero()", 0.0, 0.0), Arg("interval::one()", 1.0, 1.0)
+
+
+def power(x, n):
+    """x^n for the double x and the integer n, a Fraction (x is not 0 for n < 0)"""
+    return Fraction(x) ** n if n >= 0 else 1 / Fraction(x) ** -n
+
+
+def pow_hull(a, n):
+    """The hull of x^n over a, n != 0, a not holding 0 for a negative n: the
+    values at its bounds, and 0 for an even n > 0 when the bounds have two signs"""
+    values = [power(a.lo, n), power(a.hi, n)]
+    if n > 0 and n % 2 == 0 and a.lo < 0 < a.hi:
+        values.append(Fraction(0))
+    return bounds(pair(min(values)), pair(max(values)))
+
+
+def pow_interval_hull(a, b):
+    """The hull of x^y over the x of a, positive, and the y of b: x^y = exp(y ln x)
+    is monotone in each variable, so the least and the greatest values are at the
+    corners"""
+    values = [mpmath.power(m(x), m(y)) for x in (a.lo, a.hi) for y in (b.lo, b.hi)]
+    return bounds(pair(min(values)), pair(max(values)))
+
+
+def increasing_hull(f, a):
+    """The hull of the increasing function f over a, within its domain"""
+    return bounds(pair(f(a.lo)), pair(f(a.hi)))
+
+
+def sqrt_hull(a):
+    return increasing_hull(lambda x: mpmath.sqrt(m(max(x, 0.0))), a)
+
+
+def nth_root_hull(a, n):
+    """The hull of the real n-th root over a, within [0, +oo) for an even n"""
+    return increasing_hull(lambda x: rv.root(max(x, 0.0) if n % 2 == 0 else x, n), a)
+
+
+# The calls, in the order of the file: the text of the call and the hull of its
+# values
+NON_ARITHMETIC = (
+    [("pow(%s,%d)" % (a.text, n), pow_hull(a, n))
+     for a, ns in ((iv(-3, 5), (2,)), (iv(-3, -2), (-4, -3, -2, -1, 1, 2, 3, 4)),
+                   (iv(2, 3), (-4, -3, -2, -1, 1, 2, 3, 4)), (iv(-3, 2), (1, 2, 3, 4)),
+                   (iv(-2, 3), (1, 2, 3, 4))) for n in ns]
+    + [("pow(%s,%s)" % (iv(3, 4).text, iv(2, 3).text), pow_interval_hull(iv(3, 4), iv(2, 3)))]
+    + [("sqrt(%s)" % a.text, sqrt_hull(a)) for a in (iv(2, 3), iv(-3, 2), iv(-2, 3))]
+    + [("log(%s)" % a.text, increasing_hull(lambda x: mpmath.log(m(x)), a)) for a in (iv(5, 9), iv(56.1))]
+    + [("exp(%s)" % a.text, increasing_hull(lambda x: mpmath.exp(m(x)), a))
+       for a in (ZERO, ONE, iv(-800.0), iv(-10, -5), iv(-5, 9), iv(9, 11), iv(-3.5), iv(3.5))]
+    + [("nth_root(%s,%d)" % (a.text, n), nth_root_hull(a, n))
+       for a, n in ((iv(4, 5), 2), (iv(-4, 3), 4), (iv(-4, 3), 5), (iv(0.5, 2), 4), (iv(0.2, 0.5), 4),
+                    (iv(0.5, 2), 5), (iv(0.2, 0.5), 5), (iv(0.1), 4), (iv(0.1), 5), (iv(2.1), 4), (iv(2.1), 5))]
+)
+
+
+#---------------------------------------------------------------------------
 # The statements
 #---------------------------------------------------------------------------
 def literal(x):
@@ -273,6 +339,8 @@ def literal(x):
         return "GAOL_INFINITY"
     if x == -INF:
         return "-GAOL_INFINITY"
+    if abs(x) == math.ldexp(1.0, -1074):  # as the tests write it (tests/gaol_tests.h)
+        return ("-" if x < 0 else "") + "0x1p-1074"
     return (0.0 if x == 0 else x).hex()
 
 
@@ -310,7 +378,12 @@ def reverse_mappings_statements():
     return out
 
 
-FILES = {"trigonometric.cpp": trigonometric_statements, "reverse_mappings.cpp": reverse_mappings_statements}
+def non_arithmetic_statements():
+    return [statement(call, enclosure) for call, enclosure in NON_ARITHMETIC]
+
+
+FILES = {"trigonometric.cpp": trigonometric_statements, "reverse_mappings.cpp": reverse_mappings_statements,
+         "non_arithmetic.cpp": non_arithmetic_statements}
 
 
 def main():
@@ -326,7 +399,8 @@ def main():
                     missing += 1
         if missing:
             sys.exit(1)
-        print("every statement is in tests/trigonometric.cpp and tests/reverse_mappings.cpp")
+        print("every statement is in tests/trigonometric.cpp, tests/reverse_mappings.cpp and "
+              "tests/non_arithmetic.cpp")
         return
     for name, statements in FILES.items():
         print("// " + name)
