@@ -11,8 +11,11 @@
 # and rational arithmetic, and writes TEST_HULL(call, lo, hi), lo being the
 # greatest double at most the lower bound of the hull, and hi the least double at
 # least the upper one: GAOL's bounds have to enclose them, and be one double from
-# them at most (tests/unit_tests.h). The relational functions come from
-# reverse_values.py, which writes the cases of tests/reverse.cpp.
+# them at most (tests/unit_tests.h). A bound of the hull that is a double itself,
+# a finite one, is GAOL's too: the statement is TEST_HULL_EXACT_LO or
+# TEST_HULL_EXACT_HI when one of the two is, and TEST_SEQ when both are. The
+# relational functions come from reverse_values.py, which writes the cases of
+# tests/reverse.cpp.
 #
 #     python3 tests/hull_values.py            # the statements, by file
 #     python3 tests/hull_values.py --check    # the statements are in the files
@@ -31,7 +34,6 @@ import math
 import os
 import re
 import sys
-
 import mpmath
 
 sys.dont_write_bytecode = True  # no tests/__pycache__ for reverse_values
@@ -49,6 +51,22 @@ def m(x):
     if x == -INF:
         return -mpmath.inf
     return mpmath.mpf(x)
+
+
+def pair(v):
+    """The greatest double at most the real v and the least double at least it,
+    which are v when it is a double (v is a double, +-inf, a Fraction or an mpf)"""
+    return rv.round_down(v), rv.round_up(v)
+
+
+def bounds(low, high):
+    """The enclosure of a hull whose lower and upper bounds have the pairs low and
+    high (pair()): (lo, hi, lo_exact, hi_exact), lo being the greatest double at most
+    the lower bound and hi the least double at least the upper one, and lo_exact
+    telling that the lower bound is a finite double, so that GAOL's has to be it.
+    The infinite bounds are not told: TEST_HULL asks for them either way"""
+    lo, hi = low[0], high[1]
+    return (lo, hi, low[0] == low[1] and abs(lo) != INF, high[0] == high[1] and abs(hi) != INF)
 
 
 #---------------------------------------------------------------------------
@@ -93,7 +111,7 @@ def double_value(f, x):
     an increasing f. A value that 2000 bits cannot tell from 1 or -1, as tanh(MAX)
     which is 1 - 2^-2000 or so, is not them: it is inside (-1, 1) at a finite x"""
     v = f(m(x))
-    below, above = rv.round_down(v), rv.round_up(v)
+    below, above = pair(v)
     if abs(x) != INF and abs(v) == 1:
         below, above = (rv.next_down(1.0), 1.0) if v > 0 else (-1.0, rv.next_up(-1.0))
     return below, above
@@ -120,14 +138,14 @@ def trig_hull(name, a, b):
 
 
 def hull(name, a, b):
-    """The tightest enclosure of the hull of the function name over [a, b], a
-    pair of doubles"""
+    """The tightest enclosure of the hull of the function name over [a, b], with
+    the bounds that are doubles (bounds())"""
     if name in ("cos", "tan"):
         lo, hi = trig_hull(name, a, b)
-        return rv.round_down(lo), rv.round_up(hi)
+        return bounds(pair(lo), pair(hi))
     if name == "cosh":  # even: the least value at 0 if it is within [a, b]
         least = mpmath.mpf(1) if a <= 0 <= b else min(mpmath.cosh(m(a)), mpmath.cosh(m(b)))
-        return rv.round_down(least), rv.round_up(max(mpmath.cosh(m(a)), mpmath.cosh(m(b))))
+        return bounds(pair(least), pair(max(mpmath.cosh(m(a)), mpmath.cosh(m(b)))))
     # The increasing functions, and acos, which is decreasing: over their domain
     domains = {"asin": (-1.0, 1.0), "acos": (-1.0, 1.0), "acosh": (1.0, INF), "atanh": (-1.0, 1.0)}
     low, high = domains.get(name, (-INF, INF))
@@ -135,14 +153,14 @@ def hull(name, a, b):
     if a > b:
         raise ValueError("%s over an interval outside its domain" % name)
     if name == "acos":
-        return rv.round_down(mpmath.acos(m(b))), rv.round_up(mpmath.acos(m(a)))
+        return bounds(pair(mpmath.acos(m(b))), pair(mpmath.acos(m(a))))
     if name == "atanh":  # +-oo at +-1, which atanh does not reach
         f = lambda v: -mpmath.inf if v == -1 else (mpmath.inf if v == 1 else mpmath.atanh(v))
-        return rv.round_down(f(m(a))), rv.round_up(f(m(b)))
+        return bounds(pair(f(m(a))), pair(f(m(b))))
     functions = {"asin": mpmath.asin, "atan": mpmath.atan, "sinh": mpmath.sinh, "tanh": mpmath.tanh,
                  "asinh": mpmath.asinh, "acosh": mpmath.acosh}
     f = functions[name]
-    return double_value(f, a)[0], double_value(f, b)[1]
+    return bounds(double_value(f, a), double_value(f, b))
 
 
 # The calls of trigonometric.cpp: function, argument
@@ -177,23 +195,36 @@ def tanh_rev(c, x):
     return rv.hull_within([(f(l), f(u))], x)
 
 
+def with_exact_bounds(compute):
+    """The enclosure that compute() finds through rv.hull_within(), with the
+    bounds that are doubles (bounds()), which rv.last_hull has before they are
+    rounded"""
+    rv.last_hull = None
+    result = compute()
+    if result == rv.EMPTY:
+        return result
+    low, high = rv.last_hull
+    assert result == (rv.round_down(low), rv.round_up(high)), (result, rv.last_hull)
+    return bounds(pair(low), pair(high))
+
+
 def relational(name, args):
     """The tightest enclosure of the hull of the relational function name"""
     ranges = [(a.lo, a.hi) for a in args]
     if name == "acos_rel":
-        return rv.tightest("cosRev", ranges[0], None, ranges[1], 0)
+        return with_exact_bounds(lambda: rv.tightest("cosRev", ranges[0], None, ranges[1], 0))
     if name == "atan_rel":
-        return rv.tightest("tanRev", ranges[0], None, ranges[1], 0)
+        return with_exact_bounds(lambda: rv.tightest("tanRev", ranges[0], None, ranges[1], 0))
     if name == "div_rel":  # div_rel(c, b, x): the x with x*b in c for some b
-        return rv.tightest("mulRev", ranges[0], ranges[1], ranges[2], 0)
+        return with_exact_bounds(lambda: rv.tightest("mulRev", ranges[0], ranges[1], ranges[2], 0))
     if name == "atanh_rel":
-        return tanh_rev(ranges[0], ranges[1])
+        return with_exact_bounds(lambda: tanh_rev(ranges[0], ranges[1]))
     raise ValueError(name)
 
 
 def pown(c, n, x):
     """nth_root_rel(c, n, x)"""
-    return rv.tightest("pownRev", (c.lo, c.hi), None, (x.lo, x.hi), n)
+    return with_exact_bounds(lambda: rv.tightest("pownRev", (c.lo, c.hi), None, (x.lo, x.hi), n))
 
 
 # The calls of reverse_mappings.cpp whose result is a literal: the function and
@@ -245,10 +276,21 @@ def literal(x):
     return (0.0 if x == 0 else x).hex()
 
 
+def exact_literal(x):
+    """A bound that GAOL's has to be: a whole number as one, as the tests of GAOL
+    4 write them, and the others in hexadecimal"""
+    return str(int(x)) if x == int(x) and abs(x) < 2**31 else literal(x)
+
+
 def statement(call, enclosure):
     if enclosure == rv.EMPTY:
         return "TEST_EMPTY(%s);" % call
-    return "TEST_HULL(%s, %s, %s);" % (call, literal(enclosure[0]), literal(enclosure[1]))
+    lo, hi, lo_exact, hi_exact = enclosure
+    if lo_exact and hi_exact:
+        reference = exact_literal(lo) if lo == hi else "%s, %s" % (exact_literal(lo), exact_literal(hi))
+        return "TEST_SEQ(%s, interval(%s));" % (call, reference)
+    macro = "TEST_HULL_EXACT_LO" if lo_exact else "TEST_HULL_EXACT_HI" if hi_exact else "TEST_HULL"
+    return "%s(%s, %s, %s);" % (macro, call, literal(lo), literal(hi))
 
 
 def trigonometric_statements():
