@@ -1,6 +1,10 @@
 # À faire
 
-Ce qui reste à faire sur GAOL v5 au commit `e30d8bd` de `dev` (la fusion de #386
+Ce qui reste à faire sur GAOL v5 au commit `8a308a7` de `dev` (la fusion de #387
+le 17 novembre à 20 h 25 UTC, PJ.8 : les traces de `configure-clean` et le
+dossier `todo-notes/` supprimés, après les commits directs du manuel et de la
+couverture, `c46a6a2` à `5d07c3a`, et les registres de #386, `608af36`), et
+avant au commit `e30d8bd` de `dev` (la fusion de #386
 le 17 novembre à 12 h 12 UTC, hors des points : les expressions sortent de
 `gaol` et de `gaol_ieee1788`, après les registres de #385, `c7f79f3`), et avant
 au commit `a6189a0` de `dev` (la fusion de #385
@@ -87,7 +91,13 @@ et leurs trois en-têtes ne sont plus dans `gaol` ni dans `gaol_ieee1788`, qui
 ne gardent que `textToInterval`) est fusionnée le 17 novembre à 12 h 12 UTC par
 le mainteneur, la CI de sa tête au vert (les huit workflows, Autotools and
 meson à la deuxième tentative), ses registres faits (`TODO_DONE.md` 2.3, 3.52 et
-7.52). Les
+7.52). #387 (PJ.8 : les workflows et les textes ne nomment plus
+`configure-clean`, le dossier `todo-notes/` est supprimé, ses outils
+`check_branch` et `gcore` sont dans `.github/scripts/`) est fusionnée le 17
+novembre à 20 h 25 UTC par le mainteneur, la CI de sa tête au vert (les huit
+workflows), ses registres faits (`TODO_DONE.md` 2.3, 3.53 et 7.54) : le point
+PJ.8 est fait. Les commits directs du 17 novembre qui précèdent (le manuel, la
+couverture sur trois machines, des tests de `misc`) sont en 7.53. Les
 signalements à d'autres projets sont dans leurs issues, #125
 à #138 sauf #128, et #175 (`TODO_AFTER.md` 2.6) : l'ancienne tâche PH est
 sortie de ce fichier le 17 novembre (`TODO_DONE.md` 3.48 et 3.49). #380 (la
@@ -216,7 +226,7 @@ runner ; leurs registres sont faits ici (`TODO_DONE.md` 2.3, 3.34, 3.35, 7.31 et
 
 | Tâche | Contenu | Points | Taille |
 | --- | --- | --- | --- |
-| PJ | La publication de v5.0.0 (`master`, étiquette, annonce, traces de `configure-clean`) | 34, 71, PJ.8 | S |
+| PJ | La publication de v5.0.0 (`master`, étiquette, annonce) | 34, 71 | S |
 
 ## PJ. La publication de v5.0.0 (Y) [S, dans cet ordre]
 
@@ -224,8 +234,9 @@ En dernier : elle suppose les corrections faites et les études de PG faites
 (*décidé le 19 octobre*). Les points faits sont coupés d'ici et sont dans
 `TODO_DONE.md` : le 32 (la couverture, PJ.1) par #315, le 33 (les temps, PJ.2)
 par #316 et #317, le manuel (PJ.5) par #294, les textes qui citent macOS 14
-(PJ.6) par #313 et les restes de la synthèse (PJ.7) par #313, #314 et #318 (2.3,
-3.23, 3.33, 3.34 et 3.35). PU à PZ, faites le 16 novembre, ont changé le code
+(PJ.6) par #313, les restes de la synthèse (PJ.7) par #313, #314 et #318 et les
+traces de `configure-clean` (PJ.8) par #387 (2.3, 3.23, 3.33, 3.34, 3.35 et
+3.53). PU à PZ, faites le 16 novembre, ont changé le code
 de `gaol/` (PU, PV, PX et PY ; PZ n'y a changé que des commentaires) et les
 textes : la couverture, les mesures de PJ.2 et le PDF sont à refaire au commit
 de la version, une seule fois (*décidé le 16 novembre*). Fait le 17 novembre
@@ -235,6 +246,11 @@ de la version, une seule fois (*décidé le 16 novembre*). Fait le 17 novembre
   fichier `gaol_expr_visitor.h`, que ce tableau cite, et #386 a changé
   `gaol_expression.h` et `gaol_expr_eval.h` : à refaire à la version, comme
   tout changement du code de `gaol/` ;
+- la couverture refaite le même jour, directement dans `dev` (7.53) : 97,5 %
+  des 7 822 lignes de `gaol/` (192 non exécutées), les intervalles SSE2, FPU et
+  NEON (Apple M2) et le chemin AVX-512 (`-DGAOL_PRESERVE_ROUNDING=ON`) réunis
+  dans `coverage/` ; le tableau du chapitre 14 du manuel et le PDF gardent les
+  chiffres de #383 : à refaire à la version ;
 - les temps : une comparaison A/B de l'x86 (Clang 21, SSE2, une même séance)
   entre le code du 12 novembre (`2b5e4f9`) et celui de `dev` ne montre aucune
   différence au-delà de la dispersion (rapports de 0,96 à 1,06) ; *décidé le
@@ -245,8 +261,8 @@ de la version, une seule fois (*décidé le 16 novembre*). Fait le 17 novembre
   `67f7073` tournait au moment des registres ;
 - la version va de `dev` dans `master` (process.md §13) : *décidé le 17
   novembre*, `configure-clean` est supprimée et `dev` prend sa place. L'essai
-  de la fusion (`git merge-tree`, `dev` à `67f7073`) est sans conflit et donne
-  l'arbre de `dev`.
+  de la fusion (`git merge-tree`, `dev` à `8a308a7`, `master` après #384) est
+  sans conflit et donne l'arbre de `dev`.
 *Décidé le 13 novembre* : pas de fusion dans `master` tant que PU à PZ ne sont
 pas faites (« il y a encore des TODO. Donc ne fusionne pas dans master
 maintenant ») ; elles le sont, et la version attend le mot du mainteneur :
@@ -266,10 +282,11 @@ maintenant ») ; elles le sont, et la version attend le mot du mainteneur :
    `68fe887` et `195e4a2`. *Décidé le 17 novembre* : ce fichier sort du dépôt,
    pour `master` comme pour `dev` ; il est dans
    `/home/jninin/Documents/WORK/DEV/GAOL/CLAUDE.md`, dossier parent des
-   clones, et noté dans `~/.claude/CLAUDE.md` ; la pull request #384 le retire
-   de `master`, et `dev` ne l'a plus (7.50), de sorte que la fusion donne
-   l'arbre de `dev`. Les notes de travail (`TODO*.md`, `process.md`,
-   `STEP.md`) sont dans l'arbre de `master` après la fusion ;
+   clones, et noté dans `~/.claude/CLAUDE.md` ; la pull request #384 l'a retiré
+   de `master` (fusionnée le 17 novembre à 9 h 42 UTC), et `dev` ne l'a plus
+   (7.50), de sorte que la fusion donne l'arbre de `dev`. Les notes de travail
+   (`TODO*.md`, `process.md`, `STEP.md`) sont dans l'arbre de `master` après la
+   fusion ;
    les archives des sources, celles de la Release comprises, ne les ont pas
    (`.gitattributes`, `export-ignore`, que `buildsystems-dist` contrôle).
    *Décidé le 12 novembre au soir* (`TODO_DONE.md` 3.36) : le mainteneur
@@ -325,17 +342,3 @@ maintenant ») ; elles le sont, et la version attend le mot du mainteneur :
    toujours pas de destinataire, et l'adresse de Frédéric Goualard ne se lit
    dans aucun message récent ; aucune réponse des auteurs d'IBEX et de Codac
    depuis 60 jours (recherche par nom) : la licence de #281 attend toujours.
-5. **PJ.8, les traces de `configure-clean`** (*décidé le 17 novembre* : la
-   branche est supprimée) : rien n'est cassé, mais ces textes la nomment
-   encore. Les déclencheurs `branches: [master, configure-clean, dev]` du
-   `push` de `build-systems.yml`, `containers.yml`, `linux.yml`, `macos.yml`,
-   `manual.yml` et `windows.yml` (un fichier de workflow se pousse par SSH :
-   process.md §10) ; les commentaires de `.gitattributes` (lignes 5 et 10) et de
-   `CMakeLists.txt` (ligne 1661) sur la branche des versions qui n'a pas les
-   notes ; `doc/continuous-integration.md` (lignes 16 et 32 : les branches
-   déclenchées, et des badges que `README.md` montre déjà sur `master`) et le
-   chapitre 14 du manuel (lignes 1280 et 1290), avec son PDF. L'histoire reste
-   telle qu'elle est (`ChangeLog`, `doc/tests.md`, `doc/compare/performance.md`,
-   `tests/tools/`, `examples/examples.md`). `dev` et `master` sont les deux seules
-   branches de GitHub (`todo-rosetta-diagnostic-pow2`, celle de #373, est
-   supprimée le 17 novembre).

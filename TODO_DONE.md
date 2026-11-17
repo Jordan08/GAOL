@@ -1,7 +1,7 @@
 # Fait et décidé sur GAOL v5
 
 Tout ce qui est fait sur GAOL v5 et tout ce qui a été décidé, au 17 novembre
-2026 (commit `e30d8bd` de `dev`, la fusion de #386 ; `configure-clean`, qui
+2026 (commit `8a308a7` de `dev`, la fusion de #387 ; `configure-clean`, qui
 était à `83e2f69`, la fusion de #321, est supprimée le 17 novembre : voir la
 section 1). Ce fichier n'est que
 dans `dev`. Ce fichier fait foi : l'issue #177, qui avait le même contenu, n'est
@@ -59,7 +59,11 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
 ## 1. L'état au 17 novembre 2026
 
 - **`dev`**, la base du développement depuis le 13 novembre (3.38), est au
-  commit `e30d8bd` (la fusion de #386 le 17 novembre à 12 h 12 UTC, hors des
+  commit `8a308a7` (la fusion de #387 le 17 novembre à 20 h 25 UTC, PJ.8 : les
+  traces de `configure-clean` et le dossier `todo-notes/`, après les commits
+  directs du manuel et de la couverture, `c46a6a2` à `5d07c3a` (7.53), et les
+  registres de #386, `608af36` (7.52)), et avant au commit `e30d8bd` (la fusion
+  de #386 le 17 novembre à 12 h 12 UTC, hors des
   points : les expressions sortent de `gaol` et de `gaol_ieee1788`, après les
   registres de #385, `c7f79f3` (7.51)), et avant au commit `a6189a0` (la fusion
   de #385 le 17 novembre à 10 h 00 UTC, hors des
@@ -129,7 +133,8 @@ Les questions ouvertes des pull requests, tranchées ; 7. Le travail direct sur
   l'import de CORE-MATH `0b2ae6d1` est du 27 octobre, voir 7.6 à 7.10). Les pull
   requests des corrections vont vers `dev`, la base du développement depuis le
   13 novembre (3.38) ; `master` (GAOL 4.3.2, plus deux commits de
-  `.claude/CLAUDE.md`, que la pull request #384 retire) ne bouge qu'à la version
+  `.claude/CLAUDE.md` et leur retrait par la pull request #384, fusionnée le 17
+  novembre à 9 h 42 UTC) ne bouge qu'à la version
   (point Y : `dev` → `master`, *décidé le 12 novembre* pour `configure-clean`,
   le 17 pour `dev` : 3.50 ; `MATH-CORE` est supprimée : 3.32). Aucune
   pull request n'est ouverte : #373 (hors des points : le diagnostic du contrôle
@@ -4678,6 +4683,55 @@ tournait au moment des registres.
   et six textes périmés, corrigés ; `gaol_expression.h` inclut `gaol_ieee1788.h`
   avant ses surcharges pour que l'ordre des inclusions ne compte pas.
 
+- #387 (PJ.8 ; `todo-pj8-configure-clean-traces`, quinze commits, 38 fichiers,
+  137 lignes ajoutées et 2 960 retirées) : fusionnée le 17 novembre à 20 h 25
+  UTC par le mainteneur (`8a308a7`, tête `dbc5bdb`), la CI de la tête au vert :
+  Manual, Release, Linux, Linux containers, Performance, Autotools and meson,
+  Windows et macOS, à la première tentative de cette tête (les deux têtes
+  précédentes, `79ca6b9` et `f7b54d5`, ont été en partie annulées par les
+  pushes qui ont suivi : l'annulation du job « macOS 26 arm64 » a fait échouer
+  le résumé du run Performance de `f7b54d5`, sans qu'aucune étape échoue). Le
+  point PJ.8 de
+  `TODO.md`, étendu par les réponses du mainteneur (3.53) :
+  - `configure-clean`, supprimée le 17 novembre, n'est plus nommée : les
+    déclencheurs `push` de six workflows passent à `branches: [master, dev]`,
+    les commentaires de `.gitattributes` et de `CMakeLists.txt`,
+    `doc/continuous-integration.md` et le chapitre 14 du manuel aussi (les
+    badges de `README.md` visent `master`, ce que le texte disait faux) ;
+  - `todo-notes/` est supprimé (16 fichiers) : `check_branch` et `gcore` vont
+    dans `.github/scripts/` (`EXTRA_DIST` de `Makefile.am` et son `Makefile.in`,
+    régénéré par automake 1.18.1 : deux lignes, et une section de
+    `doc/tools.md`), la recette `gcc12-aarch64/` est dans trois commentaires de
+    l'issue #374, le reste (`synthese.md`, `points_w4.py`, `pk/`,
+    `HOUSE_RULES.md`) dans l'historique de `dev` au commit `5d07c3a` ;
+    `todo-notes/` et `.claude/` sortent des `paths-ignore` des cinq workflows,
+    de `.gitattributes` et de la regex de CPack (`.claude` reste dans la liste
+    générique des dossiers d'outils de CPack) ;
+  - `check_branch` a pour base `origin/dev` et lit les registres dans le
+    `.gitattributes` de la base (les fichiers `export-ignore`) au lieu de
+    nommer `TODO.md` ; `/.github/corelocks/` est dans `.gitignore` ;
+  - les textes qui disaient les notes « seulement dans `dev` » disent « dans
+    `dev`, et dans `master` une fois une version fusionnée » :
+    `doc/building.md`, le chapitre 2 du manuel, `doc/differences.md` (ligne
+    2569) et les commentaires des workflows ; `process.md`, `TODO.md`,
+    `TODO_AFTER.md` et `STEP.md` n'envoient plus à `todo-notes/` (demande du
+    mainteneur, malgré la règle du §7.5) ; `TODO_DONE.md` n'est pas touché (42
+    lignes qui nomment `todo-notes/`, de l'histoire) ;
+  - le PDF du manuel est régénéré deux fois (les chapitres 14 et 2) : 389 pages,
+    7 lignes « Overfull » comme avant ; le PDF du dépôt en avait 393 parce
+    qu'il datait d'avant #385 et #386, qui avaient raccourci le texte du manuel.
+  Validé : les trois archives (`cmake --build <build> --target dist`, `make
+  dist`, `meson dist --formats gztar`) donnent exactement les 772 fichiers de
+  `git archive HEAD` avant et après les derniers commits, `shellcheck` ne dit
+  rien des deux scripts, `check_branch` essayé sur un commit de code (OK), un
+  commit de registres (`TODO.md`, `TODO_DONE.md` et `process.md` signalés) et la
+  branche. Deux relecteurs (sonnet, 69 000 et 87 000 jetons, avec 15 et 18
+  appels d'outils au plus demandés) n'ont trouvé aucun point bloquant : leurs
+  remarques (la formulation de `TODO_AFTER.md` 1.6, `<fichier>` devenu
+  `<chemin>`) sont corrigées ; les trois derniers commits (`.gitignore`,
+  `doc/differences.md`, `check_branch` qui lit `.gitattributes`) n'ont pas eu de
+  relecteur.
+
 ### 2.4 Fermées sans fusion
 
 - **#29** (2 octobre) : « The three builds made alike », de `configure-clean`
@@ -8247,6 +8301,59 @@ en-têtes ».
   `examples/examples.md`, l'histoire des relectures, nomme encore ces noms et
   reste.
 
+### 3.53 Le 17 novembre : `configure-clean` et `todo-notes/` (#387)
+
+Le mainteneur demande « Traite PJ.8 » (17 novembre) ; la session ouvre #387,
+puis lui pose, avec l'outil de questions, huit questions en deux séries ; ses
+réponses étendent le point.
+
+- **Première série** : (1) les textes qui disent les notes « seulement dans
+  `dev` » (`doc/building.md`, le chapitre 2 du manuel, les commentaires des
+  workflows) : « Les récrire dans #387 » ; (2) `.claude/`, qui n'existe plus
+  mais que `.gitattributes`, `doc/continuous-integration.md` et les
+  `paths-ignore` nomment encore : « Le retirer dans #387 » ; (3)
+  `HOUSE_RULES.md`, réponse libre : « Dans #387, supprime le dossier todo-notes/
+  », ses fichiers de `gcc12-aarch64/` « directement dans le corps de l'issue
+  associée à ce problème sur github, ajoute-les dans des commentaires », les
+  deux fichiers de `orchestration/bin/` dans `.github/scripts/`, `process.md`,
+  `.gitattributes`, la regex de CPack de `CMakeLists.txt` (ligne 1694) et son
+  commentaire et le `paths-ignore: 'todo-notes/**'` des cinq workflows mis à
+  jour, ainsi que, par la liste du mainteneur, `process.md` (une quinzaine de
+  renvois, dont §2, §3.3, §7.1 et §7.8), `doc/continuous-integration.md` (ligne
+  19), `TODO.md` (lignes 157 et 271), `TODO_AFTER.md` (lignes 101, 228 à 233,
+  245 et 730) et `STEP.md` ; (4) la suite après la fusion : « Registres, puis
+  j'attends ».
+- **Seconde série**, sur ce que #387 laissait ouvert : `check_branch` et
+  `gcore` dans les archives des sources, `check_branch` nommant `TODO.md` :
+  « Sortir le nom de `TODO.md` du code » ; `gcore`, qui fait
+  `.github/corelocks/` quand il tourne dans l'arbre : « Ajouter à
+  `.gitignore` » ; la phrase de
+  `doc/differences.md` (ligne 2569), normalement laissée à la synthèse : « Le
+  corriger dans #387 » ; l'issue choisie pour la recette de GCC 12.2 : « Oui,
+  #374 en commentaires ».
+- **Les choix de la session** : l'issue « associée » à `gcc12-aarch64/` est #374
+  (le défaut de GCC 12.2 pour aarch64, dont la recette sert à reproduire le code
+  faux), les trois fichiers (`README.md`, `Dockerfile`, `cross-test`) y sont en
+  trois commentaires et non dans le corps, qui est le texte du rapport pour GCC
+  ; `HOUSE_RULES.md` est supprimé avec le dossier ; `.claude` reste dans la
+  liste générique des dossiers d'outils de CPack (`.vscode`, `.idea`...), qu'un
+  `.claude/settings.local.json` local ne doit pas faire entrer dans l'archive ;
+  `TODO_DONE.md` n'est pas touché ; `check_branch` signale désormais aussi
+  `TODO_AFTER.md`, `TODO_DONE.md`, `process.md` et `STEP.md` dans une branche,
+  ce que le §7.5 demande déjà d'éviter, et `doc/differences.md` pour une branche
+  qui n'est pas du manuel.
+- **Pièges** : `check_branch` refuse un sujet de commit qui contient `.claude`
+  (« credits Claude ») ; un sujet de 102 caractères non poussé se refait par
+  `cherry-pick` sur le parent, sans `rebase -i`, en vérifiant que l'arbre est
+  identique ; un push sur une branche de pull request annule la CI de la tête
+  précédente (`concurrency`), et l'annulation d'un job fait échouer le résumé
+  de `Performance` ; l'arbre GAOL_V9 est passé sur `master` pendant le travail
+  (un autre acteur, après le dernier commit de la session) : les registres sont
+  faits dans un clone du scratchpad.
+- **Reste à faire** : le PDF du manuel et le tableau 14.8 de couverture, avec
+  les mesures, à refaire à la version (PJ) ; rien n'est reporté dans
+  `TODO_AFTER.md`.
+
 ## 4. Les points faits, par lettre
 
 Les points qui ne sont pas (ou pas entièrement) faits ont leur reste dans
@@ -10672,6 +10779,62 @@ est
   (`feedback-gaol-agent-token-budget`, troisième fois) : prévoir le total avant
   de le lancer. Le conteneur armhf de la CI n'a pas démarré (`exec format
   error`) : un `rerun-failed-jobs` par l'API REST relance ce seul job.
+
+### 7.53 Le 17 novembre (après #386 : le manuel et la couverture)
+
+Six commits directs sur `dev`, d'une autre session, demandés par le mainteneur
+(« Refais le rapport de couverture sur cet ordinateur, sur MACarm5 et sur
+Boulot6. Travaille directement dans dev sans PR » et les demandes qui suivent) ;
+leurs registres n'étaient pas faits :
+
+- `c46a6a2` : le chapitre 14 du manuel ne cite plus `gaol_expr_visitor.h`, que
+  #385 a retiré (le PDF n'a pas été refait : voir #387).
+- `7436ff5` : le rapport de couverture de `coverage/` (`README.md` et
+  `coverage.html`) à `608af36` sur l'ordinateur à i7-1185G7 (GCC 15.2, gcovr
+  7.2, Debug, les exemples, 70 tests) : 96,9 % des 6 388 lignes de `gaol/`. Les
+  deux autres machines, mesurées de la même façon, donnent 96,9 % des 6 387
+  lignes (Xeon E3-1220 v6, AVX2 et FMA, sans AVX-512) et 95,9 % des 6 789 lignes
+  (Apple M2, Apple clang 21, NEON ; clang compte plus de lignes que GCC).
+- `058bf9f` : un seul rapport pour les intervalles SSE2, NEON et FPU, trois
+  exécutions réunies par `gcovr --add-tracefile` (NEON : les trois fichiers
+  `gaol_interval_neon*.h` du Mac seuls) : 97,5 % des 7 293 lignes ;
+  `coverage/coverage_summary.py` gagne `--run` et une section « The intervals of
+  each processor family ».
+- `c1110ef` et `e48c106` : `tests/misc.cpp` essaie les trois fonctions de
+  `gaol_interval_sse_impl.h` que rien n'exécutait (le `operator new` et le
+  `operator delete` de placement de la classe, et l'affichage d'un registre
+  `__m128d`), avec leurs dents vérifiées par trois mutations ; `doc/tests.md` ;
+  le rapport passe à 97,7 % des 7 293 lignes.
+- `5d07c3a` : l'exécution avec `-DGAOL_PRESERVE_ROUNDING=ON` (le chemin AVX-512
+  de l'i7) est réunie aux trois autres : 97,5 % des 7 822 lignes de `gaol/`
+  (192 non exécutées), `gaol_interval_avx512_impl.h` à 93,2 % (les 20 lignes
+  non exécutées : `div_unguarded()` pour un diviseur sans zéro, que
+  `div_bounds()` n'envoie jamais là, et une ligne de `sqrt_unguarded()`).
+- Pièges, écrits dans les notes de cette session : gcovr 8.x écrit une entrée
+  par fonction et par ligne dans `coverage.json`, et `coverage_summary.py` les
+  compte comme des lignes (94,9 % de 7 356 au lieu de 96,9 % de 6 387) : le
+  rapport se fait avec gcovr 7.2 ; la couverture d'une ligne de
+  `gaol_parser.cpp` dépend d'une locale turque installée sur la machine.
+- Le tableau 14.8 du manuel et son PDF gardent les chiffres de #383 (95,5 % de
+  6 503 lignes) : à refaire à la version (`TODO.md` PJ).
+
+### 7.54 Le 17 novembre (après #387 : les registres)
+
+- Les registres de #387 et de ces commits directs, en un commit direct sur
+  `dev`, depuis un clone du scratchpad (l'arbre GAOL_V9 était sur `master`, que
+  quelqu'un y avait extrait) : `TODO.md` (l'en-tête, les pull requests, le
+  tableau et PJ sans PJ.8, la couverture de PJ, l'essai de la fusion de `dev`
+  dans `master`), ce fichier (en-tête, 1, 2.3, 3.53, 7.53 et 7.54) et
+  `process.md` (l'en-tête, §11, §12 et §13). `TODO_AFTER.md` n'a que les
+  changements de #387. Les issues #178 et #179 sont mises à jour : #178 parce
+  que #387 a changé `TODO_AFTER.md`, #177 non.
+- Le dernier essai de la fusion de `dev` dans `master` (`git merge-tree`, `dev`
+  à `8a308a7`) : sans conflit, l'arbre est celui de `dev` (`3755177`), #384
+  étant fusionnée dans `master` le 17 novembre à 9 h 42 UTC.
+- Ce commit ne change que des fichiers que les workflows ignorent
+  (`paths-ignore`). Les branches de #387 (`todo-pj8-configure-clean-traces`) et
+  de #384, #385 et #386 ne sont plus sur GitHub (supprimées à la fusion), et
+  `dev` et `master` en sont les seules.
 
 ## 8. Le ménage fait
 

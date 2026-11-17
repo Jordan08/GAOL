@@ -14,8 +14,11 @@ pull request fusionnée. Lis-le en entier avant de toucher au dépôt.
 
 Ce fichier décrit la procédure ; l'état du travail (ce qui est fait, ce qui est
 en cours, ce qui reste) est au §12, et la façon de faire une version au §13.
-Dernière mise à jour : 17 novembre 2026, au commit `e30d8bd` de `dev` (la fusion
-de #386, hors des points : les expressions sortent de `gaol` et de
+Dernière mise à jour : 17 novembre 2026, au commit `8a308a7` de `dev` (la fusion
+de #387, PJ.8 : les traces de `configure-clean` et le dossier `todo-notes/`,
+après les commits directs du manuel et de la couverture, `c46a6a2` à `5d07c3a`,
+et les registres de #386, `608af36`), et avant au commit `e30d8bd` de `dev` (la
+fusion de #386, hors des points : les expressions sortent de `gaol` et de
 `gaol_ieee1788`, après les registres de #385, `c7f79f3`), et avant au commit
 `a6189a0` de `dev` (la fusion
 de #385, hors des points : la suppression d'`expr_visitor`, après les registres
@@ -938,10 +941,16 @@ plus à jour : leur contenu est repris dans `TODO_DONE.md` et `TODO.md`.
   supprime `gaol-build` et `gaol-preserve-build`, puis `FORCE_GAOL=1 ./setup.sh`
   reconstruit les deux GAOL au commit mesuré (les autres bibliothèques restent
   celles de la copie).
+- `check_branch` refuse un sujet de commit qui contient `.claude` (il cherche
+  `claude`). Un sujet de plus de 100 caractères, non poussé, se refait par `git
+  cherry-pick` sur le parent, sans `rebase -i`, en vérifiant que `git rev-parse
+  HEAD^{tree}` ne change pas. Si l'arbre GAOL_V9 change de branche sans toi (il
+  est passé sur `master` le 17 novembre), fais les registres dans un clone du
+  scratchpad, dont tu pousses `origin` vers GitHub par SSH, sans le toucher.
 
 ## 12. Où en est le travail (17 novembre 2026)
 
-Le reste à faire est dans `TODO.md` (tâches PH et PJ) et l'issue #179 ; ce
+Le reste à faire est dans `TODO.md` (la tâche PJ) et l'issue #179 ; ce
 qui est fait et décidé (pull requests fusionnées, décisions, mesures) est dans
 `TODO_DONE.md` (l'issue #177 n'est plus mise à jour) ; ce qui est reporté est
 dans `TODO_AFTER.md` et l'issue #178. L'état qui suit est daté : les commandes
@@ -1103,8 +1112,10 @@ git ls-remote --heads origin
   (`67f7073`, 2.3, 3.49, 4 et 7.49), puis #385 (hors des points : la
   suppression d'`expr_visitor`) à 10 h 00 UTC (`a6189a0`, 2.3, 3.51 et 7.51),
   puis #386 (hors des points : les expressions sortent de `gaol` et de
-  `gaol_ieee1788`) à 12 h 12 UTC (`e30d8bd`, 2.3, 3.52 et 7.52) ; l'audit du 13
-  octobre a
+  `gaol_ieee1788`) à 12 h 12 UTC (`e30d8bd`, 2.3, 3.52 et 7.52), puis, avec les
+  commits directs du manuel et de la couverture (7.53), #387 (PJ.8 : les traces
+  de `configure-clean`, `todo-notes/` supprimé) à 20 h 25 UTC (`8a308a7`, 2.3,
+  3.53 et 7.54) ; l'audit du 13 octobre a
   vérifié dans `configure-clean` ce qu'annonçaient alors les points A, C à H et
   J à V.
 - **En cours** : au 17 novembre, aucune pull request n'est ouverte :
@@ -1141,10 +1152,11 @@ git ls-remote --heads origin
   `todo-px3b-test-eq-rest`) et #380 et #381 (la tâche PZ ;
   `manual-pz-review-fixes` et `synthese-pu-py`) et #382 (`todo-ph-gaol-texts`)
   et #383 (`manual-pj-coverage`) et #385 (`remove-expr-visitor`) et #386
-  (`internal-expressions`) sont fusionnées, leurs registres faits ; `dev`
-  est au commit de ces registres (7.52), après `e30d8bd`, la fusion de #386,
-  `c7f79f3` (7.51), `a6189a0`, la fusion de #385, `819e25d` (7.50), `5dff483`,
-  `67f7073`, la fusion de #383,
+  (`internal-expressions`) et #387 (`todo-pj8-configure-clean-traces`) sont
+  fusionnées, leurs registres faits ; `dev` est au commit de ces registres
+  (7.54), après `8a308a7`, la fusion de #387, `5d07c3a`, `c46a6a2` (7.53),
+  `608af36` (7.52), `e30d8bd`, la fusion de #386, `c7f79f3` (7.51), `a6189a0`,
+  la fusion de #385, `819e25d` (7.50), `5dff483`, `67f7073`, la fusion de #383,
   `269c895`, la fusion de #382, `74409aa`, les registres de la préparation de PJ
   (7.48), `2d3b47d`, ceux de PH (7.47), `9a2a88b`, la
   fusion de #381, `5c746d7`, la fusion de #380, `3d0616e`, les registres de PX
@@ -1253,9 +1265,10 @@ tâches PU à PZ (*décidé le 13 novembre*).
    git rev-parse origin/dev^{tree}                         # le même
    ```
 
-   Essai du 17 novembre à `67f7073` : sans conflit, et l'arbre est celui de
-   `dev` ; `master` n'a que deux commits de plus, ceux de `.claude/CLAUDE.md`,
-   que `dev` avait aussi et que la pull request #384 retire de `master`.
+   Essai du 17 novembre à `8a308a7` : sans conflit, et l'arbre est celui de
+   `dev` (`3755177`) ; `master` a deux commits de plus, ceux de
+   `.claude/CLAUDE.md`, que `dev` avait aussi et que la pull request #384,
+   fusionnée à 9 h 42 UTC, a retirés de `master`.
 3. **La vérification.** La CI de `dev` est verte. Les trois archives (`cmake
    --build <build> --target dist`, `make dist`, `meson dist --formats gztar`)
    donnent exactement les fichiers de `git archive HEAD`, que `.gitattributes`
