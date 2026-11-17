@@ -14,9 +14,9 @@ The line-by-line report is [coverage.html](coverage.html), one page holding its 
 
 A run compiles the files of one processor family and the tests run the code of that family only. The runs below are merged (`gcovr --add-tracefile`), so that a line is covered if one of them runs it, and each file of the intervals is counted in the run that compiles it.
 
-- SSE (x86-64): GCC 15.2 on an Intel Core i7-1185G7, the SSE2 intervals, 70 tests of `dev` at `608af36` with the examples, none failed (`intervalf` and `interval2f` are skipped by construction), gcovr 7.2.
-- FPU: the same machine and commit with `-DGAOL_SIMD=OFF`, 67 tests, none failed (the same two skipped).
-- NEON (64-bit ARM): an Apple M2 with Apple clang 21.0.0 (`llvm-cov gcov`), the NEON intervals, 61 tests with the examples, none failed (the same two skipped), gcovr 7.2. Only the three files `gaol/core/gaol_interval_neon*.h` are merged: clang does not count the lines of the other files as GCC does, so their lines would not add up.
+- SSE (x86-64): GCC 15.2 on an Intel Core i7-1185G7, the SSE2 intervals, 70 tests of `dev` at `c1110ef` with the examples, none failed (`intervalf` and `interval2f` are skipped by construction), gcovr 7.2.
+- FPU: the same machine with `-DGAOL_SIMD=OFF`, 67 tests of `dev` at `608af36`, none failed (the same two skipped).
+- NEON (64-bit ARM): an Apple M2 with Apple clang 21.0.0 (`llvm-cov gcov`), the NEON intervals, 61 tests of `dev` at `608af36` with the examples, none failed (the same two skipped), gcovr 7.2. Only the three files `gaol/core/gaol_interval_neon*.h` are merged: clang does not count the lines of the other files as GCC does, so their lines would not add up.
 
 Each run is `cmake -S . -B <build> -DCMAKE_BUILD_TYPE=Debug -DWITH_TESTS=ON -DWITH_EXAMPLES=ON -DGAOL_COVERAGE=ON` (with `-DGAOL_SIMD=OFF` for the FPU) and `cmake --build <build> --target coverage`, which leaves `<build>/coverage.json`. The merge is `gcovr --root . --merge-mode-functions=merge-use-line-min --filter "$PWD/gaol/" --filter "$PWD/3rd/math-core/" --add-tracefile <run1>.json --add-tracefile <run2>.json ... --html --html-self-contained --html-title "Coverage of GAOL" --output coverage/coverage.html --json merged.json`, and this page is `python3 coverage/coverage_summary.py merged.json coverage/README.md --run ...`.
 
@@ -24,10 +24,10 @@ Each run is `cmake -S . -B <build> -DCMAKE_BUILD_TYPE=Debug -DWITH_TESTS=ON -DWI
 
 | | Lines | Covered | Not run | % | |
 |---|---:|---:|---:|---:|---|
-| **GAOL (`gaol/`)** | 7293 | 7113 | 180 | **97.5** | `████████████████████` |
+| **GAOL (`gaol/`)** | 7293 | 7123 | 170 | **97.7** | `████████████████████` |
 | CORE-MATH (`3rd/math-core/`) | 8172 | 6738 | 1434 | 82.5 | `████████████████░░░░` |
 
-**The tests run 97.5 % of the lines of GAOL, above the 80 % GAOL v5 aims at.**
+**The tests run 97.7 % of the lines of GAOL, above the 80 % GAOL v5 aims at.**
 
 Branches: 71.0 % of those of GAOL are taken both ways.
 
@@ -40,9 +40,9 @@ The configuration chooses the files that compute the intervals: SSE2 on x86-64, 
 | Family | File | Lines | Covered | % | Branches taken |
 |---|---|---:|---:|---:|---:|
 | SSE (x86-64) | `gaol/core/gaol_interval_sse.h` | 101 | 101 | 100.0 | 73.1 % |
-| SSE (x86-64) | `gaol/core/gaol_interval_sse_impl.h` | 416 | 382 | 91.8 | 64.8 % |
+| SSE (x86-64) | `gaol/core/gaol_interval_sse_impl.h` | 416 | 392 | 94.2 | 65.7 % |
 | SSE (x86-64) | `gaol/core/gaol_interval_sse_kernels.h` | 48 | 48 | 100.0 | 57.7 % |
-| | **SSE (x86-64)** | 565 | 531 | **94.0** | 65.5 % |
+| | **SSE (x86-64)** | 565 | 541 | **95.8** | 66.2 % |
 | NEON (64-bit ARM) | `gaol/core/gaol_interval_neon.h` | 118 | 118 | 100.0 | 100.0 % |
 | NEON (64-bit ARM) | `gaol/core/gaol_interval_neon_impl.h` | 222 | 222 | 100.0 | 100.0 % |
 | NEON (64-bit ARM) | `gaol/core/gaol_interval_neon_kernels.h` | 125 | 124 | 99.2 | 98.2 % |
@@ -61,7 +61,7 @@ Sorted by coverage, least covered first.
 | File | Lines | Covered | % | Branches taken |
 |---|---:|---:|---:|---:|
 | `gaol/parser/gaol_expr_eval.h` | 187 | 165 | 88.2 | 56.9 % |
-| `gaol/core/gaol_interval_sse_impl.h` | 416 | 382 | 91.8 | 64.8 % |
+| `gaol/core/gaol_interval_sse_impl.h` | 416 | 392 | 94.2 | 65.7 % |
 | `gaol/parser/gaol_expression.cpp` | 860 | 813 | 94.5 | 39.0 % |
 | `gaol/core/gaol_interval_io.cpp` | 386 | 365 | 94.6 | 67.6 % |
 | `gaol/gaol_common.h` | 21 | 20 | 95.2 | 66.7 % |
@@ -105,7 +105,7 @@ Sorted by coverage, least covered first.
 ## The lines the tests never run
 
 - `gaol/parser/gaol_expr_eval.h`: 95, 143, 149, 157, 163, 175, 181, 189, 195, 201, 207, 213, 219, 225, 231, 237, 243, 249, 255, 261, 267, 273
-- `gaol/core/gaol_interval_sse_impl.h`: 47, 61, 73, 75-76, 78, 84, 86, 869, 879-880, 897, 912-913, 928, 937-938, 953-954, 962-964, 979-981, 988-990, 1006-1007, 1302, 1305-1307
+- `gaol/core/gaol_interval_sse_impl.h`: 47, 61, 869, 879-880, 897, 912-913, 928, 937-938, 953-954, 962-964, 979-981, 988-990, 1006-1007
 - `gaol/parser/gaol_expression.cpp`: 362, 518, 520, 529, 531, 719, 721, 800, 802, 835, 837, 1010, 1012, 1043, 1045-1046, 1049, 1051, 1083, 1085, 1117, 1119, 1151, 1153, 1185, 1187, 1219, 1221, 1253, 1255, 1288, 1290, 1322, 1324, 1356, 1358, 1425, 1427, 1459, 1461, 1493, 1495, 1561, 1563, 1703, 1724-1725
 - `gaol/core/gaol_interval_io.cpp`: 147, 337, 346, 382, 430-431, 433-435, 458, 460, 469-472, 474-479
 - `gaol/gaol_common.h`: 308
