@@ -375,7 +375,7 @@ standard in `gaol_ieee1788`.
 
 `gaol` names the type and the functions of `gaol_core` one by one (GAOL v5):
 the names GAOL 4 had in `gaol` that GAOL v5 still names there (the class
-`interval`, the expressions with their nodes and visitor, the functions and
+`interval`, the expressions with their nodes and evaluator, the functions and
 the operators of intervals, the functions of doubles and the rounding
 direction, `round_downward()`, `round_upward()`, `round_nearest()`,
 `previous_float()`, `next_float()` and `is_finite()`, the version of the
