@@ -1928,6 +1928,26 @@ which `numbers` checks there too.
   divided, squared, negated, intersected, hulled, rooted, multiplied by a
   double and given a midpoint, and the program stops there with an aligned
   load; it only prints a line elsewhere.
+  `test_placement_new_and_delete_of_the_sse2_intervals` runs where the SSE2
+  intervals keep their bounds in a `__m128d`, the default of the SSE2 build,
+  which then has `new`, `new[]`, a placement `new` and a placement `delete` of
+  its own (GAOL v5; it prints a line elsewhere): `new (buffer) interval` on
+  an address aligned on 16 bytes hands that address back and builds the
+  interval there, and on an address of 8 modulo 16, which a `movaps` would stop
+  on, throws `std::bad_alloc` and builds nothing; the placement `delete`,
+  which the language calls only when the constructor of such an interval
+  throws, none doing, is called on a buffer of the stack and leaves it alone.
+  Without the test of the address in the placement `new`, the test fails;
+  with a placement `delete` that frees its memory, the program aborts
+  (`munmap_chunk(): invalid pointer`, GCC 15).
+  `test_printing_a_register_of_the_sse2_intervals`, with the SSE2 intervals
+  of either layout, checks that `gaol_core::operator<<` of a `__m128d`, a
+  tool for debugging, writes the high lane, ` : ` and the low lane, and
+  returns the stream (`2.5 : -1` for `_mm_set_pd(2.5, -1.0)`); with the two
+  lanes swapped, it fails. The two tests run the three functions of
+  `gaol_interval_sse_impl.h` that the report of `coverage/` showed never
+  called; the two `throw std::bad_alloc()` of `new` and `new[]`, reached only
+  when the memory is refused, are still not run.
   `test_stack_entered_aligned_on_4_bytes` runs on 32-bit Windows with GCC or
   Clang and the SSE2 intervals (MinGW-w64, MSYS2, Clang for Visual C++,
   clang-cl), where the system calls its threads and its callbacks with the

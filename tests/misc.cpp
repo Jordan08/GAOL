@@ -29,10 +29,12 @@ using namespace gaol;
 #include <deque>
 #include <istream>
 #include <list>
+#include <locale>
 #include <map>
 #include <memory>
 #include <new>
 #include <ostream>
+#include <sstream>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -754,6 +756,59 @@ public:
 #endif
   }
 
+  // The placement new and the placement delete of the SSE2 intervals that keep their bounds
+  // in a __m128d (GAOL v5; the class has none where the bounds are two doubles, see
+  // gaol/gaol_config.h). A new of an interval at an address hands that address back when it is
+  // aligned on 16 bytes, and refuses it with std::bad_alloc when it is not, an address
+  // that a movaps would stop on. The placement delete, which the language calls when the
+  // constructor of an interval built that way throws, which none does, leaves the memory
+  // alone: it is the caller's, and a free() of a buffer of the stack stops the program
+  void test_placement_new_and_delete_of_the_sse2_intervals() {
+#if GAOL_USING_SSE2_INSTRUCTIONS && !GAOL_SSE2_UNALIGNED_STORAGE
+    alignas(16) unsigned char buffer[3*sizeof(interval)];
+    interval* x = new (buffer) interval(1.0, 2.0);
+    TEST_TRUE(static_cast<void*>(x) == static_cast<void*>(buffer));
+    TEST_SEQ(*x + *x, interval(2.0, 4.0));
+    x->~interval();
+#  if GAOL_EXCEPTIONS_ENABLED
+    // Nothing is built at the refused address: the constructor does not run
+    bool refused = false;
+    try {
+      interval* y = new (buffer + 8) interval(1.0, 2.0);
+      y->~interval();
+    } catch (const std::bad_alloc&) {
+      refused = true;
+    }
+    TEST_TRUE(refused);
+#  endif
+    // Called through a pointer: GCC takes a call of an operator delete on a buffer of the
+    // stack for a free() of it (-Wfree-nonheap-object), which is what this checks it is not
+    void (*volatile placement_delete)(void*, void*) = &interval::operator delete;
+    buffer[0] = 0x5a;
+    placement_delete(buffer, buffer);
+    TEST_TRUE(buffer[0] == 0x5a);
+#else
+    std::printf("The SSE2 intervals keep their bounds as two doubles here (or are not SSE2 ones): they have no placement new nor placement delete of their own\n");
+#endif
+  }
+
+  // gaol_core::operator<<(std::ostream&, const __m128d&), which writes the two lanes of a
+  // vector register, the high one first (a tool of debugging), and returns the stream
+  void test_printing_a_register_of_the_sse2_intervals() {
+#if GAOL_USING_SSE2_INSTRUCTIONS
+    std::ostringstream out;
+    out.imbue(std::locale::classic());
+    std::ostream& returned = gaol_core::operator<<(out, _mm_set_pd(2.5, -1.0));
+    TEST_TRUE(&returned == &out);
+    TEST_TRUE(out.str() == "2.5 : -1");
+    out.str("");
+    gaol_core::operator<<(out, _mm_set_pd(0.125, 4096.0));
+    TEST_TRUE(out.str() == "0.125 : 4096");
+#else
+    std::printf("The intervals are not SSE2 ones here: there is no register to print\n");
+#endif
+  }
+
   // A function that works on local intervals, entered with the stack aligned on 4 bytes, as
   // 32-bit Windows enters the functions it calls (threads, callbacks): it has to return
   // the bounds it gives when entered with the stack aligned on 16 (see GAOL_TESTS_STACK_ON_4_BYTES above)
@@ -865,5 +920,7 @@ GAOL_UNIT_MAIN(misc_test, "misc",
                GAOL_UNIT_TEST(test_kernels_are_not_in_gaol_core),
                GAOL_UNIT_TEST(test_heap_alignment),
                GAOL_UNIT_TEST(test_intervals_aligned_on_8_bytes),
+               GAOL_UNIT_TEST(test_placement_new_and_delete_of_the_sse2_intervals),
+               GAOL_UNIT_TEST(test_printing_a_register_of_the_sse2_intervals),
                GAOL_UNIT_TEST(test_stack_entered_aligned_on_4_bytes),
                GAOL_UNIT_TEST(test_rounding_macros_write_mxcsr_alone))
