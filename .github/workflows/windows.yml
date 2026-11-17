@@ -43,7 +43,7 @@ name: Windows
 
 on:
   push:
-    branches: [master, configure-clean, dev]
+    branches: [master, dev]
     paths-ignore:
       # The notes of the work on GAOL v5, only in the branch dev: a push of
       # them changes no code and starts no check (GAOL v5)
