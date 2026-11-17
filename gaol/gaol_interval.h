@@ -44,8 +44,10 @@
   around pi and pi/2 (gaol_pi_dn, gaol_pi_up, gaol_half_pi_dn and
   gaol_half_pi_up, GAOL v5), and the names of gaol/gaol_common.h; the
   functions on intervals GAOL v5 adds (exp2, log2, hypot, trunc, sinpi, erf,
-  fma, cancel_minus, round_ties_to_even...) and the nodes of the expressions
-  it adds; and restore_rounding() and exact_string() of GAOL v5.
+  fma, cancel_minus, round_ties_to_even...); and restore_rounding() and
+  exact_string() of GAOL v5. The expressions, which GAOL 4 named in gaol too
+  (expression, the nodes, expr_eval, eval_stack...), are in gaol_core only (GAOL v5): a program reads a string with
+  textToInterval(), and does not build an expression.
   It does not hold what stays in gaol_core, where a program names it:
   - what GAOL's code uses for itself: the functions saving and setting the
     rounding direction and the modes flushing the subnormals to zero
@@ -53,28 +55,24 @@
     and gaol_set_rounding_x86(), which GAOL v5 declared in gaol in its 4.3
     releases and GAOL 4 did not,
     get_flush_modes()...), the functions computing GAOL's powers, which gaol
-    names pow (gaol_pown(), gaol_uipow(), gaol_pown_ll(), gaol_pow_real(),
-    gaol_pow_hybrid(), gaol_pown_exp(), gaol_pow_exp()), and the other
+    names pow (gaol_pown(), gaol_uipow(), gaol_pown_ll(), gaol_pow_real() and
+    gaol_pow_hybrid()), and the other
     internals, those GAOL 4 declared in gaol too (gaol_signbit(), uintdouble,
-    ullidouble, Interval_struct, the_null_expr, prec_t, modulo_k_pi(),
+    ullidouble, Interval_struct, modulo_k_pi(),
     round_downward_sse(), round_to_nearest_sse() and round_upward_sse(), which
     its manual did not document) and rnd_reread(), gaol_sign_of(),
     rounding_guard and gaol_initializer;
   - rnd_keep() (GAOL v5 adds it, and declared it in gaol in its 4.3
     releases; GAOL 4 has none),
     NaN_val of GAOL 4, which the macro GAOL_NAN names,
-    eval_stack, and the reader of strings, parse_interval() and
-    parsing_names.
+    and the reader of strings, parse_interval() and parsing_names.
   gaol took gaol_core whole before (using namespace gaol_core), and a program
   opening gaol met all of these names.
 
   A using-declaration names the overloads declared before it: this file
   includes gaol/core/gaol_interval_core.h, which includes the headers of what it
-  names, and names it after them; gaol/gaol_common.h and the headers of the
-  expressions name theirs at their end, and gaol/parser/gaol_expression.h
-  names again the functions and the operators it overloads for the
-  expressions. A call sin(x)
-  on an interval finds by argument-dependent lookup the functions of gaol_core
+  names, and names it after them; gaol/gaol_common.h names its own at its end. A call
+  sin(x) on an interval finds by argument-dependent lookup the functions of gaol_core
   only, the namespace where interval is defined, never those of gaol or of
   gaol_ieee1788 (gaol/gaol_ieee1788.h): the same functions, whichever
   namespace the program opens. pow and textToInterval, which are not the same

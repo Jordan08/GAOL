@@ -79,8 +79,7 @@ numbers. The line under it is what it prints.
 \end{Ex}
 
 The program includes the header \file{gaol/gaol.h}, which gives access to
-the intervals and their functions in both namespaces; the expressions have
-headers of their own (\pxref{sec:headers}). The type \code{interval} and the functions of GAOL are
+the intervals and their functions in both namespaces (\pxref{sec:headers}). The type \code{interval} and the functions of GAOL are
 in the namespace \code{gaol\_core}, which a program names through the
 namespace \code{gaol}: the \code{using} directive of Line~3 imports it. The
 \file{gaol/gaol.h} header of GAOL~4 imported the namespace itself; that of
@@ -146,16 +145,17 @@ it.
 %%-------------------
 \cindex{headers}%
 
-A program includes \file{gaol/gaol} (or \file{gaol/gaol.h}), and
-\file{gaol/parser/gaol\_expression.h} for the expressions, with
-\file{gaol/parser/gaol\_expr\_eval.h} to evaluate them. The three builds
-install these headers and the headers they include. Each of the installed
+A program includes \file{gaol/gaol} (or \file{gaol/gaol.h}). The three builds
+install it and the headers it includes. Each of the installed
 headers compiles alone, but for the three that other headers include in the middle
 of their code (\file{gaol/core/gaol\_interval\_fpu.h},
 \file{gaol/core/gaol\_interval\_neon.h} and
 \file{gaol/core/gaol\_interval\_sse.h}). The headers of the sources of GAOL are not
 installed:\newinvfive{} \file{gaol/parser/gaol\_interval\_parser.h}, which did
-not compile when included, \file{gaol\_init\_cleanup.h},
+not compile when included, \file{gaol/parser/gaol\_expression.h},
+\file{gaol/parser/gaol\_expr\_eval.h} and \file{gaol/parser/gaol\_eval\_stack.h},
+the expressions that \code{textToInterval()} builds, which a program does not
+use (\pxref{sec:namespaces}), \file{gaol\_init\_cleanup.h},
 \file{gaol/math/gaol\_core\_math.h}, \file{gaol/math/gaol\_u128.h},
 \file{gaol/math/gaol\_compoundm1.h}, \file{gaol/math/gaol\_roundeven.h},
 \file{gaol/math/gaol\_ldexp.h}, \file{gaol/math/gaol\_core\_math\_port.h},
@@ -167,10 +167,9 @@ Headers of GAOL~4 are gone: \file{gaol\_parameters.h}, which declared nothing,
 mathematical libraries GAOL~4 was built with, \file{gaol\_limits.h}, \file{gaol\_flags.h}, \file{gaol\_profile.h},
 \file{gaol\_allocator.h}, \file{gaol\_exceptions.h}, \file{gaol\_exact.h} with
 \file{sysdeps/}, which \file{dtoa.c} needed, and \file{gaol\_assert.h}, whose
-\code{GAOL\_ASSERT} is \code{assert()} now. The headers of the expressions and
-of the parser moved to \file{gaol/parser/}: a program that included
-\file{gaol/gaol\_expression.h} includes \file{gaol/parser/gaol\_expression.h}
-(Chapter~\ref{chap:changes}).
+\code{GAOL\_ASSERT} is \code{assert()} now. The header of the parser moved
+to \file{gaol/parser/}, and the headers of the expressions are no longer
+installed (Chapter~\ref{chap:changes}).
 
 \medskip
 The headers of GAOL compile without a warning under \option{-Wall -Wextra
@@ -532,8 +531,8 @@ those of the standard in \code{gaol\_ieee1788} (\pxref{sec:constructors}).
 \medskip
 \code{gaol} names the type and the functions of \code{gaol\_core} one by
 one.\newinvfive{} They are the names GAOL~4 had in \code{gaol} that GAOL v5
-still names there (the class \code{interval}, the expressions with their nodes
-and evaluator, the functions and the operators of intervals, the functions of
+still names there (the class \code{interval}, the functions and the operators
+of intervals, the functions of
 doubles and the rounding direction, \code{round\_downward()},
 \code{round\_upward()}, \code{round\_nearest()}, \code{previous\_float()},
 \code{next\_float()}, \code{is\_finite()}, the version of the library,
@@ -542,15 +541,19 @@ doubles and the rounding direction, \code{round\_downward()},
 \exref{sec:headers}), the functions on intervals GAOL v5 adds (\code{exp2},
 \code{log2}, \code{hypot}, \code{compoundm1}, \code{trunc}, \code{sinpi},
 \code{erf}, \code{fma}, \code{cancel\_minus},
-\code{round\_ties\_to\_even}\ldots{} and the nodes of their expressions),
-\code{restore\_rounding()} and \code{exact\_string()}. \code{gaol\_ieee1788}
-names the version as \code{gaol} does.
+\code{round\_ties\_to\_even}\ldots), \code{restore\_rounding()} and
+\code{exact\_string()}. \code{gaol\_ieee1788} names the version as \code{gaol}
+does. The expressions, which GAOL~4 named in \code{gaol} too (\code{expression},
+\code{expr\_node}, \code{eval\_stack}\ldots), are in
+\code{gaol\_core} only, and their headers are not installed: a program reads
+a string with \code{textToInterval()}, and does not build an
+expression.\newinvfive
 
 \noindent
 Some names are in \code{gaol\_core} only, and a program names them there:
 \code{gaol\_core::rnd\_keep}, for instance.\newinvfive{} They are
 \code{rnd\_keep()} (GAOL v5 adds it; the releases 4.3.0 to 4.3.2 had it in
-\code{gaol}, Chapter~\ref{chap:changes}; GAOL~4 has none), \code{NaN\_val}, \code{eval\_stack}, and the
+\code{gaol}, Chapter~\ref{chap:changes}; GAOL~4 has none), \code{NaN\_val}, and the
 reader of strings, \code{parse\_interval()} and \code{parsing\_names}.
 
 What the code of GAOL uses for itself is in \code{gaol\_core} only too, out of
@@ -563,8 +566,7 @@ Chapter~\ref{chap:changes}; and \code{get\_flush\_modes()}\ldots), the functions
 \code{gaol} (below), and the internals GAOL~4 had in \code{gaol} without its
 manual documenting them: the functions \code{gaol\_signbit()},
 \code{modulo\_k\_pi()} and the \code{round\_*\_sse()}, the types
-\code{uintdouble}, \code{ullidouble}, \code{Interval\_struct} and
-\code{prec\_t}, and the variable \code{the\_null\_expr}. A program calling one
+\code{uintdouble}, \code{ullidouble} and \code{Interval\_struct}. A program calling one
 of them names it in \code{gaol\_core}: \code{gaol\_core::get\_rounding()},
 for instance.
 
@@ -573,8 +575,8 @@ The \code{pow} of \code{gaol} takes the integer power for an integer exponent,
 a negative base included, and the \code{pow} of IEEE 1788-2015 for any other
 exponent (\pxref{sec:powers}). In \code{gaol\_core}, its versions are named
 apart: \code{gaol\_pown()}, \code{gaol\_uipow()}, \code{gaol\_pown\_ll()},
-\code{gaol\_pow\_real()}, \code{gaol\_pow\_hybrid()}, \code{gaol\_pown\_exp()}
-and \code{gaol\_pow\_exp()}, which are not in \code{gaol}.
+\code{gaol\_pow\_real()} and \code{gaol\_pow\_hybrid()}, which are not in
+\code{gaol}.
 
 \section{The powers in the two namespaces}\label{sec:pow-namespaces}
 %%----------------------------------------
@@ -665,10 +667,7 @@ upward: a program does not count on the direction after an operation that
 computes no bound (\pxref{sec:rounding-direction}).
 
 \medskip
-The rest of GAOL follows the same split. The expressions \code{pow(e, n)}
-and \code{pow(e1, e2)} of \code{gaol} are the hybrid power, \code{pown(e, n)}
-and \code{pow(e1, e2)} of \code{gaol\_ieee1788} the two powers of the
-standard. The text \code{"pow([-4,-1],2)"} is read as \itv{1}{16} by the
+The rest of GAOL follows the same split. The text \code{"pow([-4,-1],2)"} is read as \itv{1}{16} by the
 \code{textToInterval} of \code{gaol}, and as the empty set by that of
 \code{gaol\_ieee1788}, which reads \code{pow} as the real power and
 \code{"pown([-4,-1],2)"} as the integer power, a name \code{gaol} does not
@@ -719,7 +718,7 @@ bound, which is empty for $a>b$ compared as numbers
 (\code{interval(9007199254740993LL, 9007199254740992LL)} is empty, though both
 lie between the same two doubles), for the assignment \code{x = n} and
 \code{x |= n}, the arithmetic operators (\code{x + n}, \code{n * x},
-\code{x += n}\ldots), \code{set\_contains(n)}, \code{expression(n)}, and
+\code{x += n}\ldots), \code{set\_contains(n)}, and
 \code{numsToInterval()} and \code{isMember()} in \code{gaol\_ieee1788};
 \code{x \&= n} is \code{interval(n)} where \code{x} contains $n$, and the empty
 set otherwise. The relations and \code{set\_strictly\_contains(n)} compare $n$
@@ -735,9 +734,7 @@ modes of GCC and Clang with libstdc++, still convert to a double, and a \code{lo
 bound next to an integer takes \code{interval(double, double)}. An integer
 that is a double gives the result the double gives, and for the types of 53
 bits or less (\code{int}, \code{short}, \code{char}\ldots) the same code.
-\code{interval(n)} and \code{expression(n)} are explicit, as their
-constructors from a double; \code{expression(n)} is \code{expression(double)}
-where $n$ is a double.
+\code{interval(n)} is explicit, as its constructor from a double.
 
 \medskip
 \code{pow(x, n)} of \code{gaol} and \code{pown(x, n)} of \code{gaol\_ieee1788}
@@ -761,21 +758,12 @@ the unsigned ints gives an enclosure of the roots, computed by \code{pow} with
 the exponent $1/q$ ($x^{1/q}$ is within $2^{-21}$ of $1$ for every double
 $x>0$ there), for \code{pownRev(c, x, p)}, which gives the hull of the parts
 of $x$ in these roots and, for an even $p$, in their opposites (for a negative
-$p$, $c$ is cut at 0 first), and for \code{pow(e, n)}, \code{pown(e, n)} and
-\code{nth\_root(e, n)} of the expressions. In the earlier versions of GAOL v5,
+$p$, $c$ is cut at 0 first). In the earlier versions of GAOL v5,
 \code{nth\_root(x, 3L)} was ambiguous; \code{rootn(x, 3000000000u)} and \code{pownRev(c, 3000000000u)}
 converted the order to a negative \code{int}, the first giving a wrong
 interval (\itv{0.99999999839}{0.99999999946} for \itv{2}{8}, rather than
 \itv{1.00000000023}{1.00000000069}) and the second the reverse of a negative
-power; \code{rootn(x, 5000000001LL)} and the powers of expressions cut a
-\code{long} to an \code{int}; and \code{nth\_root(e, -2)} took the order
-4294967294. Beyond the ints, \code{pow(e, n)} and \code{pown(e, n)} of the
-expressions compute the \code{pow} of GAOL with the exponent \itv{n}{n} where $n$ is a
-double, as every $n$ up to $2^{53}$ is, and give the power of the interval; for
-an $n$ that is no double, no node holding a wider integer, they compute the
-product of $x^h$ and $x^l$, $n=h+l$, $h$ a double and $|l|<2^{11}$, which is
-wider than the power of the interval where $e$ holds 0 inside; beyond the unsigned ints, \code{nth\_root(e, n)} is the root of
-the interval but where $e$ contains 0, where it is wider.
+power; and \code{rootn(x, 5000000001LL)} cut a \code{long} to an \code{int}.
 
 \section{A result thrown away}\label{sec:nodiscard}
 %%---------------------------
@@ -786,8 +774,7 @@ another one. \code{sqrt(x);} alone leaves \code{x} as it was, and so do
 \code{x.mid();} and \code{x.emptyset();}, a static function that returns the
 empty set. The functions whose result is all they do carry an attribute that
 makes the compiler warn about such a call:\newinvfive{} the functions and
-operators on intervals, their predicates, the names of \code{gaol\_ieee1788}
-and the functions building expressions.
+operators on intervals, their predicates and the names of \code{gaol\_ieee1788}.
 
 \begin{example}
 sqrt(x);        @rem^// warning: the result is thrown away, x is unchanged~

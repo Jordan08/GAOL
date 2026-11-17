@@ -955,9 +955,6 @@ which `numbers` checks there too.
   `INT_MIN`, whose opposite no int holds, and no solution for the part of x
   in the gap of c (`pownRev([-1, 2], [-0.5, 0.5], -3)`) nor for the point 0
   (`pownRev([1, +oo], [0], -2)`);
-  `pown(e, 3000000000u)` of an expression,
-  its power, and beyond 2^53 x^n, not the power of a double near n ([-1]
-  for [-1]^(2^53 + 1)), within three doubles of the tightest bounds;
   `numsToInterval()` and `isMember()` take ±(2^53 + 1)
   as the integer it is, and bounds in the wrong order give the empty set;
   `centeredForm(m, r)` (GAOL v5) has the bounds of
@@ -990,9 +987,8 @@ which `numbers` checks there too.
   within the error bound of the integer power of a double (GAOL v5: the
   integer power `pow([0, 3], [100])` was one double above), compared with
   `==`, which does not tell −0 from +0, and the
-  same with the exponent given as a double;
-  and the expressions `pow(e1, e2)` and `pown(e, n)`, evaluated, the
-  standard's too. GAOL's functions on intervals and on an interval
+  same with the exponent given as a double.
+  GAOL's functions on intervals and on an interval
   and a number; the functions of C on numbers, by `static_assert`.
   `intervalToExact()` has to be `exact_string()`, read back bit for bit, and
   to leave the global output format alone; the check of it by a second
@@ -1297,7 +1293,10 @@ which `numbers` checks there too.
   set by the program change no bound (GAOL v5).
 - **`expressions`:** `textToInterval("...")` lexes the string, parses it into
   the tree of `gaol/parser/gaol_expression.h` and evaluates that tree, so this test
-  goes through every node of the tree and every way the string can be wrong:
+  goes through every node of the tree and every way the string can be wrong
+  (the expressions are in `gaol_core` only since GAOL v5, and their headers are
+  not installed: the test is built with the sources of GAOL, and is not among
+  those that `.github/scripts/tests.sh` builds with an installed GAOL):
   the numbers in every form the lexer takes (decimal, exponent, hexadecimal, the
   bounds given apart), the operators and the functions alone and nested, and
   the strings the parser has to refuse with an exception rather than an
@@ -1317,9 +1316,10 @@ which `numbers` checks there too.
   A negative exponent of `nth_root` has to give the root of C++,
   1/x<sup>1/|q|</sup>, alone and in a bound: the reader converted it to an
   unsigned int (GAOL v5). The expressions built in C++ go through every node
-  too, `pow(e, 3)` and `/=` included, which did not link, and `expression(n)`
+  too, the integer power of an expression and `/=` included, which did not
+  link, and `expression(n)`
   of 2^53 + 1, the interval of the two doubles around it, and `expression(7)`,
-  the node of the double 7, written `7`, and `pow(e, n)` and `nth_root(e, n)`
+  the node of the double 7, written `7`, and `nth_root(e, n)`
   with a `long` n, an unsigned beyond the ints, a negative int
   and orders beyond the unsigned ints, of positive, negative and
   mixed-sign expressions (GAOL v5), and have to be printed as written,
@@ -1873,21 +1873,26 @@ which `numbers` checks there too.
   type expected, for the names of GAOL 4 that Codac and IBEX use
   (`gaol::operator+`, `gaol::operator|`, `gaol::round_upward`, `gaol::nth_root`,
   `gaol::div_rel`, `gaol::init`...), the other classes of GAOL 4, the
-  functions on intervals GAOL v5 adds and the nodes of their expressions,
-  `restore_rounding()`, `exact_string()` and `is_finite()`, and
-  the overloads of every function and operator of the expressions; that the
-  `rnd_keep()`, `NaN_val`,
-  `eval_stack`, `parse_interval()` and `parsing_names` are not found through
+  functions on intervals GAOL v5 adds,
+  `restore_rounding()`, `exact_string()` and `is_finite()`; that the
+  expressions are not found through `using namespace gaol`, nor
+  `evaluate_expr()` and `evaluate_left_right()`: `expression`, `expr_node`,
+  `expr_eval`, `eval_stack`, `prec_t`, `the_null_expr` and the thirty nodes,
+  with `gaol_pown_exp()` and `gaol_pow_exp()`,
+  are in `gaol_core` only (GAOL v5), where `tests/expressions.cpp` checks that
+  `gaol::sin(e)` and `gaol_ieee1788::sin(e)` of an expression do not compile;
+  that the `rnd_keep()`, `NaN_val`,
+  `parse_interval()` and `parsing_names` are not found through
   `using namespace gaol`, nor what
   GAOL uses for itself: the
   functions (`get_rounding()`, `get_flush_modes()`, `gaol_pown()`...), their
   name between parentheses so that argument-dependent lookup does not find
   them in `gaol_core`, lose to fallbacks that any function of GAOL
   beats, and the types and the variables (`rounding_state`, `uintdouble`,
-  `the_null_expr`, the internals GAOL 4 had in `gaol` too,
+  the internals GAOL 4 had in `gaol` too,
   `NaN_val`, the version...) to fallbacks of the same name, with which they
   would be ambiguous. `misc` checks as well that `gaol_ieee1788::operator<<`
-  names the output of the intervals and of the expressions, and that `gaol`
+  names the output of the intervals, and that `gaol`
   and `gaol_ieee1788` both name `version_major`, `version_minor`,
   `version_micro` and `version`, and `gaol_pi_dn`, `gaol_pi_up`,
   `gaol_half_pi_dn` and `gaol_half_pi_up`. The test did not compile

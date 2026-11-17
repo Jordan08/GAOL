@@ -11,10 +11,9 @@
 #   include in the middle of their own code (core/gaol_interval_fpu.h,
 #   core/gaol_interval_neon.h and core/gaol_interval_sse.h, the inline
 #   functions of gaol_interval.h);
-# - including gaol/gaol, gaol/parser/gaol_expression.h and
-#   gaol/parser/gaol_expr_eval.h defines no macro whose name does not start
+# - including gaol/gaol defines no macro whose name does not start
 #   with GAOL_ or gaol_ (__GAOL, __gaol for the include guards): the macros
-#   those headers define are those
+#   that header defines are those
 #   the preprocessor has after them and not after the headers of the system
 #   they include, which an earlier file includes alone (with __has_include, for
 #   those of other systems, and only for Windows those of Windows, the intrin.h
@@ -80,7 +79,7 @@ for f in "$prefix"/include/gaol/* "$prefix"/include/gaol/core/* "$prefix"/includ
 done
 
 # The headers of the system the headers of GAOL include
-printf '#include <gaol/gaol>\n#include <gaol/parser/gaol_expression.h>\n#include <gaol/parser/gaol_expr_eval.h>\n' > "$work/gaol.cpp"
+printf '#include <gaol/gaol>\n' > "$work/gaol.cpp"
 sed -n 's/^[[:space:]]*#[[:space:]]*include[[:space:]]*<\([^>]*\)>.*/\1/p' "$prefix"/include/gaol/*.h "$prefix"/include/gaol/gaol "$prefix"/include/gaol/core/*.h "$prefix"/include/gaol/parser/*.h |
   grep -v '^gaol/' | sort -u |
   while read -r s; do

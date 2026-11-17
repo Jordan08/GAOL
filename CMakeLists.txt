@@ -1498,10 +1498,12 @@ install(TARGETS gaol EXPORT gaolTargets
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-# The headers a program includes, gaol/gaol, gaol/parser/gaol_expression.h and
-# gaol/parser/gaol_expr_eval.h for the expressions, and those they include:
+# The headers a program includes, gaol/gaol, and those they include:
 # gaol/Makefile.am and gaol/meson.build install the same ones. Not the headers
-# of the sources of GAOL only (GAOL v5): gaol/parser/gaol_interval_parser.h, which did not
+# of the sources of GAOL only (GAOL v5): the headers of the expressions, which
+# the parser of the strings builds (gaol/parser/gaol_expression.h,
+# gaol/parser/gaol_expr_eval.h, gaol/parser/gaol_eval_stack.h), and
+# gaol/parser/gaol_interval_parser.h, which did not
 # compile when included, the parts of the library (gaol_init_cleanup.h,
 # math/gaol_core_math.h, math/gaol_u128.h, math/gaol_compoundm1.h, the header
 # that the sources of core/ share, core/gaol_interval_internal.h, and the
@@ -1526,12 +1528,10 @@ set(GAOL_CORE_HEADERS
   gaol/core/gaol_interval_core.h gaol/core/gaol_interval_detail.h
   gaol/core/gaol_interval_fpu.h gaol/core/gaol_interval_neon.h
   gaol/core/gaol_interval_sse.h)
-# The headers of the parser of the strings and of the expressions, which a
-# program includes as gaol/parser/gaol_expression.h and
-# gaol/parser/gaol_parser.h: installed in gaol/parser/ as in the sources
+# The header of the parser of the strings, which gaol/gaol_ieee1788.h includes:
+# installed in gaol/parser/ as in the sources
 set(GAOL_PARSER_HEADERS
-  gaol/parser/gaol_eval_stack.h gaol/parser/gaol_expr_eval.h
-  gaol/parser/gaol_expression.h gaol/parser/gaol_parser.h)
+  gaol/parser/gaol_parser.h)
 install(FILES
   gaol/gaol
   ${GAOL_HEADERS}

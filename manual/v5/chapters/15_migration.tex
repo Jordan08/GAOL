@@ -173,23 +173,16 @@ them are described in the section the cross-reference names.
   \file{gaol/\allowbreak gaol\_version\_mingw.h} and
   \file{gaol/\allowbreak gaol\_flt\_output.h} (the source
   \file{gaol/\allowbreak dllmain.cpp} too); \file{gaol/\allowbreak gaol\_init\_cleanup.h} is no longer
-  installed, and a program that builds expressions includes
-  \file{gaol/parser/\allowbreak gaol\_expression.h}, with
-  \file{gaol/parser/\allowbreak gaol\_expr\_eval.h} to evaluate them, where it
-  included \file{gaol/\allowbreak gaol\_expression.h} (\pxref{sec:changes-interface}).
-\item[$\bullet$] \textbf{The expressions.} \code{eval\_stack} and
-  \code{expr\_eval} are no longer copyable, the stack of an evaluation
-  growing in the heap (\pxref{sec:changes-io}), and neither are the nodes
-  (\code{expr\_node} and its derived classes): a program that copied one,
-  \code{interval\_node b(*a);}, no longer compiles, and \code{clone()} copies
-  a node. The constructor \code{expression(const expr\_node\&)} is
-  \code{explicit}: a program that made an expression of a node without writing
-  it, \code{return *(new my\_node(...));} in a function that returns an
-  \code{expression}, writes \code{expression(*(new my\_node(...)))}.
-  \code{expr\_eval::result()} sets the error that \code{error\_occurred()}
-  tells when the evaluation of a tree leaves no value or more than one, and
-  takes the value off the stack, so that a second call is an error; the reader
-  of strings throws a \code{std::logic\_error} then.\newinvfive
+  installed, and neither are the headers of the expressions, the next item
+  (\pxref{sec:changes-interface}).
+\item[$\bullet$] \textbf{The expressions.} The expressions are in
+  \code{gaol\_core} only, and their headers are not installed:
+  \code{expression}, \code{expr\_node} and its thirty nodes, \code{expr\_eval},
+  \code{eval\_stack}, \code{evaluate\_expr()} and the functions and operators
+  that build an expression are in neither \code{gaol} nor
+  \code{gaol\_ieee1788}, and \file{gaol/\allowbreak gaol\_expression.h} of
+  GAOL~4, moved to \file{gaol/parser/}, is not installed. A program that built an expression reads a string
+  with \code{textToInterval()} (\pxref{sec:namespaces}).\newinvfive
 \item[$\bullet$] \textbf{The macro of errors.} \code{gaol\_ERROR(excep, msg)}
   is \code{GAOL\_ERROR(excep, msg)}, as the macros of GAOL start with
   \code{GAOL\_}; the old name is an alias. The class \code{excep} derives from
@@ -915,8 +908,7 @@ intervals with one infinite bound are unchanged. On an Intel i7-1185G7 (GCC
 its bounds are set in a register and behind a branch, since a pair written to
 memory or conditional moves cost several nanoseconds per construction
 (\pxref{sec:constructors}). The constructor from one \code{double},
-\code{interval(double)}, is explicit, and so are \code{expression(double)}
-and \code{expression(const interval\&)}: \code{interval x = 0.5;},
+\code{interval(double)}, is explicit: \code{interval x = 0.5;},
 \code{return 0.5;} in a function returning an interval, \code{min(x, 0.5)}
 and \code{interval r = sqrt(2.0);} do not compile, where GAOL~4 took the
 double for a point interval without saying so, the \code{sqrt(2.0)} of the C
@@ -936,7 +928,7 @@ rounding direction in effect, which an integer beyond $2^{53}$ is not:
 $[2^{53} + 2, 2^{53} + 2]$, neither containing it. An integer of any type
 but \code{bool} is now taken as the integer it is by the constructors, the
 assignments, the arithmetic operators, the relations, \code{set\_contains()},
-\code{expression(n)}, and \code{numsToInterval()} and \code{isMember()} of
+and \code{numsToInterval()} and \code{isMember()} of
 \code{gaol\_ieee1788}: \code{interval(n)} is the tightest interval
 containing $n$, the two doubles around it where $n$ is no double. The
 arithmetic operators enclose the exact result, but not always with the
@@ -945,8 +937,7 @@ $[2^{53}, 2^{53} + 4]$. The exponents of \code{pow} and \code{pown}, and the
 orders of \code{nth\_root}, \code{rootn} and \code{pownRev}, take an integer
 of any type too: GAOL~4 had \code{pow(x, int)} only, so that
 \code{pow(x, 3000000000u)} was \code{pow(x, -1294967296)}, and converted the
-order of \code{nth\_root} to an \code{unsigned}, so that
-\code{nth\_root(e, -2)} of an expression was the order 4294967294.
+order of \code{nth\_root} to an \code{unsigned}.
 
 \medskip
 The constructors from strings are gone.\newinvfive{} \code{interval(const
@@ -1468,8 +1459,9 @@ diagnostics written after it were lost (\pxref{sec:exceptions}).
 \cindex{namespaces!differences with GAOL~4}%
 \cindex{headers!differences with GAOL~4}%
 
-The type \code{interval}, GAOL's functions and its expressions are in
-\code{gaol\_core}; \code{gaol} names them as GAOL~4 did, and
+The type \code{interval} and GAOL's functions are in
+\code{gaol\_core}, as are its expressions, which neither namespace names;
+\code{gaol} names the type and the functions as GAOL~4 did, and
 \code{gaol\_ieee1788} as IEEE 1788-2015 does.\newinvfive{} \code{gaol} names
 them one by one, with using-declarations, rather than opening
 \code{gaol\_core} whole: the names GAOL~4 had in \code{gaol} that GAOL v5
@@ -1498,26 +1490,11 @@ bounds of $\pi$ are those of \code{interval::pi()}, and those of $\ln 2$
 those of \code{log(interval(2.0))}.
 
 \medskip
-The expressions were repaired.\newinvfive{} \code{pow(e, n)} on an
-expression links: the library defined it with an \code{unsigned int}
-exponent, where the header declares an \code{int}. \code{expression::operator/=}
-links: it was declared and not defined. Empty expressions can be created in
-several threads: they all point to one node, whose count of references, a
-plain \code{unsigned int}, lost updates, and two threads each creating and
-destroying a million empty expressions crashed each time; the references to
-that node are no longer counted, and it lives from the initialization of GAOL
-to its automatic cleanup. Other expressions still share the nodes of their
-copies, whose counts are not atomic: such an expression is not copied or
-destroyed in two threads at once.
-
-\medskip
 The headers GAOL installs are the ones a program includes.\newinvfive{} The
-three builds install the same list: \file{gaol/gaol}, \file{gaol/gaol.h}, the
-headers they include, and \file{gaol/parser/gaol\_expression.h} and
-\file{gaol/parser/gaol\_expr\_eval.h} for the expressions; a program that
-builds expressions includes \file{gaol/parser/gaol\_expression.h}, where it
-included \file{gaol/gaol\_expression.h}. They install no header of GAOL's sources:
-neither the header of the parser, which did not compile when included, nor
+three builds install the same list: \file{gaol/gaol}, \file{gaol/gaol.h} and
+the headers they include. They install no header of GAOL's sources: neither
+the header of the parser, which did not compile when included, nor the headers
+of the expressions, which GAOL~4 installed, nor
 \file{gaol/gaol\_init\_cleanup.h}, both of which GAOL~4 installed, nor the
 headers of \file{gaol/math/}, among them \file{gaol\_double\_op.h}, whose
 functions of doubles \code{exp\_dn()}, \code{sin\_up()} and the thirty others

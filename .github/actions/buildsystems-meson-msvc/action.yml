@@ -55,10 +55,10 @@ runs:
         # What the code using GAOL includes with Visual C++, and the
         # configuration, in include/gaol under the prefix, but not the
         # headers of the sources of GAOL only (GAOL v5)
-        foreach ($f in 'gaol_configuration.h', 'gaol_fpu_fenv.h', 'parser/gaol_expression.h') {
+        foreach ($f in 'gaol_configuration.h', 'gaol_fpu_fenv.h', 'parser/gaol_parser.h') {
           if (-not (Test-Path "$prefix/include/gaol/$f")) { Write-Output "$f is not installed"; exit 1 }
         }
-        foreach ($f in 'parser/gaol_interval_parser.h') {
+        foreach ($f in 'parser/gaol_interval_parser.h', 'parser/gaol_expression.h', 'parser/gaol_expr_eval.h', 'parser/gaol_eval_stack.h') {
           if (Test-Path "$prefix/include/gaol/$f") { Write-Output "$f is installed"; exit 1 }
         }
     # The intervals meson took, as CMake does (windows.yml): the SSE2 ones on

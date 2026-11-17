@@ -38,6 +38,7 @@
 #include "gaol/parser/gaol_expr_eval.h"
 
 using namespace gaol;
+using namespace gaol_core;
 using namespace gaol_tests;
 
 int main()

@@ -38,10 +38,11 @@
  * COPYING.LIB file for information.
  *--------------------------------------------------------------------------*/
 
-/* Before gaol/gaol, which gaol_tests.h includes: gaol/parser/gaol_expression.h is
-   included here before gaol/gaol_ieee1788.h, and after it in
-   tests/ieee1788.cpp, and the functions of gaol_ieee1788 take the overloads
-   of the expressions in both orders (GAOL v5) */
+/* The expressions are in gaol_core, and their headers are not installed
+   (GAOL v5): this test is built with the sources of GAOL. It includes them
+   before gaol/gaol_ieee1788.h (gaol_tests.h), which gaol_expression.h includes
+   first all the same: the checks below see that gaol_ieee1788 names nothing of
+   the expressions */
 #include "gaol/parser/gaol_expr_eval.h"
 
 #include "gaol_tests.h"
@@ -140,30 +141,45 @@ void operator delete[](void* p, std::size_t) noexcept { counted_delete(p); }
 // #endif
 
 using namespace gaol;
+using namespace gaol_core;
 using namespace gaol_tests;
+
+/* The powers of expressions, which gaol_core does not name (GAOL v5: gaol::pow
+   of expressions is gone, and the namespaces hold the powers of intervals):
+   gaol_pow_exp() and gaol_pown_exp(), the functions the reader of strings
+   builds its nodes with. Here, and not in the namespace below, which they
+   would make hide the pow of intervals the unnamed namespace sees */
+inline expression pow(const expression& e1, const expression& e2) { return gaol_pow_exp(e1, e2); }
+inline expression pow(const expression& e, int n) { return gaol_pown_exp(e, n); }
 
 namespace
 {
-  static_assert(std::is_same<decltype(gaol_ieee1788::sin(std::declval<const expression&>())), const expression>::value,
-                "gaol_ieee1788::sin of an expression, gaol/parser/gaol_expression.h included before gaol/gaol_ieee1788.h");
-
   /* expression(double) and expression(const interval&) are explicit, as
      interval(double) (GAOL v5): gaol::sin(0.5), which was ambiguous between
      the sin of [0.5] and that of an expression, does not compile, and
-     gaol::sin(x) on an interval is the sin of the interval */
+     gaol::sin(x) on an interval is the sin of the interval. The expressions
+     are in gaol_core only (GAOL v5): gaol and gaol_ieee1788 name the
+     functions of intervals, and gaol::sin(e) and gaol_ieee1788::sin(e) of an
+     expression do not compile */
   template <typename T, typename = void> struct has_gaol_sin : std::false_type {};
   template <typename T>
   struct has_gaol_sin<T, decltype(void(gaol::sin(std::declval<const T&>())))> : std::true_type {};
+  template <typename T, typename = void> struct has_ieee1788_sin : std::false_type {};
+  template <typename T>
+  struct has_ieee1788_sin<T, decltype(void(gaol_ieee1788::sin(std::declval<const T&>())))> : std::true_type {};
+  static_assert(has_gaol_sin<interval>::value && has_ieee1788_sin<interval>::value, "the detection works");
+  static_assert(!has_gaol_sin<expression>::value, "gaol::sin(e) of an expression does not compile");
+  static_assert(!has_ieee1788_sin<expression>::value, "gaol_ieee1788::sin(e) of an expression does not compile");
   static_assert(!std::is_convertible<double, expression>::value, "a double does not convert implicitly to an expression");
   static_assert(!std::is_convertible<interval, expression>::value, "an interval does not convert implicitly to an expression");
   static_assert(std::is_constructible<expression, double>::value && std::is_constructible<expression, interval>::value,
                 "expression(d) and expression(x) build the expressions of [d, d] and x");
-  static_assert(!has_gaol_sin<double>::value, "gaol::sin(0.5) does not compile, gaol/parser/gaol_expression.h included");
+  static_assert(!has_gaol_sin<double>::value, "gaol::sin(0.5) does not compile");
   // An integer neither, and expression(n) is expression(interval(n)) (GAOL v5)
   static_assert(!std::is_convertible<long long, expression>::value && std::is_constructible<expression, long long>::value,
                 "expression(n) builds the expression of interval(n)");
   static_assert(std::is_same<decltype(gaol::sin(std::declval<const interval&>())), interval>::value,
-                "gaol::sin(x) on an interval is the sin of x, gaol/parser/gaol_expression.h included");
+                "gaol::sin(x) on an interval is the sin of x");
 
   /* An empty expression of static storage, which refers to the node of the
      empty expression and is destroyed after main() has called
@@ -652,6 +668,21 @@ namespace
     return evaluate(std::string("textToInterval with the names of ") + names,
                     [&] { return (names[0] == 'g') ? textToInterval(text) : gaol_ieee1788::textToInterval(text); },
                     [&] { return text; });
+  }
+
+  /* pow and pown in a string are those of the names that read it: the nodes
+     of gaol_ieee1788::textToInterval() compute with the pow and the pown of
+     the standard, and those of gaol::textToInterval() with GAOL's pow, which
+     takes the power of a negative base (the expressions of pow and pown were
+     built in C++ too, before the namespaces stopped naming them, GAOL v5) */
+  void powers_of_the_names()
+  {
+    const interval standard_pow = read_as("the standard", "pow([-4,-1],[2])");
+    const interval standard_pown = read_as("the standard", "pown([-4,-1],2)");
+    const interval gaol_pow = read_as("gaol", "pow([-4,-1],[2])");
+    check("pow and pown of a string: those of the standard with its names, GAOL's pow with those of GAOL",
+          standard_pow.is_empty() && standard_pown.set_eq(interval(1.0, 16.0)) && gaol_pow.set_eq(interval(1.0, 16.0)),
+          [&] { return hex(standard_pow) + " " + hex(standard_pown) + " " + hex(gaol_pow); });
   }
 
   /* [l, u] with l above u is the empty set (GAOL v5), as
@@ -1302,17 +1333,10 @@ namespace
       {n, interval(two53, two53 + 2), "expression(2^53+1)"},
       {x + n, interval(1.0, 2.0) + interval(two53, two53 + 2), "x+expression(2^53+1)"},
       {expression(7), interval(7.0), "expression(7)"},
-      // pow(e, n) and nth_root(e, n) for an integer of another type (GAOL v5):
-      // an unsigned beyond the ints became a negative int, [0, 1] for
-      // [1, 2]^3000000000u, nth_root(e, -2) took the order 4294967294, and a
-      // long beyond the unsigned ints was reduced modulo 2^32. Beyond them,
-      // the powers of an expression are those of the intervals (GAOL v5:
-      // [-oo, +oo]), the exponents being doubles here, and the roots those
-      // of the intervals but where e contains 0 (see roots_of_expressions())
-      {pow(x, 3L), pow(interval(1.0, 2.0), 3), "x^3L"},
-      {pow(x, 3000000000u), pow(interval(1.0, 2.0), 3000000000u), "x^3000000000u"},
-      {pow(x, 5000000000LL), pow(interval(1.0, 2.0), 5000000000LL), "x^5e9"},
-      {pow(-x, 5000000001LL), pow(interval(-2.0, -1.0), 5000000001LL), "(-x)^(5e9+1)"},
+      // nth_root(e, n) for an integer of another type (GAOL v5): nth_root(e,
+      // -2) took the order 4294967294, and a long beyond the unsigned ints was
+      // reduced modulo 2^32. Beyond them, the roots are those of the
+      // intervals but where e contains 0 (see roots_of_expressions())
       {nth_root(x, 3L), nth_root(interval(1.0, 2.0), 3), "nth_root(x,3L)"},
       {nth_root(y, -2), interval(1.0) / nth_root(interval(3.0, 4.0), 2u), "nth_root(y,-2)"},
       {nth_root(x, 5000000000LL), nth_root(interval(1.0, 2.0), 5000000000LL), "nth_root(x,5e9)"},
@@ -2378,6 +2402,7 @@ int main()
   step("null_pointer");      null_pointer();
   step("null_text");         null_text();
   step("null_diagnostics");  null_pointers_in_diagnostics();
+  step("powers_of_the_names"); powers_of_the_names();
   step("reversed_bounds");   reversed_bounds();
   step("degenerate_bounds"); degenerate_bounds();
   step("integer_exponents"); integer_exponents();
