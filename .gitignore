@@ -44,6 +44,9 @@ build/*
 /manual/v5/pdflatex-*.log
 /manual/v5/gaol_version.tex
 
+# The lock files of gcore (.github/scripts), when it runs in the tree
+/.github/corelocks/
+
 
 .cache/
 compile_commands.json
