@@ -14,8 +14,8 @@
 
 // GAOL 4's unit test check/misc.cpp, run with the checks of unit_tests.h
 // rather than CppUnit (GAOL v5)
-// The expressions, with their nodes, visitor and evaluator, for the names of
-// the namespace gaol below
+// The expressions, with their nodes and evaluator, for the names of the
+// namespace gaol below
 #include "gaol/parser/gaol_expr_eval.h"
 #include "unit_tests.h"
 
@@ -78,7 +78,6 @@ namespace gaol_names
   GAOL_NAMES_CLASS(interval_format);
   GAOL_NAMES_CLASS(expression);
   GAOL_NAMES_CLASS(expr_node);
-  GAOL_NAMES_CLASS(expr_visitor);
   GAOL_NAMES_CLASS(expr_eval);
   GAOL_NAMES_CLASS(null_node);
   GAOL_NAMES_CLASS(double_node);
@@ -92,7 +91,19 @@ namespace gaol_names
   GAOL_NAMES_CLASS(pow_itv_node);
   GAOL_NAMES_CLASS(nth_root_node);
   GAOL_NAMES_CLASS(sin_node);
+  GAOL_NAMES_CLASS(cos_node);
+  GAOL_NAMES_CLASS(tan_node);
+  GAOL_NAMES_CLASS(atan2_node);
+  GAOL_NAMES_CLASS(asin_node);
+  GAOL_NAMES_CLASS(acos_node);
+  GAOL_NAMES_CLASS(atan_node);
+  GAOL_NAMES_CLASS(sinh_node);
+  GAOL_NAMES_CLASS(cosh_node);
+  GAOL_NAMES_CLASS(tanh_node);
   GAOL_NAMES_CLASS(asinh_node);
+  GAOL_NAMES_CLASS(acosh_node);
+  GAOL_NAMES_CLASS(atanh_node);
+  GAOL_NAMES_CLASS(exp_node);
   GAOL_NAMES_CLASS(log_node);
   // The nodes of the functions GAOL v5 adds to the expressions
   GAOL_NAMES_CLASS(exp2_node);

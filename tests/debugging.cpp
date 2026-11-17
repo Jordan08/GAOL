@@ -10,11 +10,11 @@
  * gaol::init() is level or more. gaol/parser/gaol_expression.h did not compile with
  * it: its GAOL_DEBUG_VERBOSE write on std::cout, which no header of GAOL
  * included (configure --enable-debug, the only build that defined it,
- * failed). This test includes GAOL's headers with GAOL_DEBUGGING whatever the
- * build, builds and evaluates an expression, whose nodes call
- * GAOL_DEBUG_VERBOSE, and checks that GAOL_DEBUG_VERBOSE runs its command at
- * the level given to gaol::init(). The macro was named GAOL_DEBUG before GAOL
- * v5.
+ * failed); those of the nodes are in gaol/parser/gaol_expression.cpp now.
+ * This test includes GAOL's headers with GAOL_DEBUGGING whatever the build,
+ * builds and evaluates an expression, and checks that GAOL_DEBUG_VERBOSE runs
+ * its command at the level given to gaol::init(). The macro was named
+ * GAOL_DEBUG before GAOL v5.
  *--------------------------------------------------------------------------
  * Copyright (c) 2026 ENSTA, France
  *
